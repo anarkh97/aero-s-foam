@@ -1,6 +1,7 @@
+#ifdef USE_EIGEN3
 #include <Element.d/Joint.d/CylindricalJoint.h>
-#include <Element.d/Joint.d/ParallelAxesConstraintType1.h>
-#include <Element.d/Joint.d/ParallelAxesConstraintType2.h>
+#include <Element.d/Joint.d/BuildingBlocks.d/ParallelAxesConstraint.h>
+#include <Element.d/Joint.d/BuildingBlocks.d/StraightLinePointFollowerConstraint.h>
 
 CylindricalJoint::CylindricalJoint(int* _nn)
  : SuperElement(true)
@@ -11,8 +12,8 @@ CylindricalJoint::CylindricalJoint(int* _nn)
   nSubElems = 2;
   subElems = new Element * [nSubElems];
   int nnloc[2] = { 0, 1 };
-  subElems[0] = new ParallelAxesConstraintType1(nnloc);
-  subElems[1] = new ParallelAxesConstraintType2(nnloc);
+  subElems[0] = new ParallelAxesConstraint(nnloc);
+  subElems[1] = new StraightLinePointFollowerConstraint(nnloc);
 }
 
 int 
@@ -20,3 +21,4 @@ CylindricalJoint::getTopNumber()
 { 
   return 106; 
 }
+#endif

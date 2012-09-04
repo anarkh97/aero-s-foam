@@ -1,3 +1,4 @@
+#ifdef USE_EIGEN3
 #include <Element.d/Rigid.d/RigidSpring.h>
 #include <Element.d/Joint.d/SphericalJoint.h>
 #include <Element.d/Joint.d/TranslationalJoint.h>
@@ -20,4 +21,4 @@ RigidSpring::getTopNumber()
 {
   return 102;
 }
-
+#endif

@@ -146,6 +146,13 @@ MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::getStress(Tensor *_str
   delete clone;
 }
 
+template<>
+inline void
+MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::getStress(Tensor *_stress, Tensor &_strain, double* state)
+{
+  std::cerr << "ERROR: MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::getStress is not implemented\n";
+}
+
 template<typename Material>
 void 
 MaterialWrapper<Material>::getTangentMaterial(Tensor *_tm, Tensor &_strain, double*)
@@ -212,6 +219,12 @@ MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::getTangentMaterial(Ten
   delete clone;
 }
 
+template<>
+inline void
+MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::getTangentMaterial(Tensor *_tm, Tensor &_strain, double* state)
+{
+  std::cerr << "ERROR: MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::getTangentMaterial is not implemented\n";
+}
 template<typename Material>
 void 
 MaterialWrapper<Material>::getStressAndTangentMaterial(Tensor *_stress, Tensor *_tm, Tensor &_strain, double*)
@@ -286,6 +299,13 @@ MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::getStressAndTangentMat
           (*tm)[i*27+j*9+k*3+l] = ltangents[i*27+j*9+k*3+l];
 
   delete clone;
+}
+
+template<>
+inline void
+MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::getStressAndTangentMaterial(Tensor *_stress, Tensor *_tm, Tensor &_strain, double* state)
+{
+  std::cerr << "ERROR: MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::getStressAndTangentMaterial is not implemented\n";
 }
 
 template<typename Material>
@@ -400,6 +420,14 @@ MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::integrate(Tensor *_str
 }
 
 template<>
+inline void
+MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Tensor &_enp,
+                                                                               double *staten, double *statenp, double)
+{
+  std::cerr << "ERROR: MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::integrate is not implemented\n";
+}
+
+template<>
 inline void 
 MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::integrate(Tensor *_stress, Tensor &, Tensor &_enp,
                                                                     double *staten, double *statenp, double)
@@ -448,6 +476,14 @@ MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::integrate(Tensor *_str
   delete clone;
 }
 
+template<>
+inline void
+MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::integrate(Tensor *_stress, Tensor &, Tensor &_enp,
+                                                                               double *staten, double *statenp, double)
+{
+  std::cerr << "ERROR: MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::integrate is not implemented\n";
+}
+
 template<typename Material>
 void
 MaterialWrapper<Material>::initStates(double *state)
@@ -467,6 +503,14 @@ inline double
 MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::getDensity()
 {
   std::cerr << "Warning IsotropicLinearElasticJ2PlasticMaterial doesn't implement GetDensityInReference function\n";
+  return 0.0;
+}
+
+template<>
+inline double
+MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::getDensity()
+{
+  std::cerr << "Warning IsotropicLinearElasticJ2PlasticPlaneStressMaterial doesn't implement GetDensityInReference function\n";
   return 0.0;
 }
 

@@ -1,5 +1,6 @@
+#ifdef USE_EIGEN3
 #include <Element.d/Rigid.d/RigidSolid.h>
-#include <Element.d/Joint.d/ConstantDistanceConstraint.h>
+#include <Element.d/Rigid.d/RigidTwoNodeTruss.h>
 
 RigidSolid::RigidSolid(int _nnodes, int* _nn)
  : SuperElement(true)
@@ -63,14 +64,14 @@ RigidSolid::buildFrame(CoordSet& cs)
   // Restraining the triangle
   int index = 0;
   for(int i = 0; i < 3; ++i)
-    subElems[index++] = new ConstantDistanceConstraint(best+i);
+    subElems[index++] = new RigidTwoNodeTruss(best+i);
 
   // Restraining the rest of the nodes
   for(int i = 0; i < nnodes; ++i) {
     if(i == best[0] || i == best[1] || i == best[2]) continue;
     for(int j = 0; j < 3; ++j) {
       int indices[2] = { i, best[j] };
-      subElems[index++] = new ConstantDistanceConstraint(indices);
+      subElems[index++] = new RigidTwoNodeTruss(indices);
     }
   }
 
@@ -114,4 +115,4 @@ RigidSolid::isSafe()
 {
   return (nnodes >= 4);
 }
-
+#endif

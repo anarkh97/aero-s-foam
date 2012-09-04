@@ -4,6 +4,7 @@
 #include <Element.d/NonLinearity.d/NLMaterial.h>
 #include <Material.d/Material.h>
 #include <Material.d/IsotropicLinearElasticJ2PlasticMaterial.h>
+#include <Material.d/IsotropicLinearElasticJ2PlasticPlaneStressMaterial.h>
 #include <Material.d/MooneyRivlin.h>
 
 class Tensor;
@@ -48,6 +49,8 @@ class MaterialWrapper : public NLMaterial
     double getEquivPlasticStrain(double *statenp);
 
     double getPosdefifyTol() { return posdefifyTol; }
+
+    Material* getMaterial() { return mat; }
 };
 
 template<>
@@ -90,6 +93,24 @@ MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::MaterialWrapper(double
   double mu     = E/(2.*(1.+nu));
   mat = new IsotropicLinearElasticJ2PlasticMaterial(lambda,mu,sigmaY,K,H);
   posdefifyTol = -1;
+}
+
+template<>
+inline
+MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::MaterialWrapper(double *params)
+{
+  double rho    = params[0];
+  double E      = params[1];
+  double nu     = params[2];
+  double sigmaY = params[3];
+  double K      = params[4];
+  double H      = params[5];
+  double Tol    = params[6];
+  
+  double lambda = E*nu/((1.+nu)*(1.-2.*nu));
+  double mu     = E/(2.*(1.+nu));
+  mat = new IsotropicLinearElasticJ2PlasticPlaneStressMaterial(lambda,mu,sigmaY,K,H,Tol);
+  posdefifyTol = params[7];
 }
 
 template<>

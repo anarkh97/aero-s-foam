@@ -178,13 +178,14 @@ ElementSamplingDriver::solve() {
         BasisInputStream in(BasisFileId(fileInfo, BasisId::STATE, BasisId::SNAPSHOTS), vecDofConversion);
 
         const int skipFactor = domain->solInfo().skipPodRom;
+        const int skipOffSet = domain->solInfo().skipOffSet;
         const int basisStateCount = 1 + (in.size() - 1) / skipFactor;
 
         snapshots.dimensionIs(basisStateCount, in.vectorSize());
         timeStamps.reserve(basisStateCount);
 
         int count = 0;
-        int skipCounter = skipFactor;
+        int skipCounter = skipFactor-skipOffSet;
         while (count < basisStateCount) {
           std::pair<double, double *> data;
           data.second = snapshots[count].data();

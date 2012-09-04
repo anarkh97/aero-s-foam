@@ -1,8 +1,9 @@
+#ifdef USE_EIGEN3
 #include <Element.d/Rigid.d/RigidBeam.h>
-#include <Element.d/Joint.d/ConstantDistanceConstraint.h>
-#include <Element.d/Joint.d/ParallelAxesConstraintType2.h>
-#include <Element.d/Joint.d/DotConstraintType1.h>
-#include <Element.d/Joint.d/ParallelAxesConstraintType1.h>
+#include <Element.d/Joint.d/BuildingBlocks.d/ConstantDistanceConstraint.h>
+#include <Element.d/Joint.d/BuildingBlocks.d/StraightLinePointFollowerConstraint.h>
+#include <Element.d/Joint.d/BuildingBlocks.d/RotationBlockerConstraint.h>
+#include <Element.d/Joint.d/BuildingBlocks.d/ParallelAxesConstraint.h>
 #include <Corotational.d/utilities.h>
 
 #ifdef USE_EIGEN3
@@ -35,9 +36,9 @@ RigidBeam::RigidBeam(int* _nn)
   int indices[2] = { 0, 1 };
 
   subElems[0] = new ConstantDistanceConstraint(indices);
-  subElems[1] = new ParallelAxesConstraintType2(indices);
-  subElems[2] = new DotConstraintType1(indices, 2, 1);
-  subElems[3] = new ParallelAxesConstraintType1(indices);
+  subElems[1] = new StraightLinePointFollowerConstraint(indices);
+  subElems[2] = new RotationBlockerConstraint(indices, 2, 1);
+  subElems[3] = new ParallelAxesConstraint(indices);
 }
 
 /* the idea here is to reduce the element constraint jacobian. in some cases it may be possible to
@@ -424,5 +425,4 @@ RigidBeam::getLength(CoordSet& cs, double &length)
      length = sqrt(dx*dx + dy*dy + dz*dz);
 
 }
-
-
+#endif

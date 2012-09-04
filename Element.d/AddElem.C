@@ -90,7 +90,7 @@
 
 #include <map>
 extern map<int,double > weightList;
-
+#ifdef USE_EIGEN3
 #include <Element.d/Rigid.d/RigidBeam.h>
 #include <Element.d/Rigid.d/RigidSpring.h>
 #include <Element.d/Rigid.d/RigidTransSprlink.h>
@@ -100,14 +100,14 @@ extern map<int,double > weightList;
 #include <Element.d/Rigid.d/RigidThreeNodeShell.h>
 #include <Element.d/Rigid.d/RigidTwoNodeTruss.h>
 #include <Element.d/Rigid.d/RigidSolid6Dof.h>
-//#include <Element.d/Rigid.d/RBE2.h>
 #include <Element.d/Rigid.d/RigidFourNodeShell.h>
-
-#include <Element.d/Joint.d/ConstantDistanceConstraint.h>
-#include <Element.d/Joint.d/ParallelAxesConstraintType1.h>
-#include <Element.d/Joint.d/ParallelAxesConstraintType2.h>
-#include <Element.d/Joint.d/DotConstraintType1.h>
-#include <Element.d/Joint.d/DotConstraintType2.h>
+#include <Element.d/Rigid.d/FlexibleBeam.h>
+#include <Element.d/Rigid.d/FlexibleTwoNodeTruss.h>
+#include <Element.d/Joint.d/BuildingBlocks.d/CommonPointConstraint.h>
+#include <Element.d/Joint.d/BuildingBlocks.d/ParallelAxesConstraint.h>
+#include <Element.d/Joint.d/BuildingBlocks.d/StraightLinePointFollowerConstraint.h>
+#include <Element.d/Joint.d/BuildingBlocks.d/RotationBlockerConstraint.h>
+#include <Element.d/Joint.d/BuildingBlocks.d/ConstantDistanceConstraint.h>
 #include <Element.d/Joint.d/WeldedJoint.h>
 #include <Element.d/Joint.d/SphericalJoint.h>
 #include <Element.d/Joint.d/RevoluteJoint.h>
@@ -117,19 +117,20 @@ extern map<int,double > weightList;
 #include <Element.d/Joint.d/PrismaticJoint.h>
 #include <Element.d/Joint.d/PinInSlotJoint.h>
 #include <Element.d/Joint.d/PlanarJoint.h>
-
 #include <Element.d/Joint.d/RevoluteActuator.h>
-#include <Element.d/MpcElement.d/PointPointDistanceConstraint.h>
-#include <Element.d/MpcElement.d/PointLineDistanceConstraint.h>
-#include <Element.d/MpcElement.d/PointPlaneDistanceConstraint.h>
-#include <Element.d/MpcElement.d/PointVariPointDistanceConstraint.h>
-#include <Element.d/MpcElement.d/PointVariLineDistanceConstraint.h>
-#include <Element.d/MpcElement.d/PointVariPlaneDistanceConstraint.h>
-
+#include <Element.d/MpcElement.d/PointPointDistanceConstraintElement.h>
+#include <Element.d/MpcElement.d/PointLineDistanceConstraintElement.h>
+#include <Element.d/MpcElement.d/PointPlaneDistanceConstraintElement.h>
+#include <Element.d/MpcElement.d/LineLineDistanceConstraintElement.h>
+#include <Element.d/MpcElement.d/SegmentSegmentDistanceConstraintElement.h>
+#include <Element.d/MpcElement.d/PointVariPointDistanceConstraintElement.h>
+#include <Element.d/MpcElement.d/PointVariLineDistanceConstraintElement.h>
+#include <Element.d/MpcElement.d/PointVariPlaneDistanceConstraintElement.h>
+#include <Element.d/MpcElement.d/LineVariLineDistanceConstraintElement.h>
+#include <Element.d/MpcElement.d/SegVariSegDistanceConstraintElement.h>
 #include <Element.d/Joint.d/LinearTranslationalSpring.h>
 #include <Element.d/Joint.d/NonlinearTranslationalSpring.h>
 #include <Element.d/Joint.d/NonlinearTorsionalSpring.h>
-
 #include <Element.d/Joint.d/SphericalJointSpringCombo.h>
 #include <Element.d/Joint.d/TranslationalJointSpringCombo.h>
 #include <Element.d/Joint.d/RevoluteJointSpringCombo.h>
@@ -137,6 +138,7 @@ extern map<int,double > weightList;
 #include <Element.d/Joint.d/CylindricalJointSpringCombo.h>
 #include <Element.d/Joint.d/PrismaticJointSpringCombo.h>
 #include <Element.d/Joint.d/PinInSlotJointSpringCombo.h>
+#endif
 
 #include <Element.d/Brick32.d/Brick32.h> 
 #include <Element.d/Penta26.d/Penta26.h> 
@@ -369,6 +371,7 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
      case 63:
        ele = new (ba) HelmLagQuadGal(nnodes,n);
        break;
+#ifdef USE_EIGEN3
      case 65:
        ele = new (ba) RigidTwoNodeTruss(n);
        break;
@@ -390,31 +393,28 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
      case 71:
        ele = new (ba) RigidSolid(nnodes,n);
        break;
+#endif
      case 72:
        ele = new (ba) Brick20(n);
        break;
+#ifdef USE_EIGEN3
      case 73:
        ele = new (ba) RigidThreeNodeShell(n);
        break;
      case 74:
        ele = new (ba) RigidSolid6Dof(nnodes,n);
        break;
-     case 75:
-       //else = new (ba) RBE2(nnodes,n);
-       cerr  << "Error: Element type 75 is not supported\n"; exit(-1);
-       break;
      case 76:
        ele = new (ba) RigidFourNodeShell(n);
        break;
-#ifdef USE_EIGEN3
      case 77:
-        ele = new (ba) PointPointDistanceConstraint(n);
+        ele = new (ba) PointPointDistanceConstraintElement(n);
         break;
      case 78:
-       ele = new (ba) PointLineDistanceConstraint(n);
+       ele = new (ba) PointLineDistanceConstraintElement(n);
        break;
      case 79:
-        ele = new (ba) PointPlaneDistanceConstraint(n);
+        ele = new (ba) PointPlaneDistanceConstraintElement(n);
         break;
 #endif
      case 80:
@@ -521,20 +521,21 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
      case 111:
        ele = new (ba) TwoNodeTrussF(n);
        break;
+#ifdef USE_EIGEN3
      case 113:
-       ele = new (ba) DotConstraintType1(n, 2, 1); // rotation blocker constraint
+       ele = new (ba) RotationBlockerConstraint(n, 2, 1);
        break;
      case 114:
-       ele = new (ba) DotConstraintType2(n, 0);
+       ele = new (ba) CommonPointConstraint(n);
        break;
      case 115:
        ele = new (ba) ConstantDistanceConstraint(n);
        break;
      case 116:
-       ele = new (ba) ParallelAxesConstraintType1(n);
+       ele = new (ba) ParallelAxesConstraint(n);
        break;
      case 117:
-       ele = new (ba) ParallelAxesConstraintType2(n); // straight line point follower constraint
+       ele = new (ba) StraightLinePointFollowerConstraint(n);
        break;
      case 118:
        ele = new (ba) PlanarJoint(n);
@@ -566,17 +567,27 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
      case 127:
        ele = new (ba) PinInSlotJoint(n);
        break;
-#ifdef USE_EIGEN3
+     case 173:
+       ele = new (ba) SegVariSegDistanceConstraintElement(n);
+       break;
+     case 174:
+       ele = new (ba) SegmentSegmentDistanceConstraintElement(n);
+       break;
+     case 175:
+       ele = new (ba) LineVariLineDistanceConstraintElement(n);
+       break;
+     case 176:
+       ele = new (ba) LineLineDistanceConstraintElement(n);
+       break;
      case 177:
-       ele = new (ba) PointVariPointDistanceConstraint(n);
+       ele = new (ba) PointVariPointDistanceConstraintElement(n);
        break;
      case 178:
-       ele = new (ba) PointVariLineDistanceConstraint(n);
+       ele = new (ba) PointVariLineDistanceConstraintElement(n);
        break;
      case 179:
-       ele = new (ba) PointVariPlaneDistanceConstraint(n);
+       ele = new (ba) PointVariPlaneDistanceConstraintElement(n);
        break;
-#endif
      case 200:
        ele = new (ba) LinearTranslationalSpring(n);
        break;
@@ -585,6 +596,12 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        break;
      case 202:
        ele = new (ba) NonlinearTorsionalSpring(n, 2, 1);
+       break;
+     case 205: 
+       ele = new (ba) FlexibleTwoNodeTruss(n);
+       break;
+     case 206:
+       ele = new (ba) FlexibleBeam(n);
        break;
      case 220:
        ele = new (ba) SphericalJointSpringCombo(n);
@@ -607,6 +624,7 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
      case 227:
        ele = new (ba) PinInSlotJointSpringCombo(n);
        break;
+#endif
      case 128:
        ele = new (ba) NLMembrane4(n);
        break;

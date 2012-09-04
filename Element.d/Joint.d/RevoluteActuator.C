@@ -1,6 +1,7 @@
+#ifdef USE_EIGEN3
 #include <Element.d/Joint.d/RevoluteActuator.h>
-#include <Element.d/Joint.d/SphericalJoint.h>
-#include <Element.d/Joint.d/ParallelAxesConstraintType1.h>
+#include <Element.d/Joint.d/BuildingBlocks.d/CommonPointConstraint.h>
+#include <Element.d/Joint.d/BuildingBlocks.d/ParallelAxesConstraint.h>
 #include <Element.d/Joint.d/DotConstraintType1a.h>
 
 RevoluteActuator::RevoluteActuator(int* _nn)
@@ -12,8 +13,8 @@ RevoluteActuator::RevoluteActuator(int* _nn)
   nSubElems = 3;
   subElems = new Element * [nSubElems];
   int nnloc[2] = { 0, 1 };
-  subElems[0] = new SphericalJoint(nnloc);
-  subElems[1] = new ParallelAxesConstraintType1(nnloc);
+  subElems[0] = new CommonPointConstraint(nnloc);
+  subElems[1] = new ParallelAxesConstraint(nnloc);
   subElems[2] = new DotConstraintType1a(nnloc, 2, 1);
 }
 
@@ -22,4 +23,4 @@ RevoluteActuator::getTopNumber()
 { 
   return 106; 
 }
-
+#endif

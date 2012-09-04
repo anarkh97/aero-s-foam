@@ -178,6 +178,9 @@ class GeoSource {
   int numCframes;
   ResizeArray<double *> cframes;
 
+  int numCSframes;
+  ResizeArray<EFrameData> csfd;
+
   int prsflg;
   int constpflg, constqflg; // consistent pressure and gravity
   typedef std::vector<pair<int,double> > ElemPressureContainer;
@@ -263,6 +266,8 @@ class GeoSource {
   BCond *surface_nbc;
   int numSurfacePressure;
   BCond *surface_pres;
+  int numSurfaceConstraint;
+  BCond *surface_cfe;
 
 public:
   bool binaryInput, binaryOutput;
@@ -332,8 +337,9 @@ public:
   CoefData* getCoefData(int i) { assert(i >= 0 && i < numCoefData); return coefData[i]; }
   int  addLayMat(int m, double *);
   int  setAttrib(int n, int a, int ca = -1, int cfrm = -1, double ctheta = 0.0);
-  int  setFrame(int,double *);
-  int  addCFrame(int,double *);
+  int  setFrame(int, double *);
+  int  setCSFrame(int, double *);
+  int  addCFrame(int, double *);
   void setElementPressure(int, double);
   void setElementPreLoad(int, double);
   void setElementPreLoad(int, double[3]);
@@ -354,6 +360,7 @@ public:
   int  addSurfaceDirichlet(int, BCond *);
   int  addSurfaceNeuman(int, BCond *);
   int  addSurfacePressure(int, BCond *);
+  int  addSurfaceConstraint(int, BCond *);
 
   // PITA
   int getLocalTimeSliceCount() { return timeSliceOutputFiles.size(); }
@@ -429,10 +436,12 @@ public:
   const std::map<int, NLMaterial *> &getMaterialLaws() const { return materials; }
   const std::map<int, int> &getMaterialLawMapping() const { return matUsage; }
   EFrameData *getEframes()  { return efd+0; }
+  EFrameData *getCSframes() { return csfd+0; }
   double **getCframes()  { return cframes+0; }
   LayInfo **getLayInfo() { return layInfo+0; }
   int getNumLayInfo() { return numLayInfo; }
   int getNumEframes() { return numEframes; }
+  int getNumCSframes() { return numCSframes; }
   int getNumCframes() { return numCframes; }
   const ElemPressureContainer &getElementPressure() const { return eleprs; }
   int pressureFlag() { return prsflg; }
@@ -462,6 +471,7 @@ public:
   int getSurfaceDirichletBC(BCond *&);
   int getSurfaceNeumanBC(BCond *&);
   int getSurfacePressure(BCond *&);
+  int getSurfaceConstraint(BCond *&);
 
   int getModalDamping(BCond *&);
 

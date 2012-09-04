@@ -1,6 +1,7 @@
+#ifdef USE_EIGEN3
 #include <Element.d/Joint.d/RevoluteJoint.h>
 #include <Element.d/Joint.d/SphericalJoint.h>
-#include <Element.d/Joint.d/ParallelAxesConstraintType1.h>
+#include <Element.d/Joint.d/BuildingBlocks.d/ParallelAxesConstraint.h>
 
 RevoluteJoint::RevoluteJoint(int* _nn)
  : SuperElement(true)
@@ -12,7 +13,7 @@ RevoluteJoint::RevoluteJoint(int* _nn)
   subElems = new Element * [nSubElems];
   int nnloc[2] = { 0, 1 };
   subElems[0] = new SphericalJoint(nnloc);
-  subElems[1] = new ParallelAxesConstraintType1(nnloc);
+  subElems[1] = new ParallelAxesConstraint(nnloc);
 }
 
 int 
@@ -20,4 +21,4 @@ RevoluteJoint::getTopNumber()
 { 
   return 106; 
 }
-
+#endif

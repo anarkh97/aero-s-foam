@@ -47,6 +47,7 @@ struct DistrSnapshotNonLinDynamicDetail : private DistrSnapshotNonLinDynamic {
     DistrBasisOutputFile stateSnapFile_;
     
     double timeStamp_;
+    int stateSkip_;
   };
 
 private:
@@ -63,7 +64,8 @@ DistrSnapshotNonLinDynamicDetail::RawImpl::RawImpl(DecDomain *decDomain) :
   fileInfo_(),
   stateSnapFile_(BasisFileId(fileInfo_, BasisId::STATE, BasisId::SNAPSHOTS), nodeCount(),
                  snapBuffer_.globalNodeIndexBegin(), snapBuffer_.globalNodeIndexEnd(), structCom),
-  timeStamp_(decDomain->getDomain()->solInfo().initialTime)
+  timeStamp_(decDomain->getDomain()->solInfo().initialTime),
+  stateSkip_(0)
 {}
 
 void
@@ -83,6 +85,8 @@ DistrSnapshotNonLinDynamicDetail::RawImpl::lastDeltaIs(double dt) {
 
 void
 DistrSnapshotNonLinDynamicDetail::RawImpl::stateSnapshotAdd(const DistrGeomState &snap) {
+  ++stateSkip_;
+  if(stateSkip_ >= decDomain_->getDomain()->solInfo().skipState) {
   const int subDomCount = snap.getNumSub();
   DistrMasterMapping::SubMasterMappingIt mappingIt = masterMapping_.begin();
   for (int iSub = 0; iSub < subDomCount; ++iSub) {
@@ -108,7 +112,10 @@ DistrSnapshotNonLinDynamicDetail::RawImpl::stateSnapshotAdd(const DistrGeomState
   }
 
   stateSnapFile_.stateAdd(snapBuffer_, timeStamp_);
+  stateSkip_ = 0;
+ }
 }
+
 
 DistrSnapshotNonLinDynamic::DistrSnapshotNonLinDynamic(Domain *domain) :
   MDNLDynamic(domain),

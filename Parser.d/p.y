@@ -61,7 +61,7 @@
 %token BLOCKDIAG BOFFSET BUCKLE BGTL BMPC BINARYINPUT BINARYOUTPUT
 %token CHECKTOKEN COARSESOLVER COEF CFRAMES COLLOCATEDTYPE CONVECTION COMPOSITE CONDITION
 %token CONTROL CORNER CORNERTYPE CURVE CCTTOL CCTSOLVER CRHS COUPLEDSCALE CONTACTSURFACES CMPC CNORM
-%token COMPLEXOUTTYPE CONSTRMAT CASES
+%token COMPLEXOUTTYPE CONSTRMAT CASES CONSTRAINEDSURFACES CSFRAMES CSTYPE
 %token DAMPING DblConstant DEM DIMASS DISP DIRECT DLAMBDA DP DYNAM DETER DECOMPOSE DECOMPFILE DMPC DEBUGCNTL DEBUGICNTL
 %token CONSTRAINTS MULTIPLIERS PENALTY
 %token EIGEN EFRAMES ELSCATTERER END ELHSOMMERFELD EXPLICIT EPSILON ELEMENTARYFUNCTIONTYPE
@@ -70,7 +70,7 @@
 %token GEPS GLOBALTOL GRAVITY GRBM GTGSOLVER GLOBALCRBMTOL GROUP GROUPTYPE GOLDFARBTOL GOLDFARBCHECK
 %token HDIRICHLET HEAT HFETI HNEUMAN HSOMMERFELD HFTT
 %token HELMHOLTZ HNBO HELMMF HELMSO HSCBO HWIBO HZEM HZEMFILTER HLMPC 
-%token HELMSWEEP HELMSWEEP1 HELMSWEEP2 HERMITIAN
+%token HELMSWEEP HELMSWEEP1 HELMSWEEP2 HERMITIAN HESSIAN
 %token IACC IDENTITY IDIS IDIS6 IntConstant INTERFACELUMPED ITEMP ITERTYPE IVEL 
 %token INCIDENCE IHDIRICHLET IHDSWEEP IHNEUMANN ISOLVERTYPE INPC INFINTY
 %token JACOBI KRYLOVTYPE KIRLOC
@@ -94,13 +94,13 @@
 %token ZERO BINARY GEOMETRY DECOMPOSITION GLOBAL MATCHER CPUMAP
 %token NODALCONTACT MODE FRIC GAP
 %token OUTERLOOP EDGEWS WAVETYPE ORTHOTOL IMPE FREQ DPH WAVEMETHOD
-%token MATSPEC MATUSAGE BILINEARPLASTIC FINITESTRAINPLASTIC LINEARELASTIC STVENANTKIRCHHOFF LINPLSTRESS READ OPTCTV ISOTROPICLINEARELASTIC NEOHOOKEAN ISOTROPICLINEARELASTICJ2PLASTIC HYPERELASTIC MOONEYRIVLIN HENCKY LOGSTRAINPLASTIC SVKPLSTRESS
+%token MATSPEC MATUSAGE BILINEARPLASTIC FINITESTRAINPLASTIC LINEARELASTIC STVENANTKIRCHHOFF LINPLSTRESS READ OPTCTV ISOTROPICLINEARELASTIC NEOHOOKEAN ISOTROPICLINEARELASTICJ2PLASTIC ISOTROPICLINEARELASTICJ2PLASTICPLANESTRESS HYPERELASTIC MOONEYRIVLIN HENCKY LOGSTRAINPLASTIC SVKPLSTRESS
 %token SURFACETOPOLOGY MORTARTIED MORTARSCALING MORTARINTEGRATIONRULE SEARCHTOL STDMORTAR DUALMORTAR WETINTERFACE
 %token NSUBS EXITAFTERDEC SKIP OUTPUTMEMORY OUTPUTWEIGHT
 %token WEIGHTLIST GMRESRESIDUAL 
 %token SLOSH SLGRAV SLZEM SLZEMFILTER 
 %token PDIR HEFSB HEFRS HEINTERFACE  // Added for HEV Problem, EC, 20080512
-%token SNAPFI PODROB TRNVCT ORTHOG SVDTOKEN SAMPLING PODSIZEMAX REFSUBSTRACT TOLER
+%token SNAPFI PODROB TRNVCT OFFSET ORTHOG SVDTOKEN SAMPLING PODSIZEMAX REFSUBSTRACT TOLER
 
 %type <complexFDBC> AxiHD
 %type <complexFNBC> AxiHN
@@ -116,7 +116,7 @@
 %type <frame>    Frame
 %type <fval>     Float DblConstant
 %type <ival>     AEROTYPE Attributes AUGMENTTYPE AVERAGED 
-%type <ival>     COLLOCATEDTYPE CORNERTYPE COMPLEXOUTTYPE TDENFORC
+%type <ival>     COLLOCATEDTYPE CORNERTYPE COMPLEXOUTTYPE TDENFORC CSTYPE
 %type <ival>     ELEMENTARYFUNCTIONTYPE FETIPREC FETI2TYPE 
 %type <ival>     GTGSOLVER Integer IntConstant ITERTYPE
 %type <ival>     RBMSET RENUMBERID OPTCTV
@@ -165,6 +165,7 @@ Component:
         | ComplexLMPConstrain 
 	| ElemSet
 	| FrameDList
+        | ConstrainedSurfaceFrameDList
 	| Attributes
 	{}
 	| Materials
@@ -305,6 +306,8 @@ Component:
         | HEInterface
         {}
         | ContactSurfaces
+        {}
+        | ConstrainedSurfaces
         {}
 	| BoffsetList
 	| ParallelInTimeInfo 
@@ -1177,6 +1180,17 @@ DirichletBC:
           geoSource->addSurfaceDirichlet(1,surf_bc); }
 */
         ;
+ConstrainedSurfaces:
+        CONSTRAINEDSURFACES NewLine
+        /*                    surface_id type   attribute_id csframe_id */
+        | ConstrainedSurfaces Integer    CSTYPE Integer      Integer      NewLine
+        { BCond *surf_bc = new BCond[1];
+          surf_bc[0].nnum = $2-1;
+          surf_bc[0].type = (BCond::BCType) $3; //BCond::PointPlaneDistance;
+          surf_bc[0].dofnum = $4-1;
+          surf_bc[0].val = $5-1;
+          geoSource->addSurfaceConstraint(1,surf_bc);
+        }
 HEVDirichletBC:
         PDIR NewLine HEVDBCDataList
         { for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Pdir; $$ = $3; }
@@ -2042,7 +2056,7 @@ MatData:
           sp.lagrangeMult = bool($3);
           sp.penalty = $4;
           sp.type = StructProp::Constraint;
-          sp.kx = $6;
+          sp.k1 = $6;
           geoSource->addMat( $1-1, sp );
         }
         | Integer CONSTRMAT Integer Float SPRINGMAT Float Float NewLine
@@ -2051,8 +2065,8 @@ MatData:
           sp.lagrangeMult = bool($3);
           sp.penalty = $4;
           sp.type = StructProp::Constraint;
-          sp.ky = $6;
-          sp.kz = $7;
+          sp.k1 = $6;
+          sp.k2 = $7;
           geoSource->addMat( $1-1, sp );
         }
         | Integer CONSTRMAT Integer Float SPRINGMAT Float Float Float NewLine
@@ -2061,15 +2075,15 @@ MatData:
           sp.lagrangeMult = bool($3);
           sp.penalty = $4;
           sp.type = StructProp::Constraint;
-          sp.kx = $6;
-          sp.ky = $7;
-          sp.kz = $8;
+          sp.k1 = $6;
+          sp.k2 = $7;
+          sp.k3 = $8;
           geoSource->addMat( $1-1, sp );
         }
         | Integer SPRINGMAT Float NewLine
         { // use for TorsionalSpringType1 or TranslationalSpring
           StructProp sp;
-          sp.kx = $3;
+          sp.k1 = $3;
           geoSource->addMat( $1-1, sp );
         }
 	;
@@ -2411,6 +2425,11 @@ ComplexBC_Data:
 	| Integer Integer Float NewLine
 	{ $$.nnum = $1-1; $$.dofnum = $2-1; $$.reval = $3; $$.imval = 0.0; }
 	;
+ConstrainedSurfaceFrameDList:
+        CSFRAMES NewLine
+        | ConstrainedSurfaceFrameDList Frame
+        { geoSource->setCSFrame($2.num,$2.d); }
+        ;
 FrameDList:
         EFRAMES NewLine
 /*
@@ -2563,6 +2582,10 @@ Solver:
           domain->solInfo().setProbType(SolverInfo::Static);
           if($3 < 8) fprintf(stderr," *** WARNING: Pivoting not supported for this solver \n");
           else domain->solInfo().pivot = true; }
+        | STATS NewLine SOLVERTYPE UNSYMMETRIC NewLine
+        { domain->solInfo().setSolver($3);
+          domain->solInfo().setProbType(SolverInfo::Static);
+          domain->solInfo().getNLInfo().unsymmetric = true; }
         | STATS NewLine ITERTYPE Integer NewLine
         { domain->solInfo().setSolver($3,$4);    
           domain->solInfo().setProbType(SolverInfo::Static); }
@@ -3154,35 +3177,70 @@ Constraints:
         ;
 ConstraintOptionsData:
         DIRECT
-        { $$.lagrangeMult = false; $$.penalty = 0.0; } // Direct elimination of slave dofs
+        { // Direct elimination of slave dofs
+          $$.lagrangeMult = false;
+          $$.penalty = 0.0;
+          $$.constraint_hess = 0;
+          $$.constraint_hess_eps = 0.0;
+        }
         | DIRECT Float
-        { $$.lagrangeMult = false; $$.penalty = 0.0;
+        { $$.lagrangeMult = false; 
+          $$.penalty = 0.0;
+          $$.constraint_hess = 0;
+          $$.constraint_hess_eps = 0.0;
           domain->solInfo().usePrescribedThreshold = true;
           domain->solInfo().mpcDirectTol = $2; }
         | DIRECT Float Float
-        { $$.lagrangeMult = false; $$.penalty = 0.0;
+        { $$.lagrangeMult = false; 
+          $$.penalty = 0.0;
+          $$.constraint_hess = 0;
+          $$.constraint_hess_eps = 0.0;
           domain->solInfo().usePrescribedThreshold = true;
           domain->solInfo().mpcDirectTol = $2;
           domain->solInfo().coefFilterTol = $3; }
         | DIRECT Float Float Float
-        { $$.lagrangeMult = false; $$.penalty = 0.0;
+        { $$.lagrangeMult = false; 
+          $$.penalty = 0.0;
+          $$.constraint_hess = 0;
+          $$.constraint_hess_eps = 0.0;
           domain->solInfo().usePrescribedThreshold = true;
           domain->solInfo().mpcDirectTol = $2; 
           domain->solInfo().coefFilterTol = $3;
           domain->solInfo().rhsZeroTol = $4; }
         | DIRECT Float Float Float Float
-        { $$.lagrangeMult = false; $$.penalty = 0.0;
+        { $$.lagrangeMult = false; 
+          $$.penalty = 0.0;
+          $$.constraint_hess = 0;
+          $$.constraint_hess_eps = 0.0;
           domain->solInfo().usePrescribedThreshold = true;
           domain->solInfo().mpcDirectTol = $2;
           domain->solInfo().coefFilterTol = $3; 
           domain->solInfo().rhsZeroTol = $4;
           domain->solInfo().inconsistentTol = $5; }
         | MULTIPLIERS
-        { $$.lagrangeMult = true; $$.penalty = 0.0; } // Treatment of constraints through Lagrange multipliers method
+        { // Treatment of constraints through Lagrange multipliers method
+          $$.lagrangeMult = true; 
+          $$.penalty = 0.0;
+          $$.constraint_hess = 1;
+          $$.constraint_hess_eps = 0.0; }
         | PENALTY Float
-        { $$.lagrangeMult = false; $$.penalty = $2; } // Treatment of constraints through penalty method
+        { // Treatment of constraints through penalty method
+          $$.lagrangeMult = false;
+          $$.penalty = $2;
+          $$.constraint_hess = 1;
+          $$.constraint_hess_eps = 0.0; }
         | MULTIPLIERS PENALTY Float
-        { $$.lagrangeMult = true; $$.penalty = $3; } // Treatment of constraints through augmented Lagrangian method
+        { // Treatment of constraints through augmented Lagrangian method
+          $$.lagrangeMult = true;
+          $$.penalty = $3;
+          $$.constraint_hess = 1;
+          $$.constraint_hess_eps = 0.0; }
+        | ConstraintOptionsData HESSIAN Integer
+        { $$.constraint_hess = $3;
+          $$.constraint_hess_eps = 0; }
+        | ConstraintOptionsData HESSIAN Integer Float
+        { $$.constraint_hess = $3;
+          $$.constraint_hess_eps = $4; }
         ;
 HelmInfo:
         HELMHOLTZ NewLine
@@ -3630,6 +3688,24 @@ MatSpec:
             geoSource->addMaterial($2-1,
               new MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>(params));
           }
+        | MatSpec Integer ISOTROPICLINEARELASTICJ2PLASTICPLANESTRESS Float Float Float Float Float Float NewLine
+          {
+            double params[8] = { $4, $5, $6, $7, $8, $9, 1.0e-6, -std::numeric_limits<double>::infinity() };
+            geoSource->addMaterial($2-1,
+              new MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(params));
+          }
+        | MatSpec Integer ISOTROPICLINEARELASTICJ2PLASTICPLANESTRESS Float Float Float Float Float Float Float NewLine
+          {
+            double params[8] = { $4, $5, $6, $7, $8, $9, $10, -std::numeric_limits<double>::infinity() };
+            geoSource->addMaterial($2-1,
+              new MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(params));
+          }
+        | MatSpec Integer ISOTROPICLINEARELASTICJ2PLASTICPLANESTRESS Float Float Float Float Float Float Float Float NewLine
+          {
+            double params[8] = { $4, $5, $6, $7, $8, $9, $10, $11 };
+            geoSource->addMaterial($2-1,
+              new MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(params));
+          }
         | MatSpec Integer OPTCTV Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
@@ -3719,6 +3795,8 @@ SamplingOption:
   { domain->solInfo().tolPodRom = $2; }
   | SKIP Integer
   { domain->solInfo().skipPodRom = $2; }
+  | OFFSET Integer
+  { domain->solInfo().skipOffSet = $2; }
   | PODSIZEMAX Integer
   { domain->solInfo().maxSizePodRom = $2; }
   ;

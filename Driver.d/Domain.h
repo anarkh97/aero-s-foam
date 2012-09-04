@@ -84,9 +84,9 @@ typedef GenSubDomain<double> SubDomain;
 class FSCommunicator;
 
 namespace Rom {
-template <typename Scalar> class GenGaussNewtonSolver;
+//template <typename Scalar> class GenGaussNewtonSolver;
 template <typename Scalar> class GenGalerkinProjectionSolver;
-template <typename Scalar> class GenGappyProjectionSolver;
+//template <typename Scalar> class GenGappyProjectionSolver;
 } /* end namespace Rom */
 
 // HB
@@ -334,6 +334,10 @@ class Domain : public HData {
                            Corotator **allCorot, FullSquareMatrix *kel,
                            Vector &residual, double lambda = 1.0, double time = 0.0,
                            GeomState *refState = NULL, Vector *reactions = NULL);
+     void getFollowerForce(GeomState &u, Vector &elementInternalForce,
+                           Corotator **allCorot, FullSquareMatrix *kel,
+                           Vector &residual, double lambda = 1.0, double time = 0.0,
+                           GeomState *refState = NULL, Vector *reactions = NULL);
      void getWeightedStiffAndForceOnly(const std::map<int, double> &weights,
                                        GeomState &u, Vector &elementInternalForce,
                                        Corotator **allCorot, FullSquareMatrix *kel,
@@ -499,14 +503,14 @@ class Domain : public HData {
      template<class Scalar>
        GenMumpsSolver<Scalar> *constructMumps(ConstrainedDSA *CDSA = 0, Rbm *rbm=0, FSCommunicator *com = 0);
 
-     template<class Scalar>
-       Rom::GenGaussNewtonSolver<Scalar> *constructGaussNewtonSolver();
+//     template<class Scalar>
+//       Rom::GenGaussNewtonSolver<Scalar> *constructGaussNewtonSolver();
      
      template<class Scalar>
        Rom::GenGalerkinProjectionSolver<Scalar> *constructGalerkinProjectionSolver();
      
-     template<class Scalar>
-       Rom::GenGappyProjectionSolver<Scalar> *constructGappyProjectionSolver();
+//     template<class Scalar>
+//      Rom::GenGappyProjectionSolver<Scalar> *constructGappyProjectionSolver();
 
      Rbm              *constructRbm(bool printFlag = true);
      Rbm              *constructHzem(bool printFlag = true);

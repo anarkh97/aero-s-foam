@@ -4,13 +4,13 @@ namespace Rom {
 
 std::string
 toString(BasisId::Type t) {
-  static const std::string str[]  = { "state", "res", "jac", "for" };
+  static const std::string str[]  = { "state", "res", "jac", "for", "accel" };
   return str[t];
 }
 
 std::string
 toString(BasisId::Level l) {
-  static const std::string str[] = { "snap", "pod", "gappy" };
+  static const std::string str[] = { "snap", "pod" };
   return str[l];
 }
 

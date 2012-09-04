@@ -1,7 +1,5 @@
 PROJECT (FEM)
 
-#incomplete: parallel acme, zoltan, metis, spooles threads, acme version, apple, windows
-
 cmake_minimum_required(VERSION 2.6  FATAL_ERROR)
 enable_language(Fortran)
 
@@ -136,42 +134,24 @@ IF(UNIX)
     ENDIF(SPOOLES_FOUND)
 
 # eigen
-   IF(NOT WITH_EIGEN3 EQUAL 0)
-     find_package(Eigen3 3.1)
-     IF(EIGEN3_FOUND)
-       include_directories(${EIGEN3_INCLUDE_DIR})
-       add_definitions(-DUSE_EIGEN3 -DUSE_EIGEN3_AUTODIFF -DEIGEN_QUATERNIONBASE_PLUGIN=<Element.d/MpcElement.d/QuaternionBasePlugin.h>)
-       set(CMAKE_MODULE_PATH ${EIGEN3_INCLUDE_DIR}/cmake ${CMAKE_MODULE_PATH})
-       find_package(Cholmod)
-       if (CHOLMOD_INCLUDES AND CHOLMOD_LIBRARIES)
-         include_directories(${CHOLMOD_INCLUDES})
-         add_definitions(-DEIGEN_CHOLMOD_SUPPORT)
-         SET(EXTRALIBRARIES ${CHOLMOD_LIBRARIES} ${EXTRALIBRARIES})
-       endif(CHOLMOD_INCLUDES AND CHOLMOD_LIBRARIES)
-       find_package(Umfpack)
-       if (UMFPACK_INCLUDES AND UMFPACK_LIBRARIES)
-         include_directories(${UMFPACK_INCLUDES})
-         add_definitions(-DEIGEN_UMFPACK_SUPPORT)
-         SET(EXTRALIBRARIES ${UMFPACK_LIBRARIES} ${EXTRALIBRARIES})
-       endif(UMFPACK_INCLUDES AND UMFPACK_LIBRARIES)
-       find_package(SuperLU)
-       if (SUPERLU_INCLUDES AND SUPERLU_LIBRARIES)
-         include_directories(${SUPERLU_INCLUDES})
-         add_definitions(-DEIGEN_SUPERLU_SUPPORT)
-         SET(EXTRALIBRARIES ${SUPERLU_LIBRARIES} ${EXTRALIBRARIES})
-       endif(SUPERLU_INCLUDES AND SUPERLU_LIBRARIES)
-     ENDIF(EIGEN3_FOUND)
-   ENDIF(NOT WITH_EIGEN3 EQUAL 0)
-
-#sacado
-    IF(NOT WITH_SACADO EQUAL 0)
-      FIND_PATH(SACADO_INCLUDE_PATH NAMES Sacado.hpp )
-      IF(SACADO_INCLUDE_PATH)
-        MESSAGE("-- A library with SACADO API found. ")
-        add_definitions(-DTRILINOS_NO_CONFIG_H -DUSE_SACADO)
-        include_directories(${SACADO_INCLUDE_PATH} ${SACADO_INCLUDE_PATH}/mpl)
-      ENDIF(SACADO_INCLUDE_PATH)
-    ENDIF(NOT WITH_SACADO EQUAL 0)
+   find_package(Eigen3 3.0.90)
+   IF(EIGEN3_FOUND)
+     include_directories(${EIGEN3_INCLUDE_DIR})
+     add_definitions(-DUSE_EIGEN3)
+     set(CMAKE_MODULE_PATH ${EIGEN3_INCLUDE_DIR}/cmake ${CMAKE_MODULE_PATH})
+     find_package(Cholmod)
+     if (CHOLMOD_INCLUDES AND CHOLMOD_LIBRARIES)
+       include_directories(${CHOLMOD_INCLUDES})
+       add_definitions(-DEIGEN_CHOLMOD_SUPPORT)
+       SET(EXTRALIBRARIES ${CHOLMOD_LIBRARIES} ${EXTRALIBRARIES})
+     endif(CHOLMOD_INCLUDES AND CHOLMOD_LIBRARIES)
+     find_package(SuperLU)
+     if (SUPERLU_INCLUDES AND SUPERLU_LIBRARIES)
+       include_directories(${SUPERLU_INCLUDES})
+       add_definitions(-DEIGEN_SUPERLU_SUPPORT)
+       SET(EXTRALIBRARIES ${SUPERLU_LIBRARIES} ${EXTRALIBRARIES})
+     endif(SUPERLU_INCLUDES AND SUPERLU_LIBRARIES)
+   ENDIF(EIGEN3_FOUND)
 
 # metis
     FIND_LIBRARY(METIS_LIBRARY NAMES metis
@@ -259,6 +239,23 @@ IF(UNIX)
       endif(BLACS_FOUND AND SCALAPACK_FOUND)
     endif(NOT MPI_FOUND)
 
+#stxxl
+    IF(NOT WITH_STXXL EQUAL 0)
+      FIND_LIBRARY(STXXL_LIBRARY NAMES stxxl
+                   PATHS /usr/lib /usr/local/lib)
+      FIND_PATH(STXXL_INCLUDE_PATH stxxl.h
+                PATHS /usr/include usr/local/include)
+      if(STXXL_LIBRARY AND STXXL_INCLUDE_PATH)
+        MESSAGE("-- A library with STXXL API found.")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -include stxxl/bits/defines.h")
+        add_definitions(-DUSE_STXXL -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE)
+        #SET(INC_DIR ${INC_DIR} "/home/avery/Codes/stxxl-trunk/include")
+        #SET(EXTRALIBRARIES ${EXTRALIBRARIES} "/home/avery/Codes/stxxl-trunk/lib/libstxxl.a")
+        SET(INC_DIR ${INC_DIR} ${STXXL_INCLUDE_PATH})
+        SET(EXTRALIBRARIES ${EXTRALIBRARIES} ${STXXL_LIBRARY})
+      ENDIF(STXXL_LIBRARY AND STXXL_INCLUDE_PATH)
+    ENDIF(NOT WITH_STXXL EQUAL 0)
+
 # metis
 #    FIND_LIBRARY(METIS_LIBRARY NAMES metis
 #                 PATHS /usr/lib /usr/local/lib)
@@ -267,15 +264,6 @@ IF(UNIX)
 #      add_definitions(-DUSE_METIS)
 #      SET(EXTRALIBRARIES ${EXTRALIBRARIES} ${METIS_LIBRARY})
 #    ENDIF(METIS_LIBRARY)
-
-  FIND_PACKAGE(Boost 1.35)
-  if(Boost_FOUND)
-    add_definitions(-DUSE_BOOST)
-    include_directories(${Boost_INCLUDE_DIRS})
-  else(Boost_FOUND)
-    unset(Boost_INCLUDE_DIR CACHE)
-    unset(Boost_LIBRARY_DIRS CACHE)
-  endif(Boost_FOUND)
 
   ENDIF(${CMAKE_SYSTEM_NAME} STREQUAL Linux)
 ENDIF(UNIX)
@@ -293,8 +281,8 @@ if(MPI_FOUND)
    IF(NOT APPLE)
      ADD_LIBRARY(femlib main.C HgIdentity.C)
      target_link_libraries(femlib Parser
-       Driver Elem Feti HelmAxi solver Corotational Mortar Math 
-       Dec Threads linpa Sfem paral Problems Driver Hetero Timers Comm Material Rom Util getopt 
+       Driver Elem Feti HelmAxi solver Corotational Mortar Math Driver
+       Dec Threads linpa Sfem paral Problems Hetero Timers Comm Material Rom Util getopt
        ${EXTRALIBDYN} ${CMAKE_DL_LIBS} ${LAPACK_LIBRARIES})
      SET_TARGET_PROPERTIES(femlib
                            PROPERTIES 
@@ -351,8 +339,8 @@ add_subdirectory(Rom.d)
 add_subdirectory(Regression.d)
 
 SET(ALLLIBS Parser
-     Driver Elem Feti HelmAxi solver Corotational Mortar Math
-     Dec Threads linpa Sfem paral Problems Driver Hetero Timers Comm Material Rom Util getopt)
+     Driver Elem Feti HelmAxi solver Corotational Mortar Math Driver
+     Dec Threads linpa Sfem paral Problems Hetero Timers Comm Material Rom Util getopt)
 
 IF(ACME_FOUND AND (ZOLTAN_FOUND OR NOT MPI_FOUND))
   add_subdirectory(Acme.d)

@@ -37,8 +37,8 @@ struct OutputInfo {
           EigenSlosh, SloshDispX, SloshDispY, SloshDispZ, SloshDisplacement,
           TDEnforcement, Damage, EquivalentPlasticStrain, 
           TemperatureFirstTimeDerivative, PressureFirstTimeDerivative, PressureSecondTimeDerivative,
-          HeatReactions, Reactions6
-         };
+	  HeatReactions, Reactions6, Statevector, Residual, Jacobian, 
+	  RobData, SampleMesh, Accelvector, Forcevector};
 
    enum Group  { Nodal, Attribute, NodeGroup };
    Type  type;
@@ -61,6 +61,7 @@ struct OutputInfo {
    int complexouttype;
    int ncomplexout;   
    bool matlab;
+   bool PodRomfile;
    int tdenforc_var; // CONFACE=1, NORMAL_FORCE_MAG, NORMAL_TRACTION_MAG, TANGENTIAL_FORCE_MAG, TANGENTIAL_TRACTION_MAG,
                      // CDIRNORX, CDIRNORY, CDIRNORZ, CDIRTANX, CDIRTANY, CDIRTANZ, SLIP_MAG, NODAL_DISSIPATION,
                      // CONTACT_AREA, GAP_CUR, GAP_OLD
@@ -85,6 +86,7 @@ struct OutputInfo {
      ncomplexout = 16;
      tdenforc_var = 3;
      matlab = false;
+     PodRomfile = false;
      topFlag = 0;
    }
 

@@ -37,8 +37,9 @@ DistrBasisOrthoDriver::solve() {
                                        decDomain->getAllSubDomains() + decDomain->getNumSub());
   
   FileNameInfo fileInfo;
-  const BasisId::Type workload = domain_->solInfo().gaussNewtonPodRom ? BasisId::RESIDUAL :
-                                 (domain_->solInfo().galerkinPodRom ? BasisId::FORCE : BasisId::STATE);
+  const BasisId::Type workload = BasisId::STATE; /*domain_->solInfo().gaussNewtonPodRom ? BasisId::RESIDUAL :
+                                 (domain_->solInfo().galerkinPodRom ? BasisId::FORCE : BasisId::STATE);*/
+
   DistrBasisInputFile inputFile(BasisFileId(fileInfo, workload, BasisId::SNAPSHOTS));
 
   DistrSvdOrthogonalization solver(comm_, comm_->numCPUs(), 1);

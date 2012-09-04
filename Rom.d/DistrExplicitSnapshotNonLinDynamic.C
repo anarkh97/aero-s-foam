@@ -2,6 +2,7 @@
 
 #include "FileNameInfo.h"
 #include "DistrBasisFile.h"
+#include "BasisOutputFile.h"
 
 #include "DistrMasterMapping.h"
 #include "DistrVecNodeDof6Conversion.h"
@@ -28,7 +29,11 @@ class DistrExplicitSnapshotNonLinDynamic::SnapshotHandler {
 public:
   void currentTimeIs(double t);
   void snapshotAdd(const DistrVector &s);
+  void accelerationSnapshotAdd(const DistrVector &accel);
+  void forceSnapshotAdd(const DistrVector &f);
   explicit SnapshotHandler(DistrExplicitSnapshotNonLinDynamic *parent);
+  
+
 
 private:
   typedef PtrPtrIterAdapter<SubDomain> SubDomIt;
@@ -37,16 +42,22 @@ private:
 
   DistrVecNodeDof6Conversion converter_;
   DistrMasterMapping masterMapping_;
+  DistrVector assembledSnapshot_;
   DistrNodeDof6Buffer buffer_;
-  DistrBasisOutputFile outputFile_;
+  DistrBasisOutputFile * stateOutputFile_;
+  DistrBasisOutputFile * accelOutputFile_;
+  DistrBasisOutputFile * forceOutputFile_;
   
-  int skipCounter_;
+  int stateSkip_;
+  int accelSkip_;
+  int forceSkip_;
 
   double currentTime_;
 };
 
 DistrExplicitSnapshotNonLinDynamic::DistrExplicitSnapshotNonLinDynamic(Domain *domain) :
   MultiDomainDynam(domain),
+  domain_(domain),
   snapshotHandler_(NULL)
 {}
 
@@ -58,6 +69,18 @@ void
 DistrExplicitSnapshotNonLinDynamic::preProcess() {
   MultiDomainDynam::preProcess();
   snapshotHandler_ = new SnapshotHandler(this);
+
+  collectState = false;
+  collectAccel = false;
+  collectForce = false;
+
+  if(domain_->solInfo().statevectPodRom)
+    collectState = true;
+  if(domain_->solInfo().accelvectPodRom)
+    collectAccel = true;
+  if(domain_->solInfo().forcevectPodRom)
+    collectForce = true;
+
 }
 
 void
@@ -66,8 +89,18 @@ DistrExplicitSnapshotNonLinDynamic::currentTimeIs(double t) {
 }
 
 void
-DistrExplicitSnapshotNonLinDynamic::snapshotAdd(const DistrVector &f) {
-  snapshotHandler_->snapshotAdd(f);
+DistrExplicitSnapshotNonLinDynamic::stateSnapshotAdd(const DistrVector &state) {
+  snapshotHandler_->snapshotAdd(state);
+}
+
+void
+DistrExplicitSnapshotNonLinDynamic::accelerationSnapshotAdd(const DistrVector &accel) {
+  snapshotHandler_->accelerationSnapshotAdd(accel);
+}
+
+void
+DistrExplicitSnapshotNonLinDynamic::forceSnapshotAdd(const DistrVector &f) {
+  snapshotHandler_->forceSnapshotAdd(f);
 }
 
 DistrExplicitSnapshotNonLinDynamic::SnapshotHandler::SnapshotHandler(DistrExplicitSnapshotNonLinDynamic *parent) :
@@ -75,11 +108,23 @@ DistrExplicitSnapshotNonLinDynamic::SnapshotHandler::SnapshotHandler(DistrExplic
   converter_(parent->decDomain->getAllSubDomains(), parent->decDomain->getAllSubDomains() + parent->decDomain->getNumSub()),
   masterMapping_(SubDomIt(parent->decDomain->getAllSubDomains()), SubDomIt(parent->decDomain->getAllSubDomains() + parent->decDomain->getNumSub())),
   buffer_(masterMapping_.masterNodeBegin(), masterMapping_.masterNodeEnd()),
-  outputFile_(BasisFileId(FileNameInfo(), BasisId::STATE, BasisId::SNAPSHOTS), geoSource->getNumGlobNodes(),
-              buffer_.globalNodeIndexBegin(), buffer_.globalNodeIndexEnd(), structCom),
-  skipCounter_(0),
+  assembledSnapshot_(parent->decDomain->solVecInfo()),
+  stateSkip_(0),
+  accelSkip_(0),
+  forceSkip_(0),
   currentTime_(0.0)
-{}
+{
+  if(parent_->domain->solInfo().statevectPodRom){
+    stateOutputFile_ = new DistrBasisOutputFile(BasisFileId(FileNameInfo(), BasisId::STATE, BasisId::SNAPSHOTS), geoSource->getNumGlobNodes(),
+             buffer_.globalNodeIndexBegin(), buffer_.globalNodeIndexEnd(), structCom);}
+  if(parent_->domain->solInfo().accelvectPodRom){
+    accelOutputFile_ = new DistrBasisOutputFile(BasisFileId(FileNameInfo(), BasisId::ACCELERATION, BasisId::SNAPSHOTS), geoSource->getNumGlobNodes(),
+             buffer_.globalNodeIndexBegin(), buffer_.globalNodeIndexEnd(), structCom);}
+  if(parent_->domain->solInfo().forcevectPodRom){
+    forceOutputFile_ = new DistrBasisOutputFile(BasisFileId(FileNameInfo(), BasisId::FORCE, BasisId::SNAPSHOTS), geoSource->getNumGlobNodes(),
+             buffer_.globalNodeIndexBegin(), buffer_.globalNodeIndexEnd(), structCom);}
+
+}
 
 void
 DistrExplicitSnapshotNonLinDynamic::SnapshotHandler::currentTimeIs(double time) {
@@ -88,11 +133,33 @@ DistrExplicitSnapshotNonLinDynamic::SnapshotHandler::currentTimeIs(double time) 
 
 void
 DistrExplicitSnapshotNonLinDynamic::SnapshotHandler::snapshotAdd(const DistrVector &state) {
-  ++skipCounter_;
-  if (skipCounter_ >= parent_->domain->solInfo().skipPodRom) {
+  ++stateSkip_;
+  if (stateSkip_ >= parent_->domain->solInfo().skipState) {
     converter_.paddedNodeDof6(state, buffer_);
-    outputFile_.stateAdd(buffer_, currentTime_);
-    skipCounter_ = 0;
+    stateOutputFile_->stateAdd(buffer_, currentTime_);
+    stateSkip_ = 0;
+  }
+}
+
+void
+DistrExplicitSnapshotNonLinDynamic::SnapshotHandler::accelerationSnapshotAdd(const DistrVector &accel) {
+  ++accelSkip_;
+  if (accelSkip_ >= parent_->domain->solInfo().skipAccel) {
+    converter_.paddedNodeDof6(accel, buffer_);
+    accelOutputFile_->stateAdd(buffer_, currentTime_);
+    accelSkip_ = 0;
+  }
+}
+
+void
+DistrExplicitSnapshotNonLinDynamic::SnapshotHandler::forceSnapshotAdd(const DistrVector &f) {
+  ++forceSkip_;
+  if (forceSkip_ >= parent_->domain->solInfo().skipForce) {
+    assembledSnapshot_ = f;
+    parent_->decDomain->getSolVecAssembler()->assemble(assembledSnapshot_);
+    converter_.paddedNodeDof6(assembledSnapshot_, buffer_);
+    forceOutputFile_->stateAdd(buffer_, currentTime_);
+    forceSkip_ = 0;
   }
 }
 

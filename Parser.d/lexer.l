@@ -156,6 +156,8 @@ TRAIL [a-zA-Z]*
 
 "THETA"|"theta"                    { return THETA; }
 
+"HRC"|"hrc"			   { return HRC; }
+
 "IDENTITY"|"identity"              { return IDENTITY; }
 
 "EFRA"[a-zA-Z]*|"efra"[a-zA-Z]*    { return EFRAMES; }
@@ -228,7 +230,7 @@ TRAIL [a-zA-Z]*
 
 "PLOA"[a-zA-Z]*|"ploa"[a-zA-Z]*    { return PLOAD; }
 
-"STAT"[a-zA-Z]*|"stat"[a-zA-Z]*    { return STATS; }
+"STATI"[a-zA-Z]*|"stati"[a-zA-Z]*|"STAT"|"stat"    { return STATS; }
 
 "CASE"[a-zA-Z]*|"case"[a-zA-Z]*    { return CASES; }
 
@@ -938,6 +940,20 @@ TRAIL [a-zA-Z]*
 
 "gtempera"|"GTEMPERA"              { yylval.ival = OutputInfo::Temperature;  return STRESSID; }
 
+"statevct"|"STATEVCT"		   { yylval.ival = OutputInfo::Statevector;  return STRESSID; }
+
+"accelvct"|"ACCELVCT"		   { yylval.ival = OutputInfo::Accelvector;  return STRESSID; }
+
+"frcgvect"|"FRCGVECT"		   { yylval.ival = OutputInfo::Forcevector;  return STRESSID; }
+
+"residvct"|"RESIDVCT"		   { yylval.ival = OutputInfo::Residual;     return STRESSID; }
+
+"jacobvct"|"JACOBVCT"		   { yylval.ival = OutputInfo::Jacobian;     return STRESSID; }
+
+"robdataf"|"ROBDATAF"		   { yylval.ival = OutputInfo::RobData;	     return STRESSID; }
+
+"samplmsh"|"SAMPLMSH" 		   { yylval.ival = OutputInfo::SampleMesh;   return STRESSID; }
+
 "stressxx"|"STRESSXX"              { yylval.ival = OutputInfo::StressXX;     return STRESSID; }
 
 "stressyy"|"STRESSYY"              { yylval.ival = OutputInfo::StressYY;     return STRESSID; }
@@ -1253,35 +1269,25 @@ TRAIL [a-zA-Z]*
 "STDV"|"stdv" { yylval.ival = 2; return NDTYPE; }
 "PDF"|"pdf" { yylval.ival = 3; return NDTYPE; }
 
-"PODROM"|"PodRom"|"podrom"                { return PODROM; }
+"ROBC"|"RobC"|"robc" 			  { return SVDTOKEN; } 
 
-"FOM"|"Fom"|"fom"                         { return FOM; }
+"SNAPFI"|"SnapFi"|"snapfi"		  { return SNAPFI; }
 
-"GAUSSNEWTON"|"gaussnewton"|"GaussNewton" { return GAUSSNEWTON; }
+"PODROB"|"PodRob"|"podrob"		  { return PODROB; }
 
-"GALERKIN"|"galerkin"|"Galerkin"          { return GALERKIN; }
+"TRNVCT"|"TrnVct"|"trnvct"		  { return TRNVCT; }
 
-"GAPPY"|"gappy"|"Gappy"                   { return GAPPY; }
+"DIMENS"|"Dimens"|"dimens"		  { return PODSIZEMAX; }
 
-"SVD"|"Svd"|"svd"                         { return SVDTOKEN; }
+"ORTHOG"|"Orthog"|"orthog"		  { return ORTHOG; }
 
-"SAMPLING"|"Sampling"|"sampling"          { return SAMPLING; }
+"RMSHC"|"Rmshc"|"rmshc" 		  { return SAMPLING; }
 
-"SNAPSHOTS"|"snapshots"|"Snapshots"       { return SNAPSHOTS; }
+"TOLOPT"|"TolOpt"|"tolopt" 		  { return TOLER; }
 
-"PODSIZEMAX"|"podsizemax"|"PodSizeMax"    { return PODSIZEMAX; } 
-
-"ASPECTRATIO"|"aspectratio"|"AspectRatio" { return ASPECTRATIO; } 
+"NUMSKP"|"NumSkp"|"numskp"		  { return SKIP; }
 
 "REFSUBSTRACT"|"refsubstract"|"RefSubstract" { return REFSUBSTRACT; } 
-
-"SAMPLENODES"|"samplenodes"|"SampleNodes" { return SAMPLENODES; }
-
-"TOLERANCE"|[Tt]"olerance"                { return TOLER; }
-
-"REDUCED"|[Rr]"educed"                    { return REDUCED; }
-
-"ELLUMP"|[eE]"l"[lL]"ump"                 { return ELLUMPWEIGHTS; }
 
 [A-Za-z][A-Za-z0-9_.]*  { yylval.strval = strdup(yytext); return FNAME; }
 

@@ -1121,6 +1121,20 @@ GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<S
           }
           else filePrint(stderr," *** WARNING: Output case %d not supported \n", i);
         } break;
+        case OutputInfo::Statevector:
+          break;
+        case OutputInfo::Accelvector:
+          break;
+        case OutputInfo::Forcevector:
+          break;
+        case OutputInfo::Residual:
+          break;
+        case OutputInfo::Jacobian:
+          break;
+        case OutputInfo::RobData:
+          break;
+        case OutputInfo::SampleMesh:
+          break;
         default:
           filePrint(stderr," *** WARNING: Output case %d not implemented \n", i);
           break;
@@ -2185,6 +2199,20 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***all
        }
        else filePrint(stderr," *** WARNING: Output case %d not supported \n", i);
      } break;
+     case OutputInfo::Statevector:
+       break;
+     case OutputInfo::Accelvector:
+       break;
+     case OutputInfo::Forcevector:
+       break;
+     case OutputInfo::Residual:
+       break;
+     case OutputInfo::Jacobian:
+       break;
+     case OutputInfo::RobData:
+        break;
+     case OutputInfo::SampleMesh:
+        break;
      default:
        filePrint(stderr," *** WARNING: Output case %d not implemented\n", i);
        break;
@@ -3532,7 +3560,7 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
  else res.K = new GenSubDOp<Scalar>(numSub, dgt.K);
  res.Kuc = new GenSubDOp<Scalar>(numSub, dgt.Kuc);
 
- if(dgt.C && numSub > 0 && dgt.C[0]) {
+ if(dgt.C[0]) {
    res.C = new GenSubDOp<Scalar>(numSub, dgt.C);
    res.Cuc = new GenSubDOp<Scalar>(numSub, dgt.Cuc);
    res.Ccc = new GenSubDOp<Scalar>(numSub, dgt.Ccc);
@@ -3547,14 +3575,14 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
  res.Mcc = new GenSubDOp<Scalar>(numSub, dgt.Mcc);
 
 // RT
- if(dgt.C_deriv && numSub > 0 && dgt.C_deriv[0]) {
+ if(dgt.C_deriv[0]) {
    res.C_deriv = new GenSubDOp<Scalar>*[1];
    (res.C_deriv)[0] = new GenSubDOp<Scalar>(numSub, dgt.C_deriv,0);
  } else {
    res.C_deriv = 0;
    delete [] dgt.C_deriv;
  }
- if(dgt.C_deriv && numSub > 0 && dgt.Cuc_deriv[0]) {
+ if(dgt.Cuc_deriv[0]) {
    res.Cuc_deriv = new GenSubDOp<Scalar>*[1];
    res.Cuc_deriv[0] = new GenSubDOp<Scalar>(numSub, dgt.Cuc_deriv,0);
  } else {

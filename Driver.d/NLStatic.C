@@ -109,6 +109,16 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
     }
   }
 
+  getFollowerForce(geomState, elementForce, corotators, kel, residual, lambda, time, refState, reactions);
+
+}
+
+void
+Domain::getFollowerForce(GeomState &geomState, Vector& elementForce,
+                         Corotator **corotators, FullSquareMatrix *kel,
+                         Vector &residual, double lambda, double time,
+                         GeomState *refState, Vector *reactions)
+{
   if(domain->pressureFlag()) {
     double cflg = (sinfo.newmarkBeta == 0.0) ? 0.0 : 1.0;
     double loadFactor = (domain->mftval && sinfo.isDynam()) ? lambda*domain->mftval->getVal(std::max(time,0.0)) : lambda;
@@ -293,6 +303,9 @@ Domain::getWeightedStiffAndForceOnly(const std::map<int, double> &weights,
       }
     }
   }
+
+ getFollowerForce(geomState, elementForce, corotators, kel, residual, lambda, time, refState, NULL);
+
 }
 
 void
@@ -1102,7 +1115,16 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
       geoSource->outputNodeVectors6(iInfo, rxyz, nPrintNodes, time);
       delete [] rxyz;
     } break;
-
+     case OutputInfo::Statevector:
+        break;
+     case OutputInfo::Residual:
+        break;
+     case OutputInfo::Jacobian:
+        break;
+     case OutputInfo::RobData:
+        break;
+     case OutputInfo::SampleMesh:
+        break;
     default:
       fprintf(stderr," *** WARNING: Output case %d not implemented for non-linear direct solver \n", iInfo);
       break;

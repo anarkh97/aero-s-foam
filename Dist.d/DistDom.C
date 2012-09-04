@@ -529,6 +529,20 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
         }
         else filePrint(stderr," *** WARNING: Output case %d not supported \n", iOut); 
       } break;
+      case OutputInfo::Statevector:
+       break;
+      case OutputInfo::Accelvector:
+       break;
+      case OutputInfo::Forcevector:
+       break;
+      case OutputInfo::Residual:
+       break;
+      case OutputInfo::Jacobian:
+       break;
+      case OutputInfo::RobData:
+        break;
+      case OutputInfo::SampleMesh:
+        break;
       default:
         filePrint(stderr," *** WARNING: Output case %d not implemented \n", iOut);
         break;
@@ -1562,6 +1576,20 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
         }
         else filePrint(stderr," *** WARNING: Output case %d not supported \n", iOut);
       } break;
+     case OutputInfo::Statevector:
+        break;
+     case OutputInfo::Accelvector:
+        break;
+     case OutputInfo::Forcevector:
+        break;
+     case OutputInfo::Residual:
+        break;
+     case OutputInfo::Jacobian:
+        break;
+     case OutputInfo::RobData:
+        break;
+     case OutputInfo::SampleMesh:
+        break;
       default:
         filePrint(stderr," *** WARNING: Output case %d not implemented\n", iOut);
         break;

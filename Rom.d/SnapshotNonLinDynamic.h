@@ -16,16 +16,15 @@ namespace Rom {
 // Specialization of the non-linear dynamics problem enabling the collection the snapshots
 class SnapshotNonLinDynamic : public NonLinDynamic {
 public:
-  enum BasisType { RAW, ORTHOGONAL };
 
   explicit SnapshotNonLinDynamic(Domain *);
 
-  // Problem configuration 
-  BasisType outputBasisType() const { return outputBasisType_; }
+  //Hooks in NLDynamSolver
+  int checkConvergence(int iteration, double normRes, Vector &residual, Vector &dv, double time); //function hiding
 
   // Required additional pre- and post-processing
   virtual void preProcess();
-  void postProcess() { impl_->postProcess(); }
+  void postProcess(); 
   
   // Helper class to be used as template parameter in NLDynamSolver 
   class Updater;
@@ -37,8 +36,10 @@ protected:
     virtual void lastMidTimeIs(double) = 0;
     virtual void lastDeltaIs(double) = 0;
     virtual void stateSnapshotAdd(const GeomState &) = 0;
+    virtual void handleResidualSnapshot(const Vector &res) = 0;
+    virtual void handleJacobianSnapshot() = 0;
     virtual void postProcess() = 0;
- 
+
     virtual ~Impl() {}
 
   protected:
@@ -52,12 +53,16 @@ protected:
 
 private:
   // Snapshot collection 
-  void saveMidTime(double t) { impl_->lastMidTimeIs(t); }
-  void saveDelta(double dt) { impl_->lastDeltaIs(dt); }
-  void saveStateSnapshot(const GeomState &state) { impl_->stateSnapshotAdd(state); }
- 
-  BasisType outputBasisType_;
-  std::auto_ptr<Impl> impl_; 
+  void saveMidTime(double t);
+  void saveDelta(double dt);
+  void saveStateSnapshot(const GeomState &state);
+  void handleResidualSnapshot(const Vector &snap); 
+
+
+//  BasisType outputBasisType_;
+  std::auto_ptr<Impl> stateImpl_; 
+  std::auto_ptr<Impl> resImpl_;
+  std::auto_ptr<Impl> jacImpl_;
 
   friend class Updater;
 };
@@ -88,6 +93,19 @@ public:
     
     pbd->saveStateSnapshot(*geomState);
   }
+
+  static double formRHScorrector(SnapshotNonLinDynamic *pbd, GenVector<double> &inc_displac,
+                                 GenVector<double> &vel_n, GenVector<double> &accel,
+                                 GenVector<double> &residual, GenVector<double> &rhs,
+                                 GeomState *geomState, double delta) {
+    const double result = IncrUpdater<SnapshotNonLinDynamic, GenVector<double>, GeomState>::formRHScorrector(
+        pbd, inc_displac, vel_n, accel, residual, rhs, geomState, delta);
+
+    pbd->handleResidualSnapshot(rhs);
+
+    return result;
+  }
+
 };
 
 } /* end namespace Rom */

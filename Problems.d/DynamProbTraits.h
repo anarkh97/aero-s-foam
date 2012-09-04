@@ -22,4 +22,18 @@ handleDisplacement(ProbType &, VecType &) {
   // Do nothing by default
 }
 
+template <typename ProbType, typename VecType>
+inline
+void
+handleResidual(ProbType &, VecType &) {
+  // Do nothing by default
+}
+
+template <typename ProbType, typename VecType>
+inline
+void
+handleJacobian(ProbType &, VecType &) {
+  // Do nothing by default
+}
+
 #endif /* DYNAMPROBTRAITS_H */

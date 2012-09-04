@@ -35,8 +35,8 @@
 #include <Element.d/Sommerfeld.d/TrianglePressureBC.h>
 #include <Element.d/Sommerfeld.d/QuadPressureBC.h>
 
-#include <Rom.d/GaussNewtonSolver.h>
-#include <Rom.d/GappyProjectionSolver.h>
+//#include <Rom.d/GaussNewtonSolver.h>
+//#include <Rom.d/GappyProjectionSolver.h>
 #include <Rom.d/GalerkinProjectionSolver.h>
 #include <Control.d/ControlInterface.h>
 
@@ -965,12 +965,12 @@ Domain::constructMumps(ConstrainedDSA *DSA, Rbm *, FSCommunicator *com)
   }
 }
 
-template<class Scalar>
+/*template<class Scalar>
 Rom::GenGaussNewtonSolver<Scalar> *
 Domain::constructGaussNewtonSolver()
 {
   return new Rom::GenGaussNewtonSolver<Scalar>(nodeToNode, dsa, c_dsa);
-}
+}*/
 
 template<class Scalar>
 Rom::GenGalerkinProjectionSolver<Scalar> *
@@ -979,12 +979,12 @@ Domain::constructGalerkinProjectionSolver()
   return new Rom::GenGalerkinProjectionSolver<Scalar>(nodeToNode, dsa, c_dsa);
 }
 
-template<class Scalar>
+/*template<class Scalar>
 Rom::GenGappyProjectionSolver<Scalar> *
 Domain::constructGappyProjectionSolver()
 {
   return new Rom::GenGappyProjectionSolver<Scalar>(nodeToNode, dsa, c_dsa);
-}
+}*/
 
 template<class Scalar>
 void
@@ -1397,7 +1397,7 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
       makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray,celArray);
       systemSolver   = (GenDiagMatrix<Scalar>*) spm;
       break;
-    case 11:
+    /*case 11:
       //filePrint(stderr," ... POD-GN Solver is Selected      ...\n");
       {
         Rom::GenGaussNewtonSolver<Scalar> * solver = constructGaussNewtonSolver<Scalar>();
@@ -1406,7 +1406,7 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
         makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray,celArray);
         systemSolver = solver;
       }
-      break;
+      break;*/
     case 12:
       //filePrint(stderr," ... POD-Galerkin Solver is Selected...\n");
       {
@@ -1417,7 +1417,7 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
         systemSolver = solver;
       }
       break;
-    case 13:
+    /*case 13:
       //filePrint(stderr," ... Gappy-POD Solver is Selected   ...\n");
       {
         Rom::GenGappyProjectionSolver<Scalar> * solver = constructGappyProjectionSolver<Scalar>();
@@ -1426,7 +1426,7 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
         makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray,celArray);
         systemSolver = solver;
       }
-      break;
+      break;*/
 #ifdef USE_EIGEN3
     case 14:
 #ifdef USE_EIGEN_CHOLMOD

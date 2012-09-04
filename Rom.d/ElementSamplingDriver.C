@@ -45,6 +45,14 @@ copy(const GenVector<Scalar> &v, Scalar *target) {
   std::copy(originBuf, originBuf + v.size(), target);
 }
 
+template <typename Scalar, typename OutputIterator>
+inline
+void
+copy(const GenVector<Scalar> &v, OutputIterator target) {
+  const double *originBuf = v.data();
+  std::copy(originBuf, originBuf + v.size(), target);
+}
+
 inline
 std::string
 getMeshFilename(const FileNameInfo &fileInfo) {
@@ -62,12 +70,12 @@ void
 outputFullWeights(const FileNameInfo &fileInfo, const Vector &weights, const std::vector<int> &elemIds) {
   assert(weights.size() == elemIds.size());
 
-  const std::string fileName = fileInfo.prefix() + ".fullweights.inc";
+  const std::string fileName = domain->solInfo().reducedMeshFile; //fileInfo.prefix() + ".attributes.inc";
   std::ofstream weightOut(fileName.c_str());
 
-  weightOut << "ELLUMP\n";
+  weightOut << "ATTRIBUTES\n";
   for (int i = 0, iEnd = weights.size(); i != iEnd; ++i) {
-    weightOut << elemIds[i] + 1 << " " << weights[i] << "\n";
+    weightOut << elemIds[i] + 1 << " 1 " << "HRC" << " " << weights[i] << "\n";
   }
 }
 

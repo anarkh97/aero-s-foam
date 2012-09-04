@@ -1368,7 +1368,7 @@ int main(int argc, char** argv)
        break;
      case SolverInfo::PodRomOffline:
        {
-        filePrint(stderr, "Pod Rom Offline mode\n");
+         //filePrint(stderr, "Pod Rom Offline mode\n");
          std::auto_ptr<Rom::DriverInterface> driver;
          if (domain->solInfo().svdPodRom) {
            // Stand-alone SVD orthogonalization

@@ -3,11 +3,7 @@
 #include <Utils.d/linkfc.h>
 
 #include <stdexcept>
-#ifdef USE_STXXL
 #include "stxxl_matrix2d.hpp"
-#else
-#include <vector>
-#endif
 
 /*
 extern "C" {

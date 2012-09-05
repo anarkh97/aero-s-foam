@@ -43,13 +43,6 @@ int main (int argc, char *argv[]) {
     getline(comp_file,header_buffer);
     comp_file>>length2;
 
-    //TODO: figure out how to allocate for number of time steps
-//    double matrix1[num_nodes][3][500];
-
-    //outpout displacement vector lengths to screen
-    //cout << num_nodes << endl;
-    //cout << length2 << endl;
-
     // check to see if displacement vectors are same length
     if(num_nodes != length2){
       cout << "incompatible files" << endl;
@@ -73,11 +66,9 @@ int main (int argc, char *argv[]) {
       sumx = 0; sumy = 0; sumz = 0; sumx2 = 0; sumy2 = 0; sumz2 = 0;
       // second: loop of nodes
       for(int counter=0;counter<num_nodes;counter++) {
-        // third: loop over dofs
+        // third: read in all dofs
 	  truth_file>>a1; truth_file>>b1; truth_file>>c1;
  	  comp_file>>a2; comp_file>>b2; comp_file>>c2;
-
-//          matrix1[counter][1][num_time_steps-1] = a1;
 
 	  sumx += pow((a1-a2),2);      
           sumy += pow((b1-b2),2);
@@ -102,25 +93,7 @@ int main (int argc, char *argv[]) {
         break;
     }
 
-    /*/compute max(for i,j elements of 1,..,nt) ||v[i]_I - v[j]_I||_2
-    normalize_factor = 0;
-    for(int i = 0;i<num_time_steps;i++) {
-      for(int j = i+1;j<num_time_steps;j++) {
-        dummy3 = 0;
-        for(int counter=0;counter<num_nodes;counter++){
-	  for(int dim=0;dim<3;dim++){
-           dummy3 += pow((matrix1[counter][dim][i] - matrix1[counter][dim][j]),2);
-       	  }
-        }
-        dummy3 = pow(dummy3,0.5);
-        if(dummy3 > normalize_factor){
-        normalize_factor = dummy3;
-        }
-      }
-    }*/
-
     //divide cummulative 2-norm by number of time steps
-    //relative_error = cum_norm/(num_time_steps*normalize_factor);
      relative_errorx = cum_normx/(normalize_factorx);
      relative_errory = cum_normy/(normalize_factory);
      relative_errorz = cum_normz/(normalize_factorz);
@@ -134,7 +107,6 @@ int main (int argc, char *argv[]) {
      cout << "*** relative error: z ***  = " << relative_errorz*100 << "%"<< endl;
 
   }
-
 }
 
 void print_syntax() {

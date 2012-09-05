@@ -6,9 +6,7 @@
 #ifdef USE_STXXL
 #include "stxxl_matrix2d.hpp"
 #else
-#ifdef USE_EIGEN3
-#include <Eigen/Core>
-#endif
+#include <vector>
 #endif
 
 /*
@@ -67,24 +65,12 @@ SparseNonNegativeLeastSquaresSolver::solve() {
   SimpleBuffer<Scalar> workspace2(unknownCount());
   SimpleBuffer<int> index(unknownCount());
   int info;
-/*
-  _FORTRAN(spnnls)(matrixBuffer_.array(), &matrixLeadDim_, &equationCount_, &unknownCount_,
-                   rhsBuffer_.array(), solutionBuffer_.array(), &relativeTolerance_, &errorMagnitude_, dualSolutionBuffer_.array(),
-                   workspace.array(), workspace2.array(), index.array(), &info);
-*/
-#ifdef USE_EIGEN3
-#ifdef USE_STXXL
-  stxxl_matrix2d<Scalar> A(&matrixBuffer_, matrixLeadDim_, unknownCount_);
-#else
-  Eigen::Map<Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> > A(&matrixBuffer_[0], matrixLeadDim_, unknownCount_);
-#endif
+
+  stxxl_matrix2d<MatrixBufferType> A(&matrixBuffer_, matrixLeadDim_, unknownCount_);
+
   spnnls(A, matrixLeadDim_, equationCount_, unknownCount_,
          rhsBuffer_.array(), solutionBuffer_.array(), relativeTolerance_, errorMagnitude_, dualSolutionBuffer_.array(),
          workspace.array(), workspace2.array(), index.array(), info);
-#else
-  std::cerr << "error: USE_EIGEN3 is not defined\n";
-  exit(-1);
-#endif
 
   if (info == 2) {
     throw std::logic_error("Illegal problem size");

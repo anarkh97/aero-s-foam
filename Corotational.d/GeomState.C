@@ -465,6 +465,45 @@ GeomState::explicitUpdate(CoordSet &cs, const Vector &v)
 }
 
 void
+GeomState::explicitUpdate(CoordSet &cs, int numNodes, int *nodes, const Vector &v)
+{
+ // v = total displacement vector
+
+ double theta[3];
+
+ for(int j = 0; j < numNodes; ++j) {
+   int i = nodes[j];
+   if(cs[i]) {
+
+     // Set translational displacements
+
+     double dx = (loc[i][0] >= 0) ? v[loc[i][0]] : 0.0;
+     double dy = (loc[i][1] >= 0) ? v[loc[i][1]] : 0.0;
+     double dz = (loc[i][2] >= 0) ? v[loc[i][2]] : 0.0;
+
+     // Set rotations
+
+     theta[0] = (loc[i][3] >= 0) ? v[loc[i][3]] : 0.0;
+     theta[1] = (loc[i][4] >= 0) ? v[loc[i][4]] : 0.0;
+     theta[2] = (loc[i][5] >= 0) ? v[loc[i][5]] : 0.0;
+
+     // Update position
+
+     ns[i].x = cs[i]->x + dx;
+     ns[i].y = cs[i]->y + dy;
+     ns[i].z = cs[i]->z + dz;
+
+     // Update rotation tensor 
+     form_rottensor( theta, ns[i].R );
+   }
+ }
+#ifdef COMPUTE_GLOBAL_ROTATION
+ computeGlobalRotation();
+#endif
+}
+
+
+void
 GeomState::setVelocity(const Vector &d, const Vector &v, const Vector &a)
 {
   for(int i = 0; i < numnodes; ++i)

@@ -3,6 +3,7 @@
 #include <iomanip>
 #ifdef USE_EIGEN3
 #include <Eigen/Core>
+#endif
 
 //     SUBROUTINE SPNNLS  (A,MDA,M,N,B,X,RELTOL,RNORM,W,ZZ,ZZ2,INDEX,MODE)
 
@@ -65,6 +66,7 @@ int spnnls(AnyMatrix &A, int mda, int m, int
            &rnorm, double *_w, double *_zz, double *_zz2, int *_index,
            int &mode)
 {
+#ifdef USE_EIGEN3
     // Builtin functions
     using std::sqrt;
     using std::pow;
@@ -391,5 +393,8 @@ int spnnls(AnyMatrix &A, int mda, int m, int
     }
     rnorm = sqrt(sm);
     return 0;
-}
+#else
+    std::cerr << " *** WARNING: USE_EIGEN3 is not defined\n";
+    return 0;
 #endif
+}

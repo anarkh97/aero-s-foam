@@ -84,6 +84,7 @@ class GeomState {
 
      virtual void update(const Vector &);
      virtual void explicitUpdate(CoordSet &cs, const Vector &v);
+     virtual void explicitUpdate(CoordSet &cs, int numNodes, int* nodes, const Vector &v);
      virtual void setVelocity(const Vector &, const Vector &, const Vector &);
      virtual void updatePrescribedDisplacement(BCond *dbc, int numDirichlet, 
                                        double delta);

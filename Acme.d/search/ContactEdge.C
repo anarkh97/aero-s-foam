@@ -133,7 +133,7 @@ void ContactEdge<DataType>::Pack( char* buffer )
   for( int i=0 ; i<Nodes_Per_Edge() ; ++i ){
     ContactTopologyEntity<DataType>* entity = 
       static_cast<ContactTopologyEntity<DataType>*>(Node(i));
-    cnt += PackConnection(entity, &i_buf[cnt]);
+    cnt += this->PackConnection(entity, &i_buf[cnt]);
   }
 }
 

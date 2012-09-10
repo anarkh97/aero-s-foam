@@ -174,6 +174,7 @@ public:
 
 protected:
   GenManager() {}
+  ~GenManager() {}
  
   typedef K KeyType;
   typedef GenManagerImpl<T, K, CreatePtrT> Impl;

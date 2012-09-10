@@ -5,12 +5,14 @@ SET(CMAKE_INCLUDE_PATH
     /home/avery/Codes/trilinos/trilinos-10.10.2-Source/packages/sacado/src
     /home/avery/Codes/trilinos/trilinos-10.10.2-Obj_cmake/include
     /home/avery/Codes/trilinos/trilinos-10.10.2-Source/packages/zoltan/src
-    /home/avery/Codes/stxxl-trunk/include)
+#    /home/avery/Codes/stxxl-trunk/include
+)
 SET(CMAKE_LIBRARY_PATH
-    /home/avery/Codes/ARPACK
+#    /home/avery/Codes/ARPACK
     /home/avery/Codes/trilinos/trilinos-10.10.2-Obj_cmake/lib
-    /home/avery/Codes/stxxl-trunk/lib)
-SET(EXTRALIB_MPI /usr/lib/libmpif77.so
-                 CACHE STRING "Extra MPI link parameters")
-SET(CMAKE_Fortran_FLAGS_RELEASE "-O2")
+#    /home/avery/Codes/stxxl-trunk/lib
+)
+#SET(EXTRALIB_MPI /usr/lib/libmpif77.so
+#                 CACHE STRING "Extra MPI link parameters")
+#SET(CMAKE_Fortran_FLAGS_RELEASE "-O2")
 SET(BLAS_blas_LIBRARY "/home/avery/Codes/eigen-build/blas/libeigen_blas.so" CACHE FILEPATH "Path to a library.")

@@ -40,14 +40,16 @@ TrianglePressureBC::neumVector(CoordSet &cs, Vector &f, int, GeomState *geomStat
     ecord[i*ndime+0] = cs[nn[i]]->x;
     ecord[i*ndime+1] = cs[nn[i]]->y;
     ecord[i*ndime+2] = cs[nn[i]]->z;
-    for(int j = 0; j < 3; ++j) edisp[i*ndime+j] = (geomState != NULL) ? (*geomState)[nn[i]].d[j] : 0;
+    edisp[i*ndime+0] = (geomState != NULL) ? (*geomState)[nn[i]].x - cs[nn[i]]->x : 0;
+    edisp[i*ndime+1] = (geomState != NULL) ? (*geomState)[nn[i]].y - cs[nn[i]]->y : 0;
+    edisp[i*ndime+2] = (geomState != NULL) ? (*geomState)[nn[i]].z - cs[nn[i]]->z : 0;
   }
   double trac[3] = { -pressure, 0, 0 };
 
   _FORTRAN(elefbc3dtri)(opttrc, optele, ecord, edisp, trac, f.data());
 }
 
-#include<Driver.d/Domain.h>
+#include <Driver.d/Domain.h>
 
 int*
 TrianglePressureBC::dofs(DofSetArray &dsa, int *p)

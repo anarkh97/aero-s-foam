@@ -40,26 +40,13 @@ QuadPressureBC::neumVector(CoordSet &cs, Vector &f, int, GeomState *geomState)
     ecord[i*ndime+0] = cs[nn[i]]->x;
     ecord[i*ndime+1] = cs[nn[i]]->y;
     ecord[i*ndime+2] = cs[nn[i]]->z;
-    for(int j = 0; j < 3; ++j) edisp[i*ndime+j] = (geomState != NULL) ? (*geomState)[nn[i]].d[j] : 0;
+    edisp[i*ndime+0] = (geomState != NULL) ? (*geomState)[nn[i]].x - cs[nn[i]]->x : 0;
+    edisp[i*ndime+1] = (geomState != NULL) ? (*geomState)[nn[i]].y - cs[nn[i]]->y : 0;
+    edisp[i*ndime+2] = (geomState != NULL) ? (*geomState)[nn[i]].z - cs[nn[i]]->z : 0;
   }
   double trac[3] = { -pressure, 0, 0 };
 
   _FORTRAN(elefbc3dbrkshl2)(opttrc, optele, ecord, edisp, trac, f.data());
-/*
-  cerr << "f = "; for(int i=0; i<12; ++i) cerr << f[i] << " "; cerr << endl;
-  f[0] = 0;
-  f[1] = -1.25e+06;
-  f[2] = 0;
-  f[3] = 0;
-  f[4] = -1.25e+06;
-  f[5] = 0;
-  f[6] = 0;
-  f[7] = -1.25e+06;
-  f[8] = 0;
-  f[9] = 0;
-  f[10] = -1.25e+06;
-  f[11] = 0;
-*/
 }
 
 #include <Driver.d/Domain.h>

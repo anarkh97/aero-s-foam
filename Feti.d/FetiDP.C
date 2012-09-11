@@ -1221,7 +1221,7 @@ GenFetiDPSolver<Scalar>::solveCG(GenDistrVector<Scalar> &f, GenDistrVector<Scala
  //} 
  //else { 
    // Multiple rhs prediction (note: not used for contact)
-   if(predict(w, lambda)) {
+   if(this->predict(w, lambda)) {
      localSolveAndJump(fr, lambda, ur, fc, uc, r, fw);
      ww = tProject(r, w); 
      if(verboseFlag) filePrint(stderr," ... Initial residual norm after MRHS prediction %e\n", sqrt(ww));
@@ -1246,13 +1246,13 @@ GenFetiDPSolver<Scalar>::solveCG(GenDistrVector<Scalar> &f, GenDistrVector<Scala
      if(stop) break;
 
      // Krylov acceleration
-     if(this->fetiInfo->nlPrecFlg) nlPreCondition(w, z);
+     if(this->fetiInfo->nlPrecFlg) this->nlPreCondition(w, z);
 
      // Re-project: y = P * z
      project(z, y); 
 
      // Search direction
-     orthogonalize(y, p);
+     this->orthogonalize(y, p);
    
      // Matrix vector product
      localSolveAndJump(p, dur, duc, Fp);
@@ -1276,7 +1276,7 @@ GenFetiDPSolver<Scalar>::solveCG(GenDistrVector<Scalar> &f, GenDistrVector<Scala
 
      // add search direction to orthoset or reset if necessary
      if(globalFlagCtc && (dualStatusChange || primalStatusChange || stepLengthChange)) this->resetOrthoSet();
-     else orthoAddCG(p, Fp, pFp);
+     else this->orthoAddCG(p, Fp, pFp);
    }
 
    ur += deltaU; // make solution compatible ur += deltaU
@@ -1344,7 +1344,7 @@ GenFetiDPSolver<Scalar>::solveGMRES(GenDistrVector<Scalar> &f, GenDistrVector<Sc
  *rzero = r;
  *zzero = z; 
 
- initGMRES(z);
+ this->initGMRES(z);
 
  bool primalresidual = this->fetiInfo->gmresResidual;
  int J = 0;
@@ -1359,13 +1359,13 @@ GenFetiDPSolver<Scalar>::solveGMRES(GenDistrVector<Scalar> &f, GenDistrVector<Sc
      error = preCondition(Fp, *medvec);   // medvec = M^-1*Fp
 
      // Do Arnoldi step 
-     double resGMRES = orthoAddGMRES(z, *medvec);   
+     double resGMRES = this->orthoAddGMRES(z, *medvec);   
 
      if((fabs(resGMRES)<=sqrt(this->epsilon2*ff)) || (J == this->maxiter-1) || primalresidual) {
 
        primalresidual = true; // Since now we compute the primal residual in each step
          
-       GMRESSolution(*lambda);
+       this->GMRESSolution(*lambda);
 
        localSolveAndJump(*lambda, dur, duc, Fp);  // Fp = F*lambda
 
@@ -1412,7 +1412,7 @@ GenFetiDPSolver<Scalar>::solveGMRES(GenDistrVector<Scalar> &f, GenDistrVector<Sc
    // PJSA 1-23-08 restart GMRES
    if(verboseFlag) filePrint(stderr, " *** Krylov Space Full - Restarting GMRES \n");
    if(!primalresidual) {
-     GMRESSolution(*lambda);  // compute incremental solution lambda
+     this->GMRESSolution(*lambda);  // compute incremental solution lambda
      localSolveAndJump(*lambda, dur, duc, Fp); // Fp = F*lambda
      r.linC(1.0,*rzero,1.0,Fp); // r = rzero + Fp;
    }
@@ -1428,7 +1428,7 @@ GenFetiDPSolver<Scalar>::solveGMRES(GenDistrVector<Scalar> &f, GenDistrVector<Sc
    primalresidual = this->fetiInfo->gmresResidual;  // primalresidual might not be reached after restart
 
    this->oSetGMRES->reInit(); // Reinitialize Krylov space and set z of last step as initial vector
-   initGMRES(z);
+   this->initGMRES(z);
  }
 }
 
@@ -1472,7 +1472,7 @@ GenFetiDPSolver<Scalar>::solveGCR(GenDistrVector<Scalar> &f, GenDistrVector<Scal
  if(verboseFlag) filePrint(stderr," ... Initial residual norm %e\n", sqrt(rr0));
 
  // multiple rhs prediction
- if(predictGCR(r, lambda)) {
+ if(this->predictGCR(r, lambda)) {
    localSolveAndJump(fr, lambda, ur, fc, uc, r, fw); 
    rr = r.sqNorm();
    if(verboseFlag) filePrint(stderr," ... Initial residual norm after MRHS prediction %e\n", sqrt(rr));
@@ -1498,7 +1498,7 @@ GenFetiDPSolver<Scalar>::solveGCR(GenDistrVector<Scalar> &f, GenDistrVector<Scal
 
    localSolveAndJump(z, work1, work2, Fz);
 
-   orthogonalizeGCR(z, Fz, p, Fp);  // computes new p, Fp
+   this->orthogonalizeGCR(z, Fz, p, Fp);  // computes new p, Fp
 
    Scalar FpFp = Fp * Fp;
 
@@ -1510,7 +1510,7 @@ GenFetiDPSolver<Scalar>::solveGCR(GenDistrVector<Scalar> &f, GenDistrVector<Scal
    r.linAdd(nu, Fp);
    rr = r.sqNorm();
 
-   orthoAddGCR(p, Fp, FpFp);
+   this->orthoAddGCR(p, Fp, FpFp);
  }
 
  // get primal solution 
@@ -1553,8 +1553,8 @@ GenFetiDPSolver<Scalar>::extractForceVectors(GenDistrVector<Scalar> &f, GenDistr
 
   // Assemble and split fr and fw on subdomain interface (note: f for first system is already split by topological scaling)
   if((this->numSystems == 0 && this->fetiInfo->scaling == FetiInfo::kscaling) || (this->numSystems > 0 && this->fetiInfo->rescalef)) {
-    if(domain->solInfo().isCoupled) distributeForce(fr, fw);
-    else distributeForce(fr);
+    if(domain->solInfo().isCoupled) this->distributeForce(fr, fw);
+    else this->distributeForce(fr);
   }
   double ffr = fr.sqNorm();
   double ffw = (domain->solInfo().isCoupled) ? fw.sqNorm() : 0.0;
@@ -2135,7 +2135,7 @@ GenFetiDPSolver<Scalar>::getFNormSq(GenDistrVector<Scalar> &f)
   GenDistrVector<Scalar> &fr = this->wksp->ret_fr();
   fr.zero();
   execParal2R(this->nsub, this, &GenFetiDPSolver<Scalar>::extractFr, f, fr);
-  distributeForce(fr);
+  this->distributeForce(fr);
   GenVector<Scalar> &fc  = this->wksp->ret_fc();
   getFc(f, fc);
 #ifdef DISTRIBUTED
@@ -2204,7 +2204,7 @@ GenFetiDPSolver<Scalar>::rebuildGtGtilda()
   startTimerMemory(this->times.coarse1, this->times.memoryGtG);
 
   if(GtGtilda == NULL) {
-    GtGtilda = newSolver(this->fetiInfo->auxCoarseSolver, coarseConnectGtG, eqNumsGtG, this->fetiInfo->grbm_tol, GtGsparse);
+    GtGtilda = this->newSolver(this->fetiInfo->auxCoarseSolver, coarseConnectGtG, eqNumsGtG, this->fetiInfo->grbm_tol, GtGsparse);
     GtGtilda->setPrintNullity(this->fetiInfo->contactPrintFlag && this->myCPU == 0);
   } else
   GtGtilda->zeroAll();

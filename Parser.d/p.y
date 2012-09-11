@@ -3169,11 +3169,15 @@ Constraints:
         CONSTRAINTS ConstraintOptionsData NewLine
         { if(!$2.lagrangeMult && $2.penalty == 0) domain->solInfo().setDirectMPC(true);
           domain->solInfo().lagrangeMult = $2.lagrangeMult;
-          domain->solInfo().penalty = $2.penalty; }
+          domain->solInfo().penalty = $2.penalty;
+          domain->solInfo().constraint_hess = $2.constraint_hess; 
+          domain->solInfo().constraint_hess_eps = $2.constraint_hess_eps; }
         | CONSTRAINTS NewLine ConstraintOptionsData NewLine
         { if(!$3.lagrangeMult && $3.penalty == 0) domain->solInfo().setDirectMPC(true);
           domain->solInfo().lagrangeMult = $3.lagrangeMult;
-          domain->solInfo().penalty = $3.penalty; }
+          domain->solInfo().penalty = $3.penalty;
+          domain->solInfo().constraint_hess = $3.constraint_hess;
+          domain->solInfo().constraint_hess_eps = $3.constraint_hess_eps; }
         ;
 ConstraintOptionsData:
         DIRECT

@@ -33,7 +33,7 @@ struct DistrInfo {
    void setMasterFlag(bool *_masterFlag) { if(masterFlag) delete [] masterFlag; masterFlag = _masterFlag; }
    void computeOffsets();
    int totLen() { return len; }
-   int *getMasterFlag(int i) { return 0; }
+   int *getMasterFlag(int i) const { return 0; }
    void recomputeOffsets();
  private:
    void initialize();

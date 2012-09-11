@@ -26,13 +26,15 @@ SET(CMAKE_INCLUDE_PATH /home/avery/Intel/eigen
                        /home/avery/Intel/SPOOLES
                        /home/avery/Intel/MUMPS_4.10.0/include
                        /home/avery/Intel/Zoltan/Zoltan_v3.5/include
-                       /home/avery/Intel/Zoltan/Zoltan_v3.5/src)
+                       /home/avery/Intel/Zoltan/Zoltan_v3.5/src
+                       /home/avery/Intel/stxxl-trunk/include)
 SET(CMAKE_LIBRARY_PATH /home/avery/Intel/ARPACK
                        /home/avery/Intel/SPOOLES
                        /home/avery/Intel/SPOOLES/MT/src
                        /home/avery/Intel/MUMPS_4.10.0/lib
                        /home/avery/Intel/MUMPS_4.10.0_seq/lib
-                       /home/avery/Intel/Zoltan/Zoltan_v3.5/lib)
+                       /home/avery/Intel/Zoltan/Zoltan_v3.5/lib
+                       /home/avery/Intel/stxxl-trunk/lib)
 ## blas and lapack without scalapack and blacs (using intel math kernel library)
 #SET(LAPACK_LIBRARIES -Wl,--start-group /opt/intel/compilerpro-12.0.2.137/mkl/lib/intel64/libmkl_intel_lp64.a /opt/intel/compilerpro-12.0.2.137/mkl/lib/intel64/libmkl_sequential.a /opt/intel/compilerpro-12.0.2.137/mkl/lib/intel64/libmkl_core.a -Wl,--end-group -lpthread CACHE STRING "Path to a library.")
 #SET(LAPACK_FOUND true)

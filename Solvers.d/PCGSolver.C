@@ -58,7 +58,7 @@ GenPCGSolver<Scalar, AnyVector, AnyOperator>
 {
   this->solveTime -= getTime(); this->memUsed -= memoryUsed();
   AnyVector sol(rhs.size());
-  doSolve(rhs,sol);
+  this->doSolve(rhs,sol);
   rhs = sol;
   this->solveTime += getTime(); this->memUsed += memoryUsed();
 }
@@ -75,7 +75,7 @@ GenPCGSolver<Scalar, AnyVector, AnyOperator>
  this->solveTime -= getTime(); this->memUsed -= memoryUsed();
  AnyVector sol(solution, this->A->dim());
  AnyVector f(rhs, this->A->dim());
- doSolve(f,sol);
+ this->doSolve(f,sol);
  for(int i=0; i<this->A->dim(); ++i) solution[i] = sol[i];
  this->solveTime += getTime(); this->memUsed += memoryUsed();
 */
@@ -89,7 +89,7 @@ GenPCGSolver<Scalar, AnyVector, AnyOperator>
 ::solve(AnyVector &rhs, AnyVector &solution)
 {
  this->solveTime -= getTime(); this->memUsed -= memoryUsed();
- doSolve(rhs,solution);
+ this->doSolve(rhs,solution);
  this->solveTime += getTime(); this->memUsed += memoryUsed();
  this->times.precond = this->prec->time; 
 }
@@ -125,7 +125,7 @@ GenPCGSolver<Scalar, AnyVector, AnyOperator>
  for(n=0; n<nRHS; ++n) {
    AnyVector sol(RHS[n], this->A->dim());
    AnyVector rhs(RHS[n], this->A->dim());
-   doSolve(rhs, sol);
+   this->doSolve(rhs, sol);
    for(i=0; i<this->A->dim(); ++i)
      RHS[n][i] = sol[i];
  }
@@ -144,7 +144,7 @@ GenPCGSolver<Scalar, AnyVector, AnyOperator>
  AnyVector sol(RHS[0].size());
  for(int n=0; n<nRHS; ++n) {
    sol = RHS[n];
-   doSolve(RHS[n],sol);
+   this->doSolve(RHS[n],sol);
    RHS[n] = sol;
  }
  this->solveTime += getTime(); this->memUsed += memoryUsed();

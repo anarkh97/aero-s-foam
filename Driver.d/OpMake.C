@@ -1082,7 +1082,10 @@ Domain::buildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Ccoe
      // Time system matrix factorization
      if(matrixTimers) matrixTimers->factor -= getTime();
 
-     if(systemSolver) systemSolver->factor();
+     if(systemSolver) {
+       if(!verboseFlag && sinfo.isNonLin() && sinfo.isDynam()) systemSolver->setPrintNullity(false);
+       systemSolver->factor();
+     }
 
      if(matrixTimers) matrixTimers->factor += getTime();
      if(matrixTimers) matrixTimers->memorySolve += memoryUsed();

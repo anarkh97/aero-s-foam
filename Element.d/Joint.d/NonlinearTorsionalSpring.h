@@ -26,6 +26,7 @@ class NonlinearTorsionalSpring : public AngleType1ConstraintElement
     void updateStates(GeomState *refState, GeomState &curState, CoordSet &C0);
 
     bool isSpring() { return true; }
+    bool hasRot() { return true; }
 };
 
 #endif

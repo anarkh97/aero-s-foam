@@ -21,6 +21,7 @@ class NonlinearTranslationalSpring : public DotType2ConstraintElement
     void update(GeomState& gState, CoordSet& cs, double);
 
     bool isSpring() { return true; }
+    bool hasRot() { return true; }
 };
 
 #endif

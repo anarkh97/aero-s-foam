@@ -15,7 +15,7 @@ public:
   typedef double Scalar;
 #ifdef USE_STXXL
   // note: the stxxl defaults are 4, 8 and 2097152 
-  typedef stxxl::VECTOR_GENERATOR<Scalar,8,16,4194304>::result MatrixBufferType; // external vector of Scalar's with 8 blocks per page,
+  typedef stxxl::VECTOR_GENERATOR<Scalar,16,32,8388608>::result MatrixBufferType; // external vector of Scalar's with 8 blocks per page,
                                                                                  // the cache with 16 pages, and 4 MB blocks (i.e. total cache is 1GB)
 #else
   typedef std::vector<Scalar> MatrixBufferType;

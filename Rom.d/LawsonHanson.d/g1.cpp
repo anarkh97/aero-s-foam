@@ -7,7 +7,7 @@ double d_sign(double a, double b)
   return( b >= 0 ? x : -x);
 }
 
-int g1(double a, double b, double &cterm, 
+long g1(double a, double b, double &cterm, 
        double &sterm, double &sig)
 {
 //     COMPUTE ORTHOGONAL ROTATION MATRIX.. 

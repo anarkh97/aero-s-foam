@@ -69,8 +69,8 @@ SparseNonNegativeLeastSquaresSolver::solve() {
 
   SimpleBuffer<Scalar> workspace(equationCount());
   SimpleBuffer<Scalar> workspace2(unknownCount());
-  SimpleBuffer<int> index(unknownCount());
-  int info;
+  SimpleBuffer<long> index(unknownCount());
+  long info;
 
   stxxl_matrix2d<MatrixBufferType> A(&matrixBuffer_, matrixLeadDim_, unknownCount_);
 

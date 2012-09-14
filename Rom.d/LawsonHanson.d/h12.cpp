@@ -4,9 +4,9 @@
 #ifdef USE_EIGEN3
 #include <Eigen/Core>
 
-int h12(int mode, int lpivot, int l1, 
-        int m, double *u, int iue, double &up, double *
-        c, int ice, int icv, int ncv)
+long h12(long mode, long lpivot, long l1, 
+        long m, double *u, long iue, double &up, double *
+        c, long ice, long icv, long ncv)
 {
 //  CONSTRUCTION AND/OR APPLICATION OF A SINGLE
 //  HOUSEHOLDER TRANSFORMATION..     Q = I + U*(U**T)/B
@@ -51,9 +51,9 @@ int h12(int mode, int lpivot, int l1,
 
     // Local variables
     double b;
-    int i, j, i2, i3, i4;
+    long i, j, i2, i3, i4;
     double cl, sm;
-    int incr;
+    long incr;
     double clinv;
     Eigen::Map<Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>, Eigen::RowMajor > u_ref(u, iue, m);
 
@@ -69,7 +69,7 @@ int h12(int mode, int lpivot, int l1,
     }
     else {
 //                            ****** CONSTRUCT THE TRANSFORMATION. ******
-        for (int j = l1-1; j < m; ++j) {
+        for (long j = l1-1; j < m; ++j) {
                cl = max(abs(u_ref(0, j)),cl);
         }
         if (cl <= 0.) {
@@ -78,7 +78,7 @@ int h12(int mode, int lpivot, int l1,
 
         clinv = 1. / cl;
         sm = pow(u_ref(0, lpivot-1) * clinv, 2);
-        for (int j = l1-1; j < m; ++j) {
+        for (long j = l1-1; j < m; ++j) {
               sm += pow(u_ref(0, j) * clinv, 2);
         }
         cl *= sqrt(sm);
@@ -104,19 +104,19 @@ int h12(int mode, int lpivot, int l1,
     b = 1. / b;
     i2 = 1 - icv + ice * (lpivot - 1);
     incr = ice * (l1 - lpivot);
-    for (int j = 0; j < ncv; ++j) {
+    for (long j = 0; j < ncv; ++j) {
         i2 += icv;
         i3 = i2 + incr;
         i4 = i3;
         sm = c[i2-1] * up;
-        for (int i = l1-1; i < m; ++i) {
+        for (long i = l1-1; i < m; ++i) {
             sm += c[i3-1] * u_ref(0, i);
             i3 += ice;
         }
         if (sm != 0.) {
            sm *= b;
            c[i2-1] += sm * up;
-           for (int i = l1-1; i < m; ++i) {
+           for (long i = l1-1; i < m; ++i) {
                c[i4-1] += sm * u_ref(0, i);
                i4 += ice;
            }

@@ -5,10 +5,11 @@ SET(CMAKE_INCLUDE_PATH
     /home/tac688/trilinos-10.10.2-Source/packages/sacado/src
     /home/tac688/trilinos-10.10.2-Obj_cmake/include
     /home/tac688/trilinos-10.10.2-Source/packages/zoltan/src
-    /home/tac688/stxxl-trunk/include)
+#    /home/tac688/stxxl-trunk/include)
+    )
 SET(CMAKE_LIBRARY_PATH
 #    /home/tac688/Codes/ARPACK
-    /home/tac688/stxxl-trunk/lib
+#    /home/tac688/stxxl-trunk/lib
     /home/tac688/trilinos-10.10.2-Obj_cmake/lib)
 SET(EXTRALIB_MPI /usr/lib/libmpif77.so
                  CACHE STRING "Extra MPI link parameters")

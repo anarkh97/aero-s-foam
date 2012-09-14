@@ -133,7 +133,7 @@ ElementSamplingDriver::assembleTrainingData(const VecBasis &snapshots, DblFwdIt 
   }
 
   for (int iElem = 0; iElem != elementCount(); ++iElem) {
-
+    filePrint(stderr,"\r %4.2f%% complete", double(iElem)/double(elementCount())*100.);
     DblFwdIt timeStampIt = timeStampFirst;
     int *nodes = domain_->getElementSet()[iElem]->nodes();
     for (int iSnap = 0; iSnap != snapshotCount; ++iSnap) {
@@ -163,6 +163,7 @@ ElementSamplingDriver::assembleTrainingData(const VecBasis &snapshots, DblFwdIt 
     delete [] nodes;
     timeStampIt++;
   }
+ filePrint(stderr,"\n");
 }
 
 void

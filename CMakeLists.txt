@@ -407,13 +407,22 @@ set_target_properties(robcodec
 
 target_link_libraries(robcodec Rom Util)
 
+add_executable(errorcodec Rom.d/ErrorCodec.C)
+set_target_properties(errorcodec
+                      PROPERTIES
+                      RUNTIME_OUTPUT_DIRECTORY ${BINDIR}
+                      RELEASE_OUTPUT_NAME relerr
+                      DEBUG_OUTPUT_NAME relerr.debug)
+
+target_link_libraries(errorcodec Rom Util)
+
 IF(NOT CMAKE_BUILD_TYPE)
   SET(CMAKE_BUILD_TYPE Release CACHE STRING 
       "Choose the type of build, options are: None(CMAKE_CXX_FLAGS or CMAKE_C_FLAGS used) Debug Release RelWithDebInfo MinSizeRel."
       FORCE)
 ENDIF(NOT CMAKE_BUILD_TYPE)
 
-SET(AllTargets femexecutable robcodec)
+SET(AllTargets femexecutable robcodec errorcodec)
 IF(MPI_FOUND AND NOT APPLE)
   SET(AllTargets ${AllTargets} femlib)
 ENDIF(MPI_FOUND AND NOT APPLE)

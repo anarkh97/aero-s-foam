@@ -22,10 +22,10 @@ public:
 #endif
 
   // Problem size
-  int equationCount() const { return equationCount_; }
-  int unknownCount() const { return unknownCount_; }
+  long equationCount() const { return equationCount_; }
+  long unknownCount() const { return unknownCount_; }
   
-  void problemSizeIs(int eqnCount, int unkCount);
+  void problemSizeIs(long eqnCount, long unkCount);
 
   double relativeTolerance() const { return relativeTolerance_; }
   void relativeToleranceIs(double relTol) { relativeTolerance_ = relTol; }
@@ -65,9 +65,10 @@ public:
   SparseNonNegativeLeastSquaresSolver();
 
 private:
-  int equationCount_;
-  int unknownCount_;
-  int matrixLeadDim_;
+
+  long equationCount_;
+  long unknownCount_;
+  long matrixLeadDim_;
 
   double relativeTolerance_;
   MatrixBufferType matrixBuffer_;

@@ -571,6 +571,7 @@ NonLinDynamic::reBuild(GeomState& geomState, int iteration, double localDelta, d
      if(Kuc) { Kuc->zeroAll(); ops.Kuc = Kuc; }
      if(spp) { spp->zeroAll(); ops.spp = spp; }
      domain->makeSparseOps<double>(ops, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray, celArray);
+     if(!verboseFlag) solver->setPrintNullity(false);
      solver->factor();
      if(prec) prec->factor();
    }

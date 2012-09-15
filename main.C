@@ -549,6 +549,17 @@ int main(int argc, char** argv)
    }
  }
 
+ if(domain->solInfo().readmodeCalled) {
+   if(domain->solInfo().modalCalled || domain->solInfo().modal) {
+     domain->readInModes(const_cast<char*>(domain->solInfo().readInROBorModes));
+   }
+   else if (!domain->solInfo().samplingPodRom) {
+     domain->solInfo().activatePodRom = true;
+     domain->solInfo().galerkinPodRom = true;
+     domain->solInfo().subtype = 12;
+   }
+ }
+
 #define MAX_CODES 4
 #define FLUID_ID 0
 #define STRUC_ID 1
@@ -740,17 +751,6 @@ int main(int argc, char** argv)
  if(domain->solInfo().type == 0 && domain->solInfo().probType != SolverInfo::None)
    filePrint(stderr, solverTypeMessage[domain->solInfo().subtype]);
   
-
- if(domain->solInfo().readmodeCalled) {
-	if(domain->solInfo().modalCalled || domain->solInfo().modal) {
-		domain->readInModes(const_cast<char*>(domain->solInfo().readInROBorModes));}
-	else if (!domain->solInfo().samplingPodRom) {
-	domain->solInfo().activatePodRom = true;
-	domain->solInfo().galerkinPodRom = true;
-        domain->solInfo().subtype = 12;}
-}
-
-
  // Domain Decomposition tasks
  //   type == 2 (FETI) and type == 3 (BLOCKDIAG) are always Domain Decomposition methods
  //   type == 1 && iterType == 1 (GMRES) is a Domain Decomposition method only if a decomposition is provided or requested

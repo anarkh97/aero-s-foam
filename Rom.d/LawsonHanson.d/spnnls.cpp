@@ -61,10 +61,10 @@
 //     ------------------------------------------------------------------
 
 template<typename AnyMatrix>
-int spnnls(AnyMatrix &A, int mda, int m, int 
+long spnnls(AnyMatrix &A, long mda, long m, long 
            n, double *_b, double *_x, double reltol, double 
-           &rnorm, double *_w, double *_zz, double *_zz2, int *_index,
-           int &mode)
+           &rnorm, double *_w, double *_zz, double *_zz2, long *_index,
+           long &mode)
 {
 #ifdef USE_EIGEN3
     // Builtin functions
@@ -77,20 +77,20 @@ int spnnls(AnyMatrix &A, int mda, int m, int
     using std::setprecision;
 
     // Local variables
-    static int i__, j, l;
+    static long i__, j, l;
     static double t;
-    extern int g1(double, double, double &, double &, double &);
+    extern long g1(double, double, double &, double &, double &);
     static double cc;
-    extern int h12(int, int, int, int, double *, int, double &, double *, int, int, int);
-    static int ii, jj, ip;
+    extern long h12(long, long, long, long, double *, long, double &, double *, long, long, long);
+    static long ii, jj, ip;
     static double sm;
-    static int iz;
+    static long iz;
     static double up, ss;
-    static int iz1, iz2, npp1;
+    static long iz1, iz2, npp1;
     extern double diff(double, double);
-    static int iter;
+    static long iter;
     static double temp, wmax, alpha, asave;
-    static int itmax, izmax, nsetp;
+    static long itmax, izmax, nsetp;
     static double dummy, unorm, ztest, abstol;
 
     Eigen::Map<Eigen::Matrix<double, Eigen::Dynamic, 1> > b(_b, m);
@@ -99,7 +99,7 @@ int spnnls(AnyMatrix &A, int mda, int m, int
     Eigen::Map<Eigen::Matrix<double, Eigen::Dynamic, 1> > w(_w, n);
     Eigen::Map<Eigen::Matrix<double, Eigen::Dynamic, 1> > zz(_zz, m);
     Eigen::Map<Eigen::Matrix<double, Eigen::Dynamic, 1> > zz2(_zz2, n);
-    Eigen::Map<Eigen::Matrix<int, Eigen::Dynamic, 1> > index(_index, n);
+    Eigen::Map<Eigen::Matrix<long, Eigen::Dynamic, 1> > index(_index, n);
 
     Eigen::Matrix<double, Eigen::Dynamic, 1> a_j(m), a_jj(m);
 
@@ -122,9 +122,9 @@ int spnnls(AnyMatrix &A, int mda, int m, int
     npp1 = 1;
 
 //  INIT ZZ2 = tr(A^T * A)^{-1}
-    for (int i = 0; i < n; ++i) {
+    for (long i = 0; i < n; ++i) {
       zz2[i] = 0.;
-      for (int l = 0; l < m; ++l) {
+      for (long l = 0; l < m; ++l) {
         zz2[i] += pow(A.coeff(l, i), 2);
       }
       zz2[i] = (double)1. / sqrt(zz2[i]);
@@ -161,7 +161,7 @@ int spnnls(AnyMatrix &A, int mda, int m, int
         for (iz = iz1; iz < iz2+1; ++iz) {
           j = index[iz];
           sm = 0.;
-          for (int l = npp1-1; l < m; ++l) {
+          for (long l = npp1-1; l < m; ++l) {
             sm += A.coeff(l, j) * b[l];
           }
           w[j] = sm * zz2[j];
@@ -193,13 +193,13 @@ int spnnls(AnyMatrix &A, int mda, int m, int
 //        NEAR LINEAR DEPENDENCE.
           asave = A.coeff(npp1-1, j);
 
-          for(int row=0; row<m; ++row) a_j[row] = A.coeff(row,j);
+          for(long row=0; row<m; ++row) a_j[row] = A.coeff(row,j);
           h12(1, npp1, npp1+1, m, a_j.data(), 1, up, &dummy, 1, 1, 0);
-          for(int row=0; row<m; ++row) A.coeffRef(row,j) = a_j[row];
+          for(long row=0; row<m; ++row) A.coeffRef(row,j) = a_j[row];
 
           unorm = 0.;
           if (nsetp != 0) {
-            for (int l = 0; l < nsetp; ++l) {
+            for (long l = 0; l < nsetp; ++l) {
               unorm += pow(A.coeff(l, j), 2);
             }
           }
@@ -210,7 +210,7 @@ int spnnls(AnyMatrix &A, int mda, int m, int
 //          AND SOLVE FOR ZTEST ( = PROPOSED NEW VALUE FOR X(J) ).
             zz = b;
 
-            for(int row=0; row<m; ++row) a_j[row] = A.coeff(row,j);
+            for(long row=0; row<m; ++row) a_j[row] = A.coeff(row,j);
             h12(2, npp1, npp1+1, m, a_j.data(), 1, up, zz.data(), 1, 1, 1);
 
             ztest = zz[npp1-1] / A.coeff(npp1-1, j);
@@ -241,18 +241,18 @@ int spnnls(AnyMatrix &A, int mda, int m, int
         ++npp1;
     
         if (iz1 <= iz2) {
-          for (int jz = iz1; jz < iz2+1; ++jz) {
+          for (long jz = iz1; jz < iz2+1; ++jz) {
             jj = index[jz];
 
-            for(int row=0; row<m; ++row) { a_j[row] = A.coeff(row,j); 
+            for(long row=0; row<m; ++row) { a_j[row] = A.coeff(row,j); 
                                            a_jj[row] = A.coeff(row,jj); }
             h12(2, nsetp, npp1, m, a_j.data(), 1, up, a_jj.data(), 1, mda, 1);
-            for(int row=0; row<m; ++row) A.coeffRef(row,jj) = a_jj[row];
+            for(long row=0; row<m; ++row) A.coeffRef(row,jj) = a_jj[row];
           }
         }
     
         if (nsetp != m) {
-          for (int l = npp1-1; l < m; ++l) {
+          for (long l = npp1-1; l < m; ++l) {
             A.coeffRef(l, j) = 0.;
           }
         }
@@ -261,10 +261,10 @@ int spnnls(AnyMatrix &A, int mda, int m, int
 
 //      SOLVE THE TRIANGULAR SYSTEM.
 //      STORE THE SOLUTION TEMPORARILY IN ZZ().
-        for (int l = 0; l < nsetp; ++l) {
+        for (long l = 0; l < nsetp; ++l) {
           ip = nsetp - l;
           if (l != 0) {
-            for (int ii = 0; ii < ip; ++ii) {
+            for (long ii = 0; ii < ip; ++ii) {
               zz[ii] -= A.coeff(ii, jj) * zz[ip];
             }
           }
@@ -280,7 +280,7 @@ int spnnls(AnyMatrix &A, int mda, int m, int
 //        IF NOT COMPUTE ALPHA.
           alpha = 2.;
           for (ip = 0; ip < nsetp; ++ip) {
-            int l = index[ip];
+            long l = index[ip];
             if (zz[ip] <= 0.) {
               t = -x[l] / (zz[ip] - x[l]);
               if (alpha > t) {
@@ -299,7 +299,7 @@ int spnnls(AnyMatrix &A, int mda, int m, int
 //        OTHERWISE USE ALPHA WHICH WILL BE BETWEEN 0. AND 1. TO
 //        INTERPOLATE BETWEEN THE OLD X AND THE NEW ZZ.
           for (ip = 0; ip < nsetp; ++ip) {
-            int l = index[ip];
+            long l = index[ip];
             x[l] += alpha * (zz[ip] - x[l]);
           }
         
@@ -311,12 +311,12 @@ int spnnls(AnyMatrix &A, int mda, int m, int
         
             if (jj != nsetp-1) {
               ++jj;
-              for (int j = jj; j < nsetp; ++j) {
+              for (long j = jj; j < nsetp; ++j) {
                 ii = index[j];
                 index[j - 1] = ii;
                 g1(A.coeff(j - 1, ii), A.coeff(j, ii), cc, ss, A.coeffRef(j - 1, ii));
                 A.coeffRef(j, ii) = 0.;
-                for (int l = 0; l < n; ++l) {
+                for (long l = 0; l < n; ++l) {
                   if (l != ii) {
 
 //                  Apply procedure G2 (CC,SS,A(J-1,L),A(J,L))
@@ -353,10 +353,10 @@ int spnnls(AnyMatrix &A, int mda, int m, int
         
 //        COPY B INTO ZZ.  THEN SOLVE AGAIN AND LOOP BACK.
           zz = b;
-          for (int l = 0; l < nsetp; ++l) {
+          for (long l = 0; l < nsetp; ++l) {
             ip = nsetp - l;
             if (l != 0) {
-              for (int ii = 0; ii < ip; ++ii) {
+              for (long ii = 0; ii < ip; ++ii) {
                 zz[ii] -= A.coeff(ii, jj) * zz[ip];
               }
             }
@@ -385,7 +385,7 @@ int spnnls(AnyMatrix &A, int mda, int m, int
 //  COMPUTE THE NORM OF THE FINAL RESIDUAL VECTOR.
     sm = 0.;
     if (npp1 <= m) {
-      for (int i = npp1-1; i < m; ++i) {
+      for (long i = npp1-1; i < m; ++i) {
         sm += pow(b[i], 2);
       }
     } else {

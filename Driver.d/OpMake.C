@@ -3305,10 +3305,10 @@ Domain::computeConstantForce(GenVector<Scalar>& cnst_f, GenSparseMatrix<Scalar>*
   // ... COMPUTE FORCE FROM DISCRETE NEUMANN BOUNDARY CONDITIONS
   // note #1 when MFTT is present then FORCES contribution is not constant
   // note #2 when HFTT is present the FLUX contribution is not constant
-  // note #3 see Domain::getStiffAndForce for treatment of nodal moments in nonlinear analyses
+  // note #3 see Domain::getStiffAndForce for treatment of non-follower nodal moments in nonlinear analyses
   for(int i = 0; i < numNeuman; ++i) {
-    if(sinfo.isNonLin() && nbc[i].type == BCond::Forces
-       && (nbc[i].dofnum == 3 || nbc[i].dofnum == 4 || nbc[i].dofnum == 5)) continue;
+    if(!sinfo.followerMoment && (sinfo.isNonLin() && nbc[i].type == BCond::Forces
+       && (nbc[i].dofnum == 3 || nbc[i].dofnum == 4 || nbc[i].dofnum == 5))) continue;
     int dof  = c_dsa->locate(nbc[i].nnum, (1 << nbc[i].dofnum));
     if(dof < 0) continue;
     switch(nbc[i].type) {
@@ -3374,9 +3374,9 @@ Domain::computeExtForce(GenVector<Scalar>& f, double t, GenSparseMatrix<Scalar>*
   double hfttFactor = (domain->hftval) ? domain->hftval->getVal(t) : 1.0; // HFTT time dependent flux coefficient
   if(numNeuman && (domain->mftval || domain->hftval || (claw && (claw->numUserForce || claw->numActuator)))) {
     for(int i = 0; i < numNeuman; ++i) {
-      if(sinfo.isNonLin()
+      if(!sinfo.followerMoment && (sinfo.isNonLin()
          && (nbc[i].type == BCond::Forces || nbc[i].type == BCond::Usdf || nbc[i].type == BCond::Actuators)
-         && (nbc[i].dofnum == 3 || nbc[i].dofnum == 4 || nbc[i].dofnum == 5)) continue;
+         && (nbc[i].dofnum == 3 || nbc[i].dofnum == 4 || nbc[i].dofnum == 5))) continue;
       int dof  = c_dsa->locate(nbc[i].nnum, (1 << nbc[i].dofnum));
       if(dof < 0) continue;
       switch(nbc[i].type) {

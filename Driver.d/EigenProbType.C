@@ -131,7 +131,7 @@ EigenSolver< EigOps, VecType, VecSet,
  // also in the input file.
  if(origSubSize == 0) {
    // Print those rigid body modes to the output file
-   filePrint(stderr,"\n... Output Rigid Body Modes and exit ...\n");
+   filePrint(stderr," ... Output Rigid Body Modes and exit ...\n");
    VecSet RBMs(nrmod, probDesc->solVecInfo());
    eM->dynMat->getRBMs(RBMs); 
    Vector eValues(nrmod, 0.0);

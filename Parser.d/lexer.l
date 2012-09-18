@@ -590,6 +590,8 @@ TRAIL [a-zA-Z]*
 
 "fails"[a-zA-Z]*|"FAILS"[a-zA-Z]*  { return FAILSAFE; }
 
+"follo"[a-zA-Z]*|"FOLLO"[a-zA-Z]*  { return FOLLOWER; }
+
 "debug_icntl"                      { return DEBUGICNTL; }
 
 "debug_cntl"                       { return DEBUGCNTL; }
@@ -933,6 +935,8 @@ TRAIL [a-zA-Z]*
 "gdisplac"|"GDISPLAC"              { yylval.ival = OutputInfo::Displacement; return STRESSID; }
 
 "disp6dof"|"DISP6DOF"              { yylval.ival = OutputInfo::Disp6DOF;     return STRESSID; }
+
+"romatrix"|"ROMATRIX"              { yylval.ival = OutputInfo::RotationMatrix; return STRESSID; }
 
 "modaldsp"|"MODALDSP"              { yylval.ival = OutputInfo::ModalDsp;     return STRESSID; }
 

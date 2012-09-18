@@ -502,15 +502,15 @@ public:
 
   // Output Functions
   template<int bound>
-    void outputNodeVectors(int, double (*)[bound], int, double time = -1.0);//DofSet::max_known_nonL_dof
+    void outputNodeVectors(int, double (*)[bound], int, double time = -1.0);
   template<int bound>
     void outputNodeVectors(int, DComplex (*)[bound], int, double time = -1.0);
   template<int bound>
     void outputNodeVectors6(int, double (*)[bound], int, double time = -1.0);
   template<int bound>
     void outputNodeVectors6(int, DComplex (*)[bound], int, double time = -1.0);
-  //void outputNodeVectors6(int, double (*)[11], int, double time = -1.0) {};
-  //void outputNodeVectors6(int, DComplex (*)[11], int, double time = -1.0) {};
+  template<int bound>
+    void outputNodeVectors9(int, double (*)[bound], int, double time = -1.0);
   void outputNodeScalars(int, double *, int, double time = -1.0);
   void outputNodeScalars(int, DComplex *, int, double time = -1.0);
   void outputEnergies(int, double, double, double, double, double, double, double);

@@ -183,8 +183,8 @@ Domain::getFollowerForce(GeomState &geomState, Vector& elementForce,
     }
   }
 
-  // In order to make the nodal moments non-follower we need to make a correction...
-  if(!sinfo.followerMoment) {
+  // treatment of rotation-dependent nodal moments
+  if(sinfo.momentType == 1) { // "rotational moments" (ref: Ritto-Correa and Camotim, 2003)
     for(int i = 0; i < numNeuman; ++i) {
       if((nbc[i].type == BCond::Forces || nbc[i].type == BCond::Usdf || nbc[i].type == BCond::Actuators) 
          && (nbc[i].dofnum == 3 || nbc[i].dofnum == 4 || nbc[i].dofnum == 5)) {

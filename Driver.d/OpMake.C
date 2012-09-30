@@ -3305,9 +3305,9 @@ Domain::computeConstantForce(GenVector<Scalar>& cnst_f, GenSparseMatrix<Scalar>*
   // ... COMPUTE FORCE FROM DISCRETE NEUMANN BOUNDARY CONDITIONS
   // note #1 when MFTT is present then FORCES contribution is not constant
   // note #2 when HFTT is present the FLUX contribution is not constant
-  // note #3 see Domain::getStiffAndForce for treatment of non-follower nodal moments in nonlinear analyses
+  // note #3 see Domain::getStiffAndForce for treatment of non-axial nodal moments in nonlinear analyses
   for(int i = 0; i < numNeuman; ++i) {
-    if(!sinfo.followerMoment && (sinfo.isNonLin() && nbc[i].type == BCond::Forces
+    if(sinfo.momentType != 0 && (sinfo.isNonLin() && nbc[i].type == BCond::Forces
        && (nbc[i].dofnum == 3 || nbc[i].dofnum == 4 || nbc[i].dofnum == 5))) continue;
     int dof  = c_dsa->locate(nbc[i].nnum, (1 << nbc[i].dofnum));
     if(dof < 0) continue;
@@ -3369,12 +3369,12 @@ Domain::computeExtForce(GenVector<Scalar>& f, double t, GenSparseMatrix<Scalar>*
   // ... COMPUTE FORCE FROM DISCRETE NEUMANN BOUNDARY CONDITIONS
   // note #1 when MFTT is not present FORCES contribution is constant (see computeConstantForce)
   // note #2 when HFTT is not present FLUX contribution is constant (see computeConstantForce)
-  // note #3 see Domain::getStiffAndForce for treatment of nodal moments in nonlinear analyses
+  // note #3 see Domain::getStiffAndForce for treatment of non-axial nodal moments in nonlinear analyses
   double mfttFactor = (domain->mftval) ? domain->mftval->getVal(t) : 1.0; // MFTT time dependent force coefficient
   double hfttFactor = (domain->hftval) ? domain->hftval->getVal(t) : 1.0; // HFTT time dependent flux coefficient
   if(numNeuman && (domain->mftval || domain->hftval || (claw && (claw->numUserForce || claw->numActuator)))) {
     for(int i = 0; i < numNeuman; ++i) {
-      if(!sinfo.followerMoment && (sinfo.isNonLin()
+      if(sinfo.momentType != 0 && (sinfo.isNonLin()
          && (nbc[i].type == BCond::Forces || nbc[i].type == BCond::Usdf || nbc[i].type == BCond::Actuators)
          && (nbc[i].dofnum == 3 || nbc[i].dofnum == 4 || nbc[i].dofnum == 5))) continue;
       int dof  = c_dsa->locate(nbc[i].nnum, (1 << nbc[i].dofnum));

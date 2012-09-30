@@ -590,7 +590,7 @@ TRAIL [a-zA-Z]*
 
 "fails"[a-zA-Z]*|"FAILS"[a-zA-Z]*  { return FAILSAFE; }
 
-"follo"[a-zA-Z]*|"FOLLO"[a-zA-Z]*  { return FOLLOWER; }
+"momen"[a-zA-Z]*|"MOMEN"[a-zA-Z]*  { return MOMENT; }
 
 "debug_icntl"                      { return DEBUGICNTL; }
 

@@ -182,7 +182,6 @@ ElementSamplingDriver::solve() {
     VecBasis podBasis;
     {
       BasisInputStream in(BasisFileId(fileInfo, BasisId::STATE, BasisId::POD), vecDofConversion);
-
       const int podSizeMax = domain_->solInfo().maxSizePodRom;
       if (podSizeMax != 0) {
         readVectors(in, podBasis, podSizeMax);
@@ -190,12 +189,10 @@ ElementSamplingDriver::solve() {
         readVectors(in, podBasis);
       }
     }
-
     VecBasis snapshots;
     std::vector<double> timeStamps;
     {
       BasisInputStream in(BasisFileId(fileInfo, BasisId::STATE, BasisId::SNAPSHOTS), vecDofConversion);
-
       const int skipFactor = domain->solInfo().skipPodRom;
       const int basisStateCount = 1 + (in.size() - 1) / skipFactor;
 

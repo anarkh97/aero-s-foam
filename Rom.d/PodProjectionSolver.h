@@ -13,9 +13,39 @@
 namespace Rom {
 
 template <typename Scalar>
-class GenPodProjectionSolver : public GenSolver<Scalar>, public GenDBSparseMatrix<Scalar> {
+class GenPodProjectionSolver {
 public:
-  GenPodProjectionSolver(Connectivity *cn, DofSetArray *dsa, ConstrainedDSA *c_dsa);
+
+  // Pure virtual function implementations
+  virtual long size() = 0;
+  virtual int neqs() = 0;
+
+  // Full-order matrix assembly
+  virtual void zeroAll() = 0;
+  virtual void add(GenFullSquareMatrix<Scalar> &, int *) = 0;
+  virtual void addDiscreteMass(int, Scalar) = 0;
+
+  // Solution
+  virtual void factor() = 0;
+  virtual void reSolve(GenVector<Scalar> &rhs) = 0;
+  virtual double projectAndComputeNorm(const GenVector<Scalar> &rhs) = 0; // next reSolve must use same rhs
+
+  // Reduced basis parameters
+  virtual int basisSize() const = 0;
+  virtual const GenVecBasis<Scalar> &projectionBasis() const = 0;
+  virtual void projectionBasisIs(const GenVecBasis<Scalar> &) = 0; 
+
+  // Data collection
+  virtual const GenVector<Scalar> &lastReducedSolution() const = 0;
+  virtual const GenVecBasis<Scalar> &lastReducedMatrixAction() const = 0;
+};
+
+typedef GenPodProjectionSolver<double> PodProjectionSolver;
+
+template <typename Scalar>
+class GenDBSparsePodProjectionSolver : public GenPodProjectionSolver<Scalar>, public GenSolver<Scalar>, public GenDBSparseMatrix<Scalar> {
+public:
+  GenDBSparsePodProjectionSolver(Connectivity *cn, DofSetArray *dsa, ConstrainedDSA *c_dsa);
 
   // Pure virtual function implementations
   virtual long size();
@@ -59,12 +89,12 @@ private:
   virtual void solveReducedSystem(GenVector<Scalar> &) = 0;
 
   // Disallow copy and assignment
-  GenPodProjectionSolver(const GenPodProjectionSolver<Scalar> &);
-  GenPodProjectionSolver<Scalar> &operator=(const GenPodProjectionSolver<Scalar> &);
+  GenDBSparsePodProjectionSolver(const GenDBSparsePodProjectionSolver<Scalar> &);
+  GenDBSparsePodProjectionSolver<Scalar> &operator=(const GenDBSparsePodProjectionSolver<Scalar> &);
 };
 
 template <typename Scalar>
-GenPodProjectionSolver<Scalar>::GenPodProjectionSolver(Connectivity *cn,
+GenDBSparsePodProjectionSolver<Scalar>::GenDBSparsePodProjectionSolver(Connectivity *cn,
                                                    DofSetArray *dsa,
                                                    ConstrainedDSA *c_dsa):
   GenDBSparseMatrix<Scalar>(cn, dsa, c_dsa),
@@ -78,37 +108,37 @@ GenPodProjectionSolver<Scalar>::GenPodProjectionSolver(Connectivity *cn,
 
 template <typename Scalar>
 long
-GenPodProjectionSolver<Scalar>::size() {
+GenDBSparsePodProjectionSolver<Scalar>::size() {
   return GenDBSparseMatrix<Scalar>::size();
 }
 
 template <typename Scalar>
 int
-GenPodProjectionSolver<Scalar>::neqs() {
+GenDBSparsePodProjectionSolver<Scalar>::neqs() {
   return GenDBSparseMatrix<Scalar>::neqs();
 }
 
 template <typename Scalar>
 void
-GenPodProjectionSolver<Scalar>::zeroAll() {
+GenDBSparsePodProjectionSolver<Scalar>::zeroAll() {
   GenDBSparseMatrix<Scalar>::zeroAll();
 }
 
 template <typename Scalar>
 void
-GenPodProjectionSolver<Scalar>::add(GenFullSquareMatrix<Scalar> &elMat, int *dofs) {
+GenDBSparsePodProjectionSolver<Scalar>::add(GenFullSquareMatrix<Scalar> &elMat, int *dofs) {
   GenDBSparseMatrix<Scalar>::add(elMat, dofs);
 }
 
 template <typename Scalar>
 void
-GenPodProjectionSolver<Scalar>::addDiscreteMass(int dof, Scalar dmass) {
+GenDBSparsePodProjectionSolver<Scalar>::addDiscreteMass(int dof, Scalar dmass) {
   GenDBSparseMatrix<Scalar>::addDiscreteMass(dof, dmass);
 }
 
 template <typename Scalar>
 void
-GenPodProjectionSolver<Scalar>::projectionBasisIs(const GenVecBasis<Scalar> &reducedBasis) {
+GenDBSparsePodProjectionSolver<Scalar>::projectionBasisIs(const GenVecBasis<Scalar> &reducedBasis) {
   if (reducedBasis.vectorSize() != neqs()) {
     throw std::domain_error("Vectors of the reduced basis have the wrong size");
   }
@@ -127,7 +157,7 @@ GenPodProjectionSolver<Scalar>::projectionBasisIs(const GenVecBasis<Scalar> &red
 template <typename Scalar>
 inline
 void
-GenPodProjectionSolver<Scalar>::validateRhs(const GenVector<Scalar> &rhs) {
+GenDBSparsePodProjectionSolver<Scalar>::validateRhs(const GenVector<Scalar> &rhs) {
   if (rhs.size() != neqs()) {
     throw std::domain_error("Rhs has the wrong size");
   }
@@ -135,7 +165,7 @@ GenPodProjectionSolver<Scalar>::validateRhs(const GenVector<Scalar> &rhs) {
 
 template <typename Scalar>
 void
-GenPodProjectionSolver<Scalar>::factor() {
+GenDBSparsePodProjectionSolver<Scalar>::factor() {
   for (int col = 0; col < basisSize_; ++col) {
     GenDBSparseMatrix<Scalar>::mult(projectionBasis()[col], matrixAction_[col]);
   }
@@ -145,7 +175,7 @@ GenPodProjectionSolver<Scalar>::factor() {
    
 template <typename Scalar>
 void
-GenPodProjectionSolver<Scalar>::reSolve(GenVector<Scalar> &rhs) {
+GenDBSparsePodProjectionSolver<Scalar>::reSolve(GenVector<Scalar> &rhs) {
   validateRhs(rhs);
   solveReducedSystem(rhs);
   expand(projectionBasis(), lastReducedSolution(), rhs);
@@ -153,13 +183,13 @@ GenPodProjectionSolver<Scalar>::reSolve(GenVector<Scalar> &rhs) {
 
 template <typename Scalar>
 double
-GenPodProjectionSolver<Scalar>::projectAndComputeNorm(const GenVector<Scalar> &rhs) {
+GenDBSparsePodProjectionSolver<Scalar>::projectAndComputeNorm(const GenVector<Scalar> &rhs) {
   validateRhs(rhs);
   projectRhs(rhs);
   return getReducedRhsNorm();
 }
 
-typedef GenPodProjectionSolver<double> PodProjectionSolver;
+typedef GenDBSparsePodProjectionSolver<double> DBSparsePodProjectionSolver;
 
 } /* end namespace Rom */
 

@@ -49,6 +49,7 @@ using namespace std;
 #include <Rom.d/LumpedPodProjectionNonLinDynamic.h>
 #include <Rom.d/CheckNonLinDynamic.h>
 #include <Rom.d/PodProjectionSolver.h>
+#include <Rom.d/EiGalerkinProjectionSolver.h>
 #include <Rom.d/DriverInterface.h>
 #include <Rom.d/DistrExplicitSnapshotNonLinDynamic.h>
 #include <Rom.d/DistrExplicitPodProjectionNonLinDynamic.h>
@@ -556,7 +557,11 @@ int main(int argc, char** argv)
    else if (!domain->solInfo().samplingPodRom) {
      domain->solInfo().activatePodRom = true;
      domain->solInfo().galerkinPodRom = true;
+#ifdef USE_EIGEN3
+     if(domain->solInfo().subtype != 12) domain->solInfo().subtype = 13;
+#else
      domain->solInfo().subtype = 12;
+#endif
    }
  }
 

@@ -122,6 +122,13 @@ GenEiSparseMatrix<Scalar,SolverClass>::add(FullSquareMatrix &kel, int *dofs)
   }
 }
 
+template<typename Scalar, typename SolverClass>
+void
+GenEiSparseMatrix<Scalar,SolverClass>::add(FullSquareMatrixC &kel, int *dofs)
+{
+  std::cerr << "GenEiSparseMatrix<Scalar,SolverClass>::add(FullSquareMatrixC &kel, int *dofs) is not implemented\n";
+}
+
 template<typename Scalar, typename SolverClass> 
 double
 GenEiSparseMatrix<Scalar,SolverClass>::getMemoryUsed()

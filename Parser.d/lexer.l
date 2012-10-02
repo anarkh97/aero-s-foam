@@ -441,6 +441,10 @@ TRAIL [a-zA-Z]*
 
 "purelydiag"[a-zA-Z]*|"PURELYDIAG"[a-zA-Z]* { yylval.ival = 10; return SOLVERTYPE; }
 
+"dbsgal"[a-zA-Z]*|"DBSGAL"[a-zA-Z]*    { yylval.ival = 12; return SOLVERTYPE; }
+
+"eisgal"[a-zA-Z]*|"EISGAL"[a-zA-Z]*    { yylval.ival = 13; return SOLVERTYPE; }
+
 "gold"[a-zA-Z]*|"GOLD"[a-zA-Z]*    { yylval.ival = 14; return SOLVERTYPE; }
 
 "mumps_icntl"|"MUMPS_ICNTL" { return MUMPSICNTL; }

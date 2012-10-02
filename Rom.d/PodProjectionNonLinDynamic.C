@@ -376,7 +376,7 @@ PodProjectionNonLinDynamic::preProcess() {
 
 const PodProjectionSolver *
 PodProjectionNonLinDynamic::getSolver() const {
-  return static_cast<PodProjectionSolver *>(const_cast<PodProjectionNonLinDynamic *>(this)->NonLinDynamic::getSolver());
+  return dynamic_cast<PodProjectionSolver *>(const_cast<PodProjectionNonLinDynamic *>(this)->NonLinDynamic::getSolver());
 }
 
 PodProjectionSolver *

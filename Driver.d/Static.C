@@ -737,7 +737,7 @@ const char* solverTypeMessage[] = {
 "",
 " ... POD-GN Solver is Selected      ... \n",
 " ... POD-Galerkin Solver is Selected... \n",
-" ... Gappy-POD Solver is Selected   ... \n",
+" ... POD-Galerkin Solver is Selected... \n",
 " ... Goldfarb-Idnani Solver is Sel'd...\n"
 };
 

@@ -15,16 +15,6 @@ namespace Rom {
 template <typename Scalar>
 class GenPodProjectionSolver {
 public:
-
-  // Pure virtual function implementations
-  virtual long size() = 0;
-  virtual int neqs() = 0;
-
-  // Full-order matrix assembly
-  virtual void zeroAll() = 0;
-  virtual void add(GenFullSquareMatrix<Scalar> &, int *) = 0;
-  virtual void addDiscreteMass(int, Scalar) = 0;
-
   // Solution
   virtual void factor() = 0;
   virtual void reSolve(GenVector<Scalar> &rhs) = 0;

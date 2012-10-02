@@ -22,15 +22,13 @@ class GenEiSparseGalerkinProjectionSolver : public GenPodProjectionSolver<Scalar
 public:
   GenEiSparseGalerkinProjectionSolver(Connectivity *cn, DofSetArray *dsa, ConstrainedDSA *c_dsa);
 
-  // Pure virtual function implementations
-  virtual long size();
-  virtual int neqs();
-
+  using GenEiSparseMatrix<Scalar>::neqs;
+/*
   // Full-order matrix assembly
   virtual void zeroAll();
   virtual void add(GenFullSquareMatrix<Scalar> &, int *);
   virtual void addDiscreteMass(int, Scalar);
-
+*/
   // Solution
   virtual void factor();
   virtual void reSolve(GenVector<Scalar> &rhs);
@@ -79,20 +77,7 @@ GenEiSparseGalerkinProjectionSolver<Scalar>::GenEiSparseGalerkinProjectionSolver
 {
 }
 
-template <typename Scalar>
-long
-GenEiSparseGalerkinProjectionSolver<Scalar>::size()
-{
-  return GenEiSparseMatrix<Scalar>::size();
-}
-
-template <typename Scalar>
-int
-GenEiSparseGalerkinProjectionSolver<Scalar>::neqs()
-{
-  return GenEiSparseMatrix<Scalar>::neqs();
-}
-
+/*
 template <typename Scalar>
 void
 GenEiSparseGalerkinProjectionSolver<Scalar>::zeroAll()
@@ -113,6 +98,7 @@ GenEiSparseGalerkinProjectionSolver<Scalar>::addDiscreteMass(int dof, Scalar dma
 {
   GenEiSparseMatrix<Scalar>::addDiscreteMass(dof, dmass);
 }
+*/
 
 template <typename Scalar>
 void
@@ -163,7 +149,6 @@ GenEiSparseGalerkinProjectionSolver<Scalar>::reSolve(GenVector<Scalar> &rhs)
   }
   else {
     Eigen::Matrix<Scalar, Eigen::Dynamic, 1> b = Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> >(rhs.data(), V.rows());
-    Eigen::Matrix<Scalar, Eigen::Dynamic, 1> Vtb = V.transpose()*b;
     x = V*eiSolver.solve(V.transpose()*b);
   }
 }

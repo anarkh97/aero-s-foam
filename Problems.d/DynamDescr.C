@@ -35,8 +35,6 @@ typedef FSFullMatrix FullMatrix;
 
 extern int verboseFlag;
 
-//#define EXPLICIT_UPDATE
-
 // SDDynamPostProcessor implementation
 
 SDDynamPostProcessor::SDDynamPostProcessor(Domain *d, double *_bcx, double *_vcx, double *_acx,
@@ -158,7 +156,6 @@ SingleDomainDynamic::SingleDomainDynamic(Domain *d)
   allCorot = 0;
   geomState = 0; 
   userDefineDisp = 0;
-  dprev = 0;
   bcx = 0;
   vcx = 0;
   acx = 0;
@@ -168,7 +165,6 @@ SingleDomainDynamic::SingleDomainDynamic(Domain *d)
 
 SingleDomainDynamic::~SingleDomainDynamic()
 {
-  if(dprev) delete dprev;
   if(bcx) delete [] bcx;
   if(vcx) delete [] vcx;
   if(acx) delete [] acx;
@@ -505,7 +501,7 @@ SingleDomainDynamic::getConstForce(Vector &cnst_f)
 }
 
 void
-SingleDomainDynamic::getContactForce(Vector &d, Vector &ctc_f, double t_n_p)
+SingleDomainDynamic::getContactForce(Vector &d_n, Vector &dinc, Vector &ctc_f, double t_n_p)
 {
   times->tdenforceTime -= getTime();
   ctc_f.zero();
@@ -513,15 +509,19 @@ SingleDomainDynamic::getContactForce(Vector &d, Vector &ctc_f, double t_n_p)
     times->updateSurfsTime -= getTime();
     domain->UpdateSurfaces(geomState, 1); // update to current configuration
     times->updateSurfsTime += getTime();
-#ifdef EXPLICIT_UPDATE
-    geomState->explicitUpdate(domain->getNodes(), d);
-#else
-    Vector dinc(domain->numUncon());
-    dinc.linC(1.0, d, -1.0, *dprev);
-    geomState->update(dinc);
-    (*dprev) = d;
-#endif
-    // PJSA: 7/31/2012 update the prescribed displacements to their correct value at the time of the predictor
+
+    // copy and update the current state (geomState) to the predicted state
+    GeomState *predictedState = new GeomState(*geomState);
+    if(domain->solInfo().isNonLin()) {
+      predictedState->update(dinc);
+    }
+    else {
+      Vector d_n_p(domain->numUncon());
+      d_n_p = d_n + dinc;
+      geomState->explicitUpdate(domain->getNodes(), d_n_p);
+    }
+
+    // update the prescribed displacements to their correct value at the time of the predictor
     if(claw && userSupFunc && claw->numUserDisp) {
       double *userDefineDisp = new double[claw->numUserDisp];
       double *userDefineVel = new double[claw->numUserDisp];
@@ -531,12 +531,12 @@ SingleDomainDynamic::getContactForce(Vector &d, Vector &ctc_f, double t_n_p)
         userDefineAcc[i] = 0;
       }
       userSupFunc->usd_disp(t_n_p, userDefineDisp, userDefineVel, userDefineAcc);
-      domain->updateUsddInDbc(userDefineDisp);
-      geomState->updatePrescribedDisplacement(userDefineDisp, claw, domain->getNodes());
+      predictedState->updatePrescribedDisplacement(userDefineDisp, claw, domain->getNodes());
       delete [] userDefineDisp; delete [] userDefineVel; delete [] userDefineAcc;
     }
+
     times->updateSurfsTime -= getTime();
-    domain->UpdateSurfaces(geomState, 2); // update to predicted configuration
+    domain->UpdateSurfaces(predictedState, 2); // update to predicted configuration
     times->updateSurfsTime += getTime();
 
     times->contactSearchTime -= getTime();
@@ -546,8 +546,19 @@ SingleDomainDynamic::getContactForce(Vector &d, Vector &ctc_f, double t_n_p)
     times->contactForcesTime -= getTime();
     domain->AddContactForces(domain->solInfo().getTimeStep(), ctc_f);
     times->contactForcesTime += getTime();
+
+    delete predictedState;
   }
   times->tdenforceTime += getTime();
+}
+
+void
+SingleDomainDynamic::updateDisplacement(Vector &dinc, Vector &d_n)
+{
+  if(domain->solInfo().isNonLin()) {
+    geomState->update(dinc);
+    geomState->get_tot_displacement(d_n);
+  }
 }
 
 void
@@ -593,17 +604,12 @@ SingleDomainDynamic::computeExtForce2(SysState<Vector> &state, Vector &ext_f,
     }
   }
 
-  // update geomState for nonlinear problems. note computeExtForce2 must be called before getInternalForce
+  // finish update of geomState. note that for nonlinear problems the positiion and rotation nodal variables
+  // have already been updated in updateDisplacement
   if(domain->solInfo().isNonLin() || domain->tdenforceFlag()) {
-#ifdef EXPLICIT_UPDATE
-    geomState->explicitUpdate(domain->getNodes(), state.getDisp());
-#else
-    if(!dprev) { dprev = new Vector(domain->numUncon(), 0.0); }
-    Vector dinc(domain->numUncon());
-    dinc.linC(1.0, state.getDisp(), -1.0, *dprev); // incremental displacement: dinc = d - dprev
-    geomState->update(dinc);
-    (*dprev) = state.getDisp(); // keep a copy so the incremental displacement can be computed
-#endif
+    if(!domain->solInfo().isNonLin()) {
+      geomState->explicitUpdate(domain->getNodes(), state.getDisp());
+    }
     if(userDefineDisp) geomState->updatePrescribedDisplacement(userDefineDisp, claw, domain->getNodes());
     geomState->setVelocity(state.getDisp(), state.getVeloc(), state.getAccel());
   }

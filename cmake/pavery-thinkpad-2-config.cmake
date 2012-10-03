@@ -16,3 +16,4 @@ SET(CMAKE_LIBRARY_PATH
 #                 CACHE STRING "Extra MPI link parameters")
 #SET(CMAKE_Fortran_FLAGS_RELEASE "-O2")
 SET(BLAS_blas_LIBRARY "/home/avery/Codes/eigen-build/blas/libeigen_blas.so" CACHE FILEPATH "Path to a library.")
+add_definitions(-D_AEROS_ASYCHRONOUS_IO)

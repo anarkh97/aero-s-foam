@@ -944,13 +944,8 @@ int main(int argc, char** argv)
                              Rom::DistrExplicitPodProjectionNonLinDynamic, double > dynamSolver(&dynamProb);
                dynamSolver.solve();
              }
-           } /*else if (domain->solInfo().gappyPodRom) {
-             filePrint(stderr, " ... POD: Explicit Gappy Galerkin   ...\n");
-             Rom::DistrExplicitGappyNonLinDynamic dynamProb(domain);
-             DynamicSolver < MDDynamMat, DistrVector, MultiDomDynPostProcessor,
-                   Rom::DistrExplicitGappyNonLinDynamic, double > dynamSolver(&dynamProb);
-             dynamSolver.solve();
-           }*/ else {
+           }
+            else {
              filePrint(stderr, " ... POD: Snapshot collection       ...\n");
              Rom::DistrExplicitSnapshotNonLinDynamic dynamProb(domain);
              DynamicSolver < MDDynamMat, DistrVector, MultiDomDynPostProcessor,

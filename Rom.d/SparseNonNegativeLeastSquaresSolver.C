@@ -43,6 +43,13 @@ SparseNonNegativeLeastSquaresSolver::problemSizeIs(int eqnCount, int unkCount) {
     throw std::domain_error("Illegal problem size");
   }
 
+  #ifdef USE_STXXL
+  std::cout << "using stxxl" << std::endl;
+  #else
+  std::cout << "using std::vector" << std::endl;
+  #endif
+
+
   equationCount_ = matrixLeadDim_ = eqnCount;
   unknownCount_ = unkCount;
   matrixBuffer_.resize(matrixLeadDim_ * unknownCount());

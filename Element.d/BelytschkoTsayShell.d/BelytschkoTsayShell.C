@@ -409,9 +409,6 @@ BelytschkoTsayShell::getStiffAndForce(GeomState& geomState, CoordSet& cs, FullSq
         edisp[jloc] = geomState[nn[i]].d[j];
         evelo[jloc] = geomState[nn[i]].v[j] + delt*0.5*geomState[nn[i]].a[j];
       }
-#ifndef EXPLICIT_UPDATE
-      mat_to_vec(geomState[nn[i]].R,edisp+i*nndof+3);
-#endif
     }
     double trac[3] = { 0, 0, pressure };
     double tmftval = (mftt) ? mftt->getVal(std::max(time,0.0)) : 1.0;
@@ -449,9 +446,6 @@ BelytschkoTsayShell::extractDeformations(GeomState &geomState, CoordSet &cs,
       jloc = i*nndof+j;
       vld[jloc] = geomState[nn[i]].d[j];
     }
-#ifndef EXPLICIT_UPDATE
-    mat_to_vec(geomState[nn[i]].R,vld+i*nndof+3);
-#endif
   }
   nlflag = 1;
 }

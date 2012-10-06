@@ -174,6 +174,10 @@ def dComp(params):
   else:
     newP = 0
 
+  lrun = 0
+  run = 0
+  batch = 1
+
   files = [] 
   plotList = []
   if((params[1] == 'ALL')|(params[1] == 'short')):
@@ -207,6 +211,10 @@ def dComp(params):
           if(os.path.exists(qsubRetfile)):
             break
           time.sleep(10)
+      if(batch == 1):
+        os.system("rm *.dat test.* host.*")
+        command = "./scp."+names+" >reg.out 2>&1"
+        os.system(command)
       if(lrun == 1):
         os.system("rm *.dat test.* host.*")
         command = "./run."+names+" >reg.out 2>&1"
@@ -233,6 +241,12 @@ def dComp(params):
           if(os.path.exists(qsubRetfile)):
             break
           time.sleep(10)
+      if(batch == 1):
+        os.system("rm *.dat test.* host.*")
+        print "current directory is %s\n"% os.getcwd()
+        command = "./scp."+indir+" >reg.out 2>&1"
+        print "command is %s\n"% command
+        os.system(command)
       if(lrun == 1):
         os.system("rm *.dat test.* host.*")
         print "current directory is %s\n"% os.getcwd()

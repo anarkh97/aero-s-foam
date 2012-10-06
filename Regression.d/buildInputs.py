@@ -109,6 +109,7 @@ def buildInputs(params):
       MPIFILE.write("../create_mfiles.pl\n" )
      
       command = "chmod +x " + runfilename
+      command = "chmod +x " + qsubfilename
       os.system(command)
 #     command = "cp ../*.include ."
 #     os.system(command)

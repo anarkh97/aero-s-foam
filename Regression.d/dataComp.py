@@ -174,9 +174,9 @@ def dComp(params):
   else:
     newP = 0
 
-  lrun = 0
-  run = 0
-  batch = 1
+# lrun = 1
+# run = 0
+  batch = 0
 
   files = [] 
   plotList = []

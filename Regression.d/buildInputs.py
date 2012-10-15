@@ -104,11 +104,14 @@ def buildInputs(params):
       qsubfilename = "scp."+problem_type 
       RUNFILE = open(runfilename,"w")
       MPIFILE = open(qsubfilename,"w")
-      MPIFILE.write("#!/bin/bash\n#PBS -N test\n#PBS -l nodes=8:ppn=8,walltime=3:00:00\n\n")
+      MPIFILE.write("#!/bin/bash\n#PBS -N test\n#PBS -l nodes=4:ppn=8,walltime=3:00:00\n\n")
+      MPIFILE.write(". /opt/modules/Modules/3.2.6/init/bash\n module load intel openmpi\n")
+
       MPIFILE.write("cd %s\n" % dirname)
       MPIFILE.write("../create_mfiles.pl\n" )
      
       command = "chmod +x " + runfilename
+      os.system(command)
       command = "chmod +x " + qsubfilename
       os.system(command)
 #     command = "cp ../*.include ."

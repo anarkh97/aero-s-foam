@@ -6,6 +6,13 @@ __version__ = "$Revision: 0.1 $"
 __date__ = "2011/02/17"
 
 import sys, os, re, md5, subprocess, math, glob, datetime, time
+import smtplib
+from email.MIMEMultipart import MIMEMultipart
+from email.MIMEBase import MIMEBase
+from email.MIMEText import MIMEText
+from email.Utils import COMMASPACE, formatdate
+from email import Encoders
+
 
 class bcolors:
     HEADER = '\033[95m'
@@ -338,9 +345,25 @@ def dComp(params):
     os.system('gnuplot gnuplot_create');
     os.system("ps2pdf Discrepancies.ps Discrepancies.pdf");
   if(sendMail == 1):
-    command = "uuencode Discrepancies.pdf Discrepancies.pdf | mail -s \"Discrepancy Plots\" mpotts@hpti.com"
-    os.system(command) 
-
+#   command = "uuencode Discrepancies.pdf Discrepancies.pdf | mail -s \"Discrepancy Plots\" mpotts@hpti.com"
+#   os.system(command) 
+    msg = MIMEMultipart()
+    msg['From'] = "mpotts@ahpcrcfe.stanford.edu"
+    msg['To'] = "mpotts@drc.com"
+    msg['Date'] = formatdate(localtime=True)
+    msg['Subject'] = 'Regression Test results'
+    msg.attach( MIMEText('These are the discrepancies from the last regression test'))
+    f = 'Discrepancies.pdf'
+    part = MIMEBase('application', "octet-stream")
+    part.set_payload( open(f,"rb").read() )
+    Encoders.encode_base64(part)
+    part.add_header('Content-Disposition', 'attachment; filename="%s"' % os.path.basename(f))
+    msg.attach(part)
+    smtp = smtplib.SMTP("localhost")
+    send_to = "mpotts@drc.com"
+    send_from = "mpotts@ahpcrcfe.stanford.edu"
+    smtp.sendmail(send_from, send_to, msg.as_string())
+    smtp.close()
 
   sys.exit(result)
 

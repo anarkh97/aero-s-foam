@@ -2,8 +2,6 @@ echo ../../bin/aeros  tempstatics_sparse_gtempera.inp
 ../../bin/aeros  tempstatics_sparse_gtempera.inp
 echo ../../bin/aeros  tempstatics_skyline_gtempvel.inp
 ../../bin/aeros  tempstatics_skyline_gtempvel.inp
-echo ../../bin/aeros  tempstatics_mumps_heatflxx.inp
-../../bin/aeros  tempstatics_mumps_heatflxx.inp
 echo ../../bin/aeros  tempstatics_spooles_heatflxy.inp
 ../../bin/aeros  tempstatics_spooles_heatflxy.inp
 echo ../../bin/aeros  tempstatics_gmres_heatflxz.inp
@@ -12,8 +10,6 @@ echo ../../bin/aeros  tempstatics_direct_grdtempx.inp
 ../../bin/aeros  tempstatics_direct_grdtempx.inp
 echo ../../bin/aeros  tempstatics_spooles_pivot_grdtempy.inp
 ../../bin/aeros  tempstatics_spooles_pivot_grdtempy.inp
-echo ../../bin/aeros  tempstatics_mumps_pivot_grdtempz.inp
-../../bin/aeros  tempstatics_mumps_pivot_grdtempz.inp
 echo ../../bin/aeros  tempstatics_pcg_gtempera.inp
 ../../bin/aeros  tempstatics_pcg_gtempera.inp
 echo ../../bin/aeros  tempstatics_bcg_gtempvel.inp

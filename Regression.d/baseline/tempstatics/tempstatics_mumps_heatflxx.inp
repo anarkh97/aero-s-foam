@@ -13,6 +13,6 @@ heatflxx tempstatics_mumps_heatflxx.dat 1
 MATERIALS
 1   0.0 0.0 0.0 0.0    0.0 202.4 0.0 0.0 0.0 0.0   0.0 0.0 0.0 0.0
 *
-INCLUDE "mesh_temp.include"
+INCLUDE "../mesh_temp.include"
 *id A   E   nu  rho    c   k     h   P   Ta  q     w   etc...
 END

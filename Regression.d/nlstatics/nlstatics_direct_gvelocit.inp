@@ -1,0 +1,21 @@
+CONTROL
+nlstatics_direct_gvelocit
+1
+"nodeset"
+"elemset"
+*
+STATICS
+direct
+include "../feti.include"
+*
+NONLINEAR
+maxitr 100
+nltol 1.0e-6
+rebuild 1
+*
+OUTPUT
+gvelocit nlstatics_direct_gvelocit.dat 1
+*
+INCLUDE "../mesh.include"
+*
+END

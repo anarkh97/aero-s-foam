@@ -29,10 +29,10 @@
  ... Timing Statistics for 1 Thread  ...
 ***********************************************************
 
-1. Total Read Input Files              time:        0.00256 s        0.033 Mb
-         Read Mesh                     time:        0.00256 s
+1. Total Read Input Files              time:        0.00267 s        0.033 Mb
+         Read Mesh                     time:        0.00267 s
 
-2. Total Preprocessing                 time:        0.00071 s        0.353 Mb
+2. Total Preprocessing                 time:        0.00072 s        0.353 Mb
          Process Input Data            time:        0.00015 s 
          Connectivity                  time:        0.00002 s 
          Renumbering                   time:        0.00016 s 
@@ -40,20 +40,20 @@
          Make Constrained DOFs         time:        0.00009 s 
          Make Boundary Conditions      time:        0.00002 s 
 
-3. Total Matrix Processing             time:        0.13343 s        9.160 Mb
-         Form Element Matrices         time:        0.03215 s
-         Assemble Element Matrices     time:        0.10128 s
+3. Total Matrix Processing             time:        0.13213 s        9.160 Mb
+         Form Element Matrices         time:        0.03222 s
+         Assemble Element Matrices     time:        0.09990 s
 
 
 4. Total RHS Processing                time:        0.00003 s        0.000 Mb
 
-5. Total Solver                        time:        0.44597 s        0.249 Mb
-         Factor Matrix                 time:        0.44597 s 
+5. Total Solver                        time:        0.44585 s        0.249 Mb
+         Factor Matrix                 time:        0.44585 s 
          Solve (Forward/Backward)      time:        0.00000 s 
 
-6. Write Output Files                  time:        0.01575 s        0.000 Mb
+6. Write Output Files                  time:        0.00242 s        0.000 Mb
 
-TOTAL SIMULATION (1+2+3+4+5+6)         time:        0.59846 s        9.789 Mb
+TOTAL SIMULATION (1+2+3+4+5+6)         time:        0.58381 s        9.789 Mb
 
 ***********************************************************
  ... Solution Information ...

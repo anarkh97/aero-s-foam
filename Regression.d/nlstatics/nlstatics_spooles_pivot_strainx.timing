@@ -27,31 +27,31 @@
  ... Timing Statistics for 1 Thread  ...
 ***********************************************************
 
-1. Total Read Input Files              time:        0.00262 s        0.033 Mb
-         Read Mesh                     time:        0.00262 s
+1. Total Read Input Files              time:        0.00269 s        0.033 Mb
+         Read Mesh                     time:        0.00269 s
 
-2. Total Preprocessing                 time:        0.00073 s        0.353 Mb
+2. Total Preprocessing                 time:        0.00078 s        0.353 Mb
          Process Input Data            time:        0.00014 s 
-         Connectivity                  time:        0.00002 s 
+         Connectivity                  time:        0.00001 s 
          Renumbering                   time:        0.00016 s 
          Create DOFs                   time:        0.00002 s 
          Make Constrained DOFs         time:        0.00009 s 
          Make Boundary Conditions      time:        0.00002 s 
 
-3. Total Matrix Processing             time:        0.13235 s        9.061 Mb
-         Form Element Matrices         time:        0.03204 s
-         Assemble Element Matrices     time:        0.10030 s
+3. Total Matrix Processing             time:        0.14122 s        9.061 Mb
+         Form Element Matrices         time:        0.03366 s
+         Assemble Element Matrices     time:        0.10756 s
 
 
 4. Total RHS Processing                time:        0.00004 s        0.000 Mb
 
-5. Total Solver                        time:        1.33711 s       16.779 Mb
-         Factor Matrix                 time:        1.33711 s 
+5. Total Solver                        time:        1.44637 s       16.779 Mb
+         Factor Matrix                 time:        1.44637 s 
          Solve (Forward/Backward)      time:        0.00000 s 
 
-6. Write Output Files                  time:        0.01562 s        0.000 Mb
+6. Write Output Files                  time:        0.00157 s        0.000 Mb
 
-TOTAL SIMULATION (1+2+3+4+5+6)         time:        1.48846 s       26.220 Mb
+TOTAL SIMULATION (1+2+3+4+5+6)         time:        1.59266 s       26.220 Mb
 
 ***********************************************************
  ... Solution Information ...

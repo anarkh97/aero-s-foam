@@ -10,6 +10,6 @@ spooles pivot
 OUTPUT
 displmod statics_spooles_pivot_displmod.dat 1
 *
-INCLUDE "mesh.include"
+INCLUDE "../mesh.include"
 *
 END

@@ -17,8 +17,8 @@
  ... # Output Files       =       1 ...
  --------------------------------------
  --------------------------------------
- ... Total Time           = 6.13e-02 s
- ... Total Memory Used    = 8.63e-01 Mb
+ ... Total Time           = 6.93e-01 s
+ ... Total Memory Used    = 8.64e-01 Mb
  --------------------------------------
 ../../bin/aeros statics_skyline_stressvm.inp
 
@@ -39,30 +39,8 @@
  ... # Output Files       =       1 ...
  --------------------------------------
  --------------------------------------
- ... Total Time           = 6.61e-02 s
- ... Total Memory Used    = 4.17e-01 Mb
- --------------------------------------
-../../bin/aeros statics_mumps_strainxx.inp
-
- --------- R U N  PARAMETERS ----------
- ... Linear Static Analysis         ... 
- ... Mumps Solver is Selected       ... 
- ... Building the Force             ...
- ... Postprocessing                 ...
- --------------------------------------
-
- ---------- PROBLEM PARAMETERS --------
- ... # Nodes              =     189 ...
- ... # Elements           =      80 ...
- ... # Unconstrained dofs =     540 ...
- ... # Constrained dofs   =      27 ...
- ... Total # dofs         =     567 ...
- ... # Loaded dofs        =       9 ...
- ... # Output Files       =       1 ...
- --------------------------------------
- --------------------------------------
- ... Total Time           = 6.77e-02 s
- ... Total Memory Used    = 1.45e+00 Mb
+ ... Total Time           = 6.70e-02 s
+ ... Total Memory Used    = 4.18e-01 Mb
  --------------------------------------
 ../../bin/aeros statics_spooles_strainxy.inp
 
@@ -83,8 +61,8 @@
  ... # Output Files       =       1 ...
  --------------------------------------
  --------------------------------------
- ... Total Time           = 7.09e-02 s
- ... Total Memory Used    = 5.77e-01 Mb
+ ... Total Time           = 9.81e-02 s
+ ... Total Memory Used    = 5.78e-01 Mb
  --------------------------------------
 ../../bin/aeros statics_gmres_strainxz.inp
 
@@ -106,7 +84,7 @@
  ... # Output Files       =       1 ...
  --------------------------------------
  --------------------------------------
- ... Total Time           = 9.94e-02 s
+ ... Total Time           = 1.14e-01 s
  ... Total Memory Used    = 1.26e+01 Mb
  --------------------------------------
 ../../bin/aeros statics_direct_strainxx.inp
@@ -128,8 +106,8 @@
  ... # Output Files       =       1 ...
  --------------------------------------
  --------------------------------------
- ... Total Time           = 6.45e-02 s
- ... Total Memory Used    = 4.17e-01 Mb
+ ... Total Time           = 6.69e-02 s
+ ... Total Memory Used    = 4.18e-01 Mb
  --------------------------------------
 ../../bin/aeros statics_spooles_pivot_strainxy.inp
 
@@ -150,30 +128,8 @@
  ... # Output Files       =       1 ...
  --------------------------------------
  --------------------------------------
- ... Total Time           = 7.84e-02 s
- ... Total Memory Used    = 5.73e-01 Mb
- --------------------------------------
-../../bin/aeros statics_mumps_pivot_strainxz.inp
-
- --------- R U N  PARAMETERS ----------
- ... Linear Static Analysis         ... 
- ... Mumps Solver is Selected       ... 
- ... Building the Force             ...
- ... Postprocessing                 ...
- --------------------------------------
-
- ---------- PROBLEM PARAMETERS --------
- ... # Nodes              =     189 ...
- ... # Elements           =      80 ...
- ... # Unconstrained dofs =     540 ...
- ... # Constrained dofs   =      27 ...
- ... Total # dofs         =     567 ...
- ... # Loaded dofs        =       9 ...
- ... # Output Files       =       1 ...
- --------------------------------------
- --------------------------------------
- ... Total Time           = 8.58e-02 s
- ... Total Memory Used    = 1.45e+00 Mb
+ ... Total Time           = 8.20e-02 s
+ ... Total Memory Used    = 5.74e-01 Mb
  --------------------------------------
 ../../bin/aeros statics_pcg_strainxx.inp
 
@@ -234,7 +190,7 @@ in BasePCG::doSolve, maxitr = 1000, tolpcg = 1e-08, proj = 0
  ... Iteration #  49	 Two norm = 1.91296e-05	 Rel. residual = 5.10124e-08
  ... Iteration #  50	 Two norm = 6.90438e-06	 Rel. residual = 1.84117e-08
  ... Iteration #  51	 Two norm = 3.42183e-06	 Rel. residual = 9.12487e-09
- ... Total # Iterations =            51        0.00824 s
+ ... Total # Iterations =            51        0.00939 s
  ...     Final Two norm = 3.42183e-06
  ...     Final residual = 1.17089e-11
  ... Postprocessing                 ...
@@ -250,8 +206,8 @@ in BasePCG::doSolve, maxitr = 1000, tolpcg = 1e-08, proj = 0
  ... # Output Files       =       1 ...
  --------------------------------------
  --------------------------------------
- ... Total Time           = 7.51e-02 s
- ... Total Memory Used    = 4.15e-01 Mb
+ ... Total Time           = 7.99e-02 s
+ ... Total Memory Used    = 4.16e-01 Mb
  --------------------------------------
 ../../bin/aeros statics_bcg_strainxy.inp
 
@@ -325,8 +281,8 @@ Selected Solver does not implement factor() .
  ... # Output Files       =       1 ...
  --------------------------------------
  --------------------------------------
- ... Total Time           = 7.51e-02 s
- ... Total Memory Used    = 4.22e-01 Mb
+ ... Total Time           = 8.04e-02 s
+ ... Total Memory Used    = 4.23e-01 Mb
  --------------------------------------
 ../../bin/aeros statics_cr_strainxz.inp
 
@@ -403,8 +359,8 @@ Selected Solver does not implement factor() .
  ... # Output Files       =       1 ...
  --------------------------------------
  --------------------------------------
- ... Total Time           = 7.08e-02 s
- ... Total Memory Used    = 4.14e-01 Mb
+ ... Total Time           = 1.59e-01 s
+ ... Total Memory Used    = 4.15e-01 Mb
  --------------------------------------
 ../../bin/aeros -n 2 --dec --nsub 4 statics_FETI_inxforce.inp
 
@@ -414,7 +370,8 @@ Selected Solver does not implement factor() .
  ... FETI-DP Solver is Selected     ...
  ... Factor Subdomain Matrices      ... 
  ... Building the Force             ...
-./run.statics: line 24:   610 Segmentation fault      ../../bin/aeros -n 2 --dec --nsub 4 statics_FETI_inxforce.inp
+[su-ahpcrc:08963] *** Process received signal ***
+./run.statics: line 20:  8963 Segmentation fault      ../../bin/aeros -n 2 --dec --nsub 4 statics_FETI_inxforce.inp
 ../../bin/aeros -n 2 --dec --nsub 4 statics_FETI_DP_inyforce.inp
 
  --------- R U N  PARAMETERS ----------
@@ -423,8 +380,88 @@ Selected Solver does not implement factor() .
  ... FETI-DP Solver is Selected     ...
  ... Building the Force             ...
  ... Postprocessing                 ...
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
  *** WARNING: text file output for element stresses in distributed mode is only correctly
  ***          implemented for models in which all elements have the same number of nodes 
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
  ... Print Timers                   ... 
  --------------------------------------
 
@@ -438,7 +475,7 @@ Selected Solver does not implement factor() .
  ... # Output Files       =       1 ...
  --------------------------------------
  --------------------------------------
- ... Total Time           = 7.79e-02 s
+ ... Total Time           = 8.96e-02 s
  ... Total Memory Used    = 3.37e+00 Mb
  ... Total Krylov Iterations =    4 
  --------------------------------------
@@ -450,8 +487,88 @@ Selected Solver does not implement factor() .
  ... FETI-DP Solver is Selected     ...
  ... Building the Force             ...
  ... Postprocessing                 ...
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
  *** WARNING: text file output for element stresses in distributed mode is only correctly
  ***          implemented for models in which all elements have the same number of nodes 
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
  ... Print Timers                   ... 
  --------------------------------------
 
@@ -465,8 +582,8 @@ Selected Solver does not implement factor() .
  ... # Output Files       =       1 ...
  --------------------------------------
  --------------------------------------
- ... Total Time           = 8.32e-02 s
- ... Total Memory Used    = 3.35e+00 Mb
+ ... Total Time           = 9.24e-02 s
+ ... Total Memory Used    = 3.37e+00 Mb
  ... Total Krylov Iterations =    4 
  --------------------------------------
 ../../bin/aeros statics_sparse_axmoment.inp
@@ -476,6 +593,86 @@ Selected Solver does not implement factor() .
  ... Sparse Solver is Selected      ... 
  ... Building the Force             ...
  ... Postprocessing                 ...
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
  --------------------------------------
 
  ---------- PROBLEM PARAMETERS --------
@@ -488,8 +685,8 @@ Selected Solver does not implement factor() .
  ... # Output Files       =       1 ...
  --------------------------------------
  --------------------------------------
- ... Total Time           = 7.17e-02 s
- ... Total Memory Used    = 8.65e-01 Mb
+ ... Total Time           = 9.14e-02 s
+ ... Total Memory Used    = 8.66e-01 Mb
  --------------------------------------
 ../../bin/aeros statics_skyline_aymoment.inp
 
@@ -498,6 +695,86 @@ Selected Solver does not implement factor() .
  ... Skyline Solver is Selected     ... 
  ... Building the Force             ...
  ... Postprocessing                 ...
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
+ *** WARNING: Internal force not implemented for element type 17
  --------------------------------------
 
  ---------- PROBLEM PARAMETERS --------
@@ -510,30 +787,8 @@ Selected Solver does not implement factor() .
  ... # Output Files       =       1 ...
  --------------------------------------
  --------------------------------------
- ... Total Time           = 6.76e-02 s
- ... Total Memory Used    = 4.16e-01 Mb
- --------------------------------------
-../../bin/aeros statics_mumps_azmoment.inp
-
- --------- R U N  PARAMETERS ----------
- ... Linear Static Analysis         ... 
- ... Mumps Solver is Selected       ... 
- ... Building the Force             ...
- ... Postprocessing                 ...
- --------------------------------------
-
- ---------- PROBLEM PARAMETERS --------
- ... # Nodes              =     189 ...
- ... # Elements           =      80 ...
- ... # Unconstrained dofs =     540 ...
- ... # Constrained dofs   =      27 ...
- ... Total # dofs         =     567 ...
- ... # Loaded dofs        =       9 ...
- ... # Output Files       =       1 ...
- --------------------------------------
- --------------------------------------
- ... Total Time           = 7.24e-02 s
- ... Total Memory Used    = 1.45e+00 Mb
+ ... Total Time           = 8.63e-02 s
+ ... Total Memory Used    = 4.17e-01 Mb
  --------------------------------------
 ../../bin/aeros statics_spooles_energies.inp
 
@@ -554,8 +809,8 @@ Selected Solver does not implement factor() .
  ... # Output Files       =       1 ...
  --------------------------------------
  --------------------------------------
- ... Total Time           = 8.12e-02 s
- ... Total Memory Used    = 5.75e-01 Mb
+ ... Total Time           = 9.64e-02 s
+ ... Total Memory Used    = 5.76e-01 Mb
  --------------------------------------
 ../../bin/aeros statics_gmres_gvelocit.inp
 
@@ -578,7 +833,7 @@ Selected Solver does not implement factor() .
  ... # Output Files       =       1 ...
  --------------------------------------
  --------------------------------------
- ... Total Time           = 1.02e-01 s
+ ... Total Time           = 1.15e-01 s
  ... Total Memory Used    = 1.26e+01 Mb
  --------------------------------------
 ../../bin/aeros statics_direct_gacceler.inp
@@ -601,8 +856,8 @@ Selected Solver does not implement factor() .
  ... # Output Files       =       1 ...
  --------------------------------------
  --------------------------------------
- ... Total Time           = 6.66e-02 s
- ... Total Memory Used    = 4.15e-01 Mb
+ ... Total Time           = 8.24e-02 s
+ ... Total Memory Used    = 4.16e-01 Mb
  --------------------------------------
 ../../bin/aeros statics_spooles_pivot_displmod.inp
 
@@ -623,30 +878,8 @@ Selected Solver does not implement factor() .
  ... # Output Files       =       1 ...
  --------------------------------------
  --------------------------------------
- ... Total Time           = 7.69e-02 s
- ... Total Memory Used    = 5.71e-01 Mb
- --------------------------------------
-../../bin/aeros statics_mumps_pivot_rotatmod.inp
-
- --------- R U N  PARAMETERS ----------
- ... Linear Static Analysis         ... 
- ... Mumps Solver is Selected       ... 
- ... Building the Force             ...
- ... Postprocessing                 ...
- --------------------------------------
-
- ---------- PROBLEM PARAMETERS --------
- ... # Nodes              =     189 ...
- ... # Elements           =      80 ...
- ... # Unconstrained dofs =     540 ...
- ... # Constrained dofs   =      27 ...
- ... Total # dofs         =     567 ...
- ... # Loaded dofs        =       9 ...
- ... # Output Files       =       1 ...
- --------------------------------------
- --------------------------------------
- ... Total Time           = 8.05e-02 s
- ... Total Memory Used    = 1.45e+00 Mb
+ ... Total Time           = 1.05e-01 s
+ ... Total Memory Used    = 5.72e-01 Mb
  --------------------------------------
 ../../bin/aeros statics_pcg_gdispmod.inp
 
@@ -707,7 +940,7 @@ in BasePCG::doSolve, maxitr = 1000, tolpcg = 1e-08, proj = 0
  ... Iteration #  49	 Two norm = 1.91296e-05	 Rel. residual = 5.10124e-08
  ... Iteration #  50	 Two norm = 6.90438e-06	 Rel. residual = 1.84117e-08
  ... Iteration #  51	 Two norm = 3.42183e-06	 Rel. residual = 9.12487e-09
- ... Total # Iterations =            51        0.00808 s
+ ... Total # Iterations =            51        0.00920 s
  ...     Final Two norm = 3.42183e-06
  ...     Final residual = 1.17089e-11
  ... Postprocessing                 ...
@@ -723,6 +956,6 @@ in BasePCG::doSolve, maxitr = 1000, tolpcg = 1e-08, proj = 0
  ... # Output Files       =       1 ...
  --------------------------------------
  --------------------------------------
- ... Total Time           = 7.52e-02 s
- ... Total Memory Used    = 4.13e-01 Mb
+ ... Total Time           = 8.07e-02 s
+ ... Total Memory Used    = 4.14e-01 Mb
  --------------------------------------

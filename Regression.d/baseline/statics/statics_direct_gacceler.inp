@@ -10,6 +10,6 @@ direct
 OUTPUT
 gacceler statics_direct_gacceler.dat 1
 *
-INCLUDE "mesh.include"
+INCLUDE "../mesh.include"
 *
 END

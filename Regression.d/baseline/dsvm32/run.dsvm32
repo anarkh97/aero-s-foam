@@ -1,15 +1,11 @@
 echo ../../bin/aeros  dsvm32_sparse_gtempera.inp
 ../../bin/aeros  dsvm32_sparse_gtempera.inp
-echo ../../bin/aeros  dsvm32_mumps_gtempera.inp
-../../bin/aeros  dsvm32_mumps_gtempera.inp
 echo ../../bin/aeros  dsvm32_spooles_gtempera.inp
 ../../bin/aeros  dsvm32_spooles_gtempera.inp
 echo ../../bin/aeros  dsvm32_gmres_gtempera.inp
 ../../bin/aeros  dsvm32_gmres_gtempera.inp
 echo ../../bin/aeros  dsvm32_spooles_pivot_gtempera.inp
 ../../bin/aeros  dsvm32_spooles_pivot_gtempera.inp
-echo ../../bin/aeros  dsvm32_mumps_pivot_gtempera.inp
-../../bin/aeros  dsvm32_mumps_pivot_gtempera.inp
 echo ../../bin/aeros  dsvm32_pcg_gtempera.inp
 ../../bin/aeros  dsvm32_pcg_gtempera.inp
 echo ../../bin/aeros  dsvm32_bcg_gtempera.inp

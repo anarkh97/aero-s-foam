@@ -139,9 +139,9 @@ def buildInputs(params):
                    "freq 10.0\ndamp 1e-7 1.0",\
                    "freq 10.0\ndamp 1e-5 1.0"]
 
-      NONLINEAR = ["maxitr 10\nnltol 1.0e-6\nrebuild 1",\
-                   "maxitr 10\nnltol 1.0e-7\nrebuild 1",\
-                   "maxitr 10\nnltol 1.0e-5\nrebuild 1"]
+      NONLINEAR = ["maxitr 100\nnltol 1.0e-6\nrebuild 1",\
+                   "maxitr 100\nnltol 1.0e-7\nrebuild 1",\
+                   "maxitr 100\nnltol 1.0e-5\nrebuild 1"]
 
       EIGEN = ["arpack\nnsbspv 20\nneigpa 12\ntoleig 1.0e-10\ntoljac 1.0e-05",\
                "arpack\nnsbspv 20\nneigpa 12\ntoleig 1.0e-10\ntoljac 1.0e-04",\
@@ -525,6 +525,9 @@ def buildInputs(params):
 
       if(problem_type == "nlstatics"):
         EXTRAS = ["include \"../feti.include\"\n*","*","*","*","*"]
+        STATICS = ["sparse","skyline","mumps","spooles","gmres","direct",\
+                 "spooles pivot","mumps pivot","bcg","cr","FETI",\
+                 "FETI DP","FETI DPH"]
   
         NAMELIST = ["STATICS\n","NONLINEAR\n","OUTPUT\n","INCLUDE "]
         OPTIONSLIST = [STATICS,NONLINEAR,OUTPUT,INCLUDE]

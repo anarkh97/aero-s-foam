@@ -10,6 +10,6 @@ FETI DP
 OUTPUT
 inyforce statics_FETI_DP_inyforce.dat 1
 *
-INCLUDE "mesh.include"
+INCLUDE "../mesh.include"
 *
 END

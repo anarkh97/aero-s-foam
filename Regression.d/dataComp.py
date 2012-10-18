@@ -330,16 +330,20 @@ def dComp(params):
           count = len(words)
           break
         linenum = linenum+1
+      if(title1.find("dsvm13") != -1):
+        skip_num = 3
+      else:
+        skip_num = 2
       if(count == 0):
         PLOT_FILE.write("set title \"%s--MISSING\"\n" % (files[0]))
-        PLOT_FILE.write("plot \"%s\" every ::2 using 1 title \"%s\"\n" % (files[1],title2))
+        PLOT_FILE.write("plot \"%s\" every ::%d using 1 title \"%s\"\n" % (files[1],skip_num,title2))
       elif (count == 1):
           PLOT_FILE.write("set title \"%s comparison\"\n" % (files[0]))
-          PLOT_FILE.write("plot \"%s\" every ::2 using 1 title \"%s\", \"%s\" every ::2 using 1 title \"%s\"\n" % (files[0],title1,files[1],title2));
+          PLOT_FILE.write("plot \"%s\" every ::%d using 1 title \"%s\", \"%s\" every ::%d using 1 title \"%s\"\n" % (files[0],skip_num,title1,files[1],skip_num,title2));
       else:
         for col in range(2,count+1):
           PLOT_FILE.write("set title \"%s comparison of column %d\"\n" % (files[0],col))
-          PLOT_FILE.write("plot \"%s\" every ::2 using 1:%d title \"%s\", \"%s\" every ::2 using 1:%d title \"%s\"\n" % (files[0],col,title1,files[1],col,title2));
+          PLOT_FILE.write("plot \"%s\" every ::%d using 1:%d title \"%s\", \"%s\" every ::%d using 1:%d title \"%s\"\n" % (files[0],skip_num,col,title1,files[1],skip_num,col,title2));
     PLOT_FILE.close()
     os.system("rm Discrepancies.*")
     os.system('gnuplot gnuplot_create');

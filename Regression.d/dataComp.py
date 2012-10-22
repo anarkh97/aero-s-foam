@@ -67,7 +67,7 @@ def directComp(basefile,file,SUMMARY_FILE,outstring):
         result = 1
       else:
         for j in range(len(basewords)):
-          if(not(basewords[j].isalpha())and not(compwords[j].isalpha()) and(basewords[j].isdigit())):
+          if(not(basewords[j].isalpha())and not(compwords[j].isalpha()) and(basewords[j].find("__") == -1)):
             diff = float(basewords[j]) - float(compwords[j])
             TotDiff = math.fabs(diff) + TotDiff
             nSample = nSample + 1

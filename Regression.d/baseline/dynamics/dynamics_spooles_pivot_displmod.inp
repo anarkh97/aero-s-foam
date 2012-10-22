@@ -8,13 +8,13 @@ STATICS
 spooles pivot
 *
 DYNAMICS
-time	0.0	3.0e-4	3.0e-2
+time	0.0	3.0e+2	3.0e+2
 newmark
 mech	0.25000	0.5000
 *	time step	total time
 OUTPUT
 displmod dynamics_spooles_pivot_displmod.dat 1
 *
-INCLUDE "mesh.include"
+INCLUDE "../mesh.include"
 *
 END

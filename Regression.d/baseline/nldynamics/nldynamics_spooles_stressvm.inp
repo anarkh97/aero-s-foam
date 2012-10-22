@@ -8,12 +8,12 @@ STATICS
 spooles
 *
 DYNAMICS
-time	0.0	1.0e-4	3.0e-2
+time	0.0	3.0e+1	3.0e+1
 newmark
 mech	0.25000	0.5000
 *	time step	total time
 NONLINEAR
-maxitr 10
+maxitr 100
 nltol 1.0e-7
 rebuild 1
 *

@@ -131,9 +131,9 @@ def buildInputs(params):
 
       INCLUDE = ["\"../mesh.include\""]
 
-      DYNAMICS = ["time\t0.0\t3.0e-5\t3.0e-2",\
-                  "time\t0.0\t1.0e-4\t3.0e-2",\
-                  "time\t0.0\t3.0e-4\t3.0e-2"]
+      DYNAMICS = ["time\t0.0\t3.0e+0\t3.0e+0",\
+                  "time\t0.0\t3.0e+1\t3.0e+1",\
+                  "time\t0.0\t3.0e+2\t3.0e+2"]
 
       IMPE =      ["freq 10.0\ndamp 1e-6 1.0",\
                    "freq 10.0\ndamp 1e-7 1.0",\

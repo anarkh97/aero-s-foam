@@ -332,6 +332,14 @@ def dComp(params):
         linenum = linenum+1
       if(title1.find("dsvm13") != -1):
         skip_num = 3
+      elif(title1.find("dynamics") != -1):
+        p = subprocess.Popen(["head","-2",files[0] ], stdout=subprocess.PIPE) 
+        line_nums = p.stdout.readline().split() 
+        line_nums = p.stdout.readline().split() 
+        if(line_nums[0].find("___") == -1):
+          skip_num = int(line_nums[0]) + 4
+        else:
+          skip_num = 4
       else:
         skip_num = 2
       if(count == 0):

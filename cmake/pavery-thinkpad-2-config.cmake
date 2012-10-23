@@ -2,6 +2,7 @@
 # acme, arpack, blacs, metis, mumps, scalapack, spooles, zoltan
 SET(CMAKE_INCLUDE_PATH
     /home/avery/Codes/eigen
+#    /usr/include/trilinos
     /home/avery/Codes/trilinos/trilinos-10.10.2-Source/packages/sacado/src
     /home/avery/Codes/trilinos/trilinos-10.10.2-Obj_cmake/include
     /home/avery/Codes/trilinos/trilinos-10.10.2-Source/packages/zoltan/src

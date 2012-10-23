@@ -2,6 +2,8 @@ echo ../../bin/aeros  nlstatics_sparse_gdisplac.inp
 ../../bin/aeros  nlstatics_sparse_gdisplac.inp
 echo ../../bin/aeros  nlstatics_skyline_stressvm.inp
 ../../bin/aeros  nlstatics_skyline_stressvm.inp
+echo ../../bin/aeros  nlstatics_mumps_strainxx.inp
+../../bin/aeros  nlstatics_mumps_strainxx.inp
 echo ../../bin/aeros  nlstatics_spooles_strainxy.inp
 ../../bin/aeros  nlstatics_spooles_strainxy.inp
 echo ../../bin/aeros  nlstatics_gmres_strainxz.inp
@@ -10,6 +12,8 @@ echo ../../bin/aeros  nlstatics_direct_strainxx.inp
 ../../bin/aeros  nlstatics_direct_strainxx.inp
 echo ../../bin/aeros  nlstatics_spooles_pivot_strainxy.inp
 ../../bin/aeros  nlstatics_spooles_pivot_strainxy.inp
+echo ../../bin/aeros  nlstatics_mumps_pivot_strainxz.inp
+../../bin/aeros  nlstatics_mumps_pivot_strainxz.inp
 echo ../../bin/aeros  nlstatics_bcg_strainxx.inp
 ../../bin/aeros  nlstatics_bcg_strainxx.inp
 echo ../../bin/aeros  nlstatics_cr_strainxy.inp
@@ -24,6 +28,8 @@ echo ../../bin/aeros  nlstatics_sparse_inzforce.inp
 ../../bin/aeros  nlstatics_sparse_inzforce.inp
 echo ../../bin/aeros  nlstatics_skyline_axmoment.inp
 ../../bin/aeros  nlstatics_skyline_axmoment.inp
+echo ../../bin/aeros  nlstatics_mumps_aymoment.inp
+../../bin/aeros  nlstatics_mumps_aymoment.inp
 echo ../../bin/aeros  nlstatics_spooles_azmoment.inp
 ../../bin/aeros  nlstatics_spooles_azmoment.inp
 echo ../../bin/aeros  nlstatics_gmres_energies.inp
@@ -32,6 +38,8 @@ echo ../../bin/aeros  nlstatics_direct_gvelocit.inp
 ../../bin/aeros  nlstatics_direct_gvelocit.inp
 echo ../../bin/aeros  nlstatics_spooles_pivot_gacceler.inp
 ../../bin/aeros  nlstatics_spooles_pivot_gacceler.inp
+echo ../../bin/aeros  nlstatics_mumps_pivot_displmod.inp
+../../bin/aeros  nlstatics_mumps_pivot_displmod.inp
 echo ../../bin/aeros  nlstatics_bcg_rotatmod.inp
 ../../bin/aeros  nlstatics_bcg_rotatmod.inp
 echo ../../bin/aeros  nlstatics_cr_gdispmod.inp

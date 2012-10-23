@@ -4,12 +4,14 @@
 
 . /opt/modules/Modules/3.2.6/init/bash
  module load intel openmpi
-cd /lustre/home/mpotts/FEM/Regression.d/nlstatics
+cd /home/avery/Codes/FEM/Regression.d/nlstatics
 ../create_mfiles.pl
 echo mpirun -n 2 ../../bin/aeros  nlstatics_sparse_gdisplac.inp
 mpirun -n 2 --machinefile host.0 ../../bin/aeros  nlstatics_sparse_gdisplac.inp &
 echo mpirun -n 2 ../../bin/aeros  nlstatics_skyline_stressvm.inp
 mpirun -n 2 --machinefile host.1 ../../bin/aeros  nlstatics_skyline_stressvm.inp &
+echo mpirun -n 2 ../../bin/aeros  nlstatics_mumps_strainxx.inp
+mpirun -n 2 --machinefile host.2 ../../bin/aeros  nlstatics_mumps_strainxx.inp &
 echo mpirun -n 2 ../../bin/aeros  nlstatics_spooles_strainxy.inp
 mpirun -n 2 --machinefile host.3 ../../bin/aeros  nlstatics_spooles_strainxy.inp &
 echo mpirun -n 2 ../../bin/aeros  nlstatics_gmres_strainxz.inp
@@ -18,6 +20,8 @@ echo mpirun -n 2 ../../bin/aeros  nlstatics_direct_strainxx.inp
 mpirun -n 2 --machinefile host.5 ../../bin/aeros  nlstatics_direct_strainxx.inp &
 echo mpirun -n 2 ../../bin/aeros  nlstatics_spooles_pivot_strainxy.inp
 mpirun -n 2 --machinefile host.6 ../../bin/aeros  nlstatics_spooles_pivot_strainxy.inp &
+echo mpirun -n 2 ../../bin/aeros  nlstatics_mumps_pivot_strainxz.inp
+mpirun -n 2 --machinefile host.7 ../../bin/aeros  nlstatics_mumps_pivot_strainxz.inp &
 echo mpirun -n 2 ../../bin/aeros  nlstatics_bcg_strainxx.inp
 mpirun -n 2 --machinefile host.8 ../../bin/aeros  nlstatics_bcg_strainxx.inp &
 echo mpirun -n 2 ../../bin/aeros  nlstatics_cr_strainxy.inp
@@ -32,6 +36,8 @@ echo mpirun -n 2 ../../bin/aeros  nlstatics_sparse_inzforce.inp
 mpirun -n 2 --machinefile host.13 ../../bin/aeros  nlstatics_sparse_inzforce.inp &
 echo mpirun -n 2 ../../bin/aeros  nlstatics_skyline_axmoment.inp
 mpirun -n 2 --machinefile host.14 ../../bin/aeros  nlstatics_skyline_axmoment.inp &
+echo mpirun -n 2 ../../bin/aeros  nlstatics_mumps_aymoment.inp
+mpirun -n 2 --machinefile host.15 ../../bin/aeros  nlstatics_mumps_aymoment.inp &
 echo mpirun -n 2 ../../bin/aeros  nlstatics_spooles_azmoment.inp
 mpirun -n 2 --machinefile host.16 ../../bin/aeros  nlstatics_spooles_azmoment.inp &
 echo mpirun -n 2 ../../bin/aeros  nlstatics_gmres_energies.inp
@@ -40,6 +46,8 @@ echo mpirun -n 2 ../../bin/aeros  nlstatics_direct_gvelocit.inp
 mpirun -n 2 --machinefile host.18 ../../bin/aeros  nlstatics_direct_gvelocit.inp &
 echo mpirun -n 2 ../../bin/aeros  nlstatics_spooles_pivot_gacceler.inp
 mpirun -n 2 --machinefile host.19 ../../bin/aeros  nlstatics_spooles_pivot_gacceler.inp &
+echo mpirun -n 2 ../../bin/aeros  nlstatics_mumps_pivot_displmod.inp
+mpirun -n 2 --machinefile host.20 ../../bin/aeros  nlstatics_mumps_pivot_displmod.inp &
 echo mpirun -n 2 ../../bin/aeros  nlstatics_bcg_rotatmod.inp
 mpirun -n 2 --machinefile host.21 ../../bin/aeros  nlstatics_bcg_rotatmod.inp &
 echo mpirun -n 2 ../../bin/aeros  nlstatics_cr_gdispmod.inp

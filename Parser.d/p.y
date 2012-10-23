@@ -699,14 +699,14 @@ SensorLocations:
 	;
 ActuatorLocations:
         ACTUATORS NewLine BCDataList
-        { for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Actuators;
+        { for(int i=0; i<$3->n; ++i) { $3->d[i].type = BCond::Actuators; $3->d[i].caseid = 0; }
           if(geoSource->setActuatorLocations($3->n,$3->d) < 0) return -1; 
           if(geoSource->setNeuman($3->n,$3->d) < 0)            return -1; }
 	;
 UsdfLocations:
 	USERDEFINEFORCE NewLine BCDataList
         { geoSource->binaryInputControlLeft = true;
-          for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Usdf;
+          for(int i=0; i<$3->n; ++i) { $3->d[i].type = BCond::Usdf; $3->d[i].caseid = 0; }
           if(geoSource->setUsdfLocation($3->n,$3->d) < 0) return -1;
           if(geoSource->setNeuman($3->n,$3->d) < 0)       return -1; } 
 	;
@@ -1283,30 +1283,37 @@ TempDirichletBC:
 TempNeumanBC:
         FLUX NewLine
         { $$ = new BCList; }
+        | FLUX Integer NewLine
+        { $$ = new BCList($2); }
         | TempNeumanBC Integer Float NewLine
         { $$ = $1; BCond bc; bc.nnum = $2-1; bc.dofnum = 6;
-          bc.val = $3; bc.type = BCond::Flux; $$->add(bc); }
+          bc.val = $3; bc.type = BCond::Flux; bc.caseid = $$->caseid; $$->add(bc); }
         | TempNeumanBC SURF Integer Float NewLine
         { BCond *surf_bc = new BCond[1];
           surf_bc[0].nnum = $3-1;
           surf_bc[0].dofnum = 6;
           surf_bc[0].val = $4;
           surf_bc[0].type = BCond::Flux;
+          surf_bc[0].caseid = $$->caseid;
           geoSource->addSurfaceNeuman(1,surf_bc); }
 	;
 TempConvection:
         CONVECTION NewLine
         { $$ = new BCList; }
+        | CONVECTION Integer NewLine
+        { $$ = new BCList($2); }
         | TempConvection Integer Float Float Float NewLine
         { $$ = $1; BCond bc; bc.nnum = $2-1; bc.dofnum = 6;
-          bc.val = $3*$4*$5; bc.type = BCond::Convection; $$->add(bc); }
+          bc.val = $3*$4*$5; bc.type = BCond::Convection; bc.caseid = $$->caseid; $$->add(bc); }
 	;
 TempRadiation:
         RADIATION NewLine
         { $$ = new BCList; }
+        | RADIATION Integer NewLine
+        { $$ = new BCList($2); }
         | TempRadiation Integer Float Float Float NewLine
         { $$ = $1; BCond bc; bc.nnum = $2-1; bc.dofnum = 6;
-          bc.val = 5.670400E-8*$3*$4*$5*$5*$5*$5; bc.type = BCond::Radiation; $$->add(bc); }
+          bc.val = 5.670400E-8*$3*$4*$5*$5*$5*$5; bc.type = BCond::Radiation; bc.caseid = $$->caseid; $$->add(bc); }
         ;
 HelmHoltzBC:
         HSOMMERFELD NewLine SommerfeldBCDataList
@@ -1410,7 +1417,7 @@ AtdDirScatterer:
         ;
 AtdNeuScatterer:
         ATDNEU NewLine PBCDataList
-        { for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Atdneu; $$ = $3; }
+        { for(int i=0; i<$3->n; ++i) { $3->d[i].type = BCond::Atdneu; $3->d[i].caseid = 0; } $$ = $3; }
         ;
 AtdArbScatterer:
 	ATDARB Float NewLine

@@ -3724,6 +3724,31 @@ MatSpec:
            geoSource->addMaterial($2-1,
              new ExpMat($3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23));
          }
+        | MatSpec Integer OPTCTV Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new ExpMat($3, $4, $5, $6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+         }
+        | MatSpec Integer OPTCTV Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new ExpMat($3, $4, $5, $6, $7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+         }
+        | MatSpec Integer OPTCTV Float Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new ExpMat($3, $4, $5, $6, $7, $8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+         }
+        | MatSpec Integer OPTCTV Float Float Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new ExpMat($3, $4, $5, $6, $7, $8, $9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+         }
+        | MatSpec Integer OPTCTV Float Float Float Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new ExpMat($3, $4, $5, $6, $7, $8, $9, $10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+         }
 	| MatSpec READ FNAME FNAME NewLine
 	 {
 	   geoSource->loadMaterial($3, $4);

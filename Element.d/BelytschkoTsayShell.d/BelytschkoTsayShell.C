@@ -151,6 +151,9 @@ BelytschkoTsayShell::setMaterial(NLMaterial *m)
       }
     }
   }
+  if(expmat->ematpro[17] == 0) expmat->ematpro[17] = 0.1;
+  if(expmat->ematpro[18] == 0) expmat->ematpro[18] = 0.833;
+  if(expmat->ematpro[19] == 0) expmat->ematpro[19] = (prop) ? prop->eh : 0;
 }
 
 void

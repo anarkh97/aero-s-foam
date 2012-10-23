@@ -5,7 +5,7 @@ __author__ = "Mark A. Potts (mpotts@hpti.com)"
 __version__ = "$Revision: 0.1 $"
 __date__ = "2011/02/14"
 
-import sys, os, re, glob
+import sys, os, re, glob, subprocess
 #import argparse
 
 
@@ -93,6 +93,15 @@ def buildInputs(params):
     else:
       PROBLEM_NAMES = [params[1]]
 
+    p = subprocess.Popen(["hostname"],stdout=subprocess.PIPE)
+    retval = p.stdout.readline()
+    if(retval.find("independence") != -1):
+      host = "independence"
+    elif(retval.find("su-ahpcrc") != -1):
+      host = "su-ahpcrc"
+    else:
+      host = "other"
+    print "host is %s " % host
     for problem_type in PROBLEM_NAMES:
   
       if(os.path.exists(problem_type)==0):
@@ -104,7 +113,11 @@ def buildInputs(params):
       qsubfilename = "scp."+problem_type 
       RUNFILE = open(runfilename,"w")
       MPIFILE = open(qsubfilename,"w")
-      MPIFILE.write("#!/bin/bash\n#PBS -N test\n#PBS -l nodes=4:ppn=8,walltime=3:00:00\n\n")
+      if(host == "su-ahpcrc"):
+        MPIFILE.write("#!/bin/bash\n#PBS -N test\n#PBS -V\n#PBS -l nodes=4:ppn=8,walltime=3:00:00\n\n")
+      elif(host == "independence"):
+        MPIFILE.write("#!/bin/bash\n#PBS -N test\n#PBS -V\n#PBS -l nodes=2:ppn=12,walltime=3:00:00\n\n")
+
       MPIFILE.write(". /opt/modules/Modules/3.2.6/init/bash\n module load intel openmpi\n")
 
       MPIFILE.write("cd %s\n" % dirname)

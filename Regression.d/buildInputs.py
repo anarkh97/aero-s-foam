@@ -101,7 +101,7 @@ def buildInputs(params):
       host = "su-ahpcrc"
     else:
       host = "other"
-    print "host is %s " % host
+    print "host is %s " % retval
     for problem_type in PROBLEM_NAMES:
   
       if(os.path.exists(problem_type)==0):

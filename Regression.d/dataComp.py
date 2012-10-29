@@ -357,13 +357,15 @@ def dComp(params):
     os.system('gnuplot gnuplot_create');
     os.system("ps2pdf Discrepancies.ps Discrepancies.pdf");
   if(sendMail == 1):
-#   command = "uuencode Discrepancies.pdf Discrepancies.pdf | mail -s \"Discrepancy Plots\" mpotts@hpti.com"
-#   os.system(command) 
+    # find out which host mail will be sent from
+    p = subprocess.Popen(["hostname"],stdout=subprocess.PIPE)
+    hostname = p.stdout.readline()
+
     msg = MIMEMultipart()
-    msg['From'] = "mpotts@ahpcrcfe.stanford.edu"
+    msg['From'] = 'mpotts@'+hostname
     msg['To'] = "mpotts@drc.com"
     msg['Date'] = formatdate(localtime=True)
-    msg['Subject'] = 'Regression Test results'
+    msg['Subject'] = hostname + ' Regression Test results'
     msg.attach( MIMEText('These are the discrepancies from the last regression test'))
     f = 'Discrepancies.pdf'
     part = MIMEBase('application', "octet-stream")

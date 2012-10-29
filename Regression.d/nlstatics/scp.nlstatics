@@ -1,7 +1,3 @@
-#!/bin/bash
-#PBS -N test
-#PBS -l nodes=4:ppn=8,walltime=3:00:00
-
 . /opt/modules/Modules/3.2.6/init/bash
  module load intel openmpi
 cd /home/avery/Codes/FEM/Regression.d/nlstatics

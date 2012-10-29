@@ -25,7 +25,7 @@ class DistrGeomState {
 
      // Update the GeomStates
      void update(DistrVector &v);
-     void setVelocity(DistrVector &, DistrVector &, DistrVector &);
+     void setVelocity(DistrVector &, DistrVector &);
 
 // The following functions are necessary to implement NL dynamics and
 // the arclength method
@@ -53,7 +53,7 @@ class DistrGeomState {
      void subInterp(int isub, double&, DistrGeomState &, DistrGeomState &);
      void subDiff(int isub, DistrGeomState &unp, DistrVector &un);
      void subUpdate(int isub, DistrVector &v);
-     void subSetVelocity(int isub, DistrVector &d, DistrVector &v, DistrVector &a);
+     void subSetVelocity(int isub, DistrVector &v, DistrVector &a);
      void makeSubGeomStates(int isub, DecDomain *domain);
      void subCopyConstructor(int isub, const DistrGeomState &g2);
 };

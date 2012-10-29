@@ -401,16 +401,19 @@ BelytschkoTsayShell::getStiffAndForce(GeomState& geomState, CoordSet& cs, FullSq
     double* ecord = (double*) dbg_alloca(sizeof(double)*nnode*ndime);
     double* edisp = (double*) dbg_alloca(sizeof(double)*nnode*nndof); // d^{n+1}
     double* evelo = (double*) dbg_alloca(sizeof(double)*nnode*nndof); // v^{n+0.5}
-    int iloc,jloc;
+    int iloc;
     for(int i = 0; i < nnode; ++i) {
       iloc = i*ndime;
       ecord[iloc+0] = cs[nn[i]]->x;
       ecord[iloc+1] = cs[nn[i]]->y;
       ecord[iloc+2] = cs[nn[i]]->z;
+      iloc = i*nndof;
+      edisp[iloc+0] = geomState[nn[i]].x - cs[nn[i]]->x;
+      edisp[iloc+1] = geomState[nn[i]].y - cs[nn[i]]->y;
+      edisp[iloc+2] = geomState[nn[i]].z - cs[nn[i]]->z;
+      // note: edisp[iloc+3], edisp[iloc+4] and edisp[iloc+5] are not used...
       for(int j = 0; j < nndof; ++j) {
-        jloc = i*nndof+j;
-        edisp[jloc] = geomState[nn[i]].d[j];
-        evelo[jloc] = geomState[nn[i]].v[j] + delt*0.5*geomState[nn[i]].a[j];
+        evelo[iloc+j] = geomState[nn[i]].v[j] + delt*0.5*geomState[nn[i]].a[j];
       }
     }
     double trac[3] = { 0, 0, pressure };
@@ -420,9 +423,8 @@ BelytschkoTsayShell::getStiffAndForce(GeomState& geomState, CoordSet& cs, FullSq
     // internal force, hourglass control and pressure
     // ------------------
     Elefintbt1(delt, ecord, edisp, evelo, trac, tmftval, efint);
-     // input : optctv,optdmb,opttrc,prmhgc,delt,ematpro,nndof,mgaus(3),mgqpt[0],gqpoin3,gqweigt3,ecord,edisp,evelo,trac,tmftval
-     // inoutput : evar1,evoit2,evoit3
-     // output : evar2,efint
+     // input : delt,ecord,edisp,evelo,trac,tmftval
+     // output : efint
  
     // ---------------------------------------------------------------
     // damping force
@@ -442,13 +444,13 @@ void
 BelytschkoTsayShell::extractDeformations(GeomState &geomState, CoordSet &cs,
                                          double *vld, int &nlflag)
 {
-  int iloc,jloc;
+  int iloc;
   for(int i = 0; i < nnode; ++i) {
-    iloc = i*ndime;
-    for(int j = 0; j < nndof; ++j) {
-      jloc = i*nndof+j;
-      vld[jloc] = geomState[nn[i]].d[j];
-    }
+    iloc = i*nndof;
+    vld[iloc+0] = geomState[nn[i]].x - cs[nn[i]]->x;
+    vld[iloc+1] = geomState[nn[i]].y - cs[nn[i]]->y;
+    vld[iloc+2] = geomState[nn[i]].z - cs[nn[i]]->z;
+    mat_to_vec(geomState[nn[i]].R, vld+iloc+3);
   }
   nlflag = 1;
 }
@@ -503,11 +505,15 @@ BelytschkoTsayShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
                   // 1 : traction
   double* ecord = (double*) dbg_alloca(sizeof(double)*nnode*ndime);
   double* edisp = (double*) dbg_alloca(sizeof(double)*nnode*ndime); // translations only
+  int iloc;
   for(int i = 0; i < nnode; ++i) {
-    ecord[i*ndime+0] = cs[nn[i]]->x;
-    ecord[i*ndime+1] = cs[nn[i]]->y;
-    ecord[i*ndime+2] = cs[nn[i]]->z;
-    for(int j = 0; j < 3; ++j) edisp[i*ndime+j] = (*geomState)[nn[i]].d[j];
+    iloc = i*ndime;
+    ecord[iloc+0] = cs[nn[i]]->x;
+    ecord[iloc+1] = cs[nn[i]]->y;
+    ecord[iloc+2] = cs[nn[i]]->z;
+    edisp[iloc+0] = (geomState) ? (*geomState)[nn[i]].x - cs[nn[i]]->x : 0;
+    edisp[iloc+1] = (geomState) ? (*geomState)[nn[i]].y - cs[nn[i]]->y : 0;
+    edisp[iloc+2] = (geomState) ? (*geomState)[nn[i]].z - cs[nn[i]]->z : 0;
   }
   double trac[3] = { -pressure, 0, 0 };
   double *efbc = (double*) dbg_alloca(sizeof(double)*nnode*ndime); // translations only
@@ -796,24 +802,6 @@ BelytschkoTsayShell::computeStabilityTimeStep(FullSquareMatrix &K, FullSquareMat
 {
 #ifdef USE_EIGEN3
   if(prop) {
-/*
-    double* _ecord = (double*) dbg_alloca(sizeof(double)*nnode*ndime);
-    double* _edisp = (double*) dbg_alloca(sizeof(double)*nnode*nndof); // d^{n+1}
-    int iloc,jloc;
-    for(int i = 0; i < nnode; ++i) {
-      iloc = i*ndime;
-      _ecord[iloc+0] = cs[nn[i]]->x;
-      _ecord[iloc+1] = cs[nn[i]]->y;
-      _ecord[iloc+2] = cs[nn[i]]->z;
-      for(int j = 0; j < nndof; ++j) {
-        jloc = i*nndof+j;
-        _edisp[jloc] = (*gs)[nn[i]].d[j];
-      }
-    }
-    Map<Matrix<double,3,4,ColMajor> > ecord(_ecord);
-    Map<Matrix<double,6,4,ColMajor> > edisp(_edisp);
-    Matrix<double,3,4,ColMajor> ecurn;
-*/
     Matrix<double,3,4,ColMajor> ecurn;
     Matrix<double,3,3,ColMajor> locbvec;
     Matrix<double,3,4,ColMajor> ecurnloc;
@@ -821,11 +809,10 @@ BelytschkoTsayShell::computeStabilityTimeStep(FullSquareMatrix &K, FullSquareMat
 
     // get current nodal coordinate
     // ---------------------------------------
-    //ecurn = ecord + edisp.block<3,4>(0,0);
     for(int i = 0; i < 4; ++i) {
-      ecurn(0,i) = cs[nn[i]]->x + (*gs)[nn[i]].d[0];
-      ecurn(1,i) = cs[nn[i]]->y + (*gs)[nn[i]].d[1];
-      ecurn(2,i) = cs[nn[i]]->z + (*gs)[nn[i]].d[2];
+      ecurn(0,i) = (*gs)[nn[i]].x;
+      ecurn(1,i) = (*gs)[nn[i]].y;
+      ecurn(2,i) = (*gs)[nn[i]].z;
     }
 
     // compute co rotational local base vector

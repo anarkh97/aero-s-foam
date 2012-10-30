@@ -312,7 +312,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
          probDesc->getConstForce( *constForce );
 
          // Check stability time step
-         if(domain->solInfo().stable) probDesc->computeStabilityTimeStep(dt, *dynOps);
+         if(domain->solInfo().stable && aeroAlg < 0) probDesc->computeStabilityTimeStep(dt, *dynOps);
 
          if(aeroAlg == 20) probDesc->aeroPreProcess( *d_n, *v_n, *a_n, *v_n ); //e Se Eq. 51 of C.Farhat et al. IJNME(2010) Robust and provably ... 
          else
@@ -1033,7 +1033,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
       t_n += dt_n_h; // t^n = t^{n-1} + deltat^{n-1/2}
 
       // Choose a new time step deltat^{n+1/2}
-      if(domain->solInfo().stable && domain->solInfo().isNonLin() && n%domain->solInfo().stable_freq == 0) {
+      if(domain->solInfo().stable && aeroAlg < 0 && domain->solInfo().isNonLin() && n%domain->solInfo().stable_freq == 0) {
         filePrint(stderr,"\n");
         probDesc->computeStabilityTimeStep(dt_n_h, dynOps);
       }

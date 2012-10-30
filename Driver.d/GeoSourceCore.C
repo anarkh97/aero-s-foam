@@ -3314,6 +3314,7 @@ void GeoSource::getHeaderDescription(char *headDescrip, int fileNumber)
   else if(sinfo.probType == SolverInfo::ArcLength) strcpy(prbType,"Arclength");
   else if(sinfo.probType == SolverInfo::TempDynamic) strcpy(prbType,"Temp");
   else if(sinfo.probType == SolverInfo::AxiHelm) strcpy(prbType,"AxiHelm");
+  else if(sinfo.buckling) strcpy(prbType,"Buckling");
   else if(sinfo.probType == SolverInfo::Modal) strcpy(prbType,"Modal");
   if(isShifted() && sinfo.probType != SolverInfo::Modal) {
     if(sinfo.doFreqSweep) strcpy(prbType,"FrequencySweep");

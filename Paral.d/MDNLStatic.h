@@ -36,8 +36,8 @@ class MDNLStatic
     int numSystems;
     double deltaLambda;
 
-    //std::map<std::pair<int,int>, double> *mu; // lagrange multipliers for the contact surfaces
-    //std::vector<double> *lambda; // lagrange multipliers for all the other constraints
+    std::map<std::pair<int,int>, double> *mu; // lagrange multipliers for the contact surfaces
+    std::vector<double> *lambda; // lagrange multipliers for all the other constraints
 
  public:
     // Constructor

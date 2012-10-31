@@ -193,6 +193,7 @@ class NonLinDynamic : public NLDynamPostProcessor {
     virtual void dynamOutput(GeomState* geomState, Vector& velocity, Vector &vp,
                      double time, int timestep, Vector& force, Vector &aeroF, Vector &acceleration,
                      GeomState *refState) const;
+    void getConstraintMultipliers(GeomState &geomState) { /* deliberately empty */ }
     virtual double getResidualNorm(const Vector &rhs, GeomState &geomState, double localDelta);
 
     int getAeroAlg();

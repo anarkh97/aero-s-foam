@@ -19,6 +19,10 @@ DistrGeomState::DistrGeomState(DecDomain* domain)
  // array of pointers to the subdomain's geometry states
  gs = new GeomState*[numSub];
 
+ // array of data structures to store lagrange multipliers 
+ mu = new std::map<std::pair<int,int>,double>[numSub];
+ lambda = new std::vector<double>[numSub];
+
  // parallel execution of subdomain geometry state construction
  execParal(numSub,this,&DistrGeomState::makeSubGeomStates,domain); 
 }
@@ -38,6 +42,8 @@ DistrGeomState::DistrGeomState(const DistrGeomState &g2)
 {
   numSub = g2.getNumSub();
   gs = new GeomState*[numSub];
+  mu = new std::map<std::pair<int,int>,double>[numSub];
+  lambda = new std::vector<double>[numSub];
   execParal(numSub,this,&DistrGeomState::subCopyConstructor,g2);
 }
 
@@ -47,12 +53,17 @@ DistrGeomState::subCopyConstructor(int isub, const DistrGeomState &g2)
   TemperatureState* ts;
   if(ts = dynamic_cast<TemperatureState*>(g2[isub])) gs[isub] = new TemperatureState(*ts);
   else gs[isub] = new GeomState(*(g2[isub]));
+
+  mu[isub] = g2.mu[isub];
+  lambda[isub] = g2.lambda[isub];
 }
 
 DistrGeomState::~DistrGeomState()
 {
   for(int i=0; i<numSub; ++ i) delete gs[i];
   delete [] gs;
+  delete [] mu;
+  delete [] lambda;
 }
 
 // Subdomain update
@@ -169,6 +180,9 @@ DistrGeomState::subCopy(int isub, DistrGeomState &unp)
 {
   GeomState &unpR = *unp[isub];
   *(gs[isub]) = unpR; 
+
+  mu[isub] = unp.mu[isub];
+  lambda[isub] = unp.lambda[isub];
 }
 
 int 

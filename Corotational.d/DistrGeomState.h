@@ -7,11 +7,18 @@ class GeomState;
 template <class Scalar> class GenDistrVector;
 typedef GenDistrVector<double> DistrVector;
 
+#include <map>
+#include <vector>
+
 class DistrGeomState {
    private:
      GeomState **gs;	// pointer to an array of GeomStates
      int numSub;
-   public:
+
+  public:
+     std::map<std::pair<int,int>, double> *mu; // lagrange multipliers for the contact surfaces
+     std::vector<double> *lambda;              // lagrange multipliers for all other constraints
+
      // Constructor
      DistrGeomState(DecDomain *domain);
      // Copy Constructor

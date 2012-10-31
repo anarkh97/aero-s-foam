@@ -255,7 +255,6 @@ MDNLDynamic::MDNLDynamic(Domain *d)
   secondRes = 0.0;
   claw = 0; 
   userSupFunc = 0;
-  mu = 0; lambda = 0;
   aeroForce = 0;
   kelArray = 0;
   melArray = 0;
@@ -280,8 +279,6 @@ MDNLDynamic::MDNLDynamic(Domain *d)
 
 MDNLDynamic::~MDNLDynamic()
 {
-  if(mu) delete [] mu;
-  if(lambda) delete [] lambda;
   if(times) delete times;
   if(solver) delete solver;
   if(allOps) delete allOps;
@@ -381,7 +378,6 @@ MDNLDynamic::getStiffAndForce(DistrGeomState& geomState, DistrVector& residual,
   execParal5R(decDomain->getNumSub(), this, &MDNLDynamic::subGetStiffAndForce, geomState,
               residual, elementInternalForce, t, refState);
 
-  // TODO: failsafe ?
   if(t != domain->solInfo().initialTime) updateConstraintTerms(&geomState,t);
 
   times->buildStiffAndForce += getTime();
@@ -550,8 +546,6 @@ MDNLDynamic::preProcess()
   localTemp = new DistrVector(decDomain->solVecInfo());
 
   domain->InitializeStaticContactSearch(MortarHandler::CTC, decDomain->getNumSub(), decDomain->getAllSubDomains());
-  mu = new std::map<std::pair<int,int>,double>[decDomain->getNumSub()];
-  lambda = new std::vector<double>[decDomain->getNumSub()];
 
   times->memoryPreProcess += threadManager->memoryUsed();
 }
@@ -905,7 +899,7 @@ MDNLDynamic::subGetReactionForce(int i, DistrGeomState &geomState, DistrGeomStat
  
   // TODO: the lagrange multipliers should probably be extrapolated to t^{n+1}
   //       check if the equality constraint forces are incremental
-  sd->addCConstraintForces(mu[i], lambda[i], ri, 1/Kcoef_p);
+  sd->addCConstraintForces(geomState.mu[i], geomState.lambda[i], ri, 1/Kcoef_p);
 #ifdef DEBUG_REACTIONS
   double rx=0,ry=0,rz=0;
   for(int j=0; j<reactions->subLen(i)/3; ++j) {
@@ -982,11 +976,11 @@ MDNLDynamic::sysVecInfo()
 }
 
 double
-MDNLDynamic::getResidualNorm(DistrVector &r, DistrGeomState &, double)
+MDNLDynamic::getResidualNorm(DistrVector &r, DistrGeomState &geomState, double)
 {
  //returns: sqrt( (r+c^T*lambda)**2 + pos_part(gap)**2 )
  DistrVector w(r);
- execParal1R(decDomain->getNumSub(), this, &MDNLDynamic::addConstraintForces, w); // w = r + C^T*lambda
+ execParal2R(decDomain->getNumSub(), this, &MDNLDynamic::addConstraintForces, w, geomState); // w = r + C^T*lambda
                   // note C = grad(gap) has already been updated in getStiffAndForce.
  return sqrt(solver->getFNormSq(w));
 }
@@ -997,20 +991,29 @@ MDNLDynamic::factorWhenBuilding() const {
 }
 
 void
-MDNLDynamic::addConstraintForces(int isub, DistrVector& vec)
+MDNLDynamic::addConstraintForces(int isub, DistrVector& vec, DistrGeomState& geomState)
 {
   SubDomain *sd = decDomain->getSubDomain(isub);
   StackVector localvec(vec.subData(isub), vec.subLen(isub));
-  sd->addConstraintForces(mu[isub], lambda[isub], localvec);  // C^T*lambda added to vec
+  sd->addConstraintForces(geomState.mu[isub], geomState.lambda[isub], localvec);  // C^T*lambda added to vec
 }
 
 void
-MDNLDynamic::getConstraintMultipliers(int isub)
+MDNLDynamic::getConstraintMultipliers(DistrGeomState& geomState)
+{
+  // this function extracts the constraint multipliers from the subdomains,
+  // where they are stored at the send of the feti solver's solve function
+  // and stores them in geomState 
+  execParal1R(decDomain->getNumSub(), this, &MDNLDynamic::subGetConstraintMultipliers, geomState);
+}
+
+void
+MDNLDynamic::subGetConstraintMultipliers(int isub, DistrGeomState& geomState)
 {
   SubDomain *sd = decDomain->getSubDomain(isub);
-  mu[isub].clear();
-  lambda[isub].clear();
-  sd->getConstraintMultipliers(mu[isub], lambda[isub]);
+  geomState.mu[isub].clear();
+  geomState.lambda[isub].clear();
+  sd->getConstraintMultipliers(geomState.mu[isub], geomState.lambda[isub]);
 }
 
 void
@@ -1019,7 +1022,6 @@ MDNLDynamic::updateConstraintTerms(DistrGeomState* geomState, double t)
   // TODO other solvers (eg parallel mumps with penalty?)
   GenFetiDPSolver<double> *fetiSolver = dynamic_cast<GenFetiDPSolver<double> *>(solver);
   if(fetiSolver) {
-    execParal(decDomain->getNumSub(), this, &MDNLDynamic::getConstraintMultipliers);
     if(domain->GetnContactSurfacePairs()) {
       // this function updates the linearized contact conditions (the lmpc coeffs are the gradient and the rhs is the gap)
       // XXXX the hessian of the constraint functions needs to be computed also

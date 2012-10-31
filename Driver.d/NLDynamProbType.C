@@ -245,6 +245,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
 
           // Solve ([M] + delta^2 [K])dv = rhs (where rhs is over written)
           probDesc->getSolver()->reSolve(rhs);
+          probDesc->getConstraintMultipliers(*geomState);
 
           StateUpdate::updateIncr(stateIncr, rhs);  // stateIncr = rhs
         }

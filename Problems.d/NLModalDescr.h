@@ -180,6 +180,7 @@ public:
   void test2(ModalGeomState* = 0);
   void test(ModalGeomState* = 0);
   void printCoefs();
+  void getConstraintMultipliers(ModalGeomState &) {}
   double getResidualNorm(Vector &rhs, ModalGeomState &, double) { return rhs.norm(); }
 
   int getAeroAlg() { return domain->solInfo().aeroFlag; }

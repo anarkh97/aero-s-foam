@@ -316,7 +316,6 @@ FetiInfo::FetiInfo()
   linesearch_tau = 0.6667; 
   linesearch_maxit = 100;
   cmpc = bmpc = dmpc = false;
-
   c_normalize = false;
   
   // MPC information

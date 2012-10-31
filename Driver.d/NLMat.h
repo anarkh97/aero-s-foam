@@ -132,6 +132,7 @@ public:
    double getTolerance()  { return tolerance*firstRes; }
    int getNumStages() { return 1; }
    void setIteration(int i) { iterNum = i; }
+   void getConstraintMultipliers(NLState &) {}
    double getResidualNorm(Vector &rhs, NLState &) { return rhs.norm(); }
    double getResidualNorm(Vector &rhs, NLState &, double) { return rhs.norm(); }
 

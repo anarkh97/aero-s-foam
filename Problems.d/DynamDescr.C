@@ -501,7 +501,7 @@ SingleDomainDynamic::getConstForce(Vector &cnst_f)
 }
 
 void
-SingleDomainDynamic::getContactForce(Vector &d_n, Vector &dinc, Vector &ctc_f, double t_n_p)
+SingleDomainDynamic::getContactForce(Vector &d_n, Vector &dinc, Vector &ctc_f, double t_n_p, double dt, double dt_old)
 {
   times->tdenforceTime -= getTime();
   ctc_f.zero();
@@ -540,11 +540,11 @@ SingleDomainDynamic::getContactForce(Vector &d_n, Vector &dinc, Vector &ctc_f, d
     times->updateSurfsTime += getTime();
 
     times->contactSearchTime -= getTime();
-    domain->PerformDynamicContactSearch(domain->solInfo().getTimeStep());
+    domain->PerformDynamicContactSearch(dt_old, dt);
     times->contactSearchTime += getTime();
 
     times->contactForcesTime -= getTime();
-    domain->AddContactForces(domain->solInfo().getTimeStep(), ctc_f);
+    domain->AddContactForces(dt_old, dt, ctc_f);
     times->contactForcesTime += getTime();
 
     delete predictedState;

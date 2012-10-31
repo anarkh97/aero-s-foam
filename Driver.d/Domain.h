@@ -913,9 +913,9 @@ class Domain : public HData {
 
      void InitializeDynamicContactSearch(int numSub = 0, SubDomain **sd = 0);
      void RemoveGap(Vector &g);
-     void PerformDynamicContactSearch(double dt);
-     void AddContactForces(double dt, Vector &f);
-     void AddContactForces(double dt, DistrVector &f);
+     void PerformDynamicContactSearch(double dt_old, double dt);
+     void AddContactForces(double dt_old, double dt, Vector &f);
+     void AddContactForces(double dt_old, double dt, DistrVector &f);
 
      void InitializeStaticContactSearch(MortarHandler::Interaction_Type t, int numSub = 0, SubDomain **sd = 0);
      void UpdateSurfaces(MortarHandler::Interaction_Type t, GeomState *geomState);

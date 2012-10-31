@@ -2356,7 +2356,7 @@ void Domain::UpdateSurfaces(DistrGeomState *geomState, int config_type, SubDomai
   }
 }
 
-void Domain::PerformDynamicContactSearch(double dt)
+void Domain::PerformDynamicContactSearch(double dt_old, double dt)
 {
   for(int iMortar=0; iMortar<nMortarCond; iMortar++) {
     MortarHandler* CurrentMortarCond = MortarConds[iMortar];
@@ -2366,23 +2366,21 @@ void Domain::PerformDynamicContactSearch(double dt)
   }
 }
 
-void Domain::AddContactForces(double dt, Vector &f)
+void Domain::AddContactForces(double dt_old, double dt, Vector &f)
 {
   for(int iMortar=0; iMortar<nMortarCond; iMortar++) {
     MortarHandler* CurrentMortarCond = MortarConds[iMortar];
     if(CurrentMortarCond->GetInteractionType() == MortarHandler::CTC || CurrentMortarCond->GetInteractionType() == MortarHandler::TIED) {
-      double dt_old = dt;
       CurrentMortarCond->compute_td_contact_force(dt_old, dt, f);
     }
   }
 }
 
-void Domain::AddContactForces(double dt, DistrVector &f)
+void Domain::AddContactForces(double dt_old, double dt, DistrVector &f)
 {
   for(int iMortar=0; iMortar<nMortarCond; iMortar++) {
     MortarHandler* CurrentMortarCond = MortarConds[iMortar];
     if(CurrentMortarCond->GetInteractionType() == MortarHandler::CTC || CurrentMortarCond->GetInteractionType() == MortarHandler::TIED) {
-      double dt_old = dt;
       CurrentMortarCond->compute_td_contact_force(dt_old, dt, f);
     }
   }

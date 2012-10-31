@@ -381,6 +381,7 @@ MDNLDynamic::getStiffAndForce(DistrGeomState& geomState, DistrVector& residual,
   execParal5R(decDomain->getNumSub(), this, &MDNLDynamic::subGetStiffAndForce, geomState,
               residual, elementInternalForce, t, refState);
 
+  // TODO: failsafe ?
   if(t != domain->solInfo().initialTime) updateConstraintTerms(&geomState,t);
 
   times->buildStiffAndForce += getTime();

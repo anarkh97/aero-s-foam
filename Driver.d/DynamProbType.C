@@ -814,8 +814,8 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
   double Wext = 0, Wint = 0, Wkin = 0;
 
   // We consider here an algorithm with a variable timestep
-  double dt_n_h; // deltat^{n+1/2} = t^{n+1} - t^n
-  dt_n_h = dt0;
+  double dt_n_h, dt_old; // deltat^{n+1/2} = t^{n+1} - t^n
+  dt_old = dt_n_h = dt0;
 
   // project initial displacements in case of rbmfilter
   if(probDesc->getFilterFlag() > 0) {
@@ -848,7 +848,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
   dynOps.dynMat->reSolve(a_n);
   if(domain->tdenforceFlag()) { // Contact corrector step: a^0 += M^{-1}*Fctc
     tmp1.linC(dt_n_h, v_n, 0.5*dt_n_h*dt_n_h, a_n); // predicted displacement d^1 = d^0 + dt^{1/2}*v^0 + dt^{1/2}*dt^{1/2}/2*a^0
-    probDesc->getContactForce(d_n, tmp1, tmp2, t_n+dt_n_h);
+    probDesc->getContactForce(d_n, tmp1, tmp2, t_n+dt_n_h, dt_n_h, dt_old);
     dynOps.dynMat->reSolve(tmp2);
     a_n += tmp2;
   }
@@ -962,7 +962,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
       dynOps.dynMat->reSolve(a_n);
       if(domain->tdenforceFlag()) { // Contact corrector step
         tmp1.linC(dt_n_h, v_n_h, dt_n_h*dt_n_h, a_n); // predicted displacement d^{n+2} = d^{n+1} + dt^{n+1/2}*(v^{n+1/2} + dt^{n+1/2}*a^{n+1})
-        probDesc->getContactForce(d_n, tmp1, tmp2, t_n+2*dt_n_h);
+        probDesc->getContactForce(d_n, tmp1, tmp2, t_n+2*dt_n_h, dt_n_h, dt_old);
         dynOps.dynMat->reSolve(tmp2);
         a_n += tmp2;
       }
@@ -1035,6 +1035,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
       // Choose a new time step deltat^{n+1/2}
       if(domain->solInfo().stable && aeroAlg < 0 && domain->solInfo().isNonLin() && n%domain->solInfo().stable_freq == 0) {
         filePrint(stderr,"\n");
+        dt_old = dt_n_h;
         probDesc->computeStabilityTimeStep(dt_n_h, dynOps);
       }
 

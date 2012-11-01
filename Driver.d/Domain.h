@@ -84,9 +84,8 @@ typedef GenSubDomain<double> SubDomain;
 class FSCommunicator;
 
 namespace Rom {
-//template <typename Scalar> class GenGaussNewtonSolver;
 template <typename Scalar> class GenGalerkinProjectionSolver;
-//template <typename Scalar> class GenGappyProjectionSolver;
+template <typename Scalar> class GenEiSparseGalerkinProjectionSolver;
 } /* end namespace Rom */
 
 // HB
@@ -503,14 +502,11 @@ class Domain : public HData {
      template<class Scalar>
        GenMumpsSolver<Scalar> *constructMumps(ConstrainedDSA *CDSA = 0, Rbm *rbm=0, FSCommunicator *com = 0);
 
-//     template<class Scalar>
-//       Rom::GenGaussNewtonSolver<Scalar> *constructGaussNewtonSolver();
-     
      template<class Scalar>
        Rom::GenGalerkinProjectionSolver<Scalar> *constructGalerkinProjectionSolver();
      
-//     template<class Scalar>
-//      Rom::GenGappyProjectionSolver<Scalar> *constructGappyProjectionSolver();
+     template<class Scalar>
+      Rom::GenEiSparseGalerkinProjectionSolver<Scalar> *constructEiSparseGalerkinProjectionSolver();
 
      Rbm              *constructRbm(bool printFlag = true);
      Rbm              *constructHzem(bool printFlag = true);

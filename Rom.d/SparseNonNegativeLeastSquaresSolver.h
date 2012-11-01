@@ -15,17 +15,17 @@ public:
   typedef double Scalar;
 #ifdef USE_STXXL
   // note: the stxxl defaults are 4, 8 and 2097152 
-  typedef stxxl::VECTOR_GENERATOR<Scalar,8,16,4194304>::result MatrixBufferType; // external vector of Scalar's with 8 blocks per page,
-                                                                                 // the cache with 16 pages, and 4 MB blocks (i.e. total cache is 1GB)
+  typedef stxxl::VECTOR_GENERATOR<Scalar,16,32,8388608,stxxl::RC,stxxl::random>::result MatrixBufferType; // external vector of Scalar's with 16 blocks per page,
+                                                                                 // the cache with 32 pages, and 8 MB blocks (i.e. total cache is 4GB)
 #else
   typedef std::vector<Scalar> MatrixBufferType;
 #endif
 
   // Problem size
-  int equationCount() const { return equationCount_; }
-  int unknownCount() const { return unknownCount_; }
+  long equationCount() const { return equationCount_; }
+  long unknownCount() const { return unknownCount_; }
   
-  void problemSizeIs(int eqnCount, int unkCount);
+  void problemSizeIs(long eqnCount, long unkCount);
 
   double relativeTolerance() const { return relativeTolerance_; }
   void relativeToleranceIs(double relTol) { relativeTolerance_ = relTol; }
@@ -65,9 +65,10 @@ public:
   SparseNonNegativeLeastSquaresSolver();
 
 private:
-  int equationCount_;
-  int unknownCount_;
-  int matrixLeadDim_;
+
+  long equationCount_;
+  long unknownCount_;
+  long matrixLeadDim_;
 
   double relativeTolerance_;
   MatrixBufferType matrixBuffer_;

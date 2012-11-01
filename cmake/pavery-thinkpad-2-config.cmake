@@ -8,7 +8,7 @@ SET(CMAKE_INCLUDE_PATH
 #    /home/avery/Codes/stxxl-trunk/include
 )
 SET(CMAKE_LIBRARY_PATH
-#    /home/avery/Codes/ARPACK
+    /home/avery/Codes/ARPACK
     /home/avery/Codes/trilinos/trilinos-10.10.2-Obj_cmake/lib
 #    /home/avery/Codes/stxxl-trunk/lib
 )

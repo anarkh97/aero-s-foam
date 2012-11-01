@@ -38,7 +38,8 @@ struct OutputInfo {
           TDEnforcement, Damage, EquivalentPlasticStrain, 
           TemperatureFirstTimeDerivative, PressureFirstTimeDerivative, PressureSecondTimeDerivative,
 	  HeatReactions, Reactions6, Statevector, Residual, Jacobian, 
-	  RobData, SampleMesh, Accelvector, Forcevector};
+	  RobData, SampleMesh, Accelvector, Forcevector,
+          RotationMatrix };
 
    enum Group  { Nodal, Attribute, NodeGroup };
    Type  type;

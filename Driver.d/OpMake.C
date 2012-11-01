@@ -35,9 +35,8 @@
 #include <Element.d/Sommerfeld.d/TrianglePressureBC.h>
 #include <Element.d/Sommerfeld.d/QuadPressureBC.h>
 
-//#include <Rom.d/GaussNewtonSolver.h>
-//#include <Rom.d/GappyProjectionSolver.h>
 #include <Rom.d/GalerkinProjectionSolver.h>
+#include <Rom.d/EiGalerkinProjectionSolver.h>
 #include <Control.d/ControlInterface.h>
 
 extern Sfem* sfem;
@@ -965,13 +964,6 @@ Domain::constructMumps(ConstrainedDSA *DSA, Rbm *, FSCommunicator *com)
   }
 }
 
-/*template<class Scalar>
-Rom::GenGaussNewtonSolver<Scalar> *
-Domain::constructGaussNewtonSolver()
-{
-  return new Rom::GenGaussNewtonSolver<Scalar>(nodeToNode, dsa, c_dsa);
-}*/
-
 template<class Scalar>
 Rom::GenGalerkinProjectionSolver<Scalar> *
 Domain::constructGalerkinProjectionSolver()
@@ -979,12 +971,14 @@ Domain::constructGalerkinProjectionSolver()
   return new Rom::GenGalerkinProjectionSolver<Scalar>(nodeToNode, dsa, c_dsa);
 }
 
-/*template<class Scalar>
-Rom::GenGappyProjectionSolver<Scalar> *
-Domain::constructGappyProjectionSolver()
+#ifdef USE_EIGEN3
+template<class Scalar>
+Rom::GenEiSparseGalerkinProjectionSolver<Scalar> *
+Domain::constructEiSparseGalerkinProjectionSolver()
 {
-  return new Rom::GenGappyProjectionSolver<Scalar>(nodeToNode, dsa, c_dsa);
-}*/
+  return new Rom::GenEiSparseGalerkinProjectionSolver<Scalar>(nodeToNode, dsa, c_dsa);
+}
+#endif
 
 template<class Scalar>
 void
@@ -1400,16 +1394,6 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
       makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray,celArray);
       systemSolver   = (GenDiagMatrix<Scalar>*) spm;
       break;
-    /*case 11:
-      //filePrint(stderr," ... POD-GN Solver is Selected      ...\n");
-      {
-        Rom::GenGaussNewtonSolver<Scalar> * solver = constructGaussNewtonSolver<Scalar>();
-        spm = solver;
-        spm->zeroAll();
-        makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray,celArray);
-        systemSolver = solver;
-      }
-      break;*/
     case 12:
       //filePrint(stderr," ... POD-Galerkin Solver is Selected...\n");
       {
@@ -1420,17 +1404,17 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
         systemSolver = solver;
       }
       break;
-    /*case 13:
-      //filePrint(stderr," ... Gappy-POD Solver is Selected   ...\n");
+#ifdef USE_EIGEN3
+   case 13:
+      //filePrint(stderr," ... POD-Galerkin Solver is Selected...\n");
       {
-        Rom::GenGappyProjectionSolver<Scalar> * solver = constructGappyProjectionSolver<Scalar>();
+        Rom::GenEiSparseGalerkinProjectionSolver<Scalar> * solver = constructEiSparseGalerkinProjectionSolver<Scalar>();
         spm = solver;
         spm->zeroAll();
         makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray,celArray);
         systemSolver = solver;
       }
-      break;*/
-#ifdef USE_EIGEN3
+      break;
     case 14:
 #ifdef USE_EIGEN_CHOLMOD
       spm = constructGoldfarb<Scalar,Eigen::CholmodDecomposition<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >(c_dsa);
@@ -3305,10 +3289,10 @@ Domain::computeConstantForce(GenVector<Scalar>& cnst_f, GenSparseMatrix<Scalar>*
   // ... COMPUTE FORCE FROM DISCRETE NEUMANN BOUNDARY CONDITIONS
   // note #1 when MFTT is present then FORCES contribution is not constant
   // note #2 when HFTT is present the FLUX contribution is not constant
-  // note #3 see Domain::getStiffAndForce for treatment of nodal moments in nonlinear analyses
+  // note #3 see Domain::getStiffAndForce for treatment of non-axial nodal moments in nonlinear analyses
   for(int i = 0; i < numNeuman; ++i) {
-    if(sinfo.isNonLin() && nbc[i].type == BCond::Forces
-       && (nbc[i].dofnum == 3 || nbc[i].dofnum == 4 || nbc[i].dofnum == 5)) continue;
+    if(sinfo.momentType != 0 && (sinfo.isNonLin() && nbc[i].type == BCond::Forces
+       && (nbc[i].dofnum == 3 || nbc[i].dofnum == 4 || nbc[i].dofnum == 5))) continue;
     int dof  = c_dsa->locate(nbc[i].nnum, (1 << nbc[i].dofnum));
     if(dof < 0) continue;
     switch(nbc[i].type) {
@@ -3369,14 +3353,14 @@ Domain::computeExtForce(GenVector<Scalar>& f, double t, GenSparseMatrix<Scalar>*
   // ... COMPUTE FORCE FROM DISCRETE NEUMANN BOUNDARY CONDITIONS
   // note #1 when MFTT is not present FORCES contribution is constant (see computeConstantForce)
   // note #2 when HFTT is not present FLUX contribution is constant (see computeConstantForce)
-  // note #3 see Domain::getStiffAndForce for treatment of nodal moments in nonlinear analyses
+  // note #3 see Domain::getStiffAndForce for treatment of non-axial nodal moments in nonlinear analyses
   double mfttFactor = (domain->mftval) ? domain->mftval->getVal(t) : 1.0; // MFTT time dependent force coefficient
   double hfttFactor = (domain->hftval) ? domain->hftval->getVal(t) : 1.0; // HFTT time dependent flux coefficient
   if(numNeuman && (domain->mftval || domain->hftval || (claw && (claw->numUserForce || claw->numActuator)))) {
     for(int i = 0; i < numNeuman; ++i) {
-      if(sinfo.isNonLin()
+      if(sinfo.momentType != 0 && (sinfo.isNonLin()
          && (nbc[i].type == BCond::Forces || nbc[i].type == BCond::Usdf || nbc[i].type == BCond::Actuators)
-         && (nbc[i].dofnum == 3 || nbc[i].dofnum == 4 || nbc[i].dofnum == 5)) continue;
+         && (nbc[i].dofnum == 3 || nbc[i].dofnum == 4 || nbc[i].dofnum == 5))) continue;
       int dof  = c_dsa->locate(nbc[i].nnum, (1 << nbc[i].dofnum));
       if(dof < 0) continue;
       switch(nbc[i].type) {

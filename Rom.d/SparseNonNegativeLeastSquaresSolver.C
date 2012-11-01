@@ -38,21 +38,24 @@ SparseNonNegativeLeastSquaresSolver::SparseNonNegativeLeastSquaresSolver() :
 {}
 
 void
-SparseNonNegativeLeastSquaresSolver::problemSizeIs(int eqnCount, int unkCount) {
+SparseNonNegativeLeastSquaresSolver::problemSizeIs(long eqnCount, long unkCount) {
   if (eqnCount < 0 || unkCount < 0) {
     throw std::domain_error("Illegal problem size");
   }
 
   #ifdef USE_STXXL
   std::cout << "using stxxl" << std::endl;
+  stxxl::uint64 bufSize = (eqnCount) * (unkCount);
   #else
-  std::cout << "using std::vector" << std::endl;
+  std::cout << "using std vector" << std::endl;
+  size_t bufSize = (eqnCount) * (unkCount);
   #endif
 
 
   equationCount_ = matrixLeadDim_ = eqnCount;
   unknownCount_ = unkCount;
-  matrixBuffer_.resize(matrixLeadDim_ * unknownCount());
+  std::cout << "Reserving STXXL vector of size "<< bufSize << std::endl;
+  matrixBuffer_.resize(bufSize);
   rhsBuffer_.sizeIs(equationCount());
   solutionBuffer_.sizeIs(unknownCount());
   dualSolutionBuffer_.sizeIs(unknownCount());
@@ -66,8 +69,8 @@ SparseNonNegativeLeastSquaresSolver::solve() {
 
   SimpleBuffer<Scalar> workspace(equationCount());
   SimpleBuffer<Scalar> workspace2(unknownCount());
-  SimpleBuffer<int> index(unknownCount());
-  int info;
+  SimpleBuffer<long> index(unknownCount());
+  long info;
 
   stxxl_matrix2d<MatrixBufferType> A(&matrixBuffer_, matrixLeadDim_, unknownCount_);
 

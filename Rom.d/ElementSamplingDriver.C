@@ -127,19 +127,19 @@ ElementSamplingDriver::assembleTrainingData(const VecBasis &snapshots, DblFwdIt 
   Vector podComponents(podVectorCount), elemTarget(podVectorCount);
   SimpleBuffer<double> elementForce(domain_->maxNumDOF());
 
-  DblFwdIt timeStampIt = timeStampFirst;
-
   // Project snapshots on POD basis to get training configurations
   for (int iSnap = 0; iSnap != snapshotCount; ++iSnap) {
     expand(podBasis, reduce(podBasis, snapshots[iSnap], podComponents), displac[iSnap]);
   }
 
   for (int iElem = 0; iElem != elementCount(); ++iElem) {
-    
+    filePrint(stderr,"\r %4.2f%% complete", double(iElem)/double(elementCount())*100.);
+    DblFwdIt timeStampIt = timeStampFirst;
+    int *nodes = domain_->getElementSet()[iElem]->nodes();
     for (int iSnap = 0; iSnap != snapshotCount; ++iSnap) {
       //geomState_->explicitUpdate(domain_->getNodes(), displac[iSnap]);
       geomState_->explicitUpdate(domain_->getNodes(), domain_->getElementSet()[iElem]->numNodes(),
-                                 domain_->getElementSet()[iElem]->nodes(), displac[iSnap]); // just update the nodes of element iElem
+                                 nodes, displac[iSnap]); // just update the nodes of element iElem
       // Evaluate and store element contribution at training configuration
       domain_->getElemInternalForce(*geomState_, *timeStampIt, NULL, *(corotators_[iElem]), elementForce.array(), kelArray_[iElem]);
       elemTarget.zero();
@@ -160,8 +160,10 @@ ElementSamplingDriver::assembleTrainingData(const VecBasis &snapshots, DblFwdIt 
         trainingTarget[podVectorCount * iSnap + iPod] += elemTarget[iPod];
       }
     }
+    delete [] nodes;
     timeStampIt++;
   }
+ filePrint(stderr,"\n");
 }
 
 void
@@ -180,7 +182,6 @@ ElementSamplingDriver::solve() {
     VecBasis podBasis;
     {
       BasisInputStream in(BasisFileId(fileInfo, BasisId::STATE, BasisId::POD), vecDofConversion);
-
       const int podSizeMax = domain_->solInfo().maxSizePodRom;
       if (podSizeMax != 0) {
         readVectors(in, podBasis, podSizeMax);
@@ -188,12 +189,10 @@ ElementSamplingDriver::solve() {
         readVectors(in, podBasis);
       }
     }
-
     VecBasis snapshots;
     std::vector<double> timeStamps;
     {
       BasisInputStream in(BasisFileId(fileInfo, BasisId::STATE, BasisId::SNAPSHOTS), vecDofConversion);
-
       const int skipFactor = domain->solInfo().skipPodRom;
         const int skipOffSet = domain->solInfo().skipOffSet;
       const int basisStateCount = 1 + (in.size() - 1) / skipFactor;

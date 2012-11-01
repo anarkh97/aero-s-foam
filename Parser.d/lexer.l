@@ -441,6 +441,10 @@ TRAIL [a-zA-Z]*
 
 "purelydiag"[a-zA-Z]*|"PURELYDIAG"[a-zA-Z]* { yylval.ival = 10; return SOLVERTYPE; }
 
+"dbsgal"[a-zA-Z]*|"DBSGAL"[a-zA-Z]*    { yylval.ival = 12; return SOLVERTYPE; }
+
+"eisgal"[a-zA-Z]*|"EISGAL"[a-zA-Z]*    { yylval.ival = 13; return SOLVERTYPE; }
+
 "gold"[a-zA-Z]*|"GOLD"[a-zA-Z]*    { yylval.ival = 14; return SOLVERTYPE; }
 
 "mumps_icntl"|"MUMPS_ICNTL" { return MUMPSICNTL; }
@@ -589,6 +593,8 @@ TRAIL [a-zA-Z]*
 "lines"[a-zA-Z]*|"LINES"[a-zA-Z]*  { return LINESEARCH; }
 
 "fails"[a-zA-Z]*|"FAILS"[a-zA-Z]*  { return FAILSAFE; }
+
+"momen"[a-zA-Z]*|"MOMEN"[a-zA-Z]*  { return MOMENT; }
 
 "debug_icntl"                      { return DEBUGICNTL; }
 
@@ -933,6 +939,8 @@ TRAIL [a-zA-Z]*
 "gdisplac"|"GDISPLAC"              { yylval.ival = OutputInfo::Displacement; return STRESSID; }
 
 "disp6dof"|"DISP6DOF"              { yylval.ival = OutputInfo::Disp6DOF;     return STRESSID; }
+
+"romatrix"|"ROMATRIX"              { yylval.ival = OutputInfo::RotationMatrix; return STRESSID; }
 
 "modaldsp"|"MODALDSP"              { yylval.ival = OutputInfo::ModalDsp;     return STRESSID; }
 

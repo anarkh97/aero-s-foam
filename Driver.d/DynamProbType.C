@@ -846,9 +846,9 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
   a_n = fext - fint;
   handleForce(*probDesc, a_n);
   dynOps.dynMat->reSolve(a_n);
-  if(domain->tdenforceFlag() || domain->solInfo().penalty) { // Contact corrector step: a^0 += M^{-1}*Fctc
-    tmp1.linC(dt_n_h, v_n, 0.5*dt_n_h*dt_n_h, a_n); tmp1 += d_n; // predicted displacement d^1 = d^0 + dt^{1/2}*v^0 + dt^{1/2}*dt^{1/2}/2*a^0
-    probDesc->getContactForce(tmp1, tmp2, t_n+dt_n_h);
+  if(domain->tdenforceFlag()) { // Contact corrector step: a^0 += M^{-1}*Fctc
+    tmp1.linC(dt_n_h, v_n, 0.5*dt_n_h*dt_n_h, a_n); // predicted displacement d^1 = d^0 + dt^{1/2}*v^0 + dt^{1/2}*dt^{1/2}/2*a^0
+    probDesc->getContactForce(d_n, tmp1, tmp2, t_n+dt_n_h);
     dynOps.dynMat->reSolve(tmp2);
     a_n += tmp2;
   }
@@ -934,7 +934,11 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
       if(probDesc->getModeDecompFlag()) probDesc->modeDecomp(t_n, n, d_n);
 
       // Update the displacement at t^(n+1): d^{n+1} = d^n + dt^{n+1/2}*v^{n+1/2}
-      d_n.linAdd(dt_n_h, v_n_h);
+      if(domain->solInfo().isNonLin()) {
+        tmp1 = dt_n_h*v_n_h;
+        probDesc->updateDisplacement(tmp1, d_n);
+      }
+      else d_n.linAdd(dt_n_h, v_n_h);
       handleDisplacement(*probDesc, d_n);
 
       // C0: Send predicted displacement at t^{n+1.5} to fluid
@@ -956,9 +960,9 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
       a_n.linC(1.0, fext, -1.0, fint);
       handleForce(*probDesc, a_n);
       dynOps.dynMat->reSolve(a_n);
-      if(domain->tdenforceFlag() || domain->solInfo().penalty) { // Contact corrector step
-        tmp1.linC(dt_n_h, v_n_h, dt_n_h*dt_n_h, a_n); tmp1 += d_n; // predicted displacement d^{n+2} = d^{n+1} + dt^{n+1/2}*(v^{n+1/2} + dt^{n+1/2}*a^{n+1})
-        probDesc->getContactForce(tmp1, tmp2, t_n+2*dt_n_h);
+      if(domain->tdenforceFlag()) { // Contact corrector step
+        tmp1.linC(dt_n_h, v_n_h, dt_n_h*dt_n_h, a_n); // predicted displacement d^{n+2} = d^{n+1} + dt^{n+1/2}*(v^{n+1/2} + dt^{n+1/2}*a^{n+1})
+        probDesc->getContactForce(d_n, tmp1, tmp2, t_n+2*dt_n_h);
         dynOps.dynMat->reSolve(tmp2);
         a_n += tmp2;
       }

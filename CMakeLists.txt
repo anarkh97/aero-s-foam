@@ -411,10 +411,10 @@ add_executable(errorcodec Rom.d/ErrorCodec.C)
 set_target_properties(errorcodec
                       PROPERTIES
                       RUNTIME_OUTPUT_DIRECTORY ${BINDIR}
-                      RELEASE_OUTPUT_NAME relerror
-                      DEBUG_OUTPUT_NAME relerror.debug)
+                      RELEASE_OUTPUT_NAME relerr
+                      DEBUG_OUTPUT_NAME relerr.debug)
 
-target_link_libraries(errorcodec Rom)
+target_link_libraries(errorcodec Rom Util)
 
 IF(NOT CMAKE_BUILD_TYPE)
   SET(CMAKE_BUILD_TYPE Release CACHE STRING 

@@ -10,6 +10,8 @@
 #include <utility>
 #include <cstddef>
 
+#include <sys/time.h>
+
 extern GeoSource *geoSource;
 
 namespace Rom {
@@ -20,6 +22,7 @@ DistrExplicitLumpedPodProjectionNonLinDynamic::DistrExplicitLumpedPodProjectionN
 
 void
 DistrExplicitLumpedPodProjectionNonLinDynamic::preProcess() {
+  
   DistrExplicitPodProjectionNonLinDynamicBase::preProcess();
 
   buildPackedElementWeights();

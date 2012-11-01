@@ -42,7 +42,10 @@ public:
   explicit GenDistrGalerkinProjectionSolver(const GenSubDOp<Scalar> &fullMat); // Passed object must be kept alive by owner
 
   virtual ~GenDistrGalerkinProjectionSolver();
- 
+
+  double counter;
+  double timer;
+
 private:
   Timings timers_;
 
@@ -81,6 +84,8 @@ template <typename Scalar>
 void
 GenDistrGalerkinProjectionSolver<Scalar>::refactor() {
   renormalized_basis(*fullMatrix_, *projectionBasis_, normalizedBasis_);
+  timer = 0;
+  counter = 0;
 }
 
 template <typename Scalar>
@@ -88,8 +93,31 @@ void
 GenDistrGalerkinProjectionSolver<Scalar>::solve(GenDistrVector<Scalar> &rhs, GenDistrVector<Scalar> &result) {
   const int vectorCount = normalizedBasis_.vectorCount();
   GenVector<Scalar> components(vectorCount, Scalar()); 
-  vector_components_vector_masterflag(normalizedBasis_, rhs, components);
-  assembled_vector(normalizedBasis_, components, result);
+
+  counter += 1;
+  double dummy = 0;
+  
+  if(domain->solInfo().elemLumpPodRom){
+
+    dummy -= getTime();
+    normalizedBasis_.project(rhs, result);  
+    dummy += getTime();
+    timer += dummy;
+    std::cout << "             modelIII projection time = " << timer/counter << std::endl;
+
+  } else {
+
+    dummy -= getTime();
+    //---------------------------------------------------------------------
+    vector_components_vector_masterflag(normalizedBasis_, rhs, components);
+    //---------------------------------------------------------------------
+    assembled_vector(normalizedBasis_, components, result);
+    //-----------------------------------------------------
+    dummy += getTime();
+    timer += dummy;
+    std::cout << "             modelII  projection time = " << timer/counter << std::endl;
+
+       }
 }
 
 template <typename Scalar>

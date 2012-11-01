@@ -10,6 +10,6 @@ sparse
 OUTPUT
 axmoment statics_sparse_axmoment.dat 1
 *
-INCLUDE "mesh.include"
+INCLUDE "../mesh.include"
 *
 END

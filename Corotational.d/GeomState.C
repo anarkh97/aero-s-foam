@@ -363,9 +363,8 @@ NodeState::operator=(const NodeState &node)
  this->R[2][1] = node.R[2][1];
  this->R[2][2] = node.R[2][2];
 
- // Copy the displacement, velocity and acceleration vectors
+ // Copy the velocity and acceleration vectors
  for(int i = 0; i < 6; ++i) {
-   d[i] = node.d[i];
    v[i] = node.v[i];
    a[i] = node.a[i];
  }
@@ -502,14 +501,12 @@ GeomState::explicitUpdate(CoordSet &cs, int numNodes, int *nodes, const Vector &
 #endif
 }
 
-
 void
-GeomState::setVelocity(const Vector &d, const Vector &v, const Vector &a)
+GeomState::setVelocity(const Vector &v, const Vector &a)
 {
   for(int i = 0; i < numnodes; ++i)
     for(int j = 0; j < 6; ++j)
       if(loc[i][j] > -1) {
-        ns[i].d[j] = d[loc[i][j]];
         ns[i].v[j] = v[loc[i][j]];
         ns[i].a[j] = a[loc[i][j]];
       }

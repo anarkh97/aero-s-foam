@@ -6,6 +6,13 @@ __version__ = "$Revision: 0.1 $"
 __date__ = "2011/02/17"
 
 import sys, os, re, md5, subprocess, math, glob, datetime, time
+import smtplib
+from email.MIMEMultipart import MIMEMultipart
+from email.MIMEBase import MIMEBase
+from email.MIMEText import MIMEText
+from email.Utils import COMMASPACE, formatdate
+from email import Encoders
+
 
 class bcolors:
     HEADER = '\033[95m'
@@ -60,7 +67,7 @@ def directComp(basefile,file,SUMMARY_FILE,outstring):
         result = 1
       else:
         for j in range(len(basewords)):
-          if(not(basewords[j].isalpha())and not(compwords[j].isalpha())):
+          if(not(basewords[j].isalpha())and not(compwords[j].isalpha()) and(basewords[j].find("__") == -1)):
             diff = float(basewords[j]) - float(compwords[j])
             TotDiff = math.fabs(diff) + TotDiff
             nSample = nSample + 1
@@ -174,6 +181,10 @@ def dComp(params):
   else:
     newP = 0
 
+# lrun = 1
+# run = 0
+  batch = 0
+
   files = [] 
   plotList = []
   if((params[1] == 'ALL')|(params[1] == 'short')):
@@ -207,6 +218,10 @@ def dComp(params):
           if(os.path.exists(qsubRetfile)):
             break
           time.sleep(10)
+      if(batch == 1):
+        os.system("rm *.dat test.* host.*")
+        command = "./scp."+names+" >reg.out 2>&1"
+        os.system(command)
       if(lrun == 1):
         os.system("rm *.dat test.* host.*")
         command = "./run."+names+" >reg.out 2>&1"
@@ -233,6 +248,12 @@ def dComp(params):
           if(os.path.exists(qsubRetfile)):
             break
           time.sleep(10)
+      if(batch == 1):
+        os.system("rm *.dat test.* host.*")
+        print "current directory is %s\n"% os.getcwd()
+        command = "./scp."+indir+" >reg.out 2>&1"
+        print "command is %s\n"% command
+        os.system(command)
       if(lrun == 1):
         os.system("rm *.dat test.* host.*")
         print "current directory is %s\n"% os.getcwd()
@@ -309,24 +330,54 @@ def dComp(params):
           count = len(words)
           break
         linenum = linenum+1
+      if(title1.find("dsvm13") != -1):
+        skip_num = 3
+      elif(title1.find("dynamics") != -1):
+        p = subprocess.Popen(["head","-2",files[0] ], stdout=subprocess.PIPE) 
+        line_nums = p.stdout.readline().split() 
+        line_nums = p.stdout.readline().split() 
+        if(line_nums[0].find("___") == -1):
+          skip_num = int(line_nums[0]) + 4
+        else:
+          skip_num = 4
+      else:
+        skip_num = 2
       if(count == 0):
         PLOT_FILE.write("set title \"%s--MISSING\"\n" % (files[0]))
-        PLOT_FILE.write("plot \"%s\" every ::2 using 1 title \"%s\"\n" % (files[1],title2))
+        PLOT_FILE.write("plot \"%s\" every ::%d using 1 title \"%s\"\n" % (files[1],skip_num,title2))
       elif (count == 1):
           PLOT_FILE.write("set title \"%s comparison\"\n" % (files[0]))
-          PLOT_FILE.write("plot \"%s\" every ::2 using 1 title \"%s\", \"%s\" every ::2 using 1 title \"%s\"\n" % (files[0],title1,files[1],title2));
+          PLOT_FILE.write("plot \"%s\" every ::%d using 1 title \"%s\", \"%s\" every ::%d using 1 title \"%s\"\n" % (files[0],skip_num,title1,files[1],skip_num,title2));
       else:
         for col in range(2,count+1):
           PLOT_FILE.write("set title \"%s comparison of column %d\"\n" % (files[0],col))
-          PLOT_FILE.write("plot \"%s\" every ::2 using 1:%d title \"%s\", \"%s\" every ::2 using 1:%d title \"%s\"\n" % (files[0],col,title1,files[1],col,title2));
+          PLOT_FILE.write("plot \"%s\" every ::%d using 1:%d title \"%s\", \"%s\" every ::%d using 1:%d title \"%s\"\n" % (files[0],skip_num,col,title1,files[1],skip_num,col,title2));
     PLOT_FILE.close()
     os.system("rm Discrepancies.*")
     os.system('gnuplot gnuplot_create');
     os.system("ps2pdf Discrepancies.ps Discrepancies.pdf");
   if(sendMail == 1):
-    command = "uuencode Discrepancies.pdf Discrepancies.pdf | mail -s \"Discrepancy Plots\" mpotts@hpti.com"
-    os.system(command) 
+    # find out which host mail will be sent from
+    p = subprocess.Popen(["hostname"],stdout=subprocess.PIPE)
+    hostname = p.stdout.readline()
 
+    msg = MIMEMultipart()
+    msg['From'] = 'mpotts@'+hostname
+    msg['To'] = "mpotts@drc.com"
+    msg['Date'] = formatdate(localtime=True)
+    msg['Subject'] = hostname + ' Regression Test results'
+    msg.attach( MIMEText('These are the discrepancies from the last regression test'))
+    f = 'Discrepancies.pdf'
+    part = MIMEBase('application', "octet-stream")
+    part.set_payload( open(f,"rb").read() )
+    Encoders.encode_base64(part)
+    part.add_header('Content-Disposition', 'attachment; filename="%s"' % os.path.basename(f))
+    msg.attach(part)
+    smtp = smtplib.SMTP("localhost")
+    send_to = "mpotts@drc.com"
+    send_from = "mpotts@ahpcrcfe.stanford.edu"
+    smtp.sendmail(send_from, send_to, msg.as_string())
+    smtp.close()
 
   sys.exit(result)
 

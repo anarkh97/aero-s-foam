@@ -584,7 +584,7 @@ MultiDomainDynam::computeExtForce2(SysState<DistrVector> &distState,
       execParal2R(decDomain->getNumSub(), this, &MultiDomainDynam::subExplicitUpdate, distState.getDisp(), geomState);
     }
     execParal2R(decDomain->getNumSub(), this, &MultiDomainDynam::subUpdateGeomStateUSDD, userDefineDisp, geomState);
-    geomState->setVelocity(distState.getDisp(), distState.getVeloc(), distState.getAccel());
+    geomState->setVelocity(distState.getVeloc(), distState.getAccel());
   }
 
   // update nodal temperatures for thermoe problem

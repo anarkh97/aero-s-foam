@@ -8,12 +8,12 @@ STATICS
 pcg
 *
 DYNAMICS
-time	0.0	3.0e-5	3.0e-2
+time	0.0	3.0e+0	3.0e+0
 newmark
 mech	0.25000	0.5000
 *	time step	total time
 NONLINEAR
-maxitr 10
+maxitr 100
 nltol 1.0e-6
 rebuild 1
 *

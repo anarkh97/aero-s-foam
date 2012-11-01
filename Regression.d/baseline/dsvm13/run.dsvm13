@@ -1,11 +1,7 @@
-echo ../../bin/aeros  dsvm13_mumps_pivot_buckle_geigenpa.inp
-../../bin/aeros  dsvm13_mumps_pivot_buckle_geigenpa.inp
 echo ../../bin/aeros  dsvm13_sparse_buckle_geigenpa.inp
 ../../bin/aeros  dsvm13_sparse_buckle_geigenpa.inp
 echo ../../bin/aeros  dsvm13_skyline_buckle_geigenpa.inp
 ../../bin/aeros  dsvm13_skyline_buckle_geigenpa.inp
-echo ../../bin/aeros  dsvm13_mumps_buckle_geigenpa.inp
-../../bin/aeros  dsvm13_mumps_buckle_geigenpa.inp
 echo ../../bin/aeros  dsvm13_spooles_buckle_geigenpa.inp
 ../../bin/aeros  dsvm13_spooles_buckle_geigenpa.inp
 echo ../../bin/aeros  dsvm13_direct_buckle_geigenpa.inp

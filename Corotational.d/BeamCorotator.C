@@ -141,6 +141,10 @@ BeamCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
 
  tran_fsl(f,elK,t0n,2);
 
+ // The skew symmetric load stiffness matrix due to axial external moments is
+ // added separately (see Domain::getFollowerForce in Driver.d/NLStatic.C)
+ // For now, it can be removed from elK by symmetrizing to avoid doubling.
+ elK.symmetrize();
 }
 
 //----------------------------------------------------------------------
@@ -294,6 +298,10 @@ BeamCorotator::formGeometricStiffness(GeomState &geomState, CoordSet &cs,
  // transform geometric stiffness to global coordinate system
  tran_stiff(elK, t0n);
 
+ // The skew symmetric load stiffness matrix due to axial external moments is
+ // added separately (see Domain::getFollowerForce in Driver.d/NLStatic.C)
+ // For now, it can be removed from elK by symmetrizing to avoid doubling.
+ elK.symmetrize();
 }
 
 //-----------------------------------------------------------------------

@@ -8,13 +8,13 @@ STATICS
 FETI DP
 *
 DYNAMICS
-time	0.0	3.0e-5	3.0e-2
+time	0.0	3.0e+0	3.0e+0
 newmark
 mech	0.25000	0.5000
 *	time step	total time
 OUTPUT
 inyforce dynamics_FETI_DP_inyforce.dat 1
 *
-INCLUDE "mesh.include"
+INCLUDE "../mesh.include"
 *
 END

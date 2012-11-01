@@ -611,7 +611,7 @@ SingleDomainDynamic::computeExtForce2(SysState<Vector> &state, Vector &ext_f,
       geomState->explicitUpdate(domain->getNodes(), state.getDisp());
     }
     if(userDefineDisp) geomState->updatePrescribedDisplacement(userDefineDisp, claw, domain->getNodes());
-    geomState->setVelocity(state.getDisp(), state.getVeloc(), state.getAccel());
+    geomState->setVelocity(state.getVeloc(), state.getAccel());
   }
 
   if(domain->solInfo().isNonLin() && domain->GetnContactSurfacePairs() && !domain->tdenforceFlag()) {

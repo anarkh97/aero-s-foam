@@ -5,7 +5,7 @@ __author__ = "Mark A. Potts (mpotts@hpti.com)"
 __version__ = "$Revision: 0.1 $"
 __date__ = "2011/02/14"
 
-import sys, os, re, glob
+import sys, os, re, glob, subprocess
 #import argparse
 
 
@@ -93,6 +93,15 @@ def buildInputs(params):
     else:
       PROBLEM_NAMES = [params[1]]
 
+    p = subprocess.Popen(["hostname"],stdout=subprocess.PIPE)
+    retval = p.stdout.readline()
+    if(retval.find("independence") != -1):
+      host = "independence"
+    elif(retval.find("su-ahpcrc") != -1):
+      host = "su-ahpcrc"
+    else:
+      host = "other"
+    print "host is %s " % retval
     for problem_type in PROBLEM_NAMES:
   
       if(os.path.exists(problem_type)==0):
@@ -104,11 +113,19 @@ def buildInputs(params):
       qsubfilename = "scp."+problem_type 
       RUNFILE = open(runfilename,"w")
       MPIFILE = open(qsubfilename,"w")
-      MPIFILE.write("#!/bin/bash\n#PBS -N test\n#PBS -l nodes=8:ppn=8,walltime=3:00:00\n\n")
+      if(host == "su-ahpcrc"):
+        MPIFILE.write("#!/bin/bash\n#PBS -N test\n#PBS -V\n#PBS -l nodes=4:ppn=8,walltime=3:00:00\n\n")
+      elif(host == "independence"):
+        MPIFILE.write("#!/bin/bash\n#PBS -N test\n#PBS -V\n#PBS -l nodes=2:ppn=12,walltime=3:00:00\n\n")
+
+      MPIFILE.write(". /opt/modules/Modules/3.2.6/init/bash\n module load intel openmpi\n")
+
       MPIFILE.write("cd %s\n" % dirname)
       MPIFILE.write("../create_mfiles.pl\n" )
      
       command = "chmod +x " + runfilename
+      os.system(command)
+      command = "chmod +x " + qsubfilename
       os.system(command)
 #     command = "cp ../*.include ."
 #     os.system(command)
@@ -127,17 +144,17 @@ def buildInputs(params):
 
       INCLUDE = ["\"../mesh.include\""]
 
-      DYNAMICS = ["time\t0.0\t3.0e-5\t3.0e-2",\
-                  "time\t0.0\t1.0e-4\t3.0e-2",\
-                  "time\t0.0\t3.0e-4\t3.0e-2"]
+      DYNAMICS = ["time\t0.0\t3.0e+0\t3.0e+0",\
+                  "time\t0.0\t3.0e+1\t3.0e+1",\
+                  "time\t0.0\t3.0e+2\t3.0e+2"]
 
       IMPE =      ["freq 10.0\ndamp 1e-6 1.0",\
                    "freq 10.0\ndamp 1e-7 1.0",\
                    "freq 10.0\ndamp 1e-5 1.0"]
 
-      NONLINEAR = ["maxitr 10\nnltol 1.0e-6\nrebuild 1",\
-                   "maxitr 10\nnltol 1.0e-7\nrebuild 1",\
-                   "maxitr 10\nnltol 1.0e-5\nrebuild 1"]
+      NONLINEAR = ["maxitr 100\nnltol 1.0e-6\nrebuild 1",\
+                   "maxitr 100\nnltol 1.0e-7\nrebuild 1",\
+                   "maxitr 100\nnltol 1.0e-5\nrebuild 1"]
 
       EIGEN = ["arpack\nnsbspv 20\nneigpa 12\ntoleig 1.0e-10\ntoljac 1.0e-05",\
                "arpack\nnsbspv 20\nneigpa 12\ntoleig 1.0e-10\ntoljac 1.0e-04",\
@@ -521,6 +538,9 @@ def buildInputs(params):
 
       if(problem_type == "nlstatics"):
         EXTRAS = ["include \"../feti.include\"\n*","*","*","*","*"]
+        STATICS = ["sparse","skyline","mumps","spooles","gmres","direct",\
+                 "spooles pivot","mumps pivot","bcg","cr","FETI",\
+                 "FETI DP","FETI DPH"]
   
         NAMELIST = ["STATICS\n","NONLINEAR\n","OUTPUT\n","INCLUDE "]
         OPTIONSLIST = [STATICS,NONLINEAR,OUTPUT,INCLUDE]

@@ -1200,11 +1200,11 @@ TRAIL [a-zA-Z]*
 
 "isotropiclinearelasticj2plasticplanestress"|"ISOTROPICLINEARELASTICJ2PLASTICPLANESTRESS"|"IsotropicLinearElasticJ2PlasticPlaneStress" { return ISOTROPICLINEARELASTICJ2PLASTICPLANESTRESS; }
 
-"hypoelas"[a-zA-Z]*|"HYPOELAS"[a-zA-Z]*                 { yylval.ival = 1; return OPTCTV; }
+"hypo"[a-zA-Z]*|"HYPO"[a-zA-Z]*|"Hypo"[a-zA-Z]*         { yylval.ival = 1; return OPTCTV; }
 "elastoviscoplastic"|"ELASTOVISCOPLASTIC"|"evp"|"EVP"   { yylval.ival = 3; return OPTCTV; }
 "j2"[a-zA-Z]*|"J2"[a-zA-Z]*                             { yylval.ival = 5; return OPTCTV; }
-"kk"|"KK"                                               { yylval.ival = 6; return OPTCTV; }
-"kkexp"|"KKEXP"                                         { yylval.ival = 7; return OPTCTV; }
+"kk"|"KK"|"kk1"|"KK1"                                   { yylval.ival = 6; return OPTCTV; }
+"kkexp"|"KKEXP"|"kk2"|"KK2"                             { yylval.ival = 7; return OPTCTV; }
 "kkexp2"|"KKEXP2"                                       { yylval.ival = 8; return OPTCTV; }
 
 "read"|"READ"                      { return READ; }

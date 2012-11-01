@@ -6,16 +6,16 @@ nlstatics_gmres_strainxz
 *
 STATICS
 gmres
-include "feti.include"
+include "../feti.include"
 *
 NONLINEAR
-maxitr 10
+maxitr 100
 nltol 1.0e-7
 rebuild 1
 *
 OUTPUT
 strainxz nlstatics_gmres_strainxz.dat 1
 *
-INCLUDE "mesh.include"
+INCLUDE "../mesh.include"
 *
 END

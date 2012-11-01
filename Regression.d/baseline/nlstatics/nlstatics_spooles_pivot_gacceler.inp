@@ -1,0 +1,21 @@
+CONTROL
+nlstatics_spooles_pivot_gacceler
+1
+"nodeset"
+"elemset"
+*
+STATICS
+spooles pivot
+include "../feti.include"
+*
+NONLINEAR
+maxitr 100
+nltol 1.0e-7
+rebuild 1
+*
+OUTPUT
+gacceler nlstatics_spooles_pivot_gacceler.dat 1
+*
+INCLUDE "../mesh.include"
+*
+END

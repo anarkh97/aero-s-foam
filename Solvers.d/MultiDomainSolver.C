@@ -5,7 +5,13 @@ void
 MultiDomainSolver<Scalar>::reSolve(GenDistrVector<Scalar> &solution)
 {
   GenDistrVector<Scalar> rhs(solution);
+  timespec tS1,tS2;
+  clock_gettime(CLOCK_THREAD_CPUTIME_ID, &tS1);
+  //------------------------------------------
   solve(rhs, solution);
+  //------------------------------------------
+  clock_gettime(CLOCK_THREAD_CPUTIME_ID, &tS2);
+  std::cout << "              **** total solve time = " << (tS2.tv_nsec-tS1.tv_nsec)/1e9 << std::endl;
 }
 
 template<class Scalar>

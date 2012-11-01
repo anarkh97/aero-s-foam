@@ -40,11 +40,12 @@ public:
                          int localOffset, IdxInpIt localIdBegin, IdxInpIt localIdEnd,
                          double version);
 
+  void writePrelude();
+
 private:
   int stateSize() const { return itemCount() * itemDimension(); }
   bool isMaster() const { return localOffset_ == 0; }
 
-  void writePrelude();
   void updateStateCount();
 
   std::vector<int>::size_type descriptionSize() const { return description_.size(); }
@@ -80,11 +81,17 @@ BinaryResultOutputFile::BinaryResultOutputFile(const std::string &pathName, int 
   stateCount_(0),
   itemIds_(localIdBegin, localIdEnd),
   localOffset_(localOffset),
+#if defined(_POSIX_THREAD_SAFE_FUNCTIONS) && defined(_AEROS_ASYCHRONOUS_IO)
+  // this is waaay faster on my laptop...
+  // need to make sure all of the threads have opened the file before any writing the prelude
+  // see comments in Rom.d/DistrBasisFile.h
+  binHandler_(pathName.c_str(), "wb", version) {}
+#else
   binHandler_(pathName.c_str(), isMaster() ? "ws" : "ws+", version)
 {
   writePrelude();
 }
-
+#endif
 
 class BinaryResultInputFile {
 public:

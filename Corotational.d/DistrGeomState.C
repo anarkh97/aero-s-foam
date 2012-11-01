@@ -64,12 +64,11 @@ DistrGeomState::subUpdate(int isub, DistrVector &v)
 }
 
 void
-DistrGeomState::subSetVelocity(int isub, DistrVector &d, DistrVector &v, DistrVector &a)
+DistrGeomState::subSetVelocity(int isub, DistrVector &v, DistrVector &a)
 {
-  StackVector dsub(d.subData(isub), d.subLen(isub));
   StackVector vsub(v.subData(isub), v.subLen(isub));
   StackVector asub(a.subData(isub), a.subLen(isub));
-  gs[isub]->setVelocity(dsub, vsub, asub);
+  gs[isub]->setVelocity(vsub, asub);
 }
 
 void
@@ -153,9 +152,9 @@ DistrGeomState::update(DistrVector &v)
 }
 
 void
-DistrGeomState::setVelocity(DistrVector &d, DistrVector &v, DistrVector &a)
+DistrGeomState::setVelocity(DistrVector &v, DistrVector &a)
 {
-  execParal3R(numSub, this, &DistrGeomState::subSetVelocity, d, v, a);
+  execParal2R(numSub, this, &DistrGeomState::subSetVelocity, v, a);
 }
 
 DistrGeomState &

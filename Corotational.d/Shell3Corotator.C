@@ -183,9 +183,10 @@ Shell3Corotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
   
  tran_force(f, t0n, 3);
 
- //cerr << "elK = \n"; elK.print();
- //cerr << "f = \n"; for(int i=0; i<elK.dim(); ++i) cerr << f[i] << " "; cerr << endl;
-
+ // The skew symmetric load stiffness matrix due to axial external moments is
+ // added separately (see Domain::getFollowerForce in Driver.d/NLStatic.C)
+ // For now, it can be removed from elK by symmetrizing to avoid doubling.
+ elK.symmetrize();
 }
 
 //--------------------------------------------------------------------------
@@ -389,6 +390,10 @@ Shell3Corotator::formGeometricStiffness(GeomState &geomState, CoordSet &cs,
 
   _FORTRAN(trirotation)(elK.data(),(double*)t0n);
 
+ // The skew symmetric load stiffness matrix due to axial external moments is
+ // added separately (see Domain::getFollowerForce in Driver.d/NLStatic.C)
+ // For now, it can be removed from elK by symmetrizing to avoid doubling.
+ elK.symmetrize();
 }
 
 //---------------------------------------------------------------------------

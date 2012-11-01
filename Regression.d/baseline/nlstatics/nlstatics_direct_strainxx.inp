@@ -6,16 +6,16 @@ nlstatics_direct_strainxx
 *
 STATICS
 direct
-include "feti.include"
+include "../feti.include"
 *
 NONLINEAR
-maxitr 10
+maxitr 100
 nltol 1.0e-5
 rebuild 1
 *
 OUTPUT
 strainxx nlstatics_direct_strainxx.dat 1
 *
-INCLUDE "mesh.include"
+INCLUDE "../mesh.include"
 *
 END

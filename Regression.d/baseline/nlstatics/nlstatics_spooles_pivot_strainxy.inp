@@ -6,16 +6,16 @@ nlstatics_spooles_pivot_strainxy
 *
 STATICS
 spooles pivot
-include "feti.include"
+include "../feti.include"
 *
 NONLINEAR
-maxitr 10
+maxitr 100
 nltol 1.0e-6
 rebuild 1
 *
 OUTPUT
 strainxy nlstatics_spooles_pivot_strainxy.dat 1
 *
-INCLUDE "mesh.include"
+INCLUDE "../mesh.include"
 *
 END

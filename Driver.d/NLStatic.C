@@ -183,47 +183,82 @@ Domain::getFollowerForce(GeomState &geomState, Vector& elementForce,
     }
   }
 
-  // treatment of rotation-dependent nodal moments
-  if(sinfo.momentType == 1) { // "rotational moments" (ref: Ritto-Correa and Camotim, 2003)
-    for(int i = 0; i < numNeuman; ++i) {
-      if((nbc[i].type == BCond::Forces || nbc[i].type == BCond::Usdf || nbc[i].type == BCond::Actuators) 
-         && (nbc[i].dofnum == 3 || nbc[i].dofnum == 4 || nbc[i].dofnum == 5)) {
-        int dofs[3];
-        dsa->number(nbc[i].nnum, DofSet::XYZrot, dofs);
-        double m0[3] = { 0, 0, 0 }, m[3], r[3], rotvar[3][3];
-        m0[nbc[i].dofnum-3] = lambda*mfttFactor*nbc[i].val;
-        mat_to_vec(geomState[nbc[i].nnum].R,r);
-        pseudorot_var(r, rotvar);
-        mat_mult_vec(rotvar,m0,m,1);
-        for(int j = 0; j < 3; ++j) {
-          int uDofNum = c_dsa->getRCN(dofs[j]);
-          if(uDofNum >= 0)
-            residual[uDofNum] += m[j];
-          else if(reactions) {
-            int cDofNum = c_dsa->invRCN(dofs[j]);
-            if(cDofNum >= 0)
-              (*reactions)[cDofNum] -= m[j];
-          }
+  // treatment of nodal moments
+  for(int i = 0; i < numNeuman; ++i) {
+    if((nbc[i].type == BCond::Forces || nbc[i].type == BCond::Usdf || nbc[i].type == BCond::Actuators) 
+       && (nbc[i].dofnum == 3 || nbc[i].dofnum == 4 || nbc[i].dofnum == 5)) {
+      int dofs[3];
+      dsa->number(nbc[i].nnum, DofSet::XYZrot, dofs);
+      double m0[3] = { 0, 0, 0 }, m[3] = { 0, 0, 0 }, r[3], rotvar[3][3];
+      m0[nbc[i].dofnum-3] = lambda*mfttFactor*nbc[i].val;
+
+      switch(sinfo.momentType) {
+        case 0 : // axial (constant) moment
+          /* already been added in OpMake.C, nothing to do */
+          break;
+        case 1 : { // rotational moment: m = T^{-1}*m0
+          mat_to_vec(geomState[nbc[i].nnum].R,r);
+          pseudorot_var(r, rotvar);
+          mat_mult_vec(rotvar,m0,m,1);
+        } break;
+        case 2 : // follower moment: m = R*m0
+          mat_mult_vec(geomState[nbc[i].nnum].R,m0,m,0);
+          break;
+        default :
+          std::cerr << " *** WARNING: selected moment type is not supported\n";
+      }
+      for(int j = 0; j < 3; ++j) {
+        int uDofNum = c_dsa->getRCN(dofs[j]);
+        if(uDofNum >= 0)
+          residual[uDofNum] += m[j];
+        else if(reactions) {
+          int cDofNum = c_dsa->invRCN(dofs[j]);
+          if(cDofNum >= 0)
+            (*reactions)[cDofNum] -= m[j];
         }
-        // tangent stiffness contribution: 
-        if(kel) {
-          pseudorot_2var(r, m0, rotvar);
-          for(int inode = 0; inode < nodeToElem->num(nbc[i].nnum); ++inode) { // loop over the elements attached to the node
-                                                                              // at which the nodal moment is applied
-            int iele = (*nodeToElem)[nbc[i].nnum][inode];
-            int eledofs[3] = { -1, -1, -1 };
-            for(int j = 0; j < 3; ++j) {
-              for(int k = 0; k < allDOFs->num(iele); ++k)
-                if(dofs[j] == (*allDOFs)[iele][k]) { eledofs[j] = k; break; }
-            }
-            if(eledofs[0] != -1 && eledofs[1] != -1 && eledofs[2] != -1) {
-              // found an element with the 3 rotation dofs of node nbc[i].nnum so we can add the load stiffness
-              // contribution of the nodal moment to the tangent stiffness matrix of this element
-              for(int j = 0; j < 3; ++j)
-                for(int k = 0; k < 3; ++k)
-                  kel[iele][eledofs[j]][eledofs[k]] -= rotvar[j][k];
-              break;
-            }
+      }
+      // tangent stiffness contribution: 
+      if(kel) {
+        switch(sinfo.momentType) {
+          case 0 : { // axial (constant) moment
+            double skewm0[3][3] = { {     0, -m0[2],  m0[1] },
+                                    {  m0[2],     0, -m0[0] },
+                                    { -m0[1],  m0[0],    0  } };
+            for(int j=0; j<3; ++j)
+              for(int k=0; k<3; ++k) 
+                rotvar[j][k] = 0.5*skewm0[j][k];
+          } break;
+          case 1 : { // rotational moment
+            double scndvar[3][3];
+            pseudorot_2var(r, m0, scndvar);
+            for(int j=0; j<3; ++j)
+              for(int k=0; k<3; ++k)
+                rotvar[j][k] = 0.5*(scndvar[j][k] + scndvar[k][j]);
+          } break;
+          case 2 : { // follower moment
+            double skewm[3][3] = { {     0, -m[2],  m[1] },
+                                   {  m[2],     0, -m[0] },
+                                   { -m[1],  m[0],    0  } };
+            for(int j=0; j<3; ++j)
+              for(int k=0; k<3; ++k)
+                rotvar[j][k] = -0.5*skewm[j][k];
+          } break;
+        }
+        for(int inode = 0; inode < nodeToElem->num(nbc[i].nnum); ++inode) { // loop over the elements attached to the node
+                                                                            // at which the nodal moment is applied
+          int iele = (*nodeToElem)[nbc[i].nnum][inode];
+          int eledofs[3] = { -1, -1, -1 };
+          for(int j = 0; j < 3; ++j) {
+            for(int k = 0; k < allDOFs->num(iele); ++k)
+              if(dofs[j] == (*allDOFs)[iele][k]) { eledofs[j] = k; break; }
+          }
+          if(eledofs[0] != -1 && eledofs[1] != -1 && eledofs[2] != -1) {
+            // found an element with the 3 rotation dofs of node nbc[i].nnum so we can add the load stiffness
+            // contribution of the nodal moment to the tangent stiffness matrix of this element
+            for(int j = 0; j < 3; ++j)
+              for(int k = 0; k < 3; ++k)
+                kel[iele][eledofs[j]][eledofs[k]] -= rotvar[j][k];
+            break;
           }
         }
       }

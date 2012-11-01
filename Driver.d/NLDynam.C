@@ -111,7 +111,7 @@ Domain::getWeightedInternalForceOnly(const std::map<int, double> &weights,
   
   for (std::map<int, double>::const_iterator it = weights.begin(), it_end = weights.end(); it != it_end; ++it) {
     const int iElem = it->first;
-
+    
     // Get updated tangent stiffness matrix and element internal force
     if (const Corotator *elementCorot = corotators[iElem]) {
       elementForce.zero();
@@ -135,4 +135,3 @@ Domain::getWeightedInternalForceOnly(const std::map<int, double> &weights,
 
   getFollowerForce(geomState, elementForce, corotators, (FullSquareMatrix *) NULL, residual, lambda, time, refState, NULL);
 }
-

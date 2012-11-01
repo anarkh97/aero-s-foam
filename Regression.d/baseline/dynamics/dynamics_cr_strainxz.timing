@@ -29,39 +29,39 @@
  ... Timing Statistics for 1 Thread  ...
 ***********************************************************
 
-1. Total Read Input Files              time:        0.00234 s        0.033 Mb
-         Read Mesh                     time:        0.00234 s
+1. Total Read Input Files              time:        0.00222 s        0.033 Mb
+         Read Mesh                     time:        0.00222 s
 
-2. Total Preprocessing                 time:        0.00045 s        0.049 Mb
-         Process Input Data            time:        0.00010 s 
-         Connectivity                  time:        0.00003 s 
-         Renumbering                   time:        0.00014 s 
+2. Total Preprocessing                 time:        0.00047 s        0.053 Mb
+         Process Input Data            time:        0.00014 s 
+         Connectivity                  time:        0.00001 s 
+         Renumbering                   time:        0.00016 s 
          Create DOFs                   time:        0.00002 s 
-         Make Constrained DOFs         time:        0.00009 s 
-         Make Boundary Conditions      time:        0.00003 s 
+         Make Constrained DOFs         time:        0.00010 s 
+         Make Boundary Conditions      time:        0.00001 s 
 
-3. Total Matrix Processing             time:        0.00590 s        0.096 Mb
-         Form Element Matrices         time:        0.00234 s
-         Assemble Element Matrices     time:        0.00355 s
+3. Total Matrix Processing             time:        0.00558 s        0.100 Mb
+         Form Element Matrices         time:        0.00206 s
+         Assemble Element Matrices     time:        0.00352 s
 
 
-4. Total RHS Processing                time:        0.00106 s        0.000 Mb
+4. Total RHS Processing                time:        0.00001 s        0.000 Mb
 
-5. Total Solve Loop                    time:        0.17580 s        0.249 Mb
+5. Total Solve Loop                    time:        0.01462 s        0.253 Mb
          Factor Matrix                 time:        0.00004 s 
-         Solve (Forward/Backward)      time:        0.00000 s 
+         Solve (Forward/Backward)      time:        0.00435 s 
 
-6. Write Output Files                  time:        0.13374 s        4.999 Mb
+6. Write Output Files                  time:        0.00194 s        0.035 Mb
 
-TOTAL SIMULATION (1+2+3+4+5+6)         time:        0.31929 s        5.420 Mb
+TOTAL SIMULATION (1+2+3+4+5+6)         time:        0.02484 s        0.468 Mb
 
 ***********************************************************
  ... Solution Information ...
 ***********************************************************
 
-1. Total Amount of Requested Memory        =          5.918 Mb
+1. Total Amount of Requested Memory        =          1.154 Mb
 
-2. Solver Amount of Requested Memory       =          0.249 Mb
+2. Solver Amount of Requested Memory       =          0.253 Mb
 
 3. Number of Iterations                    =              0
 

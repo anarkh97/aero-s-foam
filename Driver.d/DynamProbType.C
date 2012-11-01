@@ -782,8 +782,6 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 {
   filePrint(stderr, " ... Explicit Newmark Time Integration Scheme: beta = %4.2f, gamma = %4.2f, alphaf = %4.2f, alpham = %4.2f ...\n",0.0,0.5,0.0,0.0);
 
-  double dummytime = 0;
-
   int parity = 0;
   SysState<VecType> *bkState = 0;
   // Allocate backup state for A5 algorithm
@@ -834,17 +832,10 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
   probDesc->getInitialTime(n, t_n);
 
   // Get initial external force vector fext^0
-  dummytime -= getTime();
   probDesc->computeExtForce2(curState, fext, constForce, n, t_n, aeroForce, 0.5, 0.0);
-  dummytime += getTime();
-  filePrint(stderr,"                   get external force = %9.5e \n",dummytime);
 
   // Compute the initial internal forces fint^0
-  dummytime = 0;
-  dummytime -= getTime();
   getInternalForce(dynOps, d_n, fint, t_n, n);
-  dummytime += getTime();
-  filePrint(stderr,"                   get internal force = %9.5e \n",dummytime);
 
   // Compute the initial acceleration a^0 = M^{-1}(fext^0 - fint^0 - C*v^0)
   if(verboseFlag) filePrint(stderr," ... Computing initial acceleration ...\n");
@@ -854,11 +845,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
   }
   a_n = fext - fint;
   handleForce(*probDesc, a_n);
-  dummytime = 0;
-  dummytime -= getTime();
   dynOps.dynMat->reSolve(a_n);
-  dummytime += getTime();
-  filePrint(stderr,"                     resolve time a_0 = %9.5e \n",dummytime);
 
   if(domain->tdenforceFlag()) { // Contact corrector step: a^0 += M^{-1}*Fctc
     tmp1.linC(dt_n_h, v_n, 0.5*dt_n_h*dt_n_h, a_n); // predicted displacement d^1 = d^0 + dt^{1/2}*v^0 + dt^{1/2}*dt^{1/2}/2*a^0

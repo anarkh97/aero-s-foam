@@ -94,28 +94,18 @@ GenDistrGalerkinProjectionSolver<Scalar>::solve(GenDistrVector<Scalar> &rhs, Gen
   const int vectorCount = normalizedBasis_.vectorCount();
   GenVector<Scalar> components(vectorCount, Scalar()); 
 
-  counter += 1;
-  double dummy = 0;
   
   if(domain->solInfo().elemLumpPodRom){
 
-    dummy -= getTime();
     normalizedBasis_.project(rhs, result);  
-    dummy += getTime();
-    timer += dummy;
-    std::cout << "             modelIII projection time = " << timer/counter << std::endl;
 
   } else {
 
-    dummy -= getTime();
     //---------------------------------------------------------------------
     vector_components_vector_masterflag(normalizedBasis_, rhs, components);
     //---------------------------------------------------------------------
     assembled_vector(normalizedBasis_, components, result);
     //-----------------------------------------------------
-    dummy += getTime();
-    timer += dummy;
-    std::cout << "             modelII  projection time = " << timer/counter << std::endl;
 
        }
 }

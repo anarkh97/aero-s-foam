@@ -19,7 +19,7 @@ GenVecBasis<double, GenDistrVector>::project(GenDistrVector<double> &x, GenDistr
   }
 //  Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>, Eigen::Unaligned, Eigen::OuterStride<> > basisT(vectors_[0].data(), vectors_[0].size(), vectorCount(), Eigen::OuterStride<>(size()));
 
-  GenCoordinates = basis.transpose()*f;
+  GenCoordinates = basis.transpose()*sparsef;
 
   if(structCom)
     structCom->globalSum(GenCoordinates.size(), GenCoordinates.data());

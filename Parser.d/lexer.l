@@ -429,6 +429,8 @@ TRAIL [a-zA-Z]*
 
 "ldlt"[a-zA-Z]*|"LDLT"[a-zA-Z]*    { yylval.ival = 4; return SOLVERTYPE; }
 
+"lu"|"LU"                          { yylval.ival = 15; return SOLVERTYPE; }
+
 "chol"[a-zA-Z]*|"CHOL"[a-zA-Z]*    { yylval.ival = 5; return SOLVERTYPE; }
 
 "umfp"[a-zA-Z]*|"UMFP"[a-zA-Z]*    { yylval.ival = 6; return SOLVERTYPE; }

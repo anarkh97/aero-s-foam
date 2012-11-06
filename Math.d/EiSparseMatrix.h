@@ -7,6 +7,7 @@
 #include <Eigen/Core>
 #include <Eigen/Sparse>
 #include <Eigen/SparseCholesky>
+#include <Eigen/SparseLU>
 #ifdef EIGEN_CHOLMOD_SUPPORT
 #include <Eigen/CholmodSupport>
 #endif
@@ -41,6 +42,7 @@ class GenEiSparseMatrix : public SparseData, public GenSparseMatrix<Scalar>, pub
 
    // GenSparseMatrix assembly
    void add(FullSquareMatrix &, int *dofs);
+   void addImaginary(FullSquareMatrix &, int *dofs);
    void add(FullSquareMatrixC &, int *dofs); 
    void addDiscreteMass(int dof, Scalar diMass);
    void add(int, int, Scalar);

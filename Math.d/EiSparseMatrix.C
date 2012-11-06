@@ -124,10 +124,43 @@ GenEiSparseMatrix<Scalar,SolverClass>::add(FullSquareMatrix &kel, int *dofs)
 
 template<typename Scalar, typename SolverClass>
 void
+GenEiSparseMatrix<Scalar,SolverClass>::addImaginary(FullSquareMatrix &kel, int *dofs)
+{
+  int k,l;
+  for(int i = 0; i < kel.dim(); ++i) {
+    if(dofs[i] < 0 || (k = unconstrNum[dofs[i]]) < 0) continue; // Skip undefined/constrained dofs
+    for(int j = 0; j < kel.dim(); ++j) {
+      if(selfadjoint && dofs[i] > dofs[j]) continue; // Work with upper symmetric half
+      if(dofs[j] < 0 || (l = unconstrNum[dofs[j]]) < 0) continue;  // Skip undefined/constrained dofs
+      for(int m = xunonz[l]; m < xunonz[l+1]; ++m) {
+        if(rowu[m] == k) {
+          ScalarTypes::addComplex(unonz[m], std::complex<double>(0,kel[i][j]));
+          break;
+        }
+      }
+    }
+  }
+}
+
+template<typename Scalar, typename SolverClass>
+void
 GenEiSparseMatrix<Scalar,SolverClass>::add(FullSquareMatrixC &kel, int *dofs)
 {
-  std::cerr << "GenEiSparseMatrix<Scalar,SolverClass>::add(FullSquareMatrixC &kel, int *dofs) is not implemented\n";
-}
+  int k,l;
+  for(int i = 0; i < kel.dim(); ++i) {
+    if(dofs[i] < 0 || (k = unconstrNum[dofs[i]]) < 0) continue; // Skip undefined/constrained dofs
+    for(int j = 0; j < kel.dim(); ++j) {
+      if(selfadjoint && dofs[i] > dofs[j]) continue; // Work with upper symmetric half
+      if(dofs[j] < 0 || (l = unconstrNum[dofs[j]]) < 0) continue;  // Skip undefined/constrained dofs
+      for(int m = xunonz[l]; m < xunonz[l+1]; ++m) {
+        if(rowu[m] == k) {
+          ScalarTypes::addComplex(unonz[m], kel[i][j]);
+          break;
+        }
+      }
+    }
+  }
+} 
 
 template<typename Scalar, typename SolverClass> 
 double

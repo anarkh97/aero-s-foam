@@ -406,6 +406,12 @@ GeomState::update(const Vector &v)
      double dy = (loc[i][1] >= 0) ? v[loc[i][1]] : 0.0;
      double dz = (loc[i][2] >= 0) ? v[loc[i][2]] : 0.0;
 
+     // Increment total translational displacements
+
+     ns[i].x += dx;
+     ns[i].y += dy;
+     ns[i].z += dz;
+
      if(loc[i][3] >= 0 || loc[i][4] >= 0 || loc[i][5] >= 0) {
 
        // Set incremental rotations
@@ -414,13 +420,8 @@ GeomState::update(const Vector &v)
        dtheta[1] = (loc[i][4] >= 0) ? v[loc[i][4]] : 0.0;
        dtheta[2] = (loc[i][5] >= 0) ? v[loc[i][5]] : 0.0;
 
-       // Increment total translational displacements
-
-       ns[i].x += dx;
-       ns[i].y += dy;
-       ns[i].z += dz;
-
        // Increment rotation tensor R = R(dtheta)Ra
+
        inc_rottensor( dtheta, ns[i].R );
      }
    }

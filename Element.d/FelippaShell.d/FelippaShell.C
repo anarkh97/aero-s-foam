@@ -697,6 +697,10 @@ FelippaShell::getStiffAndForce(GeomState *refState, GeomState &geomState, CoordS
  // transform internal force vector from local to global coordinates
 
  tran_force(f, t0n, 3);
+
+ // The skew symmetric load stiffness matrix due to axial external moments is
+ // added separately (see Domain::getFollowerForce in Driver.d/NLStatic.C)
+ elK.symmetrize();
 }
 
 void

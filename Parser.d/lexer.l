@@ -1287,6 +1287,8 @@ TRAIL [a-zA-Z]*
 
 "TRNVCT"|"TrnVct"|"trnvct"		  { return TRNVCT; }
 
+"OFFSET"|"OffSet"|"offset"		  { return OFFSET; }
+
 "DIMENS"|"Dimens"|"dimens"		  { return PODSIZEMAX; }
 
 "ORTHOG"|"Orthog"|"orthog"		  { return ORTHOG; }

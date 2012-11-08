@@ -73,7 +73,7 @@ BasisOrthoDriver::solve() {
 
   std::vector<BasisId::Type> workload;
 
-  if(domain_->solInfo().statevectPodRom) {
+       if(domain_->solInfo().statevectPodRom) {
 	workload.push_back(BasisId::STATE);
         fprintf(stderr," ... For State SVD, workload size = %zd ...\n", workload.size());}
   else if(domain_->solInfo().residvectPodRom) {

@@ -31,6 +31,7 @@ ADD_LIBRARY( Rom
   RestrictedVecNodeDof6Conversion.C
   SnapshotNonLinDynamic.C
   SvdOrthogonalization.C
+  VecBasis.C
   VecBasisFile.C
   VecBasisUtils.C
   VecNodeDof6Conversion.C

@@ -362,10 +362,11 @@ def dComp(params):
     hostname = p.stdout.readline()
 
     msg = MIMEMultipart()
+    hostname = hostname.rstrip('\n')
+    msg['Subject'] = 'Regression Test results from %s' % hostname
     msg['From'] = 'mpotts@'+hostname
     msg['To'] = "mpotts@drc.com"
     msg['Date'] = formatdate(localtime=True)
-    msg['Subject'] = hostname + ' Regression Test results'
     msg.attach( MIMEText('These are the discrepancies from the last regression test'))
     f = 'Discrepancies.pdf'
     part = MIMEBase('application', "octet-stream")

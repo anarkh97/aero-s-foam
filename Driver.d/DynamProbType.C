@@ -846,6 +846,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
   a_n = fext - fint;
   handleForce(*probDesc, a_n);
   dynOps.dynMat->reSolve(a_n);
+
   if(domain->tdenforceFlag()) { // Contact corrector step: a^0 += M^{-1}*Fctc
     tmp1.linC(dt_n_h, v_n, 0.5*dt_n_h*dt_n_h, a_n); // predicted displacement d^1 = d^0 + dt^{1/2}*v^0 + dt^{1/2}*dt^{1/2}/2*a^0
     probDesc->getContactForce(d_n, tmp1, tmp2, t_n+dt_n_h, dt_n_h, dt_old);
@@ -894,6 +895,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
       //
       // External force
       probDesc->computeExtForce2(curState, fext, constForce, n+1, t_n+dt_n_h, aeroForce, 0.5, 0.0);
+
       d_n.linAdd(dt_n_h,v_n_h);
       handleDisplacement(*probDesc, d_n);
 
@@ -916,7 +918,9 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
       } else {
         coeff=dt_n_h;
         a_n.linC(1.0,fext,-1.0,fint);
+
         dynOps.dynMat->reSolve(a_n);
+
         v_n_h.linC(1.0,v_n_h,coeff,a_n);
       }
       
@@ -946,10 +950,12 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
       // Compute the external force at t^{n+1}
       if(domain->solInfo().check_energy_balance) *fext_p = fext;
+      
       probDesc->computeExtForce2(curState, fext, constForce, n+1, t_n+dt_n_h, aeroForce, 0.5, 0.0);
 
       // Compute the internal force at t^{n+1}
       if(domain->solInfo().check_energy_balance) *fint_p = fint;
+
       getInternalForce(dynOps, d_n, fint, t_n+dt_n_h, n+1);
 
       // Compute the acceleration at t^{n+1}: a^{n+1} = M^{-1}(fext^{n+1}-fint^{n+1}-C*v^{n+1/2})
@@ -959,7 +965,9 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
       }
       a_n.linC(1.0, fext, -1.0, fint);
       handleForce(*probDesc, a_n);
-      dynOps.dynMat->reSolve(a_n);
+
+      dynOps.dynMat->reSolve(a_n);//*************************************
+
       if(domain->tdenforceFlag()) { // Contact corrector step
         tmp1.linC(dt_n_h, v_n_h, dt_n_h*dt_n_h, a_n); // predicted displacement d^{n+2} = d^{n+1} + dt^{n+1/2}*(v^{n+1/2} + dt^{n+1/2}*a^{n+1})
         probDesc->getContactForce(d_n, tmp1, tmp2, t_n+2*dt_n_h, dt_n_h, dt_old);

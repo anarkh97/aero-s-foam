@@ -286,6 +286,7 @@ struct SolverInfo {
    int  maxSizePodRom;
    bool substractRefPodRom;
    int  skipPodRom;
+   int  skipOffSet;
    int  skipState;
    int  skipAccel;
    int  skipForce;
@@ -515,6 +516,7 @@ struct SolverInfo {
                   maxSizePodRom = 0;
                   substractRefPodRom = false;
                   skipPodRom = 1;
+                  skipOffSet = 0;
 		  skipState = 1;
 		  skipAccel = 1;
 		  skipForce = 1;

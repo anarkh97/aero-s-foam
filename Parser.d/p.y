@@ -100,7 +100,7 @@
 %token WEIGHTLIST GMRESRESIDUAL 
 %token SLOSH SLGRAV SLZEM SLZEMFILTER 
 %token PDIR HEFSB HEFRS HEINTERFACE  // Added for HEV Problem, EC, 20080512
-%token SNAPFI PODROB TRNVCT ORTHOG SVDTOKEN SAMPLING PODSIZEMAX REFSUBSTRACT TOLER
+%token SNAPFI PODROB TRNVCT OFFSET ORTHOG SVDTOKEN SAMPLING PODSIZEMAX REFSUBSTRACT TOLER
 
 %type <complexFDBC> AxiHD
 %type <complexFNBC> AxiHN
@@ -3833,6 +3833,8 @@ SamplingOption:
   { domain->solInfo().tolPodRom = $2; }
   | SKIP Integer
   { domain->solInfo().skipPodRom = $2; }
+  | OFFSET Integer
+  { domain->solInfo().skipOffSet = $2; }
   | PODSIZEMAX Integer
   { domain->solInfo().maxSizePodRom = $2; }
   ;

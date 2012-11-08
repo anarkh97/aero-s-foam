@@ -115,6 +115,21 @@ GenDistrDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector
 {
   int numOutInfo = geoSource->getNumOutInfo();
   if(numOutInfo == 0) return;
+
+  // get output information
+  OutputInfo *oinfo = geoSource->getOutputInfo();
+
+  // check if there are any output files which need to be printed now
+  bool noOut = true;
+  for(int iOut = 0; iOut < numOutInfo; iOut++) {
+    if(oinfo[iOut].interval == 0 || x % oinfo[iOut].interval != 0) continue;
+    if(oinfo[iOut].ndtype != ndflag) continue;
+    if(ndflag != 0 && oinfo[iOut].type != OutputInfo::Disp6DOF && oinfo[iOut].type !=  OutputInfo::Displacement) continue;
+    noOut = false;
+    break;
+  }
+  if(noOut) return;
+
   if(domain->outFlag && domain->nodeTable == 0) domain->makeNodeTable(domain->outFlag);
   int iOut_ffp = -1;
   int iOut_kir = -1;
@@ -184,9 +199,6 @@ GenDistrDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector
   }
   else time = eigV;
   if (domain->solInfo().loadcases.size() > 0) time = domain->solInfo().loadcases.front();
-
-  // get output information
-  OutputInfo *oinfo = geoSource->getOutputInfo();
 
 // RT - serialize the OUTPUT,  PJSA - stress output doesn't work with serialized output. need to reconsider
 #ifdef SERIALIZED_OUTPUT
@@ -1216,6 +1228,19 @@ GenDistrDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***a
 {
   int numOutInfo = geoSource->getNumOutInfo();
   if(numOutInfo == 0) return;
+
+  // get output information
+  OutputInfo *oinfo = geoSource->getOutputInfo();
+
+  // check if there are any output files which need to be printed now
+  bool noOut = true;
+  for(int iOut = 0; iOut < numOutInfo; iOut++) {
+    if(oinfo[iOut].interval == 0 || x % oinfo[iOut].interval != 0) continue;
+    noOut = false; 
+    break;
+  }
+  if(noOut) { x++; return; }
+
   if(domain->outFlag && domain->nodeTable == 0) domain->makeNodeTable(domain->outFlag);
 
   int outLimit = geoSource->getOutLimit();
@@ -1283,10 +1308,6 @@ GenDistrDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***a
     }
     reacts.reduce(masterReacts, masterFlag, numFlags);
   }
-
-
-  // get output information
-  OutputInfo *oinfo = geoSource->getOutputInfo();
 
 // RT - serialize the OUTPUT, PJSA - stress output doesn't work with serialized output. need to reconsider
 #ifdef SERIALIZED_OUTPUT

@@ -7,7 +7,9 @@
 #include <Eigen/Core>
 #include <Eigen/Sparse>
 #include <Eigen/SparseCholesky>
+#ifdef EIGEN_SPARSELU_SUPPORT
 #include <Eigen/SparseLU>
+#endif
 #ifdef EIGEN_CHOLMOD_SUPPORT
 #include <Eigen/CholmodSupport>
 #endif

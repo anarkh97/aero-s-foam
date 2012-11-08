@@ -739,7 +739,7 @@ const char* solverTypeMessage[] = {
 " ... POD-Galerkin Solver is Selected... \n",
 " ... POD-Galerkin Solver is Selected... \n",
 " ... Goldfarb-Idnani Solver is Sel'd... \n",
-#ifdef USE_EIGEN3
+#ifdef EIGEN_SPARSELU_SUPPORT
 " ... SparseLU Solver is Selected    ... \n",
 #else
 " ... Sparse Solver is Selected      ... \n"

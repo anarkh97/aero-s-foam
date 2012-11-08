@@ -741,6 +741,21 @@ GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<S
   int numOutInfo = geoSource->getNumOutInfo();
   if(numOutInfo == 0) return;
 
+  // get output information
+  OutputInfo *oinfo = geoSource->getOutputInfo();
+
+  // check if there are any output files which need to be printed now
+  bool noOut = true;
+  for(int i = 0; i < numOutInfo; i++) {
+    if(oinfo[i].ndtype != ndflag) continue;
+    if(ndflag !=0 && oinfo[i].type != OutputInfo::Disp6DOF && oinfo[i].type !=  OutputInfo::Displacement) continue;
+    if(oinfo[i].interval != 0 && x % oinfo[i].interval == 0) {
+      noOut = false;
+      break;
+    }
+  }
+  if(noOut) return;
+
   if(verboseFlag && numOutInfo && x == 0 && ndflag == 0 && !domain->solInfo().isDynam())
     filePrint(stderr," ... Postprocessing                 ...\n");
 
@@ -794,9 +809,6 @@ GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<S
   }
   else time = eigV;
   if (domain->solInfo().loadcases.size() > 0) time = domain->solInfo().loadcases.front();
-
-  // get output information
-  OutputInfo *oinfo = geoSource->getOutputInfo();
 
   // open output files
   if(x == domain->solInfo().initialTimeIndex && firstOutput) geoSource->openOutputFiles();
@@ -1938,6 +1950,22 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***all
   // NOTE: for dynamic runs, x represents the time
   //       for static runs, x represents the load parameter, lambda
   int numOutInfo = geoSource->getNumOutInfo();
+  if(numOutInfo == 0) return;
+
+  // get output information
+  OutputInfo *oinfo = geoSource->getOutputInfo();
+
+  // check if there are any output files which need to be printed now
+  bool noOut = true;
+  for(int i = 0; i < numOutInfo; i++) {
+    int step = (domain->solInfo().isDynam()) ? int(x/domain->solInfo().getTimeStep()+0.5) : int(x/domain->solInfo().getNLInfo().dlambda+0.5);
+    if(oinfo[i].interval != 0 && step % oinfo[i].interval == 0) {
+      noOut = false;
+      break;
+    }
+  }
+  if(noOut) return;
+
   if(verboseFlag && numOutInfo && x == 0)
     filePrint(stderr," ... Postprocessing                 ...\n");
 
@@ -1996,7 +2024,6 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***all
   }
 
   int inode;
-  OutputInfo *oinfo = geoSource->getOutputInfo();
   for(i = 0; i < numOutInfo; i++) {
    int step = (domain->solInfo().isDynam()) ? int(x/domain->solInfo().getTimeStep()+0.5) : int(x/domain->solInfo().getNLInfo().dlambda+0.5);
    if(oinfo[i].interval != 0 && step % oinfo[i].interval == 0) {

@@ -6,6 +6,7 @@ template <>
 GenDistrVector<double> &
 GenVecBasis<double, GenDistrVector>::project(GenDistrVector<double> &x, GenDistrVector<double> &_result) {
 
+#ifdef USE_EIGEN3
   Eigen::Matrix<double, Eigen::Dynamic, 1> GenCoordinates;
   Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > result(_result.data(), _result.size());
   Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > f(x.data(), x.size());
@@ -25,7 +26,10 @@ GenVecBasis<double, GenDistrVector>::project(GenDistrVector<double> &x, GenDistr
     structCom->globalSum(GenCoordinates.size(), GenCoordinates.data());
   
   result = basis*GenCoordinates;
-
+#else
+  cerr << "USE_EIGEN3 is not defined here in GenVecBasis::project\n";
+  exit(-1);
+#endif
   return _result;
 }
 

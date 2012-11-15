@@ -584,11 +584,11 @@ struct SolverInfo {
    void setParallelInTime(int J, int k, int workloadMax)
    { pitaTimeGridRatio = J; pitaMainIterMax = k; pitaProcessWorkloadMax = workloadMax; }
 
-   // Set Rayleigh damping stiffness coefficient alpha
-   // Set Rayleigh damping mass coefficient beta
+   // Set Rayleigh damping stiffness coefficient beta
+   // Set Rayleigh damping mass coefficient alpha
    void setDamping(double beta, double alpha)
    { alphaDamp = alpha; betaDamp = beta; }
-   bool hasDamping() { return ((alphaDamp > 0.0) || (betaDamp > 0.0)); }
+   bool hasDamping() { return ((alphaDamp != 0.0) || (betaDamp != 0.0)); }
 
    // SET RENUMBERING SCHEME (ND = nested dissection, MMD = multiple minimum degree, MS = multi-section, RCM = Reverse Cuthill McKee
    void setRenum(int renumberid) { 

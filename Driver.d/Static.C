@@ -742,6 +742,11 @@ const char* solverTypeMessage[] = {
 #ifdef EIGEN_SPARSELU_SUPPORT
 " ... SparseLU Solver is Selected    ... \n",
 #else
+" ... Sparse Solver is Selected      ... \n",
+#endif
+#ifdef EIGEN_SPQR_SUPPORT
+" ... SparseQR Solver is Selected    ... \n",
+#else
 " ... Sparse Solver is Selected      ... \n"
 #endif
 };

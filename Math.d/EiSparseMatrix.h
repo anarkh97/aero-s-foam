@@ -19,6 +19,9 @@
 #ifdef EIGEN_SUPERLU_SUPPORT
 #include <Eigen/SuperLUSupport>
 #endif
+#ifdef EIGEN_SRQR_SUPPORT
+#include <Eigen/SPQRSupport>
+#endif
 #include <Math.d/SparseMatrix.h>
 #include <Solvers.d/Solver.h>
 

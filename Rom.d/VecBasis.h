@@ -5,8 +5,10 @@
 #include <algorithm>
 #include <Feti.d/DistrVector.h>
 #include <Threads.d/PHelper.h>
+#ifdef USE_EIGEN3
 #include <Eigen/Core>
 #include <Eigen/Sparse>
+#endif
 
 template <typename Scalar> class GenVector;
 
@@ -28,7 +30,9 @@ template <typename Scalar, template <typename Scalar> class GenVecType = GenVect
 class GenVecBasis : private std::allocator<GenVecType<Scalar> > {
 private:
   typedef VecTraits<Scalar, GenVecType> Traits;
+#ifdef USE_EIGEN3
   Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic, Eigen::RowMajor> V;
+#endif
 public:
   typedef typename Traits::Type VecType;
   typedef typename Traits::InfoType InfoType;
@@ -93,8 +97,10 @@ private:
 
   Scalar *buffer_;
   VecType *vectors_;
+#ifdef USE_EIGEN3
   Eigen::Map<Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> > basis;
   Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> basis2;
+#endif
 };
 
 template <typename Scalar, template <typename Scalar> class GenVecType>
@@ -106,9 +112,11 @@ GenVecBasis<Scalar, GenVecType>::swap(GenVecBasis &other) {
   std::swap(buffer_,      other.buffer_);
   std::swap(vectors_,     other.vectors_);
 
+#ifdef USE_EIGEN3
   new (&basis) Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> >(buffer_, vectorSize(), vectorCount());
   if (size() < 10000) 
     basis2 = basis*basis.transpose();
+#endif
 
   time1 = 0; time2 = 0; time3 = 0; time4 = 0; time5 = 0; time6 = 0; counter = 0;
 }
@@ -122,9 +130,9 @@ GenVecBasis<Scalar, GenVecType>::placeVectors() {
   for (int iVec = 0; iVec < vectorCount_; ++iVec) {
     new(vectors_ + iVec) VecType(vectorInfo_, buffer_ + (iVec * vectorSize()), false);
   }
-
+#ifdef USE_EIGEN3
   new (&basis) Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> >(buffer_, vectorSize(), vectorCount());
-
+#endif
 }
 
 template <typename Scalar, template <typename Scalar> class GenVecType>
@@ -137,8 +145,10 @@ GenVecBasis<Scalar, GenVecType>::copyBufferContent(const GenVecBasis &other) {
 template <typename Scalar, template <typename Scalar> class GenVecType>
 GenVecBasis<Scalar, GenVecType>::GenVecBasis() :
  vectorInfo_(Traits::defaultInfo()),
- vectorCount_(0),
- basis(NULL,0,0)
+ vectorCount_(0)
+#ifdef USE_EIGEN3
+ ,basis(NULL,0,0)
+#endif
 {
   placeVectors();
 }
@@ -148,8 +158,10 @@ GenVecBasis<Scalar, GenVecType>::GenVecBasis() :
 template <typename Scalar, template <typename Scalar> class GenVecType>
 GenVecBasis<Scalar, GenVecType>::GenVecBasis(int vCount, InfoType vInfo) :
  vectorInfo_(vInfo),
- vectorCount_(vCount),
- basis(NULL,0,0)
+ vectorCount_(vCount)
+#ifdef USE_EIGEN3
+ ,basis(NULL,0,0)
+#endif
 {
   placeVectors();
 }
@@ -157,8 +169,10 @@ GenVecBasis<Scalar, GenVecType>::GenVecBasis(int vCount, InfoType vInfo) :
 template <typename Scalar, template <typename Scalar> class GenVecType>
 GenVecBasis<Scalar, GenVecType>::GenVecBasis(const GenVecBasis &other) :
  vectorInfo_(other.vectorInfo_),
- vectorCount_(other.vectorCount_),
- basis(NULL,0,0)
+ vectorCount_(other.vectorCount_)
+#ifdef USE_EIGEN3
+ ,basis(NULL,0,0)
+#endif
 {
   placeVectors();
   copyBufferContent(other);

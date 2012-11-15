@@ -1166,6 +1166,15 @@ Domain::rebuildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Cc
        }
        break;
 #endif
+#ifdef EIGEN_SPRQ_SUPPORT
+       case 16: {
+         spm = (GenEiSparseMatrix<Scalar,Eigen::SPQR<Eigen::SparseMatrix<Scalar> > >*)allOps.sysSolver;
+         spm->zeroAll();
+         makeSparseOps<Scalar>(allOps, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray, celArray);
+         systemSolver  = (GenEiSparseMatrix<Scalar,Eigen::SPQR<Eigen::SparseMatrix<Scalar> > >*) spm;
+       }
+       break;
+#endif
 #ifdef EIGEN_SUPERLU_SUPPORT
        case 7: {
          spm = (GenEiSparseMatrix<Scalar,Eigen::SuperLU<Eigen::SparseMatrix<Scalar> > >*)allOps.sysSolver;
@@ -1376,6 +1385,13 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
       spm = constructEiSparseMatrix<Scalar,Eigen::UmfPackLU<Eigen::SparseMatrix<Scalar> > >(c_dsa, nodeToNode, false);
       makeSparseOps<Scalar>(allOps, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray, celArray);
       systemSolver  = (GenEiSparseMatrix<Scalar,Eigen::UmfPackLU<Eigen::SparseMatrix<Scalar> > >*) spm;
+      break;
+#endif
+#ifdef EIGEN_SPRQ_SUPPORT
+    case 6:
+      spm = constructEiSparseMatrix<Scalar,Eigen::SPQR<Eigen::SparseMatrix<Scalar> > >(c_dsa, nodeToNode, false);
+      makeSparseOps<Scalar>(allOps, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray, celArray);
+      systemSolver  = (GenEiSparseMatrix<Scalar,Eigen::SQPR<Eigen::SparseMatrix<Scalar> > >*) spm;
       break;
 #endif
 #ifdef EIGEN_SUPERLU_SUPPORT

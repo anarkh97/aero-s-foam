@@ -58,8 +58,9 @@ TRAIL [a-zA-Z]*
 					else
 					{
 						std::cout << " **************************************************** "<< endl 
-							  << " ** ERROR :  Could'nt open file " << fname << endl
-							  << " **************************************************** "<< endl 
+							  << " ** ERROR :  Couldn't open file " << fname << endl
+							  << " **************************************************** "<< endl; 
+                                                exit(-1);
 ;
 					}
 					BEGIN(INITIAL); // go back to parsing

@@ -62,7 +62,9 @@ class GenDistrVector {
     const DistrInfo &inf;
     Scalar *partial;
   public:
-    GenDistrVector() : inf(*(new DistrInfo)) { len = numDom = nT = 0; } 
+    GenDistrVector() : myMemory(false), len(0), numDom(0), v(NULL), subV(NULL), subVLen(NULL), nT(0),
+                       thLen(NULL), thV(NULL), subVOffset(NULL), thOffset(NULL), masterFlag(NULL),
+                       infoFlag(false), inf(*(new DistrInfo)), partial(NULL) {}
     GenDistrVector(const DistrInfo &dinfo);
     GenDistrVector(const GenDistrVector<Scalar> &v);
     GenDistrVector(const DistrInfo &dinfo, Scalar *, bool myMemory = true);

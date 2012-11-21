@@ -323,7 +323,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
   // Main Newton Iteration Loop
   double e_k;
   int iter, converged;
-  for(iter = 0; iter < maxit; ++iter, ++totalNewtonIter) {
+  for(iter = 0; iter < maxit; ++iter) {
 
     // residual = lambda*force;
     residual.linC(force, lambda);
@@ -395,6 +395,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
     probDesc->staticOutput( geomState, double(iter), force, totalRes, refState);
 #endif
 
+    totalNewtonIter++;
     // If converged, break out of loop
     if(converged == 1) break; // PJSA_DEBUG don't test for divergence
   }
@@ -493,7 +494,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
   //r0 = 1.;
 
   int maxExtIter = probDesc->getMaxit();
-  for(numExtIter = 0; numExtIter < maxExtIter; ++numExtIter, ++totalNewtonIter) {
+  for(numExtIter = 0; numExtIter < maxExtIter; ++numExtIter) {
 
     filePrint(stderr," ------------------------------------\n");
     filePrint(stderr," ### Extended-Newton iteration %d ###\n",numExtIter);
@@ -559,6 +560,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
     // HB
     int converged = probDesc->checkConvergence(numExtIter, normDv, residualNorm);
 
+    totalNewtonIter++;
     if (converged) break;
   }
 

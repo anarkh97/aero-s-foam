@@ -73,5 +73,9 @@ class MpcElement : public Element, public Corotator, public LMPCons
 
     void getNLVonMises(Vector&, Vector& weight,
                        GeomState &, CoordSet &, int);
+
+    void initMultipliers(GeomState& c1);
+    void updateMultipliers(GeomState& c1);
+    double getError();
 };
 #endif

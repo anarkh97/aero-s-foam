@@ -154,7 +154,7 @@ class StructProp {
         complex<double> soundSpeed;
 
         bool lagrangeMult; // whether or not to use lagrange multiplier for mpc type elements
-        double penalty; // penalty parameter for mpc type elements
+        double penalty, initialPenalty; // penalty parameter for mpc type elements
         int funtype; // prescribed motion function type: 0 for sinusoidal, 1 for bounded ramp
         double B, C;
         int relop; // 0: equality (==), 1: inequality (<=)
@@ -198,7 +198,7 @@ class StructProp {
                        soundSpeed = 1.0; alphaDamp = 0.0; betaDamp = 0.0;
                        ymin = 0.0; ymax = 0.0;
                        zmin = 0.0; zmax = 0.0; isReal = false; 
-                       lagrangeMult = true; penalty = 0.0;
+                       lagrangeMult = true; penalty = 0.0; initialPenalty = 0.0;
                        B = 1.0; C = 0.0; relop = 0; type = Undefined; funtype = 0;
                        k1 = 0; k2 = 0; k3 = 0; constraint_hess = 1; constraint_hess_eps = 0.0; } 
 

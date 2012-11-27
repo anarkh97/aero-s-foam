@@ -372,6 +372,53 @@ Domain::updateStates(GeomState *refState, GeomState &geomState, Corotator **coro
   }
 }
 
+void
+Domain::initializeParameters(GeomState &geomState, Corotator **corotators)
+{
+  for(int iele = 0; iele < numele; ++iele) {
+    if(corotators[iele]) corotators[iele]->initMultipliers(geomState);
+  }
+
+  SPropContainer &sProps = geoSource->getStructProps();
+  SPropContainer::iterator it = sProps.begin();
+  while(it != sProps.end()) {
+    StructProp* p = &(it->second);
+    p->penalty = p->initialPenalty;
+    it++;
+  }
+  if(p) p->penalty = sinfo.penalty; 
+}
+
+void
+Domain::updateParameters(GeomState &geomState, Corotator **corotators)
+{
+  for(int iele = 0; iele < numele; ++iele) {
+    if(corotators[iele]) corotators[iele]->updateMultipliers(geomState);
+  }
+
+  SPropContainer &sProps = geoSource->getStructProps();
+  SPropContainer::iterator it = sProps.begin();
+  while(it != sProps.end()) {
+    StructProp* p = &(it->second);
+    p->penalty *= sinfo.penalty_beta;
+    it++;
+  }
+  if(p) p->penalty *= sinfo.penalty_beta;
+  // TODO this doesn't allow for elements that have a property that is not in the sProps container
+  // or StructProps that don't use the global default penalty parameter from SolverInfo
+}
+
+double
+Domain::getError(Corotator **corotators)
+{
+  // returns the largest constraint violation
+  double err = 0;
+  for(int iele = 0; iele < numele; ++iele) {
+    if(corotators[iele]) err = std::max(err,corotators[iele]->getError());
+  }
+  return err;
+}
+
 // used in nonlinear statics
 void
 Domain::createKelArray(FullSquareMatrix *&kArray)

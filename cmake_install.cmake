@@ -1,4 +1,4 @@
-# Install script for directory: /home/avery/Codes/FEM
+# Install script for directory: /home/avery/Projects/AugmentedLagrangian/FEM
 
 # Set the install prefix
 IF(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -39,7 +39,7 @@ IF(NOT CMAKE_INSTALL_COMPONENT OR "${CMAKE_INSTALL_COMPONENT}" STREQUAL "Unspeci
          FILE "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/bin/aeros"
          RPATH "")
   ENDIF()
-  FILE(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/bin" TYPE EXECUTABLE FILES "/home/avery/Codes/FEM/bin/aeros")
+  FILE(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/bin" TYPE EXECUTABLE FILES "/home/avery/Projects/AugmentedLagrangian/FEM/bin/aeros")
   IF(EXISTS "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/bin/aeros" AND
      NOT IS_SYMLINK "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/bin/aeros")
     FILE(RPATH_REMOVE
@@ -57,7 +57,7 @@ IF(NOT CMAKE_INSTALL_COMPONENT OR "${CMAKE_INSTALL_COMPONENT}" STREQUAL "Unspeci
          FILE "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/bin/rob"
          RPATH "")
   ENDIF()
-  FILE(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/bin" TYPE EXECUTABLE FILES "/home/avery/Codes/FEM/bin/rob")
+  FILE(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/bin" TYPE EXECUTABLE FILES "/home/avery/Projects/AugmentedLagrangian/FEM/bin/rob")
   IF(EXISTS "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/bin/rob" AND
      NOT IS_SYMLINK "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/bin/rob")
     IF(CMAKE_INSTALL_DO_STRIP)
@@ -73,7 +73,7 @@ IF(NOT CMAKE_INSTALL_COMPONENT OR "${CMAKE_INSTALL_COMPONENT}" STREQUAL "Unspeci
          FILE "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/bin/relerr"
          RPATH "")
   ENDIF()
-  FILE(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/bin" TYPE EXECUTABLE FILES "/home/avery/Codes/FEM/bin/relerr")
+  FILE(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/bin" TYPE EXECUTABLE FILES "/home/avery/Projects/AugmentedLagrangian/FEM/bin/relerr")
   IF(EXISTS "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/bin/relerr" AND
      NOT IS_SYMLINK "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/bin/relerr")
     IF(CMAKE_INSTALL_DO_STRIP)
@@ -82,37 +82,32 @@ IF(NOT CMAKE_INSTALL_COMPONENT OR "${CMAKE_INSTALL_COMPONENT}" STREQUAL "Unspeci
   ENDIF()
 ENDIF(NOT CMAKE_INSTALL_COMPONENT OR "${CMAKE_INSTALL_COMPONENT}" STREQUAL "Unspecified")
 
-IF(NOT CMAKE_INSTALL_COMPONENT OR "${CMAKE_INSTALL_COMPONENT}" STREQUAL "Unspecified")
-  FILE(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib" TYPE STATIC_LIBRARY FILES "/home/avery/Codes/FEM/lib/aeros.a")
-ENDIF(NOT CMAKE_INSTALL_COMPONENT OR "${CMAKE_INSTALL_COMPONENT}" STREQUAL "Unspecified")
-
 IF(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for each subdirectory.
-  INCLUDE("/home/avery/Codes/FEM/Element.d/cmake_install.cmake")
-  INCLUDE("/home/avery/Codes/FEM/Feti.d/cmake_install.cmake")
-  INCLUDE("/home/avery/Codes/FEM/Driver.d/cmake_install.cmake")
-  INCLUDE("/home/avery/Codes/FEM/Comm.d/cmake_install.cmake")
-  INCLUDE("/home/avery/Codes/FEM/Corotational.d/cmake_install.cmake")
-  INCLUDE("/home/avery/Codes/FEM/Dec.d/cmake_install.cmake")
-  INCLUDE("/home/avery/Codes/FEM/HelmAxi.d/cmake_install.cmake")
-  INCLUDE("/home/avery/Codes/FEM/Solvers.d/cmake_install.cmake")
-  INCLUDE("/home/avery/Codes/FEM/Utils.d/cmake_install.cmake")
-  INCLUDE("/home/avery/Codes/FEM/Parser.d/cmake_install.cmake")
-  INCLUDE("/home/avery/Codes/FEM/Timers.d/cmake_install.cmake")
-  INCLUDE("/home/avery/Codes/FEM/Threads.d/cmake_install.cmake")
-  INCLUDE("/home/avery/Codes/FEM/Mortar.d/cmake_install.cmake")
-  INCLUDE("/home/avery/Codes/FEM/Math.d/cmake_install.cmake")
-  INCLUDE("/home/avery/Codes/FEM/Linpack.d/cmake_install.cmake")
-  INCLUDE("/home/avery/Codes/FEM/Sfem.d/cmake_install.cmake")
-  INCLUDE("/home/avery/Codes/FEM/Paral.d/cmake_install.cmake")
-  INCLUDE("/home/avery/Codes/FEM/Problems.d/cmake_install.cmake")
-  INCLUDE("/home/avery/Codes/FEM/GNU-getopt.d/cmake_install.cmake")
-  INCLUDE("/home/avery/Codes/FEM/Hetero.d/cmake_install.cmake")
-  INCLUDE("/home/avery/Codes/FEM/Material.d/cmake_install.cmake")
-  INCLUDE("/home/avery/Codes/FEM/Rom.d/cmake_install.cmake")
-  INCLUDE("/home/avery/Codes/FEM/Regression.d/cmake_install.cmake")
-  INCLUDE("/home/avery/Codes/FEM/Acme.d/cmake_install.cmake")
-  INCLUDE("/home/avery/Codes/FEM/Pita.d/cmake_install.cmake")
+  INCLUDE("/home/avery/Projects/AugmentedLagrangian/FEM/Element.d/cmake_install.cmake")
+  INCLUDE("/home/avery/Projects/AugmentedLagrangian/FEM/Feti.d/cmake_install.cmake")
+  INCLUDE("/home/avery/Projects/AugmentedLagrangian/FEM/Driver.d/cmake_install.cmake")
+  INCLUDE("/home/avery/Projects/AugmentedLagrangian/FEM/Comm.d/cmake_install.cmake")
+  INCLUDE("/home/avery/Projects/AugmentedLagrangian/FEM/Corotational.d/cmake_install.cmake")
+  INCLUDE("/home/avery/Projects/AugmentedLagrangian/FEM/Dec.d/cmake_install.cmake")
+  INCLUDE("/home/avery/Projects/AugmentedLagrangian/FEM/HelmAxi.d/cmake_install.cmake")
+  INCLUDE("/home/avery/Projects/AugmentedLagrangian/FEM/Solvers.d/cmake_install.cmake")
+  INCLUDE("/home/avery/Projects/AugmentedLagrangian/FEM/Utils.d/cmake_install.cmake")
+  INCLUDE("/home/avery/Projects/AugmentedLagrangian/FEM/Parser.d/cmake_install.cmake")
+  INCLUDE("/home/avery/Projects/AugmentedLagrangian/FEM/Timers.d/cmake_install.cmake")
+  INCLUDE("/home/avery/Projects/AugmentedLagrangian/FEM/Threads.d/cmake_install.cmake")
+  INCLUDE("/home/avery/Projects/AugmentedLagrangian/FEM/Mortar.d/cmake_install.cmake")
+  INCLUDE("/home/avery/Projects/AugmentedLagrangian/FEM/Math.d/cmake_install.cmake")
+  INCLUDE("/home/avery/Projects/AugmentedLagrangian/FEM/Linpack.d/cmake_install.cmake")
+  INCLUDE("/home/avery/Projects/AugmentedLagrangian/FEM/Sfem.d/cmake_install.cmake")
+  INCLUDE("/home/avery/Projects/AugmentedLagrangian/FEM/Paral.d/cmake_install.cmake")
+  INCLUDE("/home/avery/Projects/AugmentedLagrangian/FEM/Problems.d/cmake_install.cmake")
+  INCLUDE("/home/avery/Projects/AugmentedLagrangian/FEM/GNU-getopt.d/cmake_install.cmake")
+  INCLUDE("/home/avery/Projects/AugmentedLagrangian/FEM/Hetero.d/cmake_install.cmake")
+  INCLUDE("/home/avery/Projects/AugmentedLagrangian/FEM/Material.d/cmake_install.cmake")
+  INCLUDE("/home/avery/Projects/AugmentedLagrangian/FEM/Rom.d/cmake_install.cmake")
+  INCLUDE("/home/avery/Projects/AugmentedLagrangian/FEM/Regression.d/cmake_install.cmake")
+  INCLUDE("/home/avery/Projects/AugmentedLagrangian/FEM/Acme.d/cmake_install.cmake")
 
 ENDIF(NOT CMAKE_INSTALL_LOCAL_ONLY)
 
@@ -122,7 +117,7 @@ ELSE(CMAKE_INSTALL_COMPONENT)
   SET(CMAKE_INSTALL_MANIFEST "install_manifest.txt")
 ENDIF(CMAKE_INSTALL_COMPONENT)
 
-FILE(WRITE "/home/avery/Codes/FEM/${CMAKE_INSTALL_MANIFEST}" "")
+FILE(WRITE "/home/avery/Projects/AugmentedLagrangian/FEM/${CMAKE_INSTALL_MANIFEST}" "")
 FOREACH(file ${CMAKE_INSTALL_MANIFEST_FILES})
-  FILE(APPEND "/home/avery/Codes/FEM/${CMAKE_INSTALL_MANIFEST}" "${file}\n")
+  FILE(APPEND "/home/avery/Projects/AugmentedLagrangian/FEM/${CMAKE_INSTALL_MANIFEST}" "${file}\n")
 ENDFOREACH(file)

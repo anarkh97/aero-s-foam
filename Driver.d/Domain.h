@@ -359,6 +359,10 @@ class Domain : public HData {
                                        GeomState *refState);
 
      void applyResidualCorrection(GeomState &geomState, Corotator **corotators, Vector &residual, double rcoef = 1.0);
+     void initializeParameters(GeomState &geomState, Corotator **corotators);
+     void updateParameters(GeomState &geomState, Corotator **corotators);
+     double getError(Corotator **corotators);
+
      void getGeometricStiffness(GeomState &u, Vector &elementInternalForce,
         			Corotator **allCorot, FullSquareMatrix *&kel);
      void computeGeometricPreStress(Corotator **&allCorot, GeomState *&geomState,

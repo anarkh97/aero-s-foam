@@ -298,3 +298,44 @@ SuperCorotator::updateStates(GeomState *refState, GeomState &curState, CoordSet 
   for(i=0; i<nSubElems; ++i)
     subElemCorotators[i]->updateStates(refState, curState, C0);
 }
+
+void
+SuperCorotator::getResidualCorrection(GeomState &gs, double *r)
+{
+  int i, j;
+  for(i=0; i<nSubElems; ++i) {
+    int ndofs = superElem->getSubElemNumDofs(i);
+    double *subr = new double[ndofs];
+    for(j=0; j<ndofs; ++j) subr[j] = 0.0;
+    subElemCorotators[i]->getResidualCorrection(gs, subr);
+    int *subElemDofs = superElem->getSubElemDofs(i);
+    for(j=0; j<ndofs; ++j) r[subElemDofs[j]] += subr[j];
+    delete [] subr;
+  }
+}
+
+void
+SuperCorotator::initMultipliers(GeomState& c1)
+{
+  int i;
+  for(i=0; i<nSubElems; ++i)
+    subElemCorotators[i]->initMultipliers(c1);
+}
+
+void
+SuperCorotator::updateMultipliers(GeomState& c1)
+{
+  int i;
+  for(i=0; i<nSubElems; ++i)
+    subElemCorotators[i]->updateMultipliers(c1);
+}
+
+double
+SuperCorotator::getError()
+{
+  double err = 0;
+  int i;
+  for(i=0; i<nSubElems; ++i)
+    err = std::max(err,subElemCorotators[i]->getError());
+  return err;
+}

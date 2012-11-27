@@ -374,7 +374,7 @@ void GeoSource::addMpcElements(int numLMPC, ResizeArray<LMPCons *> &lmpc)
         int a = maxattrib + 1;
         StructProp p;
         p.lagrangeMult = lmpc[i]->lagrangeMult;
-        p.penalty = lmpc[i]->penalty;
+        p.initialPenalty = p.penalty = lmpc[i]->penalty;
         p.type = StructProp::Constraint;
         p.constraint_hess = domain->solInfo().constraint_hess;
         p.constraint_hess_eps = domain->solInfo().constraint_hess_eps;
@@ -777,7 +777,7 @@ void GeoSource::setUpData()
       p->soundSpeed = omega()/complex<double>(p->kappaHelm, p->kappaHelmImag);
     if(p->type != StructProp::Constraint) {
       p->lagrangeMult = (sinfo.mpcDirect) ? false : sinfo.lagrangeMult;
-      p->penalty = (sinfo.mpcDirect) ? 0.0 : sinfo.penalty;
+      p->initialPenalty = p->penalty = (sinfo.mpcDirect) ? 0.0 : sinfo.penalty;
     }
     p->constraint_hess = sinfo.constraint_hess;
     p->constraint_hess_eps = sinfo.constraint_hess_eps;

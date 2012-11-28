@@ -1386,12 +1386,12 @@ Domain::getStressStrain(GeomState &geomState, Corotator **allCorot,
   // ... ALLOCATE VECTORS STRESS AND WEIGHT AND INITIALIZE TO ZERO
   if(stress == 0)
     stress = new Vector(numnodes,0.0);
-  else
+  else 
     stress->zero();
 
   if(weight == 0)
     weight = new Vector(numnodes,0.0);
-  else
+  else 
     weight->zero();
 
   if(elDisp == 0)
@@ -1411,7 +1411,7 @@ Domain::getStressStrain(GeomState &geomState, Corotator **allCorot,
 
   int flag;
   for(iele = 0; iele < numElements(); ++iele) {
-    if (packedEset[iele]->isPhantomElement())  continue;
+    if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isMpcElement()) continue;
     elDisp->zero();
     elstress->zero();
     elweight->zero();
@@ -1579,7 +1579,7 @@ Domain::getPrincipalStress(GeomState &geomState, Corotator **allCorot,
   int flag;
 
   for(iele = 0; iele < numElements(); ++iele) {
-
+    if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isMpcElement()) continue;
     elDisp->zero();
     p_elstress->zero();
     elweight->zero();

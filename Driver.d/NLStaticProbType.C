@@ -82,6 +82,8 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
 
      // update lagrange multipliers and/or penalty parameters 
      probDesc->updateParameters(geomState);
+
+     // check constraint violation error
      feasible = probDesc->checkConstraintViolation(err);
 
      if(converged == 1) {

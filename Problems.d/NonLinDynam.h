@@ -203,6 +203,10 @@ class NonLinDynamic : public NLDynamPostProcessor {
     void getNewmarkParameters(double &beta, double &gamma,
                               double &alphaf, double &alpham);
 
+    void initializeParameters(GeomState *geomState);
+    void updateParameters(GeomState *geomState);
+    bool checkConstraintViolation(double &err);
+
 private:
     virtual bool factorWhenBuilding() const;
     void clean();

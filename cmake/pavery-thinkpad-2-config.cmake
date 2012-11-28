@@ -1,6 +1,6 @@
 # use to tell cmake where to search for the include files and libraries of:
 # acme, arpack, blacs, metis, mumps, scalapack, spooles, zoltan
-SET(CMAKE_INCLUDE_PATH
+SET(CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH}
     /home/avery/Codes/eigen
 #    /usr/include/trilinos
     /home/avery/Codes/trilinos/trilinos-11.0.3-Source/packages/sacado/src
@@ -8,7 +8,7 @@ SET(CMAKE_INCLUDE_PATH
     /home/avery/Codes/trilinos/trilinos-11.0.3-Source/packages/zoltan/src
 #    /home/avery/Codes/stxxl-trunk/include
 )
-SET(CMAKE_LIBRARY_PATH
+SET(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH}
     /home/avery/Codes/ARPACK
     /home/avery/Codes/trilinos/trilinos-11.0.3-Obj_cmake/lib
 #    /home/avery/Codes/stxxl-trunk/lib

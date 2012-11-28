@@ -83,6 +83,10 @@ class Corotator {
 
     virtual void getResidualCorrection(GeomState &gs, double *r) {}
 
+    virtual void initMultipliers(GeomState& c1) {}
+    virtual void updateMultipliers(GeomState& c1) {}
+    virtual double getError() { return 0; }
+
     virtual ~Corotator() {/*TODO*/}
 };
 

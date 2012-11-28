@@ -1221,3 +1221,23 @@ bool
 NonLinDynamic::factorWhenBuilding() const { 
   return factor; //domain->solInfo().iacc_switch || domain->solInfo().mpcDirect != 0;
 }
+
+void
+NonLinDynamic::initializeParameters(GeomState *geomState)
+{
+  domain->initializeParameters(*geomState, allCorot);
+}
+
+void
+NonLinDynamic::updateParameters(GeomState *geomState)
+{
+  domain->updateParameters(*geomState, allCorot);
+}
+
+bool
+NonLinDynamic::checkConstraintViolation(double &err)
+{
+  err = domain->getError(allCorot);
+  return (err <= domain->solInfo().penalty_tol);
+}
+

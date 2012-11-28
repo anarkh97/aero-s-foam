@@ -304,6 +304,42 @@ MDNLDynamic::~MDNLDynamic()
   if(reactions) delete reactions;
 }
 
+void
+MDNLDynamic::initializeParameters(DistrGeomState *geomState)
+{
+  execParal1R(decDomain->getNumSub(), this, &MDNLDynamic::subInitializeParameters, *geomState);
+}
+
+void
+MDNLDynamic::subInitializeParameters(int isub, DistrGeomState& geomState)
+{
+  decDomain->getSubDomain(isub)->initializeParameters(*(geomState[isub]), allCorot[isub]);
+}
+
+void
+MDNLDynamic::updateParameters(DistrGeomState *geomState)
+{
+  execParal1R(decDomain->getNumSub(), this, &MDNLDynamic::subUpdateParameters, *geomState);
+}
+
+void
+MDNLDynamic::subUpdateParameters(int isub, DistrGeomState& geomState)
+{
+  decDomain->getSubDomain(isub)->updateParameters(*(geomState[isub]), allCorot[isub]);
+}
+
+bool
+MDNLDynamic::checkConstraintViolation(double &err)
+{
+  err = 0;
+  for(int isub=0; isub<decDomain->getNumSub(); ++isub)
+    err = std::max(err, decDomain->getSubDomain(isub)->getError(allCorot[isub]));
+#ifdef DISTRIBUTED
+  if(structCom) err = structCom->globalMax(err);
+#endif
+  return (err <= domain->solInfo().penalty_tol);
+}
+
 int
 MDNLDynamic::checkConvergence(int iteration, double normRes, DistrVector &residual, DistrVector& dv, double time)
 {

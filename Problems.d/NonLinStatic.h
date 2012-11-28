@@ -59,6 +59,9 @@ class NonLinStatic {
                             double lambda = 1, GeomState *refState = NULL);
 
     void updatePrescribedDisplacement(GeomState *geomState, double lambda = 1);
+    void initializeParameters(GeomState *geomState);
+    void updateParameters(GeomState *geomState);
+    bool checkConstraintViolation(double &err);
 
     void printTimers();
 

@@ -71,6 +71,10 @@ class MDNLStatic
 
     void updatePrescribedDisplacement(DistrGeomState *geomState, double l=1.0);
 
+    void initializeParameters(DistrGeomState *geomState);
+    void updateParameters(DistrGeomState *geomState);
+    bool checkConstraintViolation(double &err);
+
     double getStiffAndForce(DistrGeomState& geomState, DistrVector& residual, 
                             DistrVector& elementInternalForce, DistrVector& gRes,
                             double lambda = 1.0, DistrGeomState *refState = NULL);
@@ -99,6 +103,8 @@ class MDNLStatic
     void getConstraintMultipliers(int isub);
     void updateConstraintTerms(DistrGeomState* geomState, double _lambda);
     void subUpdateStates(int isub, DistrGeomState *refState, DistrGeomState *geomState);
+    void subInitializeParameters(int isub, DistrGeomState& geomState);
+    void subUpdateParameters(int isub, DistrGeomState& geomState);
 };
 
 #endif

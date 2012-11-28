@@ -639,7 +639,7 @@ int main(int argc, char** argv)
 #ifdef SOWER_SURFS
  }
 #endif
-
+/* XXXX
  bool ctcflag1 = geoSource->checkLMPCs(domain->getNumLMPC(), *(domain->getLMPC()));
  bool ctcflag2 = (domain->GetnContactSurfacePairs() && domain->solInfo().lagrangeMult);
  if((ctcflag1 || ctcflag2) && domain->solInfo().type != 2 && domain->solInfo().newmarkBeta != 0
@@ -653,6 +653,7 @@ int main(int argc, char** argv)
    domain->solInfo().fetiInfo.solvertype = (FetiInfo::Solvertype) domain->solInfo().subtype;
    if(geoSource->getCheckFileInfo()->decPtr == 0) callDec = true;
  }
+*/
  if(domain->solInfo().type != 2 /*&& !domain->solInfo().getDirectMPC()*/)
    geoSource->addMpcElements(domain->getNumLMPC(), *(domain->getLMPC()));
 

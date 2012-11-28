@@ -520,28 +520,6 @@ void
 GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, GeomState &ss,
                                 double beta, double gamma, double alphaf, double alpham, bool zeroRot)
 {
-/*
- // note: delta = dt/2
- double coef = 1/(1-alphaf);
- double dcoef = gamma/(2*delta*beta);
- double vcoef = (1-(1-alphaf)*gamma/beta)-alphaf;
- double acoef = 2*delta*(1-alphaf)*(2*beta-gamma)/(2*beta);
- double rcoef = alphaf/(1-alphaf);
-
- // x,y,z velocity step update (velocity^{n+1} = 1/(1-alphaf)*(velocity^{n+1/2} - alphaf*velocity^n)
- // note: we are computing translational velocity^{n+1/2} locally
- //       as velocity^{n+1/2} = gamma/(dt*beta)*(d^{n+1-alphaf}-d^n) + (1-(1-alphaf)*gamma/beta)*v^n + dt*(1-alphaf)(2*beta-gamma)/(2*beta)*a^n
- for(int i = 0; i < numnodes; ++i) {
-   if(loc[i][0] >= 0)
-     vel_n[loc[i][0]] = coef*(dcoef*(ns[i].x - ss.ns[i].x) + vcoef*vel_n[loc[i][0]] + acoef*acc_n[loc[i][0]]);
-
-   if(loc[i][1] >= 0)
-     vel_n[loc[i][1]] = coef*(dcoef*(ns[i].y - ss.ns[i].y) + vcoef*vel_n[loc[i][1]] + acoef*acc_n[loc[i][1]]);
-
-   if(loc[i][2] >= 0)
-     vel_n[loc[i][2]] = coef*(dcoef*(ns[i].z - ss.ns[i].z) + vcoef*vel_n[loc[i][2]] + acoef*acc_n[loc[i][2]]);
- }
-*/
   double dt = 2.0*delta;
   double vdcoef, vvcoef, vacoef, avcoef, aacoef;
   vdcoef = (gamma/(dt*beta))/(1-alphaf);
@@ -551,6 +529,7 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
   aacoef = -(1-gamma)/gamma;
 
   // Update translational velocity and accelerations
+  int numnodes = std::min(GeomState::numnodes,ss.numnodes);
   for(int i = 0; i < numnodes; ++i) {
     if(flag[i] == -1) continue;
 
@@ -580,10 +559,6 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
     if(loc[i][3] >= 0 || loc[i][4] >= 0 || loc[i][5] >= 0) {
       double dtheta[3], dR[3][3];
       mat_mult_mat(ns[i].R, ss[i].R, dR, 2); // dR = ns[i].R * ss[i].R^T (i.e. ns[i].R = dR * ss[i].R)
-/*
-      //WHY NOT THIS:
-      mat_mult_mat(ss[i].R, ns[i].R, dR, 1); // dR = ss[i].R^T * ns[i].R (i.e. ns[i].R = ss[i].R * dR)
-*/
       mat_to_vec(dR, dtheta);
       for(int j = 0; j < 3; ++j) {
         if(loc[i][3+j] >= 0) {
@@ -609,7 +584,7 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
   double rcoef  = alphaf/(1-alphaf);
   double result[3][3], result2[3][3], rotVec[3];
   for(int i = 0; i < numnodes; ++i) {
-    if(flag[i] == -1) continue;
+    if(flag[i] == -1 || (loc[i][3] < 0 && loc[i][4] < 0 && loc[i][5] < 0)) continue;
     if(alphaf == 0.0) {
       for(int j = 0; j < 3; ++j)
         for(int k = 0; k < 3; ++k)

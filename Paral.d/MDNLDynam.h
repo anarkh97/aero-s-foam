@@ -172,6 +172,11 @@ class MDNLDynamic
     int getAeroheatFlag();
     void getNewmarkParameters(double &beta, double &gamma,
                               double &alphaf, double &alpham);
+
+    void initializeParameters(DistrGeomState *geomState);
+    void updateParameters(DistrGeomState *geomState);
+    bool checkConstraintViolation(double &err);
+
   protected:
     Domain *getDomain() { return domain; }
     DecDomain *getDecDomain() { return decDomain; }
@@ -208,6 +213,9 @@ class MDNLDynamic
     virtual bool factorWhenBuilding() const;
     void deleteSubCorotators(int isub);
     void deleteSubElementArrays(int isub);
+
+    void subInitializeParameters(int isub, DistrGeomState& geomState);
+    void subUpdateParameters(int isub, DistrGeomState& geomState);
 };
 
 #endif

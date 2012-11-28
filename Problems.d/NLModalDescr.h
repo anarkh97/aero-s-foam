@@ -189,6 +189,10 @@ public:
   int getAeroheatFlag() { return domain->solInfo().aeroheatFlag; }
 
   void getNewmarkParameters(double &beta, double &gamma, double &alphaf, double &alpham);
+
+  void initializeParameters(ModalGeomState *geomState) {}
+  void updateParameters(ModalGeomState *geomState) {}
+  bool checkConstraintViolation(double &err) { err = 0; return true; }
 };
 
 #endif

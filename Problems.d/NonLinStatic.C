@@ -119,6 +119,25 @@ NonLinStatic::updatePrescribedDisplacement(GeomState *geomState, double)
  times->timePresc += getTime();
 }
 
+void
+NonLinStatic::initializeParameters(GeomState *geomState)
+{
+  domain->initializeParameters(*geomState, allCorot);
+}
+
+void
+NonLinStatic::updateParameters(GeomState *geomState)
+{
+  domain->updateParameters(*geomState, allCorot);
+}
+
+bool
+NonLinStatic::checkConstraintViolation(double &err)
+{
+  err = domain->getError(allCorot);
+  return (err <= domain->solInfo().penalty_tol);
+}
+
 int
 NonLinStatic::checkConvergence(int iter, double normDv, double normRes)
 {

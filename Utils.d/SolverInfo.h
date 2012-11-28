@@ -258,6 +258,9 @@ struct SolverInfo {
    double coefFilterTol, rhsZeroTol, inconsistentTol;
    int constraint_hess;
    double constraint_hess_eps;
+   int num_penalty_its;
+   double penalty_tol;
+   double penalty_beta;
 
    const char * snapfiPodRom;
    const char * readInROBorModes;
@@ -480,6 +483,9 @@ struct SolverInfo {
 
                   lagrangeMult = true;
                   penalty = 0;
+                  num_penalty_its = 1;
+                  penalty_tol = 1e-8;
+                  penalty_beta = 10;
                   mpcDirect = 0;
                   usePrescribedThreshold = false;
                   mpcDirectTol = 10;

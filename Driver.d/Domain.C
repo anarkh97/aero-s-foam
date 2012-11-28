@@ -3623,12 +3623,14 @@ Domain::UpdateContactSurfaceElements(GeomState *geomState)
     geomState->clearMultiplierNodes();
   }
 
-  if(!p) p = new StructProp(); 
-  p->lagrangeMult = sinfo.lagrangeMult;
-  p->penalty = sinfo.penalty;
-  p->type = StructProp::Constraint;
-  p->constraint_hess = sinfo.constraint_hess;
-  p->constraint_hess_eps = sinfo.constraint_hess_eps;
+  if(!p) {
+    p = new StructProp(); 
+    p->lagrangeMult = sinfo.lagrangeMult;
+    p->initialPenalty = p->penalty = sinfo.penalty;
+    p->type = StructProp::Constraint;
+    p->constraint_hess = sinfo.constraint_hess;
+    p->constraint_hess_eps = sinfo.constraint_hess_eps;
+  }
   int count = 0;
   int nEle = packedEset.last();
   int count1 = 0;

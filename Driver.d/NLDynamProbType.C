@@ -171,7 +171,8 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
   double t0 = time;
   double tmax = time + maxStep*dt0 + 10*std::numeric_limits<double>::epsilon();
 
-  for(/*int*/ step=0 ; time+dt0/q <= tmax || failed; /*step++*/ ) {
+  // Time stepping loop
+  for(step = 0; time+dt0/q <= tmax || failed; ) {
 
     dt = dt0/q;
     delta = dt/2;
@@ -201,79 +202,101 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
       probDesc->getExternalForce(external_force, constantForce, step, midtimeExt, geomState, elementInternalForce, aeroForce, deltaExt);
     }
 
-    double resN, initialRes;
+    double resN, initialRes, err;
     int converged;
+    bool feasible;
 
     // Initialize states
     if(domain->solInfo().soltyp != 2) StateUpdate::copyState(geomState, refState);
-    StateUpdate::zeroInc(stateIncr);
+    probDesc->initializeParameters(geomState);
 
-    // Iteration loop
-    for(int iter = 0; iter < maxit; ++iter) {
+    // Constraint enforcement iteration loop
+    for(int i = 0; i < domain->solInfo().num_penalty_its; ++i) {
 
-      residual = external_force;
+      StateUpdate::zeroInc(stateIncr);
 
-      try {         
-        // Add stateIncr to geomState and compute element tangent stiffness and internal/follower forces
-        StateUpdate::integrate(probDesc, refState, geomState, stateIncr, residual,
-                               elementInternalForce, totalRes, velocity_n,
-                               acceleration, midtime);
+      // Newton iteration loop
+      for(int iter = 0; iter < maxit; ++iter) {
 
-        // Compute incremental displacements
-        StateUpdate::get_inc_displacement(probDesc, geomState, inc_displac, stepState, domain->solInfo().zeroRot);
+        residual = external_force;
 
-        // Form rhs = delta^2*residual - M(inc_displac - delta*velocity_n)
-        StateUpdate::formRHScorrector(probDesc, inc_displac, velocity_n,
-                                      acceleration, residual, rhs, geomState, delta);
+        try {         
+          // Add stateIncr to geomState and compute element tangent stiffness and internal/follower forces
+          StateUpdate::integrate(probDesc, refState, geomState, stateIncr, residual,
+                                 elementInternalForce, totalRes, velocity_n,
+                                 acceleration, midtime);
 
-        // in this case of "constraints direct" we can't compute the residual norm until after the solver is rebuilt
-        if(domain->solInfo().mpcDirect) probDesc->reBuild(*geomState, iter, delta, midtime);
+          // Compute incremental displacements
+          StateUpdate::get_inc_displacement(probDesc, geomState, inc_displac, stepState, domain->solInfo().zeroRot);
 
-        // Compute and store the residual norm
-        resN = probDesc->getResidualNorm(rhs, *geomState, delta);
-        if(iter == 0) initialRes = resN;
+          // Form rhs = delta^2*residual - M(inc_displac - delta*velocity_n)
+          StateUpdate::formRHScorrector(probDesc, inc_displac, velocity_n,
+                                        acceleration, residual, rhs, geomState, delta);
 
-        // If the convergence criteria does not involve the solution increment, then 
-        // check for convergence now (to avoid potentially unnecessary solve)
-        if(useTolInc || !(converged = probDesc->checkConvergence(iter, resN, rhs, rhs, midtime)) ) {
+          // in this case of "constraints direct" we can't compute the residual norm until after the solver is rebuilt
+          if(domain->solInfo().mpcDirect) probDesc->reBuild(*geomState, iter, delta, midtime);
 
-          // Assemble global tangent stiffness
-          if(!domain->solInfo().mpcDirect) probDesc->reBuild(*geomState, iter, delta, midtime);
+          // Compute and store the residual norm
+          resN = probDesc->getResidualNorm(rhs, *geomState, delta);
+          if(iter == 0) initialRes = resN;
 
-          residual = rhs;
-          totalNewtonIter++;
+          // If the convergence criteria does not involve the solution increment, then 
+          // check for convergence now (to avoid potentially unnecessary solve)
+          if(useTolInc || !(converged = probDesc->checkConvergence(iter, resN, rhs, rhs, midtime)) ) {
 
-          // Solve ([M] + delta^2 [K])dv = rhs (where rhs is over written)
-          probDesc->getSolver()->reSolve(rhs);
-          probDesc->getConstraintMultipliers(*geomState);
+            // Assemble global tangent stiffness
+            if(!domain->solInfo().mpcDirect) probDesc->reBuild(*geomState, iter, delta, midtime);
 
-          StateUpdate::updateIncr(stateIncr, rhs);  // stateIncr = rhs
+            residual = rhs;
+            totalNewtonIter++;
+
+            // Solve ([M] + delta^2 [K])dv = rhs (where rhs is over written)
+            probDesc->getSolver()->reSolve(rhs);
+            probDesc->getConstraintMultipliers(*geomState);
+
+            StateUpdate::updateIncr(stateIncr, rhs);  // stateIncr = rhs
+          }
+          // If the converged criteria does involve the solution increment, then
+          // check for convergence now
+          if(useTolInc) {
+            converged = probDesc->checkConvergence(iter, resN, residual, rhs, midtime);
+          }
         }
-        // If the converged criteria does involve the solution increment, then
-        // check for convergence now
-        if(useTolInc) {
-          converged = probDesc->checkConvergence(iter, resN, residual, rhs, midtime);
+        catch(std::runtime_error& e) {
+          if(!failSafe || debugFlag) cerr << "exception: " << e.what() << endl;
+          converged = 0;
+          break;
         }
+
+        if(converged == 1)
+          break;
+        else if(converged == -1 && !failSafe)
+          filePrint(stderr," ... Warning, Solution diverging\n");
+
+      } // end of Newton iteration loop
+
+      if(converged == 0 && !failSafe) {
+        filePrint(stderr,"\r *** WARNING: at time %f Newton solver did not reach convergence after %d iterations"
+                         " (residual: initial = %9.3e, final = %9.3e, target = %9.3e)\n", 
+                         midtime, maxit, initialRes, resN, probDesc->getTolerance());
       }
-      catch(std::runtime_error& e) {
-        if(!failSafe || debugFlag) cerr << "exception: " << e.what() << endl;
-        converged = 0;
+
+      if(failed = (failSafe && converged != 1 && resN > domain->solInfo().getNLInfo().failsafe_tol)) {
+        // if a Newton solve fails to converge, terminate constraint enforcement iterations
         break;
       }
 
-      if(converged == 1)
-        break;
-      else if(converged == -1 && !failSafe)
-        filePrint(stderr," ... Warning, Solution diverging\n");
-    }
-    if(converged == 0 && !failSafe) {
-      filePrint(stderr,"\r *** WARNING: at time %f Newton solver did not reach convergence after %d iterations"
-                       " (residual: initial = %9.3e, final = %9.3e, target = %9.3e)\n", 
-                       midtime, maxit, initialRes, resN, probDesc->getTolerance());
-    }
+      // update lagrange multipliers and/or penalty parameters 
+      probDesc->updateParameters(geomState);
 
-    if(failed = (failSafe && converged != 1 && resN > domain->solInfo().getNLInfo().failsafe_tol)) { 
-      // decrease the time step and try again
+      // check constraint violation error
+      feasible = probDesc->checkConstraintViolation(err);
+      if(feasible) break;
+
+    } // end of constraint enforcement iteration loop
+
+    if(failed) { 
+      // if a Newton solve fails to converge, decrease the time step and try again
       p *= 2;
       q *= 2;
       numConverged = 0;
@@ -315,7 +338,8 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
 
       step = p/q;
     }
-  }
+  } // end of time stepping loop
+
   if(aeroAlg < 0)
     filePrint(stderr,"\r ... Time Integration Loop: t = %9.3e, dt = %9.3e, 100%% complete ...\n", time, dt);
 

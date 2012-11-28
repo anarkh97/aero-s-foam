@@ -120,8 +120,8 @@ MpcElement::~MpcElement()
 int
 MpcElement::getNumMPCs()
 {
-  if(prop && !prop->lagrangeMult && prop->penalty > 0) return 0; else
-  return 1;
+  if(prop && prop->penalty > 0) return 0;  // penalty and augmented lagrangian
+  else return 1;
 }
 
 LMPCons** 
@@ -135,6 +135,7 @@ MpcElement::getMPCs()
 int
 MpcElement::numInternalNodes()
 {
+  // method of multipliers and augmented lagrangian have an internal node to store the lagrange multiplier
   return (prop->lagrangeMult) ? 1 : 0;
 }
 
@@ -172,7 +173,8 @@ MpcElement::nodes(int* p)
 int
 MpcElement::numDofs()
 {
-  return (prop->lagrangeMult) ? nterms+1 : nterms;
+  // note: augmented lagrangian does NOT have a degree of freedom for the lagrange multiplier
+  return (prop->lagrangeMult && prop->penalty == 0) ? nterms+1 : nterms;
 }
 
 int *
@@ -181,7 +183,7 @@ MpcElement::dofs(DofSetArray &dsa, int *p)
   if(p == 0) p = new int[numDofs()];
   for(int i = 0; i < nterms; i++)
     dsa.number(terms[i].nnum, 1 << terms[i].dofnum, p+i);
-  if(prop->lagrangeMult) {
+  if(prop->lagrangeMult && prop->penalty == 0) {
     if(type == 0 && prop->relop == 0)
       dsa.number(nn[nNodes], DofSet::LagrangeE, p+nterms);
     else
@@ -195,7 +197,7 @@ MpcElement::markDofs(DofSetArray &dsa)
 {
   for(int i = 0; i < nterms; i++)
     dsa.mark(terms[i].nnum, 1 << terms[i].dofnum);
-  if(prop->lagrangeMult) {
+  if(prop->lagrangeMult && prop->penalty == 0) {
     if(type == 0 && prop->relop == 0)
       dsa.mark(nn[nNodes], DofSet::LagrangeE);
     else
@@ -212,10 +214,12 @@ MpcElement::stiffness(CoordSet& c0, double* karray, int)
   ret.zero();
   if(prop->lagrangeMult || prop->penalty != 0) {
     double lambda = 0;
-    if(prop->penalty != 0.0 && (type == 1 && -rhs.r_value <= lambda/prop->penalty)) {
+    if(prop->penalty != 0 && (type == 1 && -rhs.r_value <= -lambda/prop->penalty)) {
+/*
       if(prop->lagrangeMult) {
         ret[nterms][nterms] = -1/prop->penalty;
       }
+*/
     }
     else {
       if(prop->penalty != 0) lambda += prop->penalty*(-rhs.r_value);
@@ -227,7 +231,7 @@ MpcElement::stiffness(CoordSet& c0, double* karray, int)
           ret[i][j] = lambda*H[i][j];
           if(prop->penalty != 0) ret[i][j] += prop->penalty*terms[i].coef.r_value*terms[j].coef.r_value;
         }
-        if(prop->lagrangeMult) ret[i][nterms] = ret[nterms][i] = terms[i].coef.r_value;
+        if(prop->lagrangeMult && prop->penalty == 0) ret[i][nterms] = ret[nterms][i] = terms[i].coef.r_value;
       }
     }
   }
@@ -257,13 +261,15 @@ MpcElement::getStiffAndForce(GeomState& c1, CoordSet& c0, FullSquareMatrix& Ktan
   //  2. multipliers method is the particular case with prop->penalty set to 0
   //  3. for direct elimination set prop->lagrangeMult to false and prop->penalty to 0
 
-  if(prop->lagrangeMult || prop->penalty != 0.0) {
+  if(prop->lagrangeMult || prop->penalty != 0) {
     double lambda = (prop->lagrangeMult) ? c1[nn[nNodes]].x : 0; // y is the lagrange multiplier (if used)
-    if(prop->penalty != 0.0 && (type == 1 && -rhs.r_value <= lambda/prop->penalty)) { //
+    if(prop->penalty != 0 && (type == 1 && -rhs.r_value <= -lambda/prop->penalty)) { //
+/* no
       if(prop->lagrangeMult) {
         Ktan[nterms][nterms] = -1/prop->penalty;
         f[nterms] = -lambda/prop->penalty;
       }
+*/
     }
     else {
       if(prop->penalty != 0) lambda += prop->penalty*(-rhs.r_value);
@@ -274,12 +280,13 @@ MpcElement::getStiffAndForce(GeomState& c1, CoordSet& c0, FullSquareMatrix& Ktan
           Ktan[i][j] = lambda*H[i][j];
           if(prop->penalty != 0) Ktan[i][j] += prop->penalty*terms[i].coef.r_value*terms[j].coef.r_value;
         }
-        if(prop->lagrangeMult) Ktan[i][nterms] = Ktan[nterms][i] = terms[i].coef.r_value;
-        if(!(type == 1 && prop->lagrangeMult)) f[i] = lambda*terms[i].coef.r_value; // for inequalities we solve for lambda^{k} at every SQP iteration
+        if(prop->lagrangeMult && prop->penalty == 0) Ktan[i][nterms] = Ktan[nterms][i] = terms[i].coef.r_value;
+        if(!(type == 1 && prop->lagrangeMult && prop->penalty == 0)) f[i] = lambda*terms[i].coef.r_value; 
+                                                   // note: for inequalities we solve for lambda^{k} at every SQP iteration
                                                    // but for equalities we solve for the increment (lambda^{k}-lambda^{k-1})
 
       }
-      if(prop->lagrangeMult) f[nterms] = -rhs.r_value;
+      if(prop->lagrangeMult && prop->penalty == 0) f[nterms] = -rhs.r_value;
     }
   }
 }
@@ -299,21 +306,24 @@ MpcElement::getInternalForce(GeomState& c1, CoordSet& c0, FullSquareMatrix&, dou
   //  2. multipliers method is the particular case with prop->penalty set to 0
   //  3. for direct elimination set prop->lagrangeMult to false and prop->penalty to 0
 
-  if(prop->lagrangeMult || prop->penalty != 0.0) {
+  if(prop->lagrangeMult || prop->penalty != 0) {
     double lambda = (prop->lagrangeMult) ? c1[nn[nNodes]].x : 0; // y is the lagrange multiplier (if used)
-    if(prop->penalty != 0.0 && (type == 1 && -rhs.r_value <= lambda/prop->penalty)) { //
+    if(prop->penalty != 0 && (type == 1 && -rhs.r_value <= -lambda/prop->penalty)) { // note: if -rhs == -lambda/penalty
+                                                                                     // then the derivative is indeterminate
+/* no
       if(prop->lagrangeMult) {
         f[nterms] = -lambda/prop->penalty;
       }
+*/
     }
     else {
       if(prop->penalty != 0) lambda += prop->penalty*(-rhs.r_value);
       for(int i = 0; i < nterms; ++i) {
-        if(!(type == 1 && prop->lagrangeMult)) f[i] = lambda*terms[i].coef.r_value; // for inequalities we solve for lambda^{k} at every SQP iteration
+        if(!(type == 1 && prop->lagrangeMult && prop->penalty == 0)) f[i] = lambda*terms[i].coef.r_value; // for inequalities we solve for lambda^{k} at every SQP iteration
                                                    // but for equalities we solve for the increment (lambda^{k}-lambda^{k-1})
 
       }
-      if(prop->lagrangeMult) f[nterms] = -rhs.r_value;
+      if(prop->lagrangeMult && prop->penalty == 0) f[nterms] = -rhs.r_value;
     }
   }
 }
@@ -428,7 +438,7 @@ MpcElement::getResidualCorrection(GeomState& c1, double* r)
   // note #2: rhs = -f (-ve value of the constraint function f <= 0)
   // 
   // r = [-G^t*lambda; pos_part<f>+neg_part<lambda>]
-  if(prop->lagrangeMult && type == 1) {
+  if(prop->lagrangeMult && prop->penalty == 0 && type == 1) {
     double lambda = c1[nn[nNodes]].x;
     for(int i = 0; i < nterms; ++i)
       r[i] -= lambda*terms[i].coef.r_value;
@@ -444,19 +454,21 @@ MpcElement::computePressureForce(CoordSet&, Vector& f, GeomState*, int, double)
   // this function computes the constraint force vector for linear statics and dynamics
   // see comments in getStiffAndForce (nonlinear version)
   f.zero();
-  if(prop->lagrangeMult || prop->penalty != 0.0) {
+  if(prop->lagrangeMult || prop->penalty != 0) {
     double lambda = 0;
-    if(prop->penalty != 0.0 && (type == 1 && -rhs.r_value <= lambda/prop->penalty)) {
+    if(prop->penalty != 0 && (type == 1 && -rhs.r_value <= -lambda/prop->penalty)) {
+/*
       if(prop->lagrangeMult) {
         f[nterms] = lambda/prop->penalty;
       }
+*/
     }
     else {
       if(prop->penalty != 0) lambda += prop->penalty*(-rhs.r_value);
       for(int i = 0; i < nterms; ++i) {
         f[i] = -lambda*terms[i].coef.r_value;
       }
-      if(prop->lagrangeMult) f[nterms] = rhs.r_value;
+      if(prop->lagrangeMult && prop->penalty == 0) f[nterms] = rhs.r_value;
     }
   }
 }
@@ -469,3 +481,27 @@ MpcElement::getNLVonMises(Vector& stress, Vector& weight,
   weight.zero();
 }
 
+void
+MpcElement::initMultipliers(GeomState& c1)
+{
+  // augmented lagrangian
+  if(prop->lagrangeMult && prop->penalty != 0) {
+    c1[nn[nNodes]].x = 0;
+  }
+}
+
+void
+MpcElement::updateMultipliers(GeomState& c1)
+{
+  // augmented lagrangian
+  if(prop->lagrangeMult && prop->penalty != 0) {
+    c1[nn[nNodes]].x += prop->penalty*(-rhs.r_value);
+    if(type == 1 && c1[nn[nNodes]].x < 0) c1[nn[nNodes]].x = 0;
+  }
+}
+
+double
+MpcElement::getError()
+{
+  return (type == 1) ? std::max(0.0,-rhs.r_value) : std::abs(-rhs.r_value);
+}

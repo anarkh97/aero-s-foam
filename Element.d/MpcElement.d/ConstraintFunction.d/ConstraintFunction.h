@@ -385,6 +385,10 @@ public:
                   Eigen::Matrix<T,Functor::ValueType::SizeAtCompileTime,InputType::SizeAtCompileTime>& jac) const
   {
 #ifdef USE_SACADO
+#if defined(_OPENMP)
+    #pragma omp critical
+    {
+#endif
     ActiveInput ax = x.template cast<ActiveScalar>();
     ActiveValue av;
 
@@ -398,6 +402,9 @@ public:
     }
 
     Sacado::RadVec::ADvar<typename Functor::Scalar>::aval_reset();
+#if defined(_OPENMP)
+    }
+#endif
 #else
     std::cerr << "warning: USE_SACADO is not defined\n";
 #endif

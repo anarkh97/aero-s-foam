@@ -1812,7 +1812,7 @@ MatData:
           sp.c = $6;  sp.k = $7;  sp.eh  = $8;  sp.P   = $9;  sp.Ta  = $10;
           sp.Q = $11; sp.W = $12; sp.Ixx = $13; sp.Iyy = $14; sp.Izz = $15;
           sp.lagrangeMult = bool($17);
-          sp.penalty = $18;
+          sp.initialPenalty = sp.penalty = $18;
           sp.type = StructProp::Constraint;
           sp.isReal = true;
           geoSource->addMat( $1-1, sp );
@@ -1843,7 +1843,7 @@ MatData:
           sp.Q = $11; sp.W = $12; sp.Ixx = $13; sp.Iyy = $14; sp.Izz = $15;
           sp.ymin = $16; sp.ymax = $17; sp.zmin = $18; sp.zmax = $19;
           sp.lagrangeMult = bool($21);
-          sp.penalty = $22;
+          sp.initialPenalty = sp.penalty = $22;
           sp.type = StructProp::Constraint;
           sp.isReal = true;
           geoSource->addMat( $1-1, sp );
@@ -1968,14 +1968,14 @@ MatData:
         | Integer CONSTRMAT Integer Float NewLine
         { StructProp sp;
           sp.lagrangeMult = bool($3);
-          sp.penalty = $4;
+          sp.initialPenalty = sp.penalty = $4;
           sp.type = StructProp::Constraint;
           geoSource->addMat( $1-1, sp );
         }
         | Integer CONSTRMAT Integer Float Float Float NewLine
         { StructProp sp;
           sp.lagrangeMult = bool($3);
-          sp.penalty = $4;
+          sp.initialPenalty = sp.penalty = $4;
           sp.amplitude = $5;
           sp.omega = $6;
           sp.type = StructProp::Constraint;
@@ -1984,7 +1984,7 @@ MatData:
         | Integer CONSTRMAT Integer Float Float Float Float NewLine
         { StructProp sp;
           sp.lagrangeMult = bool($3);
-          sp.penalty = $4;
+          sp.initialPenalty = sp.penalty = $4;
           sp.amplitude = $5;
           sp.omega = $6;
           sp.phase = $7;
@@ -1994,7 +1994,7 @@ MatData:
         | Integer CONSTRMAT Integer Float Float Float Float Float NewLine
         { StructProp sp;
           sp.lagrangeMult = bool($3);
-          sp.penalty = $4;
+          sp.initialPenalty = sp.penalty = $4;
           sp.amplitude = $5;
           sp.omega = $6;
           sp.phase = $7;
@@ -2005,7 +2005,7 @@ MatData:
         | Integer CONSTRMAT Integer Float Float Float Float Float Float Integer NewLine
         { StructProp sp;
           sp.lagrangeMult = bool($3);
-          sp.penalty = $4;
+          sp.initialPenalty = sp.penalty = $4;
           sp.amplitude = $5;
           sp.omega = $6;
           sp.phase = $7;
@@ -2019,7 +2019,7 @@ MatData:
         { // new style for joints with prescribed motion by 2-parameter elementary function
           StructProp sp;
           sp.lagrangeMult = bool($3);
-          sp.penalty = $4;
+          sp.initialPenalty = sp.penalty = $4;
           sp.funtype = $5;
           sp.amplitude = $6;
           sp.offset = $7;
@@ -2032,7 +2032,7 @@ MatData:
         { // new style for joints with prescribed motion by 3-parameter elementary function
           StructProp sp;
           sp.lagrangeMult = bool($3);
-          sp.penalty = $4;
+          sp.initialPenalty = sp.penalty = $4;
           sp.funtype = $5;
           sp.amplitude = $6;
           sp.offset = $7;
@@ -2046,7 +2046,7 @@ MatData:
         { // new style for joints with prescribed motion by 4-parameter elementary function
           StructProp sp;
           sp.lagrangeMult = bool($3);
-          sp.penalty = $4;
+          sp.initialPenalty = sp.penalty = $4;
           sp.funtype = $5;
           sp.amplitude = $6;
           sp.offset = $7;
@@ -2061,7 +2061,7 @@ MatData:
         { // use for RevoluteJointSpringCombo
           StructProp sp;
           sp.lagrangeMult = bool($3);
-          sp.penalty = $4;
+          sp.initialPenalty = sp.penalty = $4;
           sp.type = StructProp::Constraint;
           sp.k1 = $6;
           geoSource->addMat( $1-1, sp );
@@ -2080,7 +2080,7 @@ MatData:
         { // use for SphericalJointSpringCombo
           StructProp sp;
           sp.lagrangeMult = bool($3);
-          sp.penalty = $4;
+          sp.initialPenalty = sp.penalty = $4;
           sp.type = StructProp::Constraint;
           sp.k1 = $6;
           sp.k2 = $7;
@@ -3519,6 +3519,10 @@ NLInfo:
           domain->solInfo().getNLInfo().failsafe_tol = $3; }
         | NLInfo MOMENT Integer NewLine
         { domain->solInfo().momentType = $3; }
+        | NLInfo PENALTY Integer Float Float NewLine
+        { domain->solInfo().num_penalty_its = $3; 
+          domain->solInfo().penalty_tol = $4;
+          domain->solInfo().penalty_beta = $5; }
         | NLInfo NewtonInfo
         ;
 NewtonInfo:

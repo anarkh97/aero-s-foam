@@ -675,7 +675,7 @@ class Domain : public HData {
      void getStressStrain(Vector &sol, double *bcx, int fileNumber,
                           int strInd, double time = 0, int printFlag =0);
      void getStressStrain(ComplexVector &sol, DComplex *bcx, int fileNumber,
-                          int strInd, double time = 0, int printFlag =0) { cerr << "Domain::getStressStrain is not implemented for complex\n"; }
+                          int strInd, double time = 0, int printFlag =0);
      void getPrincipalStress(Vector &sol, double *bcx, int fileNumber,
                              int strInd, double time = 0);
      void getPrincipalStress(ComplexVector &sol, DComplex *bcx, int fileNumber,

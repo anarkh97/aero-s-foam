@@ -1684,6 +1684,183 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
   }
 }
 
+void
+Domain::getStressStrain(ComplexVector &sol, DComplex *bcx, int fileNumber,
+                        int stressIndex, double time, int printFlag)
+{
+  int numNodes = (outFlag) ? exactNumNodes : geoSource->numNode();
+
+  // allocate integer array to store node numbers
+  int *nodeNumbers = new int[maxNumNodes];
+  Vector elemNodeTemps(maxNumNodes);
+  elemNodeTemps.zero();
+
+  // ... STRESSES ARE CALCULATED FOR EVERYTHING EXCEPT BARS & BEAMS, WHERE
+  // ... ONLY THE AXIAL STRAIN (EXX) AND AXIAL STRESS (SXX) ARE CALCULATED
+
+  OutputInfo *oinfo = geoSource->getOutputInfo();
+
+  // avgnum = 2 --> do not include stress/strain of bar/beam element in averaging
+  int avgnum = oinfo[fileNumber].averageFlg;
+
+  double ylayer = oinfo[fileNumber].ylayer;
+  double zlayer = oinfo[fileNumber].zlayer;
+  int surface = oinfo[fileNumber].surface;
+    // upper  surface = 1
+    // median surface = 2
+    // lower  surface = 3
+
+  int k;
+  int iele;
+
+  double *nodalTemperatures = 0;
+  // Either get the nodal temperatures from the input file or
+  // from the thermal model
+  if(sinfo.thermalLoadFlag) nodalTemperatures = getNodalTemperatures();
+  if(sinfo.thermoeFlag >=0) nodalTemperatures = temprcvd;
+
+  ComplexVector *stress = 0;
+  ComplexVector *stressAllElems = 0;
+  ComplexVector *elstress = 0;
+  ComplexVector *elDisp = 0;
+
+  if(printFlag != 2) {
+    // ... ALLOCATE VECTORS STRESS AND WEIGHT AND INITIALIZE TO ZERO
+    if(avgnum != 0) {
+      if(stress == 0) stress = new ComplexVector(numNodes,0.0);
+      if(weight == 0) weight = new Vector(numNodes,0.0);
+    }
+    else if(stressAllElems == 0) stressAllElems = new ComplexVector(sizeSfemStress,0.0);
+    if(elDisp == 0) elDisp = new ComplexVector(maxNumDOFs,0.0);
+
+
+    if((elstress == 0)||(elweight == 0)) {
+      int NodesPerElement, maxNodesPerElement=0;
+      for(iele=0; iele<numele; ++iele) {
+        NodesPerElement = elemToNode->num(iele);
+        maxNodesPerElement = myMax(maxNodesPerElement, NodesPerElement);
+      }
+      if(elstress == 0) elstress = new ComplexVector(maxNodesPerElement, 0.0);
+      if(elweight == 0) elweight = new Vector(maxNodesPerElement, 0.0);
+    }
+
+    if(avgnum != 0) {
+    // zero the vectors
+      stress->zero();
+      weight->zero();
+    }
+    else if (printFlag == 1) stressAllElems->zero();
+  }
+
+  int count = 0;
+  for(iele = 0; iele < numele; ++iele) {
+
+    int NodesPerElement = elemToNode->num(iele);
+    packedEset[iele]->nodes(nodeNumbers);
+
+    if(printFlag != 2) {
+
+      // Don't do anything if element is a phantom or constraint
+      if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isConstraintElement()) continue;
+
+      // Don't include beams or bars in the averaging if nodalpartial (avgnum = 2) is requested
+      if ((avgnum == 2 && packedEset[iele]->getElementType() == 6) ||
+          (avgnum == 2 && packedEset[iele]->getElementType() == 7) ||
+          (avgnum == 2 && packedEset[iele]->getElementType() == 1)) continue;
+
+      elDisp->zero();
+      elstress->zero();
+      elweight->zero();
+
+      // DETERMINE ELEMENT DISPLACEMENT VECTOR
+      for (k=0; k < allDOFs->num(iele); ++k) {
+        int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
+        if (cn >= 0)
+          (*elDisp)[k] = sol[cn];
+        else
+          (*elDisp)[k] = bcx[(*allDOFs)[iele][k]];
+      }
+
+      int iNode;
+      if (sinfo.thermalLoadFlag || (sinfo.thermoeFlag>=0))
+        for (iNode = 0; iNode < NodesPerElement; ++iNode) {
+          if (nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
+            elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
+          else
+            elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
+        }
+
+      // CALCULATE STRESS/STRAIN VALUE FOR EACH NODE OF THE ELEMENT
+      packedEset[iele]->getVonMises(*elstress, *elweight, nodes,
+                                    *elDisp, stressIndex, surface,
+                                    elemNodeTemps.data(), ylayer, zlayer, avgnum);
+      if(avgnum != 0) {
+        // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
+        for(k = 0; k < NodesPerElement; ++k) {
+          int node = (outFlag) ? nodeTable[(*elemToNode)[iele][k]]-1 : (*elemToNode)[iele][k];
+          (*stress)[node] += (*elstress)[k];
+          (*weight)[node] += (*elweight)[k];
+        }
+      }
+
+    } // end of (printFlag != 2)
+
+    // PRINT NON-AVERAGED STRESS VALUES IF REQUESTED
+    if(avgnum == 0) {
+      int offset[2];
+      offset[0] = 0;
+      //offset[1] = NodesPerElement;
+      offset[1] = packedEset[iele]->numTopNodes(); //HB 06-25-05: avoid the internal nodes for MpcElement
+
+      if(printFlag == 0) {
+        if(iele == 0)
+          geoSource->outputElemStress(fileNumber, (DComplex *) 0, 0, offset, time); // print time
+        geoSource->outputElemStress(fileNumber, elstress->data(), 1, offset); // print stresses
+      }
+      if(printFlag == 1) {
+        for(k = 0; k < NodesPerElement; ++k) {
+          stressAllElems[count] = (*elstress)[k];
+          count++;
+        }
+      }
+      if(printFlag == 2) {
+        if(iele == 0)
+          geoSource->outputElemStress(fileNumber, (DComplex *) 0, 0, offset, time); // print time
+        count=count+NodesPerElement;
+      }
+    }
+
+
+  } // end of the iele loop
+
+  // AVERAGE STRESS/STRAIN VALUE AT EACH NODE BY THE NUMBER OF
+  // ELEMENTS ATTACHED TO EACH NODE IF REQUESTED.
+  if(avgnum == 1 || avgnum == 2) {
+
+    if(printFlag != 2) {
+    // assemble stress vector
+     for(k = 0; k < numNodes; ++k)  {
+       if((*weight)[k] == 0.0)
+         (*stress)[k] = 0.0;
+       else
+         (*stress)[k] /= (*weight)[k];
+     }
+    }
+
+    if(printFlag != 1) {
+     if(oinfo[fileNumber].nodeNumber == -1)
+       geoSource->outputNodeScalars(fileNumber, stress->data(), numNodes, time);
+     else
+       geoSource->outputNodeScalars(fileNumber, stress->data()+oinfo[fileNumber].nodeNumber, 1, time);
+    }
+
+  }
+
+  if(stress != 0) delete stress;
+  if(stressAllElems != 0) delete stressAllElems;
+  if(elstress != 0) delete elstress;
+  if(elDisp != 0) delete elDisp;
+}
 
 void
 Domain::getPrincipalStress(Vector &sol, double *bcx, int fileNumber,

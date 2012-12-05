@@ -143,6 +143,8 @@ TRAIL [a-zA-Z]*
 
 "decomposition"|"DECOMPOSITION"    { return DECOMPOSITION; }
 
+"local"|"LOCAL"                    { return LOCAL; }
+
 "global"|"GLOBAL"                  { return GLOBAL; }
 
 "matcher"|"MATCHER"|"Matcher"      { return MATCHER; }
@@ -162,6 +164,8 @@ TRAIL [a-zA-Z]*
 "IDENTITY"|"identity"              { return IDENTITY; }
 
 "EFRA"[a-zA-Z]*|"efra"[a-zA-Z]*    { return EFRAMES; }
+
+"NFRA"[a-zA-Z]*|"nfra"[a-zA-Z]*    { return NFRAMES; }
 
 "CSFR"[a-zA-Z]*|"csfr"[a-zA-Z]*    { return CSFRAMES; }
 

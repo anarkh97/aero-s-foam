@@ -74,11 +74,11 @@
 %token IACC IDENTITY IDIS IDIS6 IntConstant INTERFACELUMPED ITEMP ITERTYPE IVEL 
 %token INCIDENCE IHDIRICHLET IHDSWEEP IHNEUMANN ISOLVERTYPE INPC INFINTY
 %token JACOBI KRYLOVTYPE KIRLOC
-%token LAYC LAYN LAYD LAYO LAYMAT LFACTOR LMPC LOAD LOBPCG LOCALSOLVER LINESEARCH LUMPED
+%token LAYC LAYN LAYD LAYO LAYMAT LFACTOR LMPC LOAD LOBPCG LOCALSOLVER LINESEARCH LUMPED LOCAL
 %token MASS MATERIALS MATLAB MAXITR MAXORTHO MAXVEC MODAL MPCPRECNO MPCPRECNOID MPCTYPE MPCTYPEID MPCSCALING MPCELEMENT MPCBLOCKID 
 %token MPCBLK_OVERLAP MFTT MPTT MRHS MPCCHECK MUMPSICNTL MUMPSCNTL MECH MODEFILTER MOMENT
 %token NDTYPE NEIGPA NEWMARK NewLine NL NLMAT NLPREC NOCOARSE NODETOKEN NONINPC
-%token NSBSPV NLTOL NUMCGM NOSECONDARY
+%token NSBSPV NLTOL NUMCGM NOSECONDARY NFRAMES
 %token OPTIMIZATION OUTPUT OUTPUT6
 %token QSTATIC QLOAD
 %token PITA PITADISP6 PITAVEL6 NOFORCE MDPITA GLOBALBASES LOCALBASES TIMEREVERSIBLE REMOTECOARSE ORTHOPROJTOL READINITSEED JUMPCVG JUMPOUTPUT
@@ -165,6 +165,7 @@ Component:
         | ComplexLMPConstrain 
 	| ElemSet
 	| FrameDList
+        | NodeFrameDList
         | ConstrainedSurfaceFrameDList
 	| Attributes
 	{}
@@ -772,6 +773,10 @@ OutInfo:
         { $$.ndtype = $2; }
         | OutInfo NDTYPE Integer
         { $$.ndtype = $2; sfem->setnsamp_out($3); }
+        | OutInfo GLOBAL
+        { /* TODO: $$.oframe = OutputInfo::Global; */ }
+        | OutInfo LOCAL
+        { /* TODO: $$.oframe = OutputInfo::Local; */ }
         | OutInfo MATLAB 
         { $$.matlab = true; }
         ;
@@ -2399,6 +2404,10 @@ Node:
 	{ $$.num = $1-1; $$.xyz[0] = $2; $$.xyz[1] = $3;  $$.xyz[2] = 0.0; }
 	| Integer Float NewLine
 	{ $$.num = $1-1; $$.xyz[0] = $2; $$.xyz[1] = 0.0; $$.xyz[2] = 0.0; }
+        | Integer Float Float Float Integer Integer NewLine
+        { $$.num = $1-1; $$.xyz[0] = $2; $$.xyz[1] = $3;  $$.xyz[2] = $4; /* $$.cp = $5; $$.cd = $6; */ }
+        | Integer Float Float Float Integer NewLine
+        { $$.num = $1-1; $$.xyz[0] = $2; $$.xyz[1] = $3;  $$.xyz[2] = $4; /* $$.cp = $$.cd = $5; */ }
 	;
 Element:
 	Integer Integer NodeNums NewLine
@@ -2437,12 +2446,13 @@ ConstrainedSurfaceFrameDList:
         | ConstrainedSurfaceFrameDList Frame
         { geoSource->setCSFrame($2.num,$2.d); }
         ;
+NodeFrameDList:
+        NFRAMES NewLine
+        | NodeFrameDList Frame
+        { /*TODO: geoSource->setNodeFrame($2.num,$2.d);*/ }
+        ;
 FrameDList:
         EFRAMES NewLine
-/*
-	EFRAMES NewLine Frame
-	{ geoSource->setFrame($3.num,$3.d); }
-*/
 	| FrameDList Frame
 	{ geoSource->setFrame($2.num,$2.d); }
 	;

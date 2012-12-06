@@ -5976,7 +5976,7 @@ GenSubDomain<Scalar>::pade(GenStackVector<Scalar> *sol,  GenStackVector<Scalar> 
     int m = domain->solInfo().padeM;
     int padeN = domain->solInfo().padeN;
     int nRHS = domain->solInfo().nFreqSweepRHS;
-    if(subNumber == 0) filePrint(stderr, " ... Computing %d-point Pade coefficients (l = %d, m = %d) ... \n", padeN, l, m);
+    if(subNumber == 0) fprintf(stderr, " ... Computing %d-point Pade coefficients (l = %d, m = %d) ... \n", padeN, l, m);
     ia = l+1;
     ib = m+1;
     // allocate storage first time only

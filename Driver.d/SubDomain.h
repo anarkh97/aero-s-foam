@@ -753,6 +753,7 @@ class GenSubDomain : public BaseSub
                      FSCommPattern<Scalar> *wiPat);
   void multMCoupled2(Scalar *localrhs, FSCommPattern<Scalar> *wiPat);
   void pade(GenStackVector<Scalar> *sol,  GenStackVector<Scalar> **u, double *h, double x);
+  void setRebuildPade(bool _rebuildPade) { rebuildPade = _rebuildPade; }
 
   // new B operators
   void multAddBrT(Scalar *interfvec, Scalar *localvec, Scalar *uw = 0);

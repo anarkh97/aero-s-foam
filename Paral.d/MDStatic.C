@@ -115,6 +115,7 @@ GenMultiDomainStatic<Scalar>::rebuildSolver()
   ops.M = allOps.M;
   ops.Muc = allOps.Muc;
   decDomain->rebuildOps(ops, 0.0, 0.0, 1.0);
+  paralApply(decDomain->getNumSub(), decDomain->getAllSubDomains(), &GenSubDomain<Scalar>::setRebuildPade, true);
   times->getFetiSolverTime += getTime(); // PJSA 3-30-06
 }
 

@@ -385,7 +385,8 @@ public:
                   Eigen::Matrix<T,Functor::ValueType::SizeAtCompileTime,InputType::SizeAtCompileTime>& jac) const
   {
 #ifdef USE_SACADO
-#if defined(_OPENMP)
+// note: the 2nd condition is a hack to get code to build with buggy version of icpc 12
+#if defined(_OPENMP) && (!defined(__INTEL_COMPILER) || __INTEL_COMPILER < 1200 || __INTEL_COMPILER > 1210)
     #pragma omp critical
     {
 #endif
@@ -402,7 +403,7 @@ public:
     }
 
     Sacado::RadVec::ADvar<typename Functor::Scalar>::aval_reset();
-#if defined(_OPENMP)
+#if defined(_OPENMP) && (!defined(__INTEL_COMPILER) || __INTEL_COMPILER < 1200 || __INTEL_COMPILER > 1210)
     }
 #endif
 #else

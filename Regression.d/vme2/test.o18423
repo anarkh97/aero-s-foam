@@ -1,0 +1,4 @@
+Warning: no access to tty (Bad file descriptor).
+Thus no job control in this shell.
+hostfile = /opt/torque/aux//18423.su-ahpcrc.stanford.edu
+mpirun -n 2 ../../bin/aeros vme2_displacy.inp

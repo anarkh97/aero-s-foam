@@ -1,0 +1,1 @@
+tail -90 /lustre/home/hudson/jobs/FEM\ build/builds/199/log| mail -s "Regression Test Summary" mpotts@hpti.com & 

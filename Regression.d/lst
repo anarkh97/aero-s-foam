@@ -1,0 +1,21 @@
+dataComp.py -n dsvm1
+dataComp.py dsvm2
+dataComp.py dsvm11
+dataComp.py dsvm13
+dataComp.py dsvm15
+dataComp.py dsvm19
+dataComp.py dsvm20
+dataComp.py dsvm21
+dataComp.py dsvm22
+dataComp.py dsvm23
+dataComp.py dsvm24
+dataComp.py dsvm25
+dataComp.py dsvm29
+dataComp.py dsvm30
+dataComp.py dsvm31
+dataComp.py dsvm32
+dataComp.py dsvm34
+dataComp.py dsvm37
+dataComp.py dsvm38
+dataComp.py dsvm39
+dataComp.py -s dsvm40

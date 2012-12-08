@@ -1,0 +1,84 @@
+Running tests...
+Test project /lustre/home/mpotts/FEM
+      Start  1: copyfiles
+ 1/36 Test  #1: copyfiles ........................   Passed    0.04 sec
+      Start  2: buildInputs
+ 2/36 Test  #2: buildInputs ......................   Passed    3.20 sec
+      Start  3: testStatics
+ 3/36 Test  #3: testStatics ......................   Passed    1.21 sec
+      Start  4: testNLstatics
+ 4/36 Test  #4: testNLstatics ....................   Passed    1.29 sec
+      Start  5: testEigen
+ 5/36 Test  #5: testEigen ........................   Passed    1.27 sec
+      Start  6: testDynamics
+ 6/36 Test  #6: testDynamics .....................   Passed    3.21 sec
+      Start  7: testNLDynamics
+ 7/36 Test  #7: testNLDynamics ...................   Passed    1.16 sec
+      Start  8: testIMPE
+ 8/36 Test  #8: testIMPE .........................   Passed    1.42 sec
+      Start  9: testFreqSweep
+ 9/36 Test  #9: testFreqSweep ....................   Passed    0.95 sec
+      Start 10: testTempStatics
+10/36 Test #10: testTempStatics ..................   Passed    0.58 sec
+      Start 11: testTempNLStatics
+11/36 Test #11: testTempNLStatics ................   Passed    0.64 sec
+      Start 12: testTempDynamics
+12/36 Test #12: testTempDynamics .................   Passed    0.90 sec
+      Start 13: testTempNLDynamics
+13/36 Test #13: testTempNLDynamics ...............   Passed    1.16 sec
+      Start 14: testRtest1
+14/36 Test #14: testRtest1 .......................   Passed    1.22 sec
+      Start 15: testRtest2
+15/36 Test #15: testRtest2 .......................   Passed    0.69 sec
+      Start 16: testRtest11
+16/36 Test #16: testRtest11 ......................   Passed    0.40 sec
+      Start 17: testRtest13
+17/36 Test #17: testRtest13 ......................   Passed    0.64 sec
+      Start 18: testRtest19
+18/36 Test #18: testRtest19 ......................   Passed    0.56 sec
+      Start 19: testRtest20
+19/36 Test #19: testRtest20 ......................   Passed    0.62 sec
+      Start 20: testRtest21
+20/36 Test #20: testRtest21 ......................   Passed    0.67 sec
+      Start 21: testRtest22
+21/36 Test #21: testRtest22 ......................   Passed    2.54 sec
+      Start 22: testRtest23
+22/36 Test #22: testRtest23 ......................   Passed    0.47 sec
+      Start 23: testRtest24
+23/36 Test #23: testRtest24 ......................   Passed    0.47 sec
+      Start 24: testRtest25
+24/36 Test #24: testRtest25 ......................   Passed    1.79 sec
+      Start 25: testRtest27a
+25/36 Test #25: testRtest27a .....................   Passed    2.99 sec
+      Start 26: testRtest27b
+26/36 Test #26: testRtest27b .....................   Passed    0.42 sec
+      Start 27: testRtest29
+27/36 Test #27: testRtest29 ......................***Failed    0.54 sec
+      Start 28: testRtest30
+28/36 Test #28: testRtest30 ......................   Passed    1.71 sec
+      Start 29: testRtest31
+29/36 Test #29: testRtest31 ......................   Passed    0.63 sec
+      Start 30: testRtest32
+30/36 Test #30: testRtest32 ......................   Passed    2.08 sec
+      Start 31: testRtest34
+31/36 Test #31: testRtest34 ......................***Failed    0.67 sec
+      Start 32: testRtest35a
+32/36 Test #32: testRtest35a .....................   Passed    0.87 sec
+      Start 33: testRtest35b
+33/36 Test #33: testRtest35b .....................   Passed    2.18 sec
+      Start 34: testRtest37
+34/36 Test #34: testRtest37 ......................   Passed    0.55 sec
+      Start 35: testRtest39
+35/36 Test #35: testRtest39 ......................   Passed    0.24 sec
+      Start 36: testRtest40
+36/36 Test #36: testRtest40 ......................   Passed   20.54 sec
+
+94% tests passed, 2 tests failed out of 36
+
+Total Test time (real) =  60.67 sec
+
+The following tests FAILED:
+	 27 - testRtest29 (Failed)
+	 31 - testRtest34 (Failed)
+Errors while running CTest
+make: *** [test] Error 8

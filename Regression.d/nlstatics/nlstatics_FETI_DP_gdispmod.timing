@@ -1,0 +1,244 @@
+
+***********************************************************
+ ... Non-linear Problem Information ... 
+***********************************************************
+
+1. Number of Nodes                         =            189
+
+2. Number of Elements                      =             80
+
+3. Number of Degrees of Freedom            =          blank
+         Number of Constrained Dofs        =             27
+         Number of Unconstrained Dofs      =          blank
+
+4. Number of Applied Loads                 =              9
+
+5. Number of Output Files                  =              1
+
+6. Renumbering                             =           None
+
+***********************************************************
+ ... Solver Information ... 
+***********************************************************
+
+1. FETI-DP
+         Dirichlet Preconditioner
+         Topological Scaling
+         Basic Projector
+         Subdomain Solver Selected         =         Sparse
+         Preconditioner Solver Selected    =         Sparse
+         Algebraic RBM Method                  1.000000e-16
+         Maximum Number of Iterations      =           1000
+         Maximum Size of Reortho. Vectors  =           1000
+         Tolerance for Convergence         =      1.000e-08
+          
+
+***********************************************************
+ ... Timing Statistics for 1 Threads and 4 Subdomains ...
+***********************************************************
+
+1. Total Read Input Files              time:        0.00232          0.033 Mb
+         Read Mesh                     time:        0.00232
+         Read Mesh Partition           time:        0.00000
+
+2. Total Preprocessing                 time:        0.00370          0.436 Mb
+         Process Input Data            time:        0.00015
+         Make Subdomains               time:        0.00179
+         Distribute BCs                time:        0.00003
+         Make Connectivities           time:        0.00003
+         Make Interface                time:        0.00008
+         Make Internal Information     time:        0.00001
+         Make Geometric Node States    time:        0.00025
+         Make Element Corotators       time:        0.00003
+         Make Stiffness & Mass Arrays  time:        0.00039
+
+3. Total Subdomain Matrices Processing time:        0.00000         -1.305 Mb
+
+4. Total Subdomain RHS Processing      time:        0.00004          0.000 Mb
+
+5. Total Solver                        time:        0.07318         13.440 Mb
+
+         Factor Subdomain Matrices     time:        0.01266          5.743 Mb
+
+         Total Building  Coarse Pbs.   time:        0.03416          4.732
+               1st Level Coarse Pb.    time:        0.03416          4.732 Mb
+               2nd Level Coarse Pb.    time:        0.00000          0.000 Mb
+
+         Total Paral. Fac. Coarse Pbs. time:        0.00053          0.000 Mb
+               1st Level Factor        time:        0.00053          0.000 Mb
+               2nd Level Factor        time:        0.00000          0.000 Mb
+
+         Total Solve loop              time:        0.02583          2.965 Mb
+               Project 1st Level       time:        0.00273          0.000 Mb
+                  Seq. Forw/Back       time:        0.00000
+               Project 2nd Level       time:        0.00000          0.000 Mb
+                  Paral. Forw/Back     time:        0.00000
+               Precondition            time:        0.00824          1.273 Mb
+               Krylov Precondition     time:        0.00000
+               Local Solve             time:        0.01094          0.508 Mb
+               Reorthogonalize         time:        0.00130          0.832 Mb
+
+6. Write Output Files                  time:        0.00949          0.734 Mb
+
+7. Total Rebuild                       time:        0.08842
+
+         Element Stiffness Matrices    time:        0.01738
+         FETI Preconditioner           time:        0.00000
+         Error Estimator               time:        0.00000
+
+
+TOTAL SIMULATION (1+2+3+4+5+6)         time:        0.17715         13.339 Mb
+
+***********************************************************
+ ... FETI Monitoring ... 
+***********************************************************
+
+1. Total Amount of Requested Memory        =         20.737 Mb
+
+2. FETI Solver Amount of Requested Memory  =          3.389 Mb
+
+3. Total Number of Iter. for Convergence   =             66
+
+4. Size of 1st Level Coarse Problem        =              0          4.732 Mb
+
+5. Size of 2nd Level Coarse Problem        =             45          0.000 Mb
+
+***********************************************************
+Memory Sparse  =          0.000 Mb
+
+***********************************************************
+ ... Nonlinear Statics Monitoring ... 
+***********************************************************
+
+Rebuild FETI Solver             1
+Rebuild preconditioner          1
+Max number of Newton iterations 100
+Nonlinear tolerance = 1.000000e-07
+Delta Lambda        = 1.000000e-01
+Maximum Lambda      = 3.000000e-01
+Fit Algorithms: Shell 2 Beam 2
+
+Iter	FETI	Rebuild	Rebuild	Primal		Dual	  Stagnation
+	Iter	Tangent	Krylov	Error		Error
+--------------------------------------------------------------------
+  1	7	 no	 no	2.7265e-10	1.2910e-09	 no
+  2	6	 no	 no	4.4663e-09	5.5535e-07	 no
+  3	6	 no	 no	4.6766e-10	8.5184e-06	 no
+  4	1	 no	 no	4.2959e-09	1.0000e+00	 no
+--------------------------------------------------------------------
+  5	8	 no	 no	1.0336e-09	1.0028e-08	 no
+  6	6	 no	 no	5.5470e-10	7.2684e-08	 no
+  7	4	 no	 no	3.5743e-09	4.1849e-05	 no
+  8	2	 no	 no	9.0145e-10	5.3642e-02	 no
+  9	1	 no	 no	1.2226e-10	1.0000e+00	 no
+--------------------------------------------------------------------
+ 10	6	 no	 no	7.9820e-09	1.3906e-07	 no
+ 11	8	 no	 no	3.8041e-09	1.1440e-06	 no
+ 12	6	 no	 no	1.5479e-09	5.1791e-06	 no
+ 13	4	 no	 no	1.5289e-09	2.8684e-03	 no
+ 14	1	 no	 no	3.3868e-10	1.0000e+00	 no
+--------------------------------------------------------------------
+Total	66
+Average	4
+
+Iter	Dv	        Relative Dv	Residual	Relative Res
+--------------------------------------------------------------------
+  1    4.119264e+00	1.000000e+00	3.750000e+01	1.000000e+00
+  2    3.444463e-01	8.361841e-02	5.728862e+00	1.527696e-01
+  3    2.603743e-03	6.320893e-04	3.559352e-02	9.491606e-04
+  4    1.524618e-07	3.701191e-08	2.335846e-06	6.228922e-08
+--------------------------------------------------------------------
+  5    4.869077e+00	1.000000e+00	3.750000e+01	1.000000e+00
+  6    5.657443e-01	1.161913e-01	7.815918e+00	2.084245e-01
+  7    8.206480e-03	1.685428e-03	9.673977e-02	2.579727e-03
+  8    1.707617e-06	3.507064e-07	2.347963e-05	6.261235e-07
+  9    2.336973e-09	4.799621e-10	1.299662e-07	3.465764e-09
+--------------------------------------------------------------------
+ 10    6.151272e+00	1.000000e+00	3.750000e+01	1.000000e+00
+ 11    1.182891e+00	1.923002e-01	1.216203e+01	3.243208e-01
+ 12    4.781066e-02	7.772483e-03	4.311806e-01	1.149815e-02
+ 13    7.786684e-05	1.265866e-05	8.162615e-04	2.176697e-05
+ 14    8.766030e-09	1.425076e-09	3.337024e-07	8.898729e-09
+--------------------------------------------------------------------
+ ... Detailed CPU Statistics (Seconds) 
+*******************************************************************************
+
+                                             minimum      average      maximum
+
+1. Total Read Input Files             :       0.0023       0.0023       0.0023
+
+2. Total Preprocessing                :       0.0037       0.0037       0.0037
+         Process Input Data           :       0.0002       0.0002       0.0002
+         Make Subdomains              :       0.0018       0.0018       0.0018
+         Distribute BCs               :       0.0000       0.0000       0.0000
+         Make Connectivities          :       0.0000       0.0000       0.0000
+         Make Interface               :       0.0001       0.0001       0.0001
+         Make Internal Information    :       0.0000       0.0000       0.0000
+
+3. Total Subdomain Matrices Processing:       0.0000       0.0000       0.0000
+
+4. Total Subdomain RHS Processing     :       0.0000       0.0000       0.0000
+
+5. Total Solver                       :       0.0732       0.0732       0.0732
+
+         Factor Subdomain Matrices    :       0.0127       0.0127       0.0127
+
+         Total Building  Coarse Pbs.  :       0.0342       0.0342       0.0342
+               1st Level Coarse Pb.   :       0.0342       0.0342       0.0342
+               2nd Level Coarse Pb.   :       0.0000       0.0000       0.0000
+
+         Total Paral. Fac. Coarse Pbs.:       0.0005       0.0005       0.0005
+               1st Level Factor       :       0.0005       0.0005       0.0005
+               2nd Level Factor       :       0.0000       0.0000       0.0000
+
+         Total Solve loop             :       0.0258       0.0258       0.0258
+               Project 1st Level      :       0.0027       0.0027       0.0027
+                  Seq. Forw/Back      :       0.0000       0.0000       0.0000
+               Project 2nd Level      :       0.0000       0.0000       0.0000
+                  Paral. Forw/Back    :       0.0000       0.0000       0.0000
+               Precondition           :       0.0082       0.0082       0.0082
+               Local Solve            :       0.0109       0.0109       0.0109
+               Reorthogonalize        :       0.0013       0.0013       0.0013
+
+6. Write Output Files                 :       0.0095       0.0095       0.0095
+
+TOTAL SIMULATION (1+2+3+4+5+6)        :       0.0887       0.0887       0.0887
+
+*******************************************************************************
+ ...  Detailed Memory Statistics (Megabytes)
+*******************************************************************************
+
+                                             minimum      average      maximum
+
+1. Total Read Input Files             :       0.0332       0.0332       0.0332
+
+2. Total Preprocessing                :       0.4355       0.4355       0.4355
+
+3. Total Subdomain Matrices Processing:      -1.3047      -1.3047      -1.3047
+
+4. Total Subdomain RHS Processing     :       0.0000       0.0000       0.0000
+
+5. Total Solver                       :      13.4404      13.4404      13.4404
+
+         Factor Subdomain Matrices    :       5.7432       5.7432       5.7432
+
+         Total Building  Coarse Pbs.  :       4.7324       4.7324       4.7324
+               1st Level Coarse Pb.   :       4.7324       4.7324       4.7324
+               2nd Level Coarse Pb.   :       0.0000       0.0000       0.0000
+
+         Total Paral. Fac. Coarse Pbs.:       0.0000       0.0000       0.0000
+               1st Level Factor       :       0.0000       0.0000       0.0000
+               2nd Level Factor       :       0.0000       0.0000       0.0000
+
+         Total Solve loop             :      13.4404      13.4404      13.4404
+               Project 1st Level      :       0.0000       0.0000       0.0000
+               Project 2nd Level      :       0.0000       0.0000       0.0000
+               Precondition           :       1.2734       1.2734       1.2734
+               Local Solve            :       0.0000       0.0000       0.0000
+               Reorthogonalize        :       0.8320       0.8320       0.8320
+
+6. Write Output Files                 :       0.7344       0.7344       0.7344
+
+TOTAL SIMULATION (1+2+3+4+5+6)        :      13.3389      13.3389      13.3389
+
+*******************************************************************************

@@ -127,11 +127,13 @@ def dComp(params):
   sloc = -1
   rloc = -1
   nloc = -1
+  gloc = -1
   i = 0 
   pattern = re.compile("\-r")
   runLocal = re.compile("\-l")
   sendMail = re.compile("\-s")
   newPlots = re.compile("\-n")
+  genBase = re.compile("\-g")
 
   for s in params:
     if(re.search(pattern,s)):
@@ -142,6 +144,8 @@ def dComp(params):
        rloc = i
     if(re.search(newPlots,s)):
        nloc = i
+    if(re.search(genBase,s)):
+       gloc = i
     i=i+1
 
   if(sloc != -1):
@@ -171,6 +175,13 @@ def dComp(params):
   else:
     lrun = 0 
 
+  if(gloc != -1):
+    genbase = 1
+    lrun = 1
+    del params[gloc]
+  else:
+    genbase = 0;
+
   if(nloc != -1):
     newP = 1
     del params[nloc]
@@ -181,10 +192,8 @@ def dComp(params):
   else:
     newP = 0
 
-# lrun = 1
-# run = 0
-  batch = 0
 
+  batch = 0
   files = [] 
   plotList = []
   if((params[1] == 'ALL')|(params[1] == 'short')):
@@ -267,39 +276,42 @@ def dComp(params):
         files.append(infile)
 
   result = 0
-  
-  for file in files:
-     basefile = "baseline/"+file
-     p = subprocess.Popen("md5sum " + file, shell = True, stdout=subprocess.PIPE) # don't forget to "import subprocess"
-     newmd5 = p.stdout.readline().split() # now the md5 variable contains the MD5 sum
-     p.wait() # some clean up
-     p = subprocess.Popen("md5sum " + basefile, shell = True, stdout=subprocess.PIPE) # don't forget to "import subprocess"
-     oldmd5 = p.stdout.readline().split() # now the md5 variable contains the MD5 sum
-     p.wait() # some clean up
-     Total += 1
-     if(newmd5[0] == oldmd5[0]):
-       print bcolors.OKGREEN + " \tExact match "+ bcolors.ENDC, file
-       exactMatches += 1
-       outstring = "\texact match " + file + "\n"
-       SUMMARY_FILE.write(outstring)
-     else:
-       compstring = []
-       result = directComp(basefile,file,SUMMARY_FILE,compstring)
-       if(result == 1):
-         print bcolors.FAIL + " \tDiscrepancy " + bcolors.ENDC, file
-         outstring = "\tDiscrepancy " + file + "\n"
-         SUMMARY_FILE.write(outstring)
-         SUMMARY_FILE.write(compstring[0])
-         gnuplotCalled = 1;
-         plotList.append([file,basefile]);
-       else:
-         exactMatches += 1
-         print bcolors.OKGREEN + " \tMatch" + bcolors.ENDC, file
-         print bcolors.OKBLUE    + "\t" +compstring[0] + bcolors.ENDC 
-         outstring = "\tclose match " + file + "\n"
-         SUMMARY_FILE.write(outstring)
-         SUMMARY_FILE.write(compstring[0])
-  outstring = "%s--%d matches found out of %d total cases\n" %(indir,exactMatches,Total)
+  if(genbase != 1): 
+    for file in files:
+      basefile = "baseline/"+file
+      p = subprocess.Popen("md5sum " + file, shell = True, stdout=subprocess.PIPE) # don't forget to "import subprocess"
+      newmd5 = p.stdout.readline().split() # now the md5 variable contains the MD5 sum
+      p.wait() # some clean up
+      p = subprocess.Popen("md5sum " + basefile, shell = True, stdout=subprocess.PIPE) # don't forget to "import subprocess"
+      oldmd5 = p.stdout.readline().split() # now the md5 variable contains the MD5 sum
+      p.wait() # some clean up
+      Total += 1
+      if(newmd5[0] == oldmd5[0]):
+        print bcolors.OKGREEN + " \tExact match "+ bcolors.ENDC, file
+        exactMatches += 1
+        outstring = "\texact match " + file + "\n"
+        SUMMARY_FILE.write(outstring)
+      else:
+        compstring = []
+        result = directComp(basefile,file,SUMMARY_FILE,compstring)
+        if(result == 1):
+          print bcolors.FAIL + " \tDiscrepancy " + bcolors.ENDC, file
+          outstring = "\tDiscrepancy " + file + "\n"
+          SUMMARY_FILE.write(outstring)
+          SUMMARY_FILE.write(compstring[0])
+          gnuplotCalled = 1;
+          plotList.append([file,basefile]);
+        else:
+          exactMatches += 1
+          print bcolors.OKGREEN + " \tMatch" + bcolors.ENDC, file
+          print bcolors.OKBLUE    + "\t" +compstring[0] + bcolors.ENDC 
+          outstring = "\tclose match " + file + "\n"
+          SUMMARY_FILE.write(outstring)
+          SUMMARY_FILE.write(compstring[0])
+  if(genbase == 1):
+    outstring = "New baseline(s) generated\n"
+  else:
+    outstring = "%s--%d matches found out of %d total cases\n" %(indir,exactMatches,Total)
   print outstring
   SUMMARY_FILE.write(outstring)
   now = datetime.datetime.now()

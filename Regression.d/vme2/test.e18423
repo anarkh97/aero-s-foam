@@ -1,0 +1,27 @@
+rm: cannot remove `host.*': No such file or directory
+../../bin/aeros: /opt/intel/mkl/10.0.1.014/lib/em64t/libiomp5.so: no version information available (required by ../../bin/aeros)
+../../bin/aeros: /opt/intel/mkl/10.0.1.014/lib/em64t/libiomp5.so: no version information available (required by ../../bin/aeros)
+
+ --------- R U N  PARAMETERS ----------
+ ... Nonlinear Dynamics/Quasistatics... 
+ ... Parallel processing: Launching 2 MPI processes ...
+ **************************************************
+ *** ERROR: DECOMPOSITION file does not exist   ***
+ ***        Please provide a DECOMPOSITION file ***
+ **************************************************
+--------------------------------------------------------------------------
+mpirun has exited due to process rank 1 with PID 32281 on
+node compute-6-12.local exiting improperly. There are two reasons this could occur:
+
+1. this process did not call "init" before exiting, but others in
+the job did. This can cause a job to hang indefinitely while it waits
+for all processes to call "init". By rule, if one process calls "init",
+then ALL processes must call "init" prior to termination.
+
+2. this process called "init", but exited without calling "finalize".
+By rule, all processes that call "init" MUST call "finalize" prior to
+exiting or it will be considered an "abnormal termination"
+
+This may have caused other processes in the application to be
+terminated by signals sent by mpirun (as reported here).
+--------------------------------------------------------------------------

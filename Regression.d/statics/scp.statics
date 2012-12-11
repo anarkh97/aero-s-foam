@@ -1,9 +1,0 @@
-#!/bin/bash
-#PBS -N test
-#PBS -V
-#PBS -l nodes=4:ppn=8,walltime=3:00:00
-
-. /opt/modules/Modules/3.2.6/init/bash
- module load intel openmpi
-cd /lustre/home/mpotts/FEM/Regression.d/statics
-../create_mfiles.pl

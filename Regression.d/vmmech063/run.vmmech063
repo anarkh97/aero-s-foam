@@ -1,8 +1,0 @@
-echo ../../bin/aeros  vmmech063_sparse_geigenpa.inp
-../../bin/aeros  vmmech063_sparse_geigenpa.inp
-echo ../../bin/aeros  vmmech063_mumps_geigenpa.inp
-../../bin/aeros  vmmech063_mumps_geigenpa.inp
-echo ../../bin/aeros  vmmech063_mumps_pivot_geigenpa.inp
-../../bin/aeros  vmmech063_mumps_pivot_geigenpa.inp
-echo ../../bin/aeros -n 2 --dec --nsub 4 vmmech063_FETI_DP_geigenpa.inp
-../../bin/aeros -n 2 --dec --nsub 4 vmmech063_FETI_DP_geigenpa.inp

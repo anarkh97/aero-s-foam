@@ -11,7 +11,7 @@ import sys, os, re, glob, subprocess
 
 def checkFilename(filename,MyList):
 # for line in open("/lustre/home/mpotts/FEM/CMakeCache.txt.test"):
-  for line in open("../CMakeCache.txt"):
+  for line in open("../../CMakeCache.txt"):
     if(("MUMPS_common" in line) & ("NOTFOUND" in line) & ("mumps" in filename)):
       return(0)
     if(("SPOOLES_spooles_LIBRARY" in line) & ("NOTFOUND" in line) & ("spooles" in filename)):

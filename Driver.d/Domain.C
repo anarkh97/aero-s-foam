@@ -3253,7 +3253,14 @@ Domain::ProcessSurfaceBCs()
         int *glNodes = SurfEntities[j]->GetPtrGlNodeIds();
         int nNodes = SurfEntities[j]->GetnNodes();
         BCond *bc = new BCond[nNodes];
-        for(int k=0; k<nNodes; ++k) { bc[k].nnum = glNodes[k]; bc[k].dofnum = surface_nbc[i].dofnum; bc[k].val = surface_nbc[i].val; bc[k].type = surface_nbc[i].type; bc[k].caseid = surface_nbc[i].caseid; }
+        for(int k=0; k<nNodes; ++k) { 
+          bc[k].nnum = glNodes[k];
+          bc[k].dofnum = surface_nbc[i].dofnum;
+          bc[k].val = surface_nbc[i].val;
+          bc[k].type = surface_nbc[i].type;
+          bc[k].caseid = surface_nbc[i].caseid;
+          bc[k].mtype = surface_nbc[i].mtype;
+        }
         int numNeuman_copy = geoSource->getNumNeuman();
         geoSource->setNeuman(nNodes, bc);
         if(numNeuman_copy != 0) delete [] bc;

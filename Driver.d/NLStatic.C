@@ -213,16 +213,16 @@ Domain::getFollowerForce(GeomState &geomState, Vector& elementForce,
       double m0[3] = { 0, 0, 0 }, m[3] = { 0, 0, 0 }, r[3], rotvar[3][3];
       m0[nbc[i].dofnum-3] = lambda*mfttFactor*nbc[i].val;
 
-      switch(sinfo.momentType) {
-        case 0 : // axial (constant) moment
+      switch(nbc[i].mtype) {
+        case BCond::Axial : // axial (constant) moment
           /* already been added in OpMake.C, nothing to do */
           break;
-        case 1 : { // rotational moment: m = T^{-1}*m0
+        case BCond::Rotational : { // rotational moment: m = T^{-1}*m0
           mat_to_vec(geomState[nbc[i].nnum].R,r);
           pseudorot_var(r, rotvar);
           mat_mult_vec(rotvar,m0,m,1);
         } break;
-        case 2 : // follower moment: m = R*m0
+        case BCond::Follower : // follower moment: m = R*m0
           mat_mult_vec(geomState[nbc[i].nnum].R,m0,m,0);
           break;
         default :
@@ -240,8 +240,8 @@ Domain::getFollowerForce(GeomState &geomState, Vector& elementForce,
       }
       // tangent stiffness contribution: 
       if(kel) {
-        switch(sinfo.momentType) {
-          case 0 : { // axial (constant) moment
+        switch(nbc[i].mtype) {
+          case BCond::Axial : { // axial (constant) moment
             double skewm0[3][3] = { {     0, -m0[2],  m0[1] },
                                     {  m0[2],     0, -m0[0] },
                                     { -m0[1],  m0[0],    0  } };
@@ -249,14 +249,14 @@ Domain::getFollowerForce(GeomState &geomState, Vector& elementForce,
               for(int k=0; k<3; ++k) 
                 rotvar[j][k] = 0.5*skewm0[j][k];
           } break;
-          case 1 : { // rotational moment
+          case BCond::Rotational : { // rotational moment
             double scndvar[3][3];
             pseudorot_2var(r, m0, scndvar);
             for(int j=0; j<3; ++j)
               for(int k=0; k<3; ++k)
                 rotvar[j][k] = 0.5*(scndvar[j][k] + scndvar[k][j]);
           } break;
-          case 2 : { // follower moment
+          case BCond::Follower : { // follower moment
             double skewm[3][3] = { {     0, -m[2],  m[1] },
                                    {  m[2],     0, -m[0] },
                                    { -m[1],  m[0],    0  } };
@@ -279,6 +279,54 @@ Domain::getFollowerForce(GeomState &geomState, Vector& elementForce,
             for(int j = 0; j < 3; ++j)
               for(int k = 0; k < 3; ++k)
                 kel[iele][eledofs[j]][eledofs[k]] -= rotvar[j][k];
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  // treatment of nodal follower forces
+  for(int i = 0; i < numNeuman; ++i) {
+    if((nbc[i].type == BCond::Forces || nbc[i].type == BCond::Usdf || nbc[i].type == BCond::Actuators) 
+       && (nbc[i].dofnum == 0 || nbc[i].dofnum == 1 || nbc[i].dofnum == 2)
+       && nbc[i].mtype == BCond::Follower) {
+      int dofs[6];
+      dsa->number(nbc[i].nnum, DofSet::XYZdisp | DofSet::XYZrot, dofs);
+      double f0[3] = { 0, 0, 0 }, f[3] = { 0, 0, 0 }, r[3], rotvar[3][3];
+      f0[nbc[i].dofnum] = lambda*mfttFactor*nbc[i].val;
+      mat_mult_vec(geomState[nbc[i].nnum].R,f0,f,0); // f = R*f0
+      for(int j = 0; j < 3; ++j) {
+        int uDofNum = c_dsa->getRCN(dofs[j]);
+        if(uDofNum >= 0)
+          residual[uDofNum] += f[j];
+        else if(reactions) {
+          int cDofNum = c_dsa->invRCN(dofs[j]);
+          if(cDofNum >= 0)
+            (*reactions)[cDofNum] -= f[j];
+        }
+      }
+      // tangent stiffness contribution: 
+      if(kel) {
+        double skewf[3][3] = { {     0, -f[2],  f[1] },
+                               {  f[2],     0, -f[0] },
+                               { -f[1],  f[0],    0  } };
+
+        for(int inode = 0; inode < nodeToElem->num(nbc[i].nnum); ++inode) { // loop over the elements attached to the node
+                                                                            // at which the nodal moment is applied
+          int iele = (*nodeToElem)[nbc[i].nnum][inode];
+          int eledofs[6] = { -1, -1, -1, -1, -1, -1 };
+          for(int j = 0; j < 6; ++j) {
+            for(int k = 0; k < allDOFs->num(iele); ++k)
+              if(dofs[j] == (*allDOFs)[iele][k]) { eledofs[j] = k; break; }
+          }
+          if(eledofs[0] != -1 && eledofs[1] != -1 && eledofs[2] != -1 &&
+             eledofs[3] != -1 && eledofs[4] != -1 && eledofs[5] != -1) {
+            // found an element with the 6 translation & rotation dofs of node nbc[i].nnum so we can add the load stiffness
+            // contribution of the nodal force to the tangent stiffness matrix of this element
+            for(int j = 0; j < 3; ++j)
+              for(int k = 0; k < 3; ++k)
+                kel[iele][eledofs[j]][eledofs[3+k]] -= -skewf[j][k];
             break;
           }
         }

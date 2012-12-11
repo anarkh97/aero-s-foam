@@ -227,6 +227,12 @@ TRAIL [a-zA-Z]*
 
 "FORC"[a-zA-Z]*|"forc"[a-zA-Z]*    { return FORCE; }
 
+"axial"|"AXIAL"                    { yylval.ival = BCond::Axial;      return MOMENTTYPE; }
+
+"rotational"|"ROTATIONAL"          { yylval.ival = BCond::Rotational; return MOMENTTYPE; }
+
+"follower"|"FOLLOWER"              { yylval.ival = BCond::Follower;   return MOMENTTYPE; }
+
 "COND"[a-zA-Z]*|"cond"[a-zA-Z]*    { return CONDITION; }
 
 "MASS"[a-zA-Z]*|"mass"[a-zA-Z]*    { return MASS; }
@@ -603,8 +609,6 @@ TRAIL [a-zA-Z]*
 
 "fails"[a-zA-Z]*|"FAILS"[a-zA-Z]*  { return FAILSAFE; }
 
-"momen"[a-zA-Z]*|"MOMEN"[a-zA-Z]*  { return MOMENT; }
-
 "debug_icntl"                      { return DEBUGICNTL; }
 
 "debug_cntl"                       { return DEBUGCNTL; }
@@ -863,7 +867,7 @@ TRAIL [a-zA-Z]*
 
 "trans"[a-zA-Z]*|"TRANS"[a-zA-Z]*  { yylval.ival = FetiInfo::translation; return RBMSET; }
 
-"rot"|"ROT"|"rota"|"ROTA"|"rotat"|"ROTAT"|"rotati"|"ROTATI"|"rotatio"|"ROTATIO"|"rotation"[a-zA-Z]*|"ROTATION"[a-zA-Z]* { yylval.ival = FetiInfo::rotation; return RBMSET; }
+"rot"|"ROT"|"rota"|"ROTA"|"rotat"|"ROTAT"|"rotati"|"ROTATI"|"rotatio"|"ROTATIO"|"rotation"|"ROTATION" { yylval.ival = FetiInfo::rotation; return RBMSET; }
 
 "all"[a-zA-Z]*|"ALL"[a-zA-Z]*      { yylval.ival = FetiInfo::all;         return RBMSET; }
 

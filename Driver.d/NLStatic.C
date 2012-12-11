@@ -167,10 +167,31 @@ Domain::getFollowerForce(GeomState &geomState, Vector& elementForce,
   // pressure using surfacetopo
   int* edofs = (int*) dbg_alloca(maxNumDOFs*sizeof(int));
   double mfttFactor = (domain->mftval && sinfo.isDynam()) ? domain->mftval->getVal(std::max(time,0.0)) : 1.0;
+  SubDomain *subCast = (numNeum > 0) ? dynamic_cast<SubDomain*>(this) : NULL;
   for(int iele = 0; iele < numNeum; ++iele) {
     neum[iele]->dofs(*dsa, edofs);
     elementForce.zero();
     neum[iele]->neumVector(nodes, elementForce, 0, &geomState);
+
+    // Include the "load stiffness matrix" in kel[iele]
+    if(kel && sinfo.newmarkBeta != 0.0) {
+      int jele = (subCast) ? subCast->globalToLocalElem(neum[iele]->getAdjElementIndex()) : neum[iele]->getAdjElementIndex();
+      if(jele > -1) {
+        FullSquareMatrix elementLoadStiffnessMatrix(neum[iele]->numDofs());
+        elementLoadStiffnessMatrix.zero();
+        neum[iele]->neumVectorJacobian(nodes, elementLoadStiffnessMatrix, 0, &geomState);
+        int *eledofs = new int[neum[iele]->numDofs()];
+        for(int j = 0; j < neum[iele]->numDofs(); ++j) {
+          for(int k = 0; k < allDOFs->num(jele); ++k)
+            if(edofs[j] == (*allDOFs)[jele][k]) { eledofs[j] = k; break; }
+        }
+        for(int i=0; i<neum[iele]->numDofs(); ++i)
+          for(int j=0; j<neum[iele]->numDofs(); ++j)
+            kel[jele][eledofs[i]][eledofs[j]] -= lambda*mfttFactor*elementLoadStiffnessMatrix[i][j];
+        delete [] eledofs;
+      }
+    }
+
     for(int idof = 0; idof < neum[iele]->numDofs(); ++idof) {
       int uDofNum = c_dsa->getRCN(edofs[idof]);
       if(uDofNum >= 0)

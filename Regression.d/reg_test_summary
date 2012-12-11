@@ -1,15 +1,19 @@
 
 
 Summary of regression test run as:
-['.//dataComp.py', 'dsvm24']
-from:/lustre/home/mpotts/FEM/Regression.d
+['.//dataComp.py', 'ALL']
+from:/lustre/home/mpotts/FEM-test/Regression.d
 
-Test started at 10:22:27.691777 on 2012-12-10
-	exact match dsvm24/dsvm24_freq_500_spooles_pivot_displacz.dat
-	exact match dsvm24/dsvm24_freq_500_mumps_pivot_displacz.dat
-	exact match dsvm24/dsvm24_freq_500_FETI_DPH_displacz.dat
-	exact match dsvm24/dsvm24_spooles_pivot_displacz.dat
-	exact match dsvm24/dsvm24_mumps_pivot_displacz.dat
-	exact match dsvm24/dsvm24_FETI_DPH_displacz.dat
-dsvm24--6 matches found out of 6 total cases
-Test completed at 10:22:27.749947 on 2012-12-10
+Test started at 11:53:39.967491 on 2012-12-11
+	exact match dsvm11/dsvm11_FETI_DP_displacz.dat
+dsvm40/--1 matches found out of 1 total cases
+Test completed at 11:53:40.018576 on 2012-12-11
+
+
+Summary of regression test run as:
+['.//dataComp.py', 'ALL']
+from:/lustre/home/mpotts/FEM-test/Regression.d
+
+Test started at 11:54:14.174220 on 2012-12-11
+dsvm40/--0 matches found out of 0 total cases
+Test completed at 11:54:14.191527 on 2012-12-11

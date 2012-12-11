@@ -11,7 +11,7 @@ import sys, os, re, glob, subprocess
 
 def checkFilename(filename,MyList):
 # for line in open("/lustre/home/mpotts/FEM/CMakeCache.txt.test"):
-  for line in open("../../CMakeCache.txt"):
+  for line in open("../CMakeCache.txt"):
     if(("MUMPS_common" in line) & ("NOTFOUND" in line) & ("mumps" in filename)):
       return(0)
     if(("SPOOLES_spooles_LIBRARY" in line) & ("NOTFOUND" in line) & ("spooles" in filename)):
@@ -349,7 +349,7 @@ def buildInputs(params):
       if(problem_type == "dsvm24"):
         OUTPUT = ["displacz"]
         OUTPUT_EXTRAS = [" 1 NG 1","1 NG 1 modphase"]
-        IMPE = ["freq 500.0","freq 500.0\ndamp 3.18309886e-5 0"]
+        IMPE = ["freq 500","freq 500","freq 500","freq 500\ndamp 3.18309886e-5 0","freq 500\ndamp 3.18309886e-5 0","freq 500\ndamp 3.18309886e-5 0"]
         NAMELIST = ["IMPE\n","STATICS\n","OUTPUT\n","INCLUDE "]
         STATICS = ["spooles pivot","mumps pivot","FETI DPH"]
         INCLUDE_FILE = "../" + problem_type + ".include"
@@ -426,7 +426,7 @@ def buildInputs(params):
         OUTPUT_EXTRAS = ["1 38046","1 37735"]
         IMPE =    ["freqsweep 0 500 11 50\nrecons pade 2 4 5"]
         NAMELIST = ["IMPE\n","STATICS\n","OUTPUT\n","INCLUDE "]
-        STATICS = ["spooles pivot","mumps pivot"]
+        STATICS = ["spooles pivot","mumps pivot","FETI DPH"]
         INCLUDE = ["../dsvm15.include"]
         OPTIONSLIST = [IMPE,STATICS,OUTPUT,INCLUDE]
         EXTRAS = ["*","include \"../fetidph.include\"","*","*"]

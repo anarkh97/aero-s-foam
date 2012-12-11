@@ -4,7 +4,7 @@
 #PBS -l nodes=4:ppn=8,walltime=3:00:00
 
 . /opt/modules/Modules/3.2.6/init/bash
- module load intel openmpi
+ module load intel/intel-12 openmpi/openmpi16_intel12
 cd /lustre/home/mpotts/FEM/Regression.d/dsvm37
 ../create_mfiles.pl
 echo mpirun -n 2 ../../bin/aeros  dsvm37_sparse_gtempera.inp

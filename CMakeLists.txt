@@ -532,7 +532,6 @@ if(TEST_DURATION_SHORT)
   ADD_TEST(testRtest21 ${EXEC_DIR}/dataComp.py -l dsvm21)
   ADD_TEST(testRtest22 ${EXEC_DIR}/dataComp.py -l dsvm22)
   ADD_TEST(testRtest23 ${EXEC_DIR}/dataComp.py -l dsvm23)
-  ADD_TEST(testRtest24 ${EXEC_DIR}/dataComp.py -r dsvm24)
   ADD_TEST(testRtest25 ${EXEC_DIR}/dataComp.py -l dsvm25)
   ADD_TEST(testRtest27a ${EXEC_DIR}/dataComp.py -l dsvm27a)
   ADD_TEST(testRtest27b ${EXEC_DIR}/dataComp.py -l dsvm27b)
@@ -581,4 +580,4 @@ else(TEST_DURATION_SHORT)
   ADD_TEST(testRtest40 ${EXEC_DIR}/dataComp.py -l -s dsvm40)
   ADD_TEST(sendResults ${EXEC_DIR}/sendResults.py )
 endif(TEST_DURATION_SHORT)
-  
+

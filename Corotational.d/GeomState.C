@@ -570,6 +570,7 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
       }
     }
   }
+  setVelocity(vel_n,acc_n); // XXXX
 
   // Update step translational displacements
   double tcoef = 1/(1-alphaf);

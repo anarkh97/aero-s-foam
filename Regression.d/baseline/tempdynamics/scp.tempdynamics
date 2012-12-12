@@ -1,33 +1,24 @@
 #!/bin/bash
 #PBS -N test
-#PBS -l nodes=1:ppn=8,walltime=1:00:00
+#PBS -V
+#PBS -l nodes=4:ppn=8,walltime=3:00:00
 
+. /opt/modules/Modules/3.2.6/init/bash
+ module load intel openmpi
 cd /lustre/home/mpotts/FEM/Regression.d/tempdynamics
-echo mpirun -n 4 ../../bin/aeros  tempdynamics_sparse_gtempera.inp
-mpirun -n 4 ../../bin/aeros  tempdynamics_sparse_gtempera.inp
-echo mpirun -n 4 ../../bin/aeros  tempdynamics_skyline_gtempvel.inp
-mpirun -n 4 ../../bin/aeros  tempdynamics_skyline_gtempvel.inp
-echo mpirun -n 4 ../../bin/aeros  tempdynamics_mumps_heatflxx.inp
-mpirun -n 4 ../../bin/aeros  tempdynamics_mumps_heatflxx.inp
-echo mpirun -n 4 ../../bin/aeros  tempdynamics_spooles_heatflxy.inp
-mpirun -n 4 ../../bin/aeros  tempdynamics_spooles_heatflxy.inp
-echo mpirun -n 4 ../../bin/aeros  tempdynamics_gmres_heatflxz.inp
-mpirun -n 4 ../../bin/aeros  tempdynamics_gmres_heatflxz.inp
-echo mpirun -n 4 ../../bin/aeros  tempdynamics_direct_grdtempx.inp
-mpirun -n 4 ../../bin/aeros  tempdynamics_direct_grdtempx.inp
-echo mpirun -n 4 ../../bin/aeros  tempdynamics_spooles_pivot_grdtempy.inp
-mpirun -n 4 ../../bin/aeros  tempdynamics_spooles_pivot_grdtempy.inp
-echo mpirun -n 4 ../../bin/aeros  tempdynamics_mumps_pivot_grdtempz.inp
-mpirun -n 4 ../../bin/aeros  tempdynamics_mumps_pivot_grdtempz.inp
-echo mpirun -n 4 ../../bin/aeros  tempdynamics_pcg_gtempera.inp
-mpirun -n 4 ../../bin/aeros  tempdynamics_pcg_gtempera.inp
-echo mpirun -n 4 ../../bin/aeros  tempdynamics_bcg_gtempvel.inp
-mpirun -n 4 ../../bin/aeros  tempdynamics_bcg_gtempvel.inp
-echo mpirun -n 4 ../../bin/aeros  tempdynamics_cr_heatflxx.inp
-mpirun -n 4 ../../bin/aeros  tempdynamics_cr_heatflxx.inp
-echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 tempdynamics_FETI_heatflxy.inp
-mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 tempdynamics_FETI_heatflxy.inp
-echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 tempdynamics_FETI_DP_heatflxz.inp
-mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 tempdynamics_FETI_DP_heatflxz.inp
-echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 tempdynamics_FETI_DPH_grdtempx.inp
-mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 tempdynamics_FETI_DPH_grdtempx.inp
+../create_mfiles.pl
+echo mpirun -n 2 ../../bin/aeros  tempdynamics_sparse_gtempera.inp
+mpirun -n 2 --machinefile host.0 ../../bin/aeros  tempdynamics_sparse_gtempera.inp &
+echo mpirun -n 2 ../../bin/aeros  tempdynamics_skyline_gtempvel.inp
+mpirun -n 2 --machinefile host.1 ../../bin/aeros  tempdynamics_skyline_gtempvel.inp &
+echo mpirun -n 2 ../../bin/aeros  tempdynamics_mumps_gtempera.inp
+mpirun -n 2 --machinefile host.2 ../../bin/aeros  tempdynamics_mumps_gtempera.inp &
+echo mpirun -n 2 ../../bin/aeros  tempdynamics_spooles_gtempvel.inp
+mpirun -n 2 --machinefile host.3 ../../bin/aeros  tempdynamics_spooles_gtempvel.inp &
+echo mpirun -n 2 ../../bin/aeros  tempdynamics_spooles_pivot_gtempera.inp
+mpirun -n 2 --machinefile host.4 ../../bin/aeros  tempdynamics_spooles_pivot_gtempera.inp &
+echo mpirun -n 2 ../../bin/aeros  tempdynamics_mumps_pivot_gtempvel.inp
+mpirun -n 2 --machinefile host.5 ../../bin/aeros  tempdynamics_mumps_pivot_gtempvel.inp &
+echo mpirun -n 2 ../../bin/aeros -n 2 --dec --nsub 4 tempdynamics_FETI_DP_gtempera.inp
+mpirun -n 2 --machinefile host.6 ../../bin/aeros -n 2 --dec --nsub 4 tempdynamics_FETI_DP_gtempera.inp &
+wait %1 %2 %3 %4 %5 %6 %7 

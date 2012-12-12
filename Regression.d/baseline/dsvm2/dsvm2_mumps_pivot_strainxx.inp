@@ -6,7 +6,7 @@ dsvm2_mumps_pivot_strainxx
 *
 STATICS
 mumps pivot
-*
+include "../fetidp.include"
 OUTPUT
 strainxx dsvm2_mumps_pivot_strainxx.dat 1 NG 1
 *

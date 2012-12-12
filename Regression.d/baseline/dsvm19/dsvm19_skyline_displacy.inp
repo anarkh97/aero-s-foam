@@ -6,7 +6,7 @@ dsvm19_skyline_displacy
 *
 STATICS
 skyline
-*
+include "../fetidp.include"
 OUTPUT
 displacy dsvm19_skyline_displacy.dat 1 27
 *

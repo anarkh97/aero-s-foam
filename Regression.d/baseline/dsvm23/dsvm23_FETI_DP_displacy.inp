@@ -6,7 +6,7 @@ dsvm23_FETI_DP_displacy
 *
 STATICS
 FETI DP
-*
+include "../fetidp.include"
 OUTPUT
 displacy dsvm23_FETI_DP_displacy.dat  1 11
 *

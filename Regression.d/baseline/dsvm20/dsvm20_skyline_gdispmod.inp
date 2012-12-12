@@ -6,7 +6,7 @@ dsvm20_skyline_gdispmod
 *
 STATICS
 skyline
-*
+include "../fetidp.include"
 EIGEN
 arpack
 nsbspv 8

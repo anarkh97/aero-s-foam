@@ -6,7 +6,7 @@ dsvm23_cr_displacy
 *
 STATICS
 cr
-*
+include "../fetidp.include"
 OUTPUT
 displacy dsvm23_cr_displacy.dat  1 11
 *

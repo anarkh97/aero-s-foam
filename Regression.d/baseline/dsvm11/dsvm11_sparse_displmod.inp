@@ -6,6 +6,7 @@ dsvm11_sparse_displmod
 *
 STATICS
 sparse
+include "../fetidp.include"
 *
 NONLINEAR
 maxitr 40
@@ -15,6 +16,6 @@ rebuild 1
 OUTPUT
 displmod dsvm11_sparse_displmod.dat 1 5
 *
-INCLUDE dsvm11.include
+INCLUDE ../dsvm11.include
 *
 END

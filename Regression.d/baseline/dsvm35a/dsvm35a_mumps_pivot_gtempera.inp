@@ -6,6 +6,7 @@ dsvm35a_mumps_pivot_gtempera
 *
 STATICS
 mumps pivot
+include "../fetidp.include"
 *
 TRBM
 1e-8

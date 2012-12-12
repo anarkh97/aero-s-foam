@@ -6,7 +6,7 @@ dsvm23_spooles_pivot_displacy
 *
 STATICS
 spooles pivot
-*
+include "../fetidp.include"
 OUTPUT
 displacy dsvm23_spooles_pivot_displacy.dat  1 11
 *

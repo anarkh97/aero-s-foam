@@ -6,7 +6,7 @@ dsvm2_mumps_stressxx
 *
 STATICS
 mumps
-*
+include "../fetidp.include"
 OUTPUT
 stressxx dsvm2_mumps_stressxx.dat 1 NG 1
 *

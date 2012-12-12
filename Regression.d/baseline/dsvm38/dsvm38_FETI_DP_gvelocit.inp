@@ -6,7 +6,7 @@ dsvm38_FETI_DP_gvelocit
 *
 STATICS
 FETI DP
-*
+include "../fetidp.include"
 DYNAMICS
 time	0.0	0.5e-5	1.0
 newmark

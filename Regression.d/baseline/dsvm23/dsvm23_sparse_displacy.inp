@@ -6,7 +6,7 @@ dsvm23_sparse_displacy
 *
 STATICS
 sparse
-*
+include "../fetidp.include"
 OUTPUT
 displacy dsvm23_sparse_displacy.dat  1 11
 *

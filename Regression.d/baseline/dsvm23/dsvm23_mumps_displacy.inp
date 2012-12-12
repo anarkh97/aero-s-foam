@@ -6,7 +6,7 @@ dsvm23_mumps_displacy
 *
 STATICS
 mumps
-*
+include "../fetidp.include"
 OUTPUT
 displacy dsvm23_mumps_displacy.dat  1 11
 *

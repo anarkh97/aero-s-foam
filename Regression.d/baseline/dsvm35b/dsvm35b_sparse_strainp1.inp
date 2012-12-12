@@ -6,7 +6,7 @@ dsvm35b_sparse_strainp1
 *
 STATICS
 sparse
-*
+include "../fetidp.include"
 OUTPUT
 strainp1 dsvm35b_sparse_strainp1.dat  1
 displacz dsvm35b_sparse_strainp1_2.dat  1

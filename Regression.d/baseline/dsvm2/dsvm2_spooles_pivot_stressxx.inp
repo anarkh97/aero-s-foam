@@ -6,7 +6,7 @@ dsvm2_spooles_pivot_stressxx
 *
 STATICS
 spooles pivot
-*
+include "../fetidp.include"
 OUTPUT
 stressxx dsvm2_spooles_pivot_stressxx.dat 1 NG 1
 *

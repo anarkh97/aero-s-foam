@@ -10,15 +10,9 @@ echo ../../bin/aeros  dsvm21_mumps_displacy.inp
 ../../bin/aeros  dsvm21_mumps_displacy.inp
 echo ../../bin/aeros  dsvm21_spooles_displacy.inp
 ../../bin/aeros  dsvm21_spooles_displacy.inp
-echo ../../bin/aeros  dsvm21_direct_displacy.inp
-../../bin/aeros  dsvm21_direct_displacy.inp
 echo ../../bin/aeros  dsvm21_pcg_displacy.inp
 ../../bin/aeros  dsvm21_pcg_displacy.inp
 echo ../../bin/aeros  dsvm21_bcg_displacy.inp
 ../../bin/aeros  dsvm21_bcg_displacy.inp
 echo ../../bin/aeros  dsvm21_cr_displacy.inp
 ../../bin/aeros  dsvm21_cr_displacy.inp
-echo ../../bin/aeros -n 2 --dec --nsub 4 dsvm21_FETI_DP_displacy.inp
-../../bin/aeros -n 2 --dec --nsub 4 dsvm21_FETI_DP_displacy.inp
-echo ../../bin/aeros -n 2 --dec --nsub 4 dsvm21_FETI_DPH_displacy.inp
-../../bin/aeros -n 2 --dec --nsub 4 dsvm21_FETI_DPH_displacy.inp

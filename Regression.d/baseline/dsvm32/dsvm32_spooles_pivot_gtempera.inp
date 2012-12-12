@@ -6,7 +6,7 @@ dsvm32_spooles_pivot_gtempera
 *
 STATICS
 spooles pivot
-*
+include "../fetidp.include"
 OUTPUT
 gtempera dsvm32_spooles_pivot_gtempera.dat 1 NG 2
 gtempera dsvm32_spooles_pivot_gtempera_2.dat 1 NG 2

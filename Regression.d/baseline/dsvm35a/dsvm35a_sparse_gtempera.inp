@@ -6,6 +6,7 @@ dsvm35a_sparse_gtempera
 *
 STATICS
 sparse
+include "../fetidp.include"
 *
 TRBM
 1e-8

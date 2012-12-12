@@ -6,7 +6,7 @@ dsvm37_FETI_DP_gtempera
 *
 STATICS
 FETI DP
-*
+include "../fetidp.include"
 DYNAMICS
 time	21.6	0	21600
 newmark

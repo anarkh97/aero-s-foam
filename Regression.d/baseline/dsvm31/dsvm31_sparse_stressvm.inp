@@ -6,10 +6,11 @@ dsvm31_sparse_stressvm
 *
 STATICS
 sparse
+include "../fetidp.include"
 *
 OUTPUT
 stressvm dsvm31_sparse_stressvm.dat 1
 *
-INCLUDE dsvm31.include
+INCLUDE ../dsvm31.include
 *
 END

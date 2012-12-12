@@ -6,7 +6,7 @@ tempstatics_pcg_gtempera
 *
 STATICS
 pcg
-*
+include "../fetidp.include"
 OUTPUT
 gtempera tempstatics_pcg_gtempera.dat 1
 *

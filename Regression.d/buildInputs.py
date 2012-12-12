@@ -89,7 +89,8 @@ def buildInputs(params):
                      'dsvm2','dsvm15','dsvm19','dsvm20','dsvm21','dsvm22',\
                      'dsvm23','dsvm24','dsvm25','dsvm27a','dsvm27b','dsvm29','dsvm30',\
                      'dsvm31','dsvm32','dsvm34','dsvm35a','dsvm35b','dsvm37','dsvm38',\
-                     'dsvm39','dsvm40']
+                     'dsvm39','dsvm40','vmmech003','vmmech063','vme1','vme2',\
+                     'vme3','vme4','vme5','vme6','toto1']
     else:
       PROBLEM_NAMES = [params[1]]
 
@@ -140,7 +141,7 @@ def buildInputs(params):
       OUTPUT2 = ""
       STATICS = ["sparse","skyline","mumps","spooles","gmres","direct",\
                  "spooles pivot","mumps pivot","pcg","bcg","cr","FETI",\
-                 "FETI DP","FETI DPH"]
+                 "FETI DP"]
 
       INCLUDE = ["\"../mesh.include\""]
 
@@ -160,20 +161,50 @@ def buildInputs(params):
                "arpack\nnsbspv 20\nneigpa 12\ntoleig 1.0e-10\ntoljac 1.0e-04",\
                "arpack\nnsbspv 20\nneigpa 12\ntoleig 1.0e-10\ntoljac 1.0e-6"]
 
-      SHIFT = ["0","10","100","1000"]
+      SHIFT = ["0","0.1","1","10"]
+
+      if(problem_type == "vme2"):
+        OUTPUT = ["displacy"]
+        OUTPUT2 = ["gdisplac","normal_force_mag","normal_traction_mag","cdirnorx","cdirnory","cdirnorz","contact_area"]
+        OUTPUT_EXTRAS = [" 500 94"," 50000"," 50000"," 50000"," 50000"," 50000"," 50000"," 50000"]
+        DYNAMICS = ["time\t0.0\t2e-7\t1.0"]
+        NAMELIST = ["DYNAMICS\n","OUTPUT\n","INCLUDE "]
+        EXTRAS = ["newmark\nmech 0.0 0.5\nstable 0\n*","NONLINEAR\n*","*","*"]
+        INCLUDE_FILE = "../" + problem_type + ".include"
+        INCLUDE = [INCLUDE_FILE]
+        OPTIONSLIST = [DYNAMICS,OUTPUT,INCLUDE]
+ 
+      if(problem_type == "vme1"):
+        OUTPUT = ["displacx"]
+        OUTPUT_EXTRAS = [" 10 2"]
+        DYNAMICS = ["time\t0.0\t0.001\t5.0"]
+        NAMELIST = ["DYNAMICS\n","OUTPUT\n","INCLUDE "]
+        EXTRAS = ["newmark\nmech 0.0 0.5 0.0 0.0\n*","*","*"]
+        INCLUDE_FILE = "../" + problem_type + ".include"
+        INCLUDE = [INCLUDE_FILE]
+        OPTIONSLIST = [DYNAMICS,OUTPUT,INCLUDE]
+ 
+      if(problem_type == "vmmech003"):
+        OUTPUT = ["geigenpa"]
+        OUTPUT_EXTRAS = [" 10 2"]
+        NAMELIST = ["STATICS\n","OUTPUT\n","INCLUDE "]
+        STATICS = ["sparse","mumps", "mumps pivot","FETI DP"]
+        INCLUDE_FILE = "../" + problem_type + ".include"
+        INCLUDE = [INCLUDE_FILE]
+        OPTIONSLIST = [STATICS,OUTPUT,INCLUDE]
+        EXTRAS = ["include \"../fetidp.include\"","*","*"]
 
       if(problem_type == "dsvm40"):
         OUTPUT = ["displacy"]
         OUTPUT_EXTRAS = [" 1 2"]
-        FORCES = ["2 2 -1000\n3 2 -1000","2 2 -1000\n3 2 1000"]
-        NAMELIST = ["STATICS\n","OUTPUT\n","FORCES\n","INCLUDE "]
+        NAMELIST = ["STATICS\n","OUTPUT\n","INCLUDE "]
         STATICS = ["sparse","mumps","skyline","gmres",\
-                 "direct","mumps pivot","pcg","bcg","cr",\
-                 "FETI DP","FETI DPH"]
+                   "mumps pivot","pcg","bcg","cr",\
+                   "FETI DP"]
         INCLUDE_FILE = "../" + problem_type + ".include"
         INCLUDE = [INCLUDE_FILE]
-        OPTIONSLIST = [STATICS,OUTPUT,FORCES,INCLUDE]
-        EXTRAS = ["*","*","*","*"]
+        OPTIONSLIST = [STATICS,OUTPUT,INCLUDE]
+        EXTRAS = ["include \"../fetidp.include\"\ncases 1 2","*","*","*"]
 
       if(problem_type == "dsvm39"):
         OUTPUT = ["displacx"]
@@ -182,12 +213,11 @@ def buildInputs(params):
         NAMELIST = ["STATICS\n","DYNAMICS\n","OUTPUT\n","INCLUDE "]
         DYNAMICS = ["time\t0.0\t5.0e-3\t3.0"]
         STATICS = ["sparse","mumps","spooles",\
-                 "spooles pivot","mumps pivot","pcg","bcg","cr",\
-                 "FETI DP","FETI DPH"]
+                 "spooles pivot","mumps pivot","FETI DP"]
         INCLUDE_FILE = "../" + problem_type + ".include"
         INCLUDE = [INCLUDE_FILE]
         OPTIONSLIST = [STATICS,DYNAMICS,OUTPUT,INCLUDE]
-        EXTRAS = ["*","newmark\nmech 0.25 0.5 0.0 0.0\n*","*","*"]
+        EXTRAS = ["include \"../fetidp.include\"","newmark\nmech 0.25 0.5 0.0 0.0\n*","*","*"]
 
       if(problem_type == "dsvm38"):
         OUTPUT = ["gvelocit"]
@@ -195,26 +225,23 @@ def buildInputs(params):
         OUTPUT_EXTRAS = [" 1 18"," 1 586"]
         NAMELIST = ["STATICS\n","DYNAMICS\n","OUTPUT\n","INCLUDE "]
         DYNAMICS = ["time\t0.0\t0.5e-5\t1.0"]
-        STATICS = ["sparse","mumps","spooles","gmres",\
-                 "spooles pivot","mumps pivot","pcg","bcg","cr",\
-                 "FETI DP","FETI DPH"]
+        STATICS = ["FETI DP"]
         INCLUDE_FILE = "../" + problem_type + ".include"
         INCLUDE = [INCLUDE_FILE]
         OPTIONSLIST = [STATICS,DYNAMICS,OUTPUT,INCLUDE]
-        EXTRAS = ["*","newmark\nmech 0.8\n*","*","*"]
+        EXTRAS = ["include \"../fetidp.include\"","newmark\nmech 0.8\n*","*","*"]
 
       if(problem_type == "dsvm37"):
         OUTPUT = ["gtempera"]
         OUTPUT_EXTRAS = ["1 42619"]
         NAMELIST = ["STATICS\n","DYNAMICS\n","OUTPUT\n","INCLUDE "]
         DYNAMICS = ["time\t21.6\t0\t21600"]
-        STATICS = ["sparse","mumps","spooles","gmres",\
-                 "spooles pivot","mumps pivot","pcg","bcg","cr",\
-                 "FETI DP","FETI DPH"]
+        STATICS = ["sparse","mumps","spooles",\
+                 "spooles pivot","mumps pivot", "FETI DP"]
         INCLUDE_FILE = "../" + problem_type + ".include"
         INCLUDE = [INCLUDE_FILE]
         OPTIONSLIST = [STATICS,DYNAMICS,OUTPUT,INCLUDE]
-        EXTRAS = ["*","newmark\nheat 0.5\n*","*","*"]
+        EXTRAS = ["include \"../fetidp.include\"","newmark\nheat 0.5\n*","*","*"]
 
       if(problem_type == "dsvm35b"):
         OUTPUT = ["strainp1"]
@@ -223,25 +250,23 @@ def buildInputs(params):
         NAMELIST = ["STATICS\n","OUTPUT\n","INCLUDE "]
         STATICS = ["sparse","mumps","spooles","gmres",\
                  "spooles pivot","mumps pivot","pcg","bcg","cr",\
-                 "FETI DP","FETI DPH"]
+                 "FETI DP"]
         INCLUDE_FILE = "../" + problem_type + ".include"
         INCLUDE = [INCLUDE_FILE]
         OPTIONSLIST = [STATICS,OUTPUT,INCLUDE]
-        EXTRAS = ["*","*","*","*"]
+        EXTRAS = ["include \"../fetidp.include\"","*","*","*"]
 
       if(problem_type == "dsvm35a"):
         OUTPUT = ["gtempera"]
         OUTPUT2 = ["gtempera"]
         OUTPUT_EXTRAS = ["1 NG 1","1 NG 4"]
         NAMELIST = ["STATICS\n","NONLINEAR\n","OUTPUT\n","INCLUDE "]
-        STATICS = ["sparse","mumps","spooles","gmres",\
-                 "spooles pivot","mumps pivot","pcg","bcg","cr",\
-                 "FETI DP","FETI DPH"]
+        STATICS = ["sparse","mumps pivot"]
         NONLINEAR = ["maxitr 100\nnltol 1.0e-10\nrebuild 1"]
         INCLUDE_FILE = "../" + problem_type + ".include"
         INCLUDE = [INCLUDE_FILE]
         OPTIONSLIST = [STATICS,NONLINEAR,OUTPUT,INCLUDE]
-        EXTRAS = ["*\nTRBM\n1e-8\n*","*","*","*"]
+        EXTRAS = ["include \"../fetidp.include\"\n*\nTRBM\n1e-8\n*","*","*","*"]
 
       if(problem_type == "dsvm34"):
         OUTPUT = ["displmod"]
@@ -259,22 +284,20 @@ def buildInputs(params):
         OUTPUT2 = ["gtempera"]
         OUTPUT_EXTRAS = ["1 NG 2","1 NG 2"]
         NAMELIST = ["STATICS\n","OUTPUT\n","INCLUDE "]
-        STATICS = ["sparse","mumps","spooles","gmres",\
-                 "spooles pivot","mumps pivot","pcg","bcg","cr",\
-                 "FETI DP","FETI DPH"]
+        STATICS = ["sparse","mumps","spooles","spooles pivot","mumps pivot",\
+                 "FETI DP"]
         INCLUDE_FILE = "../" + problem_type + ".include"
         INCLUDE = [INCLUDE_FILE]
         OPTIONSLIST = [STATICS,OUTPUT,INCLUDE]
-        EXTRAS = ["*","*","*","*"]
+        EXTRAS = ["include \"../fetidp.include\"","*","*","*"]
 
       if(problem_type == "dsvm30"):
         OUTPUT = ["displmod"]
         OUTPUT2 = ["stressxx","reaction"]
         OUTPUT_EXTRAS = [" 1","1 NG 2","1 NG 1"]
         NAMELIST = ["STATICS\n","OUTPUT\n","INCLUDE "]
-        STATICS = ["sparse","skyline","mumps","spooles","gmres","direct",\
-                 "spooles pivot","mumps pivot","pcg","bcg","cr",\
-                 "FETI DP","FETI DPH"]
+        STATICS = ["sparse","skyline","mumps","spooles","gmres",\
+                 "spooles pivot","mumps pivot","pcg","bcg","cr"]
         INCLUDE_FILE = "../" + problem_type + ".include"
         INCLUDE = [INCLUDE_FILE]
         OPTIONSLIST = [STATICS,OUTPUT,INCLUDE]
@@ -283,7 +306,7 @@ def buildInputs(params):
       if(problem_type == "dsvm29"):
         OUTPUT = ["stressvm"]
         NAMELIST = ["STATICS\n","NONLINEAR\n","OUTPUT\n","INCLUDE "]
-        STATICS = ["mumps pivot","gmres","spooles pivot"]
+        STATICS = ["mumps pivot","spooles pivot"]
         NONLINEAR = ["maxitr 60\nnltol 1.0e-10\ndlambda 0.25 1.5"]
         INCLUDE_FILE = "../" + problem_type + ".include"
         INCLUDE = [INCLUDE_FILE]
@@ -294,8 +317,7 @@ def buildInputs(params):
         OUTPUT = ["displacz"]
         NAMELIST = ["STATICS\n","OUTPUT\n","INCLUDE "]
         STATICS = ["sparse","spooles pivot","skyline",\
-                   "spooles","direct","pcg","bcg","cr",\
-                   "FETI DP","FETI DPH"]
+                   "spooles","pcg","bcg","cr"]
         INCLUDE_FILE = "../" + problem_type + ".include"
         INCLUDE = [INCLUDE_FILE]
         OPTIONSLIST = [STATICS,OUTPUT,INCLUDE]
@@ -307,64 +329,58 @@ def buildInputs(params):
         OUTPUT_EXTRAS = [" 1"," 1"," 1"]
         NAMELIST = ["STATICS\n","OUTPUT\n","INCLUDE "]
         STATICS = ["sparse","spooles pivot","skyline",\
-                   "spooles","direct","pcg","bcg","cr",\
-                   "FETI DP","FETI DPH"]
+                   "spooles","pcg","bcg","cr"]
         INCLUDE_FILE = "../" + problem_type + ".include"
         INCLUDE = [INCLUDE_FILE]
         OPTIONSLIST = [STATICS,OUTPUT,INCLUDE]
-        EXTRAS = ["*","*","*"]
+        EXTRAS = ["include \"../fetidp.include\"","*","*"]
 
       if(problem_type == "dsvm25"):
         OUTPUT = ["stressp1"]
         OUTPUT2 = ["stressp1"]
         OUTPUT_EXTRAS = ["1 NG 1","1 NG 2"]
         NAMELIST = ["STATICS\n","OUTPUT\n","INCLUDE "]
-        STATICS = ["sparse","spooles pivot","skyline",\
-                   "spooles","direct","pcg","bcg","cr",\
-                   "FETI DP","FETI DPH"]
+        STATICS = ["FETI DP"]
         INCLUDE_FILE = "../" + problem_type + ".include"
         INCLUDE = [INCLUDE_FILE]
         OPTIONSLIST = [STATICS,OUTPUT,INCLUDE]
-        EXTRAS = ["global_cor_rbm_tol 1e-5\nconstraints multipliers\n*\nGRBM\n*","*","*","*"]
+        EXTRAS = ["tolfeti 1.0e-8\ncoarse_solver skyline\nglobal_cor_rbm_tol 1e-5\nconstraints multipliers\n*\nGRBM\n*","*","*","*"]
 
       if(problem_type == "dsvm24"):
         OUTPUT = ["displacz"]
         OUTPUT_EXTRAS = [" 1 NG 1","1 NG 1 modphase"]
-        IMPE = ["freq 500.0","freq 500.0\ndamp 3.18309886e-5 0"]
+        IMPE = ["freq 500","freq 500","freq 500","freq 500\ndamp 3.18309886e-5 0","freq 500\ndamp 3.18309886e-5 0","freq 500\ndamp 3.18309886e-5 0"]
         NAMELIST = ["IMPE\n","STATICS\n","OUTPUT\n","INCLUDE "]
-        STATICS = ["sparse","spooles pivot","mumps pivot",\
-                   "mumps","spooles","pcg","bcg","cr",\
-                   "FETI DP","FETI DPH"]
+        STATICS = ["spooles pivot","mumps pivot","FETI DPH"]
         INCLUDE_FILE = "../" + problem_type + ".include"
         INCLUDE = [INCLUDE_FILE]
         OPTIONSLIST = [IMPE,STATICS,OUTPUT,INCLUDE]
-        EXTRAS = ["*","*","*","*"]
+        EXTRAS = ["*","include \"../fetidph.include\"","*","*"]
 
       if(problem_type == "dsvm23"):
         OUTPUT = ["displacy"]
         OUTPUT_EXTRAS = [" 1 11"]
         NAMELIST = ["STATICS\n","OUTPUT\n","INCLUDE "]
         STATICS = ["sparse","spooles pivot","mumps pivot","skyline",\
-                   "mumps","spooles","direct","pcg","bcg","cr",\
-                   "FETI DP","FETI DPH"]
+                   "mumps","spooles","pcg","bcg","cr",\
+                   "FETI DP"]
         INCLUDE_FILE = "../" + problem_type + ".include"
         INCLUDE = [INCLUDE_FILE]
         OPTIONSLIST = [STATICS,OUTPUT,INCLUDE]
-        EXTRAS = ["*","*","*"]
+        EXTRAS = ["include \"../fetidp.include\"","*","*"]
 
       if(problem_type == "dsvm22"):
-        OUTPUT = ["displacz"]
-        OUTPUT2 = ["displacz","stresszz","stresszz"]
-        OUTPUT_EXTRAS = [" 1 NG 1"," 1 NG 2"," 1 NG 1"," 1 NG 2"]
+        OUTPUT = ["gdisplac","displacx","stressvm","strainvm",\
+                  "displacx","stressvm","strainvm","gdisplac"]
+        OUTPUT2 = ["displacz","displacz","stresszz","stresszz"]
+        OUTPUT_EXTRAS = [" 1"," 1 NG 1"," 1 NG 2"," 1 NG 1"," 1 NG 2"]
         NAMELIST = ["STATICS\n","","OUTPUT\n","INCLUDE ","INCLUDE "]
-        STATICS = ["sparse","spooles pivot","mumps pivot","skyline",\
-                   "mumps","spooles","direct","pcg","bcg","cr",\
-                   "FETI DP","FETI DPH"]
+        STATICS = ["sparse","FETI DP"]
         STATICS_OPTS = ["constraints penalty 1e12","constraints multipliers"]
         INCLUDE_FILE = "../" + problem_type + ".include"
         INCLUDE = [INCLUDE_FILE]
-        CONTACT = ["../dsvm22.contact1","../dsvm22.contact2","../dsvm22.contact3",\
-                   "../dsvm22.contact4"]
+        CONTACT = ["../dsvm22.contact1","../dsvm22.contact1","../dsvm22.contact2","../dsvm22.contact2",\
+                   "../dsvm22.contact3","../dsvm22.contact3","../dsvm22.contact4","../dsvm22.contact4"]
         OPTIONSLIST = [STATICS,STATICS_OPTS,OUTPUT,INCLUDE,CONTACT]
 #        EXTRAS = ["constraints penalty 1e12","*","*","*"]
         EXTRAS = ["*","*","*","*","*"]
@@ -374,24 +390,24 @@ def buildInputs(params):
         OUTPUT = ["displacy"]
         NAMELIST = ["STATICS\n","EIGEN\n","OUTPUT\n","INCLUDE "]
         STATICS = ["sparse","spooles pivot","mumps pivot","skyline",\
-                   "mumps","spooles","direct","pcg","bcg","cr"]
+                   "mumps","spooles","pcg","bcg","cr"]
         EIGEN = ["arpack\nnsbspv 3\nneigpa 1","arpack\nnsbspv 3\nneigpa 1"]
         INCLUDE_FILE = "../" + problem_type + ".include"
         INCLUDE = [INCLUDE_FILE]
         OPTIONSLIST = [STATICS,EIGEN,OUTPUT,INCLUDE]
-        EXTRAS = ["*","*","*\nGEPS\nBUCKLE\n*","*"]
+        EXTRAS = ["include \"../fetidp.include\"","*","*\nGEPS\nBUCKLE\n*","*"]
 
       if(problem_type == "dsvm20"):
         OUTPUT = ["gdispmod"]
         NAMELIST = ["STATICS\n","EIGEN\n","OUTPUT\n","INCLUDE "]
         STATICS = ["sparse","spooles pivot","mumps pivot","skyline",\
                    "mumps","spooles","direct","pcg","bcg","cr",\
-                   "FETI DP","FETI DPH"]
+                   "FETI DP"]
         EIGEN = ["arpack\nnsbspv 8\nneigpa 4"]
         INCLUDE_FILE = "../" + problem_type + ".include"
         INCLUDE = [INCLUDE_FILE]
         OPTIONSLIST = [STATICS,EIGEN,OUTPUT,INCLUDE]
-        EXTRAS = ["*","*","*","*"]
+        EXTRAS = ["include \"../fetidp.include\"","*","*","*"]
 
       if(problem_type == "dsvm19"):
         OUTPUT = ["displacy"]
@@ -399,10 +415,10 @@ def buildInputs(params):
         NAMELIST = ["STATICS\n","OUTPUT\n","INCLUDE "]
         STATICS = ["sparse","spooles pivot","mumps pivot","skyline",\
                    "mumps","spooles","direct","pcg","bcg","cr",\
-                   "FETI DP","FETI DPH"]
+                   "FETI DP"]
         INCLUDE = ["../dsvm19.include"]
         OPTIONSLIST = [STATICS,OUTPUT,INCLUDE]
-        EXTRAS = ["*","*","*"]
+        EXTRAS = ["include \"../fetidp.include\"","*","*"]
 
       if(problem_type == "dsvm15"):
         OUTPUT = ["displacy"]
@@ -410,28 +426,25 @@ def buildInputs(params):
         OUTPUT_EXTRAS = ["1 38046","1 37735"]
         IMPE =    ["freqsweep 0 500 11 50\nrecons pade 2 4 5"]
         NAMELIST = ["IMPE\n","STATICS\n","OUTPUT\n","INCLUDE "]
-        STATICS = ["spooles pivot","sparse","mumps pivot",\
-                   "spooles","FETI DP","FETI DPH"]
+        STATICS = ["spooles pivot","mumps pivot","FETI DPH"]
         INCLUDE = ["../dsvm15.include"]
         OPTIONSLIST = [IMPE,STATICS,OUTPUT,INCLUDE]
-        EXTRAS = ["*","*","*","*"]
+        EXTRAS = ["*","include \"../fetidph.include\"","*","*"]
 
       if(problem_type == "dsvm2"):
         OUTPUT = ["stressxx","strainxx"]
         OUTPUT_EXTRAS = ["1 NG 1"]
         NAMELIST = ["STATICS\n","OUTPUT\n","INCLUDE "]
         STATICS = ["sparse","mumps pivot","mumps","spooles",\
-                   "spooles pivot","pcg","bcg","cr",\
-                   "FETI DP","FETI DPH"]
+                   "spooles pivot", "FETI DP"]
         INCLUDE = ["../dsvm2.include"]
         OPTIONSLIST = [STATICS,OUTPUT,INCLUDE]
-        EXTRAS = ["*","*","*"]
+        EXTRAS = ["include \"../fetidp.include\"","*","*"]
+
       if(problem_type == "dsvm13"):
         OUTPUT = ["geigenpa"]
         NAMELIST = ["STATICS\n","EIGEN\n","GEPS\n","OUTPUT\n","INCLUDE "]
-        STATICS = ["mumps pivot","sparse","skyline","mumps","spooles",\
-                   "direct","spooles pivot","pcg","bcg","cr",\
-                   "FETI DP","FETI DPH"]
+        STATICS = ["mumps pivot", "spooles pivot"]
         GEPS = ["buckle"]
         EIGEN = ["arpack LA 4\nnsbspv 3\nneigpa 1\ntoleig 1.0e-6\nshift 100"]
         INCLUDE = ["../dsvm13.include"]
@@ -439,54 +452,58 @@ def buildInputs(params):
         EXTRAS = ["*","*","*","*","*"]
 
       if(problem_type == "dsvm31"):
-        OUTPUT = ["stressvm","strainvm","strainxx","sp3direc",\
-                "stressp3","ep3direc","stressxx","strainp3"]
+        OUTPUT = ["stressvm","strainvm","strainxx",\
+                "stressp3","stressxx","strainp3"]
         NAMELIST = ["STATICS\n","OUTPUT\n","INCLUDE "]
-        STATICS = ["sparse","skyline","mumps","spooles","gmres","direct",\
+        STATICS = ["sparse","skyline","mumps","spooles","gmres",\
                    "spooles pivot","mumps pivot","pcg","bcg","cr",\
-                   "FETI DP","FETI DPH"]
+                   "FETI DP"]
         INCLUDE = ["../dsvm31.include"]
         OPTIONSLIST = [STATICS,OUTPUT,INCLUDE]
-        EXTRAS = ["*","*","*"]
+        EXTRAS = ["include \"../fetidp.include\"\n*","*","*"]
 
       if(problem_type == "dsvm11"):
         OUTPUT = ["displmod","gdisplac","displacz"]
         OUTPUT_EXTRAS = ["1 5"]
         NAMELIST = ["STATICS\n","NONLINEAR\n","OUTPUT\n","INCLUDE "]
-        STATICS = ["sparse","mumps",\
-                 "spooles pivot","mumps pivot",\
-                 "FETI DP","FETI DPH","spooles"]
         NONLINEAR = ["maxitr 40\nnltol 1.0e-6\nrebuild 1",\
                    "maxitr 10\nnltol 1.0e-5\nrebuild 1"]
         INCLUDE = ["../dsvm11.include"]
+        EXTRAS = ["include \"../fetidp.include\"\n*","*","*","*"]
+        STATICS = ["sparse","mumps","spooles","spooles pivot","mumps pivot",\
+                 "FETI DP"]
+
         OPTIONSLIST = [STATICS,NONLINEAR,OUTPUT,INCLUDE]
-        EXTRAS = ["*","*","*","*"]
 
       if(problem_type == "dsvm1"):
         OUTPUT = ["reaction"]
         OUTPUT2 = ["reaction"]
         OUTPUT_EXTRAS = [" 1 NG 1"," 1 NG 2"]
         NAMELIST = ["STATICS\n","OUTPUT\n","INCLUDE "]
-        STATICS = ["sparse","skyline","mumps","spooles","gmres","direct",\
-                   "spooles pivot","mumps pivot","pcg","bcg","cr",\
-                   "FETI DP","FETI DPH"]
+        STATICS = ["sparse","skyline","mumps","spooles","gmres",\
+                   "spooles pivot","mumps pivot","pcg","bcg","cr"]
         INCLUDE = ["../dsvm1.include"]
         OPTIONSLIST = [STATICS,OUTPUT,INCLUDE]
         EXTRAS = ["*","*","*"]
 
       if(problem_type == "tempnlstatics"):
-        EXTRAS = ["*","*","*","*","*id A   E   nu  rho    c   k     h   P   Ta  q     w   etc...","*"]
+        STATICS = ["sparse","skyline","mumps","spooles", "spooles pivot","mumps pivot",\
+                 "FETI DP"]
+        EXTRAS = ["include \"../fetidp.include\"","*","*","*id A   E   nu  rho    c   k     h   P   Ta  q     w   etc...","*"]
         INCLUDE = ["\"../mesh_temp.include\""]
-        OUTPUT = ["gtempera","gtempvel","heatflxx","heatflxy","heatflxz","grdtempx","grdtempy","grdtempz"]
+        OUTPUT = ["gtempera"]
         MATERIALS = ["1   0.0 0.0 0.0 0.0 0.0 202.4 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0"]
         NAMELIST = ["STATICS\n","NONLINEAR\n","OUTPUT\n","MATERIALS\n","INCLUDE "]
         OPTIONSLIST = [STATICS,NONLINEAR,OUTPUT,MATERIALS,INCLUDE]
 
       if(problem_type == "tempnldynamics"):
         DYNAMICS = ["heat\t0.5\ntime\t1.0\t1.0\t200.0"]
-        EXTRAS = ["*","newmark","*","*","*","*","*id A   E   nu  rho    c   k     h   P   Ta  q     w   etc...","*"]
+        EXTRAS = ["include \"../fetidp.include\"","newmark","*","*id A   E   nu  rho    c   k     h   P   Ta  q     w   etc...","*","*"]
         INCLUDE = ["\"../mesh_temp.include\""]
-        OUTPUT = ["gtempera","gtempvel","heatflxx","heatflxy","heatflxz","grdtempx","grdtempy","grdtempz"]
+        STATICS = ["sparse","skyline","mumps","spooles","spooles pivot","mumps pivot",\
+                 "FETI DP"]
+        OUTPUT = ["gtempera","gtempvel"]
+        OUTPUT_EXTRAS = [" 200"]
         MATERIALS = ["1   0.0 0.0 0.0 2719.0  0.0 202.4 0.0 0.0 0.0 871.0   0.0 0.0 0.0 0.0"]
         NAMELIST = ["STATICS\n","DYNAMICS\n","NONLINEAR\n","OUTPUT\n","MATERIALS\n","INCLUDE "]
         OPTIONSLIST = [STATICS,DYNAMICS,NONLINEAR,OUTPUT,MATERIALS,INCLUDE]
@@ -494,64 +511,100 @@ def buildInputs(params):
       if(problem_type == "tempdynamics"):
         DYNAMICS = ["mech\t0.25\t0.5",\
                     "time\t1.0\t1.0\t200.0"]
-        EXTRAS = ["*","newmark","*","*id A   E   nu  rho    c   k     h   P   Ta  q     w   etc...","*","*"]
+        OUTPUT_EXTRAS = [" 200"]
+        EXTRAS = ["include \"../fetidp.include\"","newmark","*","*id A   E   nu  rho    c   k     h   P   Ta  q     w   etc...","*","*"]
         INCLUDE = ["\"../mesh_temp.include\""]
-        OUTPUT = ["gtempera","gtempvel","heatflxx","heatflxy","heatflxz","grdtempx","grdtempy","grdtempz"]
+        STATICS = ["sparse","skyline","mumps","spooles","spooles pivot","mumps pivot",\
+                 "FETI DP"]
+        OUTPUT = ["gtempera","gtempvel"]
         MATERIALS = ["1   0.0 0.0 0.0 2719.0  0.0 202.4 0.0 0.0 0.0 871.0   0.0 0.0 0.0 0.0"]
         NAMELIST = ["STATICS\n","DYNAMICS\n","OUTPUT\n","MATERIALS\n","INCLUDE "]
         OPTIONSLIST = [STATICS,DYNAMICS,OUTPUT,MATERIALS,INCLUDE]
 
       if(problem_type == "tempstatics"):
         NAMELIST = ["STATICS\n","OUTPUT\n","MATERIALS\n","INCLUDE "]
-        EXTRAS = ["*","*","*","*id A   E   nu  rho    c   k     h   P   Ta  q     w   etc..."]
+        STATICS = ["sparse","skyline","mumps","spooles","gmres",\
+                 "spooles pivot","mumps pivot","pcg","bcg","cr",\
+                 "FETI DP"]
+        EXTRAS = ["include \"../fetidp.include\"","*","*","*id A   E   nu  rho    c   k     h   P   Ta  q     w   etc..."]
         INCLUDE = ["\"../mesh_temp.include\""]
-        OUTPUT = ["gtempera","gtempvel","heatflxx","heatflxy","heatflxz","grdtempx","grdtempy","grdtempz"]
+        OUTPUT = ["gtempera"]
         MATERIALS = ["1   0.0 0.0 0.0 0.0    0.0 202.4 0.0 0.0 0.0 0.0   0.0 0.0 0.0 0.0"]
         OPTIONSLIST=[STATICS,OUTPUT,MATERIALS,INCLUDE]
 
       if(problem_type == "dynamics"):
         EXTRAS = ["*","newmark\nmech\t0.25000\t0.5000\n*\ttime step\ttotal time","*","*","*"]
         NAMELIST = ["STATICS\n","DYNAMICS\n","OUTPUT\n","INCLUDE "]
+        STATICS = ["sparse","skyline","mumps","spooles","spooles pivot","mumps pivot",\
+                 "FETI DP"]
+        OUTPUT = ["gdisplac","stressvm","strainxx","strainxy","strainxz",\
+                "strainxx","strainxy","strainxz","strainxx","strainxy","strainvm", \
+                "strainxz","displmod","gdispmod","displacx","displacy","displacz",\
+                "strainp1","strainp2","strainp3","stressp1","stressp2","stressp3",\
+                "gvelocit","gacceler"]
+        DYNAMICS = ["time\t0.0\t3.0e+0\t3.0e+2"]
+        OUTPUT_EXTRAS = [" 100"]
         OPTIONSLIST = [STATICS,DYNAMICS,OUTPUT,INCLUDE]
   
       if(problem_type == "nldynamics"):
-        STATICS = ["sparse","spooles","spooles pivot","pcg",\
-                   "FETI DP","FETI DPH"]
+        STATICS = ["sparse","spooles","FETI DP","mumps"]
+        DYNAMICS = ["time\t0.0\t0.3e+0\t3.0e+1"]
+        OUTPUT_EXTRAS = [" 100"]
         OUTPUT = ["gdisplac","stressvm","strainxx","strainxz",\
-                  "stressxx","stressxz","inzforce","axmoment",  "energies" ]
-        EXTRAS = ["*","newmark\nmech\t0.25000\t0.5000\n*\ttime step\ttotal time","*","*","*","*","*"]
+                  "stressxx","stressxz", "gvelocit","gacceler" ]
+        EXTRAS = ["*","newmark\nmech\t0.8000\n*\ttime step\ttotal time","*","*","*","*","*"]
         NAMELIST = ["STATICS\n","DYNAMICS\n","NONLINEAR\n","OUTPUT\n","INCLUDE "]
         OPTIONSLIST = [STATICS,DYNAMICS,NONLINEAR,OUTPUT,INCLUDE]
 
       if(problem_type == "impe"):
         NAMELIST = ["IMPE\n","STATICS\n","OUTPUT\n","INCLUDE "]
+        STATICS = ["spooles pivot","mumps pivot","FETI DPH"]
+        OUTPUT = ["gdisplac","displmod","gdispmod","displacx","displacy","displacz"]
+                
+        INCLUDE = ["\"../mesh.include\""]
         OPTIONSLIST = [IMPE,STATICS,OUTPUT,INCLUDE]
-        EXTRAS = ["*","*","*","*","*"]
+        EXTRAS = ["*","include \"../fetidph.include\"","*","*","*"]
   
       if(problem_type == "freqsweep"):
         NAMELIST = ["STATICS\n","IMPE\n","OUTPUT\n","INCLUDE "]
-        OPTIONSLIST = [STATICS,IMPE,OUTPUT,INCLUDE]
+        STATICS = ["spooles pivot","mumps pivot","FETI DPH"]
         IMPE =    ["freqsweep 1. 3. 3 10\ndamp 1e-6 1.0",\
                    "freqsweep 1. 3. 3 10\ndamp 1e-7 1.0",\
                    "freqsweep 1. 3. 3 10\ndamp 1e-5 1.0"]
+        OUTPUT = ["gdisplac","displmod","gdispmod","displacx","displacy","displacz"]
+        OPTIONSLIST = [STATICS,IMPE,OUTPUT,INCLUDE]
         EXTRAS = ["*","recons pade 2 9 10","*","*","*"]
 
       if(problem_type == "nlstatics"):
-        EXTRAS = ["include \"../feti.include\"\n*","*","*","*","*"]
-        STATICS = ["sparse","skyline","mumps","spooles","gmres","direct",\
-                 "spooles pivot","mumps pivot","bcg","cr","FETI",\
-                 "FETI DP","FETI DPH"]
+        EXTRAS = ["include \"../fetidp.include\"\n*","dlambda 0.1 0.3\n*","*","*","*"]
+        STATICS = ["sparse","skyline","mumps","spooles","spooles pivot","mumps pivot",\
+                 "FETI DP"]
+        OUTPUT = ["gdisplac","stressvm","strainxx","strainxy","strainxz",\
+                "strainxx","strainxy","strainxz","strainxx","strainxy","strainvm", \
+                "strainxz","displmod","gdispmod","displacx","displacy","displacz",\
+                "strainp1","strainp2","strainp3","stressp1","stressp2","stressp3"]
   
         NAMELIST = ["STATICS\n","NONLINEAR\n","OUTPUT\n","INCLUDE "]
         OPTIONSLIST = [STATICS,NONLINEAR,OUTPUT,INCLUDE]
       if(problem_type == "statics"):
+        STATICS = ["sparse","skyline","mumps","spooles","gmres",\
+                 "spooles pivot","mumps pivot","pcg","bcg","cr",\
+                 "FETI DP"]
+        OUTPUT = ["gdisplac","stressvm","strainxx","strainxy","strainxz",\
+                "strainxx","strainxy","strainxz","strainxx","strainxy","strainvm", \
+                "strainxz","displmod","gdispmod","displacx","displacy","displacz",\
+                "strainp1","strainp2","strainp3","stressp1","stressp2","stressp3"]
+                
         NAMELIST = ["STATICS\n","OUTPUT\n","INCLUDE "]
         EXTRAS = ["*","*","*"]
         OPTIONSLIST=[STATICS,OUTPUT,INCLUDE]
 
       if(problem_type == "eigen"):
-        EXTRAS = ["*","*","*","*","*","*"]
+        STATICS = ["spooles pivot","mumps pivot","FETI DPH"]
+        EXTRAS = ["include \"../fetidph.include\"","*","*","*","*","*"]
         NAMELIST = ["STATICS\n","EIGEN\n","SHIFT ","OUTPUT\n","INCLUDE "]
+        INCLUDE = ["\"../mesh_eigen.include\""]
+        OUTPUT = ["geigenpa"]
         OPTIONSLIST=[STATICS,EIGEN,SHIFT,OUTPUT,INCLUDE]
  
  
@@ -600,8 +653,10 @@ def buildInputs(params):
                   FILE.write("%s %s" % (OUTPUT2[jj],OUTPUT_FILENAME))
                   FILE.write(" %s" % OUTPUT_EXTRAS[jj+1])
             FILE.write("\n")
-            if(NAMELIST[j].find("FETI") != -1):
-              FILE.write("include \"../feti.include\"\n*")
+            if(NAMELIST[j].find("FETI DPH") != -1):
+              FILE.write("include \"../fetidph.include\"\n*")
+            elif(NAMELIST[j].find("FETI DP") != -1):
+              FILE.write("include \"../fetidp.include\"\n*")
             else:
               FILE.write(EXTRAS[j])
             FILE.write("\n")

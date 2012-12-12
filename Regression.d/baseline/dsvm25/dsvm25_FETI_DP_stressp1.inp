@@ -6,6 +6,8 @@ dsvm25_FETI_DP_stressp1
 *
 STATICS
 FETI DP
+tolfeti 1.0e-8
+coarse_solver skyline
 global_cor_rbm_tol 1e-5
 constraints multipliers
 *

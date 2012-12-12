@@ -6,7 +6,7 @@ dsvm23_mumps_pivot_displacy
 *
 STATICS
 mumps pivot
-*
+include "../fetidp.include"
 OUTPUT
 displacy dsvm23_mumps_pivot_displacy.dat  1 11
 *

@@ -1,18 +1,4 @@
 echo ../../bin/aeros  dsvm35a_sparse_gtempera.inp
 ../../bin/aeros  dsvm35a_sparse_gtempera.inp
-echo ../../bin/aeros  dsvm35a_spooles_gtempera.inp
-../../bin/aeros  dsvm35a_spooles_gtempera.inp
-echo ../../bin/aeros  dsvm35a_gmres_gtempera.inp
-../../bin/aeros  dsvm35a_gmres_gtempera.inp
-echo ../../bin/aeros  dsvm35a_spooles_pivot_gtempera.inp
-../../bin/aeros  dsvm35a_spooles_pivot_gtempera.inp
-echo ../../bin/aeros  dsvm35a_pcg_gtempera.inp
-../../bin/aeros  dsvm35a_pcg_gtempera.inp
-echo ../../bin/aeros  dsvm35a_bcg_gtempera.inp
-../../bin/aeros  dsvm35a_bcg_gtempera.inp
-echo ../../bin/aeros  dsvm35a_cr_gtempera.inp
-../../bin/aeros  dsvm35a_cr_gtempera.inp
-echo ../../bin/aeros -n 2 --dec --nsub 4 dsvm35a_FETI_DP_gtempera.inp
-../../bin/aeros -n 2 --dec --nsub 4 dsvm35a_FETI_DP_gtempera.inp
-echo ../../bin/aeros -n 2 --dec --nsub 4 dsvm35a_FETI_DPH_gtempera.inp
-../../bin/aeros -n 2 --dec --nsub 4 dsvm35a_FETI_DPH_gtempera.inp
+echo ../../bin/aeros  dsvm35a_mumps_pivot_gtempera.inp
+../../bin/aeros  dsvm35a_mumps_pivot_gtempera.inp

@@ -6,7 +6,7 @@ dsvm20_FETI_DP_gdispmod
 *
 STATICS
 FETI DP
-*
+include "../fetidp.include"
 EIGEN
 arpack
 nsbspv 8

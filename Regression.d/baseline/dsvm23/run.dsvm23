@@ -10,8 +10,6 @@ echo ../../bin/aeros  dsvm23_mumps_displacy.inp
 ../../bin/aeros  dsvm23_mumps_displacy.inp
 echo ../../bin/aeros  dsvm23_spooles_displacy.inp
 ../../bin/aeros  dsvm23_spooles_displacy.inp
-echo ../../bin/aeros  dsvm23_direct_displacy.inp
-../../bin/aeros  dsvm23_direct_displacy.inp
 echo ../../bin/aeros  dsvm23_pcg_displacy.inp
 ../../bin/aeros  dsvm23_pcg_displacy.inp
 echo ../../bin/aeros  dsvm23_bcg_displacy.inp
@@ -20,5 +18,3 @@ echo ../../bin/aeros  dsvm23_cr_displacy.inp
 ../../bin/aeros  dsvm23_cr_displacy.inp
 echo ../../bin/aeros -n 2 --dec --nsub 4 dsvm23_FETI_DP_displacy.inp
 ../../bin/aeros -n 2 --dec --nsub 4 dsvm23_FETI_DP_displacy.inp
-echo ../../bin/aeros -n 2 --dec --nsub 4 dsvm23_FETI_DPH_displacy.inp
-../../bin/aeros -n 2 --dec --nsub 4 dsvm23_FETI_DPH_displacy.inp

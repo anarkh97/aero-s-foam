@@ -6,7 +6,7 @@ dsvm20_mumps_pivot_gdispmod
 *
 STATICS
 mumps pivot
-*
+include "../fetidp.include"
 EIGEN
 arpack
 nsbspv 8

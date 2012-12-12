@@ -6,7 +6,7 @@ dsvm21_cr_displacy
 *
 STATICS
 cr
-*
+include "../fetidp.include"
 EIGEN
 arpack
 nsbspv 3

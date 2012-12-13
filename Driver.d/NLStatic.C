@@ -35,7 +35,7 @@ Domain::getElemStiffAndForce(const GeomState &geomState, double time,
     const_cast<Corotator &>(elemCorot).getStiffAndForce(
         const_cast<GeomState *>(refState),
         const_cast<GeomState &>(geomState),
-        nodes, elemStiff, elemForce, sinfo.getTimeStep(), time);
+        nodes, elemStiff, elemForce, domain->solInfo().getTimeStep(), time);
 }
 
 void
@@ -44,7 +44,7 @@ Domain::getElemStiffAndForce(const GeomState &geomState, double time,
                              double *elemForce, FullSquareMatrix &elemStiff) {
   const_cast<Corotator &>(elemCorot).getStiffAndForce(
       const_cast<GeomState &>(geomState),
-      nodes, elemStiff, elemForce, sinfo.getTimeStep(), time);
+      nodes, elemStiff, elemForce, domain->solInfo().getTimeStep(), time);
 }
 
 void
@@ -85,7 +85,6 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
     // Get updated tangent stiffness matrix and element internal force
     if (const Corotator *elemCorot = corotators[iele]) {
       getElemStiffAndForce(geomState, pseudoTime, refState, *elemCorot, elementForce.data(), kel[iele]);
-      //std::cerr << "iele = " << iele << ", kel[iele] = \n"; kel[iele].print();
     }
     // Compute k and internal force for an element with x translation (or temperature) dofs
     else if(solInfo().soltyp == 2) {
@@ -111,6 +110,8 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
   }
 
   getFollowerForce(geomState, elementForce, corotators, kel, residual, lambda, time, refState, reactions);
+
+  if(sinfo.isDynam()) getRotaryInertiaForce(geomState, kel, residual, time, refState, reactions);
 
   if(!solInfo().getNLInfo().unsymmetric && solInfo().newmarkBeta != 0)
     for(int iele = 0; iele < numele;  ++iele)
@@ -334,107 +335,6 @@ Domain::getFollowerForce(GeomState &geomState, Vector& elementForce,
       }
     }
   }
-
-#ifdef USE_EIGEN3
-  if(sinfo.isDynam() && sinfo.newmarkBeta != 0.0) { // TODO: explicit
-    DMassData *current = firstDiMass;
-    while(current != 0) {
-      int idof = current->dof;
-      int jdof = (current->jdof > -1) ? current->jdof : idof;
-      if((idof == 3 || idof == 4 || idof == 5) && (jdof == 3 || jdof == 4 || jdof == 5)) {
-        Eigen::Matrix3d mel = Eigen::Matrix3d::Zero(); 
-        Eigen::Matrix3d cel = sinfo.alphaDamp*mel;
-        Eigen::Vector3d v_n, a_n;
-        v_n << (*refState)[current->node].v[3], (*refState)[current->node].v[4], (*refState)[current->node].v[5];
-        a_n << (*refState)[current->node].a[3], (*refState)[current->node].a[4], (*refState)[current->node].a[5];
-        mel(idof-3,jdof-3) = current->diMass;
-        double beta = sinfo.newmarkBeta,
-               gamma = sinfo.newmarkGamma,
-               alphaf = sinfo.newmarkAlphaF,
-               alpham = sinfo.newmarkAlphaM,
-               dt = sinfo.getTimeStep();
-  
-        Eigen::Array<double,39,1> dconst;
-        Eigen::Array<int,1,1> iconst;
-        dconst << mel(0,0), mel(0,1), mel(0,2),
-                  mel(1,0), mel(1,1), mel(1,2),
-                  mel(2,0), mel(2,1), mel(2,2),
-                  a_n[0], a_n[1], a_n[2],
-                  v_n[0], v_n[1], v_n[2],
-                  (*refState)[current->node].R[0][0],(*refState)[current->node].R[0][1], (*refState)[current->node].R[0][2],
-                  (*refState)[current->node].R[1][0],(*refState)[current->node].R[1][1], (*refState)[current->node].R[1][2],
-                  (*refState)[current->node].R[2][0],(*refState)[current->node].R[2][1], (*refState)[current->node].R[2][2],
-                  geomState[current->node].R[0][0], geomState[current->node].R[0][1], geomState[current->node].R[0][2],
-                  geomState[current->node].R[1][0], geomState[current->node].R[1][1], geomState[current->node].R[1][2],
-                  geomState[current->node].R[2][0], geomState[current->node].R[2][1], geomState[current->node].R[2][2],
-                  beta, gamma, alphaf, alpham, dt, sinfo.alphaDamp;
-        iconst << 2;
-        InertialForceFunction<double> F(dconst, iconst);
-        Eigen::Vector3d q = Eigen::Vector3d::Zero();
-        Eigen::Vector3d f = F(q,time);
-  
-        // subtract the part which is already accounted for
-        Eigen::Vector3d incd;
-        double dR[3][3];
-        mat_mult_mat( geomState[current->node].R, (*refState)[current->node].R, dR, 2);
-        mat_to_vec(dR, incd.data());
-        Eigen::Vector3d a = (1-alpham)/(dt*dt*beta*(1-alphaf))*incd - (1-alpham)/(dt*beta)*v_n + ((alpham-1)/(2*beta)+1)*a_n;
-        Eigen::Vector3d v = gamma/(dt*beta)*incd + (1-(1-alphaf)*gamma/beta)*v_n + dt*(1-alphaf)*(2*beta-gamma)/(2*beta)*a_n;
-        f -= (mel*a + cel*v);
-  
-        int dofs[3];
-        dsa->number(current->node, DofSet::XYZrot, dofs);
-        for(int j = 0; j < 3; ++j) {
-          int uDofNum = c_dsa->getRCN(dofs[j]);
-          if(uDofNum >= 0)
-            residual[uDofNum] -= f[j];
-          else if(reactions) {
-            int cDofNum = c_dsa->invRCN(dofs[j]);
-            if(cDofNum >= 0)
-              (*reactions)[cDofNum] += f[j];
-          }
-        }
-  
-        if(kel && sinfo.newmarkBeta != 0.0) { // tangent stiffness contribution
-
-          double Ccoef = gamma/(dt*beta),
-                 Mcoef = (1-alpham)/((1-alphaf)*(dt*dt*beta));
-  
-          VectorValuedFunctionJacobian<double,InertialForceFunction> dfdq(dconst,iconst,time);
-          Eigen::Matrix<double,9,1> J;
-          dfdq(q, J);
-  
-          Eigen::Matrix3d ikel;
-          for(int i = 0; i < 3; ++i)
-            for(int j = 0; j < 3; ++j)
-              ikel(i,j) = J[i+j*3];
-  
-          // subtract the part which is already accounted for
-          ikel -= (Mcoef*mel + Ccoef*cel);
-  
-          for(int inode = 0; inode < nodeToElem->num(current->node); ++inode) { // loop over the elements attached to the node
-                                                                                // at which the discrete mass is located
-            int iele = (*nodeToElem)[current->node][inode];
-            int eledofs[3] = { -1, -1, -1 };
-            for(int j = 0; j < 3; ++j) {
-              for(int k = 0; k < allDOFs->num(iele); ++k)
-                if(dofs[j] == (*allDOFs)[iele][k]) { eledofs[j] = k; break; }
-            }
-            if(eledofs[0] != -1 && eledofs[1] != -1 && eledofs[2] != -1) {
-              // found an element with the 3 rotation dofs of node current->node so we can add the inertial stiffness
-              // contribution of the discrete moment to the tangent stiffness matrix of this element
-              for(int j = 0; j < 3; ++j)
-                for(int k = 0; k < 3; ++k)
-                  kel[iele][eledofs[j]][eledofs[k]] += ikel(j,k);
-              break;
-            }
-          }
-        }
-      }
-      current = current->next;
-    }
-  }
-#endif
 
   if(domain->thermalFlag()) {
     if(!temprcvd) initNodalTemperatures(); // XXXX to be moved
@@ -867,7 +767,14 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
         getOrAddDofForPrint(false, v_n, vcx, first_node+iNode, data[nodeI], &DofSet::Xdisp,
                             data[nodeI]+1, &DofSet::Ydisp, data[nodeI]+2, &DofSet::Zdisp);
         getOrAddDofForPrint(false, v_n, vcx, first_node+iNode, data[nodeI]+3, &DofSet::Xrot,
-                            data[nodeI]+4, &DofSet::Yrot, data[nodeI]+5, &DofSet::Zrot);
+                              data[nodeI]+4, &DofSet::Yrot, data[nodeI]+5, &DofSet::Zrot);
+        if(oinfo[iInfo].angularouttype == OutputInfo::spatial) {
+          // transform from convected to spatial angular velocity
+          if (iNode < geomState->numNodes() && nodes[iNode]) {
+            double V[3] = { data[nodeI][3], data[nodeI][4], data[nodeI][5] };
+            mat_mult_vec((*geomState)[iNode].R,V,data[nodeI]+3,0); // v = R*V
+          }  
+        }
       }
       geoSource->outputNodeVectors6(iInfo, data, nPrintNodes, time);
       delete [] data;
@@ -910,6 +817,13 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
         getOrAddDofForPrint(false, a_n, (double *) acx, first_node+iNode, data[nodeI]+3,
                             &DofSet::Xrot, data[nodeI]+4, &DofSet::Yrot, data[nodeI]+5,
                             &DofSet::Zrot);
+        if(oinfo[iInfo].angularouttype == OutputInfo::spatial) {
+          // transform from convected to spatial angular acceleration
+          if (iNode < geomState->numNodes() && nodes[iNode]) {
+            double A[3] = { data[nodeI][3], data[nodeI][4], data[nodeI][5] };
+            mat_mult_vec((*geomState)[iNode].R,A,data[nodeI]+3,0); // a = R*A
+          }
+        }
       }
       geoSource->outputNodeVectors6(iInfo, data, nPrintNodes, time);
       delete [] data;
@@ -1946,7 +1860,7 @@ Domain::writeRestartFile(double time, int timeIndex, Vector &v_n,
 // either test for pointer or frequency > 0
 
  ControlInfo *cinfo = geoSource->getCheckFileInfo();
- if((timeIndex % sinfo.nRestart == 0) || (time >= sinfo.tmax-0.1*sinfo.getTimeStep())) {
+ if((timeIndex % sinfo.nRestart == 0) || (time >= sinfo.tmax-0.1*domain->solInfo().getTimeStep())) {
 
    int fn;
    if(strlen(ext) != 0) {

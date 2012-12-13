@@ -98,6 +98,7 @@ class GeomState {
                                        bool zeroRot);
      virtual void get_inc_displacement(Vector &inc_Vec, GeomState &ss, bool zeroRot);
      virtual void get_tot_displacement(Vector &totVec);
+     virtual void rotateVec(Vector &vec);
      void zeroRotDofs(Vector &vec);
      void interp(double, const GeomState &, const GeomState &);
      void diff(const GeomState &unp, Vector &un);

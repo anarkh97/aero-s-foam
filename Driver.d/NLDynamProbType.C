@@ -175,6 +175,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
   for(step = 0; time+dt0/q <= tmax || failed; ) {
 
     dt = dt0/q;
+    domain->solInfo().setTimeStep(dt);
     delta = dt/2;
 
     if(aeroAlg < 0) {

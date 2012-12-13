@@ -61,6 +61,8 @@ struct OutputInfo {
    enum { realimag, modulusphase, animate };
    int complexouttype;
    int ncomplexout;   
+   enum { spatial, convected };
+   int angularouttype;
    bool matlab;
    bool PodRomfile;
    int tdenforc_var; // CONFACE=1, NORMAL_FORCE_MAG, NORMAL_TRACTION_MAG, TANGENTIAL_FORCE_MAG, TANGENTIAL_TRACTION_MAG,
@@ -85,6 +87,7 @@ struct OutputInfo {
      ndtype = 0;
      complexouttype = OutputInfo::realimag;
      ncomplexout = 16;
+     angularouttype = OutputInfo::spatial;
      tdenforc_var = 3;
      matlab = false;
      PodRomfile = false;

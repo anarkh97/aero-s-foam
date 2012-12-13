@@ -120,7 +120,7 @@ MDNLDynamic::formRHSinitializer(DistrVector &fext, DistrVector &velocity, DistrV
 
 double
 MDNLDynamic::formRHScorrector(DistrVector& inc_displacement, DistrVector& velocity, DistrVector& acceleration,
-                              DistrVector& residual, DistrVector& rhs, double localDelta)
+                              DistrVector& residual, DistrVector& rhs, DistrGeomState *geomState, double localDelta)
 {
   times->correctorTime -= getTime();
   if(domain->solInfo().order == 1) {

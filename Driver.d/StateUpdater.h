@@ -52,7 +52,7 @@ public:
 
   static double formRHScorrector(ProbDescr *pbd, VecType &inc_displac, VecType &vel_n,
     VecType &accel, VecType &residual, VecType &rhs, GeomType *geomState, double delta) {
-    return pbd->formRHScorrector(inc_displac, vel_n, accel, residual, rhs, delta); 
+    return pbd->formRHScorrector(inc_displac, vel_n, accel, residual, rhs, geomState, delta); 
   }
 
   static void copyTo(RefState *refState, GeomType *geomState, GeomType *stepState, StateIncr *stateIncr, VecType &v, VecType &a, VecType &vp, VecType &force,

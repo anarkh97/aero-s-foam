@@ -758,7 +758,7 @@ NonLinDynamic::formRHSpredictor(Vector &velocity, Vector &acceleration, Vector &
 
 double
 NonLinDynamic::formRHScorrector(Vector &inc_displacement, Vector &velocity, Vector &acceleration,
-                                Vector &residual, Vector &rhs, double localDelta)
+                                Vector &residual, Vector &rhs, GeomState *geomState, double localDelta)
 {
   times->correctorTime -= getTime();
   if(domain->GetnContactSurfacePairs()) {

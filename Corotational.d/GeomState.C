@@ -558,7 +558,7 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
     // Update angular velocities and accelerations
     if(loc[i][3] >= 0 || loc[i][4] >= 0 || loc[i][5] >= 0) {
       double dtheta[3], dR[3][3];
-      mat_mult_mat(ns[i].R, ss[i].R, dR, 2); // dR = ns[i].R * ss[i].R^T (i.e. ns[i].R = dR * ss[i].R)
+      mat_mult_mat(ss[i].R, ns[i].R, dR, 1); // dR = ss[i].R^T * ns[i].R (i.e. ns[i].R = ss[i].R * dR)
       mat_to_vec(dR, dtheta);
       for(int j = 0; j < 3; ++j) {
         if(loc[i][3+j] >= 0) {
@@ -570,7 +570,7 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
       }
     }
   }
-  setVelocity(vel_n,acc_n); // XXXX
+  setVelocity(vel_n,acc_n);
 
   // Update step translational displacements
   double tcoef = 1/(1-alphaf);
@@ -707,11 +707,7 @@ GeomState::get_inc_displacement(Vector &incVec, GeomState &ss, bool zeroRot)
       }
       else {
         double dR[3][3], vec[3];
-        mat_mult_mat( ns[inode].R, ss.ns[inode].R, dR, 2 ); // dR = ns[inode].R * ss.ns[inode].R^T (i.e. ns[inode].R = dR * ss.ns[inode].R)
-/*
-        //WHY NOT THIS:
         mat_mult_mat( ss[inode].R, ns[inode].R, dR, 1 ); // dR = ss[i].R^T * ns[i].R (i.e. ns[i].R = ss[i].R * dR)
-*/
         mat_to_vec( dR, vec );
         if( loc[inode][3] >= 0 ) incVec[loc[inode][3]] = vec[0];
         if( loc[inode][4] >= 0 ) incVec[loc[inode][4]] = vec[1];
@@ -720,6 +716,29 @@ GeomState::get_inc_displacement(Vector &incVec, GeomState &ss, bool zeroRot)
     } 
   }
 
+}
+
+void
+GeomState::rotateVec(Vector &vec)
+{
+  int inode;
+  for(inode=0; inode<numnodes; ++inode) {
+
+    if(flag[inode] == -1) continue; // inequality constraint lagrange multiplier dof
+
+    if(loc[inode][3] >= 0 || loc[inode][4] >= 0 || loc[inode][5] >= 0) {
+      double rotvec_inode[3], result[3];
+      rotvec_inode[0] = ( loc[inode][3] >= 0 ) ? vec[loc[inode][3]] : 0;
+      rotvec_inode[1] = ( loc[inode][4] >= 0 ) ? vec[loc[inode][4]] : 0;
+      rotvec_inode[2] = ( loc[inode][5] >= 0 ) ? vec[loc[inode][5]] : 0;
+
+      mat_mult_vec( ns[inode].R, rotvec_inode, result );
+
+      if( loc[inode][3] >= 0 ) vec[loc[inode][3]] = result[0];
+      if( loc[inode][4] >= 0 ) vec[loc[inode][4]] = result[1];
+      if( loc[inode][5] >= 0 ) vec[loc[inode][5]] = result[2];
+    }
+  }
 }
 
 void

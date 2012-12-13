@@ -337,6 +337,8 @@ class Domain : public HData {
                            Corotator **allCorot, FullSquareMatrix *kel,
                            Vector &residual, double lambda = 1.0, double time = 0.0,
                            GeomState *refState = NULL, Vector *reactions = NULL);
+     void getRotaryInertiaForce(GeomState &geomState, FullSquareMatrix *kel, Vector &residual,
+                                double time, GeomState *refState, Vector *reactions);
      void getWeightedStiffAndForceOnly(const std::map<int, double> &weights,
                                        GeomState &u, Vector &elementInternalForce,
                                        Corotator **allCorot, FullSquareMatrix *kel,

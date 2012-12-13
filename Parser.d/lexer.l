@@ -573,7 +573,7 @@ TRAIL [a-zA-Z]*
 
 "RESTART"|"restart"                { return RESTART; }
 
-"CONV"[a-zA-Z]*|"conv"[a-zA-Z]*    { return CONVECTION; }
+"CONVECTI"[a-zA-Z]*|"convecti"[a-zA-Z]* { return CONVECTION; }
 
 "RADI"[a-zA-Z]*|"radi"[a-zA-Z]*    { return RADIATION; }
 
@@ -1160,6 +1160,10 @@ TRAIL [a-zA-Z]*
 "modphase"|"MODPHASE"              { yylval.ival = OutputInfo::modulusphase; return COMPLEXOUTTYPE; }
 
 "anim"[a-zA-Z]*|"ANIM"[a-zA-Z]*    { yylval.ival = OutputInfo::animate; return COMPLEXOUTTYPE; }
+
+"spatial"|"SPATIAL"                { yylval.ival = OutputInfo::spatial; return ANGULAROUTTYPE; }
+
+"convected"|"CONVECTED"            { yylval.ival = OutputInfo::convected; return ANGULAROUTTYPE; }
 
 "conface"|"CONFACE"                                  { yylval.ival = 1; return TDENFORC; }
 "normal_force_mag"|"NORMAL_FORCE_MAG"                { yylval.ival = 2; return TDENFORC; }

@@ -40,6 +40,7 @@ class DistrGeomState {
      void midpoint_step_update(DistrVector &veloc_n, DistrVector &accel_n, double &delta, DistrGeomState &ss,
                                double beta, double gamma, double alphaf, double alpham, bool zeroRot);
      void get_inc_displacement(DistrVector &inc_Vec, DistrGeomState &ss, bool zeroRot);
+     void rotateVec(DistrVector &vec);
      void get_tot_displacement(DistrVector &totVec);
      void interp(double, DistrGeomState &, DistrGeomState &);
      void diff(DistrGeomState &unp, DistrVector &un);
@@ -63,6 +64,7 @@ class DistrGeomState {
      void subSetVelocity(int isub, DistrVector &v, DistrVector &a);
      void makeSubGeomStates(int isub, DecDomain *domain);
      void subCopyConstructor(int isub, const DistrGeomState &g2);
+     void subRotateVec(int isub, DistrVector &vec);
 };
 
 #endif

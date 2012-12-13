@@ -5,8 +5,8 @@
 
 . /opt/modules/Modules/3.2.6/init/bash
  module load intel openmpi
-cd /lustre/home/mpotts/FEM/Regression.d/vme5
+cd /lustre/home/mpotts/FEM-jenkins/workspace/Regression.d/vme5
 ../create_mfiles.pl
-echo mpirun -n 2 ../../bin/aeros  vme5_displacy.inp
-mpirun -n 2 --machinefile host.0 ../../bin/aeros  vme5_displacy.inp &
+echo mpirun -n 2 ../../bin/aeros  vme5_rotatioz.inp
+mpirun -n 2 --machinefile host.0 ../../bin/aeros  vme5_rotatioz.inp &
 wait %1 

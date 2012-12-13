@@ -163,6 +163,49 @@ def buildInputs(params):
 
       SHIFT = ["0","0.1","1","10"]
 
+      if(problem_type == "vme6"):
+        OUTPUT = ["displacx"]
+        OUTPUT2 = ["displacy"]
+        OUTPUT_EXTRAS = [" 10 1"," 10 1"]
+        DYNAMICS = ["mech\t0.0\t0.5\ntime 0.0 0.0001 2.0\ndamp 0 1.0"]
+        NAMELIST = ["DYNAMICS\n","OUTPUT\n","INCLUDE "]
+        EXTRAS = ["newmark\n*","*","*"]
+        INCLUDE_FILE = "../" + problem_type + ".include"
+        INCLUDE = [INCLUDE_FILE]
+        OPTIONSLIST = [DYNAMICS,OUTPUT,INCLUDE]
+
+      if(problem_type == "vme5"):
+        OUTPUT = ["rotatioz"]
+        OUTPUT_EXTRAS = [" 1 7"]
+        DYNAMICS = ["mech\t0.0\t0.5\ntime 0.0 1.0e-6 0.4"]
+        NAMELIST = ["DYNAMICS\n","OUTPUT\n","INCLUDE "]
+        EXTRAS = ["newmark\n*","NONLINEAR\n*","*"]
+        INCLUDE_FILE = "../" + problem_type + ".include"
+        INCLUDE = [INCLUDE_FILE]
+        OPTIONSLIST = [DYNAMICS,OUTPUT,INCLUDE]
+
+      if(problem_type == "vme4"):
+        OUTPUT = ["displacx"]
+	OUTPUT2 = ["displacx"]
+        OUTPUT_EXTRAS = [" 1 2"," 1 3"]
+        DYNAMICS = ["mech\t0.0\t0.5\ntime 0.0 1.0e-3 2.0"]
+        NAMELIST = ["DYNAMICS\n","OUTPUT\n","INCLUDE "]
+        EXTRAS = ["newmark\n*","*","*"]
+        INCLUDE_FILE = "../" + problem_type + ".include"
+        INCLUDE = [INCLUDE_FILE]
+        OPTIONSLIST = [DYNAMICS,OUTPUT,INCLUDE]
+
+      if(problem_type == "vme3"):
+        OUTPUT = ["displacx","gvelocit"]
+        OUTPUT_EXTRAS = [" 1 2"]
+        DYNAMICS = ["mech\t0.0\t0.5\ntime 0.0 0.001 2.0\ndamp 0.0342905309 0"]
+        NAMELIST = ["DYNAMICS\n","OUTPUT\n","INCLUDE "]
+        EXTRAS = ["newmark\n*","*","*"]
+        INCLUDE_FILE = "../" + problem_type + ".include"
+        INC_FILE_2 = INCLUDE_FILE + "\nMFTT\n0.0 0.0\n1.0 1.0\n2.0 2.0"
+        INCLUDE = [INCLUDE_FILE,INC_FILE_2]
+        OPTIONSLIST = [DYNAMICS,OUTPUT,INCLUDE]
+
       if(problem_type == "vme2"):
         OUTPUT = ["displacy"]
         OUTPUT2 = ["gdisplac","normal_force_mag","normal_traction_mag","cdirnorx","cdirnory","cdirnorz","contact_area"]

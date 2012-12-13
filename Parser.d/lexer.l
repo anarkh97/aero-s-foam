@@ -1165,6 +1165,8 @@ TRAIL [a-zA-Z]*
 
 "convected"|"CONVECTED"            { yylval.ival = OutputInfo::convected; return ANGULAROUTTYPE; }
 
+"total"|"TOTAL"                    { yylval.ival = OutputInfo::total; return ANGULAROUTTYPE; }
+
 "conface"|"CONFACE"                                  { yylval.ival = 1; return TDENFORC; }
 "normal_force_mag"|"NORMAL_FORCE_MAG"                { yylval.ival = 2; return TDENFORC; }
 "normal_traction_mag"|"NORMAL_TRACTION_MAG"          { yylval.ival = 3; return TDENFORC; }

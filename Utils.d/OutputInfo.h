@@ -61,7 +61,7 @@ struct OutputInfo {
    enum { realimag, modulusphase, animate };
    int complexouttype;
    int ncomplexout;   
-   enum { spatial, convected };
+   enum { spatial, convected, total };
    int angularouttype;
    bool matlab;
    bool PodRomfile;
@@ -87,7 +87,7 @@ struct OutputInfo {
      ndtype = 0;
      complexouttype = OutputInfo::realimag;
      ncomplexout = 16;
-     angularouttype = OutputInfo::spatial;
+     angularouttype = OutputInfo::convected;
      tdenforc_var = 3;
      matlab = false;
      PodRomfile = false;

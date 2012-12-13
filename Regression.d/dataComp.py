@@ -34,9 +34,10 @@ class bcolors:
 def directComp(basefile,file,SUMMARY_FILE,outstring):
   COMP = list(open(file).read().splitlines())
   BASE = list(open(basefile,"r").read().splitlines())
-  if(file.find("eigen") != -1):
-    BASE.sort()
-    COMP.sort()
+  if(file.find("eigen") != -1):  
+    absComp = 1
+  else:
+    absComp = 0
   MaxDiff = 0.0
   RelDiff = 0.0
   TotDiff = 0.0
@@ -68,6 +69,9 @@ def directComp(basefile,file,SUMMARY_FILE,outstring):
       else:
         for j in range(len(basewords)):
           if(not(basewords[j].isalpha())and not(compwords[j].isalpha()) and(basewords[j].find("__") == -1)):
+            if(absComp):
+              basewords[j] = abs(float(basewords[j]))
+              compwords[j] = abs(float(compwords[j]))
             diff = float(basewords[j]) - float(compwords[j])
             TotDiff = math.fabs(diff) + TotDiff
             nSample = nSample + 1

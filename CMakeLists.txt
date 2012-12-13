@@ -578,6 +578,6 @@ else(TEST_DURATION_SHORT)
   ADD_TEST(testRtest39 ${EXEC_DIR}/dataComp.py -l dsvm39)
   # use the -s flag to send results via email
   ADD_TEST(testRtest40 ${EXEC_DIR}/dataComp.py -l -s dsvm40)
-  ADD_TEST(sendResults ${EXEC_DIR}/sendResults.py )
+#  ADD_TEST(sendResults ${EXEC_DIR}/sendResults.py )
 endif(TEST_DURATION_SHORT)
 

@@ -3292,7 +3292,7 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
      // ... CALCULATE STRUCTURE MASS IF REQUESTED
      if(sinfo.massFlag)  {
        double mass = computeStructureMass();
-       filePrint(stderr," ... Total System mass = %10.4f ...\n",mass);
+       filePrint(stderr," ... Total System Mass = %10.4f ...\n", mass);
        filePrint(stderr," --------------------------------------\n");
      }
    }

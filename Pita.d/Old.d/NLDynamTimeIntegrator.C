@@ -93,7 +93,7 @@ NLDynamTimeIntegrator::integrate(int numSteps)
       probDesc.getStiffAndForce(*geomState, residual, elementInternalForce, midTime); // Update elementary matrices & residual force
       probDesc.reBuild(*geomState, iter, localDelta, midTime); // Assemble [Kt] and factor ([M] + delta^2 * [Kt])
       geomState->get_inc_displacement(inc_displac, *stepState, probDesc.getZeroRot()); // Compute incremental displacement
-      resN = probDesc.formRHScorrector(inc_displac, velocity, acceleration, residual, rhs, localDelta); // rhs = delta^2 * residual - [M] (inc_displac - delta * velocity) 
+      resN = probDesc.formRHScorrector(inc_displac, velocity, acceleration, residual, rhs, geomState, localDelta); // rhs = delta^2 * residual - [M] (inc_displac - delta * velocity) 
       if (iter == 0)
       {
         currentRes = resN;

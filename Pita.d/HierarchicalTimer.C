@@ -4,6 +4,8 @@
 
 namespace Pita {
 
+const double HierarchicalTimer::timeConversionRatio_ = 1.0e-3;
+
 HierarchicalTimer::TNode::TNode(const String & n) :
    name(n),
    timeData(1),

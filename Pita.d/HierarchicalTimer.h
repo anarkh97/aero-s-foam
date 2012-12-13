@@ -60,7 +60,7 @@ private:
     explicit TData();
   };
    
-  static const double timeConversionRatio_ = 1.0e-3; // Conversion milliseconds (natural time unit for FEM) -> seconds 
+  static const double timeConversionRatio_; // Conversion milliseconds (natural time unit for FEM) -> seconds 
   
   // Subfunctions for print
   static void printSkeleton(std::ostream &, const std::deque<bool> &);

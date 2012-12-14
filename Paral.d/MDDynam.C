@@ -724,6 +724,10 @@ MultiDomainDynam::getInitState(SysState<DistrVector>& state)
                      &state.getDisp(), &state.getVeloc(), &state.getAccel(),
                      &state.getPrevVeloc());
   threadManager->execParal(decDomain->getNumSub(), &mdop);
+  if(geomState) {
+    geomState->update(state.getDisp());
+    geomState->setVelocity(state.getVeloc(), state.getAccel());
+  }
   if(geoSource->getCheckFileInfo()->lastRestartFile) {
     filePrint(stderr, " ... Restarting From a Previous Run ...\n");
     if(domain->solInfo().isNonLin()) {

@@ -391,6 +391,10 @@ SingleDomainDynamic::getInitState(SysState<Vector> &inState)
   // initialize state with IDISP/IDISP6/IVEL/IACC or RESTART (XXXX initial accelerations are currently not supported)
   domain->initDispVeloc(inState.getDisp(),  inState.getVeloc(),
                         inState.getAccel(), inState.getPrevVeloc()); // IVEL, IDISP, IDISP6, restart
+  if(geomState) {
+    geomState->update(inState.getDisp());
+    geomState->setVelocity(inState.getVeloc(), inState.getAccel());
+  }
   if(geoSource->getCheckFileInfo()->lastRestartFile) {
     filePrint(stderr, " ... Restarting From a Previous Run ...\n");
     if(domain->solInfo().isNonLin()) { 

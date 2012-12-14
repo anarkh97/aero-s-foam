@@ -64,8 +64,8 @@ EulerBeam::buildFrame(CoordSet& cs)
       crossprod(theFrame[2],theFrame[0],theFrame[1]);
     }
     else {
-      fprintf(stderr," *** WARNING: No element frame exists for beam. Constructing default frame.\n",
-              nn[0]+1,nn[1]+1);
+      fprintf(stderr," *** WARNING: No element frame exists for Euler beam (element #%d). Constructing default frame.\n",
+              getGlNum()+1);
       c0[0][0] = nd2.x-nd1.x;
       c0[0][1] = nd2.y-nd1.y;
       c0[0][2] = nd2.z-nd1.z;

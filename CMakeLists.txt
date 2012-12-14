@@ -15,6 +15,36 @@ set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 #SET(CMAKE_FIND_LIBRARY_SUFFIXES .a)
 #SET(CMAKE_EXE_LINKER_FLAGS -static)
 
+if (${CMAKE_VERSION} VERSION_GREATER 2.8.3 OR ${CMAKE_VERSION} VERSION_EQUAL 2.8.3)
+if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU")
+    execute_process(
+        COMMAND ${CMAKE_CXX_COMPILER} -dumpversion OUTPUT_VARIABLE GCC_VERSION)
+    if (GCC_VERSION VERSION_GREATER 4.7 OR GCC_VERSION VERSION_EQUAL 4.7)
+        set(CHECK_CXX_FEATURES true)
+        set(CMAKE_CXX11_FLAGS "-std=c++11 -Wno-deprecated-declarations")
+    endif ()
+elseif ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Intel")
+    execute_process(
+        COMMAND ${CMAKE_CXX_COMPILER} -dumpversion OUTPUT_VARIABLE ICC_VERSION)
+    if (ICC_VERSION VERSION_GREATER 12.1 OR ICC_VERSION VERSION_EQUAL 12.1)
+        set(CHECK_CXX_FEATURES true)
+        set(CMAKE_CXX11_FLAGS "-std=c++11 -wd1478")
+    endif ()
+endif ()
+
+if (CHECK_CXX_FEATURES)
+  include("cmake/CheckCXX11Features.cmake")
+  if (CXX11_FEATURE_LIST)
+    MESSAGE("-- A compiler with one or more C++11 features found.")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CMAKE_CXX11_FLAGS}")
+    add_definitions(-DHAS_C99_TR1_CMATH) 
+    foreach(flag ${CXX11_FEATURE_LIST})
+      add_definitions(-D${flag})
+    endforeach()
+  endif (CXX11_FEATURE_LIST)
+endif (CHECK_CXX_FEATURES)
+endif (${CMAKE_VERSION} VERSION_GREATER 2.8.3 OR ${CMAKE_VERSION} VERSION_EQUAL 2.8.3)
+
 SITE_NAME(HOSTNAME)
 FIND_PACKAGE(LOCAL NAMES ${HOSTNAME} PATHS . QUIET)
 MARK_AS_ADVANCED(HOSTNAME LOCAL_DIR)
@@ -372,7 +402,7 @@ add_subdirectory(Regression.d)
 
 SET(ALLLIBS Parser
      Driver Elem Feti HelmAxi solver Corotational Mortar Math
-     Dec Threads linpa Sfem paral Problems Driver Hetero Timers Comm Material Rom Util getopt)
+     Dec Threads linpa Sfem paral Problems Corotational Driver Hetero Timers Comm Material Rom Util getopt)
 
 IF(ACME_FOUND AND (ZOLTAN_FOUND OR NOT MPI_FOUND))
   add_subdirectory(Acme.d)

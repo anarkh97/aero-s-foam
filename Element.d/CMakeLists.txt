@@ -349,6 +349,8 @@ Sommerfeld.d/Triangle6SommerBC.C
 Sommerfeld.d/TriangleSommerBC.C
 Sommerfeld.d/QuadPressureBC.C
 Sommerfeld.d/TrianglePressureBC.C
+Sommerfeld.d/Quad8PressureBC.C
+Sommerfeld.d/Triangle6PressureBC.C
 Spring.d/mstf11.f
 Spring.d/mstf21.f
 Spring.d/mstf22.f

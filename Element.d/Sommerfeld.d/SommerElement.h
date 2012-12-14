@@ -24,11 +24,12 @@ protected:
 
 public:
 	Element *el;//Adjacent 3D element
+        int iEle;   // and it's index in the CoordSet
 	Element *el2;
         Domain *dom;
         complex<double> soundSpeed; // for wet scattering rhs
         SommerElement(Element* _el=0, Domain* _dom=0) { el = _el; dom = _dom; 
-                                                        el2 = 0; } //HB
+                                                        el2 = 0; iEle = -1; } //HB
         virtual int numNodes()=0;
 	virtual int getNode(int);
 	virtual int* getNodes();
@@ -95,6 +96,7 @@ public:
         virtual void sommerMatrixEllipsoid(CoordSet &cs, double kappa, double H[3] , double K[3], ComplexD *d);
 
         virtual void neumVector(CoordSet&, Vector&, int pflag=0, GeomState* = 0);
+        virtual void neumVectorJacobian(CoordSet&, FullSquareMatrix&, int pflag=0, GeomState* = 0);
         virtual void neumVector(CoordSet&,ComplexVector&,
                                 double,double,double,double, int pflag=0);
 // RT: obsolete? and I need it for something else
@@ -138,6 +140,7 @@ public:
         virtual void lubksb (FullSquareMatrix A, int n, int *indx,double *b);//LU factorisation
         virtual void invert (FullSquareMatrix A, FullSquareMatrix B);
 
+        int getAdjElementIndex() { return iEle; }
 };
 
 #endif

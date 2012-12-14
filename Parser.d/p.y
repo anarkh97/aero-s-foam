@@ -55,7 +55,7 @@
 
 %expect 6
 
-%token ACTUATORS AERO AEROH AEROTYPE ANALYSIS ARCLENGTH ATTRIBUTES 
+%token ACTUATORS AERO AEROH AEROTYPE ANALYSIS ARCLENGTH ATTRIBUTES ANGULAROUTTYPE
 %token AUGMENT AUGMENTTYPE AVERAGED ATDARB ACOU ATDDNB ATDROB ARPACK ATDDIR ATDNEU
 %token AXIHDIR AXIHNEU AXINUMMODES AXINUMSLICES AXIHSOMMER AXIMPC AUXCOARSESOLVER ACMECNTL ADDEDMASS AEROEMBED
 %token BLOCKDIAG BOFFSET BUCKLE BGTL BMPC BINARYINPUT BINARYOUTPUT
@@ -76,7 +76,7 @@
 %token JACOBI KRYLOVTYPE KIRLOC
 %token LAYC LAYN LAYD LAYO LAYMAT LFACTOR LMPC LOAD LOBPCG LOCALSOLVER LINESEARCH LUMPED LOCAL
 %token MASS MATERIALS MATLAB MAXITR MAXORTHO MAXVEC MODAL MPCPRECNO MPCPRECNOID MPCTYPE MPCTYPEID MPCSCALING MPCELEMENT MPCBLOCKID 
-%token MPCBLK_OVERLAP MFTT MPTT MRHS MPCCHECK MUMPSICNTL MUMPSCNTL MECH MODEFILTER MOMENT
+%token MPCBLK_OVERLAP MFTT MPTT MRHS MPCCHECK MUMPSICNTL MUMPSCNTL MECH MODEFILTER MOMENTTYPE
 %token NDTYPE NEIGPA NEWMARK NewLine NL NLMAT NLPREC NOCOARSE NODETOKEN NONINPC
 %token NSBSPV NLTOL NUMCGM NOSECONDARY NFRAMES
 %token OPTIMIZATION OUTPUT OUTPUT6
@@ -116,13 +116,13 @@
 %type <frame>    Frame
 %type <fval>     Float DblConstant
 %type <ival>     AEROTYPE Attributes AUGMENTTYPE AVERAGED 
-%type <ival>     COLLOCATEDTYPE CORNERTYPE COMPLEXOUTTYPE TDENFORC CSTYPE
+%type <ival>     COLLOCATEDTYPE CORNERTYPE COMPLEXOUTTYPE TDENFORC CSTYPE ANGULAROUTTYPE
 %type <ival>     ELEMENTARYFUNCTIONTYPE FETIPREC FETI2TYPE 
 %type <ival>     GTGSOLVER Integer IntConstant ITERTYPE
 %type <ival>     RBMSET RENUMBERID OPTCTV
 %type <rprop>    RPROP
 %type <ival>     WAVETYPE WAVEMETHOD
-%type <ival>     SCALINGTYPE SOLVERTYPE STRESSID SURFACE
+%type <ival>     SCALINGTYPE SOLVERTYPE STRESSID SURFACE MOMENTTYPE
 %type <ldata>    LayData LayoData LayMatData
 %type <linfo>    LaycInfo LaynInfo LaydInfo LayoInfo
 %type <mftval>   MFTTInfo
@@ -769,6 +769,8 @@ OutInfo:
         { $$.complexouttype = $2; }
         | OutInfo COMPLEXOUTTYPE Integer
         { $$.complexouttype = $2; $$.ncomplexout = $3; }
+        | OutInfo ANGULAROUTTYPE
+        { $$.angularouttype = $2; }
         | OutInfo NDTYPE
         { $$.ndtype = $2; }
         | OutInfo NDTYPE Integer
@@ -1636,6 +1638,10 @@ NeumanBC:
         { for(int i=$2; i<=$4; ++i) { BCond bc; bc.setData(i-1, $5-1, $6, BCond::Forces, $$->caseid); $$->add(bc); } }
         | NeumanBC Integer THRU Integer STEP Integer Integer Float NewLine
         { for(int i=$2; i<=$4; i+=$6) { BCond bc; bc.setData(i-1, $7-1, $8, BCond::Forces, $$->caseid); $$->add(bc); } }
+        | NeumanBC Integer THRU Integer Integer Float MOMENTTYPE NewLine
+        { for(int i=$2; i<=$4; ++i) { BCond bc; bc.setData(i-1, $5-1, $6, BCond::Forces, $$->caseid, (BCond::MomentType) $7); $$->add(bc); } }
+        | NeumanBC Integer THRU Integer STEP Integer Integer Float MOMENTTYPE NewLine
+        { for(int i=$2; i<=$4; i+=$6) { BCond bc; bc.setData(i-1, $7-1, $8, BCond::Forces, $$->caseid, (BCond::MomentType) $7); $$->add(bc); } }
         | NeumanBC SURF BC_Data
         { BCond *surf_bc = new BCond[1];
           surf_bc[0] = $3;
@@ -2423,9 +2429,13 @@ NodeNums:
 	;
 BC_Data:
 	Integer Integer Float NewLine
-	{ $$.nnum = $1-1; $$.dofnum = $2-1; $$.val = $3; }
+	{ $$.nnum = $1-1; $$.dofnum = $2-1; $$.val = $3; $$.mtype = BCond::Axial; }
 	| Integer Integer NewLine
-	{ $$.nnum = $1-1; $$.dofnum = $2-1; $$.val = 0.0; }
+	{ $$.nnum = $1-1; $$.dofnum = $2-1; $$.val = 0.0; $$.mtype = BCond::Axial; }
+        | Integer Integer Float MOMENTTYPE NewLine
+        { $$.nnum = $1-1; $$.dofnum = $2-1; $$.val = $3; $$.mtype = (BCond::MomentType) $4; }
+        | Integer Integer MOMENTTYPE NewLine
+        { $$.nnum = $1-1; $$.dofnum = $2-1; $$.val = 0.0; $$.mtype = (BCond::MomentType) $3; }
 	;
 ModalVal:
 	Integer Float NewLine
@@ -3527,8 +3537,6 @@ NLInfo:
         | NLInfo FAILSAFE Float NewLine
         { domain->solInfo().getNLInfo().failsafe = true;
           domain->solInfo().getNLInfo().failsafe_tol = $3; }
-        | NLInfo MOMENT Integer NewLine
-        { domain->solInfo().momentType = $3; }
         | NLInfo PENALTY Integer Float Float NewLine
         { domain->solInfo().num_penalty_its = $3; 
           domain->solInfo().penalty_tol = $4;

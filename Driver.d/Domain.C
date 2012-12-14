@@ -3253,7 +3253,14 @@ Domain::ProcessSurfaceBCs()
         int *glNodes = SurfEntities[j]->GetPtrGlNodeIds();
         int nNodes = SurfEntities[j]->GetnNodes();
         BCond *bc = new BCond[nNodes];
-        for(int k=0; k<nNodes; ++k) { bc[k].nnum = glNodes[k]; bc[k].dofnum = surface_nbc[i].dofnum; bc[k].val = surface_nbc[i].val; bc[k].type = surface_nbc[i].type; bc[k].caseid = surface_nbc[i].caseid; }
+        for(int k=0; k<nNodes; ++k) { 
+          bc[k].nnum = glNodes[k];
+          bc[k].dofnum = surface_nbc[i].dofnum;
+          bc[k].val = surface_nbc[i].val;
+          bc[k].type = surface_nbc[i].type;
+          bc[k].caseid = surface_nbc[i].caseid;
+          bc[k].mtype = surface_nbc[i].mtype;
+        }
         int numNeuman_copy = geoSource->getNumNeuman();
         geoSource->setNeuman(nNodes, bc);
         if(numNeuman_copy != 0) delete [] bc;
@@ -3271,12 +3278,17 @@ Domain::ProcessSurfaceBCs()
         FaceElemSet &faceElemSet = SurfEntities[j]->GetFaceElemSet();
         for(int iele = 0; iele < faceElemSet.last(); ++iele) {
           int nVertices = faceElemSet[iele]->nVertices();
-          if(nVertices == 3 || nVertices == 4) {
+          if(nVertices == 3 || nVertices == 4 || nVertices == 6 || nVertices == 8) {
              int *nodes = new int[nVertices];
              for(int inode = 0; inode < nVertices; ++inode)
                nodes[inode] = SurfEntities[j]->GetPtrGlVertexIds()[faceElemSet[iele]->GetVertex(inode)];
-             int type = (nVertices == 3) ? 15 : 16;
-             //cerr << iele+1 << " " << type << " "; for(int inode = 0; inode < nVertices; ++inode) cerr << nodes[inode]+1 << " "; cerr << endl;
+             int type;
+             switch(nVertices) {
+               case 3: type = 15; break;
+               case 4: type = 16; break;
+               case 6: type = 17; break;
+               case 8: type = 18; break;
+             }
              addNeumElem(-1, type, surface_pres[i].val, nVertices, nodes);
              delete [] nodes;
           }

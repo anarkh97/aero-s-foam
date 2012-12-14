@@ -437,6 +437,12 @@ BelytschkoTsayShell::getStiffAndForce(GeomState& geomState, CoordSet& cs, FullSq
       _FORTRAN(elemaslbt)(nndof, expmat->ematpro, ecord, edisp, emasl);
       for(int i = 0; i < nnode*nndof; ++i) efint[i] += cnst*emasl[i]*evelo[i];
     }
+
+    for(int i = 0; i < nnode; ++i) {
+      iloc = i*nndof+3;
+      double f[3] = { efint[iloc+0], efint[iloc+1], efint[iloc+2] };
+      mat_mult_vec(geomState[nn[i]].R, f, efint+iloc, 0);
+    }
   }
 }
 

@@ -183,6 +183,7 @@ SommerElement::findEle (Connectivity *nodeToElem, int *eleTouch,
       else {
        eleCount[eleNum] ++;
        if (eleCount[eleNum] == nNodes) {
+         iEle = eleNum;
          return eleNum;
        }
       }
@@ -195,7 +196,7 @@ int
 SommerElement::findAndSetEle (CoordSet& cs, Elemset &eset,
    Connectivity *nodeToElem, int *eleTouch, int *eleCount, int myNum, int it)
 {
-  int iEle = findEle(nodeToElem,eleTouch,eleCount,myNum,&eset,it);
+  iEle = findEle(nodeToElem,eleTouch,eleCount,myNum,&eset,it);
   if (iEle==-1) {
     fprintf(stderr,"SommerElement::findAndSetEle could not find the"
                    " corresponding element.\n");
@@ -439,6 +440,11 @@ void SommerElement::neumVector(CoordSet& cs, Vector& cv, int pflag, GeomState*) 
      cv[i] -= matrix[i][j];// sommerMatrix is negative definite
    }
  }
+}
+
+void SommerElement::neumVectorJacobian(CoordSet& cs, FullSquareMatrix& kel, int pflag, GeomState*) {
+
+  kel.zero();
 }
 
 void SommerElement::neumVector(CoordSet& cs, ComplexVector& cv, double k,

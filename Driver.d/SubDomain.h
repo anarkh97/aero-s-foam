@@ -174,6 +174,8 @@ class BaseSub : virtual public Domain
   int * getGlobalToLocalNodeMap() { return glToLocalNode; }
   int globalToLocal(int i)    { return (i < 0 || i > globalNMax) ? -1 : glToLocalNode[i]; }  // PJSA
   int localToGlobal(int i)    { return glNums[i]; }
+  int globalToLocalElem(int i) { return (i < 0 || i > globalEMax) ? -1 : glToLocalElem[i]; }  // PJSA
+  int localToGlobalElem(int i) { return glElems[i]; }
   int getGlobalNMax()         { return globalNMax; }
   int* makeBMaps(DofSetArray *dofsetarray=0);
   int* makeIMaps(DofSetArray *dofsetarray=0);

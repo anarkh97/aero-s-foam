@@ -106,7 +106,7 @@ MDNLDynamic::getIncDisplacement(DistrGeomState *geomState, DistrVector &du, Dist
 
 void
 MDNLDynamic::formRHSinitializer(DistrVector &fext, DistrVector &velocity, DistrVector &elementInternalForce, 
-                                  DistrGeomState &geomState, DistrVector &rhs, DistrGeomState *refState)
+                                DistrGeomState &geomState, DistrVector &rhs, DistrGeomState *refState)
 {
   // rhs = (fext - fint - Cv)
   rhs = fext;
@@ -116,11 +116,12 @@ MDNLDynamic::formRHSinitializer(DistrVector &fext, DistrVector &velocity, DistrV
     C->mult(velocity, *localTemp);
     rhs.linC(rhs, -1.0, *localTemp);
   }
+  geomState.pull_back(rhs); // rhs = R^T*rhs
 }
 
 double
 MDNLDynamic::formRHScorrector(DistrVector& inc_displacement, DistrVector& velocity, DistrVector& acceleration,
-                              DistrVector& residual, DistrVector& rhs, double localDelta)
+                              DistrVector& residual, DistrVector& rhs, DistrGeomState *geomState, double localDelta)
 {
   times->correctorTime -= getTime();
   if(domain->solInfo().order == 1) {
@@ -139,6 +140,7 @@ MDNLDynamic::formRHScorrector(DistrVector& inc_displacement, DistrVector& veloci
       localTemp->linC(-dt*gamma, inc_displacement, -dt*dt*(beta-(1-alphaf)*gamma), velocity, -dt*dt*dt*(1-alphaf)*(2*beta-gamma)/2, acceleration);
       C->multAdd(*localTemp, rhs);
     }
+    geomState->push_forward(rhs);
     rhs.linAdd(dt*dt*beta, residual);
   }
 
@@ -432,7 +434,8 @@ MDNLDynamic::subGetStiffAndForce(int isub, DistrGeomState &geomState,
   // eIF = element internal force
   StackVector eIF(elemIntForce.subData(isub), elemIntForce.subLen(isub));
   GeomState *subRefState = (refState) ? (*refState)[isub] : 0;
-  sd->getStiffAndForce(*geomState[isub], eIF, allCorot[isub], kelArray[isub], residual, 1.0, t, subRefState);
+  sd->getStiffAndForce(*geomState[isub], eIF, allCorot[isub], kelArray[isub], residual, 1.0, t, subRefState,
+                       (Vector *) NULL, melArray[isub]);
 }
 
 void

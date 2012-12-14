@@ -1,3 +1,24 @@
+#if defined(USE_EIGEN3) && (__cplusplus >= 201103L) && defined(HAS_CXX11_TEMPLATE_ALIAS)
+#include <Element.d/Sommerfeld.d/QuadPressureBC.h>
+
+QuadPressureBC::QuadPressureBC(int* _nn, double _pressure)
+ : PressureElement<Quad4LagrangePolynomialSurfacePressureForceFunction>(4, DofSet::XYZdisp, _nn),
+   pressure(_pressure)
+{
+}
+
+void
+QuadPressureBC::getConstants(CoordSet& cs, Eigen::Array<double,13,1> &sconst, Eigen::Array<int,1,1> &iconst)
+{
+  sconst << cs[nn[0]]->x, cs[nn[0]]->y, cs[nn[0]]->z,
+            cs[nn[1]]->x, cs[nn[1]]->y, cs[nn[1]]->z,
+            cs[nn[2]]->x, cs[nn[2]]->y, cs[nn[2]]->z,
+            cs[nn[3]]->x, cs[nn[3]]->y, cs[nn[3]]->z,
+            pressure;
+  iconst << 2; // quadrature rule degree
+}
+
+#else
 #include <Element.d/Sommerfeld.d/QuadPressureBC.h>
 #include <Utils.d/dbg_alloca.h>
 #include <Corotational.d/GeomState.h>
@@ -104,3 +125,4 @@ QuadPressureBC::getNormal(CoordSet &cs, double normal[3])
   normal[2] = nz/l;
 }
 
+#endif

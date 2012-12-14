@@ -332,13 +332,15 @@ class Domain : public HData {
      void getStiffAndForce(GeomState &u, Vector &elementInternalForce,
                            Corotator **allCorot, FullSquareMatrix *kel,
                            Vector &residual, double lambda = 1.0, double time = 0.0,
-                           GeomState *refState = NULL, Vector *reactions = NULL);
+                           GeomState *refState = NULL, Vector *reactions = NULL,
+                           FullSquareMatrix *mel = NULL);
      void getFollowerForce(GeomState &u, Vector &elementInternalForce,
                            Corotator **allCorot, FullSquareMatrix *kel,
                            Vector &residual, double lambda = 1.0, double time = 0.0,
                            GeomState *refState = NULL, Vector *reactions = NULL);
      void getRotaryInertiaForce(GeomState &geomState, FullSquareMatrix *kel, Vector &residual,
-                                double time, GeomState *refState, Vector *reactions);
+                                double time, GeomState *refState, Vector *reactions,
+                                FullSquareMatrix *mel);
      void getWeightedStiffAndForceOnly(const std::map<int, double> &weights,
                                        GeomState &u, Vector &elementInternalForce,
                                        Corotator **allCorot, FullSquareMatrix *kel,
@@ -353,7 +355,8 @@ class Domain : public HData {
      void getInternalForce(GeomState &u, Vector &elementInternalForce,
                            Corotator **allCorot, FullSquareMatrix *kel,
                            Vector &residual, double lambda = 1.0, double time = 0.0,
-                           GeomState *refState = NULL, Vector *reactions = NULL);
+                           GeomState *refState = NULL, Vector *reactions = NULL,
+                           FullSquareMatrix *mel = NULL);
      void getWeightedInternalForceOnly(const std::map<int, double> &weights,
                                        GeomState &u, Vector &elementInternalForce,
                                        Corotator **allCorot, FullSquareMatrix *kel,

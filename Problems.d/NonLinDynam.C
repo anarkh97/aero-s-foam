@@ -400,7 +400,8 @@ void
 NonLinDynamic::getStiffAndForceFromDomain(GeomState &geomState, Vector &elementInternalForce,
                                           Corotator **allCorot, FullSquareMatrix *kelArray,
                                           Vector &residual, double lambda, double time, GeomState *refState) {
-  domain->getStiffAndForce(geomState, elementInternalForce, allCorot, kelArray, residual, lambda, time, refState);
+  domain->getStiffAndForce(geomState, elementInternalForce, allCorot, kelArray, residual, lambda, time, refState,
+                           (Vector*) NULL, melArray);
 }
 
 int
@@ -700,6 +701,7 @@ NonLinDynamic::formRHSinitializer(Vector &fext, Vector &velocity, Vector &elemen
     C->mult(velocity, localTemp);
     rhs.linC(rhs, -1.0, localTemp);
   }
+  geomState.rotateVec(rhs,1); // f = R^T*f
 }
 
 void

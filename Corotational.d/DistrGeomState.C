@@ -68,10 +68,10 @@ DistrGeomState::~DistrGeomState()
 
 // Subdomain update
 void
-DistrGeomState::subUpdate(int isub, DistrVector &v)
+DistrGeomState::subUpdate(int isub, DistrVector &v, int SO3param)
 {
   StackVector vec(v.subData(isub), v.subLen(isub));
-  gs[isub]->update(vec);
+  gs[isub]->update(vec, SO3param);
 }
 
 void
@@ -115,16 +115,16 @@ DistrGeomState::get_inc_displacement(DistrVector &inc_vec, DistrGeomState &ss, b
 }
 
 void
-DistrGeomState::subRotateVec(int isub, DistrVector &vec)
+DistrGeomState::subRotateVec(int isub, DistrVector &vec, int transflag)
 {
  StackVector subvec(vec.subData(isub), vec.subLen(isub));
- gs[isub]->rotateVec(subvec);
+ gs[isub]->rotateVec(subvec, transflag);
 }
 
 void
-DistrGeomState::rotateVec(DistrVector &vec)
+DistrGeomState::rotateVec(DistrVector &vec, int transflag)
 {
- execParal1R(numSub,this,&DistrGeomState::subRotateVec, vec);
+ execParal2R(numSub,this,&DistrGeomState::subRotateVec, vec, transflag);
 }
 
 void
@@ -170,9 +170,9 @@ DistrGeomState::diff(DistrGeomState &unp, DistrVector &un)
 }
 
 void
-DistrGeomState::update(DistrVector &v)
+DistrGeomState::update(DistrVector &v, int SO3param)
 {
-  execParal1R(numSub, this, &DistrGeomState::subUpdate, v);
+  execParal2R(numSub, this, &DistrGeomState::subUpdate, v, SO3param);
 }
 
 void

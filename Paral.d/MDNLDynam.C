@@ -106,7 +106,7 @@ MDNLDynamic::getIncDisplacement(DistrGeomState *geomState, DistrVector &du, Dist
 
 void
 MDNLDynamic::formRHSinitializer(DistrVector &fext, DistrVector &velocity, DistrVector &elementInternalForce, 
-                                  DistrGeomState &geomState, DistrVector &rhs, DistrGeomState *refState)
+                                DistrGeomState &geomState, DistrVector &rhs, DistrGeomState *refState)
 {
   // rhs = (fext - fint - Cv)
   rhs = fext;
@@ -116,6 +116,7 @@ MDNLDynamic::formRHSinitializer(DistrVector &fext, DistrVector &velocity, DistrV
     C->mult(velocity, *localTemp);
     rhs.linC(rhs, -1.0, *localTemp);
   }
+  geomState.rotateVec(rhs,1); // rhs = R^T*rhs
 }
 
 double
@@ -432,7 +433,8 @@ MDNLDynamic::subGetStiffAndForce(int isub, DistrGeomState &geomState,
   // eIF = element internal force
   StackVector eIF(elemIntForce.subData(isub), elemIntForce.subLen(isub));
   GeomState *subRefState = (refState) ? (*refState)[isub] : 0;
-  sd->getStiffAndForce(*geomState[isub], eIF, allCorot[isub], kelArray[isub], residual, 1.0, t, subRefState);
+  sd->getStiffAndForce(*geomState[isub], eIF, allCorot[isub], kelArray[isub], residual, 1.0, t, subRefState,
+                       (Vector *) NULL, melArray[isub]);
 }
 
 void

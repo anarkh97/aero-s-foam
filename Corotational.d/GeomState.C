@@ -385,7 +385,7 @@ ElemState::operator=(const ElemState &elem)
 }
 
 void
-GeomState::update(const Vector &v)
+GeomState::update(const Vector &v, int SO3param)
 {
  // v = incremental displacement vector
 
@@ -420,9 +420,14 @@ GeomState::update(const Vector &v)
        dtheta[1] = (loc[i][4] >= 0) ? v[loc[i][4]] : 0.0;
        dtheta[2] = (loc[i][5] >= 0) ? v[loc[i][5]] : 0.0;
 
-       // Increment rotation tensor R = R(dtheta)Ra
-
-       inc_rottensor( dtheta, ns[i].R );
+       switch(SO3param) {
+         case 0: // Increment rotation tensor from the left R = R(dtheta)*Ra
+           inc_rottensor( dtheta, ns[i].R );
+           break;
+         case 1: // Increment rotation tensor from the right R = Ra*R(dtheta)
+           inc_rottensor( ns[i].R, dtheta );
+           break;
+       }
      }
    }
 #ifdef COMPUTE_GLOBAL_ROTATION
@@ -719,7 +724,7 @@ GeomState::get_inc_displacement(Vector &incVec, GeomState &ss, bool zeroRot)
 }
 
 void
-GeomState::rotateVec(Vector &vec)
+GeomState::rotateVec(Vector &vec, int transflag)
 {
   int inode;
   for(inode=0; inode<numnodes; ++inode) {
@@ -732,7 +737,7 @@ GeomState::rotateVec(Vector &vec)
       rotvec_inode[1] = ( loc[inode][4] >= 0 ) ? vec[loc[inode][4]] : 0;
       rotvec_inode[2] = ( loc[inode][5] >= 0 ) ? vec[loc[inode][5]] : 0;
 
-      mat_mult_vec( ns[inode].R, rotvec_inode, result );
+      mat_mult_vec( ns[inode].R, rotvec_inode, result, transflag );
 
       if( loc[inode][3] >= 0 ) vec[loc[inode][3]] = result[0];
       if( loc[inode][4] >= 0 ) vec[loc[inode][4]] = result[1];

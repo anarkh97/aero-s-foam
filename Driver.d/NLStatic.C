@@ -51,7 +51,7 @@ void
 Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
                          Corotator **corotators, FullSquareMatrix *kel,
                          Vector &residual, double lambda, double time,
-                         GeomState *refState, Vector *reactions)
+                         GeomState *refState, Vector *reactions, FullSquareMatrix *mel)
 /*******************************************************************
  *
  * Purpose :
@@ -111,7 +111,7 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
 
   getFollowerForce(geomState, elementForce, corotators, kel, residual, lambda, time, refState, reactions);
 
-  if(sinfo.isDynam()) getRotaryInertiaForce(geomState, kel, residual, time, refState, reactions);
+  if(sinfo.isDynam() && mel) getRotaryInertiaForce(geomState, kel, residual, time, refState, reactions, mel);
 
   if(!solInfo().getNLInfo().unsymmetric && solInfo().newmarkBeta != 0)
     for(int iele = 0; iele < numele;  ++iele)
@@ -212,12 +212,12 @@ Domain::getFollowerForce(GeomState &geomState, Vector& elementForce,
        && (nbc[i].dofnum == 3 || nbc[i].dofnum == 4 || nbc[i].dofnum == 5)) {
       int dofs[3];
       dsa->number(nbc[i].nnum, DofSet::XYZrot, dofs);
-      double m0[3] = { 0, 0, 0 }, m[3] = { 0, 0, 0 }, r[3], rotvar[3][3];
+      double m0[3] = { 0, 0, 0 }, m[3], r[3], rotvar[3][3];
       m0[nbc[i].dofnum-3] = lambda*mfttFactor*nbc[i].val;
 
       switch(nbc[i].mtype) {
-        case BCond::Axial : // axial (constant) moment
-          /* already been added in OpMake.C, nothing to do */
+        case BCond::Axial : // axial (constant) moment: m = m0
+          for(int j=0; j<3; ++j) m[j] = m0[j];
           break;
         case BCond::Rotational : { // rotational moment: m = T^{-1}*m0
           mat_to_vec(geomState[nbc[i].nnum].R,r);
@@ -1462,7 +1462,7 @@ Domain::computeGeometricPreStress(Corotator **&allCorot, GeomState *&geomState,
    Vector elementInternalForce(maxNumDOF(), 0.0);
    Vector residual(numUncon(), 0.0);
    getStiffAndForce(*geomState, elementInternalForce, allCorot,
-                    kelArray, residual);
+                    kelArray, residual, 1.0, 0.0, geomState, (Vector*) NULL, melArray);
    times->buildStiffAndForce += getTime();
 #ifdef PRINT_NLTIMERS
    fprintf(stderr," ... Build Element Tangent Stiffness %13.5f s\n",

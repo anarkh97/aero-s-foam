@@ -42,7 +42,7 @@ void
 Domain::getInternalForce(GeomState &geomState, Vector& elementForce,
                          Corotator **corotators, FullSquareMatrix *kel,
                          Vector &residual, double lambda, double time,
-                         GeomState *refState, Vector *reactions)
+                         GeomState *refState, Vector *reactions, FullSquareMatrix *mel)
 /*******************************************************************
  *
  * Purpose :
@@ -100,7 +100,7 @@ Domain::getInternalForce(GeomState &geomState, Vector& elementForce,
 
   getFollowerForce(geomState, elementForce, corotators, kel, residual, lambda, time, refState, reactions);
 
-  if(sinfo.isDynam()) getRotaryInertiaForce(geomState, kel, residual, time, refState, reactions);
+  if(sinfo.isDynam() && mel) getRotaryInertiaForce(geomState, kel, residual, time, refState, reactions, mel);
 }
 
 void
@@ -141,30 +141,34 @@ Domain::getWeightedInternalForceOnly(const std::map<int, double> &weights,
 
 void
 Domain::getRotaryInertiaForce(GeomState &geomState, FullSquareMatrix *kel, Vector &residual,
-                              double time, GeomState *refState, Vector *reactions)
+                              double time, GeomState *refState, Vector *reactions, FullSquareMatrix *mel)
 {
-  for(int iele = 0; iele < numele; ++iele) {
-
 #ifdef USE_EIGEN3
+  double &beta = sinfo.newmarkBeta,
+         &gamma = sinfo.newmarkGamma,
+         &alphaf = sinfo.newmarkAlphaF,
+         &alpham = sinfo.newmarkAlphaM,
+          dt = domain->solInfo().getTimeStep();
+
+  for(int iele = 0; iele < numele; ++iele) {
     // add the correction to the residual and tangent stiffness due to the inertial effects of 
     // elements with rotation dofs. Currently implemented for implicit dynamics only, lumped mass matrix only
     // (or more specifically, mass matrices with decoupled rotational and translational diagonal blocks),
     // mass-proportional damping only, and elements with 6 dofs per node.
-    if(sinfo.newmarkBeta != 0.0 && packedEset[iele]->hasRot() && !packedEset[iele]->isSpring()) {
-      FullSquareMatrix mel(packedEset[iele]->numDofs());
-      mel.copy(packedEset[iele]->massMatrix(nodes, mel.data(), geoSource->getMRatio())); // note: mel should be passed as an argument to this function
+    if(packedEset[iele]->hasRot() && !packedEset[iele]->isSpring()) {
       int *nodes = packedEset[iele]->nodes();
       int numNodes = packedEset[iele]->numNodes() - packedEset[iele]->numInternalNodes();
       for(int i=0; i<numNodes; ++i) {
+
         Eigen::Matrix3d M; 
-        M << mel[6*i+3][6*i+3], mel[6*i+3][6*i+4], mel[6*i+3][6*i+5],
-             mel[6*i+4][6*i+3], mel[6*i+4][6*i+4], mel[6*i+4][6*i+5],
-             mel[6*i+5][6*i+3], mel[6*i+5][6*i+4], mel[6*i+5][6*i+5];
+        M << mel[iele][6*i+3][6*i+3], mel[iele][6*i+3][6*i+4], mel[iele][6*i+3][6*i+5],
+             mel[iele][6*i+4][6*i+3], mel[iele][6*i+4][6*i+4], mel[iele][6*i+4][6*i+5],
+             mel[iele][6*i+5][6*i+3], mel[iele][6*i+5][6*i+4], mel[iele][6*i+5][6*i+5];
         if((M.array() == 0).all()) continue;
         Eigen::Matrix3d C = sinfo.alphaDamp*M;
-        Eigen::Vector3d v_n, a_n;
-        v_n << (*refState)[nodes[i]].v[3], (*refState)[nodes[i]].v[4], (*refState)[nodes[i]].v[5];
-        a_n << (*refState)[nodes[i]].a[3], (*refState)[nodes[i]].a[4], (*refState)[nodes[i]].a[5];
+        Eigen::Vector3d V_n, A_n;
+        V_n << (*refState)[nodes[i]].v[3], (*refState)[nodes[i]].v[4], (*refState)[nodes[i]].v[5];
+        A_n << (*refState)[nodes[i]].a[3], (*refState)[nodes[i]].a[4], (*refState)[nodes[i]].a[5];
         Eigen::Matrix3d R_n;
         R_n << (*refState)[nodes[i]].R[0][0], (*refState)[nodes[i]].R[0][1], (*refState)[nodes[i]].R[0][2],
                (*refState)[nodes[i]].R[1][0], (*refState)[nodes[i]].R[1][1], (*refState)[nodes[i]].R[1][2],
@@ -173,63 +177,68 @@ Domain::getRotaryInertiaForce(GeomState &geomState, FullSquareMatrix *kel, Vecto
         R << geomState[nodes[i]].R[0][0], geomState[nodes[i]].R[0][1], geomState[nodes[i]].R[0][2],
              geomState[nodes[i]].R[1][0], geomState[nodes[i]].R[1][1], geomState[nodes[i]].R[1][2],
              geomState[nodes[i]].R[2][0], geomState[nodes[i]].R[2][1], geomState[nodes[i]].R[2][2];
-        double &beta = sinfo.newmarkBeta,
-               &gamma = sinfo.newmarkGamma,
-               &alphaf = sinfo.newmarkAlphaF,
-               &alpham = sinfo.newmarkAlphaM,
-               dt = domain->solInfo().getTimeStep();
-  
-        Eigen::Array<double,39,1> dconst;
-        Eigen::Array<int,0,1> iconst;
-        dconst << M(0,0), M(0,1), M(0,2), M(1,0), M(1,1), M(1,2), M(2,0), M(2,1), M(2,2),
-                  a_n[0], a_n[1], a_n[2],
-                  v_n[0], v_n[1], v_n[2],
-                  R_n(0,0), R_n(0,1), R_n(0,2), R_n(1,0), R_n(1,1), R_n(1,2), R_n(2,0), R_n(2,1), R_n(2,2),
-                  R(0,0), R(0,1), R(0,2), R(1,0), R(1,1), R(1,2), R(2,0), R(2,1), R(2,2),
-                  beta, gamma, alphaf, alpham, dt, sinfo.alphaDamp;
 
-        // evaluate the inertial force
-        InertialForceFunction<double> F(dconst, iconst);
-        Eigen::Vector3d q = Eigen::Vector3d::Zero();
-        Eigen::Vector3d valF = F(q,time);
+        Eigen::Vector3d f;
+
+        if(beta == 0) {
+          // for explicit, just compute the fictitious force
+          Eigen::Vector3d V_n_h = V_n + dt/2*A_n;
+          f = R*V_n_h.cross(M*V_n_h);
+        }
+        else {
+          Eigen::Array<double,39,1> dconst;
+          Eigen::Array<int,0,1> iconst;
+          dconst << M(0,0), M(0,1), M(0,2), M(1,0), M(1,1), M(1,2), M(2,0), M(2,1), M(2,2),
+                    A_n[0], A_n[1], A_n[2],
+                    V_n[0], V_n[1], V_n[2],
+                    R_n(0,0), R_n(0,1), R_n(0,2), R_n(1,0), R_n(1,1), R_n(1,2), R_n(2,0), R_n(2,1), R_n(2,2),
+                    R(0,0), R(0,1), R(0,2), R(1,0), R(1,1), R(1,2), R(2,0), R(2,1), R(2,2),
+                    beta, gamma, alphaf, alpham, dt, sinfo.alphaDamp;
+
+          // evaluate the inertial force
+          InertialForceFunction<double> F(dconst, iconst);
+          Eigen::Vector3d q = Eigen::Vector3d::Zero();
+          f = F(q,time);
   
-        // subtract the part which is added to the residual elsewhere (see: probDesc->formRHScorrector)
-        Eigen::Vector3d incd;
-        Eigen::Matrix3d dR = R_n.transpose()*R;
-        mat_to_vec(dR, incd);
-        Eigen::Vector3d a = (1-alpham)/(dt*dt*beta*(1-alphaf))*incd - (1-alpham)/(dt*beta)*v_n + ((alpham-1)/(2*beta)+1)*a_n;
-        Eigen::Vector3d v = gamma/(dt*beta)*incd + (1-(1-alphaf)*gamma/beta)*v_n + dt*(1-alphaf)*(2*beta-gamma)/(2*beta)*a_n;
-        valF -= (M*a + C*v);
-  
-        for(int j = 0; j < 3; ++j) {
-          int uDofNum = c_dsa->getRCN((*allDOFs)[iele][6*i+3+j]);
-          if(uDofNum >= 0)
-            residual[uDofNum] -= valF[j];
-          else if(reactions) {
-            int cDofNum = c_dsa->invRCN((*allDOFs)[iele][6*i+3+j]);
-            if(cDofNum >= 0)
-              (*reactions)[cDofNum] += valF[j];
+          // subtract the part which is added to the residual elsewhere (see: probDesc->formRHScorrector)
+          Eigen::Vector3d incd;
+          Eigen::Matrix3d dR = R_n.transpose()*R;
+          mat_to_vec(dR, incd);
+          Eigen::Vector3d A = (1-alpham)/(dt*dt*beta*(1-alphaf))*incd - (1-alpham)/(dt*beta)*V_n + ((alpham-1)/(2*beta)+1)*A_n;
+          Eigen::Vector3d V = gamma/(dt*beta)*incd + (1-(1-alphaf)*gamma/beta)*V_n + dt*(1-alphaf)*(2*beta-gamma)/(2*beta)*A_n;
+          f -= (M*A + C*V);
+
+          if(kel) { // tangent stiffness contribution
+
+            // evaluate the jacobian of the inertial force
+            VectorValuedFunctionJacobian<double,InertialForceFunction> dFdq(dconst,iconst,time);
+            Eigen::Matrix<double,9,1> jacF;
+            dFdq(q, jacF);
+
+            Eigen::Matrix3d dkel;
+            for(int j = 0; j < 3; ++j)
+              for(int k = 0; k < 3; ++k)
+                dkel(j,k) = jacF[j+k*3];
+
+            // subtract the part which is added to the dynamic tangent stiffness elsewhere (see: probDesc->reBuild)
+            dkel -= ((1-alpham)/((1-alphaf)*(dt*dt*beta))*M + gamma/(dt*beta)*C);
+
+            for(int j = 0; j < 3; ++j)
+              for(int k = 0; k < 3; ++k)
+                kel[iele][6*i+3+j][6*i+3+k] += dkel(j,k);
           }
         }
   
-        if(kel) { // tangent stiffness contribution
-
-          // evaluate the jacobian of the inertial force
-          VectorValuedFunctionJacobian<double,InertialForceFunction> dFdq(dconst,iconst,time);
-          Eigen::Matrix<double,9,1> jacF;
-          dFdq(q, jacF);
-  
-          Eigen::Matrix3d dkel;
-          for(int j = 0; j < 3; ++j)
-            for(int k = 0; k < 3; ++k)
-              dkel(j,k) = jacF[j+k*3];
-  
-          // subtract the part which is added to the dynamic tangent stiffness elsewhere (see: probDesc->reBuild)
-          dkel -= ((1-alpham)/((1-alphaf)*(dt*dt*beta))*M + gamma/(dt*beta)*C);
-  
-          for(int j = 0; j < 3; ++j)
-            for(int k = 0; k < 3; ++k)
-              kel[iele][6*i+3+j][6*i+3+k] += dkel(j,k);
+        // assemble f into global residual
+        for(int j = 0; j < 3; ++j) {
+          int uDofNum = c_dsa->getRCN((*allDOFs)[iele][6*i+3+j]);
+          if(uDofNum >= 0)
+            residual[uDofNum] -= f[j];
+          else if(reactions) {
+            int cDofNum = c_dsa->invRCN((*allDOFs)[iele][6*i+3+j]);
+            if(cDofNum >= 0)
+              (*reactions)[cDofNum] += f[j];
+          }
         }
       }
       delete [] nodes;
@@ -237,7 +246,7 @@ Domain::getRotaryInertiaForce(GeomState &geomState, FullSquareMatrix *kel, Vecto
   }
 
   // treatment of discrete inertias
-  if(sinfo.newmarkBeta != 0.0 && firstDiMass != NULL) {
+  if(firstDiMass != NULL) {
     DMassData *current = firstDiMass;
     while(current != 0) {
       int idof = current->dof;
@@ -248,9 +257,9 @@ Domain::getRotaryInertiaForce(GeomState &geomState, FullSquareMatrix *kel, Vecto
         M(idof-3,jdof-3) = current->diMass;
         if(idof != jdof) M(jdof-3,idof-3) = current->diMass;
         Eigen::Matrix3d C = sinfo.alphaDamp*M;
-        Eigen::Vector3d v_n, a_n;
-        v_n << (*refState)[current->node].v[3], (*refState)[current->node].v[4], (*refState)[current->node].v[5];
-        a_n << (*refState)[current->node].a[3], (*refState)[current->node].a[4], (*refState)[current->node].a[5];
+        Eigen::Vector3d V_n, A_n;
+        V_n << (*refState)[current->node].v[3], (*refState)[current->node].v[4], (*refState)[current->node].v[5];
+        A_n << (*refState)[current->node].a[3], (*refState)[current->node].a[4], (*refState)[current->node].a[5];
         Eigen::Matrix3d R_n;
         R_n << (*refState)[current->node].R[0][0],(*refState)[current->node].R[0][1], (*refState)[current->node].R[0][2],
                (*refState)[current->node].R[1][0],(*refState)[current->node].R[1][1], (*refState)[current->node].R[1][2],
@@ -259,84 +268,89 @@ Domain::getRotaryInertiaForce(GeomState &geomState, FullSquareMatrix *kel, Vecto
         R << geomState[current->node].R[0][0], geomState[current->node].R[0][1], geomState[current->node].R[0][2],
              geomState[current->node].R[1][0], geomState[current->node].R[1][1], geomState[current->node].R[1][2],
              geomState[current->node].R[2][0], geomState[current->node].R[2][1], geomState[current->node].R[2][2];
-        double &beta = sinfo.newmarkBeta,
-               &gamma = sinfo.newmarkGamma,
-               &alphaf = sinfo.newmarkAlphaF,
-               &alpham = sinfo.newmarkAlphaM,
-               dt = domain->solInfo().getTimeStep();
-        Eigen::Array<double,39,1> dconst;
-        Eigen::Array<int,0,1> iconst;
-        dconst << M(0,0), M(0,1), M(0,2),
-                  M(1,0), M(1,1), M(1,2),
-                  M(2,0), M(2,1), M(2,2),
-                  a_n[0], a_n[1], a_n[2],
-                  v_n[0], v_n[1], v_n[2],
-                  R_n(0,0), R_n(0,1), R_n(0,2),
-                  R_n(1,0), R_n(1,1), R_n(1,2),
-                  R_n(2,0), R_n(2,1), R_n(2,2),
-                  R(0,0), R(0,1), R(0,2),
-                  R(1,0), R(1,1), R(1,2),
-                  R(2,0), R(2,1), R(2,2),
-                  beta, gamma, alphaf, alpham, dt, sinfo.alphaDamp;
 
-        // evaluate the inertial force
-        InertialForceFunction<double> F(dconst, iconst);
-        Eigen::Vector3d q = Eigen::Vector3d::Zero();
-        Eigen::Vector3d valF = F(q,time);
-  
-        // subtract the part which is added to the residual elsewhere (see: probDesc->formRHScorrector)
-        Eigen::Vector3d incd;
-        Eigen::Matrix3d dR = R_n.transpose()*R;
-        mat_to_vec(dR, incd);
-        Eigen::Vector3d a = (1-alpham)/(dt*dt*beta*(1-alphaf))*incd - (1-alpham)/(dt*beta)*v_n + ((alpham-1)/(2*beta)+1)*a_n;
-        Eigen::Vector3d v = gamma/(dt*beta)*incd + (1-(1-alphaf)*gamma/beta)*v_n + dt*(1-alphaf)*(2*beta-gamma)/(2*beta)*a_n;
-        valF -= (M*a + C*v);
-  
-        // assemble into the global residual
+        Eigen::Vector3d f;
         int dofs[3];
         dsa->number(current->node, DofSet::XYZrot, dofs);
-        for(int j = 0; j < 3; ++j) {
-          int uDofNum = c_dsa->getRCN(dofs[j]);
-          if(uDofNum >= 0)
-            residual[uDofNum] -= valF[j];
-          else if(reactions) {
-            int cDofNum = c_dsa->invRCN(dofs[j]);
-            if(cDofNum >= 0)
-              (*reactions)[cDofNum] += valF[j];
+
+        if(beta == 0) {
+          // for explicit, just compute the fictitious force
+          Eigen::Vector3d V_n_h = V_n + dt/2*A_n;
+          f = R*V_n_h.cross(M*V_n_h);
+        }
+        else {  
+          Eigen::Array<double,39,1> dconst;
+          Eigen::Array<int,0,1> iconst;
+          dconst << M(0,0), M(0,1), M(0,2),
+                    M(1,0), M(1,1), M(1,2),
+                    M(2,0), M(2,1), M(2,2),
+                    A_n[0], A_n[1], A_n[2],
+                    V_n[0], V_n[1], V_n[2],
+                    R_n(0,0), R_n(0,1), R_n(0,2),
+                    R_n(1,0), R_n(1,1), R_n(1,2),
+                    R_n(2,0), R_n(2,1), R_n(2,2),
+                    R(0,0), R(0,1), R(0,2),
+                    R(1,0), R(1,1), R(1,2),
+                    R(2,0), R(2,1), R(2,2),
+                    beta, gamma, alphaf, alpham, dt, sinfo.alphaDamp;
+
+          // evaluate the inertial force
+          InertialForceFunction<double> F(dconst, iconst);
+          Eigen::Vector3d q = Eigen::Vector3d::Zero();
+          f = F(q,time);
+  
+          // subtract the part which is added to the residual elsewhere (see: probDesc->formRHScorrector)
+          Eigen::Vector3d incd;
+          Eigen::Matrix3d dR = R_n.transpose()*R;
+          mat_to_vec(dR, incd);
+          Eigen::Vector3d A = (1-alpham)/(dt*dt*beta*(1-alphaf))*incd - (1-alpham)/(dt*beta)*V_n + ((alpham-1)/(2*beta)+1)*A_n;
+          Eigen::Vector3d V = gamma/(dt*beta)*incd + (1-(1-alphaf)*gamma/beta)*V_n + dt*(1-alphaf)*(2*beta-gamma)/(2*beta)*A_n;
+          f -= (M*A + C*V);
+
+          if(kel) { // tangent stiffness contribution
+
+            // evaluate the jacobian of the inertial force
+            VectorValuedFunctionJacobian<double,InertialForceFunction> dFdq(dconst,iconst,time);
+            Eigen::Matrix<double,9,1> jacF;
+            dFdq(q, jacF);
+
+            Eigen::Matrix3d dkel;
+            for(int i = 0; i < 3; ++i)
+              for(int j = 0; j < 3; ++j)
+                dkel(i,j) = jacF[i+j*3];
+
+            // subtract the part which is added to the dynamic tangent stiffness elsewhere (see: probDesc->reBuild)
+            dkel -= ((1-alpham)/((1-alphaf)*(dt*dt*beta))*M + gamma/(dt*beta)*C);
+
+            for(int inode = 0; inode < nodeToElem->num(current->node); ++inode) { // loop over the elements attached to the node
+                                                                                // at which the discrete mass is located
+              int iele = (*nodeToElem)[current->node][inode];
+              int eledofs[3] = { -1, -1, -1 };
+              for(int j = 0; j < 3; ++j) {
+                for(int k = 0; k < allDOFs->num(iele); ++k)
+                  if(dofs[j] == (*allDOFs)[iele][k]) { eledofs[j] = k; break; }
+              }
+              if(eledofs[0] != -1 && eledofs[1] != -1 && eledofs[2] != -1) {
+                // found an element with the 3 rotation dofs of current->node so we can add the inertial stiffness
+                // contribution of the discrete mass to the tangent stiffness matrix of this element
+                for(int j = 0; j < 3; ++j)
+                  for(int k = 0; k < 3; ++k)
+                    kel[iele][eledofs[j]][eledofs[k]] += dkel(j,k);
+                break;
+              }
+            }
           }
         }
   
-        if(kel) { // tangent stiffness contribution
-
-          // evaluate the jacobian of the inertial force
-          VectorValuedFunctionJacobian<double,InertialForceFunction> dFdq(dconst,iconst,time);
-          Eigen::Matrix<double,9,1> jacF;
-          dFdq(q, jacF);
-  
-          Eigen::Matrix3d dkel;
-          for(int i = 0; i < 3; ++i)
-            for(int j = 0; j < 3; ++j)
-              dkel(i,j) = jacF[i+j*3];
-  
-          // subtract the part which is added to the dynamic tangent stiffness elsewhere (see: probDesc->reBuild)
-          dkel -= ((1-alpham)/((1-alphaf)*(dt*dt*beta))*M + gamma/(dt*beta)*C);
-  
-          for(int inode = 0; inode < nodeToElem->num(current->node); ++inode) { // loop over the elements attached to the node
-                                                                                // at which the discrete mass is located
-            int iele = (*nodeToElem)[current->node][inode];
-            int eledofs[3] = { -1, -1, -1 };
-            for(int j = 0; j < 3; ++j) {
-              for(int k = 0; k < allDOFs->num(iele); ++k)
-                if(dofs[j] == (*allDOFs)[iele][k]) { eledofs[j] = k; break; }
-            }
-            if(eledofs[0] != -1 && eledofs[1] != -1 && eledofs[2] != -1) {
-              // found an element with the 3 rotation dofs of current->node so we can add the inertial stiffness
-              // contribution of the discrete mass to the tangent stiffness matrix of this element
-              for(int j = 0; j < 3; ++j)
-                for(int k = 0; k < 3; ++k)
-                  kel[iele][eledofs[j]][eledofs[k]] += dkel(j,k);
-              break;
-            }
+        // assemble f into the global residual
+        for(int j = 0; j < 3; ++j) {
+          int uDofNum = c_dsa->getRCN(dofs[j]);
+          if(uDofNum >= 0)
+            residual[uDofNum] -= f[j];
+          else if(reactions) {
+            int cDofNum = c_dsa->invRCN(dofs[j]);
+            if(cDofNum >= 0)
+              (*reactions)[cDofNum] += f[j];
           }
         }
       }

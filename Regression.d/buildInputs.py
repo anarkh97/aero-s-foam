@@ -161,7 +161,7 @@ def buildInputs(params):
                "arpack\nnsbspv 20\nneigpa 12\ntoleig 1.0e-10\ntoljac 1.0e-04",\
                "arpack\nnsbspv 20\nneigpa 12\ntoleig 1.0e-10\ntoljac 1.0e-6"]
 
-      SHIFT = ["0","0.1","1","10"]
+      SHIFT = ["0","0.1"]
 
       if(problem_type == "vme6"):
         OUTPUT = ["displacx"]

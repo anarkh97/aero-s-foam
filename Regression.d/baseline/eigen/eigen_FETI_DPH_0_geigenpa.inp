@@ -1,23 +1,23 @@
 CONTROL
-eigen_mumps_pivot_0.1_geigenpa
+eigen_FETI_DPH_0_geigenpa
 1
 "nodeset"
 "elemset"
 *
 STATICS
-mumps pivot
+FETI DPH
 include "../fetidph.include"
 EIGEN
 arpack
 nsbspv 20
 neigpa 12
 toleig 1.0e-10
-toljac 1.0e-04
+toljac 1.0e-6
 *
-SHIFT 0.1
+SHIFT 0
 *
 OUTPUT
-geigenpa eigen_mumps_pivot_0.1_geigenpa.dat 1
+geigenpa eigen_FETI_DPH_0_geigenpa.dat 1
 *
 INCLUDE "../mesh_eigen.include"
 *

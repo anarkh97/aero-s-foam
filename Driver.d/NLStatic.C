@@ -113,8 +113,8 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
 
   if(sinfo.isDynam() && mel) getRotaryInertiaForce(geomState, kel, residual, time, refState, reactions, mel, true);
 
-  if(!solInfo().getNLInfo().unsymmetric)
-    for(int iele = 0; iele < numele;  ++iele)
+  if(!solInfo().getNLInfo().unsymmetric && solInfo().newmarkBeta != 0)
+    for(int iele = 0; iele < numele; ++iele)
       kel[iele].symmetrize();
 }
 

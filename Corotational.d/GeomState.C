@@ -724,24 +724,47 @@ GeomState::get_inc_displacement(Vector &incVec, GeomState &ss, bool zeroRot)
 }
 
 void
-GeomState::rotateVec(Vector &vec, int transflag)
+GeomState::push_forward(Vector &f)
 {
   int inode;
   for(inode=0; inode<numnodes; ++inode) {
 
-    if(flag[inode] == -1) continue; // inequality constraint lagrange multiplier dof
+    if(flag[inode] == -1) continue;
 
     if(loc[inode][3] >= 0 || loc[inode][4] >= 0 || loc[inode][5] >= 0) {
-      double rotvec_inode[3], result[3];
-      rotvec_inode[0] = ( loc[inode][3] >= 0 ) ? vec[loc[inode][3]] : 0;
-      rotvec_inode[1] = ( loc[inode][4] >= 0 ) ? vec[loc[inode][4]] : 0;
-      rotvec_inode[2] = ( loc[inode][5] >= 0 ) ? vec[loc[inode][5]] : 0;
+      double vec[3], result[3];
+      vec[0] = ( loc[inode][3] >= 0 ) ? f[loc[inode][3]] : 0;
+      vec[1] = ( loc[inode][4] >= 0 ) ? f[loc[inode][4]] : 0;
+      vec[2] = ( loc[inode][5] >= 0 ) ? f[loc[inode][5]] : 0;
 
-      mat_mult_vec( ns[inode].R, rotvec_inode, result, transflag );
+      mat_mult_vec( ns[inode].R, vec, result, 0 ); // result = R*vec
 
-      if( loc[inode][3] >= 0 ) vec[loc[inode][3]] = result[0];
-      if( loc[inode][4] >= 0 ) vec[loc[inode][4]] = result[1];
-      if( loc[inode][5] >= 0 ) vec[loc[inode][5]] = result[2];
+      if( loc[inode][3] >= 0 ) f[loc[inode][3]] = result[0];
+      if( loc[inode][4] >= 0 ) f[loc[inode][4]] = result[1];
+      if( loc[inode][5] >= 0 ) f[loc[inode][5]] = result[2];
+    }
+  }
+}
+
+void
+GeomState::pull_back(Vector &f)
+{
+  int inode;
+  for(inode=0; inode<numnodes; ++inode) {
+
+    if(flag[inode] == -1) continue;
+
+    if(loc[inode][3] >= 0 || loc[inode][4] >= 0 || loc[inode][5] >= 0) {
+      double vec[3], result[3];
+      vec[0] = ( loc[inode][3] >= 0 ) ? f[loc[inode][3]] : 0;
+      vec[1] = ( loc[inode][4] >= 0 ) ? f[loc[inode][4]] : 0;
+      vec[2] = ( loc[inode][5] >= 0 ) ? f[loc[inode][5]] : 0;
+
+      mat_mult_vec( ns[inode].R, vec, result, 1 ); // result = R^T*vec
+
+      if( loc[inode][3] >= 0 ) f[loc[inode][3]] = result[0];
+      if( loc[inode][4] >= 0 ) f[loc[inode][4]] = result[1];
+      if( loc[inode][5] >= 0 ) f[loc[inode][5]] = result[2];
     }
   }
 }

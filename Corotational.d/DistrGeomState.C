@@ -115,16 +115,29 @@ DistrGeomState::get_inc_displacement(DistrVector &inc_vec, DistrGeomState &ss, b
 }
 
 void
-DistrGeomState::subRotateVec(int isub, DistrVector &vec, int transflag)
+DistrGeomState::subPushForward(int isub, DistrVector &f)
 {
- StackVector subvec(vec.subData(isub), vec.subLen(isub));
- gs[isub]->rotateVec(subvec, transflag);
+ StackVector subf(f.subData(isub), f.subLen(isub));
+ gs[isub]->push_forward(subf);
 }
 
 void
-DistrGeomState::rotateVec(DistrVector &vec, int transflag)
+DistrGeomState::push_forward(DistrVector &f)
 {
- execParal2R(numSub,this,&DistrGeomState::subRotateVec, vec, transflag);
+ execParal1R(numSub, this, &DistrGeomState::subPushForward, f);
+}
+
+void
+DistrGeomState::subPullBack(int isub, DistrVector &f)
+{
+ StackVector subf(f.subData(isub), f.subLen(isub));
+ gs[isub]->pull_back(subf);
+}
+
+void
+DistrGeomState::pull_back(DistrVector &f)
+{
+ execParal1R(numSub, this, &DistrGeomState::subPullBack, f);
 }
 
 void

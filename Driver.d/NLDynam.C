@@ -98,9 +98,9 @@ Domain::getInternalForce(GeomState &geomState, Vector& elementForce,
     }
   }
 
-  getFollowerForce(geomState, elementForce, corotators, kel, residual, lambda, time, refState, reactions);
+  getFollowerForce(geomState, elementForce, corotators, kel, residual, lambda, time, refState, reactions, false);
 
-  if(sinfo.isDynam() && mel) getRotaryInertiaForce(geomState, kel, residual, time, refState, reactions, mel);
+  if(sinfo.isDynam() && mel) getRotaryInertiaForce(geomState, kel, residual, time, refState, reactions, mel, false);
 }
 
 void
@@ -136,12 +136,13 @@ Domain::getWeightedInternalForceOnly(const std::map<int, double> &weights,
     }
   }
 
-  getFollowerForce(geomState, elementForce, corotators, (FullSquareMatrix *) NULL, residual, lambda, time, refState, NULL);
+  getFollowerForce(geomState, elementForce, corotators, (FullSquareMatrix *) NULL, residual, lambda, time, refState, NULL, false);
 }
 
 void
 Domain::getRotaryInertiaForce(GeomState &geomState, FullSquareMatrix *kel, Vector &residual,
-                              double time, GeomState *refState, Vector *reactions, FullSquareMatrix *mel)
+                              double time, GeomState *refState, Vector *reactions, FullSquareMatrix *mel,
+                              bool compute_tangents)
 {
 #ifdef USE_EIGEN3
   double &beta = sinfo.newmarkBeta,
@@ -165,7 +166,6 @@ Domain::getRotaryInertiaForce(GeomState &geomState, FullSquareMatrix *kel, Vecto
              mel[iele][6*i+4][6*i+3], mel[iele][6*i+4][6*i+4], mel[iele][6*i+4][6*i+5],
              mel[iele][6*i+5][6*i+3], mel[iele][6*i+5][6*i+4], mel[iele][6*i+5][6*i+5];
         if((M.array() == 0).all()) continue;
-        Eigen::Matrix3d C = sinfo.alphaDamp*M;
         Eigen::Vector3d V_n, A_n;
         V_n << (*refState)[nodes[i]].v[3], (*refState)[nodes[i]].v[4], (*refState)[nodes[i]].v[5];
         A_n << (*refState)[nodes[i]].a[3], (*refState)[nodes[i]].a[4], (*refState)[nodes[i]].a[5];
@@ -181,38 +181,34 @@ Domain::getRotaryInertiaForce(GeomState &geomState, FullSquareMatrix *kel, Vecto
         Eigen::Vector3d f;
 
         if(beta == 0) {
-          // for explicit, just compute the fictitious force
+          // compute the fictitious force for explicit central difference
           Eigen::Vector3d V_n_h = V_n + dt/2*A_n;
           f = R*V_n_h.cross(M*V_n_h);
+          // TODO: compute tangents for explict (for critical timestep estimate)
         }
         else {
-          Eigen::Array<double,39,1> dconst;
-          Eigen::Array<int,0,1> iconst;
-          dconst << M(0,0), M(0,1), M(0,2), M(1,0), M(1,1), M(1,2), M(2,0), M(2,1), M(2,2),
-                    A_n[0], A_n[1], A_n[2],
-                    V_n[0], V_n[1], V_n[2],
-                    R_n(0,0), R_n(0,1), R_n(0,2), R_n(1,0), R_n(1,1), R_n(1,2), R_n(2,0), R_n(2,1), R_n(2,2),
-                    R(0,0), R(0,1), R(0,2), R(1,0), R(1,1), R(1,2), R(2,0), R(2,1), R(2,2),
-                    beta, gamma, alphaf, alpham, dt, sinfo.alphaDamp;
-
-          // evaluate the inertial force
-          InertialForceFunction<double> F(dconst, iconst);
-          Eigen::Vector3d q = Eigen::Vector3d::Zero();
-          f = F(q,time);
-  
-          // subtract the part which is added to the residual elsewhere (see: probDesc->formRHScorrector)
+          // compute the fictitious force for implicit generalized-alpha
           Eigen::Vector3d incd;
           Eigen::Matrix3d dR = R_n.transpose()*R;
           mat_to_vec(dR, incd);
-          Eigen::Vector3d A = (1-alpham)/(dt*dt*beta*(1-alphaf))*incd - (1-alpham)/(dt*beta)*V_n + ((alpham-1)/(2*beta)+1)*A_n;
           Eigen::Vector3d V = gamma/(dt*beta)*incd + (1-(1-alphaf)*gamma/beta)*V_n + dt*(1-alphaf)*(2*beta-gamma)/(2*beta)*A_n;
-          f -= (M*A + C*V);
+          f = R*V.cross(M*V);
 
-          if(kel) { // tangent stiffness contribution
+          if(compute_tangents) { // tangent stiffness contribution of the fictitious force and correct linearization of rotary inertia
+
+            Eigen::Array<double,39,1> dconst;
+            Eigen::Array<int,0,1> iconst;
+            dconst << M(0,0), M(0,1), M(0,2), M(1,0), M(1,1), M(1,2), M(2,0), M(2,1), M(2,2),
+                      A_n[0], A_n[1], A_n[2],
+                      V_n[0], V_n[1], V_n[2],
+                      R_n(0,0), R_n(0,1), R_n(0,2), R_n(1,0), R_n(1,1), R_n(1,2), R_n(2,0), R_n(2,1), R_n(2,2),
+                      R(0,0), R(0,1), R(0,2), R(1,0), R(1,1), R(1,2), R(2,0), R(2,1), R(2,2),
+                      beta, gamma, alphaf, alpham, dt, sinfo.alphaDamp;
 
             // evaluate the jacobian of the inertial force
             VectorValuedFunctionJacobian<double,InertialForceFunction> dFdq(dconst,iconst,time);
             Eigen::Matrix<double,9,1> jacF;
+            Eigen::Vector3d q = Eigen::Vector3d::Zero();
             dFdq(q, jacF);
 
             Eigen::Matrix3d dkel;
@@ -221,6 +217,7 @@ Domain::getRotaryInertiaForce(GeomState &geomState, FullSquareMatrix *kel, Vecto
                 dkel(j,k) = jacF[j+k*3];
 
             // subtract the part which is added to the dynamic tangent stiffness elsewhere (see: probDesc->reBuild)
+            Eigen::Matrix3d C = sinfo.alphaDamp*M;
             dkel -= ((1-alpham)/((1-alphaf)*(dt*dt*beta))*M + gamma/(dt*beta)*C);
 
             for(int j = 0; j < 3; ++j)
@@ -252,11 +249,10 @@ Domain::getRotaryInertiaForce(GeomState &geomState, FullSquareMatrix *kel, Vecto
       int idof = current->dof;
       int jdof = (current->jdof > -1) ? current->jdof : idof;
       if((idof == 3 || idof == 4 || idof == 5) && (jdof == 3 || jdof == 4 || jdof == 5)) {
-        // prepare the inputs to the inertial force function
+
         Eigen::Matrix3d M = Eigen::Matrix3d::Zero(); 
         M(idof-3,jdof-3) = current->diMass;
         if(idof != jdof) M(jdof-3,idof-3) = current->diMass;
-        Eigen::Matrix3d C = sinfo.alphaDamp*M;
         Eigen::Vector3d V_n, A_n;
         V_n << (*refState)[current->node].v[3], (*refState)[current->node].v[4], (*refState)[current->node].v[5];
         A_n << (*refState)[current->node].a[3], (*refState)[current->node].a[4], (*refState)[current->node].a[5];
@@ -274,44 +270,34 @@ Domain::getRotaryInertiaForce(GeomState &geomState, FullSquareMatrix *kel, Vecto
         dsa->number(current->node, DofSet::XYZrot, dofs);
 
         if(beta == 0) {
-          // for explicit, just compute the fictitious force
+          // compute the fictitious force for explicit central difference
           Eigen::Vector3d V_n_h = V_n + dt/2*A_n;
           f = R*V_n_h.cross(M*V_n_h);
+          // TODO: compute tangents for explict (for critical timestep estimate)
         }
         else {  
-          Eigen::Array<double,39,1> dconst;
-          Eigen::Array<int,0,1> iconst;
-          dconst << M(0,0), M(0,1), M(0,2),
-                    M(1,0), M(1,1), M(1,2),
-                    M(2,0), M(2,1), M(2,2),
-                    A_n[0], A_n[1], A_n[2],
-                    V_n[0], V_n[1], V_n[2],
-                    R_n(0,0), R_n(0,1), R_n(0,2),
-                    R_n(1,0), R_n(1,1), R_n(1,2),
-                    R_n(2,0), R_n(2,1), R_n(2,2),
-                    R(0,0), R(0,1), R(0,2),
-                    R(1,0), R(1,1), R(1,2),
-                    R(2,0), R(2,1), R(2,2),
-                    beta, gamma, alphaf, alpham, dt, sinfo.alphaDamp;
-
-          // evaluate the inertial force
-          InertialForceFunction<double> F(dconst, iconst);
-          Eigen::Vector3d q = Eigen::Vector3d::Zero();
-          f = F(q,time);
-  
-          // subtract the part which is added to the residual elsewhere (see: probDesc->formRHScorrector)
+          // compute the fictitious force for implicit generalized-alpha
           Eigen::Vector3d incd;
           Eigen::Matrix3d dR = R_n.transpose()*R;
           mat_to_vec(dR, incd);
-          Eigen::Vector3d A = (1-alpham)/(dt*dt*beta*(1-alphaf))*incd - (1-alpham)/(dt*beta)*V_n + ((alpham-1)/(2*beta)+1)*A_n;
           Eigen::Vector3d V = gamma/(dt*beta)*incd + (1-(1-alphaf)*gamma/beta)*V_n + dt*(1-alphaf)*(2*beta-gamma)/(2*beta)*A_n;
-          f -= (M*A + C*V);
+          f = R*V.cross(M*V);
 
-          if(kel) { // tangent stiffness contribution
+          if(compute_tangents) { // tangent stiffness contribution of the fictitious force and correct linearization of rotary inertia
+
+            Eigen::Array<double,39,1> dconst;
+            Eigen::Array<int,0,1> iconst;
+            dconst << M(0,0), M(0,1), M(0,2), M(1,0), M(1,1), M(1,2), M(2,0), M(2,1), M(2,2),
+                      A_n[0], A_n[1], A_n[2],
+                      V_n[0], V_n[1], V_n[2],
+                      R_n(0,0), R_n(0,1), R_n(0,2), R_n(1,0), R_n(1,1), R_n(1,2), R_n(2,0), R_n(2,1), R_n(2,2),
+                      R(0,0), R(0,1), R(0,2), R(1,0), R(1,1), R(1,2), R(2,0), R(2,1), R(2,2),
+                      beta, gamma, alphaf, alpham, dt, sinfo.alphaDamp;
 
             // evaluate the jacobian of the inertial force
             VectorValuedFunctionJacobian<double,InertialForceFunction> dFdq(dconst,iconst,time);
             Eigen::Matrix<double,9,1> jacF;
+            Eigen::Vector3d q = Eigen::Vector3d::Zero();
             dFdq(q, jacF);
 
             Eigen::Matrix3d dkel;
@@ -320,6 +306,7 @@ Domain::getRotaryInertiaForce(GeomState &geomState, FullSquareMatrix *kel, Vecto
                 dkel(i,j) = jacF[i+j*3];
 
             // subtract the part which is added to the dynamic tangent stiffness elsewhere (see: probDesc->reBuild)
+            Eigen::Matrix3d C = sinfo.alphaDamp*M;
             dkel -= ((1-alpham)/((1-alphaf)*(dt*dt*beta))*M + gamma/(dt*beta)*C);
 
             for(int inode = 0; inode < nodeToElem->num(current->node); ++inode) { // loop over the elements attached to the node

@@ -109,11 +109,11 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
     }
   }
 
-  getFollowerForce(geomState, elementForce, corotators, kel, residual, lambda, time, refState, reactions);
+  getFollowerForce(geomState, elementForce, corotators, kel, residual, lambda, time, refState, reactions, true);
 
-  if(sinfo.isDynam() && mel) getRotaryInertiaForce(geomState, kel, residual, time, refState, reactions, mel);
+  if(sinfo.isDynam() && mel) getRotaryInertiaForce(geomState, kel, residual, time, refState, reactions, mel, true);
 
-  if(!solInfo().getNLInfo().unsymmetric && solInfo().newmarkBeta != 0)
+  if(!solInfo().getNLInfo().unsymmetric)
     for(int iele = 0; iele < numele;  ++iele)
       kel[iele].symmetrize();
 }
@@ -122,7 +122,7 @@ void
 Domain::getFollowerForce(GeomState &geomState, Vector& elementForce,
                          Corotator **corotators, FullSquareMatrix *kel,
                          Vector &residual, double lambda, double time,
-                         GeomState *refState, Vector *reactions)
+                         GeomState *refState, Vector *reactions, bool compute_tangents)
 {
   if(domain->pressureFlag()) {
     double cflg = (sinfo.newmarkBeta == 0.0) ? 0.0 : 1.0;
@@ -139,7 +139,7 @@ Domain::getFollowerForce(GeomState &geomState, Vector& elementForce,
       packedEset[iele]->setPressure(p0);
 
       // Include the "load stiffness matrix" in kel[iele]
-      if(kel && sinfo.newmarkBeta != 0.0) {
+      if(compute_tangents) {
         FullSquareMatrix elementLoadStiffnessMatrix(kel[iele].dim());
         elementLoadStiffnessMatrix.zero();
         corotators[iele]->getDExternalForceDu(geomState, nodes, elementLoadStiffnessMatrix,
@@ -176,7 +176,7 @@ Domain::getFollowerForce(GeomState &geomState, Vector& elementForce,
     neum[iele]->neumVector(nodes, elementForce, 0, &geomState);
 
     // Include the "load stiffness matrix" in kel[iele]
-    if(kel && sinfo.newmarkBeta != 0.0) {
+    if(compute_tangents) {
       int jele = (subCast) ? subCast->globalToLocalElem(neum[iele]->getAdjElementIndex()) : neum[iele]->getAdjElementIndex();
       if(jele > -1) {
         FullSquareMatrix elementLoadStiffnessMatrix(neum[iele]->numDofs());
@@ -241,7 +241,7 @@ Domain::getFollowerForce(GeomState &geomState, Vector& elementForce,
         }
       }
       // tangent stiffness contribution: 
-      if(kel && sinfo.newmarkBeta != 0.0) {
+      if(compute_tangents) {
         switch(nbc[i].mtype) {
           case BCond::Axial : { // axial (constant) moment
             double skewm0[3][3] = { {     0, -m0[2],  m0[1] },
@@ -309,7 +309,7 @@ Domain::getFollowerForce(GeomState &geomState, Vector& elementForce,
         }
       }
       // tangent stiffness contribution: 
-      if(kel && sinfo.newmarkBeta != 0.0) {
+      if(compute_tangents) {
         double skewf[3][3] = { {     0, -f[2],  f[1] },
                                {  f[2],     0, -f[0] },
                                { -f[1],  f[0],    0  } };
@@ -356,7 +356,7 @@ Domain::getFollowerForce(GeomState &geomState, Vector& elementForce,
       elementForce *= lambda;
 
       // Include the "load stiffness matrix" in kel[iele]
-      if(kel && sinfo.newmarkBeta != 0.0)
+      if(compute_tangents)
         corotators[iele]->getDExternalForceDu(geomState, nodes, kel[iele],
                                               elementForce.data());
 */
@@ -412,7 +412,7 @@ Domain::getWeightedStiffAndForceOnly(const std::map<int, double> &weights,
     }
   }
 
-  getFollowerForce(geomState, elementForce, corotators, kel, residual, lambda, time, refState, NULL);
+  getFollowerForce(geomState, elementForce, corotators, kel, residual, lambda, time, refState, NULL, true);
 
 }
 

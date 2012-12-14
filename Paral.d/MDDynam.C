@@ -952,7 +952,7 @@ MultiDomainDynam::getInternalForce(DistrVector &d, DistrVector &f, double t, int
 {
   if(domain->solInfo().isNonLin()) {
     execParal3R(decDomain->getNumSub(), this, &MultiDomainDynam::subGetInternalForce, f, t, tIndex);
-    geomState->rotateVec(f,1);
+    geomState->pull_back(f);
   }
   else {
     f.zero();

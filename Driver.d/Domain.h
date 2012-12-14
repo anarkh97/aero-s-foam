@@ -337,10 +337,11 @@ class Domain : public HData {
      void getFollowerForce(GeomState &u, Vector &elementInternalForce,
                            Corotator **allCorot, FullSquareMatrix *kel,
                            Vector &residual, double lambda = 1.0, double time = 0.0,
-                           GeomState *refState = NULL, Vector *reactions = NULL);
+                           GeomState *refState = NULL, Vector *reactions = NULL,
+                           bool compute_tangents = false);
      void getRotaryInertiaForce(GeomState &geomState, FullSquareMatrix *kel, Vector &residual,
                                 double time, GeomState *refState, Vector *reactions,
-                                FullSquareMatrix *mel);
+                                FullSquareMatrix *mel, bool compute_tangents);
      void getWeightedStiffAndForceOnly(const std::map<int, double> &weights,
                                        GeomState &u, Vector &elementInternalForce,
                                        Corotator **allCorot, FullSquareMatrix *kel,

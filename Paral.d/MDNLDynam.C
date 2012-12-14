@@ -116,7 +116,7 @@ MDNLDynamic::formRHSinitializer(DistrVector &fext, DistrVector &velocity, DistrV
     C->mult(velocity, *localTemp);
     rhs.linC(rhs, -1.0, *localTemp);
   }
-  geomState.rotateVec(rhs,1); // rhs = R^T*rhs
+  geomState.pull_back(rhs); // rhs = R^T*rhs
 }
 
 double
@@ -140,6 +140,7 @@ MDNLDynamic::formRHScorrector(DistrVector& inc_displacement, DistrVector& veloci
       localTemp->linC(-dt*gamma, inc_displacement, -dt*dt*(beta-(1-alphaf)*gamma), velocity, -dt*dt*dt*(1-alphaf)*(2*beta-gamma)/2, acceleration);
       C->multAdd(*localTemp, rhs);
     }
+    geomState->push_forward(rhs);
     rhs.linAdd(dt*dt*beta, residual);
   }
 

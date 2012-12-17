@@ -42,8 +42,12 @@ def directComp(basefile,file,SUMMARY_FILE,outstring):
   RelDiff = 0.0
   TotDiff = 0.0
   nSample = 0
+  avgSum = 0.0
+  RelDiffVals = (0,0)
   MaxDiffLine = -1
+  RelDiffLine = -1
   MaxDiffLoc = -1
+  RelDiffLoc = -1
   MaxDiffVals = (-1,-1)
   if(len(BASE) != len(COMP)):
     print bcolors.WARNING + "WARNING-- %s and %s have different lengths!" % (file,basefile) + bcolors.ENDC
@@ -70,31 +74,37 @@ def directComp(basefile,file,SUMMARY_FILE,outstring):
         for j in range(len(basewords)):
           if(not(basewords[j].isalpha())and not(compwords[j].isalpha()) and(basewords[j].find("__") == -1)):
             if(absComp):
-              basewords[j] = abs(float(basewords[j]))
-              compwords[j] = abs(float(compwords[j]))
+              basewords[j] = math.fabs(float(basewords[j]))
+              compwords[j] = math.fabs(float(compwords[j]))
             diff = float(basewords[j]) - float(compwords[j])
+            avg = 0.5*(float(basewords[j]) + float(compwords[j]))
             TotDiff = math.fabs(diff) + TotDiff
             nSample = nSample + 1
+            avgSum = avgSum + avg
             if((0.5*(float(basewords[j]) + float(compwords[j])))>= 1.0e-5):
-              if(diff/(0.5*(float(basewords[j]) + float(compwords[j])))> RelDiff):
-                RelDiff = diff/(0.5*(float(basewords[j]) + float(compwords[j])))
+              if(math.fabs(diff/avg) > RelDiff):
+                RelDiff = math.fabs(diff/avg)
+                RelDiffLine = i
+                RelDiffLoc = j
+                RelDiffVals = (basewords[j],compwords[j])
             if(math.fabs(diff) >= MaxDiff):
               MaxDiff = math.fabs(diff)
               MaxDiffLine = i
               MaxDiffLoc = j
               MaxDiffVals = (basewords[j],compwords[j])
 
-
-#  print bcolors.OKBLUE + "\t\t\t\tRel diff is %e on line %d at location %d" %(RelDiff,MaxDiffLine,MaxDiffLoc) + bcolors.ENDC
-  outstring.append( "\tRel diff is %e on line %d at location %d\n" %(RelDiff,MaxDiffLine,MaxDiffLoc))
+  if(RelDiff > 0.0):
+#   print bcolors.OKBLUE + "\t\t\t\tRel diff is %e on line %d at location %d" %(RelDiff,RelDiffLine,RelDiffLoc) + bcolors.ENDC
+    outstring.append( "\tRel diff is %e on line %d at location %d\n" %(RelDiff,RelDiffLine,RelDiffLoc))
+  else:
+    outstring.append( "")
+#  print bcolors.OKBLUE + "\t\t\t\tvals were %s " % (RelDiffVals,) + bcolors.ENDC
+# outstring.append( "\tvals were %s \n" % (RelDiffVals,))
 # SUMMARY_FILE.write(outstring[0])
-
-#  print bcolors.OKBLUE + "\t\t\t\tvals were %s " % (MaxDiffVals,) + bcolors.ENDC
-  outstring.append( "\tvals were %s \n" % (MaxDiffVals,))
-# SUMMARY_FILE.write(outstring[0])
-  if((MaxDiff > 1.0e-8)&(RelDiff > 1.0e-3)):
+  if((MaxDiff > 1.0e-8)&(RelDiff > 5.0e-2)):
 #   TotDiff = TotDiff/nSample
-#   print "Average Difference = %e %e %d \n" % (TotDiff,TotDiff/nSample,nSample)
+#   print "Average Difference = %e %e %e %d \n" % (TotDiff/avgSum,TotDiff/nSample,avgSum,nSample)
+#   print "Max diff was %e and RelDiff was %e \n" % (MaxDiff,RelDiff)
     result = 1
   else:
     result = 0
@@ -308,7 +318,8 @@ def dComp(params):
         else:
           exactMatches += 1
           print bcolors.OKGREEN + " \tMatch" + bcolors.ENDC, file
-          print bcolors.OKBLUE    + "\t" +compstring[0] + bcolors.ENDC 
+          if(compstring != ""):
+            print bcolors.OKBLUE    + "\t" +compstring[0] + bcolors.ENDC 
           outstring = "\tclose match " + file + "\n"
           SUMMARY_FILE.write(outstring)
           SUMMARY_FILE.write(compstring[0])

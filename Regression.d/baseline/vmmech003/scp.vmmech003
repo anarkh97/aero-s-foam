@@ -5,7 +5,7 @@
 
 . /opt/modules/Modules/3.2.6/init/bash
  module load intel openmpi
-cd /lustre/home/mpotts/FEM/Regression.d/vmmech003
+cd /lustre/home/mpotts/FEM-jenkins/workspace/Regression.d/vmmech003
 ../create_mfiles.pl
 echo mpirun -n 2 ../../bin/aeros  vmmech003_sparse_geigenpa.inp
 mpirun -n 2 --machinefile host.0 ../../bin/aeros  vmmech003_sparse_geigenpa.inp &

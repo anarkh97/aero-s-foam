@@ -339,7 +339,7 @@ class Domain : public HData {
                            Vector &residual, double lambda = 1.0, double time = 0.0,
                            GeomState *refState = NULL, Vector *reactions = NULL,
                            bool compute_tangents = false);
-     void getRotaryInertiaForce(GeomState &geomState, FullSquareMatrix *kel, Vector &residual,
+     void getFictitiousForce(GeomState &geomState, FullSquareMatrix *kel, Vector &residual,
                                 double time, GeomState *refState, Vector *reactions,
                                 FullSquareMatrix *mel, bool compute_tangents);
      void getWeightedStiffAndForceOnly(const std::map<int, double> &weights,

@@ -111,7 +111,7 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
 
   getFollowerForce(geomState, elementForce, corotators, kel, residual, lambda, time, refState, reactions, true);
 
-  if(sinfo.isDynam() && mel) getRotaryInertiaForce(geomState, kel, residual, time, refState, reactions, mel, true);
+  if(sinfo.isDynam() && mel) getFictitiousForce(geomState, kel, residual, time, refState, reactions, mel, true);
 
   if(!solInfo().getNLInfo().unsymmetric && solInfo().newmarkBeta != 0)
     for(int iele = 0; iele < numele; ++iele)

@@ -561,6 +561,8 @@ TRAIL [a-zA-Z]*
 
 "PENA"[a-zA-Z]*|"pena"[a-zA-Z]*    { return PENALTY; }
 
+"AUGMENTE"[a-zA-Z]*|"augmente"[a-zA-Z]* { return AUGMENTED; }
+
 "RENU"[a-zA-Z]*|"renu"[a-zA-Z]*    { return RENUM; }
 
 "DYNA"[a-zA-Z]*|"dyna"[a-zA-Z]*    { return DYNAM; }

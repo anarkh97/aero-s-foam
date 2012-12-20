@@ -100,7 +100,7 @@ Domain::getInternalForce(GeomState &geomState, Vector& elementForce,
 
   getFollowerForce(geomState, elementForce, corotators, kel, residual, lambda, time, refState, reactions, false);
 
-  if(sinfo.isDynam() && mel) getRotaryInertiaForce(geomState, kel, residual, time, refState, reactions, mel, false);
+  if(sinfo.isDynam() && mel) getFictitiousForce(geomState, kel, residual, time, refState, reactions, mel, false);
 }
 
 void
@@ -140,7 +140,7 @@ Domain::getWeightedInternalForceOnly(const std::map<int, double> &weights,
 }
 
 void
-Domain::getRotaryInertiaForce(GeomState &geomState, FullSquareMatrix *kel, Vector &residual,
+Domain::getFictitiousForce(GeomState &geomState, FullSquareMatrix *kel, Vector &residual,
                               double time, GeomState *refState, Vector *reactions, FullSquareMatrix *mel,
                               bool compute_tangents)
 {
@@ -153,7 +153,7 @@ Domain::getRotaryInertiaForce(GeomState &geomState, FullSquareMatrix *kel, Vecto
 
   for(int iele = 0; iele < numele; ++iele) {
     // add the correction to the residual and tangent stiffness due to the inertial effects of 
-    // elements with rotation dofs. Currently implemented for implicit dynamics only, lumped mass matrix only
+    // elements with rotation dofs. Currently implemented for lumped mass matrix only
     // (or more specifically, mass matrices with decoupled rotational and translational diagonal blocks),
     // mass-proportional damping only, and elements with 6 dofs per node.
     if(packedEset[iele]->hasRot() && !packedEset[iele]->isSpring()) {

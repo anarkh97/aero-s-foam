@@ -57,7 +57,7 @@
 
 %token ACTUATORS AERO AEROH AEROTYPE ANALYSIS ARCLENGTH ATTRIBUTES ANGULAROUTTYPE
 %token AUGMENT AUGMENTTYPE AVERAGED ATDARB ACOU ATDDNB ATDROB ARPACK ATDDIR ATDNEU
-%token AXIHDIR AXIHNEU AXINUMMODES AXINUMSLICES AXIHSOMMER AXIMPC AUXCOARSESOLVER ACMECNTL ADDEDMASS AEROEMBED
+%token AXIHDIR AXIHNEU AXINUMMODES AXINUMSLICES AXIHSOMMER AXIMPC AUXCOARSESOLVER ACMECNTL ADDEDMASS AEROEMBED AUGMENTED
 %token BLOCKDIAG BOFFSET BUCKLE BGTL BMPC BINARYINPUT BINARYOUTPUT
 %token CHECKTOKEN COARSESOLVER COEF CFRAMES COLLOCATEDTYPE CONVECTION COMPOSITE CONDITION
 %token CONTROL CORNER CORNERTYPE CURVE CCTTOL CCTSOLVER CRHS COUPLEDSCALE CONTACTSURFACES CMPC CNORM
@@ -3264,6 +3264,12 @@ ConstraintOptionsData:
         { // Treatment of constraints through augmented Lagrangian method
           $$.lagrangeMult = true;
           $$.penalty = $3;
+          $$.constraint_hess = 1;
+          $$.constraint_hess_eps = 0.0; }
+        | AUGMENTED Float
+        { // Alternative input syntax for treatment of constraints through augmented Lagrangian method
+          $$.lagrangeMult = true;
+          $$.penalty = $2;
           $$.constraint_hess = 1;
           $$.constraint_hess_eps = 0.0; }
         | ConstraintOptionsData HESSIAN Integer

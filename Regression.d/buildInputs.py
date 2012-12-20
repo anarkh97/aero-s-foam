@@ -90,7 +90,7 @@ def buildInputs(params):
                      'dsvm23','dsvm24','dsvm25','dsvm27a','dsvm27b','dsvm29','dsvm30',\
                      'dsvm31','dsvm32','dsvm34','dsvm35a','dsvm35b','dsvm37','dsvm38',\
                      'dsvm39','dsvm40','vmmech003','vmmech063','vme1','vme2',\
-                     'vme3','vme4','vme5','vme6','toto1']
+                     'vme3','vme4','vme5','vme6','PreStressedMembrane','PlateUnderPressure']
     else:
       PROBLEM_NAMES = [params[1]]
 
@@ -163,6 +163,19 @@ def buildInputs(params):
 
       SHIFT = ["0","0.1"]
 
+      if(problem_type == "PlateUnderPressure"):
+        OUTPUT = ["displacx","gvelocit"]
+        OUTPUT2 = ["displacx"]
+        OUTPUT_EXTRAS = [" 200 65"," 200 65"]
+        DYNAMICS = [\
+          "mech\t0.0\t0.5\ntime 0.0  6.4549E-06 3.0\nstable 0\nNONLINEAR\nMATLAW\n1 J2Plasticity 2.100E+11 3.000E-01 7.850E+03 2.500E+08 0.0 0.0 1.0e-10",\
+          "mech\t0.0\t0.5\ntime 0.0  5.8234E-06 3.0\nstable 0\nNONLINEAR\nMATLAW\n1 HypoElastic 2.100E+11 3.000E-01 7.850E+03"]
+        NAMELIST = ["DYNAMICS\n","OUTPUT\n","INCLUDE "]
+        EXTRAS = ["*","*","*"]
+        INCLUDE_FILE = "../" + problem_type + ".include"
+        INCLUDE = [INCLUDE_FILE]
+        OPTIONSLIST = [DYNAMICS,OUTPUT,INCLUDE]
+
       if(problem_type == "vme6"):
         OUTPUT = ["displacx"]
         OUTPUT2 = ["displacy"]
@@ -227,6 +240,28 @@ def buildInputs(params):
         INCLUDE = [INCLUDE_FILE]
         OPTIONSLIST = [DYNAMICS,OUTPUT,INCLUDE]
  
+      if(problem_type == "PreStressedMembrane"):
+        OUTPUT = ["gdisplac"]
+        OUTPUT2 = ["stressxx","stressxy","stressyy"]
+        OUTPUT_EXTRAS = [" 1"," 1 elemental"," 1 elemental"," 1 elemental"]
+        NAMELIST = ["STATICS\n","OUTPUT\n","INCLUDE "]
+        STATICS = ["mumps","sparse","spooles","FETI DP"]
+        INCLUDE_FILE = "../" + problem_type + ".include"
+        INCLUDE = [INCLUDE_FILE]
+        OPTIONSLIST = [STATICS,OUTPUT,INCLUDE]
+        EXTRAS = ["*","NONLINEAR\nrebuild 1\nnltol 1e-6\nmaxit 10","include \"../fetidp.include\""]
+
+      if(problem_type == "vmmech063"):
+        OUTPUT = ["displacx"]
+        OUTPUT2 = ["displacz","stressxx"]
+        OUTPUT_EXTRAS = [" 1 1326"," 1 1326"," 1 11 upper"]
+        NAMELIST = ["STATICS\n","OUTPUT\n","INCLUDE "]
+        STATICS = ["mumps"]
+        INCLUDE_FILE = "../" + problem_type + ".include"
+        INCLUDE = [INCLUDE_FILE]
+        OPTIONSLIST = [STATICS,OUTPUT,INCLUDE]
+        EXTRAS = ["*","NONLINEAR\nmaxitr 10\nnltol 1.0e-6\nrebuild 1\ndlambda 0.08333333333 1.0\nunsymmetric","*"]
+
       if(problem_type == "vmmech003"):
         OUTPUT = ["geigenpa"]
         OUTPUT_EXTRAS = [" 10 2"]

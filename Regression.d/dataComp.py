@@ -220,7 +220,7 @@ def dComp(params):
                    'dsvm23','dsvm24','dsvm25','dsvm27a','dsvm27b','dsvm29','dsvm30',\
                    'dsvm32','dsvm34','dsvm35a','dsvm35b','dsvm37','dsvm38','dsvm39',\
                    'dsvm40','vme1','vme2','vme3','vme4','vme5','vme6','vmmech003',\
-                   'vmmech063','PreStressedPlate','PlateUnderPressure']
+                   'vmmech063','PreStressedMembrane','PlateUnderPressure']
     else:
       PROBLEM_NAMES=['nlstatics','freqsweep','impe','tempstatics','tempnlstatics',\
                    'tempdynamics','tempnldynamics','dsvm1','dsvm31',
@@ -395,13 +395,16 @@ def dComp(params):
     msg['From'] = 'mpotts@'+hostname
     msg['To'] = "mpotts@drc.com"
     msg['Date'] = formatdate(localtime=True)
-    msg.attach( MIMEText('These are the discrepancies from the last regression test'))
     f = 'Discrepancies.pdf'
-    part = MIMEBase('application', "octet-stream")
-    part.set_payload( open(f,"rb").read() )
-    Encoders.encode_base64(part)
-    part.add_header('Content-Disposition', 'attachment; filename="%s"' % os.path.basename(f))
-    msg.attach(part)
+    if(os.path.exists("Discrepancies.pdf")):
+      msg.attach( MIMEText('These are the discrepancies from the last regression test'))
+      part = MIMEBase('application', "octet-stream")
+      part.set_payload( open(f,"rb").read() )
+      Encoders.encode_base64(part)
+      part.add_header('Content-Disposition', 'attachment; filename="%s"' % os.path.basename(f))
+      msg.attach(part)
+    else: 
+      msg.attach( MIMEText('These were no discrepancies in the last regression test'))
     smtp = smtplib.SMTP("localhost")
     send_to = "mpotts@drc.com"
     send_from = "mpotts@ahpcrcfe.stanford.edu"

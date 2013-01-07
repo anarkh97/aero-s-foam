@@ -246,7 +246,6 @@ NonLinearity.d/NLPentahedral.C
 NonLinearity.d/NLTetrahedral.C
 NonLinearity.d/NLMembrane.C
 NonLinearity.d/StrainEvaluator.C
-NonLinearity.d/felippa.C
 Penta15.d/Penta15.C
 Penta15.d/Penta15ShapeFct.C
 Penta26.d/Penta26.C

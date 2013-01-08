@@ -527,9 +527,12 @@ Domain::createKelArray(FullSquareMatrix *&kArray, FullSquareMatrix *&mArray)
  }
 
  // Form and store element mass matrices into an array
- double mratio = geoSource->getMRatio();
- for(iele=0; iele<numele; ++iele)
+ for(iele=0; iele<numele; ++iele) {
+   // note: only lumped mass matrix is supported currently for elements with rotation dofs in nonlinear dynamics
+   //       (only the euler beam element is affected)
+   double mratio = (packedEset[iele]->hasRot() && sinfo.isNonLin() && sinfo.isDynam()) ? 0 : geoSource->getMRatio();
    mArray[iele].copy(packedEset[iele]->massMatrix(nodes, mArray[iele].data(), mratio));
+ }
 
  // zero rotational degrees of freedom within element mass matrices
  // for nonlinear implicit dynamics
@@ -570,8 +573,10 @@ Domain::createKelArray(FullSquareMatrix *&kArray, FullSquareMatrix *&mArray, Ful
  }
 
  // Form and store element damping matrices and mass matrices into arrays
- double mratio = geoSource->getMRatio();
  for(iele=0; iele<numele; ++iele) {
+   // note: only lumped mass matrix is supported currently for elements with rotation dofs in nonlinear dynamics
+   //       (only the euler beam element is affected)
+   double mratio = (packedEset[iele]->hasRot() && sinfo.isNonLin() && sinfo.isDynam()) ? 0 : geoSource->getMRatio();
    mArray[iele] = packedEset[iele]->massMatrix(nodes, mArray[iele].data(), mratio);
    cArray[iele] = packedEset[iele]->dampingMatrix(nodes, cArray[iele].data());
  }

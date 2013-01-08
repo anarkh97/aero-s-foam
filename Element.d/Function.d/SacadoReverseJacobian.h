@@ -10,6 +10,8 @@
 #include <Sacado.hpp>
 #endif
 
+#include <iostream>
+
 /*
 namespace Eigen {
 

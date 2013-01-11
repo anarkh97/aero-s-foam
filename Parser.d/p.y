@@ -10,6 +10,7 @@
 #include <Sfem.d/Sfem.h>
 #include <Utils.d/DistHelper.h>
 #include <Driver.d/GeoSource.h>
+#include <Utils.d/Conwep.d/BlastLoading.h>
 #ifdef STRUCTOPT
 #include <Structopt.d/Driver_opt.d/Domain_opt.h>
 #endif
@@ -62,6 +63,7 @@
 %token CHECKTOKEN COARSESOLVER COEF CFRAMES COLLOCATEDTYPE CONVECTION COMPOSITE CONDITION
 %token CONTROL CORNER CORNERTYPE CURVE CCTTOL CCTSOLVER CRHS COUPLEDSCALE CONTACTSURFACES CMPC CNORM
 %token COMPLEXOUTTYPE CONSTRMAT CASES CONSTRAINEDSURFACES CSFRAMES CSTYPE
+%token CONWEP
 %token DAMPING DblConstant DEM DIMASS DISP DIRECT DLAMBDA DP DYNAM DETER DECOMPOSE DECOMPFILE DMPC DEBUGCNTL DEBUGICNTL
 %token CONSTRAINTS MULTIPLIERS PENALTY
 %token EIGEN EFRAMES ELSCATTERER END ELHSOMMERFELD EXPLICIT EPSILON ELEMENTARYFUNCTIONTYPE
@@ -891,7 +893,17 @@ DynamInfo:
         { domain->solInfo().check_energy_balance = true;
           domain->solInfo().epsilon1 = $3; 
           domain->solInfo().epsilon2 = $4; }
-	;
+        | DynamInfo CONWEP Float Float Float Float Integer Float NewLine
+        { domain->solInfo().ConwepOnOff = true;
+          BlastLoading::myData.x0[0] = $3;
+          BlastLoading::myData.x0[1] = $4;
+          BlastLoading::myData.x0[2] = $5;
+          BlastLoading::myData.t0    = $6;
+          BlastLoading::myData.blastType = ($7 == 0 ? BlastLoading::BlastData::SurfaceBurst : BlastLoading::BlastData::AirBurst);
+          BlastLoading::myData.chargeWeight = $8*2.2; // The explosive weight must be entered in kilograms.
+          BlastLoading::myData.chargeWeightCubeRoot = pow(BlastLoading::myData.chargeWeight,1.0/3.0);
+        }
+        ;
 TimeIntegration:
         NEWMARK NewLine
         { domain->solInfo().timeIntegration = SolverInfo::Newmark; }

@@ -9,6 +9,7 @@
 #include <Material.d/KorkolisKyriakidesPlaneStressMaterial.h>
 #include <Material.d/KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding.h>
 #include <Material.d/KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2.h>
+#include <Utils.d/Conwep.d/BlastLoading.h>
 
 #ifdef USE_EIGEN3
 #include <Eigen/Core>
@@ -111,6 +112,7 @@ BelytschkoTsayShell::BelytschkoTsayShell(int* nodenums)
 
   expmat = 0;
   mftt = 0;
+  ConwepOnOff = false;
 }
 
 BelytschkoTsayShell::~BelytschkoTsayShell()
@@ -157,11 +159,12 @@ BelytschkoTsayShell::setMaterial(NLMaterial *m)
 }
 
 void
-BelytschkoTsayShell::setPressure(double _pressure, MFTTData *_mftt)
+BelytschkoTsayShell::setPressure(double _pressure, MFTTData *_mftt, bool _ConwepOnOff)
 {
   pressure = _pressure;
   mftt = _mftt;
   opttrc = 0;
+  ConwepOnOff = _ConwepOnOff;
 }
 
 double
@@ -415,6 +418,9 @@ BelytschkoTsayShell::getStiffAndForce(GeomState& geomState, CoordSet& cs, FullSq
       for(int j = 0; j < nndof; ++j) {
         evelo[iloc+j] = geomState[nn[i]].v[j] + delt*0.5*geomState[nn[i]].a[j];
       }
+    }
+    if (ConwepOnOff) {
+      pressure = BlastLoading::ComputeShellPressureLoad(ecord);
     }
     double trac[3] = { 0, 0, pressure };
     double tmftval = (mftt) ? mftt->getVal(std::max(time,0.0)) : 1.0;

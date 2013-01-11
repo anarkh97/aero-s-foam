@@ -27,7 +27,7 @@ extern "C" {
 }
 
 void
-RigidFourNodeShell::setPressure(double pres, MFTTData *)
+RigidFourNodeShell::setPressure(double pres, MFTTData *, bool)
 {
   pressure = pres;
 }

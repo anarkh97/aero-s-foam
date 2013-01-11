@@ -296,7 +296,7 @@ struct SolverInfo {
    int  skipJacobian;
    int  orthogPodRom;
    double tolPodRom;
-
+   bool ConwepOnOff;
    std::list<int> loadcases;
 
    // Constructor
@@ -528,6 +528,7 @@ struct SolverInfo {
 		  skipJacobian = 1;
 		  orthogPodRom = 1;
                   tolPodRom = 1.0e-6;
+                  ConwepOnOff = false;
                  }
 
    void setDirectMPC(int mode) { mpcDirect = mode; }

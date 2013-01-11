@@ -20,7 +20,7 @@ class RigidFourNodeShell : public SuperElement
     PrioInfo examine(int sub, MultiFront *mf);
 
     // EXPERIMENTAL
-    void setPressure(double, MFTTData* = 0);
+    void setPressure(double, MFTTData* = 0, bool = false);
     double getPressure();
     FullSquareMatrix massMatrix(CoordSet&, double* mel, int cmflg = 1);
     void computePressureForce(CoordSet&, Vector& elPressureForce,

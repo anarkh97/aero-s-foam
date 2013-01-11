@@ -713,7 +713,7 @@ void GeoSource::setUpData()
   for(vector<pair<int,double> >::iterator i = eleprs.begin(); i != eleprs.end(); ++i) {
     int elemNum = i->first;
     if(elemSet[elemNum])
-     elemSet[elemNum]->setPressure(i->second, domain->getMFTT());
+     elemSet[elemNum]->setPressure(i->second, domain->getMFTT(),domain->solInfo().ConwepOnOff);
    else
      fprintf(stderr," *** WARNING: Pressure was found for non-existent element %d\n", elemNum+1);
   }

@@ -352,7 +352,7 @@ void BlastLoading::Conwep::Params(const BlastLoading::BlastData& P,
 
   static int cnt = 0;
   double z = R / P.chargeWeightCubeRoot;
-  static std::ofstream det("detontation");
+  static std::ofstream det("DetonationProperties.txt");
 
   double zlog = log10(z);
 

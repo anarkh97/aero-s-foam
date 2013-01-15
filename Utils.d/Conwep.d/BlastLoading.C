@@ -1,5 +1,5 @@
 // BlastLoading.C
-// Implement CONWEP blast loading model
+// This file implements the CONWEP blast loading model.
 #include "BlastLoading.h"
 #include <math.h>
 #include <iostream>
@@ -50,7 +50,9 @@ double BlastLoading::Conwep::Blast(const BlastLoading::BlastData& P,
                               b);
   return p;
 }
-double BlastLoading::Conwep::Decay(double p0, double i0, double td) {
+double BlastLoading::Conwep::Decay(double p0,
+                                   double i0,
+                                   double td) {
   double ptoi = p0*td/i0;
   double a = ptoi-1.0;
   double fa,fpa;
@@ -63,18 +65,30 @@ double BlastLoading::Conwep::Decay(double p0, double i0, double td) {
 }
 double BlastLoading::Conwep::IncidentPressure(const BlastLoading::BlastData& P,
 					      double zlog) {
-  const static double cpso[2][12] = {  1.9422502013, -1.6958988741,
-				       -0.154159376846, 0.514060730593,
-				       0.0988534365274, -0.293912623038,
-				       -0.0268112345019, 0.109097496421,
-				       0.00162846756311,-0.0214631030242,
-				       0.0001456723382, 0.00167847752266,
-				       1.77284970457, -1.69012801396,
-				       0.00804973591951, 0.336743114941,
-				       -0.00516226351334,-0.0809228619888,
-				       -0.00478507266747, 0.00793030472242,
-				       0.0007684469735, 0.0,
-				       0.0, 0.0 };
+  const static double cpso[2][12] = {  1.9422502013,
+                                      -1.6958988741,
+                                      -0.154159376846,
+                                       0.514060730593,
+                                       0.0988534365274,
+                                      -0.293912623038,
+                                      -0.0268112345019,
+                                       0.109097496421,
+                                       0.00162846756311,
+                                      -0.0214631030242,
+                                       0.0001456723382,
+                                       0.00167847752266,
+                                       1.77284970457,
+                                      -1.69012801396,
+                                       0.00804973591951,
+                                       0.336743114941,
+                                      -0.00516226351334,
+                                      -0.0809228619888,
+                                      -0.00478507266747,
+                                       0.00793030472242,
+                                       0.0007684469735,
+                                       0.0,
+                                       0.0,
+                                       0.0 };
   double u = -0.756579301809 + 1.35034249993*zlog;
   int i = (int)P.blastType;
   double pinc = cpso[i][11];
@@ -85,17 +99,28 @@ double BlastLoading::Conwep::IncidentPressure(const BlastLoading::BlastData& P,
 }
 double BlastLoading::Conwep::ReflectedPressure(const BlastLoading::BlastData& P,
 					       double zlog) {
-  const static double csurf[12] = { 2.56431321138, -2.21030870597,
-				    -0.218536586295, 0.895319589372,
-				    0.24989009775, -0.569249436807,
-				    -0.11791682383, 0.224131161411,
-				    0.0245620259375, -0.0455116002694,
-				    -0.00190930738887, 0.00361471193389 };
-  const static double cfree[10] = { 2.39106134946, -2.21400538997,
-				    0.035119031446, 0.657599992109,
-				    0.0141818951887, -0.243076636231,
-				    -0.0158699803158, 0.0492741184234,
-				    0.00227639644004,-0.00397126276058 };
+  const static double csurf[12] = {  2.56431321138,
+                                    -2.21030870597,
+                                    -0.218536586295,
+                                     0.895319589372,
+                                     0.24989009775,
+                                    -0.569249436807,
+                                    -0.11791682383,
+                                     0.224131161411,
+                                     0.0245620259375,
+                                    -0.0455116002694,
+                                    -0.00190930738887,
+                                     0.00361471193389 };
+  const static double cfree[10] = {  2.39106134946,
+                                    -2.21400538997,
+                                     0.035119031446,
+                                     0.657599992109,
+                                     0.0141818951887,
+                                    -0.243076636231,
+                                    -0.0158699803158,
+                                     0.0492741184234,
+                                     0.00227639644004,
+                                    -0.00397126276058 };
   double u;
   double pref;
   int j;
@@ -117,15 +142,24 @@ double BlastLoading::Conwep::ReflectedPressure(const BlastLoading::BlastData& P,
 }
 double BlastLoading::Conwep::ArrivalTime(const BlastLoading::BlastData& P,
 					 double zlog) {
-  const static double csurf[10] = { -0.173607601251, 1.35706496258,
-				    0.052492798645, -0.196563954086,
-				    -0.0601770052288, 0.0696360270891,
-				    0.0215297490092, -0.0161658930785,
-				    -0.00232531970294, 0.00147752067524};
-  const static double cfree[8] = { -0.0423733936826, 1.36456871214, 
-	                           -0.0570035692784,-0.182832224796,
-                                    0.0118851436014, 0.0432648687627,
-                                    -0.0007997367834,-0.00436073555033 };
+  const static double csurf[10] = { -0.173607601251,
+                                     1.35706496258,
+                                     0.052492798645,
+                                    -0.196563954086,
+                                    -0.0601770052288,
+                                     0.0696360270891,
+                                     0.0215297490092,
+                                    -0.0161658930785,
+                                    -0.00232531970294,
+                                     0.00147752067524 };
+  const static double cfree[8] = { -0.0423733936826,
+                                    1.36456871214, 
+                                   -0.0570035692784,
+                                   -0.182832224796,
+                                    0.0118851436014,
+                                    0.0432648687627,
+                                   -0.0007997367834,
+                                   -0.00436073555033 };
   double u;
   double tarr;
   int j;
@@ -147,31 +181,53 @@ double BlastLoading::Conwep::ArrivalTime(const BlastLoading::BlastData& P,
 }
 double BlastLoading::Conwep::PositivePhaseDuration(const BlastLoading::BlastData& P,
                                                    double zlog) {
-  const static double csurf1[6] = { -0.728671776005, 0.130143717675,
-                                    0.134872511954, 0.0391574276906,
-                                    -0.00475933664702,-0.00428144598008 };
-  const static double csurf2[9] = {0.20096507334, -0.0297944268976,
-                                   0.030632954288, 0.0183405574086,
-                                   -0.0173964666211, -0.00106321963633,
-                                   0.00562060030977, 0.0001618217499,
-                                   -0.0006860188944 };
-  const static double csurf3[6] = {0.572462469964, 0.0933035304009,
-                                   -0.0005849420883, -0.00226884995013,
-                                   -0.00295908591505, 0.00148029868929 };
-  const static double cfree1[9] = {-0.801052722864, 0.164953518069,
-                                    0.127788499497, 0.00291430135946,
-                                    0.00187957449227, 0.0173413962543,
-                                    0.00269739758043,-0.00361976502798,
+  const static double csurf1[6] = { -0.728671776005,
+                                     0.130143717675,
+                                     0.134872511954,
+                                     0.0391574276906,
+                                    -0.00475933664702,
+                                    -0.00428144598008 };
+  const static double csurf2[9] = {  0.20096507334,
+                                    -0.0297944268976,
+                                     0.030632954288,
+                                     0.0183405574086,
+                                    -0.0173964666211,
+                                    -0.00106321963633,
+                                     0.00562060030977,
+                                     0.0001618217499,
+                                    -0.0006860188944 };
+  const static double csurf3[6] = {  0.572462469964,
+                                     0.0933035304009,
+                                    -0.0005849420883,
+                                    -0.00226884995013,
+                                    -0.00295908591505,
+                                     0.00148029868929 };
+  const static double cfree1[9] = { -0.801052722864,
+                                     0.164953518069,
+                                     0.127788499497,
+                                     0.00291430135946,
+                                     0.00187957449227,
+                                     0.0173413962543,
+                                     0.00269739758043,
+                                    -0.00361976502798,
                                     -0.00100926577934 };
-  const static double cfree2[9] = {0.115874238335, -0.0297944268969,
-                                   0.0306329542941, 0.018340557407,
-                                   -0.0173964666286, -0.00106321963576,
-                                   0.0056206003128, 0.0001618217499,
-                                   -0.0006860188944};
-  const static double cfree3[8] = {0.50659210403, 0.0967031995552,
-                                   -0.00801302059667, 0.00482705779732,
-                                   0.00187587272287,-0.00246738509321,
-                                   -0.000841116668, 0.0006193291052};
+  const static double cfree2[9] = {  0.115874238335,
+                                    -0.0297944268969,
+                                     0.0306329542941,
+                                     0.018340557407,
+                                    -0.0173964666286,
+                                    -0.00106321963576,
+                                     0.0056206003128,
+                                     0.0001618217499,
+                                    -0.0006860188944 };
+  const static double cfree3[8] = {  0.50659210403,
+                                     0.0967031995552,
+                                    -0.00801302059667,
+                                     0.00482705779732,
+                                     0.00187587272287,
+                                    -0.00246738509321,
+                                    -0.000841116668,
+                                     0.0006193291052 };
   double u;
   double tdur;
   int j;
@@ -221,10 +277,14 @@ double BlastLoading::Conwep::PositivePhaseDuration(const BlastLoading::BlastData
 }
 double BlastLoading::Conwep::ReflectedImpulse(const BlastLoading::BlastData& P,
 					      double zlog) {
-  const static double csurf[4] = { 1.75291677799, -0.949516092853,
-                                   0.112136118689, -0.0250659183287 };
-  const static double cfree[4] = { 1.60579280091, -0.903118886091,
-                                   0.101771877942, -0.0242139751146 };
+  const static double csurf[4] = { 1.75291677799,
+                                  -0.949516092853,
+                                   0.112136118689,
+                                  -0.0250659183287 };
+  const static double cfree[4] = { 1.60579280091,
+                                  -0.903118886091,
+                                   0.101771877942,
+                                  -0.0242139751146 };
   double u;
   double ximpr;
   int j;
@@ -246,20 +306,32 @@ double BlastLoading::Conwep::ReflectedImpulse(const BlastLoading::BlastData& P,
 }
 double BlastLoading::Conwep::IncidentImpulse(const BlastLoading::BlastData& P,
                                              double zlog) {
-  const static double csurf1[5] = {1.57159240621, -0.502992763686,
-				   0.171335645235, 0.0450176963051,
-				   -0.0118964626402  };
-  const static double csurf2[8] = {0.719852655584, -0.384519026965,
-                                   -0.0280816706301, 0.00595798753822,
-                                   0.014544526107, -0.00663289334734,
-                                   -0.00284189327204, 0.0013644816227};
-  const static double cfree1[5] = {1.43534136453, -0.443749377691,
-                                   0.168825414684, 0.0348138030308,
-                                   -0.010435192824};
-  const static double cfree2[9] = {0.599008468099, -0.40463292088,
-                                   -0.0142721946082, 0.00912366316617,
-                                   -0.0006750681404, -0.00800863718901,
-                                   0.00314819515931, 0.00152044783382,
+  const static double csurf1[5] = { 1.57159240621,
+                                   -0.502992763686,
+                                    0.171335645235,
+                                    0.0450176963051,
+				   -0.0118964626402 };
+  const static double csurf2[8] = { 0.719852655584,
+                                   -0.384519026965,
+                                   -0.0280816706301,
+                                    0.00595798753822,
+                                    0.014544526107,
+                                   -0.00663289334734,
+                                   -0.00284189327204,
+                                    0.0013644816227 };
+  const static double cfree1[5] = { 1.43534136453,
+                                   -0.443749377691,
+                                    0.168825414684,
+                                    0.0348138030308,
+                                   -0.010435192824 };
+  const static double cfree2[9] = { 0.599008468099,
+                                   -0.40463292088,
+                                   -0.0142721946082,
+                                    0.00912366316617,
+                                   -0.0006750681404,
+                                   -0.00800863718901,
+                                    0.00314819515931,
+                                    0.00152044783382,
                                    -0.0007470265899};
   double u;
   double ximps;
@@ -302,7 +374,8 @@ void BlastLoading::Conwep::Params(const BlastLoading::BlastData& P,
                                   double& reflectedImpulse,
                                   double& incidentPressure,
                                   double& reflectedPressure,
-                                  double& a, double& b) {
+                                  double& a,
+                                  double& b) {
   static int cnt = 0;
   double z = R / P.chargeWeightCubeRoot;
   static std::ofstream det("DetonationProperties.txt");
@@ -323,7 +396,6 @@ void BlastLoading::Conwep::Params(const BlastLoading::BlastData& P,
         << "Incident Pressure = " << incidentPressure << "\n"
         << "Reflected Pressure = " << reflectedPressure << std::endl;
   }
-  //exit(-1);
   if (z >= zlo) {
     a = Conwep::Decay(incidentPressure, incidentImpulse, positivePhaseDuration);
     b = Conwep::Decay(reflectedPressure, reflectedImpulse, positivePhaseDuration); 
@@ -331,43 +403,44 @@ void BlastLoading::Conwep::Params(const BlastLoading::BlastData& P,
     a = b = 0;
   }
 }
-double BlastLoading::Conwep::Pressure(double ts,double arrivalTime,
-				      double positivePhaseDuration,
-				      double incidentPressure,
-				      double reflectedPressure,
-				      double posCosine,
-				      double a,double b) {
-  //std::cout << ts << " " << arrivalTime << std::endl;
+double BlastLoading::Conwep::Pressure(double ts,
+                                      double arrivalTime,
+                                      double positivePhaseDuration,
+                                      double incidentPressure,
+                                      double reflectedPressure,
+                                      double posCosine,
+                                      double a,
+                                      double b) {
   if (ts >= arrivalTime) {
     double exa = exp(-a*(ts-arrivalTime)/positivePhaseDuration);
     double exb = exp(-b*(ts-arrivalTime)/positivePhaseDuration);
     double poscosa = (posCosine>0.0?posCosine:0.0);
-    double p = (incidentPressure*exa*(1.0+poscosa-2.0*poscosa*poscosa)+
-		reflectedPressure*exb*poscosa*poscosa)*(1.0-(ts-arrivalTime)/positivePhaseDuration);
+    double p = (incidentPressure*exa*(1.0+poscosa-2.0*poscosa*poscosa)+reflectedPressure*exb*poscosa*poscosa)*(1.0-(ts-arrivalTime)/positivePhaseDuration);
     return (p>-14.7?p:-14.7);
-  } else 
+  } else
     return 0.0;  
 }
-double BlastLoading::ComputeShellPressureLoad(const double* coords, double currentTime ) {
-// This is done in the input file now:
-/*  
-    if (myData.chargeWeightCubeRoot == 0.0) {
-    std::ifstream in("detonationData");
-    int type;
-    in >> myData.x0[0] >> myData.x0[1] >> myData.x0[2] >> 
-	myData.t0 >> type >> myData.chargeWeight;
-    in.close();
-    myData.blastType = (type == 0 ? BlastData::SurfaceBurst : BlastData::AirBurst);
-    myData.chargeWeightCubeRoot = pow(myData.chargeWeight,1.0/3.0);
-  }
-*/
-  double a[3] = {coords[6]-coords[0], coords[7]-coords[1],coords[8]-coords[2]};
-  double b[3] = {coords[9]-coords[3], coords[10]-coords[4], coords[11]-coords[5]};
-  double n[3] = {a[1]*b[2]-a[2]*b[1],
-		 a[2]*b[0]-a[0]*b[2],
-		 a[0]*b[1]-a[1]*b[0]};
+double BlastLoading::ComputeShellPressureLoad(const double* coords,
+                                              double currentTime ) {
+  double a[3] = {
+    coords[6]-coords[0],
+    coords[7]-coords[1],
+    coords[8]-coords[2]
+  };
+  double b[3] = {
+    coords[9]-coords[3],
+    coords[10]-coords[4],
+    coords[11]-coords[5]
+  };
+  double n[3] = {
+    a[1]*b[2]-a[2]*b[1],
+    a[2]*b[0]-a[0]*b[2],
+    a[0]*b[1]-a[1]*b[0]
+  };
   double magn = sqrt(n[0]*n[0]+n[1]*n[1]+n[2]*n[2]);
-  n[0] /= magn; n[1] /= magn; n[2] /= magn;
+  n[0] /= magn;
+  n[1] /= magn;
+  n[2] /= magn;
   double x[3] = {0,0,0};
   for (int k = 0; k < 4; ++k) { 
     for (int j = 0; j < 3; ++j)
@@ -376,8 +449,8 @@ double BlastLoading::ComputeShellPressureLoad(const double* coords, double curre
   for (int j = 0; j < 3; ++j)
     x[j] *= 0.25;
   double p = Conwep::Blast(myData,x,n,currentTime);
-  return -p * 6.895e3; // psi to Pa
+  return -p * 6.895e3; // This converts psi to Pa.
 }
-//double BlastLoading::currentTime = 0.0;
+// Initialize myData:
 BlastLoading::BlastData BlastLoading::myData = {{0.0,0.0,0.0},0.0,
                                                 BlastLoading::BlastData::AirBurst,400.0,0.0};

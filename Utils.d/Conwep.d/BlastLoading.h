@@ -48,6 +48,5 @@ class BlastLoading {
   public:
   static double ComputeShellPressureLoad(const double* coords, double currentTime );
   static BlastData myData;
-//  static double currentTime;
 };
-#endif // _BLASTLOADING_H_
+#endif

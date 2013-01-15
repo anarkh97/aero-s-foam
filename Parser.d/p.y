@@ -894,7 +894,7 @@ DynamInfo:
           domain->solInfo().epsilon1 = $3; 
           domain->solInfo().epsilon2 = $4; }
         | DynamInfo CONWEP Float Float Float Float Integer Float NewLine
-        { domain->solInfo().ConwepOnOff = true;
+        { domain->solInfo().ConwepOnOff = true; // If ConwepOnOff is true, read Conwep parameters:
           BlastLoading::myData.x0[0] = $3;
           BlastLoading::myData.x0[1] = $4;
           BlastLoading::myData.x0[2] = $5;

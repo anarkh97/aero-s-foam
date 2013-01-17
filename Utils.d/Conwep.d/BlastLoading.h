@@ -7,7 +7,11 @@ class BlastLoading {
     double x0[3];
     double t0;
     enum {SurfaceBurst, AirBurst} blastType;
-    double chargeWeight,chargeWeightCubeRoot;
+    double chargeWeight;
+    double chargeWeightCubeRoot;
+    double scaleLength;
+    double scaleTime;
+    double scaleMass;
   };
   private:
   class Conwep {
@@ -46,7 +50,7 @@ class BlastLoading {
 			   double a,double b);
   };
   public:
-  static double ComputeShellPressureLoad(const double* coords, double currentTime );
+  static double ComputeShellPressureLoad(const double* coords, double currentTime, const BlastLoading::BlastData& P );
   static BlastData myData;
 };
 #endif

@@ -893,14 +893,18 @@ DynamInfo:
         { domain->solInfo().check_energy_balance = true;
           domain->solInfo().epsilon1 = $3; 
           domain->solInfo().epsilon2 = $4; }
-        | DynamInfo CONWEP Float Float Float Float Integer Float NewLine
+        | DynamInfo CONWEP Float Float Float Float Integer Float Float Float Float NewLine
         { domain->solInfo().ConwepOnOff = true; // If ConwepOnOff is true, read Conwep parameters:
-          BlastLoading::myData.x0[0] = $3;
-          BlastLoading::myData.x0[1] = $4;
-          BlastLoading::myData.x0[2] = $5;
-          BlastLoading::myData.t0    = $6;
-          BlastLoading::myData.blastType = ($7 == 0 ? BlastLoading::BlastData::SurfaceBurst : BlastLoading::BlastData::AirBurst);
-          BlastLoading::myData.chargeWeight = $8*2.2; // The explosive weight must be entered in kilograms.
+          // Note: chargeWeight must be entered in the units of mass of the problem, not units of force.
+          BlastLoading::myData.x0[0]                = $3;
+          BlastLoading::myData.x0[1]                = $4;
+          BlastLoading::myData.x0[2]                = $5;
+          BlastLoading::myData.t0                   = $6;
+          BlastLoading::myData.blastType            = ($7 == 0 ? BlastLoading::BlastData::SurfaceBurst : BlastLoading::BlastData::AirBurst);
+          BlastLoading::myData.scaleLength          = $9;
+          BlastLoading::myData.scaleTime            = $10;
+          BlastLoading::myData.scaleMass            = $11;
+          BlastLoading::myData.chargeWeight         = $8*$11*2.2; // The 2.2 factor is to convert from kilograms to pounds force.
           BlastLoading::myData.chargeWeightCubeRoot = pow(BlastLoading::myData.chargeWeight,1.0/3.0);
         }
         ;

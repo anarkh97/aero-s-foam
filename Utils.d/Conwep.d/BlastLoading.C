@@ -17,6 +17,7 @@
 
 
 // Define the BlastLoading::Conwep::Blast function, which returns a pressure:
+// P contains everything in BlastData: x0, t0, blastType, chargeWeight, chargeWeightCubeRoot, scaleLength, scaleTime, scaleMass.
 double BlastLoading::Conwep::Blast(const BlastLoading::BlastData& P,
                                    const double x[3], // Element face centroid
                                    const double n[3], // Element face normal
@@ -30,8 +31,9 @@ double BlastLoading::Conwep::Blast(const BlastLoading::BlastData& P,
   f[0] /= R;
   f[1] /= R;
   f[2] /= R;
-  // Convert meters to feet:
-  R *= 3.2808399;
+  // Convert distance to feet:
+  //R *= 3.2808399;
+  R = R/P.scaleLength*3.2808399;
   double posCosine = n[0]*f[0]+n[1]*f[1]+n[2]*f[2];
   double arrivalTime;
   double positivePhaseDuration;
@@ -51,7 +53,8 @@ double BlastLoading::Conwep::Blast(const BlastLoading::BlastData& P,
                  reflectedPressure,
                  a,
                  b);
-  double ts = (t- P.t0)*1000.0; // The 1000 factor is to convert seconds to milliseconds.
+  //double ts = (t- P.t0)*1000.0; // Convert time to milliseconds.
+  double ts = (t- P.t0)*1000.0*P.scaleTime;
   double p = Conwep::Pressure(ts,
                               arrivalTime,
                               positivePhaseDuration,
@@ -402,7 +405,7 @@ void BlastLoading::Conwep::Params(const BlastLoading::BlastData& P,
   reflectedImpulse = Conwep::ReflectedImpulse(P, zlog) * P.chargeWeightCubeRoot;
   incidentPressure = Conwep::IncidentPressure(P, zlog);
   reflectedPressure = Conwep::ReflectedPressure(P, zlog);
-  if ((++cnt) < 122) {
+  //if ((++cnt) < 122) {
     det << "R = " << R << "\n"
         << "Arrival Time = " << arrivalTime << "\n"
         << "Positive Phase Duration = " << positivePhaseDuration << "\n"
@@ -410,7 +413,7 @@ void BlastLoading::Conwep::Params(const BlastLoading::BlastData& P,
         << "Reflected Impulse = " << reflectedImpulse << "\n"
         << "Incident Pressure = " << incidentPressure << "\n"
         << "Reflected Pressure = " << reflectedPressure << std::endl;
-  }
+  //}
   if (z >= zlo) {
     a = Conwep::Decay(incidentPressure, incidentImpulse, positivePhaseDuration);
     b = Conwep::Decay(reflectedPressure, reflectedImpulse, positivePhaseDuration); 
@@ -436,7 +439,8 @@ double BlastLoading::Conwep::Pressure(double ts,
     return 0.0;  
 }
 double BlastLoading::ComputeShellPressureLoad(const double* coords,
-                                              double currentTime ) {
+                                              double currentTime,
+                                              const BlastLoading::BlastData& P ) {
   double a[3] = {
     coords[6]-coords[0],
     coords[7]-coords[1],
@@ -464,8 +468,10 @@ double BlastLoading::ComputeShellPressureLoad(const double* coords,
   for (int j = 0; j < 3; ++j)
     x[j] *= 0.25;
   double p = Conwep::Blast(myData,x,n,currentTime);
-  return -p * 6.895e3; // This converts psi to Pa.
+  // p is in psi: convert it to Pa, then use scaleLength, scaleTime and scaleMass to convert it to correct pressure units:
+  //return -p*6.895e3 // Convert psi to Pa.
+  return -p*6.8947573e3/P.scaleMass*P.scaleLength*P.scaleTime*P.scaleTime;
 }
 // Initialize myData:
 BlastLoading::BlastData BlastLoading::myData = {{0.0,0.0,0.0},0.0,
-                                                BlastLoading::BlastData::AirBurst,400.0,0.0};
+                                                BlastLoading::BlastData::AirBurst,1.0,0.0,0.3048,1.0,1.0};

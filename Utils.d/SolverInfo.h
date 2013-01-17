@@ -296,7 +296,7 @@ struct SolverInfo {
    int  skipJacobian;
    int  orthogPodRom;
    double tolPodRom;
-
+   bool ConwepOnOff;
    std::list<int> loadcases;
    bool basicDofCoords; // if this is true then all of the nodes use the basic coordinate frame 0 for DOF_FRM
    bool basicPosCoords; // if this is true then all of the nodes use the basic coordinate frame 0 for POS_FRM
@@ -530,7 +530,7 @@ struct SolverInfo {
 		  skipJacobian = 1;
 		  orthogPodRom = 1;
                   tolPodRom = 1.0e-6;
-
+                  ConwepOnOff = false;
                   basicDofCoords = true;
                   basicPosCoords = true;
                  }

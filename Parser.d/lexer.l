@@ -89,6 +89,8 @@ TRAIL [a-zA-Z]*
 
 "PRES"[a-zA-Z]*|"pres"[a-zA-Z]*    { return PRESSURE; }
 
+"CONW"[a-zA-Z]*|"conw"[a-zA-Z]*    { return CONWEP; }
+
 "PREL"[a-zA-Z]*|"prel"[a-zA-Z]*    { return PRELOAD; }
 
 "BUCK"[a-zA-Z]*|"buck"[a-zA-Z]*    { return BUCKLE; }

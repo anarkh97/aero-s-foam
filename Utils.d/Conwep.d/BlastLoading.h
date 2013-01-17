@@ -13,22 +13,22 @@ class BlastLoading {
   class Conwep {
   public:
     static double Blast(const BlastLoading::BlastData& P,
-			const double x[3], // face centroid
-			const double n[3], // face normal
-			double t);
+                        const double x[3], // face centroid
+                        const double n[3], // face normal
+                        double t);
     static double Decay(double p0, double i0, double td);
     static double IncidentPressure(const BlastLoading::BlastData& P,
-				   double zlog);
+                                   double zlog);
     static double ReflectedPressure(const BlastLoading::BlastData& P,
-				    double zlog);
+                                    double zlog);
     static double ArrivalTime(const BlastLoading::BlastData& P,
-			      double zlog) ;
+                              double zlog) ;
     static double PositivePhaseDuration(const BlastLoading::BlastData& P,
-					double zlog);
+                                        double zlog);
     static double ReflectedImpulse(const BlastLoading::BlastData& P,
-				   double zlog);
+                                   double zlog);
     static double IncidentImpulse(const BlastLoading::BlastData& P,
-				  double zlog) ;
+                                  double zlog) ;
     static void Params(const BlastLoading::BlastData& P,
 		       double R,
 		       double& arrivalTime,

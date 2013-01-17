@@ -4,6 +4,18 @@
 #include <math.h>
 #include <iostream>
 #include <fstream>
+// Variables and Notes:
+// P: contains the input file parameters: explosive location, detonation time, explosion type (air blast or ground blast), charge weight, and the cube root of the charge weight.
+// R: distance of current point to the explosive location.
+// arrivalTime: time for the shock wave to arrive at the surface.
+// positivePhaseDuration: time during which the shock wave is above ambient pressure.
+// There are 2 shock waves: the incident normal shock wave, and the ground-reflected oblique shock wave.
+// incidentImpulse and incidentPressure: specific impulse and pressure of the incident shock wave.
+// reflectedImpulse and reflectedPressure: specific impulse and pressure of the ground-reflected shock wave.
+// a: decay exponent of the incident shock wave.
+// b: decay exponent of the ground-reflected shock wave.
+
+
 // Define the BlastLoading::Conwep::Blast function, which returns a pressure:
 double BlastLoading::Conwep::Blast(const BlastLoading::BlastData& P,
                                    const double x[3], // Element face centroid
@@ -34,25 +46,28 @@ double BlastLoading::Conwep::Blast(const BlastLoading::BlastData& P,
                  arrivalTime,
                  positivePhaseDuration,
                  incidentImpulse,
-		 reflectedImpulse,
+                 reflectedImpulse,
                  incidentPressure,
                  reflectedPressure,
-		 a,
+                 a,
                  b);
   double ts = (t- P.t0)*1000.0; // The 1000 factor is to convert seconds to milliseconds.
   double p = Conwep::Pressure(ts,
                               arrivalTime,
-			      positivePhaseDuration,
-			      incidentPressure,
-			      reflectedPressure,
-			      posCosine,
-			      a,
+                              positivePhaseDuration,
+                              incidentPressure,
+                              reflectedPressure,
+                              posCosine,
+                              a,
                               b);
   return p;
 }
 double BlastLoading::Conwep::Decay(double p0,
                                    double i0,
                                    double td) {
+// p0 refers to either incidentPressure or reflectedPressure, depending on which one called the function.
+// i0 refers to either incidentImpulse or reflectedImpulse, depending on which one called the function.
+// td refers to positivePhaseDuration.
   double ptoi = p0*td/i0;
   double a = ptoi-1.0;
   double fa,fpa;
@@ -64,7 +79,7 @@ double BlastLoading::Conwep::Decay(double p0,
   return a;
 }
 double BlastLoading::Conwep::IncidentPressure(const BlastLoading::BlastData& P,
-					      double zlog) {
+                                              double zlog) {
   const static double cpso[2][12] = {  1.9422502013,
                                       -1.6958988741,
                                       -0.154159376846,

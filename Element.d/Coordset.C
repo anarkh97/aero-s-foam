@@ -59,7 +59,7 @@ Node *& CoordSet::operator[] (int n)
  return nodes[n];
 }
 
-void CoordSet::nodeadd(int n, double *xyz)
+void CoordSet::nodeadd(int n, double *xyz, int cp, int cd)
 {
  if(n<0) { return ; }
  if(n >= nmax) // resize nodes[]
@@ -75,7 +75,7 @@ void CoordSet::nodeadd(int n, double *xyz)
     nodes = np ;
   }
  if(n >= last) last = n+1;
- nodes[n] = new (ba) Node(xyz) ;
+ nodes[n] = new (ba) Node(xyz, cp, cd) ;
 }
 
 void CoordSet::nodeadd(int n, Node &node)

@@ -299,6 +299,8 @@ struct SolverInfo {
    double tolPodRom;
 
    std::list<int> loadcases;
+   bool basicDofCoords; // if this is true then all of the nodes use the basic coordinate frame 0 for DOF_FRM
+   bool basicPosCoords; // if this is true then all of the nodes use the basic coordinate frame 0 for POS_FRM
 
    // Constructor
    SolverInfo() { filterFlags = 0;
@@ -530,6 +532,9 @@ struct SolverInfo {
 		  skipJacobian = 1;
 		  orthogPodRom = 1;
                   tolPodRom = 1.0e-6;
+
+                  basicDofCoords = true;
+                  basicPosCoords = true;
                  }
 
    void setDirectMPC(int mode) { mpcDirect = mode; }

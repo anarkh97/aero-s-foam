@@ -160,6 +160,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
      if(kelArray) kel.copy(kelArray[iele]);
      else kel = packedEset[iele]->stiffness(nodes, karray);
      this->densProjectStiffness(kel, iele);
+     this->transformMatrix(kel, iele);
    }
    if(sinfo.isCoupled) {
       if(isStructureElement(iele)) kel *= cscale_factor2;
@@ -208,6 +209,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
        if(melArray) mel.copy(melArray[iele]);
        else mel = packedEset[iele]->massMatrix(nodes, marray, mratio);
        this->densProjectStiffness(mel, iele);
+       this->transformMatrix(mel, iele);
      }
      if(sinfo.isCoupled) { 
        if(isStructureElement(iele)) mel *= cscale_factor2;
@@ -1561,6 +1563,9 @@ Domain::addGravityForce(GenVector<Scalar> &force)
     elementGravityForce.zero();
     packedEset[iele]->getGravityForce(nodes, gravityAcceleration, elementGravityForce, gravflg);
 
+    // transform vector from basic to DOF_FRM coordinates
+    transformVector(elementGravityForce, iele);
+
     for(int idof = 0; idof < allDOFs->num(iele); ++idof) {
       int cn = c_dsa->getRCN((*allDOFs)[iele][idof]);
       if(cn >= 0)
@@ -1600,6 +1605,9 @@ Domain::addPressureForce(GenVector<Scalar> &force, double lambda)
       elementPressureForce.zero();
       packedEset[iele]->computePressureForce(nodes, elementPressureForce, (GeomState *) 0, cflg);
 
+      // transform vector from basic to DOF_FRM coordinates
+      transformVector(elementPressureForce, iele);
+
       // Assemble element pressure forces into domain force vector
       for(int idof = 0; idof < allDOFs->num(iele); ++idof) {
         int cn = c_dsa->getRCN((*allDOFs)[iele][idof]);
@@ -1617,6 +1625,9 @@ Domain::addPressureForce(GenVector<Scalar> &force, double lambda)
     // Compute structural element distributed Neumann force
     elementPressureForce.zero();
     neum[iele]->neumVector(nodes, elementPressureForce);
+
+    // transform vector from basic to DOF_FRM coordinates
+    transformNeumVector(elementPressureForce, iele);
 
     // Assemble element force vector into domain force vector
     int *dofs = neum[iele]->dofs(*c_dsa);
@@ -1696,6 +1707,9 @@ Domain::addThermalForce(GenVector<Scalar> &force)
     elementThermalForce.zero();
     packedEset[iele]->getThermalForce(nodes, elementTemp, elementThermalForce, 0);
 
+    // transform vector from basic to DOF_FRM coordinates
+    transformVector(elementThermalForce, iele);
+
     // Assemble element thermal forces into the force vector
     for(int idof = 0; idof < allDOFs->num(iele); ++idof) {
       int dofNum = c_dsa->getRCN((*allDOFs)[iele][idof]);
@@ -1756,7 +1770,7 @@ Domain::scaleInvDisp(Scalar *u)
 
 
 template<class Scalar>
-int Domain::mergeDistributedDisp(Scalar (*xyz)[11], Scalar *u, Scalar *bcx)//DofSet::max_known_nonL_dof
+int Domain::mergeDistributedDisp(Scalar (*xyz)[11], Scalar *u, Scalar *bcx, Scalar (*xyz_loc)[11])
 {
   // PJSA 9-22-06 u is already scaled
   int inode, nodeI;
@@ -1857,6 +1871,16 @@ int Domain::mergeDistributedDisp(Scalar (*xyz)[11], Scalar *u, Scalar *bcx)//Dof
       xyz[nodeI][10] = bcx[xPot1];
     else
       xyz[nodeI][10] = 0.0;
+
+    // transform displacements and rotations (if present) from DOF_FRM to basic coordinates
+    // and keep a copy of the original in xyz_loc
+    if(!domain->solInfo().basicDofCoords && c_dsa->locate(inode, DofSet::LagrangeE) < 0
+      && c_dsa->locate(inode, DofSet::LagrangeI) < 0) {
+      if(xyz_loc) for(int j=0; j<11; ++j) xyz_loc[nodeI][j] = xyz[nodeI][j];
+      bool hasRot = (xRot >= 0 || xRot1 >= 0 || yRot >= 0 || yRot1 >= 0 || zRot >= 0 || zRot1 >= 0);
+      transformVectorInv(&(xyz[nodeI][0]), nodeI, hasRot);
+    }
+
   }
 
   return ++realNode;
@@ -2852,23 +2876,12 @@ int Domain::processDispTypeOutputs(OutputInfo &oinfo, Scalar (*glDisp)[11], int 
     case OutputInfo::EigenPair:  {
       if (success == 0)
         tag = freq;
-/* this isn't necessary
-      Scalar (*data)[3] = new Scalar[numNodes][3];
-      for (int jj = 0; jj < numNodes; jj++)  {
-        data[jj][0] = glDisp[jj][0]; 
-        data[jj][1] = glDisp[jj][1]; 
-        data[jj][2] = glDisp[jj][2]; 
-      }
-      if (oinfo.nodeNumber == -1)  // all nodes
-        geoSource->outputNodeVectors(i, data, numNodes, tag);
-      else    // one node
-        geoSource->outputNodeVectors(i, &(data[oinfo.nodeNumber]), 1, tag);
-      delete [] data;
-*/
-      if (oinfo.nodeNumber == -1)  // all nodes
+      if (oinfo.nodeNumber == -1) { // all nodes
         geoSource->outputNodeVectors(i, glDisp, numNodes, tag);
-      else    // one node
+      }
+      else {   // one node
         geoSource->outputNodeVectors(i, &(glDisp[oinfo.nodeNumber]), 1, tag);
+      }
       success = 1;
     }
       break;
@@ -2878,22 +2891,12 @@ int Domain::processDispTypeOutputs(OutputInfo &oinfo, Scalar (*glDisp)[11], int 
     case OutputInfo::EigenPair6:  {
      if (success == 0)
         tag = freq;
-/* this isn't necessary
-      Scalar (*data)[6] = new Scalar[numNodes][6];
-      for (int jj = 0; jj < numNodes; jj++)  
-        for (int kk = 0; kk < 6; kk++) 
-          data[jj][kk] = glDisp[jj][kk];
-      
-      if (oinfo.nodeNumber == -1)
-        geoSource->outputNodeVectors6(i, data, numNodes, tag);
-      else
-        geoSource->outputNodeVectors6(i, &(data[oinfo.nodeNumber]), 1, tag);
-      delete [] data;
-*/
-      if (oinfo.nodeNumber == -1)
+      if (oinfo.nodeNumber == -1) { // all nodes
         geoSource->outputNodeVectors6(i, glDisp, numNodes, tag);
-      else
+      }
+      else {
         geoSource->outputNodeVectors6(i, &(glDisp[oinfo.nodeNumber]), 1, tag);
+      }
       success = 1;
     }
       break;
@@ -2920,8 +2923,6 @@ int Domain::processDispTypeOutputs(OutputInfo &oinfo, Scalar (*glDisp)[11], int 
         if(dof==-1) dof = 4;
       case OutputInfo::RotZ:
         if(dof==-1) dof = 5;
-      case OutputInfo::Temperature:
-        if(dof==-1) dof = 6;
 
         for (int iNode=0; iNode<numNodes; ++iNode)
           globVal[iNode] = glDisp[iNode][dof];
@@ -2958,9 +2959,10 @@ int Domain::processDispTypeOutputs(OutputInfo &oinfo, Scalar (*glDisp)[11], int 
         else
           geoSource->outputNodeScalars(i, &(globVal[oinfo.nodeNumber]), 1, time);
         break;
+      case OutputInfo::Temperature:
+        if (dof==-1) { dof = 6; tag = time; }
       case OutputInfo::AcousticPressure:
-        tag = time;
-        if (dof==-1) dof = 7;
+        if (dof==-1) { dof = 7; tag = time; }
       case OutputInfo::EigenPressure:
       case OutputInfo::HelmholtzModes:
       case OutputInfo::Helmholtz:
@@ -3161,12 +3163,13 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
   // organize displacements
   int numNodeLim = myMax(numNodes,numnodes); 
     
-  Scalar (*xyz)[11] = new Scalar[numNodeLim][11];//DofSet::max_known_nonL_dof
+  Scalar (*xyz)[11] = new Scalar[numNodeLim][11];
+  Scalar (*xyz_loc)[11] = (domain->solInfo().basicDofCoords) ? 0 : new Scalar[numNodeLim][11];
   int i;
   for(i = 0; i < numNodeLim; ++i)
     for (int j = 0 ; j < 11 ; j++)
       xyz[i][j] = 0.0;
-  mergeDistributedDisp<Scalar>(xyz, sol.data(), bcx);
+  mergeDistributedDisp<Scalar>(xyz, sol.data(), bcx, xyz_loc);
   int numNodesOut = (outFlag) ? exactNumNodes : numNodes;
 
   // Open files and write file headers in first time step
@@ -3190,7 +3193,11 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
         || oinfo[i].type == OutputInfo::Farfield
         || oinfo[i].type == OutputInfo::Kirchhoff) {
       dof = -1;
-      int success = processDispTypeOutputs(oinfo[i], xyz, numNodesOut, i, time, freq);
+      int success;
+      if(oinfo[i].oframe == OutputInfo::Global || domain->solInfo().basicDofCoords)
+        success = processDispTypeOutputs(oinfo[i], xyz, numNodesOut, i, time, freq);
+      else
+        success = processDispTypeOutputs(oinfo[i], xyz_loc, numNodesOut, i, time, freq);
       if (success) continue;
       success = processOutput(oinfo[i].type, sol, bcx, i, time, freq);
       if (success) continue;
@@ -3208,7 +3215,7 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
           break;
         case OutputInfo::ModeError:
           break;  // This is handled in Problems.d/DynamDescr.C
-        // The remaining cases are not officially supported in manual
+        // The following 3 cases are not officially supported in manual
         case OutputInfo::ElemToNode:
           if(elemToNode) elemToNode->print(oinfo[i].filptr, oinfo[i].nodeNumber);
           break;
@@ -3232,10 +3239,13 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
               int cdof = (dof >= 0) ? c_dsa->invRCN(dof) : -1;
               rxyz[nodeI][k] = (cdof >= 0) ? fc[cdof] : 0;     // constrained
             }
+            if(oinfo[i].oframe == OutputInfo::Global && !domain->solInfo().basicDofCoords) {
+              transformVectorInv(&rxyz[nodeI][0],inode,false);
+            }
           }
           geoSource->outputNodeVectors(i, rxyz, numNodesOut, time);
           delete [] rxyz;
-          } break;
+        } break;
         case OutputInfo::Reactions6: {
           GenVector<Scalar> fc(numDirichlet+numComplexDirichlet);
           computeReactionForce(fc, sol, kuc, kcc);
@@ -3251,10 +3261,13 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
               int cdof = (dof >= 0) ? c_dsa->invRCN(dof) : -1;
               rxyz[nodeI][k] = (cdof >= 0) ? fc[cdof] : 0;     // constrained
             }
+            if(oinfo[i].oframe == OutputInfo::Global && !domain->solInfo().basicDofCoords) {
+              transformVectorInv(&rxyz[nodeI][0],inode,true);
+            }
           }
           geoSource->outputNodeVectors6(i, rxyz, numNodesOut, time);
           delete [] rxyz;
-          } break;
+        } break;
         case OutputInfo::HeatReactions: {
           GenVector<Scalar> fc(numDirichlet+numComplexDirichlet);
           computeReactionForce(fc, sol, kuc, kcc);
@@ -3301,6 +3314,7 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
  }
 
  if (xyz) delete [] xyz;
+ if (xyz_loc) delete [] xyz_loc;
 }
 
 // XXXX this can and should be merged with buildRHSForce

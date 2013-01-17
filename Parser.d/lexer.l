@@ -113,6 +113,9 @@ TRAIL [a-zA-Z]*
 "m"                                { yylval.ival = 0; return TOPFLAG; }
 "M"                                { yylval.ival = 1; return TOPFLAG; }
 
+"LOCF"[a-zA-Z]*|"locf"[a-zA-Z]*    { yylval.ival = OutputInfo::Local;  return OUTPUTFRAME; }
+"GLOF"[a-zA-Z]*|"glof"[a-zA-Z]*    { yylval.ival = OutputInfo::Global; return OUTPUTFRAME; }
+
 "ON"|"on"|"On"                     { yylval.ival = 1; return SWITCH; }
 "OFF"|"off"|"Off"                  { yylval.ival = 0; return SWITCH; }
 "YES"|"yes"|"Yes"                  { yylval.ival = 1; return SWITCH; }
@@ -143,8 +146,6 @@ TRAIL [a-zA-Z]*
 
 "decomposition"|"DECOMPOSITION"    { return DECOMPOSITION; }
 
-"local"|"LOCAL"                    { return LOCAL; }
-
 "global"|"GLOBAL"                  { return GLOBAL; }
 
 "matcher"|"MATCHER"|"Matcher"      { return MATCHER; }
@@ -168,6 +169,10 @@ TRAIL [a-zA-Z]*
 "NFRA"[a-zA-Z]*|"nfra"[a-zA-Z]*    { return NFRAMES; }
 
 "CSFR"[a-zA-Z]*|"csfr"[a-zA-Z]*    { return CSFRAMES; }
+
+"RECT"[a-zA-Z]*|"rect"[a-zA-Z]*    { yylval.ival = NFrameData::Rectangular; return FRAMETYPE; }
+"CYLI"[a-zA-Z]*|"cyli"[a-zA-Z]*    { yylval.ival = NFrameData::Cylindrical; return FRAMETYPE; }
+"SPHE"[a-zA-Z]*|"sphe"[a-zA-Z]*    { yylval.ival = NFrameData::Spherical;   return FRAMETYPE; }
 
 "THIRDNODE"|"thirdnode"            { return THIRDNODE; }
 

@@ -547,10 +547,10 @@ class GenSubDomain : public BaseSub
   void mergeStress(Scalar *stress, Scalar *weight,
                    Scalar *globStress, Scalar *globWeight, int glNumNodes);
   void mergeElemStress(Scalar *loc, Scalar *glob, Connectivity *);
-  void mergeDisp(Scalar (*xyz)[11], GeomState* locGS);//DofSet::max_known_nonL_dof
-  void mergeAllDisp(Scalar (*xyz)[11], Scalar *locdisp);
-  void mergeAllVeloc(Scalar (*xyz)[11], Scalar *v);
-  void mergeAllAccel(Scalar (*xyz)[11], Scalar *a);
+  void mergeDisp(Scalar (*xyz)[11], GeomState* locGS);
+  void mergeAllDisp(Scalar (*xyz)[11], Scalar *d, Scalar (*xyz_loc)[11] = NULL);
+  void mergeAllVeloc(Scalar (*xyz)[11], Scalar *v, Scalar (*xyz_loc)[11] = NULL);
+  void mergeAllAccel(Scalar (*xyz)[11], Scalar *a, Scalar (*xyz_loc)[11] = NULL);
   void mergeDistributedNLDisp(Scalar (*xyz)[11], GeomState* u);
   void mergeForces(Scalar (*mergedF)[6], Scalar *subF);
   void mergeReactions(Scalar (*mergedF)[11], Scalar *subF);
@@ -560,7 +560,7 @@ class GenSubDomain : public BaseSub
   void sendExpDOFList(FSCommPattern<int> *pat);
   template<class Scalar1> void dispatchNodalData(FSCommPattern<Scalar> *pat, NewVec::DistVec<Scalar1> *);
   template<class Scalar1> void addNodalData(FSCommPattern<Scalar> *pat, NewVec::DistVec<Scalar1> *);
-  void computeElementForce(Scalar *u, int Findex, Scalar *force);
+  void computeElementForce(int, Scalar *u, int Findex, Scalar *force);
   void computeStressStrain(int, Scalar *u, int Findex,
                            Scalar *stress, Scalar *weight = 0);
   void computeStressStrain(GeomState *gs, Corotator **allCorot,

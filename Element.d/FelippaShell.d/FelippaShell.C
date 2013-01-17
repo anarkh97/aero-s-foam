@@ -88,8 +88,7 @@ FelippaShell::getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
 void
 FelippaShell::getAllStress(FullM &stress, Vector &weight, CoordSet &cs,
                            Vector &elDisp, int strInd, int surface,
-                           double *, double ylayer, double zlayer,
-                           int avgnum)
+                           double *)
 {
   weight = 1.0;
 

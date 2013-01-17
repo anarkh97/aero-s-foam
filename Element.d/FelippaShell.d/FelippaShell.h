@@ -36,8 +36,7 @@ public:
 
         void getAllStress(FullM &stress, Vector &weight, CoordSet &cs,
                          Vector &elDisp, int strInd, int surface = 0,
-                         double *ndTemps = 0, double ylayer = 0, double zlayer = 0, 
-                         int avgnum = 0);
+                         double *ndTemps = 0);
 
         void setProp(StructProp *p, bool myProp = false);
         void setCompositeData(int _type, int nlays, double *lData,

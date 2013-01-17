@@ -26,8 +26,13 @@ using std::map;
 #include <queue>
 #include <limits>
 #include <Sfem.d/Sfem.h>
+#ifdef USE_EIGEN3
+#include <Math.d/rref.h>
+#include <Eigen/Core>
+#endif
 
 EFrameData null_eframe;
+NFrameData null_nframe;
 StructProp null_sprops;
 Attrib null_attrib;
 BCond null_bcond;
@@ -40,7 +45,7 @@ extern Sfem *sfem;
 //----------------------------------------------------------------------
 
 GeoSource::GeoSource(int iniSize) : oinfo(emptyInfo, iniSize), nodes(iniSize*16), elemSet(iniSize*16),
-   layInfo(0, iniSize), coefData(0, iniSize), layMat(0, iniSize), efd(null_eframe, iniSize), csfd(null_eframe, iniSize), cframes(0, iniSize)
+   layInfo(0, iniSize), coefData(0, iniSize), layMat(0, iniSize), efd(null_eframe, iniSize), csfd(null_eframe, iniSize), cframes(0, iniSize), nfd(null_nframe, iniSize)
 {
   decJustCalled=false;
   exitAfterDec=false;
@@ -62,6 +67,7 @@ GeoSource::GeoSource(int iniSize) : oinfo(emptyInfo, iniSize), nodes(iniSize*16)
   na = 0;
   namax = 0;
   numEframes = 0;
+  numNframes = 0;
   numCframes = 0;
   numCSframes = 0;
   numLayInfo = 0;
@@ -186,9 +192,9 @@ GeoSource::~GeoSource()
 
 //----------------------------------------------------------------------
 
-int GeoSource::addNode(int nd, double xyz[3])
+int GeoSource::addNode(int nd, double xyz[3], int cp, int cd)
 {
-  nodes.nodeadd(nd, xyz);
+  nodes.nodeadd(nd, xyz, cp, cd);
   nGlobNodes++;
   return 0;
 }
@@ -283,6 +289,21 @@ int GeoSource::setFrame(int el, double *data)
 
 //----------------------------------------------------------------------
 
+int GeoSource::setNodalFrame(int id, double *origin, double *data, int type)
+{
+  int i,j;
+  for(i = 0; i < 3; ++i) {
+   nfd[id].origin[i] = origin[i];
+   for(j = 0; j < 3; ++j)
+     nfd[id].frame[i][j] = data[i*3+j];
+  }
+  nfd[id].type = (NFrameData::FrameType) type;
+
+  return 0;
+}
+
+//----------------------------------------------------------------------
+
 int GeoSource::setCSFrame(int el, double *data)
 {
   csfd[numCSframes].elnum = el;
@@ -359,6 +380,71 @@ bool GeoSource::checkLMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
     }
   }
   return (count > 0);
+}
+
+void GeoSource::transformLMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
+{
+#ifdef USE_EIGEN3
+  // transform LMPCs from basic to DOF_FRA coordinates, if necessary
+  for(int i = 0; i < numLMPC; ++i) {
+    if(lmpc[i]->getSource() == mpc::Lmpc || lmpc[i]->getSource() == mpc::NodalContact) continue;
+
+    // first, fill the lists of term indices corresponding to nodes with DOF_FRA
+    std::map<int, std::list<int> > lists;
+    for(int j=0; j<lmpc[i]->nterms; ++j) {
+      int nnum = lmpc[i]->terms[j].nnum;
+      if(nodes[nnum]->cd != 0) lists[nnum].push_back(j);
+    }
+
+    if(lists.size() == 0) continue;
+
+    std::vector<LMPCTerm> newterms;
+    for(std::map<int, std::list<int> >::iterator it = lists.begin(); it != lists.end(); ++it) {
+      int nnum = it->first;
+
+      // get the original coefficients
+      Eigen::Vector3d tcoefs, rcoefs; tcoefs.setZero(); rcoefs.setZero();
+      for(std::list<int>::iterator it2 = it->second.begin(); it2 != it->second.end(); ++it2) {
+        int dofnum = lmpc[i]->terms[*it2].dofnum;
+        switch(dofnum) {
+          case 0: case 1: case 2:
+            tcoefs[dofnum] = lmpc[i]->terms[*it2].coef.r_value;
+            break;
+          case 3: case 4: case 5:
+            rcoefs[dofnum-3] = lmpc[i]->terms[*it2].coef.r_value;
+            break;
+        }
+      }
+
+      // apply the transformation
+      int cd = nodes[nnum]->cd;
+      Eigen::Matrix3d T;
+      T << nfd[cd].frame[0][0], nfd[cd].frame[0][1], nfd[cd].frame[0][2],
+           nfd[cd].frame[1][0], nfd[cd].frame[1][1], nfd[cd].frame[1][2],
+           nfd[cd].frame[2][0], nfd[cd].frame[2][1], nfd[cd].frame[2][2];
+
+      if(!(tcoefs.array() == 0).all()) { // translation dofs 
+        tcoefs = (T*tcoefs).eval();
+        for(int j=0; j<3; ++j) newterms.push_back(LMPCTerm(nnum,j,tcoefs[j]));
+      }
+      if(!(rcoefs.array() == 0).all()) { // rotation dofs
+        rcoefs = (T*rcoefs).eval();
+        for(int j=0; j<3; ++j) newterms.push_back(LMPCTerm(nnum,j+3,rcoefs[j]));
+      }
+    }
+
+    // remove the old terms and insert new terms lmpc[i]
+    vector<LMPCTerm>::iterator it = lmpc[i]->terms.begin();
+    while(it != lmpc[i]->terms.end()) {
+      if(nodes[it->nnum]->cd != 0)
+        it = lmpc[i]->terms.erase(it);
+      else
+        ++it;
+    }
+    lmpc[i]->terms.insert(lmpc[i]->terms.end(), newterms.begin(), newterms.end());
+    lmpc[i]->removeNullTerms();
+  }
+#endif
 }
 
 void GeoSource::addMpcElements(int numLMPC, ResizeArray<LMPCons *> &lmpc)
@@ -513,11 +599,6 @@ void GeoSource::makeDirectMPCs(int &numLMPC, ResizeArray<LMPCons *> &lmpc)
   }
 }
 
-#ifdef USE_EIGEN3
-#include <Math.d/rref.h>
-#include <Eigen/Core>
-#endif
-
 int
 GeoSource::reduceMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
 {
@@ -609,7 +690,7 @@ GeoSource::reduceMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
   delete [] colmap;
   return rank;
 #else
-  cerr << "error: GeoSource::reduceMPCs requires eigen2 library\n"; exit(-1);
+  cerr << "error: GeoSource::reduceMPCs requires Eigen3 library\n"; exit(-1);
   return 0;
 #endif
 }
@@ -702,6 +783,53 @@ void GeoSource::duplicateFilesForPita(int localNumSlices, const int* sliceRankSe
       initialFileNameSet[i] = 0;
     }
   }
+}
+
+void GeoSource::transformCoords()
+{
+#ifdef USE_EIGEN3
+  // transform node coordinates from POS_FRM to basic coordinates
+  // see: http://en.wikipedia.org/wiki/List_of_canonical_coordinate_transformations#3-Dimensional
+  using std::cos;
+  using std::sin;
+  int lastNode = numNodes = nodes.size();
+  for(int i=0; i<lastNode; ++i) {
+    if(nodes[i] == NULL) continue;
+    int cp = nodes[i]->cp;
+    if(cp == 0) continue;
+
+    Eigen::Vector3d v;
+    switch(nfd[cp].type) {
+      default:
+      case NFrameData::Rectangular: {
+        v << nodes[i]->x, nodes[i]->y, nodes[i]->z;
+      } break;
+      case NFrameData::Cylindrical: {
+        double rho   = nodes[i]->x;
+        double theta = nodes[i]->y;
+        v << rho*cos(theta), rho*sin(theta), nodes[i]->z;
+        break;
+      }
+      case NFrameData::Spherical:
+        double rho   = nodes[i]->x;
+        double theta = nodes[i]->y;
+        double phi   = nodes[i]->z;
+        v << rho*sin(theta)*cos(phi), rho*sin(theta)*sin(phi), rho*cos(theta);
+        break;
+    }
+
+    Eigen::Matrix3d T;
+    T << nfd[cp].frame[0][0], nfd[cp].frame[0][1], nfd[cp].frame[0][2],
+         nfd[cp].frame[1][0], nfd[cp].frame[1][1], nfd[cp].frame[1][2],
+         nfd[cp].frame[2][0], nfd[cp].frame[2][1], nfd[cp].frame[2][2];
+
+    v = (T.transpose()*v).eval();
+
+    nodes[i]->x =v[0] + nfd[cp].origin[0];
+    nodes[i]->y =v[1] + nfd[cp].origin[1];
+    nodes[i]->z =v[2] + nfd[cp].origin[2];
+  }
+#endif
 }
 
 void GeoSource::setUpData()

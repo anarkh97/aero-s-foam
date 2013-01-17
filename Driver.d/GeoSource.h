@@ -29,6 +29,7 @@ class OutputInfo;
 class LayMat;
 class Attrib;
 class EFrameData;
+class NFrameData;
 class CoefData;
 class LayInfo;
 struct Group;
@@ -174,6 +175,9 @@ class GeoSource {
   int numEframes;
   ResizeArray<EFrameData> efd;
   vector<OffsetData> offsets;
+
+  int numNframes;
+  ResizeArray<NFrameData> nfd;
 
   int numCframes;
   ResizeArray<double *> cframes;
@@ -329,7 +333,7 @@ public:
   void setControl(char *checkfile, char *nodeset, char *elemset, char *bcondset = 0);
 
   // Parser support Functions - Geometry
-  int  addNode(int nd, double xyz[3]);
+  int  addNode(int nd, double xyz[3], int cp, int cd);
   int  addElem(int en, int type, int nn, int *nodeNumbers);
   int  addMat(int, const StructProp &);
   int  addLay(int, LayInfo *);
@@ -338,6 +342,7 @@ public:
   int  addLayMat(int m, double *);
   int  setAttrib(int n, int a, int ca = -1, int cfrm = -1, double ctheta = 0.0);
   int  setFrame(int, double *);
+  int  setNodalFrame(int, double *, double *, int);
   int  setCSFrame(int, double *);
   int  addCFrame(int, double *);
   void setElementPressure(int, double);
@@ -388,6 +393,7 @@ public:
   int  setUsddLocation(int, BCond *);
   int  setUsdfLocation(int, BCond *);
 
+  void transformCoords();
   void setUpData();
   void setUpData(CoordSet &, Domain *, int);
 
@@ -437,12 +443,14 @@ public:
   const std::map<int, int> &getMaterialLawMapping() const { return matUsage; }
   EFrameData *getEframes()  { return efd+0; }
   EFrameData *getCSframes() { return csfd+0; }
+  NFrameData *getNFrames() { return nfd+0; }
   double **getCframes()  { return cframes+0; }
   LayInfo **getLayInfo() { return layInfo+0; }
   int getNumLayInfo() { return numLayInfo; }
   int getNumEframes() { return numEframes; }
   int getNumCSframes() { return numCSframes; }
   int getNumCframes() { return numCframes; }
+  int getNumNframes() { return numNframes; }
   const ElemPressureContainer &getElementPressure() const { return eleprs; }
   int pressureFlag() { return prsflg; }
   int consistentPFlag() { return constpflg; }
@@ -591,6 +599,7 @@ public:
   void makeDirectMPCs(int &numLMPC, ResizeArray<LMPCons *> &lmpc);
   int reduceMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc);
   bool checkLMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc);
+  void transformLMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc);
   void addMpcElements(int numLMPC, ResizeArray<LMPCons *> &lmpc);
   void addFsiElements(int numFSI, ResizeArray<LMPCons *> &fsi);
   Element* getElem(int topid) { return elemSet[topid]; }

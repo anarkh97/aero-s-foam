@@ -1540,6 +1540,7 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
     // upper  surface = 1
     // median surface = 2
     // lower  surface = 3
+  OutputInfo::FrameType oframe = oinfo[fileNumber].oframe;
 
   int k;
   int iele;
@@ -1560,7 +1561,7 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
     if(elDisp == 0) elDisp = new Vector(maxNumDOFs,0.0);
 
 
-    if((elstress == 0)||(elweight == 0)) {
+    if((elstress == 0)||(elweight == 0)||(p_elstress == 0 && oframe == OutputInfo::Local)) {
       int NodesPerElement, maxNodesPerElement=0;
       for(iele=0; iele<numele; ++iele) {
         NodesPerElement = elemToNode->num(iele);
@@ -1568,6 +1569,7 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
       }
       if(elstress == 0) elstress = new Vector(maxNodesPerElement, 0.0);
       if(elweight == 0) elweight = new Vector(maxNodesPerElement, 0.0);
+      if(p_elstress == 0 && oframe == OutputInfo::Local) p_elstress = new FullM(maxNodesPerElement,9);
     }
 
     if(avgnum != 0) {
@@ -1616,10 +1618,39 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
             elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
         }
 
-      // CALCULATE STRESS/STRAIN VALUE FOR EACH NODE OF THE ELEMENT
-      packedEset[iele]->getVonMises(*elstress, *elweight, nodes,
-                                    *elDisp, stressIndex, surface,
-                                    elemNodeTemps.data(), ylayer, zlayer, avgnum);
+      // transform displacements from DOF_FRM to basic coordinates
+      transformVectorInv(*elDisp, iele);
+
+      // transform non-invariant stresses/strains from basic frame to DOF_FRM
+      if(oframe == OutputInfo::Local && ((stressIndex >=0 && stressIndex <=5) || (stressIndex >= 7 && stressIndex <= 12))) {
+
+        // FIRST, CALCULATE STRESS/STRAIN TENSOR FOR EACH NODE OF THE ELEMENT
+        p_elstress->zero();
+        int strInd = (stressIndex >=0 && stressIndex <=5) ? 0 : 1;
+        packedEset[iele]->getAllStress(*p_elstress, *elweight, nodes,
+                                       *elDisp, strInd, surface,
+                                       elemNodeTemps.data());
+
+        // second, transform stress/strain tensor to nodal frame coordinates
+        transformStressStrain(*p_elstress, iele);
+
+        // third, extract the requested stress/strain value from the stress/strain tensor
+        for (iNode = 0; iNode < NodesPerElement; ++iNode) {
+          if(strInd == 0)
+            (*elstress)[iNode] = (*p_elstress)[iNode][stressIndex];
+          else
+            (*elstress)[iNode] = (*p_elstress)[iNode][stressIndex-7]; 
+        }
+
+      }
+      else {
+
+        // CALCULATE STRESS/STRAIN VALUE FOR EACH NODE OF THE ELEMENT
+        packedEset[iele]->getVonMises(*elstress, *elweight, nodes,
+                                      *elDisp, stressIndex, surface,
+                                      elemNodeTemps.data(), ylayer, zlayer, avgnum);
+      }
+
       if(avgnum != 0) {
         // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
         for(k = 0; k < NodesPerElement; ++k) {
@@ -1682,6 +1713,7 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
     }
 
   }
+  delete [] nodeNumbers;
 }
 
 void
@@ -1709,6 +1741,7 @@ Domain::getStressStrain(ComplexVector &sol, DComplex *bcx, int fileNumber,
     // upper  surface = 1
     // median surface = 2
     // lower  surface = 3
+  OutputInfo::FrameType oframe = oinfo[fileNumber].oframe;
 
   int k;
   int iele;
@@ -1723,6 +1756,7 @@ Domain::getStressStrain(ComplexVector &sol, DComplex *bcx, int fileNumber,
   ComplexVector *stressAllElems = 0;
   ComplexVector *elstress = 0;
   ComplexVector *elDisp = 0;
+  FullMC *p_elstress = 0;
 
   if(printFlag != 2) {
     // ... ALLOCATE VECTORS STRESS AND WEIGHT AND INITIALIZE TO ZERO
@@ -1734,7 +1768,7 @@ Domain::getStressStrain(ComplexVector &sol, DComplex *bcx, int fileNumber,
     if(elDisp == 0) elDisp = new ComplexVector(maxNumDOFs,0.0);
 
 
-    if((elstress == 0)||(elweight == 0)) {
+    if((elstress == 0)||(elweight == 0)||(p_elstress == 0 && oframe == OutputInfo::Local)) {
       int NodesPerElement, maxNodesPerElement=0;
       for(iele=0; iele<numele; ++iele) {
         NodesPerElement = elemToNode->num(iele);
@@ -1742,6 +1776,7 @@ Domain::getStressStrain(ComplexVector &sol, DComplex *bcx, int fileNumber,
       }
       if(elstress == 0) elstress = new ComplexVector(maxNodesPerElement, 0.0);
       if(elweight == 0) elweight = new Vector(maxNodesPerElement, 0.0);
+      if(p_elstress == 0 && oframe == OutputInfo::Local) p_elstress = new FullMC(maxNodesPerElement,9);
     }
 
     if(avgnum != 0) {
@@ -1790,10 +1825,39 @@ Domain::getStressStrain(ComplexVector &sol, DComplex *bcx, int fileNumber,
             elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
         }
 
-      // CALCULATE STRESS/STRAIN VALUE FOR EACH NODE OF THE ELEMENT
-      packedEset[iele]->getVonMises(*elstress, *elweight, nodes,
-                                    *elDisp, stressIndex, surface,
-                                    elemNodeTemps.data(), ylayer, zlayer, avgnum);
+      // transform displacements from DOF_FRM to basic coordinates
+      transformVectorInv(*elDisp, iele);
+
+      // transform non-invariant stresses/strains from basic frame to DOF_FRM
+      if(oframe == OutputInfo::Local && ((stressIndex >=0 && stressIndex <=5) || (stressIndex >= 7 && stressIndex <= 12))) {
+
+        // FIRST, CALCULATE STRESS/STRAIN TENSOR FOR EACH NODE OF THE ELEMENT
+        p_elstress->zero();
+        int strInd = (stressIndex >=0 && stressIndex <=5) ? 0 : 1;
+        packedEset[iele]->getAllStress(*p_elstress, *elweight, nodes,
+                                       *elDisp, strInd, surface,
+                                       elemNodeTemps.data());
+
+        // second, transform stress/strain tensor to nodal frame coordinates
+        transformStressStrain(*p_elstress, iele);
+
+        // third, extract the requested stress/strain value from the stress/strain tensor
+        for (iNode = 0; iNode < NodesPerElement; ++iNode) {
+          if(strInd == 0)
+            (*elstress)[iNode] = (*p_elstress)[iNode][stressIndex];
+          else
+            (*elstress)[iNode] = (*p_elstress)[iNode][stressIndex-7];
+        }
+
+      }
+      else {
+
+        // CALCULATE STRESS/STRAIN VALUE FOR EACH NODE OF THE ELEMENT
+        packedEset[iele]->getVonMises(*elstress, *elweight, nodes,
+                                      *elDisp, stressIndex, surface,
+                                      elemNodeTemps.data(), ylayer, zlayer, avgnum);
+      }
+
       if(avgnum != 0) {
         // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
         for(k = 0; k < NodesPerElement; ++k) {
@@ -1860,11 +1924,13 @@ Domain::getStressStrain(ComplexVector &sol, DComplex *bcx, int fileNumber,
   if(stressAllElems != 0) delete stressAllElems;
   if(elstress != 0) delete elstress;
   if(elDisp != 0) delete elDisp;
+  if(p_elstress != 0) delete p_elstress;
+  delete [] nodeNumbers;
 }
 
 void
 Domain::getPrincipalStress(Vector &sol, double *bcx, int fileNumber,
-                         int stressIndex, double time)
+                           int stressIndex, double time)
 {
   int numNodes = (outFlag) ? exactNumNodes : geoSource->numNode();
   OutputInfo *oinfo = geoSource->getOutputInfo();
@@ -1955,6 +2021,9 @@ Domain::getPrincipalStress(Vector &sol, double *bcx, int fileNumber,
           elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
       }
 
+    // transform displacements from DOF_FRM to basic coordinates
+    transformVectorInv(*elDisp, iele);
+
 // ... CALCULATE STRESS/STRAIN VALUE FOR EACH NODE OF THE ELEMENT
     if(packedEset[iele]->getProperty())
       packedEset[iele]->getAllStress(*p_elstress, *elweight, nodes,
@@ -2043,13 +2112,115 @@ Domain::getPrincipalStress(Vector &sol, double *bcx, int fileNumber,
 
   }
 
+  delete [] nodeNumbers;
 }
 
+void
+Domain::getElementForces(Vector &sol, double *bcx, int fileNumber,
+                         int forceIndex, double time)
+{
+  // allocate integer array to store node numbers
+  int *nodeNumbers = new int[maxNumNodes];
+  Vector elemNodeTemps(maxNumNodes);
+  elemNodeTemps.zero();
+
+  // ...REMARK:  FORCES ARE CALCULATED FOR BARS AND BEAMS CURRENTLY
+  if(elDisp == 0) elDisp = new Vector(maxNumDOFs,0.0);
+
+  // ... Watch out for this as the max number of nodes may increase
+  int NodesPerElement = 2;
+
+  FullM forces(numele, NodesPerElement);
+
+  int i, iele;
+  // note, we are reusing elstress here for an elemental force vector
+  if(elstress == 0) {
+    int NodesPerElement, maxNodesPerElement=0;
+    for(iele=0; iele<numele; ++iele) {
+      NodesPerElement = elemToNode->num(iele);
+      maxNodesPerElement = myMax(maxNodesPerElement, NodesPerElement);
+    }
+    elstress = new Vector(maxNodesPerElement, 0.0);
+  }
+
+  double *nodalTemperatures = 0;
+  if(sinfo.thermalLoadFlag) nodalTemperatures = getNodalTemperatures();
+  if(sinfo.thermoeFlag >=0) nodalTemperatures = temprcvd;
+
+  for(iele=0; iele<numele; ++iele) {
+    packedEset[iele]->nodes(nodeNumbers);
+    NodesPerElement = elemToNode->num(iele);
+
+    // ... DETERMINE ELEMENT DISPLACEMENT VECTOR
+    int k;
+    for(k=0; k<allDOFs->num(iele); ++k) {
+      int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
+      if(cn >= 0)
+        (*elDisp)[k] = sol[cn];
+      else
+        (*elDisp)[k] = bcx[(*allDOFs)[iele][k]];
+    }
+
+    // ... CALCULATE INTERNAL FORCE VALUE FOR EACH ELEMENT
+    // ... taking into account the new temperature in case of thermal coupling
+    if((sinfo.thermalLoadFlag || (sinfo.thermoeFlag>=0)) && packedEset[iele]->getProperty()) {
+      int iNode;
+      for(iNode=0; iNode<NodesPerElement; ++iNode) {
+        if(nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
+          elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
+        else
+          elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
+      }
+    }
+
+    // transform displacements from DOF_FRM to basic coordinates
+    transformVectorInv(*elDisp, iele);
+
+    if(geoSource->getOutputInfo()[fileNumber].oframe == OutputInfo::Local) {
+      Vector fx(NodesPerElement,0.0), fy(NodesPerElement,0.0), fz(NodesPerElement,0.0);
+      if(forceIndex == INX || forceIndex == INY || forceIndex == INZ) {
+        packedEset[iele]->getIntrnForce(fx,nodes,elDisp->data(),INX,elemNodeTemps.data());
+        packedEset[iele]->getIntrnForce(fy,nodes,elDisp->data(),INY,elemNodeTemps.data());
+        packedEset[iele]->getIntrnForce(fz,nodes,elDisp->data(),INZ,elemNodeTemps.data());
+      }
+      else {
+        packedEset[iele]->getIntrnForce(fx,nodes,elDisp->data(),AXM,elemNodeTemps.data());
+        packedEset[iele]->getIntrnForce(fy,nodes,elDisp->data(),AYM,elemNodeTemps.data());
+        packedEset[iele]->getIntrnForce(fz,nodes,elDisp->data(),AZM,elemNodeTemps.data());
+      }
+      Vector f(3*NodesPerElement);
+      for(int iNode=0; iNode<NodesPerElement; iNode++) {
+        double data[3] = { fx[iNode], fy[iNode], fz[iNode] };
+        transformVector(data, nodeNumbers[iNode], false);
+        switch(forceIndex) {
+          case INX: case AXM: elstress[iNode] = data[0]; break;
+          case INY: case AYM: elstress[iNode] = data[1]; break;
+          case INZ: case AZM: elstress[iNode] = data[2]; break;
+        }
+      }
+    }
+    else {
+      packedEset[iele]->getIntrnForce(*elstress,nodes,elDisp->data(),
+                                      forceIndex,elemNodeTemps.data());
+    }
+
+    // ... COPY ELEMENT'S NODAL FORCES INTO A TOTAL FORCE MATRIX
+    for(i=0; i<NodesPerElement; ++i)
+      forces[iele][i] = (*elstress)[i];
+
+  }
+
+   // ... PRINT THE ELEMENT FORCES TO A FILE
+   geoSource->outputElemVectors(fileNumber, forces.data(), numele, time);
+
+   delete [] nodeNumbers;
+}
+
+#ifdef STRUCTOPT
 double
 Domain::getNodalStressStrain(Vector &sol, double *bcx,
                              int node, int stressIndex, int surface)
 {
-
   // ... Number of Connected Elements
   int nconele = nodeToElem->num(node);
 
@@ -2096,76 +2267,8 @@ Domain::getNodalStressStrain(Vector &sol, double *bcx,
         }
      }
   }
+
   return (stress/weight);
-}
-
-void
-Domain::getElementForces(Vector &sol, double *bcx, int fileNumber,
-                         int forceIndex, double time)
-{
-  // allocate integer array to store node numbers
-  int *nodeNumbers = new int[maxNumNodes];
-  Vector elemNodeTemps(maxNumNodes);
-  elemNodeTemps.zero();
-
-  // ...REMARK:  FORCES ARE CALCULATED FOR BARS AND BEAMS CURRENTLY
-  if(elDisp == 0) elDisp = new Vector(maxNumDOFs,0.0);
-
-  // ... Watch out for this as the max number of nodes may increase
-  int NodesPerElement = 2;
-
-  FullM forces(numele, NodesPerElement);
-
-  int i, iele;
-  // note, we are reusing elstress here for an elemental force vector
-  if(elstress == 0) {
-    int NodesPerElement, maxNodesPerElement=0;
-    for(iele=0; iele<numele; ++iele) {
-      NodesPerElement = elemToNode->num(iele);
-      maxNodesPerElement = myMax(maxNodesPerElement, NodesPerElement);
-    }
-    elstress = new Vector(maxNodesPerElement, 0.0);
-  }
-
-  double *nodalTemperatures = 0;
-  if(sinfo.thermalLoadFlag) nodalTemperatures = getNodalTemperatures();
-  if(sinfo.thermoeFlag >=0) nodalTemperatures = temprcvd;
-
-  for(iele=0; iele<numele; ++iele) {
-    packedEset[iele]->nodes(nodeNumbers);
-
-    // ... DETERMINE ELEMENT DISPLACEMENT VECTOR
-    int k;
-    for(k=0; k<allDOFs->num(iele); ++k) {
-      int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
-      if(cn >= 0)
-        (*elDisp)[k] = sol[cn];
-      else
-        (*elDisp)[k] = bcx[(*allDOFs)[iele][k]];
-    }
-
-    // ... CALCULATE INTERNAL FORCE VALUE FOR EACH ELEMENT
-    // ... taking into account the new temperature in case of thermal coupling
-    if((sinfo.thermalLoadFlag || (sinfo.thermoeFlag>=0)) && packedEset[iele]->getProperty()) {
-      int iNode;
-      for(iNode=0; iNode<NodesPerElement; ++iNode) {
-        if(nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
-          elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
-        else
-          elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
-      }
-    }
-    packedEset[iele]->getIntrnForce(*elstress,nodes,elDisp->data(),
-                                    forceIndex,elemNodeTemps.data());
-
-    // ... COPY ELEMENT'S NODAL FORCES INTO A TOTAL FORCE MATRIX
-    for(i=0; i<NodesPerElement; ++i)
-      forces[iele][i] = (*elstress)[i];
-
-  }
-
-   // ... PRINT THE ELEMENT FORCES TO A FILE
-   geoSource->outputElemVectors(fileNumber, forces.data(), numele, time);
 }
 
 void
@@ -2226,6 +2329,74 @@ Domain::getElasticForces(Vector &dsp, double *bcx, Vector &ext_f, double eta,
      }
   }
 }
+
+double
+Domain::getStrainEnergy(Vector &sol, double *bcx, SparseMatrix * gStiff,
+                        FullSquareMatrix *kelArray)
+{
+  double energy=0.0;
+
+  // Evaluation of Strain Energy if global Stiffness Matrix is given
+
+  if (gStiff) {
+
+    Vector tmpVec(c_dsa->size());
+
+    gStiff->mult(sol,tmpVec);
+
+    energy = 0.5 * (sol * tmpVec);
+
+    return energy;
+  }
+
+  // Evaluation of Strain Energy if local Stiffness Matices are given
+  // or has to be determined
+
+  int size    = sizeof(double)*maxNumDOFs*maxNumDOFs;
+  double *kel = (double *) dbg_alloca(size);
+
+  Vector elDisp (maxNumDOFs,0.0);
+  Vector elKelD (maxNumDOFs,0.0);
+
+  int iele;
+  for(iele=0; iele<numele; ++iele) {
+
+     //int NodesPerElement = elemToNode->num(iele);
+     int numEleDOFs      = allDOFs->num(iele);
+
+     elDisp.zero();
+     elKelD.zero();
+
+     FullSquareMatrix karray(numEleDOFs,kel);
+
+     int k;
+     for(k=0; k<numEleDOFs; ++k) {
+        int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
+        if(cn >= 0)
+          elDisp[k] = sol[cn];
+        else
+          elDisp[k] = bcx[(*allDOFs)[iele][k]];
+     }
+
+     if (kelArray) {
+       karray=kelArray[iele];
+     }
+     else {
+       karray=packedEset[iele]->stiffness(nodes,karray.data());
+     }
+
+     int i,j;
+     for (i=0;i<numEleDOFs;i++) {
+       for (j=0;j<numEleDOFs;j++) {
+         elKelD[i]+=karray[i][j]*elDisp[j];
+       }
+     }
+
+     energy += 0.5*(elKelD*elDisp);
+  }
+  return energy;
+}
+#endif
 
 void
 Domain::getKtimesU(Vector &dsp, double *bcx, Vector &ext_f, double eta,
@@ -2313,73 +2484,6 @@ Domain::getStructureMass()
 }
 
 double
-Domain::getStrainEnergy(Vector &sol, double *bcx, SparseMatrix * gStiff,
-                        FullSquareMatrix *kelArray)
-{
-  double energy=0.0;
-
-  // Evaluation of Strain Energy if global Stiffness Matrix is given
-
-  if (gStiff) {
-
-    Vector tmpVec(c_dsa->size());
-
-    gStiff->mult(sol,tmpVec);
-
-    energy = 0.5 * (sol * tmpVec);
-
-    return energy;
-  }
-
-  // Evaluation of Strain Energy if local Stiffness Matices are given
-  // or has to be determined
-
-  int size    = sizeof(double)*maxNumDOFs*maxNumDOFs;
-  double *kel = (double *) dbg_alloca(size);
-
-  Vector elDisp (maxNumDOFs,0.0);
-  Vector elKelD (maxNumDOFs,0.0);
-
-  int iele;
-  for(iele=0; iele<numele; ++iele) {
-
-     //int NodesPerElement = elemToNode->num(iele);
-     int numEleDOFs      = allDOFs->num(iele);
-
-     elDisp.zero();
-     elKelD.zero();
-
-     FullSquareMatrix karray(numEleDOFs,kel);
-
-     int k;
-     for(k=0; k<numEleDOFs; ++k) {
-        int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
-        if(cn >= 0)
-          elDisp[k] = sol[cn];
-        else
-          elDisp[k] = bcx[(*allDOFs)[iele][k]];
-     }
-
-     if (kelArray) {
-       karray=kelArray[iele];
-     }
-     else {
-       karray=packedEset[iele]->stiffness(nodes,karray.data());
-     }
-
-     int i,j;
-     for (i=0;i<numEleDOFs;i++) {
-       for (j=0;j<numEleDOFs;j++) {
-         elKelD[i]+=karray[i][j]*elDisp[j];
-       }
-     }
-
-     energy += 0.5*(elKelD*elDisp);
-  }
-  return energy;
-}
-
-double
 Domain::getNodalDisp(Vector &sol, double *bcx, int node, int dispTyp)
 {
     int loc,loc1;
@@ -2454,5 +2558,345 @@ Domain::getNodalDisp(Vector &sol, double *bcx, int node, int dispTyp)
       printf("OptcritDisp::evaluate - Wrong Disptype !");
     }
     return val;
+}
+
+void
+Domain::transformMatrix(FullSquareMatrix &kel, int iele)
+{
+  // transform element matrix from basic to DOF_FRM coordinates 
+  if(domain->solInfo().basicDofCoords) return;
+
+  LMPCons *lmpcons;
+  if((lmpcons = dynamic_cast<LMPCons*>(packedEset[iele])) &&
+     (lmpcons->getSource() == mpc::Lmpc || lmpcons->getSource() == mpc::NodalContact ||
+      lmpcons->getSource() == mpc::TiedSurfaces || lmpcons->getSource() == mpc::ContactSurfaces)) return;
+
+  // TODO: check for thermal/acoustic 
+  // TODO: consider how to deal with elements that don't have either 3 translation dof on every node,
+  //       or 3 translation + 3 rotation dofs on every node. E.g. torsional spring, ParallelAxesConstraint,
+  //       and StraightLinePointFollowerConstraint
+  //use: DofSetArray elem_dsa(packedEset[iele]);
+  //     int dofs[6]; for(int i=0; i<packedEset[iele]->numNodes(); ++i) elem_dsa->number(i, DofSet::XYZdisp|DofSet::XYZrot, dofs); etc...
+#ifdef USE_EIGEN3 
+  NFrameData *nfd = geoSource->getNFrames();
+
+  Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic>,Eigen::RowMajor>
+    K(kel.data(),packedEset[iele]->numDofs(),packedEset[iele]->numDofs());
+
+  int numNodes = packedEset[iele]->numNodes() - packedEset[iele]->numInternalNodes();
+  int *nn = packedEset[iele]->nodes();
+
+  for(int k = 0; k < numNodes; ++k) {
+    int cd = nodes[nn[k]]->cd;
+    if(cd == 0) continue;
+    
+    Eigen::Matrix3d T;
+    T << nfd[cd].frame[0][0], nfd[cd].frame[0][1], nfd[cd].frame[0][2],
+         nfd[cd].frame[1][0], nfd[cd].frame[1][1], nfd[cd].frame[1][2],
+         nfd[cd].frame[2][0], nfd[cd].frame[2][1], nfd[cd].frame[2][2];
+
+    if(packedEset[iele]->hasRot()) {
+
+      Eigen::Matrix<double,6,6> TT;
+      TT << T, Eigen::Matrix3d::Zero(),
+            Eigen::Matrix3d::Zero(), T;
+
+      for(int l=0; l<numNodes; ++l) {
+        K.block<6,6>(6*k,6*l) = (TT*K.block<6,6>(6*k,6*l)).eval();
+        K.block<6,6>(6*l,6*k) = (K.block<6,6>(6*l,6*k)*TT.transpose()).eval();
+      }
+      for(int l=0; l<packedEset[iele]->numInternalNodes(); ++l) {
+        K.block<6,1>(6*k,6*numNodes+l) = (TT*K.block<6,1>(6*k,6*numNodes+l)).eval();
+        K.block<1,6>(6*numNodes+l,6*k) = (K.block<1,6>(6*numNodes+l,6*k)*TT.transpose()).eval();
+      }
+    }
+    else {
+      for(int l=0; l<numNodes; ++l) {
+        K.block<3,3>(3*k,3*l) = (T*K.block<3,3>(3*k,3*l)).eval();
+        K.block<3,3>(3*l,3*k) = (K.block<3,3>(3*l,3*k)*T.transpose()).eval();
+      }
+      for(int l=0; l<packedEset[iele]->numInternalNodes(); ++l) {
+        K.block<3,1>(3*k,3*numNodes+l) = (T*K.block<3,1>(3*k,3*numNodes+l)).eval();
+        K.block<1,3>(3*numNodes+l,3*k) = (K.block<1,3>(3*numNodes+l,3*k)*T.transpose()).eval();
+      }
+    }
+  }
+  delete [] nn;
+#endif
+}
+
+void
+Domain::transformVector(Vector &vec, int iele)
+{
+  // transform element vector from basic to DOF_FRM coordinates
+  if(domain->solInfo().basicDofCoords) return;
+  int numNodes = packedEset[iele]->numNodes()-packedEset[iele]->numInternalNodes();
+  int *nn = packedEset[iele]->nodes();
+  if(packedEset[iele]->hasRot()) {
+    for(int k=0; k<numNodes; ++k) 
+      transformVector(vec.data()+6*k, nn[k], true);
+  }    
+  else {
+    for(int k=0; k<numNodes; ++k)
+      transformVector(vec.data()+3*k, nn[k], false);
+  }    
+  delete [] nn;
+}
+
+void
+Domain::transformNeumVector(Vector &vec, int iele)
+{
+  // transform neumann b.c. vector from basic to DOF_FRM coordinates
+  if(domain->solInfo().basicDofCoords) return;
+  int numNodes = neum[iele]->numNodes();
+  int *nn = neum[iele]->nodes();
+  for(int k=0; k<numNodes; ++k)
+    transformVector(vec.data()+3*k, nn[k], false);
+  delete [] nn;
+}
+
+void
+Domain::transformVector(ComplexVector &vec, int iele)
+{
+  // transform element vector from basic to DOF_FRM coordinates
+  if(domain->solInfo().basicDofCoords) return;
+  int numNodes = packedEset[iele]->numNodes()-packedEset[iele]->numInternalNodes();
+  int *nn = packedEset[iele]->nodes();
+  if(packedEset[iele]->hasRot()) {
+    for(int k=0; k<numNodes; ++k)
+      transformVector(vec.data()+6*k, nn[k], true);
+  }
+  else {
+    for(int k=0; k<numNodes; ++k)
+      transformVector(vec.data()+3*k, nn[k], false);
+  }
+  delete [] nn;
+}
+
+
+void
+Domain::transformVectorInv(Vector &vec, int iele)
+{
+  // transform element vector from DOF_FRM to basic coordinates
+  if(domain->solInfo().basicDofCoords) return;
+  int numNodes = packedEset[iele]->numNodes()-packedEset[iele]->numInternalNodes();
+  int *nn = packedEset[iele]->nodes();
+  if(packedEset[iele]->hasRot()) {
+    for(int k=0; k<numNodes; ++k)            
+      transformVectorInv(vec.data()+6*k, nn[k], true);
+  }
+  else {
+    for(int k=0; k<numNodes; ++k)
+      transformVectorInv(vec.data()+3*k, nn[k], false);
+  }
+  delete [] nn;
+}
+
+void
+Domain::transformVectorInv(ComplexVector &vec, int iele)
+{
+  // transform element vector from DOF_FRM to basic coordinates
+  if(domain->solInfo().basicDofCoords) return;
+  int numNodes = packedEset[iele]->numNodes()-packedEset[iele]->numInternalNodes();
+  int *nn = packedEset[iele]->nodes();
+  if(packedEset[iele]->hasRot()) {
+    for(int k=0; k<numNodes; ++k)
+      transformVectorInv(vec.data()+6*k, nn[k], true);
+  }
+  else {
+    for(int k=0; k<numNodes; ++k)
+      transformVectorInv(vec.data()+3*k, nn[k], false);
+  }
+  delete [] nn;
+}
+
+void
+Domain::transformVector(double *data, int inode, bool hasRot)
+{
+  // transform node vector from basic to DOF_FRM coordinates
+  if(inode >= numnodes || nodes[inode] == NULL) return;
+  int cd = nodes[inode]->cd;
+  if(cd == 0) return;
+#ifdef USE_EIGEN3
+  NFrameData *nfd = geoSource->getNFrames();
+
+  Eigen::Matrix3d T;
+  T << nfd[cd].frame[0][0], nfd[cd].frame[0][1], nfd[cd].frame[0][2],
+       nfd[cd].frame[1][0], nfd[cd].frame[1][1], nfd[cd].frame[1][2],
+       nfd[cd].frame[2][0], nfd[cd].frame[2][1], nfd[cd].frame[2][2];
+
+  if(hasRot) {
+    Eigen::Map<Eigen::Matrix<double,6,1> > v(data);
+    v.head<3>() = (T*v.head<3>()).eval();
+    v.tail<3>() = (T*v.tail<3>()).eval();
+  }
+  else {
+    Eigen::Map<Eigen::Vector3d> v(data);
+    v = (T*v).eval();
+  }
+#endif
+}
+
+void
+Domain::transformVector(complex<double> *data, int inode, bool hasRot)
+{
+  // transform node vector from basic to DOF_FRM coordinates
+  if(inode >= numnodes || nodes[inode] == NULL) return;
+  int cd = nodes[inode]->cd;
+  if(cd == 0) return;
+
+  NFrameData *nfd = geoSource->getNFrames();
+#ifdef USE_EIGEN3
+  Eigen::Matrix3d T;
+  T << nfd[cd].frame[0][0], nfd[cd].frame[0][1], nfd[cd].frame[0][2],
+       nfd[cd].frame[1][0], nfd[cd].frame[1][1], nfd[cd].frame[1][2],
+       nfd[cd].frame[2][0], nfd[cd].frame[2][1], nfd[cd].frame[2][2];
+
+  if(hasRot) {
+    Eigen::Map<Eigen::Matrix<complex<double>,6,1> > v(data);
+    v.head<3>() = (T*v.head<3>()).eval();
+    v.tail<3>() = (T*v.tail<3>()).eval();
+  }
+  else {
+    Eigen::Map<Eigen::Vector3cd> v(data);
+    v = (T*v).eval();
+  }
+#endif
+}
+
+void
+Domain::transformVectorInv(double *data, int inode, bool hasRot)
+{
+  // transform node vector from DOF_FRM to basic coordinates
+  if(inode >= numnodes || nodes[inode] == NULL) return;
+  int cd = nodes[inode]->cd;
+  if(cd == 0) return;
+
+  NFrameData *nfd = geoSource->getNFrames();
+#ifdef USE_EIGEN3
+  Eigen::Matrix3d T;
+  T << nfd[cd].frame[0][0], nfd[cd].frame[0][1], nfd[cd].frame[0][2],
+       nfd[cd].frame[1][0], nfd[cd].frame[1][1], nfd[cd].frame[1][2],
+       nfd[cd].frame[2][0], nfd[cd].frame[2][1], nfd[cd].frame[2][2];
+
+  if(hasRot) {
+    Eigen::Map<Eigen::Matrix<double,6,1> > v(data);
+    v.head<3>() = (T.transpose()*v.head<3>()).eval();
+    v.tail<3>() = (T.transpose()*v.tail<3>()).eval();
+  }
+  else {
+    Eigen::Map<Eigen::Vector3d> v(data);
+    v = (T.transpose()*v).eval();
+  }
+#endif
+}
+
+void
+Domain::transformVectorInv(complex<double> *data, int inode, bool hasRot)
+{
+  // transform node vector from DOF_FRM to basic coordinates
+  if(inode >= numnodes || nodes[inode] == NULL) return;
+  int cd = nodes[inode]->cd;
+  if(cd == 0) return;
+
+  NFrameData *nfd = geoSource->getNFrames();
+#ifdef USE_EIGEN3
+  Eigen::Matrix3d T;
+  T << nfd[cd].frame[0][0], nfd[cd].frame[0][1], nfd[cd].frame[0][2],
+       nfd[cd].frame[1][0], nfd[cd].frame[1][1], nfd[cd].frame[1][2],
+       nfd[cd].frame[2][0], nfd[cd].frame[2][1], nfd[cd].frame[2][2];
+
+  if(hasRot) {
+    Eigen::Map<Eigen::Matrix<complex<double>,6,1> > v(data);
+    v.head<3>() = (T.transpose()*v.head<3>()).eval();
+    v.tail<3>() = (T.transpose()*v.tail<3>()).eval();
+  }
+  else {
+    Eigen::Map<Eigen::Vector3cd> v(data);
+    v = (T.transpose()*v).eval();
+  }
+#endif
+}
+
+void
+Domain::transformStressStrain(FullM &mat, int iele)
+{
+  // transform element stress or strain tensors from basic to DOF_FRM coordinates
+  if(domain->solInfo().basicDofCoords) return;
+  int numNodes = packedEset[iele]->numNodes()-packedEset[iele]->numInternalNodes();
+  int *nn = packedEset[iele]->nodes();
+  for(int k=0; k<numNodes; ++k)
+    transformMatrix(mat[k], nn[k]);
+  delete [] nn;
+}
+
+void
+Domain::transformStressStrain(FullMC &mat, int iele)
+{
+  // transform element stress or strain tensors from basic to DOF_FRM coordinates
+  if(domain->solInfo().basicDofCoords) return;
+  int numNodes = packedEset[iele]->numNodes()-packedEset[iele]->numInternalNodes();
+  int *nn = packedEset[iele]->nodes();
+  for(int k=0; k<numNodes; ++k)
+    transformMatrix(mat[k], nn[k]);
+  delete [] nn;
+}
+
+void
+Domain::transformMatrix(double *data, int inode)
+{
+  // transform node symmetric 3x3 matrix from basic to DOF_FRM coordinates
+  if(inode >= numnodes || nodes[inode] == NULL) return;
+  int cd = nodes[inode]->cd;
+  if(cd == 0) return;
+#ifdef USE_EIGEN3
+  NFrameData *nfd = geoSource->getNFrames();
+
+  Eigen::Matrix3d T;
+  T << nfd[cd].frame[0][0], nfd[cd].frame[0][1], nfd[cd].frame[0][2],
+       nfd[cd].frame[1][0], nfd[cd].frame[1][1], nfd[cd].frame[1][2],
+       nfd[cd].frame[2][0], nfd[cd].frame[2][1], nfd[cd].frame[2][2];
+
+  Eigen::Matrix3d M; // note: data = { sxx, syy, szz, sxy, syz, sxz }
+  M << data[0], data[3], data[5],
+       data[3], data[1], data[4],
+       data[5], data[4], data[2];
+  M = (T*M*T.transpose()).eval();
+  data[0] = M(0,0);
+  data[1] = M(1,1);
+  data[2] = M(2,2);
+  data[3] = M(0,1);
+  data[4] = M(1,2);
+  data[5] = M(0,2);
+#endif
+}
+
+void
+Domain::transformMatrix(complex<double> *data, int inode)
+{
+  // transform node symmetric 3x3 matrix from basic to DOF_FRM coordinates
+  if(inode >= numnodes || nodes[inode] == NULL) return;
+  int cd = nodes[inode]->cd;
+  if(cd == 0) return;
+#ifdef USE_EIGEN3
+  NFrameData *nfd = geoSource->getNFrames();
+
+  Eigen::Matrix3d T;
+  T << nfd[cd].frame[0][0], nfd[cd].frame[0][1], nfd[cd].frame[0][2],
+       nfd[cd].frame[1][0], nfd[cd].frame[1][1], nfd[cd].frame[1][2],
+       nfd[cd].frame[2][0], nfd[cd].frame[2][1], nfd[cd].frame[2][2];
+
+  Eigen::Matrix3cd M; // note: data = { sxx, syy, szz, sxy, syz, sxz }
+  M << data[0], data[3], data[5],
+       data[3], data[1], data[4],
+       data[5], data[4], data[2];
+  M = (T*M*T.transpose()).eval();
+  data[0] = M(0,0);
+  data[1] = M(1,1);
+  data[2] = M(2,2);
+  data[3] = M(0,1);
+  data[4] = M(1,2);
+  data[5] = M(0,2);
+#endif
 }
 

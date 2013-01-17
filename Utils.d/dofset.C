@@ -143,6 +143,29 @@ DofSetArray::DofSetArray(int nnode, Elemset &eles, int *renumtable, int _myMap)
  makeOffset();
 }
 
+DofSetArray::DofSetArray(Element *ele)
+{
+ // make a DofSetArray for one element, using the element's local node numbering
+ initialize();
+ myMap = 0;
+ numnodes = ele->numNodes();
+ dofs = new DofSet[numnodes];
+ myDofs = true;
+ node_num_dofs = new int[numnodes];
+
+ int *orig_nn = ele->nodes();
+ int *new_nn = new int[numnodes];
+ for(int i=0; i<numnodes; ++i) new_nn[i] = i;
+ ele->renum(new_nn);
+ ele->markDofs(*this);
+ ele->renum(orig_nn);
+ delete [] orig_nn;
+ delete [] new_nn;
+
+ renummap = 0;
+ makeOffset();
+}
+
 void
 DofSetArray::clean_up()
 {

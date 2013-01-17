@@ -716,7 +716,7 @@ class Domain : public HData {
        void scaleInvDisp(Scalar *u);
 
      template<class Scalar>
-     int mergeDistributedDisp(Scalar (*xyz)[11], Scalar *u, Scalar *bcx = 0);//DofSet::max_known_nonL_dof
+     int mergeDistributedDisp(Scalar (*xyz)[11], Scalar *u, Scalar *bcx = 0, Scalar (*xyz_loc)[11] = NULL);
 
      Connectivity *makeSommerToNode();
      Connectivity *prepDirectMPC();
@@ -999,6 +999,20 @@ class Domain : public HData {
      virtual double densProjCoeff(int dof) { return 1.0; }
      virtual void densProjectStiffness(GenFullSquareMatrix<double>& kel, int num) { /* do nothing */ }
      virtual void densProjectStiffnessC(GenFullSquareMatrix<DComplex>& kel, int num) { /* do nothing */ }
+     void transformMatrix(GenFullSquareMatrix<double>& kel, int num);
+     void transformVector(Vector &vec, int iele);
+     void transformNeumVector(Vector &vec, int iele);
+     void transformVector(ComplexVector &vec, int iele);
+     void transformVectorInv(Vector &vec, int iele);
+     void transformVectorInv(ComplexVector &vec, int iele);
+     void transformVector(double *data, int inode, bool hasRot);
+     void transformVector(complex<double> *data, int inode, bool hasRot);
+     void transformVectorInv(double *data, int inode, bool hasRot);
+     void transformVectorInv(complex<double> *data, int inode, bool hasRot);
+     void transformStressStrain(FullM &mat, int iele);
+     void transformStressStrain(FullMC &mat, int iele);
+     void transformMatrix(double *data, int inode);
+     void transformMatrix(complex<double> *data, int inode);
 
      int getMaxNumNodes() { return maxNumNodes; }
 

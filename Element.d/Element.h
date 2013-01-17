@@ -216,8 +216,8 @@ class Node {
   public:
 	// Constructors
         Node() {}
-        Node(double *xyz) { x = xyz[0]; y = xyz[1]; z = xyz[2]; }
-        Node(const Node &node) { x = node.x; y = node.y; z = node.z; }
+        Node(double *xyz, int _cp=0, int _cd=0) { x = xyz[0]; y = xyz[1]; z = xyz[2]; cp = _cp, cd = _cd; }
+        Node(const Node &node) { x = node.x; y = node.y; z = node.z; cp = node.cp; cd = node.cd; }
 	~Node() {};
 	double distance2(const Node& node) const
 	   { return (node.x-x)*(node.x-x)+(node.y-y)*(node.y-y)+(node.z-z)*(node.z-z); }
@@ -227,6 +227,10 @@ class Node {
 	double 	x;
 	double 	y;
 	double 	z;
+
+        // Frames
+        int cp;
+        int cd;
 };
 
 // ****************************************************************
@@ -258,7 +262,7 @@ public:
 
 	// Member functions
         int size() const;
-        void  nodeadd(int n, double*xyz);
+        void  nodeadd(int n, double*xyz, int cp=0, int cd=0);
         void  nodeadd(int n, Node &node);
 	Node &getNode(int n);
         void getCoordinates(int *nn, int numNodes,
@@ -386,6 +390,10 @@ class Element {
 
         virtual void   getAllStress(FullM &stress, Vector &weight, CoordSet &cs,
                                     Vector &elDisp, int strInd, int surface=0,
+                                    double *ndTemps=0);
+
+        virtual void   getAllStress(FullMC &stress, Vector &weight, CoordSet &cs,
+                                    ComplexVector &elDisp, int strInd, int surface=0,
                                     double *ndTemps=0);
 
         virtual void   computeHeatFluxes(Vector& heatflux, CoordSet &cs,

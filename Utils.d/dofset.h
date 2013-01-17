@@ -103,6 +103,7 @@ class DofSet {
 };
 
 class Elemset;
+class Element;
 
 class EqNumberer {
   protected:
@@ -152,6 +153,7 @@ class DofSetArray : public EqNumberer {
     DofSetArray(int nnode, int *dofsPerNode, int *renumtable); // for DEC
     DofSetArray(int nnodes, Elemset &elearray, int *renumtable=0, int myMap=0);
     DofSetArray(int nnodes, int *renumtable=0, int myMap=0);
+    DofSetArray(Element *ele);
 
     virtual ~DofSetArray();
 

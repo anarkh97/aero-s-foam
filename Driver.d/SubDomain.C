@@ -91,7 +91,7 @@ GenSubDomain<Scalar>::GenSubDomain(Domain &dom, int sn, CoordSet* _nodes, Elemse
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::mergeAllDisp(Scalar (*xyz)[11], Scalar *u)//DofSet::max_known_nonL_dof
+GenSubDomain<Scalar>::mergeAllDisp(Scalar (*xyz)[11], Scalar *u, Scalar (*xyz_loc)[11])
 {
  // PJSA: 10-9-04 this is for either Helmholtz or other solver types
  // note: coupledScaling always has a default value of 1.0
@@ -164,12 +164,21 @@ GenSubDomain<Scalar>::mergeAllDisp(Scalar (*xyz)[11], Scalar *u)//DofSet::max_kn
      xyz[nodeI][7] = u[xHelm];
    else if(xHelm1 >= 0)
      xyz[nodeI][7] = Bcx(xHelm1);
+
+   // transform displacements and rotations (if present) from DOF_FRM to basic coordinates
+   // and keep a copy 
+   if(!domain->solInfo().basicDofCoords && c_dsa->locate(inode, DofSet::LagrangeE) < 0
+      && c_dsa->locate(inode, DofSet::LagrangeI) < 0) {
+     if(xyz_loc) for(int j=0; j<11; ++j) xyz_loc[nodeI][j] = xyz[nodeI][j];
+     bool hasRot = (xRot >= 0 || xRot1 >= 0 || yRot >= 0 || yRot1 >= 0 || zRot >= 0 || zRot1 >= 0);
+     transformVectorInv(&(xyz[nodeI][0]), inode, hasRot);
+   }
  }
 }
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::mergeAllVeloc(Scalar (*xyz)[11], Scalar *v)//DofSet::max_known_nonL_dof
+GenSubDomain<Scalar>::mergeAllVeloc(Scalar (*xyz)[11], Scalar *v, Scalar (*xyz_loc)[11])
 {
  // xyz should be initialized to zero before being passed into this function
  int inode, nodeI;
@@ -240,12 +249,20 @@ GenSubDomain<Scalar>::mergeAllVeloc(Scalar (*xyz)[11], Scalar *v)//DofSet::max_k
      xyz[nodeI][7] = v[xHelm];
    else if(xHelm1 >= 0)
      xyz[nodeI][7] = vcx[xHelm1];
+
+   // transform velocities and angular velocities (if present) from DOF_FRM to basic coordinates
+   if(!domain->solInfo().basicDofCoords && c_dsa->locate(inode, DofSet::LagrangeE) < 0
+      && c_dsa->locate(inode, DofSet::LagrangeI) < 0) {
+     if(xyz_loc) for(int j=0; j<11; ++j) xyz_loc[nodeI][j] = xyz[nodeI][j];
+     bool hasRot = (xRot >= 0 || xRot1 >= 0 || yRot >= 0 || yRot1 >= 0 || zRot >= 0 || zRot1 >= 0);
+     transformVectorInv(&(xyz[nodeI][0]), inode, hasRot);
+   }
  }
 }
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::mergeAllAccel(Scalar (*xyz)[11], Scalar *a)//DofSet::max_known_nonL_dof
+GenSubDomain<Scalar>::mergeAllAccel(Scalar (*xyz)[11], Scalar *a, Scalar (*xyz_loc)[11])
 {
  // xyz should be initialized to zero before being passed into this function
  int inode, nodeI;
@@ -316,6 +333,14 @@ GenSubDomain<Scalar>::mergeAllAccel(Scalar (*xyz)[11], Scalar *a)//DofSet::max_k
      xyz[nodeI][7] = a[xHelm];
    else if(xHelm1 >= 0)
      xyz[nodeI][7] = acx[xHelm1];
+
+   // transform accelerations and angular accelerations (if present) from DOF_FRM to basic coordinates
+   if(!domain->solInfo().basicDofCoords && c_dsa->locate(inode, DofSet::LagrangeE) < 0
+      && c_dsa->locate(inode, DofSet::LagrangeI) < 0) {
+     if(xyz_loc) for(int j=0; j<11; ++j) xyz_loc[nodeI][j] = xyz[nodeI][j];
+     bool hasRot = (xRot >= 0 || xRot1 >= 0 || yRot >= 0 || yRot1 >= 0 || zRot >= 0 || zRot1 >= 0);
+     transformVectorInv(&(xyz[nodeI][0]), inode, hasRot);
+   }
  }
 }
 
@@ -2129,7 +2154,7 @@ GenSubDomain<Scalar>::renumberMPCs()
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::computeElementForce(Scalar *u, int forceIndex, Scalar *elemForce)
+GenSubDomain<Scalar>::computeElementForce(int fileNumber, Scalar *u, int forceIndex, Scalar *elemForce)
 {
   if(elemToNode==0) elemToNode = new Connectivity(&packedEset);
   if(elDisp == 0) elDisp = new Vector(maxNumDOFs, 0.0);
@@ -2142,6 +2167,7 @@ GenSubDomain<Scalar>::computeElementForce(Scalar *u, int forceIndex, Scalar *ele
   for(iele=0; iele<numele; ++iele) {
 
     packedEset[iele]->nodes(nodeNumbers);
+    int NodesPerElement = packedEset[iele]->numNodes();
 
     for(k=0; k<allDOFs->num(iele); ++k) {
       int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
@@ -2153,7 +2179,7 @@ GenSubDomain<Scalar>::computeElementForce(Scalar *u, int forceIndex, Scalar *ele
 
     if(packedEset[iele]->getProperty()) {
       if(domain->solInfo().thermalLoadFlag || (domain->solInfo().thermoeFlag >= 0)) {
-        for(int iNode=0; iNode<packedEset[iele]->numNodes(); ++iNode) {
+        for(int iNode=0; iNode<NodesPerElement; ++iNode) {
           if(nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
             elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
           else
@@ -2162,7 +2188,35 @@ GenSubDomain<Scalar>::computeElementForce(Scalar *u, int forceIndex, Scalar *ele
       }
     }
 
-    packedEset[iele]->getIntrnForce(elForce, nodes, elDisp->data(), forceIndex, elemNodeTemps.data());
+    // transform displacements from DOF_FRM to basic coordinates
+    transformVectorInv(*elDisp, iele);
+
+    if(geoSource->getOutputInfo()[fileNumber].oframe == OutputInfo::Local) {
+      Vector fx(NodesPerElement,0.0), fy(NodesPerElement,0.0), fz(NodesPerElement,0.0);
+      if(forceIndex == INX || forceIndex == INY || forceIndex == INZ) {
+        packedEset[iele]->getIntrnForce(fx,nodes,elDisp->data(),INX,elemNodeTemps.data());
+        packedEset[iele]->getIntrnForce(fy,nodes,elDisp->data(),INY,elemNodeTemps.data());
+        packedEset[iele]->getIntrnForce(fz,nodes,elDisp->data(),INZ,elemNodeTemps.data());
+      }
+      else {
+        packedEset[iele]->getIntrnForce(fx,nodes,elDisp->data(),AXM,elemNodeTemps.data());
+        packedEset[iele]->getIntrnForce(fy,nodes,elDisp->data(),AYM,elemNodeTemps.data());
+        packedEset[iele]->getIntrnForce(fz,nodes,elDisp->data(),AZM,elemNodeTemps.data());
+      }
+      Vector f(3*NodesPerElement);
+      for(int iNode=0; iNode<NodesPerElement; iNode++) {
+        double data[3] = { fx[iNode], fy[iNode], fz[iNode] };
+        transformVector(data, nodeNumbers[iNode], false);
+        switch(forceIndex) {
+          case INX: case AXM: elstress[iNode] = data[0]; break;
+          case INY: case AYM: elstress[iNode] = data[1]; break;
+          case INZ: case AZM: elstress[iNode] = data[2]; break;
+        }
+      }
+    }
+    else {
+      packedEset[iele]->getIntrnForce(elForce, nodes, elDisp->data(), forceIndex, elemNodeTemps.data());
+    }
 
     for(k = 0; k < packedEset[iele]->numNodes(); ++k)
       elemForce[elemToNode->offset(iele) + k] = elForce[k];
@@ -2185,6 +2239,7 @@ GenSubDomain<Scalar>::computeStressStrain(int fileNumber,
   // ylayer and zlayer are needed when calculating the axial stress/strain in a beam element
   double ylayer = oinfo[fileNumber].ylayer;
   double zlayer = oinfo[fileNumber].zlayer;
+  OutputInfo::FrameType oframe = oinfo[fileNumber].oframe;
 
   int *nodeNumbers = new int[maxNumNodes];
   Vector elemNodeTemps(maxNumNodes);
@@ -2198,6 +2253,8 @@ GenSubDomain<Scalar>::computeStressStrain(int fileNumber,
   GenVector<Scalar> *elstress = new GenVector<Scalar>(maxNumNodes);
   GenVector<double> *elweight = new GenVector<double>(maxNumNodes);
   GenVector<Scalar> *elDisp = new GenVector<Scalar>(maxNumDOFs);
+  GenFullM<Scalar> *p_elstress = 0;
+  if(oframe == OutputInfo::Local) p_elstress = new GenFullM<Scalar>(maxNumNodes,9);
 
   for(iele=0; iele<numele; ++iele) {
 
@@ -2223,7 +2280,7 @@ GenSubDomain<Scalar>::computeStressStrain(int fileNumber,
         if(cn >= 0)
           (*elDisp)[k] = u[cn];
         else
-          (*elDisp)[k] = Bcx((*allDOFs)[iele][k]);  // PJSA
+          (*elDisp)[k] = Bcx((*allDOFs)[iele][k]);
       }
 
       int iNode;
@@ -2236,9 +2293,38 @@ GenSubDomain<Scalar>::computeStressStrain(int fileNumber,
               elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
           }
         }
-        packedEset[iele]->getVonMises(*elstress, *elweight, nodes,
-                                      *elDisp, stressIndex, surface,
-                                      elemNodeTemps.data(),ylayer,zlayer,avgnum);
+
+        // transform displacements from DOF_FRM to basic coordinates
+        transformVectorInv(*elDisp, iele);
+
+        // transform non-invariant stresses/strains from basic frame to DOF_FRM
+        if(oframe == OutputInfo::Local && ((stressIndex >=0 && stressIndex <=5) || (stressIndex >= 7 && stressIndex <= 12))) {
+
+          // FIRST, CALCULATE STRESS/STRAIN TENSOR FOR EACH NODE OF THE ELEMENT
+          p_elstress->zero();
+          int strInd = (stressIndex >=0 && stressIndex <=5) ? 0 : 1;
+          packedEset[iele]->getAllStress(*p_elstress, *elweight, nodes,
+                                         *elDisp, strInd, surface,
+                                         elemNodeTemps.data());
+
+          // second, transform stress/strain tensor to nodal frame coordinates
+          transformStressStrain(*p_elstress, iele);
+
+          // third, extract the requested stress/strain value from the stress/strain tensor
+          for (iNode = 0; iNode < NodesPerElement; ++iNode) {
+            if(strInd == 0)
+              (*elstress)[iNode] = (*p_elstress)[iNode][stressIndex];
+            else
+              (*elstress)[iNode] = (*p_elstress)[iNode][stressIndex-7];
+          }
+
+        }
+        else {
+
+          packedEset[iele]->getVonMises(*elstress, *elweight, nodes,
+                                        *elDisp, stressIndex, surface,
+                                        elemNodeTemps.data(),ylayer,zlayer,avgnum);
+        }
       }
     }
 
@@ -2263,6 +2349,7 @@ GenSubDomain<Scalar>::computeStressStrain(int fileNumber,
   delete elstress;
   delete elweight;
   delete elDisp;
+  if(p_elstress) delete p_elstress;
 }
 
 // -----------------------------

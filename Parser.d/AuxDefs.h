@@ -34,6 +34,8 @@ template <class Scalar, class VecType> class SfemInpc;
 typedef struct {
    int num;
    double xyz[3];
+   int cp;
+   int cd;
 } NumedNode;
    
 typedef struct {
@@ -72,6 +74,13 @@ class ComplexBCList {
 struct FrameData {
   int num;
   double d[9];
+};
+
+struct NodalFrameData {
+  int id;
+  double o[3];
+  double d[9];
+  int type;
 };
 
 struct LayerData {

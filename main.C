@@ -594,6 +594,17 @@ int main(int argc, char** argv)
    filePrint(stderr,"         you may need to activate OpenMP and compile with an OpenMP compliant\n");
    filePrint(stderr,"         compiler (for instance, icpc or g++ version 4.2)\n");
  }
+
+ if(!domain->solInfo().basicPosCoords) {
+#ifndef USE_EIGEN3
+   filePrint(stderr," *** ERROR: use of Nodal Frames for node coordinates is not supported by this AERO-S build.\n");
+   filePrint(stderr," -> tip: you need to configure AERO-S with \"cmake -DEIGEN3_INCLUDE_DIR:PATH=xxx .\"\n");
+   filePrint(stderr,"         where xxx is the path to an installation of the Eigen C++ template library (version 3.1 or later)\n");
+   exit(-1);
+#endif
+   geoSource->transformCoords();
+ }
+
  if(geoSource->binaryInput) geoSource->readGlobalBinaryData(); // SOWERX
 #ifdef SOWER_SURFS
  else {
@@ -654,7 +665,17 @@ int main(int argc, char** argv)
    if(geoSource->getCheckFileInfo()->decPtr == 0) callDec = true;
  }
 */
- if(domain->solInfo().type != 2 /*&& !domain->solInfo().getDirectMPC()*/)
+ if(!domain->solInfo().basicDofCoords) {
+#ifndef USE_EIGEN3
+   filePrint(stderr," *** ERROR: use of Nodal Frames for degrees of freedom is not supported by this AERO-S build.\n");
+   filePrint(stderr," -> tip: you need to configure AERO-S with \"cmake -DEIGEN3_INCLUDE_DIR:PATH=xxx .\"\n");
+   filePrint(stderr,"         where xxx is the path to an installation of the Eigen C++ template library (version 3.1 or later)\n");
+   exit(-1);
+#endif
+   geoSource->transformLMPCs(domain->getNumLMPC(), *(domain->getLMPC()));
+ }
+
+ if(domain->solInfo().type != 2)
    geoSource->addMpcElements(domain->getNumLMPC(), *(domain->getLMPC()));
 
  if((domain->solInfo().type != 2 || (!domain->solInfo().isMatching && (domain->solInfo().fetiInfo.fsi_corner != 0))) && !domain->solInfo().HEV)

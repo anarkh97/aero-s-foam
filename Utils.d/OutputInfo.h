@@ -70,6 +70,8 @@ struct OutputInfo {
                      // CONTACT_AREA, GAP_CUR, GAP_OLD
    int topFlag; // if this is set to 1 then the output file should use the compressed numbering (i.e. with gaps removed)
                 // compatible with top files generated using -T command line argument
+   enum FrameType { Global=0, Local };
+   FrameType oframe;
 
    void initialize() {
      width = 10; 
@@ -92,6 +94,7 @@ struct OutputInfo {
      matlab = false;
      PodRomfile = false;
      topFlag = 0;
+     oframe = OutputInfo::Global;
    }
 
    void finalize(int numColumns) {

@@ -36,6 +36,7 @@
  ComplexBCList *cxbclist;
  ComplexBCond cxbcval;
  FrameData frame;
+ NodalFrameData nframe;
  MFTTData *mftval;
  MFTTData *mptval;
  MFTTData *hftval;
@@ -68,7 +69,7 @@
 %token CONSTRAINTS MULTIPLIERS PENALTY
 %token EIGEN EFRAMES ELSCATTERER END ELHSOMMERFELD EXPLICIT EPSILON ELEMENTARYFUNCTIONTYPE
 %token FABMAT FACOUSTICS FETI FETI2TYPE FETIPREC FFP FFPDIR FITALG FLUMAT FNAME FLUX FORCE FRONTAL FETIH FILTEREIG
-%token FREQSWEEP FREQSWEEP1 FREQSWEEP2 FSINTERFACE FSISCALING FSIELEMENT NOLOCALFSISPLITING FSICORNER FFIDEBUG FAILSAFE
+%token FREQSWEEP FREQSWEEP1 FREQSWEEP2 FSINTERFACE FSISCALING FSIELEMENT NOLOCALFSISPLITING FSICORNER FFIDEBUG FAILSAFE FRAMETYPE
 %token GEPS GLOBALTOL GRAVITY GRBM GTGSOLVER GLOBALCRBMTOL GROUP GROUPTYPE GOLDFARBTOL GOLDFARBCHECK
 %token HDIRICHLET HEAT HFETI HNEUMAN HSOMMERFELD HFTT
 %token HELMHOLTZ HNBO HELMMF HELMSO HSCBO HWIBO HZEM HZEMFILTER HLMPC 
@@ -76,12 +77,12 @@
 %token IACC IDENTITY IDIS IDIS6 IntConstant INTERFACELUMPED ITEMP ITERTYPE IVEL 
 %token INCIDENCE IHDIRICHLET IHDSWEEP IHNEUMANN ISOLVERTYPE INPC INFINTY
 %token JACOBI KRYLOVTYPE KIRLOC
-%token LAYC LAYN LAYD LAYO LAYMAT LFACTOR LMPC LOAD LOBPCG LOCALSOLVER LINESEARCH LUMPED LOCAL
+%token LAYC LAYN LAYD LAYO LAYMAT LFACTOR LMPC LOAD LOBPCG LOCALSOLVER LINESEARCH LUMPED
 %token MASS MATERIALS MATLAB MAXITR MAXORTHO MAXVEC MODAL MPCPRECNO MPCPRECNOID MPCTYPE MPCTYPEID MPCSCALING MPCELEMENT MPCBLOCKID 
 %token MPCBLK_OVERLAP MFTT MPTT MRHS MPCCHECK MUMPSICNTL MUMPSCNTL MECH MODEFILTER MOMENTTYPE
 %token NDTYPE NEIGPA NEWMARK NewLine NL NLMAT NLPREC NOCOARSE NODETOKEN NONINPC
 %token NSBSPV NLTOL NUMCGM NOSECONDARY NFRAMES
-%token OPTIMIZATION OUTPUT OUTPUT6
+%token OPTIMIZATION OUTPUT OUTPUT6 OUTPUTFRAME
 %token QSTATIC QLOAD
 %token PITA PITADISP6 PITAVEL6 NOFORCE MDPITA GLOBALBASES LOCALBASES TIMEREVERSIBLE REMOTECOARSE ORTHOPROJTOL READINITSEED JUMPCVG JUMPOUTPUT
 %token PRECNO PRECONDITIONER PRELOAD PRESSURE PRINTMATLAB PROJ PIVOT PRECTYPE PRECTYPEID PICKANYCORNER PADEPIVOT PROPORTIONING PLOAD PADEPOLES POINTSOURCE PLANEWAVE PTOL PLANTOL PMAXIT
@@ -116,10 +117,11 @@
 %type <mpcterm>  MPCLine ComplexMPCLine
 %type <cxbclist> ComplexBCDataList ComplexNeumanBC ComplexDirichletBC 
 %type <frame>    Frame
+%type <nframe>   NodalFrame
 %type <fval>     Float DblConstant
 %type <ival>     AEROTYPE Attributes AUGMENTTYPE AVERAGED 
 %type <ival>     COLLOCATEDTYPE CORNERTYPE COMPLEXOUTTYPE TDENFORC CSTYPE ANGULAROUTTYPE
-%type <ival>     ELEMENTARYFUNCTIONTYPE FETIPREC FETI2TYPE 
+%type <ival>     ELEMENTARYFUNCTIONTYPE FETIPREC FETI2TYPE FRAMETYPE
 %type <ival>     GTGSOLVER Integer IntConstant ITERTYPE
 %type <ival>     RBMSET RENUMBERID OPTCTV
 %type <rprop>    RPROP
@@ -130,7 +132,7 @@
 %type <mftval>   MFTTInfo
 %type <mptval>   MPTTInfo
 %type <hftval>   HFTTInfo
-%type <ival>     NDTYPE
+%type <ival>     NDTYPE OUTPUTFRAME
 %type <ival>     GROUPTYPE
 %type <nl>       NodeNums SommNodeNums 
 %type <nval>     Node
@@ -167,7 +169,7 @@ Component:
         | ComplexLMPConstrain 
 	| ElemSet
 	| FrameDList
-        | NodeFrameDList
+        | NodalFrameDList
         | ConstrainedSurfaceFrameDList
 	| Attributes
 	{}
@@ -777,10 +779,8 @@ OutInfo:
         { $$.ndtype = $2; }
         | OutInfo NDTYPE Integer
         { $$.ndtype = $2; sfem->setnsamp_out($3); }
-        | OutInfo GLOBAL
-        { /* TODO: $$.oframe = OutputInfo::Global; */ }
-        | OutInfo LOCAL
-        { /* TODO: $$.oframe = OutputInfo::Local; */ }
+        | OutInfo OUTPUTFRAME
+        { $$.oframe = (OutputInfo::FrameType) $2; }
         | OutInfo MATLAB 
         { $$.matlab = true; }
         ;
@@ -2415,21 +2415,24 @@ AcmeControls:
         { domain->solInfo().mortar_integration_rule = $2; }
 NodeSet:
 	NODETOKEN NewLine Node
-	{ geoSource->addNode($3.num, $3.xyz); }
+	{ geoSource->addNode($3.num, $3.xyz, $3.cp, $3.cd); }
 	| NodeSet Node
-	{ geoSource->addNode($2.num, $2.xyz); }
+	{ geoSource->addNode($2.num, $2.xyz, $2.cp, $2.cd); }
 	;
 Node:
 	Integer Float Float Float NewLine
-	{ $$.num = $1-1; $$.xyz[0] = $2; $$.xyz[1] = $3;  $$.xyz[2] = $4; }
+	{ $$.num = $1-1; $$.xyz[0] = $2; $$.xyz[1] = $3;  $$.xyz[2] = $4;  $$.cp = 0;  $$.cd = 0; }
 	| Integer Float Float NewLine
-	{ $$.num = $1-1; $$.xyz[0] = $2; $$.xyz[1] = $3;  $$.xyz[2] = 0.0; }
+	{ $$.num = $1-1; $$.xyz[0] = $2; $$.xyz[1] = $3;  $$.xyz[2] = 0.0; $$.cp = 0;  $$.cd = 0; }
 	| Integer Float NewLine
-	{ $$.num = $1-1; $$.xyz[0] = $2; $$.xyz[1] = 0.0; $$.xyz[2] = 0.0; }
+	{ $$.num = $1-1; $$.xyz[0] = $2; $$.xyz[1] = 0.0; $$.xyz[2] = 0.0; $$.cp = 0;  $$.cd = 0; }
         | Integer Float Float Float Integer Integer NewLine
-        { $$.num = $1-1; $$.xyz[0] = $2; $$.xyz[1] = $3;  $$.xyz[2] = $4; /* $$.cp = $5; $$.cd = $6; */ }
+        { $$.num = $1-1; $$.xyz[0] = $2; $$.xyz[1] = $3;  $$.xyz[2] = $4;  $$.cp = $5; $$.cd = $6;
+          if($5 != 0) domain->solInfo().basicPosCoords = false;
+          if($6 != 0) domain->solInfo().basicDofCoords = false; }
         | Integer Float Float Float Integer NewLine
-        { $$.num = $1-1; $$.xyz[0] = $2; $$.xyz[1] = $3;  $$.xyz[2] = $4; /* $$.cp = $$.cd = $5; */ }
+        { $$.num = $1-1; $$.xyz[0] = $2; $$.xyz[1] = $3;  $$.xyz[2] = $4;  $$.cp = $5; $$.cd = $5;
+          if($5 != 0) { domain->solInfo().basicPosCoords = false; domain->solInfo().basicDofCoords = false; } }
 	;
 Element:
 	Integer Integer NodeNums NewLine
@@ -2472,11 +2475,6 @@ ConstrainedSurfaceFrameDList:
         | ConstrainedSurfaceFrameDList Frame
         { geoSource->setCSFrame($2.num,$2.d); }
         ;
-NodeFrameDList:
-        NFRAMES NewLine
-        | NodeFrameDList Frame
-        { /*TODO: geoSource->setNodeFrame($2.num,$2.d);*/ }
-        ;
 FrameDList:
         EFRAMES NewLine
 	| FrameDList Frame
@@ -2485,12 +2483,48 @@ FrameDList:
 Frame:
 	Integer Float Float Float Float Float Float Float Float Float NewLine
 	{ $$.num = $1-1; 
-            $$.d[0] = $2; $$.d[1] = $3; $$.d[2] = $4;
-            $$.d[3] = $5; $$.d[4] = $6; $$.d[5] = $7;
-            $$.d[6] = $8; $$.d[7] = $9; $$.d[8] = $10; }
+          $$.d[0] = $2; $$.d[1] = $3; $$.d[2] = $4;
+          $$.d[3] = $5; $$.d[4] = $6; $$.d[5] = $7;
+          $$.d[6] = $8; $$.d[7] = $9; $$.d[8] = $10; }
         | Integer THIRDNODE Integer NewLine
-        { $$.num = $1-1; geoSource->makeEframe($1-1, $3, $$.d); }
+        { $$.num = $1-1;
+          geoSource->makeEframe($1-1, $3, $$.d); }
 	;
+NodalFrameDList:
+        NFRAMES NewLine
+        | NodalFrameDList NodalFrame
+        { geoSource->setNodalFrame($2.id,$2.o,$2.d,$2.type); }
+        ;
+NodalFrame:
+        Integer Float Float Float Float Float Float Float Float Float NewLine
+        { $$.id = $1;
+          $$.type = NFrameData::Rectangular;
+          $$.o[0] = 0;  $$.o[1] = 0;  $$.o[2] = 0;
+          $$.d[0] = $2; $$.d[1] = $3; $$.d[2] = $4;
+          $$.d[3] = $5; $$.d[4] = $6; $$.d[5] = $7;
+          $$.d[6] = $8; $$.d[7] = $9; $$.d[8] = $10; }
+        | Integer Float Float Float Float Float Float Float Float Float Float Float Float NewLine
+        { $$.id = $1;
+          $$.type = NFrameData::Rectangular;
+          $$.o[0] = $2;  $$.o[1] = $3;  $$.o[2] = $4;
+          $$.d[0] = $5;  $$.d[1] = $6;  $$.d[2] = $7;
+          $$.d[3] = $8;  $$.d[4] = $9;  $$.d[5] = $10;
+          $$.d[6] = $11; $$.d[7] = $12; $$.d[8] = $13; }
+        | Integer FRAMETYPE Float Float Float Float Float Float Float Float Float NewLine
+        { $$.id = $1;
+          $$.type = $2;
+          $$.o[0] = 0;  $$.o[1] = 0;   $$.o[2] = 0;
+          $$.d[0] = $3; $$.d[1] = $4;  $$.d[2] = $5;
+          $$.d[3] = $6; $$.d[4] = $7;  $$.d[5] = $8;
+          $$.d[6] = $9; $$.d[7] = $10; $$.d[8] = $11; }
+        | Integer FRAMETYPE Float Float Float Float Float Float Float Float Float Float Float Float NewLine
+        { $$.id = $1;
+          $$.type = $2;
+          $$.o[0] = $3;  $$.o[1] = $4;  $$.o[2] = $5;
+          $$.d[0] = $6;  $$.d[1] = $7;  $$.d[2] = $8;
+          $$.d[3] = $9;  $$.d[4] = $10; $$.d[5] = $11;
+          $$.d[6] = $12; $$.d[7] = $13; $$.d[8] = $14; }
+        ;
 BoffsetList:
 	BOFFSET NewLine
 	| BoffsetList Integer Integer Float Float Float NewLine

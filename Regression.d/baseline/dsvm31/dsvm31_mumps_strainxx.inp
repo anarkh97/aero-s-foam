@@ -6,10 +6,11 @@ dsvm31_mumps_strainxx
 *
 STATICS
 mumps
+include "../fetidp.include"
 *
 OUTPUT
 strainxx dsvm31_mumps_strainxx.dat 1
 *
-INCLUDE dsvm31.include
+INCLUDE ../dsvm31.include
 *
 END

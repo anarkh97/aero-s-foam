@@ -232,6 +232,12 @@ TRAIL [a-zA-Z]*
 
 "FORC"[a-zA-Z]*|"forc"[a-zA-Z]*    { return FORCE; }
 
+"axial"|"AXIAL"                    { yylval.ival = BCond::Axial;      return MOMENTTYPE; }
+
+"rotational"|"ROTATIONAL"          { yylval.ival = BCond::Rotational; return MOMENTTYPE; }
+
+"follower"|"FOLLOWER"              { yylval.ival = BCond::Follower;   return MOMENTTYPE; }
+
 "COND"[a-zA-Z]*|"cond"[a-zA-Z]*    { return CONDITION; }
 
 "MASS"[a-zA-Z]*|"mass"[a-zA-Z]*    { return MASS; }
@@ -560,6 +566,8 @@ TRAIL [a-zA-Z]*
 
 "PENA"[a-zA-Z]*|"pena"[a-zA-Z]*    { return PENALTY; }
 
+"AUGMENTE"[a-zA-Z]*|"augmente"[a-zA-Z]* { return AUGMENTED; }
+
 "RENU"[a-zA-Z]*|"renu"[a-zA-Z]*    { return RENUM; }
 
 "DYNA"[a-zA-Z]*|"dyna"[a-zA-Z]*    { return DYNAM; }
@@ -572,7 +580,7 @@ TRAIL [a-zA-Z]*
 
 "RESTART"|"restart"                { return RESTART; }
 
-"CONV"[a-zA-Z]*|"conv"[a-zA-Z]*    { return CONVECTION; }
+"CONVECTI"[a-zA-Z]*|"convecti"[a-zA-Z]* { return CONVECTION; }
 
 "RADI"[a-zA-Z]*|"radi"[a-zA-Z]*    { return RADIATION; }
 
@@ -607,8 +615,6 @@ TRAIL [a-zA-Z]*
 "lines"[a-zA-Z]*|"LINES"[a-zA-Z]*  { return LINESEARCH; }
 
 "fails"[a-zA-Z]*|"FAILS"[a-zA-Z]*  { return FAILSAFE; }
-
-"momen"[a-zA-Z]*|"MOMEN"[a-zA-Z]*  { return MOMENT; }
 
 "debug_icntl"                      { return DEBUGICNTL; }
 
@@ -868,7 +874,7 @@ TRAIL [a-zA-Z]*
 
 "trans"[a-zA-Z]*|"TRANS"[a-zA-Z]*  { yylval.ival = FetiInfo::translation; return RBMSET; }
 
-"rot"|"ROT"|"rota"|"ROTA"|"rotat"|"ROTAT"|"rotati"|"ROTATI"|"rotatio"|"ROTATIO"|"rotation"[a-zA-Z]*|"ROTATION"[a-zA-Z]* { yylval.ival = FetiInfo::rotation; return RBMSET; }
+"rot"|"ROT"|"rota"|"ROTA"|"rotat"|"ROTAT"|"rotati"|"ROTATI"|"rotatio"|"ROTATIO"|"rotation"|"ROTATION" { yylval.ival = FetiInfo::rotation; return RBMSET; }
 
 "all"[a-zA-Z]*|"ALL"[a-zA-Z]*      { yylval.ival = FetiInfo::all;         return RBMSET; }
 
@@ -1161,6 +1167,12 @@ TRAIL [a-zA-Z]*
 "modphase"|"MODPHASE"              { yylval.ival = OutputInfo::modulusphase; return COMPLEXOUTTYPE; }
 
 "anim"[a-zA-Z]*|"ANIM"[a-zA-Z]*    { yylval.ival = OutputInfo::animate; return COMPLEXOUTTYPE; }
+
+"spatial"|"SPATIAL"                { yylval.ival = OutputInfo::spatial; return ANGULAROUTTYPE; }
+
+"convected"|"CONVECTED"            { yylval.ival = OutputInfo::convected; return ANGULAROUTTYPE; }
+
+"total"|"TOTAL"                    { yylval.ival = OutputInfo::total; return ANGULAROUTTYPE; }
 
 "conface"|"CONFACE"                                  { yylval.ival = 1; return TDENFORC; }
 "normal_force_mag"|"NORMAL_FORCE_MAG"                { yylval.ival = 2; return TDENFORC; }

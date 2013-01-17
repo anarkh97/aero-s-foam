@@ -6,7 +6,7 @@ dsvm19_cr_displacy
 *
 STATICS
 cr
-*
+include "../fetidp.include"
 OUTPUT
 displacy dsvm19_cr_displacy.dat 1 27
 *

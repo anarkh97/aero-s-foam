@@ -6,7 +6,7 @@ dsvm20_cr_gdispmod
 *
 STATICS
 cr
-*
+include "../fetidp.include"
 EIGEN
 arpack
 nsbspv 8

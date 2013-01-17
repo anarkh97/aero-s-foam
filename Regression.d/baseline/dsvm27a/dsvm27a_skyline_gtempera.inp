@@ -6,7 +6,7 @@ dsvm27a_skyline_gtempera
 *
 STATICS
 skyline
-*
+include "../fetidp.include"
 OUTPUT
 gtempera dsvm27a_skyline_gtempera.dat  1
 heatflxz dsvm27a_skyline_gtempera_2.dat  1

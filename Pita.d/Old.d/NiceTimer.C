@@ -6,7 +6,9 @@
 
 namespace Pita { namespace Old {
 
-  NiceTimerHandler::NiceTimerNode::NiceTimerNode(const std::string & n) :
+const double NiceTimerHandler::timeConversionRatio_ = 1.0e-3;
+
+NiceTimerHandler::NiceTimerNode::NiceTimerNode(const std::string & n) :
    name(n),
    timeData(1),
    iterative(false),

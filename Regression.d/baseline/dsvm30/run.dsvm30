@@ -8,8 +8,6 @@ echo ../../bin/aeros  dsvm30_spooles_displmod.inp
 ../../bin/aeros  dsvm30_spooles_displmod.inp
 echo ../../bin/aeros  dsvm30_gmres_displmod.inp
 ../../bin/aeros  dsvm30_gmres_displmod.inp
-echo ../../bin/aeros  dsvm30_direct_displmod.inp
-../../bin/aeros  dsvm30_direct_displmod.inp
 echo ../../bin/aeros  dsvm30_spooles_pivot_displmod.inp
 ../../bin/aeros  dsvm30_spooles_pivot_displmod.inp
 echo ../../bin/aeros  dsvm30_mumps_pivot_displmod.inp
@@ -20,7 +18,3 @@ echo ../../bin/aeros  dsvm30_bcg_displmod.inp
 ../../bin/aeros  dsvm30_bcg_displmod.inp
 echo ../../bin/aeros  dsvm30_cr_displmod.inp
 ../../bin/aeros  dsvm30_cr_displmod.inp
-echo ../../bin/aeros -n 2 --dec --nsub 4 dsvm30_FETI_DP_displmod.inp
-../../bin/aeros -n 2 --dec --nsub 4 dsvm30_FETI_DP_displmod.inp
-echo ../../bin/aeros -n 2 --dec --nsub 4 dsvm30_FETI_DPH_displmod.inp
-../../bin/aeros -n 2 --dec --nsub 4 dsvm30_FETI_DPH_displmod.inp

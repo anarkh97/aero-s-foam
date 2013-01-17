@@ -1,5 +1,4 @@
 #include <Element.d/NonLinearity.d/NLPentahedral.h>
-#include <Element.d/NonLinearity.d/felippa.H>
 
 template<>
 const double SolidElementTemplate<Wedge,6,6>::nodeRefCoords[6][3] = 
@@ -30,16 +29,20 @@ template<>
 void
 SolidElementTemplate<Wedge,6,6>::getGaussPointAndWeight(int n, double *point, double &weight)
 {
-  int line_order = 2;
-  int trig_order = 3;
-  double w[6];
-  double xyz[3*6];
-  wedg_unit_rule(line_order, trig_order, w, xyz);
+  double weight3d6[6] = { 0.0833333333333333, 0.0833333333333333, 0.0833333333333333,
+                          0.0833333333333333, 0.0833333333333333, 0.0833333333333333 };
+  double gauss3d6[6][3] = { {0.666666666666667, 0.166666666666667, -0.577350269189626},
+                            {0.166666666666667, 0.666666666666667, -0.577350269189626},
+                            {0.166666666666667, 0.166666666666667, -0.577350269189626},
+                            {0.666666666666667, 0.166666666666667, 0.577350269189626},
+                            {0.166666666666667, 0.666666666666667, 0.577350269189626},
+                            {0.166666666666667, 0.166666666666667, 0.577350269189626} };
 
-  point[0] = xyz[3*n+0];
-  point[1] = xyz[3*n+1];
-  point[2] = xyz[3*n+2];
-  weight = 1/2.*w[n];
+
+  point[0] = gauss3d6[n][0];
+  point[1] = gauss3d6[n][1];
+  point[2] = gauss3d6[n][2];
+  weight = weight3d6[n];
 }
 
 template<>

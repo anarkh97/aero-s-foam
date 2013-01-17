@@ -472,51 +472,114 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
         getPrimal(disps, masterDisps, time, x, iOut, 1, 5);
         break;
       case OutputInfo::DispMod:
-        for(iSub = 0; iSub < this->numSub; ++iSub) {
-          int size = masterDisps.subSize(iSub);
-          Scalar (*xyz)[11] = (Scalar (*)[11]) masterDisps.subData(iSub);//DofSet::max_known_nonL_dof
-          Scalar *dispMod = new Scalar[size];
-          for(int iNode=0; iNode<size; ++iNode) {
-            dispMod[iNode] = ScalarTypes::sqrt(xyz[iNode][0]*xyz[iNode][0] +
-                                               xyz[iNode][1]*xyz[iNode][1] +
-                                               xyz[iNode][2]*xyz[iNode][2]);
+        if(oinfo[iOut].nodeNumber == -1) {
+          for(iSub = 0; iSub < this->numSub; ++iSub) {
+            int size = masterDisps.subSize(iSub);
+            Scalar (*xyz)[11] = (Scalar (*)[11]) masterDisps.subData(iSub);
+            Scalar *dispMod = new Scalar[size];
+            for(int iNode=0; iNode<size; ++iNode) {
+              dispMod[iNode] = ScalarTypes::sqrt(xyz[iNode][0]*xyz[iNode][0] +
+                                                 xyz[iNode][1]*xyz[iNode][1] +
+                                                 xyz[iNode][2]*xyz[iNode][2]);
+            }
+            geoSource->writeNodeScalarToFile(dispMod, size, this->localSubToGl[iSub], nodeOffsets[iSub],
+                                             iOut, x, numRes[iOut], time, 1, masterFlag[iSub]);
+            delete [] dispMod;
           }
-          geoSource->writeNodeScalarToFile(dispMod, size, this->localSubToGl[iSub], nodeOffsets[iSub],
-                                           iOut, x, numRes[iOut], time, 1, masterFlag[iSub]);
-          delete [] dispMod;
+        }
+        else {
+          for(iSub = 0; iSub < this->numSub; ++iSub) {
+            int nOutNodes = this->subDomain[iSub]->getNumNodalOutput();
+            if(nOutNodes) {
+              int *outIndex = this->subDomain[iSub]->getOutIndex();
+              for(int iNode = 0; iNode < nOutNodes; iNode++) {
+                if(outIndex[iNode] == iOut) {
+                  Scalar (*xyz)[11] = (Scalar (*)[11]) disps.subData(iSub);
+                  int *outNodes = this->subDomain[iSub]->getOutputNodes();
+                  Scalar dispMod = ScalarTypes::sqrt(xyz[outNodes[iNode]][0]*xyz[outNodes[iNode]][0] +
+                                                     xyz[outNodes[iNode]][1]*xyz[outNodes[iNode]][1] +
+                                                     xyz[outNodes[iNode]][2]*xyz[outNodes[iNode]][2]);
+                  geoSource->outputNodeScalars(iOut, &dispMod, 1, time);
+                }
+              }
+            }
+          }
         }
         break;
       case OutputInfo::RotMod:
-        for(iSub = 0; iSub < this->numSub; ++iSub) {
-          int size = masterDisps.subSize(iSub);
-          Scalar (*xyz)[11] = (Scalar (*)[11]) masterDisps.subData(iSub);//DofSet::max_known_nonL_dof
-          Scalar *rotMod = new Scalar[size];
-          for(int iNode=0; iNode<size; ++iNode) {
-            rotMod[iNode] = ScalarTypes::sqrt(xyz[iNode][3]*xyz[iNode][3] +
-                                              xyz[iNode][4]*xyz[iNode][4] +
-                                              xyz[iNode][5]*xyz[iNode][5]);
+        if(oinfo[iOut].nodeNumber == -1) {
+          for(iSub = 0; iSub < this->numSub; ++iSub) {
+            int size = masterDisps.subSize(iSub);
+            Scalar (*xyz)[11] = (Scalar (*)[11]) masterDisps.subData(iSub);
+            Scalar *rotMod = new Scalar[size];
+            for(int iNode=0; iNode<size; ++iNode) {
+              rotMod[iNode] = ScalarTypes::sqrt(xyz[iNode][3]*xyz[iNode][3] +
+                                                xyz[iNode][4]*xyz[iNode][4] +
+                                                xyz[iNode][5]*xyz[iNode][5]);
+            }
+            geoSource->writeNodeScalarToFile(rotMod, size, this->localSubToGl[iSub], nodeOffsets[iSub],
+                                             iOut, x, numRes[iOut], time, 1, masterFlag[iSub]);
+            delete [] rotMod;
           }
-          geoSource->writeNodeScalarToFile(rotMod, size, this->localSubToGl[iSub], nodeOffsets[iSub],
-                                           iOut, x, numRes[iOut], time, 1, masterFlag[iSub]);
-          delete [] rotMod;
+        }
+        else {
+          for(iSub = 0; iSub < this->numSub; ++iSub) {
+            int nOutNodes = this->subDomain[iSub]->getNumNodalOutput();
+            if(nOutNodes) {
+              int *outIndex = this->subDomain[iSub]->getOutIndex();
+              for(int iNode = 0; iNode < nOutNodes; iNode++) {
+                if(outIndex[iNode] == iOut) {
+                  Scalar (*xyz)[11] = (Scalar (*)[11]) disps.subData(iSub);
+                  int *outNodes = this->subDomain[iSub]->getOutputNodes();
+                  Scalar rotMod = ScalarTypes::sqrt(xyz[outNodes[iNode]][3]*xyz[outNodes[iNode]][3] +
+                                                    xyz[outNodes[iNode]][4]*xyz[outNodes[iNode]][4] +
+                                                    xyz[outNodes[iNode]][5]*xyz[outNodes[iNode]][5]);
+                  geoSource->outputNodeScalars(iOut, &rotMod, 1, time);
+                }
+              }
+            }
+          }
         }
         break;
       case OutputInfo::TotMod:
-        for(iSub = 0; iSub < this->numSub; ++iSub) {
-          int size = masterDisps.subSize(iSub);
-          Scalar (*xyz)[11] = (Scalar (*)[11]) masterDisps.subData(iSub);//DofSet::max_known_nonL_dof
-          Scalar *totMod = new Scalar[size];
-          for(int iNode=0; iNode<size; ++iNode) {
-            totMod[iNode] = ScalarTypes::sqrt(xyz[iNode][0]*xyz[iNode][0] +
-                                              xyz[iNode][1]*xyz[iNode][1] +
-                                              xyz[iNode][2]*xyz[iNode][2] +
-                                              xyz[iNode][3]*xyz[iNode][3] +
-                                              xyz[iNode][4]*xyz[iNode][4] +
-                                              xyz[iNode][5]*xyz[iNode][5]);
+        if(oinfo[iOut].nodeNumber == -1) {
+          for(iSub = 0; iSub < this->numSub; ++iSub) {
+            int size = masterDisps.subSize(iSub);
+            Scalar (*xyz)[11] = (Scalar (*)[11]) masterDisps.subData(iSub);
+            Scalar *totMod = new Scalar[size];
+            for(int iNode=0; iNode<size; ++iNode) {
+              totMod[iNode] = ScalarTypes::sqrt(xyz[iNode][0]*xyz[iNode][0] +
+                                                xyz[iNode][1]*xyz[iNode][1] +
+                                                xyz[iNode][2]*xyz[iNode][2] +
+                                                xyz[iNode][3]*xyz[iNode][3] +
+                                                xyz[iNode][4]*xyz[iNode][4] +
+                                                xyz[iNode][5]*xyz[iNode][5]);
+            }
+            geoSource->writeNodeScalarToFile(totMod, size, this->localSubToGl[iSub], nodeOffsets[iSub],
+                                             iOut, x, numRes[iOut], time, 1, masterFlag[iSub]);
+            delete [] totMod;
           }
-          geoSource->writeNodeScalarToFile(totMod, size, this->localSubToGl[iSub], nodeOffsets[iSub],
-                                           iOut, x, numRes[iOut], time, 1, masterFlag[iSub]);
-          delete [] totMod;
+        }
+        else {
+          for(iSub = 0; iSub < this->numSub; ++iSub) {
+            int nOutNodes = this->subDomain[iSub]->getNumNodalOutput();
+            if(nOutNodes) {
+              int *outIndex = this->subDomain[iSub]->getOutIndex();
+              for(int iNode = 0; iNode < nOutNodes; iNode++) {
+                if(outIndex[iNode] == iOut) {
+                  Scalar (*xyz)[11] = (Scalar (*)[11]) disps.subData(iSub);
+                  int *outNodes = this->subDomain[iSub]->getOutputNodes();
+                  Scalar totMod = ScalarTypes::sqrt(xyz[outNodes[iNode]][0]*xyz[outNodes[iNode]][0] +
+                                                    xyz[outNodes[iNode]][1]*xyz[outNodes[iNode]][1] +
+                                                    xyz[outNodes[iNode]][2]*xyz[outNodes[iNode]][2] +
+                                                    xyz[outNodes[iNode]][3]*xyz[outNodes[iNode]][3] +
+                                                    xyz[outNodes[iNode]][4]*xyz[outNodes[iNode]][4] +
+                                                    xyz[outNodes[iNode]][5]*xyz[outNodes[iNode]][5]);
+                  geoSource->outputNodeScalars(iOut, &totMod, 1, time);
+                }
+              }
+            }
+          }
         }
         break;
       case OutputInfo::Farfield: 
@@ -1545,51 +1608,114 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
         getPrimal(disps, masterDisps, time, x, iOut, 1, 5);
         break;
       case OutputInfo::DispMod:
-        for(iSub = 0; iSub < this->numSub; ++iSub) {
-          int size = masterDisps.subSize(iSub);
-          Scalar (*xyz)[11] = (Scalar (*)[11]) masterDisps.subData(iSub);
-          Scalar *dispMod = new Scalar[size];
-          for(int iNode=0; iNode<size; ++iNode) {
-            dispMod[iNode] = ScalarTypes::sqrt(xyz[iNode][0]*xyz[iNode][0] +
-                                               xyz[iNode][1]*xyz[iNode][1] +
-                                               xyz[iNode][2]*xyz[iNode][2]);
+        if(oinfo[iOut].nodeNumber == -1) {
+          for(iSub = 0; iSub < this->numSub; ++iSub) {
+            int size = masterDisps.subSize(iSub);
+            Scalar (*xyz)[11] = (Scalar (*)[11]) masterDisps.subData(iSub);
+            Scalar *dispMod = new Scalar[size];
+            for(int iNode=0; iNode<size; ++iNode) {
+              dispMod[iNode] = ScalarTypes::sqrt(xyz[iNode][0]*xyz[iNode][0] +
+                                                 xyz[iNode][1]*xyz[iNode][1] +
+                                                 xyz[iNode][2]*xyz[iNode][2]);
+            }
+            geoSource->writeNodeScalarToFile(dispMod, size, this->localSubToGl[iSub], nodeOffsets[iSub],
+                                             iOut, x, numRes[iOut], time, 1, masterFlag[iSub]);
+            delete [] dispMod;
           }
-          geoSource->writeNodeScalarToFile(dispMod, size, this->localSubToGl[iSub], nodeOffsets[iSub],
-                                           iOut, x, numRes[iOut], time, 1, masterFlag[iSub]);
-          delete [] dispMod;
+        }
+        else {
+          for(iSub = 0; iSub < this->numSub; ++iSub) {
+            int nOutNodes = this->subDomain[iSub]->getNumNodalOutput();
+            if(nOutNodes) {
+              int *outIndex = this->subDomain[iSub]->getOutIndex();
+              for(int iNode = 0; iNode < nOutNodes; iNode++) {
+                if(outIndex[iNode] == iOut) {
+                  Scalar (*xyz)[11] = (Scalar (*)[11]) disps.subData(iSub);
+                  int *outNodes = this->subDomain[iSub]->getOutputNodes();
+                  Scalar dispMod = ScalarTypes::sqrt(xyz[outNodes[iNode]][0]*xyz[outNodes[iNode]][0] +
+                                                     xyz[outNodes[iNode]][1]*xyz[outNodes[iNode]][1] +
+                                                     xyz[outNodes[iNode]][2]*xyz[outNodes[iNode]][2]);
+                  geoSource->outputNodeScalars(iOut, &dispMod, 1, time);
+                }
+              }
+            }
+          }
         }
         break;
       case OutputInfo::RotMod:
-        for(iSub = 0; iSub < this->numSub; ++iSub) {
-          int size = masterDisps.subSize(iSub);
-          Scalar (*xyz)[11] = (Scalar (*)[11]) masterDisps.subData(iSub);
-          Scalar *rotMod = new Scalar[size];
-          for(int iNode=0; iNode<size; ++iNode) {
-            rotMod[iNode] = ScalarTypes::sqrt(xyz[iNode][3]*xyz[iNode][3] +
-                                              xyz[iNode][4]*xyz[iNode][4] +
-                                              xyz[iNode][5]*xyz[iNode][5]);
+        if(oinfo[iOut].nodeNumber == -1) {
+          for(iSub = 0; iSub < this->numSub; ++iSub) {
+            int size = masterDisps.subSize(iSub);
+            Scalar (*xyz)[11] = (Scalar (*)[11]) masterDisps.subData(iSub);
+            Scalar *rotMod = new Scalar[size];
+            for(int iNode=0; iNode<size; ++iNode) {
+              rotMod[iNode] = ScalarTypes::sqrt(xyz[iNode][3]*xyz[iNode][3] +
+                                                xyz[iNode][4]*xyz[iNode][4] +
+                                                xyz[iNode][5]*xyz[iNode][5]);
+            }
+            geoSource->writeNodeScalarToFile(rotMod, size, this->localSubToGl[iSub], nodeOffsets[iSub],
+                                             iOut, x, numRes[iOut], time, 1, masterFlag[iSub]);
+            delete [] rotMod;
           }
-          geoSource->writeNodeScalarToFile(rotMod, size, this->localSubToGl[iSub], nodeOffsets[iSub],
-                                           iOut, x, numRes[iOut], time, 1, masterFlag[iSub]);
-          delete [] rotMod;
+        }
+        else {
+          for(iSub = 0; iSub < this->numSub; ++iSub) {
+            int nOutNodes = this->subDomain[iSub]->getNumNodalOutput();
+            if(nOutNodes) {
+              int *outIndex = this->subDomain[iSub]->getOutIndex();
+              for(int iNode = 0; iNode < nOutNodes; iNode++) {
+                if(outIndex[iNode] == iOut) {
+                  Scalar (*xyz)[11] = (Scalar (*)[11]) disps.subData(iSub);
+                  int *outNodes = this->subDomain[iSub]->getOutputNodes();
+                  Scalar rotMod = ScalarTypes::sqrt(xyz[outNodes[iNode]][3]*xyz[outNodes[iNode]][3] +
+                                                    xyz[outNodes[iNode]][4]*xyz[outNodes[iNode]][4] +
+                                                    xyz[outNodes[iNode]][5]*xyz[outNodes[iNode]][5]);
+                  geoSource->outputNodeScalars(iOut, &rotMod, 1, time);
+                }
+              }
+            }
+          }
         }
         break;
       case OutputInfo::TotMod:
-        for(iSub = 0; iSub < this->numSub; ++iSub) {
-          int size = masterDisps.subSize(iSub);
-          Scalar (*xyz)[11] = (Scalar (*)[11]) masterDisps.subData(iSub);
-          Scalar *totMod = new Scalar[size];
-          for(int iNode=0; iNode<size; ++iNode) {
-            totMod[iNode] = ScalarTypes::sqrt(xyz[iNode][0]*xyz[iNode][0] +
-                                              xyz[iNode][1]*xyz[iNode][1] +
-                                              xyz[iNode][2]*xyz[iNode][2] +
-                                              xyz[iNode][3]*xyz[iNode][3] +
-                                              xyz[iNode][4]*xyz[iNode][4] +
-                                              xyz[iNode][5]*xyz[iNode][5]);
+        if(oinfo[iOut].nodeNumber == -1) {
+          for(iSub = 0; iSub < this->numSub; ++iSub) {
+            int size = masterDisps.subSize(iSub);
+            Scalar (*xyz)[11] = (Scalar (*)[11]) masterDisps.subData(iSub);
+            Scalar *totMod = new Scalar[size];
+            for(int iNode=0; iNode<size; ++iNode) {
+              totMod[iNode] = ScalarTypes::sqrt(xyz[iNode][0]*xyz[iNode][0] +
+                                                xyz[iNode][1]*xyz[iNode][1] +
+                                                xyz[iNode][2]*xyz[iNode][2] +
+                                                xyz[iNode][3]*xyz[iNode][3] +
+                                                xyz[iNode][4]*xyz[iNode][4] +
+                                                xyz[iNode][5]*xyz[iNode][5]);
+            }
+            geoSource->writeNodeScalarToFile(totMod, size, this->localSubToGl[iSub], nodeOffsets[iSub],
+                                             iOut, x, numRes[iOut], time, 1, masterFlag[iSub]);
+            delete [] totMod;
           }
-          geoSource->writeNodeScalarToFile(totMod, size, this->localSubToGl[iSub], nodeOffsets[iSub],
-                                           iOut, x, numRes[iOut], time, 1, masterFlag[iSub]);
-          delete [] totMod;
+        }
+        else {
+          for(iSub = 0; iSub < this->numSub; ++iSub) {
+            int nOutNodes = this->subDomain[iSub]->getNumNodalOutput();
+            if(nOutNodes) {
+              int *outIndex = this->subDomain[iSub]->getOutIndex();
+              for(int iNode = 0; iNode < nOutNodes; iNode++) {
+                if(outIndex[iNode] == iOut) {
+                  Scalar (*xyz)[11] = (Scalar (*)[11]) disps.subData(iSub);
+                  int *outNodes = this->subDomain[iSub]->getOutputNodes();
+                  Scalar totMod = ScalarTypes::sqrt(xyz[outNodes[iNode]][0]*xyz[outNodes[iNode]][0] +
+                                                    xyz[outNodes[iNode]][1]*xyz[outNodes[iNode]][1] +
+                                                    xyz[outNodes[iNode]][2]*xyz[outNodes[iNode]][2] +
+                                                    xyz[outNodes[iNode]][3]*xyz[outNodes[iNode]][3] +
+                                                    xyz[outNodes[iNode]][4]*xyz[outNodes[iNode]][4] +
+                                                    xyz[outNodes[iNode]][5]*xyz[outNodes[iNode]][5]);
+                  geoSource->outputNodeScalars(iOut, &totMod, 1, time);
+                }
+              }
+            }
+          }
         }
         break;
       case OutputInfo::AeroForce: break; // this is done in DistFlExchange.C

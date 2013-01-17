@@ -6,7 +6,7 @@ dsvm20_spooles_pivot_gdispmod
 *
 STATICS
 spooles pivot
-*
+include "../fetidp.include"
 EIGEN
 arpack
 nsbspv 8

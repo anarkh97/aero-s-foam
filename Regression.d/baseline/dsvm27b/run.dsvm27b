@@ -6,15 +6,9 @@ echo ../../bin/aeros  dsvm27b_skyline_displacz.inp
 ../../bin/aeros  dsvm27b_skyline_displacz.inp
 echo ../../bin/aeros  dsvm27b_spooles_displacz.inp
 ../../bin/aeros  dsvm27b_spooles_displacz.inp
-echo ../../bin/aeros  dsvm27b_direct_displacz.inp
-../../bin/aeros  dsvm27b_direct_displacz.inp
 echo ../../bin/aeros  dsvm27b_pcg_displacz.inp
 ../../bin/aeros  dsvm27b_pcg_displacz.inp
 echo ../../bin/aeros  dsvm27b_bcg_displacz.inp
 ../../bin/aeros  dsvm27b_bcg_displacz.inp
 echo ../../bin/aeros  dsvm27b_cr_displacz.inp
 ../../bin/aeros  dsvm27b_cr_displacz.inp
-echo ../../bin/aeros -n 2 --dec --nsub 4 dsvm27b_FETI_DP_displacz.inp
-../../bin/aeros -n 2 --dec --nsub 4 dsvm27b_FETI_DP_displacz.inp
-echo ../../bin/aeros -n 2 --dec --nsub 4 dsvm27b_FETI_DPH_displacz.inp
-../../bin/aeros -n 2 --dec --nsub 4 dsvm27b_FETI_DPH_displacz.inp

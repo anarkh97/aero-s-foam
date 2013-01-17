@@ -17,8 +17,8 @@
  ... # Output Files       =       2 ...
  --------------------------------------
  --------------------------------------
- ... Total Time           = 6.63e-02 s
- ... Total Memory Used    = 9.38e-01 Mb
+ ... Total Time           = 8.97e-02 s
+ ... Total Memory Used    = 9.52e-01 Mb
  --------------------------------------
 ../../bin/aeros dsvm1_skyline_reaction.inp
 
@@ -39,8 +39,8 @@
  ... # Output Files       =       2 ...
  --------------------------------------
  --------------------------------------
- ... Total Time           = 6.66e-02 s
- ... Total Memory Used    = 5.99e-01 Mb
+ ... Total Time           = 6.69e-02 s
+ ... Total Memory Used    = 6.13e-01 Mb
  --------------------------------------
 ../../bin/aeros dsvm1_mumps_reaction.inp
 
@@ -61,8 +61,8 @@
  ... # Output Files       =       2 ...
  --------------------------------------
  --------------------------------------
- ... Total Time           = 7.13e-02 s
- ... Total Memory Used    = 1.53e+00 Mb
+ ... Total Time           = 7.25e-02 s
+ ... Total Memory Used    = 1.55e+00 Mb
  --------------------------------------
 ../../bin/aeros dsvm1_spooles_reaction.inp
 
@@ -83,8 +83,8 @@
  ... # Output Files       =       2 ...
  --------------------------------------
  --------------------------------------
- ... Total Time           = 7.70e-02 s
- ... Total Memory Used    = 6.48e-01 Mb
+ ... Total Time           = 7.62e-02 s
+ ... Total Memory Used    = 6.63e-01 Mb
  --------------------------------------
 ../../bin/aeros dsvm1_gmres_reaction.inp
 
@@ -106,30 +106,8 @@
  ... # Output Files       =       2 ...
  --------------------------------------
  --------------------------------------
- ... Total Time           = 9.53e-02 s
+ ... Total Time           = 9.54e-02 s
  ... Total Memory Used    = 1.24e+01 Mb
- --------------------------------------
-../../bin/aeros dsvm1_direct_reaction.inp
-
- --------- R U N  PARAMETERS ----------
- ... Linear Static Analysis         ... 
- ... Skyline Solver is Selected     ... 
- ... Building the Force             ...
- ... Postprocessing                 ...
- --------------------------------------
-
- ---------- PROBLEM PARAMETERS --------
- ... # Nodes              =     189 ...
- ... # Elements           =      80 ...
- ... # Unconstrained dofs =     513 ...
- ... # Constrained dofs   =      54 ...
- ... Total # dofs         =     567 ...
- ... # Loaded dofs        =      18 ...
- ... # Output Files       =       2 ...
- --------------------------------------
- --------------------------------------
- ... Total Time           = 6.69e-02 s
- ... Total Memory Used    = 5.99e-01 Mb
  --------------------------------------
 ../../bin/aeros dsvm1_spooles_pivot_reaction.inp
 
@@ -150,8 +128,8 @@
  ... # Output Files       =       2 ...
  --------------------------------------
  --------------------------------------
- ... Total Time           = 7.80e-02 s
- ... Total Memory Used    = 6.45e-01 Mb
+ ... Total Time           = 8.55e-02 s
+ ... Total Memory Used    = 6.59e-01 Mb
  --------------------------------------
 ../../bin/aeros dsvm1_mumps_pivot_reaction.inp
 
@@ -172,8 +150,8 @@
  ... # Output Files       =       2 ...
  --------------------------------------
  --------------------------------------
- ... Total Time           = 1.38e-01 s
- ... Total Memory Used    = 1.53e+00 Mb
+ ... Total Time           = 7.47e-02 s
+ ... Total Memory Used    = 1.55e+00 Mb
  --------------------------------------
 ../../bin/aeros dsvm1_pcg_reaction.inp
 
@@ -220,15 +198,15 @@ in BasePCG::doSolve, maxitr = 1000, tolpcg = 1e-08, proj = 0
  ... Iteration #  35	 Two norm = 0.0105956	 Rel. residual = 2.52719e-05
  ... Iteration #  36	 Two norm = 0.00306939	 Rel. residual = 7.32091e-06
  ... Iteration #  37	 Two norm = 0.000695097	 Rel. residual = 1.6579e-06
- ... Iteration #  38	 Two norm = 0.000277431	 Rel. residual = 6.61712e-07
- ... Iteration #  39	 Two norm = 4.7125e-05	 Rel. residual = 1.124e-07
- ... Iteration #  40	 Two norm = 2.05286e-05	 Rel. residual = 4.89636e-08
- ... Iteration #  41	 Two norm = 1.12201e-05	 Rel. residual = 2.67616e-08
- ... Iteration #  42	 Two norm = 6.33141e-06	 Rel. residual = 1.51013e-08
- ... Iteration #  43	 Two norm = 1.80829e-06	 Rel. residual = 4.31302e-09
- ... Total # Iterations =            43        0.00680 s
- ...     Final Two norm = 1.80829e-06
- ...     Final residual = 3.26991e-12
+ ... Iteration #  38	 Two norm = 0.000277431	 Rel. residual = 6.61713e-07
+ ... Iteration #  39	 Two norm = 4.71295e-05	 Rel. residual = 1.1241e-07
+ ... Iteration #  40	 Two norm = 2.07035e-05	 Rel. residual = 4.93806e-08
+ ... Iteration #  41	 Two norm = 1.34581e-05	 Rel. residual = 3.20995e-08
+ ... Iteration #  42	 Two norm = 6.24651e-06	 Rel. residual = 1.48988e-08
+ ... Iteration #  43	 Two norm = 1.80295e-06	 Rel. residual = 4.30028e-09
+ ... Total # Iterations =            43        0.00613 s
+ ...     Final Two norm = 1.80295e-06
+ ...     Final residual = 3.25062e-12
  ... Postprocessing                 ...
  --------------------------------------
 
@@ -242,8 +220,8 @@ in BasePCG::doSolve, maxitr = 1000, tolpcg = 1e-08, proj = 0
  ... # Output Files       =       2 ...
  --------------------------------------
  --------------------------------------
- ... Total Time           = 7.74e-02 s
- ... Total Memory Used    = 5.03e-01 Mb
+ ... Total Time           = 7.43e-02 s
+ ... Total Memory Used    = 5.18e-01 Mb
  --------------------------------------
 ../../bin/aeros dsvm1_bcg_reaction.inp
 
@@ -290,12 +268,12 @@ Selected Solver does not implement factor() .
  ... Iteration #35	Two norm = 3.5488684e-04	Relative residual = 4.4932303e-05
  ... Iteration #36	Two norm = 1.1226633e-04	Relative residual = 2.5271935e-05
  ... Iteration #37	Two norm = 9.4211253e-06	Relative residual = 7.3209108e-06
- ... Iteration #38	Two norm = 4.8315959e-07	Relative residual = 1.6579027e-06
- ... Iteration #39	Two norm = 7.6968175e-08	Relative residual = 6.6171247e-07
- ... Iteration #40	Two norm = 2.2207691e-09	Relative residual = 1.1239977e-07
- ... Iteration #41	Two norm = 4.2142337e-10	Relative residual = 4.8963565e-08
- ... Iteration #42	Two norm = 1.2589131e-10	Relative residual = 2.6761571e-08
- ... Iteration #43	Two norm = 4.0086801e-11	Relative residual = 1.5101303e-08
+ ... Iteration #38	Two norm = 4.8315960e-07	Relative residual = 1.6579027e-06
+ ... Iteration #39	Two norm = 7.6968207e-08	Relative residual = 6.6171261e-07
+ ... Iteration #40	Two norm = 2.2211930e-09	Relative residual = 1.1241050e-07
+ ... Iteration #41	Two norm = 4.2863298e-10	Relative residual = 4.9380618e-08
+ ... Iteration #42	Two norm = 1.8112115e-10	Relative residual = 3.2099503e-08
+ ... Iteration #43	Two norm = 3.9018869e-11	Relative residual = 1.4898792e-08
  ... Postprocessing                 ...
  --------------------------------------
 
@@ -309,8 +287,8 @@ Selected Solver does not implement factor() .
  ... # Output Files       =       2 ...
  --------------------------------------
  --------------------------------------
- ... Total Time           = 7.42e-02 s
- ... Total Memory Used    = 5.10e-01 Mb
+ ... Total Time           = 7.35e-02 s
+ ... Total Memory Used    = 5.24e-01 Mb
  --------------------------------------
 ../../bin/aeros dsvm1_cr_reaction.inp
 
@@ -356,16 +334,16 @@ Selected Solver does not implement factor() .
  ... Iteration #34	Two norm = 3.0605839e-04	  Rel. residual  4.1726876e-05 
  ... Iteration #35	Two norm = 8.2137275e-05	  Rel. residual  2.1616425e-05 
  ... Iteration #36	Two norm = 8.4517156e-06	  Rel. residual  6.9340371e-06 
- ... Iteration #37	Two norm = 4.5703254e-07	  Rel. residual  1.6124538e-06 
- ... Iteration #38	Two norm = 6.5876629e-08	  Rel. residual  6.1218039e-07 
- ... Iteration #39	Two norm = 2.1858457e-09	  Rel. residual  1.1151248e-07 
- ... Iteration #40	Two norm = 6.8482297e-10	  Rel. residual  6.2416999e-08 
- ... Iteration #41	Two norm = 2.2080145e-10	  Rel. residual  3.5441711e-08 
- ... Iteration #42	Two norm = 3.0680992e-11	  Rel. residual  1.3211387e-08 
- ... Iteration #43	Two norm = 2.9554397e-12	  Rel. residual  4.1003863e-09 
+ ... Iteration #37	Two norm = 4.5703242e-07	  Rel. residual  1.6124536e-06 
+ ... Iteration #38	Two norm = 6.5874722e-08	  Rel. residual  6.1217153e-07 
+ ... Iteration #39	Two norm = 2.1542444e-09	  Rel. residual  1.1070346e-07 
+ ... Iteration #40	Two norm = 4.2262747e-10	  Rel. residual  4.9033465e-08 
+ ... Iteration #41	Two norm = 1.9854157e-10	  Rel. residual  3.3607751e-08 
+ ... Iteration #42	Two norm = 3.0553488e-11	  Rel. residual  1.3183907e-08 
+ ... Iteration #43	Two norm = 2.9276667e-12	  Rel. residual  4.0810747e-09 
 
  ... Total # Iterations = 43
- ...     Final Two norm = 2.9554397e-12
+ ...     Final Two norm = 2.9276667e-12
  ... Postprocessing                 ...
  --------------------------------------
 
@@ -379,60 +357,6 @@ Selected Solver does not implement factor() .
  ... # Output Files       =       2 ...
  --------------------------------------
  --------------------------------------
- ... Total Time           = 7.08e-02 s
- ... Total Memory Used    = 5.02e-01 Mb
- --------------------------------------
-../../bin/aeros -n 2 --dec --nsub 4 dsvm1_FETI_DP_reaction.inp
-
- --------- R U N  PARAMETERS ----------
- ... Linear Static Analysis         ... 
- ... Parallel processing: Forking 2 Threads ...
- ... FETI-DP Solver is Selected     ...
- ... Building the Force             ...
- ... Postprocessing                 ...
- *** WARNING: Output case 0 not implemented 
- *** WARNING: Output case 1 not implemented 
- ... Print Timers                   ... 
- --------------------------------------
-
- ---------- PROBLEM PARAMETERS --------
- ... # Nodes              =     189 ...
- ... # Elements           =      80 ...
- ... # Unconstrained dofs =       0 ...
- ... # Constrained dofs   =      54 ...
- ... Total # dofs         =      -1 ...
- ... # Loaded dofs        =      18 ...
- ... # Output Files       =       2 ...
- --------------------------------------
- --------------------------------------
- ... Total Time           = 7.91e-02 s
- ... Total Memory Used    = 3.28e+00 Mb
- ... Total Krylov Iterations =    4 
- --------------------------------------
-../../bin/aeros -n 2 --dec --nsub 4 dsvm1_FETI_DPH_reaction.inp
-
- --------- R U N  PARAMETERS ----------
- ... Linear Static Analysis         ... 
- ... Parallel processing: Forking 2 Threads ...
- ... FETI-DP Solver is Selected     ...
- ... Building the Force             ...
- ... Postprocessing                 ...
- *** WARNING: Output case 0 not implemented 
- *** WARNING: Output case 1 not implemented 
- ... Print Timers                   ... 
- --------------------------------------
-
- ---------- PROBLEM PARAMETERS --------
- ... # Nodes              =     189 ...
- ... # Elements           =      80 ...
- ... # Unconstrained dofs =       0 ...
- ... # Constrained dofs   =      54 ...
- ... Total # dofs         =      -1 ...
- ... # Loaded dofs        =      18 ...
- ... # Output Files       =       2 ...
- --------------------------------------
- --------------------------------------
- ... Total Time           = 7.69e-02 s
- ... Total Memory Used    = 3.28e+00 Mb
- ... Total Krylov Iterations =    4 
+ ... Total Time           = 7.57e-02 s
+ ... Total Memory Used    = 5.17e-01 Mb
  --------------------------------------

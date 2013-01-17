@@ -18,5 +18,3 @@ echo ../../bin/aeros  dsvm35b_cr_strainp1.inp
 ../../bin/aeros  dsvm35b_cr_strainp1.inp
 echo ../../bin/aeros -n 2 --dec --nsub 4 dsvm35b_FETI_DP_strainp1.inp
 ../../bin/aeros -n 2 --dec --nsub 4 dsvm35b_FETI_DP_strainp1.inp
-echo ../../bin/aeros -n 2 --dec --nsub 4 dsvm35b_FETI_DPH_strainp1.inp
-../../bin/aeros -n 2 --dec --nsub 4 dsvm35b_FETI_DPH_strainp1.inp

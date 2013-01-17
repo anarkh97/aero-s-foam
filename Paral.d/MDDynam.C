@@ -407,7 +407,8 @@ MultiDomainDynam::makeSubElementArrays(int isub)
   // build the element stiffness matrices.
   Vector elementInternalForce(sd->maxNumDOF(), 0.0);
   Vector residual(sd->numUncon(), 0.0);
-  sd->getStiffAndForce(*(*geomState)[isub], elementInternalForce, allCorot[isub], kelArray[isub], residual);
+  sd->getStiffAndForce(*(*geomState)[isub], elementInternalForce, allCorot[isub], kelArray[isub], residual,
+                       1.0, 0.0, (*geomState)[isub], (Vector*) NULL, melArray[isub]);
 }
 
 void
@@ -511,7 +512,7 @@ MultiDomainDynam::getContactForce(DistrVector &d_n, DistrVector &dinc, DistrVect
     // copy and update the current state (geomState) to the predicted state
     DistrGeomState *predictedState = new DistrGeomState(*geomState);
     if(domain->solInfo().isNonLin()) {
-      predictedState->update(dinc);
+      predictedState->update(dinc, 1);
     }
     else {
       DistrVector d_n_p(decDomain->solVecInfo());
@@ -550,7 +551,7 @@ void
 MultiDomainDynam::updateDisplacement(DistrVector& dinc, DistrVector& d_n)
 {
   if(domain->solInfo().isNonLin()) {
-    geomState->update(dinc);
+    geomState->update(dinc, 1);
     geomState->get_tot_displacement(d_n);
   }
 }
@@ -724,6 +725,10 @@ MultiDomainDynam::getInitState(SysState<DistrVector>& state)
                      &state.getDisp(), &state.getVeloc(), &state.getAccel(),
                      &state.getPrevVeloc());
   threadManager->execParal(decDomain->getNumSub(), &mdop);
+  if(geomState) {
+    geomState->update(state.getDisp());
+    geomState->setVelocity(state.getVeloc(), state.getAccel());
+  }
   if(geoSource->getCheckFileInfo()->lastRestartFile) {
     filePrint(stderr, " ... Restarting From a Previous Run ...\n");
     if(domain->solInfo().isNonLin()) {
@@ -945,8 +950,10 @@ MultiDomainDynam::modeDecomp(double t, int tIndex, DistrVector& d_n)
 void 
 MultiDomainDynam::getInternalForce(DistrVector &d, DistrVector &f, double t, int tIndex)
 {
-  if(domain->solInfo().isNonLin())  // PJSA 3-31-08
+  if(domain->solInfo().isNonLin()) {
     execParal3R(decDomain->getNumSub(), this, &MultiDomainDynam::subGetInternalForce, f, t, tIndex);
+    geomState->pull_back(f);
+  }
   else {
     f.zero();
     execParal2R(decDomain->getNumSub(), this, &MultiDomainDynam::subGetKtimesU, d, f);
@@ -988,10 +995,12 @@ MultiDomainDynam::subGetInternalForce(int isub, DistrVector &f, double &t, int &
   Vector eIF(sd->maxNumDOF()); // eIF = element internal force for one element (a working array)
   // NOTE: for explicit nonlinear dynamics, geomState and refState are the same object
   if(domain->solInfo().stable && domain->solInfo().isNonLin() && tIndex%domain->solInfo().stable_freq == 0) {
-    sd->getStiffAndForce(*(*geomState)[isub], eIF, allCorot[isub], kelArray[isub], residual, 1.0, t, (*geomState)[isub]);
+    sd->getStiffAndForce(*(*geomState)[isub], eIF, allCorot[isub], kelArray[isub], residual, 1.0, t, (*geomState)[isub],
+                         (Vector*) NULL, melArray[isub]);
   }
   else {
-    sd->getInternalForce(*(*geomState)[isub], eIF, allCorot[isub], kelArray[isub], residual, 1.0, t, (*geomState)[isub]);
+    sd->getInternalForce(*(*geomState)[isub], eIF, allCorot[isub], kelArray[isub], residual, 1.0, t, (*geomState)[isub],
+                         (Vector*) NULL, melArray[isub]);
   }
   StackVector subf(f.subData(isub), f.subLen(isub));
   subf.linC(residual,-1.0); // f = -residual

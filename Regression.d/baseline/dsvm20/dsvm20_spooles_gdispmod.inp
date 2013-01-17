@@ -6,7 +6,7 @@ dsvm20_spooles_gdispmod
 *
 STATICS
 spooles
-*
+include "../fetidp.include"
 EIGEN
 arpack
 nsbspv 8

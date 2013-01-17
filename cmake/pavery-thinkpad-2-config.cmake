@@ -18,3 +18,5 @@ SET(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH}
 #SET(CMAKE_Fortran_FLAGS_RELEASE "-O2")
 SET(BLAS_blas_LIBRARY "/home/avery/Codes/eigen-build/blas/libeigen_blas.so" CACHE FILEPATH "Path to a library.")
 add_definitions(-D_AEROS_ASYCHRONOUS_IO)
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+#add_definitions(-DHAS_C99_TR1_CMATH)

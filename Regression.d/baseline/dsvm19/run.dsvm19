@@ -20,5 +20,3 @@ echo ../../bin/aeros  dsvm19_cr_displacy.inp
 ../../bin/aeros  dsvm19_cr_displacy.inp
 echo ../../bin/aeros -n 2 --dec --nsub 4 dsvm19_FETI_DP_displacy.inp
 ../../bin/aeros -n 2 --dec --nsub 4 dsvm19_FETI_DP_displacy.inp
-echo ../../bin/aeros -n 2 --dec --nsub 4 dsvm19_FETI_DPH_displacy.inp
-../../bin/aeros -n 2 --dec --nsub 4 dsvm19_FETI_DPH_displacy.inp

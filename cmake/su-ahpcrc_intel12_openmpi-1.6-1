@@ -1,0 +1,15 @@
+module load intel/intel-12 openmpi/openmpi16_intel12
+cmake \
+-DAERO:BOOL=true \
+-DCMAKE_C_COMPILER:FILEPATH=/opt/intel/compilerpro-12.0.2.137/bin/intel64/icc \
+-DCMAKE_CXX_COMPILER:FILEPATH=/opt/intel/compilerpro-12.0.2.137/bin/intel64/icpc \
+-DCMAKE_Fortran_COMPILER:FILEPATH=/opt/intel/compilerpro-12.0.2.137/bin/intel64/ifort \
+-DCMAKE_CXX_FLAGS:STRING="-wd654,1125,2536,2196,858,161,175" \
+-DCMAKE_LINKER:FILEPATH=/opt/intel/compilerpro-12.0.2.137/bin/intel64/icpc \
+-DARPACKLIB:FILEPATH=/lustre/home/avery/Intel12/ARPACK/libarpack.a \
+-DLAPACK_LIBRARIES="-Wl,--start-group /opt/intel/compilerpro-12.0.2.137/mkl/lib/intel64/libmkl_scalapack_lp64.a /opt/intel/compilerpro-12.0.2.137/mkl/lib/intel64/libmkl_blacs_openmpi_lp64.a  /opt/intel/compilerpro-12.0.2.137/mkl/lib/intel64/libmkl_intel_lp64.a /opt/intel/compilerpro-12.0.2.137/mkl/lib/intel64/libmkl_sequential.a /opt/intel/compilerpro-12.0.2.137/mkl/lib/intel64/libmkl_core.a -Wl,--end-group -lpthread" \
+-DEXTRALIB_MPI=/usr/mpi/intel12/openmpi-1.6-1/lib64/libmpi_f77.so \
+-DLAPACK_FOUND=true \
+-DSCALAPACK_FOUND=true \
+-DSCALAPACK_LIBRARY:FILEPATH="" \
+-DBLACS_FOUND=true .

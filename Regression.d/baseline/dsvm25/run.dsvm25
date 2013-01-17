@@ -1,20 +1,2 @@
-echo ../../bin/aeros  dsvm25_sparse_stressp1.inp
-../../bin/aeros  dsvm25_sparse_stressp1.inp
-echo ../../bin/aeros  dsvm25_spooles_pivot_stressp1.inp
-../../bin/aeros  dsvm25_spooles_pivot_stressp1.inp
-echo ../../bin/aeros  dsvm25_skyline_stressp1.inp
-../../bin/aeros  dsvm25_skyline_stressp1.inp
-echo ../../bin/aeros  dsvm25_spooles_stressp1.inp
-../../bin/aeros  dsvm25_spooles_stressp1.inp
-echo ../../bin/aeros  dsvm25_direct_stressp1.inp
-../../bin/aeros  dsvm25_direct_stressp1.inp
-echo ../../bin/aeros  dsvm25_pcg_stressp1.inp
-../../bin/aeros  dsvm25_pcg_stressp1.inp
-echo ../../bin/aeros  dsvm25_bcg_stressp1.inp
-../../bin/aeros  dsvm25_bcg_stressp1.inp
-echo ../../bin/aeros  dsvm25_cr_stressp1.inp
-../../bin/aeros  dsvm25_cr_stressp1.inp
 echo ../../bin/aeros -n 2 --dec --nsub 4 dsvm25_FETI_DP_stressp1.inp
 ../../bin/aeros -n 2 --dec --nsub 4 dsvm25_FETI_DP_stressp1.inp
-echo ../../bin/aeros -n 2 --dec --nsub 4 dsvm25_FETI_DPH_stressp1.inp
-../../bin/aeros -n 2 --dec --nsub 4 dsvm25_FETI_DPH_stressp1.inp

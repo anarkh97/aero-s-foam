@@ -6,7 +6,7 @@ dsvm21_skyline_displacy
 *
 STATICS
 skyline
-*
+include "../fetidp.include"
 EIGEN
 arpack
 nsbspv 3

@@ -5,12 +5,12 @@ dsvm24_spooles_pivot_displacz
 "elemset"
 *
 IMPE
-freq 500.0
+freq 500
 damp 3.18309886e-5 0
 *
 STATICS
 spooles pivot
-*
+include "../fetidph.include"
 OUTPUT
 displacz dsvm24_spooles_pivot_displacz.dat  1 NG 1
 *

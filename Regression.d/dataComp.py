@@ -34,15 +34,20 @@ class bcolors:
 def directComp(basefile,file,SUMMARY_FILE,outstring):
   COMP = list(open(file).read().splitlines())
   BASE = list(open(basefile,"r").read().splitlines())
-  if(file.find("eigen") != -1):
-    BASE.sort()
-    COMP.sort()
+  if(file.find("eigen") != -1):  
+    absComp = 1
+  else:
+    absComp = 0
   MaxDiff = 0.0
   RelDiff = 0.0
   TotDiff = 0.0
   nSample = 0
+  avgSum = 0.0
+  RelDiffVals = (0,0)
   MaxDiffLine = -1
+  RelDiffLine = -1
   MaxDiffLoc = -1
+  RelDiffLoc = -1
   MaxDiffVals = (-1,-1)
   if(len(BASE) != len(COMP)):
     print bcolors.WARNING + "WARNING-- %s and %s have different lengths!" % (file,basefile) + bcolors.ENDC
@@ -68,29 +73,38 @@ def directComp(basefile,file,SUMMARY_FILE,outstring):
       else:
         for j in range(len(basewords)):
           if(not(basewords[j].isalpha())and not(compwords[j].isalpha()) and(basewords[j].find("__") == -1)):
+            if(absComp):
+              basewords[j] = math.fabs(float(basewords[j]))
+              compwords[j] = math.fabs(float(compwords[j]))
             diff = float(basewords[j]) - float(compwords[j])
+            avg = 0.5*(float(basewords[j]) + float(compwords[j]))
             TotDiff = math.fabs(diff) + TotDiff
             nSample = nSample + 1
+            avgSum = avgSum + avg
             if((0.5*(float(basewords[j]) + float(compwords[j])))>= 1.0e-5):
-              if(diff/(0.5*(float(basewords[j]) + float(compwords[j])))> RelDiff):
-                RelDiff = diff/(0.5*(float(basewords[j]) + float(compwords[j])))
+              if(math.fabs(diff/avg) > RelDiff):
+                RelDiff = math.fabs(diff/avg)
+                RelDiffLine = i
+                RelDiffLoc = j
+                RelDiffVals = (basewords[j],compwords[j])
             if(math.fabs(diff) >= MaxDiff):
               MaxDiff = math.fabs(diff)
               MaxDiffLine = i
               MaxDiffLoc = j
               MaxDiffVals = (basewords[j],compwords[j])
 
-
-#  print bcolors.OKBLUE + "\t\t\t\tRel diff is %e on line %d at location %d" %(RelDiff,MaxDiffLine,MaxDiffLoc) + bcolors.ENDC
-  outstring.append( "\tRel diff is %e on line %d at location %d\n" %(RelDiff,MaxDiffLine,MaxDiffLoc))
+  if(RelDiff > 0.0):
+#   print bcolors.OKBLUE + "\t\t\t\tRel diff is %e on line %d at location %d" %(RelDiff,RelDiffLine,RelDiffLoc) + bcolors.ENDC
+    outstring.append( "\tRel diff is %e on line %d at location %d\n" %(RelDiff,RelDiffLine,RelDiffLoc))
+  else:
+    outstring.append( "")
+#  print bcolors.OKBLUE + "\t\t\t\tvals were %s " % (RelDiffVals,) + bcolors.ENDC
+# outstring.append( "\tvals were %s \n" % (RelDiffVals,))
 # SUMMARY_FILE.write(outstring[0])
-
-#  print bcolors.OKBLUE + "\t\t\t\tvals were %s " % (MaxDiffVals,) + bcolors.ENDC
-  outstring.append( "\tvals were %s \n" % (MaxDiffVals,))
-# SUMMARY_FILE.write(outstring[0])
-  if((MaxDiff > 1.0e-8)&(RelDiff > 1.0e-3)):
+  if((MaxDiff > 1.0e-8)&(RelDiff > 5.0e-2)):
 #   TotDiff = TotDiff/nSample
-#   print "Average Difference = %e %e %d \n" % (TotDiff,TotDiff/nSample,nSample)
+#   print "Average Difference = %e %e %e %d \n" % (TotDiff/avgSum,TotDiff/nSample,avgSum,nSample)
+#   print "Max diff was %e and RelDiff was %e \n" % (MaxDiff,RelDiff)
     result = 1
   else:
     result = 0
@@ -127,11 +141,13 @@ def dComp(params):
   sloc = -1
   rloc = -1
   nloc = -1
+  gloc = -1
   i = 0 
   pattern = re.compile("\-r")
   runLocal = re.compile("\-l")
   sendMail = re.compile("\-s")
   newPlots = re.compile("\-n")
+  genBase = re.compile("\-g")
 
   for s in params:
     if(re.search(pattern,s)):
@@ -142,6 +158,8 @@ def dComp(params):
        rloc = i
     if(re.search(newPlots,s)):
        nloc = i
+    if(re.search(genBase,s)):
+       gloc = i
     i=i+1
 
   if(sloc != -1):
@@ -171,6 +189,13 @@ def dComp(params):
   else:
     lrun = 0 
 
+  if(gloc != -1):
+    genbase = 1
+    lrun = 1
+    del params[gloc]
+  else:
+    genbase = 0;
+
   if(nloc != -1):
     newP = 1
     del params[nloc]
@@ -181,10 +206,8 @@ def dComp(params):
   else:
     newP = 0
 
-# lrun = 1
-# run = 0
-  batch = 0
 
+  batch = 0
   files = [] 
   plotList = []
   if((params[1] == 'ALL')|(params[1] == 'short')):
@@ -196,7 +219,8 @@ def dComp(params):
                    'dsvm2','dsvm13','dsvm15','dsvm19','dsvm20','dsvm21','dsvm22',\
                    'dsvm23','dsvm24','dsvm25','dsvm27a','dsvm27b','dsvm29','dsvm30',\
                    'dsvm32','dsvm34','dsvm35a','dsvm35b','dsvm37','dsvm38','dsvm39',\
-                   'dsvm40']
+                   'dsvm40','vme1','vme2','vme3','vme4','vme5','vme6','vmmech003',\
+                   'vmmech063','PreStressedMembrane','PlateUnderPressure']
     else:
       PROBLEM_NAMES=['nlstatics','freqsweep','impe','tempstatics','tempnlstatics',\
                    'tempdynamics','tempnldynamics','dsvm1','dsvm31',
@@ -267,39 +291,43 @@ def dComp(params):
         files.append(infile)
 
   result = 0
-  
-  for file in files:
-     basefile = "baseline/"+file
-     p = subprocess.Popen("md5sum " + file, shell = True, stdout=subprocess.PIPE) # don't forget to "import subprocess"
-     newmd5 = p.stdout.readline().split() # now the md5 variable contains the MD5 sum
-     p.wait() # some clean up
-     p = subprocess.Popen("md5sum " + basefile, shell = True, stdout=subprocess.PIPE) # don't forget to "import subprocess"
-     oldmd5 = p.stdout.readline().split() # now the md5 variable contains the MD5 sum
-     p.wait() # some clean up
-     Total += 1
-     if(newmd5[0] == oldmd5[0]):
-       print bcolors.OKGREEN + " \tExact match "+ bcolors.ENDC, file
-       exactMatches += 1
-       outstring = "\texact match " + file + "\n"
-       SUMMARY_FILE.write(outstring)
-     else:
-       compstring = []
-       result = directComp(basefile,file,SUMMARY_FILE,compstring)
-       if(result == 1):
-         print bcolors.FAIL + " \tDiscrepancy " + bcolors.ENDC, file
-         outstring = "\tDiscrepancy " + file + "\n"
-         SUMMARY_FILE.write(outstring)
-         SUMMARY_FILE.write(compstring[0])
-         gnuplotCalled = 1;
-         plotList.append([file,basefile]);
-       else:
-         exactMatches += 1
-         print bcolors.OKGREEN + " \tMatch" + bcolors.ENDC, file
-         print bcolors.OKBLUE    + "\t" +compstring[0] + bcolors.ENDC 
-         outstring = "\tclose match " + file + "\n"
-         SUMMARY_FILE.write(outstring)
-         SUMMARY_FILE.write(compstring[0])
-  outstring = "%s--%d matches found out of %d total cases\n" %(indir,exactMatches,Total)
+  if(genbase != 1): 
+    for file in files:
+      basefile = "baseline/"+file
+      p = subprocess.Popen("md5sum " + file, shell = True, stdout=subprocess.PIPE) # don't forget to "import subprocess"
+      newmd5 = p.stdout.readline().split() # now the md5 variable contains the MD5 sum
+      p.wait() # some clean up
+      p = subprocess.Popen("md5sum " + basefile, shell = True, stdout=subprocess.PIPE) # don't forget to "import subprocess"
+      oldmd5 = p.stdout.readline().split() # now the md5 variable contains the MD5 sum
+      p.wait() # some clean up
+      Total += 1
+      if(newmd5[0] == oldmd5[0]):
+        print bcolors.OKGREEN + " \tExact match "+ bcolors.ENDC, file
+        exactMatches += 1
+        outstring = "\texact match " + file + "\n"
+        SUMMARY_FILE.write(outstring)
+      else:
+        compstring = []
+        result = directComp(basefile,file,SUMMARY_FILE,compstring)
+        if(result == 1):
+          print bcolors.FAIL + " \tDiscrepancy " + bcolors.ENDC, file
+          outstring = "\tDiscrepancy " + file + "\n"
+          SUMMARY_FILE.write(outstring)
+          SUMMARY_FILE.write(compstring[0])
+          gnuplotCalled = 1;
+          plotList.append([file,basefile]);
+        else:
+          exactMatches += 1
+          print bcolors.OKGREEN + " \tMatch" + bcolors.ENDC, file
+          if(compstring != ""):
+            print bcolors.OKBLUE    + "\t" +compstring[0] + bcolors.ENDC 
+          outstring = "\tclose match " + file + "\n"
+          SUMMARY_FILE.write(outstring)
+          SUMMARY_FILE.write(compstring[0])
+  if(genbase == 1):
+    outstring = "New baseline(s) generated\n"
+  else:
+    outstring = "%s--%d matches found out of %d total cases\n" %(indir,exactMatches,Total)
   print outstring
   SUMMARY_FILE.write(outstring)
   now = datetime.datetime.now()
@@ -367,13 +395,16 @@ def dComp(params):
     msg['From'] = 'mpotts@'+hostname
     msg['To'] = "mpotts@drc.com"
     msg['Date'] = formatdate(localtime=True)
-    msg.attach( MIMEText('These are the discrepancies from the last regression test'))
     f = 'Discrepancies.pdf'
-    part = MIMEBase('application', "octet-stream")
-    part.set_payload( open(f,"rb").read() )
-    Encoders.encode_base64(part)
-    part.add_header('Content-Disposition', 'attachment; filename="%s"' % os.path.basename(f))
-    msg.attach(part)
+    if(os.path.exists("Discrepancies.pdf")):
+      msg.attach( MIMEText('These are the discrepancies from the last regression test'))
+      part = MIMEBase('application', "octet-stream")
+      part.set_payload( open(f,"rb").read() )
+      Encoders.encode_base64(part)
+      part.add_header('Content-Disposition', 'attachment; filename="%s"' % os.path.basename(f))
+      msg.attach(part)
+    else: 
+      msg.attach( MIMEText('These were no discrepancies in the last regression test'))
     smtp = smtplib.SMTP("localhost")
     send_to = "mpotts@drc.com"
     send_from = "mpotts@ahpcrcfe.stanford.edu"

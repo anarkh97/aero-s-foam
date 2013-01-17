@@ -6,7 +6,7 @@ tempstatics_sparse_gtempera
 *
 STATICS
 sparse
-*
+include "../fetidp.include"
 OUTPUT
 gtempera tempstatics_sparse_gtempera.dat 1
 *

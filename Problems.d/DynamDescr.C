@@ -391,6 +391,10 @@ SingleDomainDynamic::getInitState(SysState<Vector> &inState)
   // initialize state with IDISP/IDISP6/IVEL/IACC or RESTART (XXXX initial accelerations are currently not supported)
   domain->initDispVeloc(inState.getDisp(),  inState.getVeloc(),
                         inState.getAccel(), inState.getPrevVeloc()); // IVEL, IDISP, IDISP6, restart
+  if(geomState) {
+    geomState->update(inState.getDisp());
+    geomState->setVelocity(inState.getVeloc(), inState.getAccel());
+  }
   if(geoSource->getCheckFileInfo()->lastRestartFile) {
     filePrint(stderr, " ... Restarting From a Previous Run ...\n");
     if(domain->solInfo().isNonLin()) { 
@@ -513,7 +517,7 @@ SingleDomainDynamic::getContactForce(Vector &d_n, Vector &dinc, Vector &ctc_f, d
     // copy and update the current state (geomState) to the predicted state
     GeomState *predictedState = new GeomState(*geomState);
     if(domain->solInfo().isNonLin()) {
-      predictedState->update(dinc);
+      predictedState->update(dinc,1);
     }
     else {
       Vector d_n_p(domain->numUncon());
@@ -556,7 +560,7 @@ void
 SingleDomainDynamic::updateDisplacement(Vector &dinc, Vector &d_n)
 {
   if(domain->solInfo().isNonLin()) {
-    geomState->update(dinc);
+    geomState->update(dinc,1);
     geomState->get_tot_displacement(d_n);
   }
 }
@@ -853,12 +857,15 @@ SingleDomainDynamic::getInternalForce(Vector& d, Vector& f, double t, int tIndex
     Vector fele(domain->maxNumDOF());
     // NOTE: for explicit nonlinear dynamics, geomState and refState are the same object
     if(domain->solInfo().stable && domain->solInfo().isNonLin() && tIndex%domain->solInfo().stable_freq == 0) {
-      domain->getStiffAndForce(*geomState, fele, allCorot, kelArray, residual, 1.0, t, geomState);
+      domain->getStiffAndForce(*geomState, fele, allCorot, kelArray, residual, 1.0, t, geomState,
+                               (Vector*) NULL, melArray);
     }
     else {
-      domain->getInternalForce(*geomState, fele, allCorot, kelArray, residual, 1.0, t, geomState);
+      domain->getInternalForce(*geomState, fele, allCorot, kelArray, residual, 1.0, t, geomState,
+                               (Vector*) NULL, melArray);
     }
     f.linC(-1.0,residual); // f = -residual
+    geomState->pull_back(f); // f = R^T*f
   }
   else {
     f.zero();

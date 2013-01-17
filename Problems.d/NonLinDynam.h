@@ -147,7 +147,7 @@ class NonLinDynamic : public NLDynamPostProcessor {
     void getIncDisplacement(GeomState *geomState, Vector &du, GeomState *refState, bool zeroRot);
 
     double formRHScorrector(Vector& inc_displac, Vector &velocity, Vector& acceleration,
-                            Vector &residual, Vector &rhs, double localDelta);
+                            Vector &residual, Vector &rhs, GeomState *geomState, double localDelta);
 
     void formRHSpredictor(Vector &velocity, Vector &acceleration, Vector &residual, Vector &rhs, GeomState &, double mid, double localDelta);
 

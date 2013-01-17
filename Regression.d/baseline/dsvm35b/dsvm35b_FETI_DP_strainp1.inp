@@ -6,7 +6,7 @@ dsvm35b_FETI_DP_strainp1
 *
 STATICS
 FETI DP
-*
+include "../fetidp.include"
 OUTPUT
 strainp1 dsvm35b_FETI_DP_strainp1.dat  1
 displacz dsvm35b_FETI_DP_strainp1_2.dat  1

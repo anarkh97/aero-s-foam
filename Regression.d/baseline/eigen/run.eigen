@@ -1,46 +1,6 @@
-echo ../../bin/aeros  eigen_sparse_0_gdisplac.inp
-../../bin/aeros  eigen_sparse_0_gdisplac.inp
-echo ../../bin/aeros  eigen_skyline_10_stressvm.inp
-../../bin/aeros  eigen_skyline_10_stressvm.inp
-echo ../../bin/aeros  eigen_mumps_100_strainxx.inp
-../../bin/aeros  eigen_mumps_100_strainxx.inp
-echo ../../bin/aeros  eigen_spooles_1000_strainxy.inp
-../../bin/aeros  eigen_spooles_1000_strainxy.inp
-echo ../../bin/aeros  eigen_gmres_0_strainxz.inp
-../../bin/aeros  eigen_gmres_0_strainxz.inp
-echo ../../bin/aeros  eigen_direct_10_strainxx.inp
-../../bin/aeros  eigen_direct_10_strainxx.inp
-echo ../../bin/aeros  eigen_spooles_pivot_100_strainxy.inp
-../../bin/aeros  eigen_spooles_pivot_100_strainxy.inp
-echo ../../bin/aeros  eigen_mumps_pivot_1000_strainxz.inp
-../../bin/aeros  eigen_mumps_pivot_1000_strainxz.inp
-echo ../../bin/aeros  eigen_pcg_0_strainxx.inp
-../../bin/aeros  eigen_pcg_0_strainxx.inp
-echo ../../bin/aeros  eigen_bcg_10_strainxy.inp
-../../bin/aeros  eigen_bcg_10_strainxy.inp
-echo ../../bin/aeros  eigen_cr_100_strainxz.inp
-../../bin/aeros  eigen_cr_100_strainxz.inp
-echo ../../bin/aeros -n 2 --dec --nsub 4 eigen_FETI_1000_inxforce.inp
-../../bin/aeros -n 2 --dec --nsub 4 eigen_FETI_1000_inxforce.inp
-echo ../../bin/aeros -n 2 --dec --nsub 4 eigen_FETI_DP_0_inyforce.inp
-../../bin/aeros -n 2 --dec --nsub 4 eigen_FETI_DP_0_inyforce.inp
-echo ../../bin/aeros -n 2 --dec --nsub 4 eigen_FETI_DPH_10_inzforce.inp
-../../bin/aeros -n 2 --dec --nsub 4 eigen_FETI_DPH_10_inzforce.inp
-echo ../../bin/aeros  eigen_sparse_100_axmoment.inp
-../../bin/aeros  eigen_sparse_100_axmoment.inp
-echo ../../bin/aeros  eigen_skyline_1000_aymoment.inp
-../../bin/aeros  eigen_skyline_1000_aymoment.inp
-echo ../../bin/aeros  eigen_mumps_0_azmoment.inp
-../../bin/aeros  eigen_mumps_0_azmoment.inp
-echo ../../bin/aeros  eigen_spooles_10_energies.inp
-../../bin/aeros  eigen_spooles_10_energies.inp
-echo ../../bin/aeros  eigen_gmres_100_gvelocit.inp
-../../bin/aeros  eigen_gmres_100_gvelocit.inp
-echo ../../bin/aeros  eigen_direct_1000_gacceler.inp
-../../bin/aeros  eigen_direct_1000_gacceler.inp
-echo ../../bin/aeros  eigen_spooles_pivot_0_displmod.inp
-../../bin/aeros  eigen_spooles_pivot_0_displmod.inp
-echo ../../bin/aeros  eigen_mumps_pivot_10_rotatmod.inp
-../../bin/aeros  eigen_mumps_pivot_10_rotatmod.inp
-echo ../../bin/aeros  eigen_pcg_100_gdispmod.inp
-../../bin/aeros  eigen_pcg_100_gdispmod.inp
+echo ../../bin/aeros  eigen_spooles_pivot_0_geigenpa.inp
+../../bin/aeros  eigen_spooles_pivot_0_geigenpa.inp
+echo ../../bin/aeros  eigen_mumps_pivot_0.1_geigenpa.inp
+../../bin/aeros  eigen_mumps_pivot_0.1_geigenpa.inp
+echo ../../bin/aeros -n 2 --dec --nsub 4 eigen_FETI_DPH_0_geigenpa.inp
+../../bin/aeros -n 2 --dec --nsub 4 eigen_FETI_DPH_0_geigenpa.inp

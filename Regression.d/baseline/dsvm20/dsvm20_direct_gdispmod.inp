@@ -6,7 +6,7 @@ dsvm20_direct_gdispmod
 *
 STATICS
 direct
-*
+include "../fetidp.include"
 EIGEN
 arpack
 nsbspv 8

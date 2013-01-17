@@ -246,7 +246,6 @@ NonLinearity.d/NLPentahedral.C
 NonLinearity.d/NLTetrahedral.C
 NonLinearity.d/NLMembrane.C
 NonLinearity.d/StrainEvaluator.C
-NonLinearity.d/felippa.C
 Penta15.d/Penta15.C
 Penta15.d/Penta15ShapeFct.C
 Penta26.d/Penta26.C
@@ -349,6 +348,8 @@ Sommerfeld.d/Triangle6SommerBC.C
 Sommerfeld.d/TriangleSommerBC.C
 Sommerfeld.d/QuadPressureBC.C
 Sommerfeld.d/TrianglePressureBC.C
+Sommerfeld.d/Quad8PressureBC.C
+Sommerfeld.d/Triangle6PressureBC.C
 Spring.d/mstf11.f
 Spring.d/mstf21.f
 Spring.d/mstf22.f

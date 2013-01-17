@@ -8,13 +8,5 @@ echo ../../bin/aeros  dsvm39_spooles_pivot_displacx.inp
 ../../bin/aeros  dsvm39_spooles_pivot_displacx.inp
 echo ../../bin/aeros  dsvm39_mumps_pivot_displacx.inp
 ../../bin/aeros  dsvm39_mumps_pivot_displacx.inp
-echo ../../bin/aeros  dsvm39_pcg_displacx.inp
-../../bin/aeros  dsvm39_pcg_displacx.inp
-echo ../../bin/aeros  dsvm39_bcg_displacx.inp
-../../bin/aeros  dsvm39_bcg_displacx.inp
-echo ../../bin/aeros  dsvm39_cr_displacx.inp
-../../bin/aeros  dsvm39_cr_displacx.inp
 echo ../../bin/aeros -n 2 --dec --nsub 4 dsvm39_FETI_DP_displacx.inp
 ../../bin/aeros -n 2 --dec --nsub 4 dsvm39_FETI_DP_displacx.inp
-echo ../../bin/aeros -n 2 --dec --nsub 4 dsvm39_FETI_DPH_displacx.inp
-../../bin/aeros -n 2 --dec --nsub 4 dsvm39_FETI_DPH_displacx.inp

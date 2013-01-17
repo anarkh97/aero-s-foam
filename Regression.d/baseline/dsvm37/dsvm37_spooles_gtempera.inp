@@ -6,7 +6,7 @@ dsvm37_spooles_gtempera
 *
 STATICS
 spooles
-*
+include "../fetidp.include"
 DYNAMICS
 time	21.6	0	21600
 newmark

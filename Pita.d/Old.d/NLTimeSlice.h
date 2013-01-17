@@ -41,7 +41,7 @@ struct NLTimeSlice
   VecType locDispOG;
   double locTimeOG;
 
-  static const double defaultTolerance = 1.0e-6;
+  static const double defaultTolerance;
 };
 
 } /* end namespace Old */ } /* end namespace Pita */

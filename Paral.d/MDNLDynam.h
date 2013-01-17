@@ -125,7 +125,7 @@ class MDNLDynamic
                             bool zeroRot);
 
     double formRHScorrector(DistrVector& inc_displacement, DistrVector& velocity, DistrVector& acceleration,
-                           DistrVector& residual, DistrVector& rhs, double localDelta);
+                           DistrVector& residual, DistrVector& rhs, DistrGeomState *geomState, double localDelta);
     
     void formRHSpredictor(DistrVector& velocity, DistrVector& acceleration, DistrVector& residual,
                           DistrVector& rhs, DistrGeomState &, double mid, double localDelta);

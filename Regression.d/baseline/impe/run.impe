@@ -1,46 +1,12 @@
-echo ../../bin/aeros  impe_sparse_gdisplac.inp
-../../bin/aeros  impe_sparse_gdisplac.inp
-echo ../../bin/aeros  impe_skyline_stressvm.inp
-../../bin/aeros  impe_skyline_stressvm.inp
-echo ../../bin/aeros  impe_mumps_strainxx.inp
-../../bin/aeros  impe_mumps_strainxx.inp
-echo ../../bin/aeros  impe_spooles_strainxy.inp
-../../bin/aeros  impe_spooles_strainxy.inp
-echo ../../bin/aeros  impe_gmres_strainxz.inp
-../../bin/aeros  impe_gmres_strainxz.inp
-echo ../../bin/aeros  impe_direct_strainxx.inp
-../../bin/aeros  impe_direct_strainxx.inp
-echo ../../bin/aeros  impe_spooles_pivot_strainxy.inp
-../../bin/aeros  impe_spooles_pivot_strainxy.inp
-echo ../../bin/aeros  impe_mumps_pivot_strainxz.inp
-../../bin/aeros  impe_mumps_pivot_strainxz.inp
-echo ../../bin/aeros  impe_pcg_strainxx.inp
-../../bin/aeros  impe_pcg_strainxx.inp
-echo ../../bin/aeros  impe_bcg_strainxy.inp
-../../bin/aeros  impe_bcg_strainxy.inp
-echo ../../bin/aeros  impe_cr_strainxz.inp
-../../bin/aeros  impe_cr_strainxz.inp
-echo ../../bin/aeros -n 2 --dec --nsub 4 impe_FETI_inxforce.inp
-../../bin/aeros -n 2 --dec --nsub 4 impe_FETI_inxforce.inp
-echo ../../bin/aeros -n 2 --dec --nsub 4 impe_FETI_DP_inyforce.inp
-../../bin/aeros -n 2 --dec --nsub 4 impe_FETI_DP_inyforce.inp
-echo ../../bin/aeros -n 2 --dec --nsub 4 impe_FETI_DPH_inzforce.inp
-../../bin/aeros -n 2 --dec --nsub 4 impe_FETI_DPH_inzforce.inp
-echo ../../bin/aeros  impe_sparse_axmoment.inp
-../../bin/aeros  impe_sparse_axmoment.inp
-echo ../../bin/aeros  impe_skyline_aymoment.inp
-../../bin/aeros  impe_skyline_aymoment.inp
-echo ../../bin/aeros  impe_mumps_azmoment.inp
-../../bin/aeros  impe_mumps_azmoment.inp
-echo ../../bin/aeros  impe_spooles_energies.inp
-../../bin/aeros  impe_spooles_energies.inp
-echo ../../bin/aeros  impe_gmres_gvelocit.inp
-../../bin/aeros  impe_gmres_gvelocit.inp
-echo ../../bin/aeros  impe_direct_gacceler.inp
-../../bin/aeros  impe_direct_gacceler.inp
-echo ../../bin/aeros  impe_spooles_pivot_displmod.inp
-../../bin/aeros  impe_spooles_pivot_displmod.inp
-echo ../../bin/aeros  impe_mumps_pivot_rotatmod.inp
-../../bin/aeros  impe_mumps_pivot_rotatmod.inp
-echo ../../bin/aeros  impe_pcg_gdispmod.inp
-../../bin/aeros  impe_pcg_gdispmod.inp
+echo ../../bin/aeros  impe_spooles_pivot_gdisplac.inp
+../../bin/aeros  impe_spooles_pivot_gdisplac.inp
+echo ../../bin/aeros  impe_mumps_pivot_displmod.inp
+../../bin/aeros  impe_mumps_pivot_displmod.inp
+echo ../../bin/aeros -n 2 --dec --nsub 4 impe_FETI_DPH_gdispmod.inp
+../../bin/aeros -n 2 --dec --nsub 4 impe_FETI_DPH_gdispmod.inp
+echo ../../bin/aeros  impe_spooles_pivot_displacx.inp
+../../bin/aeros  impe_spooles_pivot_displacx.inp
+echo ../../bin/aeros  impe_mumps_pivot_displacy.inp
+../../bin/aeros  impe_mumps_pivot_displacy.inp
+echo ../../bin/aeros -n 2 --dec --nsub 4 impe_FETI_DPH_displacz.inp
+../../bin/aeros -n 2 --dec --nsub 4 impe_FETI_DPH_displacz.inp

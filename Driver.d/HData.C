@@ -19,6 +19,8 @@
 #include <Element.d/Sommerfeld.d/IsoParamTriLineSommer.h>
 #include <Element.d/Sommerfeld.d/TrianglePressureBC.h>
 #include <Element.d/Sommerfeld.d/QuadPressureBC.h>
+#include <Element.d/Sommerfeld.d/Triangle6PressureBC.h>
+#include <Element.d/Sommerfeld.d/Quad8PressureBC.h>
 
 #include <Driver.d/Domain.h>
 
@@ -2032,6 +2034,22 @@ HData::addNeumElem(int num, int etype, double sommerConst, int nnodes, int*n)
        ele = new QuadPressureBC(n, sommerConst);
        addNeum(ele);
        break;
+#if defined(USE_EIGEN3) && (__cplusplus >= 201103L) && defined(HAS_CXX11_TEMPLATE_ALIAS)
+     case 17:
+       ele = new Triangle6PressureBC(n, sommerConst);
+       addNeum(ele);
+       break;
+     case 18:
+       ele = new Quad8PressureBC(n, sommerConst);
+       addNeum(ele);
+       break;
+#else
+     case 17: case 18:
+       std::cerr << " *** ERROR: Selected PressureBC element requires Eigen 3 library and C++11 " << std::endl
+                 << "     compiler support for template alias (e.g. icpc 12.1 or g++ 4.7). Exiting...\n";
+       exit(-1);
+       break;
+#endif
      default:
        return;
    }

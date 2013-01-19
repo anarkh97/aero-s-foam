@@ -141,8 +141,8 @@ Domain::getWeightedInternalForceOnly(const std::map<int, double> &weights,
 
 void
 Domain::getFictitiousForce(GeomState &geomState, FullSquareMatrix *kel, Vector &residual,
-                              double time, GeomState *refState, Vector *reactions, FullSquareMatrix *mel,
-                              bool compute_tangents)
+                           double time, GeomState *refState, Vector *reactions, FullSquareMatrix *mel,
+                           bool compute_tangents)
 {
 #ifdef USE_EIGEN3
   double &beta = sinfo.newmarkBeta,

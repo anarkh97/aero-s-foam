@@ -405,6 +405,7 @@ void BlastLoading::Conwep::Params(const BlastLoading::BlastData& P,
   reflectedImpulse = Conwep::ReflectedImpulse(P, zlog) * P.chargeWeightCubeRoot;
   incidentPressure = Conwep::IncidentPressure(P, zlog);
   reflectedPressure = Conwep::ReflectedPressure(P, zlog);
+/*
   //if ((++cnt) < 122) {
     det << "R = " << R << "\n"
         << "Arrival Time = " << arrivalTime << "\n"
@@ -414,6 +415,8 @@ void BlastLoading::Conwep::Params(const BlastLoading::BlastData& P,
         << "Incident Pressure = " << incidentPressure << "\n"
         << "Reflected Pressure = " << reflectedPressure << std::endl;
   //}
+*/
+
   if (z >= zlo) {
     a = Conwep::Decay(incidentPressure, incidentImpulse, positivePhaseDuration);
     b = Conwep::Decay(reflectedPressure, reflectedImpulse, positivePhaseDuration); 

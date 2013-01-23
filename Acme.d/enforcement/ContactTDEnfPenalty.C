@@ -960,9 +960,11 @@ ContactTDEnfPenalty::Compute_Contact_Force( Real DT_old, Real DT,
 
   // 2DO ifdef this?
   // for regression testing
-  for(int i=0 ; i<number_of_nodes; ++i){
-    Real* f_t = TOTAL_FORCE.Get_Scratch(i);
-    for(int j=0 ; j<NDIM ; ++j) plot_force[j*number_of_nodes+i] = f_t[j];
+  if(CALC_PLOT_FORCE) {
+    for(int i=0 ; i<number_of_nodes; ++i){
+      Real* f_t = TOTAL_FORCE.Get_Scratch(i);
+      for(int j=0 ; j<NDIM ; ++j) plot_force[j*number_of_nodes+i] = f_t[j];
+    }
   }
 
   // Compute Old timestep multiplier for augmented search

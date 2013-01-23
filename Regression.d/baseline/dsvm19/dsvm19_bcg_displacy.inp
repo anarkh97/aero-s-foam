@@ -6,7 +6,7 @@ dsvm19_bcg_displacy
 *
 STATICS
 bcg
-*
+include "../fetidp.include"
 OUTPUT
 displacy dsvm19_bcg_displacy.dat 1 27
 *

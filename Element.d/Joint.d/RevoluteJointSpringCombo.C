@@ -1,3 +1,4 @@
+#ifdef USE_EIGEN3
 #include <Element.d/Joint.d/RevoluteJointSpringCombo.h>
 #include <Element.d/Joint.d/RevoluteJoint.h>
 #include <Element.d/Joint.d/NonlinearTorsionalSpring.h>
@@ -20,4 +21,4 @@ RevoluteJointSpringCombo::getTopNumber()
 { 
   return 106; 
 }
-
+#endif

@@ -4,6 +4,7 @@
 #include <limits>
 
 #include <Element.d/Element.h>
+#include <Utils.d/pstress.h>
 
 void
 Element::setCompositeData(int, int, double*, double*, double*)
@@ -48,7 +49,6 @@ Element::getVonMises(ComplexVector &stress, Vector &weight,
                      CoordSet &cs, ComplexVector &disp, int strInd, int surface,
                      double *ndTemps, double ylayer, double zlayer, int avgnum)
 {
- // PJSA 6-23-04
  // split displacement into real & imaginary vectors to compute independently the real
  // and imaginary components of the normal & shear stresses/strains
  // these can then be combined into a complex vector & used to compute the von mises stress or strain
@@ -103,6 +103,43 @@ Element::getAllStress(FullM &stress, Vector &weight, CoordSet &cs,
     fprintf(stderr," *** WARNING: getAllStress not implemented for element type %d\n", elementType);
   stress.zero();
   weight.zero();
+}
+
+void
+Element::getAllStress(FullMC &stress, Vector &weight,
+                      CoordSet &cs, ComplexVector &disp, int strInd, int surface,
+                      double *ndTemps)
+{
+ // split displacement into real & imaginary vectors to compute independently the real
+ // and imaginary components of the normal & shear stresses/strains
+ // these can then be combined into a complex matrix
+ Vector realDisp(disp.size());
+ for(int i=0; i<disp.size(); ++i) realDisp[i] = disp[i].real();
+ Vector imagDisp(disp.size());
+ for(int i=0; i<disp.size(); ++i) imagDisp[i] = disp[i].imag();
+
+ FullM realStress(numNodes(),9); realStress.zero();
+ getAllStress(realStress, weight, cs, realDisp, strInd, surface, ndTemps);
+ FullM imagStress(numNodes(),9); imagStress.zero();
+ getAllStress(imagStress, weight, cs, imagDisp, strInd, surface, ndTemps);
+ for(int i=0; i<numNodes(); ++i) {
+   for(int j=0; j<6; ++j) stress[i][j] = DComplex(realStress[i][j], imagStress[i][j]);
+
+   // Get Element Principals for each node without averaging
+   complex<double> svec[6];
+   for (int j=0; j<6; ++j) svec[j] = stress[i][j];
+   // Convert Engineering to Tensor Strains
+   if(strInd != 0) {
+     svec[3] /= 2;
+     svec[4] /= 2;
+     svec[5] /= 2;
+   }
+   complex<double> pvec[3];
+   pstress(svec,pvec);
+   for (int j=0; j<3; ++j) {
+     stress[i][j+6] = pvec[j];
+   }
+ }
 }
 
 PrioInfo Element::examine(int sub, MultiFront *mf)
@@ -381,3 +418,4 @@ Element::computeStabilityTimeStep(FullSquareMatrix &K, FullSquareMatrix &M, Coor
       return std::numeric_limits<double>::infinity();
   }
 }
+

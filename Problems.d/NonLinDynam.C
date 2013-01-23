@@ -371,24 +371,6 @@ NonLinDynamic::getStiffAndForce(GeomState& geomState, Vector& residual,
       setBC(userDefineDisp, userDefineVel, userDefineAcc);
       delete [] userDefineDisp; delete [] userDefineVel; delete [] userDefineAcc;
     }
-
-    if(claw->numActuator > 0) {
-      double *ctrdisp = new double[claw->numSensor];
-      double *ctrvel  = new double[claw->numSensor];
-      double *ctracc  = new double[claw->numSensor];
-      double *ctrfrc  = new double[claw->numActuator];
-
-      for(int j = 0; j < claw->numSensor; j++) ctrvel[j] = ctracc[j] = 0.0; // XXXX f(v,a) currently not supported
-
-      // KHP: we need the state of the control sensors to pass to
-      //      the user supplied control function
-      extractControlDisp(&geomState, ctrdisp);
-
-      userSupFunc->ctrl(ctrdisp, ctrvel, ctracc, ctrfrc, t);
-      domain->updateActuatorsInNbc(ctrfrc);
-
-      delete [] ctrdisp; delete [] ctrvel; delete [] ctracc; delete [] ctrfrc;
-    }
   }
 
   if(domain->GetnContactSurfacePairs()) {
@@ -418,7 +400,8 @@ void
 NonLinDynamic::getStiffAndForceFromDomain(GeomState &geomState, Vector &elementInternalForce,
                                           Corotator **allCorot, FullSquareMatrix *kelArray,
                                           Vector &residual, double lambda, double time, GeomState *refState) {
-  domain->getStiffAndForce(geomState, elementInternalForce, allCorot, kelArray, residual, lambda, time, refState);
+  domain->getStiffAndForce(geomState, elementInternalForce, allCorot, kelArray, residual, lambda, time, refState,
+                           (Vector*) NULL, melArray);
 }
 
 int
@@ -641,13 +624,31 @@ NonLinDynamic::getExternalForce(Vector& rhs, Vector& constantForce, int tIndex, 
   // ... BUILD THE EXTERNAL FORCE at t_{n+1-alphaf}
   times->formRhs -= getTime();
 
-  // update USDF
+  // update USDF and ACTUATORS
   if(claw && userSupFunc) {
     if(claw->numUserForce > 0) {
       double *userDefinedForce = new double[claw->numUserForce];
       userSupFunc->usd_forc(t, userDefinedForce);
       domain->updateUsdfInNbc(userDefinedForce);
       delete [] userDefinedForce;
+    }
+
+    if(claw->numActuator > 0) {
+      double *ctrdisp = new double[claw->numSensor];
+      double *ctrvel  = new double[claw->numSensor];
+      double *ctracc  = new double[claw->numSensor];
+      double *ctrfrc  = new double[claw->numActuator];
+
+      for(int j = 0; j < claw->numSensor; j++) ctrvel[j] = ctracc[j] = 0.0; // TODO f(v,a) currently not supported
+
+      // KHP: we need the state of the control sensors to pass to
+      //      the user supplied control function
+      extractControlDisp(geomState, ctrdisp);
+
+      userSupFunc->ctrl(ctrdisp, ctrvel, ctracc, ctrfrc, t);
+      domain->updateActuatorsInNbc(ctrfrc);
+
+      delete [] ctrdisp; delete [] ctrvel; delete [] ctracc; delete [] ctrfrc;
     }
   }
 
@@ -700,6 +701,7 @@ NonLinDynamic::formRHSinitializer(Vector &fext, Vector &velocity, Vector &elemen
     C->mult(velocity, localTemp);
     rhs.linC(rhs, -1.0, localTemp);
   }
+  geomState.pull_back(rhs); // f = R^T*f
 }
 
 void
@@ -758,7 +760,7 @@ NonLinDynamic::formRHSpredictor(Vector &velocity, Vector &acceleration, Vector &
 
 double
 NonLinDynamic::formRHScorrector(Vector &inc_displacement, Vector &velocity, Vector &acceleration,
-                                Vector &residual, Vector &rhs, double localDelta)
+                                Vector &residual, Vector &rhs, GeomState *geomState, double localDelta)
 {
   times->correctorTime -= getTime();
   if(domain->GetnContactSurfacePairs()) {
@@ -783,6 +785,7 @@ NonLinDynamic::formRHScorrector(Vector &inc_displacement, Vector &velocity, Vect
       localTemp.linC(-dt*gamma, inc_displacement, -dt*dt*(beta-(1-alphaf)*gamma), velocity, -dt*dt*dt*(1-alphaf)*(2*beta-gamma)/2, acceleration);
       C->multAdd(localTemp.data(), rhs.data());
     }
+    geomState->push_forward(rhs);
     rhs.linAdd(dt*dt*beta, residual);
   }
   times->correctorTime += getTime();
@@ -1221,3 +1224,23 @@ bool
 NonLinDynamic::factorWhenBuilding() const { 
   return factor; //domain->solInfo().iacc_switch || domain->solInfo().mpcDirect != 0;
 }
+
+void
+NonLinDynamic::initializeParameters(GeomState *geomState)
+{
+  domain->initializeParameters(*geomState, allCorot);
+}
+
+void
+NonLinDynamic::updateParameters(GeomState *geomState)
+{
+  domain->updateParameters(*geomState, allCorot);
+}
+
+bool
+NonLinDynamic::checkConstraintViolation(double &err)
+{
+  err = domain->getError(allCorot);
+  return (err <= domain->solInfo().penalty_tol);
+}
+

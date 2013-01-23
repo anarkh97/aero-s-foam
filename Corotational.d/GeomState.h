@@ -16,11 +16,11 @@ class Elemset;
 class NodeState {
   public:
     double x,   y,  z;			// x,y,z coordinates
-    double d[6], v[6], a[6];	        // x,y,z velocities and accelerations
+    double v[6], a[6];	                // x,y,z velocities and accelerations
     double R[3][3];      	        // Rotation Tensor
     void operator=(const NodeState &);
     double diff(const Node &un, int dof);
-    NodeState() { for(int i = 0; i < 6; ++ i) d[i] = v[i] = a[i] = 0; }
+    NodeState() { for(int i = 0; i < 6; ++ i) v[i] = a[i] = 0; }
 };
 
 class ElemState {
@@ -82,9 +82,10 @@ class GeomState {
 
      void extract(double *p);
 
-     virtual void update(const Vector &);
+     virtual void update(const Vector &, int SO3param = 0);
      virtual void explicitUpdate(CoordSet &cs, const Vector &v);
-     virtual void setVelocity(const Vector &, const Vector &, const Vector &);
+     virtual void explicitUpdate(CoordSet &cs, int numNodes, int* nodes, const Vector &v);
+     virtual void setVelocity(const Vector &, const Vector &);
      virtual void updatePrescribedDisplacement(BCond *dbc, int numDirichlet, 
                                        double delta);
      void updatePrescribedDisplacement(BCond *dbc, int numDirichlet,
@@ -97,6 +98,8 @@ class GeomState {
                                        bool zeroRot);
      virtual void get_inc_displacement(Vector &inc_Vec, GeomState &ss, bool zeroRot);
      virtual void get_tot_displacement(Vector &totVec);
+     virtual void push_forward(Vector &f);
+     virtual void pull_back(Vector &f);
      void zeroRotDofs(Vector &vec);
      void interp(double, const GeomState &, const GeomState &);
      void diff(const GeomState &unp, Vector &un);

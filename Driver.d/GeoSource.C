@@ -979,3 +979,53 @@ void GeoSource::outputNodeVectors6(int fileNum, DComplex (*xyz)[bound],
   fflush(oinfo[fileNum].filptr);
 }
 
+template<int bound>
+void GeoSource::outputNodeVectors9(int fileNum, double (*xyz)[bound],
+                                   int outputSize, double time)
+{
+  // 9 dof output including node number
+  int w = oinfo[fileNum].width;
+  int p = oinfo[fileNum].precision;
+
+  if (time != -1.0) {
+    if (outputSize == 1)
+      fprintf(oinfo[fileNum].filptr,"  % *.*E  ",w,p,time);
+    else
+      filePrint(oinfo[fileNum].filptr,"  % *.*E\n",w,p,time);
+  }
+
+ if (oinfo[fileNum].groupNumber > 0) {
+
+   if (nodeGroup.find(oinfo[fileNum].groupNumber) == nodeGroup.end())
+     return;
+
+    int group = oinfo[fileNum].groupNumber;
+    list<int>::iterator it = nodeGroup[group].begin();
+
+    while (it != nodeGroup[group].end() )  {
+
+      int inode = *it;
+      filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
+                inode+1, w, p, nodes[inode]->x, w, p, nodes[inode]->y, w, p, nodes[inode]->z,
+                w, p, xyz[inode][0], w, p, xyz[inode][1], w, p, xyz[inode][2],
+                w, p, xyz[inode][3], w, p, xyz[inode][4], w, p, xyz[inode][5],
+                w, p, xyz[inode][6], w, p, xyz[inode][7], w, p, xyz[inode][8]);
+      it++;
+    }
+  } else {
+    if (outputSize == 1) {
+      fprintf(oinfo[fileNum].filptr, " % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
+              w, p, xyz[0][0], w, p, xyz[0][1], w, p, xyz[0][2], w, p, xyz[0][3],
+              w, p, xyz[0][4], w, p, xyz[0][5], w, p, xyz[0][6], w, p, xyz[0][7],
+              w, p, xyz[0][8]);
+    } else {
+      for (int inode = 0; inode < outputSize; inode++)  {
+        filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
+                  inode+1, w, p, xyz[inode][0], w, p, xyz[inode][1], w, p, xyz[inode][2], w, p, xyz[inode][3],
+                  w, p, xyz[inode][4], w, p, xyz[inode][5], w, p, xyz[inode][6], w, p, xyz[inode][7], w, p, xyz[inode][8]);
+      }
+    }
+  }
+
+  fflush(oinfo[fileNum].filptr);
+}

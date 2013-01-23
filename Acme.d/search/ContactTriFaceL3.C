@@ -586,7 +586,7 @@ void ContactTriFaceL3<DataType>::Smooth_Normal( VariableHandle CURRENT_POSITION,
     coords[1] = lower_bound;
     coords[2] = 0.0;
     Compute_Global_Coordinates( CURRENT_POSITION, coords, &(node_position[2][0]) );
-    GetEdgeSmoothedNormal(0, &(node_normal[2][0]));
+    this->GetEdgeSmoothedNormal(0, &(node_normal[2][0]));
     //Edge(0)->Smooth_Normal( FACE_NORMAL,
 	//		    &(node_position[2][0]), &(node_normal[2][0]) );
     // Compute the data for node 3
@@ -594,7 +594,7 @@ void ContactTriFaceL3<DataType>::Smooth_Normal( VariableHandle CURRENT_POSITION,
     coords[1] = 1.0-lower_bound;
     coords[2] = 0.0;
     Compute_Global_Coordinates( CURRENT_POSITION, coords, &(node_position[3][0]) );
-    GetEdgeSmoothedNormal(0, &(node_normal[3][0]));
+    this->GetEdgeSmoothedNormal(0, &(node_normal[3][0]));
     //Edge(0)->Smooth_Normal( FACE_NORMAL,
 	//		    &(node_position[3][0]), &(node_normal[3][0]) );
   }
@@ -640,7 +640,7 @@ void ContactTriFaceL3<DataType>::Smooth_Normal( VariableHandle CURRENT_POSITION,
     coords[1] = 1.0-lower_bound;
     coords[2] = lower_bound;
     Compute_Global_Coordinates( CURRENT_POSITION, coords, &(node_position[2][0]) );
-    GetEdgeSmoothedNormal(1, &(node_normal[2][0]));
+    this->GetEdgeSmoothedNormal(1, &(node_normal[2][0]));
     //Edge(1)->Smooth_Normal( FACE_NORMAL,
 	//		    &(node_position[2][0]), &(node_normal[2][0]) );
     // Compute the data for node 3
@@ -648,7 +648,7 @@ void ContactTriFaceL3<DataType>::Smooth_Normal( VariableHandle CURRENT_POSITION,
     coords[1] = lower_bound;
     coords[2] = 1.0-lower_bound;
     Compute_Global_Coordinates( CURRENT_POSITION, coords, &(node_position[3][0]) );
-    GetEdgeSmoothedNormal(1, &(node_normal[3][0]));
+    this->GetEdgeSmoothedNormal(1, &(node_normal[3][0]));
     //Edge(1)->Smooth_Normal( FACE_NORMAL,
 	//		    &(node_position[3][0]), &(node_normal[3][0]) );
 
@@ -695,7 +695,7 @@ void ContactTriFaceL3<DataType>::Smooth_Normal( VariableHandle CURRENT_POSITION,
     coords[1] = 0.0;
     coords[2] = 1.0-lower_bound;
     Compute_Global_Coordinates( CURRENT_POSITION, coords, &(node_position[2][0]) );
-    GetEdgeSmoothedNormal(2, &(node_normal[2][0]));
+    this->GetEdgeSmoothedNormal(2, &(node_normal[2][0]));
     //Edge(2)->Smooth_Normal( FACE_NORMAL,
 	//		    &(node_position[2][0]), &(node_normal[2][0]) );
     // Compute the data for node 3
@@ -703,7 +703,7 @@ void ContactTriFaceL3<DataType>::Smooth_Normal( VariableHandle CURRENT_POSITION,
     coords[1] = 0.0;
     coords[2] = lower_bound;
     Compute_Global_Coordinates( CURRENT_POSITION, coords, &(node_position[3][0]) );
-    GetEdgeSmoothedNormal(2, &(node_normal[3][0]));
+    this->GetEdgeSmoothedNormal(2, &(node_normal[3][0]));
     //Edge(2)->Smooth_Normal( FACE_NORMAL,
 	//		    &(node_position[3][0]), &(node_normal[3][0]) );
 
@@ -743,7 +743,7 @@ void ContactTriFaceL3<DataType>::Smooth_Normal( VariableHandle CURRENT_POSITION,
     coords[2] = lower_bound;
     Compute_Global_Coordinates( CURRENT_POSITION, coords, &(node_position[1][0]) );
     if( smooth_edge0 ) {
-      GetEdgeSmoothedNormal(2, &(node_normal[1][0]));
+      this->GetEdgeSmoothedNormal(2, &(node_normal[1][0]));
       //Edge(2)->Smooth_Normal( FACE_NORMAL,
 	//		      &(node_position[1][0]), &(node_normal[1][0]) );
     } else {
@@ -761,11 +761,11 @@ void ContactTriFaceL3<DataType>::Smooth_Normal( VariableHandle CURRENT_POSITION,
       node_normal[2][1] = Node(0)->Variable(NODE_NORMAL)[1];
       node_normal[2][2] = Node(0)->Variable(NODE_NORMAL)[2];
     } else if( smooth_edge0 ){
-      GetEdgeSmoothedNormal(2, &(node_normal[2][0]));
+      this->GetEdgeSmoothedNormal(2, &(node_normal[2][0]));
       //Edge(2)->Smooth_Normal( FACE_NORMAL,
 	//		      &(node_position[2][0]), &(node_normal[2][0]) );
     } else if( smooth_edge1 ){
-      GetEdgeSmoothedNormal(0, &(node_normal[2][0]));
+      this->GetEdgeSmoothedNormal(0, &(node_normal[2][0]));
       //Edge(0)->Smooth_Normal( FACE_NORMAL,
 	//		      &(node_position[2][0]), &(node_normal[2][0]) );
     } 
@@ -775,7 +775,7 @@ void ContactTriFaceL3<DataType>::Smooth_Normal( VariableHandle CURRENT_POSITION,
     coords[2] = 0.0;
     Compute_Global_Coordinates( CURRENT_POSITION, coords, &(node_position[3][0]) );
     if( smooth_edge1 ) {
-      GetEdgeSmoothedNormal(0, &(node_normal[3][0]));
+      this->GetEdgeSmoothedNormal(0, &(node_normal[3][0]));
       //Edge(0)->Smooth_Normal( FACE_NORMAL,
 	//		      &(node_position[3][0]), &(node_normal[3][0]) );
     } else {
@@ -819,7 +819,7 @@ void ContactTriFaceL3<DataType>::Smooth_Normal( VariableHandle CURRENT_POSITION,
     coords[2] = 0.0;
     Compute_Global_Coordinates( CURRENT_POSITION, coords, &(node_position[1][0]) );
     if( smooth_edge0 ) {
-      GetEdgeSmoothedNormal(0, &(node_normal[1][0]));
+      this->GetEdgeSmoothedNormal(0, &(node_normal[1][0]));
       //Edge(0)->Smooth_Normal( FACE_NORMAL,
 	//		      &(node_position[1][0]), &(node_normal[1][0]) );
     } else {
@@ -837,11 +837,11 @@ void ContactTriFaceL3<DataType>::Smooth_Normal( VariableHandle CURRENT_POSITION,
       node_normal[2][1] = Node(1)->Variable(NODE_NORMAL)[1];
       node_normal[2][2] = Node(1)->Variable(NODE_NORMAL)[2];
     } else if( smooth_edge0 ){
-      GetEdgeSmoothedNormal(0, &(node_normal[2][0]));
+      this->GetEdgeSmoothedNormal(0, &(node_normal[2][0]));
       //Edge(0)->Smooth_Normal( FACE_NORMAL,
 	//		      &(node_position[2][0]), &(node_normal[2][0]) );
     } else if( smooth_edge1 ){
-      GetEdgeSmoothedNormal(1, &(node_normal[2][0]));
+      this->GetEdgeSmoothedNormal(1, &(node_normal[2][0]));
       //Edge(1)->Smooth_Normal( FACE_NORMAL,
 	//		      &(node_position[2][0]), &(node_normal[2][0]) );
     }
@@ -851,7 +851,7 @@ void ContactTriFaceL3<DataType>::Smooth_Normal( VariableHandle CURRENT_POSITION,
     coords[2] = lower_bound;
     Compute_Global_Coordinates( CURRENT_POSITION, coords, &(node_position[3][0]) );
     if( smooth_edge1 ) {
-      GetEdgeSmoothedNormal(1, &(node_normal[3][0]));
+      this->GetEdgeSmoothedNormal(1, &(node_normal[3][0]));
       //Edge(1)->Smooth_Normal( FACE_NORMAL,
 	//		      &(node_position[3][0]), &(node_normal[3][0]) );
     } else {
@@ -898,7 +898,7 @@ void ContactTriFaceL3<DataType>::Smooth_Normal( VariableHandle CURRENT_POSITION,
     coords[2] = 1.0-lower_bound;
     Compute_Global_Coordinates( CURRENT_POSITION, coords, &(node_position[1][0]) );
     if( smooth_edge0 ) {
-      GetEdgeSmoothedNormal(1, &(node_normal[1][0]));
+      this->GetEdgeSmoothedNormal(1, &(node_normal[1][0]));
       //Edge(1)->Smooth_Normal( FACE_NORMAL,
 	//		      &(node_position[1][0]), &(node_normal[1][0]) );
     } else {
@@ -916,11 +916,11 @@ void ContactTriFaceL3<DataType>::Smooth_Normal( VariableHandle CURRENT_POSITION,
       node_normal[2][1] = Node(2)->Variable(NODE_NORMAL)[1];
       node_normal[2][2] = Node(2)->Variable(NODE_NORMAL)[2];
     } else if( smooth_edge0 ){
-      GetEdgeSmoothedNormal(1, &(node_normal[2][0]));
+      this->GetEdgeSmoothedNormal(1, &(node_normal[2][0]));
       //Edge(1)->Smooth_Normal( FACE_NORMAL,
 	//		      &(node_position[2][0]), &(node_normal[2][0]) );
     } else if( smooth_edge1 ){
-      GetEdgeSmoothedNormal(2, &(node_normal[2][0]));
+      this->GetEdgeSmoothedNormal(2, &(node_normal[2][0]));
       //Edge(2)->Smooth_Normal( FACE_NORMAL,
 	//		      &(node_position[2][0]), &(node_normal[2][0]) );
     }
@@ -930,7 +930,7 @@ void ContactTriFaceL3<DataType>::Smooth_Normal( VariableHandle CURRENT_POSITION,
     coords[2] = 1.0-lower_bound;
     Compute_Global_Coordinates( CURRENT_POSITION, coords, &(node_position[3][0]) );
     if( smooth_edge1 ) {
-      GetEdgeSmoothedNormal(2, &(node_normal[3][0]));
+      this->GetEdgeSmoothedNormal(2, &(node_normal[3][0]));
       //Edge(2)->Smooth_Normal( FACE_NORMAL,
 	//		      &(node_position[3][0]), &(node_normal[3][0]) );
     } else {

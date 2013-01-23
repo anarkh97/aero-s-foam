@@ -37,6 +37,12 @@ class GaussIntgElement : public MatNLElement
     void integrate(Node *nodes, double *dispn, double *staten,
                    double *dispnp, double *statenp,
                    FullSquareMatrix &kTan, double *force, double dt=0.0);
+    template <class MaterialType>
+      void integrate(const MaterialType &,
+                     Node *nodes, double *dispn, double *staten,
+                     double *dispnp, double *statenp, double *force, double dt=0.0);
+    void integrate(Node *nodes, double *dispn, double *staten,
+                   double *dispnp, double *statenp, double *force, double dt=0.0);
     int numStates() {
       int nGP = getNumGaussPoints();
       NLMaterial *mat = getMaterial();
@@ -80,6 +86,14 @@ class GenGaussIntgElement : public MatNLElement
     void integrate(Node *nodes, double *dispn, double *staten,
                    double *dispnp, double *statenp,
                    FullSquareMatrix &kTan, double *force, double dt=0.0);
+    template <class MaterialType>
+      void integrate(const MaterialType &,
+                     Node *nodes, double *dispn, double *staten,
+                     double *dispnp, double *statenp,
+                     double *force, double dt=0.0);
+    void integrate(Node *nodes, double *dispn, double *staten,
+                   double *dispnp, double *statenp,
+                   double *force, double dt=0.0);
     int numStates() {
       int ngp = getNumGaussPoints();
       NLMaterial *mat = getMaterial();
@@ -560,6 +574,84 @@ GenGaussIntgElement<TensorType>::integrate(Node *nodes, double *dispn,  double *
     }
     temp3 = (weight * fabs(jacnp))*temp2;
     kTan += temp3;
+  }
+
+  for(j = 0; j < ndofs; ++j) {
+    force[j] = - nodeforce[j];}
+}
+
+template <class TensorType>
+void 
+GenGaussIntgElement<TensorType>::integrate(Node *nodes, double *dispn,  double *staten,
+                                           double *dispnp, double *statenp,
+                                           double *force, double)
+{
+  int ndofs = numDofs();
+  GenShapeFunction<TensorType> *shapeF = getShapeFunction();
+
+  // Obtain the strain function. It can be linear or non-linear
+  GenStrainEvaluator<TensorType> *strainEvaluator = getGenStrainEvaluator();
+
+  // Obtain the material model
+  NLMaterial *material = getMaterial();
+
+  // Obtain the storage for gradU ( 3x3 )
+  typename TensorType::GradUTensor gradUn;
+  typename TensorType::GradUTensor gradUnp;
+  // Obtain the storage for dgradUdqk ( ndof x3x3 )
+  typename TensorType::GradUDerivTensor dgradUdqkn;
+  typename TensorType::GradUDerivTensor dgradUdqknp;
+
+  // NDofsx3x3x-> 6xNDofs
+  typename TensorType::BTensor Bn;
+  typename TensorType::BTensor Bnp;
+
+  typename TensorType::StressTensor en;
+  typename TensorType::StressTensor enp;
+  typename TensorType::StressTensor s;
+  
+  SimpleTensor<double,TensorType::ndofs> temp0;
+  SimpleTensor<double,TensorType::ndofs> nodeforce;
+
+  int i,j;
+  int ngp = getNumGaussPoints();
+  int nstatepgp = material->getNumStates();
+  
+  nodeforce = 0;
+
+  for(i = 0; i < ngp; i++) {
+
+    double point[3], weight, jacn, jacnp;
+    StackVector dispVecn(dispn,ndofs);
+    StackVector dispVecnp(dispnp,ndofs); 
+
+    getGaussPointAndWeight(i, point, weight);
+
+    /*shapeF->getGradU(gradUn, nodes, point, dispVecn);
+    shapeF->getGradU(gradUnp, nodes, point, dispVecnp);
+
+    strainEvaluator->getE(en, gradUn);
+    strainEvaluator->getE(enp, gradUnp);  */
+
+    shapeF->getGlobalGrads(gradUn, dgradUdqkn,  &jacn, nodes, point, dispVecn);
+    shapeF->getGlobalGrads(gradUnp, dgradUdqknp,  &jacnp, nodes, point, dispVecnp);
+
+    strainEvaluator->getEandB(en, Bn, gradUn, dgradUdqkn);
+    strainEvaluator->getEandB(enp, Bnp, gradUnp, dgradUdqknp);
+
+    //material->updateStates(en, enp, state + nstatepgp*i);
+    //material->getStress(&s, e, 0);       
+    //material->getStressAndTangentMaterial(&s, &D, enp, 0);
+
+    material->integrate(&s, en, enp,
+                        staten + nstatepgp*i,statenp + nstatepgp*i , 0);
+
+    for(int j=0; j<preload.size(); ++j) s[j] += preload[j]; // note: for membrane element preload should have units of
+                                                            // force per unit length (ie. prestress multiplied by thickness)
+
+    temp0 = s || Bnp;
+    temp0 = (weight*jacnp)*temp0;
+    nodeforce = nodeforce + temp0;
   }
 
   for(j = 0; j < ndofs; ++j) {

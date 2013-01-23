@@ -100,6 +100,10 @@ public:
 		   Vector *du, Vector *prescDu = 0);
    void updateStates(NLState *refState, NLState& geomState) {}
 
+   void initializeParameters(NLState *geomState) {}
+   void updateParameters(NLState *geomState) {}
+   bool checkConstraintViolation(double &err) { err = 0; return true; }
+
    // Functions for dynamics:
    void computeTimeInfo(); // maybe we need to do something??
    void getConstForce(Vector &gravityForce);
@@ -132,6 +136,7 @@ public:
    double getTolerance()  { return tolerance*firstRes; }
    int getNumStages() { return 1; }
    void setIteration(int i) { iterNum = i; }
+   void getConstraintMultipliers(NLState &) {}
    double getResidualNorm(Vector &rhs, NLState &) { return rhs.norm(); }
    double getResidualNorm(Vector &rhs, NLState &, double) { return rhs.norm(); }
 

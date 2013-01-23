@@ -89,6 +89,7 @@
 #include <Element.d/FluidTriangle3.d/SloshTriangleFS.h>
 #include <Element.d/FluidTetra.d/HEVibTetra.h>
 
+#ifdef USE_EIGEN3
 #include <Element.d/Rigid.d/RigidTwoNodeTruss.h>
 #include <Element.d/Rigid.d/RigidBeam.h>
 #include <Element.d/Rigid.d/RigidSpring.h>
@@ -99,6 +100,8 @@
 #include <Element.d/Rigid.d/RigidSolid.h>
 #include <Element.d/Rigid.d/RigidSolid6Dof.h>
 #include <Element.d/Rigid.d/RigidFourNodeShell.h>
+#include <Element.d/Rigid.d/FlexibleBeam.h>
+#include <Element.d/Rigid.d/FlexibleTwoNodeTruss.h>
 
 #include <Element.d/Joint.d/WeldedJoint.h>
 #include <Element.d/Joint.d/SphericalJoint.h>
@@ -119,6 +122,7 @@
 #include <Element.d/Joint.d/CylindricalJointSpringCombo.h>
 #include <Element.d/Joint.d/PrismaticJointSpringCombo.h>
 #include <Element.d/Joint.d/PinInSlotJointSpringCombo.h>
+#endif
 
 #include <Element.d/BelytschkoTsayShell.d/BelytschkoTsayShell.h>
 
@@ -1226,6 +1230,7 @@ HelmSpectralIsoParamQuad::examine(int sub, MultiFront *mf)
   return examineQuad4(sub, mf, nn);
 }
 
+#ifdef USE_EIGEN3
 PrioInfo
 RigidTwoNodeTruss::examine(int sub, MultiFront *mf)
 {
@@ -1233,7 +1238,19 @@ RigidTwoNodeTruss::examine(int sub, MultiFront *mf)
 }
 
 PrioInfo
+FlexibleTwoNodeTruss::examine(int sub, MultiFront *mf)
+{
+  return examineBar2(sub, mf, nn);
+}
+
+PrioInfo
 RigidBeam::examine(int sub, MultiFront *mf)
+{
+  return examineBeam2(sub, mf, nn);
+}
+
+PrioInfo
+FlexibleBeam::examine(int sub, MultiFront *mf)
 {
   return examineBeam2(sub, mf, nn);
 }
@@ -1407,3 +1424,4 @@ PinInSlotJointSpringCombo::examine(int sub, MultiFront *mf)
 {
   return examineBeam2(sub, mf, nn);
 }
+#endif

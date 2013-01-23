@@ -20,5 +20,3 @@ echo ../../bin/aeros  dsvm20_cr_gdispmod.inp
 ../../bin/aeros  dsvm20_cr_gdispmod.inp
 echo ../../bin/aeros -n 2 --dec --nsub 4 dsvm20_FETI_DP_gdispmod.inp
 ../../bin/aeros -n 2 --dec --nsub 4 dsvm20_FETI_DP_gdispmod.inp
-echo ../../bin/aeros -n 2 --dec --nsub 4 dsvm20_FETI_DPH_gdispmod.inp
-../../bin/aeros -n 2 --dec --nsub 4 dsvm20_FETI_DPH_gdispmod.inp

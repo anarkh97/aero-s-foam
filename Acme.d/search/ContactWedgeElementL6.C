@@ -89,14 +89,14 @@ void ContactWedgeElemL6<DataType>::BuildTopology(int nID, int eID, int fID,
     node = ContactNode<DataType>::new_ContactNode(allocators,
                                         ContactSearch::NODE, 
                                         ++NextID );
-    ConnectNode(i, node);
+    this->ConnectNode(i, node);
   }
   NextID = eID;
   for( i=0 ; i<Edges_Per_Element() ; ++i ) {
     edge = ContactLineEdgeL2<DataType>::new_ContactLineEdgeL2( 
                         allocators[ContactSearch::ALLOC_ContactLineEdgeL2],
                         ContactSearch::LINEEDGEL2, ++NextID);
-    ConnectEdge(i, edge);
+    this->ConnectEdge(i, edge);
   }
   edge = Edge(0);
   edge->ConnectNode(0, Node(0));
@@ -129,11 +129,11 @@ void ContactWedgeElemL6<DataType>::BuildTopology(int nID, int eID, int fID,
   NextID = fID;
   for( i=0 ; i<3 ; ++i ) {
     face = ContactQuadFaceL4<DataType>::new_ContactQuadFaceL4(allocators, ++NextID );
-    ConnectFace(i, face);
+    this->ConnectFace(i, face);
   }
   for( i=3 ; i<5 ; ++i ) {
     face = ContactTriFaceL3<DataType>::new_ContactTriFaceL3(allocators, ++NextID );
-    ConnectFace(i, face);
+    this->ConnectFace(i, face);
   }
   face = Face(0);
   face->ConnectNode(0, Node(0));

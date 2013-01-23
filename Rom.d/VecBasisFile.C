@@ -7,6 +7,7 @@
 
 #include <cassert>
 #include <algorithm>
+#include <new>
 
 namespace Rom {
 

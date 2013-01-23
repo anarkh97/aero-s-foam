@@ -1,8 +1,6 @@
 #ifndef _MD_NL_DYNAMIC_H_
 #define _MD_NL_DYNAMIC_H_
 
-#include <map>
-#include <vector>
 #include <cstddef>
 
 class Domain;
@@ -86,8 +84,6 @@ class MDNLDynamic
     DistrVector *aeroForce;
     DistrVector *nodalTemps;
 
-    std::map<std::pair<int,int>, double> *mu; // lagrange multipliers for the contact surfaces
-    std::vector<double> *lambda; // lagrange multipliers for all other constraints
     double Kcoef_p;
 
  public:
@@ -129,7 +125,7 @@ class MDNLDynamic
                             bool zeroRot);
 
     double formRHScorrector(DistrVector& inc_displacement, DistrVector& velocity, DistrVector& acceleration,
-                           DistrVector& residual, DistrVector& rhs, double localDelta);
+                           DistrVector& residual, DistrVector& rhs, DistrGeomState *geomState, double localDelta);
     
     void formRHSpredictor(DistrVector& velocity, DistrVector& acceleration, DistrVector& residual,
                           DistrVector& rhs, DistrGeomState &, double mid, double localDelta);
@@ -167,6 +163,7 @@ class MDNLDynamic
                           DistrVector& vp, DistrVector& bkVp, int step, int parity,
                           int aeroAlg);
 
+    void getConstraintMultipliers(DistrGeomState &geomState);
     double getResidualNorm(DistrVector &vec, DistrGeomState &, double);
 
     int getAeroAlg();
@@ -175,6 +172,11 @@ class MDNLDynamic
     int getAeroheatFlag();
     void getNewmarkParameters(double &beta, double &gamma,
                               double &alphaf, double &alpham);
+
+    void initializeParameters(DistrGeomState *geomState);
+    void updateParameters(DistrGeomState *geomState);
+    bool checkConstraintViolation(double &err);
+
   protected:
     Domain *getDomain() { return domain; }
     DecDomain *getDecDomain() { return decDomain; }
@@ -187,8 +189,8 @@ class MDNLDynamic
     void subGetStiffAndForce(int isub, DistrGeomState &geomState,
                              DistrVector &res, DistrVector &elemIntForce, double t, DistrGeomState *refState);
     void subUpdatePrescribedDisplacement(int isub, DistrGeomState& geomState);
-    void addConstraintForces(int isub, DistrVector& rhs);
-    void getConstraintMultipliers(int isub);
+    void addConstraintForces(int isub, DistrVector& rhs, DistrGeomState &geomState);
+    void subGetConstraintMultipliers(int isub, DistrGeomState &geomState);
     void subUpdateGeomStateUSDD(int isub, DistrGeomState &geomState, double *userDefineDisp);
     void makeSubClawDofs(int isub);
     void subKucTransposeMultSubtractClaw(int iSub, DistrVector& residual, double *userDefineDisp);
@@ -211,6 +213,9 @@ class MDNLDynamic
     virtual bool factorWhenBuilding() const;
     void deleteSubCorotators(int isub);
     void deleteSubElementArrays(int isub);
+
+    void subInitializeParameters(int isub, DistrGeomState& geomState);
+    void subUpdateParameters(int isub, DistrGeomState& geomState);
 };
 
 #endif

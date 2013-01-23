@@ -13,7 +13,7 @@
 namespace Rom {
 
 template <typename Scalar>
-class GenGalerkinProjectionSolver : public GenPodProjectionSolver<Scalar> {
+class GenGalerkinProjectionSolver : public GenDBSparsePodProjectionSolver<Scalar> {
 public:
   GenGalerkinProjectionSolver(Connectivity *cn, DofSetArray *dsa, ConstrainedDSA *c_dsa);
 
@@ -37,7 +37,7 @@ template <typename Scalar>
 GenGalerkinProjectionSolver<Scalar>::GenGalerkinProjectionSolver(Connectivity *cn,
                                                                  DofSetArray *dsa,
                                                                  ConstrainedDSA *c_dsa):
-  GenPodProjectionSolver<Scalar>(cn, dsa, c_dsa),
+  GenDBSparsePodProjectionSolver<Scalar>(cn, dsa, c_dsa),
   reducedMatrix_(),
   rhsIsprojected_(false)
 {}

@@ -1,3 +1,4 @@
+#ifdef USE_EIGEN3
 #include <Element.d/Rigid.d/RigidFourNodeShell.h>
 #include <Element.d/Rigid.d/RigidBeam.h>
 
@@ -80,11 +81,15 @@ RigidFourNodeShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
   int optele = 3, ndime = 3;
   double* ecord = (double*) dbg_alloca(sizeof(double)*nnodes*ndime);
   double* edisp = (double*) dbg_alloca(sizeof(double)*nnodes*ndime); // translations only
+  int iloc;
   for(int i = 0; i < nnodes; ++i) {
-    ecord[i*ndime+0] = cs[nn[i]]->x;
-    ecord[i*ndime+1] = cs[nn[i]]->y;
-    ecord[i*ndime+2] = cs[nn[i]]->z;
-    for(int j = 0; j < 3; ++j) edisp[i*ndime+j] = (*geomState)[nn[i]].d[j];
+    iloc = i*ndime;
+    ecord[iloc+0] = cs[nn[i]]->x;
+    ecord[iloc+1] = cs[nn[i]]->y;
+    ecord[iloc+2] = cs[nn[i]]->z;
+    edisp[iloc+0] = (geomState) ? (*geomState)[nn[i]].x - cs[nn[i]]->x : 0;
+    edisp[iloc+1] = (geomState) ? (*geomState)[nn[i]].y - cs[nn[i]]->y : 0;
+    edisp[iloc+2] = (geomState) ? (*geomState)[nn[i]].z - cs[nn[i]]->z : 0;
   }
   double trac[3] = { -pressure, 0, 0 };
   double *efbc = (double*) dbg_alloca(sizeof(double)*nnodes*ndime); // translations only
@@ -135,4 +140,4 @@ RigidFourNodeShell::getFlLoad(CoordSet& cs, const InterpPoint& ip, double *flF,
     resF[i+3]  = resF[i+9] = resF[i+15] = resF[i+21] = 0.0;
   }
 }
-
+#endif

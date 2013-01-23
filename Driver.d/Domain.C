@@ -278,8 +278,8 @@ Domain::make_bc(int *bc, DComplex *bcx)
    int dof  = dsa->locate(nbc[i].nnum, 1 << nbc[i].dofnum);
    if(dof < 0) continue;
    if(bc[dof] == BCLOAD) {
-        fprintf(stderr," *** WARNING: check input, found repeated"
-                       " FORCE (node %d, dof %d)\n",nbc[i].nnum,nbc[i].dofnum);
+        //fprintf(stderr," *** WARNING: check input, found repeated"
+        //               " FORCE (node %d, dof %d)\n",nbc[i].nnum,nbc[i].dofnum);
    }
    bc[dof] = BCLOAD;
    bcx[dof] = DComplex(nbc[i].val,0.0);
@@ -290,9 +290,9 @@ Domain::make_bc(int *bc, DComplex *bcx)
    int dof  = dsa->locate(cnbc[i].nnum, 1 << cnbc[i].dofnum);
    if(dof < 0) continue;
    if(bc[dof] == BCLOAD) {
-        fprintf(stderr," *** WARNING: check input, found repeated"
-                       " HFORCE (node %d, dof %d)\n",
-                         cnbc[i].nnum,cnbc[i].dofnum);
+        //fprintf(stderr," *** WARNING: check input, found repeated"
+        //               " HFORCE (node %d, dof %d)\n",
+        //                 cnbc[i].nnum,cnbc[i].dofnum);
    }
    bc[dof] = BCLOAD;
    bcx[dof] = DComplex(cnbc[i].reval,cnbc[i].imval);
@@ -303,8 +303,8 @@ Domain::make_bc(int *bc, DComplex *bcx)
    int dof  = dsa->locate(dbc[i].nnum, 1 << dbc[i].dofnum);
    if(dof < 0) continue;
    if(bc[dof] == BCFIXED) {
-        fprintf(stderr," *** WARNING: check input, found repeated"
-                       " DISP (node %d, dof %d)\n",dbc[i].nnum,dbc[i].dofnum);
+        //fprintf(stderr," *** WARNING: check input, found repeated"
+        //               " DISP (node %d, dof %d)\n",dbc[i].nnum,dbc[i].dofnum);
    }
    bc[dof] = BCFIXED;
    bcx[dof] = DComplex(dbc[i].val,0.0);
@@ -315,9 +315,9 @@ Domain::make_bc(int *bc, DComplex *bcx)
    int dof  = dsa->locate(cdbc[i].nnum, 1 << cdbc[i].dofnum);
    if(dof < 0) continue;
    if(bc[dof] == BCFIXED) {
-        fprintf(stderr," *** WARNING: check input, found repeated"
-                       " HDISP (node %d, dof %d)\n",
-                       cdbc[i].nnum,cdbc[i].dofnum);
+        //fprintf(stderr," *** WARNING: check input, found repeated"
+        //               " HDISP (node %d, dof %d)\n",
+        //               cdbc[i].nnum,cdbc[i].dofnum);
    }
    bc[dof] = BCFIXED;
    bcx[dof] = DComplex(cdbc[i].reval, cdbc[i].imval);
@@ -2356,7 +2356,7 @@ void Domain::UpdateSurfaces(DistrGeomState *geomState, int config_type, SubDomai
   }
 }
 
-void Domain::PerformDynamicContactSearch(double dt)
+void Domain::PerformDynamicContactSearch(double dt_old, double dt)
 {
   for(int iMortar=0; iMortar<nMortarCond; iMortar++) {
     MortarHandler* CurrentMortarCond = MortarConds[iMortar];
@@ -2366,23 +2366,21 @@ void Domain::PerformDynamicContactSearch(double dt)
   }
 }
 
-void Domain::AddContactForces(double dt, Vector &f)
+void Domain::AddContactForces(double dt_old, double dt, Vector &f)
 {
   for(int iMortar=0; iMortar<nMortarCond; iMortar++) {
     MortarHandler* CurrentMortarCond = MortarConds[iMortar];
     if(CurrentMortarCond->GetInteractionType() == MortarHandler::CTC || CurrentMortarCond->GetInteractionType() == MortarHandler::TIED) {
-      double dt_old = dt;
       CurrentMortarCond->compute_td_contact_force(dt_old, dt, f);
     }
   }
 }
 
-void Domain::AddContactForces(double dt, DistrVector &f)
+void Domain::AddContactForces(double dt_old, double dt, DistrVector &f)
 {
   for(int iMortar=0; iMortar<nMortarCond; iMortar++) {
     MortarHandler* CurrentMortarCond = MortarConds[iMortar];
     if(CurrentMortarCond->GetInteractionType() == MortarHandler::CTC || CurrentMortarCond->GetInteractionType() == MortarHandler::TIED) {
-      double dt_old = dt;
       CurrentMortarCond->compute_td_contact_force(dt_old, dt, f);
     }
   }
@@ -3255,7 +3253,14 @@ Domain::ProcessSurfaceBCs()
         int *glNodes = SurfEntities[j]->GetPtrGlNodeIds();
         int nNodes = SurfEntities[j]->GetnNodes();
         BCond *bc = new BCond[nNodes];
-        for(int k=0; k<nNodes; ++k) { bc[k].nnum = glNodes[k]; bc[k].dofnum = surface_nbc[i].dofnum; bc[k].val = surface_nbc[i].val; bc[k].type = surface_nbc[i].type; }
+        for(int k=0; k<nNodes; ++k) { 
+          bc[k].nnum = glNodes[k];
+          bc[k].dofnum = surface_nbc[i].dofnum;
+          bc[k].val = surface_nbc[i].val;
+          bc[k].type = surface_nbc[i].type;
+          bc[k].caseid = surface_nbc[i].caseid;
+          bc[k].mtype = surface_nbc[i].mtype;
+        }
         int numNeuman_copy = geoSource->getNumNeuman();
         geoSource->setNeuman(nNodes, bc);
         if(numNeuman_copy != 0) delete [] bc;
@@ -3273,12 +3278,17 @@ Domain::ProcessSurfaceBCs()
         FaceElemSet &faceElemSet = SurfEntities[j]->GetFaceElemSet();
         for(int iele = 0; iele < faceElemSet.last(); ++iele) {
           int nVertices = faceElemSet[iele]->nVertices();
-          if(nVertices == 3 || nVertices == 4) {
+          if(nVertices == 3 || nVertices == 4 || nVertices == 6 || nVertices == 8) {
              int *nodes = new int[nVertices];
              for(int inode = 0; inode < nVertices; ++inode)
                nodes[inode] = SurfEntities[j]->GetPtrGlVertexIds()[faceElemSet[iele]->GetVertex(inode)];
-             int type = (nVertices == 3) ? 15 : 16;
-             //cerr << iele+1 << " " << type << " "; for(int inode = 0; inode < nVertices; ++inode) cerr << nodes[inode]+1 << " "; cerr << endl;
+             int type;
+             switch(nVertices) {
+               case 3: type = 15; break;
+               case 4: type = 16; break;
+               case 6: type = 17; break;
+               case 8: type = 18; break;
+             }
              addNeumElem(-1, type, surface_pres[i].val, nVertices, nodes);
              delete [] nodes;
           }
@@ -3286,6 +3296,54 @@ Domain::ProcessSurfaceBCs()
             cerr << " *** ERROR: can't set pressure for surface " << SurfId << " element " << iele << " nVertices = " << nVertices << endl;
             continue;
           }
+        }
+      }
+    }
+  }
+
+  BCond *surface_cfe;
+  int numSurfaceConstraint = geoSource->getSurfaceConstraint(surface_cfe);
+  for(int i=0; i<numSurfaceConstraint; ++i) {
+    double frame_data[9];
+    EFrame *ef;
+    for(int j=0; j<geoSource->getNumCSframes(); ++j) {
+      EFrameData &efd = geoSource->getCSframes()[j];
+      if(int(surface_cfe[i].val) == efd.elnum) {
+        ef = &efd.frame;
+        for(int k=0; k<3; ++k) for(int l=0; l<3; ++l) frame_data[3*k+l] = efd.frame[k][l];
+        break;
+      }
+    }
+    for(int j=0; j<nSurfEntity; j++) {
+      int SurfId = SurfEntities[j]->ID();
+      if(SurfId-1 == surface_cfe[i].nnum) {
+        int *glNodes = SurfEntities[j]->GetPtrGlNodeIds();
+        int nNodes = SurfEntities[j]->GetnNodes();
+        switch(surface_cfe[i].type) {
+          case BCond::PointPointDistance : {
+            for(int k=0; k<nNodes; ++k) {
+              geoSource->getElemSet()->elemadd(nEle, 77, 1, glNodes+k);
+              geoSource->setAttrib(nEle, surface_cfe[i].dofnum);
+              geoSource->setFrame(nEle, frame_data);
+              nEle++;
+            }
+          } break;
+          case BCond::PointLineDistance : {
+            for(int k=0; k<nNodes; ++k) {
+              geoSource->getElemSet()->elemadd(nEle, 78, 1, glNodes+k);
+              geoSource->setAttrib(nEle, surface_cfe[i].dofnum);
+              geoSource->setFrame(nEle, frame_data);
+              nEle++;
+            }
+          } break;
+          case BCond::PointPlaneDistance : {
+            for(int k=0; k<nNodes; ++k) {
+              geoSource->getElemSet()->elemadd(nEle, 79, 1, glNodes+k);
+              geoSource->setAttrib(nEle, surface_cfe[i].dofnum);
+              geoSource->setFrame(nEle, frame_data);
+              nEle++;
+            }
+          } break;
         }
       }
     }
@@ -3577,10 +3635,14 @@ Domain::UpdateContactSurfaceElements(GeomState *geomState)
     geomState->clearMultiplierNodes();
   }
 
-  if(!p) p = new StructProp(); 
-  p->lagrangeMult = sinfo.lagrangeMult;
-  p->penalty = sinfo.penalty;
-  p->type = StructProp::Constraint;
+  if(!p) {
+    p = new StructProp(); 
+    p->lagrangeMult = sinfo.lagrangeMult;
+    p->initialPenalty = p->penalty = sinfo.penalty;
+    p->type = StructProp::Constraint;
+    p->constraint_hess = sinfo.constraint_hess;
+    p->constraint_hess_eps = sinfo.constraint_hess_eps;
+  }
   int count = 0;
   int nEle = packedEset.last();
   int count1 = 0;

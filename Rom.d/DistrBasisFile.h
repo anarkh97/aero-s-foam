@@ -91,6 +91,17 @@ DistrBasisOutputFile::DistrBasisOutputFile(const std::string &fileName, int glob
     comm->sync();
     resetHandler(fileName, globalNodeCount, localOffset, localIdxBegin, localIdxEnd);
   }
+#if defined(_POSIX_THREAD_SAFE_FUNCTIONS) && defined(_AEROS_ASYCHRONOUS_IO)
+  // When this is macro defined we can safely assume the fwrite is thread-safe
+  // however, since we are using fopen and there is no way to open a file for use with fseek/fwrite without truncating
+  // we need another sync to guarantee thread safety
+  // see comments in Utils.d/BinaryResultFile.h
+  comm->sync();
+  // now the Master process can call writePrelude
+  if (localOffset == 0) {
+    binFile_->writePrelude();
+  }
+#endif
 }
 
 class DistrBasisInputFile : public BasisBinaryInputFile {

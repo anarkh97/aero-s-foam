@@ -53,7 +53,10 @@ template<class Scalar>
 void
 GenMultiDomainStatic<Scalar>::getRHS(GenDistrVector<Scalar> &rhs)
 {
- filePrint(stderr," ... Building the Force             ...\n");
+ if(domain->solInfo().loadcases.size() > 0)
+   filePrint(stderr," ... Building the Force (Case %2d)   ...\n", domain->solInfo().loadcases.front());
+ else
+   filePrint(stderr," ... Building the Force             ...\n");
 
  times->formRhs -= getTime();
  execParal1R(decDomain->getNumSub(), this, &GenMultiDomainStatic<Scalar>::subGetRHS, rhs);
@@ -112,6 +115,7 @@ GenMultiDomainStatic<Scalar>::rebuildSolver()
   ops.M = allOps.M;
   ops.Muc = allOps.Muc;
   decDomain->rebuildOps(ops, 0.0, 0.0, 1.0);
+  paralApply(decDomain->getNumSub(), decDomain->getAllSubDomains(), &GenSubDomain<Scalar>::setRebuildPade, true);
   times->getFetiSolverTime += getTime(); // PJSA 3-30-06
 }
 

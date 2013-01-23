@@ -6,7 +6,7 @@ dsvm27a_spooles_gtempera
 *
 STATICS
 spooles
-*
+include "../fetidp.include"
 OUTPUT
 gtempera dsvm27a_spooles_gtempera.dat  1
 heatflxz dsvm27a_spooles_gtempera_2.dat  1

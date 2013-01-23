@@ -6,7 +6,7 @@ dsvm2_sparse_stressxx
 *
 STATICS
 sparse
-*
+include "../fetidp.include"
 OUTPUT
 stressxx dsvm2_sparse_stressxx.dat 1 NG 1
 *

@@ -42,7 +42,10 @@ public:
   explicit GenDistrGalerkinProjectionSolver(const GenSubDOp<Scalar> &fullMat); // Passed object must be kept alive by owner
 
   virtual ~GenDistrGalerkinProjectionSolver();
- 
+
+  double counter;
+  double timer;
+
 private:
   Timings timers_;
 
@@ -81,6 +84,8 @@ template <typename Scalar>
 void
 GenDistrGalerkinProjectionSolver<Scalar>::refactor() {
   renormalized_basis(*fullMatrix_, *projectionBasis_, normalizedBasis_);
+  timer = 0;
+  counter = 0;
 }
 
 template <typename Scalar>
@@ -88,8 +93,21 @@ void
 GenDistrGalerkinProjectionSolver<Scalar>::solve(GenDistrVector<Scalar> &rhs, GenDistrVector<Scalar> &result) {
   const int vectorCount = normalizedBasis_.vectorCount();
   GenVector<Scalar> components(vectorCount, Scalar()); 
-  vector_components_vector_masterflag(normalizedBasis_, rhs, components);
-  assembled_vector(normalizedBasis_, components, result);
+
+  
+  if(domain->solInfo().elemLumpPodRom){
+
+    normalizedBasis_.project(rhs, result);  
+
+  } else {
+
+    //---------------------------------------------------------------------
+    vector_components_vector_masterflag(normalizedBasis_, rhs, components);
+    //---------------------------------------------------------------------
+    assembled_vector(normalizedBasis_, components, result);
+    //-----------------------------------------------------
+
+       }
 }
 
 template <typename Scalar>

@@ -2,18 +2,30 @@
 #define ROM_SPARSENONNEGATIVELEASTSQUARESSOLVER_H
 
 #include "SimpleBuffer.h"
+#ifdef USE_STXXL
+#include <stxxl/vector>
+#else
+#include <vector>
+#endif
 
 namespace Rom {
 
 class SparseNonNegativeLeastSquaresSolver {
 public:
   typedef double Scalar;
+#ifdef USE_STXXL
+  // note: the stxxl defaults are 4, 8 and 2097152 
+  typedef stxxl::VECTOR_GENERATOR<Scalar,16,32,8388608,stxxl::RC,stxxl::random>::result MatrixBufferType; // external vector of Scalar's with 16 blocks per page,
+                                                                                 // the cache with 32 pages, and 8 MB blocks (i.e. total cache is 4GB)
+#else
+  typedef std::vector<Scalar> MatrixBufferType;
+#endif
 
   // Problem size
-  int equationCount() const { return equationCount_; }
-  int unknownCount() const { return unknownCount_; }
+  long equationCount() const { return equationCount_; }
+  long unknownCount() const { return unknownCount_; }
   
-  void problemSizeIs(int eqnCount, int unkCount);
+  void problemSizeIs(long eqnCount, long unkCount);
 
   double relativeTolerance() const { return relativeTolerance_; }
   void relativeToleranceIs(double relTol) { relativeTolerance_ = relTol; }
@@ -21,12 +33,12 @@ public:
   // Buffers: Internal column-major ordering, zero-based indexing
   // Matrix buffer: [equationCount by unknownCount]
   Scalar matrixEntry(int row, int col) const;
-  const Scalar * matrixColBuffer(int col) const;
-  const Scalar * matrixBuffer() const;
-  
+  MatrixBufferType::const_iterator matrixColBuffer(int col) const;
+  MatrixBufferType::const_iterator matrixBuffer() const;
+
   Scalar & matrixEntry(int row, int col);
-  Scalar * matrixColBuffer(int col);
-  Scalar * matrixBuffer();
+  MatrixBufferType::iterator matrixColBuffer(int col);
+  MatrixBufferType::iterator matrixBuffer();
 
   // Rhs buffer: [equationCount]
   Scalar rhsEntry(int row) const;
@@ -53,13 +65,14 @@ public:
   SparseNonNegativeLeastSquaresSolver();
 
 private:
-  int equationCount_;
-  int unknownCount_;
-  int matrixLeadDim_;
+
+  long equationCount_;
+  long unknownCount_;
+  long matrixLeadDim_;
 
   double relativeTolerance_;
+  MatrixBufferType matrixBuffer_;
 
-  SimpleBuffer<Scalar> matrixBuffer_;
   SimpleBuffer<Scalar> rhsBuffer_;
   SimpleBuffer<Scalar> solutionBuffer_;
   SimpleBuffer<Scalar> dualSolutionBuffer_;
@@ -72,15 +85,14 @@ private:
 };
 
 // Inline member functions
-
 inline
-const SparseNonNegativeLeastSquaresSolver::Scalar *
+SparseNonNegativeLeastSquaresSolver::MatrixBufferType::const_iterator
 SparseNonNegativeLeastSquaresSolver::matrixBuffer() const {
-  return matrixBuffer_.array();
+  return matrixBuffer_.begin();
 } 
 
 inline
-const SparseNonNegativeLeastSquaresSolver::Scalar *
+SparseNonNegativeLeastSquaresSolver::MatrixBufferType::const_iterator
 SparseNonNegativeLeastSquaresSolver::matrixColBuffer(int col) const {
   return matrixBuffer() + (col * matrixLeadDim_);
 }
@@ -92,13 +104,13 @@ SparseNonNegativeLeastSquaresSolver::matrixEntry(int row, int col) const {
 }
 
 inline
-SparseNonNegativeLeastSquaresSolver::Scalar *
+SparseNonNegativeLeastSquaresSolver::MatrixBufferType::iterator
 SparseNonNegativeLeastSquaresSolver::matrixBuffer() {
-  return matrixBuffer_.array();
+  return matrixBuffer_.begin();
 } 
 
 inline
-SparseNonNegativeLeastSquaresSolver::Scalar *
+SparseNonNegativeLeastSquaresSolver::MatrixBufferType::iterator
 SparseNonNegativeLeastSquaresSolver::matrixColBuffer(int col) {
   return matrixBuffer() + (col * matrixLeadDim_);
 }

@@ -20,7 +20,7 @@ void inc_rottensor( double rvec[3], double rten[3][3] )
 
    // Compute incremental rotation tensor
 
-      /*double x =*/ form_rottensor( rvec, drten );
+      form_rottensor( rvec, drten );
 
    // Compute updated rotation tensor
       for( i=0; i<3; i++ ) {
@@ -62,7 +62,7 @@ void inc_rottensor( double rten[3][3], double rvec[3] )
 
    // Compute incremental rotation tensor
 
-      /*double x =*/ form_rottensor( rvec, drten );
+      form_rottensor( rvec, drten );
 
    // Compute updated rotation tensor
       for( i=0; i<3; i++ ) {

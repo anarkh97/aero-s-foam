@@ -10,6 +10,6 @@ spooles
 OUTPUT
 strainxy statics_spooles_strainxy.dat 1
 *
-INCLUDE "mesh.include"
+INCLUDE "../mesh.include"
 *
 END

@@ -69,6 +69,7 @@ GeoSource::writeArrayToBinFile(const double *data, int dataSize, int subId, int 
 
 void GeoSource::createBinaryOutputFile(int fileId, int glSub, int iter)
 {
+   if(!oinfo[fileId].PodRomfile) {
   // Open file for first time and write header
   if(oinfo[fileId].interval != 0) {
     if (binaryOutput) {
@@ -89,11 +90,13 @@ void GeoSource::createBinaryOutputFile(int fileId, int glSub, int iter)
       outfile.close();
     }
   }
+ }
 }
 
 void GeoSource::outputRange(int fileId, int *globalIndex, int nData, int glSub, int offset, int iter)
 {
-  if (binaryOutput) {
+  if(!oinfo[fileId].PodRomfile) {
+   if (binaryOutput) {
     const int clusterId = (*subToClus)[glSub][0];
     const char *appendFlag = "ws+";
     std::auto_ptr<BinFileHandler> file(openBinaryOutputFile(fileId, clusterId, iter, appendFlag));
@@ -124,6 +127,7 @@ void GeoSource::outputRange(int fileId, int *globalIndex, int nData, int glSub, 
       writePartialRangeToBinaryOutputFile(*file, globalIndex, nData, offset, getHeaderNameBytes(fileId)); 
     }
   }
+ }
 }
 
 

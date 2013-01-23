@@ -16,6 +16,9 @@ class PentaCorotator : public Corotator {
      void   getStiffAndForce(GeomState &gs, CoordSet &cs, 
                              FullSquareMatrix &elk, double *f, double dt, double t);
 
+     void   getInternalForce(GeomState &gs, CoordSet &cs,
+                             FullSquareMatrix &elk, double *f, double dt, double t);
+
      void extractDeformations(GeomState &geomState, CoordSet &cs, double *vld,
                               int &nlflag);
 

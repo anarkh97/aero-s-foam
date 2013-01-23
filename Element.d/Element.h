@@ -37,11 +37,14 @@ struct BCond {
   int nnum;   // node number
   int dofnum; // dof number (0-6)
   double val;    // value of bc
-  enum BCType { Forces, Flux, Convection, Radiation, Hneu, Atdneu, Usdf, Actuators,
+  enum BCType { Forces=0, Flux, Convection, Radiation, Hneu, Atdneu, Usdf, Actuators,
          Displacements, Temperatures, Hdir, Atddir, Usdd, Pdir, Hefrs,
          Idisplacements, Idisp6, Itemperatures, Ivelocities, Iaccelerations,
-         Sensors, Undefined, Lmpc } type;
-  void setData(int _nnum, int _dofnum, double _val, BCType _type = Undefined) { nnum = _nnum; dofnum = _dofnum; val = _val; type = _type; };
+         Sensors, Undefined, Lmpc, PointPointDistance, PointLineDistance, PointPlaneDistance } type;
+  int caseid;
+  enum MomentType { Axial=0, Rotational, Follower } mtype;
+  void setData(int _nnum, int _dofnum, double _val, BCType _type = Undefined, int _caseid = 0, 
+               MomentType _mtype = Axial) { nnum = _nnum; dofnum = _dofnum; val = _val; type = _type; caseid = _caseid; mtype = _mtype; }
 };
 
 // Complex Boundary Condition Structure
@@ -50,7 +53,8 @@ struct ComplexBCond {
   int    dofnum; // dof number
   double reval;  // real value of bc
   double imval;  // imaginary value of bc
-  void setData(int _nnum, int _dofnum, double _reval, double _imval) { nnum = _nnum; dofnum = _dofnum; reval = _reval; imval = _imval; };
+  int caseid;
+  void setData(int _nnum, int _dofnum, double _reval, double _imval, int _caseid = 0) { nnum = _nnum; dofnum = _dofnum; reval = _reval; imval = _imval; caseid = _caseid; };
 };
 
 
@@ -78,17 +82,21 @@ class StructProp {
     union {
         double  A;      // Cross-sectional area
         double kx;
+        double amplitude;
         };
     union {
 	double	E;      // Elastic modulus
 	double d0;      // Initial stiffness of nonlin element
         double ky;
+        double offset;
 	};
     union {
 	double	nu; 	// Poisson's ratio
 	double a;	// shear-t contribution ratio
         double kz;
         double lambda;  // damage control
+        double omega;
+        double c1;      // 1st parameter of an elementary prescribed motion function
 	};
      union {
 	double  rho; 	// Mass density per unit volume
@@ -98,12 +106,18 @@ class StructProp {
 	double  C1;	// Non-uniform torsion constant
 	double b;       // shear-s contribution ratio
 	double xo;      // Plastic parameter    -January 2002 - JMP
+        double phase;
+        double c2;      // 2nd parameter of an elementary prescribed motion function
 	};
      union {
 	double  Ixx;	// Cross-sectional moment of inertia about local x-axis
         double  ss;     // speed of sound
+        double  c3;     // 3rd parameter of an elementary prescribed motion function
         };
+     union {
 	double  Iyy;	// Cross-sectional moment of inertia about local y-axis
+        double  c4;     // 4th parameter of an elementary prescribed motion function
+        };
 	double  Izz;	// Cross-sectional moment of inertia about local z-axis
      union {
 	double c; 	// Thermal convection coefficient
@@ -142,11 +156,14 @@ class StructProp {
         complex<double> soundSpeed;
 
         bool lagrangeMult; // whether or not to use lagrange multiplier for mpc type elements
-        double penalty; // penalty parameter for mpc type elements
-        double amplitude, omega, phase, offset; // amplitude and circular frequency of forcing term for some mpc type elements
+        double penalty, initialPenalty; // penalty parameter for mpc type elements
+        int funtype; // prescribed motion function type: 0 for sinusoidal, 1 for bounded ramp
         double B, C;
         int relop; // 0: equality (==), 1: inequality (<=)
+        int constraint_hess;
+        double constraint_hess_eps;
         enum { Undefined=0, Fluid, Fabric, Thermal, Constraint } type;
+        double k1, k2, k3;
 
 	// Fabric Material Options
 	int F_op; // Fabric Material Option
@@ -182,9 +199,10 @@ class StructProp {
                        kappaHelm = 0.0; kappaHelmImag = 0.0; fp.PMLtype = 0;
                        soundSpeed = 1.0; alphaDamp = 0.0; betaDamp = 0.0;
                        ymin = 0.0; ymax = 0.0;
-		       zmin = 0.0; zmax = 0.0; isReal = false; 
-                       lagrangeMult = true; penalty = 0.0; amplitude = 0.0; omega = 0.0; phase = 0; offset = 0;
-                       B = 1.0; C = 0.0; relop = 0; type = Undefined; } 
+                       zmin = 0.0; zmax = 0.0; isReal = false; 
+                       lagrangeMult = true; penalty = 0.0; initialPenalty = 0.0;
+                       B = 1.0; C = 0.0; relop = 0; type = Undefined; funtype = 0;
+                       k1 = 0; k2 = 0; k3 = 0; constraint_hess = 1; constraint_hess_eps = 0.0; } 
 
 };
 
@@ -198,8 +216,8 @@ class Node {
   public:
 	// Constructors
         Node() {}
-        Node(double *xyz) { x = xyz[0]; y = xyz[1]; z = xyz[2]; }
-        Node(const Node &node) { x = node.x; y = node.y; z = node.z; }
+        Node(double *xyz, int _cp=0, int _cd=0) { x = xyz[0]; y = xyz[1]; z = xyz[2]; cp = _cp, cd = _cd; }
+        Node(const Node &node) { x = node.x; y = node.y; z = node.z; cp = node.cp; cd = node.cd; }
 	~Node() {};
 	double distance2(const Node& node) const
 	   { return (node.x-x)*(node.x-x)+(node.y-y)*(node.y-y)+(node.z-z)*(node.z-z); }
@@ -209,6 +227,10 @@ class Node {
 	double 	x;
 	double 	y;
 	double 	z;
+
+        // Frames
+        int cp;
+        int cd;
 };
 
 // ****************************************************************
@@ -240,7 +262,7 @@ public:
 
 	// Member functions
         int size() const;
-        void  nodeadd(int n, double*xyz);
+        void  nodeadd(int n, double*xyz, int cp=0, int cd=0);
         void  nodeadd(int n, Node &node);
 	Node &getNode(int n);
         void getCoordinates(int *nn, int numNodes,
@@ -368,6 +390,10 @@ class Element {
 
         virtual void   getAllStress(FullM &stress, Vector &weight, CoordSet &cs,
                                     Vector &elDisp, int strInd, int surface=0,
+                                    double *ndTemps=0);
+
+        virtual void   getAllStress(FullMC &stress, Vector &weight, CoordSet &cs,
+                                    ComplexVector &elDisp, int strInd, int surface=0,
                                     double *ndTemps=0);
 
         virtual void   computeHeatFluxes(Vector& heatflux, CoordSet &cs,

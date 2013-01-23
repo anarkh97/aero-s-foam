@@ -7,6 +7,9 @@
 #include <Eigen/Core>
 #include <Eigen/Sparse>
 #include <Eigen/SparseCholesky>
+#ifdef EIGEN_SPARSELU_SUPPORT
+#include <Eigen/SparseLU>
+#endif
 #ifdef EIGEN_CHOLMOD_SUPPORT
 #include <Eigen/CholmodSupport>
 #endif
@@ -16,12 +19,16 @@
 #ifdef EIGEN_SUPERLU_SUPPORT
 #include <Eigen/SuperLUSupport>
 #endif
+#ifdef EIGEN_SRQR_SUPPORT
+#include <Eigen/SPQRSupport>
+#endif
 #include <Math.d/SparseMatrix.h>
 #include <Solvers.d/Solver.h>
 
 template<class Scalar, class SolverClass = Eigen::SimplicialLLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >
 class GenEiSparseMatrix : public SparseData, public GenSparseMatrix<Scalar>, public GenSolver<Scalar>
 {
+ protected:
    // this is a symmetric sparse matrix using CSR storage (upper triangluar part only in self-adjoint case) 
    // and Eigen 3 implementation via MappedSparseMatrix
    bool selfadjoint;
@@ -40,6 +47,8 @@ class GenEiSparseMatrix : public SparseData, public GenSparseMatrix<Scalar>, pub
 
    // GenSparseMatrix assembly
    void add(FullSquareMatrix &, int *dofs);
+   void addImaginary(FullSquareMatrix &, int *dofs);
+   void add(FullSquareMatrixC &, int *dofs); 
    void addDiscreteMass(int dof, Scalar diMass);
    void add(int, int, Scalar);
 

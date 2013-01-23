@@ -147,7 +147,7 @@ class NonLinDynamic : public NLDynamPostProcessor {
     void getIncDisplacement(GeomState *geomState, Vector &du, GeomState *refState, bool zeroRot);
 
     double formRHScorrector(Vector& inc_displac, Vector &velocity, Vector& acceleration,
-                            Vector &residual, Vector &rhs, double localDelta);
+                            Vector &residual, Vector &rhs, GeomState *geomState, double localDelta);
 
     void formRHSpredictor(Vector &velocity, Vector &acceleration, Vector &residual, Vector &rhs, GeomState &, double mid, double localDelta);
 
@@ -193,6 +193,7 @@ class NonLinDynamic : public NLDynamPostProcessor {
     virtual void dynamOutput(GeomState* geomState, Vector& velocity, Vector &vp,
                      double time, int timestep, Vector& force, Vector &aeroF, Vector &acceleration,
                      GeomState *refState) const;
+    void getConstraintMultipliers(GeomState &geomState) { /* deliberately empty */ }
     virtual double getResidualNorm(const Vector &rhs, GeomState &geomState, double localDelta);
 
     int getAeroAlg();
@@ -201,6 +202,10 @@ class NonLinDynamic : public NLDynamPostProcessor {
     int getAeroheatFlag();
     void getNewmarkParameters(double &beta, double &gamma,
                               double &alphaf, double &alpham);
+
+    void initializeParameters(GeomState *geomState);
+    void updateParameters(GeomState *geomState);
+    bool checkConstraintViolation(double &err);
 
 private:
     virtual bool factorWhenBuilding() const;

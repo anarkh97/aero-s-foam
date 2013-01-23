@@ -6,7 +6,7 @@ dsvm20_sparse_gdispmod
 *
 STATICS
 sparse
-*
+include "../fetidp.include"
 EIGEN
 arpack
 nsbspv 8

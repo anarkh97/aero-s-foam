@@ -19,6 +19,10 @@ DistrGeomState::DistrGeomState(DecDomain* domain)
  // array of pointers to the subdomain's geometry states
  gs = new GeomState*[numSub];
 
+ // array of data structures to store lagrange multipliers 
+ mu = new std::map<std::pair<int,int>,double>[numSub];
+ lambda = new std::vector<double>[numSub];
+
  // parallel execution of subdomain geometry state construction
  execParal(numSub,this,&DistrGeomState::makeSubGeomStates,domain); 
 }
@@ -38,6 +42,8 @@ DistrGeomState::DistrGeomState(const DistrGeomState &g2)
 {
   numSub = g2.getNumSub();
   gs = new GeomState*[numSub];
+  mu = new std::map<std::pair<int,int>,double>[numSub];
+  lambda = new std::vector<double>[numSub];
   execParal(numSub,this,&DistrGeomState::subCopyConstructor,g2);
 }
 
@@ -47,29 +53,33 @@ DistrGeomState::subCopyConstructor(int isub, const DistrGeomState &g2)
   TemperatureState* ts;
   if(ts = dynamic_cast<TemperatureState*>(g2[isub])) gs[isub] = new TemperatureState(*ts);
   else gs[isub] = new GeomState(*(g2[isub]));
+
+  mu[isub] = g2.mu[isub];
+  lambda[isub] = g2.lambda[isub];
 }
 
 DistrGeomState::~DistrGeomState()
 {
   for(int i=0; i<numSub; ++ i) delete gs[i];
   delete [] gs;
+  delete [] mu;
+  delete [] lambda;
 }
 
 // Subdomain update
 void
-DistrGeomState::subUpdate(int isub, DistrVector &v)
+DistrGeomState::subUpdate(int isub, DistrVector &v, int SO3param)
 {
   StackVector vec(v.subData(isub), v.subLen(isub));
-  gs[isub]->update(vec);
+  gs[isub]->update(vec, SO3param);
 }
 
 void
-DistrGeomState::subSetVelocity(int isub, DistrVector &d, DistrVector &v, DistrVector &a)
+DistrGeomState::subSetVelocity(int isub, DistrVector &v, DistrVector &a)
 {
-  StackVector dsub(d.subData(isub), d.subLen(isub));
   StackVector vsub(v.subData(isub), v.subLen(isub));
   StackVector asub(a.subData(isub), a.subLen(isub));
-  gs[isub]->setVelocity(dsub, vsub, asub);
+  gs[isub]->setVelocity(vsub, asub);
 }
 
 void
@@ -102,6 +112,32 @@ void
 DistrGeomState::get_inc_displacement(DistrVector &inc_vec, DistrGeomState &ss, bool zeroRot)
 {
  execParal3R(numSub,this,&DistrGeomState::subInc_get, inc_vec, ss, zeroRot);
+}
+
+void
+DistrGeomState::subPushForward(int isub, DistrVector &f)
+{
+ StackVector subf(f.subData(isub), f.subLen(isub));
+ gs[isub]->push_forward(subf);
+}
+
+void
+DistrGeomState::push_forward(DistrVector &f)
+{
+ execParal1R(numSub, this, &DistrGeomState::subPushForward, f);
+}
+
+void
+DistrGeomState::subPullBack(int isub, DistrVector &f)
+{
+ StackVector subf(f.subData(isub), f.subLen(isub));
+ gs[isub]->pull_back(subf);
+}
+
+void
+DistrGeomState::pull_back(DistrVector &f)
+{
+ execParal1R(numSub, this, &DistrGeomState::subPullBack, f);
 }
 
 void
@@ -147,15 +183,15 @@ DistrGeomState::diff(DistrGeomState &unp, DistrVector &un)
 }
 
 void
-DistrGeomState::update(DistrVector &v)
+DistrGeomState::update(DistrVector &v, int SO3param)
 {
-  execParal1R(numSub, this, &DistrGeomState::subUpdate, v);
+  execParal2R(numSub, this, &DistrGeomState::subUpdate, v, SO3param);
 }
 
 void
-DistrGeomState::setVelocity(DistrVector &d, DistrVector &v, DistrVector &a)
+DistrGeomState::setVelocity(DistrVector &v, DistrVector &a)
 {
-  execParal3R(numSub, this, &DistrGeomState::subSetVelocity, d, v, a);
+  execParal2R(numSub, this, &DistrGeomState::subSetVelocity, v, a);
 }
 
 DistrGeomState &
@@ -170,6 +206,9 @@ DistrGeomState::subCopy(int isub, DistrGeomState &unp)
 {
   GeomState &unpR = *unp[isub];
   *(gs[isub]) = unpR; 
+
+  mu[isub] = unp.mu[isub];
+  lambda[isub] = unp.lambda[isub];
 }
 
 int 

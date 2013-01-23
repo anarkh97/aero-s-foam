@@ -37,8 +37,9 @@ struct OutputInfo {
           EigenSlosh, SloshDispX, SloshDispY, SloshDispZ, SloshDisplacement,
           TDEnforcement, Damage, EquivalentPlasticStrain, 
           TemperatureFirstTimeDerivative, PressureFirstTimeDerivative, PressureSecondTimeDerivative,
-          HeatReactions, Reactions6
-         };
+	  HeatReactions, Reactions6, Statevector, Residual, Jacobian, 
+	  RobData, SampleMesh, Accelvector, Forcevector,
+          RotationMatrix };
 
    enum Group  { Nodal, Attribute, NodeGroup };
    Type  type;
@@ -60,12 +61,17 @@ struct OutputInfo {
    enum { realimag, modulusphase, animate };
    int complexouttype;
    int ncomplexout;   
+   enum { spatial, convected, total };
+   int angularouttype;
    bool matlab;
+   bool PodRomfile;
    int tdenforc_var; // CONFACE=1, NORMAL_FORCE_MAG, NORMAL_TRACTION_MAG, TANGENTIAL_FORCE_MAG, TANGENTIAL_TRACTION_MAG,
                      // CDIRNORX, CDIRNORY, CDIRNORZ, CDIRTANX, CDIRTANY, CDIRTANZ, SLIP_MAG, NODAL_DISSIPATION,
                      // CONTACT_AREA, GAP_CUR, GAP_OLD
    int topFlag; // if this is set to 1 then the output file should use the compressed numbering (i.e. with gaps removed)
                 // compatible with top files generated using -T command line argument
+   enum FrameType { Global=0, Local };
+   FrameType oframe;
 
    void initialize() {
      width = 10; 
@@ -83,9 +89,12 @@ struct OutputInfo {
      ndtype = 0;
      complexouttype = OutputInfo::realimag;
      ncomplexout = 16;
+     angularouttype = OutputInfo::convected;
      tdenforc_var = 3;
      matlab = false;
+     PodRomfile = false;
      topFlag = 0;
+     oframe = OutputInfo::Global;
    }
 
    void finalize(int numColumns) {

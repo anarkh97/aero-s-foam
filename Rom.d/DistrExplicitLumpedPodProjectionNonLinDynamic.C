@@ -10,6 +10,8 @@
 #include <utility>
 #include <cstddef>
 
+#include <sys/time.h>
+
 extern GeoSource *geoSource;
 
 namespace Rom {
@@ -20,16 +22,17 @@ DistrExplicitLumpedPodProjectionNonLinDynamic::DistrExplicitLumpedPodProjectionN
 
 void
 DistrExplicitLumpedPodProjectionNonLinDynamic::preProcess() {
+  
   DistrExplicitPodProjectionNonLinDynamicBase::preProcess();
 
   buildPackedElementWeights();
 }
 
 void
-DistrExplicitLumpedPodProjectionNonLinDynamic::getInternalForce(DistrVector &d, DistrVector &f, double t) {
-  execParal2R(decDomain->getNumSub(),
+DistrExplicitLumpedPodProjectionNonLinDynamic::getInternalForce(DistrVector &d, DistrVector &f, double t, int tIndex) {
+  execParal3R(decDomain->getNumSub(),
               this, &DistrExplicitLumpedPodProjectionNonLinDynamic::subGetWeightedInternalForceOnly,
-              f, t);
+              f, t, tIndex);
   
   if (domain->solInfo().filterFlags) {
     trProject(f);
@@ -44,17 +47,25 @@ DistrExplicitLumpedPodProjectionNonLinDynamic::buildPackedElementWeights() {
 }
 
 void
-DistrExplicitLumpedPodProjectionNonLinDynamic::subGetWeightedInternalForceOnly(int iSub, DistrVector &f, double t) {
+DistrExplicitLumpedPodProjectionNonLinDynamic::subGetWeightedInternalForceOnly(int iSub, DistrVector &f, double &t, int &tIndex) {
   SubDomain *sd = decDomain->getSubDomain(iSub);
   Vector residual(f.subLen(iSub), 0.0);
   Vector eIF(sd->maxNumDOF()); // eIF = element internal force for one element (a working array)
-  
-  sd->getWeightedStiffAndForceOnly(packedElementWeights_[iSub], *(*geomState)[iSub], eIF,
-                                   allCorot[iSub], kelArray[iSub], residual,
-                                   1.0, t, NULL); // residual -= internal force);
+
+  if(domain->solInfo().stable && domain->solInfo().isNonLin() && tIndex%domain->solInfo().stable_freq == 0) {
+    sd->getWeightedStiffAndForceOnly(packedElementWeights_[iSub], *(*geomState)[iSub], eIF,
+                                     allCorot[iSub], kelArray[iSub], residual,
+                                     1.0, t, (*geomState)[iSub]); // residual -= internal force);
+  }
+  else {
+    sd->getWeightedInternalForceOnly(packedElementWeights_[iSub], *(*geomState)[iSub], eIF,
+                                     allCorot[iSub], kelArray[iSub], residual,
+                                     1.0, t, (*geomState)[iSub]); // residual -= internal force);
+  }
   StackVector subf(f.subData(iSub), f.subLen(iSub));
   subf.linC(residual, -1.0); // f = -residual
 }
+
 
 void
 DistrExplicitLumpedPodProjectionNonLinDynamic::subBuildPackedElementWeights(int iSub) {

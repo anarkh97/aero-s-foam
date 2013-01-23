@@ -475,11 +475,12 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
   if(outFlag && !nodeTable) makeNodeTable(outFlag);
   int numNodes = geoSource->numNode();  // PJSA 8-26-04 don't want to print displacements for internal nodes
   int numNodeLim = myMax(numNodes,numnodes);
-  double (*glDisp)[11] = new double[numNodeLim][11];//DofSet::max_known_nonL_dof
+  double (*glDisp)[11] = new double[numNodeLim][11];
+  double (*locDisp)[11] = (domain->solInfo().basicDofCoords) ? 0 : new double[numNodeLim][11];
   for (int i = 0; i < numNodeLim; ++i)
     for (int j = 0 ; j < 11 ; j++)
       glDisp[i][j] = 0.0;
-  mergeDistributedDisp(glDisp, d_n.data(), bcx);
+  mergeDistributedDisp(glDisp, d_n.data(), bcx, locDisp);
   int numNodesOut = (outFlag) ? exactNumNodes : numNodes;
 
   for (int i = firstRequest; i < lastRequest; ++i) {
@@ -502,7 +503,11 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
       int w = oinfo[i].width;
       int p = oinfo[i].precision;
 
-      int success = processDispTypeOutputs(oinfo[i], glDisp, numNodesOut, i, time);
+      int success;
+      if(oinfo[i].oframe == OutputInfo::Global || domain->solInfo().basicDofCoords)
+        success = processDispTypeOutputs(oinfo[i], glDisp, numNodesOut, i, time);
+      else
+        success = processDispTypeOutputs(oinfo[i], locDisp, numNodesOut, i, time);
       if (success) continue;
       success = processOutput(oinfo[i].type, d_n, bcx, i, time);
       if (success) continue;
@@ -522,6 +527,9 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
 
             getOrAddDofForPrint(get, v_n, vcx, first_node+iNode, data[nodeI]+3, &DofSet::Xrot,
                                 data[nodeI]+4, &DofSet::Yrot, data[nodeI]+5, &DofSet::Zrot);
+
+            // transform velocity from DOF_FRM to basic coordinate frame
+            if(oinfo[i].oframe == OutputInfo::Global) transformVectorInv(&(data[nodeI][0]), first_node+iNode, true);
           }
           geoSource->outputNodeVectors6(i, data, nNodesOut, time);
           delete [] data;
@@ -535,6 +543,8 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
             getOrAddDofForPrint(get, v_n, vcx, first_node+iNode, data[nodeI], &DofSet::Xdisp,
                                 data[nodeI]+1, &DofSet::Ydisp, data[nodeI]+2, &DofSet::Zdisp);
 
+            // transform velocity from DOF_FRM to basic coordinate frame
+            if(oinfo[i].oframe == OutputInfo::Global) transformVectorInv(&(data[nodeI][0]), first_node+iNode, false);
           }
           geoSource->outputNodeVectors(i, data, nNodesOut, time);
           delete [] data;
@@ -574,6 +584,9 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
             getOrAddDofForPrint(get, a_n, acx, first_node+iNode, data[nodeI]+3, 
                                 &DofSet::Xrot, data[nodeI]+4, &DofSet::Yrot, data[nodeI]+5, 
                                 &DofSet::Zrot);
+
+             // transform acceleration from DOF_FRM to basic coordinate frame
+            if(oinfo[i].oframe == OutputInfo::Global) transformVectorInv(&(data[nodeI][0]), first_node+iNode, true);
           }
           geoSource->outputNodeVectors6(i, data, nNodesOut, time);
           delete [] data;
@@ -586,6 +599,9 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
             if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
             getOrAddDofForPrint(get, a_n, acx, first_node+iNode, data[nodeI], 
                                 &DofSet::Xdisp, data[nodeI]+1, &DofSet::Ydisp, data[nodeI]+2, &DofSet::Zdisp);
+
+            // transform acceleration from DOF_FRM to basic coordinate frame
+            if(oinfo[i].oframe == OutputInfo::Global) transformVectorInv(&(data[nodeI][0]), first_node+iNode, false);
           }
           geoSource->outputNodeVectors(i, data, nNodesOut, time);
           delete [] data;
@@ -785,6 +801,9 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
               int cdof = (dof >= 0) ? c_dsa->invRCN(dof) : -1;
               rxyz[nodeI][k] = (cdof >= 0) ? fc[cdof] : 0;     // constrained
             }
+            if(oinfo[i].oframe == OutputInfo::Global && !domain->solInfo().basicDofCoords) {
+              transformVectorInv(&rxyz[nodeI][0],iNode,false);
+            }
           }
           geoSource->outputNodeVectors(i, rxyz, nNodesOut, time);
           delete [] rxyz;
@@ -804,12 +823,21 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
               int cdof = (dof >= 0) ? c_dsa->invRCN(dof) : -1;
               rxyz[nodeI][k] = (cdof >= 0) ? fc[cdof] : 0;     // constrained
             }
+            if(oinfo[i].oframe == OutputInfo::Global && !domain->solInfo().basicDofCoords) {
+              transformVectorInv(&rxyz[nodeI][0],iNode,true);
+            }
           }
           geoSource->outputNodeVectors6(i, rxyz, nNodesOut, time);
           delete [] rxyz;
           } break;
         case OutputInfo::ModeError: // don't print warning message since these are
         case OutputInfo::ModeAlpha: // output in SingleDomainDynamic::modeDecomp
+          break;
+        case OutputInfo::Statevector: // don't print warning message for these either
+        case OutputInfo::Residual:
+        case OutputInfo::Jacobian:
+        case OutputInfo::RobData:
+        case OutputInfo::SampleMesh:
           break;
 
         default:
@@ -824,7 +852,7 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
        
   
   if (glDisp) delete [] glDisp;
-
+  if (locDisp) delete [] locDisp;
 }
 
 //----------------------------------------------------------------------------------------------

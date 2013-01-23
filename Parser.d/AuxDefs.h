@@ -34,6 +34,8 @@ template <class Scalar, class VecType> class SfemInpc;
 typedef struct {
    int num;
    double xyz[3];
+   int cp;
+   int cd;
 } NumedNode;
    
 typedef struct {
@@ -51,8 +53,9 @@ class BCList {
     BCond *d;
     int n;
     int maxbc;
+    int caseid;
 
-    BCList();
+    BCList(int _caseid = 0);
     void add(BCond &);
     void add(int nd, int dof, double val) 
       { BCond bc; bc.nnum = nd; bc.dofnum =dof; bc.val = val; add(bc); }
@@ -73,6 +76,13 @@ struct FrameData {
   double d[9];
 };
 
+struct NodalFrameData {
+  int id;
+  double o[3];
+  double d[9];
+  int type;
+};
+
 struct LayerData {
   int lnum;
   int matid;
@@ -82,6 +92,8 @@ struct LayerData {
 struct ConstraintOptions {
   bool lagrangeMult;
   double penalty;
+  int constraint_hess;
+  double constraint_hess_eps;
 };
 
 extern double fetiHTol;

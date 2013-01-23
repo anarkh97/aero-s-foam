@@ -1,27 +1,22 @@
 #!/bin/bash
 #PBS -N test
-#PBS -l nodes=1:ppn=8,walltime=3:00:00
+#PBS -V
+#PBS -l nodes=4:ppn=8,walltime=3:00:00
 
+. /opt/modules/Modules/3.2.6/init/bash
+ module load intel openmpi
 cd /lustre/home/mpotts/FEM/Regression.d/dsvm39
-echo mpirun -n 4 ../../bin/aeros  dsvm39_sparse_displacx.inp
-mpirun -n 4 ../../bin/aeros  dsvm39_sparse_displacx.inp
-echo mpirun -n 4 ../../bin/aeros  dsvm39_mumps_displacx.inp
-mpirun -n 4 ../../bin/aeros  dsvm39_mumps_displacx.inp
-echo mpirun -n 4 ../../bin/aeros  dsvm39_spooles_displacx.inp
-mpirun -n 4 ../../bin/aeros  dsvm39_spooles_displacx.inp
-echo mpirun -n 4 ../../bin/aeros  dsvm39_gmres_displacx.inp
-mpirun -n 4 ../../bin/aeros  dsvm39_gmres_displacx.inp
-echo mpirun -n 4 ../../bin/aeros  dsvm39_spooles_pivot_displacx.inp
-mpirun -n 4 ../../bin/aeros  dsvm39_spooles_pivot_displacx.inp
-echo mpirun -n 4 ../../bin/aeros  dsvm39_mumps_pivot_displacx.inp
-mpirun -n 4 ../../bin/aeros  dsvm39_mumps_pivot_displacx.inp
-echo mpirun -n 4 ../../bin/aeros  dsvm39_pcg_displacx.inp
-mpirun -n 4 ../../bin/aeros  dsvm39_pcg_displacx.inp
-echo mpirun -n 4 ../../bin/aeros  dsvm39_bcg_displacx.inp
-mpirun -n 4 ../../bin/aeros  dsvm39_bcg_displacx.inp
-echo mpirun -n 4 ../../bin/aeros  dsvm39_cr_displacx.inp
-mpirun -n 4 ../../bin/aeros  dsvm39_cr_displacx.inp
-echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 dsvm39_FETI_DP_displacx.inp
-mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 dsvm39_FETI_DP_displacx.inp
-echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 dsvm39_FETI_DPH_displacx.inp
-mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 dsvm39_FETI_DPH_displacx.inp
+../create_mfiles.pl
+echo mpirun -n 2 ../../bin/aeros  dsvm39_sparse_displacx.inp
+mpirun -n 2 --machinefile host.0 ../../bin/aeros  dsvm39_sparse_displacx.inp &
+echo mpirun -n 2 ../../bin/aeros  dsvm39_mumps_displacx.inp
+mpirun -n 2 --machinefile host.1 ../../bin/aeros  dsvm39_mumps_displacx.inp &
+echo mpirun -n 2 ../../bin/aeros  dsvm39_spooles_displacx.inp
+mpirun -n 2 --machinefile host.2 ../../bin/aeros  dsvm39_spooles_displacx.inp &
+echo mpirun -n 2 ../../bin/aeros  dsvm39_spooles_pivot_displacx.inp
+mpirun -n 2 --machinefile host.3 ../../bin/aeros  dsvm39_spooles_pivot_displacx.inp &
+echo mpirun -n 2 ../../bin/aeros  dsvm39_mumps_pivot_displacx.inp
+mpirun -n 2 --machinefile host.4 ../../bin/aeros  dsvm39_mumps_pivot_displacx.inp &
+echo mpirun -n 2 ../../bin/aeros -n 2 --dec --nsub 4 dsvm39_FETI_DP_displacx.inp
+mpirun -n 2 --machinefile host.5 ../../bin/aeros -n 2 --dec --nsub 4 dsvm39_FETI_DP_displacx.inp &
+wait %1 %2 %3 %4 %5 %6 

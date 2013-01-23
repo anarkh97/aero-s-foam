@@ -35,9 +35,8 @@
 #include <Element.d/Sommerfeld.d/TrianglePressureBC.h>
 #include <Element.d/Sommerfeld.d/QuadPressureBC.h>
 
-#include <Rom.d/GaussNewtonSolver.h>
-#include <Rom.d/GappyProjectionSolver.h>
 #include <Rom.d/GalerkinProjectionSolver.h>
+#include <Rom.d/EiGalerkinProjectionSolver.h>
 #include <Control.d/ControlInterface.h>
 
 extern Sfem* sfem;
@@ -161,6 +160,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
      if(kelArray) kel.copy(kelArray[iele]);
      else kel = packedEset[iele]->stiffness(nodes, karray);
      this->densProjectStiffness(kel, iele);
+     this->transformMatrix(kel, iele);
    }
    if(sinfo.isCoupled) {
       if(isStructureElement(iele)) kel *= cscale_factor2;
@@ -209,6 +209,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
        if(melArray) mel.copy(melArray[iele]);
        else mel = packedEset[iele]->massMatrix(nodes, marray, mratio);
        this->densProjectStiffness(mel, iele);
+       this->transformMatrix(mel, iele);
      }
      if(sinfo.isCoupled) { 
        if(isStructureElement(iele)) mel *= cscale_factor2;
@@ -966,25 +967,20 @@ Domain::constructMumps(ConstrainedDSA *DSA, Rbm *, FSCommunicator *com)
 }
 
 template<class Scalar>
-Rom::GenGaussNewtonSolver<Scalar> *
-Domain::constructGaussNewtonSolver()
-{
-  return new Rom::GenGaussNewtonSolver<Scalar>(nodeToNode, dsa, c_dsa);
-}
-
-template<class Scalar>
 Rom::GenGalerkinProjectionSolver<Scalar> *
 Domain::constructGalerkinProjectionSolver()
 {
   return new Rom::GenGalerkinProjectionSolver<Scalar>(nodeToNode, dsa, c_dsa);
 }
 
+#ifdef USE_EIGEN3
 template<class Scalar>
-Rom::GenGappyProjectionSolver<Scalar> *
-Domain::constructGappyProjectionSolver()
+Rom::GenEiSparseGalerkinProjectionSolver<Scalar> *
+Domain::constructEiSparseGalerkinProjectionSolver()
 {
-  return new Rom::GenGappyProjectionSolver<Scalar>(nodeToNode, dsa, c_dsa);
+  return new Rom::GenEiSparseGalerkinProjectionSolver<Scalar>(nodeToNode, dsa, c_dsa);
 }
+#endif
 
 template<class Scalar>
 void
@@ -1082,7 +1078,10 @@ Domain::buildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Ccoe
      // Time system matrix factorization
      if(matrixTimers) matrixTimers->factor -= getTime();
 
-     if(systemSolver) systemSolver->factor();
+     if(systemSolver) {
+       if(!verboseFlag && sinfo.isNonLin() && sinfo.isDynam()) systemSolver->setPrintNullity(false);
+       systemSolver->factor();
+     }
 
      if(matrixTimers) matrixTimers->factor += getTime();
      if(matrixTimers) matrixTimers->memorySolve += memoryUsed();
@@ -1142,6 +1141,15 @@ Domain::rebuildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Cc
          systemSolver  = (GenEiSparseMatrix<Scalar,Eigen::SimplicialLDLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >*) spm;
        }
        break;
+#ifdef EIGEN_SPARSELU_SUPPORT
+       case 15: {
+         spm = (GenEiSparseMatrix<Scalar,Eigen::SparseLU<Eigen::SparseMatrix<Scalar>,Eigen::COLAMDOrdering<int> > >*)allOps.sysSolver;
+         spm->zeroAll();
+         makeSparseOps<Scalar>(allOps, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray, celArray);
+         systemSolver  = (GenEiSparseMatrix<Scalar,Eigen::SparseLU<Eigen::SparseMatrix<Scalar>,Eigen::COLAMDOrdering<int> > >*) spm;
+       }
+       break;
+#endif
 #ifdef EIGEN_CHOLMOD_SUPPORT
        case 5: {
          spm = (GenEiSparseMatrix<Scalar,Eigen::CholmodDecomposition<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >*)allOps.sysSolver;
@@ -1157,6 +1165,15 @@ Domain::rebuildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Cc
          spm->zeroAll();
          makeSparseOps<Scalar>(allOps, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray, celArray);
          systemSolver  = (GenEiSparseMatrix<Scalar,Eigen::UmfPackLU<Eigen::SparseMatrix<Scalar> > >*) spm;
+       }
+       break;
+#endif
+#ifdef EIGEN_SPRQ_SUPPORT
+       case 16: {
+         spm = (GenEiSparseMatrix<Scalar,Eigen::SPQR<Eigen::SparseMatrix<Scalar> > >*)allOps.sysSolver;
+         spm->zeroAll();
+         makeSparseOps<Scalar>(allOps, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray, celArray);
+         systemSolver  = (GenEiSparseMatrix<Scalar,Eigen::SPQR<Eigen::SparseMatrix<Scalar> > >*) spm;
        }
        break;
 #endif
@@ -1351,6 +1368,13 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
       makeSparseOps<Scalar>(allOps, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray, celArray);
       systemSolver  = (GenEiSparseMatrix<Scalar,Eigen::SimplicialLDLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >*) spm;
       break;
+#ifdef EIGEN_SPARSELU_SUPPORT
+    case 15:
+      spm = constructEiSparseMatrix<Scalar,Eigen::SparseLU<Eigen::SparseMatrix<Scalar>,Eigen::COLAMDOrdering<int> > >(c_dsa, nodeToNode, false);
+      makeSparseOps<Scalar>(allOps, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray, celArray);
+      systemSolver  = (GenEiSparseMatrix<Scalar,Eigen::SparseLU<Eigen::SparseMatrix<Scalar>,Eigen::COLAMDOrdering<int> > >*) spm;
+    break;
+#endif
 #ifdef EIGEN_CHOLMOD_SUPPORT
     case 5:
       spm = constructEiSparseMatrix<Scalar,Eigen::CholmodDecomposition<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >(c_dsa);
@@ -1363,6 +1387,13 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
       spm = constructEiSparseMatrix<Scalar,Eigen::UmfPackLU<Eigen::SparseMatrix<Scalar> > >(c_dsa, nodeToNode, false);
       makeSparseOps<Scalar>(allOps, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray, celArray);
       systemSolver  = (GenEiSparseMatrix<Scalar,Eigen::UmfPackLU<Eigen::SparseMatrix<Scalar> > >*) spm;
+      break;
+#endif
+#ifdef EIGEN_SPRQ_SUPPORT
+    case 6:
+      spm = constructEiSparseMatrix<Scalar,Eigen::SPQR<Eigen::SparseMatrix<Scalar> > >(c_dsa, nodeToNode, false);
+      makeSparseOps<Scalar>(allOps, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray, celArray);
+      systemSolver  = (GenEiSparseMatrix<Scalar,Eigen::SQPR<Eigen::SparseMatrix<Scalar> > >*) spm;
       break;
 #endif
 #ifdef EIGEN_SUPERLU_SUPPORT
@@ -1397,16 +1428,6 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
       makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray,celArray);
       systemSolver   = (GenDiagMatrix<Scalar>*) spm;
       break;
-    case 11:
-      //filePrint(stderr," ... POD-GN Solver is Selected      ...\n");
-      {
-        Rom::GenGaussNewtonSolver<Scalar> * solver = constructGaussNewtonSolver<Scalar>();
-        spm = solver;
-        spm->zeroAll();
-        makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray,celArray);
-        systemSolver = solver;
-      }
-      break;
     case 12:
       //filePrint(stderr," ... POD-Galerkin Solver is Selected...\n");
       {
@@ -1417,17 +1438,17 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
         systemSolver = solver;
       }
       break;
-    case 13:
-      //filePrint(stderr," ... Gappy-POD Solver is Selected   ...\n");
+#ifdef USE_EIGEN3
+   case 13:
+      //filePrint(stderr," ... POD-Galerkin Solver is Selected...\n");
       {
-        Rom::GenGappyProjectionSolver<Scalar> * solver = constructGappyProjectionSolver<Scalar>();
+        Rom::GenEiSparseGalerkinProjectionSolver<Scalar> * solver = constructEiSparseGalerkinProjectionSolver<Scalar>();
         spm = solver;
         spm->zeroAll();
         makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray,celArray);
         systemSolver = solver;
       }
       break;
-#ifdef USE_EIGEN3
     case 14:
 #ifdef USE_EIGEN_CHOLMOD
       spm = constructGoldfarb<Scalar,Eigen::CholmodDecomposition<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >(c_dsa);
@@ -1542,6 +1563,9 @@ Domain::addGravityForce(GenVector<Scalar> &force)
     elementGravityForce.zero();
     packedEset[iele]->getGravityForce(nodes, gravityAcceleration, elementGravityForce, gravflg);
 
+    // transform vector from basic to DOF_FRM coordinates
+    transformVector(elementGravityForce, iele);
+
     for(int idof = 0; idof < allDOFs->num(iele); ++idof) {
       int cn = c_dsa->getRCN((*allDOFs)[iele][idof]);
       if(cn >= 0)
@@ -1581,6 +1605,9 @@ Domain::addPressureForce(GenVector<Scalar> &force, double lambda)
       elementPressureForce.zero();
       packedEset[iele]->computePressureForce(nodes, elementPressureForce, (GeomState *) 0, cflg);
 
+      // transform vector from basic to DOF_FRM coordinates
+      transformVector(elementPressureForce, iele);
+
       // Assemble element pressure forces into domain force vector
       for(int idof = 0; idof < allDOFs->num(iele); ++idof) {
         int cn = c_dsa->getRCN((*allDOFs)[iele][idof]);
@@ -1598,6 +1625,9 @@ Domain::addPressureForce(GenVector<Scalar> &force, double lambda)
     // Compute structural element distributed Neumann force
     elementPressureForce.zero();
     neum[iele]->neumVector(nodes, elementPressureForce);
+
+    // transform vector from basic to DOF_FRM coordinates
+    transformNeumVector(elementPressureForce, iele);
 
     // Assemble element force vector into domain force vector
     int *dofs = neum[iele]->dofs(*c_dsa);
@@ -1677,6 +1707,9 @@ Domain::addThermalForce(GenVector<Scalar> &force)
     elementThermalForce.zero();
     packedEset[iele]->getThermalForce(nodes, elementTemp, elementThermalForce, 0);
 
+    // transform vector from basic to DOF_FRM coordinates
+    transformVector(elementThermalForce, iele);
+
     // Assemble element thermal forces into the force vector
     for(int idof = 0; idof < allDOFs->num(iele); ++idof) {
       int dofNum = c_dsa->getRCN((*allDOFs)[iele][idof]);
@@ -1749,7 +1782,7 @@ Domain::scaleDisp(Scalar *u, double alpha)
 
 
 template<class Scalar>
-int Domain::mergeDistributedDisp(Scalar (*xyz)[11], Scalar *u, Scalar *bcx)//DofSet::max_known_nonL_dof
+int Domain::mergeDistributedDisp(Scalar (*xyz)[11], Scalar *u, Scalar *bcx, Scalar (*xyz_loc)[11])
 {
   // PJSA 9-22-06 u is already scaled
   int inode, nodeI;
@@ -1850,6 +1883,16 @@ int Domain::mergeDistributedDisp(Scalar (*xyz)[11], Scalar *u, Scalar *bcx)//Dof
       xyz[nodeI][10] = bcx[xPot1];
     else
       xyz[nodeI][10] = 0.0;
+
+    // transform displacements and rotations (if present) from DOF_FRM to basic coordinates
+    // and keep a copy of the original in xyz_loc
+    if(!domain->solInfo().basicDofCoords && c_dsa->locate(inode, DofSet::LagrangeE) < 0
+      && c_dsa->locate(inode, DofSet::LagrangeI) < 0) {
+      if(xyz_loc) for(int j=0; j<11; ++j) xyz_loc[nodeI][j] = xyz[nodeI][j];
+      bool hasRot = (xRot >= 0 || xRot1 >= 0 || yRot >= 0 || yRot1 >= 0 || zRot >= 0 || zRot1 >= 0);
+      transformVectorInv(&(xyz[nodeI][0]), nodeI, hasRot);
+    }
+
   }
 
   return ++realNode;
@@ -1921,6 +1964,8 @@ template<class Scalar>
 void
 Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc)
 {
+  int caseid = (domain->solInfo().loadcases.size() > 0) ? domain->solInfo().loadcases.front() : 0;
+
   if(! dynamic_cast<GenSubDomain<Scalar>*> (this))
     checkSommerTypeBC(this);
   // ... ZERO FORCE VECTOR INITIALLY
@@ -1929,6 +1974,7 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc)
   // ... COMPUTE EXTERNAL FORCE FROM REAL NEUMAN BC
   int i;
   for(i=0; i < numNeuman; ++i) {
+    if(nbc[i].caseid != caseid) continue;
     int dof  = c_dsa->locate(nbc[i].nnum, (1 << nbc[i].dofnum));
     if(dof < 0) continue;
     ScalarTypes::addScalar(force[dof], nbc[i].val);
@@ -1936,6 +1982,7 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc)
 
   // ... COMPUTE EXTERNAL FORCE FROM COMPLEX NEUMAN BC
   for(i=0; i < numComplexNeuman; ++i) {
+    if(cnbc[i].caseid != caseid) continue;
     int dof  = c_dsa->locate(cnbc[i].nnum, (1 << cnbc[i].dofnum));
     if(dof < 0) continue;
     ScalarTypes::addScalar(force[dof], cnbc[i].reval, cnbc[i].imval);
@@ -2902,23 +2949,12 @@ int Domain::processDispTypeOutputs(OutputInfo &oinfo, Scalar (*glDisp)[11], int 
     case OutputInfo::EigenPair:  {
       if (success == 0)
         tag = freq;
-/* this isn't necessary
-      Scalar (*data)[3] = new Scalar[numNodes][3];
-      for (int jj = 0; jj < numNodes; jj++)  {
-        data[jj][0] = glDisp[jj][0]; 
-        data[jj][1] = glDisp[jj][1]; 
-        data[jj][2] = glDisp[jj][2]; 
-      }
-      if (oinfo.nodeNumber == -1)  // all nodes
-        geoSource->outputNodeVectors(i, data, numNodes, tag);
-      else    // one node
-        geoSource->outputNodeVectors(i, &(data[oinfo.nodeNumber]), 1, tag);
-      delete [] data;
-*/
-      if (oinfo.nodeNumber == -1)  // all nodes
+      if (oinfo.nodeNumber == -1) { // all nodes
         geoSource->outputNodeVectors(i, glDisp, numNodes, tag);
-      else    // one node
+      }
+      else {   // one node
         geoSource->outputNodeVectors(i, &(glDisp[oinfo.nodeNumber]), 1, tag);
+      }
       success = 1;
     }
       break;
@@ -2928,22 +2964,12 @@ int Domain::processDispTypeOutputs(OutputInfo &oinfo, Scalar (*glDisp)[11], int 
     case OutputInfo::EigenPair6:  {
      if (success == 0)
         tag = freq;
-/* this isn't necessary
-      Scalar (*data)[6] = new Scalar[numNodes][6];
-      for (int jj = 0; jj < numNodes; jj++)  
-        for (int kk = 0; kk < 6; kk++) 
-          data[jj][kk] = glDisp[jj][kk];
-      
-      if (oinfo.nodeNumber == -1)
-        geoSource->outputNodeVectors6(i, data, numNodes, tag);
-      else
-        geoSource->outputNodeVectors6(i, &(data[oinfo.nodeNumber]), 1, tag);
-      delete [] data;
-*/
-      if (oinfo.nodeNumber == -1)
+      if (oinfo.nodeNumber == -1) { // all nodes
         geoSource->outputNodeVectors6(i, glDisp, numNodes, tag);
-      else
+      }
+      else {
         geoSource->outputNodeVectors6(i, &(glDisp[oinfo.nodeNumber]), 1, tag);
+      }
       success = 1;
     }
       break;
@@ -2970,8 +2996,6 @@ int Domain::processDispTypeOutputs(OutputInfo &oinfo, Scalar (*glDisp)[11], int 
         if(dof==-1) dof = 4;
       case OutputInfo::RotZ:
         if(dof==-1) dof = 5;
-      case OutputInfo::Temperature:
-        if(dof==-1) dof = 6;
 
         for (int iNode=0; iNode<numNodes; ++iNode)
           globVal[iNode] = glDisp[iNode][dof];
@@ -3008,9 +3032,10 @@ int Domain::processDispTypeOutputs(OutputInfo &oinfo, Scalar (*glDisp)[11], int 
         else
           geoSource->outputNodeScalars(i, &(globVal[oinfo.nodeNumber]), 1, time);
         break;
+      case OutputInfo::Temperature:
+        if (dof==-1) { dof = 6; tag = time; }
       case OutputInfo::AcousticPressure:
-        tag = time;
-        if (dof==-1) dof = 7;
+        if (dof==-1) { dof = 7; tag = time; }
       case OutputInfo::EigenPressure:
       case OutputInfo::HelmholtzModes:
       case OutputInfo::Helmholtz:
@@ -3199,23 +3224,25 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
   else freq = domain->getFrequencyOrWavenumber();
 
   if (geoSource->isShifted() || domain->probType() == SolverInfo::Modal) time = freq;
+  if (domain->solInfo().loadcases.size() > 0) time = domain->solInfo().loadcases.front();
 
   Scalar *globVal = 0;
   int numOutInfo = geoSource->getNumOutInfo();
   OutputInfo *oinfo = geoSource->getOutputInfo();
 
-  if(numOutInfo && firstOutput && ndflag==0)
+  if(numOutInfo && (firstOutput || domain->solInfo().loadcases.size() > 0) && ndflag==0)
     filePrint(stderr," ... Postprocessing                 ...\n");
 
   // organize displacements
   int numNodeLim = myMax(numNodes,numnodes); 
     
-  Scalar (*xyz)[11] = new Scalar[numNodeLim][11];//DofSet::max_known_nonL_dof
+  Scalar (*xyz)[11] = new Scalar[numNodeLim][11];
+  Scalar (*xyz_loc)[11] = (domain->solInfo().basicDofCoords) ? 0 : new Scalar[numNodeLim][11];
   int i;
   for(i = 0; i < numNodeLim; ++i)
     for (int j = 0 ; j < 11 ; j++)
       xyz[i][j] = 0.0;
-  mergeDistributedDisp<Scalar>(xyz, sol.data(), bcx);
+  mergeDistributedDisp<Scalar>(xyz, sol.data(), bcx, xyz_loc);
   int numNodesOut = (outFlag) ? exactNumNodes : numNodes;
 
   // Open files and write file headers in first time step
@@ -3239,7 +3266,11 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
         || oinfo[i].type == OutputInfo::Farfield
         || oinfo[i].type == OutputInfo::Kirchhoff) {
       dof = -1;
-      int success = processDispTypeOutputs(oinfo[i], xyz, numNodesOut, i, time, freq);
+      int success;
+      if(oinfo[i].oframe == OutputInfo::Global || domain->solInfo().basicDofCoords)
+        success = processDispTypeOutputs(oinfo[i], xyz, numNodesOut, i, time, freq);
+      else
+        success = processDispTypeOutputs(oinfo[i], xyz_loc, numNodesOut, i, time, freq);
       if (success) continue;
       success = processOutput(oinfo[i].type, sol, bcx, i, time, freq);
       if (success) continue;
@@ -3257,7 +3288,7 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
           break;
         case OutputInfo::ModeError:
           break;  // This is handled in Problems.d/DynamDescr.C
-        // The remaining cases are not officially supported in manual
+        // The following 3 cases are not officially supported in manual
         case OutputInfo::ElemToNode:
           if(elemToNode) elemToNode->print(oinfo[i].filptr, oinfo[i].nodeNumber);
           break;
@@ -3281,10 +3312,13 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
               int cdof = (dof >= 0) ? c_dsa->invRCN(dof) : -1;
               rxyz[nodeI][k] = (cdof >= 0) ? fc[cdof] : 0;     // constrained
             }
+            if(oinfo[i].oframe == OutputInfo::Global && !domain->solInfo().basicDofCoords) {
+              transformVectorInv(&rxyz[nodeI][0],inode,false);
+            }
           }
           geoSource->outputNodeVectors(i, rxyz, numNodesOut, time);
           delete [] rxyz;
-          } break;
+        } break;
         case OutputInfo::Reactions6: {
           GenVector<Scalar> fc(numDirichlet+numComplexDirichlet);
           computeReactionForce(fc, sol, kuc, kcc);
@@ -3300,10 +3334,13 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
               int cdof = (dof >= 0) ? c_dsa->invRCN(dof) : -1;
               rxyz[nodeI][k] = (cdof >= 0) ? fc[cdof] : 0;     // constrained
             }
+            if(oinfo[i].oframe == OutputInfo::Global && !domain->solInfo().basicDofCoords) {
+              transformVectorInv(&rxyz[nodeI][0],inode,true);
+            }
           }
           geoSource->outputNodeVectors6(i, rxyz, numNodesOut, time);
           delete [] rxyz;
-          } break;
+        } break;
         case OutputInfo::HeatReactions: {
           GenVector<Scalar> fc(numDirichlet+numComplexDirichlet);
           computeReactionForce(fc, sol, kuc, kcc);
@@ -3341,7 +3378,7 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
      // ... CALCULATE STRUCTURE MASS IF REQUESTED
      if(sinfo.massFlag)  {
        double mass = computeStructureMass();
-       filePrint(stderr," ... Total System mass = %10.4f ...\n",mass);
+       filePrint(stderr," ... Total System Mass = %10.4f ...\n", mass);
        filePrint(stderr," --------------------------------------\n");
      }
    }
@@ -3350,6 +3387,7 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
  }
 
  if (xyz) delete [] xyz;
+ if (xyz_loc) delete [] xyz_loc;
 }
 
 // XXXX this can and should be merged with buildRHSForce
@@ -3370,9 +3408,9 @@ Domain::computeConstantForce(GenVector<Scalar>& cnst_f, GenSparseMatrix<Scalar>*
   // ... COMPUTE FORCE FROM DISCRETE NEUMANN BOUNDARY CONDITIONS
   // note #1 when MFTT is present then FORCES contribution is not constant
   // note #2 when HFTT is present the FLUX contribution is not constant
+  // note #3 see Domain::getStiffAndForce for treatment of non-axial forces and all nodal moments in nonlinear analyses
   for(int i = 0; i < numNeuman; ++i) {
-    if(sinfo.isNonLin() && nbc[i].type == BCond::Forces                               // see Domain::getStiffAndForce for treatment of
-       && (nbc[i].dofnum == 3 || nbc[i].dofnum == 4 || nbc[i].dofnum == 5)) continue; // nodal moments in nonlinear analyses
+    if(sinfo.isNonLin() && nbc[i].type == BCond::Forces && !(nbc[i].mtype == BCond::Axial && nbc[i].dofnum < 3)) continue;
     int dof  = c_dsa->locate(nbc[i].nnum, (1 << nbc[i].dofnum));
     if(dof < 0) continue;
     switch(nbc[i].type) {
@@ -3433,13 +3471,13 @@ Domain::computeExtForce(GenVector<Scalar>& f, double t, GenSparseMatrix<Scalar>*
   // ... COMPUTE FORCE FROM DISCRETE NEUMANN BOUNDARY CONDITIONS
   // note #1 when MFTT is not present FORCES contribution is constant (see computeConstantForce)
   // note #2 when HFTT is not present FLUX contribution is constant (see computeConstantForce)
+  // note #3 see Domain::getStiffAndForce for treatment of non-axial forces and all nodal moments in nonlinear analyses
   double mfttFactor = (domain->mftval) ? domain->mftval->getVal(t) : 1.0; // MFTT time dependent force coefficient
   double hfttFactor = (domain->hftval) ? domain->hftval->getVal(t) : 1.0; // HFTT time dependent flux coefficient
   if(numNeuman && (domain->mftval || domain->hftval || (claw && (claw->numUserForce || claw->numActuator)))) {
     for(int i = 0; i < numNeuman; ++i) {
-      if(sinfo.isNonLin() // see Domain::getStiffAndForce for treatment of nodal moments in nonlinear analyses
-         && (nbc[i].type == BCond::Forces || nbc[i].type == BCond::Usdf || nbc[i].type == BCond::Actuators)
-         && (nbc[i].dofnum == 3 || nbc[i].dofnum == 4 || nbc[i].dofnum == 5)) continue;
+      if(sinfo.isNonLin() && (nbc[i].type == BCond::Forces || nbc[i].type == BCond::Usdf 
+         || nbc[i].type == BCond::Actuators) && !(nbc[i].mtype == BCond::Axial && nbc[i].dofnum < 3)) continue;
       int dof  = c_dsa->locate(nbc[i].nnum, (1 << nbc[i].dofnum));
       if(dof < 0) continue;
       switch(nbc[i].type) {

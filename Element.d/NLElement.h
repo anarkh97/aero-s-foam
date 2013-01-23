@@ -30,6 +30,22 @@ class MatNLElement : public Element {
          updateStates(nodes, dispn, dispnp, statenp);
          getStiffAndForce(nodes, dispnp, statenp, kTan, force);
      }
+     virtual void getInternalForce(Node *nodes, double *disp,
+                                   double *state, double *force) {
+       fprintf(stderr, "MatNLElement::getInternalForce is being called on an element "
+               "for which it is not defined\n");
+     }
+     virtual void integrate(Node *nodes, double *dispn, double *staten,
+                            double *dispnp, double *statenp,
+                            double *force, double dt=0.0) {
+       int nst = numStates();
+       int i;
+       for(i = 0; i < nst; ++i)
+         statenp[i] = staten[i];
+         updateStates(nodes, dispn, dispnp, statenp);
+         getInternalForce(nodes, dispnp, statenp, force);
+     }
+
      virtual void updateStates(Node *nodes, double *un, double *unp, double *statenp) {
        fprintf(stderr, "MatNLElement::updateStates is being called on an element "
                "for which it is not defined\n");

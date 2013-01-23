@@ -146,6 +146,13 @@ MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::getStress(Tensor *_str
   delete clone;
 }
 
+template<>
+inline void
+MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::getStress(Tensor *_stress, Tensor &_strain, double* state)
+{
+  std::cerr << "ERROR: MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::getStress is not implemented\n";
+}
+
 template<typename Material>
 void 
 MaterialWrapper<Material>::getTangentMaterial(Tensor *_tm, Tensor &_strain, double*)
@@ -212,6 +219,12 @@ MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::getTangentMaterial(Ten
   delete clone;
 }
 
+template<>
+inline void
+MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::getTangentMaterial(Tensor *_tm, Tensor &_strain, double* state)
+{
+  std::cerr << "ERROR: MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::getTangentMaterial is not implemented\n";
+}
 template<typename Material>
 void 
 MaterialWrapper<Material>::getStressAndTangentMaterial(Tensor *_stress, Tensor *_tm, Tensor &_strain, double*)
@@ -288,6 +301,13 @@ MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::getStressAndTangentMat
   delete clone;
 }
 
+template<>
+inline void
+MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::getStressAndTangentMaterial(Tensor *_stress, Tensor *_tm, Tensor &_strain, double* state)
+{
+  std::cerr << "ERROR: MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::getStressAndTangentMaterial is not implemented\n";
+}
+
 template<typename Material>
 void 
 MaterialWrapper<Material>::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Tensor &_enp,
@@ -317,6 +337,29 @@ MaterialWrapper<Material>::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Ten
       for(int k=0; k<3; k++)
         for(int l=0; l<3; l++)
           (*tm)[i*27+j*9+k*3+l] = ltangents[i*27+j*9+k*3+l];
+}
+
+template<typename Material>
+void
+MaterialWrapper<Material>::integrate(Tensor *_stress, Tensor &, Tensor &_enp,
+                                     double *, double *statenp, double)
+{
+  Tensor_d0s2 *stress = static_cast<Tensor_d0s2 *>(_stress);
+  Tensor_d0s2 &enp = static_cast<Tensor_d0s2 &>(_enp);
+
+  std::vector<double> lstrain; // deformation gradient
+  std::vector<double> lstress; // first P-K stress tensor
+
+  lstrain.resize(9);
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++)
+      lstrain[3*i+j] = enp[3*i+j];
+
+  mat->GetConstitutiveResponse(&lstrain, &lstress, NULL);
+
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++)
+      (*stress)[3*i+j] = lstress[3*i+j];
 }
 
 template<>
@@ -376,6 +419,71 @@ MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::integrate(Tensor *_str
   delete clone;
 }
 
+template<>
+inline void
+MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Tensor &_enp,
+                                                                               double *staten, double *statenp, double)
+{
+  std::cerr << "ERROR: MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::integrate is not implemented\n";
+}
+
+template<>
+inline void 
+MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::integrate(Tensor *_stress, Tensor &, Tensor &_enp,
+                                                                    double *staten, double *statenp, double)
+{
+  // clone material for thread-safety reasons
+  IsotropicLinearElasticJ2PlasticMaterial *clone = mat->Clone();
+
+  std::vector<double> PlasticStrain;
+  std::vector<double> BackStress;
+  if(staten) {
+    // set the internal variables
+    // these should be the converged values at the beginning of the time step 
+    for (int i = 0; i < 9; ++i) PlasticStrain.push_back(staten[i]);
+    clone->SetMaterialPlasticStrain(PlasticStrain);
+    for (int i = 0; i < 9; ++i) BackStress.push_back(staten[9+i]);
+    clone->SetMaterialBackStress(BackStress);
+    clone->SetMaterialEquivalentPlasticStrain(staten[18]);
+  }
+
+  Tensor_d0s2 *stress = static_cast<Tensor_d0s2 *>(_stress);
+  Tensor_d0s2 &enp = static_cast<Tensor_d0s2 &>(_enp);
+
+  std::vector<double> lstrain; // deformation gradient
+  std::vector<double> lstress; // Cauchy stress tensor
+
+  lstrain.resize(9);
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++)
+      lstrain[3*i+j] = enp[3*i+j];
+
+  clone->ComputeElastoPlasticConstitutiveResponse(lstrain, &lstress, NULL);
+
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++)
+      (*stress)[3*i+j] = lstress[3*i+j];
+
+  if(statenp) {
+    // get the updated internal variables
+    PlasticStrain = clone->GetMaterialPlasticStrain();
+    for (int i = 0; i < 9; ++i) statenp[i] = PlasticStrain[i];
+    BackStress = clone->GetMaterialBackStress();
+    for (int i = 0; i < 9; ++i) statenp[9+i] = BackStress[i];
+    statenp[18] = clone->GetMaterialEquivalentPlasticStrain();
+  }
+
+  delete clone;
+}
+
+template<>
+inline void
+MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::integrate(Tensor *_stress, Tensor &, Tensor &_enp,
+                                                                               double *staten, double *statenp, double)
+{
+  std::cerr << "ERROR: MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::integrate is not implemented\n";
+}
+
 template<typename Material>
 void
 MaterialWrapper<Material>::initStates(double *state)
@@ -395,6 +503,14 @@ inline double
 MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::getDensity()
 {
   std::cerr << "Warning IsotropicLinearElasticJ2PlasticMaterial doesn't implement GetDensityInReference function\n";
+  return 0.0;
+}
+
+template<>
+inline double
+MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::getDensity()
+{
+  std::cerr << "Warning IsotropicLinearElasticJ2PlasticPlaneStressMaterial doesn't implement GetDensityInReference function\n";
   return 0.0;
 }
 

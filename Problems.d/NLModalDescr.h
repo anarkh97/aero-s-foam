@@ -180,6 +180,7 @@ public:
   void test2(ModalGeomState* = 0);
   void test(ModalGeomState* = 0);
   void printCoefs();
+  void getConstraintMultipliers(ModalGeomState &) {}
   double getResidualNorm(Vector &rhs, ModalGeomState &, double) { return rhs.norm(); }
 
   int getAeroAlg() { return domain->solInfo().aeroFlag; }
@@ -188,6 +189,10 @@ public:
   int getAeroheatFlag() { return domain->solInfo().aeroheatFlag; }
 
   void getNewmarkParameters(double &beta, double &gamma, double &alphaf, double &alpham);
+
+  void initializeParameters(ModalGeomState *geomState) {}
+  void updateParameters(ModalGeomState *geomState) {}
+  bool checkConstraintViolation(double &err) { err = 0; return true; }
 };
 
 #endif

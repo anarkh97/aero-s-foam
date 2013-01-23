@@ -45,6 +45,14 @@ copy(const GenVector<Scalar> &v, Scalar *target) {
   std::copy(originBuf, originBuf + v.size(), target);
 }
 
+template <typename Scalar, typename OutputIterator>
+inline
+void
+copy(const GenVector<Scalar> &v, OutputIterator target) {
+  const double *originBuf = v.data();
+  std::copy(originBuf, originBuf + v.size(), target);
+}
+
 inline
 std::string
 getMeshFilename(const FileNameInfo &fileInfo) {
@@ -62,12 +70,12 @@ void
 outputFullWeights(const FileNameInfo &fileInfo, const Vector &weights, const std::vector<int> &elemIds) {
   assert(weights.size() == elemIds.size());
 
-  const std::string fileName = fileInfo.prefix() + ".fullweights.inc";
+  const std::string fileName = domain->solInfo().reducedMeshFile; //fileInfo.prefix() + ".attributes.inc";
   std::ofstream weightOut(fileName.c_str());
 
-  weightOut << "ELLUMP\n";
+  weightOut << "ATTRIBUTES\n";
   for (int i = 0, iEnd = weights.size(); i != iEnd; ++i) {
-    weightOut << elemIds[i] + 1 << " " << weights[i] << "\n";
+    weightOut << elemIds[i] + 1 << " 1 " << "HRC" << " " << weights[i] << "\n";
   }
 }
 
@@ -108,27 +116,33 @@ ElementSamplingDriver::~ElementSamplingDriver() {
 
 template <typename DblFwdIt>
 void
-ElementSamplingDriver::assembleTrainingData(const VecBasis &snapshots, DblFwdIt timeStampFirst, const VecBasis &podBasis, VecBasis &elemContributions) {
+ElementSamplingDriver::assembleTrainingData(const VecBasis &snapshots, DblFwdIt timeStampFirst, const VecBasis &podBasis,
+                                            typename SparseNonNegativeLeastSquaresSolver::MatrixBufferType::iterator elemContributions,
+                                            Vector &trainingTarget) {
   const int podVectorCount = podBasis.vectorCount();
   const int snapshotCount = snapshots.vectorCount();
 
-  elemContributions.dimensionIs(elementCount(), snapshotCount * podVectorCount);
-  std::fill_n(&elemContributions[0][0], elemContributions.vectorSize() * elemContributions.vectorCount(), 0.0);
-
   // Temporary buffers shared by all iterations
-  Vector displac(vectorSize());
-  Vector podComponents(podVectorCount);
+  VecBasis displac(snapshotCount, vectorSize());
+  Vector podComponents(podVectorCount), elemTarget(podVectorCount);
   SimpleBuffer<double> elementForce(domain_->maxNumDOF());
 
-  DblFwdIt timeStampIt = timeStampFirst;
+  // Project snapshots on POD basis to get training configurations
   for (int iSnap = 0; iSnap != snapshotCount; ++iSnap) {
-    // Project snapshot on POD basis to get training configuration
-    expand(podBasis, reduce(podBasis, snapshots[iSnap], podComponents), displac);
-    geomState_->explicitUpdate(domain_->getNodes(), displac);
-    // Evaluate and store elementary contributions at training configuration
-    for (int iElem = 0; iElem != elementCount(); ++iElem) {
-      domain_->getElemStiffAndForce(*geomState_, *timeStampIt, NULL, *(corotators_[iElem]), elementForce.array(), kelArray_[iElem]);
-      double * const targetBuffer = elemContributions[iElem].data() + (podVectorCount * iSnap);
+    expand(podBasis, reduce(podBasis, snapshots[iSnap], podComponents), displac[iSnap]);
+  }
+
+  for (int iElem = 0; iElem != elementCount(); ++iElem) {
+    filePrint(stderr,"\r %4.2f%% complete", double(iElem)/double(elementCount())*100.);
+    DblFwdIt timeStampIt = timeStampFirst;
+    int *nodes = domain_->getElementSet()[iElem]->nodes();
+    for (int iSnap = 0; iSnap != snapshotCount; ++iSnap) {
+      //geomState_->explicitUpdate(domain_->getNodes(), displac[iSnap]);
+      geomState_->explicitUpdate(domain_->getNodes(), domain_->getElementSet()[iElem]->numNodes(),
+                                 nodes, displac[iSnap]); // just update the nodes of element iElem
+      // Evaluate and store element contribution at training configuration
+      domain_->getElemInternalForce(*geomState_, *timeStampIt, NULL, *(corotators_[iElem]), elementForce.array(), kelArray_[iElem]);
+      elemTarget.zero();
       const int dofCount = kelArray_[iElem].dim();
       for (int iDof = 0; iDof != dofCount; ++iDof) {
         const int vecLoc = domain_->getCDSA()->getRCN((*domain_->getAllDOFs())[iElem][iDof]);
@@ -136,13 +150,20 @@ ElementSamplingDriver::assembleTrainingData(const VecBasis &snapshots, DblFwdIt 
           const double dofForce = elementForce[iDof];
           for (int iPod = 0; iPod != podVectorCount; ++iPod) {
             const double contrib = dofForce * podBasis[iPod][vecLoc];
-            targetBuffer[iPod] += contrib;
+            elemTarget[iPod] += contrib;
           }
         }
       }
+      for(int iPod = 0; iPod != podVectorCount; ++iPod) {
+        *elemContributions = elemTarget[iPod];
+        elemContributions++;
+        trainingTarget[podVectorCount * iSnap + iPod] += elemTarget[iPod];
+      }
     }
+    delete [] nodes;
     timeStampIt++;
   }
+ filePrint(stderr,"\n");
 }
 
 void
@@ -153,88 +174,72 @@ ElementSamplingDriver::solve() {
   
   Vector solution;
   {
-    // Training data
-    VecBasis elemContributions;
+
+    // Read order reduction data
+    const VecNodeDof6Conversion vecDofConversion(*domain_->getCDSA());
+    assert(vectorSize() == vecDofConversion.vectorSize());
+
+    VecBasis podBasis;
     {
-      // Read order reduction data
-      const VecNodeDof6Conversion vecDofConversion(*domain_->getCDSA());
-      assert(vectorSize() == vecDofConversion.vectorSize());
+      BasisInputStream in(BasisFileId(fileInfo, BasisId::STATE, BasisId::POD), vecDofConversion);
+      const int podSizeMax = domain_->solInfo().maxSizePodRom;
+      if (podSizeMax != 0) {
+        readVectors(in, podBasis, podSizeMax);
+      } else {
+        readVectors(in, podBasis);
+      }
+    }
+    VecBasis snapshots;
+    std::vector<double> timeStamps;
+    {
+      BasisInputStream in(BasisFileId(fileInfo, BasisId::STATE, BasisId::SNAPSHOTS), vecDofConversion);
+      const int skipFactor = domain->solInfo().skipPodRom;
+        const int skipOffSet = domain->solInfo().skipOffSet;
+      const int basisStateCount = 1 + (in.size() - 1) / skipFactor;
 
-      VecBasis podBasis;
-      {
-        BasisInputStream in(BasisFileId(fileInfo, BasisId::STATE, BasisId::POD), vecDofConversion);
+      snapshots.dimensionIs(basisStateCount, in.vectorSize());
+      timeStamps.reserve(basisStateCount);
 
-        const int podSizeMax = domain_->solInfo().maxSizePodRom;
-        if (podSizeMax != 0) {
-          readVectors(in, podBasis, podSizeMax);
+      int count = 0;
+        int skipCounter = skipFactor-skipOffSet;
+      while (count < basisStateCount) {
+        std::pair<double, double *> data;
+        data.second = snapshots[count].data();
+        in >> data;
+        assert(in);
+        if (skipCounter == skipFactor) {
+          timeStamps.push_back(data.first);
+          skipCounter = 1;
+          ++count;
         } else {
-          readVectors(in, podBasis);
+          ++skipCounter;
         }
       }
 
-      VecBasis snapshots;
-      std::vector<double> timeStamps;
-      {
-        BasisInputStream in(BasisFileId(fileInfo, BasisId::STATE, BasisId::SNAPSHOTS), vecDofConversion);
-
-        const int skipFactor = domain->solInfo().skipPodRom;
-        const int basisStateCount = 1 + (in.size() - 1) / skipFactor;
-
-        snapshots.dimensionIs(basisStateCount, in.vectorSize());
-        timeStamps.reserve(basisStateCount);
-
-        int count = 0;
-        int skipCounter = skipFactor;
-        while (count < basisStateCount) {
-          std::pair<double, double *> data;
-          data.second = snapshots[count].data();
-          in >> data;
-          assert(in);
-          if (skipCounter == skipFactor) {
-            timeStamps.push_back(data.first);
-            skipCounter = 1;
-            ++count;
-          } else {
-            ++skipCounter;
-          }
-        }
-
-        assert(timeStamps.size() == basisStateCount);
-      }
-
-      const int podVectorCount = podBasis.vectorCount();
-      const int snapshotCount = snapshots.vectorCount();
-
-      // DEBUG: Print info
-      std::cout << "podVectorCount = " << podVectorCount << ", "
-                << "snapshotCount = " << snapshotCount << ", "
-                << "elementCount = " << elementCount() << "\n";
-
-      assembleTrainingData(snapshots, timeStamps.begin(), podBasis, elemContributions);
+      assert(timeStamps.size() == basisStateCount);
     }
 
-    double targetMagnitude;
-    {
-      // Training target is the sum of elementary contributions
-      Vector trainingTarget(elemContributions.vectorSize(), 0.0);
-      for (VecBasis::const_iterator it = elemContributions.begin(), it_end = elemContributions.end(); it != it_end; ++it) {
-        trainingTarget += *it;
-      }
-      targetMagnitude = norm(trainingTarget);
+    const int podVectorCount = podBasis.vectorCount();
+    const int snapshotCount = snapshots.vectorCount();
 
-      // Setup and solve optimization problem
-      const double relativeTolerance = domain_->solInfo().tolPodRom;
-      solver_.relativeToleranceIs(relativeTolerance);
-      solver_.problemSizeIs(elemContributions.vectorSize(), elemContributions.vectorCount());
-      {
-        int col = 0;
-        for (VecBasis::const_iterator it = elemContributions.begin(); it != elemContributions.end(); ++it) {
-          copy(*it, solver_.matrixColBuffer(col));
-          ++col;
-        }
-      }
-      copy(trainingTarget, solver_.rhsBuffer());
-    }
+    // DEBUG: Print info
+    std::cout << "podVectorCount = " << podVectorCount << ", "
+              << "snapshotCount = " << snapshotCount << ", "
+              << "elementCount = " << elementCount() << "\n";
+
+    solver_.problemSizeIs(podVectorCount*snapshotCount, elementCount());
+
+    // Training target is the sum of elementary contributions
+    Vector trainingTarget(podVectorCount*snapshotCount, 0.0);
+
+    assembleTrainingData(snapshots, timeStamps.begin(), podBasis, solver_.matrixBuffer(), trainingTarget);
+
+    double targetMagnitude = norm(trainingTarget);
+
+    // Setup and solve optimization problem
+    const double relativeTolerance = domain_->solInfo().tolPodRom;
+    solver_.relativeToleranceIs(relativeTolerance);
+    copy(trainingTarget, solver_.rhsBuffer());
 
     solver_.solve();
     

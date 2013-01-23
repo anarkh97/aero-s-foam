@@ -1,51 +1,16 @@
 #!/bin/bash
 #PBS -N test
-#PBS -l nodes=1:ppn=8,walltime=1:00:00
+#PBS -V
+#PBS -l nodes=4:ppn=8,walltime=3:00:00
 
-cd /lustre/home/mpotts/FEM/Regression.d/eigen
-echo mpirun -n 4 ../../bin/aeros  eigen_sparse_0_gdisplac.inp
-mpirun -n 4 ../../bin/aeros  eigen_sparse_0_gdisplac.inp
-echo mpirun -n 4 ../../bin/aeros  eigen_skyline_10_stressvm.inp
-mpirun -n 4 ../../bin/aeros  eigen_skyline_10_stressvm.inp
-echo mpirun -n 4 ../../bin/aeros  eigen_mumps_100_strainxx.inp
-mpirun -n 4 ../../bin/aeros  eigen_mumps_100_strainxx.inp
-echo mpirun -n 4 ../../bin/aeros  eigen_spooles_1000_strainxy.inp
-mpirun -n 4 ../../bin/aeros  eigen_spooles_1000_strainxy.inp
-echo mpirun -n 4 ../../bin/aeros  eigen_gmres_0_strainxz.inp
-mpirun -n 4 ../../bin/aeros  eigen_gmres_0_strainxz.inp
-echo mpirun -n 4 ../../bin/aeros  eigen_direct_10_strainxx.inp
-mpirun -n 4 ../../bin/aeros  eigen_direct_10_strainxx.inp
-echo mpirun -n 4 ../../bin/aeros  eigen_spooles_pivot_100_strainxy.inp
-mpirun -n 4 ../../bin/aeros  eigen_spooles_pivot_100_strainxy.inp
-echo mpirun -n 4 ../../bin/aeros  eigen_mumps_pivot_1000_strainxz.inp
-mpirun -n 4 ../../bin/aeros  eigen_mumps_pivot_1000_strainxz.inp
-echo mpirun -n 4 ../../bin/aeros  eigen_pcg_0_strainxx.inp
-mpirun -n 4 ../../bin/aeros  eigen_pcg_0_strainxx.inp
-echo mpirun -n 4 ../../bin/aeros  eigen_bcg_10_strainxy.inp
-mpirun -n 4 ../../bin/aeros  eigen_bcg_10_strainxy.inp
-echo mpirun -n 4 ../../bin/aeros  eigen_cr_100_strainxz.inp
-mpirun -n 4 ../../bin/aeros  eigen_cr_100_strainxz.inp
-echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 eigen_FETI_1000_inxforce.inp
-mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 eigen_FETI_1000_inxforce.inp
-echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 eigen_FETI_DP_0_inyforce.inp
-mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 eigen_FETI_DP_0_inyforce.inp
-echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 eigen_FETI_DPH_10_inzforce.inp
-mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 eigen_FETI_DPH_10_inzforce.inp
-echo mpirun -n 4 ../../bin/aeros  eigen_sparse_100_axmoment.inp
-mpirun -n 4 ../../bin/aeros  eigen_sparse_100_axmoment.inp
-echo mpirun -n 4 ../../bin/aeros  eigen_skyline_1000_aymoment.inp
-mpirun -n 4 ../../bin/aeros  eigen_skyline_1000_aymoment.inp
-echo mpirun -n 4 ../../bin/aeros  eigen_mumps_0_azmoment.inp
-mpirun -n 4 ../../bin/aeros  eigen_mumps_0_azmoment.inp
-echo mpirun -n 4 ../../bin/aeros  eigen_spooles_10_energies.inp
-mpirun -n 4 ../../bin/aeros  eigen_spooles_10_energies.inp
-echo mpirun -n 4 ../../bin/aeros  eigen_gmres_100_gvelocit.inp
-mpirun -n 4 ../../bin/aeros  eigen_gmres_100_gvelocit.inp
-echo mpirun -n 4 ../../bin/aeros  eigen_direct_1000_gacceler.inp
-mpirun -n 4 ../../bin/aeros  eigen_direct_1000_gacceler.inp
-echo mpirun -n 4 ../../bin/aeros  eigen_spooles_pivot_0_displmod.inp
-mpirun -n 4 ../../bin/aeros  eigen_spooles_pivot_0_displmod.inp
-echo mpirun -n 4 ../../bin/aeros  eigen_mumps_pivot_10_rotatmod.inp
-mpirun -n 4 ../../bin/aeros  eigen_mumps_pivot_10_rotatmod.inp
-echo mpirun -n 4 ../../bin/aeros  eigen_pcg_100_gdispmod.inp
-mpirun -n 4 ../../bin/aeros  eigen_pcg_100_gdispmod.inp
+. /opt/modules/Modules/3.2.6/init/bash
+ module load intel openmpi
+cd /lustre/home/mpotts/FEM-jenkins/workspace/Regression.d/eigen
+../create_mfiles.pl
+echo mpirun -n 2 ../../bin/aeros  eigen_spooles_pivot_0_geigenpa.inp
+mpirun -n 2 --machinefile host.0 ../../bin/aeros  eigen_spooles_pivot_0_geigenpa.inp &
+echo mpirun -n 2 ../../bin/aeros  eigen_mumps_pivot_0.1_geigenpa.inp
+mpirun -n 2 --machinefile host.1 ../../bin/aeros  eigen_mumps_pivot_0.1_geigenpa.inp &
+echo mpirun -n 2 ../../bin/aeros -n 2 --dec --nsub 4 eigen_FETI_DPH_0_geigenpa.inp
+mpirun -n 2 --machinefile host.2 ../../bin/aeros -n 2 --dec --nsub 4 eigen_FETI_DPH_0_geigenpa.inp &
+wait %1 %2 %3 

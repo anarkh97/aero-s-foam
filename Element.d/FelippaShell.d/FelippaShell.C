@@ -14,6 +14,7 @@
 #include <Utils.d/pstress.h>
 #include <Hetero.d/InterpPoint.h>
 #include <Element.d/NonLinearity.d/ExpMat.h>
+#include <Element.d/NonLinearity.d/MaterialWrapper.h>
 #include <Material.d/IsotropicLinearElasticJ2PlasticPlaneStressMaterial.h>
 
 FelippaShell::FelippaShell(int* nodenums)
@@ -87,8 +88,7 @@ FelippaShell::getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
 void
 FelippaShell::getAllStress(FullM &stress, Vector &weight, CoordSet &cs,
                            Vector &elDisp, int strInd, int surface,
-                           double *, double ylayer, double zlayer,
-                           int avgnum)
+                           double *)
 {
   weight = 1.0;
 
@@ -456,7 +456,7 @@ void
 FelippaShell::setMaterial(NLMaterial *_mat)
 {
   ExpMat *expmat = dynamic_cast<ExpMat *>(_mat);
-  if(expmat && expmat->optctv == 5) {
+  if(expmat && expmat->optctv == 5) { // old (deprecated) parser
     double E = expmat->ematpro[0], nu = expmat->ematpro[1];
     double lambda = E*nu/((1+nu)*(1-2*nu)), mu = E/(2*(1+nu));
     double sigmaY = expmat->ematpro[3], K = expmat->ematpro[4], H = expmat->ematpro[5];
@@ -467,8 +467,18 @@ FelippaShell::setMaterial(NLMaterial *_mat)
     gpmat = new ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(prop->eh, prop->nu, prop->rho, localMaterial, 5, 3);
     nmat = new ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(prop->eh, prop->nu, prop->rho, localMaterial, 3, 3);
   }
-  else {
-    throw std::runtime_error("Unsupported material type\n");
+  else { // new parser
+    MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial> *mat 
+      = dynamic_cast<MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial> *>(_mat);
+    if(mat) {
+      type = 4;
+      if(gpmat) delete gpmat;
+      gpmat = new ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(prop->eh, prop->nu, prop->rho, mat->getMaterial(), 5, 3);
+      nmat = new ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(prop->eh, prop->nu, prop->rho, mat->getMaterial(), 3, 3);
+    }
+    else {
+      throw std::runtime_error("Unsupported material type\n");
+    }
   }
 }
 
@@ -598,13 +608,7 @@ FelippaShell::getStiffAndForce(GeomState *refState, GeomState &geomState, CoordS
    x[1] = node2.x; y[1] = node2.y; z[1] = node2.z;
    x[2] = node3.x; y[2] = node3.y; z[2] = node3.z;
 
-//#define DEBUG_EXPLICIT
-#ifndef DEBUG_EXPLICIT
    andesstf(glNum+1, elK.data(), locF, prop->nu, x, y, z, vld, type, 0);
-#else
-   // TODO need to implement Corotator::getInternalForce
-   andesstf(glNum+1, (double*)NULL, locF, prop->nu, x, y, z, vld, type, 0);
-#endif
  }
 
  // Compute gradients of the nodal deformational pseudorotations
@@ -692,6 +696,10 @@ FelippaShell::getStiffAndForce(GeomState *refState, GeomState &geomState, CoordS
  // transform internal force vector from local to global coordinates
 
  tran_force(f, t0n, 3);
+
+ // The skew symmetric load stiffness matrix due to axial external moments is
+ // added separately (see Domain::getFollowerForce in Driver.d/NLStatic.C)
+ elK.symmetrize();
 }
 
 void

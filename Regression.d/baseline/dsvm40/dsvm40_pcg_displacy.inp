@@ -6,13 +6,10 @@ dsvm40_pcg_displacy
 *
 STATICS
 pcg
-*
+include "../fetidp.include"
+cases 1 2
 OUTPUT
 displacy dsvm40_pcg_displacy.dat  1 2
-*
-FORCES
-2 2 -1000
-3 2 -1000
 *
 INCLUDE ../dsvm40.include
 *

@@ -1,3 +1,4 @@
+#ifdef USE_EIGEN3
 #include <Element.d/Joint.d/TranslationalJointSpringCombo.h>
 #include <Element.d/Joint.d/TranslationalJoint.h>
 #include <Element.d/Joint.d/NonlinearTranslationalSpring.h>
@@ -17,9 +18,19 @@ TranslationalJointSpringCombo::TranslationalJointSpringCombo(int* _nn)
   subElems[3] = new NonlinearTranslationalSpring(nnloc, 2);
 }
 
+void
+TranslationalJointSpringCombo::setProp(StructProp *p, bool myProp)
+{
+  SuperElement::setProp(p, myProp);
+
+  subElems[1]->getProperty()->penalty = p->k1;
+  subElems[2]->getProperty()->penalty = p->k2;
+  subElems[3]->getProperty()->penalty = p->k3;
+}
+
 int 
 TranslationalJointSpringCombo::getTopNumber() 
 { 
   return 106; 
 }
-
+#endif

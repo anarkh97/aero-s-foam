@@ -15,6 +15,23 @@ LinearStrain2D<n>::getE(typename TwoDTensorTypes<n>::StrainTensor  &e,
   e[2] = 0.5*(gradU[0][1]+gradU[1][0]);
 }
 
+template <int n>
+void
+LinearStrain2D<n>::getEandB(typename TwoDTensorTypes<n>::StrainTensor &e,
+                            typename TwoDTensorTypes<n>::BTensor &B,
+                            typename TwoDTensorTypes<n>::GradUTensor &gradU,
+                            typename TwoDTensorTypes<n>::GradUDerivTensor &dgradUdqk)
+{
+  e[0] = gradU[0][0];
+  e[1] = gradU[1][1];
+  e[2] = 0.5*(gradU[0][1]+gradU[1][0]);
+  int k;
+  for(k = 0; k < n; ++k) {
+    B[k][0] = dgradUdqk[k][0][0];
+    B[k][1] = dgradUdqk[k][1][1];
+    B[k][2] = 0.5*(dgradUdqk[k][0][1]+dgradUdqk[k][1][0]);
+  }
+}
 
 template <int n>
 void
@@ -47,6 +64,41 @@ GLStrain2D<n>::getE(typename TwoDTensorTypes<n>::StrainTensor &e,
          0.5*(gradU[1][0]*gradU[1][0]+gradU[1][1]*gradU[1][1]+gradU[1][2]*gradU[1][2]);
   e[2] = 0.5*(gradU[0][1]+gradU[1][0] +
          gradU[1][0]*gradU[0][0]+gradU[1][1]*gradU[0][1]+gradU[1][2]*gradU[0][2]);
+}
+
+template <int n>
+void
+GLStrain2D<n>::getEandB(typename TwoDTensorTypes<n>::StrainTensor &e, 
+                        typename TwoDTensorTypes<n>::BTensor &B, 
+                        typename TwoDTensorTypes<n>::GradUTensor &gradU, 
+                        typename TwoDTensorTypes<n>::GradUDerivTensor &dgradUdqk)
+{
+  // 1/2*(I+gradU)^T(I+gradU)-I
+  e[0] = gradU[0][0] +
+         0.5*(gradU[0][0]*gradU[0][0]+gradU[0][1]*gradU[0][1]+gradU[0][2]*gradU[0][2]);
+  e[1] = gradU[1][1] +
+         0.5*(gradU[1][0]*gradU[1][0]+gradU[1][1]*gradU[1][1]+gradU[1][2]*gradU[1][2]);
+  e[2] = 0.5*(gradU[0][1]+gradU[1][0] +
+           gradU[1][0]*gradU[0][0]+gradU[1][1]*gradU[0][1]+gradU[1][2]*gradU[0][2]);
+  int k;
+  for(k = 0; k < n; ++k) {
+    B[k][0] = dgradUdqk[k][0][0]
+        + gradU[0][0]*dgradUdqk[k][0][0]
+	+ gradU[0][1]*dgradUdqk[k][0][1]
+	+ gradU[0][2]*dgradUdqk[k][0][2];
+    B[k][1] = dgradUdqk[k][1][1]
+        + gradU[1][0]*dgradUdqk[k][1][0]
+	+ gradU[1][1]*dgradUdqk[k][1][1]
+	+ gradU[1][2]*dgradUdqk[k][1][2];
+    B[k][2] = 0.5*(dgradUdqk[k][0][1]+dgradUdqk[k][1][0]
+        + gradU[0][0]*dgradUdqk[k][1][0]
+	+ gradU[0][1]*dgradUdqk[k][1][1]
+	+ gradU[0][2]*dgradUdqk[k][1][2]
+	+ gradU[1][0]*dgradUdqk[k][0][0]
+	+ gradU[1][1]*dgradUdqk[k][0][1]
+	+ gradU[1][2]*dgradUdqk[k][0][2]);
+  }
+
 }
 
 template <int n>

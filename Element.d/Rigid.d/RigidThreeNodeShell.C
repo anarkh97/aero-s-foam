@@ -1,3 +1,4 @@
+#ifdef USE_EIGEN3
 #include <Element.d/Rigid.d/RigidThreeNodeShell.h>
 #include <Element.d/Rigid.d/RigidBeam.h>
 #include <Corotational.d/utilities.h>
@@ -217,4 +218,4 @@ RigidThreeNodeShell::getGravityForce(CoordSet& cs, double *gravityAcceleration,
 
         for(int i=18; i<numDofs(); ++i) gravityForce[i] = 0;
 }
-
+#endif

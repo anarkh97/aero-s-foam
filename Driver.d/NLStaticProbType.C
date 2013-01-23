@@ -1,8 +1,6 @@
 #include <cstdio>
 #include <Timers.d/GetTime.h>
 
-//#define DEBUG_NEWTON // use this to output at every newton iteration
-
 extern int verboseFlag;
 extern int totalNewtonIter;
 
@@ -68,48 +66,61 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
 
    if(domain->solInfo().soltyp != 2) StateUpdate::copyState(geomState, refState);
    probDesc->updatePrescribedDisplacement(geomState, lambda);
+   double time = (deltaLambda == maxLambda) ? 0.0 : lambda;
 
+   probDesc->initializeParameters(geomState);
 
-   // call newton iteration with load step lambda
-   int converged = newton(force, residual, totalRes,
-                          elementInternalForce, solver, 
-                          refState, geomState, numIter, lambda, step);
+   int converged;
+   bool feasible;
+   double err;
+   for(int i = 0; i < domain->solInfo().num_penalty_its; ++i) {
 
-   double time = lambda;
-   if(deltaLambda == maxLambda) time = 0.0;
+     // call newton iteration with load step lambda
+     converged = newton(force, residual, totalRes,
+                        elementInternalForce, solver, 
+                        refState, geomState, numIter, lambda, step);
 
-   if(converged == 1)
-     filePrint(stderr," ... Newton : Step #%d converged after %d iterations\n",
-                    step,numIter+1);
-   else if(converged == -1) {
-     filePrint(stderr," ... Newton : Step #%d diverged after %d iterations\n",step,
-                   numIter);
-     filePrint(stderr," ... Newton : analysis interrupted by divergence\n");
-#ifndef DEBUG_NEWTON
-     probDesc->staticOutput( geomState, time, force, totalRes, refState);
-#endif
-     break;
-   } 
+     // update lagrange multipliers and/or penalty parameters 
+     probDesc->updateParameters(geomState);
 
-   filePrint(stderr, " ... Newton : End   Step #%d --- Max Steps = %d\n", step, numSteps);
+     // check constraint violation error
+     feasible = probDesc->checkConstraintViolation(err);
 
-   if(converged ==0)
-     filePrint(stderr," *** WARNING: Newton step did not converge after %d iterations (res = %e, target = %e)\n",
-               numIter, totalRes.norm(), probDesc->getTolerance());
+     if(converged == 1) {
+       filePrint(stderr," ... Newton : Step #%d, Iter #%d converged after %d iterations\n",
+                 step, i+1, numIter+1);
+     }
+     else if(converged == -1) {
+       filePrint(stderr," ... Newton : Step #%d, Iter #%d diverged after %d iterations\n",
+                 step, i+1, numIter+1);
+       filePrint(stderr," ... Newton : analysis interrupted by divergence\n");
+       break;
+     } 
+     else if(converged == 0) {
+       filePrint(stderr," *** WARNING: Newton solve did not converge after %d iterations (res = %e, target = %e)\n",
+                 numIter, totalRes.norm(), probDesc->getTolerance());
+     }
 
-   fflush(stderr);
+     filePrint(stderr, " ... Newton : End Step #%d, Iter #%d --- Max Steps = %d, Max Iters = %d\n",
+               step, i+1, numSteps, domain->solInfo().num_penalty_its);
+     if(err > 0) filePrint(stderr," ... Maximum constraint violation = %e\n", err);
+     filePrint(stderr," --------------------------------------\n");
+   
+     if(feasible) break;
+   }
 
-   filePrint(stderr," --------------------------------------\n");
-   fflush(stderr);
    if(domain->solInfo().soltyp != 2) probDesc->updateStates(refState, *geomState);
-#ifndef DEBUG_NEWTON
+
    // Output current load step results
    probDesc->staticOutput(geomState, time, force, totalRes, refState);
-#endif
+
+   // Exit loop in the case of divergence
+   if(converged == -1) break;
 
    // increment load parameter
    lambda += deltaLambda;
  }
+
  delete geomState;
  if(refState) delete refState;
  if(stateIncr) delete stateIncr;
@@ -323,7 +334,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
   // Main Newton Iteration Loop
   double e_k;
   int iter, converged;
-  for(iter = 0; iter < maxit; ++iter, ++totalNewtonIter) {
+  for(iter = 0; iter < maxit; ++iter) {
 
     // residual = lambda*force;
     residual.linC(force, lambda);
@@ -395,6 +406,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
     probDesc->staticOutput( geomState, double(iter), force, totalRes, refState);
 #endif
 
+    totalNewtonIter++;
     // If converged, break out of loop
     if(converged == 1) break; // PJSA_DEBUG don't test for divergence
   }
@@ -493,7 +505,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
   //r0 = 1.;
 
   int maxExtIter = probDesc->getMaxit();
-  for(numExtIter = 0; numExtIter < maxExtIter; ++numExtIter, ++totalNewtonIter) {
+  for(numExtIter = 0; numExtIter < maxExtIter; ++numExtIter) {
 
     filePrint(stderr," ------------------------------------\n");
     filePrint(stderr," ### Extended-Newton iteration %d ###\n",numExtIter);
@@ -559,6 +571,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
     // HB
     int converged = probDesc->checkConvergence(numExtIter, normDv, residualNorm);
 
+    totalNewtonIter++;
     if (converged) break;
   }
 

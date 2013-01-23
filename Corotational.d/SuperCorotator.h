@@ -26,6 +26,7 @@ class SuperCorotator : public Corotator
   void getStiffAndForce(GeomState *refState, GeomState &geomState, CoordSet &cs, FullSquareMatrix &k, double *f, double dt, double t);
   void getDExternalForceDu(GeomState &geomState, CoordSet &cs, FullSquareMatrix &k, double *f);
   void getInternalForce(GeomState &geomState, CoordSet &cs, FullSquareMatrix &k, double *f, double dt, double t);
+  void getInternalForce(GeomState *refState, GeomState &geomState, CoordSet &cs, FullSquareMatrix &k, double *f, double dt, double t);
   void getExternalForce(GeomState &geomState, CoordSet &cs,  double *f);
 
   void formGeometricStiffness(GeomState &geomState, CoordSet &cs, FullSquareMatrix &k, double *f);
@@ -36,6 +37,11 @@ class SuperCorotator : public Corotator
   double getElementEnergy(GeomState &geomState, CoordSet &cs);
   void extractRigidBodyMotion(GeomState &geomState, CoordSet &cs, double *vlr);
   void updateStates(GeomState *refState, GeomState &curState, CoordSet &C0);
+
+  void getResidualCorrection(GeomState &gs, double *r);
+  void initMultipliers(GeomState& c1);
+  void updateMultipliers(GeomState& c1);
+  double getError();
 };
 
 #endif

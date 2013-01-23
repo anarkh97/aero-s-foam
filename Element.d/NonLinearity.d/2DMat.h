@@ -32,6 +32,9 @@ class ElaLinIsoMat2D : public NLMaterial
      void integrate(Tensor *stress, Tensor *tm, Tensor &en, Tensor &enp,
                     double *staten, double *statenp, double);
 
+     void integrate(Tensor *stress, Tensor &en, Tensor &enp,
+                    double *staten, double *statenp, double);
+
      void initStates(double *) {};
 
      GenStrainEvaluator<TwoDTensorTypes<9> > * getGenStrainEvaluator();

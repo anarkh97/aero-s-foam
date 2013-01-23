@@ -52,6 +52,7 @@ class MpcElement : public Element, public Corotator, public LMPCons
 
     Corotator* getCorotator(CoordSet&, double*, int, int);
     void getStiffAndForce(GeomState&, CoordSet&, FullSquareMatrix&, double*, double, double);
+    void getInternalForce(GeomState&, CoordSet&, FullSquareMatrix&, double*, double, double);
     void getResidualCorrection(GeomState& c1, double* r);
     double getElementEnergy(GeomState&, CoordSet&) { return 0; }
 
@@ -72,5 +73,9 @@ class MpcElement : public Element, public Corotator, public LMPCons
 
     void getNLVonMises(Vector&, Vector& weight,
                        GeomState &, CoordSet &, int);
+
+    void initMultipliers(GeomState& c1);
+    void updateMultipliers(GeomState& c1);
+    double getError();
 };
 #endif

@@ -106,7 +106,7 @@ MDNLDynamic::getIncDisplacement(DistrGeomState *geomState, DistrVector &du, Dist
 
 void
 MDNLDynamic::formRHSinitializer(DistrVector &fext, DistrVector &velocity, DistrVector &elementInternalForce, 
-                                  DistrGeomState &geomState, DistrVector &rhs, DistrGeomState *refState)
+                                DistrGeomState &geomState, DistrVector &rhs, DistrGeomState *refState)
 {
   // rhs = (fext - fint - Cv)
   rhs = fext;
@@ -116,11 +116,12 @@ MDNLDynamic::formRHSinitializer(DistrVector &fext, DistrVector &velocity, DistrV
     C->mult(velocity, *localTemp);
     rhs.linC(rhs, -1.0, *localTemp);
   }
+  geomState.pull_back(rhs); // rhs = R^T*rhs
 }
 
 double
 MDNLDynamic::formRHScorrector(DistrVector& inc_displacement, DistrVector& velocity, DistrVector& acceleration,
-                              DistrVector& residual, DistrVector& rhs, double localDelta)
+                              DistrVector& residual, DistrVector& rhs, DistrGeomState *geomState, double localDelta)
 {
   times->correctorTime -= getTime();
   if(domain->solInfo().order == 1) {
@@ -139,6 +140,7 @@ MDNLDynamic::formRHScorrector(DistrVector& inc_displacement, DistrVector& veloci
       localTemp->linC(-dt*gamma, inc_displacement, -dt*dt*(beta-(1-alphaf)*gamma), velocity, -dt*dt*dt*(1-alphaf)*(2*beta-gamma)/2, acceleration);
       C->multAdd(*localTemp, rhs);
     }
+    geomState->push_forward(rhs);
     rhs.linAdd(dt*dt*beta, residual);
   }
 
@@ -255,7 +257,6 @@ MDNLDynamic::MDNLDynamic(Domain *d)
   secondRes = 0.0;
   claw = 0; 
   userSupFunc = 0;
-  mu = 0; lambda = 0;
   aeroForce = 0;
   kelArray = 0;
   melArray = 0;
@@ -280,8 +281,6 @@ MDNLDynamic::MDNLDynamic(Domain *d)
 
 MDNLDynamic::~MDNLDynamic()
 {
-  if(mu) delete [] mu;
-  if(lambda) delete [] lambda;
   if(times) delete times;
   if(solver) delete solver;
   if(allOps) delete allOps;
@@ -305,6 +304,42 @@ MDNLDynamic::~MDNLDynamic()
   }
   if(decDomain) delete decDomain;
   if(reactions) delete reactions;
+}
+
+void
+MDNLDynamic::initializeParameters(DistrGeomState *geomState)
+{
+  execParal1R(decDomain->getNumSub(), this, &MDNLDynamic::subInitializeParameters, *geomState);
+}
+
+void
+MDNLDynamic::subInitializeParameters(int isub, DistrGeomState& geomState)
+{
+  decDomain->getSubDomain(isub)->initializeParameters(*(geomState[isub]), allCorot[isub]);
+}
+
+void
+MDNLDynamic::updateParameters(DistrGeomState *geomState)
+{
+  execParal1R(decDomain->getNumSub(), this, &MDNLDynamic::subUpdateParameters, *geomState);
+}
+
+void
+MDNLDynamic::subUpdateParameters(int isub, DistrGeomState& geomState)
+{
+  decDomain->getSubDomain(isub)->updateParameters(*(geomState[isub]), allCorot[isub]);
+}
+
+bool
+MDNLDynamic::checkConstraintViolation(double &err)
+{
+  err = 0;
+  for(int isub=0; isub<decDomain->getNumSub(); ++isub)
+    err = std::max(err, decDomain->getSubDomain(isub)->getError(allCorot[isub]));
+#ifdef DISTRIBUTED
+  if(structCom) err = structCom->globalMax(err);
+#endif
+  return (err <= domain->solInfo().penalty_tol);
 }
 
 int
@@ -383,30 +418,6 @@ MDNLDynamic::getStiffAndForce(DistrGeomState& geomState, DistrVector& residual,
 
   if(t != domain->solInfo().initialTime) updateConstraintTerms(&geomState,t);
 
-  // add the ACTUATOR forces
-  if(claw && userSupFunc) {
-    if(claw->numActuator > 0) {
-      double *ctrdisp = new double[claw->numSensor];
-      double *ctrvel  = new double[claw->numSensor];
-      double *ctracc  = new double[claw->numSensor];
-      double *ctrfrc  = new double[claw->numActuator];
-
-      for(int i=0; i<claw->numSensor; ++i) ctrvel[i] = ctracc[i] = 0.0; // not supported
-#ifdef DISTRIBUTED
-      for(int i=0; i<claw->numSensor; ++i) ctrdisp[i] = std::numeric_limits<double>::min();
-#endif
-      for(int i=0; i<decDomain->getNumSub(); ++i) subExtractControlDisp(i, geomState, ctrdisp);
-#ifdef DISTRIBUTED
-      structCom->globalMax(claw->numSensor, ctrdisp);
-#endif
-
-      userSupFunc->ctrl(ctrdisp, ctrvel, ctracc, ctrfrc, t);
-      decDomain->addCtrl(residual, ctrfrc);
-
-      delete [] ctrdisp; delete [] ctrvel; delete [] ctracc; delete [] ctrfrc;
-    }
-  }
-
   times->buildStiffAndForce += getTime();
 
   return sqrt(solver->getFNormSq(residual));
@@ -423,7 +434,8 @@ MDNLDynamic::subGetStiffAndForce(int isub, DistrGeomState &geomState,
   // eIF = element internal force
   StackVector eIF(elemIntForce.subData(isub), elemIntForce.subLen(isub));
   GeomState *subRefState = (refState) ? (*refState)[isub] : 0;
-  sd->getStiffAndForce(*geomState[isub], eIF, allCorot[isub], kelArray[isub], residual, 1.0, t, subRefState);
+  sd->getStiffAndForce(*geomState[isub], eIF, allCorot[isub], kelArray[isub], residual, 1.0, t, subRefState,
+                       (Vector *) NULL, melArray[isub]);
 }
 
 void
@@ -573,8 +585,6 @@ MDNLDynamic::preProcess()
   localTemp = new DistrVector(decDomain->solVecInfo());
 
   domain->InitializeStaticContactSearch(MortarHandler::CTC, decDomain->getNumSub(), decDomain->getAllSubDomains());
-  mu = new std::map<std::pair<int,int>,double>[decDomain->getNumSub()];
-  lambda = new std::vector<double>[decDomain->getNumSub()];
 
   times->memoryPreProcess += threadManager->memoryUsed();
 }
@@ -661,13 +671,34 @@ MDNLDynamic::getExternalForce(DistrVector& f, DistrVector& constantForce,
   execParal4R(decDomain->getNumSub(), this, &MDNLDynamic::subGetExternalForce,
               f, constantForce, t, tm);
 
-  // add the USDF forces
+  // add the USDF and ACTUATOR forces
   if(claw && userSupFunc) {
     if(claw->numUserForce > 0) {
       double *userDefineForce = new double[claw->numUserForce];
       userSupFunc->usd_forc(t, userDefineForce);
       decDomain->addUserForce(f, userDefineForce);
-      delete [] userDefineForce; 
+      delete [] userDefineForce;
+    }
+
+    if(claw->numActuator > 0) {
+      double *ctrdisp = new double[claw->numSensor];
+      double *ctrvel  = new double[claw->numSensor];
+      double *ctracc  = new double[claw->numSensor];
+      double *ctrfrc  = new double[claw->numActuator];
+
+      for(int i=0; i<claw->numSensor; ++i) ctrvel[i] = ctracc[i] = 0.0; // not supported
+#ifdef DISTRIBUTED
+      for(int i=0; i<claw->numSensor; ++i) ctrdisp[i] = std::numeric_limits<double>::min();
+#endif
+      for(int i=0; i<decDomain->getNumSub(); ++i) subExtractControlDisp(i, *geomState, ctrdisp);
+#ifdef DISTRIBUTED
+      structCom->globalMax(claw->numSensor, ctrdisp);
+#endif
+
+      userSupFunc->ctrl(ctrdisp, ctrvel, ctracc, ctrfrc, t);
+      decDomain->addCtrl(f, ctrfrc);
+
+      delete [] ctrdisp; delete [] ctrvel; delete [] ctracc; delete [] ctrfrc;
     }
   }
 
@@ -907,7 +938,7 @@ MDNLDynamic::subGetReactionForce(int i, DistrGeomState &geomState, DistrGeomStat
  
   // TODO: the lagrange multipliers should probably be extrapolated to t^{n+1}
   //       check if the equality constraint forces are incremental
-  sd->addCConstraintForces(mu[i], lambda[i], ri, 1/Kcoef_p);
+  sd->addCConstraintForces(geomState.mu[i], geomState.lambda[i], ri, 1/Kcoef_p);
 #ifdef DEBUG_REACTIONS
   double rx=0,ry=0,rz=0;
   for(int j=0; j<reactions->subLen(i)/3; ++j) {
@@ -984,11 +1015,11 @@ MDNLDynamic::sysVecInfo()
 }
 
 double
-MDNLDynamic::getResidualNorm(DistrVector &r, DistrGeomState &, double)
+MDNLDynamic::getResidualNorm(DistrVector &r, DistrGeomState &geomState, double)
 {
  //returns: sqrt( (r+c^T*lambda)**2 + pos_part(gap)**2 )
  DistrVector w(r);
- execParal1R(decDomain->getNumSub(), this, &MDNLDynamic::addConstraintForces, w); // w = r + C^T*lambda
+ execParal2R(decDomain->getNumSub(), this, &MDNLDynamic::addConstraintForces, w, geomState); // w = r + C^T*lambda
                   // note C = grad(gap) has already been updated in getStiffAndForce.
  return sqrt(solver->getFNormSq(w));
 }
@@ -999,20 +1030,29 @@ MDNLDynamic::factorWhenBuilding() const {
 }
 
 void
-MDNLDynamic::addConstraintForces(int isub, DistrVector& vec)
+MDNLDynamic::addConstraintForces(int isub, DistrVector& vec, DistrGeomState& geomState)
 {
   SubDomain *sd = decDomain->getSubDomain(isub);
   StackVector localvec(vec.subData(isub), vec.subLen(isub));
-  sd->addConstraintForces(mu[isub], lambda[isub], localvec);  // C^T*lambda added to vec
+  sd->addConstraintForces(geomState.mu[isub], geomState.lambda[isub], localvec);  // C^T*lambda added to vec
 }
 
 void
-MDNLDynamic::getConstraintMultipliers(int isub)
+MDNLDynamic::getConstraintMultipliers(DistrGeomState& geomState)
+{
+  // this function extracts the constraint multipliers from the subdomains,
+  // where they are stored at the send of the feti solver's solve function
+  // and stores them in geomState 
+  execParal1R(decDomain->getNumSub(), this, &MDNLDynamic::subGetConstraintMultipliers, geomState);
+}
+
+void
+MDNLDynamic::subGetConstraintMultipliers(int isub, DistrGeomState& geomState)
 {
   SubDomain *sd = decDomain->getSubDomain(isub);
-  mu[isub].clear();
-  lambda[isub].clear();
-  sd->getConstraintMultipliers(mu[isub], lambda[isub]);
+  geomState.mu[isub].clear();
+  geomState.lambda[isub].clear();
+  sd->getConstraintMultipliers(geomState.mu[isub], geomState.lambda[isub]);
 }
 
 void
@@ -1021,7 +1061,6 @@ MDNLDynamic::updateConstraintTerms(DistrGeomState* geomState, double t)
   // TODO other solvers (eg parallel mumps with penalty?)
   GenFetiDPSolver<double> *fetiSolver = dynamic_cast<GenFetiDPSolver<double> *>(solver);
   if(fetiSolver) {
-    execParal(decDomain->getNumSub(), this, &MDNLDynamic::getConstraintMultipliers);
     if(domain->GetnContactSurfacePairs()) {
       // this function updates the linearized contact conditions (the lmpc coeffs are the gradient and the rhs is the gap)
       // XXXX the hessian of the constraint functions needs to be computed also

@@ -29,6 +29,7 @@ class OutputInfo;
 class LayMat;
 class Attrib;
 class EFrameData;
+class NFrameData;
 class CoefData;
 class LayInfo;
 struct Group;
@@ -175,8 +176,14 @@ class GeoSource {
   ResizeArray<EFrameData> efd;
   vector<OffsetData> offsets;
 
+  int numNframes;
+  ResizeArray<NFrameData> nfd;
+
   int numCframes;
   ResizeArray<double *> cframes;
+
+  int numCSframes;
+  ResizeArray<EFrameData> csfd;
 
   int prsflg;
   int constpflg, constqflg; // consistent pressure and gravity
@@ -263,6 +270,8 @@ class GeoSource {
   BCond *surface_nbc;
   int numSurfacePressure;
   BCond *surface_pres;
+  int numSurfaceConstraint;
+  BCond *surface_cfe;
 
 public:
   bool binaryInput, binaryOutput;
@@ -324,7 +333,7 @@ public:
   void setControl(char *checkfile, char *nodeset, char *elemset, char *bcondset = 0);
 
   // Parser support Functions - Geometry
-  int  addNode(int nd, double xyz[3]);
+  int  addNode(int nd, double xyz[3], int cp, int cd);
   int  addElem(int en, int type, int nn, int *nodeNumbers);
   int  addMat(int, const StructProp &);
   int  addLay(int, LayInfo *);
@@ -332,8 +341,10 @@ public:
   CoefData* getCoefData(int i) { assert(i >= 0 && i < numCoefData); return coefData[i]; }
   int  addLayMat(int m, double *);
   int  setAttrib(int n, int a, int ca = -1, int cfrm = -1, double ctheta = 0.0);
-  int  setFrame(int,double *);
-  int  addCFrame(int,double *);
+  int  setFrame(int, double *);
+  int  setNodalFrame(int, double *, double *, int);
+  int  setCSFrame(int, double *);
+  int  addCFrame(int, double *);
   void setElementPressure(int, double);
   void setElementPreLoad(int, double);
   void setElementPreLoad(int, double[3]);
@@ -354,6 +365,7 @@ public:
   int  addSurfaceDirichlet(int, BCond *);
   int  addSurfaceNeuman(int, BCond *);
   int  addSurfacePressure(int, BCond *);
+  int  addSurfaceConstraint(int, BCond *);
 
   // PITA
   int getLocalTimeSliceCount() { return timeSliceOutputFiles.size(); }
@@ -381,6 +393,7 @@ public:
   int  setUsddLocation(int, BCond *);
   int  setUsdfLocation(int, BCond *);
 
+  void transformCoords();
   void setUpData();
   void setUpData(CoordSet &, Domain *, int);
 
@@ -429,11 +442,15 @@ public:
   const std::map<int, NLMaterial *> &getMaterialLaws() const { return materials; }
   const std::map<int, int> &getMaterialLawMapping() const { return matUsage; }
   EFrameData *getEframes()  { return efd+0; }
+  EFrameData *getCSframes() { return csfd+0; }
+  NFrameData *getNFrames() { return nfd+0; }
   double **getCframes()  { return cframes+0; }
   LayInfo **getLayInfo() { return layInfo+0; }
   int getNumLayInfo() { return numLayInfo; }
   int getNumEframes() { return numEframes; }
+  int getNumCSframes() { return numCSframes; }
   int getNumCframes() { return numCframes; }
+  int getNumNframes() { return numNframes; }
   const ElemPressureContainer &getElementPressure() const { return eleprs; }
   int pressureFlag() { return prsflg; }
   int consistentPFlag() { return constpflg; }
@@ -462,6 +479,7 @@ public:
   int getSurfaceDirichletBC(BCond *&);
   int getSurfaceNeumanBC(BCond *&);
   int getSurfacePressure(BCond *&);
+  int getSurfaceConstraint(BCond *&);
 
   int getModalDamping(BCond *&);
 
@@ -492,15 +510,15 @@ public:
 
   // Output Functions
   template<int bound>
-    void outputNodeVectors(int, double (*)[bound], int, double time = -1.0);//DofSet::max_known_nonL_dof
+    void outputNodeVectors(int, double (*)[bound], int, double time = -1.0);
   template<int bound>
     void outputNodeVectors(int, DComplex (*)[bound], int, double time = -1.0);
   template<int bound>
     void outputNodeVectors6(int, double (*)[bound], int, double time = -1.0);
   template<int bound>
     void outputNodeVectors6(int, DComplex (*)[bound], int, double time = -1.0);
-  //void outputNodeVectors6(int, double (*)[11], int, double time = -1.0) {};
-  //void outputNodeVectors6(int, DComplex (*)[11], int, double time = -1.0) {};
+  template<int bound>
+    void outputNodeVectors9(int, double (*)[bound], int, double time = -1.0);
   void outputNodeScalars(int, double *, int, double time = -1.0);
   void outputNodeScalars(int, DComplex *, int, double time = -1.0);
   void outputEnergies(int, double, double, double, double, double, double, double);
@@ -581,6 +599,7 @@ public:
   void makeDirectMPCs(int &numLMPC, ResizeArray<LMPCons *> &lmpc);
   int reduceMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc);
   bool checkLMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc);
+  void transformLMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc);
   void addMpcElements(int numLMPC, ResizeArray<LMPCons *> &lmpc);
   void addFsiElements(int numFSI, ResizeArray<LMPCons *> &fsi);
   Element* getElem(int topid) { return elemSet[topid]; }

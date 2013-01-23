@@ -29,7 +29,7 @@ DistrExplicitPodProjectionNonLinDynamicBase::DistrExplicitPodProjectionNonLinDyn
 void
 DistrExplicitPodProjectionNonLinDynamicBase::preProcess() {
   MultiDomainDynam::preProcess();
- 
+
   FileNameInfo fileInfo; 
   DistrBasisInputFile podBasisFile(BasisFileId(fileInfo, BasisId::STATE, BasisId::POD));
 
@@ -37,7 +37,7 @@ DistrExplicitPodProjectionNonLinDynamicBase::preProcess() {
                                      std::min(domain->solInfo().maxSizePodRom, podBasisFile.stateCount()) :
                                      podBasisFile.stateCount();
 
-  filePrint(stderr, "Projection subspace of dimension = %d\n", projectionSubspaceSize);
+  filePrint(stderr, " ... Projection subspace of dimension = %d ...\n", projectionSubspaceSize);
   projectionBasis_.dimensionIs(projectionSubspaceSize, decDomain->masterSolVecInfo());
 
   DistrVecNodeDof6Conversion converter(decDomain->getAllSubDomains(), decDomain->getAllSubDomains() + decDomain->getNumSub());
@@ -66,6 +66,7 @@ DistrExplicitPodProjectionNonLinDynamicBase::buildOps(double mCoef, double cCoef
 
   const GenSubDOp<double> &fullMass = *(result->M);
   std::auto_ptr<DistrGalerkinProjectionSolver> solver(new DistrGalerkinProjectionSolver(fullMass));
+
   solver->projectionBasisIs(projectionBasis_);
 
   delete result->dynMat;

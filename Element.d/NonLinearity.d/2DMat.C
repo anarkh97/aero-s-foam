@@ -93,6 +93,32 @@ ElaLinIsoMat2D::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Tensor &_enp,
   //  fprintf(stderr,"s[%d]=%e\n",i , (*stress)[i]);
 }
 
+void
+ElaLinIsoMat2D::integrate(Tensor *_stress, Tensor &, Tensor &_enp,
+                          double *staten, double *statenp, double)
+{
+  SymTensor<double,2> & enp = static_cast<SymTensor<double,2> &>(_enp);
+  SymTensor<double,2> * stress = static_cast<SymTensor<double,2> *>(_stress);
+  SymTensor<SymTensor<double,2>,2> * tm = new SymTensor<SymTensor<double,2>,2>();
+
+  double E11 = t*E/(1-nu*nu);
+  double E12 = nu*E11;
+  double E33 = t*E/(1+nu);
+  (*tm)[0][0] = E11;
+  (*tm)[1][1] = E11;
+  (*tm)[2][2] = E33/2;
+  (*tm)[0][1] = (*tm)[1][0] = E12;
+  (*tm)[0][2] = (*tm)[2][0] = 0;
+  (*tm)[1][2] = (*tm)[2][1] = 0;
+
+  (*stress) = (*tm)||enp;
+
+  //for (int i=0; i<6; ++i)
+  //  fprintf(stderr,"s[%d]=%e\n",i , (*stress)[i]);
+  delete tm;
+}
+
+
 extern LinearStrain2D<9> linStrain2D;
 
 GenStrainEvaluator<TwoDTensorTypes<9> > *

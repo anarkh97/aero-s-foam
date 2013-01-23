@@ -898,6 +898,16 @@ fprintf(stderr,"Projection  time: %e\n",xtime);
    allOps->sysSolver = 0;
    stochStress(sol); // YYY Commented out temporarily
  }
+ else if(domain->solInfo().loadcases.size() > 0) {
+   while(domain->solInfo().loadcases.size() > 0) {
+     probDesc->getRHS(*rhs);
+     allOps->sysSolver->solve(*rhs,*sol);
+     if(domain->solInfo().isCoupled) scaleDisp(*sol); // PJSA 9-22-06
+     bool printTimers = (domain->solInfo().loadcases.size() > 1) ? false : true;
+     postProcessor->staticOutput(*sol, *rhs, printTimers);
+     domain->solInfo().loadcases.pop_front();
+   }
+ }
  else {
    probDesc->getRHS(*rhs);
    allOps->sysSolver->solve(*rhs,*sol);

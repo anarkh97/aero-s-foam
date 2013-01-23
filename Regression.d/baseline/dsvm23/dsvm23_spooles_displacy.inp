@@ -6,7 +6,7 @@ dsvm23_spooles_displacy
 *
 STATICS
 spooles
-*
+include "../fetidp.include"
 OUTPUT
 displacy dsvm23_spooles_displacy.dat  1 11
 *

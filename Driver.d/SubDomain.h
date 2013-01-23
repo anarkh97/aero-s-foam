@@ -174,6 +174,8 @@ class BaseSub : virtual public Domain
   int * getGlobalToLocalNodeMap() { return glToLocalNode; }
   int globalToLocal(int i)    { return (i < 0 || i > globalNMax) ? -1 : glToLocalNode[i]; }  // PJSA
   int localToGlobal(int i)    { return glNums[i]; }
+  int globalToLocalElem(int i) { return (i < 0 || i > globalEMax) ? -1 : glToLocalElem[i]; }  // PJSA
+  int localToGlobalElem(int i) { return glElems[i]; }
   int getGlobalNMax()         { return globalNMax; }
   int* makeBMaps(DofSetArray *dofsetarray=0);
   int* makeIMaps(DofSetArray *dofsetarray=0);
@@ -547,11 +549,11 @@ class GenSubDomain : public BaseSub
   void mergeStress(Scalar *stress, Scalar *weight,
                    Scalar *globStress, Scalar *globWeight, int glNumNodes);
   void mergeElemStress(Scalar *loc, Scalar *glob, Connectivity *);
-  void mergeDisp(Scalar (*xyz)[11], GeomState* locGS);//DofSet::max_known_nonL_dof
-  void mergeAllDisp(Scalar (*xyz)[11], Scalar *locdisp);
+  void mergeDisp(Scalar (*xyz)[11], GeomState* locGS);
+  void mergeAllDisp(Scalar (*xyz)[11], Scalar *d, Scalar (*xyz_loc)[11] = NULL);
+  void mergeAllVeloc(Scalar (*xyz)[11], Scalar *v, Scalar (*xyz_loc)[11] = NULL);
+  void mergeAllAccel(Scalar (*xyz)[11], Scalar *a, Scalar (*xyz_loc)[11] = NULL);
   void forceContinuity(Scalar *locdisp, Scalar (*xyz)[11]);
-  void mergeAllVeloc(Scalar (*xyz)[11], Scalar *v);
-  void mergeAllAccel(Scalar (*xyz)[11], Scalar *a);
   void mergeDistributedNLDisp(Scalar (*xyz)[11], GeomState* u);
   void mergeForces(Scalar (*mergedF)[6], Scalar *subF);
   void mergeReactions(Scalar (*mergedF)[11], Scalar *subF);
@@ -561,7 +563,7 @@ class GenSubDomain : public BaseSub
   void sendExpDOFList(FSCommPattern<int> *pat);
   template<class Scalar1> void dispatchNodalData(FSCommPattern<Scalar> *pat, NewVec::DistVec<Scalar1> *);
   template<class Scalar1> void addNodalData(FSCommPattern<Scalar> *pat, NewVec::DistVec<Scalar1> *);
-  void computeElementForce(Scalar *u, int Findex, Scalar *force);
+  void computeElementForce(int, Scalar *u, int Findex, Scalar *force);
   void computeStressStrain(int, Scalar *u, int Findex,
                            Scalar *stress, Scalar *weight = 0);
   void computeStressStrain(GeomState *gs, Corotator **allCorot,
@@ -754,6 +756,7 @@ class GenSubDomain : public BaseSub
                      FSCommPattern<Scalar> *wiPat);
   void multMCoupled2(Scalar *localrhs, FSCommPattern<Scalar> *wiPat);
   void pade(GenStackVector<Scalar> *sol,  GenStackVector<Scalar> **u, double *h, double x);
+  void setRebuildPade(bool _rebuildPade) { rebuildPade = _rebuildPade; }
 
   // new B operators
   void multAddBrT(Scalar *interfvec, Scalar *localvec, Scalar *uw = 0);

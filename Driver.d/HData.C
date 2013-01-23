@@ -19,6 +19,8 @@
 #include <Element.d/Sommerfeld.d/IsoParamTriLineSommer.h>
 #include <Element.d/Sommerfeld.d/TrianglePressureBC.h>
 #include <Element.d/Sommerfeld.d/QuadPressureBC.h>
+#include <Element.d/Sommerfeld.d/Triangle6PressureBC.h>
+#include <Element.d/Sommerfeld.d/Quad8PressureBC.h>
 
 #include <Driver.d/Domain.h>
 
@@ -130,7 +132,7 @@ HData::make_bc(Domain *dom, int *bc, ComplexD *bcxC)
      int dof  = dom->dsa->locate(dom->nbc[i].nnum, 1 << dom->nbc[i].dofnum);
      if(dof < 0) continue;
      if(bc[dof] == BCLOAD && iDir==0) {
-       fprintf(stderr,"WARNING: check input, found repeated FORCE (node %d, dof %d)\n",dom->nbc[i].nnum,dom->nbc[i].dofnum);
+       //fprintf(stderr,"WARNING: check input, found repeated FORCE (node %d, dof %d)\n",dom->nbc[i].nnum,dom->nbc[i].dofnum);
      }
      bc[dof] = BCLOAD;
      bcxC[dof] = ComplexD(dom->nbc[i].val, 0.0);
@@ -141,7 +143,7 @@ HData::make_bc(Domain *dom, int *bc, ComplexD *bcxC)
      int dof  = dom->dsa->locate(dom->dbc[i].nnum, 1 << dom->dbc[i].dofnum);
      if(dof < 0) continue;
      if(bc[dof] == BCFIXED && iDir==0) {
-       fprintf(stderr,"WARNING: check input, found repeated DISP (node %d, dof %d)\n",dom->dbc[i].nnum,dom->dbc[i].dofnum);
+       //fprintf(stderr,"WARNING: check input, found repeated DISP (node %d, dof %d)\n",dom->dbc[i].nnum,dom->dbc[i].dofnum);
      }
      bc[dof] = BCFIXED;
      bcxC[dof] = ComplexD(dom->dbc[i].val, 0.0);
@@ -152,7 +154,7 @@ HData::make_bc(Domain *dom, int *bc, ComplexD *bcxC)
      int dof  = dom->dsa->locate(cnbc[i].nnum, 1 << cnbc[i].dofnum);
      if(dof < 0) continue;
      if(bc[dof] == BCLOAD && iDir==0) {
-          fprintf(stderr,"WARNING: check input, found repeated HFORCE (node %d, dof %d)\n",cnbc[i].nnum,cnbc[i].dofnum);
+       //fprintf(stderr,"WARNING: check input, found repeated HFORCE (node %d, dof %d)\n",cnbc[i].nnum,cnbc[i].dofnum);
      }
      bc[dof] = BCLOAD;
      bcxC[dof] = ComplexD(cnbc[i].reval, cnbc[i].imval);
@@ -163,7 +165,7 @@ HData::make_bc(Domain *dom, int *bc, ComplexD *bcxC)
      int dof  = dom->dsa->locate(cdbc[i].nnum, 1 << cdbc[i].dofnum);
      if(dof < 0) continue;
      if(bc[dof] == BCFIXED && iDir==0) {
-       fprintf(stderr,"WARNING: check input, found repeated HDISP (node %d, dof %d)\n",cdbc[i].nnum,cdbc[i].dofnum);   
+       //fprintf(stderr,"WARNING: check input, found repeated HDISP (node %d, dof %d)\n",cdbc[i].nnum,cdbc[i].dofnum);   
      }
      if (implicitFlag) {
        Node nd = dom->nodes.getNode(cdbc[i].nnum);
@@ -2032,6 +2034,22 @@ HData::addNeumElem(int num, int etype, double sommerConst, int nnodes, int*n)
        ele = new QuadPressureBC(n, sommerConst);
        addNeum(ele);
        break;
+#if defined(USE_EIGEN3) && (__cplusplus >= 201103L) && defined(HAS_CXX11_TEMPLATE_ALIAS)
+     case 17:
+       ele = new Triangle6PressureBC(n, sommerConst);
+       addNeum(ele);
+       break;
+     case 18:
+       ele = new Quad8PressureBC(n, sommerConst);
+       addNeum(ele);
+       break;
+#else
+     case 17: case 18:
+       std::cerr << " *** ERROR: Selected PressureBC element requires Eigen 3 library and C++11 " << std::endl
+                 << "     compiler support for template alias (e.g. icpc 12.1 or g++ 4.7). Exiting...\n";
+       exit(-1);
+       break;
+#endif
      default:
        return;
    }

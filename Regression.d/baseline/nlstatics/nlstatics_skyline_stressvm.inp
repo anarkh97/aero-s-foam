@@ -6,16 +6,17 @@ nlstatics_skyline_stressvm
 *
 STATICS
 skyline
-include "feti.include"
+include "../fetidp.include"
 *
 NONLINEAR
-maxitr 10
+maxitr 100
 nltol 1.0e-7
 rebuild 1
+dlambda 0.1 0.3
 *
 OUTPUT
 stressvm nlstatics_skyline_stressvm.dat 1
 *
-INCLUDE "mesh.include"
+INCLUDE "../mesh.include"
 *
 END

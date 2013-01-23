@@ -3,6 +3,8 @@
 
 namespace Pita { namespace Old {
 
+const double NLTimeSlice::defaultTolerance = 1.0e-6;
+
 NLTimeSlice::NLTimeSlice(const PitaNonLinDynamic & probDesc, int rank)
   : projector(const_cast<PitaNonLinDynamic &>(probDesc).solVecInfo(), defaultTolerance)
 {

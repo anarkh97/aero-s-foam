@@ -183,9 +183,10 @@ Shell3Corotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
   
  tran_force(f, t0n, 3);
 
- //cerr << "elK = \n"; elK.print();
- //cerr << "f = \n"; for(int i=0; i<elK.dim(); ++i) cerr << f[i] << " "; cerr << endl;
-
+ // The skew symmetric load stiffness matrix due to axial external moments is
+ // added separately (see Domain::getFollowerForce in Driver.d/NLStatic.C)
+ // For now, it can be removed from elK by symmetrizing to avoid doubling.
+ elK.symmetrize();
 }
 
 //--------------------------------------------------------------------------
@@ -221,25 +222,18 @@ Shell3Corotator::getInternalForce(GeomState &geomState, CoordSet &cs,
 
  extractDefDisp(node1,node2,node3, ns1,ns2,ns3, xl0,xln, t0,t0n, vld );
 
- // Form unprojected internal forces and initialize stiffness matrix
-
- int i,j;
- for(i=0; i<18; ++i) {
-  locF[i] = 0.0;
-  for(j=0; j<18; ++j)
-    elK[i][j] = origK[i][j];
- }
+ // Form unprojected internal forces
 
  // compute locF (local Force) as origK*vld 
 
- _FORTRAN(dgemv)('N',18,18,1.0,(double *)elK.data(),18,vld,1,0.0,locF,1);
+ _FORTRAN(dgemv)('N',18,18,1.0,(double *)origK,18,vld,1,0.0,locF,1);
 
  // Compute gradients of the nodal deformational pseudorotations
  // Correct element stiffness and internal force
 
  double rotvar[3][3][3];
 
- int inode;
+ int inode,i;
  for(inode=0; inode<3; ++inode)
    pseudorot_var( vld+inode*6+3, rotvar[inode] );
 
@@ -396,6 +390,10 @@ Shell3Corotator::formGeometricStiffness(GeomState &geomState, CoordSet &cs,
 
   _FORTRAN(trirotation)(elK.data(),(double*)t0n);
 
+ // The skew symmetric load stiffness matrix due to axial external moments is
+ // added separately (see Domain::getFollowerForce in Driver.d/NLStatic.C)
+ // For now, it can be removed from elK by symmetrizing to avoid doubling.
+ elK.symmetrize();
 }
 
 //---------------------------------------------------------------------------

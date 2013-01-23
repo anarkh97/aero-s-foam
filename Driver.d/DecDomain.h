@@ -190,7 +190,7 @@ class GenDecDomain
   void getPrincipalStress(DistrGeomState *u, Corotator ***, int, int, double, DistrGeomState *refState);
   void getElementPrincipalStress(DistrGeomState *u, Corotator ***, int, int, double, DistrGeomState *refState);
   void computeSubdElemForce(int iSub, Scalar *globForce,
-                            GenDistrVector<Scalar> *u, int Findex);
+                            GenDistrVector<Scalar> *u, int fileNumber, int Findex);
   void computeSubdStress(int, GenDistrVector<Scalar>*, GenDistrVector<Scalar>*,
                          GenDistrVector<Scalar>*, int, int);
   void computeSubdElemStress(int, Scalar *, GenDistrVector<Scalar> *, int, int);

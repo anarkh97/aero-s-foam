@@ -1,51 +1,22 @@
 #!/bin/bash
 #PBS -N test
-#PBS -l nodes=1:ppn=8,walltime=1:00:00
+#PBS -V
+#PBS -l nodes=4:ppn=8,walltime=3:00:00
 
+. /opt/modules/Modules/3.2.6/init/bash
+ module load intel openmpi
 cd /lustre/home/mpotts/FEM/Regression.d/impe
-echo mpirun -n 4 ../../bin/aeros  impe_sparse_gdisplac.inp
-mpirun -n 4 ../../bin/aeros  impe_sparse_gdisplac.inp
-echo mpirun -n 4 ../../bin/aeros  impe_skyline_stressvm.inp
-mpirun -n 4 ../../bin/aeros  impe_skyline_stressvm.inp
-echo mpirun -n 4 ../../bin/aeros  impe_mumps_strainxx.inp
-mpirun -n 4 ../../bin/aeros  impe_mumps_strainxx.inp
-echo mpirun -n 4 ../../bin/aeros  impe_spooles_strainxy.inp
-mpirun -n 4 ../../bin/aeros  impe_spooles_strainxy.inp
-echo mpirun -n 4 ../../bin/aeros  impe_gmres_strainxz.inp
-mpirun -n 4 ../../bin/aeros  impe_gmres_strainxz.inp
-echo mpirun -n 4 ../../bin/aeros  impe_direct_strainxx.inp
-mpirun -n 4 ../../bin/aeros  impe_direct_strainxx.inp
-echo mpirun -n 4 ../../bin/aeros  impe_spooles_pivot_strainxy.inp
-mpirun -n 4 ../../bin/aeros  impe_spooles_pivot_strainxy.inp
-echo mpirun -n 4 ../../bin/aeros  impe_mumps_pivot_strainxz.inp
-mpirun -n 4 ../../bin/aeros  impe_mumps_pivot_strainxz.inp
-echo mpirun -n 4 ../../bin/aeros  impe_pcg_strainxx.inp
-mpirun -n 4 ../../bin/aeros  impe_pcg_strainxx.inp
-echo mpirun -n 4 ../../bin/aeros  impe_bcg_strainxy.inp
-mpirun -n 4 ../../bin/aeros  impe_bcg_strainxy.inp
-echo mpirun -n 4 ../../bin/aeros  impe_cr_strainxz.inp
-mpirun -n 4 ../../bin/aeros  impe_cr_strainxz.inp
-echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 impe_FETI_inxforce.inp
-mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 impe_FETI_inxforce.inp
-echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 impe_FETI_DP_inyforce.inp
-mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 impe_FETI_DP_inyforce.inp
-echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 impe_FETI_DPH_inzforce.inp
-mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 impe_FETI_DPH_inzforce.inp
-echo mpirun -n 4 ../../bin/aeros  impe_sparse_axmoment.inp
-mpirun -n 4 ../../bin/aeros  impe_sparse_axmoment.inp
-echo mpirun -n 4 ../../bin/aeros  impe_skyline_aymoment.inp
-mpirun -n 4 ../../bin/aeros  impe_skyline_aymoment.inp
-echo mpirun -n 4 ../../bin/aeros  impe_mumps_azmoment.inp
-mpirun -n 4 ../../bin/aeros  impe_mumps_azmoment.inp
-echo mpirun -n 4 ../../bin/aeros  impe_spooles_energies.inp
-mpirun -n 4 ../../bin/aeros  impe_spooles_energies.inp
-echo mpirun -n 4 ../../bin/aeros  impe_gmres_gvelocit.inp
-mpirun -n 4 ../../bin/aeros  impe_gmres_gvelocit.inp
-echo mpirun -n 4 ../../bin/aeros  impe_direct_gacceler.inp
-mpirun -n 4 ../../bin/aeros  impe_direct_gacceler.inp
-echo mpirun -n 4 ../../bin/aeros  impe_spooles_pivot_displmod.inp
-mpirun -n 4 ../../bin/aeros  impe_spooles_pivot_displmod.inp
-echo mpirun -n 4 ../../bin/aeros  impe_mumps_pivot_rotatmod.inp
-mpirun -n 4 ../../bin/aeros  impe_mumps_pivot_rotatmod.inp
-echo mpirun -n 4 ../../bin/aeros  impe_pcg_gdispmod.inp
-mpirun -n 4 ../../bin/aeros  impe_pcg_gdispmod.inp
+../create_mfiles.pl
+echo mpirun -n 2 ../../bin/aeros  impe_spooles_pivot_gdisplac.inp
+mpirun -n 2 --machinefile host.0 ../../bin/aeros  impe_spooles_pivot_gdisplac.inp &
+echo mpirun -n 2 ../../bin/aeros  impe_mumps_pivot_displmod.inp
+mpirun -n 2 --machinefile host.1 ../../bin/aeros  impe_mumps_pivot_displmod.inp &
+echo mpirun -n 2 ../../bin/aeros -n 2 --dec --nsub 4 impe_FETI_DPH_gdispmod.inp
+mpirun -n 2 --machinefile host.2 ../../bin/aeros -n 2 --dec --nsub 4 impe_FETI_DPH_gdispmod.inp &
+echo mpirun -n 2 ../../bin/aeros  impe_spooles_pivot_displacx.inp
+mpirun -n 2 --machinefile host.3 ../../bin/aeros  impe_spooles_pivot_displacx.inp &
+echo mpirun -n 2 ../../bin/aeros  impe_mumps_pivot_displacy.inp
+mpirun -n 2 --machinefile host.4 ../../bin/aeros  impe_mumps_pivot_displacy.inp &
+echo mpirun -n 2 ../../bin/aeros -n 2 --dec --nsub 4 impe_FETI_DPH_displacz.inp
+mpirun -n 2 --machinefile host.5 ../../bin/aeros -n 2 --dec --nsub 4 impe_FETI_DPH_displacz.inp &
+wait %1 %2 %3 %4 %5 %6 

@@ -118,8 +118,6 @@ protected:
     DistrGeomState *geomState;
 
 private:
-    DistrVector *dprev;
-
     MDDynamMat *dynMat;
     MultiDomDynPostProcessor *mddPostPro;
 
@@ -164,7 +162,7 @@ private:
     void getSteadyStateParam(int &steadyFlag, int &steadyMin, int &steadMax,
                              double &steadyTol); 
     void getConstForce(DistrVector &);
-    void getContactForce(DistrVector &, DistrVector &ctc_f, double t_n_p);
+    void getContactForce(DistrVector &d_n, DistrVector &dinc, DistrVector &ctc_f, double t_n_p, double dt, double dt_old);
     void computeExtForce2(SysState<DistrVector> &, DistrVector &, 
                           DistrVector &, int tIndex, double t,
                           DistrVector * aero_f=0,
@@ -188,13 +186,14 @@ private:
 
     // Central Difference only related subroutines
     void computeStabilityTimeStep(double&, MDDynamMat&);
+    void updateDisplacement(DistrVector& dinc, DistrVector& d_n);
 
     // Mode Decomposition parameters and subroutines
     int getModeDecompFlag();
     void modeDecompPreProcess(SparseMatrix* M);
     void modeDecomp(double t, int tIndex, DistrVector& d_n);
 
-    void getInternalForce(DistrVector &d, DistrVector &f, double t);
+    void getInternalForce(DistrVector &d, DistrVector &f, double t, int tIndex);
 
     // Aeroelastic problems related subroutines
     void computeTimeInfo();
@@ -217,13 +216,13 @@ private:
     int getAeroheatFlag();
    
   private:
-    void subGetInternalForce(int isub, DistrVector &res, double t);
+    void subGetInternalForce(int isub, DistrVector &res, double &t, int &tIndex);
     void subGetKtimesU(int isub, DistrVector &d, DistrVector &f);
     void makeSubCorotators(int isub);
     void makeSubElementArrays(int isub);
     void initSubPrescribedDisplacement(int isub);
-    void subUpdateGeomStateUSDD(int isub, double *userDefineDisp);
-    void subExplicitUpdate(int isub, DistrVector &d);
+    void subUpdateGeomStateUSDD(int isub, double *userDefineDisp, DistrGeomState *geomState);
+    void subExplicitUpdate(int isub, DistrVector &d, DistrGeomState *geomState);
 };
 
 #endif

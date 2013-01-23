@@ -17,17 +17,16 @@
  ... # Output Files       =       1 ...
  --------------------------------------
  --------------------------------------
- ... Total Time           = 2.28e-01 s
- ... Total Memory Used    = 1.83e-01 Mb
+ ... Total Time           = 1.16e-01 s
+ ... Total Memory Used    = 1.97e-01 Mb
  --------------------------------------
-../../bin/aeros tempstatics_skyline_gtempvel.inp
+../../bin/aeros tempstatics_skyline_gtempera.inp
 
  --------- R U N  PARAMETERS ----------
  ... Linear Static Analysis         ... 
  ... Skyline Solver is Selected     ... 
  ... Building the Force             ...
  ... Postprocessing                 ...
- *** AS.WRN: output 0 is not supported 
  --------------------------------------
 
  ---------- PROBLEM PARAMETERS --------
@@ -40,96 +39,16 @@
  ... # Output Files       =       1 ...
  --------------------------------------
  --------------------------------------
- ... Total Time           = 1.15e-01 s
- ... Total Memory Used    = 1.41e-01 Mb
+ ... Total Time           = 6.64e-02 s
+ ... Total Memory Used    = 1.55e-01 Mb
  --------------------------------------
-../../bin/aeros tempstatics_mumps_heatflxx.inp
+../../bin/aeros tempstatics_mumps_gtempera.inp
 
  --------- R U N  PARAMETERS ----------
  ... Linear Static Analysis         ... 
  ... Mumps Solver is Selected       ... 
  ... Building the Force             ...
  ... Postprocessing                 ...
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
  --------------------------------------
 
  ---------- PROBLEM PARAMETERS --------
@@ -142,96 +61,16 @@
  ... # Output Files       =       1 ...
  --------------------------------------
  --------------------------------------
- ... Total Time           = 6.57e-02 s
- ... Total Memory Used    = 1.14e+00 Mb
+ ... Total Time           = 7.18e-02 s
+ ... Total Memory Used    = 1.15e+00 Mb
  --------------------------------------
-../../bin/aeros tempstatics_spooles_heatflxy.inp
+../../bin/aeros tempstatics_spooles_gtempera.inp
 
  --------- R U N  PARAMETERS ----------
  ... Linear Static Analysis         ... 
  ... Spooles Solver is Selected     ... 
  ... Building the Force             ...
  ... Postprocessing                 ...
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
  --------------------------------------
 
  ---------- PROBLEM PARAMETERS --------
@@ -244,10 +83,10 @@
  ... # Output Files       =       1 ...
  --------------------------------------
  --------------------------------------
- ... Total Time           = 9.17e-02 s
- ... Total Memory Used    = 1.53e-01 Mb
+ ... Total Time           = 6.68e-02 s
+ ... Total Memory Used    = 1.67e-01 Mb
  --------------------------------------
-../../bin/aeros tempstatics_gmres_heatflxz.inp
+../../bin/aeros tempstatics_gmres_gtempera.inp
 
  --------- R U N  PARAMETERS ----------
  ... Linear Static Analysis         ... 
@@ -255,86 +94,6 @@
  ... GMRES Solver is Selected       ...
  ... Building the Force             ...
  ... Postprocessing                 ...
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
  --------------------------------------
 
  ---------- PROBLEM PARAMETERS --------
@@ -347,198 +106,16 @@
  ... # Output Files       =       1 ...
  --------------------------------------
  --------------------------------------
- ... Total Time           = 8.38e-02 s
- ... Total Memory Used    = 9.26e+00 Mb
+ ... Total Time           = 8.63e-02 s
+ ... Total Memory Used    = 9.28e+00 Mb
  --------------------------------------
-../../bin/aeros tempstatics_direct_grdtempx.inp
-
- --------- R U N  PARAMETERS ----------
- ... Linear Static Analysis         ... 
- ... Skyline Solver is Selected     ... 
- ... Building the Force             ...
- ... Postprocessing                 ...
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- --------------------------------------
-
- ---------- PROBLEM PARAMETERS --------
- ... # Nodes              =     189 ...
- ... # Elements           =      80 ...
- ... # Unconstrained dofs =     180 ...
- ... # Constrained dofs   =       9 ...
- ... Total # dofs         =     189 ...
- ... # Loaded dofs        =       9 ...
- ... # Output Files       =       1 ...
- --------------------------------------
- --------------------------------------
- ... Total Time           = 7.43e-02 s
- ... Total Memory Used    = 1.42e-01 Mb
- --------------------------------------
-../../bin/aeros tempstatics_spooles_pivot_grdtempy.inp
+../../bin/aeros tempstatics_spooles_pivot_gtempera.inp
 
  --------- R U N  PARAMETERS ----------
  ... Linear Static Analysis         ... 
  ... Spooles Solver is Selected     ... 
  ... Building the Force             ...
  ... Postprocessing                 ...
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
  --------------------------------------
 
  ---------- PROBLEM PARAMETERS --------
@@ -551,96 +128,16 @@
  ... # Output Files       =       1 ...
  --------------------------------------
  --------------------------------------
- ... Total Time           = 8.83e-02 s
- ... Total Memory Used    = 1.52e-01 Mb
+ ... Total Time           = 6.75e-02 s
+ ... Total Memory Used    = 1.66e-01 Mb
  --------------------------------------
-../../bin/aeros tempstatics_mumps_pivot_grdtempz.inp
+../../bin/aeros tempstatics_mumps_pivot_gtempera.inp
 
  --------- R U N  PARAMETERS ----------
  ... Linear Static Analysis         ... 
  ... Mumps Solver is Selected       ... 
  ... Building the Force             ...
  ... Postprocessing                 ...
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
  --------------------------------------
 
  ---------- PROBLEM PARAMETERS --------
@@ -653,8 +150,8 @@
  ... # Output Files       =       1 ...
  --------------------------------------
  --------------------------------------
- ... Total Time           = 6.53e-02 s
- ... Total Memory Used    = 1.14e+00 Mb
+ ... Total Time           = 6.69e-02 s
+ ... Total Memory Used    = 1.15e+00 Mb
  --------------------------------------
 ../../bin/aeros tempstatics_pcg_gtempera.inp
 
@@ -706,7 +203,7 @@ in BasePCG::doSolve, maxitr = 1000, tolpcg = 1e-08, proj = 0
  ... Iteration #  40	 Two norm = 1.31078e-05	 Rel. residual = 3.49541e-08
  ... Iteration #  41	 Two norm = 8.11112e-06	 Rel. residual = 2.16297e-08
  ... Iteration #  42	 Two norm = 7.91988e-07	 Rel. residual = 2.11197e-09
- ... Total # Iterations =            42        0.00380 s
+ ... Total # Iterations =            42        0.00356 s
  ...     Final Two norm = 7.91988e-07
  ...     Final residual = 6.27245e-13
  ... Postprocessing                 ...
@@ -722,10 +219,10 @@ in BasePCG::doSolve, maxitr = 1000, tolpcg = 1e-08, proj = 0
  ... # Output Files       =       1 ...
  --------------------------------------
  --------------------------------------
- ... Total Time           = 7.66e-02 s
- ... Total Memory Used    = 1.37e-01 Mb
+ ... Total Time           = 6.57e-02 s
+ ... Total Memory Used    = 1.51e-01 Mb
  --------------------------------------
-../../bin/aeros tempstatics_bcg_gtempvel.inp
+../../bin/aeros tempstatics_bcg_gtempera.inp
 
  --------- R U N  PARAMETERS ----------
  ... Linear Static Analysis         ... 
@@ -776,7 +273,6 @@ Selected Solver does not implement factor() .
  ... Iteration #41	Two norm = 1.7181397e-10	Relative residual = 3.4954087e-08
  ... Iteration #42	Two norm = 6.5790315e-11	Relative residual = 2.1629661e-08
  ... Postprocessing                 ...
- *** AS.WRN: output 0 is not supported 
  --------------------------------------
 
  ---------- PROBLEM PARAMETERS --------
@@ -789,10 +285,10 @@ Selected Solver does not implement factor() .
  ... # Output Files       =       1 ...
  --------------------------------------
  --------------------------------------
- ... Total Time           = 7.66e-02 s
- ... Total Memory Used    = 1.38e-01 Mb
+ ... Total Time           = 6.54e-02 s
+ ... Total Memory Used    = 1.52e-01 Mb
  --------------------------------------
-../../bin/aeros tempstatics_cr_heatflxx.inp
+../../bin/aeros tempstatics_cr_gtempera.inp
 
  --------- R U N  PARAMETERS ----------
  ... Linear Static Analysis         ... 
@@ -841,91 +337,11 @@ Selected Solver does not implement factor() .
  ... Iteration #39	Two norm = 7.9548758e-10	  Rel. residual  7.5211705e-08 
  ... Iteration #40	Two norm = 1.4129604e-10	  Rel. residual  3.1698136e-08 
  ... Iteration #41	Two norm = 4.4889056e-11	  Rel. residual  1.7866479e-08 
- ... Iteration #42	Two norm = 6.1860124e-13	  Rel. residual  2.0973655e-09 
+ ... Iteration #42	Two norm = 6.1860123e-13	  Rel. residual  2.0973655e-09 
 
  ... Total # Iterations = 42
- ...     Final Two norm = 6.1860124e-13
+ ...     Final Two norm = 6.1860123e-13
  ... Postprocessing                 ...
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
- *** WARNING: Heat Fluxes not implemented for element type 51
  --------------------------------------
 
  ---------- PROBLEM PARAMETERS --------
@@ -938,19 +354,10 @@ Selected Solver does not implement factor() .
  ... # Output Files       =       1 ...
  --------------------------------------
  --------------------------------------
- ... Total Time           = 8.14e-02 s
- ... Total Memory Used    = 1.37e-01 Mb
+ ... Total Time           = 6.35e-02 s
+ ... Total Memory Used    = 1.50e-01 Mb
  --------------------------------------
-../../bin/aeros -n 2 --dec --nsub 4 tempstatics_FETI_heatflxy.inp
-
- --------- R U N  PARAMETERS ----------
- ... Linear Static Analysis         ... 
- ... Parallel processing: Forking 2 Threads ...
- ... FETI-DP Solver is Selected     ...
- ... Factor Subdomain Matrices      ... 
- ... Building the Force             ...
-./run.tempstatics: line 24:  5909 Segmentation fault      ../../bin/aeros -n 2 --dec --nsub 4 tempstatics_FETI_heatflxy.inp
-../../bin/aeros -n 2 --dec --nsub 4 tempstatics_FETI_DP_heatflxz.inp
+../../bin/aeros -n 2 --dec --nsub 4 tempstatics_FETI_DP_gtempera.inp
 
  --------- R U N  PARAMETERS ----------
  ... Linear Static Analysis         ... 
@@ -958,7 +365,6 @@ Selected Solver does not implement factor() .
  ... FETI-DP Solver is Selected     ...
  ... Building the Force             ...
  ... Postprocessing                 ...
- *** WARNING: Output case 0 not implemented 
  ... Print Timers                   ... 
  --------------------------------------
 
@@ -972,33 +378,7 @@ Selected Solver does not implement factor() .
  ... # Output Files       =       1 ...
  --------------------------------------
  --------------------------------------
- ... Total Time           = 8.43e-02 s
- ... Total Memory Used    = 8.15e-01 Mb
- ... Total Krylov Iterations =    3 
- --------------------------------------
-../../bin/aeros -n 2 --dec --nsub 4 tempstatics_FETI_DPH_grdtempx.inp
-
- --------- R U N  PARAMETERS ----------
- ... Linear Static Analysis         ... 
- ... Parallel processing: Forking 2 Threads ...
- ... FETI-DP Solver is Selected     ...
- ... Building the Force             ...
- ... Postprocessing                 ...
- *** WARNING: Output case 0 not implemented 
- ... Print Timers                   ... 
- --------------------------------------
-
- ---------- PROBLEM PARAMETERS --------
- ... # Nodes              =     189 ...
- ... # Elements           =      80 ...
- ... # Unconstrained dofs =       0 ...
- ... # Constrained dofs   =       9 ...
- ... Total # dofs         =      -1 ...
- ... # Loaded dofs        =       9 ...
- ... # Output Files       =       1 ...
- --------------------------------------
- --------------------------------------
- ... Total Time           = 6.36e-02 s
- ... Total Memory Used    = 8.15e-01 Mb
+ ... Total Time           = 7.86e-02 s
+ ... Total Memory Used    = 8.68e-01 Mb
  ... Total Krylov Iterations =    3 
  --------------------------------------

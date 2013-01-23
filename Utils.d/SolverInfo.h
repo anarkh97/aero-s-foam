@@ -8,6 +8,7 @@
 #include <iostream>
 #include <map>
 #include <algorithm>
+#include <list>
 
 #if defined(WINDOWS) || defined(MACOSX)
  #include <cfloat>
@@ -30,7 +31,8 @@ struct SolverInfo {
           AxiHelm, MatNonLinStatic, MatNonLinDynam,
           Helmholtz, HelmholtzFreqSweep, HelmholtzDirSweep, HelmholtzMF, HelmholtzSO,
           Decomp, NonLinTempDynam, DisEnrM, PodRomOffline,
-          None };
+          None }; // note to developers: if you add a new entry in ths enum then
+                  // you should also modify problemTypeMessage in Driver.d/Static.C
    
    int probType;
    int soltyp; // from CONTROL statement: 1 = statics, 2 = heat conduction, etc...
@@ -253,23 +255,51 @@ struct SolverInfo {
    bool usePrescribedThreshold;
    double mpcDirectTol; // threshold for definition of a null pivot is defined as mpcDirectTol*epsilon
    double coefFilterTol, rhsZeroTol, inconsistentTol;
+   int constraint_hess;
+   double constraint_hess_eps;
+   int num_penalty_its;
+   double penalty_tol;
+   double penalty_beta;
 
+   const char * snapfiPodRom;
+   const char * readInROBorModes;
+   const char * SVDoutput;
+   const char * reducedMeshFile;
+   const char * statePodRomFile;
+   const char * accelPodRomFile;
+   const char * forcePodRomFile;
+   const char * residualPodRomFile;
+   const char * jacobianPodRomFile;
+   bool statevectPodRom;
+   bool accelvectPodRom;
+   bool forcevectPodRom;
+   bool residvectPodRom;
+   bool jacobvectPodRom;
+   bool readmodeCalled;
+   bool modalCalled;
    bool activatePodRom;
    bool snapshotsPodRom;
    bool checkPodRom;
    bool svdPodRom;
    bool samplingPodRom;
    bool galerkinPodRom;
-   bool gaussNewtonPodRom;
-   bool gappyPodRom;
-   bool reducedPodRom;
    bool elemLumpPodRom;
    bool onlineSvdPodRom;
    int  maxSizePodRom;
-   double aspectRatioPodRom;
    bool substractRefPodRom;
-   int skipPodRom;
+   int  skipPodRom;
+   int  skipOffSet;
+   int  skipState;
+   int  skipAccel;
+   int  skipForce;
+   int  skipResidual;
+   int  skipJacobian;
+   int  orthogPodRom;
    double tolPodRom;
+
+   std::list<int> loadcases;
+   bool basicDofCoords; // if this is true then all of the nodes use the basic coordinate frame 0 for DOF_FRM
+   bool basicPosCoords; // if this is true then all of the nodes use the basic coordinate frame 0 for POS_FRM
 
    // Constructor
    SolverInfo() { filterFlags = 0;
@@ -453,29 +483,56 @@ struct SolverInfo {
 
                   lagrangeMult = true;
                   penalty = 0;
+                  num_penalty_its = 1;
+                  penalty_tol = 1e-8;
+                  penalty_beta = 10;
                   mpcDirect = 0;
                   usePrescribedThreshold = false;
                   mpcDirectTol = 10;
                   coefFilterTol = 10;
                   rhsZeroTol = 0;
                   inconsistentTol = 1e-8;
+                  constraint_hess = 1;
+                  constraint_hess_eps = 0;
 
+                  snapfiPodRom = "";
+		  readInROBorModes = "";
+		  SVDoutput = "pod.rob";
+		  reducedMeshFile = "";
+		  statePodRomFile = "";
+		  accelPodRomFile = "";
+		  forcePodRomFile = "";
+		  residualPodRomFile = "";
+		  jacobianPodRomFile = "";
+		  statevectPodRom = false;
+		  accelvectPodRom = false;
+		  forcevectPodRom = false;
+		  residvectPodRom = false;
+		  jacobvectPodRom = false;
+		  readmodeCalled = false;
+		  modalCalled = false;
                   activatePodRom = false;
                   snapshotsPodRom = false;
                   checkPodRom = false;
                   svdPodRom = false;
                   samplingPodRom = false;
                   galerkinPodRom = false;
-                  gaussNewtonPodRom = false;
-                  gappyPodRom = false;
-                  reducedPodRom = false;
                   elemLumpPodRom = false;
                   onlineSvdPodRom = false;
                   maxSizePodRom = 0;
-                  aspectRatioPodRom = 1.0;
                   substractRefPodRom = false;
                   skipPodRom = 1;
+                  skipOffSet = 0;
+		  skipState = 1;
+		  skipAccel = 1;
+		  skipForce = 1;
+		  skipResidual = 1;
+		  skipJacobian = 1;
+		  orthogPodRom = 1;
                   tolPodRom = 1.0e-6;
+
+                  basicDofCoords = true;
+                  basicPosCoords = true;
                  }
 
    void setDirectMPC(int mode) { mpcDirect = mode; }
@@ -536,11 +593,11 @@ struct SolverInfo {
    void setParallelInTime(int J, int k, int workloadMax)
    { pitaTimeGridRatio = J; pitaMainIterMax = k; pitaProcessWorkloadMax = workloadMax; }
 
-   // Set Rayleigh damping stiffness coefficient alpha
-   // Set Rayleigh damping mass coefficient beta
+   // Set Rayleigh damping stiffness coefficient beta
+   // Set Rayleigh damping mass coefficient alpha
    void setDamping(double beta, double alpha)
    { alphaDamp = alpha; betaDamp = beta; }
-   bool hasDamping() { return ((alphaDamp > 0.0) || (betaDamp > 0.0)); }
+   bool hasDamping() { return ((alphaDamp != 0.0) || (betaDamp != 0.0)); }
 
    // SET RENUMBERING SCHEME (ND = nested dissection, MMD = multiple minimum degree, MS = multi-section, RCM = Reverse Cuthill McKee
    void setRenum(int renumberid) { 

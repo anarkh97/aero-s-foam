@@ -6,7 +6,7 @@ dsvm2_spooles_strainxx
 *
 STATICS
 spooles
-*
+include "../fetidp.include"
 OUTPUT
 strainxx dsvm2_spooles_strainxx.dat 1 NG 1
 *

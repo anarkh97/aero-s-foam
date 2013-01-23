@@ -6,7 +6,7 @@ dsvm21_spooles_pivot_displacy
 *
 STATICS
 spooles pivot
-*
+include "../fetidp.include"
 EIGEN
 arpack
 nsbspv 3

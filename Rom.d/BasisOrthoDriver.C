@@ -72,14 +72,24 @@ BasisOrthoDriver::solve() {
   SvdOrthogonalization solver;
 
   std::vector<BasisId::Type> workload;
-  if (domain_->solInfo().gaussNewtonPodRom) {
-    workload.push_back(BasisId::RESIDUAL);
-    workload.push_back(BasisId::JACOBIAN);
-  } else if (domain_->solInfo().galerkinPodRom) {
-    workload.push_back(BasisId::FORCE);
-  } else {
-    workload.push_back(BasisId::STATE);
-  }
+
+       if(domain_->solInfo().statevectPodRom) {
+	workload.push_back(BasisId::STATE);
+        fprintf(stderr," ... For State SVD, workload size = %zd ...\n", workload.size());}
+  else if(domain_->solInfo().residvectPodRom) {
+	workload.push_back(BasisId::RESIDUAL);
+	fprintf(stderr," ... For Residual SVD, workload size = %zd ...\n", workload.size());}
+  else if(domain_->solInfo().jacobvectPodRom) {
+        workload.push_back(BasisId::JACOBIAN);
+	fprintf(stderr," ... For Jacobian SVD, workload size = %zd ...\n", workload.size());}
+  else if(domain_->solInfo().forcevectPodRom) {
+        workload.push_back(BasisId::FORCE);
+	fprintf(stderr," ... For Force SVD, workload size = %zd ...\n", workload.size());}
+  else if(domain_->solInfo().accelvectPodRom) {
+        workload.push_back(BasisId::ACCELERATION);
+	fprintf(stderr," ... For Acceleration SVD, workload size = %zd ...\n", workload.size());}
+  else { workload.push_back(BasisId::STATE);
+	fprintf(stderr," ... For default SVD, workload size = %zd ...\n", workload.size());}
 
   typedef VectorTransform<double *> VecTrans;
   std::auto_ptr<VecTrans> transform(domain_->solInfo().substractRefPodRom ?
@@ -91,7 +101,7 @@ BasisOrthoDriver::solve() {
 
     {
       BasisInputStream input(BasisFileId(fileInfo, type, BasisId::SNAPSHOTS), converter);
-      filePrint(stderr, "Orthogonalization of a basis with %d vectors\n", input.size());
+      filePrint(stderr, " ... Orthogonalization of a basis with %d vectors ...\n", input.size());
       
       solver.matrixSizeIs(input.vectorSize(), input.size());
 

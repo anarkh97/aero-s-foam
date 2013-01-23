@@ -62,6 +62,25 @@ LinearStrain::getEBandDB(Tensor &_e, Tensor & bB, Tensor &DB,
   B = dgradUdqk.symPart();
 }
 
+void
+LinearStrain::getEandB(Tensor &_e, Tensor & _B, 
+                       const Tensor &_gradU, const Tensor &_dgradUdqk)
+{
+  const Tensor_d0s2 & gradU = static_cast<const Tensor_d0s2 &>(_gradU);
+  const Tensor_d1s2_sparse & dgradUdqk = static_cast<const Tensor_d1s2_sparse &>(_dgradUdqk);
+  Tensor_d1s2_Ss23 & B = static_cast<Tensor_d1s2_Ss23 &>(_B);
+  Tensor_d0s2_Ss12 & e = static_cast<Tensor_d0s2_Ss12 &>(_e);
+
+  Tensor_d0s2 tgradU;
+  gradU.getTranspose(tgradU);
+
+  Tensor_d0s2 enonsym;
+  enonsym = (1/2.)*(gradU + tgradU);
+  enonsym.convertToSym(e);
+
+  B = dgradUdqk.symPart();
+}
+
 void 
 LinearStrain::getE(Tensor &_e, Tensor &_gradU)
 {
@@ -139,6 +158,33 @@ GreenLagrangeStrain::getEBandDB(Tensor &_e, Tensor &_B, Tensor &_DB, const Tenso
   B = dgradUdqk.symPart() + temp2.symPart();
 
   dgradUdqk.getSymSquare(DB);
+}
+
+void
+GreenLagrangeStrain::getEandB(Tensor &_e, Tensor &_B, const Tensor &_gradU, const Tensor &_dgradUdqk)
+{
+  const Tensor_d0s2 & gradU = static_cast<const Tensor_d0s2 &>(_gradU);
+  const Tensor_d1s2_sparse & dgradUdqk = static_cast<const Tensor_d1s2_sparse &>(_dgradUdqk);
+  Tensor_d1s2_Ss23 & B = static_cast<Tensor_d1s2_Ss23 &>(_B);
+  Tensor_d0s2_Ss12 & e = static_cast<Tensor_d0s2_Ss12 &>(_e);
+
+  Tensor_d0s2 tgradU;
+  gradU.getTranspose(tgradU);
+
+  // e = 1/2(gradU^t + gradU + gradU^t|gradU)
+  // de/dq = 1/2(dgradUdq^t + dgradUdq + ...)
+  Tensor_d0s2 temp1;
+  temp1 = tgradU|gradU;
+
+  Tensor_d0s2 enonsym;
+  enonsym = (1/2.)*(tgradU + (gradU + temp1));
+  enonsym.convertToSym(e);
+
+  int size = B.getSize();
+  Tensor_d1s2_full temp2(size);
+  temp2 = tgradU | dgradUdqk;
+
+  B = dgradUdqk.symPart() + temp2.symPart();
 }
 
 void 
@@ -350,6 +396,111 @@ LogarithmicStrain::getEBandDB(Tensor &_e, Tensor &_B, Tensor &_DB, const Tensor 
 }
 
 void
+LogarithmicStrain::getEandB(Tensor &_e, Tensor &_B, const Tensor &_gradU, const Tensor &_dgradUdqk)
+{
+#ifdef USE_EIGEN3
+  const Tensor_d0s2 & gradU = static_cast<const Tensor_d0s2 &>(_gradU);
+  const Tensor_d1s2_sparse & dgradUdqk = static_cast<const Tensor_d1s2_sparse &>(_dgradUdqk);
+  Tensor_d1s2_Ss23 & B = static_cast<Tensor_d1s2_Ss23 &>(_B);
+  Tensor_d0s2_Ss12 & e = static_cast<Tensor_d0s2_Ss12 &>(_e);
+
+  int numdofs = dgradUdqk.getSize();
+
+  Eigen::Matrix3d GradU;
+  for(int i=0; i<3; ++i)
+    for(int j=0; j<3; ++j)
+      GradU(i,j) = gradU(i,j);
+  Eigen::Array<Eigen::Matrix3d,Eigen::Dynamic,1> dGradUdq(numdofs);
+  for(int i=0; i<numdofs; ++i)
+    for(int j=0; j<3; ++j)
+      for(int k=0; k<3; ++k)
+        dGradUdq(i)(j,k) = dgradUdqk(i,j,k);
+
+  Eigen::Matrix3d E;
+  Eigen::Matrix3d dEdqk;
+  Eigen::Array<Eigen::Matrix3d,Eigen::Dynamic,1> d2Edqkdq(numdofs);
+
+  if(GradU.isZero()) {
+    //note: the eigenvalue decomposition is apparently not differentiable in this case.
+    //using LinearStrain for consistency with linear elasticity at small strains
+    E = 0.5*(GradU + GradU.transpose());
+    for(int k=0; k<numdofs; ++k) {
+      dEdqk = 0.5*(dGradUdq[k] + dGradUdq[k].transpose());
+      for(int l=0; l<3; ++l)
+        for(int m=l; m<3; ++m) {
+          B(k,l,m) = dEdqk(l,m);
+        }
+    }
+  }
+  else {
+    // new implementation. this should be significantly faster...
+    Eigen::Matrix<double,3,3> F = GradU + Eigen::Matrix<double,3,3>::Identity();
+    Eigen::SelfAdjointEigenSolver<Eigen::Matrix<double,3,3> > dec(F.transpose()*F);
+
+    // logarithmic (Hencky) strain, Lagrangean description
+    Eigen::Matrix<double,3,1> lnl = dec.eigenvalues().array().log();
+    Eigen::Matrix<double,3,3> ylnl = dec.eigenvectors()*lnl.asDiagonal();
+    E = 0.5*ylnl*dec.eigenvectors().adjoint();
+
+    // Moore-Penrose pseudo inverses of C - lambda_i*I
+    double tol = std::numeric_limits<double>::epsilon();
+    Eigen::Array<Eigen::Matrix<double,3,3>,3,1> mpinverse;
+    for(int i=0; i<3; ++i) {
+      Eigen::Matrix<double,3,1> singularValues = dec.eigenvalues() - Eigen::Matrix<double,3,1>::Constant(dec.eigenvalues()[i]);
+      Eigen::Matrix<double,3,1> invertedSingularVals;
+      for(int j=0; j<3; ++j) invertedSingularVals[j] = (fabs(singularValues[j]) < tol) ? 0 : 1/singularValues[j];
+      mpinverse[i] = dec.eigenvectors() * invertedSingularVals.asDiagonal() * dec.eigenvectors().adjoint();
+    }
+
+    // some more precomputation...
+    Eigen::Array<double,3,1> linv = dec.eigenvalues().array().inverse();
+
+    // allocate memory for intermediate derivatives
+    Eigen::Array<Eigen::Array<double,3,1>,Eigen::Dynamic,1> dldq(numdofs);
+    Eigen::Array<Eigen::Matrix<double,3,1>,Eigen::Dynamic,1> dlnldq(numdofs);
+    Eigen::Array<Eigen::Matrix<double,3,3>,Eigen::Dynamic,1> dCdq(numdofs), dydq(numdofs);
+    Eigen::Matrix<double,3,3> tmp1;
+    Eigen::Array<Eigen::Matrix<double,3,3>,Eigen::Dynamic,1> tmp2(numdofs);
+
+    for(int k=0; k<numdofs; ++k) {
+
+      // first derivative of C=F^T*F wrt q_k
+      dCdq(k) = F.transpose()*dGradUdq[k] + (F.transpose()*dGradUdq[k]).transpose();
+
+      Eigen::Matrix<double,3,3> dCdqky = dCdq[k]*dec.eigenvectors();
+
+      // first derivative of lambda with respect to q_k
+      dldq[k] = (dec.eigenvectors().adjoint()*dCdqky).diagonal();
+
+      // first derivatve of y with respect to q_k
+      for(int i=0; i<3; ++i) dydq[k].col(i) = -mpinverse[i]*dCdqky.col(i);
+
+      // first derivative of E with respect to q_k
+      dlnldq[k] = linv*dldq[k];
+      tmp1 = dydq[k]*lnl.asDiagonal();
+      tmp2[k] = dlnldq[k].asDiagonal()*dec.eigenvectors().adjoint();
+      dEdqk.triangularView<Eigen::Upper>() = 0.5*(dydq[k]*ylnl.adjoint()
+                    + dec.eigenvectors()*dlnldq[k].asDiagonal()*dec.eigenvectors().adjoint()
+                      + ylnl*dydq[k].adjoint());
+
+      for(int l=0; l<3; ++l)
+        for(int m=l; m<3; ++m) {
+          B(k,l,m) = dEdqk(l,m);
+        }
+    }
+  }
+
+  for(int i=0; i<3; ++i)
+    for(int j=i; j<3; ++j)
+      e(i,j) = E(i,j);
+
+#else
+  std::cerr << "Error: LogarithmicStrain requires AERO-S built with Eigen3 template library." << std::endl;
+  exit(-1);
+#endif
+}
+
+void
 LogarithmicStrain::getE(Tensor &_e, Tensor &_gradU)
 {
 #ifdef USE_EIGEN3
@@ -431,6 +582,23 @@ DeformationGradient::getEBandDB(Tensor &_e, Tensor &_B, Tensor &_DB, const Tenso
 }
 
 void 
+DeformationGradient::getEandB(Tensor &_e, Tensor &_B, const Tensor &_gradU, const Tensor &_dgradUdqk)
+{
+  const Tensor_d0s2 & gradU = static_cast<const Tensor_d0s2 &>(_gradU);
+  const Tensor_d1s2_sparse & dgradUdqk = static_cast<const Tensor_d1s2_sparse &>(_dgradUdqk);
+  Tensor_d1s2_full & B = static_cast<Tensor_d1s2_full &>(_B);
+  
+  Tensor_d0s2 & e = static_cast<Tensor_d0s2 &>(_e);
+
+  // e = gradU + identity (nonsymmetric)
+  Tensor_d0s2 identity;
+  identity[0] = identity[4] = identity[8] = 1;
+  e = gradU + identity;
+
+  B = dgradUdqk;
+}
+
+void
 DeformationGradient::getE(Tensor &_e,Tensor &_gradU)
 {
   Tensor_d0s2 & e = static_cast<Tensor_d0s2 &>(_e);

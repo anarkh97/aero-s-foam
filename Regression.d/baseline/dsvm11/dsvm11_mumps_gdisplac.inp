@@ -6,6 +6,7 @@ dsvm11_mumps_gdisplac
 *
 STATICS
 mumps
+include "../fetidp.include"
 *
 NONLINEAR
 maxitr 10
@@ -15,6 +16,6 @@ rebuild 1
 OUTPUT
 gdisplac dsvm11_mumps_gdisplac.dat 1 5
 *
-INCLUDE dsvm11.include
+INCLUDE ../dsvm11.include
 *
 END

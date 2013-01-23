@@ -56,7 +56,8 @@ const char* message[] = {
 "1. CG\n",
 "1. CG\n         Diagonal Preconditioner\n",
 "1. CG\n         FETI Preconditioner\n",
-"1. Goldfarb-Idnani\n"
+"1. Goldfarb-Idnani\n",
+"1. Sparse LU\n"
 };
 
 const char* renumMessage[] = {

@@ -393,15 +393,15 @@ inline void ContactFace<DataType>::Pack( char* buffer, int include_neighbors )
   i_buf = reinterpret_cast<int*>(buffer+ContactTopologyEntity<DataType>::Size(DataArray_Length()));
   int cnt = 0;
   for( int i=0 ; i<Nodes_Per_Face() ; ++i ){
-    cnt += PackConnection(reinterpret_cast<ContactTopologyEntity<DataType>*>(Node(i)), &i_buf[cnt]);
+    cnt += this->PackConnection(reinterpret_cast<ContactTopologyEntity<DataType>*>(Node(i)), &i_buf[cnt]);
   }
   for( int i=0 ; i<Edges_Per_Face() ; ++i ){
-    cnt += PackConnection(reinterpret_cast<ContactTopologyEntity<DataType>*>(Edge(i)), &i_buf[cnt]);
+    cnt += this->PackConnection(reinterpret_cast<ContactTopologyEntity<DataType>*>(Edge(i)), &i_buf[cnt]);
   }
   if (include_neighbors) {
     i_buf[cnt++] = number_of_neighbors;
     for( int i=0 ; i<Edges_Per_Face() ; ++i ){
-      cnt += PackConnection(&neighbor_face_info[i], &i_buf[cnt]);
+      cnt += this->PackConnection(&neighbor_face_info[i], &i_buf[cnt]);
     }
   } else {
     i_buf[cnt] = 0;
@@ -419,16 +419,16 @@ inline void ContactFace<DataType>::Unpack( char* buffer )
   int* i_buf = reinterpret_cast<int*> ( buffer + ContactTopologyEntity<DataType>::Size(DataArray_Length()) );
   int cnt = 0;
   for( int i=0 ; i<Nodes_Per_Face() ; ++i ){
-    cnt += UnPackConnection(&NodeInfo()[i], &i_buf[cnt]);
+    cnt += this->UnPackConnection(&NodeInfo()[i], &i_buf[cnt]);
   }
   for( int i=0 ; i<Edges_Per_Face() ; ++i ){
-    cnt += UnPackConnection(&EdgeInfo()[i], &i_buf[cnt]);
+    cnt += this->UnPackConnection(&EdgeInfo()[i], &i_buf[cnt]);
   }
   number_of_neighbors = i_buf[cnt++];
   if (number_of_neighbors>0) {
     neighbor_face_info = new typename ContactTopologyEntity<DataType>::connection_data[Edges_Per_Face()];
     for( int i=0 ; i<Edges_Per_Face() ; ++i ){
-      cnt += UnPackConnection(&neighbor_face_info[i], &i_buf[cnt]);
+      cnt += this->UnPackConnection(&neighbor_face_info[i], &i_buf[cnt]);
     }
   }
 }
@@ -439,10 +439,10 @@ inline void ContactFace<DataType>::Copy( ContactFace* src, int include_neighbors
   ContactTopologyEntity<DataType>::Copy( src, DataArray_Length() );
   entity_key = src->entity_key;
   for( int i=0 ; i<Nodes_Per_Face() ; ++i ){
-    PackConnection(reinterpret_cast<ContactTopologyEntity<DataType>*>(src->Node(i)), &NodeInfo()[i]);
+    this->PackConnection(reinterpret_cast<ContactTopologyEntity<DataType>*>(src->Node(i)), &NodeInfo()[i]);
   }
   for( int i=0 ; i<Edges_Per_Face() ; ++i ){
-    PackConnection(reinterpret_cast<ContactTopologyEntity<DataType>*>(src->Edge(i)), &EdgeInfo()[i]);
+    this->PackConnection(reinterpret_cast<ContactTopologyEntity<DataType>*>(src->Edge(i)), &EdgeInfo()[i]);
   }
   if (include_neighbors) {
     if (neighbor_face_info) delete [] neighbor_face_info;
@@ -501,11 +501,11 @@ inline void ContactFace<DataType>::Pack_ForSecondary( char* buffer,
   i_buf = reinterpret_cast<int*>(buffer+ContactTopologyEntity<DataType>::Size_ForSecondary(DataArray_Length()));
   int cnt = 0;
   for( int i=0 ; i<Nodes_Per_Face() ; ++i ){
-    cnt += PackConnection(reinterpret_cast<ContactTopologyEntity<DataType>*>(Node(i)), &i_buf[cnt]);
+    cnt += this->PackConnection(reinterpret_cast<ContactTopologyEntity<DataType>*>(Node(i)), &i_buf[cnt]);
   }
   if (include_edgeinfo) {
     for( int i=0 ; i<Edges_Per_Face() ; ++i ){
-      cnt += PackConnection(reinterpret_cast<ContactTopologyEntity<DataType>*>(Edge(i)), &i_buf[cnt]);
+      cnt += this->PackConnection(reinterpret_cast<ContactTopologyEntity<DataType>*>(Edge(i)), &i_buf[cnt]);
     }
   }
   if (include_neighbors) {
@@ -515,7 +515,7 @@ inline void ContactFace<DataType>::Pack_ForSecondary( char* buffer,
       if (neighbor_face_info[i].owner>=0) {
         ++nn;
         i_buf[cnt++] = i;
-        cnt += PackConnection(&neighbor_face_info[i], &i_buf[cnt]);
+        cnt += this->PackConnection(&neighbor_face_info[i], &i_buf[cnt]);
       }
     }
     POSTCONDITION(nn==number_of_neighbors);
@@ -542,11 +542,11 @@ inline void ContactFace<DataType>::Unpack_ForSecondary( char* buffer )
   i_buf = reinterpret_cast<int*>( buffer + ContactTopologyEntity<DataType>::Size_ForSecondary(DataArray_Length()) );
   int cnt = 0;
   for( int i=0 ; i<Nodes_Per_Face() ; ++i){
-    cnt += UnPackConnection(&NodeInfo()[i], &i_buf[cnt]);
+    cnt += this->UnPackConnection(&NodeInfo()[i], &i_buf[cnt]);
   }
   if (include_edgeinfo) {
     for( int i=0 ; i<Edges_Per_Face() ; ++i){
-      cnt += UnPackConnection(&EdgeInfo()[i], &i_buf[cnt]);
+      cnt += this->UnPackConnection(&EdgeInfo()[i], &i_buf[cnt]);
     }
   }
   neighbor_face_info = new typename ContactTopologyEntity<DataType>::connection_data[Edges_Per_Face()];
@@ -558,7 +558,7 @@ inline void ContactFace<DataType>::Unpack_ForSecondary( char* buffer )
     int nn = 0;
     while (nn<number_of_neighbors) {
       int ii = i_buf[cnt++];
-      cnt   += UnPackConnection(&neighbor_face_info[ii], &i_buf[cnt]);
+      cnt   += this->UnPackConnection(&neighbor_face_info[ii], &i_buf[cnt]);
       ++nn;
     }
   }
@@ -572,11 +572,11 @@ inline void ContactFace<DataType>::Copy_ForSecondary( ContactFace* src,
   ContactTopologyEntity<DataType>::Copy_ForSecondary( src, DataArray_Length() );
   entity_key = src->entity_key;
   for( int i=0 ; i<Nodes_Per_Face() ; ++i ){
-    PackConnection(reinterpret_cast<ContactTopologyEntity<DataType>*>(src->Node(i)), &NodeInfo()[i]);
+    this->PackConnection(reinterpret_cast<ContactTopologyEntity<DataType>*>(src->Node(i)), &NodeInfo()[i]);
   }
   if (include_edgeinfo) {
     for( int i=0 ; i<Edges_Per_Face() ; ++i ){
-      PackConnection(reinterpret_cast<ContactTopologyEntity<DataType>*>(src->Edge(i)), &EdgeInfo()[i]);
+      this->PackConnection(reinterpret_cast<ContactTopologyEntity<DataType>*>(src->Edge(i)), &EdgeInfo()[i]);
     }
   }
   if (include_neighbors) {

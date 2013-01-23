@@ -6,7 +6,7 @@ dsvm21_spooles_displacy
 *
 STATICS
 spooles
-*
+include "../fetidp.include"
 EIGEN
 arpack
 nsbspv 3

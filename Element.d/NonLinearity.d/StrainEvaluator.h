@@ -16,6 +16,7 @@ class StrainEvaluator
     virtual Tensor *getBInstance(int numdofs) = 0;
     virtual Tensor *getDBInstance(int numdofs) = 0;
     virtual void getEBandDB(Tensor &e, Tensor &B, Tensor &DB, const Tensor &gradU, const Tensor &dgradUdqk) = 0;
+    virtual void getEandB(Tensor &e, Tensor &B, const Tensor &gradU, const Tensor &dgradUdqk) = 0;
     virtual void getE(Tensor &e, Tensor &gradU) = 0;
 };
 
@@ -30,6 +31,7 @@ class LinearStrain : public StrainEvaluator
     Tensor *getBInstance(int numdofs);
     Tensor *getDBInstance(int numdofs);
     void getEBandDB(Tensor &e, Tensor &B, Tensor &DB, const Tensor &gradU, const Tensor &dgradUdqk);
+    void getEandB(Tensor &e, Tensor &B, const Tensor &gradU, const Tensor &dgradUdqk);
     void getE(Tensor &e, Tensor &gradU);
 };
 
@@ -47,6 +49,7 @@ class GreenLagrangeStrain : public StrainEvaluator
     Tensor *getBInstance(int numdofs);
     Tensor *getDBInstance(int numdofs);
     void getEBandDB(Tensor &e, Tensor &B, Tensor &DB, const Tensor &gradU, const Tensor &dgradUdqk);
+    void getEandB(Tensor &e, Tensor &B, const Tensor &gradU, const Tensor &dgradUdqk);
     void getE(Tensor &e, Tensor &gradU);
 };
 
@@ -59,6 +62,7 @@ class LogarithmicStrain : public StrainEvaluator
     Tensor *getBInstance(int numdofs);
     Tensor *getDBInstance(int numdofs);
     void getEBandDB(Tensor &e, Tensor &B, Tensor &DB, const Tensor &gradU, const Tensor &dgradUdqk);
+    void getEandB(Tensor &e, Tensor &B, const Tensor &gradU, const Tensor &dgradUdqk);
     void getE(Tensor &e, Tensor &gradU);
 };
 
@@ -76,6 +80,7 @@ class DeformationGradient : public StrainEvaluator
     Tensor *getBInstance(int numdofs);
     Tensor *getDBInstance(int numdofs);
     void getEBandDB(Tensor &e, Tensor &B, Tensor &DB, const Tensor &gradU, const Tensor &dgradUdqk);
+    void getEandB(Tensor &e, Tensor &B, const Tensor &gradU, const Tensor &dgradUdqk);
     void getE(Tensor &e, Tensor &gradU);
 };
 
@@ -89,6 +94,10 @@ class GenStrainEvaluator
                             typename TensorTypes::DBTensor &DB,
                             typename TensorTypes::GradUTensor &gradU, 
                             typename TensorTypes::GradUDerivTensor &dgradUdqk) = 0;
+    virtual void getEandB(typename TensorTypes::StrainTensor &e,
+                          typename TensorTypes::BTensor &B,
+                          typename TensorTypes::GradUTensor &gradU,
+                          typename TensorTypes::GradUDerivTensor &dgradUdqk) = 0;
     virtual void getE(typename TensorTypes::StrainTensor &e, typename TensorTypes::GradUTensor &gradU) = 0;
     virtual bool isNonLinear() { return false; }
 };

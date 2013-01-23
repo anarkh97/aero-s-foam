@@ -312,7 +312,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
          probDesc->getConstForce( *constForce );
 
          // Check stability time step
-         if(domain->solInfo().stable) probDesc->computeStabilityTimeStep(dt, *dynOps);
+         if(domain->solInfo().stable && aeroAlg < 0) probDesc->computeStabilityTimeStep(dt, *dynOps);
 
          if(aeroAlg == 20) probDesc->aeroPreProcess( *d_n, *v_n, *a_n, *v_n ); //e Se Eq. 51 of C.Farhat et al. IJNME(2010) Robust and provably ... 
          else
@@ -458,7 +458,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
     }
 
     // ... build internal force 
-    probDesc->getInternalForce(d_n, rhs, (double)tIndex*delta);
+    probDesc->getInternalForce(d_n, rhs, (double)tIndex*delta, tIndex);
 
     // ... check for convergence
     double relres = 0.0;
@@ -814,8 +814,8 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
   double Wext = 0, Wint = 0, Wkin = 0;
 
   // We consider here an algorithm with a variable timestep
-  double dt_n_h; // deltat^{n+1/2} = t^{n+1} - t^n
-  dt_n_h = dt0;
+  double dt_n_h, dt_old; // deltat^{n+1/2} = t^{n+1} - t^n
+  dt_old = dt_n_h = dt0;
 
   // project initial displacements in case of rbmfilter
   if(probDesc->getFilterFlag() > 0) {
@@ -835,7 +835,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
   probDesc->computeExtForce2(curState, fext, constForce, n, t_n, aeroForce, 0.5, 0.0);
 
   // Compute the initial internal forces fint^0
-  getInternalForce(dynOps, d_n, fint, t_n);
+  getInternalForce(dynOps, d_n, fint, t_n, n);
 
   // Compute the initial acceleration a^0 = M^{-1}(fext^0 - fint^0 - C*v^0)
   if(verboseFlag) filePrint(stderr," ... Computing initial acceleration ...\n");
@@ -846,9 +846,10 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
   a_n = fext - fint;
   handleForce(*probDesc, a_n);
   dynOps.dynMat->reSolve(a_n);
-  if(domain->tdenforceFlag() || domain->solInfo().penalty) { // Contact corrector step: a^0 += M^{-1}*Fctc
-    tmp1.linC(dt_n_h, v_n, 0.5*dt_n_h*dt_n_h, a_n); tmp1 += d_n; // predicted displacement d^1 = d^0 + dt^{1/2}*v^0 + dt^{1/2}*dt^{1/2}/2*a^0
-    probDesc->getContactForce(tmp1, tmp2, t_n+dt_n_h);
+
+  if(domain->tdenforceFlag()) { // Contact corrector step: a^0 += M^{-1}*Fctc
+    tmp1.linC(dt_n_h, v_n, 0.5*dt_n_h*dt_n_h, a_n); // predicted displacement d^1 = d^0 + dt^{1/2}*v^0 + dt^{1/2}*dt^{1/2}/2*a^0
+    probDesc->getContactForce(d_n, tmp1, tmp2, t_n+dt_n_h, dt_n_h, dt_old);
     dynOps.dynMat->reSolve(tmp2);
     a_n += tmp2;
   }
@@ -894,11 +895,12 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
       //
       // External force
       probDesc->computeExtForce2(curState, fext, constForce, n+1, t_n+dt_n_h, aeroForce, 0.5, 0.0);
+
       d_n.linAdd(dt_n_h,v_n_h);
       handleDisplacement(*probDesc, d_n);
 
       // Internal force
-      getInternalForce(dynOps, d_n, fint, t_n+dt_n_h);
+      getInternalForce(dynOps, d_n, fint, t_n+dt_n_h, n+1);
 
       // 4th order loop see Cohen et al, Finite Elements in Analysis and Design 16(1994) pp 329-336
       // "Higher-order finite elements with mass lumping for the 1D wave equation"
@@ -916,7 +918,9 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
       } else {
         coeff=dt_n_h;
         a_n.linC(1.0,fext,-1.0,fint);
+
         dynOps.dynMat->reSolve(a_n);
+
         v_n_h.linC(1.0,v_n_h,coeff,a_n);
       }
       
@@ -934,7 +938,11 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
       if(probDesc->getModeDecompFlag()) probDesc->modeDecomp(t_n, n, d_n);
 
       // Update the displacement at t^(n+1): d^{n+1} = d^n + dt^{n+1/2}*v^{n+1/2}
-      d_n.linAdd(dt_n_h, v_n_h);
+      if(domain->solInfo().isNonLin()) {
+        tmp1 = dt_n_h*v_n_h;
+        probDesc->updateDisplacement(tmp1, d_n);
+      }
+      else d_n.linAdd(dt_n_h, v_n_h);
       handleDisplacement(*probDesc, d_n);
 
       // C0: Send predicted displacement at t^{n+1.5} to fluid
@@ -942,11 +950,13 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
       // Compute the external force at t^{n+1}
       if(domain->solInfo().check_energy_balance) *fext_p = fext;
+      
       probDesc->computeExtForce2(curState, fext, constForce, n+1, t_n+dt_n_h, aeroForce, 0.5, 0.0);
 
       // Compute the internal force at t^{n+1}
       if(domain->solInfo().check_energy_balance) *fint_p = fint;
-      getInternalForce(dynOps, d_n, fint, t_n+dt_n_h);
+
+      getInternalForce(dynOps, d_n, fint, t_n+dt_n_h, n+1);
 
       // Compute the acceleration at t^{n+1}: a^{n+1} = M^{-1}(fext^{n+1}-fint^{n+1}-C*v^{n+1/2})
       if(dynOps.C) {
@@ -955,10 +965,12 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
       }
       a_n.linC(1.0, fext, -1.0, fint);
       handleForce(*probDesc, a_n);
-      dynOps.dynMat->reSolve(a_n);
-      if(domain->tdenforceFlag() || domain->solInfo().penalty) { // Contact corrector step
-        tmp1.linC(dt_n_h, v_n_h, dt_n_h*dt_n_h, a_n); tmp1 += d_n; // predicted displacement d^{n+2} = d^{n+1} + dt^{n+1/2}*(v^{n+1/2} + dt^{n+1/2}*a^{n+1})
-        probDesc->getContactForce(tmp1, tmp2, t_n+2*dt_n_h);
+
+      dynOps.dynMat->reSolve(a_n);//*************************************
+
+      if(domain->tdenforceFlag()) { // Contact corrector step
+        tmp1.linC(dt_n_h, v_n_h, dt_n_h*dt_n_h, a_n); // predicted displacement d^{n+2} = d^{n+1} + dt^{n+1/2}*(v^{n+1/2} + dt^{n+1/2}*a^{n+1})
+        probDesc->getContactForce(d_n, tmp1, tmp2, t_n+2*dt_n_h, dt_n_h, dt_old);
         dynOps.dynMat->reSolve(tmp2);
         a_n += tmp2;
       }
@@ -1029,8 +1041,9 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
       t_n += dt_n_h; // t^n = t^{n-1} + deltat^{n-1/2}
 
       // Choose a new time step deltat^{n+1/2}
-      if(domain->solInfo().stable && domain->solInfo().isNonLin() && n%domain->solInfo().stable_freq == 0) {
+      if(domain->solInfo().stable && aeroAlg < 0 && domain->solInfo().isNonLin() && n%domain->solInfo().stable_freq == 0) {
         filePrint(stderr,"\n");
+        dt_old = dt_n_h;
         probDesc->computeStabilityTimeStep(dt_n_h, dynOps);
       }
 
@@ -1083,9 +1096,9 @@ template<
      class Scalar> 
 void
 DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar >
-::getInternalForce(const DynOps &dynamOps, const VecType &disp, VecType &result, double time) {
+::getInternalForce(const DynOps &dynamOps, const VecType &disp, VecType &result, double time, int tIndex) {
   if (domain->solInfo().isNonLin()) {
-      probDesc->getInternalForce(const_cast<VecType &>(disp), result, time);
+      probDesc->getInternalForce(const_cast<VecType &>(disp), result, time, tIndex);
     } else {
       const_cast<DynOps &>(dynamOps).K->mult(const_cast<VecType &>(disp), result);
     }

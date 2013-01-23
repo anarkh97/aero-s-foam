@@ -131,7 +131,7 @@ EigenSolver< EigOps, VecType, VecSet,
  // also in the input file.
  if(origSubSize == 0) {
    // Print those rigid body modes to the output file
-   filePrint(stderr,"\n... Output Rigid Body Modes and exit ...\n");
+   filePrint(stderr," ... Output Rigid Body Modes and exit ...\n");
    VecSet RBMs(nrmod, probDesc->solVecInfo());
    eM->dynMat->getRBMs(RBMs); 
    Vector eValues(nrmod, 0.0);
@@ -321,7 +321,7 @@ LOBPCGSolver< EigOps, VecType, VecSet,
 
   // orthonormalize. Make R^t M Z = 0 then Z-> M Z so that R^t Z = 0 which
   // is necessary for the reSolve to have a meaning
-  ortho((*Q), (*Z), nsub, this->nrmod);
+  this->ortho((*Q), (*Z), nsub, this->nrmod);
 
   // compute Kappa, the coarse stiffness matrix 
   for (j = this->nrmod; j < subSpaceSize; ++j)
@@ -342,7 +342,7 @@ LOBPCGSolver< EigOps, VecType, VecSet,
       mu[index++] = (*Q)[i]*(*Z)[j];
   
   FullSquareMatrix xx(nsub);
-  getJacobi(kappa, mu, xx, (*subVal).data()+this->nrmod, nsmax, nsub, tolJac);
+  this->getJacobi(kappa, mu, xx, (*subVal).data()+this->nrmod, nsmax, nsub, tolJac);
 
   for (j = this->nrmod; j < subSpaceSize; ++j)
     (*Q)[j] = (*Z)[j];
@@ -406,7 +406,7 @@ LOBPCGSolver< EigOps, VecType, VecSet,
 
   // solve preconditioned system and orthonormalize
   this->eM->dynMat->reSolve(nsub,(*R)+this->nrmod);
-  ortho((*Q), (*R), nsub, this->nrmod);
+  this->ortho((*Q), (*R), nsub, this->nrmod);
  
   // form Kappa and Mu
   VecSet *tmpR = new VecSet(subSpaceSize, this->probDesc->solVecInfo());
@@ -446,7 +446,7 @@ LOBPCGSolver< EigOps, VecType, VecSet,
   }
  
   xx.setSize(2*nsub);
-  getJacobi(kappa, mu, xx, (*subVal).data()+this->nrmod, nsmax, 2*nsub, tolJac);
+  this->getJacobi(kappa, mu, xx, (*subVal).data()+this->nrmod, nsmax, 2*nsub, tolJac);
 /*
   // form P_k, the search direction
   VectorSet *Pk = new VectorSet(subSpaceSize, this->probDesc->solVecInfo()); 
@@ -490,7 +490,7 @@ LOBPCGSolver< EigOps, VecType, VecSet,
   //VecSet *tmpP = new VecSet(subSpaceSize, this->probDesc->solVecInfo());
   for (iter = 0; iter < nsmax; ++iter) {
     this->eM->dynMat->reSolve(nsub, (*R)+this->nrmod);
-    ortho(*Q, *R, nsub, this->nrmod);
+    this->ortho(*Q, *R, nsub, this->nrmod);
  
     // form Kappa and Mu
     for (j = this->nrmod; j < subSpaceSize; ++j)  {
@@ -548,7 +548,7 @@ LOBPCGSolver< EigOps, VecType, VecSet,
     }
 */	
     // returns sorted eigenvalues
-    getJacobi(kappa, mu, xx, (*subVal).data()+this->nrmod, nsmax, 2*nsub, tolJac);
+    this->getJacobi(kappa, mu, xx, (*subVal).data()+this->nrmod, nsmax, 2*nsub, tolJac);
 /*
     // form new search direction 
     for (j = this->nrmod; j < subSpaceSize; j++)
@@ -702,7 +702,7 @@ SubSpaceSolver< EigOps, VecType, VecSet,
 
  // orthonormalize. Make R^t M Z = 0 then Z-> M Z so that R^t Z = 0 which
  // is necessary for the reSolve to have a meaning
- ortho((*Q), (*Z), nsub, this->nrmod);
+ this->ortho((*Q), (*Z), nsub, this->nrmod);
 
  for(j=this->nrmod; j<subSpaceSize; ++j) {
    this->eM->M->mult((*Z)[j],(*Q)[j]);
@@ -725,7 +725,7 @@ SubSpaceSolver< EigOps, VecType, VecSet,
 
    this->eM->dynMat->reSolve(nsub,(*Z)+this->nrmod);
 
-   ortho((*Q), (*Z), nsub, this->nrmod);
+   this->ortho((*Q), (*Z), nsub, this->nrmod);
 
    if (explicitK)  {
      for(j=this->nrmod; j<subSpaceSize; ++j)
@@ -746,7 +746,7 @@ SubSpaceSolver< EigOps, VecType, VecSet,
        mu[index++] = (*Q)[i]*(*Z)[j];
 
    // returns sorted eigenvalues
-   getJacobi(kappa,mu,xx,(*subVal).data()+this->nrmod,nsmax,nsub,tolJac);
+   this->getJacobi(kappa,mu,xx,(*subVal).data()+this->nrmod,nsmax,nsub,tolJac);
 
    // test for convergence
    int hasCon = 1;

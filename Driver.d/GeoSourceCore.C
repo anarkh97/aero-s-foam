@@ -26,8 +26,13 @@ using std::map;
 #include <queue>
 #include <limits>
 #include <Sfem.d/Sfem.h>
+#ifdef USE_EIGEN3
+#include <Math.d/rref.h>
+#include <Eigen/Core>
+#endif
 
 EFrameData null_eframe;
+NFrameData null_nframe;
 StructProp null_sprops;
 Attrib null_attrib;
 BCond null_bcond;
@@ -40,7 +45,7 @@ extern Sfem *sfem;
 //----------------------------------------------------------------------
 
 GeoSource::GeoSource(int iniSize) : oinfo(emptyInfo, iniSize), nodes(iniSize*16), elemSet(iniSize*16),
-   layInfo(0, iniSize), coefData(0, iniSize), layMat(0, iniSize), efd(null_eframe, iniSize), cframes(0, iniSize)
+   layInfo(0, iniSize), coefData(0, iniSize), layMat(0, iniSize), efd(null_eframe, iniSize), csfd(null_eframe, iniSize), cframes(0, iniSize), nfd(null_nframe, iniSize)
 {
   decJustCalled=false;
   exitAfterDec=false;
@@ -62,7 +67,9 @@ GeoSource::GeoSource(int iniSize) : oinfo(emptyInfo, iniSize), nodes(iniSize*16)
   na = 0;
   namax = 0;
   numEframes = 0;
+  numNframes = 0;
   numCframes = 0;
+  numCSframes = 0;
   numLayInfo = 0;
   numCoefData = 0;
   numLayMat = 0;
@@ -99,6 +106,7 @@ GeoSource::GeoSource(int iniSize) : oinfo(emptyInfo, iniSize), nodes(iniSize*16)
   numSurfaceDirichlet = 0;
   numSurfaceNeuman = 0;
   numSurfacePressure = 0;
+  numSurfaceConstraint = 0;
 
   // PITA
   // Initial seed conditions
@@ -134,6 +142,7 @@ GeoSource::GeoSource(int iniSize) : oinfo(emptyInfo, iniSize), nodes(iniSize*16)
   //cvbc = 0; rdbc = 0; iTemp = 0;
   cdbc = cnbc = 0;
   surface_dbc = surface_nbc = surface_pres = 0;
+  surface_cfe = 0;
 
   maxattrib = -1; // PJSA
   optDec = 0;
@@ -183,9 +192,9 @@ GeoSource::~GeoSource()
 
 //----------------------------------------------------------------------
 
-int GeoSource::addNode(int nd, double xyz[3])
+int GeoSource::addNode(int nd, double xyz[3], int cp, int cd)
 {
-  nodes.nodeadd(nd, xyz);
+  nodes.nodeadd(nd, xyz, cp, cd);
   nGlobNodes++;
   return 0;
 }
@@ -280,6 +289,36 @@ int GeoSource::setFrame(int el, double *data)
 
 //----------------------------------------------------------------------
 
+int GeoSource::setNodalFrame(int id, double *origin, double *data, int type)
+{
+  int i,j;
+  for(i = 0; i < 3; ++i) {
+   nfd[id].origin[i] = origin[i];
+   for(j = 0; j < 3; ++j)
+     nfd[id].frame[i][j] = data[i*3+j];
+  }
+  nfd[id].type = (NFrameData::FrameType) type;
+
+  return 0;
+}
+
+//----------------------------------------------------------------------
+
+int GeoSource::setCSFrame(int el, double *data)
+{
+  csfd[numCSframes].elnum = el;
+  int i,j;
+  for(i = 0; i < 3; ++i)
+   for(j = 0; j < 3; ++j)
+     csfd[numCSframes].frame[i][j] = data[i*3+j];
+
+  numCSframes++;
+
+  return 0;
+}
+
+//----------------------------------------------------------------------
+
 int GeoSource::addCFrame(int fn, double *f)  {
 
   if (fn >= numCframes)
@@ -343,6 +382,71 @@ bool GeoSource::checkLMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
   return (count > 0);
 }
 
+void GeoSource::transformLMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
+{
+#ifdef USE_EIGEN3
+  // transform LMPCs from basic to DOF_FRA coordinates, if necessary
+  for(int i = 0; i < numLMPC; ++i) {
+    if(lmpc[i]->getSource() == mpc::Lmpc || lmpc[i]->getSource() == mpc::NodalContact) continue;
+
+    // first, fill the lists of term indices corresponding to nodes with DOF_FRA
+    std::map<int, std::list<int> > lists;
+    for(int j=0; j<lmpc[i]->nterms; ++j) {
+      int nnum = lmpc[i]->terms[j].nnum;
+      if(nodes[nnum]->cd != 0) lists[nnum].push_back(j);
+    }
+
+    if(lists.size() == 0) continue;
+
+    std::vector<LMPCTerm> newterms;
+    for(std::map<int, std::list<int> >::iterator it = lists.begin(); it != lists.end(); ++it) {
+      int nnum = it->first;
+
+      // get the original coefficients
+      Eigen::Vector3d tcoefs, rcoefs; tcoefs.setZero(); rcoefs.setZero();
+      for(std::list<int>::iterator it2 = it->second.begin(); it2 != it->second.end(); ++it2) {
+        int dofnum = lmpc[i]->terms[*it2].dofnum;
+        switch(dofnum) {
+          case 0: case 1: case 2:
+            tcoefs[dofnum] = lmpc[i]->terms[*it2].coef.r_value;
+            break;
+          case 3: case 4: case 5:
+            rcoefs[dofnum-3] = lmpc[i]->terms[*it2].coef.r_value;
+            break;
+        }
+      }
+
+      // apply the transformation
+      int cd = nodes[nnum]->cd;
+      Eigen::Matrix3d T;
+      T << nfd[cd].frame[0][0], nfd[cd].frame[0][1], nfd[cd].frame[0][2],
+           nfd[cd].frame[1][0], nfd[cd].frame[1][1], nfd[cd].frame[1][2],
+           nfd[cd].frame[2][0], nfd[cd].frame[2][1], nfd[cd].frame[2][2];
+
+      if(!(tcoefs.array() == 0).all()) { // translation dofs 
+        tcoefs = (T*tcoefs).eval();
+        for(int j=0; j<3; ++j) newterms.push_back(LMPCTerm(nnum,j,tcoefs[j]));
+      }
+      if(!(rcoefs.array() == 0).all()) { // rotation dofs
+        rcoefs = (T*rcoefs).eval();
+        for(int j=0; j<3; ++j) newterms.push_back(LMPCTerm(nnum,j+3,rcoefs[j]));
+      }
+    }
+
+    // remove the old terms and insert new terms lmpc[i]
+    vector<LMPCTerm>::iterator it = lmpc[i]->terms.begin();
+    while(it != lmpc[i]->terms.end()) {
+      if(nodes[it->nnum]->cd != 0)
+        it = lmpc[i]->terms.erase(it);
+      else
+        ++it;
+    }
+    lmpc[i]->terms.insert(lmpc[i]->terms.end(), newterms.begin(), newterms.end());
+    lmpc[i]->removeNullTerms();
+  }
+#endif
+}
+
 void GeoSource::addMpcElements(int numLMPC, ResizeArray<LMPCons *> &lmpc)
 {
   int nEle = elemSet.last();
@@ -356,8 +460,10 @@ void GeoSource::addMpcElements(int numLMPC, ResizeArray<LMPCons *> &lmpc)
         int a = maxattrib + 1;
         StructProp p;
         p.lagrangeMult = lmpc[i]->lagrangeMult;
-        p.penalty = lmpc[i]->penalty;
+        p.initialPenalty = p.penalty = lmpc[i]->penalty;
         p.type = StructProp::Constraint;
+        p.constraint_hess = domain->solInfo().constraint_hess;
+        p.constraint_hess_eps = domain->solInfo().constraint_hess_eps;
         addMat(a, p);
         setAttrib(nEle, a);
       }
@@ -493,11 +599,6 @@ void GeoSource::makeDirectMPCs(int &numLMPC, ResizeArray<LMPCons *> &lmpc)
   }
 }
 
-#ifdef USE_EIGEN3
-#include <Math.d/rref.h>
-#include <Eigen/Core>
-#endif
-
 int
 GeoSource::reduceMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
 {
@@ -589,7 +690,7 @@ GeoSource::reduceMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
   delete [] colmap;
   return rank;
 #else
-  cerr << "error: GeoSource::reduceMPCs requires eigen2 library\n"; exit(-1);
+  cerr << "error: GeoSource::reduceMPCs requires Eigen3 library\n"; exit(-1);
   return 0;
 #endif
 }
@@ -684,6 +785,53 @@ void GeoSource::duplicateFilesForPita(int localNumSlices, const int* sliceRankSe
   }
 }
 
+void GeoSource::transformCoords()
+{
+#ifdef USE_EIGEN3
+  // transform node coordinates from POS_FRM to basic coordinates
+  // see: http://en.wikipedia.org/wiki/List_of_canonical_coordinate_transformations#3-Dimensional
+  using std::cos;
+  using std::sin;
+  int lastNode = numNodes = nodes.size();
+  for(int i=0; i<lastNode; ++i) {
+    if(nodes[i] == NULL) continue;
+    int cp = nodes[i]->cp;
+    if(cp == 0) continue;
+
+    Eigen::Vector3d v;
+    switch(nfd[cp].type) {
+      default:
+      case NFrameData::Rectangular: {
+        v << nodes[i]->x, nodes[i]->y, nodes[i]->z;
+      } break;
+      case NFrameData::Cylindrical: {
+        double rho   = nodes[i]->x;
+        double theta = nodes[i]->y;
+        v << rho*cos(theta), rho*sin(theta), nodes[i]->z;
+        break;
+      }
+      case NFrameData::Spherical:
+        double rho   = nodes[i]->x;
+        double theta = nodes[i]->y;
+        double phi   = nodes[i]->z;
+        v << rho*sin(theta)*cos(phi), rho*sin(theta)*sin(phi), rho*cos(theta);
+        break;
+    }
+
+    Eigen::Matrix3d T;
+    T << nfd[cp].frame[0][0], nfd[cp].frame[0][1], nfd[cp].frame[0][2],
+         nfd[cp].frame[1][0], nfd[cp].frame[1][1], nfd[cp].frame[1][2],
+         nfd[cp].frame[2][0], nfd[cp].frame[2][1], nfd[cp].frame[2][2];
+
+    v = (T.transpose()*v).eval();
+
+    nodes[i]->x =v[0] + nfd[cp].origin[0];
+    nodes[i]->y =v[1] + nfd[cp].origin[1];
+    nodes[i]->z =v[2] + nfd[cp].origin[2];
+  }
+#endif
+}
+
 void GeoSource::setUpData()
 {
   int lastNode = numNodes = nodes.size();
@@ -757,8 +905,10 @@ void GeoSource::setUpData()
       p->soundSpeed = omega()/complex<double>(p->kappaHelm, p->kappaHelmImag);
     if(p->type != StructProp::Constraint) {
       p->lagrangeMult = (sinfo.mpcDirect) ? false : sinfo.lagrangeMult;
-      p->penalty = (sinfo.mpcDirect) ? 0.0 : sinfo.penalty;
+      p->initialPenalty = p->penalty = (sinfo.mpcDirect) ? 0.0 : sinfo.penalty;
     }
+    p->constraint_hess = sinfo.constraint_hess;
+    p->constraint_hess_eps = sinfo.constraint_hess_eps;
     it++;
   }
 
@@ -938,6 +1088,65 @@ void GeoSource::setUpData()
   }
 
   for (int iOut = 0; iOut < numOutInfo; iOut++) {
+
+    switch (oinfo[iOut].type) {
+      case OutputInfo::Statevector :
+        filePrint(stderr," ... Saving state snapshots every %d time steps to %s ...\n", oinfo[iOut].interval, oinfo[iOut].filename);
+        domain->solInfo().activatePodRom = true;
+        domain->solInfo().snapshotsPodRom = true;
+        domain->solInfo().statevectPodRom = true;
+        domain->solInfo().skipState = oinfo[iOut].interval;
+        domain->solInfo().statePodRomFile = oinfo[iOut].filename; 
+        oinfo[iOut].PodRomfile = true;
+        break;
+      case OutputInfo::Residual :
+        filePrint(stderr," ... Saving residual snapshots every %d time steps to %s ...\n", oinfo[iOut].interval, oinfo[iOut].filename);
+        domain->solInfo().activatePodRom = true;
+        domain->solInfo().snapshotsPodRom = true;
+        domain->solInfo().residvectPodRom = true;
+        domain->solInfo().skipResidual = oinfo[iOut].interval;
+        domain->solInfo().residualPodRomFile = oinfo[iOut].filename; 
+        oinfo[iOut].PodRomfile = true;
+        break;
+      case OutputInfo::Jacobian :
+        filePrint(stderr," ... Saving jacobian snapshots every %d time steps to %s ...\n", oinfo[iOut].interval, oinfo[iOut].filename);
+        domain->solInfo().activatePodRom = true;
+        domain->solInfo().snapshotsPodRom = true;
+        domain->solInfo().jacobvectPodRom = true;
+        domain->solInfo().skipJacobian = oinfo[iOut].interval;
+        domain->solInfo().jacobianPodRomFile = oinfo[iOut].filename; 
+        oinfo[iOut].PodRomfile = true;
+        break;
+      case OutputInfo::RobData :
+        filePrint(stderr," ... Reduced Order Basis Construction: saving to %s ...\n", oinfo[iOut].filename);
+        domain->solInfo().SVDoutput = oinfo[iOut].filename; 
+        oinfo[iOut].PodRomfile = true;
+        break;
+      case OutputInfo::SampleMesh :
+        filePrint(stderr," ... Computing Hyper-Reduction Coefficients: saving to %s ...\n", oinfo[iOut].filename);
+        domain->solInfo().reducedMeshFile = oinfo[iOut].filename; 
+        oinfo[iOut].PodRomfile = true;
+        break;
+      case OutputInfo::Accelvector :
+        filePrint(stderr," ... Saving acceleration snapshots every %d time steps to %s ...\n", oinfo[iOut].interval, oinfo[iOut].filename);
+        domain->solInfo().activatePodRom = true;
+        domain->solInfo().snapshotsPodRom = true;
+        domain->solInfo().accelvectPodRom = true;
+        domain->solInfo().skipAccel = oinfo[iOut].interval;
+        domain->solInfo().accelPodRomFile = oinfo[iOut].filename;
+        oinfo[iOut].PodRomfile = true;
+        break;
+      case OutputInfo::Forcevector :
+        filePrint(stderr," ... Saving force snapshots every %d time steps to %s ...\n", oinfo[iOut].interval, oinfo[iOut].filename);
+        domain->solInfo().activatePodRom = true;
+        domain->solInfo().snapshotsPodRom = true;
+        domain->solInfo().forcevectPodRom = true;
+        domain->solInfo().skipForce = oinfo[iOut].interval;
+        domain->solInfo().forcePodRomFile = oinfo[iOut].filename;
+        oinfo[iOut].PodRomfile = true;
+        break;
+    }
+
     if (oinfo[iOut].groupNumber > 0)  {
       if (nodeGroup.find(oinfo[iOut].groupNumber) == nodeGroup.end())
         fprintf(stderr, " ~~~ AS.WRN: Requested group output id not found: %d\n", oinfo[iOut].groupNumber);
@@ -1328,6 +1537,12 @@ int GeoSource::getSurfacePressure(BCond *&bc)
 {
   bc = surface_pres;
   return numSurfacePressure;
+}
+
+int GeoSource::getSurfaceConstraint(BCond *&bc)
+{
+  bc = surface_cfe;
+  return numSurfaceConstraint;
 }
 
 void GeoSource::computeGlobalNumElements()
@@ -1974,10 +2189,10 @@ void GeoSource::getTextDecomp(bool sowering)
     f = fopen("DECOMPOSITION","r");
 
     if(f == 0) {
-      fprintf(stderr," **************************************************\n");
-      fprintf(stderr," *** ERROR: DECOMPOSITION file does not exist   ***\n");
-      fprintf(stderr," ***        Please provide a DECOMPOSITION file ***\n");
-      fprintf(stderr," **************************************************\n");
+      filePrint(stderr," **************************************************\n");
+      filePrint(stderr," *** ERROR: DECOMPOSITION file does not exist   ***\n");
+      filePrint(stderr," ***        Please provide a DECOMPOSITION file ***\n");
+      filePrint(stderr," **************************************************\n");
       exit(-1);
     }
 
@@ -2605,6 +2820,42 @@ int GeoSource::addSurfacePressure(int _numSurfacePressure, BCond *_surface_pres)
 
 //-------------------------------------------------------------------
 
+int GeoSource::addSurfaceConstraint(int _numSurfaceConstraint, BCond *_surface_cfe)
+{
+  if(surface_cfe) {
+
+    // Allocate memory for correct number of cfe
+    BCond *nd = new BCond[numSurfaceConstraint+_numSurfaceConstraint];
+
+    // copy old cfe
+    int i;
+    for(i = 0; i < numSurfaceConstraint; ++i)
+       nd[i] = surface_cfe[i];
+
+    // copy new cfe
+    for(i = 0; i<_numSurfaceConstraint; ++i)
+      nd[i+numSurfaceConstraint] = _surface_cfe[i];
+
+    // set correct number of cfe
+    numSurfaceConstraint += _numSurfaceConstraint;
+
+    // delete old array of cfe
+    delete [] surface_cfe;
+
+    // set new pointer to correct number of cfe
+    surface_cfe = nd;
+
+  }
+
+  else {
+    numSurfaceConstraint = _numSurfaceConstraint;
+    surface_cfe          = _surface_cfe;
+  }
+
+  return 0;
+}
+
+//-------------------------------------------------------------------
 
 void GeoSource::readMatchInfo(BinFileHandler &matchFile,
 	int (*matchRanges)[2], int numMatchRanges, int subNum,
@@ -2898,6 +3149,7 @@ void GeoSource::openOutputFilesForPita(int sliceRank)
 {
   std::pair<int, int> indices = getTimeSliceOutputFileIndices(sliceRank);
   for(int iInfo = indices.first; iInfo < indices.second; ++iInfo) {
+   if(!oinfo[iInfo].PodRomfile) {
    if (oinfo[iInfo].interval != 0) {
       char *fileName = oinfo[iInfo].filename;
       if (strlen(cinfo->outputExt) != 0) {
@@ -2915,6 +3167,7 @@ void GeoSource::openOutputFilesForPita(int sliceRank)
       fflush(oinfo[iInfo].filptr);
     }
   }
+ }
 }
 
 
@@ -2925,8 +3178,8 @@ void GeoSource::openOutputFiles(int *outNodes, int *outIndex, int numOuts)
 
   if(numOuts == 0) { // open all output files and write their corresponding TOPDOM/DEC header
     for(iInfo = 0; iInfo < numOutInfo; ++iInfo) {
+     if(!oinfo[iInfo].PodRomfile) {
       if(oinfo[iInfo].interval != 0) {
-
         char *fileName = oinfo[iInfo].filename;
         if (strlen(cinfo->outputExt) != 0) {
           int len1 = strlen(fileName);
@@ -2942,12 +3195,14 @@ void GeoSource::openOutputFiles(int *outNodes, int *outIndex, int numOuts)
         outputHeader(iInfo);
         fflush(oinfo[iInfo].filptr);
       }
+     }
     }
   }
   else { // open selected output files
     for(int iOut = 0; iOut < numOuts; iOut++)  {
       iInfo = outIndex[iOut];
-      if(oinfo[iInfo].interval != 0) {
+      if(!oinfo[iInfo].PodRomfile) {
+       if(oinfo[iInfo].interval != 0) {
         char *fileName = oinfo[iInfo].filename;
         if(strlen(cinfo->outputExt) != 0) {
           int len1 = strlen(fileName);
@@ -2964,6 +3219,7 @@ void GeoSource::openOutputFiles(int *outNodes, int *outIndex, int numOuts)
         fflush(oinfo[iInfo].filptr);
       }
     }
+   }
   }
 }
 
@@ -2971,7 +3227,9 @@ void GeoSource::openOutputFiles(int *outNodes, int *outIndex, int numOuts)
 void GeoSource::closeOutputFiles()
 {
   for(int i = 0; i < numOutInfo; ++i) {
+   if(!oinfo[i].PodRomfile) {
     this->closeOutputFileImpl(i);
+   }
   }
 }
 
@@ -2980,7 +3238,9 @@ void GeoSource::closeOutputFilesForPita(int sliceRank)
 {
   std::pair<int, int> indices = getTimeSliceOutputFileIndices(sliceRank);
   for (int i = indices.first; i < indices.second; ++i) {
+   if(!oinfo[i].PodRomfile) {
     this->closeOutputFileImpl(i);
+   }
   }
 }
 
@@ -3182,6 +3442,7 @@ void GeoSource::getHeaderDescription(char *headDescrip, int fileNumber)
   else if(sinfo.probType == SolverInfo::ArcLength) strcpy(prbType,"Arclength");
   else if(sinfo.probType == SolverInfo::TempDynamic) strcpy(prbType,"Temp");
   else if(sinfo.probType == SolverInfo::AxiHelm) strcpy(prbType,"AxiHelm");
+  else if(sinfo.buckling) strcpy(prbType,"Buckling");
   else if(sinfo.probType == SolverInfo::Modal) strcpy(prbType,"Modal");
   if(isShifted() && sinfo.probType != SolverInfo::Modal) {
     if(sinfo.doFreqSweep) strcpy(prbType,"FrequencySweep");

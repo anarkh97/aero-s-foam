@@ -1,3 +1,4 @@
+#ifdef USE_EIGEN3
 #include <Element.d/Joint.d/LinearTranslationalSpring.h>
 
 LinearTranslationalSpring::LinearTranslationalSpring(int* nn)
@@ -10,6 +11,7 @@ LinearTranslationalSpring::setProp(StructProp *p, bool _myProp)
 {
   prop = (_myProp) ? p : new StructProp(*p);
   myProp = true;
-  prop->penalty = prop->kx;
+  prop->penalty = prop->k1;
   prop->lagrangeMult = false;
 }
+#endif

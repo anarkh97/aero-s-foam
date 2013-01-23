@@ -24,6 +24,10 @@ namespace Rom {
 // Common implementation
 class PodProjectionNonLinDynamic::Impl {
 public:
+
+  virtual void lastMidTimeIs(double) = 0;
+  virtual void lastDeltaIs(double) = 0;
+  virtual void stateSnapshotAdd(const GeomState &) = 0;
   virtual void handleResidualSnapshot(const Vector &res) = 0;
   virtual void handleJacobianSnapshot() = 0;
 
@@ -58,7 +62,9 @@ PodProjectionNonLinDynamic::Impl::~Impl() {
 class PodProjectionNonLinDynamicDetail : private PodProjectionNonLinDynamic {
 public:
   class BasicImpl;
-  class SnapImpl;
+  class sttSnapImpl;
+  class resSnapImpl;
+  class jacSnapImpl;
 
 private:
   // Dummy constructor
@@ -71,8 +77,14 @@ public:
   explicit BasicImpl(PodProjectionNonLinDynamic *parent);
   
   // Overriden functions
+  virtual void lastMidTimeIs(double t);
+  virtual void lastDeltaIs(double dt);
+  virtual void stateSnapshotAdd(const GeomState &);
   virtual void handleResidualSnapshot(const Vector &res);
   virtual void handleJacobianSnapshot();
+
+  ~BasicImpl();
+
 
 protected: 
   VecNodeDof6Conversion vecNodeDof6Conversion_;
@@ -80,6 +92,8 @@ protected:
 
   VecBasis projectionBasis_;
 };
+
+PodProjectionNonLinDynamicDetail::BasicImpl::~BasicImpl() {}
 
 PodProjectionNonLinDynamicDetail::BasicImpl::BasicImpl(PodProjectionNonLinDynamic *parent) :
   PodProjectionNonLinDynamic::Impl(parent),
@@ -99,12 +113,27 @@ PodProjectionNonLinDynamicDetail::BasicImpl::BasicImpl(PodProjectionNonLinDynami
   
   readVectors(projectionBasisInput, projectionBasis_, projectionSubspaceSize);
   
-  filePrint(stderr, "Projection subspace of dimension = %d\n", projectionBasis_.vectorCount());
+  filePrint(stderr, " ... Projection subspace of dimension = %d ...\n", projectionBasis_.vectorCount());
 
   // Setup solver
   PodProjectionSolver *solver = getSolver();
   solver->projectionBasisIs(projectionBasis_);
   solver->factor(); // Delayed factorization
+}
+
+void
+PodProjectionNonLinDynamicDetail::BasicImpl::lastMidTimeIs(double t) {
+  //empty
+}
+
+void
+PodProjectionNonLinDynamicDetail::BasicImpl::lastDeltaIs(double dt) {
+  //empty
+}
+
+void
+PodProjectionNonLinDynamicDetail::BasicImpl::stateSnapshotAdd(const GeomState &snap) {
+ //empty
 }
 
 void
@@ -117,33 +146,193 @@ PodProjectionNonLinDynamicDetail::BasicImpl::handleJacobianSnapshot() {
   // Nothing to do
 }
 
-// Implementation with residual/jacobian snapshots
-class PodProjectionNonLinDynamicDetail::SnapImpl : public PodProjectionNonLinDynamicDetail::BasicImpl {
+class PodProjectionNonLinDynamicDetail::sttSnapImpl : public PodProjectionNonLinDynamicDetail::BasicImpl {
+  public:
+     void lastMidTimeIs(double t);
+     void lastDeltaIs(double dt);
+     void stateSnapshotAdd(const GeomState &state);
+     void handleResidualSnapshot(const Vector &res);
+     void handleJacobianSnapshot(); 
+
+    int dofSetNodeCount() const { return converter_.dofSetNodeCount(); }
+    int vectorSize() const { return converter_.vectorSize(); }
+
+    explicit sttSnapImpl(Domain * domain, PodProjectionNonLinDynamic * parent);
+
+
+  protected:
+
+    Domain * domain_;
+   
+    template <typename VecType>
+    void fillSnapBuffer(const VecType &origin);
+
+    const NodeDof6Buffer &snapBuffer() const { return snapBuffer_; }
+    const VecNodeDof6Conversion &converter() const { return converter_; }
+
+  private:
+
+    VecNodeDof6Conversion converter_;
+    NodeDof6Buffer snapBuffer_;
+
+    double timeStamp_;
+
+  protected:
+    BasisBinaryOutputFile stateSnapFile_;
+};
+
+// Implementation with residual snapshots
+class PodProjectionNonLinDynamicDetail::resSnapImpl : public PodProjectionNonLinDynamicDetail::BasicImpl {
 public:
-  explicit SnapImpl(PodProjectionNonLinDynamic *parent);
+  explicit resSnapImpl(PodProjectionNonLinDynamic *parent);
   
   // Overriden functions
-  virtual void handleResidualSnapshot(const Vector &res);
-  virtual void handleJacobianSnapshot();
+   void lastMidTimeIs(double t);
+   void lastDeltaIs(double dt);
+   void stateSnapshotAdd(const GeomState &state);
+   void handleResidualSnapshot(const Vector &res);
+   void handleJacobianSnapshot();
 
 private:
   BasisOutputStream residualSnapFile_;
+};
+
+//Implementation with jacobian snapshots
+class PodProjectionNonLinDynamicDetail::jacSnapImpl : public PodProjectionNonLinDynamicDetail::BasicImpl {
+public:
+  explicit jacSnapImpl(PodProjectionNonLinDynamic *parent);
+
+  // Overriden functions
+   void lastMidTimeIs(double t);
+   void lastDeltaIs(double dt);
+   void stateSnapshotAdd(const GeomState &state);
+   void handleResidualSnapshot(const Vector &res);
+   void handleJacobianSnapshot();
+
+private:
   BasisOutputStream jacobianSnapFile_;
 };
 
-PodProjectionNonLinDynamicDetail::SnapImpl::SnapImpl(PodProjectionNonLinDynamic *parent) :
+PodProjectionNonLinDynamicDetail::sttSnapImpl::sttSnapImpl(Domain * domain, PodProjectionNonLinDynamic * parent) :
   PodProjectionNonLinDynamicDetail::BasicImpl(parent),
-  residualSnapFile_(BasisFileId(fileInfo_, BasisId::RESIDUAL, BasisId::SNAPSHOTS), vecNodeDof6Conversion_),
+  domain_(domain),
+  converter_(*domain->getCDSA()),
+  snapBuffer_(dofSetNodeCount()),
+  stateSnapFile_(BasisFileId(fileInfo_, BasisId::STATE, BasisId::SNAPSHOTS), dofSetNodeCount()),
+  timeStamp_(domain->solInfo().initialTime)
+{}
+
+template <typename VecType>
+inline
+void
+PodProjectionNonLinDynamicDetail::sttSnapImpl::fillSnapBuffer(const VecType &snap) {
+  converter_.paddedNodeDof6(snap, snapBuffer_);
+}
+
+PodProjectionNonLinDynamicDetail::resSnapImpl::resSnapImpl(PodProjectionNonLinDynamic *parent) :
+  PodProjectionNonLinDynamicDetail::BasicImpl(parent),
+  residualSnapFile_(BasisFileId(fileInfo_, BasisId::RESIDUAL, BasisId::SNAPSHOTS), vecNodeDof6Conversion_)
+{}
+
+PodProjectionNonLinDynamicDetail::jacSnapImpl::jacSnapImpl(PodProjectionNonLinDynamic *parent) :
+  PodProjectionNonLinDynamicDetail::BasicImpl(parent),
   jacobianSnapFile_(BasisFileId(fileInfo_, BasisId::JACOBIAN, BasisId::SNAPSHOTS), vecNodeDof6Conversion_)
 {}
 
 void
-PodProjectionNonLinDynamicDetail::SnapImpl::handleResidualSnapshot(const Vector &res) {
+PodProjectionNonLinDynamicDetail::sttSnapImpl::lastMidTimeIs(double t) {
+  timeStamp_ = t;
+}
+
+void
+PodProjectionNonLinDynamicDetail::sttSnapImpl::lastDeltaIs(double dt) {
+  timeStamp_ += dt;
+}
+
+void
+PodProjectionNonLinDynamicDetail::resSnapImpl::lastMidTimeIs(double t) {
+  //empty
+}
+
+void
+PodProjectionNonLinDynamicDetail::resSnapImpl::lastDeltaIs(double dt) {
+  //empty
+}
+
+void
+PodProjectionNonLinDynamicDetail::jacSnapImpl::lastMidTimeIs(double t) {
+  //empty
+}
+
+void
+PodProjectionNonLinDynamicDetail::jacSnapImpl::lastDeltaIs(double dt) {
+  //empty
+}
+
+void
+PodProjectionNonLinDynamicDetail::sttSnapImpl::stateSnapshotAdd(const GeomState &snap) {
+  const CoordSet &refCoords = domain_->getNodes();
+
+  for (int iNode = 0, iNodeEnd = dofSetNodeCount(); iNode != iNodeEnd; ++iNode) {
+    double *nodeBuffer = snapBuffer_[iNode];
+
+    const Node *refNode = refCoords[iNode];
+    if (refNode) {
+      const NodeState &snapNode = snap[iNode];
+
+      // Translational dofs
+      nodeBuffer[0] = snapNode.x - refNode->x;
+      nodeBuffer[1] = snapNode.y - refNode->y;
+      nodeBuffer[2] = snapNode.z - refNode->z;
+
+      // Rotational dofs
+      mat_to_vec(const_cast<double (*)[3]>(snapNode.R), &nodeBuffer[3]);
+    } else {
+      // Node does not really exist, corresponds to a gap in node numbering
+      std::fill_n(nodeBuffer, 6, 0.0);
+    }
+  }
+
+  stateSnapFile_.stateAdd(snapBuffer_, timeStamp_);
+}
+
+void
+PodProjectionNonLinDynamicDetail::resSnapImpl::stateSnapshotAdd(const GeomState &snap) {
+ //empty
+}
+
+void
+PodProjectionNonLinDynamicDetail::jacSnapImpl::stateSnapshotAdd(const GeomState &snap) {
+  //empty
+}
+
+void
+PodProjectionNonLinDynamicDetail::sttSnapImpl::handleResidualSnapshot(const Vector &res) {
+  //empty
+}
+
+void
+PodProjectionNonLinDynamicDetail::resSnapImpl::handleResidualSnapshot(const Vector &res) {
   residualSnapFile_ << res;
 }
 
 void
-PodProjectionNonLinDynamicDetail::SnapImpl::handleJacobianSnapshot() {
+PodProjectionNonLinDynamicDetail::jacSnapImpl::handleResidualSnapshot(const Vector &res) {
+  //empty
+}
+
+void
+PodProjectionNonLinDynamicDetail::sttSnapImpl::handleJacobianSnapshot() {
+  //empty
+}
+
+void
+PodProjectionNonLinDynamicDetail::resSnapImpl::handleJacobianSnapshot() {
+  //empty
+}
+
+void
+PodProjectionNonLinDynamicDetail::jacSnapImpl::handleJacobianSnapshot() {
   Vector snap(solVecInfo());
   expand(getSolver()->lastReducedMatrixAction(), getSolver()->lastReducedSolution(), snap);
   jacobianSnapFile_ << snap;
@@ -154,7 +343,10 @@ PodProjectionNonLinDynamicDetail::SnapImpl::handleJacobianSnapshot() {
 
 PodProjectionNonLinDynamic::PodProjectionNonLinDynamic(Domain *d) :
   NonLinDynamic(d),
-  impl_(NULL)
+  impl_(NULL),
+  sttImpl_(NULL),
+  resImpl_(NULL),
+  jacImpl_(NULL)
 {}
 
 PodProjectionNonLinDynamic::~PodProjectionNonLinDynamic() {
@@ -170,7 +362,12 @@ PodProjectionNonLinDynamic::preProcess() {
   }
 
   if (domain->solInfo().snapshotsPodRom) {
-    impl_.reset(new PodProjectionNonLinDynamicDetail::SnapImpl(this));
+   if(domain->solInfo().statevectPodRom)
+    sttImpl_.reset(new PodProjectionNonLinDynamicDetail::sttSnapImpl(this->domain,this)); 
+   if(domain->solInfo().residvectPodRom) 
+    resImpl_.reset(new PodProjectionNonLinDynamicDetail::resSnapImpl(this));
+   if(domain->solInfo().jacobvectPodRom)
+    jacImpl_.reset(new PodProjectionNonLinDynamicDetail::jacSnapImpl(this));
   } else {
     impl_.reset(new PodProjectionNonLinDynamicDetail::BasicImpl(this));
   }
@@ -179,7 +376,7 @@ PodProjectionNonLinDynamic::preProcess() {
 
 const PodProjectionSolver *
 PodProjectionNonLinDynamic::getSolver() const {
-  return static_cast<PodProjectionSolver *>(const_cast<PodProjectionNonLinDynamic *>(this)->NonLinDynamic::getSolver());
+  return dynamic_cast<PodProjectionSolver *>(const_cast<PodProjectionNonLinDynamic *>(this)->NonLinDynamic::getSolver());
 }
 
 PodProjectionSolver *
@@ -189,7 +386,8 @@ PodProjectionNonLinDynamic::getSolver() {
 
 int
 PodProjectionNonLinDynamic::checkConvergence(int iteration, double normRes, Vector &residual, Vector &dv, double time) {
-  impl_->handleJacobianSnapshot();
+  if(domain->solInfo().jacobvectPodRom)
+  jacImpl_->handleJacobianSnapshot();
 
   // Forward to hidden base class function
   return NonLinDynamic::checkConvergence(iteration, normRes, residual, dv, time); 
@@ -202,12 +400,31 @@ PodProjectionNonLinDynamic::getResidualNorm(const Vector &residual, GeomState &,
 
 void
 PodProjectionNonLinDynamic::handleResidualSnapshot(const Vector &snap) {
-  impl_->handleResidualSnapshot(snap);
+  if(domain->solInfo().residvectPodRom)
+  resImpl_->handleResidualSnapshot(snap);
 }
 
 bool
 PodProjectionNonLinDynamic::factorWhenBuilding() const {
   return false; // Delayed factorization
+}
+
+void
+PodProjectionNonLinDynamic::saveMidTime(double t) {
+  if(domain->solInfo().statevectPodRom)
+  sttImpl_->lastMidTimeIs(t);
+}
+
+void
+PodProjectionNonLinDynamic::saveDelta(double dt) {
+  if(domain->solInfo().statevectPodRom)
+  sttImpl_->lastDeltaIs(dt);
+}
+
+void
+PodProjectionNonLinDynamic::saveStateSnapshot(const GeomState &state) {
+  if(domain->solInfo().statevectPodRom)
+  sttImpl_->stateSnapshotAdd(state);
 }
 
 } /* end namespace Rom */

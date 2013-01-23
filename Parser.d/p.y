@@ -35,6 +35,7 @@
  ComplexBCList *cxbclist;
  ComplexBCond cxbcval;
  FrameData frame;
+ NodalFrameData nframe;
  MFTTData *mftval;
  MFTTData *mptval;
  MFTTData *hftval;
@@ -55,31 +56,31 @@
 
 %expect 6
 
-%token ACTUATORS AERO AEROH AEROTYPE ANALYSIS ARCLENGTH ATTRIBUTES 
+%token ACTUATORS AERO AEROH AEROTYPE ANALYSIS ARCLENGTH ATTRIBUTES ANGULAROUTTYPE
 %token AUGMENT AUGMENTTYPE AVERAGED ATDARB ACOU ATDDNB ATDROB ARPACK ATDDIR ATDNEU
-%token AXIHDIR AXIHNEU AXINUMMODES AXINUMSLICES AXIHSOMMER AXIMPC AUXCOARSESOLVER ACMECNTL ADDEDMASS AEROEMBED
+%token AXIHDIR AXIHNEU AXINUMMODES AXINUMSLICES AXIHSOMMER AXIMPC AUXCOARSESOLVER ACMECNTL ADDEDMASS AEROEMBED AUGMENTED
 %token BLOCKDIAG BOFFSET BUCKLE BGTL BMPC BINARYINPUT BINARYOUTPUT
 %token CHECKTOKEN COARSESOLVER COEF CFRAMES COLLOCATEDTYPE CONVECTION COMPOSITE CONDITION
 %token CONTROL CORNER CORNERTYPE CURVE CCTTOL CCTSOLVER CRHS COUPLEDSCALE CONTACTSURFACES CMPC CNORM
-%token COMPLEXOUTTYPE CONSTRMAT
+%token COMPLEXOUTTYPE CONSTRMAT CASES CONSTRAINEDSURFACES CSFRAMES CSTYPE
 %token DAMPING DblConstant DEM DIMASS DISP DIRECT DLAMBDA DP DYNAM DETER DECOMPOSE DECOMPFILE DMPC DEBUGCNTL DEBUGICNTL
 %token CONSTRAINTS MULTIPLIERS PENALTY
-%token EIGEN EFRAMES ELSCATTERER END ELHSOMMERFELD EXPLICIT EPSILON
+%token EIGEN EFRAMES ELSCATTERER END ELHSOMMERFELD EXPLICIT EPSILON ELEMENTARYFUNCTIONTYPE
 %token FABMAT FACOUSTICS FETI FETI2TYPE FETIPREC FFP FFPDIR FITALG FLUMAT FNAME FLUX FORCE FRONTAL FETIH FILTEREIG
-%token FREQSWEEP FREQSWEEP1 FREQSWEEP2 FSINTERFACE FSISCALING FSIELEMENT NOLOCALFSISPLITING FSICORNER FFIDEBUG FAILSAFE
+%token FREQSWEEP FREQSWEEP1 FREQSWEEP2 FSINTERFACE FSISCALING FSIELEMENT NOLOCALFSISPLITING FSICORNER FFIDEBUG FAILSAFE FRAMETYPE
 %token GEPS GLOBALTOL GRAVITY GRBM GTGSOLVER GLOBALCRBMTOL GROUP GROUPTYPE GOLDFARBTOL GOLDFARBCHECK
 %token HDIRICHLET HEAT HFETI HNEUMAN HSOMMERFELD HFTT
 %token HELMHOLTZ HNBO HELMMF HELMSO HSCBO HWIBO HZEM HZEMFILTER HLMPC 
-%token HELMSWEEP HELMSWEEP1 HELMSWEEP2 HERMITIAN
+%token HELMSWEEP HELMSWEEP1 HELMSWEEP2 HERMITIAN HESSIAN
 %token IACC IDENTITY IDIS IDIS6 IntConstant INTERFACELUMPED ITEMP ITERTYPE IVEL 
 %token INCIDENCE IHDIRICHLET IHDSWEEP IHNEUMANN ISOLVERTYPE INPC INFINTY
 %token JACOBI KRYLOVTYPE KIRLOC
 %token LAYC LAYN LAYD LAYO LAYMAT LFACTOR LMPC LOAD LOBPCG LOCALSOLVER LINESEARCH LUMPED
 %token MASS MATERIALS MATLAB MAXITR MAXORTHO MAXVEC MODAL MPCPRECNO MPCPRECNOID MPCTYPE MPCTYPEID MPCSCALING MPCELEMENT MPCBLOCKID 
-%token MPCBLK_OVERLAP MFTT MPTT MRHS MPCCHECK MUMPSICNTL MUMPSCNTL MECH MODEFILTER
+%token MPCBLK_OVERLAP MFTT MPTT MRHS MPCCHECK MUMPSICNTL MUMPSCNTL MECH MODEFILTER MOMENTTYPE
 %token NDTYPE NEIGPA NEWMARK NewLine NL NLMAT NLPREC NOCOARSE NODETOKEN NONINPC
-%token NSBSPV NLTOL NUMCGM NOSECONDARY
-%token OPTIMIZATION OUTPUT OUTPUT6
+%token NSBSPV NLTOL NUMCGM NOSECONDARY NFRAMES
+%token OPTIMIZATION OUTPUT OUTPUT6 OUTPUTFRAME
 %token QSTATIC QLOAD
 %token PITA PITADISP6 PITAVEL6 NOFORCE MDPITA GLOBALBASES LOCALBASES TIMEREVERSIBLE REMOTECOARSE ORTHOPROJTOL READINITSEED JUMPCVG JUMPOUTPUT
 %token PRECNO PRECONDITIONER PRELOAD PRESSURE PRINTMATLAB PROJ PIVOT PRECTYPE PRECTYPEID PICKANYCORNER PADEPIVOT PROPORTIONING PLOAD PADEPOLES POINTSOURCE PLANEWAVE PTOL PLANTOL PMAXIT
@@ -88,19 +89,19 @@
 %token SPOOLESTAU SPOOLESSEED SPOOLESMAXSIZE SPOOLESMAXDOMAINSIZE SPOOLESMAXZEROS SPOOLESMSGLVL SPOOLESSCALE SPOOLESPIVOT SPOOLESRENUM SPARSEMAXSUP SPARSEDEFBLK
 %token STATS STRESSID SUBSPACE SURFACE SAVEMEMCOARSE SPACEDIMENSION SCATTERER STAGTOL SCALED SWITCH STABLE SUBTYPE STEP SOWER SHELLTHICKNESS SURF SPRINGMAT
 %token TANGENT TEMP TIME TOLEIG TOLFETI TOLJAC TOLPCG TOPFILE TOPOLOGY TRBM THERMOE THERMOH 
-%token TETT TOLCGM TURKEL TIEDSURFACES THETA THIRDNODE THERMMAT TDENFORC TESTULRICH THRU TOPFLAG
+%token TETT TOLCGM TURKEL TIEDSURFACES THETA HRC THIRDNODE THERMMAT TDENFORC TESTULRICH THRU TOPFLAG
 %token USE USERDEFINEDISP USERDEFINEFORCE UPROJ UNSYMMETRIC USING
 %token VERSION WAVENUMBER WETCORNERS XPOST YMTT 
 %token ZERO BINARY GEOMETRY DECOMPOSITION GLOBAL MATCHER CPUMAP
 %token NODALCONTACT MODE FRIC GAP
 %token OUTERLOOP EDGEWS WAVETYPE ORTHOTOL IMPE FREQ DPH WAVEMETHOD
-%token MATSPEC MATUSAGE BILINEARPLASTIC FINITESTRAINPLASTIC LINEARELASTIC STVENANTKIRCHHOFF LINPLSTRESS READ OPTCTV ISOTROPICLINEARELASTIC NEOHOOKEAN ISOTROPICLINEARELASTICJ2PLASTIC HYPERELASTIC MOONEYRIVLIN HENCKY LOGSTRAINPLASTIC SVKPLSTRESS
+%token MATSPEC MATUSAGE BILINEARPLASTIC FINITESTRAINPLASTIC LINEARELASTIC STVENANTKIRCHHOFF LINPLSTRESS READ OPTCTV ISOTROPICLINEARELASTIC NEOHOOKEAN ISOTROPICLINEARELASTICJ2PLASTIC ISOTROPICLINEARELASTICJ2PLASTICPLANESTRESS HYPERELASTIC MOONEYRIVLIN HENCKY LOGSTRAINPLASTIC SVKPLSTRESS
 %token SURFACETOPOLOGY MORTARTIED MORTARSCALING MORTARINTEGRATIONRULE SEARCHTOL STDMORTAR DUALMORTAR WETINTERFACE
 %token NSUBS EXITAFTERDEC SKIP OUTPUTMEMORY OUTPUTWEIGHT
 %token WEIGHTLIST GMRESRESIDUAL 
 %token SLOSH SLGRAV SLZEM SLZEMFILTER 
 %token PDIR HEFSB HEFRS HEINTERFACE  // Added for HEV Problem, EC, 20080512
-%token PODROM FOM GALERKIN GAUSSNEWTON GAPPY SVDTOKEN SAMPLING SNAPSHOTS PODSIZEMAX ASPECTRATIO REFSUBSTRACT SAMPLENODES TOLER REDUCED ELLUMPWEIGHTS
+%token SNAPFI PODROB TRNVCT OFFSET ORTHOG SVDTOKEN SAMPLING PODSIZEMAX REFSUBSTRACT TOLER
 
 %type <complexFDBC> AxiHD
 %type <complexFNBC> AxiHN
@@ -114,21 +115,22 @@
 %type <mpcterm>  MPCLine ComplexMPCLine
 %type <cxbclist> ComplexBCDataList ComplexNeumanBC ComplexDirichletBC 
 %type <frame>    Frame
+%type <nframe>   NodalFrame
 %type <fval>     Float DblConstant
 %type <ival>     AEROTYPE Attributes AUGMENTTYPE AVERAGED 
-%type <ival>     COLLOCATEDTYPE CORNERTYPE COMPLEXOUTTYPE TDENFORC
-%type <ival>     FETIPREC FETI2TYPE 
+%type <ival>     COLLOCATEDTYPE CORNERTYPE COMPLEXOUTTYPE TDENFORC CSTYPE ANGULAROUTTYPE
+%type <ival>     ELEMENTARYFUNCTIONTYPE FETIPREC FETI2TYPE FRAMETYPE
 %type <ival>     GTGSOLVER Integer IntConstant ITERTYPE
 %type <ival>     RBMSET RENUMBERID OPTCTV
 %type <rprop>    RPROP
 %type <ival>     WAVETYPE WAVEMETHOD
-%type <ival>     SCALINGTYPE SOLVERTYPE STRESSID SURFACE
+%type <ival>     SCALINGTYPE SOLVERTYPE STRESSID SURFACE MOMENTTYPE
 %type <ldata>    LayData LayoData LayMatData
 %type <linfo>    LaycInfo LaynInfo LaydInfo LayoInfo
 %type <mftval>   MFTTInfo
 %type <mptval>   MPTTInfo
 %type <hftval>   HFTTInfo
-%type <ival>     NDTYPE
+%type <ival>     NDTYPE OUTPUTFRAME
 %type <ival>     GROUPTYPE
 %type <nl>       NodeNums SommNodeNums 
 %type <nval>     Node
@@ -165,11 +167,12 @@ Component:
         | ComplexLMPConstrain 
 	| ElemSet
 	| FrameDList
+        | NodalFrameDList
+        | ConstrainedSurfaceFrameDList
 	| Attributes
 	{}
 	| Materials
-        | IterSolver
-	| Solver
+        | Statics
 	| Pressure
 	| Lumped
         {}
@@ -307,13 +310,14 @@ Component:
         {}
         | ContactSurfaces
         {}
+        | ConstrainedSurfaces
+        {}
 	| BoffsetList
 	| ParallelInTimeInfo 
         | AcmeControls
         | Constraints
-        | PodRom
-        | SampleNodeList
-        | ElementLumpingWeightList
+	| SvdToken
+	| Sampling
         ;
 Noninpc:
         NONINPC NewLine Integer Integer NewLine
@@ -698,14 +702,14 @@ SensorLocations:
 	;
 ActuatorLocations:
         ACTUATORS NewLine BCDataList
-        { for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Actuators;
+        { for(int i=0; i<$3->n; ++i) { $3->d[i].type = BCond::Actuators; $3->d[i].caseid = 0; }
           if(geoSource->setActuatorLocations($3->n,$3->d) < 0) return -1; 
           if(geoSource->setNeuman($3->n,$3->d) < 0)            return -1; }
 	;
 UsdfLocations:
 	USERDEFINEFORCE NewLine BCDataList
         { geoSource->binaryInputControlLeft = true;
-          for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Usdf;
+          for(int i=0; i<$3->n; ++i) { $3->d[i].type = BCond::Usdf; $3->d[i].caseid = 0; }
           if(geoSource->setUsdfLocation($3->n,$3->d) < 0) return -1;
           if(geoSource->setNeuman($3->n,$3->d) < 0)       return -1; } 
 	;
@@ -729,7 +733,7 @@ Output:
         { $2.finalize(numColumns); geoSource->addOutput($2); }
         ;
 OutInfo:
-        STRESSID FNAME Integer // unformatted output for all nodes
+          STRESSID FNAME Integer // unformatted output for all nodes
         { $$.initialize(); $$.type = (OutputInfo::Type) $1; $$.filename = $2; $$.interval = $3; }
         | STRESSID Integer Integer FNAME Integer // formatted output for all nodes
         { $$.initialize(); $$.type = (OutputInfo::Type) $1; $$.width = $2; $$.precision = $3; $$.filename = $4; $$.interval = $5; }
@@ -767,10 +771,14 @@ OutInfo:
         { $$.complexouttype = $2; }
         | OutInfo COMPLEXOUTTYPE Integer
         { $$.complexouttype = $2; $$.ncomplexout = $3; }
+        | OutInfo ANGULAROUTTYPE
+        { $$.angularouttype = $2; }
         | OutInfo NDTYPE
         { $$.ndtype = $2; }
         | OutInfo NDTYPE Integer
         { $$.ndtype = $2; sfem->setnsamp_out($3); }
+        | OutInfo OUTPUTFRAME
+        { $$.oframe = (OutputInfo::FrameType) $2; }
         | OutInfo MATLAB 
         { $$.matlab = true; }
         ;
@@ -1109,7 +1117,8 @@ DampInfo:
 	DAMPING Float Float NewLine
 	{ domain->solInfo().setDamping($2,$3); }
 	| DAMPING MODAL NewLine ModalValList
-	{ if(geoSource->setModalDamping($4->n, $4->d) < 0) return -1; }
+	{ if(geoSource->setModalDamping($4->n, $4->d) < 0) return -1; 
+	  domain->solInfo().modalCalled = true; }
 	;
 ComplexDirichletBC:
 	HDIRICHLET NewLine ComplexBCDataList
@@ -1178,6 +1187,17 @@ DirichletBC:
           geoSource->addSurfaceDirichlet(1,surf_bc); }
 */
         ;
+ConstrainedSurfaces:
+        CONSTRAINEDSURFACES NewLine
+        /*                    surface_id type   attribute_id csframe_id */
+        | ConstrainedSurfaces Integer    CSTYPE Integer      Integer      NewLine
+        { BCond *surf_bc = new BCond[1];
+          surf_bc[0].nnum = $2-1;
+          surf_bc[0].type = (BCond::BCType) $3; //BCond::PointPlaneDistance;
+          surf_bc[0].dofnum = $4-1;
+          surf_bc[0].val = $5-1;
+          geoSource->addSurfaceConstraint(1,surf_bc);
+        }
 HEVDirichletBC:
         PDIR NewLine HEVDBCDataList
         { for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Pdir; $$ = $3; }
@@ -1270,30 +1290,37 @@ TempDirichletBC:
 TempNeumanBC:
         FLUX NewLine
         { $$ = new BCList; }
+        | FLUX Integer NewLine
+        { $$ = new BCList($2); }
         | TempNeumanBC Integer Float NewLine
         { $$ = $1; BCond bc; bc.nnum = $2-1; bc.dofnum = 6;
-          bc.val = $3; bc.type = BCond::Flux; $$->add(bc); }
+          bc.val = $3; bc.type = BCond::Flux; bc.caseid = $$->caseid; $$->add(bc); }
         | TempNeumanBC SURF Integer Float NewLine
         { BCond *surf_bc = new BCond[1];
           surf_bc[0].nnum = $3-1;
           surf_bc[0].dofnum = 6;
           surf_bc[0].val = $4;
           surf_bc[0].type = BCond::Flux;
+          surf_bc[0].caseid = $$->caseid;
           geoSource->addSurfaceNeuman(1,surf_bc); }
 	;
 TempConvection:
         CONVECTION NewLine
         { $$ = new BCList; }
+        | CONVECTION Integer NewLine
+        { $$ = new BCList($2); }
         | TempConvection Integer Float Float Float NewLine
         { $$ = $1; BCond bc; bc.nnum = $2-1; bc.dofnum = 6;
-          bc.val = $3*$4*$5; bc.type = BCond::Convection; $$->add(bc); }
+          bc.val = $3*$4*$5; bc.type = BCond::Convection; bc.caseid = $$->caseid; $$->add(bc); }
 	;
 TempRadiation:
         RADIATION NewLine
         { $$ = new BCList; }
+        | RADIATION Integer NewLine
+        { $$ = new BCList($2); }
         | TempRadiation Integer Float Float Float NewLine
         { $$ = $1; BCond bc; bc.nnum = $2-1; bc.dofnum = 6;
-          bc.val = 5.670400E-8*$3*$4*$5*$5*$5*$5; bc.type = BCond::Radiation; $$->add(bc); }
+          bc.val = 5.670400E-8*$3*$4*$5*$5*$5*$5; bc.type = BCond::Radiation; bc.caseid = $$->caseid; $$->add(bc); }
         ;
 HelmHoltzBC:
         HSOMMERFELD NewLine SommerfeldBCDataList
@@ -1397,7 +1424,7 @@ AtdDirScatterer:
         ;
 AtdNeuScatterer:
         ATDNEU NewLine PBCDataList
-        { for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Atdneu; $$ = $3; }
+        { for(int i=0; i<$3->n; ++i) { $3->d[i].type = BCond::Atdneu; $3->d[i].caseid = 0; } $$ = $3; }
         ;
 AtdArbScatterer:
 	ATDARB Float NewLine
@@ -1501,7 +1528,12 @@ AxiLmpc:
 	;
 Mode:
 	READMODE FNAME NewLine
-	{ domain->readInModes($2); }
+	{ domain->solInfo().readInROBorModes = $2;
+	  domain->solInfo().readmodeCalled = true; }
+	| READMODE FNAME Integer NewLine
+	{ domain->solInfo().readInROBorModes = $2;
+          domain->solInfo().readmodeCalled = true; 
+ 	  domain->solInfo().maxSizePodRom = $3; }	
 	;
 IDisp:
         IDIS NewLine
@@ -1513,7 +1545,8 @@ IDisp:
           if(geoSource->setIDis($3->n,$3->d) < 0) return -1; }
 	| IDisp MODAL NewLine ModalValList
 	{ for(int i=0; i<$4->n; ++i) $4->d[i].type = BCond::Idisplacements;
-          if(geoSource->setIDisModal($4->n, $4->d) < 0) return -1; }
+          if(geoSource->setIDisModal($4->n, $4->d) < 0) return -1; 
+	  domain->solInfo().modalCalled = true; }
 	;
 IDisp6:
 	IDIS6 Float NewLine
@@ -1586,7 +1619,8 @@ IVel:
           if(geoSource->setIVel($3->n,$3->d) < 0) return -1; }
         | IVel MODAL NewLine ModalValList
         { for(int i=0; i<$4->n; ++i) $4->d[i].type = BCond::Ivelocities;
-          if(geoSource->setIVelModal($4->n, $4->d) < 0) return -1; }
+          if(geoSource->setIVelModal($4->n, $4->d) < 0) return -1; 
+	  domain->solInfo().modalCalled = true; }
 	;
 ITemp:
         ITEMP NewLine TBCDataList
@@ -1594,28 +1628,25 @@ ITemp:
           if(geoSource->setIDis($3->n,$3->d) < 0) return -1; }
 	;
 NeumanBC:
-/*
-        FORCE NewLine
-        | NeumanBC BCDataList
-        { for(int i=0; i<$2->n; ++i) $2->d[i].type = BCond::Forces; 
-          geoSource->setNeuman($2->n,$2->d); }
-        | NeumanBC SURF BC_Data
-        { BCond *surf_bc = new BCond[1];
-          surf_bc[0] = $3;
-          geoSource->addSurfaceNeuman(1,surf_bc); }
-*/
         FORCE NewLine
         { $$ = new BCList; }
+        | FORCE Integer NewLine
+        { $$ = new BCList($2); }
         | NeumanBC BC_Data
-        { $2.type = BCond::Forces; $$->add($2); }
+        { $2.type = BCond::Forces; $2.caseid = $$->caseid; $$->add($2); }
         | NeumanBC Integer THRU Integer Integer Float NewLine
-        { for(int i=$2; i<=$4; ++i) { BCond bc; bc.setData(i-1, $5-1, $6, BCond::Forces); $$->add(bc); } }
+        { for(int i=$2; i<=$4; ++i) { BCond bc; bc.setData(i-1, $5-1, $6, BCond::Forces, $$->caseid); $$->add(bc); } }
         | NeumanBC Integer THRU Integer STEP Integer Integer Float NewLine
-        { for(int i=$2; i<=$4; i+=$6) { BCond bc; bc.setData(i-1, $7-1, $8, BCond::Forces); $$->add(bc); } }
+        { for(int i=$2; i<=$4; i+=$6) { BCond bc; bc.setData(i-1, $7-1, $8, BCond::Forces, $$->caseid); $$->add(bc); } }
+        | NeumanBC Integer THRU Integer Integer Float MOMENTTYPE NewLine
+        { for(int i=$2; i<=$4; ++i) { BCond bc; bc.setData(i-1, $5-1, $6, BCond::Forces, $$->caseid, (BCond::MomentType) $7); $$->add(bc); } }
+        | NeumanBC Integer THRU Integer STEP Integer Integer Float MOMENTTYPE NewLine
+        { for(int i=$2; i<=$4; i+=$6) { BCond bc; bc.setData(i-1, $7-1, $8, BCond::Forces, $$->caseid, (BCond::MomentType) $7); $$->add(bc); } }
         | NeumanBC SURF BC_Data
         { BCond *surf_bc = new BCond[1];
           surf_bc[0] = $3;
           surf_bc[0].type = BCond::Forces;
+          surf_bc[0].caseid = $$->caseid;
           geoSource->addSurfaceNeuman(1,surf_bc); }
         ;
 BCDataList:
@@ -1754,7 +1785,10 @@ ComplexMPCLine:
 ComplexNeumanBC:
 	HNEUMAN NewLine ComplexBCDataList
         { $$ = $3; }
-	;
+        | HNEUMAN Integer NewLine ComplexBCDataList
+        { for(int i=0; i<$4->n; ++i) $4->d[i].caseid = $2;
+          $$ = $4; }
+        ;
 ComplexBCDataList:
 	ComplexBC_Data
 	{ $$ = new ComplexBCList; $$->add($1); }
@@ -1789,7 +1823,7 @@ MatData:
           sp.c = $6;  sp.k = $7;  sp.eh  = $8;  sp.P   = $9;  sp.Ta  = $10;
           sp.Q = $11; sp.W = $12; sp.Ixx = $13; sp.Iyy = $14; sp.Izz = $15;
           sp.lagrangeMult = bool($17);
-          sp.penalty = $18;
+          sp.initialPenalty = sp.penalty = $18;
           sp.type = StructProp::Constraint;
           sp.isReal = true;
           geoSource->addMat( $1-1, sp );
@@ -1820,7 +1854,7 @@ MatData:
           sp.Q = $11; sp.W = $12; sp.Ixx = $13; sp.Iyy = $14; sp.Izz = $15;
           sp.ymin = $16; sp.ymax = $17; sp.zmin = $18; sp.zmax = $19;
           sp.lagrangeMult = bool($21);
-          sp.penalty = $22;
+          sp.initialPenalty = sp.penalty = $22;
           sp.type = StructProp::Constraint;
           sp.isReal = true;
           geoSource->addMat( $1-1, sp );
@@ -1945,14 +1979,14 @@ MatData:
         | Integer CONSTRMAT Integer Float NewLine
         { StructProp sp;
           sp.lagrangeMult = bool($3);
-          sp.penalty = $4;
+          sp.initialPenalty = sp.penalty = $4;
           sp.type = StructProp::Constraint;
           geoSource->addMat( $1-1, sp );
         }
         | Integer CONSTRMAT Integer Float Float Float NewLine
         { StructProp sp;
           sp.lagrangeMult = bool($3);
-          sp.penalty = $4;
+          sp.initialPenalty = sp.penalty = $4;
           sp.amplitude = $5;
           sp.omega = $6;
           sp.type = StructProp::Constraint;
@@ -1961,7 +1995,7 @@ MatData:
         | Integer CONSTRMAT Integer Float Float Float Float NewLine
         { StructProp sp;
           sp.lagrangeMult = bool($3);
-          sp.penalty = $4;
+          sp.initialPenalty = sp.penalty = $4;
           sp.amplitude = $5;
           sp.omega = $6;
           sp.phase = $7;
@@ -1971,7 +2005,7 @@ MatData:
         | Integer CONSTRMAT Integer Float Float Float Float Float NewLine
         { StructProp sp;
           sp.lagrangeMult = bool($3);
-          sp.penalty = $4;
+          sp.initialPenalty = sp.penalty = $4;
           sp.amplitude = $5;
           sp.omega = $6;
           sp.phase = $7;
@@ -1982,7 +2016,7 @@ MatData:
         | Integer CONSTRMAT Integer Float Float Float Float Float Float Integer NewLine
         { StructProp sp;
           sp.lagrangeMult = bool($3);
-          sp.penalty = $4;
+          sp.initialPenalty = sp.penalty = $4;
           sp.amplitude = $5;
           sp.omega = $6;
           sp.phase = $7;
@@ -1992,13 +2026,55 @@ MatData:
           sp.type = StructProp::Constraint;
           geoSource->addMat( $1-1, sp );
         }
+        | Integer CONSTRMAT Integer Float ELEMENTARYFUNCTIONTYPE Float Float Float Float NewLine
+        { // new style for joints with prescribed motion by 2-parameter elementary function
+          StructProp sp;
+          sp.lagrangeMult = bool($3);
+          sp.initialPenalty = sp.penalty = $4;
+          sp.funtype = $5;
+          sp.amplitude = $6;
+          sp.offset = $7;
+          sp.c1 = $8;
+          sp.c2 = $9;
+          sp.type = StructProp::Constraint;
+          geoSource->addMat( $1-1, sp );
+        }
+        | Integer CONSTRMAT Integer Float ELEMENTARYFUNCTIONTYPE Float Float Float Float Float NewLine
+        { // new style for joints with prescribed motion by 3-parameter elementary function
+          StructProp sp;
+          sp.lagrangeMult = bool($3);
+          sp.initialPenalty = sp.penalty = $4;
+          sp.funtype = $5;
+          sp.amplitude = $6;
+          sp.offset = $7;
+          sp.c1 = $8;
+          sp.c2 = $9;
+          sp.c3 = $10;
+          sp.type = StructProp::Constraint;
+          geoSource->addMat( $1-1, sp );
+        }
+        | Integer CONSTRMAT Integer Float ELEMENTARYFUNCTIONTYPE Float Float Float Float Float Float NewLine
+        { // new style for joints with prescribed motion by 4-parameter elementary function
+          StructProp sp;
+          sp.lagrangeMult = bool($3);
+          sp.initialPenalty = sp.penalty = $4;
+          sp.funtype = $5;
+          sp.amplitude = $6;
+          sp.offset = $7;
+          sp.c1 = $8;
+          sp.c2 = $9;
+          sp.c3 = $10;
+          sp.c4 = $11;
+          sp.type = StructProp::Constraint;
+          geoSource->addMat( $1-1, sp );
+        }
         | Integer CONSTRMAT Integer Float SPRINGMAT Float NewLine
         { // use for RevoluteJointSpringCombo
           StructProp sp;
           sp.lagrangeMult = bool($3);
-          sp.penalty = $4;
+          sp.initialPenalty = sp.penalty = $4;
           sp.type = StructProp::Constraint;
-          sp.kx = $6;
+          sp.k1 = $6;
           geoSource->addMat( $1-1, sp );
         }
         | Integer CONSTRMAT Integer Float SPRINGMAT Float Float NewLine
@@ -2007,25 +2083,25 @@ MatData:
           sp.lagrangeMult = bool($3);
           sp.penalty = $4;
           sp.type = StructProp::Constraint;
-          sp.ky = $6;
-          sp.kz = $7;
+          sp.k1 = $6;
+          sp.k2 = $7;
           geoSource->addMat( $1-1, sp );
         }
         | Integer CONSTRMAT Integer Float SPRINGMAT Float Float Float NewLine
         { // use for SphericalJointSpringCombo
           StructProp sp;
           sp.lagrangeMult = bool($3);
-          sp.penalty = $4;
+          sp.initialPenalty = sp.penalty = $4;
           sp.type = StructProp::Constraint;
-          sp.kx = $6;
-          sp.ky = $7;
-          sp.kz = $8;
+          sp.k1 = $6;
+          sp.k2 = $7;
+          sp.k3 = $8;
           geoSource->addMat( $1-1, sp );
         }
         | Integer SPRINGMAT Float NewLine
         { // use for TorsionalSpringType1 or TranslationalSpring
           StructProp sp;
-          sp.kx = $3;
+          sp.k1 = $3;
           geoSource->addMat( $1-1, sp );
         }
 	;
@@ -2323,17 +2399,24 @@ AcmeControls:
         { domain->solInfo().mortar_integration_rule = $2; }
 NodeSet:
 	NODETOKEN NewLine Node
-	{ geoSource->addNode($3.num, $3.xyz); }
+	{ geoSource->addNode($3.num, $3.xyz, $3.cp, $3.cd); }
 	| NodeSet Node
-	{ geoSource->addNode($2.num, $2.xyz); }
+	{ geoSource->addNode($2.num, $2.xyz, $2.cp, $2.cd); }
 	;
 Node:
 	Integer Float Float Float NewLine
-	{ $$.num = $1-1; $$.xyz[0] = $2; $$.xyz[1] = $3;  $$.xyz[2] = $4; }
+	{ $$.num = $1-1; $$.xyz[0] = $2; $$.xyz[1] = $3;  $$.xyz[2] = $4;  $$.cp = 0;  $$.cd = 0; }
 	| Integer Float Float NewLine
-	{ $$.num = $1-1; $$.xyz[0] = $2; $$.xyz[1] = $3;  $$.xyz[2] = 0.0; }
+	{ $$.num = $1-1; $$.xyz[0] = $2; $$.xyz[1] = $3;  $$.xyz[2] = 0.0; $$.cp = 0;  $$.cd = 0; }
 	| Integer Float NewLine
-	{ $$.num = $1-1; $$.xyz[0] = $2; $$.xyz[1] = 0.0; $$.xyz[2] = 0.0; }
+	{ $$.num = $1-1; $$.xyz[0] = $2; $$.xyz[1] = 0.0; $$.xyz[2] = 0.0; $$.cp = 0;  $$.cd = 0; }
+        | Integer Float Float Float Integer Integer NewLine
+        { $$.num = $1-1; $$.xyz[0] = $2; $$.xyz[1] = $3;  $$.xyz[2] = $4;  $$.cp = $5; $$.cd = $6;
+          if($5 != 0) domain->solInfo().basicPosCoords = false;
+          if($6 != 0) domain->solInfo().basicDofCoords = false; }
+        | Integer Float Float Float Integer NewLine
+        { $$.num = $1-1; $$.xyz[0] = $2; $$.xyz[1] = $3;  $$.xyz[2] = $4;  $$.cp = $5; $$.cd = $5;
+          if($5 != 0) { domain->solInfo().basicPosCoords = false; domain->solInfo().basicDofCoords = false; } }
 	;
 Element:
 	Integer Integer NodeNums NewLine
@@ -2349,9 +2432,13 @@ NodeNums:
 	;
 BC_Data:
 	Integer Integer Float NewLine
-	{ $$.nnum = $1-1; $$.dofnum = $2-1; $$.val = $3; }
+	{ $$.nnum = $1-1; $$.dofnum = $2-1; $$.val = $3; $$.mtype = BCond::Axial; }
 	| Integer Integer NewLine
-	{ $$.nnum = $1-1; $$.dofnum = $2-1; $$.val = 0.0; }
+	{ $$.nnum = $1-1; $$.dofnum = $2-1; $$.val = 0.0; $$.mtype = BCond::Axial; }
+        | Integer Integer Float MOMENTTYPE NewLine
+        { $$.nnum = $1-1; $$.dofnum = $2-1; $$.val = $3; $$.mtype = (BCond::MomentType) $4; }
+        | Integer Integer MOMENTTYPE NewLine
+        { $$.nnum = $1-1; $$.dofnum = $2-1; $$.val = 0.0; $$.mtype = (BCond::MomentType) $3; }
 	;
 ModalVal:
 	Integer Float NewLine
@@ -2367,24 +2454,61 @@ ComplexBC_Data:
 	| Integer Integer Float NewLine
 	{ $$.nnum = $1-1; $$.dofnum = $2-1; $$.reval = $3; $$.imval = 0.0; }
 	;
+ConstrainedSurfaceFrameDList:
+        CSFRAMES NewLine
+        | ConstrainedSurfaceFrameDList Frame
+        { geoSource->setCSFrame($2.num,$2.d); }
+        ;
 FrameDList:
         EFRAMES NewLine
-/*
-	EFRAMES NewLine Frame
-	{ geoSource->setFrame($3.num,$3.d); }
-*/
 	| FrameDList Frame
 	{ geoSource->setFrame($2.num,$2.d); }
 	;
 Frame:
 	Integer Float Float Float Float Float Float Float Float Float NewLine
 	{ $$.num = $1-1; 
-            $$.d[0] = $2; $$.d[1] = $3; $$.d[2] = $4;
-            $$.d[3] = $5; $$.d[4] = $6; $$.d[5] = $7;
-            $$.d[6] = $8; $$.d[7] = $9; $$.d[8] = $10; }
+          $$.d[0] = $2; $$.d[1] = $3; $$.d[2] = $4;
+          $$.d[3] = $5; $$.d[4] = $6; $$.d[5] = $7;
+          $$.d[6] = $8; $$.d[7] = $9; $$.d[8] = $10; }
         | Integer THIRDNODE Integer NewLine
-        { $$.num = $1-1; geoSource->makeEframe($1-1, $3, $$.d); }
+        { $$.num = $1-1;
+          geoSource->makeEframe($1-1, $3, $$.d); }
 	;
+NodalFrameDList:
+        NFRAMES NewLine
+        | NodalFrameDList NodalFrame
+        { geoSource->setNodalFrame($2.id,$2.o,$2.d,$2.type); }
+        ;
+NodalFrame:
+        Integer Float Float Float Float Float Float Float Float Float NewLine
+        { $$.id = $1;
+          $$.type = NFrameData::Rectangular;
+          $$.o[0] = 0;  $$.o[1] = 0;  $$.o[2] = 0;
+          $$.d[0] = $2; $$.d[1] = $3; $$.d[2] = $4;
+          $$.d[3] = $5; $$.d[4] = $6; $$.d[5] = $7;
+          $$.d[6] = $8; $$.d[7] = $9; $$.d[8] = $10; }
+        | Integer Float Float Float Float Float Float Float Float Float Float Float Float NewLine
+        { $$.id = $1;
+          $$.type = NFrameData::Rectangular;
+          $$.o[0] = $2;  $$.o[1] = $3;  $$.o[2] = $4;
+          $$.d[0] = $5;  $$.d[1] = $6;  $$.d[2] = $7;
+          $$.d[3] = $8;  $$.d[4] = $9;  $$.d[5] = $10;
+          $$.d[6] = $11; $$.d[7] = $12; $$.d[8] = $13; }
+        | Integer FRAMETYPE Float Float Float Float Float Float Float Float Float NewLine
+        { $$.id = $1;
+          $$.type = $2;
+          $$.o[0] = 0;  $$.o[1] = 0;   $$.o[2] = 0;
+          $$.d[0] = $3; $$.d[1] = $4;  $$.d[2] = $5;
+          $$.d[3] = $6; $$.d[4] = $7;  $$.d[5] = $8;
+          $$.d[6] = $9; $$.d[7] = $10; $$.d[8] = $11; }
+        | Integer FRAMETYPE Float Float Float Float Float Float Float Float Float Float Float Float NewLine
+        { $$.id = $1;
+          $$.type = $2;
+          $$.o[0] = $3;  $$.o[1] = $4;  $$.o[2] = $5;
+          $$.d[0] = $6;  $$.d[1] = $7;  $$.d[2] = $8;
+          $$.d[3] = $9;  $$.d[4] = $10; $$.d[5] = $11;
+          $$.d[6] = $12; $$.d[7] = $13; $$.d[8] = $14; }
+        ;
 BoffsetList:
 	BOFFSET NewLine
 	| BoffsetList Integer Integer Float Float Float NewLine
@@ -2398,8 +2522,16 @@ Attributes:
         { $$ = 0; }
 	| Attributes Integer Integer NewLine
 	{ geoSource->setAttrib($2-1,$3-1); }
+        | Attributes Integer Integer HRC Float NewLine // added HRC keyword for Hyper Reduction Coefficient
+        { geoSource->setAttrib($2-1,$3-1); 
+	  geoSource->setElementLumpingWeight($2 - 1, $5);
+	  domain->solInfo().elemLumpPodRom = true; }
 	| Attributes Integer Integer Integer Integer NewLine
 	{ geoSource->setAttrib($2-1,$3-1,$4-1,$5-1); }
+        | Attributes Integer Integer Integer Integer HRC Float NewLine // added HRC keyword for Hyper Reduction Coefficient
+        { geoSource->setAttrib($2-1,$3-1,$4-1,$5-1);
+	  geoSource->setElementLumpingWeight($2 - 1, $7); 
+	  domain->solInfo().elemLumpPodRom = true; }
         | Attributes Integer Integer Integer THETA Float NewLine // PJSA: added THETA keyword to eliminate conflict
         { geoSource->setAttrib($2-1,$3-1,$4-1,-1,$6); }
 	| Attributes Integer Integer IDENTITY NewLine
@@ -2469,6 +2601,17 @@ Preload:
             geoSource->setElementPreLoad( i-1, load );
         }
 	;
+Statics:
+        Solver
+        | IterSolver
+        | Statics CASES CasesList NewLine
+        ;
+CasesList:
+        Integer
+        { domain->solInfo().loadcases.push_back($1); }
+        | CasesList Integer
+        { domain->solInfo().loadcases.push_back($2); }
+        ;
 IterSolver:
         STATS NewLine ITERTYPE NewLine
         { domain->solInfo().type = 1;
@@ -2500,6 +2643,10 @@ Solver:
           domain->solInfo().setProbType(SolverInfo::Static);
           if($3 < 8) fprintf(stderr," *** WARNING: Pivoting not supported for this solver \n");
           else domain->solInfo().pivot = true; }
+        | STATS NewLine SOLVERTYPE UNSYMMETRIC NewLine
+        { domain->solInfo().setSolver($3);
+          domain->solInfo().setProbType(SolverInfo::Static);
+          domain->solInfo().getNLInfo().unsymmetric = true; }
         | STATS NewLine ITERTYPE Integer NewLine
         { domain->solInfo().setSolver($3,$4);    
           domain->solInfo().setProbType(SolverInfo::Static); }
@@ -3083,43 +3230,88 @@ Constraints:
         CONSTRAINTS ConstraintOptionsData NewLine
         { if(!$2.lagrangeMult && $2.penalty == 0) domain->solInfo().setDirectMPC(true);
           domain->solInfo().lagrangeMult = $2.lagrangeMult;
-          domain->solInfo().penalty = $2.penalty; }
+          domain->solInfo().penalty = $2.penalty;
+          domain->solInfo().constraint_hess = $2.constraint_hess; 
+          domain->solInfo().constraint_hess_eps = $2.constraint_hess_eps; }
         | CONSTRAINTS NewLine ConstraintOptionsData NewLine
         { if(!$3.lagrangeMult && $3.penalty == 0) domain->solInfo().setDirectMPC(true);
           domain->solInfo().lagrangeMult = $3.lagrangeMult;
-          domain->solInfo().penalty = $3.penalty; }
+          domain->solInfo().penalty = $3.penalty;
+          domain->solInfo().constraint_hess = $3.constraint_hess;
+          domain->solInfo().constraint_hess_eps = $3.constraint_hess_eps; }
         ;
 ConstraintOptionsData:
         DIRECT
-        { $$.lagrangeMult = false; $$.penalty = 0.0; } // Direct elimination of slave dofs
+        { // Direct elimination of slave dofs
+          $$.lagrangeMult = false;
+          $$.penalty = 0.0;
+          $$.constraint_hess = 0;
+          $$.constraint_hess_eps = 0.0;
+        }
         | DIRECT Float
-        { $$.lagrangeMult = false; $$.penalty = 0.0;
+        { $$.lagrangeMult = false; 
+          $$.penalty = 0.0;
+          $$.constraint_hess = 0;
+          $$.constraint_hess_eps = 0.0;
           domain->solInfo().usePrescribedThreshold = true;
           domain->solInfo().mpcDirectTol = $2; }
         | DIRECT Float Float
-        { $$.lagrangeMult = false; $$.penalty = 0.0;
+        { $$.lagrangeMult = false; 
+          $$.penalty = 0.0;
+          $$.constraint_hess = 0;
+          $$.constraint_hess_eps = 0.0;
           domain->solInfo().usePrescribedThreshold = true;
           domain->solInfo().mpcDirectTol = $2;
           domain->solInfo().coefFilterTol = $3; }
         | DIRECT Float Float Float
-        { $$.lagrangeMult = false; $$.penalty = 0.0;
+        { $$.lagrangeMult = false; 
+          $$.penalty = 0.0;
+          $$.constraint_hess = 0;
+          $$.constraint_hess_eps = 0.0;
           domain->solInfo().usePrescribedThreshold = true;
           domain->solInfo().mpcDirectTol = $2; 
           domain->solInfo().coefFilterTol = $3;
           domain->solInfo().rhsZeroTol = $4; }
         | DIRECT Float Float Float Float
-        { $$.lagrangeMult = false; $$.penalty = 0.0;
+        { $$.lagrangeMult = false; 
+          $$.penalty = 0.0;
+          $$.constraint_hess = 0;
+          $$.constraint_hess_eps = 0.0;
           domain->solInfo().usePrescribedThreshold = true;
           domain->solInfo().mpcDirectTol = $2;
           domain->solInfo().coefFilterTol = $3; 
           domain->solInfo().rhsZeroTol = $4;
           domain->solInfo().inconsistentTol = $5; }
         | MULTIPLIERS
-        { $$.lagrangeMult = true; $$.penalty = 0.0; } // Treatment of constraints through Lagrange multipliers method
+        { // Treatment of constraints through Lagrange multipliers method
+          $$.lagrangeMult = true; 
+          $$.penalty = 0.0;
+          $$.constraint_hess = 1;
+          $$.constraint_hess_eps = 0.0; }
         | PENALTY Float
-        { $$.lagrangeMult = false; $$.penalty = $2; } // Treatment of constraints through penalty method
+        { // Treatment of constraints through penalty method
+          $$.lagrangeMult = false;
+          $$.penalty = $2;
+          $$.constraint_hess = 1;
+          $$.constraint_hess_eps = 0.0; }
         | MULTIPLIERS PENALTY Float
-        { $$.lagrangeMult = true; $$.penalty = $3; } // Treatment of constraints through augmented Lagrangian method
+        { // Treatment of constraints through augmented Lagrangian method
+          $$.lagrangeMult = true;
+          $$.penalty = $3;
+          $$.constraint_hess = 1;
+          $$.constraint_hess_eps = 0.0; }
+        | AUGMENTED Float
+        { // Alternative input syntax for treatment of constraints through augmented Lagrangian method
+          $$.lagrangeMult = true;
+          $$.penalty = $2;
+          $$.constraint_hess = 1;
+          $$.constraint_hess_eps = 0.0; }
+        | ConstraintOptionsData HESSIAN Integer
+        { $$.constraint_hess = $3;
+          $$.constraint_hess_eps = 0; }
+        | ConstraintOptionsData HESSIAN Integer Float
+        { $$.constraint_hess = $3;
+          $$.constraint_hess_eps = $4; }
         ;
 HelmInfo:
         HELMHOLTZ NewLine
@@ -3387,6 +3579,10 @@ NLInfo:
         | NLInfo FAILSAFE Float NewLine
         { domain->solInfo().getNLInfo().failsafe = true;
           domain->solInfo().getNLInfo().failsafe_tol = $3; }
+        | NLInfo PENALTY Integer Float Float NewLine
+        { domain->solInfo().num_penalty_its = $3; 
+          domain->solInfo().penalty_tol = $4;
+          domain->solInfo().penalty_beta = $5; }
         | NLInfo NewtonInfo
         ;
 NewtonInfo:
@@ -3569,10 +3765,53 @@ MatSpec:
             geoSource->addMaterial($2-1,
               new MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>(params));
           }
+        | MatSpec Integer ISOTROPICLINEARELASTICJ2PLASTICPLANESTRESS Float Float Float Float Float Float NewLine
+          {
+            double params[8] = { $4, $5, $6, $7, $8, $9, 1.0e-6, -std::numeric_limits<double>::infinity() };
+            geoSource->addMaterial($2-1,
+              new MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(params));
+          }
+        | MatSpec Integer ISOTROPICLINEARELASTICJ2PLASTICPLANESTRESS Float Float Float Float Float Float Float NewLine
+          {
+            double params[8] = { $4, $5, $6, $7, $8, $9, $10, -std::numeric_limits<double>::infinity() };
+            geoSource->addMaterial($2-1,
+              new MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(params));
+          }
+        | MatSpec Integer ISOTROPICLINEARELASTICJ2PLASTICPLANESTRESS Float Float Float Float Float Float Float Float NewLine
+          {
+            double params[8] = { $4, $5, $6, $7, $8, $9, $10, $11 };
+            geoSource->addMaterial($2-1,
+              new MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(params));
+          }
         | MatSpec Integer OPTCTV Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
              new ExpMat($3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23));
+         }
+        | MatSpec Integer OPTCTV Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new ExpMat($3, $4, $5, $6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+         }
+        | MatSpec Integer OPTCTV Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new ExpMat($3, $4, $5, $6, $7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+         }
+        | MatSpec Integer OPTCTV Float Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new ExpMat($3, $4, $5, $6, $7, $8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+         }
+        | MatSpec Integer OPTCTV Float Float Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new ExpMat($3, $4, $5, $6, $7, $8, $9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+         }
+        | MatSpec Integer OPTCTV Float Float Float Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new ExpMat($3, $4, $5, $6, $7, $8, $9, $10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
          }
 	| MatSpec READ FNAME FNAME NewLine
 	 {
@@ -3618,74 +3857,57 @@ Renumbering:
           domain->solInfo().setSparseRenum($5); 
           domain->solInfo().setSpoolesRenum($7); }
 	;
-PodRom:
-  PODROM PodRomMode NewLine
-  { domain->solInfo().activatePodRom = true; }
-  | PodRom PodRomOption NewLine
+
+SvdToken:
+    SVDTOKEN NewLine
+  { domain->solInfo().activatePodRom = true; 
+    domain->solInfo().probType = SolverInfo::PodRomOffline;
+    domain->solInfo().svdPodRom = true;}
+  | SvdToken SvdOption NewLine
   ;
-PodRomMode:
-  FOM
-  { domain->solInfo().snapshotsPodRom = true; }
-  | FOM CHECKTOKEN 
-  { domain->solInfo().checkPodRom = true; }
-  | GALERKIN
-  { domain->solInfo().galerkinPodRom = true;
-    domain->solInfo().subtype = 12; }
-  | GALERKIN REDUCED
-  { domain->solInfo().galerkinPodRom = true;
-    domain->solInfo().reducedPodRom = true; }
-  | GAUSSNEWTON 
-  { domain->solInfo().gaussNewtonPodRom = true;
-    domain->solInfo().subtype = 11; }
-  | GAPPY
-  { domain->solInfo().gappyPodRom = true;
-    domain->solInfo().subtype = 13; }
-  | SVDTOKEN PodRomOfflineModeOption
-  { domain->solInfo().probType = SolverInfo::PodRomOffline; 
-    domain->solInfo().svdPodRom = true; }
-  | SAMPLING PodRomOfflineModeOption
-  { domain->solInfo().probType = SolverInfo::PodRomOffline; 
-    domain->solInfo().samplingPodRom = true; }
-  ;
-PodRomOfflineModeOption:
-  /* empty */
-  | GAUSSNEWTON
-  { domain->solInfo().gaussNewtonPodRom = true; }
-  | FORCE
-  { domain->solInfo().galerkinPodRom = true; }
-  ;
-PodRomOption:
-  SNAPSHOTS SWITCH
-  { domain->solInfo().snapshotsPodRom = static_cast<bool>($2); }
-  | SVDTOKEN
-  { domain->solInfo().onlineSvdPodRom = true; }
+
+SvdOption:
+    SNAPFI FNAME
+  { domain->solInfo().snapfiPodRom = $2; }
+  | SNAPFI FNAME Integer 
+  { domain->solInfo().snapfiPodRom = $2;
+    if ($3 == 1) domain->solInfo().statevectPodRom = true;
+    if ($3 == 2) domain->solInfo().residvectPodRom = true;
+    if ($3 == 3) domain->solInfo().jacobvectPodRom = true;
+    if ($3 == 4) domain->solInfo().forcevectPodRom = true;
+    if ($3 == 5) domain->solInfo().accelvectPodRom = true;}
   | PODSIZEMAX Integer
   { domain->solInfo().maxSizePodRom = $2; }
-  | ASPECTRATIO Float
-  { domain->solInfo().aspectRatioPodRom = $2; }
-  | REFSUBSTRACT
-  { domain->solInfo().substractRefPodRom = true; }
-  | SKIP Integer
-  { domain->solInfo().skipPodRom = $2; }
+  ;
+
+Sampling:
+    SAMPLING NewLine 
+  { domain->solInfo().activatePodRom = true; 
+    domain->solInfo().probType = SolverInfo::PodRomOffline;
+    domain->solInfo().samplingPodRom = true; }
+  | Sampling SamplingOption NewLine
+  ;
+
+SamplingOption:
+    PODROB FNAME
+  { domain->solInfo().readInROBorModes = $2; }
+  | TRNVCT FNAME
+  { domain->solInfo().statePodRomFile = $2; }
   | TOLER Float
   { domain->solInfo().tolPodRom = $2; }
+  | SKIP Integer
+  { domain->solInfo().skipPodRom = $2; }
+  | OFFSET Integer
+  { domain->solInfo().skipOffSet = $2; }
+  | PODSIZEMAX Integer
+  { domain->solInfo().maxSizePodRom = $2; }
   ;
-SampleNodeList:
-  SAMPLENODES NewLine
-  {}
-  | SampleNodeList Integer NewLine
-  { geoSource->sampleNodeAdd($2 - 1); }
-  ;
-ElementLumpingWeightList:
-  ELLUMPWEIGHTS NewLine
-  { domain->solInfo().elemLumpPodRom = true; }
-  | ElementLumpingWeightList Integer Float NewLine
-  { geoSource->setElementLumpingWeight($2 - 1, $3); }
-  ;
+
 Integer:
 	IntConstant
 	{ $$ = $1; }
 	;
+
 Float:
 	IntConstant
 	{ $$ = $1; }

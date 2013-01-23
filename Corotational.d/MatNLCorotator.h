@@ -19,7 +19,14 @@ class MatNLCorotator : public Corotator {
                            FullSquareMatrix &elk, double *f, double dt, double t)
       { getStiffAndForce((GeomState *) NULL, curState, cs, elk, f, dt, t); }
 
+     void getInternalForce(GeomState &curState, CoordSet &cs,
+                           FullSquareMatrix &elk, double *f, double dt, double t)
+      { getInternalForce((GeomState *) NULL, curState, cs, elk, f, dt, t); }
+
      void getStiffAndForce(GeomState *refState, GeomState &curState, CoordSet &cs,
+                           FullSquareMatrix &elk, double *f, double dt, double t);
+
+     void getInternalForce(GeomState *refState, GeomState &curState, CoordSet &cs,
                            FullSquareMatrix &elk, double *f, double dt, double t);
 
      virtual void extractDeformations(GeomState &geomState, CoordSet &cs,

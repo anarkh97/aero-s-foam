@@ -234,7 +234,7 @@ template<class Scalar>
 void
 GenSubDomain<Scalar>::assembleGlobalG(GenFullM<Scalar> *globalG)
 {
-  bool *mpcFlag = (bool *) alloca(sizeof(bool)*numMPC);
+  bool *mpcFlag = (bool *) dbg_alloca(sizeof(bool)*numMPC);
   for(int i = 0; i < numMPC; ++i) mpcFlag[i] = true;
   if(numGroupRBM > 0) {
     for(int i = 0; i < scomm->numT(SComm::mpc); ++i) {
@@ -319,7 +319,7 @@ void
 GenSubDomain<Scalar>::multG(GenVector<Scalar> &x, Scalar *y, Scalar alpha)
 {
   // y += alpha * G * x
-  Scalar *mpcvec = (Scalar *) alloca(sizeof(Scalar)*numMPC);
+  Scalar *mpcvec = new Scalar[numMPC];
   for(int i = 0; i < numMPC; ++i) mpcvec[i] = 0.0;
   for(int i = 0; i < scomm->numT(SComm::mpc); ++i) {
     int neighb = scomm->neighbT(SComm::mpc, i);
@@ -335,6 +335,7 @@ GenSubDomain<Scalar>::multG(GenVector<Scalar> &x, Scalar *y, Scalar alpha)
   }
   for(int i = 0; i < scomm->lenT(SComm::mpc); ++i)
     y[scomm->mapT(SComm::mpc,i)] += alpha*mpcvec[scomm->boundDofT(SComm::mpc,i)];
+  delete [] mpcvec;
 }
 
 template<class Scalar>
@@ -342,7 +343,7 @@ void
 GenSubDomain<Scalar>::trMultG(Scalar *x, GenVector<Scalar> &y, Scalar alpha)
 {
   // compute y += alpha * G^t * x
-  bool *mpcFlag = (bool *) alloca(sizeof(bool)*numMPC);
+  bool *mpcFlag = (bool *) dbg_alloca(sizeof(bool)*numMPC);
   for(int i = 0; i < numMPC; ++i) mpcFlag[i] = true;
   for(int i = 0; i < scomm->numT(SComm::mpc); ++i) {
     for(int j = 0; j < scomm->lenT(SComm::mpc,i); ++j) {
@@ -362,7 +363,7 @@ void
 GenSubDomain<Scalar>::assembleGtGsolver(GenSparseMatrix<Scalar> *GtGsolver)
 {
   if(numGroupRBM == 0) return;
-  bool *mpcFlag = (bool *) alloca(sizeof(bool)*numMPC);
+  bool *mpcFlag = (bool *) dbg_alloca(sizeof(bool)*numMPC);
   for(int i = 0; i < numMPC; ++i) mpcFlag[i] = true;
   for(int i = 0; i < scomm->numT(SComm::mpc); ++i) {
     int numGroupRBM2 = neighbNumGroupGrbm[i];

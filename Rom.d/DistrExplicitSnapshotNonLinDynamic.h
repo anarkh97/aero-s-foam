@@ -26,11 +26,20 @@ public:
 
   // Added functionality
   void currentTimeIs(double t);
-  void snapshotAdd(const DistrVector &s);
+  void stateSnapshotAdd(const DistrVector &state);
+  void accelerationSnapshotAdd(const DistrVector &accel);
+  void forceSnapshotAdd(const DistrVector &f);
 
   ~DistrExplicitSnapshotNonLinDynamic();
 
+  bool collectState;
+  bool collectAccel;
+  bool collectForce;
+
 private:
+
+  Domain *domain_;
+
   class SnapshotHandler;
   friend class SnapshotHandler;
   SnapshotHandler * snapshotHandler_;
@@ -66,7 +75,22 @@ DistrExplicitSnapshotNonLinDynamic::computeExtForce2(SysState<DistrVector> &dist
 inline
 void
 handleDisplacement(Rom::DistrExplicitSnapshotNonLinDynamic &probDesc, DistrVector &d) {
-  probDesc.snapshotAdd(d);
+ if(probDesc.collectState)
+  probDesc.stateSnapshotAdd(d);
+}
+
+inline
+void
+handleAcceleration(Rom::DistrExplicitSnapshotNonLinDynamic &probDesc, DistrVector &d) {
+  if(probDesc.collectAccel)
+   probDesc.accelerationSnapshotAdd(d);
+}
+
+inline
+void
+handleForce(Rom::DistrExplicitSnapshotNonLinDynamic &probDesc, DistrVector &d) {
+  if(probDesc.collectForce)
+   probDesc.forceSnapshotAdd(d);
 }
 
 #endif /* ROM_DISTREXPLICITSNAPSHOTNONLINDYNAMIC_H */

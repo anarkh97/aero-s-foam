@@ -4,13 +4,17 @@
 #include <Element.d/MpcElement.d/MpcElement.h>
 
 class DofSet;
+class GeomState;
 
 template<template <typename S> class ConstraintFunctionTemplate>
 class ConstraintFunctionElement : public MpcElement
 {
+  protected:
+    int rotdescr; // 0: total lagrangian, 1: updated lagrangian, 2: eulerian (default)
+
   public:
-    ConstraintFunctionElement(int, DofSet, int*, int);
-    ConstraintFunctionElement(int, DofSet*, int*, int);
+    ConstraintFunctionElement(int, DofSet, int*, int, int=2);
+    ConstraintFunctionElement(int, DofSet*, int*, int, int=2);
 
     void buildFrame(CoordSet&);
     void update(GeomState&, CoordSet&, double);
@@ -25,8 +29,11 @@ class ConstraintFunctionElement : public MpcElement
                               Eigen::Array<typename ConstraintFunctionTemplate<double>::ScalarConstantType,
                                            ConstraintFunctionTemplate<double>::NumberOfScalarConstants, 1> &sconst,
                               Eigen::Array<int,
-                                           ConstraintFunctionTemplate<double>::NumberOfIntegerConstants, 1> &iconst) {}
+                                           ConstraintFunctionTemplate<double>::NumberOfIntegerConstants, 1> &iconst,
+                              GeomState* = NULL) {}
 
+   virtual void getInputs(Eigen::Matrix<double,ConstraintFunctionTemplate<double>::NumberOfGeneralizedCoordinates,1> &q, 
+                          CoordSet& c0, GeomState *c1 = NULL, GeomState *refState = NULL);
 };
 
 #ifdef _TEMPLATE_FIX_

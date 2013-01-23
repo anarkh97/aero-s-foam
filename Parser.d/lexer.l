@@ -58,8 +58,9 @@ TRAIL [a-zA-Z]*
 					else
 					{
 						std::cout << " **************************************************** "<< endl 
-							  << " ** ERROR :  Could'nt open file " << fname << endl
-							  << " **************************************************** "<< endl 
+							  << " ** ERROR :  Couldn't open file " << fname << endl
+							  << " **************************************************** "<< endl; 
+                                                exit(-1);
 ;
 					}
 					BEGIN(INITIAL); // go back to parsing
@@ -112,6 +113,9 @@ TRAIL [a-zA-Z]*
 "m"                                { yylval.ival = 0; return TOPFLAG; }
 "M"                                { yylval.ival = 1; return TOPFLAG; }
 
+"LOCF"[a-zA-Z]*|"locf"[a-zA-Z]*    { yylval.ival = OutputInfo::Local;  return OUTPUTFRAME; }
+"GLOF"[a-zA-Z]*|"glof"[a-zA-Z]*    { yylval.ival = OutputInfo::Global; return OUTPUTFRAME; }
+
 "ON"|"on"|"On"                     { yylval.ival = 1; return SWITCH; }
 "OFF"|"off"|"Off"                  { yylval.ival = 0; return SWITCH; }
 "YES"|"yes"|"Yes"                  { yylval.ival = 1; return SWITCH; }
@@ -156,9 +160,19 @@ TRAIL [a-zA-Z]*
 
 "THETA"|"theta"                    { return THETA; }
 
+"HRC"|"hrc"			   { return HRC; }
+
 "IDENTITY"|"identity"              { return IDENTITY; }
 
 "EFRA"[a-zA-Z]*|"efra"[a-zA-Z]*    { return EFRAMES; }
+
+"NFRA"[a-zA-Z]*|"nfra"[a-zA-Z]*    { return NFRAMES; }
+
+"CSFR"[a-zA-Z]*|"csfr"[a-zA-Z]*    { return CSFRAMES; }
+
+"RECT"[a-zA-Z]*|"rect"[a-zA-Z]*    { yylval.ival = NFrameData::Rectangular; return FRAMETYPE; }
+"CYLI"[a-zA-Z]*|"cyli"[a-zA-Z]*    { yylval.ival = NFrameData::Cylindrical; return FRAMETYPE; }
+"SPHE"[a-zA-Z]*|"sphe"[a-zA-Z]*    { yylval.ival = NFrameData::Spherical;   return FRAMETYPE; }
 
 "THIRDNODE"|"thirdnode"            { return THIRDNODE; }
 
@@ -218,6 +232,12 @@ TRAIL [a-zA-Z]*
 
 "FORC"[a-zA-Z]*|"forc"[a-zA-Z]*    { return FORCE; }
 
+"axial"|"AXIAL"                    { yylval.ival = BCond::Axial;      return MOMENTTYPE; }
+
+"rotational"|"ROTATIONAL"          { yylval.ival = BCond::Rotational; return MOMENTTYPE; }
+
+"follower"|"FOLLOWER"              { yylval.ival = BCond::Follower;   return MOMENTTYPE; }
+
 "COND"[a-zA-Z]*|"cond"[a-zA-Z]*    { return CONDITION; }
 
 "MASS"[a-zA-Z]*|"mass"[a-zA-Z]*    { return MASS; }
@@ -226,7 +246,9 @@ TRAIL [a-zA-Z]*
 
 "PLOA"[a-zA-Z]*|"ploa"[a-zA-Z]*    { return PLOAD; }
 
-"STAT"[a-zA-Z]*|"stat"[a-zA-Z]*    { return STATS; }
+"STATI"[a-zA-Z]*|"stati"[a-zA-Z]*|"STAT"|"stat"    { return STATS; }
+
+"CASE"[a-zA-Z]*|"case"[a-zA-Z]*    { return CASES; }
 
 "AXIHDIR"|"axihdir"                { return AXIHDIR; }
 
@@ -423,6 +445,10 @@ TRAIL [a-zA-Z]*
 
 "ldlt"[a-zA-Z]*|"LDLT"[a-zA-Z]*    { yylval.ival = 4; return SOLVERTYPE; }
 
+"splu"[a-zA-Z]*|"SPLU"[a-zA-Z]*    { yylval.ival = 15; return SOLVERTYPE; }
+
+"spqr"[a-zA-Z]*|"SPQR"[a-zA-Z]*    { yylval.ival = 16; return SOLVERTYPE; }
+
 "chol"[a-zA-Z]*|"CHOL"[a-zA-Z]*    { yylval.ival = 5; return SOLVERTYPE; }
 
 "umfp"[a-zA-Z]*|"UMFP"[a-zA-Z]*    { yylval.ival = 6; return SOLVERTYPE; }
@@ -434,6 +460,10 @@ TRAIL [a-zA-Z]*
 "mump"[a-zA-Z]*|"MUMP"[a-zA-Z]*    { yylval.ival = 9; return SOLVERTYPE; }
 
 "purelydiag"[a-zA-Z]*|"PURELYDIAG"[a-zA-Z]* { yylval.ival = 10; return SOLVERTYPE; }
+
+"dbsgal"[a-zA-Z]*|"DBSGAL"[a-zA-Z]*    { yylval.ival = 12; return SOLVERTYPE; }
+
+"eisgal"[a-zA-Z]*|"EISGAL"[a-zA-Z]*    { yylval.ival = 13; return SOLVERTYPE; }
 
 "gold"[a-zA-Z]*|"GOLD"[a-zA-Z]*    { yylval.ival = 14; return SOLVERTYPE; }
 
@@ -530,9 +560,13 @@ TRAIL [a-zA-Z]*
 
 "CONSTRAINTS"|"constraints"        { return CONSTRAINTS; }
 
+"HESSI"[a-zA-Z]*|"hessi"[a-zA-Z]*  { return HESSIAN; }
+
 "RIGID"|"rigid"                    { return RIGID; }
 
 "PENA"[a-zA-Z]*|"pena"[a-zA-Z]*    { return PENALTY; }
+
+"AUGMENTE"[a-zA-Z]*|"augmente"[a-zA-Z]* { return AUGMENTED; }
 
 "RENU"[a-zA-Z]*|"renu"[a-zA-Z]*    { return RENUM; }
 
@@ -546,7 +580,7 @@ TRAIL [a-zA-Z]*
 
 "RESTART"|"restart"                { return RESTART; }
 
-"CONV"[a-zA-Z]*|"conv"[a-zA-Z]*    { return CONVECTION; }
+"CONVECTI"[a-zA-Z]*|"convecti"[a-zA-Z]* { return CONVECTION; }
 
 "RADI"[a-zA-Z]*|"radi"[a-zA-Z]*    { return RADIATION; }
 
@@ -822,6 +856,12 @@ TRAIL [a-zA-Z]*
 "SPRINGMAT"|"springmat"            { return SPRINGMAT; } // deprecated
 "SPRMAT"|"sprmat"                  { return SPRINGMAT; }
 
+"SINE"[a-zA-Z]*|"sine"[a-zA-Z]*|"Sine"[a-zA-Z]*  { yylval.ival = 0; return ELEMENTARYFUNCTIONTYPE; }
+"RAMP"[a-zA-Z]*|"ramp"[a-zA-Z]*|"Ramp"[a-zA-Z]*  { yylval.ival = 1; return ELEMENTARYFUNCTIONTYPE; }
+"TRIA"[a-zA-Z]*|"tria"[a-zA-Z]*|"Tria"[a-zA-Z]*  { yylval.ival = 2; return ELEMENTARYFUNCTIONTYPE; }
+"TRAP"[a-zA-Z]*|"trap"[a-zA-Z]*|"Trap"[a-zA-Z]*  { yylval.ival = 3; return ELEMENTARYFUNCTIONTYPE; }
+"SSHA"[a-zA-Z]*|"ssha"[a-zA-Z]*|"Ssha"[a-zA-Z]*  { yylval.ival = 4; return ELEMENTARYFUNCTIONTYPE; }
+
 "any"|"ANY"                        { yylval.ival = 3; return WAVETYPE; }
 
 "averageK"|"averagek"|"AVERAGEK"   { yylval.ival = 0; return WAVEMETHOD;}
@@ -834,7 +874,7 @@ TRAIL [a-zA-Z]*
 
 "trans"[a-zA-Z]*|"TRANS"[a-zA-Z]*  { yylval.ival = FetiInfo::translation; return RBMSET; }
 
-"rot"|"ROT"|"rota"|"ROTA"|"rotat"|"ROTAT"|"rotati"|"ROTATI"|"rotatio"|"ROTATIO"|"rotation"[a-zA-Z]*|"ROTATION"[a-zA-Z]* { yylval.ival = FetiInfo::rotation; return RBMSET; }
+"rot"|"ROT"|"rota"|"ROTA"|"rotat"|"ROTAT"|"rotati"|"ROTATI"|"rotatio"|"ROTATIO"|"rotation"|"ROTATION" { yylval.ival = FetiInfo::rotation; return RBMSET; }
 
 "all"[a-zA-Z]*|"ALL"[a-zA-Z]*      { yylval.ival = FetiInfo::all;         return RBMSET; }
 
@@ -920,11 +960,27 @@ TRAIL [a-zA-Z]*
 
 "disp6dof"|"DISP6DOF"              { yylval.ival = OutputInfo::Disp6DOF;     return STRESSID; }
 
+"romatrix"|"ROMATRIX"              { yylval.ival = OutputInfo::RotationMatrix; return STRESSID; }
+
 "modaldsp"|"MODALDSP"              { yylval.ival = OutputInfo::ModalDsp;     return STRESSID; }
 
 "modalexf"|"MODALEXF"              { yylval.ival = OutputInfo::ModalExF;     return STRESSID; }
 
 "gtempera"|"GTEMPERA"              { yylval.ival = OutputInfo::Temperature;  return STRESSID; }
+
+"statevct"|"STATEVCT"		   { yylval.ival = OutputInfo::Statevector;  return STRESSID; }
+
+"accelvct"|"ACCELVCT"		   { yylval.ival = OutputInfo::Accelvector;  return STRESSID; }
+
+"frcgvect"|"FRCGVECT"		   { yylval.ival = OutputInfo::Forcevector;  return STRESSID; }
+
+"residvct"|"RESIDVCT"		   { yylval.ival = OutputInfo::Residual;     return STRESSID; }
+
+"jacobvct"|"JACOBVCT"		   { yylval.ival = OutputInfo::Jacobian;     return STRESSID; }
+
+"robdataf"|"ROBDATAF"		   { yylval.ival = OutputInfo::RobData;	     return STRESSID; }
+
+"samplmsh"|"SAMPLMSH" 		   { yylval.ival = OutputInfo::SampleMesh;   return STRESSID; }
 
 "stressxx"|"STRESSXX"              { yylval.ival = OutputInfo::StressXX;     return STRESSID; }
 
@@ -1112,6 +1168,12 @@ TRAIL [a-zA-Z]*
 
 "anim"[a-zA-Z]*|"ANIM"[a-zA-Z]*    { yylval.ival = OutputInfo::animate; return COMPLEXOUTTYPE; }
 
+"spatial"|"SPATIAL"                { yylval.ival = OutputInfo::spatial; return ANGULAROUTTYPE; }
+
+"convected"|"CONVECTED"            { yylval.ival = OutputInfo::convected; return ANGULAROUTTYPE; }
+
+"total"|"TOTAL"                    { yylval.ival = OutputInfo::total; return ANGULAROUTTYPE; }
+
 "conface"|"CONFACE"                                  { yylval.ival = 1; return TDENFORC; }
 "normal_force_mag"|"NORMAL_FORCE_MAG"                { yylval.ival = 2; return TDENFORC; }
 "normal_traction_mag"|"NORMAL_TRACTION_MAG"          { yylval.ival = 3; return TDENFORC; }
@@ -1162,11 +1224,13 @@ TRAIL [a-zA-Z]*
 
 "isotropiclinearelasticj2plastic"|"ISOTROPICLINEARELASTICJ2PLASTIC"|"IsotropicLinearElasticJ2Plastic" { return ISOTROPICLINEARELASTICJ2PLASTIC; }
 
-"hypoelas"[a-zA-Z]*|"HYPOELAS"[a-zA-Z]*                 { yylval.ival = 1; return OPTCTV; }
+"isotropiclinearelasticj2plasticplanestress"|"ISOTROPICLINEARELASTICJ2PLASTICPLANESTRESS"|"IsotropicLinearElasticJ2PlasticPlaneStress" { return ISOTROPICLINEARELASTICJ2PLASTICPLANESTRESS; }
+
+"hypo"[a-zA-Z]*|"HYPO"[a-zA-Z]*|"Hypo"[a-zA-Z]*         { yylval.ival = 1; return OPTCTV; }
 "elastoviscoplastic"|"ELASTOVISCOPLASTIC"|"evp"|"EVP"   { yylval.ival = 3; return OPTCTV; }
 "j2"[a-zA-Z]*|"J2"[a-zA-Z]*                             { yylval.ival = 5; return OPTCTV; }
-"kk"|"KK"                                               { yylval.ival = 6; return OPTCTV; }
-"kkexp"|"KKEXP"                                         { yylval.ival = 7; return OPTCTV; }
+"kk"|"KK"|"kk1"|"KK1"                                   { yylval.ival = 6; return OPTCTV; }
+"kkexp"|"KKEXP"|"kk2"|"KK2"                             { yylval.ival = 7; return OPTCTV; }
 "kkexp2"|"KKEXP2"                                       { yylval.ival = 8; return OPTCTV; }
 
 "read"|"READ"                      { return READ; }
@@ -1210,6 +1274,14 @@ TRAIL [a-zA-Z]*
 
 "CONTACTSURFACES"|"contactsurfaces" { return CONTACTSURFACES; }
 
+"CONSTRAINEDSURFACES"|"constrainedsurfaces" { return CONSTRAINEDSURFACES; }
+
+"POINTPOINT"|"pointpoint"|"PointPoint" { yylval.ival = BCond::PointPointDistance; return CSTYPE; }
+
+"POINTLINE"|"pointline"|"PointLine"    { yylval.ival = BCond::PointLineDistance; return CSTYPE; }
+
+"POINTPLANE"|"pointplane"|"PointPlane" { yylval.ival = BCond::PointPlaneDistance; return CSTYPE; }
+
 "NO_SECONDARY"|"no_secondary"  { return NOSECONDARY; }
 
 "ACME"[a-zA-Z]*|"acme"[a-zA-Z]*    { return ACMECNTL; }
@@ -1231,35 +1303,27 @@ TRAIL [a-zA-Z]*
 "STDV"|"stdv" { yylval.ival = 2; return NDTYPE; }
 "PDF"|"pdf" { yylval.ival = 3; return NDTYPE; }
 
-"PODROM"|"PodRom"|"podrom"                { return PODROM; }
+"ROBC"|"RobC"|"robc" 			  { return SVDTOKEN; } 
 
-"FOM"|"Fom"|"fom"                         { return FOM; }
+"SNAPFI"|"SnapFi"|"snapfi"		  { return SNAPFI; }
 
-"GAUSSNEWTON"|"gaussnewton"|"GaussNewton" { return GAUSSNEWTON; }
+"PODROB"|"PodRob"|"podrob"		  { return PODROB; }
 
-"GALERKIN"|"galerkin"|"Galerkin"          { return GALERKIN; }
+"TRNVCT"|"TrnVct"|"trnvct"		  { return TRNVCT; }
 
-"GAPPY"|"gappy"|"Gappy"                   { return GAPPY; }
+"OFFSET"|"OffSet"|"offset"		  { return OFFSET; }
 
-"SVD"|"Svd"|"svd"                         { return SVDTOKEN; }
+"DIMENS"|"Dimens"|"dimens"		  { return PODSIZEMAX; }
 
-"SAMPLING"|"Sampling"|"sampling"          { return SAMPLING; }
+"ORTHOG"|"Orthog"|"orthog"		  { return ORTHOG; }
 
-"SNAPSHOTS"|"snapshots"|"Snapshots"       { return SNAPSHOTS; }
+"RMSHC"|"Rmshc"|"rmshc" 		  { return SAMPLING; }
 
-"PODSIZEMAX"|"podsizemax"|"PodSizeMax"    { return PODSIZEMAX; } 
+"TOLOPT"|"TolOpt"|"tolopt" 		  { return TOLER; }
 
-"ASPECTRATIO"|"aspectratio"|"AspectRatio" { return ASPECTRATIO; } 
+"NUMSKP"|"NumSkp"|"numskp"		  { return SKIP; }
 
 "REFSUBSTRACT"|"refsubstract"|"RefSubstract" { return REFSUBSTRACT; } 
-
-"SAMPLENODES"|"samplenodes"|"SampleNodes" { return SAMPLENODES; }
-
-"TOLERANCE"|[Tt]"olerance"                { return TOLER; }
-
-"REDUCED"|[Rr]"educed"                    { return REDUCED; }
-
-"ELLUMP"|[eE]"l"[lL]"ump"                 { return ELLUMPWEIGHTS; }
 
 [A-Za-z][A-Za-z0-9_.]*  { yylval.strval = strdup(yytext); return FNAME; }
 

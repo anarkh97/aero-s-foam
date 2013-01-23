@@ -6,7 +6,7 @@ dsvm37_mumps_gtempera
 *
 STATICS
 mumps
-*
+include "../fetidp.include"
 DYNAMICS
 time	21.6	0	21600
 newmark

@@ -784,6 +784,21 @@ GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<S
   int numOutInfo = geoSource->getNumOutInfo();
   if(numOutInfo == 0) return;
 
+  // get output information
+  OutputInfo *oinfo = geoSource->getOutputInfo();
+
+  // check if there are any output files which need to be printed now
+  bool noOut = true;
+  for(int i = 0; i < numOutInfo; i++) {
+    if(oinfo[i].ndtype != ndflag) continue;
+    if(ndflag !=0 && oinfo[i].type != OutputInfo::Disp6DOF && oinfo[i].type !=  OutputInfo::Displacement) continue;
+    if(oinfo[i].interval != 0 && x % oinfo[i].interval == 0) {
+      noOut = false;
+      break;
+    }
+  }
+  if(noOut) return;
+
   if(verboseFlag && numOutInfo && x == 0 && ndflag == 0 && !domain->solInfo().isDynam())
     filePrint(stderr," ... Postprocessing                 ...\n");
 
@@ -793,11 +808,12 @@ GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<S
   int i, j, iSub, inode;
 
   // initialize and merge displacements from subdomains into global array
-  Scalar (*mergedDis)[11] = new Scalar[numNodes][11];//DofSet::max_known_nonL_dof
+  Scalar (*glMergedDis)[11] = new Scalar[numNodes][11];
+  Scalar (*locMergedDis)[11] = (domain->solInfo().basicDofCoords) ? 0 : new Scalar[numNodes][11];
   for(i = 0; i < numNodes; ++i)
-    for(j=0; j<11; j++) mergedDis[i][j] = 0.0;//DofSet::max_known_nonL_dof
+    for(j=0; j<11; j++) glMergedDis[i][j] = 0.0;
   for(iSub = 0; iSub < numSub; ++iSub)
-    subDomain[iSub]->mergeAllDisp(mergedDis, u.subData(iSub));
+    subDomain[iSub]->mergeAllDisp(glMergedDis, u.subData(iSub), locMergedDis);
 
   // intialize and merge aeroelastic forces from subdomains into global array
   Scalar (*mergedAeroF)[6] = 0;
@@ -811,17 +827,22 @@ GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<S
 
   // initialize and merge velocities and accelerations from subdomains into global array
   GenDistrVector<Scalar> *v_n = 0, *a_n = 0;
-  Scalar (*mergedVel)[11] = 0, (*mergedAcc)[11] = 0;//DofSet::max_known_nonL_dof
+  Scalar (*glMergedVel)[11] = 0, (*glMergedAcc)[11] = 0;
+  Scalar (*locMergedVel)[11] = 0, (*locMergedAcc)[11] = 0;
   if(distState) {
     v_n = &distState->getVeloc();
     a_n = &distState->getAccel();
-    mergedVel = new Scalar[numNodes][11];//DofSet::max_known_nonL_dof
-    mergedAcc = new Scalar[numNodes][11];//DofSet::max_known_nonL_dof
+    glMergedVel = new Scalar[numNodes][11];
+    glMergedAcc = new Scalar[numNodes][11];
+    if(!domain->solInfo().basicDofCoords) {
+      locMergedVel = new Scalar[numNodes][11];
+      locMergedAcc = new Scalar[numNodes][11];
+    }
     for(i = 0; i < numNodes; ++i)
-      for(j=0; j<11; ++j) mergedVel[i][j] = mergedAcc[i][j] = 0.0; //DofSet::max_known_nonL_dof
+      for(j=0; j<11; ++j) glMergedVel[i][j] = glMergedAcc[i][j] = 0.0;
     for(iSub = 0; iSub < numSub; ++iSub) {
-      subDomain[iSub]->mergeAllVeloc(mergedVel, v_n->subData(iSub));
-      subDomain[iSub]->mergeAllAccel(mergedAcc, a_n->subData(iSub));
+      subDomain[iSub]->mergeAllVeloc(glMergedVel, v_n->subData(iSub), locMergedVel);
+      subDomain[iSub]->mergeAllAccel(glMergedAcc, a_n->subData(iSub), locMergedAcc);
     }
   }
 
@@ -835,10 +856,8 @@ GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<S
     time = eigV;
     if(domain->solInfo().doEigSweep) x = outEigCount++; 
   }
-  else time = eigV; //x*domain->solInfo().getTimeStep();
-
-  // get output information
-  OutputInfo *oinfo = geoSource->getOutputInfo();
+  else time = eigV;
+  if (domain->solInfo().loadcases.size() > 0) time = domain->solInfo().loadcases.front();
 
   // open output files
   if(x == domain->solInfo().initialTimeIndex && firstOutput) geoSource->openOutputFiles();
@@ -849,6 +868,11 @@ GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<S
     if(oinfo[i].ndtype != ndflag) continue;
     if(ndflag !=0 && oinfo[i].type != OutputInfo::Disp6DOF && oinfo[i].type !=  OutputInfo::Displacement) continue;
     if(oinfo[i].interval != 0 && x % oinfo[i].interval == 0) {
+
+      Scalar (*mergedDis)[11] = (oinfo[i].oframe == OutputInfo::Global || domain->solInfo().basicDofCoords) ? glMergedDis : locMergedDis;
+      Scalar (*mergedVel)[11] = (oinfo[i].oframe == OutputInfo::Global || domain->solInfo().basicDofCoords) ? glMergedVel : locMergedVel;
+      Scalar (*mergedAcc)[11] = (oinfo[i].oframe == OutputInfo::Global || domain->solInfo().basicDofCoords) ? glMergedAcc : locMergedAcc;
+
       switch(oinfo[i].type) {
         case OutputInfo::EigenPair:
         case OutputInfo::FreqRespModes:
@@ -1163,6 +1187,14 @@ GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<S
           }
           else filePrint(stderr," *** WARNING: Output case %d not supported \n", i);
         } break;
+        case OutputInfo::Statevector:
+        case OutputInfo::Accelvector:
+        case OutputInfo::Forcevector:
+        case OutputInfo::Residual:
+        case OutputInfo::Jacobian:
+        case OutputInfo::RobData:
+        case OutputInfo::SampleMesh:
+          break;
         default:
           filePrint(stderr," *** WARNING: Output case %d not implemented \n", i);
           break;
@@ -1178,9 +1210,15 @@ GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<S
     filePrint(stderr," --------------------------------------\n");
   }
 
-  if(mergedDis) delete [] mergedDis;
+  if(glMergedDis) delete [] glMergedDis;
+  if(locMergedDis) delete [] locMergedDis;
   if(aeroF) delete [] mergedAeroF;
-  if(distState) { delete [] mergedVel; delete [] mergedAcc; }
+  if(distState) { 
+    delete [] glMergedVel;
+    delete [] glMergedAcc; 
+    if(locMergedVel) delete [] locMergedVel;
+    if(locMergedAcc) delete [] locMergedAcc; 
+  }
   if(globVal) delete [] globVal; 
 
 }
@@ -1194,16 +1232,18 @@ GenDecDomain<Scalar>::getPrimalVector(int fileNumber, Scalar (*xyz)[11], int num
 
   int inode;
   if (ndof == 6) {
-    if (oinfo.nodeNumber == -1)
+    if (oinfo.nodeNumber == -1) {
       geoSource->outputNodeVectors6(fileNumber, xyz, numNodes, time);
+    }
     else  {
       inode = oinfo.nodeNumber;
       geoSource->outputNodeVectors6(fileNumber, xyz+inode, 1, time);
     }
   }
   else {
-    if (oinfo.nodeNumber == -1)
+    if (oinfo.nodeNumber == -1) {
       geoSource->outputNodeVectors(fileNumber, xyz, numNodes, time);
+    }
     else  {
       inode = oinfo.nodeNumber;
       geoSource->outputNodeVectors(fileNumber, xyz+inode, 1, time);
@@ -1215,7 +1255,7 @@ GenDecDomain<Scalar>::getPrimalVector(int fileNumber, Scalar (*xyz)[11], int num
 template<class Scalar>
 void
 GenDecDomain<Scalar>::getPrimalScalar(int fileNumber, Scalar (*xyz)[11], int numNodes, 
-                                      int dof, double time)//DofSet::max_known_nonL_dof
+                                      int dof, double time)
 {
   OutputInfo &oinfo = geoSource->getOutputInfo()[fileNumber]; 
 
@@ -1253,10 +1293,10 @@ GenDecDomain<Scalar>::getAeroForceScalar(int fileNumber, Scalar (*mergedAeroF)[6
 template<class Scalar>
 void
 GenDecDomain<Scalar>::computeSubdElemForce(int iSub, Scalar *globForce,
-                                          GenDistrVector<Scalar> *u, int Findex)
+                                          GenDistrVector<Scalar> *u, int fileNumber, int Findex)
 {
   Scalar *locForce = new Scalar[subDomain[iSub]->countElemNodes()];
-  subDomain[iSub]->computeElementForce(u->subData(iSub), Findex, locForce);
+  subDomain[iSub]->computeElementForce(fileNumber, u->subData(iSub), Findex, locForce);
   subDomain[iSub]->mergeElemStress(locForce, globForce, elemToNode);
   delete [] locForce;
 }
@@ -1268,7 +1308,7 @@ void GenDecDomain<Scalar>::getElementForce(GenDistrVector<Scalar> &u, int fileNu
   int numElemNodes = elemToNode->numConnect();
   Scalar *globForce = new Scalar[numElemNodes];
   execParal(numSub, this, &GenDecDomain<Scalar>::computeSubdElemForce,
-            globForce, &u, Findex);
+            globForce, &u, fileNumber, Findex);
   geoSource->outputElemStress(fileNumber, globForce, elemToNode->csize(),
                               elemToNode->ptr(), time);
   delete [] globForce;
@@ -1972,12 +2012,28 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***all
   // NOTE: for dynamic runs, x represents the time
   //       for static runs, x represents the load parameter, lambda
   int numOutInfo = geoSource->getNumOutInfo();
+  if(numOutInfo == 0) return;
+
+  // get output information
+  OutputInfo *oinfo = geoSource->getOutputInfo();
+
+  // check if there are any output files which need to be printed now
+  bool noOut = true;
+  for(int i = 0; i < numOutInfo; i++) {
+    int step = (domain->solInfo().isDynam()) ? int(x/domain->solInfo().getTimeStep()+0.5) : int(x/domain->solInfo().getNLInfo().dlambda+0.5);
+    if(oinfo[i].interval != 0 && step % oinfo[i].interval == 0) {
+      noOut = false;
+      break;
+    }
+  }
+  if(noOut) return;
+
   if(verboseFlag && numOutInfo && x == 0)
     filePrint(stderr," ... Postprocessing                 ...\n");
 
   if(domain->outFlag && domain->nodeTable == 0) domain->makeNodeTable(domain->outFlag);
   int numNodes = (domain->outFlag) ? domain->exactNumNodes : geoSource->numNode();
-  Scalar (*xyz)[11] = new Scalar[numNodes][11];//DofSet::max_known_nonL_dof
+  Scalar (*xyz)[11] = new Scalar[numNodes][11];
   Scalar *globVal = 0;  // for output
 
   int i,j,iSub;
@@ -2001,14 +2057,14 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***all
 
   // for nonlinear dynamics: initialize and merge velocities and accelerations from subdomains into global array
   GenDistrVector<Scalar> *v_n = 0, *a_n = 0;
-  Scalar (*mergedVel)[11] = 0, (*mergedAcc)[11] = 0;//DofSet::max_known_nonL_dof
+  Scalar (*mergedVel)[11] = 0, (*mergedAcc)[11] = 0;
   if(distState) {
     v_n = &distState->getVeloc();
     a_n = &distState->getAccel();
-    mergedVel = new Scalar[numNodes][11];//DofSet::max_known_nonL_dof
-    mergedAcc = new Scalar[numNodes][11];//DofSet::max_known_nonL_dof
+    mergedVel = new Scalar[numNodes][11];
+    mergedAcc = new Scalar[numNodes][11];
     for(i = 0; i < numNodes; ++i)
-      for(j=0; j<11; ++j) mergedVel[i][j] = mergedAcc[i][j] = 0.0; //DofSet::max_known_nonL_dof
+      for(j=0; j<11; ++j) mergedVel[i][j] = mergedAcc[i][j] = 0.0;
     for(iSub = 0; iSub < numSub; ++iSub) {
       subDomain[iSub]->mergeAllVeloc(mergedVel, v_n->subData(iSub));
       subDomain[iSub]->mergeAllAccel(mergedAcc, a_n->subData(iSub));
@@ -2030,7 +2086,6 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***all
   }
 
   int inode;
-  OutputInfo *oinfo = geoSource->getOutputInfo();
   for(i = 0; i < numOutInfo; i++) {
    int step = (domain->solInfo().isDynam()) ? int(x/domain->solInfo().getTimeStep()+0.5) : int(x/domain->solInfo().getNLInfo().dlambda+0.5);
    if(oinfo[i].interval != 0 && step % oinfo[i].interval == 0) {
@@ -2227,6 +2282,14 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***all
        }
        else filePrint(stderr," *** WARNING: Output case %d not supported \n", i);
      } break;
+     case OutputInfo::Statevector:
+     case OutputInfo::Accelvector:
+     case OutputInfo::Forcevector:
+     case OutputInfo::Residual:
+     case OutputInfo::Jacobian:
+     case OutputInfo::RobData:
+     case OutputInfo::SampleMesh:
+        break;
      default:
        filePrint(stderr," *** WARNING: Output case %d not implemented\n", i);
        break;
@@ -3584,7 +3647,7 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
  else res.K = new GenSubDOp<Scalar>(numSub, dgt.K);
  res.Kuc = new GenSubDOp<Scalar>(numSub, dgt.Kuc);
 
- if(dgt.C && numSub > 0 && dgt.C[0]) {
+ if(dgt.C[0]) {
    res.C = new GenSubDOp<Scalar>(numSub, dgt.C);
    res.Cuc = new GenSubDOp<Scalar>(numSub, dgt.Cuc);
    res.Ccc = new GenSubDOp<Scalar>(numSub, dgt.Ccc);
@@ -3599,14 +3662,14 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
  res.Mcc = new GenSubDOp<Scalar>(numSub, dgt.Mcc);
 
 // RT
- if(dgt.C_deriv && numSub > 0 && dgt.C_deriv[0]) {
+ if(dgt.C_deriv[0]) {
    res.C_deriv = new GenSubDOp<Scalar>*[1];
    (res.C_deriv)[0] = new GenSubDOp<Scalar>(numSub, dgt.C_deriv,0);
  } else {
    res.C_deriv = 0;
    delete [] dgt.C_deriv;
  }
- if(dgt.C_deriv && numSub > 0 && dgt.Cuc_deriv[0]) {
+ if(dgt.Cuc_deriv[0]) {
    res.Cuc_deriv = new GenSubDOp<Scalar>*[1];
    res.Cuc_deriv[0] = new GenSubDOp<Scalar>(numSub, dgt.Cuc_deriv,0);
  } else {

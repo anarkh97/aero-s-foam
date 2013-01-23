@@ -160,7 +160,7 @@ void ContactFace<DataType>::ConnectNode(const int num, ContactNode<DataType>* no
   PRECONDITION( num < Nodes_Per_Face() );
   PRECONDITION( Nodes() );
   Nodes()[num] = node;
-  PackConnection(node, &NodeInfo()[num]);
+  this->PackConnection(node, &NodeInfo()[num]);
 }
 
 

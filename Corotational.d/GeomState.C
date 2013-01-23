@@ -363,9 +363,8 @@ NodeState::operator=(const NodeState &node)
  this->R[2][1] = node.R[2][1];
  this->R[2][2] = node.R[2][2];
 
- // Copy the displacement, velocity and acceleration vectors
+ // Copy the velocity and acceleration vectors
  for(int i = 0; i < 6; ++i) {
-   d[i] = node.d[i];
    v[i] = node.v[i];
    a[i] = node.a[i];
  }
@@ -386,7 +385,7 @@ ElemState::operator=(const ElemState &elem)
 }
 
 void
-GeomState::update(const Vector &v)
+GeomState::update(const Vector &v, int SO3param)
 {
  // v = incremental displacement vector
 
@@ -407,20 +406,29 @@ GeomState::update(const Vector &v)
      double dy = (loc[i][1] >= 0) ? v[loc[i][1]] : 0.0;
      double dz = (loc[i][2] >= 0) ? v[loc[i][2]] : 0.0;
 
-     // Set incremental rotations
-
-     dtheta[0] = (loc[i][3] >= 0) ? v[loc[i][3]] : 0.0;
-     dtheta[1] = (loc[i][4] >= 0) ? v[loc[i][4]] : 0.0;
-     dtheta[2] = (loc[i][5] >= 0) ? v[loc[i][5]] : 0.0;
-
      // Increment total translational displacements
 
      ns[i].x += dx;
      ns[i].y += dy;
      ns[i].z += dz;
 
-     // Increment rotation tensor R = R(dtheta)Ra
-     inc_rottensor( dtheta, ns[i].R );
+     if(loc[i][3] >= 0 || loc[i][4] >= 0 || loc[i][5] >= 0) {
+
+       // Set incremental rotations
+
+       dtheta[0] = (loc[i][3] >= 0) ? v[loc[i][3]] : 0.0;
+       dtheta[1] = (loc[i][4] >= 0) ? v[loc[i][4]] : 0.0;
+       dtheta[2] = (loc[i][5] >= 0) ? v[loc[i][5]] : 0.0;
+
+       switch(SO3param) {
+         case 0: // Increment rotation tensor from the left R = R(dtheta)*Ra
+           inc_rottensor( dtheta, ns[i].R );
+           break;
+         case 1: // Increment rotation tensor from the right R = Ra*R(dtheta)
+           inc_rottensor( ns[i].R, dtheta );
+           break;
+       }
+     }
    }
 #ifdef COMPUTE_GLOBAL_ROTATION
   computeGlobalRotation();
@@ -465,12 +473,49 @@ GeomState::explicitUpdate(CoordSet &cs, const Vector &v)
 }
 
 void
-GeomState::setVelocity(const Vector &d, const Vector &v, const Vector &a)
+GeomState::explicitUpdate(CoordSet &cs, int numNodes, int *nodes, const Vector &v)
+{
+ // v = total displacement vector
+
+ double theta[3];
+
+ for(int j = 0; j < numNodes; ++j) {
+   int i = nodes[j];
+   if(cs[i]) {
+
+     // Set translational displacements
+
+     double dx = (loc[i][0] >= 0) ? v[loc[i][0]] : 0.0;
+     double dy = (loc[i][1] >= 0) ? v[loc[i][1]] : 0.0;
+     double dz = (loc[i][2] >= 0) ? v[loc[i][2]] : 0.0;
+
+     // Set rotations
+
+     theta[0] = (loc[i][3] >= 0) ? v[loc[i][3]] : 0.0;
+     theta[1] = (loc[i][4] >= 0) ? v[loc[i][4]] : 0.0;
+     theta[2] = (loc[i][5] >= 0) ? v[loc[i][5]] : 0.0;
+
+     // Update position
+
+     ns[i].x = cs[i]->x + dx;
+     ns[i].y = cs[i]->y + dy;
+     ns[i].z = cs[i]->z + dz;
+
+     // Update rotation tensor 
+     form_rottensor( theta, ns[i].R );
+   }
+ }
+#ifdef COMPUTE_GLOBAL_ROTATION
+ computeGlobalRotation();
+#endif
+}
+
+void
+GeomState::setVelocity(const Vector &v, const Vector &a)
 {
   for(int i = 0; i < numnodes; ++i)
     for(int j = 0; j < 6; ++j)
       if(loc[i][j] > -1) {
-        ns[i].d[j] = d[loc[i][j]];
         ns[i].v[j] = v[loc[i][j]];
         ns[i].a[j] = a[loc[i][j]];
       }
@@ -480,28 +525,6 @@ void
 GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, GeomState &ss,
                                 double beta, double gamma, double alphaf, double alpham, bool zeroRot)
 {
-/*
- // note: delta = dt/2
- double coef = 1/(1-alphaf);
- double dcoef = gamma/(2*delta*beta);
- double vcoef = (1-(1-alphaf)*gamma/beta)-alphaf;
- double acoef = 2*delta*(1-alphaf)*(2*beta-gamma)/(2*beta);
- double rcoef = alphaf/(1-alphaf);
-
- // x,y,z velocity step update (velocity^{n+1} = 1/(1-alphaf)*(velocity^{n+1/2} - alphaf*velocity^n)
- // note: we are computing translational velocity^{n+1/2} locally
- //       as velocity^{n+1/2} = gamma/(dt*beta)*(d^{n+1-alphaf}-d^n) + (1-(1-alphaf)*gamma/beta)*v^n + dt*(1-alphaf)(2*beta-gamma)/(2*beta)*a^n
- for(int i = 0; i < numnodes; ++i) {
-   if(loc[i][0] >= 0)
-     vel_n[loc[i][0]] = coef*(dcoef*(ns[i].x - ss.ns[i].x) + vcoef*vel_n[loc[i][0]] + acoef*acc_n[loc[i][0]]);
-
-   if(loc[i][1] >= 0)
-     vel_n[loc[i][1]] = coef*(dcoef*(ns[i].y - ss.ns[i].y) + vcoef*vel_n[loc[i][1]] + acoef*acc_n[loc[i][1]]);
-
-   if(loc[i][2] >= 0)
-     vel_n[loc[i][2]] = coef*(dcoef*(ns[i].z - ss.ns[i].z) + vcoef*vel_n[loc[i][2]] + acoef*acc_n[loc[i][2]]);
- }
-*/
   double dt = 2.0*delta;
   double vdcoef, vvcoef, vacoef, avcoef, aacoef;
   vdcoef = (gamma/(dt*beta))/(1-alphaf);
@@ -511,6 +534,7 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
   aacoef = -(1-gamma)/gamma;
 
   // Update translational velocity and accelerations
+  int numnodes = std::min(GeomState::numnodes,ss.numnodes);
   for(int i = 0; i < numnodes; ++i) {
     if(flag[i] == -1) continue;
 
@@ -539,11 +563,7 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
     // Update angular velocities and accelerations
     if(loc[i][3] >= 0 || loc[i][4] >= 0 || loc[i][5] >= 0) {
       double dtheta[3], dR[3][3];
-      mat_mult_mat(ns[i].R, ss[i].R, dR, 2); // dR = ns[i].R * ss[i].R^T (i.e. ns[i].R = dR * ss[i].R)
-/*
-      //WHY NOT THIS:
       mat_mult_mat(ss[i].R, ns[i].R, dR, 1); // dR = ss[i].R^T * ns[i].R (i.e. ns[i].R = ss[i].R * dR)
-*/
       mat_to_vec(dR, dtheta);
       for(int j = 0; j < 3; ++j) {
         if(loc[i][3+j] >= 0) {
@@ -555,6 +575,7 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
       }
     }
   }
+  setVelocity(vel_n,acc_n);
 
   // Update step translational displacements
   double tcoef = 1/(1-alphaf);
@@ -569,7 +590,7 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
   double rcoef  = alphaf/(1-alphaf);
   double result[3][3], result2[3][3], rotVec[3];
   for(int i = 0; i < numnodes; ++i) {
-    if(flag[i] == -1) continue;
+    if(flag[i] == -1 || (loc[i][3] < 0 && loc[i][4] < 0 && loc[i][5] < 0)) continue;
     if(alphaf == 0.0) {
       for(int j = 0; j < 3; ++j)
         for(int k = 0; k < 3; ++k)
@@ -691,11 +712,7 @@ GeomState::get_inc_displacement(Vector &incVec, GeomState &ss, bool zeroRot)
       }
       else {
         double dR[3][3], vec[3];
-        mat_mult_mat( ns[inode].R, ss.ns[inode].R, dR, 2 ); // dR = ns[inode].R * ss.ns[inode].R^T (i.e. ns[inode].R = dR * ss.ns[inode].R)
-/*
-        //WHY NOT THIS:
         mat_mult_mat( ss[inode].R, ns[inode].R, dR, 1 ); // dR = ss[i].R^T * ns[i].R (i.e. ns[i].R = ss[i].R * dR)
-*/
         mat_to_vec( dR, vec );
         if( loc[inode][3] >= 0 ) incVec[loc[inode][3]] = vec[0];
         if( loc[inode][4] >= 0 ) incVec[loc[inode][4]] = vec[1];
@@ -704,6 +721,52 @@ GeomState::get_inc_displacement(Vector &incVec, GeomState &ss, bool zeroRot)
     } 
   }
 
+}
+
+void
+GeomState::push_forward(Vector &f)
+{
+  int inode;
+  for(inode=0; inode<numnodes; ++inode) {
+
+    if(flag[inode] == -1) continue;
+
+    if(loc[inode][3] >= 0 || loc[inode][4] >= 0 || loc[inode][5] >= 0) {
+      double vec[3], result[3];
+      vec[0] = ( loc[inode][3] >= 0 ) ? f[loc[inode][3]] : 0;
+      vec[1] = ( loc[inode][4] >= 0 ) ? f[loc[inode][4]] : 0;
+      vec[2] = ( loc[inode][5] >= 0 ) ? f[loc[inode][5]] : 0;
+
+      mat_mult_vec( ns[inode].R, vec, result, 0 ); // result = R*vec
+
+      if( loc[inode][3] >= 0 ) f[loc[inode][3]] = result[0];
+      if( loc[inode][4] >= 0 ) f[loc[inode][4]] = result[1];
+      if( loc[inode][5] >= 0 ) f[loc[inode][5]] = result[2];
+    }
+  }
+}
+
+void
+GeomState::pull_back(Vector &f)
+{
+  int inode;
+  for(inode=0; inode<numnodes; ++inode) {
+
+    if(flag[inode] == -1) continue;
+
+    if(loc[inode][3] >= 0 || loc[inode][4] >= 0 || loc[inode][5] >= 0) {
+      double vec[3], result[3];
+      vec[0] = ( loc[inode][3] >= 0 ) ? f[loc[inode][3]] : 0;
+      vec[1] = ( loc[inode][4] >= 0 ) ? f[loc[inode][4]] : 0;
+      vec[2] = ( loc[inode][5] >= 0 ) ? f[loc[inode][5]] : 0;
+
+      mat_mult_vec( ns[inode].R, vec, result, 1 ); // result = R^T*vec
+
+      if( loc[inode][3] >= 0 ) f[loc[inode][3]] = result[0];
+      if( loc[inode][4] >= 0 ) f[loc[inode][4]] = result[1];
+      if( loc[inode][5] >= 0 ) f[loc[inode][5]] = result[2];
+    }
+  }
 }
 
 void

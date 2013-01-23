@@ -143,11 +143,46 @@ MDNLStatic::sysVecInfo()
  return decDomain->sysVecInfo();
 }
 
-
 DistrInfo&
 MDNLStatic::elemVecInfo()
 {
  return *decDomain->elementVectorInfo();
+}
+
+void
+MDNLStatic::initializeParameters(DistrGeomState *geomState)
+{
+  execParal1R(decDomain->getNumSub(), this, &MDNLStatic::subInitializeParameters, *geomState);
+}
+
+void
+MDNLStatic::subInitializeParameters(int isub, DistrGeomState& geomState)
+{
+  decDomain->getSubDomain(isub)->initializeParameters(*(geomState[isub]), allCorot[isub]);
+}
+
+void
+MDNLStatic::updateParameters(DistrGeomState *geomState)
+{
+  execParal1R(decDomain->getNumSub(), this, &MDNLStatic::subUpdateParameters, *geomState);
+}
+
+void
+MDNLStatic::subUpdateParameters(int isub, DistrGeomState& geomState)
+{
+  decDomain->getSubDomain(isub)->updateParameters(*(geomState[isub]), allCorot[isub]);
+}
+
+bool
+MDNLStatic::checkConstraintViolation(double &err)
+{
+  err = 0;
+  for(int isub=0; isub<decDomain->getNumSub(); ++isub)
+    err = std::max(err, decDomain->getSubDomain(isub)->getError(allCorot[isub]));
+#ifdef DISTRIBUTED
+  if(structCom) err = structCom->globalMax(err);
+#endif
+  return (err <= domain->solInfo().penalty_tol);
 }
 
 int

@@ -6,41 +6,41 @@ echo ../../bin/aeros  nlstatics_mumps_strainxx.inp
 ../../bin/aeros  nlstatics_mumps_strainxx.inp
 echo ../../bin/aeros  nlstatics_spooles_strainxy.inp
 ../../bin/aeros  nlstatics_spooles_strainxy.inp
-echo ../../bin/aeros  nlstatics_gmres_strainxz.inp
-../../bin/aeros  nlstatics_gmres_strainxz.inp
-echo ../../bin/aeros  nlstatics_direct_strainxx.inp
-../../bin/aeros  nlstatics_direct_strainxx.inp
-echo ../../bin/aeros  nlstatics_spooles_pivot_strainxy.inp
-../../bin/aeros  nlstatics_spooles_pivot_strainxy.inp
-echo ../../bin/aeros  nlstatics_mumps_pivot_strainxz.inp
-../../bin/aeros  nlstatics_mumps_pivot_strainxz.inp
-echo ../../bin/aeros  nlstatics_pcg_strainxx.inp
-../../bin/aeros  nlstatics_pcg_strainxx.inp
-echo ../../bin/aeros  nlstatics_bcg_strainxy.inp
-../../bin/aeros  nlstatics_bcg_strainxy.inp
-echo ../../bin/aeros  nlstatics_cr_strainxz.inp
-../../bin/aeros  nlstatics_cr_strainxz.inp
-echo ../../bin/aeros -n 2 --dec --nsub 4 nlstatics_FETI_inxforce.inp
-../../bin/aeros -n 2 --dec --nsub 4 nlstatics_FETI_inxforce.inp
-echo ../../bin/aeros -n 2 --dec --nsub 4 nlstatics_FETI_DP_inyforce.inp
-../../bin/aeros -n 2 --dec --nsub 4 nlstatics_FETI_DP_inyforce.inp
-echo ../../bin/aeros -n 2 --dec --nsub 4 nlstatics_FETI_DPH_inzforce.inp
-../../bin/aeros -n 2 --dec --nsub 4 nlstatics_FETI_DPH_inzforce.inp
-echo ../../bin/aeros  nlstatics_sparse_axmoment.inp
-../../bin/aeros  nlstatics_sparse_axmoment.inp
-echo ../../bin/aeros  nlstatics_skyline_aymoment.inp
-../../bin/aeros  nlstatics_skyline_aymoment.inp
-echo ../../bin/aeros  nlstatics_mumps_azmoment.inp
-../../bin/aeros  nlstatics_mumps_azmoment.inp
-echo ../../bin/aeros  nlstatics_spooles_energies.inp
-../../bin/aeros  nlstatics_spooles_energies.inp
-echo ../../bin/aeros  nlstatics_gmres_gvelocit.inp
-../../bin/aeros  nlstatics_gmres_gvelocit.inp
-echo ../../bin/aeros  nlstatics_direct_gacceler.inp
-../../bin/aeros  nlstatics_direct_gacceler.inp
-echo ../../bin/aeros  nlstatics_spooles_pivot_displmod.inp
-../../bin/aeros  nlstatics_spooles_pivot_displmod.inp
-echo ../../bin/aeros  nlstatics_mumps_pivot_rotatmod.inp
-../../bin/aeros  nlstatics_mumps_pivot_rotatmod.inp
-echo ../../bin/aeros  nlstatics_pcg_gdispmod.inp
-../../bin/aeros  nlstatics_pcg_gdispmod.inp
+echo ../../bin/aeros  nlstatics_spooles_pivot_strainxz.inp
+../../bin/aeros  nlstatics_spooles_pivot_strainxz.inp
+echo ../../bin/aeros  nlstatics_mumps_pivot_strainxx.inp
+../../bin/aeros  nlstatics_mumps_pivot_strainxx.inp
+echo ../../bin/aeros -n 2 --dec --nsub 4 nlstatics_FETI_DP_strainxy.inp
+../../bin/aeros -n 2 --dec --nsub 4 nlstatics_FETI_DP_strainxy.inp
+echo ../../bin/aeros  nlstatics_sparse_strainxz.inp
+../../bin/aeros  nlstatics_sparse_strainxz.inp
+echo ../../bin/aeros  nlstatics_skyline_strainxx.inp
+../../bin/aeros  nlstatics_skyline_strainxx.inp
+echo ../../bin/aeros  nlstatics_mumps_strainxy.inp
+../../bin/aeros  nlstatics_mumps_strainxy.inp
+echo ../../bin/aeros  nlstatics_spooles_strainvm.inp
+../../bin/aeros  nlstatics_spooles_strainvm.inp
+echo ../../bin/aeros  nlstatics_spooles_pivot_strainxz.inp
+../../bin/aeros  nlstatics_spooles_pivot_strainxz.inp
+echo ../../bin/aeros  nlstatics_mumps_pivot_displmod.inp
+../../bin/aeros  nlstatics_mumps_pivot_displmod.inp
+echo ../../bin/aeros -n 2 --dec --nsub 4 nlstatics_FETI_DP_gdispmod.inp
+../../bin/aeros -n 2 --dec --nsub 4 nlstatics_FETI_DP_gdispmod.inp
+echo ../../bin/aeros  nlstatics_sparse_displacx.inp
+../../bin/aeros  nlstatics_sparse_displacx.inp
+echo ../../bin/aeros  nlstatics_skyline_displacy.inp
+../../bin/aeros  nlstatics_skyline_displacy.inp
+echo ../../bin/aeros  nlstatics_mumps_displacz.inp
+../../bin/aeros  nlstatics_mumps_displacz.inp
+echo ../../bin/aeros  nlstatics_spooles_strainp1.inp
+../../bin/aeros  nlstatics_spooles_strainp1.inp
+echo ../../bin/aeros  nlstatics_spooles_pivot_strainp2.inp
+../../bin/aeros  nlstatics_spooles_pivot_strainp2.inp
+echo ../../bin/aeros  nlstatics_mumps_pivot_strainp3.inp
+../../bin/aeros  nlstatics_mumps_pivot_strainp3.inp
+echo ../../bin/aeros -n 2 --dec --nsub 4 nlstatics_FETI_DP_stressp1.inp
+../../bin/aeros -n 2 --dec --nsub 4 nlstatics_FETI_DP_stressp1.inp
+echo ../../bin/aeros  nlstatics_sparse_stressp2.inp
+../../bin/aeros  nlstatics_sparse_stressp2.inp
+echo ../../bin/aeros  nlstatics_skyline_stressp3.inp
+../../bin/aeros  nlstatics_skyline_stressp3.inp

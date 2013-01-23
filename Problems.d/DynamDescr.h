@@ -96,8 +96,6 @@ class SingleDomainDynamic
     double **eigmodes;  
     double **tPhiM;   // Stores Transpose(Phi)*M
 
-    Vector *dprev; // PJSA 4-1-08 explicit nonlinear dynamics
-
     FlExchanger *flExchanger;
 
  protected:
@@ -141,7 +139,7 @@ class SingleDomainDynamic
     void getSteadyStateParam(int &steadyFlag, int &steadyMin, int &steadMax,
                              double &steadyTol); 
 
-    void getContactForce(Vector &d, Vector &ctc_f, double d_n_p);
+    void getContactForce(Vector &d_n, Vector &dinc, Vector &ctc_f, double d_n_p, double dt, double dt_old);
     void computeExtForce2(SysState<Vector> &, Vector &, Vector &, int t_index,
                          double t, Vector * aero_f=0, double gamma=0.5, double alphaf=0.5, double *pt_dt=0);
     void preProcess();
@@ -162,13 +160,14 @@ class SingleDomainDynamic
 
     // Central Difference only related subroutines
     void computeStabilityTimeStep(double& dt, DynamMat& dMat);
+    void updateDisplacement(Vector& dinc, Vector& d_n);
 
     // Mode Decomposition parameters and subroutines
     int getModeDecompFlag();
     void modeDecompPreProcess(SparseMatrix*M);
     void modeDecomp(double t, int tIndex, Vector& d_n);
 
-    void getInternalForce(Vector&, Vector&, double t);
+    void getInternalForce(Vector&, Vector&, double t, int tIndex);
 
     // Aeroelastic problems related subroutines
     void computeTimeInfo();

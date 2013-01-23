@@ -84,9 +84,8 @@ typedef GenSubDomain<double> SubDomain;
 class FSCommunicator;
 
 namespace Rom {
-template <typename Scalar> class GenGaussNewtonSolver;
 template <typename Scalar> class GenGalerkinProjectionSolver;
-template <typename Scalar> class GenGappyProjectionSolver;
+template <typename Scalar> class GenEiSparseGalerkinProjectionSolver;
 } /* end namespace Rom */
 
 // HB
@@ -333,13 +332,43 @@ class Domain : public HData {
      void getStiffAndForce(GeomState &u, Vector &elementInternalForce,
                            Corotator **allCorot, FullSquareMatrix *kel,
                            Vector &residual, double lambda = 1.0, double time = 0.0,
-                           GeomState *refState = NULL, Vector *reactions = NULL);
+                           GeomState *refState = NULL, Vector *reactions = NULL,
+                           FullSquareMatrix *mel = NULL);
+     void getFollowerForce(GeomState &u, Vector &elementInternalForce,
+                           Corotator **allCorot, FullSquareMatrix *kel,
+                           Vector &residual, double lambda = 1.0, double time = 0.0,
+                           GeomState *refState = NULL, Vector *reactions = NULL,
+                           bool compute_tangents = false);
+     void getFictitiousForce(GeomState &geomState, FullSquareMatrix *kel, Vector &residual,
+                                double time, GeomState *refState, Vector *reactions,
+                                FullSquareMatrix *mel, bool compute_tangents);
      void getWeightedStiffAndForceOnly(const std::map<int, double> &weights,
                                        GeomState &u, Vector &elementInternalForce,
                                        Corotator **allCorot, FullSquareMatrix *kel,
                                        Vector &residual, double lambda, double time,
                                        GeomState *refState);
+     void getElemInternalForce(const GeomState &geomState, double time,
+                               const GeomState *refState, const Corotator &elemCorot,
+                               double *elemForce, FullSquareMatrix &elemStiff);
+     void getElemInternalForce(const GeomState &geomState, double time,
+                               const Corotator &elemCorot,
+                               double *elemForce, FullSquareMatrix &elemStiff);
+     void getInternalForce(GeomState &u, Vector &elementInternalForce,
+                           Corotator **allCorot, FullSquareMatrix *kel,
+                           Vector &residual, double lambda = 1.0, double time = 0.0,
+                           GeomState *refState = NULL, Vector *reactions = NULL,
+                           FullSquareMatrix *mel = NULL);
+     void getWeightedInternalForceOnly(const std::map<int, double> &weights,
+                                       GeomState &u, Vector &elementInternalForce,
+                                       Corotator **allCorot, FullSquareMatrix *kel,
+                                       Vector &residual, double lambda, double time,
+                                       GeomState *refState);
+
      void applyResidualCorrection(GeomState &geomState, Corotator **corotators, Vector &residual, double rcoef = 1.0);
+     void initializeParameters(GeomState &geomState, Corotator **corotators);
+     void updateParameters(GeomState &geomState, Corotator **corotators);
+     double getError(Corotator **corotators);
+
      void getGeometricStiffness(GeomState &u, Vector &elementInternalForce,
         			Corotator **allCorot, FullSquareMatrix *&kel);
      void computeGeometricPreStress(Corotator **&allCorot, GeomState *&geomState,
@@ -484,13 +513,10 @@ class Domain : public HData {
        GenMumpsSolver<Scalar> *constructMumps(ConstrainedDSA *CDSA = 0, Rbm *rbm=0, FSCommunicator *com = 0);
 
      template<class Scalar>
-       Rom::GenGaussNewtonSolver<Scalar> *constructGaussNewtonSolver();
-     
-     template<class Scalar>
        Rom::GenGalerkinProjectionSolver<Scalar> *constructGalerkinProjectionSolver();
      
      template<class Scalar>
-       Rom::GenGappyProjectionSolver<Scalar> *constructGappyProjectionSolver();
+      Rom::GenEiSparseGalerkinProjectionSolver<Scalar> *constructEiSparseGalerkinProjectionSolver();
 
      Rbm              *constructRbm(bool printFlag = true);
      Rbm              *constructHzem(bool printFlag = true);
@@ -655,7 +681,7 @@ class Domain : public HData {
      void getStressStrain(Vector &sol, double *bcx, int fileNumber,
                           int strInd, double time = 0, int printFlag =0);
      void getStressStrain(ComplexVector &sol, DComplex *bcx, int fileNumber,
-                          int strInd, double time = 0, int printFlag =0) { cerr << "Domain::getStressStrain is not implemented for complex\n"; }
+                          int strInd, double time = 0, int printFlag =0);
      void getPrincipalStress(Vector &sol, double *bcx, int fileNumber,
                              int strInd, double time = 0);
      void getPrincipalStress(ComplexVector &sol, DComplex *bcx, int fileNumber,
@@ -905,9 +931,9 @@ class Domain : public HData {
 
      void InitializeDynamicContactSearch(int numSub = 0, SubDomain **sd = 0);
      void RemoveGap(Vector &g);
-     void PerformDynamicContactSearch(double dt);
-     void AddContactForces(double dt, Vector &f);
-     void AddContactForces(double dt, DistrVector &f);
+     void PerformDynamicContactSearch(double dt_old, double dt);
+     void AddContactForces(double dt_old, double dt, Vector &f);
+     void AddContactForces(double dt_old, double dt, DistrVector &f);
 
      void InitializeStaticContactSearch(MortarHandler::Interaction_Type t, int numSub = 0, SubDomain **sd = 0);
      void UpdateSurfaces(MortarHandler::Interaction_Type t, GeomState *geomState);
@@ -981,6 +1007,20 @@ class Domain : public HData {
      virtual double densProjCoeff(int dof) { return 1.0; }
      virtual void densProjectStiffness(GenFullSquareMatrix<double>& kel, int num) { /* do nothing */ }
      virtual void densProjectStiffnessC(GenFullSquareMatrix<DComplex>& kel, int num) { /* do nothing */ }
+     void transformMatrix(GenFullSquareMatrix<double>& kel, int num);
+     void transformVector(Vector &vec, int iele);
+     void transformNeumVector(Vector &vec, int iele);
+     void transformVector(ComplexVector &vec, int iele);
+     void transformVectorInv(Vector &vec, int iele);
+     void transformVectorInv(ComplexVector &vec, int iele);
+     void transformVector(double *data, int inode, bool hasRot);
+     void transformVector(complex<double> *data, int inode, bool hasRot);
+     void transformVectorInv(double *data, int inode, bool hasRot);
+     void transformVectorInv(complex<double> *data, int inode, bool hasRot);
+     void transformStressStrain(FullM &mat, int iele);
+     void transformStressStrain(FullMC &mat, int iele);
+     void transformMatrix(double *data, int inode);
+     void transformMatrix(complex<double> *data, int inode);
 
      int getMaxNumNodes() { return maxNumNodes; }
 

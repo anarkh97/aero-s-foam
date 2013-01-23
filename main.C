@@ -47,15 +47,13 @@ using namespace std;
 #include <Rom.d/DistrSnapshotNonLinDynamic.h>
 #include <Rom.d/PodProjectionNonLinDynamic.h>
 #include <Rom.d/LumpedPodProjectionNonLinDynamic.h>
-#include <Rom.d/GappyNonLinDynamic.h>
 #include <Rom.d/CheckNonLinDynamic.h>
 #include <Rom.d/PodProjectionSolver.h>
-#include <Rom.d/ReducedNonLinDynamic.h>
+#include <Rom.d/EiGalerkinProjectionSolver.h>
 #include <Rom.d/DriverInterface.h>
 #include <Rom.d/DistrExplicitSnapshotNonLinDynamic.h>
 #include <Rom.d/DistrExplicitPodProjectionNonLinDynamic.h>
 #include <Rom.d/DistrExplicitLumpedPodProjectionNonLinDynamic.h>
-#include <Rom.d/DistrExplicitGappyNonLinDynamic.h>
 #ifdef DISTRIBUTED
   #include <Pita.d/Old.d/PitaNonLinDynam.h>
   #include <Pita.d/Old.d/NLDistrTimeDecompSolver.h>
@@ -552,6 +550,21 @@ int main(int argc, char** argv)
    }
  }
 
+ if(domain->solInfo().readmodeCalled) {
+   if(domain->solInfo().modalCalled || domain->solInfo().modal) {
+     domain->readInModes(const_cast<char*>(domain->solInfo().readInROBorModes));
+   }
+   else if (!domain->solInfo().samplingPodRom) {
+     domain->solInfo().activatePodRom = true;
+     domain->solInfo().galerkinPodRom = true;
+#ifdef USE_EIGEN3
+     if(domain->solInfo().subtype != 12) domain->solInfo().subtype = 13;
+#else
+     domain->solInfo().subtype = 12;
+#endif
+   }
+ }
+
 #define MAX_CODES 4
 #define FLUID_ID 0
 #define STRUC_ID 1
@@ -581,6 +594,17 @@ int main(int argc, char** argv)
    filePrint(stderr,"         you may need to activate OpenMP and compile with an OpenMP compliant\n");
    filePrint(stderr,"         compiler (for instance, icpc or g++ version 4.2)\n");
  }
+
+ if(!domain->solInfo().basicPosCoords) {
+#ifndef USE_EIGEN3
+   filePrint(stderr," *** ERROR: use of Nodal Frames for node coordinates is not supported by this AERO-S build.\n");
+   filePrint(stderr," -> tip: you need to configure AERO-S with \"cmake -DEIGEN3_INCLUDE_DIR:PATH=xxx .\"\n");
+   filePrint(stderr,"         where xxx is the path to an installation of the Eigen C++ template library (version 3.1 or later)\n");
+   exit(-1);
+#endif
+   geoSource->transformCoords();
+ }
+
  if(geoSource->binaryInput) geoSource->readGlobalBinaryData(); // SOWERX
 #ifdef SOWER_SURFS
  else {
@@ -626,7 +650,7 @@ int main(int argc, char** argv)
 #ifdef SOWER_SURFS
  }
 #endif
-
+/* XXXX
  bool ctcflag1 = geoSource->checkLMPCs(domain->getNumLMPC(), *(domain->getLMPC()));
  bool ctcflag2 = (domain->GetnContactSurfacePairs() && domain->solInfo().lagrangeMult);
  if((ctcflag1 || ctcflag2) && domain->solInfo().type != 2 && domain->solInfo().newmarkBeta != 0
@@ -640,7 +664,18 @@ int main(int argc, char** argv)
    domain->solInfo().fetiInfo.solvertype = (FetiInfo::Solvertype) domain->solInfo().subtype;
    if(geoSource->getCheckFileInfo()->decPtr == 0) callDec = true;
  }
- if(domain->solInfo().type != 2 /*&& !domain->solInfo().getDirectMPC()*/)
+*/
+ if(!domain->solInfo().basicDofCoords) {
+#ifndef USE_EIGEN3
+   filePrint(stderr," *** ERROR: use of Nodal Frames for degrees of freedom is not supported by this AERO-S build.\n");
+   filePrint(stderr," -> tip: you need to configure AERO-S with \"cmake -DEIGEN3_INCLUDE_DIR:PATH=xxx .\"\n");
+   filePrint(stderr,"         where xxx is the path to an installation of the Eigen C++ template library (version 3.1 or later)\n");
+   exit(-1);
+#endif
+   geoSource->transformLMPCs(domain->getNumLMPC(), *(domain->getLMPC()));
+ }
+
+ if(domain->solInfo().type != 2)
    geoSource->addMpcElements(domain->getNumLMPC(), *(domain->getLMPC()));
 
  if((domain->solInfo().type != 2 || (!domain->solInfo().isMatching && (domain->solInfo().fetiInfo.fsi_corner != 0))) && !domain->solInfo().HEV)
@@ -740,16 +775,17 @@ int main(int argc, char** argv)
    }
    else filePrint(stderr," ...      with Geometric Pre-Stress ... \n");
  }
- if(domain->solInfo().type == 0)
+ if(domain->solInfo().type == 0 && domain->solInfo().probType != SolverInfo::None)
    filePrint(stderr, solverTypeMessage[domain->solInfo().subtype]);
-
+  
  // Domain Decomposition tasks
  //   type == 2 (FETI) and type == 3 (BLOCKDIAG) are always Domain Decomposition methods
  //   type == 1 && iterType == 1 (GMRES) is a Domain Decomposition method only if a decomposition is provided or requested
  //   type == 0 && subtype == 9 (MUMPS) is a Domain Decomposition method only if a decomposition is provided or requested
  if(domain->solInfo().type == 2 || domain->solInfo().type == 3
     || (domain->solInfo().type == 1 && domain->solInfo().iterType == 1 && domain_decomp)
-    || (domain->solInfo().type == 0 && domain->solInfo().subtype == 9 && domain_decomp)) {
+    || (domain->solInfo().type == 0 && domain->solInfo().subtype == 9 && domain_decomp))
+											{
 
    if(parallel_proc) {
 #ifdef USE_MPI
@@ -914,6 +950,7 @@ int main(int argc, char** argv)
      } break;
      case SolverInfo::NonLinDynam: {
        if(domain->solInfo().newmarkBeta == 0) { // explicit
+         // filePrint(stderr, "Non-Linear Explicit Dynamic solver\n");
          if (!domain->solInfo().activatePodRom) {
            MultiDomainDynam dynamProb(domain);
            DynamicSolver < MDDynamMat, DistrVector, MultiDomDynPostProcessor,
@@ -934,13 +971,8 @@ int main(int argc, char** argv)
                              Rom::DistrExplicitPodProjectionNonLinDynamic, double > dynamSolver(&dynamProb);
                dynamSolver.solve();
              }
-           } else if (domain->solInfo().gappyPodRom) {
-             filePrint(stderr, " ... POD: Explicit Gappy Galerkin   ...\n");
-             Rom::DistrExplicitGappyNonLinDynamic dynamProb(domain);
-             DynamicSolver < MDDynamMat, DistrVector, MultiDomDynPostProcessor,
-                   Rom::DistrExplicitGappyNonLinDynamic, double > dynamSolver(&dynamProb);
-             dynamSolver.solve();
-           } else {
+           }
+            else {
              filePrint(stderr, " ... POD: Snapshot collection       ...\n");
              Rom::DistrExplicitSnapshotNonLinDynamic dynamProb(domain);
              DynamicSolver < MDDynamMat, DistrVector, MultiDomDynPostProcessor,
@@ -1252,33 +1284,23 @@ int main(int argc, char** argv)
              dynaSolver.solve();
            }
            else { // implicit
+             // filePrint(stderr, "Non-Linear Implicit Dynamic solver\n");
              if (!domain->solInfo().activatePodRom) {
                NonLinDynamic nldynamic(domain);
                NLDynamSolver <Solver, Vector, SDDynamPostProcessor, NonLinDynamic, GeomState> nldynamicSolver(&nldynamic);
                nldynamicSolver.solve();
              } else { // POD ROM
-               if (domain->solInfo().galerkinPodRom && domain->solInfo().reducedPodRom) {
-                 filePrint(stderr, " ... POD: Reduced-order model (alt) ...\n");
-                 Rom::ReducedNonLinDynamic probDesc(domain);
-                 NLDynamSolver <Rom::ReducedNonLinDynamic::Solver, Vector, void, Rom::ReducedNonLinDynamic, GeomState,
-                                Rom::ReducedNonLinDynamic::Updater> solver(&probDesc);
-                 solver.solve();
-               } else if (domain->solInfo().galerkinPodRom && domain->solInfo().elemLumpPodRom) {
+                 if (domain->solInfo().galerkinPodRom && domain->solInfo().elemLumpPodRom) {
                  filePrint(stderr, " ... POD: ROM with stiffness lumping...\n");
                  Rom::LumpedPodProjectionNonLinDynamic nldynamic(domain);
                  NLDynamSolver <Rom::PodProjectionSolver, Vector, SDDynamPostProcessor, Rom::PodProjectionNonLinDynamic,
                                 GeomState, Rom::PodProjectionNonLinDynamic::Updater> nldynamicSolver(&nldynamic);
                  nldynamicSolver.solve();
-               } else if (domain->solInfo().gaussNewtonPodRom || domain->solInfo().galerkinPodRom) {
+               } else if (domain->solInfo().galerkinPodRom) {
                  filePrint(stderr, " ... POD: Reduced-order model       ...\n");
                  Rom::PodProjectionNonLinDynamic nldynamic(domain);
                  NLDynamSolver <Rom::PodProjectionSolver, Vector, SDDynamPostProcessor, Rom::PodProjectionNonLinDynamic,
                                 GeomState, Rom::PodProjectionNonLinDynamic::Updater> nldynamicSolver(&nldynamic);
-                 nldynamicSolver.solve();
-               } else if (domain->solInfo().gappyPodRom) {
-                 filePrint(stderr, " ... POD: System-approximated ROM   ...\n");
-                 Rom::GappyNonLinDynamic nldynamic(domain);
-                 NLDynamSolver <Solver, Vector, SDDynamPostProcessor, Rom::GappyNonLinDynamic, GeomState> nldynamicSolver(&nldynamic);
                  nldynamicSolver.solve();
                } else if (domain->solInfo().checkPodRom) {
                  filePrint(stderr, " ... POD: State Projection Check    ...\n");
@@ -1368,26 +1390,17 @@ int main(int argc, char** argv)
        break;
      case SolverInfo::PodRomOffline:
        {
+         //filePrint(stderr, "Pod Rom Offline mode\n");
          std::auto_ptr<Rom::DriverInterface> driver;
          if (domain->solInfo().svdPodRom) {
            // Stand-alone SVD orthogonalization
            filePrint(stderr, " ... POD: SVD Orthogonalization     ...\n");
            driver.reset(basisOrthoDriverNew(domain));
          } else if (domain->solInfo().samplingPodRom) {
-           // Offline mesh sampling
-           if (domain->solInfo().gaussNewtonPodRom) { 
-             // Gappy node-based hyperreduction (Gauss-Newton, implicit time-integration)
-             filePrint(stderr, " ... POD: GN Node-based Reduced Mesh...\n");
-             driver.reset(meshSamplingDriverNew(domain));
-           } else if (domain->solInfo().galerkinPodRom) {
-             // Gappy node-based hyperreduction (Galerkin, explicit time-integration)
-             filePrint(stderr, " ... POD: GP Node-based Reduced Mesh...\n");
-             driver.reset(explicitMeshSamplingDriverNew(domain));
-           } else {
              // Element-based hyperrection
              filePrint(stderr, " ... POD: Element-based Reduced Mesh...\n");
              driver.reset(elementSamplingDriverNew(domain));
-           }
+          // }
          } else {
            filePrint(stderr, " ... Unknown Analysis Type          ...\n");
            break;

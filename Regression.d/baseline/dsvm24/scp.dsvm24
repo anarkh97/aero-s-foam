@@ -1,25 +1,22 @@
 #!/bin/bash
 #PBS -N test
-#PBS -l nodes=1:ppn=8,walltime=1:00:00
+#PBS -V
+#PBS -l nodes=4:ppn=8,walltime=3:00:00
 
-cd /lustre/home/mpotts/FEM/Regression.d/dsvm24
-echo mpirun -n 4 ../../bin/aeros  dsvm24_freq_500.0_sparse_displacz.inp
-mpirun -n 4 ../../bin/aeros  dsvm24_freq_500.0_sparse_displacz.inp
-echo mpirun -n 4 ../../bin/aeros  dsvm24_spooles_pivot_displacz.inp
-mpirun -n 4 ../../bin/aeros  dsvm24_spooles_pivot_displacz.inp
-echo mpirun -n 4 ../../bin/aeros  dsvm24_freq_500.0_mumps_pivot_displacz.inp
-mpirun -n 4 ../../bin/aeros  dsvm24_freq_500.0_mumps_pivot_displacz.inp
-echo mpirun -n 4 ../../bin/aeros  dsvm24_mumps_displacz.inp
-mpirun -n 4 ../../bin/aeros  dsvm24_mumps_displacz.inp
-echo mpirun -n 4 ../../bin/aeros  dsvm24_freq_500.0_spooles_displacz.inp
-mpirun -n 4 ../../bin/aeros  dsvm24_freq_500.0_spooles_displacz.inp
-echo mpirun -n 4 ../../bin/aeros  dsvm24_pcg_displacz.inp
-mpirun -n 4 ../../bin/aeros  dsvm24_pcg_displacz.inp
-echo mpirun -n 4 ../../bin/aeros  dsvm24_freq_500.0_bcg_displacz.inp
-mpirun -n 4 ../../bin/aeros  dsvm24_freq_500.0_bcg_displacz.inp
-echo mpirun -n 4 ../../bin/aeros  dsvm24_cr_displacz.inp
-mpirun -n 4 ../../bin/aeros  dsvm24_cr_displacz.inp
-echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 dsvm24_freq_500.0_FETI_DP_displacz.inp
-mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 dsvm24_freq_500.0_FETI_DP_displacz.inp
-echo mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 dsvm24_FETI_DPH_displacz.inp
-mpirun -n 4 ../../bin/aeros -n 2 --dec --nsub 4 dsvm24_FETI_DPH_displacz.inp
+. /opt/modules/Modules/3.2.6/init/bash
+ module load intel openmpi
+cd /lustre/home/mpotts/FEM-test/Regression.d/dsvm24
+../create_mfiles.pl
+echo mpirun -n 2 ../../bin/aeros  dsvm24_freq_500_spooles_pivot_displacz.inp
+mpirun -n 2 --machinefile host.0 ../../bin/aeros  dsvm24_freq_500_spooles_pivot_displacz.inp &
+echo mpirun -n 2 ../../bin/aeros  dsvm24_freq_500_mumps_pivot_displacz.inp
+mpirun -n 2 --machinefile host.1 ../../bin/aeros  dsvm24_freq_500_mumps_pivot_displacz.inp &
+echo mpirun -n 2 ../../bin/aeros -n 2 --dec --nsub 4 dsvm24_freq_500_FETI_DPH_displacz.inp
+mpirun -n 2 --machinefile host.2 ../../bin/aeros -n 2 --dec --nsub 4 dsvm24_freq_500_FETI_DPH_displacz.inp &
+echo mpirun -n 2 ../../bin/aeros  dsvm24_spooles_pivot_displacz.inp
+mpirun -n 2 --machinefile host.3 ../../bin/aeros  dsvm24_spooles_pivot_displacz.inp &
+echo mpirun -n 2 ../../bin/aeros  dsvm24_mumps_pivot_displacz.inp
+mpirun -n 2 --machinefile host.4 ../../bin/aeros  dsvm24_mumps_pivot_displacz.inp &
+echo mpirun -n 2 ../../bin/aeros -n 2 --dec --nsub 4 dsvm24_FETI_DPH_displacz.inp
+mpirun -n 2 --machinefile host.5 ../../bin/aeros -n 2 --dec --nsub 4 dsvm24_FETI_DPH_displacz.inp &
+wait %1 %2 %3 %4 %5 %6 

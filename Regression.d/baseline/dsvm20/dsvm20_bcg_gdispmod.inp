@@ -6,7 +6,7 @@ dsvm20_bcg_gdispmod
 *
 STATICS
 bcg
-*
+include "../fetidp.include"
 EIGEN
 arpack
 nsbspv 8

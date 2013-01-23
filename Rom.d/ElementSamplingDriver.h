@@ -11,6 +11,8 @@ class Corotator;
 class GeomState; 
 class StaticTimers;
 template <typename Scalar> class GenFullSquareMatrix; 
+template <typename Scalar> class GenVector;
+typedef GenVector<double> Vector;
 
 namespace Rom {
 
@@ -26,7 +28,9 @@ private:
   void buildDomainCdsa();  
 
   template <typename DblFwdIt>
-  void assembleTrainingData(const VecBasis &snapshots, DblFwdIt timeStampFirst, const VecBasis &podBasis, VecBasis &elemContributions);
+  void assembleTrainingData(const VecBasis &snapshots, DblFwdIt timeStampFirst, const VecBasis &podBasis,
+                            typename SparseNonNegativeLeastSquaresSolver::MatrixBufferType::iterator elemContributions, 
+                            Vector &trainingTarget);
 
   int elementCount() const;
   int vectorSize() const;

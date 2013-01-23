@@ -6,7 +6,7 @@ dsvm20_mumps_gdispmod
 *
 STATICS
 mumps
-*
+include "../fetidp.include"
 EIGEN
 arpack
 nsbspv 8

@@ -3124,7 +3124,9 @@ ConstraintOptionsData:
 HelmInfo:
         HELMHOLTZ NewLine
         { // hack??
-	  domain->solInfo().acoustic = true; }
+	  domain->solInfo().acoustic = true;
+          if(domain->solInfo().probType != SolverInfo::HelmholtzDirSweep) domain->solInfo().setProbType(SolverInfo::Helmholtz);
+        }
         | FETIH NewLine
         { domain->solInfo().type = (2); 
           domain->solInfo().fetiInfo.scaling = FetiInfo::tscaling; 

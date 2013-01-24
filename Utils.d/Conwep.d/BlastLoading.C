@@ -396,7 +396,6 @@ void BlastLoading::Conwep::Params(const BlastLoading::BlastData& P,
                                   double& b) {
   static int cnt = 0;
   double z = R / P.chargeWeightCubeRoot;
-  static std::ofstream det("DetonationProperties.txt");
   double zlog = log10(z);
   double zlo = (P.blastType == BlastLoading::BlastData::SurfaceBurst ? 0.45 : 0.37);
   arrivalTime = Conwep::ArrivalTime(P,zlog) * P.chargeWeightCubeRoot;
@@ -406,7 +405,9 @@ void BlastLoading::Conwep::Params(const BlastLoading::BlastData& P,
   incidentPressure = Conwep::IncidentPressure(P, zlog);
   reflectedPressure = Conwep::ReflectedPressure(P, zlog);
 /*
-  //if ((++cnt) < 122) {
+  // For debugging:
+  static std::ofstream det("DetonationProperties.txt");
+  if ((++cnt) < 122) {
     det << "R = " << R << "\n"
         << "Arrival Time = " << arrivalTime << "\n"
         << "Positive Phase Duration = " << positivePhaseDuration << "\n"

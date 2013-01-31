@@ -3158,7 +3158,7 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
   OutputInfo *oinfo = geoSource->getOutputInfo();
 
   if(numOutInfo && (firstOutput || domain->solInfo().loadcases.size() > 0) && ndflag==0)
-    filePrint(stderr," ... Postprocessing                 ...\n");
+    filePrint(stderr," ... Postprocessing          6       ...\n");
 
   // organize displacements
   int numNodeLim = myMax(numNodes,numnodes); 

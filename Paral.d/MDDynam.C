@@ -182,7 +182,6 @@ MultiDomDynPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dynOps, 
       delete [] ext;
     }
   }
-
   // PJSA 4-15-08: update bcx for time dependent prescribed displacements and velocities 
   ControlLawInfo *claw = geoSource->getControlLaw();
   ControlInterface *userSupFunc = domain->getUserSuppliedFunction();
@@ -196,7 +195,6 @@ MultiDomDynPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dynOps, 
     paralApply(decDomain->getNumSub(), decDomain->getAllSubDomains(), &GenSubDomain<double>::setUserDefBC, userDefineDisp, userDefineVel, userDefineAcc, false);
     delete [] userDefineDisp; delete [] userDefineVel; delete [] userDefineAcc;
   }
-
   // Send displacements to fluid code (except explicit C0)
   SolverInfo& sinfo = domain->solInfo();
   if(sinfo.aeroFlag >= 0 && !sinfo.lastIt && tIndex != sinfo.initialTimeIndex && !(sinfo.newmarkBeta == 0 && sinfo.aeroFlag == 20)) {
@@ -216,20 +214,17 @@ MultiDomDynPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dynOps, 
         }
       }
     }
-
     SysState<DistrVector> state(d_n_aero, distState.getVeloc(), distState.getAccel(), distState.getPrevVeloc());
 
     distFlExchanger->sendDisplacements(state, usrDefDisps, usrDefVels);
     if(verboseFlag) filePrint(stderr, " ... [E] Sent displacements ...\n");
   }
-
   if(sinfo.aeroheatFlag >= 0 && tIndex != 0) {
     SysState<DistrVector> tempState(distState.getDisp(), distState.getVeloc(), distState.getPrevVeloc());
 
     distFlExchanger->sendTemperature(tempState);
     if(verboseFlag) filePrint(stderr, " ... [T] Sent temperatures (%e) ...\n", distState.getDisp().sqNorm());
   }
-
   if(sinfo.thermohFlag >= 0 && tIndex != 0) {
 
     for(int i = 0; i < decDomain->getNumSub(); ++i) {
@@ -246,11 +241,10 @@ MultiDomDynPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dynOps, 
     distFlExchanger->sendStrucTemp(*nodalTemps);
     if(verboseFlag) filePrint(stderr," ... [T] Sent temperatures ...\n");
   }
-
-  if(sinfo.isNonLin())
-    decDomain->postProcessing(geomState, allCorot, t, &distState, distAeroF);
-  else
-    decDomain->postProcessing(distState.getDisp(), distForce, t, distAeroF, tIndex, &dynOps, &distState); 
+  if(sinfo.isNonLin()){
+    decDomain->postProcessing(geomState, allCorot, t, &distState, distAeroF);}
+  else{
+    decDomain->postProcessing(distState.getDisp(), distForce, t, distAeroF, tIndex, &dynOps, &distState); }
   stopTimerMemory(times->output, times->memoryOutput);
 
 //  SolverInfo& sinfo = domain->solInfo();
@@ -330,12 +324,9 @@ MultiDomainDynam::processLastOutput()
                                                                                                  
 void
 MultiDomainDynam::preProcess()
-{
-  times->preProcess -= getTime();
-                                                                                                 
+{ times->preProcess -= getTime();
   // Makes local renumbering, connectivities and dofsets
   decDomain->preProcess();
-
   // Make all element's dofs
   MultiDomainOp mdop(&MultiDomainOp::makeAllDOFs, decDomain->getAllSubDomains());
 #ifdef DISTRIBUTED
@@ -706,6 +697,7 @@ MultiDomainDynam::computeExtForce2(SysState<DistrVector> &distState,
     domain->solInfo().initExtForceNorm = f.norm();
 
   times->formRhs += getTime();
+
 }
 
 void
@@ -803,6 +795,7 @@ MultiDomainDynam::printTimers(MDDynamMat *dynOps, double timeLoop)
   filePrint(stderr," ... Print Timers                   ... \n");
 
   if(domain->solInfo().type == 2 && domain->solInfo().fetiInfo.version == 3) {
+    filePrint(stderr," type ==2\n");
     times->printFetiDPtimers(domain->getTimers(),
                              dynOps->dynMat->getSolutionTime(),
                              domain->solInfo() ,
@@ -811,12 +804,14 @@ MultiDomainDynam::printTimers(MDDynamMat *dynOps, double timeLoop)
                              domain);
   }
   else {
+    filePrint(stderr,"print static timers\n");
     times->printStaticTimers(domain->getTimers(),
                              dynOps->dynMat->getSolutionTime(),
                              domain->solInfo() ,
                              dynOps->dynMat->getTimers(),
                              geoSource->getCheckFileInfo()[0],
                              domain);
+    filePrint(stderr,"static timers printed\n");
  }
 
 /*

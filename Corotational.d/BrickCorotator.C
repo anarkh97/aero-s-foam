@@ -816,3 +816,4 @@ BrickCorotator::getElementEnergy(GeomState &geomState, CoordSet &cs)
   Energy *= 0.5;
   return Energy;
 }
+#include <cmath>

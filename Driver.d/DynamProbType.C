@@ -886,7 +886,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
     // First partial update nodal velocities:
     v_h_p = v_n_h;
-    v_n_h.linC(v_n, t_n_h-t_n, a_n); // v^{n+1/2) = v^n + (t^{n+1/2} - t^n)*a^n
+    v_n_h.linC(v_n, t_n_h-t_n, a_n); // v^(n+1/2) = v^n + (t^{n+1/2} - t^n)*a^n
 
     if (fourthOrder) { // TODO check this for case of variable timestep
       // this is as in the previous release of the FEM code (before august 28th 2008)

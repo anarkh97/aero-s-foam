@@ -1307,6 +1307,10 @@ TRAIL [a-zA-Z]*
 
 "ROBC"|"RobC"|"robc" 			  { return SVDTOKEN; } 
 
+"RODC"|"RodC"|"rodc"                      { return CONVERSIONTOKEN; } // reduced order data conversion token
+ 
+"CONFIL"|"ConFil"|"confil" 	 	  { return CONVFI; } //reduced order data conversion files
+
 "SNAPFI"|"SnapFi"|"snapfi"		  { return SNAPFI; }
 
 "PODROB"|"PodRob"|"podrob"		  { return PODROB; }

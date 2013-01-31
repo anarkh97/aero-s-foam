@@ -436,6 +436,58 @@ GeomState::update(const Vector &v, int SO3param)
 }
 
 void
+GeomState::update(const Vector &v, const std::vector<int> &weightedNodes, int SO3param)
+{
+ // v = incremental displacement vector
+
+ double dtheta[3];
+
+ int i;
+  for( std::vector<int>::const_iterator it = weightedNodes.begin(); it != weightedNodes.end(); ++it) {
+     i = *it;
+
+     if(flag[i] == -1) {
+       double mu = (loc[i][0] >= 0) ? v[loc[i][0]] : 0.0;
+       ns[i].x = mu; // for inequality constraints, we solve for the lagrange multiplier not the increment
+       continue;
+     }
+
+     // Set incremental translational displacements
+
+     double dx = (loc[i][0] >= 0) ? v[loc[i][0]] : 0.0;
+     double dy = (loc[i][1] >= 0) ? v[loc[i][1]] : 0.0;
+     double dz = (loc[i][2] >= 0) ? v[loc[i][2]] : 0.0;
+
+     // Increment total translational displacements
+
+     ns[i].x += dx;
+     ns[i].y += dy;
+     ns[i].z += dz;
+
+     if(loc[i][3] >= 0 || loc[i][4] >= 0 || loc[i][5] >= 0) {
+
+       // Set incremental rotations
+
+       dtheta[0] = (loc[i][3] >= 0) ? v[loc[i][3]] : 0.0;
+       dtheta[1] = (loc[i][4] >= 0) ? v[loc[i][4]] : 0.0;
+       dtheta[2] = (loc[i][5] >= 0) ? v[loc[i][5]] : 0.0;
+
+       switch(SO3param) {
+         case 0: // Increment rotation tensor from the left R = R(dtheta)*Ra
+           inc_rottensor( dtheta, ns[i].R );
+           break;
+         case 1: // Increment rotation tensor from the right R = Ra*R(dtheta)
+           inc_rottensor( ns[i].R, dtheta );
+           break;
+       }
+     }
+   }
+#ifdef COMPUTE_GLOBAL_ROTATION
+  computeGlobalRotation();
+#endif
+}
+
+void
 GeomState::explicitUpdate(CoordSet &cs, const Vector &v)
 {
  // v = total displacement vector

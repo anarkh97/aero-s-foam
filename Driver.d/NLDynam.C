@@ -65,6 +65,7 @@ Domain::getInternalForce(GeomState &geomState, Vector& elementForce,
  *****************************************************************/
 
 {
+
   const double pseudoTime = sinfo.isDynam() ? time : lambda; // mpc needs lambda for nonlinear statics
 
   for(int iele = 0; iele < numele; ++iele) {
@@ -77,6 +78,7 @@ Domain::getInternalForce(GeomState &geomState, Vector& elementForce,
     }
     // Compute k and internal force for an element with x translation (or temperature) dofs
     else if(solInfo().soltyp == 2) {
+      filePrint(stderr,"soltyp == 2 \n");
       kel[iele].zero();
       Vector temp(packedEset[iele]->numNodes());
       for(int i=0; i<packedEset[iele]->numNodes(); ++i) {

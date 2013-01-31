@@ -32,7 +32,7 @@ class GenDiagMatrix: public GenSparseMatrix<Scalar> , public GenSolver<Scalar>
      Scalar diag(int d) const;
      Scalar &diag(int d);
      void reSolve(Scalar*);
-     //void print();
+//     void print();
      void mult(const GenVector<Scalar> &rhs, GenVector<Scalar> &result);
      void mult(const Scalar *rhs, Scalar *result);
      void factor();

@@ -22,6 +22,7 @@ class BelytschkoTsayShell : virtual public Element, public Corotator
     int opttrc; // bc option (0 for pressure, 1 for traction, -1 for neither)
     int optdmp; // damping (0/1 for damping off/on)
     int optcor[2]; // warping and/or shear correction on/off
+    int optprj; // rotation projection 0: off, 1: drilling only, 2: coupled drilling and rigid body modes
     double prmhgc[10]; // hourglass control parameters
     double prmdmp[10]; // damping control parameters
     int ngqpt[3]; // ngqpt[0] = gq rule for regular element

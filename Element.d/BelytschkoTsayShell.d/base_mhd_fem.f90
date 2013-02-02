@@ -1658,7 +1658,7 @@ subroutine getnmat(nnode,nndof,shap, nmat)
   do inode=1, nnode
      do idof=1, nndof
         icol=nndof*(inode-1)+idof
-	    nmat(idof,icol)= shap(inode)
+        nmat(idof,icol)= shap(inode)
      end do
   end do
 
@@ -1914,23 +1914,23 @@ subroutine getb0mat3d(nnode,cartd,ftens, b0mat3d)
 
      b0mat3d(2,icol)= cartd(2,inode) * ftens(1,2)
      b0mat3d(2,icol+1)= cartd(2,inode) * ftens(2,2)
-	 b0mat3d(2,icol+2)= cartd(2,inode) * ftens(3,2)
+     b0mat3d(2,icol+2)= cartd(2,inode) * ftens(3,2)
 
-	 b0mat3d(3,icol)= cartd(3,inode) * ftens(1,3)
+     b0mat3d(3,icol)= cartd(3,inode) * ftens(1,3)
      b0mat3d(3,icol+1)= cartd(3,inode) * ftens(2,3)
-	 b0mat3d(3,icol+2)= cartd(3,inode) * ftens(3,3)
+     b0mat3d(3,icol+2)= cartd(3,inode) * ftens(3,3)
 
      b0mat3d(4,icol)= cartd(2,inode) * ftens(1,3) + cartd(3,inode) * ftens(1,2)
      b0mat3d(4,icol+1)= cartd(2,inode) * ftens(2,3) + cartd(3,inode) * ftens(2,2)
-	 b0mat3d(4,icol+2)= cartd(2,inode) * ftens(3,3) + cartd(3,inode) * ftens(3,2)
+     b0mat3d(4,icol+2)= cartd(2,inode) * ftens(3,3) + cartd(3,inode) * ftens(3,2)
 
-	 b0mat3d(5,icol)= cartd(1,inode) * ftens(1,3) + cartd(3,inode) * ftens(1,1)
+     b0mat3d(5,icol)= cartd(1,inode) * ftens(1,3) + cartd(3,inode) * ftens(1,1)
      b0mat3d(5,icol+1)= cartd(1,inode) * ftens(2,3) + cartd(3,inode) * ftens(2,1)
-	 b0mat3d(5,icol+2)= cartd(1,inode) * ftens(3,3) + cartd(3,inode) * ftens(3,1)
+     b0mat3d(5,icol+2)= cartd(1,inode) * ftens(3,3) + cartd(3,inode) * ftens(3,1)
 
-	 b0mat3d(6,icol)= cartd(1,inode) * ftens(1,2) + cartd(2,inode) * ftens(1,1)
+     b0mat3d(6,icol)= cartd(1,inode) * ftens(1,2) + cartd(2,inode) * ftens(1,1)
      b0mat3d(6,icol+1)= cartd(1,inode) * ftens(2,2) + cartd(2,inode) * ftens(2,1)
-	 b0mat3d(6,icol+2)= cartd(1,inode) * ftens(3,2) + cartd(2,inode) * ftens(3,1)
+     b0mat3d(6,icol+2)= cartd(1,inode) * ftens(3,2) + cartd(2,inode) * ftens(3,1)
   end do
 
 
@@ -2640,6 +2640,7 @@ subroutine getbmat1pt(ecordloc, area, bmat1pt)
   !               ----
   !               belytschko, wong and chiang, CMAME, 1992, vol. 96, pp. 93-107
   !               advances in one point quadrature shell elements
+  !               (see, eq (19))
   !
   !  arguments description
   !  ---------------------
@@ -2705,7 +2706,7 @@ end subroutine getbmat1pt
 
 subroutine getbcmat1pt(ecordloc, area, gamma, zgamma, bcmat1pt)
   !=======================================================================
-  !  getbcmat1pt = compute b^c matrix for warpping correction
+  !  getbcmat1pt = compute b^c matrix for warping correction
   !                with one point integration and local z method
   !                for computational efficiency, explicit components form is used
   !

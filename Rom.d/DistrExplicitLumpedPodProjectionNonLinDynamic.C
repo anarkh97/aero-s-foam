@@ -63,7 +63,7 @@ void
 DistrExplicitLumpedPodProjectionNonLinDynamic::subUpdateWeightedNodesOnly(int iSub, DistrVector &v) {
   StackVector vec(v.subData(iSub), v.subLen(iSub));
   GeomState *gs = (*geomState).getSubGeomState(iSub);
-  gs->update(vec, packedWeightedNodes_[iSub], 1);
+  gs->update(vec, packedWeightedNodes_[iSub], 2);
 }
 
 void
@@ -75,12 +75,12 @@ DistrExplicitLumpedPodProjectionNonLinDynamic::subGetWeightedInternalForceOnly(i
   if(domain->solInfo().stable && domain->solInfo().isNonLin() && tIndex%domain->solInfo().stable_freq == 0) {
     sd->getWeightedStiffAndForceOnly(packedElementWeights_[iSub], *(*geomState)[iSub], eIF,
                                      allCorot[iSub], kelArray[iSub], residual,
-                                     1.0, t, (*geomState)[iSub]); // residual -= internal force);
+                                     1.0, t, (*geomState)[iSub], melArray[iSub]); // residual -= internal force);
   }
   else {
     sd->getWeightedInternalForceOnly(packedElementWeights_[iSub], *(*geomState)[iSub], eIF,
                                      allCorot[iSub], kelArray[iSub], residual,
-                                     1.0, t, (*geomState)[iSub]); // residual -= internal force);
+                                     1.0, t, (*geomState)[iSub], melArray[iSub]); // residual -= internal force);
   }
   StackVector subf(f.subData(iSub), f.subLen(iSub));
   subf.linC(residual, -1.0); // f = -residual

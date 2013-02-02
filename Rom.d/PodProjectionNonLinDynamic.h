@@ -3,6 +3,7 @@
 
 #include <Problems.d/NonLinDynam.h>
 #include <Driver.d/StateUpdater.h>
+#include <Corotational.d/GeomState.h>
 
 #include <memory>
 
@@ -62,9 +63,12 @@ public:
                           GenVector<double> &elementInternalForce, GenVector<double> &gRes, GenVector<double> &vel_n,
                           GenVector<double> &accel, double midTime) {
     pbd->saveMidTime(midTime);
-
+/*
     return IncrUpdater<PodProjectionNonLinDynamic, GenVector<double>, GeomState>::integrate(
         pbd, refState, geomState, du, residual, elementInternalForce, gRes, vel_n, accel, midTime);
+*/
+    geomState->update(*du, 2);
+    return pbd->getStiffAndForce(*geomState, residual, elementInternalForce, midTime, refState);
   }
   
   static void midpointIntegrate(PodProjectionNonLinDynamic *pbd, GenVector<double> &velN,

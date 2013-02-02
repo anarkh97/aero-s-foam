@@ -44,17 +44,17 @@ SparseNonNegativeLeastSquaresSolver::problemSizeIs(long eqnCount, long unkCount)
   }
 
   #ifdef USE_STXXL
-  std::cout << "using stxxl" << std::endl;
+  //std::cout << "using stxxl" << std::endl;
   stxxl::uint64 bufSize = (eqnCount) * (unkCount);
   #else
-  std::cout << "using std vector" << std::endl;
+  //std::cout << "using std vector" << std::endl;
   size_t bufSize = (eqnCount) * (unkCount);
   #endif
 
 
   equationCount_ = matrixLeadDim_ = eqnCount;
   unknownCount_ = unkCount;
-  std::cout << "Reserving STXXL vector of size "<< bufSize << std::endl;
+  //std::cout << "Reserving STXXL vector of size "<< bufSize << std::endl;
   matrixBuffer_.resize(bufSize);
   rhsBuffer_.sizeIs(equationCount());
   solutionBuffer_.sizeIs(unknownCount());

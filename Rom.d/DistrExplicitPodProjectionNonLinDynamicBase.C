@@ -20,6 +20,7 @@
 
 #include <algorithm>
 #include <memory>
+#include <limits>
 
 namespace Rom {
 
@@ -95,6 +96,7 @@ DistrExplicitPodPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dyn
 
   //all MPI processes have a full copy of reduced coordinates, only master processes needs to print
   //valgrind shows uninitialized conditionals junps here, need to figure out why
+  int p = std::numeric_limits<double>::digits10+1;
   for(int iOut = 0; iOut < numOutInfo; iOut++) {
 
     if(tIndex % oinfo[iOut].interval == 0) {
@@ -102,25 +104,25 @@ DistrExplicitPodPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dyn
       switch(oinfo[iOut].type){
          case OutputInfo::Accel6 :
            {
-           filePrint(oinfo[iOut].filptr, "%1.4e\n", t); // print timestamp
+           filePrint(oinfo[iOut].filptr, "%.*e\n", p, t); // print timestamp
            for(int i = 0; i<podSize; i++) {
-             filePrint(oinfo[iOut].filptr, "%1.4e ", distState.getAccel()[i]);
+             filePrint(oinfo[iOut].filptr, "%.*e ", p, distState.getAccel()[i]);
            }
            filePrint(oinfo[iOut].filptr, "\n");}
            break;
          case OutputInfo::Disp6DOF :
            {
-           filePrint(oinfo[iOut].filptr, "%1.4e\n", t); // print timestamp
+           filePrint(oinfo[iOut].filptr, "%.*e\n", p, t); // print timestamp
            for(int i = 0; i<podSize; i++) {
-             filePrint(oinfo[iOut].filptr, "%1.4e ", distState.getDisp()[i]);
+             filePrint(oinfo[iOut].filptr, "%.*e ", p, distState.getDisp()[i]);
            }
            filePrint(oinfo[iOut].filptr, "\n");}
            break;
          case OutputInfo::Velocity6 : 
            {
-           filePrint(oinfo[iOut].filptr, "%1.4e\n", t); // print timestamp
+           filePrint(oinfo[iOut].filptr, "%.*e\n", p, t); // print timestamp
            for(int i = 0; i<podSize; i++) {
-             filePrint(oinfo[iOut].filptr, "%1.4e ", distState.getVeloc()[i]);
+             filePrint(oinfo[iOut].filptr, "%.*e ", p, distState.getVeloc()[i]);
            }
            filePrint(oinfo[iOut].filptr, "\n");}
            break;
@@ -236,17 +238,17 @@ DistrExplicitPodProjectionNonLinDynamicBase::getInitState(SysState<DistrVector> 
 
   MultiDomainDynam::getInitState( *dummyState );
 
-  DistrVector _d_n = _curState.getDisp(); 
-  DistrVector _v_n = _curState.getVeloc();
-  DistrVector _a_n = _curState.getAccel();
-  DistrVector _v_p = _curState.getPrevVeloc();
+  DistrVector &_d_n = _curState.getDisp(); 
+  DistrVector &_v_n = _curState.getVeloc();
+  DistrVector &_a_n = _curState.getAccel();
+  DistrVector &_v_p = _curState.getPrevVeloc();
+
   //this projection doesn't do anything since the projectionBasis_ isn't initialized yet
   //this only matters if we have a case where the initial conditions are other than 0
   projectionBasis_.projectDown( *d_n, _d_n);
   projectionBasis_.projectDown( *v_n, _v_n);
   projectionBasis_.projectDown( *a_n, _a_n);
   projectionBasis_.projectDown( *v_p, _v_p);
-
 }
 
 void 
@@ -255,7 +257,7 @@ DistrExplicitPodProjectionNonLinDynamicBase::updateDisplacement(DistrVector& tem
 
   normalizedBasis_.projectUp( temp1, *d_n); 
 
-  geomState->update(*d_n, 1);
+  geomState->update(*d_n, 2);
 
   d_n1 = temp1;  //we save the increment vectors for postprocessing
 
@@ -267,7 +269,6 @@ void DistrExplicitPodProjectionNonLinDynamicBase::getConstForce(DistrVector& v)
   //just a formality. 
   MultiDomainDynam::getConstForce(*cnst_fBig);
   normalizedBasis_.projectDown(*cnst_fBig,v);
-
 }
 
 void
@@ -286,6 +287,7 @@ DistrExplicitPodProjectionNonLinDynamicBase::computeExtForce2(SysState<DistrVect
                         double t, DistrVector *aero_f,
                         double gamma, double alphaf) {
 
+  f = 0;
   MultiDomainDynam::computeExtForce2( *dummyState, *fExt, *cnst_fBig, tIndex, t, aero_fBig, gamma, alphaf);
 
   //f += cnst_f; should implement another version were the constant force is added 

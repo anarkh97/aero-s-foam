@@ -342,11 +342,15 @@ class Domain : public HData {
      void getFictitiousForce(GeomState &geomState, FullSquareMatrix *kel, Vector &residual,
                                 double time, GeomState *refState, Vector *reactions,
                                 FullSquareMatrix *mel, bool compute_tangents);
+     void transformElemStiffAndForce(const GeomState &geomState, double *elementForce,
+                                     FullSquareMatrix &kel, int iele, bool compute_tangents, FullSquareMatrix *mel = NULL);
+     void transformNodalMoment(const GeomState &geomState, Eigen::Vector3d &G,
+                               Eigen::Matrix3d &H, int nnum, bool compute_tangents);
      void getWeightedStiffAndForceOnly(const std::map<int, double> &weights,
                                        GeomState &u, Vector &elementInternalForce,
                                        Corotator **allCorot, FullSquareMatrix *kel,
                                        Vector &residual, double lambda, double time,
-                                       GeomState *refState);
+                                       GeomState *refState, FullSquareMatrix *mel = NULL);
      void getElemInternalForce(const GeomState &geomState, double time,
                                const GeomState *refState, const Corotator &elemCorot,
                                double *elemForce, FullSquareMatrix &elemStiff);
@@ -362,7 +366,7 @@ class Domain : public HData {
                                        GeomState &u, Vector &elementInternalForce,
                                        Corotator **allCorot, FullSquareMatrix *kel,
                                        Vector &residual, double lambda, double time,
-                                       GeomState *refState);
+                                       GeomState *refState, FullSquareMatrix *mel = NULL);
 
      void applyResidualCorrection(GeomState &geomState, Corotator **corotators, Vector &residual, double rcoef = 1.0);
      void initializeParameters(GeomState &geomState, Corotator **corotators);

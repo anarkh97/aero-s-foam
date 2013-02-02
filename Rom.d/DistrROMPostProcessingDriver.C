@@ -143,10 +143,10 @@ DistrROMPostProcessingDriver::bufferReducedFiles(){
               TimeStamps.push_back(timestamps);}
               break;
             default :
-              filePrint(stderr, "...ROD conversion only supports Acceraltion, Displacement, and Velocity...");
+              filePrint(stderr, "...ROD conversion only supports Acceleration, Displacement, and Velocity...\n");
           }
     } else {
-      filePrint(stderr,"Failure to open file");
+      filePrint(stderr,"Failure to open file \n");
     }
 
     if(i != 0){ 

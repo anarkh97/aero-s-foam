@@ -1005,7 +1005,7 @@ int main(int argc, char** argv)
          filePrint(stderr, " ... POD: // SVD Orthogonalization  ...\n");
          driver.reset(distrBasisOrthoDriverNew(domain));
        } else if (domain->solInfo().ROMPostProcess) {
-             filePrint(stderr, "... POD: Post Processing of Results...\n");
+             filePrint(stderr, " ... POD: Post Processing of Results...\n");
              driver.reset(distrROMPostProcessingDriverNew(domain));
          }
        driver->solve();

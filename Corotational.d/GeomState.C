@@ -427,6 +427,12 @@ GeomState::update(const Vector &v, int SO3param)
          case 1: // Increment rotation tensor from the right R = Ra*R(dtheta)
            inc_rottensor( ns[i].R, dtheta );
            break;
+         case 2: // additive update of total rotation vector
+           double theta[3];
+           mat_to_vec( ns[i].R, theta );
+           for(int j=0; j<3; ++j) theta[j] += dtheta[j];
+           vec_to_mat( theta, ns[i].R );
+           break;
        }
      }
    }
@@ -478,6 +484,12 @@ GeomState::update(const Vector &v, const std::vector<int> &weightedNodes, int SO
            break;
          case 1: // Increment rotation tensor from the right R = Ra*R(dtheta)
            inc_rottensor( ns[i].R, dtheta );
+           break;
+         case 2: // additive update of total rotation vector
+           double theta[3];
+           mat_to_vec( ns[i].R, theta );
+           for(int j=0; j<3; ++j) theta[j] += dtheta[j];
+           vec_to_mat( theta, ns[i].R );
            break;
        }
      }

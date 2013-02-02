@@ -85,6 +85,9 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
     // Get updated tangent stiffness matrix and element internal force
     if (const Corotator *elemCorot = corotators[iele]) {
       getElemStiffAndForce(geomState, pseudoTime, refState, *elemCorot, elementForce.data(), kel[iele]);
+      if(domain->solInfo().galerkinPodRom && packedEset[iele]->hasRot()) {
+        transformElemStiffAndForce(geomState, elementForce.data(), kel[iele], iele, true);
+      }
     }
     // Compute k and internal force for an element with x translation (or temperature) dofs
     else if(solInfo().soltyp == 2) {
@@ -383,7 +386,7 @@ Domain::getWeightedStiffAndForceOnly(const std::map<int, double> &weights,
                                      GeomState &geomState, Vector& elementForce,
                                      Corotator **corotators, FullSquareMatrix *kel,
                                      Vector &residual, double lambda, double time,
-                                     GeomState *refState)
+                                     GeomState *refState, FullSquareMatrix *mel)
 {
   const double pseudoTime = sinfo.isDynam() ? time : lambda; // MPC needs lambda for nonlinear statics
   
@@ -396,6 +399,9 @@ Domain::getWeightedStiffAndForceOnly(const std::map<int, double> &weights,
 
       FullSquareMatrix &elementStiff = kel[iElem];
       getElemStiffAndForce(geomState, pseudoTime, refState, *elementCorot, elementForce.data(), elementStiff);
+      if(domain->solInfo().galerkinPodRom && packedEset[iElem]->hasRot()) {
+        transformElemStiffAndForce(geomState, elementForce.data(), elementStiff, iElem, true);
+      }
    
       // Apply lumping weight 
       const double lumpingWeight = it->second;
@@ -414,6 +420,7 @@ Domain::getWeightedStiffAndForceOnly(const std::map<int, double> &weights,
 
   getFollowerForce(geomState, elementForce, corotators, kel, residual, lambda, time, refState, NULL, true);
 
+  if(sinfo.isDynam() && mel) getFictitiousForce(geomState, kel, residual, time, refState, NULL, mel, true);
 }
 
 void
@@ -2127,3 +2134,93 @@ Domain::computeReactionForce(Vector &fc, GeomState *geomState, Corotator **corot
 
 }
 
+void
+Domain::transformElemStiffAndForce(const GeomState &geomState, double *elementForce,
+                                   FullSquareMatrix &kel, int iele, bool compute_tangents, FullSquareMatrix *mel)
+{
+#ifdef USE_EIGEN3
+  // Convert from eulerian spatial to total lagrangian or updated lagrangian spatial
+  Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,1> >
+    G(elementForce, packedEset[iele]->numDofs());
+  Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic>,Eigen::RowMajor>
+    H(kel.data(),packedEset[iele]->numDofs(),packedEset[iele]->numDofs());
+  int numNodes = packedEset[iele]->numNodes() - packedEset[iele]->numInternalNodes();
+  int *nodes = packedEset[iele]->nodes();
+  for(int k = 0; k < numNodes; ++k) {
+    Eigen::Matrix3d R;
+    R << geomState[nodes[k]].R[0][0], geomState[nodes[k]].R[0][1], geomState[nodes[k]].R[0][2],
+         geomState[nodes[k]].R[1][0], geomState[nodes[k]].R[1][1], geomState[nodes[k]].R[1][2],
+         geomState[nodes[k]].R[2][0], geomState[nodes[k]].R[2][1], geomState[nodes[k]].R[2][2];
+    Eigen::Vector3d Psi;
+    mat_to_vec(R, Psi);
+    Eigen::Matrix3d T;
+    tangential_transf(Psi, T);
+
+    Eigen::Vector3d V = G.segment<3>(6*k+3);
+    if(sinfo.newmarkBeta == 0) {
+      if(domain->solInfo().galerkinPodRom && mel) {
+        Eigen::Matrix3d M;
+        M << (*mel)[6*k+3][6*k+3], (*mel)[6*k+3][6*k+4], (*mel)[6*k+3][6*k+5],
+             (*mel)[6*k+4][6*k+3], (*mel)[6*k+4][6*k+4], (*mel)[6*k+4][6*k+5],
+             (*mel)[6*k+5][6*k+3], (*mel)[6*k+5][6*k+4], (*mel)[6*k+5][6*k+5];
+
+        G.segment<3>(6*k+3) = M*(T.inverse()*M.inverse()*T.transpose().inverse())*T*V;
+      }
+      else {
+        G.segment<3>(6*k+3) = T.transpose()*V;
+     }
+    }
+    else
+      G.segment<3>(6*k+3) = T*V;
+    if(compute_tangents) {
+      Eigen::Matrix3d C1;
+      directional_deriv1(Psi, V, C1);
+
+      for(int l=0; l<2*numNodes; ++l) {
+        H.block<3,3>(6*k+3,3*l) = (T*H.block<3,3>(6*k+3,3*l)).eval();
+        H.block<3,3>(3*l,6*k+3) = (H.block<3,3>(3*l,6*k+3)*T.transpose()).eval();
+      }
+      for(int l=0; l<packedEset[iele]->numInternalNodes(); ++l) {
+        H.block<3,1>(6*k+3,6*numNodes+l) = (T*H.block<3,1>(6*k+3,6*numNodes+l)).eval();
+        H.block<1,3>(6*numNodes+l,6*k+3) = (H.block<1,3>(6*numNodes+l,6*k+3)*T.transpose()).eval();
+      }
+      H.block<3,3>(6*k+3,6*k+3) += 0.5*(C1 + C1.transpose());
+    }
+  }
+  delete [] nodes;
+#else
+  cerr << "USE_EIGEN3 is not defined here in Domain::transformElemStiffAndForce\n";
+  exit(-1);
+#endif
+}
+
+void
+Domain::transformNodalMoment(const GeomState &geomState, Eigen::Vector3d &G,
+                             Eigen::Matrix3d &H, int inode, bool compute_tangents)
+{
+#ifdef USE_EIGEN3
+  // transform from eulerian spatial description to total lagrangian or updated lagrangian spatial description
+
+  Eigen::Matrix3d R;
+  R << geomState[inode].R[0][0], geomState[inode].R[0][1], geomState[inode].R[0][2],
+       geomState[inode].R[1][0], geomState[inode].R[1][1], geomState[inode].R[1][2],
+       geomState[inode].R[2][0], geomState[inode].R[2][1], geomState[inode].R[2][2];
+  Eigen::Vector3d Psi;
+  mat_to_vec(R, Psi);
+
+  Eigen::Matrix3d T;
+  tangential_transf(Psi, T);
+
+  Eigen::Vector3d V = G;
+  G = T*V;
+  if(compute_tangents) {
+    Eigen::Matrix3d C1;
+    directional_deriv1(Psi, V, C1);
+
+    H = (T*H*T.transpose()).eval() + 0.5*(C1 + C1.transpose());
+  }
+#else
+  cerr << "USE_EIGEN3 is not defined here in Domain::transformElemStiffAndForce\n";
+  exit(-1);
+#endif
+}

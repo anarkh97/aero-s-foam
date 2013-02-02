@@ -657,7 +657,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
      probDesc->computeExtForce2(curState, ext_f, constForce, n, 
                                 t+(dt*(1-alphaf)), aeroForce, gamma, alphaf);
 
-     if(domain->solInfo().order == 1) { // heat (XXXX CURRENTLY ONLY IMPLEMENTED FOR alpham = alphaf = 1/2)
+     if(domain->solInfo().order == 1) { // heat (CURRENTLY ONLY IMPLEMENTED FOR alpham = alphaf = 1/2)
        // Solve for temperature: d^{n+1/2} = (M + gamma*dt*K)^{-1}(gamma*dt*f^{n+1/2} + M*(d^n+dt/2*(1-2*gamma)*v^n))
        d_n_h = 1.0*d_n + (dt/2.0*(1.0-2.0*gamma))*v_n;
        dynOps.M->mult( d_n_h, Md_n_h );
@@ -763,10 +763,8 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 //              2. Viscous damping is supported, but to keep the scheme explicit the equilibrium 
 //                 condition is expressed as M*a^{n+1} + C*v^{n+1/2} + K*u^{n+1} = fext^{n+1}
 //                 where v^{n+1/2} = v^n + dt/2*a^n
-//              3. Contact/tied surfaces are supported (using ACME) but LMPCs are not supported
-//              4. Velocity and/or acceleration controls (ACTUATORS) are not strictly correct since we
-//                 use v^n and a^n to compute fext^{n+1}
-//              5. USDD needs to be checked
+//              3. Constraints must be enforced with the penalty method, except for Contact/tied
+//                 surfaces are supported using ACME
 //
 // -----------------------------------------------------------------------------
  
@@ -856,6 +854,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
   handleAcceleration(*probDesc, a_n);
   if(probDesc->getFilterFlag() == 2) probDesc->project(a_n);
 
+
   // Output the state at t^0: d^0, v^0, a^0, fext^0
   postProcessor->dynamOutput(n, t_n, dynOps, fext, aeroForce, curState);
 
@@ -886,7 +885,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
     // First partial update nodal velocities:
     v_h_p = v_n_h;
-    v_n_h.linC(v_n, t_n_h-t_n, a_n); // v^(n+1/2) = v^n + (t^{n+1/2} - t^n)*a^n
+    v_n_h.linC(v_n, t_n_h-t_n, a_n); // v^{n+1/2} = v^n + (t^{n+1/2} - t^n)*a^n
 
     if (fourthOrder) { // TODO check this for case of variable timestep
       // this is as in the previous release of the FEM code (before august 28th 2008)
@@ -977,7 +976,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
       handleAcceleration(*probDesc, a_n);
       if(probDesc->getFilterFlag() == 2) probDesc->project(a_n);
 
-      // Update the velocity at t^{n+1}: v^{n+1} = v^{n+1/2}+dt^{n+1/2}/2*a^n
+      // Update the velocity at t^{n+1}: v^{n+1} = v^{n+1/2}+dt^{n+1/2}/2*a^{n+1}
       v_p = v_n;
       v_n.linC(1.0, v_n_h, 0.5*dt_n_h, a_n);
 

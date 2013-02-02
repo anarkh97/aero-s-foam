@@ -388,7 +388,7 @@ NonLinDynamic::getStiffAndForce(GeomState& geomState, Vector& residual,
     localTemp.resize(domain->getCDSA()->size());
   }
 
-  getStiffAndForceFromDomain(geomState, elementInternalForce, allCorot, kelArray, residual, 1.0, t, refState);
+  getStiffAndForceFromDomain(geomState, elementInternalForce, allCorot, kelArray, residual, 1.0, t, refState, melArray);
 
   times->buildStiffAndForce +=  getTime();
  
@@ -399,7 +399,8 @@ NonLinDynamic::getStiffAndForce(GeomState& geomState, Vector& residual,
 void
 NonLinDynamic::getStiffAndForceFromDomain(GeomState &geomState, Vector &elementInternalForce,
                                           Corotator **allCorot, FullSquareMatrix *kelArray,
-                                          Vector &residual, double lambda, double time, GeomState *refState) {
+                                          Vector &residual, double lambda, double time, GeomState *refState,
+                                          FullSquareMatrix *melArray) {
   domain->getStiffAndForce(geomState, elementInternalForce, allCorot, kelArray, residual, lambda, time, refState,
                            (Vector*) NULL, melArray);
 }
@@ -696,7 +697,8 @@ NonLinDynamic::formRHSinitializer(Vector &fext, Vector &velocity, Vector &elemen
 {
   // rhs = (fext - fint - Cv)
   rhs = fext;
-  getStiffAndForceFromDomain(geomState, elementInternalForce, allCorot, kelArray, rhs, 1.0, domain->solInfo().initialTime, refState);
+  getStiffAndForceFromDomain(geomState, elementInternalForce, allCorot, kelArray, rhs, 1.0, domain->solInfo().initialTime, refState,
+                             melArray);
   if(domain->solInfo().order == 2 && C) {
     C->mult(velocity, localTemp);
     rhs.linC(rhs, -1.0, localTemp);

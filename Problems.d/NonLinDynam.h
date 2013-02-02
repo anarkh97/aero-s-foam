@@ -179,7 +179,8 @@ class NonLinDynamic : public NLDynamPostProcessor {
     // Overridable implementation of getStiffAndForce
     virtual void getStiffAndForceFromDomain(GeomState &geomState, Vector &elementInternalForce,
                                             Corotator **allCorot, FullSquareMatrix *kelArray,
-                                            Vector &residual, double lambda, double time, GeomState *refState);
+                                            Vector &residual, double lambda, double time, GeomState *refState,
+                                            FullSquareMatrix *melArray);
 
   public:
     // reBuild assembles new dynamic stiffness matrix

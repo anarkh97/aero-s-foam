@@ -136,7 +136,7 @@ GenDistrDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector
 
   int outLimit = geoSource->getOutLimit();
   if(numOutInfo && x == domain->solInfo().initialTimeIndex && ndflag == 0 && !domain->solInfo().isDynam())
-    filePrint(stderr," ... Postprocessing                 ...\n");
+    filePrint(stderr," ... Postprocessing  3               ...\n");
   if(!masterFlag) initPostPro();
 
   int iSub;
@@ -1337,10 +1337,8 @@ GenDistrDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***a
 {
   int numOutInfo = geoSource->getNumOutInfo();
   if(numOutInfo == 0) return;
-
   // get output information
   OutputInfo *oinfo = geoSource->getOutputInfo();
-
   // check if there are any output files which need to be printed now
   bool noOut = true;
   for(int iOut = 0; iOut < numOutInfo; iOut++) {
@@ -1348,6 +1346,7 @@ GenDistrDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***a
     noOut = false; 
     break;
   }
+
   if(noOut) { x++; return; }
 
   if(domain->outFlag && domain->nodeTable == 0) domain->makeNodeTable(domain->outFlag);
@@ -1369,7 +1368,6 @@ GenDistrDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***a
   }
   if(domain->solInfo().isCoupled && domain->solInfo().isMatching) unify(disps); // PJSA 1-17-08 make sure master has both fluid and structure solutions before reducing
   disps.reduce(masterDisps, masterFlag, numFlags);
-
   // initialize and merge aeroelastic forces
   DistSVec<Scalar, 6> aerof(this->nodeInfo);
   DistSVec<Scalar, 6> masterAeroF(masterInfo);
@@ -1383,7 +1381,6 @@ GenDistrDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***a
     }
     aerof.reduce(masterAeroF, masterFlag, numFlags);
   }
-
   // initialize and merge velocities & accelerations
   DistSVec<Scalar, 11> vels(this->nodeInfo), accs(this->nodeInfo);
   DistSVec<Scalar, 11> masterVels(masterInfo), masterAccs(masterInfo);
@@ -1403,7 +1400,6 @@ GenDistrDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***a
     vels.reduce(masterVels, masterFlag, numFlags);
     accs.reduce(masterAccs, masterFlag, numFlags);
   }
-
   // initialize and merge reaction forces
   DistSVec<Scalar, 11> reacts(this->nodeInfo);
   DistSVec<Scalar, 11> masterReacts(masterInfo);
@@ -1417,7 +1413,6 @@ GenDistrDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***a
     }
     reacts.reduce(masterReacts, masterFlag, numFlags);
   }
-
 // RT - serialize the OUTPUT, PJSA - stress output doesn't work with serialized output. need to reconsider
 #ifdef SERIALIZED_OUTPUT
 for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
@@ -1448,7 +1443,6 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
 #ifndef SERIALIZED_OUTPUT
     this->communicator->sync();
 #endif
-
     for(int iInfo = 0; iInfo < numOutInfo; iInfo++) {
       if(oinfo[iInfo].nodeNumber == -1 && oinfo[iInfo].type != OutputInfo::Farfield && oinfo[iInfo].type != OutputInfo::AeroForce) {
         numRes[iInfo] = 0;
@@ -1466,7 +1460,6 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
         }
       }
     }
-
 
     if(x == 0) { // always put single node output in one file regardless of outLimit
       for(iSub = 0; iSub < this->numSub; iSub++)  {
@@ -1492,7 +1485,6 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
 
     // update number of results
     numRes[iOut]++;
-
     switch(oinfo[iOut].type)  {
       
       case OutputInfo::FreqRespModes:

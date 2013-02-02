@@ -23,11 +23,12 @@ LumpedPodProjectionNonLinDynamic::preProcess() {
 void
 LumpedPodProjectionNonLinDynamic::getStiffAndForceFromDomain(GeomState &geomState, Vector &elementInternalForce,
                                                              Corotator **allCorot, FullSquareMatrix *kelArray,
-                                                             Vector &residual, double lambda, double time, GeomState *refState) {
+                                                             Vector &residual, double lambda, double time, GeomState *refState,
+                                                             FullSquareMatrix *melArray) {
   domain->getWeightedStiffAndForceOnly(packedElementWeights_,
                                        geomState, elementInternalForce,
                                        allCorot, kelArray,
-                                       residual, lambda, time, refState);
+                                       residual, lambda, time, refState, melArray);
 }
 
 void

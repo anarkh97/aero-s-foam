@@ -53,6 +53,7 @@ using namespace std;
 #include <Rom.d/DriverInterface.h>
 #include <Rom.d/DistrExplicitSnapshotNonLinDynamic.h>
 #include <Rom.d/DistrExplicitPodProjectionNonLinDynamic.h>
+#include <Rom.d/DistrExplicitPodProjectionNonLinDynamicBase.h>
 #include <Rom.d/DistrExplicitLumpedPodProjectionNonLinDynamic.h>
 #ifdef DISTRIBUTED
   #include <Pita.d/Old.d/PitaNonLinDynam.h>
@@ -961,13 +962,13 @@ int main(int argc, char** argv)
              if (domain->solInfo().elemLumpPodRom) {
                filePrint(stderr, " ... POD: ROM with stiffness lumping...\n");
                Rom::DistrExplicitLumpedPodProjectionNonLinDynamic dynamProb(domain);
-               DynamicSolver < MDDynamMat, DistrVector, MultiDomDynPostProcessor,
+               DynamicSolver < MDDynamMat, DistrVector, Rom::DistrExplicitPodPostProcessor,
                              Rom::DistrExplicitLumpedPodProjectionNonLinDynamic, double > dynamSolver(&dynamProb);
                dynamSolver.solve();
              } else {
                filePrint(stderr, " ... POD: Explicit Galerkin         ...\n");
                Rom::DistrExplicitPodProjectionNonLinDynamic dynamProb(domain);
-               DynamicSolver < MDDynamMat, DistrVector, MultiDomDynPostProcessor,
+               DynamicSolver < MDDynamMat, DistrVector, Rom::DistrExplicitPodPostProcessor,
                              Rom::DistrExplicitPodProjectionNonLinDynamic, double > dynamSolver(&dynamProb);
                dynamSolver.solve();
              }
@@ -1003,9 +1004,12 @@ int main(int argc, char** argv)
          // Stand-alone SVD orthogonalization
          filePrint(stderr, " ... POD: // SVD Orthogonalization  ...\n");
          driver.reset(distrBasisOrthoDriverNew(domain));
-         driver->solve();
-         break;
-       }
+       } else if (domain->solInfo().ROMPostProcess) {
+             filePrint(stderr, " ... POD: Post Processing of Results...\n");
+             driver.reset(distrROMPostProcessingDriverNew(domain));
+         }
+       driver->solve();
+       break;
      }
      // Fall-thru
      default:

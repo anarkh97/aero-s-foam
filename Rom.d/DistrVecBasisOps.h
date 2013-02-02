@@ -101,7 +101,6 @@ renormalized_basis(const GenSubDOp<Scalar> &metric, const GenVecBasis<Scalar, Ge
   // normalMatrix <- lower( (M * Phi)^T * Phi )
   const int vecCount = result.vectorCount();
   GenFullSquareMatrix<Scalar> normalMatrix(vecCount);
-
   for (int row = 0; row < vecCount; ++row) {
     const GenDistrVector<Scalar> &dual = result[row];
     for (int col = 0; col <= row; ++col) {

@@ -9,6 +9,7 @@
 #include <map>
 #include <algorithm>
 #include <list>
+#include <vector>
 
 #if defined(WINDOWS) || defined(MACOSX)
  #include <cfloat>
@@ -240,6 +241,7 @@ struct SolverInfo {
                      // heat: true --> compute consistent initial first time derivative ie, v^0 = M^{-1}(fext^0 - fint^0) for a first order differential equation (ie heat)
                      //       false --> v^0 = 0
    bool zeroRot;
+   
 
    int dist_acme; // 0: sequential, 1: parallel with centralized input on host (cpu with id 0), 2: parallel with distributed input by subdomain
                   // NOTE: currently only dist_acme == 0 is supported for Mortar method (statics and implicit dynamics) ... see main.C 
@@ -261,6 +263,7 @@ struct SolverInfo {
    double penalty_tol;
    double penalty_beta;
 
+   std::vector<std::string> RODConversionFiles;
    const char * snapfiPodRom;
    const char * readInROBorModes;
    const char * SVDoutput;
@@ -270,6 +273,7 @@ struct SolverInfo {
    const char * forcePodRomFile;
    const char * residualPodRomFile;
    const char * jacobianPodRomFile;
+   bool ROMPostProcess;
    bool statevectPodRom;
    bool accelvectPodRom;
    bool forcevectPodRom;
@@ -295,6 +299,7 @@ struct SolverInfo {
    int  skipResidual;
    int  skipJacobian;
    int  orthogPodRom;
+   int  numRODFile;
    double tolPodRom;
    bool ConwepOnOff;
    std::list<int> loadcases;
@@ -475,6 +480,7 @@ struct SolverInfo {
                   iacc_switch = true;
                   zeroRot = false;
 
+
                   dist_acme = 0;
                   allproc_acme = true;
                   ffi_debug = false;
@@ -495,44 +501,46 @@ struct SolverInfo {
                   constraint_hess = 1;
                   constraint_hess_eps = 0;
 
-                  snapfiPodRom = "";
-		  readInROBorModes = "";
-		  SVDoutput = "pod.rob";
-		  reducedMeshFile = "";
-		  statePodRomFile = "";
-		  accelPodRomFile = "";
-		  forcePodRomFile = "";
+                  snapfiPodRom       = "";
+		  readInROBorModes   = "";
+		  SVDoutput          = "pod.rob";
+		  reducedMeshFile    = "";
+		  statePodRomFile    = "";
+		  accelPodRomFile    = "";
+		  forcePodRomFile    = "";
 		  residualPodRomFile = "";
 		  jacobianPodRomFile = "";
-		  statevectPodRom = false;
-		  accelvectPodRom = false;
-		  forcevectPodRom = false;
-		  residvectPodRom = false;
-		  jacobvectPodRom = false;
-		  readmodeCalled = false;
-		  modalCalled = false;
-                  activatePodRom = false;
-                  snapshotsPodRom = false;
-                  checkPodRom = false;
-                  svdPodRom = false;
-                  samplingPodRom = false;
-                  galerkinPodRom = false;
-                  elemLumpPodRom = false;
-                  onlineSvdPodRom = false;
-                  maxSizePodRom = 0;
+		  ROMPostProcess     = false;
+		  statevectPodRom    = false;
+		  accelvectPodRom    = false;
+		  forcevectPodRom    = false;
+		  residvectPodRom    = false;
+		  jacobvectPodRom    = false;
+		  readmodeCalled     = false;
+		  modalCalled        = false;
+                  activatePodRom     = false;
+                  snapshotsPodRom    = false;
+                  checkPodRom        = false;
+                  svdPodRom          = false;
+                  samplingPodRom     = false;
+                  galerkinPodRom     = false;
+                  elemLumpPodRom     = false;
+                  onlineSvdPodRom    = false;
+                  maxSizePodRom      = 0;
                   substractRefPodRom = false;
-                  skipPodRom = 1;
-                  skipOffSet = 0;
-		  skipState = 1;
-		  skipAccel = 1;
-		  skipForce = 1;
-		  skipResidual = 1;
-		  skipJacobian = 1;
-		  orthogPodRom = 1;
-                  tolPodRom = 1.0e-6;
-                  ConwepOnOff = false;
-                  basicDofCoords = true;
-                  basicPosCoords = true;
+                  skipPodRom         = 1;
+                  skipOffSet         = 0;
+		  skipState          = 1;
+		  skipAccel          = 1;
+		  skipForce          = 1;
+		  skipResidual       = 1;
+		  skipJacobian       = 1;
+		  orthogPodRom       = 1;
+                  numRODFile         = 0;
+                  tolPodRom          = 1.0e-6;
+                  ConwepOnOff        = false;
+                  basicDofCoords     = true;
+                  basicPosCoords     = true;
                  }
 
    void setDirectMPC(int mode) { mpcDirect = mode; }
@@ -776,12 +784,13 @@ struct SolverInfo {
 
    bool isDynam() {
      return ((probType == Dynamic) || (probType == NonLinDynam)
-             || (probType == TempDynamic) || (probType == MatNonLinDynam));
+             || (probType == TempDynamic) || (probType == MatNonLinDynam) || (probType == PodRomOffline));
    }
 
    bool isNonLin() {
      return ((probType == NonLinStatic) || (probType == NonLinDynam)
-             || (probType == MatNonLinStatic) || (probType == MatNonLinDynam) || (probType == ArcLength));
+             || (probType == MatNonLinStatic) || (probType == MatNonLinDynam) || (probType == ArcLength)
+             || (probType == PodRomOffline));
    }
 
    bool isStatic() {

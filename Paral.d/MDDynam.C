@@ -551,8 +551,11 @@ void
 MultiDomainDynam::updateDisplacement(DistrVector& dinc, DistrVector& d_n)
 {
   if(domain->solInfo().isNonLin()) {
-    geomState->update(dinc, 1);
-    geomState->get_tot_displacement(d_n);
+    if(domain->solInfo().galerkinPodRom) geomState->update(dinc, 2);
+    else {
+      geomState->update(dinc, 1);
+      geomState->get_tot_displacement(d_n);
+    }
   }
 }
 
@@ -952,7 +955,7 @@ MultiDomainDynam::getInternalForce(DistrVector &d, DistrVector &f, double t, int
 {
   if(domain->solInfo().isNonLin()) {
     execParal3R(decDomain->getNumSub(), this, &MultiDomainDynam::subGetInternalForce, f, t, tIndex);
-    geomState->pull_back(f);
+    if(!domain->solInfo().galerkinPodRom) geomState->pull_back(f);
   }
   else {
     f.zero();

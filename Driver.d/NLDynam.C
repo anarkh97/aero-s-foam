@@ -74,16 +74,21 @@ Domain::getInternalForce(GeomState &geomState, Vector& elementForce,
     // Get updated tangent stiffness matrix and element internal force
     if (const Corotator *elemCorot = corotators[iele]) {
       getElemInternalForce(geomState, pseudoTime, refState, *elemCorot, elementForce.data(), kel[iele]);
+      if(domain->solInfo().galerkinPodRom && packedEset[iele]->hasRot()) {
+        transformElemStiffAndForce(geomState, elementForce.data(), kel[iele], iele, false, &(mel[iele]));
+      }
     }
     // Compute k and internal force for an element with x translation (or temperature) dofs
     else if(solInfo().soltyp == 2) {
       kel[iele].zero();
       Vector temp(packedEset[iele]->numNodes());
+      int *nn = packedEset[iele]->nodes();
       for(int i=0; i<packedEset[iele]->numNodes(); ++i) {
-        temp[i] = geomState[packedEset[iele]->nodes()[i]].x;
+        temp[i] = geomState[nn[i]].x;
       }
       kel[iele] = packedEset[iele]->stiffness(nodes, kel[iele].data());
       kel[iele].multiply(temp, elementForce, 1.0); // elementForce = kel*temp
+      delete [] nn;
     }
     // Assemble element internal force into residual force vector
     for(int idof = 0; idof < kel[iele].dim(); ++idof) {
@@ -108,7 +113,7 @@ Domain::getWeightedInternalForceOnly(const std::map<int, double> &weights,
                                      GeomState &geomState, Vector& elementForce,
                                      Corotator **corotators, FullSquareMatrix *kel,
                                      Vector &residual, double lambda, double time,
-                                     GeomState *refState)
+                                     GeomState *refState, FullSquareMatrix *mel)
 {
   const double pseudoTime = sinfo.isDynam() ? time : lambda; // MPC needs lambda for nonlinear statics
   
@@ -121,6 +126,9 @@ Domain::getWeightedInternalForceOnly(const std::map<int, double> &weights,
 
       FullSquareMatrix &elementStiff = kel[iElem];
       getElemInternalForce(geomState, pseudoTime, refState, *elementCorot, elementForce.data(), elementStiff);
+      if (domain->solInfo().galerkinPodRom && packedEset[iElem]->hasRot()) {
+        transformElemStiffAndForce(geomState, elementForce.data(), elementStiff, iElem, false, &(mel[iElem]));
+      }
    
       // Apply lumping weight 
       const double lumpingWeight = it->second;
@@ -137,6 +145,8 @@ Domain::getWeightedInternalForceOnly(const std::map<int, double> &weights,
   }
 
   getFollowerForce(geomState, elementForce, corotators, (FullSquareMatrix *) NULL, residual, lambda, time, refState, NULL, false);
+
+  if(sinfo.isDynam() && mel) getFictitiousForce(geomState, kel, residual, time, refState, NULL, mel, false);
 }
 
 void
@@ -181,9 +191,20 @@ Domain::getFictitiousForce(GeomState &geomState, FullSquareMatrix *kel, Vector &
         Eigen::Vector3d f;
 
         if(beta == 0) {
-          // compute the fictitious force for explicit central difference
+          // compute the fictitious force for explicit central difference        
           Eigen::Vector3d V_n_h = V_n + dt/2*A_n;
-          f = R*V_n_h.cross(M*V_n_h);
+          if(domain->solInfo().galerkinPodRom) {
+            Eigen::Vector3d Psi;
+            mat_to_vec(R, Psi);
+            Eigen::Matrix3d T, Tdot;
+            tangential_transf(Psi, T);
+            tangential_transf_dot(Psi, V_n_h, Tdot);
+            f = M*(T.inverse()*M.inverse()*T.transpose().inverse())*( 
+                T.transpose()*M*Tdot*V_n_h + (T*V_n_h).cross(M*(T*V_n_h)));
+          }
+          else {
+            f = R*V_n_h.cross(M*V_n_h);
+          }
           // TODO: compute tangents for explict (for critical timestep estimate)
         }
         else {
@@ -216,8 +237,17 @@ Domain::getFictitiousForce(GeomState &geomState, FullSquareMatrix *kel, Vector &
               for(int k = 0; k < 3; ++k)
                 dkel(j,k) = jacF[j+k*3];
 
-            // subtract the part which is added to the dynamic tangent stiffness elsewhere (see: probDesc->reBuild)
             Eigen::Matrix3d C = sinfo.alphaDamp*M;
+
+            if(domain->solInfo().galerkinPodRom) {
+              Eigen::Vector3d A = (1-alpham)/(dt*dt*beta*(1-alphaf))*incd - (1-alpham)/(dt*beta)*V_n + ((alpham-1)/(2*beta)+1)*A_n;
+              Eigen::Vector3d g = R*(M*A + C*V);
+              f += g;
+              transformNodalMoment(geomState, f, dkel, nodes[i], true);
+              f -= g;
+            }
+
+            // subtract the part which is added to the dynamic tangent stiffness elsewhere (see: probDesc->reBuild)
             dkel -= ((1-alpham)/((1-alphaf)*(dt*dt*beta))*M + gamma/(dt*beta)*C);
 
             for(int j = 0; j < 3; ++j)
@@ -272,7 +302,18 @@ Domain::getFictitiousForce(GeomState &geomState, FullSquareMatrix *kel, Vector &
         if(beta == 0) {
           // compute the fictitious force for explicit central difference
           Eigen::Vector3d V_n_h = V_n + dt/2*A_n;
-          f = R*V_n_h.cross(M*V_n_h);
+          if(domain->solInfo().galerkinPodRom) {
+            Eigen::Vector3d Psi;
+            mat_to_vec(R, Psi);
+            Eigen::Matrix3d T,Tdot;
+            tangential_transf(Psi, T);
+            tangential_transf_dot(Psi, V_n_h, Tdot);
+            f = M*(T.inverse()*M.inverse()*T.transpose().inverse())*( 
+                T.transpose()*M*Tdot*V_n_h + (T*V_n_h).cross(M*(T*V_n_h)));
+          }
+          else {
+            f = R*V_n_h.cross(M*V_n_h);
+          }
           // TODO: compute tangents for explict (for critical timestep estimate)
         }
         else {  
@@ -305,8 +346,17 @@ Domain::getFictitiousForce(GeomState &geomState, FullSquareMatrix *kel, Vector &
               for(int j = 0; j < 3; ++j)
                 dkel(i,j) = jacF[i+j*3];
 
-            // subtract the part which is added to the dynamic tangent stiffness elsewhere (see: probDesc->reBuild)
             Eigen::Matrix3d C = sinfo.alphaDamp*M;
+
+            if(domain->solInfo().galerkinPodRom) {
+              Eigen::Vector3d A = (1-alpham)/(dt*dt*beta*(1-alphaf))*incd - (1-alpham)/(dt*beta)*V_n + ((alpham-1)/(2*beta)+1)*A_n;
+              Eigen::Vector3d g = R*(M*A + C*V);
+              f += g;
+              transformNodalMoment(geomState, f, dkel, current->node, true);
+              f -= g;
+            }
+
+            // subtract the part which is added to the dynamic tangent stiffness elsewhere (see: probDesc->reBuild)
             dkel -= ((1-alpham)/((1-alphaf)*(dt*dt*beta))*M + gamma/(dt*beta)*C);
 
             for(int inode = 0; inode < nodeToElem->num(current->node); ++inode) { // loop over the elements attached to the node

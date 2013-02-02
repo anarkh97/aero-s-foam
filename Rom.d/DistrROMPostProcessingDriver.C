@@ -1,0 +1,221 @@
+#include "DistrROMPostProcessingDriver.h"
+
+#include "DistrDomainUtils.h"
+#include <Driver.d/Domain.h>
+#include <Driver.d/DecDomain.h>
+
+#include "DistrVecBasis.h"
+#include "DistrVecBasisOps.h"
+#include "FileNameInfo.h"
+#include "DistrBasisFile.h"
+
+#include "DistrMasterMapping.h"
+#include "DistrVecNodeDof6Conversion.h"
+#include "DistrNodeDof6Buffer.h"
+
+#include <Feti.d/DistrVector.h>
+#include <Utils.d/DistHelper.h>
+
+#include "PtrPtrIterAdapter.h"
+
+#include <algorithm>
+#include <memory>
+
+#include <iostream>
+#include <cassert>
+
+class Rbm;
+ 
+namespace Rom {
+
+DistrROMPostProcessingDriver::DistrROMPostProcessingDriver(Domain *domain_) :
+MultiDomainDynam(domain_),
+normalizedBasis_()
+{}
+
+void
+DistrROMPostProcessingDriver::preProcess() {
+
+  {MultiDomainDynam::preProcess();
+  bufferReducedFiles();
+  //initialized decDomain class for use in projection basis preprocessing
+
+  DistrVecBasis projectionBasis_;
+
+  // read in distribuited POD basis
+  FileNameInfo fileInfo;
+  DistrBasisInputFile podBasisFile(BasisFileId(fileInfo, BasisId::STATE, BasisId::POD));
+
+  filePrint(stderr, " ... Projection subspace of dimension = %d ...\n", projectionSubspaceSize);
+  projectionBasis_.dimensionIs(projectionSubspaceSize, decDomain->masterSolVecInfo());
+
+  DistrVecNodeDof6Conversion converter(decDomain->getAllSubDomains(), decDomain->getAllSubDomains() + decDomain->getNumSub());
+
+  typedef PtrPtrIterAdapter<SubDomain> SubDomIt;
+  DistrMasterMapping masterMapping(SubDomIt(decDomain->getAllSubDomains()),
+                                   SubDomIt(decDomain->getAllSubDomains() + decDomain->getNumSub()));
+  DistrNodeDof6Buffer buffer(masterMapping.localNodeBegin(), masterMapping.localNodeEnd());
+
+  for (DistrVecBasis::iterator it = projectionBasis_.begin(),
+                               it_end = projectionBasis_.end();
+                               it != it_end; ++it) {
+    assert(podBasisFile.validCurrentState());
+
+    podBasisFile.currentStateBuffer(buffer);
+    converter.vector(buffer, *it);
+
+    podBasisFile.currentStateIndexInc();
+  }
+  
+  dummyDynOps = MultiDomainDynam::buildOps(1.0, 0.0, 0.0);
+
+
+
+  //normalized POD basis with respect to mass matrix
+  assert(dummyDynOps->M);
+  const GenSubDOp<double> &fullMass = *(dummyDynOps->M);
+  renormalized_basis(fullMass, projectionBasis_, normalizedBasis_);
+  //normalizedBasis_ = projectionBasis_;
+  VECsize = projectionBasis_.size();}
+
+  {//initialize multi domain dynamic post processor
+  mddPostPro = MultiDomainDynam::getPostProcessor();
+
+  //initialize containers for full coordinates 
+  fullDispBuffer  = new GenDistrVector<double>(MultiDomainDynam::solVecInfo());
+  fullVelBuffer   = new GenDistrVector<double>(MultiDomainDynam::solVecInfo());
+  fullAccBuffer   = new GenDistrVector<double>(MultiDomainDynam::solVecInfo());
+  fullVel2Buffer  = new GenDistrVector<double>(MultiDomainDynam::solVecInfo());
+  fullDummyBuffer = new GenDistrVector<double>(MultiDomainDynam::solVecInfo());
+
+  //initialize system state vector container for use in mulit domain dynamic post processor
+  curState = new SysState<GenDistrVector<double> >( *fullDispBuffer, *fullVelBuffer, *fullAccBuffer, *fullVel2Buffer);}
+}  //end preProcessing
+
+void 
+DistrROMPostProcessingDriver::bufferReducedFiles(){
+
+  //get output information needed for parsing reduced data
+  numConversionFiles = decDomain->getDomain()->solInfo().numRODFile;
+
+  //loop over reduced coordinate files
+  for(int i = 0; i < numConversionFiles; i++) {
+    //have all threads parse the reduced coordinate input file
+    //there should be plenty of memory per node since projectionSubspaceSize is small
+    ifstream reducedCoordFile(decDomain->getDomain()->solInfo().RODConversionFiles[i].c_str());
+    if(reducedCoordFile.is_open()) {
+      double time, dummyVar;
+      int datatype, podsize;
+      reducedCoordFile>>datatype; reducedCoordFile>>podsize;
+      DataType.push_back(std::make_pair(datatype, podsize));
+          switch(DataType[i].first) {
+            case 0 :   // read reduced acceleration data
+              {std::vector<double> timestamps;
+              while(reducedCoordFile>>time) {
+                timestamps.push_back(time);
+                for(int j = 0; j < podsize; j++) {
+                  reducedCoordFile>>dummyVar;
+                  reducedAccBuffer.push_back(dummyVar);
+                }
+              }
+              TimeStamps.push_back(timestamps);}
+              break;
+            case 1 :   // read reduced displacement data
+              {std::vector<double> timestamps;
+              while(reducedCoordFile>>time) {
+                timestamps.push_back(time);
+                for(int j = 0; j < podsize; j++) {
+                  reducedCoordFile>>dummyVar;
+                  reducedDispBuffer.push_back(dummyVar);
+                }
+               }
+               TimeStamps.push_back(timestamps);}
+              break;
+            case 2 :   // read reduced velocity data
+               {std::vector<double> timestamps;
+                while(reducedCoordFile>>time) {
+                timestamps.push_back(time);
+                for(int j = 0; j < podsize; j++) {
+                  reducedCoordFile>>dummyVar;
+                  reducedVelBuffer.push_back(dummyVar);
+                }
+              }
+              TimeStamps.push_back(timestamps);}
+              break;
+            default :
+              filePrint(stderr, "...ROD conversion only supports Acceleration, Displacement, and Velocity...\n");
+          }
+    } else {
+      filePrint(stderr,"Failure to open file \n");
+    }
+
+    if(i != 0){ 
+     if(DataType[i].second != DataType[i-1].second) {
+       filePrint(stderr,"Incompatible Input files \n");
+       exit(-1);
+     }
+    }
+
+  } //end loop over input files, finished reading reduced data
+
+  projectionSubspaceSize = DataType[0].second;
+}
+
+void
+DistrROMPostProcessingDriver::solve() {
+
+  preProcess();
+
+   int counter = 0; //TODO: make this portion more general so it doesn't depend on th assumption
+                    //that all files have matching timestamps
+   for(std::vector<double>::iterator it = TimeStamps[0].begin(); it != TimeStamps[0].end(); it++) {
+
+     filePrint(stderr,"\r  ROM Conversion Loop: t = %9.3e, %3d%% complete ",
+                *it, int(*it/(TimeStamps[0].back())*100));
+
+     // load current state for output 
+     for(int i = 0; i < numConversionFiles; i++) {
+       std::vector<double> buffer(projectionSubspaceSize);
+           switch(DataType[i].first) {
+            case 0 :
+
+              for (int j = 0; j < projectionSubspaceSize; j++) 
+                buffer[j] = reducedAccBuffer[counter*projectionSubspaceSize+j];
+             
+              normalizedBasis_.projectUp(buffer, *fullAccBuffer);
+              break;
+            case 1 :
+
+              for (int j = 0; j < projectionSubspaceSize; j++) 
+                buffer[j] = reducedDispBuffer[counter*projectionSubspaceSize+j];
+
+              normalizedBasis_.projectUp(buffer, *fullDispBuffer);
+              break;
+            case 2 :
+              if(counter != 0)
+                fullVel2Buffer = fullVelBuffer;
+
+              for (int j = 0; j < projectionSubspaceSize; j++) 
+                buffer[j] = reducedVelBuffer[counter*projectionSubspaceSize+j];
+
+              normalizedBasis_.projectUp(buffer, *fullVelBuffer);
+              break;
+            default :
+              break; 
+              //nothing
+           }
+     }
+   MultiDomainDynam::updateDisplacement( *fullDispBuffer, *fullDispBuffer);
+   mddPostPro->dynamOutput( counter, *it, *dummyDynOps, *fullDummyBuffer, fullDummyBuffer, *curState);
+
+   counter += 1;
+   }  //end of loop over time stamps
+
+}
+
+
+} //end namespace Rom
+
+Rom::DriverInterface *distrROMPostProcessingDriverNew(Domain *D) {
+  return new Rom::DistrROMPostProcessingDriver(D);
+}

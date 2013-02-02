@@ -757,7 +757,7 @@ GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<S
   if(noOut) return;
 
   if(verboseFlag && numOutInfo && x == 0 && ndflag == 0 && !domain->solInfo().isDynam())
-    filePrint(stderr," ... Postprocessing                 ...\n");
+    filePrint(stderr," ... Postprocessing  1               ...\n");
 
   Scalar *globVal = 0;  
   if(domain->outFlag && domain->nodeTable == 0) domain->makeNodeTable(domain->outFlag);
@@ -1986,7 +1986,7 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***all
   if(noOut) return;
 
   if(verboseFlag && numOutInfo && x == 0)
-    filePrint(stderr," ... Postprocessing                 ...\n");
+    filePrint(stderr," ... Postprocessing  2               ...\n");
 
   if(domain->outFlag && domain->nodeTable == 0) domain->makeNodeTable(domain->outFlag);
   int numNodes = (domain->outFlag) ? domain->exactNumNodes : geoSource->numNode();

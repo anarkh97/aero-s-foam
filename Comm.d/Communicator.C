@@ -201,6 +201,16 @@ Communicator::allGatherv(Type *recv_data, int recv_counts[], int displacements[]
 #endif
 }
 
+template <class Type>
+void
+Communicator::gather(Type *send_data, int send_count, Type *recv_data, int recv_count, int root)
+{
+#ifdef USE_MPI
+  MPI_Gather(send_data, send_count, CommTrace<Type>::MPIType,
+                recv_data, recv_count, CommTrace<Type>::MPIType, root, comm);
+#endif
+}
+
 #define _MESSAGE_SIZE 100000
 template <class Type>
 void
@@ -288,6 +298,9 @@ void Communicator::allGather(complex<double> *recv_data, int recv_count);
 
 template <>
 void Communicator::allGatherv(complex<double> *recv_data, int recv_counts[], int displacements[]);
+
+template <>
+void Communicator::gather(complex<double> *send_data, int send_count, complex<double> *recv_data, int recv_count, int root);
 
 template <>
 void

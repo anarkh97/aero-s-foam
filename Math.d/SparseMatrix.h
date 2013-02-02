@@ -45,7 +45,7 @@ class GenSparseMatrix {
         virtual Scalar diag(int dof) const = 0;
         virtual Scalar &diag(int dof) = 0;
 	virtual void invertDiag();
-        //virtual void print();
+        virtual void printSparse();
 
         virtual void add(FullSquareMatrix &, int *dofs) = 0;
         virtual void addImaginary(FullSquareMatrix &, int *dofs);

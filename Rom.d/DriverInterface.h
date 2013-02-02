@@ -1,6 +1,8 @@
 #ifndef ROM_DRIVERINTERFACE_H
 #define ROM_DRIVERINTERFACE_H
 
+#include "Paral.d/MDDynam.h"
+
 class Domain;
 
 namespace Rom {
@@ -25,5 +27,6 @@ private:
 extern Rom::DriverInterface *basisOrthoDriverNew(Domain *);
 extern Rom::DriverInterface *distrBasisOrthoDriverNew(Domain *);
 extern Rom::DriverInterface *elementSamplingDriverNew(Domain *);
+extern Rom::DriverInterface *distrROMPostProcessingDriverNew(Domain *);
 
 #endif /* ROM_DRIVERINTERFACE_H */

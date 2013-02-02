@@ -157,6 +157,7 @@ private:
                               double &alphaf, double &alpham);
     void getQuasiStaticParameters(double &maxVel, double &delta);
     void getInitState(SysState<DistrVector> &);
+    void printFullNorm(DistrVector &){};
     void getInitialTime(int &tIndex, double &initialTime);
     double getInitialForceNorm();
     void getSteadyStateParam(int &steadyFlag, int &steadyMin, int &steadMax,

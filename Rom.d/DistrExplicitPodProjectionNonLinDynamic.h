@@ -55,7 +55,7 @@ DistrExplicitPodProjectionNonLinDynamic::computeExtForce2(SysState<DistrVector> 
                                                      DistrVector *aero_f,
                                                      double gamma, double alphaf) {
   currentTimeIs(t);
-  MultiDomainDynam::computeExtForce2(distState, f, cnst_f, tIndex, t, aero_f, gamma, alphaf);
+  DistrExplicitPodProjectionNonLinDynamicBase::computeExtForce2(distState, f, cnst_f, tIndex, t, aero_f, gamma, alphaf);
 } 
 
 inline
@@ -65,7 +65,7 @@ DistrExplicitPodProjectionNonLinDynamic::computeExtForce2(SysState<DistrVector> 
                                                      int tIndex, double t,
                                                      DistrVector *aero_f) {
   currentTimeIs(t);
-  MultiDomainDynam::computeExtForce2(distState, f, cnst_f, tIndex, t, aero_f);
+  DistrExplicitPodProjectionNonLinDynamicBase::computeExtForce2(distState, f, cnst_f, tIndex, t, aero_f);
 }
 
 } // end namespace Rom

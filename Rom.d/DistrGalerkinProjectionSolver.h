@@ -20,7 +20,6 @@ namespace Rom {
 template <typename Scalar>
 class GenDistrGalerkinProjectionSolver : public GenParallelSolver<Scalar> {
 public:
-  virtual void refactor();
   virtual void solve(GenDistrVector<Scalar> &, GenDistrVector<Scalar> &);
   virtual void reSolve(GenDistrVector<Scalar> &);
  
@@ -31,15 +30,10 @@ public:
   virtual Timings &getTimers() { return timers_; }
   virtual double getSolutionTime() { return 0.0; }
 
-  // Full-order matrix (assumed symmetric positive definite)
-  const GenSubDOp<Scalar> &fullMatrix() const { return fullMatrix; }
-
   // Reduced basis parameters
   typedef GenVecBasis<Scalar, GenDistrVector> BasisType;
-  const BasisType &projectionBasis() const { return *projectionBasis_; }
-  void projectionBasisIs(const BasisType &); // Passed object must be kept alive by owner
 
-  explicit GenDistrGalerkinProjectionSolver(const GenSubDOp<Scalar> &fullMat); // Passed object must be kept alive by owner
+  explicit GenDistrGalerkinProjectionSolver(const BasisType &); // Passed object must be kept alive by owner
 
   virtual ~GenDistrGalerkinProjectionSolver();
 
@@ -49,9 +43,6 @@ public:
 private:
   Timings timers_;
 
-  const GenSubDOp<Scalar> *fullMatrix_;
-
-  const BasisType *projectionBasis_; // Assumed to hold fully consistent vectors
   BasisType normalizedBasis_;
 
   // Disallow copy & assignment
@@ -60,13 +51,10 @@ private:
 };
 
 template <typename Scalar>
-GenDistrGalerkinProjectionSolver<Scalar>::GenDistrGalerkinProjectionSolver(const GenSubDOp<Scalar> &fullMat) :
+GenDistrGalerkinProjectionSolver<Scalar>::GenDistrGalerkinProjectionSolver(const BasisType &NormBasis) :
   timers_(),
-  fullMatrix_(&fullMat),
-  normalizedBasis_()
-{
-  projectionBasis_ = &normalizedBasis_;
-}
+  normalizedBasis_(NormBasis)
+{}
 
 template <typename Scalar>
 GenDistrGalerkinProjectionSolver<Scalar>::~GenDistrGalerkinProjectionSolver() {
@@ -75,39 +63,8 @@ GenDistrGalerkinProjectionSolver<Scalar>::~GenDistrGalerkinProjectionSolver() {
 
 template <typename Scalar>
 void
-GenDistrGalerkinProjectionSolver<Scalar>::projectionBasisIs(const BasisType &reducedBasis) {
-  projectionBasis_ = &reducedBasis;
-  refactor();
-}
-
-template <typename Scalar>
-void
-GenDistrGalerkinProjectionSolver<Scalar>::refactor() {
-  renormalized_basis(*fullMatrix_, *projectionBasis_, normalizedBasis_);
-  timer = 0;
-  counter = 0;
-}
-
-template <typename Scalar>
-void
 GenDistrGalerkinProjectionSolver<Scalar>::solve(GenDistrVector<Scalar> &rhs, GenDistrVector<Scalar> &result) {
-  const int vectorCount = normalizedBasis_.vectorCount();
-  GenVector<Scalar> components(vectorCount, Scalar()); 
-
-  
-  if(domain->solInfo().elemLumpPodRom){
-
-    normalizedBasis_.project(rhs, result);  
-
-  } else {
-
-    //---------------------------------------------------------------------
-    vector_components_vector_masterflag(normalizedBasis_, rhs, components);
-    //---------------------------------------------------------------------
-    assembled_vector(normalizedBasis_, components, result);
-    //-----------------------------------------------------
-
-       }
+      normalizedBasis_.project(rhs, result);  //this actually doesn't do anything, fint and fext already projected
 }
 
 template <typename Scalar>

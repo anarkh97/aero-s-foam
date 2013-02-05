@@ -200,7 +200,7 @@ Domain::getFictitiousForce(GeomState &geomState, FullSquareMatrix *kel, Vector &
             tangential_transf(Psi, T);
             tangential_transf_dot(Psi, V_n_h, Tdot);
             f = M*(T.inverse()*M.inverse()*T.transpose().inverse())*( 
-                T.transpose()*M*Tdot*V_n_h + (T*V_n_h).cross(M*(T*V_n_h)));
+                T.transpose()*M*Tdot*V_n_h + T.transpose()*(T*V_n_h).cross(M*T*V_n_h));
           }
           else {
             f = R*V_n_h.cross(M*V_n_h);
@@ -309,7 +309,7 @@ Domain::getFictitiousForce(GeomState &geomState, FullSquareMatrix *kel, Vector &
             tangential_transf(Psi, T);
             tangential_transf_dot(Psi, V_n_h, Tdot);
             f = M*(T.inverse()*M.inverse()*T.transpose().inverse())*( 
-                T.transpose()*M*Tdot*V_n_h + (T*V_n_h).cross(M*(T*V_n_h)));
+                T.transpose()*M*Tdot*V_n_h + T.transpose()*(T*V_n_h).cross(M*(T*V_n_h)));
           }
           else {
             f = R*V_n_h.cross(M*V_n_h);

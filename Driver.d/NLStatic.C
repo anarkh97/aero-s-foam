@@ -2168,7 +2168,7 @@ Domain::transformElemStiffAndForce(const GeomState &geomState, double *elementFo
       }
       else {
         G.segment<3>(6*k+3) = T.transpose()*V;
-     }
+      }
     }
     else
       G.segment<3>(6*k+3) = T*V;

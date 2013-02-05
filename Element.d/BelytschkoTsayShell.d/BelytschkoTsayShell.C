@@ -1,4 +1,5 @@
 #include <Element.d/BelytschkoTsayShell.d/BelytschkoTsayShell.h>
+#include <Element.d/BelytschkoTsayShell.d/base_mhd_fem.h>
 #include <Utils.d/dbg_alloca.h>
 #include <Corotational.d/GeomState.h>
 #include <Corotational.d/utilities.h>
@@ -60,7 +61,8 @@ BelytschkoTsayShell::BelytschkoTsayShell(int* nodenums)
   opttrc = -1; // no pressure or traction
   optdmp = 0; // no damping
   optcor[0] = 1; // was 1 // warping correction on
-  optcor[1] = 0; // was 0 // shear correction off
+  optcor[1] = 1; // was 0 // shear correction off
+  optprj = 1; // drilling projection
   nndof  = 6; // number of dofs per node
   ndime  = 3;
   nnode  = 4;
@@ -418,6 +420,11 @@ BelytschkoTsayShell::getStiffAndForce(GeomState& geomState, CoordSet& cs, FullSq
       for(int j = 0; j < nndof; ++j) {
         evelo[iloc+j] = geomState[nn[i]].v[j] + delt*0.5*geomState[nn[i]].a[j];
       }
+/* 
+      // push forward convected angular velocity 
+      double V[3] = { evelo[iloc+3], evelo[iloc+4], evelo[iloc+5] };
+      mat_mult_vec(geomState[nn[i]].R, V, evelo+iloc+3, 0);
+*/
     }
     // Check if Conwep is being used. If so, use the pressure from Conwep.
     if (ConwepOnOff) {
@@ -644,12 +651,14 @@ BelytschkoTsayShell::Elefintbt1(double delt, double *_ecord, double *_edisp, dou
 
   Map<Matrix<double,3,4,ColMajor> > ecord(_ecord);
   Map<Matrix<double,6,4,ColMajor> > edisp(_edisp);
-  Map<Matrix<double,6,4,ColMajor> > evelo(_evelo); // TODO use stride here to skip theta_z
+  Map<Matrix<double,3,8,ColMajor> > evelo(_evelo);
   Map<Matrix<double,3,8,ColMajor> > efint(_efint);
-
   // ====================================
   // local variable
   // ==============
+  Matrix<double,3,8,ColMajor> eveloloc0;
+  Matrix<double,3,8,ColMajor> efintloc0;
+  Matrix<double,6,4,ColMajor> toto;
   Matrix<double,3,3,ColMajor> locbvec; 
   Matrix<double,3,4,ColMajor> ecurn;
   Matrix<double,3,8,ColMajor> efintloc;
@@ -681,8 +690,23 @@ BelytschkoTsayShell::Elefintbt1(double delt, double *_ecord, double *_edisp, dou
   // get local nodal coordinates and velocity
   // ----------------------------------------
   ecurnloc = locbvec.transpose()*ecurn;
-  eveloloc.block<3,4>(0,0) = locbvec.transpose()*evelo.block<3,4>(0,0);
-  eveloloc.block<2,4>(3,0) = locbvec.block<3,2>(0,0).transpose()*evelo.block<3,4>(3,0);
+  eveloloc0 = locbvec.transpose()*evelo;
+
+  // apply rotation projection
+  // ----------------------------------------
+  switch(optprj) {
+    case 0: // no projection
+      eveloloc = eveloloc0.block<5,4>(0,0);
+      break;
+    case 1: // drilling rotation projection
+      rotprojbt1(ecurnloc, eveloloc0.data(), toto.data());
+      eveloloc = toto.block<5,4>(0,0);
+      break;
+    case 2: // coupled drilling rotation and rigid body modes projection
+      rotprojbt2(ecurnloc, eveloloc0.data(), toto.data());
+      eveloloc = toto.block<5,4>(0,0);
+      break;
+  }
 
   // compute area
   // ------------
@@ -794,10 +818,24 @@ BelytschkoTsayShell::Elefintbt1(double delt, double *_ecord, double *_edisp, dou
   // subtract the local traction forces
   // -------------------------------------
   if(opttrc >= 0) {
-    //cerr << "tmftval = " << tmftval << endl;
     _FORTRAN(elefbc3dbrkshl2opt)(area, trac, tmftval, efintloc.data());
           // input : area,trac,tmftval
           // inoutput : efintloc
+  }
+
+  // apply the rotation projection
+  // -------------------------------------
+  switch(optprj) {
+    case 0 : // no projection
+      break;
+    case 1 : // drilling rotation projection
+      efintloc0 = efintloc;
+      rotprojbt1(ecurnloc, efintloc0.data(), efintloc.data());
+      break;
+    case 2: // coupled drilling rotation and rigid body modes projection
+      efintloc0 = efintloc;
+      rotprojbt2(ecurnloc, efintloc0.data(), efintloc.data());
+      break;
   }
 
   // convert local efintloc to global efint

@@ -5,10 +5,10 @@
 #include <algorithm>
 #include <Feti.d/DistrVector.h>
 #include <Threads.d/PHelper.h>
+#include <Utils.d/dofset.h>
 #ifdef USE_EIGEN3
 #include <Eigen/Core>
 #include <Eigen/Sparse>
-#include <Utils.d/dofset.h>
 #endif
 
 template <typename Scalar> class GenVector;
@@ -150,9 +150,9 @@ GenVecBasis<Scalar, GenVecType>::copyBufferContent(const GenVecBasis &other) {
 template <typename Scalar, template <typename Scalar> class GenVecType>
 GenVecBasis<Scalar, GenVecType>::GenVecBasis() :
  vectorInfo_(Traits::defaultInfo()),
- vectorCount_(0),
+ vectorCount_(0)
 #ifdef USE_EIGEN3
- basis(NULL,0,0),
+ ,basis(NULL,0,0),
  SparseBasis(0,0)
 #endif
 {
@@ -164,9 +164,9 @@ GenVecBasis<Scalar, GenVecType>::GenVecBasis() :
 template <typename Scalar, template <typename Scalar> class GenVecType>
 GenVecBasis<Scalar, GenVecType>::GenVecBasis(int vCount, InfoType vInfo) :
  vectorInfo_(vInfo),
- vectorCount_(vCount),
+ vectorCount_(vCount)
 #ifdef USE_EIGEN3
- basis(NULL,0,0),
+ ,basis(NULL,0,0),
  SparseBasis(0,0)
 #endif
 {
@@ -176,9 +176,9 @@ GenVecBasis<Scalar, GenVecType>::GenVecBasis(int vCount, InfoType vInfo) :
 template <typename Scalar, template <typename Scalar> class GenVecType>
 GenVecBasis<Scalar, GenVecType>::GenVecBasis(const GenVecBasis &other) :
  vectorInfo_(other.vectorInfo_),
- vectorCount_(other.vectorCount_),
+ vectorCount_(other.vectorCount_)
 #ifdef USE_EIGEN3
- basis(NULL,0,0),
+ ,basis(NULL,0,0),
  SparseBasis(0,0)
 #endif
 {

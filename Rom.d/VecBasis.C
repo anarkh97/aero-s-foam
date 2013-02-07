@@ -42,7 +42,7 @@ GenVecBasis<double, GenDistrVector>::project(GenDistrVector<double> &x, GenDistr
 template <>
 GenDistrVector<double> &
 GenVecBasis<double, GenDistrVector>::projectUp(GenDistrVector<double> &x, GenDistrVector<double> &_result) {
-
+#ifdef USE_EIGEN3
   Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > GenCoordinates(x.data(), x.size());
   Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > result(_result.data(), _result.size());
 
@@ -51,27 +51,28 @@ GenVecBasis<double, GenDistrVector>::projectUp(GenDistrVector<double> &x, GenDis
     { result = SparseBasis*GenCoordinates;}
   else 
     { result = basis*GenCoordinates;}
-
+#endif
   return _result;
 }
 
 template <>
 GenDistrVector<double> &
 GenVecBasis<double, GenDistrVector>::projectUp(std::vector<double> &x, GenDistrVector<double> &_result) {
+#ifdef USE_EIGEN3
   //this instantiation is for the post processor, need to fix it to use GenDistrVector
   Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > GenCoordinates(x.data(), x.size());
   Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > result(_result.data(), _result.size());
 
   //full coordinates distributed over MPI processes
   { result = basis*GenCoordinates;}
-
+#endif
   return _result;
 }
 
 template <>
 GenDistrVector<double> &
 GenVecBasis<double, GenDistrVector>::projectDown(GenDistrVector<double> &x, GenDistrVector<double> &_result) {
-
+#ifdef USE_EIGEN3
   Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > FullCoordinates(x.data(), x.size());
   Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > result(_result.data(), _result.size());
 // fix this portion to include, in the sparse basis, the dofs present in the external force
@@ -84,7 +85,7 @@ GenVecBasis<double, GenDistrVector>::projectDown(GenDistrVector<double> &x, GenD
   //each process gets a copy of reduced coordinates
   if(structCom)
     structCom->globalSum(result.size(), result.data());
- 
+#endif 
   return _result;
 }
 
@@ -92,6 +93,7 @@ template<>
 void
 GenVecBasis<double, GenDistrVector>::makeSparseBasis(std::vector<int> &nodeVec, DofSetArray *dsa)
 {
+#ifdef USE_EIGEN3
   new (&SparseBasis) Eigen::SparseMatrix<double,0>(basis.rows(),basis.cols()); // O Col major, 1 RowMajor
   typedef  Eigen::Triplet<double> T;
   std::vector<T> tripletList;
@@ -110,6 +112,7 @@ GenVecBasis<double, GenDistrVector>::makeSparseBasis(std::vector<int> &nodeVec, 
   }
   SparseBasis.setFromTriplets(tripletList.begin(),tripletList.end()); 
   SparseBasis.makeCompressed();
+#endif
 }
 
 }

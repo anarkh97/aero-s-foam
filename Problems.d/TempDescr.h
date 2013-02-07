@@ -1,11 +1,11 @@
 #ifndef _TEMP_DESCR_H_
 #define _TEMP_DESCR_H_
 
-#include <Driver.d/Domain.h>
 #include <Driver.d/TempProbType.h>
 #include <Driver.d/Dynam.h>
 #include <Hetero.d/FlExchange.h>
 
+class Domain;
 template <class Scalar> class GenVector;
 typedef GenVector<double> Vector;
 template <class Scalar> class GenSparseMatrix;

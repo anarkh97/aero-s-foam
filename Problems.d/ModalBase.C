@@ -1,4 +1,5 @@
 #include <Problems.d/ModalBase.h>
+#include <Driver.d/Domain.h>
 #include <Solvers.d/Rbm.h>
 #include <Utils.d/ModeData.h>
 #include <Driver.d/GeoSource.h>

@@ -3440,7 +3440,8 @@ void GeoSource::getHeaderDescription(char *headDescrip, int fileNumber)
   else if(sinfo.probType == SolverInfo::NonLinStatic ||
           sinfo.probType == SolverInfo::MatNonLinStatic) strcpy(prbType,"NLStatic");
   else if(sinfo.probType == SolverInfo::NonLinDynam ||
-          sinfo.probType == SolverInfo::MatNonLinDynam) strcpy(prbType,"NLDynamic");
+          sinfo.probType == SolverInfo::MatNonLinDynam ||
+          sinfo.probType == SolverInfo::PodRomOffline) strcpy(prbType,"NLDynamic");
   else if(sinfo.probType == SolverInfo::ArcLength) strcpy(prbType,"Arclength");
   else if(sinfo.probType == SolverInfo::TempDynamic) strcpy(prbType,"Temp");
   else if(sinfo.probType == SolverInfo::AxiHelm) strcpy(prbType,"AxiHelm");

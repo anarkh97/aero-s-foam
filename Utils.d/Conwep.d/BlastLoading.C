@@ -464,13 +464,15 @@ double BlastLoading::ComputeShellPressureLoad(const double* coords,
   n[0] /= magn;
   n[1] /= magn;
   n[2] /= magn;
+  bool IsDegenerate = ( coords[6]==coords[9] && coords[7]==coords[10] && coords[8]==coords[11] ) ;
+  int NumberOfNodes = IsDegenerate ? 3 : 4 ;
   double x[3] = {0,0,0};
-  for (int k = 0; k < 4; ++k) { 
+  for (int k = 0; k < NumberOfNodes; ++k) { 
     for (int j = 0; j < 3; ++j)
       x[j] += coords[k*3+j];
   }
-  for (int j = 0; j < 3; ++j)
-    x[j] *= 0.25;
+  for (int j = 0; j < 3; ++j) 
+    x[j] *= 1.0/NumberOfNodes;
   double p = Conwep::Blast(myData,x,n,currentTime);
   // p is in psi: convert it to Pa, then use scaleLength, scaleTime and scaleMass to convert it to correct pressure units:
   //return -p*6.895e3 // Convert psi to Pa.

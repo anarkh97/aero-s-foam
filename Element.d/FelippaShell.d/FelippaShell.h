@@ -15,6 +15,7 @@ class FelippaShell : public Element,
 	int      nn[3];
         int      type;
         double  *cFrame;
+        bool ConwepOnOff;
 
 public:
 	FelippaShell(int*);
@@ -59,6 +60,7 @@ public:
                          double*, GeomState *gs=0);
         void getFlLoad(CoordSet &, const InterpPoint &, double *flF, 
                        double *resF, GeomState *gs=0);
+        void setPressure(double, MFTTData* = 0, bool = false);
         void computePressureForce(CoordSet&, Vector& elPressureForce,
                                   GeomState *gs = 0, int cflg = 0, double t = 0);
 

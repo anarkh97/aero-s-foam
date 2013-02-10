@@ -269,6 +269,7 @@ void DistrExplicitPodProjectionNonLinDynamicBase::getConstForce(DistrVector& v)
   //just a formality. 
   MultiDomainDynam::getConstForce(*cnst_fBig);
   normalizedBasis_.projectDown(*cnst_fBig,v);
+  cnst_fBig->zero();
 }
 
 void
@@ -287,7 +288,7 @@ DistrExplicitPodProjectionNonLinDynamicBase::computeExtForce2(SysState<DistrVect
                         double t, DistrVector *aero_f,
                         double gamma, double alphaf) {
 
-  f = 0;
+  f = cnst_f;
   MultiDomainDynam::computeExtForce2( *dummyState, *fExt, *cnst_fBig, tIndex, t, aero_fBig, gamma, alphaf);
 
   //f += cnst_f; should implement another version were the constant force is added 

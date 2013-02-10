@@ -106,7 +106,8 @@ private:
   VecType *vectors_;
 #ifdef USE_EIGEN3
   Eigen::Map<Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> > basis;
-  Eigen::SparseMatrix<double,0> SparseBasis; //0 for Col Major, 1 for Row Major
+  Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> compressedBasis; 
+  std::vector<int> compressedKey;
 #endif
 };
 
@@ -150,10 +151,11 @@ GenVecBasis<Scalar, GenVecType>::copyBufferContent(const GenVecBasis &other) {
 template <typename Scalar, template <typename Scalar> class GenVecType>
 GenVecBasis<Scalar, GenVecType>::GenVecBasis() :
  vectorInfo_(Traits::defaultInfo()),
- vectorCount_(0)
+ vectorCount_(0),
 #ifdef USE_EIGEN3
- ,basis(NULL,0,0),
- SparseBasis(0,0)
+ basis(NULL,0,0),
+ compressedBasis(0,0),
+ compressedKey(0)
 #endif
 {
   placeVectors();
@@ -164,10 +166,11 @@ GenVecBasis<Scalar, GenVecType>::GenVecBasis() :
 template <typename Scalar, template <typename Scalar> class GenVecType>
 GenVecBasis<Scalar, GenVecType>::GenVecBasis(int vCount, InfoType vInfo) :
  vectorInfo_(vInfo),
- vectorCount_(vCount)
+ vectorCount_(vCount),
 #ifdef USE_EIGEN3
- ,basis(NULL,0,0),
- SparseBasis(0,0)
+ basis(NULL,0,0),
+ compressedBasis(0,0),
+ compressedKey(0)
 #endif
 {
   placeVectors();
@@ -176,10 +179,11 @@ GenVecBasis<Scalar, GenVecType>::GenVecBasis(int vCount, InfoType vInfo) :
 template <typename Scalar, template <typename Scalar> class GenVecType>
 GenVecBasis<Scalar, GenVecType>::GenVecBasis(const GenVecBasis &other) :
  vectorInfo_(other.vectorInfo_),
- vectorCount_(other.vectorCount_)
+ vectorCount_(other.vectorCount_),
 #ifdef USE_EIGEN3
- ,basis(NULL,0,0),
- SparseBasis(0,0)
+ basis(NULL,0,0),
+ compressedBasis(0,0),
+ compressedKey(0)
 #endif
 {
   placeVectors();

@@ -32,6 +32,7 @@ class DistrGeomState {
 
      // Update the GeomStates
      void update(DistrVector &v, int SO3param = 0);
+     void explicitUpdate(GenDecDomain<double> *decDomain, DistrVector &v);
      void setVelocity(DistrVector &, DistrVector &);
 
 // The following functions are necessary to implement NL dynamics and
@@ -61,6 +62,7 @@ class DistrGeomState {
      void subInterp(int isub, double&, DistrGeomState &, DistrGeomState &);
      void subDiff(int isub, DistrGeomState &unp, DistrVector &un);
      void subUpdate(int isub, DistrVector &v, int SO3param);
+     void subExplicitUpdate(int iSub,DistrVector &v, GenDecDomain<double> *decDomain);
      void subSetVelocity(int isub, DistrVector &v, DistrVector &a);
      void makeSubGeomStates(int isub, DecDomain *domain);
      void subCopyConstructor(int isub, const DistrGeomState &g2);

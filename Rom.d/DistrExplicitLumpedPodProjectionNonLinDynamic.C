@@ -33,7 +33,7 @@ DistrExplicitLumpedPodProjectionNonLinDynamic::updateDisplacement(DistrVector& t
 
   normalizedBasis_.projectUp( temp1, *d_n);
   execParal1R(decDomain->getNumSub(),this,&DistrExplicitLumpedPodProjectionNonLinDynamic::subUpdateWeightedNodesOnly,*d_n);
-  d_n1 = temp1;
+  d_n1 += temp1;
 }
 
 void

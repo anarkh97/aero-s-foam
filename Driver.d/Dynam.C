@@ -765,6 +765,72 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
             delete [] data;
           }
         } break;
+        case OutputInfo::ExternalXForce:  {
+          double *data = new double[nNodesOut];
+          realNode = -1;
+          for (iNode = 0; iNode < nNodes; ++iNode)  {
+            if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
+            int xloc  = c_dsa->locate(first_node+iNode, DofSet::Xdisp);
+            data[nodeI]  = (xloc >= 0) ? ext_f[xloc] : 0.0;
+          }
+          geoSource->outputNodeScalars(i, data, nNodesOut, time);
+          delete [] data;
+        } break;
+        case OutputInfo::ExternalYForce:  {
+          double *data = new double[nNodesOut];
+          realNode = -1;
+          for (iNode = 0; iNode < nNodes; ++iNode)  {
+            if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
+            int yloc  = c_dsa->locate(first_node+iNode, DofSet::Ydisp);
+            data[nodeI]  = (yloc >= 0) ? ext_f[yloc] : 0.0;
+          }
+          geoSource->outputNodeScalars(i, data, nNodesOut, time);
+          delete [] data;
+        } break;
+        case OutputInfo::ExternalZForce:  {
+          double *data = new double[nNodesOut];
+          realNode = -1;
+          for (iNode = 0; iNode < nNodes; ++iNode)  {
+            if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
+            int zloc  = c_dsa->locate(first_node+iNode, DofSet::Zdisp);
+            data[nodeI] = (zloc >= 0) ? ext_f[zloc] : 0.0;
+          }
+          geoSource->outputNodeScalars(i, data, nNodesOut, time);
+          delete [] data;
+        } break;
+        case OutputInfo::ExternalXMom:  {
+          double *data = new double[nNodesOut];
+          realNode = -1;
+          for (iNode = 0; iNode < nNodes; ++iNode)  {
+            if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
+            int xrot  = c_dsa->locate(first_node+iNode, DofSet::Xrot);
+            data[nodeI] = (xrot >= 0) ? ext_f[xrot] : 0.0;
+          }
+          geoSource->outputNodeScalars(i, data, nNodesOut, time);
+          delete [] data;
+        } break;
+        case OutputInfo::ExternalYMom:  {
+          double *data = new double[nNodesOut];
+          realNode = -1;
+          for (iNode = 0; iNode < nNodes; ++iNode)  {
+            if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
+            int yrot  = c_dsa->locate(first_node+iNode, DofSet::Yrot);
+            data[nodeI] = (yrot >= 0) ? ext_f[yrot] : 0.0;
+          }
+          geoSource->outputNodeScalars(i, data, nNodesOut, time);
+          delete [] data;
+        } break;
+        case OutputInfo::ExternalZMom:  {
+          double *data = new double[nNodesOut];
+          realNode = -1;
+          for (iNode = 0; iNode < nNodes; ++iNode)  {
+            if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
+            int zrot  = c_dsa->locate(first_node+iNode, DofSet::Zrot);
+            data[nodeI] = (zrot >= 0) ? ext_f[zrot] : 0.0;
+          }
+          geoSource->outputNodeScalars(i, data, nNodesOut, time);
+          delete [] data;
+        } break;
         case OutputInfo::Composit:
           getCompositeData(i,time);
           break;          

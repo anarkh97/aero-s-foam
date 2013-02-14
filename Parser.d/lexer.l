@@ -1086,6 +1086,18 @@ TRAIL [a-zA-Z]*
 
 "aeromomz"|"AEROMOMZ"              { yylval.ival = OutputInfo::AeroZMom;     return STRESSID; }
 
+"exteforx"|"EXTEFORX"              { yylval.ival = OutputInfo::ExternalXForce; return STRESSID; }
+
+"extefory"|"EXTEFORY"              { yylval.ival = OutputInfo::ExternalYForce; return STRESSID; }
+
+"exteforz"|"EXTEFORZ"              { yylval.ival = OutputInfo::ExternalZForce; return STRESSID; }
+
+"extemomx"|"EXTEMOMX"              { yylval.ival = OutputInfo::ExternalXMom;  return STRESSID; }
+
+"extemomy"|"EXTEMOMY"              { yylval.ival = OutputInfo::ExternalYMom;  return STRESSID; }
+
+"extemomz"|"EXTEMOMZ"              { yylval.ival = OutputInfo::ExternalZMom;  return STRESSID; }
+
 "gvelocit"|"GVELOCIT"              { yylval.ival = OutputInfo::Velocity;     return STRESSID; }
 
 "gacceler"|"GACCELER"              { yylval.ival = OutputInfo::Acceleration; return STRESSID; }

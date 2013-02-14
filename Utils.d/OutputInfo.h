@@ -39,7 +39,8 @@ struct OutputInfo {
           TemperatureFirstTimeDerivative, PressureFirstTimeDerivative, PressureSecondTimeDerivative,
 	  HeatReactions, Reactions6, Statevector, Residual, Jacobian, 
 	  RobData, SampleMesh, Accelvector, Forcevector,
-          RotationMatrix };
+          RotationMatrix, ExternalXForce, ExternalYForce, ExternalZForce,
+          ExternalXMom, ExternalYMom, ExternalZMom, };
 
    enum Group  { Nodal, Attribute, NodeGroup };
    Type  type;

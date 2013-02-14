@@ -113,7 +113,14 @@ static const char*header[] = {
 "",
 "",
 "",
-"Matrix ROTATIONS under%s for %s\n%d\n"
+"",
+"Matrix ROTATIONS under%s for %s\n%d\n",
+"Scalar EXTFORCEX under %s for %s\n%d\n",
+"Scalar EXTFORCEY under %s for %s\n%d\n",
+"Scalar EXTFORCEZ under %s for %s\n%d\n",
+"Scalar EXTMOMENTX under %s for %s\n%d\n",
+"Scalar EXTMOMENTY under %s for %s\n%d\n",
+"Scalar EXTMOMENTZ under %s for %s\n%d\n"
 };
 
 static const char * ele_header[] = {

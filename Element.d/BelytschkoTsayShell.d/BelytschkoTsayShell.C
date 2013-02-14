@@ -24,6 +24,7 @@ extern "C" {
   void _FORTRAN(getgqsize)(int&, int&, int*, int*, int*);
   void _FORTRAN(getgq1d)(int&, double*, double*);
   void _FORTRAN(elemaslbt)(int&, double*, double*, double*, double*);
+  void _FORTRAN(elemaslbt2)(int&, double*, double*, double*, double*);
 
   void _FORTRAN(getlocbvecbt)(double*, double*);
   void _FORTRAN(getbmat1pt)(double*, double&, double*);
@@ -317,15 +318,29 @@ BelytschkoTsayShell::massMatrix(CoordSet &cs, double *mel, int cmflg)
       for(int j = 0; j < nndof; ++j) edisp[i*nndof+j] = 0; // constant mass matrix
     }
 
-    double* emasl = (double*) dbg_alloca(sizeof(double)*nnode*nndof);
-    // get bt shell element lumped mass
-    _FORTRAN(elemaslbt)(nndof, expmat->ematpro, ecord, edisp, emasl);
-       // input : nndof,ematpro,ecord,edisp
-       // output : emasl
+    int inertiaLumping = 2;
+    if(inertiaLumping == 2) {
+
+      // get bt shell element block diagonal lumped mass
+      _FORTRAN(elemaslbt2)(nndof, expmat->ematpro, ecord, edisp, mel);
+         // input : nndof,ematpro,ecord,edisp
+         // output : mel
+
+    }
+    else {
+
+      double* emasl = (double*) dbg_alloca(sizeof(double)*nnode*nndof);
+      // get bt shell element diagonal lumped mass
+      _FORTRAN(elemaslbt)(nndof, expmat->ematpro, ecord, edisp, emasl);
+         // input : nndof,ematpro,ecord,edisp
+         // output : emasl
+  
+      for(int i = 0; i < nnode*nndof; ++i) ret[i][i] = emasl[i];
+
+    }
+
     delete [] ecord;
     delete [] edisp;
-  
-    for(int i = 0; i < nnode*nndof; ++i) ret[i][i] = emasl[i];
   }
 
   return ret;

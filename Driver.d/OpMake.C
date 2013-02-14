@@ -877,8 +877,8 @@ GenBLKSparseMatrix<Scalar> *
 Domain::constructBLKSparseMatrix(DofSetArray *DSA, Rbm *rbm)
 {
   if(DSA == 0) DSA = c_dsa;
-  if(sinfo.newmarkBeta == 0.0 && sinfo.acoustic) {
-    if(sinfo.ATDARBFlag >- 1.0) {
+  if(sinfo.newmarkBeta == 0.0 && (sinfo.acoustic || sinfo.inertiaLumping == 2)) {
+    if(sinfo.ATDARBFlag >- 1.0 && sinfo.acoustic) {
       return new GenBLKSparseMatrix<Scalar>(nodeToNode_sommer->modify(), dsa, DSA, sinfo.trbm, sinfo.sparse_renum, rbm);
     }
     else {

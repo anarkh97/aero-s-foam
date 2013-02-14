@@ -2597,6 +2597,12 @@ Lumped:
           geoSource->setConsistentQFlag(false, $2);
           geoSource->setConsistentPFlag(false);
         }
+        | LUMPED Integer Integer NewLine
+        { geoSource->setMRatio(0.0);
+          geoSource->setConsistentQFlag(false, $2);
+          geoSource->setConsistentPFlag(false);
+          domain->solInfo().inertiaLumping = $3;
+        }
 	;
 Preload:
         PRELOAD NewLine

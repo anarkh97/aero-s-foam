@@ -750,8 +750,15 @@ int main(int argc, char** argv)
 #endif
  // 3. choose lumped mass (also pressure and gravity) and diagonal "solver" for explicit dynamics 
  if(domain->solInfo().newmarkBeta == 0) {
-   domain->solInfo().subtype = 10;
-   domain->solInfo().getFetiInfo().solvertype = FetiInfo::diagonal;
+   if(domain->solInfo().inertiaLumping == 2) {
+     domain->solInfo().subtype = 1;
+     domain->solInfo().getFetiInfo().solvertype = FetiInfo::sparse;
+   }
+   else {
+     domain->solInfo().inertiaLumping = 1; // diagonal lumping
+     domain->solInfo().subtype = 10;
+     domain->solInfo().getFetiInfo().solvertype = FetiInfo::diagonal;
+   }
    if(parallel_proc || domain_decomp) domain->solInfo().type = 3;
    geoSource->setMRatio(0.0);
    geoSource->setConsistentQFlag(false);

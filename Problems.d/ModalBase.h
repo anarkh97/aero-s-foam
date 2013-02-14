@@ -1,12 +1,13 @@
 #ifndef _MODAL_BASE_H_
 #define _MODAL_BASE_H_
 
-#include <Math.d/matrix.h>
-#include <Driver.d/Domain.h>
+#include <Math.d/Vector.h>
 
 class Domain;
 class PrevFrc;
 template <class V> class SysState;
+template <class Scalar> class GenSparseMatrix;
+typedef GenSparseMatrix<double> SparseMatrix;
 
 class DiagonalMatrix
 {
@@ -57,7 +58,7 @@ struct ModalOps
 
 class ModalBase
 {
-/* base class for NLModalDescr
+/* base class for ModalDescr
    NOTE to self: if modalizing dsp/vel/acc is desired,
      will need to store scale as data memeber
 */

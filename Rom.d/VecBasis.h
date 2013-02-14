@@ -5,10 +5,10 @@
 #include <algorithm>
 #include <Feti.d/DistrVector.h>
 #include <Threads.d/PHelper.h>
+#include <Utils.d/dofset.h>
 #ifdef USE_EIGEN3
 #include <Eigen/Core>
 #include <Eigen/Sparse>
-#include <Utils.d/dofset.h>
 #endif
 
 template <typename Scalar> class GenVector;
@@ -106,7 +106,8 @@ private:
   VecType *vectors_;
 #ifdef USE_EIGEN3
   Eigen::Map<Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> > basis;
-  Eigen::SparseMatrix<double,0> SparseBasis; //0 for Col Major, 1 for Row Major
+  Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> compressedBasis; 
+  std::vector<int> compressedKey;
 #endif
 };
 
@@ -153,7 +154,8 @@ GenVecBasis<Scalar, GenVecType>::GenVecBasis() :
  vectorCount_(0),
 #ifdef USE_EIGEN3
  basis(NULL,0,0),
- SparseBasis(0,0)
+ compressedBasis(0,0),
+ compressedKey(0)
 #endif
 {
   placeVectors();
@@ -167,7 +169,8 @@ GenVecBasis<Scalar, GenVecType>::GenVecBasis(int vCount, InfoType vInfo) :
  vectorCount_(vCount),
 #ifdef USE_EIGEN3
  basis(NULL,0,0),
- SparseBasis(0,0)
+ compressedBasis(0,0),
+ compressedKey(0)
 #endif
 {
   placeVectors();
@@ -179,7 +182,8 @@ GenVecBasis<Scalar, GenVecType>::GenVecBasis(const GenVecBasis &other) :
  vectorCount_(other.vectorCount_),
 #ifdef USE_EIGEN3
  basis(NULL,0,0),
- SparseBasis(0,0)
+ compressedBasis(0,0),
+ compressedKey(0)
 #endif
 {
   placeVectors();

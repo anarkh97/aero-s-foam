@@ -5,6 +5,5 @@ add_library (Problems EigenDescr.C
        NonLinDynam.C 
        TempDescr.C   
        ModalBase.C   
-       NLModalDescr.C
        ModalGeomState.C 
        DEMProblem.C)

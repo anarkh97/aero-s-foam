@@ -42,49 +42,62 @@ GenVecBasis<double, GenDistrVector>::project(GenDistrVector<double> &x, GenDistr
 template <>
 GenDistrVector<double> &
 GenVecBasis<double, GenDistrVector>::projectUp(GenDistrVector<double> &x, GenDistrVector<double> &_result) {
-
+#ifdef USE_EIGEN3
   Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > GenCoordinates(x.data(), x.size());
   Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > result(_result.data(), _result.size());
 
   //full coordinates distributed over MPI processes
-  if(SparseBasis.rows() > 0)
-    { result = SparseBasis*GenCoordinates;}
+  if(compressedKey.size() > 0)
+    { Eigen::VectorXd resultBuffer(compressedKey.size());
+    resultBuffer = compressedBasis*GenCoordinates;
+    for(int i = 0; i < compressedKey.size(); i++)
+      result(compressedKey[i]) = resultBuffer(i);
+    }
   else 
     { result = basis*GenCoordinates;}
-
+#endif
   return _result;
 }
 
 template <>
 GenDistrVector<double> &
 GenVecBasis<double, GenDistrVector>::projectUp(std::vector<double> &x, GenDistrVector<double> &_result) {
+#ifdef USE_EIGEN3
   //this instantiation is for the post processor, need to fix it to use GenDistrVector
   Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > GenCoordinates(x.data(), x.size());
   Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > result(_result.data(), _result.size());
 
   //full coordinates distributed over MPI processes
   { result = basis*GenCoordinates;}
-
+#endif
   return _result;
 }
 
 template <>
 GenDistrVector<double> &
 GenVecBasis<double, GenDistrVector>::projectDown(GenDistrVector<double> &x, GenDistrVector<double> &_result) {
-
+#ifdef USE_EIGEN3
   Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > FullCoordinates(x.data(), x.size());
   Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > result(_result.data(), _result.size());
-// fix this portion to include, in the sparse basis, the dofs present in the external force
-// gives the wrong result otherwise
-//  if(SparseBasis.rows() > 0)
-//   { result = SparseBasis.transpose()*FullCoordinates;}
-//    filePrint(stderr,"result3 norm = %1.4e \n", result.norm());
-//  else
+// fix this portion so we can use the compressed Basis, its way faster but 
+// gives the wrong result, just use the sparse vec mult for now 
+  if(compressedKey.size() > 0)
+   {/*Eigen::VectorXd coordBuffer(compressedKey.size());
+    for(int i = 0; i < compressedKey.size(); i++)
+       coordBuffer(i) = FullCoordinates(compressedKey[i]); 
+    result = compressedBasis.transpose()*coordBuffer;*/
+    Eigen::SparseVector<double> sparsef(FullCoordinates.rows());
+    for(int i = 0; i < FullCoordinates.rows(); i++){
+      if(FullCoordinates(i) != 0){
+        sparsef.insert(i) = FullCoordinates(i);}}
+    result = basis.transpose()*sparsef;
+   }
+  else
    { result = basis.transpose()*FullCoordinates;}
   //each process gets a copy of reduced coordinates
   if(structCom)
     structCom->globalSum(result.size(), result.data());
- 
+#endif 
   return _result;
 }
 
@@ -92,24 +105,26 @@ template<>
 void
 GenVecBasis<double, GenDistrVector>::makeSparseBasis(std::vector<int> &nodeVec, DofSetArray *dsa)
 {
-  new (&SparseBasis) Eigen::SparseMatrix<double,0>(basis.rows(),basis.cols()); // O Col major, 1 RowMajor
-  typedef  Eigen::Triplet<double> T;
-  std::vector<T> tripletList;
-  tripletList.reserve(nodeVec.size()*basis.cols()*6);
-
+  #ifdef USE_EIGEN3
   int dof1, numdofs;
+
+
   for(int i = 0; i < nodeVec.size(); i++) {
     dof1 = dsa->firstdof(nodeVec[i]);
     numdofs = dsa->weight(nodeVec[i]);
     for(int j = 0; j < numdofs; j++){
-      for( int k = 0; k < basis.cols(); k++) {
-//          SparseBasis.insert(dof1+j,k) = basis(dof1+j,k); //alternative implementation
-        tripletList.push_back(T(dof1+j,k,basis(dof1+j,k)));
-      }
+      compressedKey.push_back(dof1+j);
     }
   }
-  SparseBasis.setFromTriplets(tripletList.begin(),tripletList.end()); 
-  SparseBasis.makeCompressed();
+
+  new (&compressedBasis) Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic>(compressedKey.size(),vectorCount()); // O Col major, 1 RowMajor
+
+  for(int i = 0; i < compressedKey.size(); i++){
+    for(int j = 0; j < vectorCount(); j++){
+      compressedBasis(i,j) = basis(compressedKey[i],j);
+    }
+  }
+#endif
 }
 
 }

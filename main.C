@@ -16,7 +16,6 @@ using namespace std;
 #include <Driver.d/CondProbType.h>
 #include <Driver.d/NLStaticProbType.h>
 #include <Driver.d/NLDynamProbType.h>
-#include <Driver.d/NLMat.h>
 #include <Driver.d/TempProbType.h>
 #include <Solvers.d/Solver.h>
 #include <Problems.d/StaticDescr.h>
@@ -27,7 +26,6 @@ using namespace std;
 #include <Problems.d/NonLinDynam.h>
 #include <Problems.d/TempDescr.h>
 #include <Problems.d/ModalDescr.h>
-#include <Problems.d/NLModalDescr.h>
 #include <Problems.d/DEMProblem.h>
 #include <Paral.d/MDStatic.h>
 #include <Paral.d/MDInpcStatic.h>
@@ -1250,24 +1248,7 @@ int main(int argc, char** argv)
 	 nlsolver.solve();
        }
        break;
-     case SolverInfo::MatNonLinStatic:
-       {
-         NLMatProbDesc nlstatic(domain);
-         NLStaticSolver<Solver, Vector, NLMatProbDesc, NLMatProbDesc,
-                        NLState, TotalUpdater<NLMatProbDesc, Vector, NLState> >
-           nlsolver(&nlstatic);
-         nlsolver.solve();
-       }
-       break;
      case SolverInfo::NonLinDynam: {
-       if(domain->solInfo().modal) {
-         NLModalDescr nlModalDescr(domain);
-         NLDynamSolver< NLModalOpSolver, Vector, SDDynamPostProcessor, NLModalDescr,
-           ModalGeomState, NLModalUpdater< NLModalDescr, Vector, ModalGeomState > >
-           nlmodalsolver(&nlModalDescr);
-         nlmodalsolver.solve();
-       }
-       else {
          if(domain->solInfo().activatePita) {
 #ifdef DISTRIBUTED
            if (domain->solInfo().pitaTimeReversible) {
@@ -1330,17 +1311,8 @@ int main(int argc, char** argv)
              }
            }
          }
-       }
      }
      break;
-     case SolverInfo::MatNonLinDynam: {
-         NLMatProbDesc nldynamic(domain);
-         NLDynamSolver < Solver, Vector, NLMatProbDesc,
-             NLMatProbDesc, NLState, TotalUpdater<NLMatProbDesc, Vector, NLState> >
-                 nldynamicSolver(&nldynamic);
-         nldynamicSolver.solve();
-       }
-       break;
      case SolverInfo::ArcLength:
 	// KHP: Keep both methods around until satisfied with one or the other
 	// KHP: because of difference in convergence criteria when doing

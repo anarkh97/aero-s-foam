@@ -24,8 +24,9 @@
 
 #include <Driver.d/GeoSource.h>
 #include <Corotational.d/MatNLCorotator.h>
+#ifdef USE_EIGEN3
 #include <Element.d/Dimass.d/InertialForceFunction.h>
-
+#endif
 #include <algorithm>
 
 void
@@ -2194,11 +2195,11 @@ Domain::transformElemStiffAndForce(const GeomState &geomState, double *elementFo
 #endif
 }
 
+#ifdef USE_EIGEN3
 void
 Domain::transformNodalMoment(const GeomState &geomState, Eigen::Vector3d &G,
                              Eigen::Matrix3d &H, int inode, bool compute_tangents)
 {
-#ifdef USE_EIGEN3
   // transform from eulerian spatial description to total lagrangian or updated lagrangian spatial description
 
   Eigen::Matrix3d R;
@@ -2219,8 +2220,5 @@ Domain::transformNodalMoment(const GeomState &geomState, Eigen::Vector3d &G,
 
     H = (T*H*T.transpose()).eval() + 0.5*(C1 + C1.transpose());
   }
-#else
-  cerr << "USE_EIGEN3 is not defined here in Domain::transformElemStiffAndForce\n";
-  exit(-1);
-#endif
 }
+#endif

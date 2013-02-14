@@ -245,6 +245,7 @@ DistrExplicitPodProjectionNonLinDynamicBase::getInitState(SysState<DistrVector> 
 
   //this projection doesn't do anything since the projectionBasis_ isn't initialized yet
   //this only matters if we have a case where the initial conditions are other than 0
+  //need to fixe this if we want to use resart
   projectionBasis_.projectDown( *d_n, _d_n);
   projectionBasis_.projectDown( *v_n, _v_n);
   projectionBasis_.projectDown( *a_n, _a_n);
@@ -259,7 +260,7 @@ DistrExplicitPodProjectionNonLinDynamicBase::updateDisplacement(DistrVector& tem
 
   geomState->update(*d_n, 2);
 
-  d_n1 = temp1;  //we save the increment vectors for postprocessing
+  d_n1 += temp1;  //we save the increment vectors for postprocessing
 
 }
 
@@ -269,6 +270,7 @@ void DistrExplicitPodProjectionNonLinDynamicBase::getConstForce(DistrVector& v)
   //just a formality. 
   MultiDomainDynam::getConstForce(*cnst_fBig);
   normalizedBasis_.projectDown(*cnst_fBig,v);
+  cnst_fBig->zero();
 }
 
 void
@@ -287,7 +289,7 @@ DistrExplicitPodProjectionNonLinDynamicBase::computeExtForce2(SysState<DistrVect
                         double t, DistrVector *aero_f,
                         double gamma, double alphaf) {
 
-  f = 0;
+  f = cnst_f;
   MultiDomainDynam::computeExtForce2( *dummyState, *fExt, *cnst_fBig, tIndex, t, aero_fBig, gamma, alphaf);
 
   //f += cnst_f; should implement another version were the constant force is added 

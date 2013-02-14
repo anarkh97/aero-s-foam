@@ -1,3 +1,4 @@
+#ifdef USE_EIGEN3
 #include <Element.d/BelytschkoTsayShell.d/base_mhd_fem.h>
 #include <Eigen/Geometry>
 #include <iostream>
@@ -286,3 +287,4 @@ getrotpmatnbt(int inode, const Eigen::Matrix<double,3,4> &ecurn,
 
   return;
 }
+#endif

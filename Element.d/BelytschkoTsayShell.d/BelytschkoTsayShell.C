@@ -61,9 +61,15 @@ BelytschkoTsayShell::BelytschkoTsayShell(int* nodenums)
   opthgc = 1; // perturbation type hourglass control
   opttrc = -1; // no pressure or traction
   optdmp = 0; // no damping
-  optcor[0] = 1; // was 1 // warping correction on
-  optcor[1] = 1; // was 0 // shear correction off
-  optprj = 1; // drilling projection
+  optcor[0] = 1; // warping correction on
+  if(nodenums[2] == nodenums[3]) { // FIXME
+    optcor[1] = 0; // shear correction off
+    optprj = 0;    // drilling projection off
+  }
+  else {
+    optcor[1] = 1; // shear correction on
+    optprj = 1;    // drilling projection on
+  }
   nndof  = 6; // number of dofs per node
   ndime  = 3;
   nnode  = 4;

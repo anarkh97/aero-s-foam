@@ -344,8 +344,10 @@ class Domain : public HData {
                                 FullSquareMatrix *mel, bool compute_tangents);
      void transformElemStiffAndForce(const GeomState &geomState, double *elementForce,
                                      FullSquareMatrix &kel, int iele, bool compute_tangents, FullSquareMatrix *mel = NULL);
+#ifdef USE_EIGEN3
      void transformNodalMoment(const GeomState &geomState, Eigen::Vector3d &G,
                                Eigen::Matrix3d &H, int nnum, bool compute_tangents);
+#endif
      void getWeightedStiffAndForceOnly(const std::map<int, double> &weights,
                                        GeomState &u, Vector &elementInternalForce,
                                        Corotator **allCorot, FullSquareMatrix *kel,

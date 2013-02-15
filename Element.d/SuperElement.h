@@ -38,7 +38,7 @@ class SuperElement : public Element
     int* getSubElemDofs(int i) { return subElemDofs[i]; }
     int* getSubElemNodes(int i) { return subElemNodes[i]; }
 
-    void setPressure(double pres, MFTTData* = 0);
+    void setPressure(double pres, MFTTData* = 0, bool ConwepOnOff = false);
     double getPressure() { return subElems[0]->getPressure(); }
 
     void renum(int *table);

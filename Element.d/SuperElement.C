@@ -48,9 +48,9 @@ SuperElement::getPreLoad()
 }
 
 void
-SuperElement::setPressure(double pres, MFTTData *mftt)
+SuperElement::setPressure(double pres, MFTTData *mftt, bool ConwepOnOff)
 {
-  for(int i = 0; i < nSubElems; ++i) subElems[i]->setPressure(pres, mftt);
+  for(int i = 0; i < nSubElems; ++i) subElems[i]->setPressure(pres, mftt, ConwepOnOff);
 }
 
 void

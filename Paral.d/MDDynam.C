@@ -551,8 +551,14 @@ void
 MultiDomainDynam::updateDisplacement(DistrVector& dinc, DistrVector& d_n)
 {
   if(domain->solInfo().isNonLin()) {
-    geomState->update(dinc, 1);
-    geomState->get_tot_displacement(d_n);
+    if(domain->solInfo().galerkinPodRom){
+      if (domain->solInfo().probType == SolverInfo::PodRomOffline){ 
+      geomState->explicitUpdate(decDomain, dinc);}
+      else geomState->update(dinc, 2);}//this is for ROM post processor, we don't want to use incremental displacements to update the geometry when converting to full coordinates
+    else {
+      geomState->update(dinc, 1);
+      geomState->get_tot_displacement(d_n);
+    }
   }
 }
 
@@ -952,7 +958,7 @@ MultiDomainDynam::getInternalForce(DistrVector &d, DistrVector &f, double t, int
 {
   if(domain->solInfo().isNonLin()) {
     execParal3R(decDomain->getNumSub(), this, &MultiDomainDynam::subGetInternalForce, f, t, tIndex);
-    geomState->pull_back(f);
+    if(!domain->solInfo().galerkinPodRom) geomState->pull_back(f);
   }
   else {
     f.zero();

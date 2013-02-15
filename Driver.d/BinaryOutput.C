@@ -29,8 +29,8 @@ GeoSource::getHeaderNameBytes(int fileId) const {
 BinFileHandler *
 GeoSource::openBinaryOutputFile(int fileId, int clusterId, int iter, const char *flag)
 {
-  char outfileName[32];
-  getOutputFileName(outfileName, clusterId, fileId, iter);
+  char outfileName[64];
+  getOutputFileName(outfileName, fileId, clusterId, iter);
   return new BinFileHandler(outfileName, flag);
 }
 

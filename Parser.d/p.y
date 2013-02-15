@@ -10,6 +10,7 @@
 #include <Sfem.d/Sfem.h>
 #include <Utils.d/DistHelper.h>
 #include <Driver.d/GeoSource.h>
+#include <Utils.d/Conwep.d/BlastLoading.h>
 #ifdef STRUCTOPT
 #include <Structopt.d/Driver_opt.d/Domain_opt.h>
 #endif
@@ -63,6 +64,7 @@
 %token CHECKTOKEN COARSESOLVER COEF CFRAMES COLLOCATEDTYPE CONVECTION COMPOSITE CONDITION
 %token CONTROL CORNER CORNERTYPE CURVE CCTTOL CCTSOLVER CRHS COUPLEDSCALE CONTACTSURFACES CMPC CNORM
 %token COMPLEXOUTTYPE CONSTRMAT CASES CONSTRAINEDSURFACES CSFRAMES CSTYPE
+%token CONWEP
 %token DAMPING DblConstant DEM DIMASS DISP DIRECT DLAMBDA DP DYNAM DETER DECOMPOSE DECOMPFILE DMPC DEBUGCNTL DEBUGICNTL
 %token CONSTRAINTS MULTIPLIERS PENALTY
 %token EIGEN EFRAMES ELSCATTERER END ELHSOMMERFELD EXPLICIT EPSILON ELEMENTARYFUNCTIONTYPE
@@ -101,7 +103,7 @@
 %token WEIGHTLIST GMRESRESIDUAL 
 %token SLOSH SLGRAV SLZEM SLZEMFILTER 
 %token PDIR HEFSB HEFRS HEINTERFACE  // Added for HEV Problem, EC, 20080512
-%token SNAPFI PODROB TRNVCT OFFSET ORTHOG SVDTOKEN SAMPLING PODSIZEMAX REFSUBSTRACT TOLER
+%token SNAPFI PODROB TRNVCT OFFSET ORTHOG SVDTOKEN CONVERSIONTOKEN CONVFI SAMPLING PODSIZEMAX REFSUBSTRACT TOLER
 
 %type <complexFDBC> AxiHD
 %type <complexFNBC> AxiHN
@@ -318,6 +320,7 @@ Component:
         | Constraints
 	| SvdToken
 	| Sampling
+        | ConversionToken
         ;
 Noninpc:
         NONINPC NewLine Integer Integer NewLine
@@ -906,7 +909,21 @@ DynamInfo:
         { domain->solInfo().check_energy_balance = true;
           domain->solInfo().epsilon1 = $3; 
           domain->solInfo().epsilon2 = $4; }
-	;
+        | DynamInfo CONWEP Float Float Float Float Integer Float Float Float Float NewLine
+        { domain->solInfo().ConwepOnOff = true; // If ConwepOnOff is true, read Conwep parameters:
+          // Note: chargeWeight must be entered in the units of mass of the problem, not units of force.
+          BlastLoading::myData.x0[0]                = $3;
+          BlastLoading::myData.x0[1]                = $4;
+          BlastLoading::myData.x0[2]                = $5;
+          BlastLoading::myData.t0                   = $6;
+          BlastLoading::myData.blastType            = ($7 == 0 ? BlastLoading::BlastData::SurfaceBurst : BlastLoading::BlastData::AirBurst);
+          BlastLoading::myData.scaleLength          = $9;
+          BlastLoading::myData.scaleTime            = $10;
+          BlastLoading::myData.scaleMass            = $11;
+          BlastLoading::myData.chargeWeight         = $8*$11*2.2; // The 2.2 factor is to convert from kilograms to pounds force.
+          BlastLoading::myData.chargeWeightCubeRoot = pow(BlastLoading::myData.chargeWeight,1.0/3.0);
+        }
+        ;
 TimeIntegration:
         NEWMARK NewLine
         { domain->solInfo().timeIntegration = SolverInfo::Newmark; }
@@ -2438,14 +2455,14 @@ Node:
 Element:
 	Integer Integer NodeNums NewLine
 	{ /* Define each Element */
-          geoSource->addElem($1-1, $2, $3.num, $3.nd); }
+          geoSource->addElem($1-1, $2, $3.num, $3.nd);}
 	;
 NodeNums:
 	Integer
-	{ $$.num = 1; $$.nd[0] = $1-1; }
+	{ $$.num = 1; $$.nd[0] = $1-1;}
 	| NodeNums Integer
 	{ if($$.num == 125) return -1; 
-          $$.nd[$$.num] = $2-1; $$.num++; }
+          $$.nd[$$.num] = $2-1; $$.num++;}
 	;
 BC_Data:
 	Integer Integer Float NewLine
@@ -3828,6 +3845,20 @@ SamplingOption:
   { domain->solInfo().skipOffSet = $2; }
   | PODSIZEMAX Integer
   { domain->solInfo().maxSizePodRom = $2; }
+  ;
+
+ConversionToken:
+    CONVERSIONTOKEN NewLine
+  { domain->solInfo().activatePodRom = true;
+    domain->solInfo().probType = SolverInfo::PodRomOffline;
+    domain->solInfo().ROMPostProcess = true; }
+  | ConversionToken ConversionOption NewLine
+  ;
+
+ConversionOption:
+    CONVFI FNAME
+  { domain->solInfo().RODConversionFiles.push_back($2); 
+    domain->solInfo().numRODFile += 1; }
   ;
 
 Integer:

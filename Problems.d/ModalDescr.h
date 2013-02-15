@@ -32,6 +32,7 @@ public:
 
   ModalDescr* getPostProcessor() { return this; }
   void getTimes(double &dt, double &tmax);
+  void printFullNorm(Vector &){};
   void getInitState(SysState<Vector> &state);
 
   double getInitialForceNorm();

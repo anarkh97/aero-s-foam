@@ -606,8 +606,7 @@ void quat_to_mat(const Eigen::Matrix<Scalar,4,1> &_q, Eigen::Matrix<Scalar,3,3> 
    q.x() = _q[1];
    q.y() = _q[2];
    q.z() = _q[3];
-   q.normalize(); // TODO
-   rten = q.toRotationMatrix();
+   rten = q.normalized().toRotationMatrix();
 #else
    // Compute norm of q
 /*

@@ -97,7 +97,7 @@ GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti)
   if((cdsa->size() - dsa->size()) != 0)
     Kuc[isub] = sd[isub]->template constructCuCSparse<Scalar>();
 
-  if(domain->solInfo().isDynam() || domain->solInfo().doFreqSweep || domain->solInfo().probType == SolverInfo::Modal) {
+  if(domain->solInfo().isDynam() || domain->solInfo().doFreqSweep || domain->solInfo().probType == SolverInfo::Modal || domain->solInfo().probType == SolverInfo::PodRomOffline) {
 
     // XML Need to introduce Mcc
     if(domain->solInfo().isCoupled)

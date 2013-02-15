@@ -142,6 +142,11 @@ ElementSamplingDriver::assembleTrainingData(const VecBasis &snapshots, DblFwdIt 
                                  nodes, displac[iSnap]); // just update the nodes of element iElem
       // Evaluate and store element contribution at training configuration
       domain_->getElemInternalForce(*geomState_, *timeStampIt, NULL, *(corotators_[iElem]), elementForce.array(), kelArray_[iElem]);
+/*
+      if(domain_->getElementSet()[iElem]->hasRot()) {
+        domain_->transformElemStiffAndForce(*geomState_, elementForce.array(), kelArray_[iElem], iElem, false);
+      }
+*/
       elemTarget.zero();
       const int dofCount = kelArray_[iElem].dim();
       for (int iDof = 0; iDof != dofCount; ++iDof) {
@@ -163,7 +168,7 @@ ElementSamplingDriver::assembleTrainingData(const VecBasis &snapshots, DblFwdIt 
     delete [] nodes;
     timeStampIt++;
   }
- filePrint(stderr,"\n");
+  filePrint(stderr,"\r %4.2f%% complete\n", 100.);
 }
 
 void

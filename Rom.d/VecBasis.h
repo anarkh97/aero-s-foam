@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <Feti.d/DistrVector.h>
 #include <Threads.d/PHelper.h>
+#include <Utils.d/dofset.h>
 #ifdef USE_EIGEN3
 #include <Eigen/Core>
 #include <Eigen/Sparse>
@@ -69,6 +70,12 @@ public:
   //void domainMatrixVecMult(GenVecType<Scalar> &, GenVecType<Scalar> &);
 
   GenDistrVector<double> & project(GenDistrVector<double> &, GenDistrVector<double> &);
+  GenDistrVector<double> & projectUp(GenDistrVector<double> &, GenDistrVector<double> &);
+  GenDistrVector<double> & projectUp(std::vector<double> &   , GenDistrVector<double> & );
+  GenDistrVector<double> & projectDown(GenDistrVector<double> &, GenDistrVector<double> &);
+  
+  void makeSparseBasis(std::vector<int> &, DofSetArray *); 
+
   timespec tS1, tS2;
   double time1, time2, time3, time4, time5, time6, counter;
 
@@ -99,7 +106,8 @@ private:
   VecType *vectors_;
 #ifdef USE_EIGEN3
   Eigen::Map<Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> > basis;
-  Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> basis2;
+  Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> compressedBasis; 
+  std::vector<int> compressedKey;
 #endif
 };
 
@@ -114,8 +122,6 @@ GenVecBasis<Scalar, GenVecType>::swap(GenVecBasis &other) {
 
 #ifdef USE_EIGEN3
   new (&basis) Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> >(buffer_, vectorSize(), vectorCount());
-  if (size() < 10000) 
-    basis2 = basis*basis.transpose();
 #endif
 
   time1 = 0; time2 = 0; time3 = 0; time4 = 0; time5 = 0; time6 = 0; counter = 0;
@@ -145,9 +151,11 @@ GenVecBasis<Scalar, GenVecType>::copyBufferContent(const GenVecBasis &other) {
 template <typename Scalar, template <typename Scalar> class GenVecType>
 GenVecBasis<Scalar, GenVecType>::GenVecBasis() :
  vectorInfo_(Traits::defaultInfo()),
- vectorCount_(0)
+ vectorCount_(0),
 #ifdef USE_EIGEN3
- ,basis(NULL,0,0)
+ basis(NULL,0,0),
+ compressedBasis(0,0),
+ compressedKey(0)
 #endif
 {
   placeVectors();
@@ -158,9 +166,11 @@ GenVecBasis<Scalar, GenVecType>::GenVecBasis() :
 template <typename Scalar, template <typename Scalar> class GenVecType>
 GenVecBasis<Scalar, GenVecType>::GenVecBasis(int vCount, InfoType vInfo) :
  vectorInfo_(vInfo),
- vectorCount_(vCount)
+ vectorCount_(vCount),
 #ifdef USE_EIGEN3
- ,basis(NULL,0,0)
+ basis(NULL,0,0),
+ compressedBasis(0,0),
+ compressedKey(0)
 #endif
 {
   placeVectors();
@@ -169,79 +179,16 @@ GenVecBasis<Scalar, GenVecType>::GenVecBasis(int vCount, InfoType vInfo) :
 template <typename Scalar, template <typename Scalar> class GenVecType>
 GenVecBasis<Scalar, GenVecType>::GenVecBasis(const GenVecBasis &other) :
  vectorInfo_(other.vectorInfo_),
- vectorCount_(other.vectorCount_)
+ vectorCount_(other.vectorCount_),
 #ifdef USE_EIGEN3
- ,basis(NULL,0,0)
+ basis(NULL,0,0),
+ compressedBasis(0,0),
+ compressedKey(0)
 #endif
 {
   placeVectors();
   copyBufferContent(other);
 }
-
-/*template <typename Scalar, template <typename Scalar> class GenVecType>
-GenVecType<Scalar> &
-GenVecBasis<Scalar, GenVecType>::project(GenVecType<Scalar> &x, GenVecType<Scalar> &result) {
-
-   std::cout << " ... model3 ..." << std::endl;
-   domainMatrixVecMult( x, result);
-
-   return result;
-}
-
-template <typename Scalar, template <typename Scalar> class GenVecType>
-inline
-void
-GenVecBasis<Scalar, GenVecType>::domainMatrixVecMult(GenVecType<Scalar> &_f, GenVecType<Scalar> &_result) {
-
-  Eigen::Matrix<Scalar, Eigen::Dynamic, 1> GenCoordinates; 
-  Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > result(_result.data(), _result.size());
-  Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > f(_f.data(), size());
-  Eigen::SparseMatrix<Scalar> sparsef(f.size(),1);
-//  Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> > basis(vectors_[0].data(), vectors_[0].size(), numVectors());
-
-  for (int i = 0; i < f.size(); i++) {
-   if(f(i) != 0.)
-    sparsef.insert(i,0) = f(i);
-  }
- 
-//  Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>, Eigen::Unaligned, Eigen::OuterStride<> > basisT(vectors_[0].data(), vectors_[0].size(), vectorCount(), Eigen::OuterStride<>(size()));
-
-  GenCoordinates = basis.transpose()*sparsef;
-
-  if(structCom)
-    structCom->globalSum(GenCoordinates.size(), GenCoordinates.data());
-
-  result = basis*GenCoordinates;
-
-}*/
-
-/*template <typename Scalar, template <typename Scalar> class GenVecType>
-void
-GenVecBasis<Scalar, GenVecType>::domainMatrixVecMultPar(GenVecType<Scalar> &f, GenVector<Scalar> &result) {
-
-  GenVector<Scalar> *subresult = new GenVector<Scalar>[f.num()];
-  execParal2R(f.num() , const_cast<GenVecBasis<Scalar, GenVecType> *>(this), &GenVecBasis<Scalar, GenVecType>::subdomainMatrixVecMult, f, subresult);
-
-  result.zero();
-  for(int i=0; i<numSub; ++i)
-    result += subresult[i];
-  if(structCom)
-      structCom->globalSum(result.size(), result.data());
-
-  delete [] subresult;
-}
-
-template <typename Scalar, template <typename Scalar> class GenVecType>
-void
-GenVecBasis<Scalar, GenVecType>::subdomainMatrixVecMult(int isub, GenVecType<Scalar> &f, GenVector<Scalar> *result) {
-
-  Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > RES(result[isub].data(), result[isub].size()); 
-  Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > fSub(f.subData(iSub), size());
-
-  Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>, Eigen::Unaligned, Eigen::OuterStride<> > basisSubBlock(vectors_[0].subData(iSub), vectors_[0].subLen(iSub), vectorCount(), Eigen::OuterStride<>(size()));
-
-  RES = basisSubBlock*fSub;
-}*/
 
 template <typename Scalar, template <typename Scalar> class GenVecType>
 GenVecBasis<Scalar, GenVecType> &

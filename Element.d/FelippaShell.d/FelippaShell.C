@@ -16,6 +16,8 @@
 #include <Element.d/NonLinearity.d/ExpMat.h>
 #include <Element.d/NonLinearity.d/MaterialWrapper.h>
 #include <Material.d/IsotropicLinearElasticJ2PlasticPlaneStressMaterial.h>
+#include <Utils.d/Conwep.d/BlastLoading.h>
+#include <Utils.d/dbg_alloca.h>
 
 FelippaShell::FelippaShell(int* nodenums)
 {
@@ -24,6 +26,7 @@ FelippaShell::FelippaShell(int* nodenums)
   nn[2] = nodenums[2];
   type = 0;
   cFrame = 0;
+  ConwepOnOff = false;
 }
 
 Element *
@@ -915,9 +918,35 @@ FelippaShell::getTopNumber()
 }
 
 void
+FelippaShell::setPressure(double _pressure, MFTTData *_mftt, bool _ConwepOnOff)
+{
+  pressure = _pressure;
+  ConwepOnOff = _ConwepOnOff;
+}
+
+void
 FelippaShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
-                                   GeomState *geomState, int cflg, double)
+                                   GeomState *geomState, int cflg, double time)
 { 
+// Check if Conwep is being used. If so, use the pressure from Conwep.
+    if (ConwepOnOff) {
+      double* ecord = (double*) dbg_alloca(sizeof(double)*3*4);
+      int iloc;
+      for(int i = 0; i < 4; ++i) {
+        iloc = i*3;
+        if (i==3){
+          ecord[iloc+0] = cs[nn[2]]->x;
+          ecord[iloc+1] = cs[nn[2]]->y;
+          ecord[iloc+2] = cs[nn[2]]->z;
+        }
+        else{
+          ecord[iloc+0] = cs[nn[i]]->x;
+          ecord[iloc+1] = cs[nn[i]]->y;
+          ecord[iloc+2] = cs[nn[i]]->z;
+        }
+      }
+      pressure = BlastLoading::ComputeShellPressureLoad(ecord,time,BlastLoading::myData);
+    }
      double px = 0.0;
      double py = 0.0;
      double pz = 0.0;

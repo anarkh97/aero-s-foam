@@ -17,7 +17,8 @@ private:
   // Overriden
   virtual void getStiffAndForceFromDomain(GeomState &geomState, Vector &elementInternalForce,
                                           Corotator **allCorot, FullSquareMatrix *kelArray,
-                                          Vector &residual, double lambda, double time, GeomState *refState);
+                                          Vector &residual, double lambda, double time, GeomState *refState,
+                                          FullSquareMatrix *melArray);
   
   std::map<int, double> packedElementWeights_;
   void buildPackedElementWeights();

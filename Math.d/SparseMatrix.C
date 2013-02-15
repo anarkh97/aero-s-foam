@@ -49,14 +49,14 @@ GenSparseMatrix<Scalar>::invertDiag()
  fprintf(stderr,"GenSparseMatrix<Scalar>::invertDiag() not implemented\n");
 }
 
-/*
+
 template<class Scalar>
 void
-GenSparseMatrix<Scalar>::print()
+GenSparseMatrix<Scalar>::printSparse()
 {
  fprintf(stderr,"GEnSparseMatrix<Scalar>::print() not implemented\n");
 }
-*/
+
 
 template<class Scalar> 
 void

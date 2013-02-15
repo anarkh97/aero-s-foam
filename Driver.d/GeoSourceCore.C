@@ -208,6 +208,8 @@ int GeoSource::addElem(int en, int type, int nn, int *nodeNumbers)
 #else
   cerr << "*** ERROR: GeoSource::addElem(...) not included in Salinas library \n";
 #endif
+
+
   return 0;
 }
 
@@ -841,7 +843,7 @@ void GeoSource::setUpData()
   for(vector<pair<int,double> >::iterator i = eleprs.begin(); i != eleprs.end(); ++i) {
     int elemNum = i->first;
     if(elemSet[elemNum])
-     elemSet[elemNum]->setPressure(i->second, domain->getMFTT());
+     elemSet[elemNum]->setPressure(i->second, domain->getMFTT(),domain->solInfo().ConwepOnOff);
    else
      fprintf(stderr," *** WARNING: Pressure was found for non-existent element %d\n", elemNum+1);
   }
@@ -3442,7 +3444,8 @@ void GeoSource::getHeaderDescription(char *headDescrip, int fileNumber)
   else if(sinfo.probType == SolverInfo::NonLinStatic ||
           sinfo.probType == SolverInfo::MatNonLinStatic) strcpy(prbType,"NLStatic");
   else if(sinfo.probType == SolverInfo::NonLinDynam ||
-          sinfo.probType == SolverInfo::MatNonLinDynam) strcpy(prbType,"NLDynamic");
+          sinfo.probType == SolverInfo::MatNonLinDynam ||
+          sinfo.probType == SolverInfo::PodRomOffline) strcpy(prbType,"NLDynamic");
   else if(sinfo.probType == SolverInfo::ArcLength) strcpy(prbType,"Arclength");
   else if(sinfo.probType == SolverInfo::TempDynamic) strcpy(prbType,"Temp");
   else if(sinfo.probType == SolverInfo::AxiHelm) strcpy(prbType,"AxiHelm");

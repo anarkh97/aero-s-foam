@@ -132,6 +132,7 @@ class SingleDomainDynamic
                               double &alphaf, double &alpham);
     void getQuasiStaticParameters(double &maxVel, double &delta);
     void getRayleighCoef(double &alpha);
+    void printFullNorm(Vector &){};
     void getInitState(SysState<Vector> & currentState);
     void getInitialTime(int &tIndex, double &initialTime); 
     double getInitialForceNorm(); 

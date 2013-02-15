@@ -16,7 +16,6 @@ using namespace std;
 #include <Driver.d/CondProbType.h>
 #include <Driver.d/NLStaticProbType.h>
 #include <Driver.d/NLDynamProbType.h>
-#include <Driver.d/NLMat.h>
 #include <Driver.d/TempProbType.h>
 #include <Solvers.d/Solver.h>
 #include <Problems.d/StaticDescr.h>
@@ -27,7 +26,6 @@ using namespace std;
 #include <Problems.d/NonLinDynam.h>
 #include <Problems.d/TempDescr.h>
 #include <Problems.d/ModalDescr.h>
-#include <Problems.d/NLModalDescr.h>
 #include <Problems.d/DEMProblem.h>
 #include <Paral.d/MDStatic.h>
 #include <Paral.d/MDInpcStatic.h>
@@ -53,6 +51,7 @@ using namespace std;
 #include <Rom.d/DriverInterface.h>
 #include <Rom.d/DistrExplicitSnapshotNonLinDynamic.h>
 #include <Rom.d/DistrExplicitPodProjectionNonLinDynamic.h>
+#include <Rom.d/DistrExplicitPodProjectionNonLinDynamicBase.h>
 #include <Rom.d/DistrExplicitLumpedPodProjectionNonLinDynamic.h>
 #ifdef DISTRIBUTED
   #include <Pita.d/Old.d/PitaNonLinDynam.h>
@@ -961,13 +960,13 @@ int main(int argc, char** argv)
              if (domain->solInfo().elemLumpPodRom) {
                filePrint(stderr, " ... POD: ROM with stiffness lumping...\n");
                Rom::DistrExplicitLumpedPodProjectionNonLinDynamic dynamProb(domain);
-               DynamicSolver < MDDynamMat, DistrVector, MultiDomDynPostProcessor,
+               DynamicSolver < MDDynamMat, DistrVector, Rom::DistrExplicitPodPostProcessor,
                              Rom::DistrExplicitLumpedPodProjectionNonLinDynamic, double > dynamSolver(&dynamProb);
                dynamSolver.solve();
              } else {
                filePrint(stderr, " ... POD: Explicit Galerkin         ...\n");
                Rom::DistrExplicitPodProjectionNonLinDynamic dynamProb(domain);
-               DynamicSolver < MDDynamMat, DistrVector, MultiDomDynPostProcessor,
+               DynamicSolver < MDDynamMat, DistrVector, Rom::DistrExplicitPodPostProcessor,
                              Rom::DistrExplicitPodProjectionNonLinDynamic, double > dynamSolver(&dynamProb);
                dynamSolver.solve();
              }
@@ -1003,9 +1002,12 @@ int main(int argc, char** argv)
          // Stand-alone SVD orthogonalization
          filePrint(stderr, " ... POD: // SVD Orthogonalization  ...\n");
          driver.reset(distrBasisOrthoDriverNew(domain));
-         driver->solve();
-         break;
-       }
+       } else if (domain->solInfo().ROMPostProcess) {
+             filePrint(stderr, " ... POD: Post Processing of Results...\n");
+             driver.reset(distrROMPostProcessingDriverNew(domain));
+         }
+       driver->solve();
+       break;
      }
      // Fall-thru
      default:
@@ -1239,24 +1241,7 @@ int main(int argc, char** argv)
 	 nlsolver.solve();
        }
        break;
-     case SolverInfo::MatNonLinStatic:
-       {
-         NLMatProbDesc nlstatic(domain);
-         NLStaticSolver<Solver, Vector, NLMatProbDesc, NLMatProbDesc,
-                        NLState, TotalUpdater<NLMatProbDesc, Vector, NLState> >
-           nlsolver(&nlstatic);
-         nlsolver.solve();
-       }
-       break;
      case SolverInfo::NonLinDynam: {
-       if(domain->solInfo().modal) {
-         NLModalDescr nlModalDescr(domain);
-         NLDynamSolver< NLModalOpSolver, Vector, SDDynamPostProcessor, NLModalDescr,
-           ModalGeomState, NLModalUpdater< NLModalDescr, Vector, ModalGeomState > >
-           nlmodalsolver(&nlModalDescr);
-         nlmodalsolver.solve();
-       }
-       else {
          if(domain->solInfo().activatePita) {
 #ifdef DISTRIBUTED
            if (domain->solInfo().pitaTimeReversible) {
@@ -1319,17 +1304,8 @@ int main(int argc, char** argv)
              }
            }
          }
-       }
      }
      break;
-     case SolverInfo::MatNonLinDynam: {
-         NLMatProbDesc nldynamic(domain);
-         NLDynamSolver < Solver, Vector, NLMatProbDesc,
-             NLMatProbDesc, NLState, TotalUpdater<NLMatProbDesc, Vector, NLState> >
-                 nldynamicSolver(&nldynamic);
-         nldynamicSolver.solve();
-       }
-       break;
      case SolverInfo::ArcLength:
 	// KHP: Keep both methods around until satisfied with one or the other
 	// KHP: because of difference in convergence criteria when doing

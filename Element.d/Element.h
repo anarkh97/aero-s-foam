@@ -335,7 +335,7 @@ class Element {
           }
           prop = p; myProp = _myProp;
         }
-	virtual void setPressure(double pres, MFTTData *mftt = 0) { pressure = pres; }
+	virtual void setPressure(double pres, MFTTData *mftt = 0, bool ConwepOnOff = false) { pressure = pres; }
         virtual double getPressure() { return pressure; }
 
         // By default ignore any element preload

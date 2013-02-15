@@ -89,6 +89,8 @@ TRAIL [a-zA-Z]*
 
 "PRES"[a-zA-Z]*|"pres"[a-zA-Z]*    { return PRESSURE; }
 
+"CONW"[a-zA-Z]*|"conw"[a-zA-Z]*    { return CONWEP; }
+
 "PREL"[a-zA-Z]*|"prel"[a-zA-Z]*    { return PRELOAD; }
 
 "BUCK"[a-zA-Z]*|"buck"[a-zA-Z]*    { return BUCKLE; }
@@ -1078,6 +1080,18 @@ TRAIL [a-zA-Z]*
 
 "aeromomz"|"AEROMOMZ"              { yylval.ival = OutputInfo::AeroZMom;     return STRESSID; }
 
+"exteforx"|"EXTEFORX"              { yylval.ival = OutputInfo::ExternalXForce; return STRESSID; }
+
+"extefory"|"EXTEFORY"              { yylval.ival = OutputInfo::ExternalYForce; return STRESSID; }
+
+"exteforz"|"EXTEFORZ"              { yylval.ival = OutputInfo::ExternalZForce; return STRESSID; }
+
+"extemomx"|"EXTEMOMX"              { yylval.ival = OutputInfo::ExternalXMom;  return STRESSID; }
+
+"extemomy"|"EXTEMOMY"              { yylval.ival = OutputInfo::ExternalYMom;  return STRESSID; }
+
+"extemomz"|"EXTEMOMZ"              { yylval.ival = OutputInfo::ExternalZMom;  return STRESSID; }
+
 "gvelocit"|"GVELOCIT"              { yylval.ival = OutputInfo::Velocity;     return STRESSID; }
 
 "gacceler"|"GACCELER"              { yylval.ival = OutputInfo::Acceleration; return STRESSID; }
@@ -1298,6 +1312,10 @@ TRAIL [a-zA-Z]*
 "PDF"|"pdf" { yylval.ival = 3; return NDTYPE; }
 
 "ROBC"|"RobC"|"robc" 			  { return SVDTOKEN; } 
+
+"RODC"|"RodC"|"rodc"                      { return CONVERSIONTOKEN; } // reduced order data conversion token
+ 
+"CONFIL"|"ConFil"|"confil" 	 	  { return CONVFI; } //reduced order data conversion files
 
 "SNAPFI"|"SnapFi"|"snapfi"		  { return SNAPFI; }
 

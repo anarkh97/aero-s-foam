@@ -18,6 +18,13 @@
 
 using namespace std;
 
+struct AdaptiveSweepParams {
+public:
+     int maxP,minRHS,maxRHS,deltaRHS,numS;
+     double w1,w2,atol;
+     bool dgp_flag;
+};
+
 struct SolverInfo {
 
  private:
@@ -211,6 +218,8 @@ struct SolverInfo {
    //--- UH --- 05/21/08
    enum { Taylor, Pade1, Pade, Fourier, PadeLanczos, GalProjection, KrylovGalProjection, QRGalProjection };
    //--- UH --- 05/21/08
+   AdaptiveSweepParams adaptSweep;
+   bool isAdaptSweep;
    int freqSweepMethod;
    int padeL, padeM, padeN;
    bool pade_pivot;
@@ -414,6 +423,7 @@ struct SolverInfo {
                   doFreqSweep = false;
                   doEigSweep = false;
                   freqSweepMethod = Taylor;
+                  isAdaptSweep = false;
                   padeL = 9;
                   padeM = 10;
                   padeN = 2;

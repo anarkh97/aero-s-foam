@@ -296,6 +296,8 @@ TRAIL [a-zA-Z]*
 
 "freqsweep"|"FREQSWEEP"            { return FREQSWEEP; }
 
+"freqsweepa"|"FREQSWEEPA"            { return FREQSWEEPA; }
+
 "freqsweep1"|"FREQSWEEP1"          { return FREQSWEEP1; }
 
 "freqsweep2"|"FREQSWEEP2"          { return FREQSWEEP2; }
@@ -360,8 +362,6 @@ TRAIL [a-zA-Z]*
 
 "DEM"                              { return DEM; }
 
-"k"|"K"                            { return WAVENUMBER; }
-
 "bgtl"|"BGTL"                      { return BGTL; }
 
 "incidence"|"INCIDENCE"            { return INCIDENCE; }
@@ -369,12 +369,6 @@ TRAIL [a-zA-Z]*
 "pointsource"|"POINTSOURCE"        { return POINTSOURCE; }
 
 "planewave"|"PLANEWAVE"            { return PLANEWAVE; }
-
-"ksweep"|"KSWEEP"                  { return HELMSWEEP; }
-
-"ksweep1"|"KSWEEP1"                { return HELMSWEEP1; }
-
-"ksweep2"|"KSWEEP2"                { return HELMSWEEP2; }
 
 "HDIR"[a-zA-Z]*|"hdir"[a-zA-Z]*    { return HDIRICHLET; }
 
@@ -843,7 +837,7 @@ TRAIL [a-zA-Z]*
 
 "fluid"|"FLUID"                    { yylval.ival = 2; return WAVETYPE;}
 
-"FLUMAT"|"flumat"                  { return FLUMAT;}
+"AMAT"|"amat"                      { return AMAT;}
 
 "FABMAT"|"fabmat"                  { return FABMAT;}
 

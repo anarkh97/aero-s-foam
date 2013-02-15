@@ -587,7 +587,7 @@ public:
   double shiftVal() { return shiftV; }
   double freq() { return sqrt(shiftV)/(2.0*PI); }
   double omega() { return sqrt(shiftV); }
-  double kappa() { /*if(numProps > 1) cerr << "warning: assuming homogenous fluid (attr #1), k = " << sProps[0].kappaHelm << endl;*/ return sProps[0].kappaHelm; }
+  double kappa() { if(numProps > 1) cerr << "Warning: assuming homogenous fluid (attr #1), k = " << sProps[0].kappaHelm << endl; return sProps[0].kappaHelm; }
 
   void setMRatio(double _mratio) { assert(_mratio >= 0.0 && _mratio <= 1.0); mratio = _mratio; }
   double getMRatio() const { return mratio; }

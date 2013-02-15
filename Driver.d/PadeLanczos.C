@@ -405,26 +405,14 @@ time -= getTime();
    }
 
    for(int i=0;i<nRHS;i++) {
-filePrint(stderr,"Forcing continuity %d.\n",i);
-     forceContinuity(*u[i]);
-//fprintf(stderr,"Dumping deriv %d.\n",i);
-//       postProcessor->staticOutput(*u[i], *u[i],false);
+     if (domain->solInfo().type == 2) {
+       forceContinuity(*u[i]);
+       filePrint(stderr,"Forcing continuity %d.\n",i);
+     }
    }
 
 
-/*
-   double *buf = new double[sol->size()];
-   int h = open("vectors",O_CREAT|O_APPEND|O_WRONLY,S_IRUSR|S_IWUSR);
-   
-     for(int i=0;i<nRHS;i++) {
-       for(int j=0;j<sol->size();j++) buf[j] = ScalarTypes::Real((*v[i])[j]);
-       write(h,buf,sizeof(double)*sol->size());
-    }
-   close(h);
-*/
 
-
-// for(int i=0;i<nRHS;i++) ((GenDistrVector<Scalar>*)(u[i]))->printAll();
  // Orthogonalize
 //   int ngs = 5;
    int ngs = 2;
@@ -434,44 +422,13 @@ filePrint(stderr,"Forcing continuity %d.\n",i);
        for(int j=0;j<i;j++) {
          Scalar dotp = *u[i] *  *u[j];
          (*u[i]).linAdd(-dotp,*u[j]);
-//         if (m==ngs-1)
-//             fprintf(stderr,"dot %d %d %.16e %.16e\n",
-//                 i,j,ScalarTypes::Real(dotp),ScalarTypes::Imag(dotp));
        }
        Scalar nrm = *u[i] * *u[i];
-//       if (m==0)
-//          fprintf(stderr,"nrm %d %d %.16e %.16e\n",m,
-//                 i,sqrt(ScalarTypes::Real(nrm0)),sqrt(ScalarTypes::Real(nrm)));
        *u[i] *= 1.0/sqrt(ScalarTypes::Real(nrm));
        nrm = *u[i] * *u[i];
-//          fprintf(stderr,"nrmnrm %d %d %.16e \n",m,
-//                 i,sqrt(ScalarTypes::Real(nrm)));
-//       if (m==ngs-1) postProcessor->staticOutput(*u[i], *rhs,false);
      }
    }
 
-/*
-   double *buf = new double[sol->size()];
-   int h = open("ovectors",O_CREAT|O_APPEND|O_WRONLY,S_IRUSR|S_IWUSR);
-   
-     for(int i=0;i<nRHS;i++) {
-       for(int j=0;j<sol->size();j++) buf[j] = ScalarTypes::Real((*u[i])[j]);
-       write(h,buf,sizeof(double)*sol->size());
-    }
-   close(h);
-   delete[] buf;
-*/
-
-
-
-/*
-     for(int i=0;i<nRHS;i++) {
-       for(int j=0;j<nRHS;j++) {
-         Scalar dotp = *u[i] *  *u[j];
-         fprintf(stderr,"check dot %d %d %.16e %.16e\n",
-                 i,j,ScalarTypes::Real(dotp),ScalarTypes::Imag(dotp));
-       }
-     }*/
 
    VecType *b = new VecType(probDesc->solVecInfo());
    VecType *c = new VecType(probDesc->solVecInfo());
@@ -483,22 +440,12 @@ filePrint(stderr,"Forcing continuity %d.\n",i);
    VhCV = new Scalar[(nRHS)*(nRHS)];
    for(int i=0;i<nRHS;i++) {
      
-// for(int k=0;k<sol->size();k++)
-//   fprintf(stderr,"u[%d][%d]= %.18e %.18e\n",i,k+1,ScalarTypes::Real((*(u[i]))[k]),ScalarTypes::Imag((*(u[i]))[k]));
-
      allOps->K->mult(*(u[i]), *a);
-// for(int k=0;k<sol->size();k++)
-//   fprintf(stderr,"a[%d]= %.18e %.18e\n",k+1,ScalarTypes::Real((*a)[k]),ScalarTypes::Imag((*a)[k]));
-
      allOps->M->mult(*(u[i]), *b);
-// for(int k=0;k<sol->size();k++)
-//   fprintf(stderr,"b[%d]= %.18e %.18e\n",k+1,ScalarTypes::Real((*b)[k]),ScalarTypes::Imag((*b)[k]));
-
 
      for(int k=0;k<sol->size();k++) (*c)[k] = 0;
      if (allOps->C_deriv) {
        if (allOps->C_deriv[0]) { allOps->C_deriv[0]->mult(*(u[i]), *c);
-          fprintf(stderr,"kukuku\n");
        }
      } else (*c).zero(); 
      //else if (allOps->C) allOps->C->mult(*(u[i]), *c);  
@@ -513,73 +460,9 @@ filePrint(stderr,"Forcing continuity %d.\n",i);
    }
    delete b;
    delete c;
-/*
-   fprintf(stderr,"K\n");
-   for(int i=0;i<sol->size();i++) {
-     for(int j=0;j<sol->size();j++) (*f)[j] = 0;
-     (*f)[i] = 1;
-     allOps->K->mult(*f, *a);
-     for(int j=0;j<sol->size();j++) {
-      if (sqrt(ScalarTypes::Real((*a)[j])*ScalarTypes::Real((*a)[j])+
-               ScalarTypes::Imag((*a)[j])*ScalarTypes::Imag((*a)[j])) > 0.0 )
-      fprintf(stderr,"%d %d: %.18e %.18e \n",i,j,ScalarTypes::Real((*a)[j]),ScalarTypes::Imag((*a)[j]));
-     }
-   }
-   fprintf(stderr,"M\n");
-   for(int i=0;i<sol->size();i++) {
-     for(int j=0;j<sol->size();j++) (*f)[j] = 0;
-     (*f)[i] = 1;
-     allOps->M->mult(*f, *a);
-     for(int j=0;j<sol->size();j++) {
-      if (sqrt(ScalarTypes::Real((*a)[j])*ScalarTypes::Real((*a)[j])+
-               ScalarTypes::Imag((*a)[j])*ScalarTypes::Imag((*a)[j])) > 0.0 )
-      fprintf(stderr,"%d %d: %.18e %.18e \n",i,j,ScalarTypes::Real((*a)[j]),ScalarTypes::Imag((*a)[j]));
-     }
-   }
-   if (allOps->C_deriv) {
-    if (allOps->C_deriv[0])  {
-     fprintf(stderr,"allOps->C_deriv[0]\n");
-     for(int i=0;i<sol->size();i++) {
-       for(int j=0;j<sol->size();j++) (*f)[j] = 0;
-       (*f)[i] = 1;
-       allOps->C_deriv[0]->mult(*f, *a);
-       for(int j=0;j<sol->size();j++) {
-        if (sqrt(ScalarTypes::Real((*a)[j])*ScalarTypes::Real((*a)[j])+
-                 ScalarTypes::Imag((*a)[j])*ScalarTypes::Imag((*a)[j])) > 0.0 )
-        fprintf(stderr,"%d %d: %e %e \n",i,j,ScalarTypes::Real((*a)[j]),ScalarTypes::Imag((*a)[j]));
-       }
-     }
-    }
-   }
-   if (allOps->C) {
-     fprintf(stderr,"allOps->C\n");
-     for(int i=0;i<sol->size();i++) {
-       for(int j=0;j<sol->size();j++) (*f)[j] = 0;
-       (*f)[i] = 1;
-       allOps->C->mult(*f, *a);
-       for(int j=0;j<sol->size();j++) {
-        if (sqrt(ScalarTypes::Real((*a)[j])*ScalarTypes::Real((*a)[j])+
-                 ScalarTypes::Imag((*a)[j])*ScalarTypes::Imag((*a)[j])) > 0.0 )
-        fprintf(stderr,"%d %d: %e %e \n",i,j,ScalarTypes::Real((*a)[j]),ScalarTypes::Imag((*a)[j]));
-       }
-     }
-   }
-*/
    delete a;
 time += getTime();
 filePrint(stderr,"Ortho + proj setup time: %e\n",time);
-/*
-   double *bufm = new double[2*nRHS*nRHS];
-   h = open("pmatrices",O_CREAT|O_APPEND|O_WRONLY,S_IRUSR|S_IWUSR);
-   
-   for(int ii=0;ii<nRHS;ii++) for(int jj=0;jj<nRHS;jj++) {
-      bufm[ii*(nRHS)+jj] = ScalarTypes::Real(VhKV[ii*(nRHS)+jj]);
-      bufm[nRHS*nRHS+ii*(nRHS)+jj] = ScalarTypes::Real(VhMV[ii*(nRHS)+jj]);
-   }
-   write(h,bufm,sizeof(double)*2*nRHS*nRHS);
-   close(h);
-   delete[] bufm;
-*/
  }
 
 double time = 0.0;
@@ -587,9 +470,6 @@ time -= getTime();
 
  // Project 
  probDesc->getRHS(*f, w,deltaw);
-// for(int k=0;k<sol->size();k++)
-//   fprintf(stderr,"f[%d]= %d %e %e\n",k+1,sizeof((*f)[0]),ScalarTypes::Real((*f)[k]),ScalarTypes::Imag((*f)[k]));
-
 
  Scalar *z = new Scalar[nRHS];
  for(int i=0;i<nRHS;i++) {
@@ -597,8 +477,6 @@ time -= getTime();
  }
 
  
-// fprintf(stderr,"allOps->C_deriv %p\n",allOps->C_deriv);
-
  Scalar *zz = new Scalar[(nRHS)*(nRHS)];
  for(int i=0;i<nRHS;i++)
    for(int j=0;j<nRHS;j++) {
@@ -607,33 +485,12 @@ time -= getTime();
                       w * VhCV[i*(nRHS)+j]);
    }
 
-/*
-      FILE *ff = fopen("pm","a");
-      for(int ii=0;ii<nRHS;ii++) for(int jj=0;jj<nRHS;jj++) {
-        fprintf(ff,"%d %d %.20e %.20e\n",ii+1,jj+1,
-           ScalarTypes::Real(zz[ii*(nRHS)+jj]),
-           ScalarTypes::Imag(zz[ii*(nRHS)+jj]));
-      }
-      fclose(ff);
-*/
-
-
-
-
 //--- Solve the reduced linear system
  std::vector<int> ipiv(nRHS);
  int lwork = 3 * nRHS;
  std::vector<Scalar> work(lwork);
  int info = 0;
  Tgesv(nRHS, 1, &zz[0], nRHS, &ipiv[0], &z[0], nRHS, info);
-
-/*
- fprintf(stderr,"Coefs:");
- for(int i=0;i<nRHS;i++)
-   fprintf(stderr," %e %e",ScalarTypes::Real(z[i]),
-                          ScalarTypes::Imag(z[i]));
- fprintf(stderr,"\n");
-*/
 
 //--- Compute the approximant vector
  (*sol).zero();
@@ -710,8 +567,6 @@ time -= getTime();
 
    for(int i=0;i<nOrtho;i++) *u[i] = *v[i];
    if(domain->solInfo().isCoupled) {
-//     for(int i=0;i<nOrtho;i++)
-//fprintf(stderr,"gogo %d %e\n",i,ScalarTypes::Real((*u[i])[0]));
      for(int i=0;i<nOrtho;i++)
         scaleInvDisp(*u[i]);
      for(int i=0;i<nOrtho;i++) {
@@ -777,8 +632,6 @@ time -= getTime();
        VhMV[i*(nOrtho+nRHS)+j] = *b * *u[j];
        VhCV[i*(nOrtho+nRHS)+j] = *c * *u[j];
        VhKV[i*(nOrtho+nRHS)+j] = *a * *u[j];
-// + (w-deltaw)*(w-deltaw) * VhMV[i*(nOrtho+nRHS)+j];
-//      ScalarTypes::addComplex(VhKV[i*(nOrtho+nRHS)+j], -(w-deltaw)*VhCV[i*(nOrtho+nRHS)+j] );
      }
    }
 
@@ -791,12 +644,6 @@ time -= getTime();
      for(int i=0;i<nOrtho+nRHS;i++)
         scaleDisp(*v[i]);
    }
-/*
-for(int i=0;i<nOrtho+nRHS;i++) 
-fprintf(stderr,"gaga %d %e\n",i,ScalarTypes::Real((*u[i])[0]));
-for(int i=0;i<nOrtho+nRHS;i++) 
-fprintf(stderr,"gugu %d %e\n",i,ScalarTypes::Real((*v[i])[0]));
-*/
 time += getTime();
 filePrint(stderr,"Krylov setup time: %e\n",time);
 filePrint(stderr,"RHS solve time: %e\n",rhstime);
@@ -827,13 +674,6 @@ time -= getTime();
  int info = 0;
  Tgesv(nOrtho+nRHS, 1, &zz[0], nOrtho+nRHS, &ipiv[0], &z[0], nOrtho+nRHS, info);
 
-/* fprintf(stderr,"Coefs:");
- for(int i=0;i<nOrtho+nRHS;i++)
-   fprintf(stderr," %e %e",ScalarTypes::Real(z[i]),
-                          ScalarTypes::Imag(z[i]));
- fprintf(stderr,"\n");
-*/
-
 //--- Compute the approximant vector
  (*sol).zero();
  for(int i=0;i<nOrtho+nRHS;i++) 
@@ -855,14 +695,12 @@ time -= getTime();
  for(int k=0;k<sol->size();k++) 
      ScalarTypes::addComplex((*a)[k], 
                       w * (*c)[k]);
-// (*a).print();
  (*a).linAdd(-1.0,*f);
  forceAssemble(*a);
  forceAssemble(*f);
  Scalar nrma = *a * *a;
  Scalar nrmf = *f * *f;
  filePrint(stderr,"residual: %e\n", sqrt(ScalarTypes::Real(nrma))/sqrt(ScalarTypes::Real(nrmf)));
-// (*sol).print();
 time += getTime();
 filePrint(stderr,"Residual compute time: %e\n",time);
 
@@ -982,7 +820,13 @@ orthotime -= getTime();
 rhstime -= getTime();
      allOps->sysSolver->solve(*f, *a);
 rhstime += getTime();
-     if (dgpFlag) *u[offset+i+1] = *a;
+     if (dgpFlag) {
+       if (domain->solInfo().type == 2) {
+         filePrint(stderr,"Forcing continuity %d.\n",i);
+         forceContinuity(*a);
+       }
+       *u[offset+i+1] = *a;
+     }
      if(domain->solInfo().isCoupled) scaleDisp(*a,alpha);
      int ngs = 2;
      for(int m=0;m<ngs;m++) { 
@@ -1201,13 +1045,6 @@ time -= getTime();
  int info = 0;
  Tgesv(nOrtho, 1, &zz[0], nOrtho, &ipiv[0], &z[0], nOrtho, info);
 
-/* fprintf(stderr,"Coefs:");
- for(int i=0;i<nOrtho+nRHS;i++)
-   fprintf(stderr," %e %e",ScalarTypes::Real(z[i]),
-                          ScalarTypes::Imag(z[i]));
- fprintf(stderr,"\n");
-*/
-
 //--- Compute the approximant vector
  (*sol).zero();
  for(int i=0;i<nOrtho;i++) 
@@ -1312,23 +1149,6 @@ StaticSolver< Scalar, OpSolver, VecType,
        (*a).linAdd(-R[p*nRHS+i],*u[i]);
      }
 
-/*
-     for(int i=0;i<p;i++) {
-       R[p*nRHS+i] = 0;
-       R[p*nRHS+i] += *a * *u[i];
-       for(int j=0;j<p;j++) {
-         R[p*nRHS+i] += S[j*nRHS+i] * y[j];
-       }
-     }
-     for(int i=0;i<p;i++) {
-        fprintf(stderr,"y[%d]= %.20e %.20e\n",i, ScalarTypes::Real(y[i]),
-           ScalarTypes::Imag(y[i]));
-       (*a).linAdd(y[i],*v[i]);
-        fprintf(stderr,"R[%d]= %.20e %.20e\n",i, ScalarTypes::Real(R[p*nRHS+i]),
-           ScalarTypes::Imag(R[p*nRHS+i]));
-       (*a).linAdd(-R[p*nRHS+i],*u[i]);
-     }
-*/
 
   // Extra reortho
      int ngs = 2;

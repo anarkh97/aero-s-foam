@@ -901,8 +901,12 @@ void GeoSource::setUpData()
   SPropContainer::iterator it = sProps.begin();
   while(it != sProps.end()) {
     StructProp* p = &(it->second);
-    if(p->soundSpeed == 1.0)
-      p->soundSpeed = omega()/complex<double>(p->kappaHelm, p->kappaHelmImag);
+// RT : 02/01/2013 changing syntax to AMAT
+//    if(p->soundSpeed == 1.0)
+//      p->soundSpeed = omega()/complex<double>(p->kappaHelm, p->kappaHelmImag);
+    complex<double> ka = omega()/p->soundSpeed;
+    p->kappaHelm = real(ka);
+    p->kappaHelmImag = imag(ka);
     if(p->type != StructProp::Constraint) {
       p->lagrangeMult = (sinfo.mpcDirect) ? false : sinfo.lagrangeMult;
       p->initialPenalty = p->penalty = (sinfo.mpcDirect) ? 0.0 : sinfo.penalty;

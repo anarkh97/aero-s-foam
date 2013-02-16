@@ -176,6 +176,55 @@ GenSubDomain<Scalar>::mergeAllDisp(Scalar (*xyz)[11], Scalar *u, Scalar (*xyz_lo
  }
 }
 
+
+template<class Scalar>
+void
+GenSubDomain<Scalar>::forceContinuity(Scalar *u, Scalar (*xyz)[11])//DofSet::max_known_nonL_dof
+{
+ int inode;
+ for(inode = 0; inode < numnodes; ++inode){
+   int xLoc  = c_dsa->locate(inode, DofSet::Xdisp);
+
+   if(xLoc >= 0)
+     u[xLoc] = xyz[glNums[inode]][0];
+
+   int yLoc  = c_dsa->locate(inode, DofSet::Ydisp);
+
+   if(yLoc >= 0)
+     u[yLoc] = xyz[glNums[inode]][1];
+
+   int zLoc  = c_dsa->locate(inode, DofSet::Zdisp);
+
+   if(zLoc >= 0)
+     u[zLoc] = xyz[glNums[inode]][2];
+
+   int xRot  = c_dsa->locate(inode, DofSet::Xrot);
+
+   if(xRot >= 0)
+     u[xRot] = xyz[glNums[inode]][3];
+
+   int yRot  = c_dsa->locate(inode, DofSet::Yrot);
+
+   if(yRot >= 0)
+     u[yRot] = xyz[glNums[inode]][4];
+
+   int zRot  = c_dsa->locate(inode, DofSet::Zrot);
+
+   if(zRot >= 0)
+     u[zRot] = xyz[glNums[inode]][5];
+
+   int xTemp  = c_dsa->locate(inode, DofSet::Temp);
+
+   if(xTemp >= 0)
+     u[xTemp] = xyz[glNums[inode]][6];
+
+   int xHelm  = c_dsa->locate(inode, DofSet::Helm);
+
+   if(xHelm >= 0)
+     u[xHelm] = xyz[glNums[inode]][7];
+ }
+}
+
 template<class Scalar>
 void
 GenSubDomain<Scalar>::mergeAllVeloc(Scalar (*xyz)[11], Scalar *v, Scalar (*xyz_loc)[11])

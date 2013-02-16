@@ -79,6 +79,7 @@ class GenDecDomain
   bool firstOutput; 
 
   GenBasicAssembler<Scalar> *ba;
+  GenBasicAssembler<Scalar> *ba2;
 
  public:
   GenDecDomain(Domain *d);
@@ -120,6 +121,9 @@ class GenDecDomain
   DistrInfo* pbcVectorInfo();
   void scaleDisp(GenDistrVector<Scalar> &u);
   void scaleInvDisp(GenDistrVector<Scalar> &u);
+  void scaleDisp(GenDistrVector<Scalar> &u, double alpha);
+  virtual void forceContinuity(GenDistrVector<Scalar> &u);
+  virtual void forceAssemble(GenDistrVector<Scalar> &u);
   void setNewProperties(int);
   void assignRandMat();
   void retrieveElemset();
@@ -208,6 +212,7 @@ class GenDecDomain
                           int numNodes, int dof, double time);
   void scaleSubDisp(int iSub, GenDistrVector<Scalar> &u);
   void scaleInvSubDisp(int iSub, GenDistrVector<Scalar> &u);
+  void scaleSubDisp(int iSub, GenDistrVector<Scalar> &u, double alpha);
 
   // Helmholtz Fluid functions
   void distribBC(int iSub, GenSubDomain<Scalar> **sd, Domain *domain,

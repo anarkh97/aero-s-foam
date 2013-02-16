@@ -1768,6 +1768,18 @@ Domain::scaleInvDisp(Scalar *u)
   }
 }
 
+template<class Scalar>
+void
+Domain::scaleDisp(Scalar *u, double alpha)
+{
+  for(int inode = 0; inode < numnodes; ++inode) {
+    int cdofs[6];
+    c_dsa->number(inode, DofSet::XYZdisp | DofSet::XYZrot, cdofs);
+    for(int jdof = 0; jdof<6; ++jdof)
+      if(cdofs[jdof] >= 0) u[cdofs[jdof]] *= alpha;
+  }
+}
+
 
 template<class Scalar>
 int Domain::mergeDistributedDisp(Scalar (*xyz)[11], Scalar *u, Scalar *bcx, Scalar (*xyz_loc)[11])
@@ -1885,6 +1897,67 @@ int Domain::mergeDistributedDisp(Scalar (*xyz)[11], Scalar *u, Scalar *bcx, Scal
 
   return ++realNode;
 }
+
+
+template<class Scalar>
+void Domain::forceDistributedContinuity(Scalar *u, Scalar (*xyz)[11])//DofSet::max_known_nonL_dof
+{
+  int inode;
+  int realNode = -1;
+  for (inode = 0; inode < numnodes; ++inode){
+
+    if(nodeToElem)
+      if(nodeToElem->num(inode) < 0) continue;
+    realNode++;
+    int xLoc  = c_dsa->locate(inode, DofSet::Xdisp);
+
+    if (xLoc >= 0)
+      u[xLoc] = xyz[inode][0];
+
+    int yLoc  = c_dsa->locate(inode, DofSet::Ydisp);
+
+    if (yLoc >= 0)
+      u[yLoc] = xyz[inode][1];
+
+    int zLoc  = c_dsa->locate(inode, DofSet::Zdisp);
+
+    if (zLoc >= 0)
+      u[zLoc] = xyz[inode][2];
+
+    int xRot  = c_dsa->locate(inode, DofSet::Xrot);
+
+    if (xRot >= 0)
+      u[xRot] = xyz[inode][3];
+
+    int yRot  = c_dsa->locate(inode, DofSet::Yrot);
+
+    if (yRot >= 0)
+      u[yRot] = xyz[inode][4];
+
+    int zRot  = c_dsa->locate(inode, DofSet::Zrot);
+
+    if (zRot >= 0)
+      u[zRot] = xyz[inode][5];
+
+    int xTemp  = c_dsa->locate(inode, DofSet::Temp);
+
+    if (xTemp >= 0)
+      u[xTemp] = xyz[inode][6];
+
+    int xHelm  = c_dsa->locate(inode, DofSet::Helm);
+
+    if (xHelm >= 0)
+      u[xHelm] = xyz[inode][7];
+
+    int xPot  = c_dsa->locate(inode, DofSet::Potential);
+
+    if (xPot >= 0)
+      u[xPot] = xyz[inode][10];
+  }
+
+//  return ++realNode;
+}
+
 
 
 template<class Scalar>
@@ -2455,7 +2528,7 @@ Domain::assembleATDROB(GenSparseMatrix<Scalar> *K, AllOps<Scalar> *ops,double Kc
      FullSquareMatrix ms = scatter[i]->sommerMatrix(nodes,v);//sommerMatrix is negative definite...
      FullSquareMatrix mm(ms.dim(),(double*)dbg_alloca(ms.dim()*ms.dim()*sizeof(double)));
      ms.multiply(mm,temp);
-     updateMatrices<Scalar>(ops,K,dofs,&mm,0,Kcoef);
+     updateMatrices<Scalar>(ops,K,dofs,0,&mm,0,Kcoef); //RT : 02112013 - needs to be done
     }
   }
 }
@@ -2490,14 +2563,32 @@ Domain::assembleSommer(GenSparseMatrix<Scalar> *K, AllOps<Scalar> *ops)
 
    double *v = (double *) dbg_alloca(maxNumDOFs*maxNumDOFs*sizeof(double));
    double *vbt = (double *) dbg_alloca(maxNumDOFs*maxNumDOFs*sizeof(double));
+ GenSubDomain<Scalar> *subCast = dynamic_cast<GenSubDomain<Scalar>*>(this);
+ bool mdds_flag = (K && subCast && sinfo.type == 0); // multidomain direct solver
+  
    // This loops adds the contribution of the terms emanating
    // from the non-reflecting boundary conditions
-   int i;
-
-   for(i=0; i<numSommer; i++) {
+   //
+   for(int i=0; i<numSommer; i++) {
      ComplexD *bt2Matrix = 0;
      ComplexD **bt2nMatrix = 0;
      int *dofs = sommer[i]->dofs(*dsa);
+     int *dofs_mdds = dofs;
+    if(mdds_flag) {
+       int *localnums = sommer[i]->nodes();
+//       int *glnums = new int[sommer[i]->numNodes()];
+       int *nn = sommer[i]->getNodes();
+       for(int j=0; j<sommer[i]->numNodes(); ++j) {
+          int glnum = subCast->localToGlobal(localnums[j]);
+          nn[j] = glnum; 
+       }
+//       sommer[i]->renum(glnums);
+       dofs_mdds = sommer[i]->dofs(*domain->getDSA());
+//       sommer[i]->renum(localnums);
+       for(int j=0; j<sommer[i]->numNodes(); ++j) nn[j] = localnums[j];
+       delete [] localnums;
+//       delete [] glnums;
+     }
      FullSquareMatrix ms = sommer[i]->sommerMatrix(nodes,v);
      FullSquareMatrix mm(ms.dim(),(double*)dbg_alloca(ms.dim()*ms.dim()*sizeof(double)));
      double kappa = sommer[i]->el->getProperty()->kappaHelm; // PJSA 1-15-2008
@@ -2506,7 +2597,7 @@ Domain::assembleSommer(GenSparseMatrix<Scalar> *K, AllOps<Scalar> *ops)
      ms.multiply(mm,kappa);
 
      // "Zero-order" term
-     updateMatrices(ops,K,dofs,0,&mm);
+     updateMatrices(ops,K,dofs,dofs_mdds,0,&mm);
 
      double psi; // curvature of the boundary
      double HH, KK;
@@ -2515,7 +2606,7 @@ Domain::assembleSommer(GenSparseMatrix<Scalar> *K, AllOps<Scalar> *ops)
        psi = curvatures[i];
        HH = psi/2.0;
        ms.multiply(mm,-HH);
-       updateMatrices(ops,K,dofs,&mm,0);
+       updateMatrices(ops,K,dofs,dofs_mdds,&mm,0);
      }
 
      // 2nd order Bayliss-Turkel boundary condition
@@ -2537,12 +2628,12 @@ Domain::assembleSommer(GenSparseMatrix<Scalar> *K, AllOps<Scalar> *ops)
        ms.multiply(mm,c2);
        ks.multiply(mm1,c4);
        mm += mm1;
-       updateMatrices(ops,K,dofs,&mm,0);
+       updateMatrices(ops,K,dofs,dofs_mdds,&mm,0);
        // mm = ms*c1 + ks*c3;
        ms.multiply(mm,c1);
        ks.multiply(mm1,c3);
        mm += mm1;
-       updateMatrices(ops,K,dofs,0,&mm);
+       updateMatrices(ops,K,dofs,dofs_mdds,0,&mm);
      }
 
      // 1st order 3D Bayliss-Turkel boundary condition
@@ -2560,7 +2651,7 @@ Domain::assembleSommer(GenSparseMatrix<Scalar> *K, AllOps<Scalar> *ops)
          HH = 1.0/curvatureConst1;
        }
        ms.multiply(mm,-HH);
-       updateMatrices(ops,K,dofs,&mm,0);
+       updateMatrices(ops,K,dofs,dofs_mdds,&mm,0);
      }
 
      // 2nd order 3D Bayliss-Turkel boundary condition
@@ -2591,9 +2682,9 @@ Domain::assembleSommer(GenSparseMatrix<Scalar> *K, AllOps<Scalar> *ops)
 
        if(curvatureFlag != 2) {
          ms.multiply(mm,c2);
-         updateMatrices(ops,K,dofs,&mm,0);
+         updateMatrices(ops,K,dofs,dofs_mdds,&mm,0);
          ms.multiply(mm,c1);
-         updateMatrices(ops,K,dofs,0,&mm);
+         updateMatrices(ops,K,dofs,dofs_mdds,0,&mm);
        }
 
        bt2Matrix = new DComplex [ms.dim()*ms.dim()*sizeof(DComplex)];
@@ -2631,7 +2722,7 @@ Domain::assembleSommer(GenSparseMatrix<Scalar> *K, AllOps<Scalar> *ops)
            }
          }
 
-         updateMatrices(ops,K,dofs,&ksRe,&ksIm);
+         updateMatrices(ops,K,dofs,dofs_mdds,&ksRe,&ksIm);
        }
 
        double curv_e[3];
@@ -2709,7 +2800,7 @@ Domain::assembleSommer(GenSparseMatrix<Scalar> *K, AllOps<Scalar> *ops)
          }
        }
 
-       updateMatrices(ops,K,dofs,&ksRe,&ksIm);
+       updateMatrices(ops,K,dofs,dofs_mdds,&ksRe,&ksIm);
      }
 
      if(solInfo().doFreqSweep) {
@@ -2807,14 +2898,17 @@ Domain::computeSommerDerivatives(double HH, double KK, int curvatureFlag, int *d
 
 template<class Scalar>
 void
-Domain::updateMatrices(AllOps<Scalar> *ops, GenSparseMatrix<Scalar> *Z, int *dofs,
+Domain::updateMatrices(AllOps<Scalar> *ops, GenSparseMatrix<Scalar> *Z, int *dofs, int *dofs_mdds,
                        FullSquareMatrix *reEl, FullSquareMatrix *imEl, double Kcoef)
 {
   if((sinfo.isATDARB()) || (sinfo.ATDROBalpha != 0.0)) {
     if(reEl) {
       FullSquareMatrix temp(reEl->dim(),(double*)dbg_alloca(reEl->dim()*reEl->dim()*sizeof(double)));
       reEl->multiply(temp, Kcoef);
-      if(Z) Z->add(temp, dofs);
+#if defined(_OPENMP)
+           #pragma omp critical
+#endif
+      if(Z) Z->add(temp, dofs_mdds);
       if(ops && ops->spp) ops->spp->add(temp, dofs);
       if(ops && ops->Kuc) ops->Kuc->add(temp, dofs);
       if(ops && ops->Kcc) ops->Kcc->add(temp, dofs);
@@ -2822,7 +2916,10 @@ Domain::updateMatrices(AllOps<Scalar> *ops, GenSparseMatrix<Scalar> *Z, int *dof
     if(imEl) {
       FullSquareMatrix temp(imEl->dim(),(double*)dbg_alloca(imEl->dim()*imEl->dim()*sizeof(double)));
       imEl->multiply(temp, Kcoef);
-      if(Z) Z->addImaginary(*imEl, dofs);
+#if defined(_OPENMP)
+           #pragma omp critical
+#endif
+      if(Z) Z->addImaginary(*imEl, dofs_mdds);
       if(ops && ops->spp) ops->spp->addImaginary(temp, dofs);
       if(ops && ops->Kuc) ops->Kuc->addImaginary(temp, dofs);
       if(ops && ops->Kcc) ops->Kcc->addImaginary(temp, dofs);
@@ -2830,19 +2927,26 @@ Domain::updateMatrices(AllOps<Scalar> *ops, GenSparseMatrix<Scalar> *Z, int *dof
   }
   else {
     if(reEl) {
-      if(Z) Z->add(*reEl, dofs);
+#if defined(_OPENMP)
+           #pragma omp critical
+#endif
+      if(Z) Z->add(*reEl, dofs_mdds);
       if(ops && ops->spp) ops->spp->add(*reEl, dofs);
       if(ops && ops->Kuc) ops->Kuc->add(*reEl, dofs);
       if(ops && ops->Kcc) ops->Kcc->add(*reEl, dofs);
     }
     if(imEl) {
-      if(Z) Z->addImaginary(*imEl, dofs);
+#if defined(_OPENMP)
+           #pragma omp critical
+#endif
+      if(Z) Z->addImaginary(*imEl, dofs_mdds);
       if(ops && ops->spp) ops->spp->addImaginary(*imEl, dofs);
       if(ops && ops->Kuc) ops->Kuc->addImaginary(*imEl, dofs);
       if(ops && ops->Kcc) ops->Kcc->addImaginary(*imEl, dofs);
     }
   }
 }
+
 
 template<class Scalar>
 void

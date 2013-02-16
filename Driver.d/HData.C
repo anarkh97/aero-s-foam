@@ -120,7 +120,6 @@ HData::make_bc(Domain *dom, int *bc, ComplexD *bcxC)
    bc[i]  = BCFREE;
  }
 
- double kappa = (implicitFlag) ? geoSource->kappa() : 0.0;
  for (iDir=0; iDir< nDir; iDir++) {
 
    for(i=0; i<dom->numdof(); ++i) {
@@ -161,6 +160,9 @@ HData::make_bc(Domain *dom, int *bc, ComplexD *bcxC)
    }
     
     // Set the Complex Dirichlet boundary condtions
+   double kappa = 0.0;
+   if (numComplexDirichlet>0 & implicitFlag )
+     kappa = geoSource->kappa();
    for(i=0; i<numComplexDirichlet; ++i) {
      int dof  = dom->dsa->locate(cdbc[i].nnum, 1 << cdbc[i].dofnum);
      if(dof < 0) continue;

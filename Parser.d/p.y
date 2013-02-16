@@ -57,7 +57,7 @@
 
 %expect 6
 
-%token ACTUATORS AERO AEROH AEROTYPE ANALYSIS ARCLENGTH ATTRIBUTES ANGULAROUTTYPE
+%token ACTUATORS AERO AEROH AEROTYPE AMAT ANALYSIS ARCLENGTH ATTRIBUTES ANGULAROUTTYPE
 %token AUGMENT AUGMENTTYPE AVERAGED ATDARB ACOU ATDDNB ATDROB ARPACK ATDDIR ATDNEU
 %token AXIHDIR AXIHNEU AXINUMMODES AXINUMSLICES AXIHSOMMER AXIMPC AUXCOARSESOLVER ACMECNTL ADDEDMASS AEROEMBED AUGMENTED
 %token BLOCKDIAG BOFFSET BUCKLE BGTL BMPC BINARYINPUT BINARYOUTPUT
@@ -68,12 +68,12 @@
 %token DAMPING DblConstant DEM DIMASS DISP DIRECT DLAMBDA DP DYNAM DETER DECOMPOSE DECOMPFILE DMPC DEBUGCNTL DEBUGICNTL
 %token CONSTRAINTS MULTIPLIERS PENALTY
 %token EIGEN EFRAMES ELSCATTERER END ELHSOMMERFELD EXPLICIT EPSILON ELEMENTARYFUNCTIONTYPE
-%token FABMAT FACOUSTICS FETI FETI2TYPE FETIPREC FFP FFPDIR FITALG FLUMAT FNAME FLUX FORCE FRONTAL FETIH FILTEREIG
-%token FREQSWEEP FREQSWEEP1 FREQSWEEP2 FSINTERFACE FSISCALING FSIELEMENT NOLOCALFSISPLITING FSICORNER FFIDEBUG FAILSAFE FRAMETYPE
+%token FABMAT FACOUSTICS FETI FETI2TYPE FETIPREC FFP FFPDIR FITALG FNAME FLUX FORCE FRONTAL FETIH FILTEREIG
+%token FREQSWEEP FREQSWEEP1 FREQSWEEP2 FREQSWEEPA FSINTERFACE FSISCALING FSIELEMENT NOLOCALFSISPLITING FSICORNER FFIDEBUG FAILSAFE FRAMETYPE
 %token GEPS GLOBALTOL GRAVITY GRBM GTGSOLVER GLOBALCRBMTOL GROUP GROUPTYPE GOLDFARBTOL GOLDFARBCHECK
 %token HDIRICHLET HEAT HFETI HNEUMAN HSOMMERFELD HFTT
 %token HELMHOLTZ HNBO HELMMF HELMSO HSCBO HWIBO HZEM HZEMFILTER HLMPC 
-%token HELMSWEEP HELMSWEEP1 HELMSWEEP2 HERMITIAN HESSIAN
+%token HERMITIAN HESSIAN
 %token IACC IDENTITY IDIS IDIS6 IntConstant INTERFACELUMPED ITEMP ITERTYPE IVEL 
 %token INCIDENCE IHDIRICHLET IHDSWEEP IHNEUMANN ISOLVERTYPE INPC INFINTY
 %token JACOBI KRYLOVTYPE KIRLOC
@@ -93,7 +93,7 @@
 %token TANGENT TEMP TIME TOLEIG TOLFETI TOLJAC TOLPCG TOPFILE TOPOLOGY TRBM THERMOE THERMOH 
 %token TETT TOLCGM TURKEL TIEDSURFACES THETA HRC THIRDNODE THERMMAT TDENFORC TESTULRICH THRU TOPFLAG
 %token USE USERDEFINEDISP USERDEFINEFORCE UPROJ UNSYMMETRIC USING
-%token VERSION WAVENUMBER WETCORNERS XPOST YMTT 
+%token VERSION WETCORNERS XPOST YMTT 
 %token ZERO BINARY GEOMETRY DECOMPOSITION GLOBAL MATCHER CPUMAP
 %token NODALCONTACT MODE FRIC GAP
 %token OUTERLOOP EDGEWS WAVETYPE ORTHOTOL IMPE FREQ DPH WAVEMETHOD
@@ -375,6 +375,21 @@ Impe:
           { geoSource->setImpe($4); domain->addFrequencies2(2.0*PI*$4, 2.0*PI*$5, $6); }
         | IMPE NewLine FREQSWEEP Float Float Integer Integer NewLine
           { geoSource->setImpe($4); domain->addFrequencies(2.0*PI*$4, 2.0*PI*$5, $6, $7); }
+        | IMPE NewLine FREQSWEEPA Integer Integer Integer Float Float Float Integer Integer Integer NewLine
+        {
+          geoSource->setImpe($7);
+          domain->addFrequencies($7, $8, 2,$5);
+          domain->solInfo().isAdaptSweep = true;
+          domain->solInfo().adaptSweep.maxP = $4;
+          domain->solInfo().adaptSweep.numS = $5;
+          domain->solInfo().adaptSweep.dgp_flag = bool($6);
+          domain->solInfo().adaptSweep.w1 = 2.0*PI*$7;
+          domain->solInfo().adaptSweep.w2 = 2.0*PI*$8;
+          domain->solInfo().adaptSweep.atol = $9;
+          domain->solInfo().adaptSweep.minRHS = $10;
+          domain->solInfo().adaptSweep.maxRHS = $11;
+          domain->solInfo().adaptSweep.deltaRHS = $12;
+        }
         | IMPE NewLine FreqSweep 
         | Impe ReconsInfo
         | Impe DampInfo
@@ -1415,7 +1430,6 @@ WetInterfaceElement:
         { domain->addWetElem($1-1, $2, 1.0, $3.num, $3.nd); 
           domain->solInfo().isCoupled = true; 
           domain->solInfo().isMatching = true; }
-
         ;
 HelmScatterer:
         HSCBO NewLine HelmScattererElement
@@ -1899,9 +1913,9 @@ MatData:
           sp.isReal = true;
           geoSource->addMat( $1-1, sp );
         }
-        | Integer FLUMAT Float Float Float Float Float Float Float Float Float NewLine
+        | Integer AMAT Float Float Float Float Float Float Float Float Float NewLine
         { StructProp sp;
-          sp.kappaHelm = $3;
+          sp.soundSpeed = complex<double>($3,0.0);
           sp.fp.PMLtype = int($4);
           sp.fp.gamma = $5;
           sp.fp.Rx = $6;
@@ -1914,10 +1928,11 @@ MatData:
           sp.type = StructProp::Fluid;
           geoSource->addMat( $1-1, sp );
           domain->PMLFlag = 1;
+          domain->solInfo().acoustic = true;
         }
-        | Integer FLUMAT Float Float Float Float Float Float Float Float Float Float NewLine
+        | Integer AMAT Float Float Float Float Float Float Float Float Float Float NewLine
         { StructProp sp;
-          sp.kappaHelm = $3;
+          sp.soundSpeed = complex<double>($3,0.0);
           sp.rho = $4;
           sp.fp.PMLtype = int($5);
           sp.fp.gamma = $6;
@@ -1931,11 +1946,11 @@ MatData:
           sp.type = StructProp::Fluid;
           geoSource->addMat( $1-1, sp );
           domain->PMLFlag = 1;
+          domain->solInfo().acoustic = true;
         }
-        | Integer FLUMAT Float Float Float Float Float Float Float Float Float Float Float NewLine
+        | Integer AMAT Float Float Float Float Float Float Float Float Float Float Float NewLine
         { StructProp sp;
-          sp.kappaHelm = $3;
-          sp.kappaHelmImag = $4;
+          sp.soundSpeed = complex<double>($3,$4);
           sp.rho = $5;
           sp.fp.PMLtype = int($6);
           sp.fp.gamma = $7;
@@ -1949,22 +1964,24 @@ MatData:
           sp.type = StructProp::Fluid;
           geoSource->addMat( $1-1, sp );
           domain->PMLFlag = 1;
+          domain->solInfo().acoustic = true;
         }
-        | Integer FLUMAT Float Float NewLine
+        | Integer AMAT Float Float NewLine
         { StructProp sp;
-          sp.kappaHelm = $3;
+          sp.soundSpeed = complex<double>($3,0.0);
           sp.rho = $4;
           sp.isReal = true;
           sp.type = StructProp::Fluid;
           geoSource->addMat( $1-1, sp );
+          domain->solInfo().acoustic = true;
         }
-        | Integer FLUMAT Float Float Float NewLine
+        | Integer AMAT Float Float Float NewLine
         { StructProp sp;
-          sp.kappaHelm = $3;
-          sp.kappaHelmImag = $4;
+          sp.soundSpeed = complex<double>($3,$4);
           sp.rho = $5;
           sp.type = StructProp::Fluid;
           geoSource->addMat( $1-1, sp );
+          domain->solInfo().acoustic = true;
         }
 	| Integer FABMAT Integer Float Float Float Float Float Float Float Float Float Integer Integer Integer NewLine
         { StructProp sp;
@@ -3333,7 +3350,9 @@ ConstraintOptionsData:
 HelmInfo:
         HELMHOLTZ NewLine
         { // hack??
-	  domain->solInfo().acoustic = true; }
+	  domain->solInfo().acoustic = true;
+          if(domain->solInfo().probType != SolverInfo::HelmholtzDirSweep) domain->solInfo().setProbType(SolverInfo::Helmholtz);
+        }
         | FETIH NewLine
         { domain->solInfo().type = (2); 
           domain->solInfo().fetiInfo.scaling = FetiInfo::tscaling; 
@@ -3343,21 +3362,6 @@ HelmInfo:
           domain->solInfo().fetiInfo.augment = FetiInfo::Edges;
           domain->solInfo().fetiInfo.rbmType = FetiInfo::None;
           domain->solInfo().fetiInfo.nGs = 0;
-        }
-        | WAVENUMBER Float NewLine
-        {
-          if(domain->solInfo().probType != SolverInfo::HelmholtzDirSweep) domain->solInfo().setProbType(SolverInfo::Helmholtz);
-          domain->fluidCelerity = 1.0; // defines the ratio omega/k
-          geoSource->setOmega($2*domain->fluidCelerity);
-          StructProp sp; sp.kappaHelm = $2; sp.rho = 1.0; geoSource->addMat(0, sp); // default flumat
-        }
-        | WAVENUMBER Float Float Float NewLine
-        {
-          // this is for coupled problem: need fluid density and angular frequency
-          if(domain->solInfo().probType != SolverInfo::HelmholtzDirSweep) domain->solInfo().setProbType(SolverInfo::Helmholtz);
-          domain->fluidCelerity = $3/$2;
-          geoSource->setOmega($3);
-          StructProp sp; sp.kappaHelm = $2; sp.rho = $4; geoSource->addMat(0,sp); // default flumat
         }
         | BGTL Integer NewLine
         {
@@ -3392,84 +3396,9 @@ HelmInfo:
            domain->implicitFlag = 1;
            domain->pointSourceFlag = 0;
         }
-        | HELMHOLTZ NewLine HELMSWEEP1 Float Float Integer NewLine
-        { 
-          domain->solInfo().setProbType(SolverInfo::HelmholtzFreqSweep);
-          domain->fluidCelerity = 1.0; // defines the ratio omega/k
-          geoSource->setOmega($4*domain->fluidCelerity);
-          StructProp sp; sp.kappaHelm = $4; sp.rho = 1.0; geoSource->addMat(0, sp); // default flumat
-          domain->addFrequencies1($4, $5, $6); 
-        }
-        | HELMHOLTZ NewLine HELMSWEEP2 Float Float Integer NewLine
-        {
-          domain->solInfo().setProbType(SolverInfo::HelmholtzFreqSweep);
-          domain->fluidCelerity = 1.0; // defines the ratio omega/k
-          geoSource->setOmega($4*domain->fluidCelerity);
-          StructProp sp; sp.kappaHelm = $4; sp.rho = 1.0; geoSource->addMat(0, sp); // default flumat
-          domain->addFrequencies2($4, $5, $6);
-        }
-        | HELMHOLTZ NewLine HELMSWEEP Float Float Integer Integer NewLine
-        { 
-           domain->solInfo().setProbType(SolverInfo::HelmholtzFreqSweep);
-           domain->fluidCelerity = 1.0; // defines the ratio omega/k
-           geoSource->setOmega($4*domain->fluidCelerity);
-           StructProp sp; sp.kappaHelm = $4; sp.rho = 1.0; geoSource->addMat(0, sp); // default flumat
-           domain->addFrequencies($4, $5, $6, $7); 
-        }
-        | HELMHOLTZ NewLine HelmSweep
-        | HELMHOLTZ NewLine HELMSWEEP1 Float Float   Integer Float   Float NewLine
-        {
-          // coupled sweep:            k0    delta_k n       omega_0 rho
-          domain->solInfo().setProbType(SolverInfo::HelmholtzFreqSweep);
-          domain->fluidCelerity = $7/$4;
-          geoSource->setOmega($7);
-          StructProp sp; sp.kappaHelm = $4; sp.rho = $8; geoSource->addMat(0, sp); // default flumat
-          domain->addFrequencies1($4*domain->fluidCelerity, $5*domain->fluidCelerity, $6);
-        }
-        | HELMHOLTZ NewLine HELMSWEEP2 Float Float Integer Float   Float NewLine
-          // coupled sweep:            k_0   k_1   n       omega_0 rho
-        {
-          domain->solInfo().setProbType(SolverInfo::HelmholtzFreqSweep);
-          domain->fluidCelerity = $7/$4;
-          geoSource->setOmega($7);
-          StructProp sp; sp.kappaHelm = $4; sp.rho = $8; geoSource->addMat(0, sp); // default flumat
-          domain->addFrequencies2($4*domain->fluidCelerity, $5*domain->fluidCelerity, $6);
-        }
-        | HELMHOLTZ NewLine HELMSWEEP  Float Float Integer Integer Float   Float NewLine
-          // coupled sweep (general):  k_0   k_m   m+1     n       omega_0 rho
-        {
-          domain->solInfo().setProbType(SolverInfo::HelmholtzFreqSweep);
-          domain->fluidCelerity = $8/$4;
-          geoSource->setOmega($8);
-          StructProp sp; sp.kappaHelm = $4; sp.rho = $9; geoSource->addMat(0, sp); // default flumat
-          domain->addFrequencies($4*domain->fluidCelerity, $5*domain->fluidCelerity, $6, $7);
-        }
         | HelmInfo DampInfo
         | HelmInfo ReconsInfo 
         | HelmInfo PadePivotInfo
-        ;
-HelmSweep:    
-        HELMSWEEP Float NewLine
-        //        k_0
-        { 
-          domain->solInfo().setProbType(SolverInfo::HelmholtzFreqSweep);
-          domain->fluidCelerity = 1.0; // defines the ratio omega/k
-          geoSource->setOmega($2*domain->fluidCelerity);
-          StructProp sp; sp.kappaHelm = $2; sp.rho = 1.0; geoSource->addMat(0, sp); // default flumat
-          domain->addCoarseFrequency($2*domain->fluidCelerity); 
-        }
-        | HELMSWEEP Float Float   Float NewLine
-        // coupled: k_0   omega_0 rho
-        { 
-          domain->solInfo().setProbType(SolverInfo::HelmholtzFreqSweep);
-          domain->fluidCelerity = $3/$2;
-          geoSource->setOmega($3);
-          StructProp sp; sp.kappaHelm = $2; sp.rho = $4; geoSource->addMat(0, sp); // default flumat
-          domain->addCoarseFrequency($2*domain->fluidCelerity);
-        }
-        | HelmSweep Float Integer NewLine
-        //          k_i   n_i
-        { domain->addFrequencies($2*domain->fluidCelerity, $3); }
         ;
 IncidenceList:
         IncidenceVector

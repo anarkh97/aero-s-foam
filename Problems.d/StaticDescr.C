@@ -316,6 +316,13 @@ SingleDomainStatic<T, VectorType, SolverType>::scaleInvDisp(VectorType &sol)
   domain->scaleInvDisp(sol.data());
 }
 
+template<class T, class VectorType, class SolverType>
+void
+SingleDomainStatic<T, VectorType, SolverType>::scaleDisp(VectorType &sol, double alpha)
+{
+  domain->scaleDisp(sol.data(), alpha);
+}
+
 
 template<class T, class VectorType, class SolverType>
 SolverType *

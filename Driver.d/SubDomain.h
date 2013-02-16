@@ -553,6 +553,7 @@ class GenSubDomain : public BaseSub
   void mergeAllDisp(Scalar (*xyz)[11], Scalar *d, Scalar (*xyz_loc)[11] = NULL);
   void mergeAllVeloc(Scalar (*xyz)[11], Scalar *v, Scalar (*xyz_loc)[11] = NULL);
   void mergeAllAccel(Scalar (*xyz)[11], Scalar *a, Scalar (*xyz_loc)[11] = NULL);
+  void forceContinuity(Scalar *locdisp, Scalar (*xyz)[11]);
   void mergeDistributedNLDisp(Scalar (*xyz)[11], GeomState* u);
   void mergeForces(Scalar (*mergedF)[6], Scalar *subF);
   void mergeReactions(Scalar (*mergedF)[11], Scalar *subF);

@@ -107,6 +107,34 @@ GenDistrDomain<Scalar>::makeMasterInfo()
 #endif
 }
 
+
+template<class Scalar>
+void
+GenDistrDomain<Scalar>::forceContinuity(GenDistrVector<Scalar> &u) {
+  if(!masterFlag) initPostPro();
+
+  int iSub;
+
+  // initialize and merge displacements from subdomains into cpu array
+  DistSVec<Scalar, 11> disps(this->nodeInfo);
+  DistSVec<Scalar, 11> masterDisps(masterInfo);
+  disps = 0;
+  for(iSub = 0; iSub < this->numSub; ++iSub) {
+    Scalar (*xyz)[11] = (Scalar (*)[11]) disps.subData(iSub);
+    Scalar *bcx = this->subDomain[iSub]->getBcx();
+    this->subDomain[iSub]->template mergeDistributedDisp<Scalar>(xyz, u.subData(iSub), bcx);
+  }
+//  if(domain->solInfo().isCoupled && domain->solInfo().isMatching)
+  unify(disps); // PJSA 1-17-08 make sure master has both fluid and structure solutions before reducing
+  disps.reduce(masterDisps, masterFlag, numFlags);
+ this->communicator->sync();
+  for(iSub = 0; iSub < this->numSub; ++iSub) {
+    Scalar (*xyz)[11] = (Scalar (*)[11]) disps.subData(iSub);
+    this->subDomain[iSub]->template forceDistributedContinuity<Scalar>(u.subData(iSub), xyz);
+  }
+}
+
+
 template<class Scalar>
 void
 GenDistrDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<Scalar> &f,

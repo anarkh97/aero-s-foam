@@ -388,19 +388,21 @@ SingleDomainDynamic::computeStabilityTimeStep(double& dt, DynamMat& dMat)
 void
 SingleDomainDynamic::getInitState(SysState<Vector> &inState)
 {
-  // initialize state with IDISP/IDISP6/IVEL/IACC or RESTART (XXXX initial accelerations are currently not supported)
+  // initialize state with IDISP/IDISP6/IVEL/IACC or RESTART
   domain->initDispVeloc(inState.getDisp(),  inState.getVeloc(),
-                        inState.getAccel(), inState.getPrevVeloc()); // IVEL, IDISP, IDISP6, restart
-  if(geomState) {
-    geomState->update(inState.getDisp());
-    geomState->setVelocity(inState.getVeloc(), inState.getAccel());
-  }
-  if(geoSource->getCheckFileInfo()->lastRestartFile) {
+                        inState.getAccel(), inState.getPrevVeloc()); // IVEL, IDISP, IDISP6, restart for linear 
+ 
+  if(geoSource->getCheckFileInfo()->lastRestartFile) { 
     filePrint(stderr, " ... Restarting From a Previous Run ...\n");
-    if(domain->solInfo().isNonLin()) { 
+    if(domain->solInfo().isNonLin()) { // restart for nonlinear
       domain->readRestartFile(inState.getDisp(), inState.getVeloc(), inState.getAccel(),
                               inState.getPrevVeloc(), bcx, vcx, *geomState);
+      geomState->setVelocityAndAcceleration(inState.getVeloc(), inState.getAccel());
     }
+  }
+  else if(geomState) {
+    geomState->update(inState.getDisp());
+    geomState->setVelocityAndAcceleration(inState.getVeloc(), inState.getAccel());
   }
 
   // if we have a user supplied function, give it the initial state at the sensors
@@ -557,10 +559,12 @@ SingleDomainDynamic::getContactForce(Vector &d_n, Vector &dinc, Vector &ctc_f, d
 }
 
 void
-SingleDomainDynamic::updateDisplacement(Vector &dinc, Vector &d_n)
+SingleDomainDynamic::updateState(double dt_n_h, Vector &v_n_h, Vector &d_n)
 {
   if(domain->solInfo().isNonLin()) {
-    geomState->update(dinc,1);
+    Vector dinc(solVecInfo()); dinc = dt_n_h*v_n_h;
+    geomState->update(dinc, 1);
+    geomState->setVelocity(v_n_h);
     geomState->get_tot_displacement(d_n);
   }
 }
@@ -615,7 +619,9 @@ SingleDomainDynamic::computeExtForce2(SysState<Vector> &state, Vector &ext_f,
       geomState->explicitUpdate(domain->getNodes(), state.getDisp());
     }
     if(userDefineDisp) geomState->updatePrescribedDisplacement(userDefineDisp, claw, domain->getNodes());
+/* now in updateState
     geomState->setVelocity(state.getVeloc(), state.getAccel());
+*/
   }
 
   if(domain->solInfo().isNonLin() && domain->GetnContactSurfacePairs() && !domain->tdenforceFlag()) {

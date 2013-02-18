@@ -161,7 +161,7 @@ class SingleDomainDynamic
 
     // Central Difference only related subroutines
     void computeStabilityTimeStep(double& dt, DynamMat& dMat);
-    void updateDisplacement(Vector& dinc, Vector& d_n);
+    void updateState(double dt_n_h, Vector& v_n_h, Vector& d_n);
 
     // Mode Decomposition parameters and subroutines
     int getModeDecompFlag();

@@ -324,8 +324,9 @@ BelytschkoTsayShell::massMatrix(CoordSet &cs, double *mel, int cmflg)
       for(int j = 0; j < nndof; ++j) edisp[i*nndof+j] = 0; // constant mass matrix
     }
 
-    int inertiaLumping = 2;
-    if(inertiaLumping == 2) {
+    int inertiaLumping = 1;
+    if(inertiaLumping == 2) { // XXX experimental modifications to original bt shell mass matrix
+                              //     to supress drilling rotations
 
       // get bt shell element block diagonal lumped mass
       _FORTRAN(elemaslbt2)(nndof, expmat->ematpro, ecord, edisp, mel);
@@ -439,9 +440,9 @@ BelytschkoTsayShell::getStiffAndForce(GeomState& geomState, CoordSet& cs, FullSq
       edisp[iloc+2] = geomState[nn[i]].z - cs[nn[i]]->z;
       // note: edisp[iloc+3], edisp[iloc+4] and edisp[iloc+5] are not used...
       for(int j = 0; j < nndof; ++j) {
-        evelo[iloc+j] = geomState[nn[i]].v[j] + delt*0.5*geomState[nn[i]].a[j];
+        evelo[iloc+j] = geomState[nn[i]].v[j]; // now geomState stores v^{n+1/2}
       }
-/* 
+/*
       // push forward convected angular velocity 
       double V[3] = { evelo[iloc+3], evelo[iloc+4], evelo[iloc+5] };
       mat_mult_vec(geomState[nn[i]].R, V, evelo+iloc+3, 0);

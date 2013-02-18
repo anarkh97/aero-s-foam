@@ -193,15 +193,27 @@ Domain::getFictitiousForce(GeomState &geomState, FullSquareMatrix *kel, Vector &
 
         if(beta == 0) {
           // compute the fictitious force for explicit central difference        
-          Eigen::Vector3d V_n_h = V_n + dt/2*A_n;
+          Eigen::Vector3d V_n_h;
+          V_n_h << geomState[nodes[i]].v[3], geomState[nodes[i]].v[4], geomState[nodes[i]].v[5];
           if(domain->solInfo().galerkinPodRom) {
-            Eigen::Vector3d Psi;
+            Eigen::Vector3d Psi, Psidot;
             mat_to_vec(R, Psi);
-            Eigen::Matrix3d T, Tdot;
+            Eigen::Matrix3d T, Tdot, rotvar, Tinverse;
             tangential_transf(Psi, T);
-            tangential_transf_dot(Psi, V_n_h, Tdot);
-            f = M*(T.inverse()*M.inverse()*T.transpose().inverse())*( 
-                T.transpose()*M*Tdot*V_n_h + T.transpose()*(T*V_n_h).cross(M*T*V_n_h));
+            pseudorot_var(Psi, rotvar);
+            Tinverse = rotvar.transpose();
+            Psidot = Tinverse*V_n_h; // XXX assuming v_n_h was convected (ie GeomState::setVelocity passed SO3param == 2)
+            tangential_transf_dot(Psi, Psidot, Tdot);
+
+            // original
+            //f = M*(T.inverse()*M.inverse()*T.transpose().inverse())*( 
+            //    T.transpose()*M*Tdot*Psidot + T.transpose()*(V_n_h).cross(M*V_n_h));
+            // equivalently,
+            //f = M*Tinverse*(Tdot*Psidot + M.inverse()*(V_n_h).cross(M*V_n_h));
+            f = M*Tinverse*(Tdot*Psidot + M.llt().solve((V_n_h).cross(M*V_n_h)));
+
+            // something different (note: A_n here is Psiddot^n)
+            //f = (T.transpose()*M*T - M)*A_n + T.transpose()*M*Tdot*Psidot + T.transpose()*(V_n_h).cross(M*V_n_h); 
           }
           else {
             f = R*V_n_h.cross(M*V_n_h);

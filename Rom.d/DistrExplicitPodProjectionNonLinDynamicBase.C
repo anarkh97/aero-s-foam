@@ -253,14 +253,23 @@ DistrExplicitPodProjectionNonLinDynamicBase::getInitState(SysState<DistrVector> 
 }
 
 void 
-DistrExplicitPodProjectionNonLinDynamicBase::updateDisplacement(DistrVector& temp1, DistrVector& d_n1) {
+DistrExplicitPodProjectionNonLinDynamicBase::updateState(double dt_n_h, DistrVector& v_n_h, DistrVector& d_n1) {
   //update geomState for Fint, but no need to update displacment vector from geometry 
+
+  DistrVector temp1(solVecInfo());
+  temp1 = dt_n_h*v_n_h;
 
   normalizedBasis_.projectUp( temp1, *d_n); 
 
   geomState->update(*d_n, 2);
 
   d_n1 += temp1;  //we save the increment vectors for postprocessing
+
+  bool updateVelocityInGeomState = true; // TODO only set this to true when necessary
+  if(updateVelocityInGeomState) {
+    normalizedBasis_.projectUp(v_n_h, *v_n);
+    geomState->setVelocity(*v_n, 2);
+  }
 
 }
 

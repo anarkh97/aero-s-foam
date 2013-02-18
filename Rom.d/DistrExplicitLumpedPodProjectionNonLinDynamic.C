@@ -29,11 +29,19 @@ DistrExplicitLumpedPodProjectionNonLinDynamic::preProcess() {
 }
 
 void
-DistrExplicitLumpedPodProjectionNonLinDynamic::updateDisplacement(DistrVector& temp1, DistrVector& d_n1) {
+DistrExplicitLumpedPodProjectionNonLinDynamic::updateState(double dt_n_h, DistrVector& v_n_h, DistrVector& d_n1) {
 
+  DistrVector temp1(solVecInfo());
+  temp1 = dt_n_h*v_n_h;
   normalizedBasis_.projectUp( temp1, *d_n);
   execParal1R(decDomain->getNumSub(),this,&DistrExplicitLumpedPodProjectionNonLinDynamic::subUpdateWeightedNodesOnly,*d_n);
   d_n1 += temp1;
+
+  bool updateVelocityInGeomState = true; // TODO only set this to true when necessary
+  if(updateVelocityInGeomState) {
+    normalizedBasis_.projectUp(v_n_h, *v_n);
+    execParal1R(decDomain->getNumSub(),this,&DistrExplicitLumpedPodProjectionNonLinDynamic::subSetVelocityWeightedNodesOnly,*v_n);
+  }
 }
 
 void
@@ -64,6 +72,13 @@ DistrExplicitLumpedPodProjectionNonLinDynamic::subUpdateWeightedNodesOnly(int iS
   StackVector vec(v.subData(iSub), v.subLen(iSub));
   GeomState *gs = (*geomState).getSubGeomState(iSub);
   gs->update(vec, packedWeightedNodes_[iSub], 2);
+}
+
+void
+DistrExplicitLumpedPodProjectionNonLinDynamic::subSetVelocityWeightedNodesOnly(int iSub, DistrVector &v) {
+  StackVector vec(v.subData(iSub), v.subLen(iSub));
+  GeomState *gs = (*geomState).getSubGeomState(iSub);
+  gs->setVelocity(vec, packedWeightedNodes_[iSub], 2);
 }
 
 void

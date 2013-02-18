@@ -290,6 +290,7 @@ subroutine elemaslbt2(nndof,ematpro,ecord,edisp, emaslbt)
      if ( nndof == 6 ) then
         ! from ref [2] "The factor 2 reflects the fact that Iz = Ix + Iy"
         !emassloc(iloc+6,1)= mpnd * 2.0d0* alpha ! mass_rot.z
+        ! agumented to suppress drilling rotation...
         emassloc(iloc+6,1)= mpnd * 2000.0d0* alpha ! mass_rot.z
      end if
 

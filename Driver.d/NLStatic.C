@@ -2160,19 +2160,30 @@ Domain::transformElemStiffAndForce(const GeomState &geomState, double *elementFo
     Eigen::Vector3d V = G.segment<3>(6*k+3);
     if(sinfo.newmarkBeta == 0) {
       if(domain->solInfo().galerkinPodRom && mel) {
-        Eigen::Matrix3d M;
+        Eigen::Matrix3d M, rotvar, Tinverse;
         M << (*mel)[6*k+3][6*k+3], (*mel)[6*k+3][6*k+4], (*mel)[6*k+3][6*k+5],
              (*mel)[6*k+4][6*k+3], (*mel)[6*k+4][6*k+4], (*mel)[6*k+4][6*k+5],
              (*mel)[6*k+5][6*k+3], (*mel)[6*k+5][6*k+4], (*mel)[6*k+5][6*k+5];
 
-        G.segment<3>(6*k+3) = M*(T.inverse()*M.inverse()*T.transpose().inverse())*T*V;
+        pseudorot_var(Psi, rotvar);
+        Tinverse = rotvar.transpose();
+
+        // original
+        //G.segment<3>(6*k+3) = M*(T.inverse()*M.inverse()*T.transpose().inverse())*T*V;
+        // equivalently,
+        //G.segment<3>(6*k+3) = M*Tinverse*M.inverse()*R.transpose()*V;
+        G.segment<3>(6*k+3) = M*Tinverse*M.llt().solve(R.transpose()*V);
+
+        // something different
+        //G.segment<3>(6*k+3) = T.transpose()*V;
       }
       else {
         G.segment<3>(6*k+3) = T.transpose()*V;
       }
     }
-    else
+    else {
       G.segment<3>(6*k+3) = T*V;
+    }
     if(compute_tangents) {
       Eigen::Matrix3d C1;
       directional_deriv1(Psi, V, C1);

@@ -938,8 +938,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
       // Update the displacement at t^(n+1): d^{n+1} = d^n + dt^{n+1/2}*v^{n+1/2}
       if(domain->solInfo().isNonLin()) {
-        tmp1 = dt_n_h*v_n_h;
-        probDesc->updateDisplacement(tmp1, d_n);
+        probDesc->updateState(dt_n_h, v_n_h, d_n);
       }
       else d_n.linAdd(dt_n_h, v_n_h);
       handleDisplacement(*probDesc, d_n);

@@ -40,7 +40,7 @@ public:
   const DistrInfo &solVecInfo();
   DistrInfo &reducedVecInfo();
   void getInitState(SysState<DistrVector> &);
-  void updateDisplacement( DistrVector&, DistrVector&);
+  void updateState(double, DistrVector&, DistrVector&);
   void computeExtForce2(SysState<DistrVector> &distState,
                         DistrVector &f, DistrVector &cnst_f, int tIndex,
                         double t, DistrVector *aero_f=0,

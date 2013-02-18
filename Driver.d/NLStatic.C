@@ -2165,17 +2165,22 @@ Domain::transformElemStiffAndForce(const GeomState &geomState, double *elementFo
              (*mel)[6*k+4][6*k+3], (*mel)[6*k+4][6*k+4], (*mel)[6*k+4][6*k+5],
              (*mel)[6*k+5][6*k+3], (*mel)[6*k+5][6*k+4], (*mel)[6*k+5][6*k+5];
 
-        pseudorot_var(Psi, rotvar);
-        Tinverse = rotvar.transpose();
+        if((M.array() == 0).all()) {
+          G.segment<3>(6*k+3) = T*V;
+        }
+        else {
+          pseudorot_var(Psi, rotvar);
+          Tinverse = rotvar.transpose();
 
-        // original
-        //G.segment<3>(6*k+3) = M*(T.inverse()*M.inverse()*T.transpose().inverse())*T*V;
-        // equivalently,
-        //G.segment<3>(6*k+3) = M*Tinverse*M.inverse()*R.transpose()*V;
-        G.segment<3>(6*k+3) = M*Tinverse*M.llt().solve(R.transpose()*V);
+          // original
+          //G.segment<3>(6*k+3) = M*(T.inverse()*M.inverse()*T.transpose().inverse())*T*V;
+          // equivalently,
+          //G.segment<3>(6*k+3) = M*Tinverse*M.inverse()*R.transpose()*V;
+          G.segment<3>(6*k+3) = M*Tinverse*M.llt().solve(R.transpose()*V);
 
-        // something different
-        //G.segment<3>(6*k+3) = T.transpose()*V;
+          // something different
+          //G.segment<3>(6*k+3) = T.transpose()*V;
+        }
       }
       else {
         G.segment<3>(6*k+3) = T.transpose()*V;

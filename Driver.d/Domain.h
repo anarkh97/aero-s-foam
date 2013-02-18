@@ -720,9 +720,17 @@ class Domain : public HData {
        void scaleDisp(Scalar *u);
      template<class Scalar>
        void scaleInvDisp(Scalar *u);
+     template<class Scalar>
+       void scaleDisp(Scalar *u, double alpha);
+     template<class Scalar>
+       void forceContinuity(Scalar *u) {}
+     template<class Scalar>
+       void forceAssemble(Scalar *u) {}
 
      template<class Scalar>
      int mergeDistributedDisp(Scalar (*xyz)[11], Scalar *u, Scalar *bcx = 0, Scalar (*xyz_loc)[11] = NULL);
+     template<class Scalar>
+     void forceDistributedContinuity(Scalar *u, Scalar (*xyz)[11]);//DofSet::max_known_nonL_dof
 
      Connectivity *makeSommerToNode();
      Connectivity *prepDirectMPC();
@@ -968,7 +976,7 @@ class Domain : public HData {
      template<class Scalar>
        void assembleATDROB(GenSparseMatrix<Scalar> *K, AllOps<Scalar> *ops = 0, double Kcoef = 0.0);
      template<class Scalar>
-       void updateMatrices(AllOps<Scalar> *ops, GenSparseMatrix<Scalar> *K, int *dofs,
+       void updateMatrices(AllOps<Scalar> *ops, GenSparseMatrix<Scalar> *K, int *dofs, int *dofs_mdds,
                            FullSquareMatrix *reEl, FullSquareMatrix *imEl,double Kcoef = 0.0);
      template<class Scalar>
        void updateDampingMatrices(AllOps<Scalar> *ops, int *dofs, FullSquareMatrix *reEl,

@@ -138,9 +138,9 @@ Domain::getFollowerForce(GeomState &geomState, Vector& elementForce,
 
       // Compute (linear) element pressure force in the local coordinates
       elementForce.zero();
-      packedEset[iele]->setPressure(p0*loadFactor);
-      packedEset[iele]->computePressureForce(nodes, elementForce, &geomState, 1);
-      packedEset[iele]->setPressure(p0);
+      packedEset[iele]->setPressure(p0*loadFactor, domain->getMFTT(), sinfo.ConwepOnOff);
+      packedEset[iele]->computePressureForce(nodes, elementForce, &geomState, 1, time);
+      packedEset[iele]->setPressure(p0, domain->getMFTT(), sinfo.ConwepOnOff);
 
       // Include the "load stiffness matrix" in kel[iele]
       if(compute_tangents) {

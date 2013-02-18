@@ -70,14 +70,28 @@ class StaticSolver
      void rebuildSolver(double frequency);
      void scaleDisp(VecType &u);
      void scaleInvDisp(VecType &u);
+     void scaleDisp(VecType &u, double alpha);
+     void forceContinuity(VecType &u);
+     void forceAssemble(VecType &u);
      void pade1(VecType *sol, VecType **sol_prev, double x);
      void pade(VecType *sol, VecType **u, double *h, double x);
-     void galProjection(bool,int,VecType *sol, VecType **u, VecType **v,
+     double galProjection(bool,int,VecType *sol, VecType **u, VecType **v,
                         Scalar *&VhKV, Scalar *&VhMV, Scalar *&VhCV,
                         double w, double deltaw);
-     void krylovGalProjection(int,int,VecType *sol, VecType **u, VecType **v,
+     double krylovGalProjection(int,int,VecType *sol, VecType **u, VecType **v,
                         Scalar *&VhKV, Scalar *&VhMV, Scalar *&VhCV,
                         double w, double deltaw);
+     void adaptGP(int dgpFlag, int minRHS, int maxRHS, int deltaRHS, int &nOrtho,
+                  VecType *sol, VecType **u, VecType **v,
+                  VecType **aa, VecType **bb, VecType **cc,
+                  Scalar *&VhKV, Scalar *&VhMV, Scalar *&VhCV,
+                  int ncheck, double *wcheck,
+                  double alpha, double tol);
+     double adaptGPSolRes(int dgpFlag, int nOrtho,
+                  VecType *sol, VecType **u, VecType **v,
+                  VecType **aa, VecType **bb, VecType **cc,
+                  Scalar *&VhKV, Scalar *&VhMV, Scalar *&VhCV,
+                  double w, double deltaw);
      void qrGalProjection(int,int,VecType *sol, VecType **u, VecType **v,
                         Scalar *&VhKV, Scalar *&VhMV, Scalar *&VhCV,
                         double w, double deltaw);

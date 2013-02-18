@@ -70,6 +70,9 @@ class GenMultiDomainInpcStatic
     void rebuildSolver();
     void scaleDisp(DistrBlockVector<Scalar> &) {cerr << "scaleDisp(DistrBlockVector not implemented" << endl;}
     void scaleInvDisp(DistrBlockVector<Scalar> &) {cerr << "scaleInvDisp(DistrBlockVector not implemented" << endl;}
+    void scaleDisp(DistrBlockVector<Scalar> &, double alpha) {cerr << "scaleDisp(DistrBlockVector not implemented" << endl;}
+    void forceContinuity(DistrBlockVector<Scalar> &) {cerr << "forceContinuity(DistrBlockVector not implemented" << endl;}
+    void forceAssemble(DistrBlockVector<Scalar> &) {cerr << "forceAssemble(DistrBlockVector not implemented" << endl;}
     void clean();
     void setIWaveDir(int _i); // FETI-H
     void getFreqSweepRHS(DistrBlockVector<Scalar> *rhs, DistrBlockVector<Scalar> **sol_prev, int iRHS)

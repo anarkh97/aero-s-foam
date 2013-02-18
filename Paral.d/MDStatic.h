@@ -65,6 +65,9 @@ class GenMultiDomainStatic
     void rebuildSolver();
     void scaleDisp(GenDistrVector<Scalar> &);
     void scaleInvDisp(GenDistrVector<Scalar> &);
+    void scaleDisp(GenDistrVector<Scalar> &, double alpha);
+    void forceContinuity(GenDistrVector<Scalar> &);
+    void forceAssemble(GenDistrVector<Scalar> &);
 
     void clean();
     void setIWaveDir(int _i); // FETI-H

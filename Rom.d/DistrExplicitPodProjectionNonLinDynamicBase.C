@@ -289,6 +289,22 @@ DistrExplicitPodProjectionNonLinDynamicBase::getInternalForce(DistrVector &d, Di
   MultiDomainDynam::getInternalForce( *d_n, *fInt, t, tIndex);
   //compute residual here to prevent having to project into reduced basis twice
   *a_n = *fInt - *fExt;
+
+  bool hasRot = true; // TODO: only do this when model has rotation dofs see also buildOps
+  if(hasRot) {
+    //std::cerr << "#1 a_n->norm() = " << a_n->norm() << std::endl;
+    geomState->transform(*a_n, 3);
+    //std::cerr << "#2 a_n->norm() = " << a_n->norm() << std::endl;
+    fullMassSolver->reSolve(*a_n);
+    //std::cerr << "#3 a_n->norm() = " << a_n->norm() << std::endl;
+    geomState->transform(*a_n, 2);
+    //std::cerr << "#4 a_n->norm() = " << a_n->norm() << std::endl;
+    DistrVector toto(*a_n);
+    //std::cerr << "#5 toto.norm() = " << toto.norm() << std::endl;
+    dynMat->M->mult(toto, *a_n);
+    //std::cerr << "#5 a_n->norm() = " << a_n->norm() << std::endl;
+  }
+
   normalizedBasis_.projectDown(*a_n,f); 
 }
 
@@ -315,7 +331,14 @@ DistrExplicitPodProjectionNonLinDynamicBase::buildOps(double mCoef, double cCoef
 
   std::auto_ptr<DistrGalerkinProjectionSolver> solver(new DistrGalerkinProjectionSolver(normalizedBasis_));
 
-  delete result->dynMat;
+  bool hasRot = true; // TODO: only do this when model has rotation dofs see also getInternalForce
+  if(hasRot) {
+    fullMassSolver = result->dynMat;
+  }
+  else {
+    delete result->dynMat;
+  }
+
   result->dynMat = solver.release();
 
   return result;

@@ -3,7 +3,7 @@
 
 #include <Paral.d/MDDynam.h>
 #include <Driver.d/GeoSource.h>
-#include <stdio.h>
+#include <cstdio>
 #include "DistrVecBasis.h"
 
 namespace Rom {
@@ -68,6 +68,7 @@ protected:
   DistrVector  * v_p;
   DistrVector  * tempVec;
   SysState<DistrVector> *dummyState;
+  GenParallelSolver<double> * fullMassSolver;
 
 private:
   DistrExplicitPodPostProcessor *mddPostPro;

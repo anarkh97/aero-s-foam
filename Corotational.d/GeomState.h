@@ -104,6 +104,7 @@ class GeomState {
      virtual void get_tot_displacement(Vector &totVec);
      virtual void push_forward(Vector &f);
      virtual void pull_back(Vector &f);
+     virtual void transform(Vector &f, int flag);
      void zeroRotDofs(Vector &vec);
      void interp(double, const GeomState &, const GeomState &);
      void diff(const GeomState &unp, Vector &un);

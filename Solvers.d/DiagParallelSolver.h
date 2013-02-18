@@ -55,6 +55,8 @@ DiagParallelSolver<Scalar>::DiagParallelSolver(int _nSub, GenSubDomain<Scalar> *
  execParal(nSub, this, &DiagParallelSolver<Scalar>::dispatchInterface);
  this->vPat->exchange();
  execParal(nSub, this, &DiagParallelSolver<Scalar>::assembleDiag);
+
+ times.solve = 0;
 }
 
 template<class Scalar>

@@ -45,6 +45,7 @@ class DistrGeomState {
      void get_inc_displacement(DistrVector &inc_Vec, DistrGeomState &ss, bool zeroRot);
      void push_forward(DistrVector &f);
      void pull_back(DistrVector &f);
+     void transform(DistrVector &f, int);
      void get_tot_displacement(DistrVector &totVec);
      void interp(double, DistrGeomState &, DistrGeomState &);
      void diff(DistrGeomState &unp, DistrVector &un);
@@ -72,6 +73,7 @@ class DistrGeomState {
      void subCopyConstructor(int isub, const DistrGeomState &g2);
      void subPushForward(int isub, DistrVector &f);
      void subPullBack(int isub, DistrVector &f);
+     void subTransform(int isub, DistrVector &f, int);
 };
 
 #endif

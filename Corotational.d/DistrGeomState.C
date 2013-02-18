@@ -162,6 +162,20 @@ DistrGeomState::pull_back(DistrVector &f)
 }
 
 void
+DistrGeomState::subTransform(int isub, DistrVector &f, int type)
+{
+ StackVector subf(f.subData(isub), f.subLen(isub));
+ gs[isub]->transform(subf, type);
+}
+
+void
+DistrGeomState::transform(DistrVector &f, int type)
+{
+ execParal2R(numSub, this, &DistrGeomState::subTransform, f, type);
+}
+
+
+void
 DistrGeomState::subTot_get(int isub, DistrVector &tot_vec)
 {
  StackVector v(tot_vec.subData(isub), tot_vec.subLen(isub));

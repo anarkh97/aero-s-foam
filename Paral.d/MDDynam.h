@@ -116,9 +116,9 @@ protected:
     GenFullSquareMatrix<double> **melArray;
     Corotator ***allCorot;
     DistrGeomState *geomState;
+    MDDynamMat *dynMat;
 
 private:
-    MDDynamMat *dynMat;
     MultiDomDynPostProcessor *mddPostPro;
 
     // user defined displacements and velocities

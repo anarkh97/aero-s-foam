@@ -3709,6 +3709,7 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
      res.dynMat = getFetiSolver(dgt);
    } break;
    case 3 : { // block diag
+     if(myCPU == 0) cerr << " ... Diagonal Solver is Selected    ...\n";
      res.dynMat = getDiagSolver(numSub, dgt.sd, dgt.dynMats);
    } break;
  }

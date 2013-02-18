@@ -54,6 +54,16 @@ DistrExplicitLumpedPodProjectionNonLinDynamic::getInternalForce(DistrVector &d, 
   }
 
   *a_n = *fInt - *fExt;
+
+  bool hasRot = true; // TODO: only do this when model has rotation dofs see also buildOps
+  if(hasRot) {
+    geomState->transform(*a_n, 3);
+    fullMassSolver->reSolve(*a_n);
+    geomState->transform(*a_n, 2);
+    DistrVector toto(*a_n);
+    dynMat->M->mult(toto, *a_n);
+  }
+
   normalizedBasis_.projectDown(*a_n,f);
   //  the residual is computed in this step to avoid projecting into the reduced coordinates twice
 

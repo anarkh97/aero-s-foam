@@ -421,7 +421,7 @@ Domain::getWeightedStiffAndForceOnly(const std::map<int, double> &weights,
 
   getFollowerForce(geomState, elementForce, corotators, kel, residual, lambda, time, refState, NULL, true);
 
-  if(sinfo.isDynam() && mel) getFictitiousForce(geomState, kel, residual, time, refState, NULL, mel, true);
+  if(sinfo.isDynam() && mel) getWeightedFictitiousForceOnly(weights, geomState, kel, residual, time, refState, NULL, mel, true);
 }
 
 void

@@ -342,6 +342,10 @@ class Domain : public HData {
      void getFictitiousForce(GeomState &geomState, FullSquareMatrix *kel, Vector &residual,
                                 double time, GeomState *refState, Vector *reactions,
                                 FullSquareMatrix *mel, bool compute_tangents);
+     void getWeightedFictitiousForceOnly(const std::map<int, double> &weights, GeomState &geomState,
+                                         FullSquareMatrix *kel, Vector &residual,
+                                         double time, GeomState *refState, Vector *reactions,
+                                         FullSquareMatrix *mel, bool compute_tangents);
      void transformElemStiffAndForce(const GeomState &geomState, double *elementForce,
                                      FullSquareMatrix &kel, int iele, bool compute_tangents, FullSquareMatrix *mel = NULL);
 #ifdef USE_EIGEN3

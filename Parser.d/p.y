@@ -389,6 +389,7 @@ Impe:
           domain->solInfo().adaptSweep.minRHS = $10;
           domain->solInfo().adaptSweep.maxRHS = $11;
           domain->solInfo().adaptSweep.deltaRHS = $12;
+          domain->solInfo().nFreqSweepRHS = $11;
         }
         | IMPE NewLine FreqSweep 
         | Impe ReconsInfo

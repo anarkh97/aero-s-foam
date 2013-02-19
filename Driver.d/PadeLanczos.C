@@ -843,6 +843,7 @@ rhstime += getTime();
    }
 orthotime += getTime();
 
+
 // Update matrices
 projmattime2 -= getTime();
    for(int i=nOrtho+lRHS;i<nOrtho+uRHS;i++) {

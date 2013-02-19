@@ -1288,12 +1288,13 @@ Domain::getSolverAndKuc(AllOps<Scalar> &allOps, FullSquareMatrix *kelArray, bool
  }
 
  // for freqency sweep: need M, Muc, C, Cuc
- if(sinfo.doFreqSweep && sinfo.nFreqSweepRHS > 1) {
+ if((sinfo.doFreqSweep && sinfo.nFreqSweepRHS > 1) || sinfo.isAdaptSweep) {
    //---- UH ----
    if(sinfo.freqSweepMethod == SolverInfo::PadeLanczos ||
       sinfo.freqSweepMethod == SolverInfo::GalProjection ||
       sinfo.freqSweepMethod == SolverInfo::KrylovGalProjection ||
-      sinfo.freqSweepMethod == SolverInfo::QRGalProjection) {
+      sinfo.freqSweepMethod == SolverInfo::QRGalProjection ||
+      sinfo.isAdaptSweep) {
      if (allOps.K)
        delete allOps.K;
      if (allOps.M) delete allOps.M;

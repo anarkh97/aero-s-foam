@@ -31,6 +31,11 @@
 #include <Hetero.d/FlExchange.h>
 #include<Driver.d/SysState.h>
 
+#ifdef DISTRIBUTED
+#include <Comm.d/Communicator.h>
+extern Communicator *structCom;
+#endif
+
 typedef FSFullMatrix FullMatrix;
 
 extern int verboseFlag;
@@ -790,7 +795,11 @@ SingleDomainDynamic::buildOps(double coeM, double coeC, double coeK)
 #endif
 #ifdef USE_MUMPS
      case 9 : {
+#ifdef DISTRIBUTED
+         GenMumpsSolver<double> *m = domain->constructMumps<double>(domain->getCDSA(), (Rbm*) NULL, new FSCommunicator(structCom));
+#else
          GenMumpsSolver<double> *m = domain->constructMumps<double>(domain->getCDSA());
+#endif
          allOps.Msolver = m;
          dMat->Msolver = m;
        } break;

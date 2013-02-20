@@ -57,9 +57,11 @@ DistrExplicitLumpedPodProjectionNonLinDynamic::getInternalForce(DistrVector &d, 
 
   bool hasRot = true; // TODO: only do this when model has rotation dofs see also buildOps
   if(hasRot) {
-    geomState->transform(*a_n, 3);
+    //geomState->transform(*a_n, 3);
+    execParal2R(decDomain->getNumSub(),this,&DistrExplicitLumpedPodProjectionNonLinDynamic::subTransformWeightedNodesOnly,*a_n,3);
     fullMassSolver->reSolve(*a_n);
-    geomState->transform(*a_n, 2);
+    //geomState->transform(*a_n, 2);
+    execParal2R(decDomain->getNumSub(),this,&DistrExplicitLumpedPodProjectionNonLinDynamic::subTransformWeightedNodesOnly,*a_n,2);
     DistrVector toto(*a_n);
     dynMat->M->mult(toto, *a_n);
   }
@@ -89,6 +91,13 @@ DistrExplicitLumpedPodProjectionNonLinDynamic::subSetVelocityWeightedNodesOnly(i
   StackVector vec(v.subData(iSub), v.subLen(iSub));
   GeomState *gs = (*geomState).getSubGeomState(iSub);
   gs->setVelocity(vec, packedWeightedNodes_[iSub], 2);
+}
+
+void
+DistrExplicitLumpedPodProjectionNonLinDynamic::subTransformWeightedNodesOnly(int iSub, DistrVector &v, int type) {
+  StackVector vec(v.subData(iSub), v.subLen(iSub));
+  GeomState *gs = (*geomState).getSubGeomState(iSub);
+  gs->transform(vec, packedWeightedNodes_[iSub], type);
 }
 
 void

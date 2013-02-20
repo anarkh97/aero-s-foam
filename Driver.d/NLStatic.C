@@ -422,6 +422,12 @@ Domain::getWeightedStiffAndForceOnly(const std::map<int, double> &weights,
   getFollowerForce(geomState, elementForce, corotators, kel, residual, lambda, time, refState, NULL, true);
 
   if(sinfo.isDynam() && mel) getWeightedFictitiousForceOnly(weights, geomState, kel, residual, time, refState, NULL, mel, true);
+
+  if(!solInfo().getNLInfo().unsymmetric && solInfo().newmarkBeta != 0)
+    for (std::map<int, double>::const_iterator it = weights.begin(), it_end = weights.end(); it != it_end; ++it) {
+      const int iElem = it->first;
+      kel[iElem].symmetrize();
+    }
 }
 
 void
@@ -2160,10 +2166,10 @@ Domain::transformElemStiffAndForce(const GeomState &geomState, double *elementFo
     Eigen::Vector3d V = G.segment<3>(6*k+3);
     if(sinfo.newmarkBeta == 0) {
       if(domain->solInfo().galerkinPodRom && mel) {
-        Eigen::Matrix3d M, rotvar, Tinverse;
-        M << (*mel)[6*k+3][6*k+3], (*mel)[6*k+3][6*k+4], (*mel)[6*k+3][6*k+5],
-             (*mel)[6*k+4][6*k+3], (*mel)[6*k+4][6*k+4], (*mel)[6*k+4][6*k+5],
-             (*mel)[6*k+5][6*k+3], (*mel)[6*k+5][6*k+4], (*mel)[6*k+5][6*k+5];
+        //Eigen::Matrix3d M, rotvar, Tinverse;
+        //M << (*mel)[6*k+3][6*k+3], (*mel)[6*k+3][6*k+4], (*mel)[6*k+3][6*k+5],
+        //     (*mel)[6*k+4][6*k+3], (*mel)[6*k+4][6*k+4], (*mel)[6*k+4][6*k+5],
+        //     (*mel)[6*k+5][6*k+3], (*mel)[6*k+5][6*k+4], (*mel)[6*k+5][6*k+5];
 
         // TODO: the M and M.inverse here should be assembled
 /*
@@ -2172,8 +2178,8 @@ Domain::transformElemStiffAndForce(const GeomState &geomState, double *elementFo
         }
         else {
 */
-          pseudorot_var(Psi, rotvar);
-          Tinverse = rotvar.transpose();
+          //pseudorot_var(Psi, rotvar);
+          //Tinverse = rotvar.transpose();
 
           // original
           //G.segment<3>(6*k+3) = M*(T.inverse()*M.inverse()*T.transpose().inverse())*T*V;

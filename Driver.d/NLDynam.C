@@ -214,7 +214,7 @@ Domain::getFictitiousForce(GeomState &geomState, FullSquareMatrix *kel, Vector &
 
             // new: M*(T.inverse()*M.inverse()*T.transpose().inverse()) needs to be done with assembled M, see
             //      DistrExplicitPodProjectionNonLinDynamicBase::getInternalForce
-            f = T.transpose()*M*Tdot*Psidot + T.transpose()*(V_n_h).cross(M*V_n_h);
+            f = T.transpose()*(M*Tdot*Psidot + (V_n_h).cross(M*V_n_h));
 
             // something different (note: A_n here is Psiddot^n)
             //f = (T.transpose()*M*T - M)*A_n + T.transpose()*M*Tdot*Psidot + T.transpose()*(V_n_h).cross(M*V_n_h); 

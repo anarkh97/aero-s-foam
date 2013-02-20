@@ -316,6 +316,7 @@ subroutine elemaslbt2(nndof,ematpro,ecord,edisp, emaslbt)
         ! output : glbtens
  
      ! set global nodal mass
+     !write(*,*) "glbtens=",glbtens
      do idof=1, nndof
         do jdof=1, nndof
            emaslbt(iloc+idof,iloc+jdof)= glbtens(idof,jdof)

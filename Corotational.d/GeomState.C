@@ -936,6 +936,49 @@ GeomState::transform(Vector &f, int type)
   }
 }
 
+void
+GeomState::transform(Vector &f, const std::vector<int> &weightedNodes, int type)
+{
+  int inode;
+  for( std::vector<int>::const_iterator it = weightedNodes.begin(); it != weightedNodes.end(); ++it) {
+    inode = *it;
+
+    if(flag[inode] == -1) continue;
+
+    if(loc[inode][3] >= 0 || loc[inode][4] >= 0 || loc[inode][5] >= 0) {
+      Eigen::Vector3d vec, Psi, result;
+      vec[0] = ( loc[inode][3] >= 0 ) ? f[loc[inode][3]] : 0;
+      vec[1] = ( loc[inode][4] >= 0 ) ? f[loc[inode][4]] : 0;
+      vec[2] = ( loc[inode][5] >= 0 ) ? f[loc[inode][5]] : 0;
+
+      Eigen::Matrix3d R, T;
+      R << ns[inode].R[0][0], ns[inode].R[0][1], ns[inode].R[0][2],
+           ns[inode].R[1][0], ns[inode].R[1][1], ns[inode].R[1][2],
+           ns[inode].R[2][0], ns[inode].R[2][1], ns[inode].R[2][2];
+      mat_to_vec(R, Psi);
+      tangential_transf(Psi, T);
+
+      switch(type) {
+        case 0 :
+          result = T*vec;
+          break;
+        case 1 :
+          result = T.transpose()*vec;
+          break;
+        case 2 :
+          result = T.inverse()*vec;
+          break;
+        case 3 :
+          result = T.transpose().inverse()*vec;
+          break;
+      }
+
+      if( loc[inode][3] >= 0 ) f[loc[inode][3]] = result[0];
+      if( loc[inode][4] >= 0 ) f[loc[inode][4]] = result[1];
+      if( loc[inode][5] >= 0 ) f[loc[inode][5]] = result[2];
+    }
+  }
+}
 
 void
 GeomState::get_tot_displacement(Vector &totVec)

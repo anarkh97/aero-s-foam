@@ -292,17 +292,11 @@ DistrExplicitPodProjectionNonLinDynamicBase::getInternalForce(DistrVector &d, Di
 
   bool hasRot = true; // TODO: only do this when model has rotation dofs see also buildOps
   if(hasRot) {
-    //std::cerr << "#1 a_n->norm() = " << a_n->norm() << std::endl;
     geomState->transform(*a_n, 3);
-    //std::cerr << "#2 a_n->norm() = " << a_n->norm() << std::endl;
     fullMassSolver->reSolve(*a_n);
-    //std::cerr << "#3 a_n->norm() = " << a_n->norm() << std::endl;
     geomState->transform(*a_n, 2);
-    //std::cerr << "#4 a_n->norm() = " << a_n->norm() << std::endl;
     DistrVector toto(*a_n);
-    //std::cerr << "#5 toto.norm() = " << toto.norm() << std::endl;
     dynMat->M->mult(toto, *a_n);
-    //std::cerr << "#5 a_n->norm() = " << a_n->norm() << std::endl;
   }
 
   normalizedBasis_.projectDown(*a_n,f); 

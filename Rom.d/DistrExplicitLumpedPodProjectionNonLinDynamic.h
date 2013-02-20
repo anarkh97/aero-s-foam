@@ -22,6 +22,7 @@ private:
   void buildPackedElementWeights();
   void subUpdateWeightedNodesOnly(int iSub, DistrVector &v);
   void subSetVelocityWeightedNodesOnly(int iSub, DistrVector &v);
+  void subTransformWeightedNodesOnly(int iSub, DistrVector &v, int type);
   void subGetWeightedInternalForceOnly(int iSub, DistrVector &f, double &t, int &tIndex);
   void subBuildPackedElementWeights(int iSub);
 

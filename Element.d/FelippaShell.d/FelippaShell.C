@@ -918,34 +918,32 @@ FelippaShell::getTopNumber()
 }
 
 void
-FelippaShell::setPressure(double _pressure, MFTTData *_mftt, bool _ConwepOnOff)
-{
+FelippaShell::setPressure(double _pressure, MFTTData *_mftt, bool _ConwepOnOff){
   pressure = _pressure;
   ConwepOnOff = _ConwepOnOff;
 }
-
 void
 FelippaShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
                                    GeomState *geomState, int cflg, double time)
 { 
 // Check if Conwep is being used. If so, use the pressure from Conwep.
     if (ConwepOnOff) {
-      double* ecord = (double*) dbg_alloca(sizeof(double)*3*4);
-      int iloc;
-      for(int i = 0; i < 4; ++i) {
-        iloc = i*3;
-        if (i==3){
-          ecord[iloc+0] = cs[nn[2]]->x;
-          ecord[iloc+1] = cs[nn[2]]->y;
-          ecord[iloc+2] = cs[nn[2]]->z;
+      double* CurrentElementNodePositions = (double*) dbg_alloca(sizeof(double)*3*4);
+      int NodeNumber;
+      for(int Dimension = 0; Dimension < 4; ++Dimension) {
+        NodeNumber = Dimension*3;
+        if (Dimension==3){
+          CurrentElementNodePositions[NodeNumber+0] = cs[nn[2]]->x;
+          CurrentElementNodePositions[NodeNumber+1] = cs[nn[2]]->y;
+          CurrentElementNodePositions[NodeNumber+2] = cs[nn[2]]->z;
         }
         else{
-          ecord[iloc+0] = cs[nn[i]]->x;
-          ecord[iloc+1] = cs[nn[i]]->y;
-          ecord[iloc+2] = cs[nn[i]]->z;
+          CurrentElementNodePositions[NodeNumber+0] = cs[nn[Dimension]]->x;
+          CurrentElementNodePositions[NodeNumber+1] = cs[nn[Dimension]]->y;
+          CurrentElementNodePositions[NodeNumber+2] = cs[nn[Dimension]]->z;
         }
       }
-      pressure = BlastLoading::ComputeShellPressureLoad(ecord,time,BlastLoading::myData);
+     pressure = BlastLoading::ComputeShellPressureLoad(CurrentElementNodePositions,time,BlastLoading::InputFileData);
     }
      double px = 0.0;
      double py = 0.0;

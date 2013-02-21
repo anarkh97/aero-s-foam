@@ -296,7 +296,12 @@ ElementSamplingDriver::solve() {
   const MeshRenumbering meshRenumbering(sampleElemIds.begin(), sampleElemIds.end(), *elemToNode);
 
   const MeshDesc reducedMesh(domain_, geoSource, meshRenumbering, weights);
-  outputMeshFile(fileInfo, reducedMesh);
+  try {
+    outputMeshFile(fileInfo, reducedMesh);
+  }
+  catch(std::exception& e) {
+    std::cerr << "caught exception: " << e.what() << endl;
+  }
 
   outputFullWeights(fileInfo, solution, packedToInput);
 }

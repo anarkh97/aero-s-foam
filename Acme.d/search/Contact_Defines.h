@@ -155,6 +155,7 @@ typedef int MPI_Comm;
 #  define FFI_AUTO_DIFF_SACADO
 #else
 #  define MAX_FFI_DERIVATIVES 0
+   const int MAX_FFI_SECOND_DERIVATIVES = 0;
 #endif
 
 #if defined(FFI_AUTO_DIFF_EIGEN3) 

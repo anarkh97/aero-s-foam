@@ -9,10 +9,6 @@
 //#include <Mortar.d/FFIPolygon.d/FFIPolygon.h>
 #include <Mortar.d/FFIPolygon.d/TriFacet.h>
 
-#ifndef USE_ACME
-#define MAX_FFI_DERIVATIVES 0
-#endif
-
 // -----------------------------------------------------------------------------------------------------
 //                                            CONSTRUCTORS 
 // -----------------------------------------------------------------------------------------------------
@@ -24,11 +20,12 @@ FFIPolygon<Scalar>::FFIPolygon()
 }
 
 template<class Scalar>
-FFIPolygon<Scalar>::FFIPolygon(FaceElement* MasterFaceEl, FaceElement* SlaveFaceEl, int nVert, double* ACME_FFI_Data)
+FFIPolygon<Scalar>::FFIPolygon(FaceElement* MasterFaceEl, FaceElement* SlaveFaceEl, int nVert, double* ACME_FFI_Data,
+                               int MaxFFIDerivatives, int MaxFFISecondDerivatives)
 : Facets()
 {
   Initialize();
-  SetFFIPolygon(MasterFaceEl, SlaveFaceEl, nVert, ACME_FFI_Data);
+  SetFFIPolygon(MasterFaceEl, SlaveFaceEl, nVert, ACME_FFI_Data, MaxFFIDerivatives, MaxFFISecondDerivatives);
 }
 
 // -----------------------------------------------------------------------------------------------------
@@ -86,11 +83,14 @@ FFIPolygon<Scalar>::SetPtrSlaveFace(FaceElement* PtrSlaveFace) { SlaveFace = Ptr
 template<class Scalar>
 void
 FFIPolygon<Scalar>::SetFFIPolygon(FaceElement* MasterFaceEl, FaceElement* SlaveFaceEl, 
-                                  int nVert, double* ACME_FFI_Data)
+                                  int nVert, double* ACME_FFI_Data, int _MaxFFIDerivatives,
+                                  int _MaxFFISecondDerivatives)
 {
   nVertices  = nVert;
   MasterFace = MasterFaceEl;
   SlaveFace  = SlaveFaceEl;
+  MaxFFIDerivatives = _MaxFFIDerivatives;
+  MaxFFISecondDerivatives = _MaxFFISecondDerivatives;
 
   // Create & fill polygon triangularization
   int LocalCoordOffset = 2*nVertices+1;
@@ -103,7 +103,7 @@ FFIPolygon<Scalar>::SetFFIPolygon(FaceElement* MasterFaceEl, FaceElement* SlaveF
     ACME_FFI_LocalCoordData_copy[4*i+1] = *ACME_FFI_LocalCoordData++;
     ACME_FFI_LocalCoordData_copy[4*i+2] = *ACME_FFI_LocalCoordData++;
     ACME_FFI_LocalCoordData_copy[4*i+3] = *ACME_FFI_LocalCoordData++;
-    ACME_FFI_LocalCoordData += 4*MAX_FFI_DERIVATIVES;
+    ACME_FFI_LocalCoordData += 4*MaxFFIDerivatives;
   }
   CreateTriangularization(ACME_FFI_LocalCoordData_copy);
   delete [] ACME_FFI_LocalCoordData_copy;
@@ -113,11 +113,14 @@ FFIPolygon<Scalar>::SetFFIPolygon(FaceElement* MasterFaceEl, FaceElement* SlaveF
 template<>
 inline void
 FFIPolygon<ActiveDouble>::SetFFIPolygon(FaceElement* MasterFaceEl, FaceElement* SlaveFaceEl,
-                                     int nVert, double* ACME_FFI_Data)
+                                        int nVert, double* ACME_FFI_Data, int _MaxFFIDerivatives,
+                                        int _MaxFFISecondDerivatives)
 {
   nVertices  = nVert;
   MasterFace = MasterFaceEl;
   SlaveFace  = SlaveFaceEl;
+  MaxFFIDerivatives = _MaxFFIDerivatives;
+  MaxFFISecondDerivatives = _MaxFFISecondDerivatives;
 
   // Create & fill polygon triangularization
   int LocalCoordOffset = 2*nVertices+1;
@@ -136,33 +139,33 @@ FFIPolygon<ActiveDouble>::PrepLocalCoordData()
     ACME_FFI_LocalCoordData_copy[4*i+2] = *ACME_FFI_LocalCoordData++;
     ACME_FFI_LocalCoordData_copy[4*i+3] = *ACME_FFI_LocalCoordData++;
 #ifdef MORTAR_AUTO_DIFF_SACADO_FAD
-    for(int j=0; j<MAX_FFI_DERIVATIVES; ++j) ACME_FFI_LocalCoordData_copy[4*i+0].fastAccessDx(j) = *ACME_FFI_LocalCoordData++;
-    for(int j=0; j<MAX_FFI_DERIVATIVES; ++j) ACME_FFI_LocalCoordData_copy[4*i+1].fastAccessDx(j) = *ACME_FFI_LocalCoordData++;
-    for(int j=0; j<MAX_FFI_DERIVATIVES; ++j) ACME_FFI_LocalCoordData_copy[4*i+2].fastAccessDx(j) = *ACME_FFI_LocalCoordData++;
-    for(int j=0; j<MAX_FFI_DERIVATIVES; ++j) ACME_FFI_LocalCoordData_copy[4*i+3].fastAccessDx(j) = *ACME_FFI_LocalCoordData++;
+    for(int j=0; j<MaxFFIDerivatives; ++j) ACME_FFI_LocalCoordData_copy[4*i+0].fastAccessDx(j) = *ACME_FFI_LocalCoordData++;
+    for(int j=0; j<MaxFFIDerivatives; ++j) ACME_FFI_LocalCoordData_copy[4*i+1].fastAccessDx(j) = *ACME_FFI_LocalCoordData++;
+    for(int j=0; j<MaxFFIDerivatives; ++j) ACME_FFI_LocalCoordData_copy[4*i+2].fastAccessDx(j) = *ACME_FFI_LocalCoordData++;
+    for(int j=0; j<MaxFFIDerivatives; ++j) ACME_FFI_LocalCoordData_copy[4*i+3].fastAccessDx(j) = *ACME_FFI_LocalCoordData++;
 #elif defined(MORTAR_AUTO_DIFF_EIGEN_FAD)
-    for(int j=0; j<MAX_FFI_DERIVATIVES; ++j) ACME_FFI_LocalCoordData_copy[4*i+0].derivatives()[j] = *ACME_FFI_LocalCoordData++;
-    for(int j=0; j<MAX_FFI_DERIVATIVES; ++j) ACME_FFI_LocalCoordData_copy[4*i+1].derivatives()[j] = *ACME_FFI_LocalCoordData++;
-    for(int j=0; j<MAX_FFI_DERIVATIVES; ++j) ACME_FFI_LocalCoordData_copy[4*i+2].derivatives()[j] = *ACME_FFI_LocalCoordData++;
-    for(int j=0; j<MAX_FFI_DERIVATIVES; ++j) ACME_FFI_LocalCoordData_copy[4*i+3].derivatives()[j] = *ACME_FFI_LocalCoordData++;
+    for(int j=0; j<MaxFFIDerivatives; ++j) ACME_FFI_LocalCoordData_copy[4*i+0].derivatives()[j] = *ACME_FFI_LocalCoordData++;
+    for(int j=0; j<MaxFFIDerivatives; ++j) ACME_FFI_LocalCoordData_copy[4*i+1].derivatives()[j] = *ACME_FFI_LocalCoordData++;
+    for(int j=0; j<MaxFFIDerivatives; ++j) ACME_FFI_LocalCoordData_copy[4*i+2].derivatives()[j] = *ACME_FFI_LocalCoordData++;
+    for(int j=0; j<MaxFFIDerivatives; ++j) ACME_FFI_LocalCoordData_copy[4*i+3].derivatives()[j] = *ACME_FFI_LocalCoordData++;
 #elif defined(MORTAR_AUTO_DIFF_SACADO_RAD_FAD)
     for(int k=0; k<4; ++k)
-      for(int j=0; j<MAX_FFI_DERIVATIVES; ++j)
+      for(int j=0; j<MaxFFIDerivatives; ++j)
        ACME_FFI_LocalCoordData++; // TODO need to use the first derivatives of the FFI, but how?
     for(int k=0; k<4; ++k) {
-      for(int j=0; j<MAX_FFI_DERIVATIVES; ++j)
+      for(int j=0; j<MaxFFIDerivatives; ++j)
         for(int l=0; l<=j; ++l) {
           ACME_FFI_LocalCoordData++; // TODO need to use the second derivatives of the FFI, but how?
         }
     }
 #elif defined(MORTAR_AUTO_DIFF_EIGEN_FAD_FAD)
     for(int k=0; k<4; ++k)
-      for(int j=0; j<MAX_FFI_DERIVATIVES; ++j) {
+      for(int j=0; j<MaxFFIDerivatives; ++j) {
         ACME_FFI_LocalCoordData_copy[4*i+k].derivatives()[j].value() = *ACME_FFI_LocalCoordData;
         ACME_FFI_LocalCoordData_copy[4*i+k].value().derivatives()[j] = *ACME_FFI_LocalCoordData++; // NOTE!!!
       }
     for(int k=0; k<4; ++k) {
-      for(int j=0; j<MAX_FFI_DERIVATIVES; ++j)
+      for(int j=0; j<MaxFFIDerivatives; ++j)
         for(int l=0; l<=j; ++l) {
           ACME_FFI_LocalCoordData_copy[4*i+k].derivatives()[j].derivatives()[l] = *ACME_FFI_LocalCoordData;
           ACME_FFI_LocalCoordData_copy[4*i+k].derivatives()[l].derivatives()[j] = *ACME_FFI_LocalCoordData++;
@@ -170,7 +173,7 @@ FFIPolygon<ActiveDouble>::PrepLocalCoordData()
     }
 #else
     // TODO: MORTAR_AUTO_DIFF_SACADO_RAD_FAD
-    ACME_FFI_LocalCoordData += (4*MAX_FFI_DERIVATIVES+4*MAX_FFI_SECOND_DERIVATIVES);
+    ACME_FFI_LocalCoordData += (4*MaxFFIDerivatives+4*MaxFFISecondDerivatives);
 #endif
   }
 

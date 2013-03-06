@@ -52,6 +52,7 @@
 #include <Element.d/Helm.d/HelmPenta.h> //HB
 
 #include <Element.d/Helm.d/HelmIsoParamHexa.h>
+#include <Element.d/Helm.d/ThermIsoParamHexa.h>
 #include <Element.d/Helm.d/HelmSpectralIsoParamHexa.h>
 #include <Element.d/Helm.d/HelmIsoParamTetra.h>
 #include <Element.d/Helm.d/HelmIsoParamQuad.h>
@@ -517,6 +518,10 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        break;
      case 108:
        ele = new (ba) HelmSpectralIsoParamQuad(nnodes,n);
+       break;
+     case 109:
+       ele = new (ba) ThermIsoParamHexa(nnodes,n);
+       ele->setCategory(Element::Thermal);
        break;
      case 111:
        ele = new (ba) TwoNodeTrussF(n);

@@ -60,6 +60,7 @@
 #include <Element.d/Helm.d/HelmIsoParamTetra.h>
 #include <Element.d/Helm.d/LEIsoParamTetra.h>
 #include <Element.d/Helm.d/HelmIsoParamHexa.h>
+#include <Element.d/Helm.d/ThermIsoParamHexa.h>
 #include <Element.d/Helm.d/HelmIsoParamQuad.h>
 #include <Element.d/Helm.d/HelmIsoParamTri.h>
 #include <Element.d/Helm.d/HelmSpectralIsoParamHexa.h>
@@ -1118,6 +1119,26 @@ NLHexahedral::examine(int sub, MultiFront *mf)
                                                                                                                              
 PrioInfo
 HelmIsoParamHexa::examine(int sub, MultiFront *mf)
+{
+  //find the 8 nodes at the summits of the Hexaedron
+  int nSummit[8];
+
+  nSummit[0] = nn[0];
+  nSummit[1] = nn[order-1];
+  nSummit[2] = nn[order*order-1];
+  nSummit[3] = nn[order*order-order];
+
+  nSummit[4] = nn[order*order*order-order*order];
+  nSummit[5] = nn[order*order*order-order*order+order-1];
+  nSummit[6] = nn[order*order*order-1];
+  nSummit[7] = nn[order*order*order-order];
+
+  // this is just copied from Brick32
+  return examineHex8(sub, mf, nSummit);
+}
+
+PrioInfo
+ThermIsoParamHexa::examine(int sub, MultiFront *mf)
 {
   //find the 8 nodes at the summits of the Hexaedron
   int nSummit[8];

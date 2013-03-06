@@ -142,6 +142,7 @@ Helm.d/HelmBrickGLS.C
 Helm.d/helmbrik8v.f
 Helm.d/HelmElement.C
 Helm.d/HelmIsoParamHexa.C
+Helm.d/ThermIsoParamHexa.C
 Helm.d/HelmIsoParamQuad.C
 Helm.d/HelmIsoParamTetra.C
 Helm.d/HelmIsoParamTri.C

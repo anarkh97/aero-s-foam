@@ -434,7 +434,7 @@ BelytschkoTsayShell::getStiffAndForce(GeomState& geomState, CoordSet& cs, FullSq
     }
     // Check if Conwep is being used. If so, use the pressure from Conwep.
     if (ConwepOnOff) {
-      pressure = BlastLoading::ComputeShellPressureLoad(ecord,time,BlastLoading::myData);
+      pressure = BlastLoading::ComputeShellPressureLoad(ecord,time,BlastLoading::InputFileData);
     }
     double trac[3] = { 0, 0, pressure };
     double tmftval = (mftt) ? mftt->getVal(std::max(time,0.0)) : 1.0;

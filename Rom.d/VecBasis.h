@@ -151,9 +151,9 @@ GenVecBasis<Scalar, GenVecType>::copyBufferContent(const GenVecBasis &other) {
 template <typename Scalar, template <typename Scalar> class GenVecType>
 GenVecBasis<Scalar, GenVecType>::GenVecBasis() :
  vectorInfo_(Traits::defaultInfo()),
- vectorCount_(0),
+ vectorCount_(0)
 #ifdef USE_EIGEN3
- basis(NULL,0,0),
+ ,basis(NULL,0,0),
  compressedBasis(0,0),
  compressedKey(0)
 #endif
@@ -166,9 +166,9 @@ GenVecBasis<Scalar, GenVecType>::GenVecBasis() :
 template <typename Scalar, template <typename Scalar> class GenVecType>
 GenVecBasis<Scalar, GenVecType>::GenVecBasis(int vCount, InfoType vInfo) :
  vectorInfo_(vInfo),
- vectorCount_(vCount),
+ vectorCount_(vCount)
 #ifdef USE_EIGEN3
- basis(NULL,0,0),
+ ,basis(NULL,0,0),
  compressedBasis(0,0),
  compressedKey(0)
 #endif
@@ -179,9 +179,9 @@ GenVecBasis<Scalar, GenVecType>::GenVecBasis(int vCount, InfoType vInfo) :
 template <typename Scalar, template <typename Scalar> class GenVecType>
 GenVecBasis<Scalar, GenVecType>::GenVecBasis(const GenVecBasis &other) :
  vectorInfo_(other.vectorInfo_),
- vectorCount_(other.vectorCount_),
+ vectorCount_(other.vectorCount_)
 #ifdef USE_EIGEN3
- basis(NULL,0,0),
+ ,basis(NULL,0,0),
  compressedBasis(0,0),
  compressedKey(0)
 #endif

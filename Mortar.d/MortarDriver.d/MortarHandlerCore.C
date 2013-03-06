@@ -129,7 +129,13 @@ MortarHandler::CreateFFIPolygon()
     int nVertices = (int) ACMEFFI_data[FFIDataOffset];
     double* ACME_FFI_Data = &ACMEFFI_data[FFIDataOffset];
 
-    CtcPolygons[iFFI].SetFFIPolygon(MasterFaceEl, SlaveFaceEl, nVertices, ACME_FFI_Data);
+    if(GeomType == MortarHandler::NON_MATCHING) {
+      CtcPolygons[iFFI].SetFFIPolygon(MasterFaceEl, SlaveFaceEl, nVertices, ACME_FFI_Data,
+                                      MAX_FFI_DERIVATIVES, MAX_FFI_SECOND_DERIVATIVES);
+    }
+    else {
+      CtcPolygons[iFFI].SetFFIPolygon(MasterFaceEl, SlaveFaceEl, nVertices, ACME_FFI_Data, 0, 0);
+    }
     
     // Add ptr to FFI in slave face element 
     //SlaveFaceEl->AddPtrFFI(&CtcPolygons[iFFI]); 

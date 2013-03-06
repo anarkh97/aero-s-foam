@@ -2,55 +2,73 @@
 #ifndef _BLASTLOADING_H_
 #define _BLASTLOADING_H_
 class BlastLoading {
-  public:
-  struct BlastData {
-    double x0[3];
-    double t0;
-    enum {SurfaceBurst, AirBurst} blastType;
-    double chargeWeight;
-    double chargeWeightCubeRoot;
-    double scaleLength;
-    double scaleTime;
-    double scaleMass;
-  };
-  private:
-  class Conwep {
-  public:
-    static double Blast(const BlastLoading::BlastData& P,
-                        const double x[3], // face centroid
-                        const double n[3], // face normal
-                        double t);
-    static double Decay(double p0, double i0, double td);
-    static double IncidentPressure(const BlastLoading::BlastData& P,
-                                   double zlog);
-    static double ReflectedPressure(const BlastLoading::BlastData& P,
-                                    double zlog);
-    static double ArrivalTime(const BlastLoading::BlastData& P,
-                              double zlog) ;
-    static double PositivePhaseDuration(const BlastLoading::BlastData& P,
-                                        double zlog);
-    static double ReflectedImpulse(const BlastLoading::BlastData& P,
-                                   double zlog);
-    static double IncidentImpulse(const BlastLoading::BlastData& P,
-                                  double zlog) ;
-    static void Params(const BlastLoading::BlastData& P,
-		       double R,
-		       double& arrivalTime,
-		       double& positivePhaseDuration,
-		       double& incidentImpulse,
-		       double& reflectedImpulse,
-		       double& incidentPressure,
-		       double& reflectedPressure,
-		       double& a, double& b);
-    static double Pressure(double ts,double arrivalTime,
-			   double positivePhaseDuration,
-			   double incidentPressure,
-			   double reflectedPressure,
-			   double posCosine,
-			   double a,double b);
-  };
-  public:
-  static double ComputeShellPressureLoad(const double* coords, double currentTime, const BlastLoading::BlastData& P );
-  static BlastData myData;
+    public:
+        struct BlastData {
+            double ExplosivePosition[3];
+            double ExplosiveDetonationTime;
+            enum {SurfaceBurst, AirBurst} BlastType;
+            double ExplosiveWeight;
+            double ExplosiveWeightCubeRoot;
+            double ScaleLength;
+            double ScaleTime;
+            double ScaleMass;
+    };
+    private:
+        class Conwep {
+            public:
+                static double Blast(
+                    const BlastLoading::BlastData& P,
+                    const double CurrentElementFaceCentroidPosition[3],
+                    const double CurrentElementFaceNormalDirection[3],
+                    double CurrentTime);
+                static double Decay(
+                    double CurrentPressure,
+                    double CurrentImpulse,
+                    double PositivePhaseDuration);
+                static double IncidentPressure(
+                    const BlastLoading::BlastData& P,
+                    double ScaledStandoffDistanceLog10);
+                static double ReflectedPressure(
+                    const BlastLoading::BlastData& P,
+                    double ScaledStandoffDistanceLog10);
+                static double ArrivalTime(
+                    const BlastLoading::BlastData& P,
+                    double ScaledStandoffDistanceLog10) ;
+                static double PositivePhaseDuration(
+                    const BlastLoading::BlastData& P,
+                    double ScaledStandoffDistanceLog10);
+                static double ReflectedImpulse(
+                    const BlastLoading::BlastData& P,
+                    double ScaledStandoffDistanceLog10);
+                static double IncidentImpulse(
+                    const BlastLoading::BlastData& P,
+                    double ScaledStandoffDistanceLog10) ;
+                static void Parameters(
+                    const BlastLoading::BlastData& P,
+                    double DistanceFromElementFaceCentroidToExplosive,
+                    double& IncidentWaveArrivalTime,
+                    double& PositivePhaseDuration,
+                    double& IncidentWaveImpulse,
+                    double& ReflectedWaveImpulse,
+                    double& IncidentWavePressure,
+                    double& ReflectedWavePressure,
+                    double& IncidentWaveDecayExponent,
+                    double& ReflectedWaveDecayExponent);
+                static double Pressure(
+                    double CurrentTimeSinceExplosionTime,
+                    double IncidentWaveArrivalTime,
+                    double PositivePhaseDuration,
+                    double IncidentWavePressure,
+                    double ReflectedWavePressure,
+                    double CurrentElementPositionCosine,
+                    double IncidentWaveDecayExponent,
+                    double ReflectedWaveDecayExponent);
+        };
+    public:
+        static double ComputeShellPressureLoad(
+            const double* CurrentElementNodePositions,
+            double CurrentTime,
+            const BlastLoading::BlastData& P );
+        static BlastData InputFileData;
 };
 #endif

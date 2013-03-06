@@ -44,6 +44,8 @@ class FFIPolygon {
         Scalar (*VertexLlCoordOnSFaceEl)[2];
         Scalar (*VertexLlCoordOnMFaceEl)[2];
 #endif
+        int MaxFFIDerivatives;
+        int MaxFFISecondDerivatives;
         double* ACME_FFI_LocalCoordData;
         // Helper methods
         // ~~~~~~~~~~~~~~
@@ -60,7 +62,8 @@ class FFIPolygon {
         // Constructors
         // ~~~~~~~~~~~~
         FFIPolygon();
-        FFIPolygon(FaceElement* MasterFaceEl, FaceElement* SlaveFaceEl, int nVert, double* ACME_FFI_Data);
+        FFIPolygon(FaceElement* MasterFaceEl, FaceElement* SlaveFaceEl, int nVert, double* ACME_FFI_Data,
+                   int MaxFFIDerivatives, int MaxFFISecondDerivatives);
         
 	// Destructor 
         // ~~~~~~~~~~
@@ -72,7 +75,8 @@ class FFIPolygon {
 
         // Set methods
         // ~~~~~~~~~~~ 
-        void SetFFIPolygon(FaceElement* MasterFaceEl, FaceElement* SlaveFaceEl, int nVert, double* ACME_FFI_Data);
+        void SetFFIPolygon(FaceElement* MasterFaceEl, FaceElement* SlaveFaceEl, int nVert, double* ACME_FFI_Data,
+                           int MaxFFIDerivatives, int MaxFFISecondDerivatives);
         void SetPtrMasterFace(FaceElement*); 
 	void SetPtrSlaveFace( FaceElement*);
 	

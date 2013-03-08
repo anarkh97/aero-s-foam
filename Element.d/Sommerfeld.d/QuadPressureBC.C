@@ -1,3 +1,5 @@
+#include <Utils.d/Conwep.d/BlastLoading.h>
+#include <Utils.d/dbg_alloca.h>
 #if defined(USE_EIGEN3) && (__cplusplus >= 201103L) && defined(HAS_CXX11_TEMPLATE_ALIAS)
 #include <Element.d/Sommerfeld.d/QuadPressureBC.h>
 
@@ -27,7 +29,7 @@ extern "C" {
   void _FORTRAN(elefbc3dbrkshl2)(int&, int&, double*, double*, double*, double*);
 };
 
-QuadPressureBC::QuadPressureBC(int *_nn, double _pressure)
+QuadPressureBC::QuadPressureBC(int *_nn, double _pressure, bool _ConwepOnOff)
 {
   nnode = 4;
   nndof = 3;
@@ -39,6 +41,7 @@ QuadPressureBC::QuadPressureBC(int *_nn, double _pressure)
   nn[3] = _nn[3]; 
   pressure = _pressure;
   dom = 0;
+  ConwepOnOff = _ConwepOnOff;
 }
 
 FullSquareMatrix
@@ -51,8 +54,28 @@ QuadPressureBC::sommerMatrix(CoordSet &cs, double *d)
 }
 
 void
-QuadPressureBC::neumVector(CoordSet &cs, Vector &f, int, GeomState *geomState)
+QuadPressureBC::neumVector(CoordSet &cs, Vector &f, int, GeomState *geomState, double time)
 {
+  // Check if Conwep is being used. If so, use the pressure from Conwep.
+  if (ConwepOnOff == true) {
+    double* CurrentElementNodePositions = (double*) dbg_alloca(sizeof(double)*3*4);
+    int NodeNumber;
+    for(int Dimension = 0; Dimension < 4; ++Dimension) {
+      NodeNumber = Dimension*3;
+      if (Dimension==3){
+        CurrentElementNodePositions[NodeNumber+0] = cs[nn[2]]->x;
+        CurrentElementNodePositions[NodeNumber+1] = cs[nn[2]]->y;
+        CurrentElementNodePositions[NodeNumber+2] = cs[nn[2]]->z;
+      }
+      else{
+        CurrentElementNodePositions[NodeNumber+0] = cs[nn[Dimension]]->x;
+        CurrentElementNodePositions[NodeNumber+1] = cs[nn[Dimension]]->y;
+        CurrentElementNodePositions[NodeNumber+2] = cs[nn[Dimension]]->z;
+      }
+    }
+  pressure = BlastLoading::ComputeShellPressureLoad(CurrentElementNodePositions,time,BlastLoading::InputFileData);
+  //std::cerr<<"Pressure = "<<pressure<<std::endl; // For debugging.
+  }
   int opttrc = 0; // 0 : pressure
                   // 1 : traction
   double* ecord = (double*) dbg_alloca(sizeof(double)*nnode*ndime);

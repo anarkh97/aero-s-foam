@@ -110,6 +110,7 @@ class HData
      void addSBoundNode(int);
      void checkSommerTypeBC(Domain *domain, Connectivity *_elemToNode = 0, Connectivity *_nodeToElem = 0);
      double sommerfeld(CoordSet& cs, int node1, int node2 );
+     bool ConwepOnOff;
      int  nCDirichlet() { return numComplexDirichlet; }
      int  numSommerfeld() { return numSommer; }
      int  numSSN() { return numSommer + numScatter + numNeum + numWet; }

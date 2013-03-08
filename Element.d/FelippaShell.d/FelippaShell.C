@@ -1,23 +1,23 @@
 #ifdef USE_EIGEN3
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
-#include <cmath>
 #include <stdexcept>
 
-#include <Element.d/FelippaShell.d/FelippaShell.h>
+#include <Corotational.d/GeomState.h>
 #include <Corotational.d/Shell3Corotator.h>
 #include <Corotational.d/utilities.h>
-#include <Corotational.d/GeomState.h>
+#include <Element.d/FelippaShell.d/FelippaShell.h>
+#include <Element.d/NonLinearity.d/ExpMat.h>
+#include <Element.d/NonLinearity.d/MaterialWrapper.h>
+#include <Hetero.d/InterpPoint.h>
+#include <Material.d/IsotropicLinearElasticJ2PlasticPlaneStressMaterial.h>
 #include <Math.d/FullSquareMatrix.h>
+#include <Utils.d/Conwep.d/BlastLoading.h>
+#include <Utils.d/dbg_alloca.h>
 #include <Utils.d/dofset.h>
 #include <Utils.d/linkfc.h>
 #include <Utils.d/pstress.h>
-#include <Hetero.d/InterpPoint.h>
-#include <Element.d/NonLinearity.d/ExpMat.h>
-#include <Element.d/NonLinearity.d/MaterialWrapper.h>
-#include <Material.d/IsotropicLinearElasticJ2PlasticPlaneStressMaterial.h>
-#include <Utils.d/Conwep.d/BlastLoading.h>
-#include <Utils.d/dbg_alloca.h>
 
 FelippaShell::FelippaShell(int* nodenums)
 {
@@ -927,7 +927,7 @@ FelippaShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
                                    GeomState *geomState, int cflg, double time)
 { 
 // Check if Conwep is being used. If so, use the pressure from Conwep.
-    if (ConwepOnOff) {
+    if (ConwepOnOff==true) {
       double* CurrentElementNodePositions = (double*) dbg_alloca(sizeof(double)*3*4);
       int NodeNumber;
       for(int Dimension = 0; Dimension < 4; ++Dimension) {

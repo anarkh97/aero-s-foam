@@ -1592,7 +1592,7 @@ Domain::addGravityForce(GenVector<Scalar> &force)
 
 template<class Scalar>
 void
-Domain::addPressureForce(GenVector<Scalar> &force, double lambda)
+Domain::addPressureForce(GenVector<Scalar> &force, double lambda, double time)
 {
   Vector elementPressureForce(maxNumDOFs);
   int cflg = 1; // NOW WE ALWAYS USE CONSISTENT PRESSURE
@@ -1604,7 +1604,7 @@ Domain::addPressureForce(GenVector<Scalar> &force, double lambda)
 
       // Otherwise, compute element pressure force
       elementPressureForce.zero();
-      packedEset[iele]->computePressureForce(nodes, elementPressureForce, (GeomState *) 0, cflg);
+      packedEset[iele]->computePressureForce(nodes, elementPressureForce, (GeomState *) 0, cflg, time);
 
       // transform vector from basic to DOF_FRM coordinates
       transformVector(elementPressureForce, iele);
@@ -3532,7 +3532,7 @@ Domain::computeExtForce(GenVector<Scalar>& f, double t, GenSparseMatrix<Scalar>*
   // COMPUTE FORCE FROM PRESSURE
   // note #1: when MFTT not present this term is constant (see computeConstantForce)
   // note #2: for NONLINEAR problems this term is follower (see getStiffAndForce)
-  if(domain->mftval && !sinfo.isNonLin()) addPressureForce(f, mfttFactor);
+  if(domain->mftval && !sinfo.isNonLin()) addPressureForce(f, mfttFactor, t);
 
   // ... ADD RHS FROM LMPCs for linear dynamics
   if(/*lmpc.max_size() &&*/ !sinfo.isNonLin() && sinfo.isDynam()) addMpcRhs(f, t);

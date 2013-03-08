@@ -1,20 +1,22 @@
-#include	<cstdio>
-#include        <cmath>
-#include	<cstdlib>
-#include	<cstring>
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
-#include	<Element.d/Shell.d/ThreeNodeShell.h>
-#include        <Driver.d/PolygonSet.h>
-#include        <Math.d/FullSquareMatrix.h>
-#include        <Math.d/Vector.h>
-#include        <Corotational.d/Shell3Corotator.h>
-#include        <Corotational.d/utilities.h>
-#include        <Corotational.d/GeomState.h>
-#include	<Element.d/State.h>
-#include        <Utils.d/dofset.h>
-#include        <Utils.d/linkfc.h>
-#include        <Utils.d/pstress.h>
-#include        <Hetero.d/InterpPoint.h>
+#include <Corotational.d/GeomState.h>
+#include <Corotational.d/Shell3Corotator.h>
+#include <Corotational.d/utilities.h>
+#include <Driver.d/PolygonSet.h>
+#include <Element.d/Shell.d/ThreeNodeShell.h>
+#include <Element.d/State.h>
+#include <Hetero.d/InterpPoint.h>
+#include <Math.d/FullSquareMatrix.h>
+#include <Math.d/Vector.h>
+#include <Utils.d/Conwep.d/BlastLoading.h>
+#include <Utils.d/dbg_alloca.h>
+#include <Utils.d/dofset.h>
+#include <Utils.d/linkfc.h>
+#include <Utils.d/pstress.h>
 
 // tria3d   - three node shell stiffness routine
 // mass8    - three node shell mass routine
@@ -574,9 +576,34 @@ ThreeNodeShell::getTopNumber()
 }
 
 void
+ThreeNodeShell::setPressure(double _pressure, MFTTData *_mftt, bool _ConwepOnOff){
+  pressure = _pressure;
+  ConwepOnOff = _ConwepOnOff;
+}
+
+void
 ThreeNodeShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
-                                     GeomState *geomState, int cflg, double)
-{
+                                     GeomState *geomState, int cflg, double time) {
+    // Check if Conwep is being used. If so, use the pressure from Conwep.
+    if (ConwepOnOff == true) {
+      double* CurrentElementNodePositions = (double*) dbg_alloca(sizeof(double)*3*4);
+      int NodeNumber;
+      for(int Dimension = 0; Dimension < 4; ++Dimension) {
+        NodeNumber = Dimension*3;
+        if (Dimension==3){
+          CurrentElementNodePositions[NodeNumber+0] = cs[nn[2]]->x;
+          CurrentElementNodePositions[NodeNumber+1] = cs[nn[2]]->y;
+          CurrentElementNodePositions[NodeNumber+2] = cs[nn[2]]->z;
+        }
+        else{
+          CurrentElementNodePositions[NodeNumber+0] = cs[nn[Dimension]]->x;
+          CurrentElementNodePositions[NodeNumber+1] = cs[nn[Dimension]]->y;
+          CurrentElementNodePositions[NodeNumber+2] = cs[nn[Dimension]]->z;
+        }
+      }
+     pressure = BlastLoading::ComputeShellPressureLoad(CurrentElementNodePositions,time,BlastLoading::InputFileData);
+     //std::cerr<<"Pressure = "<<pressure<<std::endl; // For debugging.
+    }
      double px = 0.0;
      double py = 0.0;
      double pz = 0.0;

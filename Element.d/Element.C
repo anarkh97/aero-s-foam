@@ -205,7 +205,7 @@ Element::getIntrnForce(Vector &elForce, CoordSet&, double *, int,double *)
 
 void
 Element::computePressureForce(CoordSet&, Vector& elPressureForce,
-                              GeomState *, int cflg, double)
+                              GeomState *, int cflg, double time)
 {
   if(!isConstraintElement() && !isSpring())
     fprintf(stderr," *** WARNING: Pressure force not implemented for element type %d\n", elementType);

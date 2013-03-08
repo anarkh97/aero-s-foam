@@ -910,18 +910,19 @@ DynamInfo:
         { domain->solInfo().check_energy_balance = true;
           domain->solInfo().epsilon1 = $3; 
           domain->solInfo().epsilon2 = $4; }
-        | DynamInfo CONWEP Float Float Float Float Float Float Float Float NewLine
-        { domain->solInfo().ConwepOnOff = true; // If ConwepOnOff is true, read Conwep parameters:
+        | DynamInfo CONWEP Float Float Float Float Float NewLine
+        { domain->solInfo().ConwepOnOff = true;
           // Note: chargeWeight must be entered in the units of mass of the problem, not units of force.
+          BlastLoading::InputFileData.ConwepGlobalOnOff = true;
           BlastLoading::InputFileData.ExplosivePosition[0]    = $3;
           BlastLoading::InputFileData.ExplosivePosition[1]    = $4;
           BlastLoading::InputFileData.ExplosivePosition[2]    = $5;
-          BlastLoading::InputFileData.ExplosiveDetonationTime = $6;
+          BlastLoading::InputFileData.ExplosiveDetonationTime = $7;
           BlastLoading::InputFileData.BlastType               = BlastLoading::BlastData::AirBurst; // ($7 == 0 ? BlastLoading::BlastData::SurfaceBurst : BlastLoading::BlastData::AirBurst);
-          BlastLoading::InputFileData.ScaleLength             = $8;
-          BlastLoading::InputFileData.ScaleTime               = $9;
-          BlastLoading::InputFileData.ScaleMass               = $10;
-          BlastLoading::InputFileData.ExplosiveWeight         = $7*$10*2.2; // The 2.2 factor is to convert from kilograms to pounds force.
+          BlastLoading::InputFileData.ScaleLength             = 1.0;
+          BlastLoading::InputFileData.ScaleTime               = 1.0;
+          BlastLoading::InputFileData.ScaleMass               = 1.0;
+          BlastLoading::InputFileData.ExplosiveWeight         = $6*2.2; // The 2.2 factor is to convert from kilograms to pounds force.
           BlastLoading::InputFileData.ExplosiveWeightCubeRoot = pow(BlastLoading::InputFileData.ExplosiveWeight,1.0/3.0);
         }
         ;

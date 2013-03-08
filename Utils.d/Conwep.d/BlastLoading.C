@@ -533,6 +533,6 @@ double BlastLoading::ComputeShellPressureLoad(const double* CurrentElementNodePo
 // ====================================================================================================
 // Initialize the BlastLoading::InputFileData structure:
 BlastLoading::BlastData BlastLoading::InputFileData = {{0.0,0.0,0.0},0.0,
-                                                BlastLoading::BlastData::AirBurst,1.0,0.0,0.3048,1.0,1.0};
+                                                BlastLoading::BlastData::AirBurst,1.0,0.0,0.3048,1.0,1.0, true};
 // ====================================================================================================
 // End of file.

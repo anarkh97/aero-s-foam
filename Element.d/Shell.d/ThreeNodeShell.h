@@ -7,10 +7,11 @@ class GeomState;
 class Shell3Corotator;
 
 class ThreeNodeShell : virtual public Element {
- protected:
+protected:
 	int nn[3];
 	double w;
         Shell3Corotator *corot;
+        bool ConwepOnOff;
 public:
 	ThreeNodeShell(int*, double _w=3);
 
@@ -45,8 +46,9 @@ public:
                                    double *flF, double *resF, GeomState *gs=0);
 
 	int getTopNumber();
+        void setPressure(double _pressure, MFTTData *_mftt = 0, bool _ConwepOnOff = false);
 	void computePressureForce(CoordSet&, Vector& elPressureForce,
-                                  GeomState *gs = 0, int cflg = 0, double t = 0);
+                                  GeomState *gs = 0, int cflg = 0, double t = 0 );
 				  
 	void getThermalForce(CoordSet& cs, Vector& ndTemps,Vector &elThermalForce, 
 	                     int glfag, GeomState *gs=0);

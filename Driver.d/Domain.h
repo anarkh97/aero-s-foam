@@ -532,7 +532,7 @@ class Domain : public HData {
        void addGravityForce(GenVector<Scalar>& force);
 
      template<class Scalar>
-       void addPressureForce(GenVector<Scalar>& force, double lambda = 1.0);
+       void addPressureForce(GenVector<Scalar>& force, double lambda = 1.0, double time = 0.0);
 
      template<class Scalar>
        void addAtddnbForce(GenVector<Scalar>& force, double lambda = 1.0);

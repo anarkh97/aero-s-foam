@@ -3,7 +3,7 @@
 #if defined(USE_EIGEN3) && (__cplusplus >= 201103L) && defined(HAS_CXX11_TEMPLATE_ALIAS)
 #include <Element.d/Sommerfeld.d/QuadPressureBC.h>
 
-QuadPressureBC::QuadPressureBC(int* _nn, double _pressure)
+QuadPressureBC::QuadPressureBC(int* _nn, double _pressure, bool)
  : PressureElement<Quad4LagrangePolynomialSurfacePressureForceFunction>(4, DofSet::XYZdisp, _nn),
    pressure(_pressure)
 {

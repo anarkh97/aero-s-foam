@@ -12,7 +12,7 @@ using Quad4LagrangePolynomialSurfacePressureForceFunction = SurfacePressureForce
 class QuadPressureBC : public PressureElement<Quad4LagrangePolynomialSurfacePressureForceFunction>
 {
   public:
-    QuadPressureBC(int* _nn, double _pressure); 
+    QuadPressureBC(int* _nn, double _pressure, bool); 
 
   protected:
     double pressure;

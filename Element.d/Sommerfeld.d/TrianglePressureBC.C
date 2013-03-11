@@ -3,7 +3,7 @@
 #if defined(USE_EIGEN3) && (__cplusplus >= 201103L) && defined(HAS_CXX11_TEMPLATE_ALIAS)
 #include <Element.d/Sommerfeld.d/TrianglePressureBC.h>
 
-TrianglePressureBC::TrianglePressureBC(int* _nn, double _pressure)
+TrianglePressureBC::TrianglePressureBC(int* _nn, double _pressure, bool)
  : PressureElement<Tri3LagrangePolynomialSurfacePressureForceFunction>(3, DofSet::XYZdisp, _nn),
    pressure(_pressure)
 {

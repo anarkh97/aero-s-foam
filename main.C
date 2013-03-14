@@ -774,7 +774,7 @@ int main(int argc, char** argv)
    }
    else filePrint(stderr," ...      with Geometric Pre-Stress ... \n");
  }
- if(domain->solInfo().type == 0 && domain->solInfo().probType != SolverInfo::None)
+ if(domain->solInfo().type == 0 && domain->solInfo().probType != SolverInfo::None && domain->solInfo().probType != SolverInfo::PodRomOffline)
    filePrint(stderr, solverTypeMessage[domain->solInfo().subtype]);
   
  // Domain Decomposition tasks
@@ -783,8 +783,8 @@ int main(int argc, char** argv)
  //   type == 0 && subtype == 9 (MUMPS) is a Domain Decomposition method only if a decomposition is provided or requested
  if(domain->solInfo().type == 2 || domain->solInfo().type == 3
     || (domain->solInfo().type == 1 && domain->solInfo().iterType == 1 && domain_decomp)
-    || (domain->solInfo().type == 0 && domain->solInfo().subtype == 9 && domain_decomp))
-											{
+    || (domain->solInfo().type == 0 && domain->solInfo().subtype == 9 && domain_decomp)
+	|| (domain->solInfo().svdPodRom && domain_decomp)) {
 
    if(parallel_proc) {
 #ifdef USE_MPI
@@ -1000,12 +1000,17 @@ int main(int argc, char** argv)
        std::auto_ptr<Rom::DriverInterface> driver;
        if (domain->solInfo().svdPodRom) {
          // Stand-alone SVD orthogonalization
-         filePrint(stderr, " ... POD: // SVD Orthogonalization  ...\n");
+         filePrint(stderr, " ... POD: Distributed SVD Orthogonalization ...\n");
          driver.reset(distrBasisOrthoDriverNew(domain));
-       } else if (domain->solInfo().ROMPostProcess) {
-             filePrint(stderr, " ... POD: Post Processing of Results...\n");
-             driver.reset(distrROMPostProcessingDriverNew(domain));
-         }
+       } 
+       else if (domain->solInfo().ROMPostProcess) {
+         filePrint(stderr, " ... POD: Post Processing of Results...\n");
+         driver.reset(distrROMPostProcessingDriverNew(domain));
+       }
+       else {
+         filePrint(stderr, " ... Unknown Analysis Type          ...\n");
+         break;
+       }
        driver->solve();
        break;
      }
@@ -1366,18 +1371,18 @@ int main(int argc, char** argv)
        break;
      case SolverInfo::PodRomOffline:
        {
-         //filePrint(stderr, "Pod Rom Offline mode\n");
          std::auto_ptr<Rom::DriverInterface> driver;
          if (domain->solInfo().svdPodRom) {
            // Stand-alone SVD orthogonalization
            filePrint(stderr, " ... POD: SVD Orthogonalization     ...\n");
            driver.reset(basisOrthoDriverNew(domain));
-         } else if (domain->solInfo().samplingPodRom) {
-             // Element-based hyperrection
-             filePrint(stderr, " ... POD: Element-based Reduced Mesh...\n");
-             driver.reset(elementSamplingDriverNew(domain));
-          // }
-         } else {
+         }
+         else if (domain->solInfo().samplingPodRom) {
+           // Element-based hyper-reduction
+           filePrint(stderr, " ... POD: Element-based Reduced Mesh...\n");
+           driver.reset(elementSamplingDriverNew(domain));
+         }
+         else {
            filePrint(stderr, " ... Unknown Analysis Type          ...\n");
            break;
          }

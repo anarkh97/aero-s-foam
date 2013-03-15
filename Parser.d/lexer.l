@@ -116,6 +116,7 @@ TRAIL [a-zA-Z]*
 "M"                                { yylval.ival = 1; return TOPFLAG; }
 
 "LOCF"[a-zA-Z]*|"locf"[a-zA-Z]*    { yylval.ival = OutputInfo::Local;  return OUTPUTFRAME; }
+"NODF"[a-zA-Z]*|"nodf"[a-zA-Z]*    { yylval.ival = OutputInfo::Local;  return OUTPUTFRAME; }
 "GLOF"[a-zA-Z]*|"glof"[a-zA-Z]*    { yylval.ival = OutputInfo::Global; return OUTPUTFRAME; }
 
 "ON"|"on"|"On"                     { yylval.ival = 1; return SWITCH; }

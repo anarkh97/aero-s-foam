@@ -31,12 +31,14 @@ public:
   void currentTimeIs(double t);
   void stateSnapshotAdd(const DistrVector &s);
   void accelerationSnapshotAdd(const DistrVector &s);
+  void velocitySnapshotAdd(const DistrVector &s);
   void forceSnapshotAdd(const DistrVector &s);
 
   ~DistrExplicitPodProjectionNonLinDynamic();
 
   bool collectState;
   bool collectAccel;
+  bool collectVeloc;
   bool collectForce;
 
 protected:
@@ -82,6 +84,13 @@ void
 handleAcceleration(Rom::DistrExplicitPodProjectionNonLinDynamic &probDesc, DistrVector &d) {
   if(probDesc.collectAccel)
     probDesc.accelerationSnapshotAdd(d);
+}
+
+inline
+void
+handleVelocity(Rom::DistrExplicitPodProjectionNonLinDynamic &probDesc, DistrVector &d) {
+  if(probDesc.collectVeloc)
+    probDesc.velocitySnapshotAdd(d);
 }
 
 inline

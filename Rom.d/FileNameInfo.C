@@ -44,7 +44,9 @@ FileNameInfo::basisFileName(const BasisId &id) const {
     if(id.type() == 3)
         builder << domain->solInfo().forcePodRomFile;
     if(id.type() == 4)
-        builder << domain->solInfo().accelPodRomFile;}
+        builder << domain->solInfo().accelPodRomFile;
+    if(id.type() == 5)
+        builder << domain->solInfo().velocPodRomFile;}
   else if(id.level() == 1) {
         builder << domain->solInfo().readInROBorModes;}
      }

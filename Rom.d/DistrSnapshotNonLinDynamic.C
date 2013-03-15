@@ -4,6 +4,7 @@
 #include "FileNameInfo.h"
 #include "DistrNodeDof6Buffer.h"
 #include "DistrMasterMapping.h"
+#include "DistrVecNodeDof6Conversion.h"
 #include "PtrPtrIterAdapter.h"
 
 #include <Driver.d/Domain.h>
@@ -29,6 +30,8 @@ struct DistrSnapshotNonLinDynamicDetail : private DistrSnapshotNonLinDynamic {
     virtual void lastMidTimeIs(double t);
     virtual void lastDeltaIs(double dt);
     virtual void stateSnapshotAdd(const DistrGeomState &);
+    virtual void velocSnapshotAdd(const DistrVector &);
+    virtual void accelSnapshotAdd(const DistrVector &);
     virtual void postProcess();
 
     int nodeCount() const { return geoSource->getNumGlobNodes(); }
@@ -39,15 +42,20 @@ struct DistrSnapshotNonLinDynamicDetail : private DistrSnapshotNonLinDynamic {
     typedef PtrPtrIterAdapter<SubDomain> SubDomIt;
     
     DecDomain * decDomain_;
+    DistrVecNodeDof6Conversion converter_;
     DistrMasterMapping masterMapping_;
 
     DistrNodeDof6Buffer snapBuffer_;
     
     FileNameInfo fileInfo_;
-    DistrBasisOutputFile stateSnapFile_;
+    DistrBasisOutputFile *stateSnapFile_;
+    DistrBasisOutputFile *velocSnapFile_;
+    DistrBasisOutputFile *accelSnapFile_;
     
     double timeStamp_;
     int stateSkip_;
+    int velocSkip_;
+    int accelSkip_;
   };
 
 private:
@@ -59,14 +67,28 @@ private:
 
 DistrSnapshotNonLinDynamicDetail::RawImpl::RawImpl(DecDomain *decDomain) :
   decDomain_(decDomain),
+  converter_(decDomain->getAllSubDomains(), decDomain->getAllSubDomains() + decDomain->getNumSub()),
   masterMapping_(SubDomIt(decDomain->getAllSubDomains()), SubDomIt(decDomain->getAllSubDomains() + decDomain->getNumSub())),
   snapBuffer_(masterMapping_.masterNodeBegin(), masterMapping_.masterNodeEnd()),
   fileInfo_(),
-  stateSnapFile_(BasisFileId(fileInfo_, BasisId::STATE, BasisId::SNAPSHOTS), nodeCount(),
-                 snapBuffer_.globalNodeIndexBegin(), snapBuffer_.globalNodeIndexEnd(), structCom),
+  stateSnapFile_(NULL),
+  velocSnapFile_(NULL),
+  accelSnapFile_(NULL),
   timeStamp_(decDomain->getDomain()->solInfo().initialTime),
-  stateSkip_(0)
-{}
+  stateSkip_(0),
+  velocSkip_(0),
+  accelSkip_(0)
+{
+  if(decDomain->getDomain()->solInfo().statevectPodRom){
+    stateSnapFile_ = new DistrBasisOutputFile(BasisFileId(fileInfo_, BasisId::STATE, BasisId::SNAPSHOTS), nodeCount(),
+                 snapBuffer_.globalNodeIndexBegin(), snapBuffer_.globalNodeIndexEnd(), structCom);}
+  if(decDomain->getDomain()->solInfo().velocvectPodRom){
+    velocSnapFile_ = new DistrBasisOutputFile(BasisFileId(fileInfo_, BasisId::VELOCITY, BasisId::SNAPSHOTS), nodeCount(),
+                 snapBuffer_.globalNodeIndexBegin(), snapBuffer_.globalNodeIndexEnd(), structCom);}
+  if(decDomain->getDomain()->solInfo().accelvectPodRom){
+    accelSnapFile_ = new DistrBasisOutputFile(BasisFileId(fileInfo_, BasisId::ACCELERATION, BasisId::SNAPSHOTS), nodeCount(),
+                 snapBuffer_.globalNodeIndexBegin(), snapBuffer_.globalNodeIndexEnd(), structCom);}
+}
 
 void
 DistrSnapshotNonLinDynamicDetail::RawImpl::postProcess() {
@@ -86,7 +108,7 @@ DistrSnapshotNonLinDynamicDetail::RawImpl::lastDeltaIs(double dt) {
 void
 DistrSnapshotNonLinDynamicDetail::RawImpl::stateSnapshotAdd(const DistrGeomState &snap) {
   ++stateSkip_;
-  if(stateSkip_ >= decDomain_->getDomain()->solInfo().skipState) {
+  if(stateSnapFile_ && (stateSkip_ >= decDomain_->getDomain()->solInfo().skipState)) {
   const int subDomCount = snap.getNumSub();
   DistrMasterMapping::SubMasterMappingIt mappingIt = masterMapping_.begin();
   for (int iSub = 0; iSub < subDomCount; ++iSub) {
@@ -111,11 +133,30 @@ DistrSnapshotNonLinDynamicDetail::RawImpl::stateSnapshotAdd(const DistrGeomState
     }
   }
 
-  stateSnapFile_.stateAdd(snapBuffer_, timeStamp_);
+  stateSnapFile_->stateAdd(snapBuffer_, timeStamp_);
   stateSkip_ = 0;
  }
 }
 
+void
+DistrSnapshotNonLinDynamicDetail::RawImpl::velocSnapshotAdd(const DistrVector &veloc) {
+  ++velocSkip_;
+  if (velocSnapFile_ && (velocSkip_ >= decDomain_->getDomain()->solInfo().skipVeloc)) {
+    converter_.paddedNodeDof6(veloc, snapBuffer_);
+    velocSnapFile_->stateAdd(snapBuffer_, timeStamp_);
+    velocSkip_ = 0;
+  }
+}
+
+void
+DistrSnapshotNonLinDynamicDetail::RawImpl::accelSnapshotAdd(const DistrVector &accel) {
+  ++accelSkip_;
+  if (accelSnapFile_ && (accelSkip_ >= decDomain_->getDomain()->solInfo().skipAccel)) {
+    converter_.paddedNodeDof6(accel, snapBuffer_);
+    accelSnapFile_->stateAdd(snapBuffer_, timeStamp_);
+    accelSkip_ = 0;
+  }
+}
 
 DistrSnapshotNonLinDynamic::DistrSnapshotNonLinDynamic(Domain *domain) :
   MDNLDynamic(domain),

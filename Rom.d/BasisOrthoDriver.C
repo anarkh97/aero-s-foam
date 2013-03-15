@@ -88,6 +88,9 @@ BasisOrthoDriver::solve() {
   else if(domain_->solInfo().accelvectPodRom) {
         workload.push_back(BasisId::ACCELERATION);
 	fprintf(stderr," ... For Acceleration SVD, workload size = %zd ...\n", workload.size());}
+  else if(domain_->solInfo().velocvectPodRom) {
+        workload.push_back(BasisId::VELOCITY);
+        fprintf(stderr," ... For Velocity SVD, workload size = %zd ...\n", workload.size());}
   else { workload.push_back(BasisId::STATE);
 	fprintf(stderr," ... For default SVD, workload size = %zd ...\n", workload.size());}
 

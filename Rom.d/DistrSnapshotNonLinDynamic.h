@@ -32,6 +32,8 @@ protected:
     virtual void lastMidTimeIs(double) = 0;
     virtual void lastDeltaIs(double) = 0;
     virtual void stateSnapshotAdd(const DistrGeomState &) = 0;
+    virtual void velocSnapshotAdd(const DistrVector &) = 0;
+    virtual void accelSnapshotAdd(const DistrVector &) = 0;
     virtual void postProcess() = 0;
     
     virtual ~Impl() {}
@@ -50,6 +52,8 @@ private:
   void saveMidTime(double t) { impl_->lastMidTimeIs(t); }
   void saveDelta(double dt) { impl_->lastDeltaIs(dt); }
   void saveStateSnapshot(const DistrGeomState &state) { impl_->stateSnapshotAdd(state); }
+  void saveVelocSnapshot(const DistrVector &veloc) { impl_->velocSnapshotAdd(veloc); }
+  void saveAccelSnapshot(const DistrVector &accel) { impl_->accelSnapshotAdd(accel); }
  
   std::auto_ptr<Impl> impl_; 
 
@@ -81,6 +85,8 @@ public:
         dummy1, dummy2, dummy3, dummy4, acceleration, zeroRot);
     
     pbd->saveStateSnapshot(*geomState);
+    pbd->saveVelocSnapshot(velN);
+    pbd->saveAccelSnapshot(acceleration);
   }
 };
 

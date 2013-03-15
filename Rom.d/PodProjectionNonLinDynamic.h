@@ -39,10 +39,14 @@ private:
   void saveMidTime(double); 
   void saveDelta(double);
   void saveStateSnapshot(const GeomState &);
+  void saveVelocitySnapshot(const Vector &);
+  void saveAccelerationSnapshot(const Vector &);
   void handleResidualSnapshot(const Vector &);
 
   std::auto_ptr<Impl> impl_;
   std::auto_ptr<Impl> sttImpl_;
+  std::auto_ptr<Impl> velImpl_;
+  std::auto_ptr<Impl> accImpl_;
   std::auto_ptr<Impl> resImpl_;
   std::auto_ptr<Impl> jacImpl_;
   
@@ -83,6 +87,8 @@ public:
         dummy1, dummy2, dummy3, dummy4, acceleration, zeroRot);
 
     pbd->saveStateSnapshot(*geomState);
+    pbd->saveVelocitySnapshot(velN);
+    pbd->saveAccelerationSnapshot(acceleration);
   } 
 
  static double formRHScorrector(PodProjectionNonLinDynamic *pbd, GenVector<double> &inc_displac,

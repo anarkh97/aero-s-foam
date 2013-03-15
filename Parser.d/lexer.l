@@ -966,6 +966,8 @@ TRAIL [a-zA-Z]*
 
 "statevct"|"STATEVCT"		   { yylval.ival = OutputInfo::Statevector;  return STRESSID; }
 
+"velocvct"|"VELOCVCT"              { yylval.ival = OutputInfo::Velocvector;  return STRESSID; }
+
 "accelvct"|"ACCELVCT"		   { yylval.ival = OutputInfo::Accelvector;  return STRESSID; }
 
 "frcgvect"|"FRCGVECT"		   { yylval.ival = OutputInfo::Forcevector;  return STRESSID; }

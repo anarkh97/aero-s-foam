@@ -29,6 +29,7 @@ public:
   virtual void currentTimeIs(double t) = 0;
   virtual void stateSnapshotAdd(const DistrVector &state) = 0;
   virtual void accelerationSnapshotAdd(const DistrVector &accel) = 0;
+  virtual void velocitySnapshotAdd(const DistrVector &veloc) = 0;
   virtual void forceSnapshotAdd(const DistrVector &) = 0;
  
   SnapshotHandler() {} 
@@ -62,6 +63,7 @@ public:
   void currentTimeIs(double t);
   void stateSnapshotAdd(const DistrVector &s);
   void accelerationSnapshotAdd(const DistrVector &accel);
+  void velocitySnapshotAdd(const DistrVector &veloc);
   void forceSnapshotAdd(const DistrVector &); //overriden
 };
 
@@ -71,6 +73,7 @@ public:
   void currentTimeIs(double t);
   void stateSnapshotAdd(const DistrVector &s);
   void accelerationSnapshotAdd(const DistrVector &accel);
+  void velocitySnapshotAdd(const DistrVector &veloc);
   void forceSnapshotAdd(const DistrVector &s); // overriden
   explicit RecordingSnapshotHandler(DecDomain *decDom);
 
@@ -86,10 +89,12 @@ private:
   DistrNodeDof6Buffer buffer_;
   DistrBasisOutputFile * stateOutputFile_;
   DistrBasisOutputFile * accelOutputFile_;
+  DistrBasisOutputFile * velocOutputFile_;
   DistrBasisOutputFile * forceOutputFile_;
 
   int stateSkip_;
   int accelSkip_;
+  int velocSkip_;
   int forceSkip_;  
 
   double currentTime_;
@@ -113,12 +118,15 @@ DistrExplicitPodProjectionNonLinDynamic::preProcess() {
 
   collectState = false;
   collectAccel = false;
+  collectVeloc = false;
   collectForce = false;
 
   if(domain->solInfo().statevectPodRom)
     collectState = true;
   if(domain->solInfo().accelvectPodRom)
     collectAccel = true;
+  if(domain->solInfo().velocvectPodRom)
+    collectVeloc = true;
   if(domain->solInfo().forcevectPodRom)
     collectForce = true;
 
@@ -145,6 +153,11 @@ DistrExplicitPodProjectionNonLinDynamic::accelerationSnapshotAdd(const DistrVect
 }
 
 void
+DistrExplicitPodProjectionNonLinDynamic::velocitySnapshotAdd(const DistrVector &veloc) {
+  snapshotHandler_->velocitySnapshotAdd(veloc);
+}
+
+void
 DistrExplicitPodProjectionNonLinDynamic::forceSnapshotAdd(const DistrVector &f) {
   snapshotHandler_->forceSnapshotAdd(f);
 }
@@ -167,6 +180,11 @@ DistrExplicitPodProjectionNonLinDynamicDetail::NoOpSnapshotHandler::acceleration
 }
 
 void
+DistrExplicitPodProjectionNonLinDynamicDetail::NoOpSnapshotHandler::velocitySnapshotAdd(const DistrVector &veloc) {
+  // Nothing to do
+}
+
+void
 DistrExplicitPodProjectionNonLinDynamicDetail::NoOpSnapshotHandler::forceSnapshotAdd(const DistrVector &) {
   // Nothing to do
 }
@@ -179,6 +197,7 @@ DistrExplicitPodProjectionNonLinDynamicDetail::RecordingSnapshotHandler::Recordi
   assembledSnapshot_(decDom->solVecInfo()),
   stateSkip_(0),
   accelSkip_(0),
+  velocSkip_(0),
   forceSkip_(0)
 {
   if(decDom->getDomain()->solInfo().statevectPodRom){
@@ -186,6 +205,9 @@ DistrExplicitPodProjectionNonLinDynamicDetail::RecordingSnapshotHandler::Recordi
               buffer_.globalNodeIndexBegin(), buffer_.globalNodeIndexEnd(), structCom);}
   if(decDom->getDomain()->solInfo().accelvectPodRom){
     accelOutputFile_ = new DistrBasisOutputFile(BasisFileId(FileNameInfo(), BasisId::ACCELERATION, BasisId::SNAPSHOTS), geoSource->getNumGlobNodes(),
+              buffer_.globalNodeIndexBegin(), buffer_.globalNodeIndexEnd(), structCom);}
+  if(decDom->getDomain()->solInfo().velocvectPodRom){
+    velocOutputFile_ = new DistrBasisOutputFile(BasisFileId(FileNameInfo(), BasisId::VELOCITY, BasisId::SNAPSHOTS), geoSource->getNumGlobNodes(),
               buffer_.globalNodeIndexBegin(), buffer_.globalNodeIndexEnd(), structCom);}
   if(decDom->getDomain()->solInfo().forcevectPodRom){
     forceOutputFile_ = new DistrBasisOutputFile(BasisFileId(FileNameInfo(), BasisId::FORCE, BasisId::SNAPSHOTS), geoSource->getNumGlobNodes(),
@@ -214,6 +236,16 @@ DistrExplicitPodProjectionNonLinDynamicDetail::RecordingSnapshotHandler::acceler
     converter_.paddedNodeDof6(accel, buffer_);
     accelOutputFile_->stateAdd(buffer_, currentTime_);
     accelSkip_ = 0;
+  }
+}
+
+void
+DistrExplicitPodProjectionNonLinDynamicDetail::RecordingSnapshotHandler::velocitySnapshotAdd(const DistrVector &veloc) {
+  ++velocSkip_;
+  if (velocSkip_ >= decDomain_->getDomain()->solInfo().skipVeloc) {
+    converter_.paddedNodeDof6(veloc, buffer_);
+    velocOutputFile_->stateAdd(buffer_, currentTime_);
+    velocSkip_ = 0;
   }
 }
 

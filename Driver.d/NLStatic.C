@@ -1363,6 +1363,10 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
     } break;
      case OutputInfo::Statevector:
         break;
+     case OutputInfo::Velocvector:
+        break;
+     case OutputInfo::Accelvector:
+        break;
      case OutputInfo::Residual:
         break;
      case OutputInfo::Jacobian:
@@ -1371,6 +1375,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
         break;
      case OutputInfo::SampleMesh:
         break;
+
     default:
       fprintf(stderr," *** WARNING: Output case %d not implemented for non-linear direct solver \n", iInfo);
       break;

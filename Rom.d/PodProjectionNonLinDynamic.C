@@ -28,6 +28,8 @@ public:
   virtual void lastMidTimeIs(double) = 0;
   virtual void lastDeltaIs(double) = 0;
   virtual void stateSnapshotAdd(const GeomState &) = 0;
+  virtual void velocSnapshotAdd(const Vector &) = 0;
+  virtual void accelSnapshotAdd(const Vector &) = 0;
   virtual void handleResidualSnapshot(const Vector &res) = 0;
   virtual void handleJacobianSnapshot() = 0;
 
@@ -63,6 +65,8 @@ class PodProjectionNonLinDynamicDetail : private PodProjectionNonLinDynamic {
 public:
   class BasicImpl;
   class sttSnapImpl;
+  class velSnapImpl;
+  class accSnapImpl;
   class resSnapImpl;
   class jacSnapImpl;
 
@@ -80,6 +84,8 @@ public:
   virtual void lastMidTimeIs(double t);
   virtual void lastDeltaIs(double dt);
   virtual void stateSnapshotAdd(const GeomState &);
+  virtual void velocSnapshotAdd(const Vector &);
+  virtual void accelSnapshotAdd(const Vector &);
   virtual void handleResidualSnapshot(const Vector &res);
   virtual void handleJacobianSnapshot();
 
@@ -137,6 +143,16 @@ PodProjectionNonLinDynamicDetail::BasicImpl::stateSnapshotAdd(const GeomState &s
 }
 
 void
+PodProjectionNonLinDynamicDetail::BasicImpl::velocSnapshotAdd(const Vector &) {
+  // Nothing to do
+}
+
+void
+PodProjectionNonLinDynamicDetail::BasicImpl::accelSnapshotAdd(const Vector &) {
+  // Nothing to do
+}
+
+void
 PodProjectionNonLinDynamicDetail::BasicImpl::handleResidualSnapshot(const Vector &) {
   // Nothing to do
 }
@@ -151,6 +167,8 @@ class PodProjectionNonLinDynamicDetail::sttSnapImpl : public PodProjectionNonLin
      void lastMidTimeIs(double t);
      void lastDeltaIs(double dt);
      void stateSnapshotAdd(const GeomState &state);
+     void velocSnapshotAdd(const Vector &res);
+     void accelSnapshotAdd(const Vector &res);
      void handleResidualSnapshot(const Vector &res);
      void handleJacobianSnapshot(); 
 
@@ -181,6 +199,42 @@ class PodProjectionNonLinDynamicDetail::sttSnapImpl : public PodProjectionNonLin
     BasisBinaryOutputFile stateSnapFile_;
 };
 
+// Implementation with velocity snapshots
+class PodProjectionNonLinDynamicDetail::velSnapImpl : public PodProjectionNonLinDynamicDetail::BasicImpl {
+public:
+  explicit velSnapImpl(PodProjectionNonLinDynamic *parent);
+
+  // Overriden functions
+   void lastMidTimeIs(double t);
+   void lastDeltaIs(double dt);
+   void stateSnapshotAdd(const GeomState &state);
+   void velocSnapshotAdd(const Vector &res);
+   void accelSnapshotAdd(const Vector &res);
+   void handleResidualSnapshot(const Vector &res);
+   void handleJacobianSnapshot();
+
+private:
+  BasisOutputStream velocitySnapFile_;
+};
+
+// Implementation with acceleration snapshots
+class PodProjectionNonLinDynamicDetail::accSnapImpl : public PodProjectionNonLinDynamicDetail::BasicImpl {
+public:
+  explicit accSnapImpl(PodProjectionNonLinDynamic *parent);
+
+  // Overriden functions
+   void lastMidTimeIs(double t);
+   void lastDeltaIs(double dt);
+   void stateSnapshotAdd(const GeomState &state);
+   void velocSnapshotAdd(const Vector &res);
+   void accelSnapshotAdd(const Vector &res);
+   void handleResidualSnapshot(const Vector &res);
+   void handleJacobianSnapshot();
+
+private:
+  BasisOutputStream accelerationSnapFile_;
+};
+
 // Implementation with residual snapshots
 class PodProjectionNonLinDynamicDetail::resSnapImpl : public PodProjectionNonLinDynamicDetail::BasicImpl {
 public:
@@ -190,6 +244,8 @@ public:
    void lastMidTimeIs(double t);
    void lastDeltaIs(double dt);
    void stateSnapshotAdd(const GeomState &state);
+   void velocSnapshotAdd(const Vector &res);
+   void accelSnapshotAdd(const Vector &res);
    void handleResidualSnapshot(const Vector &res);
    void handleJacobianSnapshot();
 
@@ -206,6 +262,8 @@ public:
    void lastMidTimeIs(double t);
    void lastDeltaIs(double dt);
    void stateSnapshotAdd(const GeomState &state);
+   void velocSnapshotAdd(const Vector &res);
+   void accelSnapshotAdd(const Vector &res);
    void handleResidualSnapshot(const Vector &res);
    void handleJacobianSnapshot();
 
@@ -229,6 +287,16 @@ PodProjectionNonLinDynamicDetail::sttSnapImpl::fillSnapBuffer(const VecType &sna
   converter_.paddedNodeDof6(snap, snapBuffer_);
 }
 
+PodProjectionNonLinDynamicDetail::velSnapImpl::velSnapImpl(PodProjectionNonLinDynamic *parent) :
+  PodProjectionNonLinDynamicDetail::BasicImpl(parent),
+  velocitySnapFile_(BasisFileId(fileInfo_, BasisId::VELOCITY, BasisId::SNAPSHOTS), vecNodeDof6Conversion_)
+{}
+
+PodProjectionNonLinDynamicDetail::accSnapImpl::accSnapImpl(PodProjectionNonLinDynamic *parent) :
+  PodProjectionNonLinDynamicDetail::BasicImpl(parent),
+  accelerationSnapFile_(BasisFileId(fileInfo_, BasisId::ACCELERATION, BasisId::SNAPSHOTS), vecNodeDof6Conversion_)
+{}
+
 PodProjectionNonLinDynamicDetail::resSnapImpl::resSnapImpl(PodProjectionNonLinDynamic *parent) :
   PodProjectionNonLinDynamicDetail::BasicImpl(parent),
   residualSnapFile_(BasisFileId(fileInfo_, BasisId::RESIDUAL, BasisId::SNAPSHOTS), vecNodeDof6Conversion_)
@@ -247,6 +315,26 @@ PodProjectionNonLinDynamicDetail::sttSnapImpl::lastMidTimeIs(double t) {
 void
 PodProjectionNonLinDynamicDetail::sttSnapImpl::lastDeltaIs(double dt) {
   timeStamp_ += dt;
+}
+
+void
+PodProjectionNonLinDynamicDetail::velSnapImpl::lastMidTimeIs(double t) {
+  //empty
+}
+
+void
+PodProjectionNonLinDynamicDetail::velSnapImpl::lastDeltaIs(double dt) {
+  //empty
+}
+
+void
+PodProjectionNonLinDynamicDetail::accSnapImpl::lastMidTimeIs(double t) {
+  //empty
+}
+
+void
+PodProjectionNonLinDynamicDetail::accSnapImpl::lastDeltaIs(double dt) {
+  //empty
 }
 
 void
@@ -297,6 +385,16 @@ PodProjectionNonLinDynamicDetail::sttSnapImpl::stateSnapshotAdd(const GeomState 
 }
 
 void
+PodProjectionNonLinDynamicDetail::velSnapImpl::stateSnapshotAdd(const GeomState &snap) {
+ //empty
+}
+
+void
+PodProjectionNonLinDynamicDetail::accSnapImpl::stateSnapshotAdd(const GeomState &snap) {
+  //empty
+}
+
+void
 PodProjectionNonLinDynamicDetail::resSnapImpl::stateSnapshotAdd(const GeomState &snap) {
  //empty
 }
@@ -307,7 +405,67 @@ PodProjectionNonLinDynamicDetail::jacSnapImpl::stateSnapshotAdd(const GeomState 
 }
 
 void
+PodProjectionNonLinDynamicDetail::sttSnapImpl::velocSnapshotAdd(const Vector &veloc) {
+  //empty
+}
+
+void
+PodProjectionNonLinDynamicDetail::velSnapImpl::velocSnapshotAdd(const Vector &veloc) {
+  velocitySnapFile_ << veloc;
+}
+
+void
+PodProjectionNonLinDynamicDetail::accSnapImpl::velocSnapshotAdd(const Vector &veloc) {
+  //empty
+}
+
+void
+PodProjectionNonLinDynamicDetail::resSnapImpl::velocSnapshotAdd(const Vector &veloc) {
+  //empty
+}
+
+void
+PodProjectionNonLinDynamicDetail::jacSnapImpl::velocSnapshotAdd(const Vector &veloc) {
+  //empty
+}
+
+void
+PodProjectionNonLinDynamicDetail::sttSnapImpl::accelSnapshotAdd(const Vector &accel) {
+  //empty
+}
+
+void
+PodProjectionNonLinDynamicDetail::velSnapImpl::accelSnapshotAdd(const Vector &accel) {
+ //empty
+}
+
+void
+PodProjectionNonLinDynamicDetail::accSnapImpl::accelSnapshotAdd(const Vector &accel) {
+  accelerationSnapFile_ << accel;
+}
+
+void
+PodProjectionNonLinDynamicDetail::resSnapImpl::accelSnapshotAdd(const Vector &accel) {
+  //empty
+}
+
+void
+PodProjectionNonLinDynamicDetail::jacSnapImpl::accelSnapshotAdd(const Vector &accel) {
+  //empty
+}
+
+void
 PodProjectionNonLinDynamicDetail::sttSnapImpl::handleResidualSnapshot(const Vector &res) {
+  //empty
+}
+
+void
+PodProjectionNonLinDynamicDetail::velSnapImpl::handleResidualSnapshot(const Vector &res) {
+  //empty
+}
+
+void
+PodProjectionNonLinDynamicDetail::accSnapImpl::handleResidualSnapshot(const Vector &res) {
   //empty
 }
 
@@ -323,6 +481,16 @@ PodProjectionNonLinDynamicDetail::jacSnapImpl::handleResidualSnapshot(const Vect
 
 void
 PodProjectionNonLinDynamicDetail::sttSnapImpl::handleJacobianSnapshot() {
+  //empty
+}
+
+void
+PodProjectionNonLinDynamicDetail::velSnapImpl::handleJacobianSnapshot() {
+  //empty
+}
+
+void
+PodProjectionNonLinDynamicDetail::accSnapImpl::handleJacobianSnapshot() {
   //empty
 }
 
@@ -345,6 +513,8 @@ PodProjectionNonLinDynamic::PodProjectionNonLinDynamic(Domain *d) :
   NonLinDynamic(d),
   impl_(NULL),
   sttImpl_(NULL),
+  velImpl_(NULL),
+  accImpl_(NULL),
   resImpl_(NULL),
   jacImpl_(NULL)
 {}
@@ -364,6 +534,10 @@ PodProjectionNonLinDynamic::preProcess() {
   if (domain->solInfo().snapshotsPodRom) {
    if(domain->solInfo().statevectPodRom)
     sttImpl_.reset(new PodProjectionNonLinDynamicDetail::sttSnapImpl(this->domain,this)); 
+   if(domain->solInfo().velocvectPodRom)
+    velImpl_.reset(new PodProjectionNonLinDynamicDetail::velSnapImpl(this));
+   if(domain->solInfo().accelvectPodRom)
+    accImpl_.reset(new PodProjectionNonLinDynamicDetail::accSnapImpl(this));
    if(domain->solInfo().residvectPodRom) 
     resImpl_.reset(new PodProjectionNonLinDynamicDetail::resSnapImpl(this));
    if(domain->solInfo().jacobvectPodRom)
@@ -425,6 +599,18 @@ void
 PodProjectionNonLinDynamic::saveStateSnapshot(const GeomState &state) {
   if(domain->solInfo().statevectPodRom)
   sttImpl_->stateSnapshotAdd(state);
+}
+
+void
+PodProjectionNonLinDynamic::saveVelocitySnapshot(const Vector &veloc) {
+  if(domain->solInfo().velocvectPodRom)
+  velImpl_->velocSnapshotAdd(veloc);
+}
+
+void
+PodProjectionNonLinDynamic::saveAccelerationSnapshot(const Vector &accel) {
+  if(domain->solInfo().accelvectPodRom)
+  accImpl_->accelSnapshotAdd(accel);
 }
 
 } /* end namespace Rom */

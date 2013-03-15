@@ -822,6 +822,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
   }
       
   handleDisplacement(*probDesc, d_n);
+  handleVelocity(*probDesc, d_n);
 
   // Initialize time index (n) and time (t^n)
   int n = 0;
@@ -979,6 +980,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
       // Update the velocity at t^{n+1}: v^{n+1} = v^{n+1/2}+dt^{n+1/2}/2*a^{n+1}
       v_p = v_n;
       v_n.linC(1.0, v_n_h, 0.5*dt_n_h, a_n);
+      handleVelocity(*probDesc, v_n);
 
       // Energy balance check
       if(domain->solInfo().isNonLin() && domain->solInfo().check_energy_balance) {

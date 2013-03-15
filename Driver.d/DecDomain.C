@@ -1188,6 +1188,7 @@ GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<S
           else filePrint(stderr," *** WARNING: Output case %d not supported \n", i);
         } break;
         case OutputInfo::Statevector:
+        case OutputInfo::Velocvector:
         case OutputInfo::Accelvector:
         case OutputInfo::Forcevector:
         case OutputInfo::Residual:
@@ -2283,6 +2284,7 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***all
        else filePrint(stderr," *** WARNING: Output case %d not supported \n", i);
      } break;
      case OutputInfo::Statevector:
+     case OutputInfo::Velocvector:
      case OutputInfo::Accelvector:
      case OutputInfo::Forcevector:
      case OutputInfo::Residual:

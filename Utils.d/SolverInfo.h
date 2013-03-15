@@ -278,12 +278,14 @@ struct SolverInfo {
    const char * SVDoutput;
    const char * reducedMeshFile;
    const char * statePodRomFile;
+   const char * velocPodRomFile;
    const char * accelPodRomFile;
    const char * forcePodRomFile;
    const char * residualPodRomFile;
    const char * jacobianPodRomFile;
    bool ROMPostProcess;
    bool statevectPodRom;
+   bool velocvectPodRom;
    bool accelvectPodRom;
    bool forcevectPodRom;
    bool residvectPodRom;
@@ -303,6 +305,7 @@ struct SolverInfo {
    int  skipPodRom;
    int  skipOffSet;
    int  skipState;
+   int  skipVeloc;
    int  skipAccel;
    int  skipForce;
    int  skipResidual;
@@ -516,12 +519,14 @@ struct SolverInfo {
 		  SVDoutput          = "pod.rob";
 		  reducedMeshFile    = "";
 		  statePodRomFile    = "";
+                  velocPodRomFile    = "";
 		  accelPodRomFile    = "";
 		  forcePodRomFile    = "";
 		  residualPodRomFile = "";
 		  jacobianPodRomFile = "";
 		  ROMPostProcess     = false;
 		  statevectPodRom    = false;
+                  velocvectPodRom    = false;
 		  accelvectPodRom    = false;
 		  forcevectPodRom    = false;
 		  residvectPodRom    = false;
@@ -541,6 +546,7 @@ struct SolverInfo {
                   skipPodRom         = 1;
                   skipOffSet         = 0;
 		  skipState          = 1;
+                  skipVeloc          = 1;
 		  skipAccel          = 1;
 		  skipForce          = 1;
 		  skipResidual       = 1;

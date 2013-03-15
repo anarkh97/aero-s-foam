@@ -18,6 +18,13 @@ handleAcceleration(ProbType &, VecType &) {
 template <typename ProbType, typename VecType>
 inline
 void
+handleVelocity(ProbType &, VecType &) {
+  // Do nothing by default
+}
+
+template <typename ProbType, typename VecType>
+inline
+void
 handleDisplacement(ProbType &, VecType &) {
   // Do nothing by default
 }

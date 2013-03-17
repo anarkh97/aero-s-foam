@@ -22,6 +22,9 @@
 #ifdef EIGEN_SRQR_SUPPORT
 #include <Eigen/SPQRSupport>
 #endif
+#ifdef EIGEN_SPARSEQR_SUPPORT
+#include <Eigen/SparseQR>
+#endif
 #include <Math.d/SparseMatrix.h>
 #include <Solvers.d/Solver.h>
 

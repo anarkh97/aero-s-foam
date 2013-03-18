@@ -414,7 +414,6 @@ SnapshotNonLinDynamicDetail::jacSnapImpl::internalStateSnapshotAdd(const GeomSta
 void
 SnapshotNonLinDynamicDetail::isvSnapImpl::internalStateSnapshotAdd(const GeomState &snap)
 {
- // TODO
  ++isvSkip_;
  if(isvSkip_ >= domain_->solInfo().skipInternalStateVar) {
 

@@ -1,6 +1,7 @@
 #include <Driver.d/Domain.h>
 #include <Corotational.d/GeomState.h>
 #include <Corotational.d/utilities.h>
+#include <Element.d/Function.d/utilities.hpp>
 #include <Utils.d/dofset.h>
 #include <Element.d/Element.h>
 #include <Driver.d/GeoSource.h>
@@ -575,8 +576,59 @@ GeomState::explicitUpdate(CoordSet &cs, int numNodes, int *nodes, const Vector &
 }
 
 void
+GeomState::setVelocity(const Vector &v, int SO3param)
+{
+  for(int i = 0; i < numnodes; ++i) {
+    for(int j = 0; j < 6; ++j)
+      if(loc[i][j] > -1) {
+        ns[i].v[j] = v[loc[i][j]];
+      }
+    if(SO3param == 2 && (loc[i][3] >= 0 || loc[i][4] >= 0 || loc[i][5] >= 0)) {
+      // conversion to convected angular velocity
+      Eigen::Vector3d Psi, Psidot, Omega;
+      Eigen::Matrix3d R, T;
+      Psidot << ns[i].v[3], ns[i].v[4], ns[i].v[5];
+      R << ns[i].R[0][0], ns[i].R[0][1], ns[i].R[0][2],
+           ns[i].R[1][0], ns[i].R[1][1], ns[i].R[1][2],
+           ns[i].R[2][0], ns[i].R[2][1], ns[i].R[2][2];
+      mat_to_vec(R, Psi);
+      tangential_transf(Psi, T);
+      Omega = T*Psidot;
+      for(int j=0; j<3; ++j) ns[i].v[3+j] = Omega[j];
+    }
+  }
+}
+
+void
+GeomState::setVelocity(int numNodes, int *nodes, const Vector &v, int SO3param)
+{
+  int i;
+  for(int k = 0; k < numNodes; ++k) {
+    i = nodes[k];
+    for(int j = 0; j < 6; ++j)
+      if(loc[i][j] > -1) {
+        ns[i].v[j] = v[loc[i][j]];
+      }
+    if(SO3param == 2 && loc[i][3] >= 0 || loc[i][4] >= 0 || loc[i][5] >= 0) {
+      // conversion to convected angular velocity
+      Eigen::Vector3d Psi, Psidot, Omega;
+      Eigen::Matrix3d R, T;
+      Psidot << ns[i].v[3], ns[i].v[4], ns[i].v[5];
+      R << ns[i].R[0][0], ns[i].R[0][1], ns[i].R[0][2],
+           ns[i].R[1][0], ns[i].R[1][1], ns[i].R[1][2],
+           ns[i].R[2][0], ns[i].R[2][1], ns[i].R[2][2];
+      mat_to_vec(R, Psi);
+      tangential_transf(Psi, T);
+      Omega = T*Psidot;
+      for(int j=0; j<3; ++j) ns[i].v[3+j] = Omega[j];
+    }
+  }
+}
+
+void
 GeomState::setVelocity(const Vector &v, const Vector &a)
 {
+  // set velocity and acceleration
   for(int i = 0; i < numnodes; ++i)
     for(int j = 0; j < 6; ++j)
       if(loc[i][j] > -1) {

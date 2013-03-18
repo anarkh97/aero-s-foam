@@ -3842,6 +3842,9 @@ SamplingOption:
   { domain->solInfo().readInROBorModes = $2; }
   | TRNVCT FNAME
   { domain->solInfo().statePodRomFile = $2; }
+  | TRNVCT FNAME FNAME
+  { domain->solInfo().statePodRomFile = $2;
+    domain->solInfo().velocPodRomFile = $3; }
   | TOLER Float
   { domain->solInfo().tolPodRom = $2; }
   | SKIP Integer

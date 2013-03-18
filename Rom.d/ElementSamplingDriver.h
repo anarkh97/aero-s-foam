@@ -30,7 +30,7 @@ private:
   template <typename DblFwdIt>
   void assembleTrainingData(const VecBasis &snapshots, DblFwdIt timeStampFirst, const VecBasis &podBasis,
                             typename SparseNonNegativeLeastSquaresSolver::MatrixBufferType::iterator elemContributions, 
-                            Vector &trainingTarget);
+                            Vector &trainingTarget, VecBasis *velocSnapshots);
 
   int elementCount() const;
   int vectorSize() const;

@@ -181,9 +181,10 @@ struct SnapshotNonLinDynamicDetail : private SnapshotNonLinDynamic {
     Domain * domain_;
     int isvSkip_;
     SnapshotNonLinDynamic *parent_;
-    VecNodeDof6Conversion vecNodeDof6Conversion_;
-    FileNameInfo fileInfo_;
-    BasisOutputStream internalStateSnapFile_;
+    //VecNodeDof6Conversion vecNodeDof6Conversion_;
+    //FileNameInfo fileInfo_;
+    //BasisOutputStream internalStateSnapFile_;
+    int internalStateSnapFile_; 
   };
 
   private:
@@ -243,11 +244,13 @@ SnapshotNonLinDynamicDetail::jacSnapImpl::jacSnapImpl(SnapshotNonLinDynamic *par
 SnapshotNonLinDynamicDetail::isvSnapImpl::isvSnapImpl(SnapshotNonLinDynamic *parent, Domain * domain) :
   domain_(domain),
   isvSkip_(0),
-  parent_(parent),
-  vecNodeDof6Conversion_(*domain->getCDSA()),
-  fileInfo_(),
-  internalStateSnapFile_(BasisFileId(fileInfo_, BasisId::INTERNALSTATE, BasisId::SNAPSHOTS), vecNodeDof6Conversion_)
-{}
+  parent_(parent)
+  //vecNodeDof6Conversion_(*domain->getCDSA()),
+  //fileInfo_(),
+  //internalStateSnapFile_(BasisFileId(fileInfo_, BasisId::INTERNALSTATE, BasisId::SNAPSHOTS), vecNodeDof6Conversion_)
+{
+  internalStateSnapFile_ = open(domain->solInfo().isvPodRomFile, O_WRONLY | O_CREAT, 0666);
+}
 
 
 void
@@ -416,13 +419,9 @@ SnapshotNonLinDynamicDetail::isvSnapImpl::internalStateSnapshotAdd(const GeomSta
  if(isvSkip_ >= domain_->solInfo().skipInternalStateVar) {
 
   int numElemStates = snap.getTotalNumElemStates();
-/*
-  std::cerr << "here in SnapshotNonLinDynamicDetail::isvSnapImpl::internalStateSnapshotAdd,"
-            << " numElemStates = " << numElemStates << std::endl;
-*/
   Vector elemStates(numElemStates);
   snap.getElemStates(elemStates.data());
-  internalStateSnapFile_ << elemStates;
+  int writeSize = write(internalStateSnapFile_, elemStates.data(), numElemStates*sizeof(double));
   isvSkip_ = 0;
  }
 }

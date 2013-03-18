@@ -1122,7 +1122,7 @@ GeomState::getRotations(double *rotations)
 }
 
 void
-GeomState::getElemStates(double *elemStates)
+GeomState::getElemStates(double *elemStates) const
 {
  int i,j,k;
  for(i=0,j=0; i<numelems; ++i) {
@@ -1170,7 +1170,7 @@ GeomState::setElemStates(double *elemStates)
 }
 
 int
-GeomState::getTotalNumElemStates()
+GeomState::getTotalNumElemStates() const
 {
  int n = 0;
  for(int i=0,j=0; i<numelems; ++i) {

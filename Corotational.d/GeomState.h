@@ -67,14 +67,14 @@ class GeomState {
 
      double * getElemState(int glNum) { return (numelems > 0) ? es[emap[glNum]].internalStates : 0; }
      int getNumElemStates(int glNum) { return (numelems > 0) ? es[emap[glNum]].numInternalStates : 0; }
-     int getTotalNumElemStates();
+     int getTotalNumElemStates() const;
 
      // int getLocation(int inode, int dof) { return (loc[inode][dof]-1); }
      int numNodes() const { return numnodes; }
 
      void getPositions(double *positions);
      void getRotations(double *rotations);
-     void getElemStates(double *elemStates);
+     void getElemStates(double *elemStates) const;
 
      void setPositions(double *positions);
      void setRotations(double *rotations);

@@ -1151,6 +1151,15 @@ void GeoSource::setUpData()
         domain->solInfo().velocPodRomFile = oinfo[iOut].filename;
         oinfo[iOut].PodRomfile = true;
         break;
+      case OutputInfo::InternalStateVar :
+        filePrint(stderr," ... Saving internal state variables snapshots every %d time steps to %s ...\n", oinfo[iOut].interval, oinfo[iOut].filename);
+        domain->solInfo().activatePodRom = true;
+        domain->solInfo().snapshotsPodRom = true;
+        domain->solInfo().isvPodRom = true;
+        domain->solInfo().skipInternalStateVar = oinfo[iOut].interval;
+        domain->solInfo().isvPodRomFile = oinfo[iOut].filename;
+        oinfo[iOut].PodRomfile = true;
+        break;
       case OutputInfo::Forcevector :
         filePrint(stderr," ... Saving force snapshots every %d time steps to %s ...\n", oinfo[iOut].interval, oinfo[iOut].filename);
         domain->solInfo().activatePodRom = true;

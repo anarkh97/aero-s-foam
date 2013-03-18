@@ -1190,6 +1190,7 @@ GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<S
         case OutputInfo::Statevector:
         case OutputInfo::Velocvector:
         case OutputInfo::Accelvector:
+        case OutputInfo::InternalStateVar:
         case OutputInfo::Forcevector:
         case OutputInfo::Residual:
         case OutputInfo::Jacobian:
@@ -2286,6 +2287,7 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***all
      case OutputInfo::Statevector:
      case OutputInfo::Velocvector:
      case OutputInfo::Accelvector:
+     case OutputInfo::InternalStateVar:
      case OutputInfo::Forcevector:
      case OutputInfo::Residual:
      case OutputInfo::Jacobian:

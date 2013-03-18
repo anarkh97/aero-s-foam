@@ -27,6 +27,7 @@ struct SnapshotNonLinDynamicDetail : private SnapshotNonLinDynamic {
      void lastMidTimeIs(double t);
      void lastDeltaIs(double dt);
      void stateSnapshotAdd(const GeomState &);
+     void internalStateSnapshotAdd(const GeomState &);
      void velocSnapshotAdd(const Vector &);
      void accelSnapshotAdd(const Vector &);
      void handleResidualSnapshot(const Vector &res);
@@ -58,110 +59,140 @@ struct SnapshotNonLinDynamicDetail : private SnapshotNonLinDynamic {
   protected:
     FileNameInfo fileInfo_;
     BasisBinaryOutputFile stateSnapFile_;
-};
+  };
 
-// Implementation with velocity snapshots
-class velSnapImpl : public Impl {
-public:
-  explicit velSnapImpl(SnapshotNonLinDynamic *parent, Domain *domain);
+  // Implementation with velocity snapshots
+  class velSnapImpl : public Impl {
+  public:
+    explicit velSnapImpl(SnapshotNonLinDynamic *parent, Domain *domain);
+  
+    // Overriden functions
+     void lastMidTimeIs(double t);
+     void lastDeltaIs(double dt);
+     void stateSnapshotAdd(const GeomState &state);
+     void internalStateSnapshotAdd(const GeomState &state);
+     void velocSnapshotAdd(const Vector &);
+     void accelSnapshotAdd(const Vector &);
+     void handleResidualSnapshot(const Vector &res);
+     void handleJacobianSnapshot();
+     void postProcess();
+  
+  private:
+    Domain * domain_;
+    int velSkip_;
+    SnapshotNonLinDynamic *parent_;
+    VecNodeDof6Conversion vecNodeDof6Conversion_;
+    FileNameInfo fileInfo_;
+    BasisOutputStream velocitySnapFile_;
+  };
+  
+  // Implementation with acceleration snapshots
+  class accSnapImpl : public Impl {
+  public:
+    explicit accSnapImpl(SnapshotNonLinDynamic *parent, Domain *domain);
+  
+    // Overriden functions
+     void lastMidTimeIs(double t);
+     void lastDeltaIs(double dt);
+     void stateSnapshotAdd(const GeomState &state);
+     void internalStateSnapshotAdd(const GeomState &state);
+     void velocSnapshotAdd(const Vector &);
+     void accelSnapshotAdd(const Vector &);
+     void handleResidualSnapshot(const Vector &res);
+     void handleJacobianSnapshot();
+     void postProcess();
+  
+  private:
+    Domain * domain_;
+    int accSkip_;
+    SnapshotNonLinDynamic *parent_;
+    VecNodeDof6Conversion vecNodeDof6Conversion_;
+    FileNameInfo fileInfo_;
+    BasisOutputStream accelerationSnapFile_;
+  };
+  
+  // Implementation with residual snapshots
+  class resSnapImpl : public Impl {
+  public:
+    explicit resSnapImpl(SnapshotNonLinDynamic *parent, Domain *domain);
+  
+    // Overriden functions
+     void lastMidTimeIs(double t);
+     void lastDeltaIs(double dt);
+     void stateSnapshotAdd(const GeomState &state);
+     void internalStateSnapshotAdd(const GeomState &state);
+     void velocSnapshotAdd(const Vector &);
+     void accelSnapshotAdd(const Vector &);
+     void handleResidualSnapshot(const Vector &res);
+     void handleJacobianSnapshot();
+     void postProcess();
+  
+  private:
+    Domain * domain_;
+    int resSkip_;
+    SnapshotNonLinDynamic *parent_;
+    VecNodeDof6Conversion vecNodeDof6Conversion_;
+    FileNameInfo fileInfo_;
+    BasisOutputStream residualSnapFile_;
+  };
+  
+  //Implementation with jacobian snapshots
+  class jacSnapImpl : public Impl {
+  public:
+    explicit jacSnapImpl(SnapshotNonLinDynamic *parent, Domain *domain);
+  
+    // Overriden functions
+     void lastMidTimeIs(double t);
+     void lastDeltaIs(double dt);
+     void stateSnapshotAdd(const GeomState &state);
+     void internalStateSnapshotAdd(const GeomState &state);
+     void velocSnapshotAdd(const Vector &);
+     void accelSnapshotAdd(const Vector &);
+     void handleResidualSnapshot(const Vector &res);
+     void handleJacobianSnapshot();
+     void postProcess();
+  
+  private:
+    Domain * domain_;
+    int jacSkip_;
+    SnapshotNonLinDynamic *parent_;
+    VecNodeDof6Conversion vecNodeDof6Conversion_;
+    FileNameInfo fileInfo_;
+    BasisOutputStream jacobianSnapFile_;
+  };
+  
+  //Implementation with internal state snapshots
+  class isvSnapImpl : public Impl {
+  public:
+    explicit isvSnapImpl(SnapshotNonLinDynamic *parent, Domain *domain);
+  
+    // Overriden functions
+     void lastMidTimeIs(double t);
+     void lastDeltaIs(double dt);
+     void stateSnapshotAdd(const GeomState &state);
+     void internalStateSnapshotAdd(const GeomState &state);
+     void velocSnapshotAdd(const Vector &);
+     void accelSnapshotAdd(const Vector &);
+     void handleResidualSnapshot(const Vector &res);
+     void handleJacobianSnapshot();
+     void postProcess();
+  
+  private:
+    Domain * domain_;
+    int isvSkip_;
+    SnapshotNonLinDynamic *parent_;
+    VecNodeDof6Conversion vecNodeDof6Conversion_;
+    FileNameInfo fileInfo_;
+    BasisOutputStream internalStateSnapFile_;
+  };
 
-  // Overriden functions
-   void lastMidTimeIs(double t);
-   void lastDeltaIs(double dt);
-   void stateSnapshotAdd(const GeomState &state);
-   void velocSnapshotAdd(const Vector &);
-   void accelSnapshotAdd(const Vector &);
-   void handleResidualSnapshot(const Vector &res);
-   void handleJacobianSnapshot();
-   void postProcess();
-
-private:
-  Domain * domain_;
-  int velSkip_;
-  SnapshotNonLinDynamic *parent_;
-  VecNodeDof6Conversion vecNodeDof6Conversion_;
-  FileNameInfo fileInfo_;
-  BasisOutputStream velocitySnapFile_;
-};
-
-// Implementation with acceleration snapshots
-class accSnapImpl : public Impl {
-public:
-  explicit accSnapImpl(SnapshotNonLinDynamic *parent, Domain *domain);
-
-  // Overriden functions
-   void lastMidTimeIs(double t);
-   void lastDeltaIs(double dt);
-   void stateSnapshotAdd(const GeomState &state);
-   void velocSnapshotAdd(const Vector &);
-   void accelSnapshotAdd(const Vector &);
-   void handleResidualSnapshot(const Vector &res);
-   void handleJacobianSnapshot();
-   void postProcess();
-
-private:
-  Domain * domain_;
-  int accSkip_;
-  SnapshotNonLinDynamic *parent_;
-  VecNodeDof6Conversion vecNodeDof6Conversion_;
-  FileNameInfo fileInfo_;
-  BasisOutputStream accelerationSnapFile_;
-};
-
-// Implementation with residual snapshots
-class resSnapImpl : public Impl {
-public:
-  explicit resSnapImpl(SnapshotNonLinDynamic *parent, Domain *domain);
-
-  // Overriden functions
-   void lastMidTimeIs(double t);
-   void lastDeltaIs(double dt);
-   void stateSnapshotAdd(const GeomState &state);
-   void velocSnapshotAdd(const Vector &);
-   void accelSnapshotAdd(const Vector &);
-   void handleResidualSnapshot(const Vector &res);
-   void handleJacobianSnapshot();
-   void postProcess();
-
-private:
-  Domain * domain_;
-  int resSkip_;
-  SnapshotNonLinDynamic *parent_;
-  VecNodeDof6Conversion vecNodeDof6Conversion_;
-  FileNameInfo fileInfo_;
-  BasisOutputStream residualSnapFile_;
-};
-
-//Implementation with jacobian snapshots
-class jacSnapImpl : public Impl {
-public:
-  explicit jacSnapImpl(SnapshotNonLinDynamic *parent, Domain *domain);
-
-  // Overriden functions
-   void lastMidTimeIs(double t);
-   void lastDeltaIs(double dt);
-   void stateSnapshotAdd(const GeomState &state);
-   void velocSnapshotAdd(const Vector &);
-   void accelSnapshotAdd(const Vector &);
-   void handleResidualSnapshot(const Vector &res);
-   void handleJacobianSnapshot();
-   void postProcess();
-
-private:
-  Domain * domain_;
-  int jacSkip_;
-  SnapshotNonLinDynamic *parent_;
-  VecNodeDof6Conversion vecNodeDof6Conversion_;
-  FileNameInfo fileInfo_;
-  BasisOutputStream jacobianSnapFile_;
-};
-
-private:
+  private:
   // Dummy constructor to avoid compilation failures
   SnapshotNonLinDynamicDetail(Domain *d) :
     SnapshotNonLinDynamic(d)
   {}
 };
+
 
 SnapshotNonLinDynamicDetail::sttSnapImpl::sttSnapImpl(Domain * domain, BasisId::Level level) :
   domain_(domain),
@@ -209,6 +240,16 @@ SnapshotNonLinDynamicDetail::jacSnapImpl::jacSnapImpl(SnapshotNonLinDynamic *par
   jacobianSnapFile_(BasisFileId(fileInfo_, BasisId::JACOBIAN, BasisId::SNAPSHOTS), vecNodeDof6Conversion_)
 {}
 
+SnapshotNonLinDynamicDetail::isvSnapImpl::isvSnapImpl(SnapshotNonLinDynamic *parent, Domain * domain) :
+  domain_(domain),
+  isvSkip_(0),
+  parent_(parent),
+  vecNodeDof6Conversion_(*domain->getCDSA()),
+  fileInfo_(),
+  internalStateSnapFile_(BasisFileId(fileInfo_, BasisId::INTERNALSTATE, BasisId::SNAPSHOTS), vecNodeDof6Conversion_)
+{}
+
+
 void
 SnapshotNonLinDynamicDetail::sttSnapImpl::postProcess() {
   // Nothing to do
@@ -231,6 +272,11 @@ SnapshotNonLinDynamicDetail::resSnapImpl::postProcess() {
 
 void
 SnapshotNonLinDynamicDetail::jacSnapImpl::postProcess() {
+  // Nothing to do
+}
+
+void
+SnapshotNonLinDynamicDetail::isvSnapImpl::postProcess() {
   // Nothing to do
 }
 
@@ -292,6 +338,16 @@ SnapshotNonLinDynamicDetail::jacSnapImpl::lastDeltaIs(double dt) {
 }
 
 void
+SnapshotNonLinDynamicDetail::isvSnapImpl::lastMidTimeIs(double t) {
+  //empty
+}
+
+void
+SnapshotNonLinDynamicDetail::isvSnapImpl::lastDeltaIs(double dt) {
+  //empty
+}
+
+void
 SnapshotNonLinDynamicDetail::sttSnapImpl::stateSnapshotAdd(const GeomState &snap) {
   ++stateSkip_;
   if(stateSkip_ >= domain_->solInfo().skipState) {
@@ -335,6 +391,43 @@ void
 SnapshotNonLinDynamicDetail::jacSnapImpl::stateSnapshotAdd(const GeomState &snap) {}
 
 void
+SnapshotNonLinDynamicDetail::isvSnapImpl::stateSnapshotAdd(const GeomState &snap) {}
+
+void
+SnapshotNonLinDynamicDetail::sttSnapImpl::internalStateSnapshotAdd(const GeomState &snap) {}
+
+void
+SnapshotNonLinDynamicDetail::velSnapImpl::internalStateSnapshotAdd(const GeomState &snap) {}
+
+void
+SnapshotNonLinDynamicDetail::accSnapImpl::internalStateSnapshotAdd(const GeomState &snap) {}
+
+void
+SnapshotNonLinDynamicDetail::resSnapImpl::internalStateSnapshotAdd(const GeomState &snap) {}
+
+void
+SnapshotNonLinDynamicDetail::jacSnapImpl::internalStateSnapshotAdd(const GeomState &snap) {}
+
+void
+SnapshotNonLinDynamicDetail::isvSnapImpl::internalStateSnapshotAdd(const GeomState &snap)
+{
+ // TODO
+ ++isvSkip_;
+ if(isvSkip_ >= domain_->solInfo().skipInternalStateVar) {
+
+  int numElemStates = snap.getTotalNumElemStates();
+/*
+  std::cerr << "here in SnapshotNonLinDynamicDetail::isvSnapImpl::internalStateSnapshotAdd,"
+            << " numElemStates = " << numElemStates << std::endl;
+*/
+  Vector elemStates(numElemStates);
+  snap.getElemStates(elemStates.data());
+  internalStateSnapFile_ << elemStates;
+  isvSkip_ = 0;
+ }
+}
+
+void
 SnapshotNonLinDynamicDetail::sttSnapImpl::velocSnapshotAdd(const Vector &veloc) {
   //empty
 }
@@ -359,6 +452,11 @@ SnapshotNonLinDynamicDetail::resSnapImpl::velocSnapshotAdd(const Vector &veloc) 
 
 void
 SnapshotNonLinDynamicDetail::jacSnapImpl::velocSnapshotAdd(const Vector &veloc) {
+  //empty
+}
+
+void
+SnapshotNonLinDynamicDetail::isvSnapImpl::velocSnapshotAdd(const Vector &veloc) {
   //empty
 }
 
@@ -391,6 +489,11 @@ SnapshotNonLinDynamicDetail::jacSnapImpl::accelSnapshotAdd(const Vector &accel) 
 }
 
 void
+SnapshotNonLinDynamicDetail::isvSnapImpl::accelSnapshotAdd(const Vector &accel) {
+  //empty
+}
+
+void
 SnapshotNonLinDynamicDetail::sttSnapImpl::handleResidualSnapshot(const Vector &res) {
   //empty
 }
@@ -415,6 +518,11 @@ SnapshotNonLinDynamicDetail::resSnapImpl::handleResidualSnapshot(const Vector &r
 
 void
 SnapshotNonLinDynamicDetail::jacSnapImpl::handleResidualSnapshot(const Vector &res) {
+  //empty
+}
+
+void
+SnapshotNonLinDynamicDetail::isvSnapImpl::handleResidualSnapshot(const Vector &res) {
   //empty
 }
 
@@ -448,9 +556,15 @@ SnapshotNonLinDynamicDetail::jacSnapImpl::handleJacobianSnapshot() {
   jacSkip_ = 0;}
 }
 
+void
+SnapshotNonLinDynamicDetail::isvSnapImpl::handleJacobianSnapshot() {
+  //empty
+}
+
 SnapshotNonLinDynamic::SnapshotNonLinDynamic(Domain *domain) :
   NonLinDynamic(domain),
   stateImpl_(NULL),
+  internalStateImpl_(NULL),
   velocImpl_(NULL),
   accelImpl_(NULL),
   resImpl_(NULL),
@@ -462,6 +576,8 @@ SnapshotNonLinDynamic::preProcess() {
   NonLinDynamic::preProcess();
   if(domain->solInfo().statevectPodRom)
     stateImpl_.reset(new SnapshotNonLinDynamicDetail::sttSnapImpl(this->domain));
+  if(domain->solInfo().isvPodRom)
+    internalStateImpl_.reset(new SnapshotNonLinDynamicDetail::isvSnapImpl(this,this->domain));
   if(domain->solInfo().velocvectPodRom)
     velocImpl_.reset(new SnapshotNonLinDynamicDetail::velSnapImpl(this,this->domain));
   if(domain->solInfo().accelvectPodRom)
@@ -476,6 +592,8 @@ void
 SnapshotNonLinDynamic::postProcess() {
  if(domain->solInfo().statevectPodRom)
   stateImpl_->postProcess();
+ if(domain->solInfo().isvPodRom)
+  internalStateImpl_->postProcess();
  if(domain->solInfo().velocvectPodRom)
   velocImpl_->postProcess();
  if(domain->solInfo().accelvectPodRom)
@@ -502,6 +620,12 @@ void
 SnapshotNonLinDynamic::saveStateSnapshot(const GeomState &state) {
  if(domain->solInfo().statevectPodRom)
         stateImpl_->stateSnapshotAdd(state);
+}
+
+void
+SnapshotNonLinDynamic::saveInternalStateSnapshot(const GeomState &state) {
+ if(domain->solInfo().isvPodRom)
+        internalStateImpl_->internalStateSnapshotAdd(state);
 }
 
 void

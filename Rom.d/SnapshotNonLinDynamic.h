@@ -36,6 +36,7 @@ protected:
     virtual void lastMidTimeIs(double) = 0;
     virtual void lastDeltaIs(double) = 0;
     virtual void stateSnapshotAdd(const GeomState &) = 0;
+    virtual void internalStateSnapshotAdd(const GeomState &) = 0;
     virtual void velocSnapshotAdd(const Vector &veloc) = 0;
     virtual void accelSnapshotAdd(const Vector &accel) = 0;
     virtual void handleResidualSnapshot(const Vector &res) = 0;
@@ -58,6 +59,7 @@ private:
   void saveMidTime(double t);
   void saveDelta(double dt);
   void saveStateSnapshot(const GeomState &state);
+  void saveInternalStateSnapshot(const GeomState &state);
   void saveVelocitySnapshot(const Vector &veloc);
   void saveAccelerationSnapshot(const Vector &accel);
   void handleResidualSnapshot(const Vector &snap); 
@@ -65,6 +67,7 @@ private:
 
 //  BasisType outputBasisType_;
   std::auto_ptr<Impl> stateImpl_; 
+  std::auto_ptr<Impl> internalStateImpl_;
   std::auto_ptr<Impl> velocImpl_;
   std::auto_ptr<Impl> accelImpl_;
   std::auto_ptr<Impl> resImpl_;
@@ -98,6 +101,7 @@ public:
         dummy1, dummy2, dummy3, dummy4, acceleration, zeroRot);
     
     pbd->saveStateSnapshot(*geomState);
+    pbd->saveInternalStateSnapshot(*geomState);
     pbd->saveVelocitySnapshot(velN);
     pbd->saveAccelerationSnapshot(acceleration);
   }

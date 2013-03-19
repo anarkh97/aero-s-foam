@@ -586,6 +586,7 @@ GeomState::setVelocity(const Vector &v, int SO3param)
       if(loc[i][j] > -1) {
         ns[i].v[j] = v[loc[i][j]];
       }
+#ifdef USE_EIGEN3
     if(SO3param == 2 && (loc[i][3] >= 0 || loc[i][4] >= 0 || loc[i][5] >= 0)) {
       // conversion to convected angular velocity
       Eigen::Vector3d Psi, Psidot, Omega;
@@ -599,6 +600,7 @@ GeomState::setVelocity(const Vector &v, int SO3param)
       Omega = T*Psidot;
       for(int j=0; j<3; ++j) ns[i].v[3+j] = Omega[j];
     }
+#endif
   }
 }
 
@@ -612,6 +614,7 @@ GeomState::setVelocity(int numNodes, int *nodes, const Vector &v, int SO3param)
       if(loc[i][j] > -1) {
         ns[i].v[j] = v[loc[i][j]];
       }
+#ifdef USE_EIGEN3
     if(SO3param == 2 && loc[i][3] >= 0 || loc[i][4] >= 0 || loc[i][5] >= 0) {
       // conversion to convected angular velocity
       Eigen::Vector3d Psi, Psidot, Omega;
@@ -625,6 +628,7 @@ GeomState::setVelocity(int numNodes, int *nodes, const Vector &v, int SO3param)
       Omega = T*Psidot;
       for(int j=0; j<3; ++j) ns[i].v[3+j] = Omega[j];
     }
+#endif
   }
 }
 
@@ -900,6 +904,7 @@ GeomState::pull_back(Vector &f)
 void
 GeomState::transform(Vector &f, int type)
 {
+#ifdef USE_EIGEN3
   for(int inode = 0; inode < numnodes; ++inode) {
 
     if(flag[inode] == -1) continue;
@@ -937,11 +942,13 @@ GeomState::transform(Vector &f, int type)
       if( loc[inode][5] >= 0 ) f[loc[inode][5]] = result[2];
     }
   }
+#endif
 }
 
 void
 GeomState::transform(Vector &f, const std::vector<int> &weightedNodes, int type)
 {
+#ifdef USE_EIGEN3
   int inode;
   for( std::vector<int>::const_iterator it = weightedNodes.begin(); it != weightedNodes.end(); ++it) {
     inode = *it;
@@ -981,6 +988,7 @@ GeomState::transform(Vector &f, const std::vector<int> &weightedNodes, int type)
       if( loc[inode][5] >= 0 ) f[loc[inode][5]] = result[2];
     }
   }
+#endif
 }
 
 void

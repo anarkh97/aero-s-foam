@@ -15,3 +15,4 @@ SET(EXTRALIB_MPI /usr/lib/libmpif77.so
 SET(CMAKE_Fortran_FLAGS_RELEASE "-O2")
 SET(BLAS_blas_LIBRARY "/home/avery/Codes/eigen-build/blas/libeigen_blas.so" CACHE FILEPATH "Path to a library.")
 add_definitions(-D_AEROS_ASYCHRONOUS_IO)
+add_definitions(-DEIGEN_SPARSELU_SUPPORT -DEIGEN_SPARSEQR_SUPPORT)

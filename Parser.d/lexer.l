@@ -116,6 +116,7 @@ TRAIL [a-zA-Z]*
 "M"                                { yylval.ival = 1; return TOPFLAG; }
 
 "LOCF"[a-zA-Z]*|"locf"[a-zA-Z]*    { yylval.ival = OutputInfo::Local;  return OUTPUTFRAME; }
+"NODF"[a-zA-Z]*|"nodf"[a-zA-Z]*    { yylval.ival = OutputInfo::Local;  return OUTPUTFRAME; }
 "GLOF"[a-zA-Z]*|"glof"[a-zA-Z]*    { yylval.ival = OutputInfo::Global; return OUTPUTFRAME; }
 
 "ON"|"on"|"On"                     { yylval.ival = 1; return SWITCH; }
@@ -443,7 +444,9 @@ TRAIL [a-zA-Z]*
 
 "splu"[a-zA-Z]*|"SPLU"[a-zA-Z]*    { yylval.ival = 15; return SOLVERTYPE; }
 
-"spqr"[a-zA-Z]*|"SPQR"[a-zA-Z]*    { yylval.ival = 16; return SOLVERTYPE; }
+"ssqr"[a-zA-Z]*|"SSQR"[a-zA-Z]*    { yylval.ival = 16; return SOLVERTYPE; }
+
+"spqr"[a-zA-Z]*|"SPQR"[a-zA-Z]*   { yylval.ival = 17; return SOLVERTYPE; }
 
 "chol"[a-zA-Z]*|"CHOL"[a-zA-Z]*    { yylval.ival = 5; return SOLVERTYPE; }
 

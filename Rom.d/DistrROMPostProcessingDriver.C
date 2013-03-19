@@ -205,7 +205,8 @@ DistrROMPostProcessingDriver::solve() {
               //nothing
            }
      }
-   MultiDomainDynam::updateDisplacement( *fullDispBuffer, *fullDispBuffer);
+   //MultiDomainDynam::updateDisplacement( *fullDispBuffer, *fullDispBuffer);
+   geomState->explicitUpdate(decDomain, *fullDispBuffer);
    mddPostPro->dynamOutput( counter, *it, *dummyDynOps, *fullDummyBuffer, fullDummyBuffer, *curState);
 
    counter += 1;

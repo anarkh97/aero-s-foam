@@ -15,9 +15,9 @@ class Elemset;
 
 class NodeState {
   public:
-    double x,   y,  z;			// x,y,z coordinates
-    double v[6], a[6];	                // x,y,z velocities and accelerations
-    double R[3][3];      	        // Rotation Tensor
+    double x, y, z;                     // x,y,z coordinates
+    double v[6], a[6];                  // x,y,z velocities and accelerations
+    double R[3][3];                     // Rotation Tensor
     void operator=(const NodeState &);
     double diff(const Node &un, int dof);
     NodeState() { for(int i = 0; i < 6; ++ i) v[i] = a[i] = 0; }
@@ -46,6 +46,7 @@ class GeomState {
      ElemState *es;
      std::map<int,int> emap;
      std::map<std::pair<int,int>,int> multiplier_nodes;
+     bool haveRot;
 
    public:
      // Default Constructor
@@ -87,8 +88,9 @@ class GeomState {
      virtual void explicitUpdate(CoordSet &cs, const Vector &v);
      virtual void explicitUpdate(CoordSet &cs, int numNodes, int* nodes, const Vector &v);
      virtual void setVelocity(const Vector &, int SO3param = 0);
-     virtual void setVelocity(int numNodes, int *nodes, const Vector &, int SO3param = 0);
-     virtual void setVelocity(const Vector &, const Vector &);
+     virtual void setVelocity(int numNodes, int* nodes, const Vector &, int SO3param = 0);
+     virtual void setAcceleration(const Vector &);
+     virtual void setVelocityAndAcceleration(const Vector &, const Vector &);
      virtual void updatePrescribedDisplacement(BCond *dbc, int numDirichlet, 
                                        double delta);
      void updatePrescribedDisplacement(BCond *dbc, int numDirichlet,
@@ -103,6 +105,8 @@ class GeomState {
      virtual void get_tot_displacement(Vector &totVec);
      virtual void push_forward(Vector &f);
      virtual void pull_back(Vector &f);
+     virtual void transform(Vector &f, int flag);
+     virtual void transform(Vector &f, const std::vector<int> &, int flag);
      void zeroRotDofs(Vector &vec);
      void interp(double, const GeomState &, const GeomState &);
      void diff(const GeomState &unp, Vector &un);
@@ -126,6 +130,8 @@ class GeomState {
 
      void addMultiplierNode(std::pair<int,int> &lmpc_id, double value);
      double getMultiplier(std::pair<int,int> &lmpc_id);
+
+     bool getHaveRot() { return haveRot; }
 };
 
 #endif

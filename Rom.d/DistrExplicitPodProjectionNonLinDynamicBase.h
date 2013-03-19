@@ -3,7 +3,7 @@
 
 #include <Paral.d/MDDynam.h>
 #include <Driver.d/GeoSource.h>
-#include <stdio.h>
+#include <cstdio>
 #include "DistrVecBasis.h"
 
 namespace Rom {
@@ -40,7 +40,7 @@ public:
   const DistrInfo &solVecInfo();
   DistrInfo &reducedVecInfo();
   void getInitState(SysState<DistrVector> &);
-  void updateDisplacement( DistrVector&, DistrVector&);
+  void updateState(double, DistrVector&, DistrVector&);
   void computeExtForce2(SysState<DistrVector> &distState,
                         DistrVector &f, DistrVector &cnst_f, int tIndex,
                         double t, DistrVector *aero_f=0,
@@ -68,6 +68,8 @@ protected:
   DistrVector  * v_p;
   DistrVector  * tempVec;
   SysState<DistrVector> *dummyState;
+  bool haveRot;
+  GenParallelSolver<double> * fullMassSolver;
 
 private:
   DistrExplicitPodPostProcessor *mddPostPro;

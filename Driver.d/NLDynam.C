@@ -76,7 +76,7 @@ Domain::getInternalForce(GeomState &geomState, Vector& elementForce,
     if (const Corotator *elemCorot = corotators[iele]) {
       getElemInternalForce(geomState, pseudoTime, refState, *elemCorot, elementForce.data(), kel[iele]);
       if(domain->solInfo().galerkinPodRom && packedEset[iele]->hasRot()) {
-        transformElemStiffAndForce(geomState, elementForce.data(), kel[iele], iele, false, &(mel[iele]));
+        transformElemStiffAndForce(geomState, elementForce.data(), kel[iele], iele, false);
       }
     }
     // Compute k and internal force for an element with x translation (or temperature) dofs
@@ -106,7 +106,7 @@ Domain::getInternalForce(GeomState &geomState, Vector& elementForce,
 
   getFollowerForce(geomState, elementForce, corotators, kel, residual, lambda, time, refState, reactions, false);
 
-  if(sinfo.isDynam() && mel) getFictitiousForce(geomState, kel, residual, time, refState, reactions, mel, false);
+  if(sinfo.isDynam() && mel) getFictitiousForce(geomState, elementForce, kel, residual, time, refState, reactions, mel, false);
 }
 
 void
@@ -128,7 +128,7 @@ Domain::getWeightedInternalForceOnly(const std::map<int, double> &weights,
       FullSquareMatrix &elementStiff = kel[iElem];
       getElemInternalForce(geomState, pseudoTime, refState, *elementCorot, elementForce.data(), elementStiff);
       if (domain->solInfo().galerkinPodRom && packedEset[iElem]->hasRot()) {
-        transformElemStiffAndForce(geomState, elementForce.data(), elementStiff, iElem, false, &(mel[iElem]));
+        transformElemStiffAndForce(geomState, elementForce.data(), elementStiff, iElem, false);
       }
    
       // Apply lumping weight 
@@ -147,13 +147,40 @@ Domain::getWeightedInternalForceOnly(const std::map<int, double> &weights,
 
   getFollowerForce(geomState, elementForce, corotators, (FullSquareMatrix *) NULL, residual, lambda, time, refState, NULL, false);
 
-  if(sinfo.isDynam() && mel) getFictitiousForce(geomState, kel, residual, time, refState, NULL, mel, false);
+  if(sinfo.isDynam() && mel) getWeightedFictitiousForceOnly(weights, geomState, elementForce, kel, residual, time, refState, NULL, mel, false);
 }
 
 void
-Domain::getFictitiousForce(GeomState &geomState, FullSquareMatrix *kel, Vector &residual,
+Domain::getFictitiousForce(GeomState &geomState, Vector &elementForce, FullSquareMatrix *kel, Vector &residual,
                            double time, GeomState *refState, Vector *reactions, FullSquareMatrix *mel,
                            bool compute_tangents)
+{
+  for(int iele = 0; iele < numele; ++iele) {
+
+    elementForce.zero();
+
+    getElemFictitiousForce(iele, geomState, elementForce.data(), kel[iele], time, refState, mel[iele], compute_tangents);
+
+    // Assemble element force into residual force vector
+    for(int idof = 0; idof < kel[iele].dim(); ++idof) {
+      int uDofNum = c_dsa->getRCN((*allDOFs)[iele][idof]);
+      if(uDofNum >= 0)
+        residual[uDofNum] -= elementForce[idof];
+      else if(reactions) {
+        int cDofNum = c_dsa->invRCN((*allDOFs)[iele][idof]);
+        if(cDofNum >= 0)
+          (*reactions)[cDofNum] += elementForce[idof];
+      }
+    }
+  }
+
+  getDMassFictitiousForce(geomState, kel, residual, time, refState, reactions, compute_tangents);
+}
+
+void
+Domain::getElemFictitiousForce(int iele, GeomState &geomState, double *_f, FullSquareMatrix &kel,
+                               double time, GeomState *refState, FullSquareMatrix &mel,
+                               bool compute_tangents)
 {
 #ifdef USE_EIGEN3
   double &beta = sinfo.newmarkBeta,
@@ -162,116 +189,119 @@ Domain::getFictitiousForce(GeomState &geomState, FullSquareMatrix *kel, Vector &
          &alpham = sinfo.newmarkAlphaM,
           dt = domain->solInfo().getTimeStep();
 
-  for(int iele = 0; iele < numele; ++iele) {
-    // add the correction to the residual and tangent stiffness due to the inertial effects of 
-    // elements with rotation dofs. Currently implemented for lumped mass matrix only
-    // (or more specifically, mass matrices with decoupled rotational and translational diagonal blocks),
-    // mass-proportional damping only, and elements with 6 dofs per node.
-    if(packedEset[iele]->hasRot() && !packedEset[iele]->isSpring()) {
-      int *nodes = packedEset[iele]->nodes();
-      int numNodes = packedEset[iele]->numNodes() - packedEset[iele]->numInternalNodes();
-      for(int i=0; i<numNodes; ++i) {
+  // add the correction to the residual and tangent stiffness due to the inertial effects of 
+  // element iele with rotation dofs. Currently implemented for lumped mass matrix only
+  // (or more specifically, mass matrices with decoupled rotational and translational diagonal blocks),
+  // mass-proportional damping only, and elements with 6 dofs per node.
+  if(packedEset[iele]->hasRot() && !packedEset[iele]->isSpring()) {
+    int *nodes = packedEset[iele]->nodes();
+    int numNodes = packedEset[iele]->numNodes() - packedEset[iele]->numInternalNodes();
+    for(int i=0; i<numNodes; ++i) {
 
-        Eigen::Matrix3d M; 
-        M << mel[iele][6*i+3][6*i+3], mel[iele][6*i+3][6*i+4], mel[iele][6*i+3][6*i+5],
-             mel[iele][6*i+4][6*i+3], mel[iele][6*i+4][6*i+4], mel[iele][6*i+4][6*i+5],
-             mel[iele][6*i+5][6*i+3], mel[iele][6*i+5][6*i+4], mel[iele][6*i+5][6*i+5];
-        if((M.array() == 0).all()) continue;
-        Eigen::Vector3d V_n, A_n;
-        V_n << (*refState)[nodes[i]].v[3], (*refState)[nodes[i]].v[4], (*refState)[nodes[i]].v[5];
-        A_n << (*refState)[nodes[i]].a[3], (*refState)[nodes[i]].a[4], (*refState)[nodes[i]].a[5];
-        Eigen::Matrix3d R_n;
-        R_n << (*refState)[nodes[i]].R[0][0], (*refState)[nodes[i]].R[0][1], (*refState)[nodes[i]].R[0][2],
-               (*refState)[nodes[i]].R[1][0], (*refState)[nodes[i]].R[1][1], (*refState)[nodes[i]].R[1][2],
-               (*refState)[nodes[i]].R[2][0], (*refState)[nodes[i]].R[2][1], (*refState)[nodes[i]].R[2][2];
-        Eigen::Matrix3d R;
-        R << geomState[nodes[i]].R[0][0], geomState[nodes[i]].R[0][1], geomState[nodes[i]].R[0][2],
-             geomState[nodes[i]].R[1][0], geomState[nodes[i]].R[1][1], geomState[nodes[i]].R[1][2],
-             geomState[nodes[i]].R[2][0], geomState[nodes[i]].R[2][1], geomState[nodes[i]].R[2][2];
+      Eigen::Matrix3d M; 
+      M << mel[6*i+3][6*i+3], mel[6*i+3][6*i+4], mel[6*i+3][6*i+5],
+           mel[6*i+4][6*i+3], mel[6*i+4][6*i+4], mel[6*i+4][6*i+5],
+           mel[6*i+5][6*i+3], mel[6*i+5][6*i+4], mel[6*i+5][6*i+5];
+      if((M.array() == 0).all()) continue;
+      Eigen::Vector3d V_n, A_n;
+      V_n << (*refState)[nodes[i]].v[3], (*refState)[nodes[i]].v[4], (*refState)[nodes[i]].v[5];
+      A_n << (*refState)[nodes[i]].a[3], (*refState)[nodes[i]].a[4], (*refState)[nodes[i]].a[5];
+      Eigen::Matrix3d R_n;
+      R_n << (*refState)[nodes[i]].R[0][0], (*refState)[nodes[i]].R[0][1], (*refState)[nodes[i]].R[0][2],
+             (*refState)[nodes[i]].R[1][0], (*refState)[nodes[i]].R[1][1], (*refState)[nodes[i]].R[1][2],
+             (*refState)[nodes[i]].R[2][0], (*refState)[nodes[i]].R[2][1], (*refState)[nodes[i]].R[2][2];
+      Eigen::Matrix3d R;
+      R << geomState[nodes[i]].R[0][0], geomState[nodes[i]].R[0][1], geomState[nodes[i]].R[0][2],
+           geomState[nodes[i]].R[1][0], geomState[nodes[i]].R[1][1], geomState[nodes[i]].R[1][2],
+           geomState[nodes[i]].R[2][0], geomState[nodes[i]].R[2][1], geomState[nodes[i]].R[2][2];
 
-        Eigen::Vector3d f;
+      Eigen::Vector3d f;
 
-        if(beta == 0) {
-          // compute the fictitious force for explicit central difference        
-          Eigen::Vector3d V_n_h = V_n + dt/2*A_n;
-          if(domain->solInfo().galerkinPodRom) {
-            Eigen::Vector3d Psi;
-            mat_to_vec(R, Psi);
-            Eigen::Matrix3d T, Tdot;
-            tangential_transf(Psi, T);
-            tangential_transf_dot(Psi, V_n_h, Tdot);
-            f = M*(T.inverse()*M.inverse()*T.transpose().inverse())*( 
-                T.transpose()*M*Tdot*V_n_h + T.transpose()*(T*V_n_h).cross(M*T*V_n_h));
-          }
-          else {
-            f = R*V_n_h.cross(M*V_n_h);
-          }
-          // TODO: compute tangents for explict (for critical timestep estimate)
+      if(beta == 0) {
+        // compute the fictitious force for explicit central difference        
+        Eigen::Vector3d V_n_h;
+        V_n_h << geomState[nodes[i]].v[3], geomState[nodes[i]].v[4], geomState[nodes[i]].v[5];
+        if(domain->solInfo().galerkinPodRom) {
+          Eigen::Vector3d Psi, Psidot;
+          mat_to_vec(R, Psi);
+          Eigen::Matrix3d T, Tdot;
+          tangential_transf(Psi, T);
+          Psidot = T.inverse()*V_n_h; // XXX assuming V_n_h was convected (ie GeomState::setVelocity passed SO3param == 2)
+          tangential_transf_dot(Psi, Psidot, Tdot);
+          f = T.transpose()*(M*Tdot*Psidot + (V_n_h).cross(M*V_n_h));
         }
         else {
-          // compute the fictitious force for implicit generalized-alpha
-          Eigen::Vector3d incd;
-          Eigen::Matrix3d dR = R_n.transpose()*R;
-          mat_to_vec(dR, incd);
-          Eigen::Vector3d V = gamma/(dt*beta)*incd + (1-(1-alphaf)*gamma/beta)*V_n + dt*(1-alphaf)*(2*beta-gamma)/(2*beta)*A_n;
-          f = R*V.cross(M*V);
-
-          if(compute_tangents) { // tangent stiffness contribution of the fictitious force and correct linearization of rotary inertia
-
-            Eigen::Array<double,39,1> dconst;
-            Eigen::Array<int,0,1> iconst;
-            dconst << M(0,0), M(0,1), M(0,2), M(1,0), M(1,1), M(1,2), M(2,0), M(2,1), M(2,2),
-                      A_n[0], A_n[1], A_n[2],
-                      V_n[0], V_n[1], V_n[2],
-                      R_n(0,0), R_n(0,1), R_n(0,2), R_n(1,0), R_n(1,1), R_n(1,2), R_n(2,0), R_n(2,1), R_n(2,2),
-                      R(0,0), R(0,1), R(0,2), R(1,0), R(1,1), R(1,2), R(2,0), R(2,1), R(2,2),
-                      beta, gamma, alphaf, alpham, dt, sinfo.alphaDamp;
-
-            // evaluate the jacobian of the inertial force
-            VectorValuedFunctionJacobian<double,InertialForceFunction> dFdq(dconst,iconst,time);
-            Eigen::Matrix<double,9,1> jacF;
-            Eigen::Vector3d q = Eigen::Vector3d::Zero();
-            dFdq(q, jacF);
-
-            Eigen::Matrix3d dkel;
-            for(int j = 0; j < 3; ++j)
-              for(int k = 0; k < 3; ++k)
-                dkel(j,k) = jacF[j+k*3];
-
-            Eigen::Matrix3d C = sinfo.alphaDamp*M;
-
-            if(domain->solInfo().galerkinPodRom) {
-              Eigen::Vector3d A = (1-alpham)/(dt*dt*beta*(1-alphaf))*incd - (1-alpham)/(dt*beta)*V_n + ((alpham-1)/(2*beta)+1)*A_n;
-              Eigen::Vector3d g = R*(M*A + C*V);
-              f += g;
-              transformNodalMoment(geomState, f, dkel, nodes[i], true);
-              f -= g;
-            }
-
-            // subtract the part which is added to the dynamic tangent stiffness elsewhere (see: probDesc->reBuild)
-            dkel -= ((1-alpham)/((1-alphaf)*(dt*dt*beta))*M + gamma/(dt*beta)*C);
-
-            for(int j = 0; j < 3; ++j)
-              for(int k = 0; k < 3; ++k)
-                kel[iele][6*i+3+j][6*i+3+k] += dkel(j,k);
-          }
+          f = R*V_n_h.cross(M*V_n_h);
         }
-  
-        // assemble f into global residual
-        for(int j = 0; j < 3; ++j) {
-          int uDofNum = c_dsa->getRCN((*allDOFs)[iele][6*i+3+j]);
-          if(uDofNum >= 0)
-            residual[uDofNum] -= f[j];
-          else if(reactions) {
-            int cDofNum = c_dsa->invRCN((*allDOFs)[iele][6*i+3+j]);
-            if(cDofNum >= 0)
-              (*reactions)[cDofNum] += f[j];
+        // TODO: compute tangents for explict (for critical timestep estimate)
+      }
+      else {
+        // compute the fictitious force for implicit generalized-alpha
+        Eigen::Vector3d incd;
+        Eigen::Matrix3d dR = R_n.transpose()*R;
+        mat_to_vec(dR, incd);
+        Eigen::Vector3d V = gamma/(dt*beta)*incd + (1-(1-alphaf)*gamma/beta)*V_n + dt*(1-alphaf)*(2*beta-gamma)/(2*beta)*A_n;
+        f = R*V.cross(M*V);
+
+        if(compute_tangents) { // tangent stiffness contribution of the fictitious force and correct linearization of rotary inertia
+
+          Eigen::Array<double,39,1> dconst;
+          Eigen::Array<int,0,1> iconst;
+          dconst << M(0,0), M(0,1), M(0,2), M(1,0), M(1,1), M(1,2), M(2,0), M(2,1), M(2,2),
+                    A_n[0], A_n[1], A_n[2],
+                    V_n[0], V_n[1], V_n[2],
+                    R_n(0,0), R_n(0,1), R_n(0,2), R_n(1,0), R_n(1,1), R_n(1,2), R_n(2,0), R_n(2,1), R_n(2,2),
+                    R(0,0), R(0,1), R(0,2), R(1,0), R(1,1), R(1,2), R(2,0), R(2,1), R(2,2),
+                    beta, gamma, alphaf, alpham, dt, sinfo.alphaDamp;
+
+          // evaluate the jacobian of the inertial force
+          VectorValuedFunctionJacobian<double,InertialForceFunction> dFdq(dconst,iconst,time);
+          Eigen::Matrix<double,9,1> jacF;
+          Eigen::Vector3d q = Eigen::Vector3d::Zero();
+          dFdq(q, jacF);
+
+          Eigen::Matrix3d dkel;
+          for(int j = 0; j < 3; ++j)
+            for(int k = 0; k < 3; ++k)
+              dkel(j,k) = jacF[j+k*3];
+
+          Eigen::Matrix3d C = sinfo.alphaDamp*M;
+
+          if(domain->solInfo().galerkinPodRom) {
+            Eigen::Vector3d A = (1-alpham)/(dt*dt*beta*(1-alphaf))*incd - (1-alpham)/(dt*beta)*V_n + ((alpham-1)/(2*beta)+1)*A_n;
+            Eigen::Vector3d g = R*(M*A + C*V);
+            f += g;
+            transformNodalMoment(geomState, f, dkel, nodes[i], true);
+            f -= g;
+          }
+
+          // subtract the part which is added to the dynamic tangent stiffness elsewhere (see: probDesc->reBuild)
+          dkel -= ((1-alpham)/((1-alphaf)*(dt*dt*beta))*M + gamma/(dt*beta)*C);
+
+          for(int j = 0; j < 3; ++j) {
+            _f[6*i+3+j] += f[j];
+            for(int k = 0; k < 3; ++k)
+              kel[6*i+3+j][6*i+3+k] += dkel(j,k);
           }
         }
       }
-      delete [] nodes;
     }
+    delete [] nodes;
   }
+#endif
+}
+
+
+void
+Domain::getDMassFictitiousForce(GeomState &geomState, FullSquareMatrix *kel, Vector &residual, double time,
+                                GeomState *refState, Vector *reactions, bool compute_tangents)
+{
+#ifdef USE_EIGEN3
+  double &beta = sinfo.newmarkBeta,
+         &gamma = sinfo.newmarkGamma,
+         &alphaf = sinfo.newmarkAlphaF,
+         &alpham = sinfo.newmarkAlphaM,
+          dt = domain->solInfo().getTimeStep();
 
   // treatment of discrete inertias
   if(firstDiMass != NULL) {
@@ -302,22 +332,23 @@ Domain::getFictitiousForce(GeomState &geomState, FullSquareMatrix *kel, Vector &
 
         if(beta == 0) {
           // compute the fictitious force for explicit central difference
-          Eigen::Vector3d V_n_h = V_n + dt/2*A_n;
+          Eigen::Vector3d V_n_h;
+          V_n_h << geomState[current->node].v[3], geomState[current->node].v[4], geomState[current->node].v[5];
           if(domain->solInfo().galerkinPodRom) {
-            Eigen::Vector3d Psi;
+            Eigen::Vector3d Psi, Psidot;
             mat_to_vec(R, Psi);
             Eigen::Matrix3d T,Tdot;
             tangential_transf(Psi, T);
-            tangential_transf_dot(Psi, V_n_h, Tdot);
-            f = M*(T.inverse()*M.inverse()*T.transpose().inverse())*( 
-                T.transpose()*M*Tdot*V_n_h + T.transpose()*(T*V_n_h).cross(M*(T*V_n_h)));
+            Psidot = T.inverse()*V_n_h; // XXX assuming V_n_h was convected (ie GeomState::setVelocity passed SO3param == 2)
+            tangential_transf_dot(Psi, Psidot, Tdot);
+            f = T.transpose()*(M*Tdot*Psidot + (V_n_h).cross(M*V_n_h));
           }
           else {
             f = R*V_n_h.cross(M*V_n_h);
           }
           // TODO: compute tangents for explict (for critical timestep estimate)
         }
-        else {  
+        else {
           // compute the fictitious force for implicit generalized-alpha
           Eigen::Vector3d incd;
           Eigen::Matrix3d dR = R_n.transpose()*R;
@@ -396,4 +427,43 @@ Domain::getFictitiousForce(GeomState &geomState, FullSquareMatrix *kel, Vector &
     }
   }
 #endif
+}
+
+void
+Domain::getWeightedFictitiousForceOnly(const std::map<int, double> &weights, GeomState &geomState, Vector &elementForce, FullSquareMatrix *kel,
+                                       Vector &residual, double time, GeomState *refState, Vector *reactions,
+                                       FullSquareMatrix *mel, bool compute_tangents)
+{
+  for (std::map<int, double>::const_iterator it = weights.begin(), it_end = weights.end(); it != it_end; ++it) {
+    const int iele = it->first;
+    const double lumpingWeight = it->second;
+
+    elementForce.zero();
+    FullSquareMatrix kel2(kel[iele].dim());
+    kel2.zero();
+
+    getElemFictitiousForce(iele, geomState, elementForce.data(), kel2, time, refState, mel[iele], compute_tangents);
+
+    elementForce *= lumpingWeight;
+
+    if(compute_tangents) {
+      kel2 *= lumpingWeight;
+      kel[iele] += kel2;
+    }
+
+    // Assemble element force into residual force vector
+    for(int idof = 0; idof < kel[iele].dim(); ++idof) {
+      int uDofNum = c_dsa->getRCN((*allDOFs)[iele][idof]);
+      if(uDofNum >= 0)
+        residual[uDofNum] -= elementForce[idof];
+      else if(reactions) {
+        int cDofNum = c_dsa->invRCN((*allDOFs)[iele][idof]);
+        if(cDofNum >= 0)
+          (*reactions)[cDofNum] += elementForce[idof];
+      }
+    }
+  }
+
+  // XXX treatment of discrete inertias
+  getDMassFictitiousForce(geomState, kel, residual, time, refState, reactions, compute_tangents);
 }

@@ -116,9 +116,9 @@ protected:
     GenFullSquareMatrix<double> **melArray;
     Corotator ***allCorot;
     DistrGeomState *geomState;
+    MDDynamMat *dynMat;
 
 private:
-    MDDynamMat *dynMat;
     MultiDomDynPostProcessor *mddPostPro;
 
     // user defined displacements and velocities
@@ -187,7 +187,7 @@ private:
 
     // Central Difference only related subroutines
     void computeStabilityTimeStep(double&, MDDynamMat&);
-    void updateDisplacement(DistrVector& dinc, DistrVector& d_n);
+    void updateState(double dt_n_h, DistrVector& v_n_h, DistrVector& d_n);
 
     // Mode Decomposition parameters and subroutines
     int getModeDecompFlag();

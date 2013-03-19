@@ -39,7 +39,7 @@ private:
 
   Corotator **corotators_;
   GeomState *geomState_;
-  GenFullSquareMatrix<double> *kelArray_;
+  GenFullSquareMatrix<double> *kelArray_, *melArray_;
   
   SparseNonNegativeLeastSquaresSolver solver_;
 };

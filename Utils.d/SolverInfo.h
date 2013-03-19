@@ -320,6 +320,7 @@ struct SolverInfo {
    std::list<int> loadcases;
    bool basicDofCoords; // if this is true then all of the nodes use the basic coordinate frame 0 for DOF_FRM
    bool basicPosCoords; // if this is true then all of the nodes use the basic coordinate frame 0 for POS_FRM
+   int inertiaLumping; // 0: no lumping, 1: diagonal lumping, 2: block-diagonal 3x3 lumping
 
    // Constructor
    SolverInfo() { filterFlags = 0;
@@ -563,6 +564,7 @@ struct SolverInfo {
                   ConwepOnOff        = false;
                   basicDofCoords     = true;
                   basicPosCoords     = true;
+                  inertiaLumping     = 0;
                  }
 
    void setDirectMPC(int mode) { mpcDirect = mode; }

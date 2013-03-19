@@ -53,7 +53,7 @@ public:
   ModalOps* buildOps(double kcoef, double ccoef, double mcoef);
 
   void computeStabilityTimeStep(double &dt, ModalOps &){ /* leave blank */ }
-  void updateDisplacement(Vector &, Vector &){ /* leave blank */ }
+  void updateState(double, Vector &, Vector &){ /* leave blank */ }
   void getQuasiStaticParameters(double &maxVel, double &delta);
   int getFilterFlag() { return domain->solInfo().filterFlags; }
   void project(Vector &v) { /* leave blank */ }

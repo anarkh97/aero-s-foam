@@ -29,11 +29,18 @@ DistrExplicitLumpedPodProjectionNonLinDynamic::preProcess() {
 }
 
 void
-DistrExplicitLumpedPodProjectionNonLinDynamic::updateDisplacement(DistrVector& temp1, DistrVector& d_n1) {
+DistrExplicitLumpedPodProjectionNonLinDynamic::updateState(double dt_n_h, DistrVector& v_n_h, DistrVector& d_n1) {
 
+  DistrVector temp1(solVecInfo());
+  temp1 = dt_n_h*v_n_h;
   normalizedBasis_.projectUp( temp1, *d_n);
   execParal1R(decDomain->getNumSub(),this,&DistrExplicitLumpedPodProjectionNonLinDynamic::subUpdateWeightedNodesOnly,*d_n);
   d_n1 += temp1;
+
+  if(haveRot) {
+    normalizedBasis_.projectUp(v_n_h, *v_n);
+    execParal1R(decDomain->getNumSub(),this,&DistrExplicitLumpedPodProjectionNonLinDynamic::subSetVelocityWeightedNodesOnly,*v_n);
+  }
 }
 
 void
@@ -46,6 +53,15 @@ DistrExplicitLumpedPodProjectionNonLinDynamic::getInternalForce(DistrVector &d, 
   }
 
   *a_n = *fInt - *fExt;
+
+  if(haveRot) {
+    execParal2R(decDomain->getNumSub(),this,&DistrExplicitLumpedPodProjectionNonLinDynamic::subTransformWeightedNodesOnly,*a_n,3);
+    fullMassSolver->reSolve(*a_n);
+    execParal2R(decDomain->getNumSub(),this,&DistrExplicitLumpedPodProjectionNonLinDynamic::subTransformWeightedNodesOnly,*a_n,2);
+    DistrVector toto(*a_n);
+    dynMat->M->mult(toto, *a_n);
+  }
+
   normalizedBasis_.projectDown(*a_n,f);
   //  the residual is computed in this step to avoid projecting into the reduced coordinates twice
 
@@ -64,6 +80,20 @@ DistrExplicitLumpedPodProjectionNonLinDynamic::subUpdateWeightedNodesOnly(int iS
   StackVector vec(v.subData(iSub), v.subLen(iSub));
   GeomState *gs = (*geomState).getSubGeomState(iSub);
   gs->update(vec, packedWeightedNodes_[iSub], 2);
+}
+
+void
+DistrExplicitLumpedPodProjectionNonLinDynamic::subSetVelocityWeightedNodesOnly(int iSub, DistrVector &v) {
+  StackVector vec(v.subData(iSub), v.subLen(iSub));
+  GeomState *gs = (*geomState).getSubGeomState(iSub);
+  gs->setVelocity(packedWeightedNodes_[iSub].size(), packedWeightedNodes_[iSub].data(), vec, 2);
+}
+
+void
+DistrExplicitLumpedPodProjectionNonLinDynamic::subTransformWeightedNodesOnly(int iSub, DistrVector &v, int type) {
+  StackVector vec(v.subData(iSub), v.subLen(iSub));
+  GeomState *gs = (*geomState).getSubGeomState(iSub);
+  gs->transform(vec, packedWeightedNodes_[iSub], type);
 }
 
 void

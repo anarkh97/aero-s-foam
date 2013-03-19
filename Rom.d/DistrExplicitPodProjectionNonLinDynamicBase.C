@@ -253,14 +253,23 @@ DistrExplicitPodProjectionNonLinDynamicBase::getInitState(SysState<DistrVector> 
 }
 
 void 
-DistrExplicitPodProjectionNonLinDynamicBase::updateDisplacement(DistrVector& temp1, DistrVector& d_n1) {
+DistrExplicitPodProjectionNonLinDynamicBase::updateState(double dt_n_h, DistrVector& v_n_h, DistrVector& d_n1) {
   //update geomState for Fint, but no need to update displacment vector from geometry 
+
+  DistrVector temp1(solVecInfo());
+  temp1 = dt_n_h*v_n_h;
 
   normalizedBasis_.projectUp( temp1, *d_n); 
 
   geomState->update(*d_n, 2);
 
   d_n1 += temp1;  //we save the increment vectors for postprocessing
+
+  if(haveRot) { // currently we only need to project the velocity up when there are rotation dofs
+                // int the future, there may be other cases in which this is also necessary, e.g. viscoelastic materials
+    normalizedBasis_.projectUp(v_n_h, *v_n);
+    geomState->setVelocity(*v_n, 2);
+  }
 
 }
 
@@ -280,6 +289,15 @@ DistrExplicitPodProjectionNonLinDynamicBase::getInternalForce(DistrVector &d, Di
   MultiDomainDynam::getInternalForce( *d_n, *fInt, t, tIndex);
   //compute residual here to prevent having to project into reduced basis twice
   *a_n = *fInt - *fExt;
+
+  if(haveRot) {
+    geomState->transform(*a_n, 3);
+    fullMassSolver->reSolve(*a_n);
+    geomState->transform(*a_n, 2);
+    DistrVector toto(*a_n);
+    dynMat->M->mult(toto, *a_n);
+  }
+
   normalizedBasis_.projectDown(*a_n,f); 
 }
 
@@ -306,7 +324,14 @@ DistrExplicitPodProjectionNonLinDynamicBase::buildOps(double mCoef, double cCoef
 
   std::auto_ptr<DistrGalerkinProjectionSolver> solver(new DistrGalerkinProjectionSolver(normalizedBasis_));
 
-  delete result->dynMat;
+  haveRot = geomState->getHaveRot();
+  if(haveRot) {
+    fullMassSolver = result->dynMat;
+  }
+  else {
+    delete result->dynMat;
+  }
+
   result->dynMat = solver.release();
 
   return result;

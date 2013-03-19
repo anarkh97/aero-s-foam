@@ -548,17 +548,14 @@ MultiDomainDynam::getContactForce(DistrVector &d_n, DistrVector &dinc, DistrVect
 }
 
 void
-MultiDomainDynam::updateDisplacement(DistrVector& dinc, DistrVector& d_n)
+MultiDomainDynam::updateState(double dt_n_h, DistrVector& v_n_h, DistrVector& d_n)
 {
   if(domain->solInfo().isNonLin()) {
-    if(domain->solInfo().galerkinPodRom){
-      if (domain->solInfo().probType == SolverInfo::PodRomOffline){ 
-      geomState->explicitUpdate(decDomain, dinc);}
-      else geomState->update(dinc, 2);}//this is for ROM post processor, we don't want to use incremental displacements to update the geometry when converting to full coordinates
-    else {
-      geomState->update(dinc, 1);
-      geomState->get_tot_displacement(d_n);
-    }
+    DistrVector dinc(solVecInfo());
+    dinc = dt_n_h*v_n_h;
+    geomState->update(dinc, 1);
+    geomState->setVelocity(v_n_h);
+    geomState->get_tot_displacement(d_n);
   }
 }
 
@@ -591,7 +588,9 @@ MultiDomainDynam::computeExtForce2(SysState<DistrVector> &distState,
       execParal2R(decDomain->getNumSub(), this, &MultiDomainDynam::subExplicitUpdate, distState.getDisp(), geomState);
     }
     execParal2R(decDomain->getNumSub(), this, &MultiDomainDynam::subUpdateGeomStateUSDD, userDefineDisp, geomState);
+/* moved to updateState
     geomState->setVelocity(distState.getVeloc(), distState.getAccel());
+*/
   }
 
   // update nodal temperatures for thermoe problem
@@ -726,15 +725,12 @@ MultiDomainDynam::getConstForce(DistrVector& v)
 void
 MultiDomainDynam::getInitState(SysState<DistrVector>& state)
 {
-  // initialize state with IDISP/IDISP6/IVEL/IACC or RESTART (XXXX initial accelerations are currently not supported)
+  // initialize state with IDISP/IDISP6/IVEL/IACC or RESTART
   MultiDomainOp mdop(&MultiDomainOp::getInitState, decDomain->getAllSubDomains(),
                      &state.getDisp(), &state.getVeloc(), &state.getAccel(),
                      &state.getPrevVeloc());
   threadManager->execParal(decDomain->getNumSub(), &mdop);
-  if(geomState) {
-    geomState->update(state.getDisp());
-    geomState->setVelocity(state.getVeloc(), state.getAccel());
-  }
+ 
   if(geoSource->getCheckFileInfo()->lastRestartFile) {
     filePrint(stderr, " ... Restarting From a Previous Run ...\n");
     if(domain->solInfo().isNonLin()) {
@@ -754,6 +750,11 @@ MultiDomainDynam::getInitState(SysState<DistrVector>& state)
     domain->solInfo().initialTimeIndex = decDomain->getSubDomain(0)->solInfo().initialTimeIndex;
     domain->solInfo().initialTime = decDomain->getSubDomain(0)->solInfo().initialTime;
     domain->solInfo().initExtForceNorm = decDomain->getSubDomain(0)->solInfo().initExtForceNorm;
+    geomState->setVelocityAndAcceleration(state.getVeloc(), state.getAccel());
+  }
+  else if(geomState) {
+    geomState->update(state.getDisp());
+    geomState->setVelocityAndAcceleration(state.getVeloc(), state.getAccel());
   }
 
   // if we have a user supplied function, give it the initial state at the sensors

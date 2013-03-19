@@ -19,6 +19,8 @@ private:
                                           Corotator **allCorot, FullSquareMatrix *kelArray,
                                           Vector &residual, double lambda, double time, GeomState *refState,
                                           FullSquareMatrix *melArray);
+
+  void updateStates(GeomState *refState, GeomState& geomState);
   
   std::map<int, double> packedElementWeights_;
   void buildPackedElementWeights();

@@ -323,6 +323,8 @@ class Domain : public HData {
      void getPrincipalStress(GeomState &geomState, Corotator **allCorot,
                           int fileNumber, int stressIndex, double time);
      void updateStates(GeomState *refState, GeomState& geomState, Corotator **allCorot);
+     void updateWeightedElemStatesOnly(const std::map<int, double> &weights, GeomState *refState,
+                                       GeomState &geomState, Corotator **corotators);
      void getElemStiffAndForce(const GeomState &geomState, double time, 
                                const GeomState *refState, const Corotator &elemCorot,
                                double *elemForce, FullSquareMatrix &elemStiff);
@@ -339,11 +341,19 @@ class Domain : public HData {
                            Vector &residual, double lambda = 1.0, double time = 0.0,
                            GeomState *refState = NULL, Vector *reactions = NULL,
                            bool compute_tangents = false);
-     void getFictitiousForce(GeomState &geomState, FullSquareMatrix *kel, Vector &residual,
+     void getElemFictitiousForce(int iele, GeomState &geomState, double *f, FullSquareMatrix &kel,
+                                 double time, GeomState *refState, FullSquareMatrix &mel, bool compute_tangents);
+     void getDMassFictitiousForce(GeomState &geomState, FullSquareMatrix *kel, Vector &residual, double time,
+                                  GeomState *refState, Vector *reactions, bool compute_tangents);
+     void getFictitiousForce(GeomState &geomState, Vector &elementForce, FullSquareMatrix *kel, Vector &residual,
                                 double time, GeomState *refState, Vector *reactions,
                                 FullSquareMatrix *mel, bool compute_tangents);
+     void getWeightedFictitiousForceOnly(const std::map<int, double> &weights, GeomState &geomState, Vector &elementForce,
+                                         FullSquareMatrix *kel, Vector &residual,
+                                         double time, GeomState *refState, Vector *reactions,
+                                         FullSquareMatrix *mel, bool compute_tangents);
      void transformElemStiffAndForce(const GeomState &geomState, double *elementForce,
-                                     FullSquareMatrix &kel, int iele, bool compute_tangents, FullSquareMatrix *mel = NULL);
+                                     FullSquareMatrix &kel, int iele, bool compute_tangents);
 #ifdef USE_EIGEN3
      void transformNodalMoment(const GeomState &geomState, Eigen::Vector3d &G,
                                Eigen::Matrix3d &H, int nnum, bool compute_tangents);

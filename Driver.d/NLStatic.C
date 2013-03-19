@@ -115,7 +115,7 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
 
   getFollowerForce(geomState, elementForce, corotators, kel, residual, lambda, time, refState, reactions, true);
 
-  if(sinfo.isDynam() && mel) getFictitiousForce(geomState, kel, residual, time, refState, reactions, mel, true);
+  if(sinfo.isDynam() && mel) getFictitiousForce(geomState, elementForce, kel, residual, time, refState, reactions, mel, true);
 
   if(!solInfo().getNLInfo().unsymmetric && solInfo().newmarkBeta != 0)
     for(int iele = 0; iele < numele; ++iele)
@@ -421,7 +421,13 @@ Domain::getWeightedStiffAndForceOnly(const std::map<int, double> &weights,
 
   getFollowerForce(geomState, elementForce, corotators, kel, residual, lambda, time, refState, NULL, true);
 
-  if(sinfo.isDynam() && mel) getFictitiousForce(geomState, kel, residual, time, refState, NULL, mel, true);
+  if(sinfo.isDynam() && mel) getWeightedFictitiousForceOnly(weights, geomState, elementForce, kel, residual, time, refState, NULL, mel, true);
+
+  if(!solInfo().getNLInfo().unsymmetric && solInfo().newmarkBeta != 0)
+    for (std::map<int, double>::const_iterator it = weights.begin(), it_end = weights.end(); it != it_end; ++it) {
+      const int iElem = it->first;
+      kel[iElem].symmetrize();
+    }
 }
 
 void
@@ -447,6 +453,16 @@ void
 Domain::updateStates(GeomState *refState, GeomState &geomState, Corotator **corotators)
 {
   for(int iele = 0; iele < numele; ++iele) {
+    if(corotators[iele]) corotators[iele]->updateStates(refState, geomState, nodes);
+  }
+}
+
+void
+Domain::updateWeightedElemStatesOnly(const std::map<int, double> &weights, GeomState *refState,
+                                     GeomState &geomState, Corotator **corotators)
+{
+  for (std::map<int, double>::const_iterator it = weights.begin(), it_end = weights.end(); it != it_end; ++it) {
+    const int iele = it->first;
     if(corotators[iele]) corotators[iele]->updateStates(refState, geomState, nodes);
   }
 }
@@ -2144,7 +2160,7 @@ Domain::computeReactionForce(Vector &fc, GeomState *geomState, Corotator **corot
 
 void
 Domain::transformElemStiffAndForce(const GeomState &geomState, double *elementForce,
-                                   FullSquareMatrix &kel, int iele, bool compute_tangents, FullSquareMatrix *mel)
+                                   FullSquareMatrix &kel, int iele, bool compute_tangents)
 {
 #ifdef USE_EIGEN3
   // Convert from eulerian spatial to total lagrangian or updated lagrangian spatial
@@ -2165,21 +2181,12 @@ Domain::transformElemStiffAndForce(const GeomState &geomState, double *elementFo
     tangential_transf(Psi, T);
 
     Eigen::Vector3d V = G.segment<3>(6*k+3);
-    if(sinfo.newmarkBeta == 0) {
-      if(domain->solInfo().galerkinPodRom && mel) {
-        Eigen::Matrix3d M;
-        M << (*mel)[6*k+3][6*k+3], (*mel)[6*k+3][6*k+4], (*mel)[6*k+3][6*k+5],
-             (*mel)[6*k+4][6*k+3], (*mel)[6*k+4][6*k+4], (*mel)[6*k+4][6*k+5],
-             (*mel)[6*k+5][6*k+3], (*mel)[6*k+5][6*k+4], (*mel)[6*k+5][6*k+5];
-
-        G.segment<3>(6*k+3) = M*(T.inverse()*M.inverse()*T.transpose().inverse())*T*V;
-      }
-      else {
-        G.segment<3>(6*k+3) = T.transpose()*V;
-      }
+    if(sinfo.newmarkBeta == 0 && !domain->solInfo().galerkinPodRom) {
+      G.segment<3>(6*k+3) = T.transpose()*V;
     }
-    else
+    else {
       G.segment<3>(6*k+3) = T*V;
+    }
     if(compute_tangents) {
       Eigen::Matrix3d C1;
       directional_deriv1(Psi, V, C1);

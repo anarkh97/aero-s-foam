@@ -32,6 +32,13 @@ LumpedPodProjectionNonLinDynamic::getStiffAndForceFromDomain(GeomState &geomStat
 }
 
 void
+LumpedPodProjectionNonLinDynamic::updateStates(GeomState *refState, GeomState& geomState)
+{
+  domain->updateWeightedElemStatesOnly(packedElementWeights_,
+                                       refState, geomState, allCorot);
+}
+
+void
 LumpedPodProjectionNonLinDynamic::buildPackedElementWeights() {
   for (GeoSource::ElementWeightMap::const_iterator it = geoSource->elementLumpingWeightBegin(),
                                                    it_end = geoSource->elementLumpingWeightEnd();

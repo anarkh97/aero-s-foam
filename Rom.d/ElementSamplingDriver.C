@@ -97,7 +97,8 @@ ElementSamplingDriver::ElementSamplingDriver(Domain *d) :
   domain_(d),
   corotators_(NULL),
   geomState_(NULL),
-  kelArray_(NULL)
+  kelArray_(NULL),
+  melArray_(NULL)
 {}
 
 ElementSamplingDriver::~ElementSamplingDriver() {
@@ -153,11 +154,12 @@ ElementSamplingDriver::assembleTrainingData(const VecBasis &snapshots, DblFwdIt 
                                                  (*veloc)[iSnap]); // just update the velocity at the nodes of element iElem
       // Evaluate and store element contribution at training configuration
       domain_->getElemInternalForce(*geomState_, *timeStampIt, geomState_, *(corotators_[iElem]), elementForce.array(), kelArray_[iElem]);
-/*
       if(domain_->getElementSet()[iElem]->hasRot()) {
         domain_->transformElemStiffAndForce(*geomState_, elementForce.array(), kelArray_[iElem], iElem, false);
+        domain_->getElemFictitiousForce(iElem, *geomState_, elementForce.array(), kelArray_[iElem],
+                                        *timeStampIt, geomState_, melArray_[iElem], false);
       }
-*/
+
       elemTarget.zero();
       const int dofCount = kelArray_[iElem].dim();
       for (int iDof = 0; iDof != dofCount; ++iDof) {
@@ -361,9 +363,8 @@ ElementSamplingDriver::preProcess() {
   
   StaticTimers dummyTimes;
   GenFullSquareMatrix<double> *dummyGeomKelArray = NULL;
-  GenFullSquareMatrix<double> *dummyMelArray = NULL;
-  const bool buildMelArray = false;
-  domain_->computeGeometricPreStress(corotators_, geomState_, kelArray_, &dummyTimes, dummyGeomKelArray, dummyMelArray, buildMelArray);
+  const bool buildMelArray = true;
+  domain_->computeGeometricPreStress(corotators_, geomState_, kelArray_, &dummyTimes, dummyGeomKelArray, melArray_, buildMelArray);
   if(domain_->nDirichlet() > 0) {
     geomState_->updatePrescribedDisplacement(domain_->getDBC(), domain_->nDirichlet(), domain_->getNodes());
   }

@@ -102,10 +102,10 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
   // Initialize geometric state of problem using the mesh geometry,
   // restart file (if it exists), or the initial displacements (if any).
   GeomType *geomState = probDesc->createGeomState();
-  geomState->setVelocity(velocity_n,acceleration); // PJSA: initial velocity in geomState is used for acceleration constraint rhs
 
   probDesc->readRestartFile(displacement, velocity_n, acceleration, v_p, *geomState);
   probDesc->updatePrescribedDisplacement(geomState);
+  geomState->setVelocityAndAcceleration(velocity_n,acceleration);
 
   GeomType *stepState = probDesc->copyGeomState(geomState);
   stateIncr = StateUpdate::initInc(geomState, &residual);
@@ -142,12 +142,14 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
       probDesc->formRHSinitializer(external_force, velocity_n, elementInternalForce, *geomState, velocity_n);
       probDesc->reBuild(*geomState, 0, delta, time);
       probDesc->getSolver()->reSolve(velocity_n);
+      geomState->setVelocity(velocity_n);
     }
     else {
       if(verboseFlag) filePrint(stderr," ... Computing initial acceleration ...\n");
       probDesc->formRHSinitializer(external_force, velocity_n, elementInternalForce, *geomState, acceleration, refState);
       probDesc->reBuild(*geomState, 0, delta, time);
       probDesc->getSolver()->reSolve(acceleration);
+      geomState->setAcceleration(acceleration);
     }
   }
 

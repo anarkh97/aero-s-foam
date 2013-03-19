@@ -82,11 +82,25 @@ DistrGeomState::subExplicitUpdate(int isub, DistrVector &v, GenDecDomain<double>
 }
 
 void
-DistrGeomState::subSetVelocity(int isub, DistrVector &v, DistrVector &a)
+DistrGeomState::subSetVelocity(int isub, DistrVector &v, int SO3param)
+{
+  StackVector vsub(v.subData(isub), v.subLen(isub));
+  gs[isub]->setVelocity(vsub, SO3param);
+}
+
+void
+DistrGeomState::subSetAcceleration(int isub, DistrVector &a)
+{
+  StackVector asub(a.subData(isub), a.subLen(isub));
+  gs[isub]->setAcceleration(asub);
+}
+
+void
+DistrGeomState::subSetVelocityAndAcceleration(int isub, DistrVector &v, DistrVector &a)
 {
   StackVector vsub(v.subData(isub), v.subLen(isub));
   StackVector asub(a.subData(isub), a.subLen(isub));
-  gs[isub]->setVelocity(vsub, asub);
+  gs[isub]->setVelocityAndAcceleration(vsub, asub);
 }
 
 void
@@ -148,6 +162,20 @@ DistrGeomState::pull_back(DistrVector &f)
 }
 
 void
+DistrGeomState::subTransform(int isub, DistrVector &f, int type)
+{
+ StackVector subf(f.subData(isub), f.subLen(isub));
+ gs[isub]->transform(subf, type);
+}
+
+void
+DistrGeomState::transform(DistrVector &f, int type)
+{
+ execParal2R(numSub, this, &DistrGeomState::subTransform, f, type);
+}
+
+
+void
 DistrGeomState::subTot_get(int isub, DistrVector &tot_vec)
 {
  StackVector v(tot_vec.subData(isub), tot_vec.subLen(isub));
@@ -202,9 +230,21 @@ DistrGeomState::explicitUpdate(GenDecDomain<double> *decDomain, DistrVector &v)
 }
 
 void
-DistrGeomState::setVelocity(DistrVector &v, DistrVector &a)
+DistrGeomState::setVelocity(DistrVector &v, int SO3param)
 {
-  execParal2R(numSub, this, &DistrGeomState::subSetVelocity, v, a);
+  execParal2R(numSub, this, &DistrGeomState::subSetVelocity, v, SO3param);
+}
+
+void
+DistrGeomState::setAcceleration(DistrVector &a)
+{
+  execParal1R(numSub, this, &DistrGeomState::subSetAcceleration, a);
+}
+
+void
+DistrGeomState::setVelocityAndAcceleration(DistrVector &v, DistrVector &a)
+{
+  execParal2R(numSub, this, &DistrGeomState::subSetVelocityAndAcceleration, v, a);
 }
 
 DistrGeomState &
@@ -234,3 +274,15 @@ DistrGeomState::getTotalNumElemStates()
 #endif
   return ret;
 }
+
+bool
+DistrGeomState::getHaveRot()
+{
+  int ret = 0;
+  for(int i=0; i<numSub; ++i) ret += int(gs[i]->getHaveRot());
+#ifdef USE_MPI
+  ret = structCom->globalSum(ret);
+#endif
+  return bool(ret);
+}
+

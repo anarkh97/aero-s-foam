@@ -89,7 +89,8 @@ class GeomState {
      virtual void explicitUpdate(CoordSet &cs, int numNodes, int* nodes, const Vector &v);
      virtual void setVelocity(const Vector &, int SO3param = 0);
      virtual void setVelocity(int numNodes, int* nodes, const Vector &, int SO3param = 0);
-     virtual void setAcceleration(const Vector &);
+     virtual void setAcceleration(const Vector &, int SO3param = 0);
+     virtual void setAcceleration(int numNodes, int* nodes, const Vector &, int SO3param = 0);
      virtual void setVelocityAndAcceleration(const Vector &, const Vector &);
      virtual void updatePrescribedDisplacement(BCond *dbc, int numDirichlet, 
                                        double delta);
@@ -105,8 +106,8 @@ class GeomState {
      virtual void get_tot_displacement(Vector &totVec);
      virtual void push_forward(Vector &f);
      virtual void pull_back(Vector &f);
-     virtual void transform(Vector &f, int flag);
-     virtual void transform(Vector &f, const std::vector<int> &, int flag);
+     virtual void transform(Vector &f, int flag) const;
+     virtual void transform(Vector &f, const std::vector<int> &, int flag) const;
      void zeroRotDofs(Vector &vec);
      void interp(double, const GeomState &, const GeomState &);
      void diff(const GeomState &unp, Vector &un);
@@ -131,7 +132,7 @@ class GeomState {
      void addMultiplierNode(std::pair<int,int> &lmpc_id, double value);
      double getMultiplier(std::pair<int,int> &lmpc_id);
 
-     bool getHaveRot() { return haveRot; }
+     bool getHaveRot() const { return haveRot; }
 };
 
 #endif

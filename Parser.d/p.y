@@ -3851,6 +3851,10 @@ SamplingOption:
   | TRNVCT FNAME FNAME
   { domain->solInfo().statePodRomFile = $2;
     domain->solInfo().velocPodRomFile = $3; }
+  | TRNVCT FNAME FNAME FNAME
+  { domain->solInfo().statePodRomFile = $2;
+    domain->solInfo().velocPodRomFile = $3;
+    domain->solInfo().accelPodRomFile = $4; }
   | TOLER Float
   { domain->solInfo().tolPodRom = $2; }
   | SKIP Integer

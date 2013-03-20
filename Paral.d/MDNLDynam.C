@@ -140,7 +140,6 @@ MDNLDynamic::formRHScorrector(DistrVector& inc_displacement, DistrVector& veloci
       localTemp->linC(-dt*gamma, inc_displacement, -dt*dt*(beta-(1-alphaf)*gamma), velocity, -dt*dt*dt*(1-alphaf)*(2*beta-gamma)/2, acceleration);
       C->multAdd(*localTemp, rhs);
     }
-    geomState->push_forward(rhs);
     rhs.linAdd(dt*dt*beta, residual);
   }
 

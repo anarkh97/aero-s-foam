@@ -60,8 +60,8 @@ private:
   void saveDelta(double dt);
   void saveStateSnapshot(const GeomState &state);
   void saveInternalStateSnapshot(const GeomState &state);
-  void saveVelocitySnapshot(const Vector &veloc);
-  void saveAccelerationSnapshot(const Vector &accel);
+  void saveVelocitySnapshot(const GeomState &state, const Vector &veloc);
+  void saveAccelerationSnapshot(const GeomState &state, const Vector &accel);
   void handleResidualSnapshot(const Vector &snap); 
 
 
@@ -102,8 +102,8 @@ public:
     
     pbd->saveStateSnapshot(*geomState);
     pbd->saveInternalStateSnapshot(*geomState);
-    pbd->saveVelocitySnapshot(velN);
-    pbd->saveAccelerationSnapshot(acceleration);
+    pbd->saveVelocitySnapshot(*geomState, velN);
+    pbd->saveAccelerationSnapshot(*geomState, acceleration);
   }
 
   static double formRHScorrector(SnapshotNonLinDynamic *pbd, GenVector<double> &inc_displac,

@@ -13,6 +13,7 @@ public:
 	//AxiHElement *clone();
 	Element *clone();
 	void renum(int *);
+        void renum(EleRenumMap&);
         FullSquareMatrix stiffness(CoordSet&, double *d, int flg = 1);
         FullSquareMatrix stiffteta(CoordSet&, double *d);
         FullSquareMatrix massMatrix(CoordSet&,double *d, int cmflg = 1);

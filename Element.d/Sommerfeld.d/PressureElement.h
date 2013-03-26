@@ -24,6 +24,7 @@ class PressureElement : public SommerElement
     ~PressureElement();
 
     void renum(int*);
+        void renum(EleRenumMap&);
 
     int numNodes();
     int* nodes(int* = 0); 

@@ -21,6 +21,7 @@ public:
 
 	Element *clone();
 	void renum(int *);
+        void renum(EleRenumMap&);
 	void markDofs(DofSetArray &);
 	int getTopNumber() {return 163;}
 	int numTopNodes() {return order*order;}

@@ -44,6 +44,12 @@ void ThermIsoParamHexa::renum(int *table) {
  for(i=0;i<orderc;i++) nn[i] = table[nn[i]];
 }
 
+void ThermIsoParamHexa::renum(EleRenumMap& table) {
+ int i;
+ int orderc = order*order*order;
+ for(i=0;i<orderc;i++) nn[i] = table[nn[i]];
+}
+
 extern bool useFull;
 
 int* ThermIsoParamHexa::nodes(int *p) {

@@ -46,6 +46,18 @@ void HelmAxiQuad8::renum(int *table)
   nn[7] = table[nn[7]];
 }
 
+void HelmAxiQuad8::renum(EleRenumMap &table)
+{
+  nn[0] = table[nn[0]];
+  nn[1] = table[nn[1]];
+  nn[2] = table[nn[2]];
+  nn[3] = table[nn[3]];
+  nn[4] = table[nn[4]];
+  nn[5] = table[nn[5]];
+  nn[6] = table[nn[6]];
+  nn[7] = table[nn[7]];
+}
+
 FullSquareMatrix
 HelmAxiQuad8::massMatrix(CoordSet &cs, double *d, int cmflg)
 {

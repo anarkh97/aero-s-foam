@@ -33,6 +33,7 @@ class MpcElement : public Element, public Corotator, public LMPCons
     LMPCons** getMPCs();
 
     void renum(int*);
+        void renum(EleRenumMap&);
 
     int numNodes();
     int* nodes(int* = 0);

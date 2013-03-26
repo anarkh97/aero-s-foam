@@ -33,7 +33,6 @@ public:
         void sphereBT2(CoordSet& cs, double r, double k, ComplexD *d);
         void ellipsoidBT2(CoordSet& cs, double a, double b, double k, ComplexD *d);
 
-//        void renum (int *);
         void markDofs(DofSetArray &);
 //        FullSquareMatrix  stiffness(CoordSet&, double *d, int flg = 1);
 //        FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg=1);

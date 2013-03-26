@@ -171,6 +171,7 @@ public:
  complex<double> *forceVector;
 // Element functions 
  virtual void renum(int *);
+ virtual void renum(EleRenumMap&);
  virtual int numDofs() {
    return ( (dgmFlag())?0:nPolynomialDofs() ) +
           ( (condensedFlag())?0:nEnrichmentDofs() ) +
@@ -223,6 +224,7 @@ class DEMInterfaceElement: public Element, public DEMCoreInterfaceElement {
 public:
  DEMInterfaceElement(DEMElement *_deme, DEMElement *_deme2, int _fi);
  virtual void renum(int *);
+ virtual void renum(EleRenumMap&);
  virtual int numDofs() { return deme->numDofs()-deme->nLagrangeDofs()+
                                 deme2->numDofs()-deme2->nLagrangeDofs(); }
  virtual int* dofs(DofSetArray &, int *p=0);

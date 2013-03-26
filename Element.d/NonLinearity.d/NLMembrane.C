@@ -385,6 +385,14 @@ NLMembrane::renum(int *table)
   n[2] = table[n[2]];
 }
 
+void
+NLMembrane::renum(EleRenumMap& table)
+{
+  n[0] = table[n[0]];
+  n[1] = table[n[1]];
+  n[2] = table[n[2]];
+}
+
 int*
 NLMembrane::nodes(int *nd)
 {

@@ -10,6 +10,7 @@ public:
 	ConnectedTri(int*);
 
 	void renum(int *);
+        void renum(EleRenumMap&);
 
         FullSquareMatrix stiffness(CoordSet&, double *d, int flg=1);
         FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg=1);

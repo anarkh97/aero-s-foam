@@ -37,6 +37,14 @@ void TetraHelmGal::renum(int *table) {
 }
 
 
+void TetraHelmGal::renum(EleRenumMap& table) {
+ nn[0] = table[nn[0]];
+ nn[1] = table[nn[1]];
+ nn[2] = table[nn[2]];
+ nn[3] = table[nn[3]];
+}
+
+
 double TetraHelmGal::getMass(CoordSet& cs) {
  fprintf(stderr,"TetraHelmGal::getMass not implemented and should not be called.\n");
  return 0.0;

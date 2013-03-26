@@ -41,6 +41,13 @@ void LEIsoParamQuad::renum(int *table) {
 }
 
 
+void LEIsoParamQuad::renum(EleRenumMap& table) {
+ int i;
+ int ordersq = order*order;
+ for(i=0;i<ordersq;i++) nn[i] = table[nn[i]];
+}
+
+
 int* LEIsoParamQuad::nodes(int *p) {
 
  int ordersq = order*order;

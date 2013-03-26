@@ -51,6 +51,12 @@ void HelmIsoParamTri::renum(int *table) {
  for(i=0;i<ordersq;i++) nn[i] = table[nn[i]];
 }
 
+void HelmIsoParamTri::renum(EleRenumMap& table) {
+ int i;
+ int ordersq = (order*(order+1))/2;
+ for(i=0;i<ordersq;i++) nn[i] = table[nn[i]];
+}
+
 extern bool useFull;
 
 int* HelmIsoParamTri::nodes(int *p) {

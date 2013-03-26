@@ -29,6 +29,13 @@ BarSloshFS::renum(int *table)
 	nn[1] = table[nn[1]];
 }
 
+void
+BarSloshFS::renum(EleRenumMap& table)
+{
+	nn[0] = table[nn[0]];
+	nn[1] = table[nn[1]];
+}
+
 double
 BarSloshFS::getMass(CoordSet& cs)
 {

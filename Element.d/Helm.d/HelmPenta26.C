@@ -51,6 +51,12 @@ HelmPenta26::renum(int *table)
   for(int i=0; i<26; i++) { nn[i] = table[nn[i]]; }
 }
 
+void
+HelmPenta26::renum(EleRenumMap& table)
+{
+  for(int i=0; i<26; i++) { nn[i] = table[nn[i]]; }
+}
+
 double
 HelmPenta26::getMass(CoordSet& cs)
 {

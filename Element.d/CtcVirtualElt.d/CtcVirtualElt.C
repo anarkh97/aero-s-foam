@@ -33,6 +33,13 @@ CtcVirtualElt::renum(int *table)
 	nn[1] = table[nn[1]];
 }
 
+void
+CtcVirtualElt::renum(EleRenumMap& table)
+{
+	nn[0] = table[nn[0]];
+	nn[1] = table[nn[1]];
+}
+
 int
 CtcVirtualElt::numNodes()
 {

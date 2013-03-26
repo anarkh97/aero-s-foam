@@ -35,6 +35,15 @@ HelmQuadGal::renum(int *table)
   	nn[3] = table[nn[3]];
 }
 
+void
+HelmQuadGal::renum(EleRenumMap& table)
+{
+  	nn[0] = table[nn[0]];
+  	nn[1] = table[nn[1]];
+  	nn[2] = table[nn[2]];
+  	nn[3] = table[nn[3]];
+}
+
 FullSquareMatrix
 HelmQuadGal::massMatrix(CoordSet &cs, double *d, int cmflg)
 {

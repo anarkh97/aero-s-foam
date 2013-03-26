@@ -89,6 +89,13 @@ Brick20::renum(int *table)
 }
 
 void
+Brick20::renum(EleRenumMap& table)
+{
+  for(int i=0; i<20; ++i)
+    nn[i] = table[nn[i]];
+}
+
+void
 Brick20::getVonMises(Vector& stress,Vector& weight,CoordSet &cs,
                      Vector& elDisp, int strInd, int, double*,
 		     double ylayer, double zlayer, int avgnum)

@@ -42,6 +42,7 @@ class SuperElement : public Element
     double getPressure() { return subElems[0]->getPressure(); }
 
     void renum(int *table);
+        void renum(EleRenumMap&);
     void setGlNum(int gn, int sn = 0);
 
     void setProp(StructProp *p, bool _myProp = false); 

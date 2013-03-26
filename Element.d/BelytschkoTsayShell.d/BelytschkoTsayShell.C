@@ -200,6 +200,13 @@ BelytschkoTsayShell::renum(int *table)
 }
 
 void
+BelytschkoTsayShell::renum(EleRenumMap& table)
+{
+  for(int i = 0; i < nnode; ++i)
+    nn[i] = table[nn[i]];
+}
+
+void
 BelytschkoTsayShell::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
                                  Vector& elDisp, int strInd, int surface,
                                  double *ndTemps, double ylayer, double zlayer, int avgnum)

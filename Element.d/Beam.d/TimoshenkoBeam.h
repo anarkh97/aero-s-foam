@@ -20,6 +20,7 @@ public:
         TimoshenkoBeam *clone();
 
         void renum(int *);
+        void renum(EleRenumMap&);
 
         void setFrame(EFrame *ef) { elemframe = ef; myElemFrame = false; }
         const EFrame *getFrame() const { return elemframe; }

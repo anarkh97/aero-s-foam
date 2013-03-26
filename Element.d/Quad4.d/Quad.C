@@ -40,6 +40,14 @@ Quad::renum(int *table)
 }
 
 void
+Quad::renum(EleRenumMap& table)
+{
+  int i;
+  for(i=0; i<numnod; ++i)
+    nn[i] = table[nn[i]];
+}
+
+void
 Quad::getVonMises(Vector& stress,Vector& weight,CoordSet &cs, 
                           Vector& elDisp, int strInd,int,double *,
 			  double ylayer, double zlayer, int avgnum)

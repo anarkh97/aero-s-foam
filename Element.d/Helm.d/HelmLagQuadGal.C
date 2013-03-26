@@ -35,6 +35,12 @@ void HelmLagQuadGal::renum(int *table) {
 }
 
 
+void HelmLagQuadGal::renum(EleRenumMap& table) {
+ int i;
+ for(i=0;i<order*order;i++) nn[i] = table[nn[i]];
+}
+
+
 double HelmLagQuadGal::getMass(CoordSet&) {
  fprintf(stderr,"HelmLagQuadGal::massMatrix not implemented.\n");
  return 0.0;

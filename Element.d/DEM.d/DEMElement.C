@@ -60,7 +60,16 @@ void DEMElement::renum(int *table) {
 }
 
 
+void DEMElement::renum(EleRenumMap& table) {
+ fprintf(stderr,"DEMElement::renum is not implemented.\n");
+}
+
+
 void DEMInterfaceElement::renum(int *table) {
+ fprintf(stderr,"DEMInterfaceElement::renum is not implemented.\n");
+}
+
+void DEMInterfaceElement::renum(EleRenumMap& table) {
  fprintf(stderr,"DEMInterfaceElement::renum is not implemented.\n");
 }
 

@@ -51,6 +51,13 @@ void LEIsoParamTri::renum(int *table) {
 }
 
 
+void LEIsoParamTri::renum(EleRenumMap& table) {
+ int i;
+ int ordersq = (order*(order+1))/2;
+ for(i=0;i<ordersq;i++) nn[i] = table[nn[i]];
+}
+
+
 int* LEIsoParamTri::nodes(int *p) {
 
  int ordersq = (order*(order+1))/2;

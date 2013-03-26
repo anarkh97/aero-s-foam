@@ -72,6 +72,13 @@ TimoshenkoBeam::renum(int *table)
 }
 
 void
+TimoshenkoBeam::renum(EleRenumMap& table)
+{
+     nn[0] = table[nn[0]];
+     nn[1] = table[nn[1]];
+}
+
+void
 TimoshenkoBeam::buildFrame(CoordSet& cs)
 {
   // store initial orientation of beam

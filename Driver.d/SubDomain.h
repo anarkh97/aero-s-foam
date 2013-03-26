@@ -57,8 +57,11 @@ class BaseSub : virtual public Domain
   SComm *scomm;
   int subNumber;
   int localSubNumber; // relevant when running in distributed
-  int *glToLocalNode;
-  int *glToLocalElem;
+// RT: 030813
+//  int *glToLocalNode;
+//  int *glToLocalElem;
+  map<int,int> glToLocalNode;
+  map<int,int> glToLocalElem;
   int *glNums;
   int *glElems;
   int glNumNodes;
@@ -171,7 +174,7 @@ class BaseSub : virtual public Domain
   int renumberBC(int *);
   void makeGlobalToLocalNodeMap();  // PJSA
   void makeGlobalToLocalElemMap();  // YYY
-  int * getGlobalToLocalNodeMap() { return glToLocalNode; }
+//  int * getGlobalToLocalNodeMap() { return glToLocalNode; }
   int globalToLocal(int i)    { return (i < 0 || i > globalNMax) ? -1 : glToLocalNode[i]; }  // PJSA
   int localToGlobal(int i)    { return glNums[i]; }
   int globalToLocalElem(int i) { return (i < 0 || i > globalEMax) ? -1 : glToLocalElem[i]; }  // PJSA

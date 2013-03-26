@@ -10,6 +10,7 @@
 #include <cstddef>
 #include <complex>
 #include <set>
+#include <map>
 
 
 // this is a fix to get around apparent template bug in solaris compiler
@@ -31,6 +32,7 @@ typedef GenVector<DComplex> ComplexVector;  // PJSA: for sgi intel
 template <class Scalar> class GenFullM;
 typedef GenFullM<double> FullM;
 //template <class T> class ResizeArray;
+typedef map<int,int> EleRenumMap;
 
 // Boundary Condition Structure
 struct BCond {
@@ -323,6 +325,7 @@ class Element {
 
         virtual Element *clone() { return 0; }
         virtual void renum(int *)=0;
+        virtual void renum(EleRenumMap& m)=0; 
 
 //NOT USED static Element *build(int,int,int*);
 

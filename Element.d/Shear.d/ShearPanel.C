@@ -51,6 +51,15 @@ ShearPanel::renum(int *table)
 }
 
 void
+ShearPanel::renum(EleRenumMap& table)
+{
+  nn[0] = table[nn[0]];
+  nn[1] = table[nn[1]];
+  nn[2] = table[nn[2]];
+  nn[3] = table[nn[3]];
+}
+
+void
 ShearPanel::getVonMises(Vector& stress,Vector& weight,CoordSet &cs, 
                         Vector& elDisp, int strInd,int,double *,
 			double ylayer, double zlayer, int avgnum)

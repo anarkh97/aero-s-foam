@@ -55,6 +55,13 @@ void HelmIsoParamTetra::renum(int *table) {
  for(i=0;i<orderc;i++) nn[i] = table[nn[i]];
 }
 
+void HelmIsoParamTetra::renum(EleRenumMap& table) {
+ int i;
+ IsoParamUtilsTetra ipu(order);
+ int orderc = ipu.getorderc();
+ for(i=0;i<orderc;i++) nn[i] = table[nn[i]];
+}
+
 
 int* HelmIsoParamTetra::nodes(int *p) {
 

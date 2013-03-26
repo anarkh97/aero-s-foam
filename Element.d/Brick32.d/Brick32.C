@@ -72,6 +72,12 @@ Brick32::renum(int *table)
  for(int i=0; i<32; i++) { nn[i] = table[nn[i]]; }
 }
 
+void
+Brick32::renum(EleRenumMap& table)
+{
+ for(int i=0; i<32; i++) { nn[i] = table[nn[i]]; }
+}
+
 // Stress evaluation in case of isotropic & anisotropic elastic constitutive matrix 
 void
 Brick32::getVonMises(Vector& stress,Vector& weight,CoordSet &cs,

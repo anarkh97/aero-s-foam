@@ -44,6 +44,12 @@ void HelmIsoParamHexa::renum(int *table) {
  for(i=0;i<orderc;i++) nn[i] = table[nn[i]];
 }
 
+void HelmIsoParamHexa::renum(EleRenumMap& table) {
+ int i;
+ int orderc = order*order*order;
+ for(i=0;i<orderc;i++) nn[i] = table[nn[i]];
+}
+
 extern bool useFull;
 
 int* HelmIsoParamHexa::nodes(int *p) {

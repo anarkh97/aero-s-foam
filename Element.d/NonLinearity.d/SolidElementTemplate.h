@@ -54,6 +54,7 @@ class SolidElementTemplate : public GaussIntgElement
     int numNodes();
     int numDofs();
     void renum(int *);
+        void renum(EleRenumMap&);
     void markDofs(DofSetArray &);
     int* dofs(DofSetArray &, int *p=0);
     int* nodes(int * = 0);

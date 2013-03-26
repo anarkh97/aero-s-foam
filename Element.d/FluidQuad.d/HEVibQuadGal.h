@@ -12,6 +12,7 @@ public:
 	Element *clone();
 
 	void renum(int *);
+        void renum(EleRenumMap&);
 
         FullSquareMatrix stiffness(CoordSet&, double *d, int flag=1);
         FullSquareMatrix massMatrix(CoordSet&,double *d, int cmflg=1);

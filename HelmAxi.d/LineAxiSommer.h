@@ -22,6 +22,7 @@ public:
         void setSurf(double aR, double aZ);
 
         void renum(int *);
+        void renum(EleRenumMap&);
 
         FullSquareMatrix sommerMatrix(CoordSet&);
         FullSquareMatrix sommerMatrix(CoordSet&, double *);

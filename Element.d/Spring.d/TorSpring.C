@@ -27,6 +27,12 @@ TorSpring::renum(int *table)
   nn[0] = table[nn[0]];
 }
 
+void
+TorSpring::renum(EleRenumMap& table)
+{
+  nn[0] = table[nn[0]];
+}
+
 FullSquareMatrix
 TorSpring::massMatrix(CoordSet &,double *mel,int cmflg)
 {

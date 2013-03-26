@@ -13,6 +13,7 @@ public:
 	Element *clone();
 
 	void renum(int *);
+        void renum(EleRenumMap&);
 
         FullSquareMatrix stiffness(CoordSet&, double *kel, int flg=1);
         FullSquareMatrix acousticm(CoordSet&, double *kel);

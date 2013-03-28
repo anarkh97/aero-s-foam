@@ -4,6 +4,7 @@
 #include <Math.d/matrix.h>
 #include <Utils.d/BlockAlloc.h>
 #include <Utils.d/dofset.h>
+#include <Utils.d/GlobalToLocalMap.h>
 #include <Utils.d/MFTT.h>
 #include <iostream>
 #include <vector>
@@ -32,7 +33,7 @@ typedef GenVector<DComplex> ComplexVector;  // PJSA: for sgi intel
 template <class Scalar> class GenFullM;
 typedef GenFullM<double> FullM;
 //template <class T> class ResizeArray;
-typedef map<int,int> EleRenumMap;
+typedef GlobalToLocalMap  EleRenumMap;
 
 // Boundary Condition Structure
 struct BCond {

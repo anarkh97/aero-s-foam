@@ -1834,7 +1834,6 @@ BaseSub::~BaseSub()
   if(edgeDofSize) { delete [] edgeDofSize; edgeDofSize = 0; }
   if(edgeDofSizeTmp) { delete [] edgeDofSizeTmp; edgeDofSizeTmp = 0; }//HB can we delete it just after getKccDofs?
 //  if(glToLocalNode) { delete [] glToLocalNode; glToLocalNode = 0; }
-  glToLocalNode.clear();
   if(bcx) { delete [] bcx; bcx = 0; }
   if(bcxC) { delete [] bcxC; bcxC = 0; }
   if(vcx) { delete [] vcx; vcx = 0; }
@@ -1898,7 +1897,6 @@ BaseSub::~BaseSub()
   if(locToGlUserDispMap) { delete [] locToGlUserDispMap; locToGlUserDispMap = 0; }
   if(locToGlUserForceMap) { delete [] locToGlUserForceMap; locToGlUserForceMap = 0; }
 //  if(glToLocalElem) delete [] glToLocalElem;
-  glToLocalElem.clear();
 }
 
 void
@@ -3028,7 +3026,8 @@ BaseSub::makeGlobalToLocalNodeMap()
 // RT: 030813
 // glToLocalNode = new int[globalNMax+1];
 // for(i = 0; i <= globalNMax; ++i) glToLocalNode[i] = -1;
- for(i = 0; i < numnodes; ++i) glToLocalNode[glNums[i]] = i;
+// for(i = 0; i < numnodes; ++i) glToLocalNode[glNums[i]] = i;
+ glToLocalNode.initialize(numnodes,glNums);
 }
 
 void
@@ -3043,7 +3042,8 @@ BaseSub::makeGlobalToLocalElemMap()
 // RT: 030813
 // glToLocalElem = new int[globalEMax+1];
 // for(i = 0; i <= globalEMax; ++i) glToLocalElem[i] = -1;
- for(i = 0; i < packedEset.last(); ++i) glToLocalElem[glElems[i]] = i;
+// for(i = 0; i < packedEset.last(); ++i) glToLocalElem[glElems[i]] = i;
+ glToLocalElem.initialize(packedEset.last(),glElems);
 }
 
 

@@ -60,8 +60,8 @@ class BaseSub : virtual public Domain
 // RT: 030813
 //  int *glToLocalNode;
 //  int *glToLocalElem;
-  map<int,int> glToLocalNode;
-  map<int,int> glToLocalElem;
+  GlobalToLocalMap glToLocalNode;
+  GlobalToLocalMap glToLocalElem;
   int *glNums;
   int *glElems;
   int glNumNodes;

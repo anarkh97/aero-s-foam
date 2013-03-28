@@ -341,7 +341,7 @@ if(MPI_FOUND)
    SET(EXTRALIBRARIES ${EXTRALIBRARIES} ${MPI_LIBRARIES})
    SET(INC_DIR ${INC_DIR} ${MPI_INCLUDE_PATH})
    IF(NOT APPLE)
-     ADD_LIBRARY(femlib main.C HgIdentity.C)
+     ADD_LIBRARY(femlib EXCLUDE_FROM_ALL main.C HgIdentity.C)
      target_link_libraries(femlib Parser
        Driver Elem Feti HelmAxi solver Corotational Mortar Math 
        Dec Threads linpa Sfem paral Problems Driver Hetero Timers Comm Material Rom Util getopt 

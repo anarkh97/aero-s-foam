@@ -2181,12 +2181,8 @@ Domain::transformElemStiffAndForce(const GeomState &geomState, double *elementFo
     tangential_transf(Psi, T);
 
     Eigen::Vector3d V = G.segment<3>(6*k+3);
-    if(sinfo.newmarkBeta == 0 && !domain->solInfo().galerkinPodRom) {
-      G.segment<3>(6*k+3) = T.transpose()*V;
-    }
-    else {
-      G.segment<3>(6*k+3) = T*V;
-    }
+    G.segment<3>(6*k+3) = T*V;
+ 
     if(compute_tangents) {
       Eigen::Matrix3d C1;
       directional_deriv1(Psi, V, C1);

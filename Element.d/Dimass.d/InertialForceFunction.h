@@ -77,9 +77,8 @@ class InertialForceFunction : public VectorValuedFunction<3,3,Scalar,39,0,double
                (J.template cast<Scalar>()*A + V.cross(J.template cast<Scalar>()*V));
       }
       else {
-        Eigen::Matrix<double,3,3> C = alphaDamp*J;
         return T.transpose()*Rref.template cast<Scalar>()*
-               (J.template cast<Scalar>()*A + C.template cast<Scalar>()*V + V.cross(J.template cast<Scalar>()*V));
+               (J.template cast<Scalar>()*(A + alphaDamp*V) + V.cross(J.template cast<Scalar>()*V));
       }
     }
 

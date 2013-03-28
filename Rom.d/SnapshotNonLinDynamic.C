@@ -627,15 +627,33 @@ SnapshotNonLinDynamic::saveInternalStateSnapshot(const GeomState &state) {
 }
 
 void
-SnapshotNonLinDynamic::saveVelocitySnapshot(const Vector &veloc) {
- if(domain->solInfo().velocvectPodRom)
-        velocImpl_->velocSnapshotAdd(veloc);
+SnapshotNonLinDynamic::saveVelocitySnapshot(const GeomState &state, const Vector &veloc)
+{
+  if(domain->solInfo().velocvectPodRom) {
+    if(state.getHaveRot()) {
+      Vector v(veloc);
+      state.transform(v, 2); // transform convected angular velocity to time derivative of total rotation vector
+      velocImpl_->velocSnapshotAdd(v);
+    }
+    else {
+      velocImpl_->velocSnapshotAdd(veloc);
+    }
+  }
 }
 
 void
-SnapshotNonLinDynamic::saveAccelerationSnapshot(const Vector &accel) {
- if(domain->solInfo().accelvectPodRom)
-        accelImpl_->accelSnapshotAdd(accel);
+SnapshotNonLinDynamic::saveAccelerationSnapshot(const GeomState &state, const Vector &accel)
+{
+  if(domain->solInfo().accelvectPodRom) {
+    if(state.getHaveRot()) {
+      Vector a(accel);
+      state.transform(a, 6); // transform convected angular acceleration to second time derivative of total rotation vector
+      accelImpl_->accelSnapshotAdd(a);
+    }
+    else {
+      accelImpl_->accelSnapshotAdd(accel);
+    }
+  }
 }
 
 void

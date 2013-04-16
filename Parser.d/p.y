@@ -2012,15 +2012,33 @@ MatData:
           sp.type = StructProp::Thermal;
           geoSource->addMat( $1-1, sp );
         }
+        | Integer CONSTRMAT NewLine
+        { // new style for rigid elements and joints with default constraint options
+          StructProp sp;
+          sp.type = StructProp::Undefined;
+          geoSource->addMat( $1-1, sp );
+        }
+        | Integer CONSTRMAT ConstraintOptionsData NewLine
+        { // new style for rigid elements and joints
+          StructProp sp;
+          sp.lagrangeMult = $3.lagrangeMult;
+          sp.initialPenalty = sp.penalty = $3.penalty;
+          sp.constraint_hess = $3.constraint_hess;
+          sp.constraint_hess_eps = $3.constraint_hess_eps;
+          sp.type = StructProp::Constraint;
+          geoSource->addMat( $1-1, sp );
+        }
         | Integer CONSTRMAT Integer Float NewLine
-        { StructProp sp;
+        { // old style for rigid elements and joints
+          StructProp sp;
           sp.lagrangeMult = bool($3);
           sp.initialPenalty = sp.penalty = $4;
           sp.type = StructProp::Constraint;
           geoSource->addMat( $1-1, sp );
         }
         | Integer CONSTRMAT Integer Float Float Float NewLine
-        { StructProp sp;
+        { // old style for joints with prescribed motion
+          StructProp sp;
           sp.lagrangeMult = bool($3);
           sp.initialPenalty = sp.penalty = $4;
           sp.amplitude = $5;
@@ -2029,7 +2047,8 @@ MatData:
           geoSource->addMat( $1-1, sp );
         }
         | Integer CONSTRMAT Integer Float Float Float Float NewLine
-        { StructProp sp;
+        { // old style for joints with prescribed motion
+          StructProp sp;
           sp.lagrangeMult = bool($3);
           sp.initialPenalty = sp.penalty = $4;
           sp.amplitude = $5;
@@ -2039,7 +2058,8 @@ MatData:
           geoSource->addMat( $1-1, sp );
         }
         | Integer CONSTRMAT Integer Float Float Float Float Float NewLine
-        { StructProp sp;
+        { // old style for joints with prescribed motion
+          StructProp sp;
           sp.lagrangeMult = bool($3);
           sp.initialPenalty = sp.penalty = $4;
           sp.amplitude = $5;
@@ -2050,7 +2070,8 @@ MatData:
           geoSource->addMat( $1-1, sp );
         }
         | Integer CONSTRMAT Integer Float Float Float Float Float Float Integer NewLine
-        { StructProp sp;
+        { // constraint function element
+          StructProp sp;
           sp.lagrangeMult = bool($3);
           sp.initialPenalty = sp.penalty = $4;
           sp.amplitude = $5;
@@ -2063,7 +2084,7 @@ MatData:
           geoSource->addMat( $1-1, sp );
         }
         | Integer CONSTRMAT Integer Float ELEMENTARYFUNCTIONTYPE Float Float Float Float NewLine
-        { // new style for joints with prescribed motion by 2-parameter elementary function
+        { // old style for joints with prescribed motion by 2-parameter elementary function
           StructProp sp;
           sp.lagrangeMult = bool($3);
           sp.initialPenalty = sp.penalty = $4;
@@ -2076,7 +2097,7 @@ MatData:
           geoSource->addMat( $1-1, sp );
         }
         | Integer CONSTRMAT Integer Float ELEMENTARYFUNCTIONTYPE Float Float Float Float Float NewLine
-        { // new style for joints with prescribed motion by 3-parameter elementary function
+        { // old style for joints with prescribed motion by 3-parameter elementary function
           StructProp sp;
           sp.lagrangeMult = bool($3);
           sp.initialPenalty = sp.penalty = $4;
@@ -2090,7 +2111,7 @@ MatData:
           geoSource->addMat( $1-1, sp );
         }
         | Integer CONSTRMAT Integer Float ELEMENTARYFUNCTIONTYPE Float Float Float Float Float Float NewLine
-        { // new style for joints with prescribed motion by 4-parameter elementary function
+        { // old style for joints with prescribed motion by 4-parameter elementary function
           StructProp sp;
           sp.lagrangeMult = bool($3);
           sp.initialPenalty = sp.penalty = $4;
@@ -2104,8 +2125,95 @@ MatData:
           sp.type = StructProp::Constraint;
           geoSource->addMat( $1-1, sp );
         }
+        | Integer CONSTRMAT ELEMENTARYFUNCTIONTYPE Float Float Float Float NewLine
+        { // new style for joints with prescribed motion by 2-parameter elementary function
+          // and default constraint options
+          StructProp sp;
+          sp.funtype = $3;
+          sp.amplitude = $4;
+          sp.offset = $5;
+          sp.c1 = $6;
+          sp.c2 = $7;
+          sp.type = StructProp::Undefined;
+          geoSource->addMat( $1-1, sp );
+        }
+        | Integer CONSTRMAT ELEMENTARYFUNCTIONTYPE Float Float Float Float Float NewLine
+        { // new style for joints with prescribed motion by 3-parameter elementary function
+          // and default constraint options
+          StructProp sp;
+          sp.funtype = $3;
+          sp.amplitude = $4;
+          sp.offset = $5;
+          sp.c1 = $6;
+          sp.c2 = $7;
+          sp.c3 = $8;
+          sp.type = StructProp::Undefined;
+          geoSource->addMat( $1-1, sp );
+        }
+        | Integer CONSTRMAT ELEMENTARYFUNCTIONTYPE Float Float Float Float Float Float NewLine
+        { // new style for joints with prescribed motion by 4-parameter elementary function
+          // and default constraint options
+          StructProp sp;
+          sp.funtype = $3;
+          sp.amplitude = $4;
+          sp.offset = $5;
+          sp.c1 = $6;
+          sp.c2 = $7;
+          sp.c3 = $8;
+          sp.c4 = $9;
+          sp.type = StructProp::Undefined;
+          geoSource->addMat( $1-1, sp );
+        }
+        | Integer CONSTRMAT ConstraintOptionsData ELEMENTARYFUNCTIONTYPE Float Float Float Float NewLine
+        { // new style for joints with prescribed motion by 2-parameter elementary function
+          StructProp sp;
+          sp.lagrangeMult = $3.lagrangeMult;
+          sp.initialPenalty = sp.penalty = $3.penalty;
+          sp.constraint_hess = $3.constraint_hess;
+          sp.constraint_hess_eps = $3.constraint_hess_eps;
+          sp.funtype = $4;
+          sp.amplitude = $5;
+          sp.offset = $6;
+          sp.c1 = $7;
+          sp.c2 = $8;
+          sp.type = StructProp::Constraint;
+          geoSource->addMat( $1-1, sp );
+        }
+        | Integer CONSTRMAT ConstraintOptionsData ELEMENTARYFUNCTIONTYPE Float Float Float Float Float NewLine
+        { // new style for joints with prescribed motion by 3-parameter elementary function
+          StructProp sp;
+          sp.lagrangeMult = $3.lagrangeMult;
+          sp.initialPenalty = sp.penalty = $3.penalty;
+          sp.constraint_hess = $3.constraint_hess;
+          sp.constraint_hess_eps = $3.constraint_hess_eps;
+          sp.funtype = $4;
+          sp.amplitude = $5;
+          sp.offset = $6;
+          sp.c1 = $7;
+          sp.c2 = $8;
+          sp.c3 = $9;
+          sp.type = StructProp::Constraint;
+          geoSource->addMat( $1-1, sp );
+        }
+        | Integer CONSTRMAT ConstraintOptionsData ELEMENTARYFUNCTIONTYPE Float Float Float Float Float Float NewLine
+        { // new style for joints with prescribed motion by 4-parameter elementary function
+          StructProp sp;
+          sp.lagrangeMult = $3.lagrangeMult;
+          sp.initialPenalty = sp.penalty = $3.penalty;
+          sp.constraint_hess = $3.constraint_hess;
+          sp.constraint_hess_eps = $3.constraint_hess_eps;
+          sp.funtype = $4;
+          sp.amplitude = $5;
+          sp.offset = $6;
+          sp.c1 = $7;
+          sp.c2 = $8;
+          sp.c3 = $9;
+          sp.c4 = $10;
+          sp.type = StructProp::Constraint;
+          geoSource->addMat( $1-1, sp );
+        }
         | Integer CONSTRMAT Integer Float SPRINGMAT Float NewLine
-        { // use for RevoluteJointSpringCombo
+        { // old style for RevoluteJointSpringCombo
           StructProp sp;
           sp.lagrangeMult = bool($3);
           sp.initialPenalty = sp.penalty = $4;
@@ -2113,8 +2221,26 @@ MatData:
           sp.k1 = $6;
           geoSource->addMat( $1-1, sp );
         }
+        | Integer CONSTRMAT SPRINGMAT Float NewLine
+        { // new style for RevoluteJointSpringCombo with default constraint options
+          StructProp sp;
+          sp.type = StructProp::Undefined;
+          sp.k1 = $4;
+          geoSource->addMat( $1-1, sp );
+        }
+        | Integer CONSTRMAT ConstraintOptionsData SPRINGMAT Float NewLine
+        { // new style for RevoluteJointSpringCombo
+          StructProp sp;
+          sp.lagrangeMult = $3.lagrangeMult;
+          sp.initialPenalty = sp.penalty = $3.penalty;
+          sp.constraint_hess = $3.constraint_hess;
+          sp.constraint_hess_eps = $3.constraint_hess_eps;
+          sp.type = StructProp::Constraint;
+          sp.k1 = $5;
+          geoSource->addMat( $1-1, sp );
+        }
         | Integer CONSTRMAT Integer Float SPRINGMAT Float Float NewLine
-        { // use for UniversalJointSpringCombo
+        { // old style for UniversalJointSpringCombo
           StructProp sp;
           sp.lagrangeMult = bool($3);
           sp.penalty = $4;
@@ -2123,8 +2249,28 @@ MatData:
           sp.k2 = $7;
           geoSource->addMat( $1-1, sp );
         }
+        | Integer CONSTRMAT SPRINGMAT Float Float NewLine
+        { // new style for UniversalJointSpringCombo with default constraint options
+          StructProp sp;
+          sp.type = StructProp::Undefined;
+          sp.k1 = $4;
+          sp.k2 = $5;
+          geoSource->addMat( $1-1, sp );
+        }
+        | Integer CONSTRMAT ConstraintOptionsData SPRINGMAT Float Float NewLine
+        { // new style for UniversalJointSpringCombo
+          StructProp sp;
+          sp.lagrangeMult = $3.lagrangeMult;
+          sp.initialPenalty = sp.penalty = $3.penalty;
+          sp.constraint_hess = $3.constraint_hess;
+          sp.constraint_hess_eps = $3.constraint_hess_eps;
+          sp.type = StructProp::Constraint;
+          sp.k1 = $5;
+          sp.k2 = $6;
+          geoSource->addMat( $1-1, sp );
+        }
         | Integer CONSTRMAT Integer Float SPRINGMAT Float Float Float NewLine
-        { // use for SphericalJointSpringCombo
+        { // old style for SphericalJointSpringCombo
           StructProp sp;
           sp.lagrangeMult = bool($3);
           sp.initialPenalty = sp.penalty = $4;
@@ -2132,6 +2278,28 @@ MatData:
           sp.k1 = $6;
           sp.k2 = $7;
           sp.k3 = $8;
+          geoSource->addMat( $1-1, sp );
+        }
+        | Integer CONSTRMAT SPRINGMAT Float Float Float NewLine
+        { // new style for SphericalJointSpringCombo with default constraint options
+          StructProp sp;
+          sp.type = StructProp::Undefined;
+          sp.k1 = $4;
+          sp.k2 = $5;
+          sp.k3 = $6;
+          geoSource->addMat( $1-1, sp );
+        }
+        | Integer CONSTRMAT ConstraintOptionsData SPRINGMAT Float Float Float NewLine
+        { // new style for SphericalJointSpringCombo
+          StructProp sp;
+          sp.lagrangeMult = $3.lagrangeMult;
+          sp.initialPenalty = sp.penalty = $3.penalty;
+          sp.constraint_hess = $3.constraint_hess;
+          sp.constraint_hess_eps = $3.constraint_hess_eps;
+          sp.type = StructProp::Constraint;
+          sp.k1 = $5;
+          sp.k2 = $6;
+          sp.k3 = $7;
           geoSource->addMat( $1-1, sp );
         }
         | Integer SPRINGMAT Float NewLine

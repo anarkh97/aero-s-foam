@@ -13,7 +13,7 @@
 namespace Rom {
 
 // Computes the transposed matrix-vector product using the masterflag of the basis
-template <typename Scalar, template <typename Scalar> class GenVecType>
+template <typename Scalar, template <typename> class GenVecType>
 const GenVecType<Scalar> &
 vector_components(const GenVecBasis<Scalar, GenDistrVector> &basis,
                   const GenDistrVector<Scalar> &vec,
@@ -30,7 +30,7 @@ vector_components(const GenVecBasis<Scalar, GenDistrVector> &basis,
 }
 
 // Computes the transposed matrix-vector product using the masterflag of the vector
-template <typename Scalar, template <typename Scalar> class GenVecType>
+template <typename Scalar, template <typename> class GenVecType>
 const GenVecType<Scalar> &
 vector_components_vector_masterflag(const GenVecBasis<Scalar, GenDistrVector> &basis,
                                     const GenDistrVector<Scalar> &vec,
@@ -47,7 +47,7 @@ vector_components_vector_masterflag(const GenVecBasis<Scalar, GenDistrVector> &b
 }
 
 // Computes the matrix-vector product
-template <typename Scalar, template <typename Scalar> class GenVecType>
+template <typename Scalar, template <typename> class GenVecType>
 const GenDistrVector<Scalar> &
 assembled_vector(const GenVecBasis<Scalar, GenDistrVector> &basis,
                  const GenVecType<Scalar> &components,

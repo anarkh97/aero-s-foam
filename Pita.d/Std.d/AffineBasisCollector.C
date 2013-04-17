@@ -37,6 +37,9 @@ AffineBasisCollector::PropagationReactor::onFinalState() {
 
 AffineBasisCollector::AffineBasisCollector() {}
 
+// Destructor
+
+AffineBasisCollector::~AffineBasisCollector() {}
 
 // Data collection
 

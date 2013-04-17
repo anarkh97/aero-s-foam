@@ -630,4 +630,6 @@ LinearProjectionNetwork::projectionTaskNew() {
   return new Task(this);
 }
 
+LinearProjectionNetwork::~LinearProjectionNetwork() {}
+
 } /* end namespace Std */ } /* end namespace Pita */

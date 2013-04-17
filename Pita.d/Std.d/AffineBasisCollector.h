@@ -41,6 +41,7 @@ public:
 
 protected:
   AffineBasisCollector();
+  ~AffineBasisCollector();
 
 private:
   class PropagationReactor;

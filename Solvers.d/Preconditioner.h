@@ -6,6 +6,7 @@ class Preconditioner {
  public:
    double time;
    Preconditioner() { time = 0.0; }
+   virtual ~Preconditioner() {}
    virtual void apply(AnyVector &r, AnyVector &pr) = 0; 
 };
 

@@ -15,6 +15,8 @@ class NLMaterial
    public:
      NLMaterial() {}  
 
+     virtual ~NLMaterial() {}
+
      virtual int getNumStates() = 0;  
 
      virtual void getTangentMaterial(Tensor *tm, Tensor &strain, double *state) = 0;

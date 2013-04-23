@@ -1907,7 +1907,7 @@ void GeoSource::cleanAuxData()  {
 //--------------------------------------------------------------
 
 int GeoSource::readRanges(BinFileHandler &file, int &numRanges,
-                		int (*&ranges)[2])
+                          int (*&ranges)[2])
 {
   // read number of ranges
   file.read(&numRanges, 1);
@@ -2882,8 +2882,8 @@ int GeoSource::addSurfaceConstraint(int _numSurfaceConstraint, BCond *_surface_c
 //-------------------------------------------------------------------
 
 void GeoSource::readMatchInfo(BinFileHandler &matchFile,
-	int (*matchRanges)[2], int numMatchRanges, int subNum,
-	int *clusToLocElem) 
+        int (*matchRanges)[2], int numMatchRanges, int subNum,
+        GlobalToLocalMap &clusToLocElem)
 {
   // get TOC
   BinFileHandler::OffType tocLoc;
@@ -3075,6 +3075,7 @@ int GeoSource::getCPUMap(FILE *f, int numSub)
         int numLocElems = readRanges(decFile, numElemRanges, elemRanges);
         //cerr << "numLocElems = " << numLocElems << endl;
 
+/*      // OLD VERSION
         int minElemNum = elemRanges[0][0];
         int maxElemNum = 0;
         for(int iR = 0; iR < numElemRanges; iR++)  {
@@ -3093,6 +3094,17 @@ int GeoSource::getCPUMap(FILE *f, int numSub)
           for(int cElem = elemRanges[iR][1]; cElem >= elemRanges[iR][0]; --cElem) {
             cl2LocElem[cElem] = iElem++; // reversed previous ordering due to sort of subToElem in DecDomain TODO check
           }
+*/
+        // NEW VERSION
+        int *loc2ClElem = new int[numLocElems];
+        int iElem = 0;
+        for(int iR = 0; iR < numElemRanges; iR++) {
+          for(int cElem = elemRanges[iR][0]; cElem <= elemRanges[iR][1]; ++cElem) {
+            loc2ClElem[iElem++] = cElem;
+          }
+        }
+        std::sort(loc2ClElem,loc2ClElem+numLocElems);
+        GlobalToLocalMap cl2LocElem(numLocElems,loc2ClElem);
 
         int nConnects;
         decFile.read(&nConnects, 1);
@@ -3125,7 +3137,8 @@ int GeoSource::getCPUMap(FILE *f, int numSub)
           BinFileHandler matchFile(fullMatchName, "rb");
           readMatchInfo(matchFile, matchRanges, numMatchRanges, locSub, cl2LocElem); // PJSA
         }
-        delete [] cl2LocElem;
+        //delete [] cl2LocElem;
+        delete [] loc2ClElem;
       }
       delete [] gl2ClSubMap;
     }

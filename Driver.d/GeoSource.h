@@ -8,6 +8,7 @@
 
 #include <Element.d/Element.h>
 #include <Utils.d/OutputInfo.h>
+#include <Utils.d/GlobalToLocalMap.h>
 #include <Math.d/DistVector.h>
 #include <Driver.d/StructProp.h>
 using namespace NewVec;
@@ -285,7 +286,8 @@ public:
   // Input Read Functions
   void readCpuToSub();
   int readRanges(BinFileHandler &, int &, int (*&r)[2]);
-  void readMatchInfo(BinFileHandler &, int (*)[2], int, int, int *);
+  //void readMatchInfo(BinFileHandler &, int (*)[2], int, int, int *);
+  void readMatchInfo(BinFileHandler &, int (*)[2], int, int, GlobalToLocalMap&);
   template<class Scalar>
     GenSubDomain<Scalar> *getSubDomain(int glSub, Domain *, int locSub = -1);
   template<class Scalar>

@@ -198,6 +198,7 @@ class GeoSource {
   Connectivity *subToSub;
   Connectivity *subToNode;
   Connectivity *subToElem;
+  Connectivity *unsortedSubToElem;
 
   int *subToCPU;
   Connectivity *cpuToSub;
@@ -285,7 +286,7 @@ public:
   // Input Read Functions
   void readCpuToSub();
   int readRanges(BinFileHandler &, int &, int (*&r)[2]);
-  void readMatchInfo(BinFileHandler &, int (*)[2], int, int, int *);
+  void readMatchInfo(BinFileHandler &, int (*)[2], int, int, int *, int);
   template<class Scalar>
     GenSubDomain<Scalar> *getSubDomain(int glSub, Domain *, int locSub = -1);
   template<class Scalar>

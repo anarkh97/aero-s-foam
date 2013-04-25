@@ -42,7 +42,7 @@ class QuadPressureBC : public SommerElement
     void getNormal(CoordSet&, double[3]);
 
     FullSquareMatrix sommerMatrix(CoordSet&, double *);
-    void neumVector(CoordSet&, Vector&, int = 0, GeomState* = 0, double time = 0.0);
+    void neumVector(CoordSet&, Vector&, int = 0, GeomState* = 0);
 
     int findAndSetEle(CoordSet& cs,Elemset &eset,
         Connectivity *nodeToEle, int *eleTouch, int *eleCount, int myNum,

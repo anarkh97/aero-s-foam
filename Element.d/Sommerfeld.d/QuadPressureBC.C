@@ -54,9 +54,10 @@ QuadPressureBC::sommerMatrix(CoordSet &cs, double *d)
 }
 
 void
-QuadPressureBC::neumVector(CoordSet &cs, Vector &f, int, GeomState *geomState, double time)
+QuadPressureBC::neumVector(CoordSet &cs, Vector &f, int, GeomState *geomState)
 {
   // Check if Conwep is being used. If so, use the pressure from Conwep.
+  // TODO: need to pass and use current time, but be careful because neumVector is a virtual function
   if (ConwepOnOff == true) {
     double* CurrentElementNodePositions = (double*) dbg_alloca(sizeof(double)*3*4);
     int NodeNumber;
@@ -73,8 +74,7 @@ QuadPressureBC::neumVector(CoordSet &cs, Vector &f, int, GeomState *geomState, d
         CurrentElementNodePositions[NodeNumber+2] = cs[nn[Dimension]]->z;
       }
     }
-  pressure = BlastLoading::ComputeShellPressureLoad(CurrentElementNodePositions,time,BlastLoading::InputFileData);
-  //std::cerr<<"Pressure = "<<pressure<<std::endl; // For debugging.
+    pressure = BlastLoading::ComputeShellPressureLoad(CurrentElementNodePositions,time,BlastLoading::InputFileData);
   }
   int opttrc = 0; // 0 : pressure
                   // 1 : traction

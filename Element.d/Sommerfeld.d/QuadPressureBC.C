@@ -74,7 +74,7 @@ QuadPressureBC::neumVector(CoordSet &cs, Vector &f, int, GeomState *geomState)
         CurrentElementNodePositions[NodeNumber+2] = cs[nn[Dimension]]->z;
       }
     }
-    pressure = BlastLoading::ComputeShellPressureLoad(CurrentElementNodePositions,time,BlastLoading::InputFileData);
+    pressure = BlastLoading::ComputeShellPressureLoad(CurrentElementNodePositions,0,BlastLoading::InputFileData);
   }
   int opttrc = 0; // 0 : pressure
                   // 1 : traction

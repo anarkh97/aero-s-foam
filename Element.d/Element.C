@@ -367,7 +367,7 @@ double
 Element::computeStabilityTimeStep(FullSquareMatrix &K, FullSquareMatrix &M, CoordSet &cs, GeomState *gs,
                                   double stable_tol, int stable_maxit)
 {
-  if(prop) {
+  if(prop && prop->rho != 0) {
 
       using std::sqrt;
       double eigmax;
@@ -414,7 +414,7 @@ Element::computeStabilityTimeStep(FullSquareMatrix &K, FullSquareMatrix &M, Coor
 
       return sdt;
   }
-  else { // phantom
+  else { // phantom or other element without mass
       return std::numeric_limits<double>::infinity();
   }
 }

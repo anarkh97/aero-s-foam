@@ -63,6 +63,8 @@ GenDomainGroupTask<Scalar>::GenDomainGroupTask(int _nsub, GenSubDomain<Scalar> *
   beta    = _beta;
   solvertype = _solvertype;
   com = _com;
+  makeC = (alpha != 0.0 || beta != 0.0 || (numSommer > 0) || domain->getElementSet().hasDamping());
+  makeC_deriv = (makeC && domain->solInfo().doFreqSweep && domain->solInfo().nFreqSweepRHS > 1);
 }
 
 template<class Scalar>
@@ -131,7 +133,7 @@ GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti)
       Mcc[isub] = sd[isub]->template constructCCSparse<Scalar>();
     }
 
-    if(alpha != 0.0 || beta != 0.0 || (numSommer > 0) || domain->getElementSet().hasDamping()) {
+    if(makeC) {
       C[isub] = sd[isub]->template constructDBSparseMatrix<Scalar>();
 
       if((cdsa->size() - dsa->size()) != 0) {
@@ -139,7 +141,7 @@ GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti)
         Ccc[isub] = sd[isub]->template constructCCSparse<Scalar>();
       }
 
-      if(domain->solInfo().doFreqSweep && domain->solInfo().nFreqSweepRHS > 1) {
+      if(makeC_deriv) {
         int numC_deriv, numRHS;
         numRHS = domain->solInfo().nFreqSweepRHS;
         if((numSommer > 0) && ((sd[isub]->sommerfeldType == 2) || (sd[isub]->sommerfeldType == 4)))

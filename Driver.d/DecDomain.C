@@ -3651,7 +3651,7 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
  else res.K = new GenSubDOp<Scalar>(numSub, dgt.K);
  res.Kuc = new GenSubDOp<Scalar>(numSub, dgt.Kuc);
 
- if(dgt.C[0]) {
+ if(dgt.makeC) {
    res.C = new GenSubDOp<Scalar>(numSub, dgt.C);
    res.Cuc = new GenSubDOp<Scalar>(numSub, dgt.Cuc);
    res.Ccc = new GenSubDOp<Scalar>(numSub, dgt.Ccc);
@@ -3666,14 +3666,14 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
  res.Mcc = new GenSubDOp<Scalar>(numSub, dgt.Mcc);
 
 // RT
- if(dgt.C_deriv[0]) {
+ if(dgt.makeC_deriv) {
    res.C_deriv = new GenSubDOp<Scalar>*[1];
    (res.C_deriv)[0] = new GenSubDOp<Scalar>(numSub, dgt.C_deriv,0);
  } else {
    res.C_deriv = 0;
    delete [] dgt.C_deriv;
  }
- if(dgt.Cuc_deriv[0]) {
+ if(dgt.makeC_deriv) {
    res.Cuc_deriv = new GenSubDOp<Scalar>*[1];
    res.Cuc_deriv[0] = new GenSubDOp<Scalar>(numSub, dgt.Cuc_deriv,0);
  } else {

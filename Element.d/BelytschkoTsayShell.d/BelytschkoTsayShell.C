@@ -705,7 +705,7 @@ BelytschkoTsayShell::Elefintbt1(double delt, double *_ecord, double *_edisp, dou
   // ----------------------------------------
   switch(optprj) {
     case 0: // no projection
-      eveloloc = eveloloc0.block<5,4>(0,0);
+      eveloloc = Eigen::Map<Matrix<double,6,4> >(eveloloc0.data()).block<5,4>(0,0);
       break;
     case 1: // drilling rotation projection
       rotprojbt1(ecurnloc, eveloloc0.data(), toto.data());

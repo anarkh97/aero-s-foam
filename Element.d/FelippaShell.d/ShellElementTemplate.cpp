@@ -155,7 +155,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
   int i, j, i1, i2, i3;
   doublereal twicearea2, x21, x13, y13, z13, x32, y32, z32, y21, z21,
     ix, iy, iz, rlb, bpr, rlr, area, rhoh, dist[3], mass0, mass1, 
-    mass2, mass3, thick;
+    mass2, mass3, thick, alpha;
 
   Eigen::Map<Eigen::Matrix<doublereal,18,18,Eigen::RowMajor> > emass(_emass); 
 
@@ -316,9 +316,13 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 
     rhoh = gpmat->GetAreaDensity();
     mass0 = rhoh * area / 3.;
-    mass1 = rhoh * area * ix / 1260.;
-    mass2 = rhoh * area * iy / 1260.;
-    mass3 = rhoh * area * iz / 1260.;
+    //mass1 = rhoh * area * ix / 1260.;
+    //mass2 = rhoh * area * iy / 1260.;
+    //mass3 = rhoh * area * iz / 1260.;
+    alpha = area / 8.;
+    mass1 = mass0 * alpha;
+    mass2 = mass0 * alpha;
+    mass3 = mass0 * alpha;
 
 //     ------------------------------------- 
 //     ASSEMBLY OF THE ELEMENTAL MASS MATRIX 

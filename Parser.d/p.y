@@ -1567,6 +1567,15 @@ Mode:
 	{ domain->solInfo().readInROBorModes = $2;
           domain->solInfo().readmodeCalled = true; 
  	  domain->solInfo().maxSizePodRom = $3; }	
+        | READMODE FNAME FNAME NewLine
+        { domain->solInfo().readInROBorModes = $2;
+          domain->solInfo().readInModes = $3;
+          domain->solInfo().readmodeCalled = true; }
+        | READMODE FNAME FNAME Integer NewLine
+        { domain->solInfo().readInROBorModes = $2;
+          domain->solInfo().readInModes = $3;
+          domain->solInfo().readmodeCalled = true;
+          domain->solInfo().maxSizePodRom = $4; }
 	;
 IDisp:
         IDIS NewLine

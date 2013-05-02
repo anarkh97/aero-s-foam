@@ -550,7 +550,7 @@ int main(int argc, char** argv)
  }
 
  if(domain->solInfo().readmodeCalled) {
-   if(domain->solInfo().modalCalled || domain->solInfo().modal) {
+   if((domain->solInfo().modalCalled || domain->solInfo().modal) && (domain->solInfo().readInModes == "")) {
      domain->readInModes(const_cast<char*>(domain->solInfo().readInROBorModes));
    }
    else if (!domain->solInfo().samplingPodRom) {
@@ -561,6 +561,10 @@ int main(int argc, char** argv)
 #else
      domain->solInfo().subtype = 12;
 #endif
+     if(domain->solInfo().modalCalled) {
+       // for doing ROM with 2 sets of modes, #1 for the reduced order basis and #2 for modal IDISP/IVEL
+       domain->readInModes(const_cast<char*>(domain->solInfo().readInModes));
+     }
    }
  }
 

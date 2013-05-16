@@ -96,10 +96,9 @@ template<typename Scalar, typename SolverClass>
 void
 GenEiSparseMatrix<Scalar,SolverClass>::addDiscreteMass(int dof, Scalar dmass)
 {
-  int cdof = unconstrNum[dof];
-  if(cdof < 0) return;
-  int diagLocator = xunonz[cdof+1]-1; // This should be the diagonal
-  unonz[diagLocator] += dmass;
+  GenFullSquareMatrix<Scalar> m(1);
+  m[0][0] = dmass;
+  add(m, &dof);
 }
 
 template<typename Scalar, typename SolverClass> 

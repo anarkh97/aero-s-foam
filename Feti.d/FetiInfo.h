@@ -139,7 +139,7 @@
 
 // numdir    = 3 (default)          number of wave directions added in Q matrix
 // orthotol  = 1.0E-02 (default)    relative tolerance value in orthogonalizing Q matrix
-// orthotol2 = 1.0E-02 (default)    absolute tolerance value in orthogonalizing Q matrix
+// orthotol2 = 0.0     (default)    absolute tolerance value in orthogonalizing Q matrix
 
 class FetiInfo {
 
@@ -280,7 +280,7 @@ FetiInfo::FetiInfo()
   feti2version= sparseCoarse;  // default use New FETI2
   printNumber = 10;        // default print error at every FETI iteration
   corners    = noEndCorners3; // default clamp all corner dofs
-  augment    = Edges;       // default no Kcc augmentation
+  augment    = Edges;       // default Kcc augmentation
   nGs        = 6;
   rbmType    = all;
   gmresResidual = false;     // to force computing the "primal residual" at each GMRES iteration

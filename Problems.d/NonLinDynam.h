@@ -115,11 +115,11 @@ class NonLinDynamic : public NLDynamPostProcessor {
                          Vector &v_p, GeomState &geomState);
     void setBC(double *userDefineDisplacement, double *userDefineVel, double *userDefineAcc);
 
-    int  getInitState(Vector& d, Vector& v, Vector& a, Vector &v_p);
+    virtual int getInitState(Vector& d, Vector& v, Vector& a, Vector &v_p);
     void updateUserSuppliedFunction(Vector& d_n, Vector& v_n, Vector &a_n, Vector &v_p, double initialTime);
     void updatePrescribedDisplacement(GeomState *geomState);
 
-    int  solVecInfo();
+    virtual int solVecInfo() const;
     int  sysVecInfo();
     int  elemVecInfo();
 
@@ -139,7 +139,7 @@ class NonLinDynamic : public NLDynamPostProcessor {
 
     bool getZeroRot() const;
 
-    void getConstForce(Vector& constantForce);
+    virtual void getConstForce(Vector& constantForce);
 
     void getExternalForce(Vector& externalForce, Vector& constantForce, int tIndex, double time,
                           GeomState* geomState, Vector& elementInternalForce, Vector& aeroF, double localDelta);
@@ -187,15 +187,15 @@ class NonLinDynamic : public NLDynamPostProcessor {
     void reBuild(GeomState& geomState, int iter, double localDelta, double t);
 
     void printTimers(double timeLoop);
-    virtual void dynamCommToFluid(GeomState* geomState, GeomState* bkGeomState,
+    void dynamCommToFluid(GeomState* geomState, GeomState* bkGeomState,
                           Vector& velocity, Vector& bkVelocity,
                           Vector& vp, Vector& bkVp, int step, int parity,
                           int aeroAlg);
-    virtual void dynamOutput(GeomState* geomState, Vector& velocity, Vector &vp,
+    void dynamOutput(GeomState* geomState, Vector& velocity, Vector &vp,
                      double time, int timestep, Vector& force, Vector &aeroF, Vector &acceleration,
                      GeomState *refState) const;
     void getConstraintMultipliers(GeomState &geomState) { /* deliberately empty */ }
-    virtual double getResidualNorm(const Vector &rhs, GeomState &geomState, double localDelta);
+    double getResidualNorm(const Vector &rhs, GeomState &geomState, double localDelta);
 
     int getAeroAlg();
     int getThermoeFlag();

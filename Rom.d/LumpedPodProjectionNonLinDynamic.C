@@ -32,10 +32,12 @@ LumpedPodProjectionNonLinDynamic::getStiffAndForceFromDomain(GeomState &geomStat
 }
 
 void
-LumpedPodProjectionNonLinDynamic::updateStates(GeomState *refState, GeomState& geomState)
+LumpedPodProjectionNonLinDynamic::updateStates(ModalGeomState *refState, ModalGeomState& geomState)
 {
+/* FIXME
   domain->updateWeightedElemStatesOnly(packedElementWeights_,
                                        refState, geomState, allCorot);
+*/
 }
 
 void

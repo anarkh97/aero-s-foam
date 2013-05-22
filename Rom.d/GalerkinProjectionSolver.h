@@ -79,13 +79,16 @@ GenGalerkinProjectionSolver<Scalar>::getReducedRhsNorm() const {
 template <typename Scalar>
 void
 GenGalerkinProjectionSolver<Scalar>::solveReducedSystem(GenVector<Scalar> &rhs) {
+/*
   if (!rhsIsprojected_) {
     reduce(this->projectionBasis(), rhs, this->getReducedSolution());
   }
   
   performSolve();
-  
+
   rhsIsprojected_ = false;
+*/
+  cholesky_solve_upper(reducedMatrix_, rhs.data());
 }
 
 template <typename Scalar>

@@ -166,17 +166,24 @@ GenDBSparsePodProjectionSolver<Scalar>::factor() {
 template <typename Scalar>
 void
 GenDBSparsePodProjectionSolver<Scalar>::reSolve(GenVector<Scalar> &rhs) {
+/*
   validateRhs(rhs);
+*/
   solveReducedSystem(rhs);
+/*
   expand(projectionBasis(), lastReducedSolution(), rhs);
+*/
 }
 
 template <typename Scalar>
 double
 GenDBSparsePodProjectionSolver<Scalar>::projectAndComputeNorm(const GenVector<Scalar> &rhs) {
+/*
   validateRhs(rhs);
   projectRhs(rhs);
   return getReducedRhsNorm();
+*/
+  return rhs.norm();
 }
 
 typedef GenDBSparsePodProjectionSolver<double> DBSparsePodProjectionSolver;

@@ -49,6 +49,13 @@ TwoNodeTruss::renum(int *table)
 }
 
 void
+TwoNodeTruss::renum(EleRenumMap& table)
+{
+	nn[0] = table[nn[0]];
+	nn[1] = table[nn[1]];
+}
+
+void
 TwoNodeTruss::getIntrnForce(Vector& elForce, CoordSet& cs,
 			    double *elDisp, int forceIndex, double *ndTemps)
 {

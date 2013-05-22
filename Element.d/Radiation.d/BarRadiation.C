@@ -25,6 +25,13 @@ BarRadiation::renum(int *table)
 	nn[1] = table[nn[1]];
 }
 
+void
+BarRadiation::renum(EleRenumMap& table)
+{
+	nn[0] = table[nn[0]];
+	nn[1] = table[nn[1]];
+}
+
 double
 BarRadiation::getMass(CoordSet& cs)
 {

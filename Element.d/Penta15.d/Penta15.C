@@ -85,6 +85,12 @@ Penta15::renum(int *table)
 }
 
 void
+Penta15::renum(EleRenumMap& table)
+{
+ for(int i=0; i<15; i++) { nn[i] = table[nn[i]]; }
+}
+
+void
 Penta15::getVonMises(Vector& stress,Vector& weight,CoordSet &cs,
                             Vector& elDisp, int strInd, int surface, 
 			    double *ndTemps, double ylayer, double zlayer, int avgnum)

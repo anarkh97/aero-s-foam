@@ -271,7 +271,10 @@ void DistFlExchanger::negotiate()
         sndTable[sender][ipt].subNumber = (*globMatches)[arrayPos].subNumber; 
         sndTable[sender][ipt].elemNum = (*globMatches)[arrayPos].elemNum; 
         sndTable[sender][ipt].xy[0] = (*globMatches)[arrayPos].xy[0]; 
-        sndTable[sender][ipt].xy[1]= (*globMatches)[arrayPos].xy[1]; 
+        sndTable[sender][ipt].xy[1] = (*globMatches)[arrayPos].xy[1]; 
+        sndTable[sender][ipt].gap[0] = 0;
+        sndTable[sender][ipt].gap[1] = 0;
+        sndTable[sender][ipt].gap[2] = 0;
 
         // assign dofs to element 
         int locSub = sndTable[sender][ipt].subNumber;

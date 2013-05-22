@@ -11,6 +11,7 @@ public:
 	TwoNodeTruss(int*);
         Element *clone();
 	void renum(int *);
+        void renum(EleRenumMap&);
         FullSquareMatrix stiffness(CoordSet&,double *kel, int flg=1);
         int getMassType() { return 2; } // both consistent and lumped
         FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg=1);

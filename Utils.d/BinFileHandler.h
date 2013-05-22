@@ -15,13 +15,12 @@
 //------------------------------------------------------------------------------
 
 class BinFileHandler {
-
 public:
-
-  //typedef off_t OffType;
 #if defined(__SGI) || defined(__SUNPRO_CC) || defined(SALINAS) || defined(WINDOWS)
   typedef long OffType; 
-#elif defined(__LINUX) || defined(MACOSX)
+#elif defined(__APPLE__) && defined(__MACH__)
+  typedef long OffType;
+#elif defined(__LINUX)
   typedef long long OffType;
 #else
 #error Update the definition of OffType for your machine

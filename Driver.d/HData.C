@@ -2116,7 +2116,10 @@ HData::ffp(Domain *dom, int ndir, DComplex *ffp, double (*dir)[3], ComplexD *u, 
         else if (hLoc1 >=0 ) uel[i] = c[dom->c_dsa->invRCN(hLoc1)];
         else fprintf(stderr,"Error in HData:outputFFP\n");
       }
-      scatter[iele]->ffp(dom->nodes,dom->numFFPDirections,(double*)dir,uel,ffp,direction);
+// RT 03142013: someone messed up the logic above which now requires this
+      if (!direction) scatter[iele]->ffp(dom->nodes,ndir,(double*)dir,uel,ffp,direction); 
+      else 
+        scatter[iele]->ffp(dom->nodes,dom->numFFPDirections,(double*)dir,uel,ffp,direction);
     }
   }
   else {

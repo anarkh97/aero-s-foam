@@ -1768,7 +1768,9 @@ BaseSub::globalNumNodes()
 void
 BaseSub::initialize()
 {
-  scomm = 0; glToLocalNode = 0; glNums = 0; glElems = 0; weight = 0;
+  scomm = 0;
+ // glToLocalNode = 0;
+  glNums = 0; glElems = 0; weight = 0;
   bcx = 0; bcxC = 0; vcx = 0; acx = 0; locToGlSensorMap = 0; locToGlActuatorMap = 0; 
   locToGlUserDispMap = 0; locToGlUserForceMap = 0; boundMap = 0; 
   dualToBoundary = 0; internalMap = 0; crnPerNeighb = 0; 
@@ -1806,7 +1808,7 @@ BaseSub::initialize()
   edgeDofSizeTmp = 0; isMixedSub = false;
   internalMasterFlag = 0;
   isCornerNode = 0;
-  glToLocalElem = 0;
+//  glToLocalElem = 0;
   //comm = 0;
 }
 
@@ -1831,7 +1833,7 @@ BaseSub::~BaseSub()
   if(neighbNumGRBMs) { delete [] neighbNumGRBMs; neighbNumGRBMs = 0; }
   if(edgeDofSize) { delete [] edgeDofSize; edgeDofSize = 0; }
   if(edgeDofSizeTmp) { delete [] edgeDofSizeTmp; edgeDofSizeTmp = 0; }//HB can we delete it just after getKccDofs?
-  if(glToLocalNode) { delete [] glToLocalNode; glToLocalNode = 0; }
+//  if(glToLocalNode) { delete [] glToLocalNode; glToLocalNode = 0; }
   if(bcx) { delete [] bcx; bcx = 0; }
   if(bcxC) { delete [] bcxC; bcxC = 0; }
   if(vcx) { delete [] vcx; vcx = 0; }
@@ -1894,7 +1896,7 @@ BaseSub::~BaseSub()
   if(locToGlActuatorMap) { delete [] locToGlActuatorMap; locToGlActuatorMap = 0; }
   if(locToGlUserDispMap) { delete [] locToGlUserDispMap; locToGlUserDispMap = 0; }
   if(locToGlUserForceMap) { delete [] locToGlUserForceMap; locToGlUserForceMap = 0; }
-  if(glToLocalElem) delete [] glToLocalElem;
+//  if(glToLocalElem) delete [] glToLocalElem;
 }
 
 void
@@ -3021,9 +3023,11 @@ BaseSub::makeGlobalToLocalNodeMap()
    if(glNums[i] > globalNMax) globalNMax = glNums[i];
  globalNMax += 1;
 
- glToLocalNode = new int[globalNMax+1];
- for(i = 0; i <= globalNMax; ++i) glToLocalNode[i] = -1;
- for(i = 0; i < numnodes; ++i) glToLocalNode[glNums[i]] = i;
+// RT: 030813
+// glToLocalNode = new int[globalNMax+1];
+// for(i = 0; i <= globalNMax; ++i) glToLocalNode[i] = -1;
+// for(i = 0; i < numnodes; ++i) glToLocalNode[glNums[i]] = i;
+ glToLocalNode.initialize(numnodes,glNums);
 }
 
 void
@@ -3035,9 +3039,11 @@ BaseSub::makeGlobalToLocalElemMap()
    if(glElems[i] > globalEMax) globalEMax = glElems[i];
  globalEMax += 1;
 
- glToLocalElem = new int[globalEMax+1];
- for(i = 0; i <= globalEMax; ++i) glToLocalElem[i] = -1;
- for(i = 0; i < packedEset.last(); ++i) glToLocalElem[glElems[i]] = i;
+// RT: 030813
+// glToLocalElem = new int[globalEMax+1];
+// for(i = 0; i <= globalEMax; ++i) glToLocalElem[i] = -1;
+// for(i = 0; i < packedEset.last(); ++i) glToLocalElem[glElems[i]] = i;
+ glToLocalElem.initialize(packedEset.last(),glElems);
 }
 
 

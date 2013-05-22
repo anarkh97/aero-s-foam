@@ -47,6 +47,20 @@ FsiElement::renum(int *table)
 }
 
 
+void
+FsiElement::renum(EleRenumMap& table)
+{
+  int i;
+  renumTable = new int[fsi->nterms+1];
+  for(i=0; i<nnodes; ++i) nn[i] = table[nn[i]];
+  for(i = 0; i < fsi->nterms; i++) {
+    int nnum = (fsi->terms)[i].nnum;
+    renumTable[i] = table[nnum];
+  }
+  renumTable[fsi->nterms] = table[nn[nnodes-1]];
+}
+
+
 FullSquareMatrix
 FsiElement::massMatrix(CoordSet &cs, double *mel, int cmflg)
 {

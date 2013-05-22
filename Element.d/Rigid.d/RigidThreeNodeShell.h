@@ -17,6 +17,11 @@ class RigidThreeNodeShell : public SuperElement
     double           getMass(CoordSet& cs);
     void             getGravityForce(CoordSet&,double *gravity, Vector&, int gravflg,
                                      GeomState *gs);
+
+    void             computeDisp(CoordSet&, State &, const InterpPoint &,
+                                 double*, GeomState *gs);
+    void             getFlLoad(CoordSet &, const InterpPoint &,
+                               double *flF, double *resF, GeomState *gs=0);
 };
 
 #endif

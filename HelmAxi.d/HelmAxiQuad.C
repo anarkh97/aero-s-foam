@@ -38,6 +38,15 @@ void HelmAxiQuad::renum(int *table)
   nn[3] = table[nn[3]];
 }
 
+
+void HelmAxiQuad::renum(EleRenumMap &table)
+{
+  nn[0] = table[nn[0]];
+  nn[1] = table[nn[1]];
+  nn[2] = table[nn[2]];
+  nn[3] = table[nn[3]];
+}
+
 FullSquareMatrix
 HelmAxiQuad::massMatrix(CoordSet &cs, double *d, int cmflg)
 {

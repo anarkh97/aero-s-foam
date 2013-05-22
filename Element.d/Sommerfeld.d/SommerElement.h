@@ -43,6 +43,7 @@ public:
         virtual int* solidDofs(DofSetArray &, int *p=0);
         virtual void markDofs(DofSetArray &);
 	virtual void renum(int *);
+        virtual void renum(EleRenumMap&);
         virtual SommerElement* clone();
 
         virtual int nFaceCorners() { return 0; }

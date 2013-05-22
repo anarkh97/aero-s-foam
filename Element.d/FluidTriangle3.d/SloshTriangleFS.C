@@ -28,6 +28,14 @@ SloshTriangleFS::renum(int *table)
   nn[2] = table[nn[2]];
 }
 
+void
+SloshTriangleFS::renum(EleRenumMap& table)
+{
+  nn[0] = table[nn[0]];
+  nn[1] = table[nn[1]];
+  nn[2] = table[nn[2]];
+}
+
 
 double
 SloshTriangleFS::getMass(CoordSet& cs)

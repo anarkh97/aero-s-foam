@@ -45,6 +45,19 @@ HelmQuad8Gal::renum(int *table)
   nn[7] = table[nn[7]];
 }
 
+void
+HelmQuad8Gal::renum(EleRenumMap& table)
+{
+  nn[0] = table[nn[0]];
+  nn[1] = table[nn[1]];
+  nn[2] = table[nn[2]];
+  nn[3] = table[nn[3]];
+  nn[4] = table[nn[4]];
+  nn[5] = table[nn[5]];
+  nn[6] = table[nn[6]];
+  nn[7] = table[nn[7]];
+}
+
 
 double
 HelmQuad8Gal::getMass(CoordSet&)

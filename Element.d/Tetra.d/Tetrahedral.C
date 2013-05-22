@@ -86,6 +86,15 @@ Tetrahedral::renum(int *table)
 }
 
 void
+Tetrahedral::renum(EleRenumMap& table)
+{
+     nn[0] = table[nn[0]];
+     nn[1] = table[nn[1]];
+     nn[2] = table[nn[2]];
+     nn[3] = table[nn[3]];
+}
+
+void
 Tetrahedral::getVonMises(Vector& stress,Vector& weight,CoordSet &cs,
                          Vector& elDisp, int strInd, int surface , double* ndTemps,
 			 double ylayer, double zlayer, int avgnum)

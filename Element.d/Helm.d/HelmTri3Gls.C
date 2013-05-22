@@ -27,6 +27,14 @@ HelmTri3Gls::renum(int *table)
   nn[2] = table[nn[2]];
 }
 
+void
+HelmTri3Gls::renum(EleRenumMap& table)
+{
+  nn[0] = table[nn[0]];
+  nn[1] = table[nn[1]];
+  nn[2] = table[nn[2]];
+}
+
 double
 HelmTri3Gls::getMass(CoordSet& cs)
 {

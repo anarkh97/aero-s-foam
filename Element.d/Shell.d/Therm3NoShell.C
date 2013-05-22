@@ -39,6 +39,14 @@ Therm3NoShell::renum(int *table)
 	nn[2] = table[nn[2]];
 }
 
+void
+Therm3NoShell::renum(EleRenumMap& table)
+{
+	nn[0] = table[nn[0]];
+	nn[1] = table[nn[1]];
+	nn[2] = table[nn[2]];
+}
+
 double
 Therm3NoShell::getMass(CoordSet& cs)
 {

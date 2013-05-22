@@ -1,7 +1,9 @@
 #ifdef USE_EIGEN3
 #include <Element.d/Rigid.d/RigidThreeNodeShell.h>
 #include <Element.d/Rigid.d/RigidBeam.h>
+#include <Element.d/State.h>
 #include <Corotational.d/utilities.h>
+#include <Hetero.d/InterpPoint.h>
 
 extern "C"      {
 void _FORTRAN(mass8)(double* ,double* ,double* ,double* , double& ,
@@ -218,4 +220,35 @@ RigidThreeNodeShell::getGravityForce(CoordSet& cs, double *gravityAcceleration,
 
         for(int i=18; i<numDofs(); ++i) gravityForce[i] = 0;
 }
+
+void
+RigidThreeNodeShell::computeDisp(CoordSet &cs, State &state, const InterpPoint &ip,
+                                 double *res, GeomState *geomState)
+{
+  const double *gp = ip.xy;
+
+  double xyz[3][6];
+  state.getDV(nn[0], xyz[0], xyz[0]+3);
+  state.getDV(nn[1], xyz[1], xyz[1]+3);
+  state.getDV(nn[2], xyz[2], xyz[2]+3);
+
+  int j;
+  for(j=0; j<6; ++j)
+     res[j] = (1.0-gp[0]-gp[1]) * xyz[0][j] + gp[0]*xyz[1][j] + gp[1]*xyz[2][j];
+}
+
+void
+RigidThreeNodeShell::getFlLoad(CoordSet &, const InterpPoint &ip, double *flF,
+                               double *resF, GeomState *gs)
+{
+ const double *gp = ip.xy;
+ int i;
+ for(i = 0; i < 3; ++i) {
+   resF[i+3]  = resF[i+9] = resF[i+15] = 0.0;
+   resF[i]    = (1.0-gp[0]-gp[1]) * flF[i];
+   resF[6+i]  = gp[0] * flF[i];
+   resF[12+i] = gp[1] * flF[i];
+  }
+}
+
 #endif

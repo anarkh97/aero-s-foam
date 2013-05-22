@@ -32,6 +32,7 @@ class GenDomainGroupTask : public TaskDescr {
    int numSommer;
    int solvertype;
    FSCommunicator *com;
+   bool makeC, makeC_deriv;
 
    GenDomainGroupTask(int nsub, GenSubDomain<Scalar> **_sd, double, double, double,
                       Rbm **_rbms, FullSquareMatrix **_kelArray, double, double, 

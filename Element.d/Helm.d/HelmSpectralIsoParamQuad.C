@@ -41,6 +41,12 @@ void HelmSpectralIsoParamQuad::renum(int *table) {
  for(i=0;i<ordersq;i++) nn[i] = table[nn[i]];
 }
 
+void HelmSpectralIsoParamQuad::renum(EleRenumMap& table) {
+ int i;
+ int ordersq = order*order;
+ for(i=0;i<ordersq;i++) nn[i] = table[nn[i]];
+}
+
 
 int* HelmSpectralIsoParamQuad::nodes(int *p) {
 

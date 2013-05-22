@@ -39,6 +39,14 @@ Membrane::renum(int *renumberingTable)
 }
 
 void
+Membrane::renum(EleRenumMap& renumberingTable)
+{
+	nn[0] = renumberingTable[nn[0]];
+	nn[1] = renumberingTable[nn[1]];
+	nn[2] = renumberingTable[nn[2]];
+}
+
+void
 Membrane::getVonMises(Vector& stress,Vector& weight,CoordSet &cs, Vector& elDisp, 
                       int strInd,int,double*,double ylayer, double zlayer, int avgnum)
 {

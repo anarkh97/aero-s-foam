@@ -64,6 +64,7 @@ public:
 
 protected:
   LinearProjectionNetwork(const SliceMapping * mapping, Communicator * timeComm, const DynamOps * metric, size_t vecSize, RankDeficientSolver * solver);
+  ~LinearProjectionNetwork();
  
   // Numbering for Allgather 
   class StateExchgNumbering;

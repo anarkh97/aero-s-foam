@@ -121,6 +121,7 @@ GeoSource::GeoSource(int iniSize) : oinfo(emptyInfo, iniSize), nodes(iniSize*16)
   cpuToCPU = 0;
   subToNode = 0;
   subToElem = 0;
+  unsortedSubToElem = 0;
   subToSub = 0;
 
   // init match data
@@ -1907,7 +1908,7 @@ void GeoSource::cleanAuxData()  {
 //--------------------------------------------------------------
 
 int GeoSource::readRanges(BinFileHandler &file, int &numRanges,
-                		int (*&ranges)[2])
+                          int (*&ranges)[2])
 {
   // read number of ranges
   file.read(&numRanges, 1);
@@ -2882,8 +2883,8 @@ int GeoSource::addSurfaceConstraint(int _numSurfaceConstraint, BCond *_surface_c
 //-------------------------------------------------------------------
 
 void GeoSource::readMatchInfo(BinFileHandler &matchFile,
-	int (*matchRanges)[2], int numMatchRanges, int subNum,
-	int *clusToLocElem) 
+        int (*matchRanges)[2], int numMatchRanges, int subNum,
+        int *clusToLocElem, int myID)
 {
   // get TOC
   BinFileHandler::OffType tocLoc;
@@ -2908,7 +2909,11 @@ void GeoSource::readMatchInfo(BinFileHandler &matchFile,
       int tmpData[2];  // cluster elem #, global match file position
       matchFile.read(tmpData, 2);
 
-      matchData[subNum][iMatch].elemNum = clusToLocElem[tmpData[0]];
+      //matchData[subNum][iMatch].elemNum = clusToLocElem[tmpData[0]];
+      //this modification is necessary because of the sort of subToElem in DecDomain
+      int glSubNum = (*cpuToSub)[myID][subNum];
+      int glElemNum = (*unsortedSubToElem)[glSubNum][clusToLocElem[tmpData[0]]];
+      matchData[subNum][iMatch].elemNum = subToElem->cOffset(glSubNum,glElemNum);
       matchData[subNum][iMatch].glPos = tmpData[1];
 
       // read natual coordinates of match
@@ -3090,8 +3095,8 @@ int GeoSource::getCPUMap(FILE *f, int numSub)
           cl2LocElem[iElem] = -1;
         iElem = 0;
         for(int iR = 0; iR < numElemRanges; ++iR)
-          for(int cElem = elemRanges[iR][1]; cElem >= elemRanges[iR][0]; --cElem) {
-            cl2LocElem[cElem] = iElem++; // reversed previous ordering due to sort of subToElem in DecDomain TODO check
+          for(int cElem = elemRanges[iR][0]; cElem <= elemRanges[iR][1]; ++cElem) {
+            cl2LocElem[cElem] = iElem++;
           }
 
         int nConnects;
@@ -3123,11 +3128,13 @@ int GeoSource::getCPUMap(FILE *f, int numSub)
           char fullMatchName[32];
           sprintf(fullMatchName, "%s1", matchName); // only one cluster currently supported
           BinFileHandler matchFile(fullMatchName, "rb");
-          readMatchInfo(matchFile, matchRanges, numMatchRanges, locSub, cl2LocElem); // PJSA
+          readMatchInfo(matchFile, matchRanges, numMatchRanges, locSub, cl2LocElem, myID); // PJSA
         }
         delete [] cl2LocElem;
       }
       delete [] gl2ClSubMap;
+      delete unsortedSubToElem;
+      unsortedSubToElem = 0;
     }
 /*
     else {
@@ -4203,6 +4210,7 @@ GeoSource::getDecomposition()
 #endif
 
   }
+  if(matchName != NULL && !unsortedSubToElem) unsortedSubToElem = subToElem->copy();
   return subToElem;
 }
 

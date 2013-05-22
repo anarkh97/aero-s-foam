@@ -52,6 +52,12 @@ HelmBrick32::renum(int *table)
   for(int i=0; i<32; i++) { nn[i] = table[nn[i]]; }
 }
 
+void
+HelmBrick32::renum(EleRenumMap& table)
+{
+  for(int i=0; i<32; i++) { nn[i] = table[nn[i]]; }
+}
+
 double
 HelmBrick32::getMass(CoordSet& cs)
 {

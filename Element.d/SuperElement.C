@@ -143,6 +143,13 @@ SuperElement::renum(int *table)
   for(int i = 0; i < nSubElems; ++i) subElems[i]->renum(table);
 }
 
+void
+SuperElement::renum(EleRenumMap& table)
+{
+  for(int i = 0; i < numNodes(); ++i) nn[i] = table[nn[i]];
+  for(int i = 0; i < nSubElems; ++i) subElems[i]->renum(table);
+}
+
 FullSquareMatrix 
 SuperElement::stiffness(CoordSet &cs, double *karray, int flg)
 {

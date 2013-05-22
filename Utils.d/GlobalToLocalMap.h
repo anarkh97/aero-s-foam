@@ -1,6 +1,8 @@
 #ifndef _GLOBALTOLOCALMAP_H_
 #define _GLOBALTOLOCALMAP_H_
 
+#include "Driver.d/Communicator.h"
+
 //#define HB_USE_MEMCPY
 #ifdef HB_USE_MEMCPY
 #include <cstring>

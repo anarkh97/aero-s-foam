@@ -124,6 +124,13 @@ EulerBeam::renum(int *table)
 }
 
 void
+EulerBeam::renum(EleRenumMap& table)
+{
+  nn[0] = table[nn[0]];
+  nn[1] = table[nn[1]];
+}
+
+void
 EulerBeam::getIntrnForce(Vector& elForce, CoordSet& cs,
 			 double *elDisp, int forceIndex, double *ndTemps)
 {

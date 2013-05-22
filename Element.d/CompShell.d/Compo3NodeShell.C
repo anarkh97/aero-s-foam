@@ -73,6 +73,18 @@ Compo3NodeShell::renum(int *table)
   nn[2] = table[nn[2]];
 }
 
+void
+Compo3NodeShell::renum(EleRenumMap& table)
+{
+  if(table[nn[0]] < 0 || table[nn[1]] < 0 || table[nn[2]] < 0)  {
+    fprintf(stderr,"no mapping for these nodes %d %d %d \n",nn[0],nn[1],nn[2]);
+    return;
+  }
+  nn[0] = table[nn[0]];
+  nn[1] = table[nn[1]];
+  nn[2] = table[nn[2]];
+}
+
 
 
 void

@@ -110,7 +110,7 @@ GenCuCSparse<Scalar>::GenCuCSparse(LMPCons **mpc, int numMPC, DofSetArray *c_dsa
     mstart = xunonz[i];
     mstop  = xunonz[i+1];
     for(m=mstart; m<mstop; ++m) {
-      Kuc[m] = mpc[i]->terms[m].val;
+      Kuc[m] = mpc[i]->terms[m].template val<Scalar>();
     }
   }
   myKuc = 1;

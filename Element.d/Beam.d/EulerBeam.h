@@ -18,6 +18,7 @@ public:
 	Element *clone();
 
 	void renum(int *);
+        void renum(EleRenumMap&);
 
 	void setFrame(EFrame *ef) { elemframe = ef; }
   const EFrame *getFrame() const { return elemframe; }

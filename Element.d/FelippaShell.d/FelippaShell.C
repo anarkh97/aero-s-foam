@@ -44,6 +44,14 @@ FelippaShell::renum(int *table)
 }
 
 void
+FelippaShell::renum(EleRenumMap& table)
+{
+  nn[0] = table[nn[0]];
+  nn[1] = table[nn[1]];
+  nn[2] = table[nn[2]];
+}
+
+void
 FelippaShell::getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
                           Vector &elDisp, int strInd, int surface,
                           double *, double ylayer, double zlayer,

@@ -28,6 +28,13 @@ void Tetra10HelmGal::renum(int *table) {
 }
 
 
+void Tetra10HelmGal::renum(EleRenumMap& table) {
+
+ int i;
+ for(i=0;i<10;i++) nn[i] = table[nn[i]];
+}
+
+
 double Tetra10HelmGal::getMass(CoordSet& cs) {
 
  fprintf(stderr,"Tetra10HelmGal::getMass not implemented and should not be called.\n");

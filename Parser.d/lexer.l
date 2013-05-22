@@ -850,7 +850,7 @@ TRAIL [a-zA-Z]*
 "THRMAT"|"thrmat"                  { return THERMMAT; }
 
 "CONSTRMAT"|"constrmat"            { return CONSTRMAT; } // deprecated
-"CONMET"|"conmet"                  { return CONSTRMAT; }
+"CONMAT"|"conmat"                  { return CONSTRMAT; }
 
 "SPRINGMAT"|"springmat"            { return SPRINGMAT; } // deprecated
 "SPRMAT"|"sprmat"                  { return SPRINGMAT; }

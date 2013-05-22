@@ -243,20 +243,27 @@ Domain::getElemFictitiousForce(int iele, GeomState &geomState, double *_f, FullS
         }
         else {
           Eigen::Vector3d V_n, A_n; // convected angular velocity and acceleration at t^{n}
-          V_n << (*refState)[nodes[i]].v[3], (*refState)[nodes[i]].v[4], (*refState)[nodes[i]].v[5];
-          A_n << (*refState)[nodes[i]].a[3], (*refState)[nodes[i]].a[4], (*refState)[nodes[i]].a[5];
           Eigen::Matrix3d R_n;
-          R_n << (*refState)[nodes[i]].R[0][0], (*refState)[nodes[i]].R[0][1], (*refState)[nodes[i]].R[0][2],
-                 (*refState)[nodes[i]].R[1][0], (*refState)[nodes[i]].R[1][1], (*refState)[nodes[i]].R[1][2],
-                 (*refState)[nodes[i]].R[2][0], (*refState)[nodes[i]].R[2][1], (*refState)[nodes[i]].R[2][2];
+          if(time == domain->solInfo().initialTime) {
+            V << geomState[nodes[i]].v[3], geomState[nodes[i]].v[4], geomState[nodes[i]].v[5];
+            A << geomState[nodes[i]].a[3], geomState[nodes[i]].a[4], geomState[nodes[i]].a[5];
+            compute_tangents = false;
+          }
+          else {
+            V_n << (*refState)[nodes[i]].v[3], (*refState)[nodes[i]].v[4], (*refState)[nodes[i]].v[5];
+            A_n << (*refState)[nodes[i]].a[3], (*refState)[nodes[i]].a[4], (*refState)[nodes[i]].a[5];
+            R_n << (*refState)[nodes[i]].R[0][0], (*refState)[nodes[i]].R[0][1], (*refState)[nodes[i]].R[0][2],
+                   (*refState)[nodes[i]].R[1][0], (*refState)[nodes[i]].R[1][1], (*refState)[nodes[i]].R[1][2],
+                   (*refState)[nodes[i]].R[2][0], (*refState)[nodes[i]].R[2][1], (*refState)[nodes[i]].R[2][2];
 
-          Eigen::Vector3d incd;
-          Eigen::Matrix3d dR = R_n.transpose()*R;
-          mat_to_vec(dR, incd);
-          // compute the convected angular velocity at t^{n+1-alphaf}
-          V = gamma/(dt*beta)*incd + (1-(1-alphaf)*gamma/beta)*V_n + dt*(1-alphaf)*(2*beta-gamma)/(2*beta)*A_n;
-          // compute the convected angular acceleration at t^{n+1-alpham}
-          A = (1-alpham)/(dt*dt*beta*(1-alphaf))*incd - (1-alpham)/(dt*beta)*V_n + ((alpham-1)/(2*beta)+1)*A_n;
+            Eigen::Vector3d incd;
+            Eigen::Matrix3d dR = R_n.transpose()*R;
+            mat_to_vec(dR, incd);
+            // compute the convected angular velocity at t^{n+1-alphaf}
+            V = gamma/(dt*beta)*incd + (1-(1-alphaf)*gamma/beta)*V_n + dt*(1-alphaf)*(2*beta-gamma)/(2*beta)*A_n;
+            // compute the convected angular acceleration at t^{n+1-alpham}
+            A = (1-alpham)/(dt*dt*beta*(1-alphaf))*incd - (1-alpham)/(dt*beta)*V_n + ((alpham-1)/(2*beta)+1)*A_n;
+          }
 
           // compute the fictitious force and the correction to the inertial+viscous force computed in probDesc->formRHScorrector which is (M*A + C*V)
           if(domain->solInfo().galerkinPodRom) {
@@ -372,21 +379,29 @@ Domain::getDMassFictitiousForce(GeomState &geomState, FullSquareMatrix *kel, Vec
          if(compute_tangents) K.setZero();
         }
         else { // compute the fictitious force for implicit generalized-alpha
-          Eigen::Vector3d V_n, A_n; // convected angular velocity and acceleration at t^{n}
-          V_n << (*refState)[current->node].v[3], (*refState)[current->node].v[4], (*refState)[current->node].v[5];
-          A_n << (*refState)[current->node].a[3], (*refState)[current->node].a[4], (*refState)[current->node].a[5];
-          Eigen::Matrix3d R_n;
-          R_n << (*refState)[current->node].R[0][0],(*refState)[current->node].R[0][1], (*refState)[current->node].R[0][2],
-                 (*refState)[current->node].R[1][0],(*refState)[current->node].R[1][1], (*refState)[current->node].R[1][2],
-                 (*refState)[current->node].R[2][0],(*refState)[current->node].R[2][1], (*refState)[current->node].R[2][2];
 
-          Eigen::Vector3d incd;
-          Eigen::Matrix3d dR = R_n.transpose()*R;
-          mat_to_vec(dR, incd);
-          // compute the convected angular velocity at t^{n+1-alphaf}
-          V = gamma/(dt*beta)*incd + (1-(1-alphaf)*gamma/beta)*V_n + dt*(1-alphaf)*(2*beta-gamma)/(2*beta)*A_n;
-          // compute the convected angular acceleration at t^{n+1-alpham}
-          A = (1-alpham)/(dt*dt*beta*(1-alphaf))*incd - (1-alpham)/(dt*beta)*V_n + ((alpham-1)/(2*beta)+1)*A_n;
+          Eigen::Vector3d V_n, A_n; // convected angular velocity and acceleration at t^{n}
+          Eigen::Matrix3d R_n;
+          if(time == domain->solInfo().initialTime) {
+            V << geomState[current->node].v[3], geomState[current->node].v[4], geomState[current->node].v[5];
+            A << geomState[current->node].a[3], geomState[current->node].a[4], geomState[current->node].a[5];
+            compute_tangents = false;
+          }
+          else {
+            V_n << (*refState)[current->node].v[3], (*refState)[current->node].v[4], (*refState)[current->node].v[5];
+            A_n << (*refState)[current->node].a[3], (*refState)[current->node].a[4], (*refState)[current->node].a[5];
+            R_n << (*refState)[current->node].R[0][0],(*refState)[current->node].R[0][1], (*refState)[current->node].R[0][2],
+                   (*refState)[current->node].R[1][0],(*refState)[current->node].R[1][1], (*refState)[current->node].R[1][2],
+                   (*refState)[current->node].R[2][0],(*refState)[current->node].R[2][1], (*refState)[current->node].R[2][2];
+
+            Eigen::Vector3d incd;
+            Eigen::Matrix3d dR = R_n.transpose()*R;
+            mat_to_vec(dR, incd);
+            // compute the convected angular velocity at t^{n+1-alphaf}
+            V = gamma/(dt*beta)*incd + (1-(1-alphaf)*gamma/beta)*V_n + dt*(1-alphaf)*(2*beta-gamma)/(2*beta)*A_n;
+            // compute the convected angular acceleration at t^{n+1-alpham}
+            A = (1-alpham)/(dt*dt*beta*(1-alphaf))*incd - (1-alpham)/(dt*beta)*V_n + ((alpham-1)/(2*beta)+1)*A_n;
+          }
 
           // compute the fictitious force and the correction to the inertial+viscous force computed in probDesc->formRHScorrector which is (M*A + C*V)
           if(domain->solInfo().galerkinPodRom) {

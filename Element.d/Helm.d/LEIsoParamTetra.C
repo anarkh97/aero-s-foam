@@ -54,6 +54,14 @@ void LEIsoParamTetra::renum(int *table) {
 }
 
 
+void LEIsoParamTetra::renum(EleRenumMap& table) {
+ int i;
+ IsoParamUtilsTetra ipu(order);
+ int orderc = ipu.getorderc();
+ for(i=0;i<orderc;i++) nn[i] = table[nn[i]];
+}
+
+
 int* LEIsoParamTetra::nodes(int *p) {
 
  IsoParamUtilsTetra ipu(order);

@@ -162,6 +162,16 @@ MpcElement::renum(int* table)
     terms[i].nnum = table[terms[i].nnum];
 }
 
+void
+MpcElement::renum(EleRenumMap& table)
+{
+  for(int i = 0; i < numNodes(); ++i)
+    if(nn[i] > -1)
+      nn[i] = table[nn[i]];
+  for(int i = 0; i < nterms; ++i)
+    terms[i].nnum = table[terms[i].nnum];
+}
+
 int*
 MpcElement::nodes(int* p)
 {

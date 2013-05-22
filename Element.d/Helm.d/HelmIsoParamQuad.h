@@ -23,6 +23,7 @@ public:
 
 	Element *clone();
 	void renum(int *);
+        void renum(EleRenumMap&);
 	void markDofs(DofSetArray &);
 //	int getTopNumber() {return 195;}
 	int numTopNodes() {return order*order;}

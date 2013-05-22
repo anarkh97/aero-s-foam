@@ -9,6 +9,8 @@
 //#include <Mortar.d/FFIPolygon.d/FFIPolygon.h>
 #include <Mortar.d/FFIPolygon.d/TriFacet.h>
 
+#include <Acme.d/search/Contact_Defines.h>
+
 // -----------------------------------------------------------------------------------------------------
 //                                            CONSTRUCTORS 
 // -----------------------------------------------------------------------------------------------------

@@ -58,6 +58,15 @@ FourNodeQuad::renum(int *table)
 }
 
 void
+FourNodeQuad::renum(EleRenumMap& table)
+{
+  nn[0] = table[nn[0]];
+  nn[1] = table[nn[1]];
+  nn[2] = table[nn[2]];
+  nn[3] = table[nn[3]];
+}
+
+void
 FourNodeQuad::getVonMises(Vector& stress,Vector& weight,CoordSet &cs, 
                           Vector& elDisp, int strInd,int,double *ndTemps,
 			  double ylayer, double zlayer, int avgnum)

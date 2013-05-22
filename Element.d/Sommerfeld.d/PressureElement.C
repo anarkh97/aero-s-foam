@@ -66,6 +66,18 @@ PressureElement<VectorValuedFunctionTemplate>
 }
 
 template<template <typename S> class VectorValuedFunctionTemplate>
+void
+PressureElement<VectorValuedFunctionTemplate>
+::renum(EleRenumMap& table)
+{
+  for(int i = 0; i < numNodes(); ++i)
+    if(nn[i] > -1)
+      nn[i] = table[nn[i]];
+  for(int i = 0; i < nterms; ++i)
+    terms[i].nnum = table[terms[i].nnum];
+}
+
+template<template <typename S> class VectorValuedFunctionTemplate>
 int*
 PressureElement<VectorValuedFunctionTemplate>
 ::nodes(int* p)

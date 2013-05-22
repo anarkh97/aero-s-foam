@@ -126,6 +126,14 @@ SolidElementTemplate<Region,NumberOfNodes,NumIntgPts>::renum(int *table)
 
 template<RegionType Region, int NumberOfNodes, int NumIntgPts>
 void
+SolidElementTemplate<Region,NumberOfNodes,NumIntgPts>::renum(EleRenumMap& table)
+{
+  for(int i = 0; i < NumberOfNodes; ++i)
+    n[i] = table[n[i]];
+}
+
+template<RegionType Region, int NumberOfNodes, int NumIntgPts>
+void
 SolidElementTemplate<Region,NumberOfNodes,NumIntgPts>::markDofs(DofSetArray &dsa)
 {
   dsa.mark(n, NumberOfNodes, DofSet::XYZdisp);

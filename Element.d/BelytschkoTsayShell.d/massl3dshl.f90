@@ -127,7 +127,8 @@ subroutine elemaslbt(nndof,ematpro,ecord,edisp, emaslbt)
      emassloc(iloc+5,1)= mpnd * alpha ! mass_rot.y
 
      if ( nndof == 6 ) then
-        emassloc(iloc+6,1)= mpnd * 2.0d0* alpha ! mass_rot.z
+        !emassloc(iloc+6,1)= mpnd * 2.0d0* alpha ! mass_rot.z
+        emassloc(iloc+6,1)= mpnd * alpha ! mass_rot.z
      end if
 
   end do

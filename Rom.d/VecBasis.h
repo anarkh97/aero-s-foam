@@ -15,7 +15,7 @@ template <typename Scalar> class GenVector;
 
 namespace Rom {
 
-template <typename Scalar, template <typename Scalar> class GenVecType>
+template <typename Scalar, template <typename> class GenVecType>
 struct VecTraits {
   typedef GenVecType<Scalar> Type;
   typedef typename Type::InfoType InfoType;
@@ -27,7 +27,7 @@ struct VecTraits {
   static bool not_equals(InfoType i, InfoType j) { return i != j; }
 };
 
-template <typename Scalar, template <typename Scalar> class GenVecType = GenVector>
+template <typename Scalar, template <typename> class GenVecType = GenVector>
 class GenVecBasis : private std::allocator<GenVecType<Scalar> > {
 private:
   typedef VecTraits<Scalar, GenVecType> Traits;
@@ -116,7 +116,7 @@ private:
 #endif
 };
 
-template <typename Scalar, template <typename Scalar> class GenVecType>
+template <typename Scalar, template <typename> class GenVecType>
 inline
 void
 GenVecBasis<Scalar, GenVecType>::swap(GenVecBasis &other) {
@@ -132,7 +132,7 @@ GenVecBasis<Scalar, GenVecType>::swap(GenVecBasis &other) {
   time1 = 0; time2 = 0; time3 = 0; time4 = 0; time5 = 0; time6 = 0; counter = 0;
 }
 
-template <typename Scalar, template <typename Scalar> class GenVecType>
+template <typename Scalar, template <typename> class GenVecType>
 inline
 void
 GenVecBasis<Scalar, GenVecType>::placeVectors() {
@@ -146,14 +146,14 @@ GenVecBasis<Scalar, GenVecType>::placeVectors() {
 #endif
 }
 
-template <typename Scalar, template <typename Scalar> class GenVecType>
+template <typename Scalar, template <typename> class GenVecType>
 inline
 void
 GenVecBasis<Scalar, GenVecType>::copyBufferContent(const GenVecBasis &other) {
   std::copy(other.buffer_, other.buffer_ + vectorSize() * vectorCount_, buffer_);
 }
 
-template <typename Scalar, template <typename Scalar> class GenVecType>
+template <typename Scalar, template <typename> class GenVecType>
 GenVecBasis<Scalar, GenVecType>::GenVecBasis() :
  vectorInfo_(Traits::defaultInfo()),
  vectorCount_(0)
@@ -168,7 +168,7 @@ GenVecBasis<Scalar, GenVecType>::GenVecBasis() :
 
 
 
-template <typename Scalar, template <typename Scalar> class GenVecType>
+template <typename Scalar, template <typename> class GenVecType>
 GenVecBasis<Scalar, GenVecType>::GenVecBasis(int vCount, InfoType vInfo) :
  vectorInfo_(vInfo),
  vectorCount_(vCount)
@@ -181,7 +181,7 @@ GenVecBasis<Scalar, GenVecType>::GenVecBasis(int vCount, InfoType vInfo) :
   placeVectors();
 }
 
-template <typename Scalar, template <typename Scalar> class GenVecType>
+template <typename Scalar, template <typename> class GenVecType>
 GenVecBasis<Scalar, GenVecType>::GenVecBasis(const GenVecBasis &other) :
  vectorInfo_(other.vectorInfo_),
  vectorCount_(other.vectorCount_)
@@ -195,7 +195,7 @@ GenVecBasis<Scalar, GenVecType>::GenVecBasis(const GenVecBasis &other) :
   copyBufferContent(other);
 }
 
-template <typename Scalar, template <typename Scalar> class GenVecType>
+template <typename Scalar, template <typename> class GenVecType>
 GenVecBasis<Scalar, GenVecType> &
 GenVecBasis<Scalar, GenVecType>::operator=(const GenVecBasis &other) {
   if (this != &other) {
@@ -210,7 +210,7 @@ GenVecBasis<Scalar, GenVecType>::operator=(const GenVecBasis &other) {
   return *this;
 }
 
-template <typename Scalar, template <typename Scalar> class GenVecType>
+template <typename Scalar, template <typename> class GenVecType>
 void
 GenVecBasis<Scalar, GenVecType>::dimensionIs(int vCount, InfoType vInfo) {
   if (vCount != vectorCount_ || Traits::not_equals(vInfo, vectorInfo_)) {
@@ -219,7 +219,7 @@ GenVecBasis<Scalar, GenVecType>::dimensionIs(int vCount, InfoType vInfo) {
   }
 }
 
-template <typename Scalar, template <typename Scalar> class GenVecType>
+template <typename Scalar, template <typename> class GenVecType>
 GenVecBasis<Scalar, GenVecType>::~GenVecBasis() {
   int iVec = vectorCount_;
   while (iVec--) {
@@ -230,7 +230,7 @@ GenVecBasis<Scalar, GenVecType>::~GenVecBasis() {
   delete[] buffer_;
 }
 
-template <typename Scalar, template <typename Scalar> class GenVecType>
+template <typename Scalar, template <typename> class GenVecType>
 inline
 void
 swap(GenVecBasis<Scalar, GenVecType> &a, GenVecBasis<Scalar, GenVecType> &b) {

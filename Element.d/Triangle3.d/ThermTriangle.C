@@ -29,6 +29,15 @@ ThermTriangle::renum(int *table)
 }
 
 
+void
+ThermTriangle::renum(EleRenumMap& table)
+{
+  nn[0] = table[nn[0]];
+  nn[1] = table[nn[1]];
+  nn[2] = table[nn[2]];
+}
+
+
 double
 ThermTriangle::getMass(CoordSet& cs)
 {

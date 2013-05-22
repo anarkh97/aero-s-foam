@@ -46,6 +46,14 @@ LineAxiSommer::renum(int *table) {
 
 }
 
+void
+LineAxiSommer::renum(EleRenumMap &table) {
+
+ nn[0] = table[nn[0]];
+ nn[1] = table[nn[1]];
+
+}
+
 
 FullSquareMatrix
 LineAxiSommer::sommerMatrix(CoordSet &cs) {

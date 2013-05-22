@@ -91,6 +91,7 @@ class NLMembrane : public GenGaussIntgElement<TwoDTensorTypes<9> >
     int numNodes() { return 3; }
     int numDofs() { return 9; }
     void renum(int *);
+        void renum(EleRenumMap&);
     void   markDofs(DofSetArray &);
     int*   dofs(DofSetArray &, int *p=0);
     int*   nodes(int * = 0);

@@ -234,16 +234,6 @@ Domain::getFollowerForce(GeomState &geomState, Vector& elementForce,
         default :
           std::cerr << " *** WARNING: selected moment type is not supported\n";
       }
-      for(int j = 0; j < 3; ++j) {
-        int uDofNum = c_dsa->getRCN(dofs[j]);
-        if(uDofNum >= 0)
-          residual[uDofNum] += m[j];
-        else if(reactions) {
-          int cDofNum = c_dsa->invRCN(dofs[j]);
-          if(cDofNum >= 0)
-            (*reactions)[cDofNum] -= m[j];
-        }
-      }
       // tangent stiffness contribution: 
       if(compute_tangents) {
         switch(nbc[i].mtype) {
@@ -271,6 +261,21 @@ Domain::getFollowerForce(GeomState &geomState, Vector& elementForce,
                 rotvar[j][k] = -0.5*skewm[j][k];
           } break;
         }
+      }
+      if(domain->solInfo().galerkinPodRom) { // transform nodal moments)
+        transformNodalMoment(geomState, m, rotvar, nbc[i].nnum, compute_tangents);
+      }
+      for(int j = 0; j < 3; ++j) {
+        int uDofNum = c_dsa->getRCN(dofs[j]);
+        if(uDofNum >= 0)
+          residual[uDofNum] += m[j];
+        else if(reactions) {
+          int cDofNum = c_dsa->invRCN(dofs[j]);
+          if(cDofNum >= 0)
+            (*reactions)[cDofNum] -= m[j];
+        }
+      }
+      if(compute_tangents) {
         for(int inode = 0; inode < nodeToElem->num(nbc[i].nnum); ++inode) { // loop over the elements attached to the node
                                                                             // at which the nodal moment is applied
           int iele = (*nodeToElem)[nbc[i].nnum][inode];
@@ -2205,12 +2210,14 @@ Domain::transformElemStiffAndForce(const GeomState &geomState, double *elementFo
 #endif
 }
 
-#ifdef USE_EIGEN3
 void
-Domain::transformNodalMoment(const GeomState &geomState, Eigen::Vector3d &G,
-                             Eigen::Matrix3d &H, int inode, bool compute_tangents)
+Domain::transformNodalMoment(const GeomState &geomState, double _G[],
+                             double _H[][3], int inode, bool compute_tangents)
 {
+#ifdef USE_EIGEN3
   // transform from eulerian spatial description to total lagrangian or updated lagrangian spatial description
+  Eigen::Map<Eigen::Matrix<double,3,1> > G(&_G[0]);
+  Eigen::Map<Eigen::Matrix<double,3,3>,Eigen::RowMajor> H(&_H[0][0]);
 
   Eigen::Matrix3d R;
   R << geomState[inode].R[0][0], geomState[inode].R[0][1], geomState[inode].R[0][2],
@@ -2230,5 +2237,8 @@ Domain::transformNodalMoment(const GeomState &geomState, Eigen::Vector3d &G,
 
     H = (T*H*T.transpose()).eval() + 0.5*(C1 + C1.transpose());
   }
-}
+#else
+  cerr << "USE_EIGEN3 is not defined here in Domain::transformNodalMoment\n";
+  exit(-1);
 #endif
+}

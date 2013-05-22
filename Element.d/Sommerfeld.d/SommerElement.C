@@ -19,6 +19,16 @@ SommerElement::renum(int *table)
     nn[i] = table[nn[i]];
 }
 
+void
+SommerElement::renum(EleRenumMap& table)
+{
+  int i;
+  int *nn = getNodes();
+
+  for(i=0; i < numNodes(); ++i) 
+    nn[i] = table[nn[i]];
+}
+
 
 SommerElement* SommerElement::clone()
 {

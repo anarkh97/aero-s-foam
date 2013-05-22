@@ -28,6 +28,7 @@ class FsiElement : public Element
     LMPCons* cons() { return fsi; }
 
     void renum(int *table);
+        void renum(EleRenumMap&);
 
     FullSquareMatrix stiffness(CoordSet&, double *kel, int flg=1);
     FullSquareMatrix imagStiffness(CoordSet&, double *kel, int flg=1);

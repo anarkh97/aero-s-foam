@@ -7,18 +7,18 @@
 
 // Preconditioner types:
 // precno     = 0       no preconditioner
-// precno     = 1       lumped			(default)
-// precno     = 2       dirichlet
+// precno     = 1       lumped
+// precno     = 2       dirichlet               (default)
 
 // Solver types for coarse problem: (GtG)x = b
 // other solvers not implemented yet.
-// gtgSolver  = 0       skyline                 (default)
-// gtgSolver  = 1       sparse 
+// gtgSolver  = 0       skyline
+// gtgSolver  = 1       sparse                  (default)
 // gtgSolver  = 2       blocksky
 
 // Solver types for Subdomain matrices
-// solvertype = 0       skyline			(default)
-// solvertype = 1       sparse
+// solvertype = 0       skyline
+// solvertype = 1       sparse                  (default)
 // solvertype = 2       blocksky
 // solvertype = 3       llt
 // solvertype = 4       ldlt
@@ -33,8 +33,8 @@
 // nonLocalQ = 1	Q(preconditioner type)  projector
 
 // Scaling types:
-// scaling = 1		kscaling (stiffness)	(default)
-// scaling = 2		tscaling (topology)
+// scaling = 1		kscaling (stiffness)
+// scaling = 2		tscaling (topology)     (default)
 
 // FETI Version
 // version = 0		FETI 1			(default)
@@ -46,7 +46,7 @@
 // noCoarse = 1		coarse problem not used
 
 // Global rigid body mode relative tolerance
-// grbm_tol = 1.0E-6 (default)
+// grbm_tol = 1.0E-6 				(default)
 
 // Number of iterations to print the error
 // printNumber = -1     no printing
@@ -117,8 +117,8 @@
 // mpc_scaling = 2          tscaling (topology) (default)
 
 // Solver types for CC^t matrices
-// cctSolver = 0       skyline                 (default)
-// cctSolver = 1       sparse
+// cctSolver = 0       skyline
+// cctSolver = 1       sparse			(default)
 
 //HB: Scaling for CC^t solver (currently ONLY supported for skyline solver)
 // cctScaled = false    scaling OFF (default)
@@ -137,9 +137,9 @@
 // outerloop = 2                    use GCR solver
 // outerloop = 3                    use CGAL solver
 
-// numdir    = 3 (default)          number of wave directions added in Q matrix
+// numdir    = 0 (default)          number of wave directions added in Q matrix
 // orthotol  = 1.0E-02 (default)    relative tolerance value in orthogonalizing Q matrix
-// orthotol2 = 1.0E-02 (default)    absolute tolerance value in orthogonalizing Q matrix
+// orthotol2 = 0.0     (default)    absolute tolerance value in orthogonalizing Q matrix
 
 class FetiInfo {
 
@@ -280,7 +280,7 @@ FetiInfo::FetiInfo()
   feti2version= sparseCoarse;  // default use New FETI2
   printNumber = 10;        // default print error at every FETI iteration
   corners    = noEndCorners3; // default clamp all corner dofs
-  augment    = Edges;       // default no Kcc augmentation
+  augment    = Edges;       // default Kcc augmentation
   nGs        = 6;
   rbmType    = all;
   gmresResidual = false;     // to force computing the "primal residual" at each GMRES iteration

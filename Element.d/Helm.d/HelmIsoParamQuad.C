@@ -41,6 +41,12 @@ void HelmIsoParamQuad::renum(int *table) {
  for(i=0;i<ordersq;i++) nn[i] = table[nn[i]];
 }
 
+void HelmIsoParamQuad::renum(EleRenumMap& table) {
+ int i;
+ int ordersq = order*order;
+ for(i=0;i<ordersq;i++) nn[i] = table[nn[i]];
+}
+
 extern bool useFull;
 
 int* HelmIsoParamQuad::nodes(int *p) {

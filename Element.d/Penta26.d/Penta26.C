@@ -101,6 +101,12 @@ Penta26::renum(int *table)
 }
 
 void
+Penta26::renum(EleRenumMap& table)
+{
+ for(int i=0; i<26; i++) { nn[i] = table[nn[i]]; }
+}
+
+void
 Penta26::getVonMises(Vector& stress,Vector& weight,CoordSet &cs,
                             Vector& elDisp, int strInd, int surface, 
 			    double *ndTemps, double ylayer, double zlayer, int avgnum)

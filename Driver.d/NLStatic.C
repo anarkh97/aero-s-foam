@@ -395,6 +395,8 @@ Domain::getWeightedStiffAndForceOnly(const std::map<int, double> &weights,
                                      GeomState *refState, FullSquareMatrix *mel)
 {
   const double pseudoTime = sinfo.isDynam() ? time : lambda; // MPC needs lambda for nonlinear statics
+
+  for(int iele = 0; iele < numele; ++iele) kel[iele].zero(); // XXX otherwise, the follower force and discrete mass tangets will accumulate
   
   for (std::map<int, double>::const_iterator it = weights.begin(), it_end = weights.end(); it != it_end; ++it) {
     const int iElem = it->first;
@@ -427,12 +429,17 @@ Domain::getWeightedStiffAndForceOnly(const std::map<int, double> &weights,
   getFollowerForce(geomState, elementForce, corotators, kel, residual, lambda, time, refState, NULL, true);
 
   if(sinfo.isDynam() && mel) getWeightedFictitiousForceOnly(weights, geomState, elementForce, kel, residual, time, refState, NULL, mel, true);
-
+/*
   if(!solInfo().getNLInfo().unsymmetric && solInfo().newmarkBeta != 0)
     for (std::map<int, double>::const_iterator it = weights.begin(), it_end = weights.end(); it != it_end; ++it) {
       const int iElem = it->first;
       kel[iElem].symmetrize();
     }
+*/
+  // this is a bit inefficient but there may be some elements without weights with kel due to follower force and/or discrete mass
+  if(!solInfo().getNLInfo().unsymmetric && solInfo().newmarkBeta != 0)
+    for(int iele = 0; iele < numele; ++iele)
+      kel[iele].symmetrize();
 }
 
 void
@@ -760,7 +767,14 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
           } else {
             std::fill_n(&data[nodeI][0], 3, 0.0);
           }
-          mat_to_vec((*geomState)[iNode].R, &data[nodeI][3]);
+          if(oinfo[iInfo].rotvecouttype == OutputInfo::normalized) {
+            mat_to_vec((*geomState)[iNode].R, &data[nodeI][3]);
+          }
+          else { // denormalized
+            data[nodeI][3] = (*geomState)[iNode].theta[0];
+            data[nodeI][4] = (*geomState)[iNode].theta[1];
+            data[nodeI][5] = (*geomState)[iNode].theta[2];
+          }
         } else {
           std::fill_n(&data[nodeI][0], 6, 0.0);
         }
@@ -792,6 +806,21 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
       delete [] data;
     }
       break;
+    case OutputInfo::Quaternion:  {
+      double (*data)[4] = new double[nPrintNodes][4];
+      for (i = 0, realNode = -1; i < nNodes; ++i) {
+        int iNode = first_node+i;
+        if(outFlag) { if(nodes[iNode] == 0) continue; nodeI = ++realNode; } else nodeI = i;
+        if (iNode < geomState->numNodes() && nodes[iNode]) {
+          mat_to_quat((*geomState)[iNode].R, data[nodeI]);
+        } else {
+          std::fill_n(&data[nodeI][0], 4, 0.0);
+        }
+      }
+      geoSource->outputNodeVectors4(iInfo, data, nPrintNodes, time);
+      delete [] data;
+    }
+      break;
     case OutputInfo::Velocity6: { 
       if(!velocity) break;
       StackVector v_n(velocity, numUncon());
@@ -802,30 +831,74 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
                             data[nodeI]+1, &DofSet::Ydisp, data[nodeI]+2, &DofSet::Zdisp);
         getOrAddDofForPrint(false, v_n, vcx, first_node+iNode, data[nodeI]+3, &DofSet::Xrot,
                               data[nodeI]+4, &DofSet::Yrot, data[nodeI]+5, &DofSet::Zrot);
-        if(oinfo[iInfo].angularouttype == OutputInfo::spatial) {
-          // transform from convected to spatial angular velocity
-          if (iNode < geomState->numNodes() && nodes[iNode]) {
-            double V[3] = { data[nodeI][3], data[nodeI][4], data[nodeI][5] };
-            mat_mult_vec((*geomState)[iNode].R,V,data[nodeI]+3,0); // v = R*V
+        if(oinfo[iInfo].angularouttype == OutputInfo::convected) {
+          if(domain->solInfo().galerkinPodRom) {
+            // transform from total to convected
+            if (first_node+iNode < geomState->numNodes() && nodes[first_node+iNode]) {
+#ifdef USE_EIGEN3
+              Eigen::Vector3d Psi, Psidot;
+              Eigen::Map<Eigen::Vector3d> V(data[nodeI]+3);
+              Eigen::Matrix3d T;
+              Psidot << data[nodeI][3], data[nodeI][4], data[nodeI][5];
+              Psi << (*geomState)[first_node+iNode].theta[0], (*geomState)[first_node+iNode].theta[1], (*geomState)[first_node+iNode].theta[2];
+              tangential_transf(Psi, T);
+              V = T*Psidot;
+#else
+              data[nodeI][3] = data[nodeI][4] = data[nodeI][5] = 0;
+#endif
+            }
+          }
+        }
+        else if(oinfo[iInfo].angularouttype == OutputInfo::spatial) {
+          if(domain->solInfo().galerkinPodRom) {
+            // transform from total to spatial
+            if (first_node+iNode < geomState->numNodes() && nodes[first_node+iNode]) {
+#ifdef USE_EIGEN3
+              Eigen::Vector3d Psi, Psidot;
+              Eigen::Map<Eigen::Vector3d> V(data[nodeI]+3);
+              Eigen::Matrix3d T;
+              Psidot << data[nodeI][3], data[nodeI][4], data[nodeI][5];
+              Psi << (*geomState)[first_node+iNode].theta[0], (*geomState)[first_node+iNode].theta[1], (*geomState)[first_node+iNode].theta[2];
+              tangential_transf(Psi, T);
+              V = T.transpose()*Psidot;
+#else
+              data[nodeI][3] = data[nodeI][4] = data[nodeI][5] = 0;
+#endif
+            }
+          }
+          else {
+            // transform from convected to spatial angular velocity
+            if (first_node+iNode < geomState->numNodes() && nodes[first_node+iNode]) {
+              double V[3] = { data[nodeI][3], data[nodeI][4], data[nodeI][5] };
+             mat_mult_vec((*geomState)[first_node+iNode].R,V,data[nodeI]+3,0); // v = R*V
+            }
           }
         }
         else if(oinfo[iInfo].angularouttype == OutputInfo::total) {
-          // transform from convected angular velocity to time derivative of total rotation vector
-          if (iNode < geomState->numNodes() && nodes[iNode]) {
+          // TODO: "normalized" total angular velocity for galerkinPodRom
+          if(!domain->solInfo().galerkinPodRom) {
+            // transform from convected angular velocity to time derivative of total rotation vector
+            if (first_node+iNode < geomState->numNodes() && nodes[first_node+iNode]) {
 #ifdef USE_EIGEN3
-            Eigen::Vector3d V, Psi;
-            Eigen::Map<Eigen::Vector3d> Psidot(data[nodeI]+3);
-            Eigen::Matrix3d R, T;
-            V << data[nodeI][3], data[nodeI][4], data[nodeI][5];
-            R << (*geomState)[iNode].R[0][0], (*geomState)[iNode].R[0][1], (*geomState)[iNode].R[0][2],
-                 (*geomState)[iNode].R[1][0], (*geomState)[iNode].R[1][1], (*geomState)[iNode].R[1][2],
-                 (*geomState)[iNode].R[2][0], (*geomState)[iNode].R[2][1], (*geomState)[iNode].R[2][2];
-            mat_to_vec(R, Psi);
-            tangential_transf(Psi, T);
-            Psidot = T.inverse()*V;
+              Eigen::Vector3d V, Psi;
+              Eigen::Map<Eigen::Vector3d> Psidot(data[nodeI]+3);
+              Eigen::Matrix3d R, T;
+              V << data[nodeI][3], data[nodeI][4], data[nodeI][5];
+              if(oinfo[iInfo].rotvecouttype == OutputInfo::normalized) {
+                R << (*geomState)[first_node+iNode].R[0][0], (*geomState)[first_node+iNode].R[0][1], (*geomState)[first_node+iNode].R[0][2],
+                     (*geomState)[first_node+iNode].R[1][0], (*geomState)[first_node+iNode].R[1][1], (*geomState)[first_node+iNode].R[1][2],
+                     (*geomState)[first_node+iNode].R[2][0], (*geomState)[first_node+iNode].R[2][1], (*geomState)[first_node+iNode].R[2][2];
+                mat_to_vec(R, Psi);
+              }
+              else {
+                Psi << (*geomState)[first_node+iNode].theta[0], (*geomState)[first_node+iNode].theta[1], (*geomState)[first_node+iNode].theta[2];
+              }
+              tangential_transf(Psi, T);
+              Psidot = T.inverse()*V;
 #else
-            data[nodeI][3] = data[nodeI][4] = data[nodeI][5] = 0;
+              data[nodeI][3] = data[nodeI][4] = data[nodeI][5] = 0;
 #endif
+            }
           }
         }
       }
@@ -860,6 +933,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
       break;
     case OutputInfo::Accel6:  {
       if(!acceleration) break;
+      StackVector v_n(velocity, numUncon());
       StackVector a_n(acceleration, numUncon());
       double (*data)[6] = new double[nPrintNodes][6];
       for (int iNode = 0, realNode = -1; iNode < nNodes; ++iNode)  {
@@ -870,33 +944,87 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
         getOrAddDofForPrint(false, a_n, (double *) acx, first_node+iNode, data[nodeI]+3,
                             &DofSet::Xrot, data[nodeI]+4, &DofSet::Yrot, data[nodeI]+5,
                             &DofSet::Zrot);
-        if(oinfo[iInfo].angularouttype == OutputInfo::spatial) {
-          // transform from convected to spatial angular acceleration
-          if (iNode < geomState->numNodes() && nodes[iNode]) {
-            double A[3] = { data[nodeI][3], data[nodeI][4], data[nodeI][5] };
-            mat_mult_vec((*geomState)[iNode].R,A,data[nodeI]+3,0); // a = R*A
+        if(oinfo[iInfo].angularouttype == OutputInfo::convected) {
+          if(domain->solInfo().galerkinPodRom) {
+            // transform from total to convected
+            if (first_node+iNode < geomState->numNodes() && nodes[first_node+iNode]) {
+#ifdef USE_EIGEN3
+              Eigen::Vector3d Psi, Psidot, Psiddot;
+              Eigen::Map<Eigen::Vector3d> A(data[nodeI]+3);
+              Eigen::Matrix3d T,Tdot;
+              Psi << (*geomState)[first_node+iNode].theta[0], (*geomState)[first_node+iNode].theta[1], (*geomState)[first_node+iNode].theta[2];
+              getOrAddDofForPrint(false, v_n, (double *) vcx, first_node+iNode, Psidot.data()+0,
+                            &DofSet::Xrot, Psidot.data()+1, &DofSet::Yrot, Psidot.data()+2,
+                            &DofSet::Zrot);
+              Psiddot << data[nodeI][3], data[nodeI][4], data[nodeI][5];
+              tangential_transf(Psi, T);
+              tangential_transf_dot(Psi, Psidot, Tdot);
+              A = (T*Psiddot + Tdot*Psidot).eval();
+#else
+              data[nodeI][3] = data[nodeI][4] = data[nodeI][5] = 0;
+#endif
+            }
+          }
+        }
+        else if(oinfo[iInfo].angularouttype == OutputInfo::spatial) {
+          if(domain->solInfo().galerkinPodRom) {
+            // transform from total to spatial
+            if (first_node+iNode < geomState->numNodes() && nodes[first_node+iNode]) {
+#ifdef USE_EIGEN3
+              Eigen::Vector3d Psi, Psidot, Psiddot;
+              Eigen::Map<Eigen::Vector3d> A(data[nodeI]+3);
+              Eigen::Matrix3d T,Tdot;
+              Psi << (*geomState)[first_node+iNode].theta[0], (*geomState)[first_node+iNode].theta[1], (*geomState)[first_node+iNode].theta[2];
+              getOrAddDofForPrint(false, v_n, (double *) vcx, first_node+iNode, Psidot.data()+0,
+                            &DofSet::Xrot, Psidot.data()+1, &DofSet::Yrot, Psidot.data()+2,
+                            &DofSet::Zrot);
+              Psiddot << data[nodeI][3], data[nodeI][4], data[nodeI][5];
+              tangential_transf(Psi, T);
+              tangential_transf_dot(Psi, Psidot, Tdot);
+              A = (T.transpose()*Psiddot + Tdot.transpose()*Psidot).eval();
+#else
+              data[nodeI][3] = data[nodeI][4] = data[nodeI][5] = 0;
+#endif
+            }
+          }
+          else {
+            // transform from convected to spatial angular acceleration
+            if (first_node+iNode < geomState->numNodes() && nodes[first_node+iNode]) {
+              double A[3] = { data[nodeI][3], data[nodeI][4], data[nodeI][5] };
+              mat_mult_vec((*geomState)[first_node+iNode].R,A,data[nodeI]+3,0); // a = R*A
+            }
           }
         }
         else if(oinfo[iInfo].angularouttype == OutputInfo::total) {
-          // transform from convected angular acceleration to second time derivative of total rotation vector
-          if (iNode < geomState->numNodes() && nodes[iNode]) {
+          // TODO: "normalized" total angular acceleration for galerkinPodRom
+          if(!domain->solInfo().galerkinPodRom) {
+            // transform from convected angular acceleration to second time derivative of total rotation vector
+            if (first_node+iNode < geomState->numNodes() && nodes[first_node+iNode]) {
 #ifdef USE_EIGEN3
-            Eigen::Vector3d A, V, Psi, Psidot;
-            Eigen::Map<Eigen::Vector3d> Psiddot(data[nodeI]+3);
-            Eigen::Matrix3d R, T, Tdot;
-            A << data[nodeI][3], data[nodeI][4], data[nodeI][5];
-            V << (*geomState)[iNode].v[3], (*geomState)[iNode].v[4], (*geomState)[iNode].v[5];
-            R << (*geomState)[iNode].R[0][0], (*geomState)[iNode].R[0][1], (*geomState)[iNode].R[0][2],
-                 (*geomState)[iNode].R[1][0], (*geomState)[iNode].R[1][1], (*geomState)[iNode].R[1][2],
-                 (*geomState)[iNode].R[2][0], (*geomState)[iNode].R[2][1], (*geomState)[iNode].R[2][2];
-            mat_to_vec(R, Psi);
-            tangential_transf(Psi, T);
-            Psidot = T.inverse()*V;
-            tangential_transf_dot(Psi, Psidot, Tdot);
-            Psiddot = T.inverse()*(A - Tdot*Psidot);
+              Eigen::Vector3d A, V, Psi, Psidot;
+              Eigen::Map<Eigen::Vector3d> Psiddot(data[nodeI]+3);
+              Eigen::Matrix3d R, T, Tdot;
+              A << data[nodeI][3], data[nodeI][4], data[nodeI][5];
+              getOrAddDofForPrint(false, v_n, (double *) vcx, first_node+iNode, V.data()+0,
+                            &DofSet::Xrot, V.data()+1, &DofSet::Yrot, V.data()+2,
+                            &DofSet::Zrot);
+              if(oinfo[iInfo].rotvecouttype == OutputInfo::normalized) {
+                R << (*geomState)[first_node+iNode].R[0][0], (*geomState)[first_node+iNode].R[0][1], (*geomState)[first_node+iNode].R[0][2],
+                     (*geomState)[first_node+iNode].R[1][0], (*geomState)[first_node+iNode].R[1][1], (*geomState)[first_node+iNode].R[1][2],
+                     (*geomState)[first_node+iNode].R[2][0], (*geomState)[first_node+iNode].R[2][1], (*geomState)[first_node+iNode].R[2][2];
+                mat_to_vec(R, Psi);
+              }
+              else {
+                Psi << (*geomState)[first_node+iNode].theta[0], (*geomState)[first_node+iNode].theta[1], (*geomState)[first_node+iNode].theta[2];
+              }
+              tangential_transf(Psi, T);
+              Psidot = T.inverse()*V;
+              tangential_transf_dot(Psi, Psidot, Tdot);
+              Psiddot = T.inverse()*(A - Tdot*Psidot);
 #else
-            data[nodeI][3] = data[nodeI][4] = data[nodeI][5] = 0;
+              data[nodeI][3] = data[nodeI][4] = data[nodeI][5] = 0;
 #endif
+            }
           }
         }
       }
@@ -2176,12 +2304,22 @@ Domain::transformElemStiffAndForce(const GeomState &geomState, double *elementFo
   int numNodes = packedEset[iele]->numNodes() - packedEset[iele]->numInternalNodes();
   int *nodes = packedEset[iele]->nodes();
   for(int k = 0; k < numNodes; ++k) {
+    Eigen::Vector3d Psi;
+/*
     Eigen::Matrix3d R;
     R << geomState[nodes[k]].R[0][0], geomState[nodes[k]].R[0][1], geomState[nodes[k]].R[0][2],
          geomState[nodes[k]].R[1][0], geomState[nodes[k]].R[1][1], geomState[nodes[k]].R[1][2],
          geomState[nodes[k]].R[2][0], geomState[nodes[k]].R[2][1], geomState[nodes[k]].R[2][2];
-    Eigen::Vector3d Psi;
     mat_to_vec(R, Psi);
+*/
+    // XXX
+    Psi << geomState[nodes[k]].theta[0], geomState[nodes[k]].theta[1], geomState[nodes[k]].theta[2];
+/*
+    if(Psi.squaredNorm() != 0 && Psi.norm() > M_PI) {
+      Psi = complement_rot_vec(Psi);
+    }
+*/
+
     Eigen::Matrix3d T;
     tangential_transf(Psi, T);
 
@@ -2219,12 +2357,21 @@ Domain::transformNodalMoment(const GeomState &geomState, double _G[],
   Eigen::Map<Eigen::Matrix<double,3,1> > G(&_G[0]);
   Eigen::Map<Eigen::Matrix<double,3,3>,Eigen::RowMajor> H(&_H[0][0]);
 
+  Eigen::Vector3d Psi;
+/*
   Eigen::Matrix3d R;
   R << geomState[inode].R[0][0], geomState[inode].R[0][1], geomState[inode].R[0][2],
        geomState[inode].R[1][0], geomState[inode].R[1][1], geomState[inode].R[1][2],
        geomState[inode].R[2][0], geomState[inode].R[2][1], geomState[inode].R[2][2];
-  Eigen::Vector3d Psi;
   mat_to_vec(R, Psi);
+*/
+  // XXX
+  Psi << geomState[inode].theta[0], geomState[inode].theta[1], geomState[inode].theta[2];
+/*
+  if(Psi.squaredNorm() != 0 && Psi.norm() > M_PI) {
+    Psi = complement_rot_vec(Psi);
+  }
+*/
 
   Eigen::Matrix3d T;
   tangential_transf(Psi, T);

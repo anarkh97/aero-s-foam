@@ -15,11 +15,13 @@ namespace Rom {
 template <typename Scalar>
 class GenGalerkinProjectionSolver : public GenDBSparsePodProjectionSolver<Scalar> {
 public:
-  GenGalerkinProjectionSolver(Connectivity *cn, DofSetArray *dsa, ConstrainedDSA *c_dsa);
-
+  GenGalerkinProjectionSolver(Connectivity *cn, DofSetArray *dsa, ConstrainedDSA *c_dsa, bool pivotFlag=false);
+  ~GenGalerkinProjectionSolver();
 private:
   GenFullSquareMatrix<Scalar> reducedMatrix_;
   bool rhsIsprojected_;
+  bool pivotFlag_;
+  int *ipiv_;
  
   // Overriden 
   virtual void resetSolver(int vCount, int vSize);
@@ -36,11 +38,20 @@ private:
 template <typename Scalar>
 GenGalerkinProjectionSolver<Scalar>::GenGalerkinProjectionSolver(Connectivity *cn,
                                                                  DofSetArray *dsa,
-                                                                 ConstrainedDSA *c_dsa):
+                                                                 ConstrainedDSA *c_dsa,
+                                                                 bool pivotFlag):
   GenDBSparsePodProjectionSolver<Scalar>(cn, dsa, c_dsa),
   reducedMatrix_(),
-  rhsIsprojected_(false)
+  rhsIsprojected_(false),
+  pivotFlag_(pivotFlag),
+  ipiv_(NULL)
 {}
+
+template <typename Scalar>
+GenGalerkinProjectionSolver<Scalar>::~GenGalerkinProjectionSolver()
+{
+  if(ipiv_) delete [] ipiv_;
+}
 
 template <typename Scalar>
 void
@@ -88,19 +99,37 @@ GenGalerkinProjectionSolver<Scalar>::solveReducedSystem(GenVector<Scalar> &rhs) 
 
   rhsIsprojected_ = false;
 */
-  cholesky_solve_upper(reducedMatrix_, rhs.data());
+  if(pivotFlag_) {
+    if(!ipiv_) ipiv_ = new int[reducedMatrix_.dim()];
+    ldlt_solve_upper(reducedMatrix_, rhs.data(), ipiv_);
+  }
+  else
+    cholesky_solve_upper(reducedMatrix_, rhs.data());
 }
 
 template <typename Scalar>
 void
 GenGalerkinProjectionSolver<Scalar>::performFactor() {
-  cholesky_factor_upper(reducedMatrix_);
+
+  if(pivotFlag_) {
+    if(!ipiv_) ipiv_ = new int[reducedMatrix_.dim()];
+    ldlt_factor_upper(reducedMatrix_, ipiv_);
+  }
+  else {
+    cholesky_factor_upper(reducedMatrix_);
+  }
 }
 
 template <typename Scalar>
 void
 GenGalerkinProjectionSolver<Scalar>::performSolve() {
-  cholesky_solve_upper(reducedMatrix_, this->getReducedSolution().data());
+
+  if(pivotFlag_) {
+    ldlt_solve_upper(reducedMatrix_, this->getReducedSolution().data(), ipiv_);
+  }
+  else {
+    cholesky_solve_upper(reducedMatrix_, this->getReducedSolution().data());
+  }
 }
 
 typedef GenGalerkinProjectionSolver<double> GalerkinProjectionSolver;

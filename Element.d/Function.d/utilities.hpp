@@ -845,5 +845,51 @@ void tangential_transf_dot(const Eigen::Matrix<Scalar,3,1> &Psi, const Eigen::Ma
          + c4*Psidotskew + c5*(Psidot*Psi.transpose() + Psi*Psidot.transpose());
 }
 
+template<typename Scalar>
+Eigen::Matrix<Scalar,3,1>
+complement_rot_vec(const Eigen::Matrix<Scalar,3,1>& Psi)
+{
+  return Psi-2*M_PI/Psi.norm()*Psi;
+}
+
+template<typename Scalar>
+Eigen::Matrix<Scalar,3,3>
+complement_transf(const Eigen::Matrix<Scalar,3,1>& Psi)
+{
+  Scalar psi = Psi.norm();
+  Eigen::Matrix<Scalar,3,1> e = Psi.normalized();
+  return (1-2*M_PI/psi)*Eigen::Matrix<Scalar,3,3>::Identity() + 2*M_PI/psi*(e*e.transpose());
+}
+
+template<typename Scalar>
+Eigen::Matrix<Scalar,3,3>
+complement_transf_dot(const Eigen::Matrix<Scalar,3,1>& Psi, const Eigen::Matrix<Scalar,3,1>& Psidot)
+{
+  Scalar psi2 = Psi.squaredNorm();
+  Eigen::Matrix<Scalar,3,1> e = Psi.normalized();
+  return (2*M_PI)/psi2*(e.dot(Psidot)*Eigen::Matrix<Scalar,3,3>::Identity() + (Psidot*e.transpose() + e*Psidot.transpose()) - 3*e.dot(Psidot)*e*e.transpose());
+}
+
+template<typename Scalar>
+Eigen::Matrix<Scalar,3,1>
+denormalize_rotvec(const Eigen::Matrix<Scalar,3,1>& Psi, const Eigen::Matrix<Scalar,3,1>& Psi_n)
+{
+  // return the rotation vector equivalent to Psi which is closest to Psi_n
+  Eigen::Matrix<Scalar,3,1> ret = Psi;
+
+  Scalar psi2 = Psi.squaredNorm();
+  if(psi2 != 0) {
+    Scalar psi = sqrt(psi2);
+    for(int i=1; i<=10; ++i) {
+      Eigen::Matrix<Scalar,3,1> Psi_minus = Psi-2*i*M_PI/psi*Psi;
+      Eigen::Matrix<Scalar,3,1> Psi_plus =  Psi+2*i*M_PI/psi*Psi;
+      if( (Psi_minus-Psi_n).norm() < (ret-Psi_n).norm() ) ret = Psi_minus;
+      if( (Psi_plus-Psi_n).norm() < (ret-Psi_n).norm() ) ret = Psi_plus;
+    }
+  }
+
+  return ret;
+}
+
 #endif
 #endif

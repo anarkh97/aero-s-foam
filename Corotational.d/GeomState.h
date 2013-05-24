@@ -18,9 +18,11 @@ class NodeState {
     double x, y, z;                     // x,y,z coordinates
     double v[6], a[6];                  // x,y,z velocities and accelerations
     double R[3][3];                     // Rotation Tensor
+    double theta[3];                    // Rotation Vector
     void operator=(const NodeState &);
     double diff(const Node &un, int dof);
-    NodeState() { for(int i = 0; i < 6; ++ i) v[i] = a[i] = 0; }
+    NodeState() { for(int i = 0; i < 6; ++ i) v[i] = a[i] = 0;
+                  for(int i = 0; i < 3; ++ i) theta[i] = 0;  }
 };
 
 class ElemState {
@@ -106,7 +108,7 @@ class GeomState {
      virtual void get_tot_displacement(Vector &totVec);
      virtual void push_forward(Vector &f);
      virtual void pull_back(Vector &f);
-     virtual void transform(Vector &f, int flag) const;
+     virtual void transform(Vector &f, int flag, bool denormalize = false) const;
      virtual void transform(Vector &f, const std::vector<int> &, int flag) const;
      void zeroRotDofs(Vector &vec);
      void interp(double, const GeomState &, const GeomState &);

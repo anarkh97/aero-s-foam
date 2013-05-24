@@ -41,6 +41,31 @@ template <typename Scalar>
 const GenFullSquareMatrix<Scalar> &
 inverse_triangular_lower(GenFullSquareMatrix<Scalar> &);
 
+// Computes the factorization of a real symmetric matrix A using the
+// Bunch-Kaufman diagonal pivoting method. The form of the factorization is
+// A = U*D*U**T
+template <typename Scalar>
+const GenFullSquareMatrix<Scalar> &
+ldlt_factor_upper(GenFullSquareMatrix<Scalar> &, int*);
+
+// Computes the factorization of a real symmetric matrix A using the
+// Bunch-Kaufman diagonal pivoting method. The form of the factorization is
+// A = L*D*L**T
+template <typename Scalar>
+const GenFullSquareMatrix<Scalar> &
+ldlt_factor_lower(GenFullSquareMatrix<Scalar> &, int*);
+
+// Solves the factorized linear system using the upper triangular part
+template <typename Scalar>
+const Scalar *
+ldlt_solve_upper(const GenFullSquareMatrix<Scalar> &, Scalar *, int*);
+
+// Solves the factorized linear system using the lower triangular part
+template <typename Scalar>
+const Scalar *
+ldlt_solve_lower(const GenFullSquareMatrix<Scalar> &, Scalar *, int*);
+
+
 } // end namespace Rom
 
 #endif /* ROM_CHOLESKYUTILS_H */

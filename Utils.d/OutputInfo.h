@@ -5,8 +5,7 @@
 //
 // 1. add the type to the enum Type
 // 2. add this new type to the lexer.l file
-// 3. add an output message in Driver.d/Domain.C
-// 4. add a header message in Driver.d/StructProp.h
+// 4. add a header message in Driver.d/Header.h
 // 
 
 #include <cstdio>
@@ -40,7 +39,7 @@ struct OutputInfo {
 	  HeatReactions, Reactions6, Statevector, Residual, Jacobian, 
 	  RobData, SampleMesh, Accelvector, Forcevector,
           RotationMatrix, ExternalXForce, ExternalYForce, ExternalZForce,
-          ExternalXMom, ExternalYMom, ExternalZMom, Velocvector, InternalStateVar };
+          ExternalXMom, ExternalYMom, ExternalZMom, Velocvector, InternalStateVar, Quaternion };
 
    enum Group  { Nodal, Attribute, NodeGroup };
    Type  type;
@@ -64,6 +63,8 @@ struct OutputInfo {
    int ncomplexout;   
    enum { spatial, convected, total };
    int angularouttype;
+   enum { normalized, denormalized };
+   int rotvecouttype;
    bool matlab;
    bool PodRomfile;
    int tdenforc_var; // CONFACE=1, NORMAL_FORCE_MAG, NORMAL_TRACTION_MAG, TANGENTIAL_FORCE_MAG, TANGENTIAL_TRACTION_MAG,
@@ -91,6 +92,7 @@ struct OutputInfo {
      complexouttype = OutputInfo::realimag;
      ncomplexout = 16;
      angularouttype = OutputInfo::convected;
+     rotvecouttype = OutputInfo::normalized;
      tdenforc_var = 3;
      matlab = false;
      PodRomfile = false;

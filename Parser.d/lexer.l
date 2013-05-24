@@ -961,6 +961,8 @@ TRAIL [a-zA-Z]*
 
 "romatrix"|"ROMATRIX"              { yylval.ival = OutputInfo::RotationMatrix; return STRESSID; }
 
+"quaterni"|"QUATERNI"              { yylval.ival = OutputInfo::Quaternion;   return STRESSID; }
+
 "modaldsp"|"MODALDSP"              { yylval.ival = OutputInfo::ModalDsp;     return STRESSID; }
 
 "modalexf"|"MODALEXF"              { yylval.ival = OutputInfo::ModalExF;     return STRESSID; }
@@ -1188,6 +1190,10 @@ TRAIL [a-zA-Z]*
 "convected"|"CONVECTED"            { yylval.ival = OutputInfo::convected; return ANGULAROUTTYPE; }
 
 "total"|"TOTAL"                    { yylval.ival = OutputInfo::total; return ANGULAROUTTYPE; }
+
+"normalized"|"NORMALIZED"          { yylval.ival = OutputInfo::normalized; return ROTVECOUTTYPE; }
+
+"denormalized"|"DENORMALIZED"      { yylval.ival = OutputInfo::denormalized; return ROTVECOUTTYPE; }
 
 "conface"|"CONFACE"                                  { yylval.ival = 1; return TDENFORC; }
 "normal_force_mag"|"NORMAL_FORCE_MAG"                { yylval.ival = 2; return TDENFORC; }

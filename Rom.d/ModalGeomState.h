@@ -5,6 +5,7 @@
 
 namespace Rom {
 class PodProjectionNonLinDynamic;
+class LumpedPodProjectionNonLinDynamic;
 }
 
 class ModalGeomState {
@@ -40,6 +41,7 @@ public:
   void setVelocityAndAcceleration(Vector &_vel, Vector &_acc) { vel = _vel; acc = _acc; }
 
   friend class Rom::PodProjectionNonLinDynamic;
+  friend class Rom::LumpedPodProjectionNonLinDynamic;
 };
 
 #endif

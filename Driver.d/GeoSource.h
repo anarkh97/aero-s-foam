@@ -520,6 +520,8 @@ public:
     void outputNodeVectors6(int, DComplex (*)[bound], int, double time = -1.0);
   template<int bound>
     void outputNodeVectors9(int, double (*)[bound], int, double time = -1.0);
+  template<int bound>
+    void outputNodeVectors4(int, double (*)[bound], int, double time = -1.0);
   void outputNodeScalars(int, double *, int, double time = -1.0);
   void outputNodeScalars(int, DComplex *, int, double time = -1.0);
   void outputEnergies(int, double, double, double, double, double, double, double);

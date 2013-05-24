@@ -138,6 +138,7 @@ ElementSamplingDriver::assembleTrainingData(const VecBasis &snapshots, DblFwdIt 
     veloc = new VecBasis(velocSnapshots->vectorCount(), vectorSize());
 
     // Project velocity snapshots on POD basis to get training configurations
+    // XXX make sure the velocity snapshots are total, not convected or spatial
     for (int iSnap = 0; iSnap != velocSnapshots->vectorCount(); ++iSnap) {
       expand(podBasis, reduce(podBasis, (*velocSnapshots)[iSnap], podComponents), (*veloc)[iSnap]);
     }
@@ -148,6 +149,7 @@ ElementSamplingDriver::assembleTrainingData(const VecBasis &snapshots, DblFwdIt 
     accel = new VecBasis(accelSnapshots->vectorCount(), vectorSize());
 
     // Project acceleration snapshots on POD basis to get training configurations
+    // XXX make sure the acceleration snapshots are total, not convected or spatial
     for (int iSnap = 0; iSnap != accelSnapshots->vectorCount(); ++iSnap) {
       expand(podBasis, reduce(podBasis, (*accelSnapshots)[iSnap], podComponents), (*accel)[iSnap]);
     }
@@ -160,6 +162,8 @@ ElementSamplingDriver::assembleTrainingData(const VecBasis &snapshots, DblFwdIt 
     for (int iSnap = 0; iSnap != snapshotCount; ++iSnap) {
       geomState_->explicitUpdate(domain_->getNodes(), domain_->getElementSet()[iElem]->numNodes(),
                                  nodes, displac[iSnap]); // just set the state at the nodes of element iElem
+      // XXX it is probably better not to even transform to convected here. however if it is done make sure that the correct
+      // rotation vector is used to compute T (i.e., the denormalized one, I guess)
       if(velocSnapshots) geomState_->setVelocity(domain_->getElementSet()[iElem]->numNodes(), nodes,
                                                  (*veloc)[iSnap], 2); // just set the velocity at the nodes of element iElem
       if(accelSnapshots) geomState_->setAcceleration(domain_->getElementSet()[iElem]->numNodes(), nodes,

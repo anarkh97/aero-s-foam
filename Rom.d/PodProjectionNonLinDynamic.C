@@ -790,9 +790,9 @@ PodProjectionNonLinDynamic::updateStates(ModalGeomState *refState, ModalGeomStat
   projectionBasis.projectUp(geomState.q, q_Big);
   geomState_Big->explicitUpdate(domain->getNodes(), q_Big);
   projectionBasis.projectUp(geomState.vel, vel_Big);
-  geomState_Big->setVelocity(vel_Big,2);
+  geomState_Big->setVelocity(vel_Big);
   projectionBasis.projectUp(geomState.acc, acc_Big);
-  geomState_Big->setAcceleration(acc_Big,2);
+  geomState_Big->setAcceleration(acc_Big);
 
   domain->updateStates(refState_Big, *geomState_Big, allCorot);
   *refState_Big = *geomState_Big;
@@ -849,7 +849,6 @@ PodProjectionNonLinDynamic::dynamOutput(ModalGeomState *geomState, Vector &veloc
          force_Big(NonLinDynamic::solVecInfo()),
          aeroF_Big(NonLinDynamic::solVecInfo()),
          acceleration_Big(NonLinDynamic::solVecInfo());
-  GeomState *refState_Big = NULL;
   const GenVecBasis<double> &projectionBasis = dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis();
   projectionBasis.projectUp(velocity, velocity_Big);
   projectionBasis.projectUp(vp, vp_Big);
@@ -857,6 +856,7 @@ PodProjectionNonLinDynamic::dynamOutput(ModalGeomState *geomState, Vector &veloc
   projectionBasis.projectUp(aeroF, aeroF_Big);
   projectionBasis.projectUp(acceleration, acceleration_Big);
 
+  // XXX the velocity_Big and acceleration_Big and Psidot and Psiddot
   NonLinDynamic::dynamOutput(geomState_Big, velocity_Big, vp_Big, time, step, force_Big, aeroF_Big, acceleration_Big, refState_Big);
 }
 

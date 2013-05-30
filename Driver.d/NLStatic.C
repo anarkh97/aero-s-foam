@@ -346,7 +346,7 @@ Domain::getFollowerForce(GeomState &geomState, Vector& elementForce,
   }
 
   if(domain->thermalFlag()) {
-    if(!temprcvd) initNodalTemperatures(); // XXXX to be moved
+    if(!temprcvd) initNodalTemperatures();
     Vector elementTemp(maxNumNodes);
     for(int iele = 0; iele < numele;  ++iele) {
       // By convention phantom elements do not have thermal load

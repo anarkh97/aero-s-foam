@@ -2425,13 +2425,11 @@ Domain::getKtimesU(Vector &dsp, double *bcx, Vector &ext_f, double eta,
           elDisp[k] = dsp[cn];
         }
         else {
-          //XXXXcerr << "bcx not added!!!\n";
           elDisp[k] = 0.0;
         }
      }
 
      if(kelArray) {
-       //kel=kelArray[iele];
        kel.copy(kelArray[iele]); // PJSA 4-1-08
      }
      else {

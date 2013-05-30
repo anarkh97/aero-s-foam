@@ -1037,7 +1037,7 @@ Domain::setUpData()
   if(!haveNodes) { numnodes = geoSource->getNodes(nodes); haveNodes = true; }
   else numnodes = geoSource->totalNumNodes();
   numele = geoSource->getElems(packedEset);
-  numele = packedEset.last(); // XXXX
+  numele = packedEset.last();
 
   // set boundary conditions
   int numBC;
@@ -1109,10 +1109,10 @@ Domain::setUpData()
   // set Control Law
   claw = geoSource->getControlLaw();
 
+  initNodalTemperatures();
+
   // PJSA: compute temperature dependent material properties
   computeTDProps();
-
-  initNodalTemperatures();
 
 /*
   -- Include here checks on LMPC --
@@ -2047,7 +2047,7 @@ void Domain::computeTDProps()
     for(i = 0; i < numCTETT; ++i)
       if(ctett[i]->getID() > maxid) maxid = ctett[i]->getID();
     int *ctettmap = new int[maxid + 1];
-    for(i = 0; i < numCTETT; ++i) ctettmap[ymtt[i]->getID()] = i;
+    for(i = 0; i < numCTETT; ++i) ctettmap[ctett[i]->getID()] = i;
 
     // compute average temperatures and material properties
     int *nodeNumbers = new int[maxNumNodes];
@@ -2093,7 +2093,7 @@ void Domain::computeTDProps()
       }
     }
     delete [] nodeNumbers;
-    delete [] nodalTemperatures;
+    //delete [] nodalTemperatures;
   }
 }
 

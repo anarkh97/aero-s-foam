@@ -5,8 +5,7 @@
 //
 // 1. add the type to the enum Type
 // 2. add this new type to the lexer.l file
-// 3. add an output message in Driver.d/Domain.C
-// 4. add a header message in Driver.d/StructProp.h
+// 3. add an output message in Driver.d/Header.h
 // 
 
 #include <cstdio>

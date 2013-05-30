@@ -177,7 +177,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
      if(ops.K) ops.K->add(kel,(*allDOFs)[iele]);
      if(!isShifted && ops.Kuc) ops.Kuc->add(kel,(*allDOFs)[iele]);
      if(!isShifted && ops.Kcc) ops.Kcc->add(kel,(*allDOFs)[iele]);
-     if(packedEset[iele]->isConstraintElement()) { // XXXX
+     if(packedEset[iele]->isConstraintElement()) {
        if(sinfo.isNonLin() && Mcoef == 1 && Kcoef == 0 && Ccoef == 0 && sinfo.newmarkBeta != 0) {
          //note: now I am using the tangent stiffness from kelArray so initial accelerations
          //      will be correctly computed even in the case of non-zero IDISP.
@@ -1705,7 +1705,7 @@ template<class Scalar>
 void
 Domain::addThermalForce(GenVector<Scalar> &force)
 {
-  if(!temprcvd) initNodalTemperatures(); // XXXX to be moved
+  if(!temprcvd) initNodalTemperatures();
   Vector elementTemp(maxNumNodes);
   Vector elementThermalForce(maxNumDOFs);
   if(!elemToNode) elemToNode = new Connectivity(&packedEset);
@@ -3438,7 +3438,6 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
  if (xyz_loc) delete [] xyz_loc;
 }
 
-// XXXX this can and should be merged with buildRHSForce
 template <class Scalar>
 void
 Domain::computeConstantForce(GenVector<Scalar>& cnst_f, GenSparseMatrix<Scalar>* kuc)

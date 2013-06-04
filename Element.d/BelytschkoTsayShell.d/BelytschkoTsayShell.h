@@ -43,6 +43,7 @@ class BelytschkoTsayShell : virtual public Element, public Corotator
     double *evoit2; // voight form of local cauchy stress
     double *evoit3; // strain (local)
     ExpMat *expmat;
+    bool myMat;
     MFTTData *mftt;
     bool ConwepOnOff;
     ElastoPlasticPlaneStressMaterial **mat;
@@ -51,7 +52,7 @@ class BelytschkoTsayShell : virtual public Element, public Corotator
     BelytschkoTsayShell(int*);
     ~BelytschkoTsayShell();
 
-    //void setProp(StructProp *p, bool _myProp = false);
+    void setProp(StructProp *p, bool _myProp = false);
     void setMaterial(NLMaterial *);
     void setPressure(double, MFTTData* = 0, bool = false);
     double getPressure();

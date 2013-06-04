@@ -363,8 +363,9 @@ SingleDomainDynamic::computeStabilityTimeStep(double& dt, DynamMat& dMat)
 {
  // ... Compute Stability Time Step
  double sts;
+ int eid;
  if(domain->solInfo().isNonLin())
-   sts = domain->computeStabilityTimeStep(kelArray, melArray, geomState);
+   sts = domain->computeStabilityTimeStep(kelArray, melArray, geomState, eid);
  else
    sts = domain->computeStabilityTimeStep(dMat);
 
@@ -372,6 +373,9 @@ SingleDomainDynamic::computeStabilityTimeStep(double& dt, DynamMat& dMat)
    filePrint(stderr," **************************************\n");
    filePrint(stderr," Stability max. timestep could not be  \n");
    filePrint(stderr," determined for this model.            \n");
+   if(domain->solInfo().isNonLin()) {
+     filePrint(stderr," Element with inf. time step = %7d\n",eid+1);
+   }
    filePrint(stderr," Specified time step is selected\n");
    filePrint(stderr," **************************************\n");
    domain->solInfo().stable = 0;
@@ -388,6 +392,9 @@ SingleDomainDynamic::computeStabilityTimeStep(double& dt, DynamMat& dMat)
    filePrint(stderr," --------------------------------------\n");
    filePrint(stderr," Specified time step      = %10.4e\n",dt);
    filePrint(stderr," Stability max. time step = %10.4e\n",sts);
+   if(domain->solInfo().isNonLin()) {
+     filePrint(stderr," Element with min. time step = %7d\n",eid+1);
+   }
    filePrint(stderr," **************************************\n");
    if( (domain->solInfo().stable == 1 && sts < dt) || domain->solInfo().stable == 2 ) {
      dt = sts;

@@ -120,6 +120,7 @@ BelytschkoTsayShell::BelytschkoTsayShell(int* nodenums)
   for(int i = 0; i < 6*mgqpt[0]; ++i) evoit1[i] = evoit2[i] = evoit3[i] = 0;
 
   expmat = 0;
+  myMat = false;
   mftt = 0;
   ConwepOnOff = false;
 }
@@ -133,12 +134,27 @@ BelytschkoTsayShell::~BelytschkoTsayShell()
   delete [] evoit1;
   delete [] evoit2;
   delete [] evoit3;
+  if(expmat && myMat) delete expmat;
+}
+
+void
+BelytschkoTsayShell::setProp(StructProp *p, bool _myProp)
+{
+  Element::setProp(p,_myProp);
+  // create default material
+  if(prop) {
+    expmat = new ExpMat(1, prop->E, prop->nu, prop->rho, 0, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0.1, 0.833, prop->eh);
+    myMat = true;
+  }
 }
 
 void
 BelytschkoTsayShell::setMaterial(NLMaterial *m)
 {
+  if(expmat && myMat) delete expmat;
   expmat = dynamic_cast<ExpMat *>(m);
+  myMat = false;
   if(expmat->optctv != 1) {
     double E = expmat->ematpro[0], nu = expmat->ematpro[1];
     double lambda = E*nu/((1+nu)*(1-2*nu)), mu = E/(2*(1+nu));

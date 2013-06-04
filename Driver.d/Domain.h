@@ -645,7 +645,7 @@ class Domain : public HData {
      int  probType() { return sinfo.probType; }
 
      double computeStabilityTimeStep(DynamMat&);
-     double computeStabilityTimeStep(FullSquareMatrix *kelArray, FullSquareMatrix *melArray, GeomState *geomState);
+     double computeStabilityTimeStep(FullSquareMatrix *kelArray, FullSquareMatrix *melArray, GeomState *geomState, int &eid);
 
      void initDispVeloc(Vector& d_n, Vector& v_n, Vector& a_n, Vector &v_p, const char* = "");
      void initDispVelocOnTimeSlice (Vector& d_n, Vector& v_n, int sliceRank); // PITA: Use user-provided initial seeds

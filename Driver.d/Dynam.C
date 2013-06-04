@@ -1156,12 +1156,14 @@ Domain::computeStabilityTimeStep(DynamMat& dMat)
 }
 
 double
-Domain::computeStabilityTimeStep(FullSquareMatrix *kelArray, FullSquareMatrix *melArray, GeomState *geomState)
+Domain::computeStabilityTimeStep(FullSquareMatrix *kelArray, FullSquareMatrix *melArray, GeomState *geomState, int &eid)
 {
   double sdt = std::numeric_limits<double>::infinity();
+  eid = -1;
   for(int iele = 0; iele < numele; ++iele) {
     double sdt_iele = packedEset[iele]->computeStabilityTimeStep(kelArray[iele], melArray[iele], nodes, geomState,
                                                                  sinfo.stable_tol, sinfo.stable_maxit);
+    if(sdt_iele < sdt) eid = packedEset[iele]->getGlNum();
     sdt = std::min(sdt, sdt_iele);
   }
   //std::cerr << "sinfo.stable_cfl = " << sinfo.stable_cfl << ", sdt = " << sdt << std::endl;

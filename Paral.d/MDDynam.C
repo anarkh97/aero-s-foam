@@ -900,14 +900,21 @@ void
 MultiDomainDynam::computeStabilityTimeStep(double &dt, MDDynamMat &dMat)
 {
   double dt_c;
+  int eid_c;
   if(domain->solInfo().isNonLin()) {
     dt_c = std::numeric_limits<double>::infinity();
+    eid_c = -1;
     for(int i = 0; i < decDomain->getNumSub(); ++i) {
-      double dt_ci = decDomain->getSubDomain(i)->computeStabilityTimeStep(kelArray[i], melArray[i], (*geomState)[i]);
+      int eid_ci;
+      double dt_ci = decDomain->getSubDomain(i)->computeStabilityTimeStep(kelArray[i], melArray[i], (*geomState)[i], eid_ci);
+      if(dt_ci < dt_c) eid_c = eid_ci;
       dt_c = std::min(dt_c,dt_ci);
     }
 #ifdef DISTRIBUTED
+    double dt_cp = dt_c;
     dt_c = structCom->globalMin(dt_c);
+    if(dt_cp != dt_c) eid_c = -1;
+    eid_c = structCom->globalMax(eid_c);
 #endif
   }
   else
@@ -917,6 +924,9 @@ MultiDomainDynam::computeStabilityTimeStep(double &dt, MDDynamMat &dMat)
     filePrint(stderr," **************************************\n");
     filePrint(stderr," Stability max. timestep could not be  \n");
     filePrint(stderr," determined for this model.            \n");
+    if(domain->solInfo().isNonLin()) {
+      filePrint(stderr," Element with inf. time step = %7d\n",eid_c+1);
+    }
     filePrint(stderr," Specified time step is selected\n");
     filePrint(stderr," **************************************\n");
     domain->solInfo().stable = 0;
@@ -932,6 +942,9 @@ MultiDomainDynam::computeStabilityTimeStep(double &dt, MDDynamMat &dMat)
     filePrint(stderr," --------------------------------------\n");
     filePrint(stderr," Specified time step      = %10.4e\n",dt);
     filePrint(stderr," Stability max. time step = %10.4e\n",dt_c);
+    if(domain->solInfo().isNonLin()) {
+      filePrint(stderr," Element with min. time step = %7d\n",eid_c+1);
+    }
     filePrint(stderr," **************************************\n");
     if( (domain->solInfo().stable == 1 && dt_c < dt) || domain->solInfo().stable == 2 ) {
       dt = dt_c;

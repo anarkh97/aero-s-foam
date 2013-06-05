@@ -23,8 +23,8 @@ public:
   explicit ElementSamplingDriver(Domain *);
   ~ElementSamplingDriver();
 
-private:
-  void preProcess();
+protected:
+  virtual void preProcess();
   void buildDomainCdsa();  
 
   template <typename DblFwdIt>

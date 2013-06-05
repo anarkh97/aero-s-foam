@@ -797,7 +797,8 @@ int main(int argc, char** argv)
  if(domain->solInfo().type == 2 || domain->solInfo().type == 3
     || (domain->solInfo().type == 1 && domain->solInfo().iterType == 1 && domain_decomp)
     || (domain->solInfo().type == 0 && domain->solInfo().subtype == 9 && domain_decomp)
-	|| (domain->solInfo().svdPodRom && domain_decomp)) {
+    || (domain->solInfo().svdPodRom && domain_decomp)
+    || (domain->solInfo().samplingPodRom && domain_decomp)) {
 
    if(parallel_proc) {
 #ifdef USE_MPI
@@ -1019,6 +1020,11 @@ int main(int argc, char** argv)
        else if (domain->solInfo().ROMPostProcess) {
          filePrint(stderr, " ... POD: Post Processing of Results...\n");
          driver.reset(distrROMPostProcessingDriverNew(domain));
+       }
+       else if (domain->solInfo().samplingPodRom) {
+         // Element-based hyper-reduction
+         filePrint(stderr, " ... POD: Distributed Element-based Reduced Mesh ...\n");
+         driver.reset(distrElementSamplingDriverNew(domain));
        }
        else {
          filePrint(stderr, " ... Unknown Analysis Type          ...\n");

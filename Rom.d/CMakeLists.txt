@@ -9,6 +9,7 @@ ADD_LIBRARY( Rom
   CholeskyUtils.C
   DistrBasisFile.C
   DistrBasisOrthoDriver.C
+  DistrElementSamplingDriver.C
   DistrSnapshotNonLinDynamic.C
   DistrExplicitSnapshotNonLinDynamic.C
   DistrExplicitPodProjectionNonLinDynamicBase.C
@@ -20,6 +21,7 @@ ADD_LIBRARY( Rom
   DistrSvdOrthogonalization.C
   DistrVecNodeDof6Conversion.C
   ElementSamplingDriver.C
+  SubElementSamplingDriver.C
   FileNameInfo.C
   LumpedPodProjectionNonLinDynamic.C
   SparseNonNegativeLeastSquaresSolver.C

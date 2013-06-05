@@ -1,4 +1,5 @@
-#include "ElementSamplingDriver.h"
+#include "SubElementSamplingDriver.h"
+
 
 #include "VecBasis.h"
 #include "BasisOps.h" 
@@ -33,8 +34,10 @@
 
 extern GeoSource *geoSource;
 
+
 namespace Rom {
 
+/*
 // Non-member functions
 // ====================
 template <typename Scalar>
@@ -92,15 +95,13 @@ int
 ElementSamplingDriver::vectorSize() const {
   return domain_->numUncon();
 }
+*/
 
-ElementSamplingDriver::ElementSamplingDriver(Domain *d) :
-  domain_(d),
-  corotators_(NULL),
-  geomState_(NULL),
-  kelArray_(NULL),
-  melArray_(NULL)
+SubElementSamplingDriver::SubElementSamplingDriver(Domain *d) :
+  ElementSamplingDriver(d)
 {}
 
+/*
 ElementSamplingDriver::~ElementSamplingDriver() {
   if (corotators_) {
     for (int iElem = 0; iElem != elementCount(); ++iElem) {
@@ -119,7 +120,7 @@ template <typename DblFwdIt>
 void
 ElementSamplingDriver::assembleTrainingData(const VecBasis &snapshots, DblFwdIt timeStampFirst, const VecBasis &podBasis,
                                             typename SparseNonNegativeLeastSquaresSolver::MatrixBufferType::iterator elemContributions,
-                                            Vector &trainingTarget, VecBasis *velocSnapshots, VecBasis *accelSnapshots) {
+                                            Vector &trainingTarget) {
   const int podVectorCount = podBasis.vectorCount();
   const int snapshotCount = snapshots.vectorCount();
 
@@ -133,44 +134,20 @@ ElementSamplingDriver::assembleTrainingData(const VecBasis &snapshots, DblFwdIt 
     expand(podBasis, reduce(podBasis, snapshots[iSnap], podComponents), displac[iSnap]);
   }
 
-  VecBasis *veloc = 0;
-  if(velocSnapshots) {
-    veloc = new VecBasis(velocSnapshots->vectorCount(), vectorSize());
-
-    // Project velocity snapshots on POD basis to get training configurations
-    for (int iSnap = 0; iSnap != velocSnapshots->vectorCount(); ++iSnap) {
-      expand(podBasis, reduce(podBasis, (*velocSnapshots)[iSnap], podComponents), (*veloc)[iSnap]);
-    }
-  }
-
-  VecBasis *accel = 0;
-  if(accelSnapshots) {
-    accel = new VecBasis(accelSnapshots->vectorCount(), vectorSize());
-
-    // Project acceleration snapshots on POD basis to get training configurations
-    for (int iSnap = 0; iSnap != accelSnapshots->vectorCount(); ++iSnap) {
-      expand(podBasis, reduce(podBasis, (*accelSnapshots)[iSnap], podComponents), (*accel)[iSnap]);
-    }
-  }
-
   for (int iElem = 0; iElem != elementCount(); ++iElem) {
     filePrint(stderr,"\r %4.2f%% complete", double(iElem)/double(elementCount())*100.);
     DblFwdIt timeStampIt = timeStampFirst;
     int *nodes = domain_->getElementSet()[iElem]->nodes();
     for (int iSnap = 0; iSnap != snapshotCount; ++iSnap) {
+      //geomState_->explicitUpdate(domain_->getNodes(), displac[iSnap]);
       geomState_->explicitUpdate(domain_->getNodes(), domain_->getElementSet()[iElem]->numNodes(),
-                                 nodes, displac[iSnap]); // just set the state at the nodes of element iElem
-      if(velocSnapshots) geomState_->setVelocity(domain_->getElementSet()[iElem]->numNodes(), nodes,
-                                                 (*veloc)[iSnap], 2); // just set the velocity at the nodes of element iElem
-      if(accelSnapshots) geomState_->setAcceleration(domain_->getElementSet()[iElem]->numNodes(), nodes,
-                                                     (*veloc)[iSnap], 2); // just set the acceleration at the nodes of element iElem
+                                 nodes, displac[iSnap]); // just update the nodes of element iElem
       // Evaluate and store element contribution at training configuration
-      domain_->getElemInternalForce(*geomState_, *timeStampIt, geomState_, *(corotators_[iElem]), elementForce.array(), kelArray_[iElem]);
-      if(domain_->getElementSet()[iElem]->hasRot()) {
-        domain_->transformElemStiffAndForce(*geomState_, elementForce.array(), kelArray_[iElem], iElem, false);
-        domain_->getElemFictitiousForce(iElem, *geomState_, elementForce.array(), kelArray_[iElem],
-                                        *timeStampIt, geomState_, melArray_[iElem], false);
-      }
+      domain_->getElemInternalForce(*geomState_, *timeStampIt, NULL, *(corotators_[iElem]), elementForce.array(), kelArray_[iElem]);
+
+//      if(domain_->getElementSet()[iElem]->hasRot()) {
+//        domain_->transformElemStiffAndForce(*geomState_, elementForce.array(), kelArray_[iElem], iElem, false);
+//      }
 
       elemTarget.zero();
       const int dofCount = kelArray_[iElem].dim();
@@ -219,21 +196,19 @@ ElementSamplingDriver::solve() {
         readVectors(in, podBasis);
       }
     }
-
-    // Read state snapshots
     VecBasis snapshots;
     std::vector<double> timeStamps;
     {
       BasisInputStream in(BasisFileId(fileInfo, BasisId::STATE, BasisId::SNAPSHOTS), vecDofConversion);
       const int skipFactor = domain->solInfo().skipPodRom;
-      const int skipOffSet = domain->solInfo().skipOffSet;
+        const int skipOffSet = domain->solInfo().skipOffSet;
       const int basisStateCount = 1 + (in.size() - 1) / skipFactor;
 
       snapshots.dimensionIs(basisStateCount, in.vectorSize());
       timeStamps.reserve(basisStateCount);
 
       int count = 0;
-      int skipCounter = skipFactor-skipOffSet;
+        int skipCounter = skipFactor-skipOffSet;
       while (count < basisStateCount) {
         std::pair<double, double *> data;
         data.second = snapshots[count].data();
@@ -251,74 +226,6 @@ ElementSamplingDriver::solve() {
       assert(timeStamps.size() == basisStateCount);
     }
 
-    // Read velocity snapshots
-    VecBasis *velocSnapshots = 0;
-    if(domain->solInfo().velocPodRomFile != "") {
-      std::cerr << "reading velocity snapshots from file " << domain->solInfo().velocPodRomFile << std::endl;
-      std::vector<double> timeStamps;
-      velocSnapshots = new VecBasis;
-      BasisInputStream in(BasisFileId(fileInfo, BasisId::VELOCITY, BasisId::SNAPSHOTS), vecDofConversion);
-      const int skipFactor = domain->solInfo().skipPodRom;
-      const int skipOffSet = domain->solInfo().skipOffSet;
-      const int basisStateCount = 1 + (in.size() - 1) / skipFactor;
-
-      velocSnapshots->dimensionIs(basisStateCount, in.vectorSize());
-      timeStamps.reserve(basisStateCount);
-
-      int count = 0;
-      int skipCounter = skipFactor-skipOffSet;
-      while (count < basisStateCount) {
-        std::pair<double, double *> data;
-        data.second = (*velocSnapshots)[count].data();
-        in >> data;
-        assert(in);
-        if (skipCounter == skipFactor) {
-          timeStamps.push_back(data.first);
-          skipCounter = 1;
-          ++count;
-        } else {
-          ++skipCounter;
-        }
-      }
-
-      assert(timeStamps.size() == basisStateCount);
-      // TODO: check that timeStamps for velocity snapshots match state snapshots
-    }
-
-    // Read acceleration snapshots
-    VecBasis *accelSnapshots = 0;
-    if(domain->solInfo().accelPodRomFile != "") {
-      std::cerr << "reading acceleration snapshots from file " << domain->solInfo().accelPodRomFile << std::endl;
-      std::vector<double> timeStamps;
-      accelSnapshots = new VecBasis;
-      BasisInputStream in(BasisFileId(fileInfo, BasisId::ACCELERATION, BasisId::SNAPSHOTS), vecDofConversion);
-      const int skipFactor = domain->solInfo().skipPodRom;
-      const int skipOffSet = domain->solInfo().skipOffSet;
-      const int basisStateCount = 1 + (in.size() - 1) / skipFactor;
-
-      accelSnapshots->dimensionIs(basisStateCount, in.vectorSize());
-      timeStamps.reserve(basisStateCount);
-
-      int count = 0;
-      int skipCounter = skipFactor-skipOffSet;
-      while (count < basisStateCount) {
-        std::pair<double, double *> data;
-        data.second = (*accelSnapshots)[count].data();
-        in >> data;
-        assert(in);
-        if (skipCounter == skipFactor) {
-          timeStamps.push_back(data.first);
-          skipCounter = 1;
-          ++count;
-        } else {
-          ++skipCounter;
-        }
-      }
-
-      assert(timeStamps.size() == basisStateCount);
-      // TODO: check that timeStamps for acceleration snapshots match state snapshots
-    }
-
     const int podVectorCount = podBasis.vectorCount();
     const int snapshotCount = snapshots.vectorCount();
 
@@ -332,8 +239,7 @@ ElementSamplingDriver::solve() {
     // Training target is the sum of elementary contributions
     Vector trainingTarget(podVectorCount*snapshotCount, 0.0);
 
-    assembleTrainingData(snapshots, timeStamps.begin(), podBasis, solver_.matrixBuffer(), trainingTarget,
-                         velocSnapshots, accelSnapshots);
+    assembleTrainingData(snapshots, timeStamps.begin(), podBasis, solver_.matrixBuffer(), trainingTarget);
 
     double targetMagnitude = norm(trainingTarget);
 
@@ -401,23 +307,26 @@ ElementSamplingDriver::solve() {
 
   outputFullWeights(fileInfo, solution, packedToInput);
 }
+*/
 
 void
-ElementSamplingDriver::preProcess() {
+SubElementSamplingDriver::preProcess() {
 
-  domain_->preProcessing();
-  buildDomainCdsa();
+  //domain_->preProcessing();
+  //buildDomainCdsa();
   domain_->makeAllDOFs();
   
   StaticTimers dummyTimes;
   GenFullSquareMatrix<double> *dummyGeomKelArray = NULL;
-  const bool buildMelArray = true;
-  domain_->computeGeometricPreStress(corotators_, geomState_, kelArray_, &dummyTimes, dummyGeomKelArray, melArray_, buildMelArray);
+  GenFullSquareMatrix<double> *dummyMelArray = NULL;
+  const bool buildMelArray = false;
+  domain_->computeGeometricPreStress(corotators_, geomState_, kelArray_, &dummyTimes, dummyGeomKelArray, dummyMelArray, buildMelArray);
   if(domain_->nDirichlet() > 0) {
     geomState_->updatePrescribedDisplacement(domain_->getDBC(), domain_->nDirichlet(), domain_->getNodes());
   }
 }
 
+/*
 void
 ElementSamplingDriver::buildDomainCdsa() {
   const int numdof = domain_->numdof();
@@ -427,9 +336,10 @@ ElementSamplingDriver::buildDomainCdsa() {
   domain_->make_bc(bc.array(), bcx.array());
   domain_->make_constrainedDSA(bc.array());
 }
+*/
 
 } // end namespace Rom
 
-Rom::DriverInterface *elementSamplingDriverNew(Domain *d) {
-  return new Rom::ElementSamplingDriver(d);
+Rom::DriverInterface *subElementSamplingDriverNew(Domain *d) {
+  return new Rom::SubElementSamplingDriver(d);
 }

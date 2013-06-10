@@ -275,6 +275,7 @@ struct SolverInfo {
    std::vector<std::string> RODConversionFiles;
    const char * snapfiPodRom;
    const char * readInROBorModes;
+   const char * readInROBorModes2;
    const char * readInModes;
    const char * SVDoutput;
    const char * reducedMeshFile;
@@ -521,6 +522,7 @@ struct SolverInfo {
 
                   snapfiPodRom       = "";
 		  readInROBorModes   = "";
+                  readInROBorModes2  = "";
                   readInModes        = "";
 		  SVDoutput          = "pod.rob";
 		  reducedMeshFile    = "";

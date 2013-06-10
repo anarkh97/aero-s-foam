@@ -719,7 +719,7 @@ TRAIL [a-zA-Z]*
 
 "DIMA"[a-zA-Z]*|"dima"[a-zA-Z]*    { return DIMASS; }
 
-"COMP"[a-zA-Z]*|"composite"        { return COMPOSITE; }
+"COMPO"[a-zA-Z]*|"composite"       { return COMPOSITE; }
 
 "COEF"|"coef"                      { return COEF; }
 
@@ -1194,6 +1194,10 @@ TRAIL [a-zA-Z]*
 "normalized"|"NORMALIZED"          { yylval.ival = OutputInfo::normalized; return ROTVECOUTTYPE; }
 
 "denormalized"|"DENORMALIZED"      { yylval.ival = OutputInfo::denormalized; return ROTVECOUTTYPE; }
+
+"complement"|"COMPLEMENT"          { yylval.ival = OutputInfo::complement; return ROTVECOUTTYPE; }
+
+"complementd"|"COMPLEMENTD"        { yylval.ival = OutputInfo::complementd; return ROTVECOUTTYPE; }
 
 "conface"|"CONFACE"                                  { yylval.ival = 1; return TDENFORC; }
 "normal_force_mag"|"NORMAL_FORCE_MAG"                { yylval.ival = 2; return TDENFORC; }

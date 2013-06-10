@@ -49,6 +49,9 @@ FileNameInfo::basisFileName(const BasisId &id) const {
         builder << domain->solInfo().velocPodRomFile;
     if(id.type() == 6)
         builder << domain->solInfo().isvPodRomFile;}
+  else if(id.level() == 1 && id.type() == 7) {
+        filePrint(stderr,"*** Reading complement modes from file %s\n", domain->solInfo().readInROBorModes2);
+        builder << domain->solInfo().readInROBorModes2;}
   else if(id.level() == 1) {
         builder << domain->solInfo().readInROBorModes;}
      }

@@ -94,9 +94,9 @@ public:
 
 protected: 
   VecNodeDof6Conversion vecNodeDof6Conversion_;
-  FileNameInfo fileInfo_;
+  FileNameInfo fileInfo_, fileInfo2_;
 
-  VecBasis projectionBasis_;
+  VecBasis projectionBasis_, projectionBasis2_,;
 };
 
 PodProjectionNonLinDynamicDetail::BasicImpl::~BasicImpl() {}
@@ -124,6 +124,14 @@ PodProjectionNonLinDynamicDetail::BasicImpl::BasicImpl(PodProjectionNonLinDynami
   // Setup solver
   PodProjectionSolver *solver = getSolver();
   solver->projectionBasisIs(projectionBasis_);
+
+  if(solInfo().readInROBorModes2 != "") {
+    std::cerr << "processing complement modes\n";
+    BasisInputStream projectionBasisInput2(BasisFileId(fileInfo2_, BasisId::COMPLEMENT, BasisId::POD), vecNodeDof6Conversion_); // XXX
+    readVectors(projectionBasisInput2, projectionBasis2_, projectionSubspaceSize); // XXX
+    solver->projectionBasis2Is(projectionBasis2_);
+  }
+
   solver->factor(); // Delayed factorization
 }
 

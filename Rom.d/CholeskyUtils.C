@@ -1,6 +1,7 @@
 #include "CholeskyUtils.h"
 
 #include <Math.d/FullSquareMatrix.h>
+//#include <Math.d/PseudoInverse.h>
 //#include <Eigen/Dense>
 
 #include <Utils.d/linkfc.h>
@@ -45,10 +46,11 @@ cholesky_factor_upper(GenFullSquareMatrix<double> &m) {
   int info;
   _FORTRAN(dpotrf)("L", &basisDim, m.data(), &basisDim, &info);
 
+  //Eigen::SelfAdjointEigenSolver<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > dec(m_copy);
+  //std::cerr << "here is the matrix m:\n" << m_copy << std::endl;
+  //std::cerr << "here are the eigenvalues of m:\n" << dec.eigenvalues() << std::endl;
+
   if (info) {
-    //Eigen::SelfAdjointEigenSolver<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > dec(m_copy);
-    //std::cerr << "here is the matrix m:\n" << m_copy << std::endl;
-    //std::cerr << "here are the eigenvalues of m:\n" << dec.eigenvalues() << std::endl;
     throw std::runtime_error("Error in dpotrf (Cholesky factorization)");
   };
 
@@ -82,7 +84,7 @@ cholesky_solve_upper(const GenFullSquareMatrix<double> &m, double *v) {
   if (info) {
     throw std::runtime_error("Error in dpotrs (Cholesky solver)");
   };
-  
+
   return v;
 }
 

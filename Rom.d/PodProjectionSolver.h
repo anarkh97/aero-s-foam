@@ -24,6 +24,7 @@ public:
   virtual int basisSize() const = 0;
   virtual const GenVecBasis<Scalar> &projectionBasis() const = 0;
   virtual void projectionBasisIs(const GenVecBasis<Scalar> &) = 0; 
+  virtual void projectionBasis2Is(const GenVecBasis<Scalar> &) {};
 
   // Data collection
   virtual const GenVector<Scalar> &lastReducedSolution() const = 0;
@@ -55,6 +56,7 @@ public:
   int basisSize() const { return basisSize_; }
   const GenVecBasis<Scalar> &projectionBasis() const { return *projectionBasis_; }
   void projectionBasisIs(const GenVecBasis<Scalar> &); // Passed objects must be kept alive by owner
+  void projectionBasis2Is(const GenVecBasis<Scalar> &);
   
   // Data collection
   const GenVector<Scalar> &lastReducedSolution() const { return reducedSolution_; }
@@ -66,6 +68,7 @@ protected:
 private:
   int basisSize_;
   const GenVecBasis<Scalar> *projectionBasis_;
+  const GenVecBasis<Scalar> *projectionBasis2_;
   
   GenVecBasis<Scalar> matrixAction_;
   GenVector<Scalar> reducedSolution_;
@@ -143,6 +146,13 @@ GenDBSparsePodProjectionSolver<Scalar>::projectionBasisIs(const GenVecBasis<Scal
   projectionBasis_ = &reducedBasis;
   basisSize_ = reducedBasis.vectorCount();
 }
+
+template <typename Scalar>
+void
+GenDBSparsePodProjectionSolver<Scalar>::projectionBasis2Is(const GenVecBasis<Scalar> &reducedBasis2) {
+  projectionBasis2_ = &reducedBasis2;
+}
+
 
 template <typename Scalar>
 inline

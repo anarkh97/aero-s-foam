@@ -63,7 +63,7 @@ struct OutputInfo {
    int ncomplexout;   
    enum { spatial, convected, total };
    int angularouttype;
-   enum { normalized, denormalized };
+   enum { normalized, denormalized, complement, complementd };
    int rotvecouttype;
    bool matlab;
    bool PodRomfile;

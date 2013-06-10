@@ -770,10 +770,40 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
           if(oinfo[iInfo].rotvecouttype == OutputInfo::normalized) {
             mat_to_vec((*geomState)[iNode].R, &data[nodeI][3]);
           }
+          else if(oinfo[iInfo].rotvecouttype == OutputInfo::complement) {
+            Eigen::Vector3d Psi;
+            mat_to_vec((*geomState)[iNode].R, Psi.data());
+            Eigen::Vector3d PsiC = complement_rot_vec(Psi);
+            data[nodeI][3] = PsiC[0];
+            data[nodeI][4] = PsiC[1];
+            data[nodeI][5] = PsiC[2];
+          }
+          else if(oinfo[iInfo].rotvecouttype == OutputInfo::complementd) {
+            Eigen::Vector3d Psi;
+            Psi << (*geomState)[iNode].theta[0], (*geomState)[iNode].theta[1], (*geomState)[iNode].theta[2];
+            Eigen::Vector3d PsiC = complement_rot_vec(Psi);
+            data[nodeI][3] = PsiC[0];
+            data[nodeI][4] = PsiC[1];
+            data[nodeI][5] = PsiC[2];
+          }
           else { // denormalized
             data[nodeI][3] = (*geomState)[iNode].theta[0];
             data[nodeI][4] = (*geomState)[iNode].theta[1];
             data[nodeI][5] = (*geomState)[iNode].theta[2];
+/*
+            double psi = sqrt((*geomState)[iNode].theta[0]*(*geomState)[iNode].theta[0]+
+                              (*geomState)[iNode].theta[1]*(*geomState)[iNode].theta[1]+
+                              (*geomState)[iNode].theta[2]*(*geomState)[iNode].theta[2]);
+
+            //double p1 = 4*sin(psi/4);
+            //double p2 = 4*tan(psi/4);
+            double p1 = pow(6*(psi-sin(psi)),1/3.);
+            if(psi != 0) {
+              data[nodeI][3] *= p1/psi;
+              data[nodeI][4] *= p1/psi;
+              data[nodeI][5] *= p1/psi;
+            }
+*/
           }
         } else {
           std::fill_n(&data[nodeI][0], 6, 0.0);
@@ -889,11 +919,16 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
                      (*geomState)[first_node+iNode].R[1][0], (*geomState)[first_node+iNode].R[1][1], (*geomState)[first_node+iNode].R[1][2],
                      (*geomState)[first_node+iNode].R[2][0], (*geomState)[first_node+iNode].R[2][1], (*geomState)[first_node+iNode].R[2][2];
                 mat_to_vec(R, Psi);
+                tangential_transf(Psi, T, 0);
               }
               else {
                 Psi << (*geomState)[first_node+iNode].theta[0], (*geomState)[first_node+iNode].theta[1], (*geomState)[first_node+iNode].theta[2];
+/*
+                double psi = Psi.norm();
+                Psi = pow(6*(psi-sin(psi)),1/3.)*Psi.normalized(); // XXX
+*/
+                tangential_transf(Psi, T, 1);
               }
-              tangential_transf(Psi, T);
               Psidot = T.inverse()*V;
 #else
               data[nodeI][3] = data[nodeI][4] = data[nodeI][5] = 0;
@@ -1146,7 +1181,14 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
         if(outFlag) { if(nodes[iNode] == 0) continue; nodeI = ++realNode; } else nodeI = i;
         if(iNode < geomState->numNodes()) {
           double rot[3];
-          mat_to_vec((*geomState)[iNode].R,rot);
+          if(oinfo[iInfo].rotvecouttype == OutputInfo::normalized) {
+            mat_to_vec((*geomState)[iNode].R,rot);
+          }
+          else { // denormalized
+            rot[0] = (*geomState)[iNode].theta[0];
+            rot[1] = (*geomState)[iNode].theta[1];
+            rot[2] = (*geomState)[iNode].theta[2];
+          }
           data[nodeI] = sqrt(rot[0]*rot[0]+rot[1]*rot[1]+rot[2]*rot[2]);
         }
         else data[nodeI] = 0;

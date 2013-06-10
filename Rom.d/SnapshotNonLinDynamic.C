@@ -11,6 +11,7 @@
 
 #include <Utils.d/dofset.h>
 #include <Corotational.d/utilities.h>
+#include <Element.d/Function.d/utilities.hpp>
 
 #include <deque>
 
@@ -375,6 +376,13 @@ SnapshotNonLinDynamicDetail::sttSnapImpl::stateSnapshotAdd(const GeomState &snap
       nodeBuffer[3] = snapNode.theta[0];
       nodeBuffer[4] = snapNode.theta[1];
       nodeBuffer[5] = snapNode.theta[2];
+/*
+      Eigen::Vector3d Psi; Psi << snapNode.theta[0], snapNode.theta[1], snapNode.theta[2];
+      Eigen::Vector3d PsiC = complement_rot_vec(Psi);
+      nodeBuffer[3] = PsiC[0];
+      nodeBuffer[4] = PsiC[1];
+      nodeBuffer[5] = PsiC[2];
+*/
     } else {
       // Node does not really exist, corresponds to a gap in node numbering
       std::fill_n(nodeBuffer, 6, 0.0);

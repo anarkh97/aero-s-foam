@@ -815,10 +815,8 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
     Eigen::Vector3d Psi_n; Psi_n << ss[i].theta[0], ss[i].theta[1], ss[i].theta[2];
     Eigen::Vector3d Psi;   Psi << ns[i].theta[0], ns[i].theta[1], ns[i].theta[2];
     Eigen::Vector3d PsiC = denormalize_rotvec(Psi, Psi_n);
-    if( (PsiC-Psi_n).norm() < (Psi-Psi_n).norm() ) {
-      for(int j=0; j<3; ++j) ns[i].theta[j] = PsiC[j];
-    }
-    for(int j=0; j<3; ++j) ss[i].theta[j] = ns[j].theta[j];
+    for(int j=0; j<3; ++j) ns[i].theta[j] = PsiC[j];
+    for(int j=0; j<3; ++j) ss[i].theta[j] = ns[i].theta[j];
   }
 #ifdef COMPUTE_GLOBAL_ROTATION
   computeGlobalRotation();

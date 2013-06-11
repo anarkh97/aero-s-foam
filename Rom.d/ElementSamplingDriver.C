@@ -61,19 +61,22 @@ getMeshFilename(const FileNameInfo &fileInfo) {
 
 inline
 void
-outputMeshFile(const FileNameInfo &fileInfo, const MeshDesc &mesh) {
-  std::ofstream meshOut(getMeshFilename(fileInfo).c_str());
+outputMeshFile(const FileNameInfo &fileInfo, const MeshDesc &mesh, bool firstTime = true) {
+  const std::ios_base::openmode mode = (firstTime) ? std::ios_base::out : std::ios_base::app;
+  std::ofstream meshOut(getMeshFilename(fileInfo).c_str(), mode);
   meshOut << mesh;
 }
 
 void
-outputFullWeights(const FileNameInfo &fileInfo, const Vector &weights, const std::vector<int> &elemIds) {
+outputFullWeights(const FileNameInfo &fileInfo, const Vector &weights, const std::vector<int> &elemIds,
+                  bool firstTime = true) {
   assert(weights.size() == elemIds.size());
 
-  const std::string fileName = domain->solInfo().reducedMeshFile; //fileInfo.prefix() + ".attributes.inc";
-  std::ofstream weightOut(fileName.c_str());
+  const std::string fileName = domain->solInfo().reducedMeshFile;
+  const std::ios_base::openmode mode = (firstTime) ? std::ios_base::out : std::ios_base::app;
+  std::ofstream weightOut(fileName.c_str(), mode);
 
-  weightOut << "ATTRIBUTES\n";
+  if(firstTime) weightOut << "ATTRIBUTES\n";
   for (int i = 0, iEnd = weights.size(); i != iEnd; ++i) {
     weightOut << elemIds[i] + 1 << " 1 " << "HRC" << " " << weights[i] << "\n";
   }
@@ -198,11 +201,17 @@ ElementSamplingDriver::assembleTrainingData(const VecBasis &snapshots, DblFwdIt 
 
 void
 ElementSamplingDriver::solve() {
+  Vector solution;
+  getSolution(solution);
+  postProcess(solution);
+}
+
+void
+ElementSamplingDriver::getSolution(Vector &solution) {
   preProcess();
 
   const FileNameInfo fileInfo;
   
-  Vector solution;
   {
 
     // Read order reduction data
@@ -357,6 +366,12 @@ ElementSamplingDriver::solve() {
     solution.initialize(elementCount());
     std::copy(solver_.solutionBuffer(), solver_.solutionBuffer() + elementCount(), solution.data());
   }
+}
+
+void
+ElementSamplingDriver::postProcess(Vector &solution, bool firstTime) {
+
+  const FileNameInfo fileInfo;
 
   std::set<int> sampleElemRanks;
   {
@@ -373,9 +388,10 @@ ElementSamplingDriver::solve() {
   for (int iElem = 0, iElemEnd = inputElemSet.size(); iElem != iElemEnd; ++iElem) {
     Element *elem = inputElemSet[iElem];
     if (elem) {
-      const int iPackElem = geoSource->glToPackElem(iElem);
-      assert(iPackElem >= 0 && iPackElem < packedToInput.size());
-      packedToInput[iPackElem] = iElem;
+      //PJSA const int iPackElem = geoSource->glToPackElem(iElem);
+      const int iPackElem = domain_->glToPackElem(iElem);
+      assert(iPackElem < packedToInput.size());
+      if(iPackElem >= 0) packedToInput[iPackElem] = iElem;
     }
   }
 
@@ -393,13 +409,13 @@ ElementSamplingDriver::solve() {
 
   const MeshDesc reducedMesh(domain_, geoSource, meshRenumbering, weights);
   try {
-    outputMeshFile(fileInfo, reducedMesh);
+    outputMeshFile(fileInfo, reducedMesh, firstTime);
   }
   catch(std::exception& e) {
     std::cerr << "caught exception: " << e.what() << endl;
   }
 
-  outputFullWeights(fileInfo, solution, packedToInput);
+  outputFullWeights(fileInfo, solution, packedToInput, firstTime);
 }
 
 void

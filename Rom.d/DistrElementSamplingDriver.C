@@ -31,75 +31,9 @@ void
 DistrElementSamplingDriver::solve() {
   std::auto_ptr<DecDomain> decDomain(createDecDomain<double>(domain_));
   decDomain->preProcess();
-  
-  std::cerr << "here in DistrElementSamplingDriver::solve() \n";
 
-  for(int i=0; i<decDomain->getNumSub(); ++i) {
-
-    std::auto_ptr<Rom::DriverInterface> subDriver;
-    subDriver.reset(subElementSamplingDriverNew(decDomain->getAllSubDomains()[i]));
-    //subDriver->solve();
-  }
-
-
-/*
-  typedef PtrPtrIterAdapter<SubDomain> SubDomIt;
-  DistrMasterMapping masterMapping(SubDomIt(decDomain->getAllSubDomains()),
-                                   SubDomIt(decDomain->getAllSubDomains() + decDomain->getNumSub()));
-
-  DistrVecNodeDof6Conversion converter(decDomain->getAllSubDomains(),
-                                       decDomain->getAllSubDomains() + decDomain->getNumSub());
-  
-  FileNameInfo fileInfo;
-  const BasisId::Type workload = BasisId::STATE;
-
-  DistrBasisInputFile inputFile(BasisFileId(fileInfo, workload, BasisId::SNAPSHOTS));
-
-  DistrSvdOrthogonalization solver(comm_, comm_->numCPUs(), 1);
-  
-  const int blockSize = 64; // TODO More flexible
-  {
-    solver.blockSizeIs(blockSize);
-  }
-
-  const int skipFactor = domain->solInfo().skipPodRom;
-  const int basisStateCount = 1 + (inputFile.stateCount() - 1) / skipFactor;
-  const int localLength = decDomain->solVecInfo().totLen();
-  {
-    const int maxLocalLength = comm_->globalMax(localLength);
-    const int maxCpuLoad = ((maxLocalLength / blockSize) + (maxLocalLength % blockSize)) * blockSize;
-    assert(maxCpuLoad >= localLength);
-    const int globalProbSize = maxCpuLoad * solver.rowCpus();
-    solver.problemSizeIs(globalProbSize, basisStateCount);
-    assert(solver.localRows() == maxCpuLoad);
-  }
-
-  {
-    DistrNodeDof6Buffer inputBuffer(masterMapping.localNodeBegin(), masterMapping.localNodeEnd());
-    
-    int count = 0;
-    int skipCounter = skipFactor;
-    while (count < basisStateCount) {
-      assert(inputFile.validCurrentState());
-      inputFile.currentStateBuffer(inputBuffer);
-
-      if (skipCounter >= skipFactor) {
-        double *vecBuffer = solver.matrixColBuffer(count);
-        GenStackDistVector<double> vec(decDomain->solVecInfo(), vecBuffer);
-        converter.paddedMasterVector(inputBuffer, vec);
-        std::fill(vecBuffer + localLength, vecBuffer + solver.localRows(), 0.0);
-        
-        skipCounter = 1;
-        ++count;
-      } else {
-        ++skipCounter;
-      }
-
-      inputFile.currentStateIndexInc();
-    }
-  }
-*/
-
+ /* TODO need to read basis into a distributed vector and send each subvector to its SubElementSamplingDriver
+         likewise for snapshots
   // read basis
   DistrVecBasis podBasis;
   FileNameInfo fileInfo;
@@ -129,9 +63,8 @@ DistrElementSamplingDriver::solve() {
 
     podBasisFile.currentStateIndexInc();
   }
-  std::cerr << "finished reading basis\n";
 
-  // read snapshots (TODO)
+  // read snapshots
   DistrVecBasis snapshots;
   std::vector<double> timeStamps;
   {
@@ -154,41 +87,29 @@ DistrElementSamplingDriver::solve() {
 
       in.currentStateIndexInc();
     }
-
-  }
-  std::cerr << "finished reading snapshots\n";
-
-
-
-  exit(-1);
-
-  for(int i=0; i<decDomain->getNumSub(); ++i) {
-
-    std::auto_ptr<Rom::DriverInterface> subDriver;
-    subDriver.reset(subElementSamplingDriverNew(decDomain->getAllSubDomains()[i]));
-    subDriver->solve();
-  }
- 
-/*
-  solver.solve();
-
-  const int podVectorCount = domain_->solInfo().maxSizePodRom ?
-                             std::min(domain_->solInfo().maxSizePodRom, solver.singularValueCount()) :
-                             solver.singularValueCount();
-  {
-    DistrNodeDof6Buffer outputBuffer(masterMapping.masterNodeBegin(), masterMapping.masterNodeEnd());
-    DistrBasisOutputFile outputFile(BasisFileId(fileInfo, workload, BasisId::POD),
-                                    inputFile.nodeCount(), outputBuffer.globalNodeIndexBegin(), outputBuffer.globalNodeIndexEnd(),
-                                    comm_);
-
-    for (int iVec = 0; iVec < podVectorCount; ++iVec) {
-      double * const vecBuffer = const_cast<double *>(solver.basisColBuffer(iVec));
-      const GenStackDistVector<double> vec(decDomain->solVecInfo(), vecBuffer);
-      converter.paddedNodeDof6(vec, outputBuffer);
-      outputFile.stateAdd(outputBuffer, solver.singularValue(iVec));
-    }
   }
 */
+  SubElementSamplingDriver **subDrivers = new SubElementSamplingDriver * [decDomain->getNumSub()];
+  Vector *solutions = new Vector[decDomain->getNumSub()];
+  for(int i=0; i<decDomain->getNumSub(); ++i) {
+    subDrivers[i] = new SubElementSamplingDriver(decDomain->getAllSubDomains()[i]);
+    subDrivers[i]->getSolution(solutions[i]);
+  }
+
+  int numCPUs = (structCom) ? structCom->numCPUs() : 1;
+  int myID = (structCom) ? structCom->myID() : 0;
+  for(int cpu = 0; cpu < numCPUs; ++cpu) {
+    if(cpu == myID) {
+      for(int i=0; i<decDomain->getNumSub(); ++i) {
+        subDrivers[i]->postProcess(solutions[i], (myID == 0 && i==0));
+        delete subDrivers[i];
+      }
+    }
+    if(structCom) structCom->sync();
+  }
+
+  delete [] subDrivers;
+  delete [] solutions;
 }
 
 } /* end namespace Rom */

@@ -19,6 +19,8 @@ namespace Rom {
 class ElementSamplingDriver : public DriverInterface {
 public:
   virtual void solve(); // overriden
+  void getSolution(Vector &solution);
+  void postProcess(Vector &solution, bool firstTime = true);
 
   explicit ElementSamplingDriver(Domain *);
   ~ElementSamplingDriver();

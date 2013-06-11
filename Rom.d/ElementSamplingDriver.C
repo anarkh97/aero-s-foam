@@ -90,7 +90,6 @@ ElementSamplingDriver::elementCount() const {
   return domain_->numElements();
 }
 
-inline
 int
 ElementSamplingDriver::vectorSize() const {
   return domain_->numUncon();
@@ -101,7 +100,9 @@ ElementSamplingDriver::ElementSamplingDriver(Domain *d) :
   corotators_(NULL),
   geomState_(NULL),
   kelArray_(NULL),
-  melArray_(NULL)
+  melArray_(NULL),
+  veloc_(NULL),
+  accel_(NULL)
 {}
 
 ElementSamplingDriver::~ElementSamplingDriver() {
@@ -116,45 +117,22 @@ ElementSamplingDriver::~ElementSamplingDriver() {
   }
 
   delete geomState_;
+
+  if(veloc_) delete veloc_;
+  if(accel_) delete accel_;
 }
 
 template <typename DblFwdIt>
 void
-ElementSamplingDriver::assembleTrainingData(const VecBasis &snapshots, DblFwdIt timeStampFirst, const VecBasis &podBasis,
+ElementSamplingDriver::assembleTrainingData(const VecBasis &displac, DblFwdIt timeStampFirst, const VecBasis &podBasis,
                                             typename SparseNonNegativeLeastSquaresSolver::MatrixBufferType::iterator elemContributions,
-                                            Vector &trainingTarget, VecBasis *velocSnapshots, VecBasis *accelSnapshots) {
+                                            Vector &trainingTarget, VecBasis *veloc, VecBasis *accel) {
   const int podVectorCount = podBasis.vectorCount();
-  const int snapshotCount = snapshots.vectorCount();
+  const int snapshotCount = displac.vectorCount();
 
   // Temporary buffers shared by all iterations
-  VecBasis displac(snapshotCount, vectorSize());
-  Vector podComponents(podVectorCount), elemTarget(podVectorCount);
+  Vector elemTarget(podVectorCount);
   SimpleBuffer<double> elementForce(domain_->maxNumDOF());
-
-  // Project snapshots on POD basis to get training configurations
-  for (int iSnap = 0; iSnap != snapshotCount; ++iSnap) {
-    expand(podBasis, reduce(podBasis, snapshots[iSnap], podComponents), displac[iSnap]);
-  }
-
-  VecBasis *veloc = 0;
-  if(velocSnapshots) {
-    veloc = new VecBasis(velocSnapshots->vectorCount(), vectorSize());
-
-    // Project velocity snapshots on POD basis to get training configurations
-    for (int iSnap = 0; iSnap != velocSnapshots->vectorCount(); ++iSnap) {
-      expand(podBasis, reduce(podBasis, (*velocSnapshots)[iSnap], podComponents), (*veloc)[iSnap]);
-    }
-  }
-
-  VecBasis *accel = 0;
-  if(accelSnapshots) {
-    accel = new VecBasis(accelSnapshots->vectorCount(), vectorSize());
-
-    // Project acceleration snapshots on POD basis to get training configurations
-    for (int iSnap = 0; iSnap != accelSnapshots->vectorCount(); ++iSnap) {
-      expand(podBasis, reduce(podBasis, (*accelSnapshots)[iSnap], podComponents), (*accel)[iSnap]);
-    }
-  }
 
   for (int iElem = 0; iElem != elementCount(); ++iElem) {
     filePrint(stderr,"\r %4.2f%% complete", double(iElem)/double(elementCount())*100.);
@@ -163,10 +141,10 @@ ElementSamplingDriver::assembleTrainingData(const VecBasis &snapshots, DblFwdIt 
     for (int iSnap = 0; iSnap != snapshotCount; ++iSnap) {
       geomState_->explicitUpdate(domain_->getNodes(), domain_->getElementSet()[iElem]->numNodes(),
                                  nodes, displac[iSnap]); // just set the state at the nodes of element iElem
-      if(velocSnapshots) geomState_->setVelocity(domain_->getElementSet()[iElem]->numNodes(), nodes,
-                                                 (*veloc)[iSnap], 2); // just set the velocity at the nodes of element iElem
-      if(accelSnapshots) geomState_->setAcceleration(domain_->getElementSet()[iElem]->numNodes(), nodes,
-                                                     (*veloc)[iSnap], 2); // just set the acceleration at the nodes of element iElem
+      if(veloc) geomState_->setVelocity(domain_->getElementSet()[iElem]->numNodes(), nodes,
+                                        (*veloc)[iSnap], 2); // just set the velocity at the nodes of element iElem
+      if(accel) geomState_->setAcceleration(domain_->getElementSet()[iElem]->numNodes(), nodes,
+                                            (*veloc)[iSnap], 2); // just set the acceleration at the nodes of element iElem
       // Evaluate and store element contribution at training configuration
       domain_->getElemInternalForce(*geomState_, *timeStampIt, geomState_, *(corotators_[iElem]), elementForce.array(), kelArray_[iElem]);
       if(domain_->getElementSet()[iElem]->hasRot()) {
@@ -202,157 +180,43 @@ ElementSamplingDriver::assembleTrainingData(const VecBasis &snapshots, DblFwdIt 
 void
 ElementSamplingDriver::solve() {
   Vector solution;
-  getSolution(solution);
+  computeSolution(solution);
   postProcess(solution);
 }
 
 void
-ElementSamplingDriver::getSolution(Vector &solution) {
+ElementSamplingDriver::computeSolution(Vector &solution, bool verboseFlag) {
   preProcess();
 
-  const FileNameInfo fileInfo;
-  
-  {
+  const int podVectorCount = podBasis_.vectorCount();
+  const int snapshotCount = displac_.vectorCount();
 
-    // Read order reduction data
-    const VecNodeDof6Conversion vecDofConversion(*domain_->getCDSA());
-    assert(vectorSize() == vecDofConversion.vectorSize());
-
-    VecBasis podBasis;
-    {
-      BasisInputStream in(BasisFileId(fileInfo, BasisId::STATE, BasisId::POD), vecDofConversion);
-      const int podSizeMax = domain_->solInfo().maxSizePodRom;
-      if (podSizeMax != 0) {
-        readVectors(in, podBasis, podSizeMax);
-      } else {
-        readVectors(in, podBasis);
-      }
-    }
-
-    // Read state snapshots
-    VecBasis snapshots;
-    std::vector<double> timeStamps;
-    {
-      BasisInputStream in(BasisFileId(fileInfo, BasisId::STATE, BasisId::SNAPSHOTS), vecDofConversion);
-      const int skipFactor = domain->solInfo().skipPodRom;
-      const int skipOffSet = domain->solInfo().skipOffSet;
-      const int basisStateCount = 1 + (in.size() - 1) / skipFactor;
-
-      snapshots.dimensionIs(basisStateCount, in.vectorSize());
-      timeStamps.reserve(basisStateCount);
-
-      int count = 0;
-      int skipCounter = skipFactor-skipOffSet;
-      while (count < basisStateCount) {
-        std::pair<double, double *> data;
-        data.second = snapshots[count].data();
-        in >> data;
-        assert(in);
-        if (skipCounter == skipFactor) {
-          timeStamps.push_back(data.first);
-          skipCounter = 1;
-          ++count;
-        } else {
-          ++skipCounter;
-        }
-      }
-
-      assert(timeStamps.size() == basisStateCount);
-    }
-
-    // Read velocity snapshots
-    VecBasis *velocSnapshots = 0;
-    if(domain->solInfo().velocPodRomFile != "") {
-      std::cerr << "reading velocity snapshots from file " << domain->solInfo().velocPodRomFile << std::endl;
-      std::vector<double> timeStamps;
-      velocSnapshots = new VecBasis;
-      BasisInputStream in(BasisFileId(fileInfo, BasisId::VELOCITY, BasisId::SNAPSHOTS), vecDofConversion);
-      const int skipFactor = domain->solInfo().skipPodRom;
-      const int skipOffSet = domain->solInfo().skipOffSet;
-      const int basisStateCount = 1 + (in.size() - 1) / skipFactor;
-
-      velocSnapshots->dimensionIs(basisStateCount, in.vectorSize());
-      timeStamps.reserve(basisStateCount);
-
-      int count = 0;
-      int skipCounter = skipFactor-skipOffSet;
-      while (count < basisStateCount) {
-        std::pair<double, double *> data;
-        data.second = (*velocSnapshots)[count].data();
-        in >> data;
-        assert(in);
-        if (skipCounter == skipFactor) {
-          timeStamps.push_back(data.first);
-          skipCounter = 1;
-          ++count;
-        } else {
-          ++skipCounter;
-        }
-      }
-
-      assert(timeStamps.size() == basisStateCount);
-      // TODO: check that timeStamps for velocity snapshots match state snapshots
-    }
-
-    // Read acceleration snapshots
-    VecBasis *accelSnapshots = 0;
-    if(domain->solInfo().accelPodRomFile != "") {
-      std::cerr << "reading acceleration snapshots from file " << domain->solInfo().accelPodRomFile << std::endl;
-      std::vector<double> timeStamps;
-      accelSnapshots = new VecBasis;
-      BasisInputStream in(BasisFileId(fileInfo, BasisId::ACCELERATION, BasisId::SNAPSHOTS), vecDofConversion);
-      const int skipFactor = domain->solInfo().skipPodRom;
-      const int skipOffSet = domain->solInfo().skipOffSet;
-      const int basisStateCount = 1 + (in.size() - 1) / skipFactor;
-
-      accelSnapshots->dimensionIs(basisStateCount, in.vectorSize());
-      timeStamps.reserve(basisStateCount);
-
-      int count = 0;
-      int skipCounter = skipFactor-skipOffSet;
-      while (count < basisStateCount) {
-        std::pair<double, double *> data;
-        data.second = (*accelSnapshots)[count].data();
-        in >> data;
-        assert(in);
-        if (skipCounter == skipFactor) {
-          timeStamps.push_back(data.first);
-          skipCounter = 1;
-          ++count;
-        } else {
-          ++skipCounter;
-        }
-      }
-
-      assert(timeStamps.size() == basisStateCount);
-      // TODO: check that timeStamps for acceleration snapshots match state snapshots
-    }
-
-    const int podVectorCount = podBasis.vectorCount();
-    const int snapshotCount = snapshots.vectorCount();
-
-    // DEBUG: Print info
+  // DEBUG: Print info
+  if(verboseFlag) {
     std::cout << "podVectorCount = " << podVectorCount << ", "
               << "snapshotCount = " << snapshotCount << ", "
               << "elementCount = " << elementCount() << "\n";
+  }
 
-    solver_.problemSizeIs(podVectorCount*snapshotCount, elementCount());
+  solver_.problemSizeIs(podVectorCount*snapshotCount, elementCount());
 
-    // Training target is the sum of elementary contributions
-    Vector trainingTarget(podVectorCount*snapshotCount, 0.0);
+  // Training target is the sum of elementary contributions
+  Vector trainingTarget(podVectorCount*snapshotCount, 0.0);
 
-    assembleTrainingData(snapshots, timeStamps.begin(), podBasis, solver_.matrixBuffer(), trainingTarget,
-                         velocSnapshots, accelSnapshots);
+  assembleTrainingData(displac_, timeStamps_.begin(), podBasis_, solver_.matrixBuffer(), trainingTarget,
+                       veloc_, accel_);
 
-    double targetMagnitude = norm(trainingTarget);
+  double targetMagnitude = norm(trainingTarget);
 
-    // Setup and solve optimization problem
-    const double relativeTolerance = domain_->solInfo().tolPodRom;
-    solver_.relativeToleranceIs(relativeTolerance);
-    copy(trainingTarget, solver_.rhsBuffer());
+  // Setup and solve optimization problem
+  const double relativeTolerance = domain_->solInfo().tolPodRom;
+  solver_.relativeToleranceIs(relativeTolerance);
+  copy(trainingTarget, solver_.rhsBuffer());
 
-    solver_.solve();
-    
+  solver_.verboseFlagIs(verboseFlag);
+  solver_.solve();
+  
+  if(verboseFlag) {
     std::cout << "Primal solution:";
     for (int elemRank = 0; elemRank != elementCount(); ++elemRank) {
       std::cout << " " << solver_.solutionEntry(elemRank);
@@ -361,15 +225,15 @@ ElementSamplingDriver::getSolution(Vector &solution) {
 
     std::cout << "Error magnitude / Absolute tolerance = " << solver_.errorMagnitude() << " / " << solver_.relativeTolerance() * targetMagnitude << "\n";
     std::cout << "1-norm of primal solution = " << std::accumulate(solver_.solutionBuffer(), solver_.solutionBuffer() + solver_.unknownCount(), 0.0) << "\n";
-
-    // Read solution
-    solution.initialize(elementCount());
-    std::copy(solver_.solutionBuffer(), solver_.solutionBuffer() + elementCount(), solution.data());
   }
+
+  // Read solution
+  solution.initialize(elementCount());
+  std::copy(solver_.solutionBuffer(), solver_.solutionBuffer() + elementCount(), solution.data());
 }
 
 void
-ElementSamplingDriver::postProcess(Vector &solution, bool firstTime) {
+ElementSamplingDriver::postProcess(Vector &solution, bool firstTime, bool verboseFlag) {
 
   const FileNameInfo fileInfo;
 
@@ -405,7 +269,7 @@ ElementSamplingDriver::postProcess(Vector &solution, bool firstTime) {
   }
 
   std::auto_ptr<Connectivity> elemToNode(new Connectivity(&inputElemSet));
-  const MeshRenumbering meshRenumbering(sampleElemIds.begin(), sampleElemIds.end(), *elemToNode);
+  const MeshRenumbering meshRenumbering(sampleElemIds.begin(), sampleElemIds.end(), *elemToNode, verboseFlag);
 
   const MeshDesc reducedMesh(domain_, geoSource, meshRenumbering, weights);
   try {
@@ -431,6 +295,152 @@ ElementSamplingDriver::preProcess() {
   domain_->computeGeometricPreStress(corotators_, geomState_, kelArray_, &dummyTimes, dummyGeomKelArray, melArray_, buildMelArray);
   if(domain_->nDirichlet() > 0) {
     geomState_->updatePrescribedDisplacement(domain_->getDBC(), domain_->nDirichlet(), domain_->getNodes());
+  }
+
+  const FileNameInfo fileInfo;
+  
+  // Read order reduction data
+  const VecNodeDof6Conversion vecDofConversion(*domain_->getCDSA());
+  assert(vectorSize() == vecDofConversion.vectorSize());
+
+  {
+    BasisInputStream in(BasisFileId(fileInfo, BasisId::STATE, BasisId::POD), vecDofConversion);
+    const int podSizeMax = domain_->solInfo().maxSizePodRom;
+    if (podSizeMax != 0) {
+      readVectors(in, podBasis_, podSizeMax);
+    } else {
+      readVectors(in, podBasis_);
+    }
+  }
+
+  // Read state snapshots
+  VecBasis snapshots;
+  {
+    BasisInputStream in(BasisFileId(fileInfo, BasisId::STATE, BasisId::SNAPSHOTS), vecDofConversion);
+    const int skipFactor = domain->solInfo().skipPodRom;
+    const int skipOffSet = domain->solInfo().skipOffSet;
+    const int basisStateCount = 1 + (in.size() - 1) / skipFactor;
+
+    snapshots.dimensionIs(basisStateCount, in.vectorSize());
+    timeStamps_.reserve(basisStateCount);
+
+    int count = 0;
+    int skipCounter = skipFactor-skipOffSet;
+    while (count < basisStateCount) {
+      std::pair<double, double *> data;
+      data.second = snapshots[count].data();
+      in >> data;
+      assert(in);
+      if (skipCounter == skipFactor) {
+        timeStamps_.push_back(data.first);
+        skipCounter = 1;
+        ++count;
+      } else {
+        ++skipCounter;
+      }
+    }
+
+    assert(timeStamps_.size() == basisStateCount);
+  }
+
+  // Read velocity snapshots
+  VecBasis *velocSnapshots = 0;
+  if(domain->solInfo().velocPodRomFile != "") {
+    std::cerr << "reading velocity snapshots from file " << domain->solInfo().velocPodRomFile << std::endl;
+    std::vector<double> timeStamps;
+    velocSnapshots = new VecBasis;
+    BasisInputStream in(BasisFileId(fileInfo, BasisId::VELOCITY, BasisId::SNAPSHOTS), vecDofConversion);
+    const int skipFactor = domain->solInfo().skipPodRom;
+    const int skipOffSet = domain->solInfo().skipOffSet;
+    const int basisStateCount = 1 + (in.size() - 1) / skipFactor;
+
+    velocSnapshots->dimensionIs(basisStateCount, in.vectorSize());
+    timeStamps.reserve(basisStateCount);
+
+    int count = 0;
+    int skipCounter = skipFactor-skipOffSet;
+    while (count < basisStateCount) {
+      std::pair<double, double *> data;
+      data.second = (*velocSnapshots)[count].data();
+      in >> data;
+      assert(in);
+      if (skipCounter == skipFactor) {
+        timeStamps.push_back(data.first);
+        skipCounter = 1;
+        ++count;
+      } else {
+        ++skipCounter;
+      }
+    }
+
+    assert(timeStamps.size() == basisStateCount);
+    // TODO: check that timeStamps for velocity snapshots match state snapshots
+  }
+
+  // Read acceleration snapshots
+  VecBasis *accelSnapshots = 0;
+  if(domain->solInfo().accelPodRomFile != "") {
+    std::cerr << "reading acceleration snapshots from file " << domain->solInfo().accelPodRomFile << std::endl;
+    std::vector<double> timeStamps;
+    accelSnapshots = new VecBasis;
+    BasisInputStream in(BasisFileId(fileInfo, BasisId::ACCELERATION, BasisId::SNAPSHOTS), vecDofConversion);
+    const int skipFactor = domain->solInfo().skipPodRom;
+    const int skipOffSet = domain->solInfo().skipOffSet;
+    const int basisStateCount = 1 + (in.size() - 1) / skipFactor;
+
+    accelSnapshots->dimensionIs(basisStateCount, in.vectorSize());
+    timeStamps.reserve(basisStateCount);
+
+    int count = 0;
+    int skipCounter = skipFactor-skipOffSet;
+    while (count < basisStateCount) {
+      std::pair<double, double *> data;
+      data.second = (*accelSnapshots)[count].data();
+      in >> data;
+      assert(in);
+      if (skipCounter == skipFactor) {
+        timeStamps.push_back(data.first);
+        skipCounter = 1;
+        ++count;
+      } else {
+        ++skipCounter;
+      }
+    }
+
+    assert(timeStamps.size() == basisStateCount);
+    // TODO: check that timeStamps for acceleration snapshots match state snapshots
+  }
+
+  const int podVectorCount = podBasis_.vectorCount();
+  const int snapshotCount = snapshots.vectorCount();
+
+  // Temporary buffers shared by all iterations
+  Vector podComponents(podVectorCount);
+
+  // Project snapshots on POD basis to get training configurations
+  displac_.dimensionIs(snapshotCount, vectorSize());
+  for (int iSnap = 0; iSnap != snapshotCount; ++iSnap) {
+    expand(podBasis_, reduce(podBasis_, snapshots[iSnap], podComponents), displac_[iSnap]);
+  }
+
+  if(velocSnapshots) {
+    veloc_ = new VecBasis(velocSnapshots->vectorCount(), vectorSize());
+
+    // Project velocity snapshots on POD basis to get training configurations
+    for (int iSnap = 0; iSnap != velocSnapshots->vectorCount(); ++iSnap) {
+      expand(podBasis_, reduce(podBasis_, (*velocSnapshots)[iSnap], podComponents), (*veloc_)[iSnap]);
+    }
+    delete velocSnapshots;
+  }
+
+  if(accelSnapshots) {
+    accel_ = new VecBasis(accelSnapshots->vectorCount(), vectorSize());
+
+    // Project acceleration snapshots on POD basis to get training configurations
+    for (int iSnap = 0; iSnap != accelSnapshots->vectorCount(); ++iSnap) {
+      expand(podBasis_, reduce(podBasis_, (*accelSnapshots)[iSnap], podComponents), (*accel_)[iSnap]);
+    }
+    delete accelSnapshots;
   }
 }
 

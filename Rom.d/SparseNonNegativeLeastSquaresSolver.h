@@ -30,6 +30,9 @@ public:
   double relativeTolerance() const { return relativeTolerance_; }
   void relativeToleranceIs(double relTol) { relativeTolerance_ = relTol; }
 
+  bool verboseFlag() const { return verboseFlag_; }
+  void verboseFlagIs(bool verFlg) { verboseFlag_ = verFlg; }
+
   // Buffers: Internal column-major ordering, zero-based indexing
   // Matrix buffer: [equationCount by unknownCount]
   Scalar matrixEntry(int row, int col) const;
@@ -78,6 +81,7 @@ private:
   SimpleBuffer<Scalar> dualSolutionBuffer_;
 
   double errorMagnitude_;
+  bool verboseFlag_;
 
   // Disallow copy & assignment
   SparseNonNegativeLeastSquaresSolver(const SparseNonNegativeLeastSquaresSolver &);

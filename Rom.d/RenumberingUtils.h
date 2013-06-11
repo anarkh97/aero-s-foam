@@ -22,7 +22,7 @@ public:
 
   template <typename IdxInIt>
   MeshRenumbering(IdxInIt firstSampleElem, IdxInIt lastSampleElem,
-                  const Connectivity &elemToNode);
+                  const Connectivity &elemToNode, bool verboseFlag = true);
 
 protected:
   MeshRenumbering() {}
@@ -34,7 +34,7 @@ protected:
   Extension elemRenumbering_;
 
 private:
-  void init(const Connectivity &);
+  void init(const Connectivity &, bool verboseFlag);
 
   // Disallow copy & assignment
   MeshRenumbering(const MeshRenumbering &);
@@ -43,10 +43,10 @@ private:
 
 template <typename IdxInIt>
 MeshRenumbering::MeshRenumbering(IdxInIt firstSampleElem, IdxInIt lastSampleElem,
-                                 const Connectivity &elemToNode) :
+                                 const Connectivity &elemToNode, bool verboseFlag) :
   reducedElemIds_(firstSampleElem, lastSampleElem)
 {
-  init(elemToNode);
+  init(elemToNode, verboseFlag);
 }
 
 

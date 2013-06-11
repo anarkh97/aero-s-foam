@@ -22,21 +22,26 @@
 
 namespace Rom {
 
+
+const DistrInfo&
+DistrElementSamplingDriver::vectorSize() const {
+  return decDomain_->masterSolVecInfo();
+}
+
 DistrElementSamplingDriver::DistrElementSamplingDriver(Domain *domain, Communicator *comm) :
   domain_(domain),
-  comm_(comm)
+  comm_(comm),
+  decDomain_(createDecDomain<double>(domain))
 {}
 
 void
 DistrElementSamplingDriver::solve() {
-  std::auto_ptr<DecDomain> decDomain(createDecDomain<double>(domain_));
-  decDomain->preProcess();
+  decDomain_->preProcess();
 
- /* TODO need to read basis into a distributed vector and send each subvector to its SubElementSamplingDriver
-         likewise for snapshots
-  // read basis
-  DistrVecBasis podBasis;
   FileNameInfo fileInfo;
+
+  // Read order reduction data
+  DistrVecBasis podBasis;
   DistrBasisInputFile podBasisFile(BasisFileId(fileInfo, BasisId::STATE, BasisId::POD));
 
   const int projectionSubspaceSize = domain->solInfo().maxSizePodRom ?
@@ -44,13 +49,13 @@ DistrElementSamplingDriver::solve() {
                                      podBasisFile.stateCount();
 
   filePrint(stderr, " ... Projection subspace of dimension = %d ...\n", projectionSubspaceSize);
-  podBasis.dimensionIs(projectionSubspaceSize, decDomain->masterSolVecInfo());
+  podBasis.dimensionIs(projectionSubspaceSize, vectorSize());
 
-  DistrVecNodeDof6Conversion converter(decDomain->getAllSubDomains(), decDomain->getAllSubDomains() + decDomain->getNumSub());
+  DistrVecNodeDof6Conversion converter(decDomain_->getAllSubDomains(), decDomain_->getAllSubDomains() + decDomain_->getNumSub());
 
   typedef PtrPtrIterAdapter<SubDomain> SubDomIt;
-  DistrMasterMapping masterMapping(SubDomIt(decDomain->getAllSubDomains()),
-                                   SubDomIt(decDomain->getAllSubDomains() + decDomain->getNumSub()));
+  DistrMasterMapping masterMapping(SubDomIt(decDomain_->getAllSubDomains()),
+                                   SubDomIt(decDomain_->getAllSubDomains() + decDomain_->getNumSub()));
   DistrNodeDof6Buffer buffer(masterMapping.localNodeBegin(), masterMapping.localNodeEnd());
 
   for (DistrVecBasis::iterator it = podBasis.begin(),
@@ -64,7 +69,8 @@ DistrElementSamplingDriver::solve() {
     podBasisFile.currentStateIndexInc();
   }
 
-  // read snapshots
+  // Read state snapshots
+  // TODO fix skip and offset
   DistrVecBasis snapshots;
   std::vector<double> timeStamps;
   {
@@ -74,7 +80,7 @@ DistrElementSamplingDriver::solve() {
     const int basisStateCount = 1 + (in.stateCount() - 1) / skipFactor;
     filePrint(stderr, " ... basisStateCount = %d ...\n", basisStateCount);
 
-    snapshots.dimensionIs(basisStateCount, decDomain->masterSolVecInfo());
+    snapshots.dimensionIs(basisStateCount, vectorSize());
     timeStamps.reserve(basisStateCount);
 
     for (DistrVecBasis::iterator it = snapshots.begin(),
@@ -84,24 +90,79 @@ DistrElementSamplingDriver::solve() {
 
       in.currentStateBuffer(buffer);
       converter.vector(buffer, *it);
+      timeStamps.push_back(in.currentStateHeaderValue());
 
       in.currentStateIndexInc();
     }
   }
-*/
-  SubElementSamplingDriver **subDrivers = new SubElementSamplingDriver * [decDomain->getNumSub()];
-  Vector *solutions = new Vector[decDomain->getNumSub()];
-  for(int i=0; i<decDomain->getNumSub(); ++i) {
-    subDrivers[i] = new SubElementSamplingDriver(decDomain->getAllSubDomains()[i]);
-    subDrivers[i]->getSolution(solutions[i]);
+
+  // TODO Read velocity snapshots
+  DistrVecBasis *velocSnapshots = 0;
+
+  // TODO Read acceleration snapshots
+  DistrVecBasis *accelSnapshots = 0;
+
+  const int podVectorCount = podBasis.vectorCount();
+  const int snapshotCount = snapshots.vectorCount();
+
+  // Temporary buffers shared by all iterations
+  Vector podComponents(podVectorCount);
+
+  // Project snapshots on POD basis to get training configurations
+  DistrVecBasis displac(snapshotCount, vectorSize());
+  for (int iSnap = 0; iSnap != snapshotCount; ++iSnap) {
+    expand(podBasis, reduce(podBasis, snapshots[iSnap], podComponents), displac[iSnap]);
   }
 
+  DistrVecBasis *veloc = 0;
+  if(velocSnapshots) {
+    veloc = new DistrVecBasis(velocSnapshots->vectorCount(), vectorSize());
+
+    // Project velocity snapshots on POD basis to get training configurations
+    for (int iSnap = 0; iSnap != velocSnapshots->vectorCount(); ++iSnap) {
+      expand(podBasis, reduce(podBasis, (*velocSnapshots)[iSnap], podComponents), (*veloc)[iSnap]);
+    }
+    delete velocSnapshots;
+  }
+
+  DistrVecBasis *accel = 0;
+  if(accelSnapshots) {
+    accel = new DistrVecBasis(accelSnapshots->vectorCount(), vectorSize());
+
+    // Project acceleration snapshots on POD basis to get training configurations
+    for (int iSnap = 0; iSnap != accelSnapshots->vectorCount(); ++iSnap) {
+      expand(podBasis, reduce(podBasis, (*accelSnapshots)[iSnap], podComponents), (*accel)[iSnap]);
+    }
+    delete accelSnapshots;
+  }
+
+  SubElementSamplingDriver **subDrivers = new SubElementSamplingDriver * [decDomain_->getNumSub()];
+  Vector *solutions = new Vector[decDomain_->getNumSub()];
   int numCPUs = (structCom) ? structCom->numCPUs() : 1;
   int myID = (structCom) ? structCom->myID() : 0;
+  bool verboseFlag = (myID == 0); // output to the screen only for subdomains assigned to mpi process with rank 0
+  for(int i=0; i<decDomain_->getNumSub(); ++i) {
+    subDrivers[i] = new SubElementSamplingDriver(decDomain_->getAllSubDomains()[i]);
+
+    VecBasis &subPodBasis = subDrivers[i]->podBasis();
+    subPodBasis.dimensionIs(podVectorCount, subDrivers[i]->vectorSize());
+    for(int j=0; j<podVectorCount; ++j) {
+      subPodBasis[j] = StackVector(podBasis[j].subData(i), podBasis[j].subLen(i));
+    }
+    VecBasis &subDisplac = subDrivers[i]->displac();
+    subDisplac.dimensionIs(snapshotCount, subDrivers[i]->vectorSize());
+    for(int j=0; j<snapshotCount; ++j) {
+      subDisplac[j] = StackVector(displac[j].subData(i), displac[j].subLen(i));
+    }
+    subDrivers[i]->timeStampsIs(timeStamps);
+
+    subDrivers[i]->computeSolution(solutions[i], verboseFlag);
+  }
+
   for(int cpu = 0; cpu < numCPUs; ++cpu) {
     if(cpu == myID) {
-      for(int i=0; i<decDomain->getNumSub(); ++i) {
-        subDrivers[i]->postProcess(solutions[i], (myID == 0 && i==0));
+      for(int i=0; i<decDomain_->getNumSub(); ++i) {
+        subDrivers[i]->postProcess(solutions[i], (myID == 0 && i == 0), verboseFlag);
         delete subDrivers[i];
       }
     }
@@ -110,6 +171,8 @@ DistrElementSamplingDriver::solve() {
 
   delete [] subDrivers;
   delete [] solutions;
+  if(veloc) delete veloc;
+  if(accel) delete accel;
 }
 
 } /* end namespace Rom */

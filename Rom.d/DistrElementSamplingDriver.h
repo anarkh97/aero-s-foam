@@ -2,20 +2,27 @@
 #define ROM_DISTRELEMENTSAMPLINGDRIVER_H
 
 #include "DriverInterface.h"
+#include <memory>
 
 class Communicator;
+class DistrInfo;
 
 namespace Rom {
+
+template <typename Scalar, template <typename> class GenVecType> class GenVecBasis;
+typedef GenVecBasis<double, GenDistrVector> DistrVecBasis;
 
 class DistrElementSamplingDriver : public DriverInterface {
 public:
   virtual void solve();
   
   DistrElementSamplingDriver(Domain *, Communicator *);
+  const DistrInfo& vectorSize() const;
 
 private:
   Domain *domain_;
   Communicator *comm_;
+  std::auto_ptr<DecDomain> decDomain_;
 };
 
 } /* end namespace Rom */

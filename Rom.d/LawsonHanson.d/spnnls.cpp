@@ -64,7 +64,7 @@ template<typename AnyMatrix>
 long spnnls(AnyMatrix &A, long mda, long m, long 
            n, double *_b, double *_x, double reltol, double 
            &rnorm, double *_w, double *_zz, double *_zz2, long *_index,
-           long &mode)
+           long &mode, bool prtflg)
 {
 #ifdef USE_EIGEN3
     // Builtin functions
@@ -147,10 +147,12 @@ long spnnls(AnyMatrix &A, long mda, long m, long
         sm = b.segment(npp1-1,m-npp1-1).squaredNorm();
         rnorm = sqrt(sm);
     
-        cout << " Iteration= " << setw(11) << iter; 
-        cout << " Active set size = " << setw(11) << nsetp;
-        cout << " Residual norm = " << setw(20) << setprecision(16) << rnorm << "     ";
-        cout << " Target = " << setw(20) << setprecision(16) << abstol << "     " << endl;
+        if(prtflg) {
+          cout << " Iteration= " << setw(11) << iter; 
+          cout << " Active set size = " << setw(11) << nsetp;
+          cout << " Residual norm = " << setw(20) << setprecision(16) << rnorm << "     ";
+          cout << " Target = " << setw(20) << setprecision(16) << abstol << "     " << endl;
+        }
     
 //      STOPPING CRITERION
         if (rnorm < abstol) {

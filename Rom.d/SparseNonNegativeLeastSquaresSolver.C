@@ -34,7 +34,8 @@ SparseNonNegativeLeastSquaresSolver::SparseNonNegativeLeastSquaresSolver() :
   rhsBuffer_(0),
   solutionBuffer_(0),
   dualSolutionBuffer_(0),
-  errorMagnitude_()
+  errorMagnitude_(),
+  verboseFlag_(true)
 {}
 
 void
@@ -44,17 +45,14 @@ SparseNonNegativeLeastSquaresSolver::problemSizeIs(long eqnCount, long unkCount)
   }
 
   #ifdef USE_STXXL
-  //std::cout << "using stxxl" << std::endl;
   stxxl::uint64 bufSize = (eqnCount) * (unkCount);
   #else
-  //std::cout << "using std vector" << std::endl;
   size_t bufSize = (eqnCount) * (unkCount);
   #endif
 
 
   equationCount_ = matrixLeadDim_ = eqnCount;
   unknownCount_ = unkCount;
-  //std::cout << "Reserving STXXL vector of size "<< bufSize << std::endl;
   matrixBuffer_.resize(bufSize);
   rhsBuffer_.sizeIs(equationCount());
   solutionBuffer_.sizeIs(unknownCount());
@@ -76,7 +74,7 @@ SparseNonNegativeLeastSquaresSolver::solve() {
 
   spnnls(A, matrixLeadDim_, equationCount_, unknownCount_,
          rhsBuffer_.array(), solutionBuffer_.array(), relativeTolerance_, errorMagnitude_, dualSolutionBuffer_.array(),
-         workspace.array(), workspace2.array(), index.array(), info);
+         workspace.array(), workspace2.array(), index.array(), info, verboseFlag_);
 
   if (info == 2) {
     throw std::logic_error("Illegal problem size");

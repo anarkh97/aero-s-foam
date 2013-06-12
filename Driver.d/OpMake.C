@@ -1407,7 +1407,7 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
       break;
 #endif
 #ifdef EIGEN_SPRQ_SUPPORT
-    case 6:
+    case 16:
       spm = constructEiSparseMatrix<Scalar,Eigen::SPQR<Eigen::SparseMatrix<Scalar> > >(c_dsa, nodeToNode, false);
       makeSparseOps<Scalar>(allOps, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray, celArray);
       systemSolver  = (GenEiSparseMatrix<Scalar,Eigen::SQPR<Eigen::SparseMatrix<Scalar> > >*) spm;

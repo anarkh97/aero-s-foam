@@ -31,9 +31,7 @@ void    _FORTRAN(sands23)(const int&, double*, double*, double*, double&,
                           const int&,
 			  const int&, const int&, const int&, const int&);
 
-#ifdef USE_NEW_TET4_STIFF //HB: used in the new version of the stiffness matrix
 void  _FORTRAN(brkcmt)(double&, double&, double*);
-#endif
 }
 
 typedef double Coord[3];

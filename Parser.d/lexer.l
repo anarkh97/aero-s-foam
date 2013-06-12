@@ -446,7 +446,7 @@ TRAIL [a-zA-Z]*
 
 "ssqr"[a-zA-Z]*|"SSQR"[a-zA-Z]*    { yylval.ival = 16; return SOLVERTYPE; }
 
-"spqr"[a-zA-Z]*|"SPQR"[a-zA-Z]*   { yylval.ival = 17; return SOLVERTYPE; }
+"spqr"[a-zA-Z]*|"SPQR"[a-zA-Z]*    { yylval.ival = 17; return SOLVERTYPE; }
 
 "chol"[a-zA-Z]*|"CHOL"[a-zA-Z]*    { yylval.ival = 5; return SOLVERTYPE; }
 

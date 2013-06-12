@@ -6,7 +6,6 @@
 #include "stxxl_matrix2d.hpp"
 
 /*
-extern "C" {
   // Approximately solve the sparse non-negative least-squares problem
   //   min support(x) st ||A * x - b|| < reltol * ||b|| and x >= 0
   // Input: A is (mda x n), b is (m x 1), reltol is scalar
@@ -16,16 +15,17 @@ extern "C" {
   //         w <- A^T(b - Ax) is the (n x 1) dual solution
   // Work: zz is (m x 1), zz2 is (n x 1), index is (n x 1)
   // Info: mode: 1 => success, 2 => bad dim, 3 => too many iter
-  void _FORTRAN(spnnls)(double *a, const int *mda, const int *m, const int *n,
-                        double *b, double *x, const double *reltol, double *rnorm, double *w,
-                        double *zz, double *zz2, int *index, int *mode);
+  void spnnls(double *a, const int *mda, const int *m, const int *n,
+              double *b, double *x, const double *reltol, double *rnorm, double *w,
+              double *zz, double *zz2, int *index, int *mode);
 }
 */
 #include "LawsonHanson.d/spnnls.cpp"
 
 namespace Rom {
 
-SparseNonNegativeLeastSquaresSolver::SparseNonNegativeLeastSquaresSolver() :
+template<typename MatrixBufferType, typename SizeType>
+SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::SparseNonNegativeLeastSquaresSolver() :
   equationCount_(0),
   unknownCount_(0),
   matrixLeadDim_(0),
@@ -38,18 +38,14 @@ SparseNonNegativeLeastSquaresSolver::SparseNonNegativeLeastSquaresSolver() :
   verboseFlag_(true)
 {}
 
+template<typename MatrixBufferType, typename SizeType>
 void
-SparseNonNegativeLeastSquaresSolver::problemSizeIs(long eqnCount, long unkCount) {
+SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::problemSizeIs(long eqnCount, long unkCount) {
   if (eqnCount < 0 || unkCount < 0) {
     throw std::domain_error("Illegal problem size");
   }
 
-  #ifdef USE_STXXL
-  stxxl::uint64 bufSize = (eqnCount) * (unkCount);
-  #else
-  size_t bufSize = (eqnCount) * (unkCount);
-  #endif
-
+  SizeType bufSize = (eqnCount) * (unkCount);
 
   equationCount_ = matrixLeadDim_ = eqnCount;
   unknownCount_ = unkCount;
@@ -59,8 +55,9 @@ SparseNonNegativeLeastSquaresSolver::problemSizeIs(long eqnCount, long unkCount)
   dualSolutionBuffer_.sizeIs(unknownCount());
 }
 
+template<typename MatrixBufferType, typename SizeType>
 void
-SparseNonNegativeLeastSquaresSolver::solve() {
+SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::solve() {
   if (matrixBuffer_.size() == 0) {
     return;
   }

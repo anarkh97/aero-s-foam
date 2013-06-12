@@ -5,7 +5,7 @@
 
 namespace Rom {
 
-class SubElementSamplingDriver : public ElementSamplingDriver {
+class SubElementSamplingDriver : public ElementSamplingDriver<std::vector<double>,size_t> {
 public:
   explicit SubElementSamplingDriver(Domain *);
 

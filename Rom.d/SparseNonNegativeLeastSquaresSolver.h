@@ -4,22 +4,14 @@
 #include "SimpleBuffer.h"
 #ifdef USE_STXXL
 #include <stxxl/vector>
-#else
-#include <vector>
 #endif
 
 namespace Rom {
 
+template<typename MatrixBufferType, typename SizeType>
 class SparseNonNegativeLeastSquaresSolver {
 public:
-  typedef double Scalar;
-#ifdef USE_STXXL
-  // note: the stxxl defaults are 4, 8 and 2097152 
-  typedef stxxl::VECTOR_GENERATOR<Scalar,16,32,8388608,stxxl::RC,stxxl::random>::result MatrixBufferType; // external vector of Scalar's with 16 blocks per page,
-                                                                                 // the cache with 32 pages, and 8 MB blocks (i.e. total cache is 4GB)
-#else
-  typedef std::vector<Scalar> MatrixBufferType;
-#endif
+  typedef typename MatrixBufferType::value_type Scalar;
 
   // Problem size
   long equationCount() const { return equationCount_; }
@@ -36,12 +28,12 @@ public:
   // Buffers: Internal column-major ordering, zero-based indexing
   // Matrix buffer: [equationCount by unknownCount]
   Scalar matrixEntry(int row, int col) const;
-  MatrixBufferType::const_iterator matrixColBuffer(int col) const;
-  MatrixBufferType::const_iterator matrixBuffer() const;
+  typename MatrixBufferType::const_iterator matrixColBuffer(int col) const;
+  typename MatrixBufferType::const_iterator matrixBuffer() const;
 
   Scalar & matrixEntry(int row, int col);
-  MatrixBufferType::iterator matrixColBuffer(int col);
-  MatrixBufferType::iterator matrixBuffer();
+  typename MatrixBufferType::iterator matrixColBuffer(int col);
+  typename MatrixBufferType::iterator matrixBuffer();
 
   // Rhs buffer: [equationCount]
   Scalar rhsEntry(int row) const;
@@ -89,87 +81,87 @@ private:
 };
 
 // Inline member functions
-inline
-SparseNonNegativeLeastSquaresSolver::MatrixBufferType::const_iterator
-SparseNonNegativeLeastSquaresSolver::matrixBuffer() const {
+template<typename MatrixBufferType, typename SizeType>
+typename MatrixBufferType::const_iterator
+SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::matrixBuffer() const {
   return matrixBuffer_.begin();
 } 
 
-inline
-SparseNonNegativeLeastSquaresSolver::MatrixBufferType::const_iterator
-SparseNonNegativeLeastSquaresSolver::matrixColBuffer(int col) const {
+template<typename MatrixBufferType, typename SizeType>
+typename MatrixBufferType::const_iterator
+SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::matrixColBuffer(int col) const {
   return matrixBuffer() + (col * matrixLeadDim_);
 }
 
-inline
-SparseNonNegativeLeastSquaresSolver::Scalar
-SparseNonNegativeLeastSquaresSolver::matrixEntry(int row, int col) const {
+template<typename MatrixBufferType, typename SizeType>
+typename SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::Scalar
+SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::matrixEntry(int row, int col) const {
   return matrixColBuffer(col)[row];
 }
 
-inline
-SparseNonNegativeLeastSquaresSolver::MatrixBufferType::iterator
-SparseNonNegativeLeastSquaresSolver::matrixBuffer() {
+template<typename MatrixBufferType, typename SizeType>
+typename MatrixBufferType::iterator
+SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::matrixBuffer() {
   return matrixBuffer_.begin();
 } 
 
-inline
-SparseNonNegativeLeastSquaresSolver::MatrixBufferType::iterator
-SparseNonNegativeLeastSquaresSolver::matrixColBuffer(int col) {
+template<typename MatrixBufferType, typename SizeType>
+typename MatrixBufferType::iterator
+SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::matrixColBuffer(int col) {
   return matrixBuffer() + (col * matrixLeadDim_);
 }
 
-inline
-SparseNonNegativeLeastSquaresSolver::Scalar &
-SparseNonNegativeLeastSquaresSolver::matrixEntry(int row, int col) {
+template<typename MatrixBufferType, typename SizeType>
+typename SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::Scalar &
+SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::matrixEntry(int row, int col) {
   return matrixColBuffer(col)[row];
 }
 
-inline
-const SparseNonNegativeLeastSquaresSolver::Scalar *
-SparseNonNegativeLeastSquaresSolver::rhsBuffer() const {
+template<typename MatrixBufferType, typename SizeType>
+const typename SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::Scalar *
+SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::rhsBuffer() const {
   return rhsBuffer_.array();
 } 
 
-inline
-SparseNonNegativeLeastSquaresSolver::Scalar
-SparseNonNegativeLeastSquaresSolver::rhsEntry(int row) const {
+template<typename MatrixBufferType, typename SizeType>
+typename SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::Scalar
+SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::rhsEntry(int row) const {
   return rhsBuffer()[row];
 }
 
-inline
-SparseNonNegativeLeastSquaresSolver::Scalar *
-SparseNonNegativeLeastSquaresSolver::rhsBuffer() {
+template<typename MatrixBufferType, typename SizeType>
+typename SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::Scalar *
+SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::rhsBuffer() {
   return rhsBuffer_.array();
 } 
 
-inline
-SparseNonNegativeLeastSquaresSolver::Scalar &
-SparseNonNegativeLeastSquaresSolver::rhsEntry(int row) {
+template<typename MatrixBufferType, typename SizeType>
+typename SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::Scalar &
+SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::rhsEntry(int row) {
   return rhsBuffer()[row];
 }
 
-inline
-const SparseNonNegativeLeastSquaresSolver::Scalar *
-SparseNonNegativeLeastSquaresSolver::solutionBuffer() const {
+template<typename MatrixBufferType, typename SizeType>
+const typename SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::Scalar *
+SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::solutionBuffer() const {
   return solutionBuffer_.array();
 } 
 
-inline
-SparseNonNegativeLeastSquaresSolver::Scalar
-SparseNonNegativeLeastSquaresSolver::solutionEntry(int row) const {
+template<typename MatrixBufferType, typename SizeType>
+typename SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::Scalar
+SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::solutionEntry(int row) const {
   return solutionBuffer()[row];
 }
 
-inline
-const SparseNonNegativeLeastSquaresSolver::Scalar *
-SparseNonNegativeLeastSquaresSolver::dualSolutionBuffer() const {
+template<typename MatrixBufferType, typename SizeType>
+const typename SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::Scalar *
+SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::dualSolutionBuffer() const {
   return dualSolutionBuffer_.array();
 } 
 
-inline
-SparseNonNegativeLeastSquaresSolver::Scalar
-SparseNonNegativeLeastSquaresSolver::dualSolutionEntry(int row) const {
+template<typename MatrixBufferType, typename SizeType>
+typename SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::Scalar
+SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::dualSolutionEntry(int row) const {
   return dualSolutionBuffer()[row];
 }
 

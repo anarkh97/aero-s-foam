@@ -84,18 +84,20 @@ outputFullWeights(const FileNameInfo &fileInfo, const Vector &weights, const std
 
 // Member functions
 // ================
-inline
+template<typename MatrixBufferType, typename SizeType>
 int
-ElementSamplingDriver::elementCount() const {
+ElementSamplingDriver<MatrixBufferType,SizeType>::elementCount() const {
   return domain_->numElements();
 }
 
+template<typename MatrixBufferType, typename SizeType>
 int
-ElementSamplingDriver::vectorSize() const {
+ElementSamplingDriver<MatrixBufferType,SizeType>::vectorSize() const {
   return domain_->numUncon();
 }
 
-ElementSamplingDriver::ElementSamplingDriver(Domain *d) :
+template<typename MatrixBufferType, typename SizeType>
+ElementSamplingDriver<MatrixBufferType,SizeType>::ElementSamplingDriver(Domain *d) :
   domain_(d),
   corotators_(NULL),
   geomState_(NULL),
@@ -105,7 +107,8 @@ ElementSamplingDriver::ElementSamplingDriver(Domain *d) :
   accel_(NULL)
 {}
 
-ElementSamplingDriver::~ElementSamplingDriver() {
+template<typename MatrixBufferType, typename SizeType>
+ElementSamplingDriver<MatrixBufferType,SizeType>::~ElementSamplingDriver() {
   if (corotators_) {
     for (int iElem = 0; iElem != elementCount(); ++iElem) {
       const Corotator * c = corotators_[iElem];
@@ -122,11 +125,11 @@ ElementSamplingDriver::~ElementSamplingDriver() {
   if(accel_) delete accel_;
 }
 
-template <typename DblFwdIt>
+template<typename MatrixBufferType, typename SizeType>
 void
-ElementSamplingDriver::assembleTrainingData(const VecBasis &displac, DblFwdIt timeStampFirst, const VecBasis &podBasis,
-                                            typename SparseNonNegativeLeastSquaresSolver::MatrixBufferType::iterator elemContributions,
-                                            Vector &trainingTarget, VecBasis *veloc, VecBasis *accel) {
+ElementSamplingDriver<MatrixBufferType,SizeType>::assembleTrainingData(const VecBasis &displac, std::vector<double>::iterator timeStampFirst, const VecBasis &podBasis,
+                                                                       typename MatrixBufferType::iterator elemContributions,
+                                                                       Vector &trainingTarget, VecBasis *veloc, VecBasis *accel) {
   const int podVectorCount = podBasis.vectorCount();
   const int snapshotCount = displac.vectorCount();
 
@@ -136,7 +139,7 @@ ElementSamplingDriver::assembleTrainingData(const VecBasis &displac, DblFwdIt ti
 
   for (int iElem = 0; iElem != elementCount(); ++iElem) {
     filePrint(stderr,"\r %4.2f%% complete", double(iElem)/double(elementCount())*100.);
-    DblFwdIt timeStampIt = timeStampFirst;
+    std::vector<double>::iterator timeStampIt = timeStampFirst;
     int *nodes = domain_->getElementSet()[iElem]->nodes();
     for (int iSnap = 0; iSnap != snapshotCount; ++iSnap) {
       geomState_->explicitUpdate(domain_->getNodes(), domain_->getElementSet()[iElem]->numNodes(),
@@ -177,15 +180,17 @@ ElementSamplingDriver::assembleTrainingData(const VecBasis &displac, DblFwdIt ti
   filePrint(stderr,"\r %4.2f%% complete\n", 100.);
 }
 
+template<typename MatrixBufferType, typename SizeType>
 void
-ElementSamplingDriver::solve() {
+ElementSamplingDriver<MatrixBufferType,SizeType>::solve() {
   Vector solution;
   computeSolution(solution);
   postProcess(solution);
 }
 
+template<typename MatrixBufferType, typename SizeType>
 void
-ElementSamplingDriver::computeSolution(Vector &solution, bool verboseFlag) {
+ElementSamplingDriver<MatrixBufferType,SizeType>::computeSolution(Vector &solution, bool verboseFlag) {
   preProcess();
 
   const int podVectorCount = podBasis_.vectorCount();
@@ -232,8 +237,9 @@ ElementSamplingDriver::computeSolution(Vector &solution, bool verboseFlag) {
   std::copy(solver_.solutionBuffer(), solver_.solutionBuffer() + elementCount(), solution.data());
 }
 
+template<typename MatrixBufferType, typename SizeType>
 void
-ElementSamplingDriver::postProcess(Vector &solution, bool firstTime, bool verboseFlag) {
+ElementSamplingDriver<MatrixBufferType,SizeType>::postProcess(Vector &solution, bool firstTime, bool verboseFlag) {
 
   const FileNameInfo fileInfo;
 
@@ -282,8 +288,9 @@ ElementSamplingDriver::postProcess(Vector &solution, bool firstTime, bool verbos
   outputFullWeights(fileInfo, solution, packedToInput, firstTime);
 }
 
+template<typename MatrixBufferType, typename SizeType>
 void
-ElementSamplingDriver::preProcess() {
+ElementSamplingDriver<MatrixBufferType,SizeType>::preProcess() {
 
   domain_->preProcessing();
   buildDomainCdsa();
@@ -346,7 +353,7 @@ ElementSamplingDriver::preProcess() {
   // Read velocity snapshots
   VecBasis *velocSnapshots = 0;
   if(domain->solInfo().velocPodRomFile != "") {
-    std::cerr << "reading velocity snapshots from file " << domain->solInfo().velocPodRomFile << std::endl;
+    //std::cerr << "reading velocity snapshots from file " << domain->solInfo().velocPodRomFile << std::endl;
     std::vector<double> timeStamps;
     velocSnapshots = new VecBasis;
     BasisInputStream in(BasisFileId(fileInfo, BasisId::VELOCITY, BasisId::SNAPSHOTS), vecDofConversion);
@@ -380,7 +387,7 @@ ElementSamplingDriver::preProcess() {
   // Read acceleration snapshots
   VecBasis *accelSnapshots = 0;
   if(domain->solInfo().accelPodRomFile != "") {
-    std::cerr << "reading acceleration snapshots from file " << domain->solInfo().accelPodRomFile << std::endl;
+    //std::cerr << "reading acceleration snapshots from file " << domain->solInfo().accelPodRomFile << std::endl;
     std::vector<double> timeStamps;
     accelSnapshots = new VecBasis;
     BasisInputStream in(BasisFileId(fileInfo, BasisId::ACCELERATION, BasisId::SNAPSHOTS), vecDofConversion);
@@ -444,8 +451,9 @@ ElementSamplingDriver::preProcess() {
   }
 }
 
+template<typename MatrixBufferType, typename SizeType>
 void
-ElementSamplingDriver::buildDomainCdsa() {
+ElementSamplingDriver<MatrixBufferType,SizeType>::buildDomainCdsa() {
   const int numdof = domain_->numdof();
   SimpleBuffer<int> bc(numdof);
   SimpleBuffer<double> bcx(numdof);
@@ -457,5 +465,11 @@ ElementSamplingDriver::buildDomainCdsa() {
 } // end namespace Rom
 
 Rom::DriverInterface *elementSamplingDriverNew(Domain *d) {
-  return new Rom::ElementSamplingDriver(d);
+#ifdef USE_STXXL
+  if(d->solInfo().oocPodRom)
+    // external vector of double's with 16 blocks per page, the cache with 32 pages, and 8 MB blocks (i.e. total cache is 4GB)
+    return new Rom::ElementSamplingDriver<stxxl::VECTOR_GENERATOR<double,16,32,8388608,stxxl::RC,stxxl::random>::result,stxxl::uint64>(d);
+  else
+#endif
+  return new Rom::ElementSamplingDriver<std::vector<double>,size_t>(d);
 }

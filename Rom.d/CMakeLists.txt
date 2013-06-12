@@ -20,11 +20,11 @@ ADD_LIBRARY( Rom
   DistrVecBasis.C
   DistrSvdOrthogonalization.C
   DistrVecNodeDof6Conversion.C
-  ElementSamplingDriver.C
+  ElementSamplingDriverInstance.C
   SubElementSamplingDriver.C
   FileNameInfo.C
   LumpedPodProjectionNonLinDynamic.C
-  SparseNonNegativeLeastSquaresSolver.C
+  SparseNonNegativeLeastSquaresSolverInstance.C
   NodalRestrictionMapping.C
   MappedNodeDof6Buffer.C
   MeshOutput.C

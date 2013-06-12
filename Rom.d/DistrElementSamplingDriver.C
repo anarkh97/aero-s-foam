@@ -78,7 +78,6 @@ DistrElementSamplingDriver::solve() {
     const int skipFactor = 1; //domain->solInfo().skipPodRom;
     const int skipOffSet = 0; //domain->solInfo().skipOffSet;
     const int basisStateCount = 1 + (in.stateCount() - 1) / skipFactor;
-    filePrint(stderr, " ... basisStateCount = %d ...\n", basisStateCount);
 
     snapshots.dimensionIs(basisStateCount, vectorSize());
     timeStamps.reserve(basisStateCount);
@@ -96,11 +95,59 @@ DistrElementSamplingDriver::solve() {
     }
   }
 
-  // TODO Read velocity snapshots
+  // Read velocity snapshots
+  // TODO fix skip and offset
   DistrVecBasis *velocSnapshots = 0;
+  if(domain->solInfo().velocPodRomFile != "") {
+    std::vector<double> timeStamps;
+    velocSnapshots = new DistrVecBasis;
+    DistrBasisInputFile in(BasisFileId(fileInfo, BasisId::VELOCITY, BasisId::SNAPSHOTS));
+    const int skipFactor = 1; //domain->solInfo().skipPodRom;
+    const int skipOffSet = 0; //domain->solInfo().skipOffSet;
+    const int basisStateCount = 1 + (in.stateCount() - 1) / skipFactor;
 
-  // TODO Read acceleration snapshots
+    velocSnapshots->dimensionIs(basisStateCount, vectorSize());
+    timeStamps.reserve(basisStateCount);
+
+    for (DistrVecBasis::iterator it = velocSnapshots->begin(),
+                                 it_end = velocSnapshots->end();
+                                 it != it_end; ++it) {
+      assert(in.validCurrentState());
+
+      in.currentStateBuffer(buffer);
+      converter.vector(buffer, *it);
+      timeStamps.push_back(in.currentStateHeaderValue());
+
+      in.currentStateIndexInc();
+    }
+  }
+
+  // Read acceleration snapshots
+  // TODO fix skip and offset
   DistrVecBasis *accelSnapshots = 0;
+  if(domain->solInfo().accelPodRomFile != "") {
+    std::vector<double> timeStamps;
+    accelSnapshots = new DistrVecBasis;
+    DistrBasisInputFile in(BasisFileId(fileInfo, BasisId::ACCELERATION, BasisId::SNAPSHOTS));
+    const int skipFactor = 1; //domain->solInfo().skipPodRom;
+    const int skipOffSet = 0; //domain->solInfo().skipOffSet;
+    const int basisStateCount = 1 + (in.stateCount() - 1) / skipFactor;
+  
+    accelSnapshots->dimensionIs(basisStateCount, vectorSize());
+    timeStamps.reserve(basisStateCount);
+  
+    for (DistrVecBasis::iterator it = accelSnapshots->begin(),
+                                 it_end = accelSnapshots->end();
+                                 it != it_end; ++it) {
+      assert(in.validCurrentState());
+  
+      in.currentStateBuffer(buffer);
+      converter.vector(buffer, *it);
+      timeStamps.push_back(in.currentStateHeaderValue());
+
+      in.currentStateIndexInc();
+    }
+  }
 
   const int podVectorCount = podBasis.vectorCount();
   const int snapshotCount = snapshots.vectorCount();
@@ -155,6 +202,20 @@ DistrElementSamplingDriver::solve() {
       subDisplac[j] = StackVector(displac[j].subData(i), displac[j].subLen(i));
     }
     subDrivers[i]->timeStampsIs(timeStamps);
+    if(veloc) {
+      VecBasis *subVeloc = subDrivers[i]->veloc();
+      subVeloc->dimensionIs(snapshotCount, subDrivers[i]->vectorSize());
+      for(int j=0; j<snapshotCount; ++j) {
+        (*subVeloc)[j] = StackVector((*veloc)[j].subData(i), (*veloc)[j].subLen(i));
+      }
+    }
+    if(accel) {
+      VecBasis *subAccel = subDrivers[i]->accel();
+      subAccel->dimensionIs(snapshotCount, subDrivers[i]->vectorSize());
+      for(int j=0; j<snapshotCount; ++j) {
+        (*subAccel)[j] = StackVector((*accel)[j].subData(i), (*accel)[j].subLen(i));
+      }
+    }
 
     subDrivers[i]->computeSolution(solutions[i], verboseFlag);
   }

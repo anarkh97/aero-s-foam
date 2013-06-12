@@ -1342,6 +1342,8 @@ TRAIL [a-zA-Z]*
 
 "NUMSKP"|"NumSkp"|"numskp"		  { return SKIP; }
 
+"OUT_OF"[a-zA-Z_]*|"Out_Of"[a-zA-Z_]*|"out_of"[a-zA-Z_]* { return OUTOFCORE; }
+
 "REFSUBSTRACT"|"refsubstract"|"RefSubstract" { return REFSUBSTRACT; } 
 
 [A-Za-z][A-Za-z0-9_.]*  { yylval.strval = strdup(yytext); return FNAME; }

@@ -7,6 +7,8 @@
 #include <Math.d/FullSquareMatrix.h>
 #include <Utils.d/MyComplex.h>
 
+#include <string>
+
 template <class Scalar> class GenVector;
 typedef GenVector<double> Vector;
 typedef GenVector<DComplex> ComplexVector;
@@ -45,7 +47,7 @@ class GenSparseMatrix {
         virtual Scalar diag(int dof) const = 0;
         virtual Scalar &diag(int dof) = 0;
 	virtual void invertDiag();
-        virtual void printSparse();
+        virtual void printSparse(const std::string& filename);
 
         virtual void add(FullSquareMatrix &, int *dofs) = 0;
         virtual void addImaginary(FullSquareMatrix &, int *dofs);

@@ -520,7 +520,7 @@ TRAIL [a-zA-Z]*
 
 "USDD"[a-zA-Z]*|"usdd"[a-zA-Z]*    { return USERDEFINEDISP; }
 
-"printMat"[a-zA-Z]*|printmat[a-zA-Z]*|PRINTMAT[a-zA-Z]* { return PRINTMATLAB; }
+"printMat"[a-zA-Z]*|"printmat"[a-zA-Z]*|"PRINTMAT"[a-zA-Z]* { return PRINTMATLAB; }
 
 "u_proj"[a-zA-Z]*|"U_PROJ"[a-zA-Z]*  { return UPROJ; }
 

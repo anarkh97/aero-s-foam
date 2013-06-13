@@ -50,6 +50,7 @@ class GenEiSparseMatrix : public SparseData, public GenSparseMatrix<Scalar>, pub
 
    // GenSparseMatrix assembly
    void add(FullSquareMatrix &, int *dofs);
+   void add(GenAssembledFullM<Scalar> &, int *);
    void addImaginary(FullSquareMatrix &, int *dofs);
    void add(FullSquareMatrixC &, int *dofs); 
    void addDiscreteMass(int dof, Scalar diMass);
@@ -89,6 +90,7 @@ class GenEiSparseMatrix : public SparseData, public GenSparseMatrix<Scalar>, pub
    long size();
    void unify(FSCommunicator *communicator);
    void print();
+   void printSparse(const std::string& filename);
 };
 
 

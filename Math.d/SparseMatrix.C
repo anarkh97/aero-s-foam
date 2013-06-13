@@ -52,9 +52,9 @@ GenSparseMatrix<Scalar>::invertDiag()
 
 template<class Scalar>
 void
-GenSparseMatrix<Scalar>::printSparse()
+GenSparseMatrix<Scalar>::printSparse(const std::string& filename)
 {
- fprintf(stderr,"GEnSparseMatrix<Scalar>::print() not implemented\n");
+ fprintf(stderr,"GenSparseMatrix<Scalar>::printSparse() not implemented\n");
 }
 
 

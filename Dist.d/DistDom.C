@@ -164,7 +164,7 @@ GenDistrDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector
 
   int outLimit = geoSource->getOutLimit();
   if(numOutInfo && x == domain->solInfo().initialTimeIndex && ndflag == 0 && !domain->solInfo().isDynam())
-    filePrint(stderr," ... Postprocessing  3               ...\n");
+    filePrint(stderr," ... Postprocessing                 ...\n");
   if(!masterFlag) initPostPro();
 
   int iSub;

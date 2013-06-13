@@ -38,7 +38,7 @@ extern GeoSource *geoSource;
 namespace Rom {
 
 SubElementSamplingDriver::SubElementSamplingDriver(Domain *d) :
-  ElementSamplingDriver(d)
+  ElementSamplingDriver<std::vector<double>,size_t>(d)
 {}
 
 void

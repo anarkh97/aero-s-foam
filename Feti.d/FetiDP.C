@@ -896,7 +896,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
      break;
 #ifdef USE_EIGEN3
      case FetiInfo::ldlt: {
-       GenEiSparseMatrix<Scalar, Eigen::SimplicialLDLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper>> *cholsolver = new
+       GenEiSparseMatrix<Scalar, Eigen::SimplicialLDLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> > *cholsolver = new
          GenEiSparseMatrix<Scalar,Eigen::SimplicialLDLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >(coarseConnectivity, cornerEqs);
        KccSparse = cholsolver;
        KccSolver = cholsolver;

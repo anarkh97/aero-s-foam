@@ -188,6 +188,9 @@ DistrElementSamplingDriver::solve() {
   int numCPUs = (structCom) ? structCom->numCPUs() : 1;
   int myID = (structCom) ? structCom->myID() : 0;
   bool verboseFlag = (myID == 0); // output to the screen only for subdomains assigned to mpi process with rank 0
+#if defined(_OPENMP)
+  #pragma omp parallel for schedule(static,1)
+#endif
   for(int i=0; i<decDomain_->getNumSub(); ++i) {
     subDrivers[i] = new SubElementSamplingDriver(decDomain_->getAllSubDomains()[i]);
 

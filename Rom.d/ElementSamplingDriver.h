@@ -26,8 +26,8 @@ public:
   void postProcess(Vector &solution, bool firstTime = true, bool verboseFlag = true);
   VecBasis& podBasis() { return podBasis_; }
   VecBasis& displac() { return displac_; }
-  VecBasis* veloc() { return veloc_; }
-  VecBasis* accel() { return accel_; }
+  VecBasis* veloc() { if(!veloc_) veloc_ = new VecBasis; return veloc_; }
+  VecBasis* accel() { if(!accel_) accel_ = new VecBasis; return accel_; }
   int vectorSize() const;
   void timeStampsIs(const std::vector<double> &tst) { timeStamps_ = tst; }
 

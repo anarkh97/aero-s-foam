@@ -35,8 +35,8 @@ GenVecBasis<double, GenDistrVector>::project(GenDistrVector<double> &x, GenDistr
   cerr << "USE_EIGEN3 is not defined here in GenVecBasis::project\n";
   exit(-1);
 #endif
-  return _result;
 */
+  return _result;
 }
 
 template <>

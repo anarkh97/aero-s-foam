@@ -1,4 +1,5 @@
 #include "SparseNonNegativeLeastSquaresSolver.C"
+#include <vector>
 
 namespace Rom {
 

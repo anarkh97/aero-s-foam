@@ -1191,13 +1191,11 @@ TRAIL [a-zA-Z]*
 
 "total"|"TOTAL"                    { yylval.ival = OutputInfo::total; return ANGULAROUTTYPE; }
 
-"normalized"|"NORMALIZED"          { yylval.ival = OutputInfo::normalized; return ROTVECOUTTYPE; }
+"euler"|"Euler"|"EULER"            { yylval.ival = OutputInfo::Euler; return ROTVECOUTTYPE; }
 
-"denormalized"|"DENORMALIZED"      { yylval.ival = OutputInfo::denormalized; return ROTVECOUTTYPE; }
+"complement"|"Complement"|"COMPLEMENT" { yylval.ival = OutputInfo::Complement; return ROTVECOUTTYPE; }
 
-"complement"|"COMPLEMENT"          { yylval.ival = OutputInfo::complement; return ROTVECOUTTYPE; }
-
-"complementd"|"COMPLEMENTD"        { yylval.ival = OutputInfo::complementd; return ROTVECOUTTYPE; }
+"rescal"[a-zA-Z]*|"RESCAL"[a-zA-Z]* { return RESCALING; }
 
 "conface"|"CONFACE"                                  { yylval.ival = 1; return TDENFORC; }
 "normal_force_mag"|"NORMAL_FORCE_MAG"                { yylval.ival = 2; return TDENFORC; }

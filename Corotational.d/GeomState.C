@@ -431,16 +431,20 @@ GeomState::update(const Vector &v, int SO3param)
        switch(SO3param) {
          case 0: // Increment rotation tensor from the left R = R(dtheta)*Ra
            inc_rottensor( dtheta, ns[i].R );
-           
            break;
          case 1: // Increment rotation tensor from the right R = Ra*R(dtheta)
            inc_rottensor( ns[i].R, dtheta );
+           inc_rotvector( ns[i].theta, ns[i].R );
            break;
          case 2: // additive update of total rotation vector
+/*
            double theta[3];
            mat_to_vec( ns[i].R, theta );
            for(int j=0; j<3; ++j) theta[j] += dtheta[j];
            vec_to_mat( theta, ns[i].R );
+*/
+           for(int j=0; j<3; ++j) ns[i].theta[j] += dtheta[j];
+           vec_to_mat( ns[i].theta, ns[i].R );
            break;
        }
      }
@@ -814,9 +818,18 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
     mat_to_vec( ns[i].R, ns[i].theta );
     Eigen::Vector3d Psi_n; Psi_n << ss[i].theta[0], ss[i].theta[1], ss[i].theta[2];
     Eigen::Vector3d Psi;   Psi << ns[i].theta[0], ns[i].theta[1], ns[i].theta[2];
-    Eigen::Vector3d PsiC = denormalize_rotvec(Psi, Psi_n);
+
+    Eigen::Vector3d PsiC;
+    if(Psi_n.norm() > M_PI) {
+      PsiC = complement_rot_vec(unscale_rotvec(Psi, complement_rot_vec(Psi_n)));
+    }
+    else {
+      PsiC = unscale_rotvec(Psi, Psi_n);
+    }
     for(int j=0; j<3; ++j) ns[i].theta[j] = PsiC[j];
     for(int j=0; j<3; ++j) ss[i].theta[j] = ns[i].theta[j];
+
+    for(int j=0; j<6; ++j) { ss[i].v[j] = ns[i].v[j]; ss[i].a[j] = ns[i].a[j]; }
   }
 #ifdef COMPUTE_GLOBAL_ROTATION
   computeGlobalRotation();
@@ -976,7 +989,7 @@ GeomState::pull_back(Vector &f)
 }
 
 void
-GeomState::transform(Vector &f, int type, bool denormalize) const
+GeomState::transform(Vector &f, int type, bool unscaled) const
 {
 #ifdef USE_EIGEN3
   for(int inode = 0; inode < numnodes; ++inode) {
@@ -995,7 +1008,7 @@ GeomState::transform(Vector &f, int type, bool denormalize) const
            ns[inode].R[2][0], ns[inode].R[2][1], ns[inode].R[2][2];
 
       Eigen::Vector3d PsiI;
-      if(denormalize) {
+      if(unscaled) {
         PsiI << ns[inode].theta[0], ns[inode].theta[1], ns[inode].theta[2];
       }
       else {
@@ -1110,7 +1123,7 @@ GeomState::transform(Vector &f, const std::vector<int> &weightedNodes, int type)
 }
 
 void
-GeomState::get_tot_displacement(Vector &totVec)
+GeomState::get_tot_displacement(Vector &totVec, bool rescaled)
 {
   //cerr << "here in GeomState::get_tot_displacement\n";
   double x0, y0, z0, vec[3];
@@ -1134,7 +1147,11 @@ GeomState::get_tot_displacement(Vector &totVec)
 
     // Insert total rotational displacements of node i into totVec
     if(loc[i][3] >= 0 || loc[i][4] >= 0 || loc[i][5] >= 0) {
-      mat_to_vec(ns[i].R, vec);
+      if(rescaled) 
+        mat_to_vec(ns[i].R, vec);
+      else {
+        for(int j=0; j<3; ++j) vec[j] = ns[i].theta[j];
+      }
 
       if(loc[i][3] >= 0) totVec[loc[i][3]] = vec[0];
       if(loc[i][4] >= 0) totVec[loc[i][4]] = vec[1];

@@ -45,8 +45,8 @@ class DistrGeomState {
      void get_inc_displacement(DistrVector &inc_Vec, DistrGeomState &ss, bool zeroRot);
      void push_forward(DistrVector &f);
      void pull_back(DistrVector &f);
-     void transform(DistrVector &f, int);
-     void get_tot_displacement(DistrVector &totVec);
+     void transform(DistrVector &f, int, bool unscaled = false);
+     void get_tot_displacement(DistrVector &totVec, bool rescaled = true);
      void interp(double, DistrGeomState &, DistrGeomState &);
      void diff(DistrGeomState &unp, DistrVector &un);
      void print() { };
@@ -62,7 +62,7 @@ class DistrGeomState {
                          double &delta, DistrGeomState &ss,
                          double beta, double gamma, double alphaf, double alpham, bool zeroRot);
      void subInc_get(int isub, DistrVector &inc_Vec, DistrGeomState &ss, bool zeroRot);
-     void subTot_get(int isub, DistrVector &totVec);
+     void subTot_get(int isub, DistrVector &totVec, bool rescaled);
      void subInterp(int isub, double&, DistrGeomState &, DistrGeomState &);
      void subDiff(int isub, DistrGeomState &unp, DistrVector &un);
      void subUpdate(int isub, DistrVector &v, int SO3param);
@@ -74,7 +74,7 @@ class DistrGeomState {
      void subCopyConstructor(int isub, const DistrGeomState &g2);
      void subPushForward(int isub, DistrVector &f);
      void subPullBack(int isub, DistrVector &f);
-     void subTransform(int isub, DistrVector &f, int);
+     void subTransform(int isub, DistrVector &f, int, bool);
 };
 
 #endif

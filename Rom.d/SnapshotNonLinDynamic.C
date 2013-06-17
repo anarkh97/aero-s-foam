@@ -370,13 +370,15 @@ SnapshotNonLinDynamicDetail::sttSnapImpl::stateSnapshotAdd(const GeomState &snap
       nodeBuffer[2] = snapNode.z - refNode->z;
 
       // Rotational dofs
-/*
+/*    // old method: collect the rescaled rotation vector
       mat_to_vec(const_cast<double (*)[3]>(snapNode.R), &nodeBuffer[3]);
 */
+      // new method: collect the unscaled rotation vector which has already be computed and stored in NodeState::theta
       nodeBuffer[3] = snapNode.theta[0];
       nodeBuffer[4] = snapNode.theta[1];
       nodeBuffer[5] = snapNode.theta[2];
 /*
+      // experimental: collect the complement of the unscaled rotation vector
       Eigen::Vector3d Psi; Psi << snapNode.theta[0], snapNode.theta[1], snapNode.theta[2];
       Eigen::Vector3d PsiC = complement_rot_vec(Psi);
       nodeBuffer[3] = PsiC[0];
@@ -645,7 +647,7 @@ SnapshotNonLinDynamic::saveVelocitySnapshot(const GeomState &state, const Vector
   if(domain->solInfo().velocvectPodRom) {
     if(state.getHaveRot()) {
       Vector v(veloc);
-      state.transform(v, 2, true); // transform convected angular velocity to time derivative of (denormalized) total rotation vector
+      state.transform(v, 2, true); // transform convected angular velocity to time derivative of total rotation vector
       velocImpl_->velocSnapshotAdd(v);
     }
     else {
@@ -660,7 +662,7 @@ SnapshotNonLinDynamic::saveAccelerationSnapshot(const GeomState &state, const Ve
   if(domain->solInfo().accelvectPodRom) {
     if(state.getHaveRot()) {
       Vector a(accel);
-      state.transform(a, 6, true); // transform convected angular acceleration to second time derivative of (denormalized) total rotation vector
+      state.transform(a, 6, true); // transform convected angular acceleration to second time derivative of total rotation vector
       accelImpl_->accelSnapshotAdd(a);
     }
     else {

@@ -767,43 +767,50 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
           } else {
             std::fill_n(&data[nodeI][0], 3, 0.0);
           }
-          if(oinfo[iInfo].rotvecouttype == OutputInfo::normalized) {
+          if(oinfo[iInfo].rescaling) {
             mat_to_vec((*geomState)[iNode].R, &data[nodeI][3]);
           }
-          else if(oinfo[iInfo].rotvecouttype == OutputInfo::complement) {
-            Eigen::Vector3d Psi;
-            mat_to_vec((*geomState)[iNode].R, Psi.data());
-            Eigen::Vector3d PsiC = complement_rot_vec(Psi);
-            data[nodeI][3] = PsiC[0];
-            data[nodeI][4] = PsiC[1];
-            data[nodeI][5] = PsiC[2];
-          }
-          else if(oinfo[iInfo].rotvecouttype == OutputInfo::complementd) {
-            Eigen::Vector3d Psi;
-            Psi << (*geomState)[iNode].theta[0], (*geomState)[iNode].theta[1], (*geomState)[iNode].theta[2];
-            Eigen::Vector3d PsiC = complement_rot_vec(Psi);
-            data[nodeI][3] = PsiC[0];
-            data[nodeI][4] = PsiC[1];
-            data[nodeI][5] = PsiC[2];
-          }
-          else { // denormalized
+          else {
             data[nodeI][3] = (*geomState)[iNode].theta[0];
             data[nodeI][4] = (*geomState)[iNode].theta[1];
             data[nodeI][5] = (*geomState)[iNode].theta[2];
-/*
-            double psi = sqrt((*geomState)[iNode].theta[0]*(*geomState)[iNode].theta[0]+
-                              (*geomState)[iNode].theta[1]*(*geomState)[iNode].theta[1]+
-                              (*geomState)[iNode].theta[2]*(*geomState)[iNode].theta[2]);
-
-            //double p1 = 4*sin(psi/4);
-            //double p2 = 4*tan(psi/4);
-            double p1 = pow(6*(psi-sin(psi)),1/3.);
-            if(psi != 0) {
-              data[nodeI][3] *= p1/psi;
-              data[nodeI][4] *= p1/psi;
-              data[nodeI][5] *= p1/psi;
-            }
-*/
+          }
+          switch(oinfo[iInfo].rotvecouttype) {
+            default :
+            case(OutputInfo::Euler) :
+              // nothing to do
+              break;
+#ifdef USE_EIGEN3
+            case(OutputInfo::Complement) : {
+              Eigen::Map<Eigen::Vector3d> Psi(&data[nodeI][3]);
+              Psi = complement_rot_vec<double>(Psi);
+            } break;
+            case(OutputInfo::Linear) : {
+              Eigen::Map<Eigen::Vector3d> Psi(&data[nodeI][3]);
+              double psi = Psi.norm();
+              if(psi != 0) Psi = sin(psi)*Psi.normalized();
+            } break;
+            case(OutputInfo::ReducedEulerRodrigues) : {
+              Eigen::Map<Eigen::Vector3d> Psi(&data[nodeI][3]);
+              double psi = Psi.norm();
+              if(psi != 0) Psi = 2*sin(psi/2)*Psi.normalized();
+            } break;
+            case(OutputInfo::CayleyGibbsRodrigues) : {
+              Eigen::Map<Eigen::Vector3d> Psi(&data[nodeI][3]);
+              double psi = Psi.norm();
+              if(psi != 0) Psi = 2*tan(psi/2)*Psi.normalized();
+            } break;
+            case(OutputInfo::WienerMilenkovic) : {
+              Eigen::Map<Eigen::Vector3d> Psi(&data[nodeI][3]);
+              double psi = Psi.norm();
+              if(psi != 0) Psi = 4*tan(psi/4)*Psi.normalized();
+            } break;
+            case(OutputInfo::BauchauTrainelli) : {
+              Eigen::Map<Eigen::Vector3d> Psi(&data[nodeI][3]);
+              double psi = Psi.norm();
+              if(psi != 0) Psi = pow(6*(psi-sin(psi)),1/3.)*Psi.normalized();
+            } break;
+#endif
           }
         } else {
           std::fill_n(&data[nodeI][0], 6, 0.0);
@@ -905,7 +912,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
           }
         }
         else if(oinfo[iInfo].angularouttype == OutputInfo::total) {
-          // TODO: "normalized" total angular velocity for galerkinPodRom
+          // TODO: this is correct for rotvecouttype == Euler or Complement only
           if(!domain->solInfo().galerkinPodRom) {
             // transform from convected angular velocity to time derivative of total rotation vector
             if (first_node+iNode < geomState->numNodes() && nodes[first_node+iNode]) {
@@ -914,21 +921,16 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
               Eigen::Map<Eigen::Vector3d> Psidot(data[nodeI]+3);
               Eigen::Matrix3d R, T;
               V << data[nodeI][3], data[nodeI][4], data[nodeI][5];
-              if(oinfo[iInfo].rotvecouttype == OutputInfo::normalized) {
+              if(oinfo[iInfo].rescaling) {
                 R << (*geomState)[first_node+iNode].R[0][0], (*geomState)[first_node+iNode].R[0][1], (*geomState)[first_node+iNode].R[0][2],
                      (*geomState)[first_node+iNode].R[1][0], (*geomState)[first_node+iNode].R[1][1], (*geomState)[first_node+iNode].R[1][2],
                      (*geomState)[first_node+iNode].R[2][0], (*geomState)[first_node+iNode].R[2][1], (*geomState)[first_node+iNode].R[2][2];
                 mat_to_vec(R, Psi);
-                tangential_transf(Psi, T, 0);
               }
               else {
                 Psi << (*geomState)[first_node+iNode].theta[0], (*geomState)[first_node+iNode].theta[1], (*geomState)[first_node+iNode].theta[2];
-/*
-                double psi = Psi.norm();
-                Psi = pow(6*(psi-sin(psi)),1/3.)*Psi.normalized(); // XXX
-*/
-                tangential_transf(Psi, T, 1);
               }
+              tangential_transf(Psi, T);
               Psidot = T.inverse()*V;
 #else
               data[nodeI][3] = data[nodeI][4] = data[nodeI][5] = 0;
@@ -1031,7 +1033,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
           }
         }
         else if(oinfo[iInfo].angularouttype == OutputInfo::total) {
-          // TODO: "normalized" total angular acceleration for galerkinPodRom
+          // TODO: this is correct for rotvecouttype == Euler or Complement only
           if(!domain->solInfo().galerkinPodRom) {
             // transform from convected angular acceleration to second time derivative of total rotation vector
             if (first_node+iNode < geomState->numNodes() && nodes[first_node+iNode]) {
@@ -1043,7 +1045,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
               getOrAddDofForPrint(false, v_n, (double *) vcx, first_node+iNode, V.data()+0,
                             &DofSet::Xrot, V.data()+1, &DofSet::Yrot, V.data()+2,
                             &DofSet::Zrot);
-              if(oinfo[iInfo].rotvecouttype == OutputInfo::normalized) {
+              if(oinfo[iInfo].rescaling) {
                 R << (*geomState)[first_node+iNode].R[0][0], (*geomState)[first_node+iNode].R[0][1], (*geomState)[first_node+iNode].R[0][2],
                      (*geomState)[first_node+iNode].R[1][0], (*geomState)[first_node+iNode].R[1][1], (*geomState)[first_node+iNode].R[1][2],
                      (*geomState)[first_node+iNode].R[2][0], (*geomState)[first_node+iNode].R[2][1], (*geomState)[first_node+iNode].R[2][2];
@@ -1181,14 +1183,15 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
         if(outFlag) { if(nodes[iNode] == 0) continue; nodeI = ++realNode; } else nodeI = i;
         if(iNode < geomState->numNodes()) {
           double rot[3];
-          if(oinfo[iInfo].rotvecouttype == OutputInfo::normalized) {
+          if(oinfo[iInfo].rescaling) {
             mat_to_vec((*geomState)[iNode].R,rot);
           }
-          else { // denormalized
+          else {
             rot[0] = (*geomState)[iNode].theta[0];
             rot[1] = (*geomState)[iNode].theta[1];
             rot[2] = (*geomState)[iNode].theta[2];
           }
+          // TODO rotvecouttype
           data[nodeI] = sqrt(rot[0]*rot[0]+rot[1]*rot[1]+rot[2]*rot[2]);
         }
         else data[nodeI] = 0;

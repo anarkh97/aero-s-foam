@@ -98,7 +98,7 @@ SDDynamPostProcessor::dynamOutput(int tIndex, double time, DynamMat& dMat, Vecto
     int numOutInfo = geoSource->getNumOutInfo();
     OutputInfo *oinfo = geoSource->getOutputInfo();
     for(int iInfo = 0; iInfo < numOutInfo; ++iInfo) {
-      if(oinfo[iInfo].isStressOrStrain()) {
+      if(oinfo[iInfo].isStressOrStrain() || !oinfo[iInfo].defaultRotation()) {
         domain->postProcessingImpl(iInfo, geomState, ext_f, *aeroForce, time, tIndex, state.getVeloc().data(), vcx,
                                    allCorot, melArray, state.getAccel().data(), acx);
       }
@@ -580,7 +580,7 @@ SingleDomainDynamic::updateState(double dt_n_h, Vector &v_n_h, Vector &d_n)
     Vector dinc(solVecInfo()); dinc = dt_n_h*v_n_h;
     geomState->update(dinc, 1);
     geomState->setVelocity(v_n_h);
-    geomState->get_tot_displacement(d_n);
+    geomState->get_tot_displacement(d_n, false);
   }
 }
 

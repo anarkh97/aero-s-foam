@@ -218,7 +218,8 @@ Domain::getElemFictitiousForce(int iele, GeomState &geomState, double *_f, FullS
         //   or the convected angular velocity at current snapshot after projection for explicit ROM "training"
         V << geomState[nodes[i]].v[3], geomState[nodes[i]].v[4], geomState[nodes[i]].v[5];
         if(domain->solInfo().galerkinPodRom) { // ROM
-          mat_to_vec(R, Psi);
+          //mat_to_vec(R, Psi);
+          Psi << geomState[nodes[i]].theta[0], geomState[nodes[i]].theta[1], geomState[nodes[i]].theta[2]; // ZZZ
           tangential_transf(Psi, T);
           Eigen::Vector3d Psidot;
           Psidot = T.inverse()*V;
@@ -420,7 +421,8 @@ Domain::getDMassFictitiousForce(GeomState &geomState, FullSquareMatrix *kel, Vec
         //   or the convected angular velocity at current snapshot after projection for explicit ROM "training"
           V << geomState[current->node].v[3], geomState[current->node].v[4], geomState[current->node].v[5];
           if(domain->solInfo().galerkinPodRom) {
-            mat_to_vec(R, Psi);
+            Psi << geomState[current->node].theta[0], geomState[current->node].theta[1], geomState[current->node].theta[2]; // ZZZ 
+            //mat_to_vec(R, Psi);
             tangential_transf(Psi, T);
             Eigen::Vector3d Psidot;
             Psidot = T.inverse()*V;

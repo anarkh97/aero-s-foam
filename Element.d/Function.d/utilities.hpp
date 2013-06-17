@@ -718,7 +718,7 @@ void tangential_transf(const Eigen::Matrix<Scalar,3,1> &Psi, Eigen::Matrix<Scala
     }
     T = c1*Eigen::Matrix<Scalar,3,3>::Identity() - c2*Psiskew + c3*(Psi*Psi.transpose());
   }
-  else if(pflag == 1) { // p = pow(6*(psi-sin(psi)),1/3.)
+  else if(pflag == 6) { // BauchauTrainelli rotation vector parameterization: p = pow(6*(psi-sin(psi)),1/3.)
     Scalar c1, c2, c3;
     if(psi2 < 5e-6) {
        Scalar psi4 = psi2*psi2;
@@ -901,10 +901,9 @@ complement_transf_dot(const Eigen::Matrix<Scalar,3,1>& Psi, const Eigen::Matrix<
 
 template<typename Scalar>
 Eigen::Matrix<Scalar,3,1>
-denormalize_rotvec(const Eigen::Matrix<Scalar,3,1>& Psi, const Eigen::Matrix<Scalar,3,1>& Psi_n)
+unscale_rotvec(const Eigen::Matrix<Scalar,3,1>& Psi, const Eigen::Matrix<Scalar,3,1>& Psi_n)
 {
   // return the rotation vector equivalent to Psi which is closest to Psi_n
-  // TODO: I think I should extrapolate Psi_n forward using the angular velocity.
   Eigen::Matrix<Scalar,3,1> ret = Psi;
   using std::abs; using std::pow; using std::sin; using std::sqrt;
 
@@ -913,7 +912,6 @@ denormalize_rotvec(const Eigen::Matrix<Scalar,3,1>& Psi, const Eigen::Matrix<Sca
     Scalar psi = sqrt(psi2);
     Eigen::Matrix<Scalar,3,1> u = Psi.normalized();
 
-    //std::cerr << "ret = " << ret.transpose() << std::endl;
     Scalar psi_minus, psi_plus;
     for(int i=1; i<=10; ++i) {
       psi_minus = psi-2*i*M_PI;
@@ -921,23 +919,13 @@ denormalize_rotvec(const Eigen::Matrix<Scalar,3,1>& Psi, const Eigen::Matrix<Sca
                                
       Eigen::Matrix<Scalar,3,1> Psi_minus = psi_minus*u;
       Eigen::Matrix<Scalar,3,1> Psi_plus =  psi_plus*u;
-      //std::cerr << "i = " << i << "\nPsi_minus = " << Psi_minus.transpose()
-      //                         << "\nPsi_plus  = " << Psi_plus.transpose() << std::endl;
-      //if(Psi_n.norm() > 1.5*M_PI && Psi_n.norm() < 2.5*M_PI) {
-      //  if( abs(Psi_minus.norm()-Psi_n.norm()) < abs(ret.norm()-Psi_n.norm()) ) ret = Psi_minus;
-      //  if( abs(Psi_plus.norm()-Psi_n.norm()) < abs(ret.norm()-Psi_n.norm()) ) ret = Psi_plus;
-      //}
-      //else {
-        if( (Psi_minus-Psi_n).norm() < (ret-Psi_n).norm() ) ret = Psi_minus;
-        if( (Psi_plus-Psi_n).norm() < (ret-Psi_n).norm() ) ret = Psi_plus;
-      //}
+      if( (Psi_minus-Psi_n).norm() < (ret-Psi_n).norm() ) ret = Psi_minus;
+      if( (Psi_plus-Psi_n).norm() < (ret-Psi_n).norm() ) ret = Psi_plus;
     }
   }
 
   return ret;
 }
-
-
 
 #endif
 #endif

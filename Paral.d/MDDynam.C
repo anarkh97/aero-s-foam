@@ -555,7 +555,7 @@ MultiDomainDynam::updateState(double dt_n_h, DistrVector& v_n_h, DistrVector& d_
     dinc = dt_n_h*v_n_h;
     geomState->update(dinc, 1);
     geomState->setVelocity(v_n_h);
-    geomState->get_tot_displacement(d_n);
+    geomState->get_tot_displacement(d_n, false);
   }
 }
 

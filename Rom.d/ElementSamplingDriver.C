@@ -126,7 +126,8 @@ ElementSamplingDriver::assembleTrainingData(const VecBasis &snapshots, DblFwdIt 
   // Temporary buffers shared by all iterations
   VecBasis displac(snapshotCount, vectorSize());
   Vector podComponents(podVectorCount), elemTarget(podVectorCount);
-  SimpleBuffer<double> elementForce(domain_->maxNumDOF());
+  //SimpleBuffer<double> elementForce(domain_->maxNumDOF());
+  Vector elementForce(domain_->maxNumDOF()), elementFictitiousForce(domain_->maxNumDOF());
 
   // Project snapshots on POD basis to get training configurations
   for (int iSnap = 0; iSnap != snapshotCount; ++iSnap) {
@@ -163,17 +164,20 @@ ElementSamplingDriver::assembleTrainingData(const VecBasis &snapshots, DblFwdIt 
       geomState_->explicitUpdate(domain_->getNodes(), domain_->getElementSet()[iElem]->numNodes(),
                                  nodes, displac[iSnap]); // just set the state at the nodes of element iElem
       // XXX it is probably better not to even transform to convected here. however if it is done make sure that the correct
-      // rotation vector is used to compute T (i.e., the denormalized one, I guess)
+      // rotation vector is used to compute T (i.e., not the rescaled one, I guess)
       if(velocSnapshots) geomState_->setVelocity(domain_->getElementSet()[iElem]->numNodes(), nodes,
                                                  (*veloc)[iSnap], 2); // just set the velocity at the nodes of element iElem
       if(accelSnapshots) geomState_->setAcceleration(domain_->getElementSet()[iElem]->numNodes(), nodes,
                                                      (*veloc)[iSnap], 2); // just set the acceleration at the nodes of element iElem
       // Evaluate and store element contribution at training configuration
-      domain_->getElemInternalForce(*geomState_, *timeStampIt, geomState_, *(corotators_[iElem]), elementForce.array(), kelArray_[iElem]);
+      elementForce.zero();
+      domain_->getElemInternalForce(*geomState_, *timeStampIt, geomState_, *(corotators_[iElem]), elementForce.data(), kelArray_[iElem]);
       if(domain_->getElementSet()[iElem]->hasRot()) {
-        domain_->transformElemStiffAndForce(*geomState_, elementForce.array(), kelArray_[iElem], iElem, false);
-        domain_->getElemFictitiousForce(iElem, *geomState_, elementForce.array(), kelArray_[iElem],
+        domain_->transformElemStiffAndForce(*geomState_, elementForce.data(), kelArray_[iElem], iElem, false);
+        elementFictitiousForce.zero();
+        domain_->getElemFictitiousForce(iElem, *geomState_, elementFictitiousForce.data(), kelArray_[iElem],
                                         *timeStampIt, geomState_, melArray_[iElem], false);
+        elementForce += elementFictitiousForce;
       }
 
       elemTarget.zero();

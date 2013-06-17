@@ -105,10 +105,10 @@ class GeomState {
                                        double beta, double gamma, double alphaf, double alpham,
                                        bool zeroRot);
      virtual void get_inc_displacement(Vector &inc_Vec, GeomState &ss, bool zeroRot);
-     virtual void get_tot_displacement(Vector &totVec);
+     virtual void get_tot_displacement(Vector &totVec, bool rescaled = true);
      virtual void push_forward(Vector &f);
      virtual void pull_back(Vector &f);
-     virtual void transform(Vector &f, int flag, bool denormalize = false) const;
+     virtual void transform(Vector &f, int flag, bool unscaled = false) const;
      virtual void transform(Vector &f, const std::vector<int> &, int flag) const;
      void zeroRotDofs(Vector &vec);
      void interp(double, const GeomState &, const GeomState &);

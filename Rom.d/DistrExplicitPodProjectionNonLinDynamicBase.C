@@ -291,9 +291,9 @@ DistrExplicitPodProjectionNonLinDynamicBase::getInternalForce(DistrVector &d, Di
   *a_n = *fInt - *fExt;
 
   if(haveRot) {
-    geomState->transform(*a_n, 3);
+    geomState->transform(*a_n, 3, true);
     fullMassSolver->reSolve(*a_n);
-    geomState->transform(*a_n, 2);
+    geomState->transform(*a_n, 2, true);
     DistrVector toto(*a_n);
     dynMat->M->mult(toto, *a_n);
   }

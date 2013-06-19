@@ -76,7 +76,7 @@ GenFetiSolver<double>::getRBMs(double *globRBM)
 */
 }
 
-#ifndef SALINAS    //CRW
+#ifndef SALINAS
 //CBM
 template<>
 void
@@ -98,7 +98,7 @@ GenFetiSolver<double>::getRBMs(GenDistrVectorSet<double> &globRBM)
     addR(globRBM[iRBM], iAlpha);
  }
 }
-#endif    //CRW
+#endif
 
 template<>
 void

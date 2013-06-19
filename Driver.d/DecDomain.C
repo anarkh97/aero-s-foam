@@ -2107,9 +2107,17 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***all
        getPrimalVector(i, xyz, numNodes, 6, x);
        break;
      case OutputInfo::Velocity6:
+       if(oinfo[i].angularouttype != OutputInfo::convected) {
+         filePrint(stderr," *** WARNING: Output case %d not implemented\n", i);
+         break;
+       }
        if(distState) getPrimalVector(i, mergedVel, numNodes, 6, x);
        break;
      case OutputInfo::Accel6:
+       if(oinfo[i].angularouttype != OutputInfo::convected) {
+         filePrint(stderr," *** WARNING: Output case %d not implemented\n", i);
+         break;
+       }
        if(distState) getPrimalVector(i, mergedAcc, numNodes, 6, x);
        break;
      case OutputInfo::Temperature:

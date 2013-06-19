@@ -1503,7 +1503,7 @@ Domain::readInModes(char* modeFileName)
  // Open file containing mode shapes and frequencies.
  FILE *f;
  if((f=fopen(modeFileName,"r"))==(FILE *) 0 ){
-   filePrint(stderr," *** ERROR: Cannot open %s ... exiting\n",modeFileName);
+   filePrint(stderr," *** ERROR: Cannot open %s, exiting...",modeFileName);
    exit(0);
  }
  fflush(f);

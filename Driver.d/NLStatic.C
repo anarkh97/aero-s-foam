@@ -78,6 +78,7 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
 
 {
   const double pseudoTime = sinfo.isDynam() ? time : lambda; // mpc needs lambda for nonlinear statics
+  const bool initialTime = (sinfo.isDynam() && time == domain->solInfo().initialTime && solInfo().newmarkBeta != 0);
 
   for(int iele = 0; iele < numele; ++iele) {
 
@@ -86,7 +87,10 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
     // Get updated tangent stiffness matrix and element internal force
     if (const Corotator *elemCorot = corotators[iele]) {
       getElemStiffAndForce(geomState, pseudoTime, refState, *elemCorot, elementForce.data(), kel[iele]);
-      if(domain->solInfo().galerkinPodRom && packedEset[iele]->hasRot()) {
+      if(initialTime && packedEset[iele]->isConstraintElement() && packedEset[iele]->hasRot()) {
+        transformElemStiff(geomState, kel[iele], iele);
+      }
+      else if(domain->solInfo().galerkinPodRom && packedEset[iele]->hasRot()) {
         transformElemStiffAndForce(geomState, elementForce.data(), kel[iele], iele, true);
       }
     }
@@ -113,9 +117,9 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
     }
   }
 
-  getFollowerForce(geomState, elementForce, corotators, kel, residual, lambda, time, refState, reactions, true);
+  getFollowerForce(geomState, elementForce, corotators, kel, residual, lambda, time, refState, reactions, !initialTime);
 
-  if(sinfo.isDynam() && mel) getFictitiousForce(geomState, elementForce, kel, residual, time, refState, reactions, mel, true);
+  if(sinfo.isDynam() && mel) getFictitiousForce(geomState, elementForce, kel, residual, time, refState, reactions, mel, !initialTime);
 
   if(!solInfo().getNLInfo().unsymmetric && solInfo().newmarkBeta != 0)
     for(int iele = 0; iele < numele; ++iele)
@@ -665,7 +669,6 @@ Domain::postProcessing(GeomState *geomState, Vector& force, Vector &aeroForce,
 {
   if(time == sinfo.initialTime) {
     geoSource->openOutputFiles();
-    //printStatistics();
   }
 
   if( sinfo.nRestart > 0 && velocity !=0) {
@@ -2242,6 +2245,37 @@ Domain::transformNodalMoment(const GeomState &geomState, double _G[],
   }
 #else
   cerr << "USE_EIGEN3 is not defined here in Domain::transformNodalMoment\n";
+  exit(-1);
+#endif
+}
+
+void
+Domain::transformElemStiff(const GeomState &geomState, FullSquareMatrix &kel, int iele)
+{
+#ifdef USE_EIGEN3
+  // Convert from eulerian spatial to eulerian convected
+  Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic>,Eigen::RowMajor>
+    H(kel.data(),packedEset[iele]->numDofs(),packedEset[iele]->numDofs());
+  int numNodes = packedEset[iele]->numNodes() - packedEset[iele]->numInternalNodes();
+  int *nodes = packedEset[iele]->nodes();
+  for(int k = 0; k < numNodes; ++k) {
+    Eigen::Matrix3d R;
+    R << geomState[nodes[k]].R[0][0], geomState[nodes[k]].R[0][1], geomState[nodes[k]].R[0][2],
+         geomState[nodes[k]].R[1][0], geomState[nodes[k]].R[1][1], geomState[nodes[k]].R[1][2],
+         geomState[nodes[k]].R[2][0], geomState[nodes[k]].R[2][1], geomState[nodes[k]].R[2][2];
+
+    for(int l=0; l<2*numNodes; ++l) {
+      H.block<3,3>(6*k+3,3*l) = (R.transpose()*H.block<3,3>(6*k+3,3*l)).eval();
+      H.block<3,3>(3*l,6*k+3) = (H.block<3,3>(3*l,6*k+3)*R).eval();
+    }
+    for(int l=0; l<packedEset[iele]->numInternalNodes(); ++l) {
+      H.block<3,1>(6*k+3,6*numNodes+l) = (R.transpose()*H.block<3,1>(6*k+3,6*numNodes+l)).eval();
+      H.block<1,3>(6*numNodes+l,6*k+3) = (H.block<1,3>(6*numNodes+l,6*k+3)*R).eval();
+    }
+  }
+  delete [] nodes;
+#else
+  cerr << "USE_EIGEN3 is not defined here in Domain::transformElemStiff\n";
   exit(-1);
 #endif
 }

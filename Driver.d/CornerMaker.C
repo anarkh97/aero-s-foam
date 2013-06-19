@@ -1048,7 +1048,7 @@ CornerMaker::makeCorners()
   communicator->globalMax(totNC, cPtr);
   communicator->globalSum(3*tot, (double *) xyz);
   communicator->globalSum(tot, cTg);
-#if defined(LAM_MPI) || defined(SUN10) || defined(OPEN_MPI)     //CRW
+#if defined(LAM_MPI) || defined(SUN10) || defined(OPEN_MPI)
   // temporary fix, LAM 7.1.1 MPI_Allreduce isn't working with character so converting to int
   int *essential_tmp = new int[totNC];
   for(i = 0; i < totNC; ++i) essential_tmp[i] = int(essential[i]);

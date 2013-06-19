@@ -427,8 +427,17 @@ MpcElement::getAccelerationConstraintRhs(GeomState *gState, CoordSet& cs, double
   getHessian(*gState, cs, H, t);
   Vector v(nterms);
   // fill v with initial velocity 
-  for(int i = 0; i < nterms; ++i)
-    v[i] = (*gState)[terms[i].nnum].v[terms[i].dofnum];
+  for(int i = 0; i < nterms; ++i) {
+   if(terms[i].dofnum == 3 || terms[i].dofnum == 4 || terms[i].dofnum == 5) {
+      // compute spatial angular velocity
+      double omega[3];
+      mat_mult_vec((*gState)[terms[i].nnum].R, &(*gState)[terms[i].nnum].v[3], omega);
+      v[i] = omega[terms[i].dofnum-3];
+    }
+    else {
+      v[i] = (*gState)[terms[i].nnum].v[terms[i].dofnum];
+    }
+  }
 
   Vector Hv(nterms,0.0);
   for(int i = 0; i < nterms; ++i)

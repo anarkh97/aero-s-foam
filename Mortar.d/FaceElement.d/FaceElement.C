@@ -58,7 +58,7 @@ FaceElement::ViewRefCoords()
   fprintf(stderr," *** ERROR: method ViewRefCoords() NOT implemented for face el. type %d\n. Abort",
   GetFaceElemType());
   exit(1);
-  return NULL;    //CRW
+  return NULL;
 }
 
 /*

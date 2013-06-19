@@ -493,7 +493,7 @@ FaceQuad9::IntegrateShapeFcts(double* ShapeIntg, CoordSet& cs, double rho, int n
 {
   for(int i=0; i<9; i++) ShapeIntg[i] = 0.0;
 
-  double dA, Shape[8];
+  double dA, Shape[9];
   double xi, eta, weight, m[2];
 
   for(int igp=0;igp<ngp;igp++){

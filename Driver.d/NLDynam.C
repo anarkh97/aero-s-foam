@@ -155,7 +155,6 @@ Domain::getFictitiousForce(GeomState &geomState, Vector &elementForce, FullSquar
                            double time, GeomState *refState, Vector *reactions, FullSquareMatrix *mel,
                            bool compute_tangents)
 {
-  // TODO: consider case of t=0
   for(int iele = 0; iele < numele; ++iele) {
 
     elementForce.zero();
@@ -247,7 +246,6 @@ Domain::getElemFictitiousForce(int iele, GeomState &geomState, double *_f, FullS
           if(time == domain->solInfo().initialTime) {
             V << geomState[nodes[i]].v[3], geomState[nodes[i]].v[4], geomState[nodes[i]].v[5];
             A << geomState[nodes[i]].a[3], geomState[nodes[i]].a[4], geomState[nodes[i]].a[5];
-            compute_tangents = false;
           }
           else {
             V_n << (*refState)[nodes[i]].v[3], (*refState)[nodes[i]].v[4], (*refState)[nodes[i]].v[5];

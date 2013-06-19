@@ -1531,9 +1531,17 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
         getPrimal(disps, masterDisps, time, x, iOut, 6, 0);
         break;
       case OutputInfo::Velocity6:
+        if(oinfo[iOut].angularouttype != OutputInfo::convected) {
+          filePrint(stderr," *** WARNING: Output case %d not implemented\n", iOut);
+          break;
+        }
         if(distState) getPrimal(vels, masterVels, time, x, iOut, 6, 0);
         break;
       case OutputInfo::Accel6:
+        if(oinfo[iOut].angularouttype != OutputInfo::convected) {
+          filePrint(stderr," *** WARNING: Output case %d not implemented\n", iOut);
+          break;
+        }
         if(distState) getPrimal(accs, masterAccs, time, x, iOut, 6, 0);
         break;
       case OutputInfo::Temperature:

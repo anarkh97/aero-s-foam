@@ -924,7 +924,7 @@ MultiDomainDynam::computeStabilityTimeStep(double &dt, MDDynamMat &dMat)
     filePrint(stderr," **************************************\n");
     filePrint(stderr," Stability max. timestep could not be  \n");
     filePrint(stderr," determined for this model.            \n");
-    if(domain->solInfo().isNonLin()) {
+    if(domain->solInfo().isNonLin() && eid_c > -1) {
       filePrint(stderr," Element with inf. time step = %7d\n",eid_c+1);
     }
     filePrint(stderr," Specified time step is selected\n");

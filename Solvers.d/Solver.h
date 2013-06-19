@@ -99,8 +99,6 @@ class GenSolver {
     virtual void add(FullSquareMatrixC &kel, int *dofs) // RT added to support PML, DGM
             { fprintf(stderr, " ... This solver has no add(FullSquareMatrixC &kel, int *dofs)\n"); }
       
-    virtual void addDiscreteMass(int, Scalar)
-            { fprintf(stderr, " ... This solver has no addDiscreteMass(int, Scalar)\n"); } 
     virtual Connectivity *getAllDofs()  
             { fprintf(stderr, " ... This solver has no getAllDofs()\n"); return 0; }
    virtual void addBoeing(int, const int *, const int *, const double *, int *, Scalar multiplier);

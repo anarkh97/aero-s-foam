@@ -88,18 +88,44 @@ GenSparseMatrix<Scalar>::add(GenAssembledFullM<Scalar> &knd, int *dofs)
 
 template<class Scalar> 
 void
-GenSparseMatrix<Scalar>::addDiscreteMass(int, Scalar)
+GenSparseMatrix<Scalar>::addDiscreteMass(int dof, Scalar s)
 {
- fprintf(stderr,"GenSparseMatrix<Scalar>::addDiscreteMass(int, Scalar) not implemented\n");
+  int dofs[1] = { dof };
+  double reS, imS;
+  if((reS = ScalarTypes::Real(s)) != 0) {
+    double d[1] = { reS };
+    FullSquareMatrix mat(1, d);
+    add(mat,dofs);
+  }
+  if((imS = ScalarTypes::Imag(s)) != 0) {
+    double d[1] = { imS };
+    FullSquareMatrix mat(1, d);
+    addImaginary(mat,dofs);
+  }
 }
 
 template<class Scalar>
 void
-GenSparseMatrix<Scalar>::add(int, int, Scalar)
+GenSparseMatrix<Scalar>::add(int dofi, int dofj, Scalar s)
 {
- fprintf(stderr,"GenSparseMatrix<Scalar>::add(int, int, Scalar) not implemented\n");
+  if(dofi == dofj) {
+    addDiscreteMass(dofi, s);
+  }
+  else {
+    double reS, imS;
+    int dofs[2] = { dofi, dofj };
+    if((reS = ScalarTypes::Real(s)) != 0) {
+      double d[4] = { 0, reS, reS, 0 };
+      FullSquareMatrix mat(2, d);
+      add(mat,dofs);
+    }
+    if((imS = ScalarTypes::Imag(s)) != 0) {
+      double d[4] = { 0, imS, imS, 0 };
+      FullSquareMatrix mat(2, d);
+      addImaginary(mat,dofs);
+    }
+  }
 }
-
 
 template<class Scalar> 
 void
@@ -232,8 +258,8 @@ template<class Scalar>
 GenFullM<Scalar> *
 GenSparseMatrix<Scalar>::getFullMatrix()
 {
-fprintf(stderr,"GenSparseMatrix<Scalar>::getFullMatrix() not implemented\n");
-return NULL;    //CRW
+ fprintf(stderr,"GenSparseMatrix<Scalar>::getFullMatrix() not implemented\n");
+ return NULL;
 }
 
 template<class Scalar>
@@ -259,8 +285,8 @@ template<class Scalar>
 GenFullM<Scalar>* 
 GenSparseMatrix<Scalar>::getDiagMatrix(int i)
 {
-fprintf(stderr,"GenSparseMatrix<Scalar>::getDiagMatrix(int i) not implemented\n");
-return NULL;    //CRW
+ fprintf(stderr,"GenSparseMatrix<Scalar>::getDiagMatrix(int i) not implemented\n");
+ return NULL;
 }
 
 template<class Scalar>
@@ -287,7 +313,7 @@ template<class Scalar>
 int GenSparseMatrix<Scalar>::getBlockSize()
 {
  fprintf(stderr,"GenSparseMatrix<Scalar>::getBlockSize() not implemented\n");
- return 0;    //CRW
+ return 0;
 }
 
 template<class Scalar>

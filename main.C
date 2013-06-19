@@ -1429,7 +1429,7 @@ int main(int argc, char** argv)
  if(structCom) totalMemoryUsed = structCom->globalSum(totalMemoryUsed);
 #endif
 
- domain->printStatistics(); // PJSA 4-2-08
+ domain->printStatistics(domain_decomp);
  filePrint(stderr," --------------------------------------\n");
  filePrint(stderr," ... Total Time           = %.2e s\n",
          (getTime() - initTime)/1000.0);

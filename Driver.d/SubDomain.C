@@ -1,8 +1,8 @@
 #include <typeinfo>
 #include <cstdio>
-#ifdef SUN10    //CRW
-#include <typeinfo.h>    //CRW
-#endif    //CRW
+#ifdef SUN10
+#include <typeinfo.h>
+#endif 
 #include <cmath>
 #include <Utils.d/dbg_alloca.h>
 

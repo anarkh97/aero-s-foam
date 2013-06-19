@@ -96,22 +96,28 @@ Domain::openFile(char *fileName, const char *extension)
  strcat(file, extension);
 
  FILE *filePtr;
- if((filePtr= fopen(file,"w")) == (FILE *) 0 )
-   fprintf(stderr," *** ERROR: Cannot open %s ***\n",file );
+ if((filePtr= fopen(file,"w")) == (FILE *) 0 ) {
+   fprintf(stderr," *** ERROR: Cannot open %s, exiting...\n",file );
+   exit(0);
+ }
 
  return filePtr;
 }
 
 void
-Domain::printStatistics()
+Domain::printStatistics(bool domain_decomp)
 {
    filePrint(stderr,"\n ---------- PROBLEM PARAMETERS --------");
    filePrint(stderr,"\n ... # Nodes              = %7d ...",numnodes);
    filePrint(stderr,"\n ... # Elements           = %7d ...",numele);
-   filePrint(stderr,"\n ... # Unconstrained dofs = %7d ...",numUncon());
+   if(!domain_decomp) {
+     filePrint(stderr,"\n ... # Unconstrained dofs = %7d ...",numUncon());
+   }
    filePrint(stderr,"\n ... # Constrained dofs   = %7d ...",
            numDirichlet+numComplexDirichlet);
-   filePrint(stderr,"\n ... Total # dofs         = %7d ...",numdof());
+   if(!domain_decomp) {
+     filePrint(stderr,"\n ... Total # dofs         = %7d ...",numdof());
+   }
    filePrint(stderr,"\n ... # Loaded dofs        = %7d ...",
            numNeuman+numComplexNeuman);
    if(gravityFlag())
@@ -1371,9 +1377,6 @@ Domain::makeTopFile(int topFlag)
    }
 
  }
-
- // print model statistics to screen
- //printStatistics();
 
  // ... CALCULATE STRUCTURE MASS IF REQUESTED
  if(sinfo.massFlag)  {

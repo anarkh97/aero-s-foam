@@ -1,6 +1,6 @@
 #include <cstdio>
 #include <cstdlib>
-#include <sstream>    //CRW
+#include <sstream>
 #include <Utils.d/BlockAlloc.h>
 #include <Driver.d/GeoSource.h>
 #include <Driver.d/Domain.h>
@@ -2053,9 +2053,9 @@ void GeoSource::outputNodeScalars(int fileNum, DComplex *data, int outputSize, d
       else  {
         for(i = 0; i < outputSize; i++) {
           if (outputSize == 1)
-            fprintf(oinfo[fileNum].filptr," % *.*E", w, p, std::abs(data[i]));     //CRW
+            fprintf(oinfo[fileNum].filptr," % *.*E", w, p, std::abs(data[i]));
           else
-            filePrint(oinfo[fileNum].filptr," % *.*E\n", w, p, std::abs(data[i]));    //CRW
+            filePrint(oinfo[fileNum].filptr," % *.*E\n", w, p, std::abs(data[i]));
         }
         // print phase part
         if (time != -1.0) {
@@ -2072,7 +2072,7 @@ void GeoSource::outputNodeScalars(int fileNum, DComplex *data, int outputSize, d
         for(i=0; i<oinfo[fileNum].ncomplexout; ++i) {
           filePrint(oinfo[fileNum].filptr,"  % *.*E  \n",w,p,phi);
           for(int j = 0; j < outputSize; j++) {
-            double proj = std::abs(data[j])*cos(arg(data[j])-phi);    //CRW
+            double proj = std::abs(data[j])*cos(arg(data[j])-phi);
             filePrint(oinfo[fileNum].filptr," % *.*E\n", w, p, proj);
           }
           phi += incr;
@@ -2160,11 +2160,11 @@ void GeoSource::outputElemVectors(int fileNum, DComplex *data,
       for(i = 0; i < outputSize; i++) {
         if(outputSize == 1)
           fprintf(oinfo[fileNum].filptr," % *.*E % *.*E  % *.*E % *.*E\n",
-                  w, p, std::abs(data[2*i]), w, p, std::abs(data[2*i+1]),    //CRW
+                  w, p, std::abs(data[2*i]), w, p, std::abs(data[2*i+1]),
                   w, p, arg(data[2*i]), w, p, arg(data[2*i+1]));
         else
           filePrint(oinfo[fileNum].filptr," % *.*E % *.*E\n",
-                    w, p, std::abs(data[2*i]), w, p, std::abs(data[2*i+1]));    //CRW
+                    w, p, std::abs(data[2*i]), w, p, std::abs(data[2*i+1]));
       }
       // output phase part
       if(outputSize != 1) {
@@ -2185,7 +2185,7 @@ void GeoSource::outputElemVectors(int fileNum, DComplex *data,
           for(int j = 0; j < outputSize; j++) {
             double proj[2];
             for(int k=0; k<2; ++k)
-              proj[k] = std::abs(data[2*j+k])*cos(arg(data[2*j+k])-phi);    //CRW
+              proj[k] = std::abs(data[2*j+k])*cos(arg(data[2*j+k])-phi);
             filePrint(oinfo[fileNum].filptr," % *.*E % *.*E\n",
                       w, p, proj[0], w, p, proj[1]);
           }
@@ -3192,8 +3192,10 @@ void GeoSource::openOutputFilesForPita(int sliceRank)
         fileName = nfn;
       }
 
-      if((oinfo[iInfo].filptr= fopen(fileName,"w")) == (FILE *) 0 )
-        fprintf(stderr," *** ERROR: Cannot open %s\n",oinfo[iInfo].filename );
+      if((oinfo[iInfo].filptr= fopen(fileName,"w")) == (FILE *) 0 ) {
+        fprintf(stderr," *** ERROR: Cannot open %s, exiting...\n",oinfo[iInfo].filename );
+        exit(0);
+      }
       outputHeader(iInfo);
       fflush(oinfo[iInfo].filptr);
     }
@@ -3221,8 +3223,10 @@ void GeoSource::openOutputFiles(int *outNodes, int *outIndex, int numOuts)
           fileName = nfn;
         }
 
-        if((oinfo[iInfo].filptr= fopen(fileName,"w")) == (FILE *) 0 )
-          fprintf(stderr," *** ERROR: Cannot open %s\n",oinfo[iInfo].filename );
+        if((oinfo[iInfo].filptr= fopen(fileName,"w")) == (FILE *) 0 ) {
+          fprintf(stderr," *** ERROR: Cannot open %s, exiting...\n",oinfo[iInfo].filename );
+          exit(0);
+        }
         outputHeader(iInfo);
         fflush(oinfo[iInfo].filptr);
       }
@@ -3244,8 +3248,10 @@ void GeoSource::openOutputFiles(int *outNodes, int *outIndex, int numOuts)
           fileName = nfn;
         }
 
-        if((oinfo[iInfo].filptr= fopen(fileName,"w")) == (FILE *) 0 )
-          fprintf(stderr," *** ERROR: Cannot open %s\n",oinfo[iInfo].filename );
+        if((oinfo[iInfo].filptr= fopen(fileName,"w")) == (FILE *) 0 ) {
+          fprintf(stderr," *** ERROR: Cannot open %s, exiting...\n",oinfo[iInfo].filename );
+          exit(0);
+        }
         outputHeader(iInfo);
         fflush(oinfo[iInfo].filptr);
       }
@@ -3661,7 +3667,7 @@ void GeoSource::outputElemStress(int fileNum, DComplex *stressData,
       for(int i = 0; i < numOutElems; i++)  {
         int numNodes = offsets[i+1] - offsets[i];
         for(int iNode = 0; iNode < numNodes; iNode++)
-          filePrint(oinfo[fileNum].filptr," % *.*E", w, p, std::abs(stressData[offsets[i]+iNode]));    //CRW
+          filePrint(oinfo[fileNum].filptr," % *.*E", w, p, std::abs(stressData[offsets[i]+iNode]));
         filePrint(oinfo[fileNum].filptr,"\n");
       }
       // print phase part
@@ -3687,7 +3693,7 @@ void GeoSource::outputElemStress(int fileNum, DComplex *stressData,
         for(int j = 0; j < numOutElems; j++) {
           int numNodes = offsets[j+1] - offsets[j];
           for(int iNode = 0; iNode < numNodes; iNode++) {
-            double proj = std::abs(stressData[offsets[j]+iNode])*cos(arg(stressData[offsets[j]+iNode])-phi);    //CRW
+            double proj = std::abs(stressData[offsets[j]+iNode])*cos(arg(stressData[offsets[j]+iNode])-phi);
             filePrint(oinfo[fileNum].filptr," % *.*E", w, p, proj);
           }
           filePrint(oinfo[fileNum].filptr,"\n");

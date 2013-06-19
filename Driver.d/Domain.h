@@ -356,6 +356,7 @@ class Domain : public HData {
                                      FullSquareMatrix &kel, int iele, bool compute_tangents);
      void transformNodalMoment(const GeomState &geomState, double G[],
                                double H[][3], int nnum, bool compute_tangents);
+     void transformElemStiff(const GeomState &geomState, FullSquareMatrix &kel, int iele);
      void getWeightedStiffAndForceOnly(const std::map<int, double> &weights,
                                        GeomState &u, Vector &elementInternalForce,
                                        Corotator **allCorot, FullSquareMatrix *kel,
@@ -596,7 +597,7 @@ class Domain : public HData {
      void createCorotators(Corotator **allCorot);
      void preProcessing();
      FILE * openFile(char *fileName, const char *extension);
-     void printStatistics();
+     void printStatistics(bool domain_decomp);
 
      // static & freq response post processing function
      template<class Scalar>

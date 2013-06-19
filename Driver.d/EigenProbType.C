@@ -1391,10 +1391,7 @@ SymArpackSolver< EigOps, VecType, VecSet,
 
   if (domain->solInfo().doEigSweep) {
 
-//    if(domain->solInfo().type == 2)
-      filePrint(stderr," --------------------------------------\n");
-    //else
-    //  domain->printStatistics(); // Print Problem statistics to screen
+    filePrint(stderr," --------------------------------------\n");
       
     // Print omega and frequency values to screen
     if(domain->solInfo().buckling) {

@@ -98,7 +98,7 @@ SDDynamPostProcessor::dynamOutput(int tIndex, double time, DynamMat& dMat, Vecto
     int numOutInfo = geoSource->getNumOutInfo();
     OutputInfo *oinfo = geoSource->getOutputInfo();
     for(int iInfo = 0; iInfo < numOutInfo; ++iInfo) {
-      if(oinfo[iInfo].isStressOrStrain()) {
+      if(oinfo[iInfo].isStressOrStrain() || oinfo[iInfo].angularouttype != OutputInfo::convected) {
         domain->postProcessingImpl(iInfo, geomState, ext_f, *aeroForce, time, tIndex, state.getVeloc().data(), vcx,
                                    allCorot, melArray, state.getAccel().data(), acx);
       }
@@ -373,7 +373,7 @@ SingleDomainDynamic::computeStabilityTimeStep(double& dt, DynamMat& dMat)
    filePrint(stderr," **************************************\n");
    filePrint(stderr," Stability max. timestep could not be  \n");
    filePrint(stderr," determined for this model.            \n");
-   if(domain->solInfo().isNonLin()) {
+   if(domain->solInfo().isNonLin() && eid > -1) {
      filePrint(stderr," Element with inf. time step = %7d\n",eid+1);
    }
    filePrint(stderr," Specified time step is selected\n");

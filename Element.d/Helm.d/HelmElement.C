@@ -18,7 +18,7 @@ void HelmElement::edgeShapeFunctions(int n1, int n2, int *ng,
 FullSquareMatrix HelmElement::acousticm(CoordSet&, double *kel) {
   fprintf (stderr, "HelmElement::acousticm not implemented for this element. Exiting.\n");
   exit (1);
-  return FullSquareMatrix();    //CRW
+  return FullSquareMatrix();
 }
 
 

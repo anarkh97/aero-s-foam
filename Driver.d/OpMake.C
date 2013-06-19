@@ -3421,7 +3421,6 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
  // --- Print Problem statistics to the screen -------------------------------
  if(firstOutput) {
    if (!domain->solInfo().doEigSweep) {
-   //  printStatistics();
 
      // ... CALCULATE STRUCTURE MASS IF REQUESTED
      if(sinfo.massFlag)  {

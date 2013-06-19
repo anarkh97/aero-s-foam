@@ -363,8 +363,8 @@ class Element {
 	virtual FullSquareMatrix massMatrix(CoordSet& cs,double *m,int cmflg=1);
         virtual FullSquareMatrix imStiffness(CoordSet& cs,double *k,int flg=1);
 	FullSquareMatrix massMatrix(CoordSet& cs, double* m, double mratio);
-        virtual FullSquareMatrixC stiffness(CoordSet&, complex<double> *d) {return FullSquareMatrixC();};    //CRW
-        virtual FullSquareMatrixC massMatrix(CoordSet&, complex<double> *d) {return FullSquareMatrixC();};    //CRW
+        virtual FullSquareMatrixC stiffness(CoordSet&, complex<double> *d) {return FullSquareMatrixC();};
+        virtual FullSquareMatrixC massMatrix(CoordSet&, complex<double> *d) {return FullSquareMatrixC();};
 
 	virtual FullSquareMatrix dampingMatrix(CoordSet& cs,double *m,int cmflg=1);
 

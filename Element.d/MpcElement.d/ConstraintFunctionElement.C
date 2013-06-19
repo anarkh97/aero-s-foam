@@ -319,7 +319,19 @@ ConstraintFunctionElement<ConstraintFunctionTemplate>::getAccelerationConstraint
 
   // instantiate the jacobian of the constraint jacobian velocity product
   Eigen::Matrix<double,N,1> v;
-  for(int i = 0; i < nterms; ++i) v[i] = (*c1)[terms[i].nnum].v[terms[i].dofnum];
+  for(int i = 0; i < nterms; ++i) {
+    if(terms[i].dofnum == 3 || terms[i].dofnum == 4 || terms[i].dofnum == 5) {
+      // compute spatial angular velocity
+      Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor>,Eigen::RowMajor> R(&(*c1)[terms[i].nnum].R[0][0]);
+      Eigen::Map<Eigen::Vector3d> Omega(&(*c1)[terms[i].nnum].v[3]);
+      Eigen::Vector3d omega = R*Omega;
+      v[i] = omega[terms[i].dofnum-3];
+    }
+    else {
+      v[i] = (*c1)[terms[i].nnum].v[terms[i].dofnum];
+    }
+  }
+
   ConstraintJacobianVelocityProduct<double,ConstraintFunctionTemplate> Jv(sconst,iconst,t,v); // assuming v is constant for now
   SacadoReverseJacobian<ConstraintJacobianVelocityProduct<double,ConstraintFunctionTemplate> > dJvdq(Jv);
 

@@ -76,8 +76,7 @@ class GenMumpsSolver : public GenSolver<Scalar>, public GenSparseMatrix<Scalar>,
    void add(GenFullM<Scalar> &, int, int);
    void add(GenAssembledFullM<Scalar> &, int *);
    void addDiscreteMass(int dof, Scalar);
-   void add(int dofi, int dofj, Scalar d); //HB: add upper part only 
-   void addone(Scalar d, int dofi, int dofj) { add(dofi, dofj, d); }
+   void addone(Scalar d, int dofi, int dofj) { GenSparseMatrix<Scalar>::add(dofi, dofj, d); }
 
    void unify(FSCommunicator *);
    void factor();

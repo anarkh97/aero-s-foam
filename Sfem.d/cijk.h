@@ -17,7 +17,7 @@ class Cijk {
   Chaos PC1;
  
  public:
-  Cijk(int ndim, int order, int P);    //CRW
+  Cijk(int ndim, int order, int P);
   double expectation(int i, int j, int k);
 };
 

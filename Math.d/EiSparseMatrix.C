@@ -81,36 +81,6 @@ GenEiSparseMatrix<Scalar,SolverClass>::printSparse(const std::string& filename)
   saveMarket(M, filename, sym);
 }
 
-template<typename Scalar, typename SolverClass>
-void
-GenEiSparseMatrix<Scalar,SolverClass>::add(int idof, int jdof, Scalar s)
-{
-  // TODO non-selfadjoint case
-  if((idof < 0) || (jdof < 0)) return;
-  int dofsi = (jdof > idof) ? idof : jdof;
-  int dofsj = (jdof > idof) ? jdof : idof;
-
-  int k,l;
-  if((k = unconstrNum[dofsi]) == -1 || (l = unconstrNum[dofsj]) == -1) return;
-  int mstart = xunonz[l];
-  int mstop  = xunonz[l+1];
-  for(int m = xunonz[l]; m < xunonz[l+1]; ++m) {
-    if(rowu[m] == k) {
-      unonz[m] += s;
-      break;
-    }
-  }
-}
-
-template<typename Scalar, typename SolverClass>
-void
-GenEiSparseMatrix<Scalar,SolverClass>::addDiscreteMass(int dof, Scalar dmass)
-{
-  GenFullSquareMatrix<Scalar> m(1);
-  m[0][0] = dmass;
-  add(m, &dof);
-}
-
 template<typename Scalar, typename SolverClass> 
 void
 GenEiSparseMatrix<Scalar,SolverClass>::add(FullSquareMatrix &kel, int *dofs)

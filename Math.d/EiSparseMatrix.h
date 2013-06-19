@@ -53,8 +53,6 @@ class GenEiSparseMatrix : public SparseData, public GenSparseMatrix<Scalar>, pub
    void add(GenAssembledFullM<Scalar> &, int *);
    void addImaginary(FullSquareMatrix &, int *dofs);
    void add(FullSquareMatrixC &, int *dofs); 
-   void addDiscreteMass(int dof, Scalar diMass);
-   void add(int, int, Scalar);
 
    // GenSparseMatrix matrix-vector multiplications
    void mult(const GenVector<Scalar> &, GenVector<Scalar> &);

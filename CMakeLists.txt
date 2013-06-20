@@ -29,6 +29,7 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Intel")
     if (ICC_VERSION VERSION_GREATER 12.1 OR ICC_VERSION VERSION_EQUAL 12.1)
         set(CHECK_CXX_FEATURES true)
         set(CMAKE_CXX11_FLAGS "-std=c++11 -wd1478")
+        add_definitions(-DHACK_INTEL_COMPILER_ITS_CPP11)
     endif ()
 endif ()
 

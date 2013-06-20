@@ -48,7 +48,18 @@ master_node_flags(const SubDomain &subDom, BoolOutIt result) {
     }
   }
 
+#if defined(HACK_INTEL_COMPILER_ITS_CPP11) && (__GLIBC__ == 2) && (__GLIBC_MINOR__ == 12)
+  // workaround issue in older version of glibc when compiling with -std=c++11
+  std::vector<bool>::iterator first = work.begin(), last = work.end();
+  while (first!=last) {
+    bool firstval = *first;
+    *result = firstval;
+    ++result; ++first;
+  }
+  return result;
+#else
   return std::copy(work.begin(), work.end(), result);
+#endif
 }
 
 } /* end namespace Rom */

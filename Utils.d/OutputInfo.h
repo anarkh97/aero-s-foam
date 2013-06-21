@@ -39,7 +39,10 @@ struct OutputInfo {
 	  HeatReactions, Reactions6, Statevector, Residual, Jacobian, 
 	  RobData, SampleMesh, Accelvector, Forcevector,
           RotationMatrix, ExternalXForce, ExternalYForce, ExternalZForce,
-          ExternalXMom, ExternalYMom, ExternalZMom, Velocvector, InternalStateVar };
+          ExternalXMom, ExternalYMom, ExternalZMom, Velocvector, InternalStateVar,
+          PlasticStrainXX, PlasticStrainYY, PlasticStrainZZ, PlasticStrainXY,
+          PlasticStrainYZ, PlasticStrainXZ, BackStressXX, BackStressYY,
+          BackStressZZ, BackStressXY, BackStressYZ, BackStressXZ };
 
    enum Group  { Nodal, Attribute, NodeGroup };
    Type  type;

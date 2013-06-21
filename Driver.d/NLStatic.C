@@ -1129,6 +1129,42 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
     case OutputInfo::EquivalentPlasticStrain:
       getStressStrain(*geomState, allCorot,  iInfo, EQPLSTRN, time, refState);
       break;
+    case OutputInfo::BackStressXX:
+      getStressStrain(*geomState, allCorot,  iInfo, BACKSXX, time, refState);
+      break;
+    case OutputInfo::BackStressYY:
+      getStressStrain(*geomState, allCorot,  iInfo, BACKSYY, time, refState);
+      break;
+    case OutputInfo::BackStressZZ:
+      getStressStrain(*geomState, allCorot,  iInfo, BACKSZZ, time, refState);
+      break;
+    case OutputInfo::BackStressXY:
+      getStressStrain(*geomState, allCorot,  iInfo, BACKSXY, time, refState);
+      break;
+    case OutputInfo::BackStressYZ:
+      getStressStrain(*geomState, allCorot,  iInfo, BACKSYZ, time, refState);
+      break;
+    case OutputInfo::BackStressXZ:
+      getStressStrain(*geomState, allCorot,  iInfo, BACKSXZ, time, refState);
+      break;
+    case OutputInfo::PlasticStrainXX:
+      getStressStrain(*geomState, allCorot,  iInfo, PLASTICEXX, time, refState);
+      break;
+    case OutputInfo::PlasticStrainYY:
+      getStressStrain(*geomState, allCorot,  iInfo, PLASTICEYY, time, refState);
+      break;
+    case OutputInfo::PlasticStrainZZ:
+      getStressStrain(*geomState, allCorot,  iInfo, PLASTICEZZ, time, refState);
+      break;
+    case OutputInfo::PlasticStrainXY:
+      getStressStrain(*geomState, allCorot,  iInfo, PLASTICEXY, time, refState);
+      break;
+    case OutputInfo::PlasticStrainYZ:
+      getStressStrain(*geomState, allCorot,  iInfo, PLASTICEYZ, time, refState);
+      break;
+    case OutputInfo::PlasticStrainXZ:
+      getStressStrain(*geomState, allCorot,  iInfo, PLASTICEXZ, time, refState);
+      break;
     case OutputInfo::InXForce:
       getElementForces(*geomState, allCorot, iInfo, INX, time);
       break;
@@ -1576,6 +1612,9 @@ Domain::getStressStrain(GeomState &geomState, Corotator **allCorot,
     for(iele=0; iele<numele; ++iele) {
       NodesPerElement = elemToNode->num(iele);
       maxNodesPerElement = myMax(maxNodesPerElement, NodesPerElement);
+      if(avgnum == -1) {
+        maxNodesPerElement = myMax(maxNodesPerElement, allCorot[iele]->getNumGaussPoints());
+      }
     }
     if(elstress == 0) elstress = new Vector(maxNodesPerElement, 0.0);
     if(elweight == 0) elweight = new Vector(maxNodesPerElement, 0.0);
@@ -1637,20 +1676,19 @@ Domain::getStressStrain(GeomState &geomState, Corotator **allCorot,
 // NO STRESS RECOVERY
      }
 
-// ... ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
-
-//     int NodesPerElement = packedEset[iele]->numNodes();
-
-     for(k=0; k<NodesPerElement; ++k) {
-       (*stress)[(*elemToNode)[iele][k]] += (*elstress)[k];
-       (*weight)[(*elemToNode)[iele][k]] += (*elweight)[k];
-     }
-
 // ... PRINT NON-AVERAGED STRESS VALUES IF REQUESTED
-     if(avgnum == 0) {
-       for(k=0; k<NodesPerElement; ++k)
+     if(avgnum == 0 || avgnum == -1) {
+       int numPoints = (avgnum == -1) ? allCorot[iele]->getNumGaussPoints() : NodesPerElement;
+       for(k=0; k<numPoints; ++k)
          fprintf(oinfo[fileNumber].filptr," % *.*E",w,p,(*elstress)[k]);
        fprintf(oinfo[fileNumber].filptr,"\n");
+     }
+// ... ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
+     else {
+       for(k=0; k<NodesPerElement; ++k) {
+         (*stress)[(*elemToNode)[iele][k]] += (*elstress)[k];
+         (*weight)[(*elemToNode)[iele][k]] += (*elweight)[k];
+       }
      }
   }
 
@@ -2034,7 +2072,6 @@ Domain::readRestartFile(Vector &d_n, Vector &v_n, Vector &a_n,
      readSize = read(fn, &restartT, sizeof(double));
      if(readSize != sizeof(double))
        fprintf(stderr," *** ERROR: Inconsistent restart file 2\n");
-     //fprintf(stderr,"Initial Time = %f\n\n",restartT);
      sinfo.initialTime = restartT;
 
      v_n.zero();
@@ -2106,13 +2143,7 @@ Domain::readRestartFile(Vector &d_n, Vector &v_n, Vector &a_n,
       perror(" *** ERROR: Restart file could not be opened: ");
       //exit(-1);
    }
-
  }
- //else {
- //    fprintf(stderr, " ... No restart                     ...\n");
- //}
-
-
 }
 
 // nonlinear statics

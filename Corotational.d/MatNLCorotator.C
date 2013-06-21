@@ -160,52 +160,71 @@ MatNLCorotator::getNLVonMises(Vector& stress, Vector& weight, GeomState &curStat
   double *statenp = curState.getElemState(ele->getGlNum());
   
   int indexMap[6] = { 0, 4, 8, 1, 5, 2 };
+  int numPoints = (avgnum == -1) ? ele->getNumGaussPoints() : ele->numNodes();
   switch(strIndex) {
     case 0 : case 1 : case 2 : case 3 : case 4 : case 5 : { // SXX=0,SYY=1,SZZ=2,SXY=3,SYZ=4,SXZ=5
-      double (*result)[9] = new double[ele->numNodes()][9];
+      double (*result)[9] = new double[numPoints][9];
       double *statenp_tmp = new double[ele->numStates()];
-      ele->getStressTens(nodes, dispn, staten, dispnp, statenp_tmp, result);
-      for(int i = 0; i < ele->numNodes(); ++i) {
+      ele->getStressTens(nodes, dispn, staten, dispnp, statenp_tmp, result, avgnum);
+      for(int i = 0; i < numPoints; ++i) {
         stress[i] = result[i][indexMap[strIndex]];
       }
       delete [] result;
       delete [] statenp_tmp;
     } break;
     case 6 : { // VON
-      double *result = new double[ele->numNodes()];
+      double *result = new double[numPoints];
       double *statenp_tmp = new double[ele->numStates()];
-      ele->getVonMisesStress(nodes, dispn, staten, dispnp, statenp_tmp, result);
-      for(int i = 0; i < ele->numNodes(); ++i) {
+      ele->getVonMisesStress(nodes, dispn, staten, dispnp, statenp_tmp, result, avgnum);
+      for(int i = 0; i < numPoints; ++i) {
         stress[i] = result[i];
       }
       delete [] result;
       delete [] statenp_tmp;
     } break;
     case 7 : case 8 : case 9 : case 10 : case 11 : case 12 : { // EXX=7,EYY=8,EZZ=9,EXY=10,EYZ=11,EXZ=12
-      double (*result)[9] = new double[ele->numNodes()][9];
-      ele->getStrainTens(nodes, dispnp, result);
-      for(int i = 0; i < ele->numNodes(); ++i) {
+      double (*result)[9] = new double[numPoints][9];
+      ele->getStrainTens(nodes, dispnp, result, avgnum);
+      for(int i = 0; i < numPoints; ++i) {
         stress[i] = result[i][indexMap[strIndex-7]];
       }
       if(strIndex == 10 || strIndex == 11 || strIndex == 12) {
-        for(int i = 0; i < ele->numNodes(); ++i) {
+        for(int i = 0; i < numPoints; ++i) {
           stress[i] *= 2; // convert to "engineering strain"
         }
       }
       delete [] result;
     } break;
     case 13 : { // STRAINVON
-      double *result = new double[ele->numNodes()];
-      ele->getVonMisesStrain(nodes, dispnp, result);
-      for(int i = 0; i < ele->numNodes(); ++i) {
+      double *result = new double[numPoints];
+      ele->getVonMisesStrain(nodes, dispnp, result, avgnum);
+      for(int i = 0; i < numPoints; ++i) {
         stress[i] = result[i];
       }
       delete [] result;
     } break;
     case 18 : { // EQPLSTRN
-      double *result = new double[ele->numNodes()];
-      ele->getEquivPlasticStrain(statenp, result);
-      for(int i = 0; i < ele->numNodes(); ++i) stress[i] = result[i];
+      double *result = new double[numPoints];
+      ele->getEquivPlasticStrain(statenp, result, avgnum);
+      for(int i = 0; i < numPoints; ++i) stress[i] = result[i];
+      delete [] result;
+    } break;
+    case 19 : case 20 : case 21 : case 22 : case 23 : case 24 : { // BACKSXX=19,BACKSYY=20,BACKSZZ=21,
+                                                                  // BACKSXY=22,BACKSYZ=23,BACKSXZ=24
+      double (*result)[9] = new double[numPoints][9];
+      ele->getBackStressTens(statenp, result, avgnum);
+      for(int i = 0; i < numPoints; ++i) {
+        stress[i] = result[i][indexMap[strIndex-19]];
+      }
+      delete [] result;
+    } break;
+    case 25 : case 26 : case 27 : case 28 : case 29 : case 30 : { // PLASTICEXX=25,PLASTICEYY=26,PLASTICEZZ=27,
+                                                                  // PLASTICEXY=28,PLASTICEYZ=29,PLASTICEXZ=30
+      double (*result)[9] = new double[numPoints][9];
+      ele->getPlasticStrainTens(statenp, result, avgnum);
+      for(int i = 0; i < numPoints; ++i) {
+        stress[i] = result[i][indexMap[strIndex-25]];
+      }
       delete [] result;
     } break;
   }
@@ -254,4 +273,10 @@ MatNLCorotator::updateStates(GeomState *refState, GeomState &curState, CoordSet 
   delete [] nodes;
   delete [] dispn;
   delete [] dispnp;
+}
+
+int
+MatNLCorotator::getNumGaussPoints()
+{
+  return ele->getNumGaussPoints();
 }

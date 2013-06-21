@@ -87,6 +87,10 @@ class Corotator {
     virtual void updateMultipliers(GeomState& c1) {}
     virtual double getError() { return 0; }
 
+    // ONLY USED FOR POSTPROCESSING TO OUTPUT STRESS OR STRAIN AT THE GAUSS POINTS
+    // CURRENTLY ONLY SUPPORTED FOR MATERIAL NONLINEAR
+    virtual int getNumGaussPoints() { return 0; }
+
     virtual ~Corotator() {/*TODO*/}
 };
 

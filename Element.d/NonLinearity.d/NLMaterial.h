@@ -37,13 +37,17 @@ class NLMaterial
 
      virtual void initStates(double *) = 0;
 
-     virtual double getDensity() { return 0; } // PJSA
+     virtual double getDensity() { return 0; }
 
      virtual StrainEvaluator * getStrainEvaluator() { return NULL; } // return default strain evaluator 
 
      virtual GenStrainEvaluator<TwoDTensorTypes<9> > * getGenStrainEvaluator() { return NULL; }
 
      virtual double getEquivPlasticStrain(double *statenp) { return 0; }
+
+     virtual bool getBackStress(double *statenp, Tensor *backstress) { return false; }
+
+     virtual bool getPlasticStrain(double *statenp, Tensor *plasticstrain) { return false; }
 
      virtual double getThickness() { return 0; }
 

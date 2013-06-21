@@ -314,3 +314,27 @@ ElasPlasKinHardMat<e>::getStrainEvaluator()
   return NULL;
 } 
 
+template<int e>
+bool
+ElasPlasKinHardMat<e>::getBackStress(double *statenp, Tensor *_backstress)
+{
+  Tensor_d0s2_Ss12 * backstress = static_cast<Tensor_d0s2_Ss12 *>(_backstress);
+  for (int i=0; i<6; ++i) {
+    (*backstress)[i] = statenp[6+i];
+  }
+
+  return true;
+}
+
+template<int e>
+bool
+ElasPlasKinHardMat<e>::getPlasticStrain(double *statenp, Tensor *_plasticstrain)
+{
+  Tensor_d0s2_Ss12 * plasticstrain = static_cast<Tensor_d0s2_Ss12 *>(_plasticstrain);
+  for (int i=0; i<6; ++i) {
+    (*plasticstrain)[i] = statenp[i];
+  }
+
+  return true;
+}
+

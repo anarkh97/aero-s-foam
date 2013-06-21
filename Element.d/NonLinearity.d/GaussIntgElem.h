@@ -51,13 +51,15 @@ class GaussIntgElement : public MatNLElement
     }
     void initStates(double *);
     // the following functions return result for postprocessing at every node
-    void getStrainTens(Node *nodes, double *dispnp, double (*result)[9]);
-    void getVonMisesStrain(Node *nodes, double *dispnp, double *result);
+    void getStrainTens(Node *nodes, double *dispnp, double (*result)[9], int avgnum);
+    void getVonMisesStrain(Node *nodes, double *dispnp, double *result, int avgnum);
     void getStressTens(Node *nodes, double *dispn, double *staten,
-                       double *dispnp, double *statenp, double (*result)[9]);
+                       double *dispnp, double *statenp, double (*result)[9], int avgnum);
     void getVonMisesStress(Node *nodes, double *dispn, double *staten,
-                           double *dispnp, double *statenp, double *result);
-    void getEquivPlasticStrain(double *statenp, double *result);
+                           double *dispnp, double *statenp, double *result, int avgnum);
+    void getEquivPlasticStrain(double *statenp, double *result, int avgnum);
+    void getBackStressTens(double *statenp, double (*result)[9], int avgnum);
+    void getPlasticStrainTens(double *statenp, double (*result)[9], int avgnum);
 };
 
 template <class TensorTypes>
@@ -102,7 +104,7 @@ class GenGaussIntgElement : public MatNLElement
     }
     void initStates(double *);
     void getStressTens(Node *nodes, double *dispn, double *staten,
-                       double *dispnp, double *statenp, double (*result)[9]);
+                       double *dispnp, double *statenp, double (*result)[9], int avgnum);
 };
 
 template <class TensorTypes>
@@ -684,7 +686,7 @@ copyTens(Stress2D *stens, double *svec)
 template <class TensorType>
 void
 GenGaussIntgElement<TensorType>::getStressTens(Node *nodes, double *dispn, double *staten,
-                                               double *dispnp, double *statenp, double (*result)[9])
+                                               double *dispnp, double *statenp, double (*result)[9], int avgnum)
 {
   int ndofs = numDofs();
   GenShapeFunction<TensorType> *shapeF = getShapeFunction();
@@ -753,21 +755,29 @@ GenGaussIntgElement<TensorType>::getStressTens(Node *nodes, double *dispn, doubl
     for(int j=0; j<preload.size(); ++j) s[j] += preload[j]; // note: for membrane element preload should have units of
                                                             // force per unit length (ie. prestress multiplied by thickness)
 
-    copyTens(&s, gpstress[i]);
-    if(t > 0) for(int j=0; j<9; ++j) gpstress[i][j] /= t;
+    if(avgnum == -1) {
+      copyTens(&s, result[i]);
+      if(t > 0) for(int j=0; j<9; ++j) result[i][j] /= t;
+    }
+    else {
+      copyTens(&s, gpstress[i]);
+      if(t > 0) for(int j=0; j<9; ++j) gpstress[i][j] /= t;
+    }
   }
 
-  //TODO extrapolate from gauss points to nodes
-  //temporary fix implemented here is to return the average of all the gauss points for each node
-  double average[9] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-  for(int i = 0; i < getNumGaussPoints(); i++)
-    for(int j = 0; j < 9; ++j)
-      average[j] += gpstress[i][j];
-  for(int i = 0; i < 9; ++i)
-    average[i] /= getNumGaussPoints();
-  for(int i = 0; i < numNodes(); ++i)
-    for(int j = 0; j < 9; ++j)
-      result[i][j] = average[j];
+  if(avgnum != -1) {
+    //TODO extrapolate from gauss points to nodes
+    //temporary fix implemented here is to return the average of all the gauss points for each node
+    double average[9] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    for(int i = 0; i < getNumGaussPoints(); i++)
+      for(int j = 0; j < 9; ++j)
+        average[j] += gpstress[i][j];
+    for(int i = 0; i < 9; ++i)
+      average[i] /= getNumGaussPoints();
+    for(int i = 0; i < numNodes(); ++i)
+      for(int j = 0; j < 9; ++j)
+        result[i][j] = average[j];
+  }
 
   delete [] gpstress;
 }

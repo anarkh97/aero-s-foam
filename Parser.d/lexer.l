@@ -945,6 +945,8 @@ TRAIL [a-zA-Z]*
 
 "elemental"[a-zA-Z]*|"ELEMENTAL"[a-zA-Z]* { yylval.ival =  0; return AVERAGED; }
 
+"gauss"[a-zA-Z]*|"GAUSS"[a-zA-Z]*  { yylval.ival =  -1; return AVERAGED; }
+
 "nodal"|"NODAL"|"nodalfull"|"NODALFULL"  { yylval.ival =  1; return AVERAGED; }
 
 "nodalpartial"|"NODALPARTIAL"    { yylval.ival =  2; return AVERAGED; }
@@ -1208,6 +1210,34 @@ TRAIL [a-zA-Z]*
 
 "damage"|"DAMAGE"                  { yylval.ival = OutputInfo::Damage; return STRESSID; }
 "eqplstrn"|"EQPLSTRN"|"effpstrn"|"EFFPSTRN"          { yylval.ival = OutputInfo::EquivalentPlasticStrain; return STRESSID; }
+
+"plstrnxx"|"PLSTRNXX"              { yylval.ival = OutputInfo::PlasticStrainXX; return STRESSID; }
+
+"plstrnyy"|"PLSTRNYY"              { yylval.ival = OutputInfo::PlasticStrainYY; return STRESSID; }
+
+"plstrnzz"|"PLSTRNZZ"              { yylval.ival = OutputInfo::PlasticStrainZZ; return STRESSID; }
+
+"plstrnxy"|"PLSTRNXY"              { yylval.ival = OutputInfo::PlasticStrainXY; return STRESSID; }
+
+"plstrnzx"|"PLSTRNZX"              { yylval.ival = OutputInfo::PlasticStrainXZ; return STRESSID; }
+
+"plstrnxz"|"PLSTRNXZ"              { yylval.ival = OutputInfo::PlasticStrainXZ; return STRESSID; }
+
+"plstrnyz"|"PLSTRNYZ"              { yylval.ival = OutputInfo::PlasticStrainYZ; return STRESSID; }
+
+"bkstrsxx"|"BKSTRSXX"              { yylval.ival = OutputInfo::BackStressXX;    return STRESSID; }
+
+"bkstrsyy"|"BKSTRSYY"              { yylval.ival = OutputInfo::BackStressYY;    return STRESSID; }
+
+"bkstrszz"|"BKSTRSZZ"              { yylval.ival = OutputInfo::BackStressZZ;    return STRESSID; }
+
+"bkstrsxy"|"BKSTRSXY"              { yylval.ival = OutputInfo::BackStressXY;    return STRESSID; }
+
+"bkstrszx"|"BKSTRSZX"              { yylval.ival = OutputInfo::BackStressXZ;    return STRESSID; }
+
+"bkstrsxz"|"BKSTRSXZ"              { yylval.ival = OutputInfo::BackStressXZ;    return STRESSID; }
+
+"bkstrsyz"|"BKSTRSYZ"              { yylval.ival = OutputInfo::BackStressYZ;    return STRESSID; }
 
 "MATSPEC"|"matspec"                { return MATSPEC; }
 

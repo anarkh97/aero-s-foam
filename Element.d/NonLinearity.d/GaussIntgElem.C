@@ -685,7 +685,7 @@ copyTens(Tensor *stens, Eigen::Matrix3d &smat)
 #endif
 
 void
-GaussIntgElement::getStrainTens(Node *nodes, double *dispnp, double (*result)[9])
+GaussIntgElement::getStrainTens(Node *nodes, double *dispnp, double (*result)[9], int avgnum)
 {
   // compute strain tensor at element nodes for post processing
   int ndofs = numDofs();
@@ -699,12 +699,14 @@ GaussIntgElement::getStrainTens(Node *nodes, double *dispnp, double (*result)[9]
 
   Tensor &enp = *strainEvaluator->getStrainInstance();
 
-  for(int i = 0; i < numNodes(); ++i) {
+  int numPoints = (avgnum == -1) ? getNumGaussPoints() : numNodes();
+  for(int i = 0; i < numPoints; ++i) {
 
     StackVector dispVecnp(dispnp, ndofs);
 
-    double point[3];
-    getLocalNodalCoords(i, point);
+    double point[3], weight;
+    if(avgnum == -1) getGaussPointAndWeight(i, point, weight);
+    else getLocalNodalCoords(i, point);
 
     shapeF->getGradU(&gradUnp, nodes, point, dispVecnp);
 
@@ -718,7 +720,7 @@ GaussIntgElement::getStrainTens(Node *nodes, double *dispnp, double (*result)[9]
 }
 
 void
-GaussIntgElement::getVonMisesStrain(Node *nodes, double *dispnp, double *result)
+GaussIntgElement::getVonMisesStrain(Node *nodes, double *dispnp, double *result, int avgnum)
 {
   // compute von mises strain at element nodes for post processing
   int ndofs = numDofs();
@@ -732,12 +734,14 @@ GaussIntgElement::getVonMisesStrain(Node *nodes, double *dispnp, double *result)
 
   Tensor &enp = *strainEvaluator->getStrainInstance();
 
-  for(int i = 0; i < numNodes(); ++i) {
+  int numPoints = (avgnum == -1) ? getNumGaussPoints() : numNodes();
+  for(int i = 0; i < numPoints; ++i) {
 
     StackVector dispVecnp(dispnp, ndofs);
 
-    double point[3] = { 0, 0, 0 };
-    getLocalNodalCoords(i, point);
+    double point[3] = { 0, 0, 0 }, weight;
+    if(avgnum == -1) getGaussPointAndWeight(i, point, weight);
+    else getLocalNodalCoords(i, point);
 
     shapeF->getGradU(&gradUnp, nodes, point, dispVecnp);
 
@@ -762,7 +766,7 @@ GaussIntgElement::getVonMisesStrain(Node *nodes, double *dispnp, double *result)
 
 void
 GaussIntgElement::getStressTens(Node *nodes, double *dispn, double *staten,
-                                double *dispnp, double *statenp, double (*result)[9])
+                                double *dispnp, double *statenp, double (*result)[9], int avgnum)
 {
   // stress tensor at element nodes for post processing
 
@@ -797,7 +801,7 @@ GaussIntgElement::getStressTens(Node *nodes, double *dispn, double *staten,
 
   int nstatepgp = material->getNumStates();
 
-  if(nstatepgp == 0) { // evaluate the stress at the nodes
+  if(nstatepgp == 0 && avgnum != -1) { // evaluate the stress at the nodes
     for(int i = 0; i < numNodes(); ++i) {
 
       StackVector dispVecnp(dispnp, ndofs);
@@ -812,7 +816,7 @@ GaussIntgElement::getStressTens(Node *nodes, double *dispn, double *staten,
       copyTens(&s, result[i]);
     }
   }
-  else { // evaluate at the gauss points and extrapolate to the nodes
+  else { // evaluate at the gauss points and (if avgnum != -1) extrapolate to the nodes
 
     double (*gpstress)[9] = new double[getNumGaussPoints()][9];
 
@@ -824,35 +828,31 @@ GaussIntgElement::getStressTens(Node *nodes, double *dispn, double *staten,
 
       getGaussPointAndWeight(i, point, weight);
 
-      //shapeF->getGradU(&gradUn, nodes, point, dispVecn);
-      //shapeF->getGradU(&gradUnp, nodes, point, dispVecnp);
-      //strainEvaluator->getE(en, gradUn);
-      //strainEvaluator->getE(enp, gradUnp);  
       shapeF->getGlobalGrads(&gradUn, &dgradUdqkn, &jacn, nodes, point, dispVecn);
       shapeF->getGlobalGrads(&gradUnp, &dgradUdqknp, &jacnp, nodes, point, dispVecnp);
       strainEvaluator->getEBandDB(en, Bn, DBn, gradUn, dgradUdqkn);
       strainEvaluator->getEBandDB(enp, Bnp, DBnp, gradUnp, dgradUdqknp);
 
-      //material->updateStates(en, enp, state + nstatepgp*i);
-      //material->getStress(&s, e, 0);       
-      //material->getStressAndTangentMaterial(&s, &D, enp, 0);
       material->integrate(&s, &Dnp, en, enp,
                           staten + nstatepgp*i, statenp + nstatepgp*i, 0);
 
-      copyTens(&s, gpstress[i]);
+      if(avgnum == -1) copyTens(&s, result[i]);
+      else copyTens(&s, gpstress[i]);
     }
 
-    //TODO extrapolate from gauss points to nodes
-    //temporary fix implemented here is to return the average of all the gauss points for each node
-    double average[9] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-    for(int i = 0; i < getNumGaussPoints(); i++)
-      for(int j = 0; j < 9; ++j)
-        average[j] += gpstress[i][j];
-    for(int i = 0; i < 9; ++i)
-      average[i] /= getNumGaussPoints();
-    for(int i = 0; i < numNodes(); ++i)
-      for(int j = 0; j < 9; ++j)
-        result[i][j] = average[j];
+    if(avgnum != -1) {
+      //TODO extrapolate from gauss points to nodes
+      //temporary fix implemented here is to return the average of all the gauss points for each node
+      double average[9] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+      for(int i = 0; i < getNumGaussPoints(); i++)
+        for(int j = 0; j < 9; ++j)
+          average[j] += gpstress[i][j];
+      for(int i = 0; i < 9; ++i)
+        average[i] /= getNumGaussPoints();
+      for(int i = 0; i < numNodes(); ++i)
+        for(int j = 0; j < 9; ++j)
+          result[i][j] = average[j];
+    }
 
     delete [] gpstress;
   }
@@ -873,7 +873,7 @@ GaussIntgElement::getStressTens(Node *nodes, double *dispn, double *staten,
 
 void
 GaussIntgElement::getVonMisesStress(Node *nodes, double *dispn, double *staten,
-                                    double *dispnp, double *statenp, double *result)
+                                    double *dispnp, double *statenp, double *result, int avgnum)
 {
   // von mises stress at element nodes for post processing
 
@@ -908,7 +908,7 @@ GaussIntgElement::getVonMisesStress(Node *nodes, double *dispn, double *staten,
 
   int nstatepgp = material->getNumStates();
 
-  if(nstatepgp == 0) { // evaluate the stress at the nodes
+  if(nstatepgp == 0 && avgnum != -1) { // evaluate the stress at the nodes
     for(int i = 0; i < numNodes(); ++i) {
 
       StackVector dispVecnp(dispnp, ndofs);
@@ -933,7 +933,7 @@ GaussIntgElement::getVonMisesStress(Node *nodes, double *dispn, double *staten,
 #endif
     }
   }
-  else { // evaluate at the gauss points and extrapolate to the nodes
+  else { // evaluate at the gauss points and (if avgnum != -1) extrapolate to the nodes
 
     double *gpstress = new double[getNumGaussPoints()];
 
@@ -945,18 +945,11 @@ GaussIntgElement::getVonMisesStress(Node *nodes, double *dispn, double *staten,
 
       getGaussPointAndWeight(i, point, weight);
 
-      //shapeF->getGradU(&gradUn, nodes, point, dispVecn);
-      //shapeF->getGradU(&gradUnp, nodes, point, dispVecnp);
-      //strainEvaluator->getE(en, gradUn);
-      //strainEvaluator->getE(enp, gradUnp);  
       shapeF->getGlobalGrads(&gradUn, &dgradUdqkn, &jacn, nodes, point, dispVecn);
       shapeF->getGlobalGrads(&gradUnp, &dgradUdqknp, &jacnp, nodes, point, dispVecnp);
       strainEvaluator->getEBandDB(en, Bn, DBn, gradUn, dgradUdqkn);
       strainEvaluator->getEBandDB(enp, Bnp, DBnp, gradUnp, dgradUdqknp);
 
-      //material->updateStates(en, enp, state + nstatepgp*i);
-      //material->getStress(&s, e, 0);       
-      //material->getStressAndTangentMaterial(&s, &D, enp, 0);
       material->integrate(&s, &Dnp, en, enp,
                           staten + nstatepgp*i, statenp + nstatepgp*i, 0);
 #ifdef USE_EIGEN3
@@ -966,20 +959,24 @@ GaussIntgElement::getVonMisesStress(Node *nodes, double *dispn, double *staten,
       Eigen::Matrix3d dev = M - (M.trace()/3)*Eigen::Matrix3d::Identity();
       double J2 = 0.5*(dev*dev).trace();
       // compute the effective stress/strain
-      gpstress[i] = sqrt(3*J2);
+      if(avgnum == -1) result[i] = sqrt(3*J2);
+      else gpstress[i] = sqrt(3*J2);
 #else
-      gpstress[i] = 0;
+      if(avgnum == -1) result[i] = 0;
+      else gpstress[i] = 0;
 #endif
     }
 
-    //TODO extrapolate from gauss points to nodes
-    //temporary fix implemented here is to return the average of all the gauss points for each node
-    double average = 0;
-    for(int i = 0; i < getNumGaussPoints(); i++)
-      average += gpstress[i];
-    average /= getNumGaussPoints();
-    for(int i = 0; i < numNodes(); ++i)
-      result[i] = average;
+    if(avgnum != -1) {
+      //TODO extrapolate from gauss points to nodes
+      //temporary fix implemented here is to return the average of all the gauss points for each node
+      double average = 0;
+      for(int i = 0; i < getNumGaussPoints(); i++)
+        average += gpstress[i];
+      average /= getNumGaussPoints();
+      for(int i = 0; i < numNodes(); ++i)
+        result[i] = average;
+    }
 
     delete [] gpstress;
   }
@@ -999,26 +996,142 @@ GaussIntgElement::getVonMisesStress(Node *nodes, double *dispn, double *staten,
 }
 
 void
-GaussIntgElement::getEquivPlasticStrain(double *statenp, double *result)
+GaussIntgElement::getEquivPlasticStrain(double *statenp, double *result, int avgnum)
 {
   // Obtain the material model
   NLMaterial *material = getMaterial();
   if(material->getNumStates() == 0) {
-    for(int i = 0; i < numNodes(); ++i) {
+    int numPoints = (avgnum == -1) ? getNumGaussPoints() : numNodes();
+    for(int i = 0; i < numPoints; ++i) {
       result[i] = 0;
     }
     return;
   }
 
-  // TODO: replace implementation below with extrapolation using shape functions
+  // TODO: replace averaging below with extrapolation using shape functions
   double average = 0;
   for(int i = 0; i < getNumGaussPoints(); i++) {
-     average += material->getEquivPlasticStrain(statenp + i*material->getNumStates());
+     double eps = material->getEquivPlasticStrain(statenp + i*material->getNumStates());
+     if(avgnum == -1) result[i] = eps;
+     else average += eps;
   }
-  average /= getNumGaussPoints();
 
-  for(int i = 0; i <  numNodes(); ++i) {
-    result[i] = average;
+  if(avgnum != -1) {
+    average /= getNumGaussPoints();
+
+    for(int i = 0; i <  numNodes(); ++i) {
+      result[i] = average;
+    }
+  }
+}
+
+void
+GaussIntgElement::getBackStressTens(double *statenp, double (*result)[9], int avgnum)
+{
+  // Obtain the strain function. It can be linear or non-linear
+  StrainEvaluator *strainEvaluator = getStrainEvaluator();
+
+  // Obtain the material model
+  NLMaterial *material = getMaterial();
+
+  // Storage for backstress
+  Tensor &s = *strainEvaluator->getStressInstance();
+
+  if(material->getNumStates() == 0) {
+    int numPoints = (avgnum == -1) ? getNumGaussPoints() : numNodes();
+    for(int i = 0; i < numPoints; ++i) {
+      for(int j = 0; j < 9; ++j) {
+        result[i][j] = 0;
+      }
+    }
+    return;
+  }
+
+  // TODO: replace averaging below with extrapolation using shape functions
+  double average[9] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+  double gpbackstress[9];
+  for(int i = 0; i < getNumGaussPoints(); i++) {
+    if(material->getBackStress(statenp + i*material->getNumStates(), &s)) {
+      if(avgnum == -1) copyTens(&s, result[i]);
+      else {
+        copyTens(&s, gpbackstress);
+        for(int j = 0; j < 9; ++j) {
+          average[j] += gpbackstress[j];
+        }
+      }
+    }
+    else {
+      if(avgnum == -1) {
+        for(int j = 0; j < 9; ++j) result[i][j] = 0;
+      }
+    }
+  }
+
+  if(avgnum != -1) {
+    for(int j = 0; j < 9; ++j) {
+      average[j] /= getNumGaussPoints();
+    }
+
+    for(int i = 0; i <  numNodes(); ++i) {
+      for(int j = 0; j < 9; ++j) {
+        result[i][j] = average[j];
+      }
+    }
+  }
+}
+
+void
+GaussIntgElement::getPlasticStrainTens(double *statenp, double (*result)[9], int avgnum)
+{
+  // Obtain the strain function. It can be linear or non-linear
+  StrainEvaluator *strainEvaluator = getStrainEvaluator();
+
+  // Obtain the material model
+  NLMaterial *material = getMaterial();
+
+  // Storage for plastic strain
+  Tensor &e = *strainEvaluator->getStrainInstance();
+
+  if(material->getNumStates() == 0) {
+    int numPoints = (avgnum == -1) ? getNumGaussPoints() : numNodes();
+    for(int i = 0; i < numPoints; ++i) {
+      for(int j = 0; j < 9; ++j) {
+        result[i][j] = 0;
+      }
+    }
+    return;
+  }
+
+  // TODO: replace averaging below with extrapolation using shape functions
+  double average[9] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+  double gpplasticstrain[9];
+  for(int i = 0; i < getNumGaussPoints(); i++) {
+    if(material->getPlasticStrain(statenp + i*material->getNumStates(), &e)) {
+      if(avgnum == -1) copyTens(&e, result[i]);
+      else {
+        copyTens(&e, gpplasticstrain);
+        for(int j = 0; j < 9; ++j) {
+          average[j] += gpplasticstrain[j];
+        }
+      }
+    }
+    else {
+      if(avgnum == -1) {
+        for(int j = 0; j < 9; ++j) result[i][j] = 0;
+      }
+    }
+  }
+
+  if(avgnum != -1) {
+    for(int j = 0; j < 9; ++j) {
+      average[j] /= getNumGaussPoints();
+    }
+
+    for(int i = 0; i <  numNodes(); ++i) {
+      for(int j = 0; j < 9; ++j) {
+        result[i][j] = average[j];
+      }
+    }
   }
 }
 

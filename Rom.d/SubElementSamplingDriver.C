@@ -43,14 +43,15 @@ SubElementSamplingDriver::SubElementSamplingDriver(Domain *d) :
 
 void
 SubElementSamplingDriver::preProcess() {
+  
 
   domain_->makeAllDOFs();
   
   StaticTimers dummyTimes;
   GenFullSquareMatrix<double> *dummyGeomKelArray = NULL;
-  GenFullSquareMatrix<double> *dummyMelArray = NULL;
-  const bool buildMelArray = false;
-  domain_->computeGeometricPreStress(corotators_, geomState_, kelArray_, &dummyTimes, dummyGeomKelArray, dummyMelArray, buildMelArray);
+//  GenFullSquareMatrix<double> *melArray_ = NULL;
+  const bool buildMelArray = true;
+  domain_->computeGeometricPreStress(corotators_, geomState_, kelArray_, &dummyTimes, dummyGeomKelArray, melArray_, buildMelArray);
   if(domain_->nDirichlet() > 0) {
     geomState_->updatePrescribedDisplacement(domain_->getDBC(), domain_->nDirichlet(), domain_->getNodes());
   }

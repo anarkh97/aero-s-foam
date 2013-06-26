@@ -326,7 +326,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcess() {
     BasisInputStream in(BasisFileId(fileInfo, BasisId::STATE, BasisId::SNAPSHOTS), vecDofConversion);
     const int skipFactor = domain->solInfo().skipPodRom;
     const int skipOffSet = domain->solInfo().skipOffSet;
-    const int basisStateCount = 1 + (in.size() - 1) / skipFactor;
+    const int basisStateCount = (in.size() % 2) + (in.size() - skipOffSet) / skipFactor;
 
     snapshots.dimensionIs(basisStateCount, in.vectorSize());
     timeStamps_.reserve(basisStateCount);

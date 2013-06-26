@@ -668,7 +668,7 @@ GenDecDomain<Scalar>::preProcess()
  getSharedNodes();
 
  makeCorners();// Corners for FETI-DP
- 
+
  getSharedDOFs();
 
  preProcessMPCs();//Multi-Point Constraint
@@ -683,6 +683,7 @@ GenDecDomain<Scalar>::preProcess()
  //paralApply(numSub, subDomain, &GenSubDomain<Scalar>::initSrc);
 
  makeInternalInfo();
+
  makeNodeInfo();
 
 #ifdef DISTRIBUTED
@@ -2494,6 +2495,7 @@ GenDecDomain<Scalar>::getSharedDOFs()
   paralApply(numSub, subDomain, &GenSubDomain<Scalar>::gatherDOFList, nodeIntPat);
   //XXXXif(domain->solInfo().inpc || ((domain->solInfo().newmarkBeta==0.0)&&(domain->solInfo().isDynam()||domain->solInfo().acoustic)))
     paralApply(numSub, subDomain, &GenSubDomain<Scalar>::gatherDOFListPlus, nodeIntPat);
+
   delete nodeIntPat;
   
   stopTimerMemory(mt.makeInterface, mt.memoryInterface);

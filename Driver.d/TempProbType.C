@@ -131,9 +131,12 @@ TempSolver<
   double totalTime = -getTime();
   char ch[4] = { '|', '/', '-', '\\' };
 
+  bool coupled = (probDesc->getAeroheatFlag() >= 0 || probDesc->getThermohFlag() >= 0);
+
   for( ; t < tmax-0.01*dt; t += dt) {
 
-    filePrint(stderr,"\r  %c  Time Integration Loop: t = %9.3e, %3d%% complete ",ch[int((totalTime + getTime())/250.)%4], t+dt, int((t+dt)/(tmax-0.01*dt)*100));
+    if(!coupled)
+      filePrint(stderr,"\r  %c  Time Integration Loop: t = %9.3e, %3d%% complete ",ch[int((totalTime + getTime())/250.)%4], t+dt, int((t+dt)/(tmax-0.01*dt)*100));
 
     // Mode decomposition of displacement
     if(probDesc->getModeDecompFlag()) probDesc->modeDecomp(t, n, d_n);
@@ -188,7 +191,8 @@ TempSolver<
     postProcessor->tempdynamOutput(n, dynOps, ext_f, curState);
 
   }
-  filePrint(stderr,"\r ... Time Integration Loop: t = %9.3e, 100%% complete ...\n", t);
+  if(!coupled)
+    filePrint(stderr,"\r ... Time Integration Loop: t = %9.3e, 100%% complete ...\n", t);
 
   totalTime += getTime();
 #ifdef PRINT_TIMERS

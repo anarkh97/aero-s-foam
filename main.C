@@ -771,13 +771,13 @@ int main(int argc, char** argv)
  }
 
  if(domain->solInfo().aeroFlag >= 0)
-   filePrint(stderr," ... AeroElasticity Flag   = %d\n", domain->solInfo().aeroFlag);
+   filePrint(stderr," ... AeroElasticity Flag   = %d      ...\n", domain->solInfo().aeroFlag);
  if(domain->solInfo().thermoeFlag >= 0)
-   filePrint(stderr," ... ThermoElasticity Flag = %d\n", domain->solInfo().thermoeFlag);
+   filePrint(stderr," ... ThermoElasticity Flag = %d      ...\n", domain->solInfo().thermoeFlag);
  if(domain->solInfo().aeroheatFlag >= 0)
-   filePrint(stderr," ... AeroThermo Flag       = %d\n", domain->solInfo().aeroheatFlag);
+   filePrint(stderr," ... AeroThermo Flag       = %d      ...\n", domain->solInfo().aeroheatFlag);
  if(domain->solInfo().thermohFlag >= 0)
-   filePrint(stderr," ... ThermoElasticity Flag = %d\n", domain->solInfo().thermohFlag);
+   filePrint(stderr," ... ThermoElasticity Flag = %d      ...\n", domain->solInfo().thermohFlag);
 
  // ... PRINT PROBLEM TYPE
  filePrint(stderr, problemTypeMessage[domain->solInfo().probType]);
@@ -844,7 +844,7 @@ int main(int argc, char** argv)
 	nlsolver.arclength();
 	}
        break;
-     case SolverInfo::Modal: { // CBM
+     case SolverInfo::Modal: {
         GenMultiDomainEigen<double> eigenProb(domain);
         EigenSolver<MDDynamMat, GenDistrVector<double>, GenDistrVectorSet<double>, GenMultiDomainEigenPostProcessor<double>,
                     GenMultiDomainEigen<double> > * eigenSolver = 0;
@@ -1038,7 +1038,7 @@ int main(int argc, char** argv)
        filePrint(stderr,"*** ERROR: Problem type %d is not supported multi-domain mode\n", domain->probType());
    }
 
-   totalMemoryUsed = double(memoryUsed()+totMemSpooles+totMemMumps)/oneMegaByte;//CBM
+   totalMemoryUsed = double(memoryUsed()+totMemSpooles+totMemMumps)/oneMegaByte;
    delete threadManager;
 
  }
@@ -1229,7 +1229,7 @@ int main(int argc, char** argv)
        }
        break;
      case SolverInfo::Modal:
-       { //CBM
+       {
  	 SingleDomainEigen eigenProb(domain);
          EigenSolver<DynamMat, Vector, VectorSet, SDEigenPostProcessor, SingleDomainEigen> *eigenSolver;
           switch(domain->solInfo().eigenSolverType) {
@@ -1419,26 +1419,26 @@ int main(int argc, char** argv)
        }
        break;
    }
-   totalMemoryUsed = double(memoryUsed()+totMemSpooles+totMemMumps)/oneMegaByte;//CBM
+   totalMemoryUsed = double(memoryUsed()+totMemSpooles+totMemMumps)/oneMegaByte;
  }
 
 #ifdef DISTRIBUTED
-// double totMem = (double) totalMemoryUsed;//CBM
-// if(structCom) totMem = structCom->globalSum(totMem);
-// totalMemoryUsed = (long) totMem;
  if(structCom) totalMemoryUsed = structCom->globalSum(totalMemoryUsed);
+ if(syscom) syscom->sync();
 #endif
 
- domain->printStatistics(domain_decomp);
- filePrint(stderr," --------------------------------------\n");
- filePrint(stderr," ... Total Time           = %.2e s\n",
-         (getTime() - initTime)/1000.0);
- filePrint(stderr," ... Total Memory Used    = %.2e Mb\n", totalMemoryUsed);
- if(domain->solInfo().isNonLin() && domain->solInfo().newmarkBeta != 0.0)
-   filePrint(stderr," ... Total Newton Iterations = %4d \n", totalNewtonIter);
- if(iterTotal > 0)
-   filePrint(stderr," ... Total Krylov Iterations = %4d \n", iterTotal);
- filePrint(stderr," --------------------------------------\n");
+ if(domain->solInfo().thermohFlag < 0) {
+   domain->printStatistics(domain_decomp);
+   filePrint(stderr," --------------------------------------\n");
+   filePrint(stderr," ... Total Time           = %.2e s\n",
+           (getTime() - initTime)/1000.0);
+   filePrint(stderr," ... Total Memory Used    = %.2e Mb\n", totalMemoryUsed);
+   if(domain->solInfo().isNonLin() && domain->solInfo().newmarkBeta != 0.0)
+     filePrint(stderr," ... Total Newton Iterations = %4d \n", totalNewtonIter);
+   if(iterTotal > 0)
+     filePrint(stderr," ... Total Krylov Iterations = %4d \n", iterTotal);
+   filePrint(stderr," --------------------------------------\n");
+ }
 
  if(geoSource) { delete geoSource; geoSource = 0; }
  //if(communicator) { delete communicator; communicator = 0; }

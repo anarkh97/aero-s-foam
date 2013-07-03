@@ -223,6 +223,7 @@ SingleDomainTemp::buildOps(double coeM, double coeC, double coeK)
  DynamMat dMat;
  Rbm *rbm = 0;
  double gamma = domain->solInfo().alphaTemp;
+ int algType = domain->solInfo().timeIntegration;
  int useFilter = domain->solInfo().hzemFilterFlag;
  int useHzem   = domain->solInfo().hzemFlag;
 
@@ -234,7 +235,7 @@ SingleDomainTemp::buildOps(double coeM, double coeC, double coeK)
  }
 
  // construct K matrix
- if(gamma == 0.0 || (domain->solInfo().iacc_switch && !geoSource->getCheckFileInfo()->lastRestartFile))
+ if(algType == 0 && (gamma == 0.0 || (domain->solInfo().iacc_switch && !geoSource->getCheckFileInfo()->lastRestartFile)))
    allOps.K   = domain->constructDBSparseMatrix<double>();
 
  // construct Kuc matrix
@@ -242,7 +243,7 @@ SingleDomainTemp::buildOps(double coeM, double coeC, double coeK)
    allOps.Kuc = domain->constructCuCSparse<double>();
 
  // construct M matrix
- if(gamma != 0.0 || domain->solInfo().modeDecompFlag || (useFilter && numR > 0)) {
+ if(algType == 0 && (gamma != 0.0 || domain->solInfo().modeDecompFlag || (useFilter && numR > 0))) {
    if(geoSource->getMRatio() == 0.0) // lumped M matrix
      allOps.M = new DiagMatrix(domain->getCDSA());
    else
@@ -250,7 +251,7 @@ SingleDomainTemp::buildOps(double coeM, double coeC, double coeK)
  }
 
  // construct solver to compute correctly the initial temperature gradient v^0 = M^{-1}(f^0 - K*u^0)
- if(gamma != 0.0 && domain->solInfo().iacc_switch && !geoSource->getCheckFileInfo()->lastRestartFile) {
+ if(algType == 0 && (gamma != 0.0 && domain->solInfo().iacc_switch && !geoSource->getCheckFileInfo()->lastRestartFile)) {
    if(geoSource->getMRatio() == 0.0) { // lumped M matrix
      DiagMatrix *m = new DiagMatrix(domain->getCDSA());
      allOps.Msolver = m;
@@ -467,4 +468,10 @@ SingleDomainTemp::modeDecomp(double t, int tIndex, Vector& d_n)
     }
   }
   if(alfa) delete [] alfa;
+}
+
+int
+SingleDomainTemp::cmdComHeat(int cmdFlag)
+{
+  return domain->getFileExchanger()->cmdComHeat(cmdFlag);
 }

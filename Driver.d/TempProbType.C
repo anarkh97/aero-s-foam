@@ -159,7 +159,7 @@ TempSolver<
       // Extrapolate temperature solution to t^{n+1} : d^{n+1} = 2*d^{n+1/2} - d^n
       d_n.linC(2.0, rhs, -1.0, d_n);
 
-      // Compute the first time derivative of temperature at t^{n+1}: v^{n+1} = 2/(gamma*dt)*(d^{n+1/2 - d^n) - (1-gamma)/(gamma)*v^n
+      // Compute the first time derivative of temperature at t^{n+1}: v^{n+1} = 2/(gamma*dt)*(d^{n+1/2} - d^n) - (1-gamma)/(gamma)*v^n
       v_n_p.linC(2.0/(gamma*dt), d_n, -2.0/(gamma*dt), rhs);
       if(gamma != 1.0) v_n_p.linAdd(-(1.0-gamma)/gamma, v_n);
     }
@@ -277,7 +277,7 @@ TempSolver< DynOps, VecType, PostProcessor, ProblemDescriptor >
     fprintf(stderr," ... Pseudo-Step = %d  Rel. Res. = %10.4e\n", tIndex, relres);
 
     // command communication with fluid or structure for coupled aerothermal or thermoelastic
-    if(probDesc->getAeroheatFlag() >= 0 || probDesc->getThermohFlag() >= 0) {
+    if(probDesc->getAeroheatFlag() >= 0 /*|| probDesc->getThermohFlag() >= 0*/) {
       if(tIndex == steadyMax  && !iSteady) {
         probDesc->cmdComHeat(1);          
         break;

@@ -88,6 +88,10 @@ class Communicator
        void gather(Type *send_data, int send_count, Type *recv_data,
                       int recv_count, int root);
     template <class Type>
+        void gatherv(Type *send_data, int send_count, Type *recv_data,
+		      int recv_counts[], int displacements[], int root);
+    
+    template <class Type>
       void reduce(int num, Type *data, int root = 0, MPI_Op = MPI_SUM);
     template <class Type>
       void broadcast(int num, Type* data, int root = 0);

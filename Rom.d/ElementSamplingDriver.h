@@ -7,16 +7,22 @@
 #include <Math.d/Vector.h>
 #include "VecBasis.h"
 #include <vector>
+#include "MeshDesc.h"
+#include "FileNameInfo.h"
 
 class Domain;
 class Corotator;
 class GeomState; 
 class StaticTimers;
+class FileNameInfo;
+class MeshDesc;
+
 template <typename Scalar> class GenFullSquareMatrix; 
 template <typename Scalar> class GenVector;
 typedef GenVector<double> Vector;
 
 namespace Rom {
+void outputMeshFile(const FileNameInfo &fileInfo, const MeshDesc &mesh, bool firstTime = true);
 
 template<typename MatrixBufferType = std::vector<double>, typename SizeType = size_t>
 class ElementSamplingDriver : public DriverInterface {
@@ -30,7 +36,7 @@ public:
   VecBasis* accel() { if(!accel_) accel_ = new VecBasis; return accel_; }
   int vectorSize() const;
   void timeStampsIs(const std::vector<double> &tst) { timeStamps_ = tst; }
-
+  
   explicit ElementSamplingDriver(Domain *);
   ~ElementSamplingDriver();
 

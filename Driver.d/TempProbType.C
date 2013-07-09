@@ -131,9 +131,12 @@ TempSolver<
   double totalTime = -getTime();
   char ch[4] = { '|', '/', '-', '\\' };
 
+  bool coupled = (probDesc->getAeroheatFlag() >= 0 || probDesc->getThermohFlag() >= 0);
+
   for( ; t < tmax-0.01*dt; t += dt) {
 
-    filePrint(stderr,"\r  %c  Time Integration Loop: t = %9.3e, %3d%% complete ",ch[int((totalTime + getTime())/250.)%4], t+dt, int((t+dt)/(tmax-0.01*dt)*100));
+    if(!coupled)
+      filePrint(stderr,"\r  %c  Time Integration Loop: t = %9.3e, %3d%% complete ",ch[int((totalTime + getTime())/250.)%4], t+dt, int((t+dt)/(tmax-0.01*dt)*100));
 
     // Mode decomposition of displacement
     if(probDesc->getModeDecompFlag()) probDesc->modeDecomp(t, n, d_n);
@@ -156,7 +159,7 @@ TempSolver<
       // Extrapolate temperature solution to t^{n+1} : d^{n+1} = 2*d^{n+1/2} - d^n
       d_n.linC(2.0, rhs, -1.0, d_n);
 
-      // Compute the first time derivative of temperature at t^{n+1}: v^{n+1} = 2/(gamma*dt)*(d^{n+1/2 - d^n) - (1-gamma)/(gamma)*v^n
+      // Compute the first time derivative of temperature at t^{n+1}: v^{n+1} = 2/(gamma*dt)*(d^{n+1/2} - d^n) - (1-gamma)/(gamma)*v^n
       v_n_p.linC(2.0/(gamma*dt), d_n, -2.0/(gamma*dt), rhs);
       if(gamma != 1.0) v_n_p.linAdd(-(1.0-gamma)/gamma, v_n);
     }
@@ -188,7 +191,8 @@ TempSolver<
     postProcessor->tempdynamOutput(n, dynOps, ext_f, curState);
 
   }
-  filePrint(stderr,"\r ... Time Integration Loop: t = %9.3e, 100%% complete ...\n", t);
+  if(!coupled)
+    filePrint(stderr,"\r ... Time Integration Loop: t = %9.3e, 100%% complete ...\n", t);
 
   totalTime += getTime();
 #ifdef PRINT_TIMERS
@@ -273,7 +277,7 @@ TempSolver< DynOps, VecType, PostProcessor, ProblemDescriptor >
     fprintf(stderr," ... Pseudo-Step = %d  Rel. Res. = %10.4e\n", tIndex, relres);
 
     // command communication with fluid or structure for coupled aerothermal or thermoelastic
-    if(probDesc->getAeroheatFlag() >= 0 || probDesc->getThermohFlag() >= 0) {
+    if(probDesc->getAeroheatFlag() >= 0 /*|| probDesc->getThermohFlag() >= 0*/) {
       if(tIndex == steadyMax  && !iSteady) {
         probDesc->cmdComHeat(1);          
         break;

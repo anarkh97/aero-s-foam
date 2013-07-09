@@ -81,8 +81,7 @@ class SingleDomainTemp {
     void modeDecompPreProcess(SparseMatrix *M);
     void modeDecomp(double t, int tIndex, Vector& d_n);
 
-    FlExchanger *flExchanger;
-    int cmdComHeat(int cmdFlag) { return flExchanger->cmdComHeat(cmdFlag); }
+    int cmdComHeat(int cmdFlag);
 
 };
 

@@ -1128,7 +1128,7 @@ FlExchanger::cmdComHeat( int commandFlag )
   int thisNode;
   int tag;
 
-  thisNode = structCom->myID();
+  thisNode = heatStructCom->myID();
 
   double buffer[1];
   buffer[0] = (double) commandFlag;

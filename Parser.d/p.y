@@ -3196,6 +3196,9 @@ Solver:
         { domain->solInfo().fetiInfo.uproj = $2; }
 	| PRINTMATLAB NewLine
 	{ domain->solInfo().fetiInfo.printMatLab = 1; }
+        | PRINTMATLAB FNAME NewLine
+        { domain->solInfo().printMatLab = 1;
+          domain->solInfo().printMatLabFile = $2; }
 	| LOCALSOLVER SOLVERTYPE NewLine
 	{ domain->solInfo().fetiInfo.solvertype = (FetiInfo::Solvertype) $2; }
 	| COARSESOLVER SOLVERTYPE NewLine

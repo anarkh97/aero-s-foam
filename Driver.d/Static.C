@@ -1453,14 +1453,6 @@ Domain::makeAxiTopFile(int topFlag, int numSlices) {
            cinfo->elemSetName,cinfo->nodeSetName);
  int exactNumEle=0;
 
-/*
- fprintf(stderr,"\n ---------- PROBLEM PARAMETERS --------");
- fprintf(stderr,"\n ... # nodes              = %7d ...",numNodes());
- fprintf(stderr,"\n ... # elements           = %7d ...",numElements());
- fprintf(stderr,"\n ... # unconstrained dofs = %7d ...",numUncon());
- fprintf(stderr,"\n ... total # dofs         = %7d ...",numdof());
- fprintf(stderr,"\n --------------------------------------\n");
-*/
  for (iele=0; iele<numele; ++iele) {
    AxiHElement *elem = dynamic_cast<AxiHElement *>(packedEset[iele]);
    if (elem == 0)  {

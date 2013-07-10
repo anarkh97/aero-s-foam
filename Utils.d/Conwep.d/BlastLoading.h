@@ -71,5 +71,7 @@ class BlastLoading {
             double CurrentTime,
             const BlastLoading::BlastData& P );
         static BlastData InputFileData;
+        static bool WarnedZeroDist;
+        static bool WarnedDecayExp;
 };
 #endif

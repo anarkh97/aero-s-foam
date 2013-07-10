@@ -19,6 +19,10 @@ double BlastLoading::Conwep::Blast(const BlastLoading::BlastData& P,
   double DistanceFromElementFaceCentroidToExplosive = sqrt( DirectionFromElementFaceToExplosive[0]*DirectionFromElementFaceToExplosive[0]
                   +DirectionFromElementFaceToExplosive[1]*DirectionFromElementFaceToExplosive[1]
                   +DirectionFromElementFaceToExplosive[2]*DirectionFromElementFaceToExplosive[2] );
+  if(DistanceFromElementFaceCentroidToExplosive == 0 && !WarnedZeroDist) {
+    std::cerr << " *** WARNING: Conwep blast distance is identically zero\n";
+    WarnedZeroDist = true;
+  }
   // Normalize the distance between the current element face and the explosive:
   DirectionFromElementFaceToExplosive[0] /= DistanceFromElementFaceCentroidToExplosive;
   DirectionFromElementFaceToExplosive[1] /= DistanceFromElementFaceCentroidToExplosive;
@@ -76,10 +80,19 @@ double BlastLoading::Conwep::Decay(double CurrentPressure,
   // Declare the errors:
   double ErrorUpper,ErrorLower;
   // Calculate the decay exponent by iteratively minimizing the errors:
+  int numiter = 0, maxiter = 100;
   do {
     ErrorUpper = DecayExponent*DecayExponent-PressureToImpulseRatio*(-1.0+DecayExponent+exp(-DecayExponent));
     ErrorLower =           2.0*DecayExponent-PressureToImpulseRatio*( 1.0              -exp(-DecayExponent));
     DecayExponent = DecayExponent-ErrorUpper/ErrorLower;
+    if(++numiter >= maxiter) {
+      if(!WarnedDecayExp) {
+        std::cerr << " *** WARNING: Conwep decay exponent calculation did not converge in " 
+                  << maxiter << " iterations, error = " << fabs(ErrorUpper) << std::endl;
+        WarnedDecayExp = true;
+      }
+      break;
+    }
   } while (fabs(ErrorUpper) > 1.0e-6);
   // Return either the IncidentWaveDecayExponent or the ReflectedWaveDecayExponent, depending on which wave called the function:
   return DecayExponent;
@@ -531,8 +544,10 @@ double BlastLoading::ComputeShellPressureLoad(const double* CurrentElementNodePo
   return -CurrentElementPressure*6.8947573e3/P.ScaleMass*P.ScaleLength*P.ScaleTime*P.ScaleTime;
 }
 // ====================================================================================================
-// Initialize the BlastLoading::InputFileData structure:
+// Initialize the BlastLoading::InputFileData structure and other static member variables:
 BlastLoading::BlastData BlastLoading::InputFileData = {{0.0,0.0,0.0},0.0,
                                                 BlastLoading::BlastData::AirBurst,1.0,0.0,0.3048,1.0,1.0, true};
+bool BlastLoading::WarnedZeroDist = false;
+bool BlastLoading::WarnedDecayExp = false;
 // ====================================================================================================
 // End of file.

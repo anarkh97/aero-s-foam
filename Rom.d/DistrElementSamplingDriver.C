@@ -1,6 +1,7 @@
 #include "DistrElementSamplingDriver.h"
 #include "SubElementSamplingDriver.h"
-
+#include "RenumberingUtils.h"
+#include "MeshDesc.h"
 #include "DistrDomainUtils.h"
 
 #include "DistrVecBasis.h"
@@ -19,6 +20,8 @@
 #include <memory>
 #include <cassert>
 #include <iostream>
+
+extern GeoSource *geoSource;
 
 namespace Rom {
 
@@ -44,8 +47,8 @@ DistrElementSamplingDriver::solve() {
   DistrVecBasis podBasis;
   DistrBasisInputFile podBasisFile(BasisFileId(fileInfo, BasisId::STATE, BasisId::POD));
 
-  const int projectionSubspaceSize = domain->solInfo().maxSizePodRom ?
-                                     std::min(domain->solInfo().maxSizePodRom, podBasisFile.stateCount()) :
+  const int projectionSubspaceSize = domain_->solInfo().maxSizePodRom ?
+                                     std::min(domain_->solInfo().maxSizePodRom, podBasisFile.stateCount()) :
                                      podBasisFile.stateCount();
 
   filePrint(stderr, " ... Projection subspace of dimension = %d ...\n", projectionSubspaceSize);
@@ -114,7 +117,7 @@ DistrElementSamplingDriver::solve() {
   // Read velocity snapshots
   // TODO fix skip and offset
   DistrVecBasis *velocSnapshots = 0;
-  if(domain->solInfo().velocPodRomFile != "") {
+  if(domain_->solInfo().velocPodRomFile != "") {
     std::vector<double> timeStamps;
     velocSnapshots = new DistrVecBasis;
     DistrBasisInputFile in(BasisFileId(fileInfo, BasisId::VELOCITY, BasisId::SNAPSHOTS));
@@ -153,7 +156,7 @@ DistrElementSamplingDriver::solve() {
   // Read acceleration snapshots
   // TODO fix skip and offset
   DistrVecBasis *accelSnapshots = 0;
-  if(domain->solInfo().accelPodRomFile != "") {
+  if(domain_->solInfo().accelPodRomFile != "") {
     std::vector<double> timeStamps;
     accelSnapshots = new DistrVecBasis;
     DistrBasisInputFile in(BasisFileId(fileInfo, BasisId::ACCELERATION, BasisId::SNAPSHOTS));
@@ -273,20 +276,76 @@ DistrElementSamplingDriver::solve() {
         (*subAccel)[j] = StackVector((*accel)[j].subData(i), (*accel)[j].subLen(i));
       }
     }
-
     filePrint(stderr,"computing solution\n");
     subDrivers[i]->computeSolution(solutions[i], verboseFlag);
   }
+  
+  std::vector<double> lweights; 
+  std::vector<int> lelemIds;
+  for(int i=0; i<decDomain_->getNumSub(); i++) {
+    subDrivers[i]->getGlobalWeights(solutions[i], lweights, lelemIds, true, verboseFlag);
+  }
+  
+  std::vector<double> gweights(domain_->numElements());
+  std::vector<int> gelemIds(domain_->numElements());
+  
+  //Gather weights and IDs from all processors
+  int numLocalElems = lweights.size();
+  if(structCom){
+    int recvcnts[numCPUs];
+    int displacements[numCPUs];
+    structCom->allGather(&numLocalElems,1,&recvcnts[0],1);
+    int location = 0 ;
+    for(int i = 0 ; i < numCPUs ; i++){
+	displacements[i]=location;
+	location += recvcnts[i];
+    }
+    structCom->gatherv(&lweights[0], lweights.size(), &gweights[0], &recvcnts[0], &displacements[0], 0);
+    structCom->gatherv(&lelemIds[0], lelemIds.size(), &gelemIds[0], &recvcnts[0], &displacements[0], 0);
+  }
+  else{ //no MPI
+    gweights = lweights;
+    gelemIds = lelemIds;
+  }
 
-  for(int cpu = 0; cpu < numCPUs; ++cpu) {
-    if(cpu == myID) {
-      for(int i=0; i<decDomain_->getNumSub(); ++i) {
-        subDrivers[i]->postProcess(solutions[i], (myID == 0 && i == 0), verboseFlag);
-        delete subDrivers[i];
+  if(myID==0){
+     //Weights output file generation
+     const std::string fileName = domain_->solInfo().reducedMeshFile;
+     std::ofstream weightOut(fileName.c_str(),std::ios_base::out);
+     weightOut << "ATTRIBUTES\n";
+     for(int i = 0 ; i < gweights.size(); i++){
+	weightOut<< gelemIds[i]+1 << " 1 " << "HRC" << " " << gweights[i] << "\n";
+     }  
+
+    //Mesh output file generation
+    std::map<int,double> weightsMap;
+    std::vector<int> reducedelemIds;
+    for(int i =0 ; i< gweights.size(); i++){
+      if(gweights[i]>0){
+	reducedelemIds.push_back(gelemIds[i]);
+        weightsMap.insert(std::pair<int,double>(gelemIds[i],gweights[i]));
       }
     }
-    if(structCom) structCom->sync();
+
+    const FileNameInfo fileInfo;
+    for(int i=0; i<decDomain_->getNumSub(); i++) {
+      decDomain_->getSubDomain(i)->renumberElementsGlobal();
+    }
+
+    Elemset &inputElemSet = *(geoSource->getElemSet());
+    std::auto_ptr<Connectivity> elemToNode(new Connectivity(&inputElemSet));
+
+    const MeshRenumbering meshRenumbering(reducedelemIds.begin(), reducedelemIds.end(), *elemToNode, verboseFlag);
+    const MeshDesc reducedMesh(domain_, geoSource, meshRenumbering, weightsMap); 
+    try {
+      outputMeshFile(fileInfo, reducedMesh);
+    }
+    catch(std::exception& e) {
+      std::cerr << "caught exception: " << e.what() << endl;
+    }
   }
+
+  if(structCom) structCom->sync();
 
   delete [] subDrivers;
   delete [] solutions;

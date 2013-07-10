@@ -1435,7 +1435,7 @@ int
 GeomState::getTotalNumElemStates() const
 {
  int n = 0;
- for(int i=0,j=0; i<numelems; ++i) {
+ for(int i=0; i<numelems; ++i) {
    n += es[i].numInternalStates;
  }
  return n;

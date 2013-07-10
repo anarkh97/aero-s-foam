@@ -6,6 +6,7 @@
 
 class Communicator;
 class DistrInfo;
+class Connectivity;
 
 namespace Rom {
 
@@ -22,6 +23,7 @@ public:
 private:
   Domain *domain_;
   Communicator *comm_;
+  std::auto_ptr<Connectivity> elemToNode_;
   std::auto_ptr<DecDomain> decDomain_;
 };
 

@@ -59,10 +59,9 @@ getMeshFilename(const FileNameInfo &fileInfo) {
   return fileInfo.prefix() + ".elementmesh.inc";
 }
 
-inline
 void
-outputMeshFile(const FileNameInfo &fileInfo, const MeshDesc &mesh, bool firstTime = true) {
-  const std::ios_base::openmode mode = (firstTime) ? std::ios_base::out : std::ios_base::app;
+outputMeshFile(const FileNameInfo &fileInfo, const MeshDesc &mesh, bool firstTime) {
+  const std::ios_base::openmode mode = (firstTime) ? std::ios_base::out : std::ios_base::app;  //out = standard output, app = append
   std::ofstream meshOut(getMeshFilename(fileInfo).c_str(), mode);
   meshOut << mesh;
 }
@@ -81,6 +80,7 @@ outputFullWeights(const FileNameInfo &fileInfo, const Vector &weights, const std
     weightOut << elemIds[i] + 1 << " 1 " << "HRC" << " " << weights[i] << "\n";
   }
 }
+
 
 // Member functions
 // ================
@@ -242,7 +242,6 @@ void
 ElementSamplingDriver<MatrixBufferType,SizeType>::postProcess(Vector &solution, bool firstTime, bool verboseFlag) {
 
   const FileNameInfo fileInfo;
-
   std::set<int> sampleElemRanks;
   {
     for (int iElem = 0; iElem != elementCount(); ++iElem) {
@@ -252,7 +251,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcess(Vector &solution, 
     }
   }
 
-  // Element numbering: Packed to input
+  //Element numbering: Packed to input
   std::vector<int> packedToInput(elementCount());
   Elemset &inputElemSet = *(geoSource->getElemSet());
   for (int iElem = 0, iElemEnd = inputElemSet.size(); iElem != iElemEnd; ++iElem) {
@@ -275,8 +274,8 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcess(Vector &solution, 
   }
 
   std::auto_ptr<Connectivity> elemToNode(new Connectivity(&inputElemSet));
+  
   const MeshRenumbering meshRenumbering(sampleElemIds.begin(), sampleElemIds.end(), *elemToNode, verboseFlag);
-
   const MeshDesc reducedMesh(domain_, geoSource, meshRenumbering, weights);
   try {
     outputMeshFile(fileInfo, reducedMesh, firstTime);
@@ -284,7 +283,6 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcess(Vector &solution, 
   catch(std::exception& e) {
     std::cerr << "caught exception: " << e.what() << endl;
   }
-
   outputFullWeights(fileInfo, solution, packedToInput, firstTime);
 }
 

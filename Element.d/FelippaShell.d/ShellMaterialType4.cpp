@@ -175,6 +175,26 @@ ShellMaterialType4<doublereal,localmaterial>
 template<typename doublereal, typename localmaterial>
 void
 ShellMaterialType4<doublereal,localmaterial>
+::GetState(doublereal *state)
+{
+  std::vector<doublereal> PlasticStrain(3);
+  std::vector<doublereal> BackStress(3);
+  int l = 0;
+  for(int i = 0; i < maxgus; ++i) {
+    for(int j = 0; j < nlayer; ++j) {
+      // get the internal variables
+      PlasticStrain = mat[nlayer*i+j]->GetMaterialPlasticStrain();
+      for (int k = 0; k < 3; ++k) state[l++] = PlasticStrain[k];
+      BackStress = mat[nlayer*i+j]->GetMaterialBackStress();
+      for (int k = 0; k < 3; ++k) state[l++] = BackStress[k];
+      state[l++] = mat[nlayer*i+j]->GetMaterialEquivalentPlasticStrain();
+    }
+  }
+}
+
+template<typename doublereal, typename localmaterial>
+void
+ShellMaterialType4<doublereal,localmaterial>
 ::UpdateState(doublereal *_Upsilon, doublereal *state, int point)
 {
   // Local variables 
@@ -245,6 +265,11 @@ template
 void
 ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
 ::SetState(double *);
+
+template
+void
+ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
+::GetState(double *);
 
 template
 void

@@ -1234,6 +1234,7 @@ MDNLDynamic::readRestartFile(DistrVector &d_n, DistrVector &v_n, DistrVector &a_
 #else
     execParal5R(decDomain->getNumSub(), this, &MDNLDynamic::subReadRestartFile, d_n, v_n, a_n, v_p, geomState);
 #endif
+    updateStates(&geomState, geomState);
     domain->solInfo().initialTimeIndex = decDomain->getSubDomain(0)->solInfo().initialTimeIndex;
     domain->solInfo().initialTime = decDomain->getSubDomain(0)->solInfo().initialTime;
   }

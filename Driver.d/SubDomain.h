@@ -521,6 +521,7 @@ class GenSubDomain : public BaseSub
   void scatterHalfInterf(Scalar *s, Scalar *loc);
   void rebuildInterf(Scalar *v, FSCommPattern<Scalar> *vPat);
   void renumberElements();
+  void renumberElementsGlobal();
   void renumberSharedNodes();
   void renumberDirichlet();
   void renumberBCsEtc();

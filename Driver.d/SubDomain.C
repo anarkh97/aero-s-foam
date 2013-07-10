@@ -2097,6 +2097,14 @@ GenSubDomain<Scalar>::renumberElements()
 
 template<class Scalar>
 void
+GenSubDomain<Scalar>::renumberElementsGlobal()
+{
+ for(int i=0; i < numele; ++i)
+   packedEset[i]->renum(glNums);
+}
+
+template<class Scalar>
+void
 GenSubDomain<Scalar>::renumberSharedNodes()
 {
   int *allC = scomm->sharedNodes->tgt();

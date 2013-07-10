@@ -1,6 +1,5 @@
 #include "SubElementSamplingDriver.h"
 
-
 #include "VecBasis.h"
 #include "BasisOps.h" 
 #include "FileNameInfo.h"
@@ -43,10 +42,7 @@ SubElementSamplingDriver::SubElementSamplingDriver(Domain *d) :
 
 void
 SubElementSamplingDriver::preProcess() {
-  
-
   domain_->makeAllDOFs();
-  
   StaticTimers dummyTimes;
   GenFullSquareMatrix<double> *dummyGeomKelArray = NULL;
 //  GenFullSquareMatrix<double> *melArray_ = NULL;
@@ -56,6 +52,44 @@ SubElementSamplingDriver::preProcess() {
     geomState_->updatePrescribedDisplacement(domain_->getDBC(), domain_->nDirichlet(), domain_->getNodes());
   }
 }
+
+void
+SubElementSamplingDriver::getGlobalWeights(Vector &solution, vector<double> &lweights, vector<int> &lelemids, bool firstTime, bool verboseFlag) {
+  const FileNameInfo fileInfo;
+  std::set<int> sampleElemRanks;
+  {
+    for (int iElem = 0; iElem != elementCount(); ++iElem) {
+      if (solution[iElem] > 0.0) {
+        sampleElemRanks.insert(sampleElemRanks.end(), iElem);
+      }
+    }
+  }
+  //Element numbering: Packed to input
+  std::vector<int> packedToInput(elementCount());
+  Elemset &inputElemSet = *(geoSource->getElemSet());
+  for (int iElem = 0, iElemEnd = inputElemSet.size(); iElem != iElemEnd; ++iElem) {
+    Element *elem = inputElemSet[iElem];
+    if (elem) {
+      //PJSA const int iPackElem = geoSource->glToPackElem(iElem);
+      const int iPackElem = domain_->glToPackElem(iElem);
+      assert(iPackElem < packedToInput.size());
+      if(iPackElem >= 0) packedToInput[iPackElem] = iElem;
+    }
+  }
+  std::vector<int> sampleElemIds;
+  sampleElemIds.reserve(sampleElemRanks.size());
+  std::map<int, double> weights;
+  for (std::set<int>::const_iterator it = sampleElemRanks.begin(), it_end = sampleElemRanks.end(); it != it_end; ++it) {
+    const int elemRank = packedToInput[*it];
+    weights.insert(std::make_pair(elemRank, solution[*it]));
+    sampleElemIds.push_back(elemRank);
+  }
+  for(int i = 0 ; i < solution.size() ; i++){
+    lelemids.push_back(packedToInput[i]);
+    lweights.push_back(solution[i]);
+  }
+}
+
 
 } // end namespace Rom
 

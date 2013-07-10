@@ -8,7 +8,7 @@ namespace Rom {
 class SubElementSamplingDriver : public ElementSamplingDriver<std::vector<double>,size_t> {
 public:
   explicit SubElementSamplingDriver(Domain *);
-
+  void getGlobalWeights(Vector &solution, vector<double> &lweights, vector<int> &lelemids, bool firstTime = true, bool verboseFlag = true);
 private:
   void preProcess();
 };

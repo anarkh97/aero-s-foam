@@ -168,13 +168,29 @@ Element::getThermalForce(CoordSet&, Vector &, Vector &force, int glflag,
 }
 
 void
+Element::getThermalForceAdj(CoordSet& cs, Vector &ndH, Vector &b, int glflag)
+{
+  // assuming that the Element::getThermalForce is a linear function, i.e. force = A*ndT,
+  // compute the action of the adjoint, i.e. ndH = A.transpose()*b
+
+  // default implementation:
+  Vector xi(numNodes());
+  Vector Ai(numDofs());
+  for(int i=0; i<numNodes(); ++i) {
+    xi.zero();
+    xi[i] = 1;
+    getThermalForce(cs, xi, Ai, glflag);
+    ndH[i] = Ai*b;
+  }
+}
+
+void
 Element::computeHeatFluxes(Vector &heatflux, CoordSet&, Vector &, int)
 {
   if(!isConstraintElement() && !isSpring())
     fprintf(stderr," *** WARNING: Heat Fluxes not implemented for element type %d\n", elementType);
   heatflux.zero();
 }
-
 
 void
 Element::computeSloshDisp(Vector &fluidDispSlosh, CoordSet&, Vector &, int)

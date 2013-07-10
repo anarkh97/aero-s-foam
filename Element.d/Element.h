@@ -376,6 +376,8 @@ class Element {
 
         virtual void   getThermalForce(CoordSet& cs,Vector &ndT,Vector &force,
                                        int glflag, GeomState *gs=0);
+        virtual void   getThermalForceAdj(CoordSet& cs,Vector &ndT,Vector &force,
+                                          int glflag);
 
 	virtual void   getIntrnForce(Vector &elForce, CoordSet& cs,
 				     double *elDisp, int Index, double *ndTemps);

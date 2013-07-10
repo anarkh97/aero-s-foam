@@ -314,7 +314,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
          // Check stability time step
          if(domain->solInfo().stable && aeroAlg < 0) probDesc->computeStabilityTimeStep(dt, *dynOps);
 
-         if(aeroAlg == 20) probDesc->aeroPreProcess( *d_n, *v_n, *a_n, *v_n ); //e Se Eq. 51 of C.Farhat et al. IJNME(2010) Robust and provably ... 
+         if(aeroAlg == 20) probDesc->aeroPreProcess( *d_n, *v_n, *a_n, *v_n ); // See Eq. 51 of C.Farhat et al. IJNME(2010) Robust and provably ... 
          else
            if(aeroAlg >= 0) probDesc->aeroPreProcess( *d_n, *v_n, *a_n, *v_p );
          if(probDesc->getThermoeFlag() >= 0) probDesc->thermoePreProcess(*d_n, *v_n, *v_p);
@@ -829,6 +829,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
   double t_n = 0.0; // t^n
   double t_n_h; // t^{n+1/2} = 1/2*(t^{n+1}+t^n) = t^n + 1/2*deltat^{n+1/2}
   probDesc->getInitialTime(n, t_n);
+  double t0 = t_n;
 
   // Get initial external force vector fext^0
   probDesc->computeExtForce2(curState, fext, constForce, n, t_n, aeroForce, 0.5, 0.0);
@@ -881,7 +882,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
     if(aeroAlg < 0) {
       filePrint(stderr,"\r  %c  Time Integration Loop: t = %9.3e, dt = %9.3e, %3d%% complete ",
-                ch[int((totalTime + getTime())/250.)%4], t_n, dt_n_h, int(t_n/(tmax-0.01*dt_n_h)*100));
+                ch[int((totalTime + getTime())/250.)%4], t_n, dt_n_h, int((t_n-t0)/((tmax-t0)-0.01*dt_n_h)*100));
     }
 
     // First partial update nodal velocities:

@@ -745,6 +745,7 @@ MultiDomainDynam::getInitState(SysState<DistrVector>& state)
         sprintf(ext,"_%d",sd->subNum()+1);
         sd->readRestartFile(d_ni, v_ni, a_ni, v_pi, sd->getBcx(), sd->getVcx(), *((*geomState)[i]), ext);
         delete [] ext;
+        sd->updateStates((*geomState)[i],*((*geomState)[i]),allCorot[i]);
       }
     }
     domain->solInfo().initialTimeIndex = decDomain->getSubDomain(0)->solInfo().initialTimeIndex;

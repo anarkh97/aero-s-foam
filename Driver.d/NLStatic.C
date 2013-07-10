@@ -2025,11 +2025,12 @@ Domain::writeRestartFile(double time, int timeIndex, Vector &v_n,
 
      // new method of storing the element states in the GeomState object
      int numElemStates = geomState->getTotalNumElemStates();
-     double *elemStates = (double *) dbg_alloca(sizeof(double)*numElemStates);
+     double *elemStates = new double[numElemStates];
      geomState->getElemStates(elemStates);
      writeSize = write(fn, elemStates, numElemStates*sizeof(double));
      if(int(writeSize) != int(numElemStates*sizeof(double)))
        fprintf(stderr," *** ERROR: Writing restart file geometry_state\n");
+     delete [] elemStates;
 
      // PJSA 9-17-2010 (note: this idea of the element storing the internal states is deprecated
      // and will eventually be removed
@@ -2093,11 +2094,12 @@ Domain::readRestartFile(Vector &d_n, Vector &v_n, Vector &a_n,
 
      // new method of storing the element states in the GeomState object
      int numElemStates = geomState.getTotalNumElemStates();
-     double *elemStates = (double *) dbg_alloca(sizeof(double)*numElemStates);
+     double *elemStates = new double[numElemStates];
      readSize = read(fn, elemStates, numElemStates*sizeof(double));
      if(int(readSize) != int(numElemStates*sizeof(double)))
        fprintf(stderr," *** ERROR: Inconsistent restart file 5\n");
      geomState.setElemStates(elemStates);
+     delete [] elemStates;
 
      // PJSA 9-17-2010
      int numEle = packedEset.last();

@@ -620,6 +620,12 @@ FelippaShell::getStiffAndForce(GeomState *refState, GeomState &geomState, CoordS
    x[2] = node3.x; y[2] = node3.y; z[2] = node3.z;
 
    andesstf(glNum+1, elK.data(), locF, prop->nu, x, y, z, vld, type, 0);
+
+   if(numStates() > 0) {
+     double *state = geomState.getElemState(getGlNum()) + subNum*numStates();
+     gpmat->GetState( state+0 );
+     nmat->GetState ( state+gpmat->GetNumStates() );
+   }
  }
 
  // Compute gradients of the nodal deformational pseudorotations
@@ -763,6 +769,12 @@ FelippaShell::getInternalForce(GeomState *refState, GeomState &geomState, CoordS
    x[2] = node3.x; y[2] = node3.y; z[2] = node3.z;
 
    andesstf(glNum+1, (double*)NULL, locF, prop->nu, x, y, z, vld, type, 0);
+
+   if(numStates() > 0) {
+     double *state = geomState.getElemState(getGlNum()) + subNum*numStates();
+     gpmat->GetState( state+0 );
+     nmat->GetState ( state+gpmat->GetNumStates() );
+   }
  }
 
  // Compute gradients of the nodal deformational pseudorotations
@@ -798,7 +810,6 @@ FelippaShell::getInternalForce(GeomState *refState, GeomState &geomState, CoordS
  // transform internal force vector from local to global coordinates
 
  tran_force(f, t0n, 3);
-
 }
 
 void

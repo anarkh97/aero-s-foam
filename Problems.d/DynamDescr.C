@@ -419,6 +419,7 @@ SingleDomainDynamic::getInitState(SysState<Vector> &inState)
     if(domain->solInfo().isNonLin()) { // restart for nonlinear
       domain->readRestartFile(inState.getDisp(), inState.getVeloc(), inState.getAccel(),
                               inState.getPrevVeloc(), bcx, vcx, *geomState);
+      domain->updateStates(geomState, *geomState, allCorot);
       geomState->setVelocityAndAcceleration(inState.getVeloc(), inState.getAccel());
     }
   }

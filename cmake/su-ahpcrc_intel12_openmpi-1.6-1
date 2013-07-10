@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/tcsh
 module load intel/intel-12 openmpi/openmpi16_intel12
 cmake \
 -DAERO:BOOL=true \

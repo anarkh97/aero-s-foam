@@ -613,6 +613,22 @@ BelytschkoTsayShell::writeHistory(int fn)
   writeSize = write(fn, evoit3, 6*mgqpt[0]*sizeof(double));
   if(writeSize != 6*mgqpt[0]*sizeof(double))
     fprintf(stderr," *** ERROR: Inconsistent restart file 5.5\n");
+
+  if(expmat->optctv == 5 || expmat->optctv == 6 || expmat->optctv == 7 || expmat->optctv == 8) {
+    std::vector<double> PlasticStrain(3);
+    std::vector<double> BackStress(3);
+    double *state = new double[7*mgaus[2]];
+    for(int i=0,l=0; i<mgaus[2]; ++i) {
+      PlasticStrain = mat[i]->GetMaterialPlasticStrain();
+      for (int k = 0; k < 3; ++k) state[l++] = PlasticStrain[k];
+      BackStress = mat[i]->GetMaterialBackStress();
+      for (int k = 0; k < 3; ++k) state[l++] = BackStress[k];
+      state[l++] = mat[i]->GetMaterialEquivalentPlasticStrain();
+    }
+    writeSize = write(fn, state, 7*mgaus[2]*sizeof(double));
+    if(writeSize != 7*mgaus[2]*sizeof(double))
+      fprintf(stderr," *** ERROR: Inconsistent restart file 5.6\n");
+  }
 }
 
 void
@@ -642,6 +658,24 @@ BelytschkoTsayShell::readHistory(int fn)
   readSize = read(fn, evoit3, 6*mgqpt[0]*sizeof(double));
   if(readSize != 6*mgqpt[0]*sizeof(double))
     fprintf(stderr," *** ERROR: Inconsistent restart file 5.5\n");
+
+  if(expmat->optctv == 5 || expmat->optctv == 6 || expmat->optctv == 7 || expmat->optctv == 8) {
+    std::vector<double> PlasticStrain;
+    std::vector<double> BackStress;
+    double *state = new double[7*mgaus[2]];
+    readSize = read(fn, state, 7*mgaus[2]*sizeof(double));
+    if(readSize != 7*mgaus[2]*sizeof(double))
+      fprintf(stderr," *** ERROR: Inconsistent restart file 5.6\n");
+    for(int i=0,l=0; i<mgaus[2]; ++i) {
+      PlasticStrain.clear();
+      for (int k = 0; k < 3; ++k) PlasticStrain.push_back(state[l++]);
+      mat[i]->SetMaterialPlasticStrain(PlasticStrain);
+      BackStress.clear();
+      for (int k = 0; k < 3; ++k) BackStress.push_back(state[l++]);
+      mat[i]->SetMaterialBackStress(BackStress);
+      mat[i]->SetMaterialEquivalentPlasticStrain(state[l++]);
+    }
+  }
 }
 
 void

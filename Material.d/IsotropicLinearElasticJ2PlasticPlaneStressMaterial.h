@@ -251,16 +251,16 @@ class IsotropicLinearElasticJ2PlasticPlaneStressMaterial : public ElastoPlasticP
   //! \param UpdateFlag Input. Material state updated if true. Note that by default, material state is updated.
   bool ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1, 
 						std::vector<double> * CauchyStress, 
-						std::vector<double> * Cep = 0, 
+						std::vector<double> * Cep = 0,
 						const bool UpdateFlag = true);
   
-  //! Returns the plastic strain in material (9x1 vector)
+  //! Returns the plastic strain in material (3x1 vector)
   std::vector<double> GetMaterialPlasticStrain() const;
   
   //! Returns equivalent plastic strain in material
   double GetMaterialEquivalentPlasticStrain() const;
   
-  //! Returns back stress in material (9x1 vector)
+  //! Returns back stress in material (3x1 vector)
   std::vector<double> GetMaterialBackStress() const;
   
   //! Returns the Isotropic hardening modulus
@@ -292,7 +292,7 @@ class IsotropicLinearElasticJ2PlasticPlaneStressMaterial : public ElastoPlasticP
 
   //! Checks if the state of the material lies within the yield surface.
   //! \param CS Input. Cauchy stress 9x1 vector
-  //! \param TOL Input. Tolerance to use for the check
+  //! \param TOL Input. Tolerance to use for check
   //! The tolerance is non-dimensional. The check performed is 
   //! \f[\frac{f}{\sigma_Y}<TOL~\Rightarrow~\text{material state OK}. \f]
   bool CheckMaterialState(const std::vector<double> &CS, const double TOL = 1.e-6) const;
@@ -307,7 +307,6 @@ class IsotropicLinearElasticJ2PlasticPlaneStressMaterial : public ElastoPlasticP
   bool ComputeElasticConstitutiveResponse(const std::vector<double> &EPS,
 					  std::vector<double> *CS, 
 					  std::vector<double> *C=0) const;
-  
   
   //! Evaluates the yield function
   //! Xi Input. \f$\xi = \sigma-\sigma^b\f$. Size 3x1.
@@ -333,7 +332,7 @@ class IsotropicLinearElasticJ2PlasticPlaneStressMaterial : public ElastoPlasticP
   //! Poisson ratio
   double nu;
   
-   //! Yield stress in 1D
+  //! Yield stress in 1D
   double SigmaY;
   
   //! Isotropic hardening modulus
@@ -344,7 +343,7 @@ class IsotropicLinearElasticJ2PlasticPlaneStressMaterial : public ElastoPlasticP
 
   //! Tolerance for convergence of nonlinear solve
   double Tol;
-  
+
   //! Plastic strain 
   std::vector<double> EPSplastic;
   
@@ -354,7 +353,5 @@ class IsotropicLinearElasticJ2PlasticPlaneStressMaterial : public ElastoPlasticP
   //! Equivalent plastic strain
   double equivEPSplastic;
 };
-
-
 
 #endif

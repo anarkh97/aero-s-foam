@@ -3,6 +3,8 @@
 
 #include "DriverInterface.h"
 
+#include "Problems.d/DynamDescr.h"
+
 #include "SparseNonNegativeLeastSquaresSolver.h"
 #include <Math.d/Vector.h>
 #include "VecBasis.h"
@@ -25,7 +27,7 @@ namespace Rom {
 void outputMeshFile(const FileNameInfo &fileInfo, const MeshDesc &mesh, bool firstTime = true);
 
 template<typename MatrixBufferType = std::vector<double>, typename SizeType = size_t>
-class ElementSamplingDriver : public DriverInterface {
+class ElementSamplingDriver : public SingleDomainDynamic, public DriverInterface {
 public:
   virtual void solve(); // overriden
   void computeSolution(Vector &solution, bool verboseFlag = true);

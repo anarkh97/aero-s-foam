@@ -5,6 +5,7 @@
 #include "DistrDomainUtils.h"
 
 #include "DistrVecBasis.h"
+#include "DistrVecBasisOps.h"
 
 #include "DistrMasterMapping.h"
 #include "DistrNodeDof6Buffer.h"
@@ -32,6 +33,7 @@ DistrElementSamplingDriver::vectorSize() const {
 }
 
 DistrElementSamplingDriver::DistrElementSamplingDriver(Domain *domain, Communicator *comm) :
+  MultiDomainDynam(domain),
   domain_(domain),
   comm_(comm),
   decDomain_(createDecDomain<double>(domain))
@@ -75,6 +77,20 @@ DistrElementSamplingDriver::solve() {
     filePrint(stderr,"\r %4.2f%% complete", double(counter)/double(projectionSubspaceSize)*100.);
   }
     filePrint(stderr,"\n");
+
+  double beta = domain->solInfo().newmarkBeta;
+   
+  if(beta == 0.0){
+  filePrint(stderr,"... Renormalizing Projection Basis ...");
+  DistrVecBasis normalizedBasis;
+  MDDynamMat * dummyDynOps = MultiDomainDynam::buildOps(1.0, 0.0, 0.0);
+
+  //normalized POD basis with respect to mass matrix
+  assert(dummyDynOps->M);
+  const GenSubDOp<double> &fullMass = *(dummyDynOps->M);
+  renormalized_basis(fullMass, podBasis, normalizedBasis);
+  podBasis = normalizedBasis;
+  }
 
   // Read state snapshots
   // TODO fix skip and offset

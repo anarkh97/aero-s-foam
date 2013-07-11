@@ -9,6 +9,8 @@
 #include "RenumberingUtils.h"
 #include "MeshDesc.h"
 
+#include "VecBasisOps.h"
+
 #include <Driver.d/GeoSource.h>
 #include <Driver.d/Domain.h>
 #include <Math.d/Vector.h>
@@ -98,6 +100,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::vectorSize() const {
 
 template<typename MatrixBufferType, typename SizeType>
 ElementSamplingDriver<MatrixBufferType,SizeType>::ElementSamplingDriver(Domain *d) :
+  SingleDomainDynamic(d),
   domain_(d),
   corotators_(NULL),
   geomState_(NULL),
@@ -318,12 +321,25 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcess() {
     }
   }
 
+  double beta = domain_->solInfo().newmarkBeta;
+
+  if(beta == 0.0) {
+     filePrint(stderr,"... Renormalizing Projection Basis ...");
+     VecBasis normalizedBasis;
+     DynamMat * dummyDynOps = SingleDomainDynamic::buildOps(1.0,0.0,0.0);
+    
+     assert(dummyDynOps->M);
+     const GenSparseMatrix<double> &fullMass = *(dummyDynOps->M);
+     renormalized_basis(fullMass, podBasis_, normalizedBasis);
+     podBasis_ = normalizedBasis;
+  }
+
   // Read state snapshots
   VecBasis snapshots;
   {
     BasisInputStream in(BasisFileId(fileInfo, BasisId::STATE, BasisId::SNAPSHOTS), vecDofConversion);
-    const int skipFactor = domain->solInfo().skipPodRom;
-    const int skipOffSet = domain->solInfo().skipOffSet;
+    const int skipFactor = domain_->solInfo().skipPodRom;
+    const int skipOffSet = domain_->solInfo().skipOffSet;
     const int basisStateCount = (in.size() % 2) + (in.size() - skipOffSet) / skipFactor;
 
     snapshots.dimensionIs(basisStateCount, in.vectorSize());
@@ -350,13 +366,13 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcess() {
 
   // Read velocity snapshots
   VecBasis *velocSnapshots = 0;
-  if(domain->solInfo().velocPodRomFile != "") {
+  if(domain_->solInfo().velocPodRomFile != "") {
     //std::cerr << "reading velocity snapshots from file " << domain->solInfo().velocPodRomFile << std::endl;
     std::vector<double> timeStamps;
     velocSnapshots = new VecBasis;
     BasisInputStream in(BasisFileId(fileInfo, BasisId::VELOCITY, BasisId::SNAPSHOTS), vecDofConversion);
-    const int skipFactor = domain->solInfo().skipPodRom;
-    const int skipOffSet = domain->solInfo().skipOffSet;
+    const int skipFactor = domain_->solInfo().skipPodRom;
+    const int skipOffSet = domain_->solInfo().skipOffSet;
     const int basisStateCount = 1 + (in.size() - 1) / skipFactor;
 
     velocSnapshots->dimensionIs(basisStateCount, in.vectorSize());
@@ -384,13 +400,13 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcess() {
 
   // Read acceleration snapshots
   VecBasis *accelSnapshots = 0;
-  if(domain->solInfo().accelPodRomFile != "") {
+  if(domain_->solInfo().accelPodRomFile != "") {
     //std::cerr << "reading acceleration snapshots from file " << domain->solInfo().accelPodRomFile << std::endl;
     std::vector<double> timeStamps;
     accelSnapshots = new VecBasis;
     BasisInputStream in(BasisFileId(fileInfo, BasisId::ACCELERATION, BasisId::SNAPSHOTS), vecDofConversion);
-    const int skipFactor = domain->solInfo().skipPodRom;
-    const int skipOffSet = domain->solInfo().skipOffSet;
+    const int skipFactor = domain_->solInfo().skipPodRom;
+    const int skipOffSet = domain_->solInfo().skipOffSet;
     const int basisStateCount = 1 + (in.size() - 1) / skipFactor;
 
     accelSnapshots->dimensionIs(basisStateCount, in.vectorSize());

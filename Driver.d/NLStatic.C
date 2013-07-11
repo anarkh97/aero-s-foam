@@ -2011,17 +2011,19 @@ Domain::writeRestartFile(double time, int timeIndex, Vector &v_n,
       if(int(writeSize) != int(v_n.size()*sizeof(double)))
         fprintf(stderr," *** ERROR: Writing restart file velocity\n");
 
-     double *positions = (double *) dbg_alloca(sizeof(double)*3*numnodes);
+     double *positions = new double[3*numnodes];
      geomState->getPositions(positions);
      writeSize = write(fn, positions,numnodes*3*sizeof(double));
      if(int(writeSize) != int(numnodes*3*sizeof(double)))
        fprintf(stderr," *** ERROR: Writing restart file geometry_state\n");
+     delete [] positions;
 
-     double *rotations = (double *) dbg_alloca(sizeof(double)*9*numnodes);
+     double *rotations = new double[9*numnodes];
      geomState->getRotations(rotations);
      writeSize = write(fn, rotations,numnodes*9*sizeof(double));
      if(int(writeSize) != int(numnodes*9*sizeof(double)))
        fprintf(stderr," *** ERROR: Writing restart file geometry_state\n");
+     delete [] rotations;
 
      // new method of storing the element states in the GeomState object
      int numElemStates = geomState->getTotalNumElemStates();
@@ -2080,17 +2082,19 @@ Domain::readRestartFile(Vector &d_n, Vector &v_n, Vector &a_n,
      if(int(readSize) != int(sizeof(double)*v_n.size()))
        fprintf(stderr," *** ERROR: Inconsistent restart file 2.5\n");
 
-     double *positions = (double *)dbg_alloca(sizeof(double)*3*numnodes);
+     double *positions = new double[3*numnodes];
      readSize = read(fn, positions, numnodes*3*sizeof(double));
      if(int(readSize) != int(numnodes*3*sizeof(double)))
        fprintf(stderr," *** ERROR: Inconsistent restart file 3\n");
      geomState.setPositions(positions);
+     delete [] positions;
 
-     double *rotations = (double *)dbg_alloca(sizeof(double)*9*numnodes);
+     double *rotations = new double[9*numnodes];
      readSize = read(fn, rotations, numnodes*9*sizeof(double));
      if(int(readSize) != int(numnodes*9*sizeof(double)))
        fprintf(stderr," *** ERROR: Inconsistent restart file 4\n");
      geomState.setRotations(rotations);
+     delete [] rotations;
 
      // new method of storing the element states in the GeomState object
      int numElemStates = geomState.getTotalNumElemStates();

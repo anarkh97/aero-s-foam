@@ -13,7 +13,7 @@ namespace Rom {
 template <typename Scalar, template <typename> class GenVecType> class GenVecBasis;
 typedef GenVecBasis<double, GenDistrVector> DistrVecBasis;
 
-class DistrElementSamplingDriver : public DriverInterface {
+class DistrElementSamplingDriver :public MultiDomainDynam, public DriverInterface {
 public:
   virtual void solve();
   

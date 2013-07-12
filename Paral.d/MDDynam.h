@@ -63,6 +63,7 @@ typedef GenMDDynamMat<double> MDDynamMat;
 
 class MultiDomDynPostProcessor 
 {
+  protected:
     DistFlExchanger *distFlExchanger;
  
     // user defined displacements and velocities

@@ -324,7 +324,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcess() {
   double beta = domain_->solInfo().newmarkBeta;
 
   if(beta == 0.0) {
-     filePrint(stderr,"... Renormalizing Projection Basis ...");
+     filePrint(stderr," ... Renormalizing Projection Basis ...\n");
      VecBasis normalizedBasis;
      DynamMat * dummyDynOps = SingleDomainDynamic::buildOps(1.0,0.0,0.0);
     

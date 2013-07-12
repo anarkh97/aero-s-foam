@@ -127,7 +127,7 @@ DistrExplicitPodPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dyn
            filePrint(oinfo[iOut].filptr, "\n");}
            break;
          default:
-           filePrint(stderr, " ...ROM output only supports Acceraltion, Displacement, and Velocity... \n");
+           filePrint(stderr, " ...ROM output only supports Acceleration, Displacement, and Velocity... \n");
       }
     }
   }

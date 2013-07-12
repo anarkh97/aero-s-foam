@@ -29,19 +29,21 @@ namespace Rom {
 
 const DistrInfo&
 DistrElementSamplingDriver::vectorSize() const {
-  return decDomain_->masterSolVecInfo();
+  return decDomain->masterSolVecInfo();
 }
 
 DistrElementSamplingDriver::DistrElementSamplingDriver(Domain *domain, Communicator *comm) :
   MultiDomainDynam(domain),
   domain_(domain),
-  comm_(comm),
-  decDomain_(createDecDomain<double>(domain))
+  comm_(comm)
 {}
 
 void
 DistrElementSamplingDriver::solve() {
-  decDomain_->preProcess();
+/*
+  decDomain->preProcess();
+*/
+  MultiDomainDynam::preProcess();
 
   FileNameInfo fileInfo;
 
@@ -56,11 +58,11 @@ DistrElementSamplingDriver::solve() {
   filePrint(stderr, " ... Projection subspace of dimension = %d ...\n", projectionSubspaceSize);
   podBasis.dimensionIs(projectionSubspaceSize, vectorSize());
 
-  DistrVecNodeDof6Conversion converter(decDomain_->getAllSubDomains(), decDomain_->getAllSubDomains() + decDomain_->getNumSub());
+  DistrVecNodeDof6Conversion converter(decDomain->getAllSubDomains(), decDomain->getAllSubDomains() + decDomain->getNumSub());
 
   typedef PtrPtrIterAdapter<SubDomain> SubDomIt;
-  DistrMasterMapping masterMapping(SubDomIt(decDomain_->getAllSubDomains()),
-                                   SubDomIt(decDomain_->getAllSubDomains() + decDomain_->getNumSub()));
+  DistrMasterMapping masterMapping(SubDomIt(decDomain->getAllSubDomains()),
+                                   SubDomIt(decDomain->getAllSubDomains() + decDomain->getNumSub()));
   DistrNodeDof6Buffer buffer(masterMapping.localNodeBegin(), masterMapping.localNodeEnd());
 
   int counter = 0;
@@ -79,21 +81,20 @@ DistrElementSamplingDriver::solve() {
     filePrint(stderr,"\n");
 
   double beta = domain->solInfo().newmarkBeta;
-   
-  if(beta == 0.0){
-  filePrint(stderr,"... Renormalizing Projection Basis ...");
-  DistrVecBasis normalizedBasis;
-  MDDynamMat * dummyDynOps = MultiDomainDynam::buildOps(1.0, 0.0, 0.0);
 
-  //normalized POD basis with respect to mass matrix
-  assert(dummyDynOps->M);
-  const GenSubDOp<double> &fullMass = *(dummyDynOps->M);
-  renormalized_basis(fullMass, podBasis, normalizedBasis);
-  podBasis = normalizedBasis;
+  if(beta == 0.0) {
+    filePrint(stderr," ... Renormalizing Projection Basis ...\n");
+    DistrVecBasis normalizedBasis;
+    MDDynamMat * dummyDynOps = MultiDomainDynam::buildOps(1.0, 0.0, 0.0);
+
+    //normalized POD basis with respect to mass matrix
+    assert(dummyDynOps->M);
+    const GenSubDOp<double> &fullMass = *(dummyDynOps->M);
+    renormalized_basis(fullMass, podBasis, normalizedBasis);
+    podBasis = normalizedBasis;
   }
 
   // Read state snapshots
-  // TODO fix skip and offset
   DistrVecBasis snapshots;
   std::vector<double> timeStamps;
   {
@@ -131,7 +132,6 @@ DistrElementSamplingDriver::solve() {
   }
 
   // Read velocity snapshots
-  // TODO fix skip and offset
   DistrVecBasis *velocSnapshots = 0;
   if(domain_->solInfo().velocPodRomFile != "") {
     std::vector<double> timeStamps;
@@ -170,7 +170,6 @@ DistrElementSamplingDriver::solve() {
   }
 
   // Read acceleration snapshots
-  // TODO fix skip and offset
   DistrVecBasis *accelSnapshots = 0;
   if(domain_->solInfo().accelPodRomFile != "") {
     std::vector<double> timeStamps;
@@ -253,8 +252,8 @@ DistrElementSamplingDriver::solve() {
     delete accelSnapshots;
   }
   
-  SubElementSamplingDriver **subDrivers = new SubElementSamplingDriver * [decDomain_->getNumSub()];
-  Vector *solutions = new Vector[decDomain_->getNumSub()];
+  SubElementSamplingDriver **subDrivers = new SubElementSamplingDriver * [decDomain->getNumSub()];
+  Vector *solutions = new Vector[decDomain->getNumSub()];
   int numCPUs = (structCom) ? structCom->numCPUs() : 1;
   int myID = (structCom) ? structCom->myID() : 0;
   bool verboseFlag = (myID == 0); // output to the screen only for subdomains assigned to mpi process with rank 0
@@ -262,8 +261,8 @@ DistrElementSamplingDriver::solve() {
 #if defined(_OPENMP)
   #pragma omp parallel for schedule(static,1)
 #endif
-  for(int i=0; i<decDomain_->getNumSub(); ++i) {
-    subDrivers[i] = new SubElementSamplingDriver(decDomain_->getAllSubDomains()[i]);
+  for(int i=0; i<decDomain->getNumSub(); ++i) {
+    subDrivers[i] = new SubElementSamplingDriver(decDomain->getAllSubDomains()[i]);
 
     VecBasis &subPodBasis = subDrivers[i]->podBasis();
     subPodBasis.dimensionIs(podVectorCount, subDrivers[i]->vectorSize());
@@ -298,7 +297,7 @@ DistrElementSamplingDriver::solve() {
   
   std::vector<double> lweights; 
   std::vector<int> lelemIds;
-  for(int i=0; i<decDomain_->getNumSub(); i++) {
+  for(int i=0; i<decDomain->getNumSub(); i++) {
     subDrivers[i]->getGlobalWeights(solutions[i], lweights, lelemIds, true, verboseFlag);
   }
   
@@ -344,8 +343,8 @@ DistrElementSamplingDriver::solve() {
     }
 
     const FileNameInfo fileInfo;
-    for(int i=0; i<decDomain_->getNumSub(); i++) {
-      decDomain_->getSubDomain(i)->renumberElementsGlobal();
+    for(int i=0; i<decDomain->getNumSub(); i++) {
+      decDomain->getSubDomain(i)->renumberElementsGlobal();
     }
 
     Elemset &inputElemSet = *(geoSource->getElemSet());

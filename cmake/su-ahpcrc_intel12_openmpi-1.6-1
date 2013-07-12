@@ -13,4 +13,5 @@ cmake \
 -DLAPACK_FOUND=true \
 -DSCALAPACK_FOUND=true \
 -DSCALAPACK_LIBRARY:FILEPATH="" \
--DBLACS_FOUND=true .
+-DBLACS_FOUND=true \
+-DEXTRALIB="/opt/intel/composerxe-2011.2.137/compiler/lib/intel64/libifcore.a;/opt/intel/composerxe-2011.2.137/compiler/lib/intel64/libifport.a" .

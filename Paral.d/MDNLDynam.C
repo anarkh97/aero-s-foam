@@ -891,14 +891,15 @@ MDNLDynamic::dynamOutput(DistrGeomState *geomState, DistrVector &vel_n, DistrVec
     for(int i = 0; i < decDomain->getNumSub(); ++i) {
       SubDomain *sd = decDomain->getSubDomain(i);
       StackVector vel_ni(vel_n.subData(i), vel_n.subLen(i));
+      StackVector acc_ni(acc_n.subData(i), acc_n.subLen(i));
       int extlen = std::log10((double) sd->subNum()+1) + 1;
       char *ext = new char[extlen+2];
       sprintf(ext,"_%d",sd->subNum()+1);
-      sd->writeRestartFile(time, index, vel_ni, (*geomState)[i], ext);
+      sd->writeRestartFile(time, index, vel_ni, acc_ni, (*geomState)[i], ext);
       delete [] ext;
     }
 #else
-    execParal4R(decDomain->getNumSub(), this, &MDNLDynamic::subWriteRestartFile, time, index, vel_n, *geomState);
+    execParal5R(decDomain->getNumSub(), this, &MDNLDynamic::subWriteRestartFile, time, index, vel_n, acc_n, *geomState);
 #endif
   }
 
@@ -911,14 +912,15 @@ MDNLDynamic::dynamOutput(DistrGeomState *geomState, DistrVector &vel_n, DistrVec
 }
 
 void
-MDNLDynamic::subWriteRestartFile(int i, double &time, int &index, DistrVector &vel_n, DistrGeomState &geomState)
+MDNLDynamic::subWriteRestartFile(int i, double &time, int &index, DistrVector &vel_n, DistrVector &acc_n, DistrGeomState &geomState)
 {
   SubDomain *sd = decDomain->getSubDomain(i);
   StackVector vel_ni(vel_n.subData(i), vel_n.subLen(i));
+  StackVector acc_ni(acc_n.subData(i), acc_n.subLen(i));
   int extlen = (int)std::log10((double) sd->subNum()+1) + 1;
   char *ext = new char[extlen+2];
   sprintf(ext,"_%d",sd->subNum()+1);
-  sd->writeRestartFile(time, index, vel_ni, geomState[i], ext);
+  sd->writeRestartFile(time, index, vel_ni, acc_ni, geomState[i], ext);
   delete [] ext;
 }
 

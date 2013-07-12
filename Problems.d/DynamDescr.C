@@ -87,7 +87,7 @@ SDDynamPostProcessor::dynamOutput(int tIndex, double time, DynamMat& dMat, Vecto
   this->fillBcxVcx(time);
 
   if(domain->solInfo().isNonLin() && domain->solInfo().nRestart > 0) {
-    domain->writeRestartFile(time, tIndex, state.getVeloc(), geomState);
+    domain->writeRestartFile(time, tIndex, state.getVeloc(), state.getAccel(), geomState);
   } 
 
   domain->dynamOutput(tIndex, time, bcx, dMat, ext_f, *aeroForce, state.getDisp(), state.getVeloc(),

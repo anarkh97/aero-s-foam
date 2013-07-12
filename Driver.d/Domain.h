@@ -653,7 +653,7 @@ class Domain : public HData {
      void initTempVector(Vector& d_n, Vector& v_n, Vector& v_p);
      void writeRestartFile(double time, int timeIndex,
                            Vector &d_n, Vector &v_n, Vector &v_p, double Fref = 0.0, const char* = "");
-     void writeRestartFile(double time, int timeIndex, Vector &v_n,
+     void writeRestartFile(double time, int timeIndex, Vector &v_n, Vector &a_n,
                            GeomState *geomState, const char* = "");
      void readRestartFile(Vector &d_n, Vector &v_n,
                           Vector &a_n, Vector &v_p, double *bcx,

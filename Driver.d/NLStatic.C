@@ -673,7 +673,8 @@ Domain::postProcessing(GeomState *geomState, Vector& force, Vector &aeroForce,
 
   if( sinfo.nRestart > 0 && velocity !=0) {
     StackVector v_n(velocity, numUncon());
-    writeRestartFile(time, step, v_n, geomState);
+    StackVector a_n(acceleration, numUncon());
+    writeRestartFile(time, step, v_n, a_n, geomState);
   }
 
   int numOutInfo = geoSource->getNumOutInfo();
@@ -1980,7 +1981,7 @@ Domain::getElementForces( GeomState &geomState, Corotator **allCorot,
 
 // Nonlinear restart file
 void
-Domain::writeRestartFile(double time, int timeIndex, Vector &v_n,
+Domain::writeRestartFile(double time, int timeIndex, Vector &v_n, Vector &a_n,
                          GeomState *geomState, const char *ext)
 {
 // either test for pointer or frequency > 0
@@ -2039,6 +2040,11 @@ Domain::writeRestartFile(double time, int timeIndex, Vector &v_n,
      int numEle = packedEset.last();
      for(int i = 0; i < numEle; ++i)
        packedEset[i]->writeHistory(fn);
+
+      // write accelerations
+      writeSize = write(fn, a_n.data(), a_n.size()*sizeof(double));
+      if(int(writeSize) != int(a_n.size()*sizeof(double)))
+        fprintf(stderr," *** ERROR: Writing restart file acceleration\n");
 
      close(fn);
    } else {
@@ -2105,15 +2111,20 @@ Domain::readRestartFile(Vector &d_n, Vector &v_n, Vector &a_n,
      geomState.setElemStates(elemStates);
      delete [] elemStates;
 
-     // PJSA 9-17-2010
+     // old method of storing the element states in the Element objects (e.g. bt shell)
      int numEle = packedEset.last();
      for(int i = 0; i < numEle; ++i) 
        packedEset[i]->readHistory(fn);
 
+     a_n.zero();
+     readSize = read(fn, a_n.data(), sizeof(double)*a_n.size());
+/* this could happen if the restart file was written with an older version of AERO-S
+     if(int(readSize) != int(sizeof(double)*a_n.size()))
+       fprintf(stderr," *** ERROR: Inconsistent restart file 6\n");
+*/
      close(fn);
 
      d_n.zero();
-     a_n.zero();
      v_p.zero();
      for(int i = 0; i < numNodes(); ++i) {
 

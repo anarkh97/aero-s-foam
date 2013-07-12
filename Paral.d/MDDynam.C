@@ -171,7 +171,8 @@ MultiDomDynPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dynOps, 
       sprintf(ext,"_%d",sd->subNum()+1);
       if(domain->solInfo().isNonLin()) {
         StackVector vel_ni(distState.getVeloc().subData(i), distState.getVeloc().subLen(i));
-        sd->writeRestartFile(t, tIndex, vel_ni, (*geomState)[i], ext);
+        StackVector acc_ni(distState.getAccel().subData(i), distState.getAccel().subLen(i));
+        sd->writeRestartFile(t, tIndex, vel_ni, acc_ni, (*geomState)[i], ext);
       }
       else {
         StackVector d_ni(distState.getDisp().subData(i), distState.getDisp().subLen(i));

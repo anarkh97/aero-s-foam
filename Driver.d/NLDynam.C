@@ -145,7 +145,11 @@ Domain::getWeightedInternalForceOnly(const std::map<int, double> &weights,
     }
   }
 
-  getFollowerForce(geomState, elementForce, corotators, (FullSquareMatrix *) NULL, residual, lambda, time, refState, NULL, false);
+  if(domain->solInfo().reduceFollower){
+     getWeightedFollowerForce(weights, geomState, elementForce, corotators, (FullSquareMatrix *) NULL, residual, lambda, time, refState, NULL, false);
+  } else {
+     getFollowerForce(geomState, elementForce, corotators, (FullSquareMatrix *) NULL, residual, lambda, time, refState, NULL, false);
+  }
 
   if(sinfo.isDynam() && mel) getWeightedFictitiousForceOnly(weights, geomState, elementForce, kel, residual, time, refState, NULL, mel, false);
 }

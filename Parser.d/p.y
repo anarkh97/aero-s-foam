@@ -91,7 +91,7 @@
 %token SPOOLESTAU SPOOLESSEED SPOOLESMAXSIZE SPOOLESMAXDOMAINSIZE SPOOLESMAXZEROS SPOOLESMSGLVL SPOOLESSCALE SPOOLESPIVOT SPOOLESRENUM SPARSEMAXSUP SPARSEDEFBLK
 %token STATS STRESSID SUBSPACE SURFACE SAVEMEMCOARSE SPACEDIMENSION SCATTERER STAGTOL SCALED SWITCH STABLE SUBTYPE STEP SOWER SHELLTHICKNESS SURF SPRINGMAT
 %token TANGENT TEMP TIME TOLEIG TOLFETI TOLJAC TOLPCG TOPFILE TOPOLOGY TRBM THERMOE THERMOH 
-%token TETT TOLCGM TURKEL TIEDSURFACES THETA HRC THIRDNODE THERMMAT TDENFORC TESTULRICH THRU TOPFLAG
+%token TETT TOLCGM TURKEL TIEDSURFACES THETA REDFOL HRC THIRDNODE THERMMAT TDENFORC TESTULRICH THRU TOPFLAG
 %token USE USERDEFINEDISP USERDEFINEFORCE UPROJ UNSYMMETRIC USING
 %token VERSION WETCORNERS XPOST YMTT 
 %token ZERO BINARY GEOMETRY DECOMPOSITION GLOBAL MATCHER CPUMAP
@@ -2739,6 +2739,11 @@ Attributes:
         { geoSource->setAttrib($2-1,$3-1); 
 	  geoSource->setElementLumpingWeight($2 - 1, $5);
 	  domain->solInfo().elemLumpPodRom = true; }
+        | Attributes Integer Integer HRC REDFOL Float NewLine // added HRC keyword for Hyper Reduction Coefficient
+        { geoSource->setAttrib($2-1,$3-1);
+          geoSource->setElementLumpingWeight($2 - 1, $6);
+          domain->solInfo().elemLumpPodRom = true; 
+          domain->solInfo().reduceFollower = true;}
 	| Attributes Integer Integer Integer Integer NewLine
 	{ geoSource->setAttrib($2-1,$3-1,$4-1,$5-1); }
         | Attributes Integer Integer Integer Integer HRC Float NewLine // added HRC keyword for Hyper Reduction Coefficient
@@ -4059,6 +4064,10 @@ ConversionOption:
     CONVFI FNAME
   { domain->solInfo().RODConversionFiles.push_back($2); 
     domain->solInfo().numRODFile += 1; }
+  | CONVFI FNAME Integer
+  { domain->solInfo().RODConversionFiles.push_back($2);
+    domain->solInfo().numRODFile += 1; 
+    domain->solInfo().skipPodRom = $3;}
   ;
 
 Integer:

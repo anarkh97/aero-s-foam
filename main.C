@@ -972,7 +972,10 @@ int main(int argc, char** argv)
          } else { // POD ROM
            if (domain->solInfo().galerkinPodRom) {
              if (domain->solInfo().elemLumpPodRom) {
-               filePrint(stderr, " ... POD: ROM with stiffness lumping...\n");
+               if (domain->solInfo().reduceFollower)
+                 filePrint(stderr, " ... POD: ROM with stiffness & follower lumping...\n");
+	       else
+                 filePrint(stderr, " ... POD: ROM with stiffness lumping...\n");
                Rom::DistrExplicitLumpedPodProjectionNonLinDynamic dynamProb(domain);
                DynamicSolver < MDDynamMat, DistrVector, Rom::DistrExplicitPodPostProcessor,
                              Rom::DistrExplicitLumpedPodProjectionNonLinDynamic, double > dynamSolver(&dynamProb);

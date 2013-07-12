@@ -1,11 +1,9 @@
 #include "BinaryResultFile.h"
 
-#include "BinaryOutputFile.h"
-
 #include <cstddef>
 #include <cassert>
 
-BinaryResultOutputFile::BinaryResultOutputFile(const std::string &pathName, int dataType, const std::string &description, int itemCount, int itemDimension, double version) :
+BinaryResultOutputFile::BinaryResultOutputFile(const std::string &pathName, int dataType, const std::string &description, int itemCount, int itemDimension, double version, bool restart) :
   pathName_(pathName),
   dataType_(dataType),
   description_(description),
@@ -14,14 +12,20 @@ BinaryResultOutputFile::BinaryResultOutputFile(const std::string &pathName, int 
   stateCount_(0),
   itemIds_(itemCount),
   localOffset_(0),
-  binHandler_(pathName.c_str(), "w", version)
+  binHandler_(pathName.c_str(), (!restart) ? "w" : "w+", version)
 {
   int iNode = 0;
   for (std::vector<int>::iterator it = itemIds_.begin(), it_end = itemIds_.end(); it != it_end; ++it) {
     *it = iNode++;
   }
 
-  writePrelude();
+  if(!restart) writePrelude();
+  else {
+    int rawItemCount;
+    BinFileHandler binHandler(pathName.c_str(), "r", version);
+    readHeaderFromBinaryOutputFile(binHandler, dataType_, description_, rawItemCount, itemDimension_, stateCount_);
+    //std::cerr << "here in BinaryResultOutputFile::BinaryResultOutputFile, stateCount_ = " << stateCount_ << std::endl;
+  }
 }
 
 void

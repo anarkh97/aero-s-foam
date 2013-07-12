@@ -2,9 +2,11 @@
 #define UTILS_BINARYRESULTFILE_H
 
 #include "BinFileHandler.h"
+#include "BinaryOutputFile.h"
 
 #include <string>
 #include <vector>
+#include <iostream>
 
 class BinaryResultOutputFile {
 public:
@@ -32,13 +34,13 @@ public:
   // Constructors
   BinaryResultOutputFile(const std::string &pathName, int dataType, const std::string &description,
                          int itemCount, int itemDimension,
-                         double version);
+                         double version, bool restart);
   
   template <typename IdxInpIt>
   BinaryResultOutputFile(const std::string &pathName, int dataType, const std::string &description,
                          int itemCount, int itemDimension,
                          int localOffset, IdxInpIt localIdBegin, IdxInpIt localIdEnd,
-                         double version);
+                         double version, bool restart);
 
   void writePrelude();
 
@@ -72,7 +74,7 @@ template <typename IdxInpIt>
 BinaryResultOutputFile::BinaryResultOutputFile(const std::string &pathName, int dataType, const std::string &description,
                                                int itemCount, int itemDimension,
                                                int localOffset, IdxInpIt localIdBegin, IdxInpIt localIdEnd,
-                                               double version) :
+                                               double version, bool restart) :
   pathName_(pathName),
   dataType_(dataType),
   description_(description),
@@ -87,9 +89,15 @@ BinaryResultOutputFile::BinaryResultOutputFile(const std::string &pathName, int 
   // see comments in Rom.d/DistrBasisFile.h
   binHandler_(pathName.c_str(), "wb", version) {}
 #else
-  binHandler_(pathName.c_str(), isMaster() ? "ws" : "ws+", version)
+  binHandler_(pathName.c_str(), (isMaster() && !restart) ? "ws" : "ws+", version)
 {
-  writePrelude();
+  if(!restart) writePrelude();
+  else {
+    int rawItemCount;
+    BinFileHandler binHandler(pathName.c_str(), "r", version);
+    readHeaderFromBinaryOutputFile(binHandler, dataType_, description_, rawItemCount, itemDimension_, stateCount_);
+    //std::cerr << "here in BinaryResultOutputFile::BinaryResultOutputFile, stateCount_ = " << stateCount_ << std::endl;
+  }
 }
 #endif
 

@@ -12,8 +12,8 @@ BasisInputStream::BasisInputStream(const std::string &fileName, const VecNodeDof
 {}
 
 
-BasisOutputStream::BasisOutputStream(const std::string &fileName, const VecNodeDof6Conversion &converter) :
-  file_(fileName, converter.dofSetNodeCount()), // Conservative, potentially overallocating
+BasisOutputStream::BasisOutputStream(const std::string &fileName, const VecNodeDof6Conversion &converter, bool restart) :
+  file_(fileName, converter.dofSetNodeCount(), restart), // Conservative, potentially overallocating
   converter_(converter),
   buffer_(file_.nodeCount())
 {}

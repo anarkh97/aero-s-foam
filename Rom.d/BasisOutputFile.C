@@ -15,7 +15,7 @@ namespace Rom {
 const int
 BasisOutputFile::STATE_COUNT_LENGTH = 10;
 
-BasisOutputFile::BasisOutputFile(const std::string &fileName, int nodeCount) :
+BasisOutputFile::BasisOutputFile(const std::string &fileName, int nodeCount, bool) :
   fileName_(fileName),
   nodeCount_(nodeCount),
   width_(23),

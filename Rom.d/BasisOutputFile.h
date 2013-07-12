@@ -25,10 +25,10 @@ public:
   void stateAdd(const NodeDof6Buffer &data);
   void stateAdd(const NodeDof6Buffer &data, double headValue);
   
-  BasisOutputFile(const std::string &fileName, int nodeCount);
+  BasisOutputFile(const std::string &fileName, int nodeCount, bool);
   
   template <typename NodeIdIt>
-  BasisOutputFile(const std::string &fileName, NodeIdIt first, NodeIdIt last);
+  BasisOutputFile(const std::string &fileName, NodeIdIt first, NodeIdIt last, bool);
  
   ~BasisOutputFile();
 
@@ -59,7 +59,7 @@ private:
 };
 
 template <typename NodeIdIt>
-BasisOutputFile::BasisOutputFile(const std::string &fileName, NodeIdIt first, NodeIdIt last) :
+BasisOutputFile::BasisOutputFile(const std::string &fileName, NodeIdIt first, NodeIdIt last, bool) :
   fileName_(fileName),
   nodeCount_(std::distance(first, last)),
   width_(23),

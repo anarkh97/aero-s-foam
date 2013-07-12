@@ -39,11 +39,11 @@ public:
   void stateAdd(const NodeDof6Buffer &data, double headValue);
   
   // Node indices: [0, nodeCount) 
-  BasisBinaryOutputFile(const std::string &fileName, int nodeCount);
+  BasisBinaryOutputFile(const std::string &fileName, int nodeCount, bool restart);
   
   // Node indices: [first, last)
   template <typename NodeIdIt>
-  BasisBinaryOutputFile(const std::string &fileName, NodeIdIt first, NodeIdIt last);
+  BasisBinaryOutputFile(const std::string &fileName, NodeIdIt first, NodeIdIt last, bool restart);
 
 private:
   BinaryResultOutputFile binFile_;
@@ -54,8 +54,8 @@ private:
 };
 
 template <typename NodeIdIt>
-BasisBinaryOutputFile::BasisBinaryOutputFile(const std::string &fileName, NodeIdIt first, NodeIdIt last) :
-  binFile_(fileName, NODAL_DATA_FLAG, DESC, std::distance(first, last), DOFS_PER_NODE, 0, first, last, VERSION)
+BasisBinaryOutputFile::BasisBinaryOutputFile(const std::string &fileName, NodeIdIt first, NodeIdIt last, bool restart) :
+  binFile_(fileName, NODAL_DATA_FLAG, DESC, std::distance(first, last), DOFS_PER_NODE, 0, first, last, VERSION, restart)
 {}
 
 inline

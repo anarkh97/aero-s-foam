@@ -17,6 +17,8 @@
 #include <stdexcept>
 #include <cstddef>
 
+extern GeoSource * geoSource;
+
 namespace Rom {
 
 // Implementation classes
@@ -276,7 +278,8 @@ PodProjectionNonLinDynamicDetail::sttSnapImpl::sttSnapImpl(Domain * domain, PodP
   domain_(domain),
   converter_(*domain->getCDSA()),
   snapBuffer_(dofSetNodeCount()),
-  stateSnapFile_(BasisFileId(fileInfo_, BasisId::STATE, BasisId::SNAPSHOTS), dofSetNodeCount()),
+  stateSnapFile_(BasisFileId(fileInfo_, BasisId::STATE, BasisId::SNAPSHOTS), dofSetNodeCount(),
+                 (geoSource->getCheckFileInfo()->lastRestartFile != 0)),
   timeStamp_(domain->solInfo().initialTime)
 {}
 
@@ -289,22 +292,26 @@ PodProjectionNonLinDynamicDetail::sttSnapImpl::fillSnapBuffer(const VecType &sna
 
 PodProjectionNonLinDynamicDetail::velSnapImpl::velSnapImpl(PodProjectionNonLinDynamic *parent) :
   PodProjectionNonLinDynamicDetail::BasicImpl(parent),
-  velocitySnapFile_(BasisFileId(fileInfo_, BasisId::VELOCITY, BasisId::SNAPSHOTS), vecNodeDof6Conversion_)
+  velocitySnapFile_(BasisFileId(fileInfo_, BasisId::VELOCITY, BasisId::SNAPSHOTS), vecNodeDof6Conversion_,
+                    (geoSource->getCheckFileInfo()->lastRestartFile != 0))
 {}
 
 PodProjectionNonLinDynamicDetail::accSnapImpl::accSnapImpl(PodProjectionNonLinDynamic *parent) :
   PodProjectionNonLinDynamicDetail::BasicImpl(parent),
-  accelerationSnapFile_(BasisFileId(fileInfo_, BasisId::ACCELERATION, BasisId::SNAPSHOTS), vecNodeDof6Conversion_)
+  accelerationSnapFile_(BasisFileId(fileInfo_, BasisId::ACCELERATION, BasisId::SNAPSHOTS), vecNodeDof6Conversion_,
+                        (geoSource->getCheckFileInfo()->lastRestartFile != 0))
 {}
 
 PodProjectionNonLinDynamicDetail::resSnapImpl::resSnapImpl(PodProjectionNonLinDynamic *parent) :
   PodProjectionNonLinDynamicDetail::BasicImpl(parent),
-  residualSnapFile_(BasisFileId(fileInfo_, BasisId::RESIDUAL, BasisId::SNAPSHOTS), vecNodeDof6Conversion_)
+  residualSnapFile_(BasisFileId(fileInfo_, BasisId::RESIDUAL, BasisId::SNAPSHOTS), vecNodeDof6Conversion_,
+                    (geoSource->getCheckFileInfo()->lastRestartFile != 0))
 {}
 
 PodProjectionNonLinDynamicDetail::jacSnapImpl::jacSnapImpl(PodProjectionNonLinDynamic *parent) :
   PodProjectionNonLinDynamicDetail::BasicImpl(parent),
-  jacobianSnapFile_(BasisFileId(fileInfo_, BasisId::JACOBIAN, BasisId::SNAPSHOTS), vecNodeDof6Conversion_)
+  jacobianSnapFile_(BasisFileId(fileInfo_, BasisId::JACOBIAN, BasisId::SNAPSHOTS), vecNodeDof6Conversion_,
+                    (geoSource->getCheckFileInfo()->lastRestartFile != 0))
 {}
 
 void

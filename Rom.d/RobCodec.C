@@ -21,7 +21,7 @@ void transfer_rob(InFile &input, OutFile &output) {
 template <typename InFile, typename OutFile>
 void convert_rob(const std::string &inFilename, const std::string &outFilename) {
   InFile input(inFilename);
-  OutFile output(outFilename, input.nodeIdBegin(), input.nodeIdEnd());
+  OutFile output(outFilename, input.nodeIdBegin(), input.nodeIdEnd(), false);
   transfer_rob(input, output);
 }
 

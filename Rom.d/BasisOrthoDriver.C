@@ -119,7 +119,7 @@ BasisOrthoDriver::solve() {
 
     solver.solve();
 
-    BasisOutputStream output(BasisFileId(fileInfo, type, BasisId::POD), converter);
+    BasisOutputStream output(BasisFileId(fileInfo, type, BasisId::POD), converter, false);
     const int orthoBasisDim = domain->solInfo().maxSizePodRom ?
                               std::min(domain->solInfo().maxSizePodRom, solver.singularValueCount()) :
                               solver.singularValueCount();

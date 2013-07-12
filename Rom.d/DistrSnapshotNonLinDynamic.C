@@ -81,13 +81,16 @@ DistrSnapshotNonLinDynamicDetail::RawImpl::RawImpl(DecDomain *decDomain) :
 {
   if(decDomain->getDomain()->solInfo().statevectPodRom){
     stateSnapFile_ = new DistrBasisOutputFile(BasisFileId(fileInfo_, BasisId::STATE, BasisId::SNAPSHOTS), nodeCount(),
-                 snapBuffer_.globalNodeIndexBegin(), snapBuffer_.globalNodeIndexEnd(), structCom);}
+                 snapBuffer_.globalNodeIndexBegin(), snapBuffer_.globalNodeIndexEnd(), structCom,
+                 (geoSource->getCheckFileInfo()->lastRestartFile != 0));}
   if(decDomain->getDomain()->solInfo().velocvectPodRom){
     velocSnapFile_ = new DistrBasisOutputFile(BasisFileId(fileInfo_, BasisId::VELOCITY, BasisId::SNAPSHOTS), nodeCount(),
-                 snapBuffer_.globalNodeIndexBegin(), snapBuffer_.globalNodeIndexEnd(), structCom);}
+                 snapBuffer_.globalNodeIndexBegin(), snapBuffer_.globalNodeIndexEnd(), structCom,
+                 (geoSource->getCheckFileInfo()->lastRestartFile != 0));}
   if(decDomain->getDomain()->solInfo().accelvectPodRom){
     accelSnapFile_ = new DistrBasisOutputFile(BasisFileId(fileInfo_, BasisId::ACCELERATION, BasisId::SNAPSHOTS), nodeCount(),
-                 snapBuffer_.globalNodeIndexBegin(), snapBuffer_.globalNodeIndexEnd(), structCom);}
+                 snapBuffer_.globalNodeIndexBegin(), snapBuffer_.globalNodeIndexEnd(), structCom,
+                 (geoSource->getCheckFileInfo()->lastRestartFile != 0));}
 }
 
 void

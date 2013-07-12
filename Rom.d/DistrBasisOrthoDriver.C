@@ -96,7 +96,7 @@ DistrBasisOrthoDriver::solve() {
     DistrNodeDof6Buffer outputBuffer(masterMapping.masterNodeBegin(), masterMapping.masterNodeEnd());
     DistrBasisOutputFile outputFile(BasisFileId(fileInfo, workload, BasisId::POD),
                                     inputFile.nodeCount(), outputBuffer.globalNodeIndexBegin(), outputBuffer.globalNodeIndexEnd(),
-                                    comm_);
+                                    comm_, false);
 
     for (int iVec = 0; iVec < podVectorCount; ++iVec) {
       double * const vecBuffer = const_cast<double *>(solver.basisColBuffer(iVec));

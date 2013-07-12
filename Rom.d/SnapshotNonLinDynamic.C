@@ -18,6 +18,8 @@
 #include <algorithm>
 #include <memory>
 
+extern GeoSource * geoSource;
+
 namespace Rom {
 
 // Dummy class holding the implementation of SnapshotNonLinDynamic
@@ -201,7 +203,8 @@ SnapshotNonLinDynamicDetail::sttSnapImpl::sttSnapImpl(Domain * domain, BasisId::
   converter_(*domain->getCDSA()),
   snapBuffer_(dofSetNodeCount()),
   fileInfo_(),
-  stateSnapFile_(BasisFileId(fileInfo_, BasisId::STATE, level), dofSetNodeCount()),
+  stateSnapFile_(BasisFileId(fileInfo_, BasisId::STATE, level), dofSetNodeCount(),
+                 (geoSource->getCheckFileInfo()->lastRestartFile != 0)),
   timeStamp_(domain->solInfo().initialTime)
 {}
 
@@ -211,7 +214,8 @@ SnapshotNonLinDynamicDetail::velSnapImpl::velSnapImpl(SnapshotNonLinDynamic *par
   parent_(parent),
   vecNodeDof6Conversion_(*domain->getCDSA()),
   fileInfo_(),
-  velocitySnapFile_(BasisFileId(fileInfo_, BasisId::VELOCITY, BasisId::SNAPSHOTS), vecNodeDof6Conversion_)
+  velocitySnapFile_(BasisFileId(fileInfo_, BasisId::VELOCITY, BasisId::SNAPSHOTS), vecNodeDof6Conversion_,
+                    (geoSource->getCheckFileInfo()->lastRestartFile != 0))
 {}
 
 SnapshotNonLinDynamicDetail::accSnapImpl::accSnapImpl(SnapshotNonLinDynamic *parent, Domain *domain) :
@@ -220,7 +224,8 @@ SnapshotNonLinDynamicDetail::accSnapImpl::accSnapImpl(SnapshotNonLinDynamic *par
   parent_(parent),
   vecNodeDof6Conversion_(*domain->getCDSA()),
   fileInfo_(),
-  accelerationSnapFile_(BasisFileId(fileInfo_, BasisId::ACCELERATION, BasisId::SNAPSHOTS), vecNodeDof6Conversion_)
+  accelerationSnapFile_(BasisFileId(fileInfo_, BasisId::ACCELERATION, BasisId::SNAPSHOTS), vecNodeDof6Conversion_,
+                        (geoSource->getCheckFileInfo()->lastRestartFile != 0))
 {}
 
 SnapshotNonLinDynamicDetail::resSnapImpl::resSnapImpl(SnapshotNonLinDynamic *parent, Domain *domain) :
@@ -229,7 +234,8 @@ SnapshotNonLinDynamicDetail::resSnapImpl::resSnapImpl(SnapshotNonLinDynamic *par
   parent_(parent),
   vecNodeDof6Conversion_(*domain->getCDSA()),
   fileInfo_(),
-  residualSnapFile_(BasisFileId(fileInfo_, BasisId::RESIDUAL, BasisId::SNAPSHOTS), vecNodeDof6Conversion_)
+  residualSnapFile_(BasisFileId(fileInfo_, BasisId::RESIDUAL, BasisId::SNAPSHOTS), vecNodeDof6Conversion_,
+                    (geoSource->getCheckFileInfo()->lastRestartFile != 0))
 {}
 
 SnapshotNonLinDynamicDetail::jacSnapImpl::jacSnapImpl(SnapshotNonLinDynamic *parent, Domain * domain) :
@@ -238,7 +244,8 @@ SnapshotNonLinDynamicDetail::jacSnapImpl::jacSnapImpl(SnapshotNonLinDynamic *par
   parent_(parent),
   vecNodeDof6Conversion_(*domain->getCDSA()),
   fileInfo_(),
-  jacobianSnapFile_(BasisFileId(fileInfo_, BasisId::JACOBIAN, BasisId::SNAPSHOTS), vecNodeDof6Conversion_)
+  jacobianSnapFile_(BasisFileId(fileInfo_, BasisId::JACOBIAN, BasisId::SNAPSHOTS), vecNodeDof6Conversion_,
+                    (geoSource->getCheckFileInfo()->lastRestartFile != 0))
 {}
 
 SnapshotNonLinDynamicDetail::isvSnapImpl::isvSnapImpl(SnapshotNonLinDynamic *parent, Domain * domain) :

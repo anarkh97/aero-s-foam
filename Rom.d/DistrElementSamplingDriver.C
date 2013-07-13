@@ -80,20 +80,6 @@ DistrElementSamplingDriver::solve() {
   }
     filePrint(stderr,"\n");
 
-  double beta = domain->solInfo().newmarkBeta;
-
-  if(beta == 0.0) {
-    filePrint(stderr," ... Renormalizing Projection Basis ...\n");
-    DistrVecBasis normalizedBasis;
-    MDDynamMat * dummyDynOps = MultiDomainDynam::buildOps(1.0, 0.0, 0.0);
-
-    //normalized POD basis with respect to mass matrix
-    assert(dummyDynOps->M);
-    const GenSubDOp<double> &fullMass = *(dummyDynOps->M);
-    renormalized_basis(fullMass, podBasis, normalizedBasis);
-    podBasis = normalizedBasis;
-  }
-
   // Read state snapshots
   DistrVecBasis snapshots;
   std::vector<double> timeStamps;
@@ -250,6 +236,19 @@ DistrElementSamplingDriver::solve() {
     }
     filePrint(stderr,"\n");
     delete accelSnapshots;
+  }
+
+  double beta = domain->solInfo().newmarkBeta;
+  if(beta == 0.0) {
+    filePrint(stderr," ... Renormalizing Projection Basis ...\n");
+    DistrVecBasis normalizedBasis;
+    MDDynamMat * dummyDynOps = MultiDomainDynam::buildOps(1.0, 0.0, 0.0);
+
+    //normalized POD basis with respect to mass matrix
+    assert(dummyDynOps->M);
+    const GenSubDOp<double> &fullMass = *(dummyDynOps->M);
+    renormalized_basis(fullMass, podBasis, normalizedBasis);
+    podBasis = normalizedBasis;
   }
   
   SubElementSamplingDriver **subDrivers = new SubElementSamplingDriver * [decDomain->getNumSub()];

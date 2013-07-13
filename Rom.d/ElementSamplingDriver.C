@@ -321,20 +321,8 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcess() {
     }
   }
 
-  double beta = domain_->solInfo().newmarkBeta;
 
-  if(beta == 0.0) {
-     filePrint(stderr," ... Renormalizing Projection Basis ...\n");
-     VecBasis normalizedBasis;
-     DynamMat * dummyDynOps = SingleDomainDynamic::buildOps(1.0,0.0,0.0);
-    
-     assert(dummyDynOps->M);
-     const GenSparseMatrix<double> &fullMass = *(dummyDynOps->M);
-     renormalized_basis(fullMass, podBasis_, normalizedBasis);
-     podBasis_ = normalizedBasis;
-  }
-
-  // Read state snapshots
+// Read state snapshots
   VecBasis snapshots;
   {
     BasisInputStream in(BasisFileId(fileInfo, BasisId::STATE, BasisId::SNAPSHOTS), vecDofConversion);
@@ -357,10 +345,9 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcess() {
         skipCounter = 1;
         ++count;
       } else {
-        ++skipCounter;
+       ++skipCounter;
       }
     }
-
     assert(timeStamps_.size() == basisStateCount);
   }
 
@@ -463,6 +450,19 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcess() {
     }
     delete accelSnapshots;
   }
+
+  double beta = domain_->solInfo().newmarkBeta;
+  if(beta == 0.0) {
+     filePrint(stderr,"... Renormalizing Projection Basis ...\n");
+     VecBasis normalizedBasis;
+     DynamMat * dummyDynOps = SingleDomainDynamic::buildOps(1.0,0.0,0.0);
+
+     assert(dummyDynOps->M);
+     const GenSparseMatrix<double> &fullMass = *(dummyDynOps->M);
+     renormalized_basis(fullMass, podBasis_, normalizedBasis);
+     podBasis_.swap(normalizedBasis);
+  }
+
 }
 
 template<typename MatrixBufferType, typename SizeType>

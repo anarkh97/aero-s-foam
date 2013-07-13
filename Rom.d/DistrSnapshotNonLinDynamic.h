@@ -52,8 +52,8 @@ private:
   void saveMidTime(double t) { impl_->lastMidTimeIs(t); }
   void saveDelta(double dt) { impl_->lastDeltaIs(dt); }
   void saveStateSnapshot(const DistrGeomState &state) { impl_->stateSnapshotAdd(state); }
-  void saveVelocSnapshot(const DistrVector &veloc) { impl_->velocSnapshotAdd(veloc); }
-  void saveAccelSnapshot(const DistrVector &accel) { impl_->accelSnapshotAdd(accel); }
+  void saveVelocSnapshot(DistrGeomState &state, const DistrVector &veloc);
+  void saveAccelSnapshot(DistrGeomState &state, const DistrVector &accel);
  
   std::auto_ptr<Impl> impl_; 
 
@@ -85,8 +85,8 @@ public:
         dummy1, dummy2, dummy3, dummy4, acceleration, zeroRot);
     
     pbd->saveStateSnapshot(*geomState);
-    pbd->saveVelocSnapshot(velN);
-    pbd->saveAccelSnapshot(acceleration);
+    pbd->saveVelocSnapshot(*geomState, velN);
+    pbd->saveAccelSnapshot(*geomState, acceleration);
   }
 };
 

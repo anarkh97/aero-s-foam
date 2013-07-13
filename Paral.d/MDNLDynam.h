@@ -32,6 +32,7 @@ class DistFlExchanger;
 
 class MDNLDynamic 
 {
+  protected:
     Domain *domain;
     DecDomain  *decDomain;
     ParallelSolver *solver;

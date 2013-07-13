@@ -77,29 +77,29 @@ DistrExplicitSnapshotNonLinDynamic::computeExtForce2(SysState<DistrVector> &dist
 inline
 void
 handleDisplacement(Rom::DistrExplicitSnapshotNonLinDynamic &probDesc, DistrVector &d) {
- if(probDesc.collectState)
-  probDesc.stateSnapshotAdd(d);
+  if(probDesc.collectState)
+    probDesc.stateSnapshotAdd(d);
 }
 
 inline
 void
 handleAcceleration(Rom::DistrExplicitSnapshotNonLinDynamic &probDesc, DistrVector &d) {
   if(probDesc.collectAccel)
-   probDesc.accelerationSnapshotAdd(d);
+    probDesc.accelerationSnapshotAdd(d);
 }
 
 inline
 void
 handleVelocity(Rom::DistrExplicitSnapshotNonLinDynamic &probDesc, DistrVector &d) {
   if(probDesc.collectVeloc)
-   probDesc.velocitySnapshotAdd(d);
+    probDesc.velocitySnapshotAdd(d);
 }
 
 inline
 void
 handleForce(Rom::DistrExplicitSnapshotNonLinDynamic &probDesc, DistrVector &d) {
   if(probDesc.collectForce)
-   probDesc.forceSnapshotAdd(d);
+    probDesc.forceSnapshotAdd(d);
 }
 
 #endif /* ROM_DISTREXPLICITSNAPSHOTNONLINDYNAMIC_H */

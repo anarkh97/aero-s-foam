@@ -215,7 +215,7 @@ Domain::getElemFictitiousForce(int iele, GeomState &geomState, double *_f, FullS
         // V is either the convected angular velocity at t^{n+1/2} for FOM or ROM model II or model III,
         //   or the convected angular velocity at current snapshot after projection for explicit ROM "training"
         V << geomState[nodes[i]].v[3], geomState[nodes[i]].v[4], geomState[nodes[i]].v[5];
-        if(domain->solInfo().galerkinPodRom) { // ROM
+        if(domain->solInfo().galerkinPodRom /* || domain->solInfo().samplingPodRom*/) { // TODO galerkinPodRom is false in element sampling 
           mat_to_vec(R, Psi);
           tangential_transf(Psi, T);
           Eigen::Vector3d Psidot;

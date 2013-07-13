@@ -145,7 +145,11 @@ Domain::getWeightedInternalForceOnly(const std::map<int, double> &weights,
     }
   }
 
-  getFollowerForce(geomState, elementForce, corotators, (FullSquareMatrix *) NULL, residual, lambda, time, refState, NULL, false);
+  if(domain->solInfo().reduceFollower){
+     getWeightedFollowerForce(weights, geomState, elementForce, corotators, (FullSquareMatrix *) NULL, residual, lambda, time, refState, NULL, false);
+  } else {
+     getFollowerForce(geomState, elementForce, corotators, (FullSquareMatrix *) NULL, residual, lambda, time, refState, NULL, false);
+  }
 
   if(sinfo.isDynam() && mel) getWeightedFictitiousForceOnly(weights, geomState, elementForce, kel, residual, time, refState, NULL, mel, false);
 }
@@ -215,7 +219,7 @@ Domain::getElemFictitiousForce(int iele, GeomState &geomState, double *_f, FullS
         // V is either the convected angular velocity at t^{n+1/2} for FOM or ROM model II or model III,
         //   or the convected angular velocity at current snapshot after projection for explicit ROM "training"
         V << geomState[nodes[i]].v[3], geomState[nodes[i]].v[4], geomState[nodes[i]].v[5];
-        if(domain->solInfo().galerkinPodRom /* || domain->solInfo().samplingPodRom*/) { // TODO galerkinPodRom is false in element sampling 
+        if(domain->solInfo().galerkinPodRom || domain->solInfo().samplingPodRom) {
           mat_to_vec(R, Psi);
           tangential_transf(Psi, T);
           Eigen::Vector3d Psidot;
@@ -360,7 +364,7 @@ Domain::getDMassFictitiousForce(GeomState &geomState, FullSquareMatrix *kel, Vec
         // V is either the convected angular velocity at t^{n+1/2} for FOM or ROM model II or model III,
         //   or the convected angular velocity at current snapshot after projection for explicit ROM "training"
           V << geomState[current->node].v[3], geomState[current->node].v[4], geomState[current->node].v[5];
-          if(domain->solInfo().galerkinPodRom) {
+          if(domain->solInfo().galerkinPodRom || domain->solInfo().samplingPodRom) {
             mat_to_vec(R, Psi);
             tangential_transf(Psi, T);
             Eigen::Vector3d Psidot;

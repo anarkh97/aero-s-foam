@@ -124,7 +124,8 @@ DistrExplicitLumpedPodProjectionNonLinDynamic::subBuildPackedElementWeights(int 
   std::map<int, double> &subElementWeights = packedElementWeights_[iSub];
 
   std::vector<int> &subWeightedNodes = packedWeightedNodes_[iSub];
-
+  
+  int elemCounter = 0;
   for (GeoSource::ElementWeightMap::const_iterator it = geoSource->elementLumpingWeightBegin(),
                                                    it_end = geoSource->elementLumpingWeightEnd();
                                                    it != it_end; ++it) {
@@ -143,8 +144,15 @@ DistrExplicitLumpedPodProjectionNonLinDynamic::subBuildPackedElementWeights(int 
       //put nodes for weighted element into dummy vector and insert into packed node vector
       ele->nodes(node_buffer.data());
       subWeightedNodes.insert(subWeightedNodes.end(), node_buffer.begin(), node_buffer.end());
+      ++elemCounter;
     }
   }
+
+  if(structCom)
+  structCom->globalSum(4,&elemCounter);
+
+  filePrint(stderr," %d Elements in Reduced Mesh\n",elemCounter);
+  
   //sort nodes in ascending order and erase redundant nodes
   std::sort(subWeightedNodes.begin(), subWeightedNodes.end());
   std::vector<int>::iterator packedNodeIt = std::unique(subWeightedNodes.begin(),subWeightedNodes.end());

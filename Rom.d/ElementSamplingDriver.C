@@ -153,6 +153,11 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::assembleTrainingData(const Vec
                                             (*veloc)[iSnap], 2); // just set the acceleration at the nodes of element iElem
       // Evaluate and store element contribution at training configuration
       domain_->getElemInternalForce(*geomState_, *timeStampIt, geomState_, *(corotators_[iElem]), elementForce.array(), kelArray_[iElem]);
+   
+      if(domain_->solInfo().reduceFollower)
+        domain_->getElemFollowerForce(iElem, *geomState_, elementForce.array(), elementForce.size(), *(corotators_[iElem]), kelArray_[iElem],
+                                      1.0, *timeStampIt, false);
+
       if(domain_->getElementSet()[iElem]->hasRot()) {
         domain_->transformElemStiffAndForce(*geomState_, elementForce.array(), kelArray_[iElem], iElem, false);
         domain_->getElemFictitiousForce(iElem, *geomState_, elementForce.array(), kelArray_[iElem],
@@ -176,9 +181,9 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::assembleTrainingData(const Vec
         elemContributions++;
         trainingTarget[podVectorCount * iSnap + iPod] += elemTarget[iPod];
       }
+      timeStampIt++;
     }
     delete [] nodes;
-    timeStampIt++;
   }
   filePrint(stderr,"\r %4.2f%% complete\n", 100.);
 }
@@ -345,10 +350,9 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcess() {
         skipCounter = 1;
         ++count;
       } else {
-        ++skipCounter;
+       ++skipCounter;
       }
     }
-
     assert(timeStamps_.size() == basisStateCount);
   }
 

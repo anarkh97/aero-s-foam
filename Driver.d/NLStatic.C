@@ -391,6 +391,40 @@ Domain::getFollowerForce(GeomState &geomState, Vector& elementForce,
   }
 }
 
+void
+Domain::getElemFollowerForce( int iele, GeomState &geomState, double *_f, int bufSize,
+                         Corotator &corotators, FullSquareMatrix &kel2,
+                         double loadFactor, double time,
+                         bool compute_tangents){
+   Vector elementForceBuf(_f,bufSize,false);
+   if(domain->pressureFlag()) {
+    double p0;
+    if((p0 = packedEset[iele]->getPressure()) != 0){
+      Vector elementForce(bufSize);
+      elementForce.zero();
+  
+      // Compute (linear) element pressure force in the local coordinates
+      packedEset[iele]->setPressure(p0*loadFactor, domain->getMFTT(), sinfo.ConwepOnOff);
+      packedEset[iele]->computePressureForce(nodes, elementForce, &geomState, 1, time);
+      packedEset[iele]->setPressure(p0, domain->getMFTT(), sinfo.ConwepOnOff);
+      // Include the "load stiffness matrix" in kel[iele]
+      if(compute_tangents) {
+
+        FullSquareMatrix elementLoadStiffnessMatrix(kel2.dim());
+        elementLoadStiffnessMatrix.zero();
+        corotators.getDExternalForceDu(geomState, nodes, elementLoadStiffnessMatrix,
+                                              elementForce.data());
+        for(int i=0; i<kel2.dim(); ++i)
+          for(int j=0; j<kel2.dim(); ++j)
+            kel2[i][j] += elementLoadStiffnessMatrix[i][j];
+      }
+
+      // Determine the elemental force for the corrotated system
+      corotators.getExternalForce(geomState, nodes, elementForce.data());
+      elementForceBuf += elementForce;
+    }
+   }
+}
 
 void
 Domain::getWeightedFollowerForce(const std::map<int, double> &weights,

@@ -4050,6 +4050,8 @@ SamplingOption:
   { domain->solInfo().maxSizePodRom = $2; }
   | OUTOFCORE SWITCH
   { domain->solInfo().oocPodRom = bool($2); }
+  | REDFOL SWITCH
+  { domain->solInfo().reduceFollower = bool($2); }
   ;
 
 ConversionToken:

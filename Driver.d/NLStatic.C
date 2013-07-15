@@ -139,16 +139,19 @@ Domain::getFollowerForce(GeomState &geomState, Vector& elementForce,
     for(int iele = 0; iele < numele;  ++iele) {
 
       elementForce.zero();
-      FullSquareMatrix kel2(kel[iele].dim());
-      kel2.zero();
 
-      getElemFollowerForce( iele, geomState, elementForce.data(), elementForce.size(),
+      if(compute_tangents) {
+        FullSquareMatrix kel2(kel[iele].dim());
+        kel2.zero();
+
+        getElemFollowerForce( iele, geomState, elementForce.data(), elementForce.size(),
                          *(corotators[iele]), kel2, loadFactor,  time, compute_tangents);
 
       // Include the "load stiffness matrix" in kel[iele]
-      if(compute_tangents) {
         kel[iele] += kel2;
-      }
+      } else {
+         getElemFollowerForce( iele, geomState, elementForce.data(), elementForce.size(),
+                         *(corotators[iele]), kel[iele], loadFactor,  time, compute_tangents);}
 
       // Assemble element pressure forces into residual force vector
       for(int idof = 0; idof < packedEset[iele]->numDofs(); ++idof) {
@@ -432,17 +435,20 @@ Domain::getWeightedFollowerForce(const std::map<int, double> &weights,
      const double lumpingWeight = it->second;
      
      elementForce.zero();
-     FullSquareMatrix kel2(kel[iele].dim());
-     kel2.zero();
+     if(compute_tangents){
+       FullSquareMatrix kel2(kel[iele].dim());
+       kel2.zero();
 
-     getElemFollowerForce( iele, geomState, elementForce.data(), elementForce.size(),
+       getElemFollowerForce( iele, geomState, elementForce.data(), elementForce.size(),
                          *(corotators[iele]), kel2, loadFactor,  time, compute_tangents);
 
       // Include the "load stiffness matrix" in kel[iele]
-      if(compute_tangents) {
         kel2 *= lumpingWeight;
         kel[iele] += kel2;
-      }
+     } else {
+    
+        getElemFollowerForce( iele, geomState, elementForce.data(), elementForce.size(),
+                         *(corotators[iele]), kel[iele], loadFactor,  time, compute_tangents);}
 
       elementForce *= lumpingWeight;
 

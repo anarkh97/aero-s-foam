@@ -142,7 +142,7 @@ extern const char* solverTypeMessage[];
 // ... main program
 
 #ifdef CREATE_DSO
-extern "C"
+//extern "C"
 int entrypoint(int argc, char** argv)
 #else
 int main(int argc, char** argv)

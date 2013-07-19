@@ -59,7 +59,7 @@
 *       External Functions ...
 *       ----------------------
         REAL                ETIME
-        INTRINSIC           ETIME
+        EXTERNAL            ETIME
 *
 ************************************************************************
 *

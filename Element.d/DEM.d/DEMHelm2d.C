@@ -19,9 +19,9 @@ public:
  HelmDGMELMatrixFunction(double _kappa,
                       int _ndir, complex<double> *_dirs,
                       int _nldir, complex<double> *_ldirs, double *_xsc, double *_xc,
-                      complex<double> *_L, int _fi) {
+                      complex<double> *__L, int _fi) {
    kappa = _kappa; ndir = _ndir; dirs = _dirs; nldir = _nldir; ldirs = _ldirs;
-   L = _L; fi = _fi; xsc = _xsc; xc = _xc;
+   L = __L; fi = _fi; xsc = _xsc; xc = _xc;
  }
  void evaluate(double *x, double *N, double *cross, double nsign, double w) {
   
@@ -289,10 +289,10 @@ public:
                       int _ndir, complex<double> *_dirs,
                       int _nldir, complex<double> *_ldirs,
                       double *_xsc, double *_xc,
-                      complex<double> *_L, int _fi) {
+                      complex<double> *__L, int _fi) {
    pmldata = _pmldata;
    ndir = _ndir; dirs = _dirs; nldir = _nldir; ldirs = _ldirs;
-   L = _L; fi = _fi; xsc = _xsc; xc = _xc;
+   L = __L; fi = _fi; xsc = _xsc; xc = _xc;
  }
  void evaluate(double *x, double *N, double *cross, double nsign, double w) {
 
@@ -1157,9 +1157,9 @@ class HelmPLMatrixFunction : public IntegFunctionL2d {
 public:
  HelmPLMatrixFunction(int _o, double _kappa,
                       int _nldir, complex<double> *_ldirs, double *_xsc,
-                      complex<double> *_L, int _fi) {
+                      complex<double> *__L, int _fi) {
    o= _o; kappa = _kappa; nldir = _nldir; ldirs = _ldirs;
-   L = _L; fi = _fi; xsc = _xsc;
+   L = __L; fi = _fi; xsc = _xsc;
  }
  void evaluate(double *x, double *N, double *cross, double nsign, double w) {
   

@@ -110,18 +110,35 @@ BasisOrthoDriver::solve() {
 
     {
       BasisInputStream input(BasisFileId(fileInfo, type, BasisId::SNAPSHOTS), converter);
-      filePrint(stderr, " ... Computation of a basis of size %d...\n", input.size());
+
+      int skipTime = domain->solInfo().skipPodRom;
+      int size = input.size()/skipTime; 
+
+      filePrint(stderr, " ... Orthogonalization of a basis with %d vectors ...\n", input.size());
       
       solver.matrixSizeIs(input.vectorSize(), input.size());
 
-      int iCol = 0;
-      for (int iCol = 0; iCol < solver.colCount(); ++iCol) {
-        double *buffer = solver.matrixCol(iCol);
-        input >> buffer;
-        assert(input);
+      int skip = 1;
+      int counter = 0;
+      for (int iCol = 0; iCol < input.size(); ++iCol) {
+        if(skip == skipTime) {
+          double *buffer = solver.matrixCol(counter);
+          input >> buffer;
+          assert(input);
         if(domain->solInfo().normalize ==1) fullMass->squareRootMult(buffer); //executes for new method
-        (*transform)(buffer);
+          (*transform)(buffer);
+          skip = 1;
+          ++counter;
+       } else {
+          SimpleBuffer<double> dummyVec;
+          dummyVec.sizeIs(size*input.vectorSize());
+          double *dummyBuffer = dummyVec.array();
+          input >> dummyBuffer;
+          assert(input);
+          ++skip;
+       }
       }
+
     }
     solver.solve();
 

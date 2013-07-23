@@ -147,7 +147,6 @@ int entrypoint(int argc, char** argv)
 int main(int argc, char** argv)
 #endif
 {
-  std::cerr << "Hello from Aero-S entrypoint !\n";
 #ifdef __GNUC__
 //  std::set_new_handler(&print_trace_handler);
 #endif

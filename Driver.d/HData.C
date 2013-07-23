@@ -2029,11 +2029,11 @@ HData::addNeumElem(int num, int etype, double sommerConst, int nnodes, int*n)
        break;
 #endif
      case 15:
-       ele = new TrianglePressureBC(n, sommerConst, ConwepOnOff);
+       ele = new TrianglePressureBC(n, sommerConst, domain->solInfo().ConwepOnOff);
        addNeum(ele);
        break;
      case 16:
-       ele = new QuadPressureBC(n, sommerConst, ConwepOnOff);
+       ele = new QuadPressureBC(n, sommerConst, domain->solInfo().ConwepOnOff);
        addNeum(ele);
        break;
 #if defined(USE_EIGEN3) && (__cplusplus >= 201103L) && defined(HAS_CXX11_TEMPLATE_ALIAS)

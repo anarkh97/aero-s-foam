@@ -108,7 +108,6 @@ renormalized_basis(const GenSubDOp<Scalar> &metric, const GenVecBasis<Scalar, Ge
       normalMatrix[row][col] = dot_ignore_master_flag(dual, basis[col]);
     }
   }
-
   cholesky_factor_lower(normalMatrix); // normalMatrix <- R where A = R * R^T
   inverse_triangular_lower(normalMatrix); // normalMatrix <- R^{-1}
 

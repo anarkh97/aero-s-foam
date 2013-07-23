@@ -51,7 +51,7 @@ FileNameInfo::basisFileName(const BasisId &id) const {
         builder << domain->solInfo().isvPodRomFile;}
   else if(id.level() == 1) {
         builder << domain->solInfo().readInROBorModes;}
-     }
+    }
 
   std::string mystrg;
   mystrg = builder.str();

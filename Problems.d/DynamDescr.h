@@ -67,6 +67,7 @@ class SDDynamPostProcessor {
 
 class SingleDomainDynamic 
 {
+  protected:
     Domain *domain;
     int    *bc;
     double *bcx;	// displacement bc values

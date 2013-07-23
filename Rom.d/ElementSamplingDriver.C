@@ -63,7 +63,7 @@ getMeshFilename(const FileNameInfo &fileInfo) {
 
 void
 outputMeshFile(const FileNameInfo &fileInfo, const MeshDesc &mesh, bool firstTime) {
-  const std::ios_base::openmode mode = (firstTime) ? std::ios_base::out : std::ios_base::app;  //out = standard output, app = append
+  const std::ios_base::openmode mode = (firstTime) ? std::ios_base::out : std::ios_base::app; 
   std::ofstream meshOut(getMeshFilename(fileInfo).c_str(), mode);
   meshOut << mesh;
 }
@@ -311,6 +311,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcess() {
   const VecNodeDof6Conversion vecDofConversion(*domain_->getCDSA());
   assert(vectorSize() == vecDofConversion.vectorSize());
 
+  //Read in non-normalized basis
   {
     BasisInputStream in(BasisFileId(fileInfo, BasisId::STATE, BasisId::POD), vecDofConversion);
     const int podSizeMax = domain_->solInfo().maxSizePodRom;
@@ -319,19 +320,6 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcess() {
     } else {
       readVectors(in, podBasis_);
     }
-  }
-
-  double beta = domain_->solInfo().newmarkBeta;
-
-  if(beta == 0.0) {
-     filePrint(stderr," ... Renormalizing Projection Basis ...\n");
-     VecBasis normalizedBasis;
-     DynamMat * dummyDynOps = SingleDomainDynamic::buildOps(1.0,0.0,0.0);
-    
-     assert(dummyDynOps->M);
-     const GenSparseMatrix<double> &fullMass = *(dummyDynOps->M);
-     renormalized_basis(fullMass, podBasis_, normalizedBasis);
-     podBasis_ = normalizedBasis;
   }
 
   // Read state snapshots
@@ -431,6 +419,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcess() {
     assert(timeStamps.size() == basisStateCount);
     // TODO: check that timeStamps for acceleration snapshots match state snapshots
   }
+  
 
   const int podVectorCount = podBasis_.vectorCount();
   const int snapshotCount = snapshots.vectorCount();
@@ -463,6 +452,23 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcess() {
     }
     delete accelSnapshots;
   }
+
+  //Read in normalized basis if explicit
+  if(domain_->solInfo().newmarkBeta == 0){
+    {
+      std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
+      fileName.append(".normalized");
+      BasisInputStream in(fileName, vecDofConversion) ;
+      VecBasis normalizedBasis ;
+      const int podSizeMax = domain_->solInfo().maxSizePodRom;
+      if(podSizeMax != 0){
+        readVectors(in, normalizedBasis, podSizeMax);
+      } else {
+        readVectors(in, normalizedBasis);
+      }
+      podBasis_.swap(normalizedBasis);
+    }
+  } 
 }
 
 template<typename MatrixBufferType, typename SizeType>

@@ -7,7 +7,7 @@ class Communicator;
 
 namespace Rom {
 
-class DistrBasisOrthoDriver : public DriverInterface {
+class DistrBasisOrthoDriver : public MultiDomainDynam, public DriverInterface {
 public:
   virtual void solve();
   

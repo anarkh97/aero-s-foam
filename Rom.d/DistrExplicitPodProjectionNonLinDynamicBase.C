@@ -137,7 +137,7 @@ DistrExplicitPodPostProcessor *
 DistrExplicitPodProjectionNonLinDynamicBase::getPostProcessor() {
 
    mddPostPro = new DistrExplicitPodPostProcessor(decDomain, times, geomState, allCorot);
-   mddPostPro->printPODSize(projectionBasis_.numVectors());
+   mddPostPro->printPODSize(normalizedBasis_.numVectors());
 
    return mddPostPro;
 
@@ -153,14 +153,17 @@ DistrExplicitPodProjectionNonLinDynamicBase::preProcess() {
   {MultiDomainDynam::preProcess();
   //preProcessing for reduced order basis/////////////////////////////////////////////////
   FileNameInfo fileInfo; 
-  DistrBasisInputFile podBasisFile(BasisFileId(fileInfo, BasisId::STATE, BasisId::POD));
+  std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
+  if(domain->solInfo().normalize == 0){fileName.append(".normalized"); std::cout << "here\n"; }
 
+  DistrBasisInputFile BasisFile(fileName);
+  std::cerr << "Opening file " << fileName << "\n" ;
   const int projectionSubspaceSize = domain->solInfo().maxSizePodRom ?
-                                     std::min(domain->solInfo().maxSizePodRom, podBasisFile.stateCount()) :
-                                     podBasisFile.stateCount();
+                                     std::min(domain->solInfo().maxSizePodRom, BasisFile.stateCount()) :
+                                     BasisFile.stateCount();
 
   filePrint(stderr, " ... Projection subspace of dimension = %d ...\n", projectionSubspaceSize);
-  projectionBasis_.dimensionIs(projectionSubspaceSize, decDomain->masterSolVecInfo());
+  normalizedBasis_.dimensionIs(projectionSubspaceSize, decDomain->masterSolVecInfo()); 
 
   DistrVecNodeDof6Conversion converter(decDomain->getAllSubDomains(), decDomain->getAllSubDomains() + decDomain->getNumSub());
   
@@ -169,16 +172,17 @@ DistrExplicitPodProjectionNonLinDynamicBase::preProcess() {
                                    SubDomIt(decDomain->getAllSubDomains() + decDomain->getNumSub()));
   DistrNodeDof6Buffer buffer(masterMapping.localNodeBegin(), masterMapping.localNodeEnd());
 
-  for (DistrVecBasis::iterator it = projectionBasis_.begin(),
-                               it_end = projectionBasis_.end();
+  for (DistrVecBasis::iterator it = normalizedBasis_.begin(),
+                               it_end = normalizedBasis_.end();
                                it != it_end; ++it) {
-    assert(podBasisFile.validCurrentState());
+    assert(BasisFile.validCurrentState());
 
-    podBasisFile.currentStateBuffer(buffer);
+    BasisFile.currentStateBuffer(buffer);
     converter.vector(buffer, *it);
     
-    podBasisFile.currentStateIndexInc();
+    BasisFile.currentStateIndexInc();
   }}
+  std::cerr << "read in file \n " ;
 
   ///////////////////////////////////////////////////////////////////////////////////////
 
@@ -188,7 +192,7 @@ DistrExplicitPodProjectionNonLinDynamicBase::preProcess() {
   reducedInfo.numDom = MultiDomainDynam::solVecInfo().numDom;
   int totLen = 0;
   for(int iSub = 0; iSub < MultiDomainDynam::solVecInfo().numDom; ++iSub) {
-    reducedInfo.domLen[iSub] = projectionBasis_.numVec();
+    reducedInfo.domLen[iSub] = normalizedBasis_.numVec();
     totLen += reducedInfo.domLen[iSub];
   }
 
@@ -243,13 +247,13 @@ DistrExplicitPodProjectionNonLinDynamicBase::getInitState(SysState<DistrVector> 
   DistrVector &_a_n = _curState.getAccel();
   DistrVector &_v_p = _curState.getPrevVeloc();
 
-  //this projection doesn't do anything since the projectionBasis_ isn't initialized yet
+  //this projection doesn't do anything since the normalizedBasis_ isn't initialized yet
   //this only matters if we have a case where the initial conditions are other than 0
   //need to fixe this if we want to use resart
-  projectionBasis_.projectDown( *d_n, _d_n);
-  projectionBasis_.projectDown( *v_n, _v_n);
-  projectionBasis_.projectDown( *a_n, _a_n);
-  projectionBasis_.projectDown( *v_p, _v_p);
+  normalizedBasis_.projectDown( *d_n, _d_n);
+  normalizedBasis_.projectDown( *v_n, _v_n);
+  normalizedBasis_.projectDown( *a_n, _a_n);
+  normalizedBasis_.projectDown( *v_p, _v_p);
 }
 
 void 
@@ -317,10 +321,10 @@ DistrExplicitPodProjectionNonLinDynamicBase::computeExtForce2(SysState<DistrVect
 MDDynamMat *
 DistrExplicitPodProjectionNonLinDynamicBase::buildOps(double mCoef, double cCoef, double kCoef) {
   MDDynamMat *result = MultiDomainDynam::buildOps(mCoef, cCoef, kCoef);
-  assert(result->M);
+  //assert(result->M);
 
-  const GenSubDOp<double> &fullMass = *(result->M);
-  renormalized_basis(fullMass, projectionBasis_, normalizedBasis_);
+  //const GenSubDOp<double> &fullMass = *(result->M);
+  //renormalized_basis(fullMass, normalizedBasis_, normalizedBasis_);
 
   std::auto_ptr<DistrGalerkinProjectionSolver> solver(new DistrGalerkinProjectionSolver(normalizedBasis_));
 

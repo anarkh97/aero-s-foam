@@ -40,9 +40,8 @@ DistrElementSamplingDriver::DistrElementSamplingDriver(Domain *domain, Communica
 
 void
 DistrElementSamplingDriver::solve() {
-/*
-  decDomain->preProcess();
-*/
+  //decDomain->preProcess();
+  
   MultiDomainDynam::preProcess();
 
   FileNameInfo fileInfo;
@@ -64,7 +63,6 @@ DistrElementSamplingDriver::solve() {
   DistrMasterMapping masterMapping(SubDomIt(decDomain->getAllSubDomains()),
                                    SubDomIt(decDomain->getAllSubDomains() + decDomain->getNumSub()));
   DistrNodeDof6Buffer buffer(masterMapping.localNodeBegin(), masterMapping.localNodeEnd());
-
   int counter = 0;
   for (DistrVecBasis::iterator it = podBasis.begin(),
                                it_end = podBasis.end();
@@ -79,20 +77,6 @@ DistrElementSamplingDriver::solve() {
     filePrint(stderr,"\r %4.2f%% complete", double(counter)/double(projectionSubspaceSize)*100.);
   }
     filePrint(stderr,"\n");
-
-  double beta = domain->solInfo().newmarkBeta;
-
-  if(beta == 0.0) {
-    filePrint(stderr," ... Renormalizing Projection Basis ...\n");
-    DistrVecBasis normalizedBasis;
-    MDDynamMat * dummyDynOps = MultiDomainDynam::buildOps(1.0, 0.0, 0.0);
-
-    //normalized POD basis with respect to mass matrix
-    assert(dummyDynOps->M);
-    const GenSubDOp<double> &fullMass = *(dummyDynOps->M);
-    renormalized_basis(fullMass, podBasis, normalizedBasis);
-    podBasis = normalizedBasis;
-  }
 
   // Read state snapshots
   DistrVecBasis snapshots;
@@ -250,6 +234,23 @@ DistrElementSamplingDriver::solve() {
     }
     filePrint(stderr,"\n");
     delete accelSnapshots;
+  }
+
+  //Projections complete so read in normalized basis
+  if(domain->solInfo().newmarkBeta == 0){
+    std::string normalizedBasisFileName = BasisFileId(fileInfo,BasisId::STATE,BasisId::POD);
+    normalizedBasisFileName.append(".normalized");
+    std::cerr << "Reading in normalized basis from: " << normalizedBasisFileName << "\n" ;
+    DistrBasisInputFile normalizedBasisFile(normalizedBasisFileName);
+    DistrVecBasis normalizedBasis;
+    normalizedBasis.dimensionIs(projectionSubspaceSize,vectorSize());
+    for(DistrVecBasis::iterator it = normalizedBasis.begin(), it_end = normalizedBasis.end(); it != it_end; ++it){
+      assert(normalizedBasisFile.validCurrentState());
+      normalizedBasisFile.currentStateBuffer(buffer);
+      converter.vector(buffer, *it);
+      normalizedBasisFile.currentStateIndexInc();
+    }
+    podBasis = normalizedBasis;
   }
   
   SubElementSamplingDriver **subDrivers = new SubElementSamplingDriver * [decDomain->getNumSub()];

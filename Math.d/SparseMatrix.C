@@ -177,6 +177,21 @@ GenSparseMatrix<Scalar>::multSubtract(const Scalar *rhs, Scalar *result)
  fprintf(stderr,"GenSparseMatrix<Scalar>::multSubtract(const Scalar *rhs, Scalar *result) not implemented\n");
 }
 
+
+template<class Scalar> 
+void
+GenSparseMatrix<Scalar>::squareRootMult(Scalar *result)
+{
+ fprintf(stderr,"GenSparseMatrix<Scalar>::squareRootMult(Scalar *result) not implemented\n");
+}
+
+template<class Scalar> 
+void
+GenSparseMatrix<Scalar>::inverseSquareRootMult(Scalar *result)
+{
+ fprintf(stderr,"GenSparseMatrix<Scalar>::inverseSquareRootMult(Scalar *result) not implemented\n");
+}
+
 template<class Scalar>
 void 
 GenSparseMatrix<Scalar>::transposeMult(const GenVector<Scalar> & rhs, GenVector<Scalar> & result)

@@ -54,8 +54,7 @@ public:
 protected:
   Domain        *domain;
   DistrInfo      reducedInfo;
-  DistrVecBasis  projectionBasis_;
-  GenVecBasis<double, GenDistrVector> normalizedBasis_;
+  DistrVecBasis  normalizedBasis_;
   //dummy Variables to fascillitate computation on Reduced Coordinates
   StaticTimers * times;
   DistrVector  * fExt;

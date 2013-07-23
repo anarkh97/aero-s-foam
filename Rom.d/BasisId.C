@@ -10,7 +10,7 @@ toString(BasisId::Type t) {
 
 std::string
 toString(BasisId::Level l) {
-  static const std::string str[] = { "snap", "pod" };
+  static const std::string str[] = { "snap", "pod" ,};
   return str[l];
 }
 

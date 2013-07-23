@@ -304,6 +304,7 @@ struct SolverInfo {
    bool elemLumpPodRom;
    bool onlineSvdPodRom;
    int  maxSizePodRom;
+   int  normalize;
    bool substractRefPodRom;
    int  skipPodRom;
    int  skipOffSet;
@@ -554,6 +555,7 @@ struct SolverInfo {
                   elemLumpPodRom     = false;
                   onlineSvdPodRom    = false;
                   maxSizePodRom      = 0;
+		  normalize          = 0;
                   substractRefPodRom = false;
                   skipPodRom         = 1;
                   skipOffSet         = 0;

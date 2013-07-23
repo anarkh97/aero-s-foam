@@ -60,51 +60,57 @@ RefSubstraction<VecType>::RefSubstraction(const Domain *domain) :
 } // end anonymous namespace
 
 BasisOrthoDriver::BasisOrthoDriver(Domain *domain) :
-  domain_(domain)
+  SingleDomainDynamic(domain)
 {}
 
 void
 BasisOrthoDriver::solve() {
-  preProcess();
- 
-  VecNodeDof6Conversion converter(*domain_->getCDSA());
-  FileNameInfo fileInfo;
+  //preProcess() ;
+  SingleDomainDynamic::preProcess();
+  VecNodeDof6Conversion converter(*domain->getCDSA()) ;
+  FileNameInfo fileInfo ;
   SvdOrthogonalization solver;
 
-  std::vector<BasisId::Type> workload;
-
-       if(domain_->solInfo().statevectPodRom) {
+  std::vector<BasisId::Type> workload ;
+       
+  if(domain->solInfo().statevectPodRom) {
 	workload.push_back(BasisId::STATE);
         fprintf(stderr," ... For State SVD, workload size = %zd ...\n", workload.size());}
-  else if(domain_->solInfo().residvectPodRom) {
+  else if(domain->solInfo().residvectPodRom) {
 	workload.push_back(BasisId::RESIDUAL);
 	fprintf(stderr," ... For Residual SVD, workload size = %zd ...\n", workload.size());}
-  else if(domain_->solInfo().jacobvectPodRom) {
+  else if(domain->solInfo().jacobvectPodRom) {
         workload.push_back(BasisId::JACOBIAN);
 	fprintf(stderr," ... For Jacobian SVD, workload size = %zd ...\n", workload.size());}
-  else if(domain_->solInfo().forcevectPodRom) {
+  else if(domain->solInfo().forcevectPodRom) {
         workload.push_back(BasisId::FORCE);
 	fprintf(stderr," ... For Force SVD, workload size = %zd ...\n", workload.size());}
-  else if(domain_->solInfo().accelvectPodRom) {
+  else if(domain->solInfo().accelvectPodRom) {
         workload.push_back(BasisId::ACCELERATION);
 	fprintf(stderr," ... For Acceleration SVD, workload size = %zd ...\n", workload.size());}
-  else if(domain_->solInfo().velocvectPodRom) {
+  else if(domain->solInfo().velocvectPodRom) {
         workload.push_back(BasisId::VELOCITY);
         fprintf(stderr," ... For Velocity SVD, workload size = %zd ...\n", workload.size());}
   else { workload.push_back(BasisId::STATE);
 	fprintf(stderr," ... For default SVD, workload size = %zd ...\n", workload.size());}
 
   typedef VectorTransform<double *> VecTrans;
-  std::auto_ptr<VecTrans> transform(domain_->solInfo().substractRefPodRom ?
-                                    static_cast<VecTrans *>(new RefSubstraction<double *>(domain_)) :
+  std::auto_ptr<VecTrans> transform(domain->solInfo().substractRefPodRom ?
+                                    static_cast<VecTrans *>(new RefSubstraction<double *>(domain)) :
                                     static_cast<VecTrans *>(new NoOp<double *>));
+  //Checking flags
+  double beta = domain->solInfo().newmarkBeta;
+  //Assembling mass matrix
+  DynamMat * dummyDynOps = SingleDomainDynamic::buildOps(1.0,0.0,0.0) ;
+  assert(dummyDynOps->M);
+  GenSparseMatrix<double> *fullMass = dummyDynOps->M;
 
   for (std::vector<BasisId::Type>::const_iterator it = workload.begin(); it != workload.end(); ++it) {
     BasisId::Type type = *it;
 
     {
       BasisInputStream input(BasisFileId(fileInfo, type, BasisId::SNAPSHOTS), converter);
-      filePrint(stderr, " ... Orthogonalization of a basis with %d vectors ...\n", input.size());
+      filePrint(stderr, " ... Computation of a basis of size %d...\n", input.size());
       
       solver.matrixSizeIs(input.vectorSize(), input.size());
 
@@ -113,34 +119,67 @@ BasisOrthoDriver::solve() {
         double *buffer = solver.matrixCol(iCol);
         input >> buffer;
         assert(input);
+        if(domain->solInfo().normalize ==1) fullMass->squareRootMult(buffer); //executes for new method
         (*transform)(buffer);
       }
     }
-
     solver.solve();
 
-    BasisOutputStream output(BasisFileId(fileInfo, type, BasisId::POD), converter, false);
+    BasisOutputStream output(BasisFileId(fileInfo, type, BasisId::POD), converter, false); 
+
     const int orthoBasisDim = domain->solInfo().maxSizePodRom ?
                               std::min(domain->solInfo().maxSizePodRom, solver.singularValueCount()) :
                               solver.singularValueCount();
 
+    //Output solution
     for (int iVec = 0; iVec < orthoBasisDim; ++iVec) {
       output << std::make_pair(solver.singularValue(iVec), solver.matrixCol(iVec));
     }
+
+    //Check if explicit
+    if(beta == 0 ) {
+      //Read back in solution to renormalize basis
+      VecBasis basis;
+      //Read back in basis information
+      BasisInputStream in(BasisFileId(fileInfo, BasisId::STATE, BasisId::POD), converter);
+      readVectors(in, basis);
+
+      VecBasis normalizedBasis;
+      //Check renormalize tag
+      if(domain->solInfo().normalize == 0){
+        renormalized_basis(*fullMass, basis, normalizedBasis) ;
+      }
+      if(domain->solInfo().normalize == 1){
+        for(int col = 0 ; col < orthoBasisDim; col ++ ){
+          fullMass->inverseSquareRootMult(basis[col].data());
+        }
+        normalizedBasis = basis;
+      }
+    
+      std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
+      fileName.append(".normalized");
+      BasisOutputStream outputNormalized(fileName, converter, false); 
+      for (int iVec = 0; iVec < orthoBasisDim; ++iVec) {
+        outputNormalized << std::make_pair(solver.singularValue(iVec), normalizedBasis[iVec]);
+        //outputNormalized << std::make_pair(normalizedBasis[iVec].data(), solver.singularValue(iVec));
+      }
+    
+    }
+
   }
 }
 
 void
 BasisOrthoDriver::preProcess() {
-  domain_->preProcessing();
+  domain->preProcessing();
  
   // Build the constrained DofSetArray incorporating the boundary conditions 
-  const int numdof = domain_->numdof();
+  const int numdof = domain->numdof();
   SimpleBuffer<int> bc(numdof);
   SimpleBuffer<double> bcx(numdof);
 
-  domain_->make_bc(bc.array(), bcx.array());
-  domain_->make_constrainedDSA(bc.array());
+  domain->make_bc(bc.array(), bcx.array());
+  domain->make_constrainedDSA(bc.array());
 }
 
 } /* end namespace Rom */

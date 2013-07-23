@@ -39,16 +39,17 @@ public:
   int vectorSize() const;
   void timeStampsIs(const std::vector<double> &tst) { timeStamps_ = tst; }
   
+
   explicit ElementSamplingDriver(Domain *);
   ~ElementSamplingDriver();
 
 protected:
   virtual void preProcess();
-  void buildDomainCdsa();  
   void assembleTrainingData(const VecBasis &displac, std::vector<double>::iterator timeStampFirst, const VecBasis &podBasis,
                             typename MatrixBufferType::iterator elemContributions, Vector &trainingTarget, VecBasis *veloc, VecBasis *accel);
   int elementCount() const;
 
+  void buildDomainCdsa();
   Domain *domain_;
 
   Corotator **corotators_;

@@ -128,7 +128,9 @@ template<class Scalar>
 void
 GenDiagMatrix<Scalar>::mult(const GenVector<Scalar> &rhs, GenVector<Scalar> &result)
 {
-  fprintf(stderr,"GenDiagMatrix<Scalar>::mult: not implemented yet\n");
+//  cerr << "over here! \n" ;
+//  fprintf(stderr,"GenDiagMatrix<Scalar>::mult: not implemented yet\n");
+  mult(rhs.data(), result.data());
 }
 
 template<class Scalar>
@@ -138,6 +140,26 @@ GenDiagMatrix<Scalar>::mult(const Scalar *rhs, Scalar *result)
  for (int i = 0 ; i < neq ; i++)
    result[i] = v[i]*rhs[i];
 }
+
+template<class Scalar>
+void
+GenDiagMatrix<Scalar>::squareRootMult(Scalar *result)
+{
+  for (int i = 0 ; i < neq ; i++){
+    result[i] *= std::sqrt(v[i]);
+  }
+}
+
+template<class Scalar>
+void
+GenDiagMatrix<Scalar>::inverseSquareRootMult(Scalar *result)
+{
+    for (int i = 0 ; i < neq ; i++){
+      result[i] /= std::sqrt(v[i]);
+    }
+}
+
+
 
 template<class Scalar>
 void

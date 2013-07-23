@@ -5,6 +5,8 @@
 #include "DistrNodeDof6Buffer.h"
 #include "DistrVecNodeDof6Conversion.h"
 #include "PtrPtrIterAdapter.h"
+#include "DistrVecBasis.h"
+#include "DistrVecBasisOps.h"
 
 #include "DistrSvdOrthogonalization.h"
 
@@ -20,15 +22,21 @@
 namespace Rom {
 
 DistrBasisOrthoDriver::DistrBasisOrthoDriver(Domain *domain, Communicator *comm) :
+  MultiDomainDynam(domain),
   domain_(domain),
   comm_(comm)
 {}
 
 void
 DistrBasisOrthoDriver::solve() {
-  std::auto_ptr<DecDomain> decDomain(createDecDomain<double>(domain_));
-  decDomain->preProcess();
+  //std::auto_ptr<DecDomain> decDomain(createDecDomain<double>(domain_));
+  //decDomain->preProcess();
   
+  MultiDomainDynam::preProcess();
+  //MDDynamMat * dummyDynOps = MultiDomainDynam::buildOps(1.0, 0.0, 0.0);
+  //assert(dummyDynOps->M);
+
+
   typedef PtrPtrIterAdapter<SubDomain> SubDomIt;
   DistrMasterMapping masterMapping(SubDomIt(decDomain->getAllSubDomains()),
                                    SubDomIt(decDomain->getAllSubDomains() + decDomain->getNumSub()));
@@ -62,6 +70,12 @@ DistrBasisOrthoDriver::solve() {
     assert(solver.localRows() == maxCpuLoad);
   }
 
+  //Checking flags
+  double beta = domain->solInfo().newmarkBeta;
+  //Assembling mass matrix
+  MDDynamMat * dummyDynOps = MultiDomainDynam::buildOps(1.0, 0.0, 0.0);
+  assert(dummyDynOps->M);
+  GenSubDOp<double> *fullMass = dummyDynOps->M;
   {
     DistrNodeDof6Buffer inputBuffer(masterMapping.localNodeBegin(), masterMapping.localNodeEnd());
     
@@ -74,6 +88,11 @@ DistrBasisOrthoDriver::solve() {
       if (skipCounter >= skipFactor) {
         double *vecBuffer = solver.matrixColBuffer(count);
         GenStackDistVector<double> vec(decDomain->solVecInfo(), vecBuffer);
+
+        if(domain->solInfo().normalize == 1){ //New method applied on vec buffer: M^(1/2) * U 
+          fullMass->squareRootMult(vec); //Paral.d/SubDOp.[hC] 
+        }
+
         converter.paddedMasterVector(inputBuffer, vec);
         std::fill(vecBuffer + localLength, vecBuffer + solver.localRows(), 0.0);
         
@@ -86,7 +105,7 @@ DistrBasisOrthoDriver::solve() {
       inputFile.currentStateIndexInc();
     }
   }
- 
+
   solver.solve();
 
   const int podVectorCount = domain_->solInfo().maxSizePodRom ?
@@ -103,6 +122,48 @@ DistrBasisOrthoDriver::solve() {
       const GenStackDistVector<double> vec(decDomain->solVecInfo(), vecBuffer);
       converter.paddedNodeDof6(vec, outputBuffer);
       outputFile.stateAdd(outputBuffer, solver.singularValue(iVec));
+    }
+  }
+
+  //Normalize basis for explicit cases
+  if(beta == 0) {
+    //Read back in output file to perform renormalization
+    DistrBasisInputFile inputFile(BasisFileId(fileInfo, workload, BasisId::POD));
+    DistrNodeDof6Buffer inputBuffer(masterMapping.localNodeBegin(), masterMapping.localNodeEnd());
+    DistrVecBasis basis;
+    basis.dimensionIs(podVectorCount, decDomain->masterSolVecInfo()) ; 
+    for (DistrVecBasis::iterator it = basis.begin(),
+        it_end = basis.end();
+        it != it_end; ++it) {
+      assert(inputFile.validCurrentState());
+
+      inputFile.currentStateBuffer(inputBuffer);
+      converter.vector(inputBuffer, *it);
+
+      inputFile.currentStateIndexInc();
+    }
+
+    DistrVecBasis normalizedBasis;
+    if(domain->solInfo().normalize == 0){
+      //old method, renormalize current basis
+      renormalized_basis(*fullMass, basis, normalizedBasis);
+    }
+    if(domain->solInfo().normalize == 1){
+      //New method multiply by inverse square root mass
+      for(int col = 0 ; col < podVectorCount; col ++ ){
+        fullMass->inverseSquareRootMult(basis[col]);
+      }
+      normalizedBasis = basis;
+    }
+
+    //Output the normalized basis as separate file
+    std::string fileName = BasisFileId(fileInfo, workload, BasisId::POD) ;
+    fileName.append(".normalized");
+    DistrNodeDof6Buffer outputBuffer(masterMapping.masterNodeBegin(), masterMapping.masterNodeEnd());
+    DistrBasisOutputFile outputNormalizedFile(fileName, inputFile.nodeCount(), outputBuffer.globalNodeIndexBegin(), outputBuffer.globalNodeIndexEnd(), comm_, false);
+    for (int iVec = 0; iVec < podVectorCount; ++iVec) {
+      converter.paddedNodeDof6(normalizedBasis[iVec], outputBuffer);
+      outputNormalizedFile.stateAdd(outputBuffer, solver.singularValue(iVec));
     }
   }
 }

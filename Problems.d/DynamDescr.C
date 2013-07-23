@@ -779,7 +779,12 @@ SingleDomainDynamic::buildOps(double coeM, double coeC, double coeK)
  DynamMat *dMat = new DynamMat;
 
  allOps.K   = domain->constructDBSparseMatrix<double>();
- allOps.M   = domain->constructDBSparseMatrix<double>();
+ if(domain->solInfo().newmarkBeta != 0) {
+   allOps.M   = domain->constructDBSparseMatrix<double>();
+ }
+ else{
+   allOps.M = new DiagMatrix(domain->getCDSA());
+ }
  allOps.Muc = domain->constructCuCSparse<double>();
  allOps.Kuc = domain->constructCuCSparse<double>();
  allOps.Mcc = domain->constructCCSparse<double>();

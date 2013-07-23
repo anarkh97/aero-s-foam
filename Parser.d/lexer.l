@@ -1350,6 +1350,8 @@ TRAIL [a-zA-Z]*
 
 "ROBC"|"RobC"|"robc" 			  { return SVDTOKEN; } 
 
+"MNORMA"|"MNorma"|"mnorma"		  { return NORMALIZETOKEN; }
+
 "RODC"|"RodC"|"rodc"                      { return CONVERSIONTOKEN; } // reduced order data conversion token
  
 "CONFIL"|"ConFil"|"confil" 	 	  { return CONVFI; } //reduced order data conversion files

@@ -35,6 +35,8 @@ class GenDiagMatrix: public GenSparseMatrix<Scalar> , public GenSolver<Scalar>
 //     void print();
      void mult(const GenVector<Scalar> &rhs, GenVector<Scalar> &result);
      void mult(const Scalar *rhs, Scalar *result);
+     void squareRootMult(Scalar *result);
+     void inverseSquareRootMult(Scalar *result);
      void factor();
 
 };

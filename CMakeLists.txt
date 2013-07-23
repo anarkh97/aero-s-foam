@@ -3,7 +3,7 @@ PROJECT (FEM)
 cmake_minimum_required(VERSION 2.6  FATAL_ERROR)
 enable_language(Fortran)
 
-set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake")
 
 # pjsa trying to build statically linked executable
 #set(CMAKE_EXE_LINK_DYNAMIC_C_FLAGS)       # remove -Wl,-Bdynamic
@@ -145,6 +145,7 @@ IF(UNIX)
    ENDIF(NOT WITH_ARPACK EQUAL 0)
 
 # spooles
+   IF(NOT WITH_SPOOLES EQUAL 0)
     FIND_PATH(SPOOLES_INCLUDE_PATH FrontMtx.h
               PATHS /usr/include /usr/local/include /usr/include/spooles)
     #SET(CMAKE_FIND_LIBRARY_PREFIXES "lib" "")
@@ -165,6 +166,7 @@ IF(UNIX)
       endif(SPOOLES_spoolesMT_LIBRARY)
       SET(INC_DIR ${INC_DIR} ${SPOOLES_INCLUDE_PATH})
     ENDIF(SPOOLES_FOUND)
+   ENDIF(NOT WITH_SPOOLES EQUAL 0)
 
 # eigen
    IF(NOT WITH_EIGEN3 EQUAL 0)
@@ -173,31 +175,33 @@ IF(UNIX)
        MESSAGE("-- A library with EIGEN3 API found.")
        include_directories(${EIGEN3_INCLUDE_DIR})
        add_definitions(-DUSE_EIGEN3 -DUSE_EIGEN3_AUTODIFF -DEIGEN_QUATERNIONBASE_PLUGIN=<Element.d/MpcElement.d/QuaternionBasePlugin.h>)
-       set(CMAKE_MODULE_PATH ${EIGEN3_INCLUDE_DIR}/cmake ${CMAKE_MODULE_PATH})
-       find_package(Cholmod)
-       if (CHOLMOD_INCLUDES AND CHOLMOD_LIBRARIES)
-         include_directories(${CHOLMOD_INCLUDES})
-         add_definitions(-DEIGEN_CHOLMOD_SUPPORT)
-         SET(EXTRALIBRARIES ${CHOLMOD_LIBRARIES} ${EXTRALIBRARIES})
-       endif(CHOLMOD_INCLUDES AND CHOLMOD_LIBRARIES)
-       find_package(Umfpack)
-       if (UMFPACK_INCLUDES AND UMFPACK_LIBRARIES)
-         include_directories(${UMFPACK_INCLUDES})
-         add_definitions(-DEIGEN_UMFPACK_SUPPORT)
-         SET(EXTRALIBRARIES ${UMFPACK_LIBRARIES} ${EXTRALIBRARIES})
-       endif(UMFPACK_INCLUDES AND UMFPACK_LIBRARIES)
-       find_package(SuperLU)
-       if (SUPERLU_INCLUDES AND SUPERLU_LIBRARIES)
-         include_directories(${SUPERLU_INCLUDES})
-         add_definitions(-DEIGEN_SUPERLU_SUPPORT)
-         SET(EXTRALIBRARIES ${SUPERLU_LIBRARIES} ${EXTRALIBRARIES})
-       endif(SUPERLU_INCLUDES AND SUPERLU_LIBRARIES)
-       find_package(SPQR)
-       if (SPQR_INCLUDES AND SPQR_LIBRARIES)
-         include_directories(${SPQR_INCLUDES})
-         add_definitions(-DEIGEN_SPQR_SUPPORT)
-         SET(EXTRALIBRARIES ${SPQR_LIBRARIES} ${EXTRALIBRARIES})
-       endif(SPQR_INCLUDES AND SPQR_LIBRARIES)
+       set(CMAKE_MODULE_PATH "${EIGEN3_INCLUDE_DIR}/cmake" ${CMAKE_MODULE_PATH})
+       IF(NOT WITH_EIGEN3_EXTRA EQUAL 0)
+         find_package(Cholmod)
+         if (CHOLMOD_INCLUDES AND CHOLMOD_LIBRARIES)
+           include_directories(${CHOLMOD_INCLUDES})
+           add_definitions(-DEIGEN_CHOLMOD_SUPPORT)
+           SET(EXTRALIBRARIES ${CHOLMOD_LIBRARIES} ${EXTRALIBRARIES})
+         endif(CHOLMOD_INCLUDES AND CHOLMOD_LIBRARIES)
+         find_package(Umfpack)
+         if (UMFPACK_INCLUDES AND UMFPACK_LIBRARIES)
+           include_directories(${UMFPACK_INCLUDES})
+           add_definitions(-DEIGEN_UMFPACK_SUPPORT)
+           SET(EXTRALIBRARIES ${UMFPACK_LIBRARIES} ${EXTRALIBRARIES})
+         endif(UMFPACK_INCLUDES AND UMFPACK_LIBRARIES)
+         find_package(SuperLU)
+         if (SUPERLU_INCLUDES AND SUPERLU_LIBRARIES)
+           include_directories(${SUPERLU_INCLUDES})
+           add_definitions(-DEIGEN_SUPERLU_SUPPORT)
+           SET(EXTRALIBRARIES ${SUPERLU_LIBRARIES} ${EXTRALIBRARIES})
+         endif(SUPERLU_INCLUDES AND SUPERLU_LIBRARIES)
+         find_package(SPQR)
+         if (SPQR_INCLUDES AND SPQR_LIBRARIES)
+           include_directories(${SPQR_INCLUDES})
+           add_definitions(-DEIGEN_SPQR_SUPPORT)
+           SET(EXTRALIBRARIES ${SPQR_LIBRARIES} ${EXTRALIBRARIES})
+         endif(SPQR_INCLUDES AND SPQR_LIBRARIES)
+       ENDIF(NOT WITH_EIGEN3_EXTRA EQUAL 0)
      ENDIF(EIGEN3_FOUND)
    ENDIF(NOT WITH_EIGEN3 EQUAL 0)
 
@@ -212,15 +216,18 @@ IF(UNIX)
     ENDIF(NOT WITH_SACADO EQUAL 0)
 
 # metis
-    FIND_LIBRARY(METIS_LIBRARY NAMES metis
-                 PATHS /usr/lib /usr/local/lib)
-    IF(METIS_LIBRARY)
-      MESSAGE("-- A library with METIS API found.")
-      add_definitions(-DUSE_METIS)
-      SET(EXTRALIBRARIES ${METIS_LIBRARY} ${EXTRALIBRARIES})
-    ENDIF(METIS_LIBRARY)
+    IF(NOT WITH_METIS EQUAL 0)
+      FIND_LIBRARY(METIS_LIBRARY NAMES metis
+                   PATHS /usr/lib /usr/local/lib)
+      IF(METIS_LIBRARY)
+        MESSAGE("-- A library with METIS API found.")
+        add_definitions(-DUSE_METIS)
+        SET(EXTRALIBRARIES ${METIS_LIBRARY} ${EXTRALIBRARIES})
+      ENDIF(METIS_LIBRARY)
+    ENDIF(NOT WITH_METIS EQUAL 0)
 
 # mumps
+   IF(NOT WITH_MUMPS EQUAL 0)
     FIND_PATH(MUMPS_INCLUDE_PATH dmumps_c.h
               PATHS /usr/include usr/local/include)
     if (NOT MPI_FOUND)
@@ -299,6 +306,7 @@ IF(UNIX)
         endif(BLACS_FOUND)
       endif(SCALAPACK_FOUND)
     endif(NOT MPI_FOUND)
+   ENDIF(NOT WITH_MUMPS EQUAL 0)
 
 #stxxl
     IF(NOT WITH_STXXL EQUAL 0)
@@ -314,15 +322,6 @@ IF(UNIX)
         SET(EXTRALIBRARIES ${EXTRALIBRARIES} ${STXXL_LIBRARY})
       ENDIF(STXXL_LIBRARY AND STXXL_INCLUDE_PATH)
     ENDIF(NOT WITH_STXXL EQUAL 0)
-
-# metis
-#    FIND_LIBRARY(METIS_LIBRARY NAMES metis
-#                 PATHS /usr/lib /usr/local/lib)
-#    IF(METIS_LIBRARY)
-#      MESSAGE("-- A library with METIS API found.")
-#      add_definitions(-DUSE_METIS)
-#      SET(EXTRALIBRARIES ${EXTRALIBRARIES} ${METIS_LIBRARY})
-#    ENDIF(METIS_LIBRARY)
 
     FIND_PACKAGE(Boost 1.35)
     if(Boost_FOUND)
@@ -346,19 +345,6 @@ if(MPI_FOUND)
    SET(EXTRALIBDYN ${EXTRALIBRARIES})
    SET(EXTRALIBRARIES ${EXTRALIBRARIES} ${MPI_LIBRARIES})
    SET(INC_DIR ${INC_DIR} ${MPI_INCLUDE_PATH})
-   IF(NOT APPLE)
-     ADD_LIBRARY(femlib EXCLUDE_FROM_ALL main.C HgIdentity.C)
-     target_link_libraries(femlib Parser
-       Driver Elem Feti HelmAxi solver Corotational Mortar Math 
-       Dec Threads linpa Sfem paral Problems Driver Hetero Timers Comm Material Rom Util getopt 
-       ${EXTRALIBDYN} ${CMAKE_DL_LIBS} ${LAPACK_LIBRARIES})
-     SET_TARGET_PROPERTIES(femlib
-                           PROPERTIES 
-                           ARCHIVE_OUTPUT_DIRECTORY ${LIBDIR}
-                           RELEASE_OUTPUT_NAME aeros
-                           DEBUG_OUTPUT_NAME aeros.debug
-                           PREFIX "")
-   ENDIF(NOT APPLE)
 endif(MPI_FOUND)
 
 FIND_PROGRAM(MERCURIAL_EXECUTABLE hg2xx)
@@ -423,23 +409,43 @@ ENDIF(MPI_FOUND)
 SET_TARGET_PROPERTIES(${ALLLIBS}
                 PROPERTIES COMPILE_FLAGS -fPIC)
 
-add_executable(femexecutable  main.C HgIdentity.C)
-
-SET_TARGET_PROPERTIES(femexecutable 
-                      PROPERTIES
-                      RUNTIME_OUTPUT_DIRECTORY ${BINDIR}
-                      RELEASE_OUTPUT_NAME aeros
-                      DEBUG_OUTPUT_NAME aeros.debug
-#                      LINK_SEARCH_END_STATIC 1
-                      )
 
 SET(EXTRALIBRARIES ${EXTRALIBRARIES} ${EXTRALIB})
 if(MPI_FOUND)
   SET(EXTRALIBRARIES ${EXTRALIBRARIES} ${EXTRALIB_MPI})
 endif(MPI_FOUND)
 
+IF(CREATE_DSO)
+   add_definitions(-DCREATE_DSO)
+   ADD_LIBRARY(femlib main.C HgIdentity.C)
+   # ADD_LIBRARY(femlib EXCLUDE_FROM_ALL main.C HgIdentity.C)
+   target_link_libraries(femlib Parser
+       Driver Elem Feti HelmAxi solver Corotational Mortar Math 
+       Dec Threads linpa Sfem paral Problems Driver Hetero Timers Comm Material Rom Util getopt Parser
+       ${EXTRALIBDYN} ${CMAKE_DL_LIBS} ${LAPACK_LIBRARIES})
+   SET_TARGET_PROPERTIES(femlib
+                         PROPERTIES 
+                         ARCHIVE_OUTPUT_DIRECTORY ${LIBDIR}
+                         RELEASE_OUTPUT_NAME libaeros
+                         DEBUG_OUTPUT_NAME libaeros_debug
+                         LINK_SEARCH_END_STATIC 1
+                         PREFIX "")
+endif(CREATE_DSO)
+
+IF(NOT CREATE_DSO)
+  add_executable(femexecutable  main.C HgIdentity.C)
+
+  SET_TARGET_PROPERTIES(femexecutable 
+                        PROPERTIES
+                        RUNTIME_OUTPUT_DIRECTORY ${BINDIR}
+                        RELEASE_OUTPUT_NAME aeros
+                        DEBUG_OUTPUT_NAME aeros.debug
+#                       LINK_SEARCH_END_STATIC 1
+                       )
+
 target_link_libraries(femexecutable ${ALLLIBS}
        ${EXTRALIBRARIES} ${CMAKE_DL_LIBS} ${LAPACK_LIBRARIES} ${BLAS_LIBRARIES})
+ENDIF(NOT CREATE_DSO)
 
 add_executable(robcodec Rom.d/RobCodec.C)
 set_target_properties(robcodec
@@ -465,10 +471,12 @@ IF(NOT CMAKE_BUILD_TYPE)
       FORCE)
 ENDIF(NOT CMAKE_BUILD_TYPE)
 
-SET(AllTargets femexecutable robcodec errorcodec)
-IF(MPI_FOUND AND NOT APPLE)
+SET(AllTargets robcodec errorcodec)
+IF(CREATE_DSO)
   SET(AllTargets ${AllTargets} femlib)
-ENDIF(MPI_FOUND AND NOT APPLE)
+ELSE(CREATE_DSO)
+  SET(AllTargets femexecutable ${AllTargets})
+ENDIF(CREATE_DSO)
 
 INSTALL(TARGETS ${AllTargets}
         RUNTIME DESTINATION bin

@@ -142,7 +142,7 @@ extern const char* solverTypeMessage[];
 // ... main program
 
 #ifdef CREATE_DSO
-extern "C"
+//extern "C"
 int entrypoint(int argc, char** argv)
 #else
 int main(int argc, char** argv)
@@ -972,7 +972,10 @@ int main(int argc, char** argv)
          } else { // POD ROM
            if (domain->solInfo().galerkinPodRom) {
              if (domain->solInfo().elemLumpPodRom) {
-               filePrint(stderr, " ... POD: ROM with stiffness lumping...\n");
+               if (domain->solInfo().reduceFollower)
+                 filePrint(stderr, " ... POD: ROM with stiffness & follower lumping...\n");
+	       else
+                 filePrint(stderr, " ... POD: ROM with stiffness lumping...\n");
                Rom::DistrExplicitLumpedPodProjectionNonLinDynamic dynamProb(domain);
                DynamicSolver < MDDynamMat, DistrVector, Rom::DistrExplicitPodPostProcessor,
                              Rom::DistrExplicitLumpedPodProjectionNonLinDynamic, double > dynamSolver(&dynamProb);
@@ -1023,7 +1026,10 @@ int main(int argc, char** argv)
        }
        else if (domain->solInfo().samplingPodRom) {
          // Element-based hyper-reduction
-         filePrint(stderr, " ... POD: Distributed Element-based Reduced Mesh ...\n");
+         if(domain->solInfo().reduceFollower)
+           filePrint(stderr,"... POD: Distributed Element-based Reduced Mesh with external lumping ...\n");
+         else
+           filePrint(stderr, " ... POD: Distributed Element-based Reduced Mesh ...\n");
          driver.reset(distrElementSamplingDriverNew(domain));
        }
        else {
@@ -1398,6 +1404,8 @@ int main(int argc, char** argv)
          }
          else if (domain->solInfo().samplingPodRom) {
            // Element-based hyper-reduction
+           if(domain->solInfo().reduceFollower)
+             filePrint(stderr,"... POD: Element-based Reduced Mesh with external lumping...\n");
            filePrint(stderr, " ... POD: Element-based Reduced Mesh...\n");
            driver.reset(elementSamplingDriverNew(domain));
          }

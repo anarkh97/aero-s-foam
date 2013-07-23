@@ -280,7 +280,7 @@ C=BLOCK FORTRAN
       subroutine TEIGEN  (esm, m, eval, evec)
       double precision    esm(m,m), eval(*), evec(m,m), aux(100)
       integer      m
-      call   JACOBI (esm, m, m, eval, .false., evec, aux)
+      call   CFJACOBI (esm, m, m, eval, .false., evec, aux)
       print '(/'' Computed stiffness matrix eigenvalues:'')'
       call   MATRIXPRINT8 (eval, 1, m)
 *     print '(/'' Computed stiffness matrix eigenvectors:'')'

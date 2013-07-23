@@ -172,4 +172,33 @@ DistrSnapshotNonLinDynamic::preProcess() {
   impl_.reset(new DistrSnapshotNonLinDynamicDetail::RawImpl(this->getDecDomain()));
 }
 
+void
+DistrSnapshotNonLinDynamic::saveVelocSnapshot(DistrGeomState &state, const DistrVector &veloc) {
+  if(domain->solInfo().velocvectPodRom) {
+    if(state.getHaveRot()) {
+      DistrVector v(veloc);
+      state.transform(v, 2); // transform convected angular velocity to time derivative of total rotation vector
+      impl_->velocSnapshotAdd(v);
+    }
+    else {
+      impl_->velocSnapshotAdd(veloc);
+    }
+  }
+
+}
+
+void
+DistrSnapshotNonLinDynamic::saveAccelSnapshot(DistrGeomState &state, const DistrVector &accel) {
+  if(domain->solInfo().accelvectPodRom) {
+    if(state.getHaveRot()) {
+      DistrVector a(accel);
+      state.transform(a, 6); // transform convected angular acceleration to second time derivative of total rotation vector
+      impl_->accelSnapshotAdd(a);
+    }
+    else {
+      impl_->accelSnapshotAdd(accel);
+    }
+  }
+}
+
 } /* end namespace Rom */

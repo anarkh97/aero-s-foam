@@ -40,7 +40,7 @@ Brick20.d/g_br20mas.f
 Brick20.d/g_br20vmint.f
 Brick20.d/g_brik20v.f
 Brick20.d/g_h20shpe.f
-Brick20.d/g_sands20.f
+#Brick20.d/g_sands20.f
 Brick20.d/g_vol20.f
 Brick20.d/h20shpe.f
 Brick20.d/hexa20.f

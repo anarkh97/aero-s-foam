@@ -165,6 +165,8 @@ TRAIL [a-zA-Z]*
 
 "HRC"|"hrc"			   { return HRC; }
 
+"REDFOL"|"redfol"                  { return REDFOL; }
+
 "IDENTITY"|"identity"              { return IDENTITY; }
 
 "EFRA"[a-zA-Z]*|"efra"[a-zA-Z]*    { return EFRAMES; }

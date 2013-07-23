@@ -13,8 +13,10 @@ Skyline.d/forbackr8ns.f
 Skyline.d/ffulpvm.f       
 Skyline.d/forbackc1.f    
 Skyline.d/forbackc2.f   
-Skyline.d/forbackc3.f     Skyline.d/pfactorC.f
-Skyline.d/forbackc4.f     Skyline.d/pfactor.f
+Skyline.d/forbackc3.f     
+#sgi only Skyline.d/pfactorC.f
+Skyline.d/forbackc4.f 
+#sgi only Skyline.d/pfactor.f
 Skyline.d/forbackr1.f
 Skyline.d/forbackr1ns.f   Skyline.d/SkyData.C
 Skyline.d/forbackr2.f     

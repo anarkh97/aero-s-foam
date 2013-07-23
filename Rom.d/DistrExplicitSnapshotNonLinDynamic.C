@@ -101,12 +101,26 @@ DistrExplicitSnapshotNonLinDynamic::stateSnapshotAdd(const DistrVector &state) {
 
 void
 DistrExplicitSnapshotNonLinDynamic::accelerationSnapshotAdd(const DistrVector &accel) {
-  snapshotHandler_->accelerationSnapshotAdd(accel);
+  if(geomState->getHaveRot()) {
+    DistrVector a(accel);
+    geomState->transform(a, 6); // transform convected angular acceleration to second time derivative of total rotation vector
+    snapshotHandler_->accelerationSnapshotAdd(a);
+  }
+  else {
+    snapshotHandler_->accelerationSnapshotAdd(accel);
+  }
 }
 
 void
 DistrExplicitSnapshotNonLinDynamic::velocitySnapshotAdd(const DistrVector &veloc) {
-  snapshotHandler_->velocitySnapshotAdd(veloc);
+  if(geomState->getHaveRot()) {
+    DistrVector v(veloc);
+    geomState->transform(v, 2); // transform convected angular velocity to time derivative of total rotation vector
+    snapshotHandler_->velocitySnapshotAdd(v);
+  }
+  else {
+    snapshotHandler_->velocitySnapshotAdd(veloc);
+  }
 }
 
 void

@@ -1,7 +1,6 @@
 #include <cstdlib>
 #include <cstdio>
 #include <iostream>
-#ifdef TOTO
 using namespace std;
 #include <unistd.h>
 #include <memory>
@@ -138,7 +137,6 @@ Communicator *fluidCom;
 
 extern const char* problemTypeMessage[];
 extern const char* solverTypeMessage[];
-#endif
 
 // ... main program
 
@@ -150,7 +148,6 @@ int main(int argc, char** argv)
 #endif
 {
   std::cerr << "Hello from Aero-S entrypoint !\n";
-#ifdef TOTO
 #ifdef __GNUC__
 //  std::set_new_handler(&print_trace_handler);
 #endif
@@ -1458,10 +1455,8 @@ int main(int argc, char** argv)
  // if(fetiCom) { delete fetiCom; fetiCom = 0; }
  //delete syscom;
 #endif
-#endif
 }
 
-#ifdef TOTO
 void
 writeOptionsToScreen()
 {
@@ -1517,4 +1512,3 @@ writeOptionsToScreen()
 
 
 }
-#endif

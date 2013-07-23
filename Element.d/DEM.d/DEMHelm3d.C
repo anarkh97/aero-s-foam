@@ -35,11 +35,11 @@ public:
                       int _ndir, complex<double> *_dirs,
                       int _nldir, complex<double> *_ldirs,
                       double *_xsc, double *_xc, int _arbflag, int _fi,
-                      complex<double> *_K, complex<double> *_L,
+                      complex<double> *_K, complex<double> *__L,
                       complex<double> *_PL,complex<double> *_PP,
                       complex<double> *_PE) {
    oc = _oc; kappa = _kappa; ndir = _ndir; dirs = _dirs; nldir = _nldir; 
-   ldirs = _ldirs; K = _K; L = _L; PL = _PL; PP = _PP; PE =_PE;
+   ldirs = _ldirs; K = _K; L = __L; PL = _PL; PP = _PP; PE =_PE;
    arbflag = _arbflag; fi = _fi;
    xsc = _xsc; xc = _xc;
  }
@@ -101,9 +101,9 @@ public:
  HelmDGMELMatrixFunction3d(double _kappa,
                       int _ndir, complex<double> *_dirs,
                       int _nldir, complex<double> *_ldirs, double *_xsc, double *_xc,
-                      complex<double> *_L, int _fi) {
+                      complex<double> *__L, int _fi) {
    kappa = _kappa; ndir = _ndir; dirs = _dirs; nldir = _nldir; ldirs = _ldirs;
-   L = _L; fi = _fi; xsc = _xsc; xc = _xc;
+   L = __L; fi = _fi; xsc = _xsc; xc = _xc;
  }
  void evaluate(double *x, double *N, double *cross, double nsign, double w) {
   
@@ -543,10 +543,10 @@ public:
                       int _ndir, complex<double> *_dirs,
                       int _nldir, complex<double> *_ldirs,
                       double *_xsc, double *_xc,
-                      complex<double> *_L, int _fi) {
+                      complex<double> *__L, int _fi) {
    pmldata = _pmldata;
    ndir = _ndir; dirs = _dirs; nldir = _nldir; ldirs = _ldirs;
-   L = _L; fi = _fi; xsc = _xsc; xc = _xc;
+   L = __L; fi = _fi; xsc = _xsc; xc = _xc;
  }
  void evaluate(double *x, double *N, double *tau1, double *tau2,
                double nsign, double w) {
@@ -611,10 +611,10 @@ public:
                       int _ndir, complex<double> *_dirs,
                       int _nldir, complex<double> *_ldirs,
                       double *_xsc, double *_xc,
-                      complex<double> *_L, int _fi) {
+                      complex<double> *__L, int _fi) {
    pmldata = _pmldata;
    ndir = _ndir; dirs = _dirs; nldir = _nldir; ldirs = _ldirs;
-   L = _L; fi = _fi; xsc = _xsc; xc = _xc;
+   L = __L; fi = _fi; xsc = _xsc; xc = _xc;
  }
  void evaluate(double *x, double *N, double *cross,
                double nsign, double w) {

@@ -4019,7 +4019,9 @@ SvdOption:
   | PODSIZEMAX Integer
   { domain->solInfo().maxSizePodRom = $2; }
   | NORMALIZETOKEN Integer
-  { domain->solInfo().normalize = $2; } 
+  { domain->solInfo().normalize = $2; }
+  | SKIP Integer
+  { domain->solInfo().skipPodRom = $2; } 
   ;
 
 Sampling:

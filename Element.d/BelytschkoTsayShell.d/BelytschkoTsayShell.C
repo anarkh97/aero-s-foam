@@ -417,13 +417,7 @@ BelytschkoTsayShell::getCorotator(CoordSet &, double *, int, int)
 }
 
 void
-BelytschkoTsayShell::getStiffAndForce(GeomState&, CoordSet&, FullSquareMatrix&, double*, double, double)
-{
-  std::cerr << " *** WARNING: BelytschkoTsayShell::getStiffAndForce() is not implemented\n";
-}
-
-void
-BelytschkoTsayShell::getInternalForce(GeomState& geomState, CoordSet& cs, FullSquareMatrix& k, double* efint, double delt, double time)
+BelytschkoTsayShell::getStiffAndForce(GeomState& geomState, CoordSet& cs, FullSquareMatrix& k, double* efint, double delt, double time)
 {
   //=======================================================================
   //  compute internal force vector including hourglass control, pressure

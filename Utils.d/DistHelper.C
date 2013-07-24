@@ -7,6 +7,9 @@ extern SysCom *scom;
 #include <Comm.d/Communicator.h>
 extern Communicator *structCom;
 #endif
+//#ifdef ANDROID
+//#include <android/log.h>
+//#endif
 
 extern int verboseFlag;
 extern int salinasFlag;
@@ -22,7 +25,11 @@ filePrint(FILE *file, const char *format, ...)
   if( !structCom || structCom->myID() == 0 )
   //if( !syscom || syscom->myID() == 0 )
 #endif
+//#ifdef ANDROID
+//  __android_log_print(ANDROID_LOG_ERROR, "FemLib", format, args);
+//#else
   vfprintf(file, format, args);
+//#endif
   va_end(args);
  }
 }
@@ -36,7 +43,11 @@ filePrint2(FILE *file, const char *format, ...)
   va_start(args, format);
   if( !structCom || structCom->myID() == 0 )
   //if( !syscom || syscom->myID() == 0 )
+//#ifdef ANDROID
+//  __android_log_print(ANDROID_LOG_ERROR, "FemLib", format, args);
+//#else
   vfprintf(file, format, args);
+//#endif
   va_end(args);
  }
 #endif

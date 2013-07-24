@@ -937,7 +937,11 @@ NonLinDynamic::preProcess(double Kcoef, double Mcoef, double Ccoef)
 void NonLinDynamic::openResidualFile()
 {
   if(!res) {
+#ifdef ANDROID
+    res = fopen("/sdcard/residuals", "w");
+#else
     res = fopen("residuals", "w");
+#endif
     totIter = 0;
     fprintf(res,"Iteration Time           Residual\trel. res\tdv\t rel. dv\n");
   }

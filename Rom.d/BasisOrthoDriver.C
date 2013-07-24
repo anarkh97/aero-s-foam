@@ -178,7 +178,6 @@ BasisOrthoDriver::solve() {
       BasisOutputStream outputNormalized(fileName, converter, false); 
       for (int iVec = 0; iVec < orthoBasisDim; ++iVec) {
         outputNormalized << std::make_pair(solver.singularValue(iVec), normalizedBasis[iVec]);
-        //outputNormalized << std::make_pair(normalizedBasis[iVec].data(), solver.singularValue(iVec));
       }
     
     }

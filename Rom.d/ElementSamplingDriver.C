@@ -355,7 +355,6 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcess() {
   // Read velocity snapshots
   VecBasis *velocSnapshots = 0;
   if(domain_->solInfo().velocPodRomFile != "") {
-    //std::cerr << "reading velocity snapshots from file " << domain->solInfo().velocPodRomFile << std::endl;
     std::vector<double> timeStamps;
     velocSnapshots = new VecBasis;
     BasisInputStream in(BasisFileId(fileInfo, BasisId::VELOCITY, BasisId::SNAPSHOTS), vecDofConversion);
@@ -389,7 +388,6 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcess() {
   // Read acceleration snapshots
   VecBasis *accelSnapshots = 0;
   if(domain_->solInfo().accelPodRomFile != "") {
-    //std::cerr << "reading acceleration snapshots from file " << domain->solInfo().accelPodRomFile << std::endl;
     std::vector<double> timeStamps;
     accelSnapshots = new VecBasis;
     BasisInputStream in(BasisFileId(fileInfo, BasisId::ACCELERATION, BasisId::SNAPSHOTS), vecDofConversion);
@@ -428,6 +426,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcess() {
   Vector podComponents(podVectorCount);
 
   // Project snapshots on POD basis to get training configurations
+  filePrint(stderr," ... Projecting displacement snapshots for training configuration ...\n");
   displac_.dimensionIs(snapshotCount, vectorSize());
   for (int iSnap = 0; iSnap != snapshotCount; ++iSnap) {
     expand(podBasis_, reduce(podBasis_, snapshots[iSnap], podComponents), displac_[iSnap]);
@@ -437,6 +436,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcess() {
     veloc_ = new VecBasis(velocSnapshots->vectorCount(), vectorSize());
 
     // Project velocity snapshots on POD basis to get training configurations
+    filePrint(stderr," ... Projecting velocity snapshots for training configuration ...\n");
     for (int iSnap = 0; iSnap != velocSnapshots->vectorCount(); ++iSnap) {
       expand(podBasis_, reduce(podBasis_, (*velocSnapshots)[iSnap], podComponents), (*veloc_)[iSnap]);
     }
@@ -447,6 +447,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcess() {
     accel_ = new VecBasis(accelSnapshots->vectorCount(), vectorSize());
 
     // Project acceleration snapshots on POD basis to get training configurations
+    filePrint(stderr," ... Projecting acceleration snapshots for training configuration ...\n");
     for (int iSnap = 0; iSnap != accelSnapshots->vectorCount(); ++iSnap) {
       expand(podBasis_, reduce(podBasis_, (*accelSnapshots)[iSnap], podComponents), (*accel_)[iSnap]);
     }

@@ -151,7 +151,7 @@ DistrExplicitLumpedPodProjectionNonLinDynamic::subBuildPackedElementWeights(int 
   if(structCom)
   structCom->globalSum(4,&elemCounter);
 
-  filePrint(stderr," %d Elements in Reduced Mesh\n",elemCounter);
+  filePrint(stderr," ... Number of Elements in Reduced Mesh = %d ...\n",elemCounter);
   
   //sort nodes in ascending order and erase redundant nodes
   std::sort(subWeightedNodes.begin(), subWeightedNodes.end());

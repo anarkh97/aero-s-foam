@@ -258,13 +258,13 @@ void DistrBlockVector<Scalar>::printBlockDetails()
 // ########
 
 template<class Scalar>
-DistrSfemBlockMatrix<Scalar>::DistrSfemBlockMatrix(int _L, int _P, int _ndim, int output_order, DistrBlockInfo & info) : inf(info)
+DistrSfemBlockMatrix<Scalar>::DistrSfemBlockMatrix(int __L, int __P, int _ndim, int output_order, DistrBlockInfo & info) : inf(info)
 {
   int i,j,k;
   
-  P=_P;
+  P=__P;
   n=inf.blockinfo[0].totLen();
-  L=_L;
+  L=__L;
   ndim=_ndim;  
 
   inpsi= new double**[P];

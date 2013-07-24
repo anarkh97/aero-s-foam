@@ -3570,7 +3570,7 @@ ControlInterface* GeoSource::getUserSuppliedFunction()
     void *handle;
     dlerror(); // forget about the last error
     handle = dlopen(claw->fileName, RTLD_NOW);
-    char *errorMsg;
+    const char *errorMsg;
     if ((errorMsg = dlerror() ) != 0) {
       fprintf(stderr," *** ERROR: in dynamic loading of %s: %s\n",
               claw->fileName,errorMsg);
@@ -3722,7 +3722,7 @@ GeoSource::loadMaterial(const char *matName, const char *fileName)
 #if !defined(WINDOWS) && !defined(SALINAS)
   void *handle;
   handle = dlopen(fileName, RTLD_NOW);
-  char *errorMsg;
+  const char *errorMsg;
   if ((errorMsg = dlerror() ) != 0) {
     fprintf(stderr," *** ERROR: in dynamic loading of Material file %s: %s\n",
   	    fileName,errorMsg);

@@ -2,7 +2,7 @@
 
 #if defined(__GNUC__) && !defined(__INTEL_COMPILER)
 //--- UH ---
-  #ifdef MACOSX
+  #if defined(MACOSX) || defined(ANDROID)
     void print_trace (void)
     {
     }
@@ -55,7 +55,7 @@ unsigned dbg_alloca_assert(unsigned size)
 {
 #if defined(__GNUC__) && !defined(__INTEL_COMPILER)
 //--- UH ---
-  #ifdef MACOSX
+  #if defined(MACOSX) || defined(ANDROID)
     assert(size <= _MAX_ALLOCA_SIZE);
     return size;
   #else

@@ -350,12 +350,7 @@ DistrElementSamplingDriver::solve() {
 
     const MeshRenumbering meshRenumbering(reducedelemIds.begin(), reducedelemIds.end(), *elemToNode, verboseFlag);
     const MeshDesc reducedMesh(domain_, geoSource, meshRenumbering, weightsMap); 
-    try {
-      outputMeshFile(fileInfo, reducedMesh);
-    }
-    catch(std::exception& e) {
-      std::cerr << "caught exception: " << e.what() << endl;
-    }
+    outputMeshFile(fileInfo, reducedMesh);
   }
 
   if(structCom) structCom->sync();

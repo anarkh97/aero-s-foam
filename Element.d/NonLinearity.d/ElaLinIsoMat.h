@@ -40,6 +40,10 @@ class ElaLinIsoMat : public NLMaterial
     double getDensity() { return rho; }
 
     StrainEvaluator * getStrainEvaluator();
+
+    void print(std::ostream &out) const {
+      out << "Linear " << rho << " " << E << " " << nu;
+    }
 };
 
 // same equation as ElaLinIsoMat but with different Green-Lagrange strain evaluator
@@ -51,6 +55,9 @@ class StVenantKirchhoffMat : public ElaLinIsoMat
     StVenantKirchhoffMat(double rho, double E, double nu) : ElaLinIsoMat(rho, E, nu) {}
 
     StrainEvaluator * getStrainEvaluator();
+    void print(std::ostream &out) const {
+      out << "StVenantKirchhoff " << rho << " " << E << " " << nu;
+    }
 };
 
 class HenckyMat : public ElaLinIsoMat
@@ -60,6 +67,9 @@ class HenckyMat : public ElaLinIsoMat
     HenckyMat(double rho, double E, double nu) : ElaLinIsoMat(rho, E, nu) {}
 
     StrainEvaluator * getStrainEvaluator();
+    void print(std::ostream &out) const {
+      out << "HenckyElastic " << rho << " " << E << " " << nu;
+    }
 };
 
 

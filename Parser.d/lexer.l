@@ -167,6 +167,8 @@ TRAIL [a-zA-Z]*
 
 "REDFOL"|"redfol"                  { return REDFOL; }
 
+"ELLUMP"                           { return ELLUMP; }
+
 "IDENTITY"|"identity"              { return IDENTITY; }
 
 "EFRA"[a-zA-Z]*|"efra"[a-zA-Z]*    { return EFRAMES; }

@@ -50,6 +50,19 @@ class ExpMat : public NLMaterial
 
     StrainEvaluator * getStrainEvaluator()
       { std::cerr << "ExpMat::getStrainEvaluator is not implemented\n"; return NULL; }
+
+    void print(std::ostream &out) const {
+      std::string type;
+      switch (optctv) {
+        case 1: type = "HypoElastic"; break;
+        case 5: type = "J2Plasticity"; break;
+        case 6: type = "KK1"; break;
+        case 7: type = "KK2"; break;
+        default: throw std::range_error("Unknown material law type");
+      }
+      out << type << " ";
+      std::copy(&ematpro[0], &ematpro[20], std::ostream_iterator<double>(out, " "));
+    }
 };
 
 #endif

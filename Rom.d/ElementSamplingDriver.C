@@ -280,12 +280,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcess(Vector &solution, 
   
   const MeshRenumbering meshRenumbering(sampleElemIds.begin(), sampleElemIds.end(), *elemToNode, verboseFlag);
   const MeshDesc reducedMesh(domain_, geoSource, meshRenumbering, weights);
-  try {
-    outputMeshFile(fileInfo, reducedMesh, firstTime);
-  }
-  catch(std::exception& e) {
-    std::cerr << "caught exception: " << e.what() << endl;
-  }
+  outputMeshFile(fileInfo, reducedMesh, firstTime);
   outputFullWeights(fileInfo, solution, packedToInput, firstTime);
 }
 

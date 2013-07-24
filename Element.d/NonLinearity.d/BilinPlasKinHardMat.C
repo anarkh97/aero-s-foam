@@ -338,3 +338,23 @@ ElasPlasKinHardMat<e>::getPlasticStrain(double *statenp, Tensor *_plasticstrain)
   return true;
 }
 
+template<>
+inline void
+ElasPlasKinHardMat<0>::print(std::ostream &out) const
+{
+  out << "BilinearPlastic " << rho << " " << E << " " << nu << " " << Ep << " " << sigE << " " << theta;
+}
+
+template<>
+inline void 
+ElasPlasKinHardMat<1>::print(std::ostream &out) const 
+{
+  out << "FiniteStrainPlastic " << rho << " " << E << " " << nu << " " << Ep << " " << sigE << " " << theta;
+}
+
+template<>
+inline void 
+ElasPlasKinHardMat<2>::print(std::ostream &out) const 
+{
+  out << "LogStrainPlastic " << rho << " " << E << " " << nu << " " << Ep << " " << sigE << " " << theta;
+}

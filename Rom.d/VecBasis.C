@@ -1,5 +1,6 @@
 #include "VecBasis.h"
 #include "Utils.d/DistHelper.h"
+#include "Math.d/Vector.h"
 
 namespace Rom{
 
@@ -103,7 +104,33 @@ GenVecBasis<double, GenDistrVector>::projectDown(GenDistrVector<double> &x, GenD
 
 template<>
 void
-GenVecBasis<double, GenDistrVector>::makeSparseBasis(std::vector<int> &nodeVec, DofSetArray *dsa)
+GenVecBasis<double, GenDistrVector>::makeSparseBasis(const std::vector<int> & nodeVec, DofSetArray *dsa)
+{
+  #ifdef USE_EIGEN3
+  int dof1, numdofs;
+
+
+  for(int i = 0; i < nodeVec.size(); i++) {
+    dof1 = dsa->firstdof(nodeVec[i]);
+    numdofs = dsa->weight(nodeVec[i]);
+    for(int j = 0; j < numdofs; j++){
+      compressedKey.push_back(dof1+j);
+    }
+  }
+
+  new (&compressedBasis) Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic>(compressedKey.size(),vectorCount()); // O Col major, 1 RowMajor
+
+  for(int i = 0; i < compressedKey.size(); i++){
+    for(int j = 0; j < vectorCount(); j++){
+      compressedBasis(i,j) = basis(compressedKey[i],j);
+    }
+  }
+#endif
+}
+
+template<>
+void
+GenVecBasis<double, GenVector>::makeSparseBasis(const std::vector<int> & nodeVec, DofSetArray *dsa)
 {
   #ifdef USE_EIGEN3
   int dof1, numdofs;

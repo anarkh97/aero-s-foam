@@ -76,7 +76,7 @@ public:
   GenDistrVector<double> & projectUp(std::vector<double> &   , GenDistrVector<double> & );
   GenDistrVector<double> & projectDown(GenDistrVector<double> &, GenDistrVector<double> &);
   
-  void makeSparseBasis(std::vector<int> &, DofSetArray *); 
+  void makeSparseBasis(const std::vector<int> &, DofSetArray *); 
 
   timespec tS1, tS2;
   double time1, time2, time3, time4, time5, time6, counter;
@@ -110,6 +110,9 @@ private:
   Eigen::Map<Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> > basis;
   Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> compressedBasis; 
   std::vector<int> compressedKey;
+
+public:
+  Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic>& getCompressedBasis() { return compressedBasis; }
 #endif
 };
 

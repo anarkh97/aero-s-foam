@@ -282,6 +282,25 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcess(Vector &solution, 
   const MeshDesc reducedMesh(domain_, geoSource, meshRenumbering, weights);
   outputMeshFile(fileInfo, reducedMesh, firstTime);
   outputFullWeights(fileInfo, solution, packedToInput, firstTime);
+#ifdef USE_EIGEN3
+  // build and output compressed basis
+  // TODO add extra nodes for FORCE, DIMASS, etc...
+  podBasis_.makeSparseBasis(meshRenumbering.reducedNodeIds(), domain_->getCDSA());
+  {
+    std::string filename = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
+    filename.append(".reduced");
+    if(domain_->solInfo().newmarkBeta == 0) filename.append(".normalized");
+    filePrint(stderr," ... Writing compressed basis to file %s ...\n", filename.c_str());
+    DofSetArray reduced_dsa(reducedMesh.nodes().size(), const_cast<Elemset&>(reducedMesh.elements()));
+    ConstrainedDSA reduced_cdsa(reduced_dsa, reducedMesh.dirichletBConds().size(), const_cast<BCond*>(&reducedMesh.dirichletBConds()[0]));
+    VecNodeDof6Conversion converter(reduced_cdsa);
+    BasisOutputStream output(filename, converter, false);
+
+    for (int iVec = 0; iVec < podBasis_.vectorCount(); ++iVec) {
+      output << podBasis_.getCompressedBasis().col(iVec);
+    }
+  }
+#endif
 }
 
 template<typename MatrixBufferType, typename SizeType>

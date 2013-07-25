@@ -1374,6 +1374,8 @@ TRAIL [a-zA-Z]*
 
 "RMSHC"|"Rmshc"|"rmshc" 		  { return SAMPLING; }
 
+"SNAPPR"|"SnapPr"|"snappr"                { return SNAPSHOTPROJECT; }
+
 "TOLOPT"|"TolOpt"|"tolopt" 		  { return TOLER; }
 
 "NUMSKP"|"NumSkp"|"numskp"		  { return SKIP; }

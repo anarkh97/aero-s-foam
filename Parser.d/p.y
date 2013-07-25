@@ -103,7 +103,7 @@
 %token WEIGHTLIST GMRESRESIDUAL 
 %token SLOSH SLGRAV SLZEM SLZEMFILTER 
 %token PDIR HEFSB HEFRS HEINTERFACE  // Added for HEV Problem, EC, 20080512
-%token SNAPFI PODROB TRNVCT OFFSET ORTHOG SVDTOKEN CONVERSIONTOKEN CONVFI SAMPLING PODSIZEMAX REFSUBSTRACT TOLER OUTOFCORE NORMALIZETOKEN
+%token SNAPFI PODROB TRNVCT OFFSET ORTHOG SVDTOKEN CONVERSIONTOKEN CONVFI SAMPLING SNAPSHOTPROJECT PODSIZEMAX REFSUBSTRACT TOLER OUTOFCORE NORMALIZETOKEN
 
 %type <complexFDBC> AxiHD
 %type <complexFNBC> AxiHN
@@ -321,6 +321,7 @@ Component:
         | Constraints
 	| SvdToken
 	| Sampling
+        | SnapshotProject
         | ConversionToken
         ;
 Noninpc:
@@ -4037,6 +4038,14 @@ Sampling:
     domain->solInfo().probType = SolverInfo::PodRomOffline;
     domain->solInfo().samplingPodRom = true; }
   | Sampling SamplingOption NewLine
+  ;
+
+SnapshotProject:
+    SNAPSHOTPROJECT NewLine 
+  { domain->solInfo().activatePodRom = true;
+    domain->solInfo().probType = SolverInfo::PodRomOffline;
+    domain->solInfo().snapProjPodRom = true; }
+  | SnapshotProject SamplingOption NewLine
   ;
 
 SamplingOption:

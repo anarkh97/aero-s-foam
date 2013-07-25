@@ -1404,9 +1404,13 @@ int main(int argc, char** argv)
          else if (domain->solInfo().samplingPodRom) {
            // Element-based hyper-reduction
            if(domain->solInfo().reduceFollower)
-             filePrint(stderr,"... POD: Element-based Reduced Mesh with external lumping...\n");
-           filePrint(stderr, " ... POD: Element-based Reduced Mesh...\n");
+             filePrint(stderr,"... POD: Element-based Reduced Mesh with external lumping ...\n");
+           filePrint(stderr, " ... POD: Element-based Reduced Mesh ...\n");
            driver.reset(elementSamplingDriverNew(domain));
+         }
+         else if (domain->solInfo().snapProjPodRom) {
+           filePrint(stderr, " ... POD: Post-processing of Projected Snapshots ...\n");
+           driver.reset(snapshotProjectionDriverNew(domain));
          }
          else {
            filePrint(stderr, " ... Unknown Analysis Type          ...\n");

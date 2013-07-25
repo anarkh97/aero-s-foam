@@ -176,9 +176,9 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::assembleTrainingData(const Vec
         elemContributions++;
         trainingTarget[podVectorCount * iSnap + iPod] += elemTarget[iPod];
       }
+      timeStampIt++;
     }
     delete [] nodes;
-    timeStampIt++;
   }
   filePrint(stderr,"\r %4.2f%% complete\n", 100.);
 }

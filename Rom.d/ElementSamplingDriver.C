@@ -150,7 +150,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::assembleTrainingData(const Vec
       if(veloc) geomState_->setVelocity(domain_->getElementSet()[iElem]->numNodes(), nodes,
                                         (*veloc)[iSnap], 2); // just set the velocity at the nodes of element iElem
       if(accel) geomState_->setAcceleration(domain_->getElementSet()[iElem]->numNodes(), nodes,
-                                            (*veloc)[iSnap], 2); // just set the acceleration at the nodes of element iElem
+                                            (*accel)[iSnap], 2); // just set the acceleration at the nodes of element iElem
       // Evaluate and store element contribution at training configuration
       domain_->getElemInternalForce(*geomState_, *timeStampIt, geomState_, *(corotators_[iElem]), elementForce.array(), kelArray_[iElem]);
       if(domain_->getElementSet()[iElem]->hasRot()) {
@@ -176,9 +176,9 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::assembleTrainingData(const Vec
         elemContributions++;
         trainingTarget[podVectorCount * iSnap + iPod] += elemTarget[iPod];
       }
+      timeStampIt++;
     }
     delete [] nodes;
-    timeStampIt++;
   }
   filePrint(stderr,"\r %4.2f%% complete\n", 100.);
 }

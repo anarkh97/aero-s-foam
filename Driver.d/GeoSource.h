@@ -510,7 +510,7 @@ public:
 
   Elemset* getElemSet(void){return(&elemSet);}
 
-  void simpleDecomposition(int numSubdomains, bool estFlag, bool weightOutFlag); // dec
+  void simpleDecomposition(int numSubdomains, bool estFlag, bool weightOutFlag, bool makeTrivial);
 
   // Output Functions
   template<int bound>

@@ -3757,13 +3757,35 @@ GeoSource::addMaterial(int i, const char *matName, DoubleList &args)
 }
 
 void
-GeoSource::simpleDecomposition(int numSubdomains, bool estFlag, bool weightOutFlag)
+GeoSource::simpleDecomposition(int numSubdomains, bool estFlag, bool weightOutFlag, bool trivialFlag)
 {
  decJustCalled=true;
- //long m1 = memoryUsed();
  double    t1 = getTime();
 
  int maxEle = elemSet.last();
+
+ if(trivialFlag) {
+   optDec = new Decomposition;
+   optDec->nsub = numSubdomains;
+   optDec->pele = new int[optDec->nsub+1];
+   optDec->eln = new int[maxEle];
+
+   optDec->pele[0] = 0;
+   int div = maxEle / optDec->nsub;
+   int rem = maxEle % optDec->nsub;
+
+   optDec->pele[0] = 0;
+   for(int i=0; i<optDec->nsub; i++)
+     optDec->pele[i+1] = optDec->pele[i] + ((i < rem) ? div+1 : div);
+
+   for(int i=0; i<maxEle; i++)
+     optDec->eln[i] = i;
+
+   if(verboseFlag)
+     filePrint(stderr, " ... %d Elements Have Been Arranged in %d Subdomains ...\n",
+               maxEle, optDec->nsub);
+ }
+ else {
 
  Elemset baseSet(maxEle);
  int nSpring = 0, maxSprNodes = 0, nMass = 0;
@@ -3784,29 +3806,7 @@ GeoSource::simpleDecomposition(int numSubdomains, bool estFlag, bool weightOutFl
    }
  if(nSpring > 0) filePrint(stderr, " ... This mesh has %d springs ...\n", nSpring);
 
-/* already done in GeoSource::addFsiElements
- if ( (domain->solInfo().isCoupled) && !(domain->solInfo().isMatching) &&
-      (domain->solInfo().fetiInfo.fsi_corner != 0) ) {
-   ResizeArray<LMPCons *> &fsi = domain->getFSI();
-// JLchange: see also GeoSource::addFsiElements
-//   for(int i = 0; i < domain->getNumFSI(); ++i)
-//     baseSet.fsielemadd(maxEle+i, fsi[i]); // PJSA 7-31-06
-   int index = maxEle;
-   for(int i = 0; i < domain->getNumFSI(); ++i) {
-     int fluidNode = fsi[i]->lmpcnum;
-     for(int j=0; j< (fsi[i])->nterms; j++) {
-       LMPCons *thisFsi = new LMPCons(fluidNode, 0.0);
-       LMPCTerm thisLmpcTerm((fsi[i])->terms[j], 1.0);
-       thisFsi->addterm(&(thisLmpcTerm));
-       baseSet.fsielemadd(index, thisFsi);
-       index++;
-     }
-   }
- }
-*/
-
  MultiFront mf(&baseSet, &nodes, bool(domain->getNumFSI()));
- // filePrint(stderr," ... Constructed Connectivities In %14.5f sec and %14.3f Mb\n", (getTime() - t1)/1000.0,(memoryUsed() - m1)/(1024.0*1024.0));
 
  // Decompose and optimize the structure into subdomains
  if ( domain->solInfo().isCoupled && (domain->solInfo().type != 2 || 
@@ -3931,6 +3931,7 @@ GeoSource::simpleDecomposition(int numSubdomains, bool estFlag, bool weightOutFl
    FILE *memFilePtr = domain->openFile(cinfo->checkfile, ".mem");
    mf.memEstimate(optDec, 3, mem, memFilePtr);
    fclose(memFilePtr);
+ }
  }
 
  // Open optimized decomposition file

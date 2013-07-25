@@ -123,6 +123,7 @@ bool estFlag=false;
 bool weightOutFlag=false;
 bool nosa=false;
 bool useFull=false;
+bool trivialFlag=false;
 
 int verboseFlag = 0;
 int salinasFlag = 0;
@@ -298,6 +299,7 @@ int main(int argc, char** argv)
    {"dec", 0, 0, 1000},
    {"exit", 0, 0, 1002},
    {"deter", 0, 0, 1005},
+   {"trivial", 0, 0, 1007},
    {"use-weight-from", 1, 0, 1004},
    {"threads-number", 1, 0, 'n'},
    {"decomposition-filename", 1, 0, 'd'},
@@ -395,6 +397,9 @@ int main(int argc, char** argv)
 	break;
       case 1006 :
         debugFlag = 1;
+        break;
+      case 1007 :
+        trivialFlag = 1;
         break;
       case 1010 :
 	callSower = true;
@@ -536,6 +541,8 @@ int main(int argc, char** argv)
      exitAfterDec = decInit->exitAfterDec;
    if(decInit->weight)
      weightOutFlag = true;
+   if(decInit->trivial)
+     trivialFlag = true;
    if(decInit->memory) {
      estFlag = true;
      useFull = true;

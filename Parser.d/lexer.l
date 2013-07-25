@@ -147,6 +147,8 @@ TRAIL [a-zA-Z]*
 
 "WEIGHTS"|"weights"                { return WEIGHTLIST; }
 
+"trivial"|"TRIVIAL"                { return TRIVIAL; }
+
 "decomposition"|"DECOMPOSITION"    { return DECOMPOSITION; }
 
 "global"|"GLOBAL"                  { return GLOBAL; }

@@ -326,8 +326,18 @@ void
 BelytschkoTsayShell::getGravityForce(CoordSet& cs, double *gravityAcceleration, 
                                      Vector& gravityForce, int gravflg, GeomState *geomState)
 {
-  cerr << "BelytschkoTsayShell::getGravityForce not implemented\n";
   gravityForce.zero();
+
+  double massPerNode = 0.25*getMass(cs);
+  double fx = massPerNode*gravityAcceleration[0];
+  double fy = massPerNode*gravityAcceleration[1];
+  double fz = massPerNode*gravityAcceleration[2];
+
+  for(int i = 0; i < nnode; ++i) {
+    gravityForce[nndof*i+0] = fx;
+    gravityForce[nndof*i+1] = fy;
+    gravityForce[nndof*i+2] = fz;
+  }
 }
 
 FullSquareMatrix

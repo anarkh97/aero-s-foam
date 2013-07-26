@@ -2041,6 +2041,44 @@ MatData:
           sp.type = StructProp::Constraint;
           geoSource->addMat( $1-1, sp );
         }
+        | Integer CONSTRMAT MASS Float NewLine
+        { // new style for rigid solid elements with mass
+          StructProp sp;
+          sp.type = StructProp::Undefined;
+          sp.rho = $4;
+          geoSource->addMat( $1-1, sp );
+        }
+        | Integer CONSTRMAT ConstraintOptionsData MASS Float NewLine
+        { // new style for rigid solid elements with mass
+          StructProp sp;
+          sp.lagrangeMult = $3.lagrangeMult;
+          sp.initialPenalty = sp.penalty = $3.penalty;
+          sp.constraint_hess = $3.constraint_hess;
+          sp.constraint_hess_eps = $3.constraint_hess_eps;
+          sp.type = StructProp::Constraint;
+          sp.rho = $5;
+          geoSource->addMat( $1-1, sp );
+        }
+        | Integer CONSTRMAT MASS Float Float NewLine
+        { // new style for rigid beam or shell elements with mass
+          StructProp sp;
+          sp.type = StructProp::Undefined;
+          sp.rho = $4;
+          sp.A = sp.eh = $5;
+          geoSource->addMat( $1-1, sp );
+        } 
+        | Integer CONSTRMAT ConstraintOptionsData MASS Float Float NewLine
+        { // new style for rigid beam or shell elements with mass
+          StructProp sp;
+          sp.lagrangeMult = $3.lagrangeMult;
+          sp.initialPenalty = sp.penalty = $3.penalty;
+          sp.constraint_hess = $3.constraint_hess;
+          sp.constraint_hess_eps = $3.constraint_hess_eps;
+          sp.type = StructProp::Constraint;
+          sp.rho = $5;
+          sp.A = sp.eh = $6;
+          geoSource->addMat( $1-1, sp );
+        }
         | Integer CONSTRMAT Integer Float NewLine
         { // old style for rigid elements and joints
           StructProp sp;

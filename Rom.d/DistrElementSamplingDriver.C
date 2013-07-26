@@ -145,7 +145,7 @@ DistrElementSamplingDriver::solve() {
           converter.vector(buffer, *it);
           timeStamps.push_back(in.currentStateHeaderValue());
           ++counter;
-          filePrint(stderr,"\r %4.2f%% complete", double(counter)/double(basisStateCount)*100.);
+          filePrint(stderr,"\rtimeStamp = %f, %4.2f%% complete", in.currentStateHeaderValue(), double(counter)/double(basisStateCount)*100.);
           }
         in.currentStateIndexInc();
       }
@@ -184,7 +184,7 @@ DistrElementSamplingDriver::solve() {
           converter.vector(buffer, *it);
           timeStamps.push_back(in.currentStateHeaderValue());
           ++counter;
-          filePrint(stderr,"\r %4.2f%% complete", double(counter)/double(basisStateCount)*100.);
+          filePrint(stderr,"\rtimeStamp = %f, %4.2f%% complete", in.currentStateHeaderValue(),double(counter)/double(basisStateCount)*100.);
           }
         in.currentStateIndexInc();
       }
@@ -199,6 +199,8 @@ DistrElementSamplingDriver::solve() {
   // Temporary buffers shared by all iterations
   Vector podComponents(podVectorCount);
 
+  //BEGIN PROJECTION-------------------------------------------------------------------------
+ 
   // Project snapshots on POD basis to get training configurations
   filePrint(stderr," ... Projecting displacement snapshots for training configuration ...\n");
   DistrVecBasis displac(snapshotCount, vectorSize());
@@ -235,6 +237,8 @@ DistrElementSamplingDriver::solve() {
     filePrint(stderr,"\n");
     delete accelSnapshots;
   }
+
+  //END PROJECTION
 
   //Projections complete so read in normalized basis
   if(domain->solInfo().newmarkBeta == 0){

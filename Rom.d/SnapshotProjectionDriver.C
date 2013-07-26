@@ -1,6 +1,7 @@
 #include "SnapshotProjectionDriver.h"
 
 #include "VecBasis.h"
+#include "VecBasisOps.h"
 #include "BasisOps.h" 
 #include "FileNameInfo.h"
 #include "BasisFileStream.h"
@@ -52,7 +53,9 @@ SnapshotProjectionDriver::vectorSize() const {
 
 SnapshotProjectionDriver::SnapshotProjectionDriver(Domain *d) :
   SingleDomainDynamic(d),
+  velocSnapshots(NULL),
   veloc_(NULL),
+  accelSnapshots(NULL),
   accel_(NULL)
 {}
 
@@ -96,6 +99,7 @@ void
 SnapshotProjectionDriver::solve() {
   preProcess();
   postProcess();
+  compProjError();
 }
 
 void
@@ -120,8 +124,9 @@ SnapshotProjectionDriver::preProcess() {
     }
   }
 
+  MGSVectors(podBasis_.data(),podBasis_.numVec(),podBasis_.size());
+
   // Read state snapshots
-  VecBasis snapshots;
   {
     BasisInputStream in(BasisFileId(fileInfo, BasisId::STATE, BasisId::SNAPSHOTS), vecDofConversion);
     const int skipFactor = domain->solInfo().skipPodRom;
@@ -151,7 +156,6 @@ SnapshotProjectionDriver::preProcess() {
   }
 
   // Read velocity snapshots
-  VecBasis *velocSnapshots = 0;
   if(domain->solInfo().velocPodRomFile != "") {
     std::vector<double> timeStamps;
     velocSnapshots = new VecBasis;
@@ -184,7 +188,6 @@ SnapshotProjectionDriver::preProcess() {
   }
 
   // Read acceleration snapshots
-  VecBasis *accelSnapshots = 0;
   if(domain->solInfo().accelPodRomFile != "") {
     std::vector<double> timeStamps;
     accelSnapshots = new VecBasis;
@@ -240,7 +243,7 @@ SnapshotProjectionDriver::preProcess() {
     for (int iSnap = 0; iSnap != velocSnapshots->vectorCount(); ++iSnap) {
       expand(podBasis_, reduce(podBasis_, (*velocSnapshots)[iSnap], podComponents), (*veloc_)[iSnap]);
     }
-    delete velocSnapshots;
+  //  delete velocSnapshots;
   }
 
   if(accelSnapshots) {
@@ -252,7 +255,58 @@ SnapshotProjectionDriver::preProcess() {
     for (int iSnap = 0; iSnap != accelSnapshots->vectorCount(); ++iSnap) {
       expand(podBasis_, reduce(podBasis_, (*accelSnapshots)[iSnap], podComponents), (*accel_)[iSnap]);
     }
-    delete accelSnapshots;
+    //delete accelSnapshots;
+  }
+
+}
+
+void
+SnapshotProjectionDriver::compProjError() {
+
+  Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> dispError(snapshots.vectorSize(),snapshots.numVec());
+  Eigen::Map< Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > dispBuf(snapshots.data(),snapshots.vectorSize(),snapshots.numVec());
+  Eigen::Map< Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > pdispBuf(displac_.data(),displac_.vectorSize(),displac_.numVec());
+
+  dispError = pdispBuf - dispBuf;
+
+  filePrint(stderr,"\n Computing the projection error for %d training configurations\n",snapshots.numVec());
+
+  filePrint(stderr,"Displacement Projection Error\n");
+  for (int i = 0; i != snapshots.numVec(); ++i){
+    double L2error = dispError.col(i).norm();
+    L2error = L2error/dispBuf.col(i).norm()*100.;
+    filePrint(stderr,"L2 error for Displacement Snapshot %d = %f %\n",i+1,L2error);
+  }
+
+
+  if(velocSnapshots) {
+    filePrint(stderr,"\nVelocity Projection Error\n");
+    Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> velError(velocSnapshots->vectorSize(),velocSnapshots->numVec());
+    Eigen::Map< Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > velBuf(velocSnapshots->data(),velocSnapshots->vectorSize(),velocSnapshots->numVec());
+    Eigen::Map< Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > pvelBuf(veloc_->data(),veloc_->vectorSize(),veloc_->numVec());
+
+    velError = pvelBuf - velBuf;
+
+    for (int i = 0; i != velocSnapshots->numVec(); ++i){
+      double L2error = velError.col(i).norm();
+      L2error = L2error/velBuf.col(i).norm()*100.;
+      filePrint(stderr,"L2 error for Velocity Snapshot %d = %f %\n",i+1,L2error);
+    }
+  }
+
+  if(accelSnapshots) {
+    filePrint(stderr,"\nAcceleration Projection Error\n");
+    Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> accelError(accelSnapshots->vectorSize(),accelSnapshots->numVec());
+    Eigen::Map< Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > accelBuf(accelSnapshots->data(),accelSnapshots->vectorSize(),accelSnapshots->numVec());
+    Eigen::Map< Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > paccelBuf(accel_->data(),accel_->vectorSize(),accel_->numVec());
+
+    accelError = paccelBuf - accelBuf;
+
+    for (int i = 0; i != accelSnapshots->numVec(); ++i){
+      double L2error = accelError.col(i).norm();
+      L2error = L2error/accelBuf.col(i).norm()*100.;
+      filePrint(stderr,"L2 error for Acceleration Snapshot %d = %f %\n",i+1,L2error);
+    }
   }
 
 }

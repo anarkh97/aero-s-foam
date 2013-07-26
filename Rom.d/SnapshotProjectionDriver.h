@@ -34,11 +34,16 @@ public:
 protected:
   void preProcess();
   void postProcess();
+  void compProjError();
+
   int elementCount() const;
 
   VecBasis podBasis_;
+  VecBasis snapshots;
   VecBasis displac_;
+  VecBasis *velocSnapshots;
   VecBasis *veloc_;
+  VecBasis *accelSnapshots;
   VecBasis *accel_;
   std::vector<double> timeStamps_;
 };

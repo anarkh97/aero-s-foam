@@ -76,6 +76,7 @@ public:
   GenDistrVector<double> & projectUp(std::vector<double> &   , GenDistrVector<double> & );
   GenDistrVector<double> & projectDown(GenDistrVector<double> &, GenDistrVector<double> &);
   
+  void makeSparseBasis(const std::vector<std::vector<int> > &, DofSetArray **);
   void makeSparseBasis(const std::vector<int> &, DofSetArray *); 
 
   timespec tS1, tS2;

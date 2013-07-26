@@ -95,7 +95,7 @@ DistrROMPostProcessingDriver::bufferReducedFiles(){
     //there should be plenty of memory per node since projectionSubspaceSize is small
     ifstream reducedCoordFile(decDomain->getDomain()->solInfo().RODConversionFiles[i].c_str());
     if(reducedCoordFile.is_open()) {
-      filePrint(stderr,"skipping every %d snapshot\n",skipTime);
+      if(skipTime > 1) filePrint(stderr, " ... Skipping every %3d snapshots  ...\n", skipTime);
 
       double time, dummyVar;
       int datatype, podsize, skipCounter;
@@ -104,7 +104,7 @@ DistrROMPostProcessingDriver::bufferReducedFiles(){
       DataType.push_back(std::make_pair(datatype, podsize));
           switch(DataType[i].first) {
             case 0 :   // read reduced acceleration data
-              {filePrint(stderr,"Buffering Reduced Acceleration Data \n");
+              {filePrint(stderr, " ... Buffering Reduced Acceleration Data ...\n");
               std::vector<double> timestamps;
               while(reducedCoordFile>>time){
                 if(skipCounter == skipTime){
@@ -125,7 +125,7 @@ DistrROMPostProcessingDriver::bufferReducedFiles(){
               filePrint(stderr,"\n");
               break;
             case 1 :   // read reduced displacement data
-              {filePrint(stderr,"Buffering Reduced Displacement Data \n");
+              {filePrint(stderr, " ... Buffering Reduced Displacement Data ...\n");
               std::vector<double> timestamps;
               while(reducedCoordFile>>time){
                 if(skipCounter == skipTime){
@@ -146,7 +146,7 @@ DistrROMPostProcessingDriver::bufferReducedFiles(){
                filePrint(stderr,"\n");
               break;
             case 2 :   // read reduced velocity data
-               {filePrint(stderr,"Buffering Reduced Velocity Data \n");
+               {filePrint(stderr, " ... Buffering Reduced Velocity Data ...\n");
                 std::vector<double> timestamps;
                 while(reducedCoordFile>>time) {
                   if(skipCounter == skipTime){
@@ -167,7 +167,7 @@ DistrROMPostProcessingDriver::bufferReducedFiles(){
               filePrint(stderr,"\n");
               break;
             default :
-              filePrint(stderr, "\n...ROD conversion only supports Acceleration, Displacement, and Velocity...\n");
+              filePrint(stderr, "\n... ROD conversion only supports Acceleration, Displacement, and Velocity ...\n");
           }
     } else {
       filePrint(stderr,"\nFailure to open file \n");
@@ -193,9 +193,6 @@ DistrROMPostProcessingDriver::solve() {
    int counter = 0; //TODO: make this portion more general so it doesn't depend on th assumption
                     //that all files have matching timestamps
    for(std::vector<double>::iterator it = TimeStamps[0].begin(); it != TimeStamps[0].end(); it++) {
-
-     filePrint(stderr,"\r  ROM Conversion Loop: t = %9.3e, %3d%% complete ",
-                *it, int(*it/(TimeStamps[0].back())*100));
 
      // load current state for output 
      for(int i = 0; i < numConversionFiles; i++) {
@@ -229,11 +226,14 @@ DistrROMPostProcessingDriver::solve() {
               //nothing
            }
      }
-   //MultiDomainDynam::updateDisplacement( *fullDispBuffer, *fullDispBuffer);
-   geomState->explicitUpdate(decDomain, *fullDispBuffer);
-   mddPostPro->dynamOutput( counter, *it, *dummyDynOps, *fullDummyBuffer, fullDummyBuffer, *curState);
 
-   counter += 1;
+     geomState->explicitUpdate(decDomain, *fullDispBuffer);
+     mddPostPro->dynamOutput( counter, *it, *dummyDynOps, *fullDummyBuffer, fullDummyBuffer, *curState);
+
+     filePrint(stderr,"\r ... ROM Conversion Loop: t = %9.3e, %3d%% complete ...",
+                *it, int(*it/(TimeStamps[0].back())*100));
+
+     counter += 1;
    }  //end of loop over time stamps
 
 }

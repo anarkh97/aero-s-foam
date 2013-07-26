@@ -694,6 +694,17 @@ int main(int argc, char** argv)
    domain->setUpData();
  }
 
+ if(!(geoSource->getCheckFileInfo()->decPtr || callDec || decInit || geoSource->binaryInput)) {
+   // activate multi-domain mode for the explicit dynamics Rom drivers which are not supported in single-domain mode
+   // so it is not necessary to include "DECOMP" with "nsubs 1" in the input file
+   if((domain->solInfo().activatePodRom && domain->probType() == SolverInfo::NonLinDynam && domain->solInfo().newmarkBeta == 0)
+      || (domain->probType() == SolverInfo::PodRomOffline && domain->solInfo().ROMPostProcess)) {
+     callDec = true;
+     trivialFlag = true;
+     numSubdomains = 1;
+   }
+ }
+
  if(callDec) {
 //   if(domain->solInfo().type == 2 || domain->solInfo().type == 3) { // DEC requires FETI or BLOCKDIAG to be activated (see below)
      Dec::dec(numProcessors, numThreads, numSubdomains, topFlag);
@@ -969,13 +980,13 @@ int main(int argc, char** argv)
      } break;
      case SolverInfo::NonLinDynam: {
        if(domain->solInfo().newmarkBeta == 0) { // explicit
-         // filePrint(stderr, "Non-Linear Explicit Dynamic solver\n");
          if (!domain->solInfo().activatePodRom) {
            MultiDomainDynam dynamProb(domain);
            DynamicSolver < MDDynamMat, DistrVector, MultiDomDynPostProcessor,
-                 MultiDomainDynam, double > dynamSolver(&dynamProb);
+                           MultiDomainDynam, double > dynamSolver(&dynamProb);
            dynamSolver.solve();
-         } else { // POD ROM
+         } 
+         else { // POD ROM
            if (domain->solInfo().galerkinPodRom) {
              if (domain->solInfo().elemLumpPodRom) {
                if (domain->solInfo().reduceFollower)
@@ -984,7 +995,7 @@ int main(int argc, char** argv)
                  filePrint(stderr, " ... POD: ROM with stiffness lumping...\n");
                Rom::DistrExplicitLumpedPodProjectionNonLinDynamic dynamProb(domain);
                DynamicSolver < MDDynamMat, DistrVector, Rom::DistrExplicitPodPostProcessor,
-                             Rom::DistrExplicitLumpedPodProjectionNonLinDynamic, double > dynamSolver(&dynamProb);
+                               Rom::DistrExplicitLumpedPodProjectionNonLinDynamic, double > dynamSolver(&dynamProb);
                dynamSolver.solve();
              } else {
                filePrint(stderr, " ... POD: Explicit Galerkin         ...\n");
@@ -994,7 +1005,7 @@ int main(int argc, char** argv)
                dynamSolver.solve();
              }
            }
-            else {
+           else {
              filePrint(stderr, " ... POD: Snapshot collection       ...\n");
              Rom::DistrExplicitSnapshotNonLinDynamic dynamProb(domain);
              DynamicSolver < MDDynamMat, DistrVector, MultiDomDynPostProcessor,
@@ -1002,13 +1013,15 @@ int main(int argc, char** argv)
              dynamSolver.solve();
            }
          }
-       } else { // implicit
+       } 
+       else { // implicit
          if (!domain->solInfo().activatePodRom) {
            MDNLDynamic nldynamic(domain);
            NLDynamSolver <ParallelSolver, DistrVector, MultiDomainPostProcessor,
-                         MDNLDynamic, DistrGeomState> nldynamicSolver(&nldynamic);
+                          MDNLDynamic, DistrGeomState> nldynamicSolver(&nldynamic);
            nldynamicSolver.solve();
-         } else { // POD ROM
+         } 
+         else { // POD ROM
            filePrint(stderr, " ... POD: Snapshot collection       ...\n");
            Rom::DistrSnapshotNonLinDynamic nldynamic(domain);
            NLDynamSolver <ParallelSolver, DistrVector, MultiDomainPostProcessor,

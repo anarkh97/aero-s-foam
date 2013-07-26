@@ -273,6 +273,7 @@ struct SolverInfo {
    double penalty_beta;
 
    std::vector<std::string> RODConversionFiles;
+   std::vector<int> PODerrornorm;
    const char * snapfiPodRom;
    const char * readInROBorModes;
    const char * readInModes;

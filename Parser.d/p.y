@@ -104,6 +104,7 @@
 %token SLOSH SLGRAV SLZEM SLZEMFILTER 
 %token PDIR HEFSB HEFRS HEINTERFACE  // Added for HEV Problem, EC, 20080512
 %token SNAPFI PODROB TRNVCT OFFSET ORTHOG SVDTOKEN CONVERSIONTOKEN CONVFI SAMPLING SNAPSHOTPROJECT PODSIZEMAX REFSUBSTRACT TOLER OUTOFCORE NORMALIZETOKEN
+%token VECTORNORM
 
 %type <complexFDBC> AxiHD
 %type <complexFNBC> AxiHN
@@ -4112,6 +4113,8 @@ SamplingOption:
   { domain->solInfo().oocPodRom = bool($2); }
   | REDFOL SWITCH
   { domain->solInfo().reduceFollower = bool($2); }
+  | VECTORNORM Integer
+  { domain->solInfo().PODerrornorm.push_back($2); }
   ;
 
 ConversionToken:

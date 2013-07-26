@@ -1364,6 +1364,8 @@ TRAIL [a-zA-Z]*
 
 "SNAPFI"|"SnapFi"|"snapfi"		  { return SNAPFI; }
 
+"VCNORM"|"VcNorm"|"vcnorm"		  { return VECTORNORM; }
+
 "PODROB"|"PodRob"|"podrob"		  { return PODROB; }
 
 "TRNVCT"|"TrnVct"|"trnvct"		  { return TRNVCT; }

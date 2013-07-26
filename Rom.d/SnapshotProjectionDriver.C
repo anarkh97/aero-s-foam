@@ -271,11 +271,30 @@ SnapshotProjectionDriver::compProjError() {
 
   filePrint(stderr,"\n Computing the projection error for %d training configurations\n",snapshots.numVec());
 
+  int numNorms = domain->solInfo().PODerrornorm.size();
+
   filePrint(stderr,"Displacement Projection Error\n");
   for (int i = 0; i != snapshots.numVec(); ++i){
-    double L2error = dispError.col(i).norm();
-    L2error = L2error/dispBuf.col(i).norm()*100.;
-    filePrint(stderr,"L2 error for Displacement Snapshot %d = %f %\n",i+1,L2error);
+    filePrint(stderr,"Snapshot = %d: ",i+1);
+    for(std::vector<int>::iterator norm = domain->solInfo().PODerrornorm.begin(); norm != domain->solInfo().PODerrornorm.end(); norm ++){
+      int pnorm = *norm;
+      if((pnorm) == -1){
+          double Lperror = dispError.col(i).lpNorm<Eigen::Infinity>();
+          Lperror = Lperror/dispBuf.col(i).lpNorm<Eigen::Infinity>()*100.;
+          filePrint(stderr,"  L_Inf error = %f  ",(pnorm),Lperror);
+      } else if(pnorm == 1){
+          double Lperror = dispError.col(i).lpNorm<1>();
+          Lperror = Lperror/dispBuf.col(i).lpNorm<1>()*100.;
+          filePrint(stderr,"  L%d error = %f  ",(pnorm),Lperror);
+      } else if(pnorm == 2) {
+          double Lperror = dispError.col(i).lpNorm<2>();
+          Lperror = Lperror/dispBuf.col(i).lpNorm<2>()*100.;
+          filePrint(stderr,"  L%d error = %f  ",(pnorm),Lperror);
+      } else {
+          filePrint(stderr,"...Norm not supported...");
+      }
+    }
+    filePrint(stderr,"\n");
   }
 
 
@@ -288,9 +307,26 @@ SnapshotProjectionDriver::compProjError() {
     velError = pvelBuf - velBuf;
 
     for (int i = 0; i != velocSnapshots->numVec(); ++i){
-      double L2error = velError.col(i).norm();
-      L2error = L2error/velBuf.col(i).norm()*100.;
-      filePrint(stderr,"L2 error for Velocity Snapshot %d = %f %\n",i+1,L2error);
+      filePrint(stderr,"Snapshot = %d: ",i+1);
+      for(std::vector<int>::iterator norm = domain->solInfo().PODerrornorm.begin(); norm != domain->solInfo().PODerrornorm.end(); norm ++){
+        int pnorm = *norm;
+        if((pnorm) == -1){
+            double Lperror = velError.col(i).lpNorm<Eigen::Infinity>();
+            Lperror = Lperror/velBuf.col(i).lpNorm<Eigen::Infinity>()*100.;
+            filePrint(stderr,"  L_inf error = %f  ",(pnorm),Lperror);
+        } else if(pnorm == 1) {
+            double Lperror = velError.col(i).lpNorm<1>();
+            Lperror = Lperror/velBuf.col(i).lpNorm<1>()*100.;
+            filePrint(stderr,"  L%d error = %f  ",(pnorm),Lperror);
+        } else if(pnorm == 2) {
+            double Lperror = velError.col(i).lpNorm<2>();
+            Lperror = Lperror/velBuf.col(i).lpNorm<2>()*100.;
+            filePrint(stderr,"  L%d error = %f  ",(pnorm),Lperror);
+        } else {
+            filePrint(stderr,"...Norm not supported...");
+        }
+      }
+      filePrint(stderr,"\n");
     }
   }
 
@@ -303,9 +339,26 @@ SnapshotProjectionDriver::compProjError() {
     accelError = paccelBuf - accelBuf;
 
     for (int i = 0; i != accelSnapshots->numVec(); ++i){
-      double L2error = accelError.col(i).norm();
-      L2error = L2error/accelBuf.col(i).norm()*100.;
-      filePrint(stderr,"L2 error for Acceleration Snapshot %d = %f %\n",i+1,L2error);
+      filePrint(stderr,"Snapshot = %d: ",i+1);
+      for(std::vector<int>::iterator norm = domain->solInfo().PODerrornorm.begin(); norm != domain->solInfo().PODerrornorm.end(); norm ++){
+        int pnorm = *norm;
+        if((pnorm) == -1){
+            double Lperror = accelError.col(i).lpNorm<Eigen::Infinity>();
+            Lperror = Lperror/accelBuf.col(i).lpNorm<Eigen::Infinity>()*100.;
+            filePrint(stderr,"  L_inf error = %f  ",(pnorm),Lperror);
+        } else if(pnorm == 1){
+            double Lperror = accelError.col(i).lpNorm<1>();
+            Lperror = Lperror/accelBuf.col(i).lpNorm<1>()*100.;
+            filePrint(stderr,"  L%d error = %f  ",(pnorm),Lperror);
+        } else if(pnorm == 2) {
+            double Lperror = accelError.col(i).lpNorm<2>();
+            Lperror = Lperror/accelBuf.col(i).lpNorm<2>()*100.;
+            filePrint(stderr,"  L%d error = %f  ",(pnorm),Lperror);
+        } else {
+            filePrint(stderr,"...Norm not supported...");
+        }
+      }
+      filePrint(stderr,"\n");
     }
   }
 

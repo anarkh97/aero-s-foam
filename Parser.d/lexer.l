@@ -1354,11 +1354,15 @@ TRAIL [a-zA-Z]*
 
 "MNORMA"|"MNorma"|"mnorma"		  { return NORMALIZETOKEN; }
 
-"RODC"|"RodC"|"rodc"                      { return CONVERSIONTOKEN; } // reduced order data conversion token
+"RODC"|"RodC"|"rodc"                      { return CONVERSIONTOKEN; } //reduced order data conversion token
  
 "CONFIL"|"ConFil"|"confil" 	 	  { return CONVFI; } //reduced order data conversion files
 
 "SNAPFI"|"SnapFi"|"snapfi"		  { return SNAPFI; }
+
+"ROBFI"|"RobFi"|"robfi"		  { return ROBFI; }
+
+"SNAPWEIGHT"|"SnapWeight"|"snapweight" {return SNAPWEIGHT; }
 
 "PODROB"|"PodRob"|"podrob"		  { return PODROB; }
 

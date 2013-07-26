@@ -96,6 +96,11 @@ struct ConstraintOptions {
   double constraint_hess_eps;
 };
 
+struct StringList {
+     int nval;
+     const char *v[32];
+};
+
 extern double fetiHTol;
 extern int fetiHIterMax;
 

@@ -105,24 +105,104 @@ BasisOrthoDriver::solve() {
   assert(dummyDynOps->M);
   GenSparseMatrix<double> *fullMass = dummyDynOps->M;
 
+  /*cerr << "filenames: \n";
+  for(int i = 0 ; i < domain->solInfo().snapfiPodRom.size() ; i++){
+    std::string fileName =  BasisFileId(fileInfo, *(workload.begin()) , BasisId::SNAPSHOTS , i) ;
+    std::cerr << fileName << "\n" ;
+  }*/
+
+  int vectorSize = 0;  //size of vectors
+  int sizeSnap = 0; //number of state snapshots
+  int sizeROB = 0;
+  //if(!domain->solInfo().snapfiPodRom.empty()) files = domain->solInfo().snapfiPodRom ;
+  if(domain->solInfo().snapfiPodRom.empty() && domain->solInfo().robfi.empty()) {
+    std::cerr << "*** Error: no files provided\n" ;
+    exit(-1);
+  }
   for (std::vector<BasisId::Type>::const_iterator it = workload.begin(); it != workload.end(); ++it) {
     BasisId::Type type = *it;
-
-    {
-      BasisInputStream input(BasisFileId(fileInfo, type, BasisId::SNAPSHOTS), converter);
-      filePrint(stderr, " ... Computation of a basis of size %d...\n", input.size());
-      
-      solver.matrixSizeIs(input.vectorSize(), input.size());
-
-      int iCol = 0;
-      for (int iCol = 0; iCol < solver.colCount(); ++iCol) {
-        double *buffer = solver.matrixCol(iCol);
-        input >> buffer;
-        assert(input);
-        if(domain->solInfo().normalize ==1) fullMass->squareRootMult(buffer); //executes for new method
-        (*transform)(buffer);
+    if(!domain->solInfo().snapfiPodRom.empty()){
+      for(int i = 0 ; i < domain->solInfo().snapfiPodRom.size(); i++){
+        std::string fileName =  BasisFileId(fileInfo, type, BasisId::SNAPSHOTS , i);
+        BasisInputStream input(fileName, converter);
+        vectorSize = input.vectorSize();
+        sizeSnap += input.size();
+        std::cerr << "vector size: " << vectorSize << "\n" ; 
+        std::cerr << "input size:  " << sizeSnap << "\n" ;
+        //std::cerr << "weight " << i << " : " << domain->solInfo().snapshotWeights[i] << "\n";
       }
     }
+
+    std::cerr << "calculate size of rob files\n";
+    for(int i = 0 ; i < domain->solInfo().robfi.size(); i++ ) {
+      std::string fileName = BasisFileId(fileInfo,type,BasisId::ROB, i) ; //domain->solInfo().robfi[i];
+      BasisInputStream input(fileName, converter);
+      vectorSize = input.vectorSize();
+      sizeROB += input.size();
+      std::cerr << "vector size: " << vectorSize << "\n" ; 
+      std::cerr << "input size:  " << sizeROB << "\n" ;
+    }
+  }
+  solver.matrixSizeIs(vectorSize, sizeSnap+sizeROB);
+  
+  for (std::vector<BasisId::Type>::const_iterator it = workload.begin(); it != workload.end(); ++it) {
+    BasisId::Type type = *it;
+    filePrint(stderr, " ... Computation of a basis of size %d...\n", sizeSnap+sizeROB);
+    {
+      int colCounter = 0 ; //Column counter for combined matrix
+      if(!domain->solInfo().snapfiPodRom.empty()){
+        for(int i = 0 ; i < domain->solInfo().snapfiPodRom.size(); i++){
+          std::string fileName =  BasisFileId(fileInfo, type, BasisId::SNAPSHOTS , i);
+          BasisInputStream input(fileName, converter);
+          std::cerr << "Reading in snapshot file:  "<< fileName << "\n" ;
+
+          for (int iCol = 0; iCol < input.size(); ++iCol) {
+            double *buffer = solver.matrixCol(colCounter);
+            input >> buffer;
+            assert(input);
+            colCounter++;
+            //Multiply by weighting factor if given in input file
+            if(!domain->solInfo().snapshotWeights.empty()){
+              //std::cerr << "weighting factor of " << domain->solInfo().snapshotWeights[i] << "  used \n" ;
+              for(int row = 0 ; row < vectorSize; row++){
+                buffer[row] *= domain->solInfo().snapshotWeights[i];
+              }
+            }
+            if(domain->solInfo().normalize ==1) fullMass->squareRootMult(buffer); //executes for new method
+            (*transform)(buffer);
+          }
+        }
+      }
+      std::cerr << "done with snapshot\n";
+      if(!domain->solInfo().robfi.empty()){
+        for(int i = 0 ; i < domain->solInfo().robfi.size(); i ++ ){
+          std::string fileName = BasisFileId(fileInfo,type,BasisId::ROB,i) ;//domain->solInfo().robfi[i];
+          BasisInputStream input(fileName,converter);
+          std::cerr << "Reading in ROB file:  "<< fileName << "\n" ;
+
+          for(int iCol = 0; iCol < input.size(); ++iCol){
+            double *buffer = solver.matrixCol(colCounter);
+            std::pair<double, double *> data;
+            assert(input);
+            data.second = buffer;
+            input >> data;
+            colCounter++;
+            //Multiply by weight factor
+            if(!domain->solInfo().snapshotWeights.empty()){
+              for(int row = 0 ; row < vectorSize; row++){
+                data.second[row] *= data.first*domain->solInfo().snapshotWeights[domain->solInfo().snapfiPodRom.size()+i];
+                //std::cerr << "weighting factor of " << domain->solInfo().snapshotWeights[domain->solInfo().snapfiPodRom.size()+i] << "  used \n" ;
+              }
+            }
+            if(domain->solInfo().normalize ==1) fullMass->squareRootMult(buffer); //executes for new method
+            (*transform)(buffer);
+          }
+        }
+      }
+
+    }
+    std::cerr << "rowcount: " << solver.rowCount() << "\n" ;
+    std::cerr << "colcount: " << solver.colCount() << "\n" ;
     solver.solve();
 
     BasisOutputStream output(BasisFileId(fileInfo, type, BasisId::POD), converter, false); 
@@ -161,7 +241,6 @@ BasisOrthoDriver::solve() {
       BasisOutputStream outputNormalized(fileName, converter, false); 
       for (int iVec = 0; iVec < orthoBasisDim; ++iVec) {
         outputNormalized << std::make_pair(solver.singularValue(iVec), normalizedBasis[iVec]);
-        //outputNormalized << std::make_pair(normalizedBasis[iVec].data(), solver.singularValue(iVec));
       }
     
     }

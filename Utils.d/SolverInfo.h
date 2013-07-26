@@ -273,7 +273,11 @@ struct SolverInfo {
    double penalty_beta;
 
    std::vector<std::string> RODConversionFiles;
-   const char * snapfiPodRom;
+   //const char * snapfiPodRom;
+   int numSnap;
+   std::vector<std::string> snapfiPodRom;
+   std::vector<std::string> robfi;
+   std::vector<double> snapshotWeights;
    const char * readInROBorModes;
    const char * readInModes;
    const char * SVDoutput;
@@ -525,7 +529,8 @@ struct SolverInfo {
                   constraint_hess = 1;
                   constraint_hess_eps = 0;
 
-                  snapfiPodRom       = "";
+                  //snapfiPodRom       = "";
+                  numSnap            = 1;
 		  readInROBorModes   = "";
                   readInModes        = "";
 		  SVDoutput          = "pod.rob";

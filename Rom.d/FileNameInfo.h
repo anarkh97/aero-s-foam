@@ -9,7 +9,7 @@ namespace Rom {
 
 class FileNameInfo {
 public:
-  std::string basisFileName(const BasisId &) const;
+  std::string basisFileName(const BasisId &, int index = 0) const;
 
   const std::string &prefix() const { return prefix_; }
   void prefixIs(const std::string &);
@@ -29,8 +29,8 @@ public:
     id_(id), name_(initName(info))
   {}
 
-  BasisFileId(const FileNameInfo &info, BasisId::Type type, BasisId::Level level) :
-    id_(type, level), name_(initName(info))
+  BasisFileId(const FileNameInfo &info, BasisId::Type type, BasisId::Level level, int index = 0) :
+    id_(type, level), name_(initName(info, index))
   {}
 
   BasisId id() const { return id_; }
@@ -41,7 +41,7 @@ public:
   operator std::string() const { return name_; }
 
 private:
-  std::string initName(const FileNameInfo &info) const { return info.basisFileName(id_); }
+  std::string initName(const FileNameInfo &info, int index = 0) const { return info.basisFileName(id_, index); }
 
   const BasisId id_;
   const std::string name_;

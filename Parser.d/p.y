@@ -4143,8 +4143,15 @@ SamplingOption:
   { domain->solInfo().oocPodRom = bool($2); }
   | REDFOL SWITCH
   { domain->solInfo().reduceFollower = bool($2); }
-  | VECTORNORM Integer
+  | VECTORNORM FNAME
   { domain->solInfo().PODerrornorm.push_back($2); }
+  | VECTORNORM FNAME FNAME
+  { domain->solInfo().PODerrornorm.push_back($2);
+    domain->solInfo().PODerrornorm.push_back($3); }
+  | VECTORNORM FNAME FNAME FNAME
+  { domain->solInfo().PODerrornorm.push_back($2);
+    domain->solInfo().PODerrornorm.push_back($3);
+    domain->solInfo().PODerrornorm.push_back($4); }
   ;
 
 ConversionToken:

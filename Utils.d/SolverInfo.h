@@ -274,7 +274,7 @@ struct SolverInfo {
 
    std::vector<std::string> RODConversionFiles;
    //const char * snapfiPodRom;
-   std::vector<int> PODerrornorm;
+   std::vector<std::string> PODerrornorm;
    int numSnap;
    std::vector<std::string> snapfiPodRom;
    std::vector<std::string> robfi;

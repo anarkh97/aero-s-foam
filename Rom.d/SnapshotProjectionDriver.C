@@ -269,6 +269,11 @@ SnapshotProjectionDriver::compProjError() {
 
   dispError = pdispBuf - dispBuf;
 
+  if(domain->solInfo().PODerrornorm.size() == 0) {
+     std::cerr << "...No displacement file specified, exiting..." << std::endl;
+     exit(-1);
+    }
+
   FILE * dispFile = fopen(domain->solInfo().PODerrornorm[0].c_str(),"w");
   filePrint(dispFile,"Number of Training Configurations: %d\n",snapshots.numVec());
 
@@ -304,9 +309,14 @@ SnapshotProjectionDriver::compProjError() {
 
     velError = pvelBuf - velBuf;
 
+    if(domain->solInfo().PODerrornorm.size() < 2) {
+     std::cerr << "...No velocity file specified, exiting..." << std::endl;
+     exit(-1);
+    }
+
     FILE * velFile = fopen(domain->solInfo().PODerrornorm[1].c_str(),"w");
     filePrint(velFile,"Number of Training Configurations: %d\n",velocSnapshots->numVec());
- 
+
     filePrint(velFile,"Velocity Projection Error:\n");
     filePrint(velFile,"Frobenius: %1.6e\n", velError.norm());
     filePrint(velFile,"   Snapshot   |      L_inf      |      L1       |        L2   \n");
@@ -337,6 +347,11 @@ SnapshotProjectionDriver::compProjError() {
     Eigen::Map< Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > paccelBuf(accel_->data(),accel_->vectorSize(),accel_->numVec());
 
     accelError = paccelBuf - accelBuf;
+
+    if(!domain->solInfo().PODerrornorm.size() < 3) {
+     std::cerr << "...No acceleration file specified, exiting..." << std::endl;
+     exit(-1);
+    }
 
     FILE * accelFile = fopen(domain->solInfo().PODerrornorm[2].c_str(),"w");
     filePrint(accelFile,"Number of Training Configurations: %d\n",accelSnapshots->numVec());

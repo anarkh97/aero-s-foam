@@ -2,7 +2,7 @@
 
 #include "SimpleBuffer.h"
 
-#include <Element.d/NonLinearity.d/ExpMat.h>
+#include <Element.d/NonLinearity.d/NLMaterial.h>
 
 #include <algorithm>
 
@@ -43,22 +43,8 @@ operator<<(std::ostream &out, const EFrameData &source) {
 }
 
 std::ostream &
-operator<<(std::ostream &out, const ExpMat &source) {
-  {
-    std::string type;
-    switch (source.optctv) {
-      case 1: type = "HYPOELASTIC"; break;
-      case 3: type = "ELASTOVISCOPLASTIC"; break;
-      case 5: type = "J2"; break;
-      case 6: type = "KK"; break;
-      case 7: type = "KKEXP"; break;
-      default: throw std::range_error("Unknown material law type");
-    }
-    out << type << " ";
-  }
-
-  std::copy(&source.ematpro[0], &source.ematpro[20], std::ostream_iterator<double>(out, " "));
-
+operator<<(std::ostream &out, const NLMaterial &source) {
+  source.print(out);
   return out;
 }
 
@@ -200,17 +186,6 @@ const std::string &
 InputFileSectionHelper<std::pair<const int, MatLawTag::SecondType>, MatLawTag>::header(MatLawTag) {
   static const std::string result("MATLAW");
   return result;
-}
-
-// Special
-
-const ExpMat &
-MatLawTag::valueTransformation(const NLMaterial *m) {
-  const ExpMat *law = dynamic_cast<const ExpMat *>(m);
-  if (!law) {
-    throw std::range_error("Unhandled material law");
-  }
-  return *law;
 }
 
 } /* end namespace Rom */

@@ -150,7 +150,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::assembleTrainingData(const Vec
       if(veloc) geomState_->setVelocity(domain_->getElementSet()[iElem]->numNodes(), nodes,
                                         (*veloc)[iSnap], 2); // just set the velocity at the nodes of element iElem
       if(accel) geomState_->setAcceleration(domain_->getElementSet()[iElem]->numNodes(), nodes,
-                                            (*veloc)[iSnap], 2); // just set the acceleration at the nodes of element iElem
+                                            (*accel)[iSnap], 2); // just set the acceleration at the nodes of element iElem
       // Evaluate and store element contribution at training configuration
       domain_->getElemInternalForce(*geomState_, *timeStampIt, geomState_, *(corotators_[iElem]), elementForce.array(), kelArray_[iElem]);
       if(domain_->getElementSet()[iElem]->hasRot()) {
@@ -176,9 +176,9 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::assembleTrainingData(const Vec
         elemContributions++;
         trainingTarget[podVectorCount * iSnap + iPod] += elemTarget[iPod];
       }
+      timeStampIt++;
     }
     delete [] nodes;
-    timeStampIt++;
   }
   filePrint(stderr,"\r %4.2f%% complete\n", 100.);
 }
@@ -280,13 +280,27 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcess(Vector &solution, 
   
   const MeshRenumbering meshRenumbering(sampleElemIds.begin(), sampleElemIds.end(), *elemToNode, verboseFlag);
   const MeshDesc reducedMesh(domain_, geoSource, meshRenumbering, weights);
-  try {
-    outputMeshFile(fileInfo, reducedMesh, firstTime);
-  }
-  catch(std::exception& e) {
-    std::cerr << "caught exception: " << e.what() << endl;
-  }
+  outputMeshFile(fileInfo, reducedMesh, firstTime);
   outputFullWeights(fileInfo, solution, packedToInput, firstTime);
+#ifdef USE_EIGEN3
+  // build and output compressed basis
+  // TODO add extra nodes for FORCE, DIMASS, etc...
+  podBasis_.makeSparseBasis(meshRenumbering.reducedNodeIds(), domain_->getCDSA());
+  {
+    std::string filename = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
+    filename.append(".reduced");
+    if(domain_->solInfo().newmarkBeta == 0) filename.append(".normalized");
+    filePrint(stderr," ... Writing compressed basis to file %s ...\n", filename.c_str());
+    DofSetArray reduced_dsa(reducedMesh.nodes().size(), const_cast<Elemset&>(reducedMesh.elements()));
+    ConstrainedDSA reduced_cdsa(reduced_dsa, reducedMesh.dirichletBConds().size(), const_cast<BCond*>(&reducedMesh.dirichletBConds()[0]));
+    VecNodeDof6Conversion converter(reduced_cdsa);
+    BasisOutputStream output(filename, converter, false);
+
+    for (int iVec = 0; iVec < podBasis_.vectorCount(); ++iVec) {
+      output << podBasis_.getCompressedBasis().col(iVec);
+    }
+  }
+#endif
 }
 
 template<typename MatrixBufferType, typename SizeType>
@@ -355,7 +369,6 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcess() {
   // Read velocity snapshots
   VecBasis *velocSnapshots = 0;
   if(domain_->solInfo().velocPodRomFile != "") {
-    //std::cerr << "reading velocity snapshots from file " << domain->solInfo().velocPodRomFile << std::endl;
     std::vector<double> timeStamps;
     velocSnapshots = new VecBasis;
     BasisInputStream in(BasisFileId(fileInfo, BasisId::VELOCITY, BasisId::SNAPSHOTS), vecDofConversion);
@@ -389,7 +402,6 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcess() {
   // Read acceleration snapshots
   VecBasis *accelSnapshots = 0;
   if(domain_->solInfo().accelPodRomFile != "") {
-    //std::cerr << "reading acceleration snapshots from file " << domain->solInfo().accelPodRomFile << std::endl;
     std::vector<double> timeStamps;
     accelSnapshots = new VecBasis;
     BasisInputStream in(BasisFileId(fileInfo, BasisId::ACCELERATION, BasisId::SNAPSHOTS), vecDofConversion);
@@ -428,6 +440,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcess() {
   Vector podComponents(podVectorCount);
 
   // Project snapshots on POD basis to get training configurations
+  filePrint(stderr," ... Projecting displacement snapshots for training configuration ...\n");
   displac_.dimensionIs(snapshotCount, vectorSize());
   for (int iSnap = 0; iSnap != snapshotCount; ++iSnap) {
     expand(podBasis_, reduce(podBasis_, snapshots[iSnap], podComponents), displac_[iSnap]);
@@ -437,6 +450,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcess() {
     veloc_ = new VecBasis(velocSnapshots->vectorCount(), vectorSize());
 
     // Project velocity snapshots on POD basis to get training configurations
+    filePrint(stderr," ... Projecting velocity snapshots for training configuration ...\n");
     for (int iSnap = 0; iSnap != velocSnapshots->vectorCount(); ++iSnap) {
       expand(podBasis_, reduce(podBasis_, (*velocSnapshots)[iSnap], podComponents), (*veloc_)[iSnap]);
     }
@@ -447,6 +461,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcess() {
     accel_ = new VecBasis(accelSnapshots->vectorCount(), vectorSize());
 
     // Project acceleration snapshots on POD basis to get training configurations
+    filePrint(stderr," ... Projecting acceleration snapshots for training configuration ...\n");
     for (int iSnap = 0; iSnap != accelSnapshots->vectorCount(); ++iSnap) {
       expand(podBasis_, reduce(podBasis_, (*accelSnapshots)[iSnap], podComponents), (*accel_)[iSnap]);
     }

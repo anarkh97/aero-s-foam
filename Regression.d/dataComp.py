@@ -404,7 +404,7 @@ def dComp(params):
       part.add_header('Content-Disposition', 'attachment; filename="%s"' % os.path.basename(f))
       msg.attach(part)
     else: 
-      msg.attach( MIMEText('These were no discrepancies in the last regression test'))
+      msg.attach( MIMEText('There were no discrepancies in the last regression test'))
     smtp = smtplib.SMTP("localhost")
     send_to = "mpotts@drc.com"
     send_from = "mpotts@ahpcrcfe.stanford.edu"

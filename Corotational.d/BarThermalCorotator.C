@@ -4,12 +4,12 @@
 #include <Corotational.d/BarThermalCorotator.h>
 #include <Corotational.d/TemperatureState.h> 
 
-BarThermalCorotator::BarThermalCorotator(int _n1, int _n2, double _P, 
+BarThermalCorotator::BarThermalCorotator(int _n1, int _n2, double __P, 
                                          double _eps, double _sigma, double _Tr, CoordSet& cs)
 {
  n1    = _n1;         	// Node 1
  n2    = _n2;   	// Node 2
- P     = _P;    	// Perimeter
+ P     = __P;    	// Perimeter
  eps   = _eps;          // Emissivity of the body
  sigma = _sigma;        // Stefan's constant
  Tr    = _Tr;           // Temperature of the enclosure receiving the radiation

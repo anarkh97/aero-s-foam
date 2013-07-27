@@ -68,7 +68,7 @@
 %token CONWEP
 %token DAMPING DblConstant DEM DIMASS DISP DIRECT DLAMBDA DP DYNAM DETER DECOMPOSE DECOMPFILE DMPC DEBUGCNTL DEBUGICNTL
 %token CONSTRAINTS MULTIPLIERS PENALTY
-%token EIGEN EFRAMES ELSCATTERER END ELHSOMMERFELD EXPLICIT EPSILON ELEMENTARYFUNCTIONTYPE
+%token ELLUMP EIGEN EFRAMES ELSCATTERER END ELHSOMMERFELD EXPLICIT EPSILON ELEMENTARYFUNCTIONTYPE
 %token FABMAT FACOUSTICS FETI FETI2TYPE FETIPREC FFP FFPDIR FITALG FNAME FLUX FORCE FRONTAL FETIH FILTEREIG
 %token FREQSWEEP FREQSWEEP1 FREQSWEEP2 FREQSWEEPA FSINTERFACE FSISCALING FSIELEMENT NOLOCALFSISPLITING FSICORNER FFIDEBUG FAILSAFE FRAMETYPE
 %token GEPS GLOBALTOL GRAVITY GRBM GTGSOLVER GLOBALCRBMTOL GROUP GROUPTYPE GOLDFARBTOL GOLDFARBCHECK
@@ -92,7 +92,7 @@
 %token SPOOLESTAU SPOOLESSEED SPOOLESMAXSIZE SPOOLESMAXDOMAINSIZE SPOOLESMAXZEROS SPOOLESMSGLVL SPOOLESSCALE SPOOLESPIVOT SPOOLESRENUM SPARSEMAXSUP SPARSEDEFBLK
 %token STATS STRESSID SUBSPACE SURFACE SAVEMEMCOARSE SPACEDIMENSION SCATTERER STAGTOL SCALED SWITCH STABLE SUBTYPE STEP SOWER SHELLTHICKNESS SURF SPRINGMAT
 %token TANGENT TEMP TIME TOLEIG TOLFETI TOLJAC TOLPCG TOPFILE TOPOLOGY TRBM THERMOE THERMOH 
-%token TETT TOLCGM TURKEL TIEDSURFACES THETA REDFOL HRC THIRDNODE THERMMAT TDENFORC TESTULRICH THRU TOPFLAG
+%token TETT TOLCGM TURKEL TIEDSURFACES THETA REDFOL HRC THIRDNODE THERMMAT TDENFORC TESTULRICH THRU TOPFLAG TRIVIAL
 %token USE USERDEFINEDISP USERDEFINEFORCE UPROJ UNSYMMETRIC USING
 %token VERSION WETCORNERS XPOST YMTT 
 %token ZERO BINARY GEOMETRY DECOMPOSITION GLOBAL MATCHER CPUMAP
@@ -104,7 +104,8 @@
 %token WEIGHTLIST GMRESRESIDUAL 
 %token SLOSH SLGRAV SLZEM SLZEMFILTER 
 %token PDIR HEFSB HEFRS HEINTERFACE  // Added for HEV Problem, EC, 20080512
-%token SNAPFI PODROB TRNVCT OFFSET ORTHOG SVDTOKEN CONVERSIONTOKEN CONVFI SAMPLING PODSIZEMAX REFSUBSTRACT TOLER OUTOFCORE NORMALIZETOKEN FNUMBER SNAPWEIGHT ROBFI
+%token SNAPFI PODROB TRNVCT OFFSET ORTHOG SVDTOKEN CONVERSIONTOKEN CONVFI SAMPLING SNAPSHOTPROJECT PODSIZEMAX REFSUBSTRACT TOLER OUTOFCORE NORMALIZETOKEN FNUMBER SNAPWEIGHT ROBFI
+%token VECTORNORM
 
 %type <complexFDBC> AxiHD
 %type <complexFNBC> AxiHN
@@ -175,6 +176,7 @@ Component:
         | ConstrainedSurfaceFrameDList
 	| Attributes
 	{}
+        | Ellump
 	| Materials
         | Statics
 	| Pressure
@@ -322,6 +324,7 @@ Component:
         | Constraints
 	| SvdToken
 	| Sampling
+        | SnapshotProject
         | ConversionToken
         ;
 Noninpc:
@@ -551,6 +554,8 @@ Decompose :
          {decInit->skip = true;}
        | Decompose DETER NewLine
          {decInit->nosa = true; }
+       | Decompose TRIVIAL NewLine
+         {decInit->trivial = true; }
        ;
 WeightList :
        WEIGHTLIST NewLine
@@ -2039,6 +2044,44 @@ MatData:
           sp.type = StructProp::Constraint;
           geoSource->addMat( $1-1, sp );
         }
+        | Integer CONSTRMAT MASS Float NewLine
+        { // new style for rigid solid elements with mass
+          StructProp sp;
+          sp.type = StructProp::Undefined;
+          sp.rho = $4;
+          geoSource->addMat( $1-1, sp );
+        }
+        | Integer CONSTRMAT ConstraintOptionsData MASS Float NewLine
+        { // new style for rigid solid elements with mass
+          StructProp sp;
+          sp.lagrangeMult = $3.lagrangeMult;
+          sp.initialPenalty = sp.penalty = $3.penalty;
+          sp.constraint_hess = $3.constraint_hess;
+          sp.constraint_hess_eps = $3.constraint_hess_eps;
+          sp.type = StructProp::Constraint;
+          sp.rho = $5;
+          geoSource->addMat( $1-1, sp );
+        }
+        | Integer CONSTRMAT MASS Float Float NewLine
+        { // new style for rigid beam or shell elements with mass
+          StructProp sp;
+          sp.type = StructProp::Undefined;
+          sp.rho = $4;
+          sp.A = sp.eh = $5;
+          geoSource->addMat( $1-1, sp );
+        } 
+        | Integer CONSTRMAT ConstraintOptionsData MASS Float Float NewLine
+        { // new style for rigid beam or shell elements with mass
+          StructProp sp;
+          sp.lagrangeMult = $3.lagrangeMult;
+          sp.initialPenalty = sp.penalty = $3.penalty;
+          sp.constraint_hess = $3.constraint_hess;
+          sp.constraint_hess_eps = $3.constraint_hess_eps;
+          sp.type = StructProp::Constraint;
+          sp.rho = $5;
+          sp.A = sp.eh = $6;
+          geoSource->addMat( $1-1, sp );
+        }
         | Integer CONSTRMAT Integer Float NewLine
         { // old style for rigid elements and joints
           StructProp sp;
@@ -2775,6 +2818,12 @@ Attributes:
             geoSource->setAttrib(i-1, $4-1, $5-1, -1, $7);
         }
 	;
+Ellump:
+        ELLUMP NewLine
+        { domain->solInfo().elemLumpPodRom = true; }
+        | Ellump Integer Float NewLine
+        { geoSource->setElementLumpingWeight($2 - 1, $3); }
+        ;
 Pressure:
 	PRESSURE NewLine
 	| Pressure Integer Float NewLine
@@ -4043,9 +4092,11 @@ SvdOption:
   | PODSIZEMAX Integer
   { domain->solInfo().maxSizePodRom = $2; }
   | NORMALIZETOKEN Integer
-  { domain->solInfo().normalize = $2; } 
+  { domain->solInfo().normalize = $2; }
   | SNAPWEIGHT FloatList
   { for(int i=0; i<$2.nval; ++i) domain->solInfo().snapshotWeights.push_back($2.v[i]); }
+  | SKIP Integer
+  { domain->solInfo().skipPodRom = $2; } 
   | ROBFI StringList
   {
     for(int i=0; i<$2.nval; ++i) domain->solInfo().robfi.push_back(std::string($2.v[i]));
@@ -4058,6 +4109,14 @@ Sampling:
     domain->solInfo().probType = SolverInfo::PodRomOffline;
     domain->solInfo().samplingPodRom = true; }
   | Sampling SamplingOption NewLine
+  ;
+
+SnapshotProject:
+    SNAPSHOTPROJECT NewLine 
+  { domain->solInfo().activatePodRom = true;
+    domain->solInfo().probType = SolverInfo::PodRomOffline;
+    domain->solInfo().snapProjPodRom = true; }
+  | SnapshotProject SamplingOption NewLine
   ;
 
 SamplingOption:
@@ -4084,6 +4143,8 @@ SamplingOption:
   { domain->solInfo().oocPodRom = bool($2); }
   | REDFOL SWITCH
   { domain->solInfo().reduceFollower = bool($2); }
+  | VECTORNORM Integer
+  { domain->solInfo().PODerrornorm.push_back($2); }
   ;
 
 ConversionToken:

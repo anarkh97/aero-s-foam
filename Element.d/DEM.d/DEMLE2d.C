@@ -100,10 +100,10 @@ public:
  SolidDGMELFunction(double *_materialc,
                     int _ndir, complex<double> *_dirs, complex<double> *_coef,
                     int _nl, complex<double> *_ldirs, complex<double> *_lcoef,
-                    double *_xsc, double *_xc, complex<double> *_L) {
+                    double *_xsc, double *_xc, complex<double> *__L) {
    materialc = _materialc; ndir = _ndir; dirs = _dirs; coef = _coef;
    nl = _nl; ldirs = _ldirs; lcoef = _lcoef;
-   xsc = _xsc; xc = _xc; L = _L;
+   xsc = _xsc; xc = _xc; L = __L;
  }
  void evaluate(double *x, double *N, double *cross, double nsign, double w) {
    double &omega = materialc[1];

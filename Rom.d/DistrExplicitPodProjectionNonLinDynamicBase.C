@@ -93,7 +93,6 @@ void
 DistrExplicitPodPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dynOps, DistrVector &distForce,
                                                           DistrVector *distAeroF, SysState<DistrVector>& distState) {
 
-
   //all MPI processes have a full copy of reduced coordinates, only master processes needs to print
   //valgrind shows uninitialized conditionals junps here, need to figure out why
   int p = std::numeric_limits<double>::digits10+1;
@@ -154,10 +153,10 @@ DistrExplicitPodProjectionNonLinDynamicBase::preProcess() {
   //preProcessing for reduced order basis/////////////////////////////////////////////////
   FileNameInfo fileInfo; 
   std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
-  if(domain->solInfo().normalize == 0){fileName.append(".normalized"); std::cout << "here\n"; }
+  if(domain->solInfo().normalize == 0) fileName.append(".normalized");
 
   DistrBasisInputFile BasisFile(fileName);
-  std::cerr << "Opening file " << fileName << "\n" ;
+  filePrint(stderr, " ... Reading basis from file %s ...\n", fileName.c_str());
   const int projectionSubspaceSize = domain->solInfo().maxSizePodRom ?
                                      std::min(domain->solInfo().maxSizePodRom, BasisFile.stateCount()) :
                                      BasisFile.stateCount();
@@ -182,22 +181,20 @@ DistrExplicitPodProjectionNonLinDynamicBase::preProcess() {
     
     BasisFile.currentStateIndexInc();
   }}
-  std::cerr << "read in file \n " ;
 
   ///////////////////////////////////////////////////////////////////////////////////////
 
   //preProcessing for solution vecotor information///////////////////////////////////////
-  //each subdomain gets full copy of reduced coordinates
   {reducedInfo.domLen = new int[MultiDomainDynam::solVecInfo().numDom]; 
   reducedInfo.numDom = MultiDomainDynam::solVecInfo().numDom;
   int totLen = 0;
   for(int iSub = 0; iSub < MultiDomainDynam::solVecInfo().numDom; ++iSub) {
-    reducedInfo.domLen[iSub] = normalizedBasis_.numVec();
+    reducedInfo.domLen[iSub] = (iSub==0) ? normalizedBasis_.numVec() : 0;
     totLen += reducedInfo.domLen[iSub];
   }
 
   reducedInfo.len = totLen;
-  reducedInfo.setMasterFlag(); //not correct masterflag, but doesn't matter unless computing norm
+  reducedInfo.setMasterFlag();
   }
   //////////////////////////////////////////////////////////////////////////////////////
   
@@ -247,9 +244,6 @@ DistrExplicitPodProjectionNonLinDynamicBase::getInitState(SysState<DistrVector> 
   DistrVector &_a_n = _curState.getAccel();
   DistrVector &_v_p = _curState.getPrevVeloc();
 
-  //this projection doesn't do anything since the normalizedBasis_ isn't initialized yet
-  //this only matters if we have a case where the initial conditions are other than 0
-  //need to fixe this if we want to use resart
   normalizedBasis_.projectDown( *d_n, _d_n);
   normalizedBasis_.projectDown( *v_n, _v_n);
   normalizedBasis_.projectDown( *a_n, _a_n);
@@ -321,10 +315,6 @@ DistrExplicitPodProjectionNonLinDynamicBase::computeExtForce2(SysState<DistrVect
 MDDynamMat *
 DistrExplicitPodProjectionNonLinDynamicBase::buildOps(double mCoef, double cCoef, double kCoef) {
   MDDynamMat *result = MultiDomainDynam::buildOps(mCoef, cCoef, kCoef);
-  //assert(result->M);
-
-  //const GenSubDOp<double> &fullMass = *(result->M);
-  //renormalized_basis(fullMass, normalizedBasis_, normalizedBasis_);
 
   std::auto_ptr<DistrGalerkinProjectionSolver> solver(new DistrGalerkinProjectionSolver(normalizedBasis_));
 

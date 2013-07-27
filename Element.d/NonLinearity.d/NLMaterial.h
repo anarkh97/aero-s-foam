@@ -5,6 +5,9 @@
 #include <Element.d/Element.h>
 #include <Utils.d/NodeSpaceArray.h>
 
+#include <stdexcept>
+#include <iostream>
+
 //Declaration of the material properties
 class StrainEvaluator;
 template <typename Tensor> class GenStrainEvaluator;
@@ -52,6 +55,10 @@ class NLMaterial
      virtual double getThickness() { return 0; }
 
      virtual double getPosdefifyTol() { return -1; }
+
+     virtual void print(std::ostream &out) const {
+       throw std::range_error("material law does not implement print function");
+     }
 };
 
 #endif

@@ -30,6 +30,7 @@ ADD_LIBRARY( Rom
   MeshOutput.C
   MeshDesc.C
   PodProjectionNonLinDynamic.C
+  SnapshotProjectionDriver.C
   RenumberingUtils.C
   RestrictedVecNodeDof6Conversion.C
   SnapshotNonLinDynamic.C

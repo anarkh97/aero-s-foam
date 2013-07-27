@@ -11,6 +11,12 @@ class RigidTwoNodeTruss : public ConstantDistanceConstraint
     bool isRigidElement() { return true; }
     bool isSafe() { return false; }
     PrioInfo examine(int sub, MultiFront*);
+
+    int getMassType() { return 2; } // both consistent and lumped
+    FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg=1);
+    double getMass(CoordSet&);
+    void getGravityForce(CoordSet&, double *g, Vector& f, int gravflg,
+                         GeomState *gs);
 };
 
 #endif

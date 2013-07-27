@@ -539,7 +539,6 @@ double BlastLoading::ComputeShellPressureLoad(const double* CurrentElementNodePo
   }
   // Calculate the current element's pressure:
   double CurrentElementPressure = Conwep::Blast(InputFileData,CurrentElementCentroidCoordinates,CurrentElementNormalVector,CurrentTime);
-  std::cerr << "************CurrentElementPressure:  **** " << CurrentElementPressure << "\n";
   // Return the current element's pressure:
     // Note that the current element pressure is in psi: convert it to Pa (6.89e3 factor), then use ScaleLength, ScaleTime and ScaleMass to convert it to the correct pressure units.
   return -CurrentElementPressure*6.8947573e3/P.ScaleMass*P.ScaleLength*P.ScaleTime*P.ScaleTime;

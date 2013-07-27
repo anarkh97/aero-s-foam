@@ -147,6 +147,8 @@ TRAIL [a-zA-Z]*
 
 "WEIGHTS"|"weights"                { return WEIGHTLIST; }
 
+"trivial"|"TRIVIAL"                { return TRIVIAL; }
+
 "decomposition"|"DECOMPOSITION"    { return DECOMPOSITION; }
 
 "global"|"GLOBAL"                  { return GLOBAL; }
@@ -166,6 +168,8 @@ TRAIL [a-zA-Z]*
 "HRC"|"hrc"			   { return HRC; }
 
 "REDFOL"|"redfol"                  { return REDFOL; }
+
+"ELLUMP"                           { return ELLUMP; }
 
 "IDENTITY"|"identity"              { return IDENTITY; }
 
@@ -1364,6 +1368,8 @@ TRAIL [a-zA-Z]*
 
 "SNAPWEIGHT"|"SnapWeight"|"snapweight" {return SNAPWEIGHT; }
 
+"VCNORM"|"VcNorm"|"vcnorm"		  { return VECTORNORM; }
+
 "PODROB"|"PodRob"|"podrob"		  { return PODROB; }
 
 "TRNVCT"|"TrnVct"|"trnvct"		  { return TRNVCT; }
@@ -1375,6 +1381,8 @@ TRAIL [a-zA-Z]*
 "ORTHOG"|"Orthog"|"orthog"		  { return ORTHOG; }
 
 "RMSHC"|"Rmshc"|"rmshc" 		  { return SAMPLING; }
+
+"SNAPPR"|"SnapPr"|"snappr"                { return SNAPSHOTPROJECT; }
 
 "TOLOPT"|"TolOpt"|"tolopt" 		  { return TOLER; }
 

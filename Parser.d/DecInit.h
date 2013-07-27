@@ -14,6 +14,7 @@ class DecInit
   bool memory;
   bool exitAfterDec, skip;
   bool nosa;
+  bool trivial;
   DecInit() :
     nsubs(1),
     nthreads(1),
@@ -23,7 +24,8 @@ class DecInit
     memory(false),
     exitAfterDec(false),
     skip(false),
-    nosa(false)
+    nosa(false),
+    trivial(false)
     {}
 };
 #endif

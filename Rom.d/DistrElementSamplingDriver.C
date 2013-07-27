@@ -86,7 +86,7 @@ DistrElementSamplingDriver::solve() {
     const int skipFactor = domain_->solInfo().skipPodRom;
     const int skipOffSet = domain_->solInfo().skipOffSet;
     const int basisStateCount = (in.stateCount() % 2) + (in.stateCount() - skipOffSet) / skipFactor;
-    filePrint(stderr,"Reading in %d Displacement Snapshots\n",basisStateCount);
+    filePrint(stderr," ... Reading in %d Displacement Snapshots ...\n",basisStateCount);
 
     snapshots.dimensionIs(basisStateCount, vectorSize());
     timeStamps.reserve(basisStateCount);
@@ -124,7 +124,7 @@ DistrElementSamplingDriver::solve() {
     const int skipFactor = domain_->solInfo().skipPodRom;
     const int skipOffSet = domain_->solInfo().skipOffSet;
     const int basisStateCount = (in.stateCount() % 2) + (in.stateCount() - skipOffSet) / skipFactor;
-    filePrint(stderr,"Reading in %d Velocity Snapshots\n",basisStateCount);
+    filePrint(stderr," ... Reading in %d Velocity Snapshots ...\n",basisStateCount);
 
     velocSnapshots->dimensionIs(basisStateCount, vectorSize());
     timeStamps.reserve(basisStateCount);
@@ -145,7 +145,7 @@ DistrElementSamplingDriver::solve() {
           converter.vector(buffer, *it);
           timeStamps.push_back(in.currentStateHeaderValue());
           ++counter;
-          filePrint(stderr,"\r %4.2f%% complete", double(counter)/double(basisStateCount)*100.);
+          filePrint(stderr,"\rtimeStamp = %f, %4.2f%% complete", in.currentStateHeaderValue(), double(counter)/double(basisStateCount)*100.);
           }
         in.currentStateIndexInc();
       }
@@ -162,7 +162,7 @@ DistrElementSamplingDriver::solve() {
     const int skipFactor = domain_->solInfo().skipPodRom;
     const int skipOffSet = domain_->solInfo().skipOffSet;
     const int basisStateCount = (in.stateCount() % 2) + (in.stateCount() - skipOffSet) / skipFactor;
-    filePrint(stderr,"Reading in %d Acceleration Snapshots\n",basisStateCount);
+    filePrint(stderr," ... Reading in %d Acceleration Snapshots ...\n",basisStateCount);
  
     accelSnapshots->dimensionIs(basisStateCount, vectorSize());
     timeStamps.reserve(basisStateCount);
@@ -184,7 +184,7 @@ DistrElementSamplingDriver::solve() {
           converter.vector(buffer, *it);
           timeStamps.push_back(in.currentStateHeaderValue());
           ++counter;
-          filePrint(stderr,"\r %4.2f%% complete", double(counter)/double(basisStateCount)*100.);
+          filePrint(stderr,"\rtimeStamp = %f, %4.2f%% complete", in.currentStateHeaderValue(),double(counter)/double(basisStateCount)*100.);
           }
         in.currentStateIndexInc();
       }
@@ -199,8 +199,10 @@ DistrElementSamplingDriver::solve() {
   // Temporary buffers shared by all iterations
   Vector podComponents(podVectorCount);
 
+  //BEGIN PROJECTION-------------------------------------------------------------------------
+ 
   // Project snapshots on POD basis to get training configurations
-  filePrint(stderr,"Projecting displacement snapshots for training configuation...\n");
+  filePrint(stderr," ... Projecting displacement snapshots for training configuration ...\n");
   DistrVecBasis displac(snapshotCount, vectorSize());
   for (int iSnap = 0; iSnap != snapshotCount; ++iSnap) {
     expand(podBasis, reduce(podBasis, snapshots[iSnap], podComponents), displac[iSnap]);
@@ -213,7 +215,7 @@ DistrElementSamplingDriver::solve() {
     veloc = new DistrVecBasis(velocSnapshots->vectorCount(), vectorSize());
 
     // Project velocity snapshots on POD basis to get training configurations
-    filePrint(stderr,"Projecting displacement snapshots for training configuation...\n");
+    filePrint(stderr," ... Projecting velocity snapshots for training configuration ...\n");
     for (int iSnap = 0; iSnap != velocSnapshots->vectorCount(); ++iSnap) {
       expand(podBasis, reduce(podBasis, (*velocSnapshots)[iSnap], podComponents), (*veloc)[iSnap]);
       filePrint(stderr,"\r %4.2f%% complete", double(iSnap)/double(velocSnapshots->vectorCount())*100.);
@@ -227,7 +229,7 @@ DistrElementSamplingDriver::solve() {
     accel = new DistrVecBasis(accelSnapshots->vectorCount(), vectorSize());
 
     // Project acceleration snapshots on POD basis to get training configurations
-    filePrint(stderr,"Projecting displacement snapshots for training configuation...\n");
+    filePrint(stderr," ... Projecting acceleration snapshots for training configuration ...\n");
     for (int iSnap = 0; iSnap != accelSnapshots->vectorCount(); ++iSnap) {
       expand(podBasis, reduce(podBasis, (*accelSnapshots)[iSnap], podComponents), (*accel)[iSnap]);
       filePrint(stderr,"\r %4.2f%% complete", double(iSnap)/double(accelSnapshots->vectorCount())*100.);
@@ -236,11 +238,12 @@ DistrElementSamplingDriver::solve() {
     delete accelSnapshots;
   }
 
+  //END PROJECTION
+
   //Projections complete so read in normalized basis
   if(domain->solInfo().newmarkBeta == 0){
     std::string normalizedBasisFileName = BasisFileId(fileInfo,BasisId::STATE,BasisId::POD);
     normalizedBasisFileName.append(".normalized");
-    std::cerr << "Reading in normalized basis from: " << normalizedBasisFileName << "\n" ;
     DistrBasisInputFile normalizedBasisFile(normalizedBasisFileName);
     DistrVecBasis normalizedBasis;
     normalizedBasis.dimensionIs(projectionSubspaceSize,vectorSize());
@@ -258,7 +261,6 @@ DistrElementSamplingDriver::solve() {
   int numCPUs = (structCom) ? structCom->numCPUs() : 1;
   int myID = (structCom) ? structCom->myID() : 0;
   bool verboseFlag = (myID == 0); // output to the screen only for subdomains assigned to mpi process with rank 0
-  filePrint(stderr,"Building Drivers\n");
 #if defined(_OPENMP)
   #pragma omp parallel for schedule(static,1)
 #endif
@@ -292,7 +294,6 @@ DistrElementSamplingDriver::solve() {
         (*subAccel)[j] = StackVector((*accel)[j].subData(i), (*accel)[j].subLen(i));
       }
     }
-    filePrint(stderr,"computing solution\n");
     subDrivers[i]->computeSolution(solutions[i], verboseFlag);
   }
   
@@ -353,12 +354,8 @@ DistrElementSamplingDriver::solve() {
 
     const MeshRenumbering meshRenumbering(reducedelemIds.begin(), reducedelemIds.end(), *elemToNode, verboseFlag);
     const MeshDesc reducedMesh(domain_, geoSource, meshRenumbering, weightsMap); 
-    try {
-      outputMeshFile(fileInfo, reducedMesh);
-    }
-    catch(std::exception& e) {
-      std::cerr << "caught exception: " << e.what() << endl;
-    }
+    outputMeshFile(fileInfo, reducedMesh);
+    // TODO build and output compressed basis
   }
 
   if(structCom) structCom->sync();

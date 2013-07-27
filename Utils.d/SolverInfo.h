@@ -274,6 +274,7 @@ struct SolverInfo {
 
    std::vector<std::string> RODConversionFiles;
    //const char * snapfiPodRom;
+   std::vector<int> PODerrornorm;
    int numSnap;
    std::vector<std::string> snapfiPodRom;
    std::vector<std::string> robfi;
@@ -304,6 +305,7 @@ struct SolverInfo {
    bool checkPodRom;
    bool svdPodRom;
    bool samplingPodRom;
+   bool snapProjPodRom;
    bool galerkinPodRom;
    bool elemLumpPodRom;
    bool onlineSvdPodRom;
@@ -557,6 +559,7 @@ struct SolverInfo {
                   checkPodRom        = false;
                   svdPodRom          = false;
                   samplingPodRom     = false;
+                  snapProjPodRom     = false;
                   galerkinPodRom     = false;
                   elemLumpPodRom     = false;
                   onlineSvdPodRom    = false;

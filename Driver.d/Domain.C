@@ -857,6 +857,37 @@ int Domain::setNeuman(int _numNeuman, BCond *_nbc)
  return 0;
 }
 
+int Domain::setNeumanModal(int _numNeumanModal, BCond *_nbcModal)
+{
+ if(nbcModal) {
+   // Allocate memory for correct number of dbc
+   BCond *nd = new BCond[numNeumanModal+_numNeumanModal];
+
+   // copy old nbcModal
+   int i;
+   for(i=0; i < numNeumanModal; ++i)
+      nd[i] = nbcModal[i];
+
+   // copy new nbcModal
+   for(i=0; i<_numNeumanModal; ++i)
+     nd[i+numNeumanModal] = _nbcModal[i];
+
+   // set correct number of dbc
+   numNeumanModal += _numNeumanModal;
+
+   // delete old array of dbc
+   delete [] nbcModal;
+
+   // set new pointer to correct number of dbc
+   nbcModal = nd;
+ }
+ else {
+   numNeumanModal = _numNeumanModal;
+   nbcModal          = _nbcModal;
+ }
+ return 0;
+}
+
 int
 Domain::setMFTT(MFTTData *_mftval)
 {
@@ -1061,6 +1092,8 @@ Domain::setUpData()
   // set neuman
   numBC = geoSource->getNeumanBC(bc);
   setNeuman(numBC, bc);
+  numBC = geoSource->getNeumanBCModal(bc);
+  setNeumanModal(numBC, bc);
 
   // set initial displacements
   numBC = geoSource->getIDis(bc);
@@ -2711,11 +2744,11 @@ Domain::initialize()
 {
  numdofs = 0; numDispDirichlet = 0; numContactPairs = 0;
  numIDis = 0; numIDisModal = 0; numIVel = 0; numIVelModal = 0; numDirichlet = 0; numNeuman = 0; numSommer = 0;
- numComplexDirichlet = 0; numComplexNeuman = 0; 
+ numComplexDirichlet = 0; numComplexNeuman = 0; numNeumanModal = 0;
  firstDiMass = 0; numIDis6 = 0; gravityAcceleration = 0;
  allDOFs = 0; stress = 0; weight = 0; elstress = 0; elweight = 0; claw = 0;
  numLMPC = 0; numYMTT = 0; numCTETT = 0; MidPoint = 0; temprcvd = 0;
- heatflux = 0; elheatflux = 0; elTemp = 0; dbc = 0; nbc = 0; 
+ heatflux = 0; elheatflux = 0; elTemp = 0; dbc = 0; nbc = 0; nbcModal = 0;
  iDis = 0; iDisModal = 0; iVel = 0; iVelModal = 0; iDis6 = 0; elemToNode = 0; nodeToElem = 0;
  nodeToNode = 0; dsa = 0; c_dsa = 0; cdbc = 0; cnbc = 0;
  dsaFluid = 0; c_dsaFluid = 0; allDOFsFluid = 0; dbcFluid = 0;
@@ -2767,6 +2800,7 @@ Domain::~Domain()
  if(mortarToMPC) { delete mortarToMPC; mortarToMPC = 0; }
  if(dbc) { delete [] dbc; dbc = 0; }
  if(nbc) { delete [] nbc; nbc = 0; }
+ if(nbcModal) { delete [] nbcModal; nbcModal = 0; }
  //if(cvbc) { delete [] cvbc; cvbc = 0; }
  if(iDis) { delete [] iDis; iDis = 0; }
  if(iDisModal) { delete [] iDisModal; iDisModal = 0; }

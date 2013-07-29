@@ -236,7 +236,10 @@ MeshDesc::init(Domain *domain, GeoSource *geoSource, const MeshRenumbering &ren)
 
   // Boundary conditions
   reduce(ren.nodeRenumbering(), domain->getDBC(), domain->getDBC() + domain->nDirichlet(), std::back_inserter(dirichletBConds_));
-  reduce(ren.nodeRenumbering(), domain->getNBC(), domain->getNBC() + domain->nNeumann(), std::back_inserter(neumannBConds_));
+  if(domain->getMFTT() != NULL) {
+    // note: reduced constant forces are now precomputed
+    reduce(ren.nodeRenumbering(), domain->getNBC(), domain->getNBC() + domain->nNeumann(), std::back_inserter(neumannBConds_));
+  }
 
   // Element pressures
   reduce(ren.elemRenumbering(), geoSource->getElementPressure(), std::inserter(elemPressures_, elemPressures_.end()));
@@ -258,24 +261,29 @@ operator<<(std::ostream &out, const MeshDesc &mesh) {
   out << make_section(mesh.attributes().begin(), mesh.attributes().end());
   out << mesh.properties();
  
-  out << make_section(mesh.materialLawMapping().begin(), mesh.materialLawMapping().end(), MatUsageTag());
-  out << make_section(mesh.materialLaws().begin(), mesh.materialLaws().end(), MatLawTag());
+  if(!mesh.materialLawMapping().empty())
+    out << make_section(mesh.materialLawMapping().begin(), mesh.materialLawMapping().end(), MatUsageTag());
+  if(!mesh.materialLaws().empty())
+    out << make_section(mesh.materialLaws().begin(), mesh.materialLaws().end(), MatLawTag());
 
-  out << make_section(mesh.dirichletBConds().begin(), mesh.dirichletBConds().end(), BCond::Displacements);
-  out << make_section(mesh.neumannBConds().begin(), mesh.neumannBConds().end(), BCond::Forces);
-  
-  out << make_section(mesh.initDisp().begin(), mesh.initDisp().end(), BCond::Idisplacements);
-  out << make_section(mesh.initVel().begin(), mesh.initVel().end(), BCond::Ivelocities);
+  if(!mesh.dirichletBConds().empty())
+    out << make_section(mesh.dirichletBConds().begin(), mesh.dirichletBConds().end(), BCond::Displacements);
+  if(!mesh.neumannBConds().empty()) 
+    out << make_section(mesh.neumannBConds().begin(), mesh.neumannBConds().end(), BCond::Forces);
+ 
+  if(!mesh.initDisp().empty())
+    out << make_section(mesh.initDisp().begin(), mesh.initDisp().end(), BCond::Idisplacements);
+  if(!mesh.initVel().empty())
+    out << make_section(mesh.initVel().begin(), mesh.initVel().end(), BCond::Ivelocities);
 
-  out << make_section(mesh.elemPressures().begin(), mesh.elemPressures().end(), ElementPressureTag());
+  if(!mesh.elemPressures().empty())
+    out << make_section(mesh.elemPressures().begin(), mesh.elemPressures().end(), ElementPressureTag());
 
-  if (!mesh.sampleNodeIds().empty()) {
+  if (!mesh.sampleNodeIds().empty())
     out << make_section(mesh.sampleNodeIds().begin(), mesh.sampleNodeIds().end(), SampleNodeTag());
-  }
 
-  if (!mesh.elemWeights().empty()) {
+  if (!mesh.elemWeights().empty())
     out << make_section(mesh.elemWeights().begin(), mesh.elemWeights().end(), ElementWeightTag());
-  }
 
   return out;
 }

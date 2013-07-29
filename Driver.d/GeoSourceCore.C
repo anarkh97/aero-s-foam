@@ -95,6 +95,7 @@ GeoSource::GeoSource(int iniSize) : oinfo(emptyInfo, iniSize), nodes(iniSize*16)
   numDirichlet = 0;
   numDirichletFluid = 0; //ADDED FOR HEV PROBLEM, EC, 20070820
   numNeuman = 0;
+  numNeumanModal = 0;
   numIDis = 0;
   numIDisModal = 0;
   numIDis6 = 0;
@@ -139,6 +140,7 @@ GeoSource::GeoSource(int iniSize) : oinfo(emptyInfo, iniSize), nodes(iniSize*16)
   dbc = 0;
   dbcFluid = 0;
   nbc = 0;
+  nbcModal = 0;
   textDBC = dbc = textNBC = nbc = iDis = iDisModal = iDis6 = iVel = iVelModal = modalDamping = 0;
   //cvbc = 0; rdbc = 0; iTemp = 0;
   cdbc = cnbc = 0;
@@ -1510,6 +1512,12 @@ int GeoSource::getNeumanBC(BCond *&bc)
   return numNeuman;
 }
 
+int GeoSource::getNeumanBCModal(BCond *&bc)
+{
+  bc = nbcModal;
+  return numNeumanModal;
+}
+
 int GeoSource::getIDis(BCond *&bc)
 {
   bc = iDis;
@@ -2465,6 +2473,39 @@ int GeoSource::setNeuman(int _numNeuman, BCond *_nbc)
     numNeuman = _numNeuman;
     nbc       = _nbc;
   }
+  return 0;
+}
+
+//-------------------------------------------------------------------
+
+int GeoSource::setNeumanModal(int _numNeumanModal, BCond *_nbcModal)
+{
+  if (nbcModal) {
+    // Allocate memory for correct number of nbcModal
+    BCond *nd = new BCond[numNeumanModal+_numNeumanModal];
+
+    // copy old nbcModal
+    for (int i = 0; i < numNeumanModal; ++i)
+      nd[i] = nbcModal[i];
+
+    // copy new nbcModal
+    for (int i = 0; i < _numNeumanModal; ++i)
+      nd[i+numNeumanModal] = _nbcModal[i];
+
+    // set correct number of nbcModal
+    numNeumanModal += _numNeumanModal;
+
+    // delete old array of nbcModal
+    delete [] nbcModal;
+
+    // set new pointer to correct number of nbcModal
+    nbcModal = nd;
+  }
+  else {
+    numNeumanModal = _numNeumanModal;
+    nbcModal    = _nbcModal;
+  }
+
   return 0;
 }
 

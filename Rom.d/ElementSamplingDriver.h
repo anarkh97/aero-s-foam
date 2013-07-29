@@ -24,14 +24,14 @@ template <typename Scalar> class GenVector;
 typedef GenVector<double> Vector;
 
 namespace Rom {
-void outputMeshFile(const FileNameInfo &fileInfo, const MeshDesc &mesh, bool firstTime = true);
+void outputMeshFile(const FileNameInfo &fileInfo, const MeshDesc &mesh);
 
 template<typename MatrixBufferType = std::vector<double>, typename SizeType = size_t>
 class ElementSamplingDriver : public SingleDomainDynamic, public DriverInterface {
 public:
   virtual void solve(); // overriden
   void computeSolution(Vector &solution, bool verboseFlag = true);
-  void postProcess(Vector &solution, bool firstTime = true, bool verboseFlag = true);
+  void postProcess(Vector &solution, bool verboseFlag = true);
   VecBasis& podBasis() { return podBasis_; }
   VecBasis& displac() { return displac_; }
   VecBasis* veloc() { if(!veloc_) veloc_ = new VecBasis; return veloc_; }

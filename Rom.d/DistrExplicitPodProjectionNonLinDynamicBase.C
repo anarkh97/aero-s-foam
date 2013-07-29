@@ -38,15 +38,15 @@ DistrExplicitPodPostProcessor::DistrExplicitPodPostProcessor(DecDomain *d, Stati
 
       for (int iOut = 0; iOut < numOutInfo; iOut++) {
        switch(oinfo[iOut].type){
-         case OutputInfo::Accel6 : 
+         case OutputInfo::Accel6 : case OutputInfo::Acceleration :
            oinfo[iOut].filptr = fopen(oinfo[iOut].filename,"wb");
            filePrint( oinfo[iOut].filptr, "0\n"); 
            break;
-         case OutputInfo::Disp6DOF :
+         case OutputInfo::Disp6DOF : case OutputInfo::Displacement :
            oinfo[iOut].filptr = fopen(oinfo[iOut].filename,"wb");
            filePrint( oinfo[iOut].filptr, "1\n");
            break;
-         case OutputInfo::Velocity6 : 
+         case OutputInfo::Velocity6 : case OutputInfo::Velocity :
            oinfo[iOut].filptr = fopen(oinfo[iOut].filename,"wb");
            filePrint( oinfo[iOut].filptr, "2\n"); 
            break; 
@@ -73,13 +73,13 @@ DistrExplicitPodPostProcessor::printPODSize(int PODsize) {
 
     for (int iOut = 0; iOut < numOutInfo; iOut++) {
      switch(oinfo[iOut].type){
-       case OutputInfo::Accel6 :
+       case OutputInfo::Accel6 : case OutputInfo::Acceleration :
          filePrint( oinfo[iOut].filptr, "%d\n", PODsize);
          break;
-       case OutputInfo::Disp6DOF :
+       case OutputInfo::Disp6DOF : case OutputInfo::Displacement :
          filePrint( oinfo[iOut].filptr, "%d\n", PODsize);
          break;
-       case OutputInfo::Velocity6 :
+       case OutputInfo::Velocity6 : case OutputInfo::Velocity :
          filePrint( oinfo[iOut].filptr, "%d\n", PODsize);
          break;
        default:
@@ -91,17 +91,16 @@ DistrExplicitPodPostProcessor::printPODSize(int PODsize) {
 
 void
 DistrExplicitPodPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dynOps, DistrVector &distForce,
-                                                          DistrVector *distAeroF, SysState<DistrVector>& distState) {
+                                           DistrVector *distAeroF, SysState<DistrVector>& distState) {
 
   //all MPI processes have a full copy of reduced coordinates, only master processes needs to print
-  //valgrind shows uninitialized conditionals junps here, need to figure out why
   int p = std::numeric_limits<double>::digits10+1;
   for(int iOut = 0; iOut < numOutInfo; iOut++) {
 
     if(tIndex % oinfo[iOut].interval == 0) {
 
       switch(oinfo[iOut].type){
-         case OutputInfo::Accel6 :
+         case OutputInfo::Accel6 : case OutputInfo::Acceleration :
            {
            filePrint(oinfo[iOut].filptr, "%.*e\n", p, t); // print timestamp
            for(int i = 0; i<podSize; i++) {
@@ -109,7 +108,7 @@ DistrExplicitPodPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dyn
            }
            filePrint(oinfo[iOut].filptr, "\n");}
            break;
-         case OutputInfo::Disp6DOF :
+         case OutputInfo::Disp6DOF : case OutputInfo::Displacement : 
            {
            filePrint(oinfo[iOut].filptr, "%.*e\n", p, t); // print timestamp
            for(int i = 0; i<podSize; i++) {
@@ -117,7 +116,7 @@ DistrExplicitPodPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dyn
            }
            filePrint(oinfo[iOut].filptr, "\n");}
            break;
-         case OutputInfo::Velocity6 : 
+         case OutputInfo::Velocity6 : case OutputInfo::Velocity :
            {
            filePrint(oinfo[iOut].filptr, "%.*e\n", p, t); // print timestamp
            for(int i = 0; i<podSize; i++) {
@@ -273,10 +272,19 @@ DistrExplicitPodProjectionNonLinDynamicBase::updateState(double dt_n_h, DistrVec
 
 void DistrExplicitPodProjectionNonLinDynamicBase::getConstForce(DistrVector& v)
 {
-  //we really don't need to project down here since cnst_fBig is stored inside the probDesc class
-  //just a formality. 
-  MultiDomainDynam::getConstForce(*cnst_fBig);
-  normalizedBasis_.projectDown(*cnst_fBig,v);
+  int nr = domain->nNeumannModal();
+  if(nr) {
+    filePrint(stderr, " ... Using Reduced Constant Force   ...\n");
+    BCond* nbcModal = domain->getNBCModal();
+    v.zero();
+    for(int i=0; i<nr; ++i) v[nbcModal[i].nnum] = nbcModal[i].val;
+  }
+  else {
+    //we really don't need to project down here since cnst_fBig is stored inside the probDesc class
+    //just a formality. 
+    MultiDomainDynam::getConstForce(*cnst_fBig);
+    normalizedBasis_.projectDown(*cnst_fBig,v);
+  }
   cnst_fBig->zero();
 }
 

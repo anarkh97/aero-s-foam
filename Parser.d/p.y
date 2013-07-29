@@ -165,6 +165,7 @@ Component:
         { if(geoSource->setDirichlet($1->n,$1->d) < 0) return -1; delete $1; }
         | NeumanBC
         { if(geoSource->setNeuman($1->n,$1->d) < 0) return -1; }
+        | ModalNeumanBC
         | LMPConstrain 
         | ComplexLMPConstrain 
 	| ElemSet
@@ -1694,6 +1695,11 @@ NeumanBC:
           surf_bc[0].type = BCond::Forces;
           surf_bc[0].caseid = $$->caseid;
           geoSource->addSurfaceNeuman(1,surf_bc); }
+        ;
+ModalNeumanBC:
+        FORCE NewLine MODAL NewLine ModalValList
+        { for(int i=0; i<$5->n; ++i) $5->d[i].type = BCond::Forces;
+          if(geoSource->setNeumanModal($5->n, $5->d) < 0) return -1; }
         ;
 BCDataList:
 	BC_Data

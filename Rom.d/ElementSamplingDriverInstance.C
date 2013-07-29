@@ -39,7 +39,7 @@ ElementSamplingDriver<std::vector<double>,size_t>
 template
 void
 ElementSamplingDriver<std::vector<double>,size_t>
-::postProcess(Vector &solution, bool firstTime, bool verboseFlag);
+::postProcess(Vector &solution, bool verboseFlag);
 
 template
 void

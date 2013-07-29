@@ -54,7 +54,7 @@ SubElementSamplingDriver::preProcess() {
 }
 
 void
-SubElementSamplingDriver::getGlobalWeights(Vector &solution, vector<double> &lweights, vector<int> &lelemids, bool firstTime, bool verboseFlag) {
+SubElementSamplingDriver::getGlobalWeights(Vector &solution, vector<double> &lweights, vector<int> &lelemids, bool verboseFlag) {
   const FileNameInfo fileInfo;
   std::set<int> sampleElemRanks;
   {

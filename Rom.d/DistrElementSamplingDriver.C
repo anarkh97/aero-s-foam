@@ -300,7 +300,7 @@ DistrElementSamplingDriver::solve() {
   std::vector<double> lweights; 
   std::vector<int> lelemIds;
   for(int i=0; i<decDomain->getNumSub(); i++) {
-    subDrivers[i]->getGlobalWeights(solutions[i], lweights, lelemIds, true, verboseFlag);
+    subDrivers[i]->getGlobalWeights(solutions[i], lweights, lelemIds, verboseFlag);
   }
   
   std::vector<double> gweights(domain_->numElements());
@@ -325,6 +325,37 @@ DistrElementSamplingDriver::solve() {
     gelemIds = lelemIds;
   }
 
+/*
+#ifdef USE_EIGEN3
+  filePrint(stderr, " ... Compressing Basis              ...\n");
+  std::vector<std::vector<int> > packedWeightedNodes(decDomain->getNumSub());
+  DofSetArray **all_cdsa = new DofSetArray * [decDomain->getNumSub()];
+  for(int i=0; i<decDomain->getNumSub(); ++i) {
+    std::vector<int> &subWeightedNodes = packedWeightedNodes[i];
+
+    // loop over the elements with non-zero weights and add their nodes to list
+    std::vector<int> node_buffer;
+    for(int j=0; j<solutions[i].size(); ++j) {
+      if(solutions[i][j] > 0.0) {
+        Element *ele = decDomain->getSubDomain(i)->getElementSet()[j]; 
+        node_buffer.resize(ele->numNodes());
+        ele->nodes(node_buffer.data());
+        subWeightedNodes.insert(subWeightedNodes.end(), node_buffer.begin(), node_buffer.end());
+      }
+    }
+
+    //sort nodes in ascending order and erase redundant nodes
+    std::sort(subWeightedNodes.begin(), subWeightedNodes.end());
+    std::vector<int>::iterator packedNodeIt = std::unique(subWeightedNodes.begin(),subWeightedNodes.end());
+    subWeightedNodes.resize(packedNodeIt-subWeightedNodes.begin());
+
+    all_cdsa[i] = decDomain->getSubDomain(i)->getCDSA();
+  }
+  podBasis.makeSparseBasis(packedWeightedNodes, all_cdsa);
+  delete [] all_cdsa;
+  // TODO print compressed basis to file
+#endif
+*/
   if(myID==0){
      //Weights output file generation
      const std::string fileName = domain_->solInfo().reducedMeshFile;
@@ -355,7 +386,6 @@ DistrElementSamplingDriver::solve() {
     const MeshRenumbering meshRenumbering(reducedelemIds.begin(), reducedelemIds.end(), *elemToNode, verboseFlag);
     const MeshDesc reducedMesh(domain_, geoSource, meshRenumbering, weightsMap); 
     outputMeshFile(fileInfo, reducedMesh);
-    // TODO build and output compressed basis
   }
 
   if(structCom) structCom->sync();

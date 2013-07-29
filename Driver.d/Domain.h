@@ -179,6 +179,8 @@ class Domain : public HData {
      int numCTC;                // total number of contact constraints
      int numNeuman;		// number of Neuman bc
      BCond* nbc;		// set of Neuman bc
+     int numNeumanModal;
+     BCond* nbcModal;
      int numIDis;		// number of Initial displacements
      BCond *iDis;		// set of those initial displacements
      int numIDisModal;
@@ -428,6 +430,7 @@ class Domain : public HData {
      void setNumFSI(int n) { numFSI = n; }
      ResizeArray<LMPCons *> &getFSI() { return fsi; }
      virtual int  setNeuman(int,BCond *);
+     int  setNeumanModal(int, BCond *);
      int  setIDis6(int, BCond *);
      int  setIDisModal(int, BCond *);
      int  setIDis(int, BCond *);
@@ -816,9 +819,11 @@ class Domain : public HData {
 
      // returns the number of neumann bc
      int  nNeumann() { return numNeuman; }
+     int  nNeumannModal() { return numNeumanModal; }
 
      // returns a pointer to the neumann boundary condtions
      BCond* getNBC() { return nbc; }
+     BCond* getNBCModal() { return nbcModal; }
 
      // returns the number of nodes
      int  numNodes() { return (nodeToNode) ? nodeToNode->csize() : numnodes; }

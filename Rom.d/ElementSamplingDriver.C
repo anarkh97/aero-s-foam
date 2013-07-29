@@ -62,22 +62,21 @@ getMeshFilename(const FileNameInfo &fileInfo) {
 }
 
 void
-outputMeshFile(const FileNameInfo &fileInfo, const MeshDesc &mesh, bool firstTime) {
-  const std::ios_base::openmode mode = (firstTime) ? std::ios_base::out : std::ios_base::app; 
+outputMeshFile(const FileNameInfo &fileInfo, const MeshDesc &mesh) {
+  const std::ios_base::openmode mode = std::ios_base::out; 
   std::ofstream meshOut(getMeshFilename(fileInfo).c_str(), mode);
   meshOut << mesh;
 }
 
 void
-outputFullWeights(const FileNameInfo &fileInfo, const Vector &weights, const std::vector<int> &elemIds,
-                  bool firstTime = true) {
+outputFullWeights(const FileNameInfo &fileInfo, const Vector &weights, const std::vector<int> &elemIds) {
   assert(weights.size() == elemIds.size());
 
   const std::string fileName = domain->solInfo().reducedMeshFile;
-  const std::ios_base::openmode mode = (firstTime) ? std::ios_base::out : std::ios_base::app;
+  const std::ios_base::openmode mode = std::ios_base::out;
   std::ofstream weightOut(fileName.c_str(), mode);
 
-  if(firstTime) weightOut << "ATTRIBUTES\n";
+  weightOut << "ATTRIBUTES\n";
   for (int i = 0, iEnd = weights.size(); i != iEnd; ++i) {
     weightOut << elemIds[i] + 1 << " 1 " << "HRC" << " " << weights[i] << "\n";
   }
@@ -242,7 +241,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::computeSolution(Vector &soluti
 
 template<typename MatrixBufferType, typename SizeType>
 void
-ElementSamplingDriver<MatrixBufferType,SizeType>::postProcess(Vector &solution, bool firstTime, bool verboseFlag) {
+ElementSamplingDriver<MatrixBufferType,SizeType>::postProcess(Vector &solution, bool verboseFlag) {
 
   const FileNameInfo fileInfo;
   std::set<int> sampleElemRanks;
@@ -280,8 +279,18 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcess(Vector &solution, 
   
   const MeshRenumbering meshRenumbering(sampleElemIds.begin(), sampleElemIds.end(), *elemToNode, verboseFlag);
   const MeshDesc reducedMesh(domain_, geoSource, meshRenumbering, weights);
-  outputMeshFile(fileInfo, reducedMesh, firstTime);
-  outputFullWeights(fileInfo, solution, packedToInput, firstTime);
+  outputMeshFile(fileInfo, reducedMesh);
+  outputFullWeights(fileInfo, solution, packedToInput);
+  // output the reduced forces (constant and time-dependent via MFTT)
+  Vector constForceFull(SingleDomainDynamic::solVecInfo());
+  SingleDomainDynamic::getConstForce(constForceFull);
+  Vector constForceRed(podBasis_.vectorCount());
+  reduce(podBasis_, constForceFull,  constForceRed);
+  std::ofstream meshOut(getMeshFilename(fileInfo).c_str(), std::ios_base::app);
+  meshOut << "*\nFORCES\nMODAL\n";
+  meshOut.precision(std::numeric_limits<double>::digits10+1);
+  for(int i=0; i<podBasis_.vectorCount(); ++i) 
+    meshOut << i+1 << " "  << constForceRed[i] << std::endl;
 #ifdef USE_EIGEN3
   // build and output compressed basis
   // TODO add extra nodes for FORCE, DIMASS, etc...

@@ -226,6 +226,8 @@ class GeoSource {
   BCond *textNBC;
   int numNeuman;              // number of Neuman bc
   BCond *nbc;   // set of Neuman bc
+  int numNeumanModal;
+  BCond *nbcModal;
 
   int numIDis;                // number of Initial displacements
   BCond *iDis;  // set of those initial displacements
@@ -361,6 +363,7 @@ public:
   void convertHEVDirToHelmDir(); // added to use HEFRS and Helmholtz per Charbel's request
   int  setDirichletFluid(int, BCond *); //ADDED FOR HEV PROBLEM, EC, 20070820
   int  setNeuman(int, BCond *);
+  int  setNeumanModal(int, BCond *);
   int  setIDis(int, BCond *);
   int  setIDisModal(int, BCond *);
   int  setIDis6(int, BCond *);
@@ -465,11 +468,13 @@ public:
   int getNumDirichlet()  { return numDirichlet; }
   int getNumDirichletFluid()  { return numDirichletFluid; } //ADDED FOR HEV PROBLEM, EC, 20070820
   int getNumNeuman()  { return numNeuman; }
+  int getNumNeumanModal() { return numNeumanModal; }
   int getNumIDisModal() { return numIDisModal; }
   int getDirichletBC(BCond *&);
   int getDirichletBCFluid(BCond *&);
   int getTextDirichletBC(BCond *&);
   int getNeumanBC(BCond *&);
+  int getNeumanBCModal(BCond *&);
   int getTextNeumanBC(BCond *&);
   int getIDis(BCond *&);
   int getIDisModal(BCond *&);

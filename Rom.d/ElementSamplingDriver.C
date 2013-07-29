@@ -276,14 +276,14 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcess(Vector &solution, 
   }
 
   std::auto_ptr<Connectivity> elemToNode(new Connectivity(&inputElemSet));
+  Vector constForceFull(SingleDomainDynamic::solVecInfo());
+  SingleDomainDynamic::getConstForce(constForceFull);
   
   const MeshRenumbering meshRenumbering(sampleElemIds.begin(), sampleElemIds.end(), *elemToNode, verboseFlag);
   const MeshDesc reducedMesh(domain_, geoSource, meshRenumbering, weights);
   outputMeshFile(fileInfo, reducedMesh);
   outputFullWeights(fileInfo, solution, packedToInput);
   // output the reduced forces (constant and time-dependent via MFTT)
-  Vector constForceFull(SingleDomainDynamic::solVecInfo());
-  SingleDomainDynamic::getConstForce(constForceFull);
   Vector constForceRed(podBasis_.vectorCount());
   reduce(podBasis_, constForceFull,  constForceRed);
   std::ofstream meshOut(getMeshFilename(fileInfo).c_str(), std::ios_base::app);

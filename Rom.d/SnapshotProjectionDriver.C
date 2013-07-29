@@ -280,7 +280,7 @@ SnapshotProjectionDriver::compProjError() {
   int numNorms = domain->solInfo().PODerrornorm.size();
 
   filePrint(dispFile,"Displacement Projection Error:\n");
-  filePrint(dispFile,"Frobenius: %1.6e\n", dispError.norm());
+  filePrint(dispFile,"Frobenius: %1.6e\n", dispError.norm()/dispBuf.norm());
   filePrint(dispFile,"   Snapshot   |      L_inf      |      L1       |        L2   \n");
   for (int i = 0; i != snapshots.numVec(); ++i){
     filePrint(dispFile,"     %d      ",i+1);
@@ -318,7 +318,7 @@ SnapshotProjectionDriver::compProjError() {
     filePrint(velFile,"Number of Training Configurations: %d\n",velocSnapshots->numVec());
 
     filePrint(velFile,"Velocity Projection Error:\n");
-    filePrint(velFile,"Frobenius: %1.6e\n", velError.norm());
+    filePrint(velFile,"Frobenius: %1.6e\n", velError.norm()/velBuf.norm());
     filePrint(velFile,"   Snapshot   |      L_inf      |      L1       |        L2   \n");
     for (int i = 0; i != velocSnapshots->numVec(); ++i){
       filePrint(velFile,"     %d      ",i+1);
@@ -357,7 +357,7 @@ SnapshotProjectionDriver::compProjError() {
     filePrint(accelFile,"Number of Training Configurations: %d\n",accelSnapshots->numVec());
 
     filePrint(accelFile,"Acceleration Projection Error\n");
-    filePrint(accelFile,"Frobenius: %1.6e\n", accelError.norm());
+    filePrint(accelFile,"Frobenius: %1.6e\n", accelError.norm()/accelBuf.norm());
     filePrint(accelFile,"   Snapshot   |      L_inf      |      L1       |        L2   \n");
     for (int i = 0; i != accelSnapshots->numVec(); ++i){
       filePrint(accelFile,"     %d      ",i+1);

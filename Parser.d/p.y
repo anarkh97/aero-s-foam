@@ -47,6 +47,7 @@
  ComplexFNBC complexFNBC;
  AxiMPC axiMPC;
  DoubleList dlist;
+ StringList slist;
  SurfaceEntity* SurfObj;
  MortarHandler* MortarCondObj;
  LMPCTerm* mpcterm;
@@ -103,7 +104,8 @@
 %token WEIGHTLIST GMRESRESIDUAL 
 %token SLOSH SLGRAV SLZEM SLZEMFILTER 
 %token PDIR HEFSB HEFRS HEINTERFACE  // Added for HEV Problem, EC, 20080512
-%token SNAPFI PODROB TRNVCT OFFSET ORTHOG SVDTOKEN CONVERSIONTOKEN CONVFI SAMPLING SNAPSHOTPROJECT PODSIZEMAX REFSUBSTRACT TOLER OUTOFCORE NORMALIZETOKEN
+%token SNAPFI PODROB TRNVCT OFFSET ORTHOG SVDTOKEN CONVERSIONTOKEN CONVFI SAMPLING SNAPSHOTPROJECT PODSIZEMAX REFSUBSTRACT TOLER OUTOFCORE NORMALIZETOKEN FNUMBER SNAPWEIGHT ROBFI
+%token VECTORNORM
 
 %type <complexFDBC> AxiHD
 %type <complexFNBC> AxiHN
@@ -141,6 +143,7 @@
 %type <ymtt>     YMTTList
 %type <ctett>    TETTList
 %type <dlist>    FloatList
+%type <slist>    StringList
 %type <SurfObj>  FaceSet
 %type <MortarCondObj> MortarCondition TiedSurfaces ContactSurfaces
 %type <ival>     MPCTYPEID MPCPRECNOID MPCBLOCKID
@@ -4038,6 +4041,18 @@ FloatList:
           $$.v[$$.nval++] = $2;
  	}
 	;
+StringList:
+	{ $$.nval = 0; }
+	| StringList FNAME
+	{ 
+          if($1.nval == 32) {
+             fprintf(stderr, "Too many files!\n");
+	     exit(-1);
+          }
+          $$ = $1;
+          $$.v[$$.nval++] = $2;
+ 	}
+	;
 Renumbering:
 	RENUM NewLine RENUMBERID NewLine
 	{ domain->solInfo().setRenum($3);
@@ -4061,21 +4076,37 @@ SvdToken:
   ;
 
 SvdOption:
-    SNAPFI FNAME
-  { domain->solInfo().snapfiPodRom = $2; }
-  | SNAPFI FNAME Integer 
-  { domain->solInfo().snapfiPodRom = $2;
+/*
+  SNAPFI FNAME
+  {
+    domain->solInfo().snapfiPodRom.push_back(std::string($2));
+  }
+  */
+  SNAPFI StringList
+  {
+    for(int i=0; i<$2.nval; ++i) domain->solInfo().snapfiPodRom.push_back(std::string($2.v[i]));
+  }
+  /*
+  | SNAPFI FNAME Integer
+  { domain->solInfo().snapfiPodRom.push_back($2);
     if ($3 == 1) domain->solInfo().statevectPodRom = true;
     if ($3 == 2) domain->solInfo().residvectPodRom = true;
     if ($3 == 3) domain->solInfo().jacobvectPodRom = true;
     if ($3 == 4) domain->solInfo().forcevectPodRom = true;
     if ($3 == 5) domain->solInfo().accelvectPodRom = true;}
+    */
   | PODSIZEMAX Integer
   { domain->solInfo().maxSizePodRom = $2; }
   | NORMALIZETOKEN Integer
   { domain->solInfo().normalize = $2; }
+  | SNAPWEIGHT FloatList
+  { for(int i=0; i<$2.nval; ++i) domain->solInfo().snapshotWeights.push_back($2.v[i]); }
   | SKIP Integer
   { domain->solInfo().skipPodRom = $2; } 
+  | ROBFI StringList
+  {
+    for(int i=0; i<$2.nval; ++i) domain->solInfo().robfi.push_back(std::string($2.v[i]));
+  }
   ;
 
 Sampling:
@@ -4118,6 +4149,15 @@ SamplingOption:
   { domain->solInfo().oocPodRom = bool($2); }
   | REDFOL SWITCH
   { domain->solInfo().reduceFollower = bool($2); }
+  | VECTORNORM FNAME
+  { domain->solInfo().PODerrornorm.push_back($2); }
+  | VECTORNORM FNAME FNAME
+  { domain->solInfo().PODerrornorm.push_back($2);
+    domain->solInfo().PODerrornorm.push_back($3); }
+  | VECTORNORM FNAME FNAME FNAME
+  { domain->solInfo().PODerrornorm.push_back($2);
+    domain->solInfo().PODerrornorm.push_back($3);
+    domain->solInfo().PODerrornorm.push_back($4); }
   ;
 
 ConversionToken:

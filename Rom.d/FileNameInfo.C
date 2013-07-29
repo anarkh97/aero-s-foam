@@ -23,16 +23,22 @@ FileNameInfo::FileNameInfo(const std::string &prefix) :
 {}
 
 std::string
-FileNameInfo::basisFileName(const BasisId &id) const {
+FileNameInfo::basisFileName(const BasisId &id, int i) const {
   std::ostringstream builder;
 
  if(domain->solInfo().svdPodRom) {
-  if (id.level() == 0) {
+   if (id.level() == 0) {
      //filePrint(stderr,"*** Performing SVD decomposition on %s \n", domain->solInfo().snapfiPodRom);
-     builder << domain->solInfo().snapfiPodRom; }
-  else if (id.level() == 1){
+       builder << domain->solInfo().snapfiPodRom[i].c_str() ; 
+   }
+   else if (id.level() == 1){
      //filePrint(stderr,"*** Saving Basis to file %s \n", domain->solInfo().SVDoutput);
-     builder << domain->solInfo().SVDoutput; } }
+     builder << domain->solInfo().SVDoutput; 
+     } 
+   else if (id.level() == 2){
+     builder << domain->solInfo().robfi[i].c_str();
+   }
+ }
  else {
   if(id.level() == 0) {
     if(id.type() == 0) 

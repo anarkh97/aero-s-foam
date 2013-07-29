@@ -269,43 +269,114 @@ SnapshotProjectionDriver::compProjError() {
 
   dispError = pdispBuf - dispBuf;
 
-  filePrint(stderr,"\n Computing the projection error for %d training configurations\n",snapshots.numVec());
+  if(domain->solInfo().PODerrornorm.size() == 0) {
+     std::cerr << "...No displacement file specified, exiting..." << std::endl;
+     exit(-1);
+    }
 
-  filePrint(stderr,"Displacement Projection Error\n");
+  FILE * dispFile = fopen(domain->solInfo().PODerrornorm[0].c_str(),"w");
+  filePrint(dispFile,"Number of Training Configurations: %d\n",snapshots.numVec());
+
+  int numNorms = domain->solInfo().PODerrornorm.size();
+
+  filePrint(dispFile,"Displacement Projection Error:\n");
+  filePrint(dispFile,"Frobenius: %1.6e\n", dispError.norm()/dispBuf.norm());
+  filePrint(dispFile,"   Snapshot   |      L_inf      |      L1       |        L2   \n");
   for (int i = 0; i != snapshots.numVec(); ++i){
-    double L2error = dispError.col(i).norm();
-    L2error = L2error/dispBuf.col(i).norm()*100.;
-    filePrint(stderr,"L2 error for Displacement Snapshot %d = %f %\n",i+1,L2error);
+    filePrint(dispFile,"     %d      ",i+1);
+    for(int pnorm = 0; pnorm != 3; pnorm ++){
+      if((pnorm) == 0){
+          double Lperror = dispError.col(i).lpNorm<Eigen::Infinity>();
+          Lperror = Lperror/dispBuf.col(i).lpNorm<Eigen::Infinity>()*100.;
+          filePrint(dispFile,"     %1.6e ",Lperror);
+      } else if(pnorm == 1){
+          double Lperror = dispError.col(i).lpNorm<1>();
+          Lperror = Lperror/dispBuf.col(i).lpNorm<1>()*100.;
+          filePrint(dispFile,"    %1.6e ",Lperror);
+      } else if(pnorm == 2) {
+          double Lperror = dispError.col(i).lpNorm<2>();
+          Lperror = Lperror/dispBuf.col(i).lpNorm<2>()*100.;
+          filePrint(dispFile,"    %1.6e   ",(pnorm),Lperror);
+      }
+    }
+    filePrint(dispFile,"\n");
   }
 
-
   if(velocSnapshots) {
-    filePrint(stderr,"\nVelocity Projection Error\n");
     Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> velError(velocSnapshots->vectorSize(),velocSnapshots->numVec());
     Eigen::Map< Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > velBuf(velocSnapshots->data(),velocSnapshots->vectorSize(),velocSnapshots->numVec());
     Eigen::Map< Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > pvelBuf(veloc_->data(),veloc_->vectorSize(),veloc_->numVec());
 
     velError = pvelBuf - velBuf;
 
+    if(domain->solInfo().PODerrornorm.size() < 2) {
+     std::cerr << "...No velocity file specified, exiting..." << std::endl;
+     exit(-1);
+    }
+
+    FILE * velFile = fopen(domain->solInfo().PODerrornorm[1].c_str(),"w");
+    filePrint(velFile,"Number of Training Configurations: %d\n",velocSnapshots->numVec());
+
+    filePrint(velFile,"Velocity Projection Error:\n");
+    filePrint(velFile,"Frobenius: %1.6e\n", velError.norm()/velBuf.norm());
+    filePrint(velFile,"   Snapshot   |      L_inf      |      L1       |        L2   \n");
     for (int i = 0; i != velocSnapshots->numVec(); ++i){
-      double L2error = velError.col(i).norm();
-      L2error = L2error/velBuf.col(i).norm()*100.;
-      filePrint(stderr,"L2 error for Velocity Snapshot %d = %f %\n",i+1,L2error);
+      filePrint(velFile,"     %d      ",i+1);
+      for(int pnorm = 0; pnorm != 3; pnorm ++){
+        if((pnorm) == 0){
+            double Lperror = velError.col(i).lpNorm<Eigen::Infinity>();
+            Lperror = Lperror/velBuf.col(i).lpNorm<Eigen::Infinity>()*100.;
+            filePrint(velFile,"     %1.6e ",Lperror);
+        } else if(pnorm == 1) {
+            double Lperror = velError.col(i).lpNorm<1>();
+            Lperror = Lperror/velBuf.col(i).lpNorm<1>()*100.;
+            filePrint(velFile,"    %1.6e ",Lperror);
+        } else if(pnorm == 2) {
+            double Lperror = velError.col(i).lpNorm<2>();
+            Lperror = Lperror/velBuf.col(i).lpNorm<2>()*100.;
+            filePrint(velFile,"    %1.6e   ",(pnorm),Lperror);
+        }
+      }
+      filePrint(velFile,"\n");
     }
   }
 
   if(accelSnapshots) {
-    filePrint(stderr,"\nAcceleration Projection Error\n");
     Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> accelError(accelSnapshots->vectorSize(),accelSnapshots->numVec());
     Eigen::Map< Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > accelBuf(accelSnapshots->data(),accelSnapshots->vectorSize(),accelSnapshots->numVec());
     Eigen::Map< Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > paccelBuf(accel_->data(),accel_->vectorSize(),accel_->numVec());
 
     accelError = paccelBuf - accelBuf;
 
+    if(!domain->solInfo().PODerrornorm.size() < 3) {
+     std::cerr << "...No acceleration file specified, exiting..." << std::endl;
+     exit(-1);
+    }
+
+    FILE * accelFile = fopen(domain->solInfo().PODerrornorm[2].c_str(),"w");
+    filePrint(accelFile,"Number of Training Configurations: %d\n",accelSnapshots->numVec());
+
+    filePrint(accelFile,"Acceleration Projection Error\n");
+    filePrint(accelFile,"Frobenius: %1.6e\n", accelError.norm()/accelBuf.norm());
+    filePrint(accelFile,"   Snapshot   |      L_inf      |      L1       |        L2   \n");
     for (int i = 0; i != accelSnapshots->numVec(); ++i){
-      double L2error = accelError.col(i).norm();
-      L2error = L2error/accelBuf.col(i).norm()*100.;
-      filePrint(stderr,"L2 error for Acceleration Snapshot %d = %f %\n",i+1,L2error);
+      filePrint(accelFile,"     %d      ",i+1);
+      for(int pnorm = 0; pnorm != 3; pnorm ++){
+        if((pnorm) == 0){
+            double Lperror = accelError.col(i).lpNorm<Eigen::Infinity>();
+            Lperror = Lperror/accelBuf.col(i).lpNorm<Eigen::Infinity>()*100.;
+            filePrint(accelFile,"     %1.6e ",Lperror);
+        } else if(pnorm == 1){
+            double Lperror = accelError.col(i).lpNorm<1>();
+            Lperror = Lperror/accelBuf.col(i).lpNorm<1>()*100.;
+            filePrint(accelFile,"    %1.6e ",Lperror);
+        } else if(pnorm == 2) {
+            double Lperror = accelError.col(i).lpNorm<2>();
+            Lperror = Lperror/accelBuf.col(i).lpNorm<2>()*100.;
+            filePrint(accelFile,"    %1.6e   ",(pnorm),Lperror);
+        }
+      }
+      filePrint(accelFile,"\n");
     }
   }
 

@@ -334,7 +334,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcess() {
   const VecNodeDof6Conversion vecDofConversion(*domain_->getCDSA());
   assert(vectorSize() == vecDofConversion.vectorSize());
 
-  //Read in non-normalized basis
+  //Read in non-mass-normalized basis
   {
     BasisInputStream in(BasisFileId(fileInfo, BasisId::STATE, BasisId::POD), vecDofConversion);
     const int podSizeMax = domain_->solInfo().maxSizePodRom;

@@ -105,38 +105,109 @@ BasisOrthoDriver::solve() {
   assert(dummyDynOps->M);
   GenSparseMatrix<double> *fullMass = dummyDynOps->M;
 
+  int vectorSize = 0;  //size of vectors
+  int sizeSnap = 0; //number of state snapshots
+  int sizeROB = 0;
+  int skipTime = domain->solInfo().skipPodRom;
+  int skip;
+  if(domain->solInfo().snapfiPodRom.empty() && domain->solInfo().robfi.empty()) {
+    std::cerr << "*** Error: no files provided\n" ;
+    exit(-1);
+  }
+  
   for (std::vector<BasisId::Type>::const_iterator it = workload.begin(); it != workload.end(); ++it) {
     BasisId::Type type = *it;
+    //loop over snapshots
+    for(int i = 0 ; i < domain->solInfo().snapfiPodRom.size(); i++) {
+      std::string fileName =  BasisFileId(fileInfo, type, BasisId::SNAPSHOTS , i);
+      BasisInputStream input(fileName, converter);
+      vectorSize = input.vectorSize();
+      sizeSnap += input.size()/skipTime;
+    }
 
+    //loop over files 
+    for(int i = 0 ; i < domain->solInfo().robfi.size(); i++) {
+      std::string fileName = BasisFileId(fileInfo,type,BasisId::ROB, i);
+      BasisInputStream input(fileName, converter);
+      vectorSize = input.vectorSize();
+      sizeROB += input.size()/skipTime;
+    }
+  }
+  solver.matrixSizeIs(vectorSize, sizeSnap+sizeROB);
+  //loop that technically loops over snapshot types 
+  for (std::vector<BasisId::Type>::const_iterator it = workload.begin(); it != workload.end(); ++it) {
+    BasisId::Type type = *it;
+    filePrint(stderr, " ... Computation of a basis of size %d...\n", sizeSnap+sizeROB);
     {
-      BasisInputStream input(BasisFileId(fileInfo, type, BasisId::SNAPSHOTS), converter);
-
-      int skipTime = domain->solInfo().skipPodRom;
-      int size = input.size()/skipTime; 
-
-      filePrint(stderr, " ... Orthogonalization of a basis with %d vectors ...\n", input.size());
-      
-      solver.matrixSizeIs(input.vectorSize(), input.size());
-
-      int skip = 1;
-      int counter = 0;
-      for (int iCol = 0; iCol < input.size(); ++iCol) {
-        if(skip == skipTime) {
-          double *buffer = solver.matrixCol(counter);
-          input >> buffer;
-          assert(input);
-        if(domain->solInfo().normalize ==1) fullMass->squareRootMult(buffer); //executes for new method
-          (*transform)(buffer);
+      int colCounter = 0 ; //Column counter for combined matrix
+      if(!domain->solInfo().snapfiPodRom.empty()){
+        //loop over a snapshot file
+        for(int i = 0 ; i < domain->solInfo().snapfiPodRom.size(); i++){
+          std::string fileName =  BasisFileId(fileInfo, type, BasisId::SNAPSHOTS , i);
+          BasisInputStream input(fileName, converter);
+          std::cerr << "Reading in snapshot file:  "<< fileName << "\n" ;
           skip = 1;
-          ++counter;
-       } else {
-          SimpleBuffer<double> dummyVec;
-          dummyVec.sizeIs(size*input.vectorSize());
-          double *dummyBuffer = dummyVec.array();
-          input >> dummyBuffer;
-          assert(input);
-          ++skip;
-       }
+          //column loop
+          for (int iCol = 0; iCol < input.size(); ++iCol) {
+            if(skip == skipTime){
+              double *buffer = solver.matrixCol(colCounter);
+              input >> buffer;
+              assert(input);
+              colCounter++;
+              //Multiply by weighting factor if given in input file
+              if(!domain->solInfo().snapshotWeights.empty()){
+                for(int row = 0 ; row < vectorSize; row++){
+                  buffer[row] *= domain->solInfo().snapshotWeights[i];
+                }
+              }
+              if(domain->solInfo().normalize ==1) fullMass->squareRootMult(buffer); //executes for new method
+              (*transform)(buffer);
+              skip = 1;
+            } else {
+              SimpleBuffer<double> dummyVec;
+              dummyVec.sizeIs(input.vectorSize());  
+              double *dummyBuffer = dummyVec.array();
+              input >> dummyBuffer;
+              assert(input);
+              ++skip;
+            }
+          }
+        }
+      }
+      
+      if(!domain->solInfo().robfi.empty()){
+        for(int i = 0 ; i < domain->solInfo().robfi.size(); i ++ ){
+          std::string fileName = BasisFileId(fileInfo,type,BasisId::ROB,i);
+          BasisInputStream input(fileName,converter);
+          std::cerr << "Reading in ROB file:  "<< fileName << "\n" ;
+          skip = 1;
+          for(int iCol = 0; iCol < input.size(); ++iCol){
+            if(skip == skipTime){
+              double *buffer = solver.matrixCol(colCounter);
+              std::pair<double, double *> data;
+              assert(input);
+              data.second = buffer;
+              input >> data;
+              colCounter++;
+              //Multiply by weight factor
+              if(!domain->solInfo().snapshotWeights.empty()){
+                for(int row = 0 ; row < vectorSize; row++){
+                  data.second[row] *= data.first*domain->solInfo().snapshotWeights[domain->solInfo().snapfiPodRom.size()+i];
+                }
+              }
+              if(domain->solInfo().normalize ==1) fullMass->squareRootMult(buffer); //executes for new method
+              (*transform)(buffer);
+              skip = 1;
+            } else {
+              SimpleBuffer<double> dummyVec;
+              dummyVec.sizeIs(input.vectorSize());     
+              double *dummyBuffer = dummyVec.array();
+              input >> dummyBuffer;
+              assert(input);
+              ++skip;
+            }
+          }
+        }
       }
 
     }

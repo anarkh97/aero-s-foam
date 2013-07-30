@@ -24,7 +24,7 @@ template <typename Scalar> class GenVector;
 typedef GenVector<double> Vector;
 
 namespace Rom {
-void outputMeshFile(const FileNameInfo &fileInfo, const MeshDesc &mesh);
+void outputMeshFile(const FileNameInfo &fileInfo, const MeshDesc &mesh, const int podVectorCount);
 
 template<typename MatrixBufferType = std::vector<double>, typename SizeType = size_t>
 class ElementSamplingDriver : public SingleDomainDynamic, public DriverInterface {

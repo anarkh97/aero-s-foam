@@ -62,9 +62,12 @@ getMeshFilename(const FileNameInfo &fileInfo) {
 }
 
 void
-outputMeshFile(const FileNameInfo &fileInfo, const MeshDesc &mesh) {
+outputMeshFile(const FileNameInfo &fileInfo, const MeshDesc &mesh, const int podVectorCount) {
   const std::ios_base::openmode mode = std::ios_base::out; 
   std::ofstream meshOut(getMeshFilename(fileInfo).c_str(), mode);
+  std::string basisfile = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
+  basisfile.append(".reduced");
+  meshOut << "READMODE \"" << basisfile << "\" " << podVectorCount << "\n*\n";
   meshOut << mesh;
 }
 
@@ -75,10 +78,17 @@ outputFullWeights(const FileNameInfo &fileInfo, const Vector &weights, const std
   const std::string fileName = domain->solInfo().reducedMeshFile;
   const std::ios_base::openmode mode = std::ios_base::out;
   std::ofstream weightOut(fileName.c_str(), mode);
+  bool firstTime = true;
 
   weightOut << "ATTRIBUTES\n";
   for (int i = 0, iEnd = weights.size(); i != iEnd; ++i) {
-    weightOut << elemIds[i] + 1 << " 1 " << "HRC" << " " << weights[i] << "\n";
+    if(domain->solInfo().reduceFollower && firstTime) {
+      weightOut << elemIds[i] + 1 << " 1 " << "HRC REDFOL" << " " << weights[i] << "\n";
+      firstTime = false;
+    }
+    else {
+      weightOut << elemIds[i] + 1 << " 1 " << "HRC" << " " << weights[i] << "\n";
+    }
   }
 }
 
@@ -281,19 +291,19 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcess(Vector &solution, 
   
   const MeshRenumbering meshRenumbering(sampleElemIds.begin(), sampleElemIds.end(), *elemToNode, verboseFlag);
   const MeshDesc reducedMesh(domain_, geoSource, meshRenumbering, weights);
-  outputMeshFile(fileInfo, reducedMesh);
+  outputMeshFile(fileInfo, reducedMesh, podBasis_.vectorCount());
   outputFullWeights(fileInfo, solution, packedToInput);
   // output the reduced forces (constant and time-dependent via MFTT)
   Vector constForceRed(podBasis_.vectorCount());
   reduce(podBasis_, constForceFull,  constForceRed);
   std::ofstream meshOut(getMeshFilename(fileInfo).c_str(), std::ios_base::app);
+  if(domain->solInfo().reduceFollower) meshOut << "REDFOL\n";
   meshOut << "*\nFORCES\nMODAL\n";
   meshOut.precision(std::numeric_limits<double>::digits10+1);
   for(int i=0; i<podBasis_.vectorCount(); ++i) 
     meshOut << i+1 << " "  << constForceRed[i] << std::endl;
 #ifdef USE_EIGEN3
   // build and output compressed basis
-  // TODO add extra nodes for FORCE, DIMASS, etc...
   podBasis_.makeSparseBasis(meshRenumbering.reducedNodeIds(), domain_->getCDSA());
   {
     std::string filename = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);

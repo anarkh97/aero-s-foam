@@ -2829,6 +2829,8 @@ Ellump:
         { domain->solInfo().elemLumpPodRom = true; }
         | Ellump Integer Float NewLine
         { geoSource->setElementLumpingWeight($2 - 1, $3); }
+        | Ellump REDFOL NewLine
+        { domain->solInfo().reduceFollower = true;}
         ;
 Pressure:
 	PRESSURE NewLine

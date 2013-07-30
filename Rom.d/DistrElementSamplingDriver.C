@@ -385,7 +385,7 @@ DistrElementSamplingDriver::solve() {
 
     const MeshRenumbering meshRenumbering(reducedelemIds.begin(), reducedelemIds.end(), *elemToNode, verboseFlag);
     const MeshDesc reducedMesh(domain_, geoSource, meshRenumbering, weightsMap); 
-    outputMeshFile(fileInfo, reducedMesh);
+    outputMeshFile(fileInfo, reducedMesh, podBasis.vectorCount());
   }
 
   if(structCom) structCom->sync();

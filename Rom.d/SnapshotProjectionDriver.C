@@ -124,8 +124,6 @@ SnapshotProjectionDriver::preProcess() {
     }
   }
 
-  MGSVectors(podBasis_.data(),podBasis_.numVec(),podBasis_.size());
-
   // Read state snapshots
   {
     BasisInputStream in(BasisFileId(fileInfo, BasisId::STATE, BasisId::SNAPSHOTS), vecDofConversion);

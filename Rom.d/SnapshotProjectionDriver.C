@@ -113,7 +113,7 @@ SnapshotProjectionDriver::preProcess() {
   const VecNodeDof6Conversion vecDofConversion(*domain->getCDSA());
   assert(vectorSize() == vecDofConversion.vectorSize());
 
-  //Read in non-normalized basis
+  //Read in identity-normalized basis
   {
     BasisInputStream in(BasisFileId(fileInfo, BasisId::STATE, BasisId::POD), vecDofConversion);
     const int podSizeMax = domain->solInfo().maxSizePodRom;
@@ -123,8 +123,6 @@ SnapshotProjectionDriver::preProcess() {
       readVectors(in, podBasis_);
     }
   }
-
-  MGSVectors(podBasis_.data(),podBasis_.numVec(),podBasis_.size());
 
   // Read state snapshots
   {

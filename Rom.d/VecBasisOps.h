@@ -83,8 +83,8 @@ renormalized_basis(const GenSparseMatrix<Scalar> &metric, const GenVecBasis<Scal
 template <typename Scalar>
 void
 MGSVectors(Scalar *d, int numVec, int lengthVec, bool RowMajor = false, bool DistrVectors = false) {
- filePrint(stderr,"... Gram-Schmidt Algorithm: orthogonalizing vectors ...\n");
- filePrint(stderr," number of vectors = %d\n", numVec);
+ filePrint(stderr," ... Gram-Schmidt Algorithm: orthogonalizing vectors ...\n");
+ //filePrint(stderr," number of vectors = %d\n", numVec);
  //initialize eigen matrix class with pointer to vectors
  Eigen::Map< Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> > matrix(NULL,0,0);
  if (RowMajor)
@@ -94,7 +94,7 @@ MGSVectors(Scalar *d, int numVec, int lengthVec, bool RowMajor = false, bool Dis
 
  //loop over all vectors
  for(int i = 0; i != numVec; ++i) {  
-  filePrint(stderr,"\r %4.2f%% complete", double(i)/double(numVec)*100.); 
+  filePrint(stderr,"\r %5.2f%% complete", double(i)/double(numVec)*100.); 
   //initialize vector class with pointer to currect vector
   Eigen::Matrix<Scalar,Eigen::Dynamic,1> v(lengthVec); 
   v = matrix.col(i);
@@ -122,6 +122,7 @@ MGSVectors(Scalar *d, int numVec, int lengthVec, bool RowMajor = false, bool Dis
     matrix.col(j) += -1*vecProj*q;
   }
  }
+ filePrint(stderr,"\r %5.2f%% complete\n", 100.);
 }
 
 template <typename Scalar>

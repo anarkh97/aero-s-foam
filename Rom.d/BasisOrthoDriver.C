@@ -65,13 +65,12 @@ BasisOrthoDriver::BasisOrthoDriver(Domain *domain) :
 
 void
 BasisOrthoDriver::solve() {
-  //preProcess() ;
   SingleDomainDynamic::preProcess();
-  VecNodeDof6Conversion converter(*domain->getCDSA()) ;
-  FileNameInfo fileInfo ;
+  VecNodeDof6Conversion converter(*domain->getCDSA());
+  FileNameInfo fileInfo;
   SvdOrthogonalization solver;
 
-  std::vector<BasisId::Type> workload ;
+  std::vector<BasisId::Type> workload;
        
   if(domain->solInfo().statevectPodRom) {
 	workload.push_back(BasisId::STATE);
@@ -101,7 +100,7 @@ BasisOrthoDriver::solve() {
   //Checking flags
   double beta = domain->solInfo().newmarkBeta;
   //Assembling mass matrix
-  DynamMat * dummyDynOps = SingleDomainDynamic::buildOps(1.0,0.0,0.0) ;
+  DynamMat * dummyDynOps = SingleDomainDynamic::buildOps(1.0,0.0,0.0);
   assert(dummyDynOps->M);
   GenSparseMatrix<double> *fullMass = dummyDynOps->M;
 
@@ -111,7 +110,7 @@ BasisOrthoDriver::solve() {
   int skipTime = domain->solInfo().skipPodRom;
   int skip;
   if(domain->solInfo().snapfiPodRom.empty() && domain->solInfo().robfi.empty()) {
-    std::cerr << "*** Error: no files provided\n" ;
+    std::cerr << "*** Error: no files provided\n";
     exit(-1);
   }
   
@@ -119,13 +118,13 @@ BasisOrthoDriver::solve() {
     BasisId::Type type = *it;
     //loop over snapshots
     for(int i = 0 ; i < domain->solInfo().snapfiPodRom.size(); i++) {
-      std::string fileName =  BasisFileId(fileInfo, type, BasisId::SNAPSHOTS , i);
+      std::string fileName =  BasisFileId(fileInfo, type, BasisId::SNAPSHOTS, i);
       BasisInputStream input(fileName, converter);
       vectorSize = input.vectorSize();
       sizeSnap += input.size()/skipTime;
     }
 
-    //loop over files 
+    //loop over rob files 
     for(int i = 0 ; i < domain->solInfo().robfi.size(); i++) {
       std::string fileName = BasisFileId(fileInfo,type,BasisId::ROB, i);
       BasisInputStream input(fileName, converter);
@@ -134,18 +133,18 @@ BasisOrthoDriver::solve() {
     }
   }
   solver.matrixSizeIs(vectorSize, sizeSnap+sizeROB);
-  //loop that technically loops over snapshot types 
+
   for (std::vector<BasisId::Type>::const_iterator it = workload.begin(); it != workload.end(); ++it) {
     BasisId::Type type = *it;
-    filePrint(stderr, " ... Computation of a basis of size %d...\n", sizeSnap+sizeROB);
+    filePrint(stderr, " ... Computation of a basis of size %d ...\n", sizeSnap+sizeROB);
     {
       int colCounter = 0 ; //Column counter for combined matrix
-      if(!domain->solInfo().snapfiPodRom.empty()){
+      if(!domain->solInfo().snapfiPodRom.empty()) {
         //loop over a snapshot file
-        for(int i = 0 ; i < domain->solInfo().snapfiPodRom.size(); i++){
-          std::string fileName =  BasisFileId(fileInfo, type, BasisId::SNAPSHOTS , i);
+        for(int i = 0 ; i < domain->solInfo().snapfiPodRom.size(); i++) {
+          std::string fileName =  BasisFileId(fileInfo, type, BasisId::SNAPSHOTS, i);
           BasisInputStream input(fileName, converter);
-          std::cerr << "Reading in snapshot file:  "<< fileName << "\n" ;
+          filePrint(stderr, " ... Reading in snapshot file: %s ...\n", fileName.c_str());
           skip = 1;
           //column loop
           for (int iCol = 0; iCol < input.size(); ++iCol) {
@@ -155,12 +154,12 @@ BasisOrthoDriver::solve() {
               assert(input);
               colCounter++;
               //Multiply by weighting factor if given in input file
-              if(!domain->solInfo().snapshotWeights.empty()){
-                for(int row = 0 ; row < vectorSize; row++){
+              if(!domain->solInfo().snapshotWeights.empty()) {
+                for(int row = 0 ; row < vectorSize; row++) {
                   buffer[row] *= domain->solInfo().snapshotWeights[i];
                 }
               }
-              if(domain->solInfo().normalize ==1) fullMass->squareRootMult(buffer); //executes for new method
+              if(beta == 0 && domain->solInfo().normalize == 1) fullMass->squareRootMult(buffer); //executes for new method
               (*transform)(buffer);
               skip = 1;
             } else {
@@ -175,13 +174,13 @@ BasisOrthoDriver::solve() {
         }
       }
       
-      if(!domain->solInfo().robfi.empty()){
-        for(int i = 0 ; i < domain->solInfo().robfi.size(); i ++ ){
-          std::string fileName = BasisFileId(fileInfo,type,BasisId::ROB,i);
+      if(!domain->solInfo().robfi.empty()) {
+        for(int i = 0; i < domain->solInfo().robfi.size(); i++) {
+          std::string fileName = BasisFileId(fileInfo, type, BasisId::ROB, i);
           BasisInputStream input(fileName,converter);
-          std::cerr << "Reading in ROB file:  "<< fileName << "\n" ;
+          filePrint(stderr, " ... Reading in ROB file: %s ...\n", fileName.c_str());
           skip = 1;
-          for(int iCol = 0; iCol < input.size(); ++iCol){
+          for(int iCol = 0; iCol < input.size(); ++iCol) {
             if(skip == skipTime){
               double *buffer = solver.matrixCol(colCounter);
               std::pair<double, double *> data;
@@ -190,12 +189,12 @@ BasisOrthoDriver::solve() {
               input >> data;
               colCounter++;
               //Multiply by weight factor
-              if(!domain->solInfo().snapshotWeights.empty()){
-                for(int row = 0 ; row < vectorSize; row++){
+              if(!domain->solInfo().snapshotWeights.empty()) {
+                for(int row = 0 ; row < vectorSize; row++) {
                   data.second[row] *= data.first*domain->solInfo().snapshotWeights[domain->solInfo().snapfiPodRom.size()+i];
                 }
               }
-              if(domain->solInfo().normalize ==1) fullMass->squareRootMult(buffer); //executes for new method
+              if(beta == 0 && domain->solInfo().normalize == 1) fullMass->squareRootMult(buffer); //executes for new method
               (*transform)(buffer);
               skip = 1;
             } else {
@@ -220,12 +219,14 @@ BasisOrthoDriver::solve() {
                               solver.singularValueCount();
 
     //Output solution
+    if(beta != 0 || (beta == 0 && domain->solInfo().normalize == 0))
+      filePrint(stderr, " ... Writing orthonormal basis to file %s ...\n", BasisFileId(fileInfo, type, BasisId::POD).name().c_str());
     for (int iVec = 0; iVec < orthoBasisDim; ++iVec) {
       output << std::make_pair(solver.singularValue(iVec), solver.matrixCol(iVec));
     }
 
     //Check if explicit
-    if(beta == 0 ) {
+    if(beta == 0) {
       //Read back in solution to renormalize basis
       VecBasis basis;
       //Read back in basis information
@@ -234,11 +235,11 @@ BasisOrthoDriver::solve() {
 
       VecBasis normalizedBasis;
       //Check renormalize tag
-      if(domain->solInfo().normalize == 0){
-        renormalized_basis(*fullMass, basis, normalizedBasis) ;
+      if(domain->solInfo().normalize == 0) {
+        renormalized_basis(*fullMass, basis, normalizedBasis);
       }
-      if(domain->solInfo().normalize == 1){
-        for(int col = 0 ; col < orthoBasisDim; col ++ ){
+      if(domain->solInfo().normalize == 1) {
+        for(int col = 0; col < orthoBasisDim; col ++ ) {
           fullMass->inverseSquareRootMult(basis[col].data());
         }
         normalizedBasis = basis;
@@ -247,14 +248,17 @@ BasisOrthoDriver::solve() {
       std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
       fileName.append(".normalized");
       BasisOutputStream outputNormalized(fileName, converter, false); 
+      filePrint(stderr, " ... Writing mass-normalized basis to file %s ...\n", fileName.c_str());
       for (int iVec = 0; iVec < orthoBasisDim; ++iVec) {
         outputNormalized << std::make_pair(solver.singularValue(iVec), normalizedBasis[iVec]);
       }
     
       //Output identity normalized basis if using new method
-      if(domain->solInfo().normalize == 1){
-        MGSVectors(normalizedBasis.data(),normalizedBasis.numVec(), normalizedBasis.size());
+      if(domain->solInfo().normalize == 1) {
+        std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
+        MGSVectors(normalizedBasis.data(), normalizedBasis.numVec(), normalizedBasis.size());
         BasisOutputStream outputIdentityNormalized(fileName, converter, false); 
+        filePrint(stderr, " ... Writing orthonormal basis to file %s ...\n", fileName.c_str());
         for (int iVec = 0; iVec < orthoBasisDim; ++iVec) {
           outputIdentityNormalized << std::make_pair(solver.singularValue(iVec), normalizedBasis[iVec]);
         }

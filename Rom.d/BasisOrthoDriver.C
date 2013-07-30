@@ -251,8 +251,15 @@ BasisOrthoDriver::solve() {
         outputNormalized << std::make_pair(solver.singularValue(iVec), normalizedBasis[iVec]);
       }
     
+      //Output identity normalized basis if using new method
+      if(domain->solInfo().normalize == 1){
+        MGSVectors(normalizedBasis.data(),normalizedBasis.numVec(), normalizedBasis.size());
+        BasisOutputStream outputIdentityNormalized(fileName, converter, false); 
+        for (int iVec = 0; iVec < orthoBasisDim; ++iVec) {
+          outputIdentityNormalized << std::make_pair(solver.singularValue(iVec), normalizedBasis[iVec]);
+        }
+      }
     }
-
   }
 }
 

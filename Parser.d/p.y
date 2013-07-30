@@ -168,6 +168,7 @@ Component:
         { if(geoSource->setDirichlet($1->n,$1->d) < 0) return -1; delete $1; }
         | NeumanBC
         { if(geoSource->setNeuman($1->n,$1->d) < 0) return -1; }
+        | ModalNeumanBC
         | LMPConstrain 
         | ComplexLMPConstrain 
 	| ElemSet
@@ -1697,6 +1698,11 @@ NeumanBC:
           surf_bc[0].type = BCond::Forces;
           surf_bc[0].caseid = $$->caseid;
           geoSource->addSurfaceNeuman(1,surf_bc); }
+        ;
+ModalNeumanBC:
+        FORCE NewLine MODAL NewLine ModalValList
+        { for(int i=0; i<$5->n; ++i) $5->d[i].type = BCond::Forces;
+          if(geoSource->setNeumanModal($5->n, $5->d) < 0) return -1; }
         ;
 BCDataList:
 	BC_Data
@@ -4143,8 +4149,15 @@ SamplingOption:
   { domain->solInfo().oocPodRom = bool($2); }
   | REDFOL SWITCH
   { domain->solInfo().reduceFollower = bool($2); }
-  | VECTORNORM Integer
+  | VECTORNORM FNAME
   { domain->solInfo().PODerrornorm.push_back($2); }
+  | VECTORNORM FNAME FNAME
+  { domain->solInfo().PODerrornorm.push_back($2);
+    domain->solInfo().PODerrornorm.push_back($3); }
+  | VECTORNORM FNAME FNAME FNAME
+  { domain->solInfo().PODerrornorm.push_back($2);
+    domain->solInfo().PODerrornorm.push_back($3);
+    domain->solInfo().PODerrornorm.push_back($4); }
   ;
 
 ConversionToken:

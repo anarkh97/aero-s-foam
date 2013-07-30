@@ -73,7 +73,7 @@ private:
 template <typename InputIterator, typename TagType>
 std::ostream &
 operator<<(std::ostream &out, const InputFileSection<InputIterator, TagType> &source) {
-  out << source.header() << "\n";
+  out << "*\n" << source.header() << "\n";
   InputIterator itEnd = source.end();
   for (InputIterator it = source.begin(); it != itEnd; ++it) {
     typedef typename InputFileSection<InputIterator, TagType>::ValueType ValueType;

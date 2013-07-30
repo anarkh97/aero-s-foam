@@ -69,7 +69,7 @@ operator<<(std::ostream &out, const CoordSet &source) {
 
 std::ostream &
 operator<<(std::ostream &out, const Elemset &source) {
-  out << "TOPOLOGY\n";
+  out << "*\nTOPOLOGY\n";
 
   const int size = source.last();
   for (int i = 0; i < size; ++i) {
@@ -90,7 +90,7 @@ operator<<(std::ostream &out, const Elemset &source) {
 
 std::ostream &
 operator<<(std::ostream &out, const SPropContainer &source) {
-  out << "MATERIALS\n";
+  out << "*\nMATERIALS\n";
 
   const SPropContainer::const_iterator itEnd = source.end();
   for (SPropContainer::const_iterator it = source.begin(); it != itEnd; ++it) {

@@ -39,7 +39,7 @@ ElementSamplingDriver<std::vector<double>,size_t>
 template
 void
 ElementSamplingDriver<std::vector<double>,size_t>
-::postProcess(Vector &solution, bool firstTime, bool verboseFlag);
+::postProcess(Vector &solution, bool verboseFlag);
 
 template
 void
@@ -90,7 +90,7 @@ ElementSamplingDriver<stxxl::VECTOR_GENERATOR<double,16,32,8388608,stxxl::RC,stx
 template
 void
 ElementSamplingDriver<stxxl::VECTOR_GENERATOR<double,16,32,8388608,stxxl::RC,stxxl::random>::result,stxxl::uint64>
-::postProcess(Vector &solution, bool firstTime, bool verboseFlag);
+::postProcess(Vector &solution, bool verboseFlag);
 
 template
 void

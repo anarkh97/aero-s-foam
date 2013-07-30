@@ -74,6 +74,8 @@ private:
   const std::vector<int> sampleNodeIds_;
   std::map<int, double> elemWeights_;
 
+  bool mfttFlag_;
+
   // Disallow copy & assignment
   MeshDesc(const MeshDesc &);
   MeshDesc &operator=(const MeshDesc &);

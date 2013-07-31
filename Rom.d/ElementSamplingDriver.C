@@ -168,6 +168,10 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::assembleTrainingData(const Vec
                                         *timeStampIt, geomState_, melArray_[iElem], false);
       }
 
+      if(domain_->solInfo().reduceFollower)
+        domain_->getElemFollowerForce( iElem, *geomState_, elementForce.array(), elementForce.size(), *(corotators_[iElem]), 
+                                       kelArray_[iElem], 1.0, *timeStampIt, false);
+
       elemTarget.zero();
       const int dofCount = kelArray_[iElem].dim();
       for (int iDof = 0; iDof != dofCount; ++iDof) {

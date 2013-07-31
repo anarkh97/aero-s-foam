@@ -214,9 +214,8 @@ int main(int argc, char** argv)
  weightList[93] = 5.0;  // 3d 32 node serendipity brick
  weightList[94] = 4.0;  // 3d 26 node serendipity wedge
  weightList[97] = 4.0;  // 3d 15 node serendipity wedge
- weightList[104]= 4.0;  // 3d 18 node Lagrange wedge
- weightList[201] = 3.0; // 3d 8 node brick
- weightList[202] = 3.0; // green lagrange
+ weightList[201] = 3.0; // nonlinear translational spring
+ weightList[202] = 3.0; // nonlinear torsional spring
  weightList[102] = 3.0; // 3d LEIsoParamHexa
  weightList[301] = 1.0; // 2d 4-node sloshing (fluid) quadrilateral
  weightList[302] = 1.0; // 2d 2-node free-surface (fluid)

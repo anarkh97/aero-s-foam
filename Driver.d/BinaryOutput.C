@@ -160,10 +160,12 @@ GeoSource::writeNodeScalarToFile(double *data, int numData, int glSub, int offse
       outfile << time << endl;
       // fix for gaps in node numbering (note: this isn't required for group output or when domain->outFlag != 0)
       // the first subdomain writes zeros for all unasigned nodes
-      if(group == -1) {
+      // TODO for "binaryinput on", Domain->nodeToElem is NULL this fix doesn't work: we need to precompute a list
+      // of unassigned nodes, somehow, without using nodeToElem.
+      if(group == -1 && domain->outFlag == 0 && domain->getNodeToElem() != NULL) {
         int counter = 0;
         for(int i=0; i<numNodes /*nodes.size()*/; ++i) { // note: nodes.size() is not available when using "binaryinput on"
-          if(domain->getNodeToElem()->num(i) == 0 && domain->outFlag == 0) {
+          if(domain->getNodeToElem()->num(i) == 0) {
             int glNode = i;
             if(glNode-glNode_prev != 1) { // need to seek in file for correct position to write next node
               long relativeOffset = long(glNode-glNode_prev-1)*(numComponents*(2+oinfo[fileNumber].width) + 1);

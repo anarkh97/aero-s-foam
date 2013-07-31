@@ -152,9 +152,9 @@ DistrExplicitPodProjectionNonLinDynamicBase::preProcess() {
   //preProcessing for reduced order basis/////////////////////////////////////////////////
   FileNameInfo fileInfo; 
   std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
-  if(domain->solInfo().normalize == 0) fileName.append(".normalized");
+  fileName.append(".normalized");
 
-  DistrBasisInputFile BasisFile(fileName);
+  DistrBasisInputFile BasisFile(fileName); //read in mass-normalized basis
   filePrint(stderr, " ... Reading basis from file %s ...\n", fileName.c_str());
   const int projectionSubspaceSize = domain->solInfo().maxSizePodRom ?
                                      std::min(domain->solInfo().maxSizePodRom, BasisFile.stateCount()) :

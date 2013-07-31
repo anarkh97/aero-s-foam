@@ -60,14 +60,14 @@ Sower::Sower(Connectivity* subToElem, Elemset& eset, int nClus, ResizeArray<Surf
   clusToSub->print();
 #endif   
   // PJSA: write clusToSub file
-  BinFileHandler file("subdomains", "w");
+  BinFileHandler file(subdomains_.c_str(), "w");
   writeSubFile(file);
   // PJSA: write subToElem & subToNode file (temporary fix, replace with distributed decomposition)
-  BinFileHandler file2("decomposition", "w");
+  BinFileHandler file2(decomposition_.c_str(), "w");
   subToElem->write(file2);
   sToN->write(file2);
   // PJSA: write connectivity file
-  BinFileHandler file3("connectivity", "w");
+  BinFileHandler file3(connectivity_.c_str(), "w");
   clusToSub->write(file3);
   Connectivity *subToSub = sToN->transcon(nToS);
   subToSub->write(file3);
@@ -300,7 +300,7 @@ void Sower::write()
       char filename[FILENAME_LENGTH];
       char clusterNumStr[10] = {'\0'};
       sprintf(clusterNumStr, "%u", currentClusNum);
-      strcpy(filename, FILENAME_PREFIX);
+      strcpy(filename, clusterData_.c_str());
       strcat(filename, clusterNumStr);
 #ifdef SOWER_DEBUG
       cout << " ** Writing to file " << filename << endl;

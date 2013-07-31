@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <vector>
+#include <iostream>
 
 // Auxiliary functions
 
@@ -14,7 +15,6 @@ BinFileHandler::OffType headerBytes(BinFileHandler::OffType headerNameBytes) {
 
 void writeHeaderToBinaryOutputFile(BinFileHandler &binFile, int dataType, const std::string &description, int itemCount, int itemDimension)
 {
-
   // Data type: int x 1
   binFile.write(&dataType, 1);
   // Header length: int x 1
@@ -31,8 +31,6 @@ void writeHeaderToBinaryOutputFile(BinFileHandler &binFile, int dataType, const 
   // Number of results: int x 1
   const int dummy = 0;
   binFile.write(&dummy, 1);
- 
-
 }
 
 void writePartialRangeToBinaryOutputFile(BinFileHandler &binFile, const int *indices, int indexCount, int indexOffset, int headerNameBytes)

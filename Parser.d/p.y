@@ -281,7 +281,7 @@ Component:
         | AxiNumSlices
         | AxiHSommer
         | AxiMPC
-        | Sower
+        | BinaryIO 
         | BinarySpec
         | AtdDirScatterer
         { if(geoSource->setDirichlet($1->n,$1->d) < 0) return -1; }
@@ -509,16 +509,25 @@ ReconsInfo:
           }
         }
         ;
-Sower:
-	SOWER NewLine
-          { geoSource->binaryInput = true; geoSource->binaryOutput = true; }
-        | BINARYINPUT SWITCH NewLine 
+BinaryIO:
+        BINARYINPUT SWITCH NewLine 
           { geoSource->binaryInput = bool($2); }
         | BINARYOUTPUT SWITCH NewLine
           { geoSource->binaryOutput = bool($2); }
         ;
 BinarySpec:
         BINARY NewLine
+        | BINARY FNAME NewLine
+          { std::string prefix = $2;
+            clusterData_ = prefix + ".msh";
+            decomposition_ = prefix + ".dec";
+            connectivity_ = prefix + ".con";
+            subdomains_ = prefix + ".sub";
+            fprintf(stderr, "clusterData_ = %s\n", clusterData_.c_str());
+            fprintf(stderr, "decomposition_ = %s\n", decomposition_.c_str());
+            fprintf(stderr, "connectivity_ = %s\n", connectivity_.c_str());
+            fprintf(stderr, "subdomains_ = %s\n", subdomains_.c_str());
+          }
         | BinarySpec GEOMETRY FNAME NewLine
           { geoSource->setGeo($3); }
         | BinarySpec DECOMPOSITION FNAME NewLine

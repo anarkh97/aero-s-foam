@@ -7,8 +7,12 @@
    June 2004
 **/
 
-#define FILENAME_LENGTH 20
-#define FILENAME_PREFIX "clusterData"
+#include <string>
+#define FILENAME_LENGTH 80
+extern std::string clusterData_;
+extern std::string subdomains_;
+extern std::string decomposition_;
+extern std::string connectivity_;
 //#define SOWER_DEBUG 
 
 #include <Utils.d/BinFileHandler.h>
@@ -240,7 +244,7 @@ class Sower
   BinFileHandler* openBinaryFile(int sub)
     {
       if(!subToClus) {
-        BinFileHandler fp("subdomains", "r");
+        BinFileHandler fp(subdomains_.c_str(), "r");
         readSubFile(fp);
       }
       // opening cluster file
@@ -248,7 +252,7 @@ class Sower
       char clusterNumStr[10] = {'\0'};
       if((*subToClus)[sub])
 	sprintf(clusterNumStr, "%u", (*subToClus)[sub][0]+1); // phil modify here to add support for more than one file per cluster (michel)
-      strcpy(filename, FILENAME_PREFIX);
+      strcpy(filename, clusterData_.c_str());
       strcat(filename, clusterNumStr);
       return(new BinFileHandler(filename, "r"));
     }

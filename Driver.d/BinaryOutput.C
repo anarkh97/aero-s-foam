@@ -115,7 +115,7 @@ void GeoSource::outputRange(int fileId, int *globalIndex, int nData, int glSub, 
         const int nodeIndex = globalIndex[iNode];
         const bool isMasterNode = (nodeIndex >= 0);
 
-        if (isMasterNode && nodeIndex < nodes.size()) {
+        if (isMasterNode && nodeIndex < numNodes /*nodes.size()*/) { // note: nodes.size() is not available when using "binaryinput on"
           compressedIndex.push_back(compressedNumbering ? (domain->nodeTable[nodeIndex] - 1) : nodeIndex);
         }
       }
@@ -162,7 +162,7 @@ GeoSource::writeNodeScalarToFile(double *data, int numData, int glSub, int offse
       // the first subdomain writes zeros for all unasigned nodes
       if(group == -1) {
         int counter = 0;
-        for(int i=0; i<nodes.size(); ++i) {
+        for(int i=0; i<numNodes /*nodes.size()*/; ++i) { // note: nodes.size() is not available when using "binaryinput on"
           if(domain->getNodeToElem()->num(i) == 0 && domain->outFlag == 0) {
             int glNode = i;
             if(glNode-glNode_prev != 1) { // need to seek in file for correct position to write next node
@@ -186,7 +186,8 @@ GeoSource::writeNodeScalarToFile(double *data, int numData, int glSub, int offse
     int k = 0;
     for(int i = 0; i < numData/numComponents; ++i) {
       while(true) { if(glNodeNums[k] == -1) k++; else break; }
-      if(glNodeNums[k] >= nodes.size()) continue; // don't print "internal" nodes eg for rigid beams
+      if(glNodeNums[k] >= numNodes /*nodes.size()*/) continue; // don't print "internal" nodes eg for rigid beams
+                                                               // note: nodes.size() is not available when using "binaryinput on"
       int glNode = (domain->outFlag) ? domain->nodeTable[glNodeNums[k]]-1 : glNodeNums[k]; k++;
       if(group != -1) {
         list<int>::iterator it = nodeGroup[group].begin();

@@ -4265,7 +4265,7 @@ GeoSource::getDecomposition()
 void GeoSource::getBinaryDecomp()
 {
   if(!subToElem) {
-    BinFileHandler fp("decomposition", "rb");
+    BinFileHandler fp(decomposition_.c_str(), "rb");
     subToElem = new Connectivity(fp);
     subToNode = new Connectivity(fp);
 #ifdef SOWER_DEBUG
@@ -4279,7 +4279,7 @@ void GeoSource::getBinaryDecomp()
 void GeoSource::readGlobalBinaryData()
 {
   if(!subToSub || !subToClus) {
-    BinFileHandler fp2("connectivity", "rb");
+    BinFileHandler fp2(connectivity_.c_str(), "rb");
     clusToSub = new Connectivity(fp2);
     numClusters = clusToSub->csize();
     subToClus = clusToSub->reverse();

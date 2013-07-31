@@ -139,6 +139,11 @@ Communicator *fluidCom;
 extern const char* problemTypeMessage[];
 extern const char* solverTypeMessage[];
 
+std::string clusterData_ = "INPUT.msh";
+std::string subdomains_ = "INPUT.sub";
+std::string decomposition_ = "INPUT.dec";
+std::string connectivity_ = "INPUT.con";
+
 // ... main program
 
 #ifdef CREATE_DSO
@@ -319,8 +324,9 @@ int main(int argc, char** argv)
    {"output-weights", 0, 0, 'w'},
    {"load", 0, 0, 'w'},
    {"verbose", 1, 0, 'v'},
-   {"with-sower",0,0, 1010},
-   {"sower",0,0, 1010},
+   {"with-sower", 0, 0, 1010},
+   {"sower", 0, 0, 1010},
+   {"prefix", 1, 0, 1011},
    {"nclus", 1, 0, 1012},
    {"debug", 0, 0, 1006},
    {0, 0, 0, 0}
@@ -364,7 +370,7 @@ int main(int argc, char** argv)
 		    cerr << "*** WEIGHT FILE CORRUPTED AT LINE " << i << " bad object ID." <<endl;
 		    exit(1);
 		  }
-		fgetpos (weightFile, &position);
+		fgetpos(weightFile, &position);
 		while((c = fgetc(weightFile))==' ')
 		  ;
 		if(c=='\n')
@@ -372,11 +378,11 @@ int main(int argc, char** argv)
 		    cerr << "*** WEIGHT FILE CORRUPTED AT LINE " << i << " : no weight specified !" << endl;
 		    exit(1);
 		  }
-		fsetpos (weightFile, &position);
+		fsetpos(weightFile, &position);
 		res=fscanf(weightFile,"%lf",&w);
 		if(res == 0 || res == EOF)
 		   {
-		     cerr << "*** WEIGHT FILE CORRUPTED AT LINE " << i << " : no weight specified !" <<endl;
+		     cerr << "*** WEIGHT FILE CORRUPTED AT LINE " << i << " : no weight specified !" << endl;
 		     exit(1);
 		   }
 		weightList[k]=w;
@@ -386,14 +392,13 @@ int main(int argc, char** argv)
 	else
 	  {
 	    filePrint(stderr," *******************************************\n");
-	    filePrint(stderr," *** ERROR: Cannot open weight file %s ***\n",
-           optarg );
-           filePrint(stderr," *******************************************\n");
-           exit(-1);
+	    filePrint(stderr," *** ERROR: Cannot open weight file %s ***\n", optarg);
+            filePrint(stderr," *******************************************\n");
+            exit(-1);
 	  }
 	break;
       case 1005 :
-	nosa=true;
+	nosa = true;
 	break;
       case 1006 :
         debugFlag = 1;
@@ -405,6 +410,13 @@ int main(int argc, char** argv)
 	callSower = true;
 	domain->setSowering(true);
 	break;
+      case 1011 : {
+        std::string prefix = optarg;
+        clusterData_ = prefix + ".msh";
+        decomposition_ = prefix + ".dec";
+        connectivity_ = prefix + ".con";
+        subdomains_ = prefix + ".sub";
+        } break;
       case 1012 :
         numClusters = atoi(optarg);
         if(numClusters <= 0) numClusters = 1;
@@ -1526,6 +1538,7 @@ writeOptionsToScreen()
 
  fprintf(stderr," --sower                       = embedded SOWER module is applied to input file to\n"
 	        "                                 generate binary distributed data\n");
+ fprintf(stderr," --prefix [string]             = filename prefix used by embedded SOWER module\n");
  fprintf(stderr," --exit                        = run is normally terminated after binary distributed\n"
 	        "                                 data is generated\n");
 

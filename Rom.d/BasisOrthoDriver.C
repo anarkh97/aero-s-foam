@@ -117,7 +117,7 @@ BasisOrthoDriver::solve() {
   for (std::vector<BasisId::Type>::const_iterator it = workload.begin(); it != workload.end(); ++it) {
     BasisId::Type type = *it;
     //loop over snapshots
-    for(int i = 0 ; i < domain->solInfo().snapfiPodRom.size(); i++) {
+    for(int i = 0; i < domain->solInfo().snapfiPodRom.size(); i++) {
       std::string fileName =  BasisFileId(fileInfo, type, BasisId::SNAPSHOTS, i);
       BasisInputStream input(fileName, converter);
       vectorSize = input.vectorSize();
@@ -125,7 +125,7 @@ BasisOrthoDriver::solve() {
     }
 
     //loop over rob files 
-    for(int i = 0 ; i < domain->solInfo().robfi.size(); i++) {
+    for(int i = 0; i < domain->solInfo().robfi.size(); i++) {
       std::string fileName = BasisFileId(fileInfo,type,BasisId::ROB, i);
       BasisInputStream input(fileName, converter);
       vectorSize = input.vectorSize();

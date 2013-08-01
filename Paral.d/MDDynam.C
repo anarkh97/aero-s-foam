@@ -109,7 +109,7 @@ MultiDomainOp::getConstForce(int isub)
 {
   // Get the pointer to the part of the vector f correspoding to subdomain sNum
   StackVector f(v1->subData(isub),v1->subLen(isub));
-  sd[isub]->computeConstantForce(f, (*Kuc)[isub]);
+  sd[isub]->computeConstantForce(f, (Kuc) ? (*Kuc)[isub] : NULL);
 }
 
 void
@@ -306,6 +306,7 @@ MultiDomainDynam::MultiDomainDynam(Domain *d)
   melArray = 0;
   allCorot = 0;
   geomState = 0;
+  dynMat = 0;
 }
                                                                                                  
 const DistrInfo &
@@ -718,7 +719,7 @@ void
 MultiDomainDynam::getConstForce(DistrVector& v)
 {
   times->formRhs -= getTime();
-  MultiDomainOp mdop(&MultiDomainOp::getConstForce, decDomain->getAllSubDomains(), &v, dynMat->Kuc);
+  MultiDomainOp mdop(&MultiDomainOp::getConstForce, decDomain->getAllSubDomains(), &v, (dynMat) ? dynMat->Kuc : NULL);
   threadManager->execParal(decDomain->getNumSub(), &mdop);
   times->formRhs += getTime();
 }

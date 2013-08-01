@@ -22,10 +22,10 @@ public:
   const DistrInfo& vectorSize() const;
 
 private:
-  Domain *domain_;
   Communicator *comm_;
   std::auto_ptr<Connectivity> elemToNode_;
   int snapSize(BasisId::Type type);
+  void buildDomainCdsa();
 };
 
 } /* end namespace Rom */

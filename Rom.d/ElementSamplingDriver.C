@@ -55,7 +55,6 @@ copy(const GenVector<Scalar> &v, OutputIterator target) {
   std::copy(originBuf, originBuf + v.size(), target);
 }
 
-inline
 std::string
 getMeshFilename(const FileNameInfo &fileInfo) {
   return fileInfo.prefix() + ".elementmesh.inc";
@@ -273,7 +272,6 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcess(Vector &solution, 
   for (int iElem = 0, iElemEnd = inputElemSet.size(); iElem != iElemEnd; ++iElem) {
     Element *elem = inputElemSet[iElem];
     if (elem) {
-      //PJSA const int iPackElem = geoSource->glToPackElem(iElem);
       const int iPackElem = domain_->glToPackElem(iElem);
       assert(iPackElem < packedToInput.size());
       if(iPackElem >= 0) packedToInput[iPackElem] = iElem;
@@ -289,23 +287,27 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcess(Vector &solution, 
     sampleElemIds.push_back(elemRank);
   }
 
-  std::auto_ptr<Connectivity> elemToNode(new Connectivity(&inputElemSet));
+  // compute the reduced forces (constant only)
   Vector constForceFull(SingleDomainDynamic::solVecInfo());
   SingleDomainDynamic::getConstForce(constForceFull);
-  
+  Vector constForceRed(podBasis_.vectorCount());
+  reduce(podBasis_, constForceFull,  constForceRed);
+
+  // output the reduced mesh
+  std::auto_ptr<Connectivity> elemToNode(new Connectivity(&inputElemSet));
   const MeshRenumbering meshRenumbering(sampleElemIds.begin(), sampleElemIds.end(), *elemToNode, verboseFlag);
   const MeshDesc reducedMesh(domain_, geoSource, meshRenumbering, weights);
   outputMeshFile(fileInfo, reducedMesh, podBasis_.vectorCount());
   outputFullWeights(fileInfo, solution, packedToInput);
-  // output the reduced forces (constant and time-dependent via MFTT)
-  Vector constForceRed(podBasis_.vectorCount());
-  reduce(podBasis_, constForceFull,  constForceRed);
+
+  // output the reduced forces
   std::ofstream meshOut(getMeshFilename(fileInfo).c_str(), std::ios_base::app);
   if(domain->solInfo().reduceFollower) meshOut << "REDFOL\n";
   meshOut << "*\nFORCES\nMODAL\n";
   meshOut.precision(std::numeric_limits<double>::digits10+1);
   for(int i=0; i<podBasis_.vectorCount(); ++i) 
     meshOut << i+1 << " "  << constForceRed[i] << std::endl;
+
 #ifdef USE_EIGEN3
   // build and output compressed basis
   podBasis_.makeSparseBasis(meshRenumbering.reducedNodeIds(), domain_->getCDSA());

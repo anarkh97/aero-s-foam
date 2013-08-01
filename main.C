@@ -1057,7 +1057,7 @@ int main(int argc, char** argv)
        else if (domain->solInfo().samplingPodRom) {
          // Element-based hyper-reduction
          if(domain->solInfo().reduceFollower)
-           filePrint(stderr, " ... POD: Distributed Element-based Reduced Mesh with external follower force training ...\n");
+           filePrint(stderr, " ... POD: Distributed Element-based Reduced Mesh with external lumping ...\n");
          else
            filePrint(stderr, " ... POD: Distributed Element-based Reduced Mesh ...\n");
          driver.reset(distrElementSamplingDriverNew(domain));

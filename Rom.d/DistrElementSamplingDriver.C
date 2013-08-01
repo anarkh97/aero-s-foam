@@ -162,7 +162,6 @@ DistrElementSamplingDriver::solve() {
       filePrint(stderr, " ... Processing File: %s ...\n", fileName.c_str());
       DistrBasisInputFile in(fileName);
       int singleBasisStateCount = (in.stateCount() % 2) + (in.stateCount() - skipOffSet) / skipFactor;
-      int snapshotCount = 0;
       for(DistrVecBasis::iterator it = &((*velocSnapshots)[snapshotCount]),
           it_end = &((*velocSnapshots)[snapshotCount+singleBasisStateCount]);
           it != it_end; ++it) {
@@ -179,7 +178,7 @@ DistrElementSamplingDriver::solve() {
             converter.vector(buffer, *it);
             timeStamps.push_back(in.currentStateHeaderValue());
             ++counter;
-            filePrint(stderr,"\rtimeStamp = %f, %4.2f%% complete", in.currentStateHeaderValue(), double(counter)/double(basisStateCount)*100.);
+            filePrint(stderr,"\rtimeStamp = %f, %4.2f%% complete",in.currentStateHeaderValue(),double(counter)/double(basisStateCount)*100.);
           }
           in.currentStateIndexInc();
         }
@@ -199,7 +198,7 @@ DistrElementSamplingDriver::solve() {
 
     accelSnapshots->dimensionIs(basisStateCount, vectorSize());
     timeStamps.reserve(basisStateCount);
-  
+
     int counter = 0;
     int snapshotCount = 0;
     for(int i = 0; i < domain->solInfo().accelPodRomFile.size(); i++){
@@ -223,13 +222,13 @@ DistrElementSamplingDriver::solve() {
             converter.vector(buffer, *it);
             timeStamps.push_back(in.currentStateHeaderValue());
             ++counter;
-            filePrint(stderr,"\rtimeStamp = %f, %4.2f%% complete", in.currentStateHeaderValue(),double(counter)/double(basisStateCount)*100.);
+            filePrint(stderr,"\rtimeStamp = %f, %4.2f%% complete",in.currentStateHeaderValue(),double(counter)/double(basisStateCount)*100.);
           }
           in.currentStateIndexInc();
         }
       }
-      snapshotCount += singleBasisStateCount;
       filePrint(stderr,"\n");
+      snapshotCount += singleBasisStateCount;
     }
   }
 

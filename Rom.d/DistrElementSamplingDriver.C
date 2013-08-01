@@ -391,13 +391,21 @@ DistrElementSamplingDriver::solve() {
   // TODO print compressed basis to file
 #endif
 */
+  bool firstTime = true;
+
   if(myID==0){
      //Weights output file generation
      const std::string fileName = domain_->solInfo().reducedMeshFile;
      std::ofstream weightOut(fileName.c_str(),std::ios_base::out);
      weightOut << "ATTRIBUTES\n";
-     for(int i = 0 ; i < gweights.size(); i++){
-	weightOut<< gelemIds[i]+1 << " 1 " << "HRC" << " " << gweights[i] << "\n";
+     for(int i = 0 ; i < gweights.size(); i++) {
+       if(domain->solInfo().reduceFollower && firstTime) {
+         weightOut<< gelemIds[i]+1 << " 1 " << "HRC REDFOL" << " " << gweights[i] << "\n";
+         firstTime = false;
+       }
+       else {
+	 weightOut<< gelemIds[i]+1 << " 1 " << "HRC" << " " << gweights[i] << "\n";
+       }
      }  
 
     //Mesh output file generation

@@ -168,6 +168,10 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::assembleTrainingData(const Vec
                                         *timeStampIt, geomState_, melArray_[iElem], false);
       }
 
+      if(domain_->solInfo().reduceFollower)
+        domain_->getElemFollowerForce( iElem, *geomState_, elementForce.array(), elementForce.size(), *(corotators_[iElem]), 
+                                       kelArray_[iElem], 1.0, *timeStampIt, false);
+
       elemTarget.zero();
       const int dofCount = kelArray_[iElem].dim();
       for (int iDof = 0; iDof != dofCount; ++iDof) {
@@ -387,7 +391,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcess() {
 
   // Read velocity snapshots
   VecBasis *velocSnapshots = 0;
-  if(domain_->solInfo().velocPodRomFile != "") {
+  if(!domain_->solInfo().velocPodRomFile.empty()) {
     std::vector<double> timeStamps;
     velocSnapshots = new VecBasis;
     BasisInputStream in(BasisFileId(fileInfo, BasisId::VELOCITY, BasisId::SNAPSHOTS), vecDofConversion);
@@ -420,7 +424,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcess() {
 
   // Read acceleration snapshots
   VecBasis *accelSnapshots = 0;
-  if(domain_->solInfo().accelPodRomFile != "") {
+  if(!domain_->solInfo().accelPodRomFile.empty()) {
     std::vector<double> timeStamps;
     accelSnapshots = new VecBasis;
     BasisInputStream in(BasisFileId(fileInfo, BasisId::ACCELERATION, BasisId::SNAPSHOTS), vecDofConversion);

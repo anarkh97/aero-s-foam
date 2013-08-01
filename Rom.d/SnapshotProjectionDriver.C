@@ -154,7 +154,7 @@ SnapshotProjectionDriver::preProcess() {
   }
 
   // Read velocity snapshots
-  if(domain->solInfo().velocPodRomFile != "") {
+  if(!domain->solInfo().velocPodRomFile.empty()) {
     std::vector<double> timeStamps;
     velocSnapshots = new VecBasis;
     BasisInputStream in(BasisFileId(fileInfo, BasisId::VELOCITY, BasisId::SNAPSHOTS), vecDofConversion);
@@ -186,7 +186,7 @@ SnapshotProjectionDriver::preProcess() {
   }
 
   // Read acceleration snapshots
-  if(domain->solInfo().accelPodRomFile != "") {
+  if(!domain->solInfo().accelPodRomFile.empty()) {
     std::vector<double> timeStamps;
     accelSnapshots = new VecBasis;
     BasisInputStream in(BasisFileId(fileInfo, BasisId::ACCELERATION, BasisId::SNAPSHOTS), vecDofConversion);

@@ -1105,7 +1105,7 @@ void GeoSource::setUpData()
         domain->solInfo().snapshotsPodRom = true;
         domain->solInfo().statevectPodRom = true;
         domain->solInfo().skipState = oinfo[iOut].interval;
-        domain->solInfo().statePodRomFile = oinfo[iOut].filename; 
+        domain->solInfo().statePodRomFile.push_back(std::string(oinfo[iOut].filename)); 
         oinfo[iOut].PodRomfile = true;
         break;
       case OutputInfo::Residual :
@@ -1142,7 +1142,7 @@ void GeoSource::setUpData()
         domain->solInfo().snapshotsPodRom = true;
         domain->solInfo().accelvectPodRom = true;
         domain->solInfo().skipAccel = oinfo[iOut].interval;
-        domain->solInfo().accelPodRomFile = oinfo[iOut].filename;
+        domain->solInfo().accelPodRomFile.push_back(std::string(oinfo[iOut].filename));
         oinfo[iOut].PodRomfile = true;
         break;
       case OutputInfo::Velocvector :
@@ -1151,7 +1151,7 @@ void GeoSource::setUpData()
         domain->solInfo().snapshotsPodRom = true;
         domain->solInfo().velocvectPodRom = true;
         domain->solInfo().skipVeloc = oinfo[iOut].interval;
-        domain->solInfo().velocPodRomFile = oinfo[iOut].filename;
+        domain->solInfo().velocPodRomFile.push_back(std::string(oinfo[iOut].filename));
         oinfo[iOut].PodRomfile = true;
         break;
       case OutputInfo::InternalStateVar :

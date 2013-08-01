@@ -38,6 +38,24 @@ DistrElementSamplingDriver::DistrElementSamplingDriver(Domain *domain, Communica
   comm_(comm)
 {}
 
+int
+DistrElementSamplingDriver::snapSize(BasisId::Type type){
+  std::vector<std::string> files;
+  FileNameInfo fileInfo;
+  if(type == BasisId::STATE) files = domain->solInfo().statePodRomFile;
+  if(type == BasisId::VELOCITY) files = domain_->solInfo().velocPodRomFile;
+  if(type == BasisId::ACCELERATION) files = domain_->solInfo().accelPodRomFile;
+  int stateCount = 0;
+  const int skipFactor = domain_->solInfo().skipPodRom;
+  const int skipOffSet = domain_->solInfo().skipOffSet;
+  for(int i=0; i < files.size(); i++){
+    std::string fileName = BasisFileId(fileInfo,type,BasisId::SNAPSHOTS,i);
+    DistrBasisInputFile in(fileName);
+    stateCount += (in.stateCount() % 2) + (in.stateCount() - skipOffSet) / skipFactor;
+  }
+  return stateCount;
+}
+
 void
 DistrElementSamplingDriver::solve() {
   //decDomain->preProcess();
@@ -78,119 +96,135 @@ DistrElementSamplingDriver::solve() {
   }
     filePrint(stderr,"\n");
 
+  const int skipFactor = domain_->solInfo().skipPodRom;
+  const int skipOffSet = domain_->solInfo().skipOffSet;
   // Read state snapshots
   DistrVecBasis snapshots;
   std::vector<double> timeStamps;
   {
-    DistrBasisInputFile in(BasisFileId(fileInfo, BasisId::STATE, BasisId::SNAPSHOTS));
-    const int skipFactor = domain_->solInfo().skipPodRom;
-    const int skipOffSet = domain_->solInfo().skipOffSet;
-    const int basisStateCount = (in.stateCount() % 2) + (in.stateCount() - skipOffSet) / skipFactor;
+    BasisId::Type type = BasisId::STATE;
+    const int basisStateCount = snapSize(BasisId::STATE);
     filePrint(stderr," ... Reading in %d Displacement Snapshots ...\n",basisStateCount);
 
     snapshots.dimensionIs(basisStateCount, vectorSize());
     timeStamps.reserve(basisStateCount);
-
     int counter = 0;
-    for (DistrVecBasis::iterator it = snapshots.begin(),
-                                 it_end = snapshots.end();
-                                 it != it_end; ++it) {
-      for(int offSet=1; offSet<=skipOffSet; ++offSet){ 
-        assert(in.validCurrentState());
-        in.currentStateIndexInc();}
+    int snapshotCount = 0;
+    for(int i = 0; i<domain->solInfo().statePodRomFile.size(); i++){
+      std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::SNAPSHOTS,i);
+      std::cerr << " ...Reading in displacement snapshot: " << fileName << " ...\n";
+      DistrBasisInputFile in(fileName);
+      int singleBasisStateCount = (in.stateCount() % 2) + (in.stateCount() - skipOffSet) / skipFactor;
+      for (DistrVecBasis::iterator it = &snapshots[snapshotCount],
+          it_end = &snapshots[snapshotCount+singleBasisStateCount];
+          it != it_end; ++it) {
+        for(int offSet=1; offSet<=skipOffSet; ++offSet){ 
+          assert(in.validCurrentState());
+          in.currentStateIndexInc();}
 
-      for(int skipCounter=1; skipCounter<=skipFactor; ++skipCounter){
-        assert(in.validCurrentState());
+          for(int skipCounter=1; skipCounter<=skipFactor; ++skipCounter){
+            assert(in.validCurrentState());
 
-        if(skipCounter == 1) {
-          in.currentStateBuffer(buffer);
-          converter.vector(buffer, *it);
-          timeStamps.push_back(in.currentStateHeaderValue());
-          ++counter;
-          filePrint(stderr,"\rtimeStamp = %f, %4.2f%% complete",in.currentStateHeaderValue(),double(counter)/double(basisStateCount)*100.);
+            if(skipCounter == 1) {
+              in.currentStateBuffer(buffer);
+              converter.vector(buffer, *it);
+              timeStamps.push_back(in.currentStateHeaderValue());
+              ++counter;
+              filePrint(stderr,"\rtimeStamp = %f, %4.2f%% complete",in.currentStateHeaderValue(),double(counter)/double(basisStateCount)*100.);
+            }
+            in.currentStateIndexInc();
           }
-        in.currentStateIndexInc();
       }
+      filePrint(stderr,"\n");
+      snapshotCount += singleBasisStateCount;
     }
-    filePrint(stderr,"\n");
   }
 
   // Read velocity snapshots
   DistrVecBasis *velocSnapshots = 0;
-  if(domain_->solInfo().velocPodRomFile != "") {
+  if(!domain_->solInfo().velocPodRomFile.empty()) {
     std::vector<double> timeStamps;
     velocSnapshots = new DistrVecBasis;
-    DistrBasisInputFile in(BasisFileId(fileInfo, BasisId::VELOCITY, BasisId::SNAPSHOTS));
-    const int skipFactor = domain_->solInfo().skipPodRom;
-    const int skipOffSet = domain_->solInfo().skipOffSet;
-    const int basisStateCount = (in.stateCount() % 2) + (in.stateCount() - skipOffSet) / skipFactor;
+    const int basisStateCount = snapSize(BasisId::VELOCITY);
     filePrint(stderr," ... Reading in %d Velocity Snapshots ...\n",basisStateCount);
 
     velocSnapshots->dimensionIs(basisStateCount, vectorSize());
     timeStamps.reserve(basisStateCount);
 
     int counter = 0;
-    for (DistrVecBasis::iterator it = velocSnapshots->begin(),
-                                 it_end = velocSnapshots->end();
-                                 it != it_end; ++it) {
-      for(int offSet=1; offSet<=skipOffSet; ++offSet){
-        assert(in.validCurrentState());
-        in.currentStateIndexInc();}
+    int snapshotCount = 0;
+    for(int i=0; i<domain->solInfo().velocPodRomFile.size(); i++){
+      std::string fileName = BasisFileId(fileInfo, BasisId::VELOCITY, BasisId::SNAPSHOTS,i);
+      std::cerr << " ...Reading in velocity snapshot: " << fileName << " ...\n";
+      DistrBasisInputFile in(fileName);
+      int singleBasisStateCount = (in.stateCount() % 2) + (in.stateCount() - skipOffSet) / skipFactor;
+      int snapshotCount = 0;
+      for (DistrVecBasis::iterator it = &((*velocSnapshots)[snapshotCount]),
+          it_end = &((*velocSnapshots)[snapshotCount+singleBasisStateCount]);
+          it != it_end; ++it) {
+        for(int offSet=1; offSet<=skipOffSet; ++offSet){
+          assert(in.validCurrentState());
+          in.currentStateIndexInc();}
 
-      for(int skipCounter=1; skipCounter<=skipFactor; ++skipCounter){
-        assert(in.validCurrentState());
+          for(int skipCounter=1; skipCounter<=skipFactor; ++skipCounter){
+            assert(in.validCurrentState());
 
-        if(skipCounter == 1) {
-          in.currentStateBuffer(buffer);
-          converter.vector(buffer, *it);
-          timeStamps.push_back(in.currentStateHeaderValue());
-          ++counter;
-          filePrint(stderr,"\rtimeStamp = %f, %4.2f%% complete", in.currentStateHeaderValue(), double(counter)/double(basisStateCount)*100.);
+            if(skipCounter == 1) {
+              in.currentStateBuffer(buffer);
+              converter.vector(buffer, *it);
+              timeStamps.push_back(in.currentStateHeaderValue());
+              ++counter;
+              filePrint(stderr,"\rtimeStamp = %f, %4.2f%% complete", in.currentStateHeaderValue(), double(counter)/double(basisStateCount)*100.);
+            }
+            in.currentStateIndexInc();
           }
-        in.currentStateIndexInc();
       }
+      filePrint(stderr,"\n");
+      snapshotCount += singleBasisStateCount;
     }
-    filePrint(stderr,"\n");
   }
 
   // Read acceleration snapshots
   DistrVecBasis *accelSnapshots = 0;
-  if(domain_->solInfo().accelPodRomFile != "") {
+  if(!domain_->solInfo().accelPodRomFile.empty()) {
     std::vector<double> timeStamps;
     accelSnapshots = new DistrVecBasis;
-    DistrBasisInputFile in(BasisFileId(fileInfo, BasisId::ACCELERATION, BasisId::SNAPSHOTS));
-    const int skipFactor = domain_->solInfo().skipPodRom;
-    const int skipOffSet = domain_->solInfo().skipOffSet;
-    const int basisStateCount = (in.stateCount() % 2) + (in.stateCount() - skipOffSet) / skipFactor;
+    const int basisStateCount = snapSize(BasisId::ACCELERATION);
     filePrint(stderr," ... Reading in %d Acceleration Snapshots ...\n",basisStateCount);
- 
     accelSnapshots->dimensionIs(basisStateCount, vectorSize());
     timeStamps.reserve(basisStateCount);
   
     int skipCounter = skipFactor - skipOffSet;
     int counter = 0;
-    for (DistrVecBasis::iterator it = accelSnapshots->begin(),
-                                 it_end = accelSnapshots->end();
-                                 it != it_end; ++it) {
-      for(int offSet=1; offSet<=skipOffSet; ++offSet){
-        assert(in.validCurrentState());
-        in.currentStateIndexInc();}
+    int snapshotCount = 0;
+    for(int i=0; i<domain->solInfo().accelPodRomFile.size(); i++){
+      std::string fileName = BasisFileId(fileInfo, BasisId::ACCELERATION, BasisId::SNAPSHOTS,i);
+      std::cerr << " ...Reading in acceleration snapshot: " << fileName << " ...\n";
+      DistrBasisInputFile in(fileName);
+      int singleBasisStateCount = (in.stateCount() % 2) + (in.stateCount() - skipOffSet) / skipFactor;
+      for (DistrVecBasis::iterator it = &((*accelSnapshots)[snapshotCount]),
+          it_end = &((*accelSnapshots)[snapshotCount+singleBasisStateCount]);
+          it != it_end; ++it) {
+        for(int offSet=1; offSet<=skipOffSet; ++offSet){
+          assert(in.validCurrentState());
+          in.currentStateIndexInc();}
 
-      for(int skipCounter=1; skipCounter<=skipFactor; ++skipCounter){
-        assert(in.validCurrentState());
+          for(int skipCounter=1; skipCounter<=skipFactor; ++skipCounter){
+            assert(in.validCurrentState());
 
-        if(skipCounter == 1) {
-          in.currentStateBuffer(buffer);
-          converter.vector(buffer, *it);
-          timeStamps.push_back(in.currentStateHeaderValue());
-          ++counter;
-          filePrint(stderr,"\rtimeStamp = %f, %4.2f%% complete", in.currentStateHeaderValue(),double(counter)/double(basisStateCount)*100.);
+            if(skipCounter == 1) {
+              in.currentStateBuffer(buffer);
+              converter.vector(buffer, *it);
+              timeStamps.push_back(in.currentStateHeaderValue());
+              ++counter;
+              filePrint(stderr,"\rtimeStamp = %f, %4.2f%% complete", in.currentStateHeaderValue(),double(counter)/double(basisStateCount)*100.);
+            }
+            in.currentStateIndexInc();
           }
-        in.currentStateIndexInc();
       }
+      snapshotCount += singleBasisStateCount;
+      filePrint(stderr,"\n");
     }
-    filePrint(stderr,"\n");
-    filePrint(stderr,"counter = %d\n",counter);
   }
 
   const int podVectorCount = podBasis.vectorCount();
@@ -239,6 +273,7 @@ DistrElementSamplingDriver::solve() {
   }
 
   //END PROJECTION
+  std::cerr << "ended projection\n";
 
   //Projections complete so read in normalized basis
   if(domain->solInfo().newmarkBeta == 0){

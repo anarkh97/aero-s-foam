@@ -273,7 +273,6 @@ struct SolverInfo {
    double penalty_beta;
 
    std::vector<std::string> RODConversionFiles;
-   //const char * snapfiPodRom;
    std::vector<std::string> PODerrornorm;
    int numSnap;
    std::vector<std::string> snapfiPodRom;
@@ -283,9 +282,9 @@ struct SolverInfo {
    const char * readInModes;
    const char * SVDoutput;
    const char * reducedMeshFile;
-   const char * statePodRomFile;
-   const char * velocPodRomFile;
-   const char * accelPodRomFile;
+   std::vector<std::string> statePodRomFile;
+   std::vector<std::string> velocPodRomFile;
+   std::vector<std::string> accelPodRomFile;
    const char * isvPodRomFile;
    const char * forcePodRomFile;
    const char * residualPodRomFile;
@@ -531,15 +530,11 @@ struct SolverInfo {
                   constraint_hess = 1;
                   constraint_hess_eps = 0;
 
-                  //snapfiPodRom       = "";
                   numSnap            = 1;
 		  readInROBorModes   = "";
                   readInModes        = "";
 		  SVDoutput          = "pod.rob";
 		  reducedMeshFile    = "";
-		  statePodRomFile    = "";
-                  velocPodRomFile    = "";
-		  accelPodRomFile    = "";
                   isvPodRomFile      = "";
 		  forcePodRomFile    = "";
 		  residualPodRomFile = "";

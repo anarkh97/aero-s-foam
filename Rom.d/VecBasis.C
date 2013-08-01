@@ -84,15 +84,15 @@ GenVecBasis<double, GenDistrVector>::projectDown(GenDistrVector<double> &x, GenD
 // fix this portion so we can use the compressed Basis, its way faster but 
 // gives the wrong result, just use the sparse vec mult for now 
   if(compressedKey.size() > 0) {
-    /*Eigen::VectorXd coordBuffer(compressedKey.size());
+    Eigen::VectorXd coordBuffer(compressedKey.size());
     for(int i = 0; i < compressedKey.size(); i++)
        coordBuffer(i) = FullCoordinates(compressedKey[i]); 
-    result = compressedBasis.transpose()*coordBuffer;*/
-    Eigen::SparseVector<double> sparsef(FullCoordinates.rows());
+    result = compressedBasis.transpose()*coordBuffer;
+/*    Eigen::SparseVector<double> sparsef(FullCoordinates.rows());
     for(int i = 0; i < FullCoordinates.rows(); i++){
       if(FullCoordinates(i) != 0){
         sparsef.insert(i) = FullCoordinates(i);}}
-    result = basis.transpose()*sparsef;
+    result = basis.transpose()*sparsef;*/
   }
   else {
     result = basis.transpose()*FullCoordinates;

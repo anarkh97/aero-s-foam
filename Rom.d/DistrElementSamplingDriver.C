@@ -257,7 +257,7 @@ DistrElementSamplingDriver::solve() {
     filePrint(stderr," ... Projecting velocity snapshots for training configuration ...\n");
     for (int iSnap = 0; iSnap != velocSnapshots->vectorCount(); ++iSnap) {
       expand(podBasis, reduce(podBasis, (*velocSnapshots)[iSnap], podComponents), (*veloc)[iSnap]);
-      filePrint(stderr,"\r %4.2f%% complete", double(iSnap)/double(velocSnapshots->vectorCount())*100.);
+      filePrint(stderr,"\r %4.2f%% complete", double(iSnap)/double(velocSnapshots->vectorCount()-1)*100.);
     }
     filePrint(stderr,"\n");
     delete velocSnapshots;
@@ -271,7 +271,7 @@ DistrElementSamplingDriver::solve() {
     filePrint(stderr," ... Projecting acceleration snapshots for training configuration ...\n");
     for (int iSnap = 0; iSnap != accelSnapshots->vectorCount(); ++iSnap) {
       expand(podBasis, reduce(podBasis, (*accelSnapshots)[iSnap], podComponents), (*accel)[iSnap]);
-      filePrint(stderr,"\r %4.2f%% complete", double(iSnap)/double(accelSnapshots->vectorCount())*100.);
+      filePrint(stderr,"\r %4.2f%% complete", double(iSnap)/double(accelSnapshots->vectorCount()-1)*100.);
     }
     filePrint(stderr,"\n");
     delete accelSnapshots;

@@ -3,6 +3,7 @@
 
 #include "DriverInterface.h"
 #include <memory>
+#include "BasisId.h"
 
 class Communicator;
 class DistrInfo;
@@ -24,6 +25,7 @@ private:
   Domain *domain_;
   Communicator *comm_;
   std::auto_ptr<Connectivity> elemToNode_;
+  int snapSize(BasisId::Type type);
 };
 
 } /* end namespace Rom */

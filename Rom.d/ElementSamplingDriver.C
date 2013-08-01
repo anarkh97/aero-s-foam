@@ -391,7 +391,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcess() {
 
   // Read velocity snapshots
   VecBasis *velocSnapshots = 0;
-  if(domain_->solInfo().velocPodRomFile != "") {
+  if(!domain_->solInfo().velocPodRomFile.empty()) {
     std::vector<double> timeStamps;
     velocSnapshots = new VecBasis;
     BasisInputStream in(BasisFileId(fileInfo, BasisId::VELOCITY, BasisId::SNAPSHOTS), vecDofConversion);
@@ -424,7 +424,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcess() {
 
   // Read acceleration snapshots
   VecBasis *accelSnapshots = 0;
-  if(domain_->solInfo().accelPodRomFile != "") {
+  if(!domain_->solInfo().accelPodRomFile.empty()) {
     std::vector<double> timeStamps;
     accelSnapshots = new VecBasis;
     BasisInputStream in(BasisFileId(fileInfo, BasisId::ACCELERATION, BasisId::SNAPSHOTS), vecDofConversion);

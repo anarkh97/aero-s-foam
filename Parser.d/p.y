@@ -104,7 +104,7 @@
 %token WEIGHTLIST GMRESRESIDUAL 
 %token SLOSH SLGRAV SLZEM SLZEMFILTER 
 %token PDIR HEFSB HEFRS HEINTERFACE  // Added for HEV Problem, EC, 20080512
-%token SNAPFI PODROB TRNVCT OFFSET ORTHOG SVDTOKEN CONVERSIONTOKEN CONVFI SAMPLING SNAPSHOTPROJECT PODSIZEMAX REFSUBSTRACT TOLER OUTOFCORE NORMALIZETOKEN FNUMBER SNAPWEIGHT ROBFI
+%token SNAPFI PODROB TRNVCT OFFSET ORTHOG SVDTOKEN CONVERSIONTOKEN CONVFI SAMPLING SNAPSHOTPROJECT PODSIZEMAX REFSUBSTRACT TOLER OUTOFCORE NORMALIZETOKEN FNUMBER SNAPWEIGHT ROBFI STAVCT VELVCT ACCVCT
 %token VECTORNORM
 
 %type <complexFDBC> AxiHD
@@ -4140,14 +4140,14 @@ SamplingOption:
     PODROB FNAME
   { domain->solInfo().readInROBorModes = $2; }
   | TRNVCT FNAME
-  { domain->solInfo().statePodRomFile = $2; }
+  { domain->solInfo().statePodRomFile.push_back($2); }
   | TRNVCT FNAME FNAME
-  { domain->solInfo().statePodRomFile = $2;
-    domain->solInfo().velocPodRomFile = $3; }
+  { domain->solInfo().statePodRomFile.push_back($2);
+    domain->solInfo().velocPodRomFile.push_back($3); }
   | TRNVCT FNAME FNAME FNAME
-  { domain->solInfo().statePodRomFile = $2;
-    domain->solInfo().velocPodRomFile = $3;
-    domain->solInfo().accelPodRomFile = $4; }
+  { domain->solInfo().statePodRomFile.push_back($2);
+    domain->solInfo().velocPodRomFile.push_back($3);
+    domain->solInfo().accelPodRomFile.push_back($4); }
   | TOLER Float
   { domain->solInfo().tolPodRom = $2; }
   | SKIP Integer

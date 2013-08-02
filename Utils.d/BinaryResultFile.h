@@ -83,23 +83,21 @@ BinaryResultOutputFile::BinaryResultOutputFile(const std::string &pathName, int 
   stateCount_(0),
   itemIds_(localIdBegin, localIdEnd),
   localOffset_(localOffset),
-#if defined(_POSIX_THREAD_SAFE_FUNCTIONS) && defined(_AEROS_ASYCHRONOUS_IO)
-  // this is waaay faster on my laptop...
-  // need to make sure all of the threads have opened the file before any writing the prelude
-  // see comments in Rom.d/DistrBasisFile.h
-  binHandler_(pathName.c_str(), "wb", version) {}
+#if defined(_POSIX_THREAD_SAFE_FUNCTIONS) && !defined(_AEROS_SYCHRONOUS_IO)
+  // need to make sure all of the master thread opens the file first
+  // see Rom.d/DistrBasisFile.h
+  binHandler_(pathName.c_str(), (isMaster() && !restart) ? "wb" : "rb+", version)
 #else
   binHandler_(pathName.c_str(), (isMaster() && !restart) ? "ws" : "ws+", version)
+#endif
 {
   if(!restart) writePrelude();
   else {
     int rawItemCount;
     BinFileHandler binHandler(pathName.c_str(), "r", version);
     readHeaderFromBinaryOutputFile(binHandler, dataType_, description_, rawItemCount, itemDimension_, stateCount_);
-    //std::cerr << "here in BinaryResultOutputFile::BinaryResultOutputFile, stateCount_ = " << stateCount_ << std::endl;
   }
 }
-#endif
 
 class BinaryResultInputFile {
 public:

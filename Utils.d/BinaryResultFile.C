@@ -24,7 +24,6 @@ BinaryResultOutputFile::BinaryResultOutputFile(const std::string &pathName, int 
     int rawItemCount;
     BinFileHandler binHandler(pathName.c_str(), "r", version);
     readHeaderFromBinaryOutputFile(binHandler, dataType_, description_, rawItemCount, itemDimension_, stateCount_);
-    //std::cerr << "here in BinaryResultOutputFile::BinaryResultOutputFile, stateCount_ = " << stateCount_ << std::endl;
   }
 }
 

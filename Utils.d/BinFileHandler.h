@@ -9,6 +9,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <iostream>
 
 #define MAXLINE 500
 
@@ -191,9 +192,9 @@ BinFileHandler::BinFileHandler(const char *name, const char *flag, double ver) :
 #ifdef WINDOWS
     fileid = open(name, O_WRONLY | O_CREAT, 0644);
 #else
-  fileid = open(name, O_WRONLY | O_CREAT | O_SYNC, 0644);
+    fileid = open(name, O_WRONLY | O_CREAT | O_SYNC, 0644);
 #endif 
-   if (fileid == -1) ierr = 1;
+    if (fileid == -1) ierr = 1;
   }
   else if (std::strcmp(flag, "rb") == 0) {
     file = fopen(name, "rb");
@@ -201,6 +202,10 @@ BinFileHandler::BinFileHandler(const char *name, const char *flag, double ver) :
   }
   else if (std::strcmp(flag, "wb") == 0) {
     file = fopen(name, "wb");
+    if (!file) ierr = 1;
+  }
+  else if (std::strcmp(flag, "rb+") == 0) {
+    file = fopen(name, "rb+");
     if (!file) ierr = 1;
   }
   else {
@@ -216,7 +221,7 @@ BinFileHandler::BinFileHandler(const char *name, const char *flag, double ver) :
   headersize = sizeof(int) + sizeof(double);
     
   int one = 1;
-  if (std::strcmp(flag, "r") == 0 || std::strcmp(flag, "rb") == 0) {
+  if (std::strcmp(flag, "r") == 0 || std::strcmp(flag, "rb") == 0 || std::strcmp(flag, "rb+") == 0) {
     read(&one, 1);
     if (one != 1) swapBytes = 1;
     read(&version, 1);

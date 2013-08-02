@@ -364,63 +364,6 @@ DistrElementSamplingDriver::solve() {
     gelemIds = lelemIds;
   }
 
-#ifdef USE_EIGEN3
-/*
-  std::vector<std::vector<int> > packedWeightedNodes(decDomain->getNumSub());
-  DofSetArray **all_cdsa = new DofSetArray * [decDomain->getNumSub()];
-  for(int i=0; i<decDomain->getNumSub(); ++i) {
-    std::vector<int> &subWeightedNodes = packedWeightedNodes[i];
-
-    // loop over the elements with non-zero weights and add their nodes to list
-    std::vector<int> node_buffer;
-    for(int j=0; j<solutions[i].size(); ++j) {
-      if(solutions[i][j] > 0.0) {
-        Element *ele = decDomain->getSubDomain(i)->getElementSet()[j]; 
-        node_buffer.resize(ele->numNodes());
-        ele->nodes(node_buffer.data());
-        subWeightedNodes.insert(subWeightedNodes.end(), node_buffer.begin(), node_buffer.end());
-      }
-    }
-
-    //sort nodes in ascending order and erase redundant nodes
-    std::sort(subWeightedNodes.begin(), subWeightedNodes.end());
-    std::vector<int>::iterator packedNodeIt = std::unique(subWeightedNodes.begin(),subWeightedNodes.end());
-    subWeightedNodes.resize(packedNodeIt-subWeightedNodes.begin());
-
-    all_cdsa[i] = decDomain->getSubDomain(i)->getCDSA();
-  }
-  podBasis.makeSparseBasis(packedWeightedNodes, all_cdsa);
-  // TODO print compressed basis to file
-  {
-    DistrInfo reducedInfo;
-    reducedInfo.domLen = new int[MultiDomainDynam::solVecInfo().numDom];
-    reducedInfo.numDom = MultiDomainDynam::solVecInfo().numDom;
-    int totLen = 0;
-    for(int iSub = 0; iSub < MultiDomainDynam::solVecInfo().numDom; ++iSub) {
-      reducedInfo.domLen[iSub] = all_cdsa[iSub]->size();
-      totLen += reducedInfo.domLen[iSub];
-    }
-    reducedInfo.len = totLen;
-    reducedInfo.setMasterFlag();
-
-    //Output the compressed basis as separate file
-    std::string filename = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
-    filename.append(".reduced");
-    if(domain->solInfo().newmarkBeta == 0) filename.append(".normalized");
-    filePrint(stderr," ... Writing compressed basis to file %s ...\n", filename.c_str());
-    // XXX masterMapping is not correct
-    DistrNodeDof6Buffer outputBuffer(masterMapping.masterNodeBegin(), masterMapping.masterNodeEnd());
-    // XXX podBasisFile.nodeCount() is not correct, outputBuffer.globalNodeIndexBegin() is not correct, outputBuffer.globalNodeIndexEnd() is not correct
-    DistrBasisOutputFile outputFile(filename, podBasisFile.nodeCount(), outputBuffer.globalNodeIndexBegin(), outputBuffer.globalNodeIndexEnd(), comm_, false);
-    for (int iVec = 0; iVec < podVectorCount; ++iVec) {
-      GenStackDistVector<double> vec(reducedInfo, &podBasis.getCompressedBasis().col(iVec)[0]);
-      converter.paddedNodeDof6(vec, outputBuffer);
-      outputFile.stateAdd(outputBuffer, 0.0);
-    }
-  }
-  delete [] all_cdsa;
-*/
-#endif
   // compute the reduced forces (constant only)
   DistrVector constForceFull(MultiDomainDynam::solVecInfo());
   MultiDomainDynam::getConstForce(constForceFull);

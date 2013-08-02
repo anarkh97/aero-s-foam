@@ -113,7 +113,7 @@ BasisOrthoDriver::solve() {
     std::cerr << "*** Error: no files provided\n";
     exit(-1);
   }
-  
+ 
   for (std::vector<BasisId::Type>::const_iterator it = workload.begin(); it != workload.end(); ++it) {
     BasisId::Type type = *it;
     //loop over snapshots
@@ -148,7 +148,7 @@ BasisOrthoDriver::solve() {
           skip = 1;
           //column loop
           for (int iCol = 0; iCol < input.size(); ++iCol) {
-            if(skip == skipTime){
+            if(skip == skipTime) {
               double *buffer = solver.matrixCol(colCounter);
               input >> buffer;
               assert(input);

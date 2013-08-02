@@ -89,6 +89,7 @@ DistrBasisOrthoDriver::solve() {
   if(!domain->solInfo().snapfiPodRom.empty()) {
     for(int i = 0 ; i < domain->solInfo().snapfiPodRom.size(); i++) { // i is index of snapshot file being read
       DistrBasisInputFile inputFile(BasisFileId(fileInfo, workload, BasisId::SNAPSHOTS, i));
+      nodeCount = inputFile.nodeCount();
       int basisStateCount = 1+(inputFile.stateCount()-1)/skipFactor;
       {
         int count = 0;
@@ -165,7 +166,7 @@ DistrBasisOrthoDriver::solve() {
   {
     DistrNodeDof6Buffer outputBuffer(masterMapping.masterNodeBegin(), masterMapping.masterNodeEnd());
     DistrBasisOutputFile outputFile(BasisFileId(fileInfo, workload, BasisId::POD),
-                                    nodeCount, outputBuffer.globalNodeIndexBegin(), outputBuffer.globalNodeIndexEnd(),  //input.nodeCount();
+                                    nodeCount, outputBuffer.globalNodeIndexBegin(), outputBuffer.globalNodeIndexEnd(),
                                     comm_, false);
 
     if(beta != 0 || (beta == 0 && domain->solInfo().normalize == 0))
@@ -183,11 +184,11 @@ DistrBasisOrthoDriver::solve() {
   if(beta == 0) {
     //Read back in output file to perform renormalization
     DistrVecBasis basis;
-    int nodeCount;
     {
       DistrBasisInputFile inputFile(BasisFileId(fileInfo, workload, BasisId::POD));
       DistrNodeDof6Buffer inputBuffer(masterMapping.localNodeBegin(), masterMapping.localNodeEnd());
       basis.dimensionIs(podVectorCount, decDomain->masterSolVecInfo()); 
+      int i = 0;
       for(DistrVecBasis::iterator it = basis.begin(),
           it_end = basis.end();
           it != it_end; ++it) {
@@ -198,7 +199,6 @@ DistrBasisOrthoDriver::solve() {
 
         inputFile.currentStateIndexInc();
       }
-      nodeCount = inputFile.nodeCount();
     }
 
     DistrVecBasis normalizedBasis;

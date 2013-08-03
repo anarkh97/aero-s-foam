@@ -943,7 +943,6 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
         probDesc->updateState(dt_n_h, v_n_h, d_n);
       }
       else d_n.linAdd(dt_n_h, v_n_h);
-      //handleDisplacement(*probDesc, d_n);
 
       // C0: Send predicted displacement at t^{n+1.5} to fluid
       if(aeroAlg == 20) probDesc->aeroSend(t_n+dt_n_h, d_n, v_n_h, a_n, v_h_p);

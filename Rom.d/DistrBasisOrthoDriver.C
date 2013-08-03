@@ -125,7 +125,6 @@ DistrBasisOrthoDriver::solve() {
   if(!domain->solInfo().robfi.empty()) {
     for(int i = 0; i < domain->solInfo().robfi.size(); i++) {
       DistrBasisInputFile inputFile(BasisFileId(fileInfo, workload, BasisId::ROB, i));
-      //continue here...
       int basisStateCount = 1+(inputFile.stateCount()-1)/skipFactor;
       {
         int count = 0;
@@ -167,7 +166,7 @@ DistrBasisOrthoDriver::solve() {
   {
     DistrNodeDof6Buffer outputBuffer(masterMapping.masterNodeBegin(), masterMapping.masterNodeEnd());
     DistrBasisOutputFile outputFile(BasisFileId(fileInfo, workload, BasisId::POD),
-                                    nodeCount, outputBuffer.globalNodeIndexBegin(), outputBuffer.globalNodeIndexEnd(),  //input.nodeCount();
+                                    nodeCount, outputBuffer.globalNodeIndexBegin(), outputBuffer.globalNodeIndexEnd(),
                                     comm_, false);
 
     if(beta != 0 || (beta == 0 && domain->solInfo().normalize == 0))
@@ -179,23 +178,27 @@ DistrBasisOrthoDriver::solve() {
       outputFile.stateAdd(outputBuffer, solver.singularValue(iVec));
     }
   }
+  comm_->sync();
 
   //Normalize basis for explicit cases
   if(beta == 0) {
     //Read back in output file to perform renormalization
-    DistrBasisInputFile inputFile(BasisFileId(fileInfo, workload, BasisId::POD));
-    DistrNodeDof6Buffer inputBuffer(masterMapping.localNodeBegin(), masterMapping.localNodeEnd());
     DistrVecBasis basis;
-    basis.dimensionIs(podVectorCount, decDomain->masterSolVecInfo()); 
-    for(DistrVecBasis::iterator it = basis.begin(),
-        it_end = basis.end();
-        it != it_end; ++it) {
-      assert(inputFile.validCurrentState());
+    {
+      DistrBasisInputFile inputFile(BasisFileId(fileInfo, workload, BasisId::POD));
+      DistrNodeDof6Buffer inputBuffer(masterMapping.localNodeBegin(), masterMapping.localNodeEnd());
+      basis.dimensionIs(podVectorCount, decDomain->masterSolVecInfo()); 
+      int i = 0;
+      for(DistrVecBasis::iterator it = basis.begin(),
+          it_end = basis.end();
+          it != it_end; ++it) {
+        assert(inputFile.validCurrentState());
 
-      inputFile.currentStateBuffer(inputBuffer);
-      converter.vector(inputBuffer, *it);
+        inputFile.currentStateBuffer(inputBuffer);
+        converter.vector(inputBuffer, *it);
 
-      inputFile.currentStateIndexInc();
+        inputFile.currentStateIndexInc();
+      }
     }
 
     DistrVecBasis normalizedBasis;
@@ -215,7 +218,7 @@ DistrBasisOrthoDriver::solve() {
     std::string fileName = BasisFileId(fileInfo, workload, BasisId::POD);
     fileName.append(".normalized");
     DistrNodeDof6Buffer outputBuffer(masterMapping.masterNodeBegin(), masterMapping.masterNodeEnd());
-    DistrBasisOutputFile outputNormalizedFile(fileName, inputFile.nodeCount(), outputBuffer.globalNodeIndexBegin(), outputBuffer.globalNodeIndexEnd(), comm_, false);
+    DistrBasisOutputFile outputNormalizedFile(fileName, nodeCount, outputBuffer.globalNodeIndexBegin(), outputBuffer.globalNodeIndexEnd(), comm_, false);
     filePrint(stderr, " ... Writing mass-normalized basis to file %s ...\n", fileName.c_str());
     for (int iVec = 0; iVec < podVectorCount; ++iVec) {
       converter.paddedNodeDof6(normalizedBasis[iVec], outputBuffer);

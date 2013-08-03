@@ -1,5 +1,6 @@
 #include "ElementSamplingDriver.h"
 
+#include "DistrBasisFile.h"
 #include "VecBasis.h"
 #include "BasisOps.h" 
 #include "FileNameInfo.h"
@@ -17,6 +18,7 @@
 #include <Timers.d/StaticTimers.h>
 #include <Utils.d/Connectivity.h>
 #include <Element.d/Element.h>
+#include <Utils.d/Conwep.d/BlastLoading.h>
 
 #include <cstddef>
 #include <algorithm>
@@ -142,54 +144,82 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::assembleTrainingData(const Vec
                                                                        typename MatrixBufferType::iterator elemContributions,
                                                                        Vector &trainingTarget, VecBasis *veloc, VecBasis *accel) {
   const int podVectorCount = podBasis.vectorCount();
-  const int snapshotCount = displac.vectorCount();
+  //const int snapshotCount = displac.vectorCount();
+  std::vector<int> snapshotCounts;
+  int skipFactor = domain->solInfo().skipPodRom;
+  int skipOffSet = domain->solInfo().skipOffSet;
+  for(int i=0;i<domain->solInfo().statePodRomFile.size();i++){
+    DistrBasisInputFile in(domain->solInfo().statePodRomFile[i]);
+    snapshotCounts.push_back((in.stateCount() % 2) + (in.stateCount() - skipOffSet) / skipFactor);
+  }
 
   // Temporary buffers shared by all iterations
   Vector elemTarget(podVectorCount);
   SimpleBuffer<double> elementForce(domain_->maxNumDOF());
 
+  if(domain->solInfo().conwepConfigurations.size() < domain->solInfo().statePodRomFile.size() && !domain->solInfo().conwepConfigurations.empty()){
+    std::cerr << "Must provide one configuration per snapshot\n";
+    exit(-1);
+  }
   for (int iElem = 0; iElem != elementCount(); ++iElem) {
     filePrint(stderr,"\r %4.2f%% complete", double(iElem)/double(elementCount())*100.);
     std::vector<double>::iterator timeStampIt = timeStampFirst;
     int *nodes = domain_->getElementSet()[iElem]->nodes();
-    for (int iSnap = 0; iSnap != snapshotCount; ++iSnap) {
-      geomState_->explicitUpdate(domain_->getNodes(), domain_->getElementSet()[iElem]->numNodes(),
-                                 nodes, displac[iSnap]); // just set the state at the nodes of element iElem
-      if(veloc) geomState_->setVelocity(domain_->getElementSet()[iElem]->numNodes(), nodes,
-                                        (*veloc)[iSnap], 2); // just set the velocity at the nodes of element iElem
-      if(accel) geomState_->setAcceleration(domain_->getElementSet()[iElem]->numNodes(), nodes,
-                                            (*accel)[iSnap], 2); // just set the acceleration at the nodes of element iElem
-      // Evaluate and store element contribution at training configuration
-      domain_->getElemInternalForce(*geomState_, *timeStampIt, geomState_, *(corotators_[iElem]), elementForce.array(), kelArray_[iElem]);
-      if(domain_->getElementSet()[iElem]->hasRot()) {
-        domain_->transformElemStiffAndForce(*geomState_, elementForce.array(), kelArray_[iElem], iElem, false);
-        domain_->getElemFictitiousForce(iElem, *geomState_, elementForce.array(), kelArray_[iElem],
-                                        *timeStampIt, geomState_, melArray_[iElem], false);
+    int iSnap = 0;
+    for(int i=0; i<domain->solInfo().statePodRomFile.size(); i++) {
+      if(!domain->solInfo().conwepConfigurations.empty()){
+        BlastLoading::InputFileData.ConwepGlobalOnOff = true;
+        BlastLoading::InputFileData.ExplosivePosition[0]    = domain->solInfo().conwepConfigurations[i].x;
+        BlastLoading::InputFileData.ExplosivePosition[1]    = domain->solInfo().conwepConfigurations[i].y;
+        BlastLoading::InputFileData.ExplosivePosition[2]    = domain->solInfo().conwepConfigurations[i].z;
+        BlastLoading::InputFileData.ExplosiveDetonationTime = domain->solInfo().conwepConfigurations[i].time;
+        BlastLoading::InputFileData.BlastType               = BlastLoading::BlastData::AirBurst; // ($7 == 0 ? BlastLoading::BlastData::SurfaceBurst : BlastLoading::BlastData::AirBurst);
+        BlastLoading::InputFileData.ScaleLength             = 1.0;
+        BlastLoading::InputFileData.ScaleTime               = 1.0;
+        BlastLoading::InputFileData.ScaleMass               = 1.0;
+        BlastLoading::InputFileData.ExplosiveWeight         = domain->solInfo().conwepConfigurations[i].mass * 2.2; // The 2.2 factor is to convert from kilograms to pounds force.
+        BlastLoading::InputFileData.ExplosiveWeightCubeRoot = pow(BlastLoading::InputFileData.ExplosiveWeight,1.0/3.0);
       }
+      for (int jSnap = 0; jSnap != snapshotCounts[i]; ++iSnap, ++jSnap) {
+        geomState_->explicitUpdate(domain_->getNodes(), domain_->getElementSet()[iElem]->numNodes(),
+            nodes, displac[iSnap]); // just set the state at the nodes of element iElem
+        if(veloc) geomState_->setVelocity(domain_->getElementSet()[iElem]->numNodes(), nodes,
+            (*veloc)[iSnap], 2); // just set the velocity at the nodes of element iElem
+        if(accel) geomState_->setAcceleration(domain_->getElementSet()[iElem]->numNodes(), nodes,
+            (*accel)[iSnap], 2); // just set the acceleration at the nodes of element iElem
+        // Evaluate and store element contribution at training configuration
+        domain_->getElemInternalForce(*geomState_, *timeStampIt, geomState_, *(corotators_[iElem]), elementForce.array(), kelArray_[iElem]);
+        if(domain_->getElementSet()[iElem]->hasRot()) {
+          domain_->transformElemStiffAndForce(*geomState_, elementForce.array(), kelArray_[iElem], iElem, false);
+          domain_->getElemFictitiousForce(iElem, *geomState_, elementForce.array(), kelArray_[iElem],
+              *timeStampIt, geomState_, melArray_[iElem], false);
+        }
 
-      if(domain_->solInfo().reduceFollower)
-        domain_->getElemFollowerForce( iElem, *geomState_, elementForce.array(), elementForce.size(), *(corotators_[iElem]), 
-                                       kelArray_[iElem], 1.0, *timeStampIt, false);
+        if(domain_->solInfo().reduceFollower)
+          domain_->getElemFollowerForce( iElem, *geomState_, elementForce.array(), elementForce.size(), *(corotators_[iElem]), 
+              kelArray_[iElem], 1.0, *timeStampIt, false);
 
-      elemTarget.zero();
-      const int dofCount = kelArray_[iElem].dim();
-      for (int iDof = 0; iDof != dofCount; ++iDof) {
-        const int vecLoc = domain_->getCDSA()->getRCN((*domain_->getAllDOFs())[iElem][iDof]);
-        if (vecLoc >= 0) {
-          const double dofForce = elementForce[iDof];
-          for (int iPod = 0; iPod != podVectorCount; ++iPod) {
-            const double contrib = dofForce * podBasis[iPod][vecLoc];
-            elemTarget[iPod] += contrib;
+        elemTarget.zero();
+        const int dofCount = kelArray_[iElem].dim();
+        for (int iDof = 0; iDof != dofCount; ++iDof) {
+          const int vecLoc = domain_->getCDSA()->getRCN((*domain_->getAllDOFs())[iElem][iDof]);
+          if (vecLoc >= 0) {
+            const double dofForce = elementForce[iDof];
+            for (int iPod = 0; iPod != podVectorCount; ++iPod) {
+              const double contrib = dofForce * podBasis[iPod][vecLoc];
+              elemTarget[iPod] += contrib;
+            }
           }
         }
+        for(int iPod = 0; iPod != podVectorCount; ++iPod) {
+          *elemContributions = elemTarget[iPod];
+          elemContributions++;
+          trainingTarget[podVectorCount * iSnap + iPod] += elemTarget[iPod];
+        }
+        timeStampIt++;
       }
-      for(int iPod = 0; iPod != podVectorCount; ++iPod) {
-        *elemContributions = elemTarget[iPod];
-        elemContributions++;
-        trainingTarget[podVectorCount * iSnap + iPod] += elemTarget[iPod];
-      }
-      timeStampIt++;
     }
+
     delete [] nodes;
   }
   filePrint(stderr,"\r %4.2f%% complete\n", 100.);

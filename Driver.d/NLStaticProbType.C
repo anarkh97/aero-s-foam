@@ -61,8 +61,8 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
  int step;
  for(step = 1; step <= numSteps; ++step) {
 
-   filePrint(stderr," --------------------------------------\n");
-   filePrint(stderr," ... Newton : Start Step #%d --- Lambda = %e\n",step, lambda);
+   filePrint(stderr, " --------------------------------------\n");
+   filePrint(stderr, " ... Newton : Start Step #%d --- Lambda = %e\n", step, lambda);
 
    if(domain->solInfo().soltyp != 2) StateUpdate::copyState(geomState, refState);
    probDesc->updatePrescribedDisplacement(geomState, lambda);
@@ -395,6 +395,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
     }
 
     StateUpdate::updateIncr(stateIncr, residual);
+    if(maxit == 1) geomState->update(*stateIncr);
 
     // Compute incremental displacement norm
     double normDv = residual.norm();

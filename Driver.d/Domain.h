@@ -395,6 +395,7 @@ class Domain : public HData {
      void initializeParameters(GeomState &geomState, Corotator **corotators);
      void updateParameters(GeomState &geomState, Corotator **corotators);
      double getError(Corotator **corotators);
+     void getElementDisp(int iele, GeomState& geomState, Vector& disp);
 
      void getGeometricStiffness(GeomState &u, Vector &elementInternalForce,
         			Corotator **allCorot, FullSquareMatrix *&kel);

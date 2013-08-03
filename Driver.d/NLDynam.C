@@ -73,23 +73,17 @@ Domain::getInternalForce(GeomState &geomState, Vector& elementForce,
     elementForce.zero();
 
     // Get updated tangent stiffness matrix and element internal force
-    if (const Corotator *elemCorot = corotators[iele]) {
-      getElemInternalForce(geomState, pseudoTime, refState, *elemCorot, elementForce.data(), kel[iele]);
+    if(corotators[iele] && !solInfo().getNLInfo().linearelastic) {
+      getElemInternalForce(geomState, pseudoTime, refState, *corotators[iele], elementForce.data(), kel[iele]);
       if(domain->solInfo().galerkinPodRom && packedEset[iele]->hasRot()) {
         transformElemStiffAndForce(geomState, elementForce.data(), kel[iele], iele, false);
       }
     }
-    // Compute k and internal force for an element with x translation (or temperature) dofs
-    else if(solInfo().soltyp == 2) {
-      kel[iele].zero();
-      Vector temp(packedEset[iele]->numNodes());
-      int *nn = packedEset[iele]->nodes();
-      for(int i=0; i<packedEset[iele]->numNodes(); ++i) {
-        temp[i] = geomState[nn[i]].x;
-      }
-      kel[iele] = packedEset[iele]->stiffness(nodes, kel[iele].data());
-      kel[iele].multiply(temp, elementForce, 1.0); // elementForce = kel*temp
-      delete [] nn;
+    // get linear elastic element internal force
+    else {
+      Vector disp(packedEset[iele]->numDofs());
+      getElementDisp(iele, geomState, disp);
+      kel[iele].multiply(disp, elementForce, 1.0);
     }
     // Assemble element internal force into residual force vector
     for(int idof = 0; idof < kel[iele].dim(); ++idof) {

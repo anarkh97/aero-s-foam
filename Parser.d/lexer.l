@@ -128,6 +128,7 @@ TRAIL [a-zA-Z]*
 
 "INF"[a-zA-Z]*|"inf"[a-zA-Z]*      { return INFINTY; }
 "EPS"[a-zA-Z]*|"eps"[a-zA-Z]*      { return EPSILON; }
+"MAX"|"max"                        { return MAXIMUM; }
 
 "DECO"[a-zA-Z]{0,7}|"deco"[a-zA-Z]{0,7} { return DECOMPOSE; }
 

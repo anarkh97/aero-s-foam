@@ -70,7 +70,7 @@ public:
     v_bk = v;
     force_bk = force;
   }
-    
+
 private:
   static void updateState(GeomType *geomState, const VecType &du) {
     geomState->update(const_cast<VecType &>(du));

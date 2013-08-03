@@ -7,6 +7,7 @@
 #include <Driver.d/GeoSource.h>
 
 //#define COMPUTE_GLOBAL_ROTATION
+extern Domain *domain;
 
 GeomState::GeomState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet &cs, Elemset *elems)
  : X0(cs)
@@ -389,11 +390,12 @@ ElemState::operator=(const ElemState &elem)
 }
 
 void
-GeomState::update(const Vector &v, int SO3param)
+GeomState::update(const Vector &v, int _SO3param)
 {
  // v = incremental displacement vector
 
  double dtheta[3];
+ int SO3param = (domain->solInfo().getNLInfo().linearelastic) ? 2 : _SO3param;
 
  int i;
  for(i=0; i<numnodes; ++i) {
@@ -446,11 +448,12 @@ GeomState::update(const Vector &v, int SO3param)
 }
 
 void
-GeomState::update(const Vector &v, const std::vector<int> &weightedNodes, int SO3param)
+GeomState::update(const Vector &v, const std::vector<int> &weightedNodes, int _SO3param)
 {
  // v = incremental displacement vector
 
  double dtheta[3];
+ int SO3param = (domain->solInfo().getNLInfo().linearelastic) ? 2 : _SO3param;
 
  int i;
   for( std::vector<int>::const_iterator it = weightedNodes.begin(); it != weightedNodes.end(); ++it) {

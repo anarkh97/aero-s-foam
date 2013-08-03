@@ -80,7 +80,7 @@
 %token JACOBI KRYLOVTYPE KIRLOC
 %token LAYC LAYN LAYD LAYO LAYMAT LFACTOR LMPC LOAD LOBPCG LOCALSOLVER LINESEARCH LUMPED
 %token MASS MATERIALS MATLAB MAXITR MAXORTHO MAXVEC MODAL MPCPRECNO MPCPRECNOID MPCTYPE MPCTYPEID MPCSCALING MPCELEMENT MPCBLOCKID 
-%token MPCBLK_OVERLAP MFTT MPTT MRHS MPCCHECK MUMPSICNTL MUMPSCNTL MECH MODEFILTER MOMENTTYPE
+%token MPCBLK_OVERLAP MFTT MPTT MRHS MPCCHECK MUMPSICNTL MUMPSCNTL MECH MODEFILTER MOMENTTYPE MAXIMUM
 %token NDTYPE NEIGPA NEWMARK NewLine NL NLMAT NLPREC NOCOARSE NODETOKEN NONINPC
 %token NSBSPV NLTOL NUMCGM NOSECONDARY NFRAMES
 %token OPTIMIZATION OUTPUT OUTPUT6 OUTPUTFRAME
@@ -3748,6 +3748,8 @@ NLInfo:
           else if(domain->solInfo().probType == SolverInfo::NonLinDynam)
             domain->solInfo().probType = SolverInfo::MatNonLinDynam;
         }
+        | NLInfo LINEARELASTIC NewLine
+        { domain->solInfo().getNLInfo().linearelastic = true; }
         | NLInfo MAXITR Integer NewLine
         { domain->solInfo().getNLInfo().maxiter = $3; }
         | NLInfo NLTOL Float NewLine
@@ -3799,6 +3801,13 @@ NewtonInfo:
           domain->solInfo().setNewton($2); 
           domain->solInfo().fetiInfo.type  = FetiInfo::nonlinear; 
         }
+        | REBUILD Integer Integer NewLine
+        {
+          domain->solInfo().setNewton($2);
+          domain->solInfo().getNLInfo().stepUpdateK = $3;
+          domain->solInfo().fetiInfo.type  = FetiInfo::nonlinear;
+        }
+/*
 	| REBUILD Integer Integer NewLine
 	{ 
           domain->solInfo().setNewton($2); 
@@ -3826,6 +3835,7 @@ NewtonInfo:
           domain->solInfo().fetiInfo.nPrec = rebuildPrec;
           domain->solInfo().fetiInfo.type  = FetiInfo::nonlinear;
 	}
+*/
 	;
 OrthoInfo:
 	REORTHO NewLine
@@ -4192,6 +4202,8 @@ ConversionOption:
 Integer:
 	IntConstant
 	{ $$ = $1; }
+        | MAXIMUM
+        { $$ = std::numeric_limits<int>::max(); }
 	;
 
 Float:

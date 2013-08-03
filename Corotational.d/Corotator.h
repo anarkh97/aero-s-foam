@@ -41,7 +41,7 @@ class Corotator {
     virtual void extractDeformations(GeomState &geomState, CoordSet &cs,
                                      DComplex *vld, int &nlflag);
 
-    virtual void getGlobalDisp(GeomState& , CoordSet&, Vector& ){}
+    virtual void getGlobalDisp(GeomState&, CoordSet&, Vector&) {}
 
     virtual void getNLVonMises(Vector&, Vector& weight,
                                GeomState &, CoordSet &, int);

@@ -227,8 +227,15 @@ DistrBasisOrthoDriver::solve() {
 
     //Output identity normalized basis if using new method
     if(domain->solInfo().normalize == 1) {
-      //TODO
-      std::cerr << "WARNING: the orthogonal basis is not computed in DistrBasisOrthoDriver::solve\n";
+      MGSVectors(normalizedBasis);
+      std::string fileName = BasisFileId(fileInfo, workload, BasisId::POD);
+      DistrNodeDof6Buffer outputBuffer(masterMapping.masterNodeBegin(), masterMapping.masterNodeEnd());
+      DistrBasisOutputFile outputOrthoNormalFile(fileName, nodeCount, outputBuffer.globalNodeIndexBegin(), outputBuffer.globalNodeIndexEnd(), comm_, false);
+      filePrint(stderr, " ... Writing orthonormal-normalized basis to file %s ...\n", fileName.c_str());
+      for (int iVec = 0; iVec < podVectorCount; ++iVec) {
+        converter.paddedNodeDof6(normalizedBasis[iVec], outputBuffer);
+        outputOrthoNormalFile.stateAdd(outputBuffer, solver.singularValue(iVec));
+      }
     }
   }
 }

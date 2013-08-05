@@ -6,7 +6,7 @@ class DofSet {
   protected:
     int flags;
   public:
-    static const int max_known_dof = 24; // 8
+    static const int max_known_dof = 24;
     static const int max_known_nonL_dof = 9;
     static int 
       Xdisp,
@@ -24,6 +24,7 @@ class DofSet {
       Potential,
       LagrangeE,
       LagrangeI;
+    static int nonL_dof;
 
     static const int DispAndRot = 0x3f;
     static DofSet nullDofset;

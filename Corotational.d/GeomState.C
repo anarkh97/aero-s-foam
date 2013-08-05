@@ -7,6 +7,7 @@
 #include <Driver.d/GeoSource.h>
 
 //#define COMPUTE_GLOBAL_ROTATION
+extern Domain *domain;
 
 GeomState::GeomState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet &cs, Elemset *elems)
  : X0(cs)
@@ -73,9 +74,11 @@ GeomState::GeomState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet &cs, Elemset 
 
     }
     else  {
+      // Set ith node's coordinates equal to zero
       ns[i].x = 0.0;
       ns[i].y = 0.0;
       ns[i].z = 0.0;
+
       // Set ith node's rotation tensor equal to identity
       ns[i].R[0][0] = 1.0;
       ns[i].R[0][1] = 0.0;
@@ -155,7 +158,7 @@ GeomState::GeomState(CoordSet &cs) : X0(cs), numReal(0), es(NULL), numelems(0), 
       ns[i].z = node_i->z;
     }
     else  {
-      // HB: TEMPORARY BAD FIX FOR DEALING WITH LAGRANGE MULTIPLIERS (RIGID BAR) !!!
+      // Set the ith node's coordinates equal to zero
       ns[i].x = 0.0;
       ns[i].y = 0.0;
       ns[i].z = 0.0;
@@ -367,10 +370,15 @@ NodeState::operator=(const NodeState &node)
  this->R[2][1] = node.R[2][1];
  this->R[2][2] = node.R[2][2];
 
+ // Set rotation vector
+ this->theta[0] = node.theta[0];
+ this->theta[1] = node.theta[1];
+ this->theta[2] = node.theta[2];
+
  // Copy the velocity and acceleration vectors
  for(int i = 0; i < 6; ++i) {
-   v[i] = node.v[i];
-   a[i] = node.a[i];
+   this->v[i] = node.v[i];
+   this->a[i] = node.a[i];
  }
 }
 
@@ -424,19 +432,25 @@ GeomState::update(const Vector &v, int SO3param)
        dtheta[1] = (loc[i][4] >= 0) ? v[loc[i][4]] : 0.0;
        dtheta[2] = (loc[i][5] >= 0) ? v[loc[i][5]] : 0.0;
 
-       switch(SO3param) {
-         case 0: // Increment rotation tensor from the left R = R(dtheta)*Ra
-           inc_rottensor( dtheta, ns[i].R );
-           break;
-         case 1: // Increment rotation tensor from the right R = Ra*R(dtheta)
-           inc_rottensor( ns[i].R, dtheta );
-           break;
-         case 2: // additive update of total rotation vector
-           double theta[3];
-           mat_to_vec( ns[i].R, theta );
-           for(int j=0; j<3; ++j) theta[j] += dtheta[j];
-           vec_to_mat( theta, ns[i].R );
-           break;
+       if(domain->solInfo().getNLInfo().linearelastic) {
+         for(int j=0; j<3; ++j) ns[i].theta[j] += dtheta[j];
+         vec_to_mat( ns[i].theta, ns[i].R );
+       }
+       else {
+         switch(SO3param) {
+           case 0: // Increment rotation tensor from the left R = R(dtheta)*Ra
+             inc_rottensor( dtheta, ns[i].R );
+             break;
+           case 1: // Increment rotation tensor from the right R = Ra*R(dtheta)
+             inc_rottensor( ns[i].R, dtheta );
+             break;
+           case 2: // additive update of total rotation vector
+             double theta[3];
+             mat_to_vec( ns[i].R, theta );
+             for(int j=0; j<3; ++j) theta[j] += dtheta[j];
+             vec_to_mat( theta, ns[i].R );
+             break;
+         }
        }
      }
    }
@@ -482,19 +496,25 @@ GeomState::update(const Vector &v, const std::vector<int> &weightedNodes, int SO
        dtheta[1] = (loc[i][4] >= 0) ? v[loc[i][4]] : 0.0;
        dtheta[2] = (loc[i][5] >= 0) ? v[loc[i][5]] : 0.0;
 
-       switch(SO3param) {
-         case 0: // Increment rotation tensor from the left R = R(dtheta)*Ra
-           inc_rottensor( dtheta, ns[i].R );
-           break;
-         case 1: // Increment rotation tensor from the right R = Ra*R(dtheta)
-           inc_rottensor( ns[i].R, dtheta );
-           break;
-         case 2: // additive update of total rotation vector
-           double theta[3];
-           mat_to_vec( ns[i].R, theta );
-           for(int j=0; j<3; ++j) theta[j] += dtheta[j];
-           vec_to_mat( theta, ns[i].R );
-           break;
+       if(domain->solInfo().getNLInfo().linearelastic) {
+         for(int j=0; j<3; ++j) ns[i].theta[j] += dtheta[j];
+         vec_to_mat( ns[i].theta, ns[i].R );
+       }
+       else {
+         switch(SO3param) {
+           case 0: // Increment rotation tensor from the left R = R(dtheta)*Ra
+             inc_rottensor( dtheta, ns[i].R );
+             break;
+           case 1: // Increment rotation tensor from the right R = Ra*R(dtheta)
+             inc_rottensor( ns[i].R, dtheta );
+             break;
+           case 2: // additive update of total rotation vector
+             double theta[3];
+             mat_to_vec( ns[i].R, theta );
+             for(int j=0; j<3; ++j) theta[j] += dtheta[j];
+             vec_to_mat( theta, ns[i].R );
+             break;
+         }
        }
      }
    }
@@ -745,8 +765,13 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
     // Update angular velocities and accelerations
     if(loc[i][3] >= 0 || loc[i][4] >= 0 || loc[i][5] >= 0) {
       double dtheta[3], dR[3][3];
-      mat_mult_mat(ss[i].R, ns[i].R, dR, 1); // dR = ss[i].R^T * ns[i].R (i.e. ns[i].R = ss[i].R * dR)
-      mat_to_vec(dR, dtheta);
+      if(domain->solInfo().getNLInfo().linearelastic) {
+        for(int j=0; j<3; ++j) dtheta[j] = ss[i].theta[j] = ns[i].theta[j];
+      }
+      else {
+        mat_mult_mat(ss[i].R, ns[i].R, dR, 1); // dR = ss[i].R^T * ns[i].R (i.e. ns[i].R = ss[i].R * dR)
+        mat_to_vec(dR, dtheta);
+      }
       for(int j = 0; j < 3; ++j) {
         if(loc[i][3+j] >= 0) {
           double v_n = vel_n[loc[i][3+j]];
@@ -773,25 +798,35 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
   double result[3][3], result2[3][3], rotVec[3];
   for(int i = 0; i < numnodes; ++i) {
     if(flag[i] == -1 || (loc[i][3] < 0 && loc[i][4] < 0 && loc[i][5] < 0)) continue;
-    if(alphaf == 0.0) {
+    if(domain->solInfo().getNLInfo().linearelastic) {
+      for(int j = 0; j < 3; ++j) 
+        ss.ns[i].theta[j] = ns[i].theta[j] = tcoef*(ns[i].theta[j] - alphaf*ss.ns[i].theta[j]);
+      vec_to_mat(ns[i].theta, ns[i].R);
       for(int j = 0; j < 3; ++j)
         for(int k = 0; k < 3; ++k)
           ss[i].R[j][k] = ns[i].R[j][k];
     }
-    else {
-      mat_mult_mat(ss[i].R, ns[i].R, result2, 1); // result2 = ss[i].R^T * ns[i].R (i.e. ns[i].R = ss[i].R * result2)
-      if(alphaf != 0.5) {
-        mat_to_vec(result2, rotVec);
-        rotVec[0] *= rcoef;
-        rotVec[1] *= rcoef;
-        rotVec[2] *= rcoef;
-        vec_to_mat(rotVec, result2);
+    else { 
+      if(alphaf = 0.0) {
+        for(int j = 0; j < 3; ++j)
+          for(int k = 0; k < 3; ++k)
+            ss[i].R[j][k] = ns[i].R[j][k];
       }
-      mat_mult_mat(ns[i].R, result2, result, 0); // result = ns[i].R * result2
+      else {
+        mat_mult_mat(ss[i].R, ns[i].R, result2, 1); // result2 = ss[i].R^T * ns[i].R (i.e. ns[i].R = ss[i].R * result2)
+        if(alphaf != 0.5) {
+          mat_to_vec(result2, rotVec);
+          rotVec[0] *= rcoef;
+          rotVec[1] *= rcoef;
+          rotVec[2] *= rcoef;
+          vec_to_mat(rotVec, result2);
+        }
+        mat_mult_mat(ns[i].R, result2, result, 0); // result = ns[i].R * result2
 
-      for(int j = 0; j < 3; ++j)
-        for(int k = 0; k < 3; ++k)
-          ss[i].R[j][k] = ns[i].R[j][k] = result[j][k];
+        for(int j = 0; j < 3; ++j)
+          for(int k = 0; k < 3; ++k)
+            ss[i].R[j][k] = ns[i].R[j][k] = result[j][k];
+      }
     }
   }
 #ifdef COMPUTE_GLOBAL_ROTATION

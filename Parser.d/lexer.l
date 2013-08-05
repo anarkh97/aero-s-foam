@@ -128,6 +128,7 @@ TRAIL [a-zA-Z]*
 
 "INF"[a-zA-Z]*|"inf"[a-zA-Z]*      { return INFINTY; }
 "EPS"[a-zA-Z]*|"eps"[a-zA-Z]*      { return EPSILON; }
+"MAX"|"max"                        { return MAXIMUM; }
 
 "DECO"[a-zA-Z]{0,7}|"deco"[a-zA-Z]{0,7} { return DECOMPOSE; }
 
@@ -258,6 +259,8 @@ TRAIL [a-zA-Z]*
 "STATI"[a-zA-Z]*|"stati"[a-zA-Z]*|"STAT"|"stat"    { return STATS; }
 
 "CASE"[a-zA-Z]*|"case"[a-zA-Z]*    { return CASES; }
+
+"PIEC"[a-zA-Z]*|"piec"[a-zA-Z]*    { return PIECEWISE; }
 
 "AXIHDIR"|"axihdir"                { return AXIHDIR; }
 
@@ -1155,7 +1158,7 @@ TRAIL [a-zA-Z]*
 
 "moderror"|"MODERROR"              { yylval.ival = OutputInfo::ModeError;    return STRESSID; }
 
-"reaction"[s]?|"REACTION"[s]?      { yylval.ival = OutputInfo::Reactions; return STRESSID; }
+"reaction"|"REACTION"              { yylval.ival = OutputInfo::Reactions;    return STRESSID; }
 
 "heatreac"|"HEATREAC"              { yylval.ival = OutputInfo::HeatReactions; return STRESSID; }
 
@@ -1261,7 +1264,7 @@ TRAIL [a-zA-Z]*
 
 "hyperelasticplanestress"|"HYPERELASTICPLANESTRESS"|"HyperElasticPlaneStress" { return SVKPLSTRESS; }
 
-"linear"|"LINEAR"|"Linear"                               { return LINEARELASTIC; }
+"linear"|"LINEAR"|"Linear"|"linearelastic"|"LINEARELASTIC"|"LinearElastic" { return LINEARELASTIC; }
 
 "isotropiclinearelastic"|"ISOTROPICLINEARELASTIC"|"IsotropicLinearElastic"  { return ISOTROPICLINEARELASTIC; }
 

@@ -85,8 +85,8 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
     elementForce.zero();
 
     // Get updated tangent stiffness matrix and element internal force
-    if (const Corotator *elemCorot = corotators[iele]) {
-      getElemStiffAndForce(geomState, pseudoTime, refState, *elemCorot, elementForce.data(), kel[iele]);
+    if(corotators[iele] && !solInfo().getNLInfo().linearelastic) {
+      getElemStiffAndForce(geomState, pseudoTime, refState, *corotators[iele], elementForce.data(), kel[iele]);
       if(initialTime && packedEset[iele]->isConstraintElement() && packedEset[iele]->hasRot()) {
         transformElemStiff(geomState, kel[iele], iele);
       }
@@ -94,15 +94,15 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
         transformElemStiffAndForce(geomState, elementForce.data(), kel[iele], iele, true);
       }
     }
-    // Compute k and internal force for an element with x translation (or temperature) dofs
-    else if(solInfo().soltyp == 2) {
-      kel[iele].zero();
-      Vector temp(packedEset[iele]->numNodes());
-      for(int i=0; i<packedEset[iele]->numNodes(); ++i) {
-        temp[i] = geomState[packedEset[iele]->nodes()[i]].x;
-      }
-      kel[iele] = packedEset[iele]->stiffness(nodes, kel[iele].data());
-      kel[iele].multiply(temp, elementForce, 1.0); // elementForce = kel*temp
+    // get linear elastic element internal force
+    else {
+      Vector disp(packedEset[iele]->numDofs());
+      getElementDisp(iele, geomState, disp);
+      kel[iele].multiply(disp, elementForce, 1.0);
+      // XXX 1. copy of the linearelastic kelarray before calling this function because the
+      //     load stiffness matrix will be added each time (unless updatedtangents is false,
+      //     but in that case the convergence will not be quadratic)
+      //     2. should be inside getElemStiffAndForce??
     }
     // Assemble element internal force into residual force vector
     for(int idof = 0; idof < kel[iele].dim(); ++idof) {
@@ -117,9 +117,11 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
     }
   }
 
-  getFollowerForce(geomState, elementForce, corotators, kel, residual, lambda, time, refState, reactions, !initialTime);
+  getFollowerForce(geomState, elementForce, corotators, kel, residual, lambda, time, refState, reactions,
+                   !initialTime && !solInfo().getNLInfo().linearelastic);
 
-  if(sinfo.isDynam() && mel) getFictitiousForce(geomState, elementForce, kel, residual, time, refState, reactions, mel, !initialTime);
+  if(sinfo.isDynam() && mel) getFictitiousForce(geomState, elementForce, kel, residual, time, refState, reactions, mel,
+                                                !initialTime && !solInfo().getNLInfo().linearelastic);
 
   if(!solInfo().getNLInfo().unsymmetric && solInfo().newmarkBeta != 0)
     for(int iele = 0; iele < numele; ++iele)
@@ -144,14 +146,15 @@ Domain::getFollowerForce(GeomState &geomState, Vector& elementForce,
         FullSquareMatrix kel2(kel[iele].dim());
         kel2.zero();
 
-        getElemFollowerForce( iele, geomState, elementForce.data(), elementForce.size(),
-                         *(corotators[iele]), kel2, loadFactor,  time, compute_tangents);
+        getElemFollowerForce(iele, geomState, elementForce.data(), elementForce.size(),
+                             *(corotators[iele]), kel2, loadFactor, time, compute_tangents);
 
-      // Include the "load stiffness matrix" in kel[iele]
+        // Include the "load stiffness matrix" in kel[iele]
         kel[iele] += kel2;
       } else {
-         getElemFollowerForce( iele, geomState, elementForce.data(), elementForce.size(),
-                         *(corotators[iele]), kel[iele], loadFactor,  time, compute_tangents);}
+        getElemFollowerForce(iele, geomState, elementForce.data(), elementForce.size(),
+                             *(corotators[iele]), kel[iele], loadFactor, time, compute_tangents);
+      }
 
       // Assemble element pressure forces into residual force vector
       for(int idof = 0; idof < packedEset[iele]->numDofs(); ++idof) {
@@ -385,38 +388,36 @@ Domain::getFollowerForce(GeomState &geomState, Vector& elementForce,
 }
 
 void
-Domain::getElemFollowerForce( int iele, GeomState &geomState, double *_f, int bufSize,
-                         Corotator &corotators, FullSquareMatrix &kel2,
-                         double loadFactor, double time,
-                         bool compute_tangents)
+Domain::getElemFollowerForce(int iele, GeomState &geomState, double *_f, int bufSize,
+                             Corotator &corotators, FullSquareMatrix &kel2,
+                             double loadFactor, double time, bool compute_tangents)
 {
-
-   Vector elementForceBuf(_f,bufSize,false);
-    double p0;
-    if((p0 = packedEset[iele]->getPressure()) != 0){
-      Vector elementForce(bufSize);
-      elementForce.zero();
+  Vector elementForceBuf(_f,bufSize,false);
+  double p0;
+  if((p0 = packedEset[iele]->getPressure()) != 0) {
+    Vector elementForce(bufSize);
+    elementForce.zero();
   
-      // Compute (linear) element pressure force in the local coordinates
-      packedEset[iele]->setPressure(p0*loadFactor, domain->getMFTT(), sinfo.ConwepOnOff);
-      packedEset[iele]->computePressureForce(nodes, elementForce, &geomState, 1, time);
-      packedEset[iele]->setPressure(p0, domain->getMFTT(), sinfo.ConwepOnOff);
-      // Include the "load stiffness matrix" in kel[iele]
-      if(compute_tangents) {
+    // Compute (linear) element pressure force in the local coordinates
+    packedEset[iele]->setPressure(p0*loadFactor, domain->getMFTT(), sinfo.ConwepOnOff);
+    packedEset[iele]->computePressureForce(nodes, elementForce, &geomState, 1, time);
+    packedEset[iele]->setPressure(p0, domain->getMFTT(), sinfo.ConwepOnOff);
+    // Include the "load stiffness matrix" in kel[iele]
+    if(compute_tangents) {
 
-        FullSquareMatrix elementLoadStiffnessMatrix(kel2.dim());
-        elementLoadStiffnessMatrix.zero();
-        corotators.getDExternalForceDu(geomState, nodes, elementLoadStiffnessMatrix,
-                                              elementForce.data());
-        for(int i=0; i<kel2.dim(); ++i)
-          for(int j=0; j<kel2.dim(); ++j)
-            kel2[i][j] += elementLoadStiffnessMatrix[i][j];
-      }
-
-      // Determine the elemental force for the corrotated system
-      corotators.getExternalForce(geomState, nodes, elementForce.data());
-      elementForceBuf += elementForce;
+      FullSquareMatrix elementLoadStiffnessMatrix(kel2.dim());
+      elementLoadStiffnessMatrix.zero();
+      corotators.getDExternalForceDu(geomState, nodes, elementLoadStiffnessMatrix,
+                                     elementForce.data());
+      for(int i=0; i<kel2.dim(); ++i)
+        for(int j=0; j<kel2.dim(); ++j)
+          kel2[i][j] += elementLoadStiffnessMatrix[i][j];
     }
+
+    // Determine the elemental force for the corrotated system
+    corotators.getExternalForce(geomState, nodes, elementForce.data());
+    elementForceBuf += elementForce;
+  }
 }
 
 void
@@ -827,12 +828,15 @@ Domain::createKelArray(FullSquareMatrix *&kArray)
   int iele;
   for(iele = 0; iele<numele; ++iele) {
     kArray[iele].setSize(packedEset[iele]->numDofs());
-    kArray[iele].zero(); 
+  }
+
+  // Form and store element stiffness matrices into an array
+  for(iele=0; iele<numele; ++iele) {
+    kArray[iele].copy(packedEset[iele]->stiffness(nodes, kArray[iele].data()));
   }
 }
 
 // used in nonlinear dynamics
-
 void
 Domain::createKelArray(FullSquareMatrix *&kArray, FullSquareMatrix *&mArray)
 {
@@ -847,16 +851,16 @@ Domain::createKelArray(FullSquareMatrix *&kArray, FullSquareMatrix *&mArray)
  for(iele = 0; iele<numele; ++iele) {
    int dimension = packedEset[iele]->numDofs();
    kArray[iele].setSize(dimension);
-   kArray[iele].zero();
    mArray[iele].setSize(dimension);
  }
 
- // Form and store element mass matrices into an array
+ // Form and store element mass and stiffness matrices into an array
  for(iele=0; iele<numele; ++iele) {
    // note: only lumped mass matrix is supported currently for elements with rotation dofs in nonlinear dynamics
    //       (only the euler beam element is affected)
    double mratio = (packedEset[iele]->hasRot() && sinfo.isNonLin() && sinfo.isDynam()) ? 0 : geoSource->getMRatio();
    mArray[iele].copy(packedEset[iele]->massMatrix(nodes, mArray[iele].data(), mratio));
+   kArray[iele].copy(packedEset[iele]->stiffness(nodes, kArray[iele].data()));
  }
 
  // zero rotational degrees of freedom within element mass matrices
@@ -892,38 +896,34 @@ Domain::createKelArray(FullSquareMatrix *&kArray, FullSquareMatrix *&mArray, Ful
  for(iele = 0; iele<numele; ++iele) {
    int dimension = packedEset[iele]->numDofs();
    kArray[iele].setSize(dimension);
-   kArray[iele].zero();
    mArray[iele].setSize(dimension);
    cArray[iele].setSize(dimension);
  }
 
- // Form and store element damping matrices and mass matrices into arrays
+ // Form and store element damping, mass and stiffness matrices into arrays
  for(iele=0; iele<numele; ++iele) {
    // note: only lumped mass matrix is supported currently for elements with rotation dofs in nonlinear dynamics
    //       (only the euler beam element is affected)
    double mratio = (packedEset[iele]->hasRot() && sinfo.isNonLin() && sinfo.isDynam()) ? 0 : geoSource->getMRatio();
-   mArray[iele] = packedEset[iele]->massMatrix(nodes, mArray[iele].data(), mratio);
-   cArray[iele] = packedEset[iele]->dampingMatrix(nodes, cArray[iele].data());
+   mArray[iele].copy(packedEset[iele]->massMatrix(nodes, mArray[iele].data(), mratio));
+   cArray[iele].copy(packedEset[iele]->dampingMatrix(nodes, cArray[iele].data()));
+   kArray[iele].copy(packedEset[iele]->stiffness(nodes, kArray[iele].data()));
  }
 
  // add Rayleigh damping
  int i,j;
  double alpha, beta;
- double *karray = new double[maxNumDOFs*maxNumDOFs];
- FullSquareMatrix kel;
  for(iele=0; iele<numele; ++iele) {
    if(!packedEset[iele]->getProperty()) continue; // phantom
-   kel = packedEset[iele]->stiffness(nodes, karray);
    if(packedEset[iele]->isConstraintElement()) cArray[iele].zero();
    else {
      alpha = (packedEset[iele]->isDamped()) ? packedEset[iele]->getProperty()->alphaDamp : sinfo.alphaDamp;
      beta  = (packedEset[iele]->isDamped()) ? packedEset[iele]->getProperty()->betaDamp : sinfo.betaDamp;
      for(i=0; i<cArray[iele].dim(); ++i)
        for(j=0; j<cArray[iele].dim(); ++j)
-         cArray[iele][i][j] += alpha*mArray[iele][i][j] + beta*kel[i][j];
+         cArray[iele][i][j] += alpha*mArray[iele][i][j] + beta*kArray[iele][i][j];
    }
  }
- delete [] karray;
 
  // zero rotational degrees of freedom within element mass matrices and damping matrices
  // for nonlinear implicit dynamics
@@ -2618,4 +2618,48 @@ Domain::transformElemStiff(const GeomState &geomState, FullSquareMatrix &kel, in
   cerr << "USE_EIGEN3 is not defined here in Domain::transformElemStiff\n";
   exit(-1);
 #endif
+}
+
+void
+Domain::getElementDisp(int iele, GeomState& geomState, Vector& disp)
+{
+  int *nn = packedEset[iele]->nodes();
+  int dofs[DofSet::max_known_nonL_dof];
+  double psi[3];
+
+  for(int i=0,l=0; i<packedEset[iele]->numNodes(); ++i) {
+    int ndofs = dsa->number(nn[i], DofSet::nonL_dof, dofs);
+    bool got_psi = false;
+    for(int j=0; j<ndofs; ++j) {
+      if(dofs[j] > -1) {
+        for(int k=0; k<packedEset[iele]->numDofs(); ++k) {
+          if(dofs[j] == (*allDOFs)[iele][k]) {
+            switch(j) {
+              case 0 : // x displacement
+                disp[l++] = geomState[nn[i]].x - nodes[nn[i]]->x;
+                break;
+              case 1 : // y displacement 
+                disp[l++] = geomState[nn[i]].y - nodes[nn[i]]->y;
+                break;
+              case 2 : // z displacement
+                disp[l++] = geomState[nn[i]].z - nodes[nn[i]]->z;
+                break;
+              case 3 : case 4 : case 5 : // x,y,z rotations
+                if(!got_psi) { 
+                  mat_to_vec(geomState[nn[i]].R, psi);
+                  got_psi = true;
+                }
+                disp[l++] = psi[j-3];
+                break;
+              case 6 : case 7 : case 8 : // temperature and lagrange multipliers
+                disp[l++] = geomState[nn[i]].x;
+                break;
+            }
+            break;
+          }
+        }
+      }
+    }
+  }
+  delete [] nn;
 }

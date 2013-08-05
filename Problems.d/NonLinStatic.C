@@ -212,7 +212,8 @@ NonLinStatic::reBuild(int iteration, int step, GeomState&)
 
  int rebuildFlag = 0;
 
- if (iteration % domain->solInfo().getNLInfo().updateK == 0) {
+ if(iteration % domain->solInfo().getNLInfo().updateK == 0 && (step-1) % domain->solInfo().getNLInfo().stepUpdateK == 0) {
+   if(verboseFlag) filePrint(stderr, " ... Rebuilding Tangent Stiffness for Step %d Iteration %d ...\n", step, iteration);
    if(domain->solInfo().mpcDirect != 0) {
      if(solver) delete solver;
      if(prec) delete prec;

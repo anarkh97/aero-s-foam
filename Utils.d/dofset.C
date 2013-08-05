@@ -26,6 +26,8 @@ int
       DofSet::Potential = 1 << 10,
       DofSet::LagrangeE = 1 << 11, // Lagrange multiplier for equality constraint
       DofSet::LagrangeI = 1 << 12; // Lagrange multiplier for inequality constraint
+
+int DofSet::nonL_dof = (1 << 0) + (1 << 1) + (1 << 2) + (1 << 3) + (1 << 4) + (1 << 5) + (1 << 6) + (1 << 11) + (1 << 12);
     
 DofSet DofSet::nullDofset(-1);
 

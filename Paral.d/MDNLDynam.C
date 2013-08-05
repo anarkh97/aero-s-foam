@@ -472,9 +472,11 @@ MDNLDynamic::copyGeomState(DistrGeomState* geomState)
 void
 MDNLDynamic::reBuild(DistrGeomState& geomState, int iteration, double localDelta, double t)
 {
+ int step = (t+localDelta)/(2*localDelta);
  times->rebuild -= getTime();
 
- if((iteration % domain->solInfo().getNLInfo().updateK == 0) || (t == domain->solInfo().initialTime)) {
+ if((iteration % domain->solInfo().getNLInfo().updateK == 0 && (step-1) % domain->solInfo().getNLInfo().stepUpdateK == 0)
+    || (t == domain->solInfo().initialTime)) {
    times->norms[numSystems].rebuildTang = 1;
 
    double Kcoef, Ccoef, Mcoef;
@@ -484,6 +486,7 @@ MDNLDynamic::reBuild(DistrGeomState& geomState, int iteration, double localDelta
      Mcoef = 1;
    }
    else {
+     if(verboseFlag) filePrint(stderr, " ... Rebuilding Tangent Stiffness for Step %d Iteration %d ...\n", step, iteration);
      double beta, gamma, alphaf, alpham, dt = 2*localDelta;
      getNewmarkParameters(beta, gamma, alphaf, alpham);
      Kcoef = (domain->solInfo().order == 1) ? localDelta : dt*dt*beta;

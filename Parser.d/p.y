@@ -946,7 +946,7 @@ ConwepData:
           $$.ScaleTime = 1.0;
           $$.ScaleMass = 1.0;
           $$.ExplosiveWeight = $4*2.2; // The 2.2 factor is to convert from kilograms to pounds force.
-          $$.ExplosiveWeightCubeRoot = pow(BlastLoading::InputFileData.ExplosiveWeight,1.0/3.0);
+          $$.ExplosiveWeightCubeRoot = pow($$.ExplosiveWeight,1.0/3.0);
         }
         ;
 TimeIntegration:

@@ -104,7 +104,7 @@
 %token WEIGHTLIST GMRESRESIDUAL 
 %token SLOSH SLGRAV SLZEM SLZEMFILTER 
 %token PDIR HEFSB HEFRS HEINTERFACE  // Added for HEV Problem, EC, 20080512
-%token SNAPFI PODROB TRNVCT OFFSET ORTHOG SVDTOKEN CONVERSIONTOKEN CONVFI SAMPLING SNAPSHOTPROJECT PODSIZEMAX REFSUBSTRACT TOLER OUTOFCORE NORMALIZETOKEN FNUMBER SNAPWEIGHT ROBFI STAVCT VELVCT ACCVCT
+%token SNAPFI PODROB TRNVCT OFFSET ORTHOG SVDTOKEN CONVERSIONTOKEN CONVFI SAMPLING SNAPSHOTPROJECT PODSIZEMAX REFSUBSTRACT TOLER OUTOFCORE NORMALIZETOKEN FNUMBER SNAPWEIGHT ROBFI STAVCT VELVCT ACCVCT CONWEPCFG
 %token VECTORNORM
 
 %type <complexFDBC> AxiHD
@@ -4164,7 +4164,9 @@ SvdOption:
   {
     for(int i=0; i<$2.nval; ++i) domain->solInfo().robfi.push_back(std::string($2.v[i]));
   }
+  | ConwepConfig
   ;
+
 
 Sampling:
     SAMPLING NewLine 
@@ -4172,6 +4174,7 @@ Sampling:
     domain->solInfo().probType = SolverInfo::PodRomOffline;
     domain->solInfo().samplingPodRom = true; }
   | Sampling SamplingOption NewLine
+  | Sampling ConwepConfig
   ;
 
 SnapshotProject:
@@ -4217,6 +4220,21 @@ SamplingOption:
     domain->solInfo().PODerrornorm.push_back($4); }
   ;
 
+ConwepConfig:
+   CONWEPCFG NewLine
+   | ConwepConfig Float Float Float Float Float NewLine
+   {
+    SolverInfo::ConwepConfig conwep;
+    conwep.x = $2;
+    conwep.y = $3;
+    conwep.z = $4;
+    conwep.mass = $5;
+    conwep.time = $6;
+    
+    domain->solInfo().conwepConfigurations.push_back(conwep);
+   }
+  ;
+   
 ConversionToken:
     CONVERSIONTOKEN NewLine
   { domain->solInfo().activatePodRom = true;

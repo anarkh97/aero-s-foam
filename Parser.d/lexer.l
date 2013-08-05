@@ -1371,6 +1371,8 @@ TRAIL [a-zA-Z]*
 
 "SNAPWEIGHT"|"SnapWeight"|"snapweight" {return SNAPWEIGHT; }
 
+"CONCFG"|"ConCfg"|"concfg"   {return CONWEPCFG;}
+
 "NORMFI"|"NormFi"|"normfi"		  { return VECTORNORM; }
 
 "PODROB"|"PodRob"|"podrob"		  { return PODROB; }

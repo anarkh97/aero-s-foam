@@ -82,7 +82,7 @@ renormalized_basis(const GenSparseMatrix<Scalar> &metric, const GenVecBasis<Scal
 //Works Parallel and Distributed. 
 template <typename Scalar>
 void
-MGSVectors(Scalar *d, int numVec, int lengthVec, bool RowMajor = false, bool DistrVectors = false) {
+MGSVectors(Scalar *d, int numVec, int lengthVec, bool RowMajor = false) {
  filePrint(stderr," ... Gram-Schmidt Algorithm: orthogonalizing vectors ...\n");
  //filePrint(stderr," number of vectors = %d\n", numVec);
  //initialize eigen matrix class with pointer to vectors
@@ -103,22 +103,13 @@ MGSVectors(Scalar *d, int numVec, int lengthVec, bool RowMajor = false, bool Dis
   Eigen::Matrix<Scalar,Eigen::Dynamic,1> q(lengthVec);
 
   //compute ||v||_2 of current vector
-  Scalar normCol = v.dot(v);//need to call all gather 
-  //if parallel, need to sum projection over all processes
-  //Also make sure that vectors are distributed
-  if(structCom && DistrVectors) 
-    structCom->globalSum(sizeof(Scalar), &normCol);
-  normCol = sqrt(normCol);
+  Scalar normCol = v.norm();//need to call all gather 
 
   q = v/normCol;
   matrix.col(i) = q;
   //loop over all other vectors and subtract off projection 
   for(int j = i+1; j != numVec; ++j) { 
     Scalar vecProj = q.dot(matrix.col(j)); //need to call all gather
-    //if parallel, need to sum projection over all processes
-    //Also make sure that vectors are distributed
-    if(structCom && DistrVectors) 
-      structCom->globalSum(sizeof(Scalar), &vecProj);
     matrix.col(j) += -1*vecProj*q;
   }
  }

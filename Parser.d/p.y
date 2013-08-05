@@ -54,6 +54,7 @@
  GeoSource::Rprop rprop;
  OutputInfo oinfo;
  ConstraintOptions copt;
+ BlastLoading::BlastData blastData;
 }
 
 %expect 6
@@ -151,6 +152,7 @@
 %type <ival>     PRECTYPEID SWITCH TOPFLAG
 %type <oinfo>    OutInfo
 %type <copt>     ConstraintOptionsData
+%type <blastData> ConwepData
 %%
 FinalizedData:
 	All END
@@ -927,20 +929,24 @@ DynamInfo:
         { domain->solInfo().check_energy_balance = true;
           domain->solInfo().epsilon1 = $3; 
           domain->solInfo().epsilon2 = $4; }
-        | DynamInfo CONWEP Float Float Float Float Float NewLine
+        | DynamInfo CONWEP ConwepData NewLine
         { domain->solInfo().ConwepOnOff = true;
-          // Note: chargeWeight must be entered in the units of mass of the problem, not units of force.
-          BlastLoading::InputFileData.ConwepGlobalOnOff = true;
-          BlastLoading::InputFileData.ExplosivePosition[0]    = $3;
-          BlastLoading::InputFileData.ExplosivePosition[1]    = $4;
-          BlastLoading::InputFileData.ExplosivePosition[2]    = $5;
-          BlastLoading::InputFileData.ExplosiveDetonationTime = $7;
-          BlastLoading::InputFileData.BlastType               = BlastLoading::BlastData::AirBurst; // ($7 == 0 ? BlastLoading::BlastData::SurfaceBurst : BlastLoading::BlastData::AirBurst);
-          BlastLoading::InputFileData.ScaleLength             = 1.0;
-          BlastLoading::InputFileData.ScaleTime               = 1.0;
-          BlastLoading::InputFileData.ScaleMass               = 1.0;
-          BlastLoading::InputFileData.ExplosiveWeight         = $6*2.2; // The 2.2 factor is to convert from kilograms to pounds force.
-          BlastLoading::InputFileData.ExplosiveWeightCubeRoot = pow(BlastLoading::InputFileData.ExplosiveWeight,1.0/3.0);
+          BlastLoading::InputFileData = $3; }
+        ;
+ConwepData:
+        Float Float Float Float Float
+        { // Note: chargeWeight must be entered in the units of mass of the problem, not units of force.
+          $$.ConwepGlobalOnOff = true;
+          $$.ExplosivePosition[0] = $1;
+          $$.ExplosivePosition[1] = $2;
+          $$.ExplosivePosition[2] = $3;
+          $$.ExplosiveDetonationTime = $5;
+          $$.BlastType = BlastLoading::BlastData::AirBurst; // ($5 == 0 ? BlastLoading::BlastData::SurfaceBurst : BlastLoading::BlastData::AirBurst);
+          $$.ScaleLength = 1.0;
+          $$.ScaleTime = 1.0;
+          $$.ScaleMass = 1.0;
+          $$.ExplosiveWeight = $4*2.2; // The 2.2 factor is to convert from kilograms to pounds force.
+          $$.ExplosiveWeightCubeRoot = pow(BlastLoading::InputFileData.ExplosiveWeight,1.0/3.0);
         }
         ;
 TimeIntegration:
@@ -4121,7 +4127,6 @@ SvdOption:
   | ConwepConfig
   ;
 
-
 Sampling:
     SAMPLING NewLine 
   { domain->solInfo().activatePodRom = true; 
@@ -4176,17 +4181,8 @@ SamplingOption:
 
 ConwepConfig:
    CONWEPCFG NewLine
-   | ConwepConfig Float Float Float Float Float NewLine
-   {
-    SolverInfo::ConwepConfig conwep;
-    conwep.x = $2;
-    conwep.y = $3;
-    conwep.z = $4;
-    conwep.mass = $5;
-    conwep.time = $6;
-    
-    domain->solInfo().conwepConfigurations.push_back(conwep);
-   }
+   | ConwepConfig ConwepData NewLine
+   { domain->solInfo().conwepConfigurations.push_back($2); }
   ;
    
 ConversionToken:

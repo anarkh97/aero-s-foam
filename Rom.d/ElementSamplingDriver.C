@@ -167,18 +167,9 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::assembleTrainingData(const Vec
     int *nodes = domain_->getElementSet()[iElem]->nodes();
     int iSnap = 0;
     for(int i=0; i<domain->solInfo().statePodRomFile.size(); i++) {
-      if(!domain->solInfo().conwepConfigurations.empty()){
-        BlastLoading::InputFileData.ConwepGlobalOnOff = true;
-        BlastLoading::InputFileData.ExplosivePosition[0]    = domain->solInfo().conwepConfigurations[i].x;
-        BlastLoading::InputFileData.ExplosivePosition[1]    = domain->solInfo().conwepConfigurations[i].y;
-        BlastLoading::InputFileData.ExplosivePosition[2]    = domain->solInfo().conwepConfigurations[i].z;
-        BlastLoading::InputFileData.ExplosiveDetonationTime = domain->solInfo().conwepConfigurations[i].time;
-        BlastLoading::InputFileData.BlastType               = BlastLoading::BlastData::AirBurst; // ($7 == 0 ? BlastLoading::BlastData::SurfaceBurst : BlastLoading::BlastData::AirBurst);
-        BlastLoading::InputFileData.ScaleLength             = 1.0;
-        BlastLoading::InputFileData.ScaleTime               = 1.0;
-        BlastLoading::InputFileData.ScaleMass               = 1.0;
-        BlastLoading::InputFileData.ExplosiveWeight         = domain->solInfo().conwepConfigurations[i].mass * 2.2; // The 2.2 factor is to convert from kilograms to pounds force.
-        BlastLoading::InputFileData.ExplosiveWeightCubeRoot = pow(BlastLoading::InputFileData.ExplosiveWeight,1.0/3.0);
+      if(!domain->solInfo().conwepConfigurations.empty()) {
+        domain->solInfo().ConwepOnOff = true;
+        BlastLoading::InputFileData = domain->solInfo().conwepConfigurations[i];
       }
       for (int jSnap = 0; jSnap != snapshotCounts[i]; ++iSnap, ++jSnap) {
         geomState_->explicitUpdate(domain_->getNodes(), domain_->getElementSet()[iElem]->numNodes(),

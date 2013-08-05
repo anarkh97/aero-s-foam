@@ -3,6 +3,7 @@
 
 #include <Utils.d/NonlinearInfo.h>
 #include <Feti.d/FetiInfo.h>
+#include <Utils.d/Conwep.d/BlastLoading.h>
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
@@ -41,15 +42,6 @@ struct SolverInfo {
           Decomp, NonLinTempDynam, DisEnrM, PodRomOffline,
           None }; // note to developers: if you add a new entry in ths enum then
                   // you should also modify problemTypeMessage in Driver.d/Static.C
-   
-   struct ConwepConfig {
-     double x;
-     double y;
-     double z;
-     double mass;
-     double time;
-   };
-
 
    int probType;
    int soltyp; // from CONTROL statement: 1 = statics, 2 = heat conduction, etc...
@@ -291,7 +283,7 @@ struct SolverInfo {
    const char * readInModes;
    const char * SVDoutput;
    const char * reducedMeshFile;
-   std::vector<ConwepConfig> conwepConfigurations;
+   std::vector<BlastLoading::BlastData> conwepConfigurations;
    std::vector<std::string> statePodRomFile;
    std::vector<std::string> velocPodRomFile;
    std::vector<std::string> accelPodRomFile;

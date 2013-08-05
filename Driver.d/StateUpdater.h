@@ -25,7 +25,7 @@ public:
   static double integrate(ProbDescr *pbd, RefState *refState, GeomType *geomState,
 		  StateIncr *du, VecType &residual, 
 		  VecType &elementInternalForce, VecType &gRes, double lambda = 1.0) {
-    updateState(geomState, *du);
+    updateState(pbd, geomState, *du);
     return pbd->getStiffAndForce(*geomState, residual, elementInternalForce, gRes, lambda, refState);
   }
 
@@ -33,7 +33,7 @@ public:
 		  StateIncr *du, VecType &residual, 
 		  VecType &elementInternalForce, VecType &gRes, VecType& vel_n,
                   VecType &accel, double midTime) {
-    updateState(geomState, *du);
+    updateState(pbd, geomState, *du);
     return pbd->getStiffAndForce(*geomState, residual, elementInternalForce, midTime, refState);
   }
 
@@ -71,8 +71,7 @@ public:
     force_bk = force;
   }
 
-private:
-  static void updateState(GeomType *geomState, const VecType &du) {
+  static void updateState(ProbDescr *pbd, GeomType *geomState, const VecType &du) {
     geomState->update(const_cast<VecType &>(du));
   }
 };
@@ -127,6 +126,9 @@ public:
     force_bk = force;
   }
 
+  static void updateState(ProbDescr *pbd, GeomType *geomState, const VecType &du) {
+    geomState->update(*du, pbd->getDelta());
+  }
 };
 
 //-------------------------------------------------------------------------------------------------
@@ -201,6 +203,8 @@ public:
     vp_bk = vp;
     force_bk = force;
   }
+
+  static void updateState(ProbDescr *pbd, GeomType *geomState, const VecType &du) {}
 
 };
 

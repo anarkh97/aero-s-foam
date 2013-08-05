@@ -259,7 +259,9 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
             probDesc->getConstraintMultipliers(*geomState);
 
             StateUpdate::updateIncr(stateIncr, rhs);  // stateIncr = rhs
-            if(maxit == 1) geomState->update(*stateIncr);
+
+            // Update state here if the maximum number of iterations is reached
+            if(iter == maxit-1) StateUpdate::updateState(probDesc, geomState, *stateIncr);
           }
           // If the converged criteria does involve the solution increment, then
           // check for convergence now
@@ -280,7 +282,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
 
       } // end of Newton iteration loop
 
-      if(converged == 0 && !failSafe && domain->solInfo().getNLInfo().updateK != std::numeric_limits<int>::max()) {
+      if(converged == 0 && !failSafe && domain->solInfo().getNLInfo().stepUpdateK != std::numeric_limits<int>::max()) {
         filePrint(stderr,"\r *** WARNING: at time %f Newton solver did not reach convergence after %d iterations"
                          " (residual: initial = %9.3e, final = %9.3e, target = %9.3e)\n", 
                          midtime, maxit, initialRes, resN, probDesc->getTolerance());

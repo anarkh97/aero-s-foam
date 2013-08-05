@@ -153,8 +153,8 @@ Domain::getFollowerForce(GeomState &geomState, Vector& elementForce,
         // Include the "load stiffness matrix" in kel[iele]
         kel[iele] += kel2;
       } else {
-         getElemFollowerForce(iele, geomState, elementForce.data(), elementForce.size(),
-                              *(corotators[iele]), kel[iele], loadFactor, time, compute_tangents);
+        getElemFollowerForce(iele, geomState, elementForce.data(), elementForce.size(),
+                             *(corotators[iele]), kel[iele], loadFactor, time, compute_tangents);
       }
 
       // Assemble element pressure forces into residual force vector
@@ -829,12 +829,15 @@ Domain::createKelArray(FullSquareMatrix *&kArray)
   int iele;
   for(iele = 0; iele<numele; ++iele) {
     kArray[iele].setSize(packedEset[iele]->numDofs());
-    kArray[iele].zero(); 
+  }
+
+  // Form and store element stiffness matrices into an array
+  for(iele=0; iele<numele; ++iele) {
+    kArray[iele].copy(packedEset[iele]->stiffness(nodes, kArray[iele].data()));
   }
 }
 
 // used in nonlinear dynamics
-
 void
 Domain::createKelArray(FullSquareMatrix *&kArray, FullSquareMatrix *&mArray)
 {

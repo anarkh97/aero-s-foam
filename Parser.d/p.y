@@ -86,7 +86,7 @@
 %token OPTIMIZATION OUTPUT OUTPUT6 OUTPUTFRAME
 %token QSTATIC QLOAD
 %token PITA PITADISP6 PITAVEL6 NOFORCE MDPITA GLOBALBASES LOCALBASES TIMEREVERSIBLE REMOTECOARSE ORTHOPROJTOL READINITSEED JUMPCVG JUMPOUTPUT
-%token PRECNO PRECONDITIONER PRELOAD PRESSURE PRINTMATLAB PROJ PIVOT PRECTYPE PRECTYPEID PICKANYCORNER PADEPIVOT PROPORTIONING PLOAD PADEPOLES POINTSOURCE PLANEWAVE PTOL PLANTOL PMAXIT
+%token PRECNO PRECONDITIONER PRELOAD PRESSURE PRINTMATLAB PROJ PIVOT PRECTYPE PRECTYPEID PICKANYCORNER PADEPIVOT PROPORTIONING PLOAD PADEPOLES POINTSOURCE PLANEWAVE PTOL PLANTOL PMAXIT PIECEWISE
 %token RADIATION RBMFILTER RBMSET READMODE REBUILD RENUM RENUMBERID REORTHO RESTART RECONS RECONSALG REBUILDCCT RANDOM RPROP RNORM REVERSENORMALS RIGID
 %token SCALING SCALINGTYPE SENSORS SOLVERTYPE SHIFT
 %token SPOOLESTAU SPOOLESSEED SPOOLESMAXSIZE SPOOLESMAXDOMAINSIZE SPOOLESMAXZEROS SPOOLESMSGLVL SPOOLESSCALE SPOOLESPIVOT SPOOLESRENUM SPARSEMAXSUP SPARSEDEFBLK
@@ -2900,6 +2900,42 @@ Statics:
         Solver
         | IterSolver
         | Statics CASES CasesList NewLine
+        | Statics PIECEWISE NewLine
+        { // activate piecewise constant configuration dependent external forces for a linear dynamic analysis
+          if(!domain->solInfo().isNonLin()) { 
+            if(domain->solInfo().probType == SolverInfo::Static || domain->solInfo().probType == SolverInfo::None)
+              domain->solInfo().probType = SolverInfo::NonLinStatic;
+            else if(domain->solInfo().probType == SolverInfo::Dynamic)
+              domain->solInfo().probType = SolverInfo::NonLinDynam;
+            else if(domain->solInfo().probType == SolverInfo::TempDynamic) {
+              domain->solInfo().order = 1;
+              domain->solInfo().probType = SolverInfo::NonLinDynam;
+            }
+            domain->solInfo().setNewton(std::numeric_limits<int>::max());
+            domain->solInfo().getNLInfo().stepUpdateK = std::numeric_limits<int>::max();
+            domain->solInfo().getNLInfo().linearelastic = true;
+            domain->solInfo().getNLInfo().maxiter = 1;
+          }
+        }
+        | Statics PIECEWISE Float Float NewLine
+        { // activate piecewise constant configuration dependent external forces for a linear static analysis
+          if(!domain->solInfo().isNonLin()) {  
+            if(domain->solInfo().probType == SolverInfo::Static || domain->solInfo().probType == SolverInfo::None)
+              domain->solInfo().probType = SolverInfo::NonLinStatic;
+            else if(domain->solInfo().probType == SolverInfo::Dynamic)
+              domain->solInfo().probType = SolverInfo::NonLinDynam;
+            else if(domain->solInfo().probType == SolverInfo::TempDynamic) {
+              domain->solInfo().order = 1;
+              domain->solInfo().probType = SolverInfo::NonLinDynam;
+            }
+            domain->solInfo().setNewton(std::numeric_limits<int>::max());
+            domain->solInfo().getNLInfo().stepUpdateK = std::numeric_limits<int>::max();
+            domain->solInfo().getNLInfo().linearelastic = true;
+            domain->solInfo().getNLInfo().maxiter = 1;
+            domain->solInfo().getNLInfo().dlambda = $3;
+            domain->solInfo().getNLInfo().maxLambda = $4;
+          }
+        }
         ;
 CasesList:
         Integer
@@ -3732,9 +3768,9 @@ NLInfo:
           else if(domain->solInfo().probType == SolverInfo::TempDynamic) {
             domain->solInfo().order = 1;
             domain->solInfo().probType = SolverInfo::NonLinDynam;
-            domain->solInfo().probType = SolverInfo::TempDynamic;
           }
-          domain->solInfo().fetiInfo.type = FetiInfo::nonlinear; // XXXX
+          domain->solInfo().fetiInfo.type = FetiInfo::nonlinear;
+          domain->solInfo().getNLInfo().setDefaults(); // just in case PIECEWISE is used under statics
         }
         | NLInfo ARCLENGTH NewLine
         { 

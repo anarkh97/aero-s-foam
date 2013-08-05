@@ -96,7 +96,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
        filePrint(stderr," ... Newton : analysis interrupted by divergence\n");
        break;
      } 
-     else if(converged == 0) {
+     else if(converged == 0 && domain->solInfo().getNLInfo().stepUpdateK != std::numeric_limits<int>::max()) {
        filePrint(stderr," *** WARNING: Newton solve did not converge after %d iterations (res = %e, target = %e)\n",
                  numIter, totalRes.norm(), probDesc->getTolerance());
      }
@@ -395,7 +395,9 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
     }
 
     StateUpdate::updateIncr(stateIncr, residual);
-    if(maxit == 1) geomState->update(*stateIncr);
+
+    // Update state here if the maximum number of iterations is reached
+    if(iter == maxit-1) StateUpdate::updateState(probDesc, geomState, *stateIncr);
 
     // Compute incremental displacement norm
     double normDv = residual.norm();
@@ -404,7 +406,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
     converged = probDesc->checkConvergence(iter, normDv, residualNorm);
 
 #ifdef DEBUG_NEWTON
-    probDesc->staticOutput( geomState, double(iter), force, totalRes, refState);
+    probDesc->staticOutput(geomState, double(iter), force, totalRes, refState);
 #endif
 
     totalNewtonIter++;

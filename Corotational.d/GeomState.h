@@ -17,10 +17,12 @@ class NodeState {
   public:
     double x, y, z;                     // x,y,z coordinates
     double v[6], a[6];                  // x,y,z velocities and accelerations
+    double theta[3];                    // rotation vector
     double R[3][3];                     // Rotation Tensor
     void operator=(const NodeState &);
     double diff(const Node &un, int dof);
-    NodeState() { for(int i = 0; i < 6; ++ i) v[i] = a[i] = 0; }
+    NodeState() { for(int i = 0; i < 6; ++i) v[i] = a[i] = 0;
+                  for(int i = 0; i < 3; ++i) theta[i] = 0; }
 };
 
 class ElemState {

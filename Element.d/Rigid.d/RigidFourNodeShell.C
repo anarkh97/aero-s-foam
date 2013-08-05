@@ -14,6 +14,7 @@ RigidFourNodeShell::RigidFourNodeShell(int *_nn)
     int indices[2] = { i+1, 0 };
     subElems[i] = new RigidBeam(indices);
   }
+  conwep = 0;
 }
 
 //EXPERIMENTAL: equip this element with mass matrix and pressure load vector from BelytschkoTsayShell
@@ -27,15 +28,10 @@ extern "C" {
 }
 
 void
-RigidFourNodeShell::setPressure(double pres, MFTTData *, bool)
+RigidFourNodeShell::setPressure(double pres, MFTTData *, BlastLoading::BlastData *_conwep)
 {
   pressure = pres;
-}
-
-double
-RigidFourNodeShell::getPressure()
-{ 
-  return pressure;
+  conwep = _conwep;
 }
 
 double
@@ -126,7 +122,7 @@ RigidFourNodeShell::massMatrix(CoordSet &cs, double *mel, int cmflg)
 
 void
 RigidFourNodeShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
-                                         GeomState *geomState, int cflg, double)
+                                         GeomState *geomState, int cflg, double time)
 {
   int opttrc = 0; // 0 : pressure
                   // 1 : traction
@@ -142,6 +138,10 @@ RigidFourNodeShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
     edisp[iloc+0] = (geomState) ? (*geomState)[nn[i]].x - cs[nn[i]]->x : 0;
     edisp[iloc+1] = (geomState) ? (*geomState)[nn[i]].y - cs[nn[i]]->y : 0;
     edisp[iloc+2] = (geomState) ? (*geomState)[nn[i]].z - cs[nn[i]]->z : 0;
+  }
+  // Check if Conwep is being used. If so, use the pressure from the blast loading function.
+  if(conwep) {
+    pressure = BlastLoading::ComputeShellPressureLoad(ecord, time, *conwep);
   }
   double trac[3] = { -pressure, 0, 0 };
   double *efbc = (double*) dbg_alloca(sizeof(double)*nnodes*ndime); // translations only

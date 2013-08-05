@@ -122,7 +122,7 @@ BelytschkoTsayShell::BelytschkoTsayShell(int* nodenums)
   expmat = 0;
   myMat = false;
   mftt = 0;
-  ConwepOnOff = false;
+  conwep = 0;
 }
 
 BelytschkoTsayShell::~BelytschkoTsayShell()
@@ -184,12 +184,12 @@ BelytschkoTsayShell::setMaterial(NLMaterial *m)
 }
 
 void
-BelytschkoTsayShell::setPressure(double _pressure, MFTTData *_mftt, bool _ConwepOnOff)
+BelytschkoTsayShell::setPressure(double _pressure, MFTTData *_mftt, BlastLoading::BlastData *_conwep)
 {
   pressure = _pressure;
   mftt = _mftt;
   opttrc = 0;
-  ConwepOnOff = _ConwepOnOff;
+  conwep = _conwep;
 }
 
 double
@@ -461,9 +461,9 @@ BelytschkoTsayShell::getStiffAndForce(GeomState& geomState, CoordSet& cs, FullSq
         evelo[iloc+j] = geomState[nn[i]].v[j]; // now geomState stores v^{n+1/2}
       }
     }
-    // Check if Conwep is being used. If so, use the pressure from Conwep.
-    if (ConwepOnOff) {
-      pressure = BlastLoading::ComputeShellPressureLoad(ecord,time,BlastLoading::InputFileData);
+    // Check if Conwep is being used. If so, use the pressure from the blast loading function.
+    if (conwep) {
+      pressure = BlastLoading::ComputeShellPressureLoad(ecord, time, *conwep);
     }
     double trac[3] = { 0, 0, pressure };
     double tmftval = (mftt) ? mftt->getVal(std::max(time,0.0)) : 1.0;

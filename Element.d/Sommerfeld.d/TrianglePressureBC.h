@@ -13,7 +13,7 @@ using Tri3LagrangePolynomialSurfacePressureForceFunction = SurfacePressureForceF
 class TrianglePressureBC : public PressureElement<Tri3LagrangePolynomialSurfacePressureForceFunction>
 {
   public:
-    TrianglePressureBC(int* _nn, double _pressure, bool _ConwepOnOff); 
+    TrianglePressureBC(int* _nn, double _pressure); 
 
   protected:
     double pressure;
@@ -28,10 +28,9 @@ class TrianglePressureBC : public SommerElement
     int nnode, nndof, ndime, optele;
     int nn[3];
     double pressure;
-    bool ConwepOnOff;
 
   public:
-    TrianglePressureBC(int *, double, bool _ConwepOnOff);
+    TrianglePressureBC(int *, double);
 
     int numNodes() { return nnode; }
     int getNode(int nd) { return nn[nd]; }

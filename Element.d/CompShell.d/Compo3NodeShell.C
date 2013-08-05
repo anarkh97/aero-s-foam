@@ -53,6 +53,7 @@ Compo3NodeShell::Compo3NodeShell(int* nodenums)
   nn[0] = nodenums[0];
   nn[1] = nodenums[1];
   nn[2] = nodenums[2];
+  conwep = NULL;
 }
 
 Element *
@@ -699,33 +700,33 @@ Compo3NodeShell::getTopNumber()
 }
 
 void
-Compo3NodeShell::setPressure(double _pressure, MFTTData *_mftt, bool _ConwepOnOff){
+Compo3NodeShell::setPressure(double _pressure, MFTTData *_mftt, BlastLoading::BlastData *_conwep) {
   pressure = _pressure;
-  ConwepOnOff = _ConwepOnOff;
+  conwep = _conwep;
 }
 
 void
 Compo3NodeShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
                                       GeomState *geomState, int cflg, double time) {
-    // Check if Conwep is being used. If so, use the pressure from Conwep.
-    if (ConwepOnOff) {
-      double* CurrentElementNodePositions = (double*) dbg_alloca(sizeof(double)*3*4);
-      int NodeNumber;
-      for(int Dimension = 0; Dimension < 4; ++Dimension) {
-        NodeNumber = Dimension*3;
-        if (Dimension==3){
-          CurrentElementNodePositions[NodeNumber+0] = cs[nn[2]]->x;
-          CurrentElementNodePositions[NodeNumber+1] = cs[nn[2]]->y;
-          CurrentElementNodePositions[NodeNumber+2] = cs[nn[2]]->z;
-        }
-        else{
-          CurrentElementNodePositions[NodeNumber+0] = cs[nn[Dimension]]->x;
-          CurrentElementNodePositions[NodeNumber+1] = cs[nn[Dimension]]->y;
-          CurrentElementNodePositions[NodeNumber+2] = cs[nn[Dimension]]->z;
-        }
-      }
-     pressure = BlastLoading::ComputeShellPressureLoad(CurrentElementNodePositions,time,BlastLoading::InputFileData);
-    }
+     // Check if Conwep is being used. If so, use the pressure from the blast loading function.
+     if (conwep) {
+       double* CurrentElementNodePositions = (double*) dbg_alloca(sizeof(double)*3*4);
+       int NodeNumber;
+       for(int Dimension = 0; Dimension < 4; ++Dimension) {
+         NodeNumber = Dimension*3;
+         if (Dimension==3) {
+           CurrentElementNodePositions[NodeNumber+0] = cs[nn[2]]->x;
+           CurrentElementNodePositions[NodeNumber+1] = cs[nn[2]]->y;
+           CurrentElementNodePositions[NodeNumber+2] = cs[nn[2]]->z;
+         }
+         else {
+           CurrentElementNodePositions[NodeNumber+0] = cs[nn[Dimension]]->x;
+           CurrentElementNodePositions[NodeNumber+1] = cs[nn[Dimension]]->y;
+           CurrentElementNodePositions[NodeNumber+2] = cs[nn[Dimension]]->z;
+         }
+       }
+       pressure = BlastLoading::ComputeShellPressureLoad(CurrentElementNodePositions, time, *conwep);
+     }
      double px = 0.0;
      double py = 0.0;
      double pz = 0.0;

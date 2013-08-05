@@ -144,11 +144,10 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::assembleTrainingData(const Vec
                                                                        typename MatrixBufferType::iterator elemContributions,
                                                                        Vector &trainingTarget, VecBasis *veloc, VecBasis *accel) {
   const int podVectorCount = podBasis.vectorCount();
-  //const int snapshotCount = displac.vectorCount();
   std::vector<int> snapshotCounts;
   int skipFactor = domain->solInfo().skipPodRom;
   int skipOffSet = domain->solInfo().skipOffSet;
-  for(int i=0;i<domain->solInfo().statePodRomFile.size();i++){
+  for(int i = 0; i < domain->solInfo().statePodRomFile.size(); i++) {
     DistrBasisInputFile in(domain->solInfo().statePodRomFile[i]);
     snapshotCounts.push_back((in.stateCount() % 2) + (in.stateCount() - skipOffSet) / skipFactor);
   }
@@ -157,19 +156,21 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::assembleTrainingData(const Vec
   Vector elemTarget(podVectorCount);
   SimpleBuffer<double> elementForce(domain_->maxNumDOF());
 
-  if(domain->solInfo().conwepConfigurations.size() < domain->solInfo().statePodRomFile.size() && !domain->solInfo().conwepConfigurations.empty()){
-    std::cerr << "Must provide one configuration per snapshot\n";
+  BlastLoading::BlastData *conwep;
+  if(domain->solInfo().conwepConfigurations.empty()) conwep = (domain->solInfo().ConwepOnOff) ? &BlastLoading::InputFileData : NULL;
+  else if(domain->solInfo().conwepConfigurations.size() < domain->solInfo().statePodRomFile.size()) {
+    filePrint(stderr, " *** ERROR: Must provide one Conwep configuration per state snapshot file\n");
     exit(-1);
   }
+
   for (int iElem = 0; iElem != elementCount(); ++iElem) {
     filePrint(stderr,"\r %4.2f%% complete", double(iElem)/double(elementCount())*100.);
     std::vector<double>::iterator timeStampIt = timeStampFirst;
     int *nodes = domain_->getElementSet()[iElem]->nodes();
     int iSnap = 0;
-    for(int i=0; i<domain->solInfo().statePodRomFile.size(); i++) {
+    for(int i = 0; i < domain->solInfo().statePodRomFile.size(); i++) {
       if(!domain->solInfo().conwepConfigurations.empty()) {
-        domain->solInfo().ConwepOnOff = true;
-        BlastLoading::InputFileData = domain->solInfo().conwepConfigurations[i];
+        conwep = &domain->solInfo().conwepConfigurations[i];
       }
       for (int jSnap = 0; jSnap != snapshotCounts[i]; ++iSnap, ++jSnap) {
         geomState_->explicitUpdate(domain_->getNodes(), domain_->getElementSet()[iElem]->numNodes(),
@@ -188,7 +189,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::assembleTrainingData(const Vec
 
         if(domain_->solInfo().reduceFollower)
           domain_->getElemFollowerForce( iElem, *geomState_, elementForce.array(), elementForce.size(), *(corotators_[iElem]), 
-              kelArray_[iElem], 1.0, *timeStampIt, false);
+              kelArray_[iElem], 1.0, *timeStampIt, false, conwep);
 
         elemTarget.zero();
         const int dofCount = kelArray_[iElem].dim();

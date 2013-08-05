@@ -12,7 +12,7 @@ using Quad4LagrangePolynomialSurfacePressureForceFunction = SurfacePressureForce
 class QuadPressureBC : public PressureElement<Quad4LagrangePolynomialSurfacePressureForceFunction>
 {
   public:
-    QuadPressureBC(int* _nn, double _pressure, bool); 
+    QuadPressureBC(int* _nn, double _pressure); 
 
   protected:
     double pressure;
@@ -27,10 +27,9 @@ class QuadPressureBC : public SommerElement
     int nnode, nndof, ndime, optele;
     int nn[4];
     double pressure;
-    bool ConwepOnOff;
 
   public:
-    QuadPressureBC(int *, double, bool _ConwepOnOff);
+    QuadPressureBC(int *, double);
 
     int numNodes() { return nnode; }
     int getNode(int nd) { return nn[nd]; }

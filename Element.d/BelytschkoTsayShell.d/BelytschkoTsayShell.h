@@ -45,7 +45,7 @@ class BelytschkoTsayShell : virtual public Element, public Corotator
     ExpMat *expmat;
     bool myMat;
     MFTTData *mftt;
-    bool ConwepOnOff;
+    BlastLoading::BlastData *conwep;
     ElastoPlasticPlaneStressMaterial **mat;
 
   public:
@@ -54,12 +54,12 @@ class BelytschkoTsayShell : virtual public Element, public Corotator
 
     void setProp(StructProp *p, bool _myProp = false);
     void setMaterial(NLMaterial *);
-    void setPressure(double, MFTTData* = 0, bool = false);
+    void setPressure(double, MFTTData* = 0, BlastLoading::BlastData* = 0);
     double getPressure();
     Element *clone();
 
     void renum(int *);
-        void renum(EleRenumMap&);
+    void renum(EleRenumMap&);
 
     FullSquareMatrix stiffness(CoordSet&, double* d, int flg = 1);
     FullSquareMatrix massMatrix(CoordSet&, double* mel, int cmflg = 1);

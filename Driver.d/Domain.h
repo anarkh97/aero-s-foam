@@ -349,10 +349,10 @@ class Domain : public HData {
                            Vector &residual, double lambda = 1.0, double time = 0.0,
                            GeomState *refState = NULL, Vector *reactions = NULL,
                            bool compute_tangents = false);
-     void getElemFollowerForce( int iele, GeomState &geomState, double *_f, int bufSize,
-                         Corotator &corotators, FullSquareMatrix &kel2,
-                         double loadFactor, double time,
-                         bool compute_tangents);
+     void getElemFollowerForce(int iele, GeomState &geomState, double *_f, int bufSize,
+                               Corotator &corotators, FullSquareMatrix &kel2,
+                               double loadFactor, double time, bool compute_tangents,
+                               BlastLoading::BlastData *conwep);
      void getElemFictitiousForce(int iele, GeomState &geomState, double *f, FullSquareMatrix &kel,
                                  double time, GeomState *refState, FullSquareMatrix &mel, bool compute_tangents);
      void getDMassFictitiousForce(GeomState &geomState, FullSquareMatrix *kel, Vector &residual, double time,

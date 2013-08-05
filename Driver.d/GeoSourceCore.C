@@ -843,10 +843,11 @@ void GeoSource::setUpData()
   const int nMaxEle = elemSet.last();
 
   // Set up element pressure load
+  BlastLoading::BlastData *conwep = (domain->solInfo().ConwepOnOff) ? &BlastLoading::InputFileData : NULL;
   for(vector<pair<int,double> >::iterator i = eleprs.begin(); i != eleprs.end(); ++i) {
     int elemNum = i->first;
     if(elemSet[elemNum])
-     elemSet[elemNum]->setPressure(i->second, domain->getMFTT(),domain->solInfo().ConwepOnOff);
+     elemSet[elemNum]->setPressure(i->second, domain->getMFTT(), conwep);
    else
      fprintf(stderr," *** WARNING: Pressure was found for non-existent element %d\n", elemNum+1);
   }

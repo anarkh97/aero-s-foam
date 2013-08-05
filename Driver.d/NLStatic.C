@@ -137,6 +137,7 @@ Domain::getFollowerForce(GeomState &geomState, Vector& elementForce,
   if(domain->pressureFlag()) {
     double cflg = (sinfo.newmarkBeta == 0.0) ? 0.0 : 1.0;
     double loadFactor = (domain->mftval && sinfo.isDynam()) ? lambda*domain->mftval->getVal(std::max(time,0.0)) : lambda;
+    BlastLoading::BlastData *conwep = (domain->solInfo().ConwepOnOff) ? &BlastLoading::InputFileData : NULL;
     double p0;
     for(int iele = 0; iele < numele;  ++iele) {
 
@@ -147,13 +148,14 @@ Domain::getFollowerForce(GeomState &geomState, Vector& elementForce,
         kel2.zero();
 
         getElemFollowerForce(iele, geomState, elementForce.data(), elementForce.size(),
-                             *(corotators[iele]), kel2, loadFactor, time, compute_tangents);
+                             *(corotators[iele]), kel2, loadFactor, time, compute_tangents, conwep);
 
         // Include the "load stiffness matrix" in kel[iele]
         kel[iele] += kel2;
-      } else {
+      }
+      else {
         getElemFollowerForce(iele, geomState, elementForce.data(), elementForce.size(),
-                             *(corotators[iele]), kel[iele], loadFactor, time, compute_tangents);
+                             *(corotators[iele]), kel[iele], loadFactor, time, compute_tangents, conwep);
       }
 
       // Assemble element pressure forces into residual force vector
@@ -390,7 +392,8 @@ Domain::getFollowerForce(GeomState &geomState, Vector& elementForce,
 void
 Domain::getElemFollowerForce(int iele, GeomState &geomState, double *_f, int bufSize,
                              Corotator &corotators, FullSquareMatrix &kel2,
-                             double loadFactor, double time, bool compute_tangents)
+                             double loadFactor, double time, bool compute_tangents,
+                             BlastLoading::BlastData *conwep)
 {
   Vector elementForceBuf(_f,bufSize,false);
   double p0;
@@ -399,9 +402,9 @@ Domain::getElemFollowerForce(int iele, GeomState &geomState, double *_f, int buf
     elementForce.zero();
   
     // Compute (linear) element pressure force in the local coordinates
-    packedEset[iele]->setPressure(p0*loadFactor, domain->getMFTT(), sinfo.ConwepOnOff);
+    packedEset[iele]->setPressure(p0*loadFactor, domain->getMFTT(), conwep);
     packedEset[iele]->computePressureForce(nodes, elementForce, &geomState, 1, time);
-    packedEset[iele]->setPressure(p0, domain->getMFTT(), sinfo.ConwepOnOff);
+    packedEset[iele]->setPressure(p0, domain->getMFTT(), conwep);
     // Include the "load stiffness matrix" in kel[iele]
     if(compute_tangents) {
 
@@ -430,26 +433,28 @@ Domain::getWeightedFollowerForce(const std::map<int, double> &weights,
   if(domain->pressureFlag()) {
     double cflg = (sinfo.newmarkBeta == 0.0) ? 0.0 : 1.0;
     double loadFactor = (domain->mftval && sinfo.isDynam()) ? lambda*domain->mftval->getVal(std::max(time,0.0)) : lambda;
+    BlastLoading::BlastData *conwep = (domain->solInfo().ConwepOnOff) ? &BlastLoading::InputFileData : NULL;
     double p0;
     for (std::map<int, double>::const_iterator it = weights.begin(), it_end = weights.end(); it != it_end; ++it) {
-     const int iele = it->first;
-     const double lumpingWeight = it->second;
+      const int iele = it->first;
+      const double lumpingWeight = it->second;
      
-     elementForce.zero();
-     if(compute_tangents){
-       FullSquareMatrix kel2(kel[iele].dim());
-       kel2.zero();
+      elementForce.zero();
+      if(compute_tangents) {
+        FullSquareMatrix kel2(kel[iele].dim());
+        kel2.zero();
 
-       getElemFollowerForce( iele, geomState, elementForce.data(), elementForce.size(),
-                         *(corotators[iele]), kel2, loadFactor,  time, compute_tangents);
+        getElemFollowerForce(iele, geomState, elementForce.data(), elementForce.size(),
+                             *(corotators[iele]), kel2, loadFactor, time, compute_tangents, conwep);
 
-      // Include the "load stiffness matrix" in kel[iele]
+        // Include the "load stiffness matrix" in kel[iele]
         kel2 *= lumpingWeight;
         kel[iele] += kel2;
-     } else {
-    
-        getElemFollowerForce( iele, geomState, elementForce.data(), elementForce.size(),
-                         *(corotators[iele]), kel[iele], loadFactor,  time, compute_tangents);}
+      }
+      else {
+        getElemFollowerForce(iele, geomState, elementForce.data(), elementForce.size(),
+                             *(corotators[iele]), kel[iele], loadFactor, time, compute_tangents, conwep);
+      }
 
       elementForce *= lumpingWeight;
 

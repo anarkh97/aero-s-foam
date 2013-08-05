@@ -455,8 +455,8 @@ void BlastLoading::Conwep::Parameters(
     IncidentWaveDecayExponent  = Conwep::Decay(IncidentWavePressure, IncidentWaveImpulse, PositivePhaseDuration);
     ReflectedWaveDecayExponent = Conwep::Decay(ReflectedWavePressure, ReflectedWaveImpulse, PositivePhaseDuration); 
   } else {
-    IncidentWaveDecayExponent = 0.0 ;
-    ReflectedWaveDecayExponent = 0.0 ;
+    IncidentWaveDecayExponent = 0.0;
+    ReflectedWaveDecayExponent = 0.0;
   }
 }
 // ====================================================================================================
@@ -493,9 +493,9 @@ double BlastLoading::Conwep::Pressure(double CurrentTimeSinceExplosionTime,
 // Calculate the pressure on the current element:
 double BlastLoading::ComputeShellPressureLoad(const double* CurrentElementNodePositions,
                                               double CurrentTime,
-                                              const BlastLoading::BlastData& P ) {
-// Note: CurrentElementNodePositions contains the positions of the nodes of the current element.
-// CurrentElementNodePositions[0,1,2] = X,Y,Z position of node 1, CurrentElementNodePositions[3,4,5] = X,Y,Z position of node 2, etc.
+                                              const BlastLoading::BlastData& P) {
+  // Note: CurrentElementNodePositions contains the positions of the nodes of the current element.
+  // CurrentElementNodePositions[0,1,2] = X,Y,Z position of node 1, CurrentElementNodePositions[3,4,5] = X,Y,Z position of node 2, etc.
   // Calculate 2 of the current element's edge directions:
   double CurrentElementEdge1Direction[3] = {
     CurrentElementNodePositions[6]-CurrentElementNodePositions[0],
@@ -525,9 +525,9 @@ double BlastLoading::ComputeShellPressureLoad(const double* CurrentElementNodePo
   // Check if the current element is degenerate (is a triangle instead of a quad):
   bool CurrentElementIsDegenerate = (   CurrentElementNodePositions[6]==CurrentElementNodePositions[9]
                                      && CurrentElementNodePositions[7]==CurrentElementNodePositions[10]
-                                     && CurrentElementNodePositions[8]==CurrentElementNodePositions[11] ) ;
+                                     && CurrentElementNodePositions[8]==CurrentElementNodePositions[11] );
   // Calculate the current element's number of nodes:
-  int CurrentElementNumberOfNodes = CurrentElementIsDegenerate ? 3 : 4 ;
+  int CurrentElementNumberOfNodes = CurrentElementIsDegenerate ? 3 : 4;
   // Calculate the current element's centroid coordinates:
   double CurrentElementCentroidCoordinates[3] = {0,0,0};
   for (int CurrentNodeOfCurrentElement = 0; CurrentNodeOfCurrentElement < CurrentElementNumberOfNodes; ++CurrentNodeOfCurrentElement) { 
@@ -538,9 +538,10 @@ double BlastLoading::ComputeShellPressureLoad(const double* CurrentElementNodePo
     CurrentElementCentroidCoordinates[CurrentDimension] *= 1.0/CurrentElementNumberOfNodes;
   }
   // Calculate the current element's pressure:
-  double CurrentElementPressure = Conwep::Blast(InputFileData,CurrentElementCentroidCoordinates,CurrentElementNormalVector,CurrentTime);
+  double CurrentElementPressure = Conwep::Blast(P,CurrentElementCentroidCoordinates,CurrentElementNormalVector,CurrentTime);
   // Return the current element's pressure:
-    // Note that the current element pressure is in psi: convert it to Pa (6.89e3 factor), then use ScaleLength, ScaleTime and ScaleMass to convert it to the correct pressure units.
+  // Note that the current element pressure is in psi: convert it to Pa (6.89e3 factor), then use ScaleLength,
+  // ScaleTime and ScaleMass to convert it to the correct pressure units.
   return -CurrentElementPressure*6.8947573e3/P.ScaleMass*P.ScaleLength*P.ScaleTime*P.ScaleTime;
 }
 // ====================================================================================================

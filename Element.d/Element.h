@@ -6,6 +6,7 @@
 #include <Utils.d/dofset.h>
 #include <Utils.d/GlobalToLocalMap.h>
 #include <Utils.d/MFTT.h>
+#include <Utils.d/Conwep.d/BlastLoading.h>
 #include <iostream>
 #include <vector>
 #include <cstddef>
@@ -339,7 +340,7 @@ class Element {
           }
           prop = p; myProp = _myProp;
         }
-	virtual void setPressure(double pres, MFTTData *mftt = 0, bool ConwepOnOff = false) { pressure = pres; }
+	virtual void setPressure(double pres, MFTTData *mftt = 0, BlastLoading::BlastData *conwep = 0) { pressure = pres; }
         virtual double getPressure() { return pressure; }
 
         // By default ignore any element preload

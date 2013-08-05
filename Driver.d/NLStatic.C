@@ -99,11 +99,10 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
       Vector disp(packedEset[iele]->numDofs());
       getElementDisp(iele, geomState, disp);
       kel[iele].multiply(disp, elementForce, 1.0);
-      // XXX test nl statics, explicit. consider non-homogeneous dirchlet bc & update of rotations
-      //     should make a copy of the linearelastic kelarray before calling this function because the
-      //     load stiffness matrix will be added each time (unless updatedtangents is false, but in that case
-      //     the convergence will not be quadratic)
-      //     should be inside getElemStiffAndForce??
+      // XXX 1. copy of the linearelastic kelarray before calling this function because the
+      //     load stiffness matrix will be added each time (unless updatedtangents is false,
+      //     but in that case the convergence will not be quadratic)
+      //     2. should be inside getElemStiffAndForce??
     }
     // Assemble element internal force into residual force vector
     for(int idof = 0; idof < kel[iele].dim(); ++idof) {

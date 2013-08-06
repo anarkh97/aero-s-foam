@@ -30,7 +30,7 @@ template<typename MatrixBufferType = std::vector<double>, typename SizeType = si
 class ElementSamplingDriver : public SingleDomainDynamic, public DriverInterface {
 public:
   virtual void solve(); // overriden
-  void computeSolution(Vector &solution, bool verboseFlag = true);
+  void computeSolution(Vector &trainingTarget, Vector &solution, double relativeTolerance, bool verboseFlag = true);
   void postProcess(Vector &solution, bool verboseFlag = true);
   VecBasis& podBasis() { return podBasis_; }
   VecBasis& displac() { return displac_; }
@@ -39,17 +39,14 @@ public:
   int vectorSize() const;
   void timeStampsIs(const std::vector<double> &tst) { timeStamps_ = tst; }
 
-  void glNumSubsIs(int glSubs) { glNumSubs = glSubs; }  
-
   explicit ElementSamplingDriver(Domain *);
   ~ElementSamplingDriver();
 
-protected:
   virtual void preProcess();
-  void assembleTrainingData(const VecBasis &displac, std::vector<double>::iterator timeStampFirst, const VecBasis &podBasis,
-                            typename MatrixBufferType::iterator elemContributions, Vector &trainingTarget, VecBasis *veloc, VecBasis *accel);
+  void assembleTrainingData(Vector &trainingTarget);
+
+protected:
   int elementCount() const;
-  int glNumSubs;
 
   void buildDomainCdsa();
   Domain *domain_;

@@ -45,12 +45,13 @@ SubElementSamplingDriver::preProcess() {
   domain_->makeAllDOFs();
   StaticTimers dummyTimes;
   GenFullSquareMatrix<double> *dummyGeomKelArray = NULL;
-//  GenFullSquareMatrix<double> *melArray_ = NULL;
   const bool buildMelArray = true;
   domain_->computeGeometricPreStress(corotators_, geomState_, kelArray_, &dummyTimes, dummyGeomKelArray, melArray_, buildMelArray);
   if(domain_->nDirichlet() > 0) {
     geomState_->updatePrescribedDisplacement(domain_->getDBC(), domain_->nDirichlet(), domain_->getNodes());
   }
+
+  solver_.problemSizeIs(podBasis_.vectorCount()*displac_.vectorCount(), elementCount());
 }
 
 void
@@ -70,7 +71,6 @@ SubElementSamplingDriver::getGlobalWeights(Vector &solution, vector<double> &lwe
   for (int iElem = 0, iElemEnd = inputElemSet.size(); iElem != iElemEnd; ++iElem) {
     Element *elem = inputElemSet[iElem];
     if (elem) {
-      //PJSA const int iPackElem = geoSource->glToPackElem(iElem);
       const int iPackElem = domain_->glToPackElem(iElem);
       assert(iPackElem < packedToInput.size());
       if(iPackElem >= 0) packedToInput[iPackElem] = iElem;

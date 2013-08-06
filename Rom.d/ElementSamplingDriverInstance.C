@@ -23,8 +23,7 @@ ElementSamplingDriver<std::vector<double>,size_t>
 template
 void
 ElementSamplingDriver<std::vector<double>,size_t>
-::assembleTrainingData(const VecBasis &displac, std::vector<double>::iterator timeStampFirst, const VecBasis &podBasis,
-                       std::vector<double>::iterator elemContributions, Vector &trainingTarget, VecBasis *veloc, VecBasis *accel);
+::assembleTrainingData(Vector &trainingTarget);
 
 template
 void
@@ -34,7 +33,7 @@ ElementSamplingDriver<std::vector<double>,size_t>
 template
 void
 ElementSamplingDriver<std::vector<double>,size_t>
-::computeSolution(Vector &solution, bool verboseFlag);
+::computeSolution(Vector &trainingTarget, Vector &solution, double tol, bool verboseFlag);
 
 template
 void
@@ -73,9 +72,7 @@ ElementSamplingDriver<stxxl::VECTOR_GENERATOR<double,16,32,8388608,stxxl::RC,stx
 template
 void
 ElementSamplingDriver<stxxl::VECTOR_GENERATOR<double,16,32,8388608,stxxl::RC,stxxl::random>::result,stxxl::uint64>
-::assembleTrainingData(const VecBasis &displac, std::vector<double>::iterator timeStampFirst, const VecBasis &podBasis,
-                       stxxl::VECTOR_GENERATOR<double,16,32,8388608,stxxl::RC,stxxl::random>::result::iterator elemContributions,
-                       Vector &trainingTarget, VecBasis *veloc, VecBasis *accel);
+::assembleTrainingData(Vector &trainingTarget);
 
 template
 void
@@ -85,7 +82,7 @@ ElementSamplingDriver<stxxl::VECTOR_GENERATOR<double,16,32,8388608,stxxl::RC,stx
 template
 void
 ElementSamplingDriver<stxxl::VECTOR_GENERATOR<double,16,32,8388608,stxxl::RC,stxxl::random>::result,stxxl::uint64>
-::computeSolution(Vector &solution, bool verboseFlag);
+::computeSolution(Vector &trainingTarget, Vector &solution, double tol, bool verboseFlag);
 
 template
 void

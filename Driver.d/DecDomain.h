@@ -99,6 +99,7 @@ class GenDecDomain
   void rebuildOps(GenMDDynamMat<Scalar>&, double, double, double, FullSquareMatrix** = 0, FullSquareMatrix** = 0, FullSquareMatrix** = 0);
   void subRebuildOps(int iSub, GenMDDynamMat<Scalar>&, double, double, double, FullSquareMatrix**, FullSquareMatrix**, FullSquareMatrix**);
   int getNumSub() { return numSub; }
+  int getGlobalNumSub() { return globalNumSub; }
   int getNumCPU() { return numCPU; }
   Connectivity *getMpcToSub() { return mpcToSub_dual; }
   virtual void preProcess();

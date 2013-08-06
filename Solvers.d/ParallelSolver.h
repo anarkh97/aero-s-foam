@@ -14,6 +14,10 @@ class GenParallelSolver {
     virtual void reSolve(GenDistrVector<Scalar> &) = 0;
     virtual double getSolutionTime() = 0;
     virtual void solve(GenDistrVector<Scalar> &, GenDistrVector<Scalar> &) = 0;
+    virtual void squareRootMult(GenDistrVector<Scalar> &) {
+      std::cerr << "GenParallelSolver::squareRootMult(GenDistrVector<Scalar> &) is not implemented\n"; }
+    virtual void inverseSquareRootMult(GenDistrVector<Scalar> &) {
+      std::cerr << "GenParallelSolver::inverseSquareRootMult(GenDistrVector<Scalar> &) is not implemented\n"; }
     virtual void getRBMs(Scalar *) {
       std::cerr << "GenParallelSolver::getRBMs(Scalar *) is not implemented\n"; }
     virtual Timings& getTimers() = 0;

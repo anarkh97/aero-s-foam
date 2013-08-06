@@ -5,7 +5,7 @@
 #include <Math.d/SparseMatrix.h>
 
 template<class Scalar>
-class GenDiagMatrix: public GenSparseMatrix<Scalar> , public GenSolver<Scalar>
+class GenDiagMatrix : public GenSparseMatrix<Scalar>, public GenSolver<Scalar>
 {
      int neq;
      Scalar *v;

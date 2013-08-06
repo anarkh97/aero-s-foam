@@ -13,6 +13,7 @@ class BlastLoading {
             double ScaleTime;
             double ScaleMass;
             bool ConwepGlobalOnOff;
+            void print();
         };
     private:
         class Conwep {

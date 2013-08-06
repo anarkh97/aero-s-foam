@@ -84,7 +84,7 @@ GenDiagMatrix<Scalar>::add(FullSquareMatrix &Mat, int *map)
 
 template<class Scalar>
 void
-GenDiagMatrix<Scalar>::add(GenFullM<Scalar> &, int , int )
+GenDiagMatrix<Scalar>::add(GenFullM<Scalar> &, int, int)
 {
   fprintf(stderr,"WARNING: GenDiagMatrix<Scalar>::add(GenFullM<Scalar> &, int , int) is not implemented\n");
 }
@@ -128,8 +128,6 @@ template<class Scalar>
 void
 GenDiagMatrix<Scalar>::mult(const GenVector<Scalar> &rhs, GenVector<Scalar> &result)
 {
-//  cerr << "over here! \n" ;
-//  fprintf(stderr,"GenDiagMatrix<Scalar>::mult: not implemented yet\n");
   mult(rhs.data(), result.data());
 }
 
@@ -154,12 +152,10 @@ template<class Scalar>
 void
 GenDiagMatrix<Scalar>::inverseSquareRootMult(Scalar *result)
 {
-    for (int i = 0 ; i < neq ; i++){
-      result[i] /= std::sqrt(v[i]);
-    }
+  for (int i = 0 ; i < neq ; i++){
+    result[i] /= std::sqrt(v[i]);
+  }
 }
-
-
 
 template<class Scalar>
 void
@@ -181,8 +177,6 @@ GenDiagMatrix<Scalar>::factor()
     if(v[i] == 0.0) { 
       v[i] = small;
       count++;
-      //cerr << " *** ERROR: zero diagonal detected in the mass matrix. Exiting to avoid division by zero ... \n";
-      //exit(-1);
     }
   }
   if(count > 0) cerr << " *** WARNING: " << count << " zero diagonal/s detected in mass matrix set to " << small << endl;

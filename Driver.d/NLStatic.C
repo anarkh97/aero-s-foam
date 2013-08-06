@@ -309,6 +309,9 @@ Domain::getFollowerForce(GeomState &geomState, Vector& elementForce,
       double f0[3] = { 0, 0, 0 }, f[3] = { 0, 0, 0 }, r[3], rotvar[3][3];
       f0[nbc[i].dofnum] = lambda*mfttFactor*nbc[i].val;
       mat_mult_vec(geomState[nbc[i].nnum].R,f0,f,0); // f = R*f0
+      if(domain->solInfo().galerkinPodRom) {
+        // XXX transform
+      }
       for(int j = 0; j < 3; ++j) {
         int uDofNum = c_dsa->getRCN(dofs[j]);
         if(uDofNum >= 0)
@@ -391,7 +394,7 @@ Domain::getFollowerForce(GeomState &geomState, Vector& elementForce,
 
 void
 Domain::getElemFollowerForce(int iele, GeomState &geomState, double *_f, int bufSize,
-                             Corotator &corotators, FullSquareMatrix &kel2,
+                             Corotator &corotator, FullSquareMatrix &kel2,
                              double loadFactor, double time, bool compute_tangents,
                              BlastLoading::BlastData *conwep)
 {
@@ -410,15 +413,15 @@ Domain::getElemFollowerForce(int iele, GeomState &geomState, double *_f, int buf
 
       FullSquareMatrix elementLoadStiffnessMatrix(kel2.dim());
       elementLoadStiffnessMatrix.zero();
-      corotators.getDExternalForceDu(geomState, nodes, elementLoadStiffnessMatrix,
-                                     elementForce.data());
+      corotator.getDExternalForceDu(geomState, nodes, elementLoadStiffnessMatrix,
+                                    elementForce.data());
       for(int i=0; i<kel2.dim(); ++i)
         for(int j=0; j<kel2.dim(); ++j)
           kel2[i][j] += elementLoadStiffnessMatrix[i][j];
     }
 
     // Determine the elemental force for the corrotated system
-    corotators.getExternalForce(geomState, nodes, elementForce.data());
+    corotator.getExternalForce(geomState, nodes, elementForce.data());
     elementForceBuf += elementForce;
   }
 }

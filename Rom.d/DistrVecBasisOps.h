@@ -128,7 +128,7 @@ renormalized_basis(const GenSubDOp<Scalar> &metric, const GenVecBasis<Scalar, Ge
 template <typename Scalar>
 const GenVecBasis<Scalar, GenDistrVector> &
 MGSVectors(const GenVecBasis<Scalar, GenDistrVector> &basis) {
-  filePrint(stderr,"... Distributed Modified Gram-Schmidt: orthogonalizing vectors ...\n");
+  filePrint(stderr," ... Distributed Modified Gram-Schmidt: orthogonalizing vectors ...\n");
 
   int numVectors = basis.numVec();
 

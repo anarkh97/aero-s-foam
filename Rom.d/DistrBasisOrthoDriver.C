@@ -72,12 +72,11 @@ DistrBasisOrthoDriver::solve() {
     assert(solver.localRows() == maxCpuLoad);
   }
 
-  //Checking flags
   double beta = domain->solInfo().newmarkBeta;
-  //Assembling mass matrix
-  MDDynamMat * dummyDynOps = MultiDomainDynam::buildOps(1.0, 0.0, 0.0);
-  assert(dummyDynOps->M);
-  GenSubDOp<double> *fullMass = dummyDynOps->M;
+  // Assembling mass matrix
+  MDDynamMat *dynOps = MultiDomainDynam::buildOps(1.0, 0.0, 0.0);
+  assert(dynOps->M);
+  assert(dynOps->dynMat);
  
   if(domain->solInfo().snapfiPodRom.empty() && domain->solInfo().robfi.empty()) {
     filePrint(stderr, " *** Error: no files provided\n");
@@ -86,80 +85,79 @@ DistrBasisOrthoDriver::solve() {
    
   int solverCol = 0;
   DistrNodeDof6Buffer inputBuffer(masterMapping.localNodeBegin(), masterMapping.localNodeEnd());
-  if(!domain->solInfo().snapfiPodRom.empty()) {
-    for(int i = 0 ; i < domain->solInfo().snapfiPodRom.size(); i++) { // i is index of snapshot file being read
-      DistrBasisInputFile inputFile(BasisFileId(fileInfo, workload, BasisId::SNAPSHOTS, i));
-      nodeCount = inputFile.nodeCount();
-      int basisStateCount = 1+(inputFile.stateCount()-1)/skipFactor;
-      {
-        int count = 0;
-        int skipCounter = skipFactor;
-        while (count < basisStateCount) {
-          assert(inputFile.validCurrentState());
-          inputFile.currentStateBuffer(inputBuffer);
+  for(int i = 0; i < domain->solInfo().snapfiPodRom.size(); i++) {
+    DistrBasisInputFile inputFile(BasisFileId(fileInfo, workload, BasisId::SNAPSHOTS, i));
+    nodeCount = inputFile.nodeCount();
+    int basisStateCount = 1+(inputFile.stateCount()-1)/skipFactor;
+    {
+      int count = 0;
+      int skipCounter = skipFactor;
+      while (count < basisStateCount) {
+        assert(inputFile.validCurrentState());
+        inputFile.currentStateBuffer(inputBuffer);
 
-          if (skipCounter >= skipFactor) {
-            double *vecBuffer = solver.matrixColBuffer(solverCol);
-            GenStackDistVector<double> vec(decDomain->solVecInfo(), vecBuffer);
+        if (skipCounter >= skipFactor) {
+          double *vecBuffer = solver.matrixColBuffer(solverCol);
+          GenStackDistVector<double> vec(decDomain->solVecInfo(), vecBuffer);
 
-            converter.paddedMasterVector(inputBuffer, vec);
-            if(beta == 0 && domain->solInfo().normalize == 1) { //New method applied on vec buffer: M^(1/2) * U 
-              fullMass->squareRootMult(vec); //Paral.d/SubDOp.[hC] 
-            }
-
-            std::fill(vecBuffer + localLength, vecBuffer + solver.localRows(), 0.0);
-
-            skipCounter = 1;
-            ++solverCol;
-            ++count;
-          } else {
-            ++skipCounter;
+          converter.paddedMasterVector(inputBuffer, vec);
+          // TODO Multiply by weighting factor if given in input file
+          if(beta == 0 && domain->solInfo().normalize == 1) { // new method
+            dynOps->dynMat->squareRootMult(vec);
           }
 
-          inputFile.currentStateIndexInc();
+          std::fill(vecBuffer + localLength, vecBuffer + solver.localRows(), 0.0);
+
+          skipCounter = 1;
+          ++solverCol;
+          ++count;
+        } else {
+          ++skipCounter;
         }
+
+        inputFile.currentStateIndexInc();
       }
     }
   }
 
-  if(!domain->solInfo().robfi.empty()) {
-    for(int i = 0; i < domain->solInfo().robfi.size(); i++) {
-      DistrBasisInputFile inputFile(BasisFileId(fileInfo, workload, BasisId::ROB, i));
-      int basisStateCount = 1+(inputFile.stateCount()-1)/skipFactor;
-      {
-        int count = 0;
-        int skipCounter = skipFactor;
-        while(count < basisStateCount) {
-          assert(inputFile.validCurrentState());
-          inputFile.currentStateBuffer(inputBuffer);
+  for(int i = 0; i < domain->solInfo().robfi.size(); i++) {
+    DistrBasisInputFile inputFile(BasisFileId(fileInfo, workload, BasisId::ROB, i));
+    int basisStateCount = 1+(inputFile.stateCount()-1)/skipFactor;
+    {
+      int count = 0;
+      int skipCounter = skipFactor;
+      while(count < basisStateCount) {
+        assert(inputFile.validCurrentState());
+        inputFile.currentStateBuffer(inputBuffer);
 
-          if (skipCounter >= skipFactor) {
-            double *vecBuffer = solver.matrixColBuffer(solverCol);
-            GenStackDistVector<double> vec(decDomain->solVecInfo(), vecBuffer);
+        if (skipCounter >= skipFactor) {
+          double *vecBuffer = solver.matrixColBuffer(solverCol);
+          GenStackDistVector<double> vec(decDomain->solVecInfo(), vecBuffer);
             
-            converter.paddedMasterVector(inputBuffer, vec);
-            if(beta == 0 && domain->solInfo().normalize == 1){ //New method applied on vec buffer: M^(1/2) * U 
-              fullMass->squareRootMult(vec); //Paral.d/SubDOp.[hC] 
-            }
-            vec *= inputFile.currentStateHeaderValue(); //Multiply by the singular value stored in header
-            
-            std::fill(vecBuffer + localLength, vecBuffer + solver.localRows(), 0.0);
-
-            skipCounter = 1;
-            ++solverCol;
-            ++count;
-          } else {
-            ++skipCounter;
+          converter.paddedMasterVector(inputBuffer, vec);
+          // TODO Multiply by weighting factor if given in input file
+          if(beta == 0 && domain->solInfo().normalize == 1) { // new method
+            dynOps->dynMat->squareRootMult(vec);
           }
+          vec *= inputFile.currentStateHeaderValue(); // Multiply by the singular value stored in header
+            
+          std::fill(vecBuffer + localLength, vecBuffer + solver.localRows(), 0.0);
 
-          inputFile.currentStateIndexInc();
+          skipCounter = 1;
+          ++solverCol;
+          ++count;
+        } else {
+          ++skipCounter;
         }
+
+        inputFile.currentStateIndexInc();
       }
     }
   }
 
   solver.solve();
 
+  // Output solution
   const int podVectorCount = domain_->solInfo().maxSizePodRom ?
                              std::min(domain_->solInfo().maxSizePodRom, solver.singularValueCount()) :
                              solver.singularValueCount();
@@ -178,11 +176,11 @@ DistrBasisOrthoDriver::solve() {
       outputFile.stateAdd(outputBuffer, solver.singularValue(iVec));
     }
   }
-  comm_->sync();
+  comm_->sync(); // this is important, do not delete.
 
-  //Normalize basis for explicit cases
+  // Renormalize basis for explicit
   if(beta == 0) {
-    //Read back in output file to perform renormalization
+    // Read back in output file to perform renormalization
     DistrVecBasis basis;
     {
       DistrBasisInputFile inputFile(BasisFileId(fileInfo, workload, BasisId::POD));
@@ -203,18 +201,18 @@ DistrBasisOrthoDriver::solve() {
 
     DistrVecBasis normalizedBasis;
     if(domain->solInfo().normalize == 0) {
-      //old method, renormalize current basis
-      renormalized_basis(*fullMass, basis, normalizedBasis);
+      // Old method: renormalize the orthonormal basis
+      renormalized_basis(*dynOps->M, basis, normalizedBasis);
     }
     if(domain->solInfo().normalize == 1) {
-      //New method multiply by inverse square root mass
+      // New method: multiply by inverse square root of the mass matrix
       for(int col = 0; col < podVectorCount; col++) {
-        fullMass->inverseSquareRootMult(basis[col]);
+        dynOps->dynMat->inverseSquareRootMult(basis[col]);
       }
       normalizedBasis = basis;
     }
 
-    //Output the normalized basis as separate file
+    // Output the renormalized basis as separate file
     std::string fileName = BasisFileId(fileInfo, workload, BasisId::POD);
     fileName.append(".normalized");
     DistrNodeDof6Buffer outputBuffer(masterMapping.masterNodeBegin(), masterMapping.masterNodeEnd());
@@ -225,13 +223,13 @@ DistrBasisOrthoDriver::solve() {
       outputNormalizedFile.stateAdd(outputBuffer, solver.singularValue(iVec));
     }
 
-    //Output identity normalized basis if using new method
+    // Compute and output identity normalized basis if using new method
     if(domain->solInfo().normalize == 1) {
       MGSVectors(normalizedBasis);
       std::string fileName = BasisFileId(fileInfo, workload, BasisId::POD);
       DistrNodeDof6Buffer outputBuffer(masterMapping.masterNodeBegin(), masterMapping.masterNodeEnd());
       DistrBasisOutputFile outputOrthoNormalFile(fileName, nodeCount, outputBuffer.globalNodeIndexBegin(), outputBuffer.globalNodeIndexEnd(), comm_, false);
-      filePrint(stderr, " ... Writing orthonormal-normalized basis to file %s ...\n", fileName.c_str());
+      filePrint(stderr, " ... Writing orthonormal basis to file %s ...\n", fileName.c_str());
       for (int iVec = 0; iVec < podVectorCount; ++iVec) {
         converter.paddedNodeDof6(normalizedBasis[iVec], outputBuffer);
         outputOrthoNormalFile.stateAdd(outputBuffer, solver.singularValue(iVec));

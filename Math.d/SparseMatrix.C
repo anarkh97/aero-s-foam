@@ -177,7 +177,6 @@ GenSparseMatrix<Scalar>::multSubtract(const Scalar *rhs, Scalar *result)
  fprintf(stderr,"GenSparseMatrix<Scalar>::multSubtract(const Scalar *rhs, Scalar *result) not implemented\n");
 }
 
-
 template<class Scalar> 
 void
 GenSparseMatrix<Scalar>::squareRootMult(Scalar *result)

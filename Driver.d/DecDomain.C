@@ -586,7 +586,7 @@ GenDecDomain<Scalar>::getFetiSolver(GenDomainGroupTask<Scalar> &dgt)
 template<class Scalar>
 DiagParallelSolver<Scalar> *
 GenDecDomain<Scalar>::getDiagSolver(int nSub, GenSubDomain<Scalar> **sd,
-              GenSolver<Scalar> **sol)//GenDomainGroupTask<Scalar> &dgt)
+                                    GenSolver<Scalar> **sol)
 {
  return new DiagParallelSolver<Scalar>(nSub, sd, sol, cpuToSub, communicator);
 }
@@ -597,7 +597,7 @@ GenDecDomain<Scalar>::getCPUMap()
 {
   mt.memoryCPUMAP -= memoryUsed();
 #ifdef DISTRIBUTED
-  char *mapName = geoSource->getCpuMapFile(); // PJSA
+  char *mapName = geoSource->getCpuMapFile(); 
   FILE *f = fopen(mapName,"r");
   numCPU = geoSource->getCPUMap(f, globalNumSub);
   //subToCPU = geoSource->getSubToCPU();

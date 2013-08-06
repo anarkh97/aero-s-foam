@@ -545,6 +545,19 @@ double BlastLoading::ComputeShellPressureLoad(const double* CurrentElementNodePo
   return -CurrentElementPressure*6.8947573e3/P.ScaleMass*P.ScaleLength*P.ScaleTime*P.ScaleTime;
 }
 // ====================================================================================================
+// Print the BlastLoading::BlastData member variables to screen:
+void BlastLoading::BlastData::print() {
+  std::cerr << "ExplosivePosition = " << ExplosivePosition[0] << " " << ExplosivePosition[1] << " " << ExplosivePosition[2] << std::endl;
+  std::cerr << "ExplosiveDetonationTime = " << ExplosiveDetonationTime << std::endl;
+  if(BlastType == SurfaceBurst) std::cerr << "BlastType = SurfaceBurst\n"; else std::cerr << "BlastType = AirBurst\n";
+  std::cerr << "ExplosiveWeight = " << ExplosiveWeight << std::endl;
+  std::cerr << "ExplosiveWeightCubeRoot = " << ExplosiveWeightCubeRoot << std::endl;
+  std::cerr << "ScaleLength = " << ScaleLength << std::endl;
+  std::cerr << "ScaleTime = " << ScaleTime << std::endl;
+  std::cerr << "ScaleMass = " << ScaleMass << std::endl;
+  std::cerr << "ConwepGlobalOnOff = " << ConwepGlobalOnOff << std::endl;
+}
+// ====================================================================================================
 // Initialize the BlastLoading::InputFileData structure and other static member variables:
 BlastLoading::BlastData BlastLoading::InputFileData = {{0.0,0.0,0.0},0.0,
                                                 BlastLoading::BlastData::AirBurst,1.0,0.0,0.3048,1.0,1.0, true};

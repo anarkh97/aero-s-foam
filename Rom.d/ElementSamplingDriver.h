@@ -38,7 +38,8 @@ public:
   VecBasis* accel() { if(!accel_) accel_ = new VecBasis; return accel_; }
   int vectorSize() const;
   void timeStampsIs(const std::vector<double> &tst) { timeStamps_ = tst; }
-  
+
+  void glNumSubsIs(int glSubs) { glNumSubs = glSubs; }  
 
   explicit ElementSamplingDriver(Domain *);
   ~ElementSamplingDriver();
@@ -48,6 +49,7 @@ protected:
   void assembleTrainingData(const VecBasis &displac, std::vector<double>::iterator timeStampFirst, const VecBasis &podBasis,
                             typename MatrixBufferType::iterator elemContributions, Vector &trainingTarget, VecBasis *veloc, VecBasis *accel);
   int elementCount() const;
+  int glNumSubs;
 
   void buildDomainCdsa();
   Domain *domain_;

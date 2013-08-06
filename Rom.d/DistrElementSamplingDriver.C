@@ -294,7 +294,10 @@ DistrElementSamplingDriver::solve() {
     }
     podBasis = normalizedBasis;
   }
-  
+ 
+  int glNumSubs = decDomain->getNumSub();
+  structCom->globalSum(1,&glNumSubs);
+ 
   SubElementSamplingDriver **subDrivers = new SubElementSamplingDriver * [decDomain->getNumSub()];
   Vector *solutions = new Vector[decDomain->getNumSub()];
   int numCPUs = (structCom) ? structCom->numCPUs() : 1;
@@ -305,6 +308,8 @@ DistrElementSamplingDriver::solve() {
 #endif
   for(int i=0; i<decDomain->getNumSub(); ++i) {
     subDrivers[i] = new SubElementSamplingDriver(decDomain->getAllSubDomains()[i]);
+
+    subDrivers[i]->glNumSubsIs(glNumSubs);
 
     VecBasis &subPodBasis = subDrivers[i]->podBasis();
     subPodBasis.dimensionIs(podVectorCount, subDrivers[i]->vectorSize());

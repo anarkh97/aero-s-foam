@@ -1391,6 +1391,8 @@ TRAIL [a-zA-Z]*
 
 "TOLOPT"|"TolOpt"|"tolopt" 		  { return TOLER; }
 
+"LOCTOL"|"LocTol"|"loctol"		  { return LOCALTOLERANCE; }
+
 "NUMSKP"|"NumSkp"|"numskp"		  { return SKIP; }
 
 "OUT_OF"[a-zA-Z_]*|"Out_Of"[a-zA-Z_]*|"out_of"[a-zA-Z_]* { return OUTOFCORE; }

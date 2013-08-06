@@ -106,7 +106,7 @@
 %token SLOSH SLGRAV SLZEM SLZEMFILTER 
 %token PDIR HEFSB HEFRS HEINTERFACE  // Added for HEV Problem, EC, 20080512
 %token SNAPFI PODROB TRNVCT OFFSET ORTHOG SVDTOKEN CONVERSIONTOKEN CONVFI SAMPLING SNAPSHOTPROJECT PODSIZEMAX REFSUBSTRACT TOLER OUTOFCORE NORMALIZETOKEN FNUMBER SNAPWEIGHT ROBFI STAVCT VELVCT ACCVCT CONWEPCFG
-%token VECTORNORM
+%token VECTORNORM LOCALTOLERANCE
 
 %type <complexFDBC> AxiHD
 %type <complexFNBC> AxiHN
@@ -4223,6 +4223,8 @@ SamplingOption:
   { domain->solInfo().PODerrornorm.push_back($2);
     domain->solInfo().PODerrornorm.push_back($3);
     domain->solInfo().PODerrornorm.push_back($4); }
+  | LOCALTOLERANCE SWITCH
+  { domain->solInfo().localTol = bool($2); }
   ;
 
 ConwepConfig:

@@ -245,6 +245,10 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::computeSolution(Vector &soluti
   // Training target is the sum of elementary contributions
   Vector trainingTarget(podVectorCount*snapshotCount, 0.0);
 
+  // Note: assembleTrainingData is not thread-safe
+#if defined(_OPENMP)
+  #pragma omp critical
+#endif
   assembleTrainingData(displac_, timeStamps_.begin(), podBasis_, solver_.matrixBuffer(), trainingTarget,
                        veloc_, accel_);
 

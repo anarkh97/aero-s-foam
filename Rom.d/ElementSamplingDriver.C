@@ -249,9 +249,19 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::computeSolution(Vector &soluti
                        veloc_, accel_);
 
   double targetMagnitude = norm(trainingTarget);
+  double glTargMagnitude = targetMagnitude*targetMagnitude;
+  if(structCom)
+    structCom->globalSum(1,&glTargMagnitude);
+  glTargMagnitude = sqrt(glTargMagnitude);
+
 
   // Setup and solve optimization problem
-  const double relativeTolerance = domain_->solInfo().tolPodRom;
+  double relativeTolerance = domain_->solInfo().tolPodRom;
+  if(domain_->solInfo().localTol){
+    filePrint(stderr,"Global Training Tolerance = %f, Global Number of Subdomains = %d\n", relativeTolerance, glNumSubs);
+    relativeTolerance = relativeTolerance*glTargMagnitude/(glNumSubs*targetMagnitude);
+    std::cout << "Local Training Tolerance = " << relativeTolerance << std::endl;
+  }  
   solver_.relativeToleranceIs(relativeTolerance);
   copy(trainingTarget, solver_.rhsBuffer());
 
@@ -353,6 +363,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcess(Vector &solution, 
 template<typename MatrixBufferType, typename SizeType>
 void
 ElementSamplingDriver<MatrixBufferType,SizeType>::preProcess() {
+  glNumSubs = 1;
 
   domain_->preProcessing();
   buildDomainCdsa();

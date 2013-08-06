@@ -313,6 +313,7 @@ struct SolverInfo {
    int  maxSizePodRom;
    int  normalize;
    bool substractRefPodRom;
+   bool localTol;
    bool reduceFollower;
    int  skipPodRom;
    int  skipOffSet;
@@ -563,6 +564,7 @@ struct SolverInfo {
                   maxSizePodRom      = 0;
 		  normalize          = 0;
                   substractRefPodRom = false;
+                  localTol	     = false;
                   reduceFollower     = false;
                   skipPodRom         = 1;
                   skipOffSet         = 0;

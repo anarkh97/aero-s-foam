@@ -32,8 +32,6 @@
 #include <Element.d/MpcElement.d/MpcElement.h>
 #include <Utils.d/MFTT.h>
 #include <Utils.d/MathUtils.h>
-#include <Element.d/Sommerfeld.d/TrianglePressureBC.h>
-#include <Element.d/Sommerfeld.d/QuadPressureBC.h>
 
 #include <Rom.d/GalerkinProjectionSolver.h>
 #include <Rom.d/EiGalerkinProjectionSolver.h>
@@ -1640,12 +1638,12 @@ Domain::addPressureForce(GenVector<Scalar> &force, double lambda, double time)
 
   for(int iele = 0; iele < numNeum; ++iele) {
     
-    if(dynamic_cast<QuadPressureBC*>(neum[iele]) == NULL && 
-       dynamic_cast<TrianglePressureBC*>(neum[iele]) == NULL) continue;
+    if(!neum[iele]->isSurfacePressureElement()) continue;
 
     // Compute structural element distributed Neumann force
     elementPressureForce.zero();
-    neum[iele]->neumVector(nodes, elementPressureForce);
+    if(domain->solInfo().ConwepOnOff) neum[iele]->setConwep(&BlastLoading::InputFileData);
+    neum[iele]->neumVector(nodes, elementPressureForce, 0, (GeomState*) 0, time);
 
     // transform vector from basic to DOF_FRM coordinates
     transformNeumVector(elementPressureForce, iele);
@@ -3480,9 +3478,9 @@ Domain::computeConstantForce(GenVector<Scalar>& cnst_f, GenSparseMatrix<Scalar>*
   if(sinfo.ATDROBalpha != 0.0 && !domain->mftval) addAtdrobForce(cnst_f);
 
   // ... COMPUTE FORCE FROM PRESSURE
-  // note #1: when MFTT is present this term is not constant (see computeExtForce)
+  // note #1: when MFTT/CONWEP is present this term is not constant (see computeExtForce)
   // note #2: for NONLINEAR problems this term is not constant (see getStiffAndForce)
-  if(!domain->mftval && !sinfo.isNonLin()) addPressureForce(cnst_f);
+  if(!(domain->mftval || sinfo.ConwepOnOff) && !sinfo.isNonLin()) addPressureForce(cnst_f);
 
   // ... ADD RHS FROM LMPCs for linear statics
   if(/*lmpc.max_size() &&*/ !sinfo.isNonLin() && !sinfo.isDynam()) addMpcRhs(cnst_f);
@@ -3548,9 +3546,9 @@ Domain::computeExtForce(GenVector<Scalar>& f, double t, GenSparseMatrix<Scalar>*
   if(sinfo.ATDROBalpha != 0.0 && domain->mftval) addAtdrobForce(f, mfttFactor);
 
   // COMPUTE FORCE FROM PRESSURE
-  // note #1: when MFTT not present this term is constant (see computeConstantForce)
+  // note #1: when MFTT/CONWEP not present this term is constant (see computeConstantForce)
   // note #2: for NONLINEAR problems this term is follower (see getStiffAndForce)
-  if(domain->mftval && !sinfo.isNonLin()) addPressureForce(f, mfttFactor, t);
+  if((domain->mftval || sinfo.ConwepOnOff) && !sinfo.isNonLin()) addPressureForce(f, mfttFactor, t);
 
   // ... ADD RHS FROM LMPCs for linear dynamics
   if(/*lmpc.max_size() &&*/ !sinfo.isNonLin() && sinfo.isDynam()) addMpcRhs(f, t);

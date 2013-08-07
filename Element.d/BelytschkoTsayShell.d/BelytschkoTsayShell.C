@@ -461,6 +461,7 @@ BelytschkoTsayShell::getStiffAndForce(GeomState& geomState, CoordSet& cs, FullSq
         evelo[iloc+j] = geomState[nn[i]].v[j]; // now geomState stores v^{n+1/2}
       }
     }
+    double pressure = Element::pressure;
     // Check if Conwep is being used. If so, use the pressure from the blast loading function.
     if (conwep) {
       pressure = BlastLoading::ComputeShellPressureLoad(ecord, time, *conwep);

@@ -262,21 +262,22 @@ void
 RigidThreeNodeShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
                                           GeomState *geomState, int cflg, double time)
 {
+     double pressure = Element::pressure;
      // Check if Conwep is being used. If so, use the pressure from the blast loading function.
      if (conwep) {
        double* CurrentElementNodePositions = (double*) dbg_alloca(sizeof(double)*3*4);
-       int NodeNumber;
-       for(int Dimension = 0; Dimension < 4; ++Dimension) {
-         NodeNumber = Dimension*3;
-         if (Dimension==3) {
-           CurrentElementNodePositions[NodeNumber+0] = cs[nn[2]]->x;
-           CurrentElementNodePositions[NodeNumber+1] = cs[nn[2]]->y;
-           CurrentElementNodePositions[NodeNumber+2] = cs[nn[2]]->z;
+       int Offset;
+       for(int i = 0; i < 4; ++i) {
+         Offset = i*3;
+         if (i==3) {
+           CurrentElementNodePositions[Offset+0] = cs[nn[2]]->x;
+           CurrentElementNodePositions[Offset+1] = cs[nn[2]]->y;
+           CurrentElementNodePositions[Offset+2] = cs[nn[2]]->z;
          }
          else {
-           CurrentElementNodePositions[NodeNumber+0] = cs[nn[Dimension]]->x;
-           CurrentElementNodePositions[NodeNumber+1] = cs[nn[Dimension]]->y;
-           CurrentElementNodePositions[NodeNumber+2] = cs[nn[Dimension]]->z;
+           CurrentElementNodePositions[Offset+0] = cs[nn[i]]->x;
+           CurrentElementNodePositions[Offset+1] = cs[nn[i]]->y;
+           CurrentElementNodePositions[Offset+2] = cs[nn[i]]->z;
          }
        }
        pressure = BlastLoading::ComputeShellPressureLoad(CurrentElementNodePositions, time, *conwep);

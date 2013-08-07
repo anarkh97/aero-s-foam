@@ -139,10 +139,12 @@ Domain::getWeightedInternalForceOnly(const std::map<int, double> &weights,
     }
   }
 
-  if(domain->solInfo().reduceFollower){
-     getWeightedFollowerForce(weights, geomState, elementForce, corotators, (FullSquareMatrix *) NULL, residual, lambda, time, refState, NULL, false);
-  } else {
-     getFollowerForce(geomState, elementForce, corotators, (FullSquareMatrix *) NULL, residual, lambda, time, refState, NULL, false);
+  // TODO the state at the nodes on which the non-reduced follower forces act need to be updated for modelIII
+  if(domain->solInfo().reduceFollower) {
+    getWeightedFollowerForceOnly(weights, geomState, elementForce, corotators, (FullSquareMatrix *) NULL, residual, lambda, time, refState, NULL, false);
+  }
+  else {
+    getFollowerForce(geomState, elementForce, corotators, (FullSquareMatrix *) NULL, residual, lambda, time, refState, NULL, false);
   }
 
   if(sinfo.isDynam() && mel) getWeightedFictitiousForceOnly(weights, geomState, elementForce, kel, residual, time, refState, NULL, mel, false);

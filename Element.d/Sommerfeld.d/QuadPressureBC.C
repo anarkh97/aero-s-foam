@@ -9,14 +9,33 @@ QuadPressureBC::QuadPressureBC(int* _nn, double _pressure)
 }
 
 void
-QuadPressureBC::getConstants(CoordSet& cs, Eigen::Array<double,13,1> &sconst, Eigen::Array<int,1,1> &iconst)
+QuadPressureBC::getConstants(CoordSet& cs, Eigen::Array<double,20,1> &sconst, Eigen::Array<int,2,1> &iconst)
 {
-  sconst << cs[nn[0]]->x, cs[nn[0]]->y, cs[nn[0]]->z,
-            cs[nn[1]]->x, cs[nn[1]]->y, cs[nn[1]]->z,
-            cs[nn[2]]->x, cs[nn[2]]->y, cs[nn[2]]->z,
-            cs[nn[3]]->x, cs[nn[3]]->y, cs[nn[3]]->z,
-            pressure;
-  iconst << 2; // quadrature rule degree
+  if(!conwep) {
+    sconst << cs[nn[0]]->x, cs[nn[0]]->y, cs[nn[0]]->z,
+              cs[nn[1]]->x, cs[nn[1]]->y, cs[nn[1]]->z,
+              cs[nn[2]]->x, cs[nn[2]]->y, cs[nn[2]]->z,
+              cs[nn[3]]->x, cs[nn[3]]->y, cs[nn[3]]->z,
+              pressure, 0, 0, 0, 0, 0, 0, 0;
+    iconst << 2, // quadrature rule degree
+              0;
+  }
+  else {
+    sconst << cs[nn[0]]->x, cs[nn[0]]->y, cs[nn[0]]->z,
+              cs[nn[1]]->x, cs[nn[1]]->y, cs[nn[1]]->z,
+              cs[nn[2]]->x, cs[nn[2]]->y, cs[nn[2]]->z,
+              cs[nn[3]]->x, cs[nn[3]]->y, cs[nn[3]]->z,
+              conwep->ExplosivePosition[0],
+              conwep->ExplosivePosition[1],
+              conwep->ExplosivePosition[2],
+              conwep->ExplosiveDetonationTime,
+              conwep->ExplosiveWeight,
+              conwep->ScaleLength,
+              conwep->ScaleTime,
+              conwep->ScaleMass;
+     iconst << 3, // quadrature rule degree
+               (conwep->BlastType == BlastLoading::BlastData::SurfaceBurst ? 1 : 2);
+  }
 }
 
 #else
@@ -39,6 +58,7 @@ QuadPressureBC::QuadPressureBC(int *_nn, double _pressure)
   nn[2] = _nn[2]; 
   nn[3] = _nn[3]; 
   pressure = _pressure;
+  conwep = 0;
   dom = 0;
 }
 
@@ -52,8 +72,20 @@ QuadPressureBC::sommerMatrix(CoordSet &cs, double *d)
 }
 
 void
-QuadPressureBC::neumVector(CoordSet &cs, Vector &f, int, GeomState *geomState)
+QuadPressureBC::neumVector(CoordSet &cs, Vector &f, int, GeomState *geomState, double t)
 {
+  // Check if Conwep is being used. If so, use the pressure from the blast loading function.
+  if (conwep) {
+    double* CurrentElementNodePositions = (double*) dbg_alloca(sizeof(double)*3*4);
+    int Offset;
+    for(int i = 0; i < 4; ++i) {
+      Offset = i*3;
+      CurrentElementNodePositions[Offset+0] = cs[nn[i]]->x;
+      CurrentElementNodePositions[Offset+1] = cs[nn[i]]->y;
+      CurrentElementNodePositions[Offset+2] = cs[nn[i]]->z;
+    }
+    pressure = BlastLoading::ComputeShellPressureLoad(CurrentElementNodePositions, t, *conwep);
+  }
   int opttrc = 0; // 0 : pressure
                   // 1 : traction
   double* ecord = (double*) dbg_alloca(sizeof(double)*nnode*ndime);

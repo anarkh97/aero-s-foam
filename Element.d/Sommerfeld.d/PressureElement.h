@@ -14,6 +14,7 @@ class PressureElement : public SommerElement
     int *nn;                  // node numbers
     std::vector<BCond> terms;
     int nterms;
+    BlastLoading::BlastData* conwep;
 
     void addTerms(DofSet);
 
@@ -24,7 +25,7 @@ class PressureElement : public SommerElement
     ~PressureElement();
 
     void renum(int*);
-        void renum(EleRenumMap&);
+    void renum(EleRenumMap&);
 
     int numNodes();
     int* nodes(int* = 0); 
@@ -38,12 +39,14 @@ class PressureElement : public SommerElement
     int findAndSetEle(CoordSet& cs, Elemset &eset, Connectivity *nodeToEle, int *eleTouch, int *eleCount, int myNum,
                       int it = 0);
 
-    void neumVector(CoordSet&, Vector&, int pflag=0, GeomState* = 0);
-    void neumVectorJacobian(CoordSet&, FullSquareMatrix&, int pflag=0, GeomState* = 0);
+    bool isSurfacePressureElement() { return true; }
+    void setConwep(BlastLoading::BlastData* _conwep) { conwep = _conwep; }
+    void neumVector(CoordSet&, Vector&, int pflag = 0, GeomState* = 0, double t = 0);
+    void neumVectorJacobian(CoordSet&, FullSquareMatrix&, int pflag = 0, GeomState* = 0, double t = 0);
     FullSquareMatrix sommerMatrix(CoordSet&, double *);
 
   protected:
-    virtual void getConstants(CoordSet&,
+    virtual void getConstants(CoordSet&, 
                               Eigen::Array<typename VectorValuedFunctionTemplate<double>::ScalarConstantType,
                                            VectorValuedFunctionTemplate<double>::NumberOfScalarConstants, 1> &sconst,
                               Eigen::Array<int,

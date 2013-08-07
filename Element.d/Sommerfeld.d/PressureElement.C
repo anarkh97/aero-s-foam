@@ -2,6 +2,7 @@
 #include <Utils.d/dofset.h>
 #include <Corotational.d/GeomState.h>
 #include <Corotational.d/utilities.h>
+#include <Element.d/Function.d/VectorValuedFunction.h>
 #include <iostream>
 #include <unsupported/Eigen/NumericalDiff>
 
@@ -15,6 +16,7 @@ PressureElement<VectorValuedFunctionTemplate>
   for(int i = 0; i < nNodes; ++i)
     nn[i] = _nn[i];
   addTerms(nodalDofs);
+  conwep = 0;
 }
 
 template<template <typename S> class VectorValuedFunctionTemplate>
@@ -147,7 +149,7 @@ PressureElement<VectorValuedFunctionTemplate>
 
 template<template <typename S> class VectorValuedFunctionTemplate>
 void
-PressureElement<VectorValuedFunctionTemplate>::neumVector(CoordSet& c0, Vector& F, int, GeomState *c1)
+PressureElement<VectorValuedFunctionTemplate>::neumVector(CoordSet& c0, Vector& F, int, GeomState *c1, double t)
 {
   // instantiate the function object
   Eigen::Array<double, VectorValuedFunctionTemplate<double>::NumberOfScalarConstants, 1> sconst;
@@ -162,7 +164,7 @@ PressureElement<VectorValuedFunctionTemplate>::neumVector(CoordSet& c0, Vector& 
 
   // evaluate the function and store values terms
   const int M = VectorValuedFunctionTemplate<double>::NumberOfValues;
-  Eigen::Matrix<double,M,1> fval = f(q,0);
+  Eigen::Matrix<double,M,1> fval = f(q,t);
 
   // fill F
   for(int i=0; i<M; ++i) {
@@ -172,8 +174,7 @@ PressureElement<VectorValuedFunctionTemplate>::neumVector(CoordSet& c0, Vector& 
 
 template<template <typename S> class VectorValuedFunctionTemplate>
 void 
-PressureElement<VectorValuedFunctionTemplate>::neumVectorJacobian(CoordSet& c0, FullSquareMatrix& Ktan, int, GeomState* c1)
-
+PressureElement<VectorValuedFunctionTemplate>::neumVectorJacobian(CoordSet& c0, FullSquareMatrix& Ktan, int, GeomState* c1, double t)
 {
   // instantiate the function object
   Eigen::Array<double, VectorValuedFunctionTemplate<double>::NumberOfScalarConstants, 1> sconst;
@@ -183,11 +184,11 @@ PressureElement<VectorValuedFunctionTemplate>::neumVectorJacobian(CoordSet& c0, 
 
   // prepare the function inputs
   const int N = VectorValuedFunctionTemplate<double>::NumberOfGeneralizedCoordinates;
-  Eigen::Matrix<double,N,1> q; // = Eigen::Matrix<double,N,1>::Zero();
+  Eigen::Matrix<double,N,1> q;
   getInputs(q, c0, c1);
 
   // instantiate the jacobian object
-  VectorValuedFunctionJacobian<double,VectorValuedFunctionTemplate> dfdq(sconst,iconst,0);
+  VectorValuedFunctionJacobian<double,VectorValuedFunctionTemplate> dfdq(sconst,iconst,t);
 
   // evaluate the jacobian
   const int M = VectorValuedFunctionTemplate<double>::NumberOfValues;

@@ -936,7 +936,6 @@ DynamInfo:
 ConwepData:
         Float Float Float Float Float
         { // Note: chargeWeight must be entered in the units of mass of the problem, not units of force.
-          $$.ConwepGlobalOnOff = true;
           $$.ExplosivePosition[0] = $1;
           $$.ExplosivePosition[1] = $2;
           $$.ExplosivePosition[2] = $3;

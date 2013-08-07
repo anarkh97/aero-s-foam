@@ -1367,11 +1367,11 @@ TRAIL [a-zA-Z]*
 
 "SNAPFI"|"SnapFi"|"snapfi"		  { return SNAPFI; }
 
-"ROBFI"|"RobFi"|"robfi"		  { return ROBFI; }
+"ROBFI"|"RobFi"|"robfi"		          { return ROBFI; }
 
-"SNAPWEIGHT"|"SnapWeight"|"snapweight" {return SNAPWEIGHT; }
+"SNAPWEIGHT"|"SnapWeight"|"snapweight"    { return SNAPWEIGHT; }
 
-"CONCFG"|"ConCfg"|"concfg"   {return CONWEPCFG;}
+"CONCFG"|"ConCfg"|"concfg"                { return CONWEPCFG; }
 
 "NORMFI"|"NormFi"|"normfi"		  { return VECTORNORM; }
 

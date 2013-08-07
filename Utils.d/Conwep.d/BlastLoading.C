@@ -7,14 +7,14 @@
 // ====================================================================================================
 // This is the main function.
 double BlastLoading::Conwep::Blast(const BlastLoading::BlastData& P,
-                                   const double CurrentElementFaceCentroidPosition[3],
+                                   const double CurrentElementFacePosition[3],
                                    const double CurrentElementFaceNormalDirection[3],
                                    double CurrentTime) {
   // Calculate the distance between the current element face and the explosive:
   double DirectionFromElementFaceToExplosive[3] = {
-    P.ExplosivePosition[0]-CurrentElementFaceCentroidPosition[0],
-    P.ExplosivePosition[1]-CurrentElementFaceCentroidPosition[1],
-    P.ExplosivePosition[2]-CurrentElementFaceCentroidPosition[2]
+    P.ExplosivePosition[0]-CurrentElementFacePosition[0],
+    P.ExplosivePosition[1]-CurrentElementFacePosition[1],
+    P.ExplosivePosition[2]-CurrentElementFacePosition[2]
   };
   double DistanceFromElementFaceCentroidToExplosive = sqrt( DirectionFromElementFaceToExplosive[0]*DirectionFromElementFaceToExplosive[0]
                   +DirectionFromElementFaceToExplosive[1]*DirectionFromElementFaceToExplosive[1]
@@ -490,7 +490,7 @@ double BlastLoading::Conwep::Pressure(double CurrentTimeSinceExplosionTime,
   } 
 }
 // ====================================================================================================
-// Calculate the pressure on the current element:
+// Calculate the pressure at the centroid of the current 4 node quad (or degenerate) element:
 double BlastLoading::ComputeShellPressureLoad(const double* CurrentElementNodePositions,
                                               double CurrentTime,
                                               const BlastLoading::BlastData& P) {
@@ -537,10 +537,23 @@ double BlastLoading::ComputeShellPressureLoad(const double* CurrentElementNodePo
   for (int CurrentDimension = 0; CurrentDimension < 3; ++CurrentDimension) { 
     CurrentElementCentroidCoordinates[CurrentDimension] *= 1.0/CurrentElementNumberOfNodes;
   }
-  // Calculate the current element's pressure:
+  // Calculate the pressure at the centroid of the current element:
   double CurrentElementPressure = Conwep::Blast(P,CurrentElementCentroidCoordinates,CurrentElementNormalVector,CurrentTime);
-  // Return the current element's pressure:
-  // Note that the current element pressure is in psi: convert it to Pa (6.89e3 factor), then use ScaleLength,
+  // Return the pressure at the centroid of the current element:
+  // Note that the pressure is in psi: convert it to Pa (6.89e3 factor), then use ScaleLength,
+  // ScaleTime and ScaleMass to convert it to the correct pressure units.
+  return -CurrentElementPressure*6.8947573e3/P.ScaleMass*P.ScaleLength*P.ScaleTime*P.ScaleTime;
+}
+// ====================================================================================================
+// Calculate the pressure at a gauss point of the current element:
+double BlastLoading::ComputeGaussPointPressure(const double CurrentElementGaussPointCoordinates[3],
+                                              const double CurrentElementGaussPointNormalVector[3],
+                                              double CurrentTime,
+                                              const BlastLoading::BlastData& P) {
+  // Calculate the pressure at a gauss point of the current element:
+  double CurrentElementPressure = Conwep::Blast(P,CurrentElementGaussPointCoordinates,CurrentElementGaussPointNormalVector,CurrentTime);
+  // Return the pressure at a gauss point of the current element:
+  // Note that the pressure is in psi: convert it to Pa (6.89e3 factor), then use ScaleLength,
   // ScaleTime and ScaleMass to convert it to the correct pressure units.
   return -CurrentElementPressure*6.8947573e3/P.ScaleMass*P.ScaleLength*P.ScaleTime*P.ScaleTime;
 }
@@ -555,12 +568,11 @@ void BlastLoading::BlastData::print() {
   std::cerr << "ScaleLength = " << ScaleLength << std::endl;
   std::cerr << "ScaleTime = " << ScaleTime << std::endl;
   std::cerr << "ScaleMass = " << ScaleMass << std::endl;
-  std::cerr << "ConwepGlobalOnOff = " << ConwepGlobalOnOff << std::endl;
 }
 // ====================================================================================================
 // Initialize the BlastLoading::InputFileData structure and other static member variables:
 BlastLoading::BlastData BlastLoading::InputFileData = {{0.0,0.0,0.0},0.0,
-                                                BlastLoading::BlastData::AirBurst,1.0,0.0,0.3048,1.0,1.0, true};
+                                                BlastLoading::BlastData::AirBurst,1.0,0.0,0.3048,1.0,1.0};
 bool BlastLoading::WarnedZeroDist = false;
 bool BlastLoading::WarnedDecayExp = false;
 // ====================================================================================================

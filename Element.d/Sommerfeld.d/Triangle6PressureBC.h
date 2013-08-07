@@ -18,7 +18,7 @@ class Triangle6PressureBC : public PressureElement<Tri6LagrangePolynomialSurface
 
   protected:
     double pressure;
-    void getConstants(CoordSet& cs, Eigen::Array<double,19,1>&, Eigen::Array<int,1,1>&);
+    void getConstants(CoordSet& cs, Eigen::Array<double,26,1>&, Eigen::Array<int,2,1>&);
 };
 
 #endif

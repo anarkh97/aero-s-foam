@@ -139,6 +139,7 @@ RigidFourNodeShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
     edisp[iloc+1] = (geomState) ? (*geomState)[nn[i]].y - cs[nn[i]]->y : 0;
     edisp[iloc+2] = (geomState) ? (*geomState)[nn[i]].z - cs[nn[i]]->z : 0;
   }
+  double pressure = Element::pressure;
   // Check if Conwep is being used. If so, use the pressure from the blast loading function.
   if(conwep) {
     pressure = BlastLoading::ComputeShellPressureLoad(ecord, time, *conwep);

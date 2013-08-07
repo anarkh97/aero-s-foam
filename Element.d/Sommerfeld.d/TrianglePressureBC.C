@@ -9,13 +9,31 @@ TrianglePressureBC::TrianglePressureBC(int* _nn, double _pressure)
 }
 
 void
-TrianglePressureBC::getConstants(CoordSet& cs, Eigen::Array<double,10,1> &sconst, Eigen::Array<int,1,1> &iconst)
+TrianglePressureBC::getConstants(CoordSet& cs, Eigen::Array<double,17,1> &sconst, Eigen::Array<int,2,1> &iconst)
 {
-  sconst << cs[nn[0]]->x, cs[nn[0]]->y, cs[nn[0]]->z,
-            cs[nn[1]]->x, cs[nn[1]]->y, cs[nn[1]]->z,
-            cs[nn[2]]->x, cs[nn[2]]->y, cs[nn[2]]->z,
-            pressure;
-  iconst << 1; // quadrature rule degree
+  if(!conwep) {
+    sconst << cs[nn[0]]->x, cs[nn[0]]->y, cs[nn[0]]->z,
+              cs[nn[1]]->x, cs[nn[1]]->y, cs[nn[1]]->z,
+              cs[nn[2]]->x, cs[nn[2]]->y, cs[nn[2]]->z,
+              pressure, 0, 0, 0, 0, 0, 0, 0;
+    iconst << 1, // quadrature rule degree
+              0;
+  }
+  else {
+    sconst << cs[nn[0]]->x, cs[nn[0]]->y, cs[nn[0]]->z,
+              cs[nn[1]]->x, cs[nn[1]]->y, cs[nn[1]]->z,
+              cs[nn[2]]->x, cs[nn[2]]->y, cs[nn[2]]->z,
+              conwep->ExplosivePosition[0],
+              conwep->ExplosivePosition[1],
+              conwep->ExplosivePosition[2],
+              conwep->ExplosiveDetonationTime,
+              conwep->ExplosiveWeight,
+              conwep->ScaleLength,
+              conwep->ScaleTime,
+              conwep->ScaleMass;
+     iconst << 1, // quadrature rule degree
+               (conwep->BlastType == BlastLoading::BlastData::SurfaceBurst ? 1 : 2);
+  }
 }
 
 #else
@@ -38,6 +56,7 @@ TrianglePressureBC::TrianglePressureBC(int *_nn, double _pressure)
   nn[1] = _nn[1]; 
   nn[2] = _nn[2]; 
   pressure = _pressure;
+  conwep = 0;
   dom = 0;
 }
 
@@ -51,8 +70,27 @@ TrianglePressureBC::sommerMatrix(CoordSet &cs, double *d)
 }
 
 void
-TrianglePressureBC::neumVector(CoordSet &cs, Vector &f, int, GeomState *geomState)
+TrianglePressureBC::neumVector(CoordSet &cs, Vector &f, int, GeomState *geomState, double t)
 {
+  // Check if Conwep is being used. If so, use the pressure from the blast loading function.
+  if (conwep) {
+    double* CurrentElementNodePositions = (double*) dbg_alloca(sizeof(double)*3*4);
+    int Offset;
+    for(int i = 0; i < 4; ++i) {
+      Offset = i*3;
+      if (i==3) {
+        CurrentElementNodePositions[Offset+0] = cs[nn[2]]->x;
+        CurrentElementNodePositions[Offset+1] = cs[nn[2]]->y;
+        CurrentElementNodePositions[Offset+2] = cs[nn[2]]->z;
+      }
+      else {
+        CurrentElementNodePositions[Offset+0] = cs[nn[i]]->x;
+        CurrentElementNodePositions[Offset+1] = cs[nn[i]]->y;
+        CurrentElementNodePositions[Offset+2] = cs[nn[i]]->z;
+      }
+    }
+    pressure = BlastLoading::ComputeShellPressureLoad(CurrentElementNodePositions, t, *conwep);
+  }
   int opttrc = 0; // 0 : pressure
                   // 1 : traction
   double* ecord = (double*) dbg_alloca(sizeof(double)*nnode*ndime);

@@ -17,7 +17,7 @@ class Quad8PressureBC : public PressureElement<Quad8LagrangePolynomialSurfacePre
 
   protected:
     double pressure;
-    void getConstants(CoordSet& cs, Eigen::Array<double,25,1>&, Eigen::Array<int,1,1>&);
+    void getConstants(CoordSet& cs, Eigen::Array<double,32,1>&, Eigen::Array<int,2,1>&);
 };
 
 #endif

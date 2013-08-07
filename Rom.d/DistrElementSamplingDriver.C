@@ -300,6 +300,7 @@ DistrElementSamplingDriver::solve() {
  
   SubElementSamplingDriver **subDrivers = new SubElementSamplingDriver * [decDomain->getNumSub()];
   Vector *solutions = new Vector[decDomain->getNumSub()];
+  Vector *trainingTargets = new Vector[decDomain->getNumSub()];
   int numCPUs = (structCom) ? structCom->numCPUs() : 1;
   int myID = (structCom) ? structCom->myID() : 0;
   bool verboseFlag = (myID == 0); // output to the screen only for subdomains assigned to mpi process with rank 0
@@ -308,8 +309,6 @@ DistrElementSamplingDriver::solve() {
 #endif
   for(int i=0; i<decDomain->getNumSub(); ++i) {
     subDrivers[i] = new SubElementSamplingDriver(decDomain->getAllSubDomains()[i]);
-
-    subDrivers[i]->glNumSubsIs(glNumSubs);
 
     VecBasis &subPodBasis = subDrivers[i]->podBasis();
     subPodBasis.dimensionIs(podVectorCount, subDrivers[i]->vectorSize());
@@ -338,8 +337,38 @@ DistrElementSamplingDriver::solve() {
         (*subAccel)[j] = StackVector((*accel)[j].subData(i), (*accel)[j].subLen(i));
       }
     }
-    subDrivers[i]->computeSolution(solutions[i], verboseFlag);
+
+    subDrivers[i]->preProcess();
+
+    trainingTargets[i].reset(subPodBasis.vectorCount()*subDisplac.vectorCount(), 0.0);
   }
+
+  double glTargMagnitude = 0;
+  double *targetMagnitudes = new double[decDomain->getNumSub()];
+#if defined(_OPENMP)
+  #pragma omp parallel for schedule(static,1)
+#endif
+  for(int i=0; i<decDomain->getNumSub(); ++i) {
+    subDrivers[i]->assembleTrainingData(trainingTargets[i]);
+    targetMagnitudes[i] = norm(trainingTargets[i]);
+    glTargMagnitude += targetMagnitudes[i]*targetMagnitudes[i];
+  }
+
+  if(structCom)
+    structCom->globalSum(1,&glTargMagnitude);
+  glTargMagnitude = sqrt(glTargMagnitude);
+
+#if defined(_OPENMP)
+  #pragma omp parallel for schedule(static,1)
+#endif
+  for(int i=0; i<decDomain->getNumSub(); ++i) {
+    double relativeTolerance = (domain->solInfo().localTol) ? domain->solInfo().tolPodRom*glTargMagnitude/(glNumSubs*targetMagnitudes[i])
+                                                             : domain->solInfo().tolPodRom;
+    if(verboseFlag) filePrint(stderr, " ... Training Tolerance for SubDomain %d is %f ...\n", decDomain->getSubDomain(i)->subNum()+1, relativeTolerance);
+    subDrivers[i]->computeSolution(trainingTargets[i], solutions[i], relativeTolerance, verboseFlag);
+  }
+  delete [] trainingTargets;
+  delete [] targetMagnitudes;
   
   std::vector<double> lweights; 
   std::vector<int> lelemIds;

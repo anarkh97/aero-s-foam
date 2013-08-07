@@ -9,7 +9,6 @@ class SubElementSamplingDriver : public ElementSamplingDriver<std::vector<double
 public:
   explicit SubElementSamplingDriver(Domain *);
   void getGlobalWeights(Vector &solution, vector<double> &lweights, vector<int> &lelemids, bool verboseFlag = true);
-private:
   void preProcess();
 };
 

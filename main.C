@@ -712,7 +712,7 @@ int main(int argc, char** argv)
       || (domain->probType() == SolverInfo::PodRomOffline && domain->solInfo().ROMPostProcess)) {
      callDec = true;
      trivialFlag = true;
-     numSubdomains = 1;
+     numSubdomains = (structCom) ? numThreads*structCom->numCPUs() : numThreads;
    }
  }
 

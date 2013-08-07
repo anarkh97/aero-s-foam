@@ -140,10 +140,11 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::~ElementSamplingDriver() {
 
 template<typename MatrixBufferType, typename SizeType>
 void
-ElementSamplingDriver<MatrixBufferType,SizeType>::assembleTrainingData(const VecBasis &displac, std::vector<double>::iterator timeStampFirst, const VecBasis &podBasis,
-                                                                       typename MatrixBufferType::iterator elemContributions,
-                                                                       Vector &trainingTarget, VecBasis *veloc, VecBasis *accel) {
-  const int podVectorCount = podBasis.vectorCount();
+ElementSamplingDriver<MatrixBufferType,SizeType>::assembleTrainingData(Vector &trainingTarget) {
+  std::vector<double>::iterator timeStampFirst = timeStamps_.begin();
+  typename MatrixBufferType::iterator elemContributions = solver_.matrixBuffer();
+
+  const int podVectorCount = podBasis_.vectorCount();
   std::vector<int> snapshotCounts;
   int skipFactor = domain->solInfo().skipPodRom;
   int skipOffSet = domain->solInfo().skipOffSet;
@@ -174,11 +175,11 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::assembleTrainingData(const Vec
       }
       for (int jSnap = 0; jSnap != snapshotCounts[i]; ++iSnap, ++jSnap) {
         geomState_->explicitUpdate(domain_->getNodes(), domain_->getElementSet()[iElem]->numNodes(),
-            nodes, displac[iSnap]); // just set the state at the nodes of element iElem
-        if(veloc) geomState_->setVelocity(domain_->getElementSet()[iElem]->numNodes(), nodes,
-            (*veloc)[iSnap], 2); // just set the velocity at the nodes of element iElem
-        if(accel) geomState_->setAcceleration(domain_->getElementSet()[iElem]->numNodes(), nodes,
-            (*accel)[iSnap], 2); // just set the acceleration at the nodes of element iElem
+            nodes, displac_[iSnap]); // just set the state at the nodes of element iElem
+        if(veloc_) geomState_->setVelocity(domain_->getElementSet()[iElem]->numNodes(), nodes,
+            (*veloc_)[iSnap], 2); // just set the velocity at the nodes of element iElem
+        if(accel_) geomState_->setAcceleration(domain_->getElementSet()[iElem]->numNodes(), nodes,
+            (*accel_)[iSnap], 2); // just set the acceleration at the nodes of element iElem
         // Evaluate and store element contribution at training configuration
         domain_->getElemInternalForce(*geomState_, *timeStampIt, geomState_, *(corotators_[iElem]), elementForce.array(), kelArray_[iElem]);
         if(domain_->getElementSet()[iElem]->hasRot()) {
@@ -198,7 +199,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::assembleTrainingData(const Vec
           if (vecLoc >= 0) {
             const double dofForce = elementForce[iDof];
             for (int iPod = 0; iPod != podVectorCount; ++iPod) {
-              const double contrib = dofForce * podBasis[iPod][vecLoc];
+              const double contrib = dofForce * podBasis_[iPod][vecLoc];
               elemTarget[iPod] += contrib;
             }
           }
@@ -220,54 +221,29 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::assembleTrainingData(const Vec
 template<typename MatrixBufferType, typename SizeType>
 void
 ElementSamplingDriver<MatrixBufferType,SizeType>::solve() {
+
+  preProcess();
+  
+  // Training target is the sum of elementary contributions
+  Vector trainingTarget(podBasis_.vectorCount()*displac_.vectorCount(), 0.0);
+  assembleTrainingData(trainingTarget);
+
   Vector solution;
-  computeSolution(solution);
+  computeSolution(trainingTarget, solution, domain_->solInfo().tolPodRom);
+
   postProcess(solution);
 }
 
 template<typename MatrixBufferType, typename SizeType>
 void
-ElementSamplingDriver<MatrixBufferType,SizeType>::computeSolution(Vector &solution, bool verboseFlag) {
-  preProcess();
+ElementSamplingDriver<MatrixBufferType,SizeType>::computeSolution(Vector &trainingTarget, Vector &solution, double relativeTolerance, bool verboseFlag) {
 
-  const int podVectorCount = podBasis_.vectorCount();
-  const int snapshotCount = displac_.vectorCount();
-
-  // DEBUG: Print info
-  if(verboseFlag) {
-    std::cout << "podVectorCount = " << podVectorCount << ", "
-              << "snapshotCount = " << snapshotCount << ", "
-              << "elementCount = " << elementCount() << "\n";
-  }
-
-  solver_.problemSizeIs(podVectorCount*snapshotCount, elementCount());
-
-  // Training target is the sum of elementary contributions
-  Vector trainingTarget(podVectorCount*snapshotCount, 0.0);
-
-  assembleTrainingData(displac_, timeStamps_.begin(), podBasis_, solver_.matrixBuffer(), trainingTarget,
-                       veloc_, accel_);
-
-  double targetMagnitude = norm(trainingTarget);
-  double glTargMagnitude = targetMagnitude*targetMagnitude;
-  if(structCom)
-    structCom->globalSum(1,&glTargMagnitude);
-  glTargMagnitude = sqrt(glTargMagnitude);
-
-
-  // Setup and solve optimization problem
-  double relativeTolerance = domain_->solInfo().tolPodRom;
-  if(domain_->solInfo().localTol){
-    filePrint(stderr,"Global Training Tolerance = %f, Global Number of Subdomains = %d\n", relativeTolerance, glNumSubs);
-    relativeTolerance = relativeTolerance*glTargMagnitude/(glNumSubs*targetMagnitude);
-    std::cout << "Local Training Tolerance = " << relativeTolerance << std::endl;
-  }  
   solver_.relativeToleranceIs(relativeTolerance);
   copy(trainingTarget, solver_.rhsBuffer());
 
   solver_.verboseFlagIs(verboseFlag);
   solver_.solve();
-  
+
   if(verboseFlag) {
     std::cout << "Primal solution:";
     for (int elemRank = 0; elemRank != elementCount(); ++elemRank) {
@@ -275,7 +251,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::computeSolution(Vector &soluti
     }
     std::cout << "\n";
 
-    std::cout << "Error magnitude / Absolute tolerance = " << solver_.errorMagnitude() << " / " << solver_.relativeTolerance() * targetMagnitude << "\n";
+    std::cout << "Error magnitude / Absolute tolerance = " << solver_.errorMagnitude() << " / " << solver_.relativeTolerance() * norm(trainingTarget) << "\n";
     std::cout << "1-norm of primal solution = " << std::accumulate(solver_.solutionBuffer(), solver_.solutionBuffer() + solver_.unknownCount(), 0.0) << "\n";
   }
 
@@ -363,7 +339,6 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcess(Vector &solution, 
 template<typename MatrixBufferType, typename SizeType>
 void
 ElementSamplingDriver<MatrixBufferType,SizeType>::preProcess() {
-  glNumSubs = 1;
 
   domain_->preProcessing();
   buildDomainCdsa();
@@ -542,6 +517,8 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcess() {
       podBasis_.swap(normalizedBasis);
     }
   } 
+
+  solver_.problemSizeIs(podBasis_.vectorCount()*displac_.vectorCount(), elementCount());
 }
 
 template<typename MatrixBufferType, typename SizeType>

@@ -958,7 +958,7 @@ TRAIL [a-zA-Z]*
 
 "nodal"|"NODAL"|"nodalfull"|"NODALFULL"  { yylval.ival =  1; return AVERAGED; }
 
-"nodalpartial"|"NODALPARTIAL"    { yylval.ival =  2; return AVERAGED; }
+"nodalpartial"|"NODALPARTIAL"      { yylval.ival =  2; return AVERAGED; }
 
 "upper"[a-zA-Z]*|"UPPER"[a-zA-Z]*  { yylval.ival = 1; return SURFACE; }
 
@@ -978,23 +978,23 @@ TRAIL [a-zA-Z]*
 
 "gtempera"|"GTEMPERA"              { yylval.ival = OutputInfo::Temperature;  return STRESSID; }
 
-"statevct"|"STATEVCT"		   { yylval.ival = OutputInfo::Statevector;  return STRESSID; }
+"statevct"|"STATEVCT"		       { yylval.ival = OutputInfo::Statevector;  return STRESSID; }
 
 "velocvct"|"VELOCVCT"              { yylval.ival = OutputInfo::Velocvector;  return STRESSID; }
 
-"accelvct"|"ACCELVCT"		   { yylval.ival = OutputInfo::Accelvector;  return STRESSID; }
+"accelvct"|"ACCELVCT"		       { yylval.ival = OutputInfo::Accelvector;  return STRESSID; }
 
-"frcgvect"|"FRCGVECT"		   { yylval.ival = OutputInfo::Forcevector;  return STRESSID; }
+"frcgvect"|"FRCGVECT"		       { yylval.ival = OutputInfo::Forcevector;  return STRESSID; }
 
-"residvct"|"RESIDVCT"		   { yylval.ival = OutputInfo::Residual;     return STRESSID; }
+"residvct"|"RESIDVCT"		       { yylval.ival = OutputInfo::Residual;     return STRESSID; }
 
-"jacobvct"|"JACOBVCT"		   { yylval.ival = OutputInfo::Jacobian;     return STRESSID; }
+"jacobvct"|"JACOBVCT"		       { yylval.ival = OutputInfo::Jacobian;     return STRESSID; }
 
 "isvarvct"|"ISVARVCT"              { yylval.ival = OutputInfo::InternalStateVar; return STRESSID; }
 
-"robdataf"|"ROBDATAF"		   { yylval.ival = OutputInfo::RobData;	     return STRESSID; }
+"robdataf"|"ROBDATAF"		       { yylval.ival = OutputInfo::RobData;	     return STRESSID; }
 
-"samplmsh"|"SAMPLMSH" 		   { yylval.ival = OutputInfo::SampleMesh;   return STRESSID; }
+"samplmsh"|"SAMPLMSH" 		       { yylval.ival = OutputInfo::SampleMesh;   return STRESSID; }
 
 "stressxx"|"STRESSXX"              { yylval.ival = OutputInfo::StressXX;     return STRESSID; }
 
@@ -1361,17 +1361,17 @@ TRAIL [a-zA-Z]*
 
 "MNORMA"|"MNorma"|"mnorma"		  { return NORMALIZETOKEN; }
 
-"RODC"|"RodC"|"rodc"                      { return CONVERSIONTOKEN; } //reduced order data conversion token
+"RODC"|"RodC"|"rodc"              { return CONVERSIONTOKEN; } // reduced order data conversion token
  
-"CONFIL"|"ConFil"|"confil" 	 	  { return CONVFI; } //reduced order data conversion files
+"CONFIL"|"ConFil"|"confil" 	 	  { return CONVFI; } // reduced order data conversion files
 
 "SNAPFI"|"SnapFi"|"snapfi"		  { return SNAPFI; }
 
-"ROBFI"|"RobFi"|"robfi"		          { return ROBFI; }
+"ROBFI"|"RobFi"|"robfi"		      { return ROBFI; }
 
-"SNAPWEIGHT"|"SnapWeight"|"snapweight"    { return SNAPWEIGHT; }
+"SNAPWEIGHT"|"SnapWeight"|"snapweight" { return SNAPWEIGHT; }
 
-"CONCFG"|"ConCfg"|"concfg"                { return CONWEPCFG; }
+"CONCFG"|"ConCfg"|"concfg"        { return CONWEPCFG; }
 
 "NORMFI"|"NormFi"|"normfi"		  { return VECTORNORM; }
 
@@ -1387,7 +1387,7 @@ TRAIL [a-zA-Z]*
 
 "RMSHC"|"Rmshc"|"rmshc" 		  { return SAMPLING; }
 
-"SNAPPR"|"SnapPr"|"snappr"                { return SNAPSHOTPROJECT; }
+"SNAPPR"|"SnapPr"|"snappr"        { return SNAPSHOTPROJECT; }
 
 "TOLOPT"|"TolOpt"|"tolopt" 		  { return TOLER; }
 

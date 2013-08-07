@@ -108,7 +108,7 @@ void
 Domain::printStatistics(bool domain_decomp)
 {
    filePrint(stderr,"\n ---------- PROBLEM PARAMETERS --------");
-   filePrint(stderr,"\n ... # Nodes              = %7d ...",numnodes);
+   filePrint(stderr,"\n ... # Nodes              = %7d ...",numnodes-geoSource->internalNumNodes());
    filePrint(stderr,"\n ... # Elements           = %7d ...",numele);
    if(!domain_decomp) {
      filePrint(stderr,"\n ... # Unconstrained dofs = %7d ...",numUncon());

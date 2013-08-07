@@ -129,7 +129,7 @@ BasisOrthoDriver::solve() {
       std::string fileName = BasisFileId(fileInfo,type,BasisId::ROB, i);
       BasisInputStream input(fileName, converter);
       vectorSize = input.vectorSize();
-      sizeROB += input.size()/skipTime;
+      sizeROB += input.size();
     }
   }
   solver.matrixSizeIs(vectorSize, sizeSnap+sizeROB);
@@ -174,32 +174,21 @@ BasisOrthoDriver::solve() {
         std::string fileName = BasisFileId(fileInfo, type, BasisId::ROB, i);
         BasisInputStream input(fileName,converter);
         filePrint(stderr, " ... Reading in ROB file: %s ...\n", fileName.c_str());
-        skip = 1;
         for(int iCol = 0; iCol < input.size(); ++iCol) {
-          if(skip == skipTime){
             double *buffer = solver.matrixCol(colCounter);
             std::pair<double, double *> data;
             assert(input);
             data.second = buffer;
             input >> data;
             colCounter++;
-            // Multiply by weighting factor if given in input file
-            if(!domain->solInfo().snapshotWeights.empty()) {
-              for(int row = 0 ; row < vectorSize; row++) {
-                data.second[row] *= data.first*domain->solInfo().snapshotWeights[domain->solInfo().snapfiPodRom.size()+i];
+            for(int row = 0 ; row < vectorSize; row++) {
+              data.second[row] *= data.first; //multiply in singluar values
+              if(!domain->solInfo().snapshotWeights.empty()){
+                data.second[row] *= domain->solInfo().snapshotWeights[domain->solInfo().snapfiPodRom.size()+i]; //multiply in weights if given
               }
             }
             if(beta == 0 && domain->solInfo().normalize == 1) fullMass->squareRootMult(buffer); // new method
             (*transform)(buffer);
-            skip = 1;
-          } else {
-            SimpleBuffer<double> dummyVec;
-            dummyVec.sizeIs(input.vectorSize());     
-            double *dummyBuffer = dummyVec.array();
-            input >> dummyBuffer;
-            assert(input);
-            ++skip;
-          }
         }
       }
 

@@ -46,12 +46,21 @@ DistrBasisOrthoDriver::solve() {
   int stateCount = 0;
   int nodeCount = 0;
   int snapBasisStateCount = 0;
+  int robBasisStateCount = 0;
   if(!domain->solInfo().snapfiPodRom.empty()) {
-    for(int i = 0; i < domain->solInfo().snapfiPodRom.size(); i++) {
+    for(int i=0; i<domain->solInfo().snapfiPodRom.size(); i++) {
       std::string fileName = BasisFileId(fileInfo, workload, BasisId::SNAPSHOTS, i);
       DistrBasisInputFile inputFile(fileName);
-      stateCount += inputFile.stateCount();
-      snapBasisStateCount += 1+(stateCount-1)/skipFactor;
+      //stateCount += inputFile.stateCount();
+      snapBasisStateCount += 1+(inputFile.stateCount()-1)/skipFactor;
+    }
+  }
+  if(!domain->solInfo().robfi.empty()){
+    for(int i=0; i<domain->solInfo().robfi.size(); i++){
+      std::string fileName = BasisFileId(fileInfo, workload, BasisId::ROB, i);
+      DistrBasisInputFile inputFile(fileName);
+      //robBasisStateCount += 1+(inputFile.stateCount()-1)/skipFactor;
+      robBasisStateCount += inputFile.stateCount();
     }
   }
 
@@ -68,7 +77,7 @@ DistrBasisOrthoDriver::solve() {
     const int maxCpuLoad = ((maxLocalLength / blockSize) + (maxLocalLength % blockSize)) * blockSize;
     assert(maxCpuLoad >= localLength);
     const int globalProbSize = maxCpuLoad * solver.rowCpus();
-    solver.problemSizeIs(globalProbSize, snapBasisStateCount);
+    solver.problemSizeIs(globalProbSize, snapBasisStateCount+robBasisStateCount);
     assert(solver.localRows() == maxCpuLoad);
   }
 
@@ -122,34 +131,25 @@ DistrBasisOrthoDriver::solve() {
 
   for(int i = 0; i < domain->solInfo().robfi.size(); i++) {
     DistrBasisInputFile inputFile(BasisFileId(fileInfo, workload, BasisId::ROB, i));
-    int basisStateCount = 1+(inputFile.stateCount()-1)/skipFactor;
+    nodeCount = inputFile.nodeCount();
+    int basisStateCount = inputFile.stateCount();
     {
       int count = 0;
-      int skipCounter = skipFactor;
       while(count < basisStateCount) {
         assert(inputFile.validCurrentState());
         inputFile.currentStateBuffer(inputBuffer);
-
-        if (skipCounter >= skipFactor) {
-          double *vecBuffer = solver.matrixColBuffer(solverCol);
-          GenStackDistVector<double> vec(decDomain->solVecInfo(), vecBuffer);
-            
-          converter.paddedMasterVector(inputBuffer, vec);
-          // TODO Multiply by weighting factor if given in input file
-          if(beta == 0 && domain->solInfo().normalize == 1) { // new method
-            dynOps->dynMat->squareRootMult(vec);
-          }
-          vec *= inputFile.currentStateHeaderValue(); // Multiply by the singular value stored in header
-            
-          std::fill(vecBuffer + localLength, vecBuffer + solver.localRows(), 0.0);
-
-          skipCounter = 1;
-          ++solverCol;
-          ++count;
-        } else {
-          ++skipCounter;
+        double *vecBuffer = solver.matrixColBuffer(solverCol);
+        GenStackDistVector<double> vec(decDomain->solVecInfo(), vecBuffer);
+        converter.paddedMasterVector(inputBuffer, vec);
+        // TODO Multiply by weighting factor if given in input file
+        if(beta == 0 && domain->solInfo().normalize == 1) { // new method
+          dynOps->dynMat->squareRootMult(vec);
         }
-
+        vec *= inputFile.currentStateHeaderValue(); // Multiply by the singular value stored in header
+          
+        std::fill(vecBuffer + localLength, vecBuffer + solver.localRows(), 0.0);
+        ++solverCol;
+        ++count;
         inputFile.currentStateIndexInc();
       }
     }

@@ -301,9 +301,11 @@ DistrElementSamplingDriver::solve() {
   SubElementSamplingDriver **subDrivers = new SubElementSamplingDriver * [decDomain->getNumSub()];
   Vector *solutions = new Vector[decDomain->getNumSub()];
   Vector *trainingTargets = new Vector[decDomain->getNumSub()];
+  double *targetMagnitudes = new double[decDomain->getNumSub()];
   int numCPUs = (structCom) ? structCom->numCPUs() : 1;
   int myID = (structCom) ? structCom->myID() : 0;
   bool verboseFlag = (myID == 0); // output to the screen only for subdomains assigned to mpi process with rank 0
+  double glTargMagnitude = 0;
 #if defined(_OPENMP)
   #pragma omp parallel for schedule(static,1)
 #endif
@@ -341,14 +343,6 @@ DistrElementSamplingDriver::solve() {
     subDrivers[i]->preProcess();
 
     trainingTargets[i].reset(subPodBasis.vectorCount()*subDisplac.vectorCount(), 0.0);
-  }
-
-  double glTargMagnitude = 0;
-  double *targetMagnitudes = new double[decDomain->getNumSub()];
-#if defined(_OPENMP)
-  #pragma omp parallel for schedule(static,1)
-#endif
-  for(int i=0; i<decDomain->getNumSub(); ++i) {
     subDrivers[i]->assembleTrainingData(trainingTargets[i]);
     targetMagnitudes[i] = norm(trainingTargets[i]);
     glTargMagnitude += targetMagnitudes[i]*targetMagnitudes[i];
@@ -363,7 +357,7 @@ DistrElementSamplingDriver::solve() {
 #endif
   for(int i=0; i<decDomain->getNumSub(); ++i) {
     double relativeTolerance = (domain->solInfo().localTol) ? domain->solInfo().tolPodRom*glTargMagnitude/(glNumSubs*targetMagnitudes[i])
-                                                             : domain->solInfo().tolPodRom;
+                                                            : domain->solInfo().tolPodRom;
     if(verboseFlag) filePrint(stderr, " ... Training Tolerance for SubDomain %d is %f ...\n", decDomain->getSubDomain(i)->subNum()+1, relativeTolerance);
     subDrivers[i]->computeSolution(trainingTargets[i], solutions[i], relativeTolerance, verboseFlag);
   }

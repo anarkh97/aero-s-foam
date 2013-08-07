@@ -76,3 +76,10 @@ DistrInfo::recomputeOffsets()
   computeOffsets();
 }
 
+int
+DistrInfo::masterLen() const
+{
+  GenDistrVector<int> toto(*this);
+  toto = 1;
+  return toto.sqNorm();
+}

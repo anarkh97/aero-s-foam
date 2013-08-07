@@ -72,6 +72,7 @@ DistrBasisOrthoDriver::solve() {
   }
 
   const int localLength = decDomain->solVecInfo().totLen();
+  const int masterLength = decDomain->masterSolVecInfo().masterLen();
   {
     const int maxLocalLength = comm_->globalMax(localLength);
     const int maxCpuLoad = ((maxLocalLength / blockSize) + (maxLocalLength % blockSize)) * blockSize;
@@ -80,6 +81,7 @@ DistrBasisOrthoDriver::solve() {
     solver.problemSizeIs(globalProbSize, snapBasisStateCount+robBasisStateCount);
     assert(solver.localRows() == maxCpuLoad);
   }
+  const int singularValueCount = std::min(masterLength,snapBasisStateCount+robBasisStateCount);
 
   double beta = domain->solInfo().newmarkBeta;
   // Assembling mass matrix
@@ -159,8 +161,8 @@ DistrBasisOrthoDriver::solve() {
 
   // Output solution
   const int podVectorCount = domain_->solInfo().maxSizePodRom ?
-                             std::min(domain_->solInfo().maxSizePodRom, solver.singularValueCount()) :
-                             solver.singularValueCount();
+                             std::min(domain_->solInfo().maxSizePodRom, singularValueCount) :
+                             singularValueCount;
   {
     DistrNodeDof6Buffer outputBuffer(masterMapping.masterNodeBegin(), masterMapping.masterNodeEnd());
     DistrBasisOutputFile outputFile(BasisFileId(fileInfo, workload, BasisId::POD),

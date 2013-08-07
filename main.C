@@ -1502,9 +1502,6 @@ writeOptionsToScreen()
 	        "                                 for output to screen of FETI iteration count (FETI)\n"
                 "                                 and subspace iteration convergence\n");
  fprintf(stderr," -c                            = contact status is outputted to screen (FETI)\n");
-/*
- fprintf(stderr," -p                            = primal residual is outputted to screen (FETI)\n");
-*/
  fprintf(stderr," -t                            = input file is converted to XPost format\n");
  fprintf(stderr," -T                            = input file is converted to XPost format;\n");
  fprintf(stderr,"                                 all numbering gaps are removed\n");
@@ -1513,10 +1510,6 @@ writeOptionsToScreen()
  fprintf(stderr," -M                            = input file is converted to XPost format;\n"
  	        "                                 all numbering gaps are removed and each material is\n"
                 "                                 gathered in a separate element set\n");
-/*
- fprintf(stderr," -r                            = axisymmetric geometry contained in input file is\n"
-                "                                 converted to XPost format\n");
-*/
  fprintf(stderr," -P                            = Xpost patterns are automatically generated for the\n");
  fprintf(stderr,"                                 the various Xpost element sets; useful only\n");
  fprintf(stderr,"                                 in conjonction with the -m and -M options\n");

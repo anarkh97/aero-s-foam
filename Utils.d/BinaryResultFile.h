@@ -83,7 +83,7 @@ BinaryResultOutputFile::BinaryResultOutputFile(const std::string &pathName, int 
   stateCount_(0),
   itemIds_(localIdBegin, localIdEnd),
   localOffset_(localOffset),
-#if defined(_POSIX_THREAD_SAFE_FUNCTIONS) && !defined(_AEROS_SYCHRONOUS_IO)
+#if defined(_POSIX_THREAD_SAFE_FUNCTIONS) && defined(_AEROS_ASYNCHRONOUS_IO)
   // need to make sure all of the master thread opens the file first
   // see Rom.d/DistrBasisFile.h
   binHandler_(pathName.c_str(), (isMaster() && !restart) ? "wb" : "rb+", version)

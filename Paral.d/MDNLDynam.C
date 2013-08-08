@@ -66,8 +66,7 @@ MDNLDynamic::getInitState(DistrVector &d_n, DistrVector &v_n, DistrVector &a_n, 
   }
 
   int aeroAlg = domain->solInfo().aeroFlag;
-  // call aeroPreProcess if a restart file does not exist
-  if(aeroAlg >= 0 && geoSource->getCheckFileInfo()->lastRestartFile == 0)
+  if(aeroAlg >= 0)
     aeroPreProcess(d_n, v_n, a_n, v_p);
 
   if(domain->solInfo().thermoeFlag >= 0)

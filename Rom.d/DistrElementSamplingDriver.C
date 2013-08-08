@@ -468,7 +468,9 @@ DistrElementSamplingDriver::solve() {
       if(domain->solInfo().newmarkBeta == 0) filename.append(".normalized");
       filePrint(stderr," ... Writing compressed basis to file %s ...\n", filename.c_str());
       DofSetArray reduced_dsa(reducedMesh.nodes().size(), const_cast<Elemset&>(reducedMesh.elements()));
-      ConstrainedDSA reduced_cdsa(reduced_dsa, reducedMesh.dirichletBConds().size(), const_cast<BCond*>(&reducedMesh.dirichletBConds()[0]));
+      int num_bc = reducedMesh.dirichletBConds().size();
+      BCond *bc = (num_bc > 0) ? const_cast<BCond*>(&reducedMesh.dirichletBConds()[0]) : NULL;
+      ConstrainedDSA reduced_cdsa(reduced_dsa, num_bc, bc);
       VecNodeDof6Conversion converter(reduced_cdsa);
       BasisOutputStream output(filename, converter, false);
 

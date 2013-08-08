@@ -116,7 +116,7 @@ GenVecBasis<double, GenDistrVector>::makeSparseBasis(const std::vector<std::vect
     for(int i = 0; i < nodeVec[n].size(); i++) {
       dof1 = dsa[n]->firstdof(nodeVec[n][i]);
       numdofs = dsa[n]->weight(nodeVec[n][i]);
-      for(int j = 0; j < numdofs; j++){
+      for(int j = 0; j < numdofs; j++) {
         compressedKey.push_back(dof0+dof1+j);
       }
     }
@@ -125,7 +125,7 @@ GenVecBasis<double, GenDistrVector>::makeSparseBasis(const std::vector<std::vect
 
   new (&compressedBasis) Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic>(compressedKey.size(),vectorCount()); // O Col major, 1 RowMajor
 
-  for(int i = 0; i < compressedKey.size(); i++){
+  for(int i = 0; i < compressedKey.size(); i++) {
     for(int j = 0; j < vectorCount(); j++){
       compressedBasis(i,j) = basis(compressedKey[i],j);
     }
@@ -143,15 +143,15 @@ GenVecBasis<double, GenVector>::makeSparseBasis(const std::vector<int> & nodeVec
   for(int i = 0; i < nodeVec.size(); i++) {
     dof1 = dsa->firstdof(nodeVec[i]);
     numdofs = dsa->weight(nodeVec[i]);
-    for(int j = 0; j < numdofs; j++){
+    for(int j = 0; j < numdofs; j++) {
       compressedKey.push_back(dof1+j);
     }
   }
 
   new (&compressedBasis) Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic>(compressedKey.size(),vectorCount()); // O Col major, 1 RowMajor
 
-  for(int i = 0; i < compressedKey.size(); i++){
-    for(int j = 0; j < vectorCount(); j++){
+  for(int i = 0; i < compressedKey.size(); i++) {
+    for(int j = 0; j < vectorCount(); j++) {
       compressedBasis(i,j) = basis(compressedKey[i],j);
     }
   }

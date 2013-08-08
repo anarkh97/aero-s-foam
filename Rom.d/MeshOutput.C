@@ -113,7 +113,13 @@ operator<<(std::ostream &out, const SPropContainer &source) {
         << sp.ymin << " "
         << sp.ymax << " "
         << sp.zmin << " "
-        << sp.zmax << "\n";
+        << sp.zmax;
+     if(sp.isRigid) {
+       out << " RIGID "
+           << int(sp.lagrangeMult) << " "
+           << sp.penalty;
+     }
+     out << "\n";
   }
 
   return out;

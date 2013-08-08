@@ -1895,6 +1895,7 @@ MatData:
           sp.initialPenalty = sp.penalty = $18;
           sp.type = StructProp::Constraint;
           sp.isReal = true;
+          sp.isRigid = true;
           geoSource->addMat( $1-1, sp );
         }
 	| Integer Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float NewLine
@@ -1926,6 +1927,7 @@ MatData:
           sp.initialPenalty = sp.penalty = $22;
           sp.type = StructProp::Constraint;
           sp.isReal = true;
+          sp.isRigid = true;
           geoSource->addMat( $1-1, sp );
         }
         | Integer Float Float Float Float Float Float Float NewLine

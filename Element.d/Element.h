@@ -190,6 +190,7 @@ class StructProp {
         PMLProps fp;
 
         bool isReal;
+        bool isRigid;
 
 	/** the W and E coefficient might encode integer values when they're negative
 	 * (see manual for this). Heavily templated Sower needs a temporary storage that's adressable.
@@ -203,7 +204,7 @@ class StructProp {
                        kappaHelm = 0.0; kappaHelmImag = 0.0; fp.PMLtype = 0;
                        soundSpeed = 1.0; alphaDamp = 0.0; betaDamp = 0.0;
                        ymin = 0.0; ymax = 0.0;
-                       zmin = 0.0; zmax = 0.0; isReal = false; 
+                       zmin = 0.0; zmax = 0.0; isReal = false; isRigid = false;
                        lagrangeMult = true; penalty = 0.0; initialPenalty = 0.0;
                        B = 1.0; C = 0.0; relop = 0; type = Undefined; funtype = 0;
                        k1 = 0; k2 = 0; k3 = 0; constraint_hess = 1; constraint_hess_eps = 0.0; } 

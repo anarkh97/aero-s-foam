@@ -168,8 +168,9 @@ DistrExplicitPodPostProcessor::subPrintSensorValues(int iSub, GenDistrVector<dou
    for(int i = 0; i < maxdof; i++)
      fprintf(OINFO->filptr,"  %1.4e  ",SensorData[dof1 + i]);
    fprintf(OINFO->filptr,"\n");
+   fflush(OINFO->filptr);
  }
-
+   
 }
 
 void

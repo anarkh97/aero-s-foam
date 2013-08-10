@@ -23,7 +23,6 @@ private:
   void setPODsize();
 
 
-  MultiDomainDynam         *dummyMDDynam;
   MultiDomDynPostProcessor *mddPostPro;
 
   DistrVecBasis  normalizedBasis_;

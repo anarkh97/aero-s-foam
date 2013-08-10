@@ -196,7 +196,7 @@ DistrROMPostProcessingDriver::bufferReducedFiles(){
 
   } //end loop over input files, finished reading reduced data
 
-  projectionSubspaceSize = DataType[0].second;
+  if(DataType.size() > 0) projectionSubspaceSize = DataType[0].second;
 }
 
 void
@@ -206,6 +206,7 @@ DistrROMPostProcessingDriver::solve() {
 
    int counter = 0; //TODO: make this portion more general so it doesn't depend on th assumption
                     //that all files have matching timestamps
+   if(TimeStamps.size() > 0)
    for(std::vector<double>::iterator it = TimeStamps[0].begin(); it != TimeStamps[0].end(); it++) {
 
      // load current state for output 

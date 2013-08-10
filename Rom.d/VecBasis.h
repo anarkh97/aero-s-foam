@@ -91,6 +91,8 @@ public:
   GenVecBasis &operator=(const GenVecBasis &);
   void swap(GenVecBasis &);
   
+  std::vector<int> getCompressedKey() {return compressedKey;}  
+
   // Reshaping
   void dimensionIs(int vCount, InfoType vInfo);
 

@@ -17,7 +17,7 @@ public:
 
   void dynamOutput(int, double, MDDynamMat &, DistrVector &, DistrVector *aeroF, SysState<DistrVector> &);
   void printPODSize(int);
-
+  void makeSensorBasis(DistrVecBasis *);
   
 private:
 
@@ -27,6 +27,23 @@ private:
   StaticTimers *times;
   int podSize;
   FILE *fn;
+
+  void subBuildSensorNodeVector(int);
+  void subPrintSensorValues(int,GenDistrVector<double> &, OutputInfo *,double *);
+
+  DistrVecBasis SensorBasis;
+  std::vector<int> sensorKey;
+  GenDistrVector<double> DispSensorValues;
+  GenDistrVector<double> AccSensorValues;
+  GenDistrVector<double> VelSensorValues;
+
+  DofSetArray **all_cdsa;
+
+  bool DispSensor;
+  bool AccSensor;
+  bool VelSensor;
+
+  std::vector<std::vector<int> > nodeVector;
 
   int numOutInfo;    
 };

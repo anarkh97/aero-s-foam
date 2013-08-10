@@ -263,12 +263,23 @@ MultiDomDynPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dynOps, 
 MultiDomainDynam::~MultiDomainDynam() 
 { 
   int nsub = decDomain->getNumSub(); 
-  delete decDomain; 
   delete times; 
   if(geomState) delete geomState; 
   if(kelArray) { for(int i=0; i<nsub; ++i) delete [] kelArray[i]; delete [] kelArray; }
   if(melArray) { for(int i=0; i<nsub; ++i) delete [] melArray[i]; delete [] melArray; }
-  if(allCorot) { for(int i=0; i<nsub; ++i) delete [] allCorot[i]; delete [] allCorot; } 
+  if(allCorot) {
+    for(int i=0; i<nsub; ++i) {
+      if(allCorot[i]) {
+        for(int iElem = 0; iElem < decDomain->getSubDomain(i)->numElements(); ++iElem) {
+          if(allCorot[i][iElem] && (allCorot[i][iElem] != dynamic_cast<Corotator*>(decDomain->getSubDomain(i)->getElementSet()[iElem])))
+            delete allCorot[i][iElem];
+        }
+        delete [] allCorot[i];
+      }
+    }
+    delete [] allCorot;
+  }
+  delete decDomain;
 }
 
 MDDynamMat *
@@ -407,10 +418,12 @@ MultiDomainDynam::makeSubElementArrays(int isub)
    (*geomState)[isub]->updatePrescribedDisplacement(sd->getInitDisp6(), sd->numInitDisp6(), sd->getNodes());
 
   // build the element stiffness matrices.
-  Vector elementInternalForce(sd->maxNumDOF(), 0.0);
-  Vector residual(sd->numUncon(), 0.0);
-  sd->getStiffAndForce(*(*geomState)[isub], elementInternalForce, allCorot[isub], kelArray[isub], residual,
-                       1.0, 0.0, (*geomState)[isub], (Vector*) NULL, melArray[isub]);
+  if(!domain->solInfo().ROMPostProcess) {
+    Vector elementInternalForce(sd->maxNumDOF(), 0.0);
+    Vector residual(sd->numUncon(), 0.0);
+    sd->getStiffAndForce(*(*geomState)[isub], elementInternalForce, allCorot[isub], kelArray[isub], residual,
+                         1.0, 0.0, (*geomState)[isub], (Vector*) NULL, melArray[isub]);
+  }
 }
 
 void

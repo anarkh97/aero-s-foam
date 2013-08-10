@@ -1044,15 +1044,15 @@ int main(int argc, char** argv)
        }
      } break;
      case SolverInfo::PodRomOffline: {
-       std::auto_ptr<Rom::DriverInterface> driver;
+       Rom::DriverInterface *driver;
        if (domain->solInfo().svdPodRom) {
          // Stand-alone SVD orthogonalization
          filePrint(stderr, " ... POD: Distributed SVD Orthogonalization ...\n");
-         driver.reset(distrBasisOrthoDriverNew(domain));
+         driver = distrBasisOrthoDriverNew(domain);
        } 
        else if (domain->solInfo().ROMPostProcess) {
          filePrint(stderr, " ... POD: Post Processing of Results...\n");
-         driver.reset(distrROMPostProcessingDriverNew(domain));
+         driver = distrROMPostProcessingDriverNew(domain);
        }
        else if (domain->solInfo().samplingPodRom) {
          // Element-based hyper-reduction
@@ -1060,13 +1060,14 @@ int main(int argc, char** argv)
            filePrint(stderr, " ... POD: Distributed Element-based Reduced Mesh with external lumping ...\n");
          else
            filePrint(stderr, " ... POD: Distributed Element-based Reduced Mesh ...\n");
-         driver.reset(distrElementSamplingDriverNew(domain));
+         driver = distrElementSamplingDriverNew(domain);
        }
        else {
          filePrint(stderr, " ... Unknown Analysis Type          ...\n");
          break;
        }
        driver->solve();
+       delete driver;
        break;
      }
      // Fall-thru

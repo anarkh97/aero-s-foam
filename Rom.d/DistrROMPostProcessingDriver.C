@@ -30,8 +30,20 @@ namespace Rom {
 
 DistrROMPostProcessingDriver::DistrROMPostProcessingDriver(Domain *domain_) :
 MultiDomainDynam(domain_),
-normalizedBasis_()
+normalizedBasis_(),
+curState(NULL), fullDispBuffer(NULL), fullVelBuffer(NULL), fullAccBuffer(NULL),
+fullVel2Buffer(NULL), fullDummyBuffer(NULL)
 {}
+
+DistrROMPostProcessingDriver::~DistrROMPostProcessingDriver()
+{
+ if(curState) delete curState;
+ if(fullDispBuffer) delete fullDispBuffer;
+ if(fullVelBuffer) delete fullVelBuffer;
+ if(fullAccBuffer) delete fullAccBuffer;
+ if(fullVel2Buffer) delete fullVel2Buffer;
+ if(fullDummyBuffer) delete fullDummyBuffer;
+}
 
 void
 DistrROMPostProcessingDriver::preProcess() {
@@ -214,7 +226,7 @@ DistrROMPostProcessingDriver::solve() {
               break;
             case 2 :
               if(counter != 0)
-                fullVel2Buffer = fullVelBuffer;
+                *fullVel2Buffer = *fullVelBuffer;
 
               for (int j = 0; j < projectionSubspaceSize; j++) 
                 buffer[j] = reducedVelBuffer[counter*projectionSubspaceSize+j];

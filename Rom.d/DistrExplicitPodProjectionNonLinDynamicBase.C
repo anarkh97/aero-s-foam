@@ -28,9 +28,9 @@ namespace Rom {
 
 DistrExplicitPodPostProcessor::DistrExplicitPodPostProcessor(DecDomain *d, StaticTimers* _times, DistrGeomState *_geomState = 0, Corotator ***_allCorot = 0) :
     MultiDomDynPostProcessor(d, _times, _geomState, _allCorot),
-    DispSensorValues(0),
-    AccSensorValues(0),
-    VelSensorValues(0)
+    DispSensorValues(),
+    AccSensorValues(),
+    VelSensorValues()
 {
       decDomain = d;
       geomState = _geomState;
@@ -39,9 +39,9 @@ DistrExplicitPodPostProcessor::DistrExplicitPodPostProcessor(DecDomain *d, Stati
 
       numOutInfo = geoSource->getNumOutInfo();
 
-       bool DispSensor = false;
-       bool AccSensor  = false;
-       bool VelSensor  = false;
+      DispSensor = false;
+      AccSensor  = false;
+      VelSensor  = false;
 
       for (int iOut = 0; iOut < numOutInfo; iOut++) {
        switch(oinfo[iOut].type){
@@ -73,8 +73,8 @@ DistrExplicitPodPostProcessor::DistrExplicitPodPostProcessor(DecDomain *d, Stati
            }
            break; 
          default:
-           filePrint(stderr, " ...ROM output only supports Acceleration, Displacement, and Velocity... \n");
-           filePrint(stderr, " output type selected is %d \n", oinfo[iOut].type);
+           filePrint(stderr, " ... ROM output only supports Acceleration, Displacement, and Velocity ...\n");
+           filePrint(stderr, "     output type selected is %d \n", oinfo[iOut].type);
        }
       }
 
@@ -119,12 +119,11 @@ DistrExplicitPodPostProcessor::printPODSize(int PODsize) {
 void
 DistrExplicitPodPostProcessor::makeSensorBasis(DistrVecBasis *fullBasis) {
 
- //DofSetArray **all_cdsa = new DofSetArray * [decDomain->getNumSub()];
  all_cdsa = new DofSetArray * [decDomain->getNumSub()];
 
  for(int i=0; i<decDomain->getNumSub(); ++i) all_cdsa[i] = decDomain->getSubDomain(i)->getCDSA();
 
- SensorBasis.dimensionIs(fullBasis->numVec(), fullBasis->size());
+ SensorBasis.dimensionIs(fullBasis->numVec(), fullBasis->vectorInfo());
  SensorBasis = *fullBasis;
  SensorBasis.makeSparseBasis(nodeVector,all_cdsa);
  sensorKey = SensorBasis.getCompressedKey();
@@ -233,7 +232,7 @@ DistrExplicitPodPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dyn
            }
            break;
          default:
-           filePrint(stderr, " ...ROM output only supports Acceleration, Displacement, and Velocity... \n");
+           filePrint(stderr, " ... ROM output only supports Acceleration, Displacement, and Velocity ... \n");
       }
     }
   }

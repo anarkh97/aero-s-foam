@@ -1025,6 +1025,7 @@ LOCAL_SRC_FILES  := ../Rom.d/BasisBinaryFile.C \
 	../Rom.d/RenumberingUtils.C \
 	../Rom.d/RestrictedVecNodeDof6Conversion.C \
 	../Rom.d/SnapshotNonLinDynamic.C \
+        ../Rom.d/SnapshotProjectionDriver.C \
 	../Rom.d/SvdOrthogonalization.C \
 	../Rom.d/VecBasis.C \
 	../Rom.d/VecBasisFile.C \

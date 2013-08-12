@@ -93,7 +93,7 @@ DistrROMPostProcessingDriver::preProcess() {
   fullVel2Buffer  = new GenDistrVector<double>(MultiDomainDynam::solVecInfo());
   fullDummyBuffer = new GenDistrVector<double>(MultiDomainDynam::solVecInfo());
 
-  //initialize system state vector container for use in mulit domain dynamic post processor
+  //initialize system state vector container for use in multi domain dynamic post processor
   curState = new SysState<GenDistrVector<double> >( *fullDispBuffer, *fullVelBuffer, *fullAccBuffer, *fullVel2Buffer);}
 }  //end preProcessing
 
@@ -111,7 +111,11 @@ DistrROMPostProcessingDriver::bufferReducedFiles(){
     if(reducedCoordFile.is_open()) {
       if(skipTime > 1) filePrint(stderr, " ... Skipping every %3d snapshots   ...\n", skipTime);
 
+#ifdef ANDROID
+      float time, dummyVar; // XXX DEBUG ANDROID
+#else
       double time, dummyVar;
+#endif
       int datatype, podsize, skipCounter;
       skipCounter = skipTime; // need to include t0 
       reducedCoordFile>>datatype; reducedCoordFile>>podsize;

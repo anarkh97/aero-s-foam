@@ -98,15 +98,15 @@ DistrExplicitPodPostProcessor::printPODSize(int PODsize) {
     for (int iOut = 0; iOut < numOutInfo; iOut++) {
      switch(oinfo[iOut].type){
        case OutputInfo::Accel6 : case OutputInfo::Acceleration :
-         if(oinfo[iOut].type == -1)
+         if(oinfo[iOut].nodeNumber == -1)
            filePrint( oinfo[iOut].filptr, "%d\n", PODsize);
          break;
        case OutputInfo::Disp6DOF : case OutputInfo::Displacement :
-         if(oinfo[iOut].type == -1)
+         if(oinfo[iOut].nodeNumber == -1)
            filePrint( oinfo[iOut].filptr, "%d\n", PODsize);
          break;
        case OutputInfo::Velocity6 : case OutputInfo::Velocity :
-         if(oinfo[iOut].type == -1)
+         if(oinfo[iOut].nodeNumber == -1)
            filePrint( oinfo[iOut].filptr, "%d\n", PODsize);
          break;
        default:

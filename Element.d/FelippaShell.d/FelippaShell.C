@@ -477,6 +477,7 @@ FelippaShell::setMaterial(NLMaterial *_mat)
     if(gpmat) delete gpmat;
     gpmat = new ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(prop->eh, prop->nu, prop->rho, localMaterial, 5, 3);
     nmat = new ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(prop->eh, prop->nu, prop->rho, localMaterial, 3, 3);
+    delete localMaterial;
   }
   else { // new parser
     MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial> *mat 

@@ -9,6 +9,7 @@ template<typename doublereal>
 class ShellMaterial
 {
   public:
+    virtual ~ShellMaterial() {}
     virtual void GetConstitutiveResponse(doublereal *Upsilon, doublereal *Sigma, doublereal *D,
                                          doublereal *eframe, int gp) = 0; // Upsilon is the generalized "strains" {e,chi}
                                                                           // Sigma is the generalized "stress" {N,M}

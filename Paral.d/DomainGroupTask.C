@@ -64,7 +64,9 @@ GenDomainGroupTask<Scalar>::GenDomainGroupTask(int _nsub, GenSubDomain<Scalar> *
   solvertype = _solvertype;
   com = _com;
   makeC = (alpha != 0.0 || beta != 0.0 || (numSommer > 0) || domain->getElementSet().hasDamping());
-  makeC_deriv = (makeC && domain->solInfo().doFreqSweep && domain->solInfo().nFreqSweepRHS > 1);
+// RT - 053013 - to enable multiple impedance section, build C_deriv whenever C
+//  makeC_deriv = (makeC && domain->solInfo().doFreqSweep && domain->solInfo().getSweepParams()->nFreqSweepRHS > 1);
+  makeC_deriv = (makeC && domain->solInfo().doFreqSweep );
 }
 
 template<class Scalar>
@@ -143,7 +145,7 @@ GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti)
 
       if(makeC_deriv) {
         int numC_deriv, numRHS;
-        numRHS = domain->solInfo().nFreqSweepRHS;
+        numRHS = domain->solInfo().getSweepParams()->nFreqSweepRHS;
         if((numSommer > 0) && ((sd[isub]->sommerfeldType == 2) || (sd[isub]->sommerfeldType == 4)))
           numC_deriv = numRHS - 1;
         else

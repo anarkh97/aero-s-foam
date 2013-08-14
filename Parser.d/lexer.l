@@ -645,6 +645,8 @@ TRAIL [a-zA-Z]*
 
 "damp"[a-zA-Z]*|"DAMP"[a-zA-Z]*    { return DAMPING; }
 
+"sdamp"[a-zA-Z]*|"SDAMP"[a-zA-Z]*    { return SDAMPING; }
+
 "time"|"TIME"                      { return TIME; }
 
 "pita"|"PITA"|"Pita"               { return PITA; }
@@ -756,6 +758,8 @@ TRAIL [a-zA-Z]*
 "HFTT"|"hftt"                      { return HFTT; }
 
 "YMTT"|"ymtt"                      { return YMTT; }
+
+"SDETAFT"|"sdetaft"                      { return SDETAFT; }
 
 "MATLAB"|"matlab"                  { return MATLAB; }
 

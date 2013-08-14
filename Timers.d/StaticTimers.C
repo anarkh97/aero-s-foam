@@ -131,9 +131,10 @@ StaticTimers::printStaticTimers(double solveTime, long memUsed,
             geoSource->getNumOutInfo());
  filePrint(f,"6. Renumbering                             = %14s\n\n",
          renumMessage[sInfo.renum]);
+
  if(domain->solInfo().doFreqSweep) {
    filePrint(f,"7. Number of Frequencies                   = %14d\n\n", domain->numFrequencies);
-   filePrint(f,"8. Number of RHS solves                   = %14d\n\n", domain->solInfo().nFreqSweepRHS);
+   filePrint(f,"8. Number of RHS solves                   = %14d\n\n", domain->solInfo().getSweepParams()->nFreqSweepRHS);
  }
 
  filePrint(f,"***********************************************************\n");

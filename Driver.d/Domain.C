@@ -47,7 +47,7 @@ ModeData modeData;
 //----------------------------------------------------------------------------------
 
 Domain::Domain(Domain &d, int nele, int *eles, int nnodes, int *nnums)
-  : nodes(*new CoordSet(nnodes)), lmpc(0), fsi(0), ymtt(0), ctett(0),
+  : nodes(*new CoordSet(nnodes)), lmpc(0), fsi(0), ymtt(0), ctett(0), sdetaft(0),
     SurfEntities(0), MortarConds(0)
 {
  initialize();
@@ -78,7 +78,7 @@ Domain::Domain(Domain &d, int nele, int *eles, int nnodes, int *nnums)
 }
 
 Domain::Domain(Domain &d, Elemset *_elems, CoordSet *_nodes)
-  : nodes(*_nodes), lmpc(0), fsi(0), ymtt(0), ctett(0), SurfEntities(0), MortarConds(0)
+  : nodes(*_nodes), lmpc(0), fsi(0), ymtt(0), ctett(0), sdetaft(0), SurfEntities(0), MortarConds(0)
 {
  initialize();
 
@@ -105,7 +105,7 @@ Domain::Domain(Domain &d, Elemset *_elems, CoordSet *_nodes)
 }
 
 Domain::Domain(int iniSize) : nodes(*(new CoordSet(iniSize*16))), packedEset(iniSize*16), lmpc(0,iniSize),
-   fsi(0,iniSize), ymtt(0,iniSize), ctett(0,iniSize), SurfEntities(0,iniSize), MortarConds(0,iniSize)
+   fsi(0,iniSize), ymtt(0,iniSize), ctett(0,iniSize), sdetaft(0,iniSize), SurfEntities(0,iniSize), MortarConds(0,iniSize)
 {
  initialize();
 
@@ -894,6 +894,26 @@ Domain::addYMTT(MFTTData *_ymtt)
 
  return 0;
 }
+
+
+int
+Domain::addSDETAFT(MFTTData *_sdetaft)
+{
+ //--- Verify if sdetat was already defined
+ int i = 0;
+ while(i < numSDETAFT && sdetaft[i]->getID() != _sdetaft->getID()) i++;
+
+ // if SDETAFT not previously defined create new
+ if(i == numSDETAFT) sdetaft[numSDETAFT++] = _sdetaft;
+
+ // if SDETAFT already defined print warning message
+ else
+   filePrint(stderr," *** WARNING: SDETAFT %d has already been defined \n", _sdetaft->getID());
+
+ return 0;
+}
+
+
 
 void Domain::printYMTT()
 {
@@ -2712,7 +2732,7 @@ Domain::initialize()
  numComplexDirichlet = 0; numComplexNeuman = 0; 
  firstDiMass = 0; numIDis6 = 0; gravityAcceleration = 0;
  allDOFs = 0; stress = 0; weight = 0; elstress = 0; elweight = 0; claw = 0;
- numLMPC = 0; numYMTT = 0; numCTETT = 0; MidPoint = 0; temprcvd = 0;
+ numLMPC = 0; numYMTT = 0; numCTETT = 0; numSDETAFT = 0; MidPoint = 0; temprcvd = 0;
  heatflux = 0; elheatflux = 0; elTemp = 0; dbc = 0; nbc = 0; 
  iDis = 0; iDisModal = 0; iVel = 0; iVelModal = 0; iDis6 = 0; elemToNode = 0; nodeToElem = 0;
  nodeToNode = 0; dsa = 0; c_dsa = 0; cdbc = 0; cnbc = 0;
@@ -3689,5 +3709,29 @@ Domain::UpdateContactSurfaceElements(GeomState *geomState)
   //cerr << "replaced " << count1 << " and added " << count-count1 << " new elements while removing " << count2 << endl;
   numele = packedEset.last(); 
   numnodes = geomState->numNodes();
+}
+
+
+void Domain::updateSDETAF(StructProp* p, double omega) {
+ if (p->etaDamp<0.0 && p->betaDamp==0.0) {
+ // First time
+   int tid = -int(p->etaDamp);
+   int i;
+   for(i = 0; i < numSDETAFT; ++i)
+      if (sdetaft[i]->id == tid) break;
+   if (i==numSDETAFT) { 
+     fprintf(stderr,"Structural damping table %d does not exist.\n",tid);
+     exit(-1);
+   }
+   p->etaDampTable = i;
+ }
+ if (p->etaDampTable>=0) {
+   double f = omega/(2.0*M_PI);
+   double eta, detadf;
+   int tid = p->etaDampTable;
+   sdetaft[tid]->getValAndSlopeAlt(f,&eta,&detadf);
+   p->etaDamp = eta-f*detadf;
+   p->betaDamp = detadf/(2.0*M_PI); 
+ }
 }
 

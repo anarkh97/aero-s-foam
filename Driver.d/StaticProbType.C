@@ -25,25 +25,73 @@ StaticSolver< Scalar, OpSolver, VecType,
 
  //solver=0; postProcessor=0;  
  allOps=0; postProcessor=0;
-
- //solver = probDesc->getSolver();
  allOps = probDesc->getAllOps();
  postProcessor = probDesc->getPostProcessor();
 
- int padeN = domain->solInfo().padeN;  // 1 for 1-point pade or taylor, 2 for 2-point pade, etc
+ //solver = probDesc->getSolver();
 
  if(domain->solInfo().doFreqSweep) { // multiple RHS solve
+ for(int is=0;is<domain->set_of_frequencies.size();is++) {
+
+   domain->setFrequencySet(is);
+   domain->solInfo().curSweepParam = is;
+   SPropContainer& sProps = geoSource->getStructProps();
+   double min_w = *min_element(domain->coarse_frequencies->begin(), 
+                      domain->coarse_frequencies->end() );
+   double max_w = *max_element(domain->coarse_frequencies->begin(), 
+                      domain->coarse_frequencies->end() );
+   for(int iProp=0;iProp<geoSource->getNumProps();iProp++) {
+     domain->updateSDETAF(&sProps[iProp],min_w+1e-12*(max_w-min_w));
+        // Make sure you are to the right...
+   }
+
+
+
+
+ int padeN = domain->solInfo().getSweepParams()->padeN;  // 1 for 1-point pade or taylor, 2 for 2-point pade, etc
    filePrint(stderr, " ... Frequency Sweep Analysis       ... \n");
    filePrint(stderr, " ... Number of coarse freqencies = %3d     ... \n", domain->coarse_frequencies->size());
    if(padeN > 1)
      filePrint(stderr, " ... Number of extrapolated freqencies = %3d     ... \n", domain->frequencies->size());
    else 
      filePrint(stderr, " ... Number of interpolated freqencies = %3d     ... \n", domain->frequencies->size());
-   int nRHS = domain->solInfo().nFreqSweepRHS;
+   int nRHS = domain->solInfo().getSweepParams()->nFreqSweepRHS;
    if(nRHS==0) filePrint(stderr, " *** ERROR: nRHS = 0 \n");
 
+// RT 070513
+ fprintf(stderr,"haha %d\n",domain->solInfo().getSweepParams()->nFreqSweepRHS);
+   if (domain->solInfo().getSweepParams()->freqSweepMethod==SweepParams::Taylor        && domain->solInfo().getSweepParams()->nFreqSweepRHS==1)
+   {
+     bool first_time = true;
+     while(domain->coarse_frequencies->size() > 0) {
+       double wc = domain->coarse_frequencies->front();
+       domain->setSavedFreq(wc); // Not needed ??
+       domain->isCoarseGridSolve = true;
+       geoSource->setOmega(wc); 
+       if(!first_time || is>0) rebuildSolver(wc); 
+       else first_time = false;
+
+       std::list<int> loadcases_backup;
+       loadcases_backup = domain->solInfo().loadcases;
+       if(domain->solInfo().loadcases.size() > 0) {
+         while(domain->solInfo().loadcases.size() > 0) {
+           probDesc->getRHS(*rhs);
+           allOps->sysSolver->solve(*rhs,*sol);
+           if(domain->solInfo().isCoupled) scaleDisp(*sol);
+           bool printTimers =
+            (domain->solInfo().loadcases.size() > 1 || domain->coarse_frequencies->size() > 1 ) ? false : true;
+           postProcessor->staticOutput(*sol, *rhs, printTimers);
+//           postProcessor->staticOutput(*sol, *rhs, false);
+           domain->solInfo().loadcases.pop_front();
+         }
+       }
+       domain->solInfo().loadcases = loadcases_backup;
+       domain->coarse_frequencies->pop_front();
+     }
+   } else  
+
 // RTRT
-   if (domain->solInfo().isAdaptSweep) 
+   if (domain->solInfo().getSweepParams()->isAdaptSweep) 
    {
      probDesc->setIWaveDir(0); 
 
@@ -52,15 +100,15 @@ StaticSolver< Scalar, OpSolver, VecType,
      bool dgp_flag;
      int dgp_flag_i;
      int minRHS,maxRHS,deltaRHS;
-     maxP = domain->solInfo().adaptSweep.maxP;
-     numS = domain->solInfo().adaptSweep.numS;
-     dgp_flag = domain->solInfo().adaptSweep.dgp_flag;
-     w1 = domain->solInfo().adaptSweep.w1;
-     w2 = domain->solInfo().adaptSweep.w2;
-     atol = domain->solInfo().adaptSweep.atol;
-     minRHS = domain->solInfo().adaptSweep.minRHS;
-     maxRHS = domain->solInfo().adaptSweep.maxRHS;
-     deltaRHS = domain->solInfo().adaptSweep.deltaRHS;
+     maxP = domain->solInfo().getSweepParams()->adaptSweep.maxP;
+     numS = domain->solInfo().getSweepParams()->adaptSweep.numS;
+     dgp_flag = domain->solInfo().getSweepParams()->adaptSweep.dgp_flag;
+     w1 = domain->solInfo().getSweepParams()->adaptSweep.w1;
+     w2 = domain->solInfo().getSweepParams()->adaptSweep.w2;
+     atol = domain->solInfo().getSweepParams()->adaptSweep.atol;
+     minRHS = domain->solInfo().getSweepParams()->adaptSweep.minRHS;
+     maxRHS = domain->solInfo().getSweepParams()->adaptSweep.maxRHS;
+     deltaRHS = domain->solInfo().getSweepParams()->adaptSweep.deltaRHS;
      filePrint(stderr,"Adaptive derivatives %d %d %d.\n",minRHS,maxRHS,deltaRHS);
      std::vector<double> w(maxP);
      double *newW = new double[maxP];
@@ -99,6 +147,8 @@ ncheck = 9;
      for(int ic=0;ic<ncheck;ic++)
        wcheck[ic] = w1 + double(ic+1)*(w2-w1)/double(ncheck+1);
      w[numP] = w1;
+     geoSource->setOmega(w[numP]); 
+     if (is>0) rebuildSolver(w[numP]);
      adaptGP(dgp_flag,minRHS,maxRHS,deltaRHS,nOrtho,
              sol, GP_solprev, GP_orth_solprev,
              aa,bb,cc,
@@ -235,8 +285,7 @@ ncheck = 18;
        domain->frequencies->pop_front();
      }
 
-     return;
-   }
+   } else {
 // RTRT
 
    // some initialization
@@ -249,12 +298,12 @@ ncheck = 18;
    //--- UH --- Data for Pade Lanczos
    double *PadeLanczos_VtKV = 0, *PadeLanczos_Vtb = 0;
    VecType **PadeLanczos_solprev = 0;
-   if (domain->solInfo().freqSweepMethod == SolverInfo::PadeLanczos) {
+   if (domain->solInfo().getSweepParams()->freqSweepMethod == SweepParams::PadeLanczos) {
      //--- Allocate new set of pointers to have them without any gap
      PadeLanczos_solprev = new VecType * [nRHS*padeN];
      for (int ii = 0; ii < padeN; ++ii) {
        for (int iRHS = 0; iRHS < nRHS; ++iRHS) {
-         if (domain->solInfo().freqSweepMethod == SolverInfo::PadeLanczos)
+         if (domain->solInfo().getSweepParams()->freqSweepMethod == SweepParams::PadeLanczos)
            PadeLanczos_solprev[iRHS + ii*nRHS] = sol_prev[iRHS + ii*(nRHS+1)];
          else 
            PadeLanczos_solprev[iRHS + ii*nRHS] = sol_prev[iRHS+1 + ii*(nRHS+1)];
@@ -265,9 +314,9 @@ ncheck = 18;
    Scalar *VhKV = 0, *VhMV =0, *VhCV =0;
    VecType **GP_solprev = 0, **GP_orth_sol_prev = 0;
     
-   if ( domain->solInfo().freqSweepMethod == SolverInfo::GalProjection ||
-        domain->solInfo().freqSweepMethod == SolverInfo::KrylovGalProjection ||
-        domain->solInfo().freqSweepMethod == SolverInfo::QRGalProjection) {
+   if ( domain->solInfo().getSweepParams()->freqSweepMethod == SweepParams::GalProjection ||
+        domain->solInfo().getSweepParams()->freqSweepMethod == SweepParams::KrylovGalProjection ||
+        domain->solInfo().getSweepParams()->freqSweepMethod == SweepParams::QRGalProjection) {
      GP_orth_sol_prev = new VecType * [nRHS*padeN];
      for(int i = 0; i < nRHS*padeN; ++i)
        GP_orth_sol_prev[i] = new VecType(probDesc->solVecInfo());
@@ -292,21 +341,21 @@ ncheck = 18;
      if(count == 0) w0 = wc;
 
      // if this isn't the first coarse solve then rebuild solver with new frequency
-     if(!first_time) rebuildSolver(wc); 
+     if(!first_time || is>0) rebuildSolver(wc); 
      else first_time = false;
      gpReorthoFlag = true;
 
      //----- UH ------
-     if (domain->solInfo().freqSweepMethod == SolverInfo::PadeLanczos) {
+     if (domain->solInfo().getSweepParams()->freqSweepMethod == SweepParams::PadeLanczos) {
        filePrint(stderr,"\n ... Build Subspace M-orthonormal Basis      ... \n"); 
        /*probDesc->*/ PadeLanczos_BuildSubspace(nRHS, PadeLanczos_solprev + count * nRHS, 
                                            PadeLanczos_solprev, count * nRHS);
 
-     } else  if (domain->solInfo().freqSweepMethod == SolverInfo::KrylovGalProjection) {
+     } else  if (domain->solInfo().getSweepParams()->freqSweepMethod == SweepParams::KrylovGalProjection) {
           krylovGalProjection(nRHS,count*nRHS,sol,
                                  GP_solprev, GP_orth_sol_prev,
                                  VhKV, VhMV, VhCV, wc, 0.0);
-     } else if (domain->solInfo().freqSweepMethod == SolverInfo::QRGalProjection)  {
+     } else if (domain->solInfo().getSweepParams()->freqSweepMethod == SweepParams::QRGalProjection)  {
              qrGalProjection(nRHS,count*nRHS,sol,
                                  GP_solprev, GP_orth_sol_prev,
                                  VhKV, VhMV, VhCV, wc, 0.0);
@@ -337,13 +386,13 @@ ncheck = 18;
      //----- UH ------
      // PJSA 9-22-06: fix for coupled multi point pade
      if(domain->solInfo().isCoupled)
-       if (domain->solInfo().freqSweepMethod != SolverInfo::KrylovGalProjection && domain->solInfo().freqSweepMethod != SolverInfo::QRGalProjection) 
+       if (domain->solInfo().getSweepParams()->freqSweepMethod != SweepParams::KrylovGalProjection && domain->solInfo().getSweepParams()->freqSweepMethod != SweepParams::QRGalProjection) 
          for(int i=1; i<(nRHS+1); ++i) scaleDisp(*sol_prev[offset+i]);
      bool printTimers = ((domain->coarse_frequencies->size()+domain->frequencies->size()) > 1) ? false : true;
      
      domain->setSavedFreq(domain->coarse_frequencies->front());
      //----- UH ------
-     if (domain->solInfo().freqSweepMethod == SolverInfo::PadeLanczos) {
+     if (domain->solInfo().getSweepParams()->freqSweepMethod == SweepParams::PadeLanczos) {
        //--- We destroy the arrays PadeLanczos_VtKV and PadeLanczos_VtB when V is incomplete.
        //--- This is not optimal as we recompute several times some coefficients.
        //--- Outputting should be done only when the basis V is complete.
@@ -375,7 +424,7 @@ ncheck = 18;
          PadeLanczos_Vtb = 0;
        } // if (count + 1 < padeN)
 */
-     } else if (domain->solInfo().freqSweepMethod == SolverInfo::KrylovGalProjection || domain->solInfo().freqSweepMethod == SolverInfo::QRGalProjection) {
+     } else if (domain->solInfo().getSweepParams()->freqSweepMethod == SweepParams::KrylovGalProjection || domain->solInfo().getSweepParams()->freqSweepMethod == SweepParams::QRGalProjection) {
        if (savesol)  {
          *savedSol = *sol;
          *savedRhs = *rhs;
@@ -396,14 +445,14 @@ ncheck = 18;
      }
      //----- UH ------
 
-     if(domain->solInfo().freqSweepMethod == SolverInfo::Pade ||
-        domain->solInfo().freqSweepMethod == SolverInfo::Fourier) {
+     if(domain->solInfo().getSweepParams()->freqSweepMethod == SweepParams::Pade ||
+        domain->solInfo().getSweepParams()->freqSweepMethod == SweepParams::Fourier) {
        double hi = wc-w0;
        h[count] = hi;
      }
      count++;
 
-//     if(!(domain->solInfo().freqSweepMethod == SolverInfo::PadeLanczos && count == padeN && domain->coarse_frequencies->size() > 1)) // PJSA 10-09-08 temporary fix to get sweep working
+//     if(!(domain->solInfo().freqSweepMethod == SweepParams::PadeLanczos && count == padeN && domain->coarse_frequencies->size() > 1)) // PJSA 10-09-08 temporary fix to get sweep working
        domain->coarse_frequencies->pop_front();
 
      if(count == padeN) {  // this means there are enough coarse solves to solve for pade polynomial coefs & reconstruct
@@ -436,8 +485,8 @@ xtime -= getTime();
         filePrint(stderr, " ... Reconstructing solution for f = %f ...\n", w/(2.0*PI));
 //         }
          //--------
-         switch(domain->solInfo().freqSweepMethod) {
-           case SolverInfo::Taylor : 
+         switch(domain->solInfo().getSweepParams()->freqSweepMethod) {
+           case SweepParams::Taylor : 
            {
              double _IsConverged = 1.0e-12;
              *sol = *sol_prev[1];
@@ -456,35 +505,35 @@ xtime -= getTime();
                if(relError < _IsConverged) break;
              }
            } break;
-           case SolverInfo::Pade :
+           case SweepParams::Pade :
 //             if(threadManager->numThr() > 1 && domain->solInfo().type == 2)
 //               probDesc->pade(sol, sol_prev, h, deltaw);
 //             else 
                pade(sol, sol_prev, h, deltaw);
              break;
-           case SolverInfo::Pade1 :
+           case SweepParams::Pade1 :
              pade1(sol, sol_prev, deltaw);
              break;
            //--- UH --- Evaluate the Pade approximation
-           case SolverInfo::PadeLanczos :
+           case SweepParams::PadeLanczos :
              /*probDesc->*/ PadeLanczos_Evaluate(padeN * nRHS, PadeLanczos_solprev, 
                                             PadeLanczos_VtKV, PadeLanczos_Vtb, w, sol);
              break;
            //--- UH ---
-           case SolverInfo::GalProjection:
+           case SweepParams::GalProjection:
              galProjection(gpReorthoFlag,nRHS*padeN,sol,GP_orth_sol_prev,
                            GP_solprev, VhKV, VhMV, VhCV, w, w-wc);
              gpReorthoFlag = false;
              break;
-           case SolverInfo::KrylovGalProjection:
+           case SweepParams::KrylovGalProjection:
              krylovGalProjection(0,nRHS*padeN,sol,GP_solprev, GP_orth_sol_prev,
                                  VhKV, VhMV, VhCV, w, w-wc);
              break;
-           case SolverInfo::QRGalProjection:
+           case SweepParams::QRGalProjection:
              qrGalProjection(0,nRHS*padeN,sol,GP_solprev, GP_orth_sol_prev,
                                  VhKV, VhMV, VhCV, w, w-wc);
              break;
-           case SolverInfo::Fourier :
+           case SweepParams::Fourier :
              fourier(sol, sol_prev, h, deltaw);
              break;
          } // switch (domain->solInfo().freqSweepMethod)
@@ -507,7 +556,7 @@ filePrint(stderr,"Projection  time: %e\n",xtime);
        else
          savesol = true;
 
-       if(domain->solInfo().freqSweepMethod == SolverInfo::PadeLanczos) { // PJSA 10-09-08 temporary fix to get sweep working
+       if(domain->solInfo().getSweepParams()->freqSweepMethod == SweepParams::PadeLanczos) { // PJSA 10-09-08 temporary fix to get sweep working
                                                                           // not optimal, can we reuse part of the basis? 
 //         first_time = true; // so the solver isn't rebuild
        }
@@ -516,7 +565,7 @@ filePrint(stderr,"Projection  time: %e\n",xtime);
            count = (padeN-ncoarse > 1) ? padeN-ncoarse : 1;
            int coffset = (padeN-count)*(nRHS+1);
            for(int i = 0; i < (nRHS+1)*count; ++i) *sol_prev[i] = *sol_prev[coffset+i];
-           if (domain->solInfo().freqSweepMethod == SolverInfo::KrylovGalProjection || domain->solInfo().freqSweepMethod == SolverInfo::QRGalProjection)
+           if (domain->solInfo().getSweepParams()->freqSweepMethod == SweepParams::KrylovGalProjection || domain->solInfo().getSweepParams()->freqSweepMethod == SweepParams::QRGalProjection)
              for(int i = 0; i < nRHS*count; ++i)
                *GP_orth_sol_prev[i] = *GP_orth_sol_prev[(padeN-count)*nRHS+i];
            double deltah = h[padeN-count];
@@ -531,7 +580,7 @@ filePrint(stderr,"Projection  time: %e\n",xtime);
    for(int i = 0; i < (nRHS+1)*padeN; ++i)
      delete sol_prev[i];
    delete [] sol_prev;
-   if (domain->solInfo().freqSweepMethod  == SolverInfo::GalProjection) {
+   if (domain->solInfo().getSweepParams()->freqSweepMethod  == SweepParams::GalProjection) {
      for(int i = 0; i < nRHS*padeN; ++i)
        delete GP_orth_sol_prev[i];
      delete [] GP_orth_sol_prev;
@@ -548,6 +597,8 @@ filePrint(stderr,"Projection  time: %e\n",xtime);
    if (GP_solprev) delete[] GP_solprev;
    if (VhKV) delete[] VhKV;
    if (VhMV) delete[] VhMV;
+   }
+ }
  } // if(domain->solInfo().doFreqSweep)
  else if(domain->solInfo().probType == SolverInfo::HelmholtzDirSweep) { // PJSA: never tested this in FEM/DPH
    int iRHS;

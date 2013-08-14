@@ -131,6 +131,9 @@ struct AllOps
                if(Kcc) Kcc->zeroAll();
                if(Mcc) Mcc->zeroAll();
                if(Ccc) Ccc->zeroAll();
+// RT: 053113 : not finished
+               if (C_deriv) if (C_deriv[0]) C_deriv[0]->zeroAll();
+               if (Cuc_deriv) if (Cuc_deriv[0]) Cuc_deriv[0]->zeroAll();
              }
 };
 
@@ -220,6 +223,8 @@ class Domain : public HData {
      MFTTData *hftval;		// Heat Fluxes Time Table
      ResizeArray<MFTTData *> ymtt;         // PJSA: Young's modulus vs. temperature table
      int numYMTT;                          // number of YM Temp tables
+     ResizeArray<MFTTData *> sdetaft;         // RT: Structural damping versus frequency table
+     int numSDETAFT;                          // number of SDETAF tables
      ResizeArray<MFTTData *> ctett;        // PJSA: Coefficient of thermal expansion vs. temperatur table
      int numCTETT;                         // number of CTE Temp tables
      FlExchanger *flExchanger;  // Fluid Exchanger
@@ -428,6 +433,9 @@ class Domain : public HData {
      int  setMPTT(MFTTData *);
      int  setHFTT(MFTTData *);
      int  addYMTT(MFTTData *);
+     int  addSDETAFT(MFTTData *);
+     void updateSDETAF(StructProp* p, double omega);
+
      void printYMTT();
      int  addCTETT(MFTTData *);
      std::pair<int, ResizeArray<MFTTData*>* >* getCTETT() { return new std::pair<int, ResizeArray<MFTTData*>* >(numCTETT,&ctett); };

@@ -73,11 +73,13 @@ public:
 
   GenDistrVector<double> & project(GenDistrVector<double> &, GenDistrVector<double> &);
   GenDistrVector<double> & projectUp(GenDistrVector<double> &, GenDistrVector<double> &);
-  GenDistrVector<double> & projectUp(std::vector<double> &   , GenDistrVector<double> & );
+  GenDistrVector<double> & projectUp(std::vector<double> &, GenDistrVector<double> &);
   GenDistrVector<double> & projectDown(GenDistrVector<double> &, GenDistrVector<double> &);
+  GenDistrVector<double> & projectUp2(GenDistrVector<double> &, GenDistrVector<double> &);
   
   void makeSparseBasis(const std::vector<std::vector<int> > &, DofSetArray **);
   void makeSparseBasis(const std::vector<int> &, DofSetArray *); 
+  void makeSparseBasis2(const std::vector<std::vector<int> > &, DofSetArray **);
 
   timespec tS1, tS2;
   double time1, time2, time3, time4, time5, time6, counter;
@@ -111,8 +113,8 @@ private:
   VecType *vectors_;
 #ifdef USE_EIGEN3
   Eigen::Map<Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> > basis;
-  Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> compressedBasis; 
-  std::vector<int> compressedKey;
+  Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> compressedBasis, compressedBasis2; 
+  std::vector<int> compressedKey, compressedKey2;
 
 public:
   Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic>& getCompressedBasis() { return compressedBasis; }
@@ -163,13 +165,13 @@ GenVecBasis<Scalar, GenVecType>::GenVecBasis() :
 #ifdef USE_EIGEN3
  ,basis(NULL,0,0),
  compressedBasis(0,0),
- compressedKey(0)
+ compressedBasis2(0,0),
+ compressedKey(0),
+ compressedKey2(0)
 #endif
 {
   placeVectors();
 }
-
-
 
 template <typename Scalar, template <typename> class GenVecType>
 GenVecBasis<Scalar, GenVecType>::GenVecBasis(int vCount, InfoType vInfo) :
@@ -178,7 +180,9 @@ GenVecBasis<Scalar, GenVecType>::GenVecBasis(int vCount, InfoType vInfo) :
 #ifdef USE_EIGEN3
  ,basis(NULL,0,0),
  compressedBasis(0,0),
- compressedKey(0)
+ compressedBasis2(0,0),
+ compressedKey(0),
+ compressedKey2(0)
 #endif
 {
   placeVectors();
@@ -191,7 +195,9 @@ GenVecBasis<Scalar, GenVecType>::GenVecBasis(const GenVecBasis &other) :
 #ifdef USE_EIGEN3
  ,basis(NULL,0,0),
  compressedBasis(0,0),
- compressedKey(0)
+ compressedBasis2(0,0),
+ compressedKey(0),
+ compressedKey2(0)
 #endif
 {
   placeVectors();

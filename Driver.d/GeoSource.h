@@ -538,6 +538,7 @@ public:
   void outputElemStress(int, double *, int, int *, double = -1.0);
   void outputElemStress(int, DComplex *, int, int *, double = -1.0);
   void openOutputFiles(int *outNodes = 0, int *outIndex = 0, int num = 0);
+  void openSensorOutputFiles();
   void openOutputFilesForPita(int sliceRank);
   void closeOutputFiles();
   void closeOutputFilesForPita(int sliceRank);

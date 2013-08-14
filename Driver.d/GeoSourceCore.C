@@ -3303,6 +3303,36 @@ void GeoSource::openOutputFiles(int *outNodes, int *outIndex, int numOuts)
 }
 
 //--------------------------------------------------------------------
+void GeoSource::openSensorOutputFiles()
+{
+  int iInfo;
+
+  // open all single node output files and write their corresponding TOPDOM/DEC header
+  for(iInfo = 0; iInfo < numOutInfo; ++iInfo) {
+    if(!(oinfo[iInfo].nodeNumber == -1)) {
+      if(oinfo[iInfo].interval != 0) {
+        char *fileName = oinfo[iInfo].filename;
+        if (strlen(cinfo->outputExt) != 0) {
+          int len1 = strlen(fileName);
+          int len2 = strlen(cinfo->outputExt);
+          char *nfn = new char[len1+len2+1];
+          strcpy(nfn, fileName);
+          strcat(nfn,cinfo->outputExt);
+          fileName = nfn;
+        }
+
+        if((oinfo[iInfo].filptr = fopen(fileName,"w")) == (FILE *) 0) {
+          fprintf(stderr," *** ERROR: Cannot open %s, exiting...\n", oinfo[iInfo].filename);
+          exit(0);
+        }
+        outputHeader(iInfo);
+        fflush(oinfo[iInfo].filptr);
+      }
+    }
+  }
+}
+
+//--------------------------------------------------------------------
 void GeoSource::closeOutputFiles()
 {
   for(int i = 0; i < numOutInfo; ++i) {

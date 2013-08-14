@@ -92,6 +92,8 @@ class GenDecDomain
   Connectivity * getSubToSub() { return subToSub; }
   Connectivity * getElemToSub() { return elemToSub; }
   Connectivity * getElemToNode() { return elemToNode; }
+  Connectivity * getNodeToSub() { return nodeToSub; }
+  int *getGlSubToLocal() { return glSubToLocal; }
   GenFetiSolver<Scalar> *getFetiSolver(GenDomainGroupTask<Scalar> &);
   void buildOps(GenMDDynamMat<Scalar>&, double, double, double, Rbm **rbm = 0, FullSquareMatrix **kelArray = 0,
                 bool make_feti = true, FullSquareMatrix **melArray = 0, FullSquareMatrix **celArray = 0, bool factor = true);

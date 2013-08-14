@@ -193,6 +193,7 @@ NonLinDynamic::readRestartFile(Vector &d_n, Vector &v_n, Vector &a_n,
   if(geoSource->getCheckFileInfo()->lastRestartFile) {
     filePrint(stderr, " ... Restarting From a Previous Run ...\n");
     domain->readRestartFile(d_n, v_n, a_n, v_p, bcx, vcx, geomState);
+    updateStates(&geomState, geomState);
   }
 }
 
@@ -536,12 +537,14 @@ NonLinDynamic::copyGeomState(GeomState* geomState)
 void
 NonLinDynamic::reBuild(GeomState& geomState, int iteration, double localDelta, double t)
 {
+ int step = (t+localDelta)/(2*localDelta);
+
  // note: localDelta = deltat/2
  times->rebuild -= getTime();
 
  // Rebuild every updateK iterations
- if((iteration % domain->solInfo().getNLInfo().updateK == 0) || (t == domain->solInfo().initialTime))  {
-   //fprintf(stderr, "Rebuilding Tangent Stiffness for Iteration %d\n", iteration);
+ if((iteration % domain->solInfo().getNLInfo().updateK == 0 && (step-1) % domain->solInfo().getNLInfo().stepUpdateK == 0)
+    || (t == domain->solInfo().initialTime))  {
 
    double Kcoef, Ccoef, Mcoef;
 
@@ -551,6 +554,7 @@ NonLinDynamic::reBuild(GeomState& geomState, int iteration, double localDelta, d
      Mcoef = 1;
    }
    else {
+     if(verboseFlag) filePrint(stderr, " ... Rebuilding Tangent Stiffness for Step %d Iteration %d ...\n", step, iteration);
      double beta, gamma, alphaf, alpham, dt = 2*localDelta;
      getNewmarkParameters(beta, gamma, alphaf, alpham);
      Kcoef = (domain->solInfo().order == 1) ? dt*gamma : dt*dt*beta;
@@ -936,7 +940,11 @@ NonLinDynamic::preProcess(double Kcoef, double Mcoef, double Ccoef)
 void NonLinDynamic::openResidualFile()
 {
   if(!res) {
+#ifdef ANDROID
+    res = fopen("/sdcard/residuals", "w");
+#else
     res = fopen("residuals", "w");
+#endif
     totIter = 0;
     fprintf(res,"Iteration Time           Residual\trel. res\tdv\t rel. dv\n");
   }

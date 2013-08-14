@@ -214,6 +214,11 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, GenSubDomain<Scalar> **_sd,
    for(iSub = 0; iSub < this->nsub; ++iSub) {
      this->sd[iSub]->Krr = sysMatrices[iSub];
      this->sd[iSub]->KrrSparse = sysSparse[iSub];
+     if(this->fetiInfo->printMatLab) {
+       std::stringstream filename;
+       filename << "localmat" << this->sd[iSub]->subNum();
+       this->sd[iSub]->KrrSparse->printSparse(filename.str());
+     }
      this->fetiOps[iSub]->setSysMatrix(this->sd[iSub]->Krr, sysSparse[iSub]);
    }
  }
@@ -889,6 +894,15 @@ GenFetiDPSolver<Scalar>::makeKcc()
        KccSolver = BLKMatrix;
      }
      break;
+#ifdef USE_EIGEN3
+     case FetiInfo::ldlt: {
+       GenEiSparseMatrix<Scalar, Eigen::SimplicialLDLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> > *cholsolver = new
+         GenEiSparseMatrix<Scalar,Eigen::SimplicialLDLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >(coarseConnectivity, cornerEqs);
+       KccSparse = cholsolver;
+       KccSolver = cholsolver;
+     }
+     break;
+#endif
 #ifdef USE_SPOOLES
      case FetiInfo::spooles: {
        GenSpoolesSolver<Scalar> *spsolver = new GenSpoolesSolver<Scalar>(coarseConnectivity, cornerEqs);
@@ -925,6 +939,9 @@ GenFetiDPSolver<Scalar>::makeKcc()
    if(verboseFlag) filePrint(stderr, " ... Unify Kcc                      ...\n");
    KccSolver->unify(this->fetiCom);
 #endif
+   if(this->fetiInfo->printMatLab) {
+     KccSparse->printSparse("coarsemat");
+   }
 
    if(verboseFlag) filePrint(stderr, " ... Factor Kcc solver              ...\n");
    KccSolver->setPrintNullity(this->fetiInfo->contactPrintFlag && this->myCPU == 0);

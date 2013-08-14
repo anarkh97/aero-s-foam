@@ -32,6 +32,7 @@ class DistFlExchanger;
 
 class MDNLDynamic 
 {
+  protected:
     Domain *domain;
     DecDomain  *decDomain;
     ParallelSolver *solver;
@@ -206,7 +207,7 @@ class MDNLDynamic
     void subUpdateStates(int isub, DistrGeomState *refState, DistrGeomState *geomState);
     void subReadRestartFile(int i, DistrVector &d_n, DistrVector &v_n, DistrVector &a_n,
                             DistrVector &v_p, DistrGeomState &geomState);
-    void subWriteRestartFile(int i, double &t, int &index, DistrVector &vel_n, DistrGeomState &geomState);
+    void subWriteRestartFile(int i, double &t, int &index, DistrVector &vel_n, DistrVector &acc_n, DistrGeomState &geomState);
     void subGetReactionForce(int i, DistrGeomState &geomState, DistrGeomState &refState, DistrVector &vel_n,
                              DistrVector &acc_n, double &time);
 

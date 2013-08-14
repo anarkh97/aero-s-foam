@@ -50,28 +50,38 @@ class MatNLElement : public Element {
        fprintf(stderr, "MatNLElement::updateStates is being called on an element "
                "for which it is not defined\n");
      }
-     virtual void getStrainTens(Node *nodes, double *dispnp, double (*result)[9]) {
+     virtual void getStrainTens(Node *nodes, double *dispnp, double (*result)[9], int avgnum) {
        fprintf(stderr, "MatNLElement::getStrainTens is being called on an element "
                "for which it is not defined\n");
      }
-     virtual void getVonMisesStrain(Node *nodes, double *dispnp, double *result) {
+     virtual void getVonMisesStrain(Node *nodes, double *dispnp, double *result, int avgnum) {
        fprintf(stderr, "MatNLElement::getVonMisesStrain is being called on an element "
                "for which it is not defined\n");
      }
      virtual void getStressTens(Node *nodes, double *dispn, double *staten,
-                                double *dispnp, double *statenp, double (*result)[9]) {
+                                double *dispnp, double *statenp, double (*result)[9], int avgnum) {
        fprintf(stderr, "MatNLElement::getStressTens is being called on an element "
                "for which it is not defined\n");
      }
      virtual void getVonMisesStress(Node *nodes, double *dispn, double *staten,
-                                    double *dispnp, double *statenp, double *result) {
+                                    double *dispnp, double *statenp, double *result, int avgnum) {
        fprintf(stderr, "MatNLElement::getVonMisesStress is being called on an element "
                "for which it is not defined\n");
      }
-     virtual void getEquivPlasticStrain(double *statenp, double *result) {
+     virtual void getEquivPlasticStrain(double *statenp, double *result, int avgnum) {
        fprintf(stderr, "MatNLElement::getEquivPlasticStrain is being called on an element "
                "for which it is not defined\n");
      }
+     virtual void getBackStressTens(double *statenp, double (*result)[9], int avgnum) {
+       fprintf(stderr, "MatNLElement::getBackStressTens is being called on an element "
+               "for which it is not defined\n");
+     }
+     virtual void getPlasticStrainTens(double *statenp, double (*result)[9], int avgnum) {
+       fprintf(stderr, "MatNLElement::getPlasticStrainTens is being called on an element "
+               "for which it is not defined\n");
+     }
+
+     virtual int getNumGaussPoints() { return 0; }
 };
 
 #endif

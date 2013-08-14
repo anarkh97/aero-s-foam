@@ -3,9 +3,14 @@
 
 #include "DriverInterface.h"
 
+#include "Problems.d/DynamDescr.h"
+#include "VecBasisOps.h"
+#include "FileNameInfo.h"
+#include "VecBasisFile.h"
+
 namespace Rom {
 
-class BasisOrthoDriver : public DriverInterface {
+class BasisOrthoDriver : public SingleDomainDynamic, public DriverInterface {
 public:
   virtual void solve();
   
@@ -14,7 +19,6 @@ public:
 private:
   void preProcess();
 
-  Domain *domain_;
 };
 
 } /* end namespace Rom */

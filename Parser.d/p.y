@@ -48,12 +48,14 @@
  ComplexFNBC complexFNBC;
  AxiMPC axiMPC;
  DoubleList dlist;
+ StringList slist;
  SurfaceEntity* SurfObj;
  MortarHandler* MortarCondObj;
  LMPCTerm* mpcterm;
  GeoSource::Rprop rprop;
  OutputInfo oinfo;
  ConstraintOptions copt;
+ BlastLoading::BlastData blastData;
 }
 
 %expect 6
@@ -68,7 +70,7 @@
 %token CONWEP
 %token DAMPING DblConstant DEM DIMASS DISP DIRECT DLAMBDA DP DYNAM DETER DECOMPOSE DECOMPFILE DMPC DEBUGCNTL DEBUGICNTL
 %token CONSTRAINTS MULTIPLIERS PENALTY
-%token EIGEN EFRAMES ELSCATTERER END ELHSOMMERFELD EXPLICIT EPSILON ELEMENTARYFUNCTIONTYPE
+%token ELLUMP EIGEN EFRAMES ELSCATTERER END ELHSOMMERFELD EXPLICIT EPSILON ELEMENTARYFUNCTIONTYPE
 %token FABMAT FACOUSTICS FETI FETI2TYPE FETIPREC FFP FFPDIR FITALG FNAME FLUX FORCE FRONTAL FETIH FILTEREIG
 %token FREQSWEEP FREQSWEEP1 FREQSWEEP2 FREQSWEEPA FSINTERFACE FSISCALING FSIELEMENT NOLOCALFSISPLITING FSICORNER FFIDEBUG FAILSAFE FRAMETYPE
 %token GEPS GLOBALTOL GRAVITY GRBM GTGSOLVER GLOBALCRBMTOL GROUP GROUPTYPE GOLDFARBTOL GOLDFARBCHECK
@@ -80,19 +82,19 @@
 %token JACOBI KRYLOVTYPE KIRLOC
 %token LAYC LAYN LAYD LAYO LAYMAT LFACTOR LMPC LOAD LOBPCG LOCALSOLVER LINESEARCH LUMPED
 %token MASS MATERIALS MATLAB MAXITR MAXORTHO MAXVEC MODAL MPCPRECNO MPCPRECNOID MPCTYPE MPCTYPEID MPCSCALING MPCELEMENT MPCBLOCKID 
-%token MPCBLK_OVERLAP MFTT MPTT MRHS MPCCHECK MUMPSICNTL MUMPSCNTL MECH MODEFILTER MOMENTTYPE
+%token MPCBLK_OVERLAP MFTT MPTT MRHS MPCCHECK MUMPSICNTL MUMPSCNTL MECH MODEFILTER MOMENTTYPE MAXIMUM
 %token NDTYPE NEIGPA NEWMARK NewLine NL NLMAT NLPREC NOCOARSE NODETOKEN NONINPC
 %token NSBSPV NLTOL NUMCGM NOSECONDARY NFRAMES
 %token OPTIMIZATION OUTPUT OUTPUT6 OUTPUTFRAME
 %token QSTATIC QLOAD
 %token PITA PITADISP6 PITAVEL6 NOFORCE MDPITA GLOBALBASES LOCALBASES TIMEREVERSIBLE REMOTECOARSE ORTHOPROJTOL READINITSEED JUMPCVG JUMPOUTPUT
-%token PRECNO PRECONDITIONER PRELOAD PRESSURE PRINTMATLAB PROJ PIVOT PRECTYPE PRECTYPEID PICKANYCORNER PADEPIVOT PROPORTIONING PLOAD PADEPOLES POINTSOURCE PLANEWAVE PTOL PLANTOL PMAXIT
+%token PRECNO PRECONDITIONER PRELOAD PRESSURE PRINTMATLAB PROJ PIVOT PRECTYPE PRECTYPEID PICKANYCORNER PADEPIVOT PROPORTIONING PLOAD PADEPOLES POINTSOURCE PLANEWAVE PTOL PLANTOL PMAXIT PIECEWISE
 %token RADIATION RBMFILTER RBMSET READMODE REBUILD RENUM RENUMBERID REORTHO RESTART RECONS RECONSALG REBUILDCCT RANDOM RPROP RNORM REVERSENORMALS RIGID
 %token SCALING SCALINGTYPE SDAMPING SDETAFT SENSORS SOLVERTYPE SHIFT
 %token SPOOLESTAU SPOOLESSEED SPOOLESMAXSIZE SPOOLESMAXDOMAINSIZE SPOOLESMAXZEROS SPOOLESMSGLVL SPOOLESSCALE SPOOLESPIVOT SPOOLESRENUM SPARSEMAXSUP SPARSEDEFBLK
 %token STATS STRESSID SUBSPACE SURFACE SAVEMEMCOARSE SPACEDIMENSION SCATTERER STAGTOL SCALED SWITCH STABLE SUBTYPE STEP SOWER SHELLTHICKNESS SURF SPRINGMAT
 %token TANGENT TEMP TIME TOLEIG TOLFETI TOLJAC TOLPCG TOPFILE TOPOLOGY TRBM THERMOE THERMOH 
-%token TETT TOLCGM TURKEL TIEDSURFACES THETA HRC THIRDNODE THERMMAT TDENFORC TESTULRICH THRU TOPFLAG
+%token TETT TOLCGM TURKEL TIEDSURFACES THETA REDFOL HRC THIRDNODE THERMMAT TDENFORC TESTULRICH THRU TOPFLAG TRIVIAL
 %token USE USERDEFINEDISP USERDEFINEFORCE UPROJ UNSYMMETRIC USING
 %token VERSION WETCORNERS XPOST YMTT 
 %token ZERO BINARY GEOMETRY DECOMPOSITION GLOBAL MATCHER CPUMAP
@@ -104,7 +106,8 @@
 %token WEIGHTLIST GMRESRESIDUAL 
 %token SLOSH SLGRAV SLZEM SLZEMFILTER 
 %token PDIR HEFSB HEFRS HEINTERFACE  // Added for HEV Problem, EC, 20080512
-%token SNAPFI PODROB TRNVCT OFFSET ORTHOG SVDTOKEN CONVERSIONTOKEN CONVFI SAMPLING PODSIZEMAX REFSUBSTRACT TOLER
+%token SNAPFI PODROB TRNVCT OFFSET ORTHOG SVDTOKEN CONVERSIONTOKEN CONVFI SAMPLING SNAPSHOTPROJECT PODSIZEMAX REFSUBSTRACT TOLER OUTOFCORE NORMALIZETOKEN FNUMBER SNAPWEIGHT ROBFI STAVCT VELVCT ACCVCT CONWEPCFG
+%token VECTORNORM LOCALTOLERANCE
 
 %type <complexFDBC> AxiHD
 %type <complexFNBC> AxiHN
@@ -143,6 +146,7 @@
 %type <ctett>    TETTList
 %type <sdetaft>   SDETAFList
 %type <dlist>    FloatList
+%type <slist>    StringList
 %type <SurfObj>  FaceSet
 %type <MortarCondObj> MortarCondition TiedSurfaces ContactSurfaces
 %type <ival>     MPCTYPEID MPCPRECNOID MPCBLOCKID
@@ -150,6 +154,7 @@
 %type <ival>     PRECTYPEID SWITCH TOPFLAG
 %type <oinfo>    OutInfo
 %type <copt>     ConstraintOptionsData
+%type <blastData> ConwepData
 %%
 FinalizedData:
 	All END
@@ -167,6 +172,7 @@ Component:
         { if(geoSource->setDirichlet($1->n,$1->d) < 0) return -1; delete $1; }
         | NeumanBC
         { if(geoSource->setNeuman($1->n,$1->d) < 0) return -1; }
+        | ModalNeumanBC
         | LMPConstrain 
         | ComplexLMPConstrain 
 	| ElemSet
@@ -175,6 +181,7 @@ Component:
         | ConstrainedSurfaceFrameDList
 	| Attributes
 	{}
+        | Ellump
 	| Materials
         | Statics
 	| Pressure
@@ -279,7 +286,7 @@ Component:
         | AxiNumSlices
         | AxiHSommer
         | AxiMPC
-        | Sower
+        | BinaryIO 
         | BinarySpec
         | AtdDirScatterer
         { if(geoSource->setDirichlet($1->n,$1->d) < 0) return -1; }
@@ -323,6 +330,7 @@ Component:
         | Constraints
 	| SvdToken
 	| Sampling
+        | SnapshotProject
         | ConversionToken
         ;
 Noninpc:
@@ -535,16 +543,25 @@ ReconsInfo:
           }
         }
         ;
-Sower:
-	SOWER NewLine
-          { geoSource->binaryInput = true; geoSource->binaryOutput = true; }
-        | BINARYINPUT SWITCH NewLine 
+BinaryIO:
+        BINARYINPUT SWITCH NewLine 
           { geoSource->binaryInput = bool($2); }
         | BINARYOUTPUT SWITCH NewLine
           { geoSource->binaryOutput = bool($2); }
         ;
 BinarySpec:
         BINARY NewLine
+        | BINARY FNAME NewLine
+          { std::string prefix = $2;
+            clusterData_ = prefix + ".msh";
+            decomposition_ = prefix + ".dec";
+            connectivity_ = prefix + ".con";
+            subdomains_ = prefix + ".sub";
+            fprintf(stderr, "clusterData_ = %s\n", clusterData_.c_str());
+            fprintf(stderr, "decomposition_ = %s\n", decomposition_.c_str());
+            fprintf(stderr, "connectivity_ = %s\n", connectivity_.c_str());
+            fprintf(stderr, "subdomains_ = %s\n", subdomains_.c_str());
+          }
         | BinarySpec GEOMETRY FNAME NewLine
           { geoSource->setGeo($3); }
         | BinarySpec DECOMPOSITION FNAME NewLine
@@ -581,6 +598,8 @@ Decompose :
          {decInit->skip = true;}
        | Decompose DETER NewLine
          {decInit->nosa = true; }
+       | Decompose TRIVIAL NewLine
+         {decInit->trivial = true; }
        ;
 WeightList :
        WEIGHTLIST NewLine
@@ -942,20 +961,23 @@ DynamInfo:
         { domain->solInfo().check_energy_balance = true;
           domain->solInfo().epsilon1 = $3; 
           domain->solInfo().epsilon2 = $4; }
-        | DynamInfo CONWEP Float Float Float Float Float NewLine
+        | DynamInfo CONWEP ConwepData NewLine
         { domain->solInfo().ConwepOnOff = true;
-          // Note: chargeWeight must be entered in the units of mass of the problem, not units of force.
-          BlastLoading::InputFileData.ConwepGlobalOnOff = true;
-          BlastLoading::InputFileData.ExplosivePosition[0]    = $3;
-          BlastLoading::InputFileData.ExplosivePosition[1]    = $4;
-          BlastLoading::InputFileData.ExplosivePosition[2]    = $5;
-          BlastLoading::InputFileData.ExplosiveDetonationTime = $7;
-          BlastLoading::InputFileData.BlastType               = BlastLoading::BlastData::AirBurst; // ($7 == 0 ? BlastLoading::BlastData::SurfaceBurst : BlastLoading::BlastData::AirBurst);
-          BlastLoading::InputFileData.ScaleLength             = 1.0;
-          BlastLoading::InputFileData.ScaleTime               = 1.0;
-          BlastLoading::InputFileData.ScaleMass               = 1.0;
-          BlastLoading::InputFileData.ExplosiveWeight         = $6*2.2; // The 2.2 factor is to convert from kilograms to pounds force.
-          BlastLoading::InputFileData.ExplosiveWeightCubeRoot = pow(BlastLoading::InputFileData.ExplosiveWeight,1.0/3.0);
+          BlastLoading::InputFileData = $3; }
+        ;
+ConwepData:
+        Float Float Float Float Float
+        { // Note: chargeWeight must be entered in the units of mass of the problem, not units of force.
+          $$.ExplosivePosition[0] = $1;
+          $$.ExplosivePosition[1] = $2;
+          $$.ExplosivePosition[2] = $3;
+          $$.ExplosiveDetonationTime = $5;
+          $$.BlastType = BlastLoading::BlastData::AirBurst; // ($5 == 0 ? BlastLoading::BlastData::SurfaceBurst : BlastLoading::BlastData::AirBurst);
+          $$.ScaleLength = 1.0;
+          $$.ScaleTime = 1.0;
+          $$.ScaleMass = 1.0;
+          $$.ExplosiveWeight = $4*2.2; // The 2.2 factor is to convert from kilograms to pounds force.
+          $$.ExplosiveWeightCubeRoot = pow($$.ExplosiveWeight,1.0/3.0);
         }
         ;
 TimeIntegration:
@@ -1727,6 +1749,11 @@ NeumanBC:
           surf_bc[0].caseid = $$->caseid;
           geoSource->addSurfaceNeuman(1,surf_bc); }
         ;
+ModalNeumanBC:
+        FORCE NewLine MODAL NewLine ModalValList
+        { for(int i=0; i<$5->n; ++i) $5->d[i].type = BCond::Forces;
+          if(geoSource->setNeumanModal($5->n, $5->d) < 0) return -1; }
+        ;
 BCDataList:
 	BC_Data
 	{ $$ = new BCList; $$->add($1); }
@@ -1925,6 +1952,7 @@ MatData:
           sp.initialPenalty = sp.penalty = $18;
           sp.type = StructProp::Constraint;
           sp.isReal = true;
+          sp.isRigid = true;
           geoSource->addMat( $1-1, sp );
         }
 	| Integer Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float NewLine
@@ -1966,6 +1994,7 @@ MatData:
           sp.initialPenalty = sp.penalty = $22;
           sp.type = StructProp::Constraint;
           sp.isReal = true;
+          sp.isRigid = true;
           geoSource->addMat( $1-1, sp );
         }
         | Integer Float Float Float Float Float Float Float NewLine
@@ -2102,6 +2131,44 @@ MatData:
           sp.constraint_hess = $3.constraint_hess;
           sp.constraint_hess_eps = $3.constraint_hess_eps;
           sp.type = StructProp::Constraint;
+          geoSource->addMat( $1-1, sp );
+        }
+        | Integer CONSTRMAT MASS Float NewLine
+        { // new style for rigid solid elements with mass
+          StructProp sp;
+          sp.type = StructProp::Undefined;
+          sp.rho = $4;
+          geoSource->addMat( $1-1, sp );
+        }
+        | Integer CONSTRMAT ConstraintOptionsData MASS Float NewLine
+        { // new style for rigid solid elements with mass
+          StructProp sp;
+          sp.lagrangeMult = $3.lagrangeMult;
+          sp.initialPenalty = sp.penalty = $3.penalty;
+          sp.constraint_hess = $3.constraint_hess;
+          sp.constraint_hess_eps = $3.constraint_hess_eps;
+          sp.type = StructProp::Constraint;
+          sp.rho = $5;
+          geoSource->addMat( $1-1, sp );
+        }
+        | Integer CONSTRMAT MASS Float Float NewLine
+        { // new style for rigid beam or shell elements with mass
+          StructProp sp;
+          sp.type = StructProp::Undefined;
+          sp.rho = $4;
+          sp.A = sp.eh = $5;
+          geoSource->addMat( $1-1, sp );
+        } 
+        | Integer CONSTRMAT ConstraintOptionsData MASS Float Float NewLine
+        { // new style for rigid beam or shell elements with mass
+          StructProp sp;
+          sp.lagrangeMult = $3.lagrangeMult;
+          sp.initialPenalty = sp.penalty = $3.penalty;
+          sp.constraint_hess = $3.constraint_hess;
+          sp.constraint_hess_eps = $3.constraint_hess_eps;
+          sp.type = StructProp::Constraint;
+          sp.rho = $5;
+          sp.A = sp.eh = $6;
           geoSource->addMat( $1-1, sp );
         }
         | Integer CONSTRMAT Integer Float NewLine
@@ -2806,6 +2873,11 @@ Attributes:
         { geoSource->setAttrib($2-1,$3-1); 
 	  geoSource->setElementLumpingWeight($2 - 1, $5);
 	  domain->solInfo().elemLumpPodRom = true; }
+        | Attributes Integer Integer HRC REDFOL Float NewLine // added HRC keyword for Hyper Reduction Coefficient
+        { geoSource->setAttrib($2-1,$3-1);
+          geoSource->setElementLumpingWeight($2 - 1, $6);
+          domain->solInfo().elemLumpPodRom = true; 
+          domain->solInfo().reduceFollower = true;}
 	| Attributes Integer Integer Integer Integer NewLine
 	{ geoSource->setAttrib($2-1,$3-1,$4-1,$5-1); }
         | Attributes Integer Integer Integer Integer HRC Float NewLine // added HRC keyword for Hyper Reduction Coefficient
@@ -2835,6 +2907,14 @@ Attributes:
             geoSource->setAttrib(i-1, $4-1, $5-1, -1, $7);
         }
 	;
+Ellump:
+        ELLUMP NewLine
+        { domain->solInfo().elemLumpPodRom = true; }
+        | Ellump Integer Float NewLine
+        { geoSource->setElementLumpingWeight($2 - 1, $3); }
+        | Ellump REDFOL NewLine
+        { domain->solInfo().reduceFollower = true;}
+        ;
 Pressure:
 	PRESSURE NewLine
 	| Pressure Integer Float NewLine
@@ -2894,6 +2974,42 @@ Statics:
         Solver
         | IterSolver
         | Statics CASES CasesList NewLine
+        | Statics PIECEWISE NewLine
+        { // activate piecewise constant configuration dependent external forces for a linear dynamic analysis
+          if(!domain->solInfo().isNonLin()) { 
+            if(domain->solInfo().probType == SolverInfo::Static || domain->solInfo().probType == SolverInfo::None)
+              domain->solInfo().probType = SolverInfo::NonLinStatic;
+            else if(domain->solInfo().probType == SolverInfo::Dynamic)
+              domain->solInfo().probType = SolverInfo::NonLinDynam;
+            else if(domain->solInfo().probType == SolverInfo::TempDynamic) {
+              domain->solInfo().order = 1;
+              domain->solInfo().probType = SolverInfo::NonLinDynam;
+            }
+            domain->solInfo().setNewton(std::numeric_limits<int>::max());
+            domain->solInfo().getNLInfo().stepUpdateK = std::numeric_limits<int>::max();
+            domain->solInfo().getNLInfo().linearelastic = true;
+            domain->solInfo().getNLInfo().maxiter = 1;
+          }
+        }
+        | Statics PIECEWISE Float Float NewLine
+        { // activate piecewise constant configuration dependent external forces for a linear static analysis
+          if(!domain->solInfo().isNonLin()) {  
+            if(domain->solInfo().probType == SolverInfo::Static || domain->solInfo().probType == SolverInfo::None)
+              domain->solInfo().probType = SolverInfo::NonLinStatic;
+            else if(domain->solInfo().probType == SolverInfo::Dynamic)
+              domain->solInfo().probType = SolverInfo::NonLinDynam;
+            else if(domain->solInfo().probType == SolverInfo::TempDynamic) {
+              domain->solInfo().order = 1;
+              domain->solInfo().probType = SolverInfo::NonLinDynam;
+            }
+            domain->solInfo().setNewton(std::numeric_limits<int>::max());
+            domain->solInfo().getNLInfo().stepUpdateK = std::numeric_limits<int>::max();
+            domain->solInfo().getNLInfo().linearelastic = true;
+            domain->solInfo().getNLInfo().maxiter = 1;
+            domain->solInfo().getNLInfo().dlambda = $3;
+            domain->solInfo().getNLInfo().maxLambda = $4;
+          }
+        }
         ;
 CasesList:
         Integer
@@ -3263,6 +3379,9 @@ Solver:
         { domain->solInfo().fetiInfo.uproj = $2; }
 	| PRINTMATLAB NewLine
 	{ domain->solInfo().fetiInfo.printMatLab = 1; }
+        | PRINTMATLAB FNAME NewLine
+        { domain->solInfo().printMatLab = 1;
+          domain->solInfo().printMatLabFile = $2; }
 	| LOCALSOLVER SOLVERTYPE NewLine
 	{ domain->solInfo().fetiInfo.solvertype = (FetiInfo::Solvertype) $2; }
 	| COARSESOLVER SOLVERTYPE NewLine
@@ -3723,9 +3842,9 @@ NLInfo:
           else if(domain->solInfo().probType == SolverInfo::TempDynamic) {
             domain->solInfo().order = 1;
             domain->solInfo().probType = SolverInfo::NonLinDynam;
-            domain->solInfo().probType = SolverInfo::TempDynamic;
           }
-          domain->solInfo().fetiInfo.type = FetiInfo::nonlinear; // XXXX
+          domain->solInfo().fetiInfo.type = FetiInfo::nonlinear;
+          domain->solInfo().getNLInfo().setDefaults(); // just in case PIECEWISE is used under statics
         }
         | NLInfo ARCLENGTH NewLine
         { 
@@ -3739,6 +3858,8 @@ NLInfo:
           else if(domain->solInfo().probType == SolverInfo::NonLinDynam)
             domain->solInfo().probType = SolverInfo::MatNonLinDynam;
         }
+        | NLInfo LINEARELASTIC NewLine
+        { domain->solInfo().getNLInfo().linearelastic = true; }
         | NLInfo MAXITR Integer NewLine
         { domain->solInfo().getNLInfo().maxiter = $3; }
         | NLInfo NLTOL Float NewLine
@@ -3790,6 +3911,13 @@ NewtonInfo:
           domain->solInfo().setNewton($2); 
           domain->solInfo().fetiInfo.type  = FetiInfo::nonlinear; 
         }
+        | REBUILD Integer Integer NewLine
+        {
+          domain->solInfo().setNewton($2);
+          domain->solInfo().getNLInfo().stepUpdateK = $3;
+          domain->solInfo().fetiInfo.type  = FetiInfo::nonlinear;
+        }
+/*
 	| REBUILD Integer Integer NewLine
 	{ 
           domain->solInfo().setNewton($2); 
@@ -3817,6 +3945,7 @@ NewtonInfo:
           domain->solInfo().fetiInfo.nPrec = rebuildPrec;
           domain->solInfo().fetiInfo.type  = FetiInfo::nonlinear;
 	}
+*/
 	;
 OrthoInfo:
 	REORTHO NewLine
@@ -4043,6 +4172,18 @@ FloatList:
           $$.v[$$.nval++] = $2;
  	}
 	;
+StringList:
+	{ $$.nval = 0; }
+	| StringList FNAME
+	{ 
+          if($1.nval == 32) {
+             fprintf(stderr, "Too many files!\n");
+	     exit(-1);
+          }
+          $$ = $1;
+          $$.v[$$.nval++] = $2;
+ 	}
+	;
 Renumbering:
 	RENUM NewLine RENUMBERID NewLine
 	{ domain->solInfo().setRenum($3);
@@ -4066,17 +4207,38 @@ SvdToken:
   ;
 
 SvdOption:
-    SNAPFI FNAME
-  { domain->solInfo().snapfiPodRom = $2; }
-  | SNAPFI FNAME Integer 
-  { domain->solInfo().snapfiPodRom = $2;
+/*
+  SNAPFI FNAME
+  {
+    domain->solInfo().snapfiPodRom.push_back(std::string($2));
+  }
+  */
+  SNAPFI StringList
+  {
+    for(int i=0; i<$2.nval; ++i) domain->solInfo().snapfiPodRom.push_back(std::string($2.v[i]));
+  }
+  /*
+  | SNAPFI FNAME Integer
+  { domain->solInfo().snapfiPodRom.push_back($2);
     if ($3 == 1) domain->solInfo().statevectPodRom = true;
     if ($3 == 2) domain->solInfo().residvectPodRom = true;
     if ($3 == 3) domain->solInfo().jacobvectPodRom = true;
     if ($3 == 4) domain->solInfo().forcevectPodRom = true;
     if ($3 == 5) domain->solInfo().accelvectPodRom = true;}
+    */
   | PODSIZEMAX Integer
   { domain->solInfo().maxSizePodRom = $2; }
+  | NORMALIZETOKEN Integer
+  { domain->solInfo().normalize = $2; }
+  | SNAPWEIGHT FloatList
+  { for(int i=0; i<$2.nval; ++i) domain->solInfo().snapshotWeights.push_back($2.v[i]); }
+  | SKIP Integer
+  { domain->solInfo().skipPodRom = $2; } 
+  | ROBFI StringList
+  {
+    for(int i=0; i<$2.nval; ++i) domain->solInfo().robfi.push_back(std::string($2.v[i]));
+  }
+  | ConwepConfig
   ;
 
 Sampling:
@@ -4085,20 +4247,29 @@ Sampling:
     domain->solInfo().probType = SolverInfo::PodRomOffline;
     domain->solInfo().samplingPodRom = true; }
   | Sampling SamplingOption NewLine
+  | Sampling ConwepConfig
+  ;
+
+SnapshotProject:
+    SNAPSHOTPROJECT NewLine 
+  { domain->solInfo().activatePodRom = true;
+    domain->solInfo().probType = SolverInfo::PodRomOffline;
+    domain->solInfo().snapProjPodRom = true; }
+  | SnapshotProject SamplingOption NewLine
   ;
 
 SamplingOption:
     PODROB FNAME
   { domain->solInfo().readInROBorModes = $2; }
   | TRNVCT FNAME
-  { domain->solInfo().statePodRomFile = $2; }
+  { domain->solInfo().statePodRomFile.push_back($2); }
   | TRNVCT FNAME FNAME
-  { domain->solInfo().statePodRomFile = $2;
-    domain->solInfo().velocPodRomFile = $3; }
+  { domain->solInfo().statePodRomFile.push_back($2);
+    domain->solInfo().velocPodRomFile.push_back($3); }
   | TRNVCT FNAME FNAME FNAME
-  { domain->solInfo().statePodRomFile = $2;
-    domain->solInfo().velocPodRomFile = $3;
-    domain->solInfo().accelPodRomFile = $4; }
+  { domain->solInfo().statePodRomFile.push_back($2);
+    domain->solInfo().velocPodRomFile.push_back($3);
+    domain->solInfo().accelPodRomFile.push_back($4); }
   | TOLER Float
   { domain->solInfo().tolPodRom = $2; }
   | SKIP Integer
@@ -4107,8 +4278,29 @@ SamplingOption:
   { domain->solInfo().skipOffSet = $2; }
   | PODSIZEMAX Integer
   { domain->solInfo().maxSizePodRom = $2; }
+  | OUTOFCORE SWITCH
+  { domain->solInfo().oocPodRom = bool($2); }
+  | REDFOL SWITCH
+  { domain->solInfo().reduceFollower = bool($2); }
+  | VECTORNORM FNAME
+  { domain->solInfo().PODerrornorm.push_back($2); }
+  | VECTORNORM FNAME FNAME
+  { domain->solInfo().PODerrornorm.push_back($2);
+    domain->solInfo().PODerrornorm.push_back($3); }
+  | VECTORNORM FNAME FNAME FNAME
+  { domain->solInfo().PODerrornorm.push_back($2);
+    domain->solInfo().PODerrornorm.push_back($3);
+    domain->solInfo().PODerrornorm.push_back($4); }
+  | LOCALTOLERANCE SWITCH
+  { domain->solInfo().localTol = bool($2); }
   ;
 
+ConwepConfig:
+   CONWEPCFG NewLine
+   | ConwepConfig ConwepData NewLine
+   { domain->solInfo().conwepConfigurations.push_back($2); }
+  ;
+   
 ConversionToken:
     CONVERSIONTOKEN NewLine
   { domain->solInfo().activatePodRom = true;
@@ -4121,11 +4313,17 @@ ConversionOption:
     CONVFI FNAME
   { domain->solInfo().RODConversionFiles.push_back($2); 
     domain->solInfo().numRODFile += 1; }
+  | CONVFI FNAME Integer
+  { domain->solInfo().RODConversionFiles.push_back($2);
+    domain->solInfo().numRODFile += 1; 
+    domain->solInfo().skipPodRom = $3;}
   ;
 
 Integer:
 	IntConstant
 	{ $$ = $1; }
+        | MAXIMUM
+        { $$ = std::numeric_limits<int>::max(); }
 	;
 
 Float:

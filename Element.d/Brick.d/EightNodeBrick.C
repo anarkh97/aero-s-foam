@@ -413,8 +413,7 @@ EightNodeBrick::massMatrix(CoordSet &cs, double *mel, int cmflg)
 
   FullSquareMatrix M(ndofs,mel);
 
-  if(cmflg) { // HB: consistent mass matrix
-    //fprintf(stderr," *** In EightNodeBrick::massMatrix: make consistent mass matrix.\n");
+  if(cmflg) { // consistent mass matrix
     M.zero();
     int ls[24] = {0,3,6,9,12,15,18,21,
                   1,4,7,10,13,16,19,22,
@@ -451,7 +450,6 @@ EightNodeBrick::massMatrix(CoordSet &cs, double *mel, int cmflg)
     exit(-1);
   }
 
-  //cerr << "M = "; M.print();
   return(M);
 }
 

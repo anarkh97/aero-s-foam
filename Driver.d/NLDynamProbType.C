@@ -3,6 +3,7 @@
 extern int verboseFlag;
 extern int totalNewtonIter;
 extern int debugFlag;
+extern GeoSource * geoSource;
 
 /****************************************************************
  *
@@ -136,7 +137,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
   probDesc->getExternalForce(external_force, constantForce, -1, time, geomState, elementInternalForce, aeroForce, delta);
 
   // Solve for initial acceleration: a^0 = M^{-1}(fext^0 - fint^0 - C*v^0)
-  if(domain->solInfo().iacc_switch) {
+  if(domain->solInfo().iacc_switch && geoSource->getCheckFileInfo()->lastRestartFile == 0) {
     if(domain->solInfo().order == 1) {
       if(verboseFlag) filePrint(stderr," ... Computing initial first time derivative of temperature ...\n");
       probDesc->formRHSinitializer(external_force, velocity_n, elementInternalForce, *geomState, velocity_n);
@@ -171,7 +172,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
   int p = 0, q = 1;
 
   double t0 = time;
-  double tmax = time + maxStep*dt0 + 10*std::numeric_limits<double>::epsilon();
+  double tmax = maxStep*dt0 + 10*std::numeric_limits<double>::epsilon();
 
   // Time stepping loop
   for(step = 0; time+dt0/q <= tmax || failed; ) {
@@ -258,6 +259,9 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
             probDesc->getConstraintMultipliers(*geomState);
 
             StateUpdate::updateIncr(stateIncr, rhs);  // stateIncr = rhs
+
+            // Update state here if the maximum number of iterations is reached
+            if(iter == maxit-1) StateUpdate::updateState(probDesc, geomState, *stateIncr);
           }
           // If the converged criteria does involve the solution increment, then
           // check for convergence now
@@ -278,7 +282,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
 
       } // end of Newton iteration loop
 
-      if(converged == 0 && !failSafe) {
+      if(converged == 0 && !failSafe && domain->solInfo().getNLInfo().stepUpdateK != std::numeric_limits<int>::max()) {
         filePrint(stderr,"\r *** WARNING: at time %f Newton solver did not reach convergence after %d iterations"
                          " (residual: initial = %9.3e, final = %9.3e, target = %9.3e)\n", 
                          midtime, maxit, initialRes, resN, probDesc->getTolerance());

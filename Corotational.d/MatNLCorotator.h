@@ -38,6 +38,8 @@ class MatNLCorotator : public Corotator {
                         double zlayer = 0, int avgnum = 0, int measure = -1);
 
      void updateStates(GeomState *refState, GeomState &curState, CoordSet &C0);
+
+     int getNumGaussPoints();
 };
 
 #endif

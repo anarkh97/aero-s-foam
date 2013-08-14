@@ -41,7 +41,7 @@ class Corotator {
     virtual void extractDeformations(GeomState &geomState, CoordSet &cs,
                                      DComplex *vld, int &nlflag);
 
-    virtual void getGlobalDisp(GeomState& , CoordSet&, Vector& ){}
+    virtual void getGlobalDisp(GeomState&, CoordSet&, Vector&) {}
 
     virtual void getNLVonMises(Vector&, Vector& weight,
                                GeomState &, CoordSet &, int);
@@ -86,6 +86,10 @@ class Corotator {
     virtual void initMultipliers(GeomState& c1) {}
     virtual void updateMultipliers(GeomState& c1) {}
     virtual double getError() { return 0; }
+
+    // ONLY USED FOR POSTPROCESSING TO OUTPUT STRESS OR STRAIN AT THE GAUSS POINTS
+    // CURRENTLY ONLY SUPPORTED FOR MATERIAL NONLINEAR
+    virtual int getNumGaussPoints() { return 0; }
 
     virtual ~Corotator() {/*TODO*/}
 };

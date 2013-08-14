@@ -176,25 +176,6 @@ class MappedAssembledSolver : public BaseSolver, public Map
       cerr << "MappedAssembledSolver::add(GenAssembledFullM<Scalar>&, int*) is not implemented\n";
     }
 
-    void addDiscreteMass(int dof, Scalar s) {
-      int dofs[1] = { dof };
-      double d[1] = { ScalarTypes::Real(s) };
-      FullSquareMatrix mat(1, d);
-      add(mat,dofs);
-    }
-
-    void add(int dofi, int dofj, Scalar s) {
-      if(dofi == dofj) {
-        addDiscreteMass(dofi, s);
-      }
-      else {
-        int dofs[2] = { dofi, dofj };
-        double d[4] = { 0, ScalarTypes::Real(s), 0, 0 };
-        FullSquareMatrix mat(2, d);
-        add(mat,dofs);
-      }
-    }
-
     void factor() {
       BaseSolver::factor();
     } 

@@ -73,23 +73,17 @@ Domain::getInternalForce(GeomState &geomState, Vector& elementForce,
     elementForce.zero();
 
     // Get updated tangent stiffness matrix and element internal force
-    if (const Corotator *elemCorot = corotators[iele]) {
-      getElemInternalForce(geomState, pseudoTime, refState, *elemCorot, elementForce.data(), kel[iele]);
+    if(corotators[iele] && !solInfo().getNLInfo().linearelastic) {
+      getElemInternalForce(geomState, pseudoTime, refState, *corotators[iele], elementForce.data(), kel[iele]);
       if(domain->solInfo().galerkinPodRom && packedEset[iele]->hasRot()) {
         transformElemStiffAndForce(geomState, elementForce.data(), kel[iele], iele, false);
       }
     }
-    // Compute k and internal force for an element with x translation (or temperature) dofs
-    else if(solInfo().soltyp == 2) {
-      kel[iele].zero();
-      Vector temp(packedEset[iele]->numNodes());
-      int *nn = packedEset[iele]->nodes();
-      for(int i=0; i<packedEset[iele]->numNodes(); ++i) {
-        temp[i] = geomState[nn[i]].x;
-      }
-      kel[iele] = packedEset[iele]->stiffness(nodes, kel[iele].data());
-      kel[iele].multiply(temp, elementForce, 1.0); // elementForce = kel*temp
-      delete [] nn;
+    // get linear elastic element internal force
+    else {
+      Vector disp(packedEset[iele]->numDofs());
+      getElementDisp(iele, geomState, disp);
+      kel[iele].multiply(disp, elementForce, 1.0);
     }
     // Assemble element internal force into residual force vector
     for(int idof = 0; idof < kel[iele].dim(); ++idof) {
@@ -145,7 +139,13 @@ Domain::getWeightedInternalForceOnly(const std::map<int, double> &weights,
     }
   }
 
-  getFollowerForce(geomState, elementForce, corotators, (FullSquareMatrix *) NULL, residual, lambda, time, refState, NULL, false);
+  // TODO the state at the nodes on which the non-reduced follower forces act need to be updated for modelIII
+  if(domain->solInfo().reduceFollower) {
+    getWeightedFollowerForceOnly(weights, geomState, elementForce, corotators, (FullSquareMatrix *) NULL, residual, lambda, time, refState, NULL, false);
+  }
+  else {
+    getFollowerForce(geomState, elementForce, corotators, (FullSquareMatrix *) NULL, residual, lambda, time, refState, NULL, false);
+  }
 
   if(sinfo.isDynam() && mel) getWeightedFictitiousForceOnly(weights, geomState, elementForce, kel, residual, time, refState, NULL, mel, false);
 }
@@ -155,7 +155,6 @@ Domain::getFictitiousForce(GeomState &geomState, Vector &elementForce, FullSquar
                            double time, GeomState *refState, Vector *reactions, FullSquareMatrix *mel,
                            bool compute_tangents)
 {
-  // TODO: consider case of t=0
   for(int iele = 0; iele < numele; ++iele) {
 
     elementForce.zero();
@@ -216,7 +215,7 @@ Domain::getElemFictitiousForce(int iele, GeomState &geomState, double *_f, FullS
         // V is either the convected angular velocity at t^{n+1/2} for FOM or ROM model II or model III,
         //   or the convected angular velocity at current snapshot after projection for explicit ROM "training"
         V << geomState[nodes[i]].v[3], geomState[nodes[i]].v[4], geomState[nodes[i]].v[5];
-        if(domain->solInfo().galerkinPodRom) { // ROM
+        if(domain->solInfo().galerkinPodRom || domain->solInfo().samplingPodRom) {
           mat_to_vec(R, Psi);
           tangential_transf(Psi, T);
           Eigen::Vector3d Psidot;
@@ -247,7 +246,6 @@ Domain::getElemFictitiousForce(int iele, GeomState &geomState, double *_f, FullS
           if(time == domain->solInfo().initialTime) {
             V << geomState[nodes[i]].v[3], geomState[nodes[i]].v[4], geomState[nodes[i]].v[5];
             A << geomState[nodes[i]].a[3], geomState[nodes[i]].a[4], geomState[nodes[i]].a[5];
-            compute_tangents = false;
           }
           else {
             V_n << (*refState)[nodes[i]].v[3], (*refState)[nodes[i]].v[4], (*refState)[nodes[i]].v[5];
@@ -362,7 +360,7 @@ Domain::getDMassFictitiousForce(GeomState &geomState, FullSquareMatrix *kel, Vec
         // V is either the convected angular velocity at t^{n+1/2} for FOM or ROM model II or model III,
         //   or the convected angular velocity at current snapshot after projection for explicit ROM "training"
           V << geomState[current->node].v[3], geomState[current->node].v[4], geomState[current->node].v[5];
-          if(domain->solInfo().galerkinPodRom) {
+          if(domain->solInfo().galerkinPodRom || domain->solInfo().samplingPodRom) {
             mat_to_vec(R, Psi);
             tangential_transf(Psi, T);
             Eigen::Vector3d Psidot;

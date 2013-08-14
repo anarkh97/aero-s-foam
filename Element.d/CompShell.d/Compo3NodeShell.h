@@ -14,7 +14,7 @@ class Compo3NodeShell : public Element {
         double  *layData;
         double  *cCoefs;
         double  *cFrame;
-        bool ConwepOnOff;
+        BlastLoading::BlastData *conwep;
 
 public:
 	Compo3NodeShell(int*);
@@ -57,7 +57,7 @@ public:
                          double*, GeomState *gs=0);
         void getFlLoad(CoordSet &, const InterpPoint &, double *flF, 
                        double *resF, GeomState *gs=0);
-        void setPressure(double _pressure, MFTTData *_mftt = 0, bool _ConwepOnOff = false);
+        void setPressure(double _pressure, MFTTData *_mftt = 0, BlastLoading::BlastData *_conwep = 0);
         void computePressureForce(CoordSet&, Vector& elPressureForce,
                                   GeomState *gs = 0, int cflg = 0, double t = 0);
         void getThermalForce(CoordSet& , Vector& ,Vector &, int glflag, 

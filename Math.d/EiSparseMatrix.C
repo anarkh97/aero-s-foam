@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <Math.d/Vector.h>
 #include <Driver.d/Communicator.h>
+#include <unsupported/Eigen/SparseExtra>
 
 template<typename Scalar, typename SolverClass>
 GenEiSparseMatrix<Scalar,SolverClass>::GenEiSparseMatrix(Connectivity *cn, DofSetArray *dsa, int *rCN, bool _selfadjoint)
@@ -37,7 +38,7 @@ GenEiSparseMatrix<Scalar,SolverClass>::GenEiSparseMatrix(Connectivity *cn, DofSe
 
 template<typename Scalar, typename SolverClass>
 GenEiSparseMatrix<Scalar,SolverClass>::GenEiSparseMatrix(Connectivity *cn, EqNumberer *eqNums)
-: SparseData(cn,eqNums,1.0E-6,0),
+: SparseData(eqNums,cn,(int*)NULL,0,1),
   selfadjoint(true),
   nnz(xunonz[numUncon]),
   unonz(new Scalar[nnz]),
@@ -73,32 +74,11 @@ GenEiSparseMatrix<Scalar,SolverClass>::print()
 
 template<typename Scalar, typename SolverClass>
 void
-GenEiSparseMatrix<Scalar,SolverClass>::add(int idof, int jdof, Scalar s)
+GenEiSparseMatrix<Scalar,SolverClass>::printSparse(const std::string& filename)
 {
-  // TODO non-selfadjoint case
-  if((idof < 0) || (jdof < 0)) return;
-  int dofsi = (jdof > idof) ? idof : jdof;
-  int dofsj = (jdof > idof) ? jdof : idof;
-
-  int k,l;
-  if((k = unconstrNum[dofsi]) == -1 || (l = unconstrNum[dofsj]) == -1) return;
-  int mstart = xunonz[l];
-  int mstop  = xunonz[l+1];
-  for(int m = xunonz[l]; m < xunonz[l+1]; ++m) {
-    if(rowu[m] == k) {
-      unonz[m] += s;
-      break;
-    }
-  }
-}
-
-template<typename Scalar, typename SolverClass>
-void
-GenEiSparseMatrix<Scalar,SolverClass>::addDiscreteMass(int dof, Scalar dmass)
-{
-  GenFullSquareMatrix<Scalar> m(1);
-  m[0][0] = dmass;
-  add(m, &dof);
+  // export to ascii matrix market format
+  int sym = (selfadjoint) ? Eigen::Symmetric : 0x30;
+  saveMarket(M, filename, sym);
 }
 
 template<typename Scalar, typename SolverClass> 
@@ -113,6 +93,29 @@ GenEiSparseMatrix<Scalar,SolverClass>::add(FullSquareMatrix &kel, int *dofs)
       if(dofs[j] < 0 || (l = unconstrNum[dofs[j]]) < 0) continue;  // Skip undefined/constrained dofs
       for(int m = xunonz[l]; m < xunonz[l+1]; ++m) {
         if(rowu[m] == k) {
+          unonz[m] += kel[i][j];
+          break;
+        }
+      }
+    }
+  }
+}
+
+template<class Scalar, typename SolverClass>
+void
+GenEiSparseMatrix<Scalar,SolverClass>::add(GenAssembledFullM<Scalar> &kel, int *dofs)
+{
+  // this function is used to assemble Kcc and requires dofs to be in constrained numbering
+  int i, j, m, mstart, mstop, ri, rj;
+  for(i = 0; i < kel.numRow(); ++i) {       // Loop over rows.
+    if((ri = dofs[i]) == -1) continue;      // Skip constrained dofs
+    for(j = 0; j < kel.numCol(); ++j) {     // Loop over columns.
+      if((rj = dofs[j]) == -1) continue;    // Skip constrained dofs
+      if(rj < ri) continue;
+      mstart = xunonz[rj];
+      mstop  = xunonz[rj+1];
+      for(m = mstart; m < mstop; ++m) {
+        if(rowu[m] == ri) {
           unonz[m] += kel[i][j];
           break;
         }

@@ -38,9 +38,9 @@
 #define MPI_DOUBLE_COMPLEX ((MPI_Datatype) &lam_mpi_cxx_dblcplex)
 #endif
 // CRW - this define is a hack to let it compile on sun, but feti-h will not work
-#if (defined(USE_MPI) && !defined(MPI_DOUBLE_COMPLEX) && defined(NO_COMPLEX_MPI))    //CRW
-#define MPI_DOUBLE_COMPLEX MPI_LONG_DOUBLE    //CRW
-#endif    //CRW
+#if (defined(USE_MPI) && !defined(MPI_DOUBLE_COMPLEX) && defined(NO_COMPLEX_MPI))
+#define MPI_DOUBLE_COMPLEX MPI_LONG_DOUBLE
+#endif
 
 /*
   this file implements all MPI communication functions.

@@ -48,6 +48,12 @@ class ElasPlasKinHardMat : public NLMaterial
     StrainEvaluator * getStrainEvaluator();
 
     double getEquivPlasticStrain(double *statenp) { return statenp[12]; }
+
+    bool getBackStress(double *statenp, Tensor *backstress);
+
+    bool getPlasticStrain(double *statenp, Tensor *plasticstrain);
+
+    void print(std::ostream &out) const;
 };
 
 typedef ElasPlasKinHardMat<0> BilinPlasKinHardMat;

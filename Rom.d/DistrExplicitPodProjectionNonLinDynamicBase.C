@@ -14,6 +14,8 @@
 
 #include "PtrPtrIterAdapter.h"
 
+#include <Threads.d/PHelper.h>
+
 #include <Driver.d/DecDomain.h>
 #include <Feti.d/DistrVector.h>
 #include <Utils.d/DistHelper.h>
@@ -25,109 +27,243 @@
 namespace Rom {
 
 DistrExplicitPodPostProcessor::DistrExplicitPodPostProcessor(DecDomain *d, StaticTimers* _times, DistrGeomState *_geomState = 0, Corotator ***_allCorot = 0) :
-    MultiDomDynPostProcessor(d, _times, _geomState, _allCorot)
+    MultiDomDynPostProcessor(d, _times, _geomState, _allCorot),
+    DispSensorValues(),
+    AccSensorValues(),
+    VelSensorValues(),
+    all_cdsa(NULL)
 {
+  decDomain = d;
+  geomState = _geomState;
+  times = _times;
+  oinfo = geoSource->getOutputInfo();
 
-      decDomain = d;
-      geomState = _geomState;
-      times = _times;
-      oinfo = geoSource->getOutputInfo();
+  numOutInfo = geoSource->getNumOutInfo();
 
-      numOutInfo = geoSource->getNumOutInfo();
+  DispSensor = false;
+  AccSensor  = false;
+  VelSensor  = false;
 
+  for (int iOut = 0; iOut < numOutInfo; iOut++) {
+    switch(oinfo[iOut].type) {
+      case OutputInfo::Accel6 : case OutputInfo::Acceleration :
+        if(oinfo[iOut].nodeNumber != -1) {
+          AccSensor = true;
+        } else {
+          if(!structCom || structCom->myID() == 0) oinfo[iOut].filptr = fopen(oinfo[iOut].filename, "wb");
+          filePrint(oinfo[iOut].filptr, "0\n"); 
+        }
+        break;
+      case OutputInfo::Disp6DOF : case OutputInfo::Displacement :
+        if(oinfo[iOut].nodeNumber != -1) {
+          DispSensor = true;
+        } else {
+          if(!structCom || structCom->myID() == 0) oinfo[iOut].filptr = fopen(oinfo[iOut].filename, "wb");
+          filePrint(oinfo[iOut].filptr, "1\n");
+        }
+        break;
+      case OutputInfo::Velocity6 : case OutputInfo::Velocity :
+        if(oinfo[iOut].nodeNumber != -1) {
+          VelSensor = true;
+        } else {
+          if(!structCom || structCom->myID() == 0) oinfo[iOut].filptr = fopen(oinfo[iOut].filename, "wb");
+          filePrint(oinfo[iOut].filptr, "2\n");
+        }
+        break; 
+      default:
+        filePrint(stderr, " ... ROM output only supports Acceleration, Displacement, and Velocity ...\n");
+        filePrint(stderr, "     output type selected is %d \n", oinfo[iOut].type);
+    }
+  }
 
-      for (int iOut = 0; iOut < numOutInfo; iOut++) {
-       switch(oinfo[iOut].type){
-         case OutputInfo::Accel6 : 
-           oinfo[iOut].filptr = fopen(oinfo[iOut].filename,"wb");
-           filePrint( oinfo[iOut].filptr, "0\n"); 
-           break;
-         case OutputInfo::Disp6DOF :
-           oinfo[iOut].filptr = fopen(oinfo[iOut].filename,"wb");
-           filePrint( oinfo[iOut].filptr, "1\n");
-           break;
-         case OutputInfo::Velocity6 : 
-           oinfo[iOut].filptr = fopen(oinfo[iOut].filename,"wb");
-           filePrint( oinfo[iOut].filptr, "2\n"); 
-           break; 
-         default:
-           filePrint(stderr, " ...ROM output only supports Acceleration, Displacement, and Velocity... \n");
-           filePrint(stderr, " output type selected is %d \n", oinfo[iOut].type);
-       }
+  if(DispSensor || VelSensor || AccSensor) {
+    for(int iSub = 0; iSub < decDomain->getNumSub(); iSub++) {
+      int nOutNodes = decDomain->getSubDomain(iSub)->getNumNodalOutput();
+      if(nOutNodes) {
+        geoSource->openOutputFiles(decDomain->getSubDomain(iSub)->getOutputNodes(),
+                                   decDomain->getSubDomain(iSub)->getOutIndex(), nOutNodes);
       }
+    }
+  }
 
+  if(structCom) structCom->sync();
+  nodeVector.resize(decDomain->getNumSub());
+  execParal(decDomain->getNumSub(), this, &DistrExplicitPodPostProcessor::subBuildSensorNodeVector);
 }
 
 DistrExplicitPodPostProcessor::~DistrExplicitPodPostProcessor() {
 
-/*  for (int iOut = 0; iOut < numOutInfo; iOut++) {
-           if(oinfo[iOut].filptr) fclose(oinfo[iOut].filptr);
-      }
-*/
+  if(all_cdsa) delete [] all_cdsa;
 }
 
 void
 DistrExplicitPodPostProcessor::printPODSize(int PODsize) {
 
-    podSize = PODsize;
+  podSize = PODsize;
 
-    for (int iOut = 0; iOut < numOutInfo; iOut++) {
-     switch(oinfo[iOut].type){
-       case OutputInfo::Accel6 :
-         filePrint( oinfo[iOut].filptr, "%d\n", PODsize);
-         break;
-       case OutputInfo::Disp6DOF :
-         filePrint( oinfo[iOut].filptr, "%d\n", PODsize);
-         break;
-       case OutputInfo::Velocity6 :
-         filePrint( oinfo[iOut].filptr, "%d\n", PODsize);
-         break;
-       default:
-         break;
-     }
+  for (int iOut = 0; iOut < numOutInfo; iOut++) {
+    switch(oinfo[iOut].type) {
+      case OutputInfo::Accel6 : case OutputInfo::Acceleration :
+        if(oinfo[iOut].nodeNumber == -1)
+          filePrint(oinfo[iOut].filptr, "%d\n", PODsize);
+        break;
+      case OutputInfo::Disp6DOF : case OutputInfo::Displacement :
+        if(oinfo[iOut].nodeNumber == -1)
+          filePrint(oinfo[iOut].filptr, "%d\n", PODsize);
+        break;
+      case OutputInfo::Velocity6 : case OutputInfo::Velocity :
+        if(oinfo[iOut].nodeNumber == -1)
+          filePrint(oinfo[iOut].filptr, "%d\n", PODsize);
+        break;
+      default:
+        break;
     }
+  }
+}
 
+void
+DistrExplicitPodPostProcessor::makeSensorBasis(DistrVecBasis *fullBasis) {
+
+  all_cdsa = new DofSetArray * [decDomain->getNumSub()];
+
+  for(int i = 0; i < decDomain->getNumSub(); ++i) all_cdsa[i] = decDomain->getSubDomain(i)->getCDSA();
+
+  SensorBasis.dimensionIs(fullBasis->numVec(), fullBasis->vectorInfo());
+  SensorBasis = *fullBasis;
+  SensorBasis.makeSparseBasis(nodeVector,all_cdsa);
+
+  // allocate space for containers to hold sensor values
+  if(DispSensor)
+    new (&DispSensorValues) GenDistrVector<double>(SensorBasis.vectorInfo());
+  if(AccSensor)
+    new (&AccSensorValues) GenDistrVector<double>(SensorBasis.vectorInfo());
+  if(VelSensor)
+    new (&VelSensorValues) GenDistrVector<double>(SensorBasis.vectorInfo());
+}
+  
+void
+DistrExplicitPodPostProcessor::subBuildSensorNodeVector(int iSub) {
+
+ std::vector<int> &subSensorNodes = nodeVector[iSub];
+
+ //load vector of sensor nodes converted to local numbering
+ for (int iOut = 0; iOut < numOutInfo; iOut++) {
+   if(oinfo[iOut].nodeNumber != -1) {
+     int locNode = decDomain->getSubDomain(iSub)->globalToLocal(oinfo[iOut].nodeNumber);
+     if(locNode > -1) 
+       subSensorNodes.push_back(locNode);
+   }
+ }
+
+ //if multiple outputs are requested for a single node, cull redundancies from node vector
+ std::sort(subSensorNodes.begin(), subSensorNodes.end());
+ std::vector<int>::iterator packedNodeIt = std::unique(subSensorNodes.begin(), subSensorNodes.end());
+ subSensorNodes.resize(packedNodeIt-subSensorNodes.begin());
+}
+
+void
+DistrExplicitPodPostProcessor::subPrintSensorValues(int iSub, GenDistrVector<double> &SensorData, OutputInfo *OINFO, double *time) {
+
+  // XXX the rotation vector should be renormalized, and the angular velocity/acceleration should be transformed to convected. 
+  int locNode = decDomain->getSubDomain(iSub)->globalToLocal(OINFO->nodeNumber);
+  if(locNode > -1) { // if node is -1, sensor node is not in this subdomain, don't print
+    for(int k = 0; k < decDomain->getSubDomain(iSub)->getNumNodalOutput(); ++k) { // not the best way
+      if(locNode == decDomain->getSubDomain(iSub)->getOutputNodes()[k]) {
+
+        int ndofs;
+        int dofs[6];
+        if(OINFO->type == OutputInfo::Disp6DOF || OINFO->type == OutputInfo::Velocity6 || OINFO->type == OutputInfo::Accel6) {
+          ndofs = all_cdsa[iSub]->number(locNode, DofSet::XYZdisp | DofSet::XYZrot, dofs);
+        }
+        else {
+          ndofs = all_cdsa[iSub]->number(locNode, DofSet::XYZdisp, dofs);
+        }
+        int w = OINFO->width;
+        int p = OINFO->precision; 
+        fprintf(OINFO->filptr, "  % *.*E  ", w, p, *time);
+        for(int j = 0; j < ndofs; ++j) {
+          if(dofs[j] != -1) {
+            fprintf(OINFO->filptr, " % *.*E", w, p, SensorData.subData(iSub)[dofs[j]]);
+          }
+          else {
+            fprintf(OINFO->filptr, " % *.*E", w, p, 0.0); // TODO constrained dofs
+          }
+        }
+        fprintf(OINFO->filptr, "\n");
+        fflush(OINFO->filptr);
+        break;
+      }
+    }
+  }
 }
 
 void
 DistrExplicitPodPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dynOps, DistrVector &distForce,
-                                                          DistrVector *distAeroF, SysState<DistrVector>& distState) {
-
+                                           DistrVector *distAeroF, SysState<DistrVector>& distState) {
 
   //all MPI processes have a full copy of reduced coordinates, only master processes needs to print
-  //valgrind shows uninitialized conditionals junps here, need to figure out why
   int p = std::numeric_limits<double>::digits10+1;
+
+  bool DispProjected = false, AccProjected = false, VelProjected = false;
+
   for(int iOut = 0; iOut < numOutInfo; iOut++) {
 
     if(tIndex % oinfo[iOut].interval == 0) {
 
-      switch(oinfo[iOut].type){
-         case OutputInfo::Accel6 :
+      switch(oinfo[iOut].type) {
+         case OutputInfo::Accel6 : case OutputInfo::Acceleration :
            {
-           filePrint(oinfo[iOut].filptr, "%.*e\n", p, t); // print timestamp
-           for(int i = 0; i<podSize; i++) {
-             filePrint(oinfo[iOut].filptr, "%.*e ", p, distState.getAccel()[i]);
+             if(oinfo[iOut].nodeNumber == -1) {
+               filePrint(oinfo[iOut].filptr, "   %.*e\n", p, t); // print timestamp
+               for(int i = 0; i < podSize; i++) {
+                 filePrint(oinfo[iOut].filptr, "%.*e ", p, distState.getAccel()[i]);
+               }
+               filePrint(oinfo[iOut].filptr, "\n");
+             } else {
+               if(!AccProjected) {
+                 SensorBasis.projectUp(distState.getAccel(), AccSensorValues);
+                 AccProjected = true;
+               }
+               execParal3R(decDomain->getNumSub(), this, &DistrExplicitPodPostProcessor::subPrintSensorValues, AccSensorValues, &oinfo[iOut], &t);
+             }
            }
-           filePrint(oinfo[iOut].filptr, "\n");}
            break;
-         case OutputInfo::Disp6DOF :
+         case OutputInfo::Disp6DOF : case OutputInfo::Displacement : 
            {
-           filePrint(oinfo[iOut].filptr, "%.*e\n", p, t); // print timestamp
-           for(int i = 0; i<podSize; i++) {
-             filePrint(oinfo[iOut].filptr, "%.*e ", p, distState.getDisp()[i]);
+             if(oinfo[iOut].nodeNumber == -1) {
+               filePrint(oinfo[iOut].filptr, "   %.*e\n", p, t); // print timestamp
+               for(int i = 0; i < podSize; i++) {
+                 filePrint(oinfo[iOut].filptr, "%.*e ", p, distState.getDisp()[i]);
+               }
+               filePrint(oinfo[iOut].filptr, "\n");
+             } else {
+               if(!DispProjected) {
+                 SensorBasis.projectUp(distState.getDisp(), DispSensorValues);
+                 DispProjected = true;
+               }
+               execParal3R(decDomain->getNumSub(), this, &DistrExplicitPodPostProcessor::subPrintSensorValues, DispSensorValues, &oinfo[iOut], &t);
+             }
            }
-           filePrint(oinfo[iOut].filptr, "\n");}
            break;
-         case OutputInfo::Velocity6 : 
+         case OutputInfo::Velocity6 : case OutputInfo::Velocity :
            {
-           filePrint(oinfo[iOut].filptr, "%.*e\n", p, t); // print timestamp
-           for(int i = 0; i<podSize; i++) {
-             filePrint(oinfo[iOut].filptr, "%.*e ", p, distState.getVeloc()[i]);
+             if(oinfo[iOut].nodeNumber == -1) {
+               filePrint(oinfo[iOut].filptr, "   %.*e\n", p, t); // print timestamp
+               for(int i = 0; i < podSize; i++) {
+                 filePrint(oinfo[iOut].filptr, "%.*e ", p, distState.getVeloc()[i]);
+               }
+               filePrint(oinfo[iOut].filptr, "\n");
+             } else {
+               if(!VelProjected) {
+                 SensorBasis.projectUp(distState.getVeloc(), VelSensorValues);
+                 VelProjected = true;
+               }
+               execParal3R(decDomain->getNumSub(), this, &DistrExplicitPodPostProcessor::subPrintSensorValues, VelSensorValues, &oinfo[iOut], &t);
+             }
            }
-           filePrint(oinfo[iOut].filptr, "\n");}
            break;
          default:
-           filePrint(stderr, " ...ROM output only supports Acceraltion, Displacement, and Velocity... \n");
+           filePrint(stderr, " ... ROM output only supports Acceleration, Displacement, and Velocity ... \n");
       }
     }
   }
@@ -136,11 +272,11 @@ DistrExplicitPodPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dyn
 DistrExplicitPodPostProcessor *
 DistrExplicitPodProjectionNonLinDynamicBase::getPostProcessor() {
 
-   mddPostPro = new DistrExplicitPodPostProcessor(decDomain, times, geomState, allCorot);
-   mddPostPro->printPODSize(projectionBasis_.numVectors());
+  mddPostPro = new DistrExplicitPodPostProcessor(decDomain, times, geomState, allCorot);
+  mddPostPro->printPODSize(normalizedBasis_.numVectors());
+  mddPostPro->makeSensorBasis(&normalizedBasis_);
 
-   return mddPostPro;
-
+  return mddPostPro;
 }
 
 DistrExplicitPodProjectionNonLinDynamicBase::DistrExplicitPodProjectionNonLinDynamicBase(Domain *_domain) :
@@ -153,14 +289,17 @@ DistrExplicitPodProjectionNonLinDynamicBase::preProcess() {
   {MultiDomainDynam::preProcess();
   //preProcessing for reduced order basis/////////////////////////////////////////////////
   FileNameInfo fileInfo; 
-  DistrBasisInputFile podBasisFile(BasisFileId(fileInfo, BasisId::STATE, BasisId::POD));
+  std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
+  fileName.append(".normalized");
 
+  DistrBasisInputFile BasisFile(fileName); //read in mass-normalized basis
+  filePrint(stderr, " ... Reading basis from file %s ...\n", fileName.c_str());
   const int projectionSubspaceSize = domain->solInfo().maxSizePodRom ?
-                                     std::min(domain->solInfo().maxSizePodRom, podBasisFile.stateCount()) :
-                                     podBasisFile.stateCount();
+                                     std::min(domain->solInfo().maxSizePodRom, BasisFile.stateCount()) :
+                                     BasisFile.stateCount();
 
   filePrint(stderr, " ... Projection subspace of dimension = %d ...\n", projectionSubspaceSize);
-  projectionBasis_.dimensionIs(projectionSubspaceSize, decDomain->masterSolVecInfo());
+  normalizedBasis_.dimensionIs(projectionSubspaceSize, decDomain->masterSolVecInfo()); 
 
   DistrVecNodeDof6Conversion converter(decDomain->getAllSubDomains(), decDomain->getAllSubDomains() + decDomain->getNumSub());
   
@@ -169,31 +308,30 @@ DistrExplicitPodProjectionNonLinDynamicBase::preProcess() {
                                    SubDomIt(decDomain->getAllSubDomains() + decDomain->getNumSub()));
   DistrNodeDof6Buffer buffer(masterMapping.localNodeBegin(), masterMapping.localNodeEnd());
 
-  for (DistrVecBasis::iterator it = projectionBasis_.begin(),
-                               it_end = projectionBasis_.end();
+  for (DistrVecBasis::iterator it = normalizedBasis_.begin(),
+                               it_end = normalizedBasis_.end();
                                it != it_end; ++it) {
-    assert(podBasisFile.validCurrentState());
+    assert(BasisFile.validCurrentState());
 
-    podBasisFile.currentStateBuffer(buffer);
+    BasisFile.currentStateBuffer(buffer);
     converter.vector(buffer, *it);
     
-    podBasisFile.currentStateIndexInc();
+    BasisFile.currentStateIndexInc();
   }}
 
   ///////////////////////////////////////////////////////////////////////////////////////
 
   //preProcessing for solution vecotor information///////////////////////////////////////
-  //each subdomain gets full copy of reduced coordinates
   {reducedInfo.domLen = new int[MultiDomainDynam::solVecInfo().numDom]; 
   reducedInfo.numDom = MultiDomainDynam::solVecInfo().numDom;
   int totLen = 0;
   for(int iSub = 0; iSub < MultiDomainDynam::solVecInfo().numDom; ++iSub) {
-    reducedInfo.domLen[iSub] = projectionBasis_.numVec();
+    reducedInfo.domLen[iSub] = (iSub==0) ? normalizedBasis_.numVec() : 0;
     totLen += reducedInfo.domLen[iSub];
   }
 
   reducedInfo.len = totLen;
-  reducedInfo.setMasterFlag(); //not correct masterflag, but doesn't matter unless computing norm
+  reducedInfo.setMasterFlag();
   }
   //////////////////////////////////////////////////////////////////////////////////////
   
@@ -243,13 +381,10 @@ DistrExplicitPodProjectionNonLinDynamicBase::getInitState(SysState<DistrVector> 
   DistrVector &_a_n = _curState.getAccel();
   DistrVector &_v_p = _curState.getPrevVeloc();
 
-  //this projection doesn't do anything since the projectionBasis_ isn't initialized yet
-  //this only matters if we have a case where the initial conditions are other than 0
-  //need to fixe this if we want to use resart
-  projectionBasis_.projectDown( *d_n, _d_n);
-  projectionBasis_.projectDown( *v_n, _v_n);
-  projectionBasis_.projectDown( *a_n, _a_n);
-  projectionBasis_.projectDown( *v_p, _v_p);
+  normalizedBasis_.projectDown( *d_n, _d_n);
+  normalizedBasis_.projectDown( *v_n, _v_n);
+  normalizedBasis_.projectDown( *a_n, _a_n);
+  normalizedBasis_.projectDown( *v_p, _v_p);
 }
 
 void 
@@ -275,10 +410,19 @@ DistrExplicitPodProjectionNonLinDynamicBase::updateState(double dt_n_h, DistrVec
 
 void DistrExplicitPodProjectionNonLinDynamicBase::getConstForce(DistrVector& v)
 {
-  //we really don't need to project down here since cnst_fBig is stored inside the probDesc class
-  //just a formality. 
-  MultiDomainDynam::getConstForce(*cnst_fBig);
-  normalizedBasis_.projectDown(*cnst_fBig,v);
+  int nr = domain->nNeumannModal();
+  if(nr) {
+    filePrint(stderr, " ... Using Reduced Constant Force   ...\n");
+    BCond* nbcModal = domain->getNBCModal();
+    v.zero();
+    for(int i=0; i<nr; ++i) v[nbcModal[i].nnum] = nbcModal[i].val;
+  }
+  else {
+    //we really don't need to project down here since cnst_fBig is stored inside the probDesc class
+    //just a formality. 
+    MultiDomainDynam::getConstForce(*cnst_fBig);
+    normalizedBasis_.projectDown(*cnst_fBig,v);
+  }
   cnst_fBig->zero();
 }
 
@@ -317,10 +461,6 @@ DistrExplicitPodProjectionNonLinDynamicBase::computeExtForce2(SysState<DistrVect
 MDDynamMat *
 DistrExplicitPodProjectionNonLinDynamicBase::buildOps(double mCoef, double cCoef, double kCoef) {
   MDDynamMat *result = MultiDomainDynam::buildOps(mCoef, cCoef, kCoef);
-  assert(result->M);
-
-  const GenSubDOp<double> &fullMass = *(result->M);
-  renormalized_basis(fullMass, projectionBasis_, normalizedBasis_);
 
   std::auto_ptr<DistrGalerkinProjectionSolver> solver(new DistrGalerkinProjectionSolver(normalizedBasis_));
 

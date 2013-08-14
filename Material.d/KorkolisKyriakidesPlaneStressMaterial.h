@@ -1,7 +1,7 @@
 // Sriramajayam
 
 /*
- * KorkolisKyriakidesPlaneStressMaterial.h"
+ * KorkolisKyriakidesPlaneStressMaterial.h
  * DG++
  *
  * Created by Ramsharan Rangarajan on 11/29/2010.
@@ -61,10 +61,10 @@ class KorkolisKyriakidesPlaneStressMaterial : public ElastoPlasticPlaneStressMat
   //! Cloning
   virtual KorkolisKyriakidesPlaneStressMaterial * Clone() const;
   
-  //! Compute the elastoplastic constitutive response
-  //! Returns true if calculations went well and false otherwise
-  //! \param Fnp1 Input. Deformation gradient at new state of material. Size 9x1
-  //! \param CauchyStress Output. Has size 9x1
+  //! Compute the elastoplastic constitutive response.
+  //! Returns true if calculations went well and false otherwise.
+  //! \param Fnp1 Input. Deformation gradient at new state of material. Size 9x1.
+  //! \param CauchyStress Output. Has size 9x1.
   //! \param Cep Output. Algorithmic elastoplastic tangent. If requested, has size 81x1
   //! \param UpdateFlag Input. Material state updated if true. Set to true by default.
   virtual bool ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1, 
@@ -72,29 +72,29 @@ class KorkolisKyriakidesPlaneStressMaterial : public ElastoPlasticPlaneStressMat
 							std::vector<double> * Cep = 0,
 							const bool UpdateFlag = true);
   
-  //! Returns the plastic strain in material (9x1 vector)
-  virtual std::vector<double> GetMaterialPlasticStrain() const;
+  //! Returns the plastic strain in material (3x1 vector)
+  std::vector<double> GetMaterialPlasticStrain() const;
   
-  //! Returns the equivalent plastic strain in material
-  virtual double GetMaterialEquivalentPlasticStrain() const;
+  //! Returns equivalent plastic strain in material
+  double GetMaterialEquivalentPlasticStrain() const;
   
-  //! Returns back stress in material (9x1 vector)
-  virtual std::vector<double> GetMaterialBackStress() const;
+  //! Returns back stress in material (3x1 vector)
+  std::vector<double> GetMaterialBackStress() const;
 
   //! Returns the Isotropic hardening modulus
-  virtual double GetIsotropicHardeningModulus() const;
+  double GetIsotropicHardeningModulus() const;
   
   //! Returns the kinematic hardening modulus
-  virtual double GetKinematicHardeningModulus() const;
+  double GetKinematicHardeningModulus() const;
   
   //! Returns the yield stress in 1D tension test
-  virtual double GetYieldStressFromTensionTest() const;
+  double GetYieldStressFromTensionTest() const;
 
   //! Returns the bulk modulus of material
-  virtual double GetBulkModulus() const;
+  double GetBulkModulus() const;
   
   //! Returns shear modulus of material
-  virtual double GetShearModulus() const;
+  double GetShearModulus() const;
 
   //! Set the plastic strain in the material
   void SetMaterialPlasticStrain(const std::vector<double> &EPSplastic);

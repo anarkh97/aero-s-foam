@@ -36,7 +36,10 @@ struct Group;
 
 enum {SXX=0,SYY=1,SZZ=2,SXY= 3,SYZ= 4,SXZ= 5,VON=6,
       EXX=7,EYY=8,EZZ=9,EXY=10,EYZ=11,EXZ=12,STRAINVON=13,
-      VONTOP=14,VONBOT=15,CONPRESS=16,DAMAGE=17,EQPLSTRN=18};
+      VONTOP=14,VONBOT=15,CONPRESS=16,DAMAGE=17,EQPLSTRN=18,
+      BACKSXX=19,BACKSYY=20,BACKSZZ=21,BACKSXY=22,BACKSYZ=23,
+      BACKSXZ=24,PLASTICEXX=25,PLASTICEYY=26,PLASTICEZZ=27,
+      PLASTICEXY=28,PLASTICEYZ=29,PLASTICEXZ=30};
 enum {INX,INY,INZ,AXM,AYM,AZM};
 enum {YOUNG,MDENS,THICK};
 enum {PSTRESS1=0,PSTRESS2=1,PSTRESS3=2,
@@ -223,6 +226,8 @@ class GeoSource {
   BCond *textNBC;
   int numNeuman;              // number of Neuman bc
   BCond *nbc;   // set of Neuman bc
+  int numNeumanModal;
+  BCond *nbcModal;
 
   int numIDis;                // number of Initial displacements
   BCond *iDis;  // set of those initial displacements
@@ -358,6 +363,7 @@ public:
   void convertHEVDirToHelmDir(); // added to use HEFRS and Helmholtz per Charbel's request
   int  setDirichletFluid(int, BCond *); //ADDED FOR HEV PROBLEM, EC, 20070820
   int  setNeuman(int, BCond *);
+  int  setNeumanModal(int, BCond *);
   int  setIDis(int, BCond *);
   int  setIDisModal(int, BCond *);
   int  setIDis6(int, BCond *);
@@ -428,6 +434,7 @@ public:
   int  numNode() { return numNodes; }
   void setNumNodes(int n) { numNodes = n; }
   int  totalNumNodes() { return numNodes + numInternalNodes; }
+  int  internalNumNodes() { return numInternalNodes; }
   //int  getPhantomFlag()  { return phantomFlag; }
   //int  glToPack(int i) { return glToPck[i]; }
   int  glToPackElem(int i) const;
@@ -462,11 +469,13 @@ public:
   int getNumDirichlet()  { return numDirichlet; }
   int getNumDirichletFluid()  { return numDirichletFluid; } //ADDED FOR HEV PROBLEM, EC, 20070820
   int getNumNeuman()  { return numNeuman; }
+  int getNumNeumanModal() { return numNeumanModal; }
   int getNumIDisModal() { return numIDisModal; }
   int getDirichletBC(BCond *&);
   int getDirichletBCFluid(BCond *&);
   int getTextDirichletBC(BCond *&);
   int getNeumanBC(BCond *&);
+  int getNeumanBCModal(BCond *&);
   int getTextNeumanBC(BCond *&);
   int getIDis(BCond *&);
   int getIDisModal(BCond *&);
@@ -507,7 +516,7 @@ public:
 
   Elemset* getElemSet(void){return(&elemSet);}
 
-  void simpleDecomposition(int numSubdomains, bool estFlag, bool weightOutFlag); // dec
+  void simpleDecomposition(int numSubdomains, bool estFlag, bool weightOutFlag, bool makeTrivial);
 
   // Output Functions
   template<int bound>

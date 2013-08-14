@@ -1,5 +1,5 @@
-#ifndef ROM_DISTRNODEDOF6BUFFER_H
-#define ROM_DISTRNODEDOF6BUFFER_H
+#ifndef ROM_MAPPEDNODEDOF6BUFFER_H
+#define ROM_MAPPEDNODEDOF6BUFFER_H
 
 #include "NodeDof6Buffer.h"
 
@@ -51,4 +51,4 @@ MappedNodeDof6Buffer::MappedNodeDof6Buffer(IdxInIt first, IdxInIt last) :
 
 } /* end namespace Rom */
 
-#endif /* ROM_DISTRNODEDOF6BUFFER_H */
+#endif /* ROM_MAPPEDNODEDOF6BUFFER_H */

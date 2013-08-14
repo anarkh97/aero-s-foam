@@ -32,8 +32,6 @@
 #include <Element.d/MpcElement.d/MpcElement.h>
 #include <Utils.d/MFTT.h>
 #include <Utils.d/MathUtils.h>
-#include <Element.d/Sommerfeld.d/TrianglePressureBC.h>
-#include <Element.d/Sommerfeld.d/QuadPressureBC.h>
 
 #include <Rom.d/GalerkinProjectionSolver.h>
 #include <Rom.d/EiGalerkinProjectionSolver.h>
@@ -185,15 +183,15 @@ fprintf(stderr,"gugu isShifted %d  isDamped %d\n",int(isShifted),int(isDamped));
      if(ops.K) ops.K->add(kel,(*allDOFs)[iele]);
      if(!isShifted && ops.Kuc) ops.Kuc->add(kel,(*allDOFs)[iele]);
      if(!isShifted && ops.Kcc) ops.Kcc->add(kel,(*allDOFs)[iele]);
+     
      if (isShifted && isSDamped) {
        int dim = kel.dim();
        ikel.setSize(dim);
        for(int i = 0; i < dim; ++i) for(int j = 0; j < dim; ++j)
              ikel[i][j] = -eta*kel[i][j];
-if (iele==0) fprintf(stderr,"gogo eta: %.16e isSDamped %d\n",eta,int(isSDamped));
        if(isStructureElement(iele)) if(ops.K) ops.K->addImaginary(ikel,(*allDOFs)[iele]);
      }
-     if(packedEset[iele]->isConstraintElement()) { // XXXX
+     if(packedEset[iele]->isConstraintElement()) {
        if(sinfo.isNonLin() && Mcoef == 1 && Kcoef == 0 && Ccoef == 0 && sinfo.newmarkBeta != 0) {
          //note: now I am using the tangent stiffness from kelArray so initial accelerations
          //      will be correctly computed even in the case of non-zero IDISP.
@@ -248,7 +246,7 @@ if (iele==0) fprintf(stderr,"gogo eta: %.16e isSDamped %d\n",eta,int(isSDamped))
 	 for(i = 0; i < dim; ++i)
 	   for(j = 0; j < dim; ++j)
              izel[i][j] = -omega*(beta*kel[i][j] + alpha*mel[i][j]);
-if (iele==0) fprintf(stderr,"gaga beta: %.16e alpha: %.16e\n",beta,alpha);
+//if (iele==0) fprintf(stderr,"gaga beta: %.16e alpha: %.16e\n",beta,alpha);
        }
      }
      if(isComplexF) {
@@ -1104,6 +1102,10 @@ Domain::buildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Ccoe
    }
  }
 
+ if(sinfo.printMatLab && !dynamic_cast<GenSubDomain<Scalar>*>(this)) {
+   allOps.spm->printSparse(sinfo.printMatLabFile);
+ }
+
  if(factorize)
    {
      // Time system matrix factorization
@@ -1438,7 +1440,7 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
       break;
 #endif
 #ifdef EIGEN_SPRQ_SUPPORT
-    case 6:
+    case 16:
       spm = constructEiSparseMatrix<Scalar,Eigen::SPQR<Eigen::SparseMatrix<Scalar> > >(c_dsa, nodeToNode, false);
       makeSparseOps<Scalar>(allOps, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray, celArray);
       systemSolver  = (GenEiSparseMatrix<Scalar,Eigen::SQPR<Eigen::SparseMatrix<Scalar> > >*) spm;
@@ -1667,12 +1669,12 @@ Domain::addPressureForce(GenVector<Scalar> &force, double lambda, double time)
 
   for(int iele = 0; iele < numNeum; ++iele) {
     
-    if(dynamic_cast<QuadPressureBC*>(neum[iele]) == NULL && 
-       dynamic_cast<TrianglePressureBC*>(neum[iele]) == NULL) continue;
+    if(!neum[iele]->isSurfacePressureElement()) continue;
 
     // Compute structural element distributed Neumann force
     elementPressureForce.zero();
-    neum[iele]->neumVector(nodes, elementPressureForce);
+    if(domain->solInfo().ConwepOnOff) neum[iele]->setConwep(&BlastLoading::InputFileData);
+    neum[iele]->neumVector(nodes, elementPressureForce, 0, (GeomState*) 0, time);
 
     // transform vector from basic to DOF_FRM coordinates
     transformNeumVector(elementPressureForce, iele);
@@ -1736,7 +1738,7 @@ template<class Scalar>
 void
 Domain::addThermalForce(GenVector<Scalar> &force)
 {
-  if(!temprcvd) initNodalTemperatures(); // XXXX to be moved
+  if(!temprcvd) initNodalTemperatures();
   Vector elementTemp(maxNumNodes);
   Vector elementThermalForce(maxNumDOFs);
   if(!elemToNode) elemToNode = new Connectivity(&packedEset);
@@ -3452,7 +3454,6 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
  // --- Print Problem statistics to the screen -------------------------------
  if(firstOutput) {
    if (!domain->solInfo().doEigSweep) {
-   //  printStatistics();
 
      // ... CALCULATE STRUCTURE MASS IF REQUESTED
      if(sinfo.massFlag)  {
@@ -3469,7 +3470,6 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
  if (xyz_loc) delete [] xyz_loc;
 }
 
-// XXXX this can and should be merged with buildRHSForce
 template <class Scalar>
 void
 Domain::computeConstantForce(GenVector<Scalar>& cnst_f, GenSparseMatrix<Scalar>* kuc)
@@ -3509,9 +3509,9 @@ Domain::computeConstantForce(GenVector<Scalar>& cnst_f, GenSparseMatrix<Scalar>*
   if(sinfo.ATDROBalpha != 0.0 && !domain->mftval) addAtdrobForce(cnst_f);
 
   // ... COMPUTE FORCE FROM PRESSURE
-  // note #1: when MFTT is present this term is not constant (see computeExtForce)
+  // note #1: when MFTT/CONWEP is present this term is not constant (see computeExtForce)
   // note #2: for NONLINEAR problems this term is not constant (see getStiffAndForce)
-  if(!domain->mftval && !sinfo.isNonLin()) addPressureForce(cnst_f);
+  if(!(domain->mftval || sinfo.ConwepOnOff) && !sinfo.isNonLin()) addPressureForce(cnst_f);
 
   // ... ADD RHS FROM LMPCs for linear statics
   if(/*lmpc.max_size() &&*/ !sinfo.isNonLin() && !sinfo.isDynam()) addMpcRhs(cnst_f);
@@ -3577,9 +3577,9 @@ Domain::computeExtForce(GenVector<Scalar>& f, double t, GenSparseMatrix<Scalar>*
   if(sinfo.ATDROBalpha != 0.0 && domain->mftval) addAtdrobForce(f, mfttFactor);
 
   // COMPUTE FORCE FROM PRESSURE
-  // note #1: when MFTT not present this term is constant (see computeConstantForce)
+  // note #1: when MFTT/CONWEP not present this term is constant (see computeConstantForce)
   // note #2: for NONLINEAR problems this term is follower (see getStiffAndForce)
-  if(domain->mftval && !sinfo.isNonLin()) addPressureForce(f, mfttFactor, t);
+  if((domain->mftval || sinfo.ConwepOnOff) && !sinfo.isNonLin()) addPressureForce(f, mfttFactor, t);
 
   // ... ADD RHS FROM LMPCs for linear dynamics
   if(/*lmpc.max_size() &&*/ !sinfo.isNonLin() && sinfo.isDynam()) addMpcRhs(f, t);

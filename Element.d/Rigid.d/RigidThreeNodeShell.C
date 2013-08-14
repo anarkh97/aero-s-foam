@@ -23,6 +23,7 @@ RigidThreeNodeShell::RigidThreeNodeShell(int *_nn)
     int indices[2] = { i+1, 0 };
     subElems[i] = new RigidBeam(indices);
   }
+  conwep = 0;
 }
 
 FullSquareMatrix
@@ -251,4 +252,215 @@ RigidThreeNodeShell::getFlLoad(CoordSet &, const InterpPoint &ip, double *flF,
   }
 }
 
+void
+RigidThreeNodeShell::setPressure(double _pressure, MFTTData *_mftt, BlastLoading::BlastData *_conwep) {
+  pressure = _pressure;
+  conwep = _conwep;
+}
+
+void
+RigidThreeNodeShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
+                                          GeomState *geomState, int cflg, double time)
+{
+     double pressure = Element::pressure;
+     // Check if Conwep is being used. If so, use the pressure from the blast loading function.
+     if (conwep) {
+       double* CurrentElementNodePositions = (double*) dbg_alloca(sizeof(double)*3*4);
+       int Offset;
+       for(int i = 0; i < 4; ++i) {
+         Offset = i*3;
+         if (i==3) {
+           CurrentElementNodePositions[Offset+0] = cs[nn[2]]->x;
+           CurrentElementNodePositions[Offset+1] = cs[nn[2]]->y;
+           CurrentElementNodePositions[Offset+2] = cs[nn[2]]->z;
+         }
+         else {
+           CurrentElementNodePositions[Offset+0] = cs[nn[i]]->x;
+           CurrentElementNodePositions[Offset+1] = cs[nn[i]]->y;
+           CurrentElementNodePositions[Offset+2] = cs[nn[i]]->z;
+         }
+       }
+       pressure = BlastLoading::ComputeShellPressureLoad(CurrentElementNodePositions, time, *conwep);
+     }
+     double px = 0.0;
+     double py = 0.0;
+     double pz = 0.0;
+
+     double mx[3],my[3],mz[3];
+     int i;
+     for(i=0; i<3; ++i) {
+       mx[i]=0.0;
+       my[i]=0.0;
+       mz[i]=0.0;
+     }
+
+     // Compute area of shell
+     Node &nd1 = cs.getNode(nn[0]);
+     Node &nd2 = cs.getNode(nn[1]);
+     Node &nd3 = cs.getNode(nn[2]);
+
+     double r1[3], r2[3], r3[3], v1[3], v2[3], normal[3];
+
+     r1[0] = nd1.x; r1[1] = nd1.y; r1[2] = nd1.z;
+     r2[0] = nd2.x; r2[1] = nd2.y; r2[2] = nd2.z;
+     r3[0] = nd3.x; r3[1] = nd3.y; r3[2] = nd3.z;
+
+     v1[0] = r3[0] - r1[0];
+     v1[1] = r3[1] - r1[1];
+     v1[2] = r3[2] - r1[2];
+
+     v2[0] = r2[0] - r1[0];
+     v2[1] = r2[1] - r1[1];
+     v2[2] = r2[2] - r1[2];
+
+     // Compute normal to shell using vector cross product rule
+     crossprod(v2, v1, normal);
+
+     double magnitude = sqrt(normal[0]*normal[0] + normal[1]*normal[1]
+                                                  + normal[2]*normal[2]);
+     double area = 0.5*magnitude;
+
+     // compute pressure force per node
+     double pressureForce = pressure * area / 3.0;
+
+     double xn[3][3];
+       for(i=0; i<3; ++i) {
+         xn[0][i] = r1[i];
+         xn[1][i] = r2[i];
+         xn[2][i] = r3[i];
+       }
+
+     if(!geomState) {
+
+       // compute unit normal to shell surface
+
+       normal[0] /= magnitude;
+       normal[1] /= magnitude;
+       normal[2] /= magnitude;
+
+       px = pressureForce*normal[0];
+       py = pressureForce*normal[1];
+       pz = pressureForce*normal[2];
+
+       if (cflg == 1) {
+
+         int beam, beamnode[3][2];
+         beamnode[0][0] = 0;
+         beamnode[0][1] = 1;
+         beamnode[1][0] = 0;
+         beamnode[1][1] = 2;
+         beamnode[2][0] = 1;
+         beamnode[2][1] = 2;
+
+         for(beam=0; beam<3; ++beam) {
+           double length, dx, dy, dz;
+           int n1, n2;
+           n1 = beamnode[beam][0];
+           n2 = beamnode[beam][1];
+           dx = xn[n2][0] - xn[n1][0];
+           dy = xn[n2][1] - xn[n1][1];
+           dz = xn[n2][2] - xn[n1][2];
+           length = sqrt(dx*dx + dy*dy + dz*dz);
+           // Local X-axis from Node 1->2
+           for(i=0; i<3; i++ ) v1[i] = xn[n2][i] - xn[n1][i];
+           normalize( v1 );
+           // Local Y-axis as cross between Z and X
+           crossprod( normal, v1, v2 );
+           normalize( v2 );
+
+           double lmy = -pressureForce*length/8.0;
+           mx[n1] += (v2[0]*lmy);
+           my[n1] += (v2[1]*lmy);
+           mz[n1] += (v2[2]*lmy);
+           mx[n2] -= (v2[0]*lmy);
+           my[n2] -= (v2[1]*lmy);
+           mz[n2] -= (v2[2]*lmy);
+         }
+       }
+
+       elPressureForce[0]  = px;
+       elPressureForce[1]  = py;
+       elPressureForce[2]  = pz;
+       elPressureForce[3]  = mx[0];
+       elPressureForce[4]  = my[0];
+       elPressureForce[5]  = mz[0];
+
+       elPressureForce[6]  = px;
+       elPressureForce[7]  = py;
+       elPressureForce[8]  = pz;
+       elPressureForce[9]  = mx[1];
+       elPressureForce[10] = my[1];
+       elPressureForce[11] = mz[1];
+
+       elPressureForce[12] = px;
+       elPressureForce[13] = py;
+       elPressureForce[14] = pz;
+       elPressureForce[15] = mx[2];
+       elPressureForce[16] = my[2];
+       elPressureForce[17] = mz[2];
+     }
+
+     //if local coordinates are needed for nonlinear analysis
+     if (geomState) {
+
+        //compute centroid
+        double xc0[3];
+        double t0[3][3],xl0[3][3];
+        int nod;
+        for (i=0;i<3;i++)
+        xc0[i] = ( xn[0][i] + xn[1][i] + xn[2][i] )/3.0;
+
+        // Compute t0 transformation matrix with x axis along side 1-2 
+        for( i=0; i<3; i++ ) t0[0][i] = xn[1][i] - xn[0][i];
+        normalize( t0[0] );
+
+        // local y axis
+        for( i=0; i<3; i++ ) t0[1][i] = xn[2][i] - xn[0][i];
+        crossprod( t0[0], t0[1], t0[2] );
+        normalize( t0[2] );
+
+        // local z axis
+        crossprod( t0[2], t0[0], t0[1] );
+        normalize( t0[1] );
+
+        // Compute local coordinates of undeformed element
+        for( nod=0; nod<3; nod++) {
+             for( i=0; i<3; i++ ) {
+                 xl0[nod][i] = t0[i][0]*(xn[nod][0] - xc0[0])
+                              +t0[i][1]*(xn[nod][1] - xc0[1])
+                              +t0[i][2]*(xn[nod][2] - xc0[2]);
+                }
+             }
+
+        double fmf = 8; // or 12?
+
+        elPressureForce[0]  = 0;
+        elPressureForce[1]  = 0;
+        elPressureForce[2]  = pressureForce;
+        elPressureForce[3]  = cflg*pressureForce*( xl0[2][1] - xl0[0][1]
+                                                  +xl0[1][1] - xl0[0][1])/fmf;
+        elPressureForce[4]  = cflg*pressureForce*( xl0[0][0] - xl0[2][0]
+                                                  +xl0[0][0] - xl0[1][0])/fmf;
+        elPressureForce[5]  = 0;
+
+        elPressureForce[6]  = 0;
+        elPressureForce[7]  = 0;
+        elPressureForce[8]  = pressureForce;
+        elPressureForce[9]  = cflg*pressureForce*( xl0[0][1] - xl0[1][1]
+                                                  +xl0[2][1] - xl0[1][1])/fmf;
+        elPressureForce[10] = cflg*pressureForce*( xl0[1][0] - xl0[0][0]
+                                                  +xl0[1][0] - xl0[2][0])/fmf;
+        elPressureForce[11] = 0;
+
+        elPressureForce[12] = 0;
+        elPressureForce[13] = 0;
+        elPressureForce[14] = pressureForce;
+        elPressureForce[15] = cflg*pressureForce*( xl0[1][1] - xl0[2][1]
+                                                  +xl0[0][1] - xl0[2][1])/fmf;
+        elPressureForce[16] = cflg*pressureForce*( xl0[2][0] - xl0[1][0]
+                                                  +xl0[2][0] - xl0[0][0])/fmf;
+        elPressureForce[17] = 0;
+
+     }
+}
 #endif

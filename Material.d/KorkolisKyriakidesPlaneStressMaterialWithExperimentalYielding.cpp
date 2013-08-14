@@ -95,6 +95,14 @@ GetMaterialPlasticStrain() const
   return EPSplastic;
 }
 
+// Return back stress
+std::vector<double> KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding::
+GetMaterialBackStress() const
+{
+  std::vector<double> ret(3, 0.0);
+  return ret;
+}
+
 // Return equivalent plastic strain
 double KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding::
 GetMaterialEquivalentPlasticStrain() const
@@ -115,6 +123,11 @@ GetShearModulus() const
 void KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding::
 SetMaterialPlasticStrain(const std::vector<double> &iEPSplastic)
 { for(int i = 0; i < 3; ++i) EPSplastic[i] = iEPSplastic[i]; }
+
+// Set the plastic strain in the material
+void KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding::
+SetMaterialBackStress(const std::vector<double> &)
+{}
 
 // Set the equivalent plastic strain in the material
 void KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding::

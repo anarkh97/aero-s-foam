@@ -133,7 +133,7 @@ public:
   int vectorSize() const { return converter_.vectorSize(); }
   int dofSetNodeCount() const { return converter_.dofSetNodeCount(); }
   
-  BasisOutputStream(const std::string &fileName, const VecNodeDof6Conversion &converter);
+  BasisOutputStream(const std::string &fileName, const VecNodeDof6Conversion &converter, bool restart);
 
   template <typename VectorBufferType>
   friend BasisOutputStream &operator<<(BasisOutputStream &, const VectorBufferType &source);

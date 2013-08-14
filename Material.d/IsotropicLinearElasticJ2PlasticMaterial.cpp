@@ -306,7 +306,7 @@ ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1,
 	  return false;
 	}
       
-      // Unit tensor XItrial/norm(XItrial) = XI_(n+1)/norm(X_(n+1)).
+      // Unit tensor XItrial/norm(XItrial) = XI_(n+1)/norm(XI_(n+1)).
       double N[9];
       for(int i=0; i<9; i++)
 	N[i] = XItrial[i]/normXItrial;

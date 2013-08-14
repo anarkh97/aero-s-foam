@@ -1,5 +1,5 @@
-#ifndef _SKYMATRIX_C_    //CRW
-#define _SKYMATRIX_C_    //CRW
+#ifndef _SKYMATRIX_C_
+#define _SKYMATRIX_C_
 
 #include <cstdio>
 #include <Utils.d/dbg_alloca.h>
@@ -1262,4 +1262,4 @@ void
 GenSkyMatrix<DComplex>::printMatlab(char *fileName);
 
 
-#endif    //CRW
+#endif

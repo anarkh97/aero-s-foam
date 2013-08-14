@@ -304,7 +304,7 @@ Domain::tempdynamOutput(int tIndex, double *bcx, DynamMat& dMat,
               int tloc1 =   dsa->locate(iNode, DofSet::Temp);
               double temp  = (tloc >= 0) ? d_n[tloc] : bcx[tloc1];
               if(tloc1 < 0) temp = 0.0;
-              fprintf(oinfo[i].filptr,"  % *.*E\n",w,p,temp);
+              fprintf(oinfo[i].filptr," % *.*E\n",w,p,temp);
             }
          } else {
            // if only one node is requested as output
@@ -325,7 +325,7 @@ Domain::tempdynamOutput(int tIndex, double *bcx, DynamMat& dMat,
              int tloc1 =   dsa->locate(iNode, DofSet::Temp);
              double val  = (tloc >= 0) ? v_n[tloc] : 0.0;
              if(tloc1 < 0) val = 0.0;
-             fprintf(oinfo[i].filptr,"  % *.*E\n",w,p,val);
+             fprintf(oinfo[i].filptr," % *.*E\n",w,p,val);
            }
          } else {
            // if only one node is requested as output

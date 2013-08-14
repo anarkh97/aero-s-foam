@@ -1,6 +1,6 @@
 #include <cstdio>
 #include <cstdlib>
-#include <sstream>    //CRW
+#include <sstream>
 #include <Utils.d/BlockAlloc.h>
 #include <Driver.d/GeoSource.h>
 #include <Driver.d/Domain.h>
@@ -95,6 +95,7 @@ GeoSource::GeoSource(int iniSize) : oinfo(emptyInfo, iniSize), nodes(iniSize*16)
   numDirichlet = 0;
   numDirichletFluid = 0; //ADDED FOR HEV PROBLEM, EC, 20070820
   numNeuman = 0;
+  numNeumanModal = 0;
   numIDis = 0;
   numIDisModal = 0;
   numIDis6 = 0;
@@ -139,6 +140,7 @@ GeoSource::GeoSource(int iniSize) : oinfo(emptyInfo, iniSize), nodes(iniSize*16)
   dbc = 0;
   dbcFluid = 0;
   nbc = 0;
+  nbcModal = 0;
   textDBC = dbc = textNBC = nbc = iDis = iDisModal = iDis6 = iVel = iVelModal = modalDamping = 0;
   //cvbc = 0; rdbc = 0; iTemp = 0;
   cdbc = cnbc = 0;
@@ -841,10 +843,11 @@ void GeoSource::setUpData()
   const int nMaxEle = elemSet.last();
 
   // Set up element pressure load
+  BlastLoading::BlastData *conwep = (domain->solInfo().ConwepOnOff) ? &BlastLoading::InputFileData : NULL;
   for(vector<pair<int,double> >::iterator i = eleprs.begin(); i != eleprs.end(); ++i) {
     int elemNum = i->first;
     if(elemSet[elemNum])
-     elemSet[elemNum]->setPressure(i->second, domain->getMFTT(),domain->solInfo().ConwepOnOff);
+     elemSet[elemNum]->setPressure(i->second, domain->getMFTT(), conwep);
    else
      fprintf(stderr," *** WARNING: Pressure was found for non-existent element %d\n", elemNum+1);
   }
@@ -1108,7 +1111,7 @@ void GeoSource::setUpData()
         domain->solInfo().snapshotsPodRom = true;
         domain->solInfo().statevectPodRom = true;
         domain->solInfo().skipState = oinfo[iOut].interval;
-        domain->solInfo().statePodRomFile = oinfo[iOut].filename; 
+        domain->solInfo().statePodRomFile.push_back(std::string(oinfo[iOut].filename)); 
         oinfo[iOut].PodRomfile = true;
         break;
       case OutputInfo::Residual :
@@ -1145,7 +1148,7 @@ void GeoSource::setUpData()
         domain->solInfo().snapshotsPodRom = true;
         domain->solInfo().accelvectPodRom = true;
         domain->solInfo().skipAccel = oinfo[iOut].interval;
-        domain->solInfo().accelPodRomFile = oinfo[iOut].filename;
+        domain->solInfo().accelPodRomFile.push_back(std::string(oinfo[iOut].filename));
         oinfo[iOut].PodRomfile = true;
         break;
       case OutputInfo::Velocvector :
@@ -1154,7 +1157,7 @@ void GeoSource::setUpData()
         domain->solInfo().snapshotsPodRom = true;
         domain->solInfo().velocvectPodRom = true;
         domain->solInfo().skipVeloc = oinfo[iOut].interval;
-        domain->solInfo().velocPodRomFile = oinfo[iOut].filename;
+        domain->solInfo().velocPodRomFile.push_back(std::string(oinfo[iOut].filename));
         oinfo[iOut].PodRomfile = true;
         break;
       case OutputInfo::InternalStateVar :
@@ -1513,6 +1516,12 @@ int GeoSource::getNeumanBC(BCond *&bc)
 {
   bc = nbc;
   return numNeuman;
+}
+
+int GeoSource::getNeumanBCModal(BCond *&bc)
+{
+  bc = nbcModal;
+  return numNeumanModal;
 }
 
 int GeoSource::getIDis(BCond *&bc)
@@ -2058,9 +2067,9 @@ void GeoSource::outputNodeScalars(int fileNum, DComplex *data, int outputSize, d
       else  {
         for(i = 0; i < outputSize; i++) {
           if (outputSize == 1)
-            fprintf(oinfo[fileNum].filptr," % *.*E", w, p, std::abs(data[i]));     //CRW
+            fprintf(oinfo[fileNum].filptr," % *.*E", w, p, std::abs(data[i]));
           else
-            filePrint(oinfo[fileNum].filptr," % *.*E\n", w, p, std::abs(data[i]));    //CRW
+            filePrint(oinfo[fileNum].filptr," % *.*E\n", w, p, std::abs(data[i]));
         }
         // print phase part
         if (time != -1.0) {
@@ -2077,7 +2086,7 @@ void GeoSource::outputNodeScalars(int fileNum, DComplex *data, int outputSize, d
         for(i=0; i<oinfo[fileNum].ncomplexout; ++i) {
           filePrint(oinfo[fileNum].filptr,"  % *.*E  \n",w,p,phi);
           for(int j = 0; j < outputSize; j++) {
-            double proj = std::abs(data[j])*cos(arg(data[j])-phi);    //CRW
+            double proj = std::abs(data[j])*cos(arg(data[j])-phi);
             filePrint(oinfo[fileNum].filptr," % *.*E\n", w, p, proj);
           }
           phi += incr;
@@ -2165,11 +2174,11 @@ void GeoSource::outputElemVectors(int fileNum, DComplex *data,
       for(i = 0; i < outputSize; i++) {
         if(outputSize == 1)
           fprintf(oinfo[fileNum].filptr," % *.*E % *.*E  % *.*E % *.*E\n",
-                  w, p, std::abs(data[2*i]), w, p, std::abs(data[2*i+1]),    //CRW
+                  w, p, std::abs(data[2*i]), w, p, std::abs(data[2*i+1]),
                   w, p, arg(data[2*i]), w, p, arg(data[2*i+1]));
         else
           filePrint(oinfo[fileNum].filptr," % *.*E % *.*E\n",
-                    w, p, std::abs(data[2*i]), w, p, std::abs(data[2*i+1]));    //CRW
+                    w, p, std::abs(data[2*i]), w, p, std::abs(data[2*i+1]));
       }
       // output phase part
       if(outputSize != 1) {
@@ -2190,7 +2199,7 @@ void GeoSource::outputElemVectors(int fileNum, DComplex *data,
           for(int j = 0; j < outputSize; j++) {
             double proj[2];
             for(int k=0; k<2; ++k)
-              proj[k] = std::abs(data[2*j+k])*cos(arg(data[2*j+k])-phi);    //CRW
+              proj[k] = std::abs(data[2*j+k])*cos(arg(data[2*j+k])-phi);
             filePrint(oinfo[fileNum].filptr," % *.*E % *.*E\n",
                       w, p, proj[0], w, p, proj[1]);
           }
@@ -2470,6 +2479,39 @@ int GeoSource::setNeuman(int _numNeuman, BCond *_nbc)
     numNeuman = _numNeuman;
     nbc       = _nbc;
   }
+  return 0;
+}
+
+//-------------------------------------------------------------------
+
+int GeoSource::setNeumanModal(int _numNeumanModal, BCond *_nbcModal)
+{
+  if (nbcModal) {
+    // Allocate memory for correct number of nbcModal
+    BCond *nd = new BCond[numNeumanModal+_numNeumanModal];
+
+    // copy old nbcModal
+    for (int i = 0; i < numNeumanModal; ++i)
+      nd[i] = nbcModal[i];
+
+    // copy new nbcModal
+    for (int i = 0; i < _numNeumanModal; ++i)
+      nd[i+numNeumanModal] = _nbcModal[i];
+
+    // set correct number of nbcModal
+    numNeumanModal += _numNeumanModal;
+
+    // delete old array of nbcModal
+    delete [] nbcModal;
+
+    // set new pointer to correct number of nbcModal
+    nbcModal = nd;
+  }
+  else {
+    numNeumanModal = _numNeumanModal;
+    nbcModal    = _nbcModal;
+  }
+
   return 0;
 }
 
@@ -3197,8 +3239,10 @@ void GeoSource::openOutputFilesForPita(int sliceRank)
         fileName = nfn;
       }
 
-      if((oinfo[iInfo].filptr= fopen(fileName,"w")) == (FILE *) 0 )
-        fprintf(stderr," *** ERROR: Cannot open %s\n",oinfo[iInfo].filename );
+      if((oinfo[iInfo].filptr= fopen(fileName,"w")) == (FILE *) 0 ) {
+        fprintf(stderr," *** ERROR: Cannot open %s, exiting...\n",oinfo[iInfo].filename );
+        exit(0);
+      }
       outputHeader(iInfo);
       fflush(oinfo[iInfo].filptr);
     }
@@ -3226,8 +3270,10 @@ void GeoSource::openOutputFiles(int *outNodes, int *outIndex, int numOuts)
           fileName = nfn;
         }
 
-        if((oinfo[iInfo].filptr= fopen(fileName,"w")) == (FILE *) 0 )
-          fprintf(stderr," *** ERROR: Cannot open %s\n",oinfo[iInfo].filename );
+        if((oinfo[iInfo].filptr= fopen(fileName,"w")) == (FILE *) 0 ) {
+          fprintf(stderr," *** ERROR: Cannot open %s, exiting...\n",oinfo[iInfo].filename );
+          exit(0);
+        }
         outputHeader(iInfo);
         fflush(oinfo[iInfo].filptr);
       }
@@ -3249,8 +3295,10 @@ void GeoSource::openOutputFiles(int *outNodes, int *outIndex, int numOuts)
           fileName = nfn;
         }
 
-        if((oinfo[iInfo].filptr= fopen(fileName,"w")) == (FILE *) 0 )
-          fprintf(stderr," *** ERROR: Cannot open %s\n",oinfo[iInfo].filename );
+        if((oinfo[iInfo].filptr= fopen(fileName,"w")) == (FILE *) 0 ) {
+          fprintf(stderr," *** ERROR: Cannot open %s, exiting...\n",oinfo[iInfo].filename );
+          exit(0);
+        }
         outputHeader(iInfo);
         fflush(oinfo[iInfo].filptr);
       }
@@ -3569,7 +3617,7 @@ ControlInterface* GeoSource::getUserSuppliedFunction()
     void *handle;
     dlerror(); // forget about the last error
     handle = dlopen(claw->fileName, RTLD_NOW);
-    char *errorMsg;
+    const char *errorMsg;
     if ((errorMsg = dlerror() ) != 0) {
       fprintf(stderr," *** ERROR: in dynamic loading of %s: %s\n",
               claw->fileName,errorMsg);
@@ -3666,7 +3714,7 @@ void GeoSource::outputElemStress(int fileNum, DComplex *stressData,
       for(int i = 0; i < numOutElems; i++)  {
         int numNodes = offsets[i+1] - offsets[i];
         for(int iNode = 0; iNode < numNodes; iNode++)
-          filePrint(oinfo[fileNum].filptr," % *.*E", w, p, std::abs(stressData[offsets[i]+iNode]));    //CRW
+          filePrint(oinfo[fileNum].filptr," % *.*E", w, p, std::abs(stressData[offsets[i]+iNode]));
         filePrint(oinfo[fileNum].filptr,"\n");
       }
       // print phase part
@@ -3692,7 +3740,7 @@ void GeoSource::outputElemStress(int fileNum, DComplex *stressData,
         for(int j = 0; j < numOutElems; j++) {
           int numNodes = offsets[j+1] - offsets[j];
           for(int iNode = 0; iNode < numNodes; iNode++) {
-            double proj = std::abs(stressData[offsets[j]+iNode])*cos(arg(stressData[offsets[j]+iNode])-phi);    //CRW
+            double proj = std::abs(stressData[offsets[j]+iNode])*cos(arg(stressData[offsets[j]+iNode])-phi);
             filePrint(oinfo[fileNum].filptr," % *.*E", w, p, proj);
           }
           filePrint(oinfo[fileNum].filptr,"\n");
@@ -3721,7 +3769,7 @@ GeoSource::loadMaterial(const char *matName, const char *fileName)
 #if !defined(WINDOWS) && !defined(SALINAS)
   void *handle;
   handle = dlopen(fileName, RTLD_NOW);
-  char *errorMsg;
+  const char *errorMsg;
   if ((errorMsg = dlerror() ) != 0) {
     fprintf(stderr," *** ERROR: in dynamic loading of Material file %s: %s\n",
   	    fileName,errorMsg);
@@ -3756,13 +3804,35 @@ GeoSource::addMaterial(int i, const char *matName, DoubleList &args)
 }
 
 void
-GeoSource::simpleDecomposition(int numSubdomains, bool estFlag, bool weightOutFlag)
+GeoSource::simpleDecomposition(int numSubdomains, bool estFlag, bool weightOutFlag, bool trivialFlag)
 {
  decJustCalled=true;
- //long m1 = memoryUsed();
  double    t1 = getTime();
 
  int maxEle = elemSet.last();
+
+ if(trivialFlag) {
+   optDec = new Decomposition;
+   optDec->nsub = numSubdomains;
+   optDec->pele = new int[optDec->nsub+1];
+   optDec->eln = new int[maxEle];
+
+   optDec->pele[0] = 0;
+   int div = maxEle / optDec->nsub;
+   int rem = maxEle % optDec->nsub;
+
+   optDec->pele[0] = 0;
+   for(int i=0; i<optDec->nsub; i++)
+     optDec->pele[i+1] = optDec->pele[i] + ((i < rem) ? div+1 : div);
+
+   for(int i=0; i<maxEle; i++)
+     optDec->eln[i] = i;
+
+   if(verboseFlag)
+     filePrint(stderr, " ... %d Elements Have Been Arranged in %d Subdomains ...\n",
+               maxEle, optDec->nsub);
+ }
+ else {
 
  Elemset baseSet(maxEle);
  int nSpring = 0, maxSprNodes = 0, nMass = 0;
@@ -3783,29 +3853,7 @@ GeoSource::simpleDecomposition(int numSubdomains, bool estFlag, bool weightOutFl
    }
  if(nSpring > 0) filePrint(stderr, " ... This mesh has %d springs ...\n", nSpring);
 
-/* already done in GeoSource::addFsiElements
- if ( (domain->solInfo().isCoupled) && !(domain->solInfo().isMatching) &&
-      (domain->solInfo().fetiInfo.fsi_corner != 0) ) {
-   ResizeArray<LMPCons *> &fsi = domain->getFSI();
-// JLchange: see also GeoSource::addFsiElements
-//   for(int i = 0; i < domain->getNumFSI(); ++i)
-//     baseSet.fsielemadd(maxEle+i, fsi[i]); // PJSA 7-31-06
-   int index = maxEle;
-   for(int i = 0; i < domain->getNumFSI(); ++i) {
-     int fluidNode = fsi[i]->lmpcnum;
-     for(int j=0; j< (fsi[i])->nterms; j++) {
-       LMPCons *thisFsi = new LMPCons(fluidNode, 0.0);
-       LMPCTerm thisLmpcTerm((fsi[i])->terms[j], 1.0);
-       thisFsi->addterm(&(thisLmpcTerm));
-       baseSet.fsielemadd(index, thisFsi);
-       index++;
-     }
-   }
- }
-*/
-
  MultiFront mf(&baseSet, &nodes, bool(domain->getNumFSI()));
- // filePrint(stderr," ... Constructed Connectivities In %14.5f sec and %14.3f Mb\n", (getTime() - t1)/1000.0,(memoryUsed() - m1)/(1024.0*1024.0));
 
  // Decompose and optimize the structure into subdomains
  if ( domain->solInfo().isCoupled && (domain->solInfo().type != 2 || 
@@ -3930,6 +3978,7 @@ GeoSource::simpleDecomposition(int numSubdomains, bool estFlag, bool weightOutFl
    FILE *memFilePtr = domain->openFile(cinfo->checkfile, ".mem");
    mf.memEstimate(optDec, 3, mem, memFilePtr);
    fclose(memFilePtr);
+ }
  }
 
  // Open optimized decomposition file
@@ -4222,7 +4271,7 @@ GeoSource::getDecomposition()
 void GeoSource::getBinaryDecomp()
 {
   if(!subToElem) {
-    BinFileHandler fp("decomposition", "rb");
+    BinFileHandler fp(decomposition_.c_str(), "rb");
     subToElem = new Connectivity(fp);
     subToNode = new Connectivity(fp);
 #ifdef SOWER_DEBUG
@@ -4236,7 +4285,7 @@ void GeoSource::getBinaryDecomp()
 void GeoSource::readGlobalBinaryData()
 {
   if(!subToSub || !subToClus) {
-    BinFileHandler fp2("connectivity", "rb");
+    BinFileHandler fp2(connectivity_.c_str(), "rb");
     clusToSub = new Connectivity(fp2);
     numClusters = clusToSub->csize();
     subToClus = clusToSub->reverse();

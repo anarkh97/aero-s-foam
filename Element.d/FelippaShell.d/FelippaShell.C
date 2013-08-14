@@ -26,7 +26,7 @@ FelippaShell::FelippaShell(int* nodenums)
   nn[2] = nodenums[2];
   type = 0;
   cFrame = 0;
-  ConwepOnOff = false;
+  conwep = NULL;
 }
 
 Element *
@@ -477,6 +477,7 @@ FelippaShell::setMaterial(NLMaterial *_mat)
     if(gpmat) delete gpmat;
     gpmat = new ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(prop->eh, prop->nu, prop->rho, localMaterial, 5, 3);
     nmat = new ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(prop->eh, prop->nu, prop->rho, localMaterial, 3, 3);
+    delete localMaterial;
   }
   else { // new parser
     MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial> *mat 
@@ -620,6 +621,12 @@ FelippaShell::getStiffAndForce(GeomState *refState, GeomState &geomState, CoordS
    x[2] = node3.x; y[2] = node3.y; z[2] = node3.z;
 
    andesstf(glNum+1, elK.data(), locF, prop->nu, x, y, z, vld, type, 0);
+
+   if(numStates() > 0) {
+     double *state = geomState.getElemState(getGlNum()) + subNum*numStates();
+     gpmat->GetState( state+0 );
+     nmat->GetState ( state+gpmat->GetNumStates() );
+   }
  }
 
  // Compute gradients of the nodal deformational pseudorotations
@@ -763,6 +770,12 @@ FelippaShell::getInternalForce(GeomState *refState, GeomState &geomState, CoordS
    x[2] = node3.x; y[2] = node3.y; z[2] = node3.z;
 
    andesstf(glNum+1, (double*)NULL, locF, prop->nu, x, y, z, vld, type, 0);
+
+   if(numStates() > 0) {
+     double *state = geomState.getElemState(getGlNum()) + subNum*numStates();
+     gpmat->GetState( state+0 );
+     nmat->GetState ( state+gpmat->GetNumStates() );
+   }
  }
 
  // Compute gradients of the nodal deformational pseudorotations
@@ -798,7 +811,6 @@ FelippaShell::getInternalForce(GeomState *refState, GeomState &geomState, CoordS
  // transform internal force vector from local to global coordinates
 
  tran_force(f, t0n, 3);
-
 }
 
 void
@@ -926,33 +938,35 @@ FelippaShell::getTopNumber()
 }
 
 void
-FelippaShell::setPressure(double _pressure, MFTTData *_mftt, bool _ConwepOnOff){
+FelippaShell::setPressure(double _pressure, MFTTData *_mftt, BlastLoading::BlastData *_conwep) {
   pressure = _pressure;
-  ConwepOnOff = _ConwepOnOff;
+  conwep = _conwep;
 }
+
 void
 FelippaShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
                                    GeomState *geomState, int cflg, double time)
-{ 
-// Check if Conwep is being used. If so, use the pressure from Conwep.
-    if (ConwepOnOff==true) {
-      double* CurrentElementNodePositions = (double*) dbg_alloca(sizeof(double)*3*4);
-      int NodeNumber;
-      for(int Dimension = 0; Dimension < 4; ++Dimension) {
-        NodeNumber = Dimension*3;
-        if (Dimension==3){
-          CurrentElementNodePositions[NodeNumber+0] = cs[nn[2]]->x;
-          CurrentElementNodePositions[NodeNumber+1] = cs[nn[2]]->y;
-          CurrentElementNodePositions[NodeNumber+2] = cs[nn[2]]->z;
-        }
-        else{
-          CurrentElementNodePositions[NodeNumber+0] = cs[nn[Dimension]]->x;
-          CurrentElementNodePositions[NodeNumber+1] = cs[nn[Dimension]]->y;
-          CurrentElementNodePositions[NodeNumber+2] = cs[nn[Dimension]]->z;
-        }
-      }
-     pressure = BlastLoading::ComputeShellPressureLoad(CurrentElementNodePositions,time,BlastLoading::InputFileData);
-    }
+{
+     double pressure = Element::pressure;
+     // Check if Conwep is being used. If so, use the pressure from the blast loading function.
+     if (conwep) {
+       double* CurrentElementNodePositions = (double*) dbg_alloca(sizeof(double)*3*4);
+       int Offset;
+       for(int i = 0; i < 4; ++i) {
+         Offset = i*3;
+         if (i==3) {
+           CurrentElementNodePositions[Offset+0] = cs[nn[2]]->x;
+           CurrentElementNodePositions[Offset+1] = cs[nn[2]]->y;
+           CurrentElementNodePositions[Offset+2] = cs[nn[2]]->z;
+         }
+         else {
+           CurrentElementNodePositions[Offset+0] = cs[nn[i]]->x;
+           CurrentElementNodePositions[Offset+1] = cs[nn[i]]->y;
+           CurrentElementNodePositions[Offset+2] = cs[nn[i]]->z;
+         }
+       }
+       pressure = BlastLoading::ComputeShellPressureLoad(CurrentElementNodePositions, time, *conwep);
+     }
      double px = 0.0;
      double py = 0.0;
      double pz = 0.0;

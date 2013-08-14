@@ -10,7 +10,8 @@
 
 struct NonlinearInfo {
 
-   int updateK;         // number of times to update K in NL analysis
+   int updateK;         // number of Newton iterations between K updates in time/load step
+   int stepUpdateK;     // number of time/load steps between K updates
    int kryflg;          // Krylov correction flag
    int initflg;         // initialization flag
    int reorthoflg;      // full reorthogonalization flag
@@ -34,14 +35,20 @@ struct NonlinearInfo {
    bool failsafe;
    double failsafe_tol;
 
-   NonlinearInfo() { updateK     = 1; kryflg     =   0; initflg =   0; 
-                     reorthoflg  = 0; maxiter    = 100; maxVec  =   1; 
+   bool linearelastic;
+
+   NonlinearInfo() { setDefaults(); }
+
+   void setDefaults() {
+                     updateK     = 1; kryflg     =   0; initflg =   0;
+                     reorthoflg  = 0; maxiter    = 100; maxVec  =   1;
                      fitAlgShell = 2; fitAlgBeam =   2; dlambda = 1.0;
                      tolRes = 1.0E-6; tolInc     = std::numeric_limits<double>::infinity();
                      absTolRes = 0.0; absTolInc  = std::numeric_limits<double>::infinity();
                      maxLambda = 1.0; lfactor    = 1.0; extMin  =   4;
                      extMax      = 6; unsymmetric = false; linesearch = false;
-                     failsafe = false; failsafe_tol = std::numeric_limits<double>::epsilon(); }
+                     failsafe = false; failsafe_tol = std::numeric_limits<double>::epsilon();
+                     stepUpdateK = 1; linearelastic = false; }
 
 };
 

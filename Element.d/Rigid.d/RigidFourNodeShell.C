@@ -14,6 +14,7 @@ RigidFourNodeShell::RigidFourNodeShell(int *_nn)
     int indices[2] = { i+1, 0 };
     subElems[i] = new RigidBeam(indices);
   }
+  conwep = 0;
 }
 
 //EXPERIMENTAL: equip this element with mass matrix and pressure load vector from BelytschkoTsayShell
@@ -27,15 +28,61 @@ extern "C" {
 }
 
 void
-RigidFourNodeShell::setPressure(double pres, MFTTData *, bool)
+RigidFourNodeShell::setPressure(double pres, MFTTData *, BlastLoading::BlastData *_conwep)
 {
   pressure = pres;
+  conwep = _conwep;
 }
 
 double
-RigidFourNodeShell::getPressure()
-{ 
-  return pressure;
+RigidFourNodeShell::getMass(CoordSet& cs)
+{
+  if (prop == NULL || prop->rho == 0 || prop->eh == 0) return 0.0;
+
+  Node &nd1 = cs.getNode(nn[0]);
+  Node &nd2 = cs.getNode(nn[1]);
+  Node &nd3 = cs.getNode(nn[2]);
+  Node &nd4 = cs.getNode(nn[3]);
+
+  Vector r1(3), r2(3), r3(3), r4(3);
+
+  r1[0] = nd1.x; r1[1] = nd1.y; r1[2] = 0.0;
+  r2[0] = nd2.x; r2[1] = nd2.y; r2[2] = 0.0;
+  r3[0] = nd3.x; r3[1] = nd3.y; r3[2] = 0.0;
+  r4[0] = nd4.x; r4[1] = nd4.y; r4[2] = 0.0;
+
+  Vector v1(3), v2(3), v3(3), v4(3), v5(3);
+
+  v1 = r2 - r1;
+  v2 = r3 - r1;
+  v3 = r4 - r1;
+
+  v4 = v1.cross(v2);
+  v5 = v2.cross(v3);
+
+  double area = 0.5*(v4.magnitude() + v5.magnitude());
+  double mass = area*prop->rho*prop->eh;
+
+  return mass;
+}
+
+void
+RigidFourNodeShell::getGravityForce(CoordSet& cs, double *gravityAcceleration,
+                                    Vector& gravityForce, int gravflg, GeomState *geomState)
+{
+  gravityForce.zero();
+  if (prop == NULL || prop->rho == 0 || prop->eh == 0) return;
+
+  double massPerNode = 0.25*getMass(cs);
+  double fx = massPerNode*gravityAcceleration[0];
+  double fy = massPerNode*gravityAcceleration[1];
+  double fz = massPerNode*gravityAcceleration[2];
+
+  for(int i = 0; i < 4; ++i) {
+    gravityForce[6*i+0] = fx;
+    gravityForce[6*i+1] = fy;
+    gravityForce[6*i+2] = fz;
+  }
 }
 
 FullSquareMatrix
@@ -44,6 +91,7 @@ RigidFourNodeShell::massMatrix(CoordSet &cs, double *mel, int cmflg)
   int nndof = 6, ndime = 3;
   FullSquareMatrix ret(numDofs(), mel);
   ret.zero();
+  if (prop == NULL || prop->rho == 0 || prop->eh == 0) return ret;
 
   // Check for element which has no mass
   if(prop && prop->rho != 0 && prop->eh != 0) {
@@ -74,7 +122,7 @@ RigidFourNodeShell::massMatrix(CoordSet &cs, double *mel, int cmflg)
 
 void
 RigidFourNodeShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
-                                         GeomState *geomState, int cflg, double)
+                                         GeomState *geomState, int cflg, double time)
 {
   int opttrc = 0; // 0 : pressure
                   // 1 : traction
@@ -90,6 +138,11 @@ RigidFourNodeShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
     edisp[iloc+0] = (geomState) ? (*geomState)[nn[i]].x - cs[nn[i]]->x : 0;
     edisp[iloc+1] = (geomState) ? (*geomState)[nn[i]].y - cs[nn[i]]->y : 0;
     edisp[iloc+2] = (geomState) ? (*geomState)[nn[i]].z - cs[nn[i]]->z : 0;
+  }
+  double pressure = Element::pressure;
+  // Check if Conwep is being used. If so, use the pressure from the blast loading function.
+  if(conwep) {
+    pressure = BlastLoading::ComputeShellPressureLoad(ecord, time, *conwep);
   }
   double trac[3] = { -pressure, 0, 0 };
   double *efbc = (double*) dbg_alloca(sizeof(double)*nnodes*ndime); // translations only

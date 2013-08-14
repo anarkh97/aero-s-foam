@@ -66,8 +66,7 @@ MDNLDynamic::getInitState(DistrVector &d_n, DistrVector &v_n, DistrVector &a_n, 
   }
 
   int aeroAlg = domain->solInfo().aeroFlag;
-  // call aeroPreProcess if a restart file does not exist
-  if(aeroAlg >= 0 && geoSource->getCheckFileInfo()->lastRestartFile == 0)
+  if(aeroAlg >= 0)
     aeroPreProcess(d_n, v_n, a_n, v_p);
 
   if(domain->solInfo().thermoeFlag >= 0)
@@ -472,9 +471,11 @@ MDNLDynamic::copyGeomState(DistrGeomState* geomState)
 void
 MDNLDynamic::reBuild(DistrGeomState& geomState, int iteration, double localDelta, double t)
 {
+ int step = (t+localDelta)/(2*localDelta);
  times->rebuild -= getTime();
 
- if((iteration % domain->solInfo().getNLInfo().updateK == 0) || (t == domain->solInfo().initialTime)) {
+ if((iteration % domain->solInfo().getNLInfo().updateK == 0 && (step-1) % domain->solInfo().getNLInfo().stepUpdateK == 0)
+    || (t == domain->solInfo().initialTime)) {
    times->norms[numSystems].rebuildTang = 1;
 
    double Kcoef, Ccoef, Mcoef;
@@ -484,6 +485,7 @@ MDNLDynamic::reBuild(DistrGeomState& geomState, int iteration, double localDelta
      Mcoef = 1;
    }
    else {
+     if(verboseFlag) filePrint(stderr, " ... Rebuilding Tangent Stiffness for Step %d Iteration %d ...\n", step, iteration);
      double beta, gamma, alphaf, alpham, dt = 2*localDelta;
      getNewmarkParameters(beta, gamma, alphaf, alpham);
      Kcoef = (domain->solInfo().order == 1) ? localDelta : dt*dt*beta;
@@ -891,14 +893,15 @@ MDNLDynamic::dynamOutput(DistrGeomState *geomState, DistrVector &vel_n, DistrVec
     for(int i = 0; i < decDomain->getNumSub(); ++i) {
       SubDomain *sd = decDomain->getSubDomain(i);
       StackVector vel_ni(vel_n.subData(i), vel_n.subLen(i));
+      StackVector acc_ni(acc_n.subData(i), acc_n.subLen(i));
       int extlen = std::log10((double) sd->subNum()+1) + 1;
       char *ext = new char[extlen+2];
       sprintf(ext,"_%d",sd->subNum()+1);
-      sd->writeRestartFile(time, index, vel_ni, (*geomState)[i], ext);
+      sd->writeRestartFile(time, index, vel_ni, acc_ni, (*geomState)[i], ext);
       delete [] ext;
     }
 #else
-    execParal4R(decDomain->getNumSub(), this, &MDNLDynamic::subWriteRestartFile, time, index, vel_n, *geomState);
+    execParal5R(decDomain->getNumSub(), this, &MDNLDynamic::subWriteRestartFile, time, index, vel_n, acc_n, *geomState);
 #endif
   }
 
@@ -911,14 +914,15 @@ MDNLDynamic::dynamOutput(DistrGeomState *geomState, DistrVector &vel_n, DistrVec
 }
 
 void
-MDNLDynamic::subWriteRestartFile(int i, double &time, int &index, DistrVector &vel_n, DistrGeomState &geomState)
+MDNLDynamic::subWriteRestartFile(int i, double &time, int &index, DistrVector &vel_n, DistrVector &acc_n, DistrGeomState &geomState)
 {
   SubDomain *sd = decDomain->getSubDomain(i);
   StackVector vel_ni(vel_n.subData(i), vel_n.subLen(i));
+  StackVector acc_ni(acc_n.subData(i), acc_n.subLen(i));
   int extlen = (int)std::log10((double) sd->subNum()+1) + 1;
   char *ext = new char[extlen+2];
   sprintf(ext,"_%d",sd->subNum()+1);
-  sd->writeRestartFile(time, index, vel_ni, geomState[i], ext);
+  sd->writeRestartFile(time, index, vel_ni, acc_ni, geomState[i], ext);
   delete [] ext;
 }
 
@@ -1234,6 +1238,7 @@ MDNLDynamic::readRestartFile(DistrVector &d_n, DistrVector &v_n, DistrVector &a_
 #else
     execParal5R(decDomain->getNumSub(), this, &MDNLDynamic::subReadRestartFile, d_n, v_n, a_n, v_p, geomState);
 #endif
+    updateStates(&geomState, geomState);
     domain->solInfo().initialTimeIndex = decDomain->getSubDomain(0)->solInfo().initialTimeIndex;
     domain->solInfo().initialTime = decDomain->getSubDomain(0)->solInfo().initialTime;
   }

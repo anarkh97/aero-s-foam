@@ -1,9 +1,8 @@
 #include <cstdlib>
 #include <cstdio>
-#include <unistd.h>
 #include <iostream>
 using namespace std;
-
+#include <unistd.h>
 #include <memory>
 #include <Utils.d/dbg_alloca.h>
 
@@ -124,6 +123,7 @@ bool estFlag=false;
 bool weightOutFlag=false;
 bool nosa=false;
 bool useFull=false;
+bool trivialFlag=false;
 
 int verboseFlag = 0;
 int salinasFlag = 0;
@@ -139,10 +139,15 @@ Communicator *fluidCom;
 extern const char* problemTypeMessage[];
 extern const char* solverTypeMessage[];
 
+std::string clusterData_ = "INPUT.msh";
+std::string subdomains_ = "INPUT.sub";
+std::string decomposition_ = "INPUT.dec";
+std::string connectivity_ = "INPUT.con";
+
 // ... main program
 
 #ifdef CREATE_DSO
-extern "C"
+//extern "C"
 int entrypoint(int argc, char** argv)
 #else
 int main(int argc, char** argv)
@@ -209,9 +214,8 @@ int main(int argc, char** argv)
  weightList[93] = 5.0;  // 3d 32 node serendipity brick
  weightList[94] = 4.0;  // 3d 26 node serendipity wedge
  weightList[97] = 4.0;  // 3d 15 node serendipity wedge
- weightList[104]= 4.0;  // 3d 18 node Lagrange wedge
- weightList[201] = 3.0; // 3d 8 node brick
- weightList[202] = 3.0; // green lagrange
+ weightList[201] = 3.0; // nonlinear translational spring
+ weightList[202] = 3.0; // nonlinear torsional spring
  weightList[102] = 3.0; // 3d LEIsoParamHexa
  weightList[301] = 1.0; // 2d 4-node sloshing (fluid) quadrilateral
  weightList[302] = 1.0; // 2d 2-node free-surface (fluid)
@@ -299,6 +303,7 @@ int main(int argc, char** argv)
    {"dec", 0, 0, 1000},
    {"exit", 0, 0, 1002},
    {"deter", 0, 0, 1005},
+   {"trivial", 0, 0, 1007},
    {"use-weight-from", 1, 0, 1004},
    {"threads-number", 1, 0, 'n'},
    {"decomposition-filename", 1, 0, 'd'},
@@ -318,8 +323,9 @@ int main(int argc, char** argv)
    {"output-weights", 0, 0, 'w'},
    {"load", 0, 0, 'w'},
    {"verbose", 1, 0, 'v'},
-   {"with-sower",0,0, 1010},
-   {"sower",0,0, 1010},
+   {"with-sower", 0, 0, 1010},
+   {"sower", 0, 0, 1010},
+   {"prefix", 1, 0, 1011},
    {"nclus", 1, 0, 1012},
    {"debug", 0, 0, 1006},
    {0, 0, 0, 0}
@@ -363,7 +369,7 @@ int main(int argc, char** argv)
 		    cerr << "*** WEIGHT FILE CORRUPTED AT LINE " << i << " bad object ID." <<endl;
 		    exit(1);
 		  }
-		fgetpos (weightFile, &position);
+		fgetpos(weightFile, &position);
 		while((c = fgetc(weightFile))==' ')
 		  ;
 		if(c=='\n')
@@ -371,11 +377,11 @@ int main(int argc, char** argv)
 		    cerr << "*** WEIGHT FILE CORRUPTED AT LINE " << i << " : no weight specified !" << endl;
 		    exit(1);
 		  }
-		fsetpos (weightFile, &position);
+		fsetpos(weightFile, &position);
 		res=fscanf(weightFile,"%lf",&w);
 		if(res == 0 || res == EOF)
 		   {
-		     cerr << "*** WEIGHT FILE CORRUPTED AT LINE " << i << " : no weight specified !" <<endl;
+		     cerr << "*** WEIGHT FILE CORRUPTED AT LINE " << i << " : no weight specified !" << endl;
 		     exit(1);
 		   }
 		weightList[k]=w;
@@ -385,22 +391,31 @@ int main(int argc, char** argv)
 	else
 	  {
 	    filePrint(stderr," *******************************************\n");
-	    filePrint(stderr," *** ERROR: Cannot open weight file %s ***\n",
-           optarg );
-           filePrint(stderr," *******************************************\n");
-           exit(-1);
+	    filePrint(stderr," *** ERROR: Cannot open weight file %s ***\n", optarg);
+            filePrint(stderr," *******************************************\n");
+            exit(-1);
 	  }
 	break;
       case 1005 :
-	nosa=true;
+	nosa = true;
 	break;
       case 1006 :
         debugFlag = 1;
+        break;
+      case 1007 :
+        trivialFlag = 1;
         break;
       case 1010 :
 	callSower = true;
 	domain->setSowering(true);
 	break;
+      case 1011 : {
+        std::string prefix = optarg;
+        clusterData_ = prefix + ".msh";
+        decomposition_ = prefix + ".dec";
+        connectivity_ = prefix + ".con";
+        subdomains_ = prefix + ".sub";
+        } break;
       case 1012 :
         numClusters = atoi(optarg);
         if(numClusters <= 0) numClusters = 1;
@@ -537,6 +552,8 @@ int main(int argc, char** argv)
      exitAfterDec = decInit->exitAfterDec;
    if(decInit->weight)
      weightOutFlag = true;
+   if(decInit->trivial)
+     trivialFlag = true;
    if(decInit->memory) {
      estFlag = true;
      useFull = true;
@@ -688,6 +705,17 @@ int main(int argc, char** argv)
    domain->setUpData();
  }
 
+ if(!(geoSource->getCheckFileInfo()->decPtr || callDec || decInit || geoSource->binaryInput)) {
+   // activate multi-domain mode for the explicit dynamics Rom drivers which are not supported in single-domain mode
+   // so it is not necessary to include "DECOMP" with "nsubs 1" in the input file
+   if((domain->solInfo().activatePodRom && domain->probType() == SolverInfo::NonLinDynam && domain->solInfo().newmarkBeta == 0)
+      || (domain->probType() == SolverInfo::PodRomOffline && domain->solInfo().ROMPostProcess)) {
+     callDec = true;
+     trivialFlag = true;
+     numSubdomains = 1;
+   }
+ }
+
  if(callDec) {
 //   if(domain->solInfo().type == 2 || domain->solInfo().type == 3) { // DEC requires FETI or BLOCKDIAG to be activated (see below)
      Dec::dec(numProcessors, numThreads, numSubdomains, topFlag);
@@ -771,13 +799,13 @@ int main(int argc, char** argv)
  }
 
  if(domain->solInfo().aeroFlag >= 0)
-   filePrint(stderr," ... AeroElasticity Flag   = %d\n", domain->solInfo().aeroFlag);
+   filePrint(stderr," ... AeroElasticity Flag   = %d      ...\n", domain->solInfo().aeroFlag);
  if(domain->solInfo().thermoeFlag >= 0)
-   filePrint(stderr," ... ThermoElasticity Flag = %d\n", domain->solInfo().thermoeFlag);
+   filePrint(stderr," ... ThermoElasticity Flag = %d      ...\n", domain->solInfo().thermoeFlag);
  if(domain->solInfo().aeroheatFlag >= 0)
-   filePrint(stderr," ... AeroThermo Flag       = %d\n", domain->solInfo().aeroheatFlag);
+   filePrint(stderr," ... AeroThermo Flag       = %d      ...\n", domain->solInfo().aeroheatFlag);
  if(domain->solInfo().thermohFlag >= 0)
-   filePrint(stderr," ... ThermoElasticity Flag = %d\n", domain->solInfo().thermohFlag);
+   filePrint(stderr," ... ThermoElasticity Flag = %d      ...\n", domain->solInfo().thermohFlag);
 
  // ... PRINT PROBLEM TYPE
  filePrint(stderr, problemTypeMessage[domain->solInfo().probType]);
@@ -797,7 +825,8 @@ int main(int argc, char** argv)
  if(domain->solInfo().type == 2 || domain->solInfo().type == 3
     || (domain->solInfo().type == 1 && domain->solInfo().iterType == 1 && domain_decomp)
     || (domain->solInfo().type == 0 && domain->solInfo().subtype == 9 && domain_decomp)
-	|| (domain->solInfo().svdPodRom && domain_decomp)) {
+    || (domain->solInfo().svdPodRom && domain_decomp)
+    || (domain->solInfo().samplingPodRom && domain_decomp)) {
 
    if(parallel_proc) {
 #ifdef USE_MPI
@@ -843,7 +872,7 @@ int main(int argc, char** argv)
 	nlsolver.arclength();
 	}
        break;
-     case SolverInfo::Modal: { // CBM
+     case SolverInfo::Modal: {
         GenMultiDomainEigen<double> eigenProb(domain);
         EigenSolver<MDDynamMat, GenDistrVector<double>, GenDistrVectorSet<double>, GenMultiDomainEigenPostProcessor<double>,
                     GenMultiDomainEigen<double> > * eigenSolver = 0;
@@ -962,19 +991,22 @@ int main(int argc, char** argv)
      } break;
      case SolverInfo::NonLinDynam: {
        if(domain->solInfo().newmarkBeta == 0) { // explicit
-         // filePrint(stderr, "Non-Linear Explicit Dynamic solver\n");
          if (!domain->solInfo().activatePodRom) {
            MultiDomainDynam dynamProb(domain);
            DynamicSolver < MDDynamMat, DistrVector, MultiDomDynPostProcessor,
-                 MultiDomainDynam, double > dynamSolver(&dynamProb);
+                           MultiDomainDynam, double > dynamSolver(&dynamProb);
            dynamSolver.solve();
-         } else { // POD ROM
+         } 
+         else { // POD ROM
            if (domain->solInfo().galerkinPodRom) {
              if (domain->solInfo().elemLumpPodRom) {
-               filePrint(stderr, " ... POD: ROM with stiffness lumping...\n");
+               if (domain->solInfo().reduceFollower)
+                 filePrint(stderr, " ... POD: ROM with stiffness & follower lumping ...\n");
+	       else
+                 filePrint(stderr, " ... POD: ROM with stiffness lumping ...\n");
                Rom::DistrExplicitLumpedPodProjectionNonLinDynamic dynamProb(domain);
                DynamicSolver < MDDynamMat, DistrVector, Rom::DistrExplicitPodPostProcessor,
-                             Rom::DistrExplicitLumpedPodProjectionNonLinDynamic, double > dynamSolver(&dynamProb);
+                               Rom::DistrExplicitLumpedPodProjectionNonLinDynamic, double > dynamSolver(&dynamProb);
                dynamSolver.solve();
              } else {
                filePrint(stderr, " ... POD: Explicit Galerkin         ...\n");
@@ -984,7 +1016,7 @@ int main(int argc, char** argv)
                dynamSolver.solve();
              }
            }
-            else {
+           else {
              filePrint(stderr, " ... POD: Snapshot collection       ...\n");
              Rom::DistrExplicitSnapshotNonLinDynamic dynamProb(domain);
              DynamicSolver < MDDynamMat, DistrVector, MultiDomDynPostProcessor,
@@ -992,13 +1024,15 @@ int main(int argc, char** argv)
              dynamSolver.solve();
            }
          }
-       } else { // implicit
+       } 
+       else { // implicit
          if (!domain->solInfo().activatePodRom) {
            MDNLDynamic nldynamic(domain);
            NLDynamSolver <ParallelSolver, DistrVector, MultiDomainPostProcessor,
-                         MDNLDynamic, DistrGeomState> nldynamicSolver(&nldynamic);
+                          MDNLDynamic, DistrGeomState> nldynamicSolver(&nldynamic);
            nldynamicSolver.solve();
-         } else { // POD ROM
+         } 
+         else { // POD ROM
            filePrint(stderr, " ... POD: Snapshot collection       ...\n");
            Rom::DistrSnapshotNonLinDynamic nldynamic(domain);
            NLDynamSolver <ParallelSolver, DistrVector, MultiDomainPostProcessor,
@@ -1010,21 +1044,30 @@ int main(int argc, char** argv)
        }
      } break;
      case SolverInfo::PodRomOffline: {
-       std::auto_ptr<Rom::DriverInterface> driver;
+       Rom::DriverInterface *driver;
        if (domain->solInfo().svdPodRom) {
          // Stand-alone SVD orthogonalization
          filePrint(stderr, " ... POD: Distributed SVD Orthogonalization ...\n");
-         driver.reset(distrBasisOrthoDriverNew(domain));
+         driver = distrBasisOrthoDriverNew(domain);
        } 
        else if (domain->solInfo().ROMPostProcess) {
          filePrint(stderr, " ... POD: Post Processing of Results...\n");
-         driver.reset(distrROMPostProcessingDriverNew(domain));
+         driver = distrROMPostProcessingDriverNew(domain);
+       }
+       else if (domain->solInfo().samplingPodRom) {
+         // Element-based hyper-reduction
+         if(domain->solInfo().reduceFollower)
+           filePrint(stderr, " ... POD: Distributed Element-based Reduced Mesh with external lumping ...\n");
+         else
+           filePrint(stderr, " ... POD: Distributed Element-based Reduced Mesh ...\n");
+         driver = distrElementSamplingDriverNew(domain);
        }
        else {
          filePrint(stderr, " ... Unknown Analysis Type          ...\n");
          break;
        }
        driver->solve();
+       delete driver;
        break;
      }
      // Fall-thru
@@ -1032,7 +1075,7 @@ int main(int argc, char** argv)
        filePrint(stderr,"*** ERROR: Problem type %d is not supported multi-domain mode\n", domain->probType());
    }
 
-   totalMemoryUsed = double(memoryUsed()+totMemSpooles+totMemMumps)/oneMegaByte;//CBM
+   totalMemoryUsed = double(memoryUsed()+totMemSpooles+totMemMumps)/oneMegaByte;
    delete threadManager;
 
  }
@@ -1223,7 +1266,7 @@ int main(int argc, char** argv)
        }
        break;
      case SolverInfo::Modal:
-       { //CBM
+       {
  	 SingleDomainEigen eigenProb(domain);
          EigenSolver<DynamMat, Vector, VectorSet, SDEigenPostProcessor, SingleDomainEigen> *eigenSolver;
           switch(domain->solInfo().eigenSolverType) {
@@ -1294,7 +1337,7 @@ int main(int argc, char** argv)
                nldynamicSolver.solve();
              } else { // POD ROM
                  if (domain->solInfo().galerkinPodRom && domain->solInfo().elemLumpPodRom) {
-                 filePrint(stderr, " ... POD: ROM with stiffness lumping...\n");
+                 filePrint(stderr, " ... POD: ROM with stiffness lumping ...\n");
                  Rom::LumpedPodProjectionNonLinDynamic nldynamic(domain);
                  NLDynamSolver <Rom::PodProjectionSolver, Vector, SDDynamPostProcessor, Rom::PodProjectionNonLinDynamic,
                                 GeomState, Rom::PodProjectionNonLinDynamic::Updater> nldynamicSolver(&nldynamic);
@@ -1392,8 +1435,15 @@ int main(int argc, char** argv)
          }
          else if (domain->solInfo().samplingPodRom) {
            // Element-based hyper-reduction
-           filePrint(stderr, " ... POD: Element-based Reduced Mesh...\n");
+           if(domain->solInfo().reduceFollower)
+             filePrint(stderr, " ... POD: Element-based Reduced Mesh with external lumping ...\n");
+           else 
+             filePrint(stderr, " ... POD: Element-based Reduced Mesh ...\n");
            driver.reset(elementSamplingDriverNew(domain));
+         }
+         else if (domain->solInfo().snapProjPodRom) {
+           filePrint(stderr, " ... POD: Post-processing of Projected Snapshots ...\n");
+           driver.reset(snapshotProjectionDriverNew(domain));
          }
          else {
            filePrint(stderr, " ... Unknown Analysis Type          ...\n");
@@ -1413,26 +1463,26 @@ int main(int argc, char** argv)
        }
        break;
    }
-   totalMemoryUsed = double(memoryUsed()+totMemSpooles+totMemMumps)/oneMegaByte;//CBM
+   totalMemoryUsed = double(memoryUsed()+totMemSpooles+totMemMumps)/oneMegaByte;
  }
 
 #ifdef DISTRIBUTED
-// double totMem = (double) totalMemoryUsed;//CBM
-// if(structCom) totMem = structCom->globalSum(totMem);
-// totalMemoryUsed = (long) totMem;
  if(structCom) totalMemoryUsed = structCom->globalSum(totalMemoryUsed);
+ if(syscom) syscom->sync();
 #endif
 
- domain->printStatistics(); // PJSA 4-2-08
- filePrint(stderr," --------------------------------------\n");
- filePrint(stderr," ... Total Time           = %.2e s\n",
-         (getTime() - initTime)/1000.0);
- filePrint(stderr," ... Total Memory Used    = %.2e Mb\n", totalMemoryUsed);
- if(domain->solInfo().isNonLin() && domain->solInfo().newmarkBeta != 0.0)
-   filePrint(stderr," ... Total Newton Iterations = %4d \n", totalNewtonIter);
- if(iterTotal > 0)
-   filePrint(stderr," ... Total Krylov Iterations = %4d \n", iterTotal);
- filePrint(stderr," --------------------------------------\n");
+ if(domain->solInfo().thermohFlag < 0) {
+   domain->printStatistics(domain_decomp);
+   filePrint(stderr," --------------------------------------\n");
+   filePrint(stderr," ... Total Time           = %.2e s\n",
+           (getTime() - initTime)/1000.0);
+   filePrint(stderr," ... Total Memory Used    = %.2e Mb\n", totalMemoryUsed);
+   if(domain->solInfo().isNonLin() && domain->solInfo().newmarkBeta != 0.0)
+     filePrint(stderr," ... Total Newton Iterations = %4d \n", totalNewtonIter);
+   if(iterTotal > 0)
+     filePrint(stderr," ... Total Krylov Iterations = %4d \n", iterTotal);
+   filePrint(stderr," --------------------------------------\n");
+ }
 
  if(geoSource) { delete geoSource; geoSource = 0; }
  //if(communicator) { delete communicator; communicator = 0; }
@@ -1453,9 +1503,6 @@ writeOptionsToScreen()
 	        "                                 for output to screen of FETI iteration count (FETI)\n"
                 "                                 and subspace iteration convergence\n");
  fprintf(stderr," -c                            = contact status is outputted to screen (FETI)\n");
-/*
- fprintf(stderr," -p                            = primal residual is outputted to screen (FETI)\n");
-*/
  fprintf(stderr," -t                            = input file is converted to XPost format\n");
  fprintf(stderr," -T                            = input file is converted to XPost format;\n");
  fprintf(stderr,"                                 all numbering gaps are removed\n");
@@ -1464,10 +1511,6 @@ writeOptionsToScreen()
  fprintf(stderr," -M                            = input file is converted to XPost format;\n"
  	        "                                 all numbering gaps are removed and each material is\n"
                 "                                 gathered in a separate element set\n");
-/*
- fprintf(stderr," -r                            = axisymmetric geometry contained in input file is\n"
-                "                                 converted to XPost format\n");
-*/
  fprintf(stderr," -P                            = Xpost patterns are automatically generated for the\n");
  fprintf(stderr,"                                 the various Xpost element sets; useful only\n");
  fprintf(stderr,"                                 in conjonction with the -m and -M options\n");
@@ -1488,6 +1531,7 @@ writeOptionsToScreen()
 
  fprintf(stderr," --sower                       = embedded SOWER module is applied to input file to\n"
 	        "                                 generate binary distributed data\n");
+ fprintf(stderr," --prefix [string]             = filename prefix used by embedded SOWER module\n");
  fprintf(stderr," --exit                        = run is normally terminated after binary distributed\n"
 	        "                                 data is generated\n");
 
@@ -1498,4 +1542,3 @@ writeOptionsToScreen()
 
 
 }
-

@@ -2,6 +2,7 @@
 #define _SURFACEPRESSUREFORCEFUNCTION_H_
 
 #include <Element.d/Function.d/VectorValuedFunction.h>
+#include <Utils.d/Conwep.d/BlastLoading.h>
 #include <Eigen/Geometry>
 
 template<typename Scalar, template <typename S> class ShapeFunctionTemplate, typename QuadratureRule>
@@ -9,8 +10,8 @@ class SurfacePressureForceFunction
  : public VectorValuedFunction<(ShapeFunctionTemplate<Scalar>::NumberOfGeneralizedCoordinates+1)*ShapeFunctionTemplate<Scalar>::NumberOfValues,
                                (ShapeFunctionTemplate<Scalar>::NumberOfGeneralizedCoordinates+1)*ShapeFunctionTemplate<Scalar>::NumberOfValues,
                                Scalar,
-                               (ShapeFunctionTemplate<Scalar>::NumberOfGeneralizedCoordinates+1)*ShapeFunctionTemplate<Scalar>::NumberOfValues + 1,
-                               1,
+                               (ShapeFunctionTemplate<Scalar>::NumberOfGeneralizedCoordinates+1)*ShapeFunctionTemplate<Scalar>::NumberOfValues + 8,
+                               2,
                                double>
 {
   public:
@@ -20,14 +21,15 @@ class SurfacePressureForceFunction
       NumberOfDimensions = NumberOfSurfaceDimensions+1,
       NumberOfGeneralizedCoordinates = NumberOfNodes*NumberOfDimensions,
       NumberOfValues = NumberOfNodes*NumberOfDimensions,
-      NumberOfScalarConstants = NumberOfNodes*NumberOfDimensions+1,
-      NumberOfIntegerConstants = 1
+      NumberOfScalarConstants = NumberOfNodes*NumberOfDimensions+8,
+      NumberOfIntegerConstants = 2
     };
 
   private:
     Eigen::Matrix<double,NumberOfNodes,NumberOfDimensions> X;
     double p; // pressure
     int deg;  // quadrature rule degree
+    BlastLoading::BlastData *conwep;
 
   public:
     SurfacePressureForceFunction(const Eigen::Array<double,NumberOfScalarConstants,1>& sconst,
@@ -36,8 +38,28 @@ class SurfacePressureForceFunction
       for(int inode = 0; inode < NumberOfNodes; ++inode) {
         X.row(inode) = Eigen::Map<Eigen::Matrix<double,NumberOfDimensions,1> >(const_cast<double*>(sconst.data())+NumberOfDimensions*inode);
       }
-      p = sconst[NumberOfNodes*NumberOfDimensions];
       deg = iconst[0];
+      if(iconst[1] == 0) { // constant pressure
+        p = sconst[NumberOfNodes*NumberOfDimensions];
+        conwep = 0;
+      }
+      else {
+        conwep = new BlastLoading::BlastData;
+        conwep->ExplosivePosition[0]    = sconst[NumberOfNodes*NumberOfDimensions+0];
+        conwep->ExplosivePosition[1]    = sconst[NumberOfNodes*NumberOfDimensions+1];
+        conwep->ExplosivePosition[2]    = sconst[NumberOfNodes*NumberOfDimensions+2];
+        conwep->ExplosiveDetonationTime = sconst[NumberOfNodes*NumberOfDimensions+3];
+        conwep->ExplosiveWeight         = sconst[NumberOfNodes*NumberOfDimensions+4];
+        conwep->ScaleLength             = sconst[NumberOfNodes*NumberOfDimensions+5];
+        conwep->ScaleTime               = sconst[NumberOfNodes*NumberOfDimensions+6];
+        conwep->ScaleMass               = sconst[NumberOfNodes*NumberOfDimensions+7];
+        conwep->BlastType = (iconst[1] == 1) ? BlastLoading::BlastData::SurfaceBurst : BlastLoading::BlastData::AirBurst;
+        conwep->ExplosiveWeightCubeRoot = pow(conwep->ExplosiveWeight,1.0/3.0);
+      }
+    }
+
+    ~SurfacePressureForceFunction() {
+      if(conwep) delete conwep;
     }
 
     Eigen::Matrix<Scalar,NumberOfValues,1> operator() (const Eigen::Matrix<Scalar,NumberOfGeneralizedCoordinates,1>& q, Scalar t) const
@@ -79,6 +101,9 @@ class SurfacePressureForceFunction
       Eigen::Matrix<double,NumberOfNodes,NumberOfSurfaceDimensions> dNdXi;  // derivative of shape functions w.r.t. xi
       Eigen::Matrix<Scalar,NumberOfSurfaceDimensions,NumberOfDimensions> j;
       Eigen::Matrix<Scalar,NumberOfDimensions,1> normal;
+      Eigen::Matrix<double,NumberOfSurfaceDimensions,NumberOfDimensions> J;
+      Eigen::Matrix<double,NumberOfDimensions,1> Xip, Normal; // reference coordinates and normal
+      double pressure = p;
 
       // Loop over the integration points
       for(int ip = 0; ip < c.getN(); ++ip) {
@@ -93,9 +118,16 @@ class SurfacePressureForceFunction
         j = dNdXi.template cast<Scalar>().transpose()*x;
         normal = j.row(0).cross(j.row(1));
 
+        if(conwep) {
+          J = dNdXi.transpose()*X;
+          Normal = J.row(0).cross(J.row(1));
+          Xip = X.transpose()*N;
+          pressure = BlastLoading::ComputeGaussPointPressure(Xip.data(), Normal.data(), t, *conwep);
+        }
+
         for(int i = 0; i < NumberOfDimensions; ++i)
           for(int k = 0; k < NumberOfNodes; ++k)
-            fext[k*NumberOfDimensions+i] += Scalar(N(k)*weight*p)*normal(i);
+            fext[k*NumberOfDimensions+i] += Scalar(N(k)*weight*pressure)*normal(i);
       }
 
       return -fext;

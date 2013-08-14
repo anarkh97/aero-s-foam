@@ -1,8 +1,8 @@
 #include <typeinfo>
 #include <cstdio>
-#ifdef SUN10    //CRW
-#include <typeinfo.h>    //CRW
-#endif    //CRW
+#ifdef SUN10
+#include <typeinfo.h>
+#endif 
 #include <cmath>
 #include <Utils.d/dbg_alloca.h>
 
@@ -2097,6 +2097,14 @@ GenSubDomain<Scalar>::renumberElements()
 
 template<class Scalar>
 void
+GenSubDomain<Scalar>::renumberElementsGlobal()
+{
+ for(int i=0; i < numele; ++i)
+   packedEset[i]->renum(glNums);
+}
+
+template<class Scalar>
+void
 GenSubDomain<Scalar>::renumberSharedNodes()
 {
   int *allC = scomm->sharedNodes->tgt();
@@ -2440,6 +2448,9 @@ GenSubDomain<Scalar>::computeStressStrain(GeomState *gs, Corotator **allCorot,
   int flag;
 
   for(iele=0; iele<numele; ++iele) {
+
+    // Don't do anything if element is a phantom
+    if (packedEset[iele]->isPhantomElement()) continue;
 
     // Don't include beams or bars in the averaging if nodalpartial (avgnum = 2) is requested
     if ((avgnum == 2 && packedEset[iele]->getElementType() == 6) ||

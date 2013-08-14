@@ -422,7 +422,7 @@ FullSquareMatrix SommerElement::interfMatrixLumped(CoordSet &cs, double *d) {
  return M;
 }
 
-void SommerElement::neumVector(CoordSet& cs, Vector& cv, int pflag, GeomState*) {
+void SommerElement::neumVector(CoordSet& cs, Vector& cv, int pflag, GeomState*, double) {
 
  if (numDofs()!=numNodes()) {
    fprintf(stderr,"SommerElement::neumVector called for a nonscalar element.\n"
@@ -452,7 +452,7 @@ void SommerElement::neumVector(CoordSet& cs, Vector& cv, int pflag, GeomState*) 
  }
 }
 
-void SommerElement::neumVectorJacobian(CoordSet& cs, FullSquareMatrix& kel, int pflag, GeomState*) {
+void SommerElement::neumVectorJacobian(CoordSet& cs, FullSquareMatrix& kel, int pflag, GeomState*, double) {
 
   kel.zero();
 }

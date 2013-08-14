@@ -11,6 +11,11 @@ class RigidEightNodeBrick : public SuperElement
     bool isRigidElement() { return true; }
     bool isSafe() { return true; }
     PrioInfo examine(int sub, MultiFront*);
+
+    FullSquareMatrix massMatrix(CoordSet& cs, double *mel, int cmflg=1);
+    double getMass(CoordSet& cs);
+    void getGravityForce(CoordSet&,double *gravity, Vector&, int gravflg,
+                         GeomState *gs);
 };
 
 #endif

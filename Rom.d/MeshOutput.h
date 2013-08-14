@@ -6,7 +6,6 @@
 #include <Element.d/Element.h>
 
 class NLMaterial;
-class ExpMat;
 
 #include <ostream>
 #include <iterator>
@@ -40,7 +39,7 @@ std::ostream &
 operator<<(std::ostream &, const EFrameData &);
 
 std::ostream &
-operator<<(std::ostream &, const ExpMat &);
+operator<<(std::ostream &, const NLMaterial &);
 
 // Sections from atoms
 
@@ -74,11 +73,16 @@ private:
 template <typename InputIterator, typename TagType>
 std::ostream &
 operator<<(std::ostream &out, const InputFileSection<InputIterator, TagType> &source) {
-  out << source.header() << "\n";
+  out << "*\n" << source.header() << "\n";
   InputIterator itEnd = source.end();
   for (InputIterator it = source.begin(); it != itEnd; ++it) {
     typedef typename InputFileSection<InputIterator, TagType>::ValueType ValueType;
-    out << InputFileSectionHelper<ValueType, TagType>::transformation(*it) << "\n";
+    try {
+      out << InputFileSectionHelper<ValueType, TagType>::transformation(*it) << "\n";
+    }
+    catch(std::exception& e) {
+      std::cerr << "caught exception: " << e.what() << endl;
+    }
   }
 
   return out;
@@ -128,9 +132,8 @@ struct MatUsageTag {
 
 struct MatLawTag {
   typedef NLMaterial* SecondType;
-  static const ExpMat &valueTransformation(const NLMaterial *);
+  static const NLMaterial &valueTransformation(const NLMaterial *m) { return *m; }
 };
-
 
 // Convenience functions
 

@@ -2,7 +2,9 @@
 #include <Math.d/FullSquareMatrix.h>
 #include <Utils.d/dofset.h>
 #include <Corotational.d/utilities.h>
+#include <Driver.d/Domain.h>
 
+extern Domain * domain;
 
 MpcElement::MpcElement(int _nNodes, DofSet nodalDofs, int* _nn)
  : nNodes(_nNodes), LMPCons(0, 0.0)
@@ -262,7 +264,7 @@ MpcElement::getStiffAndForce(GeomState& c1, CoordSet& c0, FullSquareMatrix& Ktan
   for(int i = 0; i < numDofs(); ++i) f[i] = 0.0;
   if(getSource() != mpc::ContactSurfaces)
     update(c1, c0, t); // update rhs and coefficients to the value and gradient the constraint function, respectively 
-  if(t == 0 && delt > 0 && type == 0 && prop->penalty == 0)
+  if(t == 0 /*domain->solInfo().initialTime*/ && delt > 0 && type == 0 && prop->penalty == 0)
     rhs.r_value = this->getAccelerationConstraintRhs(&c1, c0, t); // for dynamics we compute initial acceleration at t=0 for equality constraints
 
   // general augmented lagrangian implementation from RT Rockafellar "Lagrange multipliers and optimality" Siam Review 1993, eq 6.7
@@ -307,7 +309,7 @@ MpcElement::getInternalForce(GeomState& c1, CoordSet& c0, FullSquareMatrix&, dou
   for(int i = 0; i < numDofs(); ++i) f[i] = 0.0;
   if(getSource() != mpc::ContactSurfaces)
     update(c1, c0, t); // update rhs and coefficients to the value and gradient the constraint function, respectively 
-  if(t == 0 && delt > 0 && type == 0 && prop->penalty == 0)
+  if(t == 0 /*domain->solInfo().initialTime*/ && delt > 0 && type == 0 && prop->penalty == 0)
     rhs.r_value = this->getAccelerationConstraintRhs(&c1, c0, t); // for dynamics we compute initial acceleration at t=0 for equality constraints
 
   // general augmented lagrangian implementation from RT Rockafellar "Lagrange multipliers and optimality" Siam Review 1993, eq 6.7
@@ -427,8 +429,17 @@ MpcElement::getAccelerationConstraintRhs(GeomState *gState, CoordSet& cs, double
   getHessian(*gState, cs, H, t);
   Vector v(nterms);
   // fill v with initial velocity 
-  for(int i = 0; i < nterms; ++i)
-    v[i] = (*gState)[terms[i].nnum].v[terms[i].dofnum];
+  for(int i = 0; i < nterms; ++i) {
+   if(terms[i].dofnum == 3 || terms[i].dofnum == 4 || terms[i].dofnum == 5) {
+      // compute spatial angular velocity
+      double omega[3];
+      mat_mult_vec((*gState)[terms[i].nnum].R, &(*gState)[terms[i].nnum].v[3], omega);
+      v[i] = omega[terms[i].dofnum-3];
+    }
+    else {
+      v[i] = (*gState)[terms[i].nnum].v[terms[i].dofnum];
+    }
+  }
 
   Vector Hv(nterms,0.0);
   for(int i = 0; i < nterms; ++i)

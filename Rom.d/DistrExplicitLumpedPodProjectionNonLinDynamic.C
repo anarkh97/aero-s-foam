@@ -73,6 +73,20 @@ DistrExplicitLumpedPodProjectionNonLinDynamic::buildPackedElementWeights() {
   packedWeightedNodes_.resize(decDomain->getNumSub());  
   execParal(decDomain->getNumSub(),
             this, &DistrExplicitLumpedPodProjectionNonLinDynamic::subBuildPackedElementWeights);
+
+  int elemCounter = 0;
+  for(int i=0; i<decDomain->getNumSub(); ++i) elemCounter += packedElementWeights_[i].size();
+  if(structCom) elemCounter = structCom->globalSum(elemCounter);
+
+  filePrint(stderr, " ... Number of Elements in Reduced Mesh = %d ...\n", elemCounter);
+
+  if(elemCounter < domain->numElements()) {
+    filePrint(stderr, " ... Compressing Basis              ...\n");
+    DofSetArray **all_cdsa = new DofSetArray * [decDomain->getNumSub()];
+    for(int i=0; i<decDomain->getNumSub(); ++i) all_cdsa[i] = decDomain->getSubDomain(i)->getCDSA();
+    normalizedBasis_.makeSparseBasis(packedWeightedNodes_, all_cdsa);
+    delete [] all_cdsa;
+  }
 }
 
 void
@@ -124,7 +138,7 @@ DistrExplicitLumpedPodProjectionNonLinDynamic::subBuildPackedElementWeights(int 
   std::map<int, double> &subElementWeights = packedElementWeights_[iSub];
 
   std::vector<int> &subWeightedNodes = packedWeightedNodes_[iSub];
-
+  
   for (GeoSource::ElementWeightMap::const_iterator it = geoSource->elementLumpingWeightBegin(),
                                                    it_end = geoSource->elementLumpingWeightEnd();
                                                    it != it_end; ++it) {
@@ -145,23 +159,22 @@ DistrExplicitLumpedPodProjectionNonLinDynamic::subBuildPackedElementWeights(int 
       subWeightedNodes.insert(subWeightedNodes.end(), node_buffer.begin(), node_buffer.end());
     }
   }
+/* TODO
+  //add the nodes with nodal external forces
+  for(int i = 0; i < sd->nNeumann(); ++i) {
+    subWeightedNodes.push_back(sd->getNBC()[i].nnum);
+  }
+*/ 
   //sort nodes in ascending order and erase redundant nodes
   std::sort(subWeightedNodes.begin(), subWeightedNodes.end());
   std::vector<int>::iterator packedNodeIt = std::unique(subWeightedNodes.begin(),subWeightedNodes.end());
   subWeightedNodes.resize(packedNodeIt-subWeightedNodes.begin());
-
 }
 
 MDDynamMat *
 DistrExplicitLumpedPodProjectionNonLinDynamic::buildOps(double mCoef, double cCoef, double kCoef) {
 
   MDDynamMat *result = DistrExplicitPodProjectionNonLinDynamicBase::buildOps(mCoef, cCoef, kCoef);
-
-  if(decDomain->getNumSub() == 1){
-    normalizedBasis_.makeSparseBasis(packedWeightedNodes_[0], decDomain->getSubDomain(0)->getCDSA());}
-  else {
-    filePrint(stderr,"\n ... Must run 1 subdomain per MPI process! ... \n");
-    exit(-1);}
 
   return result;
 }

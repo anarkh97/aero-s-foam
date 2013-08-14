@@ -108,7 +108,6 @@ renormalized_basis(const GenSubDOp<Scalar> &metric, const GenVecBasis<Scalar, Ge
       normalMatrix[row][col] = dot_ignore_master_flag(dual, basis[col]);
     }
   }
-
   cholesky_factor_lower(normalMatrix); // normalMatrix <- R where A = R * R^T
   inverse_triangular_lower(normalMatrix); // normalMatrix <- R^{-1}
 
@@ -124,6 +123,30 @@ renormalized_basis(const GenSubDOp<Scalar> &metric, const GenVecBasis<Scalar, Ge
   }
 
   return result;
+}
+
+template <typename Scalar>
+const GenVecBasis<Scalar, GenDistrVector> &
+MGSVectors(const GenVecBasis<Scalar, GenDistrVector> &basis) {
+  filePrint(stderr," ... Distributed Modified Gram-Schmidt: orthogonalizing vectors ...\n");
+
+  int numVectors = basis.numVec();
+
+   for (int i = 0; i < numVectors; i++) {
+    filePrint(stderr,"\r %5.2f%% complete", double(i)/double(numVectors)*100.);
+
+    GenDistrVector<Scalar> v(basis.vectorInfo(),basis[i].data(),false);
+    Scalar normCol = v.norm();
+    
+    v /= normCol;
+    for(int j = i+1; j < numVectors; ++j) {
+      GenDistrVector<Scalar> q(basis.vectorInfo(),basis[j].data(),false);
+      Scalar vecProj = v*q;
+      q -= vecProj*v;
+    }
+  }
+  filePrint(stderr,"\r %5.2f%% complete\n", 100.);
+  return basis;
 }
 
 } // end namespace Rom

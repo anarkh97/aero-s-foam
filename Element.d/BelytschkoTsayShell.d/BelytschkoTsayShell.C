@@ -120,8 +120,9 @@ BelytschkoTsayShell::BelytschkoTsayShell(int* nodenums)
   for(int i = 0; i < 6*mgqpt[0]; ++i) evoit1[i] = evoit2[i] = evoit3[i] = 0;
 
   expmat = 0;
+  myMat = false;
   mftt = 0;
-  ConwepOnOff = false;
+  conwep = 0;
 }
 
 BelytschkoTsayShell::~BelytschkoTsayShell()
@@ -133,12 +134,27 @@ BelytschkoTsayShell::~BelytschkoTsayShell()
   delete [] evoit1;
   delete [] evoit2;
   delete [] evoit3;
+  if(expmat && myMat) delete expmat;
+}
+
+void
+BelytschkoTsayShell::setProp(StructProp *p, bool _myProp)
+{
+  Element::setProp(p,_myProp);
+  // create default material
+  if(prop) {
+    expmat = new ExpMat(1, prop->E, prop->nu, prop->rho, 0, 0, 0, 0, 0,
+                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0.1, 0.833, prop->eh);
+    myMat = true;
+  }
 }
 
 void
 BelytschkoTsayShell::setMaterial(NLMaterial *m)
 {
+  if(expmat && myMat) delete expmat;
   expmat = dynamic_cast<ExpMat *>(m);
+  myMat = false;
   if(expmat->optctv != 1) {
     double E = expmat->ematpro[0], nu = expmat->ematpro[1];
     double lambda = E*nu/((1+nu)*(1-2*nu)), mu = E/(2*(1+nu));
@@ -168,12 +184,12 @@ BelytschkoTsayShell::setMaterial(NLMaterial *m)
 }
 
 void
-BelytschkoTsayShell::setPressure(double _pressure, MFTTData *_mftt, bool _ConwepOnOff)
+BelytschkoTsayShell::setPressure(double _pressure, MFTTData *_mftt, BlastLoading::BlastData *_conwep)
 {
   pressure = _pressure;
   mftt = _mftt;
   opttrc = 0;
-  ConwepOnOff = _ConwepOnOff;
+  conwep = _conwep;
 }
 
 double
@@ -310,8 +326,18 @@ void
 BelytschkoTsayShell::getGravityForce(CoordSet& cs, double *gravityAcceleration, 
                                      Vector& gravityForce, int gravflg, GeomState *geomState)
 {
-  cerr << "BelytschkoTsayShell::getGravityForce not implemented\n";
   gravityForce.zero();
+
+  double massPerNode = 0.25*getMass(cs);
+  double fx = massPerNode*gravityAcceleration[0];
+  double fy = massPerNode*gravityAcceleration[1];
+  double fz = massPerNode*gravityAcceleration[2];
+
+  for(int i = 0; i < nnode; ++i) {
+    gravityForce[nndof*i+0] = fx;
+    gravityForce[nndof*i+1] = fy;
+    gravityForce[nndof*i+2] = fz;
+  }
 }
 
 FullSquareMatrix
@@ -435,9 +461,10 @@ BelytschkoTsayShell::getStiffAndForce(GeomState& geomState, CoordSet& cs, FullSq
         evelo[iloc+j] = geomState[nn[i]].v[j]; // now geomState stores v^{n+1/2}
       }
     }
-    // Check if Conwep is being used. If so, use the pressure from Conwep.
-    if (ConwepOnOff) {
-      pressure = BlastLoading::ComputeShellPressureLoad(ecord,time,BlastLoading::InputFileData);
+    double pressure = Element::pressure;
+    // Check if Conwep is being used. If so, use the pressure from the blast loading function.
+    if (conwep) {
+      pressure = BlastLoading::ComputeShellPressureLoad(ecord, time, *conwep);
     }
     double trac[3] = { 0, 0, pressure };
     double tmftval = (mftt) ? mftt->getVal(std::max(time,0.0)) : 1.0;
@@ -597,6 +624,22 @@ BelytschkoTsayShell::writeHistory(int fn)
   writeSize = write(fn, evoit3, 6*mgqpt[0]*sizeof(double));
   if(writeSize != 6*mgqpt[0]*sizeof(double))
     fprintf(stderr," *** ERROR: Inconsistent restart file 5.5\n");
+
+  if(expmat->optctv == 5 || expmat->optctv == 6 || expmat->optctv == 7 || expmat->optctv == 8) {
+    std::vector<double> PlasticStrain(3);
+    std::vector<double> BackStress(3);
+    double *state = new double[7*mgaus[2]];
+    for(int i=0,l=0; i<mgaus[2]; ++i) {
+      PlasticStrain = mat[i]->GetMaterialPlasticStrain();
+      for (int k = 0; k < 3; ++k) state[l++] = PlasticStrain[k];
+      BackStress = mat[i]->GetMaterialBackStress();
+      for (int k = 0; k < 3; ++k) state[l++] = BackStress[k];
+      state[l++] = mat[i]->GetMaterialEquivalentPlasticStrain();
+    }
+    writeSize = write(fn, state, 7*mgaus[2]*sizeof(double));
+    if(writeSize != 7*mgaus[2]*sizeof(double))
+      fprintf(stderr," *** ERROR: Inconsistent restart file 5.6\n");
+  }
 }
 
 void
@@ -626,6 +669,24 @@ BelytschkoTsayShell::readHistory(int fn)
   readSize = read(fn, evoit3, 6*mgqpt[0]*sizeof(double));
   if(readSize != 6*mgqpt[0]*sizeof(double))
     fprintf(stderr," *** ERROR: Inconsistent restart file 5.5\n");
+
+  if(expmat->optctv == 5 || expmat->optctv == 6 || expmat->optctv == 7 || expmat->optctv == 8) {
+    std::vector<double> PlasticStrain;
+    std::vector<double> BackStress;
+    double *state = new double[7*mgaus[2]];
+    readSize = read(fn, state, 7*mgaus[2]*sizeof(double));
+    if(readSize != 7*mgaus[2]*sizeof(double))
+      fprintf(stderr," *** ERROR: Inconsistent restart file 5.6\n");
+    for(int i=0,l=0; i<mgaus[2]; ++i) {
+      PlasticStrain.clear();
+      for (int k = 0; k < 3; ++k) PlasticStrain.push_back(state[l++]);
+      mat[i]->SetMaterialPlasticStrain(PlasticStrain);
+      BackStress.clear();
+      for (int k = 0; k < 3; ++k) BackStress.push_back(state[l++]);
+      mat[i]->SetMaterialBackStress(BackStress);
+      mat[i]->SetMaterialEquivalentPlasticStrain(state[l++]);
+    }
+  }
 }
 
 void

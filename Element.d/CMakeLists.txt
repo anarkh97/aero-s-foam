@@ -31,7 +31,7 @@ BelytschkoTsayShell.d/cri_effstr.f90
 BelytschkoTsayShell.d/cri_mpts.f90
 BelytschkoTsayShell.d/cri_xw_j2pstrs.f90
 BelytschkoTsayShell.d/bc2_3d.f90
-BelytschkoTsayShell.d/base_mhd_fem.cpp
+BelytschkoTsayShell.d/base_mhd_fem_cpp.cpp
 Brick20.d/br20mas.f
 Brick20.d/br20vmint.f
 Brick20.d/Brick20.C
@@ -40,7 +40,7 @@ Brick20.d/g_br20mas.f
 Brick20.d/g_br20vmint.f
 Brick20.d/g_brik20v.f
 Brick20.d/g_h20shpe.f
-Brick20.d/g_sands20.f
+#Brick20.d/g_sands20.f
 Brick20.d/g_vol20.f
 Brick20.d/h20shpe.f
 Brick20.d/hexa20.f

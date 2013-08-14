@@ -182,6 +182,8 @@ class Domain : public HData {
      int numCTC;                // total number of contact constraints
      int numNeuman;		// number of Neuman bc
      BCond* nbc;		// set of Neuman bc
+     int numNeumanModal;
+     BCond* nbcModal;
      int numIDis;		// number of Initial displacements
      BCond *iDis;		// set of those initial displacements
      int numIDisModal;
@@ -346,6 +348,21 @@ class Domain : public HData {
                            Vector &residual, double lambda = 1.0, double time = 0.0,
                            GeomState *refState = NULL, Vector *reactions = NULL,
                            bool compute_tangents = false);
+     void getWeightedFollowerForceOnly(const std::map<int, double> &weights,
+                                       GeomState &u, Vector &elementInternalForce,
+                                       Corotator **allCorot, FullSquareMatrix *kel,
+                                       Vector &residual, double lambda = 1.0, double time = 0.0,
+                                       GeomState *refState = NULL, Vector *reactions = NULL,
+                                       bool compute_tangents = false);
+     void getElemFollowerForce(int iele, GeomState &geomState, double *_f, int bufSize,
+                               Corotator &corotators, FullSquareMatrix &kel2,
+                               double loadFactor, double time, bool compute_tangents,
+                               BlastLoading::BlastData *conwep);
+     void getNonElemFollowerForce(GeomState &u, Vector &elementInternalForce,
+                                  Corotator **allCorot, FullSquareMatrix *kel,
+                                  Vector &residual, double lambda = 1.0, double time = 0.0,
+                                  GeomState *refState = NULL, Vector *reactions = NULL,
+                                  bool compute_tangents = false);
      void getElemFictitiousForce(int iele, GeomState &geomState, double *f, FullSquareMatrix &kel,
                                  double time, GeomState *refState, FullSquareMatrix &mel, bool compute_tangents);
      void getDMassFictitiousForce(GeomState &geomState, FullSquareMatrix *kel, Vector &residual, double time,
@@ -361,6 +378,7 @@ class Domain : public HData {
                                      FullSquareMatrix &kel, int iele, bool compute_tangents);
      void transformNodalMoment(const GeomState &geomState, double G[],
                                double H[][3], int nnum, bool compute_tangents);
+     void transformElemStiff(const GeomState &geomState, FullSquareMatrix &kel, int iele);
      void getWeightedStiffAndForceOnly(const std::map<int, double> &weights,
                                        GeomState &u, Vector &elementInternalForce,
                                        Corotator **allCorot, FullSquareMatrix *kel,
@@ -387,6 +405,7 @@ class Domain : public HData {
      void initializeParameters(GeomState &geomState, Corotator **corotators);
      void updateParameters(GeomState &geomState, Corotator **corotators);
      double getError(Corotator **corotators);
+     void getElementDisp(int iele, GeomState& geomState, Vector& disp);
 
      void getGeometricStiffness(GeomState &u, Vector &elementInternalForce,
         			Corotator **allCorot, FullSquareMatrix *&kel);
@@ -422,6 +441,7 @@ class Domain : public HData {
      void setNumFSI(int n) { numFSI = n; }
      ResizeArray<LMPCons *> &getFSI() { return fsi; }
      virtual int  setNeuman(int,BCond *);
+     int  setNeumanModal(int, BCond *);
      int  setIDis6(int, BCond *);
      int  setIDisModal(int, BCond *);
      int  setIDis(int, BCond *);
@@ -604,7 +624,7 @@ class Domain : public HData {
      void createCorotators(Corotator **allCorot);
      void preProcessing();
      FILE * openFile(char *fileName, const char *extension);
-     void printStatistics();
+     void printStatistics(bool domain_decomp);
 
      // static & freq response post processing function
      template<class Scalar>
@@ -653,14 +673,14 @@ class Domain : public HData {
      int  probType() { return sinfo.probType; }
 
      double computeStabilityTimeStep(DynamMat&);
-     double computeStabilityTimeStep(FullSquareMatrix *kelArray, FullSquareMatrix *melArray, GeomState *geomState);
+     double computeStabilityTimeStep(FullSquareMatrix *kelArray, FullSquareMatrix *melArray, GeomState *geomState, int &eid);
 
      void initDispVeloc(Vector& d_n, Vector& v_n, Vector& a_n, Vector &v_p, const char* = "");
      void initDispVelocOnTimeSlice (Vector& d_n, Vector& v_n, int sliceRank); // PITA: Use user-provided initial seeds
      void initTempVector(Vector& d_n, Vector& v_n, Vector& v_p);
      void writeRestartFile(double time, int timeIndex,
                            Vector &d_n, Vector &v_n, Vector &v_p, double Fref = 0.0, const char* = "");
-     void writeRestartFile(double time, int timeIndex, Vector &v_n,
+     void writeRestartFile(double time, int timeIndex, Vector &v_n, Vector &a_n,
                            GeomState *geomState, const char* = "");
      void readRestartFile(Vector &d_n, Vector &v_n,
                           Vector &a_n, Vector &v_p, double *bcx,
@@ -813,9 +833,11 @@ class Domain : public HData {
 
      // returns the number of neumann bc
      int  nNeumann() { return numNeuman; }
+     int  nNeumannModal() { return numNeumanModal; }
 
      // returns a pointer to the neumann boundary condtions
      BCond* getNBC() { return nbc; }
+     BCond* getNBCModal() { return nbcModal; }
 
      // returns the number of nodes
      int  numNodes() { return (nodeToNode) ? nodeToNode->csize() : numnodes; }

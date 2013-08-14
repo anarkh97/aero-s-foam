@@ -91,6 +91,7 @@ class GenDecDomain
   GenSubDomain<Scalar>* getSubDomain(int isub) { return subDomain[isub]; }
   Connectivity * getSubToSub() { return subToSub; }
   Connectivity * getElemToSub() { return elemToSub; }
+  Connectivity * getElemToNode() { return elemToNode; }
   GenFetiSolver<Scalar> *getFetiSolver(GenDomainGroupTask<Scalar> &);
   void buildOps(GenMDDynamMat<Scalar>&, double, double, double, Rbm **rbm = 0, FullSquareMatrix **kelArray = 0,
                 bool make_feti = true, FullSquareMatrix **melArray = 0, FullSquareMatrix **celArray = 0, bool factor = true);
@@ -98,6 +99,7 @@ class GenDecDomain
   void rebuildOps(GenMDDynamMat<Scalar>&, double, double, double, FullSquareMatrix** = 0, FullSquareMatrix** = 0, FullSquareMatrix** = 0);
   void subRebuildOps(int iSub, GenMDDynamMat<Scalar>&, double, double, double, FullSquareMatrix**, FullSquareMatrix**, FullSquareMatrix**);
   int getNumSub() { return numSub; }
+  int getGlobalNumSub() { return globalNumSub; }
   int getNumCPU() { return numCPU; }
   Connectivity *getMpcToSub() { return mpcToSub_dual; }
   virtual void preProcess();

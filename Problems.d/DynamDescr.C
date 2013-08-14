@@ -87,7 +87,7 @@ SDDynamPostProcessor::dynamOutput(int tIndex, double time, DynamMat& dMat, Vecto
   this->fillBcxVcx(time);
 
   if(domain->solInfo().isNonLin() && domain->solInfo().nRestart > 0) {
-    domain->writeRestartFile(time, tIndex, state.getVeloc(), geomState);
+    domain->writeRestartFile(time, tIndex, state.getVeloc(), state.getAccel(), geomState);
   } 
 
   domain->dynamOutput(tIndex, time, bcx, dMat, ext_f, *aeroForce, state.getDisp(), state.getVeloc(),
@@ -98,7 +98,7 @@ SDDynamPostProcessor::dynamOutput(int tIndex, double time, DynamMat& dMat, Vecto
     int numOutInfo = geoSource->getNumOutInfo();
     OutputInfo *oinfo = geoSource->getOutputInfo();
     for(int iInfo = 0; iInfo < numOutInfo; ++iInfo) {
-      if(oinfo[iInfo].isStressOrStrain()) {
+      if(oinfo[iInfo].isStressOrStrain() || oinfo[iInfo].angularouttype != OutputInfo::convected) {
         domain->postProcessingImpl(iInfo, geomState, ext_f, *aeroForce, time, tIndex, state.getVeloc().data(), vcx,
                                    allCorot, melArray, state.getAccel().data(), acx);
       }
@@ -363,8 +363,9 @@ SingleDomainDynamic::computeStabilityTimeStep(double& dt, DynamMat& dMat)
 {
  // ... Compute Stability Time Step
  double sts;
+ int eid;
  if(domain->solInfo().isNonLin())
-   sts = domain->computeStabilityTimeStep(kelArray, melArray, geomState);
+   sts = domain->computeStabilityTimeStep(kelArray, melArray, geomState, eid);
  else
    sts = domain->computeStabilityTimeStep(dMat);
 
@@ -372,6 +373,9 @@ SingleDomainDynamic::computeStabilityTimeStep(double& dt, DynamMat& dMat)
    filePrint(stderr," **************************************\n");
    filePrint(stderr," Stability max. timestep could not be  \n");
    filePrint(stderr," determined for this model.            \n");
+   if(domain->solInfo().isNonLin() && eid > -1) {
+     filePrint(stderr," Element with inf. time step = %7d\n",eid+1);
+   }
    filePrint(stderr," Specified time step is selected\n");
    filePrint(stderr," **************************************\n");
    domain->solInfo().stable = 0;
@@ -388,6 +392,9 @@ SingleDomainDynamic::computeStabilityTimeStep(double& dt, DynamMat& dMat)
    filePrint(stderr," --------------------------------------\n");
    filePrint(stderr," Specified time step      = %10.4e\n",dt);
    filePrint(stderr," Stability max. time step = %10.4e\n",sts);
+   if(domain->solInfo().isNonLin()) {
+     filePrint(stderr," Element with min. time step = %7d\n",eid+1);
+   }
    filePrint(stderr," **************************************\n");
    if( (domain->solInfo().stable == 1 && sts < dt) || domain->solInfo().stable == 2 ) {
      dt = sts;
@@ -412,6 +419,7 @@ SingleDomainDynamic::getInitState(SysState<Vector> &inState)
     if(domain->solInfo().isNonLin()) { // restart for nonlinear
       domain->readRestartFile(inState.getDisp(), inState.getVeloc(), inState.getAccel(),
                               inState.getPrevVeloc(), bcx, vcx, *geomState);
+      domain->updateStates(geomState, *geomState, allCorot);
       geomState->setVelocityAndAcceleration(inState.getVeloc(), inState.getAccel());
     }
   }
@@ -771,7 +779,12 @@ SingleDomainDynamic::buildOps(double coeM, double coeC, double coeK)
  DynamMat *dMat = new DynamMat;
 
  allOps.K   = domain->constructDBSparseMatrix<double>();
- allOps.M   = domain->constructDBSparseMatrix<double>();
+ if(domain->solInfo().newmarkBeta != 0) {
+   allOps.M   = domain->constructDBSparseMatrix<double>();
+ }
+ else{
+   allOps.M = new DiagMatrix(domain->getCDSA());
+ }
  allOps.Muc = domain->constructCuCSparse<double>();
  allOps.Kuc = domain->constructCuCSparse<double>();
  allOps.Mcc = domain->constructCCSparse<double>();

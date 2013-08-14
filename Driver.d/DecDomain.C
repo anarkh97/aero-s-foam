@@ -586,7 +586,7 @@ GenDecDomain<Scalar>::getFetiSolver(GenDomainGroupTask<Scalar> &dgt)
 template<class Scalar>
 DiagParallelSolver<Scalar> *
 GenDecDomain<Scalar>::getDiagSolver(int nSub, GenSubDomain<Scalar> **sd,
-              GenSolver<Scalar> **sol)//GenDomainGroupTask<Scalar> &dgt)
+                                    GenSolver<Scalar> **sol)
 {
  return new DiagParallelSolver<Scalar>(nSub, sd, sol, cpuToSub, communicator);
 }
@@ -597,7 +597,7 @@ GenDecDomain<Scalar>::getCPUMap()
 {
   mt.memoryCPUMAP -= memoryUsed();
 #ifdef DISTRIBUTED
-  char *mapName = geoSource->getCpuMapFile(); // PJSA
+  char *mapName = geoSource->getCpuMapFile(); 
   FILE *f = fopen(mapName,"r");
   numCPU = geoSource->getCPUMap(f, globalNumSub);
   //subToCPU = geoSource->getSubToCPU();
@@ -668,7 +668,7 @@ GenDecDomain<Scalar>::preProcess()
  getSharedNodes();
 
  makeCorners();// Corners for FETI-DP
- 
+
  getSharedDOFs();
 
  preProcessMPCs();//Multi-Point Constraint
@@ -683,6 +683,7 @@ GenDecDomain<Scalar>::preProcess()
  //paralApply(numSub, subDomain, &GenSubDomain<Scalar>::initSrc);
 
  makeInternalInfo();
+
  makeNodeInfo();
 
 #ifdef DISTRIBUTED
@@ -800,7 +801,7 @@ GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<S
   if(noOut) return;
 
   if(verboseFlag && numOutInfo && x == 0 && ndflag == 0 && !domain->solInfo().isDynam())
-    filePrint(stderr," ... Postprocessing  1               ...\n");
+    filePrint(stderr," ... Postprocessing                 ...\n");
 
   Scalar *globVal = 0;  
   if(domain->outFlag && domain->nodeTable == 0) domain->makeNodeTable(domain->outFlag);
@@ -2031,7 +2032,7 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***all
   if(noOut) return;
 
   if(verboseFlag && numOutInfo && x == 0)
-    filePrint(stderr," ... Postprocessing  2               ...\n");
+    filePrint(stderr," ... Postprocessing                 ...\n");
 
   if(domain->outFlag && domain->nodeTable == 0) domain->makeNodeTable(domain->outFlag);
   int numNodes = (domain->outFlag) ? domain->exactNumNodes : geoSource->numNode();
@@ -2107,9 +2108,17 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***all
        getPrimalVector(i, xyz, numNodes, 6, x);
        break;
      case OutputInfo::Velocity6:
+       if(oinfo[i].angularouttype != OutputInfo::convected) {
+         filePrint(stderr," *** WARNING: Output case %d not implemented\n", i);
+         break;
+       }
        if(distState) getPrimalVector(i, mergedVel, numNodes, 6, x);
        break;
      case OutputInfo::Accel6:
+       if(oinfo[i].angularouttype != OutputInfo::convected) {
+         filePrint(stderr," *** WARNING: Output case %d not implemented\n", i);
+         break;
+       }
        if(distState) getPrimalVector(i, mergedAcc, numNodes, 6, x);
        break;
      case OutputInfo::Temperature:
@@ -2486,6 +2495,7 @@ GenDecDomain<Scalar>::getSharedDOFs()
   paralApply(numSub, subDomain, &GenSubDomain<Scalar>::gatherDOFList, nodeIntPat);
   //XXXXif(domain->solInfo().inpc || ((domain->solInfo().newmarkBeta==0.0)&&(domain->solInfo().isDynam()||domain->solInfo().acoustic)))
     paralApply(numSub, subDomain, &GenSubDomain<Scalar>::gatherDOFListPlus, nodeIntPat);
+
   delete nodeIntPat;
   
   stopTimerMemory(mt.makeInterface, mt.memoryInterface);

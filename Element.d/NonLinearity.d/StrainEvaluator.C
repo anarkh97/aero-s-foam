@@ -63,12 +63,12 @@ LinearStrain::getEBandDB(Tensor &_e, Tensor & bB, Tensor &DB,
 }
 
 void
-LinearStrain::getEandB(Tensor &_e, Tensor & _B, 
+LinearStrain::getEandB(Tensor &_e, Tensor & __B, 
                        const Tensor &_gradU, const Tensor &_dgradUdqk)
 {
   const Tensor_d0s2 & gradU = static_cast<const Tensor_d0s2 &>(_gradU);
   const Tensor_d1s2_sparse & dgradUdqk = static_cast<const Tensor_d1s2_sparse &>(_dgradUdqk);
-  Tensor_d1s2_Ss23 & B = static_cast<Tensor_d1s2_Ss23 &>(_B);
+  Tensor_d1s2_Ss23 & B = static_cast<Tensor_d1s2_Ss23 &>(__B);
   Tensor_d0s2_Ss12 & e = static_cast<Tensor_d0s2_Ss12 &>(_e);
 
   Tensor_d0s2 tgradU;
@@ -131,12 +131,12 @@ GreenLagrangeStrain::getDBInstance(int numdofs)
 }
 
 void 
-GreenLagrangeStrain::getEBandDB(Tensor &_e, Tensor &_B, Tensor &_DB, const Tensor &_gradU, const Tensor &_dgradUdqk)
+GreenLagrangeStrain::getEBandDB(Tensor &_e, Tensor &__B, Tensor &_DB, const Tensor &_gradU, const Tensor &_dgradUdqk)
 {
   const Tensor_d0s2 & gradU = static_cast<const Tensor_d0s2 &>(_gradU);
   const Tensor_d1s2_sparse & dgradUdqk = static_cast<const Tensor_d1s2_sparse &>(_dgradUdqk);
   Tensor_d2s2_Sd12s34_sparse & DB = static_cast<Tensor_d2s2_Sd12s34_sparse &>(_DB);
-  Tensor_d1s2_Ss23 & B = static_cast<Tensor_d1s2_Ss23 &>(_B);
+  Tensor_d1s2_Ss23 & B = static_cast<Tensor_d1s2_Ss23 &>(__B);
   Tensor_d0s2_Ss12 & e = static_cast<Tensor_d0s2_Ss12 &>(_e);
 
   Tensor_d0s2 tgradU;
@@ -161,11 +161,11 @@ GreenLagrangeStrain::getEBandDB(Tensor &_e, Tensor &_B, Tensor &_DB, const Tenso
 }
 
 void
-GreenLagrangeStrain::getEandB(Tensor &_e, Tensor &_B, const Tensor &_gradU, const Tensor &_dgradUdqk)
+GreenLagrangeStrain::getEandB(Tensor &_e, Tensor &__B, const Tensor &_gradU, const Tensor &_dgradUdqk)
 {
   const Tensor_d0s2 & gradU = static_cast<const Tensor_d0s2 &>(_gradU);
   const Tensor_d1s2_sparse & dgradUdqk = static_cast<const Tensor_d1s2_sparse &>(_dgradUdqk);
-  Tensor_d1s2_Ss23 & B = static_cast<Tensor_d1s2_Ss23 &>(_B);
+  Tensor_d1s2_Ss23 & B = static_cast<Tensor_d1s2_Ss23 &>(__B);
   Tensor_d0s2_Ss12 & e = static_cast<Tensor_d0s2_Ss12 &>(_e);
 
   Tensor_d0s2 tgradU;
@@ -245,13 +245,13 @@ LogarithmicStrain::getDBInstance(int numdofs)
 #endif
 
 void
-LogarithmicStrain::getEBandDB(Tensor &_e, Tensor &_B, Tensor &_DB, const Tensor &_gradU, const Tensor &_dgradUdqk)
+LogarithmicStrain::getEBandDB(Tensor &_e, Tensor &__B, Tensor &_DB, const Tensor &_gradU, const Tensor &_dgradUdqk)
 {
 #ifdef USE_EIGEN3
   const Tensor_d0s2 & gradU = static_cast<const Tensor_d0s2 &>(_gradU);
   const Tensor_d1s2_sparse & dgradUdqk = static_cast<const Tensor_d1s2_sparse &>(_dgradUdqk);
   Tensor_d2s2_Sd12s34_dense & DB = static_cast<Tensor_d2s2_Sd12s34_dense &>(_DB);
-  Tensor_d1s2_Ss23 & B = static_cast<Tensor_d1s2_Ss23 &>(_B);
+  Tensor_d1s2_Ss23 & B = static_cast<Tensor_d1s2_Ss23 &>(__B);
   Tensor_d0s2_Ss12 & e = static_cast<Tensor_d0s2_Ss12 &>(_e);
 
   int numdofs = dgradUdqk.getSize();
@@ -396,12 +396,12 @@ LogarithmicStrain::getEBandDB(Tensor &_e, Tensor &_B, Tensor &_DB, const Tensor 
 }
 
 void
-LogarithmicStrain::getEandB(Tensor &_e, Tensor &_B, const Tensor &_gradU, const Tensor &_dgradUdqk)
+LogarithmicStrain::getEandB(Tensor &_e, Tensor &__B, const Tensor &_gradU, const Tensor &_dgradUdqk)
 {
 #ifdef USE_EIGEN3
   const Tensor_d0s2 & gradU = static_cast<const Tensor_d0s2 &>(_gradU);
   const Tensor_d1s2_sparse & dgradUdqk = static_cast<const Tensor_d1s2_sparse &>(_dgradUdqk);
-  Tensor_d1s2_Ss23 & B = static_cast<Tensor_d1s2_Ss23 &>(_B);
+  Tensor_d1s2_Ss23 & B = static_cast<Tensor_d1s2_Ss23 &>(__B);
   Tensor_d0s2_Ss12 & e = static_cast<Tensor_d0s2_Ss12 &>(_e);
 
   int numdofs = dgradUdqk.getSize();
@@ -565,11 +565,11 @@ DeformationGradient::getDBInstance(int numdofs)
 }
 
 void 
-DeformationGradient::getEBandDB(Tensor &_e, Tensor &_B, Tensor &_DB, const Tensor &_gradU, const Tensor &_dgradUdqk)
+DeformationGradient::getEBandDB(Tensor &_e, Tensor &__B, Tensor &_DB, const Tensor &_gradU, const Tensor &_dgradUdqk)
 {
   const Tensor_d0s2 & gradU = static_cast<const Tensor_d0s2 &>(_gradU);
   const Tensor_d1s2_sparse & dgradUdqk = static_cast<const Tensor_d1s2_sparse &>(_dgradUdqk);
-  Tensor_d1s2_full & B = static_cast<Tensor_d1s2_full &>(_B);
+  Tensor_d1s2_full & B = static_cast<Tensor_d1s2_full &>(__B);
   
   Tensor_d0s2 & e = static_cast<Tensor_d0s2 &>(_e);
 
@@ -582,11 +582,11 @@ DeformationGradient::getEBandDB(Tensor &_e, Tensor &_B, Tensor &_DB, const Tenso
 }
 
 void 
-DeformationGradient::getEandB(Tensor &_e, Tensor &_B, const Tensor &_gradU, const Tensor &_dgradUdqk)
+DeformationGradient::getEandB(Tensor &_e, Tensor &__B, const Tensor &_gradU, const Tensor &_dgradUdqk)
 {
   const Tensor_d0s2 & gradU = static_cast<const Tensor_d0s2 &>(_gradU);
   const Tensor_d1s2_sparse & dgradUdqk = static_cast<const Tensor_d1s2_sparse &>(_dgradUdqk);
-  Tensor_d1s2_full & B = static_cast<Tensor_d1s2_full &>(_B);
+  Tensor_d1s2_full & B = static_cast<Tensor_d1s2_full &>(__B);
   
   Tensor_d0s2 & e = static_cast<Tensor_d0s2 &>(_e);
 

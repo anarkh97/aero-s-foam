@@ -489,7 +489,7 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
     int first_node, last_node, last_node_out;
     
     OutputInfo *oinfo = geoSource->getOutputInfo();
-    if(sinfo.isNonLin() && oinfo[i].isStressOrStrain()) continue; // PJSA: see Domain::postProcessing in NLStatic.C
+    if(sinfo.isNonLin() && (oinfo[i].isStressOrStrain() || oinfo[i].angularouttype != OutputInfo::convected)) continue; // PJSA: see Domain::postProcessing in NLStatic.C
     
     //CD: ad and get will be used in  addVariationOfShape_StructOpt and getOrAddDofForPrint which were 
     //    added to "clean" dynamOutput 
@@ -900,6 +900,8 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
         case OutputInfo::ModeAlpha: // output in SingleDomainDynamic::modeDecomp
           break;
         case OutputInfo::Statevector: // don't print warning message for these either
+        case OutputInfo::Velocvector:
+        case OutputInfo::Accelvector:
         case OutputInfo::Residual:
         case OutputInfo::Jacobian:
         case OutputInfo::RobData:
@@ -935,7 +937,7 @@ ControlInterface* Domain::getUserSuppliedFunction() {
 
     dlerror(); // forget about the last error
     handle = dlopen(claw->fileName, RTLD_NOW);
-    char *errorMsg;
+    const char *errorMsg;
     if((errorMsg = dlerror() ) != 0) {
       fprintf(stderr," *** ERROR: in dynamic loading of %s: %s\n",
              claw->fileName,errorMsg);
@@ -1156,15 +1158,16 @@ Domain::computeStabilityTimeStep(DynamMat& dMat)
 }
 
 double
-Domain::computeStabilityTimeStep(FullSquareMatrix *kelArray, FullSquareMatrix *melArray, GeomState *geomState)
+Domain::computeStabilityTimeStep(FullSquareMatrix *kelArray, FullSquareMatrix *melArray, GeomState *geomState, int &eid)
 {
   double sdt = std::numeric_limits<double>::infinity();
+  eid = -1;
   for(int iele = 0; iele < numele; ++iele) {
     double sdt_iele = packedEset[iele]->computeStabilityTimeStep(kelArray[iele], melArray[iele], nodes, geomState,
                                                                  sinfo.stable_tol, sinfo.stable_maxit);
+    if(sdt_iele < sdt) eid = packedEset[iele]->getGlNum();
     sdt = std::min(sdt, sdt_iele);
   }
-  //std::cerr << "sinfo.stable_cfl = " << sinfo.stable_cfl << ", sdt = " << sdt << std::endl;
   return sinfo.stable_cfl*sdt;
 }
 

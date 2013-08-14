@@ -5,6 +5,8 @@
 
 class RigidThreeNodeShell : public SuperElement
 {
+    BlastLoading::BlastData *conwep;
+
   public:
     RigidThreeNodeShell(int*);
     int getTopNumber() { return 108; }
@@ -22,6 +24,10 @@ class RigidThreeNodeShell : public SuperElement
                                  double*, GeomState *gs);
     void             getFlLoad(CoordSet &, const InterpPoint &,
                                double *flF, double *resF, GeomState *gs=0);
+
+    void setPressure(double, MFTTData* = 0, BlastLoading::BlastData* = 0);
+    void computePressureForce(CoordSet&, Vector& elPressureForce,
+                              GeomState *gs = 0, int cflg = 0, double t = 0);
 };
 
 #endif

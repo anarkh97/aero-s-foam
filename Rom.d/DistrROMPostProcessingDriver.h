@@ -9,10 +9,11 @@
 
 namespace Rom {
 
-class DistrROMPostProcessingDriver : public MultiDomainDynam , public DriverInterface {
+class DistrROMPostProcessingDriver : public MultiDomainDynam, public DriverInterface {
 
 public:
   DistrROMPostProcessingDriver(Domain *);
+  ~DistrROMPostProcessingDriver();
 
   virtual void solve();
 
@@ -22,7 +23,6 @@ private:
   void setPODsize();
 
 
-  MultiDomainDynam         *dummyMDDynam;
   MultiDomDynPostProcessor *mddPostPro;
 
   DistrVecBasis  normalizedBasis_;

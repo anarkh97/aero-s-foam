@@ -14,8 +14,8 @@ const int BasisBinaryFile::NODAL_DATA_FLAG = 1;
 const int BasisBinaryFile::DOFS_PER_NODE = 6;
 
 
-BasisBinaryOutputFile::BasisBinaryOutputFile(const std::string &fileName, int nodeCount) :
-  binFile_(fileName, NODAL_DATA_FLAG, DESC, nodeCount, DOFS_PER_NODE, VERSION)
+BasisBinaryOutputFile::BasisBinaryOutputFile(const std::string &fileName, int nodeCount, bool restart) :
+  binFile_(fileName, NODAL_DATA_FLAG, DESC, nodeCount, DOFS_PER_NODE, VERSION, restart)
 {}
 
 void

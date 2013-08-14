@@ -41,6 +41,7 @@
 class KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2 : public ElastoPlasticPlaneStressMaterial
 {
  public:
+  
   //! Constructor
   //! \param iLambda Lame constant for elastic response (SI units)
   //! \param iMu Lame constant for elastic response (SI units)
@@ -48,19 +49,19 @@ class KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2 : public El
   
   //! Destructor
   virtual ~KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2();
-  
+
   //! Copy constructor
   //! \param MatObj Object to be copied
   KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2
     (const KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2 &MatObj);
-  
+
   //! Cloning
   virtual KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2 * Clone() const;
   
-  //! Compute the elastoplastic constitutive response
-  //! Returns true if calculations went well and false otherwise
-  //! \param Fnp1 Input. Deformation gradient at new state of material. Size 9x1
-  //! \param CauchyStress Output. Has size 9x1
+  //! Compute the elastoplastic constitutive response.
+  //! Returns true if calculations went well and false otherwise.
+  //! \param Fnp1 Input. Deformation gradient at new state of material. Size 9x1.
+  //! \param CauchyStress Output. Has size 9x1.
   //! \param Cep Output. Algorithmic elastoplastic tangent. If requested, has size 81x1
   //! \param UpdateFlag Input. Material state updated if true. Set to true by default.
   virtual bool ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1, 
@@ -68,25 +69,29 @@ class KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2 : public El
 							std::vector<double> * Cep = 0,
 							const bool UpdateFlag = true);
   
+  //! Returns the plastic strain in material (3x1 vector)
+  std::vector<double> GetMaterialPlasticStrain() const;
+  
+  //! Returns equivalent plastic strain in material
+  double GetMaterialEquivalentPlasticStrain() const;
+  
+  //! Returns back stress in material (3x1 vector)
+  std::vector<double> GetMaterialBackStress() const;
 
-  //! Returns the plastic strain in material (9x1 vector)
-  virtual std::vector<double> GetMaterialPlasticStrain() const;
-  
-  //! Returns the equivalent plastic strain in material
-  virtual double GetMaterialEquivalentPlasticStrain() const;
-  
-  
   //! Returns the bulk modulus of material
-  virtual double GetBulkModulus() const;
+  double GetBulkModulus() const;
   
   //! Returns shear modulus of material
-  virtual double GetShearModulus() const;
+  double GetShearModulus() const;
 
   //! Set the plastic strain in the material
   void SetMaterialPlasticStrain(const std::vector<double> &EPSplastic);
 
   //! Set the equivalent plastic strain in the material
   void SetMaterialEquivalentPlasticStrain(double equivEPSplastic);
+
+  //! Set the back stress in the material
+  void SetMaterialBackStress(const std::vector<double> &BackStress);
 
   //! Checks if the state of the material lies within the yield surface.
   //! \param CS Input. Cauchy stress 9x1 vector
@@ -95,7 +100,7 @@ class KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2 : public El
   //! \f[\frac{f}{\sigma_Y}<TOL~\Rightarrow~\text{material state OK}. \f]
   virtual bool CheckMaterialState(const std::vector<double> &CS, const double TOL = 1.e-6) const;
 
-   protected:
+ protected:
   
   // Compute the elastic constitutive response of material
   //! Returns true if calculations went well and false otherwise
@@ -165,7 +170,7 @@ class KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2 : public El
   //! \param A Output. First eigenvalue
   //! \param B Output. Second eigenvalue
   void ComputeEigenvalues(const double * X, double &A, double &B) const;
-  
+
   //! Computes the tensor norm of a deviatoric stress tensor
   //! given in vector form
   //! \param S Input. Symmetric deviator stress tensor, size 3x1.
@@ -198,6 +203,5 @@ class KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2 : public El
   static const double ExpYieldStress[];
 
 };
-
 
 #endif

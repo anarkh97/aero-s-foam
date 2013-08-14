@@ -3,6 +3,7 @@
 
 #include <Utils.d/NonlinearInfo.h>
 #include <Feti.d/FetiInfo.h>
+#include <Utils.d/Conwep.d/BlastLoading.h>
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
@@ -68,7 +69,7 @@ struct SolverInfo {
           Decomp, NonLinTempDynam, DisEnrM, PodRomOffline,
           None }; // note to developers: if you add a new entry in ths enum then
                   // you should also modify problemTypeMessage in Driver.d/Static.C
-   
+
    int probType;
    int soltyp; // from CONTROL statement: 1 = statics, 2 = heat conduction, etc...
 
@@ -307,14 +308,19 @@ struct SolverInfo {
    double penalty_beta;
 
    std::vector<std::string> RODConversionFiles;
-   const char * snapfiPodRom;
+   std::vector<std::string> PODerrornorm;
+   int numSnap;
+   std::vector<std::string> snapfiPodRom;
+   std::vector<std::string> robfi;
+   std::vector<double> snapshotWeights;
    const char * readInROBorModes;
    const char * readInModes;
    const char * SVDoutput;
    const char * reducedMeshFile;
-   const char * statePodRomFile;
-   const char * velocPodRomFile;
-   const char * accelPodRomFile;
+   std::vector<BlastLoading::BlastData> conwepConfigurations;
+   std::vector<std::string> statePodRomFile;
+   std::vector<std::string> velocPodRomFile;
+   std::vector<std::string> accelPodRomFile;
    const char * isvPodRomFile;
    const char * forcePodRomFile;
    const char * residualPodRomFile;
@@ -334,11 +340,15 @@ struct SolverInfo {
    bool checkPodRom;
    bool svdPodRom;
    bool samplingPodRom;
+   bool snapProjPodRom;
    bool galerkinPodRom;
    bool elemLumpPodRom;
    bool onlineSvdPodRom;
    int  maxSizePodRom;
+   int  normalize;
    bool substractRefPodRom;
+   bool localTol;
+   bool reduceFollower;
    int  skipPodRom;
    int  skipOffSet;
    int  skipState;
@@ -351,11 +361,15 @@ struct SolverInfo {
    int  orthogPodRom;
    int  numRODFile;
    double tolPodRom;
+   bool oocPodRom; // if this is true and aero-s is compiled with stxxl, then out-of-core spnnls solver will be used
+                   // by the single domain element lumping driver
    bool ConwepOnOff;
    std::list<int> loadcases;
    bool basicDofCoords; // if this is true then all of the nodes use the basic coordinate frame 0 for DOF_FRM
    bool basicPosCoords; // if this is true then all of the nodes use the basic coordinate frame 0 for POS_FRM
    int inertiaLumping; // 0: no lumping, 1: diagonal lumping, 2: block-diagonal 3x3 lumping
+   bool printMatLab;
+   const char * printMatLabFile;
 
    // Constructor
    SolverInfo() { filterFlags = 0;
@@ -555,14 +569,11 @@ struct SolverInfo {
                   constraint_hess = 1;
                   constraint_hess_eps = 0;
 
-                  snapfiPodRom       = "";
+                  numSnap            = 1;
 		  readInROBorModes   = "";
                   readInModes        = "";
 		  SVDoutput          = "pod.rob";
 		  reducedMeshFile    = "";
-		  statePodRomFile    = "";
-                  velocPodRomFile    = "";
-		  accelPodRomFile    = "";
                   isvPodRomFile      = "";
 		  forcePodRomFile    = "";
 		  residualPodRomFile = "";
@@ -582,11 +593,15 @@ struct SolverInfo {
                   checkPodRom        = false;
                   svdPodRom          = false;
                   samplingPodRom     = false;
+                  snapProjPodRom     = false;
                   galerkinPodRom     = false;
                   elemLumpPodRom     = false;
                   onlineSvdPodRom    = false;
                   maxSizePodRom      = 0;
+		  normalize          = 0;
                   substractRefPodRom = false;
+                  localTol	     = false;
+                  reduceFollower     = false;
                   skipPodRom         = 1;
                   skipOffSet         = 0;
 		  skipState          = 1;
@@ -599,10 +614,13 @@ struct SolverInfo {
 		  orthogPodRom       = 1;
                   numRODFile         = 0;
                   tolPodRom          = 1.0e-6;
+                  oocPodRom          = true;
                   ConwepOnOff        = false;
                   basicDofCoords     = true;
                   basicPosCoords     = true;
                   inertiaLumping     = 0;
+                  printMatLab        = false;
+                  printMatLabFile    = "";
                  }
 
    void setDirectMPC(int mode) { mpcDirect = mode; }

@@ -43,22 +43,23 @@ class BelytschkoTsayShell : virtual public Element, public Corotator
     double *evoit2; // voight form of local cauchy stress
     double *evoit3; // strain (local)
     ExpMat *expmat;
+    bool myMat;
     MFTTData *mftt;
-    bool ConwepOnOff;
+    BlastLoading::BlastData *conwep;
     ElastoPlasticPlaneStressMaterial **mat;
 
   public:
     BelytschkoTsayShell(int*);
     ~BelytschkoTsayShell();
 
-    //void setProp(StructProp *p, bool _myProp = false);
+    void setProp(StructProp *p, bool _myProp = false);
     void setMaterial(NLMaterial *);
-    void setPressure(double, MFTTData* = 0, bool = false);
+    void setPressure(double, MFTTData* = 0, BlastLoading::BlastData* = 0);
     double getPressure();
     Element *clone();
 
     void renum(int *);
-        void renum(EleRenumMap&);
+    void renum(EleRenumMap&);
 
     FullSquareMatrix stiffness(CoordSet&, double* d, int flg = 1);
     FullSquareMatrix massMatrix(CoordSet&, double* mel, int cmflg = 1);
@@ -80,7 +81,7 @@ class BelytschkoTsayShell : virtual public Element, public Corotator
     int numNodes();
     int* nodes(int* = 0);
     Corotator *getCorotator(CoordSet&, double*, int , int);
-    void getStiffAndForce(GeomState&, CoordSet&, FullSquareMatrix&, double*, double delt, double);
+    void getStiffAndForce(GeomState&, CoordSet&, FullSquareMatrix&, double*, double, double);
     void extractDeformations(GeomState &geomState, CoordSet &cs, double *vld, int &nlflag);
 
     void computeDisp(CoordSet&, State&, const InterpPoint&, double*,

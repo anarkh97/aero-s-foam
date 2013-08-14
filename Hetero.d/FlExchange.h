@@ -88,7 +88,8 @@ class FlExchanger {
      double getFluidFlux(Vector &flux, double time, double &fl);
      void sendStrucTemp(Vector &tempsent);
      void getStrucTemp(double *temprcvd);
-
+     void sendHeatSource(Vector &heatsent);
+     void getHeatSource(double *heatrcvd);
      
      void sendParam(int alg, double step, double totalTime,
                     int restartinc, int _isCollocated, double alphas[2]);
@@ -99,8 +100,8 @@ class FlExchanger {
      void sendModeFreq(double *modFrq, int numFrq);
      void sendModeShapes(int numFrq, int nNodes, double (**)[6],
                          State &st, double factor = 1.0);
-     void sendEmbeddedWetSurface(); //KW
-     void sendEmbeddedWetSurface(int nNodes, double *nodes, int nElems, int *elems); //KW
+     void sendEmbeddedWetSurface();
+     void sendEmbeddedWetSurface(int nNodes, double *nodes, int nElems, int *elems);
      void printreceiving();
 /*
      void sendModeShapes(CoordinateSet &,
@@ -126,6 +127,7 @@ class FlExchanger {
 #define STTOSTMT 4000
 #define FLTOSTHEAT 5000
 #define STTOFLHEAT 6000
+#define STTOSTHEAT 7000
 #define STCMDMSG 8000
 #define FLCMDMSG 9000
 #define OPTPARMSG 8100

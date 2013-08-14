@@ -7,6 +7,7 @@
 #include <Math.d/Vector.h>
 #include <Math.d/SparseMatrix.h>
 #include <Math.d/FullSquareMatrix.h>
+#include <Utils.d/DistHelper.h>
 
 #include <algorithm>
 #include <memory>
@@ -76,6 +77,59 @@ renormalized_basis(const GenSparseMatrix<Scalar> &metric, const GenVecBasis<Scal
 
   return result;
 }
+
+//Modified Gram-Schmidt Algorithm
+//Works Parallel and Distributed. 
+template <typename Scalar>
+void
+MGSVectors(Scalar *d, int numVec, int lengthVec, bool RowMajor = false) {
+ filePrint(stderr," ... Gram-Schmidt Algorithm: orthogonalizing vectors ...\n");
+ //filePrint(stderr," number of vectors = %d\n", numVec);
+ //initialize eigen matrix class with pointer to vectors
+ Eigen::Map< Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> > matrix(NULL,0,0);
+ if (RowMajor)
+   new (&matrix) Eigen::Map< Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic, Eigen::RowMajor> >(d,lengthVec,numVec);
+ else
+   new (&matrix) Eigen::Map< Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic, Eigen::ColMajor> >(d,lengthVec,numVec);
+
+ //loop over all vectors
+ for(int i = 0; i != numVec; ++i) {  
+  filePrint(stderr,"\r %5.2f%% complete", double(i)/double(numVec)*100.); 
+  //initialize vector class with pointer to currect vector
+  Eigen::Matrix<Scalar,Eigen::Dynamic,1> v(lengthVec); 
+  v = matrix.col(i);
+
+  //initialize a buffer vector for manipulation
+  Eigen::Matrix<Scalar,Eigen::Dynamic,1> q(lengthVec);
+
+  //compute ||v||_2 of current vector
+  Scalar normCol = v.norm();//need to call all gather 
+
+  q = v/normCol;
+  matrix.col(i) = q;
+  //loop over all other vectors and subtract off projection 
+  for(int j = i+1; j != numVec; ++j) { 
+    Scalar vecProj = q.dot(matrix.col(j)); //need to call all gather
+    matrix.col(j) += -1*vecProj*q;
+  }
+ }
+ filePrint(stderr,"\r %5.2f%% complete\n", 100.);
+}
+
+template <typename Scalar>
+void
+PrintData(Scalar *d, int numVec, int lengthVec, bool RowMajor = false) {
+
+Eigen::Map< Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> > matrix(NULL,0,0);
+ if (RowMajor)
+   new (&matrix) Eigen::Map< Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic, Eigen::RowMajor> >(d,lengthVec,numVec);
+ else
+   new (&matrix) Eigen::Map< Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic, Eigen::ColMajor> >(d,lengthVec,numVec);
+
+ std::cout << matrix.transpose()*matrix << std::endl;
+
+}
+
 
 } // end namespace Rom
 

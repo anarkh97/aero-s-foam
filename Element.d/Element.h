@@ -6,6 +6,7 @@
 #include <Utils.d/dofset.h>
 #include <Utils.d/GlobalToLocalMap.h>
 #include <Utils.d/MFTT.h>
+#include <Utils.d/Conwep.d/BlastLoading.h>
 #include <iostream>
 #include <vector>
 #include <cstddef>
@@ -191,6 +192,7 @@ class StructProp {
         PMLProps fp;
 
         bool isReal;
+        bool isRigid;
 
 	/** the W and E coefficient might encode integer values when they're negative
 	 * (see manual for this). Heavily templated Sower needs a temporary storage that's adressable.
@@ -205,7 +207,7 @@ class StructProp {
                        soundSpeed = 1.0; alphaDamp = 0.0; betaDamp = 0.0;
                        etaDamp = 0.0; etaDampTable = -1;
                        ymin = 0.0; ymax = 0.0;
-                       zmin = 0.0; zmax = 0.0; isReal = false; 
+                       zmin = 0.0; zmax = 0.0; isReal = false; isRigid = false;
                        lagrangeMult = true; penalty = 0.0; initialPenalty = 0.0;
                        B = 1.0; C = 0.0; relop = 0; type = Undefined; funtype = 0;
                        k1 = 0; k2 = 0; k3 = 0; constraint_hess = 1; constraint_hess_eps = 0.0; } 
@@ -342,7 +344,7 @@ class Element {
           }
           prop = p; myProp = _myProp;
         }
-	virtual void setPressure(double pres, MFTTData *mftt = 0, bool ConwepOnOff = false) { pressure = pres; }
+	virtual void setPressure(double pres, MFTTData *mftt = 0, BlastLoading::BlastData *conwep = 0) { pressure = pres; }
         virtual double getPressure() { return pressure; }
 
         // By default ignore any element preload
@@ -366,8 +368,8 @@ class Element {
 	virtual FullSquareMatrix massMatrix(CoordSet& cs,double *m,int cmflg=1);
         virtual FullSquareMatrix imStiffness(CoordSet& cs,double *k,int flg=1);
 	FullSquareMatrix massMatrix(CoordSet& cs, double* m, double mratio);
-        virtual FullSquareMatrixC stiffness(CoordSet&, complex<double> *d) {return FullSquareMatrixC();};    //CRW
-        virtual FullSquareMatrixC massMatrix(CoordSet&, complex<double> *d) {return FullSquareMatrixC();};    //CRW
+        virtual FullSquareMatrixC stiffness(CoordSet&, complex<double> *d) {return FullSquareMatrixC();};
+        virtual FullSquareMatrixC massMatrix(CoordSet&, complex<double> *d) {return FullSquareMatrixC();};
 
 	virtual FullSquareMatrix dampingMatrix(CoordSet& cs,double *m,int cmflg=1);
 
@@ -379,6 +381,8 @@ class Element {
 
         virtual void   getThermalForce(CoordSet& cs,Vector &ndT,Vector &force,
                                        int glflag, GeomState *gs=0);
+        virtual void   getThermalForceAdj(CoordSet& cs,Vector &ndT,Vector &force,
+                                          int glflag);
 
 	virtual void   getIntrnForce(Vector &elForce, CoordSet& cs,
 				     double *elDisp, int Index, double *ndTemps);

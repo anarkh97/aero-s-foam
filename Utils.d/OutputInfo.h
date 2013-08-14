@@ -5,8 +5,7 @@
 //
 // 1. add the type to the enum Type
 // 2. add this new type to the lexer.l file
-// 3. add an output message in Driver.d/Domain.C
-// 4. add a header message in Driver.d/StructProp.h
+// 3. add an output message in Driver.d/Header.h
 // 
 
 #include <cstdio>
@@ -40,7 +39,10 @@ struct OutputInfo {
 	  HeatReactions, Reactions6, Statevector, Residual, Jacobian, 
 	  RobData, SampleMesh, Accelvector, Forcevector,
           RotationMatrix, ExternalXForce, ExternalYForce, ExternalZForce,
-          ExternalXMom, ExternalYMom, ExternalZMom, Velocvector, InternalStateVar };
+          ExternalXMom, ExternalYMom, ExternalZMom, Velocvector, InternalStateVar,
+          PlasticStrainXX, PlasticStrainYY, PlasticStrainZZ, PlasticStrainXY,
+          PlasticStrainYZ, PlasticStrainXZ, BackStressXX, BackStressYY,
+          BackStressZZ, BackStressXY, BackStressYZ, BackStressXZ };
 
    enum Group  { Nodal, Attribute, NodeGroup };
    Type  type;

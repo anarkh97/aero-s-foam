@@ -21,7 +21,7 @@ ShellMaterialType4<doublereal,localmaterial>
   Eigen::Map<Eigen::Matrix<doublereal,6,6> > D(_D);
   std::vector<doublereal> F(9);
   std::vector<doublereal> _sigma(9);
-  std::vector<doublereal> *_C = (_D) ? new std::vector<doublereal>(9) : NULL;
+  std::vector<doublereal> *__C = (_D) ? new std::vector<doublereal>(9) : NULL;
   bool UpdateFlag = (_D) ? false : true; // by convention
 
   Eigen::Block< Eigen::Map<Eigen::Matrix<doublereal,6,6> >,3,3>
@@ -68,16 +68,16 @@ ShellMaterialType4<doublereal,localmaterial>
         F[4] = 1.0 + epsilon[1]; // yy
         F[8] = 1.0 - nu/(1-nu)*(epsilon[0]+epsilon[1]); // zz
 
-        if(! mat[nlayer*point+ilayer]->ComputeElastoPlasticConstitutiveResponse(F, &_sigma, _C, UpdateFlag) )
+        if(! mat[nlayer*point+ilayer]->ComputeElastoPlasticConstitutiveResponse(F, &_sigma, __C, UpdateFlag) )
           throw std::runtime_error("ShellMaterialType4::GetConstitutiveResponse failed\n");
 
         sigma << _sigma[0], _sigma[4], _sigma[1];
 
         if(_D) {
 
-            C << (*_C)[0], (*_C)[1], (*_C)[2],
-                 (*_C)[3], (*_C)[4], (*_C)[5],
-                 (*_C)[6], (*_C)[7], (*_C)[8];
+            C << (*__C)[0], (*__C)[1], (*__C)[2],
+                 (*__C)[3], (*__C)[4], (*__C)[5],
+                 (*__C)[6], (*__C)[7], (*__C)[8];
 
 // .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR PURE BENDING 
 
@@ -102,7 +102,7 @@ ShellMaterialType4<doublereal,localmaterial>
 
     }
 
-    if(_D) delete _C;
+    if(_D) delete __C;
 }
 
 template<typename doublereal, typename localmaterial>
@@ -168,6 +168,26 @@ ShellMaterialType4<doublereal,localmaterial>
       for (int k = 0; k < 3; ++k) BackStress.push_back(state[l++]);
       mat[nlayer*i+j]->SetMaterialBackStress(BackStress);
       mat[nlayer*i+j]->SetMaterialEquivalentPlasticStrain(state[l++]);
+    }
+  }
+}
+
+template<typename doublereal, typename localmaterial>
+void
+ShellMaterialType4<doublereal,localmaterial>
+::GetState(doublereal *state)
+{
+  std::vector<doublereal> PlasticStrain(3);
+  std::vector<doublereal> BackStress(3);
+  int l = 0;
+  for(int i = 0; i < maxgus; ++i) {
+    for(int j = 0; j < nlayer; ++j) {
+      // get the internal variables
+      PlasticStrain = mat[nlayer*i+j]->GetMaterialPlasticStrain();
+      for (int k = 0; k < 3; ++k) state[l++] = PlasticStrain[k];
+      BackStress = mat[nlayer*i+j]->GetMaterialBackStress();
+      for (int k = 0; k < 3; ++k) state[l++] = BackStress[k];
+      state[l++] = mat[nlayer*i+j]->GetMaterialEquivalentPlasticStrain();
     }
   }
 }
@@ -245,6 +265,11 @@ template
 void
 ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
 ::SetState(double *);
+
+template
+void
+ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
+::GetState(double *);
 
 template
 void

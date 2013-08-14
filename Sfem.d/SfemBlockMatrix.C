@@ -1,13 +1,13 @@
 #include <Sfem.d/cijk.h>
 
 template<class Scalar>
-SfemBlockMatrix<Scalar>::SfemBlockMatrix(int in_L, int in_n, int in_P, int in_ndim, int output_order)     //CRW
+SfemBlockMatrix<Scalar>::SfemBlockMatrix(int in_L, int in_n, int in_P, int in_ndim, int output_order)
 {
   int i,j,k;
   
-  P=in_P;    //CRW
-  n=in_n;    //CRW
-  L=in_L;    //CRW
+  P=in_P;
+  n=in_n;
+  L=in_L;
   ndim=in_ndim;
 
   inpsi= new double**[P];

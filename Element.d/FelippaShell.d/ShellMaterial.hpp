@@ -9,6 +9,7 @@ template<typename doublereal>
 class ShellMaterial
 {
   public:
+    virtual ~ShellMaterial() {}
     virtual void GetConstitutiveResponse(doublereal *Upsilon, doublereal *Sigma, doublereal *D,
                                          doublereal *eframe, int gp) = 0; // Upsilon is the generalized "strains" {e,chi}
                                                                           // Sigma is the generalized "stress" {N,M}
@@ -20,6 +21,7 @@ class ShellMaterial
       { std::cerr << "GetLocalConstitutiveResponse is not defined\n"; }
     virtual int GetNumStates() { return 0; }
     virtual void SetState(doublereal *state) {}
+    virtual void GetState(doublereal *state) {}
     virtual void UpdateState(doublereal *Upsilon, doublereal *state, int gp) {}
 
   protected:
@@ -122,6 +124,7 @@ class ShellMaterialType4 : public ShellMaterial<doublereal>
                                       doublereal *eframe, int gp);
     int GetNumStates() { return nlayer*maxgus*7; } // TODO 7 should be provided by the localmaterial
     void SetState(doublereal *state);
+    void GetState(doublereal *state);
     void UpdateState(doublereal *Upsilon, doublereal *state, int gp);
 };
 #endif

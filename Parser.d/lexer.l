@@ -128,6 +128,7 @@ TRAIL [a-zA-Z]*
 
 "INF"[a-zA-Z]*|"inf"[a-zA-Z]*      { return INFINTY; }
 "EPS"[a-zA-Z]*|"eps"[a-zA-Z]*      { return EPSILON; }
+"MAX"|"max"                        { return MAXIMUM; }
 
 "DECO"[a-zA-Z]{0,7}|"deco"[a-zA-Z]{0,7} { return DECOMPOSE; }
 
@@ -147,6 +148,8 @@ TRAIL [a-zA-Z]*
 
 "WEIGHTS"|"weights"                { return WEIGHTLIST; }
 
+"trivial"|"TRIVIAL"                { return TRIVIAL; }
+
 "decomposition"|"DECOMPOSITION"    { return DECOMPOSITION; }
 
 "global"|"GLOBAL"                  { return GLOBAL; }
@@ -164,6 +167,10 @@ TRAIL [a-zA-Z]*
 "THETA"|"theta"                    { return THETA; }
 
 "HRC"|"hrc"			   { return HRC; }
+
+"REDFOL"|"redfol"                  { return REDFOL; }
+
+"ELLUMP"                           { return ELLUMP; }
 
 "IDENTITY"|"identity"              { return IDENTITY; }
 
@@ -252,6 +259,8 @@ TRAIL [a-zA-Z]*
 "STATI"[a-zA-Z]*|"stati"[a-zA-Z]*|"STAT"|"stat"    { return STATS; }
 
 "CASE"[a-zA-Z]*|"case"[a-zA-Z]*    { return CASES; }
+
+"PIEC"[a-zA-Z]*|"piec"[a-zA-Z]*    { return PIECEWISE; }
 
 "AXIHDIR"|"axihdir"                { return AXIHDIR; }
 
@@ -446,7 +455,7 @@ TRAIL [a-zA-Z]*
 
 "ssqr"[a-zA-Z]*|"SSQR"[a-zA-Z]*    { yylval.ival = 16; return SOLVERTYPE; }
 
-"spqr"[a-zA-Z]*|"SPQR"[a-zA-Z]*   { yylval.ival = 17; return SOLVERTYPE; }
+"spqr"[a-zA-Z]*|"SPQR"[a-zA-Z]*    { yylval.ival = 17; return SOLVERTYPE; }
 
 "chol"[a-zA-Z]*|"CHOL"[a-zA-Z]*    { yylval.ival = 5; return SOLVERTYPE; }
 
@@ -520,7 +529,7 @@ TRAIL [a-zA-Z]*
 
 "USDD"[a-zA-Z]*|"usdd"[a-zA-Z]*    { return USERDEFINEDISP; }
 
-"printMat"[a-zA-Z]*|printmat[a-zA-Z]*|PRINTMAT[a-zA-Z]* { return PRINTMATLAB; }
+"printMat"[a-zA-Z]*|"printmat"[a-zA-Z]*|"PRINTMAT"[a-zA-Z]* { return PRINTMATLAB; }
 
 "u_proj"[a-zA-Z]*|"U_PROJ"[a-zA-Z]*  { return UPROJ; }
 
@@ -949,9 +958,11 @@ TRAIL [a-zA-Z]*
 
 "elemental"[a-zA-Z]*|"ELEMENTAL"[a-zA-Z]* { yylval.ival =  0; return AVERAGED; }
 
+"gauss"[a-zA-Z]*|"GAUSS"[a-zA-Z]*  { yylval.ival =  -1; return AVERAGED; }
+
 "nodal"|"NODAL"|"nodalfull"|"NODALFULL"  { yylval.ival =  1; return AVERAGED; }
 
-"nodalpartial"|"NODALPARTIAL"    { yylval.ival =  2; return AVERAGED; }
+"nodalpartial"|"NODALPARTIAL"      { yylval.ival =  2; return AVERAGED; }
 
 "upper"[a-zA-Z]*|"UPPER"[a-zA-Z]*  { yylval.ival = 1; return SURFACE; }
 
@@ -971,23 +982,23 @@ TRAIL [a-zA-Z]*
 
 "gtempera"|"GTEMPERA"              { yylval.ival = OutputInfo::Temperature;  return STRESSID; }
 
-"statevct"|"STATEVCT"		   { yylval.ival = OutputInfo::Statevector;  return STRESSID; }
+"statevct"|"STATEVCT"		       { yylval.ival = OutputInfo::Statevector;  return STRESSID; }
 
 "velocvct"|"VELOCVCT"              { yylval.ival = OutputInfo::Velocvector;  return STRESSID; }
 
-"accelvct"|"ACCELVCT"		   { yylval.ival = OutputInfo::Accelvector;  return STRESSID; }
+"accelvct"|"ACCELVCT"		       { yylval.ival = OutputInfo::Accelvector;  return STRESSID; }
 
-"frcgvect"|"FRCGVECT"		   { yylval.ival = OutputInfo::Forcevector;  return STRESSID; }
+"frcgvect"|"FRCGVECT"		       { yylval.ival = OutputInfo::Forcevector;  return STRESSID; }
 
-"residvct"|"RESIDVCT"		   { yylval.ival = OutputInfo::Residual;     return STRESSID; }
+"residvct"|"RESIDVCT"		       { yylval.ival = OutputInfo::Residual;     return STRESSID; }
 
-"jacobvct"|"JACOBVCT"		   { yylval.ival = OutputInfo::Jacobian;     return STRESSID; }
+"jacobvct"|"JACOBVCT"		       { yylval.ival = OutputInfo::Jacobian;     return STRESSID; }
 
 "isvarvct"|"ISVARVCT"              { yylval.ival = OutputInfo::InternalStateVar; return STRESSID; }
 
-"robdataf"|"ROBDATAF"		   { yylval.ival = OutputInfo::RobData;	     return STRESSID; }
+"robdataf"|"ROBDATAF"		       { yylval.ival = OutputInfo::RobData;	     return STRESSID; }
 
-"samplmsh"|"SAMPLMSH" 		   { yylval.ival = OutputInfo::SampleMesh;   return STRESSID; }
+"samplmsh"|"SAMPLMSH" 		       { yylval.ival = OutputInfo::SampleMesh;   return STRESSID; }
 
 "stressxx"|"STRESSXX"              { yylval.ival = OutputInfo::StressXX;     return STRESSID; }
 
@@ -1151,7 +1162,7 @@ TRAIL [a-zA-Z]*
 
 "moderror"|"MODERROR"              { yylval.ival = OutputInfo::ModeError;    return STRESSID; }
 
-"reaction"[s]?|"REACTION"[s]?      { yylval.ival = OutputInfo::Reactions; return STRESSID; }
+"reaction"|"REACTION"              { yylval.ival = OutputInfo::Reactions;    return STRESSID; }
 
 "heatreac"|"HEATREAC"              { yylval.ival = OutputInfo::HeatReactions; return STRESSID; }
 
@@ -1213,6 +1224,34 @@ TRAIL [a-zA-Z]*
 "damage"|"DAMAGE"                  { yylval.ival = OutputInfo::Damage; return STRESSID; }
 "eqplstrn"|"EQPLSTRN"|"effpstrn"|"EFFPSTRN"          { yylval.ival = OutputInfo::EquivalentPlasticStrain; return STRESSID; }
 
+"plstrnxx"|"PLSTRNXX"              { yylval.ival = OutputInfo::PlasticStrainXX; return STRESSID; }
+
+"plstrnyy"|"PLSTRNYY"              { yylval.ival = OutputInfo::PlasticStrainYY; return STRESSID; }
+
+"plstrnzz"|"PLSTRNZZ"              { yylval.ival = OutputInfo::PlasticStrainZZ; return STRESSID; }
+
+"plstrnxy"|"PLSTRNXY"              { yylval.ival = OutputInfo::PlasticStrainXY; return STRESSID; }
+
+"plstrnzx"|"PLSTRNZX"              { yylval.ival = OutputInfo::PlasticStrainXZ; return STRESSID; }
+
+"plstrnxz"|"PLSTRNXZ"              { yylval.ival = OutputInfo::PlasticStrainXZ; return STRESSID; }
+
+"plstrnyz"|"PLSTRNYZ"              { yylval.ival = OutputInfo::PlasticStrainYZ; return STRESSID; }
+
+"bkstrsxx"|"BKSTRSXX"              { yylval.ival = OutputInfo::BackStressXX;    return STRESSID; }
+
+"bkstrsyy"|"BKSTRSYY"              { yylval.ival = OutputInfo::BackStressYY;    return STRESSID; }
+
+"bkstrszz"|"BKSTRSZZ"              { yylval.ival = OutputInfo::BackStressZZ;    return STRESSID; }
+
+"bkstrsxy"|"BKSTRSXY"              { yylval.ival = OutputInfo::BackStressXY;    return STRESSID; }
+
+"bkstrszx"|"BKSTRSZX"              { yylval.ival = OutputInfo::BackStressXZ;    return STRESSID; }
+
+"bkstrsxz"|"BKSTRSXZ"              { yylval.ival = OutputInfo::BackStressXZ;    return STRESSID; }
+
+"bkstrsyz"|"BKSTRSYZ"              { yylval.ival = OutputInfo::BackStressYZ;    return STRESSID; }
+
 "MATSPEC"|"matspec"                { return MATSPEC; }
 
 "MATLAW"|"matlaw"                  { return MATSPEC; }
@@ -1229,7 +1268,7 @@ TRAIL [a-zA-Z]*
 
 "hyperelasticplanestress"|"HYPERELASTICPLANESTRESS"|"HyperElasticPlaneStress" { return SVKPLSTRESS; }
 
-"linear"|"LINEAR"|"Linear"                               { return LINEARELASTIC; }
+"linear"|"LINEAR"|"Linear"|"linearelastic"|"LINEARELASTIC"|"LinearElastic" { return LINEARELASTIC; }
 
 "isotropiclinearelastic"|"ISOTROPICLINEARELASTIC"|"IsotropicLinearElastic"  { return ISOTROPICLINEARELASTIC; }
 
@@ -1324,11 +1363,21 @@ TRAIL [a-zA-Z]*
 
 "ROBC"|"RobC"|"robc" 			  { return SVDTOKEN; } 
 
-"RODC"|"RodC"|"rodc"                      { return CONVERSIONTOKEN; } // reduced order data conversion token
+"MNORMA"|"MNorma"|"mnorma"		  { return NORMALIZETOKEN; }
+
+"RODC"|"RodC"|"rodc"              { return CONVERSIONTOKEN; } // reduced order data conversion token
  
-"CONFIL"|"ConFil"|"confil" 	 	  { return CONVFI; } //reduced order data conversion files
+"CONFIL"|"ConFil"|"confil" 	 	  { return CONVFI; } // reduced order data conversion files
 
 "SNAPFI"|"SnapFi"|"snapfi"		  { return SNAPFI; }
+
+"ROBFI"|"RobFi"|"robfi"		      { return ROBFI; }
+
+"SNAPWEIGHT"|"SnapWeight"|"snapweight" { return SNAPWEIGHT; }
+
+"CONCFG"|"ConCfg"|"concfg"        { return CONWEPCFG; }
+
+"NORMFI"|"NormFi"|"normfi"		  { return VECTORNORM; }
 
 "PODROB"|"PodRob"|"podrob"		  { return PODROB; }
 
@@ -1342,9 +1391,15 @@ TRAIL [a-zA-Z]*
 
 "RMSHC"|"Rmshc"|"rmshc" 		  { return SAMPLING; }
 
+"SNAPPR"|"SnapPr"|"snappr"        { return SNAPSHOTPROJECT; }
+
 "TOLOPT"|"TolOpt"|"tolopt" 		  { return TOLER; }
 
+"LOCTOL"|"LocTol"|"loctol"		  { return LOCALTOLERANCE; }
+
 "NUMSKP"|"NumSkp"|"numskp"		  { return SKIP; }
+
+"OUT_OF"[a-zA-Z_]*|"Out_Of"[a-zA-Z_]*|"out_of"[a-zA-Z_]* { return OUTOFCORE; }
 
 "REFSUBSTRACT"|"refsubstract"|"RefSubstract" { return REFSUBSTRACT; } 
 

@@ -64,7 +64,7 @@ template<typename AnyMatrix>
 long spnnls(AnyMatrix &A, long mda, long m, long 
            n, double *_b, double *_x, double reltol, double 
            &rnorm, double *_w, double *_zz, double *_zz2, long *_index,
-           long &mode)
+           long &mode, bool prtflg)
 {
 #ifdef USE_EIGEN3
     // Builtin functions
@@ -77,21 +77,21 @@ long spnnls(AnyMatrix &A, long mda, long m, long
     using std::setprecision;
 
     // Local variables
-    static long i__, j, l;
-    static double t;
+    long i__, j, l;
+    double t;
     extern long g1(double, double, double &, double &, double &);
-    static double cc;
+    double cc;
     extern long h12(long, long, long, long, double *, long, double &, double *, long, long, long);
-    static long ii, jj, ip;
-    static double sm;
-    static long iz;
-    static double up, ss;
-    static long iz1, iz2, npp1;
+    long ii, jj, ip;
+    double sm;
+    long iz;
+    double up, ss;
+    long iz1, iz2, npp1;
     extern double diff(double, double);
-    static long iter;
-    static double temp, wmax, alpha, asave;
-    static long itmax, izmax, nsetp;
-    static double dummy, unorm, ztest, abstol;
+    long iter;
+    double temp, wmax, alpha, asave;
+    long itmax, izmax, nsetp;
+    double dummy, unorm, ztest, abstol;
 
     Eigen::Map<Eigen::Matrix<double, Eigen::Dynamic, 1> > b(_b, m);
     Eigen::Map<Eigen::Matrix<double, Eigen::Dynamic, 1> > x(_x, n);
@@ -147,10 +147,12 @@ long spnnls(AnyMatrix &A, long mda, long m, long
         sm = b.segment(npp1-1,m-npp1-1).squaredNorm();
         rnorm = sqrt(sm);
     
-        cout << " Iteration= " << setw(11) << iter; 
-        cout << " Active set size = " << setw(11) << nsetp;
-        cout << " Residual norm = " << setw(20) << setprecision(16) << rnorm << "     ";
-        cout << " Target = " << setw(20) << setprecision(16) << abstol << "     " << endl;
+        if(prtflg) {
+          cout << " Iteration= " << setw(11) << iter; 
+          cout << " Active set size = " << setw(11) << nsetp;
+          cout << " Residual norm = " << setw(20) << setprecision(16) << rnorm << "     ";
+          cout << " Target = " << setw(20) << setprecision(16) << abstol << "     " << endl;
+        }
     
 //      STOPPING CRITERION
         if (rnorm < abstol) {

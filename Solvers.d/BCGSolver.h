@@ -12,8 +12,8 @@ class GenBCGSolver : public GenSolver<Scalar> {
    int maxiter;
    double solveTime;
  public:
-   GenBCGSolver(int _maxit, double _tol, AnyOperator *_A, AnyPreconditioner *_P = 0)
-     { maxiter = _maxit; tolerance = _tol; A = _A; P = _P; }
+   GenBCGSolver(int _maxit, double _tol, AnyOperator *_A, AnyPreconditioner *__P = 0)
+     { maxiter = _maxit; tolerance = _tol; A = _A; P = __P; }
    ~GenBCGSolver() {};
    int neqs() { return A->neqs(); }
    void solve(AnyVector &, AnyVector &);

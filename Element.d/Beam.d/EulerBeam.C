@@ -39,7 +39,6 @@ extern "C" {
 
 EulerBeam::EulerBeam(int* nodenums)
 {
-  //  cout <<  nodenums[0] << "," << nodenums[1] << "," <<  nodenums[2] << endl;
         nn[0] = nodenums[0];
         nn[1] = nodenums[1];
         nn[2] = nodenums[2];

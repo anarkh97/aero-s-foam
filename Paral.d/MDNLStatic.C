@@ -283,7 +283,8 @@ MDNLStatic::reBuild(int iteration, int step, DistrGeomState& geomState)
  times->rebuild -= getTime();
  int rebuildFlag = 0;
 
- if (iteration % domain->solInfo().getNLInfo().updateK == 0) {
+ if(iteration % domain->solInfo().getNLInfo().updateK == 0 && (step-1) % domain->solInfo().getNLInfo().stepUpdateK == 0) {
+   if(verboseFlag) filePrint(stderr, " ... Rebuilding Tangent Stiffness for Step %d Iteration %d ...\n", step, iteration);
    GenMDDynamMat<double> allOps;
    allOps.sysSolver = solver;
    decDomain->rebuildOps(allOps, 0.0, 0.0, 1.0, kelArray);

@@ -27,8 +27,6 @@ typedef pair<int, pair<double, double> >  locoord;
 //         elem id      xi1     xi2
 
 
-// double dummyVariable[10];
-
 const char *RECEIVE_LIST_KW = "RCVF";
 const char *SUBDOMAIN_KW = "SUBD";
 const char *SEND_LIST_KW = "SNDF";
@@ -74,7 +72,6 @@ FlExchanger::getFluidLoad(Vector& force, int tIndex, double time,
  for(i=0; i<nbrReceivingFromMe; i++) {
      int fromNd;
      int tag =  FLTOSTMT + ((rcvParity > 0) ? 1 : 0) ;
-     //_FORTRAN(nrecoc)(zero, tag, buffer, bufferLen, rsize, fromNd, toFluid);
      RecInfo rInfo = fluidCom->recFrom(tag, buffer, bufferLen);
      fromNd = rInfo.cpu;
      int origin = consOrigin[fromNd];
@@ -102,7 +99,6 @@ FlExchanger::getFluidLoad(Vector& force, int tIndex, double time,
 
  flipRcvParity();
 
- // KHP
  if(oinfo) {
    if (tIndex % oinfo->interval == 0 && oinfo->filptr != NULL) {
      fprintf(oinfo->filptr,"%e   ",time);
@@ -130,7 +126,6 @@ FlExchanger::sendDisplacements(State& state, int tag, GeomState* geomState)
  tmpDisp = new Vector(state.getDisp());
 
  *tmpDisp = state.getDisp();
- //fprintf(stderr, "Now %e\n", *tmpDisp * *tmpDisp);
  tmpDisp->linAdd(dt*alpha[0], state.getVeloc(), dt*alpha[1], state.getPrevVeloc());
  State newState(state, *tmpDisp);
  //if(verboseFlag)
@@ -177,7 +172,6 @@ FlExchanger::sendDisplacements(State& state, int tag, GeomState* geomState)
             buffer[ip+5]*buffer[ip+5];
    }
 
-   //_FORTRAN(nsedoc)(zero, tag, buffer, pos, fluidNode, toFluid);
    fluidCom->sendTo(fluidNode, tag, buffer+origPos, pos-origPos);
 
  }
@@ -211,7 +205,6 @@ FlExchanger::sendModeShapes(int numModes, int numN, double (**v)[6],
        dof = dsa->locate(iNode, DofSet::Zrot);
        if(dof >= 0) d[dof] = v[iMode][iNode][5]*ampFactor;
      }
-     //fprintf(stderr, "Total mode disp %e\n", d*d);
      sendDisplacements(st, 1201+iMode);
   }
 }
@@ -219,11 +212,8 @@ FlExchanger::sendModeShapes(int numModes, int numN, double (**v)[6],
 void
 FlExchanger::waitOnSend()
 {
- //_FORTRAN(nwonsd)();
  fluidCom->waitForAllReq();
 }
-
-
 
 void
 FlExchanger::sendParam(int algnum, double step, double totaltime,
@@ -231,25 +221,18 @@ FlExchanger::sendParam(int algnum, double step, double totaltime,
 {
   int TNd  = 0;
   int thisNode;
-  //_FORTRAN(getnod)(thisNode);
   thisNode = structCom->myID();
 
   double buffer[5];
   buffer[0] = (double) algnum;
   buffer[1] = (algnum==5)? step/2 : step;
-  //buffer[1] = step;
   buffer[2] = totaltime;
   buffer[3] = (double) rstinc;
   buffer[4] = (double) 2; // Used to be AeroScheme now always conservative
   int msglen = 5;
   int tag = 3000;
 
-  //fprintf(stderr, " ... Sending algorithm %d\n", algnum);
-
   if(thisNode == 0) {
-     // _FORTRAN(nsedoc)(zero, tag, buffer, msglen,
-     //                            TNd, toFluid);
-     // _FORTRAN(nwonsd)();
      fluidCom->sendTo(TNd, tag, buffer, msglen);
      fluidCom->waitForAllReq();
   }
@@ -315,8 +298,6 @@ void FlExchanger::sendModeFreq(double *modfrq, int nummod)
         int Pos  = 1 + nummod;
 
         if (ThisNode == 0) {
-                // _FORTRAN(nsedoc)(zero, Type, sBuffer, Pos,
-                //                 TNd, toFluid);
            fluidCom->sendTo(TNd, Type, sBuffer, Pos);
            fluidCom->waitForAllReq();
         }
@@ -479,7 +460,7 @@ void FlExchanger::matchup() //comparable to matcher + read
 
  // Locate where the data pertaining to this node starts
  // Let's look for the receive list
- int numSnd = 0; /*KW*/
+ int numSnd = 0;
 
  int *rcvcomid  = new int[numSnd];
  int *rcvcomlen = new int[numSnd];
@@ -527,7 +508,6 @@ void FlExchanger::matchup() //comparable to matcher + read
          (interpPoints[receiver][j].gap)[2] = 0.0; /*KW:no gap*/
      }
  }
-
 
 // Now create the compacted tables
 
@@ -599,7 +579,6 @@ void FlExchanger::matchup() //comparable to matcher + read
  sndTable = new InterpPoint*[nbrReceivingFromMe];
  idSendTo = new int[nbrReceivingFromMe];
  nbSendTo = new int[nbrReceivingFromMe];
- // fprintf(stderr, " SIZE OF nbSendTo is %d\n",nbrReceivingFromMe);
  int rId = 0;
  int mysize = 0;
  consOrigin = new int[maxPRec+1];
@@ -610,20 +589,16 @@ void FlExchanger::matchup() //comparable to matcher + read
         bufferLen = 2+6*sndcomlen[receiver];
      sndTable[rId] = interpPoints[receiver];
      nbSendTo[rId] = sndcomlen[receiver];
-     // fprintf(stderr," *** nbSendTo %8d = %8d\n",rId, sndcomlen[receiver]);
      idSendTo[rId] = sndcomid[receiver]-1;
      consOrigin[sndcomid[receiver]-1] = rId;
      rId++;
    }
  }
 
- //PHG buffer = new double[bufferLen];
  buffer = new double[mysize*6];
  pArray = new double[pressureIndexForElem[numWetElements]*NBPRESSDATAMAX];
  for(j = 0; j < pressureIndexForElem[numWetElements]*NBPRESSDATAMAX; ++j)
    pArray[j] = 0;
-
-
 
 // Last step: Create the dof nDof arrays and allocate localF
 
@@ -853,13 +828,10 @@ FlExchanger::read(int myNode, char* inputFileName)
    }
  }
 
- //PHG buffer = new double[bufferLen];
  buffer = new double[mysize*6];
  pArray = new double[pressureIndexForElem[numWetElements]*NBPRESSDATAMAX];
  for(j = 0; j < pressureIndexForElem[numWetElements]*NBPRESSDATAMAX; ++j)
    pArray[j] = 0;
-
-
 
 // Last step: Create the dof nDof arrays and allocate localF
 
@@ -888,7 +860,6 @@ FlExchanger::read(int myNode, char* inputFileName)
   }
 }
 
-
 // Temperature routines
 
 void
@@ -900,10 +871,6 @@ FlExchanger::sendTemperature(State& state)
                   to a structural subdomain
     buffer[0]   = fluid subdomain number
     buffer[1]   = number of information contained in one node  */
-
- //int mynode = 0;
-
- // Prediction
 
  if(tmpDisp == 0)
  tmpDisp = new Vector(state.getDisp());
@@ -921,27 +888,16 @@ FlExchanger::sendTemperature(State& state)
    int origPos = pos;
 
    for(j=0; j < nbSendTo[i]; ++j) {
-//    fprintf(stderr,"I = %d and nbSendTo[I] = %d\n", j, nbSendTo[i]);
      Element *thisElement = eset[sndTable[i][j].elemNum];
      thisElement->computeTemp(cs, newState, sndTable[i][j].xy, buffer+pos);
 
-//     fprintf(stderr, "Temperature Sent : %14.5e\n", buffer[pos]);
-//     fprintf(stderr, "DTEMP2 : %14.5e\n", buffer[pos+1]);
      pos += 1;
    }
 
    int tag = STTOFLHEAT;
    int fluidNode  = idSendTo[i];
 
-// fprintf(stderr," STRUCT : Ready to send to Node %4d\n", tag);
-// for (int xyz=0; xyz < pos; xyz++)
-//      printf("Sending %4d = %14.7e\n",xyz,buffer[xyz]);
-
-   //_FORTRAN(nsedoc)(zero, tag, buffer, pos, fluidNode, toFluid);
   fluidCom->sendTo(fluidNode, tag, buffer+origPos, pos-origPos);
-
-//  fprintf(stderr," STRUCT : Done sending to Node %4d, Buffer %d\n", tag,pos);
-//  fflush(stderr);
 
  }
  waitOnSend();
@@ -951,10 +907,8 @@ void
 FlExchanger::sendStrucTemp(Vector &tempsent)
 {
 // Sends temperature to mechanical structure
-// BE CAREFUL : a reference (&) changes the value everywhere!!!
+// tempsent are NODAL temperatures
 
-   int thisNode;
-   thisNode = structCom->myID();
    int tag = STTOSTMT;
    int zero = 0;
 
@@ -965,12 +919,7 @@ FlExchanger::sendStrucTemp(Vector &tempsent)
      buff[i]=tempsent[i];
    }
 
-//    if (thisNode==0){
-    //fprintf(stderr,"++++ Sending TempLoad \n");
-
-    heatStructCom->sendTo(zero, tag, buff, pos);
-
-    //fprintf(stderr,"++++ Finished Sending TempLoad \n");
+   heatStructCom->sendTo(zero, tag, buff, pos);
 }
 
 void
@@ -979,28 +928,58 @@ FlExchanger::getStrucTemp(double *temprcvd)
 // Receives temperature from Thermal Elements
 // temprcvd are NODAL temperatures
 
-    int thisNode;
-    thisNode = structCom->myID();
     int tag = STTOSTMT;
     int rsize;
     int fromNd;
 
-//    if(thisNode==0){
-    //fprintf(stderr,"---- getting TempLoad \n");
     RecInfo rInfo = heatStructCom->recFrom(tag, buff, buffLen);
     fromNd = rInfo.cpu;
     rsize = rInfo.len;
 
-    //fprintf(stderr,"++++ Finished Receiving TempLoad \n");
-
     int i;
     for (i=0; i<rsize; i++) { 
       temprcvd[i]=buff[i] ;
-      //fprintf(stderr,"**** received  = %f %d %d \n",buff[i], buffLen, rsize);
     }
 }
 
+void
+FlExchanger::sendHeatSource(Vector &heatsent)
+{
+// Sends heat source from mechanical structure to thermal
+// heatsent are NODAL heat sources
 
+   int tag = STTOSTHEAT;
+   int zero = 0;
+
+   int i;
+   int pos=heatsent.size();
+
+   for(i=0; i<pos; i++) {
+     buff[i]=heatsent[i];
+   }
+
+   heatStructCom->sendTo(zero, tag, buff, pos);
+}
+
+void
+FlExchanger::getHeatSource(double *heatrcvd)
+{
+// Receives heat sources from Structural Elements
+// heatrcvd are NODAL heat sources
+
+    int tag = STTOSTHEAT;
+    int rsize;
+    int fromNd;
+
+    RecInfo rInfo = heatStructCom->recFrom(tag, buff, buffLen);
+    fromNd = rInfo.cpu;
+    rsize = rInfo.len;
+
+    int i;
+    for (i=0; i<rsize; i++) { 
+      heatrcvd[i]=buff[i] ;
+    }
+}
 
 double
 FlExchanger::getFluidFlux(Vector &flux, double time, double &bflux)
@@ -1046,22 +1025,11 @@ FlExchanger::getFluidFlux(Vector &flux, double time, double &bflux)
 //        fprintf(stderr, "Summing flux %d\n",j+1);
 //        aflux += buffer[j];
      }
-// fprintf(stderr," STRUCT : done receiving fluxes %4d, Buffer %d\n", tag,rsize);
 
  }
 
 /* fprintf(stderr, "SUM of fluxes on struct %f\n ", bflux);
  fprintf(stderr, " SUM of FlDomain %d %f\n: ", i, aflux); */
-
-
-/* KHP: FlExchange is called from Dynam.C. The lines above are
-   for debugging purposes only */
-/* if(oinfo) {
-   fprintf(oinfo->filptr,"%e   ",time);
-   fprintf(oinfo->filptr,"%e\n",aflux);
-   fprintf(oinfo->filptr,"%e\n",bflux);
-   fflush(oinfo->filptr);
- } */
 
  return bflux;
 }
@@ -1079,7 +1047,7 @@ FlExchanger::thermoread(int &bLen)
 void
 FlExchanger::printreceiving()
 {
- fprintf(stderr," ::::::: nbrReceivingFromMe = %d\n",nbrReceivingFromMe);
+  fprintf(stderr," ::::::: nbrReceivingFromMe = %d\n",nbrReceivingFromMe);
 }
 
 int
@@ -1088,13 +1056,11 @@ FlExchanger::cmdCom( int commandFlag )
   int returnFlag = 0;
   int FldNd  = 0;
  
-  //int rsize;
   int tag;
  
   int thisNode;
-  //_FORTRAN(getnod)(thisNode);
 
- thisNode = structCom->myID();
+  thisNode = structCom->myID();
 
   double buffer[1];
   buffer[0] = (double) commandFlag;
@@ -1102,17 +1068,11 @@ FlExchanger::cmdCom( int commandFlag )
   
   if(thisNode == 0) {
  
-    // fprintf(stderr,"\nSTC: sending command to Fluid: %d\n",commandFlag);   
-    // fflush(stderr);
-     tag = STCMDMSG;  
-   //_FORTRAN(nsedoc)(zero, tag, buffer,msglen,FldNd, toFluid);
-   fluidCom->sendTo(FldNd, tag, buffer, msglen);
+    tag = STCMDMSG;  
+    fluidCom->sendTo(FldNd, tag, buffer, msglen);
     tag =  FLCMDMSG;
-   //_FORTRAN(nrecoc)(zero, tag, buffer,msglen,rsize, FldNd, toFluid);
     RecInfo rInfo = fluidCom->recFrom(tag, buffer, msglen);
     returnFlag = (int) buffer[0];
-    // fprintf(stderr,"\nSTC: obtained command from Fluid: %d\n",returnFlag);   
-    // fflush(stderr);
   }
   
   return returnFlag;
@@ -1124,7 +1084,6 @@ FlExchanger::cmdComHeat( int commandFlag )
   int returnFlag = 0;
   int FldNd  = 0;
 
-  //int rsize;
   int thisNode;
   int tag;
 
@@ -1136,26 +1095,17 @@ FlExchanger::cmdComHeat( int commandFlag )
  
   if(thisNode == 0) {
 
-   //fprintf(stderr,"\nSTC: sending command to Fluid: %d\n",commandFlag);
+    tag = STCMDMSG;
+    fluidCom->sendTo(FldNd, tag, buffer, msglen);
+    fluidCom->waitForAllReq();
 
-   tag = STCMDMSG;
-   fluidCom->sendTo(FldNd, tag, buffer, msglen);
-   fluidCom->waitForAllReq();
-
-    //fprintf(stderr,"\nSTC: command to Fluid sent: %d\n",commandFlag);
-    //fflush(stderr);
-
-   tag =  FLCMDMSG;
-   RecInfo rInfo = fluidCom->recFrom(tag, buffer, msglen);
-   returnFlag = (int) buffer[0];
-    // fprintf(stderr,"\nSTC: obtained command from Fluid: %d\n",returnFlag);
-    // fflush(stderr);
+    tag =  FLCMDMSG;
+    RecInfo rInfo = fluidCom->recFrom(tag, buffer, msglen);
+    returnFlag = (int) buffer[0];
   }
 
   return returnFlag;
 }
-
-
 
 // This routine negotiate with the fluid codes which match points go where
 void
@@ -1164,26 +1114,21 @@ FlExchanger::negotiate()
   int thisNode = structCom->myID();
   int totSize = 0;
   int numFl = 0;
-  // _FORTRAN(hetsize)(toFluid, numFl);
   numFl = fluidCom->remoteSize();
   int iFluid;
   int *flSize = new int[numFl];
   int totmatch = 0;
   for(iFluid = 0; iFluid < numFl; ++iFluid) {
-  fflush(stderr);
     int tag = FL_NEGOT;
-    // double nFlMatched;
     int nFlMatched;
     int bufferLen = 1;
-    int /*rsize,*/ fromNd;
+    int fromNd;
     RecInfo rInfo = fluidCom->recFrom(tag, &nFlMatched, bufferLen);
     fromNd = rInfo.cpu;
     flSize[fromNd] = nFlMatched;
-    //flSize[fromNd] = int(nFlMatched);
     totmatch += nFlMatched;
   }
 
-  //PHG
   if (totmatch == 0) {
     fprintf(stderr, " *** WARNING: by-passing negotiate step\n");
     fflush(stderr);
@@ -1204,7 +1149,6 @@ FlExchanger::negotiate()
     }
   }
   nbrSendingToMe = nbrReceivingFromMe = nSender;
-  //double *index = new double[totSize];
   int *index = new int[totSize];
   InterpPoint **allPt = sndTable;
 
@@ -1213,7 +1157,6 @@ FlExchanger::negotiate()
     int tag = FL_NEGOT+1;
     int bufferLen = totSize;
     int rsize, fromNd;
-    //_FORTRAN(nrecoc)(zero, tag, index, bufferLen, rsize, fromNd, toFluid);
     RecInfo rInfo = fluidCom->recFrom(tag, index, bufferLen);
     fromNd = rInfo.cpu;
     rsize = rInfo.len;
@@ -1222,22 +1165,17 @@ FlExchanger::negotiate()
     for(int ipt = 0; ipt < nbSendTo[sender]; ++ipt) {
       sndTable[sender][ipt] = allPt[0][index[ipt]];
       index[ipt] = ipt;
-      //sndTable[sender][ipt] = allPt[0][int(index[ipt])];
-      //index[ipt] = double(ipt);
     }
     tag = FL_NEGOT;
-    //double num = nbSendTo[sender];
     int num = nbSendTo[sender];
     int one = 1;
-    //_FORTRAN(nsedoc)(zero, tag, &num, one, fromNd, toFluid);
     fluidCom->sendTo(fromNd, tag, &num, one);
     tag = FL_NEGOT+1;
-    //_FORTRAN(nsedoc)(zero, tag, index, nbSendTo[sender], fromNd, toFluid);
     fluidCom->sendTo(fromNd, tag, index, nbSendTo[sender]);
     // To make sure we can reuse the buffers
     fluidCom->waitForAllReq();
   }
- delete [] index;
- delete [] buffer;
- buffer = new double[6*totSize];
+  delete [] index;
+  delete [] buffer;
+  buffer = new double[6*totSize];
 }

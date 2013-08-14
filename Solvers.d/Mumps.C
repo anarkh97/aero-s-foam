@@ -28,7 +28,6 @@ GenMumpsSolver<Scalar>::GenMumpsSolver(Connectivity *nToN, EqNumberer *_dsa, int
 {
   neq = numUncon;
   nNonZero = xunonz[numUncon]-1; 
-  //cerr << "int Mumps constructor #1, mumps_sym = " << domain->solInfo().mumps_sym << ", neq = " << neq << ", nNonZero = " << nNonZero << endl;
   unonz = new Scalar[nNonZero];
   for(int i = 0; i < nNonZero; ++i) unonz[i] = 0.0;
   mpicomm = _mpicomm;
@@ -42,7 +41,6 @@ GenMumpsSolver<Scalar>::GenMumpsSolver(Connectivity *nToN, DofSetArray *_dsa, Co
   neq = numUncon;
   myMem = 0; 
   nNonZero = xunonz[numUncon]-1;
-  //cerr << "int Mumps constructor #2, mumps_sym = " << domain->solInfo().mumps_sym << ", neq = " << neq << ", nNonZero = " << nNonZero << endl;
   unonz	= new Scalar[nNonZero];
   for(int i = 0; i < nNonZero; ++i) unonz[i] = 0.0;
   mpicomm = _mpicomm;
@@ -72,10 +70,7 @@ GenMumpsSolver<Scalar>::init()
   mumpsId.id.par = 1; // 1: working host model
   mumpsId.id.sym = domain->solInfo().pivot ? 2 : 1; // 2: general symmetric, 1: symmetric positive definite, 0: unsymmetric 
   if(domain->solInfo().unsym()) mumpsId.id.sym = 0;
-  //cerr << "in GenMumpsSolver<Scalar>::init(), mumpsId.id.sym = " << mumpsId.id.sym << endl;
 #ifdef USE_MPI
-  //mumpsId.id.comm_fortran = USE_COMM_WORLD; // default value for fortran communicator
-  //if(mpicomm && mpicomm->size() > 1 && mpicomm->cpuNum() == 0) cerr << "using parallel mumps with " << mpicomm->size() << " cpus\n";
   if(mpicomm) mumpsId.id.comm_fortran = MPI_Comm_c2f(mpicomm->getComm());
   else mumpsId.id.comm_fortran = MPI_Comm_c2f(MPI_COMM_SELF);
 #else
@@ -159,34 +154,6 @@ GenMumpsSolver<Scalar>::add(FullSquareMatrix &kel, int *dofs)
           break;
         }
       }
-    }
-  }
-}
-
-template<class Scalar>
-void
-GenMumpsSolver<Scalar>::add( int dofi, int dofj, Scalar d)
-{
- // WARNING: this adds only [i,j] with  j >= i (i.e. upper part)
-  if((dofi < 0) || (dofj < 0)) return;
-  int m, mstart, mstop, rowi, colj;
-  if(unconstrNum) {
-    if((rowi = unconstrNum[dofi]) == -1 || (colj = unconstrNum[dofj]) == -1) return;
-  }
-  else { rowi = dofi; colj = dofj; }
-
-  if(colj<rowi) { // swap row & col to be in the upper part
-    int tmp = colj;
-    colj = rowi;
-    rowi = tmp;
-  }
-  // upper part
-  mstart = xunonz[colj];
-  mstop  = xunonz[colj+1];
-  for(m = mstart; m < mstop; ++m) {
-    if(rowu[m-1] == (rowi+1)) {
-      unonz[m-1] += d;
-      break;
     }
   }
 }
@@ -499,13 +466,6 @@ GenMumpsSolver<Scalar>::printStatistics()
 template<class Scalar>
 GenMumpsSolver<Scalar>::~GenMumpsSolver()
 {
-/*
-  if(unonz) { delete [] unonz; unonz = 0; }
-#ifdef USE_MUMPS
-  mumpsId.id.job = -2; // -2: destroys instance of mumps package
-  Tmumps_c(mumpsId.id);
-#endif
-*/
 #ifdef USE_MUMPS
   if(mpicomm) mpicomm->sync();
 

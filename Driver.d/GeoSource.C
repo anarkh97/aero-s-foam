@@ -599,7 +599,7 @@ template<class Scalar>
 GenSubDomain<Scalar> *
 GeoSource::readDistributedInputFiles(int localSubNum, int subNum)
 {
-    return NULL;    //CRW
+  return NULL;
 }
 #endif
 
@@ -732,11 +732,11 @@ GeoSource::outputNodeVectors(int fileNum, DComplex (*glv)[bound], int outputSize
         for (i = 0; i < outputSize; i++)  {
           if (outputSize == 1)
             fprintf(oinfo[fileNum].filptr, " % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E \n",
-                  w,p,std::abs(glv[i][0]), w,p,std::abs(glv[i][1]), w,p,std::abs(glv[i][2]),    //CRW
+                  w,p,std::abs(glv[i][0]), w,p,std::abs(glv[i][1]), w,p,std::abs(glv[i][2]),
                   w,p,arg(glv[i][0]), w,p,arg(glv[i][1]), w,p,arg(glv[i][2]));
          else
            filePrint(oinfo[fileNum].filptr, " % *.*E % *.*E % *.*E\n",
-                    w,p,std::abs(glv[i][0]), w,p,std::abs(glv[i][1]), w,p,std::abs(glv[i][2]));    //CRW
+                    w,p,std::abs(glv[i][0]), w,p,std::abs(glv[i][1]), w,p,std::abs(glv[i][2]));
         }
         // print phase
         if (outputSize != 1) {
@@ -759,7 +759,7 @@ GeoSource::outputNodeVectors(int fileNum, DComplex (*glv)[bound], int outputSize
           for(int j = 0; j < outputSize; j++) {
             double proj[3];
             for(int k=0; k<3; ++k)
-              proj[k] = std::abs(glv[j][k])*cos(arg(glv[j][k])-phi);    //CRW
+              proj[k] = std::abs(glv[j][k])*cos(arg(glv[j][k])-phi);
             filePrint(oinfo[fileNum].filptr, " % *.*E % *.*E % *.*E\n",
                       w,p,proj[0], w,p,proj[1], w,p,proj[2]);
           }
@@ -924,18 +924,18 @@ void GeoSource::outputNodeVectors6(int fileNum, DComplex (*xyz)[bound],
           if(outputSize == 1)
             fprintf(oinfo[fileNum].filptr,
                   " % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E\n",
-                  w, p, std::abs(xyz[inode][0]), w, p, std::abs(xyz[inode][1]),    //CRW
-                  w, p, std::abs(xyz[inode][2]), w, p, std::abs(xyz[inode][3]),    //CRW
-                  w, p, std::abs(xyz[inode][4]), w, p, std::abs(xyz[inode][5]),    //CRW
+                  w, p, std::abs(xyz[inode][0]), w, p, std::abs(xyz[inode][1]),
+                  w, p, std::abs(xyz[inode][2]), w, p, std::abs(xyz[inode][3]),
+                  w, p, std::abs(xyz[inode][4]), w, p, std::abs(xyz[inode][5]),
                   w, p, std::arg(xyz[inode][0]), w, p, arg(xyz[inode][1]),
                   w, p, std::arg(xyz[inode][2]), w, p, arg(xyz[inode][3]),
                   w, p, std::arg(xyz[inode][4]), w, p, arg(xyz[inode][5]));
           else
             filePrint(oinfo[fileNum].filptr,
                     " % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
-                    w, p, std::abs(xyz[inode][0]), w, p, std::abs(xyz[inode][1]),    //CRW
-                    w, p, std::abs(xyz[inode][2]), w, p, std::abs(xyz[inode][3]),    //CRW
-                    w, p, std::abs(xyz[inode][4]), w, p, std::abs(xyz[inode][5]));    //CRW
+                    w, p, std::abs(xyz[inode][0]), w, p, std::abs(xyz[inode][1]),
+                    w, p, std::abs(xyz[inode][2]), w, p, std::abs(xyz[inode][3]),
+                    w, p, std::abs(xyz[inode][4]), w, p, std::abs(xyz[inode][5]));
         }
 
         // print phase
@@ -962,7 +962,7 @@ void GeoSource::outputNodeVectors6(int fileNum, DComplex (*xyz)[bound],
           for(int j = 0; j < outputSize; j++) {
             double proj[6];
             for(int k=0; k<6; ++k)
-              proj[k] = std::abs(xyz[j][k])*cos(arg(xyz[j][k])-phi);    //CRW
+              proj[k] = std::abs(xyz[j][k])*cos(arg(xyz[j][k])-phi);
             filePrint(oinfo[fileNum].filptr,
                       " % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
                       w, p, proj[0], w, p, proj[1], w, p, proj[2],

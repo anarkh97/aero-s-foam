@@ -18,9 +18,23 @@ class ElastoPlasticPlaneStressMaterial
                                                         std::vector<double> * Cep = 0, 
                                                         const bool UpdateFlag = true) = 0;
   
+  //! Returns the plastic strain in material (3x1 vector)
+  virtual std::vector<double> GetMaterialPlasticStrain() const = 0;
+
   //! Returns equivalent plastic strain in material
   virtual double GetMaterialEquivalentPlasticStrain() const = 0;
 
+  //! Returns back stress in material (3x1 vector)
+  virtual std::vector<double> GetMaterialBackStress() const = 0;
+
+  //! Set the plastic strain in the material
+  virtual void SetMaterialPlasticStrain(const std::vector<double> &EPSplastic) = 0;
+
+  //! Set the equivalent plastic strain in the material
+  virtual void SetMaterialEquivalentPlasticStrain(double equivEPSplastic) = 0;
+
+  //! Set the back stress in the material
+  virtual void SetMaterialBackStress(const std::vector<double> &BackStress) = 0;
 };
 
 #endif

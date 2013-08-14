@@ -96,22 +96,28 @@ Domain::openFile(char *fileName, const char *extension)
  strcat(file, extension);
 
  FILE *filePtr;
- if((filePtr= fopen(file,"w")) == (FILE *) 0 )
-   fprintf(stderr," *** ERROR: Cannot open %s ***\n",file );
+ if((filePtr= fopen(file,"w")) == (FILE *) 0 ) {
+   fprintf(stderr," *** ERROR: Cannot open %s, exiting...\n",file );
+   exit(0);
+ }
 
  return filePtr;
 }
 
 void
-Domain::printStatistics()
+Domain::printStatistics(bool domain_decomp)
 {
    filePrint(stderr,"\n ---------- PROBLEM PARAMETERS --------");
-   filePrint(stderr,"\n ... # Nodes              = %7d ...",numnodes);
+   filePrint(stderr,"\n ... # Nodes              = %7d ...",numnodes-geoSource->internalNumNodes());
    filePrint(stderr,"\n ... # Elements           = %7d ...",numele);
-   filePrint(stderr,"\n ... # Unconstrained dofs = %7d ...",numUncon());
+   if(!domain_decomp) {
+     filePrint(stderr,"\n ... # Unconstrained dofs = %7d ...",numUncon());
+   }
    filePrint(stderr,"\n ... # Constrained dofs   = %7d ...",
            numDirichlet+numComplexDirichlet);
-   filePrint(stderr,"\n ... Total # dofs         = %7d ...",numdof());
+   if(!domain_decomp) {
+     filePrint(stderr,"\n ... Total # dofs         = %7d ...",numdof());
+   }
    filePrint(stderr,"\n ... # Loaded dofs        = %7d ...",
            numNeuman+numComplexNeuman);
    if(gravityFlag())
@@ -1372,9 +1378,6 @@ Domain::makeTopFile(int topFlag)
 
  }
 
- // print model statistics to screen
- //printStatistics();
-
  // ... CALCULATE STRUCTURE MASS IF REQUESTED
  if(sinfo.massFlag)  {
    Renumber rnum = getRenumbering();
@@ -1450,14 +1453,6 @@ Domain::makeAxiTopFile(int topFlag, int numSlices) {
            cinfo->elemSetName,cinfo->nodeSetName);
  int exactNumEle=0;
 
-/*
- fprintf(stderr,"\n ---------- PROBLEM PARAMETERS --------");
- fprintf(stderr,"\n ... # nodes              = %7d ...",numNodes());
- fprintf(stderr,"\n ... # elements           = %7d ...",numElements());
- fprintf(stderr,"\n ... # unconstrained dofs = %7d ...",numUncon());
- fprintf(stderr,"\n ... total # dofs         = %7d ...",numdof());
- fprintf(stderr,"\n --------------------------------------\n");
-*/
  for (iele=0; iele<numele; ++iele) {
    AxiHElement *elem = dynamic_cast<AxiHElement *>(packedEset[iele]);
    if (elem == 0)  {
@@ -2425,13 +2420,11 @@ Domain::getKtimesU(Vector &dsp, double *bcx, Vector &ext_f, double eta,
           elDisp[k] = dsp[cn];
         }
         else {
-          //XXXXcerr << "bcx not added!!!\n";
           elDisp[k] = 0.0;
         }
      }
 
      if(kelArray) {
-       //kel=kelArray[iele];
        kel.copy(kelArray[iele]); // PJSA 4-1-08
      }
      else {

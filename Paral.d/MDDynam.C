@@ -109,7 +109,7 @@ MultiDomainOp::getConstForce(int isub)
 {
   // Get the pointer to the part of the vector f correspoding to subdomain sNum
   StackVector f(v1->subData(isub),v1->subLen(isub));
-  sd[isub]->computeConstantForce(f, (*Kuc)[isub]);
+  sd[isub]->computeConstantForce(f, (Kuc) ? (*Kuc)[isub] : NULL);
 }
 
 void
@@ -171,7 +171,8 @@ MultiDomDynPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dynOps, 
       sprintf(ext,"_%d",sd->subNum()+1);
       if(domain->solInfo().isNonLin()) {
         StackVector vel_ni(distState.getVeloc().subData(i), distState.getVeloc().subLen(i));
-        sd->writeRestartFile(t, tIndex, vel_ni, (*geomState)[i], ext);
+        StackVector acc_ni(distState.getAccel().subData(i), distState.getAccel().subLen(i));
+        sd->writeRestartFile(t, tIndex, vel_ni, acc_ni, (*geomState)[i], ext);
       }
       else {
         StackVector d_ni(distState.getDisp().subData(i), distState.getDisp().subLen(i));
@@ -262,12 +263,23 @@ MultiDomDynPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dynOps, 
 MultiDomainDynam::~MultiDomainDynam() 
 { 
   int nsub = decDomain->getNumSub(); 
-  delete decDomain; 
   delete times; 
   if(geomState) delete geomState; 
   if(kelArray) { for(int i=0; i<nsub; ++i) delete [] kelArray[i]; delete [] kelArray; }
   if(melArray) { for(int i=0; i<nsub; ++i) delete [] melArray[i]; delete [] melArray; }
-  if(allCorot) { for(int i=0; i<nsub; ++i) delete [] allCorot[i]; delete [] allCorot; } 
+  if(allCorot) {
+    for(int i=0; i<nsub; ++i) {
+      if(allCorot[i]) {
+        for(int iElem = 0; iElem < decDomain->getSubDomain(i)->numElements(); ++iElem) {
+          if(allCorot[i][iElem] && (allCorot[i][iElem] != dynamic_cast<Corotator*>(decDomain->getSubDomain(i)->getElementSet()[iElem])))
+            delete allCorot[i][iElem];
+        }
+        delete [] allCorot[i];
+      }
+    }
+    delete [] allCorot;
+  }
+  delete decDomain;
 }
 
 MDDynamMat *
@@ -305,6 +317,7 @@ MultiDomainDynam::MultiDomainDynam(Domain *d)
   melArray = 0;
   allCorot = 0;
   geomState = 0;
+  dynMat = 0;
 }
                                                                                                  
 const DistrInfo &
@@ -368,7 +381,7 @@ MultiDomainDynam::preProcess()
     times->corotatorTime += getTime();
 
     kelArray = new FullSquareMatrix*[decDomain->getNumSub()];
-    if(domain->solInfo().isNonLin() && domain->solInfo().newmarkBeta == 0)
+    if(domain->solInfo().isNonLin() && (domain->solInfo().newmarkBeta == 0 || domain->solInfo().samplingPodRom))
       melArray = new FullSquareMatrix*[decDomain->getNumSub()];
     execParal(decDomain->getNumSub(), this, &MultiDomainDynam::makeSubElementArrays);
   }
@@ -405,10 +418,12 @@ MultiDomainDynam::makeSubElementArrays(int isub)
    (*geomState)[isub]->updatePrescribedDisplacement(sd->getInitDisp6(), sd->numInitDisp6(), sd->getNodes());
 
   // build the element stiffness matrices.
-  Vector elementInternalForce(sd->maxNumDOF(), 0.0);
-  Vector residual(sd->numUncon(), 0.0);
-  sd->getStiffAndForce(*(*geomState)[isub], elementInternalForce, allCorot[isub], kelArray[isub], residual,
-                       1.0, 0.0, (*geomState)[isub], (Vector*) NULL, melArray[isub]);
+  if(!domain->solInfo().ROMPostProcess) {
+    Vector elementInternalForce(sd->maxNumDOF(), 0.0);
+    Vector residual(sd->numUncon(), 0.0);
+    sd->getStiffAndForce(*(*geomState)[isub], elementInternalForce, allCorot[isub], kelArray[isub], residual,
+                         1.0, 0.0, (*geomState)[isub], (Vector*) NULL, melArray[isub]);
+  }
 }
 
 void
@@ -717,7 +732,7 @@ void
 MultiDomainDynam::getConstForce(DistrVector& v)
 {
   times->formRhs -= getTime();
-  MultiDomainOp mdop(&MultiDomainOp::getConstForce, decDomain->getAllSubDomains(), &v, dynMat->Kuc);
+  MultiDomainOp mdop(&MultiDomainOp::getConstForce, decDomain->getAllSubDomains(), &v, (dynMat) ? dynMat->Kuc : NULL);
   threadManager->execParal(decDomain->getNumSub(), &mdop);
   times->formRhs += getTime();
 }
@@ -745,6 +760,7 @@ MultiDomainDynam::getInitState(SysState<DistrVector>& state)
         sprintf(ext,"_%d",sd->subNum()+1);
         sd->readRestartFile(d_ni, v_ni, a_ni, v_pi, sd->getBcx(), sd->getVcx(), *((*geomState)[i]), ext);
         delete [] ext;
+        sd->updateStates((*geomState)[i],*((*geomState)[i]),allCorot[i]);
       }
     }
     domain->solInfo().initialTimeIndex = decDomain->getSubDomain(0)->solInfo().initialTimeIndex;
@@ -900,14 +916,21 @@ void
 MultiDomainDynam::computeStabilityTimeStep(double &dt, MDDynamMat &dMat)
 {
   double dt_c;
+  int eid_c;
   if(domain->solInfo().isNonLin()) {
     dt_c = std::numeric_limits<double>::infinity();
+    eid_c = -1;
     for(int i = 0; i < decDomain->getNumSub(); ++i) {
-      double dt_ci = decDomain->getSubDomain(i)->computeStabilityTimeStep(kelArray[i], melArray[i], (*geomState)[i]);
+      int eid_ci;
+      double dt_ci = decDomain->getSubDomain(i)->computeStabilityTimeStep(kelArray[i], melArray[i], (*geomState)[i], eid_ci);
+      if(dt_ci < dt_c) eid_c = eid_ci;
       dt_c = std::min(dt_c,dt_ci);
     }
 #ifdef DISTRIBUTED
+    double dt_cp = dt_c;
     dt_c = structCom->globalMin(dt_c);
+    if(dt_cp != dt_c) eid_c = -1;
+    eid_c = structCom->globalMax(eid_c);
 #endif
   }
   else
@@ -917,6 +940,9 @@ MultiDomainDynam::computeStabilityTimeStep(double &dt, MDDynamMat &dMat)
     filePrint(stderr," **************************************\n");
     filePrint(stderr," Stability max. timestep could not be  \n");
     filePrint(stderr," determined for this model.            \n");
+    if(domain->solInfo().isNonLin() && eid_c > -1) {
+      filePrint(stderr," Element with inf. time step = %7d\n",eid_c+1);
+    }
     filePrint(stderr," Specified time step is selected\n");
     filePrint(stderr," **************************************\n");
     domain->solInfo().stable = 0;
@@ -932,6 +958,9 @@ MultiDomainDynam::computeStabilityTimeStep(double &dt, MDDynamMat &dMat)
     filePrint(stderr," --------------------------------------\n");
     filePrint(stderr," Specified time step      = %10.4e\n",dt);
     filePrint(stderr," Stability max. time step = %10.4e\n",dt_c);
+    if(domain->solInfo().isNonLin()) {
+      filePrint(stderr," Element with min. time step = %7d\n",eid_c+1);
+    }
     filePrint(stderr," **************************************\n");
     if( (domain->solInfo().stable == 1 && dt_c < dt) || domain->solInfo().stable == 2 ) {
       dt = dt_c;

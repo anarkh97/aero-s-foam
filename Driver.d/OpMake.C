@@ -116,7 +116,6 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
 
  bool isShifted = geoSource->isShifted();
  bool isDamped = (alphaDamp != 0.0) || (betaDamp != 0.0) || packedEset.hasDamping();
-fprintf(stderr,"gugu isShifted %d  isDamped %d\n",int(isShifted),int(isDamped));
 
  double *izarray = (isShifted || isDamped) ? static_cast<double *>(dbg_alloca(size)) : 0;
  FullSquareMatrix izel(1, izarray); // izel stores the imaginary part of impedence matrix zel

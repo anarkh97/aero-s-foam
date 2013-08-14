@@ -133,19 +133,17 @@ GenVecBasis<double, GenDistrVector>::makeSparseBasis(const std::vector<std::vect
   int dof1, numdofs;
 
   compressedKey.clear();
-  int dof0 = 0;
-  for(int n=0; n<nodeVec.size(); n++) {
+  for(int n = 0; n < nodeVec.size(); n++) {
     for(int i = 0; i < nodeVec[n].size(); i++) {
       dof1 = dsa[n]->firstdof(nodeVec[n][i]);
       numdofs = dsa[n]->weight(nodeVec[n][i]);
       for(int j = 0; j < numdofs; j++) {
-        compressedKey.push_back(dof0+dof1+j);
+        compressedKey.push_back(vectors_[0].subOffset(n)+dof1+j);
       }
     }
-    dof0 += dsa[n]->size();
   }
 
-  new (&compressedBasis) Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic>(compressedKey.size(), vectorCount()); // O Col major, 1 RowMajor
+  new (&compressedBasis) Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic>(compressedKey.size(), vectorCount());
 
   for(int i = 0; i < compressedKey.size(); i++) {
     for(int j = 0; j < vectorCount(); j++) {
@@ -163,19 +161,17 @@ GenVecBasis<double, GenDistrVector>::makeSparseBasis2(const std::vector<std::vec
   int dof1, numdofs;
 
   compressedKey2.clear();
-  int dof0 = 0;
-  for(int n=0; n<nodeVec.size(); n++) {
+  for(int n = 0; n < nodeVec.size(); n++) {
     for(int i = 0; i < nodeVec[n].size(); i++) {
       dof1 = dsa[n]->firstdof(nodeVec[n][i]);
       numdofs = dsa[n]->weight(nodeVec[n][i]);
       for(int j = 0; j < numdofs; j++) {
-        compressedKey2.push_back(dof0+dof1+j);
+        compressedKey2.push_back(vectors_[0].subOffset(n)+dof1+j);
       }
     }
-    dof0 += dsa[n]->size();
   }
 
-  new (&compressedBasis2) Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic>(compressedKey2.size(), vectorCount()); // O Col major, 1 RowMajor
+  new (&compressedBasis2) Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic>(compressedKey2.size(), vectorCount());
 
   for(int i = 0; i < compressedKey2.size(); i++) {
     for(int j = 0; j < vectorCount(); j++) {

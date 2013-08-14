@@ -119,6 +119,7 @@ class GenDistrVector {
     Scalar *data() const      { return v;          }
     Scalar *subData(int i)    { return subV[i];    }
     int subLen(int i)         { return subVLen[i]; }
+    int subOffset(int i)      { return subVOffset[i]; }
     int numThreads() const    { return nT; }
     int threadLen(int i)      { return thLen[i];   }
     int threadOffset(int i)   { return thOffset[i]; }

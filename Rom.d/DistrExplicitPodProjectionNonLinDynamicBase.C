@@ -156,21 +156,21 @@ DistrExplicitPodPostProcessor::makeSensorBasis(DistrVecBasis *fullBasis) {
 void
 DistrExplicitPodPostProcessor::subBuildSensorNodeVector(int iSub) {
 
- std::vector<int> &subSensorNodes = nodeVector[iSub];
+  std::vector<int> &subSensorNodes = nodeVector[iSub];
 
- //load vector of sensor nodes converted to local numbering
- for (int iOut = 0; iOut < numOutInfo; iOut++) {
-   if(oinfo[iOut].nodeNumber != -1) {
-     int locNode = decDomain->getSubDomain(iSub)->globalToLocal(oinfo[iOut].nodeNumber);
-     if(locNode > -1) 
-       subSensorNodes.push_back(locNode);
-   }
- }
+  //load vector of sensor nodes converted to local numbering
+  for (int iOut = 0; iOut < numOutInfo; iOut++) {
+    if(oinfo[iOut].nodeNumber != -1) {
+      int locNode = decDomain->getSubDomain(iSub)->globalToLocal(oinfo[iOut].nodeNumber);
+      if(locNode > -1) 
+        subSensorNodes.push_back(locNode);
+    }
+  }
 
- //if multiple outputs are requested for a single node, cull redundancies from node vector
- std::sort(subSensorNodes.begin(), subSensorNodes.end());
- std::vector<int>::iterator packedNodeIt = std::unique(subSensorNodes.begin(), subSensorNodes.end());
- subSensorNodes.resize(packedNodeIt-subSensorNodes.begin());
+  //if multiple outputs are requested for a single node, cull redundancies from node vector
+  std::sort(subSensorNodes.begin(), subSensorNodes.end());
+  std::vector<int>::iterator packedNodeIt = std::unique(subSensorNodes.begin(), subSensorNodes.end());
+  subSensorNodes.resize(packedNodeIt-subSensorNodes.begin());
 }
 
 void
@@ -386,7 +386,6 @@ DistrExplicitPodProjectionNonLinDynamicBase::printFullNorm(DistrVector &v) {
   normalizedBasis_.projectUp(v,*tempVec);
 
   filePrint(stderr,"%1.4e\n",tempVec->norm());
-
 }
 
 void
@@ -424,7 +423,6 @@ DistrExplicitPodProjectionNonLinDynamicBase::updateState(double dt_n_h, DistrVec
     normalizedBasis_.projectUp(v_n_h, *v_n);
     geomState->setVelocity(*v_n, 2);
   }
-
 }
 
 void DistrExplicitPodProjectionNonLinDynamicBase::getConstForce(DistrVector& v)

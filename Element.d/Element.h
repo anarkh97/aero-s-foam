@@ -153,6 +153,8 @@ class StructProp {
 
         double betaDamp; // Rayleigh stiffness damping coefficient
         double alphaDamp; // Rayleigh mass damping coefficient
+        double etaDamp; // Structural damping coefficient
+        int etaDampTable; // Structural damping coefficient table id
 
         double kappaHelm; // wave number for Helmholtz proplem
         double kappaHelmImag; // imaginary part of the wavenumber for
@@ -203,6 +205,7 @@ class StructProp {
                        P = 0.0; Ta = 0.0; sigma = 0.0;
                        kappaHelm = 0.0; kappaHelmImag = 0.0; fp.PMLtype = 0;
                        soundSpeed = 1.0; alphaDamp = 0.0; betaDamp = 0.0;
+                       etaDamp = 0.0; etaDampTable = -1;
                        ymin = 0.0; ymax = 0.0;
                        zmin = 0.0; zmax = 0.0; isReal = false; isRigid = false;
                        lagrangeMult = true; penalty = 0.0; initialPenalty = 0.0;
@@ -538,6 +541,7 @@ class Element {
         Category getCategory() { return category; } 
         void setCategory(Category _category) { category = _category; } // currently this is only called for thermal elements, could be extended.
         bool isDamped() { return (getCategory() != Thermal && !isSpring()) ? (prop && (prop->alphaDamp != 0.0 || prop->betaDamp != 0.0)) : false; }
+        bool isSDamped() { return (getCategory() != Thermal && !isSpring()) ? (prop && (prop->etaDamp != 0.0 )) : false; }
 
         virtual int getMassType() { return 1; }  // 0: lumped, 1: consistent, 2: both
                                                  // notes: (a) if getMassType returns 0 then lumped gravity force will always be used for dynamics

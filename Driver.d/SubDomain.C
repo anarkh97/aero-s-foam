@@ -6119,10 +6119,10 @@ GenSubDomain<Scalar>::pade(GenStackVector<Scalar> *sol,  GenStackVector<Scalar> 
   // PJSA 3-9-05: general N-point pade extrapolation
   if(rebuildPade) {
     // first time, allocate storage
-    int l = domain->solInfo().padeL;
-    int m = domain->solInfo().padeM;
-    int padeN = domain->solInfo().padeN;
-    int nRHS = domain->solInfo().nFreqSweepRHS;
+    int l = domain->solInfo().getSweepParams()->padeL;
+    int m = domain->solInfo().getSweepParams()->padeM;
+    int padeN = domain->solInfo().getSweepParams()->padeN;
+    int nRHS = domain->solInfo().getSweepParams()->nFreqSweepRHS;
     if(subNumber == 0) fprintf(stderr, " ... Computing %d-point Pade coefficients (l = %d, m = %d) ... \n", padeN, l, m);
     ia = l+1;
     ib = m+1;

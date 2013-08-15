@@ -114,6 +114,11 @@ GenMultiDomainStatic<Scalar>::rebuildSolver()
   ops.Kuc = allOps.Kuc;
   ops.M = allOps.M;
   ops.Muc = allOps.Muc;
+// RT: 053013
+  ops.C_deriv = allOps.C_deriv;
+  ops.Cuc_deriv = allOps.Cuc_deriv;
+//
+
   decDomain->rebuildOps(ops, 0.0, 0.0, 1.0);
   paralApply(decDomain->getNumSub(), decDomain->getAllSubDomains(), &GenSubDomain<Scalar>::setRebuildPade, true);
   times->getFetiSolverTime += getTime(); // PJSA 3-30-06
@@ -386,7 +391,7 @@ GenMultiDomainStatic<Scalar>::subPade(int iSub, GenDistrVector<Scalar> *sol, Gen
 {
   GenSubDomain<Scalar> *sd = decDomain->getSubDomain(iSub);
   GenStackVector<Scalar> *sub_sol = new GenStackVector<Scalar>(sol->subData(iSub), sol->subLen(iSub));
-  int usize = (domain->solInfo().nFreqSweepRHS+1)*domain->solInfo().padeN;
+  int usize = (domain->solInfo().getSweepParams()->nFreqSweepRHS+1)*domain->solInfo().getSweepParams()->padeN;
   GenStackVector<Scalar> **sub_u = new GenStackVector<Scalar> * [usize];
   for(int i=0; i<usize; ++i)
     sub_u[i]= new  GenStackVector<Scalar>(u[i]->subData(iSub), u[i]->subLen(iSub));

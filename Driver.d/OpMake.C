@@ -94,10 +94,13 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
  // Rayleigh damping coefficients: C = alpha*M + beta*K
  double alphaDamp = sinfo.alphaDamp, alpha;
  double  betaDamp = sinfo.betaDamp, beta;
+ // Structural damping coefficient
+ double etaDamp = sinfo.etaDamp, eta;
 
  int size = sizeof(double)*maxNumDOFs*maxNumDOFs;
 
  double *karray = new double[maxNumDOFs*maxNumDOFs];
+ double *ikarray = new double[maxNumDOFs*maxNumDOFs];
  double *marray = new double[maxNumDOFs*maxNumDOFs];
 
  FullSquareMatrix kel, mel, cel;
@@ -109,6 +112,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
 
  FullSquareMatrixC kcel(1, kcarray);
  FullSquareMatrixC mcel(1, mcarray);
+ FullSquareMatrix ikel(1, ikarray);
 
  bool isShifted = geoSource->isShifted();
  bool isDamped = (alphaDamp != 0.0) || (betaDamp != 0.0) || packedEset.hasDamping();
@@ -141,13 +145,16 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    StructProp *prop = packedEset[iele]->getProperty();
    if(packedEset[iele]->isSommerElement()) continue;
    bool isComplexF = (prop && prop->fp.PMLtype != 0);
-   if(packedEset[iele]->isConstraintElement()) { alpha = beta = 0; }
+   if(packedEset[iele]->isConstraintElement()) { alpha = beta = eta = 0; }
    else {
      alpha = (packedEset[iele]->isDamped()) ? prop->alphaDamp : alphaDamp;
      beta = (packedEset[iele]->isDamped()) ? prop->betaDamp : betaDamp;
+     eta = (packedEset[iele]->isSDamped()) ? prop->etaDamp : etaDamp;
    }
+   bool isSDamped = (eta != 0.0);
    complex<double> kappa2 = packedEset[iele]->helmCoefC();
    omega2 = geoSource->shiftVal();
+   omega = sqrt(omega2);
 
    // Form element real and complex stiffness matrices in kel and kcel
    if(matrixTimers) matrixTimers->formTime -= getTime();
@@ -175,6 +182,14 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
      if(ops.K) ops.K->add(kel,(*allDOFs)[iele]);
      if(!isShifted && ops.Kuc) ops.Kuc->add(kel,(*allDOFs)[iele]);
      if(!isShifted && ops.Kcc) ops.Kcc->add(kel,(*allDOFs)[iele]);
+     
+     if (isShifted && isSDamped) {
+       int dim = kel.dim();
+       ikel.setSize(dim);
+       for(int i = 0; i < dim; ++i) for(int j = 0; j < dim; ++j)
+             ikel[i][j] = -eta*kel[i][j];
+       if(isStructureElement(iele)) if(ops.K) ops.K->addImaginary(ikel,(*allDOFs)[iele]);
+     }
      if(packedEset[iele]->isConstraintElement()) {
        if(sinfo.isNonLin() && Mcoef == 1 && Kcoef == 0 && Ccoef == 0 && sinfo.newmarkBeta != 0) {
          //note: now I am using the tangent stiffness from kelArray so initial accelerations
@@ -230,6 +245,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
 	 for(i = 0; i < dim; ++i)
 	   for(j = 0; j < dim; ++j)
              izel[i][j] = -omega*(beta*kel[i][j] + alpha*mel[i][j]);
+//if (iele==0) fprintf(stderr,"gaga beta: %.16e alpha: %.16e\n",beta,alpha);
        }
      }
      if(isComplexF) {
@@ -358,6 +374,19 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
        if(ops.Kcc) ops.Kcc->addImaginary(izel,(*allDOFs)[iele]);
        if(ops.spp) ops.spp->addImaginary(izel,(*allDOFs)[iele]);
      }
+     if(isShifted && isSDamped && isStructureElement(iele)) {
+       if(mdds_flag) {
+#if defined(_OPENMP)
+         #pragma omp critical
+#endif
+         mat->addImaginary(ikel,(*domain->getAllDOFs())[subCast->getGlElems()[iele]]);
+       }
+       else if(mat) mat->addImaginary(ikel,(*allDOFs)[iele]);
+       if(ops.Kuc) ops.Kuc->addImaginary(ikel,(*allDOFs)[iele]);
+       if(ops.Kcc) ops.Kcc->addImaginary(ikel,(*allDOFs)[iele]);
+       if(ops.spp) ops.spp->addImaginary(ikel,(*allDOFs)[iele]);
+     }
+
    }
 
    // Assemble the element damping matrix cel in ops.C and ops.C_deriv
@@ -755,6 +784,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
 
  delete [] karray;
  delete [] marray;
+ delete [] ikarray;
  delete [] kcarray;
  delete [] mcarray;
  delete [] karrayC;
@@ -1299,13 +1329,14 @@ Domain::getSolverAndKuc(AllOps<Scalar> &allOps, FullSquareMatrix *kelArray, bool
  }
 
  // for freqency sweep: need M, Muc, C, Cuc
- if((sinfo.doFreqSweep && sinfo.nFreqSweepRHS > 1) || sinfo.isAdaptSweep) {
+   bool isDamped = (sinfo.alphaDamp != 0.0) || (sinfo.betaDamp != 0.0) || packedEset.hasDamping();
+ if((sinfo.doFreqSweep && (sinfo.getSweepParams()->nFreqSweepRHS > 1 || isDamped)) || sinfo.getSweepParams()->isAdaptSweep) {
    //---- UH ----
-   if(sinfo.freqSweepMethod == SolverInfo::PadeLanczos ||
-      sinfo.freqSweepMethod == SolverInfo::GalProjection ||
-      sinfo.freqSweepMethod == SolverInfo::KrylovGalProjection ||
-      sinfo.freqSweepMethod == SolverInfo::QRGalProjection ||
-      sinfo.isAdaptSweep) {
+   if(sinfo.getSweepParams()->freqSweepMethod == SweepParams::PadeLanczos ||
+      sinfo.getSweepParams()->freqSweepMethod == SweepParams::GalProjection ||
+      sinfo.getSweepParams()->freqSweepMethod == SweepParams::KrylovGalProjection ||
+      sinfo.getSweepParams()->freqSweepMethod == SweepParams::QRGalProjection ||
+      sinfo.getSweepParams()->isAdaptSweep) {
      if (allOps.K)
        delete allOps.K;
      if (allOps.M) delete allOps.M;
@@ -1319,23 +1350,22 @@ Domain::getSolverAndKuc(AllOps<Scalar> &allOps, FullSquareMatrix *kelArray, bool
    if(sinfo.isCoupled) allOps.M = constructNBSparseMatrix<Scalar>();  // unsymmetric
    else allOps.M = constructDBSparseMatrix<Scalar>();  // symmetric
    allOps.Muc = constructCuCSparse<Scalar>();
-   bool isDamped = (sinfo.alphaDamp != 0.0) || (sinfo.betaDamp != 0.0);
    if(isDamped || (numSommer > 0)) {
      int numC_deriv;
      if((numSommer > 0) && ((sommerfeldType == 2) || (sommerfeldType == 4)))
-       numC_deriv = sinfo.nFreqSweepRHS - 1;
+       numC_deriv = sinfo.getSweepParams()->nFreqSweepRHS - 1;
      else
        numC_deriv = 1;
-     allOps.C_deriv = new GenSparseMatrix<Scalar> * [sinfo.nFreqSweepRHS - 1];
+     allOps.C_deriv = new GenSparseMatrix<Scalar> * [sinfo.getSweepParams()->nFreqSweepRHS - 1];
      for(int n=0; n<numC_deriv; ++n)
        allOps.C_deriv[n] = constructDBSparseMatrix<Scalar>();
-     for(int n=numC_deriv; n<sinfo.nFreqSweepRHS - 1; ++n)
+     for(int n=numC_deriv; n<sinfo.getSweepParams()->nFreqSweepRHS - 1; ++n)
        allOps.C_deriv[n] = 0;
      if(c_dsa->size() > 0 && (c_dsa->size() - dsa->size()) != 0) {
-       allOps.Cuc_deriv = new GenSparseMatrix<Scalar> * [sinfo.nFreqSweepRHS - 1];
+       allOps.Cuc_deriv = new GenSparseMatrix<Scalar> * [sinfo.getSweepParams()->nFreqSweepRHS - 1];
        for(int n=0; n<numC_deriv; ++n)
          allOps.Cuc_deriv[n] = constructCuCSparse<Scalar>();
-       for(int n=numC_deriv; n<sinfo.nFreqSweepRHS - 1; ++n)
+       for(int n=numC_deriv; n<sinfo.getSweepParams()->nFreqSweepRHS - 1; ++n)
          allOps.Cuc_deriv[n] = 0;
      }
    }
@@ -2709,7 +2739,7 @@ Domain::assembleSommer(GenSparseMatrix<Scalar> *K, AllOps<Scalar> *ops)
        bt2Matrix = new DComplex [ms.dim()*ms.dim()*sizeof(DComplex)];
        for(int j=0; j<ms.dim()*ms.dim(); ++j) bt2Matrix[j] = 0.0;  // PJSA
        if(solInfo().doFreqSweep) {
-         int N = solInfo().nFreqSweepRHS - 1; // number of derivatives
+         int N = solInfo().getSweepParams()->nFreqSweepRHS - 1; // number of derivatives
          bt2nMatrix = new DComplex * [N];
          for(int n=1; n<=N; ++n) {
            bt2nMatrix[n-1] = new DComplex [ms.dim()*ms.dim()*sizeof(DComplex)];
@@ -2797,7 +2827,7 @@ Domain::assembleSommer(GenSparseMatrix<Scalar> *K, AllOps<Scalar> *ops)
        if (curvatureFlag != 1) {
          sommer[i]->BT2(nodes, curv_e, curv_f, curv_g, tau1, tau2, kappa, bt2Matrix);
          if(solInfo().doFreqSweep) {
-           int N = solInfo().nFreqSweepRHS - 1; // number of derivatives
+           int N = solInfo().getSweepParams()->nFreqSweepRHS - 1; // number of derivatives
            for(int n=1; n<=N; ++n)
              sommer[i]->BT2n(nodes, curv_e, curv_f, curv_g, tau1, tau2, kappa, bt2nMatrix[n-1], n);
          }
@@ -2840,7 +2870,7 @@ Domain::assembleSommer(GenSparseMatrix<Scalar> *K, AllOps<Scalar> *ops)
      }
      if(bt2Matrix) delete [] bt2Matrix;
      if(bt2nMatrix) {
-       int N = solInfo().nFreqSweepRHS - 1; // number of derivatives
+       int N = solInfo().getSweepParams()->nFreqSweepRHS - 1; // number of derivatives
        for(int n=1; n<=N; ++n) if(bt2nMatrix[n-1]) delete [] bt2nMatrix[n-1];
        delete [] bt2nMatrix;
      }
@@ -2858,7 +2888,7 @@ Domain::computeSommerDerivatives(double HH, double KK, int curvatureFlag, int *d
   // this function is for 3D second-order sommerfeld
   FullSquareMatrix mm(ms.dim(),(double*)dbg_alloca(ms.dim()*ms.dim()*sizeof(double)));
   ComplexD ii=ComplexD(0.0, 1.0);
-  int N = solInfo().nFreqSweepRHS - 1;  // number of derivatives
+  int N = solInfo().getSweepParams()->nFreqSweepRHS - 1;  // number of derivatives
   for(int n=1; n<=N; ++n) {
     DComplex cm = (n==1) ? ii : 0;
     cm -= ((KK-HH*HH)*ii/2.0 * pow(-1.0,n)*double(DFactorial(n))/pow((kappa+ii*2.0*HH),n+1));

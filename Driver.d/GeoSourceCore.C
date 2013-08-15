@@ -913,6 +913,7 @@ void GeoSource::setUpData()
     complex<double> ka = omega()/p->soundSpeed;
     p->kappaHelm = real(ka);
     p->kappaHelmImag = imag(ka);
+    domain->updateSDETAF(p,omega()+1e-9);
     if(p->type != StructProp::Constraint) {
       p->lagrangeMult = (sinfo.mpcDirect) ? false : sinfo.lagrangeMult;
       p->initialPenalty = p->penalty = (sinfo.mpcDirect) ? 0.0 : sinfo.penalty;
@@ -920,6 +921,10 @@ void GeoSource::setUpData()
     p->constraint_hess = sinfo.constraint_hess;
     p->constraint_hess_eps = sinfo.constraint_hess_eps;
     it++;
+  }
+  if (sinfo.doFreqSweep) {
+    domain->solInfo().curSweepParam = 0;
+    domain->setFrequencySet(0);
   }
 
   // Set up material properties
@@ -4495,4 +4500,5 @@ void ControlLawInfo::makeGlobalClaw(ControlLawInfo *subClaw)
   numUserForce += subClaw->numUserForce;
   numUserDisp += subClaw->numUserDisp;
 }
+
 

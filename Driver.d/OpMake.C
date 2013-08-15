@@ -1329,7 +1329,7 @@ Domain::getSolverAndKuc(AllOps<Scalar> &allOps, FullSquareMatrix *kelArray, bool
  }
 
  // for freqency sweep: need M, Muc, C, Cuc
-   bool isDamped = (sinfo.alphaDamp != 0.0) || (sinfo.betaDamp != 0.0) || packedEset.hasDamping();
+ bool isDamped = (sinfo.alphaDamp != 0.0) || (sinfo.betaDamp != 0.0) || packedEset.hasDamping();
  if((sinfo.doFreqSweep && (sinfo.getSweepParams()->nFreqSweepRHS > 1 || isDamped)) || sinfo.getSweepParams()->isAdaptSweep) {
    //---- UH ----
    if(sinfo.getSweepParams()->freqSweepMethod == SweepParams::PadeLanczos ||

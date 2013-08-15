@@ -146,7 +146,7 @@ struct SolverInfo {
 */
    double alphaDamp;    // Rayleigh Mass damping coefficient 
    double betaDamp;     // Rayleigh Stiffness damping coefficient
-   double etaDamp;     // Structural stiffness damping coefficient
+   double etaDamp;      // Structural stiffness damping coefficient
    double alphaTemp;
    double newmarkBeta;  // Newmark algorithm parameter (beta)
    double newmarkGamma; // Newmark algorithm parameter (gamma)
@@ -380,6 +380,7 @@ struct SolverInfo {
                   probType = SolverInfo::None;
                   alphaDamp = 0.0;
                   betaDamp = 0.0;
+                  etaDamp = 0.0;
                   modal = false;
                   lastIt = false;
                   mppFactor = 1.0;

@@ -4,17 +4,19 @@
 #include <Element.d/MpcElement.d/ConstraintFunction.d/ConstraintFunction.h>
 
 template<typename Scalar>
-class DotType2ConstraintFunction : public RheonomicConstraintFunction<9,Scalar,6,0,double>
+class DotType2ConstraintFunction : public RheonomicConstraintFunction<9,Scalar,7,0,double>
 {
    Eigen::Matrix<double,3,1> a0, b0hat;
+   double d0;
 
   public:
-    DotType2ConstraintFunction(const Eigen::Array<double,6,1>& sconst, const Eigen::Array<int,0,1>&)
+    DotType2ConstraintFunction(const Eigen::Array<double,7,1>& sconst, const Eigen::Array<int,0,1>&)
     {
       Eigen::Matrix<double,3,1> b0;
       a0 << sconst(0), sconst(1), sconst(2);
       b0 << sconst(3), sconst(4), sconst(5);
       b0hat = b0.normalized();
+      d0 = sconst(6);
     }
 
     Scalar operator() (const Eigen::Matrix<Scalar,9,1>& q, Scalar) const
@@ -42,7 +44,7 @@ class DotType2ConstraintFunction : public RheonomicConstraintFunction<9,Scalar,6
       q1.setFromOneVector(q.template segment<3>(3));
       Eigen::Matrix<Scalar,3,1> u2 = q.template segment<3>(6);
 
-      return (a0.template cast<Scalar>() + u2 - u1).dot(q1.toRotationMatrix()*b0hat.template cast<Scalar>());
+      return -d0 + (a0.template cast<Scalar>() + u2 - u1).dot(q1.toRotationMatrix()*b0hat.template cast<Scalar>());
     }
 
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW

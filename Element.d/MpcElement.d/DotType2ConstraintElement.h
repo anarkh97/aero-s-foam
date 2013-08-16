@@ -9,6 +9,7 @@ class DotType2ConstraintElement : public ConstraintFunctionElement<DotType2Const
   protected:
     double (*C0)[3]; // initial frame (axes stored row-wise)
     int axis;
+    double d0;
 
   public:
     DotType2ConstraintElement(int*, int, int=2);
@@ -18,7 +19,7 @@ class DotType2ConstraintElement : public ConstraintFunctionElement<DotType2Const
     static const DofSet NODALDOFS[2];
 
   protected:
-    void getConstants(CoordSet& cs, Eigen::Array<double,6,1>& sconst, Eigen::Array<int,0,1>&, GeomState *gs = NULL);
+    void getConstants(CoordSet& cs, Eigen::Array<double,7,1>& sconst, Eigen::Array<int,0,1>&, GeomState *gs = NULL);
 };
 
 #endif

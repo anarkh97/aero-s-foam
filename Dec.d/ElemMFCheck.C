@@ -115,7 +115,9 @@
 #include <Element.d/Joint.d/PlanarJoint.h>
 
 #include <Element.d/Joint.d/RevoluteDriver.h>
+#include <Element.d/Joint.d/PrismaticDriver.h>
 #include <Element.d/Joint.d/RevoluteActuator.h>
+#include <Element.d/Joint.d/PrismaticActuator.h>
 
 #include <Element.d/Joint.d/SphericalJointSpringCombo.h>
 #include <Element.d/Joint.d/TranslationalJointSpringCombo.h>
@@ -1394,7 +1396,19 @@ RevoluteDriver::examine(int sub, MultiFront *mf)
 }
 
 PrioInfo
+PrismaticDriver::examine(int sub, MultiFront *mf)
+{
+  return examineBeam2(sub, mf, nn);
+}
+
+PrioInfo
 RevoluteActuator::examine(int sub, MultiFront *mf)
+{
+  return examineBeam2(sub, mf, nn);
+}
+
+PrioInfo
+PrismaticActuator::examine(int sub, MultiFront *mf)
 {
   return examineBeam2(sub, mf, nn);
 }

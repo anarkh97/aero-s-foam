@@ -119,7 +119,9 @@ extern map<int,double > weightList;
 #include <Element.d/Joint.d/PinInSlotJoint.h>
 #include <Element.d/Joint.d/PlanarJoint.h>
 #include <Element.d/Joint.d/RevoluteDriver.h>
+#include <Element.d/Joint.d/PrismaticDriver.h>
 #include <Element.d/Joint.d/RevoluteActuator.h>
+#include <Element.d/Joint.d/PrismaticActuator.h>
 #include <Element.d/MpcElement.d/PointPointDistanceConstraintElement.h>
 #include <Element.d/MpcElement.d/PointLineDistanceConstraintElement.h>
 #include <Element.d/MpcElement.d/PointPlaneDistanceConstraintElement.h>
@@ -141,6 +143,7 @@ extern map<int,double > weightList;
 #include <Element.d/Joint.d/PrismaticJointSpringCombo.h>
 #include <Element.d/Joint.d/PinInSlotJointSpringCombo.h>
 #include <Element.d/Force.d/FollowerMomentElement.h>
+#include <Element.d/Force.d/FollowerForceElement.h>
 #endif
 
 #include <Element.d/Brick32.d/Brick32.h> 
@@ -574,6 +577,12 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
      case 127:
        ele = new (ba) PinInSlotJoint(n);
        break;
+     case 134:
+       ele = new (ba) PrismaticDriver(n);
+       break;
+     case 140:
+       ele = new (ba) FollowerForceElement(n);
+       break;
      case 143:
        ele = new (ba) FollowerMomentElement(n);
        break;
@@ -636,6 +645,9 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        break;
      case 227:
        ele = new (ba) PinInSlotJointSpringCombo(n);
+       break;
+     case 234:
+       ele = new (ba) PrismaticActuator(n);
        break;
 #endif
      case 128:

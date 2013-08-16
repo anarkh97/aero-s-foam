@@ -31,7 +31,7 @@ FollowerMomentElement::getConstants(CoordSet& cs, Eigen::Array<double,12,1>& sco
                                     GeomState* gs, double t)
 {
   Eigen::Vector3d M;
-  if(!C0) { 
+  if(!C0) {
     // in this case the components of M are given in the global frame
     M << prop->Mx, prop->My, prop->Mz;
   }

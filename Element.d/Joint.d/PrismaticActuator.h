@@ -1,12 +1,12 @@
-#ifndef _REVOLUTEACTUATOR_H_
-#define _REVOLUTEACTUATOR_H_
+#ifndef _PRISMATICACTUATOR_H_
+#define _PRISMATICACTUATOR_H_
 
 #include <Element.d/SuperElement.h>
 
-class RevoluteActuator : public SuperElement
+class PrismaticActuator : public SuperElement
 {
   public:
-    RevoluteActuator(int*);
+    PrismaticActuator(int*);
     void setProp(StructProp *p, bool myProp);
     int getTopNumber();
     bool hasRot() { return true; }

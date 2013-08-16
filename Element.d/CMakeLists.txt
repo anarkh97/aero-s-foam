@@ -134,7 +134,9 @@ FluidQuad.d/SloshQuadGal.C  FluidTriangle3.d/SloshTriangleFS.C
 FluidQuad.d/barsloshfs.f  FluidQuad.d/slsas2.f  FluidQuad.d/thermquad3b.f
 Force.d/BoundaryElement.C
 Force.d/FollowerMomentElement.C
+Force.d/FollowerForceElement.C
 Function.d/ExternalForce.d/FollowerMomentForceFunction.C
+Function.d/ExternalForce.d/FollowerForceFunction.C
 Helm.d/GaussRule.C
 Helm.d/GaussRules.C
 Helm.d/genTetra10.C
@@ -195,8 +197,11 @@ Joint.d/SphericalJoint.C
 Joint.d/TranslationalJoint.C
 Joint.d/UniversalJoint.C
 Joint.d/DotConstraintType1a.C
+Joint.d/DotConstraintType2a.C
 Joint.d/RevoluteDriver.C
+Joint.d/PrismaticDriver.C
 Joint.d/RevoluteActuator.C
+Joint.d/PrismaticActuator.C
 Joint.d/PinInSlotJoint.C
 Joint.d/PlanarJoint.C
 Joint.d/LinearTranslationalSpring.C

@@ -9,6 +9,7 @@ DotType2ConstraintElement::DotType2ConstraintElement(int* _nn, int _axis, int _r
 {
   axis = _axis;
   C0 = 0;
+  d0 = 0;
 }
 
 DotType2ConstraintElement::~DotType2ConstraintElement()
@@ -17,14 +18,14 @@ DotType2ConstraintElement::~DotType2ConstraintElement()
 }
 
 void
-DotType2ConstraintElement::getConstants(CoordSet& cs, Eigen::Array<double,6,1>& sconst, Eigen::Array<int,0,1>&, GeomState *gs)
+DotType2ConstraintElement::getConstants(CoordSet& cs, Eigen::Array<double,7,1>& sconst, Eigen::Array<int,0,1>&, GeomState *gs)
 {
   // if rotdesc = 0, or rotdesc = 1/2 and gs = NULL which means that the reference/updated configuration
   // is identical to the undeformed configuration
   if(rotdescr == 0 || gs == NULL) {
     Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor> > C0(&DotType2ConstraintElement::C0[0][0]);
     sconst << cs[nn[1]]->x - cs[nn[0]]->x, cs[nn[1]]->y - cs[nn[0]]->y, cs[nn[1]]->z - cs[nn[0]]->z,
-              C0(axis,0), C0(axis,1), C0(axis,2);
+              C0(axis,0), C0(axis,1), C0(axis,2), d0;
   }
   else { // if rotdesc = 1/2 and gs != NULL
          // gs is interpreted as the reference configuration for updated lagrangian and the current configuration for eulerian
@@ -33,7 +34,7 @@ DotType2ConstraintElement::getConstants(CoordSet& cs, Eigen::Array<double,6,1>& 
 
     Eigen::Matrix<double,1,3> b0 = C0.row(axis)*R1.transpose();
     sconst << cs[nn[1]]->x - cs[nn[0]]->x, cs[nn[1]]->y - cs[nn[0]]->y, cs[nn[1]]->z - cs[nn[0]]->z,
-              b0[0], b0[1], b0[2];
+              b0[0], b0[1], b0[2], d0;
   }
 }
 

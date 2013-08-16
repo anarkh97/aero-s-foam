@@ -101,14 +101,14 @@ DistrElementSamplingDriver::solve() {
   const int skipFactor = domain->solInfo().skipPodRom;
   const int skipOffSet = domain->solInfo().skipOffSet;
   // Read state snapshots
-  DistrVecBasis snapshots;
+  DistrVecBasis *snapshots = new DistrVecBasis;
   std::vector<double> timeStamps;
   {
     BasisId::Type type = BasisId::STATE;
     const int basisStateCount = snapSize(BasisId::STATE);
     filePrint(stderr, " ... Reading in %d Displacement Snapshots ...\n", basisStateCount);
 
-    snapshots.dimensionIs(basisStateCount, vectorSize());
+    snapshots->dimensionIs(basisStateCount, vectorSize());
     timeStamps.reserve(basisStateCount);
 
     int counter = 0;
@@ -118,8 +118,8 @@ DistrElementSamplingDriver::solve() {
       filePrint(stderr, " ... Processing File: %s ...\n", fileName.c_str());
       DistrBasisInputFile in(fileName);
       int singleBasisStateCount = (in.stateCount() % 2) + (in.stateCount() - skipOffSet) / skipFactor;
-      for(DistrVecBasis::iterator it = &snapshots[snapshotCount],
-          it_end = &snapshots[snapshotCount+singleBasisStateCount];
+      for(DistrVecBasis::iterator it = &(*snapshots)[snapshotCount],
+          it_end = &(*snapshots)[snapshotCount+singleBasisStateCount];
           it != it_end; ++it) {
         for(int offSet = 1; offSet <= skipOffSet; ++offSet) {
           assert(in.validCurrentState());
@@ -233,7 +233,7 @@ DistrElementSamplingDriver::solve() {
   }
 
   const int podVectorCount = podBasis.vectorCount();
-  const int snapshotCount  = snapshots.vectorCount();
+  const int snapshotCount  = snapshots->vectorCount();
 
   // Temporary buffers shared by all iterations
   Vector podComponents(podVectorCount);
@@ -242,12 +242,13 @@ DistrElementSamplingDriver::solve() {
  
   // Project snapshots on POD basis to get training configurations
   filePrint(stderr," ... Projecting displacement snapshots for training configuration ...\n");
-  DistrVecBasis displac(snapshotCount, vectorSize());
+  DistrVecBasis *displac = new DistrVecBasis(snapshotCount, vectorSize());
   for (int iSnap = 0; iSnap != snapshotCount; ++iSnap) {
-    expand(podBasis, reduce(podBasis, snapshots[iSnap], podComponents), displac[iSnap]);
+    expand(podBasis, reduce(podBasis, (*snapshots)[iSnap], podComponents), (*displac)[iSnap]);
     filePrint(stderr,"\r %4.2f%% complete", double(iSnap)/double(snapshotCount-1)*100.);
   }
   filePrint(stderr,"\n");
+  delete snapshots;
 
   DistrVecBasis *veloc = 0;
   if(velocSnapshots) {
@@ -284,15 +285,12 @@ DistrElementSamplingDriver::solve() {
     std::string normalizedBasisFileName = BasisFileId(fileInfo,BasisId::STATE,BasisId::POD);
     normalizedBasisFileName.append(".normalized");
     DistrBasisInputFile normalizedBasisFile(normalizedBasisFileName);
-    DistrVecBasis normalizedBasis;
-    normalizedBasis.dimensionIs(projectionSubspaceSize,vectorSize());
-    for(DistrVecBasis::iterator it = normalizedBasis.begin(), it_end = normalizedBasis.end(); it != it_end; ++it){
+    for(DistrVecBasis::iterator it = podBasis.begin(), it_end = podBasis.end(); it != it_end; ++it) {
       assert(normalizedBasisFile.validCurrentState());
       normalizedBasisFile.currentStateBuffer(buffer);
       converter.vector(buffer, *it);
       normalizedBasisFile.currentStateIndexInc();
     }
-    podBasis = normalizedBasis;
   }
  
   int glNumSubs = decDomain->getNumSub();
@@ -321,7 +319,7 @@ DistrElementSamplingDriver::solve() {
     VecBasis &subDisplac = subDrivers[i]->displac();
     subDisplac.dimensionIs(snapshotCount, subDrivers[i]->vectorSize());
     for(int j=0; j<snapshotCount; ++j) {
-      subDisplac[j] = StackVector(displac[j].subData(i), displac[j].subLen(i));
+      subDisplac[j] = StackVector((*displac)[j].subData(i), (*displac)[j].subLen(i));
     }
 
     subDrivers[i]->timeStampsIs(timeStamps);
@@ -344,9 +342,13 @@ DistrElementSamplingDriver::solve() {
 
     trainingTargets[i].reset(subPodBasis.vectorCount()*subDisplac.vectorCount(), 0.0);
     subDrivers[i]->assembleTrainingData(trainingTargets[i]);
+    subDrivers[i]->clean();
     targetMagnitudes[i] = norm(trainingTargets[i]);
     glTargMagnitude += targetMagnitudes[i]*targetMagnitudes[i];
   }
+  delete displac;
+  if(veloc) delete veloc;
+  if(accel) delete accel;
 
   if(structCom)
     structCom->globalSum(1,&glTargMagnitude);
@@ -355,7 +357,7 @@ DistrElementSamplingDriver::solve() {
 #if defined(_OPENMP)
   #pragma omp parallel for schedule(static,1)
 #endif
-  for(int i=0; i<decDomain->getNumSub(); ++i) {
+  for(int i = 0; i < decDomain->getNumSub(); ++i) {
     double relativeTolerance = (domain->solInfo().localTol) ? domain->solInfo().tolPodRom*glTargMagnitude/(glNumSubs*targetMagnitudes[i])
                                                             : domain->solInfo().tolPodRom;
     if(verboseFlag) filePrint(stderr, " ... Training Tolerance for SubDomain %d is %f ...\n", decDomain->getSubDomain(i)->subNum()+1, relativeTolerance);
@@ -366,9 +368,12 @@ DistrElementSamplingDriver::solve() {
   
   std::vector<double> lweights; 
   std::vector<int> lelemIds;
-  for(int i=0; i<decDomain->getNumSub(); i++) {
+  for(int i = 0; i < decDomain->getNumSub(); i++) {
     subDrivers[i]->getGlobalWeights(solutions[i], lweights, lelemIds, verboseFlag);
+    delete subDrivers[i];
   }
+  delete [] solutions;
+  delete [] subDrivers;
   
   std::vector<double> gweights(domain->numElements());
   std::vector<int> gelemIds(domain->numElements());
@@ -378,16 +383,16 @@ DistrElementSamplingDriver::solve() {
   if(structCom) {
     int recvcnts[numCPUs];
     int displacements[numCPUs];
-    structCom->allGather(&numLocalElems,1,&recvcnts[0],1);
-    int location = 0 ;
-    for(int i = 0 ; i < numCPUs ; i++){
-	displacements[i]=location;
-	location += recvcnts[i];
+    structCom->allGather(&numLocalElems, 1, &recvcnts[0], 1);
+    int location = 0;
+    for(int i = 0; i < numCPUs; i++) {
+      displacements[i] = location;
+      location += recvcnts[i];
     }
     structCom->gatherv(&lweights[0], lweights.size(), &gweights[0], &recvcnts[0], &displacements[0], 0);
     structCom->gatherv(&lelemIds[0], lelemIds.size(), &gelemIds[0], &recvcnts[0], &displacements[0], 0);
   }
-  else{ //no MPI
+  else {
     gweights = lweights;
     gelemIds = lelemIds;
   }
@@ -399,22 +404,23 @@ DistrElementSamplingDriver::solve() {
   reduce(podBasis, constForceFull, constForceRed);
 
   if(myID == 0) {
-     //Weights output file generation
-     const std::string fileName = domain->solInfo().reducedMeshFile;
-     std::ofstream weightOut(fileName.c_str(), std::ios_base::out);
-     weightOut << "ATTRIBUTES\n";
-     bool firstTime = true;
-     for(int i = 0 ; i < gweights.size(); i++) {
-       if(domain->solInfo().reduceFollower && firstTime) {
-         weightOut<< gelemIds[i]+1 << " 1 " << "HRC REDFOL" << " " << gweights[i] << "\n";
-         firstTime = false;
-       }
-       else {
-	 weightOut<< gelemIds[i]+1 << " 1 " << "HRC" << " " << gweights[i] << "\n";
-       }
-     }  
+    // Weights output file generation
+    const std::string fileName = domain->solInfo().reducedMeshFile;
+    std::ofstream weightOut(fileName.c_str(), std::ios_base::out);
+    weightOut << "ATTRIBUTES\n";
+    bool firstTime = true;
+    for(int i = 0; i < gweights.size(); i++) {
+      if(domain->solInfo().reduceFollower && firstTime) {
+        weightOut << gelemIds[i]+1 << " 1 " << "HRC REDFOL" << " " << gweights[i] << "\n";
+        firstTime = false;
+      }
+      else {
+        weightOut << gelemIds[i]+1 << " 1 " << "HRC" << " " << gweights[i] << "\n";
+      }
+    }
+    weightOut.close();
 
-    //Mesh output file generation
+    // Mesh output file generation
     std::map<int,double> weightsMap;
     std::vector<int> reducedelemIds;
     for(int i = 0; i < gweights.size(); i++) {
@@ -435,7 +441,7 @@ DistrElementSamplingDriver::solve() {
     std::string fileName2 = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
     if(domain->solInfo().newmarkBeta == 0) fileName2.append(".normalized");
     const VecNodeDof6Conversion vecDofConversion(*domain->getCDSA());
-    BasisInputStream in(fileName2, vecDofConversion) ;
+    BasisInputStream in(fileName2, vecDofConversion);
     VecBasis podBasis;
     const int podSizeMax = domain->solInfo().maxSizePodRom;
     if(podSizeMax != 0) {
@@ -456,8 +462,9 @@ DistrElementSamplingDriver::solve() {
     if(domain->solInfo().reduceFollower) meshOut << "REDFOL\n";
     meshOut << "*\nFORCES\nMODAL\n";
     meshOut.precision(std::numeric_limits<double>::digits10+1);
-    for(int i=0; i<podBasis.vectorCount(); ++i)
-      meshOut << i+1 << " "  << constForceRed[i] << std::endl;
+    for(int i = 0; i < podBasis.vectorCount(); ++i)
+      meshOut << i+1 << " " << constForceRed[i] << std::endl;
+    meshOut.close();
 
 #ifdef USE_EIGEN3
     // build and output compressed basis
@@ -480,13 +487,6 @@ DistrElementSamplingDriver::solve() {
     }
 #endif
   }
-
-  if(structCom) structCom->sync();
-
-  delete [] subDrivers;
-  delete [] solutions;
-  if(veloc) delete veloc;
-  if(accel) delete accel;
 }
 
 void

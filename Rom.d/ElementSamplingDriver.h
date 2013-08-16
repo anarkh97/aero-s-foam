@@ -44,6 +44,7 @@ public:
 
   virtual void preProcess();
   void assembleTrainingData(Vector &trainingTarget);
+  void clean();
 
 protected:
   int elementCount() const;

@@ -86,13 +86,11 @@ class StructProp {
     union {
         double  A;      // Cross-sectional area
         double kx;
-        double amplitude;
         };
     union {
 	double	E;      // Elastic modulus
 	double d0;      // Initial stiffness of nonlin element
         double ky;
-        double offset;
 	};
     union {
 	double	nu; 	// Poisson's ratio
@@ -100,7 +98,6 @@ class StructProp {
         double kz;
         double lambda;  // damage control
         double omega;
-        double c1;      // 1st parameter of an elementary prescribed motion function
 	};
      union {
 	double  rho; 	// Mass density per unit volume
@@ -111,18 +108,21 @@ class StructProp {
 	double b;       // shear-s contribution ratio
 	double xo;      // Plastic parameter    -January 2002 - JMP
         double phase;
-        double c2;      // 2nd parameter of an elementary prescribed motion function
+        double c1;      // 1st parameter of an elementary prescribed motion function
 	};
      union {
 	double  Ixx;	// Cross-sectional moment of inertia about local x-axis
         double  ss;     // speed of sound
-        double  c3;     // 3rd parameter of an elementary prescribed motion function
+        double  c2;     // 2nd parameter of an elementary prescribed motion function
         };
      union {
 	double  Iyy;	// Cross-sectional moment of inertia about local y-axis
+        double  c3;     // 3rd parameter of an elementary prescribed motion function
+        };
+     union {
+	double  Izz;	// Cross-sectional moment of inertia about local z-axis
         double  c4;     // 4th parameter of an elementary prescribed motion function
         };
-	double  Izz;	// Cross-sectional moment of inertia about local z-axis
      union {
 	double c; 	// Thermal convection coefficient
 	double alphaY;  // Shear deflection constant associated to Iyy
@@ -130,6 +130,7 @@ class StructProp {
 	double sigE;    // Elastic limit
 	double ft;      // Tensile strength     -October 2001 - JMP
         double eps;     // Radiation: Emissivity of the body (for a black body, eps=1)
+        double amplitude;
 	};
      union {
 	double k;       // Heat conduction coefficient
@@ -137,10 +138,23 @@ class StructProp {
 	double v2;      // Fracture Energy
 	double fc;      // Compressive strength -October 2001 - JMP
         double Ep;      // Hardening modulus
+        double offset;
 	};
+     union {
         double Q;	// Specific heat coeffiecient
+        double Mx;      // global x-component of applied moment
+        double Fx;      // global x-component of applied force
+        };
+     union {
 	double W;	// Thermal expansion coefficient
+        double My;      // global y-component of applied moment
+        double Fy;      // global y-component of applied force
+        };
+     union {
         double P;	// Perimeter/circumference of thermal truss/beams
+        double Mz;      // global z-component of applied moment
+        double Fz;      // global z-component of applied force
+        };
      union {
         double Ta;	// Ambient temperature
         double Tr;      // Temperature of the enclosure receiving the radiation

@@ -2,7 +2,7 @@
 #include <cstdlib>
 #include <iostream>
 
-#include <Utils.d/DistHelper.h> //HB
+#include <Utils.d/DistHelper.h>
 
 #include <Element.d/Element.h>
 #include <Element.d/Truss.d/TwoNodeTruss.h>
@@ -49,7 +49,7 @@
 #include <Element.d/Helm.d/HelmLagQuadGal.h>
 #include <Element.d/Helm.d/Tetra10HelmGal.h>
 #include <Element.d/Helm.d/HelmBrickGLS.h>
-#include <Element.d/Helm.d/HelmPenta.h> //HB
+#include <Element.d/Helm.d/HelmPenta.h>
 
 #include <Element.d/Helm.d/HelmIsoParamHexa.h>
 #include <Element.d/Helm.d/ThermIsoParamHexa.h>
@@ -118,6 +118,7 @@ extern map<int,double > weightList;
 #include <Element.d/Joint.d/PrismaticJoint.h>
 #include <Element.d/Joint.d/PinInSlotJoint.h>
 #include <Element.d/Joint.d/PlanarJoint.h>
+#include <Element.d/Joint.d/RevoluteDriver.h>
 #include <Element.d/Joint.d/RevoluteActuator.h>
 #include <Element.d/MpcElement.d/PointPointDistanceConstraintElement.h>
 #include <Element.d/MpcElement.d/PointLineDistanceConstraintElement.h>
@@ -139,6 +140,7 @@ extern map<int,double > weightList;
 #include <Element.d/Joint.d/CylindricalJointSpringCombo.h>
 #include <Element.d/Joint.d/PrismaticJointSpringCombo.h>
 #include <Element.d/Joint.d/PinInSlotJointSpringCombo.h>
+#include <Element.d/Force.d/FollowerMomentElement.h>
 #endif
 
 #include <Element.d/Brick32.d/Brick32.h> 
@@ -567,10 +569,13 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        ele = new (ba) PrismaticJoint(n);
        break;
      case 126:
-       ele = new (ba) RevoluteActuator(n);
+       ele = new (ba) RevoluteDriver(n);
        break;
      case 127:
        ele = new (ba) PinInSlotJoint(n);
+       break;
+     case 143:
+       ele = new (ba) FollowerMomentElement(n);
        break;
      case 173:
        ele = new (ba) SegVariSegDistanceConstraintElement(n);
@@ -625,6 +630,9 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        break;
      case 225:
        ele = new (ba) PrismaticJointSpringCombo(n);
+       break;
+     case 226:
+       ele = new (ba) RevoluteActuator(n);
        break;
      case 227:
        ele = new (ba) PinInSlotJointSpringCombo(n);

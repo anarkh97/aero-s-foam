@@ -114,6 +114,7 @@
 #include <Element.d/Joint.d/PinInSlotJoint.h>
 #include <Element.d/Joint.d/PlanarJoint.h>
 
+#include <Element.d/Joint.d/RevoluteDriver.h>
 #include <Element.d/Joint.d/RevoluteActuator.h>
 
 #include <Element.d/Joint.d/SphericalJointSpringCombo.h>
@@ -1382,6 +1383,12 @@ CylindricalJoint::examine(int sub, MultiFront *mf)
 
 PrioInfo
 PrismaticJoint::examine(int sub, MultiFront *mf)
+{
+  return examineBeam2(sub, mf, nn);
+}
+
+PrioInfo
+RevoluteDriver::examine(int sub, MultiFront *mf)
 {
   return examineBeam2(sub, mf, nn);
 }

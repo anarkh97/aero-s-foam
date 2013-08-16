@@ -2288,6 +2288,57 @@ MatData:
           sp.type = StructProp::Constraint;
           geoSource->addMat( $1-1, sp );
         }
+        | Integer CONSTRMAT ConstraintOptionsData ELEMENTARYFUNCTIONTYPE Float Float Float Float SPRINGMAT Float NewLine
+        { // new style for actuated joints with force defined by 2-parameter elementary function
+          StructProp sp;
+          sp.lagrangeMult = $3.lagrangeMult;
+          sp.initialPenalty = sp.penalty = $3.penalty;
+          sp.constraint_hess = $3.constraint_hess;
+          sp.constraint_hess_eps = $3.constraint_hess_eps;
+          sp.funtype = $4;
+          sp.amplitude = $5;
+          sp.offset = $6;
+          sp.c1 = $7;
+          sp.c2 = $8;
+          sp.k1 = $10;
+          sp.type = StructProp::Constraint;
+          geoSource->addMat( $1-1, sp );
+        }
+        | Integer CONSTRMAT ConstraintOptionsData ELEMENTARYFUNCTIONTYPE Float Float Float Float Float SPRINGMAT Float NewLine
+        { // new style for actuated joints with force defined by 3-parameter elementary function
+          StructProp sp;
+          sp.lagrangeMult = $3.lagrangeMult;
+          sp.initialPenalty = sp.penalty = $3.penalty;
+          sp.constraint_hess = $3.constraint_hess;
+          sp.constraint_hess_eps = $3.constraint_hess_eps;
+          sp.funtype = $4;
+          sp.amplitude = $5;
+          sp.offset = $6;
+          sp.c1 = $7;
+          sp.c2 = $8;
+          sp.c3 = $9;
+          sp.k1 = $11;
+          sp.type = StructProp::Constraint;
+          geoSource->addMat( $1-1, sp );
+        }
+        | Integer CONSTRMAT ConstraintOptionsData ELEMENTARYFUNCTIONTYPE Float Float Float Float Float Float SPRINGMAT Float NewLine
+        { // new style for actuated joints with forced defined by 4-parameter elementary function
+          StructProp sp;
+          sp.lagrangeMult = $3.lagrangeMult;
+          sp.initialPenalty = sp.penalty = $3.penalty;
+          sp.constraint_hess = $3.constraint_hess;
+          sp.constraint_hess_eps = $3.constraint_hess_eps;
+          sp.funtype = $4;
+          sp.amplitude = $5;
+          sp.offset = $6;
+          sp.c1 = $7;
+          sp.c2 = $8;
+          sp.c3 = $9;
+          sp.c4 = $10;
+          sp.k1 = $12;
+          sp.type = StructProp::Constraint;
+          geoSource->addMat( $1-1, sp );
+        }
         | Integer CONSTRMAT Integer Float SPRINGMAT Float NewLine
         { // old style for RevoluteJointSpringCombo
           StructProp sp;

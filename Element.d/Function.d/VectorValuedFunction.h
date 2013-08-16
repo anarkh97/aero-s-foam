@@ -20,11 +20,15 @@ class VectorValuedFunction {
   public:
     typedef _Scalar Scalar;
     typedef _ScalarConstantType ScalarConstantType;
-    enum { NumberOfGeneralizedCoordinates = _NumberOfGeneralizedCoordinates,
+    enum { InputNumberOfRows              = _NumberOfGeneralizedCoordinates,
+           InputNumberOfColumns           = 1,
+           NumberOfGeneralizedCoordinates = _NumberOfGeneralizedCoordinates,
            NumberOfValues                 = _NumberOfValues,
            NumberOfScalarConstants        = _NumberOfScalarConstants,
            NumberOfIntegerConstants       = _NumberOfIntegerConstants
     };
+    typedef Eigen::Matrix<Scalar,NumberOfValues,1> ReturnType;
+    typedef Eigen::Matrix<Scalar,NumberOfValues,NumberOfGeneralizedCoordinates> SpaceJacobianType;
 
     virtual Eigen::Matrix<Scalar,NumberOfValues,1> operator() (const Eigen::Matrix<Scalar,NumberOfGeneralizedCoordinates,1>& q, Scalar t) const = 0;
 };

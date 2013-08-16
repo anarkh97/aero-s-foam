@@ -3765,6 +3765,15 @@ GenDecDomain<Scalar>::subRebuildOps(int iSub, GenMDDynamMat<Scalar> &res, double
   if(res.Muc)  allOps.Muc = (*res.Muc)[iSub];
   if(res.Mcc)  allOps.Mcc = (*res.Mcc)[iSub];
   if(res.Kuc)  allOps.Kuc = (*res.Kuc)[iSub];
+// RT: 053013 : not finished
+  if(res.C_deriv) {
+     allOps.C_deriv = new GenSparseMatrix<Scalar>*[1];
+     allOps.C_deriv[0] = (*(res.C_deriv[0]))[iSub];
+  }
+  if(res.Cuc_deriv) {
+     allOps.Cuc_deriv = new GenSparseMatrix<Scalar>*[1];
+     allOps.Cuc_deriv[0] = (*(res.Cuc_deriv[0]))[iSub];
+  }
 
   allOps.zero();
 

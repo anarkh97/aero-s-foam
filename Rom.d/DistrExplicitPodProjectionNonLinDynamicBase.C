@@ -28,148 +28,192 @@ namespace Rom {
 
 DistrExplicitPodPostProcessor::DistrExplicitPodPostProcessor(DecDomain *d, StaticTimers* _times, DistrGeomState *_geomState = 0, Corotator ***_allCorot = 0) :
     MultiDomDynPostProcessor(d, _times, _geomState, _allCorot),
-    DispSensorValues(),
-    AccSensorValues(),
-    VelSensorValues()
+    DispSensorValues(NULL),
+    AccSensorValues(NULL),
+    VelSensorValues(NULL),
+    all_cdsa(NULL)
 {
-      decDomain = d;
-      geomState = _geomState;
-      times = _times;
-      oinfo = geoSource->getOutputInfo();
+  decDomain = d;
+  geomState = _geomState;
+  times = _times;
+  oinfo = geoSource->getOutputInfo();
 
-      numOutInfo = geoSource->getNumOutInfo();
+  numOutInfo = geoSource->getNumOutInfo();
 
-      DispSensor = false;
-      AccSensor  = false;
-      VelSensor  = false;
+  DispSensor = false;
+  AccSensor  = false;
+  VelSensor  = false;
 
-      for (int iOut = 0; iOut < numOutInfo; iOut++) {
-       switch(oinfo[iOut].type){
-         case OutputInfo::Accel6 : case OutputInfo::Acceleration :
-           oinfo[iOut].filptr = fopen(oinfo[iOut].filename,"wb");
-           if(oinfo[iOut].nodeNumber != -1){
-             filePrint(oinfo[iOut].filptr, " # node %d\n", oinfo[iOut].nodeNumber+1);
-             AccSensor = true;
-           } else {
-             filePrint( oinfo[iOut].filptr, "0\n"); 
-           }
-           break;
-         case OutputInfo::Disp6DOF : case OutputInfo::Displacement :
-           oinfo[iOut].filptr = fopen(oinfo[iOut].filename,"wb");
-           if(oinfo[iOut].nodeNumber != -1){
-             filePrint(oinfo[iOut].filptr, " # node %d\n", oinfo[iOut].nodeNumber+1);
-             DispSensor = true;
-           } else {
-             filePrint( oinfo[iOut].filptr, "1\n");
-           }
-           break;
-         case OutputInfo::Velocity6 : case OutputInfo::Velocity :
-           oinfo[iOut].filptr = fopen(oinfo[iOut].filename,"wb");
-           if(oinfo[iOut].nodeNumber != -1){
-             filePrint(oinfo[iOut].filptr, " # node %d\n", oinfo[iOut].nodeNumber+1);
-             VelSensor = true;
-           } else {
-             filePrint( oinfo[iOut].filptr, "2\n");
-           }
-           break; 
-         default:
-           filePrint(stderr, " ... ROM output only supports Acceleration, Displacement, and Velocity ...\n");
-           filePrint(stderr, "     output type selected is %d \n", oinfo[iOut].type);
-       }
+  for (int iOut = 0; iOut < numOutInfo; iOut++) {
+    switch(oinfo[iOut].type) {
+      case OutputInfo::Accel6 : case OutputInfo::Acceleration :
+        if(oinfo[iOut].nodeNumber != -1) {
+          AccSensor = true;
+        } else {
+          if(!structCom || structCom->myID() == 0) oinfo[iOut].filptr = fopen(oinfo[iOut].filename, "wb");
+          filePrint(oinfo[iOut].filptr, "0\n"); 
+        }
+        break;
+      case OutputInfo::Disp6DOF : case OutputInfo::Displacement :
+        if(oinfo[iOut].nodeNumber != -1) {
+          DispSensor = true;
+        } else {
+          if(!structCom || structCom->myID() == 0) oinfo[iOut].filptr = fopen(oinfo[iOut].filename, "wb");
+          filePrint(oinfo[iOut].filptr, "1\n");
+        }
+        break;
+      case OutputInfo::Velocity6 : case OutputInfo::Velocity :
+        if(oinfo[iOut].nodeNumber != -1) {
+          VelSensor = true;
+        } else {
+          if(!structCom || structCom->myID() == 0) oinfo[iOut].filptr = fopen(oinfo[iOut].filename, "wb");
+          filePrint(oinfo[iOut].filptr, "2\n");
+        }
+        break; 
+      default:
+        filePrint(stderr, " ... ROM output only supports Acceleration, Displacement, and Velocity ...\n");
+        filePrint(stderr, "     output type selected is %d \n", oinfo[iOut].type);
+    }
+  }
+
+  if(DispSensor || VelSensor || AccSensor) {
+#ifdef DISTRIBUTED
+    for(int iSub = 0; iSub < decDomain->getNumSub(); iSub++) {
+      int nOutNodes = decDomain->getSubDomain(iSub)->getNumNodalOutput();
+      if(nOutNodes) {
+        geoSource->openOutputFiles(decDomain->getSubDomain(iSub)->getOutputNodes(),
+                                   decDomain->getSubDomain(iSub)->getOutIndex(), nOutNodes);
       }
+    }
+#else
+    geoSource->openSensorOutputFiles();
+#endif
+  }
 
-    nodeVector.resize(decDomain->getNumSub());
-    execParal(decDomain->getNumSub(),this,&DistrExplicitPodPostProcessor::subBuildSensorNodeVector);
+  if(structCom) structCom->sync();
+  nodeVector.resize(decDomain->getNumSub());
+  execParal(decDomain->getNumSub(), this, &DistrExplicitPodPostProcessor::subBuildSensorNodeVector);
 }
 
 DistrExplicitPodPostProcessor::~DistrExplicitPodPostProcessor() {
 
-/*  for (int iOut = 0; iOut < numOutInfo; iOut++) {
-           if(oinfo[iOut].filptr) fclose(oinfo[iOut].filptr);
-      }
-*/
+  if(all_cdsa) delete [] all_cdsa;
+  if(DispSensorValues) delete DispSensorValues;
+  if(AccSensorValues) delete AccSensorValues;
+  if(VelSensorValues) delete VelSensorValues;
 }
 
 void
 DistrExplicitPodPostProcessor::printPODSize(int PODsize) {
 
-    podSize = PODsize;
+  podSize = PODsize;
 
-    for (int iOut = 0; iOut < numOutInfo; iOut++) {
-     switch(oinfo[iOut].type){
-       case OutputInfo::Accel6 : case OutputInfo::Acceleration :
-         if(oinfo[iOut].nodeNumber == -1)
-           filePrint( oinfo[iOut].filptr, "%d\n", PODsize);
-         break;
-       case OutputInfo::Disp6DOF : case OutputInfo::Displacement :
-         if(oinfo[iOut].nodeNumber == -1)
-           filePrint( oinfo[iOut].filptr, "%d\n", PODsize);
-         break;
-       case OutputInfo::Velocity6 : case OutputInfo::Velocity :
-         if(oinfo[iOut].nodeNumber == -1)
-           filePrint( oinfo[iOut].filptr, "%d\n", PODsize);
-         break;
-       default:
-         break;
-     }
+  for (int iOut = 0; iOut < numOutInfo; iOut++) {
+    switch(oinfo[iOut].type) {
+      case OutputInfo::Accel6 : case OutputInfo::Acceleration :
+        if(oinfo[iOut].nodeNumber == -1)
+          filePrint(oinfo[iOut].filptr, "%d\n", PODsize);
+        break;
+      case OutputInfo::Disp6DOF : case OutputInfo::Displacement :
+        if(oinfo[iOut].nodeNumber == -1)
+          filePrint(oinfo[iOut].filptr, "%d\n", PODsize);
+        break;
+      case OutputInfo::Velocity6 : case OutputInfo::Velocity :
+        if(oinfo[iOut].nodeNumber == -1)
+          filePrint(oinfo[iOut].filptr, "%d\n", PODsize);
+        break;
+      default:
+        break;
     }
-
+  }
 }
 
 void
 DistrExplicitPodPostProcessor::makeSensorBasis(DistrVecBasis *fullBasis) {
 
- all_cdsa = new DofSetArray * [decDomain->getNumSub()];
+  all_cdsa = new DofSetArray * [decDomain->getNumSub()];
 
- for(int i=0; i<decDomain->getNumSub(); ++i) all_cdsa[i] = decDomain->getSubDomain(i)->getCDSA();
+  for(int i = 0; i < decDomain->getNumSub(); ++i) all_cdsa[i] = decDomain->getSubDomain(i)->getCDSA();
 
- SensorBasis.dimensionIs(fullBasis->numVec(), fullBasis->vectorInfo());
- SensorBasis = *fullBasis;
- SensorBasis.makeSparseBasis(nodeVector,all_cdsa);
- sensorKey = SensorBasis.getCompressedKey();
+  SensorBasis = fullBasis;
+  SensorBasis->makeSparseBasis2(nodeVector, all_cdsa);
 
- //allocate space for containers to hold projected Sensor values
- if(DispSensor)
-   new (&DispSensorValues) GenDistrVector<double>(SensorBasis.vectorInfo());
- if(AccSensor)
-   new (&AccSensorValues) GenDistrVector<double>(SensorBasis.vectorInfo());
- if(VelSensor)
-   new (&VelSensorValues) GenDistrVector<double>(SensorBasis.vectorInfo());
-
+  // allocate space for containers to hold sensor values
+  if(DispSensor) {
+    DispSensorValues = new GenDistrVector<double>(SensorBasis->vectorInfo());
+    DispSensorValues->zero();
+  }
+  if(AccSensor) {
+    AccSensorValues = new GenDistrVector<double>(SensorBasis->vectorInfo());
+    AccSensorValues->zero();
+  }
+  if(VelSensor) {
+    VelSensorValues = new GenDistrVector<double>(SensorBasis->vectorInfo());
+    VelSensorValues->zero();
+  }
 }
   
 void
-DistrExplicitPodPostProcessor::subBuildSensorNodeVector(int iSub){
+DistrExplicitPodPostProcessor::subBuildSensorNodeVector(int iSub) {
 
- std::vector<int> &subSensorNodes = nodeVector[iSub];
+  std::vector<int> &subSensorNodes = nodeVector[iSub];
 
- //load vector of sesnor nodes converted to local numbering
- for (int iOut = 0; iOut < numOutInfo; iOut++) {
-   if(decDomain->getSubDomain(iSub)->globalToLocal(oinfo[iOut].nodeNumber) != -1) 
-     subSensorNodes.push_back(decDomain->getSubDomain(iSub)->globalToLocal(oinfo[iOut].nodeNumber));
- }
+  //load vector of sensor nodes converted to local numbering
+  for (int iOut = 0; iOut < numOutInfo; iOut++) {
+    if(oinfo[iOut].nodeNumber != -1) {
+      int locNode = decDomain->getSubDomain(iSub)->globalToLocal(oinfo[iOut].nodeNumber);
+      if(locNode > -1) 
+        subSensorNodes.push_back(locNode);
+    }
+  }
 
- //if multiple outputs are requested for a single node, cull redundancies from node vector
- std::sort(subSensorNodes.begin(), subSensorNodes.end());
- std::vector<int>::iterator packedNodeIt = std::unique(subSensorNodes.begin(),subSensorNodes.end());
- subSensorNodes.resize(packedNodeIt-subSensorNodes.begin());
-
+  //if multiple outputs are requested for a single node, cull redundancies from node vector
+  std::sort(subSensorNodes.begin(), subSensorNodes.end());
+  std::vector<int>::iterator packedNodeIt = std::unique(subSensorNodes.begin(), subSensorNodes.end());
+  subSensorNodes.resize(packedNodeIt-subSensorNodes.begin());
 }
 
 void
-DistrExplicitPodPostProcessor::subPrintSensorValues(int iSub, GenDistrVector<double> &SensorData, OutputInfo *OINFO, double *time){
+DistrExplicitPodPostProcessor::subPrintSensorValues(int iSub, GenDistrVector<double> &SensorData, OutputInfo *OINFO, double *time) {
 
- //get slot location of global coordinate vector
- int dof1 = all_cdsa[iSub]->firstdof(decDomain->getSubDomain(iSub)->globalToLocal(OINFO->nodeNumber));
- if(dof1 != -1) {//if slot location is -1, sensor node is not in this subdomain, don't print
-   int maxdof = all_cdsa[iSub]->weight(decDomain->getSubDomain(iSub)->globalToLocal(OINFO->nodeNumber));
-   fprintf(OINFO->filptr,"  %1.4e  ",*time);
-   for(int i = 0; i < maxdof; i++)
-     fprintf(OINFO->filptr,"  %1.4e  ",SensorData[dof1 + i]);
-   fprintf(OINFO->filptr,"\n");
-   fflush(OINFO->filptr);
- }
-   
+  // XXX the rotation vector should be renormalized, and the angular velocity/acceleration should be transformed to convected. 
+#ifdef DISTRIBUTED
+  int locNode = decDomain->getSubDomain(iSub)->globalToLocal(OINFO->nodeNumber);
+  if(locNode > -1) { // if node is -1, sensor node is not in this subdomain, don't print
+    for(int k = 0; k < decDomain->getSubDomain(iSub)->getNumNodalOutput(); ++k) { // not the best way
+      if(locNode == decDomain->getSubDomain(iSub)->getOutputNodes()[k]) {
+#else
+  int subI = decDomain->getGlSubToLocal()[(*decDomain->getNodeToSub())[OINFO->nodeNumber][0]];
+  if(subI == iSub) {
+        int locNode = decDomain->getSubDomain(iSub)->globalToLocal(OINFO->nodeNumber);
+#endif
+        int ndofs;
+        int dofs[6];
+        if(OINFO->type == OutputInfo::Disp6DOF || OINFO->type == OutputInfo::Velocity6 || OINFO->type == OutputInfo::Accel6) {
+          ndofs = all_cdsa[iSub]->number(locNode, DofSet::XYZdisp | DofSet::XYZrot, dofs);
+        }
+        else {
+          ndofs = all_cdsa[iSub]->number(locNode, DofSet::XYZdisp, dofs);
+        }
+        int w = OINFO->width;
+        int p = OINFO->precision; 
+        fprintf(OINFO->filptr, "  % *.*E  ", w, p, *time);
+        for(int j = 0; j < ndofs; ++j) {
+          if(dofs[j] != -1) {
+            fprintf(OINFO->filptr, " % *.*E", w, p, SensorData.subData(decDomain->getSubDomain(iSub)->localSubNum())[dofs[j]]);
+          }
+          else {
+            fprintf(OINFO->filptr, " % *.*E", w, p, 0.0); // TODO constrained dofs
+          }
+        }
+        fprintf(OINFO->filptr, "\n");
+        fflush(OINFO->filptr);
+#ifdef DISTRIBUTED
+        break;
+      }
+    }
+#endif
+  }
 }
 
 void
@@ -178,30 +222,28 @@ DistrExplicitPodPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dyn
 
   //all MPI processes have a full copy of reduced coordinates, only master processes needs to print
   int p = std::numeric_limits<double>::digits10+1;
+
+  bool DispProjected = false, AccProjected = false, VelProjected = false;
+
   for(int iOut = 0; iOut < numOutInfo; iOut++) {
 
-  if(tIndex % oinfo[iOut].interval == 0) {
+    if(tIndex % oinfo[iOut].interval == 0) {
 
-    if(sensorKey.size() != 0){
-      if(DispSensor)
-        SensorBasis.projectUp(distState.getDisp(),DispSensorValues);
-      if(AccSensor)
-        SensorBasis.projectUp(distState.getAccel(),AccSensorValues);
-      if(VelSensor)
-        SensorBasis.projectUp(distState.getVeloc(),VelSensorValues);
-    }
-
-      switch(oinfo[iOut].type){
+      switch(oinfo[iOut].type) {
          case OutputInfo::Accel6 : case OutputInfo::Acceleration :
            {
              if(oinfo[iOut].nodeNumber == -1) {
                filePrint(oinfo[iOut].filptr, "   %.*e\n", p, t); // print timestamp
-               for(int i = 0; i<podSize; i++) {
+               for(int i = 0; i < podSize; i++) {
                  filePrint(oinfo[iOut].filptr, "%.*e ", p, distState.getAccel()[i]);
                }
                filePrint(oinfo[iOut].filptr, "\n");
              } else {
-               execParal3R(decDomain->getNumSub(),this,&DistrExplicitPodPostProcessor::subPrintSensorValues, AccSensorValues, &oinfo[iOut], &t);
+               if(!AccProjected) {
+                 SensorBasis->projectUp2(distState.getAccel(), *AccSensorValues);
+                 AccProjected = true;
+               }
+               execParal3R(decDomain->getNumSub(), this, &DistrExplicitPodPostProcessor::subPrintSensorValues, *AccSensorValues, &oinfo[iOut], &t);
              }
            }
            break;
@@ -209,12 +251,16 @@ DistrExplicitPodPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dyn
            {
              if(oinfo[iOut].nodeNumber == -1) {
                filePrint(oinfo[iOut].filptr, "   %.*e\n", p, t); // print timestamp
-               for(int i = 0; i<podSize; i++) {
+               for(int i = 0; i < podSize; i++) {
                  filePrint(oinfo[iOut].filptr, "%.*e ", p, distState.getDisp()[i]);
                }
                filePrint(oinfo[iOut].filptr, "\n");
              } else {
-               execParal3R(decDomain->getNumSub(),this,&DistrExplicitPodPostProcessor::subPrintSensorValues, DispSensorValues, &oinfo[iOut], &t);
+               if(!DispProjected) {
+                 SensorBasis->projectUp2(distState.getDisp(), *DispSensorValues);
+                 DispProjected = true;
+               }
+               execParal3R(decDomain->getNumSub(), this, &DistrExplicitPodPostProcessor::subPrintSensorValues, *DispSensorValues, &oinfo[iOut], &t);
              }
            }
            break;
@@ -222,12 +268,16 @@ DistrExplicitPodPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dyn
            {
              if(oinfo[iOut].nodeNumber == -1) {
                filePrint(oinfo[iOut].filptr, "   %.*e\n", p, t); // print timestamp
-               for(int i = 0; i<podSize; i++) {
+               for(int i = 0; i < podSize; i++) {
                  filePrint(oinfo[iOut].filptr, "%.*e ", p, distState.getVeloc()[i]);
                }
                filePrint(oinfo[iOut].filptr, "\n");
              } else {
-               execParal3R(decDomain->getNumSub(),this,&DistrExplicitPodPostProcessor::subPrintSensorValues, VelSensorValues, &oinfo[iOut], &t);
+               if(!VelProjected) {
+                 SensorBasis->projectUp2(distState.getVeloc(), *VelSensorValues);
+                 VelProjected = true;
+               }
+               execParal3R(decDomain->getNumSub(), this, &DistrExplicitPodPostProcessor::subPrintSensorValues, *VelSensorValues, &oinfo[iOut], &t);
              }
            }
            break;
@@ -241,12 +291,11 @@ DistrExplicitPodPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dyn
 DistrExplicitPodPostProcessor *
 DistrExplicitPodProjectionNonLinDynamicBase::getPostProcessor() {
 
-   mddPostPro = new DistrExplicitPodPostProcessor(decDomain, times, geomState, allCorot);
-   mddPostPro->printPODSize(normalizedBasis_.numVectors());
-   mddPostPro->makeSensorBasis(&normalizedBasis_);
+  mddPostPro = new DistrExplicitPodPostProcessor(decDomain, times, geomState, allCorot);
+  mddPostPro->printPODSize(normalizedBasis_.numVectors());
+  mddPostPro->makeSensorBasis(&normalizedBasis_);
 
-   return mddPostPro;
-
+  return mddPostPro;
 }
 
 DistrExplicitPodProjectionNonLinDynamicBase::DistrExplicitPodProjectionNonLinDynamicBase(Domain *_domain) :
@@ -337,7 +386,6 @@ DistrExplicitPodProjectionNonLinDynamicBase::printFullNorm(DistrVector &v) {
   normalizedBasis_.projectUp(v,*tempVec);
 
   filePrint(stderr,"%1.4e\n",tempVec->norm());
-
 }
 
 void
@@ -375,7 +423,6 @@ DistrExplicitPodProjectionNonLinDynamicBase::updateState(double dt_n_h, DistrVec
     normalizedBasis_.projectUp(v_n_h, *v_n);
     geomState->setVelocity(*v_n, 2);
   }
-
 }
 
 void DistrExplicitPodProjectionNonLinDynamicBase::getConstForce(DistrVector& v)

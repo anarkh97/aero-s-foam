@@ -33,6 +33,7 @@
  LMPCons *lmpcons;
  MFTTData *ymtt;
  MFTTData *ctett;
+ MFTTData *sdetaft;
  ComplexBCList *cxbclist;
  ComplexBCond cxbcval;
  FrameData frame;
@@ -89,7 +90,7 @@
 %token PITA PITADISP6 PITAVEL6 NOFORCE MDPITA GLOBALBASES LOCALBASES TIMEREVERSIBLE REMOTECOARSE ORTHOPROJTOL READINITSEED JUMPCVG JUMPOUTPUT
 %token PRECNO PRECONDITIONER PRELOAD PRESSURE PRINTMATLAB PROJ PIVOT PRECTYPE PRECTYPEID PICKANYCORNER PADEPIVOT PROPORTIONING PLOAD PADEPOLES POINTSOURCE PLANEWAVE PTOL PLANTOL PMAXIT PIECEWISE
 %token RADIATION RBMFILTER RBMSET READMODE REBUILD RENUM RENUMBERID REORTHO RESTART RECONS RECONSALG REBUILDCCT RANDOM RPROP RNORM REVERSENORMALS RIGID
-%token SCALING SCALINGTYPE SENSORS SOLVERTYPE SHIFT
+%token SCALING SCALINGTYPE SDAMPING SDETAFT SENSORS SOLVERTYPE SHIFT
 %token SPOOLESTAU SPOOLESSEED SPOOLESMAXSIZE SPOOLESMAXDOMAINSIZE SPOOLESMAXZEROS SPOOLESMSGLVL SPOOLESSCALE SPOOLESPIVOT SPOOLESRENUM SPARSEMAXSUP SPARSEDEFBLK
 %token STATS STRESSID SUBSPACE SURFACE SAVEMEMCOARSE SPACEDIMENSION SCATTERER STAGTOL SCALED SWITCH STABLE SUBTYPE STEP SOWER SHELLTHICKNESS SURF SPRINGMAT
 %token TANGENT TEMP TIME TOLEIG TOLFETI TOLJAC TOLPCG TOPFILE TOPOLOGY TRBM THERMOE THERMOH 
@@ -143,6 +144,7 @@
 %type <strval>   FNAME 
 %type <ymtt>     YMTTList
 %type <ctett>    TETTList
+%type <sdetaft>   SDETAFList
 %type <dlist>    FloatList
 %type <slist>    StringList
 %type <SurfObj>  FaceSet
@@ -219,6 +221,7 @@ Component:
           { domain->setHFTT($1); }
         | YMTTable
         | TETTable
+        | SDETAFTable
 	| RbmTolerance
         | ToleranceInfo
         | Gravity
@@ -374,47 +377,76 @@ Random:
         ; 
 Impe:
         IMPE NewLine FREQ Float NewLine
-          { geoSource->setImpe($4); }
+          { geoSource->setImpe($4); fprintf(stderr,"tadyzde\n"); }
         //| IMPE NewLine SHIFT Float NewLine
         //  { geoSource->setShift($4); }
         | IMPE NewLine FREQSWEEP1 Float Float Integer NewLine
-          { geoSource->setImpe($4); domain->addFrequencies1(2.0*PI*$4, 2.0*PI*$5, $6); }
+          { domain->solInfo().curSweepParam = 0; domain->setFrequencySet(0); geoSource->setImpe($4); domain->addFrequencies1(2.0*PI*$4, 2.0*PI*$5, $6); }
         | IMPE NewLine FREQSWEEP2 Float Float Integer NewLine
-          { geoSource->setImpe($4); domain->addFrequencies2(2.0*PI*$4, 2.0*PI*$5, $6); }
+          { domain->solInfo().curSweepParam = 0; domain->setFrequencySet(0); geoSource->setImpe($4); domain->addFrequencies2(2.0*PI*$4, 2.0*PI*$5, $6); }
         | IMPE NewLine FREQSWEEP Float Float Integer Integer NewLine
-          { geoSource->setImpe($4); domain->addFrequencies(2.0*PI*$4, 2.0*PI*$5, $6, $7); }
+          { domain->solInfo().curSweepParam = 0; domain->setFrequencySet(0); geoSource->setImpe($4); domain->addFrequencies(2.0*PI*$4, 2.0*PI*$5, $6, $7); }
         | IMPE NewLine FREQSWEEPA Integer Integer Integer Float Float Float Integer Integer Integer NewLine
         {
-          geoSource->setImpe($7);
-          domain->addFrequencies($7, $8, 2,$5);
-          domain->solInfo().isAdaptSweep = true;
-          domain->solInfo().adaptSweep.maxP = $4;
-          domain->solInfo().adaptSweep.numS = $5;
-          domain->solInfo().adaptSweep.dgp_flag = bool($6);
-          domain->solInfo().adaptSweep.w1 = 2.0*PI*$7;
-          domain->solInfo().adaptSweep.w2 = 2.0*PI*$8;
-          domain->solInfo().adaptSweep.atol = $9;
-          domain->solInfo().adaptSweep.minRHS = $10;
-          domain->solInfo().adaptSweep.maxRHS = $11;
-          domain->solInfo().adaptSweep.deltaRHS = $12;
-          domain->solInfo().nFreqSweepRHS = $11;
+          domain->solInfo().curSweepParam = 0;
+          domain->setFrequencySet(0); geoSource->setImpe($7);
+          domain->addFrequencies(2.0*PI*$7, 2.0*PI*$8, 2,$5);
+          domain->solInfo().getSweepParams()->isAdaptSweep = true;
+          domain->solInfo().getSweepParams()->adaptSweep.maxP = $4;
+          domain->solInfo().getSweepParams()->adaptSweep.numS = $5;
+          domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = bool($6);
+          domain->solInfo().getSweepParams()->adaptSweep.w1 = 2.0*PI*$7;
+          domain->solInfo().getSweepParams()->adaptSweep.w2 = 2.0*PI*$8;
+          domain->solInfo().getSweepParams()->adaptSweep.atol = $9;
+          domain->solInfo().getSweepParams()->adaptSweep.minRHS = $10;
+          domain->solInfo().getSweepParams()->adaptSweep.maxRHS = $11;
+          domain->solInfo().getSweepParams()->adaptSweep.deltaRHS = $12;
+          domain->solInfo().getSweepParams()->nFreqSweepRHS = $11;
+        }
+        | IMPE Integer Integer NewLine FREQ Float NewLine
+          { domain->solInfo().curSweepParam = $3; if ($3 == 0) geoSource->setImpe($6); }
+        //| IMPE NewLine SHIFT Float NewLine
+        //  { geoSource->setShift($4); }
+        | IMPE Integer Integer NewLine FREQSWEEP1 Float Float Integer NewLine
+          { domain->setFrequencySet($3); domain->solInfo().curSweepParam = $3; if ($3 == 0) geoSource->setImpe($6); domain->addFrequencies1(2.0*PI*$6, 2.0*PI*$7, $8); }
+        | IMPE Integer Integer NewLine FREQSWEEP2 Float Float Integer NewLine
+          { domain->setFrequencySet($3); domain->solInfo().curSweepParam = $3; if ($3 == 0) geoSource->setImpe($6); domain->addFrequencies2(2.0*PI*$6, 2.0*PI*$7, $8); }
+        | IMPE Integer Integer NewLine FREQSWEEP Float Float Integer Integer NewLine
+          { domain->setFrequencySet($3); domain->solInfo().curSweepParam = $3; if ($3 == 0) geoSource->setImpe($6); domain->addFrequencies(2.0*PI*$6, 2.0*PI*$7, $8, $9); }
+        | IMPE Integer Integer NewLine FREQSWEEPA Integer Integer Integer Float Float Float Integer Integer Integer NewLine
+        {
+          domain->setFrequencySet($3);  domain->solInfo().curSweepParam = $3;
+          if ($3 == 0) geoSource->setImpe($9);
+          domain->addFrequencies(2.0*PI*$9, 2.0*PI*$10, 2,$7);
+          domain->solInfo().getSweepParams()->isAdaptSweep = true;
+          domain->solInfo().getSweepParams()->adaptSweep.maxP = $6;
+          domain->solInfo().getSweepParams()->adaptSweep.numS = $7;
+          domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = bool($8);
+          domain->solInfo().getSweepParams()->adaptSweep.w1 = 2.0*PI*$9;
+          domain->solInfo().getSweepParams()->adaptSweep.w2 = 2.0*PI*$10;
+          domain->solInfo().getSweepParams()->adaptSweep.atol = $11;
+          domain->solInfo().getSweepParams()->adaptSweep.minRHS = $12;
+          domain->solInfo().getSweepParams()->adaptSweep.maxRHS = $13;
+          domain->solInfo().getSweepParams()->adaptSweep.deltaRHS = $14;
+          domain->solInfo().getSweepParams()->nFreqSweepRHS = $13;
         }
         | IMPE NewLine FreqSweep 
         | Impe ReconsInfo
         | Impe DampInfo
+        | Impe SDampInfo
         | Impe PadePivotInfo
         | Impe PadePolesInfo
         ;
 PadePivotInfo:
         PADEPIVOT Float NewLine
-        { domain->solInfo().pade_pivot = true; domain->solInfo().pade_tol = $2; }
+        { domain->solInfo().getSweepParams()->pade_pivot = true; domain->solInfo().getSweepParams()->pade_tol = $2; }
         ;
 PadePolesInfo:
         PADEPOLES NewLine
-        { domain->solInfo().pade_poles = true; }
+        { domain->solInfo().getSweepParams()->pade_poles = true; }
         | PADEPOLES Float Float NewLine
-        { domain->solInfo().pade_poles = true; 
-          domain->solInfo().pade_poles_sigmaL = $2; domain->solInfo().pade_poles_sigmaU = $3; }
+        { domain->solInfo().getSweepParams()->pade_poles = true; 
+          domain->solInfo().getSweepParams()->pade_poles_sigmaL = $2; domain->solInfo().getSweepParams()->pade_poles_sigmaU = $3; }
 FreqSweep:  
         /* FREQSWEEP f_0 */
         FREQSWEEP Float NewLine
@@ -425,88 +457,88 @@ FreqSweep:
         ;
 ReconsInfo:
         RECONS RECONSALG Integer NewLine 
-        { domain->solInfo().freqSweepMethod = $2; 
-          int &l = domain->solInfo().padeL, &m = domain->solInfo().padeM, &n = domain->solInfo().padeN;
+        { domain->solInfo().getSweepParams()->freqSweepMethod = $2; 
+          int &l = domain->solInfo().getSweepParams()->padeL, &m = domain->solInfo().getSweepParams()->padeM, &n = domain->solInfo().getSweepParams()->padeN;
           switch($2) {
-            case SolverInfo::Taylor:
-              domain->solInfo().nFreqSweepRHS = $3+1; // taylor
+            case SweepParams::Taylor:
+              domain->solInfo().getSweepParams()->nFreqSweepRHS = $3+1; // taylor
               break;
-            case SolverInfo::Pade1:
+            case SweepParams::Pade1:
               n = 1;
-              domain->solInfo().nFreqSweepRHS = l+m+1;
+              domain->solInfo().getSweepParams()->nFreqSweepRHS = l+m+1;
               break;
-            case SolverInfo::Pade:
-            case SolverInfo::Fourier:
+            case SweepParams::Pade:
+            case SweepParams::Fourier:
               n = $3;
-              domain->solInfo().nFreqSweepRHS = (int) ceil(float(l+m+1)/float(n));
+              domain->solInfo().getSweepParams()->nFreqSweepRHS = (int) ceil(float(l+m+1)/float(n));
               break;
-            case SolverInfo::PadeLanczos:
+            case SweepParams::PadeLanczos:
               n = $3;
               if(m%n != 0) m = m/n*(n+1)-m%n; // round m up to the nearest multiple of n
               l = m-1;
-              domain->solInfo().nFreqSweepRHS = m/n;
+              domain->solInfo().getSweepParams()->nFreqSweepRHS = m/n;
               break;
-            case SolverInfo::GalProjection:
+            case SweepParams::GalProjection:
               n = $3;
               m = 1;
-              domain->solInfo().nFreqSweepRHS = l+1;
+              domain->solInfo().getSweepParams()->nFreqSweepRHS = l+1;
               break;
-            case SolverInfo::KrylovGalProjection:
+            case SweepParams::KrylovGalProjection:
               n = $3;
               m = 1;
-              domain->solInfo().nFreqSweepRHS = l+1;
+              domain->solInfo().getSweepParams()->nFreqSweepRHS = l+1;
               break;
-            case SolverInfo::QRGalProjection:
+            case SweepParams::QRGalProjection:
               n = $3;
               m = 1;
-              domain->solInfo().nFreqSweepRHS = l+1;
+              domain->solInfo().getSweepParams()->nFreqSweepRHS = l+1;
               break;
           }
         }
         | RECONS RECONSALG Integer Integer Integer NewLine  
-        { domain->solInfo().freqSweepMethod = $2;
-          int &l = domain->solInfo().padeL, &m = domain->solInfo().padeM, &n = domain->solInfo().padeN;
+        { domain->solInfo().getSweepParams()->freqSweepMethod = $2;
+          int &l = domain->solInfo().getSweepParams()->padeL, &m = domain->solInfo().getSweepParams()->padeM, &n = domain->solInfo().getSweepParams()->padeN;
           switch($2) {
-            case SolverInfo::Taylor:
-              domain->solInfo().nFreqSweepRHS = $3+1; // taylor
+            case SweepParams::Taylor:
+              domain->solInfo().getSweepParams()->nFreqSweepRHS = $3+1; // taylor
               break;
-            case SolverInfo::Pade1:
+            case SweepParams::Pade1:
               n = 1;
               l = $4;
               m = $5;
-              domain->solInfo().nFreqSweepRHS = l+m+1;
+              domain->solInfo().getSweepParams()->nFreqSweepRHS = l+m+1;
               break;
-            case SolverInfo::Pade:
-            case SolverInfo::Fourier:
+            case SweepParams::Pade:
+            case SweepParams::Fourier:
               n = $3;
               l = $4; 
               m = $5;
-              domain->solInfo().nFreqSweepRHS = (int) ceil(float(l+m+1)/float(n));
+              domain->solInfo().getSweepParams()->nFreqSweepRHS = (int) ceil(float(l+m+1)/float(n));
               break;
-            case SolverInfo::PadeLanczos:
+            case SweepParams::PadeLanczos:
               n = $3;
               m = $5;
               if(m%n != 0) m = m/n*(n+1)-m%n; // round m up to the nearest multiple of n
               l = m-1;
-              domain->solInfo().nFreqSweepRHS = m/n;
+              domain->solInfo().getSweepParams()->nFreqSweepRHS = m/n;
               break;
-            case SolverInfo::GalProjection:
+            case SweepParams::GalProjection:
               n = $3;
               l = $4;
               m = 1;
-              domain->solInfo().nFreqSweepRHS = l+1;
+              domain->solInfo().getSweepParams()->nFreqSweepRHS = l+1;
               break;
-            case SolverInfo::KrylovGalProjection:
+            case SweepParams::KrylovGalProjection:
               n = $3;
               l = $4;
               m = 1;
-              domain->solInfo().nFreqSweepRHS = l+1;
+              domain->solInfo().getSweepParams()->nFreqSweepRHS = l+1;
               break;
-            case SolverInfo::QRGalProjection:
+            case SweepParams::QRGalProjection:
               n = $3;
               l = $4;
               m = 1;
-              domain->solInfo().nFreqSweepRHS = l+1;
+              domain->solInfo().getSweepParams()->nFreqSweepRHS = l+1;
               break;
           }
         }
@@ -1175,6 +1207,10 @@ DampInfo:
 	| DAMPING MODAL NewLine ModalValList
 	{ if(geoSource->setModalDamping($4->n, $4->d) < 0) return -1; 
 	  domain->solInfo().modalCalled = true; }
+
+SDampInfo:
+	SDAMPING Float Float NewLine
+	{ domain->solInfo().setSDamping($2,$3); }
 	;
 ComplexDirichletBC:
 	HDIRICHLET NewLine ComplexBCDataList
@@ -1768,6 +1804,18 @@ TETTList:
         | TETTList CURVE Integer NewLine Float Float NewLine
         { $$ = new MFTTData($3); $$->add($5, $6); domain->addCTETT($$);}
         ;
+SDETAFTable:
+        SDETAFT NewLine
+        | SDETAFT NewLine SDETAFList
+        ;
+SDETAFList:
+        CURVE Integer NewLine Float Float NewLine
+        { $$ = new MFTTData($2); $$->add($4, $5); domain->addSDETAFT($$);}
+        | SDETAFList Float Float NewLine
+        { $$->add($2, $3); }
+        | SDETAFList CURVE Integer NewLine Float Float NewLine
+        { $$ = new MFTTData($3); $$->add($5, $6); domain->addSDETAFT($$);}
+        ;
 LMPConstrain:
         LMPC NewLine
         | LMPC NewLine MPCList
@@ -1886,6 +1934,15 @@ MatData:
           sp.isReal = true;
           geoSource->addMat( $1-1, sp );
         }
+        | Integer Float Float Float Float Float Float Float Float Float Float Float Float Float Float SDAMPING Float Float NewLine
+        { StructProp sp;
+          sp.A = $2;  sp.E = $3;  sp.nu  = $4;  sp.rho = $5;
+          sp.c = $6;  sp.k = $7;  sp.eh  = $8;  sp.P   = $9;  sp.Ta  = $10;
+          sp.Q = $11; sp.W = $12; sp.Ixx = $13; sp.Iyy = $14; sp.Izz = $15;
+          sp.etaDamp = $17; sp.betaDamp = $18;
+          sp.isReal = true;
+          geoSource->addMat( $1-1, sp );
+        }
         | Integer Float Float Float Float Float Float Float Float Float Float Float Float Float Float RIGID Integer Float NewLine
         { StructProp sp;
           sp.A = $2;  sp.E = $3;  sp.nu  = $4;  sp.rho = $5;
@@ -1914,6 +1971,16 @@ MatData:
           sp.Q = $11; sp.W = $12; sp.Ixx = $13; sp.Iyy = $14; sp.Izz = $15;
           sp.ymin = $16; sp.ymax = $17; sp.zmin = $18; sp.zmax = $19;
           sp.betaDamp = $21; sp.alphaDamp = $22;
+          sp.isReal = true;
+          geoSource->addMat( $1-1, sp );
+        }
+        | Integer Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float SDAMPING Float Float NewLine
+        { StructProp sp;
+          sp.A = $2;  sp.E = $3;  sp.nu  = $4;  sp.rho = $5;
+          sp.c = $6;  sp.k = $7;  sp.eh  = $8;  sp.P   = $9;  sp.Ta  = $10;
+          sp.Q = $11; sp.W = $12; sp.Ixx = $13; sp.Iyy = $14; sp.Izz = $15;
+          sp.ymin = $16; sp.ymax = $17; sp.zmin = $18; sp.zmax = $19;
+          sp.etaDamp = $21; sp.betaDamp = $22;
           sp.isReal = true;
           geoSource->addMat( $1-1, sp );
         }

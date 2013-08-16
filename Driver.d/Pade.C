@@ -14,10 +14,10 @@ StaticSolver< Scalar, OpSolver, VecType,
   // PJSA 12-06-04: pade for general case (single or multipoint)
   if(a == 0) {
     // first time, compute P and Q coeffs (a, b)
-    int l = domain->solInfo().padeL;
-    int m = domain->solInfo().padeM;
-    int padeN = domain->solInfo().padeN;
-    int nRHS = domain->solInfo().nFreqSweepRHS;
+    int l = domain->solInfo().getSweepParams()->padeL;
+    int m = domain->solInfo().getSweepParams()->padeM;
+    int padeN = domain->solInfo().getSweepParams()->padeN;
+    int nRHS = domain->solInfo().getSweepParams()->nFreqSweepRHS;
     filePrint(stderr, " ... Computing %d-point Pade coefficients (l = %d, m = %d) ... \n", padeN, l, m);
     // allocate storage for P coefficients
     ia = l+1;
@@ -50,8 +50,8 @@ StaticSolver< Scalar, OpSolver, VecType,
           v[I] = -(*u[offset+n])[i];
         }
       }
-      if(domain->solInfo().pade_pivot) { // factor and solve with full pivoting
-        double tolerance = domain->solInfo().pade_tol; // default is 1.0e-12
+      if(domain->solInfo().getSweepParams()->pade_pivot) { // factor and solve with full pivoting
+        double tolerance = domain->solInfo().getSweepParams()->pade_tol; // default is 1.0e-12
         A.Factor(tolerance);
         A.ReSolve(v);
       }
@@ -112,8 +112,8 @@ StaticSolver< Scalar, OpSolver, VecType,
   if(a == 0) {
     filePrint(stderr," ... Computing 1-point Pade coefficients ... \n");
     // first time, compute P and Q coeffs (a, b)
-    int l = domain->solInfo().padeL;
-    int m = domain->solInfo().padeM;
+    int l = domain->solInfo().getSweepParams()->padeL;
+    int m = domain->solInfo().getSweepParams()->padeM;
     // allocate storage for P coefficients
     ia = l+1;
     a = new VecType * [ia];
@@ -174,22 +174,22 @@ StaticSolver< Scalar, OpSolver, VecType,
               PostProcessor, ProblemDescriptor, ComplexVecType >
   ::fourier(VecType *sol, VecType **u, double *h, double x)
 {
-  int padeN = domain->solInfo().padeN; 
+  int padeN = domain->solInfo().getSweepParams()->padeN; 
   double x0 = (h[0]+h[padeN-1])/2;
   double X = x-x0;
   double L = (h[padeN-1]-h[0])*2.0; // the 2.0 factor makes L the "effective" period
   ComplexD ii=ComplexD(0.0, 1.0);
   DComplex tpiol = 2.0*PI*ii/L;
-  int l = domain->solInfo().padeL;
-  int m = domain->solInfo().padeM;
+  int l = domain->solInfo().getSweepParams()->padeL;
+  int m = domain->solInfo().getSweepParams()->padeM;
   // note u0[k+1] is the kth derivate of u0, similarly for uh
   int i, j, k, n, r;
   // PJSA 12-06-04: fourier-pade for general case (single or multipoint)
   if(ca == 0) {
     // first time, compute P and Q coeffs (a, b)
-    double *H = new double [domain->solInfo().padeN];
+    double *H = new double [domain->solInfo().getSweepParams()->padeN];
     for(i=0; i<padeN; ++i) H[i] = h[i]-x0;
-    int nRHS = domain->solInfo().nFreqSweepRHS;
+    int nRHS = domain->solInfo().getSweepParams()->nFreqSweepRHS;
     filePrint(stderr, " ... Computing %d-point Fourier-Pade coefficients (l = %d, m = %d) ... \n", padeN, l, m);
     // allocate storage for P coefficients
     ia = l+1;
@@ -230,8 +230,8 @@ StaticSolver< Scalar, OpSolver, VecType,
           v[row] = -(*u[offset+n])[i];
         }
       }
-      if(domain->solInfo().pade_pivot) { // factor and solve with full pivoting
-        double tolerance = domain->solInfo().pade_tol; // default is 1.0e-12
+      if(domain->solInfo().getSweepParams()->pade_pivot) { // factor and solve with full pivoting
+        double tolerance = domain->solInfo().getSweepParams()->pade_tol; // default is 1.0e-12
         A.Factor(tolerance); 
         A.ReSolve(v);
       }

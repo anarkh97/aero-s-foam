@@ -385,7 +385,7 @@ StaticTimers::printFetiDPtimers(MatrixTimers matrixTimer, double solveTime,
  filePrint(f,"8. Sparse renumbering                      = %14s\n\n", sparseRenumMessage[sInfo.sparse_renum]);
  if(domain->solInfo().doFreqSweep) {
    filePrint(f,"9. Number of Frequencies                   = %14d\n\n", domain->numFrequencies);
-   filePrint(f,"10. Number of RHS solves                   = %14d\n\n", domain->solInfo().nFreqSweepRHS);
+   filePrint(f,"10. Number of RHS solves                   = %14d\n\n", domain->solInfo().getSweepParams()->nFreqSweepRHS);
  }
 
  filePrint(f,"***********************************************************"

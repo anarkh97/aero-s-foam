@@ -31,11 +31,10 @@ private:
   void subBuildSensorNodeVector(int);
   void subPrintSensorValues(int,GenDistrVector<double> &, OutputInfo *,double *);
 
-  DistrVecBasis SensorBasis;
-  std::vector<int> sensorKey;
-  GenDistrVector<double> DispSensorValues;
-  GenDistrVector<double> AccSensorValues;
-  GenDistrVector<double> VelSensorValues;
+  DistrVecBasis *SensorBasis;
+  GenDistrVector<double> *DispSensorValues;
+  GenDistrVector<double> *AccSensorValues;
+  GenDistrVector<double> *VelSensorValues;
 
   DofSetArray **all_cdsa;
 

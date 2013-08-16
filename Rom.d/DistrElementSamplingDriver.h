@@ -7,14 +7,10 @@
 
 class Communicator;
 class DistrInfo;
-class Connectivity;
 
 namespace Rom {
 
-template <typename Scalar, template <typename> class GenVecType> class GenVecBasis;
-typedef GenVecBasis<double, GenDistrVector> DistrVecBasis;
-
-class DistrElementSamplingDriver :public MultiDomainDynam, public DriverInterface {
+class DistrElementSamplingDriver : public MultiDomainDynam, public DriverInterface {
 public:
   virtual void solve();
   
@@ -23,7 +19,6 @@ public:
 
 private:
   Communicator *comm_;
-  std::auto_ptr<Connectivity> elemToNode_;
   int snapSize(BasisId::Type type);
   void buildDomainCdsa();
 };

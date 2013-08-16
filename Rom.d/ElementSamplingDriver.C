@@ -122,6 +122,12 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::ElementSamplingDriver(Domain *
 
 template<typename MatrixBufferType, typename SizeType>
 ElementSamplingDriver<MatrixBufferType,SizeType>::~ElementSamplingDriver() {
+  clean();
+}
+
+template<typename MatrixBufferType, typename SizeType>
+void
+ElementSamplingDriver<MatrixBufferType,SizeType>::clean() {
   if (corotators_) {
     for (int iElem = 0; iElem != elementCount(); ++iElem) {
       const Corotator * c = corotators_[iElem];
@@ -130,12 +136,17 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::~ElementSamplingDriver() {
       }
     }
     delete[] corotators_;
+    corotators_ = NULL;
   }
 
-  delete geomState_;
+  if(geomState_) { delete geomState_; geomState_ = NULL; }
+  if(kelArray_) { delete [] kelArray_; kelArray_ = NULL; }
+  if(melArray_) { delete [] melArray_; melArray_ = NULL; }
 
-  if(veloc_) delete veloc_;
-  if(accel_) delete accel_;
+  if(veloc_) { delete veloc_; veloc_ = NULL; }
+  if(accel_) { delete accel_; accel_ = NULL; }
+
+  timeStamps_.clear();
 }
 
 template<typename MatrixBufferType, typename SizeType>

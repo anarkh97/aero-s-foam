@@ -282,7 +282,7 @@ StaticSolver< Scalar, OpSolver, VecType,
     // PJSA 10-14-08 solve the reduced eigenvalue problem to get the poles of the Pade approximant
     bool xxxx = false; // change to true if eigenvectors are required
                        // this idea needs a bit of work and testing. esp output freqsweep modes and eigenmodes go to same file
-    if(domain->solInfo().pade_poles && nRHS == domain->solInfo().nFreqSweepRHS*domain->solInfo().padeN) {
+    if(domain->solInfo().getSweepParams()->pade_poles && nRHS == domain->solInfo().getSweepParams()->nFreqSweepRHS*domain->solInfo().getSweepParams()->padeN) {
       char jobz = (xxxx) ? 'V' : 'N';
       double *ap = new double[nRHS*(nRHS+1)/2];
       double *w = new double[nRHS];
@@ -306,7 +306,7 @@ StaticSolver< Scalar, OpSolver, VecType,
       filePrint(stderr," --------------------------------------\n");
       int imode = 0;
       for(int i = 0; i < nRHS; ++i) {
-        if(w[i] >= domain->solInfo().pade_poles_sigmaL && w[i] <= domain->solInfo().pade_poles_sigmaU) {
+        if(w[i] >= domain->solInfo().getSweepParams()->pade_poles_sigmaL && w[i] <= domain->solInfo().getSweepParams()->pade_poles_sigmaU) {
           filePrint(stderr, " %d\t%e\n", ++imode, w[i]);
           if(xxxx) {
             u->zero();

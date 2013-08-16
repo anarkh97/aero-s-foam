@@ -83,6 +83,7 @@ renormalized_basis(const GenSparseMatrix<Scalar> &metric, const GenVecBasis<Scal
 template <typename Scalar>
 void
 MGSVectors(Scalar *d, int numVec, int lengthVec, bool RowMajor = false) {
+#ifdef USE_EIGEN3
  filePrint(stderr," ... Gram-Schmidt Algorithm: orthogonalizing vectors ...\n");
  //filePrint(stderr," number of vectors = %d\n", numVec);
  //initialize eigen matrix class with pointer to vectors
@@ -114,12 +115,16 @@ MGSVectors(Scalar *d, int numVec, int lengthVec, bool RowMajor = false) {
   }
  }
  filePrint(stderr,"\r %5.2f%% complete\n", 100.);
+#else
+  filePrint(stderr, " *** ERROR: MGSVectors requires Eigen 3 library\n");
+  exit(-1);
+#endif
 }
 
 template <typename Scalar>
 void
 PrintData(Scalar *d, int numVec, int lengthVec, bool RowMajor = false) {
-
+#ifdef USE_EIGEN3
 Eigen::Map< Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> > matrix(NULL,0,0);
  if (RowMajor)
    new (&matrix) Eigen::Map< Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic, Eigen::RowMajor> >(d,lengthVec,numVec);
@@ -127,7 +132,7 @@ Eigen::Map< Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> > matrix(NULL,0,
    new (&matrix) Eigen::Map< Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic, Eigen::ColMajor> >(d,lengthVec,numVec);
 
  std::cout << matrix.transpose()*matrix << std::endl;
-
+#endif
 }
 
 

@@ -207,19 +207,19 @@ Communicator::gather(Type *send_data, int send_count, Type *recv_data, int recv_
 {
 #ifdef USE_MPI
   MPI_Gather(send_data, send_count, CommTrace<Type>::MPIType,
-                recv_data, recv_count, CommTrace<Type>::MPIType, root, comm);
+             recv_data, recv_count, CommTrace<Type>::MPIType, root, comm);
 #endif
 }
 
 template <class Type>
 void
 Communicator::gatherv(Type *send_data, int send_count,
-                         Type *recv_data, int recv_counts[], int displacements[], int root)
+                      Type *recv_data, int recv_counts[], int displacements[], int root)
 {
 #ifdef USE_MPI
   MPI_Gatherv(send_data, send_count, CommTrace<Type>::MPIType,
-                 recv_data, recv_counts, displacements,
-                 CommTrace<Type>::MPIType, root, comm);
+              recv_data, recv_counts, displacements,
+              CommTrace<Type>::MPIType, root, comm);
 #endif
 }
 

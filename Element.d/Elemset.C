@@ -244,7 +244,8 @@ Elemset::hasDamping()
   if(dampingFlag == -1) {
     dampingFlag = 0;
     for(int i=0; i<last(); ++i)
-      if (elem[i]->isDamped()) {
+// RT: 062513 - added sdamping here - some
+      if (elem[i]->isDamped() || elem[i]->isSDamped()) {
         dampingFlag = 1;
         break;
       }

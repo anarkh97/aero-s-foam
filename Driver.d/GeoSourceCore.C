@@ -913,6 +913,7 @@ void GeoSource::setUpData()
     complex<double> ka = omega()/p->soundSpeed;
     p->kappaHelm = real(ka);
     p->kappaHelmImag = imag(ka);
+    domain->updateSDETAF(p,omega()+1e-9);
     if(p->type != StructProp::Constraint) {
       p->lagrangeMult = (sinfo.mpcDirect) ? false : sinfo.lagrangeMult;
       p->initialPenalty = p->penalty = (sinfo.mpcDirect) ? 0.0 : sinfo.penalty;
@@ -920,6 +921,10 @@ void GeoSource::setUpData()
     p->constraint_hess = sinfo.constraint_hess;
     p->constraint_hess_eps = sinfo.constraint_hess_eps;
     it++;
+  }
+  if (sinfo.doFreqSweep) {
+    domain->solInfo().curSweepParam = 0;
+    domain->setFrequencySet(0);
   }
 
   // Set up material properties
@@ -3303,6 +3308,36 @@ void GeoSource::openOutputFiles(int *outNodes, int *outIndex, int numOuts)
 }
 
 //--------------------------------------------------------------------
+void GeoSource::openSensorOutputFiles()
+{
+  int iInfo;
+
+  // open all single node output files and write their corresponding TOPDOM/DEC header
+  for(iInfo = 0; iInfo < numOutInfo; ++iInfo) {
+    if(!(oinfo[iInfo].nodeNumber == -1)) {
+      if(oinfo[iInfo].interval != 0) {
+        char *fileName = oinfo[iInfo].filename;
+        if (strlen(cinfo->outputExt) != 0) {
+          int len1 = strlen(fileName);
+          int len2 = strlen(cinfo->outputExt);
+          char *nfn = new char[len1+len2+1];
+          strcpy(nfn, fileName);
+          strcat(nfn,cinfo->outputExt);
+          fileName = nfn;
+        }
+
+        if((oinfo[iInfo].filptr = fopen(fileName,"w")) == (FILE *) 0) {
+          fprintf(stderr," *** ERROR: Cannot open %s, exiting...\n", oinfo[iInfo].filename);
+          exit(0);
+        }
+        outputHeader(iInfo);
+        fflush(oinfo[iInfo].filptr);
+      }
+    }
+  }
+}
+
+//--------------------------------------------------------------------
 void GeoSource::closeOutputFiles()
 {
   for(int i = 0; i < numOutInfo; ++i) {
@@ -4465,4 +4500,5 @@ void ControlLawInfo::makeGlobalClaw(ControlLawInfo *subClaw)
   numUserForce += subClaw->numUserForce;
   numUserDisp += subClaw->numUserDisp;
 }
+
 

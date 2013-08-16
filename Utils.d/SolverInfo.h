@@ -27,6 +27,33 @@ public:
      bool dgp_flag;
 };
 
+struct SweepParams {
+public:
+   SweepParams() { 
+                  nFreqSweepRHS = 8;
+                  freqSweepMethod = Taylor;
+                  isAdaptSweep = false;
+                  padeL = 9;
+                  padeM = 10;
+                  padeN = 2;
+                  pade_pivot = false;
+                  pade_tol = 1.0e-16;
+                  pade_poles = false;
+                  pade_poles_sigmaL = 0.0;
+                  pade_poles_sigmaU = numeric_limits<double>::max();
+   }
+   int nFreqSweepRHS;
+   enum { Taylor, Pade1, Pade, Fourier, PadeLanczos, GalProjection, KrylovGalProjection, QRGalProjection };
+   AdaptiveSweepParams adaptSweep;
+   bool isAdaptSweep;
+   int freqSweepMethod;
+   int padeL, padeM, padeN;
+   bool pade_pivot;
+   double pade_tol;
+   bool pade_poles;
+   double pade_poles_sigmaL, pade_poles_sigmaU;
+};
+
 struct SolverInfo {
 
  private:
@@ -119,6 +146,7 @@ struct SolverInfo {
 */
    double alphaDamp;    // Rayleigh Mass damping coefficient 
    double betaDamp;     // Rayleigh Stiffness damping coefficient
+   double etaDamp;      // Structural stiffness damping coefficient
    double alphaTemp;
    double newmarkBeta;  // Newmark algorithm parameter (beta)
    double newmarkGamma; // Newmark algorithm parameter (gamma)
@@ -215,11 +243,13 @@ struct SolverInfo {
 
    bool localScaled, coarseScaled;
 
-   int nFreqSweepRHS;
+   int curSweepParam;
+   map<int,SweepParams> sweepParams;
+   SweepParams* getSweepParams() { return &(sweepParams[curSweepParam]); }
    bool doFreqSweep,doEigSweep;
-   //--- UH --- 05/21/08
+/*
+   int nFreqSweepRHS;
    enum { Taylor, Pade1, Pade, Fourier, PadeLanczos, GalProjection, KrylovGalProjection, QRGalProjection };
-   //--- UH --- 05/21/08
    AdaptiveSweepParams adaptSweep;
    bool isAdaptSweep;
    int freqSweepMethod;
@@ -228,8 +258,12 @@ struct SolverInfo {
    double pade_tol;
    bool pade_poles;
    double pade_poles_sigmaL, pade_poles_sigmaU;
-   int modeFilterFlag;
+*/
+
    bool test_ulrich;
+   int modeFilterFlag;
+
+
    int addedMass;
    bool isCoupled;
    double coupled_scale;
@@ -346,6 +380,7 @@ struct SolverInfo {
                   probType = SolverInfo::None;
                   alphaDamp = 0.0;
                   betaDamp = 0.0;
+                  etaDamp = 0.0;
                   modal = false;
                   lastIt = false;
                   mppFactor = 1.0;
@@ -446,9 +481,10 @@ struct SolverInfo {
                   localScaled = false;
                   coarseScaled = false;
 
-                  nFreqSweepRHS = 8;
                   doFreqSweep = false;
                   doEigSweep = false;
+/*
+                  nFreqSweepRHS = 8;
                   freqSweepMethod = Taylor;
                   isAdaptSweep = false;
                   padeL = 9;
@@ -458,6 +494,7 @@ struct SolverInfo {
                   pade_tol = 1.0e-16;
                   pade_poles = false;
                   pade_poles_sigmaL = 0.0; pade_poles_sigmaU = numeric_limits<double>::max();
+*/
                   modeFilterFlag = 0;
                   test_ulrich = false;
                   addedMass = 1;
@@ -650,6 +687,9 @@ struct SolverInfo {
    void setDamping(double beta, double alpha)
    { alphaDamp = alpha; betaDamp = beta; }
    bool hasDamping() { return ((alphaDamp != 0.0) || (betaDamp != 0.0)); }
+   void setSDamping(double eta, double beta)
+   { etaDamp = eta; betaDamp = beta; }
+   bool hasSDamping() { return ((etaDamp != 0.0) ); }
 
    // SET RENUMBERING SCHEME (ND = nested dissection, MMD = multiple minimum degree, MS = multi-section, RCM = Reverse Cuthill McKee
    void setRenum(int renumberid) { 

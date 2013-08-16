@@ -260,7 +260,7 @@ SnapshotProjectionDriver::preProcess() {
 
 void
 SnapshotProjectionDriver::compProjError() {
-
+#ifdef USE_EIGEN3
   Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> dispError(snapshots.vectorSize(),snapshots.numVec());
   Eigen::Map< Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > dispBuf(snapshots.data(),snapshots.vectorSize(),snapshots.numVec());
   Eigen::Map< Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > pdispBuf(displac_.data(),displac_.vectorSize(),displac_.numVec());
@@ -377,7 +377,7 @@ SnapshotProjectionDriver::compProjError() {
       filePrint(accelFile,"\n");
     }
   }
-
+#endif
 }
 
 } // end namespace Rom

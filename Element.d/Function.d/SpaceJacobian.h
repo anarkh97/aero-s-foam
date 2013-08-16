@@ -32,7 +32,7 @@ struct assign_coherent_impl<Eigen::Matrix<Scalar, 1, 1, Options, MaxRows, MaxCol
 };
 
 template<typename Scalar, int Options, int MaxRows, int MaxCols>
-struct assign_coherent_impl<Scalar, Eigen::Matrix<Scalar, 1, 1, Options, MaxRows, MaxCols>> {
+struct assign_coherent_impl<Scalar, Eigen::Matrix<Scalar, 1, 1, Options, MaxRows, MaxCols> > {
   typedef Scalar A;
   typedef Eigen::Matrix<Scalar, 1, 1, Options, MaxRows, MaxCols> B;
   static void run(const A& a, B& b) { b[0] = a; }

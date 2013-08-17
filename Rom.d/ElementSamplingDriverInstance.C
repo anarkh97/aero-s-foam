@@ -50,6 +50,11 @@ void
 ElementSamplingDriver<std::vector<double>,size_t>
 ::buildDomainCdsa();
 
+template
+void
+ElementSamplingDriver<std::vector<double>,size_t>
+::clean();
+
 #ifdef USE_STXXL
 template
 int
@@ -98,6 +103,11 @@ template
 void
 ElementSamplingDriver<stxxl::VECTOR_GENERATOR<double,16,32,8388608,stxxl::RC,stxxl::random>::result,stxxl::uint64>
 ::buildDomainCdsa();
+
+template
+void
+ElementSamplingDriver<stxxl::VECTOR_GENERATOR<double,16,32,8388608,stxxl::RC,stxxl::random>::result,stxxl::uint64>
+::clean();
 #endif
 
 } // end namespace Rom

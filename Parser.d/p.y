@@ -58,7 +58,7 @@
  BlastLoading::BlastData blastData;
 }
 
-%expect 6
+%expect 7 
 
 %token ACTUATORS AERO AEROH AEROTYPE AMAT ANALYSIS ARCLENGTH ATTRIBUTES ANGULAROUTTYPE
 %token AUGMENT AUGMENTTYPE AVERAGED ATDARB ACOU ATDDNB ATDROB ARPACK ATDDIR ATDNEU
@@ -203,6 +203,7 @@ Component:
 	| UsddLocations
 	| UsdfLocations
         | DynInfo
+        | Conwep
 	| SloshInfo 
 	| HEVibInfo 
         | QstaticInfo
@@ -962,6 +963,11 @@ DynamInfo:
           domain->solInfo().epsilon1 = $3; 
           domain->solInfo().epsilon2 = $4; }
         | DynamInfo CONWEP ConwepData NewLine
+        { domain->solInfo().ConwepOnOff = true;
+          BlastLoading::InputFileData = $3; }
+        ;
+Conwep:
+        CONWEP NewLine ConwepData NewLine
         { domain->solInfo().ConwepOnOff = true;
           BlastLoading::InputFileData = $3; }
         ;

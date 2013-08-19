@@ -1468,7 +1468,6 @@ int main(int argc, char** argv)
 
 #ifdef DISTRIBUTED
  if(structCom) totalMemoryUsed = structCom->globalSum(totalMemoryUsed);
- if(syscom) syscom->sync();
 #endif
 
  if(domain->solInfo().thermohFlag < 0) {

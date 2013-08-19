@@ -567,7 +567,8 @@ int main(int argc, char** argv)
  }
 
  if(domain->solInfo().readmodeCalled) {
-   if((domain->solInfo().modalCalled || domain->solInfo().modal) && (domain->solInfo().readInModes == "")) {
+   if((domain->solInfo().modalCalled || domain->solInfo().modal || domain->solInfo().modeDecompFlag)
+      && (domain->solInfo().readInModes == "")) {
      domain->readInModes(const_cast<char*>(domain->solInfo().readInROBorModes));
    }
    else if (!domain->solInfo().samplingPodRom) {

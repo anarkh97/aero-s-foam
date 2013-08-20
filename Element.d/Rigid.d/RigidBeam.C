@@ -166,8 +166,7 @@ void
 RigidBeam::buildFrame(CoordSet& cs)
 {
   Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]);
-  double length; 
+  Node &nd2 = cs.getNode(nn[1]); 
   getLength(cs, length);
   if(elemframe != 0) {
     if(length == 0) {
@@ -291,10 +290,6 @@ RigidBeam::getMass(CoordSet& cs)
         if(prop == NULL || prop->rho == 0 || prop->A == 0)
           return 0;
 
-        double length;
-
-        getLength(cs, length);
-
         double mass = length*(prop->rho)*(prop->A);
         return mass;
 }
@@ -317,7 +312,7 @@ RigidBeam::getGravityForce(CoordSet& cs, double *gravityAcceleration,
             updTransMatrix(cs, geomState, t0n, length);
 
         }  else  {
-           getLength(cs, length);
+           length = RigidBeam::length;
 
            for(int i=0; i<3; ++i) {
               for(int j=0; j<3; ++j) {
@@ -470,5 +465,13 @@ RigidBeam::getLength(CoordSet& cs, double &length)
 
      length = sqrt(dx*dx + dy*dy + dz*dz);
 
+}
+
+double
+RigidBeam::computeStabilityTimeStep(FullSquareMatrix &K, FullSquareMatrix &M, CoordSet &cs, GeomState *gs,
+                                    double stable_tol, int stable_maxit)
+{
+  if(length == 0) return std::numeric_limits<double>::infinity();
+  else return Element::computeStabilityTimeStep(K, M, cs, gs, stable_tol, stable_maxit);
 }
 #endif

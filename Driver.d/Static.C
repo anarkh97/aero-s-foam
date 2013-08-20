@@ -952,7 +952,7 @@ void Domain::writeTopFileElementSets(ControlInfo *cinfo, int * nodeTable, int* n
      }
  }
 
- std::cerr << " ... " << phantoms.size() << " phantoms " << constraints.size() << " constraints elements. " << endl;
+ //std::cerr << " ... " << phantoms.size() << " phantoms " << constraints.size() << " constraints elements. " << endl;
 
  //TG output dimasses in a separate element set if there are any
  // as of now (7/5/06) a dimass will be represented by a bar element in xpost between the node the
@@ -1126,9 +1126,9 @@ Domain::makeTopFile(int topFlag)
  // nodeToNode->findMaxDist(rnum.renumb);
  // nodeToNode->findProfileSize(dsa);
 
- fprintf(stderr," ... Elem. to Node Connectivity %14.3f Mb\n",
+ fprintf(stderr," ... Elem. to Node Connectivity %9.3f Mb\n",
          m1/(1024.0*1024.0));
- fprintf(stderr," ... DOF set array              %14.3f Mb\n",
+ fprintf(stderr," ... DOF set array              %9.3f Mb\n",
          m2/(1024.0*1024.0));
 
  // ... WRITE INPUT FILE FOR TOP/DOMDEC
@@ -1137,13 +1137,13 @@ Domain::makeTopFile(int topFlag)
 
  // Allocate memory for a node table to compact node numbers
  // into sequential format
-   fprintf(stderr," ... Total Memory         = %14.3f Mb\n",
-                memoryUsed()/(1024.0*1024.0));
+ //fprintf(stderr," ... Total Memory         = %13.3f Mb\n",
+ //               memoryUsed()/(1024.0*1024.0));
  long m4 = - memoryUsed();
 
  int *nodeTable = new int[numnodes];
  m4 += memoryUsed();
- fprintf(stderr," ... Node Table %14.3f Mb\n",m4/(1024.0*1024.0));
+ //fprintf(stderr," ... Node Table %14.3f Mb\n",m4/(1024.0*1024.0));
 
  int inode;
  for(inode=0; inode<numnodes; ++inode)
@@ -1389,7 +1389,7 @@ Domain::makeTopFile(int topFlag)
 
  // Compute Total memory requested for constructing the TOP/DOMDEC file
  long m3 = memoryUsed();
- fprintf(stderr," ... Total Memory         = %14.3f Mb\n",m3/(1024.0*1024.0));
+ fprintf(stderr," ... Total Memory         = %13.3f Mb\n",m3/(1024.0*1024.0));
 }
 
 void
@@ -1417,17 +1417,17 @@ Domain::makeAxiTopFile(int topFlag, int numSlices) {
  dsa = new DofSetArray( numNodes(), packedEset );
  m2 += memoryUsed();
 
- fprintf(stderr," ... Elem. to Node Connectivity %14.3f Mb\n",
+ fprintf(stderr," ... Elem. to Node Connectivity %9.3f Mb\n",
          m1/(1024.0*1024.0));
- fprintf(stderr," ... DOF set array              %14.3f Mb\n",
+ fprintf(stderr," ... DOF set array              %9.3f Mb\n",
          m2/(1024.0*1024.0));
 
  // ... WRITE INPUT FILE FOR TOP/DOMDEC
  ControlInfo *cinfo = geoSource->getCheckFileInfo();
  cinfo->checkfileptr = openFile(cinfo->checkfile, ".top");
 
-  fprintf(stderr," ... Total Memory         = %14.3f Mb\n",
-                memoryUsed()/(1024.0*1024.0));
+ //fprintf(stderr," ... Total Memory         = %13.3f Mb\n",
+ //               memoryUsed()/(1024.0*1024.0));
 
  // ... WRITE NODE COORDINATES
  fprintf(cinfo->checkfileptr,"Nodes %s\n",cinfo->nodeSetName);
@@ -1468,7 +1468,7 @@ Domain::makeAxiTopFile(int topFlag, int numSlices) {
 
  // Compute Total memory requested for constructing the TOP/DOMDEC file
  long m3 = memoryUsed();
-  fprintf(stderr," ... Total Memory         = %14.3f Mb\n",m3/(1024.0*1024.0));
+  fprintf(stderr," ... Total Memory         = %13.3f Mb\n",m3/(1024.0*1024.0));
 }
 
 

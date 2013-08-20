@@ -1019,10 +1019,10 @@ NewmarkFirstOrder:
         Float // epsilon
         { 
           if(domain->solInfo().probType == SolverInfo::NonLinDynam) {
-          domain->solInfo().order = 1;
-         }
+            domain->solInfo().order = 1;
+          }
           else 
-          domain->solInfo().setProbType(SolverInfo::TempDynamic);
+            domain->solInfo().setProbType(SolverInfo::TempDynamic);
           domain->solInfo().setNewmarkFirstOrderInfo($1); 
         }
         ;
@@ -4288,7 +4288,7 @@ Renumbering:
 SvdToken:
     SVDTOKEN NewLine
   { domain->solInfo().activatePodRom = true; 
-    domain->solInfo().probType = SolverInfo::PodRomOffline;
+    domain->solInfo().setProbType(SolverInfo::PodRomOffline);
     domain->solInfo().svdPodRom = true;}
   | SvdToken SvdOption NewLine
   ;
@@ -4331,7 +4331,7 @@ SvdOption:
 Sampling:
     SAMPLING NewLine 
   { domain->solInfo().activatePodRom = true; 
-    domain->solInfo().probType = SolverInfo::PodRomOffline;
+    domain->solInfo().setProbType(SolverInfo::PodRomOffline);
     domain->solInfo().samplingPodRom = true; }
   | Sampling SamplingOption NewLine
   | Sampling ConwepConfig
@@ -4340,7 +4340,7 @@ Sampling:
 SnapshotProject:
     SNAPSHOTPROJECT NewLine 
   { domain->solInfo().activatePodRom = true;
-    domain->solInfo().probType = SolverInfo::PodRomOffline;
+    domain->solInfo().setProbType(SolverInfo::PodRomOffline);
     domain->solInfo().snapProjPodRom = true; }
   | SnapshotProject SamplingOption NewLine
   ;
@@ -4391,7 +4391,7 @@ ConwepConfig:
 ConversionToken:
     CONVERSIONTOKEN NewLine
   { domain->solInfo().activatePodRom = true;
-    domain->solInfo().probType = SolverInfo::PodRomOffline;
+    domain->solInfo().setProbType(SolverInfo::PodRomOffline);
     domain->solInfo().ROMPostProcess = true; }
   | ConversionToken ConversionOption NewLine
   ;

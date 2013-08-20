@@ -218,7 +218,7 @@ TRAIL [a-zA-Z]*
 
 "LOAD"|"load"                      { return LOAD; }
 
-"CONF"[a-zA-Z]*|"conf"[a-zA-Z]*    { return CONFIGURATION; }
+"CONFIG"[a-zA-Z]*|"config"[a-zA-Z]* { return CONFIGURATION; }
 
 "USE"|"use"                        { return USE;  }
 

@@ -8,10 +8,9 @@ class GeomState;
 class TimoshenkoBeam : public Element {
         EFrame *elemframe;
         bool myElemFrame;
-
         int nn[3];
-
         double* iniOr;	
+        PressureBCond *pbc;
 	
 public:
         explicit TimoshenkoBeam(int*);
@@ -42,6 +41,9 @@ public:
         int* nodes(int * = 0);
         Corotator *getCorotator(CoordSet &, double *, int,int);
         int getTopNumber();
+
+        void setPressure(PressureBCond *_pbc) { pbc = _pbc; }
+        PressureBCond* getPressure() { return pbc; }
         void computePressureForce(CoordSet&, Vector& elPressureForce,
                                   GeomState *gs = 0, int cflg = 0, double t = 0);
 

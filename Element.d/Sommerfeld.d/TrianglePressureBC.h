@@ -13,11 +13,10 @@ using Tri3LagrangePolynomialSurfacePressureForceFunction = SurfacePressureForceF
 class TrianglePressureBC : public PressureElement<Tri3LagrangePolynomialSurfacePressureForceFunction>
 {
   public:
-    TrianglePressureBC(int* _nn, double _pressure); 
+    TrianglePressureBC(int* _nn, PressureBCond* _pbc); 
 
   protected:
-    double pressure;
-    void getConstants(CoordSet& cs, Eigen::Array<double,17,1>&, Eigen::Array<int,2,1>&);
+    void getConstants(CoordSet& cs, Eigen::Array<double,18,1>&, Eigen::Array<int,2,1>&);
 };
 
 #else
@@ -27,11 +26,10 @@ class TrianglePressureBC : public SommerElement
 {
     int nnode, nndof, ndime, optele;
     int nn[3];
-    double pressure;
-    BlastLoading::BlastData* conwep;
+    PressureBCond* pbc;
 
   public:
-    TrianglePressureBC(int *, double);
+    TrianglePressureBC(int *, PressureBCond *);
 
     int numNodes() { return nnode; }
     int getNode(int nd) { return nn[nd]; }
@@ -43,8 +41,7 @@ class TrianglePressureBC : public SommerElement
     void getNormal(CoordSet&, double[3]);
 
     FullSquareMatrix sommerMatrix(CoordSet&, double *);
-    bool isSurfacePressureElement() { return true; }
-    void setConwep(BlastLoading::BlastData* _conwep) { conwep = _conwep; }
+    PressureBCond* getPressure() { return pbc; }
     void neumVector(CoordSet&, Vector&, int = 0, GeomState* = 0, double t = 0);
 
     int findAndSetEle(CoordSet& cs,Elemset &eset,

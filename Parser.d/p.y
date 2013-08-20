@@ -38,9 +38,8 @@
  ComplexBCond cxbcval;
  FrameData frame;
  NodalFrameData nframe;
- MFTTData *mftval;
- MFTTData *mptval;
- MFTTData *hftval;
+ TrivialPair<MFTTData*,int> mftval;
+ TrivialPair<MFTTData*,int> hftval;
  LayerData ldata;
  LayInfo *linfo;
  CoefData coefdata;
@@ -58,7 +57,7 @@
  BlastLoading::BlastData blastData;
 }
 
-%expect 6
+%expect 7 
 
 %token ACTUATORS AERO AEROH AEROTYPE AMAT ANALYSIS ARCLENGTH ATTRIBUTES ANGULAROUTTYPE
 %token AUGMENT AUGMENTTYPE AVERAGED ATDARB ACOU ATDDNB ATDROB ARPACK ATDDIR ATDNEU
@@ -67,7 +66,7 @@
 %token CHECKTOKEN COARSESOLVER COEF CFRAMES COLLOCATEDTYPE CONVECTION COMPOSITE CONDITION
 %token CONTROL CORNER CORNERTYPE CURVE CCTTOL CCTSOLVER CRHS COUPLEDSCALE CONTACTSURFACES CMPC CNORM
 %token COMPLEXOUTTYPE CONSTRMAT CASES CONSTRAINEDSURFACES CSFRAMES CSTYPE
-%token CONWEP
+%token CONFIGURATION CONSTANT CONWEP
 %token DAMPING DblConstant DEM DIMASS DISP DIRECT DLAMBDA DP DYNAM DETER DECOMPOSE DECOMPFILE DMPC DEBUGCNTL DEBUGICNTL
 %token CONSTRAINTS MULTIPLIERS PENALTY
 %token ELLUMP EIGEN EFRAMES ELSCATTERER END ELHSOMMERFELD EXPLICIT EPSILON ELEMENTARYFUNCTIONTYPE
@@ -82,7 +81,7 @@
 %token JACOBI KRYLOVTYPE KIRLOC
 %token LAYC LAYN LAYD LAYO LAYMAT LFACTOR LMPC LOAD LOBPCG LOCALSOLVER LINESEARCH LUMPED
 %token MASS MATERIALS MATLAB MAXITR MAXORTHO MAXVEC MODAL MPCPRECNO MPCPRECNOID MPCTYPE MPCTYPEID MPCSCALING MPCELEMENT MPCBLOCKID 
-%token MPCBLK_OVERLAP MFTT MPTT MRHS MPCCHECK MUMPSICNTL MUMPSCNTL MECH MODEFILTER MOMENTTYPE MAXIMUM
+%token MPCBLK_OVERLAP MFTT MRHS MPCCHECK MUMPSICNTL MUMPSCNTL MECH MODEFILTER MOMENTTYPE MAXIMUM
 %token NDTYPE NEIGPA NEWMARK NewLine NL NLMAT NLPREC NOCOARSE NODETOKEN NONINPC
 %token NSBSPV NLTOL NUMCGM NOSECONDARY NFRAMES
 %token OPTIMIZATION OUTPUT OUTPUT6 OUTPUTFRAME
@@ -134,7 +133,6 @@
 %type <ldata>    LayData LayoData LayMatData
 %type <linfo>    LaycInfo LaynInfo LaydInfo LayoInfo
 %type <mftval>   MFTTInfo
-%type <mptval>   MPTTInfo
 %type <hftval>   HFTTInfo
 %type <ival>     NDTYPE OUTPUTFRAME
 %type <ival>     GROUPTYPE
@@ -151,7 +149,7 @@
 %type <MortarCondObj> MortarCondition TiedSurfaces ContactSurfaces
 %type <ival>     MPCTYPEID MPCPRECNOID MPCBLOCKID
 %type <ival>     ISOLVERTYPE RECONSALG
-%type <ival>     PRECTYPEID SWITCH TOPFLAG
+%type <ival>     PRECTYPEID SWITCH TOPFLAG Pressure
 %type <oinfo>    OutInfo
 %type <copt>     ConstraintOptionsData
 %type <blastData> ConwepData
@@ -203,6 +201,7 @@ Component:
 	| UsddLocations
 	| UsdfLocations
         | DynInfo
+        | Conwep
 	| SloshInfo 
 	| HEVibInfo 
         | QstaticInfo
@@ -214,11 +213,10 @@ Component:
 	| Cframes
         | LayMat
 	| MFTTInfo
-	  { domain->setMFTT($1); }
-	| MPTTInfo
-	  { domain->setMPTT($1); }
+	  { domain->setMFTT($1.first, $1.second); }
         | HFTTInfo
-          { domain->setHFTT($1); }
+          { domain->setHFTT($1.first, $1.second); }
+        | Configuration
         | YMTTable
         | TETTable
         | SDETAFTable
@@ -613,21 +611,33 @@ WeightList :
         ;
 MFTTInfo:
 	MFTT NewLine
-	{ $$ = new MFTTData; }
+	{ $$.first = new MFTTData; $$.second = 0; }
+        | MFTT Integer NewLine
+        { $$.first = new MFTTData; $$.second = $2; }
 	| MFTTInfo Float Float NewLine
-	{ $$ = $1; $$->add($2,$3); }
+	{ $$.first->add($2,$3); }
 	;
-MPTTInfo:
-        MPTT NewLine
-        { $$ = new MFTTData; }
-        | MPTTInfo Float Float NewLine
-        { $$ = $1; $$->add($2,$3); }
-        ;
 HFTTInfo:
         HFTT NewLine
-        { $$ = new MFTTData; }
+        { $$.first = new MFTTData; $$.second = 0; }
+        | HFTT Integer NewLine
+        { $$.first = new MFTTData; $$.second = $2; }
         | HFTTInfo Float Float NewLine
-        { $$ = $1; $$->add($2,$3); }
+        { $$.first->add($2,$3); }
+        ;
+Configuration:
+        CONFIGURATION NewLine
+        { /*$$ = $2;*/ }
+        | Configuration Integer MFTT Integer NewLine
+        { domain->setLoadConfig($2, $4); }
+/*
+        | Configuration Integer HFTT Integer NewLine
+        { domain->setLoadConfig($2, $4); }
+        | Configuration Integer CONWEP NewLine
+        { domain->setLoadConfig($2, $4); }
+        | Configuration Integer CONSTANT NewLine
+        { domain->setLoadConfig($2, $4); }
+*/
         ;
 Composites:
 	COMPOSITE NewLine
@@ -962,6 +972,11 @@ DynamInfo:
           domain->solInfo().epsilon1 = $3; 
           domain->solInfo().epsilon2 = $4; }
         | DynamInfo CONWEP ConwepData NewLine
+        { domain->solInfo().ConwepOnOff = true;
+          BlastLoading::InputFileData = $3; }
+        ;
+Conwep:
+        CONWEP NewLine ConwepData NewLine
         { domain->solInfo().ConwepOnOff = true;
           BlastLoading::InputFileData = $3; }
         ;
@@ -1516,6 +1531,8 @@ AtdDirScatterer:
 AtdNeuScatterer:
         ATDNEU NewLine PBCDataList
         { for(int i=0; i<$3->n; ++i) { $3->d[i].type = BCond::Atdneu; $3->d[i].caseid = 0; } $$ = $3; }
+        | ATDNEU Integer NewLine PBCDataList
+        { for(int i=0; i<$4->n; ++i) { $4->d[i].type = BCond::Atdneu; $4->d[i].caseid = $2; } $$ = $4; }
         ;
 AtdArbScatterer:
 	ATDARB Float NewLine
@@ -2968,20 +2985,39 @@ Ellump:
         ;
 Pressure:
 	PRESSURE NewLine
+        { $$ = 0; }
+        | PRESSURE Integer NewLine
+        { $$ = $2; }
 	| Pressure Integer Float NewLine
-	{ geoSource->setElementPressure( $2-1, $3 ); }
-        // Element-by-element Conwep OnOff flag:
-        //| Pressure Integer Float String NewLine
-        //{ geoSource->setElementPressure( $2-1, $3, ($4 == "On" ? true : false) ); }
+	{ PressureBCond pbc;
+          pbc.setData($2-1, $3, $$, true);
+          geoSource->setElementPressure(pbc); }
 	| Pressure Integer Integer Float NewLine
-	{ int i; 
-          for(i=$2; i<($3+1); ++i)
-            geoSource->setElementPressure( i-1, $4 );  
-        }
-        | Pressure SURF PBC_Data
-        { BCond *surf_pbc = new BCond[1];
-          surf_pbc[0] = $3;
-          geoSource->addSurfacePressure(1,surf_pbc); }
+	{ for(int i = $2; i < ($3+1); ++i) {
+            PressureBCond pbc;
+            pbc.setData(i-1, $4, $$, true);
+            geoSource->setElementPressure(pbc);
+          } }
+        | Pressure SURF Integer Float NewLine
+        { PressureBCond *pbc = new PressureBCond;
+          pbc->setData($3-1, $4, $$, true);
+          geoSource->addSurfacePressure(1, pbc);
+          if(geoSource->getNumSurfacePressure() > 1) delete pbc; }
+        | Pressure Integer Float SWITCH NewLine
+        { PressureBCond pbc;
+          pbc.setData($2-1, $3, $$, $4);
+          geoSource->setElementPressure(pbc); }
+        | Pressure Integer Integer Float SWITCH NewLine
+        { for(int i = $2; i < ($3+1); ++i) {
+            PressureBCond pbc;
+            pbc.setData(i-1, $4, $$, $5);
+            geoSource->setElementPressure(pbc);
+          } }
+        | Pressure SURF Integer Float SWITCH NewLine
+        { PressureBCond *pbc = new PressureBCond;
+          pbc->setData($3-1, $4, $$, $5);
+          geoSource->addSurfacePressure(1, pbc);
+          if(geoSource->getNumSurfacePressure() > 1) delete pbc; }
 	;
 Lumped:
 	LUMPED NewLine

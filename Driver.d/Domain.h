@@ -220,14 +220,15 @@ class Domain : public HData {
      compStruct renumb;         // renumbered nodes per structural component
      compStruct renumbFluid;    // renumbered nodes per fluid component, ADDED FOR HEV PROBLEM, 20070820
      compStruct renumb_nompc;
-     MFTTData *mftval;		// Mechanics Force Time Table
-     MFTTData *mptval;		// Mechanics Pressure Time Table
-     MFTTData *hftval;		// Heat Fluxes Time Table
-     ResizeArray<MFTTData *> ymtt;         // PJSA: Young's modulus vs. temperature table
+     std::map<int,int> loadconfig;
+     std::map<int,MFTTData*> mftval; // Mechanics Force Time Table
+     std::map<int,MFTTData*> hftval; // Heat Fluxes Time Table
+     int numHFTT;                    // number of HFTTs
+     ResizeArray<MFTTData *> ymtt;         // Young's modulus vs. temperature table
      int numYMTT;                          // number of YM Temp tables
-     ResizeArray<MFTTData *> sdetaft;         // RT: Structural damping versus frequency table
-     int numSDETAFT;                          // number of SDETAF tables
-     ResizeArray<MFTTData *> ctett;        // PJSA: Coefficient of thermal expansion vs. temperatur table
+     ResizeArray<MFTTData *> sdetaft;      // RT: Structural damping versus frequency table
+     int numSDETAFT;                       // number of SDETAF tables
+     ResizeArray<MFTTData *> ctett;        // Coefficient of thermal expansion vs. temperatur table
      int numCTETT;                         // number of CTE Temp tables
      FlExchanger *flExchanger;  // Fluid Exchanger
      FILE *outFile;
@@ -448,14 +449,16 @@ class Domain : public HData {
      int  setIVel(int, BCond *);
      int  setIVelModal(int, BCond *);
      int  setIAcc(int, BCond *);
-     int  setMFTT(MFTTData *);
-     MFTTData * getMFTT() const { return mftval; }
-     int  setMPTT(MFTTData *);
-     int  setHFTT(MFTTData *);
+     void setLoadConfig(int, int);
+     int  setMFTT(MFTTData *, int);
+     MFTTData * getMFTT(int) const;
+     int getNumMFTT() const;
+     int  setHFTT(MFTTData *, int i);
+     MFTTData * getHFTT(int) const;
+     int getNumHFTT() const;
      int  addYMTT(MFTTData *);
      int  addSDETAFT(MFTTData *);
      void updateSDETAF(StructProp* p, double omega);
-
      void printYMTT();
      int  addCTETT(MFTTData *);
      std::pair<int, ResizeArray<MFTTData*>* >* getCTETT() { return new std::pair<int, ResizeArray<MFTTData*>* >(numCTETT,&ctett); };
@@ -568,13 +571,13 @@ class Domain : public HData {
        void addGravityForce(GenVector<Scalar>& force);
 
      template<class Scalar>
-       void addPressureForce(GenVector<Scalar>& force, double lambda = 1.0, double time = 0.0);
+       void addPressureForce(GenVector<Scalar>& force, int which = 2, double time = 0.0);
 
      template<class Scalar>
-       void addAtddnbForce(GenVector<Scalar>& force, double lambda = 1.0);
+       void addAtddnbForce(GenVector<Scalar>& force, int which = 2, double time = 0.0);
 
      template<class Scalar>
-       void addAtdrobForce(GenVector<Scalar>& force, double lambda = 1.0);
+       void addAtdrobForce(GenVector<Scalar>& force, int which = 2, double time = 0.0);
 
      template<class Scalar>
        void addThermalForce(GenVector<Scalar>& force);

@@ -38,11 +38,11 @@ class SuperElement : public Element
     int* getSubElemDofs(int i) { return subElemDofs[i]; }
     int* getSubElemNodes(int i) { return subElemNodes[i]; }
 
-    void setPressure(double pres, MFTTData* = 0, BlastLoading::BlastData* = 0);
-    double getPressure() { return subElems[0]->getPressure(); }
+    void setPressure(PressureBCond *);
+    PressureBCond* getPressure();
 
     void renum(int *table);
-        void renum(EleRenumMap&);
+    void renum(EleRenumMap&);
     void setGlNum(int gn, int sn = 0);
 
     void setProp(StructProp *p, bool _myProp = false); 

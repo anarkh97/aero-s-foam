@@ -137,10 +137,7 @@ Domain::getFollowerForce(GeomState &geomState, Vector& elementForce,
                          GeomState *refState, Vector *reactions, bool compute_tangents)
 {
   if(domain->pressureFlag()) {
-    double cflg = (sinfo.newmarkBeta == 0.0) ? 0.0 : 1.0;
-    double loadFactor = (domain->mftval && sinfo.isDynam()) ? lambda*domain->mftval->getVal(std::max(time,0.0)) : lambda;
     BlastLoading::BlastData *conwep = (domain->solInfo().ConwepOnOff) ? &BlastLoading::InputFileData : NULL;
-    double p0;
     for(int iele = 0; iele < numele;  ++iele) {
 
       elementForce.zero();
@@ -150,14 +147,14 @@ Domain::getFollowerForce(GeomState &geomState, Vector& elementForce,
         kel2.zero();
 
         getElemFollowerForce(iele, geomState, elementForce.data(), elementForce.size(),
-                             *(corotators[iele]), kel2, loadFactor, time, compute_tangents, conwep);
+                             *(corotators[iele]), kel2, lambda, time, compute_tangents, conwep);
 
         // Include the "load stiffness matrix" in kel[iele]
         kel[iele] += kel2;
       }
       else {
         getElemFollowerForce(iele, geomState, elementForce.data(), elementForce.size(),
-                             *(corotators[iele]), kel[iele], loadFactor, time, compute_tangents, conwep);
+                             *(corotators[iele]), kel[iele], lambda, time, compute_tangents, conwep);
       }
 
       // Assemble element pressure forces into residual force vector
@@ -181,19 +178,25 @@ Domain::getFollowerForce(GeomState &geomState, Vector& elementForce,
 void
 Domain::getElemFollowerForce(int iele, GeomState &geomState, double *_f, int bufSize,
                              Corotator &corotator, FullSquareMatrix &kel2,
-                             double loadFactor, double time, bool compute_tangents,
+                             double lambda, double time, bool compute_tangents,
                              BlastLoading::BlastData *conwep)
 {
   Vector elementForceBuf(_f,bufSize,false);
-  double p0;
-  if((p0 = packedEset[iele]->getPressure()) != 0) {
+  PressureBCond *pbc;
+  if((pbc = packedEset[iele]->getPressure()) != NULL) {
     Vector elementForce(bufSize);
     elementForce.zero();
 
-    // Compute (linear) element pressure force in the local coordinates
-    packedEset[iele]->setPressure(p0*loadFactor, domain->getMFTT(), conwep);
+    // Compute the amplified pressure due to MFTT and/or dlambda, if applicable
+    double mfttFactor = (pbc->mftt && sinfo.isDynam()) ? pbc->mftt->getVal(std::max(time,0.0)) : 1.0;
+    double p0 = pbc->val;
+    pbc->val *= (lambda*mfttFactor);
+
+    // Compute element pressure force in the local coordinates using the specified blast loading function and/or amplified pressure value
+    pbc->conwep = conwep;
     packedEset[iele]->computePressureForce(nodes, elementForce, &geomState, 1, time);
-    packedEset[iele]->setPressure(p0, domain->getMFTT(), conwep);
+    pbc->val = p0;
+
     // Include the "load stiffness matrix" in kel[iele]
     if(compute_tangents) {
 
@@ -220,14 +223,21 @@ Domain::getNonElemFollowerForce(GeomState &geomState, Vector& elementForce,
 {
   // pressure using surfacetopo
   int* edofs = (int*) dbg_alloca(maxNumDOFs*sizeof(int));
-  double mfttFactor = (domain->mftval && sinfo.isDynam()) ? domain->mftval->getVal(std::max(time,0.0)) : 1.0;
   SubDomain *subCast = (numNeum > 0) ? dynamic_cast<SubDomain*>(this) : NULL;
+  PressureBCond *pbc;
   for(int iele = 0; iele < numNeum; ++iele) {
-    if(!neum[iele]->isSurfacePressureElement()) continue;
+    if((pbc = neum[iele]->getPressure()) == NULL) continue;
     neum[iele]->dofs(*dsa, edofs);
     elementForce.zero();
-    if(domain->solInfo().ConwepOnOff) neum[iele]->setConwep(&BlastLoading::InputFileData);
+
+    // Compute the amplified pressure due to MFTT and/or dlambda, if applicable
+    double mfttFactor = (pbc->mftt && sinfo.isDynam()) ? pbc->mftt->getVal(std::max(time,0.0)) : 1.0;
+    double p0 = pbc->val;
+    pbc->val *= (lambda*mfttFactor);
+
+    // Compute element pressure force using a preset blast loading function and/or amplified pressure value
     neum[iele]->neumVector(nodes, elementForce, 0, &geomState, time);
+    pbc->val = p0;
 
     // Include the "load stiffness matrix" in kel[iele]
     if(compute_tangents) {
@@ -243,7 +253,7 @@ Domain::getNonElemFollowerForce(GeomState &geomState, Vector& elementForce,
         }
         for(int i=0; i<neum[iele]->numDofs(); ++i)
           for(int j=0; j<neum[iele]->numDofs(); ++j)
-            kel[jele][eledofs[i]][eledofs[j]] -= lambda*mfttFactor*elementLoadStiffnessMatrix[i][j];
+            kel[jele][eledofs[i]][eledofs[j]] -= elementLoadStiffnessMatrix[i][j];
         delete [] eledofs;
       }
     }
@@ -251,11 +261,11 @@ Domain::getNonElemFollowerForce(GeomState &geomState, Vector& elementForce,
     for(int idof = 0; idof < neum[iele]->numDofs(); ++idof) {
       int uDofNum = c_dsa->getRCN(edofs[idof]);
       if(uDofNum >= 0)
-        residual[uDofNum] += lambda*mfttFactor*elementForce[idof];
+        residual[uDofNum] += elementForce[idof];
       else if(reactions) {
         int cDofNum = c_dsa->invRCN((*allDOFs)[iele][idof]);
         if(cDofNum >= 0)
-          (*reactions)[cDofNum] -= lambda*mfttFactor*elementForce[idof];
+          (*reactions)[cDofNum] -= elementForce[idof];
       }
     }
   }
@@ -267,6 +277,8 @@ Domain::getNonElemFollowerForce(GeomState &geomState, Vector& elementForce,
       int dofs[3];
       dsa->number(nbc[i].nnum, DofSet::XYZrot, dofs);
       double m0[3] = { 0, 0, 0 }, m[3], r[3], rotvar[3][3];
+      double mfttFactor = (domain->getMFTT(nbc[i].caseid) && sinfo.isDynam())
+                         ? domain->getMFTT(nbc[i].caseid)->getVal(std::max(time,0.0)) : 1.0;
       m0[nbc[i].dofnum-3] = lambda*mfttFactor*nbc[i].val;
 
       switch(nbc[i].mtype) {
@@ -355,6 +367,8 @@ Domain::getNonElemFollowerForce(GeomState &geomState, Vector& elementForce,
       int dofs[6];
       dsa->number(nbc[i].nnum, DofSet::XYZdisp | DofSet::XYZrot, dofs);
       double f0[3] = { 0, 0, 0 }, f[3] = { 0, 0, 0 }, r[3], rotvar[3][3];
+      double mfttFactor = (domain->getMFTT(nbc[i].caseid) && sinfo.isDynam()) 
+                         ? domain->getMFTT(nbc[i].caseid)->getVal(std::max(time,0.0)) : 1.0;
       f0[nbc[i].dofnum] = lambda*mfttFactor*nbc[i].val;
       mat_mult_vec(geomState[nbc[i].nnum].R,f0,f,0); // f = R*f0
       if(domain->solInfo().galerkinPodRom) {
@@ -448,8 +462,6 @@ Domain::getWeightedFollowerForceOnly(const std::map<int, double> &weights,
                                      GeomState *refState, Vector *reactions, bool compute_tangents)
 {
   if(domain->pressureFlag()) {
-    double cflg = (sinfo.newmarkBeta == 0.0) ? 0.0 : 1.0;
-    double loadFactor = (domain->mftval && sinfo.isDynam()) ? lambda*domain->mftval->getVal(std::max(time,0.0)) : lambda;
     BlastLoading::BlastData *conwep = (domain->solInfo().ConwepOnOff) ? &BlastLoading::InputFileData : NULL;
     double p0;
     for (std::map<int, double>::const_iterator it = weights.begin(), it_end = weights.end(); it != it_end; ++it) {
@@ -462,7 +474,7 @@ Domain::getWeightedFollowerForceOnly(const std::map<int, double> &weights,
         kel2.zero();
 
         getElemFollowerForce(iele, geomState, elementForce.data(), elementForce.size(),
-                             *(corotators[iele]), kel2, loadFactor, time, compute_tangents, conwep);
+                             *(corotators[iele]), kel2, lambda, time, compute_tangents, conwep);
 
         // Include the "load stiffness matrix" in kel[iele]
         kel2 *= lumpingWeight;
@@ -470,7 +482,7 @@ Domain::getWeightedFollowerForceOnly(const std::map<int, double> &weights,
       }
       else {
         getElemFollowerForce(iele, geomState, elementForce.data(), elementForce.size(),
-                             *(corotators[iele]), kel[iele], loadFactor, time, compute_tangents, conwep);
+                             *(corotators[iele]), kel[iele], lambda, time, compute_tangents, conwep);
       }
 
       elementForce *= lumpingWeight;
@@ -1598,8 +1610,8 @@ Domain::getGeometricStiffness(GeomState &geomState, Vector& elementInternalForce
 
    if(domain->pressureFlag()) {
      for(iele = 0; iele < numele;  ++iele) {
-       // If there is a zero pressure defined, skip the element
-       if(packedEset[iele]->getPressure() == 0) continue;
+       // If there is no pressure defined, skip the element
+       if(packedEset[iele]->getPressure() == NULL) continue;
  
        // Compute (linear) element pressure force in the local coordinates
        elementInternalForce.zero();

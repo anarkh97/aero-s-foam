@@ -27,13 +27,12 @@ class PolygonSet;
 class InterpPoint;
 class NLMaterial;
 class LMPCons;
-class GeomState;  // PJSA: for sgi intel
-template <class Scalar> class GenVector; // PJSA: for sgi intel
+class GeomState;
+template <class Scalar> class GenVector;
 typedef GenVector<double> Vector;
-typedef GenVector<DComplex> ComplexVector;  // PJSA: for sgi intel
+typedef GenVector<DComplex> ComplexVector;
 template <class Scalar> class GenFullM;
 typedef GenFullM<double> FullM;
-//template <class T> class ResizeArray;
 typedef GlobalToLocalMap  EleRenumMap;
 
 // Boundary Condition Structure
@@ -58,9 +57,24 @@ struct ComplexBCond {
   double reval;  // real value of bc
   double imval;  // imaginary value of bc
   int caseid;
-  void setData(int _nnum, int _dofnum, double _reval, double _imval, int _caseid = 0) { nnum = _nnum; dofnum = _dofnum; reval = _reval; imval = _imval; caseid = _caseid; };
+  void setData(int _nnum, int _dofnum, double _reval, double _imval, int _caseid = 0) 
+    { nnum = _nnum; dofnum = _dofnum; reval = _reval; imval = _imval; caseid = _caseid; };
 };
 
+// Pressure Boundary Condition Structure
+struct PressureBCond {
+  union {
+    int elnum;
+    int surfid;
+  };
+  double val;
+  int caseid;
+  bool conwepswitch;
+  MFTTData *mftt;
+  BlastLoading::BlastData *conwep;
+  void setData(int _elnum, double _val, int _caseid, bool _conwepswitch, MFTTData *_mftt = NULL, BlastLoading::BlastData *_conwep = NULL) 
+   { elnum = _elnum; val = _val; caseid = _caseid; conwepswitch = _conwepswitch; mftt = _mftt; conwep = _conwep; }
+};
 
 struct NumExc {
   int gN, n1, n2, n3;
@@ -332,24 +346,18 @@ class Element {
         int elementType;
   protected:
 	StructProp *prop;	// structural properties for this element
-        double pressure;	// pressure force applied to element
         bool myProp;
         int glNum, subNum, stateOffset;
         vector<double> factors;
 	void lumpMatrix(FullSquareMatrix&);
   public:
-        Element() { prop = 0; pressure = 0.0;
-        _weight=1.0; _trueWeight=1.0; myProp = false; category = Undefined; };
+        Element() { prop = 0; _weight = 1.0; _trueWeight = 1.0; myProp = false; category = Undefined; };
         virtual ~Element() { if(myProp && prop) delete prop; }
         StructProp * getProperty() { return prop; }
 
         virtual Element *clone() { return 0; }
         virtual void renum(int *)=0;
         virtual void renum(EleRenumMap& m)=0; 
-
-//NOT USED static Element *build(int,int,int*);
-
-//NOT USED virtual void buildCorotator(CoordSet &)  {};
 
         virtual void setProp(StructProp *p, bool _myProp = false) {
           if(myProp && prop)  {
@@ -358,20 +366,23 @@ class Element {
           }
           prop = p; myProp = _myProp;
         }
-	virtual void setPressure(double pres, MFTTData *mftt = 0, BlastLoading::BlastData *conwep = 0) { pressure = pres; }
-        virtual double getPressure() { return pressure; }
+
+        // By default ignore any element pressure
+	virtual void setPressure(PressureBCond *pbc) {}
+        virtual PressureBCond* getPressure() { return NULL; }
 
         // By default ignore any element preload
-        virtual void setPreLoad(std::vector<double> &load) { }
+        virtual void setPreLoad(std::vector<double> &load) {}
         virtual std::vector<double> getPreLoad() { return std::vector<double>(0); }
 
         virtual void setGlNum(int gn, int sn=0) { glNum = gn; subNum = sn; }
         int getGlNum()  { return glNum; }
-        virtual void setFrame(EFrame *) {} // By default ignore the frame
-        // By default an element does not need a frame
-        virtual const EFrame *getFrame() const { return NULL; }
+
         // By default, an element has no frame
+        virtual void setFrame(EFrame *) {}
+        virtual const EFrame *getFrame() const { return NULL; }
         virtual void buildFrame(CoordSet&) {}
+
         virtual void setOffset(double*) {}
         virtual void setCompositeData(int _type, int nlays, double *lData,
                                       double *coefs, double *frame);

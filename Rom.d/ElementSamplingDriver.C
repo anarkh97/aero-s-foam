@@ -200,8 +200,8 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::assembleTrainingData(Vector &t
         }
 
         if(domain_->solInfo().reduceFollower)
-          domain_->getElemFollowerForce( iElem, *geomState_, elementForce.array(), elementForce.size(), *(corotators_[iElem]), 
-              kelArray_[iElem], 1.0, *timeStampIt, false, conwep);
+          domain_->getElemFollowerForce(iElem, *geomState_, elementForce.array(), elementForce.size(), *(corotators_[iElem]), 
+                                        kelArray_[iElem], 1.0, *timeStampIt, false, conwep);
 
         elemTarget.zero();
         const int dofCount = kelArray_[iElem].dim();

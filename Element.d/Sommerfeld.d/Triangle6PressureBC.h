@@ -14,11 +14,10 @@ using Tri6LagrangePolynomialSurfacePressureForceFunction = SurfacePressureForceF
 class Triangle6PressureBC : public PressureElement<Tri6LagrangePolynomialSurfacePressureForceFunction>
 {
   public:
-    Triangle6PressureBC(int* _nn, double _pressure); 
+    Triangle6PressureBC(int* _nn, PressureBCond* _pbc); 
 
   protected:
-    double pressure;
-    void getConstants(CoordSet& cs, Eigen::Array<double,26,1>&, Eigen::Array<int,2,1>&);
+    void getConstants(CoordSet& cs, Eigen::Array<double,27,1>&, Eigen::Array<int,2,1>&);
 };
 
 #endif

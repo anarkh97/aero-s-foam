@@ -398,15 +398,12 @@ Domain::computeExtForce(Vector &f, double t, int tIndex, SparseMatrix *kuc, Vect
   if(kuc)
     kuc->multSubtract(Vc, f);
 
-  // ... COMPUTE TIME DEPENDENT FORCE COEFFICIENT
-  double hfttFactor = 1.0;
-  if(hftval)
-    hfttFactor = hftval->getVal(t);
-
   // ... COMPUTE TIME DEPENDENT EXTERNAL FORCE
   for(i=0; i < numNeuman; ++i) {
     int dof  = c_dsa->locate(nbc[i].nnum, (1 << nbc[i].dofnum));
     if(dof < 0) continue;
+    MFTTData *mftt = domain->getHFTT(nbc[i].caseid);
+    double hfttFactor = (mftt) ? mftt->getVal(t) : 1.0;
     switch(nbc[i].type) {
       case(BCond::Flux) : f[dof] += hfttFactor*nbc[i].val; break;
       default : f[dof] += nbc[i].val; 

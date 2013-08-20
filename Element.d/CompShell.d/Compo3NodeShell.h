@@ -7,14 +7,14 @@ class GeomState;
 
 class Compo3NodeShell : public Element {
 
-	int      nn[3];
+        int      nn[3];
         int      type;
         int numLayers;
         int     (*idlay)[5];
         double  *layData;
         double  *cCoefs;
         double  *cFrame;
-        BlastLoading::BlastData *conwep;
+        PressureBCond *pbc;
 
 public:
 	Compo3NodeShell(int*);
@@ -57,7 +57,9 @@ public:
                          double*, GeomState *gs=0);
         void getFlLoad(CoordSet &, const InterpPoint &, double *flF, 
                        double *resF, GeomState *gs=0);
-        void setPressure(double _pressure, MFTTData *_mftt = 0, BlastLoading::BlastData *_conwep = 0);
+
+        void setPressure(PressureBCond *_pbc) { pbc = _pbc; }
+        PressureBCond* getPressure() { return pbc; }
         void computePressureForce(CoordSet&, Vector& elPressureForce,
                                   GeomState *gs = 0, int cflg = 0, double t = 0);
         void getThermalForce(CoordSet& , Vector& ,Vector &, int glflag, 

@@ -2,21 +2,19 @@
 #if defined(USE_EIGEN3) && (__cplusplus >= 201103L) && defined(HAS_CXX11_TEMPLATE_ALIAS)
 #include <Element.d/Sommerfeld.d/QuadPressureBC.h>
 
-QuadPressureBC::QuadPressureBC(int* _nn, double _pressure)
- : PressureElement<Quad4LagrangePolynomialSurfacePressureForceFunction>(4, DofSet::XYZdisp, _nn),
-   pressure(_pressure)
-{
-}
+QuadPressureBC::QuadPressureBC(int* _nn, PressureBCond* _pbc)
+ : PressureElement<Quad4LagrangePolynomialSurfacePressureForceFunction>(4, DofSet::XYZdisp, _nn, _pbc)
+{}
 
 void
-QuadPressureBC::getConstants(CoordSet& cs, Eigen::Array<double,20,1> &sconst, Eigen::Array<int,2,1> &iconst)
+QuadPressureBC::getConstants(CoordSet& cs, Eigen::Array<double,21,1> &sconst, Eigen::Array<int,2,1> &iconst)
 {
-  if(!conwep) {
+  if(!(pbc->conwep && pbc->conwepswitch)) {
     sconst << cs[nn[0]]->x, cs[nn[0]]->y, cs[nn[0]]->z,
               cs[nn[1]]->x, cs[nn[1]]->y, cs[nn[1]]->z,
               cs[nn[2]]->x, cs[nn[2]]->y, cs[nn[2]]->z,
               cs[nn[3]]->x, cs[nn[3]]->y, cs[nn[3]]->z,
-              pressure, 0, 0, 0, 0, 0, 0, 0;
+              pbc->val, 0, 0, 0, 0, 0, 0, 0, 0;
     iconst << 2, // quadrature rule degree
               0;
   }
@@ -25,16 +23,17 @@ QuadPressureBC::getConstants(CoordSet& cs, Eigen::Array<double,20,1> &sconst, Ei
               cs[nn[1]]->x, cs[nn[1]]->y, cs[nn[1]]->z,
               cs[nn[2]]->x, cs[nn[2]]->y, cs[nn[2]]->z,
               cs[nn[3]]->x, cs[nn[3]]->y, cs[nn[3]]->z,
-              conwep->ExplosivePosition[0],
-              conwep->ExplosivePosition[1],
-              conwep->ExplosivePosition[2],
-              conwep->ExplosiveDetonationTime,
-              conwep->ExplosiveWeight,
-              conwep->ScaleLength,
-              conwep->ScaleTime,
-              conwep->ScaleMass;
+              pbc->val,
+              pbc->conwep->ExplosivePosition[0],
+              pbc->conwep->ExplosivePosition[1],
+              pbc->conwep->ExplosivePosition[2],
+              pbc->conwep->ExplosiveDetonationTime,
+              pbc->conwep->ExplosiveWeight,
+              pbc->conwep->ScaleLength,
+              pbc->conwep->ScaleTime,
+              pbc->conwep->ScaleMass;
      iconst << 3, // quadrature rule degree
-               (conwep->BlastType == BlastLoading::BlastData::SurfaceBurst ? 1 : 2);
+               (pbc->conwep->BlastType == BlastLoading::BlastData::SurfaceBurst ? 1 : 2);
   }
 }
 
@@ -47,7 +46,7 @@ extern "C" {
   void _FORTRAN(elefbc3dbrkshl2)(int&, int&, double*, double*, double*, double*);
 };
 
-QuadPressureBC::QuadPressureBC(int *_nn, double _pressure)
+QuadPressureBC::QuadPressureBC(int *_nn, PressureBCond *_pbc)
 {
   nnode = 4;
   nndof = 3;
@@ -57,8 +56,7 @@ QuadPressureBC::QuadPressureBC(int *_nn, double _pressure)
   nn[1] = _nn[1]; 
   nn[2] = _nn[2]; 
   nn[3] = _nn[3]; 
-  pressure = _pressure;
-  conwep = 0;
+  pbc = _pbc;
   dom = 0;
 }
 
@@ -74,8 +72,9 @@ QuadPressureBC::sommerMatrix(CoordSet &cs, double *d)
 void
 QuadPressureBC::neumVector(CoordSet &cs, Vector &f, int, GeomState *geomState, double t)
 {
-  // Check if Conwep is being used. If so, use the pressure from the blast loading function.
-  if (conwep) {
+  double pressure = pbc->val;
+  // Check if Conwep is being used. If so, add the pressure from the blast loading function.
+  if (pbc->conwep && pbc->conwepswitch) {
     double* CurrentElementNodePositions = (double*) dbg_alloca(sizeof(double)*3*4);
     int Offset;
     for(int i = 0; i < 4; ++i) {
@@ -84,7 +83,7 @@ QuadPressureBC::neumVector(CoordSet &cs, Vector &f, int, GeomState *geomState, d
       CurrentElementNodePositions[Offset+1] = cs[nn[i]]->y;
       CurrentElementNodePositions[Offset+2] = cs[nn[i]]->z;
     }
-    pressure = BlastLoading::ComputeShellPressureLoad(CurrentElementNodePositions, t, *conwep);
+    pressure += BlastLoading::ComputeShellPressureLoad(CurrentElementNodePositions, t, *(pbc->conwep));
   }
   int opttrc = 0; // 0 : pressure
                   // 1 : traction

@@ -8,15 +8,14 @@
 
 template<template <typename S> class VectorValuedFunctionTemplate>
 PressureElement<VectorValuedFunctionTemplate>
-::PressureElement(int _nNodes, DofSet nodalDofs, int* _nn)
- : nNodes(_nNodes)
+::PressureElement(int _nNodes, DofSet nodalDofs, int* _nn, PressureBCond* _pbc)
+ : nNodes(_nNodes), pbc(_pbc)
 {
   // this constructor is for a force involving the same DofSet on each node, used for both inputs and outputs
   nn = new int[nNodes];
   for(int i = 0; i < nNodes; ++i)
     nn[i] = _nn[i];
   addTerms(nodalDofs);
-  conwep = 0;
 }
 
 template<template <typename S> class VectorValuedFunctionTemplate>

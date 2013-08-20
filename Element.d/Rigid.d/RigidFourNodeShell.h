@@ -11,7 +11,7 @@ class ExpMat;
 class RigidFourNodeShell : public SuperElement
 {
     ExpMat *expmat;
-    BlastLoading::BlastData *conwep;
+    PressureBCond *pbc;
 
   public:
     RigidFourNodeShell(int*);
@@ -20,14 +20,14 @@ class RigidFourNodeShell : public SuperElement
     bool hasRot() { return true; }
     PrioInfo examine(int sub, MultiFront *mf);
 
-    void setPressure(double, MFTTData* = 0, BlastLoading::BlastData* = 0);
-
     int getMassType() { return 0; }
     FullSquareMatrix massMatrix(CoordSet&, double* mel, int cmflg = 1);
     double getMass(CoordSet& cs);
     void getGravityForce(CoordSet&, double* gravity, Vector&, int gravflg,
                          GeomState *gs);
 
+    void setPressure(PressureBCond *_pbc) { pbc = _pbc; }
+    PressureBCond* getPressure() { return pbc; }
     void computePressureForce(CoordSet&, Vector& elPressureForce,
                               GeomState* gs = 0, int cflg = 0, double t = 0);
 

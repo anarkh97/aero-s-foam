@@ -12,10 +12,10 @@ class FelippaShell : public Element,
                      public ShellElementTemplate<double,EffMembraneTriangle,AndesBendingTriangle>, 
                      public Shell3Corotator
 {
-	int      nn[3];
+        int      nn[3];
         int      type;
         double  *cFrame;
-        BlastLoading::BlastData *conwep;
+        PressureBCond *pbc;
 
 public:
 	FelippaShell(int*);
@@ -61,7 +61,9 @@ public:
                          double*, GeomState *gs=0);
         void getFlLoad(CoordSet &, const InterpPoint &, double *flF, 
                        double *resF, GeomState *gs=0);
-        void setPressure(double, MFTTData* = 0, BlastLoading::BlastData* = 0);
+
+        void setPressure(PressureBCond *_pbc) { pbc = _pbc; }
+        PressureBCond* getPressure() { return pbc; }
         void computePressureForce(CoordSet&, Vector& elPressureForce,
                                   GeomState *gs = 0, int cflg = 0, double t = 0);
 

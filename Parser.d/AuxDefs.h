@@ -101,6 +101,12 @@ struct StringList {
      const char *v[32];
 };
 
+template<typename T1, typename T2>
+struct TrivialPair {
+  T1 first;
+  T2 second;
+};
+
 extern double fetiHTol;
 extern int fetiHIterMax;
 

@@ -75,6 +75,7 @@ class NLMembrane : public GenGaussIntgElement<TwoDTensorTypes<9> >
     int n[3];
     NLMaterial *material;
     bool useDefaultMaterial;
+    PressureBCond *pbc;
 
   protected:
     int getNumGaussPoints();
@@ -91,13 +92,15 @@ class NLMembrane : public GenGaussIntgElement<TwoDTensorTypes<9> >
     int numNodes() { return 3; }
     int numDofs() { return 9; }
     void renum(int *);
-        void renum(EleRenumMap&);
+    void renum(EleRenumMap&);
     void   markDofs(DofSetArray &);
     int*   dofs(DofSetArray &, int *p=0);
     int*   nodes(int * = 0);
     void updateStates(Node *nodes, double *states, double *un, double *unp) {}
     void setMaterial(NLMaterial *);
     int numInternalNodes();
+    void setPressure(PressureBCond *_pbc) { pbc = _pbc; }
+    PressureBCond* getPressure() { return pbc; }
     void computePressureForce(CoordSet &cs, Vector& elPressureForce,
                               GeomState *gs=0, int cflg = 0, double t = 0);
 

@@ -26,6 +26,13 @@ operator<<(std::ostream &out, const BCond &source) {
 }
 
 std::ostream &
+operator<<(std::ostream &out, const PressureBCond &source) {
+  out << source.elnum   + 1 << " "
+      << source.val;
+  return out;
+}
+
+std::ostream &
 operator<<(std::ostream &out, const EFrameData &source) {
   out << source.elnum + 1 << " ";
   
@@ -168,7 +175,7 @@ InputFileSectionHelper<BCond, BCond::BCType>::header(BCond::BCType tag) {
 
 template <>
 const std::string &
-InputFileSectionHelper<std::pair<const int, ElementPressureTag::SecondType>, ElementPressureTag>::header(ElementPressureTag) {
+InputFileSectionHelper<PressureBCond, ElementPressureTag>::header(ElementPressureTag) {
   static const std::string result("PRESSURE");
   return result;
 }

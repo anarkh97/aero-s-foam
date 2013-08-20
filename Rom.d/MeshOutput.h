@@ -41,6 +41,9 @@ operator<<(std::ostream &, const EFrameData &);
 std::ostream &
 operator<<(std::ostream &, const NLMaterial &);
 
+std::ostream &
+operator<<(std::ostream &, const PressureBCond &);
+
 // Sections from atoms
 
 template <typename ValueType, typename TagType>
@@ -116,8 +119,8 @@ InputFileSectionHelper<std::pair<const int, typename TagType::SecondType>, TagTy
 }
 
 struct ElementPressureTag {
-  typedef double SecondType;
-  static double valueTransformation(double x) { return x; }
+  typedef std::pair<double,int> SecondType;
+  static double valueTransformation(std::pair<double,int> x) { return x.first; }
 };
 
 struct ElementWeightTag {

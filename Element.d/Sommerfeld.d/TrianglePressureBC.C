@@ -2,20 +2,18 @@
 #if defined(USE_EIGEN3) && (__cplusplus >= 201103L) && defined(HAS_CXX11_TEMPLATE_ALIAS)
 #include <Element.d/Sommerfeld.d/TrianglePressureBC.h>
 
-TrianglePressureBC::TrianglePressureBC(int* _nn, double _pressure)
- : PressureElement<Tri3LagrangePolynomialSurfacePressureForceFunction>(3, DofSet::XYZdisp, _nn),
-   pressure(_pressure)
-{
-}
+TrianglePressureBC::TrianglePressureBC(int* _nn, PressureBCond* _pbc)
+ : PressureElement<Tri3LagrangePolynomialSurfacePressureForceFunction>(3, DofSet::XYZdisp, _nn, _pbc)
+{}
 
 void
-TrianglePressureBC::getConstants(CoordSet& cs, Eigen::Array<double,17,1> &sconst, Eigen::Array<int,2,1> &iconst)
+TrianglePressureBC::getConstants(CoordSet& cs, Eigen::Array<double,18,1> &sconst, Eigen::Array<int,2,1> &iconst)
 {
-  if(!conwep) {
+  if(!(pbc->conwep && pbc->conwepswitch)) {
     sconst << cs[nn[0]]->x, cs[nn[0]]->y, cs[nn[0]]->z,
               cs[nn[1]]->x, cs[nn[1]]->y, cs[nn[1]]->z,
               cs[nn[2]]->x, cs[nn[2]]->y, cs[nn[2]]->z,
-              pressure, 0, 0, 0, 0, 0, 0, 0;
+              pbc->val, 0, 0, 0, 0, 0, 0, 0, 0;
     iconst << 1, // quadrature rule degree
               0;
   }
@@ -23,16 +21,17 @@ TrianglePressureBC::getConstants(CoordSet& cs, Eigen::Array<double,17,1> &sconst
     sconst << cs[nn[0]]->x, cs[nn[0]]->y, cs[nn[0]]->z,
               cs[nn[1]]->x, cs[nn[1]]->y, cs[nn[1]]->z,
               cs[nn[2]]->x, cs[nn[2]]->y, cs[nn[2]]->z,
-              conwep->ExplosivePosition[0],
-              conwep->ExplosivePosition[1],
-              conwep->ExplosivePosition[2],
-              conwep->ExplosiveDetonationTime,
-              conwep->ExplosiveWeight,
-              conwep->ScaleLength,
-              conwep->ScaleTime,
-              conwep->ScaleMass;
+              pbc->val,
+              pbc->conwep->ExplosivePosition[0],
+              pbc->conwep->ExplosivePosition[1],
+              pbc->conwep->ExplosivePosition[2],
+              pbc->conwep->ExplosiveDetonationTime,
+              pbc->conwep->ExplosiveWeight,
+              pbc->conwep->ScaleLength,
+              pbc->conwep->ScaleTime,
+              pbc->conwep->ScaleMass;
      iconst << 1, // quadrature rule degree
-               (conwep->BlastType == BlastLoading::BlastData::SurfaceBurst ? 1 : 2);
+               (pbc->conwep->BlastType == BlastLoading::BlastData::SurfaceBurst ? 1 : 2);
   }
 }
 
@@ -46,7 +45,7 @@ extern "C" {
 };
 
 
-TrianglePressureBC::TrianglePressureBC(int *_nn, double _pressure)
+TrianglePressureBC::TrianglePressureBC(int *_nn, PressureBCond *_pbc)
 {
   nnode = 3;
   nndof = 3;
@@ -55,8 +54,7 @@ TrianglePressureBC::TrianglePressureBC(int *_nn, double _pressure)
   nn[0] = _nn[0];
   nn[1] = _nn[1]; 
   nn[2] = _nn[2]; 
-  pressure = _pressure;
-  conwep = 0;
+  pbc = _pbc;
   dom = 0;
 }
 
@@ -72,8 +70,9 @@ TrianglePressureBC::sommerMatrix(CoordSet &cs, double *d)
 void
 TrianglePressureBC::neumVector(CoordSet &cs, Vector &f, int, GeomState *geomState, double t)
 {
+  double pressure = pbc->val;
   // Check if Conwep is being used. If so, use the pressure from the blast loading function.
-  if (conwep) {
+  if (pbc->conwep && pbc->conwepswitch) {
     double* CurrentElementNodePositions = (double*) dbg_alloca(sizeof(double)*3*4);
     int Offset;
     for(int i = 0; i < 4; ++i) {
@@ -89,7 +88,7 @@ TrianglePressureBC::neumVector(CoordSet &cs, Vector &f, int, GeomState *geomStat
         CurrentElementNodePositions[Offset+2] = cs[nn[i]]->z;
       }
     }
-    pressure = BlastLoading::ComputeShellPressureLoad(CurrentElementNodePositions, t, *conwep);
+    pressure += BlastLoading::ComputeShellPressureLoad(CurrentElementNodePositions, t, *(pbc->conwep));
   }
   int opttrc = 0; // 0 : pressure
                   // 1 : traction

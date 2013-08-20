@@ -338,6 +338,7 @@ NLMembrane::NLMembrane(int *nd)
 {
   for(int i = 0; i < 3; ++i)
     n[i] = nd[i];
+  pbc = 0;
 }
 
 NLMembrane::~NLMembrane()
@@ -480,7 +481,7 @@ NLMembrane::computePressureForce(CoordSet& cs, Vector& force,
   n[0] = d[0][1]*d[1][2] - d[0][2]*d[1][1];
   n[1] = d[0][2]*d[1][0] - d[0][0]*d[1][2];
   n[2] = d[0][0]*d[1][1] - d[0][1]*d[1][0];
-  double p = getPressure();
+  double p = getPressure()->val;
   for(int i=0; i < 3; ++i)
     force[i] = force[i+3]=force[i+6] = 1.0/6.0*p*n[i];
 }

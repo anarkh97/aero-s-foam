@@ -459,7 +459,9 @@ std::cerr << "Sower.h, readData, ElemsetIO" << std::endl;
       std::vector<double> preload;
       preload.reserve(preload_size);
       s->read(&(preload[0]), preload_size, file);
-      (*obj)[localIndex]->setPressure(pressure);
+      PressureBCond *pbc = new PressureBCond;
+      pbc->setData(pressure, -1, 0, false); // XXX add support for cases
+      (*obj)[localIndex]->setPressure(pbc);
       (*obj)[localIndex]->setPreLoad(preload);
     }
 

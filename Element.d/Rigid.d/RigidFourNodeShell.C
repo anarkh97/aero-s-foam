@@ -14,10 +14,9 @@ RigidFourNodeShell::RigidFourNodeShell(int *_nn)
     int indices[2] = { i+1, 0 };
     subElems[i] = new RigidBeam(indices);
   }
-  conwep = 0;
+  pbc = 0;
 }
 
-//EXPERIMENTAL: equip this element with mass matrix and pressure load vector from BelytschkoTsayShell
 #include <Utils.d/dbg_alloca.h>
 #include <Corotational.d/GeomState.h>
 #include <Element.d/NonLinearity.d/ExpMat.h>
@@ -25,13 +24,6 @@ RigidFourNodeShell::RigidFourNodeShell(int *_nn)
 extern "C" {
   void _FORTRAN(elemaslbt)(int&, double*, double*, double*, double*);
   void _FORTRAN(elefbc3dbrkshl2)(int&, int&, double*, double*, double*, double*);
-}
-
-void
-RigidFourNodeShell::setPressure(double pres, MFTTData *, BlastLoading::BlastData *_conwep)
-{
-  pressure = pres;
-  conwep = _conwep;
 }
 
 double
@@ -139,10 +131,10 @@ RigidFourNodeShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
     edisp[iloc+1] = (geomState) ? (*geomState)[nn[i]].y - cs[nn[i]]->y : 0;
     edisp[iloc+2] = (geomState) ? (*geomState)[nn[i]].z - cs[nn[i]]->z : 0;
   }
-  double pressure = Element::pressure;
-  // Check if Conwep is being used. If so, use the pressure from the blast loading function.
-  if(conwep) {
-    pressure = BlastLoading::ComputeShellPressureLoad(ecord, time, *conwep);
+  double pressure = pbc->val;
+  // Check if Conwep is being used. If so, add the pressure from the blast loading function.
+  if(pbc->conwep && pbc->conwepswitch) {
+    pressure += BlastLoading::ComputeShellPressureLoad(ecord, time, *(pbc->conwep));
   }
   double trac[3] = { -pressure, 0, 0 };
   double *efbc = (double*) dbg_alloca(sizeof(double)*nnodes*ndime); // translations only

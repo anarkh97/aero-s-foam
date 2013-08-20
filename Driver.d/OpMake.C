@@ -1640,40 +1640,69 @@ Domain::addGravityForce(GenVector<Scalar> &force)
 
 template<class Scalar>
 void
-Domain::addPressureForce(GenVector<Scalar> &force, double lambda, double time)
+Domain::addPressureForce(GenVector<Scalar> &force, int which, double time)
 {
+  // which = 0: add only constant pressure
+  //         1: add only varying dependent (MFTT/CONWEP)
+  //         2: add both constant and varying pressure
+
   Vector elementPressureForce(maxNumDOFs);
   int cflg = 1; // NOW WE ALWAYS USE CONSISTENT PRESSURE
+  bool checkCase = (!sinfo.isNonLin() && !sinfo.isDynam());
+  int caseid = (domain->solInfo().loadcases.size() > 0) ? domain->solInfo().loadcases.front() : 0;
+  PressureBCond *pbc;
 
   if(pressureFlag()) {
     for(int iele = 0; iele < numele; ++iele) {
-      // If there is a zero pressure defined, skip it.
-      if(packedEset[iele]->getPressure() == 0.0) continue;
+      // If there is no pressure boundary condition defined for this element, skip it
+      if((pbc = packedEset[iele]->getPressure()) == NULL) continue;
 
-      // Otherwise, compute element pressure force
+      // If the pressure is not to be included due to "which" setting, skip it
+      bool PressureIsConstant = !((pbc->conwep && pbc->conwepswitch) || pbc->mftt);
+      if((PressureIsConstant && which==1) || (!PressureIsConstant && which==0)) continue;
+
+      // If the pressure is not in the current load case, skip it
+      if(checkCase && caseid != pbc->caseid) continue;
+
+      // Compute the amplified pressure due to MFTT, if applicable
+      double lambda = (pbc->mftt && sinfo.isDynam()) ? pbc->mftt->getVal(std::max(time,0.0)) : 1.0;
+      double p0 = pbc->val;
+      pbc->val *= lambda;
+
+      // Compute element pressure force
       elementPressureForce.zero();
       packedEset[iele]->computePressureForce(nodes, elementPressureForce, (GeomState *) 0, cflg, time);
+      pbc->val = p0;
 
-      // transform vector from basic to DOF_FRM coordinates
+      // Transform vector from basic to DOF_FRM coordinates
       transformVector(elementPressureForce, iele);
 
       // Assemble element pressure forces into domain force vector
       for(int idof = 0; idof < allDOFs->num(iele); ++idof) {
         int cn = c_dsa->getRCN((*allDOFs)[iele][idof]);
         if(cn >= 0)
-          force[cn] += lambda*elementPressureForce[idof];
+          force[cn] += elementPressureForce[idof];
       }
     }
   }
 
   for(int iele = 0; iele < numNeum; ++iele) {
-    
-    if(!neum[iele]->isSurfacePressureElement()) continue;
+    // If this is not pressure boundary condition, skip it
+    if((pbc = neum[iele]->getPressure()) == NULL) continue;
+
+    // If the pressure is not to be included due to "which" setting, skip it
+    bool PressureIsConstant = !((pbc->conwep && pbc->conwepswitch) || pbc->mftt);
+    if((PressureIsConstant && which==1) || (!PressureIsConstant && which==0)) continue;
+
+    // Compute the amplified pressure due to MFTT, if applicable
+    double lambda = (pbc->mftt && sinfo.isDynam()) ? pbc->mftt->getVal(std::max(time,0.0)) : 1.0;
+    double p0 = pbc->val;
+    pbc->val *= lambda;
 
     // Compute structural element distributed Neumann force
     elementPressureForce.zero();
-    if(domain->solInfo().ConwepOnOff) neum[iele]->setConwep(&BlastLoading::InputFileData);
     neum[iele]->neumVector(nodes, elementPressureForce, 0, (GeomState*) 0, time);
+    pbc->val = p0;
 
     // transform vector from basic to DOF_FRM coordinates
     transformNeumVector(elementPressureForce, iele);
@@ -1682,24 +1711,31 @@ Domain::addPressureForce(GenVector<Scalar> &force, double lambda, double time)
     int *dofs = neum[iele]->dofs(*c_dsa);
     for(int idof = 0; idof < neum[iele]->numDofs(); ++idof) {
       if(dofs[idof] >= 0)
-        force[dofs[idof]] += lambda*elementPressureForce[idof];
+        force[dofs[idof]] += elementPressureForce[idof];
     }
     delete [] dofs;
   }
-
 }
 
 template<class Scalar>
 void
-Domain::addAtddnbForce(GenVector<Scalar> &force, double lambda)
+Domain::addAtddnbForce(GenVector<Scalar> &force, int which, double time)
 {
   Vector elementAtddnbForce(maxNumDOFs);
 
   for(int iele = 0; iele < numNeum; ++iele) {
+
+    // If the distributed Neumann force is not to be included due to "which" setting, skip it
+    bool AtddnbIsConstant = !(getMFTT(0));
+    if((AtddnbIsConstant && which==1) || (!AtddnbIsConstant && which==0)) continue;
+
     // Compute acoustic element distributed Neumann force
     elementAtddnbForce.zero();
     neum[iele]->neumVector(nodes, elementAtddnbForce);
     elementAtddnbForce *= sinfo.ATDDNBVal;
+
+    // Compute the amplification factor, if applicable
+    double lambda = (getMFTT(0)) ? getMFTT(0)->getVal(time) : 1.0;
     
     // Assemble element force vector into domain force vector
     int *dofs = neum[iele]->dofs(*c_dsa);
@@ -1713,15 +1749,23 @@ Domain::addAtddnbForce(GenVector<Scalar> &force, double lambda)
 
 template<class Scalar>
 void
-Domain::addAtdrobForce(GenVector<Scalar> &force, double lambda)
+Domain::addAtdrobForce(GenVector<Scalar> &force, int which, double time)
 {
   Vector elementAtdrobForce(maxNumDOFs);
 
   for(int iele = 0; iele < numScatter; ++iele) {
+
+    // If the distributed Robin boundary condition is not to be included due to "which" setting, skip it
+    bool AtdrobIsConstant = !(getMFTT(0));
+    if((AtdrobIsConstant && which==1) || (!AtdrobIsConstant && which==0)) continue;
+
     // Compute acoustic element Robin distributed boundary condition
     elementAtdrobForce.zero();
     scatter[iele]->neumVector(nodes, elementAtdrobForce);
     elementAtdrobForce *= (sinfo.ATDROBVal/sinfo.ATDROBalpha);
+
+    // compute the amplification factor, if applicable
+    double lambda = (getMFTT(0)) ? getMFTT(0)->getVal(time) : 1.0;
 
     // Assemble element force vector into domain force vector
     int *dofs = scatter[iele]->dofs(*c_dsa);
@@ -2098,7 +2142,7 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc)
   if(!sinfo.isNonLin()) addPressureForce<Scalar>(force);
 
   // ... ADD LMPC RHS
-  if(/*lmpc.max_size() &&*/ !sinfo.isNonLin()) addMpcRhs<Scalar>(force);
+  if(!sinfo.isNonLin()) addMpcRhs<Scalar>(force);
 
   // scale RHS force for coupled domains
   if(sinfo.isCoupled) {
@@ -3486,43 +3530,43 @@ Domain::computeConstantForce(GenVector<Scalar>& cnst_f, GenSparseMatrix<Scalar>*
   // ... COMPUTE FORCE FROM DISCRETE NEUMANN BOUNDARY CONDITIONS
   // note #1 when MFTT is present then FORCES contribution is not constant
   // note #2 when HFTT is present the FLUX contribution is not constant
-  // note #3 see Domain::getStiffAndForce for treatment of non-axial forces and all nodal moments in nonlinear analyses
+  // note #3 see getStiffAndForce/getInternalForce for treatment of non-axial forces and all nodal moments in nonlinear analyses
   for(int i = 0; i < numNeuman; ++i) {
     if(sinfo.isNonLin() && nbc[i].type == BCond::Forces && !(nbc[i].mtype == BCond::Axial && nbc[i].dofnum < 3)) continue;
     int dof  = c_dsa->locate(nbc[i].nnum, (1 << nbc[i].dofnum));
     if(dof < 0) continue;
     switch(nbc[i].type) {
-      case(BCond::Forces) : if(!domain->mftval) cnst_f[dof] += nbc[i].val; break;
-      case(BCond::Flux) :   if(!domain->hftval) cnst_f[dof] += nbc[i].val; break;
+      case(BCond::Forces) : if(!domain->getMFTT(nbc[i].caseid)) cnst_f[dof] += nbc[i].val; break;
+      case(BCond::Flux) :   if(!domain->getHFTT(nbc[i].caseid)) cnst_f[dof] += nbc[i].val; break;
       case(BCond::Actuators) : case(BCond::Usdf) : break;
       default : cnst_f[dof] += nbc[i].val;
     }
   }
 
   // ... COMPUTE FORCE FROM ACOUSTIC DISTRIBUTED NEUMANN BOUNDARY CONDITIONS
-  // note #1: when MFTT is present this term is not constant (see computeExtForce)
-  if(sinfo.ATDDNBVal != 0.0 && !domain->mftval) addAtddnbForce(cnst_f);
+  // note #1: even when MFTTs are present this term may be constant
+  if(sinfo.ATDDNBVal != 0.0) addAtddnbForce(cnst_f, 0);
 
   // ... COMPUTE FORCE FROM ACOUSTIC ROBIN BOUNDARY CONDITIONS
-  //  note #1: when MFTT is present this term is not constant (see computeExtForce)
-  if(sinfo.ATDROBalpha != 0.0 && !domain->mftval) addAtdrobForce(cnst_f);
+  //  note #1: even when MFTTs are present this term may be constant
+  if(sinfo.ATDROBalpha != 0.0) addAtdrobForce(cnst_f, 0);
 
   // ... COMPUTE FORCE FROM PRESSURE
-  // note #1: when MFTT/CONWEP is present this term is not constant (see computeExtForce)
-  // note #2: for NONLINEAR problems this term is not constant (see getStiffAndForce)
-  if(!(domain->mftval || sinfo.ConwepOnOff) && !sinfo.isNonLin()) addPressureForce(cnst_f);
+  // note #1: even when MFTTs/CONWEP are present this term may now be constant
+  // note #2: for NONLINEAR problems this term is not constant (see getStiffAndForce/getInternalForce)
+  if(!sinfo.isNonLin()) addPressureForce(cnst_f, 0);
 
   // ... ADD RHS FROM LMPCs for linear statics
-  if(/*lmpc.max_size() &&*/ !sinfo.isNonLin() && !sinfo.isDynam()) addMpcRhs(cnst_f);
+  if(!sinfo.isNonLin() && !sinfo.isDynam()) addMpcRhs(cnst_f);
 
   // ... COMPUTE FORCE FROM TEMPERATURES
   // note #1: for THERMOE problems TEMPERATURES are ignored 
-  // note #2: for NONLINEAR problems this term is not constant (see getStiffAndForce)
+  // note #2: for NONLINEAR problems this term is not constant (see getStiffAndForce/getInternalForce)
   if(sinfo.thermalLoadFlag && !(sinfo.thermoeFlag >= 0) && !sinfo.isNonLin()) addThermalForce(cnst_f);
 
   // ... COMPUTE FORCE FROM NON-HOMOGENEOUS DIRICHLET BOUNDARY CONDITIONS
   // note #1: when USDD is present this is term is not constant (see computeExtForce)
-  // note #2  for nonlinear this term is not constant (see getStiffAndForce) 
+  // note #2  for nonlinear this term is not constant (see getStiffAndForce/getInternalForce) 
   if(numDirichlet && !(claw && claw->numUserDisp) && !sinfo.isNonLin() && kuc) {
     Vector Vc(numDirichlet, 0.0);
     // construct the non-homogeneous dirichlet bc vector
@@ -3547,20 +3591,18 @@ Domain::computeExtForce(GenVector<Scalar>& f, double t, GenSparseMatrix<Scalar>*
   f.zero();
 
   // ... COMPUTE FORCE FROM DISCRETE NEUMANN BOUNDARY CONDITIONS
-  // note #1 when MFTT is not present FORCES contribution is constant (see computeConstantForce)
-  // note #2 when HFTT is not present FLUX contribution is constant (see computeConstantForce)
+  // note #1 when MFTT is not assigned FORCES contribution is constant (see computeConstantForce)
+  // note #2 when HFTT is not assigned FLUX contribution is constant (see computeConstantForce)
   // note #3 see Domain::getStiffAndForce for treatment of non-axial forces and all nodal moments in nonlinear analyses
-  double mfttFactor = (domain->mftval) ? domain->mftval->getVal(t) : 1.0; // MFTT time dependent force coefficient
-  double hfttFactor = (domain->hftval) ? domain->hftval->getVal(t) : 1.0; // HFTT time dependent flux coefficient
-  if(numNeuman && (domain->mftval || domain->hftval || (claw && (claw->numUserForce || claw->numActuator)))) {
+  if(numNeuman && (domain->getNumMFTT() || domain->getNumHFTT() || (claw && (claw->numUserForce || claw->numActuator)))) {
     for(int i = 0; i < numNeuman; ++i) {
       if(sinfo.isNonLin() && (nbc[i].type == BCond::Forces || nbc[i].type == BCond::Usdf 
          || nbc[i].type == BCond::Actuators) && !(nbc[i].mtype == BCond::Axial && nbc[i].dofnum < 3)) continue;
       int dof  = c_dsa->locate(nbc[i].nnum, (1 << nbc[i].dofnum));
       if(dof < 0) continue;
       switch(nbc[i].type) {
-        case(BCond::Forces) : if(domain->mftval) f[dof] += mfttFactor*nbc[i].val; break;
-        case(BCond::Flux)   : if(domain->hftval) f[dof] += hfttFactor*nbc[i].val; break;
+        case(BCond::Forces) : if(MFTTData *mftt = domain->getMFTT(nbc[i].caseid)) f[dof] += mftt->getVal(t)*nbc[i].val; break;
+        case(BCond::Flux)   : if(MFTTData *hftt = domain->getHFTT(nbc[i].caseid)) f[dof] += hftt->getVal(t)*nbc[i].val; break;
         case(BCond::Actuators) : case(BCond::Usdf) : f[dof] += nbc[i].val; break;
         default : /* all other cases are constant */ ;
       }
@@ -3568,28 +3610,28 @@ Domain::computeExtForce(GenVector<Scalar>& f, double t, GenSparseMatrix<Scalar>*
   }
 
   // COMPUTE FORCE FROM ACOUSTIC DISTRIBUTED NEUMANN BOUNDARY CONDITIONS
-  // note #1: when MFTT not present this term is constant (see computeConstantForce)
-  if(sinfo.ATDDNBVal != 0.0 && domain->mftval) addAtddnbForce(f, mfttFactor);
+  // note #1: when one or more MFTTs are present this term may not be constant
+  if(sinfo.ATDDNBVal != 0.0 && domain->getNumMFTT() > 0) addAtddnbForce(f, 1, t);
 
   // COMPUTE FORCE FROM ACOUSTIC ROBIN BOUNDARY CONDITIONS
-  // note #1: when MFTT not present this term is constant (see computeConstantForce)
-  if(sinfo.ATDROBalpha != 0.0 && domain->mftval) addAtdrobForce(f, mfttFactor);
+  // note #1: when one or more MFTTs are present this term may not be constant
+  if(sinfo.ATDROBalpha != 0.0 && domain->getNumMFTT() > 0) addAtdrobForce(f, 1, t);
 
   // COMPUTE FORCE FROM PRESSURE
-  // note #1: when MFTT/CONWEP not present this term is constant (see computeConstantForce)
-  // note #2: for NONLINEAR problems this term is follower (see getStiffAndForce)
-  if((domain->mftval || sinfo.ConwepOnOff) && !sinfo.isNonLin()) addPressureForce(f, mfttFactor, t);
+  // note #1: when MFTT/CONWEP are present this term may not be constant
+  // note #2: for NONLINEAR problems this term is follower (see getStiffAndForce/getInternalForce)
+  if((domain->getNumMFTT() > 0 || sinfo.ConwepOnOff) && !sinfo.isNonLin()) addPressureForce(f, 1, t);
 
   // ... ADD RHS FROM LMPCs for linear dynamics
-  if(/*lmpc.max_size() &&*/ !sinfo.isNonLin() && sinfo.isDynam()) addMpcRhs(f, t);
+  if(!sinfo.isNonLin() && sinfo.isDynam()) addMpcRhs(f, t);
 
   // COMPUTE FORCE FROM THERMOE
-  // note #2: for NONLINEAR problems this term is follower (see getStiffAndForce)
+  // note #1: for NONLINEAR problems this term is follower (see getStiffAndForce/getInternalForce)
   if(sinfo.thermoeFlag >= 0 && !sinfo.isNonLin()) addThermalForce(f);
 
   // COMPUTE FORCE FROM NON-HOMOGENEOUS DIRICHLET BOUNDARY CONDITIONS
   // note #1: when USDD is not present this term is constant (see computeConstantForce)
-  // note #2: for nonlinear the contribution due to Kuc is follower (see getStiffAndForce)
+  // note #2: for nonlinear the contribution due to Kuc is follower (see getStiffAndForce/getInternalForce)
   // note #3: for linear and nonlinear dynamics the contribution due to Cuc and Muc is now included
   if(numDirichlet && (claw && claw->numUserDisp)) {
     Vector Vc(numDirichlet, 0.0);

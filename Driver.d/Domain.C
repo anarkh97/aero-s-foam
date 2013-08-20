@@ -70,7 +70,6 @@ Domain::Domain(Domain &d, int nele, int *eles, int nnodes, int *nnums)
  }
 
  mftval = d.mftval;
- mptval = d.mptval;
  hftval = d.hftval;
 
  if(verboseFlag == 0) setSilent();
@@ -97,7 +96,6 @@ Domain::Domain(Domain &d, Elemset *_elems, CoordSet *_nodes)
  }
 
  mftval = d.mftval;
- mptval = d.mptval;
  hftval = d.hftval;
 
  if(verboseFlag == 0) setSilent();
@@ -888,25 +886,60 @@ int Domain::setNeumanModal(int _numNeumanModal, BCond *_nbcModal)
  return 0;
 }
 
-int
-Domain::setMFTT(MFTTData *_mftval)
+void
+Domain::setLoadConfig(int loadset_id, int mftt_id)
 {
- mftval = _mftval;
- return 0;
+ loadconfig[loadset_id] = mftt_id;
 }
 
 int
-Domain::setMPTT(MFTTData *_mptval)
+Domain::setMFTT(MFTTData *_mftval, int key)
 {
- mptval = _mptval;
+ mftval[key] = _mftval;
  return 0;
 }
 
-int
-Domain::setHFTT(MFTTData *_hftval)
+MFTTData *
+Domain::getMFTT(int caseid) const 
 {
- hftval = _hftval;
+  // if loadcase does not have any attributes, use the default mftt key (0)
+  std::map<int,int>::const_iterator it1;
+  int key = ((it1 = loadconfig.find(caseid)) != loadconfig.end()) ? it1->second : 0;
+
+  // return a pointer to the function if it is defined, otherwise return a null pointer
+  std::map<int,MFTTData*>::const_iterator it2;
+  return ((it2 = mftval.find(key)) != mftval.end()) ? it2->second : NULL;
+}
+
+int
+Domain::getNumMFTT() const
+{
+  return mftval.size();
+}
+
+int
+Domain::setHFTT(MFTTData *_hftval, int key)
+{
+ hftval[key] = _hftval;
  return 0;
+}
+
+MFTTData *
+Domain::getHFTT(int caseid) const
+{
+  // if loadcase does not have any attributes, use the default hftt key (0)
+  std::map<int,int>::const_iterator it1;
+  int key = ((it1 = loadconfig.find(caseid)) != loadconfig.end()) ? it1->second : 0;
+
+  // return a pointer to the function if it is defined, otherwise return a null pointer
+  std::map<int,MFTTData*>::const_iterator it2; 
+  return ((it2 = hftval.find(key)) != hftval.end()) ? it2->second : NULL;
+}
+
+int
+Domain::getNumHFTT() const
+{
+  return hftval.size();
 }
 
 int
@@ -2774,7 +2807,7 @@ Domain::initialize()
  dsaFluid = 0; c_dsaFluid = 0; allDOFsFluid = 0; dbcFluid = 0;
  elemToNodeFluid = 0; nodeToElemFluid = 0; nodeToNodeFluid = 0;
  nSurfEntity = 0; nMortarCond = 0; nMortarLMPCs= 0; mortarToMPC = 0;
- solver = 0; csolver = 0; mftval = 0; mptval = 0; hftval = 0;
+ solver = 0; csolver = 0; //mftval = 0; hftval = 0;
  flExchanger = 0; outFile = 0; elDisp = 0; p_stress = 0; p_elstress = 0; stressAllElems = 0;
  previousExtForce = 0; previousAeroForce = 0; previousDisp = 0; previousCq = 0;
  temprcvd = 0; optinputfile = 0;
@@ -2843,7 +2876,6 @@ Domain::~Domain()
  if(stressAllElems) { delete stressAllElems; stressAllElems = 0; }
  if(claw) { delete claw; claw = 0; }
  //if(mftval) { delete mftval; mftval = 0; }
- //if(mptval) { delete mptval; mptval = 0; }
  //if(hftval) { delete hftval; hftval = 0; }
  if(firstDiMass) { delete firstDiMass; firstDiMass = 0; }
  if(previousExtForce) { delete previousExtForce; previousExtForce = 0; }
@@ -3326,13 +3358,15 @@ Domain::ProcessSurfaceBCs()
     }
   }
 
-  BCond *surface_pres;
+  PressureBCond *surface_pres;
   int numSurfacePressure = geoSource->getSurfacePressure(surface_pres);
   int nEle = geoSource->getElemSet()->last();
   for(int i=0; i<numSurfacePressure; ++i) {
+    surface_pres[i].mftt = getMFTT(surface_pres[i].caseid);
+    surface_pres[i].conwep = (domain->solInfo().ConwepOnOff) ? &BlastLoading::InputFileData : NULL;
     for(int j=0; j<nSurfEntity; j++) {
       int SurfId = SurfEntities[j]->ID();
-      if(SurfId-1 == surface_pres[i].nnum) {
+      if(SurfId-1 == surface_pres[i].surfid) {
         FaceElemSet &faceElemSet = SurfEntities[j]->GetFaceElemSet();
         for(int iele = 0; iele < faceElemSet.last(); ++iele) {
           int nVertices = faceElemSet[iele]->nVertices();
@@ -3347,7 +3381,7 @@ Domain::ProcessSurfaceBCs()
                case 6: type = 17; break;
                case 8: type = 18; break;
              }
-             addNeumElem(-1, type, surface_pres[i].val, nVertices, nodes);
+             addNeumElem(-1, type, surface_pres[i].val, nVertices, nodes, &surface_pres[i]);
              delete [] nodes;
           }
           else {

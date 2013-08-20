@@ -521,9 +521,11 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
      case 105:
        ele = new (ba) HelmSpectralIsoParamHexa(nnodes,n);
        break;
+#ifdef USE_EIGEN3
      case 106:
        ele = new (ba) RigidBeam(n,1);
        break;
+#endif
      case 108:
        ele = new (ba) HelmSpectralIsoParamQuad(nnodes,n);
        break;

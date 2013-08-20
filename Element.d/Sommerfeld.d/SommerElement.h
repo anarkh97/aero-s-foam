@@ -13,7 +13,6 @@
 
 class Domain;
 class GeomState;
-class MFTT;
 
 class SommerElement : public Element {
 

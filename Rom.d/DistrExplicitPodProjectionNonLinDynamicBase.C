@@ -432,7 +432,10 @@ void DistrExplicitPodProjectionNonLinDynamicBase::getConstForce(DistrVector& v)
     filePrint(stderr, " ... Using Reduced Constant Force   ...\n");
     BCond* nbcModal = domain->getNBCModal();
     v.zero();
-    for(int i=0; i<nr; ++i) v[nbcModal[i].nnum] = nbcModal[i].val;
+    for(int i=0; i<nr; ++i) {
+      if(nbcModal[i].nnum < v.size())
+        v[nbcModal[i].nnum] = nbcModal[i].val;
+    }
   }
   else {
     //we really don't need to project down here since cnst_fBig is stored inside the probDesc class

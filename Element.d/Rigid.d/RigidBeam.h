@@ -7,8 +7,9 @@ class RigidBeam : public SuperElement
 {
     EFrame *elemframe;
     double c0[3][3];
+    int variant;
   public:
-    RigidBeam(int*);
+    RigidBeam(int*, int=0);
     int getTopNumber() { return 106; }
     bool isRigidElement() { return true; }
     bool hasRot() { return true; }

@@ -226,7 +226,7 @@ MpcElement.d/MpcElement.C
 MpcElement.d/DistanceConstraintElement.C
 MpcElement.d/DotType1ConstraintElement.C
 MpcElement.d/DotType2ConstraintElement.C
-MpcElement.d/DotType2v2ConstraintElement.C
+MpcElement.d/DotType3ConstraintElement.C
 MpcElement.d/AngleType1ConstraintElement.C
 MpcElement.d/LineLineDistanceConstraintElement.C
 MpcElement.d/LineVariLineDistanceConstraintElement.C
@@ -241,7 +241,7 @@ MpcElement.d/PointVariPlaneDistanceConstraintElement.C
 MpcElement.d/ConstraintFunction.d/DistanceConstraintFunction.C
 MpcElement.d/ConstraintFunction.d/DotType1ConstraintFunction.C
 MpcElement.d/ConstraintFunction.d/DotType2ConstraintFunction.C
-MpcElement.d/ConstraintFunction.d/DotType2v2ConstraintFunction.C
+MpcElement.d/ConstraintFunction.d/DotType3ConstraintFunction.C
 MpcElement.d/ConstraintFunction.d/AngleType1ConstraintFunction.C
 MpcElement.d/ConstraintFunction.d/PointPointDistanceConstraintFunction.C
 MpcElement.d/ConstraintFunction.d/PointLineDistanceConstraintFunction.C

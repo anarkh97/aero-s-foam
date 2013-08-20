@@ -1,15 +1,16 @@
-#ifndef _DOTTYPE2V2CONSTRAINTFUNCTION_H_
-#define _DOTTYPE2V2CONSTRAINTFUNCTION_H_
+#ifndef _DOTTYPE3CONSTRAINTFUNCTION_H_
+#define _DOTTYPE3CONSTRAINTFUNCTION_H_
 
 #include <Element.d/MpcElement.d/ConstraintFunction.d/ConstraintFunction.h>
 
 template<typename Scalar>
-class DotType2v2ConstraintFunction : public RheonomicConstraintFunction<12,Scalar,9,0,double>
+class DotType3ConstraintFunction : public RheonomicConstraintFunction<12,Scalar,10,0,double>
 {
    Eigen::Matrix<double,3,1> a0,b0hat,c0hat;
+   double d0;
 
   public:
-    DotType2v2ConstraintFunction(const Eigen::Array<double,9,1>& sconst, const Eigen::Array<int,0,1>&)
+    DotType3ConstraintFunction(const Eigen::Array<double,10,1>& sconst, const Eigen::Array<int,0,1>&)
     {
       Eigen::Matrix<double,3,1> b0,c0;
       a0 << sconst(0), sconst(1), sconst(2);
@@ -17,6 +18,7 @@ class DotType2v2ConstraintFunction : public RheonomicConstraintFunction<12,Scala
       c0 << sconst(6), sconst(7), sconst(8);
       b0hat = b0.normalized();
       c0hat = c0.normalized();
+      d0 = sconst(9);
     }
 
     Scalar operator() (const Eigen::Matrix<Scalar,12,1>& q, Scalar t) const
@@ -48,7 +50,7 @@ class DotType2v2ConstraintFunction : public RheonomicConstraintFunction<12,Scala
       q2.setFromOneVector(q.template segment<3>(9));
 
       // "unbiased" alternative to dot constraint type 2: gives consistency with linear elasticity for beam
-      return (a0.template cast<Scalar>() + u2 - u1).dot
+      return -d0 + (a0.template cast<Scalar>() + u2 - u1).dot
              (q1.toRotationMatrix()*b0hat.template cast<Scalar>()+q2.toRotationMatrix()*c0hat.template cast<Scalar>());
     }
 
@@ -58,12 +60,12 @@ class DotType2v2ConstraintFunction : public RheonomicConstraintFunction<12,Scala
 
 template<> template<>
 int
-ConstraintJacobian<double,DotType2v2ConstraintFunction>
+ConstraintJacobian<double,DotType3ConstraintFunction>
 ::operator() (const Eigen::Matrix<double,12,1>& q, Eigen::Matrix<double,12,1>& J) const;
 
 template<> template<>
 int
-SacadoReverseJacobian<ConstraintJacobian<double,DotType2v2ConstraintFunction> >
+SacadoReverseJacobian<ConstraintJacobian<double,DotType3ConstraintFunction> >
 ::operator() (const Eigen::Matrix<double,12,1>& q, Eigen::Matrix<double,12,12>& H) const;
 
 #endif

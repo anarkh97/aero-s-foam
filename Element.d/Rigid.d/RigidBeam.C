@@ -4,14 +4,13 @@
 #include <Element.d/Joint.d/BuildingBlocks.d/StraightLinePointFollowerConstraint.h>
 #include <Element.d/Joint.d/BuildingBlocks.d/RotationBlockerConstraint.h>
 #include <Element.d/Joint.d/BuildingBlocks.d/ParallelAxesConstraint.h>
+#include <Element.d/MpcElement.d/DotType2ConstraintElement.h>
 #include <Corotational.d/utilities.h>
 
-#ifdef USE_EIGEN3
 #include <Math.d/rref.h>
 #include <Eigen/Core>
 #include <map>
 #include <vector>
-#endif
 
 extern "C" {
  void _FORTRAN(e3dmas)(double&, double*,
@@ -24,9 +23,10 @@ extern "C" {
                       const int&, double*);
 }
 
-RigidBeam::RigidBeam(int* _nn)
+RigidBeam::RigidBeam(int* _nn, int _variant)
  : SuperElement(true),
-   elemframe(0)
+   elemframe(0),
+   variant(_variant)
 {
   nnodes = 2;
   nn = new int[nnodes];
@@ -35,10 +35,20 @@ RigidBeam::RigidBeam(int* _nn)
   subElems = new Element * [nSubElems];
   int indices[2] = { 0, 1 };
 
-  subElems[0] = new ConstantDistanceConstraint(indices);
-  subElems[1] = new StraightLinePointFollowerConstraint(indices);
-  subElems[2] = new RotationBlockerConstraint(indices, 2, 1);
-  subElems[3] = new ParallelAxesConstraint(indices);
+  switch(variant) {
+    case 0: {
+      subElems[0] = new ConstantDistanceConstraint(indices);
+      subElems[1] = new StraightLinePointFollowerConstraint(indices);
+      subElems[2] = new RotationBlockerConstraint(indices, 2, 1);
+      subElems[3] = new ParallelAxesConstraint(indices);
+    } break;
+    case 1: {
+      subElems[0] = new DotType2ConstraintElement(indices, 0);
+      subElems[1] = new StraightLinePointFollowerConstraint(indices);
+      subElems[2] = new RotationBlockerConstraint(indices, 2, 1);
+      subElems[3] = new ParallelAxesConstraint(indices);
+    } break;
+  }  
 }
 
 /* the idea here is to reduce the element constraint jacobian. in some cases it may be possible to
@@ -157,41 +167,77 @@ RigidBeam::buildFrame(CoordSet& cs)
 {
   Node &nd1 = cs.getNode(nn[0]);
   Node &nd2 = cs.getNode(nn[1]);
+  double length; 
+  getLength(cs, length);
   if(elemframe != 0) {
-    EFrame &theFrame = *elemframe;
-    theFrame[0][0] = nd2.x-nd1.x;
-    theFrame[0][1] = nd2.y-nd1.y;
-    theFrame[0][2] = nd2.z-nd1.z;
-    normalize(theFrame[0]);
-    crossprod(theFrame[0],theFrame[1],theFrame[2]);
-    normalize(theFrame[2]);
-    crossprod(theFrame[2],theFrame[0],theFrame[1]);
-  }
-  else {
-    c0[0][0] = nd2.x-nd1.x;
-    c0[0][1] = nd2.y-nd1.y;
-    c0[0][2] = nd2.z-nd1.z;
-    normalize(c0[0]);
-    double N1 = sqrt( c0[0][0]*c0[0][0] + c0[0][1]*c0[0][1] );
-    double N2 = sqrt( c0[0][0]*c0[0][0] + c0[0][2]*c0[0][2] );
-
-    if (N1 > N2) {
-      c0[1][0] = -c0[0][1]/N1;
-      c0[1][1] = c0[0][0]/N1;
-      c0[1][2] = 0.0;
+    if(length == 0) {
+      if(variant != 1) {
+        std::cerr << " *** ERROR: Rigid beam type 66 element number " << getGlNum()+1 << " has zero length,\n"; 
+        std::cerr << " ***        use rigid beam type 106 or welded joint type 119 instead.\n";
+        exit(-1);
+      }
     }
     else {
-      c0[1][0] = c0[0][2]/N2;
-      c0[1][1] = 0.0;
-      c0[1][2] = -c0[0][0]/N2;
+      EFrame &theFrame = *elemframe;
+      theFrame[0][0] = nd2.x-nd1.x;
+      theFrame[0][1] = nd2.y-nd1.y;
+      theFrame[0][2] = nd2.z-nd1.z;
+      normalize(theFrame[0]);
+      crossprod(theFrame[0],theFrame[1],theFrame[2]);
+      normalize(theFrame[2]);
+      crossprod(theFrame[2],theFrame[0],theFrame[1]);
     }
+  }
+  else {
+    if(length == 0) {
+      if(variant == 1) {
+        c0[0][0] = 1.0;
+        c0[0][1] = 0.0;
+        c0[0][2] = 0.0;
+        c0[1][0] = 0.0;
+        c0[1][1] = 1.0;
+        c0[1][2] = 0.0;
+        c0[2][0] = 0.0;
+        c0[2][1] = 0.0;
+        c0[2][2] = 1.0;
+      }
+      else {
+        std::cerr << " *** ERROR: Rigid beam type 66 element number " << getGlNum()+1 << " has zero length,\n";         
+        std::cerr << " ***        use rigid beam type 106 or welded joint type 119 instead.\n";
+        exit(-1);
+      }
+    }
+    else {
+      c0[0][0] = nd2.x-nd1.x;
+      c0[0][1] = nd2.y-nd1.y;
+      c0[0][2] = nd2.z-nd1.z;
+      normalize(c0[0]);
+      double N1 = sqrt( c0[0][0]*c0[0][0] + c0[0][1]*c0[0][1] );
+      double N2 = sqrt( c0[0][0]*c0[0][0] + c0[0][2]*c0[0][2] );
 
-    c0[2][0] = c0[0][1] * c0[1][2] - c0[0][2] * c0[1][1];
-    c0[2][1] = c0[0][2] * c0[1][0] - c0[0][0] * c0[1][2];
-    c0[2][2] = c0[0][0] * c0[1][1] - c0[0][1] * c0[1][0];
+      if (N1 > N2) {
+        c0[1][0] = -c0[0][1]/N1;
+        c0[1][1] = c0[0][0]/N1;
+        c0[1][2] = 0.0;
+      }
+      else {
+        c0[1][0] = c0[0][2]/N2;
+        c0[1][1] = 0.0;
+        c0[1][2] = -c0[0][0]/N2;
+      }
+
+      c0[2][0] = c0[0][1] * c0[1][2] - c0[0][2] * c0[1][1];
+      c0[2][1] = c0[0][2] * c0[1][0] - c0[0][0] * c0[1][2];
+      c0[2][2] = c0[0][0] * c0[1][1] - c0[0][1] * c0[1][0];
+    }
 
     elemframe = &c0;
   }
+
+  if(variant == 1) {
+    dynamic_cast<DotType2ConstraintElement*>(subElems[0])->setConstantTerm(length);
+  }
+
   SuperElement::setFrame(elemframe);
   SuperElement::buildFrame(cs);
 }

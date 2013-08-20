@@ -21,8 +21,8 @@ public:
         void renum(EleRenumMap&);
 
 	void setFrame(EFrame *ef) { elemframe = ef; }
-  const EFrame *getFrame() const { return elemframe; }
-  void buildFrame(CoordSet&);
+	const EFrame *getFrame() const { return elemframe; }
+	void buildFrame(CoordSet&);
 
 	FullSquareMatrix stiffness(CoordSet&, double *kel,int flg=1);
 	FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg=1);

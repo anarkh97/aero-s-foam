@@ -1,9 +1,9 @@
 #ifndef _NONLINEARTRANSLATIONALSPRING2_H_
 #define _NONLINEARTRANSLATIONALSPRING2_H_
 
-#include <Element.d/MpcElement.d/DotType2v2ConstraintElement.h>
+#include <Element.d/MpcElement.d/DotType3ConstraintElement.h>
 
-class NonlinearTranslationalSpring2 : public DotType2v2ConstraintElement
+class NonlinearTranslationalSpring2 : public DotType3ConstraintElement
 {
     double sp0;
 

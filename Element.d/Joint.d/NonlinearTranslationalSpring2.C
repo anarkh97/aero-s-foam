@@ -2,7 +2,7 @@
 #include <Element.d/Joint.d/NonlinearTranslationalSpring2.h>
 
 NonlinearTranslationalSpring2::NonlinearTranslationalSpring2(int* _nn, int _axis)
- : DotType2v2ConstraintElement(_nn, _axis)
+ : DotType3ConstraintElement(_nn, _axis)
 {}
 
 void
@@ -17,7 +17,7 @@ NonlinearTranslationalSpring2::setProp(StructProp *p, bool _myProp)
 void 
 NonlinearTranslationalSpring2::buildFrame(CoordSet& cs)
 {
-  DotType2v2ConstraintElement::buildFrame(cs);
+  DotType3ConstraintElement::buildFrame(cs);
   sp0 = -rhs.r_value;
   rhs.r_value = 0;
 }
@@ -25,7 +25,7 @@ NonlinearTranslationalSpring2::buildFrame(CoordSet& cs)
 void 
 NonlinearTranslationalSpring2::update(GeomState& gState, CoordSet& cs, double t)
 {
-  DotType2v2ConstraintElement::update(gState, cs, t);
+  DotType3ConstraintElement::update(gState, cs, t);
   rhs.r_value += sp0;
 }
 #endif

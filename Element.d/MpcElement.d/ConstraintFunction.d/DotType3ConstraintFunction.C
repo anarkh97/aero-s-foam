@@ -1,12 +1,12 @@
 #ifdef USE_EIGEN3
-#include <Element.d/MpcElement.d/ConstraintFunction.d/DotType2v2ConstraintFunction.h>
+#include <Element.d/MpcElement.d/ConstraintFunction.d/DotType3ConstraintFunction.h>
 #include <Element.d/MpcElement.d/ConstraintFunction.d/exp-map.h>
 
 // specializing the member function template of constraint jacobian operator for dot
 // type 2 (variant 2) constraint function with double precision scalar
 template<> template<>
 int
-ConstraintJacobian<double,DotType2v2ConstraintFunction>
+ConstraintJacobian<double,DotType3ConstraintFunction>
 ::operator() (const Eigen::Matrix<double,12,1>& q, Eigen::Matrix<double,12,1>& J) const
 {
   Eigen::Vector3d a0,b0,b0hat,c0,c0hat,a,bhat,chat,d1,d2;
@@ -66,7 +66,7 @@ ConstraintJacobian<double,DotType2v2ConstraintFunction>
 // type 2 (variant 2) constraint function with double precision scalar
 template<> template<>
 int
-SacadoReverseJacobian<ConstraintJacobian<double,DotType2v2ConstraintFunction> >
+SacadoReverseJacobian<ConstraintJacobian<double,DotType3ConstraintFunction> >
 ::operator() (const Eigen::Matrix<double,12,1>& q, Eigen::Matrix<double,12,12>& H) const
 {
   H.setZero();

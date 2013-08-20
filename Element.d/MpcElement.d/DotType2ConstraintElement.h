@@ -17,6 +17,7 @@ class DotType2ConstraintElement : public ConstraintFunctionElement<DotType2Const
     void setFrame(EFrame *);
     void buildFrame(CoordSet&);
     static const DofSet NODALDOFS[2];
+    void setConstantTerm(double _d0) { d0 = _d0; }
 
   protected:
     void getConstants(CoordSet& cs, Eigen::Array<double,7,1>& sconst, Eigen::Array<int,0,1>&, GeomState *gs = NULL);

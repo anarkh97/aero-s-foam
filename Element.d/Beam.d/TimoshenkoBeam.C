@@ -343,7 +343,7 @@ TimoshenkoBeam::stiffness(CoordSet &cs, double *d, int flg)
           std::fprintf(stderr,"ERROR: Timoshenko beam has zero area. nodes %d %d\n",
                  nn[0]+1,nn[1]+1);
         if(std::sqrt((x[0]-x[1])*(x[0]-x[1])+(y[0]-y[1])*(y[0]-y[1])+(z[0]-z[1])*(z[0]-z[1]))==0.0)
-          std::fprintf(stderr,"ERROR: Timoshenko beam has zero lenth. nodes %d %d\n",
+          std::fprintf(stderr,"ERROR: Timoshenko beam has zero length. nodes %d %d\n",
                  nn[0]+1,nn[1]+1);
 
       // Check for the frame

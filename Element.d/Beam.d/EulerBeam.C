@@ -43,7 +43,8 @@ EulerBeam::EulerBeam(int* nodenums)
         nn[1] = nodenums[1];
         nn[2] = nodenums[2];
         elemframe = 0;
-	offset = 0;
+        offset = 0;
+        pbc = 0;
 }
 
 void
@@ -131,7 +132,7 @@ EulerBeam::renum(EleRenumMap& table)
 
 void
 EulerBeam::getIntrnForce(Vector& elForce, CoordSet& cs,
-			 double *elDisp, int forceIndex, double *ndTemps)
+                         double *elDisp, int forceIndex, double *ndTemps)
 {
         Node &nd1 = cs.getNode(nn[0]);
         Node &nd2 = cs.getNode(nn[1]);
@@ -187,21 +188,21 @@ EulerBeam::getGravityForce(CoordSet& cs, double *gravityAcceleration,
                            Vector& gravityForce, int gravflg, GeomState *geomState)
 {
         double massPerNode = 0.5*getMass(cs);
-	
+        
         double t0n[3][3] = {{0.0,0.0,0.0},{0.0,0.0,0.0},{0.0,0.0,0.0}};
-	double length;
-	  
-	if (geomState) {
-	    updTransMatrix(cs, geomState, t0n, length);
-		 
+        double length;
+          
+        if (geomState) {
+            updTransMatrix(cs, geomState, t0n, length);
+                 
         }  else  {
            getLength(cs, length);
-	     
+             
            for(int i=0; i<3; ++i) {   
               for(int j=0; j<3; ++j) {
                   t0n[i][j] = (*elemframe)[i][j] ;
              
-	      }
+              }
            }
         }         
 
@@ -238,18 +239,18 @@ EulerBeam::getGravityForce(CoordSet& cs, double *gravityAcceleration,
           globalm[i] = (t0n[1][i]*localm[1]) + (t0n[2][i]*localm[2]);
         }
 
-	gravityForce[0]  =  globalf[0];
-	gravityForce[1]  =  globalf[1];
-	gravityForce[2]  =  globalf[2];
-	gravityForce[3]  =  globalm[0];
-	gravityForce[4]  =  globalm[1];
-	gravityForce[5]  =  globalm[2];
+        gravityForce[0]  =  globalf[0];
+        gravityForce[1]  =  globalf[1];
+        gravityForce[2]  =  globalf[2];
+        gravityForce[3]  =  globalm[0];
+        gravityForce[4]  =  globalm[1];
+        gravityForce[5]  =  globalm[2];
         gravityForce[6]  =  globalf[0];
-	gravityForce[7]  =  globalf[1];
-	gravityForce[8]  =  globalf[2];
-	gravityForce[9]  = -globalm[0];
-	gravityForce[10] = -globalm[1];
-	gravityForce[11] = -globalm[2];
+        gravityForce[7]  =  globalf[1];
+        gravityForce[8]  =  globalf[2];
+        gravityForce[9]  = -globalm[0];
+        gravityForce[10] = -globalm[1];
+        gravityForce[11] = -globalm[2];
 
 }
 
@@ -278,7 +279,7 @@ EulerBeam::massMatrix(CoordSet &cs,double *mel,int cmflg)
         // Lumped Mass Matrix
         if (cmflg == 0) {
           _FORTRAN(e3dmas)(prop->rho,(double*)mel,prop->A,
-	          x,y,z,gravityAcceleration,grvfor,grvflg,totmas,masflg);
+                  x,y,z,gravityAcceleration,grvfor,grvflg,totmas,masflg);
 
         // Consistent (Full) Mass Matrix
         } else {
@@ -291,8 +292,8 @@ EulerBeam::massMatrix(CoordSet &cs,double *mel,int cmflg)
 
         //fprintf(stderr,"mass matrix BEFORE offset\n");
         //ret.print();
-	
-	if(offset) offsetAxis(ret);
+        
+        if(offset) offsetAxis(ret);
 
         //fprintf(stderr,"mass matrix AFTER offset\n");
         //ret.print();
@@ -324,7 +325,7 @@ EulerBeam::stiffness(CoordSet &cs, double *d, int flg)
 //                      Z_x, Z_y, Z_z
 
 
-	// Check for zero area
+        // Check for zero area
         if(prop->A <= 0.0) {
           fprintf(stderr," *** WARNING: Euler beam has zero area. nodes %d %d\n",
           nn[0]+1, nn[1]+1);
@@ -334,7 +335,7 @@ EulerBeam::stiffness(CoordSet &cs, double *d, int flg)
           fprintf(stderr," *** WARNING: Euler beam has zero lenth. nodes %d %d\n",
                  nn[0]+1,nn[1]+1);
 
-	// Check for zero young's modulus
+        // Check for zero young's modulus
         if(prop->E <= 0.0) {
           fprintf(stderr," *** WARNING: Euler beam element %d has zero Young's Modulus. nodes %d %d\n", glNum, nn[0]+1, nn[1]+1);
           fprintf(stderr,"E = %e  A = %e  nu = %e  rho = %e\n", prop->E, prop->A, prop->nu, prop->rho);
@@ -347,18 +348,15 @@ EulerBeam::stiffness(CoordSet &cs, double *d, int flg)
          fprintf(stderr," ************************************************\n");
          exit(-1);
        }
-       //cerr << "elemframe = " << (*elemframe)[0][0] << " " << (*elemframe)[0][1] << " " << (*elemframe)[0][2] << "   "
-       //                       << (*elemframe)[1][0] << " " << (*elemframe)[1][1] << " " << (*elemframe)[1][2] << "   "
-       //                       << (*elemframe)[2][0] << " " << (*elemframe)[2][1] << " " << (*elemframe)[2][2] << endl;
 
-	_FORTRAN(modmstif6)(prop->A, prop->E, (double *)d,
-		             (double *) *elemframe, 
-			     prop->Ixx, prop->Iyy, prop->Izz,
-			     prop->nu, x, y, z, flg);
+        _FORTRAN(modmstif6)(prop->A, prop->E, (double *)d,
+                             (double *) *elemframe, 
+                             prop->Ixx, prop->Iyy, prop->Izz,
+                             prop->nu, x, y, z, flg);
 
-	FullSquareMatrix ret(12,d);
+        FullSquareMatrix ret(12,d);
 
-	if(offset) offsetAxis(ret);
+        if(offset) offsetAxis(ret);
 
         return ret;
 }
@@ -389,7 +387,7 @@ EulerBeam::dofs(DofSetArray &dsa, int *p)
 {
         if(p == 0) p = new int[12];
 
-	dsa.number(nn[0],DofSet::XYZdisp | DofSet::XYZrot, p  );
+        dsa.number(nn[0],DofSet::XYZdisp | DofSet::XYZrot, p  );
         dsa.number(nn[1],DofSet::XYZdisp | DofSet::XYZrot, p+6);
 
         return p;
@@ -445,7 +443,7 @@ EulerBeam::computePressureForce(CoordSet& cs, Vector& elPressureForce,
      normal2[2] = (*elemframe)[2][2]; 
      getLength(cs, length);
   } 
-  double pressureForce = 0.5*pressure*length;
+  double pressureForce = 0.5*pbc->val*length;
   px = pressureForce*normal[0];
   py = pressureForce*normal[1];
   pz = pressureForce*normal[2]; 
@@ -955,7 +953,6 @@ void EulerBeam::offsetAxis(FullSquareMatrix& mat)
   }
 }
 
-
 void
 EulerBeam::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
                        Vector& elDisp, int strInd, int surface, 
@@ -964,7 +961,7 @@ EulerBeam::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
    // Calculates the axial strain and stress for the beam element.
 
    weight = 1.0;
-	
+        
    Node &nd1 = cs.getNode(nn[0]);
    Node &nd2 = cs.getNode(nn[1]);
 
@@ -979,7 +976,7 @@ EulerBeam::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
    int maxstr = 7;
    int maxgus = 2;
    int elm    = 1;  
-	
+        
    double elStress[2][7];
    double elForce[3][2]={{0.0,0.0},{0.0,0.0},{0.0,0.0}};
 
@@ -1009,7 +1006,7 @@ EulerBeam::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
 
    double Y = 0.0;
    double Z = 0.0;
-	
+        
    if (ylayer < 0.0) {
       Y = -ylayer*prop->ymin;
    } else if (ylayer > 0.0) {
@@ -1021,47 +1018,47 @@ EulerBeam::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
    } else if (zlayer > 0.0) {
       Z =  zlayer*prop->zmax;
    }
-	
+        
 
    switch (avgnum) {
     
       case 0:
       {
         if (strInd == 0) {
-	
-	  // Axial Stress
-	
- 	  double IY = prop->Iyy;
+        
+          // Axial Stress
+        
+           double IY = prop->Iyy;
           double IZ = prop->Izz;
           double cA = prop->A;
-	      
-	  stress[0] = elForce[0][0]/cA - elForce[2][0]*Y/IZ + elForce[1][0]*Z/IY;
-  	  stress[1] = elForce[0][1]/cA - elForce[2][1]*Y/IZ + elForce[1][1]*Z/IY;
-	
-	} else if (strInd == 7) {
-	
-	  // Axial Strain
+              
+          stress[0] = elForce[0][0]/cA - elForce[2][0]*Y/IZ + elForce[1][0]*Z/IY;
+            stress[1] = elForce[0][1]/cA - elForce[2][1]*Y/IZ + elForce[1][1]*Z/IY;
         
-	  double EA  = prop->E*prop->A;
-	  double EIZ = prop->E*prop->Izz;
-	  double EIY = prop->E*prop->Iyy;
-	
-	  double Tref  = prop->Ta;
-	  double alpha = prop->W;
-	
-	  double dT1 = ndTemps[0]-Tref;
-	  double dT2 = ndTemps[1]-Tref;
-	
-	  double localThS;
+        } else if (strInd == 7) {
+        
+          // Axial Strain
+        
+          double EA  = prop->E*prop->A;
+          double EIZ = prop->E*prop->Izz;
+          double EIY = prop->E*prop->Iyy;
+        
+          double Tref  = prop->Ta;
+          double alpha = prop->W;
+        
+          double dT1 = ndTemps[0]-Tref;
+          double dT2 = ndTemps[1]-Tref;
+        
+          double localThS;
           localThS = alpha * (0.5 * dT1 + 0.5 * dT2);
-	
+        
           stress[0] = elForce[0][0]/EA - elForce[2][0]*Y/EIZ + elForce[1][0]*Z/EIY + localThS;
-  	  stress[1] = elForce[0][1]/EA - elForce[2][1]*Y/EIZ + elForce[1][1]*Z/EIY + localThS;
-	 
-	} else {
-	  stress[0] = 0.0;
-	  stress[1] = 0.0;
-	}	
+            stress[1] = elForce[0][1]/EA - elForce[2][1]*Y/EIZ + elForce[1][1]*Z/EIY + localThS;
+         
+        } else {
+          stress[0] = 0.0;
+          stress[1] = 0.0;
+        }        
         break;
       }
 
@@ -1144,33 +1141,3 @@ EulerBeam::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
         cerr << "avgnum = " << avgnum << " is not a valid number\n";
     }
 }
-
-/* this is for a 2D beam!!!
-void
-EulerBeam::subtractLoadStiffness(GeomState &geomState, CoordSet &cs, FullSquareMatrix &elK)
-{
-   // PJSA 1/15/2010 subtract load stiffness due to pressure
- double dx = ns2.x - ns1.x;
- double dy = ns2.y - ns1.y;
- double dz = ns2.z - ns1.z;
- double length = sqrt(dx*dx + dy*dy + dz*dz);
- 
- double p = pressure/2, q = pressure*length/12;
- elK[0][1] -= p;
- elK[0][2] -= q; 
- elK[0][4] += p;
- elK[0][5] += q;
- elK[1][0] += p;
- elK[1][3] -= p;
- elK[2][0] -= q;
- elK[2][3] += q;
- elK[3][1] -= p;
- elK[3][2] += q;
- elK[3][4] += p;
- elK[3][5] -= q;
- elK[4][0] += p;
- elK[4][3] -= p;
- elK[5][0] += q;
- elK[5][3] -= q;
-}
-*/

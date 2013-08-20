@@ -10,7 +10,7 @@ class SurfacePressureForceFunction
  : public VectorValuedFunction<(ShapeFunctionTemplate<Scalar>::NumberOfGeneralizedCoordinates+1)*ShapeFunctionTemplate<Scalar>::NumberOfValues,
                                (ShapeFunctionTemplate<Scalar>::NumberOfGeneralizedCoordinates+1)*ShapeFunctionTemplate<Scalar>::NumberOfValues,
                                Scalar,
-                               (ShapeFunctionTemplate<Scalar>::NumberOfGeneralizedCoordinates+1)*ShapeFunctionTemplate<Scalar>::NumberOfValues + 8,
+                               (ShapeFunctionTemplate<Scalar>::NumberOfGeneralizedCoordinates+1)*ShapeFunctionTemplate<Scalar>::NumberOfValues+9,
                                2,
                                double>
 {
@@ -21,7 +21,7 @@ class SurfacePressureForceFunction
       NumberOfDimensions = NumberOfSurfaceDimensions+1,
       NumberOfGeneralizedCoordinates = NumberOfNodes*NumberOfDimensions,
       NumberOfValues = NumberOfNodes*NumberOfDimensions,
-      NumberOfScalarConstants = NumberOfNodes*NumberOfDimensions+8,
+      NumberOfScalarConstants = NumberOfNodes*NumberOfDimensions+9,
       NumberOfIntegerConstants = 2
     };
 
@@ -45,14 +45,15 @@ class SurfacePressureForceFunction
       }
       else {
         conwep = new BlastLoading::BlastData;
-        conwep->ExplosivePosition[0]    = sconst[NumberOfNodes*NumberOfDimensions+0];
-        conwep->ExplosivePosition[1]    = sconst[NumberOfNodes*NumberOfDimensions+1];
-        conwep->ExplosivePosition[2]    = sconst[NumberOfNodes*NumberOfDimensions+2];
-        conwep->ExplosiveDetonationTime = sconst[NumberOfNodes*NumberOfDimensions+3];
-        conwep->ExplosiveWeight         = sconst[NumberOfNodes*NumberOfDimensions+4];
-        conwep->ScaleLength             = sconst[NumberOfNodes*NumberOfDimensions+5];
-        conwep->ScaleTime               = sconst[NumberOfNodes*NumberOfDimensions+6];
-        conwep->ScaleMass               = sconst[NumberOfNodes*NumberOfDimensions+7];
+        p = sconst[NumberOfNodes*NumberOfDimensions];
+        conwep->ExplosivePosition[0]    = sconst[NumberOfNodes*NumberOfDimensions+1];
+        conwep->ExplosivePosition[1]    = sconst[NumberOfNodes*NumberOfDimensions+2];
+        conwep->ExplosivePosition[2]    = sconst[NumberOfNodes*NumberOfDimensions+3];
+        conwep->ExplosiveDetonationTime = sconst[NumberOfNodes*NumberOfDimensions+4];
+        conwep->ExplosiveWeight         = sconst[NumberOfNodes*NumberOfDimensions+5];
+        conwep->ScaleLength             = sconst[NumberOfNodes*NumberOfDimensions+6];
+        conwep->ScaleTime               = sconst[NumberOfNodes*NumberOfDimensions+7];
+        conwep->ScaleMass               = sconst[NumberOfNodes*NumberOfDimensions+8];
         conwep->BlastType = (iconst[1] == 1) ? BlastLoading::BlastData::SurfaceBurst : BlastLoading::BlastData::AirBurst;
         conwep->ExplosiveWeightCubeRoot = pow(conwep->ExplosiveWeight,1.0/3.0);
       }
@@ -122,7 +123,7 @@ class SurfacePressureForceFunction
           J = dNdXi.transpose()*X;
           Normal = J.row(0).cross(J.row(1));
           Xip = X.transpose()*N;
-          pressure = BlastLoading::ComputeGaussPointPressure(Xip.data(), Normal.data(), t, *conwep);
+          pressure = p + BlastLoading::ComputeGaussPointPressure(Xip.data(), Normal.data(), t, *conwep);
         }
 
         for(int i = 0; i < NumberOfDimensions; ++i)

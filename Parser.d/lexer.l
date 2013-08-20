@@ -91,6 +91,8 @@ TRAIL [a-zA-Z]*
 
 "CONW"[a-zA-Z]*|"conw"[a-zA-Z]*    { return CONWEP; }
 
+"CONSTANT"|"constant"              { return CONSTANT; }
+
 "PREL"[a-zA-Z]*|"prel"[a-zA-Z]*    { return PRELOAD; }
 
 "BUCK"[a-zA-Z]*|"buck"[a-zA-Z]*    { return BUCKLE; }
@@ -215,6 +217,8 @@ TRAIL [a-zA-Z]*
 "END"|"end"                        { return END;  }
 
 "LOAD"|"load"                      { return LOAD; }
+
+"CONF"[a-zA-Z]*|"conf"[a-zA-Z]*    { return CONFIGURATION; }
 
 "USE"|"use"                        { return USE;  }
 
@@ -762,13 +766,11 @@ TRAIL [a-zA-Z]*
 
 "MFTT"|"mftt"                      { return MFTT; }
 
-"MPTT"|"mptt"                      { return MPTT; }
-
 "HFTT"|"hftt"                      { return HFTT; }
 
 "YMTT"|"ymtt"                      { return YMTT; }
 
-"SDETAFT"|"sdetaft"                      { return SDETAFT; }
+"SDETAFT"|"sdetaft"                { return SDETAFT; }
 
 "MATLAB"|"matlab"                  { return MATLAB; }
 

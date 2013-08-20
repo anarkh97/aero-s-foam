@@ -121,8 +121,6 @@ BelytschkoTsayShell::BelytschkoTsayShell(int* nodenums)
 
   expmat = 0;
   myMat = false;
-  mftt = 0;
-  conwep = 0;
 }
 
 BelytschkoTsayShell::~BelytschkoTsayShell()
@@ -184,22 +182,20 @@ BelytschkoTsayShell::setMaterial(NLMaterial *m)
 }
 
 void
-BelytschkoTsayShell::setPressure(double _pressure, MFTTData *_mftt, BlastLoading::BlastData *_conwep)
+BelytschkoTsayShell::setPressure(PressureBCond *_pbc)
 {
-  pressure = _pressure;
-  mftt = _mftt;
+  pbc = _pbc;
   opttrc = 0;
-  conwep = _conwep;
 }
 
-double
+PressureBCond*
 BelytschkoTsayShell::getPressure()
 {
   // the return value of this function is used to determine whether or not
   // computePressureForce should be called. Since the pressure for this element
   // is computed along with the internal force inside elefintbt1, it is
-  // not necessary to call that function, so we return 0 here
-  return double(0);
+  // not necessary to call that function, so we return a null pointer here
+  return NULL;
 }
 
 Element *
@@ -461,13 +457,16 @@ BelytschkoTsayShell::getStiffAndForce(GeomState& geomState, CoordSet& cs, FullSq
         evelo[iloc+j] = geomState[nn[i]].v[j]; // now geomState stores v^{n+1/2}
       }
     }
-    double pressure = Element::pressure;
-    // Check if Conwep is being used. If so, use the pressure from the blast loading function.
-    if (conwep) {
-      pressure = BlastLoading::ComputeShellPressureLoad(ecord, time, *conwep);
+    double pressure = (pbc) ? pbc->val : 0;
+    if (pbc && pbc->mftt) {
+      pressure *= pbc->mftt->getVal(std::max(time,0.0));
+    }
+    // Check if Conwep is being used. If so, add the pressure from the blast loading function.
+    if (pbc && pbc->conwep && pbc->conwepswitch) {
+      pressure += BlastLoading::ComputeShellPressureLoad(ecord, time, *(pbc->conwep));
     }
     double trac[3] = { 0, 0, pressure };
-    double tmftval = (mftt) ? mftt->getVal(std::max(time,0.0)) : 1.0;
+    double tmftval = 1.0;
 
     // ---------------------------------------------------------------
     // internal force, hourglass control and pressure

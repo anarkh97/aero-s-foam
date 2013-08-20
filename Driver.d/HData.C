@@ -1970,7 +1970,7 @@ HData::addScatterElem(int num, int etype, double sommerConst, int nnodes, int*n)
 }
 
 void
-HData::addNeumElem(int num, int etype, double sommerConst, int nnodes, int*n)
+HData::addNeumElem(int num, int etype, double sommerConst, int nnodes, int *n, PressureBCond *pbc)
 {
    SommerElement *ele;
 
@@ -2029,20 +2029,20 @@ HData::addNeumElem(int num, int etype, double sommerConst, int nnodes, int*n)
        break;
 #endif
      case 15:
-       ele = new TrianglePressureBC(n, sommerConst);
+       ele = new TrianglePressureBC(n, pbc);
        addNeum(ele);
        break;
      case 16:
-       ele = new QuadPressureBC(n, sommerConst);
+       ele = new QuadPressureBC(n, pbc);
        addNeum(ele);
        break;
 #if defined(USE_EIGEN3) && (__cplusplus >= 201103L) && defined(HAS_CXX11_TEMPLATE_ALIAS)
      case 17:
-       ele = new Triangle6PressureBC(n, sommerConst);
+       ele = new Triangle6PressureBC(n, pbc);
        addNeum(ele);
        break;
      case 18:
-       ele = new Quad8PressureBC(n, sommerConst);
+       ele = new Quad8PressureBC(n, pbc);
        addNeum(ele);
        break;
 #else

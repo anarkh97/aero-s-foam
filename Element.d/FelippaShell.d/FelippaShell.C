@@ -26,7 +26,7 @@ FelippaShell::FelippaShell(int* nodenums)
   nn[2] = nodenums[2];
   type = 0;
   cFrame = 0;
-  conwep = NULL;
+  pbc = 0;
 }
 
 Element *
@@ -938,18 +938,12 @@ FelippaShell::getTopNumber()
 }
 
 void
-FelippaShell::setPressure(double _pressure, MFTTData *_mftt, BlastLoading::BlastData *_conwep) {
-  pressure = _pressure;
-  conwep = _conwep;
-}
-
-void
 FelippaShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
                                    GeomState *geomState, int cflg, double time)
 {
-     double pressure = Element::pressure;
-     // Check if Conwep is being used. If so, use the pressure from the blast loading function.
-     if (conwep) {
+     double pressure = pbc->val;
+     // Check if Conwep is being used. If so, add the pressure from the blast loading function.
+     if (pbc->conwep && pbc->conwepswitch) {
        double* CurrentElementNodePositions = (double*) dbg_alloca(sizeof(double)*3*4);
        int Offset;
        for(int i = 0; i < 4; ++i) {
@@ -965,7 +959,7 @@ FelippaShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
            CurrentElementNodePositions[Offset+2] = cs[nn[i]]->z;
          }
        }
-       pressure = BlastLoading::ComputeShellPressureLoad(CurrentElementNodePositions, time, *conwep);
+       pressure += BlastLoading::ComputeShellPressureLoad(CurrentElementNodePositions, time, *(pbc->conwep));
      }
      double px = 0.0;
      double py = 0.0;

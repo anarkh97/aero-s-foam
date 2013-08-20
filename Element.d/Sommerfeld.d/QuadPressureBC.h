@@ -12,11 +12,10 @@ using Quad4LagrangePolynomialSurfacePressureForceFunction = SurfacePressureForce
 class QuadPressureBC : public PressureElement<Quad4LagrangePolynomialSurfacePressureForceFunction>
 {
   public:
-    QuadPressureBC(int* _nn, double _pressure); 
+    QuadPressureBC(int* _nn, PressureBCond* _pbc); 
 
   protected:
-    double pressure;
-    void getConstants(CoordSet& cs, Eigen::Array<double,20,1>&, Eigen::Array<int,2,1>&);
+    void getConstants(CoordSet& cs, Eigen::Array<double,21,1>&, Eigen::Array<int,2,1>&);
 };
 
 #else
@@ -26,11 +25,10 @@ class QuadPressureBC : public SommerElement
 {
     int nnode, nndof, ndime, optele;
     int nn[4];
-    double pressure;
-    BlastLoading::BlastData* conwep;
+    PressureBCond *pbc;
 
   public:
-    QuadPressureBC(int *, double);
+    QuadPressureBC(int *, PressureBCond *);
 
     int numNodes() { return nnode; }
     int getNode(int nd) { return nn[nd]; }
@@ -42,8 +40,7 @@ class QuadPressureBC : public SommerElement
     void getNormal(CoordSet&, double[3]);
 
     FullSquareMatrix sommerMatrix(CoordSet&, double *);
-    bool isSurfacePressureElement() { return true; }
-    void setConwep(BlastLoading::BlastData* _conwep) { conwep = _conwep; }
+    PressureBCond* getPressure() { return pbc; }
     void neumVector(CoordSet&, Vector&, int = 0, GeomState* = 0, double t = 0);
 
     int findAndSetEle(CoordSet& cs,Elemset &eset,

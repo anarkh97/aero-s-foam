@@ -14,14 +14,16 @@ class PressureElement : public SommerElement
     int *nn;                  // node numbers
     std::vector<BCond> terms;
     int nterms;
-    BlastLoading::BlastData* conwep;
+    PressureBCond *pbc;
 
     void addTerms(DofSet);
 
   public:
-    PressureElement(int, DofSet, int*);
-    PressureElement(int, DofSet*, int*);
-    PressureElement(int, DofSet*, DofSet*, int*);
+    PressureElement(int, DofSet, int*, PressureBCond*);
+/*
+    PressureElement(int, DofSet*, int*, PressureBCond*);
+    PressureElement(int, DofSet*, DofSet*, int*, PressureBCond*);
+*/
     ~PressureElement();
 
     void renum(int*);
@@ -39,8 +41,7 @@ class PressureElement : public SommerElement
     int findAndSetEle(CoordSet& cs, Elemset &eset, Connectivity *nodeToEle, int *eleTouch, int *eleCount, int myNum,
                       int it = 0);
 
-    bool isSurfacePressureElement() { return true; }
-    void setConwep(BlastLoading::BlastData* _conwep) { conwep = _conwep; }
+    PressureBCond* getPressure() { return pbc; }
     void neumVector(CoordSet&, Vector&, int pflag = 0, GeomState* = 0, double t = 0);
     void neumVectorJacobian(CoordSet&, FullSquareMatrix&, int pflag = 0, GeomState* = 0, double t = 0);
     FullSquareMatrix sommerMatrix(CoordSet&, double *);

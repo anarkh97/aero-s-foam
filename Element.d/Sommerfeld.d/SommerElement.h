@@ -13,6 +13,7 @@
 
 class Domain;
 class GeomState;
+class MFTT;
 
 class SommerElement : public Element {
 
@@ -96,8 +97,6 @@ public:
         virtual void ellipsoidBT2(CoordSet& cs, double a, double b, double k, ComplexD *d);
         virtual void sommerMatrixEllipsoid(CoordSet &cs, double kappa, double H[3] , double K[3], ComplexD *d);
 
-        virtual bool isSurfacePressureElement() { return false; }
-        virtual void setConwep(BlastLoading::BlastData*) {}
         virtual void neumVector(CoordSet&, Vector&, int pflag = 0, GeomState* = 0, double t = 0);
         virtual void neumVectorJacobian(CoordSet&, FullSquareMatrix&, int pflag = 0, GeomState* = 0, double t = 0);
         virtual void neumVector(CoordSet&,ComplexVector&,

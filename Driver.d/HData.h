@@ -2,7 +2,6 @@
 #define _HDATA_H_
 
 #include <Element.d/Sommerfeld.d/SommerElement.h>
-//#include <Threads.d/Paral.h>
 #include <Math.d/ComplexD.h>
 #include <list>
 #include <iostream>
@@ -97,7 +96,7 @@ class HData
      void addSommerElem(int en, int type, double cc, int nn, int *nodes);
      void addWetElem(int en, int type, double cc, int nn, int *nodes);
      void addScatterElem(int en, int type, double cc, int nn, int *nodes);
-     void addNeumElem(int en, int type, double cc, int nn, int *nodes);
+     void addNeumElem(int en, int type, double cc, int nn, int *nodes, PressureBCond* = 0);
      void addhScatter(int n, double *v);
      void inithScatter(int m, int n);
      int  setComplexDirichlet(int,ComplexBCond *);

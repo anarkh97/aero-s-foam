@@ -38,6 +38,7 @@ TimoshenkoBeam::TimoshenkoBeam(int* nodenums)
   nn[1] = nodenums[1];
   nn[2] = nodenums[2];
   iniOr = 0;
+  pbc = 0;
 }
 
 TimoshenkoBeam::~TimoshenkoBeam() {
@@ -464,7 +465,7 @@ TimoshenkoBeam::computePressureForce(CoordSet& cs, Vector& elPressureForce,
     length = std::sqrt(dx*dx + dy*dy + dz*dz);
   } 
 
-  double pressureForce = 0.5*pressure*length;
+  double pressureForce = 0.5*pbc->val*length;
   px = pressureForce*normal[0];
   py = pressureForce*normal[1];
   pz = pressureForce*normal[2]; 

@@ -13,11 +13,10 @@ using Quad8LagrangePolynomialSurfacePressureForceFunction = SurfacePressureForce
 class Quad8PressureBC : public PressureElement<Quad8LagrangePolynomialSurfacePressureForceFunction>
 {
   public:
-    Quad8PressureBC(int* _nn, double _pressure); 
+    Quad8PressureBC(int* _nn, PressureBCond* _pbc); 
 
   protected:
-    double pressure;
-    void getConstants(CoordSet& cs, Eigen::Array<double,32,1>&, Eigen::Array<int,2,1>&);
+    void getConstants(CoordSet& cs, Eigen::Array<double,33,1>&, Eigen::Array<int,2,1>&);
 };
 
 #endif

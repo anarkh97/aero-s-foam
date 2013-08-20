@@ -88,15 +88,16 @@ reduce(const std::map<int, int> &indices, const std::map<int, V> &input, PairOut
   return result;
 }
 
+/*
 // Pressure on individual elements
 template <typename PairOutputIterator>
 PairOutputIterator
-reduce(const std::map<int, int> &indices, const std::vector<std::pair<int, double> > &input, PairOutputIterator result) {
-  typedef std::vector<std::pair<int, double> >::const_iterator InputIt;
+reduce(const std::map<int, int> &indices, const std::vector<std::pair<int, std::pair<double,int> > > &input, PairOutputIterator result) {
+  typedef std::vector<std::pair<int, std::pair<double,int> > >::const_iterator InputIt;
   for (InputIt source = input.begin(), last = input.end();
        source != last;
        ++source) {
-    const std::vector<std::pair<int, double> >::value_type &p = *source;
+    const std::vector<std::pair<int, std::pair<double,int> > >::value_type &p = *source;
     const std::map<int, int>::const_iterator it = indices.find(p.first);
     if (it != indices.end()) {
       *result++ = std::make_pair(it->second, p.second);
@@ -105,6 +106,7 @@ reduce(const std::map<int, int> &indices, const std::vector<std::pair<int, doubl
 
   return result;
 }
+*/
 
 // EFrames from Elements
 template <typename EFrameDataOutputIterator>
@@ -196,6 +198,10 @@ template <>
 int EFrameData::* const
 MeshSectionTraits<EFrameData>::renumbered_slot = &EFrameData::elnum;
 
+template <>
+int PressureBCond::* const
+MeshSectionTraits<PressureBCond>::renumbered_slot = &PressureBCond::elnum;
+
 } // end namespace Detail
 
 
@@ -236,13 +242,14 @@ MeshDesc::init(Domain *domain, GeoSource *geoSource, const MeshRenumbering &ren)
 
   // Boundary conditions
   reduce(ren.nodeRenumbering(), domain->getDBC(), domain->getDBC() + domain->nDirichlet(), std::back_inserter(dirichletBConds_));
-  if(domain->getMFTT() != NULL) {
+  if(domain->getMFTT(0) != NULL) { // XXX
     // note: reduced constant forces are now precomputed
     reduce(ren.nodeRenumbering(), domain->getNBC(), domain->getNBC() + domain->nNeumann(), std::back_inserter(neumannBConds_));
   }
 
   // Element pressures
-  reduce(ren.elemRenumbering(), geoSource->getElementPressure(), std::inserter(elemPressures_, elemPressures_.end()));
+  reduce(ren.elemRenumbering(), geoSource->getElementPressure().begin(), geoSource->getElementPressure().end(),
+          std::inserter(elemPressures_, elemPressures_.end()));
 
   // Initial conditions
   reduce(ren.nodeRenumbering(), domain->getInitDisp(), domain->getInitDisp() + domain->numInitDisp(), std::back_inserter(initDisp_));

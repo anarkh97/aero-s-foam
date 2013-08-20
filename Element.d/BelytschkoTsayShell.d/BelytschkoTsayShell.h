@@ -44,9 +44,8 @@ class BelytschkoTsayShell : virtual public Element, public Corotator
     double *evoit3; // strain (local)
     ExpMat *expmat;
     bool myMat;
-    MFTTData *mftt;
-    BlastLoading::BlastData *conwep;
     ElastoPlasticPlaneStressMaterial **mat;
+    PressureBCond *pbc;
 
   public:
     BelytschkoTsayShell(int*);
@@ -54,8 +53,8 @@ class BelytschkoTsayShell : virtual public Element, public Corotator
 
     void setProp(StructProp *p, bool _myProp = false);
     void setMaterial(NLMaterial *);
-    void setPressure(double, MFTTData* = 0, BlastLoading::BlastData* = 0);
-    double getPressure();
+    void setPressure(PressureBCond *_pbc);
+    PressureBCond* getPressure();
     Element *clone();
 
     void renum(int *);

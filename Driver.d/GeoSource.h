@@ -190,9 +190,9 @@ class GeoSource {
 
   int prsflg;
   int constpflg, constqflg; // consistent pressure and gravity
-  typedef std::vector<pair<int,double> > ElemPressureContainer;
+  typedef std::vector<PressureBCond> ElemPressureContainer;
   ElemPressureContainer eleprs;
-  typedef std::vector<pair<int,std::vector<double> > > ElemPreloadContainer;
+  typedef std::vector<std::pair<int,std::vector<double> > > ElemPreloadContainer;
   ElemPreloadContainer eleprl;
 
   // Connectivities
@@ -275,7 +275,7 @@ class GeoSource {
   int numSurfaceNeuman;
   BCond *surface_nbc;
   int numSurfacePressure;
-  BCond *surface_pres;
+  PressureBCond *surface_pres;
   int numSurfaceConstraint;
   BCond *surface_cfe;
 
@@ -351,7 +351,7 @@ public:
   int  setNodalFrame(int, double *, double *, int);
   int  setCSFrame(int, double *);
   int  addCFrame(int, double *);
-  void setElementPressure(int, double);
+  void setElementPressure(PressureBCond&);
   void setElementPreLoad(int, double);
   void setElementPreLoad(int, double[3]);
   void setConsistentPFlag(int);
@@ -371,7 +371,7 @@ public:
   int  setIVelModal(int, BCond *);
   int  addSurfaceDirichlet(int, BCond *);
   int  addSurfaceNeuman(int, BCond *);
-  int  addSurfacePressure(int, BCond *);
+  int  addSurfacePressure(int, PressureBCond *);
   int  addSurfaceConstraint(int, BCond *);
 
   // PITA
@@ -488,7 +488,8 @@ public:
 
   int getSurfaceDirichletBC(BCond *&);
   int getSurfaceNeumanBC(BCond *&);
-  int getSurfacePressure(BCond *&);
+  int getSurfacePressure(PressureBCond *&);
+  int getNumSurfacePressure() { return numSurfacePressure; }
   int getSurfaceConstraint(BCond *&);
 
   int getModalDamping(BCond *&);

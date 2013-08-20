@@ -23,7 +23,7 @@ RigidThreeNodeShell::RigidThreeNodeShell(int *_nn)
     int indices[2] = { i+1, 0 };
     subElems[i] = new RigidBeam(indices);
   }
-  conwep = 0;
+  pbc = 0;
 }
 
 FullSquareMatrix
@@ -253,18 +253,12 @@ RigidThreeNodeShell::getFlLoad(CoordSet &, const InterpPoint &ip, double *flF,
 }
 
 void
-RigidThreeNodeShell::setPressure(double _pressure, MFTTData *_mftt, BlastLoading::BlastData *_conwep) {
-  pressure = _pressure;
-  conwep = _conwep;
-}
-
-void
 RigidThreeNodeShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
                                           GeomState *geomState, int cflg, double time)
 {
-     double pressure = Element::pressure;
-     // Check if Conwep is being used. If so, use the pressure from the blast loading function.
-     if (conwep) {
+     double pressure = pbc->val;
+     // Check if Conwep is being used. If so, add the pressure from the blast loading function.
+     if (pbc->conwep && pbc->conwepswitch) {
        double* CurrentElementNodePositions = (double*) dbg_alloca(sizeof(double)*3*4);
        int Offset;
        for(int i = 0; i < 4; ++i) {
@@ -280,7 +274,7 @@ RigidThreeNodeShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
            CurrentElementNodePositions[Offset+2] = cs[nn[i]]->z;
          }
        }
-       pressure = BlastLoading::ComputeShellPressureLoad(CurrentElementNodePositions, time, *conwep);
+       pressure += BlastLoading::ComputeShellPressureLoad(CurrentElementNodePositions, time, *(pbc->conwep));
      }
      double px = 0.0;
      double py = 0.0;

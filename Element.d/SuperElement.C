@@ -48,9 +48,19 @@ SuperElement::getPreLoad()
 }
 
 void
-SuperElement::setPressure(double pres, MFTTData *mftt, BlastLoading::BlastData *conwep)
+SuperElement::setPressure(PressureBCond *pbc)
 {
-  for(int i = 0; i < nSubElems; ++i) subElems[i]->setPressure(pres, mftt, conwep);
+  for(int i = 0; i < nSubElems; ++i) subElems[i]->setPressure(pbc);
+}
+
+PressureBCond *
+SuperElement::getPressure()
+{
+  PressureBCond *pbc;
+  for(int i = 0; i < nSubElems; ++i) {
+    if((pbc = subElems[i]->getPressure()) != NULL) return pbc;
+  }
+  return NULL;
 }
 
 void

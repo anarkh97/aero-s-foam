@@ -144,7 +144,8 @@ GeoSource::GeoSource(int iniSize) : oinfo(emptyInfo, iniSize), nodes(iniSize*16)
   textDBC = dbc = textNBC = nbc = iDis = iDisModal = iDis6 = iVel = iVelModal = modalDamping = 0;
   //cvbc = 0; rdbc = 0; iTemp = 0;
   cdbc = cnbc = 0;
-  surface_dbc = surface_nbc = surface_pres = 0;
+  surface_dbc = surface_nbc = 0;
+  surface_pres = 0;
   surface_cfe = 0;
 
   maxattrib = -1; // PJSA
@@ -844,29 +845,32 @@ void GeoSource::setUpData()
 
   // Set up element pressure load
   BlastLoading::BlastData *conwep = (domain->solInfo().ConwepOnOff) ? &BlastLoading::InputFileData : NULL;
-  for(vector<pair<int,double> >::iterator i = eleprs.begin(); i != eleprs.end(); ++i) {
-    int elemNum = i->first;
-    if(elemSet[elemNum])
-     elemSet[elemNum]->setPressure(i->second, domain->getMFTT(), conwep);
-   else
-     fprintf(stderr," *** WARNING: Pressure was found for non-existent element %d\n", elemNum+1);
+  for(ElemPressureContainer::iterator i = eleprs.begin(); i != eleprs.end(); ++i) {
+    PressureBCond &pbc = *i;
+    int elemNum = i->elnum;
+    if(elemSet[elemNum]) {
+      pbc.mftt = domain->getMFTT(pbc.caseid);
+      pbc.conwep = conwep;
+      elemSet[elemNum]->setPressure(&pbc);
+    }
+    else
+      filePrint(stderr, " *** WARNING: Pressure was found for non-existent element %d\n", elemNum+1);
   }
 
   // Set up element preload
-  for(vector<pair<int,std::vector<double> > >::iterator i = eleprl.begin(); i != eleprl.end(); ++i) {
+  for(ElemPreloadContainer::iterator i = eleprl.begin(); i != eleprl.end(); ++i) {
     int elemNum = i->first;
     if(elemSet[elemNum])
-     elemSet[elemNum]->setPreLoad(i->second);
-   else
-     fprintf(stderr," *** WARNING: Preload was found for non-existent element %d\n", elemNum+1);
+      elemSet[elemNum]->setPreLoad(i->second);
+    else
+      filePrint(stderr, " *** WARNING: Preload was found for non-existent element %d\n", elemNum+1);
   }
 
   // Set up element frames
   for (int iFrame = 0; iFrame < numEframes; iFrame++)  {
     Element *ele = elemSet[efd[iFrame].elnum];
     if(ele == 0) {
-      fprintf(stderr," *** WARNING: Frame was found for non-existent"
-                     " element %d \n", efd[iFrame].elnum+1);
+      filePrint(stderr, " *** WARNING: Frame was found for non-existent element %d \n", efd[iFrame].elnum+1);
     }
     else ele->setFrame(&(efd[iFrame].frame));
   }
@@ -876,9 +880,9 @@ void GeoSource::setUpData()
   // Set up element attributes
   SolverInfo &sinfo = domain->solInfo();
   if((na == 0) && (sinfo.probType != SolverInfo::Top) && (sinfo.probType != SolverInfo::Decomp)) {
-    fprintf(stderr," **************************************\n");
-    fprintf(stderr," *** ERROR: ATTRIBUTES not defined  ***\n");
-    fprintf(stderr," **************************************\n");
+    filePrint(stderr," **************************************\n");
+    filePrint(stderr," *** ERROR: ATTRIBUTES not defined  ***\n");
+    filePrint(stderr," **************************************\n");
     exit(-1);
   }
 
@@ -898,7 +902,7 @@ void GeoSource::setUpData()
         hasAddedDummy = true;
       }
       if(sinfo.probType == SolverInfo::Top || sinfo.probType == SolverInfo::Decomp || elemSet[i]->isConstraintElement()) setAttrib(i,dattr);
-      else cerr << " *** WARNING: Element " << i+1 << " has no attribute defined\n";
+      else filePrint(stderr, " *** WARNING: Element %d has no attribute defined\n", i+1);
     }
   }
   delete [] hasAttr;
@@ -940,8 +944,7 @@ void GeoSource::setUpData()
 
     // Check if element exists
     if (ele == 0) {
-       fprintf(stderr," *** WARNING: Attribute was found for"
-                      " non existent element %d \n",attrib[i].nele+1);
+       filePrint(stderr, " *** WARNING: Attribute was found for non existent element %d\n", attrib[i].nele+1);
       continue;
     }
     if(attrib[i].attr < -1) { // phantom elements
@@ -951,8 +954,7 @@ void GeoSource::setUpData()
     else {
       SPropContainer::iterator it = sProps.find(attrib[i].attr);
       if(it == sProps.end()) {
-        fprintf(stderr, " *** ERROR: The material for element %d does not exist\n",
-                attrib[i].nele+1);
+        filePrint(stderr, " *** ERROR: The material for element %d does not exist\n", attrib[i].nele+1);
       }
       else {
         StructProp *prop = &(it->second);
@@ -986,9 +988,7 @@ void GeoSource::setUpData()
       else {
         LayInfo *li = layInfo[attrib[i].cmp_attr];
         if(li == 0) {
-          fprintf(stderr," *** WARNING: Attribute found that refers to"
-                         " nonexistant composite data: %d \n",
-                         attrib[i].cmp_attr+1);
+          filePrint(stderr, " *** WARNING: Attribute found that refers to nonexistant composite data: %d\n", attrib[i].cmp_attr+1);
           continue;
         }
         // Set up layer material properties if necessary
@@ -1024,9 +1024,7 @@ void GeoSource::setUpData()
   for(vector<OffsetData>::iterator offIt = offsets.begin(); offIt != offsets.end(); ++offIt) {
     for(int i = offIt->first; i <= offIt->last; ++i) {
       if(elemSet[i] == 0) {
-	fprintf(stderr,
-	   " *** WARNING: Setting up offset on non-existent element %d ***\n",
-			i+1);
+	filePrint(stderr, " *** WARNING: Setting up offset on non-existent element %d ***\n", i+1);
       } else
 	elemSet[i]->setOffset(offIt->o);
     }
@@ -1041,15 +1039,13 @@ void GeoSource::setUpData()
 
     // Check if element exists
     if (ele == 0) {
-      fprintf(stderr," *** WARNING: Material was found for"
-                       " non existent element %d \n", elemNum+1);
+      filePrint(stderr, " *** WARNING: Material was found for non existent element %d \n", elemNum+1);
       uIter++; // go to the next mapping
       continue;
     }
     map<int, NLMaterial *>::iterator matIter = materials.find(matNum);
     if(matIter == materials.end()) {
-         fprintf(stderr," *** WARNING: Non Existent material (%d)"
-                        " was assigned to element %d \n", matNum+1, elemNum+1);
+         filePrint(stderr, " *** WARNING: Non Existent material (%d) was assigned to element %d \n", matNum+1, elemNum+1);
     } else
       ele->setMaterial(matIter->second);
     uIter++;
@@ -1106,7 +1102,7 @@ void GeoSource::setUpData()
 
     switch (oinfo[iOut].type) {
       case OutputInfo::Statevector :
-        filePrint(stderr," ... Saving state snapshots every %d time steps to %s ...\n", oinfo[iOut].interval, oinfo[iOut].filename);
+        filePrint(stderr, " ... Saving state snapshots every %d time steps to %s ...\n", oinfo[iOut].interval, oinfo[iOut].filename);
         domain->solInfo().activatePodRom = true;
         domain->solInfo().snapshotsPodRom = true;
         domain->solInfo().statevectPodRom = true;
@@ -1115,7 +1111,7 @@ void GeoSource::setUpData()
         oinfo[iOut].PodRomfile = true;
         break;
       case OutputInfo::Residual :
-        filePrint(stderr," ... Saving residual snapshots every %d time steps to %s ...\n", oinfo[iOut].interval, oinfo[iOut].filename);
+        filePrint(stderr, " ... Saving residual snapshots every %d time steps to %s ...\n", oinfo[iOut].interval, oinfo[iOut].filename);
         domain->solInfo().activatePodRom = true;
         domain->solInfo().snapshotsPodRom = true;
         domain->solInfo().residvectPodRom = true;
@@ -1124,7 +1120,7 @@ void GeoSource::setUpData()
         oinfo[iOut].PodRomfile = true;
         break;
       case OutputInfo::Jacobian :
-        filePrint(stderr," ... Saving jacobian snapshots every %d time steps to %s ...\n", oinfo[iOut].interval, oinfo[iOut].filename);
+        filePrint(stderr, " ... Saving jacobian snapshots every %d time steps to %s ...\n", oinfo[iOut].interval, oinfo[iOut].filename);
         domain->solInfo().activatePodRom = true;
         domain->solInfo().snapshotsPodRom = true;
         domain->solInfo().jacobvectPodRom = true;
@@ -1133,17 +1129,17 @@ void GeoSource::setUpData()
         oinfo[iOut].PodRomfile = true;
         break;
       case OutputInfo::RobData :
-        filePrint(stderr," ... Reduced Order Basis Construction: saving to %s ...\n", oinfo[iOut].filename);
+        filePrint(stderr, " ... Reduced Order Basis Construction: saving to %s ...\n", oinfo[iOut].filename);
         domain->solInfo().SVDoutput = oinfo[iOut].filename; 
         oinfo[iOut].PodRomfile = true;
         break;
       case OutputInfo::SampleMesh :
-        filePrint(stderr," ... Computing Hyper-Reduction Coefficients: saving to %s ...\n", oinfo[iOut].filename);
+        filePrint(stderr, " ... Computing Hyper-Reduction Coefficients: saving to %s ...\n", oinfo[iOut].filename);
         domain->solInfo().reducedMeshFile = oinfo[iOut].filename; 
         oinfo[iOut].PodRomfile = true;
         break;
       case OutputInfo::Accelvector :
-        filePrint(stderr," ... Saving acceleration snapshots every %d time steps to %s ...\n", oinfo[iOut].interval, oinfo[iOut].filename);
+        filePrint(stderr, " ... Saving acceleration snapshots every %d time steps to %s ...\n", oinfo[iOut].interval, oinfo[iOut].filename);
         domain->solInfo().activatePodRom = true;
         domain->solInfo().snapshotsPodRom = true;
         domain->solInfo().accelvectPodRom = true;
@@ -1152,7 +1148,7 @@ void GeoSource::setUpData()
         oinfo[iOut].PodRomfile = true;
         break;
       case OutputInfo::Velocvector :
-        filePrint(stderr," ... Saving velocity snapshots every %d time steps to %s ...\n", oinfo[iOut].interval, oinfo[iOut].filename);
+        filePrint(stderr, " ... Saving velocity snapshots every %d time steps to %s ...\n", oinfo[iOut].interval, oinfo[iOut].filename);
         domain->solInfo().activatePodRom = true;
         domain->solInfo().snapshotsPodRom = true;
         domain->solInfo().velocvectPodRom = true;
@@ -1161,7 +1157,7 @@ void GeoSource::setUpData()
         oinfo[iOut].PodRomfile = true;
         break;
       case OutputInfo::InternalStateVar :
-        filePrint(stderr," ... Saving internal state variables snapshots every %d time steps to %s ...\n", oinfo[iOut].interval, oinfo[iOut].filename);
+        filePrint(stderr, " ... Saving internal state variables snapshots every %d time steps to %s ...\n", oinfo[iOut].interval, oinfo[iOut].filename);
         domain->solInfo().activatePodRom = true;
         domain->solInfo().snapshotsPodRom = true;
         domain->solInfo().isvPodRom = true;
@@ -1170,7 +1166,7 @@ void GeoSource::setUpData()
         oinfo[iOut].PodRomfile = true;
         break;
       case OutputInfo::Forcevector :
-        filePrint(stderr," ... Saving force snapshots every %d time steps to %s ...\n", oinfo[iOut].interval, oinfo[iOut].filename);
+        filePrint(stderr, " ... Saving force snapshots every %d time steps to %s ...\n", oinfo[iOut].interval, oinfo[iOut].filename);
         domain->solInfo().activatePodRom = true;
         domain->solInfo().snapshotsPodRom = true;
         domain->solInfo().forcevectPodRom = true;
@@ -1182,7 +1178,7 @@ void GeoSource::setUpData()
 
     if (oinfo[iOut].groupNumber > 0)  {
       if (nodeGroup.find(oinfo[iOut].groupNumber) == nodeGroup.end())
-        fprintf(stderr, " ~~~ AS.WRN: Requested group output id not found: %d\n", oinfo[iOut].groupNumber);
+        filePrint(stderr, " ~~~ AS.WRN: Requested group output id not found: %d\n", oinfo[iOut].groupNumber);
     }
   }
 }
@@ -1441,21 +1437,11 @@ void GeoSource::setElemTypeMap()
   //return elemTypeNumNodesMap;
 }
 
-void GeoSource::setElementPressure(int elemNum, double pressure)
+void GeoSource::setElementPressure(PressureBCond& pbc)
 {
  prsflg = 1;
- eleprs.push_back(pair<int,double>(elemNum,pressure));
+ eleprs.push_back(pbc);
 }
-
-/*
-void GeoSource::setElementPreLoad(int elemNum, double preload)
-{
- if(elemSet[elemNum])
-   elemSet[elemNum]->setPreLoad(preload);
- else
-   fprintf(stderr," *** WARNING: element %d does not exist \n", elemNum+1);
-}
-*/
 
 void GeoSource::setElementPreLoad(int elemNum, double _preload)
 {
@@ -1572,7 +1558,7 @@ int GeoSource::getSurfaceNeumanBC(BCond *&bc)
   return numSurfaceNeuman;
 }
 
-int GeoSource::getSurfacePressure(BCond *&bc)
+int GeoSource::getSurfacePressure(PressureBCond *&bc)
 {
   bc = surface_pres;
   return numSurfacePressure;
@@ -2855,12 +2841,12 @@ int GeoSource::addSurfaceNeuman(int _numSurfaceNeuman, BCond *_surface_nbc)
 
 //-------------------------------------------------------------------
 
-int GeoSource::addSurfacePressure(int _numSurfacePressure, BCond *_surface_pres)
+int GeoSource::addSurfacePressure(int _numSurfacePressure, PressureBCond *_surface_pres)
 {
   if(surface_pres) {
 
     // Allocate memory for correct number of pres
-    BCond *nd = new BCond[numSurfacePressure+_numSurfacePressure];
+    PressureBCond *nd = new PressureBCond[numSurfacePressure+_numSurfacePressure];
 
     // copy old pres
     int i;

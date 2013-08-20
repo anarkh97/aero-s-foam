@@ -39,7 +39,7 @@ public:
   const std::vector<BCond> &initDisp() const { return initDisp_; }
   const std::vector<BCond> &initVel() const { return initVel_; }
 
-  const std::map<int, double> &elemPressures() const { return elemPressures_; }
+  const std::vector<PressureBCond> &elemPressures() const { return elemPressures_; }
   
   // Reduced mesh only
   const std::vector<int> &sampleNodeIds() const { return sampleNodeIds_; }
@@ -69,7 +69,7 @@ private:
   std::vector<BCond> neumannBConds_;
   std::vector<BCond> initDisp_; 
   std::vector<BCond> initVel_;
-  std::map<int, double> elemPressures_;
+  std::vector<PressureBCond> elemPressures_;
 
   const std::vector<int> sampleNodeIds_;
   std::map<int, double> elemWeights_;

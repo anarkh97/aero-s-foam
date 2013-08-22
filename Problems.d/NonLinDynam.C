@@ -587,7 +587,7 @@ NonLinDynamic::reBuild(GeomState& geomState, int iteration, double localDelta, d
 }
 
 int
-NonLinDynamic::solVecInfo()
+NonLinDynamic::solVecInfo() const
 {
   return domain->numUncon();
 }
@@ -623,7 +623,7 @@ NonLinDynamic::getZeroRot() const {
 
 void
 NonLinDynamic::getExternalForce(Vector& rhs, Vector& constantForce, int tIndex, double t, 
-                                GeomState* geomState, Vector& elemNonConForce, 
+                                GeomState* geomState, Vector&, 
                                 Vector &aeroForce, double localDelta)
 {
   // ... BUILD THE EXTERNAL FORCE at t_{n+1-alphaf}
@@ -932,7 +932,7 @@ NonLinDynamic::preProcess(double Kcoef, double Mcoef, double Ccoef)
  userSupFunc = domain->getUserSuppliedFunction();
  if(!prevFrc) prevFrc = new PrevFrc(domain->numUncon());
 
- localTemp.initialize(solVecInfo());
+ localTemp.initialize(domain->numUncon());
 
  stopTimerMemory(times->preProcess, times->memoryPreProcess);
 }

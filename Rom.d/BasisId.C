@@ -4,7 +4,7 @@ namespace Rom {
 
 std::string
 toString(BasisId::Type t) {
-  static const std::string str[]  = { "state", "res", "jac", "for", "accel", "veloc" };
+  static const std::string str[]  = { "state", "res", "jac", "for", "accel", "veloc", "internal_state" };
   return str[t];
 }
 

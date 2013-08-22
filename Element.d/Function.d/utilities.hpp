@@ -691,7 +691,7 @@ void vec_to_mat(const Eigen::Matrix<Scalar,3,1> &rvec, Eigen::Matrix<Scalar,3,3>
 }
 
 template<typename Scalar>
-void tangential_transf(const Eigen::Matrix<Scalar,3,1> &Psi, Eigen::Matrix<Scalar,3,3> &T)
+void tangential_transf(const Eigen::Matrix<Scalar,3,1> &Psi, Eigen::Matrix<Scalar,3,3> &T, int pflag = 0)
 {
   Scalar psi2 = Psi.squaredNorm();
   Eigen::Matrix<Scalar,3,3> Psiskew;
@@ -699,23 +699,52 @@ void tangential_transf(const Eigen::Matrix<Scalar,3,1> &Psi, Eigen::Matrix<Scala
              Psi[2],       0, -Psi[0],
             -Psi[1],  Psi[0],       0;
 
-  Scalar c1, c2, c3;
-  if(psi2 < 5e-6) {
-    Scalar psi4 = psi2*psi2;
-    c1 = 1    - psi2/6   + psi4/120;  // + O(psi^6)
-    c2 = 1/2. - psi2/24  + psi4/720;  // + O(psi^6)
-    c3 = 1/6. - psi2/120 + psi4/5040; // + O(psi^6)
+  if(pflag == 0) {
+    Scalar c1, c2, c3;
+    if(psi2 < 5e-6) {
+      Scalar psi4 = psi2*psi2;
+      c1 = 1    - psi2/6   + psi4/120;  // + O(psi^6)
+      c2 = 1/2. - psi2/24  + psi4/720;  // + O(psi^6)
+      c3 = 1/6. - psi2/120 + psi4/5040; // + O(psi^6)
+    }
+    else {
+      using std::sqrt;
+      using std::sin;
+      using std::cos;
+      Scalar psi = sqrt(psi2);
+      c1 = sin(psi)/psi;
+      c2 = (1-cos(psi))/(psi2);
+      c3 = (psi-sin(psi))/(psi*psi2);
+    }
+    T = c1*Eigen::Matrix<Scalar,3,3>::Identity() - c2*Psiskew + c3*(Psi*Psi.transpose());
   }
-  else {
-    using std::sqrt;
-    using std::sin;
-    using std::cos;
-    Scalar psi = sqrt(psi2);
-    c1 = sin(psi)/psi;
-    c2 = (1-cos(psi))/(psi2);
-    c3 = (psi-sin(psi))/(psi*psi2);
+  else if(pflag == 6) { // BauchauTrainelli rotation vector parameterization: p = pow(6*(psi-sin(psi)),1/3.)
+    Scalar c1, c2, c3;
+    if(psi2 < 5e-6) {
+       Scalar psi4 = psi2*psi2;
+       Scalar psi8 = psi4*psi4;
+       c1 = 1+psi2/20+psi4/525; //+O(psi^6)
+       c2 = 1/2.-psi2/40+psi4/3360+psi8/77616000; //+O(psi^9)
+       c3 = 1/5.+psi2/350+psi4/7000; //+O(psi^6)
+    }
+    else {
+       using std::sqrt;
+       using std::sin;
+       using std::cos;
+       using std::tan;
+       using std::pow;
+       Scalar psi = sqrt(psi2);
+       Scalar p = pow(6*(psi-sin(psi)),1/3.);
+       Scalar pprime = -pow(2,1/3.)*(cos(psi) - 1)/(pow(3,2/3.)*pow(psi-sin(psi),2/3.));
+       Scalar mu = 1/pprime;
+       Scalar nu = 2*sin(psi/2)/p;
+       Scalar eps = 2*tan(psi/2)/p;
+       c1 = mu;
+       c2 = pow(nu,2)/2;
+       c3 = 1/pow(p,2)*(mu-pow(nu,2)/eps);
+    }
+    T = c1*Eigen::Matrix<Scalar,3,3>::Identity() + c2*Psiskew + c3*(Psi*Psi.transpose());
   }
-  T = c1*Eigen::Matrix<Scalar,3,3>::Identity() - c2*Psiskew + c3*(Psi*Psi.transpose());
 }
 
 template<typename Scalar>
@@ -843,6 +872,59 @@ void tangential_transf_dot(const Eigen::Matrix<Scalar,3,1> &Psi, const Eigen::Ma
   Tdot = c1*Psi.dot(Psidot)*Eigen::Matrix<Scalar,3,3>::Identity() 
          - c2*Psi.dot(Psidot)*Psiskew + c3*Psi.dot(Psidot)*(Psi*Psi.transpose())
          + c4*Psidotskew + c5*(Psidot*Psi.transpose() + Psi*Psidot.transpose());
+}
+
+template<typename Scalar>
+Eigen::Matrix<Scalar,3,1>
+complement_rot_vec(const Eigen::Matrix<Scalar,3,1>& Psi)
+{
+  return Psi-2*M_PI/Psi.norm()*Psi;
+}
+
+template<typename Scalar>
+Eigen::Matrix<Scalar,3,3>
+complement_transf(const Eigen::Matrix<Scalar,3,1>& Psi)
+{
+  Scalar psi = Psi.norm();
+  Eigen::Matrix<Scalar,3,1> e = Psi.normalized();
+  return (1-2*M_PI/psi)*Eigen::Matrix<Scalar,3,3>::Identity() + 2*M_PI/psi*(e*e.transpose());
+}
+
+template<typename Scalar>
+Eigen::Matrix<Scalar,3,3>
+complement_transf_dot(const Eigen::Matrix<Scalar,3,1>& Psi, const Eigen::Matrix<Scalar,3,1>& Psidot)
+{
+  Scalar psi2 = Psi.squaredNorm();
+  Eigen::Matrix<Scalar,3,1> e = Psi.normalized();
+  return (2*M_PI)/psi2*(e.dot(Psidot)*Eigen::Matrix<Scalar,3,3>::Identity() + (Psidot*e.transpose() + e*Psidot.transpose()) - 3*e.dot(Psidot)*e*e.transpose());
+}
+
+template<typename Scalar>
+Eigen::Matrix<Scalar,3,1>
+unscale_rotvec(const Eigen::Matrix<Scalar,3,1>& Psi, const Eigen::Matrix<Scalar,3,1>& Psi_n)
+{
+  // return the rotation vector equivalent to Psi which is closest to Psi_n
+  Eigen::Matrix<Scalar,3,1> ret = Psi;
+  using std::abs; using std::pow; using std::sin; using std::sqrt;
+
+  Scalar psi2 = Psi.squaredNorm();
+  if(psi2 != 0) {
+    Scalar psi = sqrt(psi2);
+    Eigen::Matrix<Scalar,3,1> u = Psi.normalized();
+
+    Scalar psi_minus, psi_plus;
+    for(int i=1; i<=10; ++i) {
+      psi_minus = psi-2*i*M_PI;
+      psi_plus  = psi+2*i*M_PI;
+                               
+      Eigen::Matrix<Scalar,3,1> Psi_minus = psi_minus*u;
+      Eigen::Matrix<Scalar,3,1> Psi_plus =  psi_plus*u;
+      if( (Psi_minus-Psi_n).norm() < (ret-Psi_n).norm() ) ret = Psi_minus;
+      if( (Psi_plus-Psi_n).norm() < (ret-Psi_n).norm() ) ret = Psi_plus;
+    }
+  }
+
+  return ret;
 }
 
 #endif

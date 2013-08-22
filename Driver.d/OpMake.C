@@ -998,7 +998,7 @@ template<class Scalar>
 Rom::GenGalerkinProjectionSolver<Scalar> *
 Domain::constructGalerkinProjectionSolver()
 {
-  return new Rom::GenGalerkinProjectionSolver<Scalar>(nodeToNode, dsa, c_dsa);
+  return new Rom::GenGalerkinProjectionSolver<Scalar>(nodeToNode, dsa, c_dsa, sinfo.pivot);
 }
 
 #ifdef USE_EIGEN3

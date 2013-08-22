@@ -29,6 +29,7 @@ ADD_LIBRARY( Rom
   MappedNodeDof6Buffer.C
   MeshOutput.C
   MeshDesc.C
+  ModalGeomState.C
   PodProjectionNonLinDynamic.C
   SnapshotProjectionDriver.C
   RenumberingUtils.C

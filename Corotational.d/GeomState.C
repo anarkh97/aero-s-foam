@@ -440,15 +440,15 @@ GeomState::update(const Vector &v, int SO3param)
          switch(SO3param) {
            case 0: // Increment rotation tensor from the left R = R(dtheta)*Ra
              inc_rottensor( dtheta, ns[i].R );
+             inc_rotvector( ns[i].theta, ns[i].R );
              break;
            case 1: // Increment rotation tensor from the right R = Ra*R(dtheta)
              inc_rottensor( ns[i].R, dtheta );
+             inc_rotvector( ns[i].theta, ns[i].R );
              break;
            case 2: // additive update of total rotation vector
-             double theta[3];
-             mat_to_vec( ns[i].R, theta );
-             for(int j=0; j<3; ++j) theta[j] += dtheta[j];
-             vec_to_mat( theta, ns[i].R );
+             for(int j=0; j<3; ++j) ns[i].theta[j] += dtheta[j];
+             vec_to_mat( ns[i].theta, ns[i].R );
              break;
          }
        }
@@ -504,15 +504,15 @@ GeomState::update(const Vector &v, const std::vector<int> &weightedNodes, int SO
          switch(SO3param) {
            case 0: // Increment rotation tensor from the left R = R(dtheta)*Ra
              inc_rottensor( dtheta, ns[i].R );
+             inc_rotvector( ns[i].theta, ns[i].R );
              break;
            case 1: // Increment rotation tensor from the right R = Ra*R(dtheta)
              inc_rottensor( ns[i].R, dtheta );
+             inc_rotvector( ns[i].theta, ns[i].R );
              break;
            case 2: // additive update of total rotation vector
-             double theta[3];
-             mat_to_vec( ns[i].R, theta );
-             for(int j=0; j<3; ++j) theta[j] += dtheta[j];
-             vec_to_mat( theta, ns[i].R );
+             for(int j=0; j<3; ++j) ns[i].theta[j] += dtheta[j];
+             vec_to_mat( ns[i].theta, ns[i].R );
              break;
          }
        }
@@ -528,8 +528,6 @@ GeomState::explicitUpdate(CoordSet &cs, const Vector &v)
 {
  // v = total displacement vector
 
- double theta[3];
-
  for(int i = 0; i < numnodes; ++i) {
    if(cs[i]) {
 
@@ -541,9 +539,9 @@ GeomState::explicitUpdate(CoordSet &cs, const Vector &v)
 
      // Set rotations
 
-     theta[0] = (loc[i][3] >= 0) ? v[loc[i][3]] : 0.0;
-     theta[1] = (loc[i][4] >= 0) ? v[loc[i][4]] : 0.0;
-     theta[2] = (loc[i][5] >= 0) ? v[loc[i][5]] : 0.0;
+     ns[i].theta[0] = (loc[i][3] >= 0) ? v[loc[i][3]] : 0.0;
+     ns[i].theta[1] = (loc[i][4] >= 0) ? v[loc[i][4]] : 0.0;
+     ns[i].theta[2] = (loc[i][5] >= 0) ? v[loc[i][5]] : 0.0;
 
      // Update position
 
@@ -552,7 +550,7 @@ GeomState::explicitUpdate(CoordSet &cs, const Vector &v)
      ns[i].z = cs[i]->z + dz;
 
      // Update rotation tensor 
-     form_rottensor( theta, ns[i].R );
+     form_rottensor( ns[i].theta, ns[i].R );
    }
  }
 #ifdef COMPUTE_GLOBAL_ROTATION
@@ -564,8 +562,6 @@ void
 GeomState::explicitUpdate(CoordSet &cs, int numNodes, int *nodes, const Vector &v)
 {
  // v = total displacement vector
-
- double theta[3];
 
  for(int j = 0; j < numNodes; ++j) {
    int i = nodes[j];
@@ -579,9 +575,9 @@ GeomState::explicitUpdate(CoordSet &cs, int numNodes, int *nodes, const Vector &
 
      // Set rotations
 
-     theta[0] = (loc[i][3] >= 0) ? v[loc[i][3]] : 0.0;
-     theta[1] = (loc[i][4] >= 0) ? v[loc[i][4]] : 0.0;
-     theta[2] = (loc[i][5] >= 0) ? v[loc[i][5]] : 0.0;
+     ns[i].theta[0] = (loc[i][3] >= 0) ? v[loc[i][3]] : 0.0;
+     ns[i].theta[1] = (loc[i][4] >= 0) ? v[loc[i][4]] : 0.0;
+     ns[i].theta[2] = (loc[i][5] >= 0) ? v[loc[i][5]] : 0.0;
 
      // Update position
 
@@ -590,7 +586,7 @@ GeomState::explicitUpdate(CoordSet &cs, int numNodes, int *nodes, const Vector &
      ns[i].z = cs[i]->z + dz;
 
      // Update rotation tensor 
-     form_rottensor( theta, ns[i].R );
+     form_rottensor( ns[i].theta, ns[i].R );
    }
  }
 #ifdef COMPUTE_GLOBAL_ROTATION
@@ -611,11 +607,8 @@ GeomState::setVelocity(const Vector &v, int SO3param)
       // conversion to convected angular velocity
       Eigen::Vector3d PsiI, PsiIdot, Omega;
       Eigen::Matrix3d R, T;
+      PsiI << ns[i].theta[0], ns[i].theta[1], ns[i].theta[2];
       PsiIdot << ns[i].v[3], ns[i].v[4], ns[i].v[5];
-      R << ns[i].R[0][0], ns[i].R[0][1], ns[i].R[0][2],
-           ns[i].R[1][0], ns[i].R[1][1], ns[i].R[1][2],
-           ns[i].R[2][0], ns[i].R[2][1], ns[i].R[2][2];
-      mat_to_vec(R, PsiI);
       tangential_transf(PsiI, T);
       Omega = T*PsiIdot;
       for(int j=0; j<3; ++j) ns[i].v[3+j] = Omega[j];
@@ -639,11 +632,8 @@ GeomState::setVelocity(int numNodes, int *nodes, const Vector &v, int SO3param)
       // transform from time derivative to total rotation vector to convected angular velocity
       Eigen::Vector3d PsiI, PsiIdot, Omega;
       Eigen::Matrix3d R, T;
+      PsiI << ns[i].theta[0], ns[i].theta[1], ns[i].theta[2];
       PsiIdot << ns[i].v[3], ns[i].v[4], ns[i].v[5];
-      R << ns[i].R[0][0], ns[i].R[0][1], ns[i].R[0][2],
-           ns[i].R[1][0], ns[i].R[1][1], ns[i].R[1][2],
-           ns[i].R[2][0], ns[i].R[2][1], ns[i].R[2][2];
-      mat_to_vec(R, PsiI);
       tangential_transf(PsiI, T);
       Omega = T*PsiIdot;
       for(int j=0; j<3; ++j) ns[i].v[3+j] = Omega[j];
@@ -665,12 +655,9 @@ GeomState::setAcceleration(const Vector &a, int SO3param)
       // conversion from second time derivative of total rotation vector to convected angular acceleration
       Eigen::Vector3d PsiI, PsiIdot, PsiIddot, Omega, Alpha;
       Eigen::Matrix3d R, T, Tdot;
+      PsiI << ns[i].theta[0], ns[i].theta[1], ns[i].theta[2];
       Omega << ns[i].v[3], ns[i].v[4], ns[i].v[5];
       PsiIddot << ns[i].a[3], ns[i].a[4], ns[i].a[5];
-      R << ns[i].R[0][0], ns[i].R[0][1], ns[i].R[0][2],
-           ns[i].R[1][0], ns[i].R[1][1], ns[i].R[1][2],
-           ns[i].R[2][0], ns[i].R[2][1], ns[i].R[2][2];
-      mat_to_vec(R, PsiI);
       tangential_transf(PsiI, T);
       PsiIdot = T.inverse()*Omega;
       tangential_transf_dot(PsiI, PsiIdot, Tdot);
@@ -696,12 +683,9 @@ GeomState::setAcceleration(int numNodes, int *nodes, const Vector &a, int SO3par
       // conversion from second time derivative of total rotation vector to convected angular acceleration
       Eigen::Vector3d PsiI, PsiIdot, PsiIddot, Omega, Alpha;
       Eigen::Matrix3d R, T, Tdot;
+      PsiI << ns[i].theta[0], ns[i].theta[1], ns[i].theta[2];
       Omega << ns[i].v[3], ns[i].v[4], ns[i].v[5];
       PsiIddot << ns[i].a[3], ns[i].a[4], ns[i].a[5];
-      R << ns[i].R[0][0], ns[i].R[0][1], ns[i].R[0][2],
-           ns[i].R[1][0], ns[i].R[1][1], ns[i].R[1][2],
-           ns[i].R[2][0], ns[i].R[2][1], ns[i].R[2][2];
-      mat_to_vec(R, PsiI);
       tangential_transf(PsiI, T);
       PsiIdot = T.inverse()*Omega;
       tangential_transf_dot(PsiI, PsiIdot, Tdot);
@@ -806,11 +790,13 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
         for(int k = 0; k < 3; ++k)
           ss[i].R[j][k] = ns[i].R[j][k];
     }
-    else { 
-      if(alphaf = 0.0) {
-        for(int j = 0; j < 3; ++j)
+    else {
+      if(alphaf == 0.0) {
+        for(int j = 0; j < 3; ++j) {
+          ss[i].theta[j] = ns[i].theta[j];
           for(int k = 0; k < 3; ++k)
             ss[i].R[j][k] = ns[i].R[j][k];
+        }
       }
       else {
         mat_mult_mat(ss[i].R, ns[i].R, result2, 1); // result2 = ss[i].R^T * ns[i].R (i.e. ns[i].R = ss[i].R * result2)
@@ -826,6 +812,9 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
         for(int j = 0; j < 3; ++j)
           for(int k = 0; k < 3; ++k)
             ss[i].R[j][k] = ns[i].R[j][k] = result[j][k];
+
+        inc_rotvector(ns[i].theta, ns[i].R);
+        for(int j=0; j<3; ++j) ss[i].theta[j] = ns[i].theta[j];
       }
     }
   }
@@ -987,7 +976,7 @@ GeomState::pull_back(Vector &f)
 }
 
 void
-GeomState::transform(Vector &f, int type) const
+GeomState::transform(Vector &f, int type, bool unscaled) const
 {
 #ifdef USE_EIGEN3
   for(int inode = 0; inode < numnodes; ++inode) {
@@ -1005,74 +994,64 @@ GeomState::transform(Vector &f, int type) const
            ns[inode].R[1][0], ns[inode].R[1][1], ns[inode].R[1][2],
            ns[inode].R[2][0], ns[inode].R[2][1], ns[inode].R[2][2];
 
+      Eigen::Vector3d PsiI;
+      if(unscaled) {
+        PsiI << ns[inode].theta[0], ns[inode].theta[1], ns[inode].theta[2];
+      }
+      else {
+        mat_to_vec(R, PsiI);
+      }
+      Eigen::Matrix3d T;
+      tangential_transf(PsiI, T);
+
       switch(type) {
-        case 0 : { // transform time derivative of total rotation vector to convected angular velocity
-          Eigen::Vector3d PsiI;       
-          Eigen::Matrix3d T;
-          mat_to_vec(R, PsiI);
-          tangential_transf(PsiI, T);
+        case 0 : // transform time derivative of total rotation vector to convected angular velocity
           result = T*vec;
-        } break;
-        case 1 : { // transform time derivative of total rotation vector to spatial angular velocity
-          Eigen::Vector3d psiI;
-          Eigen::Matrix3d T;
-          mat_to_vec(R, psiI);
-          tangential_transf(psiI, T);
+          break;
+        case 1 :   // transform time derivative of total rotation vector to spatial angular velocity
           result = T.transpose()*vec;
-        } break;
-        case 2 : { // transform convected angular velocity to time derivative of total rotation vector
-          Eigen::Vector3d PsiI;
-          Eigen::Matrix3d T;
-          mat_to_vec(R, PsiI);
-          tangential_transf(PsiI, T);
+          break;
+        case 2 :   // transform convected angular velocity to time derivative of total rotation vector
           result = T.inverse()*vec;
-        } break;
-        case 3 : { // transform spatial angular velocity to time derivative of total rotation vector
-          Eigen::Vector3d psiI;
-          Eigen::Matrix3d T;
-          mat_to_vec(R, psiI);
-          tangential_transf(psiI, T);
+          break;
+        case 3 :   // transform spatial angular velocity to time derivative of total rotation vector
           result = T.transpose().inverse()*vec;
-        } break; 
+          break; 
         case 4 : { // transform second time derivative of total rotation vector to convected angular acceleration
-          Eigen::Vector3d Omega, PsiI, PsiIdot;
-          Eigen::Matrix3d T, Tdot;
+                   // assuming ns[inode].v contains the convected angular velocity
+          Eigen::Vector3d Omega, PsiIdot;
+          Eigen::Matrix3d Tdot;
           Omega << ns[inode].v[3], ns[inode].v[4], ns[inode].v[5];
-          mat_to_vec(R, PsiI);
-          tangential_transf(PsiI, T);
           PsiIdot = T.inverse()*Omega;
           tangential_transf_dot(PsiI, PsiIdot, Tdot);
           result = T*vec + Tdot*PsiIdot;
         } break;
         case 5 : { // transform second time derivative of total rotation vector to spatial angular acceleration
-          Eigen::Vector3d Omega, psiI, psiIdot;
-          Eigen::Matrix3d T, Tdot;
+                   // assuming ns[inode].v contains the convected angular velocity
+          Eigen::Vector3d Omega, PsiIdot;
+          Eigen::Matrix3d Tdot;
           Omega << ns[inode].v[3], ns[inode].v[4], ns[inode].v[5];
-          mat_to_vec(R, psiI);
-          tangential_transf(psiI, T);
-          psiIdot = T.transpose().inverse()*R*Omega;
-          tangential_transf_dot(psiI, psiIdot, Tdot);
-          result = T.transpose()*vec + Tdot.transpose()*psiIdot;
+          PsiIdot = T.transpose().inverse()*R*Omega;
+          tangential_transf_dot(PsiI, PsiIdot, Tdot);
+          result = T.transpose()*vec + Tdot.transpose()*PsiIdot;
         } break;
         case 6 : { // transform convected angular acceleration to second time derivative of total rotation vector
-          Eigen::Vector3d Omega, PsiI, PsiIdot;
-          Eigen::Matrix3d T, Tdot;
+                   // assuming ns[inode].v contains the convected angular velocity
+          Eigen::Vector3d Omega, PsiIdot;
+          Eigen::Matrix3d Tdot;
           Omega << ns[inode].v[3], ns[inode].v[4], ns[inode].v[5];
-          mat_to_vec(R, PsiI);
-          tangential_transf(PsiI, T);
           PsiIdot = T.inverse()*Omega;
           tangential_transf_dot(PsiI, PsiIdot, Tdot);
           result = T.inverse()*(vec - Tdot*PsiIdot);
         } break;
         case 7 : { // transform spatial angular acceleration to second time derivative of total rotation vector
-          Eigen::Vector3d Omega, psiI, psiIdot;
-          Eigen::Matrix3d T, Tdot;
+                   // assuming ns[inode].v contains the convected angular velocity
+          Eigen::Vector3d Omega, PsiIdot;
+          Eigen::Matrix3d Tdot;
           Omega << ns[inode].v[3], ns[inode].v[4], ns[inode].v[5];
-          mat_to_vec(R, psiI);
-          tangential_transf(psiI, T);
-          psiIdot = T.transpose().inverse()*R*Omega;
-          tangential_transf_dot(psiI, psiIdot, Tdot);
-          result = T.transpose().inverse()*(vec - Tdot.transpose()*psiIdot);
+          PsiIdot = T.transpose().inverse()*R*Omega;
+          tangential_transf_dot(PsiI, PsiIdot, Tdot);
+          result = T.transpose().inverse()*(vec - Tdot.transpose()*PsiIdot);
         } break;
       }
 
@@ -1131,7 +1110,7 @@ GeomState::transform(Vector &f, const std::vector<int> &weightedNodes, int type)
 }
 
 void
-GeomState::get_tot_displacement(Vector &totVec)
+GeomState::get_tot_displacement(Vector &totVec, bool rescaled)
 {
   //cerr << "here in GeomState::get_tot_displacement\n";
   double x0, y0, z0, vec[3];
@@ -1155,7 +1134,11 @@ GeomState::get_tot_displacement(Vector &totVec)
 
     // Insert total rotational displacements of node i into totVec
     if(loc[i][3] >= 0 || loc[i][4] >= 0 || loc[i][5] >= 0) {
-      mat_to_vec(ns[i].R, vec);
+      if(rescaled) 
+        mat_to_vec(ns[i].R, vec);
+      else {
+        for(int j=0; j<3; ++j) vec[j] = ns[i].theta[j];
+      }
 
       if(loc[i][3] >= 0) totVec[loc[i][3]] = vec[0];
       if(loc[i][4] >= 0) totVec[loc[i][4]] = vec[1];

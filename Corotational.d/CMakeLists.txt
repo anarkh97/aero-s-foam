@@ -19,7 +19,7 @@ ADD_LIBRARY(Corotational  Corotator.C
        PentaCorotator.C BarFCorotator.C
        QuadThermalCorotator.C TriangleThermalCorotator.C
        PhantomCorotator.C
-       MatNLCorotator.C)
+       MatNLCorotator.C inc_rotvector.C)
 
 
 SET(INC_DIR ..)

@@ -20,7 +20,7 @@ private:
                                           Vector &residual, double lambda, double time, GeomState *refState,
                                           FullSquareMatrix *melArray);
 
-  void updateStates(GeomState *refState, GeomState& geomState);
+  void updateStates(ModalGeomState *refState, ModalGeomState& geomState);
   
   std::map<int, double> packedElementWeights_;
   void buildPackedElementWeights();

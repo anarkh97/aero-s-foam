@@ -123,6 +123,7 @@ static const char*header[] = {
 "Scalar EXTMOMENTZ under %s for %s\n%d\n",
 "",
 "",
+"Vector QUATERNION under %s for %s\n%d\n",
 "Scalar PLASTICSTRAINXX under %s for %s\n%d\n",
 "Scalar PLASTICSTRAINYY under %s for %s\n%d\n",
 "Scalar PLASTICSTRAINZZ under %s for %s\n%d\n",

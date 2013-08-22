@@ -1337,17 +1337,20 @@ int main(int argc, char** argv)
                NLDynamSolver <Solver, Vector, SDDynamPostProcessor, NonLinDynamic, GeomState> nldynamicSolver(&nldynamic);
                nldynamicSolver.solve();
              } else { // POD ROM
-                 if (domain->solInfo().galerkinPodRom && domain->solInfo().elemLumpPodRom) {
-                 filePrint(stderr, " ... POD: ROM with stiffness lumping ...\n");
+               if (domain->solInfo().galerkinPodRom && domain->solInfo().elemLumpPodRom) {
+                 if (domain->solInfo().reduceFollower)
+                   filePrint(stderr, " ... POD: ROM with stiffness & follower lumping ...\n");
+                 else
+                   filePrint(stderr, " ... POD: ROM with stiffness lumping ...\n");
                  Rom::LumpedPodProjectionNonLinDynamic nldynamic(domain);
                  NLDynamSolver <Rom::PodProjectionSolver, Vector, SDDynamPostProcessor, Rom::PodProjectionNonLinDynamic,
-                                GeomState, Rom::PodProjectionNonLinDynamic::Updater> nldynamicSolver(&nldynamic);
+                                ModalGeomState, Rom::PodProjectionNonLinDynamic::Updater> nldynamicSolver(&nldynamic);
                  nldynamicSolver.solve();
                } else if (domain->solInfo().galerkinPodRom) {
                  filePrint(stderr, " ... POD: Reduced-order model       ...\n");
                  Rom::PodProjectionNonLinDynamic nldynamic(domain);
                  NLDynamSolver <Rom::PodProjectionSolver, Vector, SDDynamPostProcessor, Rom::PodProjectionNonLinDynamic,
-                                GeomState, Rom::PodProjectionNonLinDynamic::Updater> nldynamicSolver(&nldynamic);
+                                ModalGeomState, Rom::PodProjectionNonLinDynamic::Updater> nldynamicSolver(&nldynamic);
                  nldynamicSolver.solve();
                } else if (domain->solInfo().checkPodRom) {
                  filePrint(stderr, " ... POD: State Projection Check    ...\n");

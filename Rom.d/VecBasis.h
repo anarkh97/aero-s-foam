@@ -71,11 +71,11 @@ public:
   //GenVecType<Scalar> & project(GenVecType<Scalar> &, GenVecType<Scalar> &);
   //void domainMatrixVecMult(GenVecType<Scalar> &, GenVecType<Scalar> &);
 
-  GenDistrVector<double> & project(GenDistrVector<double> &, GenDistrVector<double> &);
-  GenDistrVector<double> & projectUp(GenDistrVector<double> &, GenDistrVector<double> &);
-  GenDistrVector<double> & projectUp(std::vector<double> &, GenDistrVector<double> &);
-  GenDistrVector<double> & projectDown(GenDistrVector<double> &, GenDistrVector<double> &);
-  GenDistrVector<double> & projectUp2(GenDistrVector<double> &, GenDistrVector<double> &);
+  VecType & project(VecType &, VecType &) const;
+  VecType & projectUp(VecType &, VecType &) const;
+  VecType & projectUp(std::vector<double> &, VecType &) const;
+  VecType & projectDown(VecType &, VecType &) const;
+  VecType & projectUp2(VecType &, VecType &) const;
   
   void makeSparseBasis(const std::vector<std::vector<int> > &, DofSetArray **);
   void makeSparseBasis(const std::vector<int> &, DofSetArray *); 

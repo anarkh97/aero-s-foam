@@ -27,13 +27,13 @@ FileNameInfo::basisFileName(const BasisId &id, int i) const {
   std::ostringstream builder;
 
  if(domain->solInfo().svdPodRom) {
-   if (id.level() == 0) {
-       builder << domain->solInfo().snapfiPodRom[i].c_str() ; 
+   if(id.level() == 0) {
+     builder << domain->solInfo().snapfiPodRom[i].c_str() ; 
    }
-   else if (id.level() == 1){
+   else if(id.level() == 1) {
      builder << domain->solInfo().SVDoutput; 
-     } 
-   else if (id.level() == 2){
+   } 
+   else if(id.level() == 2) {
      builder << domain->solInfo().robfi[i].c_str();
    }
  }
@@ -59,14 +59,6 @@ FileNameInfo::basisFileName(const BasisId &id, int i) const {
 
   std::string mystrg;
   mystrg = builder.str();
-//  filePrint(stderr,"id.level = %d, id.type = %d,  %s \n",id.level(), id.type(), mystrg.c_str());	
-
-/*  else {
-	const char suffix[] = "rob";
-	builder << prefix()
-          << "." << toString(id.type())
-          << "." << toString(id.level())
-          << "." << suffix; }*/
 
   return builder.str();
 }

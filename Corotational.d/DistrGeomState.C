@@ -162,30 +162,30 @@ DistrGeomState::pull_back(DistrVector &f)
 }
 
 void
-DistrGeomState::subTransform(int isub, DistrVector &f, int type)
+DistrGeomState::subTransform(int isub, DistrVector &f, int type, bool unscaled)
 {
  StackVector subf(f.subData(isub), f.subLen(isub));
- gs[isub]->transform(subf, type);
+ gs[isub]->transform(subf, type, unscaled);
 }
 
 void
-DistrGeomState::transform(DistrVector &f, int type)
+DistrGeomState::transform(DistrVector &f, int type, bool unscaled)
 {
- execParal2R(numSub, this, &DistrGeomState::subTransform, f, type);
+ execParal3R(numSub, this, &DistrGeomState::subTransform, f, type, unscaled);
 }
 
 
 void
-DistrGeomState::subTot_get(int isub, DistrVector &tot_vec)
+DistrGeomState::subTot_get(int isub, DistrVector &tot_vec, bool rescaled)
 {
  StackVector v(tot_vec.subData(isub), tot_vec.subLen(isub));
- gs[isub]->get_tot_displacement(v);
+ gs[isub]->get_tot_displacement(v, rescaled);
 }
 
 void
-DistrGeomState::get_tot_displacement(DistrVector &tot_vec)
+DistrGeomState::get_tot_displacement(DistrVector &tot_vec, bool rescaled)
 {
- execParal1R(numSub, this, &DistrGeomState::subTot_get, tot_vec);
+ execParal2R(numSub, this, &DistrGeomState::subTot_get, tot_vec, rescaled);
 }
 
 void

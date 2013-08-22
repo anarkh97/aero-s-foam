@@ -39,7 +39,7 @@ struct OutputInfo {
 	  HeatReactions, Reactions6, Statevector, Residual, Jacobian, 
 	  RobData, SampleMesh, Accelvector, Forcevector,
           RotationMatrix, ExternalXForce, ExternalYForce, ExternalZForce,
-          ExternalXMom, ExternalYMom, ExternalZMom, Velocvector, InternalStateVar,
+          ExternalXMom, ExternalYMom, ExternalZMom, Velocvector, InternalStateVar, Quaternion,
           PlasticStrainXX, PlasticStrainYY, PlasticStrainZZ, PlasticStrainXY,
           PlasticStrainYZ, PlasticStrainXZ, BackStressXX, BackStressYY,
           BackStressZZ, BackStressXY, BackStressYZ, BackStressXZ };
@@ -66,6 +66,10 @@ struct OutputInfo {
    int ncomplexout;   
    enum { spatial, convected, total };
    int angularouttype;
+   bool rescaling; // whether or not the rotation vector is rescaled such that -pi <= phi <= pi (default is true)
+   enum { Euler=0, Complement, Linear, ReducedEulerRodrigues, CayleyGibbsRodrigues, WienerMilenkovic, BauchauTrainelli };
+   int rotvecouttype; // rotation vector parameterization (default is Euler, not to be confused with "Euler angles")
+                      // reference: "The vectorial parameterization of rotation" by Bauchau and Trainelli
    bool matlab;
    bool PodRomfile;
    int tdenforc_var; // CONFACE=1, NORMAL_FORCE_MAG, NORMAL_TRACTION_MAG, TANGENTIAL_FORCE_MAG, TANGENTIAL_TRACTION_MAG,
@@ -93,6 +97,8 @@ struct OutputInfo {
      complexouttype = OutputInfo::realimag;
      ncomplexout = 16;
      angularouttype = OutputInfo::convected;
+     rescaling = true;
+     rotvecouttype = OutputInfo::Euler;
      tdenforc_var = 3;
      matlab = false;
      PodRomfile = false;
@@ -198,6 +204,13 @@ struct OutputInfo {
      default:
        return false;
    }
+ }
+
+ bool defaultRotation() {
+   if(rescaling != true || rotvecouttype != OutputInfo::Euler || angularouttype != OutputInfo::convected || type == RotationMatrix || type == Quaternion)
+     return false;
+   else
+     return true;
  }
  
  void copyParam(const OutputInfo& oI) {

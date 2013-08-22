@@ -132,7 +132,13 @@ DistrSnapshotNonLinDynamicDetail::RawImpl::stateSnapshotAdd(const DistrGeomState
       snapBuffer_[iGlobalNode][2] = subSnap[iLocalNode].z - refCoords[iLocalNode]->z;
 
       // Rotational dofs
-      mat_to_vec(const_cast<double (*)[3]>(subSnap[iLocalNode].R), &snapBuffer_[iGlobalNode][3]);
+      // old method: collect the rescaled rotation vector
+      //mat_to_vec(const_cast<double (*)[3]>(subSnap[iLocalNode].R), &snapBuffer_[iGlobalNode][3]);
+
+      // new method: collect the unscaled rotation vector which has already be computed and stored in NodeState::theta
+      snapBuffer_[iGlobalNode][3] = subSnap[iLocalNode].theta[0];
+      snapBuffer_[iGlobalNode][4] = subSnap[iLocalNode].theta[1];
+      snapBuffer_[iGlobalNode][5] = subSnap[iLocalNode].theta[2];
     }
   }
 

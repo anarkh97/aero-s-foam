@@ -734,7 +734,7 @@ TRAIL [a-zA-Z]*
 
 "DIMA"[a-zA-Z]*|"dima"[a-zA-Z]*    { return DIMASS; }
 
-"COMP"[a-zA-Z]*|"composite"        { return COMPOSITE; }
+"COMPO"[a-zA-Z]*|"composite"       { return COMPOSITE; }
 
 "COEF"|"coef"                      { return COEF; }
 
@@ -978,6 +978,8 @@ TRAIL [a-zA-Z]*
 
 "romatrix"|"ROMATRIX"              { yylval.ival = OutputInfo::RotationMatrix; return STRESSID; }
 
+"quaterni"|"QUATERNI"              { yylval.ival = OutputInfo::Quaternion;   return STRESSID; }
+
 "modaldsp"|"MODALDSP"              { yylval.ival = OutputInfo::ModalDsp;     return STRESSID; }
 
 "modalexf"|"MODALEXF"              { yylval.ival = OutputInfo::ModalExF;     return STRESSID; }
@@ -1205,6 +1207,12 @@ TRAIL [a-zA-Z]*
 "convected"|"CONVECTED"            { yylval.ival = OutputInfo::convected; return ANGULAROUTTYPE; }
 
 "total"|"TOTAL"                    { yylval.ival = OutputInfo::total; return ANGULAROUTTYPE; }
+
+"euler"|"Euler"|"EULER"            { yylval.ival = OutputInfo::Euler; return ROTVECOUTTYPE; }
+
+"complement"|"Complement"|"COMPLEMENT" { yylval.ival = OutputInfo::Complement; return ROTVECOUTTYPE; }
+
+"rescal"[a-zA-Z]*|"RESCAL"[a-zA-Z]* { return RESCALING; }
 
 "conface"|"CONFACE"                                  { yylval.ival = 1; return TDENFORC; }
 "normal_force_mag"|"NORMAL_FORCE_MAG"                { yylval.ival = 2; return TDENFORC; }

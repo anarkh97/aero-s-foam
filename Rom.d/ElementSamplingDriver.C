@@ -514,20 +514,18 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcess() {
   }
 
   //Read in normalized basis if explicit
-  if(domain_->solInfo().newmarkBeta == 0){
-    {
-      std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
-      fileName.append(".normalized");
-      BasisInputStream in(fileName, vecDofConversion) ;
-      VecBasis normalizedBasis ;
-      const int podSizeMax = domain_->solInfo().maxSizePodRom;
-      if(podSizeMax != 0){
-        readVectors(in, normalizedBasis, podSizeMax);
-      } else {
-        readVectors(in, normalizedBasis);
-      }
-      podBasis_.swap(normalizedBasis);
+  if(domain_->solInfo().newmarkBeta == 0) {
+    std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
+    fileName.append(".normalized");
+    BasisInputStream in(fileName, vecDofConversion);
+    VecBasis normalizedBasis;
+    const int podSizeMax = domain_->solInfo().maxSizePodRom;
+    if(podSizeMax != 0){
+      readVectors(in, normalizedBasis, podSizeMax);
+    } else {
+      readVectors(in, normalizedBasis);
     }
+    podBasis_.swap(normalizedBasis);
   } 
 
   solver_.problemSizeIs(podBasis_.vectorCount()*displac_.vectorCount(), elementCount());

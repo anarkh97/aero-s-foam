@@ -6,7 +6,7 @@ namespace Rom {
 
 template <>
 GenDistrVector<double> &
-GenVecBasis<double, GenDistrVector>::project(GenDistrVector<double> &x, GenDistrVector<double> &_result) {
+GenVecBasis<double, GenDistrVector>::project(GenDistrVector<double> &x, GenDistrVector<double> &_result) const {
 //Nothing to do here, Fext & Fint are already projected
 // code left for reference
 /*
@@ -42,7 +42,7 @@ GenVecBasis<double, GenDistrVector>::project(GenDistrVector<double> &x, GenDistr
 
 template <>
 GenDistrVector<double> &
-GenVecBasis<double, GenDistrVector>::projectUp(GenDistrVector<double> &x, GenDistrVector<double> &_result) {
+GenVecBasis<double, GenDistrVector>::projectUp(GenDistrVector<double> &x, GenDistrVector<double> &_result) const {
 #ifdef USE_EIGEN3
   Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > GenCoordinates(x.data(), x.size());
   Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > result(_result.data(), _result.size());
@@ -62,8 +62,20 @@ GenVecBasis<double, GenDistrVector>::projectUp(GenDistrVector<double> &x, GenDis
 }
 
 template <>
+GenVector<double> &
+GenVecBasis<double, GenVector>::projectUp(GenVector<double> &x, GenVector<double> &_result) const {
+#ifdef USE_EIGEN3
+  Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > GenCoordinates(x.data(), x.size());
+  Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > result(_result.data(), _result.size());
+
+  result = basis*GenCoordinates;
+#endif
+  return _result;
+}
+
+template <>
 GenDistrVector<double> &
-GenVecBasis<double, GenDistrVector>::projectUp2(GenDistrVector<double> &x, GenDistrVector<double> &_result) {
+GenVecBasis<double, GenDistrVector>::projectUp2(GenDistrVector<double> &x, GenDistrVector<double> &_result) const {
 #ifdef USE_EIGEN3
   Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > GenCoordinates(x.data(), x.size());
   Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > result(_result.data(), _result.size());
@@ -84,7 +96,7 @@ GenVecBasis<double, GenDistrVector>::projectUp2(GenDistrVector<double> &x, GenDi
 
 template <>
 GenDistrVector<double> &
-GenVecBasis<double, GenDistrVector>::projectUp(std::vector<double> &x, GenDistrVector<double> &_result) {
+GenVecBasis<double, GenDistrVector>::projectUp(std::vector<double> &x, GenDistrVector<double> &_result) const {
 #ifdef USE_EIGEN3
   //this instantiation is for the post processor, need to fix it to use GenDistrVector
   Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > GenCoordinates(x.data(), x.size());
@@ -98,7 +110,7 @@ GenVecBasis<double, GenDistrVector>::projectUp(std::vector<double> &x, GenDistrV
 
 template <>
 GenDistrVector<double> &
-GenVecBasis<double, GenDistrVector>::projectDown(GenDistrVector<double> &x, GenDistrVector<double> &_result) {
+GenVecBasis<double, GenDistrVector>::projectDown(GenDistrVector<double> &x, GenDistrVector<double> &_result) const {
 #ifdef USE_EIGEN3
   Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > FullCoordinates(x.data(), x.size());
   Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > result(_result.data(), _result.size());
@@ -122,6 +134,18 @@ GenVecBasis<double, GenDistrVector>::projectDown(GenDistrVector<double> &x, GenD
   if(structCom)
     structCom->globalSum(result.size(), result.data());
 #endif 
+  return _result;
+}
+
+template <>
+GenVector<double> &
+GenVecBasis<double, GenVector>::projectDown(GenVector<double> &x, GenVector<double> &_result) const {
+#ifdef USE_EIGEN3
+  Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > FullCoordinates(x.data(), x.size());
+  Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > result(_result.data(), _result.size());
+
+  result = basis.transpose()*FullCoordinates;
+#endif
   return _result;
 }
 

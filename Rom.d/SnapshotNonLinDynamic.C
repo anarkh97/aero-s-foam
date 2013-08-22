@@ -11,6 +11,7 @@
 
 #include <Utils.d/dofset.h>
 #include <Corotational.d/utilities.h>
+#include <Element.d/Function.d/utilities.hpp>
 
 #include <deque>
 
@@ -376,7 +377,14 @@ SnapshotNonLinDynamicDetail::sttSnapImpl::stateSnapshotAdd(const GeomState &snap
       nodeBuffer[2] = snapNode.z - refNode->z;
 
       // Rotational dofs
-      mat_to_vec(const_cast<double (*)[3]>(snapNode.R), &nodeBuffer[3]);
+      // old method: collect the rescaled rotation vector
+      //mat_to_vec(const_cast<double (*)[3]>(snapNode.R), &nodeBuffer[3]);
+
+      // new method: collect the unscaled rotation vector which has already be computed and stored in NodeState::theta
+      nodeBuffer[3] = snapNode.theta[0];
+      nodeBuffer[4] = snapNode.theta[1];
+      nodeBuffer[5] = snapNode.theta[2];
+
     } else {
       // Node does not really exist, corresponds to a gap in node numbering
       std::fill_n(nodeBuffer, 6, 0.0);
@@ -639,7 +647,7 @@ SnapshotNonLinDynamic::saveVelocitySnapshot(const GeomState &state, const Vector
   if(domain->solInfo().velocvectPodRom) {
     if(state.getHaveRot()) {
       Vector v(veloc);
-      state.transform(v, 2); // transform convected angular velocity to time derivative of total rotation vector
+      state.transform(v, 2, true); // transform convected angular velocity to time derivative of total rotation vector
       velocImpl_->velocSnapshotAdd(v);
     }
     else {
@@ -654,7 +662,7 @@ SnapshotNonLinDynamic::saveAccelerationSnapshot(const GeomState &state, const Ve
   if(domain->solInfo().accelvectPodRom) {
     if(state.getHaveRot()) {
       Vector a(accel);
-      state.transform(a, 6); // transform convected angular acceleration to second time derivative of total rotation vector
+      state.transform(a, 6, true); // transform convected angular acceleration to second time derivative of total rotation vector
       accelImpl_->accelSnapshotAdd(a);
     }
     else {

@@ -807,7 +807,7 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
           ss[i].R[j][k] = ns[i].R[j][k];
     }
     else { 
-      if(alphaf = 0.0) {
+      if(alphaf == 0.0) {
         for(int j = 0; j < 3; ++j)
           for(int k = 0; k < 3; ++k)
             ss[i].R[j][k] = ns[i].R[j][k];

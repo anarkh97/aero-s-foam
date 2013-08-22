@@ -59,8 +59,10 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
  *
  *  Compute element tangential stiffness and element internal force
  *  and assemble element internal force into global internal force.
- *  Also compute follower external force contribution to both 
- *  tangential stiffness matrix and residual
+ *  Also compute configuration-dependent external force contribution
+ *  to both tangential stiffness matrix and residual.
+ *  Also for dynamics, compute fictitious (inertial) force contribution
+ *  to both tangential stiffness matrix and residual.
  *
  * Input :
  *
@@ -81,6 +83,10 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
   const bool initialTime = (sinfo.isDynam() && time == 0 && solInfo().newmarkBeta != 0); // when initialTime is true, will
                                                                                          // be solving for initial acceleration
                                                                                          // (implicit dynamics only)
+  BlastLoading::BlastData *conwep = (domain->solInfo().ConwepOnOff) ? &BlastLoading::InputFileData : NULL;
+  bool compute_tangents = !initialTime && !solInfo().getNLInfo().linearelastic;
+  if(!elemAdj) makeElementAdjacencyLists();
+
   for(int iele = 0; iele < numele; ++iele) {
 
     elementForce.zero();
@@ -89,13 +95,11 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
     if(corotators[iele] && !solInfo().getNLInfo().linearelastic) {
       getElemStiffAndForce(geomState, pseudoTime, refState, *corotators[iele], elementForce.data(), kel[iele]);
       if(initialTime && packedEset[iele]->isConstraintElement() && packedEset[iele]->hasRot()) {
+        // transform constraint jacobian and hessian to solve for the initial convected acceleration
         transformElemStiff(geomState, kel[iele], iele);
       }
-      else if(domain->solInfo().galerkinPodRom && packedEset[iele]->hasRot()) {
-        transformElemStiffAndForce(geomState, elementForce.data(), kel[iele], iele, true);
-      }
     }
-    // get linear elastic element internal force
+    // Or, get linear elastic element internal force
     else {
       Vector disp(packedEset[iele]->numDofs());
       getElementDisp(iele, geomState, disp);
@@ -105,7 +109,20 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
       //     but in that case the convergence will not be quadratic)
       //     2. should be inside getElemStiffAndForce??
     }
-    // Assemble element internal force into residual force vector
+
+    // Add configuration-dependent external forces and their element stiffness contributions
+    getElemFollowerForce(iele, geomState, elementForce.data(), elementForce.size(),
+                         (corotators[iele]), kel[iele], lambda, time, compute_tangents, conwep);
+
+    if(domain->solInfo().galerkinPodRom && packedEset[iele]->hasRot() && !solInfo().getNLInfo().linearelastic) {
+      // Transform element stiffness and force to solve for the increment in the total rotation vector
+      transformElemStiffAndForce(geomState, elementForce.data(), kel[iele], iele, true);
+    }
+
+    //if(sinfo.isDynam() && mel)
+    //getElemFictitiousForce(iele, geomState, elementForce.data(), kel[iele], time, refState, mel[iele], compute_tangents);
+
+    // Assemble element force into residual vector
     for(int idof = 0; idof < kel[iele].dim(); ++idof) {
       int uDofNum = c_dsa->getRCN((*allDOFs)[iele][idof]);
       if(uDofNum >= 0)
@@ -117,10 +134,6 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
       }
     }
   }
-
-  bool compute_tangents = !initialTime && !solInfo().getNLInfo().linearelastic;
-  getFollowerForce(geomState, elementForce, corotators, kel, residual, lambda, time, refState, reactions,
-                   compute_tangents);
 
   if(sinfo.isDynam() && mel) getFictitiousForce(geomState, elementForce, kel, residual, time, refState, reactions,
                                                 mel, compute_tangents);
@@ -136,52 +149,39 @@ Domain::getFollowerForce(GeomState &geomState, Vector& elementForce,
                          Vector &residual, double lambda, double time,
                          GeomState *refState, Vector *reactions, bool compute_tangents)
 {
-  if(domain->pressureFlag()) {
-    BlastLoading::BlastData *conwep = (domain->solInfo().ConwepOnOff) ? &BlastLoading::InputFileData : NULL;
-    for(int iele = 0; iele < numele;  ++iele) {
+  BlastLoading::BlastData *conwep = (domain->solInfo().ConwepOnOff) ? &BlastLoading::InputFileData : NULL;
 
-      elementForce.zero();
+  for(std::vector<int>::iterator it = followedElemList.begin(), it_end = followedElemList.end(); it != it_end; ++it) {
+    const int iele = *it;
 
-      if(compute_tangents) {
-        FullSquareMatrix kel2(kel[iele].dim());
-        kel2.zero();
+    elementForce.zero();
 
-        getElemFollowerForce(iele, geomState, elementForce.data(), elementForce.size(),
-                             *(corotators[iele]), kel2, lambda, time, compute_tangents, conwep);
+    getElemFollowerForce(iele, geomState, elementForce.data(), elementForce.size(),
+                         (corotators[iele]), kel[iele], lambda, time, compute_tangents, conwep);
 
-        // Include the "load stiffness matrix" in kel[iele]
-        kel[iele] += kel2;
-      }
-      else {
-        getElemFollowerForce(iele, geomState, elementForce.data(), elementForce.size(),
-                             *(corotators[iele]), kel[iele], lambda, time, compute_tangents, conwep);
-      }
+    if(packedEset[iele]->hasRot())
+      transformElemStiffAndForce(geomState, elementForce.data(), kel[iele], iele, compute_tangents);
 
-      // Assemble element pressure forces into residual force vector
-      for(int idof = 0; idof < packedEset[iele]->numDofs(); ++idof) {
-        int uDofNum = c_dsa->getRCN((*allDOFs)[iele][idof]);
-        if(uDofNum >= 0)
-          residual[uDofNum] += elementForce[idof];
-        else if(reactions) {
-          int cDofNum = c_dsa->invRCN((*allDOFs)[iele][idof]);
-          if(cDofNum >= 0)
-            (*reactions)[cDofNum] -= elementForce[idof];
-        }
+    // Assemble element force into residual vector
+    const int elemDofCount = kel[iele].dim();
+    for(int iDof = 0; iDof < elemDofCount; ++iDof) {
+      const int dofId = c_dsa->getRCN((*allDOFs)[iele][iDof]);
+      if (dofId >= 0) {
+        residual[dofId] -= elementForce[iDof];
       }
     }
   }
-
-  getNonElemFollowerForce(geomState, elementForce, corotators, kel, residual, lambda, time,
-                          refState, reactions, compute_tangents);
 }
 
 void
 Domain::getElemFollowerForce(int iele, GeomState &geomState, double *_f, int bufSize,
-                             Corotator &corotator, FullSquareMatrix &kel2,
+                             Corotator *corotator, FullSquareMatrix &kel,
                              double lambda, double time, bool compute_tangents,
                              BlastLoading::BlastData *conwep)
 {
   Vector elementForceBuf(_f,bufSize,false);
+
+  // 1. Treatment of element pressure
   PressureBCond *pbc;
   if((pbc = packedEset[iele]->getPressure()) != NULL) {
     Vector elementForce(bufSize);
@@ -197,315 +197,342 @@ Domain::getElemFollowerForce(int iele, GeomState &geomState, double *_f, int buf
     packedEset[iele]->computePressureForce(nodes, elementForce, &geomState, 1, time);
     pbc->val = p0;
 
-    // Include the "load stiffness matrix" in kel[iele]
-    if(compute_tangents) {
+    if(corotator) {
+      // Include the "load stiffness matrix" in kel2
+      if(compute_tangents) {
 
-      FullSquareMatrix elementLoadStiffnessMatrix(kel2.dim());
-      elementLoadStiffnessMatrix.zero();
-      corotator.getDExternalForceDu(geomState, nodes, elementLoadStiffnessMatrix,
-                                    elementForce.data());
-      for(int i=0; i<kel2.dim(); ++i)
-        for(int j=0; j<kel2.dim(); ++j)
-          kel2[i][j] += elementLoadStiffnessMatrix[i][j];
+        FullSquareMatrix k(kel.dim());
+        k.zero();
+        corotator->getDExternalForceDu(geomState, nodes, k, elementForce.data());
+        for(int i = 0; i < kel.dim(); ++i)
+          for(int j = 0; j < kel.dim(); ++j)
+            kel[i][j] += k[i][j];
+      }
+
+      // Determine the elemental force for the corrotated system
+      corotator->getExternalForce(geomState, nodes, elementForce.data());
     }
 
-    // Determine the elemental force for the corrotated system
-    corotator.getExternalForce(geomState, nodes, elementForce.data());
-    elementForceBuf += elementForce;
+    elementForceBuf -= elementForce;
   }
-}
 
-void
-Domain::getNonElemFollowerForce(GeomState &geomState, Vector& elementForce,
-                                Corotator **corotators, FullSquareMatrix *kel,
-                                Vector &residual, double lambda, double time,
-                                GeomState *refState, Vector *reactions, bool compute_tangents)
-{
-  // pressure using surfacetopo
-  int* edofs = (int*) dbg_alloca(maxNumDOFs*sizeof(int));
-  SubDomain *subCast = (numNeum > 0) ? dynamic_cast<SubDomain*>(this) : NULL;
-  PressureBCond *pbc;
-  for(int iele = 0; iele < numNeum; ++iele) {
-    if((pbc = neum[iele]->getPressure()) == NULL) continue;
-    neum[iele]->dofs(*dsa, edofs);
-    elementForce.zero();
+  // 2. Treatment of surface pressure
+  for(std::vector<std::pair<int,std::vector<int> > >::iterator it = elemAdj[iele].surfp.begin(); it != elemAdj[iele].surfp.end(); ++it) {
+
+    int i = it->first;
+    std::vector<int> &eledofs = it->second;
+
+    Vector f(neum[i]->numDofs());
+    f.zero();
 
     // Compute the amplified pressure due to MFTT and/or dlambda, if applicable
+    PressureBCond *pbc = neum[i]->getPressure();
     double mfttFactor = (pbc->mftt && sinfo.isDynam()) ? pbc->mftt->getVal(std::max(time,0.0)) : 1.0;
     double p0 = pbc->val;
     pbc->val *= (lambda*mfttFactor);
 
-    // Compute element pressure force using a preset blast loading function and/or amplified pressure value
-    neum[iele]->neumVector(nodes, elementForce, 0, &geomState, time);
-    pbc->val = p0;
+    // Compute surface element pressure force using the specified blast loading function and/or amplified pressure value
+    pbc->conwep = conwep;
+    neum[i]->neumVector(nodes, f, 0, &geomState, time);
 
-    // Include the "load stiffness matrix" in kel[iele]
-    if(compute_tangents) {
-      int jele = (subCast) ? subCast->globalToLocalElem(neum[iele]->getAdjElementIndex()) : neum[iele]->getAdjElementIndex();
-      if(jele > -1) {
-        FullSquareMatrix elementLoadStiffnessMatrix(neum[iele]->numDofs());
-        elementLoadStiffnessMatrix.zero();
-        neum[iele]->neumVectorJacobian(nodes, elementLoadStiffnessMatrix, 0, &geomState, time);
-        int *eledofs = new int[neum[iele]->numDofs()];
-        for(int j = 0; j < neum[iele]->numDofs(); ++j) {
-          for(int k = 0; k < allDOFs->num(jele); ++k)
-            if(edofs[j] == (*allDOFs)[jele][k]) { eledofs[j] = k; break; }
-        }
-        for(int i=0; i<neum[iele]->numDofs(); ++i)
-          for(int j=0; j<neum[iele]->numDofs(); ++j)
-            kel[jele][eledofs[i]][eledofs[j]] -= elementLoadStiffnessMatrix[i][j];
-        delete [] eledofs;
-      }
+    for(int j = 0; j < neum[i]->numDofs(); ++j) {
+      elementForceBuf[eledofs[j]] -= f[j];
     }
 
-    for(int idof = 0; idof < neum[iele]->numDofs(); ++idof) {
-      int uDofNum = c_dsa->getRCN(edofs[idof]);
-      if(uDofNum >= 0)
-        residual[uDofNum] += elementForce[idof];
-      else if(reactions) {
-        int cDofNum = c_dsa->invRCN((*allDOFs)[iele][idof]);
-        if(cDofNum >= 0)
-          (*reactions)[cDofNum] -= elementForce[idof];
+    // Include the "load stiffness matrix" in kel
+    if(compute_tangents) {
+      FullSquareMatrix k(neum[i]->numDofs());
+      k.zero();
+
+      neum[i]->neumVectorJacobian(nodes, k, 0, &geomState, time);
+
+      for(int i = 0; i < neum[i]->numDofs(); ++i)
+        for(int j = 0; j < neum[i]->numDofs(); ++j)
+          kel[eledofs[i]][eledofs[j]] -= k[i][j];
+    }
+
+    pbc->val = p0;
+  }
+
+  // 3. Treatment of configuration dependent nodal moments
+  for(std::vector<std::pair<int,std::vector<int> > >::iterator it = elemAdj[iele].cdnm.begin(); it != elemAdj[iele].cdnm.end(); ++it) {
+
+    int i = it->first;
+    std::vector<int> &eledofs = it->second;
+
+    double m0[3] = { 0, 0, 0 }, m[3], r[3], rotvar[3][3];
+    double mfttFactor = (domain->getMFTT(nbc[i].caseid) && sinfo.isDynam())
+                       ? domain->getMFTT(nbc[i].caseid)->getVal(std::max(time,0.0)) : 1.0;
+    m0[nbc[i].dofnum-3] = lambda*mfttFactor*nbc[i].val;
+
+    switch(nbc[i].mtype) {
+      case BCond::Axial : // axial (constant) moment: m = m0
+        for(int j = 0; j < 3; ++j) m[j] = m0[j];
+        break;
+      case BCond::Rotational : { // rotational moment: m = T^{-1}*m0
+        mat_to_vec(geomState[nbc[i].nnum].R, r);
+        pseudorot_var(r, rotvar);
+        mat_mult_vec(rotvar, m0, m, 1);
+      } break;
+      case BCond::Follower : // follower moment: m = R*m0
+        mat_mult_vec(geomState[nbc[i].nnum].R, m0, m, 0);
+        break;
+      default :
+        std::cerr << " *** WARNING: selected moment type is not supported\n";
+    }
+
+    for(int j = 0; j < 3; ++j) {
+      elementForceBuf[eledofs[j]] -= m[j];
+    }
+
+    // tangent stiffness contribution: 
+    if(compute_tangents) {
+      switch(nbc[i].mtype) {
+        case BCond::Axial : { // axial (constant) moment
+          double skewm0[3][3] = { {     0, -m0[2],  m0[1] },
+                                  {  m0[2],     0, -m0[0] },
+                                  { -m0[1],  m0[0],    0  } };
+          for(int j = 0; j < 3; ++j)
+            for(int k = 0; k < 3; ++k) 
+              rotvar[j][k] = 0.5*skewm0[j][k];
+        } break;
+        case BCond::Rotational : { // rotational moment
+          double scndvar[3][3];
+          pseudorot_2var(r, m0, scndvar);
+          for(int j = 0; j < 3; ++j)
+            for(int k = 0; k < 3; ++k)
+              rotvar[j][k] = 0.5*(scndvar[j][k] + scndvar[k][j]);
+        } break;
+        case BCond::Follower : { // follower moment
+          double skewm[3][3] = { {     0, -m[2],  m[1] },
+                                 {  m[2],     0, -m[0] },
+                                 { -m[1],  m[0],    0  } };
+          for(int j = 0; j < 3; ++j)
+            for(int k = 0; k < 3; ++k)
+              rotvar[j][k] = -0.5*skewm[j][k];
+        } break;
+      }
+
+      for(int j = 0; j < 3; ++j)
+        for(int k = 0; k < 3; ++k)
+          kel[eledofs[j]][eledofs[k]] -= rotvar[j][k];
+    }
+  }
+
+  // 4. Treatment of configuration dependent nodal forces
+  for(std::vector<std::pair<int,std::vector<int> > >::iterator it = elemAdj[iele].cdnf.begin(); it != elemAdj[iele].cdnf.end(); ++it) {
+
+    int i = it->first;
+    std::vector<int> &eledofs = it->second;
+
+    double f0[3] = { 0, 0, 0 }, f[3];
+    double mfttFactor = (domain->getMFTT(nbc[i].caseid) && sinfo.isDynam()) 
+                       ? domain->getMFTT(nbc[i].caseid)->getVal(std::max(time,0.0)) : 1.0;
+    f0[nbc[i].dofnum] = lambda*mfttFactor*nbc[i].val;
+
+    mat_mult_vec(geomState[nbc[i].nnum].R, f0, f, 0); // f = R*f0
+
+    for(int j = 0; j < 3; ++j) {
+      elementForceBuf[eledofs[j]] -= f[j];
+    }
+
+    // tangent stiffness contribution: 
+    if(compute_tangents) {
+      double skewf[3][3] = { {     0, -f[2],  f[1] },
+                             {  f[2],     0, -f[0] },
+                             { -f[1],  f[0],    0  } };
+
+      for(int j = 0; j < 3; ++j)
+        for(int k = 0; k < 3; ++k)
+          kel[eledofs[j]][eledofs[3+k]] += skewf[j][k];
+    }
+  }
+
+  // 5. Treatment of element thermal forces
+  //    By convention phantom elements do not have thermal load
+  if(domain->thermalFlag() && packedEset[iele]->getProperty() != 0) {
+
+    Vector elementTemp(packedEset[iele]->numNodes());
+    Vector elementForce(packedEset[iele]->numDofs());
+
+    // Extract the element nodal temperatures from temprcvd and/or element property ambient temperature
+    int *elemnodes = packedEset[iele]->nodes();
+    for(int inod = 0; inod < packedEset[iele]->numNodes(); ++inod) {
+      double t = temprcvd[elemnodes[inod]];
+      elementTemp[inod] = (t == defaultTemp) ? packedEset[iele]->getProperty()->Ta : t;
+    }
+    delete [] elemnodes;
+
+    // Compute element thermal force in the local coordinates
+    elementForce.zero();
+    packedEset[iele]->getThermalForce(nodes, elementTemp, elementForce, 1);
+
+    if(corotator) {
+      // Include the "load stiffness matrix" in kel
+      if(compute_tangents) {
+        FullSquareMatrix k(kel.dim());
+        k.zero();
+        corotator->getDExternalForceDu(geomState, nodes, k, elementForce.data());
+
+        for(int i = 0; i < kel.dim(); ++i)
+          for(int j = 0; j < kel.dim(); ++j)
+            kel[i][j] += k[i][j];
+      }
+
+      // Determine the elemental force for the corrotated system
+      corotator->getExternalForce(geomState, nodes, elementForce.data());
+    }
+
+    elementForceBuf -= elementForce;
+  }
+}
+
+void
+Domain::makeElementAdjacencyLists()
+{
+  elemAdj = new AdjacencyLists[numele]; 
+  bool makeFollowedElemList = (!domain->solInfo().reduceFollower && domain->solInfo().galerkinPodRom);
+
+  // 1. pressure applied to elements
+  if(domain->pressureFlag()) {
+    if(makeFollowedElemList) {
+      for(int iele = 0; iele < numele; ++iele) {
+        if(packedEset[iele]->getPressure() != NULL) followedElemList.push_back(iele);
       }
     }
   }
 
-  // treatment of nodal moments
+  // 2. pressure using surfacetopo
+  //    build the map from kel array index to neum array index
+  SubDomain *subCast = (numNeum > 0) ? dynamic_cast<SubDomain*>(this) : NULL;
+  if(!subCast && !sommerChecked) checkSommerTypeBC(this);
+  for(int i = 0; i < numNeum; ++i) {
+    if((neum[i]->getPressure()) == NULL) continue;
+    int iele = (subCast) ? subCast->globalToLocalElem(neum[i]->getAdjElementIndex()) : neum[i]->getAdjElementIndex();
+
+    int *dofs = new int[neum[i]->numDofs()];
+    neum[i]->dofs(*dsa, dofs);
+
+    std::vector<int> eledofs(neum[i]->numDofs());
+    for(int j = 0; j < neum[i]->numDofs(); ++j) {
+      for(int k = 0; k < allDOFs->num(iele); ++k)
+        if(dofs[j] == (*allDOFs)[iele][k]) { eledofs[j] = k; break; }
+    }
+
+    elemAdj[iele].surfp.push_back(std::pair<int,std::vector<int> >(i,eledofs));
+    if(makeFollowedElemList) followedElemList.push_back(iele);
+
+    delete [] dofs;
+  }
+
+  // 3. configuration-dependent nodal moments
+  //    build map from kel array index to nbc array index
   for(int i = 0; i < numNeuman; ++i) {
     if((nbc[i].type == BCond::Forces || nbc[i].type == BCond::Usdf || nbc[i].type == BCond::Actuators) 
        && (nbc[i].dofnum == 3 || nbc[i].dofnum == 4 || nbc[i].dofnum == 5)) {
       int dofs[3];
       dsa->number(nbc[i].nnum, DofSet::XYZrot, dofs);
-      double m0[3] = { 0, 0, 0 }, m[3], r[3], rotvar[3][3];
-      double mfttFactor = (domain->getMFTT(nbc[i].caseid) && sinfo.isDynam())
-                         ? domain->getMFTT(nbc[i].caseid)->getVal(std::max(time,0.0)) : 1.0;
-      m0[nbc[i].dofnum-3] = lambda*mfttFactor*nbc[i].val;
-
-      switch(nbc[i].mtype) {
-        case BCond::Axial : // axial (constant) moment: m = m0
-          for(int j=0; j<3; ++j) m[j] = m0[j];
+      bool foundAdj = false;
+      for(int inode = 0; inode < nodeToElem->num(nbc[i].nnum); ++inode) { // loop over the elements attached to the node
+                                                                          // at which the nodal moment is applied
+        int iele = (*nodeToElem)[nbc[i].nnum][inode];
+        std::vector<int> eledofs(3);
+        for(int j = 0; j < 3; ++j) {
+          eledofs[j] = -1;
+          for(int k = 0; k < allDOFs->num(iele); ++k)
+            if(dofs[j] == (*allDOFs)[iele][k]) { eledofs[j] = k; break; }
+        }
+        if(eledofs[0] != -1 && eledofs[1] != -1 && eledofs[2] != -1) {
+          // found an element with the 3 rotation dofs of node nbc[i].nnum
+          elemAdj[iele].cdnm.push_back(std::pair<int,std::vector<int> >(i,eledofs));
+          if(makeFollowedElemList) followedElemList.push_back(iele);
+          foundAdj = true;
           break;
-        case BCond::Rotational : { // rotational moment: m = T^{-1}*m0
-          mat_to_vec(geomState[nbc[i].nnum].R,r);
-          pseudorot_var(r, rotvar);
-          mat_mult_vec(rotvar,m0,m,1);
-        } break;
-        case BCond::Follower : // follower moment: m = R*m0
-          mat_mult_vec(geomState[nbc[i].nnum].R,m0,m,0);
-          break;
-        default :
-          std::cerr << " *** WARNING: selected moment type is not supported\n";
-      }
-      // tangent stiffness contribution: 
-      if(compute_tangents) {
-        switch(nbc[i].mtype) {
-          case BCond::Axial : { // axial (constant) moment
-            double skewm0[3][3] = { {     0, -m0[2],  m0[1] },
-                                    {  m0[2],     0, -m0[0] },
-                                    { -m0[1],  m0[0],    0  } };
-            for(int j=0; j<3; ++j)
-              for(int k=0; k<3; ++k) 
-                rotvar[j][k] = 0.5*skewm0[j][k];
-          } break;
-          case BCond::Rotational : { // rotational moment
-            double scndvar[3][3];
-            pseudorot_2var(r, m0, scndvar);
-            for(int j=0; j<3; ++j)
-              for(int k=0; k<3; ++k)
-                rotvar[j][k] = 0.5*(scndvar[j][k] + scndvar[k][j]);
-          } break;
-          case BCond::Follower : { // follower moment
-            double skewm[3][3] = { {     0, -m[2],  m[1] },
-                                   {  m[2],     0, -m[0] },
-                                   { -m[1],  m[0],    0  } };
-            for(int j=0; j<3; ++j)
-              for(int k=0; k<3; ++k)
-                rotvar[j][k] = -0.5*skewm[j][k];
-          } break;
         }
       }
-      if(domain->solInfo().galerkinPodRom) { // transform nodal moments)
-        transformNodalMoment(geomState, m, rotvar, nbc[i].nnum, compute_tangents);
-      }
-      for(int j = 0; j < 3; ++j) {
-        int uDofNum = c_dsa->getRCN(dofs[j]);
-        if(uDofNum >= 0)
-          residual[uDofNum] += m[j];
-        else if(reactions) {
-          int cDofNum = c_dsa->invRCN(dofs[j]);
-          if(cDofNum >= 0)
-            (*reactions)[cDofNum] -= m[j];
-        }
-      }
-      if(compute_tangents) {
-        for(int inode = 0; inode < nodeToElem->num(nbc[i].nnum); ++inode) { // loop over the elements attached to the node
-                                                                            // at which the nodal moment is applied
-          int iele = (*nodeToElem)[nbc[i].nnum][inode];
-          int eledofs[3] = { -1, -1, -1 };
-          for(int j = 0; j < 3; ++j) {
-            for(int k = 0; k < allDOFs->num(iele); ++k)
-              if(dofs[j] == (*allDOFs)[iele][k]) { eledofs[j] = k; break; }
-          }
-          if(eledofs[0] != -1 && eledofs[1] != -1 && eledofs[2] != -1) {
-            // found an element with the 3 rotation dofs of node nbc[i].nnum so we can add the load stiffness
-            // contribution of the nodal moment to the tangent stiffness matrix of this element
-            for(int j = 0; j < 3; ++j)
-              for(int k = 0; k < 3; ++k)
-                kel[iele][eledofs[j]][eledofs[k]] -= rotvar[j][k];
-            break;
-          }
-        }
-      }
+      if(!foundAdj) std::cerr << " *** WARNING: could not find adjacent element for configuration-dependent nodal moment\n";
     }
   }
 
-  // treatment of nodal follower forces
+  // 4. configuration-dependent nodal forces
+  //    build map from kel array index to nbc array index
   for(int i = 0; i < numNeuman; ++i) {
     if((nbc[i].type == BCond::Forces || nbc[i].type == BCond::Usdf || nbc[i].type == BCond::Actuators) 
        && (nbc[i].dofnum == 0 || nbc[i].dofnum == 1 || nbc[i].dofnum == 2)
        && nbc[i].mtype == BCond::Follower) {
       int dofs[6];
       dsa->number(nbc[i].nnum, DofSet::XYZdisp | DofSet::XYZrot, dofs);
-      double f0[3] = { 0, 0, 0 }, f[3] = { 0, 0, 0 }, r[3], rotvar[3][3];
-      double mfttFactor = (domain->getMFTT(nbc[i].caseid) && sinfo.isDynam()) 
-                         ? domain->getMFTT(nbc[i].caseid)->getVal(std::max(time,0.0)) : 1.0;
-      f0[nbc[i].dofnum] = lambda*mfttFactor*nbc[i].val;
-      mat_mult_vec(geomState[nbc[i].nnum].R,f0,f,0); // f = R*f0
-      if(domain->solInfo().galerkinPodRom) {
-        // XXX transform
-      }
-      for(int j = 0; j < 3; ++j) {
-        int uDofNum = c_dsa->getRCN(dofs[j]);
-        if(uDofNum >= 0)
-          residual[uDofNum] += f[j];
-        else if(reactions) {
-          int cDofNum = c_dsa->invRCN(dofs[j]);
-          if(cDofNum >= 0)
-            (*reactions)[cDofNum] -= f[j];
+      bool foundAdj = false;
+      for(int inode = 0; inode < nodeToElem->num(nbc[i].nnum); ++inode) { // loop over the elements attached to the node
+                                                                          // at which the nodal force is applied
+        int iele = (*nodeToElem)[nbc[i].nnum][inode];
+        std::vector<int> eledofs(6);
+        for(int j = 0; j < 6; ++j) {
+          eledofs[j] = -1;
+          for(int k = 0; k < allDOFs->num(iele); ++k)
+            if(dofs[j] == (*allDOFs)[iele][k]) { eledofs[j] = k; break; }
+        }
+        if(eledofs[0] != -1 && eledofs[1] != -1 && eledofs[2] != -1 &&
+           eledofs[3] != -1 && eledofs[4] != -1 && eledofs[5] != -1) {
+          // found an element with the 6 translation & rotation dofs of node nbc[i].nnum 
+          elemAdj[iele].cdnf.push_back(std::pair<int,std::vector<int> >(i,eledofs));
+          if(makeFollowedElemList) followedElemList.push_back(iele);
+          foundAdj = true;
+          break;
         }
       }
-      // tangent stiffness contribution: 
-      if(compute_tangents) {
-        double skewf[3][3] = { {     0, -f[2],  f[1] },
-                               {  f[2],     0, -f[0] },
-                               { -f[1],  f[0],    0  } };
+      if(!foundAdj) std::cerr << " *** WARNING: could not find adjacent element for configuration-dependent nodal force\n";
+    }
+  }
 
-        for(int inode = 0; inode < nodeToElem->num(nbc[i].nnum); ++inode) { // loop over the elements attached to the node
-                                                                            // at which the nodal moment is applied
-          int iele = (*nodeToElem)[nbc[i].nnum][inode];
-          int eledofs[6] = { -1, -1, -1, -1, -1, -1 };
-          for(int j = 0; j < 6; ++j) {
+  // 5. thermal forces
+  if(domain->thermalFlag()) {
+    if(!temprcvd) initNodalTemperatures();
+    if(makeFollowedElemList) {
+      for(int iele = 0; iele < numele; ++iele) followedElemList.push_back(iele);
+    }
+  }
+
+  // 6. discrete inertias
+  if(firstDiMass != NULL) {
+    DMassData *current = firstDiMass;
+    while(current != 0) {
+      int idof = current->dof;
+      int jdof = (current->jdof > -1) ? current->jdof : idof;
+      if((idof == 3 || idof == 4 || idof == 5) && (jdof == 3 || jdof == 4 || jdof == 5)) {
+
+        int dofs[3];
+        dsa->number(current->node, DofSet::XYZrot, dofs);
+
+        bool foundAdj = false;
+        for(int inode = 0; inode < nodeToElem->num(current->node); ++inode) { // loop over the elements attached to the node
+                                                                              // at which the discrete mass is located
+          int iele = (*nodeToElem)[current->node][inode];
+          std::vector<int> eledofs(3);
+          for(int j = 0; j < 3; ++j) {
+            eledofs[j] = -1;
             for(int k = 0; k < allDOFs->num(iele); ++k)
               if(dofs[j] == (*allDOFs)[iele][k]) { eledofs[j] = k; break; }
           }
-          if(eledofs[0] != -1 && eledofs[1] != -1 && eledofs[2] != -1 &&
-             eledofs[3] != -1 && eledofs[4] != -1 && eledofs[5] != -1) {
-            // found an element with the 6 translation & rotation dofs of node nbc[i].nnum so we can add the load stiffness
-            // contribution of the nodal force to the tangent stiffness matrix of this element
-            for(int j = 0; j < 3; ++j)
-              for(int k = 0; k < 3; ++k)
-                kel[iele][eledofs[j]][eledofs[3+k]] -= -skewf[j][k];
+
+          if(eledofs[0] != -1 && eledofs[1] != -1 && eledofs[2] != -1) {
+            // found an element with the 3 rotation dofs of current->node
+            elemAdj[iele].dimass.push_back(std::pair<DMassData*,std::vector<int> >(current,eledofs));
+            foundAdj = true;
             break;
           }
         }
+        if(!foundAdj) std::cerr << " *** WARNING: could not find adjacent element for discrete mass\n";
       }
+      current = current->next;
     }
   }
 
-  if(domain->thermalFlag()) {
-    if(!temprcvd) initNodalTemperatures();
-    Vector elementTemp(maxNumNodes);
-    for(int iele = 0; iele < numele;  ++iele) {
-      // By convention phantom elements do not have thermal load
-      if(packedEset[iele]->getProperty() == 0) continue;
-
-      // Extract the element nodal temperatures from temprcvd and/or element property ambient temperature
-      for(int inod = 0; inod < elemToNode->num(iele); ++inod) {
-        double t = temprcvd[(*elemToNode)[iele][inod]];
-        elementTemp[inod] = (t == defaultTemp) ? packedEset[iele]->getProperty()->Ta : t;
-      }
-
-      // Compute element thermal force in the local coordinates
-      elementForce.zero();
-      packedEset[iele]->getThermalForce(nodes, elementTemp, elementForce, 1);
-/*
-      elementForce *= lambda;
-
-      // Include the "load stiffness matrix" in kel[iele]
-      if(compute_tangents)
-        corotators[iele]->getDExternalForceDu(geomState, nodes, kel[iele],
-                                              elementForce.data());
-*/
-      // Determine the elemental force for the corrotated system
-      corotators[iele]->getExternalForce(geomState, nodes, elementForce.data());
-
-      // Assemble element thermal forces into residual force vector
-      for(int idof = 0; idof < packedEset[iele]->numDofs(); ++idof) {
-        int uDofNum = c_dsa->getRCN((*allDOFs)[iele][idof]);
-        if(uDofNum >= 0)
-          residual[uDofNum] += elementForce[idof];
-        else if(reactions) {
-          int cDofNum = c_dsa->invRCN((*allDOFs)[iele][idof]);
-          if(cDofNum >= 0)
-            (*reactions)[cDofNum] -= elementForce[idof];
-        }
-      }
-    }
+  if(makeFollowedElemList) {
+    std::sort(followedElemList.begin(), followedElemList.end());
+    std::vector<int>::iterator it = std::unique(followedElemList.begin(), followedElemList.end());
+    followedElemList.resize(it-followedElemList.begin());
   }
-}
-
-void
-Domain::getWeightedFollowerForceOnly(const std::map<int, double> &weights,
-                                     GeomState &geomState, Vector& elementForce,
-                                     Corotator **corotators, FullSquareMatrix *kel,
-                                     Vector &residual, double lambda, double time,
-                                     GeomState *refState, Vector *reactions, bool compute_tangents)
-{
-  if(domain->pressureFlag()) {
-    BlastLoading::BlastData *conwep = (domain->solInfo().ConwepOnOff) ? &BlastLoading::InputFileData : NULL;
-    double p0;
-    for (std::map<int, double>::const_iterator it = weights.begin(), it_end = weights.end(); it != it_end; ++it) {
-      const int iele = it->first;
-      const double lumpingWeight = it->second;
-     
-      elementForce.zero();
-      if(compute_tangents) {
-        FullSquareMatrix kel2(kel[iele].dim());
-        kel2.zero();
-
-        getElemFollowerForce(iele, geomState, elementForce.data(), elementForce.size(),
-                             *(corotators[iele]), kel2, lambda, time, compute_tangents, conwep);
-
-        // Include the "load stiffness matrix" in kel[iele]
-        kel2 *= lumpingWeight;
-        kel[iele] += kel2;
-      }
-      else {
-        getElemFollowerForce(iele, geomState, elementForce.data(), elementForce.size(),
-                             *(corotators[iele]), kel[iele], lambda, time, compute_tangents, conwep);
-      }
-
-      elementForce *= lumpingWeight;
-
-      // Assemble element pressure forces into residual force vector
-      for(int idof = 0; idof < packedEset[iele]->numDofs(); ++idof) {
-        int uDofNum = c_dsa->getRCN((*allDOFs)[iele][idof]);
-        if(uDofNum >= 0)
-          residual[uDofNum] += elementForce[idof];
-        else if(reactions) {
-          int cDofNum = c_dsa->invRCN((*allDOFs)[iele][idof]);
-          if(cDofNum >= 0)
-            (*reactions)[cDofNum] -= elementForce[idof];
-        }
-      }
-    }
-  }
-
-  // TODO the non-elemeent follower forces could be reduced in the same way as the element followr forces
-  //      using their element associations which are currently computed when compute_tangents is true to add the 
-  //      load stiffness contribution to kel
-  getNonElemFollowerForce(geomState, elementForce, corotators, kel, residual, lambda, time,
-                          refState, reactions, compute_tangents);
 }
 
 void
@@ -517,54 +544,73 @@ Domain::getWeightedStiffAndForceOnly(const std::map<int, double> &weights,
 {
   const double pseudoTime = sinfo.isDynam() ? time : lambda; // MPC needs lambda for nonlinear statics
   const bool initialTime = (sinfo.isDynam() && time == 0 && solInfo().newmarkBeta != 0);
+
+  BlastLoading::BlastData *conwep = (domain->solInfo().ConwepOnOff) ? &BlastLoading::InputFileData : NULL;
+  bool compute_tangents = !initialTime;
+  if(!elemAdj) makeElementAdjacencyLists();
+
+  if(!domain->solInfo().reduceFollower) {
+    // Zero element stiffness. otherwise, the follower force tangents will accumulate
+    for(std::vector<int>::iterator it = followedElemList.begin(), it_end = followedElemList.end(); it != it_end; ++it) kel[*it].zero();
+  }
   
-  for (std::map<int, double>::const_iterator it = weights.begin(), it_end = weights.end(); it != it_end; ++it) {
-    const int iElem = it->first;
+  for(std::map<int, double>::const_iterator it = weights.begin(), it_end = weights.end(); it != it_end; ++it) {
+    const int iele = it->first;
+
+    elementForce.zero();
+    FullSquareMatrix &elementStiff = kel[iele];
 
     // Get updated tangent stiffness matrix and element internal force
-    if (const Corotator *elementCorot = corotators[iElem]) {
-      elementForce.zero();
-
-      FullSquareMatrix &elementStiff = kel[iElem];
+    if (const Corotator *elementCorot = corotators[iele]) {
       getElemStiffAndForce(geomState, pseudoTime, refState, *elementCorot, elementForce.data(), elementStiff);
-      if(domain->solInfo().galerkinPodRom && packedEset[iElem]->hasRot()) {
-        transformElemStiffAndForce(geomState, elementForce.data(), elementStiff, iElem, true);
-      }
+    }
+
+    // Add configuration-dependent external forces and their element stiffness contributions
+    if(domain->solInfo().reduceFollower) {
+      getElemFollowerForce(iele, geomState, elementForce.data(), elementForce.size(),
+                           (corotators[iele]), elementStiff, lambda, time, compute_tangents, conwep);
+    }
+
+    if(packedEset[iele]->hasRot()) {
+      // Transform element stiffness and force to solve for the increment in the total rotation vector
+      transformElemStiffAndForce(geomState, elementForce.data(), elementStiff, iele, true);
+    }
    
-      // Apply lumping weight 
-      const double lumpingWeight = it->second;
-      elementForce *= lumpingWeight;
-      elementStiff *= lumpingWeight;
+    // Apply lumping weight 
+    const double lumpingWeight = it->second;
+    elementForce *= lumpingWeight;
+    elementStiff *= lumpingWeight;
 
-      const int elemDofCount = elementStiff.dim();
-      for(int iDof = 0; iDof < elemDofCount; ++iDof) {
-        const int dofId = c_dsa->getRCN((*allDOFs)[iElem][iDof]);
-        if (dofId >= 0) {
-          residual[dofId] -= elementForce[iDof];
-        }
+    // Assemble element force into residual vector
+    const int elemDofCount = elementStiff.dim();
+    for(int iDof = 0; iDof < elemDofCount; ++iDof) {
+      const int dofId = c_dsa->getRCN((*allDOFs)[iele][iDof]);
+      if (dofId >= 0) {
+        residual[dofId] -= elementForce[iDof];
       }
     }
   }
 
-  bool compute_tangents = !initialTime;
-  // TODO the state at the nodes on which the non-reduced follower forces act need to be updated for modelIII
-  if(domain->solInfo().reduceFollower) {
-    getWeightedFollowerForceOnly(weights, geomState, elementForce, corotators, kel, residual, lambda, time,
-                                 refState, NULL, compute_tangents);
-  }
-  else {
-    getFollowerForce(geomState, elementForce, corotators, kel, residual, lambda, time, refState, NULL,
-                     compute_tangents);
+  if(!domain->solInfo().reduceFollower) {
+    getFollowerForce(geomState, elementForce, corotators, kel, residual, lambda, time, refState, NULL, compute_tangents);
   }
 
-  if(sinfo.isDynam() && mel) getWeightedFictitiousForceOnly(weights, geomState, elementForce, kel, residual, time,
-                                                            refState, NULL, mel, compute_tangents);
+  if(sinfo.isDynam() && mel) {
+    getWeightedFictitiousForceOnly(weights, geomState, elementForce, kel, residual, time,
+                                   refState, NULL, mel, compute_tangents);
+  }
 
-  if(!solInfo().getNLInfo().unsymmetric && solInfo().newmarkBeta != 0)
-    for (std::map<int, double>::const_iterator it = weights.begin(), it_end = weights.end(); it != it_end; ++it) {
-      const int iElem = it->first;
-      kel[iElem].symmetrize();
+  if(!solInfo().getNLInfo().unsymmetric && solInfo().newmarkBeta != 0) {
+    for(std::map<int, double>::const_iterator it = weights.begin(), it_end = weights.end(); it != it_end; ++it) {
+      const int iele = it->first;
+      kel[iele].symmetrize();
     }
+    if(!domain->solInfo().reduceFollower) {
+      for(std::vector<int>::iterator it = followedElemList.begin(), it_end = followedElemList.end(); it != it_end; ++it) {
+        kel[*it].symmetrize();
+      }
+    }
+  }
 }
 
 void

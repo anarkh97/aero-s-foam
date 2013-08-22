@@ -3520,7 +3520,7 @@ Domain::computeConstantForce(GenVector<Scalar>& cnst_f, GenSparseMatrix<Scalar>*
   // This is called for linear and nonlinear dynamics 
   // cnst_f is independent of t
 
-  if(! dynamic_cast<GenSubDomain<Scalar>*> (this)) checkSommerTypeBC(this);
+  if(!dynamic_cast<GenSubDomain<Scalar>*>(this) && !sommerChecked) checkSommerTypeBC(this);
 
   cnst_f.zero();
 

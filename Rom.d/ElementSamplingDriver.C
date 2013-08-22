@@ -79,6 +79,7 @@ outputFullWeights(const FileNameInfo &fileInfo, const Vector &weights, const std
   const std::string fileName = domain->solInfo().reducedMeshFile;
   const std::ios_base::openmode mode = std::ios_base::out;
   std::ofstream weightOut(fileName.c_str(), mode);
+  weightOut.precision(std::numeric_limits<double>::digits10+1);
   bool firstTime = true;
 
   weightOut << "ATTRIBUTES\n";
@@ -174,6 +175,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::assembleTrainingData(Vector &t
     filePrint(stderr, " *** ERROR: Must provide one Conwep configuration per state snapshot file\n");
     exit(-1);
   }
+  domain_->makeElementAdjacencyLists();
 
   for (int iElem = 0; iElem != elementCount(); ++iElem) {
     filePrint(stderr,"\r %4.2f%% complete", double(iElem)/double(elementCount())*100.);
@@ -193,15 +195,17 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::assembleTrainingData(Vector &t
             (*accel_)[iSnap], 2); // just set the acceleration at the nodes of element iElem
         // Evaluate and store element contribution at training configuration
         domain_->getElemInternalForce(*geomState_, *timeStampIt, geomState_, *(corotators_[iElem]), elementForce.array(), kelArray_[iElem]);
+        if(domain_->solInfo().reduceFollower)
+          domain_->getElemFollowerForce(iElem, *geomState_, elementForce.array(), elementForce.size(), (corotators_[iElem]),
+                                        kelArray_[iElem], 1.0, *timeStampIt, false, conwep);
         if(domain_->getElementSet()[iElem]->hasRot()) {
           domain_->transformElemStiffAndForce(*geomState_, elementForce.array(), kelArray_[iElem], iElem, false);
           domain_->getElemFictitiousForce(iElem, *geomState_, elementForce.array(), kelArray_[iElem],
               *timeStampIt, geomState_, melArray_[iElem], false);
         }
-
-        if(domain_->solInfo().reduceFollower)
-          domain_->getElemFollowerForce(iElem, *geomState_, elementForce.array(), elementForce.size(), *(corotators_[iElem]), 
-                                        kelArray_[iElem], 1.0, *timeStampIt, false, conwep);
+        //if(domain_->solInfo().reduceFollower)
+        //  domain_->getElemFollowerForce(iElem, *geomState_, elementForce.array(), elementForce.size(), *(corotators_[iElem]),
+        //                                kelArray_[iElem], 1.0, *timeStampIt, false, conwep);
 
         elemTarget.zero();
         const int dofCount = kelArray_[iElem].dim();

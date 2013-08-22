@@ -155,6 +155,13 @@ struct PrevFrc {
    PrevFrc(int neq) : lastFluidLoad(neq, 0.0) { lastTIndex = -1; }
 };
 
+struct AdjacencyLists {
+  std::vector<std::pair<int,std::vector<int> > > surfp;
+  std::vector<std::pair<int,std::vector<int> > > cdnm;
+  std::vector<std::pair<int,std::vector<int> > > cdnf;
+  std::vector<std::pair<DMassData*,std::vector<int> > > dimass;
+};
+
 /** Class representing a structure and containing all auxiliary data-structures
  *
  */
@@ -277,6 +284,9 @@ class Domain : public HData {
 
     StructProp *p; // property for new constraints
 
+    AdjacencyLists *elemAdj;
+    std::vector<int> followedElemList;
+
   public:
     // Implements nonlinear dynamics postprocessing for file # fileId
     void postProcessingImpl(int fileId, GeomState*, Vector&, Vector&,
@@ -344,30 +354,19 @@ class Domain : public HData {
                            Vector &residual, double lambda = 1.0, double time = 0.0,
                            GeomState *refState = NULL, Vector *reactions = NULL,
                            FullSquareMatrix *mel = NULL);
+     void makeElementAdjacencyLists();
+     std::vector<int>& getFollowedElemList() { return followedElemList; }
      void getFollowerForce(GeomState &u, Vector &elementInternalForce,
                            Corotator **allCorot, FullSquareMatrix *kel,
                            Vector &residual, double lambda = 1.0, double time = 0.0,
                            GeomState *refState = NULL, Vector *reactions = NULL,
                            bool compute_tangents = false);
-     void getWeightedFollowerForceOnly(const std::map<int, double> &weights,
-                                       GeomState &u, Vector &elementInternalForce,
-                                       Corotator **allCorot, FullSquareMatrix *kel,
-                                       Vector &residual, double lambda = 1.0, double time = 0.0,
-                                       GeomState *refState = NULL, Vector *reactions = NULL,
-                                       bool compute_tangents = false);
      void getElemFollowerForce(int iele, GeomState &geomState, double *_f, int bufSize,
-                               Corotator &corotators, FullSquareMatrix &kel2,
+                               Corotator *corotator, FullSquareMatrix &kel,
                                double loadFactor, double time, bool compute_tangents,
                                BlastLoading::BlastData *conwep);
-     void getNonElemFollowerForce(GeomState &u, Vector &elementInternalForce,
-                                  Corotator **allCorot, FullSquareMatrix *kel,
-                                  Vector &residual, double lambda = 1.0, double time = 0.0,
-                                  GeomState *refState = NULL, Vector *reactions = NULL,
-                                  bool compute_tangents = false);
      void getElemFictitiousForce(int iele, GeomState &geomState, double *f, FullSquareMatrix &kel,
                                  double time, GeomState *refState, FullSquareMatrix &mel, bool compute_tangents);
-     void getDMassFictitiousForce(GeomState &geomState, FullSquareMatrix *kel, Vector &residual, double time,
-                                  GeomState *refState, Vector *reactions, bool compute_tangents);
      void getFictitiousForce(GeomState &geomState, Vector &elementForce, FullSquareMatrix *kel, Vector &residual,
                                 double time, GeomState *refState, Vector *reactions,
                                 FullSquareMatrix *mel, bool compute_tangents);

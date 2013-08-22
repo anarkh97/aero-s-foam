@@ -152,19 +152,29 @@ DistrExplicitLumpedPodProjectionNonLinDynamic::subBuildPackedElementWeights(int 
     const double weight = it->second;
     if (weight != 0.0) {
       Element *ele = sd->getElementSet()[packedId]; // get weighted element data
-      std::vector<int> node_buffer; node_buffer.resize(ele->numNodes()); //resize node buffer
+      std::vector<int> node_buffer(ele->numNodes());
       subElementWeights.insert(subElementWeights.end(), std::make_pair(packedId, weight)); //pack element weight
       //put nodes for weighted element into dummy vector and insert into packed node vector
       ele->nodes(node_buffer.data());
       subWeightedNodes.insert(subWeightedNodes.end(), node_buffer.begin(), node_buffer.end());
     }
   }
-/* TODO
-  //add the nodes with nodal external forces
+
+  if(!domain->solInfo().reduceFollower) {
+    // add the nodes for all elements to which follower forces have been applied
+    std::vector<int> &followedElemList = sd->getFollowedElemList();
+    for(std::vector<int>::iterator it = followedElemList.begin(), it_end = followedElemList.end(); it != it_end; ++it) {
+      Element *ele = sd->getElementSet()[*it]; 
+      std::vector<int> node_buffer(ele->numNodes());
+      ele->nodes(node_buffer.data());
+      subWeightedNodes.insert(subWeightedNodes.end(), node_buffer.begin(), node_buffer.end());
+    }
+  }
+/* XXX consider whether to also add the nodes with non-follower external forces
   for(int i = 0; i < sd->nNeumann(); ++i) {
     subWeightedNodes.push_back(sd->getNBC()[i].nnum);
   }
-*/ 
+*/
   //sort nodes in ascending order and erase redundant nodes
   std::sort(subWeightedNodes.begin(), subWeightedNodes.end());
   std::vector<int>::iterator packedNodeIt = std::unique(subWeightedNodes.begin(),subWeightedNodes.end());

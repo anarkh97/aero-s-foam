@@ -84,6 +84,7 @@ class HData
      //SkyMatrix *Mff;
      int *sBoundMap;
      int numComplexLMPC;        // number of complex Linear Multi-Point Constraints
+     bool sommerChecked;
 
      HData();
      virtual ~HData();

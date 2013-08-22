@@ -407,6 +407,7 @@ DistrElementSamplingDriver::solve() {
     // Weights output file generation
     const std::string fileName = domain->solInfo().reducedMeshFile;
     std::ofstream weightOut(fileName.c_str(), std::ios_base::out);
+    weightOut.precision(std::numeric_limits<double>::digits10+1);
     weightOut << "ATTRIBUTES\n";
     bool firstTime = true;
     for(int i = 0; i < gweights.size(); i++) {

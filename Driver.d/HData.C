@@ -77,6 +77,8 @@ HData::HData() : sommer(0), scatter(0), neum(0), wet(0), sBoundNodes(0)
 
 //  fluidDensity = 1.0;
   fluidCelerity = 1.0;
+
+  sommerChecked = false;
 }
 
 int
@@ -2343,6 +2345,7 @@ HData::checkSommerTypeBC(Domain *dom, Connectivity *_elemToNode, Connectivity *_
  delete[] eleCount;
  if(!_nodeToElem) delete nodeToPackedElem;
  if(!_elemToNode) delete packedElemToNode;
+ sommerChecked = true;
 }
 
 void

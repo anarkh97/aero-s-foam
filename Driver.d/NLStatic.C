@@ -61,8 +61,8 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
  *  and assemble element internal force into global internal force.
  *  Also compute configuration-dependent external force contribution
  *  to both tangential stiffness matrix and residual.
- *  Also for dynamics, compute fictitious (inertial) force contribution
- *  to both tangential stiffness matrix and residual.
+ *  Also for dynamics, compute fictitious (inertial) force
+ *  contribution to both tangential stiffness matrix and residual.
  *
  * Input :
  *
@@ -73,6 +73,7 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
  * Output :
  *
  *  residual   : residual vector = external force - internal force
+ *                                 - fictitious force
  *  kel        : array of element tangential stiffness matrices
  *               in current configuration
  *
@@ -119,9 +120,6 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
       transformElemStiffAndForce(geomState, elementForce.data(), kel[iele], iele, true);
     }
 
-    //if(sinfo.isDynam() && mel)
-    //getElemFictitiousForce(iele, geomState, elementForce.data(), kel[iele], time, refState, mel[iele], compute_tangents);
-
     // Assemble element force into residual vector
     for(int idof = 0; idof < kel[iele].dim(); ++idof) {
       int uDofNum = c_dsa->getRCN((*allDOFs)[iele][idof]);
@@ -135,6 +133,7 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
     }
   }
 
+  // XXX consider adding the element fictitious forces inside the loop
   if(sinfo.isDynam() && mel) getFictitiousForce(geomState, elementForce, kel, residual, time, refState, reactions,
                                                 mel, compute_tangents);
 

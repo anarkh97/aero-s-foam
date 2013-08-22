@@ -51,7 +51,9 @@ Domain::getInternalForce(GeomState &geomState, Vector& elementForce,
  *  Compute element internal force
  *  and assemble element internal force into global internal force.
  *  Also compute follower external force contribution to
- *  residual
+ *  residual.
+ *  Also for dynamics, compute fictitious (inertial) force
+ *  contribution to residual.
  *
  * Input :
  *
@@ -62,6 +64,7 @@ Domain::getInternalForce(GeomState &geomState, Vector& elementForce,
  * Output :
  *
  *  residual   : residual vector = external force - internal force
+ *                                 - fictitious force
  *
  *****************************************************************/
 

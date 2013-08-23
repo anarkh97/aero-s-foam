@@ -59,8 +59,7 @@ StaticSolver< Scalar, OpSolver, VecType,
    if(nRHS==0) filePrint(stderr, " *** ERROR: nRHS = 0 \n");
 
 // RT 070513
- fprintf(stderr,"haha %d\n",domain->solInfo().getSweepParams()->nFreqSweepRHS);
-   if (domain->solInfo().getSweepParams()->freqSweepMethod==SweepParams::Taylor        && domain->solInfo().getSweepParams()->nFreqSweepRHS==1)
+   if (domain->solInfo().getSweepParams()->freqSweepMethod==SweepParams::Taylor        && domain->solInfo().getSweepParams()->nFreqSweepRHS==1 && domain->solInfo().loadcases.size()>1)
    {
      bool first_time = true;
      while(domain->coarse_frequencies->size() > 0) {

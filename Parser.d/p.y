@@ -375,7 +375,7 @@ Random:
         ; 
 Impe:
         IMPE NewLine FREQ Float NewLine
-          { geoSource->setImpe($4); fprintf(stderr,"tadyzde\n"); }
+          { geoSource->setImpe($4); }
         //| IMPE NewLine SHIFT Float NewLine
         //  { geoSource->setShift($4); }
         | IMPE NewLine FREQSWEEP1 Float Float Integer NewLine

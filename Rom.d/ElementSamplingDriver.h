@@ -38,6 +38,7 @@ public:
   VecBasis* accel() { if(!accel_) accel_ = new VecBasis; return accel_; }
   int vectorSize() const;
   void timeStampsIs(const std::vector<double> &tst) { timeStamps_ = tst; }
+  void snapshotCountsIs(const std::vector<int> &scs) { snapshotCounts_ = scs; }
 
   explicit ElementSamplingDriver(Domain *);
   ~ElementSamplingDriver();
@@ -61,6 +62,7 @@ protected:
   VecBasis *veloc_;
   VecBasis *accel_;
   std::vector<double> timeStamps_;
+  std::vector<int> snapshotCounts_;
   SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType> solver_;
 };
 

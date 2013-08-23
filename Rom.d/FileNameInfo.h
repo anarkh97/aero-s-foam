@@ -17,6 +17,8 @@ public:
   FileNameInfo(); // Uses check filename in global geoSource to set prefix 
   explicit FileNameInfo(const std::string &prefix);
 
+  static int size(BasisId::Type, BasisId::Level);
+
 private:
   static std::string getPrefix(const std::string &);
 

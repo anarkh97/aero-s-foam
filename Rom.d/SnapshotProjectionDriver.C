@@ -39,6 +39,12 @@ extern GeoSource *geoSource;
 
 namespace Rom {
 
+// Forward declarations
+// ====================
+void readAndProjectSnapshots(BasisId::Type type, const int vectorSize, VecBasis &podBasis,
+                             const VecNodeDof6Conversion &vecDofConversion,
+                             std::vector<int> &snapshotCounts, std::vector<double> &timeStamps, VecBasis &config);
+
 // Member functions
 // ================
 int
@@ -113,7 +119,7 @@ SnapshotProjectionDriver::preProcess() {
   const VecNodeDof6Conversion vecDofConversion(*domain->getCDSA());
   assert(vectorSize() == vecDofConversion.vectorSize());
 
-  //Read in identity-normalized basis
+  // Read in identity-normalized basis
   {
     BasisInputStream in(BasisFileId(fileInfo, BasisId::STATE, BasisId::POD), vecDofConversion);
     const int podSizeMax = domain->solInfo().maxSizePodRom;
@@ -124,138 +130,34 @@ SnapshotProjectionDriver::preProcess() {
     }
   }
 
-  // Read state snapshots
-  {
-    BasisInputStream in(BasisFileId(fileInfo, BasisId::STATE, BasisId::SNAPSHOTS), vecDofConversion);
-    const int skipFactor = domain->solInfo().skipPodRom;
-    const int skipOffSet = domain->solInfo().skipOffSet;
-    const int basisStateCount = (in.size() % 2) + (in.size() - skipOffSet) / skipFactor;
-
-    snapshots.dimensionIs(basisStateCount, in.vectorSize());
-    timeStamps_.reserve(basisStateCount);
-
-    int count = 0;
-    int skipCounter = skipFactor-skipOffSet;
-    while (count < basisStateCount) {
-      std::pair<double, double *> data;
-      data.second = snapshots[count].data();
-      in >> data;
-      assert(in);
-      if (skipCounter == skipFactor) {
-        timeStamps_.push_back(data.first);
-        skipCounter = 1;
-        ++count;
-      } else {
-        ++skipCounter;
-      }
-    }
-
-    assert(timeStamps_.size() == basisStateCount);
-  }
-
-  // Read velocity snapshots
-  if(!domain->solInfo().velocPodRomFile.empty()) {
-    std::vector<double> timeStamps;
-    velocSnapshots = new VecBasis;
-    BasisInputStream in(BasisFileId(fileInfo, BasisId::VELOCITY, BasisId::SNAPSHOTS), vecDofConversion);
-    const int skipFactor = domain->solInfo().skipPodRom;
-    const int skipOffSet = domain->solInfo().skipOffSet;
-    const int basisStateCount = 1 + (in.size() - 1) / skipFactor;
-
-    velocSnapshots->dimensionIs(basisStateCount, in.vectorSize());
-    timeStamps.reserve(basisStateCount);
-
-    int count = 0;
-    int skipCounter = skipFactor-skipOffSet;
-    while (count < basisStateCount) {
-      std::pair<double, double *> data;
-      data.second = (*velocSnapshots)[count].data();
-      in >> data;
-      assert(in);
-      if (skipCounter == skipFactor) {
-        timeStamps.push_back(data.first);
-        skipCounter = 1;
-        ++count;
-      } else {
-        ++skipCounter;
-      }
-    }
-
-    assert(timeStamps.size() == basisStateCount);
-    // TODO: check that timeStamps for velocity snapshots match state snapshots
-  }
-
-  // Read acceleration snapshots
-  if(!domain->solInfo().accelPodRomFile.empty()) {
-    std::vector<double> timeStamps;
-    accelSnapshots = new VecBasis;
-    BasisInputStream in(BasisFileId(fileInfo, BasisId::ACCELERATION, BasisId::SNAPSHOTS), vecDofConversion);
-    const int skipFactor = domain->solInfo().skipPodRom;
-    const int skipOffSet = domain->solInfo().skipOffSet;
-    const int basisStateCount = 1 + (in.size() - 1) / skipFactor;
-
-    accelSnapshots->dimensionIs(basisStateCount, in.vectorSize());
-    timeStamps.reserve(basisStateCount);
-
-    int count = 0;
-    int skipCounter = skipFactor-skipOffSet;
-    while (count < basisStateCount) {
-      std::pair<double, double *> data;
-      data.second = (*accelSnapshots)[count].data();
-      in >> data;
-      assert(in);
-      if (skipCounter == skipFactor) {
-        timeStamps.push_back(data.first);
-        skipCounter = 1;
-        ++count;
-      } else {
-        ++skipCounter;
-      }
-    }
-
-    assert(timeStamps.size() == basisStateCount);
-    // TODO: check that timeStamps for acceleration snapshots match state snapshots
-  }
-  
-
   const int podVectorCount = podBasis_.vectorCount();
-  const int snapshotCount = snapshots.vectorCount();
 
-  // Temporary buffers shared by all iterations
-  Vector podComponents(podVectorCount);
+  // Read some displacement snapshots from one or more files and project them on to the basis
+  std::vector<int> snapshotCounts;
+  readAndProjectSnapshots(BasisId::STATE, vectorSize(), podBasis_, vecDofConversion,
+                          snapshotCounts, timeStamps_, displac_);
 
-  // Project snapshots on POD basis
-  filePrint(stderr," ... Projecting %d displacement snapshots onto basis of size %d ...\n",
-            snapshotCount, podVectorCount);
-  displac_.dimensionIs(snapshotCount, vectorSize());
-  for (int iSnap = 0; iSnap != snapshotCount; ++iSnap) {
-    expand(podBasis_, reduce(podBasis_, snapshots[iSnap], podComponents), displac_[iSnap]);
+  const int snapshotCount = std::accumulate(snapshotCounts.begin(), snapshotCounts.end(), 0);
+
+  // Optionally, read some velocity snapshots and project them on to the reduced order basis
+  if(!domain->solInfo().velocPodRomFile.empty()) {
+    std::vector<double> velTimeStamps;
+    std::vector<int> velSnapshotCounts;
+    veloc_ = new VecBasis;
+    readAndProjectSnapshots(BasisId::VELOCITY, vectorSize(), podBasis_, vecDofConversion,
+                            velSnapshotCounts, velTimeStamps, *veloc_);
+    if(velSnapshotCounts != snapshotCounts) std::cerr << " *** WARNING: inconsistent velocity snapshots\n";
   }
 
-  if(velocSnapshots) {
-    veloc_ = new VecBasis(velocSnapshots->vectorCount(), vectorSize());
-
-    // Project velocity snapshots on POD basis
-    filePrint(stderr," ... Projecting %d velocity snapshots onto basis of size %d ...\n",
-              velocSnapshots->vectorCount(), podVectorCount);
-    for (int iSnap = 0; iSnap != velocSnapshots->vectorCount(); ++iSnap) {
-      expand(podBasis_, reduce(podBasis_, (*velocSnapshots)[iSnap], podComponents), (*veloc_)[iSnap]);
-    }
-  //  delete velocSnapshots;
+  // Optionally, read some acceleration snapshots and project them on to the reduced order basis
+  if(!domain->solInfo().accelPodRomFile.empty()) {
+    std::vector<double> accTimeStamps;
+    std::vector<int> accSnapshotCounts;
+    accel_ = new VecBasis;
+    readAndProjectSnapshots(BasisId::ACCELERATION, vectorSize(), podBasis_, vecDofConversion,
+                            accSnapshotCounts, accTimeStamps, *accel_);
+    if(accSnapshotCounts != snapshotCounts) std::cerr << " *** WARNING: inconsistent acceleration snapshots\n";
   }
-
-  if(accelSnapshots) {
-    accel_ = new VecBasis(accelSnapshots->vectorCount(), vectorSize());
-
-    // Project acceleration snapshots on POD basis
-    filePrint(stderr," ... Projecting %d acceleration snapshots onto basis of size %d ...\n",
-              accelSnapshots->vectorCount(), podVectorCount);
-    for (int iSnap = 0; iSnap != accelSnapshots->vectorCount(); ++iSnap) {
-      expand(podBasis_, reduce(podBasis_, (*accelSnapshots)[iSnap], podComponents), (*accel_)[iSnap]);
-    }
-    //delete accelSnapshots;
-  }
-
 }
 
 void

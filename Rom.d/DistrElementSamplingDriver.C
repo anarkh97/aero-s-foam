@@ -29,10 +29,69 @@ extern GeoSource *geoSource;
 
 namespace Rom {
 
+// Forward declarations
+// ====================
+int snapSize(BasisId::Type type, std::vector<int> &snapshotCounts);
+
+// Non-member functions
+// ====================
 std::string getMeshFilename(const FileNameInfo &fileInfo);
 
+void readAndProjectSnapshots(BasisId::Type type, const DistrInfo &vectorSize, DistrNodeDof6Buffer &buffer,
+                             DistrVecNodeDof6Conversion &converter, DistrVecBasis &podBasis,
+                             std::vector<int> &snapshotCounts, std::vector<double> &timeStamps, DistrVecBasis *&config)
+{
+  const int snapshotCount = snapSize(type, snapshotCounts);
+  filePrint(stderr, " ... Reading in and Projecting %d %s Snapshots ...\n", snapshotCount, toString(type).c_str());
+
+  config = new DistrVecBasis(snapshotCount, vectorSize);
+  timeStamps.clear();
+  timeStamps.reserve(snapshotCount);
+
+  const int skipFactor = std::max(domain->solInfo().skipPodRom, 1); // skipFactor must be >= 1
+  const int skipOffSet = std::max(domain->solInfo().skipOffSet, 0); // skipOffSet must be >= 0
+  const int podVectorCount = podBasis.vectorCount();
+  DistrVector snapshot(vectorSize);
+  Vector podComponents(podVectorCount);
+  FileNameInfo fileInfo;
+
+  int offset = 0;
+  for(int i = 0; i < FileNameInfo::size(type, BasisId::SNAPSHOTS); i++) {
+    std::string fileName = BasisFileId(fileInfo, type, BasisId::SNAPSHOTS, i);
+    filePrint(stderr, " ... Processing File: %s ...\n", fileName.c_str());
+    DistrBasisInputFile in(fileName);
+
+    int count = 0;
+    int skipCounter = skipFactor - skipOffSet;
+    while(count < snapshotCounts[i]) {
+      if(skipCounter == skipFactor) {
+        assert(in.validCurrentState());
+        in.currentStateBuffer(buffer);
+        converter.vector(buffer, snapshot);
+        expand(podBasis, reduce(podBasis, snapshot, podComponents), (*config)[offset+count]); // do projection
+        timeStamps.push_back(in.currentStateHeaderValue());
+        skipCounter = 1;
+        ++count;
+        filePrint(stderr, "\r ... timeStamp = %7.2e, %4.2f%% complete ...", in.currentStateHeaderValue(), double(count)/snapshotCounts[i]*100);
+      }
+      else {
+        ++skipCounter;
+      }
+      in.currentStateIndexInc();
+    }
+
+    filePrint(stderr,"\n");
+    offset += snapshotCounts[i];
+  }
+
+  assert(timeStamps.size() == snapshotCount);
+}
+
+// Member functions
+// ================
 const DistrInfo&
-DistrElementSamplingDriver::vectorSize() const {
+DistrElementSamplingDriver::vectorSize() const
+{
   return decDomain->masterSolVecInfo();
 }
 
@@ -41,27 +100,9 @@ DistrElementSamplingDriver::DistrElementSamplingDriver(Domain *domain, Communica
   comm_(comm)
 {}
 
-int
-DistrElementSamplingDriver::snapSize(BasisId::Type type) {
-  std::vector<std::string> files;
-  FileNameInfo fileInfo;
-  if(type == BasisId::STATE) files = domain->solInfo().statePodRomFile;
-  if(type == BasisId::VELOCITY) files = domain->solInfo().velocPodRomFile;
-  if(type == BasisId::ACCELERATION) files = domain->solInfo().accelPodRomFile;
-  int stateCount = 0;
-  const int skipFactor = domain->solInfo().skipPodRom;
-  const int skipOffSet = domain->solInfo().skipOffSet;
-  for(int i=0; i < files.size(); i++){
-    std::string fileName = BasisFileId(fileInfo,type,BasisId::SNAPSHOTS,i);
-    DistrBasisInputFile in(fileName);
-    stateCount += (in.stateCount() % 2) + (in.stateCount() - skipOffSet) / skipFactor;
-  }
-  return stateCount;
-}
-
 void
-DistrElementSamplingDriver::solve() {
-  
+DistrElementSamplingDriver::solve()
+{
   MultiDomainDynam::preProcess();
 
   FileNameInfo fileInfo;
@@ -74,7 +115,7 @@ DistrElementSamplingDriver::solve() {
                                      std::min(domain->solInfo().maxSizePodRom, podBasisFile.stateCount()) :
                                      podBasisFile.stateCount();
 
-  //filePrint(stderr, " ... Projection subspace of dimension = %d ...\n", projectionSubspaceSize);
+  filePrint(stderr, " ... Projection subspace of dimension = %d ...\n", projectionSubspaceSize);
   podBasis.dimensionIs(projectionSubspaceSize, vectorSize());
 
   DistrVecNodeDof6Conversion converter(decDomain->getAllSubDomains(), decDomain->getAllSubDomains() + decDomain->getNumSub());
@@ -83,7 +124,7 @@ DistrElementSamplingDriver::solve() {
   DistrMasterMapping masterMapping(SubDomIt(decDomain->getAllSubDomains()),
                                    SubDomIt(decDomain->getAllSubDomains() + decDomain->getNumSub()));
   DistrNodeDof6Buffer buffer(masterMapping.localNodeBegin(), masterMapping.localNodeEnd());
-  int counter = 0;
+
   for (DistrVecBasis::iterator it = podBasis.begin(),
                                it_end = podBasis.end();
                                it != it_end; ++it) {
@@ -93,194 +134,40 @@ DistrElementSamplingDriver::solve() {
     converter.vector(buffer, *it);
 
     podBasisFile.currentStateIndexInc();
-    ++counter;
-    filePrint(stderr,"\r %4.2f%% complete", double(counter)/double(projectionSubspaceSize)*100.);
-  }
-  filePrint(stderr,"\n");
-
-  const int skipFactor = domain->solInfo().skipPodRom;
-  const int skipOffSet = domain->solInfo().skipOffSet;
-  // Read state snapshots
-  DistrVecBasis *snapshots = new DistrVecBasis;
-  std::vector<double> timeStamps;
-  {
-    BasisId::Type type = BasisId::STATE;
-    const int basisStateCount = snapSize(BasisId::STATE);
-    filePrint(stderr, " ... Reading in %d Displacement Snapshots ...\n", basisStateCount);
-
-    snapshots->dimensionIs(basisStateCount, vectorSize());
-    timeStamps.reserve(basisStateCount);
-
-    int counter = 0;
-    int snapshotCount = 0;
-    for(int i = 0; i < domain->solInfo().statePodRomFile.size(); i++) {
-      std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::SNAPSHOTS,i);
-      filePrint(stderr, " ... Processing File: %s ...\n", fileName.c_str());
-      DistrBasisInputFile in(fileName);
-      int singleBasisStateCount = (in.stateCount() % 2) + (in.stateCount() - skipOffSet) / skipFactor;
-      for(DistrVecBasis::iterator it = &(*snapshots)[snapshotCount],
-          it_end = &(*snapshots)[snapshotCount+singleBasisStateCount];
-          it != it_end; ++it) {
-        for(int offSet = 1; offSet <= skipOffSet; ++offSet) {
-          assert(in.validCurrentState());
-          in.currentStateIndexInc();
-        }
-
-        for(int skipCounter = 1; skipCounter <= skipFactor; ++skipCounter) {
-          assert(in.validCurrentState());
-
-          if(skipCounter == 1) {
-            in.currentStateBuffer(buffer);
-            converter.vector(buffer, *it);
-            timeStamps.push_back(in.currentStateHeaderValue());
-            ++counter;
-            filePrint(stderr,"\rtimeStamp = %f, %4.2f%% complete",in.currentStateHeaderValue(),double(counter)/double(basisStateCount)*100.);
-          }
-          in.currentStateIndexInc();
-        }
-      }
-      filePrint(stderr,"\n");
-      snapshotCount += singleBasisStateCount;
-    }
-  }
-
-  // Read velocity snapshots
-  DistrVecBasis *velocSnapshots = 0;
-  if(!domain->solInfo().velocPodRomFile.empty()) {
-    std::vector<double> timeStamps;
-    velocSnapshots = new DistrVecBasis;
-    const int basisStateCount = snapSize(BasisId::VELOCITY);
-    filePrint(stderr, " ... Reading in %d Velocity Snapshots ...\n", basisStateCount);
-
-    velocSnapshots->dimensionIs(basisStateCount, vectorSize());
-    timeStamps.reserve(basisStateCount);
-
-    int counter = 0;
-    int snapshotCount = 0;
-    for(int i = 0; i < domain->solInfo().velocPodRomFile.size(); i++) {
-      std::string fileName = BasisFileId(fileInfo, BasisId::VELOCITY, BasisId::SNAPSHOTS,i);
-      filePrint(stderr, " ... Processing File: %s ...\n", fileName.c_str());
-      DistrBasisInputFile in(fileName);
-      int singleBasisStateCount = (in.stateCount() % 2) + (in.stateCount() - skipOffSet) / skipFactor;
-      for(DistrVecBasis::iterator it = &((*velocSnapshots)[snapshotCount]),
-          it_end = &((*velocSnapshots)[snapshotCount+singleBasisStateCount]);
-          it != it_end; ++it) {
-        for(int offSet = 1; offSet <= skipOffSet; ++offSet) {
-          assert(in.validCurrentState());
-          in.currentStateIndexInc();
-        }
-
-        for(int skipCounter = 1; skipCounter <= skipFactor; ++skipCounter) {
-          assert(in.validCurrentState());
-
-          if(skipCounter == 1) {
-            in.currentStateBuffer(buffer);
-            converter.vector(buffer, *it);
-            timeStamps.push_back(in.currentStateHeaderValue());
-            ++counter;
-            filePrint(stderr,"\rtimeStamp = %f, %4.2f%% complete",in.currentStateHeaderValue(),double(counter)/double(basisStateCount)*100.);
-          }
-          in.currentStateIndexInc();
-        }
-      }
-      filePrint(stderr,"\n");
-      snapshotCount += singleBasisStateCount;
-    }
-  }
-
-  // Read acceleration snapshots
-  DistrVecBasis *accelSnapshots = 0;
-  if(!domain->solInfo().accelPodRomFile.empty()) {
-    std::vector<double> timeStamps;
-    accelSnapshots = new DistrVecBasis;
-    const int basisStateCount = snapSize(BasisId::ACCELERATION);
-    filePrint(stderr, " ... Reading in %d Acceleration Snapshots ...\n", basisStateCount);
-
-    accelSnapshots->dimensionIs(basisStateCount, vectorSize());
-    timeStamps.reserve(basisStateCount);
-
-    int counter = 0;
-    int snapshotCount = 0;
-    for(int i = 0; i < domain->solInfo().accelPodRomFile.size(); i++){
-      std::string fileName = BasisFileId(fileInfo, BasisId::ACCELERATION, BasisId::SNAPSHOTS, i);
-      filePrint(stderr, " ... Processing File: %s ...\n", fileName.c_str());
-      DistrBasisInputFile in(fileName);
-      int singleBasisStateCount = (in.stateCount() % 2) + (in.stateCount() - skipOffSet) / skipFactor;
-      for(DistrVecBasis::iterator it = &((*accelSnapshots)[snapshotCount]),
-          it_end = &((*accelSnapshots)[snapshotCount+singleBasisStateCount]);
-          it != it_end; ++it) {
-        for(int offSet = 1; offSet <= skipOffSet; ++offSet) {
-          assert(in.validCurrentState());
-          in.currentStateIndexInc();
-        }
-
-        for(int skipCounter = 1; skipCounter <= skipFactor; ++skipCounter) {
-          assert(in.validCurrentState());
-
-          if(skipCounter == 1) {
-            in.currentStateBuffer(buffer);
-            converter.vector(buffer, *it);
-            timeStamps.push_back(in.currentStateHeaderValue());
-            ++counter;
-            filePrint(stderr,"\rtimeStamp = %f, %4.2f%% complete",in.currentStateHeaderValue(),double(counter)/double(basisStateCount)*100.);
-          }
-          in.currentStateIndexInc();
-        }
-      }
-      filePrint(stderr,"\n");
-      snapshotCount += singleBasisStateCount;
-    }
   }
 
   const int podVectorCount = podBasis.vectorCount();
-  const int snapshotCount  = snapshots->vectorCount();
 
-  // Temporary buffers shared by all iterations
-  Vector podComponents(podVectorCount);
+  // Read some displacement snapshots from one or more files and project them on to the basis
+  DistrVecBasis *displac; 
+  std::vector<double> timeStamps;
+  std::vector<int> snapshotCounts;
+  readAndProjectSnapshots(BasisId::STATE, vectorSize(), buffer, converter, podBasis,
+                          snapshotCounts, timeStamps, displac);
 
-  //BEGIN PROJECTION-------------------------------------------------------------------------
- 
-  // Project snapshots on POD basis to get training configurations
-  filePrint(stderr," ... Projecting displacement snapshots for training configuration ...\n");
-  DistrVecBasis *displac = new DistrVecBasis(snapshotCount, vectorSize());
-  for (int iSnap = 0; iSnap != snapshotCount; ++iSnap) {
-    expand(podBasis, reduce(podBasis, (*snapshots)[iSnap], podComponents), (*displac)[iSnap]);
-    filePrint(stderr,"\r %4.2f%% complete", double(iSnap)/double(snapshotCount-1)*100.);
-  }
-  filePrint(stderr,"\n");
-  delete snapshots;
-
+  // Optionally, read some velocity snapshots and project them on to the reduced order basis
   DistrVecBasis *veloc = 0;
-  if(velocSnapshots) {
-    veloc = new DistrVecBasis(velocSnapshots->vectorCount(), vectorSize());
-
-    // Project velocity snapshots on POD basis to get training configurations
-    filePrint(stderr," ... Projecting velocity snapshots for training configuration ...\n");
-    for (int iSnap = 0; iSnap != velocSnapshots->vectorCount(); ++iSnap) {
-      expand(podBasis, reduce(podBasis, (*velocSnapshots)[iSnap], podComponents), (*veloc)[iSnap]);
-      filePrint(stderr,"\r %4.2f%% complete", double(iSnap)/double(velocSnapshots->vectorCount()-1)*100.);
-    }
-    filePrint(stderr,"\n");
-    delete velocSnapshots;
+  if(!domain->solInfo().velocPodRomFile.empty()) {
+    std::vector<double> velTimeStamps;
+    std::vector<int> velSnapshotCounts;
+    readAndProjectSnapshots(BasisId::VELOCITY, vectorSize(), buffer, converter, podBasis,
+                            velSnapshotCounts, velTimeStamps, veloc);
+    if(velSnapshotCounts != snapshotCounts) std::cerr << " *** WARNING: inconsistent velocity snapshots\n";
   }
 
+  // Optionally, read some acceleration snapshots and project them on to the reduced order basis
   DistrVecBasis *accel = 0;
-  if(accelSnapshots) {
-    accel = new DistrVecBasis(accelSnapshots->vectorCount(), vectorSize());
-
-    // Project acceleration snapshots on POD basis to get training configurations
-    filePrint(stderr," ... Projecting acceleration snapshots for training configuration ...\n");
-    for (int iSnap = 0; iSnap != accelSnapshots->vectorCount(); ++iSnap) {
-      expand(podBasis, reduce(podBasis, (*accelSnapshots)[iSnap], podComponents), (*accel)[iSnap]);
-      filePrint(stderr,"\r %4.2f%% complete", double(iSnap)/double(accelSnapshots->vectorCount()-1)*100.);
-    }
-    filePrint(stderr,"\n");
-    delete accelSnapshots;
+  if(!domain->solInfo().accelPodRomFile.empty()) {
+    std::vector<double> accTimeStamps;
+    std::vector<int> accSnapshotCounts;
+    readAndProjectSnapshots(BasisId::ACCELERATION, vectorSize(), buffer, converter, podBasis,
+                            accSnapshotCounts, accTimeStamps, accel);
+    if(accSnapshotCounts != snapshotCounts) std::cerr << " *** WARNING: inconsistent acceleration snapshots\n";
   }
 
-  //END PROJECTION
+  const int snapshotCount = std::accumulate(snapshotCounts.begin(), snapshotCounts.end(), 0);
 
-  //Projections complete so read in normalized basis
+  // read in mass-normalized basis
   if(domain->solInfo().newmarkBeta == 0) {
     std::string normalizedBasisFileName = BasisFileId(fileInfo,BasisId::STATE,BasisId::POD);
     normalizedBasisFileName.append(".normalized");
@@ -307,33 +194,34 @@ DistrElementSamplingDriver::solve() {
 #if defined(_OPENMP)
   #pragma omp parallel for schedule(static,1)
 #endif
-  for(int i=0; i<decDomain->getNumSub(); ++i) {
+  for(int i = 0; i < decDomain->getNumSub(); ++i) {
     subDrivers[i] = new SubElementSamplingDriver(decDomain->getAllSubDomains()[i]);
 
     VecBasis &subPodBasis = subDrivers[i]->podBasis();
     subPodBasis.dimensionIs(podVectorCount, subDrivers[i]->vectorSize());
-    for(int j=0; j<podVectorCount; ++j) {
+    for(int j = 0; j < podVectorCount; ++j) {
       subPodBasis[j] = StackVector(podBasis[j].subData(i), podBasis[j].subLen(i));
     }
 
     VecBasis &subDisplac = subDrivers[i]->displac();
     subDisplac.dimensionIs(snapshotCount, subDrivers[i]->vectorSize());
-    for(int j=0; j<snapshotCount; ++j) {
+    for(int j = 0; j < snapshotCount; ++j) {
       subDisplac[j] = StackVector((*displac)[j].subData(i), (*displac)[j].subLen(i));
     }
 
     subDrivers[i]->timeStampsIs(timeStamps);
+    subDrivers[i]->snapshotCountsIs(snapshotCounts);
     if(veloc) {
       VecBasis *subVeloc = subDrivers[i]->veloc();
       subVeloc->dimensionIs(snapshotCount, subDrivers[i]->vectorSize());
-      for(int j=0; j<snapshotCount; ++j) {
+      for(int j = 0; j < snapshotCount; ++j) {
         (*subVeloc)[j] = StackVector((*veloc)[j].subData(i), (*veloc)[j].subLen(i));
       }
     }
     if(accel) {
       VecBasis *subAccel = subDrivers[i]->accel();
       subAccel->dimensionIs(snapshotCount, subDrivers[i]->vectorSize());
-      for(int j=0; j<snapshotCount; ++j) {
+      for(int j = 0; j < snapshotCount; ++j) {
         (*subAccel)[j] = StackVector((*accel)[j].subData(i), (*accel)[j].subLen(i));
       }
     }
@@ -351,16 +239,18 @@ DistrElementSamplingDriver::solve() {
   if(accel) delete accel;
 
   if(structCom)
-    structCom->globalSum(1,&glTargMagnitude);
+    structCom->globalSum(1, &glTargMagnitude);
   glTargMagnitude = sqrt(glTargMagnitude);
 
 #if defined(_OPENMP)
   #pragma omp parallel for schedule(static,1)
 #endif
   for(int i = 0; i < decDomain->getNumSub(); ++i) {
-    double relativeTolerance = (domain->solInfo().localTol) ? domain->solInfo().tolPodRom*glTargMagnitude/(glNumSubs*targetMagnitudes[i])
-                                                            : domain->solInfo().tolPodRom;
-    if(verboseFlag) filePrint(stderr, " ... Training Tolerance for SubDomain %d is %f ...\n", decDomain->getSubDomain(i)->subNum()+1, relativeTolerance);
+    double relativeTolerance = (domain->solInfo().localTol) 
+                               ? domain->solInfo().tolPodRom*glTargMagnitude/(glNumSubs*targetMagnitudes[i])
+                               : domain->solInfo().tolPodRom;
+    if(verboseFlag) filePrint(stderr, " ... Training Tolerance for SubDomain %d is %f ...\n",
+                              decDomain->getSubDomain(i)->subNum()+1, relativeTolerance);
     subDrivers[i]->computeSolution(trainingTargets[i], solutions[i], relativeTolerance, verboseFlag);
   }
   delete [] trainingTargets;
@@ -378,7 +268,7 @@ DistrElementSamplingDriver::solve() {
   std::vector<double> gweights(domain->numElements());
   std::vector<int> gelemIds(domain->numElements());
   
-  //Gather weights and IDs from all processors
+  // Gather weights and IDs from all processors
   int numLocalElems = lweights.size();
   if(structCom) {
     int recvcnts[numCPUs];
@@ -397,7 +287,7 @@ DistrElementSamplingDriver::solve() {
     gelemIds = lelemIds;
   }
 
-  // compute the reduced forces (constant only)
+  // Compute the reduced forces (constant only)
   DistrVector constForceFull(MultiDomainDynam::solVecInfo());
   MultiDomainDynam::getConstForce(constForceFull);
   Vector constForceRed(podBasis.vectorCount());
@@ -436,7 +326,7 @@ DistrElementSamplingDriver::solve() {
       decDomain->getSubDomain(i)->renumberElementsGlobal();
     }
 
-    // read in the truncated basis into a (non-distributed) VecBasis
+    // Read in the truncated basis into a (non-distributed) VecBasis XXX
     domain->preProcessing();
     buildDomainCdsa();
     std::string fileName2 = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
@@ -451,14 +341,14 @@ DistrElementSamplingDriver::solve() {
       readVectors(in, podBasis);
     }
 
-    // output the reduced mesh
+    // Output the reduced mesh
     Elemset &inputElemSet = *(geoSource->getElemSet());
     std::auto_ptr<Connectivity> elemToNode(new Connectivity(&inputElemSet));
     const MeshRenumbering meshRenumbering(reducedelemIds.begin(), reducedelemIds.end(), *elemToNode, verboseFlag);
     const MeshDesc reducedMesh(domain, geoSource, meshRenumbering, weightsMap); 
     outputMeshFile(fileInfo, reducedMesh, podBasis.vectorCount());
 
-    // output the reduced forces
+    // Output the reduced forces
     std::ofstream meshOut(getMeshFilename(fileInfo).c_str(), std::ios_base::app);
     if(domain->solInfo().reduceFollower) meshOut << "REDFOL\n";
     meshOut << "*\nFORCES\nMODAL\n";
@@ -468,7 +358,7 @@ DistrElementSamplingDriver::solve() {
     meshOut.close();
 
 #ifdef USE_EIGEN3
-    // build and output compressed basis
+    // Build and output compressed basis
     podBasis.makeSparseBasis(meshRenumbering.reducedNodeIds(), domain->getCDSA());
     {
       std::string filename = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
@@ -491,7 +381,8 @@ DistrElementSamplingDriver::solve() {
 }
 
 void
-DistrElementSamplingDriver::buildDomainCdsa() {
+DistrElementSamplingDriver::buildDomainCdsa()
+{
   const int numdof = domain->numdof();
   SimpleBuffer<int> bc(numdof);
   SimpleBuffer<double> bcx(numdof);
@@ -504,6 +395,7 @@ DistrElementSamplingDriver::buildDomainCdsa() {
 
 extern Communicator *structCom;
 
-Rom::DriverInterface *distrElementSamplingDriverNew(Domain *domain) {
+Rom::DriverInterface *distrElementSamplingDriverNew(Domain *domain)
+{
   return new Rom::DistrElementSamplingDriver(domain, structCom);
 }

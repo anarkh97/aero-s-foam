@@ -262,104 +262,124 @@ SnapshotNonLinDynamicDetail::isvSnapImpl::isvSnapImpl(SnapshotNonLinDynamic *par
 
 
 void
-SnapshotNonLinDynamicDetail::sttSnapImpl::postProcess() {
+SnapshotNonLinDynamicDetail::sttSnapImpl::postProcess()
+{
   // Nothing to do
 }
 
 void
-SnapshotNonLinDynamicDetail::velSnapImpl::postProcess() {
+SnapshotNonLinDynamicDetail::velSnapImpl::postProcess()
+{
   // Nothing to do
 }
 
 void
-SnapshotNonLinDynamicDetail::accSnapImpl::postProcess() {
+SnapshotNonLinDynamicDetail::accSnapImpl::postProcess()
+{
   // Nothing to do
 }
 
 void
-SnapshotNonLinDynamicDetail::resSnapImpl::postProcess() {
+SnapshotNonLinDynamicDetail::resSnapImpl::postProcess()
+{
   // Nothing to do
 }
 
 void
-SnapshotNonLinDynamicDetail::jacSnapImpl::postProcess() {
+SnapshotNonLinDynamicDetail::jacSnapImpl::postProcess()
+{
   // Nothing to do
 }
 
 void
-SnapshotNonLinDynamicDetail::isvSnapImpl::postProcess() {
+SnapshotNonLinDynamicDetail::isvSnapImpl::postProcess()
+{
   // Nothing to do
 }
 
 template <typename VecType>
 inline
 void
-SnapshotNonLinDynamicDetail::sttSnapImpl::fillSnapBuffer(const VecType &snap) {
+SnapshotNonLinDynamicDetail::sttSnapImpl::fillSnapBuffer(const VecType &snap)
+{
   converter_.paddedNodeDof6(snap, snapBuffer_);
 }
 
 void
-SnapshotNonLinDynamicDetail::sttSnapImpl::lastMidTimeIs(double t) {
+SnapshotNonLinDynamicDetail::sttSnapImpl::lastMidTimeIs(double t)
+{
   timeStamp_ = t;
 }
 
 void
-SnapshotNonLinDynamicDetail::sttSnapImpl::lastDeltaIs(double dt) {
+SnapshotNonLinDynamicDetail::sttSnapImpl::lastDeltaIs(double dt)
+{
   timeStamp_ += dt;
 }
 
 void
-SnapshotNonLinDynamicDetail::velSnapImpl::lastMidTimeIs(double t) {
+SnapshotNonLinDynamicDetail::velSnapImpl::lastMidTimeIs(double t)
+{
   //empty
 }
 
 void
-SnapshotNonLinDynamicDetail::velSnapImpl::lastDeltaIs(double dt) {
+SnapshotNonLinDynamicDetail::velSnapImpl::lastDeltaIs(double dt)
+{
   //empty
 }
 
 void
-SnapshotNonLinDynamicDetail::accSnapImpl::lastMidTimeIs(double t) {
+SnapshotNonLinDynamicDetail::accSnapImpl::lastMidTimeIs(double t)
+{
   //empty
 }
 
 void
-SnapshotNonLinDynamicDetail::accSnapImpl::lastDeltaIs(double dt) {
+SnapshotNonLinDynamicDetail::accSnapImpl::lastDeltaIs(double dt)
+{
   //empty
 }
 
 void
-SnapshotNonLinDynamicDetail::resSnapImpl::lastMidTimeIs(double t) {
+SnapshotNonLinDynamicDetail::resSnapImpl::lastMidTimeIs(double t)
+{
   //empty
 }
 
 void
-SnapshotNonLinDynamicDetail::resSnapImpl::lastDeltaIs(double dt) {
+SnapshotNonLinDynamicDetail::resSnapImpl::lastDeltaIs(double dt)
+{
   //empty
 }
 
 void
-SnapshotNonLinDynamicDetail::jacSnapImpl::lastMidTimeIs(double t) {
+SnapshotNonLinDynamicDetail::jacSnapImpl::lastMidTimeIs(double t)
+{
   //empty
 }
 
 void
-SnapshotNonLinDynamicDetail::jacSnapImpl::lastDeltaIs(double dt) {
+SnapshotNonLinDynamicDetail::jacSnapImpl::lastDeltaIs(double dt)
+{
   //empty
 }
 
 void
-SnapshotNonLinDynamicDetail::isvSnapImpl::lastMidTimeIs(double t) {
+SnapshotNonLinDynamicDetail::isvSnapImpl::lastMidTimeIs(double t)
+{
   //empty
 }
 
 void
-SnapshotNonLinDynamicDetail::isvSnapImpl::lastDeltaIs(double dt) {
+SnapshotNonLinDynamicDetail::isvSnapImpl::lastDeltaIs(double dt)
+{
   //empty
 }
 
 void
-SnapshotNonLinDynamicDetail::sttSnapImpl::stateSnapshotAdd(const GeomState &snap) {
+SnapshotNonLinDynamicDetail::sttSnapImpl::stateSnapshotAdd(const GeomState &snap)
+{
   ++stateSkip_;
   if(stateSkip_ >= domain_->solInfo().skipState) {
   const CoordSet &refCoords = domain_->getNodes();
@@ -429,148 +449,175 @@ SnapshotNonLinDynamicDetail::jacSnapImpl::internalStateSnapshotAdd(const GeomSta
 void
 SnapshotNonLinDynamicDetail::isvSnapImpl::internalStateSnapshotAdd(const GeomState &snap)
 {
- ++isvSkip_;
- if(isvSkip_ >= domain_->solInfo().skipInternalStateVar) {
-
-  int numElemStates = snap.getTotalNumElemStates();
-  Vector elemStates(numElemStates);
-  snap.getElemStates(elemStates.data());
-  int writeSize = write(internalStateSnapFile_, elemStates.data(), numElemStates*sizeof(double));
-  isvSkip_ = 0;
- }
+  ++isvSkip_;
+  if(isvSkip_ >= domain_->solInfo().skipInternalStateVar) {
+    int numElemStates = snap.getTotalNumElemStates();
+    Vector elemStates(numElemStates);
+    snap.getElemStates(elemStates.data());
+    int writeSize = write(internalStateSnapFile_, elemStates.data(), numElemStates*sizeof(double));
+    isvSkip_ = 0;
+  }
 }
 
 void
-SnapshotNonLinDynamicDetail::sttSnapImpl::velocSnapshotAdd(const Vector &veloc) {
+SnapshotNonLinDynamicDetail::sttSnapImpl::velocSnapshotAdd(const Vector &veloc)
+{
   //empty
 }
 
 void
-SnapshotNonLinDynamicDetail::velSnapImpl::velocSnapshotAdd(const Vector &veloc) {
+SnapshotNonLinDynamicDetail::velSnapImpl::velocSnapshotAdd(const Vector &veloc)
+{
   ++velSkip_;
   if(velSkip_ >= domain_->solInfo().skipVeloc) {
-   velocitySnapFile_ << veloc;
-   velSkip_ = 0;}
+    velocitySnapFile_ << veloc;
+    velSkip_ = 0;
+  }
 }
 
 void
-SnapshotNonLinDynamicDetail::accSnapImpl::velocSnapshotAdd(const Vector &veloc) {
+SnapshotNonLinDynamicDetail::accSnapImpl::velocSnapshotAdd(const Vector &veloc)
+{
   //empty
 }
 
 void
-SnapshotNonLinDynamicDetail::resSnapImpl::velocSnapshotAdd(const Vector &veloc) {
+SnapshotNonLinDynamicDetail::resSnapImpl::velocSnapshotAdd(const Vector &veloc)
+{
   //empty
 }
 
 void
-SnapshotNonLinDynamicDetail::jacSnapImpl::velocSnapshotAdd(const Vector &veloc) {
+SnapshotNonLinDynamicDetail::jacSnapImpl::velocSnapshotAdd(const Vector &veloc)
+{
   //empty
 }
 
 void
-SnapshotNonLinDynamicDetail::isvSnapImpl::velocSnapshotAdd(const Vector &veloc) {
+SnapshotNonLinDynamicDetail::isvSnapImpl::velocSnapshotAdd(const Vector &veloc)
+{
   //empty
 }
 
 void
-SnapshotNonLinDynamicDetail::sttSnapImpl::accelSnapshotAdd(const Vector &accel) {
+SnapshotNonLinDynamicDetail::sttSnapImpl::accelSnapshotAdd(const Vector &accel)
+{
   //empty
 }
 
 void
-SnapshotNonLinDynamicDetail::velSnapImpl::accelSnapshotAdd(const Vector &accel) {
+SnapshotNonLinDynamicDetail::velSnapImpl::accelSnapshotAdd(const Vector &accel)
+{
   //empty
 }
 
 void
-SnapshotNonLinDynamicDetail::accSnapImpl::accelSnapshotAdd(const Vector &accel) {
+SnapshotNonLinDynamicDetail::accSnapImpl::accelSnapshotAdd(const Vector &accel)
+{
   ++accSkip_;
   if(accSkip_ >= domain_->solInfo().skipAccel) {
-   accelerationSnapFile_ << accel;
-   accSkip_ = 0;}
+    accelerationSnapFile_ << accel;
+    accSkip_ = 0;
+  }
 }
 
 void
-SnapshotNonLinDynamicDetail::resSnapImpl::accelSnapshotAdd(const Vector &accel) {
+SnapshotNonLinDynamicDetail::resSnapImpl::accelSnapshotAdd(const Vector &accel)
+{
   //empty
 }
 
 void
-SnapshotNonLinDynamicDetail::jacSnapImpl::accelSnapshotAdd(const Vector &accel) {
+SnapshotNonLinDynamicDetail::jacSnapImpl::accelSnapshotAdd(const Vector &accel)
+{
   //empty
 }
 
 void
-SnapshotNonLinDynamicDetail::isvSnapImpl::accelSnapshotAdd(const Vector &accel) {
+SnapshotNonLinDynamicDetail::isvSnapImpl::accelSnapshotAdd(const Vector &accel)
+{
   //empty
 }
 
 void
-SnapshotNonLinDynamicDetail::sttSnapImpl::handleResidualSnapshot(const Vector &res) {
+SnapshotNonLinDynamicDetail::sttSnapImpl::handleResidualSnapshot(const Vector &res)
+{
   //empty
 }
 
 void
-SnapshotNonLinDynamicDetail::velSnapImpl::handleResidualSnapshot(const Vector &res) {
+SnapshotNonLinDynamicDetail::velSnapImpl::handleResidualSnapshot(const Vector &res)
+{
   //empty
 }
 
 void
-SnapshotNonLinDynamicDetail::accSnapImpl::handleResidualSnapshot(const Vector &res) {
+SnapshotNonLinDynamicDetail::accSnapImpl::handleResidualSnapshot(const Vector &res)
+{
   //empty
 }
 
 void
-SnapshotNonLinDynamicDetail::resSnapImpl::handleResidualSnapshot(const Vector &res) {
+SnapshotNonLinDynamicDetail::resSnapImpl::handleResidualSnapshot(const Vector &res)
+{
   ++resSkip_;
   if(resSkip_ >= domain_->solInfo().skipResidual) {
-   residualSnapFile_ << res;
-   resSkip_ = 0;}
+    residualSnapFile_ << res;
+    resSkip_ = 0;
+  }
 }
 
 void
-SnapshotNonLinDynamicDetail::jacSnapImpl::handleResidualSnapshot(const Vector &res) {
+SnapshotNonLinDynamicDetail::jacSnapImpl::handleResidualSnapshot(const Vector &res)
+{
   //empty
 }
 
 void
-SnapshotNonLinDynamicDetail::isvSnapImpl::handleResidualSnapshot(const Vector &res) {
+SnapshotNonLinDynamicDetail::isvSnapImpl::handleResidualSnapshot(const Vector &res)
+{
   //empty
 }
 
 void
-SnapshotNonLinDynamicDetail::sttSnapImpl::handleJacobianSnapshot() {
+SnapshotNonLinDynamicDetail::sttSnapImpl::handleJacobianSnapshot()
+{
   //empty
 }
 
 void
-SnapshotNonLinDynamicDetail::velSnapImpl::handleJacobianSnapshot() {
+SnapshotNonLinDynamicDetail::velSnapImpl::handleJacobianSnapshot()
+{
   //empty
 }
 
 void
-SnapshotNonLinDynamicDetail::accSnapImpl::handleJacobianSnapshot() {
+SnapshotNonLinDynamicDetail::accSnapImpl::handleJacobianSnapshot()
+{
   //empty
 }
 
 void
-SnapshotNonLinDynamicDetail::resSnapImpl::handleJacobianSnapshot() {
+SnapshotNonLinDynamicDetail::resSnapImpl::handleJacobianSnapshot()
+{
   //empty
 }
 
 void
-SnapshotNonLinDynamicDetail::jacSnapImpl::handleJacobianSnapshot() {
+SnapshotNonLinDynamicDetail::jacSnapImpl::handleJacobianSnapshot()
+{
   ++jacSkip_;
   if(jacSkip_ >= domain_->solInfo().skipJacobian) {
-  Vector snap(parent_->solVecInfo());
-//  expand(getSolver()->lastReducedMatrixAction(), getSolver()->lastReducedSolution(), snap);
-  jacobianSnapFile_ << snap;
-  jacSkip_ = 0;}
+    Vector snap(parent_->solVecInfo());
+    //expand(getSolver()->lastReducedMatrixAction(), getSolver()->lastReducedSolution(), snap);
+    jacobianSnapFile_ << snap;
+    jacSkip_ = 0;
+  }
 }
 
 void
-SnapshotNonLinDynamicDetail::isvSnapImpl::handleJacobianSnapshot() {
+SnapshotNonLinDynamicDetail::isvSnapImpl::handleJacobianSnapshot()
+{
   //empty
 }
 
@@ -585,7 +632,8 @@ SnapshotNonLinDynamic::SnapshotNonLinDynamic(Domain *domain) :
 {}
 
 void
-SnapshotNonLinDynamic::preProcess() {
+SnapshotNonLinDynamic::preProcess()
+{
   NonLinDynamic::preProcess();
   if(domain->solInfo().statevectPodRom)
     stateImpl_.reset(new SnapshotNonLinDynamicDetail::sttSnapImpl(this->domain));
@@ -602,43 +650,48 @@ SnapshotNonLinDynamic::preProcess() {
 }
 
 void
-SnapshotNonLinDynamic::postProcess() {
- if(domain->solInfo().statevectPodRom)
-  stateImpl_->postProcess();
- if(domain->solInfo().isvPodRom)
-  internalStateImpl_->postProcess();
- if(domain->solInfo().velocvectPodRom)
-  velocImpl_->postProcess();
- if(domain->solInfo().accelvectPodRom)
-  accelImpl_->postProcess();
- if(domain->solInfo().residvectPodRom)
-  resImpl_->postProcess();
- if(domain->solInfo().jacobvectPodRom)
-  jacImpl_->postProcess();
+SnapshotNonLinDynamic::postProcess()
+{
+  if(domain->solInfo().statevectPodRom)
+    stateImpl_->postProcess();
+  if(domain->solInfo().isvPodRom)
+    internalStateImpl_->postProcess();
+  if(domain->solInfo().velocvectPodRom)
+    velocImpl_->postProcess();
+  if(domain->solInfo().accelvectPodRom)
+    accelImpl_->postProcess();
+  if(domain->solInfo().residvectPodRom)
+    resImpl_->postProcess();
+  if(domain->solInfo().jacobvectPodRom)
+    jacImpl_->postProcess();
 }
 
 void
-SnapshotNonLinDynamic::saveMidTime(double t) {
- if(domain->solInfo().statevectPodRom)
-        stateImpl_->lastMidTimeIs(t);
+SnapshotNonLinDynamic::saveMidTime(double t)
+{
+  if(domain->solInfo().statevectPodRom)
+    stateImpl_->lastMidTimeIs(t);
 }
 
 void
-SnapshotNonLinDynamic::saveDelta(double dt) {
- if(domain->solInfo().statevectPodRom)
-        stateImpl_->lastDeltaIs(dt);
+SnapshotNonLinDynamic::saveDelta(double dt)
+{
+  if(domain->solInfo().statevectPodRom)
+    stateImpl_->lastDeltaIs(dt);
 }
 
 void
-SnapshotNonLinDynamic::saveStateSnapshot(const GeomState &state) {
- if(domain->solInfo().statevectPodRom)
-        stateImpl_->stateSnapshotAdd(state);
+SnapshotNonLinDynamic::saveStateSnapshot(const GeomState &state)
+{
+  if(domain->solInfo().statevectPodRom)
+    stateImpl_->stateSnapshotAdd(state);
 }
 
 void
-SnapshotNonLinDynamic::saveInternalStateSnapshot(const GeomState &state) {
- if(domain->solInfo().isvPodRom)
-        internalStateImpl_->internalStateSnapshotAdd(state);
+SnapshotNonLinDynamic::saveInternalStateSnapshot(const GeomState &state)
+{
+  if(domain->solInfo().isvPodRom)
+    internalStateImpl_->internalStateSnapshotAdd(state);
 }
 
 void
@@ -672,14 +725,16 @@ SnapshotNonLinDynamic::saveAccelerationSnapshot(const GeomState &state, const Ve
 }
 
 void
-SnapshotNonLinDynamic::handleResidualSnapshot(const Vector &snap) {
- if(domain->solInfo().residvectPodRom)
-	resImpl_->handleResidualSnapshot(snap);
+SnapshotNonLinDynamic::handleResidualSnapshot(const Vector &snap)
+{
+  if(domain->solInfo().residvectPodRom)
+    resImpl_->handleResidualSnapshot(snap);
 }
 
 int
-SnapshotNonLinDynamic::checkConvergence(int iteration, double normRes, Vector &residual, Vector &dv, double time) {
- if(domain->solInfo().jacobvectPodRom)
+SnapshotNonLinDynamic::checkConvergence(int iteration, double normRes, Vector &residual, Vector &dv, double time)
+{
+  if(domain->solInfo().jacobvectPodRom)
     jacImpl_->handleJacobianSnapshot();
 
   // Forward to hidden base class function

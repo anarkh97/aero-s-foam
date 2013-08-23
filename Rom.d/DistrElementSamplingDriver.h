@@ -19,7 +19,6 @@ public:
 
 private:
   Communicator *comm_;
-  int snapSize(BasisId::Type type);
   void buildDomainCdsa();
 };
 

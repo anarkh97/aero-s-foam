@@ -27,7 +27,7 @@ class InertialForceFunction : public VectorValuedFunction<3,3,Scalar,39,0,double
   public:
     InertialForceFunction(const Eigen::Array<double,39,1>& sconst, const Eigen::Array<int,0,1>&)
     {
-      J = Eigen::Map<Eigen::Matrix<double,3,3>,Eigen::RowMajor >(const_cast<double*>(sconst.data())+0);
+      J = Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor> >(const_cast<double*>(sconst.data())+0);
       A_n = Eigen::Map<Eigen::Matrix<double,3,1> >(const_cast<double*>(sconst.data())+9);
       V_n = Eigen::Map<Eigen::Matrix<double,3,1> >(const_cast<double*>(sconst.data())+12);
       R_n = Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor> >(const_cast<double*>(sconst.data())+15);

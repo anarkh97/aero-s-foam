@@ -68,7 +68,7 @@ MaterialWrapper<NeoHookean>::getStress(Tensor *_stress, Tensor &_strain, double*
   mat->GetConstitutiveResponse(&lstrain, &lstress, NULL);
 
 #ifdef USE_EIGEN3
-  Eigen::Map<Eigen::Matrix3d,Eigen::RowMajor> F(&lstrain[0]), P(&lstress[0]), s(&(*stress)[0]);
+  Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor> > F(&lstrain[0]), P(&lstress[0]), s(&(*stress)[0]);
   s = F.inverse()*P; // symmetric 2nd Piola-Kirchhoff stress tensor, S = F^{-1}*P
 #else
   for (int i = 0; i < 3; i++)
@@ -99,7 +99,7 @@ MaterialWrapper<MooneyRivlin>::getStress(Tensor *_stress, Tensor &_strain, doubl
   mat->GetConstitutiveResponse(&lstrain, &lstress, NULL);
 
 #ifdef USE_EIGEN3
-  Eigen::Map<Eigen::Matrix3d,Eigen::RowMajor> F(&lstrain[0]), P(&lstress[0]), s(&(*stress)[0]);
+  Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor> > F(&lstrain[0]), P(&lstress[0]), s(&(*stress)[0]);
   s = F.inverse()*P; // symmetric 2nd Piola-Kirchhoff stress tensor, S = F^{-1}*P
 #else
   for (int i = 0; i < 3; i++)

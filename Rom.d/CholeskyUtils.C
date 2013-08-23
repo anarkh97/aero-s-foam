@@ -41,7 +41,7 @@ const GenFullSquareMatrix<double> &
 cholesky_factor_upper(GenFullSquareMatrix<double> &m) {
   const int basisDim = m.dim();
 
-  //Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> m_copy = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic>,Eigen::RowMajor>(m.data(),basisDim,basisDim);
+  //Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> m_copy = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> >(m.data(),basisDim,basisDim);
 
   int info;
   _FORTRAN(dpotrf)("L", &basisDim, m.data(), &basisDim, &info);

@@ -2578,7 +2578,7 @@ Domain::transformMatrix(FullSquareMatrix &kel, int iele)
 #ifdef USE_EIGEN3 
   NFrameData *nfd = geoSource->getNFrames();
 
-  Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic>,Eigen::RowMajor>
+  Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> >
     K(kel.data(),packedEset[iele]->numDofs(),packedEset[iele]->numDofs());
 
   int numNodes = packedEset[iele]->numNodes() - packedEset[iele]->numInternalNodes();

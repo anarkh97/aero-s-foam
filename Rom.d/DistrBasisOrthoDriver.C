@@ -48,18 +48,16 @@ DistrBasisOrthoDriver::solve() {
   int snapBasisStateCount = 0;
   int robBasisStateCount = 0;
   if(!domain->solInfo().snapfiPodRom.empty()) {
-    for(int i=0; i<domain->solInfo().snapfiPodRom.size(); i++) {
+    for(int i = 0; i < domain->solInfo().snapfiPodRom.size(); i++) {
       std::string fileName = BasisFileId(fileInfo, workload, BasisId::SNAPSHOTS, i);
       DistrBasisInputFile inputFile(fileName);
-      //stateCount += inputFile.stateCount();
       snapBasisStateCount += 1+(inputFile.stateCount()-1)/skipFactor;
     }
   }
-  if(!domain->solInfo().robfi.empty()){
-    for(int i=0; i<domain->solInfo().robfi.size(); i++){
+  if(!domain->solInfo().robfi.empty()) {
+    for(int i = 0; i < domain->solInfo().robfi.size(); i++) {
       std::string fileName = BasisFileId(fileInfo, workload, BasisId::ROB, i);
       DistrBasisInputFile inputFile(fileName);
-      //robBasisStateCount += 1+(inputFile.stateCount()-1)/skipFactor;
       robBasisStateCount += inputFile.stateCount();
     }
   }

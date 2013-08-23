@@ -2579,7 +2579,7 @@ Domain::transformElemStiffAndForce(const GeomState &geomState, double *elementFo
   // Convert from eulerian spatial to total lagrangian or updated lagrangian spatial
   Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,1> >
     G(elementForce, packedEset[iele]->numDofs());
-  Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic>,Eigen::RowMajor>
+  Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> >
     H(kel.data(),packedEset[iele]->numDofs(),packedEset[iele]->numDofs());
   int numNodes = packedEset[iele]->numNodes() - packedEset[iele]->numInternalNodes();
   int *nodes = packedEset[iele]->nodes();
@@ -2622,7 +2622,7 @@ Domain::transformNodalMoment(const GeomState &geomState, double _G[],
 #ifdef USE_EIGEN3
   // transform from eulerian spatial description to total lagrangian or updated lagrangian spatial description
   Eigen::Map<Eigen::Matrix<double,3,1> > G(&_G[0]);
-  Eigen::Map<Eigen::Matrix<double,3,3>,Eigen::RowMajor> H(&_H[0][0]);
+  Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor> > H(&_H[0][0]);
 
   Eigen::Vector3d Psi;
   Psi << geomState[inode].theta[0], geomState[inode].theta[1], geomState[inode].theta[2];
@@ -2649,7 +2649,7 @@ Domain::transformElemStiff(const GeomState &geomState, FullSquareMatrix &kel, in
 {
 #ifdef USE_EIGEN3
   // Convert from eulerian spatial to eulerian convected
-  Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic>,Eigen::RowMajor>
+  Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> >
     H(kel.data(),packedEset[iele]->numDofs(),packedEset[iele]->numDofs());
   int numNodes = packedEset[iele]->numNodes() - packedEset[iele]->numInternalNodes();
   int *nodes = packedEset[iele]->nodes();

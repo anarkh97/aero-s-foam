@@ -41,7 +41,8 @@ SubElementSamplingDriver::SubElementSamplingDriver(Domain *d) :
 {}
 
 void
-SubElementSamplingDriver::preProcess() {
+SubElementSamplingDriver::preProcess()
+{
   domain_->makeAllDOFs();
   StaticTimers dummyTimes;
   GenFullSquareMatrix<double> *dummyGeomKelArray = NULL;
@@ -50,12 +51,11 @@ SubElementSamplingDriver::preProcess() {
   if(domain_->nDirichlet() > 0) {
     geomState_->updatePrescribedDisplacement(domain_->getDBC(), domain_->nDirichlet(), domain_->getNodes());
   }
-
-  solver_.problemSizeIs(podBasis_.vectorCount()*displac_.vectorCount(), elementCount());
 }
 
 void
-SubElementSamplingDriver::getGlobalWeights(Vector &solution, vector<double> &lweights, vector<int> &lelemids, bool verboseFlag) {
+SubElementSamplingDriver::getGlobalWeights(Vector &solution, vector<double> &lweights, vector<int> &lelemids, bool verboseFlag)
+{
   const FileNameInfo fileInfo;
   std::set<int> sampleElemRanks;
   {
@@ -65,17 +65,20 @@ SubElementSamplingDriver::getGlobalWeights(Vector &solution, vector<double> &lwe
       }
     }
   }
-  //Element numbering: Packed to input
+
   std::vector<int> packedToInput(elementCount());
   Elemset &inputElemSet = *(geoSource->getElemSet());
   for (int iElem = 0, iElemEnd = inputElemSet.size(); iElem != iElemEnd; ++iElem) {
     Element *elem = inputElemSet[iElem];
     if (elem) {
       const int iPackElem = domain_->glToPackElem(iElem);
-      assert(iPackElem < packedToInput.size());
-      if(iPackElem >= 0) packedToInput[iPackElem] = iElem;
+      if(iPackElem >= 0) {
+        assert(iPackElem < packedToInput.size());
+        packedToInput[iPackElem] = iElem;
+      }
     }
   }
+
   std::vector<int> sampleElemIds;
   sampleElemIds.reserve(sampleElemRanks.size());
   std::map<int, double> weights;
@@ -84,7 +87,8 @@ SubElementSamplingDriver::getGlobalWeights(Vector &solution, vector<double> &lwe
     weights.insert(std::make_pair(elemRank, solution[*it]));
     sampleElemIds.push_back(elemRank);
   }
-  for(int i = 0 ; i < solution.size() ; i++){
+
+  for(int i = 0; i < solution.size(); i++) {
     lelemids.push_back(packedToInput[i]);
     lweights.push_back(solution[i]);
   }

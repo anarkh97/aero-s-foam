@@ -218,13 +218,15 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::clean() {
 }
 
 template<typename MatrixBufferType, typename SizeType>
+template<typename VecBasisType>
 void
-ElementSamplingDriver<MatrixBufferType,SizeType>::assembleTrainingData(Vector &trainingTarget)
+ElementSamplingDriver<MatrixBufferType,SizeType>
+::assembleTrainingData(const VecBasisType &podBasis, const int podVectorCount, const VecBasisType &displac,
+                       const VecBasisType *veloc, const VecBasisType *accel)
 {
   std::vector<double>::iterator timeStampFirst = timeStamps_.begin();
   typename MatrixBufferType::iterator elemContributions = solver_.matrixBuffer();
-
-  const int podVectorCount = podBasis_.vectorCount();
+  double *trainingTarget = solver_.rhsBuffer();
 
   // Temporary buffers shared by all iterations
   Vector elemTarget(podVectorCount);
@@ -249,11 +251,11 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::assembleTrainingData(Vector &t
       }
       for (int jSnap = 0; jSnap != snapshotCounts_[i]; ++iSnap, ++jSnap) {
         geomState_->explicitUpdate(domain_->getNodes(), domain_->getElementSet()[iElem]->numNodes(),
-            nodes, displac_[iSnap]); // just set the state at the nodes of element iElem
-        if(veloc_) geomState_->setVelocity(domain_->getElementSet()[iElem]->numNodes(), nodes,
-            (*veloc_)[iSnap], 2); // just set the velocity at the nodes of element iElem
-        if(accel_) geomState_->setAcceleration(domain_->getElementSet()[iElem]->numNodes(), nodes,
-            (*accel_)[iSnap], 2); // just set the acceleration at the nodes of element iElem
+            nodes, displac[iSnap]); // just set the state at the nodes of element iElem
+        if(veloc) geomState_->setVelocity(domain_->getElementSet()[iElem]->numNodes(), nodes,
+            (*veloc)[iSnap], 2); // just set the velocity at the nodes of element iElem
+        if(accel) geomState_->setAcceleration(domain_->getElementSet()[iElem]->numNodes(), nodes,
+            (*accel)[iSnap], 2); // just set the acceleration at the nodes of element iElem
         // Evaluate and store element contribution at training configuration
         domain_->getElemInternalForce(*geomState_, *timeStampIt, geomState_, *(corotators_[iElem]), elementForce.array(), kelArray_[iElem]);
         if(domain_->solInfo().reduceFollower)
@@ -272,7 +274,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::assembleTrainingData(Vector &t
           if (vecLoc >= 0) {
             const double dofForce = elementForce[iDof];
             for (int iPod = 0; iPod != podVectorCount; ++iPod) {
-              const double contrib = dofForce * podBasis_[iPod][vecLoc];
+              const double contrib = dofForce * podBasis[iPod][vecLoc];
               elemTarget[iPod] += contrib;
             }
           }
@@ -297,24 +299,21 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::solve() {
 
   preProcess();
   
-  // Training target is the sum of elementary contributions
-  const int snapshotCount = std::accumulate(snapshotCounts_.begin(), snapshotCounts_.end(), 0);
-  Vector trainingTarget(podBasis_.vectorCount()*snapshotCount, 0.0);
-  assembleTrainingData(trainingTarget);
+  // Training target (solver_.rhsBuffer) is the sum of elementary contributions
+  for(int i=0; i<solver_.equationCount(); ++i) solver_.rhsBuffer()[i] = 0.0;
+  assembleTrainingData(podBasis_, podBasis_.vectorCount(), displac_, veloc_, accel_);
 
   Vector solution;
-  computeSolution(trainingTarget, solution, domain_->solInfo().tolPodRom);
+  computeSolution(solution, domain_->solInfo().tolPodRom);
 
   postProcess(solution);
 }
 
 template<typename MatrixBufferType, typename SizeType>
 void
-ElementSamplingDriver<MatrixBufferType,SizeType>::computeSolution(Vector &trainingTarget, Vector &solution, double relativeTolerance, bool verboseFlag) {
+ElementSamplingDriver<MatrixBufferType,SizeType>::computeSolution(Vector &solution, double relativeTolerance, bool verboseFlag) {
 
   solver_.relativeToleranceIs(relativeTolerance);
-  copy(trainingTarget, solver_.rhsBuffer());
-
   solver_.verboseFlagIs(verboseFlag);
   solver_.solve();
 
@@ -325,6 +324,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::computeSolution(Vector &traini
     }
     std::cout << "\n";
 
+    StackVector trainingTarget(solver_.rhsBuffer(), solver_.equationCount());
     std::cout << "Error magnitude / Absolute tolerance = " << solver_.errorMagnitude() << " / " << solver_.relativeTolerance() * norm(trainingTarget) << "\n";
     std::cout << "1-norm of primal solution = " << std::accumulate(solver_.solutionBuffer(), solver_.solutionBuffer() + solver_.unknownCount(), 0.0) << "\n";
   }
@@ -348,15 +348,16 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcess(Vector &solution, 
     }
   }
 
-  //Element numbering: Packed to input
   std::vector<int> packedToInput(elementCount());
   Elemset &inputElemSet = *(geoSource->getElemSet());
   for (int iElem = 0, iElemEnd = inputElemSet.size(); iElem != iElemEnd; ++iElem) {
     Element *elem = inputElemSet[iElem];
     if (elem) {
       const int iPackElem = domain_->glToPackElem(iElem);
-      assert(iPackElem < packedToInput.size());
-      if(iPackElem >= 0) packedToInput[iPackElem] = iElem;
+      if(iPackElem >= 0) {
+        assert(iPackElem < packedToInput.size());
+        packedToInput[iPackElem] = iElem;
+      }
     }
   }
 

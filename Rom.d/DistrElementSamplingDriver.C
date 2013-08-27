@@ -169,7 +169,7 @@ DistrElementSamplingDriver::solve()
 
   // read in mass-normalized basis
   if(domain->solInfo().newmarkBeta == 0) {
-    std::string normalizedBasisFileName = BasisFileId(fileInfo,BasisId::STATE,BasisId::POD);
+    std::string normalizedBasisFileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
     normalizedBasisFileName.append(".normalized");
     DistrBasisInputFile normalizedBasisFile(normalizedBasisFileName);
     for(DistrVecBasis::iterator it = podBasis.begin(), it_end = podBasis.end(); it != it_end; ++it) {
@@ -185,7 +185,6 @@ DistrElementSamplingDriver::solve()
  
   SubElementSamplingDriver **subDrivers = new SubElementSamplingDriver * [decDomain->getNumSub()];
   Vector *solutions = new Vector[decDomain->getNumSub()];
-  Vector *trainingTargets = new Vector[decDomain->getNumSub()];
   double *targetMagnitudes = new double[decDomain->getNumSub()];
   int numCPUs = (structCom) ? structCom->numCPUs() : 1;
   int myID = (structCom) ? structCom->myID() : 0;
@@ -197,41 +196,46 @@ DistrElementSamplingDriver::solve()
   for(int i = 0; i < decDomain->getNumSub(); ++i) {
     subDrivers[i] = new SubElementSamplingDriver(decDomain->getAllSubDomains()[i]);
 
-    VecBasis &subPodBasis = subDrivers[i]->podBasis();
-    subPodBasis.dimensionIs(podVectorCount, subDrivers[i]->vectorSize());
+    std::vector<StackVector> subPodBasis(podVectorCount);
     for(int j = 0; j < podVectorCount; ++j) {
-      subPodBasis[j] = StackVector(podBasis[j].subData(i), podBasis[j].subLen(i));
+      subPodBasis[j].setData(podBasis[j].subData(i), podBasis[j].subLen(i));
     }
 
-    VecBasis &subDisplac = subDrivers[i]->displac();
-    subDisplac.dimensionIs(snapshotCount, subDrivers[i]->vectorSize());
+    std::vector<StackVector> subDisplac(snapshotCount);
     for(int j = 0; j < snapshotCount; ++j) {
-      subDisplac[j] = StackVector((*displac)[j].subData(i), (*displac)[j].subLen(i));
+      subDisplac[j].setData((*displac)[j].subData(i), (*displac)[j].subLen(i));
     }
 
     subDrivers[i]->timeStampsIs(timeStamps);
     subDrivers[i]->snapshotCountsIs(snapshotCounts);
+
+    std::vector<StackVector> *subVeloc = 0;
     if(veloc) {
-      VecBasis *subVeloc = subDrivers[i]->veloc();
-      subVeloc->dimensionIs(snapshotCount, subDrivers[i]->vectorSize());
+      subVeloc = new std::vector<StackVector>(snapshotCount);
       for(int j = 0; j < snapshotCount; ++j) {
-        (*subVeloc)[j] = StackVector((*veloc)[j].subData(i), (*veloc)[j].subLen(i));
+        (*subVeloc)[j].setData((*veloc)[j].subData(i), (*veloc)[j].subLen(i));
       }
     }
+
+    std::vector<StackVector> *subAccel = 0;
     if(accel) {
-      VecBasis *subAccel = subDrivers[i]->accel();
-      subAccel->dimensionIs(snapshotCount, subDrivers[i]->vectorSize());
+      subAccel = new std::vector<StackVector>(snapshotCount); 
       for(int j = 0; j < snapshotCount; ++j) {
-        (*subAccel)[j] = StackVector((*accel)[j].subData(i), (*accel)[j].subLen(i));
+        (*subAccel)[j].setData((*accel)[j].subData(i), (*accel)[j].subLen(i));
       }
     }
 
     subDrivers[i]->preProcess();
+    subDrivers[i]->solver().problemSizeIs(podVectorCount*snapshotCount, subDrivers[i]->elementCount());
 
-    trainingTargets[i].reset(subPodBasis.vectorCount()*subDisplac.vectorCount(), 0.0);
-    subDrivers[i]->assembleTrainingData(trainingTargets[i]);
+    for(int j=0; j<subDrivers[i]->solver().equationCount(); ++j) subDrivers[i]->solver().rhsBuffer()[j] = 0.0;
+    subDrivers[i]->assembleTrainingData(subPodBasis, podVectorCount, subDisplac, subVeloc, subAccel);
     subDrivers[i]->clean();
-    targetMagnitudes[i] = norm(trainingTargets[i]);
+    if(subVeloc) delete subVeloc;
+    if(subAccel) delete subAccel;
+
+    StackVector trainingTarget(subDrivers[i]->solver().rhsBuffer(), podVectorCount*snapshotCount);
+    targetMagnitudes[i] = norm(trainingTarget);
     glTargMagnitude += targetMagnitudes[i]*targetMagnitudes[i];
   }
   delete displac;
@@ -251,9 +255,8 @@ DistrElementSamplingDriver::solve()
                                : domain->solInfo().tolPodRom;
     if(verboseFlag) filePrint(stderr, " ... Training Tolerance for SubDomain %d is %f ...\n",
                               decDomain->getSubDomain(i)->subNum()+1, relativeTolerance);
-    subDrivers[i]->computeSolution(trainingTargets[i], solutions[i], relativeTolerance, verboseFlag);
+    subDrivers[i]->computeSolution(solutions[i], relativeTolerance, verboseFlag);
   }
-  delete [] trainingTargets;
   delete [] targetMagnitudes;
   
   std::vector<double> lweights; 

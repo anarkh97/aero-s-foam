@@ -23,7 +23,14 @@ ElementSamplingDriver<std::vector<double>,size_t>
 template
 void
 ElementSamplingDriver<std::vector<double>,size_t>
-::assembleTrainingData(Vector &trainingTarget);
+::assembleTrainingData(const VecBasis &podBasis, const int podVectorCount, const VecBasis &displac,
+                       const VecBasis *veloc, const VecBasis *accel);
+
+template
+void
+ElementSamplingDriver<std::vector<double>,size_t>
+::assembleTrainingData(const std::vector<StackVector> &podBasis, const int podVectorCount, const std::vector<StackVector> &displac,
+                       const std::vector<StackVector> *veloc, const std::vector<StackVector> *accel);
 
 template
 void
@@ -33,7 +40,7 @@ ElementSamplingDriver<std::vector<double>,size_t>
 template
 void
 ElementSamplingDriver<std::vector<double>,size_t>
-::computeSolution(Vector &trainingTarget, Vector &solution, double tol, bool verboseFlag);
+::computeSolution(Vector &solution, double tol, bool verboseFlag);
 
 template
 void
@@ -77,7 +84,8 @@ ElementSamplingDriver<stxxl::VECTOR_GENERATOR<double,16,32,8388608,stxxl::RC,stx
 template
 void
 ElementSamplingDriver<stxxl::VECTOR_GENERATOR<double,16,32,8388608,stxxl::RC,stxxl::random>::result,stxxl::uint64>
-::assembleTrainingData(Vector &trainingTarget);
+::assembleTrainingData(const VecBasis &podBasis, const int podVectorCount, const VecBasis &displac,
+                       const VecBasis *veloc, const VecBasis *accel);
 
 template
 void
@@ -87,7 +95,7 @@ ElementSamplingDriver<stxxl::VECTOR_GENERATOR<double,16,32,8388608,stxxl::RC,stx
 template
 void
 ElementSamplingDriver<stxxl::VECTOR_GENERATOR<double,16,32,8388608,stxxl::RC,stxxl::random>::result,stxxl::uint64>
-::computeSolution(Vector &trainingTarget, Vector &solution, double tol, bool verboseFlag);
+::computeSolution(Vector &solution, double tol, bool verboseFlag);
 
 template
 void

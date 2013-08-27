@@ -30,7 +30,7 @@ template<typename MatrixBufferType = std::vector<double>, typename SizeType = si
 class ElementSamplingDriver : public SingleDomainDynamic, public DriverInterface {
 public:
   virtual void solve(); // overriden
-  void computeSolution(Vector &trainingTarget, Vector &solution, double relativeTolerance, bool verboseFlag = true);
+  void computeSolution(Vector &solution, double relativeTolerance, bool verboseFlag = true);
   void postProcess(Vector &solution, bool verboseFlag = true);
   VecBasis& podBasis() { return podBasis_; }
   VecBasis& displac() { return displac_; }
@@ -44,12 +44,14 @@ public:
   ~ElementSamplingDriver();
 
   virtual void preProcess();
-  void assembleTrainingData(Vector &trainingTarget);
+  template<typename VecBasisType>
+  void assembleTrainingData(const VecBasisType &podBasis, const int podVectorCount, const VecBasisType &displac,
+                            const VecBasisType *veloc, const VecBasisType *accel);
   void clean();
-
-protected:
+  SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>& solver() { return solver_; }
   int elementCount() const;
 
+protected:
   void buildDomainCdsa();
   Domain *domain_;
 

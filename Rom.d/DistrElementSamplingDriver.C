@@ -235,7 +235,7 @@ DistrElementSamplingDriver::solve()
     if(subAccel) delete subAccel;
 
     StackVector trainingTarget(subDrivers[i]->solver().rhsBuffer(), podVectorCount*snapshotCount);
-    targetMagnitudes[i] = norm(trainingTarget);
+    targetMagnitudes[i] = trainingTarget.norm();
     glTargMagnitude += targetMagnitudes[i]*targetMagnitudes[i];
   }
   delete displac;

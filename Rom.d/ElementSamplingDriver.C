@@ -325,7 +325,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::computeSolution(Vector &soluti
     std::cout << "\n";
 
     StackVector trainingTarget(solver_.rhsBuffer(), solver_.equationCount());
-    std::cout << "Error magnitude / Absolute tolerance = " << solver_.errorMagnitude() << " / " << solver_.relativeTolerance() * norm(trainingTarget) << "\n";
+    std::cout << "Error magnitude / Absolute tolerance = " << solver_.errorMagnitude() << " / " << solver_.relativeTolerance() * trainingTarget.norm() << "\n";
     std::cout << "1-norm of primal solution = " << std::accumulate(solver_.solutionBuffer(), solver_.solutionBuffer() + solver_.unknownCount(), 0.0) << "\n";
   }
 

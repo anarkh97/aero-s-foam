@@ -27,6 +27,57 @@ DistrBasisOrthoDriver::DistrBasisOrthoDriver(Domain *domain, Communicator *comm)
   comm_(comm)
 {}
 
+//Non-member functions
+//===============
+void readIntoSolver(DistrSvdOrthogonalization &solver, DistrNodeDof6Buffer &inputBuffer, int& nodeCount,
+                    DistrVecNodeDof6Conversion &converter,MDDynamMat *dynOps, const DistrInfo &vectorSize,
+                    BasisId::Level type, int numEntries, int& solverCol, int skipFactor=1)
+{
+  const BasisId::Type workload = BasisId::STATE;
+  FileNameInfo fileInfo;
+  //const int skipFactor = domain->solInfo().skipPodRom;
+  for(int i = 0; i < numEntries; i++){
+    DistrBasisInputFile inputFile(BasisFileId(fileInfo,workload,type,i));
+    nodeCount = inputFile.nodeCount();
+    int basisStateCount = 1+(inputFile.stateCount()-1)/skipFactor;
+    {
+      int count = 0;
+      int skipCounter = skipFactor;
+      while (count < basisStateCount) {
+        assert(inputFile.validCurrentState());
+        inputFile.currentStateBuffer(inputBuffer);
+
+        if (skipCounter >= skipFactor) {
+        double *vecBuffer = solver.matrixColBuffer(solverCol);
+        GenStackDistVector<double> vec(vectorSize, vecBuffer);
+
+        converter.paddedMasterVector(inputBuffer, vec);
+        // TODO Multiply by weighting factor if given in input file
+        if(domain->solInfo().newmarkBeta == 0 && domain->solInfo().normalize == 1) { // new method
+          dynOps->dynMat->squareRootMult(vec);
+        }
+        if(type== BasisId::ROB) vec*=inputFile.currentStateHeaderValue(); //multiply in singular values for robfiles
+        std::fill(vecBuffer + vectorSize.totLen(), vecBuffer + solver.localRows(), 0.0);
+        skipCounter = 1;
+        ++solverCol;
+        ++count;
+        } else {
+          ++skipCounter;
+        }
+        inputFile.currentStateIndexInc();
+      }
+    }
+  }
+}
+
+//Member functions
+//================
+const DistrInfo&
+DistrBasisOrthoDriver::vectorSize() const
+{
+  return decDomain->masterSolVecInfo();
+}
+
 void
 DistrBasisOrthoDriver::solve() {
   
@@ -94,67 +145,8 @@ DistrBasisOrthoDriver::solve() {
    
   int solverCol = 0;
   DistrNodeDof6Buffer inputBuffer(masterMapping.localNodeBegin(), masterMapping.localNodeEnd());
-  for(int i = 0; i < domain->solInfo().snapfiPodRom.size(); i++) {
-    DistrBasisInputFile inputFile(BasisFileId(fileInfo, workload, BasisId::SNAPSHOTS, i));
-    nodeCount = inputFile.nodeCount();
-    int basisStateCount = 1+(inputFile.stateCount()-1)/skipFactor;
-    {
-      int count = 0;
-      int skipCounter = skipFactor;
-      while (count < basisStateCount) {
-        assert(inputFile.validCurrentState());
-        inputFile.currentStateBuffer(inputBuffer);
-
-        if (skipCounter >= skipFactor) {
-          double *vecBuffer = solver.matrixColBuffer(solverCol);
-          GenStackDistVector<double> vec(decDomain->solVecInfo(), vecBuffer);
-
-          converter.paddedMasterVector(inputBuffer, vec);
-          // TODO Multiply by weighting factor if given in input file
-          if(beta == 0 && domain->solInfo().normalize == 1) { // new method
-            dynOps->dynMat->squareRootMult(vec);
-          }
-
-          std::fill(vecBuffer + localLength, vecBuffer + solver.localRows(), 0.0);
-
-          skipCounter = 1;
-          ++solverCol;
-          ++count;
-        } else {
-          ++skipCounter;
-        }
-
-        inputFile.currentStateIndexInc();
-      }
-    }
-  }
-
-  for(int i = 0; i < domain->solInfo().robfi.size(); i++) {
-    DistrBasisInputFile inputFile(BasisFileId(fileInfo, workload, BasisId::ROB, i));
-    nodeCount = inputFile.nodeCount();
-    int basisStateCount = inputFile.stateCount();
-    {
-      int count = 0;
-      while(count < basisStateCount) {
-        assert(inputFile.validCurrentState());
-        inputFile.currentStateBuffer(inputBuffer);
-        double *vecBuffer = solver.matrixColBuffer(solverCol);
-        GenStackDistVector<double> vec(decDomain->solVecInfo(), vecBuffer);
-        converter.paddedMasterVector(inputBuffer, vec);
-        // TODO Multiply by weighting factor if given in input file
-        if(beta == 0 && domain->solInfo().normalize == 1) { // new method
-          dynOps->dynMat->squareRootMult(vec);
-        }
-        vec *= inputFile.currentStateHeaderValue(); // Multiply by the singular value stored in header
-          
-        std::fill(vecBuffer + localLength, vecBuffer + solver.localRows(), 0.0);
-        ++solverCol;
-        ++count;
-        inputFile.currentStateIndexInc();
-      }
-    }
-  }
-
+  readIntoSolver(solver, inputBuffer, nodeCount, converter, dynOps, vectorSize(), BasisId::SNAPSHOTS, domain->solInfo().snapfiPodRom.size(), solverCol, domain->solInfo().skipPodRom); //reads in snapshots
+  readIntoSolver(solver, inputBuffer, nodeCount, converter, dynOps, vectorSize(), BasisId::ROB, domain->solInfo().robfi.size(), solverCol); //reads in robs
   solver.solve();
 
   // Output solution

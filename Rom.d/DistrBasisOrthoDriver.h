@@ -4,6 +4,7 @@
 #include "DriverInterface.h"
 
 class Communicator;
+class DistrInfo;
 
 namespace Rom {
 
@@ -12,6 +13,7 @@ public:
   virtual void solve();
   
   DistrBasisOrthoDriver(Domain *, Communicator *);
+  const DistrInfo& vectorSize() const;
 
 private:
   Domain *domain_;

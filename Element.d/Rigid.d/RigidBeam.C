@@ -438,12 +438,12 @@ RigidBeam::updTransMatrix(CoordSet& cs, GeomState *geomState, double t0n[3][3], 
    normalize( t0n[0] );
 
 /* Y-axis as cross product between z and x */
-    crossprod( t0n[2], t0n[0], t0n[1]);
-    normalize( t0n[1] );
+   crossprod( t0n[2], t0n[0], t0n[1]);
+   normalize( t0n[1] );
 
 /* Z-axis as cross product between x and y */
-    crossprod( t0n[0], t0n[1], t0n[2]);
-    normalize( t0n[2] );
+   crossprod( t0n[0], t0n[1], t0n[2]);
+   normalize( t0n[2] );
 }
 
 void

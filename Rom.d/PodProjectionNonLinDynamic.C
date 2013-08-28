@@ -746,6 +746,7 @@ PodProjectionNonLinDynamic::formRHScorrector(Vector &inc_displacement, Vector &v
                                   residual_Big, rhs_Big, geomState_Big, localDelta);
 
   projectionBasis.projectDown(rhs_Big, rhs);
+  return rhs.norm();
 }
 
 void
@@ -833,6 +834,7 @@ PodProjectionNonLinDynamic::getStiffAndForce(ModalGeomState &geomState, Vector &
   NonLinDynamic::getStiffAndForce(*geomState_Big, residual_Big, elementInternalForce, t, refState_Big);
 
   projectionBasis.projectDown(residual_Big, residual);
+  return residual.norm();
 }
 
 void

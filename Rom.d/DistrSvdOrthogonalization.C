@@ -118,7 +118,6 @@ DistrSvdOrthogonalization::reset() {
   const int reqSigmaBufferSize = singularValueCount_;
 
   matrixBuffer_.sizeIs(reqMatrixBufferSize);
-  //std::fill_n(matrixBuffer_.array(), reqMatrixBufferSize, 0.0); // PJSA
   basisBuffer_.sizeIs(reqBasisBufferSize);
   sigmaBuffer_.sizeIs(reqSigmaBufferSize);
 

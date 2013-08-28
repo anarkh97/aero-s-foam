@@ -30,7 +30,7 @@ DistrBasisOrthoDriver::DistrBasisOrthoDriver(Domain *domain, Communicator *comm)
 //Non-member functions
 //===============
 void readIntoSolver(DistrSvdOrthogonalization &solver, DistrNodeDof6Buffer &inputBuffer, int& nodeCount,
-                    DistrVecNodeDof6Conversion &converter,MDDynamMat *dynOps, const DistrInfo &vectorSize,
+                    DistrVecNodeDof6Conversion &converter, MDDynamMat *dynOps, const DistrInfo &vectorSize,
                     BasisId::Level type, int numEntries, int& solverCol, int skipFactor=1)
 {
   const BasisId::Type workload = BasisId::STATE;
@@ -48,19 +48,19 @@ void readIntoSolver(DistrSvdOrthogonalization &solver, DistrNodeDof6Buffer &inpu
         inputFile.currentStateBuffer(inputBuffer);
 
         if (skipCounter >= skipFactor) {
-        double *vecBuffer = solver.matrixColBuffer(solverCol);
-        GenStackDistVector<double> vec(vectorSize, vecBuffer);
+          double *vecBuffer = solver.matrixColBuffer(solverCol);
+          GenStackDistVector<double> vec(vectorSize, vecBuffer);
 
-        converter.paddedMasterVector(inputBuffer, vec);
-        // TODO Multiply by weighting factor if given in input file
-        if(domain->solInfo().newmarkBeta == 0 && domain->solInfo().normalize == 1) { // new method
-          dynOps->dynMat->squareRootMult(vec);
-        }
-        if(type== BasisId::ROB) vec*=inputFile.currentStateHeaderValue(); //multiply in singular values for robfiles
-        std::fill(vecBuffer + vectorSize.totLen(), vecBuffer + solver.localRows(), 0.0);
-        skipCounter = 1;
-        ++solverCol;
-        ++count;
+          converter.paddedMasterVector(inputBuffer, vec);
+          // TODO Multiply by weighting factor if given in input file
+          if(domain->solInfo().newmarkBeta == 0 && domain->solInfo().normalize == 1) { // new method
+            dynOps->dynMat->squareRootMult(vec);
+          }
+          if(type== BasisId::ROB) vec *= inputFile.currentStateHeaderValue(); //multiply in singular values for robfiles
+          std::fill(vecBuffer + vectorSize.totLen(), vecBuffer + solver.localRows(), 0.0);
+          skipCounter = 1;
+          ++solverCol;
+          ++count;
         } else {
           ++skipCounter;
         }
@@ -115,7 +115,7 @@ DistrBasisOrthoDriver::solve() {
 
   DistrSvdOrthogonalization solver(comm_, comm_->numCPUs(), 1);
   
-  const int blockSize = 64; // TODO More flexible
+  const int blockSize = domain->solInfo().svdBlockSize; // default: 64
   {
     solver.blockSizeIs(blockSize);
   }
@@ -124,13 +124,13 @@ DistrBasisOrthoDriver::solve() {
   const int masterLength = decDomain->masterSolVecInfo().masterLen();
   {
     const int maxLocalLength = comm_->globalMax(localLength);
-    const int maxCpuLoad = ((maxLocalLength / blockSize) + (maxLocalLength % blockSize)) * blockSize;
-    assert(maxCpuLoad >= localLength);
-    const int globalProbSize = maxCpuLoad * solver.rowCpus();
+    // compute upper bound for global problem size such that solver.localRows() is 
+    // always greater than or equal to localLength. see numroc.f (ScaLAPACK)
+    const int globalProbSize = ((maxLocalLength/blockSize+1)*solver.rowCpus()+1)*blockSize+1;
     solver.problemSizeIs(globalProbSize, snapBasisStateCount+robBasisStateCount);
-    assert(solver.localRows() == maxCpuLoad);
+    assert(solver.localRows() >= localLength);
   }
-  const int singularValueCount = std::min(masterLength,snapBasisStateCount+robBasisStateCount);
+  const int singularValueCount = std::min(masterLength, snapBasisStateCount+robBasisStateCount);
 
   double beta = domain->solInfo().newmarkBeta;
   // Assembling mass matrix
@@ -145,8 +145,11 @@ DistrBasisOrthoDriver::solve() {
    
   int solverCol = 0;
   DistrNodeDof6Buffer inputBuffer(masterMapping.localNodeBegin(), masterMapping.localNodeEnd());
-  readIntoSolver(solver, inputBuffer, nodeCount, converter, dynOps, vectorSize(), BasisId::SNAPSHOTS, domain->solInfo().snapfiPodRom.size(), solverCol, domain->solInfo().skipPodRom); //reads in snapshots
-  readIntoSolver(solver, inputBuffer, nodeCount, converter, dynOps, vectorSize(), BasisId::ROB, domain->solInfo().robfi.size(), solverCol); //reads in robs
+  readIntoSolver(solver, inputBuffer, nodeCount, converter, dynOps, decDomain->solVecInfo(), BasisId::SNAPSHOTS,
+                 domain->solInfo().snapfiPodRom.size(), solverCol, domain->solInfo().skipPodRom); //reads in snapshots
+
+  readIntoSolver(solver, inputBuffer, nodeCount, converter, dynOps, decDomain->solVecInfo(), BasisId::ROB,
+                 domain->solInfo().robfi.size(), solverCol); //reads in robs
   solver.solve();
 
   // Output solution

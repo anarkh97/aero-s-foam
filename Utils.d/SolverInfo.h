@@ -339,6 +339,7 @@ struct SolverInfo {
    bool snapshotsPodRom;
    bool checkPodRom;
    bool svdPodRom;
+   int  svdBlockSize;
    bool samplingPodRom;
    bool snapProjPodRom;
    bool galerkinPodRom;
@@ -593,6 +594,7 @@ struct SolverInfo {
                   snapshotsPodRom    = false;
                   checkPodRom        = false;
                   svdPodRom          = false;
+                  svdBlockSize       = 64;
                   samplingPodRom     = false;
                   snapProjPodRom     = false;
                   galerkinPodRom     = false;

@@ -62,7 +62,7 @@
 %token ACTUATORS AERO AEROH AEROTYPE AMAT ANALYSIS ARCLENGTH ATTRIBUTES ANGULAROUTTYPE
 %token AUGMENT AUGMENTTYPE AVERAGED ATDARB ACOU ATDDNB ATDROB ARPACK ATDDIR ATDNEU
 %token AXIHDIR AXIHNEU AXINUMMODES AXINUMSLICES AXIHSOMMER AXIMPC AUXCOARSESOLVER ACMECNTL ADDEDMASS AEROEMBED AUGMENTED
-%token BLOCKDIAG BOFFSET BUCKLE BGTL BMPC BINARYINPUT BINARYOUTPUT
+%token BLOCKDIAG BOFFSET BUCKLE BGTL BMPC BINARYINPUT BINARYOUTPUT BLOCKSIZE
 %token CHECKTOKEN COARSESOLVER COEF CFRAMES COLLOCATEDTYPE CONVECTION COMPOSITE CONDITION
 %token CONTROL CORNER CORNERTYPE CURVE CCTTOL CCTSOLVER CRHS COUPLEDSCALE CONTACTSURFACES CMPC CNORM
 %token COMPLEXOUTTYPE CONSTRMAT CASES CONSTRAINEDSURFACES CSFRAMES CSTYPE
@@ -4298,16 +4298,8 @@ SvdToken:
   ;
 
 SvdOption:
-/*
-  SNAPFI FNAME
-  {
-    domain->solInfo().snapfiPodRom.push_back(std::string($2));
-  }
-  */
   SNAPFI StringList
-  {
-    for(int i=0; i<$2.nval; ++i) domain->solInfo().snapfiPodRom.push_back(std::string($2.v[i]));
-  }
+  { for(int i=0; i<$2.nval; ++i) domain->solInfo().snapfiPodRom.push_back(std::string($2.v[i])); }
   /*
   | SNAPFI FNAME Integer
   { domain->solInfo().snapfiPodRom.push_back($2);
@@ -4326,9 +4318,9 @@ SvdOption:
   | SKIP Integer
   { domain->solInfo().skipPodRom = $2; } 
   | ROBFI StringList
-  {
-    for(int i=0; i<$2.nval; ++i) domain->solInfo().robfi.push_back(std::string($2.v[i]));
-  }
+  { for(int i=0; i<$2.nval; ++i) domain->solInfo().robfi.push_back(std::string($2.v[i])); }
+  | BLOCKSIZE Integer
+  { domain->solInfo().svdBlockSize = $2; }
   | ConwepConfig
   ;
 

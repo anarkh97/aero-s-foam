@@ -63,6 +63,59 @@ BasisOrthoDriver::BasisOrthoDriver(Domain *domain) :
   SingleDomainDynamic(domain)
 {}
 
+//Non-member functions
+//====================
+void readIntoSolver(SvdOrthogonalization &solver, VecNodeDof6Conversion &converter, BasisId::Level fileType,
+                    int numEntries, int vectorSize, std::auto_ptr<VectorTransform<double*>> &transform, BasisId::Type type,
+                    int &colCounter, GenSparseMatrix<double> *fullMass, int skipTime=1)
+{
+  //int colCounter = 0 ; // Column counter for combined matrix
+  FileNameInfo fileInfo; 
+  for(int i = 0 ; i < numEntries; i++) {
+    std::string fileName =  BasisFileId(fileInfo, type, fileType, i);
+    BasisInputStream input(fileName, converter);
+    if(fileType == BasisId::SNAPSHOTS) filePrint(stderr, " ... Reading in Snapshot file: %s ...\n", fileName.c_str());
+    if(fileType == BasisId::ROB) filePrint(stderr, " ... Reading in ROB file: %s ...\n", fileName.c_str());
+    int skip = 1;
+    for (int iCol = 0; iCol < input.size(); ++iCol) {
+      if(skip == skipTime) {
+        double *buffer = solver.matrixCol(colCounter);
+        std::pair<double, double *> data;
+        if(fileType == BasisId::ROB){
+          data.second = buffer;
+          input >> data;
+        }
+        else input >> buffer;
+        assert(input);
+        colCounter++;
+        // Multiply by weighting factor if given in input file
+        
+        for(int row = 0 ; row < vectorSize; row++) {
+          if(fileType == BasisId::ROB) data.second[row] *= data.first; //multiplying singular values
+          if(!domain->solInfo().snapshotWeights.empty()) {
+            buffer[row] *= domain->solInfo().snapshotWeights[i];
+          }
+        }
+        if(domain->solInfo().newmarkBeta == 0 && domain->solInfo().normalize == 1) fullMass->squareRootMult(buffer); // new method
+        (*transform)(buffer);
+        skip = 1;
+      } 
+      else {
+          SimpleBuffer<double> dummyVec;
+          dummyVec.sizeIs(input.vectorSize());  
+          double *dummyBuffer = dummyVec.array();
+          input >> dummyBuffer;
+          assert(input);
+          ++skip;
+      }
+    }
+  }
+}
+
+//Member functions
+//====================
+
+
 void
 BasisOrthoDriver::solve() {
   SingleDomainDynamic::preProcess();
@@ -108,7 +161,7 @@ BasisOrthoDriver::solve() {
   int sizeSnap = 0; // number of state snapshots
   int sizeROB = 0;
   int skipTime = domain->solInfo().skipPodRom;
-  int skip;
+  //int skip;
   if(domain->solInfo().snapfiPodRom.empty() && domain->solInfo().robfi.empty()) {
     std::cerr << "*** Error: no files provided\n";
     exit(-1);
@@ -137,62 +190,10 @@ BasisOrthoDriver::solve() {
   for (std::vector<BasisId::Type>::const_iterator it = workload.begin(); it != workload.end(); ++it) {
     BasisId::Type type = *it;
     filePrint(stderr, " ... Computation of a basis of size %d ...\n", sizeSnap+sizeROB);
-    {
-      int colCounter = 0 ; // Column counter for combined matrix
-      for(int i = 0 ; i < domain->solInfo().snapfiPodRom.size(); i++) {
-        std::string fileName =  BasisFileId(fileInfo, type, BasisId::SNAPSHOTS, i);
-        BasisInputStream input(fileName, converter);
-        filePrint(stderr, " ... Reading in snapshot file: %s ...\n", fileName.c_str());
-        skip = 1;
-        for (int iCol = 0; iCol < input.size(); ++iCol) {
-          if(skip == skipTime) {
-            double *buffer = solver.matrixCol(colCounter);
-            input >> buffer;
-            assert(input);
-            colCounter++;
-            // Multiply by weighting factor if given in input file
-            if(!domain->solInfo().snapshotWeights.empty()) {
-              for(int row = 0 ; row < vectorSize; row++) {
-                buffer[row] *= domain->solInfo().snapshotWeights[i];
-              }
-            }
-            if(beta == 0 && domain->solInfo().normalize == 1) fullMass->squareRootMult(buffer); // new method
-            (*transform)(buffer);
-            skip = 1;
-          } else {
-            SimpleBuffer<double> dummyVec;
-            dummyVec.sizeIs(input.vectorSize());  
-            double *dummyBuffer = dummyVec.array();
-            input >> dummyBuffer;
-            assert(input);
-            ++skip;
-          }
-        }
-      }
-      
-      for(int i = 0; i < domain->solInfo().robfi.size(); i++) {
-        std::string fileName = BasisFileId(fileInfo, type, BasisId::ROB, i);
-        BasisInputStream input(fileName,converter);
-        filePrint(stderr, " ... Reading in ROB file: %s ...\n", fileName.c_str());
-        for(int iCol = 0; iCol < input.size(); ++iCol) {
-            double *buffer = solver.matrixCol(colCounter);
-            std::pair<double, double *> data;
-            assert(input);
-            data.second = buffer;
-            input >> data;
-            colCounter++;
-            for(int row = 0 ; row < vectorSize; row++) {
-              data.second[row] *= data.first; //multiply in singluar values
-              if(!domain->solInfo().snapshotWeights.empty()){
-                data.second[row] *= domain->solInfo().snapshotWeights[domain->solInfo().snapfiPodRom.size()+i]; //multiply in weights if given
-              }
-            }
-            if(beta == 0 && domain->solInfo().normalize == 1) fullMass->squareRootMult(buffer); // new method
-            (*transform)(buffer);
-        }
-      }
-
-    }
+    int colCounter = 0;
+    readIntoSolver(solver, converter, BasisId::SNAPSHOTS, domain->solInfo().snapfiPodRom.size(), vectorSize, transform, type, colCounter, fullMass, skipTime); //read in snapshots
+    readIntoSolver(solver, converter, BasisId::ROB, domain->solInfo().robfi.size(), vectorSize, transform, type, colCounter, fullMass);  //read in ROB
+    
     solver.solve();
 
     BasisOutputStream output(BasisFileId(fileInfo, type, BasisId::POD), converter, false); 

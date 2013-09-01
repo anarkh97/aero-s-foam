@@ -66,7 +66,7 @@ BasisOrthoDriver::BasisOrthoDriver(Domain *domain) :
 //Non-member functions
 //====================
 void readIntoSolver(SvdOrthogonalization &solver, VecNodeDof6Conversion &converter, BasisId::Level fileType,
-                    int numEntries, int vectorSize, std::auto_ptr<VectorTransform<double*>> &transform, BasisId::Type type,
+                    int numEntries, int vectorSize, std::auto_ptr<VectorTransform<double*> > &transform, BasisId::Type type,
                     int &colCounter, GenSparseMatrix<double> *fullMass, int skipTime=1)
 {
   //int colCounter = 0 ; // Column counter for combined matrix

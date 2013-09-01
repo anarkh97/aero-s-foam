@@ -1,4 +1,4 @@
-#ifndef DISTR_SFEM_BLOCK_MAtriX_H_
+#ifndef DISTR_SFEM_BLOCK_MATRIX_H_
 #define DISTR_SFEM_BLOCK_MATRIX_H_
 
 #include<Utils.d/MyComplex.h>

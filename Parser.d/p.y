@@ -284,7 +284,6 @@ Component:
         | AxiNumSlices
         | AxiHSommer
         | AxiMPC
-        | BinaryIO 
         | BinarySpec
         | AtdDirScatterer
         { if(geoSource->setDirichlet($1->n,$1->d) < 0) return -1; }
@@ -541,25 +540,24 @@ ReconsInfo:
           }
         }
         ;
-BinaryIO:
-        BINARYINPUT SWITCH NewLine 
-          { geoSource->binaryInput = bool($2); }
-        | BINARYOUTPUT SWITCH NewLine
-          { geoSource->binaryOutput = bool($2); }
-        ;
 BinarySpec:
         BINARY NewLine
-        | BINARY FNAME NewLine
-          { std::string prefix = $2;
+        | BinarySpec BINARYINPUT SWITCH NewLine 
+          { geoSource->binaryInput = bool($3); }
+        | BinarySpec BINARYINPUT SWITCH FNAME NewLine
+          { geoSource->binaryInput = bool($3);
+            std::string prefix = $4;
             clusterData_ = prefix + ".msh";
             decomposition_ = prefix + ".dec";
             connectivity_ = prefix + ".con";
             subdomains_ = prefix + ".sub";
-            fprintf(stderr, "clusterData_ = %s\n", clusterData_.c_str());
-            fprintf(stderr, "decomposition_ = %s\n", decomposition_.c_str());
-            fprintf(stderr, "connectivity_ = %s\n", connectivity_.c_str());
-            fprintf(stderr, "subdomains_ = %s\n", subdomains_.c_str());
+            //fprintf(stderr, "clusterData_ = %s\n", clusterData_.c_str());
+            //fprintf(stderr, "decomposition_ = %s\n", decomposition_.c_str());
+            //fprintf(stderr, "connectivity_ = %s\n", connectivity_.c_str());
+            //fprintf(stderr, "subdomains_ = %s\n", subdomains_.c_str());
           }
+        | BinarySpec BINARYOUTPUT SWITCH NewLine 
+          { geoSource->binaryOutput = bool($3); }
         | BinarySpec GEOMETRY FNAME NewLine
           { geoSource->setGeo($3); }
         | BinarySpec DECOMPOSITION FNAME NewLine

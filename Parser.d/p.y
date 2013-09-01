@@ -626,9 +626,11 @@ HFTTInfo:
 Configuration:
         CONFIGURATION NewLine
         { /*$$ = $2;*/ }
+        | Configuration Integer Integer NewLine
+        { domain->setLoadConfig($2, $3); }
+/*
         | Configuration Integer MFTT Integer NewLine
         { domain->setLoadConfig($2, $4); }
-/*
         | Configuration Integer HFTT Integer NewLine
         { domain->setLoadConfig($2, $4); }
         | Configuration Integer CONWEP NewLine

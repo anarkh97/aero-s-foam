@@ -1202,15 +1202,23 @@ TRAIL [a-zA-Z]*
 
 "anim"[a-zA-Z]*|"ANIM"[a-zA-Z]*    { yylval.ival = OutputInfo::animate; return COMPLEXOUTTYPE; }
 
-"spatial"|"SPATIAL"                { yylval.ival = OutputInfo::spatial; return ANGULAROUTTYPE; }
+"spatial"|"Spatial"|"SPATIAL"      { yylval.ival = OutputInfo::spatial; return ANGULAROUTTYPE; }
 
-"convected"|"CONVECTED"            { yylval.ival = OutputInfo::convected; return ANGULAROUTTYPE; }
+"convected"|"Convected"|"CONVECTED" { yylval.ival = OutputInfo::convected; return ANGULAROUTTYPE; }
 
-"total"|"TOTAL"                    { yylval.ival = OutputInfo::total; return ANGULAROUTTYPE; }
+"total"|"Total"|"TOTAL"            { yylval.ival = OutputInfo::total; return ANGULAROUTTYPE; }
 
 "euler"|"Euler"|"EULER"            { yylval.ival = OutputInfo::Euler; return ROTVECOUTTYPE; }
 
 "complement"|"Complement"|"COMPLEMENT" { yylval.ival = OutputInfo::Complement; return ROTVECOUTTYPE; }
+
+"ReducedEulerRodrigues"            { yylval.ival = OutputInfo::ReducedEulerRodrigues; return ROTVECOUTTYPE; }
+
+"CayleyGibbsRodrigues"             { yylval.ival = OutputInfo::CayleyGibbsRodrigues; return ROTVECOUTTYPE; }
+
+"WienerMilenkovic"                 { yylval.ival = OutputInfo::WienerMilenkovic; return ROTVECOUTTYPE; }
+
+"BauchauTrainelli"                 { yylval.ival = OutputInfo::BauchauTrainelli; return ROTVECOUTTYPE; }
 
 "rescal"[a-zA-Z]*|"RESCAL"[a-zA-Z]* { return RESCALING; }
 

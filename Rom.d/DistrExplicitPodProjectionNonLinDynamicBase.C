@@ -48,7 +48,13 @@ DistrExplicitPodPostProcessor::DistrExplicitPodPostProcessor(DecDomain *d, Stati
     switch(oinfo[iOut].type) {
       case OutputInfo::Accel6 : case OutputInfo::Acceleration :
         if(oinfo[iOut].nodeNumber != -1) {
-          AccSensor = true;
+          if(oinfo[iOut].type == OutputInfo::Acceleration || (oinfo[iOut].angularouttype == OutputInfo::total && oinfo[iOut].rescaling == false)) {
+            AccSensor = true;
+          }
+          else {
+            filePrint(stderr, " *** WARNING: unsupported probe output type. Use OUTPUT instead of OUTPUT6, or\n");
+            filePrint(stderr, "     OUTPUT6 with ROTVECOUTTYPE=euler, ANGULAROUTTYPE=total, and RESCALING=off.\n");
+          }
         } else {
           if(!structCom || structCom->myID() == 0) oinfo[iOut].filptr = fopen(oinfo[iOut].filename, "wb");
           filePrint(oinfo[iOut].filptr, "0\n"); 
@@ -56,7 +62,13 @@ DistrExplicitPodPostProcessor::DistrExplicitPodPostProcessor(DecDomain *d, Stati
         break;
       case OutputInfo::Disp6DOF : case OutputInfo::Displacement :
         if(oinfo[iOut].nodeNumber != -1) {
-          DispSensor = true;
+          if(oinfo[iOut].type == OutputInfo::Displacement || (oinfo[iOut].rotvecouttype == OutputInfo::Euler && oinfo[iOut].rescaling == false)) {
+            DispSensor = true;
+          }
+          else {
+            filePrint(stderr, " *** WARNING: unsupported probe output type. Use OUTPUT instead of OUTPUT6, or\n");
+            filePrint(stderr, "     OUTPUT6 with ROTVECOUTTYPE=euler, ANGULAROUTTYPE=total, and RESCALING=off.\n");
+          }
         } else {
           if(!structCom || structCom->myID() == 0) oinfo[iOut].filptr = fopen(oinfo[iOut].filename, "wb");
           filePrint(oinfo[iOut].filptr, "1\n");
@@ -64,14 +76,20 @@ DistrExplicitPodPostProcessor::DistrExplicitPodPostProcessor(DecDomain *d, Stati
         break;
       case OutputInfo::Velocity6 : case OutputInfo::Velocity :
         if(oinfo[iOut].nodeNumber != -1) {
-          VelSensor = true;
+          if(oinfo[iOut].type == OutputInfo::Velocity || (oinfo[iOut].angularouttype == OutputInfo::total && oinfo[iOut].rescaling == false)) {
+            VelSensor = true;
+          }
+          else {
+            filePrint(stderr, " *** WARNING: unsupported probe output type. Use OUTPUT instead of OUTPUT6, or\n");
+            filePrint(stderr, "     OUTPUT6 with ROTVECOUTTYPE=euler, ANGULAROUTTYPE=total, and RESCALING=off.\n");
+          }
         } else {
           if(!structCom || structCom->myID() == 0) oinfo[iOut].filptr = fopen(oinfo[iOut].filename, "wb");
           filePrint(oinfo[iOut].filptr, "2\n");
         }
         break; 
       default:
-        filePrint(stderr, " ... ROM output only supports Acceleration, Displacement, and Velocity ...\n");
+        filePrint(stderr, " *** WARNING: Online ROM output only supports GDISPLAC, GVELOCIT, and GACCELER.\n");
         filePrint(stderr, "     output type selected is %d \n", oinfo[iOut].type);
     }
   }
@@ -176,7 +194,6 @@ DistrExplicitPodPostProcessor::subBuildSensorNodeVector(int iSub) {
 void
 DistrExplicitPodPostProcessor::subPrintSensorValues(int iSub, GenDistrVector<double> &SensorData, OutputInfo *OINFO, double *time) {
 
-  // XXX the rotation vector should be renormalized, and the angular velocity/acceleration should be transformed to convected. 
 #ifdef DISTRIBUTED
   int locNode = decDomain->getSubDomain(iSub)->globalToLocal(OINFO->nodeNumber);
   if(locNode > -1) { // if node is -1, sensor node is not in this subdomain, don't print

@@ -188,13 +188,16 @@ MultiDomDynPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dynOps, 
   ControlLawInfo *claw = geoSource->getControlLaw();
   ControlInterface *userSupFunc = domain->getUserSuppliedFunction();
   if(claw && claw->numUserDisp) {
-    //double t = double(tIndex)*domain->solInfo().getTimeStep();
     double *userDefineDisp = new double[claw->numUserDisp];
     double *userDefineVel  = new double[claw->numUserDisp];
     double *userDefineAcc  = new double[claw->numUserDisp];
-    //cerr << "getting usdd at time " << t << " for dynamOutput\n";
-    userSupFunc->usd_disp(t,userDefineDisp,userDefineVel,userDefineAcc);
-    paralApply(decDomain->getNumSub(), decDomain->getAllSubDomains(), &GenSubDomain<double>::setUserDefBC, userDefineDisp, userDefineVel, userDefineAcc, false);
+    for(int i=0; i<claw->numUserDisp; ++i) {
+      userDefineVel[i] = 0;
+      userDefineAcc[i] = 0;
+    }
+    userSupFunc->usd_disp(t, userDefineDisp, userDefineVel, userDefineAcc);
+    paralApply(decDomain->getNumSub(), decDomain->getAllSubDomains(), &GenSubDomain<double>::setUserDefBC,
+               userDefineDisp, userDefineVel, userDefineAcc, false);
     delete [] userDefineDisp; delete [] userDefineVel; delete [] userDefineAcc;
   }
 
@@ -540,8 +543,13 @@ MultiDomainDynam::getContactForce(DistrVector &d_n, DistrVector &dinc, DistrVect
       double *userDefineDisp = new double[claw->numUserDisp];
       double *userDefineVel  = new double[claw->numUserDisp];
       double *userDefineAcc  = new double[claw->numUserDisp];
+      for(int i=0; i<claw->numUserDisp; ++i) {
+        userDefineVel[i] = 0;
+        userDefineAcc[i] = 0;
+      }
       userSupFunc->usd_disp(t_n_p, userDefineDisp, userDefineVel, userDefineAcc);
-      execParal2R(decDomain->getNumSub(), this, &MultiDomainDynam::subUpdateGeomStateUSDD, userDefineDisp, predictedState);
+      execParal4R(decDomain->getNumSub(), this, &MultiDomainDynam::subUpdateGeomStateUSDD, userDefineDisp, predictedState,
+                  userDefineVel, userDefineAcc);
       delete [] userDefineDisp; delete [] userDefineVel; delete [] userDefineAcc;
     }
 
@@ -585,13 +593,20 @@ MultiDomainDynam::computeExtForce2(SysState<DistrVector> &distState,
   // compute USDD prescribed displacements
   // I think we should call the control functions on the rank zero mpi process then send to all others
   double *userDefineDisp = 0;
+  double *userDefineVel = 0;
+  double *userDefineAcc = 0;
   if(claw && userSupFunc) {
     if(claw->numUserDisp) {
       userDefineDisp = new double[claw->numUserDisp];
-      double *userDefineVel  = new double[claw->numUserDisp];
-      double *userDefineAcc  = new double[claw->numUserDisp];
+      userDefineVel  = new double[claw->numUserDisp];
+      userDefineAcc  = new double[claw->numUserDisp];
+      for(int i=0; i<claw->numUserDisp; ++i) {
+        userDefineVel[i] = 0;
+        userDefineAcc[i] = 0;
+      }
       userSupFunc->usd_disp(t, userDefineDisp, userDefineVel, userDefineAcc);
-      paralApply(decDomain->getNumSub(), decDomain->getAllSubDomains(), &GenSubDomain<double>::setUserDefBC, userDefineDisp, userDefineVel, userDefineAcc, false); // update bcx, vcx, acx
+      paralApply(decDomain->getNumSub(), decDomain->getAllSubDomains(), &GenSubDomain<double>::setUserDefBC,
+                 userDefineDisp, userDefineVel, userDefineAcc, false); // update bcx, vcx, acx
       delete [] userDefineVel; delete [] userDefineAcc;
     }
   }
@@ -602,10 +617,8 @@ MultiDomainDynam::computeExtForce2(SysState<DistrVector> &distState,
     if(!domain->solInfo().isNonLin()) {
       execParal2R(decDomain->getNumSub(), this, &MultiDomainDynam::subExplicitUpdate, distState.getDisp(), geomState);
     }
-    execParal2R(decDomain->getNumSub(), this, &MultiDomainDynam::subUpdateGeomStateUSDD, userDefineDisp, geomState);
-/* moved to updateState
-    geomState->setVelocity(distState.getVeloc(), distState.getAccel());
-*/
+    execParal4R(decDomain->getNumSub(), this, &MultiDomainDynam::subUpdateGeomStateUSDD, userDefineDisp, geomState,
+                userDefineVel, userDefineAcc);
   }
 
   // update nodal temperatures for thermoe problem
@@ -624,6 +637,8 @@ MultiDomainDynam::computeExtForce2(SysState<DistrVector> &distState,
                      decDomain->getAllSubDomains(), &f, &cnst_f, t, dynMat->Kuc, userSupFunc, dynMat->Cuc, tm, dynMat->Muc);
   threadManager->execParal(decDomain->getNumSub(), &mdop);
   if(userDefineDisp) delete [] userDefineDisp;
+  if(userDefineVel) delete [] userDefineVel;
+  if(userDefineAcc) delete [] userDefineAcc;
 
   // add USDF forces
   if(claw && userSupFunc) {
@@ -780,8 +795,13 @@ MultiDomainDynam::getInitState(SysState<DistrVector>& state)
       double *userDefineDisp = new double[claw->numUserDisp];
       double *userDefineVel  = new double[claw->numUserDisp];
       double *userDefineAcc  = new double[claw->numUserDisp];
+      for(int i=0; i<claw->numUserDisp; ++i) {
+        userDefineVel[i] = 0;
+        userDefineAcc[i] = 0;
+      }
       userSupFunc->usd_disp(domain->solInfo().initialTime, userDefineDisp, userDefineVel, userDefineAcc);
-      paralApply(decDomain->getNumSub(), decDomain->getAllSubDomains(), &GenSubDomain<double>::setUserDefBC, userDefineDisp, userDefineVel, userDefineAcc, false);
+      paralApply(decDomain->getNumSub(), decDomain->getAllSubDomains(), &GenSubDomain<double>::setUserDefBC,
+                 userDefineDisp, userDefineVel, userDefineAcc, false);
       delete [] userDefineDisp; delete [] userDefineVel; delete [] userDefineAcc;
     }
     if(claw->numSensor) {
@@ -1018,19 +1038,29 @@ MultiDomainDynam::subExplicitUpdate(int isub, DistrVector &d, DistrGeomState *ge
 }
 
 void
-MultiDomainDynam::subUpdateGeomStateUSDD(int isub, double *userDefineDisp, DistrGeomState *geomState)
+MultiDomainDynam::subUpdateGeomStateUSDD(int isub, double *userDefineDisp, DistrGeomState *geomState,
+                                         double *userDefineVel, double *userDefineAcc)
 {
   SubDomain *sd = decDomain->getSubDomain(isub);
   ControlLawInfo *subClaw = sd->getClaw();
   if(subClaw) {
     if(subClaw->numUserDisp) {
       double *subUserDefineDisp = new double[subClaw->numUserDisp];
-      for(int i=0; i<subClaw->numUserDisp; ++i) 
-        subUserDefineDisp[i] = userDefineDisp[sd->getUserDispDataMap()[i]];
-      (*geomState)[isub]->updatePrescribedDisplacement(subUserDefineDisp, subClaw, sd->getNodes());
+      double *subUserDefineVel = new double[subClaw->numUserDisp];
+      double *subUserDefineAcc = new double[subClaw->numUserDisp];
+      for(int i=0; i<subClaw->numUserDisp; ++i) {
+        int globalIndex = sd->getUserDispDataMap()[i];
+        subUserDefineDisp[i] = userDefineDisp[globalIndex];
+        subUserDefineVel[i] = userDefineVel[globalIndex];
+        subUserDefineAcc[i] = userDefineAcc[globalIndex];
+      }
+      (*geomState)[isub]->updatePrescribedDisplacement(subUserDefineDisp, subClaw, sd->getNodes(),
+                                                       subUserDefineVel, subUserDefineAcc);
       delete [] subUserDefineDisp;
+      delete [] subUserDefineVel;
+      delete [] subUserDefineAcc;
     }
-  } 
+  }
 }
 
 void

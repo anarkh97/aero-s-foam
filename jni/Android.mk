@@ -182,6 +182,9 @@ LOCAL_SRC_FILES  := ../Corotational.d/Corotator.C \
 	../Corotational.d/normalize.C \
 	../Corotational.d/tran_force.C \
 	../Corotational.d/tran_stiff.C \
+	../Corotational.d/tran_rvec.C \
+	../Corotational.d/tran_veloc.C \
+	../Corotational.d/tran_accel.C \
 	../Corotational.d/SpringCorotator.C \
 	../Corotational.d/TetCorotator.C \
 	../Corotational.d/BrickCorotator.C \

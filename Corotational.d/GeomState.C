@@ -767,6 +767,13 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
     }
   }
   setVelocityAndAcceleration(vel_n,acc_n);
+  for(int i = 0; i < numnodes; ++i) {
+    if(flag[i] == -1) continue;
+    for(int j=0; j<6; ++j) {
+      ss.ns[i].v[j] = ns[i].v[j];
+      ss.ns[i].a[j] = ns[i].a[j];
+    }
+  }
 
   // Update step translational displacements
   double tcoef = 1/(1-alphaf);
@@ -1292,12 +1299,12 @@ GeomState::updatePrescribedDisplacement(BCond* dbc, int numDirichlet,
   }
 }
 
-// update prescribed displacements for nonlinear dynamics
+// update prescribed displacements and time derivatives for nonlinear dynamics
 // i.e. non-zero displacement boundary conditions prescribed with
 // USDD which are time dependent user defined displacements
 void
-GeomState::updatePrescribedDisplacement(double *v, ControlLawInfo *claw,
-                                        CoordSet &cs )
+GeomState::updatePrescribedDisplacement(double *u, ControlLawInfo *claw,
+                                        CoordSet &cs, double *vel, double *acc)
 {
   if(claw->numUserDisp == 0) return;
 
@@ -1326,22 +1333,34 @@ GeomState::updatePrescribedDisplacement(double *v, ControlLawInfo *claw,
     
     switch(dofNumber) {
     	case 0: 
-		ns[nodeNumber].x = cs[nodeNumber]->x + v[i];
+		ns[nodeNumber].x = cs[nodeNumber]->x + u[i];
+                ns[nodeNumber].v[0] = vel[i];
+                ns[nodeNumber].a[0] = acc[i];
 		break;
 	case 1:
-		ns[nodeNumber].y = cs[nodeNumber]->y + v[i];
+		ns[nodeNumber].y = cs[nodeNumber]->y + u[i];
+                ns[nodeNumber].v[1] = vel[i];
+                ns[nodeNumber].a[1] = acc[i];
 		break;
 	case 2:
-		ns[nodeNumber].z = cs[nodeNumber]->z + v[i];
+		ns[nodeNumber].z = cs[nodeNumber]->z + u[i];
+                ns[nodeNumber].v[2] = vel[i];
+                ns[nodeNumber].a[2] = acc[i];
 		break;
 	case 3:
-                dth[nodeNumber][0] = v[i];
+                dth[nodeNumber][0] = u[i];
+                ns[nodeNumber].v[3] = vel[i];
+                ns[nodeNumber].a[3] = acc[i];
 		break;
 	case 4:
-                dth[nodeNumber][1] = v[i];
+                dth[nodeNumber][1] = u[i];
+                ns[nodeNumber].v[4] = vel[i];
+                ns[nodeNumber].a[4] = acc[i];
 		break;
 	case 5:
-                dth[nodeNumber][2] = v[i];
+                dth[nodeNumber][2] = u[i];
+                ns[nodeNumber].v[5] = vel[i];
+                ns[nodeNumber].a[5] = acc[i];
 		break;
 	default:
 		break;
@@ -1927,7 +1946,8 @@ TemperatureState::midpoint_step_update(Vector &vel_n, Vector &accel_n, double de
  int i;
  for(i=0; i<numnodes; ++i) {
    if(loc[i][0] >= 0)
-     vel_n[loc[i][0]] = coef*(ns[i].x - ss[i].x) - vel_n[loc[i][0]];
+     ns[i].v[0] = vel_n[loc[i][0]] = coef*(ns[i].x - ss[i].x) - vel_n[loc[i][0]];
+     ss[i].v[0] = ns[i].v[0];
  }
 
  // Update step translational displacements

@@ -1528,6 +1528,10 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
         if(distState) getPrimal(accs, masterAccs, time, x, iOut, 3, 0);
         break;
       case OutputInfo::Disp6DOF:
+        if(oinfo[iOut].rotvecouttype != OutputInfo::Euler || !oinfo[iOut].rescaling) {
+          filePrint(stderr," *** WARNING: Output case %d not implemented\n", iOut);
+          break;
+        }
         getPrimal(disps, masterDisps, time, x, iOut, 6, 0);
         break;
       case OutputInfo::Velocity6:
@@ -1629,12 +1633,24 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
         getPrimal(disps, masterDisps, time, x, iOut, 1, 2);
         break;
       case OutputInfo::RotX:
+        if(oinfo[iOut].rotvecouttype != OutputInfo::Euler || !oinfo[iOut].rescaling) {
+          filePrint(stderr," *** WARNING: Output case %d not implemented\n", iOut);
+          break;
+        }
         getPrimal(disps, masterDisps, time, x, iOut, 1, 3);
         break;
       case OutputInfo::RotY:
+        if(oinfo[iOut].rotvecouttype != OutputInfo::Euler || !oinfo[iOut].rescaling) {
+          filePrint(stderr," *** WARNING: Output case %d not implemented\n", iOut);
+          break;
+        }
         getPrimal(disps, masterDisps, time, x, iOut, 1, 4);
         break;
       case OutputInfo::RotZ:
+        if(oinfo[iOut].rotvecouttype != OutputInfo::Euler || !oinfo[iOut].rescaling) {
+          filePrint(stderr," *** WARNING: Output case %d not implemented\n", iOut);
+          break;
+        }
         getPrimal(disps, masterDisps, time, x, iOut, 1, 5);
         break;
       case OutputInfo::DispMod:
@@ -1673,6 +1689,10 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
         }
         break;
       case OutputInfo::RotMod:
+        if(oinfo[iOut].rotvecouttype != OutputInfo::Euler || !oinfo[iOut].rescaling) {
+          filePrint(stderr," *** WARNING: Output case %d not implemented\n", iOut);
+          break;
+        }
         if(oinfo[iOut].nodeNumber == -1) {
           for(iSub = 0; iSub < this->numSub; ++iSub) {
             int size = masterDisps.subSize(iSub);
@@ -1708,6 +1728,10 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
         }
         break;
       case OutputInfo::TotMod:
+        if(oinfo[iOut].rotvecouttype != OutputInfo::Euler || !oinfo[iOut].rescaling) {
+          filePrint(stderr," *** WARNING: Output case %d not implemented\n", iOut);
+          break;
+        }
         if(oinfo[iOut].nodeNumber == -1) {
           for(iSub = 0; iSub < this->numSub; ++iSub) {
             int size = masterDisps.subSize(iSub);

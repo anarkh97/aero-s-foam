@@ -489,7 +489,7 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
     int first_node, last_node, last_node_out;
     
     OutputInfo *oinfo = geoSource->getOutputInfo();
-    if(sinfo.isNonLin() && (oinfo[i].isStressOrStrain() || !oinfo[i].defaultRotation())) continue; // PJSA: see Domain::postProcessing in NLStatic.C
+    if(sinfo.isNonLin() && (oinfo[i].isStressOrStrain() || oinfo[i].isRotation())) continue; // PJSA: see Domain::postProcessing in NLStatic.C
     
     //CD: ad and get will be used in  addVariationOfShape_StructOpt and getOrAddDofForPrint which were 
     //    added to "clean" dynamOutput 

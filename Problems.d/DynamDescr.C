@@ -93,12 +93,14 @@ SDDynamPostProcessor::dynamOutput(int tIndex, double time, DynamMat& dMat, Vecto
   domain->dynamOutput(tIndex, time, bcx, dMat, ext_f, *aeroForce, state.getDisp(), state.getVeloc(),
                       state.getAccel(), state.getPrevVeloc(), vcx, acx);
 
-  // PJSA: need to output the stresses for nonlinear using corotator functions for some element (bt shell is an exception)
+  // PJSA: need to output the stresses for nonlinear using corotator functions for some elements (bt shell is an exception)
+  //       also rotation, angular velocity and angular acceleration output uses geomState
   if(domain->solInfo().isNonLin()) {
+    geomState->setVelocityAndAcceleration(state.getVeloc(), state.getAccel());
     int numOutInfo = geoSource->getNumOutInfo();
     OutputInfo *oinfo = geoSource->getOutputInfo();
     for(int iInfo = 0; iInfo < numOutInfo; ++iInfo) {
-      if(oinfo[iInfo].isStressOrStrain() || !oinfo[iInfo].defaultRotation()) {
+      if(oinfo[iInfo].isStressOrStrain() || oinfo[iInfo].isRotation()) {
         domain->postProcessingImpl(iInfo, geomState, ext_f, *aeroForce, time, tIndex, state.getVeloc().data(), vcx,
                                    allCorot, melArray, state.getAccel().data(), acx);
       }
@@ -560,7 +562,7 @@ SingleDomainDynamic::getContactForce(Vector &d_n, Vector &dinc, Vector &ctc_f, d
         userDefineAcc[i] = 0;
       }
       userSupFunc->usd_disp(t_n_p, userDefineDisp, userDefineVel, userDefineAcc);
-      predictedState->updatePrescribedDisplacement(userDefineDisp, claw, domain->getNodes());
+      predictedState->updatePrescribedDisplacement(userDefineDisp, claw, domain->getNodes(), userDefineVel, userDefineAcc);
       delete [] userDefineDisp; delete [] userDefineVel; delete [] userDefineAcc;
     }
 
@@ -601,12 +603,14 @@ SingleDomainDynamic::computeExtForce2(SysState<Vector> &state, Vector &ext_f,
 
   ext_f.zero();
   double *userDefineDisp = 0;
+  double *userDefineVel = 0;
+  double *userDefineAcc = 0;
 
   if(claw && userSupFunc) {
     if(claw->numUserDisp) { // USDD
       userDefineDisp = new double[claw->numUserDisp];
-      double *userDefineVel = new double[claw->numUserDisp];
-      double *userDefineAcc = new double[claw->numUserDisp];
+      userDefineVel = new double[claw->numUserDisp];
+      userDefineAcc = new double[claw->numUserDisp];
       for(int i=0; i<claw->numUserDisp; ++i) {
         userDefineVel[i] = 0;
         userDefineAcc[i] = 0;
@@ -635,16 +639,14 @@ SingleDomainDynamic::computeExtForce2(SysState<Vector> &state, Vector &ext_f,
     }
   }
 
-  // finish update of geomState. note that for nonlinear problems the positiion and rotation nodal variables
-  // have already been updated in updateDisplacement
+  // finish update of geomState. note that for nonlinear problems the unconstrained positiion and rotation
+  // nodal variables have already been updated in updateDisplacement
   if(domain->solInfo().isNonLin() || domain->tdenforceFlag()) {
     if(!domain->solInfo().isNonLin()) {
       geomState->explicitUpdate(domain->getNodes(), state.getDisp());
     }
-    if(userDefineDisp) geomState->updatePrescribedDisplacement(userDefineDisp, claw, domain->getNodes());
-/* now in updateState
-    geomState->setVelocity(state.getVeloc(), state.getAccel());
-*/
+    if(userDefineDisp) geomState->updatePrescribedDisplacement(userDefineDisp, claw, domain->getNodes(),
+                                                               userDefineVel, userDefineAcc);
   }
 
   if(domain->solInfo().isNonLin() && domain->GetnContactSurfacePairs() && !domain->tdenforceFlag()) {
@@ -668,6 +670,8 @@ SingleDomainDynamic::computeExtForce2(SysState<Vector> &state, Vector &ext_f,
   double tm = (t == t0) ? t0 : t + dt*(alphaf-alpham);
   domain->computeExtForce4(ext_f, cnst_f, t, kuc, userSupFunc, cuc, tm, muc);
   if(userDefineDisp) delete [] userDefineDisp;
+  if(userDefineVel) delete [] userDefineVel;
+  if(userDefineAcc) delete [] userDefineAcc;
 
   // add aeroelastic forces from fluid dynamics code
   if(domain->solInfo().aeroFlag >= 0 && tIndex >= 0) {

@@ -2105,6 +2105,10 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***all
        if(distState) getPrimalVector(i, mergedAcc, numNodes, 3, x);
        break;
      case OutputInfo::Disp6DOF:
+       if(oinfo[i].rotvecouttype != OutputInfo::Euler || !oinfo[i].rescaling) {
+         filePrint(stderr," *** WARNING: Output case %d not implemented\n", i);
+         break;
+       }
        getPrimalVector(i, xyz, numNodes, 6, x);
        break;
      case OutputInfo::Velocity6:
@@ -2212,12 +2216,24 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***all
        getPrimalScalar(i, xyz, numNodes, 2, x);
        break;
      case OutputInfo::RotX:
+       if(oinfo[i].rotvecouttype != OutputInfo::Euler || !oinfo[i].rescaling) {
+         filePrint(stderr," *** WARNING: Output case %d not implemented\n", i);
+         break;
+       }
        getPrimalScalar(i, xyz, numNodes, 3, x);
        break;
      case OutputInfo::RotY:
+       if(oinfo[i].rotvecouttype != OutputInfo::Euler || !oinfo[i].rescaling) {
+         filePrint(stderr," *** WARNING: Output case %d not implemented\n", i);
+         break;
+       }
        getPrimalScalar(i, xyz, numNodes, 4, x);
        break;
      case OutputInfo::RotZ:
+       if(oinfo[i].rotvecouttype != OutputInfo::Euler || !oinfo[i].rescaling) {
+         filePrint(stderr," *** WARNING: Output case %d not implemented\n", i);
+         break;
+       }
        getPrimalScalar(i, xyz, numNodes, 5, x);
        break;
      case OutputInfo::DispMod:
@@ -2230,6 +2246,10 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***all
        geoSource->outputNodeScalars(i, globVal, numNodes, x);
        break;
      case OutputInfo::RotMod:
+       if(oinfo[i].rotvecouttype != OutputInfo::Euler || !oinfo[i].rescaling) {
+         filePrint(stderr," *** WARNING: Output case %d not implemented\n", i);
+         break;
+       }
        if(!globVal) globVal = new Scalar[numNodes];
        for(inode=0; inode<numNodes; ++inode) {
          globVal[inode] = ScalarTypes::sqrt(xyz[inode][3]*xyz[inode][3] +
@@ -2239,6 +2259,10 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***all
        geoSource->outputNodeScalars(i, globVal, numNodes, x);
        break;
      case OutputInfo::TotMod:
+       if(oinfo[i].rotvecouttype != OutputInfo::Euler || !oinfo[i].rescaling) {
+         filePrint(stderr," *** WARNING: Output case %d not implemented\n", i);
+         break;
+       }
        if(!globVal) globVal = new Scalar[numNodes];
        for(inode=0; inode<numNodes; ++inode) {
          globVal[inode] = ScalarTypes::sqrt(xyz[inode][0]*xyz[inode][0] +

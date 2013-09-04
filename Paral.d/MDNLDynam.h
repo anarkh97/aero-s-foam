@@ -192,7 +192,8 @@ class MDNLDynamic
     void subUpdatePrescribedDisplacement(int isub, DistrGeomState& geomState);
     void addConstraintForces(int isub, DistrVector& rhs, DistrGeomState &geomState);
     void subGetConstraintMultipliers(int isub, DistrGeomState &geomState);
-    void subUpdateGeomStateUSDD(int isub, DistrGeomState &geomState, double *userDefineDisp);
+    void subUpdateGeomStateUSDD(int isub, DistrGeomState *geomState, double *userDefineDisp,
+                                double *userDefineVel, double *userDefineAcc);
     void makeSubClawDofs(int isub);
     void subKucTransposeMultSubtractClaw(int iSub, DistrVector& residual, double *userDefineDisp);
     void subExtractControlDisp(int isub, DistrGeomState &geomState, double *ctrdsp);

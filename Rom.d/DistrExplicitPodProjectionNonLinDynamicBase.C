@@ -255,7 +255,8 @@ DistrExplicitPodPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dyn
                  filePrint(oinfo[iOut].filptr, "%.*e ", p, distState.getAccel()[i]);
                }
                filePrint(oinfo[iOut].filptr, "\n");
-             } else {
+             }
+             else if(oinfo[iOut].type == OutputInfo::Acceleration || (oinfo[iOut].angularouttype == OutputInfo::total && oinfo[iOut].rescaling == false)) {
                if(!AccProjected) {
                  SensorBasis->projectUp2(distState.getAccel(), *AccSensorValues);
                  AccProjected = true;
@@ -272,7 +273,8 @@ DistrExplicitPodPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dyn
                  filePrint(oinfo[iOut].filptr, "%.*e ", p, distState.getDisp()[i]);
                }
                filePrint(oinfo[iOut].filptr, "\n");
-             } else {
+             }
+             else if(oinfo[iOut].type == OutputInfo::Displacement || (oinfo[iOut].rotvecouttype == OutputInfo::Euler && oinfo[iOut].rescaling == false)) {
                if(!DispProjected) {
                  SensorBasis->projectUp2(distState.getDisp(), *DispSensorValues);
                  DispProjected = true;
@@ -289,7 +291,8 @@ DistrExplicitPodPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dyn
                  filePrint(oinfo[iOut].filptr, "%.*e ", p, distState.getVeloc()[i]);
                }
                filePrint(oinfo[iOut].filptr, "\n");
-             } else {
+             }
+             else if(oinfo[iOut].type == OutputInfo::Velocity || (oinfo[iOut].angularouttype == OutputInfo::total && oinfo[iOut].rescaling == false)) {
                if(!VelProjected) {
                  SensorBasis->projectUp2(distState.getVeloc(), *VelSensorValues);
                  VelProjected = true;

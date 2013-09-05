@@ -44,5 +44,12 @@ void   dvec_to_quat(double rvec[3], double drvec [3], double q[4],
                     double dq[4]);	
 void   dquat_to_mat(double q[4], double dq[4], double rten[3][3],
                     double drten[3][3]);
-
+void tran_veloc(double R[3][3], double theta[3], double V[3],
+                int angularintype, int angularouttype, bool rescalein, 
+                bool rescaleout, double v[3]);
+void tran_accel(double R[3][3], double theta[3], double V[3], double A[3],
+                int angularintype, int angularouttype, bool rescalein,
+                bool rescaleout, double a[3]);
+void tran_rvec(double rten[3][3], double rvec[3], bool rescale, int rotvecouttype,
+               double th[3]);
 #endif

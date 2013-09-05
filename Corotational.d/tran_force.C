@@ -5,7 +5,7 @@ void tran_force( double* force, double tmat[3][3], int num_nodes, int num_dofs_p
 /*****************************************************************
  *
  *  Purpose:
- *     Transform the force vector to to global system
+ *     Transform the force vector to global system
  *
  *  Method:
  *            force = T'*force

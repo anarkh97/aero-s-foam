@@ -491,6 +491,13 @@ void execParal4R(int n, TA *target, void (TA::*f)(int, TB&, TC, TD, TE), TB &b, 
 }
 
 template <class TA, class TB, class TC, class TD, class TE>
+void execParal4R(int n, TA *target, void (TA::*f)(int, TB*, TC*, TD*, TE*), TB *b, TC *c, TD *d, TE *e)
+{
+ FourArgExecuter<TA,TB*,TC*,TD*,TE*> fe(target,f,b,c,d,e);
+ threadManager->execParal(n, &fe);
+}
+
+template <class TA, class TB, class TC, class TD, class TE>
 void timedParal4R(DistTimer &timer, int n, TA *target, void (TA::*f)(int, TB&, TC&, TD&, TE&), TB &b, TC &c, TD &d, TE &e)
 {
  FourArgExecuter<TA,TB&,TC&,TD&,TE&> fe(target,f,b,c,d,e);

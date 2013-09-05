@@ -857,7 +857,7 @@ Domain::postProcessing(GeomState *geomState, Vector& force, Vector &aeroForce,
     geoSource->openOutputFiles();
   }
 
-  if( sinfo.nRestart > 0 && velocity !=0) {
+  if(sinfo.nRestart > 0 && velocity != 0) {
     StackVector v_n(velocity, numUncon());
     StackVector a_n(acceleration, numUncon());
     writeRestartFile(time, step, v_n, a_n, geomState);
@@ -881,7 +881,6 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
  if(outFlag && !nodeTable) makeNodeTable(outFlag);
  int numNodes = geoSource->numNode();  // PJSA 8-26-04 don't want to print displacements for internal nodes
 
- //fprintf(stderr,"Running postPro in NLSTATIC\n");
  enum {SXX=0,SYY=1,SZZ=2,SXY= 3,SYZ= 4,SXZ= 5,VON=6,
        EXX=7,EYY=8,EZZ=9,EXY=10,EYZ=11,EXZ=12,STRAINVON=13,
        VONTOP=14,VONBOT=15};
@@ -911,6 +910,8 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
   }
   int nNodes = last_node - first_node;
   int nPrintNodes = (outFlag && oinfo[iInfo].nodeNumber == -1) ? nodes.nnz() : nNodes;
+  int angularintype = (domain->solInfo().galerkinPodRom) ? 2 : 1;
+  bool rescalein = (domain->solInfo().galerkinPodRom) ? false : true;
 
   switch(oinfo[iInfo].type) {
     case OutputInfo::Displacement:  {
@@ -942,60 +943,14 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
       for (i = 0, realNode = -1; i < nNodes; ++i) {
         int iNode = first_node+i;
         if(outFlag) { if(nodes[iNode] == 0) continue; nodeI = ++realNode; } else nodeI = i;
-        if (iNode < geomState->numNodes()) {
-          if (nodes[iNode]) {
-            data[nodeI][0] = (*geomState)[iNode].x - nodes[iNode]->x;
-            data[nodeI][1] = (*geomState)[iNode].y - nodes[iNode]->y;
-            data[nodeI][2] = (*geomState)[iNode].z - nodes[iNode]->z;
-          } else {
-            std::fill_n(&data[nodeI][0], 3, 0.0);
-          }
-          if(oinfo[iInfo].rescaling) {
-            mat_to_vec((*geomState)[iNode].R, &data[nodeI][3]);
-          }
-          else {
-            data[nodeI][3] = (*geomState)[iNode].theta[0];
-            data[nodeI][4] = (*geomState)[iNode].theta[1];
-            data[nodeI][5] = (*geomState)[iNode].theta[2];
-          }
-          switch(oinfo[iInfo].rotvecouttype) {
-            default :
-            case(OutputInfo::Euler) :
-              // nothing to do
-              break;
-#ifdef USE_EIGEN3
-            case(OutputInfo::Complement) : {
-              Eigen::Map<Eigen::Vector3d> Psi(&data[nodeI][3]);
-              Psi = complement_rot_vec<double>(Psi);
-            } break;
-            case(OutputInfo::Linear) : {
-              Eigen::Map<Eigen::Vector3d> Psi(&data[nodeI][3]);
-              double psi = Psi.norm();
-              if(psi != 0) Psi = sin(psi)*Psi.normalized();
-            } break;
-            case(OutputInfo::ReducedEulerRodrigues) : {
-              Eigen::Map<Eigen::Vector3d> Psi(&data[nodeI][3]);
-              double psi = Psi.norm();
-              if(psi != 0) Psi = 2*sin(psi/2)*Psi.normalized();
-            } break;
-            case(OutputInfo::CayleyGibbsRodrigues) : {
-              Eigen::Map<Eigen::Vector3d> Psi(&data[nodeI][3]);
-              double psi = Psi.norm();
-              if(psi != 0) Psi = 2*tan(psi/2)*Psi.normalized();
-            } break;
-            case(OutputInfo::WienerMilenkovic) : {
-              Eigen::Map<Eigen::Vector3d> Psi(&data[nodeI][3]);
-              double psi = Psi.norm();
-              if(psi != 0) Psi = 4*tan(psi/4)*Psi.normalized();
-            } break;
-            case(OutputInfo::BauchauTrainelli) : {
-              Eigen::Map<Eigen::Vector3d> Psi(&data[nodeI][3]);
-              double psi = Psi.norm();
-              if(psi != 0) Psi = pow(6*(psi-sin(psi)),1/3.)*Psi.normalized();
-            } break;
-#endif
-          }
-        } else {
+        if (iNode < geomState->numNodes() && nodes[iNode]) {
+          data[nodeI][0] = (*geomState)[iNode].x - nodes[iNode]->x;
+          data[nodeI][1] = (*geomState)[iNode].y - nodes[iNode]->y;
+          data[nodeI][2] = (*geomState)[iNode].z - nodes[iNode]->z;
+          tran_rvec((*geomState)[iNode].R, (*geomState)[iNode].theta, oinfo[iInfo].rescaling,
+                    oinfo[iInfo].rotvecouttype, &data[nodeI][3]);
+        }
+        else {
           std::fill_n(&data[nodeI][0], 6, 0.0);
         }
       }
@@ -1018,7 +973,8 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
           data[nodeI][6] = (*geomState)[iNode].R[2][0];
           data[nodeI][7] = (*geomState)[iNode].R[2][1];
           data[nodeI][8] = (*geomState)[iNode].R[2][2];
-        } else {
+        }
+        else {
           std::fill_n(&data[nodeI][0], 9, 0.0);
         }
       }
@@ -1033,7 +989,8 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
         if(outFlag) { if(nodes[iNode] == 0) continue; nodeI = ++realNode; } else nodeI = i;
         if (iNode < geomState->numNodes() && nodes[iNode]) {
           mat_to_quat((*geomState)[iNode].R, data[nodeI]);
-        } else {
+        }
+        else {
           std::fill_n(&data[nodeI][0], 4, 0.0);
         }
       }
@@ -1041,228 +998,84 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
       delete [] data;
     }
       break;
-    case OutputInfo::Velocity6: { 
-      if(!velocity) break;
-      StackVector v_n(velocity, numUncon());
-      double (*data)[6] = new double[nPrintNodes][6];
-      for (int iNode = 0, realNode = -1; iNode < nNodes; ++iNode)  {
-        if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
-        getOrAddDofForPrint(false, v_n, vcx, first_node+iNode, data[nodeI], &DofSet::Xdisp,
-                            data[nodeI]+1, &DofSet::Ydisp, data[nodeI]+2, &DofSet::Zdisp);
-        getOrAddDofForPrint(false, v_n, vcx, first_node+iNode, data[nodeI]+3, &DofSet::Xrot,
-                              data[nodeI]+4, &DofSet::Yrot, data[nodeI]+5, &DofSet::Zrot);
-        if(oinfo[iInfo].angularouttype == OutputInfo::convected) {
-          if(domain->solInfo().galerkinPodRom) {
-            // transform from total to convected
-            if (first_node+iNode < geomState->numNodes() && nodes[first_node+iNode]) {
-#ifdef USE_EIGEN3
-              Eigen::Vector3d Psi, Psidot;
-              Eigen::Map<Eigen::Vector3d> V(data[nodeI]+3);
-              Eigen::Matrix3d T;
-              Psidot << data[nodeI][3], data[nodeI][4], data[nodeI][5];
-              Psi << (*geomState)[first_node+iNode].theta[0], (*geomState)[first_node+iNode].theta[1], (*geomState)[first_node+iNode].theta[2];
-              tangential_transf(Psi, T);
-              V = T*Psidot;
-#else
-              data[nodeI][3] = data[nodeI][4] = data[nodeI][5] = 0;
-#endif
-            }
-          }
-        }
-        else if(oinfo[iInfo].angularouttype == OutputInfo::spatial) {
-          if(domain->solInfo().galerkinPodRom) {
-            // transform from total to spatial
-            if (first_node+iNode < geomState->numNodes() && nodes[first_node+iNode]) {
-#ifdef USE_EIGEN3
-              Eigen::Vector3d Psi, Psidot;
-              Eigen::Map<Eigen::Vector3d> V(data[nodeI]+3);
-              Eigen::Matrix3d T;
-              Psidot << data[nodeI][3], data[nodeI][4], data[nodeI][5];
-              Psi << (*geomState)[first_node+iNode].theta[0], (*geomState)[first_node+iNode].theta[1], (*geomState)[first_node+iNode].theta[2];
-              tangential_transf(Psi, T);
-              V = T.transpose()*Psidot;
-#else
-              data[nodeI][3] = data[nodeI][4] = data[nodeI][5] = 0;
-#endif
-            }
-          }
-          else {
-            // transform from convected to spatial angular velocity
-            if (first_node+iNode < geomState->numNodes() && nodes[first_node+iNode]) {
-              double V[3] = { data[nodeI][3], data[nodeI][4], data[nodeI][5] };
-             mat_mult_vec((*geomState)[first_node+iNode].R,V,data[nodeI]+3,0); // v = R*V
-            }
-          }
-        }
-        else if(oinfo[iInfo].angularouttype == OutputInfo::total) {
-          // TODO: this is correct for rotvecouttype == Euler or Complement only
-          if(!domain->solInfo().galerkinPodRom) {
-            // transform from convected angular velocity to time derivative of total rotation vector
-            if (first_node+iNode < geomState->numNodes() && nodes[first_node+iNode]) {
-#ifdef USE_EIGEN3
-              Eigen::Vector3d V, Psi;
-              Eigen::Map<Eigen::Vector3d> Psidot(data[nodeI]+3);
-              Eigen::Matrix3d R, T;
-              V << data[nodeI][3], data[nodeI][4], data[nodeI][5];
-              if(oinfo[iInfo].rescaling) {
-                R << (*geomState)[first_node+iNode].R[0][0], (*geomState)[first_node+iNode].R[0][1], (*geomState)[first_node+iNode].R[0][2],
-                     (*geomState)[first_node+iNode].R[1][0], (*geomState)[first_node+iNode].R[1][1], (*geomState)[first_node+iNode].R[1][2],
-                     (*geomState)[first_node+iNode].R[2][0], (*geomState)[first_node+iNode].R[2][1], (*geomState)[first_node+iNode].R[2][2];
-                mat_to_vec(R, Psi);
-              }
-              else {
-                Psi << (*geomState)[first_node+iNode].theta[0], (*geomState)[first_node+iNode].theta[1], (*geomState)[first_node+iNode].theta[2];
-              }
-              tangential_transf(Psi, T);
-              Psidot = T.inverse()*V;
-#else
-              data[nodeI][3] = data[nodeI][4] = data[nodeI][5] = 0;
-#endif
-            }
-          }
-        }
-      }
-      geoSource->outputNodeVectors6(iInfo, data, nPrintNodes, time);
-      delete [] data;
-    }
-      break;
-    case OutputInfo::Velocity:  {
-      if(!velocity) break;
-      StackVector v_n(velocity, numUncon());
+    case OutputInfo::Velocity: {
       double (*data)[3] = new double[nPrintNodes][3];
-      for (int iNode = 0, realNode = -1; iNode < nNodes; ++iNode)  {
-        if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
-        getOrAddDofForPrint(false, v_n, vcx, first_node+iNode, data[nodeI], &DofSet::Xdisp,
-                            data[nodeI]+1, &DofSet::Ydisp, data[nodeI]+2, &DofSet::Zdisp);
+      for (i = 0, realNode = -1; i < nNodes; ++i) {
+        int iNode = first_node+i;
+        if(outFlag) { if(nodes[iNode] == 0) continue; nodeI = ++realNode; } else nodeI = i;
+        if (iNode < geomState->numNodes() && nodes[iNode]) {
+          for(int j=0; j<3; ++j) data[nodeI][j] = (*geomState)[iNode].v[j];
+        }
+        else {
+          std::fill_n(&data[nodeI][0], 3, 0.0);
+        }
       }
       geoSource->outputNodeVectors(iInfo, data, nPrintNodes, time);
       delete [] data;
-    } 
+    }
       break;
-    case OutputInfo::TemperatureFirstTimeDerivative: {
-      if(!velocity) break;
-      StackVector v_n(velocity, numUncon());
+    case OutputInfo::TemperatureFirstTimeDerivative:  {
       double *data = new double[nPrintNodes];
-      for (int iNode = 0, realNode = -1; iNode < nNodes; ++iNode) {
-        if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
-        getOrAddDofForPrint(false, v_n, vcx, first_node+iNode, data+nodeI, &DofSet::Temp);
+      for (i = 0, realNode = -1; i < nNodes; ++i) {
+        int iNode = first_node+i;
+        if(outFlag) { if(nodes[iNode] == 0) continue; nodeI = ++realNode; } else nodeI = i;
+        data[nodeI] = (nodes[iNode] && iNode < geomState->numNodes()) ? (*geomState)[iNode].v[0] : 0;
       }
       geoSource->outputNodeScalars(iInfo, data, nPrintNodes, time);
       delete [] data;
-    } 
+    }
       break;
-    case OutputInfo::Accel6:  {
-      if(!acceleration) break;
-      StackVector v_n(velocity, numUncon());
-      StackVector a_n(acceleration, numUncon());
+    case OutputInfo::Velocity6: {
       double (*data)[6] = new double[nPrintNodes][6];
-      for (int iNode = 0, realNode = -1; iNode < nNodes; ++iNode)  {
-        if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
-        getOrAddDofForPrint(false, a_n, acx, first_node+iNode, data[nodeI],
-                            &DofSet::Xdisp, data[nodeI]+1, &DofSet::Ydisp,
-                            data[nodeI]+2, &DofSet::Zdisp);
-        getOrAddDofForPrint(false, a_n, (double *) acx, first_node+iNode, data[nodeI]+3,
-                            &DofSet::Xrot, data[nodeI]+4, &DofSet::Yrot, data[nodeI]+5,
-                            &DofSet::Zrot);
-        if(oinfo[iInfo].angularouttype == OutputInfo::convected) {
-          if(domain->solInfo().galerkinPodRom) {
-            // transform from total to convected
-            if (first_node+iNode < geomState->numNodes() && nodes[first_node+iNode]) {
-#ifdef USE_EIGEN3
-              Eigen::Vector3d Psi, Psidot, Psiddot;
-              Eigen::Map<Eigen::Vector3d> A(data[nodeI]+3);
-              Eigen::Matrix3d T,Tdot;
-              Psi << (*geomState)[first_node+iNode].theta[0], (*geomState)[first_node+iNode].theta[1], (*geomState)[first_node+iNode].theta[2];
-              getOrAddDofForPrint(false, v_n, (double *) vcx, first_node+iNode, Psidot.data()+0,
-                            &DofSet::Xrot, Psidot.data()+1, &DofSet::Yrot, Psidot.data()+2,
-                            &DofSet::Zrot);
-              Psiddot << data[nodeI][3], data[nodeI][4], data[nodeI][5];
-              tangential_transf(Psi, T);
-              tangential_transf_dot(Psi, Psidot, Tdot);
-              A = (T*Psiddot + Tdot*Psidot).eval();
-#else
-              data[nodeI][3] = data[nodeI][4] = data[nodeI][5] = 0;
-#endif
-            }
-          }
+      for (i = 0, realNode = -1; i < nNodes; ++i) {
+        int iNode = first_node+i;
+        if(outFlag) { if(nodes[iNode] == 0) continue; nodeI = ++realNode; } else nodeI = i;
+        if (iNode < geomState->numNodes() && nodes[iNode]) {
+          for(int j=0; j<3; ++j) data[nodeI][j] = (*geomState)[iNode].v[j];
+          tran_veloc((*geomState)[iNode].R, (*geomState)[iNode].theta, &(*geomState)[iNode].v[3], angularintype,
+                     oinfo[iInfo].angularouttype, rescalein, oinfo[iInfo].rescaling, &data[nodeI][3]);
         }
-        else if(oinfo[iInfo].angularouttype == OutputInfo::spatial) {
-          if(domain->solInfo().galerkinPodRom) {
-            // transform from total to spatial
-            if (first_node+iNode < geomState->numNodes() && nodes[first_node+iNode]) {
-#ifdef USE_EIGEN3
-              Eigen::Vector3d Psi, Psidot, Psiddot;
-              Eigen::Map<Eigen::Vector3d> A(data[nodeI]+3);
-              Eigen::Matrix3d T,Tdot;
-              Psi << (*geomState)[first_node+iNode].theta[0], (*geomState)[first_node+iNode].theta[1], (*geomState)[first_node+iNode].theta[2];
-              getOrAddDofForPrint(false, v_n, (double *) vcx, first_node+iNode, Psidot.data()+0,
-                            &DofSet::Xrot, Psidot.data()+1, &DofSet::Yrot, Psidot.data()+2,
-                            &DofSet::Zrot);
-              Psiddot << data[nodeI][3], data[nodeI][4], data[nodeI][5];
-              tangential_transf(Psi, T);
-              tangential_transf_dot(Psi, Psidot, Tdot);
-              A = (T.transpose()*Psiddot + Tdot.transpose()*Psidot).eval();
-#else
-              data[nodeI][3] = data[nodeI][4] = data[nodeI][5] = 0;
-#endif
-            }
-          }
-          else {
-            // transform from convected to spatial angular acceleration
-            if (first_node+iNode < geomState->numNodes() && nodes[first_node+iNode]) {
-              double A[3] = { data[nodeI][3], data[nodeI][4], data[nodeI][5] };
-              mat_mult_vec((*geomState)[first_node+iNode].R,A,data[nodeI]+3,0); // a = R*A
-            }
-          }
-        }
-        else if(oinfo[iInfo].angularouttype == OutputInfo::total) {
-          // TODO: this is correct for rotvecouttype == Euler or Complement only
-          if(!domain->solInfo().galerkinPodRom) {
-            // transform from convected angular acceleration to second time derivative of total rotation vector
-            if (first_node+iNode < geomState->numNodes() && nodes[first_node+iNode]) {
-#ifdef USE_EIGEN3
-              Eigen::Vector3d A, V, Psi, Psidot;
-              Eigen::Map<Eigen::Vector3d> Psiddot(data[nodeI]+3);
-              Eigen::Matrix3d R, T, Tdot;
-              A << data[nodeI][3], data[nodeI][4], data[nodeI][5];
-              getOrAddDofForPrint(false, v_n, (double *) vcx, first_node+iNode, V.data()+0,
-                            &DofSet::Xrot, V.data()+1, &DofSet::Yrot, V.data()+2,
-                            &DofSet::Zrot);
-              if(oinfo[iInfo].rescaling) {
-                R << (*geomState)[first_node+iNode].R[0][0], (*geomState)[first_node+iNode].R[0][1], (*geomState)[first_node+iNode].R[0][2],
-                     (*geomState)[first_node+iNode].R[1][0], (*geomState)[first_node+iNode].R[1][1], (*geomState)[first_node+iNode].R[1][2],
-                     (*geomState)[first_node+iNode].R[2][0], (*geomState)[first_node+iNode].R[2][1], (*geomState)[first_node+iNode].R[2][2];
-                mat_to_vec(R, Psi);
-              }
-              else {
-                Psi << (*geomState)[first_node+iNode].theta[0], (*geomState)[first_node+iNode].theta[1], (*geomState)[first_node+iNode].theta[2];
-              }
-              tangential_transf(Psi, T);
-              Psidot = T.inverse()*V;
-              tangential_transf_dot(Psi, Psidot, Tdot);
-              Psiddot = T.inverse()*(A - Tdot*Psidot);
-#else
-              data[nodeI][3] = data[nodeI][4] = data[nodeI][5] = 0;
-#endif
-            }
-          }
+        else {
+          std::fill_n(&data[nodeI][0], 6, 0.0);
         }
       }
       geoSource->outputNodeVectors6(iInfo, data, nPrintNodes, time);
       delete [] data;
-    }
+    } 
       break;
-    case OutputInfo::Acceleration: {
-      if(!acceleration) break;
-      StackVector a_n(acceleration, numUncon());
+    case OutputInfo::Acceleration:  {
       double (*data)[3] = new double[nPrintNodes][3];
-      for (int iNode = 0, realNode = -1; iNode < nNodes; ++iNode) {
-        if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
-        getOrAddDofForPrint(false, a_n, acx, first_node+iNode, data[nodeI], &DofSet::Xdisp, data[nodeI]+1, &DofSet::Ydisp, data[nodeI]+2, &DofSet::Zdisp);
+      for (i = 0, realNode = -1; i < nNodes; ++i) {
+        int iNode = first_node+i;
+        if(outFlag) { if(nodes[iNode] == 0) continue; nodeI = ++realNode; } else nodeI = i;
+        if (iNode < geomState->numNodes() && nodes[iNode]) {
+          for(int j=0; j<3; ++j) data[nodeI][j] = (*geomState)[iNode].a[j];
+        }
+        else {
+          std::fill_n(&data[nodeI][0], 3, 0.0);
+        }
       }
       geoSource->outputNodeVectors(iInfo, data, nPrintNodes, time);
       delete [] data;
     }
+      break;
+    case OutputInfo::Accel6:  {
+      double (*data)[6] = new double[nPrintNodes][6];
+      for (i = 0, realNode = -1; i < nNodes; ++i) {
+        int iNode = first_node+i;
+        if(outFlag) { if(nodes[iNode] == 0) continue; nodeI = ++realNode; } else nodeI = i;
+        if (iNode < geomState->numNodes() && nodes[iNode]) {
+          for(int j=0; j<3; ++j) data[nodeI][j] = (*geomState)[iNode].a[j];
+          tran_accel((*geomState)[iNode].R, (*geomState)[iNode].theta, &(*geomState)[iNode].v[3], &(*geomState)[iNode].a[3],
+                     angularintype, oinfo[iInfo].angularouttype, rescalein, oinfo[iInfo].rescaling, &data[nodeI][3]);
+        }
+        else {
+          std::fill_n(&data[nodeI][0], 6, 0.0);
+        }
+      }
+      geoSource->outputNodeVectors6(iInfo, data, nPrintNodes, time);
+      delete [] data;
+    } 
       break;
     case OutputInfo::DispX:  {
       double *data = new double[nPrintNodes];
@@ -1302,12 +1115,15 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
       for (i = 0, realNode = -1; i < nNodes; ++i) {
         int iNode = first_node+i;
         if(outFlag) { if(nodes[iNode] == 0) continue; nodeI = ++realNode; } else nodeI = i;
-        if(iNode < geomState->numNodes()) {
+        if (iNode < geomState->numNodes() && nodes[iNode]) {
           double rot[3];
-          mat_to_vec((*geomState)[iNode].R,rot);
+          tran_rvec((*geomState)[iNode].R, (*geomState)[iNode].theta, oinfo[iInfo].rescaling,
+                    oinfo[iInfo].rotvecouttype, rot);
           data[nodeI] = rot[0];
         }
-        else data[nodeI] = 0;
+        else {
+          data[nodeI] = 0;
+        }
       }
       geoSource->outputNodeScalars(iInfo, data, nPrintNodes, time);
       delete [] data;
@@ -1318,12 +1134,15 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
       for (i = 0, realNode = -1; i < nNodes; ++i) {
         int iNode = first_node+i;
         if(outFlag) { if(nodes[iNode] == 0) continue; nodeI = ++realNode; } else nodeI = i;
-        if(iNode < geomState->numNodes()) {
+        if (iNode < geomState->numNodes() && nodes[iNode]) {
           double rot[3];
-          mat_to_vec((*geomState)[iNode].R,rot);
+          tran_rvec((*geomState)[iNode].R, (*geomState)[iNode].theta, oinfo[iInfo].rescaling,
+                    oinfo[iInfo].rotvecouttype, rot);
           data[nodeI] = rot[1];
         }
-        else data[nodeI] = 0;
+        else {
+          data[nodeI] = 0;
+        }
       }
       geoSource->outputNodeScalars(iInfo, data, nPrintNodes, time);
       delete [] data;
@@ -1334,12 +1153,15 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
       for (i = 0, realNode = -1; i < nNodes; ++i) {
         int iNode = first_node+i;
         if(outFlag) { if(nodes[iNode] == 0) continue; nodeI = ++realNode; } else nodeI = i;
-        if(iNode < geomState->numNodes()) {
+        if (iNode < geomState->numNodes() && nodes[iNode]) {
           double rot[3];
-          mat_to_vec((*geomState)[iNode].R,rot);
-          data[i] = rot[2];
-        } 
-        else data[nodeI] = 0;
+          tran_rvec((*geomState)[iNode].R, (*geomState)[iNode].theta, oinfo[iInfo].rescaling,
+                    oinfo[iInfo].rotvecouttype, rot);
+          data[nodeI] = rot[2];
+        }
+        else {
+          data[nodeI] = 0;
+        }
       }
       geoSource->outputNodeScalars(iInfo, data, nPrintNodes, time);
       delete [] data;
@@ -1364,20 +1186,15 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
       for (i = 0, realNode = -1; i < nNodes; ++i) {
         int iNode = first_node+i;
         if(outFlag) { if(nodes[iNode] == 0) continue; nodeI = ++realNode; } else nodeI = i;
-        if(iNode < geomState->numNodes()) {
+        if (iNode < geomState->numNodes() && nodes[iNode]) {
           double rot[3];
-          if(oinfo[iInfo].rescaling) {
-            mat_to_vec((*geomState)[iNode].R,rot);
-          }
-          else {
-            rot[0] = (*geomState)[iNode].theta[0];
-            rot[1] = (*geomState)[iNode].theta[1];
-            rot[2] = (*geomState)[iNode].theta[2];
-          }
-          // TODO rotvecouttype
+          tran_rvec((*geomState)[iNode].R, (*geomState)[iNode].theta, oinfo[iInfo].rescaling,
+                    oinfo[iInfo].rotvecouttype, rot);
           data[nodeI] = sqrt(rot[0]*rot[0]+rot[1]*rot[1]+rot[2]*rot[2]);
         }
-        else data[nodeI] = 0;
+        else {
+          data[nodeI] = 0;
+        }
       }
       geoSource->outputNodeScalars(iInfo, data, nPrintNodes, time);
       delete [] data;
@@ -1388,34 +1205,23 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
       for (i = 0, realNode = -1; i < nNodes; ++i) {
         int iNode = first_node+i;
         if(outFlag) { if(nodes[iNode] == 0) continue; nodeI = ++realNode; } else nodeI = i;
-        double x = (nodes[iNode] && iNode < geomState->numNodes()) ? (*geomState)[iNode].x - nodes[iNode]->x : 0;
-        double y = (nodes[iNode] && iNode < geomState->numNodes()) ? (*geomState)[iNode].y - nodes[iNode]->y : 0;
-        double z = (nodes[iNode] && iNode < geomState->numNodes()) ? (*geomState)[iNode].z - nodes[iNode]->z : 0;
-        double rot[3];
-        if(iNode < geomState->numNodes()) 
-          mat_to_vec((*geomState)[iNode].R,rot);
-        else {
-          rot[0] = rot[1] = rot[2] = 0;
+        if (iNode < geomState->numNodes() && nodes[iNode]) {
+          double x = (*geomState)[iNode].x - nodes[iNode]->x;
+          double y = (*geomState)[iNode].y - nodes[iNode]->y;
+          double z = (*geomState)[iNode].z - nodes[iNode]->z;
+          double rot[3];
+          tran_rvec((*geomState)[iNode].R, (*geomState)[iNode].theta, oinfo[iInfo].rescaling,
+                    oinfo[iInfo].rotvecouttype, rot);
+          data[nodeI] = sqrt(x*x+y*y+z*z+rot[0]*rot[0]+rot[1]*rot[1]+rot[2]*rot[2]);
         }
-        data[nodeI] = sqrt(x*x+y*y+z*z+rot[0]*rot[0]+rot[1]*rot[1]+rot[2]*rot[2]);
+        else {
+          data[nodeI] = 0;
+        }
       }
       geoSource->outputNodeScalars(iInfo, data, nPrintNodes, time);
       delete [] data;
     }
       break;
-    case OutputInfo::Rigid:
-/*
-         Vector rigid(maxNumDOFs);
-         Vector rDisp(numUncon(),0.0);
-         for(i=0; i<numele; ++i) {
-           allCorot[i]->extractRigidMotion(geomState, nodes, rigid.data());
-           int NodesPerElement = packedEset[iele]->numNodes();
-           for(k=0; k<NodesPerElement; ++k) {
-             rDisp[(*elemToNode)[iele][k]] += rigid[k];
-             (*weight)[(*elemToNode)[iele][k]] += (*elweight)[k];
-           }
-         }
-*/
     case OutputInfo::StressXX:
       getStressStrain(*geomState, allCorot,  iInfo, SXX, time, refState);
       break;

@@ -382,7 +382,13 @@ PodProjectionNonLinDynamicDetail::sttSnapImpl::stateSnapshotAdd(const GeomState 
       nodeBuffer[2] = snapNode.z - refNode->z;
 
       // Rotational dofs
-      mat_to_vec(const_cast<double (*)[3]>(snapNode.R), &nodeBuffer[3]);
+      // old method: collect the rescaled rotation vector
+      //mat_to_vec(const_cast<double (*)[3]>(snapNode.R), &nodeBuffer[3]);
+
+      // new method: collect the unscaled rotation vector which has already be computed and stored in NodeState::theta
+      nodeBuffer[3] = snapNode.theta[0];
+      nodeBuffer[4] = snapNode.theta[1];
+      nodeBuffer[5] = snapNode.theta[2];
     } else {
       // Node does not really exist, corresponds to a gap in node numbering
       std::fill_n(nodeBuffer, 6, 0.0);

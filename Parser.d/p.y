@@ -234,7 +234,6 @@ Component:
         | Optimization
         | AnalysisInfo
         | OrthoInfo
-//        | NewtonInfo
 	| AeroInfo
         | AeroHeatInfo
         | ThermohInfo
@@ -855,6 +854,8 @@ OutInfo:
         { $$.angularouttype = $2; }
         | OutInfo ROTVECOUTTYPE
         { $$.rotvecouttype = $2; }
+        | OutInfo LINEARELASTIC
+        { $$.rotvecouttype = OutputInfo::Linear; }
         | OutInfo RESCALING SWITCH
         { $$.rescaling = bool($3); }
         | OutInfo NDTYPE

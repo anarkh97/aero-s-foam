@@ -223,7 +223,8 @@ private:
     void makeSubCorotators(int isub);
     void makeSubElementArrays(int isub);
     void initSubPrescribedDisplacement(int isub);
-    void subUpdateGeomStateUSDD(int isub, double *userDefineDisp, DistrGeomState *geomState);
+    void subUpdateGeomStateUSDD(int isub, double *userDefineDisp, DistrGeomState *geomState,
+                                double *userDefineVel, double *userDefineAcc);
     void subExplicitUpdate(int isub, DistrVector &d, DistrGeomState *geomState);
 };
 

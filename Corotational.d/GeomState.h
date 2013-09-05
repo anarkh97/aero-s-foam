@@ -17,6 +17,9 @@ class NodeState {
   public:
     double x, y, z;                     // x,y,z coordinates
     double v[6], a[6];                  // x,y,z velocities and accelerations
+                                        // note: by convention angular velocities and accelerations are
+                                        //       convected, except in the case of implicit ROM in which 
+                                        //       case they are time derivatives of the rotation vector
     double theta[3];                    // Rotation vector
     double R[3][3];                     // Rotation Tensor
     void operator=(const NodeState &);
@@ -100,7 +103,7 @@ class GeomState {
                                        CoordSet &cs);
      void updatePrescribedDisplacement(double *userDefinedDisplacement,
                                        ControlLawInfo* claw,
-                                       CoordSet &cs);
+                                       CoordSet &cs, double *userDefinedVel, double *userDefinedAcc);
      virtual void midpoint_step_update(Vector &veloc_n, Vector &accel_n, double delta, GeomState &ss,
                                        double beta, double gamma, double alphaf, double alpham,
                                        bool zeroRot);

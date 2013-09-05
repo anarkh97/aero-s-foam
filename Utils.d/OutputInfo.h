@@ -64,7 +64,7 @@ struct OutputInfo {
    enum { realimag, modulusphase, animate };
    int complexouttype;
    int ncomplexout;   
-   enum { spatial, convected, total };
+   enum { spatial=0, convected, total };
    int angularouttype;
    bool rescaling; // whether or not the rotation vector is rescaled such that -pi <= phi <= pi (default is true)
    enum { Euler=0, Complement, Linear, ReducedEulerRodrigues, CayleyGibbsRodrigues, WienerMilenkovic, BauchauTrainelli };
@@ -199,6 +199,18 @@ struct OutputInfo {
      case StrainPR2Direc:
      case StrainPR3Direc:
      case EquivalentPlasticStrain:
+     case PlasticStrainXX:
+     case PlasticStrainYY:
+     case PlasticStrainZZ:
+     case PlasticStrainXY:
+     case PlasticStrainYZ:
+     case PlasticStrainXZ:
+     case BackStressXX:
+     case BackStressYY:
+     case BackStressZZ:
+     case BackStressXY:
+     case BackStressYZ:
+     case BackStressXZ:
        return true; 
        break;
      default:
@@ -206,12 +218,25 @@ struct OutputInfo {
    }
  }
 
- bool defaultRotation() {
-   if(rescaling != true || rotvecouttype != OutputInfo::Euler || angularouttype != OutputInfo::convected || type == RotationMatrix || type == Quaternion)
-     return false;
-   else
-     return true;
+ bool isRotation() {
+   switch(type) {
+     case Disp6DOF: 
+     case RotationMatrix:
+     case Quaternion:
+     case Velocity6:
+     case Accel6:
+     case RotX:
+     case RotY:
+     case RotZ:
+     case RotMod:
+     case TotMod:
+       return true;
+       break;
+     default:
+       return false;
+   }
  }
+
  
  void copyParam(const OutputInfo& oI) {
     *this = oI;  

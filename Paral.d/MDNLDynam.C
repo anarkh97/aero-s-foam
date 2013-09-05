@@ -161,13 +161,18 @@ MDNLDynamic::formRHSpredictor(DistrVector& velocity, DistrVector& acceleration, 
       double *userDefineDispLast = new double[claw->numUserDisp];
       double *userDefineVel = new double[claw->numUserDisp];
       double *userDefineAcc = new double[claw->numUserDisp];
+      for(int i=0; i<claw->numUserDisp; ++i) {
+        userDefineVel[i] = 0;
+        userDefineAcc[i] = 0;
+      }
 
       // get user defined motion
       userSupFunc->usd_disp(midtime, userDefineDisp, userDefineVel, userDefineAcc);
       userSupFunc->usd_disp(midtime-localDelta, userDefineDispLast, userDefineVel, userDefineAcc);
 
       // update state
-      execParal2R(decDomain->getNumSub(), this, &MDNLDynamic::subUpdateGeomStateUSDD, geomState, userDefineDisp);
+      execParal4R(decDomain->getNumSub(), this, &MDNLDynamic::subUpdateGeomStateUSDD, &geomState, userDefineDisp,
+                  userDefineVel, userDefineAcc);
 
       // get delta disps
       for(int j = 0; j < claw->numUserDisp; j++)
@@ -405,8 +410,13 @@ MDNLDynamic::getStiffAndForce(DistrGeomState& geomState, DistrVector& residual,
       double *userDefineDisp = new double[claw->numUserDisp];
       double *userDefineVel  = new double[claw->numUserDisp];
       double *userDefineAcc  = new double[claw->numUserDisp];
+      for(int i=0; i<claw->numUserDisp; ++i) {
+        userDefineVel[i] = 0;
+        userDefineAcc[i] = 0;
+      }
       userSupFunc->usd_disp(t, userDefineDisp, userDefineVel, userDefineAcc);
-      execParal2R(decDomain->getNumSub(), this, &MDNLDynamic::subUpdateGeomStateUSDD, geomState, userDefineDisp);
+      execParal4R(decDomain->getNumSub(), this, &MDNLDynamic::subUpdateGeomStateUSDD, &geomState, userDefineDisp,
+                  userDefineVel, userDefineAcc);
       delete [] userDefineDisp; delete [] userDefineVel; delete [] userDefineAcc;
     }
   }
@@ -437,17 +447,27 @@ MDNLDynamic::subGetStiffAndForce(int isub, DistrGeomState &geomState,
 }
 
 void
-MDNLDynamic::subUpdateGeomStateUSDD(int isub, DistrGeomState &geomState, double *userDefineDisp)
+MDNLDynamic::subUpdateGeomStateUSDD(int isub, DistrGeomState *geomState, double *userDefineDisp,
+                                    double *userDefineVel, double *userDefineAcc)
 {
   SubDomain *sd = decDomain->getSubDomain(isub);
   ControlLawInfo *subClaw = sd->getClaw();
   if(subClaw) {
     if(subClaw->numUserDisp) {
       double *subUserDefineDisp = new double[subClaw->numUserDisp];
-      for(int i=0; i<subClaw->numUserDisp; ++i)
-        subUserDefineDisp[i] = userDefineDisp[sd->getUserDispDataMap()[i]];
-      geomState[isub]->updatePrescribedDisplacement(subUserDefineDisp, subClaw, sd->getNodes());
+      double *subUserDefineVel = new double[subClaw->numUserDisp];
+      double *subUserDefineAcc = new double[subClaw->numUserDisp];
+      for(int i=0; i<subClaw->numUserDisp; ++i) {
+        int globalIndex = sd->getUserDispDataMap()[i];
+        subUserDefineDisp[i] = userDefineDisp[globalIndex];
+        subUserDefineVel[i] = userDefineVel[globalIndex];
+        subUserDefineAcc[i] = userDefineAcc[globalIndex];
+      }
+      (*geomState)[isub]->updatePrescribedDisplacement(subUserDefineDisp, subClaw, sd->getNodes(),
+                                                       subUserDefineVel, subUserDefineAcc);
       delete [] subUserDefineDisp;
+      delete [] subUserDefineVel;
+      delete [] subUserDefineAcc;
     }
   }
 }
@@ -882,9 +902,15 @@ MDNLDynamic::dynamOutput(DistrGeomState *geomState, DistrVector &vel_n, DistrVec
     double *userDefineDisp = new double[claw->numUserDisp];
     double *userDefineVel  = new double[claw->numUserDisp];
     double *userDefineAcc  = new double[claw->numUserDisp];
+    for(int i=0; i<claw->numUserDisp; ++i) {
+      userDefineVel[i] = 0;
+      userDefineAcc[i] = 0;
+    }
     userSupFunc->usd_disp(time,userDefineDisp,userDefineVel,userDefineAcc);
-    execParal2R(decDomain->getNumSub(), this, &MDNLDynamic::subUpdateGeomStateUSDD, *geomState, userDefineDisp);
-    paralApply(decDomain->getNumSub(), decDomain->getAllSubDomains(), &GenSubDomain<double>::setUserDefBC, userDefineDisp, userDefineVel, userDefineAcc, true);
+    execParal4R(decDomain->getNumSub(), this, &MDNLDynamic::subUpdateGeomStateUSDD, geomState, userDefineDisp,
+                userDefineVel, userDefineAcc);
+    paralApply(decDomain->getNumSub(), decDomain->getAllSubDomains(), &GenSubDomain<double>::setUserDefBC, userDefineDisp,
+               userDefineVel, userDefineAcc, true);
     delete [] userDefineDisp; delete [] userDefineVel; delete [] userDefineAcc;
   }
 

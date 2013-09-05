@@ -365,9 +365,14 @@ NonLinDynamic::getStiffAndForce(GeomState& geomState, Vector& residual,
       double *userDefineDisp = new double[claw->numUserDisp];
       double *userDefineVel  = new double[claw->numUserDisp];
       double *userDefineAcc  = new double[claw->numUserDisp];
+      for(int i=0; i<claw->numUserDisp; ++i) {
+        userDefineVel[i] = 0;
+        userDefineAcc[i] = 0;
+      }
       userSupFunc->usd_disp(t, userDefineDisp, userDefineVel, userDefineAcc);
 
-      geomState.updatePrescribedDisplacement(userDefineDisp, claw, domain->getNodes());
+      geomState.updatePrescribedDisplacement(userDefineDisp, claw, domain->getNodes(),
+                                             userDefineVel, userDefineAcc);
 
       setBC(userDefineDisp, userDefineVel, userDefineAcc);
       delete [] userDefineDisp; delete [] userDefineVel; delete [] userDefineAcc;
@@ -724,13 +729,18 @@ NonLinDynamic::formRHSpredictor(Vector &velocity, Vector &acceleration, Vector &
       double *userDefineDispLast = new double[claw->numUserDisp];
       double *userDefineVel = new double[claw->numUserDisp];
       double *userDefineAcc = new double[claw->numUserDisp];
+      for(int i=0; i<claw->numUserDisp; ++i) {
+        userDefineVel[i] = 0;
+        userDefineAcc[i] = 0;
+      }
 
       // get user defined motion
       userSupFunc->usd_disp(midtime, userDefineDisp, userDefineVel, userDefineAcc);
       userSupFunc->usd_disp(midtime-localDelta, userDefineDispLast, userDefineVel, userDefineAcc);
 
       // update state
-      geomState.updatePrescribedDisplacement(userDefineDisp, claw, domain->getNodes());
+      geomState.updatePrescribedDisplacement(userDefineDisp, claw, domain->getNodes(),
+                                             userDefineDisp, userDefineAcc);
       setBC(userDefineDisp, userDefineVel, userDefineAcc);
 
       // get delta disps
@@ -1136,14 +1146,18 @@ NonLinDynamic::dynamOutput(GeomState* geomState, Vector& velocity,
 {
   times->output -= getTime();
 
-  // PJSA 4-9-08: update geomState for time dependent prescribed displacements and velocities (previously done in computeExternalForce2)
+  // update geomState for time dependent prescribed displacements and their time derivatives prior to output
   ControlLawInfo *claw = geoSource->getControlLaw();
   ControlInterface *userSupFunc = domain->getUserSuppliedFunction();
   if(claw && claw->numUserDisp) {
     double *userDefineDisp = new double[claw->numUserDisp];
     double *userDefineVel  = new double[claw->numUserDisp];
     double *userDefineAcc  = new double[claw->numUserDisp];
-    userSupFunc->usd_disp(time,userDefineDisp,userDefineVel,userDefineAcc);
+    for(int i = 0; i < claw->numUserDisp; ++i) {
+      userDefineVel[i] = 0;
+      userDefineAcc[i] = 0;
+    }
+    userSupFunc->usd_disp(time, userDefineDisp, userDefineVel, userDefineAcc);
     DofSetArray *dsa = domain->getDSA();
     for(int i = 0; i < claw->numUserDisp; ++i) {
       int dof = dsa->locate(claw->userDisp[i].nnum,1 << claw->userDisp[i].dofnum);
@@ -1153,7 +1167,7 @@ NonLinDynamic::dynamOutput(GeomState* geomState, Vector& velocity,
         acx[dof] = userDefineAcc[i];
       }
     }
-    geomState->updatePrescribedDisplacement(userDefineDisp, claw, domain->getNodes());
+    geomState->updatePrescribedDisplacement(userDefineDisp, claw, domain->getNodes(), userDefineVel, userDefineAcc);
     delete [] userDefineDisp; delete [] userDefineVel; delete [] userDefineAcc;
   }
 

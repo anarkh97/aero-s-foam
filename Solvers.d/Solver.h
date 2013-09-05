@@ -53,7 +53,6 @@ class GenSolver {
     virtual void solve(DistrBlockVector<Scalar> &rhs, DistrBlockVector<Scalar> &solution)
              {cerr << "GenSolver::solve(DistrBlockVector<Scalar> NOT implemented" << endl; } 
 
-
     // reSolve functions overwrite the rhs vector with the solution
     virtual void reSolve(Scalar *rhs); 
     // virtual void reSolve(GenVector<Scalar> &rhs);      
@@ -68,8 +67,10 @@ class GenSolver {
 
     // Forward substitution for 1 rhs
     virtual void forward(GenVector<Scalar> &rhs);
+    virtual void upperMult(Scalar *rhs);
     // Backward substitution for 1 rhs
     virtual void backward(GenVector<Scalar> &rhs);
+    virtual void backward(Scalar *rhs);
 
     // reBuild functions zero the appropriate structures
     // and reassemble the stiffness matrix and factor

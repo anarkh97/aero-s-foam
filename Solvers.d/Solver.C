@@ -77,14 +77,28 @@ GenSolver<Scalar>::reSolve(GenFullM<Scalar> *)
 
 template<class Scalar>
 void
-GenSolver<Scalar>::forward(GenVector<Scalar>&)
+GenSolver<Scalar>::forward(GenVector<Scalar> &rhs)
 {
- fprintf(stderr,"forward not implemented for selected solver\n");
+ fprintf(stderr,"backward not implemented for selected solver\n");
 }
 
 template<class Scalar>
 void
-GenSolver<Scalar>::backward(GenVector<Scalar>&)
+GenSolver<Scalar>::backward(GenVector<Scalar> &rhs)
+{
+ fprintf(stderr,"backward not implemented for selected solver\n");
+}
+
+template<class Scalar>
+void
+GenSolver<Scalar>::upperMult(Scalar*)
+{
+ fprintf(stderr,"backward not implemented for selected solver\n");
+}
+
+template<class Scalar>
+void
+GenSolver<Scalar>::backward(Scalar*)
 {
  fprintf(stderr,"backward not implemented for selected solver\n");
 }

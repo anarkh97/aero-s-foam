@@ -11,6 +11,7 @@
 #include <Math.d/SparseMatrix.h>
 #include <Math.d/DBSparseMatrix.h>
 #include <Math.d/NBSparseMatrix.h>
+#include <Math.d/EiSparseMatrix.h>
 #include <Math.d/CuCSparse.h>
 #include <Math.d/Skyline.d/SkyMatrix.h>
 
@@ -779,10 +780,15 @@ SingleDomainDynamic::buildOps(double coeM, double coeC, double coeK)
  DynamMat *dMat = new DynamMat;
 
  allOps.K   = domain->constructDBSparseMatrix<double>();
- if(domain->solInfo().newmarkBeta != 0) {
-   allOps.M   = domain->constructDBSparseMatrix<double>();
+ //if(domain->solInfo().newmarkBeta != 0) {
+ if(geoSource->getMRatio() != 0){
+#ifdef USE_EIGEN3
+   if(domain->solInfo().svdPodRom) allOps.M   = domain->constructEiSparseMatrix<double,Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> >(); //was DBSparse 
+   else
+#endif
+   allOps.M = domain->constructDBSparseMatrix<double>();
  }
- else{
+ else {
    allOps.M = new DiagMatrix(domain->getCDSA());
  }
  allOps.Muc = domain->constructCuCSparse<double>();

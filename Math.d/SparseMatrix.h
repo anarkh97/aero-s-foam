@@ -75,8 +75,8 @@ class GenSparseMatrix {
         virtual void multIdentity(Scalar *);
         virtual void multIdentity(Scalar **);
         virtual void multIdentity(Scalar **v, int start, int stop);
-        virtual void squareRootMult(Scalar * result);  //For diagonal
-        virtual void inverseSquareRootMult(Scalar * result);  //For diagonal
+        virtual void squareRootMult(Scalar * result);
+        virtual void inverseSquareRootMult(Scalar * result);
         virtual GenFullM<Scalar> * getFullMatrix();
         virtual int* getFirstDof();
         virtual int numNodes();

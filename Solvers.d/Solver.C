@@ -65,42 +65,56 @@ template<class Scalar>
 void
 GenSolver<Scalar>::reSolve(Scalar*)
 {
- fprintf(stderr,"Selected reSolve(Scalar*) not supported\n");
+ fprintf(stderr,"Selected solver does not support reSolve(Scalar*) function\n");
 }
 
 template<class Scalar>
 void
 GenSolver<Scalar>::reSolve(GenFullM<Scalar> *)
 {
- fprintf(stderr,"Selected reSolve not supported\n");
+ fprintf(stderr,"Selected solver does not support reSolve(GenFullM<Scalar> *) function\n");
 }
 
 template<class Scalar>
 void
 GenSolver<Scalar>::forward(GenVector<Scalar> &rhs)
 {
- fprintf(stderr,"backward not implemented for selected solver\n");
+ fprintf(stderr,"Selected solver does not support forward(GenVector<Scalar> &) function\n");
+}
+
+template<class Scalar>
+void
+GenSolver<Scalar>::forward(Scalar*)
+{
+ fprintf(stderr,"Selected solver does not support forward(Scalar*) function\n");
 }
 
 template<class Scalar>
 void
 GenSolver<Scalar>::backward(GenVector<Scalar> &rhs)
 {
- fprintf(stderr,"backward not implemented for selected solver\n");
-}
-
-template<class Scalar>
-void
-GenSolver<Scalar>::upperMult(Scalar*)
-{
- fprintf(stderr,"backward not implemented for selected solver\n");
+ fprintf(stderr,"Selected solver does not support backward(GenVector<Scalar> &) function\n");
 }
 
 template<class Scalar>
 void
 GenSolver<Scalar>::backward(Scalar*)
 {
- fprintf(stderr,"backward not implemented for selected solver\n");
+ fprintf(stderr,"Selected solver does not support backward(Scalar*) function\n");
+}
+
+template<class Scalar>
+void
+GenSolver<Scalar>::upperMult(Scalar*)
+{
+ fprintf(stderr,"Selected solver does not support upperMult(Scalar*) function\n");
+}
+
+template<class Scalar>
+void
+GenSolver<Scalar>::lowerMult(Scalar*)
+{
+ fprintf(stderr,"Selected solver does not support lowerMult(Scalar*) function\n");
 }
 
 template<class Scalar> 
@@ -164,9 +178,9 @@ GenSolver<Scalar>::solve(GenVector<Scalar>  &rhs, GenVector<Scalar>  &sol)
 
 template<class Scalar> 
 void
-GenSolver<Scalar>::solve(Scalar  *, Scalar *)
+GenSolver<Scalar>::solve(Scalar *, Scalar *)
 {
- fprintf(stderr,"Selected Solver does not support a Scalar*.\n");
+ fprintf(stderr,"Selected Solver does not support solve(Scalar*, Scalar*) function\n");
 }
 
 // This function does nothing, it is supposed to do nothing.
@@ -177,7 +191,7 @@ template<class Scalar>
 void
 GenSolver<Scalar>::factor()
 {
- fprintf(stderr,"Selected Solver does not implement factor() .\n"); 
+ fprintf(stderr,"Selected Solver does not implement factor()\n"); 
 }
 
 template<class Scalar>
@@ -205,21 +219,21 @@ template<class Scalar>
 void 
 GenSolver<Scalar>::addBoeing(int, const int *, const int *, const double *, int *, Scalar multiplier)
 {
- fprintf(stderr,"Selected Solver does not support addBoeing\n");
+ fprintf(stderr,"Selected Solver does not support addBoeing function\n");
 }
 
 template<class Scalar>
 void
 GenSolver<Scalar>::addone(Scalar d, int dofi, int dofj)
 {
-  fprintf(stderr,"Selected Solver does not support addone(...)\n");
+  fprintf(stderr,"Selected Solver does not support addone function\n");
 }
 
 template<class Scalar>
 Scalar
 GenSolver<Scalar>::getone(int dofi, int dofj)
 {
-  fprintf(stderr,"Selected Solver does not support getone(...)\n");
+  fprintf(stderr,"Selected Solver does not support getone function\n");
   return 0;
 }
 
@@ -227,21 +241,20 @@ template<class Scalar>
 void
 GenSolver<Scalar>::unify(FSCommunicator *)
 {
-  fprintf(stderr,"Selected Solver does not support unify()\n");
+  fprintf(stderr,"Selected Solver does not support unify function\n");
 }
 
 template<class Scalar>
 void
 GenSolver<Scalar>::add(Scalar *d)
 {
-  fprintf(stderr,"Selected Solver does not support add(double *)\n");
+  fprintf(stderr,"Selected Solver does not support add(double *) function\n");
 }
 
 template<class Scalar>
 Scalar*
 GenSolver<Scalar>::getData()
 {
-  fprintf(stderr,"Selected Solver does not support getData()\n");
+  fprintf(stderr,"Selected Solver does not support getData() function\n");
   return 0;
 }
-

@@ -67,10 +67,16 @@ class GenSolver {
 
     // Forward substitution for 1 rhs
     virtual void forward(GenVector<Scalar> &rhs);
-    virtual void upperMult(Scalar *rhs);
+    virtual void forward(Scalar *rhs);
     // Backward substitution for 1 rhs
     virtual void backward(GenVector<Scalar> &rhs);
     virtual void backward(Scalar *rhs);
+
+    // Multiplication by upper triangular factor of an LU or Cholesky factorization
+    virtual void upperMult(Scalar *rhs);
+
+    // Multiplication by lower triangular factor of an LU or Cholesky factorization
+    virtual void lowerMult(Scalar *rhs);
 
     // reBuild functions zero the appropriate structures
     // and reassemble the stiffness matrix and factor

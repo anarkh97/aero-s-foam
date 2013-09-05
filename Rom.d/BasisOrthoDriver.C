@@ -72,7 +72,6 @@ void readIntoSolver(SvdOrthogonalization &solver, VecNodeDof6Conversion &convert
                     int numEntries, int vectorSize, std::auto_ptr<VectorTransform<double*> > &transform, BasisId::Type type,
                     int &colCounter, GenSparseMatrix<double> *fullMass, GenSolver<double> *fullMassSolver, int skipTime=1)
 {
-  //int colCounter = 0 ; // Column counter for combined matrix
   FileNameInfo fileInfo; 
   for(int i = 0 ; i < numEntries; i++) {
     std::string fileName =  BasisFileId(fileInfo, type, fileType, i);
@@ -91,19 +90,17 @@ void readIntoSolver(SvdOrthogonalization &solver, VecNodeDof6Conversion &convert
         else input >> buffer;
         assert(input);
         colCounter++;
-        // Multiply by weighting factor if given in input file
-        
+        // Multiply by weighting factor if given in input file and/or singular values
         for(int row = 0 ; row < vectorSize; row++) {
-          if(fileType == BasisId::ROB) data.second[row] *= data.first; //multiplying singular values
+          if(fileType == BasisId::ROB) data.second[row] *= data.first;
           if(!domain->solInfo().snapshotWeights.empty()) {
             buffer[row] *= domain->solInfo().snapshotWeights[i];
           }
         }
-        if(geoSource->getMRatio() == 0 && domain->solInfo().normalize == 1){
-          std::cerr << "Lumped mass matrix \n";
-          fullMass->squareRootMult(buffer); // new method
+        if(geoSource->getMRatio() == 0 && domain->solInfo().normalize == 1) {
+          fullMass->squareRootMult(buffer);
         }
-        if(geoSource->getMRatio() != 0 && domain->solInfo().normalize == 1){
+        if(geoSource->getMRatio() != 0 && domain->solInfo().normalize == 1) {
           fullMassSolver->upperMult(buffer);
         }
         (*transform)(buffer);
@@ -168,19 +165,18 @@ BasisOrthoDriver::solve() {
   if(mratio!=0 && domain->solInfo().normalize==1) { 
     fullMassSolver = dynamic_cast<GenSolver<double>*>(fullMass);
     if(fullMassSolver) {
-       std::cerr << "*** factoring mass matrix\n";
-       fullMassSolver->factor();
+      filePrint(stderr, " ... Factoring mass matrix          ...\n");
+      fullMassSolver->factor();
     }
     else {
-       std::cerr << "*** error cannot cholesky factorize mass matrix\n";
-       exit(-1);
+      std::cerr << "*** ERROR: Cannot factorize mass matrix.\n";
+      exit(-1);
     }
   }
   int vectorSize = 0; // size of vectors
   int sizeSnap = 0; // number of state snapshots
   int sizeROB = 0;
   int skipTime = domain->solInfo().skipPodRom;
-  //int skip;
   if(domain->solInfo().snapfiPodRom.empty() && domain->solInfo().robfi.empty()) {
     std::cerr << "*** Error: no files provided\n";
     exit(-1);
@@ -211,7 +207,7 @@ BasisOrthoDriver::solve() {
     filePrint(stderr, " ... Computation of a basis of size %d ...\n", sizeSnap+sizeROB);
     int colCounter = 0;
     readIntoSolver(solver, converter, BasisId::SNAPSHOTS, domain->solInfo().snapfiPodRom.size(), vectorSize, transform, type, colCounter, fullMass, fullMassSolver, skipTime); //read in snapshots
-    readIntoSolver(solver, converter, BasisId::ROB, domain->solInfo().robfi.size(), vectorSize, transform, type, colCounter, fullMass, fullMassSolver);  //read in ROB
+    readIntoSolver(solver, converter, BasisId::ROB, domain->solInfo().robfi.size(), vectorSize, transform, type, colCounter, fullMass, fullMassSolver); //read in ROB
     
     solver.solve();
 
@@ -222,14 +218,12 @@ BasisOrthoDriver::solve() {
                               solver.singularValueCount();
 
     // Output solution
-    if(mratio == 0 && domain->solInfo().normalize == 0) //old method for mratio outputs identity normalized basis
+    if(mratio == 0 && domain->solInfo().normalize == 0) //old method for lumped: outputs identity normalized basis
       filePrint(stderr, " ... Writing orthonormal basis to file %s ...\n", BasisFileId(fileInfo, type, BasisId::POD).name().c_str());
     for (int iVec = 0; iVec < orthoBasisDim; ++iVec) {
       output << std::make_pair(solver.singularValue(iVec), solver.matrixCol(iVec));
     }
 
-    // Check if mratio mass matrix
-    //if(mratio == 0) {
     // Read back in output file to renormalize basis
     VecBasis basis;
     BasisInputStream in(BasisFileId(fileInfo, BasisId::STATE, BasisId::POD), converter);
@@ -238,21 +232,20 @@ BasisOrthoDriver::solve() {
     VecBasis normalizedBasis;
     if(domain->solInfo().normalize == 0) {
       // Old method: renormalize the orthonormal basis
-      if(mratio == 0)  renormalized_basis(*fullMass, basis, normalizedBasis);
+      if(mratio == 0) renormalized_basis(*fullMass, basis, normalizedBasis);
       if(mratio != 0) {
-        std::cerr << "********NOT IMPLEMENTED DO NOT USE mnorma 0 with non-mratio mass-matrix*******\n";
+        std::cerr << "********NOT IMPLEMENTED DO NOT USE mnorma 0 with non-lumped mass-matrix*******\n";
         exit(-1);
       }
     }
     else if(domain->solInfo().normalize == 1) {
-      // New method: multiply by inverse square root of the mass matrix
-      if(mratio == 0){
-        std::cerr << "Lumped mass matrix \n";
+      // New method: multiply by inverse square root or cholesky factor of the mass matrix
+      if(mratio == 0) {
         for(int col = 0; col < orthoBasisDim; col ++ ) {
           fullMass->inverseSquareRootMult(basis[col].data());
         }
       }
-      if(mratio != 0){
+      if(mratio != 0) {
         for(int col = 0; col < orthoBasisDim; col++){
           fullMassSolver->backward(basis[col].data());
         }
@@ -269,7 +262,7 @@ BasisOrthoDriver::solve() {
       outputNormalized << std::make_pair(solver.singularValue(iVec), normalizedBasis[iVec]);
     }
   
-    //Compute and output orthonormal basis if using new method
+    // Compute and output orthonormal basis if using new method
     if(domain->solInfo().normalize == 1) {
       std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
       MGSVectors(normalizedBasis.data(), normalizedBasis.numVec(), normalizedBasis.size());
@@ -279,7 +272,6 @@ BasisOrthoDriver::solve() {
         outputIdentityNormalized << std::make_pair(solver.singularValue(iVec), normalizedBasis[iVec]);
       }
     }
-    //}
   }
 }
 

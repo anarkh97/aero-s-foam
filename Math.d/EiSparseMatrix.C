@@ -311,13 +311,13 @@ template<typename Scalar, typename SolverClass>
 void
 GenEiSparseMatrix<Scalar,SolverClass>::upperMult(Scalar* _rhs)
 {
-  std::cerr << "error: not implemented for this matrix type \n";
+  std::cerr << " *** ERROR: GenEiSparseMatrix::upperMult is not implemented\n";
   exit(-1);
 }
 
 template<>
 inline void
-GenEiSparseMatrix<double,Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> >::upperMult(double* _rhs) //upperMult()
+GenEiSparseMatrix<double,Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> >::upperMult(double* _rhs)
 {
   Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > rhs(_rhs,numUncon,1);
   if(solver.permutationP().size() > 0) {
@@ -328,21 +328,19 @@ GenEiSparseMatrix<double,Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen:
     rhs = (solver.matrixU()*rhs).eval();
 }
 
-
 template<typename Scalar, typename SolverClass>
 void
 GenEiSparseMatrix<Scalar,SolverClass>::backward(Scalar* _rhs)
 {
-  std::cerr << "error: not implemented for this matrix type \n";
+  std::cerr << " *** ERROR: GenEiSparseMatrix::backward is not implemented\n";
   exit(-1);
 }
 
 template<>
 inline void
-GenEiSparseMatrix<double,Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> >::backward(double* _rhs) // rename backward
+GenEiSparseMatrix<double,Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> >::backward(double* _rhs)
 {
   Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > rhs(_rhs,numUncon,1);
   solver.matrixU().solveInPlace(rhs);
   if(solver.permutationP().size() > 0) rhs = (solver.permutationPinv()*rhs).eval();
 }
-

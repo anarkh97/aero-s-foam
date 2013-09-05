@@ -57,7 +57,7 @@
  BlastLoading::BlastData blastData;
 }
 
-%expect 7 
+%expect 6
 
 %token ACTUATORS AERO AEROH AEROTYPE AMAT ANALYSIS ARCLENGTH ATTRIBUTES ANGULAROUTTYPE
 %token AUGMENT AUGMENTTYPE AVERAGED ATDARB ACOU ATDDNB ATDROB ARPACK ATDDIR ATDNEU
@@ -976,9 +976,11 @@ DynamInfo:
         { domain->solInfo().check_energy_balance = true;
           domain->solInfo().epsilon1 = $3; 
           domain->solInfo().epsilon2 = $4; }
+/* deprecated
         | DynamInfo CONWEP ConwepData NewLine
         { domain->solInfo().ConwepOnOff = true;
           BlastLoading::InputFileData = $3; }
+*/
         ;
 Conwep:
         CONWEP NewLine ConwepData NewLine

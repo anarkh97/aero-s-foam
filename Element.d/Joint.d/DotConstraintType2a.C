@@ -2,8 +2,8 @@
 #include <Element.d/Joint.d/DotConstraintType2a.h>
 #include <Element.d/Joint.d/ElementaryFunction.h>
 
-DotConstraintType2a::DotConstraintType2a(int* _nn, int _axis, int _rotdescr)
- : DotType2ConstraintElement(_nn, _axis, _rotdescr) {}
+DotConstraintType2a::DotConstraintType2a(int* _nn, int _axis)
+ : DotType2ConstraintElement(_nn, _axis) {}
 
 void
 DotConstraintType2a::buildFrame(CoordSet& cs)

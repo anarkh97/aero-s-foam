@@ -8,20 +8,18 @@
 
 template<template <typename S> class ConstraintFunctionTemplate>
 ConstraintFunctionElement<ConstraintFunctionTemplate>
-::ConstraintFunctionElement(int _nNodes, DofSet nodalDofs, int* _nn, int _type, int _rotdescr)
+::ConstraintFunctionElement(int _nNodes, DofSet nodalDofs, int* _nn, int _type)
  : MpcElement(_nNodes, nodalDofs, _nn)
 {
   type = _type;
-  rotdescr = _rotdescr;
 }
 
 template<template <typename S> class ConstraintFunctionTemplate>
 ConstraintFunctionElement<ConstraintFunctionTemplate>
-::ConstraintFunctionElement(int _nNodes, DofSet *nodalDofs, int* _nn, int _type, int _rotdescr)
+::ConstraintFunctionElement(int _nNodes, DofSet *nodalDofs, int* _nn, int _type)
  : MpcElement(_nNodes, nodalDofs, _nn)
 {
   type = _type;
-  rotdescr = _rotdescr;
 }
 
 template<template <typename S> class ConstraintFunctionTemplate>
@@ -31,72 +29,13 @@ ConstraintFunctionElement<ConstraintFunctionTemplate>
             CoordSet& c0, GeomState *curState, GeomState *refState)
 {
   // prepare the constraint function inputs
-  int k = 0;
-  if(curState == NULL) { // in this case the function will be evaluated in the undeformed configuration
-    for (int i = 0; i < nterms; i++) {
-      switch(terms[i].dofnum) {
-        case 0 :
-          q[k] = 0;
-          break;
-        case 1 :
-          q[k] = 0;
-          break;
-        case 2 :
-          q[k] = 0;
-          break;
-        case 3 : case 4 : case 5 : {
-          q[k] = 0;
-        } break;
-      }
-      k++;
-    }
+  if(curState == NULL) {
+    // in this case the function will be evaluated in the undeformed configuration
+    q.setZero();
   }
-  else if(rotdescr == 0) { // total lagrangian description of rotations
-    for (int i = 0; i < nterms; i++) {
-      switch(terms[i].dofnum) {
-        case 0 :
-          q[k] = (*curState)[terms[i].nnum].x - c0[terms[i].nnum]->x;
-          break;
-        case 1 :
-          q[k] = (*curState)[terms[i].nnum].y - c0[terms[i].nnum]->y;
-          break;
-        case 2 :
-          q[k] = (*curState)[terms[i].nnum].z - c0[terms[i].nnum]->z;
-          break;
-        case 3 : case 4 : case 5 : {
-          double theta[3];
-          mat_to_vec((*curState)[terms[i].nnum].R, theta);
-          q[k] = theta[terms[i].dofnum-3];
-        } break;
-      }
-      k++;
-    }
-  }
-  else if(rotdescr == 1) { // updated lagrangian description of spatial rotations
-    for (int i = 0; i < nterms; i++) {
-      switch(terms[i].dofnum) {
-        case 0 :
-          q[k] = (*curState)[terms[i].nnum].x - c0[terms[i].nnum]->x;
-          break;
-        case 1 :
-          q[k] = (*curState)[terms[i].nnum].y - c0[terms[i].nnum]->y;
-          break;
-        case 2 :
-          q[k] = (*curState)[terms[i].nnum].z - c0[terms[i].nnum]->z;
-          break;
-        case 3 : case 4 : case 5 : {
-          // spatial incremental rotation matrix and vector
-          double dR[3][3], dtheta[3];
-          // curState = dR*refState  --> dR = curState*refState^T
-          mat_mult_mat((*curState)[terms[i].nnum].R, (*refState)[terms[i].nnum].R, dR, 2);
-          mat_to_vec(dR, dtheta);
-          q[k] = dtheta[terms[i].dofnum-3];
-        } break;
-      }
-      k++;
-    }
-  }
-  else { // eulerian description of rotations
+  else {
+    // eulerian description of rotations
+    int k = 0;
     for (int i = 0; i < nterms; i++) {
       switch(terms[i].dofnum) {
         case 0 :
@@ -129,7 +68,7 @@ ConstraintFunctionElement<ConstraintFunctionTemplate>::buildFrame(CoordSet& c0)
 
   // prepare the constraint function inputs
   const int N = ConstraintFunctionTemplate<double>::NumberOfGeneralizedCoordinates;
-  Eigen::Matrix<double,N,1> q; // = Eigen::Matrix<double,N,1>::Zero();
+  Eigen::Matrix<double,N,1> q;
   getInputs(q, c0, NULL, NULL);
   double t = 0;
 

@@ -12,7 +12,7 @@ class AngleType1ConstraintElement : public ConstraintFunctionElement<AngleType1C
     double offset;
 
   public:
-    AngleType1ConstraintElement(int*, int, int, double = M_PI/2, int=2); 
+    AngleType1ConstraintElement(int*, int, int, double = M_PI/2); 
     ~AngleType1ConstraintElement();
     void buildFrame(CoordSet&);
     void setFrame(EFrame *);

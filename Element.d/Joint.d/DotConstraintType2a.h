@@ -6,7 +6,7 @@
 class DotConstraintType2a : public DotType2ConstraintElement
 {
   public:
-    DotConstraintType2a(int*, int, int=2);
+    DotConstraintType2a(int*, int);
     void buildFrame(CoordSet& cs);
     void update(GeomState& gState, CoordSet& cs, double t);
     double getVelocityConstraintRhs(GeomState *gState, CoordSet& cs, double t);

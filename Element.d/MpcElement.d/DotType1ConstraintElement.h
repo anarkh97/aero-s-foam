@@ -12,7 +12,7 @@ class DotType1ConstraintElement : public ConstraintFunctionElement<DotType1Const
     double d0;
 
   public:
-    DotType1ConstraintElement(int*, int, int, double=0, int=2); 
+    DotType1ConstraintElement(int*, int, int, double=0); 
     ~DotType1ConstraintElement();
     void buildFrame(CoordSet&);
     void setFrame(EFrame *);

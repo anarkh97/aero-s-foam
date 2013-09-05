@@ -903,30 +903,6 @@ template<typename Scalar>
 Eigen::Matrix<Scalar,3,1>
 unscale_rotvec(const Eigen::Matrix<Scalar,3,1>& Psi, const Eigen::Matrix<Scalar,3,1>& Psi_n)
 {
-/*
-  // return the rotation vector equivalent to Psi which is closest to Psi_n
-  Eigen::Matrix<Scalar,3,1> ret = Psi;
-  using std::sqrt;
-
-  Scalar psi2 = Psi.squaredNorm();
-  if(psi2 != 0) {
-    Scalar psi = sqrt(psi2);
-    Eigen::Matrix<Scalar,3,1> u = Psi.normalized();
-
-    Scalar psi_minus, psi_plus;
-    for(int i=1; i<=10; ++i) {
-      psi_minus = psi-2*i*M_PI;
-      psi_plus  = psi+2*i*M_PI;
-                               
-      Eigen::Matrix<Scalar,3,1> Psi_minus = psi_minus*u;
-      Eigen::Matrix<Scalar,3,1> Psi_plus =  psi_plus*u;
-      if( (Psi_minus-Psi_n).norm() < (ret-Psi_n).norm() ) ret = Psi_minus;
-      if( (Psi_plus-Psi_n).norm() < (ret-Psi_n).norm() ) ret = Psi_plus;
-    }
-  }
-
-  return ret;
-*/
   // return either the rotation vector Psi or it's complement, whichever is closest to Psi_n
   Eigen::Matrix<Scalar,3,1> PsiC = complement_rot_vec(Psi);
   return ( (PsiC-Psi_n).norm() < (Psi-Psi_n).norm() ) ? PsiC : Psi;

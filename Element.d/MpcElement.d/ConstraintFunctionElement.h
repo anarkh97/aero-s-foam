@@ -9,12 +9,9 @@ class GeomState;
 template<template <typename S> class ConstraintFunctionTemplate>
 class ConstraintFunctionElement : public MpcElement
 {
-  protected:
-    int rotdescr; // 0: total lagrangian, 1: updated lagrangian, 2: eulerian (default)
-
   public:
-    ConstraintFunctionElement(int, DofSet, int*, int, int=2);
-    ConstraintFunctionElement(int, DofSet*, int*, int, int=2);
+    ConstraintFunctionElement(int, DofSet, int*, int);
+    ConstraintFunctionElement(int, DofSet*, int*, int);
 
     void buildFrame(CoordSet&);
     void update(GeomState&, CoordSet&, double);

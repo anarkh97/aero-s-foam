@@ -3372,7 +3372,7 @@ Domain::ProcessSurfaceBCs()
         FaceElemSet &faceElemSet = SurfEntities[j]->GetFaceElemSet();
         for(int iele = 0; iele < faceElemSet.last(); ++iele) {
           int nVertices = faceElemSet[iele]->nVertices();
-          if(nVertices == 3 || nVertices == 4 || nVertices == 6 || nVertices == 8) {
+          if(nVertices == 3 || nVertices == 4 || nVertices == 6 || nVertices == 8 || nVertices == 9) {
              int *nodes = new int[nVertices];
              for(int inode = 0; inode < nVertices; ++inode)
                nodes[inode] = SurfEntities[j]->GetPtrGlVertexIds()[faceElemSet[iele]->GetVertex(inode)];
@@ -3382,6 +3382,7 @@ Domain::ProcessSurfaceBCs()
                case 4: type = 16; break;
                case 6: type = 17; break;
                case 8: type = 18; break;
+               case 9: type = 19; break;
              }
              addNeumElem(-1, type, surface_pres[i].val, nVertices, nodes, &surface_pres[i]);
              delete [] nodes;

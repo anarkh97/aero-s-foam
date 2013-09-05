@@ -9,9 +9,6 @@ class GeomState;
 template<template <typename S> class VectorValuedFunctionTemplate>
 class ForceFunctionElement : public BoundaryElement
 {
-  protected:
-    int SO3param; // 0: total lagrangian, 1: updated lagrangian, 2: eulerian (default)
-
   public:
     ForceFunctionElement(int, DofSet, int*);
     ForceFunctionElement(int, DofSet*, int*);

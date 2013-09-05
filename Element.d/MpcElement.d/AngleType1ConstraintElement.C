@@ -2,8 +2,8 @@
 #include <Element.d/MpcElement.d/AngleType1ConstraintElement.h>
 #include <Corotational.d/GeomState.h>
 
-AngleType1ConstraintElement::AngleType1ConstraintElement(int* _nn, int _axis1, int _axis2, double _offset, int _rotdescr)
- : ConstraintFunctionElement<AngleType1ConstraintFunction>(2, DofSet::XYZrot, _nn, 0, _rotdescr)
+AngleType1ConstraintElement::AngleType1ConstraintElement(int* _nn, int _axis1, int _axis2, double _offset)
+ : ConstraintFunctionElement<AngleType1ConstraintFunction>(2, DofSet::XYZrot, _nn, 0)
 {
   C0 = 0;
   axis1 = _axis1;
@@ -19,9 +19,9 @@ AngleType1ConstraintElement::~AngleType1ConstraintElement()
 void
 AngleType1ConstraintElement::getConstants(CoordSet&, Eigen::Array<double,7,1>& sconst, Eigen::Array<int,0,1>&, GeomState *gs)
 {
-  // note #1: gs is interpreted as the reference configuration for updated lagrangian and the current configuration for eulerian
-  // note #2: gs = NULL means that the reference/updated configuration is identical to the undeformed configuration
-  if(rotdescr == 0 || gs == NULL) {
+  // gs is the current configuration for eulerian description of rotations
+  // if gs == NULL the current configuration is identical to ihe undeformed configuration
+  if(gs == NULL) {
     Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor> > C0(&AngleType1ConstraintElement::C0[0][0]);
     sconst << C0(axis1,0), C0(axis1,1), C0(axis1,2), C0(axis2,0), C0(axis2,1), C0(axis2,2), offset;
   }

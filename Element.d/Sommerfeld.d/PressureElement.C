@@ -123,7 +123,8 @@ PressureElement<VectorValuedFunctionTemplate>
             CoordSet& c0, GeomState *curState)
 {
   // prepare the constraint function inputs
-  if(curState == NULL) { // in this case the function will be evaluated in the undeformed configuration
+  if(curState == NULL) {
+    // in this case the function will be evaluated in the undeformed configuration
     q.setZero();
   }
   else {
@@ -187,21 +188,12 @@ PressureElement<VectorValuedFunctionTemplate>::neumVectorJacobian(CoordSet& c0, 
   getInputs(q, c0, c1);
 
   // instantiate the jacobian object
-  VectorValuedFunctionJacobian<double,VectorValuedFunctionTemplate> dfdq(sconst,iconst,t);
+  Simo::SpaceJacobian<double,VectorValuedFunctionTemplate> dfdq(sconst,iconst);
 
   // evaluate the jacobian
   const int M = VectorValuedFunctionTemplate<double>::NumberOfValues;
-  Eigen::Matrix<double,M*N,1> J;
-  dfdq(q, J);
-
-  // fill Ktan
-  Ktan.zero();
-
-  for(int i=0; i<M; ++i) {
-    for(int j=0; j<N; ++j) {
-      Ktan[i][j] = J[i+j*M];
-    }
-  }
+  Eigen::Map<Eigen::Matrix<double,M,N,Eigen::RowMajor> > J(Ktan.data());
+  J = dfdq(q, t);
 }
 
 template<template <typename S> class VectorValuedFunctionTemplate>

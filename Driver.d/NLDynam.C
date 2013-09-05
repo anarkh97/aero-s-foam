@@ -18,6 +18,7 @@
 #ifdef USE_EIGEN3
 #include <Element.d/Dimass.d/InertialForceFunction.h>
 #include <Element.d/Dimass.d/InertialForceFunctionExp.h>
+#include <Element.d/Function.d/SpaceJacobian.h>
 #endif
 #include <algorithm>
 
@@ -349,7 +350,6 @@ Domain::getNodeFictitiousForce(int inode, GeomState &geomState, double time, Geo
 
       if(compute_tangents) { // tangent stiffness contribution of the fictitious force and correct linearization of rotary inertia+viscous force
 
-        Eigen::Matrix<double,9,1> jacF;
         Eigen::Matrix<double,3,1> q;
         if(domain->solInfo().galerkinPodRom) {
           Eigen::Array<double,24,1> dconst;
@@ -361,9 +361,9 @@ Domain::getNodeFictitiousForce(int inode, GeomState &geomState, double time, Geo
                     beta, gamma, alphaf, alpham, dt, sinfo.alphaDamp;
 
           // evaluate the jacobian of the inertial+viscous force
-          VectorValuedFunctionJacobian<double,InertialForceFunctionExp> dFdq(dconst,iconst,time);
+          Simo::SpaceJacobian<double,InertialForceFunctionExp> dFdq(dconst,iconst);
           q << geomState[inode].theta[0], geomState[inode].theta[1], geomState[inode].theta[2];
-          dFdq(q, jacF);
+          K = dFdq(q, time);
         }
         else {
           Eigen::Array<double,39,1> dconst;
@@ -376,13 +376,10 @@ Domain::getNodeFictitiousForce(int inode, GeomState &geomState, double time, Geo
                     beta, gamma, alphaf, alpham, dt, sinfo.alphaDamp;
 
           // evaluate the jacobian of the inertial+viscous force
-          VectorValuedFunctionJacobian<double,InertialForceFunction> dFdq(dconst,iconst,time);
+          Simo::SpaceJacobian<double,InertialForceFunction> dFdq(dconst,iconst);
           q = Eigen::Vector3d::Zero();
-          dFdq(q, jacF);
+          K = dFdq(q, time);
         }
-        for(int j = 0; j < 3; ++j)
-          for(int k = 0; k < 3; ++k)
-            K(j,k) = jacF[j+k*3];
 
         // subtract the part which is added to the dynamic tangent stiffness in probDesc->reBuild
         K -= ((1-alpham)/((1-alphaf)*(dt*dt*beta)) + gamma/(dt*beta)*sinfo.alphaDamp)*M;

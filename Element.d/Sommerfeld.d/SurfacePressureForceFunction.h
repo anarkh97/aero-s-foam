@@ -2,6 +2,7 @@
 #define _SURFACEPRESSUREFORCEFUNCTION_H_
 
 #include <Element.d/Function.d/VectorValuedFunction.h>
+#include <Element.d/Function.d/SpaceJacobian.h>
 #include <Utils.d/Conwep.d/BlastLoading.h>
 #include <Eigen/Geometry>
 
@@ -87,10 +88,8 @@ class SurfacePressureForceFunction
       }
 
       // shape function and derivatives
-      Eigen::Array<double, ShapeFunctionTemplate<double>::NumberOfScalarConstants, 1> sconst;
-      Eigen::Array<int, ShapeFunctionTemplate<double>::NumberOfIntegerConstants, 1> iconst;
-      VectorValuedFunctionSpatialView<double, ShapeFunctionTemplate> S(sconst, iconst, 0);
-      Eigen::AutoDiffJacobian<VectorValuedFunctionSpatialView<double, ShapeFunctionTemplate> > dN(S);
+      ShapeFunctionTemplate<double> SF(Eigen::Array<double,0,1>::Zero(), Eigen::Array<int,0,1>::Zero());
+      Simo::SpaceJacobian<double, ShapeFunctionTemplate> dSF(Eigen::Array<double,0,1>::Zero(), Eigen::Array<int,0,1>::Zero());
 
       // quadrature rule
       QuadratureRule c(deg);
@@ -99,7 +98,7 @@ class SurfacePressureForceFunction
       Eigen::Matrix<double,NumberOfSurfaceDimensions,1> xi;          // abscissa
       double weight;                                                 // weight
       Eigen::Matrix<double,NumberOfNodes,1> N;                       // shape function values
-      Eigen::Matrix<double,NumberOfNodes,NumberOfSurfaceDimensions> dNdXi;  // derivative of shape functions w.r.t. xi
+      Eigen::Matrix<double,NumberOfNodes,NumberOfSurfaceDimensions> dNdxi;  // derivative of shape functions w.r.t. xi
       Eigen::Matrix<Scalar,NumberOfSurfaceDimensions,NumberOfDimensions> j;
       Eigen::Matrix<Scalar,NumberOfDimensions,1> normal;
       Eigen::Matrix<double,NumberOfSurfaceDimensions,NumberOfDimensions> J;
@@ -113,14 +112,15 @@ class SurfacePressureForceFunction
         c.getAbscissaAndWeight(ip, xi, weight);
 
         // compute shape functions and derivatives
-        dN(xi, &N, &dNdXi);
+        N = SF(xi, 0.);
+        dNdxi = dSF(xi, 0.);
 
         // compute the surface normal
-        j = dNdXi.template cast<Scalar>().transpose()*x;
+        j = dNdxi.template cast<Scalar>().transpose()*x;
         normal = j.row(0).cross(j.row(1));
 
         if(conwep) {
-          J = dNdXi.transpose()*X;
+          J = dNdxi.transpose()*X;
           Normal = J.row(0).cross(J.row(1));
           Xip = X.transpose()*N;
           pressure = p + BlastLoading::ComputeGaussPointPressure(Xip.data(), Normal.data(), t, *conwep);

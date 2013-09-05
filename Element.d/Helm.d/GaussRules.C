@@ -17,7 +17,7 @@ GaussLobattoRuleLine::GaussLobattoRuleLine(int _ngauss) {
    xigauss[0] = -1.0;
    xigauss[1] = 1.0;
    wgauss[0] = 1.0;
-   wgauss[0] = 1.0;
+   wgauss[1] = 1.0;
  } else if (ngauss==3) {
    xigauss[0] = -1.0;
    xigauss[1] = 0.0;

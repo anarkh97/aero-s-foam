@@ -2566,19 +2566,6 @@ FaceSet:
             $$->AddFaceElement($2-1, $3, $4.num, nodes);
             delete [] nodes;
           }
-/* moved to  Domain::SetUpSurfaces
-          else if($$->GetIsShellFace()) { // for acme shell it is necessary to include both sides of the element in the face block
-            int etype;
-            if($3 == 1) etype = 5; // SHELLQUADFACEL4
-            else if($3 == 3) etype = 6; // SHELLTRIFACEL3
-            else { cerr << " *** ERROR: Surface element type " << $3 << " not supported with SHELL_THICKNESS option\n"; exit(-1); }
-            $$->AddFaceElement(2*($2-1), etype, $4.num, $4.nd);
-            int *nodes = new int[$4.num];
-            for(int i=0; i<$4.num; ++i) nodes[$4.num-1-i] = $4.nd[i];
-            $$->AddFaceElement(2*($2-1)+1, etype, $4.num, nodes);
-            delete [] nodes;
-          }
-*/
           else $$->AddFaceElement($2-1, $3, $4.num, $4.nd);
         }
 	; 

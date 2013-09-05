@@ -9,7 +9,7 @@ class DotConstraintType1a : public DotType1ConstraintElement
     double t_reparam, offset;
 
   public:
-    DotConstraintType1a(int*, int, int, int=2);
+    DotConstraintType1a(int*, int, int);
     void buildFrame(CoordSet& cs);
     void update(GeomState& gState, CoordSet& cs, double t);
     double getVelocityConstraintRhs(GeomState *gState, CoordSet& cs, double t);

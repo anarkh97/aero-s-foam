@@ -2,8 +2,8 @@
 #include <Element.d/Joint.d/DotConstraintType1a.h>
 #include <Element.d/Joint.d/ElementaryFunction.h>
 
-DotConstraintType1a::DotConstraintType1a(int* _nn, int _axis1, int _axis2, int _rotdescr)
- : DotType1ConstraintElement(_nn, _axis1, _axis2, 0, _rotdescr)
+DotConstraintType1a::DotConstraintType1a(int* _nn, int _axis1, int _axis2)
+ : DotType1ConstraintElement(_nn, _axis1, _axis2, 0)
 {
   axis1_copy = _axis1;
   t_reparam = -1;

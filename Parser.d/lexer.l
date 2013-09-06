@@ -658,7 +658,8 @@ TRAIL [a-zA-Z]*
 
 "damp"[a-zA-Z]*|"DAMP"[a-zA-Z]*    { return DAMPING; }
 
-"sdamp"[a-zA-Z]*|"SDAMP"[a-zA-Z]*    { return SDAMPING; }
+"raydamp"|"RAYDAMP"    { return RAYDAMP; }
+"strdamp"|"STRDAMP"    { return STRDAMP; }
 
 "time"|"TIME"                      { return TIME; }
 

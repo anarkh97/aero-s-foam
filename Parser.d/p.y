@@ -88,8 +88,8 @@
 %token QSTATIC QLOAD
 %token PITA PITADISP6 PITAVEL6 NOFORCE MDPITA GLOBALBASES LOCALBASES TIMEREVERSIBLE REMOTECOARSE ORTHOPROJTOL READINITSEED JUMPCVG JUMPOUTPUT
 %token PRECNO PRECONDITIONER PRELOAD PRESSURE PRINTMATLAB PROJ PIVOT PRECTYPE PRECTYPEID PICKANYCORNER PADEPIVOT PROPORTIONING PLOAD PADEPOLES POINTSOURCE PLANEWAVE PTOL PLANTOL PMAXIT PIECEWISE
-%token RADIATION RBMFILTER RBMSET READMODE REBUILD RENUM RENUMBERID REORTHO RESTART RECONS RECONSALG REBUILDCCT RANDOM RPROP RNORM REVERSENORMALS RIGID ROTVECOUTTYPE RESCALING
-%token SCALING SCALINGTYPE SDAMPING SDETAFT SENSORS SOLVERTYPE SHIFT
+%token RADIATION RAYDAMP RBMFILTER RBMSET READMODE REBUILD RENUM RENUMBERID REORTHO RESTART RECONS RECONSALG REBUILDCCT RANDOM RPROP RNORM REVERSENORMALS RIGID ROTVECOUTTYPE RESCALING
+%token SCALING SCALINGTYPE STRDAMP SDETAFT SENSORS SOLVERTYPE SHIFT
 %token SPOOLESTAU SPOOLESSEED SPOOLESMAXSIZE SPOOLESMAXDOMAINSIZE SPOOLESMAXZEROS SPOOLESMSGLVL SPOOLESSCALE SPOOLESPIVOT SPOOLESRENUM SPARSEMAXSUP SPARSEDEFBLK
 %token STATS STRESSID SUBSPACE SURFACE SAVEMEMCOARSE SPACEDIMENSION SCATTERER STAGTOL SCALED SWITCH STABLE SUBTYPE STEP SOWER SHELLTHICKNESS SURF SPRINGMAT
 %token TANGENT TEMP TIME TOLEIG TOLFETI TOLJAC TOLPCG TOPFILE TOPOLOGY TRBM THERMOE THERMOH 
@@ -382,7 +382,7 @@ Impe:
           { domain->solInfo().curSweepParam = 0; domain->setFrequencySet(0); geoSource->setImpe($4); domain->addFrequencies2(2.0*PI*$4, 2.0*PI*$5, $6); }
         | IMPE NewLine FREQSWEEP Float Float Integer Integer NewLine
           { domain->solInfo().curSweepParam = 0; domain->setFrequencySet(0); geoSource->setImpe($4); domain->addFrequencies(2.0*PI*$4, 2.0*PI*$5, $6, $7); }
-        | IMPE NewLine FREQSWEEPA Integer Integer Integer Float Float Float Integer Integer Integer NewLine
+        | IMPE NewLine FREQSWEEPA Integer Integer RECONSALG Float Float Float Integer Integer Integer NewLine
         {
           domain->solInfo().curSweepParam = 0;
           domain->setFrequencySet(0); geoSource->setImpe($7);
@@ -390,7 +390,10 @@ Impe:
           domain->solInfo().getSweepParams()->isAdaptSweep = true;
           domain->solInfo().getSweepParams()->adaptSweep.maxP = $4;
           domain->solInfo().getSweepParams()->adaptSweep.numS = $5;
-          domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = bool($6);
+          if ($6 == SweepParams::KrylovGalProjection) 
+             domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = false; 
+          else 
+             domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = true;
           domain->solInfo().getSweepParams()->adaptSweep.w1 = 2.0*PI*$7;
           domain->solInfo().getSweepParams()->adaptSweep.w2 = 2.0*PI*$8;
           domain->solInfo().getSweepParams()->adaptSweep.atol = $9;
@@ -403,33 +406,35 @@ Impe:
           { domain->solInfo().curSweepParam = $3; if ($3 == 0) geoSource->setImpe($6); }
         //| IMPE NewLine SHIFT Float NewLine
         //  { geoSource->setShift($4); }
-        | IMPE Integer Integer NewLine FREQSWEEP1 Float Float Integer NewLine
-          { domain->setFrequencySet($3); domain->solInfo().curSweepParam = $3; if ($3 == 0) geoSource->setImpe($6); domain->addFrequencies1(2.0*PI*$6, 2.0*PI*$7, $8); }
-        | IMPE Integer Integer NewLine FREQSWEEP2 Float Float Integer NewLine
-          { domain->setFrequencySet($3); domain->solInfo().curSweepParam = $3; if ($3 == 0) geoSource->setImpe($6); domain->addFrequencies2(2.0*PI*$6, 2.0*PI*$7, $8); }
-        | IMPE Integer Integer NewLine FREQSWEEP Float Float Integer Integer NewLine
-          { domain->setFrequencySet($3); domain->solInfo().curSweepParam = $3; if ($3 == 0) geoSource->setImpe($6); domain->addFrequencies(2.0*PI*$6, 2.0*PI*$7, $8, $9); }
-        | IMPE Integer Integer NewLine FREQSWEEPA Integer Integer Integer Float Float Float Integer Integer Integer NewLine
+        | IMPE Integer NewLine FREQSWEEP1 Float Float Integer NewLine
+          { domain->setFrequencySet($2); domain->solInfo().curSweepParam = $2; if ($2 == 0) geoSource->setImpe($5); domain->addFrequencies1(2.0*PI*$5, 2.0*PI*$6, $7); }
+        | IMPE Integer NewLine FREQSWEEP2 Float Float Integer NewLine
+          { domain->setFrequencySet($2); domain->solInfo().curSweepParam = $2; if ($2 == 0) geoSource->setImpe($5); domain->addFrequencies2(2.0*PI*$5, 2.0*PI*$6, $7); }
+        | IMPE Integer NewLine FREQSWEEP Float Float Integer Integer NewLine
+          { domain->setFrequencySet($2); domain->solInfo().curSweepParam = $2; if ($2 == 0) geoSource->setImpe($5); domain->addFrequencies(2.0*PI*$5, 2.0*PI*$6, $7, $8); }
+        | IMPE Integer NewLine FREQSWEEPA Integer Integer Integer Float Float Float Integer Integer Integer NewLine
         {
-          domain->setFrequencySet($3);  domain->solInfo().curSweepParam = $3;
-          if ($3 == 0) geoSource->setImpe($9);
-          domain->addFrequencies(2.0*PI*$9, 2.0*PI*$10, 2,$7);
+          domain->setFrequencySet($2);  domain->solInfo().curSweepParam = $2;
+          if ($2 == 0) geoSource->setImpe($8);
+          domain->addFrequencies(2.0*PI*$8, 2.0*PI*$9, 2,$6);
           domain->solInfo().getSweepParams()->isAdaptSweep = true;
-          domain->solInfo().getSweepParams()->adaptSweep.maxP = $6;
-          domain->solInfo().getSweepParams()->adaptSweep.numS = $7;
-          domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = bool($8);
-          domain->solInfo().getSweepParams()->adaptSweep.w1 = 2.0*PI*$9;
-          domain->solInfo().getSweepParams()->adaptSweep.w2 = 2.0*PI*$10;
-          domain->solInfo().getSweepParams()->adaptSweep.atol = $11;
-          domain->solInfo().getSweepParams()->adaptSweep.minRHS = $12;
-          domain->solInfo().getSweepParams()->adaptSweep.maxRHS = $13;
-          domain->solInfo().getSweepParams()->adaptSweep.deltaRHS = $14;
-          domain->solInfo().getSweepParams()->nFreqSweepRHS = $13;
+          domain->solInfo().getSweepParams()->adaptSweep.maxP = $5;
+          domain->solInfo().getSweepParams()->adaptSweep.numS = $6;
+          if ($7 == SweepParams::KrylovGalProjection) 
+             domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = false; 
+          else 
+             domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = true;
+          domain->solInfo().getSweepParams()->adaptSweep.w1 = 2.0*PI*$8;
+          domain->solInfo().getSweepParams()->adaptSweep.w2 = 2.0*PI*$9;
+          domain->solInfo().getSweepParams()->adaptSweep.atol = $10;
+          domain->solInfo().getSweepParams()->adaptSweep.minRHS = $11;
+          domain->solInfo().getSweepParams()->adaptSweep.maxRHS = $12;
+          domain->solInfo().getSweepParams()->adaptSweep.deltaRHS = $13;
+          domain->solInfo().getSweepParams()->nFreqSweepRHS = $12;
         }
         | IMPE NewLine FreqSweep 
         | Impe ReconsInfo
         | Impe DampInfo
-        | Impe SDampInfo
         | Impe PadePivotInfo
         | Impe PadePolesInfo
         ;
@@ -1224,16 +1229,12 @@ ParallelInTimeKeyWord:
         { domain->solInfo().pitaJumpMagnOutput = true; }
         ;
 DampInfo:
-	DAMPING Float Float NewLine
+	RAYDAMP Float Float NewLine
 	{ domain->solInfo().setDamping($2,$3); }
 	| DAMPING MODAL NewLine ModalValList
 	{ if(geoSource->setModalDamping($4->n, $4->d) < 0) return -1; 
 	  domain->solInfo().modalCalled = true; }
 
-SDampInfo:
-	SDAMPING Float Float NewLine
-	{ domain->solInfo().setSDamping($2,$3); }
-	;
 ComplexDirichletBC:
 	HDIRICHLET NewLine ComplexBCDataList
 	{ $$ = $3; }
@@ -1949,7 +1950,7 @@ MatData:
           sp.isReal = true;
           geoSource->addMat( $1-1, sp );
         }
-        | Integer Float Float Float Float Float Float Float Float Float Float Float Float Float Float DAMPING Float Float NewLine
+        | Integer Float Float Float Float Float Float Float Float Float Float Float Float Float Float RAYDAMP Float Float NewLine
         { StructProp sp;
           sp.A = $2;  sp.E = $3;  sp.nu  = $4;  sp.rho = $5;
           sp.c = $6;  sp.k = $7;  sp.eh  = $8;  sp.P   = $9;  sp.Ta  = $10;
@@ -1958,7 +1959,7 @@ MatData:
           sp.isReal = true;
           geoSource->addMat( $1-1, sp );
         }
-        | Integer Float Float Float Float Float Float Float Float Float Float Float Float Float Float SDAMPING Float Float NewLine
+        | Integer Float Float Float Float Float Float Float Float Float Float Float Float Float Float STRDAMP Float Float NewLine
         { StructProp sp;
           sp.A = $2;  sp.E = $3;  sp.nu  = $4;  sp.rho = $5;
           sp.c = $6;  sp.k = $7;  sp.eh  = $8;  sp.P   = $9;  sp.Ta  = $10;
@@ -1988,7 +1989,7 @@ MatData:
           sp.isReal = true;
           geoSource->addMat( $1-1, sp );
         }
-        | Integer Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float DAMPING Float Float NewLine
+        | Integer Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float RAYDAMP Float Float NewLine
         { StructProp sp;
           sp.A = $2;  sp.E = $3;  sp.nu  = $4;  sp.rho = $5;
           sp.c = $6;  sp.k = $7;  sp.eh  = $8;  sp.P   = $9;  sp.Ta  = $10;
@@ -1998,7 +1999,7 @@ MatData:
           sp.isReal = true;
           geoSource->addMat( $1-1, sp );
         }
-        | Integer Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float SDAMPING Float Float NewLine
+        | Integer Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float STRDAMP Float Float NewLine
         { StructProp sp;
           sp.A = $2;  sp.E = $3;  sp.nu  = $4;  sp.rho = $5;
           sp.c = $6;  sp.k = $7;  sp.eh  = $8;  sp.P   = $9;  sp.Ta  = $10;

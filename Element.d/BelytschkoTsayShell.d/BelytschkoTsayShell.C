@@ -370,7 +370,7 @@ BelytschkoTsayShell::massMatrix(CoordSet &cs, double *mel, int cmflg)
 FullSquareMatrix
 BelytschkoTsayShell::stiffness(CoordSet &cs, double *d, int flg)
 {
-  if(prop) cerr << "BelytschkoTsayShell::stiffness not implemented. This element only works for explicit dynamics\n";
+  //if(prop) cerr << "BelytschkoTsayShell::stiffness not implemented. This element only works for explicit dynamics\n";
   FullSquareMatrix ret(nnode*nndof, d);
   ret.zero();
   return ret;

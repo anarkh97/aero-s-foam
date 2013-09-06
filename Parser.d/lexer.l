@@ -430,7 +430,6 @@ TRAIL [a-zA-Z]*
 
 "proj"[a-zA-Z]*|"PROJ"[a-zA-Z]*    { return PROJ; }
 
-"outerloop"|"OUTERLOOP"            { return OUTERLOOP; }
 "interf_solver"|"INTERF_SOLVER"    { return OUTERLOOP; }
 
 "hermitian"                        { return HERMITIAN; }
@@ -439,7 +438,7 @@ TRAIL [a-zA-Z]*
 
 "coarse_solver"|"COARSE_SOLVER"    { return COARSESOLVER; }
 
-"aux_coarse_solver" { return AUXCOARSESOLVER; }
+"aux_coarse_solver"                { return AUXCOARSESOLVER; }
 
 "cct_solver"|"CCT_SOLVER"          { return CCTSOLVER; }
 
@@ -658,8 +657,11 @@ TRAIL [a-zA-Z]*
 
 "damp"[a-zA-Z]*|"DAMP"[a-zA-Z]*    { return DAMPING; }
 
-"raydamp"|"RAYDAMP"    { return RAYDAMP; }
-"strdamp"|"STRDAMP"    { return STRDAMP; }
+"rayd"[a-zA-Z]*|"RAYD"[a-zA-Z]*    { return RAYDAMP; }
+
+"strd"[a-zA-Z]*|"STRD"[a-zA-Z]*    { return STRDAMP; }
+
+"modd"[a-zA-Z]*|"MODD"[a-zA-Z]*    { return MODDAMP; }
 
 "time"|"TIME"                      { return TIME; }
 
@@ -803,19 +805,20 @@ TRAIL [a-zA-Z]*
 
 "topological" { yylval.ival = 2; return SCALINGTYPE; }
 
-"sloan"|"SLOAN"    { yylval.ival = 1; return RENUMBERID; }
+"sloan"|"SLOAN"                    { yylval.ival = 1; return RENUMBERID; }
 
-"rcm"|"RCM"        { yylval.ival = 2; return RENUMBERID; }
+"rcm"|"RCM"                        { yylval.ival = 2; return RENUMBERID; }
 
-"mmd"|"MMD"        { yylval.ival = 3; return RENUMBERID; }
+"mmd"|"MMD"                        { yylval.ival = 3; return RENUMBERID; }
 
-"nd"|"ND"          { yylval.ival = 4; return RENUMBERID; }
+"nd"|"ND"                          { yylval.ival = 4; return RENUMBERID; }
 
-"ms"|"MS"          { yylval.ival = 5; return RENUMBERID; }
+"ms"|"MS"                          { yylval.ival = 5; return RENUMBERID; }
 
-"ndms"|"NDMS"      { yylval.ival = 6; return RENUMBERID; }
+"ndms"|"NDMS"                      { yylval.ival = 6; return RENUMBERID; }
 
 "esmo"[a-zA-Z]*|"ESMO"[a-zA-Z]*    { yylval.ival = 3; return RENUMBERID; }
+
 "meti"[a-zA-Z]*|"METI"[a-zA-Z]*    { yylval.ival = 4; return RENUMBERID; }
 
 "gtgs"[a-zA-Z]*|"GTGS"[a-zA-Z]*    { yylval.ival = FetiInfo::sparse; return GTGSOLVER; }
@@ -862,14 +865,11 @@ TRAIL [a-zA-Z]*
 
 "FABMAT"|"fabmat"                  { return FABMAT;}
 
-"THERMMAT"|"thermmat"              { return THERMMAT; }  // deprecated
 "THRMAT"|"thrmat"                  { return THERMMAT; }
 
-"CONSTRMAT"|"constrmat"            { return CONSTRMAT; } // deprecated
 "CONMAT"|"conmat"                  { return CONSTRMAT; }
 
-"SPRINGMAT"|"springmat"            { return SPRINGMAT; } // deprecated
-"SPRMAT"|"sprmat"                  { return SPRINGMAT; }
+"SPRINGMAT"|"springmat"            { return SPRINGMAT; }
 
 "SINE"[a-zA-Z]*|"sine"[a-zA-Z]*|"Sine"[a-zA-Z]*  { yylval.ival = 0; return ELEMENTARYFUNCTIONTYPE; }
 "RAMP"[a-zA-Z]*|"ramp"[a-zA-Z]*|"Ramp"[a-zA-Z]*  { yylval.ival = 1; return ELEMENTARYFUNCTIONTYPE; }
@@ -987,23 +987,23 @@ TRAIL [a-zA-Z]*
 
 "gtempera"|"GTEMPERA"              { yylval.ival = OutputInfo::Temperature;  return STRESSID; }
 
-"statevct"|"STATEVCT"		       { yylval.ival = OutputInfo::Statevector;  return STRESSID; }
+"statevct"|"STATEVCT"		   { yylval.ival = OutputInfo::Statevector;  return STRESSID; }
 
 "velocvct"|"VELOCVCT"              { yylval.ival = OutputInfo::Velocvector;  return STRESSID; }
 
-"accelvct"|"ACCELVCT"		       { yylval.ival = OutputInfo::Accelvector;  return STRESSID; }
+"accelvct"|"ACCELVCT"		   { yylval.ival = OutputInfo::Accelvector;  return STRESSID; }
 
-"frcgvect"|"FRCGVECT"		       { yylval.ival = OutputInfo::Forcevector;  return STRESSID; }
+"frcgvect"|"FRCGVECT"		   { yylval.ival = OutputInfo::Forcevector;  return STRESSID; }
 
-"residvct"|"RESIDVCT"		       { yylval.ival = OutputInfo::Residual;     return STRESSID; }
+"residvct"|"RESIDVCT"		   { yylval.ival = OutputInfo::Residual;     return STRESSID; }
 
-"jacobvct"|"JACOBVCT"		       { yylval.ival = OutputInfo::Jacobian;     return STRESSID; }
+"jacobvct"|"JACOBVCT"		   { yylval.ival = OutputInfo::Jacobian;     return STRESSID; }
 
 "isvarvct"|"ISVARVCT"              { yylval.ival = OutputInfo::InternalStateVar; return STRESSID; }
 
-"robdataf"|"ROBDATAF"		       { yylval.ival = OutputInfo::RobData;	     return STRESSID; }
+"robdataf"|"ROBDATAF"		   { yylval.ival = OutputInfo::RobData;	     return STRESSID; }
 
-"samplmsh"|"SAMPLMSH" 		       { yylval.ival = OutputInfo::SampleMesh;   return STRESSID; }
+"samplmsh"|"SAMPLMSH" 		   { yylval.ival = OutputInfo::SampleMesh;   return STRESSID; }
 
 "stressxx"|"STRESSXX"              { yylval.ival = OutputInfo::StressXX;     return STRESSID; }
 
@@ -1328,14 +1328,13 @@ TRAIL [a-zA-Z]*
 
 "REVERSE"[a-zA-Z_]*|"reverse"[a-zA-Z_]* { return REVERSENORMALS; }
 
-"SHELL_THICKNESS"|"shell_thickness" { return SHELLTHICKNESS; }
 "SURFACE_THICKNESS"|"surface_thickness" { return SHELLTHICKNESS; }
 
 "MORTARTIED"|"mortartied"          { return MORTARTIED; }
 
 "mortar_scal"[a-zA-Z]*             { return MORTARSCALING; }
 
-"mortar_inte"[a-zA-Z_]*             { return MORTARINTEGRATIONRULE; }
+"mortar_inte"[a-zA-Z_]*            { return MORTARINTEGRATIONRULE; }
 
 "SEARCH_TOL"|"search_tol"          { return SEARCHTOL; }
 

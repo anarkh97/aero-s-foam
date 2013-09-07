@@ -9,7 +9,7 @@ mumps pivot
 *
 IMPE
 freqsweep 1. 3. 3 10
-damp 1e-7 1.0
+raydamp 1e-7 1.0
 recons pade 2 9 10
 OUTPUT
 displacy freqsweep_mumps_pivot_displacy.dat 1

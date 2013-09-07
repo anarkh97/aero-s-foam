@@ -30,7 +30,7 @@
 #mech 0.0 0.5
 #time 0.0 0.001 2.0
 #*note: a = 2*zeta*sqrt(k)/k, where zeta = 0.21545376
-#damp 0.0342905309 0
+#raydamp 0.0342905309 0
 *
 #OUTPUT
 #displacx "case1.displacx.2" 1 2

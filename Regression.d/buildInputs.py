@@ -149,9 +149,9 @@ def buildInputs(params):
                   "time\t0.0\t3.0e+1\t3.0e+1",\
                   "time\t0.0\t3.0e+2\t3.0e+2"]
 
-      IMPE =      ["freq 10.0\ndamp 1e-6 1.0",\
-                   "freq 10.0\ndamp 1e-7 1.0",\
-                   "freq 10.0\ndamp 1e-5 1.0"]
+      IMPE =      ["freq 10.0\nraydamp 1e-6 1.0",\
+                   "freq 10.0\nraydamp 1e-7 1.0",\
+                   "freq 10.0\nraydamp 1e-5 1.0"]
 
       NONLINEAR = ["maxitr 100\nnltol 1.0e-6\nrebuild 1",\
                    "maxitr 100\nnltol 1.0e-7\nrebuild 1",\
@@ -180,7 +180,7 @@ def buildInputs(params):
         OUTPUT = ["displacx"]
         OUTPUT2 = ["displacy"]
         OUTPUT_EXTRAS = [" 10 1"," 10 1"]
-        DYNAMICS = ["mech\t0.0\t0.5\ntime 0.0 0.0001 2.0\ndamp 0 1.0"]
+        DYNAMICS = ["mech\t0.0\t0.5\ntime 0.0 0.0001 2.0\nraydamp 0 1.0"]
         NAMELIST = ["DYNAMICS\n","OUTPUT\n","INCLUDE "]
         EXTRAS = ["newmark\n*","*","*"]
         INCLUDE_FILE = "../" + problem_type + ".include"
@@ -211,7 +211,7 @@ def buildInputs(params):
       if(problem_type == "vme3"):
         OUTPUT = ["displacx","gvelocit"]
         OUTPUT_EXTRAS = [" 1 2"]
-        DYNAMICS = ["mech\t0.0\t0.5\ntime 0.0 0.001 2.0\ndamp 0.0342905309 0"]
+        DYNAMICS = ["mech\t0.0\t0.5\ntime 0.0 0.001 2.0\nraydamp 0.0342905309 0"]
         NAMELIST = ["DYNAMICS\n","OUTPUT\n","INCLUDE "]
         EXTRAS = ["newmark\n*","*","*"]
         INCLUDE_FILE = "../" + problem_type + ".include"
@@ -427,7 +427,7 @@ def buildInputs(params):
       if(problem_type == "dsvm24"):
         OUTPUT = ["displacz"]
         OUTPUT_EXTRAS = [" 1 NG 1","1 NG 1 modphase"]
-        IMPE = ["freq 500","freq 500","freq 500","freq 500\ndamp 3.18309886e-5 0","freq 500\ndamp 3.18309886e-5 0","freq 500\ndamp 3.18309886e-5 0"]
+        IMPE = ["freq 500","freq 500","freq 500","freq 500\nraydamp 3.18309886e-5 0","freq 500\nraydamp 3.18309886e-5 0","freq 500\nraydamp 3.18309886e-5 0"]
         NAMELIST = ["IMPE\n","STATICS\n","OUTPUT\n","INCLUDE "]
         STATICS = ["spooles pivot","mumps pivot","FETI DPH"]
         INCLUDE_FILE = "../" + problem_type + ".include"
@@ -646,9 +646,9 @@ def buildInputs(params):
       if(problem_type == "freqsweep"):
         NAMELIST = ["STATICS\n","IMPE\n","OUTPUT\n","INCLUDE "]
         STATICS = ["spooles pivot","mumps pivot","FETI DPH"]
-        IMPE =    ["freqsweep 1. 3. 3 10\ndamp 1e-6 1.0",\
-                   "freqsweep 1. 3. 3 10\ndamp 1e-7 1.0",\
-                   "freqsweep 1. 3. 3 10\ndamp 1e-5 1.0"]
+        IMPE =    ["freqsweep 1. 3. 3 10\nraydamp 1e-6 1.0",\
+                   "freqsweep 1. 3. 3 10\nraydamp 1e-7 1.0",\
+                   "freqsweep 1. 3. 3 10\nraydamp 1e-5 1.0"]
         OUTPUT = ["gdisplac","displmod","gdispmod","displacx","displacy","displacz"]
         OPTIONSLIST = [STATICS,IMPE,OUTPUT,INCLUDE]
         EXTRAS = ["*","recons pade 2 9 10","*","*","*"]

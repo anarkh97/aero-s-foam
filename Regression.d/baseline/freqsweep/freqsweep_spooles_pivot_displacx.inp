@@ -9,7 +9,7 @@ spooles pivot
 *
 IMPE
 freqsweep 1. 3. 3 10
-damp 1e-6 1.0
+raydamp 1e-6 1.0
 recons pade 2 9 10
 OUTPUT
 displacx freqsweep_spooles_pivot_displacx.dat 1

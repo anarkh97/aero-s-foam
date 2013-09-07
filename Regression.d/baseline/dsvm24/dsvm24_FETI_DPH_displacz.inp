@@ -6,7 +6,7 @@ dsvm24_FETI_DPH_displacz
 *
 IMPE
 freq 500
-damp 3.18309886e-5 0
+raydamp 3.18309886e-5 0
 *
 STATICS
 FETI DPH

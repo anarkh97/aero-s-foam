@@ -6,7 +6,7 @@ impe_mumps_pivot_displacy
 *
 IMPE
 freq 10.0
-damp 1e-7 1.0
+raydamp 1e-7 1.0
 *
 STATICS
 mumps pivot

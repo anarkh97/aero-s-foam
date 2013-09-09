@@ -14,7 +14,6 @@
 #include <map>
 
 // FEM headers
-//#include <Mortar.d/FaceElement.d/FaceElement.h>
 #include <Mortar.d/FaceElement.d/FaceElemSet.h>
 #include <Element.d/Element.h>
 
@@ -104,7 +103,6 @@ class SurfaceEntity {
 	// ~~~~~~~~~~~
 	void SetId(int);
 	void AddFaceElement(int, int, int, int*);
-	//int AddFaceElement(int, int, int, int*);
 	void AddFaceElement(FaceElement*);
         void SetNodeCoordMap(std::map<int,Node> *_map) { NodeCoordMap = _map; };
         void SetPtrNodeSet(CoordSet* ndSet);

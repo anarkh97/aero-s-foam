@@ -13,28 +13,32 @@ class Tri6LagrangePolynomialShapeFunction : public VectorValuedFunction<2,6,Scal
     Eigen::Matrix<Scalar,6,1> operator() (const Eigen::Matrix<Scalar,2,1>& q, Scalar) const
     {
       // inputs:
-      // q[0] = x local coordinate
-      // q[1] = y local coordinate
-
-      // outputs:
-      // Shape functions for six-noded triangle element
-
-      Eigen::Matrix<Scalar,6,1> y;
+      // local coordinates of point at which function is to be evaluated: q = [ξ,η]
       const Scalar &xi = q[0], &eta = q[1];
 
-      using std::sqrt;
-      Scalar l1 = 1/3.*(1+2*xi);
-      Scalar l2 = 1/3.*(1-xi-sqrt(3)*eta);
-      Scalar l3 = 1/3.*(1-xi+sqrt(3)*eta);
+      // outputs:
+      // shape functions for six-node tri element: N(ξ,η)
+      Eigen::Matrix<Scalar,6,1> N;
 
-      y(1) = (2*l1-1)*l1;
-      y(2) = 4*l1*l2;
-      y(3) = (2*l2-1)*l2;
-      y(4) = 4*l2*l3;
-      y(5) = (2*l3-1)*l3;
-      y(6) = 4*l3*l1;
+      //    η              shape functions
+      //    ↑              ---------------
+      //    1              N₀ = ξ(2ξ-1)
+      //    ¦\             N₁ = η(2η-1)
+      //    ¦ \            N₂ = ζ(2ζ-1), ζ = 1-ξ-η
+      //    4  3           N₃ = 4ξη
+      //    ¦   \          N₄ = 4ηζ
+      //    ¦    \         N₅ = 4ζξ
+      //    2--5--0 → ξ
 
-      return y;
+      Scalar zeta = 1-xi-eta;
+      N[0] = xi*(2*xi-1);
+      N[1] = eta*(2*eta-1);
+      N[2] = zeta*(2*zeta-1);
+      N[3] = 4*xi*eta;
+      N[4] = 4*eta*zeta;
+      N[5] = 4*zeta*xi;
+
+      return N;
     }
 };
 

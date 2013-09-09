@@ -13,26 +13,36 @@ class Quad9LagrangePolynomialShapeFunction : public VectorValuedFunction<2,9,Sca
     Eigen::Matrix<Scalar,9,1> operator() (const Eigen::Matrix<Scalar,2,1>& q, Scalar) const
     {
       // inputs:
-      // q[0] = x local coordinate
-      // q[1] = y local coordinate
-
-      // outputs:
-      // Shape functions for nine-noded quad element
-
-      Eigen::Matrix<Scalar,9,1> y;
+      // local coordinates of point at which function is to be evaluated: q = [ξ,η]
       const Scalar &xi = q[0], &eta = q[1];
 
-      y[0] = 0.25*(xi-1.0)*(eta-1.0)*xi*eta;
-      y[1] = 0.25*(xi+1.0)*(eta-1.0)*xi*eta;
-      y[2] = 0.25*(xi+1.0)*(eta+1.0)*xi*eta;
-      y[3] = 0.25*(xi-1.0)*(eta+1.0)*xi*eta;
-      y[4] = 0.50*(1.0-xi*xi)*eta*(eta-1.0);
-      y[5] = 0.50*(1.0-eta*eta)*xi*(xi+1.0);
-      y[6] = 0.50*(1.0-xi*xi)*eta*(eta+1.0);
-      y[7] = 0.50*(1.0-eta*eta)*xi*(xi-1.0);
-      y[8] = (1.0-xi*xi)*(1.0-eta*eta);
+      // outputs:
+      // shape functions for nine-node quad element: N(ξ,η)
+      Eigen::Matrix<Scalar,9,1> N;
 
-      return y;
+      //          η             shape functions
+      //          ↑             ---------------
+      //    3-----6-----2       N₀ = 1/4(ξ-1)(η-1)ξη
+      //    ¦           ¦       N₁ = 1/4(ξ+1)(η-1)ξη
+      //    ¦           ¦       N₂ = 1/4(ξ+1)(η+1)ξη
+      //    7     8     5 → ξ   N₃ = 1/4(ξ-1)(η+1)ξη
+      //    ¦           ¦       N₄ = 1/2(1-ξξ)η(η-1)
+      //    ¦           ¦       N₅ = 1/2(1-ηη)ξ(ξ+1)
+      //    0-----4-----1       N₆ = 1/2(1-ξξ)η(η+1)
+      //                        N₇ = 1/2(1-ηη)ξ(ξ-1)
+      //                        N₈ = (1-ξξ)(1-ηη)
+
+      N[0] = 1/4.*(xi-1.0)*(eta-1.0)*xi*eta;
+      N[1] = 1/4.*(xi+1.0)*(eta-1.0)*xi*eta;
+      N[2] = 1/4.*(xi+1.0)*(eta+1.0)*xi*eta;
+      N[3] = 1/4.*(xi-1.0)*(eta+1.0)*xi*eta;
+      N[4] = 1/2.*(1.0-xi*xi)*eta*(eta-1.0);
+      N[5] = 1/2.*(1.0-eta*eta)*xi*(xi+1.0);
+      N[6] = 1/2.*(1.0-xi*xi)*eta*(eta+1.0);
+      N[7] = 1/2.*(1.0-eta*eta)*xi*(xi-1.0);
+      N[8] = (1.0-xi*xi)*(1.0-eta*eta);
+
+      return N;
     }
 };
 

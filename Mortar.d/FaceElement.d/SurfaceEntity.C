@@ -337,7 +337,6 @@ SurfaceEntity::MakeACMEBlocksMap()
    int etype = ElemSet[iel]->GetFaceElemType();
    switch(etype)
    {
-     case FaceElement::SHELLQUADFACEL4:
      case FaceElement::QUADFACEL4:
        IndexQuad4.push_back(iel);
        nQuad4++;
@@ -348,7 +347,6 @@ SurfaceEntity::MakeACMEBlocksMap()
        IndexQuad8.push_back(iel);
        nQuad8++;
        break;
-     case FaceElement::SHELLTRIFACEL3:
      case FaceElement::TRIFACEL3:
        IndexTri3.push_back(iel);
        nTri3++;
@@ -357,8 +355,6 @@ SurfaceEntity::MakeACMEBlocksMap()
      case FaceElement::TRIFACEC10:
        IndexTri6.push_back(iel);
        nTri6++;
-       break;
-     case FaceElement::POINTFACE:
        break;
      default:
        cerr << "Face element Type " << etype << " is NOT supported/implemented." << endl;
@@ -709,14 +705,12 @@ SurfaceEntity::PrintFaceNormal(CoordSet& cs)
   for(int iel=0; iel<nElems; iel++){
     switch(ElemSet[iel]->GetFaceElemType()) // get center coordinates in paramatric domain
     {
-      case FaceElement::SHELLQUADFACEL4:
       case FaceElement::QUADFACEL4:
       case FaceElement::QUADFACEQ8:
       case FaceElement::QUADFACEQ9:
       case FaceElement::QUADFACEC12:
         m[0] = m[1] = 0.0;
         break;
-      case FaceElement::SHELLTRIFACEL3:
       case FaceElement::TRIFACEL3:
       case FaceElement::TRIFACEQ6:
       case FaceElement::TRIFACEC10:

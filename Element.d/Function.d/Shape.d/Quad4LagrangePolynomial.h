@@ -13,20 +13,27 @@ class Quad4LagrangePolynomialShapeFunction : public VectorValuedFunction<2,4,Sca
     Eigen::Matrix<Scalar,4,1> operator() (const Eigen::Matrix<Scalar,2,1>& q, Scalar) const
     {
       // inputs:
-      // q[0] = x local coordinate
-      // q[1] = y local coordinate
+      // local coordinates of point at which function is to be evaluated: q = [ξ,η]
+      const Scalar &xi = q[0], &eta = q[1];
 
       // outputs:
-      // Shape functions for four-noded quad element
+      // shape functions for four-node quad element: N(ξ,η)
+      Eigen::Matrix<Scalar,4,1> N;
 
-      Eigen::Matrix<Scalar,4,1> y;
-      const Scalar &xi = q[0], &eta = q[1];
-      y[0] = 1/4.*(1-xi)*(1-eta);
-      y[1] = 1/4.*(1-xi)*(1+eta);
-      y[2] = 1/4.*(1+xi)*(1+eta);
-      y[3] = 1/4.*(1+xi)*(1-eta);
+      //        η           shape functions
+      //        ↑           ---------------
+      //    3-------2       N₀ = 1/4(1-ξ)(1-η)
+      //    ¦       ¦       N₁ = 1/4(1-ξ)(1+η)
+      //    ¦       ¦ → ξ   N₂ = 1/4(1+ξ)(1+η)
+      //    ¦       ¦       N₃ = 1/4(1+ξ)(1-η)
+      //    0-------1
 
-      return y;
+      N[0] = 1/4.*(1-xi)*(1-eta);
+      N[1] = 1/4.*(1-xi)*(1+eta);
+      N[2] = 1/4.*(1+xi)*(1+eta);
+      N[3] = 1/4.*(1+xi)*(1-eta);
+
+      return N;
     }
 };
 

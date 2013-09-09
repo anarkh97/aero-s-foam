@@ -11,43 +11,6 @@
 #include <Utils.d/Connectivity.h>
 
 #include <Mortar.d/FaceElement.d/FaceElement.h>
-//#include <Mortar.d/FFIPolygon.d/FFIPolygon.h>
-
-// -----------------------------------------------------------------------------------------------------
-//                                            CONSTRUCTORS
-// -----------------------------------------------------------------------------------------------------
-/*FaceElement::FaceElement():FFI(0) 
-{ 
-  Area = 0.0; 
-  nFFI = 0;
-}
-*/
-
-// -----------------------------------------------------------------------------------------------------
-//                                           FFI METHODS 
-// -----------------------------------------------------------------------------------------------------
-/*
-void
-FaceElement::AddPtrFFI(FFIPolygon* _FFI)
-{
-  FFI[nFFI++] = _FFI;
-}
-
-int
-FaceElement::nFFIs() { return nFFI; }
-
-FFIPolygon*
-FaceElement::GetPtrFFI(int i)
-{
-  return FFI[i];
-}
-
-void
-FaceElement::printFFI()
-{
-  fprintf(stderr," -> nFFI = %d\n",nFFI);
-}
-*/
 
 // -----------------------------------------------------------------------------------------------------
 //                                        MAPPING & SHAPE FCT METHODS 

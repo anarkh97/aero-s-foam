@@ -15,11 +15,7 @@
 #include <Math.d/matrix.h>
 #include <Mortar.d/MortarAutoDiff.h>
 
-//class CoordSet;
-//class FFIPolygon;
 class DofSetArray;
-//class State;
-//class GeomState;
 struct InterpPoint;
 class Connectivity;
 
@@ -36,23 +32,14 @@ class FaceElement {
 
 	double Area; 
 
-	//int nFFI;	
-	//ResizeArray<FFIPolygon*> FFI; 
-
-        //int ElemId;
-        //int PtrElem;
   public:
         // public data 
 	// ~~~~~~~~~~~	
-	//enum FaceElemType{QUADFACEL4=1, QUADFACEQ8, TRIFACEL3, TRIFACEQ6};
-        enum {QUADFACEL4=1, QUADFACEQ8, TRIFACEL3, TRIFACEQ6, SHELLQUADFACEL4, SHELLTRIFACEL3, QUADFACEQ9, QUADFACEC12, TRIFACEC10, POINTFACE};
+        enum {QUADFACEL4=1, QUADFACEQ8, TRIFACEL3, TRIFACEQ6, QUADFACEQ9, QUADFACEC12, TRIFACEC10};
       
 	// Constructors 
 	// ~~~~~~~~~~~~
 	FaceElement():Area(0.0) { }
-	//FaceElement():FFI(0) { Area = 0.0; nFFI = 0; }
-	//FaceElement() { Area = 0.0; nFFI = 0; }
-	//FaceElement();
         
         // for future
         //virtual FaceElement* clone(); 
@@ -148,13 +135,6 @@ class FaceElement {
           { fprintf(stderr,"function computeDisp(...) undefined for this type of element!\n"); }
         virtual void getFlLoad(const InterpPoint&, double*, double*)
           { fprintf(stderr,"function computeDisp(...) undefined for this type of element!\n"); }
-
-	// FFI methods
-	// ~~~~~~~~~~~
-	//void AddPtrFFI(FFIPolygon*);
-	//int nFFIs();
-	//FFIPolygon* GetPtrFFI(int);
-	//void printFFI();
 
         int findEle(Connectivity *nodeToElem, int *eleTouch,
                     int *eleCount, int myNum, int *fnId);

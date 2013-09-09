@@ -1,18 +1,21 @@
 #include <Element.d/NonLinearity.d/NLTetrahedral.h>
 
 template<>
-const double SolidElementTemplate<Tetrahedron,4,1>::nodeRefCoords[4][3] = 
+const double SolidElementTemplate<Tet4LagrangePolynomialShapeFunction,4,1>
+::nodeRefCoords[4][3] = 
   {{0.0,0.0,0.0},{1.0,0.0,0.0},{ 0.0,1.0,0.0},{0.0,0.0,1.0}};
 
 template<>
-const double SolidElementTemplate<Tetrahedron,10,15>::nodeRefCoords[10][3] = 
+const double SolidElementTemplate<Tet10LagrangePolynomialShapeFunction,10,15>
+::nodeRefCoords[10][3] = 
   {{0.0,0.0,0.0},{1.0,0.0,0.0},{0.0,1.0,0.0},{0.0,0.0,1.0},
    {0.5,0.0,0.0},{0.5,0.5,0.0},{0.0,0.5,0.0},
    {0.0,0.0,0.5},{0.5,0.0,0.5},{0.0,0.5,0.5}};
 
 template<>
 void
-SolidElementTemplate<Tetrahedron,4,1>::getGaussPointAndWeight(int n, double *point, double &weight)
+SolidElementTemplate<Tet4LagrangePolynomialShapeFunction,4,1>
+::getGaussPointAndWeight(int n, double *point, double &weight)
 {
   // 1 point (degree 1) useful for TET4 stiffness 
   double w_save[1] = {
@@ -28,7 +31,8 @@ SolidElementTemplate<Tetrahedron,4,1>::getGaussPointAndWeight(int n, double *poi
 
 template<>
 void
-SolidElementTemplate<Tetrahedron,10,4>::getGaussPointAndWeight(int n, double *point, double &weight)
+SolidElementTemplate<Tet10LagrangePolynomialShapeFunction,10,4>
+::getGaussPointAndWeight(int n, double *point, double &weight)
 {
   // 4 point (degree 2) useful for TET4 mass and TET10 stiffness
   double w_save[4] = {
@@ -50,7 +54,8 @@ SolidElementTemplate<Tetrahedron,10,4>::getGaussPointAndWeight(int n, double *po
 
 template<>
 void
-SolidElementTemplate<Tetrahedron,10,15>::getGaussPointAndWeight(int n, double *point, double &weight)
+SolidElementTemplate<Tet10LagrangePolynomialShapeFunction,10,15>
+::getGaussPointAndWeight(int n, double *point, double &weight)
 {
   double w_save[15] = {
     0.071937083779018620010,
@@ -90,4 +95,3 @@ SolidElementTemplate<Tetrahedron,10,15>::getGaussPointAndWeight(int n, double *p
   point[2] = xyz_save[3*n+2];
   weight = w_save[n]/6;
 }
-

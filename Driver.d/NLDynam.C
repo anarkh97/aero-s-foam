@@ -16,8 +16,8 @@
 #include <Driver.d/GeoSource.h>
 #include <Corotational.d/MatNLCorotator.h>
 #ifdef USE_EIGEN3
-#include <Element.d/Dimass.d/InertialForceFunction.h>
-#include <Element.d/Dimass.d/InertialForceFunctionExp.h>
+#include <Element.d/Function.d/InertialForce.d/InertialForceFunction.h>
+#include <Element.d/Function.d/InertialForce.d/InertialForceFunctionExp.h>
 #include <Element.d/Function.d/SpaceJacobian.h>
 #endif
 #include <algorithm>

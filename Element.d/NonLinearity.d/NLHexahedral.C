@@ -1,12 +1,14 @@
 #include <Element.d/NonLinearity.d/NLHexahedral.h>
 
 template<>
-const double SolidElementTemplate<Hexahedron,8,8>::nodeRefCoords[8][3] = 
+const double SolidElementTemplate<Hex8LagrangePolynomialShapeFunction,8,8>
+::nodeRefCoords[8][3] = 
   {{-1.0,-1.0,-1.0},{1.0,-1.0,-1.0},{ 1.0,1.0,-1.0},{-1.0,1.0,-1.0},
    {-1.0,-1.0, 1.0},{1.0,-1.0, 1.0},{ 1.0,1.0, 1.0},{-1.0,1.0, 1.0}};
 
 template<>
-const double SolidElementTemplate<Hexahedron,20,27>::nodeRefCoords[20][3] = 
+const double SolidElementTemplate<Hex20LagrangePolynomialShapeFunction,20,27>
+::nodeRefCoords[20][3] = 
   {{-1.0,-1.0,-1.0},{1.0,-1.0,-1.0},{ 1.0,1.0,-1.0},{-1.0,1.0,-1.0},
    {-1.0,-1.0, 1.0},{1.0,-1.0, 1.0},{ 1.0,1.0, 1.0},{-1.0,1.0, 1.0},
    { 0.0,-1.0,-1.0},{1.0, 0.0,-1.0},{ 0.0,1.0,-1.0},{-1.0,0.0,-1.0},
@@ -14,7 +16,8 @@ const double SolidElementTemplate<Hexahedron,20,27>::nodeRefCoords[20][3] =
    { 0.0,-1.0, 0.0},{1.0, 0.0, 0.0},{ 0.0,1.0, 0.0},{-1.0,0.0, 0.0}};
 
 template<>
-const double SolidElementTemplate<Hexahedron,32,64>::nodeRefCoords[32][3] = 
+const double SolidElementTemplate<Hex32LagrangePolynomialShapeFunction,32,64>
+::nodeRefCoords[32][3] = 
   {{-1.   ,-1.,-1.},{ 1.   ,-1.,-1.},{ 1., 1.   ,-1.},{-1., 1.   ,-1.},
    {-1.   ,-1., 1.},{ 1.   ,-1., 1.},{ 1., 1.   , 1.},{-1., 1.   , 1.},
    {-1./3.,-1.,-1.},{ 1./3.,-1.,-1.},{ 1.,-1./3.,-1.},{ 1., 1./3.,-1.},
@@ -39,7 +42,8 @@ NLHexahedral::getStrainEvaluator()
 
 template<>
 void
-SolidElementTemplate<Hexahedron,8,8>::getGaussPointAndWeight(int n, double *point, double &weight)
+SolidElementTemplate<Hex8LagrangePolynomialShapeFunction,8,8>
+::getGaussPointAndWeight(int n, double *point, double &weight)
 {
   int i, j, k;
   i = n%2;
@@ -65,7 +69,8 @@ SolidElementTemplate<Hexahedron,8,8>::getGaussPointAndWeight(int n, double *poin
 
 template<>
 void
-SolidElementTemplate<Hexahedron,20,27>::getGaussPointAndWeight(int n, double *point, double &weight)
+SolidElementTemplate<Hex20LagrangePolynomialShapeFunction,20,27>
+::getGaussPointAndWeight(int n, double *point, double &weight)
 {
   int i, j, k;
   i = n%3;
@@ -94,7 +99,8 @@ SolidElementTemplate<Hexahedron,20,27>::getGaussPointAndWeight(int n, double *po
 
 template<>
 void
-SolidElementTemplate<Hexahedron,32,64>::getGaussPointAndWeight(int n, double *point, double &weight)
+SolidElementTemplate<Hex32LagrangePolynomialShapeFunction,32,64>
+::getGaussPointAndWeight(int n, double *point, double &weight)
 {
   int i, j, k;
   i = n%4;
@@ -122,4 +128,3 @@ SolidElementTemplate<Hexahedron,32,64>::getGaussPointAndWeight(int n, double *po
   point[1] = xi[j];
   point[2] = xi[k];
 }
-

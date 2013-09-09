@@ -13,23 +13,21 @@ class Wedge6LagrangePolynomialShapeFunction : public VectorValuedFunction<3,6,Sc
     Eigen::Matrix<Scalar,6,1> operator() (const Eigen::Matrix<Scalar,3,1>& q, Scalar) const
     {
       // inputs:
-      // q[0] = x local coordinate
-      // q[1] = y local coordinate
-      // q[2] = z local coordinate
+      // local coordinates of point at which function is to be evaluated: q = [ξ,η,ζ]
+      const Scalar &xi = q[0], &eta = q[1], &zeta = q[2];
 
       // outputs:
-      // Shape functions for six-noded wedge element
+      // shape functions for six-node wedge element: N(ξ,η,ζ)
+      Eigen::Matrix<Scalar,6,1> N;
 
-      Eigen::Matrix<Scalar,6,1> y;
-      const Scalar &xi = q[0], &eta = q[1], &zeta = q[2];
-      y[0] = 1/2.*(1-xi-eta)*(1-zeta);
-      y[1] = 1/2.*xi*(1-zeta);
-      y[2] = 1/2.*eta*(1-zeta);
-      y[3] = 1/2.*(1-xi-eta)*(1+zeta);
-      y[4] = 1/2.*xi*(1+zeta);
-      y[5] = 1/2.*eta*(1+zeta);
+      N[0] = 1/2.*(1-xi-eta)*(1-zeta);
+      N[1] = 1/2.*xi*(1-zeta);
+      N[2] = 1/2.*eta*(1-zeta);
+      N[3] = 1/2.*(1-xi-eta)*(1+zeta);
+      N[4] = 1/2.*xi*(1+zeta);
+      N[5] = 1/2.*eta*(1+zeta);
 
-      return y;
+      return N;
     }
 };
 

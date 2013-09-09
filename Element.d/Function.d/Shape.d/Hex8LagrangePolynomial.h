@@ -13,25 +13,23 @@ class Hex8LagrangePolynomialShapeFunction : public VectorValuedFunction<3,8,Scal
     Eigen::Matrix<Scalar,8,1> operator() (const Eigen::Matrix<Scalar,3,1>& q, Scalar) const
     {
       // inputs:
-      // q[0] = x local coordinate
-      // q[1] = y local coordinate
-      // q[2] = z local coordinate
+      // local coordinates of point at which function is to be evaluated: q = [ξ,η,ζ]
+      const Scalar &xi = q[0], &eta = q[1], &zeta = q[2];
 
       // outputs:
-      // Shape functions for eight-noded brick element
+      // shape functions for eight-node hex element: N(ξ,η,ζ)
+      Eigen::Matrix<Scalar,8,1> N;
 
-      Eigen::Matrix<Scalar,8,1> y;
-      const Scalar &xi = q[0], &eta = q[1], &zeta = q[2];
-      y[0] = 1/8.*(1-xi)*(1-eta)*(1-zeta);
-      y[1] = 1/8.*(1+xi)*(1-eta)*(1-zeta);
-      y[2] = 1/8.*(1+xi)*(1+eta)*(1-zeta);
-      y[3] = 1/8.*(1-xi)*(1+eta)*(1-zeta);
-      y[4] = 1/8.*(1-xi)*(1-eta)*(1+zeta);
-      y[5] = 1/8.*(1+xi)*(1-eta)*(1+zeta);
-      y[6] = 1/8.*(1+xi)*(1+eta)*(1+zeta);
-      y[7] = 1/8.*(1-xi)*(1+eta)*(1+zeta);
+      N[0] = 1/8.*(1-xi)*(1-eta)*(1-zeta);
+      N[1] = 1/8.*(1+xi)*(1-eta)*(1-zeta);
+      N[2] = 1/8.*(1+xi)*(1+eta)*(1-zeta);
+      N[3] = 1/8.*(1-xi)*(1+eta)*(1-zeta);
+      N[4] = 1/8.*(1-xi)*(1-eta)*(1+zeta);
+      N[5] = 1/8.*(1+xi)*(1-eta)*(1+zeta);
+      N[6] = 1/8.*(1+xi)*(1+eta)*(1+zeta);
+      N[7] = 1/8.*(1-xi)*(1+eta)*(1+zeta);
 
-      return y;
+      return N;
     }
 };
 

@@ -601,7 +601,7 @@ struct SolverInfo {
                   elemLumpPodRom     = false;
                   onlineSvdPodRom    = false;
                   maxSizePodRom      = 0;
-		  normalize          = 0;
+		  normalize          = 1;
                   substractRefPodRom = false;
                   localTol	     = false;
                   reduceFollower     = false;

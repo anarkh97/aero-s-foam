@@ -232,11 +232,10 @@ BasisOrthoDriver::solve() {
     VecBasis normalizedBasis;
     if(domain->solInfo().normalize == 0) {
       // Old method: renormalize the orthonormal basis
-      if(mratio == 0) renormalized_basis(*fullMass, basis, normalizedBasis);
       if(mratio != 0) {
-        std::cerr << "********NOT IMPLEMENTED DO NOT USE mnorma 0 with non-lumped mass-matrix*******\n";
-        exit(-1);
+        std::cerr << "********WARNING mnorma 0 with consistent mass-matrix, do not use with snapshots other than state snapshots*******\n";
       }
+      renormalized_basis(*fullMass, basis, normalizedBasis);
     }
     else if(domain->solInfo().normalize == 1) {
       // New method: multiply by inverse square root or cholesky factor of the mass matrix

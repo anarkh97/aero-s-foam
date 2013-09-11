@@ -3758,16 +3758,16 @@ void
 GenDecDomain<Scalar>::rebuildOps(GenMDDynamMat<Scalar> &res, double coeM, double coeC, double coeK, 
                                  FullSquareMatrix **kelArray, FullSquareMatrix **melArray, FullSquareMatrix **celArray)
 {
- res.dynMat->reconstruct(); // do anything that needs to be done before zeroing and assembling the matrices
+ if(res.dynMat) res.dynMat->reconstruct(); // do anything that needs to be done before zeroing and assembling the matrices
 
  execParal7R(numSub, this, &GenDecDomain<Scalar>::subRebuildOps, res, coeM, coeC, coeK, kelArray, melArray, celArray);
 
- if(domain->solInfo().type == 0) {
+ if(domain->solInfo().type == 0 && res.dynMat) {
    GenSolver<Scalar> *dynmat = dynamic_cast<GenSolver<Scalar>*>(res.dynMat);
    if(!verboseFlag) dynmat->setPrintNullity(false);
    dynmat->unify(communicator);
  }
- res.dynMat->refactor(); // do anything that needs to be done after zeroing and assembling the matrices
+ if(res.dynMat) res.dynMat->refactor(); // do anything that needs to be done after zeroing and assembling the matrices
 }
 
 template<class Scalar>
@@ -3802,11 +3802,17 @@ GenDecDomain<Scalar>::subRebuildOps(int iSub, GenMDDynamMat<Scalar> &res, double
   allOps.zero();
 
   if(domain->solInfo().type == 0) {
-    GenSparseMatrix<Scalar> *spmat = dynamic_cast<GenSparseMatrix<Scalar>*>(res.dynMat);
-    if(iSub == 0) spmat->zeroAll();
+    GenSparseMatrix<Scalar> *spmat = (res.dynMat) ? dynamic_cast<GenSparseMatrix<Scalar>*>(res.dynMat) : NULL;
+    if(iSub == 0 && spmat) spmat->zeroAll();
 #if defined(_OPENMP)
     #pragma omp barrier
 #endif
+    subDomain[iSub]->template makeSparseOps<Scalar>(allOps, coeK, coeM, coeC, spmat, (kelArray) ? kelArray[iSub] : 0,
+                                                    (melArray) ? melArray[iSub] : 0, (celArray) ? celArray[iSub] : 0);
+  }
+  else if(domain->solInfo().type == 3) {
+    GenSparseMatrix<Scalar> *spmat = (res.dynMat) ? dynamic_cast<GenSparseMatrix<Scalar>*>(res.dynMat) : NULL;
+    if(spmat) spmat->zeroAll();
     subDomain[iSub]->template makeSparseOps<Scalar>(allOps, coeK, coeM, coeC, spmat, (kelArray) ? kelArray[iSub] : 0,
                                                     (melArray) ? melArray[iSub] : 0, (celArray) ? celArray[iSub] : 0);
   }
@@ -3823,7 +3829,7 @@ GenDecDomain<Scalar>::subRebuildOps(int iSub, GenMDDynamMat<Scalar> &res, double
     delete allMats;
   }
 
-  if(domain->solInfo().getFetiInfo().prectype == FetiInfo::nonshifted) delete allOps.K;
+  if(geoSource->isShifted() && domain->solInfo().getFetiInfo().prectype == FetiInfo::nonshifted) delete allOps.K;
 }
 
 template<class Scalar>

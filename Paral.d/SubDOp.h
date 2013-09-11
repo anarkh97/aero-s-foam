@@ -39,6 +39,7 @@ class GenSubDOp {
        void mult(GenDistrVector<Scalar> &v, GenDistrVector<Scalar> &Opv); // multiplication routine
        void squareRootMult(GenDistrVector<Scalar> &v); //multiplication by square root
        void inverseSquareRootMult(GenDistrVector<Scalar> &v); //multiplication by inverse square root
+       void transposeMult(GenDistrVector<Scalar> &v, GenDistrVector<Scalar> &Opv); // multiplication routine
        void multAdd(GenDistrVector<Scalar> &v, GenDistrVector<Scalar> &Opv);
        void multNoAssemble(GenDistrVector<Scalar> &v, GenDistrVector<Scalar> &opV); // multiplication routine without assembling
        void assemble(GenDistrVector<Scalar> &v);
@@ -59,6 +60,17 @@ class SubDOpMult : public TaskDescr {
      GenDistrVector<Scalar> *s, *d;
   public:
      SubDOpMult(GenSparseMatrix<Scalar> **_sm, GenDistrVector<Scalar> *_s, GenDistrVector<Scalar> *_d) {
+       sm = _sm; s = _s; d = _d;
+     }
+     void runFor(int);
+};
+
+template<class Scalar>
+class SubDOpTransposeMult : public TaskDescr {
+     GenSparseMatrix<Scalar> **sm;
+     GenDistrVector<Scalar> *s, *d;
+  public:
+     SubDOpTransposeMult(GenSparseMatrix<Scalar> **_sm, GenDistrVector<Scalar> *_s, GenDistrVector<Scalar> *_d) {
        sm = _sm; s = _s; d = _d;
      }
      void runFor(int);

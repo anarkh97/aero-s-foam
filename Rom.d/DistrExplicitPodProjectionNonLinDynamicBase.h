@@ -61,6 +61,8 @@ public:
                         DistrVector &f, DistrVector &cnst_f, int tIndex,
                         double t, DistrVector *aero_f=0,
                         double gamma=0.5, double alphaf=0.0);
+
+  void computeStabilityTimeStep(double&, MDDynamMat&);
   void getConstForce(DistrVector& v);
   void getInternalForce(DistrVector &d, DistrVector &f, double t, int tIndex);
   void printFullNorm(DistrVector &);

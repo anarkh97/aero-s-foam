@@ -294,6 +294,13 @@ GenDBSparseMatrix<Scalar>::transposeMult(const GenVector<Scalar> &rhs, GenVector
 
 template<class Scalar>
 void
+GenDBSparseMatrix<Scalar>::transposeMult(const Scalar * rhs, Scalar * result)
+{
+   mult(rhs,result);
+}
+
+template<class Scalar>
+void
 GenDBSparseMatrix<Scalar>::multAdd(const Scalar *rhs, Scalar *result)
 {
  int nn = numUncon;

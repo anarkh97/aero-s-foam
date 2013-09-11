@@ -17,7 +17,7 @@ extern GeoSource *geoSource;
 namespace Rom {
 
 DistrExplicitLumpedPodProjectionNonLinDynamic::DistrExplicitLumpedPodProjectionNonLinDynamic(Domain *domain) :
-  DistrExplicitPodProjectionNonLinDynamicBase(domain)
+  DistrExplicitPodProjectionNonLinDynamicBase(domain), K(NULL)
 {}
 
 void
@@ -26,6 +26,10 @@ DistrExplicitLumpedPodProjectionNonLinDynamic::preProcess() {
   DistrExplicitPodProjectionNonLinDynamicBase::preProcess();
 
   buildPackedElementWeights();
+
+  if(domain->solInfo().stable) {
+    execParal(decDomain->getNumSub(),this,&DistrExplicitLumpedPodProjectionNonLinDynamic::subInitWeightedStiffOnly);
+  }
 }
 
 void
@@ -47,6 +51,12 @@ void
 DistrExplicitLumpedPodProjectionNonLinDynamic::getInternalForce(DistrVector &d, DistrVector &f, double t, int tIndex) {
 
   execParal3R(decDomain->getNumSub(),this,&DistrExplicitLumpedPodProjectionNonLinDynamic::subGetWeightedInternalForceOnly,*fInt,t,tIndex);
+
+  if(domain->solInfo().stable && domain->solInfo().isNonLin() && tIndex%domain->solInfo().stable_freq == 0) {
+    GenMDDynamMat<double> ops;
+    ops.K = K;
+    decDomain->rebuildOps(ops, 0.0, 0.0, 0.0, kelArray);
+  }
   
   if (domain->solInfo().filterFlags) {
     trProject(*fInt);
@@ -130,6 +140,16 @@ DistrExplicitLumpedPodProjectionNonLinDynamic::subGetWeightedInternalForceOnly(i
   subf.linC(residual, -1.0); // f = -residual
 }
 
+void
+DistrExplicitLumpedPodProjectionNonLinDynamic::subInitWeightedStiffOnly(int iSub) {
+  SubDomain *sd = decDomain->getSubDomain(iSub);
+  Vector residual(sd->numUncon(), 0.0);
+  Vector eIF(sd->maxNumDOF());
+
+  sd->getWeightedStiffAndForceOnly(packedElementWeights_[iSub], *(*geomState)[iSub], eIF,
+                                   allCorot[iSub], kelArray[iSub], residual,
+                                   1.0, 0.0, (*geomState)[iSub], melArray[iSub]);
+}
 
 void
 DistrExplicitLumpedPodProjectionNonLinDynamic::subBuildPackedElementWeights(int iSub) {
@@ -185,6 +205,7 @@ MDDynamMat *
 DistrExplicitLumpedPodProjectionNonLinDynamic::buildOps(double mCoef, double cCoef, double kCoef) {
 
   MDDynamMat *result = DistrExplicitPodProjectionNonLinDynamicBase::buildOps(mCoef, cCoef, kCoef);
+  K = result->K;
 
   return result;
 }

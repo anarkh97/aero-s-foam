@@ -679,6 +679,7 @@ class Domain : public HData {
      int  probType() { return sinfo.probType; }
 
      double computeStabilityTimeStep(DynamMat&);
+     double computeStabilityTimeStepROM(GenFullSquareMatrix<double>&);
      double computeStabilityTimeStep(FullSquareMatrix *kelArray, FullSquareMatrix *melArray, GeomState *geomState, int &eid);
 
      void initDispVeloc(Vector& d_n, Vector& v_n, Vector& a_n, Vector &v_p, const char* = "");

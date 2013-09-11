@@ -24,6 +24,8 @@
 #include <memory>
 #include <limits>
 
+extern Communicator *structCom;
+
 namespace Rom {
 
 DistrExplicitPodPostProcessor::DistrExplicitPodPostProcessor(DecDomain *d, StaticTimers* _times, DistrGeomState *_geomState = 0, Corotator ***_allCorot = 0) :
@@ -515,6 +517,50 @@ DistrExplicitPodProjectionNonLinDynamicBase::buildOps(double mCoef, double cCoef
   result->dynMat = solver.release();
 
   return result;
+}
+
+
+void
+DistrExplicitPodProjectionNonLinDynamicBase::computeStabilityTimeStep(double& dt, MDDynamMat& dynMat){
+  GenFullSquareMatrix<double> K_reduced;
+  calculateReducedStiffness(*dynMat.K, normalizedBasis_, K_reduced);
+  double dt_c;
+  //computes stability timestep on root node then sends timestep to all other processes
+  int myID= (structCom) ? structCom->myID() : 0;
+  if(myID == 0){
+    dt_c = domain->computeStabilityTimeStepROM(K_reduced);
+  }
+  if(structCom)
+    structCom->broadcast(1,&dt_c,0);
+
+  if(dt_c == std::numeric_limits<double>::infinity()) {
+    filePrint(stderr," **************************************\n");
+    filePrint(stderr," Stability max. timestep could not be  \n");
+    filePrint(stderr," determined for this model.            \n");
+    filePrint(stderr," Specified time step is selected\n");
+    filePrint(stderr," **************************************\n");
+    domain->solInfo().stable = 0;
+  }
+  else {
+    filePrint(stderr," CONDITIONALLY STABLE NEWMARK ALGORITHM \n");
+    filePrint(stderr," --------------------------------------\n");
+    filePrint(stderr," Specified time step      = %10.4e\n",dt);
+    filePrint(stderr," Stability max. time step = %10.4e\n",dt_c);
+    filePrint(stderr," **************************************\n");
+    if((domain->solInfo().stable == 1 && dt_c < dt) || domain->solInfo().stable == 2) {
+      dt = dt_c;
+      filePrint(stderr," Stability max. time step is selected\n");
+    }
+    else{
+      filePrint(stderr," Specified time step is selected\n");
+    }
+    filePrint(stderr," **************************************\n");
+  }
+  
+  for(int i = 0; i < decDomain->getNumSub(); ++i)
+    decDomain->getSubDomain(i)->solInfo().setTimeStep(dt);
+  domain->solInfo().setTimeStep(dt);
+
 }
 
 } // end namespace Rom

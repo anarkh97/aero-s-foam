@@ -88,6 +88,30 @@ mult(const GenSubDOp<Scalar> &matrix, const GenVecBasis<Scalar, GenDistrVector> 
   return result;
 }
 
+// Returns the matrix^T-basis product
+// (basis and result must refer to different objects)
+template <typename Scalar>
+const GenVecBasis<Scalar, GenDistrVector> &
+transposeMult(const GenSubDOp<Scalar> &matrix, const GenVecBasis<Scalar, GenDistrVector> &basis, GenVecBasis<Scalar, GenDistrVector> &result) {
+//transposeMult(const GenSubDOp<Scalar> &matrix, const GenVecBasis<Scalar, GenDistrVector> &basis, GenFullMatrix<Scalar> &result) {
+  assert(&basis != &result);
+
+  typedef GenVecBasis<Scalar, GenDistrVector> BasisType;
+  typedef typename BasisType::iterator VecIt;
+
+  result.dimensionIs(basis.vectorCount(), basis.vectorInfo());
+  
+  for (VecIt it = const_cast<BasisType &>(basis).begin(),
+             it_end = const_cast<BasisType &>(basis).end(),
+             jt = result.begin();
+       it != it_end;
+       ++it, ++jt) {
+    const_cast<GenSubDOp<Scalar> &>(matrix).transposeMult(*it, *jt);
+  }
+
+  return result;
+}
+
 // Returns the renormalized basis Phi with respect to the metric M (assumed symmetric positive semidefinite)
 // (Phi, M) -> Phi * R^{-T} where (Phi^T * M * Phi) = R * R^T
 // Distributed consistency: 1) requirements: Phi fully consistent, M does not assemble 2) guarantees: result fully consistent
@@ -123,6 +147,27 @@ renormalized_basis(const GenSubDOp<Scalar> &metric, const GenVecBasis<Scalar, Ge
   }
 
   return result;
+}
+
+// Calculates the reduced stiffness matrix  K_red = Phi^T * K * Phi with Phi as the mass-normalized basis
+template <typename Scalar>
+void calculateReducedStiffness(const GenSubDOp<Scalar> &K, const GenVecBasis<Scalar, GenDistrVector> &basis, GenFullSquareMatrix<Scalar> &K_reduced){
+  filePrint(stderr," ... Calculating reduced stiffness matrix ...\n");
+  //K^T * Phi
+  DistrVecBasis product;  //used as a buffer for intermediate steps
+  transposeMult(K, basis, product);
+  
+  //calculate transpose of product multiplied with basis  (K^T * Phi)^T * Phi = Phi^T * K * Phi
+  const int vecCount = product.vectorCount();
+
+  GenFullSquareMatrix<Scalar> normalMatrix(vecCount);
+  for(int i = 0; i < vecCount; i++){
+    const GenDistrVector<Scalar> &dual = product[i];  //gives col i of product
+    for(int j = 0 ; j < vecCount; j++){
+      normalMatrix[i][j] = dot_ignore_master_flag(product[i],basis[j]);
+    }
+  }
+  K_reduced.copy(normalMatrix);
 }
 
 template <typename Scalar>

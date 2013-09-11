@@ -187,7 +187,8 @@ private:
     SubDOp* getpC(MDDynamMat* dynOps);
 
     // Central Difference only related subroutines
-    void computeStabilityTimeStep(double&, MDDynamMat&);
+    virtual void computeStabilityTimeStep(double&, MDDynamMat&);
+
     void updateState(double dt_n_h, DistrVector& v_n_h, DistrVector& d_n);
 
     // Mode Decomposition parameters and subroutines

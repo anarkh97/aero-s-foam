@@ -22,6 +22,15 @@ GenSubDOp<Scalar>::mult(GenDistrVector<Scalar> &v, GenDistrVector<Scalar> &opV)
 
 template<class Scalar>
 void
+GenSubDOp<Scalar>::transposeMult(GenDistrVector<Scalar> &v, GenDistrVector<Scalar> &opV)
+{
+  SubDOpTransposeMult<Scalar> sapply(sops, &v, &opV);
+  threadManager->execParal(numSub, &sapply);
+  if(assembler) assembler->assemble(opV);
+}
+
+template<class Scalar>
+void
 GenSubDOp<Scalar>::squareRootMult(GenDistrVector<Scalar> &v)
 {
   SubDOpSquareRootMult<Scalar> sapply(sops, &v);
@@ -37,6 +46,7 @@ GenSubDOp<Scalar>::inverseSquareRootMult(GenDistrVector<Scalar> &v)
   threadManager->execParal(numSub, &sapply);
   if(assembler) assembler->assemble(v);
 }
+
 
 template<class Scalar>
 void
@@ -109,6 +119,19 @@ SubDOpMult<Scalar>::runFor(int sNum)
 
 template<class Scalar>
 void
+SubDOpTransposeMult<Scalar>::runFor(int sNum)
+{
+  if(!sm[sNum]) return;
+  // Get the pointer to the part of the vector s corresponding to subdomain sNum
+  Scalar *src = s->subData(sNum);
+  // Get the pointer to the part of the vector tg corresponding to subdomain sNum
+  Scalar *tg  = d->subData(sNum);
+  // multiply for subdomain sNum
+  sm[sNum]->transposeMult(src,tg);
+}
+
+template<class Scalar>
+void
 SubDOpSquareRootMult<Scalar>::runFor(int sNum)
 {
   if(!sm[sNum]) return;
@@ -128,6 +151,7 @@ SubDOpInverseSquareRootMult<Scalar>::runFor(int sNum)
   // multiply for subdomain sNum
   sm[sNum]->inverseSquareRootMult(src);
 }
+
 
 template<class Scalar>
 void

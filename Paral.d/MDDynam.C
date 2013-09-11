@@ -421,7 +421,7 @@ MultiDomainDynam::makeSubElementArrays(int isub)
    (*geomState)[isub]->updatePrescribedDisplacement(sd->getInitDisp6(), sd->numInitDisp6(), sd->getNodes());
 
   // build the element stiffness matrices.
-  if(!domain->solInfo().ROMPostProcess) {
+  if(!domain->solInfo().ROMPostProcess && !domain->solInfo().elemLumpPodRom) {
     Vector elementInternalForce(sd->maxNumDOF(), 0.0);
     Vector residual(sd->numUncon(), 0.0);
     sd->getStiffAndForce(*(*geomState)[isub], elementInternalForce, allCorot[isub], kelArray[isub], residual,

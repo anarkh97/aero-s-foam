@@ -33,6 +33,7 @@ class GenDBSparseMatrix : public SparseData, public GenSparseMatrix<Scalar> {
    double getMemoryUsed();
 
    void transposeMult(const GenVector<Scalar> & rhs, GenVector<Scalar> & result);
+   void transposeMult(const Scalar *, Scalar *);
    Scalar diag(int dof) const;      // returns diagonal value of row dof in matrix
    Scalar &diag(int dof);
    void add(FullSquareMatrix &, int *dofs);

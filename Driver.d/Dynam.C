@@ -1157,6 +1157,54 @@ Domain::computeStabilityTimeStep(DynamMat& dMat)
       return sinfo.stable_cfl*sdt;
 }
 
+
+double Domain::computeStabilityTimeStepROM(GenFullSquareMatrix<double>& K_red)
+{
+      if(outFile) 
+        fprintf(stderr, " ... Checking Newmark Stability     ...\n");
+
+      double eigmax;
+      double relTol    = sinfo.stable_tol; // stable_tol default is 1.0e-3
+      double preeigmax = 0.0;
+
+      int numdofs = K_red.dim();
+      int maxIte  = sinfo.stable_maxit; // stable_maxit default is 100
+
+      Vector v(numdofs);
+      Vector z(numdofs);
+
+// Starts from an arbitrary array.
+      int i,j;
+      for (i=0; i<numdofs; ++i)
+        v[i] = (double) (i+1) / (double) numdofs;
+
+// Power iteration loop
+
+      for (i=0; i<maxIte; ++i) {
+        K_red.mult(v,z);
+
+// Normalize
+
+        double zmax = z[0];
+        for (j=1; j< numdofs; ++j)
+          if (abs(z[j])>zmax) zmax = abs(z[j]);
+
+        eigmax = zmax;
+
+        v = (1.0/zmax)*z;
+
+        if ( abs(eigmax - preeigmax) < relTol*abs(preeigmax) ) break;
+
+        preeigmax = eigmax;
+      }
+
+      // compute stability maximum time step
+      double sdt = 2.0 / sqrt(eigmax);
+
+      return sinfo.stable_cfl*sdt; 
+}
+
+
 double
 Domain::computeStabilityTimeStep(FullSquareMatrix *kelArray, FullSquareMatrix *melArray, GeomState *geomState, int &eid)
 {

@@ -1,12 +1,14 @@
 #include <Element.d/NonLinearity.d/NLPentahedral.h>
 
 template<>
-const double SolidElementTemplate<Wedge,6,6>::nodeRefCoords[6][3] = 
+const double SolidElementTemplate<Wedge6LagrangePolynomialShapeFunction,6,6>
+::nodeRefCoords[6][3] = 
   {{0.0,0.0,-1.0},{1.0,0.0,-1.0},{0.0,1.0,-1.0},
    {0.0,0.0, 1.0},{1.0,0.0, 1.0},{0.0,1.0, 1.0}};
 
 template<>
-const double SolidElementTemplate<Wedge,15,9>::nodeRefCoords[15][3] = 
+const double SolidElementTemplate<Wedge15LagrangePolynomialShapeFunction,15,9>
+::nodeRefCoords[15][3] = 
   {{  0., 0., -1.},{  1.,  0., -1.},{ 0.,  1., -1.},
    {  0., 0.,  1.},{  1.,  0.,  1.},{ 0.,  1.,  1.},
    { 0.5, 0., -1.},{ 0.5, 0.5, -1.},{ 0., 0.5, -1.},
@@ -14,7 +16,8 @@ const double SolidElementTemplate<Wedge,15,9>::nodeRefCoords[15][3] =
    {  0., 0.,  0.},{  1.,  0.,  0.},{ 0.,  1.,  0.}};
 
 template<>
-const double SolidElementTemplate<Wedge,26,18>::nodeRefCoords[26][3] = 
+const double SolidElementTemplate<Wedge26LagrangePolynomialShapeFunction,26,18>
+::nodeRefCoords[26][3] = 
   {{  0. ,  0. ,  -1.},{  1. ,  0. ,  -1.},{  0. ,  1. ,  -1.},
    {  0. ,  0. ,   1.},{  1. ,  0. ,   1.},{  0. ,  1. ,   1.},
    {1./3.,  0. ,  -1.},{2./3.,  0. ,  -1.},{2./3.,1./3.,  -1.},
@@ -27,7 +30,8 @@ const double SolidElementTemplate<Wedge,26,18>::nodeRefCoords[26][3] =
 
 template<>
 void
-SolidElementTemplate<Wedge,6,6>::getGaussPointAndWeight(int n, double *point, double &weight)
+SolidElementTemplate<Wedge6LagrangePolynomialShapeFunction,6,6>
+::getGaussPointAndWeight(int n, double *point, double &weight)
 {
   double weight3d6[6] = { 0.0833333333333333, 0.0833333333333333, 0.0833333333333333,
                           0.0833333333333333, 0.0833333333333333, 0.0833333333333333 };
@@ -47,7 +51,8 @@ SolidElementTemplate<Wedge,6,6>::getGaussPointAndWeight(int n, double *point, do
 
 template<>
 void
-SolidElementTemplate<Wedge,15,9>::getGaussPointAndWeight(int n, double *point, double &weight)
+SolidElementTemplate<Wedge15LagrangePolynomialShapeFunction,15,9>
+::getGaussPointAndWeight(int n, double *point, double &weight)
 {
   double weight3d8[9] = { 0.092592592592593,0.092592592592593,0.092592592592593,
                           0.148148148148148,0.148148148148148,0.148148148148148,
@@ -71,7 +76,8 @@ SolidElementTemplate<Wedge,15,9>::getGaussPointAndWeight(int n, double *point, d
 
 template<>
 void
-SolidElementTemplate<Wedge,26,18>::getGaussPointAndWeight(int n, double *point, double &weight)
+SolidElementTemplate<Wedge26LagrangePolynomialShapeFunction,26,18>
+::getGaussPointAndWeight(int n, double *point, double &weight)
 {
   double gauss3d9[18][3] = {
      { 0.166666666666667, 0.166666666666667, -0.774596669241483 },
@@ -108,4 +114,3 @@ SolidElementTemplate<Wedge,26,18>::getGaussPointAndWeight(int n, double *point, 
   point[2] = gauss3d9[n][2];
   weight = weight3d9[n];
 }
-

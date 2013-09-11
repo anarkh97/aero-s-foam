@@ -13,21 +13,19 @@ class Tet4LagrangePolynomialShapeFunction : public VectorValuedFunction<3,4,Scal
     Eigen::Matrix<Scalar,4,1> operator() (const Eigen::Matrix<Scalar,3,1>& q, Scalar) const
     {
       // inputs:
-      // q[0] = x local coordinate
-      // q[1] = y local coordinate
-      // q[2] = z local coordinate
+      // local coordinates of point at which function is to be evaluated: q = [ξ,η,ζ]
+      const Scalar &xi = q[0], &eta = q[1], &zeta = q[2];
 
       // outputs:
-      // Shape functions for four-noded tet element
+      // shape functions for four-node tet element: N(ξ,η,ζ)
+      Eigen::Matrix<Scalar,4,1> N;
 
-      Eigen::Matrix<Scalar,4,1> y;
-      const Scalar &xi = q[0], &eta = q[1], &zeta = q[2];
-      y[0] = 1-xi-eta-zeta;
-      y[1] = xi;
-      y[2] = eta;
-      y[3] = zeta;
+      N[0] = 1-xi-eta-zeta;
+      N[1] = xi;
+      N[2] = eta;
+      N[3] = zeta;
 
-      return y;
+      return N;
     }
 };
 

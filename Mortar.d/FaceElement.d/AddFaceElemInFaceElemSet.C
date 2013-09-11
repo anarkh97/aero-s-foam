@@ -19,7 +19,6 @@
 #include <Mortar.d/FaceElement.d/FaceTri3.d/FaceTri3.h>
 #include <Mortar.d/FaceElement.d/FaceTri6.d/FaceTri6.h>
 #include <Mortar.d/FaceElement.d/FaceTri10.d/FaceTri10.h>
-#include <Mortar.d/FaceElement.d/FacePoint1.d/FacePoint1.h>
 
 // ------------------------------------------------
 // For input file:
@@ -39,14 +38,12 @@ FaceElemSet::elemadd(int num, int etype, int nnodes, int* nodes)
 
    switch(etype) 
    {
-     case FaceElement::SHELLQUADFACEL4:
      case FaceElement::QUADFACEL4: 
        ele = new (ba) FaceQuad4(nodes);
        break;
      case FaceElement::QUADFACEQ8: 
        ele = new (ba) FaceQuad8(nodes);
        break;
-     case FaceElement::SHELLTRIFACEL3:
      case FaceElement::TRIFACEL3: 
        ele = new (ba) FaceTri3(nodes);
        break;
@@ -62,9 +59,6 @@ FaceElemSet::elemadd(int num, int etype, int nnodes, int* nodes)
      case FaceElement::TRIFACEC10: 
        ele = new (ba) FaceTri10(nodes);
        break;
-     case FaceElement::POINTFACE:
-       ele = new (ba) FacePoint1(nodes);
-       break;
      default:
        filePrint(stderr," *** ERROR: Face element Type %2d is NOT supported. Abort.\n", etype);
        exit(-1);
@@ -72,5 +66,4 @@ FaceElemSet::elemadd(int num, int etype, int nnodes, int* nodes)
    }
 
  if(ele) elemadd(num, ele);
- //elem[num]->print(); 
 }

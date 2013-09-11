@@ -1920,7 +1920,13 @@ MPCHeader:
           $$->lagrangeMult = $3.lagrangeMult;
           $$->penalty = $3.penalty; 
           $$->setSource(mpc::Lmpc); }
-	;
+        | Integer Float MODE Integer ConstraintOptionsData NewLine
+        { $$ = new LMPCons($1, $2);
+          $$->type = $4;
+          $$->lagrangeMult = $5.lagrangeMult;
+          $$->penalty = $5.penalty;
+          $$->setSource(mpc::Lmpc); }
+        ;
 MPCLine:
         Integer Integer Float NewLine
         { if($3 == 0.0) {

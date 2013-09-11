@@ -805,7 +805,6 @@ MortarHandler::CreateACMEFFIData()
     int etype = (*FaceElSet)[iFFI]->GetFaceElemType();
     switch(etype)
     {
-     case FaceElement::SHELLQUADFACEL4:
      case FaceElement::QUADFACEL4:
        Slave_face_block_id[iFFI] = 1;
        Master_face_block_id[iFFI]= 5;
@@ -839,7 +838,6 @@ MortarHandler::CreateACMEFFIData()
        ACMEFFI_data[offset++] = -1.0; ACMEFFI_data[offset++] =  1.0; 
        ACMEFFI_data[offset++] = -1.0; ACMEFFI_data[offset++] =  1.0; 
        break;
-     case FaceElement::SHELLTRIFACEL3:
      case FaceElement::TRIFACEL3:
        Slave_face_block_id[iFFI] = 3;
        Master_face_block_id[iFFI]= 7;
@@ -1089,7 +1087,7 @@ MortarHandler::build_search(bool tdenforceFlag, int numSub, SubDomain **sd)
     face_block_shell_thickness[6] = PtrMasterEntity->GetShellThickness();
     face_block_types[7] = ContactSearch::SHELLTRIFACEL3;  // master Tri6 face els
     face_block_shell_thickness[7] = PtrMasterEntity->GetShellThickness();
-   }
+  }
   else {
     face_block_types[6] = ContactSearch::TRIFACEL3;  // master Tri3 face els
     face_block_types[7] = ContactSearch::TRIFACEL3;  // master Tri6 face els

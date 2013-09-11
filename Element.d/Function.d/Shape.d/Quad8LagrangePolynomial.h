@@ -13,29 +13,34 @@ class Quad8LagrangePolynomialShapeFunction : public VectorValuedFunction<2,8,Sca
     Eigen::Matrix<Scalar,8,1> operator() (const Eigen::Matrix<Scalar,2,1>& q, Scalar) const
     {
       // inputs:
-      // q[0] = x local coordinate
-      // q[1] = y local coordinate
+      // local coordinates of point at which function is to be evaluated: q = [ξ,η]
+      const Scalar &xi = q[0], &eta = q[1];
 
       // outputs:
-      // Shape functions for eight-noded quad element
+      // shape functions for eight-node quad element: N(ξ,η)
+      Eigen::Matrix<Scalar,8,1> N;
 
-      Eigen::Matrix<Scalar,8,1> y;
-      const Scalar &xi = q[0], &eta = q[1];
-      Scalar etam = 0.25*(1.0-eta);
-      Scalar etap = 0.25*(1.0+eta);
-      Scalar xim = 0.25*(1.0-xi);
-      Scalar xip = 0.25*(1.0+xi);
+      //          η             shape functions
+      //          ↑             ---------------
+      //    3-----6-----2       N₀ = 1/4(1-ξ)(1-η)(-1-ξ-η)
+      //    ¦           ¦       N₁ = 1/4(1+ξ)(1-η)(-1+ξ-η) 
+      //    ¦           ¦       N₂ = 1/4(1+ξ)(1+η)(-1+ξ+η) 
+      //    7           5 → ξ   N₃ = 1/4(1-ξ)(1+η)(-1-ξ+η) 
+      //    ¦           ¦       N₄ = 1/2(1-ξξ)(1-η) 
+      //    ¦           ¦       N₅ = 1/2(1+ξ)(1-ηη) 
+      //    0-----4-----1       N₆ = 1/2(1-ξξ)(1+η) 
+      //                        N₇ = 1/2(1-ξ)(1-ηη)
 
-      y(0) = 4.0*etam*xim*(-xi-eta-1.0);
-      y(1) = 32.0*xim*etam*etap;
-      y(2) = 4.0*etap*xim*(-xi+eta-1.0);
-      y(3) = 32.0*xim*xip*etap;
-      y(4) = 4.0*xip*etap*(xi+eta-1.0);
-      y(5) = 32.0*xip*etap*etam;
-      y(6) = 4.0*xip*etam*(xi-eta-1.0);
-      y(7) = 32.0*xim*xip*etam;
+      N[0] = 1/4.*(1-xi)*(1-eta)*(-1-xi-eta);
+      N[1] = 1/4.*(1+xi)*(1-eta)*(-1+xi-eta);
+      N[2] = 1/4.*(1+xi)*(1+eta)*(-1+xi+eta);
+      N[3] = 1/4.*(1-xi)*(1+eta)*(-1-xi+eta);
+      N[4] = 1/2.*(1-xi*xi)*(1-eta);
+      N[5] = 1/2.*(1+xi)*(1-eta*eta);
+      N[6] = 1/2.*(1-xi*xi)*(1+eta);
+      N[7] = 1/2.*(1-xi)*(1-eta*eta);
 
-      return y;
+      return N;
     }
 };
 

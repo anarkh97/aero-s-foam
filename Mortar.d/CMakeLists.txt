@@ -9,10 +9,7 @@ ADD_LIBRARY(Mortar  FaceElement.d/FaceElemSet.C
 	FaceElement.d/FaceTri3.d/FaceTri3.C 
 	FaceElement.d/FaceTri6.d/FaceTri6.C 
 	FaceElement.d/FaceTri10.d/FaceTri10.C 
-	FaceElement.d/FacePoint1.d/FacePoint1.C 
 	MortarDriver.d/MortarHandler.C 
-#	FFIPolygon.d/FFIPolygon.C 
-#	FFIPolygon.d/TriFacet.C 
 	MortarElement.d/MortarElement.C 
 	MortarElement.d/MortarQuad4.d/StdMortarQuad4.C 
 	MortarElement.d/MortarQuad4.d/DualMortarQuad4.C 
@@ -23,5 +20,4 @@ ADD_LIBRARY(Mortar  FaceElement.d/FaceElemSet.C
 	MortarElement.d/MortarTri6.d/StdMortarTri6.C 
 	MortarElement.d/MortarTri10.d/StdMortarTri10.C 
 	MortarElement.d/CreateMortarElement.C
-#	NodalMortarShapeFct.d/NodalMortarShapeFct.C 
 	Divers.d/Divers.C)

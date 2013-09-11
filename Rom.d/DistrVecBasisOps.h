@@ -156,13 +156,11 @@ void calculateReducedStiffness(const GenSubDOp<Scalar> &K, const GenVecBasis<Sca
   //K^T * Phi
   DistrVecBasis product;  //used as a buffer for intermediate steps
   transposeMult(K, basis, product);
-  
   //calculate transpose of product multiplied with basis  (K^T * Phi)^T * Phi = Phi^T * K * Phi
   const int vecCount = product.vectorCount();
 
   GenFullSquareMatrix<Scalar> normalMatrix(vecCount);
   for(int i = 0; i < vecCount; i++){
-    const GenDistrVector<Scalar> &dual = product[i];  //gives col i of product
     for(int j = 0 ; j < vecCount; j++){
       normalMatrix[i][j] = dot_ignore_master_flag(product[i],basis[j]);
     }

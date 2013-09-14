@@ -1600,12 +1600,12 @@ GenSubDomain<Scalar>::makeKbb(DofSetArray *dof_set_array)
 
   if((solInfo().getFetiInfo().precno == FetiInfo::dirichlet) && (internalLen > 0)) {
     switch(solInfo().getFetiInfo().solvertype) {
-      default:
       case FetiInfo::skyline: {
         GenSkyMatrix<Scalar> *sky = new GenSkyMatrix<Scalar>(nodeToNode, dsa, sinfo.trbm, glInternalMap, 0);
         KiiSolver = sky;
         KiiSparse = sky;
       } break;
+      default:
       case FetiInfo::sparse: {
 #ifdef HB_COUPLED_PRECOND
         GenBLKSparseMatrix<Scalar> *sm = 0;

@@ -777,11 +777,11 @@ MultiDomainDynam::getInitState(SysState<DistrVector>& state)
         delete [] ext;
         sd->updateStates((*geomState)[i],*((*geomState)[i]),allCorot[i]);
       }
+      geomState->setVelocityAndAcceleration(state.getVeloc(), state.getAccel());
     }
     domain->solInfo().initialTimeIndex = decDomain->getSubDomain(0)->solInfo().initialTimeIndex;
     domain->solInfo().initialTime = decDomain->getSubDomain(0)->solInfo().initialTime;
     domain->solInfo().initExtForceNorm = decDomain->getSubDomain(0)->solInfo().initExtForceNorm;
-    geomState->setVelocityAndAcceleration(state.getVeloc(), state.getAccel());
   }
   else if(geomState) {
     geomState->update(state.getDisp());

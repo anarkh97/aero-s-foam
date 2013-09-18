@@ -19,7 +19,7 @@
 #ifdef EIGEN_SUPERLU_SUPPORT
 #include <Eigen/SuperLUSupport>
 #endif
-#ifdef EIGEN_SRQR_SUPPORT
+#ifdef EIGEN_SPQR_SUPPORT
 #include <Eigen/SPQRSupport>
 #endif
 #ifdef EIGEN_SPARSEQR_SUPPORT

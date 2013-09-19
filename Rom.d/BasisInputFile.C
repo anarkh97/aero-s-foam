@@ -66,7 +66,7 @@ BasisInputFile::readNodeIndices() {
   for (int iNode = 0; iNode != nodeCount(); ++iNode) { 
     const int info = std::fscanf(stream_, "%d", &nodeIndices_[iNode]);
     assert(info == 1);
-    nodeIndices_[iNode] += 1;
+    nodeIndices_[iNode] -= 1;
   }
 }
 

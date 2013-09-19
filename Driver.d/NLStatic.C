@@ -1808,6 +1808,7 @@ Domain::getStressStrain(GeomState &geomState, Corotator **allCorot,
        else
          elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
      }
+   delete [] nodeNumbers;
 
 //----------------------------------------------------------------------------
 

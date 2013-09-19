@@ -121,6 +121,7 @@ MatNLCorotator::extractDeformations(GeomState &curState, CoordSet &C0, double *u
     u[3*i+1] = curState[nn[i]].y - C0[nn[i]]->y;
     u[3*i+2] = curState[nn[i]].z - C0[nn[i]]->z;
   }
+  delete [] nn;
   nlflag = 2;
 }
 

@@ -351,21 +351,19 @@ if(MPI_FOUND)
    SET(INC_DIR ${INC_DIR} ${MPI_INCLUDE_PATH})
 endif(MPI_FOUND)
 
-FIND_PROGRAM(MERCURIAL_EXECUTABLE hg2xx)
+FIND_PROGRAM(MERCURIAL_EXECUTABLE hg)
 
 IF(MERCURIAL_EXECUTABLE)
-  #MESSAGE("Rule 1")
-  MESSAGE("Mercurial is: " ${MERCURIAL_EXECUTABLE})
-  add_custom_command(OUTPUT HgIdentity.C 
-                     COMMAND echo "const char *THE_VERSION = \\\"" `${MERCURIAL_EXECUTABLE} identify -in` "\\\"" "\;" > HgIdentity.C
-                     DEPENDS main.C
-                     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+  add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/HgIdentity.C
+                    COMMAND echo "const char *THE_VERSION = \\\"" `${MERCURIAL_EXECUTABLE} identify -i` "\\\"" "\;" > ${CMAKE_CURRENT_BINARY_DIR}/HgIdentity.C
+                    DEPENDS main.C
+                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+  add_definitions(-DPRINT_CHANGESETID)
 ELSE (MERCURIAL_EXECUTABLE)
-  #MESSAGE("Rule 2")
-  add_custom_command(OUTPUT HgIdentity.C 
-                     COMMAND echo "const char *THE_VERSION = \\\"\\\"\;" > HgIdentity.C
+  add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/HgIdentity.C
+                     COMMAND echo "const char *THE_VERSION = \\\"\\\"\;" > ${CMAKE_CURRENT_BINARY_DIR}/HgIdentity.C
                      DEPENDS main.C
-                     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+                     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 ENDIF (MERCURIAL_EXECUTABLE)
 
 add_definitions(-D_TEMPLATE_FIX_ -DF_NEEDS_UNDSC -DMORTAR_LOCALNUMBERING -DSOWER_SURFS  -DMAP_MIN_MEMORY)

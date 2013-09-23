@@ -144,6 +144,8 @@ std::string subdomains_ = "INPUT.sub";
 std::string decomposition_ = "INPUT.dec";
 std::string connectivity_ = "INPUT.con";
 
+extern const char *THE_VERSION;
+
 // ... main program
 
 #ifdef CREATE_DSO
@@ -333,6 +335,9 @@ int main(int argc, char** argv)
  // end getopt_long
 
  filePrint(stderr,"\n --------- R U N  PARAMETERS ----------\n");
+#ifdef PRINT_CHANGESETID
+ filePrint(stderr," ... Changeset ID%13s    ...\n",THE_VERSION);
+#endif
  FILE * weightFile;
  while ((c = getopt_long(argc, argv, "n:d:p:v:c:DVtTPmMr:Pfs:",long_options, &option_index)) != -1)
       switch (c) {

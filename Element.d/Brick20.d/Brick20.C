@@ -630,11 +630,15 @@ Brick20::numStates()
 Corotator*
 Brick20::getCorotator(CoordSet &cs, double *kel, int , int )
 {
+#ifdef USE_EIGEN3
   if(!mat) 
     mat = new StVenantKirchhoffMat(prop->rho, prop->E, prop->nu);
   MatNLElement *ele = new NLHexahedral20(nn);
   ele->setMaterial(mat);
   ele->setGlNum(glNum);
   return new MatNLCorotator(ele);
+#else
+   printf("WARNING: Corotator not implemented for element %d\n", glNum+1); return 0;
+#endif
 }
 

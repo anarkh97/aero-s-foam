@@ -1,3 +1,4 @@
+#ifdef USE_EIGEN3
 #include <Math.d/EiSparseMatrix.h>
 
 #ifdef EIGEN_UMFPACK_SUPPORT
@@ -115,3 +116,4 @@ GenEiSparseMatrix<std::complex<double>,Eigen::SimplicialLLT<Eigen::SparseMatrix<
   solver.matrixU().solveInPlace(rhs);
   if(solver.permutationP().size() > 0) rhs = (solver.permutationPinv()*rhs).eval();
 }
+#endif

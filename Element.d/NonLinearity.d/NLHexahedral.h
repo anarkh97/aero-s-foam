@@ -1,4 +1,4 @@
-#ifndef _NLHEXAHEDRAL_H_
+#if !defined(_NLHEXAHEDRAL_H_) && defined(USE_EIGEN3)
 #define _NLHEXAHEDRAL_H_
 
 #include <Element.d/NonLinearity.d/SolidElementTemplate.h>
@@ -17,7 +17,6 @@ class NLHexahedral : public SolidElementTemplate<Hex8LagrangePolynomialShapeFunc
   public:
     NLHexahedral(int *nd, bool isLinKin) : linearKinematics(isLinKin), SolidElementTemplate<Hex8LagrangePolynomialShapeFunction,8,8>(nd) {}
     StrainEvaluator* getStrainEvaluator();
-    PrioInfo examine(int sub, MultiFront *);
     int getTopNumber() { return 117; }
 };
 

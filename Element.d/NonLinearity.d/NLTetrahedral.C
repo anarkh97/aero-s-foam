@@ -1,3 +1,4 @@
+#ifdef USE_EIGEN3
 #include <Element.d/NonLinearity.d/NLTetrahedral.h>
 
 template<>
@@ -95,3 +96,4 @@ SolidElementTemplate<Tet10LagrangePolynomialShapeFunction,10,15>
   point[2] = xyz_save[3*n+2];
   weight = w_save[n]/6;
 }
+#endif

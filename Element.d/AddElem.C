@@ -77,7 +77,6 @@
 #include <Element.d/BulkFluid.d/TetraBulk.h>
 #include <Element.d/BulkFluid.d/PentaBulk.h>
 #include <Element.d/Brick20.d/Brick20.h>
-#include <Element.d/NonLinearity.d/NLHexahedral.h>
 #include <Element.d/NonLinearity.d/NLMembrane.h>
 #include <Element.d/Shell.d/ConnectedTri.h>
 
@@ -661,23 +660,6 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
      case 129:
        ele = new (ba) NLMembrane(n);
        break;
-/* deprecated: now the strain measure defined by the material model
-     case 201:
-       ele = new (ba) NLHexahedral(n, 0); // infintesimal strain measure
-       break;
-     case 202:
-       ele = new (ba) NLHexahedral(n, 1); // green-lagrange strain measure
-       break;
-     case 205:
-       ele = new (ba) NLHexahedral(n, 2); // deformation gradient strain measure
-       break;
-     case 203:
-       ele = new (ba) NLMembrane(n,false);
-       break;
-     case 204:
-       ele = new (ba) NLMembrane(n, true);
-       break;
-*/
      case 2020:
        ele = new (ba) Compo4NodeShell(n);
        break;

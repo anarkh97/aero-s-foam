@@ -1,3 +1,4 @@
+#ifdef USE_EIGEN3
 #include <Element.d/NonLinearity.d/NLHexahedral.h>
 
 template<>
@@ -128,3 +129,4 @@ SolidElementTemplate<Hex32LagrangePolynomialShapeFunction,32,64>
   point[1] = xi[j];
   point[2] = xi[k];
 }
+#endif

@@ -78,7 +78,6 @@
 #include <Element.d/Penta26.d/Penta26.h>
 #include <Element.d/Helm.d/HelmBrick32.h>
 #include <Element.d/Helm.d/HelmPenta26.h>
-#include <Element.d/NonLinearity.d/NLHexahedral.h>
 #include <Element.d/NonLinearity.d/NLMembrane.h>
 
 #include <Element.d/MpcElement.d/MpcElement.h>
@@ -1114,12 +1113,6 @@ HelmBrick32::examine(int sub, MultiFront *mf)
   return examineHex8(sub, mf, nn);
 }
 
-PrioInfo
-NLHexahedral::examine(int sub, MultiFront *mf)
-{
-  return examineHex8(sub, mf, n);
-}
-                                                                                                                             
 PrioInfo
 HelmIsoParamHexa::examine(int sub, MultiFront *mf)
 {

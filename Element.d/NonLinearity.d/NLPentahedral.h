@@ -1,4 +1,4 @@
-#ifndef _NLPENTAHEDRAL_H_
+#if !defined(_NLPENTAHEDRAL_H_) && defined(USE_EIGEN3)
 #define _NLPENTAHEDRAL_H_
 
 #include <Element.d/NonLinearity.d/SolidElementTemplate.h>

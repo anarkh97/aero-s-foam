@@ -1,3 +1,4 @@
+#ifdef USE_EIGEN3
 #include <Element.d/NonLinearity.d/NLPentahedral.h>
 
 template<>
@@ -114,3 +115,4 @@ SolidElementTemplate<Wedge26LagrangePolynomialShapeFunction,26,18>
   point[2] = gauss3d9[n][2];
   weight = weight3d9[n];
 }
+#endif

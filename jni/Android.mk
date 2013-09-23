@@ -817,6 +817,7 @@ LOCAL_SRC_FILES  := ../Math.d/spsmvp.f \
 	../Math.d/FullRectMatrix.C \
 	../Math.d/NBSparseMatrixCore.C \
 	../Math.d/TTensor.C \
+	../Math.d/EiSparseMatrixCore.C \
 	../Math.d/Skyline.d/forbackr7.f \
 	../Math.d/Skyline.d/BlockSkyCore.C \
 	../Math.d/Skyline.d/forbackr7ns.f \

@@ -1,5 +1,6 @@
 #include <iostream>
 #include <algorithm>
+#include <complex>
 #include <Math.d/Vector.h>
 #include <Driver.d/Communicator.h>
 #include <unsupported/Eigen/SparseExtra>
@@ -10,7 +11,8 @@ GenEiSparseMatrix<Scalar,SolverClass>::GenEiSparseMatrix(Connectivity *cn, DofSe
   selfadjoint(_selfadjoint),
   nnz(xunonz[numUncon]),
   unonz(new Scalar[nnz]),
-  M(numUncon, numUncon, nnz, xunonz, rowu, unonz)
+  M(numUncon, numUncon, nnz, xunonz, rowu, unonz),
+  M_copy(NULL)
 {
   for(int k=0; k < numUncon; k++)
     std::sort(rowu + xunonz[k]-1, rowu + xunonz[k+1]-1);
@@ -26,7 +28,8 @@ GenEiSparseMatrix<Scalar,SolverClass>::GenEiSparseMatrix(Connectivity *cn, DofSe
   selfadjoint(_selfadjoint),
   nnz(xunonz[numUncon]),
   unonz(new Scalar[nnz]),
-  M(numUncon, numUncon, nnz, xunonz, rowu, unonz)
+  M(numUncon, numUncon, nnz, xunonz, rowu, unonz),
+  M_copy(NULL)
 {
   for(int k=0; k < numUncon; k++)
     std::sort(rowu + xunonz[k]-1, rowu + xunonz[k+1]-1);
@@ -42,7 +45,8 @@ GenEiSparseMatrix<Scalar,SolverClass>::GenEiSparseMatrix(Connectivity *cn, EqNum
   selfadjoint(true),
   nnz(xunonz[numUncon]),
   unonz(new Scalar[nnz]),
-  M(numUncon, numUncon, nnz, xunonz, rowu, unonz)
+  M(numUncon, numUncon, nnz, xunonz, rowu, unonz),
+  M_copy(NULL)
 {
   for(int k=0; k < numUncon; k++)
     std::sort(rowu + xunonz[k]-1, rowu + xunonz[k+1]-1);
@@ -56,6 +60,7 @@ template<typename Scalar, typename SolverClass>
 GenEiSparseMatrix<Scalar,SolverClass>::~GenEiSparseMatrix() 
 {
   if(unonz) { delete [] unonz; unonz=0; }
+  if(M_copy) delete M_copy;
 }
 
 template<typename Scalar, typename SolverClass> 
@@ -271,6 +276,16 @@ GenEiSparseMatrix<Scalar,SolverClass>::factor()
   if(solver.info() != Eigen::Success) std::cerr << "sparse factor failed\n";
 }
 
+#ifdef EIGEN_UMFPACK_SUPPORT
+template<>
+void
+GenEiSparseMatrix<double,Eigen::UmfPackLU<Eigen::SparseMatrix<double> > >::factor();
+
+template<>
+void
+GenEiSparseMatrix<std::complex<double>,Eigen::UmfPackLU<Eigen::SparseMatrix<std::complex<double> > > >::factor();
+#endif
+
 template<typename Scalar, typename SolverClass>
 void 
 GenEiSparseMatrix<Scalar,SolverClass>::solve(Scalar *_rhs, Scalar *_solution)
@@ -298,6 +313,16 @@ GenEiSparseMatrix<Scalar,SolverClass>::reSolve(Scalar *_rhs)
   if(solver.info() != Eigen::Success) std::cerr << "sparse solve failed\n";
 }
 
+#ifdef EIGEN_UMFPACK_SUPPORT
+template<>
+void
+GenEiSparseMatrix<double,Eigen::UmfPackLU<Eigen::SparseMatrix<double> > >::reSolve(double* _rhs);
+
+template<>
+void
+GenEiSparseMatrix<std::complex<double>,Eigen::UmfPackLU<Eigen::SparseMatrix<std::complex<double> > > >::reSolve(std::complex<double>* _rhs);
+#endif
+
 template<typename Scalar, typename SolverClass>
 void
 GenEiSparseMatrix<Scalar,SolverClass>::reSolve(GenVector<Scalar> &_rhs)
@@ -306,6 +331,16 @@ GenEiSparseMatrix<Scalar,SolverClass>::reSolve(GenVector<Scalar> &_rhs)
   rhs = solver.solve(rhs);
   if(solver.info() != Eigen::Success) std::cerr << "sparse solve failed\n";
 }
+
+#ifdef EIGEN_UMFPACK_SUPPORT
+template<>
+void
+GenEiSparseMatrix<double,Eigen::UmfPackLU<Eigen::SparseMatrix<double> > >::reSolve(GenVector<double> &_rhs);
+
+template<>
+void
+GenEiSparseMatrix<std::complex<double>,Eigen::UmfPackLU<Eigen::SparseMatrix<std::complex<double> > > >::reSolve(GenVector<std::complex<double> > &_rhs);
+#endif
 
 template<typename Scalar, typename SolverClass>
 void
@@ -316,17 +351,12 @@ GenEiSparseMatrix<Scalar,SolverClass>::upperMult(Scalar* _rhs)
 }
 
 template<>
-inline void
-GenEiSparseMatrix<double,Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> >::upperMult(double* _rhs)
-{
-  Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > rhs(_rhs,numUncon,1);
-  if(solver.permutationP().size() > 0) {
-    Eigen::Matrix<double, Eigen::Dynamic, 1> prhs = solver.permutationP()*rhs;
-    rhs = solver.matrixU()*prhs ;
-  } 
-  else 
-    rhs = (solver.matrixU()*rhs).eval();
-}
+void
+GenEiSparseMatrix<double,Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> >::upperMult(double* _rhs);
+
+template<>
+void
+GenEiSparseMatrix<std::complex<double>,Eigen::SimplicialLLT<Eigen::SparseMatrix<std::complex<double> >,Eigen::Upper> >::upperMult(std::complex<double>* _rhs);
 
 template<typename Scalar, typename SolverClass>
 void
@@ -337,10 +367,9 @@ GenEiSparseMatrix<Scalar,SolverClass>::backward(Scalar* _rhs)
 }
 
 template<>
-inline void
-GenEiSparseMatrix<double,Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> >::backward(double* _rhs)
-{
-  Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > rhs(_rhs,numUncon,1);
-  solver.matrixU().solveInPlace(rhs);
-  if(solver.permutationP().size() > 0) rhs = (solver.permutationPinv()*rhs).eval();
-}
+void
+GenEiSparseMatrix<double,Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> >::backward(double* _rhs);
+
+template<>
+void
+GenEiSparseMatrix<std::complex<double>,Eigen::SimplicialLLT<Eigen::SparseMatrix<std::complex<double> >,Eigen::Upper> >::backward(std::complex<double>* _rhs);

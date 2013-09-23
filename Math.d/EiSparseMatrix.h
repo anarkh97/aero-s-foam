@@ -10,6 +10,7 @@
 #ifdef EIGEN_SPARSELU_SUPPORT
 #include <Eigen/SparseLU>
 #endif
+#include <Eigen/SparseQR>
 #ifdef EIGEN_CHOLMOD_SUPPORT
 #include <Eigen/CholmodSupport>
 #endif
@@ -21,9 +22,6 @@
 #endif
 #ifdef EIGEN_SPQR_SUPPORT
 #include <Eigen/SPQRSupport>
-#endif
-#ifdef EIGEN_SPARSEQR_SUPPORT
-#include <Eigen/SparseQR>
 #endif
 #include <Math.d/SparseMatrix.h>
 #include <Solvers.d/Solver.h>
@@ -39,6 +37,7 @@ class GenEiSparseMatrix : public SparseData, public GenSparseMatrix<Scalar>, pub
    Scalar *unonz;
    Eigen::MappedSparseMatrix<Scalar, Eigen::ColMajor, int> M;
    SolverClass solver;
+   Eigen::SparseMatrix<Scalar> *M_copy;
 
  public:
    GenEiSparseMatrix(Connectivity *, DofSetArray *, DofSetArray *, bool=true);

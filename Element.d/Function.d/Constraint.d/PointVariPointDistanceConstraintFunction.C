@@ -1,13 +1,17 @@
 #ifdef USE_EIGEN3
-#include <Element.d/MpcElement.d/ConstraintFunction.d/PointVariPointDistanceConstraintFunction.h>
+#include <Element.d/Function.d/Constraint.d/PointVariPointDistanceConstraintFunction.h>
+
+namespace Simo {
 
 // specializing the member function template of constraint jacobian operator for point to
 // moving point distance constraint function with double precision scalar
-template<> template<>
-int
-ConstraintJacobian<double,PointVariPointDistanceConstraintFunction>
-::operator() (const Eigen::Matrix<double,6,1>& q, Eigen::Matrix<double,6,1>& J) const
+template<>
+Eigen::Matrix<double,1,6>
+Jacobian<double,PointVariPointDistanceConstraintFunction>
+::operator() (const Eigen::Matrix<double,6,1>& q, double t)
 {
+  Eigen::Matrix<double,6,1> J;
+
   Eigen::Vector3d x0 = sconst.segment<3>(0).matrix() + q.segment<3>(0);
   Eigen::Vector3d x1 = sconst.segment<3>(3).matrix() + q.segment<3>(3);
   Eigen::Vector3d a = x0-x1;
@@ -27,16 +31,18 @@ ConstraintJacobian<double,PointVariPointDistanceConstraintFunction>
     }
   }
 
-  return 1;
+  return J.transpose();
 }
 
 // specializing the member function template of constraint hessian operator for point to
 // moving point distance constraint function with double precision scalar
-template<> template<>
-int
-SacadoReverseJacobian<ConstraintJacobian<double,PointVariPointDistanceConstraintFunction> >
-::operator() (const Eigen::Matrix<double,6,1>& q, Eigen::Matrix<double,6,6>& H) const
+template<>
+Eigen::Matrix<double,6,6>
+Hessian<double,PointVariPointDistanceConstraintFunction>
+::operator() (const Eigen::Matrix<double,6,1>& q, double t)
 {
+  Eigen::Matrix<double,6,6> H;
+
   using std::sqrt;
 
   Eigen::Vector3d x0 = sconst.segment<3>(0).matrix() + q.segment<3>(0);
@@ -73,6 +79,9 @@ SacadoReverseJacobian<ConstraintJacobian<double,PointVariPointDistanceConstraint
   H(0,5) = H(5,0) = H(2,3) = H(3,2) = -H(0,2);
   H(1,5) = H(5,1) = H(2,4) = H(4,2) = -H(1,2);
 
-  return 1;
+  return H;
 }
+
+} // namespace Simo
+
 #endif

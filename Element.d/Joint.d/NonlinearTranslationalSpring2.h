@@ -11,7 +11,7 @@ class NonlinearTranslationalSpring2 : public DotType3ConstraintElement
     NonlinearTranslationalSpring2(int*, int);
     void setProp(StructProp *p, bool _myProp = false);
     void buildFrame(CoordSet&);
-    void update(GeomState& gState, CoordSet& cs, double);
+    void update(GeomState *refState, GeomState& gState, CoordSet& cs, double);
 };
 
 #endif

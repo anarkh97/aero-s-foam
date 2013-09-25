@@ -1,7 +1,7 @@
 #ifndef _QUAD9LAGRANGEPOLYNOMIALSHAPEFUNCTION_H_
 #define _QUAD9LAGRANGEPOLYNOMIALSHAPEFUNCTION_H_
 
-#include <Element.d/Function.d/VectorValuedFunction.h>
+#include <Element.d/Function.d/Function.h>
 
 template<typename Scalar>
 class Quad9LagrangePolynomialShapeFunction : public VectorValuedFunction<2,9,Scalar,0,0,double>
@@ -10,7 +10,7 @@ class Quad9LagrangePolynomialShapeFunction : public VectorValuedFunction<2,9,Sca
     Quad9LagrangePolynomialShapeFunction(const Eigen::Array<double,0,1>&, const Eigen::Array<int,0,1>&)
     {}
 
-    Eigen::Matrix<Scalar,9,1> operator() (const Eigen::Matrix<Scalar,2,1>& q, Scalar) const
+    Eigen::Matrix<Scalar,9,1> operator() (const Eigen::Matrix<Scalar,2,1>& q, Scalar)
     {
       // inputs:
       // local coordinates of point at which function is to be evaluated: q = [ξ,η]

@@ -1,8 +1,8 @@
 #ifndef _SURFACEPRESSUREFORCEFUNCTION_H_
 #define _SURFACEPRESSUREFORCEFUNCTION_H_
 
-#include <Element.d/Function.d/VectorValuedFunction.h>
-#include <Element.d/Function.d/SpaceJacobian.h>
+#include <Element.d/Function.d/Function.h>
+#include <Element.d/Function.d/SpaceDerivatives.h>
 #include <Utils.d/Conwep.d/BlastLoading.h>
 #include <Eigen/Geometry>
 
@@ -64,7 +64,7 @@ class SurfacePressureForceFunction
       if(conwep) delete conwep;
     }
 
-    Eigen::Matrix<Scalar,NumberOfValues,1> operator() (const Eigen::Matrix<Scalar,NumberOfGeneralizedCoordinates,1>& q, Scalar t) const
+    Eigen::Matrix<Scalar,NumberOfValues,1> operator() (const Eigen::Matrix<Scalar,NumberOfGeneralizedCoordinates,1>& q, Scalar t)
     {
       // inputs:
       // q[0] = x translation of node 1
@@ -89,7 +89,7 @@ class SurfacePressureForceFunction
 
       // shape function and derivatives
       ShapeFunctionTemplate<double> SF(Eigen::Array<double,0,1>::Zero(), Eigen::Array<int,0,1>::Zero());
-      Simo::SpaceJacobian<double, ShapeFunctionTemplate> dSF(Eigen::Array<double,0,1>::Zero(), Eigen::Array<int,0,1>::Zero());
+      Simo::Jacobian<double, ShapeFunctionTemplate> dSF(Eigen::Array<double,0,1>::Zero(), Eigen::Array<int,0,1>::Zero());
 
       // quadrature rule
       QuadratureRule c(deg);

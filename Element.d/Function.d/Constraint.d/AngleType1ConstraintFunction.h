@@ -1,11 +1,14 @@
 #ifndef _ANGLETYPE1CONSTRAINTFUNCTION_H_
 #define _ANGLETYPE1CONSTRAINTFUNCTION_H_
 
+#include <Element.d/Function.d/Function.h>
+#include <Element.d/Function.d/SpaceDerivatives.h>
 #include <cmath>
-#include <Element.d/MpcElement.d/ConstraintFunction.d/ConstraintFunction.h>
+
+namespace Simo {
 
 template<typename Scalar>
-class AngleType1ConstraintFunction : public RheonomicConstraintFunction<6,Scalar,7,0,double>
+class AngleType1ConstraintFunction : public ScalarValuedFunction<6,Scalar,7,0,double>
 {
    // a0 and b0 are vectors which can be interpreted as one selected axis of each of the body-attached frames attached 
    // to two nodes in some specified configuration.
@@ -26,15 +29,16 @@ class AngleType1ConstraintFunction : public RheonomicConstraintFunction<6,Scalar
       b0hat = b0.normalized();
     }
 
-    Scalar operator() (const Eigen::Matrix<Scalar,6,1>& q, Scalar) const
+    Scalar operator() (const Eigen::Matrix<Scalar,6,1>& q, Scalar)
     {
       // inputs:
-      // q[0] = 1st component of axis/angle rotation vector of node 1
-      // q[1] = 2nd component of axis/angle rotation vector of node 1
-      // q[2] = 3rd component of axis/angle rotation vector of node 1
-      // q[3] = 1st component of axis/angle rotation vector of node 2
-      // q[4] = 2nd component of axis/angle rotation vector of node 2
-      // q[5] = 3rd component of axis/angle rotation vector of node 2
+      // q[0] = 1st component of axis-angle rotation vector of node 1
+      // q[1] = 2nd component of axis-angle rotation vector of node 1
+      // q[2] = 3rd component of axis-angle rotation vector of node 1
+      // q[3] = 1st component of axis-angle rotation vector of node 2
+      // q[4] = 2nd component of axis-angle rotation vector of node 2
+      // q[5] = 3rd component of axis-angle rotation vector of node 2
+      // see: http://en.wikipedia.org/wiki/Axis-angle_representation
       // note that the rotation vector can either be the total increment from the undeformed configuration (for total
       // total lagrangian), or the increment from the reference configuration at t_n (for updated lagrangian), or the 
       // spin (i.e. zero/infintesimal increment) from the current configuration at t_{n+1-alphaf}^k (where k is the
@@ -44,28 +48,29 @@ class AngleType1ConstraintFunction : public RheonomicConstraintFunction<6,Scalar
       // -theta0 plus the angle between the rotated axes 
       using std::acos;
 
-      Eigen::Quaternion<Scalar> q1;
-      q1.setFromOneVector(q.template segment<3>(0));
+      Eigen::Quaternion<Scalar> z1;
+      z1.setFromOneVector(q.template segment<3>(0));
 
-      Eigen::Quaternion<Scalar> q2;
-      q2.setFromOneVector(q.template segment<3>(3));
+      Eigen::Quaternion<Scalar> z2;
+      z2.setFromOneVector(q.template segment<3>(3));
 
-      return -theta0 + acos((q1.toRotationMatrix()*a0hat.template cast<Scalar>()).dot
-                            (q2.toRotationMatrix()*b0hat.template cast<Scalar>()));
+      return -theta0 + acos((z1.toRotationMatrix()*a0hat.template cast<Scalar>()).dot
+                            (z2.toRotationMatrix()*b0hat.template cast<Scalar>()));
     }
 
-  public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
-template<> template<>
-int
-ConstraintJacobian<double,AngleType1ConstraintFunction>
-::operator() (const Eigen::Matrix<double,6,1>& q, Eigen::Matrix<double,6,1>& J) const;
+template<>
+Eigen::Matrix<double,1,6> 
+Jacobian<double,AngleType1ConstraintFunction>
+::operator() (const Eigen::Matrix<double,6,1>& q, double t);
 
-template<> template<>
-int
-SacadoReverseJacobian<ConstraintJacobian<double,AngleType1ConstraintFunction> >
-::operator() (const Eigen::Matrix<double,6,1>& q, Eigen::Matrix<double,6,6>& H) const;
+template<>
+Eigen::Matrix<double,6,6>
+Hessian<double,AngleType1ConstraintFunction>
+::operator() (const Eigen::Matrix<double,6,1>& q, double t);
+
+} // namespace Simo
 
 #endif

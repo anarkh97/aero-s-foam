@@ -1,7 +1,7 @@
 #ifndef _WEDGE26LAGRANGEPOLYNOMIALSHAPEFUNCTION_H_
 #define _WEDGE26LAGRANGEPOLYNOMIALSHAPEFUNCTION_H_
 
-#include <Element.d/Function.d/VectorValuedFunction.h>
+#include <Element.d/Function.d/Function.h>
 
 template<typename Scalar>
 class Wedge26LagrangePolynomialShapeFunction : public VectorValuedFunction<3,26,Scalar,0,0,double>
@@ -10,7 +10,7 @@ class Wedge26LagrangePolynomialShapeFunction : public VectorValuedFunction<3,26,
     Wedge26LagrangePolynomialShapeFunction(const Eigen::Array<double,0,1>&, const Eigen::Array<int,0,1>&)
     {}
 
-    Eigen::Matrix<Scalar,26,1> operator() (const Eigen::Matrix<Scalar,3,1>& q, Scalar) const
+    Eigen::Matrix<Scalar,26,1> operator() (const Eigen::Matrix<Scalar,3,1>& q, Scalar)
     {
       // inputs:
       // local coordinates of point at which function is to be evaluated: q = [ξ,η,ζ]

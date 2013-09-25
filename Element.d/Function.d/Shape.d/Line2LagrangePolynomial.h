@@ -1,7 +1,7 @@
 #ifndef _LINE2LAGRANGEPOLYNOMIALSHAPEFUNCTION_H_
 #define _LINE2LAGRANGEPOLYNOMIALSHAPEFUNCTION_H_
 
-#include <Element.d/Function.d/VectorValuedFunction.h>
+#include <Element.d/Function.d/Function.h>
 
 template<typename Scalar>
 class Line2LagrangePolynomialShapeFunction : public VectorValuedFunction<1,2,Scalar,0,0,double>
@@ -10,7 +10,7 @@ class Line2LagrangePolynomialShapeFunction : public VectorValuedFunction<1,2,Sca
     Line2LagrangePolynomialShapeFunction(const Eigen::Array<double,0,1>&, const Eigen::Array<int,0,1>&)
     {}
 
-    Eigen::Matrix<Scalar,2,1> operator() (const Eigen::Matrix<Scalar,1,1>& q, Scalar) const
+    Eigen::Matrix<Scalar,2,1> operator() (const Eigen::Matrix<Scalar,1,1>& q, Scalar)
     {
       // inputs:
       // local coordinate of point at which function is to be evaluated: q = [ξ]

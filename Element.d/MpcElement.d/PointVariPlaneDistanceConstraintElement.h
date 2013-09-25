@@ -1,10 +1,10 @@
-#ifndef _POINTVARIPLANEDISTANCECFE_H_
-#define _POINTVARIPLANEDISTANCECFE_H_
+#ifndef _POINTVARIPLANEDISTANCECONSTRAINTELEMENT_H_
+#define _POINTVARIPLANEDISTANCECONSTRAINTELEMENT_H_
 
-#include <Element.d/MpcElement.d/ConstraintFunction.d/PointVariPlaneDistanceConstraintFunction.h>
+#include <Element.d/Function.d/Constraint.d/PointVariPlaneDistanceConstraintFunction.h>
 #include <Element.d/MpcElement.d/ConstraintFunctionElement.h>
 
-class PointVariPlaneDistanceConstraintElement : public ConstraintFunctionElement<PointVariPlaneDistanceConstraintFunction>
+class PointVariPlaneDistanceConstraintElement : public ConstraintFunctionElement<Simo::PointVariPlaneDistanceConstraintFunction>
 {
   public:
     PointVariPlaneDistanceConstraintElement(int* _nn); 

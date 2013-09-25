@@ -1,10 +1,10 @@
-#ifndef _DOTTYPE2CFE_H_
-#define _DOTTYPE2CFE_H_
+#ifndef _DOTTYPE2CONSTRAINTELEMENT_H_
+#define _DOTTYPE2CONSTRAINTELEMENT_H_
 
-#include <Element.d/MpcElement.d/ConstraintFunction.d/DotType2ConstraintFunction.h>
+#include <Element.d/Function.d/Constraint.d/DotType2ConstraintFunction.h>
 #include <Element.d/MpcElement.d/ConstraintFunctionElement.h>
 
-class DotType2ConstraintElement : public ConstraintFunctionElement<DotType2ConstraintFunction>
+class DotType2ConstraintElement : public ConstraintFunctionElement<Simo::DotType2ConstraintFunction>
 {
   protected:
     double (*C0)[3]; // initial frame (axes stored row-wise)

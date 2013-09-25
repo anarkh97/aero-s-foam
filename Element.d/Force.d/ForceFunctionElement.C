@@ -2,8 +2,8 @@
 #include <Utils.d/dofset.h>
 #include <Corotational.d/GeomState.h>
 #include <Corotational.d/utilities.h>
-#include <Element.d/Function.d/VectorValuedFunction.h>
-#include <Element.d/Function.d/SpaceJacobian.h>
+#include <Element.d/Function.d/Function.h>
+#include <Element.d/Function.d/SpaceDerivatives.h>
 #include <Element.d/Function.d/utilities.hpp>
 
 template<template <typename S> class VectorValuedFunctionTemplate>
@@ -216,7 +216,7 @@ ForceFunctionElement<VectorValuedFunctionTemplate>::getJacobian(GeomState *refSt
   getInputs(q, c0, &c1, refState);
 
   // instantiate the jacobian object
-  Simo::SpaceJacobian<double,VectorValuedFunctionTemplate> dfdq(sconst,iconst);
+  Simo::Jacobian<double,VectorValuedFunctionTemplate> dfdq(sconst,iconst);
 
   // evaluate the jacobian
   const int M = VectorValuedFunctionTemplate<double>::NumberOfValues;

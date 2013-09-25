@@ -1,10 +1,13 @@
-#ifndef _SEGVARISEGDISTANCECONSTRAINTFUNCTION_H_
-#define _SEGVARISEGDISTANCECONSTRAINTFUNCTION_H_
+#ifndef _SEGMENTSEGMENTDISTANCECONSTRAINTFUNCTION_H_
+#define _SEGMENTSEGMENTDISTANCECONSTRAINTFUNCTION_H_
 
-#include <Element.d/MpcElement.d/ConstraintFunction.d/ConstraintFunction.h>
-#include <iostream>
+#include <Element.d/Function.d/Function.h>
+#include <cmath>
+
+namespace Simo {
+
 template<typename Scalar>
-class SegVariSegDistanceConstraintFunction : public RheonomicConstraintFunction<12,Scalar,17,1,double>
+class SegmentSegmentDistanceConstraintFunction : public ScalarValuedFunction<6,Scalar,17,1,double>
 {
     // constrains the distance (d) between two line segments (defined by points p0,p1 and q0,q1 respectively)
     // according to d - (A*sin(omega*t+phi) + (B-C*t)*d0) = 0, <= 0 or >= 0
@@ -18,7 +21,7 @@ class SegVariSegDistanceConstraintFunction : public RheonomicConstraintFunction<
     bool negate;
 
   public:
-    SegVariSegDistanceConstraintFunction(const Eigen::Array<double,17,1>& sconst, const Eigen::Array<int,1,1>& iconst)
+    SegmentSegmentDistanceConstraintFunction(const Eigen::Array<double,17,1>& sconst, const Eigen::Array<int,1,1>& iconst)
     {
       p0 = sconst.segment<3>(0);
       p1 = sconst.segment<3>(3);
@@ -96,24 +99,18 @@ class SegVariSegDistanceConstraintFunction : public RheonomicConstraintFunction<
       d0  = (w + (sc*u) - (tc*v)).norm();
     }
 
-    Scalar operator() (const Eigen::Matrix<Scalar,12,1>& q, Scalar t) const
+    Scalar operator() (const Eigen::Matrix<Scalar,6,1>& q, Scalar t)
     {
-      // q[0] = x translation of point 0
-      // q[1] = y translation of point 0
-      // q[2] = z translation of point 0
-      // q[3] = x translation of point 1
-      // q[4] = y translation of point 1
-      // q[5] = z translation of point 1
-      // q[6] = x translation of point 2
-      // q[7] = y translation of point 2
-      // q[8] = z translation of point 2
-      // q[9] = x translation of point 3
-      // q[10] = y translation of point 3
-      // q[11] = z translation of point 3
-      Eigen::Matrix<Scalar,3,1> p0 = SegVariSegDistanceConstraintFunction::p0.template cast<Scalar>() + q.template segment<3>(0);
-      Eigen::Matrix<Scalar,3,1> p1 = SegVariSegDistanceConstraintFunction::p1.template cast<Scalar>() + q.template segment<3>(3);
-      Eigen::Matrix<Scalar,3,1> q0 = SegVariSegDistanceConstraintFunction::q0.template cast<Scalar>() + q.template segment<3>(6);
-      Eigen::Matrix<Scalar,3,1> q1 = SegVariSegDistanceConstraintFunction::q1.template cast<Scalar>() + q.template segment<3>(9);
+      // q[0] = x translation of point 1
+      // q[1] = y translation of point 1
+      // q[2] = z translation of point 1
+      // q[3] = x translation of point 2
+      // q[4] = y translation of point 2
+      // q[5] = z translation of point 2
+      Eigen::Matrix<Scalar,3,1> p0 = SegmentSegmentDistanceConstraintFunction::p0.template cast<Scalar>() + q.template segment<3>(0);
+      Eigen::Matrix<Scalar,3,1> p1 = SegmentSegmentDistanceConstraintFunction::p1.template cast<Scalar>() + q.template segment<3>(3);
+      Eigen::Matrix<Scalar,3,1> q0 = SegmentSegmentDistanceConstraintFunction::q0.template cast<Scalar>();
+      Eigen::Matrix<Scalar,3,1> q1 = SegmentSegmentDistanceConstraintFunction::q1.template cast<Scalar>();
 
       Eigen::Matrix<Scalar,3,1> u = p1 - p0;
       Eigen::Matrix<Scalar,3,1> v = q1 - q0;
@@ -128,7 +125,7 @@ class SegVariSegDistanceConstraintFunction : public RheonomicConstraintFunction<
       Scalar tc, tN, tD = D;
         
       if(D < 1.0e-6) {
-        sN = (Scalar)  0.0;
+        sN = (Scalar) 0.0;
         sD = (Scalar) 1.0;
         tN = e;
         tD = c;
@@ -196,8 +193,9 @@ class SegVariSegDistanceConstraintFunction : public RheonomicConstraintFunction<
       if(negate) return -f; else return f;
     }
 
-  public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
+
+} // namespace Simo
 
 #endif

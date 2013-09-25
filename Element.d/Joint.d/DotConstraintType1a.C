@@ -26,7 +26,7 @@ DotConstraintType1a::buildFrame(CoordSet& cs)
 }
 
 void 
-DotConstraintType1a::update(GeomState& gState, CoordSet& cs, double t)
+DotConstraintType1a::update(GeomState *refState, GeomState& gState, CoordSet& cs, double t)
 {
   ElementaryFunction f(prop->funtype, prop->amplitude, prop->offset, prop->c1, prop->c2, prop->c3, prop->c4);
   double theta = f(t);
@@ -44,11 +44,11 @@ DotConstraintType1a::update(GeomState& gState, CoordSet& cs, double t)
   }
   d0 = std::cos(theta-offset);
 
-  DotType1ConstraintElement::update(gState, cs, t);
+  DotType1ConstraintElement::update(refState, gState, cs, t);
 }
 
 double
-DotConstraintType1a::getVelocityConstraintRhs(GeomState *gState, CoordSet& cs, double t)
+DotConstraintType1a::getVelocityConstraintRhs(GeomState *refState, GeomState& gState, CoordSet& cs, double t)
 {
   double vel_rhs = 0;
   // g(t)   = -cos(f(t)-c) + d
@@ -63,9 +63,9 @@ DotConstraintType1a::getVelocityConstraintRhs(GeomState *gState, CoordSet& cs, d
 }
 
 double
-DotConstraintType1a::getAccelerationConstraintRhs(GeomState *gState, CoordSet& cs, double t)
+DotConstraintType1a::getAccelerationConstraintRhs(GeomState *refState, GeomState& gState, CoordSet& cs, double t)
 {
-  double acc_rhs = MpcElement::getAccelerationConstraintRhs(gState, cs, t);
+  double acc_rhs = MpcElement::getAccelerationConstraintRhs(refState, gState, cs, t);
   // g(t)   = -cos(f(t)-c) + d
   // g''(t) = f'(t)^2*cos(c-f(t)) - f''(t)*sin(c-f(t))
   if(prop) {

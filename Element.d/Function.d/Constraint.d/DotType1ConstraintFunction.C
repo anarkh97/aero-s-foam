@@ -1,14 +1,18 @@
 #ifdef USE_EIGEN3
-#include <Element.d/MpcElement.d/ConstraintFunction.d/DotType1ConstraintFunction.h>
-#include <Element.d/MpcElement.d/ConstraintFunction.d/exp-map.h>
+#include <Element.d/Function.d/Constraint.d/DotType1ConstraintFunction.h>
+#include <Element.d/Function.d/Constraint.d/exp-map.h>
+
+namespace Simo {
 
 // specializing the member function template of constraint jacobian operator for dot
 // type 1 constraint function with double precision scalar
-template<> template<>
-int
-ConstraintJacobian<double,DotType1ConstraintFunction>
-::operator() (const Eigen::Matrix<double,6,1>& q, Eigen::Matrix<double,6,1>& J) const
+template<>
+Eigen::Matrix<double,1,6>
+Jacobian<double,DotType1ConstraintFunction>
+::operator() (const Eigen::Matrix<double,6,1>& q, double)
 {
+  Eigen::Matrix<double,6,1> J;
+
   Eigen::Matrix<double,3,1> a0,b0,b0hat,a,bhat,d1,d2;
   a0 << sconst(0), sconst(1), sconst(2);
   b0 << sconst(3), sconst(4), sconst(5);
@@ -19,7 +23,7 @@ ConstraintJacobian<double,DotType1ConstraintFunction>
     J.head<3>() = a0.cross(b0hat);
     J.tail<3>() = -J.head<3>();
 
-    return 1;
+    return J.transpose();
   }
 
   // rotation parameters
@@ -27,10 +31,10 @@ ConstraintJacobian<double,DotType1ConstraintFunction>
   Eigen::Vector3d v2 = q.segment<3>(3);
 
   // rotated axes
-  Eigen::Quaternion<double> q1, q2;
-  q1.setFromOneVector(v1); q2.setFromOneVector(v2);
-  a = q1.toRotationMatrix()*a0;
-  bhat = q2.toRotationMatrix()*b0hat;
+  Eigen::Quaternion<double> z1, z2;
+  z1.setFromOneVector(v1); z2.setFromOneVector(v2);
+  a = z1.toRotationMatrix()*a0;
+  bhat = z2.toRotationMatrix()*b0hat;
 
   // partial derivatives of rotation matrices wrt rotation parameters
   double dRdvi1_data[3][3], dRdvi2_data[3][3];
@@ -47,16 +51,18 @@ ConstraintJacobian<double,DotType1ConstraintFunction>
     J[3+i] = a.dot(d2);
   }
 
-  return 1;
+  return J.transpose();
 }
 
 // specializing the member function template of constraint hessian operator for dot
 // type 1 constraint function with double precision scalar
-template<> template<>
-int
-SacadoReverseJacobian<ConstraintJacobian<double,DotType1ConstraintFunction> >
-::operator() (const Eigen::Matrix<double,6,1>& q, Eigen::Matrix<double,6,6>& H) const
+template<>
+Eigen::Matrix<double,6,6>
+Hessian<double,DotType1ConstraintFunction>
+::operator() (const Eigen::Matrix<double,6,1>& q, double)
 {
+  Eigen::Matrix<double,6,6> H;
+
   Eigen::Vector3d a0,b0,b0hat,a,bhat,d1,d2;
   a0 << sconst(0), sconst(1), sconst(2);
   b0 << sconst(3), sconst(4), sconst(5);
@@ -86,7 +92,7 @@ SacadoReverseJacobian<ConstraintJacobian<double,DotType1ConstraintFunction> >
     H(2,4) = H(4,2) = -ab(1,2);
     H(2,5) = H(5,2) =  ab(1,1) + ab(0,0);
 
-    return 1;
+    return H;
   }
 
   // rotation parameters
@@ -94,10 +100,10 @@ SacadoReverseJacobian<ConstraintJacobian<double,DotType1ConstraintFunction> >
   Eigen::Vector3d v2 = q.segment<3>(3);
 
   // rotated axes
-  Eigen::Quaternion<double> q1, q2;
-  q1.setFromOneVector(v1); q2.setFromOneVector(v2);
-  a = q1.toRotationMatrix()*a0;
-  bhat = q2.toRotationMatrix()*b0hat;
+  Eigen::Quaternion<double> z1, z2;
+  z1.setFromOneVector(v1); z2.setFromOneVector(v2);
+  a = z1.toRotationMatrix()*a0;
+  bhat = z2.toRotationMatrix()*b0hat;
 
   // first and second partial derivatives of rotation matrices wrt rotation parameters
   double d2Rdvidvj_data[3][3], dRdvi_data[3][3], dRdvj_data[3][3];
@@ -125,6 +131,9 @@ SacadoReverseJacobian<ConstraintJacobian<double,DotType1ConstraintFunction> >
     }
   }
 
-  return 1;
+  return H;
 }
+
+} // namespace Simo
+
 #endif

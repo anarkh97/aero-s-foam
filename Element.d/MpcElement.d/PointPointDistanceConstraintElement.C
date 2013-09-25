@@ -2,7 +2,7 @@
 #include <Element.d/MpcElement.d/PointPointDistanceConstraintElement.h>
 
 PointPointDistanceConstraintElement::PointPointDistanceConstraintElement(int* _nn)
- : ConstraintFunctionElement<PointPointDistanceConstraintFunction>(1, DofSet::XYZdisp, _nn, 0) 
+ : ConstraintFunctionElement<Simo::PointPointDistanceConstraintFunction>(1, DofSet::XYZdisp, _nn, 0) 
 {
 }
 

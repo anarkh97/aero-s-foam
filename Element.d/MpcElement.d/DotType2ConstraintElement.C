@@ -5,7 +5,7 @@
 const DofSet DotType2ConstraintElement::NODALDOFS[2] = { DofSet::XYZdisp | DofSet::XYZrot, DofSet::XYZdisp };
 
 DotType2ConstraintElement::DotType2ConstraintElement(int* _nn, int _axis)
- : ConstraintFunctionElement<DotType2ConstraintFunction>(2, const_cast<DofSet*>(NODALDOFS), _nn, 0)
+ : ConstraintFunctionElement<Simo::DotType2ConstraintFunction>(2, const_cast<DofSet*>(NODALDOFS), _nn, 0)
 {
   axis = _axis;
   C0 = 0;
@@ -54,6 +54,6 @@ DotType2ConstraintElement::buildFrame(CoordSet& cs)
     exit(-1);
   }
 
-  ConstraintFunctionElement<DotType2ConstraintFunction>::buildFrame(cs);
+  ConstraintFunctionElement<Simo::DotType2ConstraintFunction>::buildFrame(cs);
 }
 #endif

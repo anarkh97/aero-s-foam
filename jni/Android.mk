@@ -497,16 +497,16 @@ LOCAL_SRC_FILES  := ../Element.d/AddElem.C \
 	../Element.d/MpcElement.d/PointVariPointDistanceConstraintElement.C \
 	../Element.d/MpcElement.d/PointVariLineDistanceConstraintElement.C \
 	../Element.d/MpcElement.d/PointVariPlaneDistanceConstraintElement.C \
-	../Element.d/MpcElement.d/ConstraintFunction.d/DistanceConstraintFunction.C \
-	../Element.d/MpcElement.d/ConstraintFunction.d/DotType1ConstraintFunction.C \
-	../Element.d/MpcElement.d/ConstraintFunction.d/DotType2ConstraintFunction.C \
-	../Element.d/MpcElement.d/ConstraintFunction.d/DotType2v2ConstraintFunction.C \
-	../Element.d/MpcElement.d/ConstraintFunction.d/AngleType1ConstraintFunction.C \
-	../Element.d/MpcElement.d/ConstraintFunction.d/PointPointDistanceConstraintFunction.C \
-	../Element.d/MpcElement.d/ConstraintFunction.d/PointLineDistanceConstraintFunction.C \
-	../Element.d/MpcElement.d/ConstraintFunction.d/PointPlaneDistanceConstraintFunction.C \
-	../Element.d/MpcElement.d/ConstraintFunction.d/PointVariPointDistanceConstraintFunction.C \
-	../Element.d/MpcElement.d/ConstraintFunction.d/exp-map.C \
+	../Element.d/Function.d/Constraint.d/DistanceConstraintFunction.C \
+	../Element.d/Function.d/Constraint.d/DotType1ConstraintFunction.C \
+	../Element.d/Function.d/Constraint.d/DotType2ConstraintFunction.C \
+	../Element.d/Function.d/Constraint.d/DotType2v2ConstraintFunction.C \
+	../Element.d/Function.d/Constraint.d/AngleType1ConstraintFunction.C \
+	../Element.d/Function.d/Constraint.d/PointPointDistanceConstraintFunction.C \
+	../Element.d/Function.d/Constraint.d/PointLineDistanceConstraintFunction.C \
+	../Element.d/Function.d/Constraint.d/PointPlaneDistanceConstraintFunction.C \
+	../Element.d/Function.d/Constraint.d/PointVariPointDistanceConstraintFunction.C \
+	../Element.d/Function.d/Constraint.d/exp-map.C \
 	../Element.d/NonLinearity.d/2DMat.C \
 	../Element.d/NonLinearity.d/ShapeFunction.C \
 	../Element.d/NonLinearity.d/ElaLinIsoMat.C \

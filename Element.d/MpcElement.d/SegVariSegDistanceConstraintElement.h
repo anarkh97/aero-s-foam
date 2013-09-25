@@ -1,10 +1,10 @@
-#ifndef _SEGVARISEGDISTANCECFE_H_
-#define _SEGVARISEGDISTANCECFE_H_
+#ifndef _SEGVARISEGDISTANCECONSTRAINTELEMENT_H_
+#define _SEGVARISEGDISTANCECONSTRAINTELEMENT_H_
 
-#include <Element.d/MpcElement.d/ConstraintFunction.d/SegVariSegDistanceConstraintFunction.h>
+#include <Element.d/Function.d/Constraint.d/SegVariSegDistanceConstraintFunction.h>
 #include <Element.d/MpcElement.d/ConstraintFunctionElement.h>
 
-class SegVariSegDistanceConstraintElement : public ConstraintFunctionElement<SegVariSegDistanceConstraintFunction>
+class SegVariSegDistanceConstraintElement : public ConstraintFunctionElement<Simo::SegVariSegDistanceConstraintFunction>
 {
 
   public:

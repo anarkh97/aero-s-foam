@@ -1,10 +1,13 @@
 #ifndef _DOTTYPE3CONSTRAINTFUNCTION_H_
 #define _DOTTYPE3CONSTRAINTFUNCTION_H_
 
-#include <Element.d/MpcElement.d/ConstraintFunction.d/ConstraintFunction.h>
+#include <Element.d/Function.d/Function.h>
+#include <Element.d/Function.d/SpaceDerivatives.h>
+
+namespace Simo {
 
 template<typename Scalar>
-class DotType3ConstraintFunction : public RheonomicConstraintFunction<12,Scalar,10,0,double>
+class DotType3ConstraintFunction : public ScalarValuedFunction<12,Scalar,10,0,double>
 {
    Eigen::Matrix<double,3,1> a0,b0hat,c0hat;
    double d0;
@@ -21,7 +24,7 @@ class DotType3ConstraintFunction : public RheonomicConstraintFunction<12,Scalar,
       d0 = sconst(9);
     }
 
-    Scalar operator() (const Eigen::Matrix<Scalar,12,1>& q, Scalar t) const
+    Scalar operator() (const Eigen::Matrix<Scalar,12,1>& q, Scalar t)
     {
       // q[0] = x translation of node 1
       // q[1] = y translation of node 1
@@ -42,30 +45,31 @@ class DotType3ConstraintFunction : public RheonomicConstraintFunction<12,Scalar,
       // see: http://en.wikipedia.org/wiki/Scalar_projection
 
       Eigen::Matrix<Scalar,3,1> u1 = q.template segment<3>(0);
-      Eigen::Quaternion<Scalar> q1;
-      q1.setFromOneVector(q.template segment<3>(3));
+      Eigen::Quaternion<Scalar> z1;
+      z1.setFromOneVector(q.template segment<3>(3));
 
       Eigen::Matrix<Scalar,3,1> u2 = q.template segment<3>(6);
-      Eigen::Quaternion<Scalar> q2;
-      q2.setFromOneVector(q.template segment<3>(9));
+      Eigen::Quaternion<Scalar> z2;
+      z2.setFromOneVector(q.template segment<3>(9));
 
-      // "unbiased" alternative to dot constraint type 2: gives consistency with linear elasticity for beam
+      // "unbiased" alternative to dot constraint type 2
       return -d0 + (a0.template cast<Scalar>() + u2 - u1).dot
-             (q1.toRotationMatrix()*b0hat.template cast<Scalar>()+q2.toRotationMatrix()*c0hat.template cast<Scalar>());
+             (z1.toRotationMatrix()*b0hat.template cast<Scalar>()+z2.toRotationMatrix()*c0hat.template cast<Scalar>());
     }
 
-  public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
-template<> template<>
-int
-ConstraintJacobian<double,DotType3ConstraintFunction>
-::operator() (const Eigen::Matrix<double,12,1>& q, Eigen::Matrix<double,12,1>& J) const;
+template<>
+Eigen::Matrix<double,1,12>
+Jacobian<double,DotType3ConstraintFunction>
+::operator() (const Eigen::Matrix<double,12,1>& q, double t);
 
-template<> template<>
-int
-SacadoReverseJacobian<ConstraintJacobian<double,DotType3ConstraintFunction> >
-::operator() (const Eigen::Matrix<double,12,1>& q, Eigen::Matrix<double,12,12>& H) const;
+template<>
+Eigen::Matrix<double,12,12>
+Hessian<double,DotType3ConstraintFunction>
+::operator() (const Eigen::Matrix<double,12,1>& q, double t);
+
+} // namespace Simo
 
 #endif

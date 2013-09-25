@@ -1,10 +1,14 @@
 #ifndef _POINTPLANEDISTANCECONSTRAINTFUNCTION_H_
 #define _POINTPLANEDISTANCECONSTRAINTFUNCTION_H_
 
-#include <Element.d/MpcElement.d/ConstraintFunction.d/ConstraintFunction.h>
+#include <Element.d/Function.d/Function.h>
+#include <Element.d/Function.d/SpaceDerivatives.h>
+#include <cmath>
+
+namespace Simo {
 
 template<typename Scalar>
-class PointPlaneDistanceConstraintFunction : public RheonomicConstraintFunction<3,Scalar,17,1,double>
+class PointPlaneDistanceConstraintFunction : public ScalarValuedFunction<3,Scalar,17,1,double>
 {
     // constrains the distance (d) between a point (x0) and a fixed plane (defined by three points x1, x2 and x3) according to
     // d - (A*sin(omega*t+phi) + (BC*t)*d0) = 0, <= 0 or >= 0
@@ -37,11 +41,11 @@ class PointPlaneDistanceConstraintFunction : public RheonomicConstraintFunction<
       d0 = nhat.dot(x0-x1);
     }
 
-    Scalar operator() (const Eigen::Matrix<Scalar,3,1>& q, Scalar t) const
+    Scalar operator() (const Eigen::Matrix<Scalar,3,1>& q, Scalar t)
     {
-      // q(0) = x translation of point 0
-      // q(1) = y translation of point 0
-      // q(2) = z translation of point 0
+      // q(0) = x translation of point 1
+      // q(1) = y translation of point 1
+      // q(2) = z translation of point 1
       Eigen::Matrix<Scalar,3,1> x0 = PointPlaneDistanceConstraintFunction::x0.template cast<Scalar>() + q;
       Eigen::Matrix<Scalar,3,1> x1 = PointPlaneDistanceConstraintFunction::x1.template cast<Scalar>();
       Eigen::Matrix<Scalar,3,1> nhat = PointPlaneDistanceConstraintFunction::nhat.template cast<Scalar>();
@@ -54,18 +58,19 @@ class PointPlaneDistanceConstraintFunction : public RheonomicConstraintFunction<
       if(negate) return -f; else return f;
     }
 
-  public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
-template<> template<>
-int
-ConstraintJacobian<double,PointPlaneDistanceConstraintFunction>
-::operator() (const Eigen::Matrix<double,3,1>& q, Eigen::Matrix<double,3,1>& J) const;
+template<>
+Eigen::Matrix<double,1,3>
+Jacobian<double,PointPlaneDistanceConstraintFunction>
+::operator() (const Eigen::Matrix<double,3,1>& q, double t);
 
-template<> template<>
-int
-SacadoReverseJacobian<ConstraintJacobian<double,PointPlaneDistanceConstraintFunction> >
-::operator() (const Eigen::Matrix<double,3,1>& q, Eigen::Matrix<double,3,3>& H) const;
+template<>
+Eigen::Matrix<double,3,3>
+Hessian<double,PointPlaneDistanceConstraintFunction>
+::operator() (const Eigen::Matrix<double,3,1>& q, double t);
+
+} // namespace Simo
 
 #endif

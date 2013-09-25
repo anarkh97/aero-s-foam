@@ -1,10 +1,10 @@
-#ifndef _SEGMENTSEGMENTDISTANCECFE_H_
-#define _SEGMENTSEGMENTDISTANCECFE_H_
+#ifndef _SEGMENTSEGMENTDISTANCECONSTRAINTELEMENT_H_
+#define _SEGMENTSEGMENTDISTANCECONSTRAINTELEMENT_H_
 
-#include <Element.d/MpcElement.d/ConstraintFunction.d/SegmentSegmentDistanceConstraintFunction.h>
+#include <Element.d/Function.d/Constraint.d/SegmentSegmentDistanceConstraintFunction.h>
 #include <Element.d/MpcElement.d/ConstraintFunctionElement.h>
 
-class SegmentSegmentDistanceConstraintElement : public ConstraintFunctionElement<SegmentSegmentDistanceConstraintFunction>
+class SegmentSegmentDistanceConstraintElement : public ConstraintFunctionElement<Simo::SegmentSegmentDistanceConstraintFunction>
 {
     double x1[3], x2[3]; // coordinates of the 2 points defining the line
 

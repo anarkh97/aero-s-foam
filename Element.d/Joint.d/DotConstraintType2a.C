@@ -15,16 +15,16 @@ DotConstraintType2a::buildFrame(CoordSet& cs)
 }
 
 void 
-DotConstraintType2a::update(GeomState& gState, CoordSet& cs, double t)
+DotConstraintType2a::update(GeomState *refState, GeomState& gState, CoordSet& cs, double t)
 {
   ElementaryFunction f(prop->funtype, prop->amplitude, prop->offset, prop->c1, prop->c2, prop->c3, prop->c4);
   d0 = f(t);
 
-  DotType2ConstraintElement::update(gState, cs, t);
+  DotType2ConstraintElement::update(refState, gState, cs, t);
 }
 
 double
-DotConstraintType2a::getVelocityConstraintRhs(GeomState *gState, CoordSet& cs, double t)
+DotConstraintType2a::getVelocityConstraintRhs(GeomState *refState, GeomState& gState, CoordSet& cs, double t)
 {
   double vel_rhs = 0;
   if(prop) {
@@ -35,9 +35,9 @@ DotConstraintType2a::getVelocityConstraintRhs(GeomState *gState, CoordSet& cs, d
 }
 
 double
-DotConstraintType2a::getAccelerationConstraintRhs(GeomState *gState, CoordSet& cs, double t)
+DotConstraintType2a::getAccelerationConstraintRhs(GeomState *refState, GeomState& gState, CoordSet& cs, double t)
 {
-  double acc_rhs = MpcElement::getAccelerationConstraintRhs(gState, cs, t);
+  double acc_rhs = MpcElement::getAccelerationConstraintRhs(refState, gState, cs, t);
   if(prop) {
     ElementaryFunction f(prop->funtype, prop->amplitude, prop->offset, prop->c1, prop->c2, prop->c3, prop->c4);
     acc_rhs -= f.secondDerivative(t);

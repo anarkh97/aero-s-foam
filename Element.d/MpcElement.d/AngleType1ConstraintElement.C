@@ -3,7 +3,7 @@
 #include <Corotational.d/GeomState.h>
 
 AngleType1ConstraintElement::AngleType1ConstraintElement(int* _nn, int _axis1, int _axis2, double _offset)
- : ConstraintFunctionElement<AngleType1ConstraintFunction>(2, DofSet::XYZrot, _nn, 0)
+ : ConstraintFunctionElement<Simo::AngleType1ConstraintFunction>(2, DofSet::XYZrot, _nn, 0)
 {
   C0 = 0;
   axis1 = _axis1;
@@ -52,6 +52,6 @@ AngleType1ConstraintElement::buildFrame(CoordSet& cs)
     exit(-1);
   }
 
-  ConstraintFunctionElement<AngleType1ConstraintFunction>::buildFrame(cs);
+  ConstraintFunctionElement<Simo::AngleType1ConstraintFunction>::buildFrame(cs);
 }
 #endif

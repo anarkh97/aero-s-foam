@@ -2,7 +2,7 @@
 #include <Element.d/MpcElement.d/DistanceConstraintElement.h>
 
 DistanceConstraintElement::DistanceConstraintElement(int* _nn, double _f0, int _type)
- : ConstraintFunctionElement<DistanceConstraintFunction>(2, DofSet::XYZdisp, _nn, _type)
+ : ConstraintFunctionElement<Simo::DistanceConstraintFunction>(2, DofSet::XYZdisp, _nn, _type)
 {
   f0 = _f0;
 }

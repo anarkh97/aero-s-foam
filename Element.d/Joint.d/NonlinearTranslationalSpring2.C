@@ -23,9 +23,9 @@ NonlinearTranslationalSpring2::buildFrame(CoordSet& cs)
 }
 
 void 
-NonlinearTranslationalSpring2::update(GeomState& gState, CoordSet& cs, double t)
+NonlinearTranslationalSpring2::update(GeomState *refState, GeomState& gState, CoordSet& cs, double t)
 {
-  DotType3ConstraintElement::update(gState, cs, t);
+  DotType3ConstraintElement::update(refState, gState, cs, t);
   rhs.r_value += sp0;
 }
 #endif

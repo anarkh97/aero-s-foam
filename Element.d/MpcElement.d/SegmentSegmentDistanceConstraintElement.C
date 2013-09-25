@@ -2,7 +2,7 @@
 #include <Element.d/MpcElement.d/SegmentSegmentDistanceConstraintElement.h>
 
 SegmentSegmentDistanceConstraintElement::SegmentSegmentDistanceConstraintElement(int* _nn)
- : ConstraintFunctionElement<SegmentSegmentDistanceConstraintFunction>(2, DofSet::XYZdisp, _nn, 0) 
+ : ConstraintFunctionElement<Simo::SegmentSegmentDistanceConstraintFunction>(2, DofSet::XYZdisp, _nn, 0) 
 {
 }
 

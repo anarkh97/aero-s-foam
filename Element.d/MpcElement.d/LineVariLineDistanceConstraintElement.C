@@ -2,7 +2,7 @@
 #include <Element.d/MpcElement.d/LineVariLineDistanceConstraintElement.h>
 
 LineVariLineDistanceConstraintElement::LineVariLineDistanceConstraintElement(int* _nn)
- : ConstraintFunctionElement<LineVariLineDistanceConstraintFunction>(4, DofSet::XYZdisp, _nn, 0) 
+ : ConstraintFunctionElement<Simo::LineVariLineDistanceConstraintFunction>(4, DofSet::XYZdisp, _nn, 0) 
 {
 }
 

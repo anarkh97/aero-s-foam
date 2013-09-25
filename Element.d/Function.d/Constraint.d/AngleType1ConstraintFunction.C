@@ -1,15 +1,19 @@
 #ifdef USE_EIGEN3
-#include <Element.d/MpcElement.d/ConstraintFunction.d/AngleType1ConstraintFunction.h>
-#include <Element.d/MpcElement.d/ConstraintFunction.d/exp-map.h>
-#include <iostream>
+#include <Element.d/Function.d/Constraint.d/AngleType1ConstraintFunction.h>
+#include <Element.d/Function.d/Constraint.d/exp-map.h>
+
+namespace Simo {
 
 // specializing the member function template of constraint jacobian operator for angle
 // type 1 constraint function with double precision scalar
-template<> template<>
-int
-ConstraintJacobian<double,AngleType1ConstraintFunction>
-::operator() (const Eigen::Matrix<double,6,1>& q, Eigen::Matrix<double,6,1>& J) const
+template<> 
+Eigen::Matrix<double,1,6>
+Jacobian<double,AngleType1ConstraintFunction>
+::operator() (const Eigen::Matrix<double,6,1>& q, double)
 {
+  // return value
+  Eigen::Matrix<double,6,1> J;
+
   Eigen::Vector3d a0,b0,a0hat,b0hat,ahat,bhat,d1,d2;
   a0 << sconst(0), sconst(1), sconst(2);
   b0 << sconst(3), sconst(4), sconst(5);
@@ -23,7 +27,7 @@ ConstraintJacobian<double,AngleType1ConstraintFunction>
     J.head<3>() = a0hat.cross(b0hat);
     J.tail<3>() = -J.head<3>();
     J *= dacosdx;
-    return 1;
+    return J.transpose();
   }
 
   // rotation parameters
@@ -31,10 +35,10 @@ ConstraintJacobian<double,AngleType1ConstraintFunction>
   Eigen::Vector3d v2 = q.segment<3>(3);
 
   // rotated axes
-  Eigen::Quaternion<double> q1, q2;
-  q1.setFromOneVector(v1); q2.setFromOneVector(v2);
-  ahat = q1.toRotationMatrix()*a0hat;
-  bhat = q2.toRotationMatrix()*b0hat;
+  Eigen::Quaternion<double> z1, z2;
+  z1.setFromOneVector(v1); z2.setFromOneVector(v2);
+  ahat = z1.toRotationMatrix()*a0hat;
+  bhat = z2.toRotationMatrix()*b0hat;
 
   double x = ahat.dot(bhat);       // cos(theta)
   double dacosdx = -1/sqrt(1-x*x); // derivative of arccos(x) w.r.t. x
@@ -54,16 +58,18 @@ ConstraintJacobian<double,AngleType1ConstraintFunction>
     J[3+i] = dacosdx*(ahat.dot(d2));
   }
 
-  return 1;
+  return J.transpose();
 }
 
 // specializing the member function template of constraint hessian operator for angle
 // type 1 constraint function with double precision scalar
-template<> template<>
-int
-SacadoReverseJacobian<ConstraintJacobian<double,AngleType1ConstraintFunction> >
-::operator() (const Eigen::Matrix<double,6,1>& q, Eigen::Matrix<double,6,6>& H) const
+template<>
+Eigen::Matrix<double,6,6>
+Hessian<double,AngleType1ConstraintFunction>
+::operator() (const Eigen::Matrix<double,6,1>& q, double t)
 {
+  Eigen::Matrix<double,6,6> H;
+
   using std::sqrt;
   H.setZero();
 
@@ -109,7 +115,7 @@ SacadoReverseJacobian<ConstraintJacobian<double,AngleType1ConstraintFunction> >
 
     H += tmp3;
 
-    return 1;
+    return H;
   }
 
 
@@ -118,14 +124,15 @@ SacadoReverseJacobian<ConstraintJacobian<double,AngleType1ConstraintFunction> >
   Eigen::Vector3d v2 = q.segment<3>(3);
 
   // rotated axes
-  Eigen::Quaternion<double> q1, q2;
-  q1.setFromOneVector(v1); q2.setFromOneVector(v2);
-  ahat = q1.toRotationMatrix()*a0hat;
-  bhat = q2.toRotationMatrix()*b0hat;
+  Eigen::Quaternion<double> z1, z2;
+  z1.setFromOneVector(v1); z2.setFromOneVector(v2);
+  ahat = z1.toRotationMatrix()*a0hat;
+  bhat = z2.toRotationMatrix()*b0hat;
 
   // evaluate the jacobian
-  Eigen::Matrix<double,6,1> J;
-  ConstraintJacobian<double,AngleType1ConstraintFunction>::operator() (q, &J);
+  Eigen::Matrix<double,1,6> J;
+  Jacobian<double,AngleType1ConstraintFunction> dfdq(sconst, iconst);
+  J = dfdq(q, t);
 
   double x = ahat.dot(bhat);       // cos(theta)
   double dacosdx = -1/sqrt(1-x*x); // derivative of arccos(x) w.r.t. x
@@ -158,6 +165,9 @@ SacadoReverseJacobian<ConstraintJacobian<double,AngleType1ConstraintFunction> >
     }
   }
 
-  return 1;
+  return H;
 }
+
+} // namespace Simo
+
 #endif

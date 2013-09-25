@@ -1,10 +1,10 @@
-#ifndef _LINEVARILINEDISTANCECFE_H_
-#define _LINEVARILINEDISTANCECFE_H_
+#ifndef _LINEVARILINEDISTANCECONSTRAINTELEMENT_H_
+#define _LINEVARILINEDISTANCECONSTRAINTELEMENT_H_
 
-#include <Element.d/MpcElement.d/ConstraintFunction.d/LineVariLineDistanceConstraintFunction.h>
+#include <Element.d/Function.d/Constraint.d/LineVariLineDistanceConstraintFunction.h>
 #include <Element.d/MpcElement.d/ConstraintFunctionElement.h>
 
-class LineVariLineDistanceConstraintElement : public ConstraintFunctionElement<LineVariLineDistanceConstraintFunction>
+class LineVariLineDistanceConstraintElement : public ConstraintFunctionElement<Simo::LineVariLineDistanceConstraintFunction>
 {
 
   public:

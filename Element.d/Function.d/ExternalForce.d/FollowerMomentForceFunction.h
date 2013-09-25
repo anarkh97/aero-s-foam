@@ -1,8 +1,8 @@
 #ifndef _FOLLOWERMOMENTFUNCTION_H_
 #define _FOLLOWERMOMENTFUNCTION_H_
 
-#include <Element.d/Function.d/VectorValuedFunction.h>
-#include <Element.d/Function.d/SpaceJacobian.h>
+#include <Element.d/Function.d/Function.h>
+#include <Element.d/Function.d/SpaceDerivatives.h>
 #include <Element.d/Function.d/utilities.hpp>
 
 namespace Simo {
@@ -22,7 +22,7 @@ class FollowerMomentForceFunction : public VectorValuedFunction<3,3,Scalar,12,0,
               sconst[9], sconst[10], sconst[11];
     }
 
-    Eigen::Matrix<Scalar,3,1> operator() (const Eigen::Matrix<Scalar,3,1>& q, Scalar) const
+    Eigen::Matrix<Scalar,3,1> operator() (const Eigen::Matrix<Scalar,3,1>& q, Scalar)
     {
       // inputs:
       // q[0] = x component of incremental axis-angle rotation vector (w.r.t. reference configuration) of node 1
@@ -42,7 +42,7 @@ class FollowerMomentForceFunction : public VectorValuedFunction<3,3,Scalar,12,0,
 
 template<>
 Eigen::Matrix<double,3,3>
-SpaceJacobian<double,FollowerMomentForceFunction>
+Jacobian<double,FollowerMomentForceFunction>
 ::operator() (const Eigen::Matrix<double,3,1>& q, double t);
 
 } // namespace Simo

@@ -1,10 +1,13 @@
 #ifndef _DOTTYPE1CONSTRAINTFUNCTION_H_
 #define _DOTTYPE1CONSTRAINTFUNCTION_H_
 
-#include <Element.d/MpcElement.d/ConstraintFunction.d/ConstraintFunction.h>
+#include <Element.d/Function.d/Function.h>
+#include <Element.d/Function.d/SpaceDerivatives.h>
+
+namespace Simo {
 
 template<typename Scalar>
-class DotType1ConstraintFunction : public RheonomicConstraintFunction<6,Scalar,7,0,double>
+class DotType1ConstraintFunction : public ScalarValuedFunction<6,Scalar,7,0,double>
 {
    // a0 and b0 are vectors which can be interpreted as one selected axis of each of the body-attached frames attached 
    // to two nodes in some specified configuration.
@@ -24,7 +27,7 @@ class DotType1ConstraintFunction : public RheonomicConstraintFunction<6,Scalar,7
       b0hat = b0.normalized();
     }
 
-    Scalar operator() (const Eigen::Matrix<Scalar,6,1>& q, Scalar) const
+    Scalar operator() (const Eigen::Matrix<Scalar,6,1>& q, Scalar)
     {
       // inputs:
       // q[0] = 1st component of axis-angle rotation vector of node 1
@@ -52,18 +55,19 @@ class DotType1ConstraintFunction : public RheonomicConstraintFunction<6,Scalar,7
                    (z2.toRotationMatrix()*b0hat.template cast<Scalar>());
     }
 
-  public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
-template<> template<>
-int
-ConstraintJacobian<double,DotType1ConstraintFunction>
-::operator() (const Eigen::Matrix<double,6,1>& q, Eigen::Matrix<double,6,1>& f) const;
+template<>
+Eigen::Matrix<double,1,6>
+Jacobian<double,DotType1ConstraintFunction>
+::operator() (const Eigen::Matrix<double,6,1>& q, double t);
 
-template<> template<>
-int
-SacadoReverseJacobian<ConstraintJacobian<double,DotType1ConstraintFunction> >
-::operator() (const Eigen::Matrix<double,6,1>& q, Eigen::Matrix<double,6,6>& H) const;
+template<>
+Eigen::Matrix<double,6,6>
+Hessian<double,DotType1ConstraintFunction>
+::operator() (const Eigen::Matrix<double,6,1>& q, double t);
+
+} // namespace Simo
 
 #endif

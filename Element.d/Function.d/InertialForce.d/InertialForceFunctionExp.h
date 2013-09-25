@@ -1,7 +1,7 @@
 #ifndef _INERTIALFORCEFUNCTIONEXP_H_
 #define _INERTIALFORCEFUNCTIONEXP_H_
 
-#include <Element.d/Function.d/VectorValuedFunction.h>
+#include <Element.d/Function.d/Function.h>
 #include <Element.d/Function.d/utilities.hpp>
 
 // Compute the inertial moment for a rigid body with 3 rotational degrees of freedom.
@@ -38,7 +38,7 @@ class InertialForceFunctionExp : public VectorValuedFunction<3,3,Scalar,24,0,dou
       alphaDamp = sconst[23];
     }
 
-    Eigen::Matrix<Scalar,3,1> operator() (const Eigen::Matrix<Scalar,3,1>& q, Scalar t) const
+    Eigen::Matrix<Scalar,3,1> operator() (const Eigen::Matrix<Scalar,3,1>& q, Scalar t)
     {
       // inputs:
       // q[0] = x component of total axis-angle rotation vector of node 1

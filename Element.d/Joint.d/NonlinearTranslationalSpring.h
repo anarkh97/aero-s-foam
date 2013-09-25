@@ -18,7 +18,7 @@ class NonlinearTranslationalSpring : public DotType2ConstraintElement
     NonlinearTranslationalSpring(int*, int);
     void setProp(StructProp *p, bool _myProp = false);
     void buildFrame(CoordSet&);
-    void update(GeomState& gState, CoordSet& cs, double);
+    void update(GeomState *refState, GeomState& gState, CoordSet& cs, double);
 
     bool isSpring() { return true; }
     bool hasRot() { return true; }

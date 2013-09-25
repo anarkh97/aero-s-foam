@@ -18,7 +18,7 @@
 #ifdef USE_EIGEN3
 #include <Element.d/Function.d/InertialForce.d/InertialForceFunction.h>
 #include <Element.d/Function.d/InertialForce.d/InertialForceFunctionExp.h>
-#include <Element.d/Function.d/SpaceJacobian.h>
+#include <Element.d/Function.d/SpaceDerivatives.h>
 #endif
 #include <algorithm>
 
@@ -361,7 +361,7 @@ Domain::getNodeFictitiousForce(int inode, GeomState &geomState, double time, Geo
                     beta, gamma, alphaf, alpham, dt, sinfo.alphaDamp;
 
           // evaluate the jacobian of the inertial+viscous force
-          Simo::SpaceJacobian<double,InertialForceFunctionExp> dFdq(dconst,iconst);
+          Simo::Jacobian<double,InertialForceFunctionExp> dFdq(dconst,iconst);
           q << geomState[inode].theta[0], geomState[inode].theta[1], geomState[inode].theta[2];
           K = dFdq(q, time);
         }
@@ -376,7 +376,7 @@ Domain::getNodeFictitiousForce(int inode, GeomState &geomState, double time, Geo
                     beta, gamma, alphaf, alpham, dt, sinfo.alphaDamp;
 
           // evaluate the jacobian of the inertial+viscous force
-          Simo::SpaceJacobian<double,InertialForceFunction> dFdq(dconst,iconst);
+          Simo::Jacobian<double,InertialForceFunction> dFdq(dconst,iconst);
           q = Eigen::Vector3d::Zero();
           K = dFdq(q, time);
         }

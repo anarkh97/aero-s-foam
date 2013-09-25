@@ -1,14 +1,18 @@
 #ifdef USE_EIGEN3
-#include <Element.d/MpcElement.d/ConstraintFunction.d/DotType3ConstraintFunction.h>
-#include <Element.d/MpcElement.d/ConstraintFunction.d/exp-map.h>
+#include <Element.d/Function.d/Constraint.d/DotType3ConstraintFunction.h>
+#include <Element.d/Function.d/Constraint.d/exp-map.h>
+
+namespace Simo {
 
 // specializing the member function template of constraint jacobian operator for dot
 // type 2 (variant 2) constraint function with double precision scalar
-template<> template<>
-int
-ConstraintJacobian<double,DotType3ConstraintFunction>
-::operator() (const Eigen::Matrix<double,12,1>& q, Eigen::Matrix<double,12,1>& J) const
+template<>
+Eigen::Matrix<double,1,12>
+Jacobian<double,DotType3ConstraintFunction>
+::operator() (const Eigen::Matrix<double,12,1>& q, double)
 {
+  Eigen::Matrix<double,12,1> J;
+
   Eigen::Vector3d a0,b0,b0hat,c0,c0hat,a,bhat,chat,d1,d2;
   a0 << sconst(0), sconst(1), sconst(2);
   b0 << sconst(3), sconst(4), sconst(5);
@@ -24,7 +28,7 @@ ConstraintJacobian<double,DotType3ConstraintFunction>
     J.segment<3>(3) = b0hat.cross(a);
     J.segment<3>(6) = b0hat + c0hat;
     J.segment<3>(9) = c0hat.cross(a);
-    return 1;
+    return J.transpose();
   }
 
   // rotation parameters
@@ -32,13 +36,13 @@ ConstraintJacobian<double,DotType3ConstraintFunction>
   Eigen::Vector3d v2 = q.segment<3>(9);
 
   // rotated axis
-  Eigen::Quaternion<double> q1;
-  q1.setFromOneVector(v1);
-  bhat = q1.toRotationMatrix()*b0hat;
+  Eigen::Quaternion<double> z1;
+  z1.setFromOneVector(v1);
+  bhat = z1.toRotationMatrix()*b0hat;
 
-  Eigen::Quaternion<double> q2;
-  q2.setFromOneVector(v2);
-  chat = q2.toRotationMatrix()*c0hat;
+  Eigen::Quaternion<double> z2;
+  z2.setFromOneVector(v2);
+  chat = z2.toRotationMatrix()*c0hat;
 
   // partial derivatives of rotation matrices wrt rotation parameters
   double dRdvi_data[3][3];
@@ -59,16 +63,17 @@ ConstraintJacobian<double,DotType3ConstraintFunction>
     J[9+i] = d2.dot(a);
   }
 
-  return 1;
+  return J.transpose();
 }
 
 // specializing the member function template of constraint hessian operator for dot
 // type 2 (variant 2) constraint function with double precision scalar
-template<> template<>
-int
-SacadoReverseJacobian<ConstraintJacobian<double,DotType3ConstraintFunction> >
-::operator() (const Eigen::Matrix<double,12,1>& q, Eigen::Matrix<double,12,12>& H) const
+template<> 
+Eigen::Matrix<double,12,12>
+Hessian<double,DotType3ConstraintFunction>
+::operator() (const Eigen::Matrix<double,12,1>& q, double)
 {
+  Eigen::Matrix<double,12,12> H;
   H.setZero();
 
   Eigen::Vector3d a0,b0,c0,b0hat,c0hat,a,d1,d2;
@@ -118,7 +123,7 @@ SacadoReverseJacobian<ConstraintJacobian<double,DotType3ConstraintFunction> >
     H(9,1) = H(1,9) = H(10,6) = H(6,10) = c0hat[2];
     H(9,7) = H(7,9) = H(10,0) = H(0,10) = -c0hat[2];
 
-    return 1;
+    return H;
   }
 
 
@@ -157,6 +162,9 @@ SacadoReverseJacobian<ConstraintJacobian<double,DotType3ConstraintFunction> >
     }
   }
 
-  return 1;
+  return H;
 }
+
+} // namespace Simo
+
 #endif

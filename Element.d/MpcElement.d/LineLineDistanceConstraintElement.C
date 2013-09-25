@@ -2,7 +2,7 @@
 #include <Element.d/MpcElement.d/LineLineDistanceConstraintElement.h>
 
 LineLineDistanceConstraintElement::LineLineDistanceConstraintElement(int* _nn)
- : ConstraintFunctionElement<LineLineDistanceConstraintFunction>(2, DofSet::XYZdisp, _nn, 0) 
+ : ConstraintFunctionElement<Simo::LineLineDistanceConstraintFunction>(2, DofSet::XYZdisp, _nn, 0) 
 {
 }
 

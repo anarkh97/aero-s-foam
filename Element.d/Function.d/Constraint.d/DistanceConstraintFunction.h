@@ -1,11 +1,13 @@
 #ifndef _DISTANCECONSTRAINTFUNCTION_H_
 #define _DISTANCECONSTRAINTFUNCTION_H_
 
-#include <Element.d/MpcElement.d/ConstraintFunction.d/ConstraintFunction.h>
-#include <iostream>
+#include <Element.d/Function.d/Function.h>
+#include <Element.d/Function.d/SpaceDerivatives.h>
+
+namespace Simo {
 
 template<typename Scalar>
-class DistanceConstraintFunction : public RheonomicConstraintFunction<6,Scalar,4,0,double>
+class DistanceConstraintFunction : public ScalarValuedFunction<6,Scalar,4,0,double>
 {
     Eigen::Matrix<double,3,1> a0; // initial vector from node 1 to node 2
     double len;                   // constant length
@@ -17,7 +19,7 @@ class DistanceConstraintFunction : public RheonomicConstraintFunction<6,Scalar,4
       len = sconst[3];
     }
 
-    Scalar operator() (const Eigen::Matrix<Scalar,6,1>& q, Scalar t) const
+    Scalar operator() (const Eigen::Matrix<Scalar,6,1>& q, Scalar t)
     {
       // inputs:
       // q[0] = x translation of node 1
@@ -31,18 +33,19 @@ class DistanceConstraintFunction : public RheonomicConstraintFunction<6,Scalar,4
       return -len + a.norm();
     }
 
-  public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
-template<> template<>
-int
-ConstraintJacobian<double,DistanceConstraintFunction>
-::operator() (const Eigen::Matrix<double,6,1>& q, Eigen::Matrix<double,6,1>& J) const;
+template<>
+Eigen::Matrix<double,1,6>
+Jacobian<double,DistanceConstraintFunction>
+::operator() (const Eigen::Matrix<double,6,1>& q, double t);
 
-template<> template<>
-int
-SacadoReverseJacobian<ConstraintJacobian<double,DistanceConstraintFunction> >
-::operator() (const Eigen::Matrix<double,6,1>& q, Eigen::Matrix<double,6,6>& H) const;
+template<>
+Eigen::Matrix<double,6,6>
+Hessian<double,DistanceConstraintFunction>
+::operator() (const Eigen::Matrix<double,6,1>& q, double t);
+
+} // namespace Simo
 
 #endif

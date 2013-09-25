@@ -237,7 +237,7 @@ MpcElement::stiffness(CoordSet& c0, double* karray, int)
       if(prop->penalty != 0) lambda += prop->penalty*(-rhs.r_value);
       GeomState c1(c0);
       FullSquareMatrix H(nterms);
-      if(lambda != 0) getHessian(c1, c0, H, 0); else H.zero();
+      if(lambda != 0) getHessian(&c1, c1, c0, H, 0); else H.zero();
       for(int i = 0; i < nterms; ++i) {
         for(int j = 0; j < nterms; ++j) {
           ret[i][j] = lambda*H[i][j];
@@ -260,12 +260,18 @@ MpcElement::getCorotator(CoordSet&, double*, int, int)
 void
 MpcElement::getStiffAndForce(GeomState& c1, CoordSet& c0, FullSquareMatrix& Ktan, double* f, double delt, double t)
 {
+  getStiffAndForce(NULL, c1, c0, Ktan, f, delt, t);
+}
+
+void
+MpcElement::getStiffAndForce(GeomState* refState, GeomState& c1, CoordSet& c0, FullSquareMatrix& Ktan, double* f, double delt, double t)
+{
   Ktan.zero();
   for(int i = 0; i < numDofs(); ++i) f[i] = 0.0;
   if(getSource() != mpc::ContactSurfaces)
-    update(c1, c0, t); // update rhs and coefficients to the value and gradient the constraint function, respectively 
+    update(refState, c1, c0, t); // update rhs and coefficients to the value and gradient the constraint function, respectively 
   if(t == 0 /*domain->solInfo().initialTime*/ && delt > 0 && type == 0 && prop->penalty == 0)
-    rhs.r_value = this->getAccelerationConstraintRhs(&c1, c0, t); // for dynamics we compute initial acceleration at t=0 for equality constraints
+    rhs.r_value = this->getAccelerationConstraintRhs(refState, c1, c0, t); // for dynamics we compute initial acceleration at t=0 for equality constraints
 
   // general augmented lagrangian implementation from RT Rockafellar "Lagrange multipliers and optimality" Siam Review 1993, eq 6.7
   // NOTES:
@@ -286,14 +292,14 @@ MpcElement::getStiffAndForce(GeomState& c1, CoordSet& c0, FullSquareMatrix& Ktan
     else {
       if(prop->penalty != 0) lambda += prop->penalty*(-rhs.r_value);
       FullSquareMatrix H(nterms);
-      if(lambda != 0) getHessian(c1, c0, H, t); else H.zero();
+      if(lambda != 0) getHessian(refState, c1, c0, H, t); else H.zero();
       for(int i = 0; i < nterms; ++i) {
         for(int j = 0; j < nterms; ++j) {
           Ktan[i][j] = lambda*H[i][j];
           if(prop->penalty != 0) Ktan[i][j] += prop->penalty*terms[i].coef.r_value*terms[j].coef.r_value;
         }
         if(prop->lagrangeMult && prop->penalty == 0) Ktan[i][nterms] = Ktan[nterms][i] = terms[i].coef.r_value;
-        if(!(type == 1 && prop->lagrangeMult && prop->penalty == 0)) f[i] = lambda*terms[i].coef.r_value; 
+        if(!(type == 1 && prop->lagrangeMult && prop->penalty == 0)) f[i] = lambda*terms[i].coef.r_value;
                                                    // note: for inequalities we solve for lambda^{k} at every SQP iteration
                                                    // but for equalities we solve for the increment (lambda^{k}-lambda^{k-1})
 
@@ -304,13 +310,13 @@ MpcElement::getStiffAndForce(GeomState& c1, CoordSet& c0, FullSquareMatrix& Ktan
 }
 
 void
-MpcElement::getInternalForce(GeomState& c1, CoordSet& c0, FullSquareMatrix&, double* f, double delt, double t)
+MpcElement::getInternalForce(GeomState *refState, GeomState& c1, CoordSet& c0, FullSquareMatrix&, double* f, double delt, double t)
 {
   for(int i = 0; i < numDofs(); ++i) f[i] = 0.0;
   if(getSource() != mpc::ContactSurfaces)
-    update(c1, c0, t); // update rhs and coefficients to the value and gradient the constraint function, respectively 
+    update(refState, c1, c0, t); // update rhs and coefficients to the value and gradient the constraint function, respectively 
   if(t == 0 /*domain->solInfo().initialTime*/ && delt > 0 && type == 0 && prop->penalty == 0)
-    rhs.r_value = this->getAccelerationConstraintRhs(&c1, c0, t); // for dynamics we compute initial acceleration at t=0 for equality constraints
+    rhs.r_value = this->getAccelerationConstraintRhs(refState, c1, c0, t); // for dynamics we compute initial acceleration at t=0 for equality constraints
 
   // general augmented lagrangian implementation from RT Rockafellar "Lagrange multipliers and optimality" Siam Review 1993, eq 6.7
   // NOTES:
@@ -341,7 +347,7 @@ MpcElement::getInternalForce(GeomState& c1, CoordSet& c0, FullSquareMatrix&, dou
 }
 
 void 
-MpcElement::update(GeomState& c1, CoordSet& c0, double t) 
+MpcElement::update(GeomState* refState, GeomState& c1, CoordSet& c0, double t) 
 { 
   // this is for a linear constraint in nonlinear analysis. Nonlinear constraints must overload this function
   rhs = original_rhs;
@@ -387,7 +393,7 @@ MpcElement::update(GeomState& c1, CoordSet& c0, double t)
 }
 
 void 
-MpcElement::getHessian(GeomState& c1, CoordSet&, FullSquareMatrix& _H, double t) 
+MpcElement::getHessian(GeomState*, GeomState& c1, CoordSet&, FullSquareMatrix& _H, double t) 
 {
 #ifdef USE_EIGEN3
   if(getSource() == mpc::ContactSurfaces && H.size() > 0) {
@@ -416,28 +422,28 @@ MpcElement::getHessian(GeomState& c1, CoordSet&, FullSquareMatrix& _H, double t)
 }
 
 double
-MpcElement::getVelocityConstraintRhs(GeomState *gState, CoordSet& cs, double t)
+MpcElement::getVelocityConstraintRhs(GeomState*, GeomState&, CoordSet&, double)
 {
   return 0;
 }
 
 double
-MpcElement::getAccelerationConstraintRhs(GeomState *gState, CoordSet& cs, double t)
+MpcElement::getAccelerationConstraintRhs(GeomState* refState, GeomState& gState, CoordSet& cs, double t)
 {
   // compute rhs = -(G(q)*qdot)_q * qdot assuming other terms are zero. Overload function if this assumption is not correct
   FullSquareMatrix H(nterms);
-  getHessian(*gState, cs, H, t);
+  getHessian(refState, gState, cs, H, t);
   Vector v(nterms);
   // fill v with initial velocity 
   for(int i = 0; i < nterms; ++i) {
    if(terms[i].dofnum == 3 || terms[i].dofnum == 4 || terms[i].dofnum == 5) {
       // compute spatial angular velocity
       double omega[3];
-      mat_mult_vec((*gState)[terms[i].nnum].R, &(*gState)[terms[i].nnum].v[3], omega);
+      mat_mult_vec(gState[terms[i].nnum].R, &gState[terms[i].nnum].v[3], omega);
       v[i] = omega[terms[i].dofnum-3];
     }
     else {
-      v[i] = (*gState)[terms[i].nnum].v[terms[i].dofnum];
+      v[i] = gState[terms[i].nnum].v[terms[i].dofnum];
     }
   }
 

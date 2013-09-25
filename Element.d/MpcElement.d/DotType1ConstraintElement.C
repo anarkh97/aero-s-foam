@@ -3,7 +3,7 @@
 #include <Corotational.d/GeomState.h>
 
 DotType1ConstraintElement::DotType1ConstraintElement(int* _nn, int _axis1, int _axis2, double _d0)
- : ConstraintFunctionElement<DotType1ConstraintFunction>(2, DofSet::XYZrot, _nn, 0)
+ : ConstraintFunctionElement<Simo::DotType1ConstraintFunction>(2, DofSet::XYZrot, _nn, 0)
 {
   C0 = 0;
   axis1 = _axis1;
@@ -52,6 +52,6 @@ DotType1ConstraintElement::buildFrame(CoordSet& cs)
     exit(-1);
   }
 
-  ConstraintFunctionElement<DotType1ConstraintFunction>::buildFrame(cs);
+  ConstraintFunctionElement<Simo::DotType1ConstraintFunction>::buildFrame(cs);
 }
 #endif

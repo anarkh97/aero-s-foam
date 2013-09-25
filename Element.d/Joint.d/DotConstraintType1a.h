@@ -11,9 +11,9 @@ class DotConstraintType1a : public DotType1ConstraintElement
   public:
     DotConstraintType1a(int*, int, int);
     void buildFrame(CoordSet& cs);
-    void update(GeomState& gState, CoordSet& cs, double t);
-    double getVelocityConstraintRhs(GeomState *gState, CoordSet& cs, double t);
-    double getAccelerationConstraintRhs(GeomState *gState, CoordSet& cs, double t);
+    void update(GeomState*, GeomState&, CoordSet&, double);
+    double getVelocityConstraintRhs(GeomState*, GeomState&, CoordSet&, double);
+    double getAccelerationConstraintRhs(GeomState*, GeomState&, CoordSet&, double);
     void computePressureForce(CoordSet&, Vector& elPressureForce,
                               GeomState *gs = 0, int cflg = 0, double t = 0);
 };

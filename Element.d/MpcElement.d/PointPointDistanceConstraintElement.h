@@ -1,10 +1,10 @@
-#ifndef _POINTPOINTDISTANCECFE_H_
-#define _POINTPOINTDISTANCECFE_H_
+#ifndef _POINTPOINTDISTANCECONSTRAINTELEMENT_H_
+#define _POINTPOINTDISTANCECONSTRAINTELEMENT_H_
 
-#include <Element.d/MpcElement.d/ConstraintFunction.d/PointPointDistanceConstraintFunction.h>
+#include <Element.d/Function.d/Constraint.d/PointPointDistanceConstraintFunction.h>
 #include <Element.d/MpcElement.d/ConstraintFunctionElement.h>
 
-class PointPointDistanceConstraintElement : public ConstraintFunctionElement<PointPointDistanceConstraintFunction>
+class PointPointDistanceConstraintElement : public ConstraintFunctionElement<Simo::PointPointDistanceConstraintFunction>
 {
     double x1[3]; // coordinates of the fixed point
 

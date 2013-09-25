@@ -1,10 +1,10 @@
-#ifndef _LINELINEDISTANCECFE_H_
-#define _LINELINEDISTANCECFE_H_
+#ifndef _LINELINEDISTANCECONSTRAINTELEMENT_H_
+#define _LINELINEDISTANCECONSTRAINTELEMENT_H_
 
-#include <Element.d/MpcElement.d/ConstraintFunction.d/LineLineDistanceConstraintFunction.h>
+#include <Element.d/Function.d/Constraint.d/LineLineDistanceConstraintFunction.h>
 #include <Element.d/MpcElement.d/ConstraintFunctionElement.h>
 
-class LineLineDistanceConstraintElement : public ConstraintFunctionElement<LineLineDistanceConstraintFunction>
+class LineLineDistanceConstraintElement : public ConstraintFunctionElement<Simo::LineLineDistanceConstraintFunction>
 {
     double x1[3], x2[3]; // coordinates of the 2 points defining the line
 

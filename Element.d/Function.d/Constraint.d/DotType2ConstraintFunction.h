@@ -1,10 +1,13 @@
 #ifndef _DOTTYPE2CONSTRAINTFUNCTION_H_
 #define _DOTTYPE2CONSTRAINTFUNCTION_H_
 
-#include <Element.d/MpcElement.d/ConstraintFunction.d/ConstraintFunction.h>
+#include <Element.d/Function.d/Function.h>
+#include <Element.d/Function.d/SpaceDerivatives.h>
+
+namespace Simo {
 
 template<typename Scalar>
-class DotType2ConstraintFunction : public RheonomicConstraintFunction<9,Scalar,7,0,double>
+class DotType2ConstraintFunction : public ScalarValuedFunction<9,Scalar,7,0,double>
 {
    Eigen::Matrix<double,3,1> a0, b0hat;
    double d0;
@@ -19,7 +22,7 @@ class DotType2ConstraintFunction : public RheonomicConstraintFunction<9,Scalar,7
       d0 = sconst(6);
     }
 
-    Scalar operator() (const Eigen::Matrix<Scalar,9,1>& q, Scalar) const
+    Scalar operator() (const Eigen::Matrix<Scalar,9,1>& q, Scalar)
     {
       // inputs:
       // q[0] = x translation of node 1
@@ -40,24 +43,26 @@ class DotType2ConstraintFunction : public RheonomicConstraintFunction<9,Scalar,7
       //                b0 is a selected axis of the body attached frame of node 1 in some specified configuration
 
       Eigen::Matrix<Scalar,3,1> u1 = q.template segment<3>(0);
-      Eigen::Quaternion<Scalar> q1;
-      q1.setFromOneVector(q.template segment<3>(3));
+      Eigen::Quaternion<Scalar> z1;
+      z1.setFromOneVector(q.template segment<3>(3));
       Eigen::Matrix<Scalar,3,1> u2 = q.template segment<3>(6);
 
-      return -d0 + (a0.template cast<Scalar>() + u2 - u1).dot(q1.toRotationMatrix()*b0hat.template cast<Scalar>());
+      return -d0 + (a0.template cast<Scalar>() + u2 - u1).dot(z1.toRotationMatrix()*b0hat.template cast<Scalar>());
     }
 
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
-template<> template<>
-int
-ConstraintJacobian<double,DotType2ConstraintFunction>
-::operator() (const Eigen::Matrix<double,9,1>& q, Eigen::Matrix<double,9,1>& J) const;
+template<>
+Eigen::Matrix<double,1,9>
+Jacobian<double,DotType2ConstraintFunction>
+::operator() (const Eigen::Matrix<double,9,1>& q, double t);
 
-template<> template<>
-int
-SacadoReverseJacobian<ConstraintJacobian<double,DotType2ConstraintFunction> >
-::operator() (const Eigen::Matrix<double,9,1>& q, Eigen::Matrix<double,9,9>& H) const;
+template<>
+Eigen::Matrix<double,9,9>
+Hessian<double,DotType2ConstraintFunction>
+::operator() (const Eigen::Matrix<double,9,1>& q, double t);
+
+} // namespace Simo
 
 #endif

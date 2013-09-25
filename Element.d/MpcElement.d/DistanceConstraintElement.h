@@ -1,10 +1,10 @@
-#ifndef _DISTANCECFE_H_
-#define _DISTANCECFE_H_
+#ifndef _DISTANCECONSTRAINTELEMENT_H_
+#define _DISTANCECONSTRAINTELEMENT_H_
 
-#include <Element.d/MpcElement.d/ConstraintFunction.d/DistanceConstraintFunction.h>
+#include <Element.d/Function.d/Constraint.d/DistanceConstraintFunction.h>
 #include <Element.d/MpcElement.d/ConstraintFunctionElement.h>
 
-class DistanceConstraintElement : public ConstraintFunctionElement<DistanceConstraintFunction>
+class DistanceConstraintElement : public ConstraintFunctionElement<Simo::DistanceConstraintFunction>
 {
   public:
     DistanceConstraintElement(int* _nn, double f0, int type = 0); 

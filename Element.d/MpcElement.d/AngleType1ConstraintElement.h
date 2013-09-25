@@ -1,10 +1,10 @@
-#ifndef _ANGLETYPE1CFE_H_
-#define _ANGLETYPE1CFE_H_
+#ifndef _ANGLETYPE1CONSTRAINTELEMENT_H_
+#define _ANGLETYPE1CONSTRAINTELEMENT_H_
 
-#include <Element.d/MpcElement.d/ConstraintFunction.d/AngleType1ConstraintFunction.h>
+#include <Element.d/Function.d/Constraint.d/AngleType1ConstraintFunction.h>
 #include <Element.d/MpcElement.d/ConstraintFunctionElement.h>
 
-class AngleType1ConstraintElement : public ConstraintFunctionElement<AngleType1ConstraintFunction>
+class AngleType1ConstraintElement : public ConstraintFunctionElement<Simo::AngleType1ConstraintFunction>
 {
   protected:
     double (*C0)[3]; // initial frame (axes stored row-wise)

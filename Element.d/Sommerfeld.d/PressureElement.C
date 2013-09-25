@@ -2,7 +2,7 @@
 #include <Utils.d/dofset.h>
 #include <Corotational.d/GeomState.h>
 #include <Corotational.d/utilities.h>
-#include <Element.d/Function.d/VectorValuedFunction.h>
+#include <Element.d/Function.d/Function.h>
 #include <iostream>
 #include <unsupported/Eigen/NumericalDiff>
 
@@ -188,7 +188,7 @@ PressureElement<VectorValuedFunctionTemplate>::neumVectorJacobian(CoordSet& c0, 
   getInputs(q, c0, c1);
 
   // instantiate the jacobian object
-  Simo::SpaceJacobian<double,VectorValuedFunctionTemplate> dfdq(sconst,iconst);
+  Simo::Jacobian<double,VectorValuedFunctionTemplate> dfdq(sconst,iconst);
 
   // evaluate the jacobian
   const int M = VectorValuedFunctionTemplate<double>::NumberOfValues;

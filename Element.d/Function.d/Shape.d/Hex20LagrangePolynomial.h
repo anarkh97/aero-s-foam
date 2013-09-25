@@ -1,7 +1,7 @@
 #ifndef _HEX20LAGRANGEPOLYNOMIALSHAPEFUNCTION_H_
 #define _HEX20LAGRANGEPOLYNOMIALSHAPEFUNCTION_H_
 
-#include <Element.d/Function.d/VectorValuedFunction.h>
+#include <Element.d/Function.d/Function.h>
 
 template<typename Scalar>
 class Hex20LagrangePolynomialShapeFunction : public VectorValuedFunction<3,20,Scalar,0,0,double>
@@ -10,7 +10,7 @@ class Hex20LagrangePolynomialShapeFunction : public VectorValuedFunction<3,20,Sc
     Hex20LagrangePolynomialShapeFunction(const Eigen::Array<double,0,1>&, const Eigen::Array<int,0,1>&)
     {}
 
-    Eigen::Matrix<Scalar,20,1> operator() (const Eigen::Matrix<Scalar,3,1>& q, Scalar) const
+    Eigen::Matrix<Scalar,20,1> operator() (const Eigen::Matrix<Scalar,3,1>& q, Scalar)
     {
       // inputs:
       // local coordinates of point at which function is to be evaluated: q = [ξ,η,ζ]

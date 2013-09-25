@@ -53,14 +53,15 @@ class MpcElement : public Element, public Corotator, public LMPCons
 
     Corotator* getCorotator(CoordSet&, double*, int, int);
     void getStiffAndForce(GeomState&, CoordSet&, FullSquareMatrix&, double*, double, double);
-    void getInternalForce(GeomState&, CoordSet&, FullSquareMatrix&, double*, double, double);
+    void getStiffAndForce(GeomState*, GeomState&, CoordSet&, FullSquareMatrix&, double*, double, double);
+    void getInternalForce(GeomState*, GeomState&, CoordSet&, FullSquareMatrix&, double*, double, double);
     void getResidualCorrection(GeomState& c1, double* r);
     double getElementEnergy(GeomState&, CoordSet&) { return 0; }
 
-    virtual void update(GeomState&, CoordSet&, double);
-    virtual void getHessian(GeomState&, CoordSet&, FullSquareMatrix&, double t);
-    virtual double getVelocityConstraintRhs(GeomState *gState, CoordSet& cs, double t);
-    virtual double getAccelerationConstraintRhs(GeomState *gState, CoordSet& cs, double t);
+    virtual void update(GeomState*, GeomState&, CoordSet&, double);
+    virtual void getHessian(GeomState*, GeomState&, CoordSet&, FullSquareMatrix&, double);
+    virtual double getVelocityConstraintRhs(GeomState*, GeomState&, CoordSet&, double);
+    virtual double getAccelerationConstraintRhs(GeomState*, GeomState&, CoordSet&, double);
 
     PrioInfo examine(int sub, MultiFront *mf);
     bool isSafe() { return false; }

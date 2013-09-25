@@ -20,13 +20,13 @@ NonlinearTorsionalSpring::setProp(StructProp *p, bool _myProp)
 }
 
 void 
-NonlinearTorsionalSpring::update(GeomState& gState, CoordSet& cs, double t)
+NonlinearTorsionalSpring::update(GeomState *refState, GeomState& gState, CoordSet& cs, double t)
 {
   // internal states
   updateStates((GeomState *) NULL, gState, cs);
   axis1 = (quadrant == 0 || quadrant == 2) ? m_axis1 : m_axis2, axis2 = m_axis2;
 
-  AngleType1ConstraintElement::update(gState, cs, t);
+  AngleType1ConstraintElement::update(refState, gState, cs, t);
 }
 
 int

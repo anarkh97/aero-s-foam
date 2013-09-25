@@ -2,8 +2,10 @@
 #include <Utils.d/dofset.h>
 #include <Corotational.d/GeomState.h>
 #include <Corotational.d/utilities.h>
-#include <Element.d/MpcElement.d/ConstraintFunction.d/ConstraintFunction.h>
+#include <Element.d/Function.d/SpaceDerivatives.h>
+#include <Element.d/Function.d/TimeDerivatives.h>
 #include <iostream>
+#include <Element.d/Function.d/SacadoReverseJacobian.h>
 #include <unsupported/Eigen/NumericalDiff>
 
 template<template <typename S> class ConstraintFunctionTemplate>
@@ -76,20 +78,18 @@ ConstraintFunctionElement<ConstraintFunctionTemplate>::buildFrame(CoordSet& c0)
   original_rhs.r_value = rhs.r_value = -f(q,t);
 
   // instantiate the constraint jacobian object
-  ConstraintJacobian<double,ConstraintFunctionTemplate> dfdq(sconst,iconst,t);
+  Simo::Jacobian<double,ConstraintFunctionTemplate> dfdq(sconst,iconst);
 
   // evaluate the constraint jacobian (partial derivatives w.r.t. the spatial variables)
   // and store coefficients in LMPCons::terms array
-  Eigen::Matrix<double,N,1> J;
-  dfdq(q, &J);
+  Eigen::Matrix<double,1,N> J;
+  J = dfdq(q, t);
   for(int i = 0; i < nterms; ++i) terms[i].coef.r_value = J[i];
-
-  // TODO: if the function is quadratic then we should compute and store the hessian for future reference
 }
 
 template<template <typename S> class ConstraintFunctionTemplate>
 void 
-ConstraintFunctionElement<ConstraintFunctionTemplate>::update(GeomState& c1, CoordSet& c0, double t) 
+ConstraintFunctionElement<ConstraintFunctionTemplate>::update(GeomState* refState, GeomState& c1, CoordSet& c0, double t) 
 {
   // instantiate the constraint function object
   Eigen::Array<double, ConstraintFunctionTemplate<double>::NumberOfScalarConstants, 1> sconst;
@@ -100,24 +100,25 @@ ConstraintFunctionElement<ConstraintFunctionTemplate>::update(GeomState& c1, Coo
   // prepare the constraint function inputs
   const int N = ConstraintFunctionTemplate<double>::NumberOfGeneralizedCoordinates;
   Eigen::Matrix<double,N,1> q;
-  getInputs(q, c0, &c1, NULL);
+  getInputs(q, c0, &c1, refState);
 
   // evaluate the constraint function and store -ve value in LMPCons::rhs
   rhs.r_value = -f(q,t);
 
-  // instantiate the constraint jacobian object
-  ConstraintJacobian<double,ConstraintFunctionTemplate> dfdq(sconst,iconst,t);
-
   // evaluate the constraint jacobian (partial derivatives w.r.t. the spatial variables)
   // and store coefficients in LMPCons::terms array
-  Eigen::Matrix<double,N,1> J;
-  dfdq(q, &J);
+  Eigen::Matrix<double,1,N> J;
+
+  Simo::Jacobian<double,ConstraintFunctionTemplate> dfdq(sconst,iconst);
+  J = dfdq(q, t);
+
   for(int i = 0; i < nterms; ++i) terms[i].coef.r_value = J[i];
 }
 
 template<template <typename S> class ConstraintFunctionTemplate>
 void 
-ConstraintFunctionElement<ConstraintFunctionTemplate>::getHessian(GeomState &c1, CoordSet& c0, FullSquareMatrix& B, double t) 
+ConstraintFunctionElement<ConstraintFunctionTemplate>::getHessian(GeomState *refState, GeomState& c1, CoordSet& c0,
+                                                                  FullSquareMatrix& B, double t) 
 {
   // instantiate the constraint function object
   Eigen::Array<double, ConstraintFunctionTemplate<double>::NumberOfScalarConstants, 1> sconst;
@@ -128,45 +129,49 @@ ConstraintFunctionElement<ConstraintFunctionTemplate>::getHessian(GeomState &c1,
   // prepare the function inputs
   const int N = ConstraintFunctionTemplate<double>::NumberOfGeneralizedCoordinates;
   Eigen::Matrix<double,N,1> q;
-  getInputs(q, c0, &c1, NULL);
-
-  // instantiate the constraint jacobian object
-  ConstraintJacobian<double,ConstraintFunctionTemplate> dfdq(sconst,iconst,t);
+  getInputs(q, c0, &c1, refState);
 
   Eigen::Matrix<double,N,N> H;
-  int flag = prop->constraint_hess;
-  switch (flag) {
+  switch (prop->constraint_hess) {
    
     default : case 0 :
       H.setZero();
       break;
     case 1: {
-      // instantiate the constraint hessian object
-      SacadoReverseJacobian<ConstraintJacobian<double,ConstraintFunctionTemplate>,true> d2fdq2(dfdq);
-      // evaluate the constraint hessian
-      d2fdq2(q, H);
+      // evaluate the constraint hessian using the default implementation
+      Simo::Hessian<double,ConstraintFunctionTemplate> d2fdq2(sconst,iconst);
+      H = d2fdq2(q, t);
     } break;
+#if (__cplusplus >= 201103L) && defined(HAS_CXX11_TEMPLATE_ALIAS)
 #ifdef USE_SACADO
-    case 2: {
-      // instantiate the constraint hessian object
-      SacadoReverseJacobian<ConstraintJacobian<double,ConstraintFunctionTemplate>,false> d2fdq2(dfdq);
-      // evaluate the constraint hessian
+    /*case 2: {
+      // evaluate the constraint hessian by forward automatic differentation of the jacobian
+      Simo::SpatialView<double,ConstraintJacobian> dfdq(sconst,iconst,t);
+      SacadoForwardJacobian<Simo::SpatialView<double,ConstraintJacobian>> d2fdq2(dfdq);
+      d2fdq2(q, H);
+    } break;*/
+    case 3: {
+      // evaluate the constraint hessian by reverse automatic differentation of the jacobian
+      Simo::SpatialView<double,ConstraintJacobian> dfdq(sconst,iconst,t);
+      SacadoReverseJacobian<Simo::SpatialView<double,ConstraintJacobian>> d2fdq2(dfdq);
       d2fdq2(q, H);
     } break;
 #endif
     case 4 : {
-      // instantiate the forward difference object
-      Eigen::NumericalDiff<ConstraintJacobian<double,ConstraintFunctionTemplate>,Eigen::Forward> fd(dfdq, prop->constraint_hess_eps);
-      // evaluate the forward difference approximation to the hessian
+      // evaluate the forward difference approximation of the constraint hessian 
+      Simo::SpatialView<double,ConstraintJacobian> dfdq(sconst,iconst,t);
+      Eigen::NumericalDiff<Simo::SpatialView<double,ConstraintJacobian>,Eigen::Forward> fd(dfdq, prop->constraint_hess_eps);
       fd.df(q, H);
     } break;
     case 5 : {
-      // instantiate the central difference object
-      Eigen::NumericalDiff<ConstraintJacobian<double,ConstraintFunctionTemplate>,Eigen::Central> cd(dfdq, prop->constraint_hess_eps);
-      // evaluate the central difference approximation to the hessian
+      // evaluate the central difference approximation of the constraint hessian
+      Simo::SpatialView<double,ConstraintJacobian> dfdq(sconst,iconst,t);
+      Eigen::NumericalDiff<Simo::SpatialView<double,ConstraintJacobian>,Eigen::Central> cd(dfdq, prop->constraint_hess_eps);
       cd.df(q, H);
     } break;
+#endif
   }
+
   for(int i = 0; i < nterms; ++i)
     for(int j = 0; j < nterms; ++j)
       B[i][j] = H(i,j);
@@ -196,89 +201,71 @@ ConstraintFunctionElement<ConstraintFunctionTemplate>::computePressureForce(Coor
 
 template<template <typename S> class ConstraintFunctionTemplate>
 double
-ConstraintFunctionElement<ConstraintFunctionTemplate>::getVelocityConstraintRhs(GeomState *c1, CoordSet& c0,
-                                                                                double t)
+ConstraintFunctionElement<ConstraintFunctionTemplate>::getVelocityConstraintRhs(GeomState *refState, GeomState& c1,
+                                                                                CoordSet& c0, double t)
 {
   // instantiate the constraint function object
   Eigen::Array<double, ConstraintFunctionTemplate<double>::NumberOfScalarConstants, 1> sconst;
   Eigen::Array<int, ConstraintFunctionTemplate<double>::NumberOfIntegerConstants, 1> iconst;
-  getConstants(c0, sconst, iconst, c1);
+  getConstants(c0, sconst, iconst, &c1);
   ConstraintFunctionTemplate<double> f(sconst,iconst);
 
   // prepare the constraint function inputs
   const int N = ConstraintFunctionTemplate<double>::NumberOfGeneralizedCoordinates;
   Eigen::Matrix<double,N,1> q;
-  getInputs(q, c0, c1, NULL);
+  getInputs(q, c0, &c1, refState);
 
-  // instantiate the first time derivative of the constraint function object
-  PartialTimeDerivative<double,ConstraintFunctionTemplate> dfdt(sconst,iconst,q);
-
-  // evaluate the first time derivative of the constraint function
-  Eigen::Matrix<double,1,1> x, v;
-  x[0] = t;
-  dfdt(x, &v);
-  return -v[0];
+  // evaluate the first partial time derivative of the constraint function
+  Simo::FirstPartialTimeDerivative<double,ConstraintFunctionTemplate> dfdt(sconst,iconst);
+  return -dfdt(q,t);
 }
 
 template<template <typename S> class ConstraintFunctionTemplate>
 double
-ConstraintFunctionElement<ConstraintFunctionTemplate>::getAccelerationConstraintRhs(GeomState *c1, CoordSet& c0,
-                                                                                    double t)
+ConstraintFunctionElement<ConstraintFunctionTemplate>::getAccelerationConstraintRhs(GeomState *refState, GeomState& c1,
+                                                                                    CoordSet& c0, double t)
 {
-#ifdef USE_SACADO
+#if defined(USE_SACADO) && (__cplusplus >= 201103L) && defined(HAS_CXX11_TEMPLATE_ALIAS)
   // instantiate the constraint function object
   Eigen::Array<double, ConstraintFunctionTemplate<double>::NumberOfScalarConstants, 1> sconst;
   Eigen::Array<int, ConstraintFunctionTemplate<double>::NumberOfIntegerConstants, 1> iconst;
-  getConstants(c0, sconst, iconst, c1);
+  getConstants(c0, sconst, iconst, &c1);
   ConstraintFunctionTemplate<double> f(sconst,iconst);
 
   // prepare the constraint function inputs
   const int N = ConstraintFunctionTemplate<double>::NumberOfGeneralizedCoordinates;
   Eigen::Matrix<double,N,1> q;
-  getInputs(q, c0, c1, NULL);
+  getInputs(q, c0, &c1, refState);
 
-  // instantiate the partial time derivative of the constraint function object
-  PartialTimeDerivative<double,ConstraintFunctionTemplate> dfdt(sconst,iconst,q);
+  // evaluate the second partial time derivative of the constraint function object
+  Simo::SecondPartialTimeDerivative<double,ConstraintFunctionTemplate> d2fdt2(sconst,iconst);
+  double y = d2fdt2(q,t);
 
-  // instantiate the second partial time derivative of the constraint function object
-  SacadoReverseJacobian<PartialTimeDerivative<double,ConstraintFunctionTemplate> > d2fdt2(dfdt);
+  // evaluate the first partial time derivative of the constraint jacobian object
+  Simo::FirstPartialTimeDerivative<double,ConstraintJacobian,1> dJdt(sconst,iconst);
+  Eigen::Matrix<double,1,N> z = dJdt(q,t);
 
-  // evaluate the second partial time derivative of the constraint function
-  Eigen::Matrix<double,1,1> x, y;
-  x[0] = t;
-  d2fdt2(x,y);
-
-  // instantiate the partial time derivative of the constraint jacobian object
-  TemporalViewOfConstraintJacobian<double,ConstraintFunctionTemplate> J(sconst,iconst,q);
-  SacadoReverseJacobian<TemporalViewOfConstraintJacobian<double,ConstraintFunctionTemplate> > dJdt(J);
-
-  // evaluate the partial time derivative of the constraint jacobian
-  Eigen::Matrix<double,N,1> z;
-  dJdt(x,z);
-
-  // instantiate the jacobian of the constraint jacobian velocity product
+  // evaluate the first partial space derivatives of the constraint jacobian velocity product
   Eigen::Matrix<double,N,1> v;
   for(int i = 0; i < nterms; ++i) {
     if(terms[i].dofnum == 3 || terms[i].dofnum == 4 || terms[i].dofnum == 5) {
       // compute spatial angular velocity
-      Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor>,Eigen::RowMajor> R(&(*c1)[terms[i].nnum].R[0][0]);
-      Eigen::Map<Eigen::Vector3d> Omega(&(*c1)[terms[i].nnum].v[3]);
+      Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor> > R(&c1[terms[i].nnum].R[0][0]);
+      Eigen::Map<Eigen::Vector3d> Omega(&c1[terms[i].nnum].v[3]);
       Eigen::Vector3d omega = R*Omega;
       v[i] = omega[terms[i].dofnum-3];
     }
     else {
-      v[i] = (*c1)[terms[i].nnum].v[terms[i].dofnum];
+      v[i] = c1[terms[i].nnum].v[terms[i].dofnum];
     }
   }
 
-  ConstraintJacobianVelocityProduct<double,ConstraintFunctionTemplate> Jv(sconst,iconst,t,v); // assuming v is constant for now
-  SacadoReverseJacobian<ConstraintJacobianVelocityProduct<double,ConstraintFunctionTemplate> > dJvdq(Jv);
+  Eigen::Array<double, ConstraintFunctionTemplate<double>::NumberOfScalarConstants+N, 1> sconst2;
+  sconst2 << sconst, v.array();
+  Simo::Jacobian<double,ConstraintJacobianVectorProduct,1> DJV(sconst2,iconst);
+  Eigen::Matrix<double,1,N> w = DJV(q,t);
 
-  // evaluate the jacobian of the constraint jacobian velocity product
-  Eigen::Matrix<double,1,N> w;
-  dJvdq(q,w);
-
-  return -w.dot(v) - 2*z.dot(v) -y[0];
+  return -w.dot(v) - 2*z.dot(v) - y;
 #else
   return 0;
 #endif

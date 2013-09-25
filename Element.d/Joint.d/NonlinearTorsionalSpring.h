@@ -19,7 +19,7 @@ class NonlinearTorsionalSpring : public AngleType1ConstraintElement
   public:
     NonlinearTorsionalSpring(int*, int, int);
     void setProp(StructProp *p, bool _myProp = false);
-    void update(GeomState& gState, CoordSet& cs, double t);
+    void update(GeomState *refState, GeomState& gState, CoordSet& cs, double t);
 
     int numStates();
     void initStates(double *);

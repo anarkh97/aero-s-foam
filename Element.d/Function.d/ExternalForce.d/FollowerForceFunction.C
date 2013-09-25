@@ -5,7 +5,7 @@ namespace Simo {
 
 template<>
 Eigen::Matrix<double,3,3>
-SpaceJacobian<double,FollowerForceFunction>
+Jacobian<double,FollowerForceFunction>
 ::operator() (const Eigen::Matrix<double,3,1>& q, double)
 {
   Eigen::Matrix<double,3,3> J;

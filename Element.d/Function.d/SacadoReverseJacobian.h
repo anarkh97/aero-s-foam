@@ -12,51 +12,7 @@
 
 #include <iostream>
 
-/*
-namespace Eigen {
-
-namespace internal {
-inline const Sacado::RadVec::ADvar<double>& conj(const Sacado::RadVec::ADvar<double>& x)  { return x; }
-};
-
-template<> struct NumTraits<Sacado::RadVec::ADvar<double> >
-    : NumTraits<double>
-{
-  typedef Sacado::RadVec::ADvar<double> Real;
-  typedef Sacado::RadVec::ADvar<double> NonInteger;
-  typedef Sacado::RadVec::ADvar<double> Nested;
-  enum {
-    IsComplex = 0,
-    IsInteger = 0,
-    IsSigned = 1,
-    RequireInitialization = 1,
-    ReadCost = 1,
-    AddCost = 1,
-    MulCost = 1
-  };
-};
-
-template<int N> struct NumTraits<Sacado::Rad::ADvar<Sacado::Fad::SFad<double,N> > >
-    : NumTraits<double>
-{
-  typedef Sacado::Rad::ADvar<Sacado::Fad::SFad<double,N> > Real;
-  typedef Sacado::Rad::ADvar<Sacado::Fad::SFad<double,N> > NonInteger;
-  typedef Sacado::Rad::ADvar<Sacado::Fad::SFad<double,N> > Nested;
-  enum {
-    IsComplex = 0,
-    IsInteger = 0,
-    IsSigned = 1,
-    RequireInitialization = 1,
-    ReadCost = 1,
-    AddCost = 1,
-    MulCost = 1
-  };
-};
-
-}
-*/
-
-template<typename Functor, bool special_op=true> class SacadoReverseJacobian : public Functor
+template<typename Functor> class SacadoReverseJacobian : public Functor
 {
 #ifdef USE_SACADO
   typedef Sacado::RadVec::ADvar<typename Functor::Scalar> ActiveScalar;
@@ -137,10 +93,8 @@ public:
   typedef typename Functor::HessianType JacobianType;
 
   typedef Eigen::Matrix<ActiveScalar, InputType::SizeAtCompileTime, 1> ActiveInput;
-  //typedef Eigen::Matrix<ActiveScalar, Functor::ValueType::SizeAtCompileTime, 1> ActiveValue;
   typedef Eigen::Matrix<ActiveScalar, 1, Functor::ValueType::SizeAtCompileTime> ActiveValue;
 
-  //int operator() (const InputType& x, ValueType& jac) const
   template<typename T>
   int operator() (const Eigen::Matrix<T,InputType::SizeAtCompileTime,1>& x, Eigen::Matrix<T,InputType::SizeAtCompileTime,InputType::SizeAtCompileTime>& hes) const
   {

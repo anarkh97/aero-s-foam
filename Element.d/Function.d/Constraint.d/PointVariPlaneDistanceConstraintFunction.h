@@ -1,10 +1,13 @@
 #ifndef _POINTVARIPLANEDISTANCECONSTRAINTFUNCTION_H_
 #define _POINTVARIPLANEDISTANCECONSTRAINTFUNCTION_H_
 
-#include <Element.d/MpcElement.d/ConstraintFunction.d/ConstraintFunction.h>
+#include <Element.d/Function.d/Function.h>
+#include <cmath>
+
+namespace Simo {
 
 template<typename Scalar>
-class PointVariPlaneDistanceConstraintFunction : public RheonomicConstraintFunction<12,Scalar,17,1,double>
+class PointVariPlaneDistanceConstraintFunction : public ScalarValuedFunction<12,Scalar,17,1,double>
 {
     // constrains the distance (d) between a point and a variable plane (defined by three points x1, x2 and x3) according to
     // d - (A*sin(omega*t+phi) + (B-C*t)*d0) = 0, <= 0 or >= 0
@@ -34,20 +37,20 @@ class PointVariPlaneDistanceConstraintFunction : public RheonomicConstraintFunct
       d0 = (x2-x1).cross(x3-x1).normalized().dot(x0-x1); // initial distance
     }
 
-    Scalar operator() (const Eigen::Matrix<Scalar,12,1>& q, Scalar t) const
+    Scalar operator() (const Eigen::Matrix<Scalar,12,1>& q, Scalar t)
     {
-      // q(0) = x translation of point 0
-      // q(1) = y translation of point 0
-      // q(2) = z translation of point 0
-      // q(3) = x translation of point 1
-      // q(4) = y translation of point 1
-      // q(5) = z translation of point 1
-      // q(6) = x translation of point 2
-      // q(7) = y translation of point 2
-      // q(8) = z translation of point 2
-      // q(9) = x translation of point 3
-      // q(10) = y translation of point 3
-      // q(11) = z translation of point 3
+      // q(0) = x translation of point 1
+      // q(1) = y translation of point 1
+      // q(2) = z translation of point 1
+      // q(3) = x translation of point 2
+      // q(4) = y translation of point 2
+      // q(5) = z translation of point 2
+      // q(6) = x translation of point 3
+      // q(7) = y translation of point 3
+      // q(8) = z translation of point 3
+      // q(9) = x translation of point 4
+      // q(10) = y translation of point 4
+      // q(11) = z translation of point 4
       Eigen::Matrix<Scalar,3,1> x0 = PointVariPlaneDistanceConstraintFunction::x0.template cast<Scalar>() + q.segment(0,3);
       Eigen::Matrix<Scalar,3,1> x1 = PointVariPlaneDistanceConstraintFunction::x1.template cast<Scalar>() + q.segment(3,3);
       Eigen::Matrix<Scalar,3,1> x2 = PointVariPlaneDistanceConstraintFunction::x1.template cast<Scalar>() + q.segment(6,3);
@@ -61,8 +64,9 @@ class PointVariPlaneDistanceConstraintFunction : public RheonomicConstraintFunct
       if(negate) return -f; else return f;
     }
 
-  public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
+
+} // namespace Simo
 
 #endif

@@ -2,7 +2,7 @@
 #include <Element.d/MpcElement.d/PointVariLineDistanceConstraintElement.h>
 
 PointVariLineDistanceConstraintElement::PointVariLineDistanceConstraintElement(int* _nn)
- : ConstraintFunctionElement<PointVariLineDistanceConstraintFunction>(3, DofSet::XYZdisp, _nn, 0)
+ : ConstraintFunctionElement<Simo::PointVariLineDistanceConstraintFunction>(3, DofSet::XYZdisp, _nn, 0)
 {
 }
 

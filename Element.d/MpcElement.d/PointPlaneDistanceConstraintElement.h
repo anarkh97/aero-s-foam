@@ -1,10 +1,10 @@
-#ifndef _POINTPLANEDISTANCECFE_H_
-#define _POINTPLANEDISTANCECFE_H_
+#ifndef _POINTPLANEDISTANCECONSTRAINTELEMENT_H_
+#define _POINTPLANEDISTANCECONSTRAINTELEMENT_H_
 
-#include <Element.d/MpcElement.d/ConstraintFunction.d/PointPlaneDistanceConstraintFunction.h>
+#include <Element.d/Function.d/Constraint.d/PointPlaneDistanceConstraintFunction.h>
 #include <Element.d/MpcElement.d/ConstraintFunctionElement.h>
 
-class PointPlaneDistanceConstraintElement : public ConstraintFunctionElement<PointPlaneDistanceConstraintFunction>
+class PointPlaneDistanceConstraintElement : public ConstraintFunctionElement<Simo::PointPlaneDistanceConstraintFunction>
 {
     double x1[3], x2[3], x3[3]; // coordinates of the 3 points defining the plane
 

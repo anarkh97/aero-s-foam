@@ -1,5 +1,5 @@
 #include <Element.d/NonLinearity.d/StrainEvaluator.h>
-#include <Element.d/Function.d/SpaceJacobian.h>
+#include <Element.d/Function.d/SpaceDerivatives.h>
 #include <Utils.d/dofset.h>
 
 template<template <typename S> class ShapeFunctionTemplate, int NumberOfNodes>
@@ -10,7 +10,7 @@ AutoShapeFunction<ShapeFunctionTemplate,NumberOfNodes>::getLocalDerivatives(Tens
   Eigen::Matrix<double,3,1> xi;
   Eigen::Matrix<double,NumberOfNodes,1> N;      // shape function values
   Eigen::Matrix<double,NumberOfNodes,3> dNdxi;  // derivative of shape functions w.r.t. xi
-  Simo::SpaceJacobian<double, ShapeFunctionTemplate> dSF(Eigen::Array<double,0,1>::Zero(), Eigen::Array<int,0,1>::Zero());
+  Simo::Jacobian<double, ShapeFunctionTemplate> dSF(Eigen::Array<double,0,1>::Zero(), Eigen::Array<int,0,1>::Zero());
 
   xi << _xi[0], _xi[1], _xi[2];
 

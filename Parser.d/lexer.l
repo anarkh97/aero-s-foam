@@ -111,11 +111,8 @@ TRAIL [a-zA-Z]*
 
 "BINARYOUTPUT"|"binaryoutput"      { return BINARYOUTPUT; }
 
-"XPOS"[a-zA-Z]*|"xpos"[a-zA-Z]*    { return XPOST; }
-"t"                                { yylval.ival = 0; return TOPFLAG; }                                
-"T"                                { yylval.ival = 1; return TOPFLAG; }
-"m"                                { yylval.ival = 0; return TOPFLAG; }
-"M"                                { yylval.ival = 1; return TOPFLAG; }
+"e"                                { yylval.ival = 0; return KEYLETTER; }
+"c"                                { yylval.ival = 1; return KEYLETTER; }
 
 "LOCF"[a-zA-Z]*|"locf"[a-zA-Z]*    { yylval.ival = OutputInfo::Local;  return OUTPUTFRAME; }
 "NODF"[a-zA-Z]*|"nodf"[a-zA-Z]*    { yylval.ival = OutputInfo::Local;  return OUTPUTFRAME; }

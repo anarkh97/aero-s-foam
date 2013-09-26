@@ -3,6 +3,7 @@
 
 #ifdef USE_EIGEN3
 #include <iostream>
+#include <vector>
 #include <Eigen/Core>
 
 template<typename doublereal>
@@ -23,6 +24,9 @@ class ShellMaterial
     virtual void SetState(doublereal *state) {}
     virtual void GetState(doublereal *state) {}
     virtual void UpdateState(doublereal *Upsilon, doublereal *state, int gp) {}
+    virtual std::vector<doublereal> GetLocalPlasticStrain(int nd, doublereal z) { return std::vector<doublereal>(); }
+    virtual std::vector<doublereal> GetLocalBackStress(int nd, doublereal z) { return std::vector<doublereal>(); }
+    virtual doublereal GetLocalEquivalentPlasticStrain(int nd, doublereal z) { return 0; }
 
   protected:
     Eigen::Matrix<doublereal,3,3>
@@ -126,6 +130,9 @@ class ShellMaterialType4 : public ShellMaterial<doublereal>
     void SetState(doublereal *state);
     void GetState(doublereal *state);
     void UpdateState(doublereal *Upsilon, doublereal *state, int gp);
+    std::vector<doublereal> GetLocalPlasticStrain(int nd, doublereal z);
+    std::vector<doublereal> GetLocalBackStress(int nd, doublereal z);
+    doublereal GetLocalEquivalentPlasticStrain(int nd, doublereal z);
 };
 #endif
 

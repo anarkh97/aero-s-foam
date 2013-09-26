@@ -250,6 +250,51 @@ ShellMaterialType4<doublereal,localmaterial>
     }
 }
 
+template<typename doublereal, typename localmaterial>
+std::vector<doublereal>
+ShellMaterialType4<doublereal,localmaterial>
+::GetLocalPlasticStrain(int nd, doublereal z)
+{
+  // return a copy of the 3-vector of plastic strain
+  // at node nd, and layer determined by z, as follows:
+  int ilayer;
+  if(z < 0) ilayer = 0;       // lower surface
+  else if(z == 0) ilayer = 1; // median surface
+  else ilayer = 2;            // upper surface
+
+  return mat[nlayer*nd+ilayer]->GetMaterialPlasticStrain();
+}
+
+template<typename doublereal, typename localmaterial>
+std::vector<doublereal>
+ShellMaterialType4<doublereal,localmaterial>
+::GetLocalBackStress(int nd, doublereal z)
+{
+  // return a copy of the 3-vector of back-stress
+  // at node nd, and layer determined by z, as follows:
+  int ilayer;
+  if(z < 0) ilayer = 0;       // lower surface
+  else if(z == 0) ilayer = 1; // median surface
+  else ilayer = 2;            // upper surface
+
+  return mat[nlayer*nd+ilayer]->GetMaterialBackStress();
+}
+
+template<typename doublereal, typename localmaterial>
+doublereal
+ShellMaterialType4<doublereal,localmaterial>
+::GetLocalEquivalentPlasticStrain(int nd, doublereal z)
+{
+  // return the equivalent plastic strain
+  // at node nd, and layer determined by z, as follows:
+  int ilayer;
+  if(z < 0) ilayer = 0;       // lower surface
+  else if(z == 0) ilayer = 1; // median surface
+  else ilayer = 2;            // upper surface
+
+  return mat[nlayer*nd+ilayer]->GetMaterialEquivalentPlasticStrain();
+}
+
 #include <Material.d/IsotropicLinearElasticJ2PlasticPlaneStressMaterial.h>
 template
 void
@@ -275,4 +320,19 @@ template
 void
 ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
 ::UpdateState(double *Upsilon, double *state, int gp);
+
+template
+std::vector<double>
+ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
+::GetLocalPlasticStrain(int nd, double z);
+
+template
+std::vector<double>
+ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
+::GetLocalBackStress(int nd, double z);
+
+template
+double
+ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
+::GetLocalEquivalentPlasticStrain(int nd, double z);
 #endif

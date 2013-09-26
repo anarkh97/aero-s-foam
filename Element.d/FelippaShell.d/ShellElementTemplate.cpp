@@ -674,7 +674,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 //     globalZ  <input>   Z- Nodal Coordinates                          
 //     globalU  <input>   Global Displacements at the Nodal Joints      
 //     stress   <output>  Stresses (Von Mises Stress) of the Element    
-//     ctyp     <input>   Type of Constitutive Law (0, 1, 2, or 3)      
+//     ctyp     <input>   Type of Constitutive Law (0, 1, 2, 3, or 4)      
 //                                                                      
 // ==================================================================== 
 // Author   = Francois M. Hemez                                         
@@ -772,10 +772,12 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 
 //     -------------------------------------------------
 //     STEP 7
-//     COMPUTE THE STRESS OR STRAIN
+//     COMPUTE THE STRESS OR STRAIN OR HISTORY VARIABLES
 //     -------------------------------------------------
 
-        if (strainflg == 1) {
+        switch(strainflg) {
+
+          case 1 : {
 
 // .....COMPUTE THE LOCAL STRAINS ON THE SPECIFIED SURFACE
 
@@ -803,8 +805,10 @@ ShellElementTemplate<doublereal,Membrane,Bending>
             for (j = 3; j < 6; ++j) 
                 stress(j, i) = 2*str[j];
 
-        }
-        else {
+          } break;
+
+          default :  
+          case 0 : {
 
 #ifdef COMPATABILITY_MODE
 // .....COMPUTE THE GENERALIZED STRESSES [Sigma = {N,M}] WHICH ARE
@@ -859,6 +863,69 @@ ShellElementTemplate<doublereal,Membrane,Bending>
             transform(eframe.data(), gframe.data(), str);
             for (j = 0; j < 6; ++j)
                 stress(j, i) = str[j];
+
+          } break;
+
+          case 2 : {
+
+// .....COMPUTE THE EQUIVALENT PLASTIC STRAIN FOR ELASTO-PLASTIC MATERIALS
+            stress(0, i) = (ctyp == 4) ? nmat->GetLocalEquivalentPlasticStrain(i, z) : 0;
+
+          } break;
+
+          case 3 : {
+
+// .....COMPUTE THE BACKSTRESS FOR ELASTO-PLASTIC MATERIALS
+            if(ctyp == 4) {
+              std::vector<double> sigma = nmat->GetLocalBackStress(i, z);
+
+// .....ROTATE LOCAL STRESSES TO GLOBAL
+
+              str[0] = sigma[0];
+              str[1] = sigma[1];
+              str[2] = 0.;
+              str[3] = sigma[2];
+              str[4] = 0.;
+              str[5] = 0.;
+              transform(eframe.data(), gframe.data(), str);
+              for (j = 0; j < 6; ++j)
+                stress(j, i) = str[j];
+  
+            }
+            else {
+              for (j = 0; j < 6; ++j)
+                stress(j, i) = 0;
+            }
+
+          } break;
+
+          case 4 : {
+
+// .....COMPUTE THE PLASTIC STRAIN TENSOR FOR ELASTO-PLASTIC MATERIALS
+            if(ctyp == 4) {
+              std::vector<double> epsilon = nmat->GetLocalPlasticStrain(i, z);
+
+// .....ROTATE LOCAL STRAINS TO GLOBAL AND CONVERT SHEAR STRAINS TO ENGINEERING SHEAR STRAINS
+
+              str[0] = epsilon[0];
+              str[1] = epsilon[1];
+              str[2] = -(epsilon[0]+epsilon[1]);
+              str[3] = 0.5*epsilon[2];
+              str[4] = 0.;
+              str[5] = 0.;
+              transform(eframe.data(), gframe.data(), str);
+              for (j = 0; j < 3; ++j)
+                stress(j, i) = str[j];
+              for (j = 3; j < 6; ++j)
+                stress(j, i) = 2*str[j];
+
+            } 
+            else {
+              for (j = 0; j < 6; ++j)
+                stress(j, i) = 0;
+            }
+          
+          } break;
 
         }
     }

@@ -260,14 +260,41 @@ BelytschkoTsayShell::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
         stress[i] = sqrt(3*J2);
 
       } break;
-      case 17 : // damage for hypoelas
+      case 17 : { // damage
         if(expmat->optctv == 1)
           stress[i] = evar1[5*j+1];
-        break;
-      case 18 : // effective plastic strain for elasto plastic materials
+        else
+          stress[i] = 0;
+      } break;
+      case 18 : { // effective plastic strain for elasto plastic materials
         if(expmat->optctv != 1)
           stress[i] = mat[j]->GetMaterialEquivalentPlasticStrain();
-        break;
+        else
+          stress[i] = 0;
+      } break;
+      case 19 : case 20 : case 21 : case 22 : case 23 : case 24 : { // backstress for elasto plastic materials
+        if(expmat->optctv != 1) {
+          std::vector<double> BackStress = mat[j]->GetMaterialBackStress();
+          if(strInd == 19) stress[i] = BackStress[0];                       // xx
+          else if(strInd == 20) stress[i] = BackStress[1];                  // yy
+          else if(strInd == 22) stress[i] = BackStress[2];                  // xy
+          else stress[i] = 0;
+        }
+        else
+          stress[i] = 0;
+      } break;
+      case 25 : case 26 : case 27 : case 28 : case 29 : case 30 : { // plastic strain for elasto plastic materials
+        if(expmat->optctv != 1) {
+          std::vector<double> EPSplastic = mat[j]->GetMaterialPlasticStrain();
+          if(strInd == 25) stress[i] = EPSplastic[0];                       // xx
+          else if(strInd == 26) stress[i] = EPSplastic[1];                  // yy
+          else if(strInd == 27) stress[i] = -(EPSplastic[0]+EPSplastic[1]); // zz
+          else if(strInd == 28) stress[i] = 0.5*EPSplastic[2];              // xy
+          else stress[i] = 0;
+        }
+        else
+          stress[i] = 0;
+      } break;
     }
   }
 #else

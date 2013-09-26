@@ -124,7 +124,7 @@ GetMaterialBackStress() const
   std::vector<double> BS(9,0.);
   BS[0] = BackStress[0];
   BS[4] = BackStress[1];
-  BS[8] = -(BS[0]+BS[4]);
+  BS[8] = 0;
   BS[1] = BS[3] = BackStress[2];
   BS[2] = BS[5] = BS[6] = BS[7] = 0.;
   return BS;

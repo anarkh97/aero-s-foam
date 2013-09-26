@@ -59,7 +59,33 @@ FelippaShell::getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
 
 {
   weight = 1.0;
-  if(strInd > 13) { stress.zero(); return; } // TODO: eqplstrn
+  int strainFlg, offset;
+  switch(strInd) {
+    case 0 : case 1 : case 2 : case 3 : case 4 : case 5 : case 6 : {
+      strainFlg = 0;
+      offset = 0;
+    } break;
+    case 7 : case 8 : case 9 : case 10: case 11: case 12: case 13 : {
+      strainFlg = 1;
+      offset = 7;
+    } break;
+    case 18 : {
+      strainFlg = 2;
+      offset = 18;
+    } break;
+    case 19 : case 20 : case 21 : case 22 : case 23 : case 24 : {
+      strainFlg = 3;
+      offset = 19;
+    } break;
+    case 25 : case 26 : case 27 : case 28 : case 29 : case 30 : {
+      strainFlg = 4;
+      offset = 25;
+    } break;
+    default : {
+      stress.zero();
+      return;
+    } 
+  }
 
   Node &nd1 = cs.getNode(nn[0]);
   Node &nd2 = cs.getNode(nn[1]);
@@ -75,25 +101,15 @@ FelippaShell::getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
 
   double elStress[3][7];
 
-  int strainFlg = 0;
-  if(strInd > 6 ) strainFlg = 1;
-
   double* disp = elDisp.data();
 
   andesvms(glNum+1, maxstr, prop->nu,
            x, y, z, (double*)disp, (double*)elStress,
            type, strainFlg, surface);
 
-  if(strInd < 7) {
-    stress[0] = elStress[0][strInd];
-    stress[1] = elStress[1][strInd];
-    stress[2] = elStress[2][strInd];
-  }
-  else {
-    stress[0] = elStress[0][strInd-7];
-    stress[1] = elStress[1][strInd-7];
-    stress[2] = elStress[2][strInd-7];
-  }
+  stress[0] = elStress[0][strInd-offset];
+  stress[1] = elStress[1][strInd-offset];
+  stress[2] = elStress[2][strInd-offset];
 }
 
 void

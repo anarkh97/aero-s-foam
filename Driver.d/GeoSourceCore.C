@@ -814,14 +814,13 @@ void GeoSource::transformCoords()
         double rho   = nodes[i]->x;
         double theta = nodes[i]->y;
         v << rho*cos(theta), rho*sin(theta), nodes[i]->z;
-        break;
-      }
-      case NFrameData::Spherical:
+      } break;
+      case NFrameData::Spherical: {
         double rho   = nodes[i]->x;
         double theta = nodes[i]->y;
         double phi   = nodes[i]->z;
         v << rho*sin(theta)*cos(phi), rho*sin(theta)*sin(phi), rho*cos(theta);
-        break;
+      } break;
     }
 
     Eigen::Matrix3d T;

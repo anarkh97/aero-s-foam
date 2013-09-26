@@ -284,7 +284,7 @@ class Domain : public HData {
 
     StructProp *p; // property for new constraints
 
-    AdjacencyLists *elemAdj;
+    std::vector<AdjacencyLists> elemAdj;
     std::vector<int> followedElemList;
 
   public:

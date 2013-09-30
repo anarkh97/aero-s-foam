@@ -84,7 +84,7 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
                                                                                          // (implicit dynamics only)
   BlastLoading::BlastData *conwep = (domain->solInfo().ConwepOnOff) ? &BlastLoading::InputFileData : NULL;
   bool compute_tangents = !initialTime && !solInfo().getNLInfo().linearelastic;
-  if(!elemAdj) makeElementAdjacencyLists();
+  if(elemAdj.empty()) makeElementAdjacencyLists();
 
   for(int iele = 0; iele < numele; ++iele) {
 
@@ -218,7 +218,47 @@ Domain::getElemFollowerForce(int iele, GeomState &geomState, double *_f, int buf
     elementForceBuf -= elementForce;
   }
 
-  // 2. Treatment of surface pressure
+  // 2. Treatment of element thermal forces
+  //    By convention phantom elements do not have thermal load
+  if(domain->thermalFlag() && packedEset[iele]->getProperty() != 0) {
+
+    Vector elementTemp(packedEset[iele]->numNodes());
+    Vector elementForce(packedEset[iele]->numDofs());
+
+    // Extract the element nodal temperatures from temprcvd and/or element property ambient temperature
+    int *elemnodes = packedEset[iele]->nodes();
+    for(int inod = 0; inod < packedEset[iele]->numNodes(); ++inod) {
+      double t = temprcvd[elemnodes[inod]];
+      elementTemp[inod] = (t == defaultTemp) ? packedEset[iele]->getProperty()->Ta : t;
+    }
+    delete [] elemnodes;
+
+    // Compute element thermal force in the local coordinates
+    elementForce.zero();
+    packedEset[iele]->getThermalForce(nodes, elementTemp, elementForce, 1);
+
+    if(corotator) {
+      // Include the "load stiffness matrix" in kel
+      if(compute_tangents) {
+        FullSquareMatrix k(kel.dim());
+        k.zero();
+        corotator->getDExternalForceDu(geomState, nodes, k, elementForce.data());
+
+        for(int i = 0; i < kel.dim(); ++i)
+          for(int j = 0; j < kel.dim(); ++j)
+            kel[i][j] += k[i][j];
+      }
+
+      // Determine the elemental force for the corrotated system
+      corotator->getExternalForce(geomState, nodes, elementForce.data());
+    }
+
+    elementForceBuf -= elementForce;
+  }
+
+  if(iele >= elemAdj.size()) return;
+
+  // 3. Treatment of surface pressure
   for(std::vector<std::pair<int,std::vector<int> > >::iterator it = elemAdj[iele].surfp.begin(); it != elemAdj[iele].surfp.end(); ++it) {
 
     int i = it->first;
@@ -257,7 +297,7 @@ Domain::getElemFollowerForce(int iele, GeomState &geomState, double *_f, int buf
     pbc->val = p0;
   }
 
-  // 3. Treatment of configuration dependent nodal moments
+  // 4. Treatment of configuration dependent nodal moments
   for(std::vector<std::pair<int,std::vector<int> > >::iterator it = elemAdj[iele].cdnm.begin(); it != elemAdj[iele].cdnm.end(); ++it) {
 
     int i = it->first;
@@ -322,7 +362,7 @@ Domain::getElemFollowerForce(int iele, GeomState &geomState, double *_f, int buf
     }
   }
 
-  // 4. Treatment of configuration dependent nodal forces
+  // 5. Treatment of configuration dependent nodal forces
   for(std::vector<std::pair<int,std::vector<int> > >::iterator it = elemAdj[iele].cdnf.begin(); it != elemAdj[iele].cdnf.end(); ++it) {
 
     int i = it->first;
@@ -350,50 +390,12 @@ Domain::getElemFollowerForce(int iele, GeomState &geomState, double *_f, int buf
           kel[eledofs[j]][eledofs[3+k]] += skewf[j][k];
     }
   }
-
-  // 5. Treatment of element thermal forces
-  //    By convention phantom elements do not have thermal load
-  if(domain->thermalFlag() && packedEset[iele]->getProperty() != 0) {
-
-    Vector elementTemp(packedEset[iele]->numNodes());
-    Vector elementForce(packedEset[iele]->numDofs());
-
-    // Extract the element nodal temperatures from temprcvd and/or element property ambient temperature
-    int *elemnodes = packedEset[iele]->nodes();
-    for(int inod = 0; inod < packedEset[iele]->numNodes(); ++inod) {
-      double t = temprcvd[elemnodes[inod]];
-      elementTemp[inod] = (t == defaultTemp) ? packedEset[iele]->getProperty()->Ta : t;
-    }
-    delete [] elemnodes;
-
-    // Compute element thermal force in the local coordinates
-    elementForce.zero();
-    packedEset[iele]->getThermalForce(nodes, elementTemp, elementForce, 1);
-
-    if(corotator) {
-      // Include the "load stiffness matrix" in kel
-      if(compute_tangents) {
-        FullSquareMatrix k(kel.dim());
-        k.zero();
-        corotator->getDExternalForceDu(geomState, nodes, k, elementForce.data());
-
-        for(int i = 0; i < kel.dim(); ++i)
-          for(int j = 0; j < kel.dim(); ++j)
-            kel[i][j] += k[i][j];
-      }
-
-      // Determine the elemental force for the corrotated system
-      corotator->getExternalForce(geomState, nodes, elementForce.data());
-    }
-
-    elementForceBuf -= elementForce;
-  }
 }
 
 void
 Domain::makeElementAdjacencyLists()
 {
-  elemAdj = new AdjacencyLists[numele]; 
+  elemAdj.resize(numele); 
   bool makeFollowedElemList = (!domain->solInfo().reduceFollower && domain->solInfo().galerkinPodRom);
 
   // 1. pressure applied to elements
@@ -550,7 +552,7 @@ Domain::getWeightedStiffAndForceOnly(const std::map<int, double> &weights,
 
   BlastLoading::BlastData *conwep = (domain->solInfo().ConwepOnOff) ? &BlastLoading::InputFileData : NULL;
   bool compute_tangents = !initialTime;
-  if(!elemAdj) makeElementAdjacencyLists();
+  if(elemAdj.empty()) makeElementAdjacencyLists();
 
   if(!domain->solInfo().reduceFollower) {
     // Zero element stiffness. otherwise, the follower force tangents will accumulate

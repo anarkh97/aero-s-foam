@@ -73,7 +73,7 @@ Domain::getInternalForce(GeomState &geomState, Vector& elementForce,
 {
   const double pseudoTime = sinfo.isDynam() ? time : lambda; // mpc needs lambda for nonlinear statics
   BlastLoading::BlastData *conwep = (domain->solInfo().ConwepOnOff) ? &BlastLoading::InputFileData : NULL;
-  if(!elemAdj) makeElementAdjacencyLists();
+  if(elemAdj.empty()) makeElementAdjacencyLists();
 
   for(int iele = 0; iele < numele; ++iele) {
 
@@ -124,7 +124,7 @@ Domain::getWeightedInternalForceOnly(const std::map<int, double> &weights,
 {
   const double pseudoTime = sinfo.isDynam() ? time : lambda; // MPC needs lambda for nonlinear statics
   BlastLoading::BlastData *conwep = (domain->solInfo().ConwepOnOff) ? &BlastLoading::InputFileData : NULL;
-  if(!elemAdj) makeElementAdjacencyLists();
+  if(elemAdj.empty()) makeElementAdjacencyLists();
   
   for(std::map<int, double>::const_iterator it = weights.begin(), it_end = weights.end(); it != it_end; ++it) {
     const int iele = it->first;
@@ -229,6 +229,8 @@ Domain::getElemFictitiousForce(int iele, GeomState &geomState, double *_f, FullS
     }
     delete [] nodes;
   }
+
+  if(iele >= elemAdj.size()) return;
 
   // treatment of discrete inertias adjacent to the element
   for(std::vector<std::pair<DMassData*,std::vector<int> > >::iterator it = elemAdj[iele].dimass.begin(); it != elemAdj[iele].dimass.end(); ++it) {

@@ -1,4 +1,6 @@
-#!/bin/tcsh
+#!/bin/bash
+export CMAKE_INCLUDE_PATH=$CMAKE_INCLUDE_PATH:/lustre/home/pavery/code:/lustre/home/pavery/code/spooles:/lustre/home/pavery/code/MUMPS_4.10.0/include:/lustre/home/pavery/code/trilinos/trilinos-10.8.4-Obj_cmake/include:/lustre/home/pavery/code/trilinos/trilinos-10.8.4-Source/packages/zoltan/src:/lustre/home/pavery/code/trilinos/trilinos-10.8.4-Source/packages/sacado/src:/lustre/home/mpotts/boost/include
+export CMAKE_LIBRARY_PATH=$CMAKE_LIBRARY_PATH:/lustre/home/pavery/code/arpack:/lustre/home/pavery/code/spooles:/lustre/home/pavery/code/spooles/MT/src:/lustre/home/pavery/code/MUMPS_4.10.0/lib:/lustre/home/pavery/code/trilinos/trilinos-10.8.4-Obj_cmake/lib:/lustre/home/mpotts/boost/lib
 cmake \
 -DAERO:BOOL=true \
 -DCMAKE_C_COMPILER:FILEPATH=/usr/bin/gcc43 \

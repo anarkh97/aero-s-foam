@@ -336,7 +336,7 @@ int main(int argc, char** argv)
 
  filePrint(stderr,"\n --------- R U N  PARAMETERS ----------\n");
 #ifdef PRINT_CHANGESETID
- filePrint(stderr," ... Changeset ID%-13s    ...\n",THE_VERSION);
+ filePrint(stderr," ... Changeset ID%-14s    ...\n",THE_VERSION);
 #endif
  FILE * weightFile;
  while ((c = getopt_long(argc, argv, "n:d:p:v:c:DVtTPmMr:Pfs:",long_options, &option_index)) != -1)

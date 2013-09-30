@@ -227,7 +227,9 @@ class Domain : public HData {
      compStruct renumb;         // renumbered nodes per structural component
      compStruct renumbFluid;    // renumbered nodes per fluid component, ADDED FOR HEV PROBLEM, 20070820
      compStruct renumb_nompc;
-     std::map<int,int> loadconfig;
+     std::map<std::pair<int,int>,double> loadfactor;
+     std::map<std::pair<int,int>,int> loadfactor_mftt;
+     std::map<std::pair<int,int>,int> loadfactor_hftt;
      std::map<int,MFTTData*> mftval; // Mechanics Force Time Table
      std::map<int,MFTTData*> hftval; // Heat Fluxes Time Table
      int numHFTT;                    // number of HFTTs
@@ -452,11 +454,17 @@ class Domain : public HData {
      int  setIVel(int, BCond *);
      int  setIVelModal(int, BCond *);
      int  setIAcc(int, BCond *);
-     void setLoadConfig(int, int);
+     void setLoadFactor(int, int, double);
+     void setLoadFactorMFTT(int, int, int);
+     void setLoadFactorHFTT(int, int, int);
+     void checkCases();
+     double getLoadFactor(int) const;
      int  setMFTT(MFTTData *, int);
+     MFTTData * getDefaultMFTT() const;
      MFTTData * getMFTT(int) const;
      int getNumMFTT() const;
      int  setHFTT(MFTTData *, int i);
+     MFTTData * getDefaultHFTT() const;
      MFTTData * getHFTT(int) const;
      int getNumHFTT() const;
      int  addYMTT(MFTTData *);

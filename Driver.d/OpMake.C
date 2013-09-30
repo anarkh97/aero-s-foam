@@ -1644,8 +1644,6 @@ Domain::addPressureForce(GenVector<Scalar> &force, int which, double time)
 
   Vector elementPressureForce(maxNumDOFs);
   int cflg = 1; // NOW WE ALWAYS USE CONSISTENT PRESSURE
-  bool checkCase = (!sinfo.isNonLin() && !sinfo.isDynam());
-  int caseid = (domain->solInfo().loadcases.size() > 0) ? domain->solInfo().loadcases.front() : 0;
   PressureBCond *pbc;
 
   if(pressureFlag()) {
@@ -1653,17 +1651,18 @@ Domain::addPressureForce(GenVector<Scalar> &force, int which, double time)
       // If there is no pressure boundary condition defined for this element, skip it
       if((pbc = packedEset[iele]->getPressure()) == NULL) continue;
 
+      // Get the force time table
+      MFTTData *mftt = domain->getMFTT(pbc->loadsetid);
+
       // If the pressure is not to be included due to "which" setting, skip it
-      bool PressureIsConstant = !((pbc->conwep && pbc->conwepswitch) || pbc->mftt);
+      bool PressureIsConstant = !((pbc->conwep && pbc->conwepswitch) || mftt);
       if((PressureIsConstant && which==1) || (!PressureIsConstant && which==0)) continue;
 
-      // If the pressure is not in the current load case, skip it
-      if(checkCase && caseid != pbc->caseid) continue;
-
-      // Compute the amplified pressure due to MFTT, if applicable
-      double lambda = (pbc->mftt && sinfo.isDynam()) ? pbc->mftt->getVal(std::max(time,0.0)) : 1.0;
+      // Compute the amplified pressure due to MFTT or constant load factor
+      double loadFactor = (mftt && sinfo.isDynam()) ? mftt->getVal(std::max(time,0.0)) : domain->getLoadFactor(pbc->loadsetid);
+      if(loadFactor == 0) continue;
       double p0 = pbc->val;
-      pbc->val *= lambda;
+      pbc->val *= (loadFactor);
 
       // Compute element pressure force
       elementPressureForce.zero();
@@ -1686,14 +1685,18 @@ Domain::addPressureForce(GenVector<Scalar> &force, int which, double time)
     // If this is not pressure boundary condition, skip it
     if((pbc = neum[iele]->getPressure()) == NULL) continue;
 
+    // Get the force time table
+    MFTTData *mftt = domain->getMFTT(pbc->loadsetid);
+
     // If the pressure is not to be included due to "which" setting, skip it
-    bool PressureIsConstant = !((pbc->conwep && pbc->conwepswitch) || pbc->mftt);
+    bool PressureIsConstant = !((pbc->conwep && pbc->conwepswitch) || mftt);
     if((PressureIsConstant && which==1) || (!PressureIsConstant && which==0)) continue;
 
-    // Compute the amplified pressure due to MFTT, if applicable
-    double lambda = (pbc->mftt && sinfo.isDynam()) ? pbc->mftt->getVal(std::max(time,0.0)) : 1.0;
+    // Compute the amplified pressure due to MFTT or constant load factor
+    double loadFactor = (mftt && sinfo.isDynam()) ? mftt->getVal(std::max(time,0.0)) : domain->getLoadFactor(pbc->loadsetid);
+    if(loadFactor == 0) continue;
     double p0 = pbc->val;
-    pbc->val *= lambda;
+    pbc->val *= loadFactor;
 
     // Compute structural element distributed Neumann force
     elementPressureForce.zero();
@@ -1717,27 +1720,30 @@ template<class Scalar>
 void
 Domain::addAtddnbForce(GenVector<Scalar> &force, int which, double time)
 {
+  // Get the force time table. Note ATDDNB does not support the LOADSET_ID construct
+  MFTTData *mftt = domain->getDefaultMFTT();
+
+  // If the distributed Neumann force is not to be included due to "which" setting, return
+  bool AtddnbIsConstant = !mftt;
+  if((AtddnbIsConstant && which==1) || (!AtddnbIsConstant && which==0)) return;
+
+  // compute the amplification factor, if applicable
+  double loadFactor = (mftt) ? mftt->getVal(time) : 1.0;
+
   Vector elementAtddnbForce(maxNumDOFs);
 
   for(int iele = 0; iele < numNeum; ++iele) {
-
-    // If the distributed Neumann force is not to be included due to "which" setting, skip it
-    bool AtddnbIsConstant = !(getMFTT(0));
-    if((AtddnbIsConstant && which==1) || (!AtddnbIsConstant && which==0)) continue;
 
     // Compute acoustic element distributed Neumann force
     elementAtddnbForce.zero();
     neum[iele]->neumVector(nodes, elementAtddnbForce);
     elementAtddnbForce *= sinfo.ATDDNBVal;
 
-    // Compute the amplification factor, if applicable
-    double lambda = (getMFTT(0)) ? getMFTT(0)->getVal(time) : 1.0;
-    
     // Assemble element force vector into domain force vector
     int *dofs = neum[iele]->dofs(*c_dsa);
     for(int idof = 0; idof < neum[iele]->numDofs(); ++idof) {
       if(dofs[idof] >= 0)
-        force[dofs[idof]] += lambda*elementAtddnbForce[idof];
+        force[dofs[idof]] += loadFactor*elementAtddnbForce[idof];
     }
     delete [] dofs;
   }
@@ -1747,27 +1753,30 @@ template<class Scalar>
 void
 Domain::addAtdrobForce(GenVector<Scalar> &force, int which, double time)
 {
+  // Get the force time table. Note ATDROB does not support the LOADSET_ID construct
+  MFTTData *mftt = domain->getDefaultMFTT();
+
+  // If the distributed Robin boundary condition is not to be included due to "which" setting, skip it
+  bool AtdrobIsConstant = !mftt;
+  if((AtdrobIsConstant && which==1) || (!AtdrobIsConstant && which==0)) return;
+
+  // compute the amplification factor, if applicable
+  double loadFactor = (mftt) ? mftt->getVal(time) : 1.0;
+
   Vector elementAtdrobForce(maxNumDOFs);
 
   for(int iele = 0; iele < numScatter; ++iele) {
-
-    // If the distributed Robin boundary condition is not to be included due to "which" setting, skip it
-    bool AtdrobIsConstant = !(getMFTT(0));
-    if((AtdrobIsConstant && which==1) || (!AtdrobIsConstant && which==0)) continue;
 
     // Compute acoustic element Robin distributed boundary condition
     elementAtdrobForce.zero();
     scatter[iele]->neumVector(nodes, elementAtdrobForce);
     elementAtdrobForce *= (sinfo.ATDROBVal/sinfo.ATDROBalpha);
 
-    // compute the amplification factor, if applicable
-    double lambda = (getMFTT(0)) ? getMFTT(0)->getVal(time) : 1.0;
-
     // Assemble element force vector into domain force vector
     int *dofs = scatter[iele]->dofs(*c_dsa);
     for(int idof = 0; idof < scatter[iele]->numDofs(); ++idof) {
       if(dofs[idof] >= 0)
-        force[dofs[idof]] += lambda*elementAtdrobForce[idof];
+        force[dofs[idof]] += loadFactor*elementAtdrobForce[idof];
     }
     delete [] dofs;
   }
@@ -2053,7 +2062,7 @@ template<class Scalar>
 void
 Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc)
 {
-  int caseid = (domain->solInfo().loadcases.size() > 0) ? domain->solInfo().loadcases.front() : 0;
+  double loadFactor; // load amplification factor used for combination load case
 
   if(! dynamic_cast<GenSubDomain<Scalar>*> (this))
     checkSommerTypeBC(this);
@@ -2063,18 +2072,30 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc)
   // ... COMPUTE EXTERNAL FORCE FROM REAL NEUMAN BC
   int i;
   for(i=0; i < numNeuman; ++i) {
-    if(nbc[i].caseid != caseid) continue;
     int dof  = c_dsa->locate(nbc[i].nnum, (1 << nbc[i].dofnum));
     if(dof < 0) continue;
-    ScalarTypes::addScalar(force[dof], nbc[i].val);
+    switch(nbc[i].type) {
+      case(BCond::Forces) : case(BCond::Flux) : case(BCond::Convection) : case(BCond::Hneu) : {
+        double loadFactor = domain->getLoadFactor(nbc[i].loadsetid);
+        ScalarTypes::addScalar(force[dof], loadFactor*nbc[i].val);
+      } break;
+      default : 
+       ScalarTypes::addScalar(force[dof], nbc[i].val);
+    }
   }
 
   // ... COMPUTE EXTERNAL FORCE FROM COMPLEX NEUMAN BC
   for(i=0; i < numComplexNeuman; ++i) {
-    if(cnbc[i].caseid != caseid) continue;
     int dof  = c_dsa->locate(cnbc[i].nnum, (1 << cnbc[i].dofnum));
     if(dof < 0) continue;
-    ScalarTypes::addScalar(force[dof], cnbc[i].reval, cnbc[i].imval);
+    switch(nbc[i].type) {
+      case(BCond::Forces) : case(BCond::Flux) : case(BCond::Convection) : case(BCond::Hneu) : {
+        double loadFactor = domain->getLoadFactor(cnbc[i].loadsetid);
+        ScalarTypes::addScalar(force[dof], loadFactor*cnbc[i].reval, loadFactor*cnbc[i].imval);
+      } break;
+      default :
+        ScalarTypes::addScalar(force[dof], cnbc[i].reval, cnbc[i].imval);
+    }
   }
 
   if (implicitFlag) {
@@ -2239,17 +2260,28 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenVector<Scalar> &tmp,
   for(i=0; i < numNeuman; ++i) {
     int dof  = c_dsa->locate(nbc[i].nnum, (1 << nbc[i].dofnum));
     if(dof < 0) continue;
-    //if(nbc[i].dofnum == 7) ScalarTypes::addScalar(force[dof], nbc[i].val/fluidDensity); else // PJSA 1-9-2008 temp fix (homogenous fluid only) 
-    //                                                                                         // required for backward-compatibility with old versions (before acoustic equations divided by rho)
-    ScalarTypes::addScalar(force[dof], nbc[i].val); 
+    switch(nbc[i].type) {
+      case(BCond::Forces) : case(BCond::Flux) : case(BCond::Convection) : case(BCond::Hneu) : {
+        double loadFactor = domain->getLoadFactor(nbc[i].loadsetid);
+        ScalarTypes::addScalar(force[dof], loadFactor*nbc[i].val);
+      } break;
+      default :
+       ScalarTypes::addScalar(force[dof], nbc[i].val);
+    }
   }
 
   // ... COMPUTE EXTERNAL FORCE FROM COMPLEX NEUMAN BC
   for(i=0; i < numComplexNeuman; ++i) {
     int dof  = c_dsa->locate(cnbc[i].nnum, (1 << cnbc[i].dofnum));
     if(dof < 0) continue;
-    //if(cnbc[i].dofnum == 7) ScalarTypes::addScalar(force[dof], cnbc[i].reval/fluidDensity, cnbc[i].imval/fluidDensity); else // PJSA 1-9-2008
-    ScalarTypes::addScalar(force[dof], cnbc[i].reval, cnbc[i].imval); 
+    switch(nbc[i].type) {
+      case(BCond::Forces) : case(BCond::Flux) : case(BCond::Convection) : case(BCond::Hneu) : {
+        double loadFactor = domain->getLoadFactor(cnbc[i].loadsetid);
+        ScalarTypes::addScalar(force[dof], loadFactor*cnbc[i].reval, loadFactor*cnbc[i].imval);
+      } break;
+      default :
+        ScalarTypes::addScalar(force[dof], cnbc[i].reval, cnbc[i].imval); 
+    }
   }
 
   // PJSA: new FETI-H stuff
@@ -3515,6 +3547,7 @@ Domain::computeConstantForce(GenVector<Scalar>& cnst_f, GenSparseMatrix<Scalar>*
 {
   // This is called for linear and nonlinear dynamics 
   // cnst_f is independent of t
+  double loadFactor; // load amplification factor used for combination load case
 
   if(!dynamic_cast<GenSubDomain<Scalar>*>(this) && !sommerChecked) checkSommerTypeBC(this);
 
@@ -3532,20 +3565,32 @@ Domain::computeConstantForce(GenVector<Scalar>& cnst_f, GenSparseMatrix<Scalar>*
     int dof  = c_dsa->locate(nbc[i].nnum, (1 << nbc[i].dofnum));
     if(dof < 0) continue;
     switch(nbc[i].type) {
-      case(BCond::Forces) : if(!domain->getMFTT(nbc[i].caseid)) cnst_f[dof] += nbc[i].val; break;
-      case(BCond::Flux) :   if(!domain->getHFTT(nbc[i].caseid)) cnst_f[dof] += nbc[i].val; break;
+      case(BCond::Forces) : {
+        if(!domain->getMFTT(nbc[i].loadsetid)) {
+          double loadFactor = domain->getLoadFactor(nbc[i].loadsetid);
+          cnst_f[dof] += loadFactor*nbc[i].val;
+        }
+      } break;
+      case(BCond::Flux) : {
+        if(!domain->getHFTT(nbc[i].loadsetid)) {
+          double loadFactor = domain->getLoadFactor(nbc[i].loadsetid);
+          cnst_f[dof] += loadFactor*nbc[i].val;
+        }
+      } break;
+      case(BCond::Convection) : {
+        double loadFactor = domain->getLoadFactor(nbc[i].loadsetid);
+        cnst_f[dof] += loadFactor*nbc[i].val;
+      } break;
       case(BCond::Actuators) : case(BCond::Usdf) : break;
       default : cnst_f[dof] += nbc[i].val;
     }
   }
 
   // ... COMPUTE FORCE FROM ACOUSTIC DISTRIBUTED NEUMANN BOUNDARY CONDITIONS
-  // note #1: even when MFTTs are present this term may be constant
-  if(sinfo.ATDDNBVal != 0.0) addAtddnbForce(cnst_f, 0);
+  if(sinfo.ATDDNBVal != 0.0 && !domain->getDefaultMFTT()) addAtddnbForce(cnst_f, 0);
 
   // ... COMPUTE FORCE FROM ACOUSTIC ROBIN BOUNDARY CONDITIONS
-  //  note #1: even when MFTTs are present this term may be constant
-  if(sinfo.ATDROBalpha != 0.0) addAtdrobForce(cnst_f, 0);
+  if(sinfo.ATDROBalpha != 0.0 && !domain->getDefaultMFTT()) addAtdrobForce(cnst_f, 0);
 
   // ... COMPUTE FORCE FROM PRESSURE
   // note #1: even when MFTTs/CONWEP are present this term may now be constant
@@ -3597,8 +3642,8 @@ Domain::computeExtForce(GenVector<Scalar>& f, double t, GenSparseMatrix<Scalar>*
       int dof  = c_dsa->locate(nbc[i].nnum, (1 << nbc[i].dofnum));
       if(dof < 0) continue;
       switch(nbc[i].type) {
-        case(BCond::Forces) : if(MFTTData *mftt = domain->getMFTT(nbc[i].caseid)) f[dof] += mftt->getVal(t)*nbc[i].val; break;
-        case(BCond::Flux)   : if(MFTTData *hftt = domain->getHFTT(nbc[i].caseid)) f[dof] += hftt->getVal(t)*nbc[i].val; break;
+        case(BCond::Forces) : if(MFTTData *mftt = domain->getMFTT(nbc[i].loadsetid)) f[dof] += mftt->getVal(t)*nbc[i].val; break;
+        case(BCond::Flux)   : if(MFTTData *hftt = domain->getHFTT(nbc[i].loadsetid)) f[dof] += hftt->getVal(t)*nbc[i].val; break;
         case(BCond::Actuators) : case(BCond::Usdf) : f[dof] += nbc[i].val; break;
         default : /* all other cases are constant */ ;
       }
@@ -3607,11 +3652,11 @@ Domain::computeExtForce(GenVector<Scalar>& f, double t, GenSparseMatrix<Scalar>*
 
   // COMPUTE FORCE FROM ACOUSTIC DISTRIBUTED NEUMANN BOUNDARY CONDITIONS
   // note #1: when one or more MFTTs are present this term may not be constant
-  if(sinfo.ATDDNBVal != 0.0 && domain->getNumMFTT() > 0) addAtddnbForce(f, 1, t);
+  if(sinfo.ATDDNBVal != 0.0 && domain->getDefaultMFTT()) addAtddnbForce(f, 1, t);
 
   // COMPUTE FORCE FROM ACOUSTIC ROBIN BOUNDARY CONDITIONS
   // note #1: when one or more MFTTs are present this term may not be constant
-  if(sinfo.ATDROBalpha != 0.0 && domain->getNumMFTT() > 0) addAtdrobForce(f, 1, t);
+  if(sinfo.ATDROBalpha != 0.0 && domain->getDefaultMFTT()) addAtdrobForce(f, 1, t);
 
   // COMPUTE FORCE FROM PRESSURE
   // note #1: when MFTT/CONWEP are present this term may not be constant

@@ -44,10 +44,10 @@ struct BCond {
          Displacements, Temperatures, Hdir, Atddir, Usdd, Pdir, Hefrs,
          Idisplacements, Idisp6, Itemperatures, Ivelocities, Iaccelerations,
          Sensors, Undefined, Lmpc, PointPointDistance, PointLineDistance, PointPlaneDistance } type;
-  int caseid;
+  int loadsetid;
   enum MomentType { Axial=0, Rotational, Follower } mtype;
-  void setData(int _nnum, int _dofnum, double _val, BCType _type = Undefined, int _caseid = 0, 
-               MomentType _mtype = Axial) { nnum = _nnum; dofnum = _dofnum; val = _val; type = _type; caseid = _caseid; mtype = _mtype; }
+  void setData(int _nnum, int _dofnum, double _val, BCType _type = Undefined, int _loadsetid = -1, 
+               MomentType _mtype = Axial) { nnum = _nnum; dofnum = _dofnum; val = _val; type = _type; loadsetid = _loadsetid; mtype = _mtype; }
 };
 
 // Complex Boundary Condition Structure
@@ -56,9 +56,9 @@ struct ComplexBCond {
   int    dofnum; // dof number
   double reval;  // real value of bc
   double imval;  // imaginary value of bc
-  int caseid;
-  void setData(int _nnum, int _dofnum, double _reval, double _imval, int _caseid = 0) 
-    { nnum = _nnum; dofnum = _dofnum; reval = _reval; imval = _imval; caseid = _caseid; };
+  int loadsetid;
+  void setData(int _nnum, int _dofnum, double _reval, double _imval, int _loadsetid = -1) 
+    { nnum = _nnum; dofnum = _dofnum; reval = _reval; imval = _imval; loadsetid = _loadsetid; };
 };
 
 // Pressure Boundary Condition Structure
@@ -68,12 +68,13 @@ struct PressureBCond {
     int surfid;
   };
   double val;
-  int caseid;
+  int loadsetid;
   bool conwepswitch;
   MFTTData *mftt;
   BlastLoading::BlastData *conwep;
-  void setData(int _elnum, double _val, int _caseid, bool _conwepswitch, MFTTData *_mftt = NULL, BlastLoading::BlastData *_conwep = NULL) 
-   { elnum = _elnum; val = _val; caseid = _caseid; conwepswitch = _conwepswitch; mftt = _mftt; conwep = _conwep; }
+  double loadfactor;
+  void setData(int _elnum, double _val, int _loadsetid, bool _conwepswitch, MFTTData *_mftt = NULL, BlastLoading::BlastData *_conwep = NULL) 
+   { elnum = _elnum; val = _val; loadsetid = _loadsetid; conwepswitch = _conwepswitch; mftt = _mftt; conwep = _conwep; loadfactor = 1; }
 };
 
 struct NumExc {

@@ -242,7 +242,7 @@ MeshDesc::init(Domain *domain, GeoSource *geoSource, const MeshRenumbering &ren)
 
   // Boundary conditions
   reduce(ren.nodeRenumbering(), domain->getDBC(), domain->getDBC() + domain->nDirichlet(), std::back_inserter(dirichletBConds_));
-  if(domain->getMFTT(0) != NULL) { // XXX
+  if(domain->getDefaultMFTT() != NULL) { // TODO: add support for combination load cases
     // note: reduced constant forces are now precomputed
     reduce(ren.nodeRenumbering(), domain->getNBC(), domain->getNBC() + domain->nNeumann(), std::back_inserter(neumannBConds_));
   }

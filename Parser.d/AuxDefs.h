@@ -53,12 +53,12 @@ class BCList {
     BCond *d;
     int n;
     int maxbc;
-    int caseid;
+    int loadsetid;
 
-    BCList(int _caseid = 0);
+    BCList(int _loadsetid = 0);
     void add(BCond &);
     void add(int nd, int dof, double val) 
-      { BCond bc; bc.nnum = nd; bc.dofnum =dof; bc.val = val; add(bc); }
+      { BCond bc; bc.nnum = nd; bc.dofnum = dof; bc.val = val; add(bc); }
 };
 
 class ComplexBCList {

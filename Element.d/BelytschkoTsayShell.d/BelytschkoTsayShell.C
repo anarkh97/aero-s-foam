@@ -488,6 +488,9 @@ BelytschkoTsayShell::getStiffAndForce(GeomState& geomState, CoordSet& cs, FullSq
     if (pbc && pbc->mftt) {
       pressure *= pbc->mftt->getVal(std::max(time,0.0));
     }
+    else if (pbc && !pbc->mftt) {
+      pressure *= pbc->loadfactor;
+    }
     // Check if Conwep is being used. If so, add the pressure from the blast loading function.
     if (pbc && pbc->conwep && pbc->conwepswitch) {
       pressure += BlastLoading::ComputeShellPressureLoad(ecord, time, *(pbc->conwep));

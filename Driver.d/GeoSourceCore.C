@@ -843,14 +843,18 @@ void GeoSource::setUpData()
   int lastNode = numNodes = nodes.size();
   const int nMaxEle = elemSet.last();
 
+  // Check that the selected load cases have been defined
+  domain->checkCases();
+
   // Set up element pressure load
   BlastLoading::BlastData *conwep = (domain->solInfo().ConwepOnOff) ? &BlastLoading::InputFileData : NULL;
   for(ElemPressureContainer::iterator i = eleprs.begin(); i != eleprs.end(); ++i) {
     PressureBCond &pbc = *i;
     int elemNum = i->elnum;
     if(elemSet[elemNum]) {
-      pbc.mftt = domain->getMFTT(pbc.caseid);
+      pbc.mftt = domain->getMFTT(pbc.loadsetid);
       pbc.conwep = conwep;
+      pbc.loadfactor = domain->getLoadFactor(pbc.loadsetid);
       elemSet[elemNum]->setPressure(&pbc);
     }
     else

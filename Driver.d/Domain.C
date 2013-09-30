@@ -887,9 +887,71 @@ int Domain::setNeumanModal(int _numNeumanModal, BCond *_nbcModal)
 }
 
 void
-Domain::setLoadConfig(int loadset_id, int mftt_id)
+Domain::setLoadFactor(int loadcase_id, int loadset_id, double load_factor)
 {
- loadconfig[loadset_id] = mftt_id;
+ loadfactor[std::pair<int,int>(loadcase_id,loadset_id)] = load_factor;
+}
+
+void
+Domain::setLoadFactorMFTT(int loadcase_id, int loadset_id, int table_id)
+{
+ loadfactor_mftt[std::pair<int,int>(loadcase_id,loadset_id)] = table_id;
+}
+
+void
+Domain::setLoadFactorHFTT(int loadcase_id, int loadset_id, int table_id)
+{
+ loadfactor_hftt[std::pair<int,int>(loadcase_id,loadset_id)] = table_id;
+}
+
+void
+Domain::checkCases()
+{
+  for(std::list<int>::const_iterator it1 = sinfo.loadcases.begin(); it1 != sinfo.loadcases.end(); ++it1) {
+    bool found = false;
+    for(std::map<std::pair<int,int>,double>::const_iterator it2 = loadfactor.begin(); it2 != loadfactor.end(); ++it2) {
+      if(it2->first.first == *it1) {
+        found = true;
+        continue;
+      }
+    }
+    for(std::map<std::pair<int,int>,int>::const_iterator it2 = loadfactor_mftt.begin(); it2 != loadfactor_mftt.end(); ++it2) {
+      if(it2->first.first == *it1) {
+        found = true;
+        continue;
+      }
+    }
+    for(std::map<std::pair<int,int>,int>::const_iterator it2 = loadfactor_hftt.begin(); it2 != loadfactor_hftt.end(); ++it2) {
+      if(it2->first.first == *it1) {
+        found = true;
+        continue;
+      }
+    }
+    if(!found && *it1 != 0) {
+      filePrint(stderr, " *** ERROR: Selected load case %d is not defined\n", *it1);
+      exit(-1);
+    }
+  }
+}
+
+double
+Domain::getLoadFactor(int loadset_id) const
+{
+  int loadcase_id = (domain->solInfo().loadcases.size() > 0) ? domain->solInfo().loadcases.front() : 0;
+  std::map<std::pair<int,int>,double>::const_iterator it1 = loadfactor.find(std::pair<int,int>(loadcase_id,loadset_id));
+  if(it1 != loadfactor.end()) {
+    // 1. In this case, a load factor has been defined for the (loadcase_id,loadset_id) pair under LOADCASE.
+    return it1->second;
+  }
+  else if(loadset_id == 0 && loadcase_id == 0) {
+    // 2. In this case, no load factor has been defined for the (loadcase_id,loadset_id) pair under LOADCASE.
+    //    The policy is to use the default load factor (1.0) for the (0,0) (loadcase_id,loadset_id) pair.
+    return 1.0;
+  }
+  else {
+    // 3. In this case, loadset_id is not included in the loadcase.
+    return 0.0;
+  }
 }
 
 int
@@ -900,15 +962,40 @@ Domain::setMFTT(MFTTData *_mftval, int key)
 }
 
 MFTTData *
-Domain::getMFTT(int caseid) const 
+Domain::getDefaultMFTT() const
 {
-  // if loadcase does not have any attributes, use the default mftt key (0)
-  std::map<int,int>::const_iterator it1;
-  int key = ((it1 = loadconfig.find(caseid)) != loadconfig.end()) ? it1->second : 0;
+  // the default table should be used (when defined) for any load types
+  // which do not support the LOADSET_ID construct
+  std::map<int,MFTTData*>::const_iterator it = domain->mftval.find(0);
+  return (it != domain->mftval.end()) ? it->second : NULL;
+}
 
-  // return a pointer to the function if it is defined, otherwise return a null pointer
-  std::map<int,MFTTData*>::const_iterator it2;
-  return ((it2 = mftval.find(key)) != mftval.end()) ? it2->second : NULL;
+MFTTData *
+Domain::getMFTT(int loadset_id) const 
+{
+  int loadcase_id = (domain->solInfo().loadcases.size() > 0) ? domain->solInfo().loadcases.front() : 0;
+  std::map<std::pair<int,int>,int>::const_iterator it1 = loadfactor_mftt.find(std::pair<int,int>(loadcase_id,loadset_id));
+  if(it1 != loadfactor_mftt.end()) {
+    // 1. In this case, a table has been defined for the (loadcase_id,loadset_id) pair under LOADCASE.
+    int table_id = it1->second;
+    std::map<int,MFTTData*>::const_iterator it2 = mftval.find(table_id);
+    if(it2 != mftval.end()) return it2->second;
+    else {
+      filePrint(stderr, " *** WARNING: Table %d assigned to loadset %d for loadcase #%d is not defined\n",
+                table_id, loadset_id, loadcase_id); 
+      return NULL;
+    }
+  }
+  else if(loadset_id == 0 && loadcase_id == 0) {
+    // 2. In this case, no table has been defined for the (loadcase_id,loadset_id) pair under LOADCASE.
+    //    The policy is to use the default table for the (0,0) (loadcase_id,loadset_id) pair, if it exists.
+    std::map<int,MFTTData*>::const_iterator it2 = mftval.find(0);
+    return (it2 != mftval.end()) ? it2->second : NULL;
+  }
+  else {
+    // 3. In this case, loadset_id is not included in the loadcase.
+    return NULL;
+  }
 }
 
 int
@@ -925,15 +1012,40 @@ Domain::setHFTT(MFTTData *_hftval, int key)
 }
 
 MFTTData *
-Domain::getHFTT(int caseid) const
+Domain::getDefaultHFTT() const
 {
-  // if loadcase does not have any attributes, use the default hftt key (0)
-  std::map<int,int>::const_iterator it1;
-  int key = ((it1 = loadconfig.find(caseid)) != loadconfig.end()) ? it1->second : 0;
+  // the default table should be used (when defined) for any load types
+  // which do not support the LOADSET_ID construct
+  std::map<int,MFTTData*>::const_iterator it = domain->hftval.find(0);
+  return (it != domain->hftval.end()) ? it->second : NULL;
+}
 
-  // return a pointer to the function if it is defined, otherwise return a null pointer
-  std::map<int,MFTTData*>::const_iterator it2; 
-  return ((it2 = hftval.find(key)) != hftval.end()) ? it2->second : NULL;
+MFTTData *
+Domain::getHFTT(int loadset_id) const
+{
+  int loadcase_id = (domain->solInfo().loadcases.size() > 0) ? domain->solInfo().loadcases.front() : 0;
+  std::map<std::pair<int,int>,int>::const_iterator it1 = loadfactor_hftt.find(std::pair<int,int>(loadcase_id,loadset_id));
+  if(it1 != loadfactor_hftt.end()) {
+    // 1. In this case, a table has been defined for the (loadcase_id,loadset_id) pair under LOADCASE.
+    int table_id = it1->second;
+    std::map<int,MFTTData*>::const_iterator it2 = hftval.find(table_id);
+    if(it2 != hftval.end()) return it2->second;
+    else {
+      filePrint(stderr, " *** WARNING: Table %d assigned to loadset %d for loadcase #%d is not defined\n",
+                table_id, loadset_id, loadcase_id);
+      return NULL;
+    }
+  }
+  else if(loadset_id == 0 && loadcase_id == 0) {
+    // 2. In this case, no table has been defined for the (loadcase_id,loadset_id) pair under LOADCASE.
+    //    The policy is to use the default table for the (0,0) (loadcase_id,loadset_id) pair, if it exists.
+    std::map<int,MFTTData*>::const_iterator it2 = hftval.find(0);
+    return (it2 != hftval.end()) ? it2->second : NULL;
+  }
+  else {
+    // 3. In this case, loadset_id is not included in the loadcase.
+    return NULL;
+  } 
 }
 
 int
@@ -3350,7 +3462,7 @@ Domain::ProcessSurfaceBCs()
           bc[k].dofnum = surface_nbc[i].dofnum;
           bc[k].val = surface_nbc[i].val;
           bc[k].type = surface_nbc[i].type;
-          bc[k].caseid = surface_nbc[i].caseid;
+          bc[k].loadsetid = surface_nbc[i].loadsetid;
           bc[k].mtype = surface_nbc[i].mtype;
         }
         int numNeuman_copy = geoSource->getNumNeuman();
@@ -3364,7 +3476,7 @@ Domain::ProcessSurfaceBCs()
   int numSurfacePressure = geoSource->getSurfacePressure(surface_pres);
   int nEle = geoSource->getElemSet()->last();
   for(int i=0; i<numSurfacePressure; ++i) {
-    surface_pres[i].mftt = getMFTT(surface_pres[i].caseid);
+    surface_pres[i].mftt = getMFTT(surface_pres[i].loadsetid);
     surface_pres[i].conwep = (domain->solInfo().ConwepOnOff) ? &BlastLoading::InputFileData : NULL;
     for(int j=0; j<nSurfEntity; j++) {
       int SurfId = SurfEntities[j]->ID();

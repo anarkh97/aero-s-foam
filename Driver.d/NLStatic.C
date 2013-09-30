@@ -189,9 +189,10 @@ Domain::getElemFollowerForce(int iele, GeomState &geomState, double *_f, int buf
     elementForce.zero();
 
     // Compute the amplified pressure due to MFTT and/or dlambda, if applicable
-    double mfttFactor = (pbc->mftt && sinfo.isDynam()) ? pbc->mftt->getVal(std::max(time,0.0)) : 1.0;
+    MFTTData *mftt = domain->getMFTT(pbc->loadsetid);
+    double loadFactor = (mftt && sinfo.isDynam()) ? mftt->getVal(std::max(time,0.0)) : domain->getLoadFactor(pbc->loadsetid);
     double p0 = pbc->val;
-    pbc->val *= (lambda*mfttFactor);
+    pbc->val *= (lambda*loadFactor);
 
     // Compute element pressure force in the local coordinates using the specified blast loading function and/or amplified pressure value
     pbc->conwep = conwep;
@@ -228,9 +229,10 @@ Domain::getElemFollowerForce(int iele, GeomState &geomState, double *_f, int buf
 
     // Compute the amplified pressure due to MFTT and/or dlambda, if applicable
     PressureBCond *pbc = neum[i]->getPressure();
-    double mfttFactor = (pbc->mftt && sinfo.isDynam()) ? pbc->mftt->getVal(std::max(time,0.0)) : 1.0;
+    MFTTData *mftt = domain->getMFTT(pbc->loadsetid);
+    double loadFactor = (mftt && sinfo.isDynam()) ? mftt->getVal(std::max(time,0.0)) : domain->getLoadFactor(pbc->loadsetid);
     double p0 = pbc->val;
-    pbc->val *= (lambda*mfttFactor);
+    pbc->val *= (lambda*loadFactor);
 
     // Compute surface element pressure force using the specified blast loading function and/or amplified pressure value
     pbc->conwep = conwep;
@@ -262,9 +264,9 @@ Domain::getElemFollowerForce(int iele, GeomState &geomState, double *_f, int buf
     std::vector<int> &eledofs = it->second;
 
     double m0[3] = { 0, 0, 0 }, m[3], r[3], rotvar[3][3];
-    double mfttFactor = (domain->getMFTT(nbc[i].caseid) && sinfo.isDynam())
-                       ? domain->getMFTT(nbc[i].caseid)->getVal(std::max(time,0.0)) : 1.0;
-    m0[nbc[i].dofnum-3] = lambda*mfttFactor*nbc[i].val;
+    MFTTData *mftt = domain->getMFTT(nbc[i].loadsetid);
+    double loadFactor = (mftt && sinfo.isDynam()) ? mftt->getVal(std::max(time,0.0)) : domain->getLoadFactor(nbc[i].loadsetid);
+    m0[nbc[i].dofnum-3] = lambda*loadFactor*nbc[i].val;
 
     switch(nbc[i].mtype) {
       case BCond::Axial : // axial (constant) moment: m = m0
@@ -327,9 +329,9 @@ Domain::getElemFollowerForce(int iele, GeomState &geomState, double *_f, int buf
     std::vector<int> &eledofs = it->second;
 
     double f0[3] = { 0, 0, 0 }, f[3];
-    double mfttFactor = (domain->getMFTT(nbc[i].caseid) && sinfo.isDynam()) 
-                       ? domain->getMFTT(nbc[i].caseid)->getVal(std::max(time,0.0)) : 1.0;
-    f0[nbc[i].dofnum] = lambda*mfttFactor*nbc[i].val;
+    MFTTData *mftt = domain->getMFTT(nbc[i].loadsetid);
+    double loadFactor = (mftt && sinfo.isDynam()) ? mftt->getVal(std::max(time,0.0)) : domain->getLoadFactor(nbc[i].loadsetid);
+    f0[nbc[i].dofnum] = lambda*loadFactor*nbc[i].val;
 
     mat_mult_vec(geomState[nbc[i].nnum].R, f0, f, 0); // f = R*f0
 

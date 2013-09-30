@@ -402,38 +402,26 @@ Domain::computeExtForce(Vector &f, double t, int tIndex, SparseMatrix *kuc, Vect
   for(i=0; i < numNeuman; ++i) {
     int dof  = c_dsa->locate(nbc[i].nnum, (1 << nbc[i].dofnum));
     if(dof < 0) continue;
-    MFTTData *mftt = domain->getHFTT(nbc[i].caseid);
-    double hfttFactor = (mftt) ? mftt->getVal(t) : 1.0;
     switch(nbc[i].type) {
-      case(BCond::Flux) : f[dof] += hfttFactor*nbc[i].val; break;
+      case(BCond::Flux) : {
+        MFTTData *mftt = domain->getHFTT(nbc[i].loadsetid);
+        double loadFactor = (mftt && domain->solInfo().isDynam()) ? mftt->getVal(t) : domain->getLoadFactor(nbc[i].loadsetid);
+        f[dof] += loadFactor*nbc[i].val;
+      } break;
+      case(BCond::Convection) : {
+        double loadFactor = domain->getLoadFactor(nbc[i].loadsetid);
+        f[dof] += loadFactor*nbc[i].val;
+      }
       default : f[dof] += nbc[i].val; 
     }
   }
-/*  PJSA these are now included in nbc
-  // ... ADD CONVECTIVE FLUXES
-  for(i=0; i<numConvBC; ++i) {
-    int dof  = c_dsa->locate(cvbc[i].nnum, 1 << cvbc[i].dofnum);
-    if(dof < 0) continue;
-    f[dof] += cvbc[i].val;
-  }
 
-  // ... ADD RADIATIVE FLUXES
-  for(i=0; i<numRadBC; ++i) {
-    int dof  = c_dsa->locate(rdbc[i].nnum, 1 << rdbc[i].dofnum);
-    if(dof < 0) continue;
-    f[dof] += rdbc[i].val;
-  }
-*/
   // ... ADD FLUID FLUX
   if(sinfo.aeroheatFlag >= 0 && tIndex >= 0) {
     int j;
     double sflux = 0;
     double bfl ;
 
-//  linAdd is in Maths.d/Vector.C , f.linAdd(a,g,b,h) 
-//  means f = f+a*g+b*h 
-//  f.linAdd(a,g)= f+a*g
- 
     tmpF.zero();
     flExchanger->getFluidFlux(tmpF, t, bfl);
 

@@ -215,7 +215,7 @@ TRAIL [a-zA-Z]*
 
 "LOAD"|"load"                      { return LOAD; }
 
-"CONFIG"[a-zA-Z]*|"config"[a-zA-Z]* { return CONFIGURATION; }
+"LOADC"[a-zA-Z]*|"loadc"[a-zA-Z]*  { return LOADCASE; }
 
 "USE"|"use"                        { return USE;  }
 

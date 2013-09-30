@@ -9,8 +9,8 @@ cmake \
 -DMPI_COMPILER:FILEPATH=/usr/mpi/gcc43/openmpi-1.4.1-1/bin/mpiCC \
 -DMPI_LIBRARY:FILEPATH=DMPI_LIBRARY-NOTFOUND \
 -DEXTRALIB_MPI=/usr/mpi/gcc43/openmpi-1.4.1-1/lib64/libmpi_f77.so \
--DARPACK_arpack_LIBRARY:FILEPATH=/lustre/home/pavery/code/arpack/libarpack.so \
--DARPACK_parpack_LIBRARY:FILEPATH=/lustre/home/pavery/code/arpack/libparpack.so \
+-DARPACK_arpack_LIBRARY:FILEPATH=/lustre/home/pavery/code/arpack/libarpack.a \
+-DARPACK_parpack_LIBRARY:FILEPATH=/lustre/home/pavery/code/arpack/libparpack.a \
 -DBLACS_Cinit_LIBRARY:FILEPATH=/lustre/home/pavery/code/BLACS/LIB/blacsCinit_MPI-LINUX-0.a \
 -DBLACS_blacs_LIBRARY:FILEPATH=/lustre/home/pavery/code/BLACS/LIB/blacs_MPI-LINUX-0.a \
 -DMUMPS_INCLUDE_PATH:PATH=/lustre/home/pavery/code/MUMPS_4.10.0/include \

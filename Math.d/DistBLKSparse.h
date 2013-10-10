@@ -12,7 +12,7 @@ class GenDistBLKSparse : public GenBLKSparseMatrix<Scalar>
   Scalar *nlines;
 
  public:
-   GenDistBLKSparse(Connectivity *cn, EqNumberer *dsa, double trbm, 
+   GenDistBLKSparse(Connectivity *cn, EqNumberer *dsa, double trbm, SolverCntl &scntl,
                     int fRow, int numRows);
    virtual ~GenDistBLKSparse();
 

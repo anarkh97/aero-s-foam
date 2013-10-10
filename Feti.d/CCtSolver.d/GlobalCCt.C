@@ -19,7 +19,7 @@ GlobalCCtSolver<Scalar>::GlobalCCtSolver(Connectivity *mpcToMpc, Connectivity *_
         mpcEqNums = new SimpleNumberer(this->glNumMpc);
         for(int i = 0; i < this->glNumMpc; ++i) mpcEqNums->setWeight(i, 1);
         mpcEqNums->makeOffset();
-        CCtsolver = new GenBLKSparseMatrix<Scalar>(mpcToMpc, mpcEqNums, finfo->cct_tol, domain->solInfo().sparse_renum);
+        CCtsolver = new GenBLKSparseMatrix<Scalar>(mpcToMpc, mpcEqNums, finfo->cct_tol, *finfo->cct_cntl);
         CCtsolver->zeroAll();
       }
       break;
@@ -40,7 +40,7 @@ GlobalCCtSolver<Scalar>::GlobalCCtSolver(Connectivity *mpcToMpc, Connectivity *_
         mpcEqNums = new SimpleNumberer(this->glNumMpc);
         for(int i = 0; i < this->glNumMpc; ++i) mpcEqNums->setWeight(i, 1);
         mpcEqNums->makeOffset();
-        CCtsolver = new GenSpoolesSolver<Scalar>(mpcToMpc, mpcEqNums);
+        CCtsolver = new GenSpoolesSolver<Scalar>(mpcToMpc, mpcEqNums, *finfo->cct_cntl);
       } break;
 #endif
 #ifdef USE_MUMPS
@@ -49,11 +49,11 @@ GlobalCCtSolver<Scalar>::GlobalCCtSolver(Connectivity *mpcToMpc, Connectivity *_
         for(int i = 0; i < this->glNumMpc; ++i) mpcEqNums->setWeight(i, 1);
         mpcEqNums->makeOffset();
 #ifdef DISTRIBUTED
-        if(domain->solInfo().mumps_icntl[18] == 3) 
-          CCtsolver = new GenMumpsSolver<Scalar>(procMpcToMpc, mpcEqNums, (int *)0, this->fetiCom);
+        if(domain->solInfo().solvercntl->mumps_icntl[18] == 3) 
+          CCtsolver = new GenMumpsSolver<Scalar>(procMpcToMpc, mpcEqNums, *finfo->cct_cntl, (int *)0, this->fetiCom);
         else 
 #endif
-        CCtsolver = new GenMumpsSolver<Scalar>(mpcToMpc, mpcEqNums, (int *)0, this->fetiCom);
+        CCtsolver = new GenMumpsSolver<Scalar>(mpcToMpc, mpcEqNums, *finfo->cct_cntl, (int *)0, this->fetiCom);
       } break;
 #endif
   }

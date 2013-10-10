@@ -91,7 +91,9 @@ extern "C" int getopt (
              const char *optstring );
 #endif
 
-// .... global variables
+// .... global and static member variable initialization
+map<int,SolverCntl> SolverInfo::solvercntls = std::map<int,SolverCntl>();
+SolverCntl default_cntl;
 
 #ifdef STRUCTOPT
 Domain *domain = new Domain_opt();
@@ -262,43 +264,16 @@ int main(int argc, char** argv)
  int topFlag    = -1;
  int numClusters = 1;
 
- bool callDec = false; // invoque Dec ? (-D or --call-dec)
+ bool callDec = false;
  bool exitAfterDec = false;
  bool callSower = false;
  bool exitAfterSower = false;
+
  // Process command line arguments
- //
- // -n = number of threads lok
- // -d = decomposition file name lok
- // -v = verbose output lok
- // -c = verbose output plus contact status change info
- // -t = output topdomdec file and exit lok
- // -T = output topdomdec file with gaps renumbered sequentially lok
- // -m = output topdomdec file with number of element sets equal to
- //      the number of materials in the input file.lok
- // -r = output topdomdec file for axisymmetric mesh and exit
- // -p = output primal residual at each FETI iteration to a file
-
- // Process command line arguments for DEC
- //
- // -n <number of threads> OK
- // -d <decomposition file name> OK
- // -s <number of subdomains> OK
- // -t = output topdomdec file and exit OK
- // -T = output topdomdec file with gaps renumbered sequentially OK
- // -m = output topdomdec file with number of element sets equal to OK
- //      the number of materials in the input file.
- // -e = output memory estimate in a file with a .memory extension OK
- // -w = output weights with a .weight extension
-
- // -e = output memory estimate in a file with a .memory extension OK
- // -w = output weights with a .weight extension
-
  if(argc == 1) {
    writeOptionsToScreen();
  }
 
- // getopt_long
  int option_index = 0; // will hold index for long options
  static struct option long_options[] = {
    {"with-dec", 0, 0, 1000},
@@ -332,7 +307,6 @@ int main(int argc, char** argv)
    {"debug", 0, 0, 1006},
    {0, 0, 0, 0}
  };
- // end getopt_long
 
  filePrint(stderr,"\n --------- R U N  PARAMETERS ----------\n");
 #ifdef PRINT_CHANGESETID
@@ -455,13 +429,15 @@ int main(int argc, char** argv)
       case 'v':
         verboseFlag = 1;
         domain->setVerbose();
-        domain->solInfo().fetiInfo.printNumber = atoi(optarg);
+        default_cntl.verbose = 1;
+        default_cntl.fetiInfo.printNumber = atoi(optarg);
         filePrint(stderr," ... Setting Verbose Output Mode    ... \n");
         break;
       case 'V':
         verboseFlag = 1;
         domain->setVerbose();
-        domain->solInfo().fetiInfo.printNumber = 10;
+        default_cntl.verbose = 1;
+        default_cntl.fetiInfo.printNumber = 10;
         filePrint(stderr," ... Setting Verbose Output Mode    ... \n");
         break;
       case 't':
@@ -488,10 +464,10 @@ int main(int argc, char** argv)
         domain->solInfo().setProbType(SolverInfo::Top);
         break;
       case 'p':
-        domain->solInfo().fetiInfo.primalFlag = 1;
+        default_cntl.fetiInfo.primalFlag = 1;
         break;
       case 'c':
-        domain->solInfo().fetiInfo.contactPrintFlag = atoi(optarg);
+        default_cntl.fetiInfo.contactPrintFlag = atoi(optarg);
         break;
       case '?':
         {
@@ -580,9 +556,9 @@ int main(int argc, char** argv)
      domain->solInfo().activatePodRom = true;
      domain->solInfo().galerkinPodRom = true;
 #ifdef USE_EIGEN3
-     if(domain->solInfo().subtype != 12) domain->solInfo().subtype = 13;
+     if(domain->solInfo().solvercntl->subtype != 12) domain->solInfo().solvercntl->subtype = 13;
 #else
-     domain->solInfo().subtype = 12;
+     domain->solInfo().solvercntl->subtype = 12;
 #endif
      if(domain->solInfo().modalCalled) {
        // for doing ROM with 2 sets of modes, #1 for the reduced order basis and #2 for modal IDISP/IVEL
@@ -671,7 +647,7 @@ int main(int argc, char** argv)
      domain->PrintMortarConds();
      domain->printLMPC();
 #endif
-     //if(domain->solInfo().fetiInfo.c_normalize) domain->normalizeLMPC(); // PJSA 5-24-06
+     //if(domain->solInfo().solvercntl->fetiInfo.c_normalize) domain->normalizeLMPC(); // PJSA 5-24-06
    }
 #ifdef SOWER_SURFS
  }
@@ -679,15 +655,15 @@ int main(int argc, char** argv)
 /* XXXX
  bool ctcflag1 = geoSource->checkLMPCs(domain->getNumLMPC(), *(domain->getLMPC()));
  bool ctcflag2 = (domain->GetnContactSurfacePairs() && domain->solInfo().lagrangeMult);
- if((ctcflag1 || ctcflag2) && domain->solInfo().type != 2 && domain->solInfo().newmarkBeta != 0
-    && domain->solInfo().subtype != 14) { // note: subtype 14 is Goldfarb-Idnani QP solver
+ if((ctcflag1 || ctcflag2) && domain->solInfo().solvercntl->type != 2 && domain->solInfo().newmarkBeta != 0
+    && domain->solInfo().solvercntl->subtype != 14) { // note: subtype 14 is Goldfarb-Idnani QP solver
    if(verboseFlag) {
      filePrint(stderr, " *** WARNING: Selected solver does not support contact with Lagrange multipliers.\n");
      filePrint(stderr, " ***          Using FETI-DP instead.\n");
    }
-   domain->solInfo().type = 2;
-   domain->solInfo().fetiInfo.version = FetiInfo::fetidp;
-   domain->solInfo().fetiInfo.solvertype = (FetiInfo::Solvertype) domain->solInfo().subtype;
+   domain->solInfo().solvercntl->type = 2;
+   domain->solInfo().solvercntl->fetiInfo.version = FetiInfo::fetidp;
+   domain->solInfo().solvercntl->fetiInfo.solvertype = (FetiInfo::Solvertype) domain->solInfo().solvercntl->subtype;
    if(geoSource->getCheckFileInfo()->decPtr == 0) callDec = true;
  }
 */
@@ -701,10 +677,10 @@ int main(int argc, char** argv)
    geoSource->transformLMPCs(domain->getNumLMPC(), *(domain->getLMPC()));
  }
 
- if(domain->solInfo().type != 2)
+ if(domain->solInfo().solvercntl->type != 2)
    geoSource->addMpcElements(domain->getNumLMPC(), *(domain->getLMPC()));
 
- if((domain->solInfo().type != 2 || (!domain->solInfo().isMatching && (domain->solInfo().fetiInfo.fsi_corner != 0))) && !domain->solInfo().HEV)
+ if((domain->solInfo().solvercntl->type != 2 || (!domain->solInfo().isMatching && (domain->solInfo().solvercntl->fetiInfo.fsi_corner != 0))) && !domain->solInfo().HEV)
    geoSource->addFsiElements(domain->getNumFSI(), domain->getFSI());
 
  if(!geoSource->binaryInput) {
@@ -723,7 +699,7 @@ int main(int argc, char** argv)
  }
 
  if(callDec) {
-//   if(domain->solInfo().type == 2 || domain->solInfo().type == 3) { // DEC requires FETI or BLOCKDIAG to be activated (see below)
+//   if(domain->solInfo().solvercnlt->type == 2 || domain->solInfo().solvercntl->type == 3) { // DEC requires FETI or BLOCKDIAG to be activated (see below)
      Dec::dec(numProcessors, numThreads, numSubdomains, topFlag);
      if(exitAfterDec && !callSower) {
        filePrint(stderr," ... Exiting after Dec run          ...\n");
@@ -787,15 +763,15 @@ int main(int argc, char** argv)
  // 3. choose lumped mass (also pressure and gravity) and diagonal "solver" for explicit dynamics 
  if(domain->solInfo().newmarkBeta == 0) {
    if(domain->solInfo().inertiaLumping == 2) {
-     domain->solInfo().subtype = 1;
+     domain->solInfo().solvercntl->subtype = 1;
      domain->solInfo().getFetiInfo().solvertype = FetiInfo::sparse;
-     if(parallel_proc || domain_decomp) domain->solInfo().type = 2;
+     if(parallel_proc || domain_decomp) domain->solInfo().solvercntl->type = 2;
    }
    else {
      domain->solInfo().inertiaLumping = 1; // diagonal lumping
-     domain->solInfo().subtype = 10;
+     domain->solInfo().solvercntl->subtype = 10;
      domain->solInfo().getFetiInfo().solvertype = FetiInfo::diagonal;
-     if(parallel_proc || domain_decomp) domain->solInfo().type = 3;
+     if(parallel_proc || domain_decomp) domain->solInfo().solvercntl->type = 3;
    }
 
    geoSource->setMRatio(0.0);
@@ -821,16 +797,16 @@ int main(int argc, char** argv)
    }
    else filePrint(stderr," ...      with Geometric Pre-Stress ... \n");
  }
- if(domain->solInfo().type == 0 && domain->solInfo().probType != SolverInfo::None && domain->solInfo().probType != SolverInfo::PodRomOffline)
-   filePrint(stderr, solverTypeMessage[domain->solInfo().subtype]);
+ if(domain->solInfo().solvercntl->type == 0 && domain->solInfo().probType != SolverInfo::None && domain->solInfo().probType != SolverInfo::PodRomOffline)
+   filePrint(stderr, solverTypeMessage[domain->solInfo().solvercntl->subtype]);
   
  // Domain Decomposition tasks
  //   type == 2 (FETI) and type == 3 (BLOCKDIAG) are always Domain Decomposition methods
  //   type == 1 && iterType == 1 (GMRES) is a Domain Decomposition method only if a decomposition is provided or requested
  //   type == 0 && subtype == 9 (MUMPS) is a Domain Decomposition method only if a decomposition is provided or requested
- if(domain->solInfo().type == 2 || domain->solInfo().type == 3
-    || (domain->solInfo().type == 1 && domain->solInfo().iterType == 1 && domain_decomp)
-    || (domain->solInfo().type == 0 && domain->solInfo().subtype == 9 && domain_decomp)
+ if(domain->solInfo().solvercntl->type == 2 || domain->solInfo().solvercntl->type == 3
+    || (domain->solInfo().solvercntl->type == 1 && domain->solInfo().solvercntl->iterType == 1 && domain_decomp)
+    || (domain->solInfo().solvercntl->type == 0 && domain->solInfo().solvercntl->subtype == 9 && domain_decomp)
     || (domain->solInfo().svdPodRom && domain_decomp)
     || (domain->solInfo().samplingPodRom && domain_decomp)) {
 

@@ -99,10 +99,10 @@ StaticTimers::printStaticTimers(double solveTime, long memUsed,
 
  openTimingFile(cinfo[0]);
 
- int mesNum = sInfo.subtype;
- if(sInfo.type == 1 && sInfo.precond == 0) mesNum = 11;
- if(sInfo.type == 1 && sInfo.precond == 1) mesNum = 12;
- if(sInfo.type == 2 && sInfo.inpc) mesNum = 13;
+ int mesNum = sInfo.solvercntl->subtype;
+ if(sInfo.solvercntl->type == 1 && sInfo.solvercntl->precond == 0) mesNum = 11;
+ if(sInfo.solvercntl->type == 1 && sInfo.solvercntl->precond == 1) mesNum = 12;
+ if(sInfo.solvercntl->type == 2 && sInfo.inpc) mesNum = 13;
 
  int numnod   = domain->numNodes();
  int numele   = domain->numElements();
@@ -143,7 +143,7 @@ StaticTimers::printStaticTimers(double solveTime, long memUsed,
 
  if(mesNum > 10) { 
    filePrint(f,"%s         Tolerance                         = %14.2e\n         Maximum Number of Iterations      = %14d\n\n",
-           message[mesNum],sInfo.tol,sInfo.maxit);
+           message[mesNum],sInfo.solvercntl->tol,sInfo.solvercntl->maxit);
  } else
    filePrint(f,"%s\n",message[mesNum]);
 
@@ -170,7 +170,7 @@ StaticTimers::printStaticTimers(double solveTime, long memUsed,
            times.makeConnectivity/1000.0);
  filePrint(f,  "         Renumbering                   time: %14.5f s \n",
            times.renumbering/1000.0);
- if(!(sInfo.type == 2 && sInfo.inpc)) {
+ if(!(sInfo.solvercntl->type == 2 && sInfo.inpc)) {
  filePrint(f,  "         Create DOFs                   time: %14.5f s \n",
            times.createDofs/1000.0);
  filePrint(f,  "         Make Constrained DOFs         time: %14.5f s \n",
@@ -216,11 +216,11 @@ StaticTimers::printStaticTimers(double solveTime, long memUsed,
      filePrint(f,"5. Total Solve Loop                    time: %14.5f s %12.3f Mb\n", totalSolver/1000.0, times.memorySolve*byteToMb);
  }
 
- if(sInfo.subtype == 4)
+ if(sInfo.solvercntl->subtype == 4)
  filePrint(f,"         Symbolic Factor               time: %14.5f s \n",
            times.constructTime/1000.0);
 
- if(sInfo.type == 2 && sInfo.inpc) {
+ if(sInfo.solvercntl->type == 2 && sInfo.inpc) {
  filePrint(f,"         Preconditioning               time: %14.5f s \n",
            precond/1000.0);
  }
@@ -280,7 +280,7 @@ StaticTimers::printStaticTimers(double solveTime, long memUsed,
 
  // Check if we are using SGI sparse solver
  double coef = 1.0;
- if(sInfo.subtype == 4) {
+ if(sInfo.solvercntl->subtype == 4) {
    totMemUsed += 8*memUsed;
    coef = 12.0;
  } else {
@@ -288,7 +288,7 @@ StaticTimers::printStaticTimers(double solveTime, long memUsed,
    memUsed = times.memorySolve;
  }
 
- if(sInfo.subtype == 3 || sInfo.subtype == 7) coef = 1.0;
+ if(sInfo.solvercntl->subtype == 3 || sInfo.solvercntl->subtype == 7) coef = 1.0;
 
  filePrint(f,"1. Total Amount of Requested Memory        = %14.3f Mb\n\n",
            totMemUsed*byteToMb);
@@ -297,7 +297,7 @@ StaticTimers::printStaticTimers(double solveTime, long memUsed,
            coef*memUsed*byteToMb);
 
  // iterative information, needs to be put in here!
- if(sInfo.type == 1) {
+ if(sInfo.solvercntl->type == 1) {
    int numIterations = 0;
    double finalNorm  = 0.0;
    filePrint(f,"3. Number of Iterations                    = %14d\n\n",
@@ -644,10 +644,10 @@ StaticTimers::printStaticTimers(MatrixTimers matrixTimer, double solveTime,
                            gtgSolverMessage[sInfo.getFetiInfo().gtgSolver]);
 
    if(sInfo.rbmflg == 0)
-     filePrint(f,"         %s %29e\n",rbmMessage[sInfo.rbmflg],sInfo.trbm);
+     filePrint(f,"         %s %29e\n",rbmMessage[sInfo.rbmflg],sInfo.solvercntl->trbm);
    else
      filePrint(f,"         %s%17e %e\n",rbmMessage[sInfo.rbmflg],
-                                      sInfo.tolsvd,sInfo.trbm);
+                                      sInfo.tolsvd,sInfo.solvercntl->trbm);
   
    filePrint(f,"         Maximum Number of Iterations      = %14d\n",
              sInfo.getFetiInfo().maxiter());
@@ -826,7 +826,7 @@ filePrint(f,  "         Make Internal Information     time: %14.5f s %14.3f Mb\n
  filePrint(f,"\nTOTAL SIMULATION (1+2+3+4+5+6)         time: %14.5f s %14.3f Mb\n",total/1000.0, totalMemSimulation*byteToMb);
 
  // Output FETI solver information
- if(sInfo.type == 2) {
+ if(sInfo.solvercntl->type == 2) {
    filePrint(f,"\n***********************************************************"
              "********************\n");
    filePrint(f," ... FETI Monitoring ... \n");

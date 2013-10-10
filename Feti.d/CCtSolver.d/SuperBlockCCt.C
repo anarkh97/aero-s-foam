@@ -901,7 +901,7 @@ SuperBlockCCtSolver<Scalar>::createOneBlockCCtsolver(int IBlock)
       for(i=0; i<blockSize; ++i) blockMpcEqNums[iBlock]->setWeight(i, 1);
        blockMpcEqNums[iBlock]->makeOffset();
        blockCCtsolver[iBlock] = new GenBLKSparseMatrix<Scalar>(blockMpcToMpc[iBlock], blockMpcEqNums[iBlock],
-                                                               finfo->cct_tol, domain->solInfo().sparse_renum);
+                                                               finfo->cct_tol, *finfo->cct_cntl);
        blockCCtsolver[iBlock]->zeroAll();
     } break;
     case(FetiInfo::skyline) : {

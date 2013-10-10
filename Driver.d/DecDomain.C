@@ -222,7 +222,7 @@ void GenDecDomain<Scalar>::getSharedNodes()
       for(jSub = 0; jSub < nodeToSub->num(thisNode); ++jSub) {
         // loop over the subdomains connected to this node
         subJ = (*nodeToSub)[thisNode][jSub];
-        bool neighbWithSelf = ((subJ == iSub) && isWetInterfaceNode && (domain->solInfo().fetiInfo.fsi_corner == 0)) ? true : false;
+        bool neighbWithSelf = ((subJ == iSub) && isWetInterfaceNode && (domain->solInfo().solvercntl->fetiInfo.fsi_corner == 0)) ? true : false;
         if((subJ > iSub) || neighbWithSelf) {
           // only deal with connection to highered numbered subdomains, guarantees symmetry of lists
           if(flag[subJ] != iSub) {
@@ -263,7 +263,7 @@ void GenDecDomain<Scalar>::getSharedNodes()
       bool isWetInterfaceNode = (coupled_dph && (wetInterfaceNodeMap[nd] != -1)) ? true : false;
       for(jSub = 0; jSub < nodeToSub->num(nd); ++jSub) {
         subJ = (*nodeToSub)[nd][jSub];
-        bool neighbWithSelf = ((subJ == iSub) && isWetInterfaceNode && (domain->solInfo().fetiInfo.fsi_corner == 0)) ? true : false;
+        bool neighbWithSelf = ((subJ == iSub) && isWetInterfaceNode && (domain->solInfo().solvercntl->fetiInfo.fsi_corner == 0)) ? true : false;
         if((subJ > iSub) || neighbWithSelf) {
           if(flag[subJ] != iSub) { // attribute location for this sub
             flag[subJ] = iSub;
@@ -303,7 +303,7 @@ void GenDecDomain<Scalar>::getSharedNodes()
       bool isWetInterfaceNode = (coupled_dph && (wetInterfaceNodeMap[nd] != -1)) ? true : false;
       for(jSub = 0; jSub < nodeToSub->num(nd); ++jSub) {
         subJ = (*nodeToSub)[nd][jSub];
-        bool neighbWithSelf = ((subJ == iSub) && isWetInterfaceNode && (domain->solInfo().fetiInfo.fsi_corner == 0)) ? true : false;
+        bool neighbWithSelf = ((subJ == iSub) && isWetInterfaceNode && (domain->solInfo().solvercntl->fetiInfo.fsi_corner == 0)) ? true : false;
         if((subJ > iSub) || neighbWithSelf) {
           if(flag[subJ] != iSub) { // attribute location for this sub
             flag[subJ] = iSub;
@@ -401,7 +401,7 @@ GenDecDomain<Scalar>::preProcessMPCs()
 #endif
   }
 #endif
-  if(domain->solInfo().fetiInfo.bmpc) addBMPCs();
+  if(domain->solInfo().solvercntl->fetiInfo.bmpc) addBMPCs();
   if(domain->getNumLMPC() > 0) {
     if(verboseFlag) filePrint(stderr, " ... Applying the MPCs              ...\n");
     // check for mpcs involving bad nodes and constrained DOFs
@@ -487,9 +487,9 @@ GenDecDomain<Scalar>::makeSubToSubEtc()
     mt.memorySubToNode += memoryUsed();
 
 #ifdef USE_MPI
-    if(domain->numSSN() || domain->solInfo().isCoupled || domain->solInfo().type == 0 || domain->solInfo().aeroFlag > -1 || geoSource->binaryOutput == 0) {
+    if(domain->numSSN() || domain->solInfo().isCoupled || domain->solInfo().solvercntl->type == 0 || domain->solInfo().aeroFlag > -1 || geoSource->binaryOutput == 0) {
 #else
-    if(domain->numSSN() || domain->solInfo().isCoupled || domain->solInfo().type == 0 || domain->solInfo().aeroFlag > -1) {
+    if(domain->numSSN() || domain->solInfo().isCoupled || domain->solInfo().solvercntl->type == 0 || domain->solInfo().aeroFlag > -1) {
 #endif 
       // sommerfeld, scatter, wet, distributed neum PJSA 6/28/2010 multidomain mumps PJSA 12/01/2010 non-binary output for mpi
       mt.memoryNodeToElem -= memoryUsed();
@@ -636,7 +636,7 @@ template<class Scalar>
 void
 GenDecDomain<Scalar>::preProcess()
 {
- if(domain->solInfo().type == 0) { // Makes global renumbering, connectivities and dofsets
+ if(domain->solInfo().solvercntl->type == 0) { // Makes global renumbering, connectivities and dofsets
    domain->preProcessing();
 
    int numdof = domain->numdof();
@@ -696,7 +696,7 @@ GenDecDomain<Scalar>::preProcess()
 
  // free up some memory
  //delete nodeToSub; nodeToSub = 0;
- if(domain->solInfo().type != 0 && domain->solInfo().aeroFlag < 0) {
+ if(domain->solInfo().solvercntl->type != 0 && domain->solInfo().aeroFlag < 0) {
    delete elemToSub; elemToSub = 0;
    if(!geoSource->elemOutput() && elemToNode) { delete elemToNode; elemToNode = 0; }
  }
@@ -2546,7 +2546,7 @@ template<class Scalar>
 void
 GenDecDomain<Scalar>::makeCorners()
 {
-  if(!(domain->solInfo().type == 2 && domain->solInfo().fetiInfo.version == FetiInfo::fetidp)) return;
+  if(!(domain->solInfo().solvercntl->type == 2 && domain->solInfo().solvercntl->fetiInfo.version == FetiInfo::fetidp)) return;
   if(verboseFlag) filePrint(stderr, " ... Selecting the Corners          ...\n");
 
   FSCommPattern<int> cpat(communicator, cpuToSub, myCPU, FSCommPattern<int>::CopyOnSend);
@@ -3287,7 +3287,7 @@ GenDecDomain<Scalar>::makeMpcToMpc()
  
   delete [] flags;
   mpcToMpc = new Connectivity(size, np, ntg); // for all mpcs on this cpu
-  if(domain->solInfo().fetiInfo.bmpc) {
+  if(domain->solInfo().solvercntl->fetiInfo.bmpc) {
     Connectivity *mpcToMpc_mod = mpcToMpc->modify(); 
     delete mpcToMpc;
     mpcToMpc = mpcToMpc_mod;
@@ -3419,7 +3419,7 @@ GenDecDomain<Scalar>::makeGlobalMpcToMpc(Connectivity *_procMpcToMpc)
   delete [] target;
   delete [] tmpMpcToMpc;
 #ifdef USE_MUMPS
-  if(domain->solInfo().fetiInfo.cctSolver == FetiInfo::mumps && domain->solInfo().mumps_icntl[18] == 3) {
+  if(domain->solInfo().solvercntl->fetiInfo.cctSolver == FetiInfo::mumps && domain->solInfo().solvercntl->mumps_icntl[18] == 3) {
     procMpcToMpc = _procMpcToMpc;
   } else
 #endif
@@ -3430,8 +3430,8 @@ GenDecDomain<Scalar>::makeGlobalMpcToMpc(Connectivity *_procMpcToMpc)
 template<class Scalar>
 void GenDecDomain<Scalar>::addFsiElements()
 {
- if ( domain->solInfo().isCoupled && domain->solInfo().type == 2 &&
-      domain->solInfo().isMatching && domain->solInfo().fetiInfo.fsi_corner != 0 ) {
+ if ( domain->solInfo().isCoupled && domain->solInfo().solvercntl->type == 2 &&
+      domain->solInfo().isMatching && domain->solInfo().solvercntl->fetiInfo.fsi_corner != 0 ) {
 // JLchange: replace addSubFsiElem() such that fsi elements are added only to structure elements. 
    for (int i=0; i< domain->getNumFSI(); ++i) {
      LMPCons *thisGlFSI = domain->getFsi(i);
@@ -3523,7 +3523,7 @@ void GenDecDomain<Scalar>::distributeWetInterfaceNodes()
     }
   }
 
-  if ((domain->solInfo().isCoupled) && (domain->solInfo().fetiInfo.fsi_corner != 0)) { 
+  if ((domain->solInfo().isCoupled) && (domain->solInfo().solvercntl->fetiInfo.fsi_corner != 0)) { 
     execParal(numSub, this, &GenDecDomain<Scalar>::markSubWetInterface,
               nWetInterfaceNodesPerSub, subWetInterfaceNodes);
     //makeCorners();  // XXXX JLchange
@@ -3634,22 +3634,24 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
                                 domain->numSommer, domain->solInfo().getFetiInfo().solvertype,
                                 communicator, melArray, celArray);
 
- if(domain->solInfo().type == 0) {
-   switch(domain->solInfo().subtype) {
+ if(domain->solInfo().solvercntl->type == 0) {
+   switch(domain->solInfo().solvercntl->subtype) {
 #ifdef USE_MUMPS
      case 9 : {
        GenMumpsSolver<Scalar> *msmat;
-       if(domain->solInfo().mumps_icntl[18] == 3) {
+       if(domain->solInfo().solvercntl->mumps_icntl[18] == 3) {
          Connectivity *subToCpu = cpuToSub->reverse();
          Connectivity *elemToCpu = elemToSub->transcon(subToCpu);
          Connectivity *nodeToNodeLocal = domain->getNodeToElem()->transcon(elemToNode, elemToCpu->getTarget(), communicator->cpuNum());
-         msmat = new GenMumpsSolver<Scalar>(nodeToNodeLocal, domain->getDSA(), domain->getCDSA(), numSub, subDomain, communicator);
+         msmat = new GenMumpsSolver<Scalar>(nodeToNodeLocal, domain->getDSA(), domain->getCDSA(), numSub, subDomain, 
+                                            *domain->solInfo().solvercntl, communicator);
          delete nodeToNodeLocal;
          delete elemToCpu;
          delete subToCpu;
        }
        else {
-         msmat = new GenMumpsSolver<Scalar>(domain->getNodeToNode(), domain->getDSA(), domain->getCDSA(), numSub, subDomain, communicator);
+         msmat = new GenMumpsSolver<Scalar>(domain->getNodeToNode(), domain->getDSA(), domain->getCDSA(), numSub, subDomain,
+                                            *domain->solInfo().solvercntl, communicator);
        }
        for(int i = 0; i < numSub; ++i) {
          dgt.dynMats[i] = dynamic_cast<GenSolver<Scalar>* >(msmat);
@@ -3658,7 +3660,7 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
      } break;
 #endif
      default :
-       cerr << " *** ERROR: subtype " << domain->solInfo().subtype << " not supported here in GenDecDomain::buildOps\n";
+       cerr << " *** ERROR: subtype " << domain->solInfo().solvercntl->subtype << " not supported here in GenDecDomain::buildOps\n";
        exit(-1);
    }
  }
@@ -3667,7 +3669,7 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
  execParal(numSub, &dgt, &GenDomainGroupTask<Scalar>::runFor, make_feti);
 
  GenAssembler<Scalar> * assembler = 0;
- if(domain->solInfo().inpc || domain->solInfo().aeroFlag > -1 || domain->solInfo().type == 1) {
+ if(domain->solInfo().inpc || domain->solInfo().aeroFlag > -1 || domain->solInfo().solvercntl->type == 1) {
    assembler = getSolVecAssembler(); 
  }
 // RT0212
@@ -3715,7 +3717,7 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
    delete [] dgt.Cuc_deriv;
  }
 // RT end
- switch(domain->solInfo().type) {
+ switch(domain->solInfo().solvercntl->type) {
    case 0 : { // direct
      //if(myCPU == 0) cerr << " ... Mumps Solver is Selected       ...\n";
      dgt.dynMats[0]->unify(communicator);
@@ -3723,22 +3725,22 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
      if(factor) res.dynMat->refactor();
    } break;
    case 1 : { // iterative
-     switch(domain->solInfo().iterType) {
+     switch(domain->solInfo().solvercntl->iterType) {
        case 1: {
          if(myCPU == 0) cerr << " ... GMRES Solver is Selected       ...\n";
          res.spMat = new GenSubDOp<Scalar>(numSub, dgt.spMats, assembler);
-         if(domain->solInfo().precond == 1) res.prec = getDiagSolver(numSub, dgt.sd, dgt.sps);
+         if(domain->solInfo().solvercntl->precond == 1) res.prec = getDiagSolver(numSub, dgt.sd, dgt.sps);
          GmresSolver<Scalar, GenDistrVector<Scalar>, GenSubDOp<Scalar>, GenParallelSolver<Scalar>, GenParallelSolver<Scalar> > *gmresSolver
            = new GmresSolver<Scalar, GenDistrVector<Scalar>, GenSubDOp<Scalar>, GenParallelSolver<Scalar>, GenParallelSolver<Scalar> >
-             (domain->solInfo().maxit, domain->solInfo().tol, res.spMat, &GenSubDOp<Scalar>::mult, res.prec,
+             (domain->solInfo().solvercntl->maxit, domain->solInfo().solvercntl->tol, res.spMat, &GenSubDOp<Scalar>::mult, res.prec,
               &GenParallelSolver<Scalar>::solve, NULL, &GenParallelSolver<Scalar>::solve, communicator); 
-         if(domain->solInfo().maxvecsize > 0) gmresSolver->maxortho = domain->solInfo().maxvecsize;
+         if(domain->solInfo().solvercntl->maxvecsize > 0) gmresSolver->maxortho = domain->solInfo().solvercntl->maxvecsize;
          gmresSolver->verbose = verboseFlag;
-         gmresSolver->printNumber = domain->solInfo().fetiInfo.printNumber;
+         gmresSolver->printNumber = domain->solInfo().solvercntl->fetiInfo.printNumber;
          res.dynMat = gmresSolver;
        } break;
        default:
-         cerr << " *** ERROR: iterType " << domain->solInfo().iterType << " not supported here in GenDecDomain::buildOps\n";
+         cerr << " *** ERROR: iterType " << domain->solInfo().solvercntl->iterType << " not supported here in GenDecDomain::buildOps\n";
          exit(-1);
      }
    } break;
@@ -3762,7 +3764,7 @@ GenDecDomain<Scalar>::rebuildOps(GenMDDynamMat<Scalar> &res, double coeM, double
 
  execParal7R(numSub, this, &GenDecDomain<Scalar>::subRebuildOps, res, coeM, coeC, coeK, kelArray, melArray, celArray);
 
- if(domain->solInfo().type == 0 && res.dynMat) {
+ if(domain->solInfo().solvercntl->type == 0 && res.dynMat) {
    GenSolver<Scalar> *dynmat = dynamic_cast<GenSolver<Scalar>*>(res.dynMat);
    if(!verboseFlag) dynmat->setPrintNullity(false);
    dynmat->unify(communicator);
@@ -3801,7 +3803,7 @@ GenDecDomain<Scalar>::subRebuildOps(int iSub, GenMDDynamMat<Scalar> &res, double
 
   allOps.zero();
 
-  if(domain->solInfo().type == 0) {
+  if(domain->solInfo().solvercntl->type == 0) {
     GenSparseMatrix<Scalar> *spmat = (res.dynMat) ? dynamic_cast<GenSparseMatrix<Scalar>*>(res.dynMat) : NULL;
     if(iSub == 0 && spmat) spmat->zeroAll();
 #if defined(_OPENMP)
@@ -3810,7 +3812,7 @@ GenDecDomain<Scalar>::subRebuildOps(int iSub, GenMDDynamMat<Scalar> &res, double
     subDomain[iSub]->template makeSparseOps<Scalar>(allOps, coeK, coeM, coeC, spmat, (kelArray) ? kelArray[iSub] : 0,
                                                     (melArray) ? melArray[iSub] : 0, (celArray) ? celArray[iSub] : 0);
   }
-  else if(domain->solInfo().type == 3) {
+  else if(domain->solInfo().solvercntl->type == 3) {
     GenSparseMatrix<Scalar> *spmat = (res.dynMat) ? dynamic_cast<GenSparseMatrix<Scalar>*>(res.dynMat) : NULL;
     if(spmat) spmat->zeroAll();
     subDomain[iSub]->template makeSparseOps<Scalar>(allOps, coeK, coeM, coeC, spmat, (kelArray) ? kelArray[iSub] : 0,

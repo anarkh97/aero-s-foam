@@ -20,7 +20,7 @@ StaticSolver< Scalar, OpSolver, VecType,
  VecType *savedRhs = new VecType(probDesc->solVecInfo());
 
  
- if((domain->solInfo().inpc || domain->solInfo().noninpc) && domain->solInfo().type != 2) // type != 2 means not FETI solver
+ if((domain->solInfo().inpc || domain->solInfo().noninpc) && domain->solInfo().solvercntl->type != 2) // type != 2 means not FETI solver
    sol->setn(domain->numUncon());
 
  //solver=0; postProcessor=0;  
@@ -505,7 +505,7 @@ xtime -= getTime();
              }
            } break;
            case SweepParams::Pade :
-//             if(threadManager->numThr() > 1 && domain->solInfo().type == 2)
+//             if(threadManager->numThr() > 1 && domain->solInfo().solvercntl->type == 2)
 //               probDesc->pade(sol, sol_prev, h, deltaw);
 //             else 
                pade(sol, sol_prev, h, deltaw);
@@ -617,7 +617,7 @@ filePrint(stderr,"Projection  time: %e\n",xtime);
    // initialization
    probDesc->getRHS(*rhs);
    VecType *psi_u = new VecType(probDesc->solVecInfo(sfem->getP()));
-   if(domain->solInfo().type != 2) psi_u->setn(domain->numUncon());
+   if(domain->solInfo().solvercntl->type != 2) psi_u->setn(domain->numUncon());
 
    psi_u->zero();
    for(int i=0; i<domain->solInfo().nsample; ++i) {
@@ -636,20 +636,20 @@ filePrint(stderr,"Projection  time: %e\n",xtime);
    sol = 0;
    sfem_noninpc->compute_Coefs(psi_u); 
    VecType *sol1 = new VecType(probDesc->solVecInfo(1));
-   if(domain->solInfo().type != 2) sol1->setn(domain->numUncon());
+   if(domain->solInfo().solvercntl->type != 2) sol1->setn(domain->numUncon());
 
    sfem_noninpc->computeMean(psi_u,sol1);
    postProcessor->staticOutput(*sol1, *rhs, false, 1);
    delete sol1;
    VecType *sol2 = new VecType(probDesc->solVecInfo(1));
-   if(domain->solInfo().type != 2) sol2->setn(domain->numUncon());
+   if(domain->solInfo().solvercntl->type != 2) sol2->setn(domain->numUncon());
 
    sfem_noninpc->computeStdDev(psi_u,sol2);
    postProcessor->staticOutput(*sol2, *rhs, false, 2);
    delete sol2;
 
    VecType *sol3 = new VecType(probDesc->solVecInfo(1));
-   if(domain->solInfo().type != 2) sol3->setn(domain->numUncon());
+   if(domain->solInfo().solvercntl->type != 2) sol3->setn(domain->numUncon());
    int nsample_output = sfem->getnsamp_out();
    for(int i=0; i< nsample_output; ++i) {
      sfem_noninpc->computePdf(i,psi_u,sol3);
@@ -664,19 +664,19 @@ filePrint(stderr,"Projection  time: %e\n",xtime);
 //   postProcessor->staticOutput(*sol, *rhs, true, 0); /
 
    VecType *sol1 = new VecType(probDesc->solVecInfo(1));
-   if(domain->solInfo().type != 2) sol1->setn(domain->numUncon());
+   if(domain->solInfo().solvercntl->type != 2) sol1->setn(domain->numUncon());
    sfem_inpc->computeMean(sol,sol1);
    postProcessor->staticOutput(*sol1, *rhs, true, 1);
    delete sol1;
  
    VecType *sol2 = new VecType(probDesc->solVecInfo(1)); 
-   if(domain->solInfo().type != 2) sol2->setn(domain->numUncon());
+   if(domain->solInfo().solvercntl->type != 2) sol2->setn(domain->numUncon());
    sfem_inpc->computeStdDev(sol,sol2);
    postProcessor->staticOutput(*sol2, *rhs, false, 2);
    delete sol2;
 
    VecType *sol3 = new VecType(probDesc->solVecInfo(1));
-   if(domain->solInfo().type != 2) sol3->setn(domain->numUncon());
+   if(domain->solInfo().solvercntl->type != 2) sol3->setn(domain->numUncon());
    int nsample_output = sfem->getnsamp_out();
    for(int i=0; i<nsample_output; ++i) {
      sfem_inpc->computePdf(i,sol,sol3); 

@@ -141,6 +141,9 @@
 // orthotol  = 1.0E-02 (default)    relative tolerance value in orthogonalizing Q matrix
 // orthotol2 = 0.0     (default)    absolute tolerance value in orthogonalizing Q matrix
 
+class SolverCntl;
+extern SolverCntl default_cntl;
+
 class FetiInfo {
 
   public:
@@ -180,6 +183,7 @@ class FetiInfo {
     int mpcflag;
     enum Solvertype { skyline, sparse, blocksky, llt, ldlt, cholmod,
          umfpack, superlu, spooles, mumps, diagonal, pcg } solvertype, gtgSolver, auxCoarseSolver, cctSolver;
+    SolverCntl *local_cntl, *kcc_cntl, *gtg_cntl, *cct_cntl, *kii_cntl;
     enum Scaling { noscaling=0, kscaling=1, tscaling=2 } scaling, mpc_scaling, fsi_scaling;
     enum Version { feti1, feti2, feti3, fetidp } version;
     bool rescalef; // if this is true then reassemble and apply scaling to f for every system, not just the first
@@ -229,7 +233,7 @@ class FetiInfo {
     bool geometric_gap;
     int mpcBlkOverlap; //0=no interaction, 1=1st order interactions, 2=1st & 2nd order interactions, etc.
     double gamma;
-    bool bmpc, dmpc, cmpc;
+    bool bmpc, cmpc;
     double linesearch_tau;
     int linesearch_maxit;
     bool c_normalize;
@@ -248,6 +252,8 @@ class FetiInfo {
     double dual_proj_tol, primal_proj_tol;
     double dual_plan_tol, primal_plan_tol;
     int dual_plan_maxit, primal_plan_maxit;
+
+    bool localScaled, coarseScaled;
 };
 
 inline
@@ -315,7 +321,7 @@ FetiInfo::FetiInfo()
   gamma = 1.0;
   linesearch_tau = 0.6667; 
   linesearch_maxit = 100;
-  cmpc = bmpc = dmpc = false;
+  cmpc = bmpc = false;
   c_normalize = false;
   
   // MPC information
@@ -346,6 +352,11 @@ FetiInfo::FetiInfo()
   dual_proj_tol = primal_proj_tol = 0.0;
   dual_plan_tol = primal_plan_tol = 0.0;
   dual_plan_maxit = primal_plan_maxit = 20;
+
+  localScaled = false;
+  coarseScaled = false;
+
+  local_cntl = kcc_cntl = gtg_cntl = kii_cntl = cct_cntl = &default_cntl;
 }
 
 

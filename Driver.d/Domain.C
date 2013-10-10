@@ -452,7 +452,7 @@ void Domain::normalizeLMPC()
 void Domain::setPrimalLMPCs(int& numDual, int &numPrimal)
 {
  numDual = numLMPC; numPrimal = 0;
- if(solInfo().fetiInfo.mpcflag == 2) { // convert all dual mpcs (type 0) to primal
+ if(solInfo().solvercntl->fetiInfo.mpcflag == 2) { // convert all dual mpcs (type 0) to primal
    for(int i=0; i<numLMPC; i++)
      if(lmpc[i]->type == 0) {
        lmpc[i]->type = 3;
@@ -461,7 +461,7 @@ void Domain::setPrimalLMPCs(int& numDual, int &numPrimal)
      }
  }
 /*
- if(solInfo().fetiInfo.cmpc) { // convert corner bmpcs (type 2) to primal
+ if(solInfo().solvercntl->fetiInfo.cmpc) { // convert corner bmpcs (type 2) to primal
    if(cornerWeight) {
      for(int i=0; i<numLMPC; i++)
        if(lmpc[i]->type == 2) {
@@ -1206,13 +1206,13 @@ Domain::setUpData()
   startTimerMemory(matrixTimers->setUpDataTime, matrixTimers->memorySetUp);
 
   Elemset eset_tmp;
-  if(sinfo.type == 0) {
+  if(sinfo.solvercntl->type == 0) {
     if(numLMPC) geoSource->getNonMpcElems(eset_tmp);
   }
 
   geoSource->setUpData();
 
-  if(sinfo.type == 0) {
+  if(sinfo.solvercntl->type == 0) {
     if(numLMPC) {
       Connectivity *elemToNode_tmp = new Connectivity(&eset_tmp);
       Connectivity *nodeToElem_tmp = elemToNode_tmp->reverse();
@@ -1593,7 +1593,7 @@ Domain::getRenumbering()
  // get number of nodes
  numnodes = nodeToNode->csize();
 
- if(solInfo().type == 0 || solInfo().type == 1) makeNodeToNode_sommer(); // single domain solvers
+ if(solInfo().solvercntl->type == 0 || solInfo().solvercntl->type == 1) makeNodeToNode_sommer(); // single domain solvers
 
  // delete any previously allocated memory
  if(renumb.order) { delete [] renumb.order; renumb.order=0; }
@@ -3262,7 +3262,7 @@ Domain::addNodalCTC(int n1, int n2, double nx, double ny, double nz,
    // 1. select direction for initial cross product... use z unless normal is parallel or close to parallel to z axis, in which case use y
    double n[3] = { nx, ny, nz };
    double t1[3], t2[3];
-   if(!(nx < 0.1 && ny < 0.1) || solInfo().fetiInfo.spaceDimension == 2) { t2[0] = 0.0; t2[1] = 0.0; t2[2] = 1.0; }
+   if(!(nx < 0.1 && ny < 0.1) || solInfo().solvercntl->fetiInfo.spaceDimension == 2) { t2[0] = 0.0; t2[1] = 0.0; t2[2] = 1.0; }
    else if(!(nx < 0.1 && nz < 0.1)) { t2[0] = 0.0; t2[1] = 1.0; t2[2] = 0.0; }
    else { t2[0] = 1.0; t2[1] = 0.0; t2[2] = 0.0; }
    crossprod(n,t2,t1);
@@ -3276,7 +3276,7 @@ Domain::addNodalCTC(int n1, int n2, double nx, double ny, double nz,
                                     LMPCTerm *term2 = new LMPCTerm(n2, 2, -t1[2]); _TGT1->addterm(term2); }
    _TGT1->setSource(mpc::NodalContact);
    addLMPC(_TGT1,false);
-   if(solInfo().fetiInfo.spaceDimension == 3) {
+   if(solInfo().solvercntl->fetiInfo.spaceDimension == 3) {
      crossprod(n,t1,t2);
      normalize(t2);
      LMPCons *_TGT2 = new LMPCons(0, 0.0);
@@ -3302,7 +3302,7 @@ Domain::addNodeToNodeLMPCs(int lmpcnum, int n1, int n2, double face_normal[3], d
   //           note: addNodalCTC can be used to tie nodes in normal and two tangential directions, however only the normal gap is specified therefore tangential gaps are always zero
   // type = 1: generate lmpcs for normal contact
   if(itype == 0) { // tie
-    for(int i=0; i<solInfo().fetiInfo.spaceDimension; ++i) {
+    for(int i=0; i<solInfo().solvercntl->fetiInfo.spaceDimension; ++i) {
       LMPCons *_MPC = new LMPCons(lmpcnum+i, gap_vector[i]);
       LMPCTerm *term1 = new LMPCTerm(n1, i, 1.0);
       _MPC->addterm(term1);

@@ -776,7 +776,7 @@ Domain::preProcessing()
 
 /*
  // Check if we are renumbering or not
- if(sinfo.renum || sinfo.sparse_renum)
+ if(sinfo.renum || sinfo.solvercntl->sparse_renum)
    filePrint(stderr," ... Renumbering as Specified       ...\n");
  else {
    if(sinfo.subtype != 1 && sinfo.subtype != 8 && sinfo.subtype != 9) // sparse and spooles are always renumbered internally

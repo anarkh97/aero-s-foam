@@ -223,7 +223,7 @@ void MultInteg<Scalar, VecType, PostProcessor, ProblemDescriptor>::genten(int cn
           double prodw=1;
           for (int ii=0;ii<=cnt;++ii) prodw=prodw*tenww[ii];
           VecType* urealz = new VecType(probDesc_cur->solVecInfo(1)); 
-          if(domain->solInfo().type != 2) urealz->setn(domain->numUncon()); 
+          if(domain->solInfo().solvercntl->type != 2) urealz->setn(domain->numUncon()); 
           urealz->zero();
           for(int ii=0;ii<P;ii++) {
             urealz->computeRealz(ii,psi[ii],(*mysol));
@@ -432,7 +432,7 @@ void MultInteg<Scalar, VecType, PostProcessor, ProblemDescriptor>::simulcomp(int
   }
 
   VecType* urealz = new VecType(probDesc_cur->solVecInfo(1));
-  if(domain->solInfo().type != 2) urealz->setn(domain->numUncon()); 
+  if(domain->solInfo().solvercntl->type != 2) urealz->setn(domain->numUncon()); 
 
   for(int i=0; i< nsample_integ; ++i) {
     genXiPsi(i);
@@ -590,7 +590,7 @@ void MultInteg<Scalar, VecType, PostProcessor, ProblemDescriptor>::compdf()
 //     if (stressIndex_cur < 7)  sfem->assignRandMat();   // only for stresses; YYY add principal stresses
      if (stressIndex_cur < 7)  probDesc_cur->assignRandMat();   // only for stresses; YYY add principal stresses
      VecType* urealz = new VecType(probDesc_cur->solVecInfo(1));
-     if(domain->solInfo().type != 2) urealz->setn(domain->numUncon()); 
+     if(domain->solInfo().solvercntl->type != 2) urealz->setn(domain->numUncon()); 
      urealz->zero();
      for(int ii=0;ii<P;ii++) {
        urealz->computeRealz(ii,psi[ii],(*mysol));

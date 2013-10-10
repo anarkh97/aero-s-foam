@@ -4,6 +4,7 @@
 #ifdef USE_EIGEN3
 #include <Eigen/Dense>
 #include <Math.d/BLKSparseMatrix.h>
+#include <Math.d/EiSparseMatrix.h>
 #include <Solvers.d/eiquadprog.hpp>
 
 //#define CHECK_G

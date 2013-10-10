@@ -8,16 +8,10 @@
 #include <Element.d/Element.h>
 #include <Math.d/SparseMatrix.h>
 #include <Math.d/matrix.h>
-#include <Math.d/BLKSparseMatrix.h>
 #include <Solvers.d/Rbm.h>
 #include <Timers.d/GetTime.h>
-
-#include<Driver.d/Domain.h>
-extern Domain *domain;
-
-#ifdef DISTRIBUTED
-#include <Comm.d/Communicator.h>
-#endif
+#include <Solvers.d/SolverCntl.h>
+#include <Driver.d/Communicator.h>
 
 #define MIN_MEMORY
 
@@ -338,13 +332,12 @@ GenBLKSparseMatrix<Scalar>::init()
 template<class Scalar> 
 GenBLKSparseMatrix<Scalar>::GenBLKSparseMatrix(Connectivity *cn, DofSetArray *_dsa, 
                                                DofSetArray *c_dsa, double _tol,
-                                               int _spRenum, Rbm *_rbm) :
- SparseData(_dsa,c_dsa,cn,1)
+                                               SolverCntl& _scntl, Rbm *_rbm) :
+ SparseData(_dsa,c_dsa,cn,1), scntl(_scntl)
 {
   init();
   rbm   = _rbm;
   tol   = _tol;
-  spRenum = _spRenum;
 
   // Geometric RBM
   if(rbm) ngrbm  = rbm->numRBM();
@@ -463,22 +456,20 @@ GenBLKSparseMatrix<Scalar>::factor()
   
   delete [] rwork;  
   delete [] tmpvec; 
-  delete [] deftemp; //HB
+  delete [] deftemp;
 
-  computeRBMs(); // XXXX PJSA 9-6-2007
+  computeRBMs();
 }
 
 template<class Scalar>
 void
 GenBLKSparseMatrix<Scalar>::computeRBMs()
 {
-  //if((rbm == 0 ) && (numrbm > 0)) { 
-  if((ngrbm != numrbm) && (numrbm > 0)) {  // PJSA 6-12-2007 
+  if((ngrbm != numrbm) && (numrbm > 0)) {
     //filePrint(stderr," ... Computing %d Sparse RBM(s), tolerance = %e\n",numrbm,tol);
 
     // compute rigid body modes
     Scalar *ns  = new Scalar[numrbm*numUncon];
-    //Scalar *tempvec = (Scalar *) dbg_alloca(sizeof(Scalar)*numUncon);
     Scalar *tempvec = new Scalar[numUncon];
     Tblkns(nsuper, xsuper, xlindx,  lindx,
            xlnz,    lnz, defblk, numrbm,
@@ -1171,7 +1162,7 @@ GenBLKSparseMatrix<Scalar>::addDiscreteMass(int dof, Scalar mass)
 {
  if(dof < 0) return;
  int cdof;
- if(unconstrNum) cdof = unconstrNum[dof]; // PJSA: dof is now in unconstrained numbering
+ if(unconstrNum) cdof = unconstrNum[dof]; // dof is now in unconstrained numbering
  else cdof = dof;
  if(cdof < 0) return;
 
@@ -1224,24 +1215,22 @@ GenBLKSparseMatrix<Scalar>::getRBMs(VectorSet &rigidBodyModes)
 
 template<class Scalar> 
 GenBLKSparseMatrix<Scalar>::GenBLKSparseMatrix(Connectivity *cn, DofSetArray *_dsa, 
-                                               int *glInternalMap, double _tol, int _spRenum, Rbm *_rbm) :
-  SparseData(_dsa, glInternalMap, cn, 1)
+                                               int *glInternalMap, double _tol, SolverCntl& _scntl, Rbm *_rbm) :
+  SparseData(_dsa, glInternalMap, cn, 1), scntl(_scntl)
 {
   init();
   tol    = _tol;
-  spRenum = _spRenum;
   allocateMemory();
 }
 
 // Constructor for GtG Solver (First level coarse problem solver in FETI)
 
 template<class Scalar>
-GenBLKSparseMatrix<Scalar>::GenBLKSparseMatrix(Connectivity *cn, EqNumberer *_dsa, double _tol, int _spRenum, int _ngrbm)
-  : SparseData(cn,_dsa,_tol)
+GenBLKSparseMatrix<Scalar>::GenBLKSparseMatrix(Connectivity *cn, EqNumberer *_dsa, double _tol, SolverCntl& _scntl, int _ngrbm)
+  : SparseData(cn,_dsa,_tol), scntl(_scntl)
 {
   init();
   tol    = _tol;
-  spRenum = _spRenum;
   ngrbm = _ngrbm;
   allocateMemory();
 }
@@ -1274,8 +1263,8 @@ GenBLKSparseMatrix<Scalar>::allocateMemory()
   int i,j,k,iflag;
 
   // maxsup = maximum number of columns in each supernode (parameter)
-  int maxsup = domain->solInfo().sparse_maxsup;  // PJSA: default is 100, but may need larger maxsup for big subdomains
-                                                 // set using sparse_maxsup parameter in fem input file
+  int maxsup = scntl.sparse_maxsup;  // default is 100, but may need larger maxsup for big subdomains
+                                     // set using sparse_maxsup parameter in fem input file
 
   adj = new int[nnza];
 
@@ -1315,9 +1304,9 @@ GenBLKSparseMatrix<Scalar>::allocateMemory()
 //           Work:       IWORK(4*N)
 // -------------------------------------------------------
 
-  // iwsiz = 4 * numUncon;  // PJSA: iwsiz should be the dimension of iwork (not changed)
+  // iwsiz = 4 * numUncon;  // iwsiz should be the dimension of iwork (not changed)
 #ifdef USE_METIS  
-  if(spRenum == 1) {
+  if(scntl.sparse_renum == 1) {
     int metis_options[8];
     for(i = 0; i < 8; i++) metis_options[i] = 0;
     int numflag = 1;
@@ -1344,7 +1333,7 @@ GenBLKSparseMatrix<Scalar>::allocateMemory()
   // Rank deficiency information
   // defblk = size of last block to perform full pivoting on
   if(ngrbm > 0)
-    defblk = min(numUncon-1,domain->solInfo().sparse_defblk); // note: sparse_defblk default is 30
+    defblk = min(numUncon-1,scntl.sparse_defblk); // note: sparse_defblk default is 30
   else
     defblk = 0;
 
@@ -1390,7 +1379,7 @@ GenBLKSparseMatrix<Scalar>::allocateMemory()
 //       No longer needed: ADJ, XADJ, COLCNT
 //       ------------------------------------------------------
 
-  // iwsiz = nsuper + 2 * numUncon + 1;  // PJSA iwsize is the dimension of iwork
+  // iwsiz = nsuper + 2 * numUncon + 1;  // iwsize is the dimension of iwork
   if(nsub > lxsize) { delete [] lindx; lindx = new int[nsub]; }
 
   _FORTRAN(symfct)(numUncon, nnza,   xadj,   adj,    perm,
@@ -1440,8 +1429,7 @@ template<class Scalar>
 int
 GenBLKSparseMatrix<Scalar>::numRBM() 
 {  
-  //return (rbm) ? rbm->numRBM() : numrbm; 
-  return numrbm; // PJSA 6-12-2007 return the total number of zems (both geometric and otherwise) same as SkyMatrix
+  return numrbm; // return the total number of zems (both geometric and otherwise) same as SkyMatrix
 }
 
 template<class Scalar>

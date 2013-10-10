@@ -114,11 +114,11 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, GenSubDomain<Scalar> **_sd,
  this->glNumMpc = (this->mpcToSub) ? this->mpcToSub->csize() : 0;
  this->mpcToSub_primal = _mpcToSub_primal;
  this->glNumMpc_primal = (this->mpcToSub_primal) ? this->mpcToSub_primal->csize() : 0;
- mpcToMpc   = _mpcToMpc;    // MPC to MPC connectivity (PJSA: used for CC^t preconditioner
+ mpcToMpc   = _mpcToMpc;    // MPC to MPC connectivity (used for CC^t preconditioner)
  mpcToCpu   = _mpcToCpu;
  this->cpuToSub   = _cpuToSub;
  this->fetiInfo   = _fetiInfo;    // Feti solver information
- this->fetiCom    = _fetiCom;       // PJSA
+ this->fetiCom    = _fetiCom;
  this->glSubToLoc = _glSubToLoc;
 
   globalFlagCtc = domain->getNumCTC();
@@ -185,7 +185,7 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, GenSubDomain<Scalar> **_sd,
  this->internalDI.len  = tLocalLen;
  internalR.len = tLocalRLen;
 
- // PJSA: compute the masterFlags
+ // compute the masterFlags
  bool *interfaceMasterFlag = new bool[tInterfLen];
  this->interface.computeOffsets();
  for(iSub = 0; iSub < this->nsub; ++iSub) {
@@ -234,7 +234,7 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, GenSubDomain<Scalar> **_sd,
  }
 
  // Compute stiffness scaling if required
- // HB: this also perform the LMPCs stiffness scaling/splitting for the primal method
+ // this also perform the LMPCs stiffness scaling/splitting for the primal method
  paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::initScaling);
  if((this->fetiInfo->scaling == FetiInfo::kscaling) || ((this->fetiInfo->mpc_scaling == FetiInfo::kscaling) && (this->glNumMpc_primal > 0)) 
     || (this->fetiInfo->augment == FetiInfo::WeightedEdges)) {
@@ -243,10 +243,10 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, GenSubDomain<Scalar> **_sd,
    paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::collectScaling, this->vPat);
  }
  if(domain->solInfo().isCoupled) 
-   paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::scaleAndSplitKww); // HB
+   paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::scaleAndSplitKww);
 
  if(this->fetiInfo->augment == FetiInfo::WeightedEdges)
-   paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::weightEdgeGs); // PJSA: W*Q
+   paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::weightEdgeGs); // W*Q
 
  // MPCs 
  mpcPrecon = false; 
@@ -303,7 +303,7 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, GenSubDomain<Scalar> **_sd,
  // build CC^t for preconditioning mpc residual if necessary
  // done earlier if(mpcPrecon) buildCCt();
 
- if(domain->solInfo().isCoupled) wetInterfaceComms();  // PJSA
+ if(domain->solInfo().isCoupled) wetInterfaceComms();
 
  int tLocalCLen = 0;
  for(iSub = 0; iSub < this->nsub; ++iSub) {
@@ -338,7 +338,7 @@ void
 GenFetiDPSolver<Scalar>::computeLocalWaveNumbers()
 {
   int iSub;
-  if(this->fetiInfo->numdir > 0) { // PJSA 1-15-08, support for multiple fluids 
+  if(this->fetiInfo->numdir > 0) { // support for multiple fluids 
     if(this->fetiInfo->waveMethod == FetiInfo::uniform) {
       paralApply(this->nsub, this->sd, &BaseSub::computeWaveNumbers);
     }
@@ -469,12 +469,12 @@ GenFetiDPSolver<Scalar>::makeKcc()
  // STEP 3. make the coarse problem equation numberer
  int renumFlag = (this->fetiInfo->gtgSolver == FetiInfo::skyline || this->fetiInfo->gtgSolver == FetiInfo::blocksky) ? domain->solInfo().renum : 0;
  compStruct renumber = coarseConnectivity->renumByComponent(renumFlag);
- if(cornerEqs) delete cornerEqs; // PJSA
+ if(cornerEqs) delete cornerEqs;
  cornerEqs = new DofSetArray(coarseConnectivity->csize(), renumber.renum, 1);
  delete [] renumber.xcomp;
 
 #if defined(USE_MUMPS) && defined(DISTRIBUTED)
- if(this->fetiInfo->gtgSolver == FetiInfo::mumps && domain->solInfo().mumps_icntl[18] == 3) { // matrix is distributed, use local graph for matrix structure
+ if(this->fetiInfo->gtgSolver == FetiInfo::mumps && domain->solInfo().solvercntl->mumps_icntl[18] == 3) { // matrix is distributed, use local graph for matrix structure
    delete coarseConnectivity;
    Connectivity *subToCPU = this->cpuToSub->reverse();
    coarseConnectivity = coarseToSub->transcon(subToCoarse, subToCPU->getTarget(), this->myCPU);
@@ -527,7 +527,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
      for(int jSub=0; jSub<numNeighbor; ++jSub) {
        int subJ = this->sd[iSub]->getSComm()->subNums[jSub];
        if(this->sd[iSub]->isEdgeNeighbor(jSub)) {
-         if(myNum < subJ) { // PJSA
+         if(myNum < subJ) {
            int nEdge = this->sd[iSub]->numEdgeDofs(jSub);
            edgeWeights[(*this->subToEdge)[this->sd[iSub]->subNum()][jEdgeN]] = nEdge;
          }
@@ -854,7 +854,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
        } else
 #endif 
        // TODO: pass grbms...
-       sky = new GenSkyMatrix<Scalar>(coarseConnectivity, cornerEqs, tolerance, domain->solInfo().coarseScaled); 
+       sky = new GenSkyMatrix<Scalar>(coarseConnectivity, cornerEqs, tolerance, this->fetiInfo->coarseScaled); 
        KccSparse = sky;
        KccSolver = sky;
      }
@@ -883,12 +883,12 @@ GenFetiDPSolver<Scalar>::makeKcc()
           this->fetiInfo->type != FetiInfo::nonlinear && 
           !domain->solInfo().doEigSweep && !domain->solInfo().doFreqSweep) {
          BLKMatrix = new GenDistBLKSparse<Scalar>(coarseConnectivity, cornerEqs, 
-                                                  tolerance, firstAlpha, nRowAlpha);   
+                                                  tolerance, *this->fetiInfo->kcc_cntl, firstAlpha, nRowAlpha);   
          this->times.memoryGtGDelete = 8*BLKMatrix->size();
        } else
 #endif
        BLKMatrix = new GenBLKSparseMatrix<Scalar>(coarseConnectivity, cornerEqs,
-                                                  tolerance, domain->solInfo().sparse_renum, sparse_ngrbms);
+                                                  tolerance, *this->fetiInfo->kcc_cntl, sparse_ngrbms);
        BLKMatrix->zeroAll();
        KccSparse = BLKMatrix;
        KccSolver = BLKMatrix;
@@ -905,7 +905,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 #endif
 #ifdef USE_SPOOLES
      case FetiInfo::spooles: {
-       GenSpoolesSolver<Scalar> *spsolver = new GenSpoolesSolver<Scalar>(coarseConnectivity, cornerEqs);
+       GenSpoolesSolver<Scalar> *spsolver = new GenSpoolesSolver<Scalar>(coarseConnectivity, cornerEqs, *this->fetiInfo->kcc_cntl);
        KccSparse = spsolver;
        KccSolver = spsolver;
      }
@@ -913,7 +913,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 #endif
 #ifdef USE_MUMPS
      case FetiInfo::mumps: {
-       GenMumpsSolver<Scalar> *mumpsolver = new GenMumpsSolver<Scalar>(coarseConnectivity, cornerEqs, (int *)0, this->fetiCom);
+       GenMumpsSolver<Scalar> *mumpsolver = new GenMumpsSolver<Scalar>(coarseConnectivity, cornerEqs, *this->fetiInfo->kcc_cntl, (int *)0, this->fetiCom);
        KccSparse = mumpsolver;
        KccSolver = mumpsolver;
      }
@@ -1334,7 +1334,7 @@ GenFetiDPSolver<Scalar>::solveGMRES(GenDistrVector<Scalar> &f, GenDistrVector<Sc
 
  double ff = extractForceVectors(f, fr, fc, fw);
 
- computeL0(lambda0, f); // PJSA 1-23-08
+ computeL0(lambda0, f);
 
  // Solve uc = Kcc^-1(  fc + Krr^-1 Krc^T lambda0) 
  //          = Kcc^-1(  fc )
@@ -1365,7 +1365,7 @@ GenFetiDPSolver<Scalar>::solveGMRES(GenDistrVector<Scalar> &f, GenDistrVector<Sc
 
  bool primalresidual = this->fetiInfo->gmresResidual;
  int J = 0;
- const int ReStep = this->fetiInfo->maxortho; // PJSA 1-23-08 (for restarted GMRES)
+ const int ReStep = this->fetiInfo->maxortho; // for restarted GMRES
 
  for(int iter = 0; true; ++iter) {
    // Arnoldi iteration (Algorithm see Saad SISC) 
@@ -1406,9 +1406,9 @@ GenFetiDPSolver<Scalar>::solveGMRES(GenDistrVector<Scalar> &f, GenDistrVector<Sc
          this->times.iterations[this->numSystems-1].cpuTime = this->times.solve;
 
          t7 += getTime();
-         printSummary(iter*ReStep+j+1); // PJSA
+         printSummary(iter*ReStep+j+1);
 
-         *lambda += lambda0; // PJSA 1-23-08
+         *lambda += lambda0;
          ur += dur;
          uc += duc;
          ur += deltaU; // make solution compatible u += deltaU
@@ -1426,7 +1426,7 @@ GenFetiDPSolver<Scalar>::solveGMRES(GenDistrVector<Scalar> &f, GenDistrVector<Sc
          filePrint(stderr, "%4d %47.6e\n", iter*ReStep+j, fabs(resGMRES)/sqrt(ff));
    }
 
-   // PJSA 1-23-08 restart GMRES
+   // restart GMRES
    if(verboseFlag) filePrint(stderr, " *** Krylov Space Full - Restarting GMRES \n");
    if(!primalresidual) {
      this->GMRESSolution(*lambda);  // compute incremental solution lambda
@@ -1640,7 +1640,7 @@ GenFetiDPSolver<Scalar>::printSummary(int iter)
     filePrint(stderr," Total Making Kcc    %12.4f s ...\n",this->times.coarse1/1000.0);
     filePrint(stderr," --------------------------------------\n");
     filePrint(stderr," Total Making FETI  %13.4f s ...\n",t6/1000.0);
-    filePrint(stderr," Total Solve RHS#   %13.4f s ...\n",t7/1000.0);  // PJSA 2-10-05
+    filePrint(stderr," Total Solve RHS#   %13.4f s ...\n",t7/1000.0);
   }
 }
 
@@ -1682,7 +1682,7 @@ GenFetiDPSolver<Scalar>::mergeSolution(GenDistrVector<Scalar> &ur, GenVector<Sca
       execParal2R(this->nsub, this, &GenFetiDPSolver<Scalar>::addRalpha, u, alpha);
     }
     if(this->fetiInfo->uproj) computeProjectedDisplacement(u);
-    else filePrint(stderr, " ... Do not project the displacement ...\n"); //HB
+    else filePrint(stderr, " ... Do not project the displacement ...\n");
   }
 }
 
@@ -1871,7 +1871,7 @@ GenFetiDPSolver<Scalar>::makeEdgeConnectivity()
   int iSub;
   int glNumSub = this->subToSub->csize();
 
-  paralApply(this->nsub, this->sd, &BaseSub::findEdgeNeighbors);  // PJSA
+  paralApply(this->nsub, this->sd, &BaseSub::findEdgeNeighbors);
 
   // First count number of edges per subdomain
   int *cx = new int[glNumSub+1];
@@ -1897,7 +1897,7 @@ GenFetiDPSolver<Scalar>::makeEdgeConnectivity()
     numEdgesPerSub[iSub] = 0;
 
   for(iSub=0; iSub<this->nsub; ++iSub)  
-    numEdgesPerSub[this->sd[iSub]->subNum()] = this->sd[iSub]->numEdgeNeighbors();  // PJSA: don't include virtual neighbors
+    numEdgesPerSub[this->sd[iSub]->subNum()] = this->sd[iSub]->numEdgeNeighbors();  // don't include virtual neighbors
 
   this->fetiCom->globalSum(glNumSub, numEdgesPerSub);
 
@@ -1918,7 +1918,7 @@ GenFetiDPSolver<Scalar>::makeEdgeConnectivity()
     cx[iSub] = tmp;
 
     cxx[iSub] = totalNumEdges;
-    totalNumEdges += this->sd[iSub]->numEdgeNeighbors(); // PJSA: don't include virtual neighbors
+    totalNumEdges += this->sd[iSub]->numEdgeNeighbors(); // don't include virtual neighbors
   }
 #endif
   // Find total number of edges including duplicated ones.
@@ -1979,7 +1979,7 @@ GenFetiDPSolver<Scalar>::countEdges(int iSub, int *edges)
   int numNeighbor = this->sd[iSub]->numNeighbors();
   for(j=0; j<numNeighbor; ++j) {
     int subI = this->sd[iSub]->getSComm()->subNums[j];
-    if(this->sd[iSub]->isEdgeNeighbor(j) && (myNum < subI))  // PJSA
+    if(this->sd[iSub]->isEdgeNeighbor(j) && (myNum < subI))
       edges[myNum] += 1;
   }
 }
@@ -1999,7 +1999,7 @@ GenFetiDPSolver<Scalar>::numberEdges(int iSub, int *eP, int *ep2, int* edges, FS
   for(jSub=0; jSub<numNeighbor; ++jSub) {
     int subJ = this->sd[iSub]->getSComm()->subNums[jSub];
     FSSubRecInfo<int> sInfo = this->sPat->getSendBuffer(myNum, subJ);
-    if(this->sd[iSub]->isEdgeNeighbor(jSub)) { // PJSA
+    if(this->sd[iSub]->isEdgeNeighbor(jSub)) {
       if(myNum < subJ) {
         edges[fP] = startI;
         startI++;
@@ -2023,7 +2023,7 @@ GenFetiDPSolver<Scalar>::receiveNeighbEdgeNums(int iSub, int *eP, int* edges, FS
   int numNeighbor = this->sd[iSub]->numNeighbors();
   int jEdgeN = 0;
   for(jSub=0; jSub<numNeighbor; ++jSub) {
-    if(this->sd[iSub]->isEdgeNeighbor(jSub)) { // PJSA
+    if(this->sd[iSub]->isEdgeNeighbor(jSub)) {
       FSSubRecInfo<int> rInfo = this->sPat->recData(this->sd[iSub]->getSComm()->subNums[jSub], myNum);
       int en =  rInfo.data[0];
       if(en >= 0) edges[eP[myNum]+jEdgeN] = en;
@@ -2185,7 +2185,7 @@ GenFetiDPSolver<Scalar>::singularValueDecomposition(FullM &A, FullM &U, int ncol
   int maxdim = myMax(nrow,ncol);
   double max_value = A.maxAbs();
 #ifdef FILERING
-  for(int i=0; i<A.numCol()*A.numRow(); i++) //HB
+  for(int i=0; i<A.numCol()*A.numRow(); i++)
     if(fabs((A.data())[i])<1.E-16*max_values+1.E-20) (A.data())[i] = 0.0;
 #endif
   double *w    = (double*) dbg_alloca(sizeof(double)* maxdim);
@@ -2264,7 +2264,7 @@ template<class Scalar>
 void 
 GenFetiDPSolver<Scalar>::buildCCt()
 {
-  // PJSA: build CC^t for preconditioning mpc residual
+  // build CC^t for preconditioning mpc residual
   startTimerMemory(this->times.buildCCt, this->times.memoryBuildCCt);
   // find subs with mpcs
   mpcSubMap = new int[this->nsub];
@@ -2404,7 +2404,7 @@ template<class Scalar>
 void 
 GenFetiDPSolver<Scalar>::cctSolveMpc(GenDistrVector<Scalar> &v)
 {
-  // PJSA: this function is used when applying the generalized preconditioner
+  // this function is used when applying the generalized preconditioner
   // to the mpc part of the residual
   // computes:  v = (CC^t)^-1 v
   startTimerMemory(this->times.precond, this->times.memoryPrecond);
@@ -2569,11 +2569,11 @@ GenFetiDPSolver<Scalar>::refactor()
   }
 
   if(domain->solInfo().isCoupled) {
-    paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::reScaleAndReSplitKww); // HB
+    paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::reScaleAndReSplitKww);
   }
 
   if(this->fetiInfo->augment == FetiInfo::WeightedEdges)
-    paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::weightEdgeGs); // PJSA: W*Q
+    paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::weightEdgeGs); // W*Q
 
  // MPCs 
  mpcPrecon = false;
@@ -2611,7 +2611,7 @@ GenFetiDPSolver<Scalar>::refactor()
   startTimerMemory(this->times.factor, this->times.memoryFactor);
   if(this->fetiInfo->solvertype != FetiInfo::spooles && this->fetiInfo->solvertype != FetiInfo::mumps)
     timedParal(this->times.factorMat, this->nsub, this, &GenFetiDPSolver<Scalar>::factorLocalMatrices);
-  else // PJSA: spooles and mumps are not thread safe
+  else // spooles and mumps are not thread safe
     for(int iSub=0; iSub<this->nsub; ++iSub) factorLocalMatrices(iSub);
   stopTimerMemory(this->times.factor, this->times.memoryFactor);
 
@@ -2897,7 +2897,7 @@ GenFetiDPSolver<Scalar>::reconstructMPCs(Connectivity *_mpcToSub, Connectivity *
 {
  this->mpcToSub   = _mpcToSub;    // MPC to subdomain connectivity
  this->glNumMpc = (this->mpcToSub) ? this->mpcToSub->csize() : 0;
- mpcToMpc   = _mpcToMpc;    // MPC to MPC connectivity (PJSA: used for CC^t preconditioner
+ mpcToMpc   = _mpcToMpc;    // MPC to MPC connectivity (used for CC^t preconditioner)
  mpcToCpu   = _mpcToCpu;
  globalFlagCtc = domain->getNumCTC();
 #ifdef DISTRIBUTED
@@ -2936,7 +2936,7 @@ GenFetiDPSolver<Scalar>::reconstructMPCs(Connectivity *_mpcToSub, Connectivity *
  }
  this->interface.len = tInterfLen;
 
- // PJSA: compute the masterFlags
+ // compute the masterFlags
  bool *interfaceMasterFlag = new bool[tInterfLen];
  this->interface.recomputeOffsets();
  for(iSub = 0; iSub < this->nsub; ++iSub) {

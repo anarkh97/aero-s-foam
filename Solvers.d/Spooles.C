@@ -1,13 +1,12 @@
 #include <Utils.d/Connectivity.h>
 #include <Utils.d/dofset.h>
 #include <Math.d/FullSquareMatrix.h>
-#include <Comm.d/Communicator.h>
+#include <Driver.d/Communicator.h>
 #include <Threads.d/Paral.h>
+#include <Solvers.d/SolverCntl.h>
 
 extern double getTime();
 
-#include<Driver.d/Domain.h>
-extern Domain *domain;
 extern long totMemSpooles;
 
 #define DEBUG_SPOOLES 0  // 1 = print debug stats for factorization, 2 = print for solve also
@@ -81,8 +80,8 @@ class SpoolesType<complex<double> > {
 #endif
 
 template<class Scalar>
-GenSpoolesSolver<Scalar>::GenSpoolesSolver(Connectivity *nToN, EqNumberer *_dsa, int *map)
- : SparseData(_dsa, nToN, map)
+GenSpoolesSolver<Scalar>::GenSpoolesSolver(Connectivity *nToN, EqNumberer *_dsa, SolverCntl& _scntl, int *map)
+ : SparseData(_dsa, nToN, map), scntl(_scntl)
 {
   // constructor for feti-dp coarse problem
   init();
@@ -104,8 +103,8 @@ GenSpoolesSolver<Scalar>::GenSpoolesSolver(Connectivity *nToN, EqNumberer *_dsa,
 
 template<class Scalar>
 GenSpoolesSolver<Scalar>::GenSpoolesSolver(Connectivity *nToN, DofSetArray *_dsa,
-                                           ConstrainedDSA *c_dsa) 
- : SparseData(_dsa,c_dsa,nToN)
+                                           ConstrainedDSA *c_dsa, SolverCntl& _scntl) 
+ : SparseData(_dsa,c_dsa,nToN), scntl(_scntl)
 {
   init();
   neq = c_dsa->size();
@@ -471,16 +470,14 @@ GenSpoolesSolver<Scalar>::allFactor(bool fctIsParal)
 // spooles_maxzeros - maximum number of zeros allowed in a supernode/front
 // spooles_maxsize - maximum number of internal columns in supernode/front
 
-  int seed = domain->solInfo().spooles_seed;  // default is 532196
-  int maxdomainsize = int(neq/domain->solInfo().spooles_maxdomainsize+0.5);  // default is neq/24
-  int maxsize = domain->solInfo().spooles_maxsize;  // default is 64
-  int maxzeros = int(neq*domain->solInfo().spooles_maxzeros+0.5);  // default is 0.04*neq
-  //cerr << "neq = " << neq << ", maxdomainsize = " << maxdomainsize << ", maxsize = " << maxsize << ", maxzeros = " << maxzeros << ", seed = " << seed << endl;
-  //cerr << "spooles_pivot = " << domain->solInfo().pivot << ", spooles_scale = " << domain->solInfo().spooles_scale << ", spooles_renum = " << domain->solInfo().spooles_renum << endl;
+  int seed = scntl.spooles_seed;  // default is 532196
+  int maxdomainsize = int(neq/scntl.spooles_maxdomainsize+0.5);  // default is neq/24
+  int maxsize = scntl.spooles_maxsize;  // default is 64
+  int maxzeros = int(neq*scntl.spooles_maxzeros+0.5);  // default is 0.04*neq
 
   //tt0=getTime();
 
-  switch(domain->solInfo().spooles_renum) { // PJSA 10-11-2007
+  switch(scntl.spooles_renum) { // PJSA 10-11-2007
     default:
     case 0: // best of nested dissection and multisection ordering 
       frontETree = orderViaBestOfNDandMS(graph, maxdomainsize, maxzeros, maxsize, seed, msglvl, msgfile); break;
@@ -550,7 +547,7 @@ GenSpoolesSolver<Scalar>::allFactor(bool fctIsParal)
   DVfill(22, cpus, 0.0); // PJSA changed 1st argument from 10 to 20
   IVfill(7, stats, 0);
 
-  double tau = domain->solInfo().spooles_tau; // default is 100.0
+  double tau = scntl.spooles_tau; // default is 100.0
   int error = 0;
   //double t0 = getTime();
   Chv *rootchv = NULL;
@@ -769,7 +766,7 @@ GenSpoolesSolver<Scalar>::zeroAll()
 
   for(int i = 0; i < nNonZero; ++i)
     unonz[i] = 0.0;
-  pivotingflag = (domain->solInfo().pivot) ? SPOOLES_PIVOTING : SPOOLES_NO_PIVOTING;
+  pivotingflag = (scntl.pivot) ? SPOOLES_PIVOTING : SPOOLES_NO_PIVOTING;
 #endif
 }
 
@@ -820,11 +817,11 @@ GenSpoolesSolver<Scalar>::init()
   frontETree = 0;
   cumopsDV = 0; 
   graph = 0;
-  pivotingflag = (domain->solInfo().pivot) ? SPOOLES_PIVOTING : SPOOLES_NO_PIVOTING;
+  pivotingflag = (scntl.pivot) ? SPOOLES_PIVOTING : SPOOLES_NO_PIVOTING;
 #endif
   scale = 0;
-  isScaled = domain->solInfo().spooles_scale;
-  msglvl = domain->solInfo().spooles_msglvl;
+  isScaled = scntl.spooles_scale;
+  msglvl = scntl.spooles_msglvl;
   msgfile = (msglvl > 0) ? fopen("spooles_msgfile","w") : NULL;
   _size = 0;
 }

@@ -382,7 +382,7 @@ StaticTimers::printFetiDPtimers(MatrixTimers matrixTimer, double solveTime,
  filePrint(f,"5. Number of Multiple Point Constraints    = %14d\n\n", domain->getNumLMPC());
  filePrint(f,"6. Number of Output Files                  = %14d\n\n", geoSource->getNumOutInfo());
  filePrint(f,"7. Renumbering                             = %14s\n\n", renumMessage[sInfo.renum]);
- filePrint(f,"8. Sparse renumbering                      = %14s\n\n", sparseRenumMessage[sInfo.sparse_renum]);
+ filePrint(f,"8. Sparse renumbering                      = %14s\n\n", sparseRenumMessage[sInfo.solvercntl->sparse_renum]);
  if(domain->solInfo().doFreqSweep) {
    filePrint(f,"9. Number of Frequencies                   = %14d\n\n", domain->numFrequencies);
    filePrint(f,"10. Number of RHS solves                   = %14d\n\n", domain->solInfo().getSweepParams()->nFreqSweepRHS);
@@ -455,7 +455,7 @@ StaticTimers::printFetiDPtimers(MatrixTimers matrixTimer, double solveTime,
 
  filePrint(f,"         %s", subSolverMessage[sInfo.getFetiInfo().solvertype]);
  filePrint(f,"         %s",precSolverMessage[sInfo.getFetiInfo().solvertype]);
- if((sInfo.getFetiInfo().gtgSolver==8)&&(sInfo.pivot))
+ if((sInfo.getFetiInfo().gtgSolver==8)&&(sInfo.solvercntl->pivot))
    filePrint(f,"        %s%s",gtgType[sInfo.getFetiInfo().nonLocalQ],
                          gtgSolverMessage[sInfo.getFetiInfo().gtgSolver+1]);
  else
@@ -463,10 +463,10 @@ StaticTimers::printFetiDPtimers(MatrixTimers matrixTimer, double solveTime,
                            gtgSolverMessage[sInfo.getFetiInfo().gtgSolver]);
 
  if(sInfo.rbmflg == 0)
-   filePrint(f,"         %s %14.3e\n",rbmMessage[sInfo.rbmflg],sInfo.trbm);
+   filePrint(f,"         %s %14.3e\n",rbmMessage[sInfo.rbmflg],sInfo.solvercntl->trbm);
  else
    filePrint(f,"         %s%17e %e\n",rbmMessage[sInfo.rbmflg],
-                                    sInfo.tolsvd, sInfo.trbm);
+                                    sInfo.tolsvd, sInfo.solvercntl->trbm);
 
  filePrint(f,"         Maximum Number of Iterations      = %14d\n",
            sInfo.getFetiInfo().maxiter());
@@ -669,7 +669,7 @@ StaticTimers::printFetiDPtimers(MatrixTimers matrixTimer, double solveTime,
  filePrint(f,"\nTOTAL SIMULATION (1+2+3+4+5+6)         time: %14.5f s %14.3f Mb\n",total/1000.0, totalMemSimulation*byteToMb);
 
  // Output FETI solver information
- if(sInfo.type == 2) {
+ if(sInfo.solvercntl->type == 2) {
    filePrint(f,"\n***********************************************************"
              "********************\n");
    if(domain->numContactPairs > 0)

@@ -127,7 +127,7 @@ StaticTimers::printStaticTimersFetiHAxi(MatrixTimers matrixTimer,
               gtgSolverMessage[sInfo.getFetiInfo().gtgSolver]);
  
    fprintf(f,"         Zero Pivot Tolerance for Local K  = %14.3e\n",
-             sInfo.trbm);
+             sInfo.solvercntl->trbm);
  
    fprintf(f,"         Total Size of QtFQ                = %14d\n",
              timers.numCRNs);
@@ -405,7 +405,7 @@ StaticTimers::printStaticTimersFetiHAxi(MatrixTimers matrixTimer,
  //      Output FETI Solver information          // 
  //////////////////////////////////////////////////
 
-   if (sInfo.type == 2) {
+   if (sInfo.solvercntl->type == 2) {
 
       fprintf(f,"\n");
 

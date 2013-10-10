@@ -773,7 +773,7 @@ SubSpaceSolver< EigOps, VecType, VecSet,
      }
    }
 
-   if((domain->solInfo().fetiInfo.numPrint() > 0) && (iter % domain->solInfo().fetiInfo.numPrint() == 0) && verboseFlag) // PJSA
+   if((domain->solInfo().solvercntl->fetiInfo.numPrint() > 0) && (iter % domain->solInfo().solvercntl->fetiInfo.numPrint() == 0) && verboseFlag) // PJSA
      filePrint(stderr,"Subspace Iteration %d (Max %d): Error = %e (Tol %e)\n", iter+1, nsmax, maxErr, tolEig);
 
    if (hasCon) break;

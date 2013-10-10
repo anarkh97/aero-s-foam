@@ -601,7 +601,7 @@ GenFetiSolver<Scalar>::makeGtG()
      times.memoryGtGsky += memoryUsed();
    } else if (fetiInfo->gtgSolver == FetiInfo::sparse) {
      times.memoryGtGsky -= memoryUsed();
-     BLKMatrix = new GenBLKSparseMatrix<Scalar>(coarseConnect, eqNums, tolerance, domain->solInfo().sparse_renum);
+     BLKMatrix = new GenBLKSparseMatrix<Scalar>(coarseConnect, eqNums, tolerance, *fetiInfo->gtg_cntl);
      times.memoryGtGsky += memoryUsed();
      opControl->sparseGtG = BLKMatrix;
    } else if (fetiInfo->gtgSolver == FetiInfo::pcg) {
@@ -3666,21 +3666,21 @@ GenFetiSolver<Scalar>::newSolver(int type, Connectivity *con, EqNumberer *nums, 
       sparse = (GenSparseMatrix<Scalar> *) s;
     } break;
     case FetiInfo::sparse: {
-      GenBLKSparseMatrix<Scalar> *s = new GenBLKSparseMatrix<Scalar>(con, nums, tol);
+      GenBLKSparseMatrix<Scalar> *s = new GenBLKSparseMatrix<Scalar>(con, nums, tol, *this->fetiInfo->gtg_cntl);
       s->zeroAll();
       solver = (GenSolver<Scalar> *) s;
       sparse = (GenSparseMatrix<Scalar> *) s;
     } break;
 #ifdef USE_SPOOLES
     case FetiInfo::spooles: {
-      GenSpoolesSolver<Scalar> *s = new GenSpoolesSolver<Scalar>(con, nums);
+      GenSpoolesSolver<Scalar> *s = new GenSpoolesSolver<Scalar>(con, nums, *this->fetiInfo->gtg_cntl);
       solver = (GenSolver<Scalar> *) s;
       sparse = (GenSparseMatrix<Scalar> *) s;
     } break;
 #endif
 #ifdef USE_MUMPS
     case FetiInfo::mumps: {
-      GenMumpsSolver<Scalar> *s = new GenMumpsSolver<Scalar>(con, nums, (int *) 0, fetiCom);
+      GenMumpsSolver<Scalar> *s = new GenMumpsSolver<Scalar>(con, nums, *this->fetiInfo->gtg_cntl, (int *) 0, fetiCom);
       solver = (GenSolver<Scalar> *) s;
       sparse = (GenSparseMatrix<Scalar> *) s;
     } break;

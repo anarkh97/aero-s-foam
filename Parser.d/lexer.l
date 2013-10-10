@@ -441,6 +441,10 @@ TRAIL [a-zA-Z]*
 
 "rebuildcct"|"REBUILDCCT"          { return REBUILDCCT; }
 
+"solverc"[a-zA-Z]*|"SOLVERC"[a-zA-Z]* { return SOLVERCNTL; }
+
+"solverh"[a-zA-Z]*|"SOLVERH"[a-zA-Z]* { return SOLVERHANDLE; }
+
 "skyl"[a-zA-Z]*|"SKYL"[a-zA-Z]*    { yylval.ival = 0; return SOLVERTYPE; }
 
 "spar"[a-zA-Z]*|"SPAR"[a-zA-Z]*    { yylval.ival = 1; return SOLVERTYPE; }
@@ -469,15 +473,19 @@ TRAIL [a-zA-Z]*
 
 "purelydiag"[a-zA-Z]*|"PURELYDIAG"[a-zA-Z]* { yylval.ival = 10; return SOLVERTYPE; }
 
-"dbsgal"[a-zA-Z]*|"DBSGAL"[a-zA-Z]*    { yylval.ival = 12; return SOLVERTYPE; }
+"dbsgal"[a-zA-Z]*|"DBSGAL"[a-zA-Z]* { yylval.ival = 12; return SOLVERTYPE; }
 
-"eisgal"[a-zA-Z]*|"EISGAL"[a-zA-Z]*    { yylval.ival = 13; return SOLVERTYPE; }
+"eisgal"[a-zA-Z]*|"EISGAL"[a-zA-Z]* { yylval.ival = 13; return SOLVERTYPE; }
 
 "gold"[a-zA-Z]*|"GOLD"[a-zA-Z]*    { yylval.ival = 14; return SOLVERTYPE; }
 
-"mumps_icntl"|"MUMPS_ICNTL" { return MUMPSICNTL; }
+"verb"[a-zA-Z]*|"VERB"[a-zA-Z]*    { return VERBOSE; }
 
-"mumps_cntl"|"MUMPS_CNTL" { return MUMPSCNTL; }
+"print_number"                     { return PRINTNUMBER; }
+
+"mumps_icntl"|"MUMPS_ICNTL"        { return MUMPSICNTL; }
+
+"mumps_cntl"|"MUMPS_CNTL"          { return MUMPSCNTL; }
 
 "pivot"[a-zA-Z]*|"PIVOT"[a-zA-Z]*  { return PIVOT; }
 
@@ -493,13 +501,13 @@ TRAIL [a-zA-Z]*
 
 "spooles_maxzeros"|"SPOOLES_MAXZEROS" { return SPOOLESMAXZEROS; }
 
-"spooles_msglvl"|"SPOOLES_MSGLVL" { return SPOOLESMSGLVL; }
+"spooles_msglvl"|"SPOOLES_MSGLVL"  { return SPOOLESMSGLVL; }
 
-"spooles_scale"|"SPOOLES_SCALE" { return SPOOLESSCALE; }
+"spooles_scale"|"SPOOLES_SCALE"    { return SPOOLESSCALE; }
 
-"spooles_pivot"|"SPOOLES_PIVOT" { return SPOOLESPIVOT; }
+"spooles_pivot"|"SPOOLES_PIVOT"    { return SPOOLESPIVOT; }
 
-"spooles_renum"|"SPOOLES_RENUM" { return SPOOLESRENUM; }
+"spooles_renum"|"SPOOLES_RENUM"    { return SPOOLESRENUM; }
 
 "sparse_maxsup"|"SPARSE_MAXSUP"    { return SPARSEMAXSUP; }
 
@@ -513,7 +521,7 @@ TRAIL [a-zA-Z]*
 
 "tolf"[a-zA-Z]*|"TOLF"[a-zA-Z]     { return TOLFETI; }
 
-"stag"[a-zA-Z_]*|"STAG"[a-zA-Z_]*    { return STAGTOL; }
+"stag"[a-zA-Z_]*|"STAG"[a-zA-Z_]*  { return STAGTOL; }
 
 "global_rbm_tol"|"GLOBAL_RBM_TOL"  { return GLOBALTOL; }
 
@@ -531,7 +539,7 @@ TRAIL [a-zA-Z]*
 
 "printMat"[a-zA-Z]*|"printmat"[a-zA-Z]*|"PRINTMAT"[a-zA-Z]* { return PRINTMATLAB; }
 
-"u_proj"[a-zA-Z]*|"U_PROJ"[a-zA-Z]*  { return UPROJ; }
+"u_proj"[a-zA-Z]*|"U_PROJ"[a-zA-Z]* { return UPROJ; }
 
 "mpc_type"|"MPC_TYPE"              { return MPCTYPE; }
 

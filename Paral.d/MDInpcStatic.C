@@ -26,7 +26,7 @@ GenMultiDomainInpcStatic<Scalar>::GenMultiDomainInpcStatic(Domain *d)
 {
  domain = d;
 /*
- switch(domain->solInfo().fetiInfo.version) {
+ switch(domain->solInfo().solvercntl->fetiInfo.version) {
   default:
   case FetiInfo::feti1:
     filePrint(stderr," ... FETI-1 is Selected             ...\n");
@@ -35,7 +35,7 @@ GenMultiDomainInpcStatic<Scalar>::GenMultiDomainInpcStatic(Domain *d)
     filePrint(stderr," ... FETI-2 is Selected             ...\n");
     break;
   case FetiInfo::fetidp:
-    if (!(domain->solInfo().fetiInfo.dph_flag)) 
+    if (!(domain->solInfo().solvercntl->fetiInfo.dph_flag)) 
       filePrint(stderr," ... FETI-Dual/Primal is Selected   ...\n");
     else 
       filePrint(stderr," ... FETI-DPH is Selected           ...\n");
@@ -128,8 +128,8 @@ GenMultiDomainInpcStatic<Scalar>::preProcess()
      times->formRhs += getTime();
    }
  }
- solver = new GenPCGSolver<Scalar, DistrBlockVector<Scalar>, DistrSfemBlockMatrix<Scalar> >(sfbm, domain->solInfo().precond, domain->solInfo().maxit,
-                                                                                            domain->solInfo().tol, domain->solInfo().maxvecsize);
+ solver = new GenPCGSolver<Scalar, DistrBlockVector<Scalar>, DistrSfemBlockMatrix<Scalar> >(sfbm, domain->solInfo().solvercntl->precond, domain->solInfo().solvercntl->maxit,
+                                                                                            domain->solInfo().solvercntl->tol, domain->solInfo().solvercntl->maxvecsize);
 }
 
 template<class Scalar>
@@ -226,7 +226,7 @@ GenMultiDomainInpcPostProcessor<Scalar>::staticOutput(DistrBlockVector<Scalar> &
  times->memoryK       = totMemK;
 
  if(printTimers) {
-   switch(domain->solInfo().fetiInfo.version) {
+   switch(domain->solInfo().solvercntl->fetiInfo.version) {
      default:
      case FetiInfo::feti1:
      case FetiInfo::feti2:

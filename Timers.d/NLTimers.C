@@ -268,10 +268,10 @@ StaticTimers::printTimers(Domain* domain, Timings& timers, double solveTime)
  fprintf(f,"         %s",precSolverMessage[sInfo.getFetiInfo().solvertype]);
 
  if(sInfo.rbmflg == 0)
-   fprintf(f,"         %s %29e\n",rbmMessage[sInfo.rbmflg],sInfo.trbm);
+   fprintf(f,"         %s %29e\n",rbmMessage[sInfo.rbmflg],sInfo.solvercntl->trbm);
  else
    fprintf(f,"         %s%17e %e\n",rbmMessage[sInfo.rbmflg],
-                                    sInfo.tolsvd,sInfo.trbm);
+                                    sInfo.tolsvd,sInfo.solvercntl->trbm);
 
  fprintf(f,"         Maximum Number of Iterations      = %14d\n",
            sInfo.getFetiInfo().maxiter());
@@ -451,7 +451,7 @@ StaticTimers::printTimers(Domain* domain, Timings& timers, double solveTime)
          total/1000.0, totalMemSimulation*byteToMb);
 
  // Output FETI solver information
- if(sInfo.type == 2) {
+ if(sInfo.solvercntl->type == 2) {
 
    fprintf(f,"\n***********************************************************\n");
    fprintf(f," ... FETI Monitoring ... \n");

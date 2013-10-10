@@ -2329,7 +2329,7 @@ void GeoSource::setNumNodalOutput()
 
 int GeoSource::setDirichlet(int _numDirichlet, BCond *_dbc)
 {
-  if(domain->solInfo().fetiInfo.dmpc) {
+  if(domain->solInfo().dmpc) {
     domain->addDirichletLMPCs(_numDirichlet, _dbc);
     return 0;
   }
@@ -3875,8 +3875,8 @@ GeoSource::simpleDecomposition(int numSubdomains, bool estFlag, bool weightOutFl
  MultiFront mf(&baseSet, &nodes, bool(domain->getNumFSI()));
 
  // Decompose and optimize the structure into subdomains
- if ( domain->solInfo().isCoupled && (domain->solInfo().type != 2 || 
-      (!domain->solInfo().isMatching && domain->solInfo().fetiInfo.fsi_corner != 0) ) )
+ if ( domain->solInfo().isCoupled && (domain->solInfo().solvercntl->type != 2 || 
+      (!domain->solInfo().isMatching && domain->solInfo().solvercntl->fetiInfo.fsi_corner != 0) ) )
    optDec = mf.decompose(numSubdomains, bool(domain->getNumFSI()));
  else
    optDec = mf.decompose(numSubdomains);

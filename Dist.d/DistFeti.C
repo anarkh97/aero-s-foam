@@ -150,12 +150,12 @@ GenFetiSolver<Scalar>::makeDistGtG(int *glToLoc)
        int firstAlpha = eqNums->firstdof(myCPU);
        int nRow       = eqNums->weight(myCPU);
        BLKMatrix = new GenDistBLKSparse<Scalar>(coarseConnect, eqNums, tolerance,
-                                                firstAlpha, nRow);
+                                                *fetiInfo->gtg_cntl, firstAlpha, nRow);
        times.memoryGtGDelete = 8*BLKMatrix->size();
        //filePrint(stderr," Deleted GtG Memory: %14.5f Mb\n",
        //          times.memoryGtGDelete/(1024.0*1024.0));
      } else
-       BLKMatrix = new GenBLKSparseMatrix<Scalar>(coarseConnect, eqNums, tolerance, domain->solInfo().sparse_renum);
+       BLKMatrix = new GenBLKSparseMatrix<Scalar>(coarseConnect, eqNums, tolerance, *fetiInfo->gtg_cntl);
      times.memoryGtGsky += threadManager->memoryUsed();
      opControl->sparseGtG = BLKMatrix;
    } else {

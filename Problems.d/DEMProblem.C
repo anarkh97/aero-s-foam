@@ -275,23 +275,23 @@ fprintf(stderr,"coupled scaling: %e, nFE: %d, nSE: %d\n",coupledScaling,nFE,nSE)
  GenSolver<complex<double> > *K;
 
 // Create global matrix
- if (d->solInfo().type==0) {
-   switch( d->solInfo().subtype ) {
+ if (d->solInfo().solvercntl->type==0) {
+   switch( d->solInfo().solvercntl->subtype ) {
      default:
      case 8: 
        fprintf(stderr,"Using Spooles.\n");
-       MK = new GenSpoolesSolver<complex<double> > (node2Node, dsa);
+       MK = new GenSpoolesSolver<complex<double> > (node2Node, dsa, *d->solInfo().solvercntl);
        K = (GenSpoolesSolver<complex<double> >*) MK;
        break;
      case 1: 
        fprintf(stderr,"Using Sparse.\n");
-       MK = new GenBLKSparseMatrix<complex<double> > (node2Node, dsa, d->solInfo().trbm);
+       MK = new GenBLKSparseMatrix<complex<double> > (node2Node, dsa, d->solInfo().solvercntl->trbm, *d->solInfo().solvercntl);
        K = (GenBLKSparseMatrix<complex<double> >*) MK;
        break;
      case 0: {
        fprintf(stderr,"Using Skyline.\n");
         int tgsm =0;
-       MK = new GenSkyMatrix<complex<double> > (node2Node, dsa, d->solInfo().trbm,tgsm);
+       MK = new GenSkyMatrix<complex<double> > (node2Node, dsa, d->solInfo().solvercntl->trbm, tgsm);
        K = (GenSkyMatrix<complex<double> >*) MK;
        break;
      }

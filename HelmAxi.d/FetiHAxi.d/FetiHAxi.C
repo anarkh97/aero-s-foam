@@ -411,7 +411,7 @@ FetiHAxiSolver::allocateCoarseSolver(int Fourier,
        break;
      case 1:
        CoarseSolver[Fourier] = new BLKSparseMatrixC(coarseConnectivity,
-                               coarseEqs, tolerance);
+                               coarseEqs, tolerance, *fetiInfo->gtg_cntl);
        break;
    }
  }

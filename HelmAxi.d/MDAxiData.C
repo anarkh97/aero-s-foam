@@ -488,7 +488,7 @@ MDAxiData::makeKs(int *glBoundMap, int *glInternalMap, int m1, int m2) {
    default:
    case 0:
      for (mode=mstart; mode<mstop; ++mode) {
-         KC[mode] = new SkyMatrixC(nodeToNode, dsa, c_dsa, sinfo.trbm);
+         KC[mode] = new SkyMatrixC(nodeToNode, dsa, c_dsa, sinfo.solvercntl->trbm);
          matSize = (KC[mode]) ? KC[mode]->size() : 0;
 #if defined(sgi) && ! defined(_OPENMP)
          __add_and_fetch(&totMemSky, matSize);
@@ -499,7 +499,7 @@ MDAxiData::makeKs(int *glBoundMap, int *glInternalMap, int m1, int m2) {
 #endif
 
          if (KiiC) {
-            KiiC[mode] = new SkyMatrixC(nodeToNode, dsa, sinfo.trbm,
+            KiiC[mode] = new SkyMatrixC(nodeToNode, dsa, sinfo.solvercntl->trbm,
                                         glInternalMap,0);
             matSize = KiiC[mode]->size();
 #if defined(sgi) && ! defined(_OPENMP)
@@ -513,7 +513,7 @@ MDAxiData::makeKs(int *glBoundMap, int *glInternalMap, int m1, int m2) {
    case 1:
       for (mode=mstart; mode<mstop; ++mode) {
          KC[mode] = new BLKSparseMatrixC(nodeToNode, dsa, c_dsa,
-                                         sinfo.trbm);
+                                         sinfo.solvercntl->trbm, *sinfo.solvercntl);
          matSize = (KC[mode]) ? KC[mode]->size() : 0;
 #if defined(sgi) && ! defined(_OPENMP)
          __add_and_fetch(&totMemSparse, matSize);
@@ -525,7 +525,7 @@ MDAxiData::makeKs(int *glBoundMap, int *glInternalMap, int m1, int m2) {
 
          if (KiiC) {
             KiiC[mode] = new BLKSparseMatrixC(nodeToNode,dsa,glInternalMap,
-                             sinfo.trbm);
+                             sinfo.solvercntl->trbm, *sinfo.solvercntl);
             matSize = KiiC[mode]->size();
 #if defined(sgi) && ! defined(_OPENMP)
             __add_and_fetch(&memPrec, matSize);
@@ -881,7 +881,7 @@ MDAxiData::prepareCoarseData(DofSet ***allBoundary, int *counterInterf,
    CKQ = new DComplex *[2*locBCs->numModes+1];
  }
 
- int numWaveDir = solInfo().fetiInfo.numcgm;
+ int numWaveDir = solInfo().solvercntl->fetiInfo.numcgm;
  int numbEdges = 0;
  int *nonZeroEdges = new int[scomm->numNeighb];
 
@@ -971,7 +971,7 @@ MDAxiData::makeCoarseData(int *counterInterf, int **FList, int **nonZE,
  int counter;
  int i, iSub, iNode;
  int numbEdges;
- int numWaveDir = solInfo().fetiInfo.numcgm;
+ int numWaveDir = solInfo().solvercntl->fetiInfo.numcgm;
 
  int InterfCounter = counterInterf[subNumber];
  int *FinalList = FList[subNumber];

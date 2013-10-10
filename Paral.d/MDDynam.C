@@ -845,7 +845,7 @@ MultiDomainDynam::printTimers(MDDynamMat *dynOps, double timeLoop)
   times->numSubdomain = decDomain->getNumSub();
   filePrint(stderr," ... Print Timers                   ... \n");
 
-  if(domain->solInfo().type == 2 && domain->solInfo().fetiInfo.version == 3) {
+  if(domain->solInfo().solvercntl->type == 2 && domain->solInfo().solvercntl->fetiInfo.version == 3) {
     times->printFetiDPtimers(domain->getTimers(),
                              dynOps->dynMat->getSolutionTime(),
                              domain->solInfo() ,
@@ -863,7 +863,7 @@ MultiDomainDynam::printTimers(MDDynamMat *dynOps, double timeLoop)
  }
 
 /*
-   switch(domain->solInfo().fetiInfo.version) {
+   switch(domain->solInfo().solvercntl->fetiInfo.version) {
      default:
      case FetiInfo::feti1:
      case FetiInfo::feti2:

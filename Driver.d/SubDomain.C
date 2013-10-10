@@ -479,7 +479,7 @@ GenSubDomain<Scalar>::sendDOFList(FSCommPattern<int> *pat)
    FSSubRecInfo<int> sInfo = pat->getSendBuffer(subNumber, scomm->subNums[iSub]);
    for(int iNode = 0; iNode < sharedNodes.num(iSub); ++iNode) {
      if((solInfo().isCoupled && isWetInterfaceNode(sharedNodes[iSub][iNode])) &&
-        (subNumber == scomm->subNums[iSub]) && (solInfo().fetiInfo.fsi_corner == 0))
+        (subNumber == scomm->subNums[iSub]) && (solInfo().solvercntl->fetiInfo.fsi_corner == 0))
        sInfo.data[iNode] = wetInterfaceDofs[wetInterfaceNodeMap[sharedNodes[iSub][iNode]]].list();
      else
        sInfo.data[iNode] = (*c_dsa)[sharedNodes[iSub][iNode]].list();
@@ -549,7 +549,7 @@ GenSubDomain<Scalar>::gatherDOFList(FSCommPattern<int> *pat)
   }
 
   Connectivity *stdSharedDOFs = new Connectivity(nbneighb, boundDofPointer, boundDofs);
-  if(!solInfo().fetiInfo.bmpc) scomm->setTypeSpecificList(SComm::std, boundNeighbs, stdSharedDOFs);
+  if(!solInfo().solvercntl->fetiInfo.bmpc) scomm->setTypeSpecificList(SComm::std, boundNeighbs, stdSharedDOFs);
   Connectivity *wetSharedDOFs = new Connectivity(nwneighb, wetDofPointer, wetDofs);
   scomm->setTypeSpecificList(SComm::wet, wetNeighbs, wetSharedDOFs);
 
@@ -989,7 +989,7 @@ GenSubDomain<Scalar>::fetiBaseOpCoupled1(GenSolver<Scalar> *s, Scalar *localvec,
 // JLchange
 // Fsi elements are already added to Kww, communication via neighborKww is no longer needed
    // compute Kww uw to send to neighbors
-   if (solInfo().fetiInfo.fsi_corner == 0)
+   if (solInfo().solvercntl->fetiInfo.fsi_corner == 0)
      for(i = 0; i < scomm->numT(SComm::fsi); ++i) {
        if(subNumber != scomm->neighbT(SComm::fsi,i)) {
          FSSubRecInfo<Scalar> sInfo = wiPat->getSendBuffer(subNumber, scomm->neighbT(SComm::fsi,i));
@@ -1014,7 +1014,7 @@ GenSubDomain<Scalar>::fetiBaseOpCoupled2(Scalar *uc, Scalar *localvec, Scalar *i
 
 // JLchange
 // Fsi elements are already added to Kww, communication via neighborKww is no longer needed
-   if (solInfo().fetiInfo.fsi_corner == 0)
+   if (solInfo().solvercntl->fetiInfo.fsi_corner == 0)
      for(i = 0; i < scomm->numT(SComm::fsi); ++i) {
        if(subNumber != scomm->neighbT(SComm::fsi,i)) {
          FSSubRecInfo<Scalar> rInfo = wiPat->recData(scomm->neighbT(SComm::fsi,i), subNumber);
@@ -1601,7 +1601,7 @@ GenSubDomain<Scalar>::makeKbb(DofSetArray *dof_set_array)
   if((solInfo().getFetiInfo().precno == FetiInfo::dirichlet) && (internalLen > 0)) {
     switch(solInfo().getFetiInfo().solvertype) {
       case FetiInfo::skyline: {
-        GenSkyMatrix<Scalar> *sky = new GenSkyMatrix<Scalar>(nodeToNode, dsa, sinfo.trbm, glInternalMap, 0);
+        GenSkyMatrix<Scalar> *sky = new GenSkyMatrix<Scalar>(nodeToNode, dsa, sinfo.solvercntl->trbm, glInternalMap, 0);
         KiiSolver = sky;
         KiiSparse = sky;
       } break;
@@ -1611,13 +1611,13 @@ GenSubDomain<Scalar>::makeKbb(DofSetArray *dof_set_array)
         GenBLKSparseMatrix<Scalar> *sm = 0;
         if(solInfo().isCoupled & isMixedSub & neighbKww!=0)
           sm = new GenBLKSparseMatrix<Scalar>(precNodeToNode, dsa, glInternalMap,
-                                              sinfo.trbm, solInfo().sparse_renum);
+                                              sinfo.solvercntl->trbm, *solInfo().solvercntl->fetiInfo.kii_cntl);
         else
           sm = new GenBLKSparseMatrix<Scalar>(nodeToNode, dsa, glInternalMap,
-                                              sinfo.trbm, solInfo().sparse_renum);
+                                              sinfo.solvercntl->trbm, *solInfo().solvercntl->fetiInfo.kii_cntl);
 #else
         GenBLKSparseMatrix<Scalar> *sm = new GenBLKSparseMatrix<Scalar>(nodeToNode, dsa, glInternalMap,
-                                                                        sinfo.trbm, solInfo().sparse_renum);
+                                                                        sinfo.solvercntl->trbm, *solInfo().solvercntl->fetiInfo.kii_cntl);
 #endif
         sm->zeroAll();  // PJSA
         KiiSolver = sm;
@@ -1627,11 +1627,11 @@ GenSubDomain<Scalar>::makeKbb(DofSetArray *dof_set_array)
        GenSpoolesSolver<Scalar> *sm = 0;
 #ifdef HB_COUPLED_PRECOND
         if(solInfo().isCoupled & isMixedSub & neighbKww!=0)
-          sm = new GenSpoolesSolver<Scalar>(precNodeToNode, dsa, glInternalMap);
+          sm = new GenSpoolesSolver<Scalar>(precNodeToNode, dsa, *sinfo.solvercntl->fetiInfo.kii_cntl, glInternalMap);
         else
-          sm = new GenSpoolesSolver<Scalar>(nodeToNode, dsa, glInternalMap);
+          sm = new GenSpoolesSolver<Scalar>(nodeToNode, dsa, *sinfo.solvercntl->fetiInfo.kii_cntl, glInternalMap);
 #else
-        sm = new GenSpoolesSolver<Scalar>(nodeToNode, dsa, glInternalMap);
+        sm = new GenSpoolesSolver<Scalar>(nodeToNode, dsa, *sinfo.solvercntl->fetiInfo.kii_cntl, glInternalMap);
 #endif
         KiiSolver = sm;
         KiiSparse = sm;
@@ -1640,11 +1640,11 @@ GenSubDomain<Scalar>::makeKbb(DofSetArray *dof_set_array)
        GenMumpsSolver<Scalar> *sm = 0;
 #ifdef HB_COUPLED_PRECOND
         if(solInfo().isCoupled & isMixedSub & neighbKww!=0)
-          sm = new GenMumpsSolver<Scalar>(precNodeToNode, dsa, glInternalMap);
+          sm = new GenMumpsSolver<Scalar>(precNodeToNode, dsa, *sinfo.solvercntl->fetiInfo.kii_cntl, glInternalMap);
         else
-          sm = new GenMumpsSolver<Scalar>(nodeToNode, dsa, glInternalMap);
+          sm = new GenMumpsSolver<Scalar>(nodeToNode, dsa, *sinfo.solvercntl->fetiInfo.kii_cntl, glInternalMap);
 #else
-        sm = new GenMumpsSolver<Scalar>(nodeToNode, dsa, glInternalMap);
+        sm = new GenMumpsSolver<Scalar>(nodeToNode, dsa, *sinfo.solvercntl->fetiInfo.kii_cntl, glInternalMap);
 #endif
         KiiSolver = sm;
         KiiSparse = sm;
@@ -1653,7 +1653,7 @@ GenSubDomain<Scalar>::makeKbb(DofSetArray *dof_set_array)
         GenDBSparseMatrix<Scalar> *sm = new GenDBSparseMatrix<Scalar>(nodeToNode, dsa, glInternalMap);
         GenPCGSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar> >
           *pcgSolver = new GenPCGSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar> >
-                                       (sm, 1, sinfo.maxit, sinfo.tol);
+                                       (sm, 1, sinfo.solvercntl->maxit, sinfo.solvercntl->tol);
         KiiSolver = pcgSolver;
         KiiSparse = pcgSolver->getOperator();
       } break;
@@ -4458,7 +4458,7 @@ GenSubDomain<Scalar>::makeEdgeVectorsPlus(bool isFluidSub)
 {
   int i;
   //bool isCoupled = solInfo().isCoupled;
-  int spaceDim = solInfo().fetiInfo.spaceDimension;
+  int spaceDim = solInfo().solvercntl->fetiInfo.spaceDimension;
   // Number of directions in the coarse problem, choose from 0, 1, ..., 13
   int numDirec = solInfo().getFetiInfo().numdir;
   int numWaves = spaceDim;      // Number of long and trans waves
@@ -4633,17 +4633,17 @@ GenSubDomain<Scalar>::makeEdgeVectorsPlus(bool isFluidSub)
     double k_pSolid = 0.0, k_sSolid = 0.0, k_pShell = 0.0, k_sShell = 0.0, k_pFluid = 0.0;
     //if(!isFluidSub && (numDirec > 0)) {
     if(numDirec > 0) { // PJSA 1-15-07 support for multiple fluids
-      if(solInfo().fetiInfo.waveMethod == FetiInfo::uniform) {
+      if(solInfo().solvercntl->fetiInfo.waveMethod == FetiInfo::uniform) {
         k_pSolid = k_pShell = k_p;
         k_sSolid = k_sShell = k_s;
         k_pFluid = k_f;
       }
-      if(solInfo().fetiInfo.waveMethod == FetiInfo::averageK) {
+      if(solInfo().solvercntl->fetiInfo.waveMethod == FetiInfo::averageK) {
         k_pSolid = k_pShell = neighbK_p[iSub];
         k_sSolid = k_sShell = neighbK_s[iSub];
         k_pFluid = neighbK_f[iSub];
       }
-      else if(solInfo().fetiInfo.waveMethod == FetiInfo::averageMat) {
+      else if(solInfo().solvercntl->fetiInfo.waveMethod == FetiInfo::averageMat) {
         double omega2 = geoSource->shiftVal();
         double lambda = (neighbPrat[iSub]*neighbYmod[iSub])/
                         (1.0+neighbPrat[iSub])/(1.0-2.0*neighbPrat[iSub]);
@@ -5294,8 +5294,8 @@ GenSubDomain<Scalar>::extractMPCs(int glNumMPC, ResizeArray<LMPCons *> &lmpc)
           Scalar rhs = lmpc[iMPC]->template getRhs<Scalar>();
           GenLMPCTerm<Scalar> term0 = lmpc[iMPC]->template getTerm<Scalar>(i);
           if(lmpc[iMPC]->isBoundaryMPC()) {
-            if(lmpc[iMPC]->psub == subNumber) term0.coef = /*(solInfo().fetiInfo.c_normalize) ? 0.707106781 :*/ 1.0;
-            else if(lmpc[iMPC]->nsub == subNumber) term0.coef = /*(solInfo().fetiInfo.c_normalize) ? -0.707106781 :*/ -1.0;
+            if(lmpc[iMPC]->psub == subNumber) term0.coef = /*(solInfo().solvercntl->fetiInfo.c_normalize) ? 0.707106781 :*/ 1.0;
+            else if(lmpc[iMPC]->nsub == subNumber) term0.coef = /*(solInfo().solvercntl->fetiInfo.c_normalize) ? -0.707106781 :*/ -1.0;
           }
           mpc[numMPC] = new SubLMPCons<Scalar>(lmpc[iMPC]->lmpcnum, rhs, term0, lmpc[iMPC]->nterms, i);
           mpc[numMPC]->type = lmpc[iMPC]->type; // this is to be phased out
@@ -5369,8 +5369,8 @@ GenSubDomain<Scalar>::extractMPCs_primal(int glNumMPC, ResizeArray<LMPCons *> &l
           Scalar rhs = lmpc[iMPC]->template getRhs<Scalar>();
           GenLMPCTerm<Scalar> term0 = lmpc[iMPC]->template getTerm<Scalar>(i);
           if(lmpc[iMPC]->isBoundaryMPC()) {
-            if(lmpc[iMPC]->psub == subNumber) term0.coef = /*(solInfo().fetiInfo.c_normalize) ? 0.707106781 :*/ 1.0;
-            else if(lmpc[iMPC]->nsub == subNumber) term0.coef = /*(solInfo().fetiInfo.c_normalize) ? -0.707106781 :*/ -1.0;
+            if(lmpc[iMPC]->psub == subNumber) term0.coef = /*(solInfo().solvercntl->fetiInfo.c_normalize) ? 0.707106781 :*/ 1.0;
+            else if(lmpc[iMPC]->nsub == subNumber) term0.coef = /*(solInfo().solvercntl->fetiInfo.c_normalize) ? -0.707106781 :*/ -1.0;
           }
           mpc_primal[numMPC_primal] = new SubLMPCons<Scalar>(numMPC_primal, rhs, term0, lmpc[iMPC]->nterms, i);
           mpc_primal[numMPC_primal]->type = lmpc[iMPC]->type;
@@ -5621,7 +5621,7 @@ GenSubDomain<Scalar>::constructLocalCCtsolver()
   mpcEqNums->makeOffset();
   double tolerance = solInfo().getFetiInfo().cct_tol;
   if(solInfo().getFetiInfo().cctSolver == FetiInfo::sparse) {
-    localCCtsolver = new GenBLKSparseMatrix<Scalar>(localMpcToGlobalMpc, mpcEqNums, tolerance, solInfo().sparse_renum);
+    localCCtsolver = new GenBLKSparseMatrix<Scalar>(localMpcToGlobalMpc, mpcEqNums, tolerance, *solInfo().solvercntl->fetiInfo.cct_cntl);
     localCCtsolver->zeroAll();
   }
   else { // skyline

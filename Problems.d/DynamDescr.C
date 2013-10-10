@@ -812,7 +812,7 @@ SingleDomainDynamic::buildOps(double coeM, double coeC, double coeK)
 
  // to compute a^0 = M^{-1}(f_ext^0-f_int^0-Cu^0)
  if(getTimeIntegration() != 1 && (domain->solInfo().newmarkBeta != 0.0 && domain->solInfo().iacc_switch)) { // not required for explicit
-   switch(domain->solInfo().subtype) {
+   switch(domain->solInfo().solvercntl->subtype) {
      case 0 : {
          GenSkyMatrix<double> *m = domain->constructSkyMatrix<double>(domain->getCDSA());
          allOps.Msolver = m;

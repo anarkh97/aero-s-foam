@@ -141,10 +141,10 @@ void FourierStatic::constructK() {
 
  SolverInfo &sinfo = domain->solInfo();
 
- switch (sinfo.type) {
+ switch (sinfo.solvercntl->type) {
    default:
    case 0:
-     switch (sinfo.subtype) {
+     switch (sinfo.solvercntl->subtype) {
        default :
           fprintf(stderr," ... WARNING: invalid direct method ...\n");
        case 1 :
@@ -183,10 +183,10 @@ void FourierStatic::BuildKs(int mode) {
  SolverInfo &sinfo = domain->solInfo();
  ComplexSparseMatrix *spm;
 
- switch (sinfo.type) {
+ switch (sinfo.solvercntl->type) {
    default:
    case 0:
-     switch (sinfo.subtype) {
+     switch (sinfo.solvercntl->subtype) {
        default :
        case 1 :
          spm = (SkyMatrixC*) solver;
@@ -217,7 +217,7 @@ FourierStatic::constructSkyMatrixC() {
  ConstrainedDSA* c_tab = domain->getCDSA();
  DofSetArray *tab = domain->getDSA();
 
- SkyMatrixC *K = new SkyMatrixC(domain->getNodeToNode(),tab,c_tab,sinfo.trbm);
+ SkyMatrixC *K = new SkyMatrixC(domain->getNodeToNode(),tab,c_tab,sinfo.solvercntl->trbm);
 
  return K;
 
@@ -232,7 +232,7 @@ FourierStatic::constructBLKSparseMatrixC() {
  DofSetArray *tab = domain->getDSA();
 
  BLKSparseMatrixC *K = new BLKSparseMatrixC(domain->getNodeToNode(),
-                           tab, c_tab, sinfo.trbm);
+                           tab, c_tab, sinfo.solvercntl->trbm, *sinfo.solvercntl);
 
  return K;
 

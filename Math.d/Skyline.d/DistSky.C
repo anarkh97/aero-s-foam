@@ -2,7 +2,7 @@
 #include <cstdio>
 
 #include <Comm.d/Communicator.h>
-extern SysCom *scom;
+extern Communicator *structCom;
 
 #include <Utils.d/linkfc.h>
 

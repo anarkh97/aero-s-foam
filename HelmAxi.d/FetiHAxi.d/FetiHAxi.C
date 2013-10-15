@@ -67,7 +67,7 @@ FetiHAxiSolver::FetiHAxiSolver(int _nsub, MDAxiData **_md,
      SubSign[i] = mdAxi[i]->InterfSign;
 
  // Print some information of the local solvers
- switch (fetiInfo->solvertype) {
+ switch (fetiInfo->local_cntl->subtype) {
    default:
    case 0:
      fprintf(stderr," ... Complex Skyline local solvers  ... \n");
@@ -397,13 +397,13 @@ void
 FetiHAxiSolver::allocateCoarseSolver(int Fourier, 
                 Connectivity *coarseConnectivity) {
 
- double tolerance = fetiInfo->grbm_tol;
+ double tolerance = fetiInfo->coarse_cntl->trbm;
 
  // CoarseSolver zero valued in the constructor
  if (coarseEqs->size()==0)
    CoarseSolver[Fourier] = 0; 
  else {
-   switch (fetiInfo->gtgSolver) {
+   switch (fetiInfo->coarse_cntl->subtype) {
      default:
      case 0:
        CoarseSolver[Fourier] = new SkyMatrixC(coarseConnectivity,coarseEqs,
@@ -411,7 +411,7 @@ FetiHAxiSolver::allocateCoarseSolver(int Fourier,
        break;
      case 1:
        CoarseSolver[Fourier] = new BLKSparseMatrixC(coarseConnectivity,
-                               coarseEqs, tolerance, *fetiInfo->gtg_cntl);
+                               coarseEqs, tolerance, *fetiInfo->coarse_cntl);
        break;
    }
  }
@@ -457,7 +457,7 @@ FetiHAxiSolver::assembleCoarse(int Fourier) {
    spm = 0;
  }
  else {
-   switch (fetiInfo->gtgSolver) {
+   switch (fetiInfo->coarse_cntl->subtype) {
      default :
      case 0 :
        spm = (SkyMatrixC*) CoarseSolver[Fourier];

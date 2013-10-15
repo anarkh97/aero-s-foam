@@ -638,10 +638,10 @@ StaticTimers::printStaticTimers(MatrixTimers matrixTimer, double solveTime,
    filePrint(f,"         %s", precMessage[sInfo.getFetiInfo().precno]);
    filePrint(f,"         %s", scalingMessage[sInfo.getFetiInfo().scaling]);
    filePrint(f,"         %s", projectMessage[sInfo.getFetiInfo().nonLocalQ]);
-   filePrint(f,"         %s", subSolverMessage[sInfo.getFetiInfo().solvertype]);
-   filePrint(f,"         %s",precSolverMessage[sInfo.getFetiInfo().solvertype]);
+   filePrint(f,"         %s", subSolverMessage[sInfo.getFetiInfo().local_cntl->subtype]);
+   filePrint(f,"         %s", precSolverMessage[sInfo.getFetiInfo().kii_cntl->subtype]);
    filePrint(f,"         %s%s",gtgType[sInfo.getFetiInfo().nonLocalQ],
-                           gtgSolverMessage[sInfo.getFetiInfo().gtgSolver]);
+                           gtgSolverMessage[sInfo.getFetiInfo().coarse_cntl->subtype]);
 
    if(sInfo.rbmflg == 0)
      filePrint(f,"         %s %29e\n",rbmMessage[sInfo.rbmflg],sInfo.solvercntl->trbm);
@@ -862,10 +862,10 @@ filePrint(f,  "         Make Internal Information     time: %14.5f s %14.3f Mb\n
    filePrint(f,"7. Size of 2nd Level Coarse Problem        = %14d %14.3f Mb\n\n",
            timers.numCRNs,timers.memoryPCtFPCmat*byteToMb);
 
-   if(sInfo.getFetiInfo().solvertype == 0)
+   if(sInfo.getFetiInfo().local_cntl->subtype == 0)
    filePrint(f,"8. Total Memory Subdomain Skyline K        = %14.3f Mb\n\n",
            8.0*totMemSky*byteToMb);
-   else if(sInfo.getFetiInfo().solvertype == 1)
+   else if(sInfo.getFetiInfo().local_cntl->subtype == 1)
    filePrint(f,"8. Total Memory Subdomain Sparse K         = %14.3f Mb\n\n",
            8.0*totMemSparse*byteToMb);
    else

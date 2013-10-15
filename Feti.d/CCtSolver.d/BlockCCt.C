@@ -66,6 +66,7 @@ BlockCCtSolver<Scalar>::BlockCCtSolver(Connectivity *_blockToMpc, Connectivity *
   // Step 5. construct block solvers
   filePrint(stderr, " ... Making %3d MPC Blocks         ... \n", nMpcBlocks);
   blockCCtsolver = new GenSolver<Scalar> * [nMpcBlocks];
+  blockCCtsparse = new GenSparseMatrix<Scalar> * [nMpcBlocks];
   blockMpcEqNums = new SimpleNumberer *[nMpcBlocks];
   execParal(nMpcBlocks, this, &BlockCCtSolver<Scalar>::createBlockCCtsolver);
 
@@ -90,6 +91,7 @@ BlockCCtSolver<Scalar>::~BlockCCtSolver()
 {
   execParal(nMpcBlocks, this, &BlockCCtSolver<Scalar>::deleteBlockMpcToMpcConnectivity);
   execParal(nMpcBlocks, this, &BlockCCtSolver<Scalar>::deleteBlockCCtsolver);
+  delete [] blockCCtsparse;
   delete [] blockCCtsolver;
   delete [] blockMpcToMpc;
   delete [] blockMpcEqNums;
@@ -281,27 +283,19 @@ BlockCCtSolver<Scalar>::createBlockCCtsolver(int iBlock)
   // only allocate memory for this block's solver if it is necessary
   if(((*blockToCpu)[iBlock][0] == myCPU) || (blockToMpcCpu->offset(iBlock,myCPU) != -1)) {
 #endif
-    int i;
     int blockSize = blockMpcToMpc[iBlock]->csize();
-    switch(finfo->cctSolver) {
-      default:
-      case (FetiInfo::sparse) : {
-        blockMpcEqNums[iBlock] = new SimpleNumberer(blockSize); // block will be renumbered in sparse solver routines
-        for(i=0; i<blockSize; ++i) blockMpcEqNums[iBlock]->setWeight(i, 1);
-        blockMpcEqNums[iBlock]->makeOffset();
-        blockCCtsolver[iBlock] = new GenBLKSparseMatrix<Scalar>(blockMpcToMpc[iBlock], blockMpcEqNums[iBlock],
-                                                                finfo->cct_tol, *finfo->cct_cntl);
-        blockCCtsolver[iBlock]->zeroAll();
-      } break;
-      case(FetiInfo::skyline) : {
-        compStruct renumber = blockMpcToMpc[iBlock]->renumByComponent(1);
-        blockMpcEqNums[iBlock] = new SimpleNumberer(blockSize,renumber.renum);
-        for(i=0; i<blockSize; ++i) blockMpcEqNums[iBlock]->setWeight(i, 1);
-        blockMpcEqNums[iBlock]->makeOffset();
-        blockCCtsolver[iBlock] = new GenSkyMatrix<Scalar>(blockMpcToMpc[iBlock], blockMpcEqNums[iBlock], finfo->cct_tol);
-        delete [] renumber.xcomp;
-      } break;
+    
+    if(finfo->cct_cntl->subtype == 0) { // use sloan renumbering for skyline
+      compStruct renumber = blockMpcToMpc[iBlock]->renumByComponent(1);
+      blockMpcEqNums[iBlock] = new SimpleNumberer(blockSize,renumber.renum);
+      delete [] renumber.xcomp;
     }
+    else {
+      blockMpcEqNums[iBlock] = new SimpleNumberer(blockSize);
+    }
+    for(int i=0; i<blockSize; ++i) blockMpcEqNums[iBlock]->setWeight(i, 1);
+    blockCCtsolver[iBlock] = GenSolverFactory<Scalar>::getFactory()->createSolver(blockMpcToMpc[iBlock], blockMpcEqNums[iBlock],
+                                                                                  *finfo->cct_cntl, blockCCtsparse[iBlock], 0);
 #ifdef DISTRIBUTED
   } else blockCCtsolver[iBlock] = 0;
 #endif
@@ -464,6 +458,9 @@ BlockCCtSolver<Scalar>::deleteBlockCCtsolver(int iBlock)
   if((*blockToCpu)[iBlock][0] == myCPU)
 #endif
   {
+    if(blockCCtsparse[iBlock] != 0 && blockCCtsparse[iBlock] != dynamic_cast<GenSparseMatrix<Scalar> *>(blockCCtsolver[iBlock])) {
+      delete blockCCtsparse[iBlock]; blockCCtsparse[iBlock] = 0;
+    }
     if(blockCCtsolver[iBlock] != 0) {
       delete blockCCtsolver[iBlock]; blockCCtsolver[iBlock] = 0;
     }

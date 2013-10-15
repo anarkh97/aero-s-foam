@@ -6,13 +6,14 @@
 struct SolverCntl {
 public:
    SolverCntl() { type = 0;
-                  subtype = 0; // By default we use direct Skyline
+                  subtype = 1; // By default we use direct sparse solver
                   trbm = 1.0E-16;   // default zero pivot tolerance
                   sparse_renum = 0;
                   sparse_maxsup = 100;
                   sparse_defblk = 30;
                   pivot = false;
                   unsymmetric = false;
+                  scaled = false;
                   spooles_scale = 0;
                   spooles_tau = 100.;
                   spooles_seed = 532196;
@@ -33,6 +34,7 @@ public:
                   printMatLab        = false;
                   printMatLabFile    = "";
                   verbose = 1;
+                  ilu_droptol = 1e-11;
    }
    int type;     // 0 = direct, 1 = iterative, 2 = FETI, 3 = Block Diag
    int subtype;  // subtype ... 9 is mumps  10 is diag
@@ -41,6 +43,7 @@ public:
    int sparse_maxsup, sparse_defblk;
    bool pivot;  // true if pivoting is to be used in spooles/mumps solvers
    bool unsymmetric;
+   bool scaled; // true if scaling is to be used in skyline solver
    int spooles_scale; // true if scaling is to be used in spooles solver
    double spooles_tau;  // used when pivoting is enabled, all entries in L and U have magnitude
                         // less than or equal to tau, default is 100.
@@ -61,6 +64,7 @@ public:
    bool printMatLab;
    const char * printMatLabFile;
    int verbose;
+   double ilu_droptol;
 };
 
 #endif

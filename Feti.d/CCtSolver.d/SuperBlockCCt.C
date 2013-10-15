@@ -103,6 +103,7 @@ SuperBlockCCtSolver<Scalar>::initialize()
 {
   nMpcBlocks = 0; nMpcBlocksOnMyCPU = 0;
   blockCCtsolver = 0; 
+  blockCCtsparse = 0;
   this->glNumMpc = 0; this->mpcToCpu = 0; blockToMpc = 0; blockToSub = 0; mpcToBlock = 0;
   blockMpcToMpc = 0; blockToMpcCpu = 0; blockToCpu = 0; cpuToBlock = 0;
   mpcv = 0; this->subsWithMpcs = 0; this->numSubsWithMpcs = 0;
@@ -135,14 +136,14 @@ template<class Scalar>
 void
 SuperBlockCCtSolver<Scalar>::factor()
 {
-  if(nMpcBlocksOnMyCPU){
+  if(nMpcBlocksOnMyCPU) {
      // -------------------------------------------------------------------------------------
      // step 6.1 factor "big thread blocks" by (algebraic) parallel factorization
      //          if Skyline selected or concurrent factorization if Sparse (Charbel's advice)
      // -------------------------------------------------------------------------------------
      if(nBigBlocksperMPI[myCPU]){
-       if(finfo->cctSolver == FetiInfo::skyline) {
-         for(int i=0;i< nBigBlocksperMPI[myCPU]; i++){
+       if(finfo->cct_cntl->subtype == 0) {
+         for(int i=0;i< nBigBlocksperMPI[myCPU]; i++) {
            int iBlock = (*cpuToBlock)[myCPU][i];
            blockCCtsolver[iBlock]->parallelFactor();
            if(blockCCtsolver[iBlock]->numRBM() > 0)
@@ -150,7 +151,7 @@ SuperBlockCCtSolver<Scalar>::factor()
                        iBlock, blockCCtsolver[iBlock]->numRBM());
          }
        }
-       if(finfo->cctSolver == FetiInfo::sparse) {
+       else {
          execParal(nBigBlocksperMPI[myCPU], this, &SuperBlockCCtSolver<Scalar>::factorSparseBigBlockCCtsolver);
        }
      }
@@ -877,6 +878,7 @@ void
 SuperBlockCCtSolver<Scalar>::createBlockCCtsolver()
 {
   blockCCtsolver = new GenSolver<Scalar> * [nMpcBlocks];
+  blockCCtsparse = new GenSparseMatrix<Scalar> * [nMpcBlocks];
   blockMpcEqNums = new SimpleNumberer * [nMpcBlocks];
 
   for(int i=0;i<nMpcBlocks;i++) { 
@@ -892,30 +894,19 @@ void
 SuperBlockCCtSolver<Scalar>::createOneBlockCCtsolver(int IBlock)
 {
   int iBlock = myCPUExtBlockIdArray[IBlock];
-  int i;
   int blockSize = blockMpcToMpc[iBlock]->csize();
-  switch(finfo->cctSolver) {
-    default:
-    case(FetiInfo::sparse) : {
-      blockMpcEqNums[iBlock] = new SimpleNumberer(blockSize); // block will be renumbered in sparse solver routines
-      for(i=0; i<blockSize; ++i) blockMpcEqNums[iBlock]->setWeight(i, 1);
-       blockMpcEqNums[iBlock]->makeOffset();
-       blockCCtsolver[iBlock] = new GenBLKSparseMatrix<Scalar>(blockMpcToMpc[iBlock], blockMpcEqNums[iBlock],
-                                                               finfo->cct_tol, *finfo->cct_cntl);
-       blockCCtsolver[iBlock]->zeroAll();
-    } break;
-    case(FetiInfo::skyline) : {
-      compStruct renumber = blockMpcToMpc[iBlock]->renumByComponent(1);
-      blockMpcEqNums[iBlock] = new SimpleNumberer(blockSize,renumber.renum);
-      for(i=0; i<blockSize; ++i) blockMpcEqNums[iBlock]->setWeight(i, 1);
-      blockMpcEqNums[iBlock]->makeOffset();
-      int scaledFlag = 0;
-      if(finfo->cctScaled) { scaledFlag = 1; };
-      blockCCtsolver[iBlock] = new GenSkyMatrix<Scalar>(blockMpcToMpc[iBlock], blockMpcEqNums[iBlock], 
-                                                        finfo->cct_tol, scaledFlag);
-      delete [] renumber.xcomp;
-    } break;
+
+  if(finfo->cct_cntl->subtype == 0) { // use sloan renumbering for skyline
+    compStruct renumber = blockMpcToMpc[iBlock]->renumByComponent(1);
+    blockMpcEqNums[iBlock] = new SimpleNumberer(blockSize,renumber.renum);
+    delete [] renumber.xcomp;
   }
+  else {
+    blockMpcEqNums[iBlock] = new SimpleNumberer(blockSize);
+  }
+  for(int i=0; i<blockSize; ++i) blockMpcEqNums[iBlock]->setWeight(i, 1);
+  blockCCtsolver[iBlock] = GenSolverFactory<Scalar>::getFactory()->createSolver(blockMpcToMpc[iBlock], blockMpcEqNums[iBlock],
+                                                                                *finfo->cct_cntl, blockCCtsparse[iBlock], 0);
 }
 
 template<class Scalar>
@@ -925,6 +916,7 @@ SuperBlockCCtSolver<Scalar>::deleteBlockCCtsolver()
   if(blockCCtsolver) {
     execParal(nExtMpcBlocksOnMyCPU, this, &SuperBlockCCtSolver<Scalar>::deleteOneBlockCCtsolver, myCPUExtBlockIdArray);
     delete [] blockCCtsolver; blockCCtsolver = 0;
+    delete [] blockCCtsparse; blockCCtsparse = 0;
   }
 }
 
@@ -942,6 +934,7 @@ void
 SuperBlockCCtSolver<Scalar>::deleteOneBlockCCtsolver(int IBlock, int *gBlockIdArray)
 {
   int iBlock = gBlockIdArray[IBlock];
+  if(blockCCtsparse[iBlock] != NULL && blockCCtsparse[iBlock] != dynamic_cast<GenSparseMatrix<Scalar> *>(blockCCtsolver[iBlock])) delete blockCCtsparse[iBlock];
   if(blockCCtsolver[iBlock]) { delete blockCCtsolver[iBlock]; blockCCtsolver[iBlock] = 0; }
 } 
 

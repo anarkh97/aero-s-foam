@@ -11,7 +11,6 @@
 #include <Utils.d/Memory.h>
 #include <Element.d/Sommerfeld.d/SommerElement.h>
 #include <Threads.d/PHelper.h>
-#include <Math.d/Skyline.d/SkyMatrix.h>
 #include <Math.d/SparseMatrix.h>
 #include <Solvers.d/Solver.h>
 #include <Math.d/matrix.h>

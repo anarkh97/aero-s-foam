@@ -32,17 +32,11 @@ template <class Scalar> class GenDBSparseMatrix;
 typedef GenDBSparseMatrix<double> DBSparseMatrix;
 typedef GenDBSparseMatrix<DComplex> DBComplexSparseMatrix;
 template <typename Scalar, typename SolverClass> class GenEiSparseMatrix;
-template <class Scalar> class GenSkyMatrix;
-typedef GenSkyMatrix<double> SkyMatrix;
-typedef GenSkyMatrix<DComplex> SkyMatrixC;
-template <class Scalar> class GenBlockSky;
-typedef GenBlockSky<double> BlockSky;
 class Connectivity;
 template <class Scalar> class GenCuCSparse;
 typedef GenCuCSparse<double> CuCSparse;
 template <class Scalar> class GenBLKSparseMatrix;
 typedef GenBLKSparseMatrix<double> BLKSparseMatrix;
-template <class BaseSolver, class Scalar> class GoldfarbIdnaniQpSolver;
 template <class Scalar> class GenDynamMat;
 typedef GenDynamMat<double> DynamMat;
 template <class Scalar> class GenVector;
@@ -63,11 +57,6 @@ typedef GenSparseMatrix<double> SparseMatrix;
 typedef GenSparseMatrix<DComplex> ComplexSparseMatrix;
 template <class Scalar, class AnyVector> class KrylovProjector;
 template <class AnyVector> class Preconditioner;
-template <class Scalar, class AnyVector, class AnyOperator> class GenPCGSolver;
-template <class Scalar> class GenSpoolesSolver;
-typedef GenSpoolesSolver<double> SpoolesSolver;
-template <class Scalar> class GenMumpsSolver; 	//Axel
-typedef GenMumpsSolver<double> MumpsSolver;   	//Axel
 class GeomState;
 class DistrGeomState;
 class IntFullM;
@@ -83,12 +72,6 @@ template <class Scalar> class GenSubDomain;
 typedef GenSubDomain<double> SubDomain;
 class FSCommunicator;
 
-namespace Rom {
-template <typename Scalar> class GenGalerkinProjectionSolver;
-template <typename Scalar> class GenEiSparseGalerkinProjectionSolver;
-} /* end namespace Rom */
-
-// HB
 class SurfaceEntity;
 
 extern Sfem *sfem;
@@ -536,10 +519,6 @@ class Domain : public HData {
        GenEiSparseMatrix<Scalar,SolverClass> *constructEiSparseMatrix(DofSetArray *dof_set_array=0,
                            Connectivity *cn=0, bool flag=true);
 
-     template<typename Scalar, typename SolverClass>
-       GenEiSparseMatrix<Scalar,SolverClass> *constructGoldfarb(DofSetArray *dof_set_array=0,
-                           Connectivity *cn=0);
-
      template<class Scalar>
        GenCuCSparse<Scalar> *constructCuCSparse(DofSetArray *dof_set_array=0);
 
@@ -547,32 +526,10 @@ class Domain : public HData {
        GenCuCSparse<Scalar> *constructCCSparse(DofSetArray *dof_set_array=0);
 
      template<class Scalar>
-       GenSkyMatrix<Scalar> *constructSkyMatrix(DofSetArray*, Rbm *rbm = 0);
-
-     template<class Scalar>
-       GenBlockSky<Scalar> *constructBlockSky(DofSetArray *DSA);
-
-     template<class Scalar>
        GenBLKSparseMatrix<Scalar> *constructBLKSparseMatrix(DofSetArray*, Rbm *rbm = 0);
 
      template<class Scalar>
        GenNBSparseMatrix<Scalar> *constructNBSparseMatrix();
-
-     template<class Scalar>
-       GenPCGSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar> >
-          *constructPCGSolver(GenSparseMatrix<Scalar> *K, Rbm *rbm=0);
-
-     template<class Scalar>
-       GenSpoolesSolver<Scalar> *constructSpooles(ConstrainedDSA *CDSA = 0);
-
-     template<class Scalar>
-       GenMumpsSolver<Scalar> *constructMumps(ConstrainedDSA *CDSA = 0, Rbm *rbm=0, FSCommunicator *com = 0);
-
-     template<class Scalar>
-       Rom::GenGalerkinProjectionSolver<Scalar> *constructGalerkinProjectionSolver();
-     
-     template<class Scalar>
-      Rom::GenEiSparseGalerkinProjectionSolver<Scalar> *constructEiSparseGalerkinProjectionSolver();
 
      Rbm              *constructRbm(bool printFlag = true);
      Rbm              *constructHzem(bool printFlag = true);

@@ -13,7 +13,7 @@
 #include <Math.d/NBSparseMatrix.h>
 #include <Math.d/EiSparseMatrix.h>
 #include <Math.d/CuCSparse.h>
-#include <Math.d/Skyline.d/SkyMatrix.h>
+#include <Solvers.d/SolverFactory.h>
 
 #include <Utils.d/dofset.h>
 #include <Solvers.d/Solver.h>
@@ -811,38 +811,12 @@ SingleDomainDynamic::buildOps(double coeM, double coeC, double coeK)
  }
 
  // to compute a^0 = M^{-1}(f_ext^0-f_int^0-Cu^0)
- if(getTimeIntegration() != 1 && (domain->solInfo().newmarkBeta != 0.0 && domain->solInfo().iacc_switch)) { // not required for explicit
-   switch(domain->solInfo().solvercntl->subtype) {
-     case 0 : {
-         GenSkyMatrix<double> *m = domain->constructSkyMatrix<double>(domain->getCDSA());
-         allOps.Msolver = m;
-         dMat->Msolver = m;
-       } break;
-     case 1 : default : {
-         GenBLKSparseMatrix<double> *m = domain->constructBLKSparseMatrix<double>(domain->getCDSA());
-         m->zeroAll();
-         allOps.Msolver = m;
-         dMat->Msolver = m;
-       } break;
-#ifdef USE_SPOOLES
-       case 8 : {
-         GenSpoolesSolver<double> *m = domain->constructSpooles<double>(domain->getCDSA());
-         allOps.Msolver = m;
-         dMat->Msolver = m;
-       } break;
-#endif
-#ifdef USE_MUMPS
-     case 9 : {
-#ifdef DISTRIBUTED
-         GenMumpsSolver<double> *m = domain->constructMumps<double>(domain->getCDSA(), (Rbm*) NULL, new FSCommunicator(structCom));
-#else
-         GenMumpsSolver<double> *m = domain->constructMumps<double>(domain->getCDSA());
-#endif
-         allOps.Msolver = m;
-         dMat->Msolver = m;
-       } break;
-#endif
-   }
+ if(getTimeIntegration() != 1 && (domain->solInfo().newmarkBeta != 0.0 && domain->solInfo().iacc_switch)
+    && domain->solInfo().solvercntl->type == 0) { // not required for explicit
+   SparseMatrix *spp; Solver *prec; // XXX
+   SolverCntl *m_cntl = (domain->solInfo().solvercntl->type == 0) ? domain->solInfo().solvercntl : &default_cntl;
+   dMat->Msolver = GenSolverFactory<double>::getFactory()->createSolver(domain->getNodeToNode(), domain->getDSA(), domain->getCDSA(), 
+                                                                        *m_cntl, allOps.Msolver, (Rbm*) NULL, spp, prec);
  }
 
  Rbm *rigidBodyModes = 0;

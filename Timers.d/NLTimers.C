@@ -264,8 +264,8 @@ StaticTimers::printTimers(Domain* domain, Timings& timers, double solveTime)
  fprintf(f,"         %s", precMessage[sInfo.getFetiInfo().precno]);
  fprintf(f,"         %s", scalingMessage[sInfo.getFetiInfo().scaling]);
  fprintf(f,"         %s", projectMessage[sInfo.getFetiInfo().nonLocalQ]);
- fprintf(f,"         %s", subSolverMessage[sInfo.getFetiInfo().solvertype]);
- fprintf(f,"         %s",precSolverMessage[sInfo.getFetiInfo().solvertype]);
+ fprintf(f,"         %s", subSolverMessage[sInfo.getFetiInfo().local_cntl->subtype]);
+ fprintf(f,"         %s", precSolverMessage[sInfo.getFetiInfo().kii_cntl->subtype]);
 
  if(sInfo.rbmflg == 0)
    fprintf(f,"         %s %29e\n",rbmMessage[sInfo.rbmflg],sInfo.solvercntl->trbm);
@@ -475,9 +475,9 @@ StaticTimers::printTimers(Domain* domain, Timings& timers, double solveTime)
    fprintf(f,"***********************************************************\n");
  }
 
- if(sInfo.getFetiInfo().solvertype == 0)
+ if(sInfo.getFetiInfo().local_cntl->subtype == 0)
    fprintf(f,"Memory Skyline = %14.3f Mb\n", 8.0*totMemSky*byteToMb );
- else if(sInfo.getFetiInfo().solvertype == 1)
+ else if(sInfo.getFetiInfo().local_cntl->subtype == 1)
    fprintf(f,"Memory Sparse  = %14.3f Mb\n", 8.0*totMemSparse*byteToMb );
 
  if(domain->probType() == SolverInfo::NonLinStatic ||

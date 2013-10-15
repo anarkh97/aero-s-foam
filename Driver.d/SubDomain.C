@@ -10,23 +10,18 @@
 
 #include <Element.d/Element.h>
 #include <Utils.d/dofset.h>
-#include <Math.d/Skyline.d/BlockSky.h>
-#include <Math.d/Skyline.d/SkyMatrix.h>
-#include <Math.d/BLKSparseMatrix.h>
 #include <Math.d/DBSparseMatrix.h>
-#include <Math.d/NBSparseMatrix.h>
 #include <Math.d/CuCSparse.h>
 #include <Math.d/VectorSet.h>
 #include <Math.d/matrix.h>
 #include <Math.d/SparseSet.h>
 #include <Utils.d/Connectivity.h>
 #include <Solvers.d/Rbm.h>
-#include <Solvers.d/PCGSolver.h>
-#include <Solvers.d/Mumps.h>
 #include <Corotational.d/GeomState.h>
 #include <Corotational.d/utilities.h>
 #include <Math.d/MpcSparse.h>
 #include <Corotational.d/TemperatureState.h>
+#include <Solvers.d/SolverFactory.h>
 
 //#define DEBUG_MPC
 
@@ -93,10 +88,10 @@ template<class Scalar>
 void
 GenSubDomain<Scalar>::mergeAllDisp(Scalar (*xyz)[11], Scalar *u, Scalar (*xyz_loc)[11])
 {
- // PJSA: 10-9-04 this is for either Helmholtz or other solver types
+ // this is for either Helmholtz or other solver types
  // note: coupledScaling always has a default value of 1.0
  // xyz should be initialized to zero before being passed into this function
- // PJSA 9-22-06: u is already scaled
+ // note: u is already scaled
  int inode, nodeI;
  for(inode = 0; inode < numnodes; ++inode){
    nodeI = (domain->outFlag) ? domain->nodeTable[glNums[inode]]-1 : glNums[inode];
@@ -731,10 +726,10 @@ GenSubDomain<Scalar>::sendDiag(GenSparseMatrix<Scalar> *s, FSCommPattern<Scalar>
   }
 
   int ndof = localLen();
-  // HB & PJSA: use the kweight array also for LMPCs stiffness scaling/splitting for the primal method
+  // use the kweight array also for LMPCs stiffness scaling/splitting for the primal method
   if((solInfo().getFetiInfo().augment == FetiInfo::WeightedEdges) ||
      ((solInfo().getFetiInfo().mpc_scaling == FetiInfo::kscaling) && (numMPC_primal > 0))) {
-    kweight = new Scalar[ndof];  // PJSA: used for WeightedEdges augmentation
+    kweight = new Scalar[ndof];  // used for WeightedEdges augmentation
     for(iDof = 0; iDof < ndof; ++iDof)
       kweight[iDof] = (s) ? s->diag(iDof) : 1.0;
   }
@@ -812,7 +807,7 @@ GenSubDomain<Scalar>::collectScaling(FSCommPattern<Scalar> *vPat)
     offset += scomm->lenT(SComm::all,iSub);
  }
 
- // HB & PJSA: for LMPCs coeff stiffness scaling/splitting for the primal method
+ // LMPCs coeff stiffness scaling/splitting for the primal method
 /* XXXX kscaling currently not supported for primal mpcs
  if(solInfo().getFetiInfo().mpc_scaling == FetiInfo::kscaling) {
    for(int iMPC = 0; iMPC < numMPC_primal; iMPC++){
@@ -884,7 +879,7 @@ void
 GenSubDomain<Scalar>::sendMpcScaling(FSCommPattern<Scalar> *mpcPat)
 {
   int i,j;
-  diagCCt = new Scalar[numMPC]; // PJSA 11-26-02: compute weights for mpcs also
+  diagCCt = new Scalar[numMPC]; // compute weights for mpcs also
   for(i = 0; i < numMPC; ++i) {
     diagCCt[i] = 0.0;
     for(j = 0; j < mpc[i]->nterms; ++j)
@@ -972,8 +967,6 @@ void
 GenSubDomain<Scalar>::fetiBaseOpCoupled1(GenSolver<Scalar> *s, Scalar *localvec, Scalar *interfvec,
                                          FSCommPattern<Scalar> *wiPat)
 {
- // PJSA: 9-3-04 coupled_dph
-
  // localvec += Br^T * interfvec
  multAddBrT(interfvec, localvec, localw);
 
@@ -984,7 +977,7 @@ GenSubDomain<Scalar>::fetiBaseOpCoupled1(GenSolver<Scalar> *s, Scalar *localvec,
    int i,j;
    // compute Kww uw for this subdomain
    for(i=0; i<numWIdof; ++i) localw_copy[i] = 0.0;
-   Kww->mult(localw, localw_copy);  // localw_copy = - Kww * uw //HB
+   Kww->mult(localw, localw_copy);  // localw_copy = - Kww * uw
 
 // JLchange
 // Fsi elements are already added to Kww, communication via neighborKww is no longer needed
@@ -1184,7 +1177,7 @@ GenSubDomain<Scalar>::sendDeltaF(Scalar *deltaF, FSCommPattern<Scalar> *vPat)
         } break;
         case 2: {  // dual mpc or contact
           int locMpcNb = -1 - bdof;
-          sInfo.data[j] = (masterFlag[iDof]) ? deltaFmpc[locMpcNb] : -deltaFmpc[locMpcNb]; // PJSA 6-7-05
+          sInfo.data[j] = (masterFlag[iDof]) ? deltaFmpc[locMpcNb] : -deltaFmpc[locMpcNb];
         } break;
       }
       iDof++;
@@ -1196,9 +1189,8 @@ template<class Scalar>
 double
 GenSubDomain<Scalar>::collectAndDotDeltaF(Scalar *deltaF, FSCommPattern<Scalar> *vPat)
 {
-  // PJSA 6-7-05 if there are more than 2 subdomains sharing a mpc define the norm
+  // if there are more than 2 subdomains sharing a mpc define the norm
   // as (f1 - f2 - f3)^2 = f1^2 + f2^2 + f3^2 - 2f1f2 - 2f1f3 + 2f2f3 --> currently implemented
-  // or ???
   Scalar dot = 0;
   int i, iSub, jDof;
 
@@ -1234,7 +1226,7 @@ GenSubDomain<Scalar>::collectAndDotDeltaF(Scalar *deltaF, FSCommPattern<Scalar> 
         case 2: { // dual mpc
           if(subNumber != scomm->neighbT(SComm::all,iSub)) {
             int locMpcNb =  -1 - bdof;
-            dot += deltaFmpc[locMpcNb] * ScalarTypes::conj(rInfo.data[jDof]); // PJSA 6-7-05
+            dot += deltaFmpc[locMpcNb] * ScalarTypes::conj(rInfo.data[jDof]);
           }
         } break;
       }
@@ -1251,7 +1243,6 @@ GenSubDomain<Scalar>::interfaceJump(Scalar *interfvec, FSCommPattern<Scalar> *vP
   int i, iSub, iDof;
   int offset = 0;
 
-  //Scalar *mpcJump = (Scalar *) dbg_alloca(sizeof(Scalar)*numMPC);
   Scalar *mpcJump = (numMPC) ? new Scalar[numMPC] : 0;
   bool *mpcFlag =  (bool *) dbg_alloca(sizeof(bool)*numMPC);
   for(i = 0; i < numMPC; ++i) mpcFlag[i] = true;
@@ -1588,76 +1579,24 @@ GenSubDomain<Scalar>::makeKbb(DofSetArray *dof_set_array)
 
   if(internalLen > 0) {
 #ifdef HB_COUPLED_PRECOND
-    if(solInfo().isCoupled & isMixedSub & neighbKww!=0) //HB: I think this should be identical as before ...
+    if(solInfo().isCoupled & isMixedSub & neighbKww!=0)
        Kib = new GenCuCSparse<Scalar>(precNodeToNode, dsa, glBoundMap, glInternalMap);
     else
 #endif
     Kib = new GenCuCSparse<Scalar>(nodeToNode, dsa, glBoundMap, glInternalMap);
     memPrec += Kib->size();
-    Kib->zeroAll(); //HB
+    Kib->zeroAll();
   }
   else Kib = 0;
 
   if((solInfo().getFetiInfo().precno == FetiInfo::dirichlet) && (internalLen > 0)) {
-    switch(solInfo().getFetiInfo().solvertype) {
-      case FetiInfo::skyline: {
-        GenSkyMatrix<Scalar> *sky = new GenSkyMatrix<Scalar>(nodeToNode, dsa, sinfo.solvercntl->trbm, glInternalMap, 0);
-        KiiSolver = sky;
-        KiiSparse = sky;
-      } break;
-      default:
-      case FetiInfo::sparse: {
 #ifdef HB_COUPLED_PRECOND
-        GenBLKSparseMatrix<Scalar> *sm = 0;
-        if(solInfo().isCoupled & isMixedSub & neighbKww!=0)
-          sm = new GenBLKSparseMatrix<Scalar>(precNodeToNode, dsa, glInternalMap,
-                                              sinfo.solvercntl->trbm, *solInfo().solvercntl->fetiInfo.kii_cntl);
-        else
-          sm = new GenBLKSparseMatrix<Scalar>(nodeToNode, dsa, glInternalMap,
-                                              sinfo.solvercntl->trbm, *solInfo().solvercntl->fetiInfo.kii_cntl);
-#else
-        GenBLKSparseMatrix<Scalar> *sm = new GenBLKSparseMatrix<Scalar>(nodeToNode, dsa, glInternalMap,
-                                                                        sinfo.solvercntl->trbm, *solInfo().solvercntl->fetiInfo.kii_cntl);
+    if(solInfo().isCoupled & isMixedSub & neighbKww!=0)
+      KiiSolver = GenSolverFactory<Scalar>::getFactory()->createSolver(precNodeToNode, dsa, glInternalMap, *sinfo.solvercntl->fetiInfo.kii_cntl, KiiSparse);
+    else
 #endif
-        sm->zeroAll();  // PJSA
-        KiiSolver = sm;
-        KiiSparse = sm;
-      } break;
-      case FetiInfo::spooles: {
-       GenSpoolesSolver<Scalar> *sm = 0;
-#ifdef HB_COUPLED_PRECOND
-        if(solInfo().isCoupled & isMixedSub & neighbKww!=0)
-          sm = new GenSpoolesSolver<Scalar>(precNodeToNode, dsa, *sinfo.solvercntl->fetiInfo.kii_cntl, glInternalMap);
-        else
-          sm = new GenSpoolesSolver<Scalar>(nodeToNode, dsa, *sinfo.solvercntl->fetiInfo.kii_cntl, glInternalMap);
-#else
-        sm = new GenSpoolesSolver<Scalar>(nodeToNode, dsa, *sinfo.solvercntl->fetiInfo.kii_cntl, glInternalMap);
-#endif
-        KiiSolver = sm;
-        KiiSparse = sm;
-      } break;
-      case FetiInfo::mumps: {
-       GenMumpsSolver<Scalar> *sm = 0;
-#ifdef HB_COUPLED_PRECOND
-        if(solInfo().isCoupled & isMixedSub & neighbKww!=0)
-          sm = new GenMumpsSolver<Scalar>(precNodeToNode, dsa, *sinfo.solvercntl->fetiInfo.kii_cntl, glInternalMap);
-        else
-          sm = new GenMumpsSolver<Scalar>(nodeToNode, dsa, *sinfo.solvercntl->fetiInfo.kii_cntl, glInternalMap);
-#else
-        sm = new GenMumpsSolver<Scalar>(nodeToNode, dsa, *sinfo.solvercntl->fetiInfo.kii_cntl, glInternalMap);
-#endif
-        KiiSolver = sm;
-        KiiSparse = sm;
-      } break;
-      case FetiInfo::pcg: {
-        GenDBSparseMatrix<Scalar> *sm = new GenDBSparseMatrix<Scalar>(nodeToNode, dsa, glInternalMap);
-        GenPCGSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar> >
-          *pcgSolver = new GenPCGSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar> >
-                                       (sm, 1, sinfo.solvercntl->maxit, sinfo.solvercntl->tol);
-        KiiSolver = pcgSolver;
-        KiiSparse = pcgSolver->getOperator();
-      } break;
-    }
+      KiiSolver = GenSolverFactory<Scalar>::getFactory()->createSolver(nodeToNode, dsa, glInternalMap, *sinfo.solvercntl->fetiInfo.kii_cntl, KiiSparse);
+
     KiiSolver->setPrintNullity(false);
     // Find approximate preconditioner size
     memPrec += KiiSolver->size();
@@ -1760,14 +1699,9 @@ GenSubDomain<Scalar>::multKbb(Scalar *u, Scalar *Pu, Scalar *deltaU, Scalar *del
      deltaU[allBoundDofs[iDof]] = -v[dualToBoundary[iDof]];
  }
 
-// cerr << "v = "; for(int i=0; i<boundLen; ++i) cerr << v[i] << " "; cerr << endl;
-// cerr << "Kbb GenSubDomain<Scalar>::multKbb = \n"; Kbb->print();
-// cerr << "Kib in GenSubDomain<Scalar>::multKbb = \n"; Kib->print();
  Kbb->mult(v, res);
-// cerr << "res = "; for(int i=0; i<boundLen; ++i) cerr << res[i] << " "; cerr << endl;
 
- //Scalar *iDisp = (Scalar *) dbg_alloca(sizeof(Scalar)*internalLen);
- Scalar *iDisp = 0; // PJSA 9-20-07 only allocate if necessary and don't use alloca (too big)
+ Scalar *iDisp = 0; // only allocate if necessary and don't use alloca (too big)
 
  if((solInfo().getFetiInfo().precno == FetiInfo::dirichlet) || deltaF) {
    iDisp = new Scalar[internalLen];
@@ -1804,7 +1738,7 @@ template<class Scalar>
 void
 GenSubDomain<Scalar>::multKbbCoupled(Scalar *u, Scalar *Pu, Scalar *deltaF, bool errorFlag)
 {
- // PJSA: modified version of multKbb for coupled_dph with primal wet interface dofs
+ // modified version of multKbb for coupled_dph with primal wet interface dofs
  // included in Kii. Currently preconditioner is un-coupled, ie fluid-structure interaction
  // is ignored in the Kii solve.
 
@@ -1825,11 +1759,11 @@ GenSubDomain<Scalar>::multKbbCoupled(Scalar *u, Scalar *Pu, Scalar *deltaF, bool
 #ifdef HB_COUPLED_PRECOND
      localw[windex] = (solInfo().getFetiInfo().splitLocalFsi) ? -u[iDof]*scaling[iDof] : -u[iDof];
 #else
-     localw[windex] = -u[iDof]*scaling[iDof]; // PJSA: 10-11-05
+     localw[windex] = -u[iDof]*scaling[iDof];
 #endif
-     if(solInfo().getFetiInfo().precno == FetiInfo::noPrec) //HB testing no precond ...
+     if(solInfo().getFetiInfo().precno == FetiInfo::noPrec)
        localw[windex] = u[iDof];
-     deltaFwi[windex] = -u[iDof]; //HB
+     deltaFwi[windex] = -u[iDof];
    }
  }
 
@@ -1842,8 +1776,7 @@ GenSubDomain<Scalar>::multKbbCoupled(Scalar *u, Scalar *Pu, Scalar *deltaF, bool
 
  if(solInfo().getFetiInfo().precno == FetiInfo::dirichlet) {
    if(KiiSolver) KiiSolver->reSolve(iDisp);
-   //for(i=0; i<numWIdof; ++i) localw[i] = iDisp[wiInternalMap[i]];
-   for(i=0; i<numWIdof; ++i) localw[i] = -iDisp[wiInternalMap[i]]; // PJSA: 10-11-05
+   for(i=0; i<numWIdof; ++i) localw[i] = -iDisp[wiInternalMap[i]];
    if(Kib) Kib->multSub(iDisp, res);
  }
  else {
@@ -2983,7 +2916,7 @@ GenSubDomain<Scalar>::multfc(Scalar *fr, /*Scalar *fc,*/ Scalar *lambda)
 
  if(Krr) Krr->reSolve(force);
 
- // PJSA: re-initialization required for mpc/contact
+ // re-initialization required for mpc/contact
  if(fcstar) delete [] fcstar;  fcstar = new Scalar[Src->numCol()];
  for(i=0; i<Src->numCol(); ++i) fcstar[i] = 0.0;
 
@@ -3193,7 +3126,7 @@ GenSubDomain<Scalar>::makeQ()
        case FetiInfo::rotation:
        case FetiInfo::all:
        case FetiInfo::None:
-         if(isMixedSub) {  // PJSA: 4-28-05 assume salinas doesn't know
+         if(isMixedSub) {
            makeEdgeVectorsPlus(true); // build augmentation for fluid dofs
            makeEdgeVectorsPlus(false);  // build augmentation for structure dofs
          }
@@ -3427,7 +3360,7 @@ GenSubDomain<Scalar>::ortho(Scalar *vectors, int numVectors, int length)
 template<class Scalar>
 void GenSubDomain<Scalar>::initMpcScaling()
 {
-  // PJSA: sets scaling = 1.0 for all mpc virtual dofs, for use with generalized preconditioner
+  // sets scaling = 1.0 for all mpc virtual dofs, for use with generalized preconditioner
   for(int i=0; i<scomm->lenT(SComm::mpc); ++i)
     scaling[scomm->mapT(SComm::mpc,i)] = 1.0;
 }
@@ -3503,7 +3436,7 @@ GenSubDomain<Scalar>::makeKccDofs(DofSetArray *cornerEqs, int augOffset,
     for(int iNeighb=0; iNeighb<scomm->numNeighb; ++iNeighb) {
       if(scomm->isEdgeNeighb[iNeighb]) {
         int fDof = cornerEqs->firstdof(augOffset+(*subToEdge)[subNumber][iEdgeN]);
-        if(isMixedSub) { // PJSA 5-5-05
+        if(isMixedSub) {
           for(int i=0; i<edgeDofSize[iNeighb]-edgeDofSizeTmp[iNeighb]; ++i)  // fluid
             cornerEqNums[offset++] = fDof+i;
         }
@@ -3515,7 +3448,7 @@ GenSubDomain<Scalar>::makeKccDofs(DofSetArray *cornerEqs, int augOffset,
       }
     }
     iEdgeN = 0;
-    if(isMixedSub) { // PJSA 5-5-05
+    if(isMixedSub) {
       for(int iNeighb=0; iNeighb<scomm->numNeighb; ++iNeighb) {
         if(scomm->isEdgeNeighb[iNeighb]) {
           int fDof = cornerEqs->firstdof(augOffset+(*subToEdge)[subNumber][iEdgeN]) +
@@ -3877,7 +3810,7 @@ template<class Scalar>
 void
 GenSubDomain<Scalar>::solveLocalCCt(Scalar *subv)
 {
-  // PJSA: used for block diagonal CCt preconditioner for MPCs
+  // used for block diagonal CCt preconditioner for MPCs
   if(numMPC > 0) {
     int i;
 
@@ -3900,8 +3833,8 @@ void
 GenSubDomain<Scalar>::extractBlockMpcResidual(int block, Scalar *subv, GenVector<Scalar> *mpcv,
                                               SimpleNumberer *blockMpcEqNums)
 {
-  // PJSA: extracts the mpc residual components from subv and inserts them in global vector (mpcv)
-  // modified by HB & PJSA to loop only over the subdomain lmpcs belonging to block
+  // extracts the mpc residual components from subv and inserts them in global vector (mpcv)
+  // modified to loop only over the subdomain lmpcs belonging to block
   // Make sure that the input block (global) Id is in the range of blocks Id that have contribution
   // from this subdomain
   int i,j;
@@ -3918,7 +3851,7 @@ void
 GenSubDomain<Scalar>::insertBlockMpcResidual(Scalar *subv, GenVector<Scalar> **mpcv, Connectivity *mpcToBlock,
                                              SimpleNumberer **blockMpcEqNums)
 {
-  // PJSA: extracts the mpc residual components from mpcv and inserts them in the interface vector subv
+  // extracts the mpc residual components from mpcv and inserts them in the interface vector subv
   int i, j, k;
   for(i = 0; i < numMPC; ++i) {
     int iDof = (*mpcToBoundDof)[i][0];
@@ -3966,7 +3899,7 @@ template<class Scalar>
 void
 GenSubDomain<Scalar>::combineMpcInterfaceVec(FSCommPattern<Scalar> *mpcPat, Scalar *interfvec)
 {
- // PJSA: this function combines the interfvec values corresponding to mpcs
+ // this function combines the interfvec values corresponding to mpcs
  // that are shared between subdomains. Used with approximated blockDiag and diag CCt preconditioners
  int i,j;
  Scalar *mpcCombo = (Scalar *) dbg_alloca(sizeof(Scalar)*numMPC);
@@ -4031,7 +3964,7 @@ template<class Scalar>
 void
 GenSubDomain<Scalar>::recvMpcStatus(FSCommPattern<int> *mpcPat, int flag, bool &statusChange)
 {
- // PJSA: this function is to make sure that the status of an mpc is the same in all subdomains which share it
+ // this function is to make sure that the status of an mpc is the same in all subdomains which share it
  // needed to due to possible roundoff error
  // if flag == 1 then make dual constraint not active in all subdomains if not active in at least one (use in proportioning step)
  // if flag == 0 then make dual constraint active in all subdomains if it is active in at least one (use in expansion step)
@@ -4315,7 +4248,7 @@ GenSubDomain<Scalar>::initialize()
   Grc = 0; rbms = 0; interfaceRBMs = 0; qtkq = 0; KiiSparse = 0;
   KiiSolver = 0; Kib = 0; MPCsparse = 0; Kbb = 0; corotators = 0;
   fcstar = 0; QtKpBt = 0; locKpQ = 0; glInternalMap = 0; glBoundMap = 0;
-  mpcForces = 0; mpc = 0; mpc_primal = 0; localCCtsolver = 0; diagCCt = 0;
+  mpcForces = 0; mpc = 0; mpc_primal = 0; localCCtsolver = 0; localCCtsparse = 0; diagCCt = 0;
   Kww = 0; Kcw = 0, Krw = 0; neighbKww = 0; localw = 0; localw_copy = 0; Kcw_mpc = 0;
   deltaFwi = 0; M = 0; Muc = 0;
   wweight = 0;
@@ -4485,7 +4418,7 @@ GenSubDomain<Scalar>::makeEdgeVectorsPlus(bool isFluidSub)
   double *wDir_z = 0;
 
   double pi = 3.141592653589793;
-  if(spaceDim == 2) { // PJSA
+  if(spaceDim == 2) {
     for(int i = 0; i < numDirec; i++) {
       d_x[i] = cos( (pi*i)/(numDirec) );
       d_y[i] = sin( (pi*i)/(numDirec) );
@@ -4496,7 +4429,7 @@ GenSubDomain<Scalar>::makeEdgeVectorsPlus(bool isFluidSub)
     }
   }
   else {
-    getDirections(numDirec, numWaves, wDir_x, wDir_y, wDir_z); // PJSA
+    getDirections(numDirec, numWaves, wDir_x, wDir_y, wDir_z);
     for(i=0; i<numDirec; i++) {
       d_x[i] = wDir_x[numWaves*i+0];
       d_y[i] = wDir_y[numWaves*i+0];
@@ -4532,7 +4465,7 @@ GenSubDomain<Scalar>::makeEdgeVectorsPlus(bool isFluidSub)
   int numdofperNode = 0;
   if(isFluidSub)
     numdofperNode = 1;
-  else if(solInfo().getFetiInfo().waveType == FetiInfo::solid) // PJSA
+  else if(solInfo().getFetiInfo().waveType == FetiInfo::solid)
     numdofperNode = 3;
   else numdofperNode = 6;
 
@@ -4576,7 +4509,7 @@ GenSubDomain<Scalar>::makeEdgeVectorsPlus(bool isFluidSub)
       if(boundaryDOFs[iSub][iNode].contains(DofSet::Zrot))
         nzr++;
 
-      if(boundaryDOFs[iSub][iNode].containsAllDisp(spaceDim)) label++; // PJSA
+      if(boundaryDOFs[iSub][iNode].containsAllDisp(spaceDim)) label++;
 
       found[iSub] |= boundaryDOFs[iSub][iNode] & desired;
     }
@@ -4629,10 +4562,10 @@ GenSubDomain<Scalar>::makeEdgeVectorsPlus(bool isFluidSub)
     if(scomm->subNums[iSub] == subNumber) continue;
     int sOffset = sharedNodes.offset(iSub);
 
-    // compute the wave numbers for EdgeWs augmentation PJSA
+    // compute the wave numbers for EdgeWs augmentation
     double k_pSolid = 0.0, k_sSolid = 0.0, k_pShell = 0.0, k_sShell = 0.0, k_pFluid = 0.0;
     //if(!isFluidSub && (numDirec > 0)) {
-    if(numDirec > 0) { // PJSA 1-15-07 support for multiple fluids
+    if(numDirec > 0) { // support for multiple fluids
       if(solInfo().solvercntl->fetiInfo.waveMethod == FetiInfo::uniform) {
         k_pSolid = k_pShell = k_p;
         k_sSolid = k_sShell = k_s;
@@ -4662,7 +4595,7 @@ GenSubDomain<Scalar>::makeEdgeVectorsPlus(bool isFluidSub)
         }
       }
     }
-    if(salinasFlag && isFluidSub) { cerr << "salinas check\n"; k_pFluid = neighbK_p[iSub]; }  // PJSA: 4-28-05
+    if(salinasFlag && isFluidSub) { cerr << "salinas check\n"; k_pFluid = neighbK_p[iSub]; }
 
     // Find the center of the edge/face for EdgeGs augmentation
     double xc = 0, yc = 0, zc = 0;
@@ -4716,7 +4649,7 @@ GenSubDomain<Scalar>::makeEdgeVectorsPlus(bool isFluidSub)
             Q[numdofperNode*(iNode+sOffset+4*numInterfNodes) + 2] = -(x-xc);
           }
         }
-        if(numdofperNode==6) { // PJSA
+        if(numdofperNode==6) {
           if((boundaryDOFs[iSub][iNode].contains(DofSet::Xrot)) && found[iSub].contains(DofSet::Xrot))
             Q[numdofperNode*(iNode+sOffset+3*numInterfNodes) + 3] = 1;
           if((boundaryDOFs[iSub][iNode].contains(DofSet::Yrot)) && found[iSub].contains(DofSet::Yrot))
@@ -4727,10 +4660,10 @@ GenSubDomain<Scalar>::makeEdgeVectorsPlus(bool isFluidSub)
       }
 
       if(boundaryDOFs[iSub][iNode].containsAllDisp(spaceDim) ||
-         boundaryDOFs[iSub][iNode].contains(DofSet::Helm))  // PJSA
+         boundaryDOFs[iSub][iNode].contains(DofSet::Helm))
         for (int iDir=0; iDir<numDirec; iDir++) {
           double k_p, k_s;
-          if(boundaryDOFs[iSub][iNode].containsAnyRot()) {  // PJSA
+          if(boundaryDOFs[iSub][iNode].containsAnyRot()) {
             k_p = k_pShell;
             k_s = k_sShell;
           }
@@ -4806,7 +4739,7 @@ GenSubDomain<Scalar>::makeEdgeVectorsPlus(bool isFluidSub)
     }
   }
 
-  GramSchmidt(Q, isUsed, numdofperNode, nQPerNeighb); // PJSA: see Driver.d/BaseSub.C
+  GramSchmidt(Q, isUsed, numdofperNode, nQPerNeighb); // see Driver.d/BaseSub.C
 
   int *nQAdd = (int *) dbg_alloca(sizeof(int)*(scomm->numNeighb));
   int *nQAddWaves = (int *) dbg_alloca(sizeof(int)*(scomm->numNeighb));
@@ -4853,13 +4786,13 @@ GenSubDomain<Scalar>::makeEdgeVectorsPlus(bool isFluidSub)
         if(boundaryDOFs[iSub][iNode].contains(DofSet::Xdisp)) xCount++;
         if(boundaryDOFs[iSub][iNode].contains(DofSet::Ydisp)) yCount++;
         if(boundaryDOFs[iSub][iNode].contains(DofSet::Zdisp)) zCount++;
-        if(numdofperNode==6) { // PJSA
+        if(numdofperNode==6) {
           if(boundaryDOFs[iSub][iNode].contains(DofSet::Xrot)) xrCount++;
           if(boundaryDOFs[iSub][iNode].contains(DofSet::Yrot)) yrCount++;
           if(boundaryDOFs[iSub][iNode].contains(DofSet::Zrot)) zrCount++;
         }
       }
-      if(boundaryDOFs[iSub][iNode].containsAllDisp(spaceDim)) waveCount++; // PJSA
+      if(boundaryDOFs[iSub][iNode].containsAllDisp(spaceDim)) waveCount++;
     }
 
     int edgeLength = 0;
@@ -4886,7 +4819,7 @@ GenSubDomain<Scalar>::makeEdgeVectorsPlus(bool isFluidSub)
     }
     if(desired.contains(DofSet::XYZdisp)) {
       if(waveCount > 0) {
-        if(found[iSub].containsAllDisp(spaceDim)) { // PJSA
+        if(found[iSub].containsAllDisp(spaceDim)) {
           for(i=0; i< numDirec * numWaves * numCS; i++)
             if(isUsed[numR +i+iSub*nQPerNeighb])
               edgeLength += xyzCount[total++] = numWaves*waveCount;
@@ -5021,7 +4954,7 @@ GenSubDomain<Scalar>::makeEdgeVectorsPlus(bool isFluidSub)
           }
         }
       }
-      if((numR > 3) && (numdofperNode==6)) {  // PJSA
+      if((numR > 3) && (numdofperNode==6)) {
         if(boundaryDOFs[iSub][iNode].contains(DofSet::Xrot)) {
           int xrDof = cc_dsa->locate(sharedNodes[iSub][iNode],DofSet::Xrot);
           if(found[iSub].contains(DofSet::Xrot) && isUsed[3+iSub*nQPerNeighb]) {
@@ -5277,7 +5210,7 @@ GenSubDomain<Scalar>::extractMPCs(int glNumMPC, ResizeArray<LMPCons *> &lmpc)
   }
   if(numMPC == 0) return;
 
-  mpc = new SubLMPCons<Scalar> * [numMPC]; // PJSA & HB: use specific class for subdomain lmpcs
+  mpc = new SubLMPCons<Scalar> * [numMPC]; // use specific class for subdomain lmpcs
   for(int iMPC = 0; iMPC < numMPC; ++iMPC) mpc[iMPC] = 0;
   localToGlobalMPC = new int[numMPC];
 
@@ -5288,7 +5221,7 @@ GenSubDomain<Scalar>::extractMPCs(int glNumMPC, ResizeArray<LMPCons *> &lmpc)
     if(lmpc[iMPC]->isPrimalMPC()) continue;
     int used = 0;
     for(int i = 0; i < lmpc[iMPC]->nterms; ++i) {
-      if(globalToLocal(lmpc[iMPC]->terms[i].nnum) > -1) {  // PJSA
+      if(globalToLocal(lmpc[iMPC]->terms[i].nnum) > -1) {
         //if(c_dsa->locate((lmpc[iMPC]->terms)[i].nnum, (1 << (lmpc[iMPC]->terms)[i].dofnum)) < 0) continue; // XXXX
         if(mpc[numMPC] == 0) {
           Scalar rhs = lmpc[iMPC]->template getRhs<Scalar>();
@@ -5344,7 +5277,7 @@ GenSubDomain<Scalar>::extractMPCs_primal(int glNumMPC, ResizeArray<LMPCons *> &l
   numMPC_primal = 0;
   for(int iMPC = 0; iMPC < glNumMPC; ++iMPC) {
     if(!lmpc[iMPC]->isPrimalMPC()) continue;
-    for(int i = 0; i < lmpc[iMPC]->nterms; ++i) {  // PJSA: 1-19-05
+    for(int i = 0; i < lmpc[iMPC]->nterms; ++i) {
       if(globalToLocal(lmpc[iMPC]->terms[i].nnum) > -1) {
         numMPC_primal++;
         break;
@@ -5353,7 +5286,7 @@ GenSubDomain<Scalar>::extractMPCs_primal(int glNumMPC, ResizeArray<LMPCons *> &l
   }
   if(numMPC_primal == 0) return;
 
-  mpc_primal = new SubLMPCons<Scalar> * [numMPC_primal]; // PJSA & HB: use specific class for subdomain lmpcs
+  mpc_primal = new SubLMPCons<Scalar> * [numMPC_primal]; // use specific class for subdomain lmpcs
   for(int iMPC = 0; iMPC < numMPC_primal; ++iMPC) mpc_primal[iMPC] = 0;
   localToGlobalMPC_primal = new int[numMPC_primal];
 
@@ -5364,7 +5297,7 @@ GenSubDomain<Scalar>::extractMPCs_primal(int glNumMPC, ResizeArray<LMPCons *> &l
     if(!lmpc[iMPC]->isPrimalMPC()) continue;
     int used = 0;
     for(int i = 0; i < lmpc[iMPC]->nterms; ++i) {
-      if(globalToLocal(lmpc[iMPC]->terms[i].nnum) > -1) {  // PJSA
+      if(globalToLocal(lmpc[iMPC]->terms[i].nnum) > -1) {
         if(mpc_primal[numMPC_primal] == 0) {
           Scalar rhs = lmpc[iMPC]->template getRhs<Scalar>();
           GenLMPCTerm<Scalar> term0 = lmpc[iMPC]->template getTerm<Scalar>(i);
@@ -5615,20 +5548,10 @@ void
 GenSubDomain<Scalar>::constructLocalCCtsolver()
 {
   // Step 1. initialize solver object
-  // HB: should we optimize the equations numbering ??
   SimpleNumberer *mpcEqNums = new SimpleNumberer(numMPC);
   for(int i = 0; i < numMPC; ++i) mpcEqNums->setWeight(i, 1);
   mpcEqNums->makeOffset();
-  double tolerance = solInfo().getFetiInfo().cct_tol;
-  if(solInfo().getFetiInfo().cctSolver == FetiInfo::sparse) {
-    localCCtsolver = new GenBLKSparseMatrix<Scalar>(localMpcToGlobalMpc, mpcEqNums, tolerance, *solInfo().solvercntl->fetiInfo.cct_cntl);
-    localCCtsolver->zeroAll();
-  }
-  else { // skyline
-    int scaledFlag = 0;
-    if(solInfo().getFetiInfo().cctScaled) { scaledFlag = 1; }
-    localCCtsolver = new GenSkyMatrix<Scalar>(localMpcToGlobalMpc, mpcEqNums, tolerance, scaledFlag);
-  }
+  localCCtsolver = GenSolverFactory<Scalar>::getFactory()->createSolver(localMpcToGlobalMpc, mpcEqNums, *sinfo.solvercntl->fetiInfo.cct_cntl, localCCtsparse);
 }
 
 template<class Scalar>
@@ -5643,7 +5566,7 @@ GenSubDomain<Scalar>::assembleLocalCCtsolver()
     for(k = 0; k < mpc[i]->nterms; ++k) {
       int dof = (mpc[i]->terms)[k].cdof;
       if(dof >= 0)
-        dotii += mpc[i]->terms[k].coef * mpc[i]->terms[k].coef / mpc[i]->k[k]; // HB: for mpc kscaling;
+        dotii += mpc[i]->terms[k].coef * mpc[i]->terms[k].coef / mpc[i]->k[k]; // for mpc kscaling;
     }
     localCCtsolver->addone(dotii, i, i);
     for(j=0; j < localMpcToMpc->num(i); ++j) {
@@ -5757,7 +5680,7 @@ template<class Scalar>
 void
 GenSubDomain<Scalar>::assembleBlockCCtsolver(int iBlock, GenSolver<Scalar> *CCtsolver, SimpleNumberer *blockMpcEqNums)
 {
-  // HB & PJSA: optimize by looping ONLY over the lmpc eqs contributed to this iBlock
+  // optimize by looping ONLY over the lmpc eqs contributed to this iBlock
   // Make sure that the input block (global) Id iBlock is in the range of blocks this subdomain
   // contributes to
   int i, j, k, l,p;
@@ -6011,7 +5934,7 @@ GenSubDomain<Scalar>::makeFreqSweepLoad(Scalar *d, int iRHS, double omega)
  // Compute Right Hand Side Force = Fext + Fgravity + Fnh + Fpressure
  buildFreqSweepRHSForce<Scalar>(force, Muc, Cuc_deriv, iRHS, omega);
 
- for(int i = 0; i < numMPC; ++i) mpc[i]->rhs = 0.0; // PJSA 10-18-04: set mpc rhs to zero for higher-order derivative solves
+ for(int i = 0; i < numMPC; ++i) mpc[i]->rhs = 0.0; // set mpc rhs to zero for higher-order derivative solves
 }
 
 
@@ -6033,9 +5956,9 @@ GenSubDomain<Scalar>::multMCoupled1(Scalar *localrhs, GenStackVector<Scalar> **u
     int i, j;
     for(i=0; i<numWIdof; ++i) { localw[i] = localw_copy[i] = 0; }
 
-    for(i = 0; i < numWInodes; ++i) { // HB
+    for(i = 0; i < numWInodes; ++i) {
       //DofSet thisDofSet = wetInterfaceDofs[i]^DofSet(DofSet::Helm);
-      DofSet thisDofSet = wetInterfaceDofs[i]^(wetInterfaceDofs[i] & DofSet(DofSet::Helm)); // PJSA: unmark Helm
+      DofSet thisDofSet = wetInterfaceDofs[i]^(wetInterfaceDofs[i] & DofSet(DofSet::Helm)); // unmark Helm
       int nd = thisDofSet.count();
       int cdofs[6], dofs[6];
       c_dsa->number(wetInterfaceNodes[i], thisDofSet, cdofs);
@@ -6082,7 +6005,7 @@ GenSubDomain<Scalar>::multMCoupled2(Scalar *localrhs, FSCommPattern<Scalar> *wiP
     for(i = 0; i < scomm->numT(SComm::fsi); ++i) {
       if(subNumber != scomm->neighbT(SComm::fsi,i)) {
         FSSubRecInfo<Scalar> rInfo = wiPat->recData(scomm->neighbT(SComm::fsi,i), subNumber);
-        for(j=0; j<numWIdof; ++j) localw_copy[j] += rInfo.data[j]/wweight[j]; // PJSA 10-24-06 added /wweight[j]
+        for(j=0; j<numWIdof; ++j) localw_copy[j] += rInfo.data[j]/wweight[j];
       }
     }
 
@@ -6116,7 +6039,7 @@ GenSubDomain<Scalar>::pade(GenStackVector<Scalar> *sol,  GenStackVector<Scalar> 
 {
   int len = sol->size();
   int i, j, k, n, r;
-  // PJSA 3-9-05: general N-point pade extrapolation
+  // general N-point pade extrapolation
   if(rebuildPade) {
     // first time, allocate storage
     int l = domain->solInfo().getSweepParams()->padeL;

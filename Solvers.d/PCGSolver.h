@@ -19,30 +19,18 @@ class GenPCGSolver
 protected: 
 
   // ... Krylov space variables
+  int precno;
   int kryflg;
   int initflg;
   int reorthoflg;
   int maxVecStorage;
 
-  // ... Rigid Body Mode variables
-  int numrbm;		// # of rigid body modes
-  Rbm *rbm;		// pointer to rigid body modes
-
-  //double solveTime;
-  //long memUsed;
-
 public:
-  // ... Constructors
-  GenPCGSolver(AnyOperator *A, int precno, int maxiter, double tolerance, int maxVecStorage = 0,
-               Rbm *rbm=0);
-  // destructor
-  virtual ~GenPCGSolver() { /* nothing to delete */ };
+  // ... Constructor
+  GenPCGSolver(AnyOperator *A, int precno, int maxiter, double tolerance, int maxVecStorage = 0);
 
-  // ... Rigid Body Mode functions
-  int  numRBM() { return numrbm; }
-  void getRBMs(double *rigidBodyModes);
-  void getRBMs(Vector *rigidBodyModes);
-  void getRBMs(VectorSet &rigidBodyModes);
+  // ... Destructor
+  virtual ~GenPCGSolver() { /* nothing to delete */ };
 
   // ... Linear solution functions
   void solve(Scalar* rhs, Scalar* solution); 
@@ -56,12 +44,11 @@ public:
   void reSolve(int nRHS, Scalar **RHS);  
   void reSolve(int nRHS, AnyVector *RHS);
 
-  //double getSolutionTime() { return solveTime; }
-  //double getMemoryUsed()         { return memUsed;   }  
   long size() { return 0; }
   int neqs(); 
 
   void factor() { };
+  void initPrec();
 
 };
 
@@ -72,4 +59,3 @@ typedef GenPCGSolver<double, GenVector<double>, GenSparseMatrix<double> > PCGSol
 #endif
 
 #endif
-

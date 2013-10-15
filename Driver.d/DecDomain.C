@@ -569,17 +569,18 @@ GenFetiSolver<Scalar> *
 GenDecDomain<Scalar>::getFetiSolver(GenDomainGroupTask<Scalar> &dgt)
 {
  FetiInfo *finfo = &domain->solInfo().getFetiInfo();
+ int verboseFlag = domain->solInfo().solvercntl->verbose;
  if(finfo->version == FetiInfo::fetidp) {
    bool rbmFlag = ((domain->solInfo().isStatic() || domain->probType() == SolverInfo::Modal) && !geoSource->isShifted());
    bool geometricRbms = (domain->solInfo().rbmflg && !domain->solInfo().isNonLin());
    return new GenFetiDPSolver<Scalar>(numSub, subDomain, subToSub, finfo, communicator, glSubToLocal,
                                       mpcToSub_dual, mpcToSub_primal, mpcToMpc, mpcToCpu, cpuToSub, grToSub,
-                                      dgt.dynMats, dgt.spMats, dgt.rbms, rbmFlag, geometricRbms);
+                                      dgt.dynMats, dgt.spMats, dgt.rbms, rbmFlag, geometricRbms, verboseFlag);
  }
  else {
    return new GenFetiSolver<Scalar>(numSub, subDomain, subToSub, finfo, communicator,
                                     glSubToLocal, mpcToSub_dual, cpuToSub,
-                                    dgt.dynMats, dgt.spMats, dgt.rbms);
+                                    dgt.dynMats, dgt.spMats, dgt.rbms, verboseFlag);
  }
 }
 
@@ -3419,7 +3420,7 @@ GenDecDomain<Scalar>::makeGlobalMpcToMpc(Connectivity *_procMpcToMpc)
   delete [] target;
   delete [] tmpMpcToMpc;
 #ifdef USE_MUMPS
-  if(domain->solInfo().solvercntl->fetiInfo.cctSolver == FetiInfo::mumps && domain->solInfo().solvercntl->mumps_icntl[18] == 3) {
+  if(domain->solInfo().solvercntl->fetiInfo.cct_cntl->subtype == FetiInfo::mumps && domain->solInfo().solvercntl->fetiInfo.cct_cntl->mumps_icntl[18] == 3) {
     procMpcToMpc = _procMpcToMpc;
   } else
 #endif
@@ -3631,7 +3632,7 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
 {
  GenDomainGroupTask<Scalar> dgt(numSub, subDomain, coeM, coeC, coeK, rbms, kelArray,
                                 domain->solInfo().alphaDamp, domain->solInfo().betaDamp,
-                                domain->numSommer, domain->solInfo().getFetiInfo().solvertype,
+                                domain->numSommer, domain->solInfo().getFetiInfo().local_cntl->subtype,
                                 communicator, melArray, celArray);
 
  if(domain->solInfo().solvercntl->type == 0) {

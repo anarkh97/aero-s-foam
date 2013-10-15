@@ -517,6 +517,8 @@ TRAIL [a-zA-Z]*
 
 "goldfarb_check"|"GOLDFARB_CHECK"  { return GOLDFARBCHECK; }
 
+"ilu_"[a-zA-Z]*|"ILU_"[a-zA-Z]*    { return ILUDROPTOL; }
+
 "kryp"[a-zA-Z]*|"KRYP"[a-zA-Z]*    { return NLPREC; }
 
 "tolf"[a-zA-Z]*|"TOLF"[a-zA-Z]     { return TOLFETI; }
@@ -825,10 +827,6 @@ TRAIL [a-zA-Z]*
 "esmo"[a-zA-Z]*|"ESMO"[a-zA-Z]*    { yylval.ival = 3; return RENUMBERID; }
 
 "meti"[a-zA-Z]*|"METI"[a-zA-Z]*    { yylval.ival = 4; return RENUMBERID; }
-
-"gtgs"[a-zA-Z]*|"GTGS"[a-zA-Z]*    { yylval.ival = FetiInfo::sparse; return GTGSOLVER; }
-
-"gtgp"[a-zA-Z]*|"GTGP"[a-zA-Z]*    { yylval.ival = FetiInfo::pcg;    return GTGSOLVER; }
 
 "corn"[a-zA-Z]*|"CORN"[a-zA-Z]*    { return CORNER; }
 

@@ -12,51 +12,17 @@ GlobalCCtSolver<Scalar>::GlobalCCtSolver(Connectivity *mpcToMpc, Connectivity *_
   this->subsWithMpcs = _subsWithMpcs;
   this->fetiCom = _fetiCom;
   this->glNumMpc = mpcToMpc->csize();
-  switch(finfo->cctSolver) {
-    default:
-    case (FetiInfo::sparse) : 
-      {
-        mpcEqNums = new SimpleNumberer(this->glNumMpc);
-        for(int i = 0; i < this->glNumMpc; ++i) mpcEqNums->setWeight(i, 1);
-        mpcEqNums->makeOffset();
-        CCtsolver = new GenBLKSparseMatrix<Scalar>(mpcToMpc, mpcEqNums, finfo->cct_tol, *finfo->cct_cntl);
-        CCtsolver->zeroAll();
-      }
-      break;
-    case (FetiInfo::skyline) :
-      {
-        compStruct renumber = mpcToMpc->renumByComponent(1); // sloan renumbering
-        //if(this->fetiCom->cpuNum() == 0) cerr << "CCt has " << renumber.numComp << " blocks\n";
-        mpcEqNums = new SimpleNumberer(this->glNumMpc, renumber.renum, 1);
-        for(int i = 0; i < this->glNumMpc; ++i) mpcEqNums->setWeight(i, 1);
-        mpcEqNums->makeOffset();
-        int scaledFlag = (finfo->cctScaled) ? 1 : 0;
-        CCtsolver = new GenSkyMatrix<Scalar>(mpcToMpc, mpcEqNums, finfo->cct_tol, scaledFlag);
-        delete [] renumber.xcomp;
-      }
-      break;
-#ifdef USE_SPOOLES
-      case FetiInfo::spooles: {
-        mpcEqNums = new SimpleNumberer(this->glNumMpc);
-        for(int i = 0; i < this->glNumMpc; ++i) mpcEqNums->setWeight(i, 1);
-        mpcEqNums->makeOffset();
-        CCtsolver = new GenSpoolesSolver<Scalar>(mpcToMpc, mpcEqNums, *finfo->cct_cntl);
-      } break;
-#endif
-#ifdef USE_MUMPS
-      case FetiInfo::mumps: {
-        mpcEqNums = new SimpleNumberer(this->glNumMpc);
-        for(int i = 0; i < this->glNumMpc; ++i) mpcEqNums->setWeight(i, 1);
-        mpcEqNums->makeOffset();
-#ifdef DISTRIBUTED
-        if(domain->solInfo().solvercntl->mumps_icntl[18] == 3) 
-          CCtsolver = new GenMumpsSolver<Scalar>(procMpcToMpc, mpcEqNums, *finfo->cct_cntl, (int *)0, this->fetiCom);
-        else 
-#endif
-        CCtsolver = new GenMumpsSolver<Scalar>(mpcToMpc, mpcEqNums, *finfo->cct_cntl, (int *)0, this->fetiCom);
-      } break;
-#endif
+  if(finfo->cct_cntl->subtype == 0) { // use sloan renumbering for skyline
+    compStruct renumber = mpcToMpc->renumByComponent(1);
+    mpcEqNums = new SimpleNumberer(this->glNumMpc, renumber.renum, 1);
+    delete [] renumber.xcomp;
   }
+  else {
+    mpcEqNums = new SimpleNumberer(this->glNumMpc);
+  }
+  for(int i = 0; i < this->glNumMpc; ++i) mpcEqNums->setWeight(i, 1);
+  mpcEqNums->makeOffset();
+  CCtsolver = GenSolverFactory<Scalar>::getFactory()->createSolver(mpcToMpc, mpcEqNums, *finfo->cct_cntl, CCtsparse, 0, this->fetiCom);
   CCtsolver->setPrintNullity(false);
 }
 
@@ -64,6 +30,7 @@ template<class Scalar>
 GlobalCCtSolver<Scalar>::~GlobalCCtSolver()
 {
   delete mpcEqNums;
+  if(CCtsparse != NULL && CCtsparse != dynamic_cast<GenSparseMatrix<Scalar> *>(CCtsolver)) delete CCtsparse;
   delete CCtsolver;
 }
 

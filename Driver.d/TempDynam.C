@@ -4,7 +4,6 @@
 #include <Driver.d/Domain.h>
 #include <Solvers.d/Solver.h>
 #include <Math.d/SparseMatrix.h>
-#include <Math.d/Skyline.d/SkyMatrix.h>
 #include <Math.d/mathUtility.h>
 #include <Utils.d/linkfc.h>
 #include <Driver.d/Dynam.h>

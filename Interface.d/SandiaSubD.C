@@ -3,11 +3,10 @@
 
 #include <Math.d/DiagMatrix.h>
 #include <Math.d/CuCSparse.h>
-#include <Math.d/Skyline.d/SkyMatrix.h>
-#include <Math.d/BLKSparseMatrix.h>
 #include <Utils.d/Memory.h>
 #include <Interface.d/MpcLocal.h>
 #include <Element.d/Element.h>
+#include <Solvers.d/SolverFactory.h>
 
 template<class Scalar>
 GenSandiaSubD<Scalar>::GenSandiaSubD(int _globalSubNumber, int _localSubNumber, 
@@ -107,22 +106,11 @@ GenSandiaSubD<Scalar>::initSysMatrix(int neq, GenSolver<Scalar> *&smat, GenSpars
   // ... Construct geometric rigid body modes if necessary ??
 
   dbg_alloca(0);
-  switch(this->solInfo().getFetiInfo().solvertype) {
-    default:
-    case FetiInfo::sparse:
-      smat = this->template constructBLKSparseMatrix<Scalar>(this->cc_dsa);
-      smat->zeroAll();
-      break;
-    case FetiInfo::skyline:
-      smat = this->template constructSkyMatrix<Scalar>(this->cc_dsa);
-      break;
-    case FetiInfo::spooles:
-      smat = this->template constructSpooles<Scalar>();
-      break;
-    case FetiInfo::mumps:
-      smat = this->template constructMumps<Scalar>();
-      break;
-  }
+
+  // construct the local solver
+  GenSparseMatrix<Scalar> *spm, *spp; GenSolver<Scalar> *prec;
+  smat = GenSolverFactory<Scalar>::getFactory()->createSolver(this->nodeToNode, this->dsa, this->cc_dsa, *this->solInfo().getFetiInfo().local_cntl, spm,
+                                                              (Rbm*) NULL, spp, prec, new FSCommunicator(structCom));
 
   if(this->c_dsa->size() > 0 && (this->c_dsa->size() - this->dsa->size()) != 0)
     this->Kuc = new GenCuCSparse<Scalar>(this->nodeToNode, this->dsa, this->c_dsa);

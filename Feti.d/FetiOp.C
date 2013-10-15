@@ -7,7 +7,6 @@
 #include <Driver.d/SubDomain.h>
 #include <Feti.d/Feti.h>
 #include <Feti.d/OrthoSet.h>
-#include <Math.d/Skyline.d/SkyMatrix.h>
 #include <Utils.d/linkfc.h>
 #include <Solvers.d/Rbm.h>
 #include <Math.d/matrix.h>

@@ -42,10 +42,11 @@ class GenEiSparseMatrix : public SparseData, public GenSparseMatrix<Scalar>, pub
  public:
    GenEiSparseMatrix(Connectivity *, DofSetArray *, DofSetArray *, bool=true);
    GenEiSparseMatrix(Connectivity *, DofSetArray *, int *, bool=true);
-   GenEiSparseMatrix(Connectivity *, EqNumberer *);
+   GenEiSparseMatrix(Connectivity *, EqNumberer *, bool=true);
    virtual ~GenEiSparseMatrix();
 
    Eigen::MappedSparseMatrix<Scalar, Eigen::ColMajor, int>& getEigenSparse() { return M; }
+   SolverClass& getEigenSolver() { return solver; }
 
    // GenSparseMatrix assembly
    void add(FullSquareMatrix &, int *dofs);

@@ -13,18 +13,12 @@
 #include <Feti.d/CGOrthoSet.h>
 #include <Utils.d/linkfc.h>
 #include <Threads.d/PHelper.h>
-#include <Math.d/Skyline.d/SkyMatrix.h>
-#include <Math.d/Skyline.d/BlockSky.h>
-#include <Math.d/Skyline.d/DistSky.h>
 #include <Math.d/matrix.h>
 #include <Math.d/SymFullMatrix.h>
 #include <Math.d/mathUtility.h>
-#include <Math.d/BLKSparseMatrix.h>
 #include <Math.d/BigMatrix.h>
 #include <Math.d/VectorSet.h>
-#include <Solvers.d/PCGSolver.h>
 #include <Solvers.d/Rbm.h>
-#include <Solvers.d/Mumps.h>
 #include <Timers.d/GetTime.h>
 
 #include <Feti.d/FetiOp.h>
@@ -32,9 +26,9 @@
 #include <Feti.d/FetiInfo.h>
 #include <Feti.d/CoarseSet.h>
 #include <Corotational.d/DistrGeomState.h>
+#include <Solvers.d/SolverFactory.h>
 class GeomState;
 
-extern int verboseFlag;
 // KHP: To change between old FETI-2 coarse grid and
 // new sparse FETI-2 coarse grid with mpcs.
 //#define ORIGINAL_FETI2
@@ -90,8 +84,8 @@ inline void Tgemv(const char &a, const int &b, const int &c,
 template<class Scalar>
 GenFetiSolver<Scalar>::GenFetiSolver(int _nsub, GenSubDomain<Scalar> **_sd, Connectivity *_subToSub, 
                  FetiInfo *_fetiInfo, FSCommunicator *_fetiCom, int *glToLoc, Connectivity *_mpcToSub, Connectivity *_cpuToSub,
-                 GenSolver<Scalar> **sysMatrices, GenSparseMatrix<Scalar> **sysSparse, Rbm **_rbms) :
-                 internalDI(_nsub), interface(_nsub), times(threadManager->numThr(), _nsub)
+                 GenSolver<Scalar> **sysMatrices, GenSparseMatrix<Scalar> **sysSparse, Rbm **_rbms, int _verboseFlag) :
+                 internalDI(_nsub), interface(_nsub), times(threadManager->numThr(), _nsub), verboseFlag(_verboseFlag)
 {
  initialize(); // Initialize pointers and variables
 
@@ -167,7 +161,7 @@ GenFetiSolver<Scalar>::GenFetiSolver(int _nsub, GenSubDomain<Scalar> **_sd, Conn
  internalDI.len  = tLocalLen;
  halfSize      = halfInterfLen;
 
- // PJSA: compute the masterFlags
+ // compute the masterFlags
  bool *interfaceMasterFlag = new bool[tInterfLen];
  interface.computeOffsets();
  for(iSub = 0; iSub < nsub; ++iSub) {
@@ -489,7 +483,7 @@ GenFetiSolver<Scalar>::makeGtG()
  // Get all the numbers of rigid body modes and dispatch RBMs to neighbors
  makeRbmPat();
  paralApplyToAll(nsub, fetiOps, &GenFetiOp<Scalar>::sendInterfRBM, rbmPat);
- rbmPat->exchange(); // PJSA
+ rbmPat->exchange();
 
  // compute neighbors QGs 
  paralApplyToAll(nsub, fetiOps, &GenFetiOp<Scalar>::getNeighbQGs, rbmPat);
@@ -580,45 +574,11 @@ GenFetiSolver<Scalar>::makeGtG()
      opControl->GtQGs = GtQGs;
    }
 
-   // global rigid body mode tolerance: default = 1.0E-8
-   double tolerance = fetiInfo->grbm_tol;
-
-   GenBLKSparseMatrix<Scalar> *BLKMatrix = 0;
-   GenDBSparseMatrix<Scalar>  *DBSparse  = 0;
-   GenPCGSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar> > *GtGPCGSolver = 0;
-   GenBlockSky<Scalar>        *blockSky;
-
    double t1 = getTime();
-   if(fetiInfo->gtgSolver == FetiInfo::skyline) {
-     times.memoryGtGsky -= memoryUsed();
-#ifdef REGULAR_SKY
-     GtGSkyMatrix = new SkyMatrix( coarseConnect, eqNums, tolerance );
-     opControl->sparseGtG = GtGSkyMatrix;
-#else
-     blockSky = new GenBlockSky<Scalar>(coarseConnect, eqNums, tolerance);
-     opControl->sparseGtG = blockSky;
-#endif
-     times.memoryGtGsky += memoryUsed();
-   } else if (fetiInfo->gtgSolver == FetiInfo::sparse) {
-     times.memoryGtGsky -= memoryUsed();
-     BLKMatrix = new GenBLKSparseMatrix<Scalar>(coarseConnect, eqNums, tolerance, *fetiInfo->gtg_cntl);
-     times.memoryGtGsky += memoryUsed();
-     opControl->sparseGtG = BLKMatrix;
-   } else if (fetiInfo->gtgSolver == FetiInfo::pcg) {
-     times.memoryGtGsky -= memoryUsed();
-     DBSparse = new GenDBSparseMatrix<Scalar>(coarseConnect, eqNums);
-     // Hardwired pcg solution parameters for now
-     GtGPCGSolver = new GenPCGSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar> >(DBSparse, 1, 1000, 1.0E-14);
-     times.memoryGtGsky += memoryUsed();
-     opControl->sparseGtG = DBSparse;
-   } else if( fetiInfo->gtgSolver == FetiInfo::blocksky) {
-     times.memoryGtGsky -= memoryUsed();
-     blockSky = new GenBlockSky<Scalar>(coarseConnect, eqNums, tolerance);
-     opControl->sparseGtG = blockSky;
-     times.memoryGtGsky += memoryUsed();
-   } else {
-     fprintf(stderr,"INCORRECT SOLVER\n");
-   }
+   times.memoryGtGsky -= memoryUsed();
+   GtGsolver = GenSolverFactory<Scalar>::getFactory()->createDistSolver(coarseConnect, eqNums, *fetiInfo->coarse_cntl, opControl->sparseGtG, this->fetiCom);
+   times.memoryGtGsky += memoryUsed();
+
    if(fetiInfo->numPrint() > 0 && fetiInfo->numPrint() < 10)
    fprintf(stderr," ... Form GtG     %10.5f s %10.3f Mb\n",
                   (getTime()-t1)/1000.0,times.memoryGtGsky/(1024.0*1024.0));
@@ -631,35 +591,10 @@ GenFetiSolver<Scalar>::makeGtG()
      fprintf(stderr," ... Assemble GtG %10.5f s %10.3f Mb\n",
                     (getTime()-t1)/1000.0,(memoryUsed() - m1)/(1024.0*1024.0));
 
-   if(fetiInfo->gtgSolver == FetiInfo::skyline) {
-     startTimerMemory(times.pfactor, times.memoryGtGsky);
-     if(fetiInfo->printMatLab) GtGSkyMatrix->printMatlab(1);
-#ifdef REGULAR_SKY
-     //GtGSkyMatrix->print();
-     GtGSkyMatrix->parallelFactor();
-     GtGsolver = GtGSkyMatrix;
-#else
-     //blockSky->print();
-     blockSky->parallelFactor();
-     GtGsolver = blockSky;
-#endif
-     stopTimerMemory(times.pfactor, times.memoryGtGsky);
-   } else if(fetiInfo->gtgSolver == FetiInfo::sparse) {
-     startTimerMemory(times.pfactor, times.memoryGtGsky);
-     BLKMatrix->factor();
-     stopTimerMemory(times.pfactor, times.memoryGtGsky);
-     GtGsolver = BLKMatrix;
-   } else if(fetiInfo->gtgSolver == FetiInfo::pcg) {
-     startTimerMemory(times.pfactor, times.memoryGtGsky);
-     GtGPCGSolver->factor();
-     stopTimerMemory(times.pfactor, times.memoryGtGsky);
-     GtGsolver = GtGPCGSolver;
-   } else {
-     startTimerMemory(times.pfactor, times.memoryGtGsky);
-     blockSky->parallelFactor();
-     stopTimerMemory(times.pfactor, times.memoryGtGsky);
-     GtGsolver = blockSky;
-   }
+   startTimerMemory(times.pfactor, times.memoryGtGsky);
+   GtGsolver->parallelFactor();
+   stopTimerMemory(times.pfactor, times.memoryGtGsky);
+
    glNumRBM = GtGsolver->numRBM();
    if(fetiInfo->numPrint() > 0 && fetiInfo->numPrint() < 10)
      fprintf(stderr," ... Factor GtG   %10.5f s %10.3f Mb\n",
@@ -1480,7 +1415,7 @@ GenFetiSolver<Scalar>::preCondition(GenDistrVector<Scalar> &v, GenDistrVector<Sc
 #endif
 
    if(primalResidual < 0.0) {
-     // PJSA: if the primalResidual is smaller than precision then safe to reverse sign
+     // if the primalResidual is smaller than precision then safe to reverse sign
      if(primalResidual > -1e-15) primalResidual = -primalResidual;
      else filePrint(stderr," *** WARNING: negative norm of primal residual %e \n", primalResidual);
    }
@@ -2489,64 +2424,29 @@ GenFetiSolver<Scalar>::makeSingleCoarse()
 
    times.memoryGtGsky -= threadManager->memoryUsed();
 #ifdef DISTRIBUTED
-   GenSkyMatrix<Scalar> *sky;
-   if(subToSub->csize() == numCPUs) {
-     int neq = eqNums->size();
-     int neqPerCPU = neq/numCPUs;
-     int remainder = neq%numCPUs;
-     int firstAlpha = myCPU * neqPerCPU +
-             ((myCPU < remainder) ? myCPU : remainder);
-     int nRowAlpha  = neqPerCPU + ((myCPU < remainder) ? 1 : 0);
-     sky = new GenDistSky<Scalar>(coarseConnect, eqNums, tolerance, firstAlpha, nRowAlpha);
-     times.memoryGtGDelete = 8*sky->size();
-     filePrint(stderr," Deleted GtG Memory: %14.5f Mb\n",
-               times.memoryGtGDelete/(1024.0*1024.0));
-   } else {
-     sky = new GenSkyMatrix<Scalar>(coarseConnect, eqNums, tolerance);
-   }
-#else
-#ifdef REGULAR_SKY
-   GenSkyMatrix<Scalar> *sky = new GenSkyMatrix<Scalar>(coarseConnect, eqNums, tolerance);
-#else
-   GenBlockSky<Scalar> *sky = new GenBlockSky<Scalar>(coarseConnect, eqNums, tolerance);
+   if(subToSub->csize() == numCPUs)
+     singleCoarseSolver = GenSolverFactory<Scalar>::getFactory()->createDistSolver(coarseConnect, eqNums, *fetiInfo->coarse_cntl, singleCoarse, this->fetiCom);
+   else
 #endif
-#endif
+     singleCoarseSolver = GenSolverFactory<Scalar>::getFactory()->createSolver(coarseConnect, eqNums, *fetiInfo->coarse_cntl, singleCoarse, 0, this->fetiCom);
+
    times.memoryGtGsky += threadManager->memoryUsed();
-   singleCoarse = sky;
-   singleCoarseSolver = sky;
  }
+
  times.numRBMs = eqNums->size();
 
  filePrint(stderr," ... Size of Coarse Problem %5d   ...\n",times.numRBMs);
 
  if( times.numRBMs != 0 || crns != 0 || glNumMpc != 0) {
    singleCoarseAssembly();
- 
-#ifdef DEBUG_MPC
-  FILE *file = fopen("coarse.m","w");
-#ifdef REGULAR_SKY
-  ((SkyMatrix*) singleCoarse)->print(file);
-#else
-  ((GenBlockSky<Scalar>*) singleCoarse)->print();
-#endif
-#endif
 
 #ifdef DISTRIBUTED
-   ((SkyMatrix *)singleCoarse)->unify(fetiCom);
+   singleCoarseSolver->unify(fetiCom);
 #endif
 
    startTimerMemory(times.pfactor, times.memoryGtGsky);
    // parallelFactor has a bug when there is a singularity in the coarse matrix
-#ifdef DISTRIBUTED
-   ((SkyMatrix *)singleCoarse)->parallelFactor();
-#else
-#ifdef REGULAR_SKY
-   ((SkyMatrix *)singleCoarse)->parallelFactor();
-#else
-   // Dirty to be fixed
-   ((GenBlockSky<Scalar> *)singleCoarseSolver)->parallelFactor();
-#endif
-#endif
+   singleCoarseSolver->parallelFactor();
    stopTimerMemory(times.pfactor, times.memoryGtGsky);
 
    filePrint(stderr, " ... Factoring coarse found %2d RBMS ...\n",
@@ -3527,7 +3427,7 @@ GenFetiSolver<Scalar>::initialize()
   singleCoarse = 0; singleCoarseSolver = 0; 
   oSetCG = 0; oSetGMRES = 0; oSetGCR = 0; glSubToLoc = 0;
   fetiTasks = 0; fetiOps = 0; opControl = 0;
-  GtGSkyMatrix = 0; GtGsolver = 0; PCtFPC = 0; wksp = 0;
+  GtGsolver = 0; PCtFPC = 0; wksp = 0;
   GtQGs = 0; GtFCs = 0; gtqglocal = 0;
   numNodes = 0; glNumRBM = 0; numrbms = 0; //numP = 0;
   nsub = 0; numSystems = 0; crns = 0;
@@ -3555,7 +3455,7 @@ GenFetiSolver<Scalar>::~GenFetiSolver()
     delete [] fetiOps; fetiOps = 0;
   }
   if(fetiTasks) { delete [] fetiTasks; fetiTasks = 0; }
-  if(GtGSkyMatrix) { delete GtGSkyMatrix; GtGSkyMatrix = 0; GtGsolver = 0; }
+  if(GtGsolver) { delete GtGsolver; GtGsolver = 0; }
   if(PCtFPC) { delete PCtFPC; PCtFPC = 0; }
   if(wksp) { delete wksp; wksp = 0; }
   if(GtQGs) { delete GtQGs; GtQGs = 0; }
@@ -3644,47 +3544,11 @@ template<class Scalar>
 void
 GenFetiSolver<Scalar>::makeRbmPat()
 {
-  // PJSA: create rbmPat FSCommPattern object, used to send/receive a scalar vector (interfaceDOFs)
+  // create rbmPat FSCommPattern object, used to send/receive a scalar vector (interfaceDOFs)
   if(!rbmPat) {
     rbmPat = new FSCommPattern<Scalar>(fetiCom, cpuToSub, myCPU, FSCommPattern<Scalar>::CopyOnSend,
                                        FSCommPattern<Scalar>::NonSym);
     for(int iSub=0; iSub<nsub; ++iSub) sd[iSub]->setRbmCommSize(fetiOps[iSub]->numRBM, rbmPat);
     rbmPat->finalize();
   }
-}
-
-template<class Scalar>
-GenSolver<Scalar> *
-GenFetiSolver<Scalar>::newSolver(int type, Connectivity *con, EqNumberer *nums, double tol, GenSparseMatrix<Scalar> *&sparse)
-{
-  GenSolver<Scalar> *solver = 0;
-  switch(type) {
-    default:
-    case FetiInfo::skyline: {
-      GenSkyMatrix<Scalar> *s = new GenSkyMatrix<Scalar>(con, nums, tol);
-      solver = (GenSolver<Scalar> *) s;
-      sparse = (GenSparseMatrix<Scalar> *) s;
-    } break;
-    case FetiInfo::sparse: {
-      GenBLKSparseMatrix<Scalar> *s = new GenBLKSparseMatrix<Scalar>(con, nums, tol, *this->fetiInfo->gtg_cntl);
-      s->zeroAll();
-      solver = (GenSolver<Scalar> *) s;
-      sparse = (GenSparseMatrix<Scalar> *) s;
-    } break;
-#ifdef USE_SPOOLES
-    case FetiInfo::spooles: {
-      GenSpoolesSolver<Scalar> *s = new GenSpoolesSolver<Scalar>(con, nums, *this->fetiInfo->gtg_cntl);
-      solver = (GenSolver<Scalar> *) s;
-      sparse = (GenSparseMatrix<Scalar> *) s;
-    } break;
-#endif
-#ifdef USE_MUMPS
-    case FetiInfo::mumps: {
-      GenMumpsSolver<Scalar> *s = new GenMumpsSolver<Scalar>(con, nums, *this->fetiInfo->gtg_cntl, (int *) 0, fetiCom);
-      solver = (GenSolver<Scalar> *) s;
-      sparse = (GenSparseMatrix<Scalar> *) s;
-    } break;
-#endif
-  }
-  return solver;
 }

@@ -73,11 +73,11 @@
 %token ELLUMP EIGEN EFRAMES ELSCATTERER END ELHSOMMERFELD EXPLICIT EPSILON ELEMENTARYFUNCTIONTYPE
 %token FABMAT FACOUSTICS FETI FETI2TYPE FETIPREC FFP FFPDIR FITALG FNAME FLUX FORCE FRONTAL FETIH FILTEREIG
 %token FREQSWEEP FREQSWEEP1 FREQSWEEP2 FREQSWEEPA FSINTERFACE FSISCALING FSIELEMENT NOLOCALFSISPLITING FSICORNER FFIDEBUG FAILSAFE FRAMETYPE
-%token GEPS GLOBALTOL GRAVITY GRBM GTGSOLVER GLOBALCRBMTOL GROUP GROUPTYPE GOLDFARBTOL GOLDFARBCHECK
+%token GEPS GLOBALTOL GRAVITY GRBM GLOBALCRBMTOL GROUP GROUPTYPE GOLDFARBTOL GOLDFARBCHECK
 %token HDIRICHLET HEAT HFETI HNEUMAN HSOMMERFELD HFTT
 %token HELMHOLTZ HNBO HELMMF HELMSO HSCBO HWIBO HZEM HZEMFILTER HLMPC 
 %token HERMITIAN HESSIAN
-%token IACC IDENTITY IDIS IDIS6 IntConstant INTERFACELUMPED ITEMP ITERTYPE IVEL 
+%token IACC IDENTITY IDIS IDIS6 ILUDROPTOL IntConstant INTERFACELUMPED ITEMP ITERTYPE IVEL 
 %token INCIDENCE IHDIRICHLET IHDSWEEP IHNEUMANN ISOLVERTYPE INPC INFINTY
 %token JACOBI KEYLETTER KRYLOVTYPE KIRLOC
 %token LAYC LAYN LAYD LAYO LAYMAT LFACTOR LMPC LOAD LOADCASE LOBPCG LOCALSOLVER LINESEARCH LUMPED
@@ -126,7 +126,7 @@
 %type <ival>     AEROTYPE Attributes AUGMENTTYPE AVERAGED 
 %type <ival>     COLLOCATEDTYPE CORNERTYPE COMPLEXOUTTYPE TDENFORC CSTYPE ANGULAROUTTYPE ROTVECOUTTYPE
 %type <ival>     ELEMENTARYFUNCTIONTYPE FETIPREC FETI2TYPE FRAMETYPE
-%type <ival>     GTGSOLVER Integer IntConstant ITERTYPE LoadCase
+%type <ival>     Integer IntConstant ITERTYPE LoadCase
 %type <ival>     RBMSET RENUMBERID OPTCTV
 %type <rprop>    RPROP
 %type <ival>     WAVETYPE WAVEMETHOD
@@ -3032,7 +3032,40 @@ Statics:
         STATS NewLine
         { domain->solInfo().setProbType(SolverInfo::Static); }
         | Statics Solver
-        { domain->solInfo().solvercntl = $2; }
+        { domain->solInfo().solvercntl = $2; 
+/* this is not quite right because SOLVERCNTL may be parsed before STATICS
+          // for backward compatibility of global_rbm_tol, global_cor_rbm_tol and cct_tol options
+          if($2->type == 2) {
+            if($2->fetiInfo.coarse_cntl != &default_cntl && $2->fetiInfo.version == FetiInfo::fetidp)
+              $2->fetiInfo.coarse_cntl->trbm = $2->fetiInfo.crbm_tol;
+            else if($2->fetiInfo.coarse_cntl != &default_cntl && $2->fetiInfo.version != FetiInfo::fetidp)
+              $2->fetiInfo.coarse_cntl->trbm = $2->fetiInfo.grbm_tol;
+            else if($2->fetiInfo.coarse_cntl == &default_cntl && $2->fetiInfo.version == FetiInfo::fetidp
+                    && $2->fetiInfo.coarse_cntl->trbm != $2->fetiInfo.crbm_tol) {
+              $2->fetiInfo.coarse_cntl = new SolverCntl(default_cntl);
+              $2->fetiInfo.coarse_cntl->trbm = $2->fetiInfo.crbm_tol;
+            }
+            else if($2->fetiInfo.coarse_cntl == &default_cntl && $2->fetiInfo.version != FetiInfo::fetidp
+                    && $2->fetiInfo.coarse_cntl->trbm != $2->fetiInfo.grbm_tol) {
+              $2->fetiInfo.coarse_cntl = new SolverCntl(default_cntl);
+              $2->fetiInfo.coarse_cntl->trbm = $2->fetiInfo.grbm_tol;
+            }
+            if($2->fetiInfo.auxcoarse_cntl != &default_cntl && $2->fetiInfo.version == FetiInfo::fetidp)
+              $2->fetiInfo.coarse_cntl->trbm = $2->fetiInfo.grbm_tol;
+            else if($2->fetiInfo.auxcoarse_cntl == &default_cntl && $2->fetiInfo.version == FetiInfo::fetidp
+                    && $2->fetiInfo.auxcoarse_cntl->trbm != $2->fetiInfo.grbm_tol) {
+              $2->fetiInfo.auxcoarse_cntl = new SolverCntl(default_cntl);
+              $2->fetiInfo.auxcoarse_cntl->trbm = $2->fetiInfo.grbm_tol;
+            }
+            if($2->fetiInfo.cct_cntl != &default_cntl)
+              $2->fetiInfo.cct_cntl->trbm = $2->fetiInfo.cct_tol;
+            else if($2->fetiInfo.cct_cntl == &default_cntl && $2->fetiInfo.cct_cntl->trbm != $2->fetiInfo.cct_tol) {
+              $2->fetiInfo.cct_cntl = new SolverCntl(default_cntl);
+              $2->fetiInfo.cct_cntl->trbm = $2->fetiInfo.cct_tol; 
+            }
+          }
+*/
+        }
         | Statics CASES CasesList NewLine
         | Statics PIECEWISE NewLine
         { // activate piecewise constant configuration dependent external forces for a linear dynamic analysis
@@ -3113,6 +3146,11 @@ SolverMethod:
           $$->type = 0;
           $$->subtype = $1;
           $$->pivot = true; }
+        | SOLVERTYPE SCALED NewLine
+        { $$ = new SolverCntl(default_cntl);
+          $$->type = 0;
+          $$->subtype = $1;
+          $$->scaled = true; }
         | SOLVERTYPE UNSYMMETRIC NewLine
         { $$ = new SolverCntl(default_cntl);
           $$->type = 0;
@@ -3324,6 +3362,8 @@ Solver:
         { $$->tol = $3; }
         | Solver SUBTYPE Integer NewLine
         { $$->iterSubtype = $3; }
+        | Solver ILUDROPTOL Float NewLine
+        { $$->ilu_droptol = $3; }
         | Solver MAXITR Integer NewLine
         { $$->maxit = $3; 
           $$->fetiInfo.maxit = $3; }
@@ -3511,9 +3551,9 @@ Solver:
         | Solver LOCALSOLVER SolverMethod
         { $$->fetiInfo.local_cntl = $$->fetiInfo.kii_cntl = $3; }
         | Solver COARSESOLVER SolverMethod
-        { $$->fetiInfo.kcc_cntl = $3; }
+        { $$->fetiInfo.coarse_cntl = $3; }
         | Solver AUXCOARSESOLVER SolverMethod
-        { $$->fetiInfo.gtg_cntl = $3; }
+        { $$->fetiInfo.auxcoarse_cntl = $3; }
         | Solver CCTSOLVER SolverMethod
         { $$->fetiInfo.cct_cntl = $3; }
 	| Solver VERSION Integer NewLine

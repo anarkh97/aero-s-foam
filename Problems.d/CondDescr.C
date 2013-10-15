@@ -6,8 +6,6 @@
 #include <Driver.d/Dynam.h>
 #include <Math.d/SparseMatrix.h>
 #include <Math.d/DBSparseMatrix.h>
-#include <Math.d/NBSparseMatrix.h>
-#include <Math.d/Skyline.d/SkyMatrix.h>
 
 int
 SingleDomainCond::solVecInfo()

@@ -89,7 +89,6 @@ ScalarBlockDiagPrec<Scalar, AnyVector, AnyMatrix>::apply(AnyVector &r, AnyVector
 {
  this->time -= getTime(); 
  for(int i=0; i<numnod; ++i) {
-   //int nzv = r.isnnz(i);
    if(r.isnnz(i)==1) {   
      if(r.getBlock(i).sqNorm()==0)  pr.getBlock(i).zero(); 
      else {

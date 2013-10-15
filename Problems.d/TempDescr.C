@@ -8,12 +8,11 @@
 #include <Math.d/FullMatrix.h>
 #include <Math.d/SparseMatrix.h>
 #include <Math.d/DBSparseMatrix.h>
-#include <Math.d/NBSparseMatrix.h>
 #include <Math.d/CuCSparse.h>
-#include <Math.d/Skyline.d/SkyMatrix.h>
 #include <Utils.d/dofset.h>
 #include <Element.d/State.h>
 #include <Solvers.d/Rbm.h>
+#include <Solvers.d/SolverFactory.h>
 
 typedef FSFullMatrix FullMatrix;
 
@@ -258,10 +257,10 @@ SingleDomainTemp::buildOps(double coeM, double coeC, double coeK)
      dMat.Msolver = m;
    }
    else {
-     BLKSparseMatrix *m = domain->constructBLKSparseMatrix<double>(domain->getCDSA());
-     m->zeroAll();
-     allOps.Msolver = m;
-     dMat.Msolver = m;
+     SparseMatrix *spp; Solver *prec; // XXX
+     SolverCntl *m_cntl = (domain->solInfo().solvercntl->type == 0) ? domain->solInfo().solvercntl : &default_cntl;
+     dMat.Msolver = GenSolverFactory<double>::getFactory()->createSolver(domain->getNodeToNode(), domain->getDSA(), domain->getCDSA(),
+                                                                         *m_cntl, allOps.Msolver, (Rbm*) NULL, spp, prec);
    }
  }
 
@@ -276,7 +275,7 @@ SingleDomainTemp::buildOps(double coeM, double coeC, double coeK)
    tempprojector_prep(rbm, allOps.M);
  }
 
- // PJSA 5-19-2008 Modal decomposition preprocessing
+ // Modal decomposition preprocessing
  int decompFlag = domain->solInfo().modeDecompFlag;
  if(decompFlag) {
    fprintf(stderr," ... Modal decomposition requested ...\n");

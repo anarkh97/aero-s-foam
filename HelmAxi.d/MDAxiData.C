@@ -482,7 +482,7 @@ MDAxiData::makeKs(int *glBoundMap, int *glInternalMap, int m1, int m2) {
 
  long matSize;
 
- int storage = solInfo().getFetiInfo().solvertype;
+ int storage = solInfo().getFetiInfo().local_cntl->subtype;
 
  switch (storage) {
    default:
@@ -582,7 +582,7 @@ MDAxiData::Assemble(int m1, int m2) {
  int mstart = m1;
  int mstop = (m2<0) ? locBCs->numModes+1 : m2;
 
- int storage = solInfo().getFetiInfo().solvertype;
+ int storage = solInfo().getFetiInfo().local_cntl->subtype;
 
  double *firstpointer = (double *) dbg_alloca(sizeof(double)*maxDof*maxDof);
  double *secondpointer = (double *) dbg_alloca(sizeof(double)*maxDof*maxDof);
@@ -756,7 +756,7 @@ MDAxiData::addInterface(int *SubSign, int m1, int m2) {
  ComplexSparseMatrix *spm;
  FullSquareMatrix ksi;
 
- int storage = solInfo().getFetiInfo().solvertype;
+ int storage = solInfo().getFetiInfo().local_cntl->subtype;
  int typeInterf = solInfo().getFetiInfo().lumpedinterface;
 
  int numDofs;

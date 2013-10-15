@@ -40,9 +40,9 @@ GenEiSparseMatrix<Scalar,SolverClass>::GenEiSparseMatrix(Connectivity *cn, DofSe
 }
 
 template<typename Scalar, typename SolverClass>
-GenEiSparseMatrix<Scalar,SolverClass>::GenEiSparseMatrix(Connectivity *cn, EqNumberer *eqNums)
+GenEiSparseMatrix<Scalar,SolverClass>::GenEiSparseMatrix(Connectivity *cn, EqNumberer *eqNums, bool _selfadjoint)
 : SparseData(eqNums,cn,(int*)NULL,0,1),
-  selfadjoint(true),
+  selfadjoint(_selfadjoint),
   nnz(xunonz[numUncon]),
   unonz(new Scalar[nnz]),
   M(numUncon, numUncon, nnz, xunonz, rowu, unonz),

@@ -60,7 +60,7 @@ using namespace std;
   #include <Pita.d/LinearDriver.h>
 #endif
 #include <Comm.d/Communicator.h>
-
+#include <Solvers.d/SolverFactory.h>
 
 // .... for different problems and hardware
 void writeOptionsToScreen();
@@ -94,6 +94,8 @@ extern "C" int getopt (
 // .... global and static member variable initialization
 map<int,SolverCntl> SolverInfo::solvercntls = std::map<int,SolverCntl>();
 SolverCntl default_cntl;
+std::auto_ptr<GenSolverFactory<double> >   solverFactory(new GenSolverFactory<double>());
+std::auto_ptr<GenSolverFactory<DComplex> > solverFactoryC(new GenSolverFactory<DComplex>());;
 
 #ifdef STRUCTOPT
 Domain *domain = new Domain_opt();
@@ -663,7 +665,7 @@ int main(int argc, char** argv)
    }
    domain->solInfo().solvercntl->type = 2;
    domain->solInfo().solvercntl->fetiInfo.version = FetiInfo::fetidp;
-   domain->solInfo().solvercntl->fetiInfo.solvertype = (FetiInfo::Solvertype) domain->solInfo().solvercntl->subtype;
+   domain->solInfo().solvercntl->fetiInfo.local_cntl->subtype = (FetiInfo::Solvertype) domain->solInfo().solvercntl->subtype;
    if(geoSource->getCheckFileInfo()->decPtr == 0) callDec = true;
  }
 */
@@ -764,13 +766,13 @@ int main(int argc, char** argv)
  if(domain->solInfo().newmarkBeta == 0) {
    if(domain->solInfo().inertiaLumping == 2) {
      domain->solInfo().solvercntl->subtype = 1;
-     domain->solInfo().getFetiInfo().solvertype = FetiInfo::sparse;
+     domain->solInfo().getFetiInfo().local_cntl->subtype = FetiInfo::sparse;
      if(parallel_proc || domain_decomp) domain->solInfo().solvercntl->type = 2;
    }
    else {
      domain->solInfo().inertiaLumping = 1; // diagonal lumping
      domain->solInfo().solvercntl->subtype = 10;
-     domain->solInfo().getFetiInfo().solvertype = FetiInfo::diagonal;
+     domain->solInfo().getFetiInfo().local_cntl->subtype = FetiInfo::diagonal;
      if(parallel_proc || domain_decomp) domain->solInfo().solvercntl->type = 3;
    }
 

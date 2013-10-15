@@ -2,7 +2,6 @@
 #include <Solvers.d/KProject.h>
 #include <Math.d/FullSquareMatrix.h>
 #include <Math.d/SparseMatrix.h>
-#include <Solvers.d/Rbm.h>
 #include <Solvers.d/Preconditioner.h>
 #include <Math.d/Vector.h>
 #include <Timers.d/GetTime.h>
@@ -15,39 +14,37 @@ template<class Scalar,
          class AnyVector,
          class AnyOperator>
 GenPCGSolver<Scalar, AnyVector, AnyOperator>
-::GenPCGSolver(AnyOperator *_A, int precno, int _maxitr, double _tolpcg, int _maxVecStorage, Rbm *_rbm) 
+::GenPCGSolver(AnyOperator *_A, int _precno, int _maxitr, double _tolpcg, int _maxVecStorage) 
 : BasePCG<Scalar, AnyVector, AnyOperator, KrylovProjector<Scalar,AnyVector>, Preconditioner<AnyVector> >  
   (_maxitr, _tolpcg, _A)
 {
- // Preconditioner<AnyVector>* prec; 
-  if(precno == 0)
-    this->prec = new NullPreconditioner<AnyVector>();
-  else if(precno == 1)
-    this->prec = new DiagPrec<AnyVector,AnyOperator>(_A);
-//  else if(precno == 2) 
-//    this->prec = new BlockDiagPrec<Scalar,AnyVector,AnyOperator>(_A);
-  else if(precno == 2)
-    this->prec = new ScalarBlockDiagPrec<Scalar,AnyVector,AnyOperator>(_A); 
-  
+  precno     = _precno;
   kryflg     = 0;
   initflg    = 0;
   reorthoflg = 0;
-  numrbm     = 0;
-
-  // initialize rbm information
-  rbm    = _rbm;
-  if(rbm)
-    numrbm = rbm->numRBM();
-  else
-    numrbm = 0;
 
   this->solveTime = 0.0;
 
   if(_maxVecStorage)
-//    this->proj = new KrylovProjector<Scalar,AnyVector>(_A->dim(),_maxVecStorage); 
     this->proj = new KrylovProjector<Scalar,AnyVector>(_A->neqs(),_maxVecStorage); 
 }
 
+template<class Scalar,
+         class AnyVector,
+         class AnyOperator>
+void
+GenPCGSolver<Scalar, AnyVector, AnyOperator>
+::initPrec()
+{
+  if(this->prec == 0) {
+    if(precno == 0)
+      this->prec = new NullPreconditioner<AnyVector>();
+    else if(precno == 1)
+      this->prec = new DiagPrec<AnyVector,AnyOperator>(this->A);
+    else if(precno == 2)
+      this->prec = new ScalarBlockDiagPrec<Scalar,AnyVector,AnyOperator>(this->A);
+  }
+}
 
 template<class Scalar,
          class AnyVector,
@@ -56,6 +53,7 @@ void
 GenPCGSolver<Scalar, AnyVector, AnyOperator>
 ::reSolve(AnyVector &rhs)
 {
+  initPrec();
   this->solveTime -= getTime(); this->memUsed -= memoryUsed();
   AnyVector sol(rhs.size());
   this->doSolve(rhs,sol);
@@ -88,6 +86,7 @@ void
 GenPCGSolver<Scalar, AnyVector, AnyOperator>
 ::solve(AnyVector &rhs, AnyVector &solution)
 {
+ initPrec();
  this->solveTime -= getTime(); this->memUsed -= memoryUsed();
  this->doSolve(rhs,solution);
  this->solveTime += getTime(); this->memUsed += memoryUsed();
@@ -140,6 +139,7 @@ void
 GenPCGSolver<Scalar, AnyVector, AnyOperator>
 ::reSolve(int nRHS, AnyVector *RHS)
 {
+ initPrec();
  this->solveTime -= getTime(); this->memUsed -= memoryUsed();
  AnyVector sol(RHS[0].size());
  for(int n=0; n<nRHS; ++n) {
@@ -148,36 +148,6 @@ GenPCGSolver<Scalar, AnyVector, AnyOperator>
    RHS[n] = sol;
  }
  this->solveTime += getTime(); this->memUsed += memoryUsed();
-}
-
-template<class Scalar,
-         class AnyVector,
-         class AnyOperator>
-void
-GenPCGSolver<Scalar, AnyVector, AnyOperator>
-::getRBMs(double *rigidBodyModes)
-{
-  rbm->getRBMs(rigidBodyModes);
-}
-
-template<class Scalar,
-         class AnyVector,
-         class AnyOperator>
-void
-GenPCGSolver<Scalar, AnyVector, AnyOperator>
-::getRBMs(Vector *rigidBodyModes)
-{
-  rbm->getRBMs(rigidBodyModes);
-}
-
-template<class Scalar,
-         class AnyVector,
-         class AnyOperator>
-void
-GenPCGSolver<Scalar, AnyVector, AnyOperator>
-::getRBMs(VectorSet& rigidBodyModes)
-{
- rbm->getRBMs(rigidBodyModes);
 }
 
 template<class Scalar,

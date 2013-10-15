@@ -71,8 +71,8 @@ GenFetiSolver<Scalar>::makeDistGtG(int *glToLoc)
  // parallel sparse solver, we do not renumber, it is taken care of
  // by Padma's DSC package.
  int renumMethod=0;
- if(fetiInfo->gtgSolver == FetiInfo::skyline ||
-    fetiInfo->gtgSolver == FetiInfo::sparse)
+ if(fetiInfo->coarse_cntl->subtype == FetiInfo::skyline ||
+    fetiInfo->coarse_cntl->subtype == FetiInfo::sparse)
     renumMethod=1;
 
  // Construct Coarse Problem renumbering if it hasn't already been done
@@ -112,12 +112,12 @@ GenFetiSolver<Scalar>::makeDistGtG(int *glToLoc)
  if(numrbms > 0 ) {
 
    // This could be put into a switch/case structure!
-   double tolerance = fetiInfo->grbm_tol; // default = 1.0E-06
+   double tolerance = fetiInfo->coarse_cntl->trbm;
    GenBLKSparseMatrix<Scalar> *BLKMatrix = 0;
    GenSkyMatrix<Scalar> *sky = 0;
    DSCsolver *dscSolver = 0;
    GenBlockSky<Scalar> *BLKsky = 0;
-   if(fetiInfo->gtgSolver == FetiInfo::skyline) {
+   if(fetiInfo->coarse_cntl->subtype == FetiInfo::skyline) {
      //filePrint(stderr," Selected Skyline for 1st level Coarse\n");
      times.memoryGtGsky -= threadManager->memoryUsed();
      if(subToSub->csize() == numCPUs) {
@@ -133,7 +133,7 @@ GenFetiSolver<Scalar>::makeDistGtG(int *glToLoc)
      }
      opControl->sparseGtG = sky;
      times.memoryGtGsky += threadManager->memoryUsed();
-   } else if(fetiInfo->gtgSolver == FetiInfo::blocksky) {
+   } else if(fetiInfo->coarse_cntl->subtype == FetiInfo::blocksky) {
        if(subToSub->csize() == numCPUs) {
          int firstAlpha = eqNums->firstdof(myCPU);
          int nRow       = eqNums->weight(myCPU);
@@ -143,19 +143,19 @@ GenFetiSolver<Scalar>::makeDistGtG(int *glToLoc)
        }
          times.memoryGtGsky += threadManager->memoryUsed();
          opControl->sparseGtG = BLKsky;
-   } else if(fetiInfo->gtgSolver == FetiInfo::sparse) {
+   } else if(fetiInfo->coarse_cntl->subtype == FetiInfo::sparse) {
      times.memoryGtGsky -= threadManager->memoryUsed();
      if(subToSub->csize() == numCPUs) {
        fprintf(stderr," Selected Esmond BLK Sparse for 1st level Coarse\n");
        int firstAlpha = eqNums->firstdof(myCPU);
        int nRow       = eqNums->weight(myCPU);
        BLKMatrix = new GenDistBLKSparse<Scalar>(coarseConnect, eqNums, tolerance,
-                                                *fetiInfo->gtg_cntl, firstAlpha, nRow);
+                                                *fetiInfo->coarse_cntl, firstAlpha, nRow);
        times.memoryGtGDelete = 8*BLKMatrix->size();
        //filePrint(stderr," Deleted GtG Memory: %14.5f Mb\n",
        //          times.memoryGtGDelete/(1024.0*1024.0));
      } else
-       BLKMatrix = new GenBLKSparseMatrix<Scalar>(coarseConnect, eqNums, tolerance, *fetiInfo->gtg_cntl);
+       BLKMatrix = new GenBLKSparseMatrix<Scalar>(coarseConnect, eqNums, tolerance, *fetiInfo->coarse_cntl);
      times.memoryGtGsky += threadManager->memoryUsed();
      opControl->sparseGtG = BLKMatrix;
    } else {
@@ -183,9 +183,9 @@ GenFetiSolver<Scalar>::makeDistGtG(int *glToLoc)
    double t1 = getTime();
 
    // Unify the matrix (global sum)
-   if(fetiInfo->gtgSolver == FetiInfo::skyline) {
+   if(fetiInfo->coarse_cntl->subtype == FetiInfo::skyline) {
      sky->unify(fetiCom);
-   } else if (fetiInfo->gtgSolver == FetiInfo::sparse) {
+   } else if (fetiInfo->coarse_cntl->subtype == FetiInfo::sparse) {
      BLKMatrix->unify(fetiCom);
    } else {
      // New Distributed solver (Padma)
@@ -197,14 +197,14 @@ GenFetiSolver<Scalar>::makeDistGtG(int *glToLoc)
 
    // sky->print(debugFile);
 
-   if(fetiInfo->gtgSolver == FetiInfo::skyline) {
+   if(fetiInfo->coarse_cntl->subtype == FetiInfo::skyline) {
      startTimerMemory(times.pfactor, times.memoryGtGsky);
      // for debuging purposes
      sky->parallelFactor();
      stopTimerMemory(times.pfactor, times.memoryGtGsky);
      glNumRBM  = sky->numRBM();
      GtGsolver = sky;
-   } else if (fetiInfo->gtgSolver == FetiInfo::sparse) {
+   } else if (fetiInfo->coarse_cntl->subtype == FetiInfo::sparse) {
      startTimerMemory(times.pfactor, times.memoryGtGsky);
      BLKMatrix->factor();
      stopTimerMemory(times.pfactor, times.memoryGtGsky);

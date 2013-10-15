@@ -17,13 +17,14 @@ class GlobalCCtSolver : public CCtSolver<Scalar>
   private:
     SimpleNumberer *mpcEqNums;
     GenSolver<Scalar> *CCtsolver;
+    GenSparseMatrix<Scalar> *CCtsparse;
     void computeSubContributionToGlobalCCt(int i, SimpleNumberer *mpcEqNums);
     void extractMpcResidual(int iSub, GenDistrVector<Scalar> &v, GenVector<Scalar> &mpcv1);
     void insertMpcResidual(int iSub, GenDistrVector<Scalar> &v, GenVector<Scalar> &mpcv1);
 };
 
 #ifdef _TEMPLATE_FIX_
-  #include<Feti.d/CCtSolver.d/GlobalCCt.C>
+  #include <Feti.d/CCtSolver.d/GlobalCCt.C>
 #endif
                                                                                                                                               
 #endif

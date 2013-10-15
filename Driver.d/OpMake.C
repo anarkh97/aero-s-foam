@@ -1,6 +1,5 @@
 #include <typeinfo>
 #include <Utils.d/dbg_alloca.h>
-#include <Math.d/Skyline.d/SkyMatrix.h>
 #include <Math.d/SparseMatrix.h>
 #include <Math.d/DBSparseMatrix.h>
 #ifdef USE_EIGEN3
@@ -9,14 +8,10 @@
 #include <Math.d/NBSparseMatrix.h>
 #include <Math.d/CuCSparse.h>
 #include <Math.d/BLKSparseMatrix.h>
-#include <Math.d/Skyline.d/BlockSky.h>
 #include <Solvers.d/PCGSolver.h>
 #include <Solvers.d/CRSolver.h>
 #include <Solvers.d/BCGSolver.h>
 #include <Solvers.d/GmresSolver.h>
-#include <Solvers.d/Spooles.h>
-#include <Solvers.d/Mumps.h>
-#include <Solvers.d/GoldfarbIdnani.h>
 #include <Timers.d/GetTime.h>
 #include <Utils.d/Memory.h>
 #include <Driver.d/GeoSource.h>
@@ -32,9 +27,7 @@
 #include <Element.d/MpcElement.d/MpcElement.h>
 #include <Utils.d/MFTT.h>
 #include <Utils.d/MathUtils.h>
-
-#include <Rom.d/GalerkinProjectionSolver.h>
-#include <Rom.d/EiGalerkinProjectionSolver.h>
+#include <Solvers.d/SolverFactory.h>
 #include <Control.d/ControlInterface.h>
 
 extern Sfem* sfem;
@@ -822,23 +815,6 @@ Domain::constructEiSparseMatrix(DofSetArray *c_dsa, Connectivity *nodeToNode, bo
 #endif
 }
 
-template<typename Scalar, typename SolverClass>
-GenEiSparseMatrix<Scalar,SolverClass> *
-Domain::constructGoldfarb(DofSetArray *c_dsa, Connectivity *nodeToNode)
-{
-#ifdef USE_EIGEN3
-  if(c_dsa == 0) c_dsa = Domain::c_dsa;
-  if(nodeToNode == 0) nodeToNode = Domain::nodeToNode;
-  Connectivity *nodeToNodeG = nodeToNode;
-  if(g_dsa) delete g_dsa;
-  g_dsa = new ConstrainedDSA(*dsa, *Domain::c_dsa);
-  typename WrapEiSparseMat<Scalar,SolverClass>::CtorData baseArg(nodeToNodeG, dsa, g_dsa);
-  return new GoldfarbIdnaniQpSolver<WrapEiSparseMat<Scalar,SolverClass>, Scalar>(baseArg, Domain::c_dsa, sinfo.solvercntl->goldfarb_tol, sinfo.solvercntl->goldfarb_check);
-#else
- cerr << "USE_EIGEN3 is not defined\n";
-#endif
-}
-
 template<class Scalar>
 GenNBSparseMatrix<Scalar> *
 Domain::constructNBSparseMatrix()
@@ -867,37 +843,6 @@ Domain::constructCCSparse(DofSetArray *dof_set_array)
     dof_set_array = c_dsa;
   return new GenCuCSparse<Scalar>(nodeToNode, dsa, dof_set_array->getConstrndNum(),
 		                  dof_set_array->getConstrndNum());
-}
-
-template<class Scalar>
-GenSkyMatrix<Scalar> *
-Domain::constructSkyMatrix(DofSetArray *DSA, Rbm *rbm)
-{
-  if(DSA==0) DSA=c_dsa;
-  if(!sinfo.getDirectMPC())
-    return new GenSkyMatrix<Scalar>(nodeToNode, DSA, sinfo.solvercntl->trbm, rbm);
-  else {
-    if(nodeToNodeDirect) delete nodeToNodeDirect;
-    nodeToNodeDirect = prepDirectMPC();
-    DOFMap *baseMap = new DOFMap[dsa->size()];
-    DOFMap *eqMap = new DOFMap[DSA->size()];
-    // TODO Examine when DSA can be different from c_dsa
-    if(MpcDSA && sinfo.isNonLin()) delete MpcDSA;
-    MpcDSA = makeMaps(dsa, c_dsa, baseMap, eqMap);
-    typename WrapSkyMat<Scalar>::CtorData baseArg(nodeToNodeDirect, MpcDSA, sinfo.solvercntl->trbm, /*rbm*/ (Rbm*)NULL); // TODO consider rbm issue
-    int nMappedEq = DSA->size();
-    return
-      new MappedAssembledSolver<WrapSkyMat<Scalar>, Scalar>(baseArg, dsa->size(), baseMap,
-          nMappedEq, eqMap, c_dsa);
-  }
-}
-
-template<class Scalar>
-GenBlockSky<Scalar> *
-Domain::constructBlockSky(DofSetArray *DSA)
-{
-  if(DSA==0) DSA=c_dsa;
-  return new GenBlockSky<Scalar>(nodeToNode, DSA, sinfo.solvercntl->trbm);
 }
 
 template<class Scalar>
@@ -941,76 +886,6 @@ Domain::constructBLKSparseMatrix(DofSetArray *DSA, Rbm *rbm)
 }
 
 template<class Scalar>
-GenPCGSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar> > *
-Domain::constructPCGSolver(GenSparseMatrix<Scalar> *K, Rbm *rbm)
-{
-  return new GenPCGSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar> >
-                                (K, sinfo.solvercntl->precond, sinfo.solvercntl->maxit, sinfo.solvercntl->tol, sinfo.solvercntl->maxvecsize, rbm);
-}
-
-template<class Scalar>
-GenSpoolesSolver<Scalar> *
-Domain::constructSpooles(ConstrainedDSA *DSA)
-{
-  if(DSA == 0) DSA = c_dsa;
-  if(!sinfo.getDirectMPC())
-    return new GenSpoolesSolver<Scalar>(nodeToNode, dsa, DSA, *sinfo.solvercntl);
-  else {
-    if(nodeToNodeDirect) delete nodeToNodeDirect;
-    nodeToNodeDirect = prepDirectMPC();
-    DOFMap *baseMap = new DOFMap[dsa->size()];
-    DOFMap *eqMap = new DOFMap[DSA->size()];
-    // TODO Examine when DSA can be different from c_dsa
-    if(MpcDSA && sinfo.isNonLin()) delete MpcDSA;
-    MpcDSA = makeMaps(dsa, c_dsa, baseMap, eqMap);
-    typename WrapSpooles<Scalar>::CtorData baseArg(nodeToNodeDirect, dsa, MpcDSA, *sinfo.solvercntl);
-    int nMappedEq = DSA->size();
-    return
-      new MappedAssembledSolver<WrapSpooles<Scalar>, Scalar>(baseArg, dsa->size(), baseMap,
-          nMappedEq, eqMap, c_dsa);
-  }
-}
-
-template<class Scalar>
-GenMumpsSolver<Scalar> *
-Domain::constructMumps(ConstrainedDSA *DSA, Rbm *, FSCommunicator *com)
-{
-  if(DSA == 0) DSA = c_dsa;
-  if(!sinfo.getDirectMPC())
-    return new GenMumpsSolver<Scalar>(nodeToNode, dsa, DSA, *sinfo.solvercntl, com);
-  else {
-    if(nodeToNodeDirect) delete nodeToNodeDirect;
-    nodeToNodeDirect = prepDirectMPC();
-    DOFMap *baseMap = new DOFMap[dsa->size()];
-    DOFMap *eqMap = new DOFMap[DSA->size()];
-    // TODO Examine when DSA can be different from c_dsa
-    if(MpcDSA && sinfo.isNonLin()) delete MpcDSA;
-    MpcDSA = makeMaps(dsa, c_dsa, baseMap, eqMap);
-    typename WrapMumps<Scalar>::CtorData baseArg(nodeToNodeDirect, dsa, MpcDSA, *sinfo.solvercntl, com);
-    int nMappedEq = DSA->size();
-    return
-      new MappedAssembledSolver<WrapMumps<Scalar>, Scalar>(baseArg, dsa->size(), baseMap,
-          nMappedEq, eqMap, c_dsa);
-  }
-}
-
-template<class Scalar>
-Rom::GenGalerkinProjectionSolver<Scalar> *
-Domain::constructGalerkinProjectionSolver()
-{
-  return new Rom::GenGalerkinProjectionSolver<Scalar>(nodeToNode, dsa, c_dsa, sinfo.solvercntl->pivot);
-}
-
-#ifdef USE_EIGEN3
-template<class Scalar>
-Rom::GenEiSparseGalerkinProjectionSolver<Scalar> *
-Domain::constructEiSparseGalerkinProjectionSolver()
-{
-  return new Rom::GenEiSparseGalerkinProjectionSolver<Scalar>(nodeToNode, dsa, c_dsa);
-}
-#endif
-
-template<class Scalar>
 void
 Domain::buildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Ccoef,
                  Rbm *rbm, FullSquareMatrix *kelArray, FullSquareMatrix *melArray,
@@ -1023,13 +898,6 @@ Domain::buildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Ccoe
  if(geoSource->isShifted() || Mcoef != 0 || Ccoef != 0) rbm = 0; // PJSA: don't pass
                                                                  // geometric rbms to
                                                                  // solver in this case
-// RT: 032010 based on Phil's input
-// if(!sinfo.inpc) {
-//   if (allOps.sysSolver) delete allOps.sysSolver;
-//   allOps.sysSolver = 0;
-// }
-
- //GenSparseMatrix<Scalar> *spm = 0;
  allOps.spm = 0;
  SfemBlockMatrix<Scalar> *sfbm = 0;
  int L = 1;
@@ -1040,12 +908,11 @@ Domain::buildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Ccoe
    int P = sfem->getP();
    ndim = sfem->getndim();
    int output_order = sfem->getoutput_order();
-   if(sinfo.inpc)  sfbm = new SfemBlockMatrix<Scalar>(L,n,P,ndim,output_order);
+   if(sinfo.inpc) sfbm = new SfemBlockMatrix<Scalar>(L,n,P,ndim,output_order);
  }
 
-// for(int i=0; i<L; ++i) {
  for(int i=0; i<ndim+1; ++i) {
-   if(sinfo.inpc)  domain->setNewProperties(i);
+   if(sinfo.inpc) domain->setNewProperties(i);
    if(sinfo.noninpc && i>0) break;
    switch(sinfo.solvercntl->type) {
     default:
@@ -1126,11 +993,14 @@ Domain::rebuildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Cc
                    Rbm *rbm, FullSquareMatrix *kelArray, FullSquareMatrix *melArray,
                    FullSquareMatrix *celArray, bool factorize)
 {
+ allOps.spm->zeroAll();
+ makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,allOps.spm,kelArray,melArray,celArray);
+
+ if(factorize) allOps.sysSolver->factor();
+
+/*
  GenSolver<Scalar> *systemSolver;
  GenSparseMatrix<Scalar> *spm;
- if(geoSource->isShifted() || Mcoef != 0 || Ccoef != 0) rbm = 0; // PJSA: don't pass
-                                                                 // geometric rbms to
-                                                                 // solver in this case
 
  switch(sinfo.solvercntl->type) {
 
@@ -1258,6 +1128,7 @@ Domain::rebuildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Cc
    {
      systemSolver->factor();
    }
+*/
 }
 
 template<class Scalar>
@@ -1379,134 +1250,9 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
                  double Ccoef, GenSolver<Scalar> *&systemSolver, GenSparseMatrix<Scalar> *&spm,
                  Rbm *rbm, FullSquareMatrix *kelArray, FullSquareMatrix *melArray, FullSquareMatrix *celArray)
 {
-  switch(sinfo.solvercntl->subtype) {
-    case 0:
-      spm = constructSkyMatrix<Scalar>(c_dsa,rbm);
-      makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray,celArray);
-      systemSolver  = (GenSkyMatrix<Scalar>*) spm;
-      break;
-    default:
-    case 1:
-      spm = constructBLKSparseMatrix<Scalar>(c_dsa, rbm);
-      spm->zeroAll();
-      makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray,celArray);
-      systemSolver   = (GenBLKSparseMatrix<Scalar>*) spm;
-      break;
-    case 2:
-      spm = constructBlockSky<Scalar>(c_dsa);
-      makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray,celArray);
-      systemSolver  = (GenBlockSky<Scalar>*) spm;
-      break;
-#ifdef USE_EIGEN3
-    case 3:
-      spm = constructEiSparseMatrix<Scalar,Eigen::SimplicialLLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >(c_dsa);
-      makeSparseOps<Scalar>(allOps, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray, celArray);
-      systemSolver  = (GenEiSparseMatrix<Scalar,Eigen::SimplicialLLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >*) spm;
-      break;
-    case 4:
-      spm = constructEiSparseMatrix<Scalar,Eigen::SimplicialLDLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >(c_dsa);
-      makeSparseOps<Scalar>(allOps, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray, celArray);
-      systemSolver  = (GenEiSparseMatrix<Scalar,Eigen::SimplicialLDLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >*) spm;
-      break;
-#ifdef EIGEN_SPARSELU_SUPPORT
-    case 15:
-      spm = constructEiSparseMatrix<Scalar,Eigen::SparseLU<Eigen::SparseMatrix<Scalar>,Eigen::COLAMDOrdering<int> > >(c_dsa, nodeToNode, false);
-      makeSparseOps<Scalar>(allOps, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray, celArray);
-      systemSolver  = (GenEiSparseMatrix<Scalar,Eigen::SparseLU<Eigen::SparseMatrix<Scalar>,Eigen::COLAMDOrdering<int> > >*) spm;
-    break;
-#endif
-    case 17:
-      spm = constructEiSparseMatrix<Scalar,Eigen::SparseQR<Eigen::SparseMatrix<Scalar>,Eigen::COLAMDOrdering<int> > >(c_dsa, nodeToNode, false);
-      makeSparseOps<Scalar>(allOps, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray, celArray);
-      systemSolver  = (GenEiSparseMatrix<Scalar,Eigen::SparseQR<Eigen::SparseMatrix<Scalar>,Eigen::COLAMDOrdering<int> > >*) spm;
-    break;
-#ifdef EIGEN_CHOLMOD_SUPPORT
-    case 5:
-      spm = constructEiSparseMatrix<Scalar,Eigen::CholmodDecomposition<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >(c_dsa);
-      makeSparseOps<Scalar>(allOps, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray, celArray);
-      systemSolver  = (GenEiSparseMatrix<Scalar,Eigen::CholmodDecomposition<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >*) spm;
-      break;
-#endif
-#ifdef EIGEN_UMFPACK_SUPPORT
-    case 6:
-      spm = constructEiSparseMatrix<Scalar,Eigen::UmfPackLU<Eigen::SparseMatrix<Scalar> > >(c_dsa, nodeToNode, false);
-      makeSparseOps<Scalar>(allOps, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray, celArray);
-      systemSolver  = (GenEiSparseMatrix<Scalar,Eigen::UmfPackLU<Eigen::SparseMatrix<Scalar> > >*) spm;
-      break;
-#endif
-#ifdef EIGEN_SPQR_SUPPORT
-    case 16:
-      spm = constructEiSparseMatrix<Scalar,Eigen::SPQR<Eigen::SparseMatrix<Scalar> > >(c_dsa, nodeToNode, false);
-      makeSparseOps<Scalar>(allOps, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray, celArray);
-      systemSolver  = (GenEiSparseMatrix<Scalar,Eigen::SPQR<Eigen::SparseMatrix<Scalar> > >*) spm;
-      break;
-#endif
-#ifdef EIGEN_SUPERLU_SUPPORT
-    case 7:
-      spm = constructEiSparseMatrix<Scalar,Eigen::SuperLU<Eigen::SparseMatrix<Scalar> > >(c_dsa, nodeToNode, false);
-      makeSparseOps<Scalar>(allOps, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray, celArray);
-      systemSolver  = (GenEiSparseMatrix<Scalar,Eigen::SuperLU<Eigen::SparseMatrix<Scalar> > >*) spm;
-      break;
-#endif
-#endif
-#ifdef USE_SPOOLES
-    case 8:
-      spm = constructSpooles<Scalar>(c_dsa);
-      makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray,celArray);
-      systemSolver   = (GenSpoolesSolver<Scalar>*) spm;
-      break;
-#endif
-#ifdef USE_MUMPS
-    case 9:
-#ifdef DISTRIBUTED
-      spm = constructMumps<Scalar>(c_dsa, rbm, new FSCommunicator(structCom));
-#else
-      spm = constructMumps<Scalar>(c_dsa, rbm);
-#endif
-      makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray,celArray);
-      systemSolver   = (GenMumpsSolver<Scalar>*) spm;
-      break;
-#endif
-    case 10:
-      //filePrint(stderr," ... Diagonal Solver is Selected    ...\n");
-      spm = new GenDiagMatrix<Scalar>(c_dsa); // XML NEED TO DEAL WITH RBMS
-      makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray,celArray);
-      systemSolver   = (GenDiagMatrix<Scalar>*) spm;
-      break;
-    case 12:
-      //filePrint(stderr," ... POD-Galerkin Solver is Selected...\n");
-      {
-        Rom::GenGalerkinProjectionSolver<Scalar> * solver = constructGalerkinProjectionSolver<Scalar>();
-        spm = solver;
-        spm->zeroAll();
-        makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray,celArray);
-        systemSolver = solver;
-      }
-      break;
-#ifdef USE_EIGEN3
-   case 13:
-      //filePrint(stderr," ... POD-Galerkin Solver is Selected...\n");
-      {
-        Rom::GenEiSparseGalerkinProjectionSolver<Scalar> * solver = constructEiSparseGalerkinProjectionSolver<Scalar>();
-        spm = solver;
-        spm->zeroAll();
-        makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray,celArray);
-        systemSolver = solver;
-      }
-      break;
-    case 14:
-#ifdef USE_EIGEN_CHOLMOD
-      spm = constructGoldfarb<Scalar,Eigen::CholmodDecomposition<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >(c_dsa);
-      makeSparseOps<Scalar>(allOps, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray, celArray);
-      systemSolver  = (GenEiSparseMatrix<Scalar, Eigen::CholmodDecomposition<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >*) spm;
-#else
-      spm = constructGoldfarb<Scalar,Eigen::SimplicialLLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >(c_dsa);
-      makeSparseOps<Scalar>(allOps, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray, celArray);
-      systemSolver  = (GenEiSparseMatrix<Scalar, Eigen::SimplicialLLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >*) spm;
-#endif
-      break;
-#endif
-  }
+  systemSolver = GenSolverFactory<Scalar>::getFactory()->createSolver(nodeToNode, dsa, c_dsa, *sinfo.solvercntl, spm, rbm,
+                                                                      allOps.spp, allOps.prec, new FSCommunicator(structCom));
+  makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray,celArray);
 }
 
 template<class Scalar>
@@ -1515,80 +1261,11 @@ Domain::makeDynamicOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mco
                  double Ccoef, GenSolver<Scalar> *&systemSolver, GenSparseMatrix<Scalar> *&spm,
                  Rbm *rbm, FullSquareMatrix *kelArray, FullSquareMatrix *melArray, FullSquareMatrix *celArray)
 {
-  switch(sinfo.solvercntl->iterSubtype) {
-    case 2:
-      filePrint(stderr," ... Node Based Sparse Matrix       ...\n");
-      spm = constructNBSparseMatrix<Scalar>();
-      break;
-    default:
-    case 3:
-      filePrint(stderr," ... Dof Based Sparse Matrix        ...\n");
-      spm = constructDBSparseMatrix<Scalar>();
-      break;
-#ifdef USE_EIGEN3
-    case 4:
-      filePrint(stderr," ... Eigen 3 Sparse Matrix          ...\n");
-      spm = constructEiSparseMatrix<Scalar,Eigen::SimplicialLLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >();
-      break;
-#endif
-  }
-  switch(sinfo.solvercntl->precond) {
-    case 1:
-      filePrint(stderr," ... Diagonal Preconditioner        ...\n");
-      GenDiagMatrix<Scalar> *diag = new GenDiagMatrix<Scalar>(c_dsa);
-      allOps.prec = (GenSolver<Scalar> *) diag;
-      allOps.spp = (GenSparseMatrix<Scalar> *) diag;
-      break;
-  }
+  systemSolver = GenSolverFactory<Scalar>::getFactory()->createSolver(nodeToNode, dsa, c_dsa, *sinfo.solvercntl, spm, rbm,
+                                                                      allOps.spp, allOps.prec, new FSCommunicator(structCom));
   makeSparseOps<Scalar>(allOps, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray, celArray);
   if(allOps.prec) allOps.prec->factor();
-  if(sinfo.inpc) { systemSolver = 0; return; }
-  switch(sinfo.solvercntl->iterType) {
-    default:
-    case 0: {
-      filePrint(stderr," ... CG Solver is Selected          ...\n");
-      if (sinfo.solvercntl->precond==3) {
-        GenBLKSparseMatrix<Scalar> *prec_solver = constructBLKSparseMatrix<Scalar>(c_dsa, rbm);
-        prec_solver->zeroAll();
-        AllOps<Scalar> allOps_tmp;
-        makeSparseOps<Scalar>(allOps_tmp,Kcoef,Mcoef,Ccoef,prec_solver,kelArray,melArray,celArray);
-        prec_solver->factor();
-        spm->setMeanSolver(prec_solver);
-      }
-
-      GenPCGSolver<Scalar,GenVector<Scalar>, GenSparseMatrix<Scalar> >
-        *pcgSolver = constructPCGSolver<Scalar>(spm, rbm);
-      systemSolver = pcgSolver;
-      break;
-    }
-    case 4: {
-      filePrint(stderr," ... Bi-CG Solver is Selected       ...\n");
-      GenBCGSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar>, GenSolver<Scalar> >
-        *bcgSolver = new GenBCGSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar>, GenSolver<Scalar> >(sinfo.solvercntl->maxit, sinfo.solvercntl->tol, spm, allOps.prec);
-      systemSolver = bcgSolver;
-      break;
-    }
-    case 5: {
-      filePrint(stderr," ... CR Solver is Selected          ...\n");
-      GenCRSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar>, GenSolver<Scalar> >
-        *crSolver = new GenCRSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar>, GenSolver<Scalar> >(sinfo.solvercntl->maxit, sinfo.solvercntl->tol, spm, allOps.prec);
-      systemSolver = crSolver;
-      break;
-    }
-    case 1 : {
-      filePrint(stderr," ... GMRES Solver is Selected       ...\n");
-      GmresSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar>, GenSolver<Scalar>, GenSolver<Scalar> >
-        *gmresSolver = new  GmresSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar>, GenSolver<Scalar>, GenSolver<Scalar> >
-         (sinfo.solvercntl->maxit, sinfo.solvercntl->tol, spm, &GenSparseMatrix<Scalar>::matvec, allOps.prec, &GenSolver<Scalar>::apply, NULL, &GenSolver<Scalar>::solve, (FSCommunicator *) NULL);
-      if(sinfo.solvercntl->maxvecsize > 0) gmresSolver->maxortho = sinfo.solvercntl->maxvecsize;
-      gmresSolver->verbose = verboseFlag;
-      gmresSolver->printNumber = sinfo.solvercntl->fetiInfo.printNumber;
-      systemSolver = gmresSolver;
-      break;
-    }
-  }
 }
-
 
 template<class Scalar>
 void

@@ -466,6 +466,7 @@ class GenSubDomain : public BaseSub
 
  private:
   GenSolver<Scalar> *localCCtsolver;
+  GenSparseMatrix<Scalar> *localCCtsparse;
   Scalar *diagCCt;
   int lengthCCtData;
   int *CCtrow, *CCtcol;

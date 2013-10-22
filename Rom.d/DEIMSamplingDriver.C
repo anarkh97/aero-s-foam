@@ -142,7 +142,7 @@ DEIMSamplingDriver::computeInterpIndices(VecBasis &forceBasis, std::vector<int> 
   
   int forcePodSizeMax = domain->solInfo().forcePodSize;
   readInBasis(forceBasis, BasisId::FORCE, BasisId::SNAPSHOTS,forcePodSizeMax);  
-
+#ifdef USE_EIGEN3
   Eigen::Map< Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > forceMatrix(forceBasis.data(),forceBasis.vectorSize(),forceBasis.vectorCount());
 
   int maxCoeffSlot;
@@ -154,12 +154,13 @@ DEIMSamplingDriver::computeInterpIndices(VecBasis &forceBasis, std::vector<int> 
   for(int i = 1; i < forceMatrix.cols(); ++i){ //loop starts at 1 i.e. the 2nd column
     filePrint(stderr,"\r %4.2f%% complete", double(i)/double(forceBasis.vectorCount())*100.);
 
+    //allocate space for P^T*U and P^T*u_i
     Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> Umasked(maskIndices.size(),maskIndices.size());
     Eigen::Matrix<double,Eigen::Dynamic,1>              u_i_masked(maskIndices.size());
 
     for(int j = 0; j < maskIndices.size(); ++j) {//select proper rows and columns of force basis
       Umasked.row(j) = forceMatrix.block(maskIndices[j],0,1,maskIndices.size()); //(P^T*U) is square
-      u_i_masked.row(j) = forceMatrix.block(maskIndices[j],i,1,1);//mask next column over
+      u_i_masked(j) = forceMatrix(maskIndices[j],i);//mask next column over
     }
 
     Eigen::FullPivLU< Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > luOfUmasked(Umasked); //invert row reduced basis
@@ -167,7 +168,7 @@ DEIMSamplingDriver::computeInterpIndices(VecBasis &forceBasis, std::vector<int> 
     Eigen::Matrix<double,Eigen::Dynamic,1> residual(forceBasis.vectorSize());
 
     if(luOfUmasked.isInvertible())
-      residual = forceMatrix.col(i) - forceMatrix.block(0,0,forceBasis.vectorSize(),maskIndices.size())*luOfUmasked.inverse()*u_i_masked;
+      residual = forceMatrix.col(i) - forceMatrix.leftCols(maskIndices.size())*luOfUmasked.inverse()*u_i_masked;
     else
       throw std::runtime_error("... Matrix Not Invertible ...");
 
@@ -178,7 +179,7 @@ DEIMSamplingDriver::computeInterpIndices(VecBasis &forceBasis, std::vector<int> 
 
   Eigen::Map< Eigen::Matrix<int,Eigen::Dynamic,Eigen::Dynamic> > indSol(maskIndices.data(),maskIndices.size(),1);
   std::cout << "selected indices:" << indSol.transpose() << std::endl;
-
+#endif
 }
 
 void
@@ -192,7 +193,7 @@ DEIMSamplingDriver::computeAndWriteDEIMBasis(VecBasis &forceBasis, std::vector<i
     maxDeimBasisSize = maskIndices.size();
 
   VecBasis deimBasis(podBasis_.vectorCount(),podBasis_.vectorInfo());
-
+#ifdef USE_EIGEN3
   Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > podMap(podBasis_.data(),podBasis_.size(), podBasis_.vectorCount());
   Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > forceMap(forceBasis.data(),forceBasis.size(), forceBasis.vectorCount());
   Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > deimMap(deimBasis.data(),deimBasis.size(), deimBasis.vectorCount());
@@ -209,7 +210,7 @@ DEIMSamplingDriver::computeAndWriteDEIMBasis(VecBasis &forceBasis, std::vector<i
   Eigen::Matrix<double,Eigen::Dynamic,1> invSVs(SVDOfUmasked.nonzeroSingularValues());
   for(int i = 0; i != invSVs.rows(); i++) invSVs(i) = 1.0/SVDOfUmasked.singularValues()(i);
   std::cout << "inverted singular values =\n" << invSVs << std::endl; 
-  compressedDBTranspose = podMap.transpose()*forceMap.block(0,0,rowReducedFM.rows(),maxDeimBasisSize)*SVDOfUmasked.matrixV()*invSVs.asDiagonal()*SVDOfUmasked.matrixU().transpose();
+  compressedDBTranspose = podMap.transpose()*forceMap.leftCols(maxDeimBasisSize)*SVDOfUmasked.matrixV()*invSVs.asDiagonal()*SVDOfUmasked.matrixU().transpose();
   //we are computing the transpose of the basis
 
   std::cout << "compressed Basis" << std::endl;
@@ -228,7 +229,7 @@ DEIMSamplingDriver::computeAndWriteDEIMBasis(VecBasis &forceBasis, std::vector<i
 
   std::vector<double> dummySVs; 
   writeBasisToFile(deimBasis, dummySVs, BasisId::FORCE, BasisId::ROB);
-
+#endif
 }
 
 void
@@ -398,6 +399,7 @@ DEIMSamplingDriver::buildForceArray(VecBasis &forceBasis, const VecBasis &displa
 
 void DEIMSamplingDriver::OrthoForceSnap(VecBasis &forceBasis,std::vector<double> &SVs)
 {
+#ifdef USE_EIGEN3
   std::cout << "... Orthogonalizting Snapshots ..." << std::endl;
   SVs.resize(forceBasis.numVectors());
   Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,1> > SingularValueMap(SVs.data(),forceBasis.numVectors());
@@ -405,6 +407,7 @@ void DEIMSamplingDriver::OrthoForceSnap(VecBasis &forceBasis,std::vector<double>
   Eigen::JacobiSVD<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > ForceSVD(ForceMap, Eigen::ComputeThinU);
   ForceMap = ForceSVD.matrixU();
   SingularValueMap = ForceSVD.singularValues();
+#endif
 }
 
 int DEIMSamplingDriver::elementCount() const {
@@ -464,8 +467,8 @@ DEIMSamplingDriver::readAndProjectSnapshots(BasisId::Type type, const int vector
       in >> data;
       assert(in);
       if(skipCounter == skipFactor) {
-        expand(podBasis, reduce(podBasis, snapshot, podComponents), config[offset+count]);
-    //    config[offset+count] = snapshot;
+    //    expand(podBasis, reduce(podBasis, snapshot, podComponents), config[offset+count]);
+        config[offset+count] = snapshot;
         timeStamps.push_back(data.first);
         skipCounter = 1;
         ++count;

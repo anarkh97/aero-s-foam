@@ -393,7 +393,7 @@ def dComp(params):
     hostname = hostname.rstrip('\n')
     msg['Subject'] = 'Regression Test results from %s' % hostname
     msg['From'] = 'mpotts@'+hostname
-    msg['To'] = "mpotts@drc.com"
+    msg['To'] = "dcvelobrew@gmail.com"
     msg['Date'] = formatdate(localtime=True)
     f = 'Discrepancies.pdf'
     if(os.path.exists("Discrepancies.pdf")):
@@ -406,7 +406,7 @@ def dComp(params):
     else: 
       msg.attach( MIMEText('There were no discrepancies in the last regression test'))
     smtp = smtplib.SMTP("localhost")
-    send_to = "mpotts@drc.com"
+    send_to = "dcvelobrew@gmail.com"
     send_from = "mpotts@ahpcrcfe.stanford.edu"
     smtp.sendmail(send_from, send_to, msg.as_string())
     smtp.close()

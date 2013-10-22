@@ -95,6 +95,9 @@ FileNameInfo::basisFileName(const BasisId &id, int i) const {
     else if(id.level() == 1) {
       builder << domain->solInfo().readInROBorModes;
     }
+    else if(id.level() == 2) {
+      builder << domain->solInfo().SVDoutput;
+    }
   }
 
   std::string mystrg;

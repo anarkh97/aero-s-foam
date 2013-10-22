@@ -37,12 +37,12 @@ DistrExplicitLumpedPodProjectionNonLinDynamic::updateState(double dt_n_h, DistrV
 
   DistrVector temp1(solVecInfo());
   temp1 = dt_n_h*v_n_h;
-  normalizedBasis_.projectUp( temp1, *d_n);
+  normalizedBasis_.expand( temp1, *d_n);
   execParal1R(decDomain->getNumSub(),this,&DistrExplicitLumpedPodProjectionNonLinDynamic::subUpdateWeightedNodesOnly,*d_n);
   d_n1 += temp1;
 
   if(haveRot) {
-    normalizedBasis_.projectUp(v_n_h, *v_n);
+    normalizedBasis_.expand(v_n_h, *v_n);
     execParal1R(decDomain->getNumSub(),this,&DistrExplicitLumpedPodProjectionNonLinDynamic::subSetVelocityWeightedNodesOnly,*v_n);
   }
 }
@@ -72,7 +72,7 @@ DistrExplicitLumpedPodProjectionNonLinDynamic::getInternalForce(DistrVector &d, 
     dynMat->M->mult(toto, *a_n);
   }
 
-  normalizedBasis_.projectDown(*a_n,f);
+  normalizedBasis_.reduce(*a_n,f);
   //  the residual is computed in this step to avoid projecting into the reduced coordinates twice
 
 }

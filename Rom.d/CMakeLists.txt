@@ -5,6 +5,7 @@ ADD_LIBRARY( Rom
   BasisInputFile.C
   BasisOutputFile.C
   BasisOrthoDriver.C
+  DEIMSamplingDriver.C 
   CheckNonLinDynamic.C
   CholeskyUtils.C
   DistrBasisFile.C
@@ -15,6 +16,7 @@ ADD_LIBRARY( Rom
   DistrExplicitPodProjectionNonLinDynamicBase.C
   DistrExplicitPodProjectionNonLinDynamic.C
   DistrExplicitLumpedPodProjectionNonLinDynamic.C
+  DistrExplicitDEIMPodProjectionNonLinDynamic.C
   DistrROMPostProcessingDriver.C
   DistrNodeDof6Buffer.C
   DistrVecBasis.C

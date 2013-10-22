@@ -646,14 +646,20 @@ private:
 public:
   // POD-ROM elementary lumping weights
   typedef std::map<int, double> ElementWeightMap;
-  typedef std::map<int, std::vector<int> > ElementNodeMap;
+  typedef std::vector<std::pair<int, int> > NodeDofPairVec;
+
   ElementWeightMap::const_iterator elementLumpingWeightBegin() const { return elementLumpingWeights_.begin(); }
   ElementWeightMap::const_iterator elementLumpingWeightEnd()   const { return elementLumpingWeights_.end();   }
+
+  NodeDofPairVec::const_iterator nodeDofSlotBegin() const { return nodeDofSlotPairVec_.begin(); }
+  NodeDofPairVec::const_iterator nodeDofSlotEnd()   const { return nodeDofSlotPairVec_.end();   }
   
   void setElementLumpingWeight(int iele, double value);
+  void setSampleNodesAndSlots(int node, int dof);
 
 private:
   ElementWeightMap elementLumpingWeights_;
+  NodeDofPairVec nodeDofSlotPairVec_;
 
 protected:
   void closeOutputFileImpl(int fileIndex);

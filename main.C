@@ -52,6 +52,7 @@ using namespace std;
 #include <Rom.d/DistrExplicitPodProjectionNonLinDynamic.h>
 #include <Rom.d/DistrExplicitPodProjectionNonLinDynamicBase.h>
 #include <Rom.d/DistrExplicitLumpedPodProjectionNonLinDynamic.h>
+#include <Rom.d/DistrExplicitDEIMPodProjectionNonLinDynamic.h>
 #ifdef DISTRIBUTED
   #include <Pita.d/Old.d/PitaNonLinDynam.h>
   #include <Pita.d/Old.d/NLDistrTimeDecompSolver.h>
@@ -1006,6 +1007,16 @@ int main(int argc, char** argv)
          else { // POD ROM
            if (domain->solInfo().galerkinPodRom) {
              if (domain->solInfo().elemLumpPodRom) {
+               if(domain->solInfo().DEIMPodRom){
+                if (domain->solInfo().reduceFollower)
+                   filePrint(stderr, " ... POD: ROM with stiffness & follower interpolation ...\n");
+                else
+                   filePrint(stderr, " ... POD: ROM with stiffness interpolation ...\n");
+                Rom::DistrExplicitDEIMPodProjectionNonLinDynamic dynamProb(domain);
+                DynamicSolver < MDDynamMat, DistrVector, Rom::DistrExplicitPodPostProcessor,
+                                Rom::DistrExplicitDEIMPodProjectionNonLinDynamic, double > dynamSolver(&dynamProb);
+                dynamSolver.solve();
+               } else {
                if (domain->solInfo().reduceFollower)
                  filePrint(stderr, " ... POD: ROM with stiffness & follower lumping ...\n");
 	           else
@@ -1013,7 +1024,7 @@ int main(int argc, char** argv)
                Rom::DistrExplicitLumpedPodProjectionNonLinDynamic dynamProb(domain);
                DynamicSolver < MDDynamMat, DistrVector, Rom::DistrExplicitPodPostProcessor,
                                Rom::DistrExplicitLumpedPodProjectionNonLinDynamic, double > dynamSolver(&dynamProb);
-               dynamSolver.solve();
+               dynamSolver.solve();}
              } else {
                filePrint(stderr, " ... POD: Explicit Galerkin         ...\n");
                Rom::DistrExplicitPodProjectionNonLinDynamic dynamProb(domain);
@@ -1453,6 +1464,14 @@ int main(int argc, char** argv)
          else if (domain->solInfo().snapProjPodRom) {
            filePrint(stderr, " ... POD: Post-processing of Projected Snapshots ...\n");
            driver.reset(snapshotProjectionDriverNew(domain));
+         }
+         else if (domain->solInfo().snapProjPodRom) {
+           filePrint(stderr, " ... POD: Post-processing of Projected Snapshots ...\n");
+           driver.reset(snapshotProjectionDriverNew(domain));
+         }
+         else if (domain->solInfo().DEIMBasisPod) {
+           filePrint(stderr, " ... POD: DEIM Basis Construction ...\n");
+           driver.reset(deimSamplingDriverNew(domain));
          }
          else {
            filePrint(stderr, " ... Unknown Analysis Type          ...\n");

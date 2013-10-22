@@ -647,12 +647,12 @@ PodProjectionNonLinDynamic::readRestartFile(Vector &d_n, Vector &v_n, Vector &a_
     NonLinDynamic::readRestartFile(d_n_Big, v_n_Big, a_n_Big, v_p_Big, *geomState_Big);
 
     const GenVecBasis<double> &projectionBasis = dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis();
-    projectionBasis.projectDown(d_n_Big, d_n);
-    projectionBasis.projectDown(v_n_Big, v_n);
-    projectionBasis.projectDown(a_n_Big, a_n);
-    projectionBasis.projectDown(v_p_Big, v_p);
+    projectionBasis.reduce(d_n_Big, d_n);
+    projectionBasis.reduce(v_n_Big, v_n);
+    projectionBasis.reduce(a_n_Big, a_n);
+    projectionBasis.reduce(v_p_Big, v_p);
     geomState_Big->get_tot_displacement(q_Big);
-    projectionBasis.projectDown(q_Big, geomState.q);
+    projectionBasis.reduce(q_Big, geomState.q);
   }
 }
 
@@ -667,10 +667,10 @@ PodProjectionNonLinDynamic::getInitState(Vector &d, Vector &v, Vector &a, Vector
   int aeroAlg = NonLinDynamic::getInitState(d_Big, v_Big, a_Big, v_p_Big);
 
   const GenVecBasis<double> &projectionBasis = dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis();
-  projectionBasis.projectDown(d_Big, d);
-  projectionBasis.projectDown(v_Big, v);
-  projectionBasis.projectDown(a_Big, a);
-  projectionBasis.projectDown(v_p_Big, v_p);
+  projectionBasis.reduce(d_Big, d);
+  projectionBasis.reduce(v_Big, v);
+  projectionBasis.reduce(a_Big, a);
+  projectionBasis.reduce(v_p_Big, v_p);
 
   return aeroAlg;
 }
@@ -701,7 +701,7 @@ PodProjectionNonLinDynamic::getConstForce(Vector &constantForce)
     NonLinDynamic::getConstForce(constantForce_Big);
 
     const GenVecBasis<double> &projectionBasis = dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis();
-    projectionBasis.projectDown(constantForce_Big, constantForce);
+    projectionBasis.reduce(constantForce_Big, constantForce);
   }
 }
 
@@ -715,13 +715,13 @@ PodProjectionNonLinDynamic::getExternalForce(Vector &rhs, Vector &constantForce,
          aeroForce_Big(NonLinDynamic::solVecInfo());
 
   const GenVecBasis<double> &projectionBasis = dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis();
-  projectionBasis.projectUp(rhs, rhs_Big);
-  projectionBasis.projectUp(aeroForce, aeroForce_Big);
+  projectionBasis.expand(rhs, rhs_Big);
+  projectionBasis.expand(aeroForce, aeroForce_Big);
   
   NonLinDynamic::getExternalForce(rhs_Big, constantForce_Big, tIndex, t, geomState_Big, elementInternalForce, 
                                   aeroForce_Big, localDelta);
 
-  projectionBasis.projectDown(rhs_Big, rhs);
+  projectionBasis.reduce(rhs_Big, rhs);
   rhs += constantForce;
 }
 
@@ -743,15 +743,15 @@ PodProjectionNonLinDynamic::formRHScorrector(Vector &inc_displacement, Vector &v
          rhs_Big(NonLinDynamic::solVecInfo());
 
   const GenVecBasis<double> &projectionBasis = dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis();
-  projectionBasis.projectUp(inc_displacement, inc_displacement_Big);
-  projectionBasis.projectUp(velocity, velocity_Big);
-  projectionBasis.projectUp(acceleration, acceleration_Big);
-  projectionBasis.projectUp(residual, residual_Big);
+  projectionBasis.expand(inc_displacement, inc_displacement_Big);
+  projectionBasis.expand(velocity, velocity_Big);
+  projectionBasis.expand(acceleration, acceleration_Big);
+  projectionBasis.expand(residual, residual_Big);
 
   NonLinDynamic::formRHScorrector(inc_displacement_Big, velocity_Big, acceleration_Big,
                                   residual_Big, rhs_Big, geomState_Big, localDelta);
 
-  projectionBasis.projectDown(rhs_Big, rhs);
+  projectionBasis.reduce(rhs_Big, rhs);
   return rhs.norm();
 }
 
@@ -765,14 +765,14 @@ PodProjectionNonLinDynamic::formRHSpredictor(Vector &velocity, Vector &accelerat
          rhs_Big(NonLinDynamic::solVecInfo());
 
   const GenVecBasis<double> &projectionBasis = dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis();
-  projectionBasis.projectUp(velocity, velocity_Big);
-  projectionBasis.projectUp(acceleration, acceleration_Big);
-  projectionBasis.projectUp(residual, residual_Big);
+  projectionBasis.expand(velocity, velocity_Big);
+  projectionBasis.expand(acceleration, acceleration_Big);
+  projectionBasis.expand(residual, residual_Big);
 
   NonLinDynamic::formRHSpredictor(velocity_Big, acceleration_Big, residual_Big, rhs_Big, *geomState_Big,
                                   midtime, localDelta);
 
-  projectionBasis.projectDown(rhs_Big, rhs);
+  projectionBasis.reduce(rhs_Big, rhs);
 }
 
 void
@@ -785,12 +785,12 @@ PodProjectionNonLinDynamic::formRHSinitializer(Vector &fext, Vector &velocity, V
   refState_Big = new GeomState(*geomState_Big);
 
   const GenVecBasis<double> &projectionBasis = dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis();
-  projectionBasis.projectUp(fext, fext_Big);
-  projectionBasis.projectUp(velocity, velocity_Big);
+  projectionBasis.expand(fext, fext_Big);
+  projectionBasis.expand(velocity, velocity_Big);
 
   NonLinDynamic::formRHSinitializer(fext_Big, velocity_Big, elementInternalForce, *geomState_Big, rhs_Big, refState_Big);
 
-  projectionBasis.projectDown(rhs_Big, rhs);
+  projectionBasis.reduce(rhs_Big, rhs);
 }
 
 ModalGeomState*
@@ -815,11 +815,11 @@ PodProjectionNonLinDynamic::updateStates(ModalGeomState *refState, ModalGeomStat
          vel_Big(NonLinDynamic::solVecInfo()),
          acc_Big(NonLinDynamic::solVecInfo());
   const GenVecBasis<double> &projectionBasis = dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis();
-  projectionBasis.projectUp(geomState.q, q_Big);
+  projectionBasis.expand(geomState.q, q_Big);
   geomState_Big->explicitUpdate(domain->getNodes(), q_Big);
-  projectionBasis.projectUp(geomState.vel, vel_Big);
+  projectionBasis.expand(geomState.vel, vel_Big);
   geomState_Big->setVelocity(vel_Big);
-  projectionBasis.projectUp(geomState.acc, acc_Big);
+  projectionBasis.expand(geomState.acc, acc_Big);
   geomState_Big->setAcceleration(acc_Big);
 
   domain->updateStates(refState_Big, *geomState_Big, allCorot);
@@ -833,13 +833,13 @@ PodProjectionNonLinDynamic::getStiffAndForce(ModalGeomState &geomState, Vector &
   Vector q_Big(NonLinDynamic::solVecInfo()),
          residual_Big(NonLinDynamic::solVecInfo());
   const GenVecBasis<double> &projectionBasis = dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis();
-  projectionBasis.projectUp(geomState.q, q_Big);
+  projectionBasis.expand(geomState.q, q_Big);
   geomState_Big->explicitUpdate(domain->getNodes(), q_Big);
-  projectionBasis.projectUp(residual, residual_Big);
+  projectionBasis.expand(residual, residual_Big);
 
   NonLinDynamic::getStiffAndForce(*geomState_Big, residual_Big, elementInternalForce, t, refState_Big);
 
-  projectionBasis.projectDown(residual_Big, residual);
+  projectionBasis.reduce(residual_Big, residual);
   return residual.norm();
 }
 
@@ -860,10 +860,10 @@ PodProjectionNonLinDynamic::dynamCommToFluid(ModalGeomState *geomState, ModalGeo
          bkVp_Big(NonLinDynamic::solVecInfo());
   GeomState *bkGeomState_Big = NULL;
   const GenVecBasis<double> &projectionBasis = dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis();
-  projectionBasis.projectUp(velocity, velocity_Big);
-  projectionBasis.projectUp(bkVelocity, bkVelocity_Big);
-  projectionBasis.projectUp(vp, vp_Big);
-  projectionBasis.projectUp(bkVp, bkVp_Big);
+  projectionBasis.expand(velocity, velocity_Big);
+  projectionBasis.expand(bkVelocity, bkVelocity_Big);
+  projectionBasis.expand(vp, vp_Big);
+  projectionBasis.expand(bkVp, bkVp_Big);
 
   NonLinDynamic::dynamCommToFluid(geomState_Big, bkGeomState_Big, velocity_Big, bkVelocity_Big, vp_Big, bkVp_Big, step, parity, aeroAlg);
 }
@@ -879,11 +879,11 @@ PodProjectionNonLinDynamic::dynamOutput(ModalGeomState *geomState, Vector &veloc
          aeroF_Big(NonLinDynamic::solVecInfo()),
          acceleration_Big(NonLinDynamic::solVecInfo());
   const GenVecBasis<double> &projectionBasis = dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis();
-  projectionBasis.projectUp(velocity, velocity_Big);
-  projectionBasis.projectUp(vp, vp_Big);
-  projectionBasis.projectUp(force, force_Big);
-  projectionBasis.projectUp(aeroF, aeroF_Big);
-  projectionBasis.projectUp(acceleration, acceleration_Big);
+  projectionBasis.expand(velocity, velocity_Big);
+  projectionBasis.expand(vp, vp_Big);
+  projectionBasis.expand(force, force_Big);
+  projectionBasis.expand(aeroF, aeroF_Big);
+  projectionBasis.expand(acceleration, acceleration_Big);
 
   // XXX the velocity_Big and acceleration_Big and Psidot and Psiddot
   NonLinDynamic::dynamOutput(geomState_Big, velocity_Big, vp_Big, time, step, force_Big, aeroF_Big, acceleration_Big, refState_Big);

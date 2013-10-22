@@ -1376,6 +1376,16 @@ TRAIL [a-zA-Z]*
 "STDV"|"stdv" { yylval.ival = 2; return NDTYPE; }
 "PDF"|"pdf" { yylval.ival = 3; return NDTYPE; }
 
+"CONFOR"|"ConFor"|"confor"                { return REBUILDFORCE; }
+
+"SNSLOT"|"SnSlot"|"snslot"                { return SAMPNODESLOT; }
+
+"FPODRB"|"FPODRb"|"fpodrb"                { return FORCEROB; }
+ 
+"svdfrc"|"SvdFrc"|"svdfrc"		  { return SVDFORCESNAP; }
+
+"DEIM"|"Deim"|"deim"                      { return DEIMINDICES; }
+
 "ROBC"|"RobC"|"robc" 			  { return SVDTOKEN; } 
 
 "MNORMA"|"MNorma"|"mnorma"		  { return NORMALIZETOKEN; }

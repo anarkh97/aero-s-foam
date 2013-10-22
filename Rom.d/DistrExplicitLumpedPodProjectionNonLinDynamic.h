@@ -22,13 +22,15 @@ private:
   void buildPackedElementWeights();
   void subUpdateWeightedNodesOnly(int iSub, DistrVector &v);
   void subSetVelocityWeightedNodesOnly(int iSub, DistrVector &v);
-  void subTransformWeightedNodesOnly(int iSub, DistrVector &v, int type);
-  void subGetWeightedInternalForceOnly(int iSub, DistrVector &f, double &t, int &tIndex);
   void subInitWeightedStiffOnly(int iSub);
   void subBuildPackedElementWeights(int iSub);
 
   std::vector<std::map<int, double> > packedElementWeights_;
   std::vector<std::vector<int> > packedWeightedNodes_;
+
+protected:
+  void subGetWeightedInternalForceOnly(int iSub, DistrVector &f, double &t, int &tIndex);
+  void subTransformWeightedNodesOnly(int iSub, DistrVector &v, int type);
 
   SubDOp *K;
 };

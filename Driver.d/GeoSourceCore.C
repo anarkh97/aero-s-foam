@@ -4451,6 +4451,11 @@ void GeoSource::setElementLumpingWeight(int iele, double value) {
   elementLumpingWeights_[iele] = value;
 }
 
+void GeoSource::setSampleNodesAndSlots(int node, int dof){
+//  nodeDofSlotMap_[node] = dof; 
+  nodeDofSlotPairVec_.push_back(std::make_pair<int,int>(node,dof));
+}
+
 ControlLawInfo::ControlLawInfo()
 {
   fileName = routineName = 0;

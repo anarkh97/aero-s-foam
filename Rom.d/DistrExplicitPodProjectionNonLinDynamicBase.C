@@ -260,7 +260,7 @@ DistrExplicitPodPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dyn
              }
              else if(oinfo[iOut].type == OutputInfo::Acceleration || (oinfo[iOut].angularouttype == OutputInfo::total && oinfo[iOut].rescaling == false)) {
                if(!AccProjected) {
-                 SensorBasis->projectUp2(distState.getAccel(), *AccSensorValues);
+                 SensorBasis->expand2(distState.getAccel(), *AccSensorValues);
                  AccProjected = true;
                }
                execParal3R(decDomain->getNumSub(), this, &DistrExplicitPodPostProcessor::subPrintSensorValues, *AccSensorValues, &oinfo[iOut], &t);
@@ -278,7 +278,7 @@ DistrExplicitPodPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dyn
              }
              else if(oinfo[iOut].type == OutputInfo::Displacement || (oinfo[iOut].rotvecouttype == OutputInfo::Euler && oinfo[iOut].rescaling == false)) {
                if(!DispProjected) {
-                 SensorBasis->projectUp2(distState.getDisp(), *DispSensorValues);
+                 SensorBasis->expand2(distState.getDisp(), *DispSensorValues);
                  DispProjected = true;
                }
                execParal3R(decDomain->getNumSub(), this, &DistrExplicitPodPostProcessor::subPrintSensorValues, *DispSensorValues, &oinfo[iOut], &t);
@@ -296,7 +296,7 @@ DistrExplicitPodPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dyn
              }
              else if(oinfo[iOut].type == OutputInfo::Velocity || (oinfo[iOut].angularouttype == OutputInfo::total && oinfo[iOut].rescaling == false)) {
                if(!VelProjected) {
-                 SensorBasis->projectUp2(distState.getVeloc(), *VelSensorValues);
+                 SensorBasis->expand2(distState.getVeloc(), *VelSensorValues);
                  VelProjected = true;
                }
                execParal3R(decDomain->getNumSub(), this, &DistrExplicitPodPostProcessor::subPrintSensorValues, *VelSensorValues, &oinfo[iOut], &t);
@@ -405,7 +405,7 @@ DistrExplicitPodProjectionNonLinDynamicBase::reducedVecInfo() {
 void 
 DistrExplicitPodProjectionNonLinDynamicBase::printFullNorm(DistrVector &v) {
 
-  normalizedBasis_.projectUp(v,*tempVec);
+  normalizedBasis_.expand(v,*tempVec);
 
   filePrint(stderr,"%1.4e\n",tempVec->norm());
 }
@@ -421,10 +421,10 @@ DistrExplicitPodProjectionNonLinDynamicBase::getInitState(SysState<DistrVector> 
   DistrVector &_a_n = _curState.getAccel();
   DistrVector &_v_p = _curState.getPrevVeloc();
 
-  normalizedBasis_.projectDown( *d_n, _d_n);
-  normalizedBasis_.projectDown( *v_n, _v_n);
-  normalizedBasis_.projectDown( *a_n, _a_n);
-  normalizedBasis_.projectDown( *v_p, _v_p);
+  normalizedBasis_.reduce( *d_n, _d_n);
+  normalizedBasis_.reduce( *v_n, _v_n);
+  normalizedBasis_.reduce( *a_n, _a_n);
+  normalizedBasis_.reduce( *v_p, _v_p);
 }
 
 void 
@@ -434,7 +434,7 @@ DistrExplicitPodProjectionNonLinDynamicBase::updateState(double dt_n_h, DistrVec
   DistrVector temp1(solVecInfo());
   temp1 = dt_n_h*v_n_h;
 
-  normalizedBasis_.projectUp( temp1, *d_n); 
+  normalizedBasis_.expand( temp1, *d_n); 
 
   geomState->update(*d_n, 2);
 
@@ -442,7 +442,7 @@ DistrExplicitPodProjectionNonLinDynamicBase::updateState(double dt_n_h, DistrVec
 
   if(haveRot) { // currently we only need to project the velocity up when there are rotation dofs
                 // int the future, there may be other cases in which this is also necessary, e.g. viscoelastic materials
-    normalizedBasis_.projectUp(v_n_h, *v_n);
+    normalizedBasis_.expand(v_n_h, *v_n);
     geomState->setVelocity(*v_n, 2);
   }
 }
@@ -463,7 +463,7 @@ void DistrExplicitPodProjectionNonLinDynamicBase::getConstForce(DistrVector& v)
     //we really don't need to project down here since cnst_fBig is stored inside the probDesc class
     //just a formality. 
     MultiDomainDynam::getConstForce(*cnst_fBig);
-    normalizedBasis_.projectDown(*cnst_fBig,v);
+    normalizedBasis_.reduce(*cnst_fBig,v);
   }
   cnst_fBig->zero();
 }
@@ -484,7 +484,7 @@ DistrExplicitPodProjectionNonLinDynamicBase::getInternalForce(DistrVector &d, Di
     dynMat->M->mult(toto, *a_n);
   }
 
-  normalizedBasis_.projectDown(*a_n,f); 
+  normalizedBasis_.reduce(*a_n,f); 
 }
 
 void

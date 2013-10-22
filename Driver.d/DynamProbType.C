@@ -844,7 +844,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
     fint += tmp2;
   }
   a_n = fext - fint;
-  handleForce(*probDesc, a_n);
+  handleForce(*probDesc, fint);
   dynOps.dynMat->reSolve(a_n);
 
   if(domain->tdenforceFlag()) { // Contact corrector step: a^0 += M^{-1}*Fctc
@@ -964,7 +964,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
          fint.linAdd(1.0, tmp1);
       }
       a_n.linC(1.0, fext, -1.0, fint);
-      handleForce(*probDesc, a_n);
+      handleForce(*probDesc, fint);
 
       dynOps.dynMat->reSolve(a_n);//*************************************
 

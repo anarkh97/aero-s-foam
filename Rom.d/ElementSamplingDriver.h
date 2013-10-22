@@ -25,6 +25,8 @@ typedef GenVector<double> Vector;
 
 namespace Rom {
 void outputMeshFile(const FileNameInfo &fileInfo, const MeshDesc &mesh, const int podVectorCount);
+void outputFullWeights(const FileNameInfo &fileInfo, const Vector &weights, const std::vector<int> &elemIds);
+std::string getMeshFilename(const FileNameInfo &fileInfo);
 
 template<typename MatrixBufferType = std::vector<double>, typename SizeType = size_t>
 class ElementSamplingDriver : public SingleDomainDynamic, public DriverInterface {

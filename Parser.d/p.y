@@ -106,7 +106,7 @@
 %token SLOSH SLGRAV SLZEM SLZEMFILTER 
 %token PDIR HEFSB HEFRS HEINTERFACE  // Added for HEV Problem, EC, 20080512
 %token SNAPFI PODROB TRNVCT OFFSET ORTHOG SVDTOKEN CONVERSIONTOKEN CONVFI SAMPLING SNAPSHOTPROJECT PODSIZEMAX REFSUBSTRACT TOLER OUTOFCORE NORMALIZETOKEN FNUMBER SNAPWEIGHT ROBFI STAVCT VELVCT ACCVCT CONWEPCFG
-%token VECTORNORM LOCALTOLERANCE
+%token VECTORNORM LOCALTOLERANCE REBUILDFORCE SAMPNODESLOT FORCEROB DEIMINDICES SVDFORCESNAP
 
 %type <complexFDBC> AxiHD
 %type <complexFNBC> AxiHN
@@ -180,6 +180,7 @@ Component:
 	| Attributes
 	{}
         | Ellump
+        | SampNodeSlot
 	| Materials
         | Statics
 	| Pressure
@@ -324,6 +325,7 @@ Component:
         | AcmeControls
         | Constraints
 	| SvdToken
+        | DeimIndices
 	| Sampling
         | SnapshotProject
         | ConversionToken
@@ -2951,6 +2953,14 @@ Ellump:
         | Ellump REDFOL NewLine
         { domain->solInfo().reduceFollower = true;}
         ;
+
+SampNodeSlot:
+        SAMPNODESLOT NewLine
+        { domain->solInfo().DEIMPodRom = true; }
+        | SampNodeSlot Integer Integer NewLine
+        { geoSource->setSampleNodesAndSlots($2-1,$3);}
+        ;
+
 Pressure:
 	PRESSURE NewLine
         { $$ = 0; }
@@ -4241,6 +4251,14 @@ SvdOption:
   | ConwepConfig
   ;
 
+DeimIndices:
+   DEIMINDICES NewLine
+   { domain->solInfo().activatePodRom = true;
+     domain->solInfo().setProbType(SolverInfo::PodRomOffline);
+     domain->solInfo().DEIMBasisPod = true; } 
+   | DeimIndices SamplingOption NewLine
+   ;
+
 Sampling:
     SAMPLING NewLine 
   { domain->solInfo().activatePodRom = true; 
@@ -4293,6 +4311,19 @@ SamplingOption:
     domain->solInfo().PODerrornorm.push_back($4); }
   | LOCALTOLERANCE SWITCH
   { domain->solInfo().localTol = bool($2); }
+  | FORCEROB FNAME
+  { domain->solInfo().forcePodRomFile = $2; }
+  | FORCEROB FNAME Integer
+  { domain->solInfo().forcePodRomFile = $2;
+    domain->solInfo().forcePodSize = $3; }
+  | FORCEROB FNAME Integer Integer
+  { domain->solInfo().forcePodRomFile = $2; 
+    domain->solInfo().forcePodSize = $3; 
+    domain->solInfo().maxDeimBasisSize = $4; }
+  | REBUILDFORCE SWITCH 
+  { domain->solInfo().computeForceSnap = bool($2); }
+  | SVDFORCESNAP SWITCH
+  { domain->solInfo().orthogForceSnap = bool($2); }
   ;
 
 ConwepConfig:

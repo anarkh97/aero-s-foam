@@ -72,12 +72,14 @@ public:
   //void domainMatrixVecMult(GenVecType<Scalar> &, GenVecType<Scalar> &);
 
   VecType & project(VecType &, VecType &) const;
-  VecType & projectUp(VecType &, VecType &) const;
-  VecType & projectUp(std::vector<double> &, VecType &) const;
-  VecType & projectDown(VecType &, VecType &) const;
-  VecType & projectUp2(VecType &, VecType &) const;
+  VecType & expand(VecType &, VecType &) const;
+  VecType & expand(std::vector<double> &, VecType &) const;
+  VecType & reduce(VecType &, VecType &) const;
+  VecType & compressedVecReduce(VecType &, VecType &) const;
+  VecType & expand2(VecType &, VecType &) const;
   
   void makeSparseBasis(const std::vector<std::vector<int> > &, DofSetArray **);
+  void makeSparseBasis(const std::vector<std::vector<std::pair<int, int> > > &, DofSetArray **);
   void makeSparseBasis(const std::vector<int> &, DofSetArray *); 
   void makeSparseBasis2(const std::vector<std::vector<int> > &, DofSetArray **);
 

@@ -42,7 +42,7 @@ GenVecBasis<double, GenDistrVector>::project(GenDistrVector<double> &x, GenDistr
 
 template <>
 GenDistrVector<double> &
-GenVecBasis<double, GenDistrVector>::projectUp(GenDistrVector<double> &x, GenDistrVector<double> &_result) const {
+GenVecBasis<double, GenDistrVector>::expand(GenDistrVector<double> &x, GenDistrVector<double> &_result) const {
 #ifdef USE_EIGEN3
   Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > GenCoordinates(x.data(), x.size());
   Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > result(_result.data(), _result.size());
@@ -63,7 +63,7 @@ GenVecBasis<double, GenDistrVector>::projectUp(GenDistrVector<double> &x, GenDis
 
 template <>
 GenVector<double> &
-GenVecBasis<double, GenVector>::projectUp(GenVector<double> &x, GenVector<double> &_result) const {
+GenVecBasis<double, GenVector>::expand(GenVector<double> &x, GenVector<double> &_result) const {
 #ifdef USE_EIGEN3
   Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > GenCoordinates(x.data(), x.size());
   Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > result(_result.data(), _result.size());
@@ -75,7 +75,7 @@ GenVecBasis<double, GenVector>::projectUp(GenVector<double> &x, GenVector<double
 
 template <>
 GenDistrVector<double> &
-GenVecBasis<double, GenDistrVector>::projectUp2(GenDistrVector<double> &x, GenDistrVector<double> &_result) const {
+GenVecBasis<double, GenDistrVector>::expand2(GenDistrVector<double> &x, GenDistrVector<double> &_result) const {
 #ifdef USE_EIGEN3
   Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > GenCoordinates(x.data(), x.size());
   Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > result(_result.data(), _result.size());
@@ -96,7 +96,7 @@ GenVecBasis<double, GenDistrVector>::projectUp2(GenDistrVector<double> &x, GenDi
 
 template <>
 GenDistrVector<double> &
-GenVecBasis<double, GenDistrVector>::projectUp(std::vector<double> &x, GenDistrVector<double> &_result) const {
+GenVecBasis<double, GenDistrVector>::expand(std::vector<double> &x, GenDistrVector<double> &_result) const {
 #ifdef USE_EIGEN3
   //this instantiation is for the post processor, need to fix it to use GenDistrVector
   Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > GenCoordinates(x.data(), x.size());
@@ -110,17 +110,30 @@ GenVecBasis<double, GenDistrVector>::projectUp(std::vector<double> &x, GenDistrV
 
 template <>
 GenDistrVector<double> &
-GenVecBasis<double, GenDistrVector>::projectDown(GenDistrVector<double> &x, GenDistrVector<double> &_result) const {
+GenVecBasis<double, GenDistrVector>::compressedVecReduce(GenDistrVector<double> &x, GenDistrVector<double> &_result) const {
 #ifdef USE_EIGEN3
   Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > FullCoordinates(x.data(), x.size());
   Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > result(_result.data(), _result.size());
 // fix this portion so we can use the compressed Basis, its way faster but 
 // gives the wrong result, just use the sparse vec mult for now 
-  if(compressedKey.size() > 0) {
-    /*Eigen::VectorXd coordBuffer(compressedKey.size());
+    Eigen::VectorXd coordBuffer(compressedKey.size());
     for(int i = 0; i < compressedKey.size(); i++)
        coordBuffer(i) = FullCoordinates(compressedKey[i]); 
-    result = compressedBasis.transpose()*coordBuffer;*/
+    result = compressedBasis.transpose()*coordBuffer;
+  //each process gets a copy of reduced coordinates
+  if(structCom)
+    structCom->globalSum(result.size(), result.data());
+#endif 
+  return _result;
+}
+
+template <>
+GenDistrVector<double> &
+GenVecBasis<double, GenDistrVector>::reduce(GenDistrVector<double> &x, GenDistrVector<double> &_result) const {
+#ifdef USE_EIGEN3
+  Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > FullCoordinates(x.data(), x.size());
+  Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > result(_result.data(), _result.size());
+  if(compressedKey.size() > 0) {
     Eigen::SparseVector<double> sparsef(FullCoordinates.rows());
     for(int i = 0; i < FullCoordinates.rows(); i++){
       if(FullCoordinates(i) != 0){
@@ -133,13 +146,13 @@ GenVecBasis<double, GenDistrVector>::projectDown(GenDistrVector<double> &x, GenD
   //each process gets a copy of reduced coordinates
   if(structCom)
     structCom->globalSum(result.size(), result.data());
-#endif 
+#endif
   return _result;
 }
 
 template <>
 GenVector<double> &
-GenVecBasis<double, GenVector>::projectDown(GenVector<double> &x, GenVector<double> &_result) const {
+GenVecBasis<double, GenVector>::reduce(GenVector<double> &x, GenVector<double> &_result) const {
 #ifdef USE_EIGEN3
   Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > FullCoordinates(x.data(), x.size());
   Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > result(_result.data(), _result.size());
@@ -174,6 +187,31 @@ GenVecBasis<double, GenDistrVector>::makeSparseBasis(const std::vector<std::vect
       compressedBasis(i,j) = basis(compressedKey[i],j);
     }
   }
+#endif
+}
+
+template<>
+void
+GenVecBasis<double, GenDistrVector>::makeSparseBasis(const std::vector<std::vector<std::pair<int, int> > > & nodeVec, DofSetArray **dsa)
+{
+#ifdef USE_EIGEN3
+  int dof1, numdofs;
+
+  compressedKey.clear();
+  for(int n = 0; n < nodeVec.size(); n++) {
+    const std::vector<std::pair<int,int> > &subNVMap = nodeVec[n];
+    for(std::vector<std::pair<int,int> >::const_iterator it = subNVMap.begin(); it != subNVMap.end(); it++) {
+      dof1 = dsa[n]->firstdof(it->first);
+      compressedKey.push_back(vectors_[0].subOffset(n)+dof1+(it->second));
+    }
+  }
+
+  new (&compressedBasis) Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic>(compressedKey.size(), vectorCount());
+
+  for(int i = 0; i < compressedKey.size(); i++) {
+    compressedBasis.row(i) = basis.row(compressedKey[i]);
+  }
+//  std::cout << compressedBasis << std::endl;
 #endif
 }
 

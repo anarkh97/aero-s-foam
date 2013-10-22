@@ -222,14 +222,14 @@ DistrROMPostProcessingDriver::solve() {
               for (int j = 0; j < projectionSubspaceSize; j++) 
                 buffer[j] = reducedAccBuffer[counter*projectionSubspaceSize+j];
              
-              normalizedBasis_.projectUp(buffer, *fullAccBuffer);
+              normalizedBasis_.expand(buffer, *fullAccBuffer);
               break;
             case 1 :
 
               for (int j = 0; j < projectionSubspaceSize; j++)
                 buffer[j] = reducedDispBuffer[counter*projectionSubspaceSize+j];
 
-              normalizedBasis_.projectUp(buffer, *fullDispBuffer);
+              normalizedBasis_.expand(buffer, *fullDispBuffer);
               break;
             case 2 :
               if(counter != 0)
@@ -238,7 +238,7 @@ DistrROMPostProcessingDriver::solve() {
               for (int j = 0; j < projectionSubspaceSize; j++) 
                 buffer[j] = reducedVelBuffer[counter*projectionSubspaceSize+j];
 
-              normalizedBasis_.projectUp(buffer, *fullVelBuffer);
+              normalizedBasis_.expand(buffer, *fullVelBuffer);
               break;
             default :
               break; 

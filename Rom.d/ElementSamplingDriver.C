@@ -59,13 +59,17 @@ copy(const GenVector<Scalar> &v, OutputIterator target) {
 
 std::string
 getMeshFilename(const FileNameInfo &fileInfo) {
-  return fileInfo.prefix() + ".elementmesh.inc";
+//  return fileInfo.prefix() + ".elementmesh.inc";
+  std::string FName(domain->solInfo().reducedMeshFile, std::strlen(domain->solInfo().reducedMeshFile));
+  return FName + ".elementmesh.inc";
 }
 
 void
 outputMeshFile(const FileNameInfo &fileInfo, const MeshDesc &mesh, const int podVectorCount) {
   const std::ios_base::openmode mode = std::ios_base::out; 
   std::ofstream meshOut(getMeshFilename(fileInfo).c_str(), mode);
+  filePrint(stderr,"... writing Mesh File to %s\n", getMeshFilename(fileInfo).c_str());
+  meshOut.precision(std::numeric_limits<double>::digits10+1);
   std::string basisfile = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
   basisfile.append(".reduced");
   meshOut << "READMODE \"" << basisfile << "\" " << podVectorCount << "\n*\n";

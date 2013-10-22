@@ -39,11 +39,11 @@ LumpedPodProjectionNonLinDynamic::updateStates(ModalGeomState *refState, ModalGe
          vel_Big(NonLinDynamic::solVecInfo()),
          acc_Big(NonLinDynamic::solVecInfo());
   const GenVecBasis<double> &projectionBasis = dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis();
-  projectionBasis.projectUp(geomState.q, q_Big);
+  projectionBasis.expand(geomState.q, q_Big);
   geomState_Big->explicitUpdate(domain->getNodes(), q_Big);
-  projectionBasis.projectUp(geomState.vel, vel_Big);
+  projectionBasis.expand(geomState.vel, vel_Big);
   geomState_Big->setVelocity(vel_Big);
-  projectionBasis.projectUp(geomState.acc, acc_Big);
+  projectionBasis.expand(geomState.acc, acc_Big);
   geomState_Big->setAcceleration(acc_Big);
 
   domain->updateWeightedElemStatesOnly(packedElementWeights_, refState_Big, *geomState_Big, allCorot);

@@ -23,6 +23,7 @@
 #include <Utils.d/dofset.h>
 #include <Utils.d/DistHelper.h>
 
+#include <Eigen/Dense>
 #include <cmath>
 #include <utility>
 #include <algorithm>
@@ -147,8 +148,17 @@ DEIMSamplingDriver::computeInterpIndices(VecBasis &forceBasis, std::vector<int> 
 
   int maxCoeffSlot;
 
-  forceMatrix.col(0).maxCoeff(&maxCoeffSlot);
-  maskIndices.push_back(maxCoeffSlot);
+  {
+   Eigen::Matrix<double,Eigen::Dynamic,1> firstCol(forceMatrix.rows());
+   firstCol = forceMatrix.col(0);
+   //take absolute value of first column
+   for(int row = 0; row != firstCol.rows(); row++)
+     if(firstCol(row) < 0.0)
+       firstCol(row) = -1.0*firstCol(row);
+   //find maximum component
+   firstCol.maxCoeff(&maxCoeffSlot);
+   maskIndices.push_back(maxCoeffSlot);
+  }
 
   //start loop to compute mask indicies 
   for(int i = 1; i < forceMatrix.cols(); ++i){ //loop starts at 1 i.e. the 2nd column
@@ -171,6 +181,11 @@ DEIMSamplingDriver::computeInterpIndices(VecBasis &forceBasis, std::vector<int> 
       residual = forceMatrix.col(i) - forceMatrix.leftCols(maskIndices.size())*luOfUmasked.inverse()*u_i_masked;
     else
       throw std::runtime_error("... Matrix Not Invertible ...");
+
+    //take absolute value of residual vector
+    for(int row = 0; row != residual.rows(); row++)
+      if(residual(row) < 0.0)
+        residual(row) = -1.0*residual(row);
 
     residual.maxCoeff(&maxCoeffSlot); //find indice of maximum component
     maskIndices.push_back(maxCoeffSlot);

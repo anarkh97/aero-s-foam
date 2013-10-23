@@ -56,6 +56,7 @@ DistrExplicitDEIMPodProjectionNonLinDynamic::getInternalForce(DistrVector &d, Di
   *a_n = *fInt - *fExt;
    DistrVector dummy(solVecInfo());
 
+
   if(haveRot) {
     execParal2R(decDomain->getNumSub(),this,&DistrExplicitDEIMPodProjectionNonLinDynamic::subTransformWeightedNodesOnly,*a_n,3);
     fullMassSolver->reSolve(*a_n);

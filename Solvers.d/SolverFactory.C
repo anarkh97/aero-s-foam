@@ -337,7 +337,7 @@ GenSolverFactory<Scalar>::createSolver(Connectivity *con, DofSetArray *dsa, Cons
         case 0: {
           filePrint(stderr," ... CG Solver is Selected          ...\n");
           solver =  new GenPCGSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar> >
-                    (sparse, cntl.precond, cntl.maxit, cntl.tol, cntl.maxvecsize);
+                    (sparse, cntl.precond, cntl.maxit, cntl.tol, cntl.maxvecsize, cntl.verbose);
         } break;
         case 1 : {
           filePrint(stderr," ... GMRES Solver is Selected       ...\n");

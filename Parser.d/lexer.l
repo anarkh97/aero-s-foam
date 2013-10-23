@@ -505,13 +505,13 @@ TRAIL [a-zA-Z]*
 
 "spooles_scale"|"SPOOLES_SCALE"    { return SPOOLESSCALE; }
 
-"spooles_pivot"|"SPOOLES_PIVOT"    { return SPOOLESPIVOT; }
-
 "spooles_renum"|"SPOOLES_RENUM"    { return SPOOLESRENUM; }
 
 "sparse_maxsup"|"SPARSE_MAXSUP"    { return SPARSEMAXSUP; }
 
 "sparse_defblk"|"SPARSE_DEFBLK"    { return SPARSEDEFBLK; }
+
+"sparse_renum"|"SPARSE_RENUM"      { return SPARSERENUM; }
 
 "goldfarb_tol"|"GOLDFARB_TOL"      { return GOLDFARBTOL; }
 
@@ -620,7 +620,7 @@ TRAIL [a-zA-Z]*
 
 "tolb"[a-zA-Z]*|"TOLB"[a-zA-Z]*    { return TOLPCG; }
 
-"tolcr"|"TOLCR"    { return TOLPCG; }
+"tolcr"|"TOLCR"                    { return TOLPCG; }
 
 "tolg"[a-zA-Z]*|"TOLG"[a-zA-Z]*    { return TOLPCG; }
 

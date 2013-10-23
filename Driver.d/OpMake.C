@@ -952,7 +952,8 @@ Domain::buildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Ccoe
      case 0 : {
        filePrint(stderr," ... CG Solver is Selected           ...\n");
        allOps.sysSolver = new GenPCGSolver<Scalar, GenVector<Scalar>, SfemBlockMatrix<Scalar> >(sfbm, sinfo.solvercntl->precond, sinfo.solvercntl->maxit,
-                                                                                                sinfo.solvercntl->tol, sinfo.solvercntl->maxvecsize);
+                                                                                                sinfo.solvercntl->tol, sinfo.solvercntl->maxvecsize,
+                                                                                                sinfo.solvercntl->verbose);
        break;
      }
      case 4: {

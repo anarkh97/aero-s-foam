@@ -303,7 +303,7 @@ public:
     void distributeBCs(GenSubDomain<Scalar> *&, int *, int *gl2clNodeMap = 0);
   int getBC(BCond *, int, int *, BCond *&, int *gl2clNodeMap = 0);
   void augmentBC(int, BCond *, BCond *&, int &);
-  int getCPUMap(FILE *f, int);
+  int getCPUMap(FILE *f, Connectivity *);
   void createSingleCpuToSub(int numSub);
   int getSubCtrl(BCond *, int, BCond *&, int *, int *, int *&); //bin geo
   int getSubCtrl(BCond *, int, BCond *&, int, int *&); // text geo input

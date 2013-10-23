@@ -3401,6 +3401,24 @@ void GenSubDomain<Scalar>::setUserDefBC(double *usrDefDisp, double *usrDefVel, d
 
 template<class Scalar>
 void
+GenSubDomain<Scalar>::makeKccDofsExp(ConstrainedDSA *cornerEqs, int augOffset,
+                                     Connectivity *subToEdge, int mpcOffset, GlobalToLocalMap& nodeMap)
+{
+  int numC = numCoarseDofs();
+  if(cornerEqNums) delete [] cornerEqNums;
+  cornerEqNums = new int[numC];
+
+  // numbers the corner equations 
+  int offset = 0;
+  for(int i=0; i<numCRN; ++i) {
+    offset += cornerEqs->number(nodeMap[glCornerNodes[i]], cornerDofs[i].list(), cornerEqNums+offset);          
+  }
+  //std::cerr << "here in GenSubDomain<Scalar>::makeKccDofsExp, cornerEqNums = ";
+  //for(int i=0; i<numC; ++i) std::cerr << cornerEqNums[i] << " "; std::cerr << std::endl;
+}
+
+template<class Scalar>
+void
 GenSubDomain<Scalar>::makeKccDofs(DofSetArray *cornerEqs, int augOffset,
                                   Connectivity *subToEdge, int mpcOffset)
 {

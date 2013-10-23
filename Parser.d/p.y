@@ -91,7 +91,7 @@
 %token PRECNO PRECONDITIONER PRELOAD PRESSURE PRINTMATLAB PRINTNUMBER PROJ PIVOT PRECTYPE PRECTYPEID PICKANYCORNER PADEPIVOT PROPORTIONING PLOAD PADEPOLES POINTSOURCE PLANEWAVE PTOL PLANTOL PMAXIT PIECEWISE
 %token RADIATION RAYDAMP RBMFILTER RBMSET READMODE REBUILD RENUM RENUMBERID REORTHO RESTART RECONS RECONSALG REBUILDCCT RANDOM RPROP RNORM REVERSENORMALS RIGID ROTVECOUTTYPE RESCALING
 %token SCALING SCALINGTYPE STRDAMP SDETAFT SENSORS SOLVERCNTL SOLVERHANDLE SOLVERTYPE SHIFT
-%token SPOOLESTAU SPOOLESSEED SPOOLESMAXSIZE SPOOLESMAXDOMAINSIZE SPOOLESMAXZEROS SPOOLESMSGLVL SPOOLESSCALE SPOOLESPIVOT SPOOLESRENUM SPARSEMAXSUP SPARSEDEFBLK
+%token SPOOLESTAU SPOOLESSEED SPOOLESMAXSIZE SPOOLESMAXDOMAINSIZE SPOOLESMAXZEROS SPOOLESMSGLVL SPOOLESSCALE SPOOLESRENUM SPARSEMAXSUP SPARSEDEFBLK SPARSERENUM
 %token STATS STRESSID SUBSPACE SURFACE SAVEMEMCOARSE SPACEDIMENSION SCATTERER STAGTOL SCALED SWITCH STABLE SUBTYPE STEP SOWER SHELLTHICKNESS SURF SPRINGMAT
 %token TANGENT TEMP TIME TOLEIG TOLFETI TOLJAC TOLPCG TOPFILE TOPOLOGY TRBM THERMOE THERMOH 
 %token TETT TOLCGM TURKEL TIEDSURFACES THETA REDFOL HRC THIRDNODE THERMMAT TDENFORC TESTULRICH THRU TRIVIAL
@@ -222,7 +222,9 @@ Component:
         | YMTTable
         | TETTable
         | SDETAFTable
+/*
 	| RbmTolerance
+*/
         | ToleranceInfo
         | Gravity
 	| RbmFilterInfo
@@ -1169,14 +1171,12 @@ SlzemInfo:
         SLZEM NewLine
         { domain->solInfo().slzemFlag=1; }
 	;
+/*
 RbmTolerance:
         TRBM NewLine Float NewLine
         { domain->solInfo().setTrbm($3); }
-/* 
-        | TRBM NewLine Float Float NewLine
-        { domain->solInfo().setTrbm($3); }
-*/
 	;
+*/
 ToleranceInfo:
         GRBM NewLine Float Float NewLine
         { domain->solInfo().setGrbm($3,$4); 
@@ -3032,40 +3032,7 @@ Statics:
         STATS NewLine
         { domain->solInfo().setProbType(SolverInfo::Static); }
         | Statics Solver
-        { domain->solInfo().solvercntl = $2; 
-/* this is not quite right because SOLVERCNTL may be parsed before STATICS
-          // for backward compatibility of global_rbm_tol, global_cor_rbm_tol and cct_tol options
-          if($2->type == 2) {
-            if($2->fetiInfo.coarse_cntl != &default_cntl && $2->fetiInfo.version == FetiInfo::fetidp)
-              $2->fetiInfo.coarse_cntl->trbm = $2->fetiInfo.crbm_tol;
-            else if($2->fetiInfo.coarse_cntl != &default_cntl && $2->fetiInfo.version != FetiInfo::fetidp)
-              $2->fetiInfo.coarse_cntl->trbm = $2->fetiInfo.grbm_tol;
-            else if($2->fetiInfo.coarse_cntl == &default_cntl && $2->fetiInfo.version == FetiInfo::fetidp
-                    && $2->fetiInfo.coarse_cntl->trbm != $2->fetiInfo.crbm_tol) {
-              $2->fetiInfo.coarse_cntl = new SolverCntl(default_cntl);
-              $2->fetiInfo.coarse_cntl->trbm = $2->fetiInfo.crbm_tol;
-            }
-            else if($2->fetiInfo.coarse_cntl == &default_cntl && $2->fetiInfo.version != FetiInfo::fetidp
-                    && $2->fetiInfo.coarse_cntl->trbm != $2->fetiInfo.grbm_tol) {
-              $2->fetiInfo.coarse_cntl = new SolverCntl(default_cntl);
-              $2->fetiInfo.coarse_cntl->trbm = $2->fetiInfo.grbm_tol;
-            }
-            if($2->fetiInfo.auxcoarse_cntl != &default_cntl && $2->fetiInfo.version == FetiInfo::fetidp)
-              $2->fetiInfo.coarse_cntl->trbm = $2->fetiInfo.grbm_tol;
-            else if($2->fetiInfo.auxcoarse_cntl == &default_cntl && $2->fetiInfo.version == FetiInfo::fetidp
-                    && $2->fetiInfo.auxcoarse_cntl->trbm != $2->fetiInfo.grbm_tol) {
-              $2->fetiInfo.auxcoarse_cntl = new SolverCntl(default_cntl);
-              $2->fetiInfo.auxcoarse_cntl->trbm = $2->fetiInfo.grbm_tol;
-            }
-            if($2->fetiInfo.cct_cntl != &default_cntl)
-              $2->fetiInfo.cct_cntl->trbm = $2->fetiInfo.cct_tol;
-            else if($2->fetiInfo.cct_cntl == &default_cntl && $2->fetiInfo.cct_cntl->trbm != $2->fetiInfo.cct_tol) {
-              $2->fetiInfo.cct_cntl = new SolverCntl(default_cntl);
-              $2->fetiInfo.cct_cntl->trbm = $2->fetiInfo.cct_tol; 
-            }
-          }
-*/
-        }
+        { domain->solInfo().solvercntl = $2; }
         | Statics CASES CasesList NewLine
         | Statics PIECEWISE NewLine
         { // activate piecewise constant configuration dependent external forces for a linear dynamic analysis
@@ -3318,6 +3285,10 @@ Solver:
         { $$->verbose = $3; }
         | Solver PRINTNUMBER Integer NewLine
         { $$->fetiInfo.printNumber = $3; }
+        | Solver TRBM Float NewLine
+        { $$->trbm = $3; }
+        | Solver SPARSERENUM Integer NewLine
+        { $$->sparse_renum = $3; }
         | Solver SPARSEMAXSUP Integer NewLine
         { $$->sparse_maxsup = $3; }
         | Solver SPARSEDEFBLK Integer NewLine
@@ -3344,8 +3315,6 @@ Solver:
           $$->spooles_maxzeros = $3; }
         | Solver SPOOLESMSGLVL Integer NewLine
         { $$->spooles_msglvl = $3; }
-        | Solver SPOOLESPIVOT SWITCH NewLine
-        { $$->pivot = bool($3); }
         | Solver SPOOLESSCALE Integer NewLine
         { $$->spooles_scale = $3; }
         | Solver SPOOLESRENUM Integer NewLine

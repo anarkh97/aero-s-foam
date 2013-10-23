@@ -189,9 +189,31 @@ GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti)
   if(make_feti) {
     if(domain->solInfo().solvercntl->type == 2 || domain->solInfo().solvercntl->type == 3) {
       // construct local solver for the subdomain
-      dynMats[isub] = GenSolverFactory<Scalar>::getFactory()->createSolver(sd[isub]->getNodeToNode(), sd[isub]->getDSA(), sd[isub]->getCCDSA(),
-                                                                           *domain->solInfo().solvercntl->fetiInfo.local_cntl, spMats[isub],
-                                                                           (Rbm*) NULL, spp[isub], sps[isub]);
+      SolverCntl &local_cntl = *domain->solInfo().solvercntl->fetiInfo.local_cntl;
+      if(local_cntl.type == 0 || local_cntl.type == 1) { // local solver is direct or iterative
+        dynMats[isub] = GenSolverFactory<Scalar>::getFactory()->createSolver(sd[isub]->getNodeToNode(), sd[isub]->getDSA(), sd[isub]->getCCDSA(),
+                                                                             local_cntl, spMats[isub], (Rbm*) NULL, spp[isub], sps[isub]);
+      }
+      else if(local_cntl.type == 2) { // local solver is feti
+        cerr << "using FETI-DP solver for local problem\n";
+        BCond *corner_dbc = new BCond[3*sd[isub]->numCorners()];
+        for(int i = 0; i < sd[isub]->numCorners(); ++i)
+          for(int j = 0; j < 3; ++j)
+            corner_dbc[3*i+j].setData(sd[isub]->getLocalCornerNodes()[i], j, 0.0);
+        sd[isub]->setDirichlet(3*sd[isub]->numCorners(), corner_dbc);
+#ifdef USE_MPI
+        GenDecDomain<Scalar> *decSubDomain = new GenDecDomain<Scalar>(sd[isub], new Communicator(MPI_COMM_SELF));
+#else
+        GenDecDomain<Scalar> *decSubDomain = new GenDecDomain<Scalar>(sd[isub], NULL)
+#endif
+        decSubDomain->preProcess();
+        GenMDDynamMat<Scalar> ops;
+        decSubDomain->buildOps(ops, 0.0, 0.0, 1.0); // TODO construct and assemble, but do not factor
+        exit(-1); // TODO this is not finished yet
+        //TODO dynMats[isub] = ops.dynMat;
+        //KrrSparse = ops.spMats;
+        //TODO ((GenFetiDPSolver<Scalar> *) Krr)->initL(cc_dsa);
+      }
     }
     else if(domain->solInfo().solvercntl->type == 1) {
       dynMats[isub] = 0;

@@ -2967,8 +2967,9 @@ void GeoSource::readMatchInfo(BinFileHandler &matchFile,
 
 //-------------------------------------------------------------------
 
-int GeoSource::getCPUMap(FILE *f, int numSub)
+int GeoSource::getCPUMap(FILE *f, Connectivity *subToSub)
 {
+  int numSub = subToSub->csize();
   int totSub = numSub;
   int numCPU;
   int *connect = new int[totSub];
@@ -2977,6 +2978,12 @@ int GeoSource::getCPUMap(FILE *f, int numSub)
   if(f == 0) { // Trivial map
 
      numCPU = structCom->numCPUs();
+#ifdef USE_SCOTCH
+     if(verboseFlag) filePrint(stderr, " ... Making CPU Map using SCOTCH, numCPU = %d ...\n", numCPU);
+     Connectivity *graph = subToSub->modifyAlt(); // scotch doesn't allow loops
+     cpuToSub = graph->SCOTCH_graphPart(numCPU);
+     delete graph;
+#else
      if(verboseFlag) filePrint(stderr, " ... Making Trivial CPU Map, numCPU = %d ... \n", numCPU);
      int *cx  = new int[numCPU+1];
      subToCPU = new int[totSub];
@@ -2997,8 +3004,7 @@ int GeoSource::getCPUMap(FILE *f, int numSub)
      }
      cx[numCPU] = curSub;
      cpuToSub = new Connectivity(numCPU,cx,connect);
-     // cpuToSub->print();
-
+#endif
      Connectivity *subDomainToCPU = cpuToSub->reverse();
      cpuToCPU = cpuToSub->transcon(subDomainToCPU);
      delete subDomainToCPU;

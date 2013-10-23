@@ -14,9 +14,9 @@ template<class Scalar,
          class AnyVector,
          class AnyOperator>
 GenPCGSolver<Scalar, AnyVector, AnyOperator>
-::GenPCGSolver(AnyOperator *_A, int _precno, int _maxitr, double _tolpcg, int _maxVecStorage) 
+::GenPCGSolver(AnyOperator *_A, int _precno, int _maxitr, double _tolpcg, int _maxVecStorage, int _verbose) 
 : BasePCG<Scalar, AnyVector, AnyOperator, KrylovProjector<Scalar,AnyVector>, Preconditioner<AnyVector> >  
-  (_maxitr, _tolpcg, _A)
+  (_maxitr, _tolpcg, _verbose, _A)
 {
   precno     = _precno;
   kryflg     = 0;

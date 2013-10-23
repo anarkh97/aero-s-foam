@@ -29,6 +29,8 @@
 #include <Math.d/FullMatrix.h>
 #include <Utils.d/print_debug.h>
 #include <Solvers.d/SolverFactory.h>
+#include <Element.d/MatrixElement.d/MatrixElement.h>
+#include <Paral.d/MDDynam.h>
 
 #include <limits>
 
@@ -103,6 +105,7 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, GenSubDomain<Scalar> **_sd,
  this->nsub       = _nsub;        // Number of subdomains
  this->sd         = _sd;          // pointer to Array of all Subdomains
  this->subToSub   = _subToSub;    // subdomain to subdomain connectivity
+ //std::cerr << "this->nsub = " << this->nsub << ", this->subToSub =\n"; this->subToSub->print();
  this->mpcToSub   = _mpcToSub;    // MPC to subdomain connectivity
  this->glNumMpc = (this->mpcToSub) ? this->mpcToSub->csize() : 0;
  this->mpcToSub_primal = _mpcToSub_primal;
@@ -318,6 +321,7 @@ GenFetiDPSolver<Scalar>::GenFetiDPSolver(int _nsub, GenSubDomain<Scalar> **_sd,
  // Allocate Distributed Vectors necessary for FETI solve loop
  this->times.memoryDV -= memoryUsed();
  int numC = (KccSolver) ? KccSolver->neqs() : 0;
+ if(KccParallelSolver) numC = coarseInfo->totLen();
  this->wksp = new GenFetiWorkSpace<Scalar>(this->interface, internalR, internalWI, ngrbms, numC, globalFlagCtc);
  this->times.memoryDV += memoryUsed();
 
@@ -476,7 +480,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
 #endif
  if(coarseToSub != cornerToSub) delete coarseToSub;
  if(subToCoarse != subToCorner) delete subToCoarse;
- delete subToCorner;
+ if(fetiInfo->coarse_cntl->type != 2) delete subToCorner;
 
  int *glCornerDofs = new int[glNumCorners];
  for(i = 0; i < glNumCorners; ++i) glCornerDofs[i] = 0;
@@ -817,59 +821,124 @@ GenFetiDPSolver<Scalar>::makeKcc()
  if(cornerEqs->size() > 0) {
 
    // build coarse solver
-   this->times.memoryGtGsky -= memoryUsed();
-   int sparse_ngrbms = (geometricRbms) ? ngrbms : 0; // TODO pass Rbm object, not just ngrbms
-#ifdef DISTRIBUTED
-   if(this->subToSub->csize() == this->numCPUs && fetiInfo->type != FetiInfo::nonlinear &&
-      !domain->solInfo().doEigSweep && !domain->solInfo().doFreqSweep && 
-      (fetiInfo->coarse_cntl->type == 0 && (fetiInfo->coarse_cntl->subtype == 0 || fetiInfo->coarse_cntl->subtype == 1)))
-     KccSolver = GenSolverFactory<Scalar>::getFactory()->createDistSolver(coarseConnectivity, cornerEqs, *fetiInfo->coarse_cntl, KccSparse, this->fetiCom);
-   else
-#endif
-     KccSolver = GenSolverFactory<Scalar>::getFactory()->createSolver(coarseConnectivity, cornerEqs, *fetiInfo->coarse_cntl, KccSparse, sparse_ngrbms, this->fetiCom);
-   this->times.memoryGtGsky += memoryUsed();
 
-   // assemble the coarse problem: Kcc^* -> Kcc - Krc^T Krr^-1 Krc
-   if(verboseFlag) filePrint(stderr, " ... Assemble Kcc solver            ...\n");
-   t5 -= getTime();
-   paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::multKcc); // create the local Kcc^*
-   t5 += getTime();
+   // EXPERIMENTAL CODE to use feti dp for the coarse problem
+   if(fetiInfo->coarse_cntl->type == 2) {
+      //cerr << "using FETI-DP solver for coarse problem\n";
+      Domain *coarseDomain = new Domain();
+      coarseDomain->solInfo().solvercntl = fetiInfo->coarse_cntl;
+      for(int i = 0; i < this->nsub; ++i) { 
+        int s = this->sd[i]->subNum();
+        coarseDomain->addElem(s, 0, subToCorner->num(s), (*subToCorner)[s]); // 0 is a "matrix" element
+      }
+      coarseDomain->setNumElements(subToCorner->csize());
 
-   t0 -= getTime();
-   paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::makeKccDofs, cornerEqs, augOffset, this->subToEdge, mpcOffset);
-   if(KccSparse) for(iSub = 0; iSub < this->nsub; ++iSub) this->sd[iSub]->assembleKccStar(KccSparse); // assemble local Kcc^* into global Kcc^*
-   t0 += getTime();
+      if(verboseFlag) filePrint(stderr, " ... Assemble Kcc solver            ...\n");
+      t5 -= getTime();
+      paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::multKcc); // create the local Kcc^*
+      t5 += getTime();
+      Elemset& elems = coarseDomain->getElementSet();
+      for(int i = 0; i < this->nsub; ++i) {
+        ((MatrixElement*)elems[this->sd[i]->subNum()])->setDofs(this->sd[i]->cornerDofs);
+        ((MatrixElement*)elems[this->sd[i]->subNum()])->setStiffness(this->sd[i]->Kcc);
+      }
+  
+      CoordSet& nodes = coarseDomain->getNodes();
+      double xyz[3] = { 0.0, 0.0, 0.0 };
+      for(int i = 0; i < cornerToSub->csize(); ++i) {
+        nodes.nodeadd(i, xyz);
+      }
+      coarseDomain->setNumNodes(cornerToSub->csize());
 
-   // Factor coarse solver
-   startTimerMemory(this->times.pfactor, this->times.memoryGtGsky);
-#ifdef DISTRIBUTED
-   if(verboseFlag) filePrint(stderr, " ... Unify Kcc                      ...\n");
-   KccSolver->unify(this->fetiCom);
-#endif
-   if(fetiInfo->printMatLab) {
-     KccSparse->printSparse("coarsemat");
+      // The following loop set the node coordinates... They are needed for the corner maker
+      // note that the coordinates of any nodes which are not represented on this mpi process are not corret (zero)
+      // however, they shouldn't be needed in any case
+      for(int iSub = 0; iSub < this->nsub; ++iSub) {
+        int numCorner = this->sd[iSub]->numCorners();
+        int *localCornerNodes = this->sd[iSub]->getLocalCornerNodes();
+        for(int iCorner = 0; iCorner < numCorner; ++iCorner) {
+          Node *node = this->sd[iSub]->getNodes()[localCornerNodes[iCorner]];
+          int cornerNum = (*subToCorner)[this->sd[iSub]->subNum()][iCorner];
+          nodes[cornerNum]->x = node->x;
+          nodes[cornerNum]->y = node->y;
+          nodes[cornerNum]->z = node->z;
+        }
+      }
+  
+      Communicator *structCom = new Communicator(this->fetiCom->getComm());
+      GenDecDomain<Scalar> *decCoarseDomain = new GenDecDomain<Scalar>(coarseDomain, structCom, false);
+      decCoarseDomain->setElemToNode(subToCorner);
+      decCoarseDomain->setSubToElem(this->cpuToSub);
+      decCoarseDomain->setCPUMap(new Connectivity(this->numCPUs,1));
+      decCoarseDomain->preProcess();
+      for(int i=0; i<decCoarseDomain->getNumSub(); ++i) decCoarseDomain->getSubDomain(i)->makeAllDOFs();
+      GenMDDynamMat<Scalar> ops;
+      if(verboseFlag) filePrint(stderr, " ... Factor Kcc solver              ...\n");
+      decCoarseDomain->buildOps(ops, 0.0, 0.0, 1.0);
+      coarseInfo = &(decCoarseDomain->solVecInfo());
+      KccParallelSolver = ops.dynMat;
+      paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::makeKccDofsExp, decCoarseDomain->getSubDomain(0)->getCDSA(),
+                 augOffset, this->subToEdge, mpcOffset, decCoarseDomain->getSubDomain(0)->getGlobalToLocalNodeMap());
    }
+   else {
 
-   if(verboseFlag) filePrint(stderr, " ... Factor Kcc solver              ...\n");
-   KccSolver->setPrintNullity(fetiInfo->contactPrintFlag && this->myCPU == 0);
-   KccSolver->parallelFactor();
-   stopTimerMemory(this->times.pfactor, this->times.memoryGtGsky);
+     this->times.memoryGtGsky -= memoryUsed();
+     int sparse_ngrbms = (geometricRbms) ? ngrbms : 0; // TODO pass Rbm object, not just ngrbms
+#ifdef DISTRIBUTED
+     if(this->subToSub->csize() == this->numCPUs && fetiInfo->type != FetiInfo::nonlinear &&
+        !domain->solInfo().doEigSweep && !domain->solInfo().doFreqSweep && 
+        (fetiInfo->coarse_cntl->type == 0 && (fetiInfo->coarse_cntl->subtype == 0 || fetiInfo->coarse_cntl->subtype == 1)))
+       KccSolver = GenSolverFactory<Scalar>::getFactory()->createDistSolver(coarseConnectivity, cornerEqs, *fetiInfo->coarse_cntl,
+                                                                            KccSparse, this->fetiCom);
+     else
+#endif
+       KccSolver = GenSolverFactory<Scalar>::getFactory()->createSolver(coarseConnectivity, cornerEqs, *fetiInfo->coarse_cntl,
+                                                                        KccSparse, sparse_ngrbms, this->fetiCom);
 
-   if(rbmFlag && geometricRbms && this->myCPU == 0) {
-     if(KccSolver->neqs() > 0 && KccSolver->numRBM() != ngrbms) {
-       cerr << " *** WARNING: number of singularities in Kcc (" << KccSolver->numRBM() << ")" << endl
-            << "     does not match the number of Geometric RBMs (" << ngrbms << ")" << endl
-            << " *** try adjusting global_cor_rbm_tol or use TRBM method" << endl;
+     this->times.memoryGtGsky += memoryUsed();
+  
+     // assemble the coarse problem: Kcc^* -> Kcc - Krc^T Krr^-1 Krc
+     if(verboseFlag) filePrint(stderr, " ... Assemble Kcc solver            ...\n");
+     t5 -= getTime();
+     paralApplyToAll(this->nsub, this->sd, &GenSubDomain<Scalar>::multKcc); // create the local Kcc^*
+     t5 += getTime();
+  
+     t0 -= getTime();
+     paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::makeKccDofs, cornerEqs, augOffset, this->subToEdge, mpcOffset);
+     if(KccSparse) for(iSub = 0; iSub < this->nsub; ++iSub) this->sd[iSub]->assembleKccStar(KccSparse); // assemble local Kcc^* into global Kcc^*
+     t0 += getTime();
+  
+     // Factor coarse solver
+     startTimerMemory(this->times.pfactor, this->times.memoryGtGsky);
+#ifdef DISTRIBUTED
+     if(verboseFlag) filePrint(stderr, " ... Unify Kcc                      ...\n");
+     KccSolver->unify(this->fetiCom);
+#endif
+     if(fetiInfo->printMatLab) {
+       KccSparse->printSparse("coarsemat");
      }
-   } 
- 
-   if(rbmFlag && !geometricRbms && (ngrbms = KccSolver->numRBM()) > 0) {
-     kccrbms = new Scalar[KccSolver->neqs()*KccSolver->numRBM()];
-     KccSolver->getNullSpace(kccrbms);
-     if(fetiInfo->nullSpaceFilterTol > 0.0) {
-       for(int i= 0; i<KccSolver->numRBM(); ++i)
-         for(int j=0; j<KccSolver->neqs(); ++j)
-           if(ScalarTypes::norm(kccrbms[i*KccSolver->neqs()+j]) < fetiInfo->nullSpaceFilterTol) kccrbms[i*KccSolver->neqs()+j] = 0.0; // FILTER
+  
+     if(verboseFlag) filePrint(stderr, " ... Factor Kcc solver              ...\n");
+     KccSolver->setPrintNullity(fetiInfo->contactPrintFlag && this->myCPU == 0);
+     KccSolver->parallelFactor();
+     stopTimerMemory(this->times.pfactor, this->times.memoryGtGsky);
+  
+     if(rbmFlag && geometricRbms && this->myCPU == 0) {
+       if(KccSolver->neqs() > 0 && KccSolver->numRBM() != ngrbms) {
+         cerr << " *** WARNING: number of singularities in Kcc (" << KccSolver->numRBM() << ")" << endl
+              << "     does not match the number of Geometric RBMs (" << ngrbms << ")" << endl
+              << " *** try adjusting global_cor_rbm_tol or use TRBM method" << endl;
+       }
+     } 
+   
+     if(rbmFlag && !geometricRbms && (ngrbms = KccSolver->numRBM()) > 0) {
+       kccrbms = new Scalar[KccSolver->neqs()*KccSolver->numRBM()];
+       KccSolver->getNullSpace(kccrbms);
+       if(fetiInfo->nullSpaceFilterTol > 0.0) {
+         for(int i= 0; i<KccSolver->numRBM(); ++i)
+           for(int j=0; j<KccSolver->neqs(); ++j)
+             if(ScalarTypes::norm(kccrbms[i*KccSolver->neqs()+j]) < fetiInfo->nullSpaceFilterTol) kccrbms[i*KccSolver->neqs()+j] = 0.0; // FILTER
+       }
      }
    }
 
@@ -1485,13 +1554,20 @@ GenFetiDPSolver<Scalar>::extractForceVectors(GenDistrVector<Scalar> &f, GenDistr
 
   // extract fc from f
   getFc(f, fc);
+  double ffc;
+  if(KccParallelSolver) {
+    GenStackDistVector<Scalar> DistFc(*coarseInfo, fc.data());
+    ffc = DistFc.sqNorm();
+  }
+  else {
 #ifdef DISTRIBUTED
-  GenVector<Scalar> fc_copy(fc);
-  this->fetiCom->globalSum(fc_copy.size(), fc_copy.data());
-  double ffc = fc_copy.sqNorm();
+    GenVector<Scalar> fc_copy(fc);
+    this->fetiCom->globalSum(fc_copy.size(), fc_copy.data());
+    ffc = fc_copy.sqNorm();
 #else
-  double ffc = fc.sqNorm();
+    ffc = fc.sqNorm();
 #endif
+  }
 
   double ff = f.sqNorm();
 
@@ -1613,7 +1689,7 @@ GenFetiDPSolver<Scalar>::localSolveAndJump(GenDistrVector<Scalar> &fr, GenDistrV
 
  GenVector<Scalar> &FcStar(uc); 
 
- if(KccSolver) { 
+ if(KccSolver || KccParallelSolver) { 
    // Step 1: fc^*(s) = fc^(s) - (Krc^T Krr^-1)^(s) (fr^(s) - Br^(s)T lambda) - Bc^(s)tilde^T lambda
    t1 -= getTime();
    execParal2R(this->nsub, this, &GenFetiDPSolver<Scalar>::makeFc, fr, lambda);
@@ -1624,15 +1700,25 @@ GenFetiDPSolver<Scalar>::localSolveAndJump(GenDistrVector<Scalar> &fr, GenDistrV
    t2 -= getTime();
    assembleFcStar(FcStar);
    t2 += getTime();
+
+   if(KccParallelSolver) {
+     GenStackDistVector<Scalar> DistFcStar(*coarseInfo, FcStar.data());
+     // Step 3: Solve uc = Kcc^-1 FcStar
+     this->times.project -= getTime();
+     KccParallelSolver->reSolve(DistFcStar);
+     this->times.project += getTime();
+   }
+   else {
 #ifdef DISTRIBUTED
-   this->fetiCom->globalSum(FcStar.size(), FcStar.data());
+     this->fetiCom->globalSum(FcStar.size(), FcStar.data());
 #endif
 
-   // Step 3: Solve uc = Kcc^-1 FcStar
-   this->times.project -= getTime();
-   if(this->glNumMpc_primal > 0) execParal(this->mpcToSub_primal->csize(), this, &GenFetiDPSolver<Scalar>::addMpcRHS, FcStar.data()); 
-   KccSolver->reSolve(FcStar);  // now Fcstar is uc;
-   this->times.project += getTime();
+     // Step 3: Solve uc = Kcc^-1 FcStar
+     this->times.project -= getTime();
+     if(this->glNumMpc_primal > 0) execParal(this->mpcToSub_primal->csize(), this, &GenFetiDPSolver<Scalar>::addMpcRHS, FcStar.data()); 
+     KccSolver->reSolve(FcStar);  // now Fcstar is uc;
+     this->times.project += getTime();
+   }
  }
  else FcStar.zero();
 
@@ -1675,7 +1761,7 @@ GenFetiDPSolver<Scalar>::localSolveAndJump(GenDistrVector<Scalar> &p, GenDistrVe
 
  GenVector<Scalar> &FcStar(duc);
  FcStar.zero();
- if(KccSolver) {
+ if(KccSolver || KccParallelSolver) {
    // Step 1: fc^(s) = - (Krc^T Krr^-1)^(s) ( Br^(s)T * p) + Bc^(s)T * p
    t1 -= getTime();
    execParal1R(this->nsub, this, &GenFetiDPSolver<Scalar>::makeFcB, p);
@@ -1685,14 +1771,24 @@ GenFetiDPSolver<Scalar>::localSolveAndJump(GenDistrVector<Scalar> &p, GenDistrVe
    t2 -= getTime();
    assembleFcStar(FcStar);
    t2 += getTime();
+
+   if(KccParallelSolver) {
+     GenStackDistVector<Scalar> DistFcStar(*coarseInfo, FcStar.data());
+     // Step 3: Solve uc = Kcc^-1 FcStar
+     this->times.project -= getTime();
+     KccParallelSolver->reSolve(DistFcStar);
+     this->times.project += getTime();
+   }
+   else {
 #ifdef DISTRIBUTED
-   this->fetiCom->globalSum(FcStar.size(), FcStar.data());
+     this->fetiCom->globalSum(FcStar.size(), FcStar.data());
 #endif
 
-   // Step 3: Solve uc = Kcc^-1 FcStar
-   this->times.project -= getTime();
-   KccSolver->reSolve(FcStar);
-   this->times.project += getTime();
+     // Step 3: Solve uc = Kcc^-1 FcStar
+     this->times.project -= getTime();
+     KccSolver->reSolve(FcStar);
+     this->times.project += getTime();
+   }
  }
 
  // Step 3.5: fr2^(s) = - Krc^(s) uc^(s)
@@ -2381,7 +2477,7 @@ template<class Scalar>
 void
 GenFetiDPSolver<Scalar>::initialize()
 {
-  KccSolver = 0; KccSparse = 0; glNumCorners = 0;
+  KccSolver = 0; KccParallelSolver = 0; KccSparse = 0; glNumCorners = 0;
   cornerToSub = 0; cornerEqs = 0;
   mpcOffset = 0;
   ngrbmGr = 0; nGroups = 0; nGroups1 = 0; groups = 0;

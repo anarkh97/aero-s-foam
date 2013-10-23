@@ -149,6 +149,22 @@ Connectivity::Connectivity(int _size, int *_count)
  weight = 0;
 }
 
+Connectivity::Connectivity(int _size, int count)
+{
+ removeable = 1;
+ size    = _size;
+ pointer = new int[size+1];
+ pointer[0] = 0;
+ int i;
+ for(i=0; i < _size; ++i)
+    pointer[i+1] = pointer[i] + count;
+ numtarget = pointer[size];
+ target = new int[numtarget];
+ for(int i=0; i < numtarget; ++i)
+    target[i] = i;
+ weight = 0;
+}
+
 Connectivity::Connectivity(FaceElemSet* els)
 {
  removeable = 1;
@@ -1022,6 +1038,28 @@ Connectivity::modify()
       for(j = 0; j < num(i); ++j)
         ntrg[count++] = (*this)[i][j];
     }
+  }
+  nptr[size] = count;
+  return new Connectivity(size, nptr, ntrg);
+}
+
+// this one is to remove connection with self
+Connectivity *
+Connectivity::modifyAlt()
+{
+  int i,j;
+  int count;
+  count = 0;
+  for(i = 0; i < size; ++i)
+    for(j = 0; j < num(i); ++j)
+      if((*this)[i][j] == i) count++;
+  int *ntrg = new int[numtarget-count];
+  int *nptr = new int[size+1];
+  count = 0;
+  for(i = 0; i < size; ++i) {
+    nptr[i] = count;
+    for(j = 0; j < num(i); ++j)
+      if((*this)[i][j] != i) ntrg[count++] = (*this)[i][j];
   }
   nptr[size] = count;
   return new Connectivity(size, nptr, ntrg);

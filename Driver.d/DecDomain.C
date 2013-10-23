@@ -22,15 +22,14 @@
 #include <Paral.d/DomainGroupTask.h>
 #ifdef USE_MPI
 #include <Comm.d/Communicator.h>
-extern Communicator *structCom;
 #endif
 extern Connectivity *procMpcToMpc;
 
 #include <Driver.d/SubDomainFactory.h>
 
 template<class Scalar>
-GenDecDomain<Scalar>::GenDecDomain(Domain *d)
- : mt(d->getTimers())
+GenDecDomain<Scalar>::GenDecDomain(Domain *d, Communicator *structCom, bool _soweredInput)
+ : mt(d->getTimers()), soweredInput(_soweredInput)
 {
   domain = d;
   initialize(); 
@@ -39,6 +38,7 @@ GenDecDomain<Scalar>::GenDecDomain(Domain *d)
 #else
   communicator = new FSCommunicator;
 #endif
+  myCPU = communicator->cpuNum();
 }
 
 template<class Scalar>
@@ -75,7 +75,6 @@ GenDecDomain<Scalar>::initialize()
   numPrimalMpc = 0;
   numDualMpc = 0;
   firstOutput = true;
-  soweredInput = false;
   masterSolVecInfo_ = 0;
   nodeVecInfo = 0;
   eleVecInfo = 0;
@@ -465,11 +464,11 @@ GenDecDomain<Scalar>::makeSubToSubEtc()
     mt.memoryNodeToSub += memoryUsed();
 
     geoSource->setNumNodes(nodeToSub->csize());
-    geoSource->computeClusterInfo(localSubToGl[0]);
+    //geoSource->computeClusterInfo(localSubToGl[0]);
   }
   else {
     mt.memoryElemToNode -= memoryUsed();
-    elemToNode = new Connectivity(&domain->packedEset);
+    if(!elemToNode) elemToNode = new Connectivity(&domain->packedEset);
     mt.memoryElemToNode += memoryUsed();
 
     mt.memorySubToNode -= memoryUsed();
@@ -509,11 +508,12 @@ void
 GenDecDomain<Scalar>::makeSubDomains() 
 {
   makeSubDMaps();
-  makeSubToSubEtc();
+  ///makeSubToSubEtc();
   subDomain = new GenSubDomain<Scalar> *[numSub];
 
   startTimerMemory(mt.makeSubDomains, mt.memorySubdomain);
   if(soweredInput) {
+    geoSource->computeClusterInfo(localSubToGl[0]);
     for(int iSub = 0; iSub < this->numSub; iSub++) { 
       subDomain[iSub] = geoSource->template readDistributedInputFiles<Scalar>(iSub, localSubToGl[iSub]);  
     }
@@ -600,8 +600,7 @@ GenDecDomain<Scalar>::getCPUMap()
 #ifdef DISTRIBUTED
   char *mapName = geoSource->getCpuMapFile(); 
   FILE *f = fopen(mapName,"r");
-  numCPU = geoSource->getCPUMap(f, globalNumSub);
-  //subToCPU = geoSource->getSubToCPU();
+  numCPU = geoSource->getCPUMap(f, subToSub);
   cpuToCPU = geoSource->getCpuTOCPU();
   if(f) fclose(f);
 #else
@@ -610,6 +609,14 @@ GenDecDomain<Scalar>::getCPUMap()
 #endif
   cpuToSub = geoSource->getCpuToSub();
   mt.memoryCPUMAP += memoryUsed();
+}
+
+template<class Scalar>
+void
+GenDecDomain<Scalar>::setCPUMap(Connectivity *_cpuToSub)
+{
+  cpuToSub = _cpuToSub;
+  numCPU = cpuToSub->csize();
 }
 
 template<class Scalar>
@@ -650,14 +657,18 @@ GenDecDomain<Scalar>::preProcess()
    domain->make_constrainedDSA();
    domain->makeAllDOFs();
  }
- soweredInput = geoSource->binaryInput;
+ //soweredInput = geoSource->binaryInput;
 
  if(verboseFlag) filePrint(stderr, " ... Reading Decomposition File     ...\n");
- subToElem = geoSource->getDecomposition();
- subToElem->sortTargets(); // PJSA 11-16-2006
+ if(!subToElem) {
+   subToElem = geoSource->getDecomposition();
+   subToElem->sortTargets(); // PJSA 11-16-2006
+ }
  globalNumSub = subToElem->csize();
 
- getCPUMap();
+ makeSubToSubEtc();
+
+ if(!cpuToSub) getCPUMap();
 
  if(verboseFlag) filePrint(stderr, " ... Making the Subdomains          ...\n");
  makeSubDomains();
@@ -699,7 +710,7 @@ GenDecDomain<Scalar>::preProcess()
  //delete nodeToSub; nodeToSub = 0;
  if(domain->solInfo().solvercntl->type != 0 && domain->solInfo().aeroFlag < 0) {
    delete elemToSub; elemToSub = 0;
-   if(!geoSource->elemOutput() && elemToNode) { delete elemToNode; elemToNode = 0; }
+   //if(!geoSource->elemOutput() && elemToNode) { delete elemToNode; elemToNode = 0; }
  }
 }
 
@@ -2564,7 +2575,6 @@ GenDecDomain<Scalar>::makeCorners()
   paralApply(numSub, subDomain, &BaseSub::makeCCDSA);
 }
 
-
 template<class Scalar>
 void
 GenDecDomain<Scalar>::makeCornerHandler(int iSub, SubCornerHandler **cornerHandler)
@@ -2601,7 +2611,7 @@ void GenDecDomain<Scalar>::distributeBCs()
     nNeumannPerSub[iSub] = 0;
   }
  
-  // get bc's from geoSource
+  // get bc's from domain
   BCond* dbc = 0;
   BCond* nbc = 0;
   BCond* cvbc = 0;
@@ -2609,13 +2619,11 @@ void GenDecDomain<Scalar>::distributeBCs()
   BCond* iDis6 = 0;
   BCond* iVel = 0;
 
-  int numDirichlet = geoSource->getDirichletBC(dbc);
-  int numNeuman    = geoSource->getNeumanBC(nbc);
-  //int numIDis      = geoSource->getIDis(iDis);
-  int numIDis = domain->numInitDisp(); iDis = domain->getInitDisp();
-  int numIDis6     = geoSource->getIDis6(iDis6);
-  //int numIVel      = geoSource->getIVel(iVel);
-  int numIVel = domain->numInitVelocity(); iVel = domain->getInitVelocity();
+  int numDirichlet = domain->nDirichlet();   dbc = domain->getDBC();
+  int numNeuman    = domain->nNeumann();     nbc = domain->getNBC();
+  int numIDis      = domain->numInitDisp();  iDis = domain->getInitDisp();
+  int numIDis6     = domain->numInitDisp6(); iDis6 = domain->getInitDisp6();
+  int numIVel   = domain->numInitVelocity(); iVel = domain->getInitVelocity();
 
   // Count the number of boundary conditions per subdomain
   int numDispDirichlet = 0; // number of displacement dirichlet BCs

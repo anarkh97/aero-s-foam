@@ -27,7 +27,8 @@ protected:
 
 public:
   // ... Constructor
-  GenPCGSolver(AnyOperator *A, int precno, int maxiter, double tolerance, int maxVecStorage = 0);
+  GenPCGSolver(AnyOperator *A, int precno, int maxiter, double tolerance, int maxVecStorage = 0,
+               int verbose = 0);
 
   // ... Destructor
   virtual ~GenPCGSolver() { /* nothing to delete */ };

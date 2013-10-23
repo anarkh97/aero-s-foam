@@ -322,7 +322,9 @@ class GenFetiDPSolver : public GenFetiSolver<Scalar>
     using GenFetiSolver<Scalar>::verboseFlag;
 
     DistrInfo internalR, internalC, internalWI;
-    GenSolver<Scalar>       *KccSolver;
+    DistrInfo *coarseInfo;
+    GenSolver<Scalar>         *KccSolver;
+    GenParallelSolver<Scalar> *KccParallelSolver;
     Scalar *kccrbms;
     GenSparseMatrix<Scalar> *KccSparse;
     int glNumCorners;

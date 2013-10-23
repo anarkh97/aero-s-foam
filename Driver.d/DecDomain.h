@@ -5,6 +5,9 @@
 #include <Feti.d/DistrVectorSet.h>
 #include <Paral.d/SubDOp.h>
 
+extern Communicator * structCom;
+extern GeoSource * geoSource;
+
 class Domain;
 template <class Scalar> class GenSubDomain;
 template <class Scalar> class GenParallelSolver;
@@ -82,13 +85,16 @@ class GenDecDomain
   GenBasicAssembler<Scalar> *ba2;
 
  public:
-  GenDecDomain(Domain *d);
+  GenDecDomain(Domain *d, Communicator * = structCom, bool = geoSource->binaryInput);
   virtual ~GenDecDomain();
 
   Domain *getDomain() { return domain; }
 
   GenSubDomain<Scalar>** getAllSubDomains() { return subDomain; }
   GenSubDomain<Scalar>* getSubDomain(int isub) { return subDomain[isub]; }
+  void setElemToNode(Connectivity *_elemToNode) { elemToNode = _elemToNode; }
+  void setSubToElem(Connectivity *_subToElem) { subToElem = _subToElem; }
+  void setCPUMap(Connectivity *);
   Connectivity * getSubToSub() { return subToSub; }
   Connectivity * getElemToSub() { return elemToSub; }
   Connectivity * getElemToNode() { return elemToNode; }

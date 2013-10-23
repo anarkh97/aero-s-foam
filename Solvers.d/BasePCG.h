@@ -27,23 +27,23 @@ class BasePCG {
     AnyVector         &z2;
     double tolpcg;
     int maxitr;
+    int verbose;
 
     Scalar finalNorm;
     int numIterations;
 
   public:
-    BasePCG(int _maxitr, double _tolpcg,
+    BasePCG(int _maxitr, double _tolpcg, int _verbose,
           AnyOperator *AA, AnyPreconditioner *_prec = 0, AnyProjector *_proj = 0)
           : res1(*new AnyVector(AA->dim())), 
             res2(*new AnyVector(AA->dim())),
             p(*new AnyVector(AA->dim())),  z1(*new AnyVector(AA->dim())),
             ap(*new AnyVector(AA->dim())), z2(*new AnyVector(AA->dim()))
          { A = AA; proj = _proj; prec = _prec; maxitr = _maxitr; 
-           tolpcg = _tolpcg; }
+           tolpcg = _tolpcg; verbose = _verbose; }
     BasePCG() { };
     ~BasePCG() { if(A) delete A; if(proj) delete proj; if(prec) delete prec;};
     AnyOperator * getOperator() { return A; }
-//    int neqs() { return A->dim(); }
     int neqs() { return A->neqs(); }
     int doSolve(AnyVector& rhs, AnyVector& sol);
 };

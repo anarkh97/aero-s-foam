@@ -124,7 +124,8 @@ class Connectivity : public BaseConnectivity<Connectivity,DirectAccess<Connectiv
         Connectivity(Elemset *);
         Connectivity(Elemset *, int, SommerElement**);
         Connectivity(int _size, int *_pointer, int *_target, int _removeable=1, float *_weight = 0);
-        Connectivity(int _size, int *_count);
+        Connectivity(int _size, int *count);
+        Connectivity(int _size, int count);
 	Connectivity(BinFileHandler &, bool oldSower = false);
         Connectivity(FaceElemSet*);
 	Connectivity(int ns); //dec
@@ -184,6 +185,7 @@ class Connectivity : public BaseConnectivity<Connectivity,DirectAccess<Connectiv
 
         bool isDiagonal(); // returns true if each target is only connected to itself
         Connectivity *modify();
+        Connectivity *modifyAlt();
         void combine(Connectivity *con2, int *&cmap, int *cmap2);  // adds con2 to this
         // adds all the entries in cmap (of size addSize)to each of the line in the current connectivity specified by entries in cmap
         // e.g. cmap = [2 3] and (*this)[2] = [1 2 4 5] (*this)[3] = [3 5], then (*this)[2] becomes [1 2 4 5 3]; (*this)[3] becomes [3 5 2]
@@ -194,7 +196,7 @@ class Connectivity : public BaseConnectivity<Connectivity,DirectAccess<Connectiv
         double estimateCost(EqNumberer *eqn, double &cost, double &bandwidth,
                             double coef=400, int unroll=1);
 
-        //template<typename A, class B> friend class BaseConnectivity;
+        Connectivity * SCOTCH_graphPart(int partnbr);
 };
 
 

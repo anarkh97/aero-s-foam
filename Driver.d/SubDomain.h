@@ -174,7 +174,7 @@ class BaseSub : virtual public Domain
   int renumberBC(int *);
   void makeGlobalToLocalNodeMap();  // PJSA
   void makeGlobalToLocalElemMap();  // YYY
-//  int * getGlobalToLocalNodeMap() { return glToLocalNode; }
+  GlobalToLocalMap& getGlobalToLocalNodeMap() { return glToLocalNode; }
   int globalToLocal(int i)    { return (i < 0 || i > globalNMax) ? -1 : glToLocalNode[i]; }  // PJSA
   int localToGlobal(int i)    { return glNums[i]; }
   int globalToLocalElem(int i) { return (i < 0 || i > globalEMax) ? -1 : glToLocalElem[i]; }  // PJSA
@@ -586,6 +586,8 @@ class GenSubDomain : public BaseSub
   void clearTemporaries() { delete [] glToLocalNode; glToLocalNode = 0; }
   void initMpcScaling();
   void makeZstarAndR(double *centroid);  // makes Zstar and R
+  void makeKccDofsExp(ConstrainedDSA *cornerEqs, int augOffset,
+                      Connectivity *subToEdge, int mpcOffset, GlobalToLocalMap& nodeMap);
   void makeKccDofs(DofSetArray *cornerEqs, int augOffset, Connectivity *subToEdge, int mpcOffset = 0);
   void assembleKccStar(GenSparseMatrix<Scalar> *KccStar);
   void deleteKcc();

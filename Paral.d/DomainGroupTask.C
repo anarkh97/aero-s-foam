@@ -208,11 +208,10 @@ GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti)
 #endif
         decSubDomain->preProcess();
         GenMDDynamMat<Scalar> ops;
-        decSubDomain->buildOps(ops, 0.0, 0.0, 1.0); // TODO construct and assemble, but do not factor
-        exit(-1); // TODO this is not finished yet
-        //TODO dynMats[isub] = ops.dynMat;
-        //KrrSparse = ops.spMats;
-        //TODO ((GenFetiDPSolver<Scalar> *) Krr)->initL(cc_dsa);
+        decSubDomain->buildOps(ops, 0.0, 0.0, 1.0);
+        exit(-1); // XXX this is not finished yet
+        //dynMats[isub] = ops.dynMat;
+        //((GenFetiDPSolver<Scalar> *) Krr)->initL(cc_dsa);
       }
     }
     else if(domain->solInfo().solvercntl->type == 1) {

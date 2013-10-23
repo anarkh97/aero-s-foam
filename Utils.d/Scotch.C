@@ -1,6 +1,6 @@
 #include <cstdio>
 #ifdef USE_SCOTCH
-#include <cstdint>
+#include <stdint.h>
 #include "scotch.h"
 #endif
 #include <Utils.d/Connectivity.h>

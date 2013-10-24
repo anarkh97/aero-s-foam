@@ -259,7 +259,7 @@ DEIMSamplingDriver::writeSampledMesh(std::vector<int> &maskIndices) {
     selectedNodeSet.insert(nodeDofMap.nodeDof(*it).nodeRank);
     int selectedNode = nodeDofMap.nodeDof(*it).nodeRank;
     int selectedNodeDof = std::log10(nodeDofMap.nodeDof(*it).dofId)/std::log10(2.0); //this function call is returning 2^dof for some reason, call log to normalize
-    compressedNodeKey.push_back(std::make_pair<int,int>(selectedNode,selectedNodeDof));
+    compressedNodeKey.push_back(std::make_pair(selectedNode,selectedNodeDof));
   }
 
   std::sort(compressedNodeKey.begin(),compressedNodeKey.end());

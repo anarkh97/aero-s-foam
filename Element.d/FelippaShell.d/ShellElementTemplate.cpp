@@ -877,7 +877,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 
 // .....COMPUTE THE BACKSTRESS FOR ELASTO-PLASTIC MATERIALS
             if(ctyp == 4) {
-              std::vector<double> sigma = nmat->GetLocalBackStress(i, z);
+              std::vector<doublereal> sigma = nmat->GetLocalBackStress(i, z);
 
 // .....ROTATE LOCAL STRESSES TO GLOBAL
 
@@ -903,7 +903,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 
 // .....COMPUTE THE PLASTIC STRAIN TENSOR FOR ELASTO-PLASTIC MATERIALS
             if(ctyp == 4) {
-              std::vector<double> epsilon = nmat->GetLocalPlasticStrain(i, z);
+              std::vector<doublereal> epsilon = nmat->GetLocalPlasticStrain(i, z);
 
 // .....ROTATE LOCAL STRAINS TO GLOBAL AND CONVERT SHEAR STRAINS TO ENGINEERING SHEAR STRAINS
 

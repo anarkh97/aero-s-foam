@@ -21,6 +21,9 @@ class ShellElementTemplate : public Membrane<doublereal>, public Bending<doubler
       if(gpmat) delete gpmat;
     }
 
+    void setnmat(ShellMaterial<doublereal> *_mat) { nmat = _mat; }
+    void setgpmat(ShellMaterial<doublereal> *_mat) { gpmat = _mat; }
+
     void
     andescrd(int elm, doublereal *x, doublereal *y, doublereal *z, doublereal *rot,
              doublereal *xlp, doublereal *ylp, doublereal *zlp, doublereal &area);

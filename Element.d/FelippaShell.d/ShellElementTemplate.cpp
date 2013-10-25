@@ -486,7 +486,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
     Eigen::Matrix<int,18,1> indices;
     indices << 0, 1, 6, 7, 12, 13, 5, 11, 17, // M indices
                2, 3, 4, 8, 9, 10, 14, 15, 16; // B indices
-    Eigen::PermutationMatrix<18,18,int> PI(indices);
+    Eigen::PermutationMatrix<18,18,int> P(indices);
 
 //  .....ROTATE THE NODAL DISPLACEMENTS TO THE LOCAL 
 //       FRAME SYSTEM (LOCAL TO THE SHELL ELEMENT) 
@@ -497,12 +497,12 @@ ShellElementTemplate<doublereal,Membrane,Bending>
         for(i = 0; i < 18; i += 3)
             vd.segment(i,3) = eframe.transpose()*v.segment(i,3);
 
-        vd = PI.transpose()*vd;
+        vd = P.transpose()*vd;
     }
     else {
 
         // for Corotational Formulation, v is already local
-        vd = PI.transpose()*v; 
+        vd = P.transpose()*v; 
 
     }
 
@@ -593,8 +593,8 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 
 // .....APPLY PERMUTATION 
 
-    if(_estiff) K = PI*K*PI.transpose();
-    if(_fint)   F = PI*F;
+    if(_estiff) K = P*K*P.transpose();
+    if(_fint)   F = P*F;
 
 // .....ROTATE ELEMENT STIFFNESS AND/OR FORCE TO GLOBAL COORDINATES 
 //      (only if flag equals 1)
@@ -736,9 +736,9 @@ ShellElementTemplate<doublereal,Membrane,Bending>
     Eigen::Matrix<int,18,1> indices;
     indices << 0, 1, 6, 7, 12, 13, 5, 11, 17, // M indices
                2, 3, 4, 8, 9, 10, 14, 15, 16; // B indices
-    Eigen::PermutationMatrix<18,18,int> PI(indices);
+    Eigen::PermutationMatrix<18,18,int> P(indices);
 
-    vd = PI.transpose()*vd;
+    vd = P.transpose()*vd;
 
 // .....COMPUTE THE Z- COORDINATE OF THE SELECTED SURFACE
 
@@ -1167,9 +1167,9 @@ ShellElementTemplate<doublereal,Membrane,Bending>
     Eigen::Matrix<int,18,1> indices;
     indices << 0, 1, 6, 7, 12, 13, 5, 11, 17, // M indices
                2, 3, 4, 8, 9, 10, 14, 15, 16; // B indices
-    Eigen::PermutationMatrix<18,18,int> PI(indices);
+    Eigen::PermutationMatrix<18,18,int> P(indices);
 
-    vd = PI.transpose()*v; // note: v is already local in this case
+    vd = P.transpose()*v; // note: v is already local in this case
 
     // compute updated material state at the gauss points
     doublereal zeta[3][3] = { { 0.,.5,.5 }, { .5,0.,.5 }, { .5,.5,0. } }; // triangular coordinates of gauss integration points

@@ -214,6 +214,7 @@ GenDecDomain<DComplex>::buildFFP(GenDistrVector<DComplex> &u, FILE *fffp, bool d
              ffpDirLoc[i][2],
              real(localFFP[0][i]),imag(localFFP[0][i]));
    }
+   fflush(fffp);
 #ifdef DISTRIBUTED
    }
 #endif

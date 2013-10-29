@@ -78,7 +78,7 @@ StaticSolver< Scalar, OpSolver, VecType,
            allOps->sysSolver->solve(*rhs,*sol);
            if(domain->solInfo().isCoupled) scaleDisp(*sol);
            bool printTimers =
-            (domain->solInfo().loadcases.size() > 1 || domain->coarse_frequencies->size() > 1 ) ? false : true;
+            (domain->solInfo().loadcases.size() > 1 || domain->coarse_frequencies->size() > 1 || is < domain->set_of_frequencies.size()-1 ) ? false : true;
            postProcessor->staticOutput(*sol, *rhs, printTimers);
 //           postProcessor->staticOutput(*sol, *rhs, false);
            domain->solInfo().loadcases.pop_front();
@@ -280,6 +280,16 @@ ncheck = 18;
                              VhKV, VhMV, VhCV, wc, 0.0);
         }
        domain->frequencies->push_front(wc);
+       if(domain->solInfo().isAcousticHelm()) {  
+         SPropContainer& sProps = geoSource->getStructProps();
+         for(int iProp=0;iProp<geoSource->getNumProps();iProp++) {
+           if(sProps[iProp].kappaHelm!=0.0 || sProps[iProp].kappaHelmImag!=0.0) {
+             complex<double> k1 = wc/sProps[iProp].soundSpeed;
+             sProps[iProp].kappaHelm = real(k1);
+             sProps[iProp].kappaHelmImag = imag(k1);
+           } 
+         }
+       }
        postProcessor->staticOutput(*sol, *rhs, false);
        domain->frequencies->pop_front();
      }
@@ -387,7 +397,7 @@ ncheck = 18;
      if(domain->solInfo().isCoupled)
        if (domain->solInfo().getSweepParams()->freqSweepMethod != SweepParams::KrylovGalProjection && domain->solInfo().getSweepParams()->freqSweepMethod != SweepParams::QRGalProjection) 
          for(int i=1; i<(nRHS+1); ++i) scaleDisp(*sol_prev[offset+i]);
-     bool printTimers = ((domain->coarse_frequencies->size()+domain->frequencies->size()) > 1) ? false : true;
+     bool printTimers = ((domain->coarse_frequencies->size()+domain->frequencies->size()) > 1 || is < domain->set_of_frequencies.size()-1  ) ? false : true;
      
      domain->setSavedFreq(domain->coarse_frequencies->front());
      //----- UH ------

@@ -1549,7 +1549,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
         if(distState) getPrimal(accs, masterAccs, time, x, iOut, 6, 0);
         break;
       case OutputInfo::Temperature:
-        getPrimal(disps, masterDisps, time, x, iOut, 1, 6);
+        getPrimal(disps, masterDisps, time, x, iOut, 1, 0);
         break;
       case OutputInfo::TemperatureFirstTimeDerivative:
         if(distState) getPrimal(vels, masterVels, time, x, iOut, 1, 6);

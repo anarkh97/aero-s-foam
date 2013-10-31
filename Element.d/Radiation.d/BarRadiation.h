@@ -6,9 +6,10 @@
 class BarRadiation: public virtual Element {
 
         int nn[2];
+        double *f;
 public:
-
 	BarRadiation(int*);
+        ~BarRadiation();
 
         Element *clone();
 
@@ -25,12 +26,16 @@ public:
 
         Corotator* getCorotator(CoordSet &, double*, int, int);
         
-        //void getThermalForce(CoordSet &cs, Vector &ndTemps, Vector &ThermalForce, int glflag,
-        //                   GeomState *gs) { ThermalForce.zero(); }
-
         int              numNodes();
         int*             nodes(int * = 0);
 	PrioInfo examine(int sub, MultiFront *);
 	int 		getTopNumber();
+
+        // these functions are used to get the contribution of the radiation element
+        // to the rhs for linear analyses.
+        bool isRadiationElement() { return true; }
+        void computePressureForce(CoordSet& cs,Vector& elPressureForce,
+                                  GeomState *gs = 0, int cflg = 0, double t = 0);
 };
+
 #endif

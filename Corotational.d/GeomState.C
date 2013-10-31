@@ -1865,7 +1865,7 @@ TemperatureState::TemperatureState(const TemperatureState &g2) : GeomState((Coor
 
 
 void
-TemperatureState::update(const Vector &v)
+TemperatureState::update(const Vector &v, int)
 {
  // v = incremental displacement vector
 
@@ -1883,17 +1883,10 @@ TemperatureState::update(const Vector &v)
 
 void
 TemperatureState::updatePrescribedDisplacement(BCond* dbc, int numDirichlet,
-                                        double delta)
+                                               double delta)
 {
-  // allocate space to store rotational prescribed dofs
-  double (*dth)[3] = new double[numnodes][3];
-
-  // initialize to zero, rotational prescribed dofs
   int i;
-  for(i=0; i<numnodes; ++i)
-    dth[i][0] = dth[i][1] = dth[i][2] = 0.0;
-
-  for(i=0; i<numDirichlet; ++i) {
+  for(int i=0; i<numDirichlet; ++i) {
 
     int nodeNumber = dbc[i].nnum;
     int dofNumber  = dbc[i].dofnum;
@@ -1918,11 +1911,38 @@ TemperatureState::updatePrescribedDisplacement(BCond* dbc, int numDirichlet,
     }
 
   }
-  delete [] dth;
+}
+
+// update prescribed displacements for nonlinear dynamics
+// i.e. displacement boundary and initial conditions prescribed with
+// TEMP and ITEMP
+void
+TemperatureState::updatePrescribedDisplacement(BCond* dbc, int numDirichlet,
+                                               CoordSet &cs)
+{
+  int i;
+  for(i=0; i<numDirichlet; ++i) {
+
+    int nodeNumber = dbc[i].nnum;
+    if(!cs[nodeNumber]) continue;
+
+    int dofNumber  = dbc[i].dofnum;
+
+    double prescribedValue = dbc[i].val;
+
+    switch(dofNumber) {
+        case 6:
+                ns[nodeNumber].x = prescribedValue;
+                break;
+        default:
+                break;
+    }
+
+  }
 }
 
 void
-TemperatureState::get_inc_displacement(Vector &incVec, GeomState &ss, bool zeroRot)
+TemperatureState::get_inc_displacement(Vector &incVec, GeomState &ss, bool)
 {
   int inode;
   for(inode=0; inode<numnodes; ++inode) {
@@ -1933,7 +1953,7 @@ TemperatureState::get_inc_displacement(Vector &incVec, GeomState &ss, bool zeroR
 
 void
 TemperatureState::midpoint_step_update(Vector &vel_n, Vector &accel_n, double delta, GeomState &ss,
-                                       double beta, double gamma, double alphaf, double alpham)
+                                       double beta, double gamma, double alphaf, double alpham, bool)
 {
  // XXXX THIS HASN'T BEEN UPDATED FOR GENERALIZED ALPHA YET
  // Update incremental temperatures at end of step:
@@ -1958,3 +1978,25 @@ TemperatureState::midpoint_step_update(Vector &vel_n, Vector &accel_n, double de
  }
 }
 
+void
+TemperatureState::setVelocityAndAcceleration(const Vector &v, const Vector &)
+{
+  for(int i = 0; i < numnodes; ++i)
+    if(loc[i][0] > -1) {
+      ns[i].v[0] = v[loc[i][0]];
+    }
+}
+
+void
+TemperatureState::setVelocity(const Vector &v, int)
+{
+  for(int i = 0; i < numnodes; ++i)
+    if(loc[i][0] > -1) {
+      ns[i].v[0] = v[loc[i][0]];
+    }
+}
+
+void
+TemperatureState::setAcceleration(const Vector &, int)
+{
+}

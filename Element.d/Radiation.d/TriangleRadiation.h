@@ -6,8 +6,10 @@
 class TriangleRadiation: public virtual Element {
 
         int nn[3];
+        double *f;
 public:
         TriangleRadiation(int*);
+        ~TriangleRadiation();
 
         Element *clone();
 
@@ -28,7 +30,12 @@ public:
         int*             nodes(int * = 0);
         int              getTopNumber();
         PrioInfo examine(int sub, MultiFront *);
+
+        // these functions are used to get the contribution of the radiation element
+        // to the rhs for linear analyses.
+        bool isRadiationElement() { return true; }
+        void computePressureForce(CoordSet& cs,Vector& elPressureForce,
+                                  GeomState *gs = 0, int cflg = 0, double t = 0);
 };
 
 #endif
-

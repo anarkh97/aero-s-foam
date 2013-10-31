@@ -596,6 +596,9 @@ class Domain : public HData {
      template<class Scalar>
        void addMpcRhs(GenVector<Scalar>& force, double t = 0);
 
+     template<class Scalar>
+       void addRadiationRhs(GenVector<Scalar>& force);
+
      void buildPrescDisp(Vector &v, double lambda);
      void buildPrescDisp(Vector &v, double t, double dt);
 
@@ -883,6 +886,8 @@ class Domain : public HData {
      int  tdenforceFlag() { return int(nMortarCond > 0 && sinfo.newmarkBeta == 0.0 && sinfo.penalty == 0.0); } // TD enforcement (contact/tied surfaces with ACME) used for explicit dynamics
 
      int  thermalFlag() { return sinfo.thermalLoadFlag || sinfo.thermoeFlag >= 0; }
+
+     int  radiationFlag() { return sinfo.radiationFlag; }
 
      // returns the maximum number of dofs per element
      int  maxNumDOF() { return maxNumDOFs; }

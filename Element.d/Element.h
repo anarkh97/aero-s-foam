@@ -175,6 +175,7 @@ class StructProp {
         double Tr;      // Temperature of the enclosure receiving the radiation
         };
         double sigma;   // Stefan's constant (5.6704e-8 in SI)
+        double Te;      // Radiation: equilibrium temperature (for linear analysis)
 	double ymin;    // minimum height (< 0) for cross section of beam (local y-direction)
 	double ymax;    // maximum height (> 0) for cross section of beam (local y-direction)
 	double zmin;    // minimum height (< 0) for cross section of beam (local z-direction)
@@ -231,7 +232,7 @@ class StructProp {
 
         StructProp() { E = 0.0; A = 0.0; nu = 0.0; rho = 1.0; eh = 0.0; Ixx = 0.0;
                        Iyy = 0.0; Izz = 0.0; c = 0.0; k = 0.0; Q = 0.0; W = 0.0;
-                       P = 0.0; Ta = 0.0; sigma = 0.0;
+                       P = 0.0; Ta = 0.0; sigma = 0.0; Te = 0.0;
                        kappaHelm = 0.0; kappaHelmImag = 0.0; fp.PMLtype = 0;
                        soundSpeed = 1.0; alphaDamp = 0.0; betaDamp = 0.0;
                        etaDamp = 0.0; etaDampTable = -1;
@@ -525,6 +526,7 @@ class Element {
 	virtual bool hasDamping() { return false; }
         bool isFluidElement();
         virtual bool isSommerElement() { return false; }
+        virtual bool isRadiationElement() { return false; }
         virtual bool isMpcElement() { return false; }
         virtual bool isFsiElement() { return false; }
         virtual bool isHEVFluidElement() { return false; }  //ADDED FOR HEV PROBLEM, EC, 20070820

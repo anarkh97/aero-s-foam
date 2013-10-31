@@ -98,9 +98,9 @@ class GeomState {
      virtual void setAcceleration(int numNodes, int* nodes, const Vector &, int SO3param = 0);
      virtual void setVelocityAndAcceleration(const Vector &, const Vector &);
      virtual void updatePrescribedDisplacement(BCond *dbc, int numDirichlet, 
-                                       double delta);
-     void updatePrescribedDisplacement(BCond *dbc, int numDirichlet,
-                                       CoordSet &cs);
+                                               double delta);
+     virtual void updatePrescribedDisplacement(BCond *dbc, int numDirichlet,
+                                               CoordSet &cs);
      void updatePrescribedDisplacement(double *userDefinedDisplacement,
                                        ControlLawInfo* claw,
                                        CoordSet &cs, double *userDefinedVel, double *userDefinedAcc);

@@ -416,6 +416,9 @@ Domain::computeExtForce(Vector &f, double t, int tIndex, SparseMatrix *kuc, Vect
     }
   }
 
+  // ... ADD RADIATION RHS
+  if(radiationFlag() && !sinfo.isNonLin()) addRadiationRhs(f);
+
   // ... ADD FLUID FLUX
   if(sinfo.aeroheatFlag >= 0 && tIndex >= 0) {
     int j;

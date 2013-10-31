@@ -2188,8 +2188,8 @@ MatData:
         }
         | Integer THERMMAT Float Float Float Float Float Float Float Float Float NewLine
         { StructProp sp; 
-          sp.A = $3;  sp.rho = $4; sp.Q = $5; sp.c = $6; 
-          sp.sigma = $7;  sp.k = $8;  sp.eh  = $9;  sp.P   = $10;  sp.Ta  = $11;
+          sp.A = $3; sp.rho = $4; sp.Q = $5; sp.c = $6; 
+          sp.sigma = $7; sp.k = $8; sp.eh = $9; sp.P = $10; sp.Ta = sp.Te = $11;
           sp.isReal = true;
           sp.type = StructProp::Thermal;
           geoSource->addMat( $1-1, sp );
@@ -2198,6 +2198,7 @@ MatData:
         { StructProp sp;
           sp.A = $3; sp.rho = $4; sp.Q = $5; sp.c = $6;
           sp.sigma = $7; sp.k = $8; sp.eh = $9; sp.P = $10; sp.Ta = $11; sp.Te = $12;
+          if(sp.Ta != sp.Te) domain->solInfo().radiationFlag = 1;
           sp.isReal = true;
           sp.type = StructProp::Thermal;
           geoSource->addMat( $1-1, sp );

@@ -10,11 +10,17 @@
 // Four node quadrilateral
 
 QuadRadiation::QuadRadiation(int* nodenums)
+ : f(NULL)
 {
         nn[0] = nodenums[0];
         nn[1] = nodenums[1];
         nn[2] = nodenums[2];
         nn[3] = nodenums[3];
+}
+
+QuadRadiation::~QuadRadiation()
+{
+  if(f) delete [] f;
 }
 
 Element *
@@ -68,7 +74,7 @@ QuadRadiation::stiffness(CoordSet &cs, double *Kcv, int flg)
           QuadThermalCorotator corot(nn[0], nn[1], nn[2], nn[3], prop->eps, prop->sigma, prop->Tr, cs);
           GeomState ts(cs);
           for(int i=0; i<4; ++i) ts[nn[i]].x = prop->Te;
-          double f[4];
+          if(!f) f = new double[4];
           corot.getStiffAndForce(ts, cs, ret, f, 0, 0);
         }
         else {
@@ -153,3 +159,21 @@ QuadRadiation::getTopNumber()
   return 148;
 }
 
+void
+QuadRadiation::computePressureForce(CoordSet& cs, Vector& elPressureForce,
+                                    GeomState *gs, int cflg, double t)
+{
+  // note: this function should only be called for linear analyses
+  if(prop->Te != prop->Tr) {
+    if(!f) { // compute f, only if it hasn't already been done
+      FullSquareMatrix tmp(4);
+      QuadThermalCorotator corot(nn[0], nn[1], nn[2], nn[3], prop->eps, prop->sigma, prop->Tr, cs);
+      GeomState ts(cs);
+      for(int i=0; i<4; ++i) ts[nn[i]].x = prop->Te;
+      f = new double[4];
+      corot.getInternalForce(ts, cs, tmp, f, 0, 0);
+    }
+    //std::cerr << "f = " << f[0] << " " << f[1] << " " << f[2] << " " << f[3] << std::endl;
+    for(int i=0; i<4; ++i) elPressureForce[i] = -f[i];
+  }
+}

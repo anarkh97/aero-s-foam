@@ -89,6 +89,7 @@ struct SolverInfo {
 
    int structoptFlag;
    int thermalLoadFlag; // whether there is a thermal load applied
+   int radiationFlag; // whether there are radiation lhs/rhs terms for linear analysis
    int hzemFlag; // Zero energy mode (for thermal Problems),
                  // Equivalent to grbm for structures
    int hzemFilterFlag;
@@ -442,6 +443,7 @@ struct SolverInfo {
                   thermoeFlag = -1;
                   thermohFlag = -1;
                   thermalLoadFlag = 0;
+                  radiationFlag = 0;
                   modeDecompFlag = 0;
                   hzemFlag = 0;
                   hzemFilterFlag = 0;

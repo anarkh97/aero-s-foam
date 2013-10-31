@@ -8,9 +8,15 @@
 #include <Corotational.d/GeomState.h>
 
 BarRadiation::BarRadiation(int* nodenums)
+ : f(NULL)
 {
         nn[0] = nodenums[0];
         nn[1] = nodenums[1];
+}
+
+BarRadiation::~BarRadiation()
+{
+        if(f) delete [] f;
 }
 
 Element *
@@ -63,7 +69,7 @@ BarRadiation::stiffness(CoordSet &cs, double *Kcv, int flg)
           BarThermalCorotator corot(nn[0], nn[1], prop->P, prop->eps, prop->sigma, prop->Tr, cs);
           GeomState ts(cs);
           for(int i=0; i<2; ++i) ts[nn[i]].x = prop->Te;
-          double f[2];
+          if(!f) f = new double[2];
           corot.getStiffAndForce(ts, cs, ret, f, 0, 0);
         }
         else {
@@ -125,4 +131,22 @@ int
 BarRadiation::getTopNumber()
 {
   return 147;
+}
+
+void
+BarRadiation::computePressureForce(CoordSet& cs, Vector& elPressureForce,
+                                   GeomState *gs, int cflg, double t)
+{
+  // note: this function should only be called for linear analyses
+  if(prop->Te != prop->Tr) {
+    if(!f) { // compute f, only if it hasn't already been done
+      FullSquareMatrix tmp(2);
+      BarThermalCorotator corot(nn[0], nn[1], prop->P, prop->eps, prop->sigma, prop->Tr, cs);
+      GeomState ts(cs);
+      for(int i=0; i<2; ++i) ts[nn[i]].x = prop->Te;
+      f = new double[2];
+      corot.getInternalForce(ts, cs, tmp, f, 0, 0);
+    }
+    for(int i=0; i<2; ++i) elPressureForce[i] = -f[i];
+  }
 }

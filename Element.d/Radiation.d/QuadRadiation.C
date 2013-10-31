@@ -5,6 +5,7 @@
 #include <Utils.d/dofset.h>
 #include <Element.d/Radiation.d/QuadRadiation.h>
 #include <Corotational.d/QuadThermalCorotator.h>
+#include <Corotational.d/GeomState.h>
 
 // Four node quadrilateral
 
@@ -61,8 +62,16 @@ QuadRadiation::stiffness(CoordSet &cs, double *Kcv, int flg)
 
 // ... Compute Radiative matrix
 
-          FullSquareMatrix ret(4,Kcv);
+        FullSquareMatrix ret(4,Kcv);
 
+        if(prop->Te != prop->Tr) {
+          QuadThermalCorotator corot(nn[0], nn[1], nn[2], nn[3], prop->eps, prop->sigma, prop->Tr, cs);
+          GeomState ts(cs);
+          for(int i=0; i<4; ++i) ts[nn[i]].x = prop->Te;
+          double f[4];
+          corot.getStiffAndForce(ts, cs, ret, f, 0, 0);
+        }
+        else {
           ret[0][0] = 0;
           ret[1][1] = 0;
           ret[2][2] = 0;
@@ -81,6 +90,7 @@ QuadRadiation::stiffness(CoordSet &cs, double *Kcv, int flg)
           ret[3][1] = 0;
           ret[3][2] = 0;
           ret[3][3] = 0;
+        }
 
         return ret;
 }

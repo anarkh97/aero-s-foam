@@ -5,6 +5,7 @@
 #include <Corotational.d/BarThermalCorotator.h>
 #include <Math.d/FullSquareMatrix.h>
 #include <Utils.d/dofset.h>
+#include <Corotational.d/GeomState.h>
 
 BarRadiation::BarRadiation(int* nodenums)
 {
@@ -53,31 +54,24 @@ BarRadiation::massMatrix(CoordSet &cs, double *mel, int cmflg)
 FullSquareMatrix
 BarRadiation::stiffness(CoordSet &cs, double *Kcv, int flg)
 {
-// This is the additional matrix when radiation is present.
-// It is added into the conductance matrix.
-
-        Node &nd1 = cs.getNode( nn[0] );
-        Node &nd2 = cs.getNode( nn[1] );
-
-        double x[2], y[2], z[2];
-
-        x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
-        x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
-
-	//double dx = x[1] - x[0];
-	//double dy = y[1] - y[0];
-	//double dz = z[1] - z[0];
-
-	//double length = sqrt( dx*dx + dy*dy + dz*dz );
 
 //... Construct radiative matrix ...
 
         FullSquareMatrix ret(2,Kcv);
 
-        ret[0][0] = 0.0;
-        ret[1][1] = 0.0;
-        ret[1][0] = 0.0;
-        ret[0][1] = 0.0;
+        if(prop->Te != prop->Tr) {
+          BarThermalCorotator corot(nn[0], nn[1], prop->P, prop->eps, prop->sigma, prop->Tr, cs);
+          GeomState ts(cs);
+          for(int i=0; i<2; ++i) ts[nn[i]].x = prop->Te;
+          double f[2];
+          corot.getStiffAndForce(ts, cs, ret, f, 0, 0);
+        }
+        else {
+          ret[0][0] = 0.0;
+          ret[1][1] = 0.0;
+          ret[1][0] = 0.0;
+          ret[0][1] = 0.0;
+        }
         
         return ret;
 }

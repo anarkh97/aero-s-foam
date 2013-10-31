@@ -20,11 +20,14 @@ public:
 private:
   void buildInterpolationBasis();
   void subBuildInterpolationBasis(int iSub, std::vector< std::vector<std::pair<int,int> > > &maskedIndicesBuf);
+  void subGetKtimesU(int isub, DistrVector &d, DistrVector &f);
 
   std::vector<std::map<int, double> > packedElementWeights_;
   std::vector<std::vector<int> > packedWeightedNodes_;
 
   DistrVecBasis deimBasis_;
+  DistrVector * lin_fInt;
+  GenFullSquareMatrix<double> **kelArrayCopy;
 };
 
 } // end namespace Rom

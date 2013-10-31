@@ -6,6 +6,7 @@ ADD_LIBRARY( Rom
   BasisOutputFile.C
   BasisOrthoDriver.C
   DEIMSamplingDriver.C 
+  UDEIMSamplingDriver.C
   CheckNonLinDynamic.C
   CholeskyUtils.C
   DistrBasisFile.C

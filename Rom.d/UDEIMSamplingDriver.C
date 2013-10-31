@@ -1,4 +1,4 @@
-#include "DEIMSamplingDriver.h"
+#include "UDEIMSamplingDriver.h"
 
 #include "ElementSamplingDriver.h"
 
@@ -31,13 +31,13 @@
 
 namespace Rom {
 
-DEIMSamplingDriver::DEIMSamplingDriver(Domain *domain) :
+UDEIMSamplingDriver::UDEIMSamplingDriver(Domain *domain) :
   SingleDomainDynamic(domain),
   converter(NULL)
 {}
 
 void
-DEIMSamplingDriver::solve() {
+UDEIMSamplingDriver::solve() {
 
   SingleDomainDynamic::preProcess();
   converter = new VecNodeDof6Conversion(*domain->getCDSA());
@@ -60,14 +60,14 @@ DEIMSamplingDriver::solve() {
     std::vector<int> maskIndices;
     VecBasis forceBasis;
     computeInterpIndices(forceBasis, maskIndices);
-    computeAndWriteDEIMBasis(forceBasis, maskIndices);
+    computeAndWriteUDEIMBasis(forceBasis, maskIndices);
     writeSampledMesh(maskIndices);
     }
 
 }
 
 void
-DEIMSamplingDriver::readInBasis(VecBasis &podBasis, BasisId::Type type, BasisId::Level level, int podSizeMax, bool normalized)
+UDEIMSamplingDriver::readInBasis(VecBasis &podBasis, BasisId::Type type, BasisId::Level level, int podSizeMax, bool normalized)
 {
  FileNameInfo fileInfo;
  std::string fileName = BasisFileId(fileInfo, type, level);
@@ -84,7 +84,7 @@ DEIMSamplingDriver::readInBasis(VecBasis &podBasis, BasisId::Type type, BasisId:
 
 template <typename Scalar>
 void
-DEIMSamplingDriver::writeBasisToFile(const VecBasis &OutputBasis, std::vector<Scalar> singularValue, BasisId::Type type, BasisId::Level level)
+UDEIMSamplingDriver::writeBasisToFile(const VecBasis &OutputBasis, std::vector<Scalar> singularValue, BasisId::Type type, BasisId::Level level)
 {
  FileNameInfo fileInfo;
  std::string fileName = BasisFileId(fileInfo, type, level);
@@ -99,7 +99,7 @@ DEIMSamplingDriver::writeBasisToFile(const VecBasis &OutputBasis, std::vector<Sc
 }
 
 void
-DEIMSamplingDriver::writeProjForceSnap() 
+UDEIMSamplingDriver::writeProjForceSnap() 
 {
   VecBasis forceBasis;
  
@@ -136,8 +136,8 @@ DEIMSamplingDriver::writeProjForceSnap()
 }
 
 void
-DEIMSamplingDriver::computeInterpIndices(VecBasis &forceBasis, std::vector<int> &maskIndices) {
-  //member function for determining the sampling indicies for DEIM
+UDEIMSamplingDriver::computeInterpIndices(VecBasis &forceBasis, std::vector<int> &maskIndices) {
+  //member function for determining the sampling indicies for UDEIM
   //result is (U*(P^T*U)^-1) where U is the left singular vectors of force snapshots and P
   //is the column selection matrix
   
@@ -198,9 +198,9 @@ DEIMSamplingDriver::computeInterpIndices(VecBasis &forceBasis, std::vector<int> 
 }
 
 void
-DEIMSamplingDriver::computeAndWriteDEIMBasis(VecBasis &forceBasis, std::vector<int> &maskIndices)
+UDEIMSamplingDriver::computeAndWriteUDEIMBasis(VecBasis &forceBasis, std::vector<int> &maskIndices)
 {
-  //member function for computing and writing the DEIM basis P*(P^T*U)^-T*U^T*V
+  //member function for computing and writing the UDEIM basis P*(P^T*U)^-T*U^T*V
   //where V is the mass-orthogonal POD basis, U is the left Singular vectors of the force snapshots
   //and P column selection matrix derived form the sampled indicies computed above
   int maxDeimBasisSize = domain->solInfo().maxDeimBasisSize;
@@ -255,7 +255,7 @@ DEIMSamplingDriver::computeAndWriteDEIMBasis(VecBasis &forceBasis, std::vector<i
 }
 
 void
-DEIMSamplingDriver::writeSampledMesh(std::vector<int> &maskIndices) {
+UDEIMSamplingDriver::writeSampledMesh(std::vector<int> &maskIndices) {
 
   VecNodeDof6Map nodeDofMap(*domain->getCDSA());
 
@@ -380,7 +380,7 @@ DEIMSamplingDriver::writeSampledMesh(std::vector<int> &maskIndices) {
 }
 
 void
-DEIMSamplingDriver::buildForceArray(VecBasis &forceBasis, const VecBasis &displac, const VecBasis *veloc,
+UDEIMSamplingDriver::buildForceArray(VecBasis &forceBasis, const VecBasis &displac, const VecBasis *veloc,
                                      const VecBasis *accel, std::vector<double> timeStamps_, std::vector<int> snapshotCounts_)
 {//this memeber function is for converting state snapshots to force snapshots in the absence of precollected force snapshots from model I
   //most of the code is copied from assembleTrainingData in ElementSamplingDriver.C
@@ -388,8 +388,7 @@ DEIMSamplingDriver::buildForceArray(VecBasis &forceBasis, const VecBasis &displa
 
   forceBasis.dimensionIs(displac.vectorCount(), displac.vectorInfo());
 
-  FullSquareMatrix *kelArrayCopy;
-  domain->createKelArray(kelArrayCopy);
+  FullSquareMatrix *kelArrayCopy(kelArray);
 
   int iSnap = 0;
   double gamma  = domain->solInfo().newmarkGamma;
@@ -399,34 +398,32 @@ DEIMSamplingDriver::buildForceArray(VecBasis &forceBasis, const VecBasis &displa
     GenVector<double> FLint(solVecInfo());
     for(int jSnap = 0; jSnap != snapshotCounts_[i]; ++iSnap, ++jSnap){
       filePrint(stderr,"\r %4.2f%% complete, time = %f", double(iSnap)/double(std::accumulate(snapshotCounts_.begin(),snapshotCounts_.end(),0))*100.,*timeStampIt);
+
       geomState->explicitUpdate(domain->getNodes(), displac[iSnap]);
       if(veloc){ geomState->setVelocity((*veloc)[iSnap]);} //just set the velocity at the nodes
       if(accel){ geomState->setAcceleration((*accel)[iSnap]);} //just set the acceleration at the nodes
 
-      //set up for internal force vector
-      Vector dummy(solVecInfo()); 
-      dummy = displac[iSnap];
-      FLint.zero();
-      SingleDomainDynamic::getInternalForce( dummy, FNLint, *timeStampIt, jSnap);
-      domain->getKtimesU(dummy, bcx, FLint, 1.0, kelArrayCopy);
-    
-      //set up for external force vector
-/*      SysState<Vector> *dummyState;
-      dummyState = new SysState<Vector>( dummy, dummy, dummy, dummy);
-      SingleDomainDynamic::computeExtForce2( *dummyState, Fext, dummy, jSnap, *timeStampIt, &dummy, gamma, alphaf);*/
+      for (int iElem = 0; iElem != elementCount(); iElem++){
 
-      //set vector in force snapshot container
-      forceBasis[iSnap] = (FNLint-FLint); 
+        //set up for internal force vector
+        Vector dummy(solVecInfo()); 
+        dummy = displac[iSnap];
+        SingleDomainDynamic::getInternalForce( dummy, FNLint, *timeStampIt, jSnap);
+        domain->getKtimesU(dummy, bcx, FLint, 1.0, kelArrayCopy);
+    
+        //set vector in force snapshot container
+        forceBasis[iSnap] = (FNLint+FLint); 
      
-//      std::cout << " NLF + LF norm = " << FNLint.norm() << " NLF norm = " << forceBasis[iSnap].norm() << " LF norm = " << FLint.norm() << std::endl;
- 
-      timeStampIt++;
+        //std::cout << " NLF + LF norm = " << FNLint.norm() << " NLF norm = " << forceBasis[iSnap].norm() << " LF norm = " << FLint.norm() << std::endl;
+   
+        timeStampIt++;
+      }
     }
   }
   filePrint(stderr,"\r %4.2f%% complete\n", 100.);
 }
 
-void DEIMSamplingDriver::OrthoForceSnap(VecBasis &forceBasis,std::vector<double> &SVs)
+void UDEIMSamplingDriver::OrthoForceSnap(VecBasis &forceBasis,std::vector<double> &SVs)
 {
 #ifdef USE_EIGEN3
   std::cout << "... Orthogonalizting Snapshots ..." << std::endl;
@@ -439,13 +436,13 @@ void DEIMSamplingDriver::OrthoForceSnap(VecBasis &forceBasis,std::vector<double>
 #endif
 }
 
-int DEIMSamplingDriver::elementCount() const {
+int UDEIMSamplingDriver::elementCount() const {
   return domain->numElements();
 }
 
 //member functions for fascilitating the reading of snapshot data
 int 
-DEIMSamplingDriver::snapSize(BasisId::Type type, std::vector<int> &snapshotCounts)
+UDEIMSamplingDriver::snapSize(BasisId::Type type, std::vector<int> &snapshotCounts)
 {
   // compute the number of snapshots that will be used for a given skipping strategy
   FileNameInfo fileInfo;
@@ -464,7 +461,7 @@ DEIMSamplingDriver::snapSize(BasisId::Type type, std::vector<int> &snapshotCount
 }
 
 void 
-DEIMSamplingDriver::readAndProjectSnapshots(BasisId::Type type, const int vectorSize, VecBasis &podBasis,
+UDEIMSamplingDriver::readAndProjectSnapshots(BasisId::Type type, const int vectorSize, VecBasis &podBasis,
                                               const VecNodeDof6Conversion *vecDofConversion,
                                               std::vector<int> &snapshotCounts, std::vector<double> &timeStamps, VecBasis &config)
 {
@@ -517,6 +514,6 @@ DEIMSamplingDriver::readAndProjectSnapshots(BasisId::Type type, const int vector
 
 } /* end namespace Rom */
 
-Rom::DriverInterface *deimSamplingDriverNew(Domain *domain) {
-  return new Rom::DEIMSamplingDriver(domain);
+Rom::DriverInterface *udeimSamplingDriverNew(Domain *domain) {
+  return new Rom::UDEIMSamplingDriver(domain);
 }

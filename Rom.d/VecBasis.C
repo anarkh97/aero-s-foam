@@ -62,6 +62,17 @@ GenVecBasis<double, GenDistrVector>::expand(GenDistrVector<double> &x, GenDistrV
 }
 
 template <>
+GenDistrVector<double> &
+GenVecBasis<double, GenDistrVector>::fullExpand(GenDistrVector<double> &x, GenDistrVector<double> &_result) const {
+#ifdef USE_EIGEN3
+  Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > GenCoordinates(x.data(), x.size());
+  Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > result(_result.data(), _result.size());
+  result = basis*GenCoordinates;
+#endif
+  return _result;
+}
+
+template <>
 GenVector<double> &
 GenVecBasis<double, GenVector>::expand(GenVector<double> &x, GenVector<double> &_result) const {
 #ifdef USE_EIGEN3
@@ -129,20 +140,32 @@ GenVecBasis<double, GenDistrVector>::compressedVecReduce(GenDistrVector<double> 
 
 template <>
 GenDistrVector<double> &
+GenVecBasis<double, GenDistrVector>::sparseVecReduce(GenDistrVector<double> &x, GenDistrVector<double> &_result) const {
+#ifdef USE_EIGEN3
+  Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > FullCoordinates(x.data(), x.size());
+  Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > result(_result.data(), _result.size());
+  Eigen::SparseVector<double> sparsef(FullCoordinates.rows());
+
+  for(int i = 0; i < FullCoordinates.rows(); i++)
+    if(FullCoordinates(i) != 0)
+      sparsef.insert(i) = FullCoordinates(i);
+
+  result = basis.transpose()*sparsef;
+  //each process gets a copy of reduced coordinates
+  if(structCom)
+    structCom->globalSum(result.size(), result.data());
+#endif
+  return _result;
+}
+
+template <>
+GenDistrVector<double> &
 GenVecBasis<double, GenDistrVector>::reduce(GenDistrVector<double> &x, GenDistrVector<double> &_result) const {
 #ifdef USE_EIGEN3
   Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > FullCoordinates(x.data(), x.size());
   Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > result(_result.data(), _result.size());
-  if(compressedKey.size() > 0) {
-    Eigen::SparseVector<double> sparsef(FullCoordinates.rows());
-    for(int i = 0; i < FullCoordinates.rows(); i++){
-      if(FullCoordinates(i) != 0){
-        sparsef.insert(i) = FullCoordinates(i);}}
-    result = basis.transpose()*sparsef;
-  }
-  else {
-    result = basis.transpose()*FullCoordinates;
-  }
+  result = basis.transpose()*FullCoordinates;
+
   //each process gets a copy of reduced coordinates
   if(structCom)
     structCom->globalSum(result.size(), result.data());
@@ -182,11 +205,8 @@ GenVecBasis<double, GenDistrVector>::makeSparseBasis(const std::vector<std::vect
 
   new (&compressedBasis) Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic>(compressedKey.size(), vectorCount());
 
-  for(int i = 0; i < compressedKey.size(); i++) {
-    for(int j = 0; j < vectorCount(); j++) {
-      compressedBasis(i,j) = basis(compressedKey[i],j);
-    }
-  }
+  for(int i = 0; i < compressedKey.size(); i++) 
+    compressedBasis.row(i) = basis.row(compressedKey[i]);
 #endif
 }
 

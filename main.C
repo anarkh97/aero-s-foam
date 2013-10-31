@@ -1473,6 +1473,10 @@ int main(int argc, char** argv)
            filePrint(stderr, " ... POD: DEIM Basis Construction ...\n");
            driver.reset(deimSamplingDriverNew(domain));
          }
+         else if (domain->solInfo().UDEIMBasisPod) {
+           filePrint(stderr, " ... POD: DEIM Basis Construction ...\n");
+           driver.reset(udeimSamplingDriverNew(domain));
+         }
          else {
            filePrint(stderr, " ... Unknown Analysis Type          ...\n");
            break;

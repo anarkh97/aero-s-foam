@@ -73,9 +73,11 @@ public:
 
   VecType & project(VecType &, VecType &) const;
   VecType & expand(VecType &, VecType &) const;
+  VecType & fullExpand(VecType &, VecType &) const;
   VecType & expand(std::vector<double> &, VecType &) const;
   VecType & reduce(VecType &, VecType &) const;
   VecType & compressedVecReduce(VecType &, VecType &) const;
+  VecType & sparseVecReduce(VecType &, VecType &) const;
   VecType & expand2(VecType &, VecType &) const;
   
   void makeSparseBasis(const std::vector<std::vector<int> > &, DofSetArray **);

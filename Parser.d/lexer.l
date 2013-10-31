@@ -1385,6 +1385,8 @@ TRAIL [a-zA-Z]*
 "svdfrc"|"SvdFrc"|"svdfrc"		  { return SVDFORCESNAP; }
 
 "DEIM"|"Deim"|"deim"                      { return DEIMINDICES; }
+ 
+"UDEIM"|"UDeim"|"udeim"                      { return UDEIMINDICES; }
 
 "ROBC"|"RobC"|"robc" 			  { return SVDTOKEN; } 
 

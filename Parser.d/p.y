@@ -106,7 +106,7 @@
 %token SLOSH SLGRAV SLZEM SLZEMFILTER 
 %token PDIR HEFSB HEFRS HEINTERFACE  // Added for HEV Problem, EC, 20080512
 %token SNAPFI PODROB TRNVCT OFFSET ORTHOG SVDTOKEN CONVERSIONTOKEN CONVFI SAMPLING SNAPSHOTPROJECT PODSIZEMAX REFSUBSTRACT TOLER OUTOFCORE NORMALIZETOKEN FNUMBER SNAPWEIGHT ROBFI STAVCT VELVCT ACCVCT CONWEPCFG
-%token VECTORNORM LOCALTOLERANCE REBUILDFORCE SAMPNODESLOT FORCEROB DEIMINDICES SVDFORCESNAP
+%token VECTORNORM LOCALTOLERANCE REBUILDFORCE SAMPNODESLOT FORCEROB DEIMINDICES UDEIMINDICES SVDFORCESNAP
 
 %type <complexFDBC> AxiHD
 %type <complexFNBC> AxiHN
@@ -326,6 +326,7 @@ Component:
         | Constraints
 	| SvdToken
         | DeimIndices
+        | UDeimIndices
 	| Sampling
         | SnapshotProject
         | ConversionToken
@@ -4257,6 +4258,14 @@ DeimIndices:
      domain->solInfo().setProbType(SolverInfo::PodRomOffline);
      domain->solInfo().DEIMBasisPod = true; } 
    | DeimIndices SamplingOption NewLine
+   ;
+
+UDeimIndices:
+   UDEIMINDICES NewLine
+   { domain->solInfo().activatePodRom = true;
+     domain->solInfo().setProbType(SolverInfo::PodRomOffline);
+     domain->solInfo().UDEIMBasisPod = true; }
+   | UDeimIndices SamplingOption NewLine
    ;
 
 Sampling:

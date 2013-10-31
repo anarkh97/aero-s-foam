@@ -32,8 +32,11 @@ DistrExplicitDEIMPodProjectionNonLinDynamic::DistrExplicitDEIMPodProjectionNonLi
 
 void
 DistrExplicitDEIMPodProjectionNonLinDynamic::preProcess() {
-  
+
   DistrExplicitLumpedPodProjectionNonLinDynamic::preProcess();
+
+  lin_fInt     = new DistrVector(MultiDomainDynam::solVecInfo());
+  kelArrayCopy = new FullSquareMatrix*[decDomain->getNumSub()];
 
   buildInterpolationBasis();
 }
@@ -41,7 +44,11 @@ DistrExplicitDEIMPodProjectionNonLinDynamic::preProcess() {
 void
 DistrExplicitDEIMPodProjectionNonLinDynamic::getInternalForce(DistrVector &d, DistrVector &f, double t, int tIndex) {
 
+  normalizedBasis_.fullExpand( d, *d_n);
+  lin_fInt->zero();
+  execParal2R(decDomain->getNumSub(),this,&DistrExplicitDEIMPodProjectionNonLinDynamic::subGetKtimesU,*d_n,*lin_fInt);
   execParal3R(decDomain->getNumSub(),this,&DistrExplicitDEIMPodProjectionNonLinDynamic::subGetWeightedInternalForceOnly,*fInt,t,tIndex);
+  
 
   if(domain->solInfo().stable && domain->solInfo().isNonLin() && tIndex%domain->solInfo().stable_freq == 0) {
     GenMDDynamMat<double> ops;
@@ -54,8 +61,7 @@ DistrExplicitDEIMPodProjectionNonLinDynamic::getInternalForce(DistrVector &d, Di
   }
 
   *a_n = *fInt - *fExt;
-   DistrVector dummy(solVecInfo());
-
+//   *a_n = *lin_fInt - *fExt;
 
   if(haveRot) {
     execParal2R(decDomain->getNumSub(),this,&DistrExplicitDEIMPodProjectionNonLinDynamic::subTransformWeightedNodesOnly,*a_n,3);
@@ -65,11 +71,28 @@ DistrExplicitDEIMPodProjectionNonLinDynamic::getInternalForce(DistrVector &d, Di
     dynMat->M->mult(toto, *a_n);
   }
 
-  normalizedBasis_.reduce(*fExt,dummy);
-  deimBasis_.compressedVecReduce(*fInt,f);
+   DistrVector dummy(solVecInfo());
+   DistrVector nlin_fInt(MultiDomainDynam::solVecInfo());
+   DistrVector linMin_fExt(MultiDomainDynam::solVecInfo());
+
+   nlin_fInt   = *fInt - *lin_fInt;
+   linMin_fExt = *fExt - *lin_fInt;
+
+//  normalizedBasis_.reduce(*a_n,f);
+  normalizedBasis_.reduce(linMin_fExt,dummy);
+  deimBasis_.compressedVecReduce(nlin_fInt,f);
   f -= dummy;
   //  the residual is computed in this step to avoid projecting into the reduced coordinates twice
 
+}
+
+void
+DistrExplicitDEIMPodProjectionNonLinDynamic::subGetKtimesU(int isub, DistrVector &d, DistrVector &f)
+{
+  SubDomain *sd = decDomain->getSubDomain(isub);
+  StackVector subf(f.subData(isub), f.subLen(isub));
+  StackVector subd(d.subData(isub), d.subLen(isub));
+  sd->getKtimesU(subd, (double *) 0, subf, 1.0, (kelArrayCopy) ? kelArrayCopy[isub] : (FullSquareMatrix *) 0);
 }
 
 void
@@ -138,6 +161,19 @@ DistrExplicitDEIMPodProjectionNonLinDynamic::subBuildInterpolationBasis(int iSub
      subMaskedIndicesBuf.push_back(std::make_pair(packedId,it->second));
 
   }
+
+  sd->createKelArray(kelArrayCopy[iSub]);
+ 
+/*  std::cout<<"num row = " << kelArray[iSub][0].numRow()<< std::endl;
+  std::cout<<"num col = " << kelArray[iSub][0].numCol()<< std::endl;
+  std::cout<<"kelArray = " << std::endl;
+  for(int iele = 0; iele != sd->numElements(); iele++){
+    for(int col = 0; col != kelArrayCopy[iSub][0].numCol(); col++){
+      for(int row = 0; row != kelArrayCopy[iSub][0].numRow(); row++){
+         filePrint(stderr,"% 3.6e ",kelArrayCopy[iSub][0][row][col]);}
+      filePrint(stderr,"\n");}
+    filePrint(stderr,"\n");}*/
+
 }
 
 } // end namespace Rom

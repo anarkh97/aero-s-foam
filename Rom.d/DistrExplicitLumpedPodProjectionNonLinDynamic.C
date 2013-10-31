@@ -72,7 +72,7 @@ DistrExplicitLumpedPodProjectionNonLinDynamic::getInternalForce(DistrVector &d, 
     dynMat->M->mult(toto, *a_n);
   }
 
-  normalizedBasis_.reduce(*a_n,f);
+  normalizedBasis_.sparseVecReduce(*a_n,f);
   //  the residual is computed in this step to avoid projecting into the reduced coordinates twice
 
 }

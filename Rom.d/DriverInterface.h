@@ -26,6 +26,7 @@ private:
 // Concrete class instantiation
 extern Rom::DriverInterface *basisOrthoDriverNew(Domain *);
 extern Rom::DriverInterface *deimSamplingDriverNew(Domain *);
+extern Rom::DriverInterface *udeimSamplingDriverNew(Domain *);
 extern Rom::DriverInterface *distrBasisOrthoDriverNew(Domain *);
 extern Rom::DriverInterface *elementSamplingDriverNew(Domain *);
 extern Rom::DriverInterface *distrROMPostProcessingDriverNew(Domain *);

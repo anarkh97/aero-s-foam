@@ -12,17 +12,16 @@ public:
   explicit LumpedPodProjectionNonLinDynamic(Domain *);
 
   virtual void preProcess();
+  virtual void updateStates(ModalGeomState *refState, ModalGeomState& geomState);
 
 private:
-  // Overriden
   virtual void getStiffAndForceFromDomain(GeomState &geomState, Vector &elementInternalForce,
                                           Corotator **allCorot, FullSquareMatrix *kelArray,
                                           Vector &residual, double lambda, double time, GeomState *refState,
                                           FullSquareMatrix *melArray);
 
-  void updateStates(ModalGeomState *refState, ModalGeomState& geomState);
-  
   std::map<int, double> packedElementWeights_;
+  std::vector<int> packedWeightedNodes_;
   void buildPackedElementWeights();
 };
 

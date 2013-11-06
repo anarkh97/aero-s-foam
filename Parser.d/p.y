@@ -107,6 +107,7 @@
 %token PDIR HEFSB HEFRS HEINTERFACE  // Added for HEV Problem, EC, 20080512
 %token SNAPFI PODROB TRNVCT OFFSET ORTHOG SVDTOKEN CONVERSIONTOKEN CONVFI SAMPLING SNAPSHOTPROJECT PODSIZEMAX REFSUBSTRACT TOLER OUTOFCORE NORMALIZETOKEN FNUMBER SNAPWEIGHT ROBFI STAVCT VELVCT ACCVCT CONWEPCFG
 %token VECTORNORM LOCALTOLERANCE REBUILDFORCE SAMPNODESLOT FORCEROB DEIMINDICES UDEIMINDICES SVDFORCESNAP
+%token USEMASSNORMALIZEDBASIS
 
 %type <complexFDBC> AxiHD
 %type <complexFNBC> AxiHN
@@ -1706,6 +1707,8 @@ Mode:
           domain->solInfo().readInModes = $3;
           domain->solInfo().readmodeCalled = true;
           domain->solInfo().maxSizePodRom = $4; }
+        | Mode USEMASSNORMALIZEDBASIS SWITCH NewLine
+        { domain->solInfo().useMassNormalizedBasis = bool($3); }
 	;
 IDisp:
         IDIS NewLine
@@ -4316,6 +4319,8 @@ SamplingOption:
   { domain->solInfo().maxSizePodRom = $2; }
   | OUTOFCORE SWITCH
   { domain->solInfo().oocPodRom = bool($2); }
+  | USEMASSNORMALIZEDBASIS SWITCH
+  { domain->solInfo().useMassNormalizedBasis = bool($2); }
   | REDFOL SWITCH
   { domain->solInfo().reduceFollower = bool($2); }
   | VECTORNORM FNAME

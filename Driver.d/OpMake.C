@@ -1468,31 +1468,22 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
       break;
 #endif
     case 10:
-      //filePrint(stderr," ... Diagonal Solver is Selected    ...\n");
-      spm = new GenDiagMatrix<Scalar>(c_dsa); // XML NEED TO DEAL WITH RBMS
+      spm = new GenDiagMatrix<Scalar>(c_dsa);
       makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray,celArray);
       systemSolver   = (GenDiagMatrix<Scalar>*) spm;
       break;
     case 12:
-      //filePrint(stderr," ... POD-Galerkin Solver is Selected...\n");
-      {
-        Rom::GenGalerkinProjectionSolver<Scalar> * solver = constructGalerkinProjectionSolver<Scalar>();
-        spm = solver;
-        spm->zeroAll();
-        makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray,celArray);
-        systemSolver = solver;
-      }
+      spm = constructGalerkinProjectionSolver<Scalar>();
+      spm->zeroAll();
+      makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray,celArray);
+      systemSolver = (Rom::GenGalerkinProjectionSolver<Scalar>*) spm;
       break;
 #ifdef USE_EIGEN3
    case 13:
-      //filePrint(stderr," ... POD-Galerkin Solver is Selected...\n");
-      {
-        Rom::GenEiSparseGalerkinProjectionSolver<Scalar> * solver = constructEiSparseGalerkinProjectionSolver<Scalar>();
-        spm = solver;
-        spm->zeroAll();
-        makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray,celArray);
-        systemSolver = solver;
-      }
+      spm = constructEiSparseGalerkinProjectionSolver<Scalar>();
+      spm->zeroAll();
+      makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray,celArray);
+      systemSolver = (Rom::GenEiSparseGalerkinProjectionSolver<Scalar>*) spm;
       break;
     case 14:
 #ifdef USE_EIGEN_CHOLMOD

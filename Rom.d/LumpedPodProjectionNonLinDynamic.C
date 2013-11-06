@@ -64,8 +64,30 @@ LumpedPodProjectionNonLinDynamic::buildPackedElementWeights() {
 
     const double weight = it->second;
     if (weight != 0.0) {
+      Element *ele = domain->getElementSet()[packedId]; // get weighted element data
+      std::vector<int> node_buffer(ele->numNodes());
       packedElementWeights_.insert(packedElementWeights_.end(), std::make_pair(packedId, weight));
+      //put nodes for weighted element into dummy vector and insert into packed node vector
+      ele->nodes(node_buffer.data());
+      packedWeightedNodes_.insert(packedWeightedNodes_.end(), node_buffer.begin(), node_buffer.end());
     }
+  }
+
+  // XXX also need to add to packedWeightedNodes the nodes of any elements to which a follower force has been applied
+  // if the follower forces are not reduced. See: DistrExplicitLumpedPodProjectionNonLinDynamic::subBuildPackedElementWeights
+
+  //sort nodes in ascending order and erase redundant nodes
+  std::sort(packedWeightedNodes_.begin(), packedWeightedNodes_.end());
+  std::vector<int>::iterator packedNodeIt = std::unique(packedWeightedNodes_.begin(), packedWeightedNodes_.end());
+  packedWeightedNodes_.resize(packedNodeIt-packedWeightedNodes_.begin());
+
+  int elemCounter = packedElementWeights_.size();
+  filePrint(stderr, " ... Number of Elements in Reduced Mesh = %d ...\n", elemCounter);
+
+  if(elemCounter < domain->numElements()) {
+    filePrint(stderr, " ... Compressing Basis              ...\n");
+    GenVecBasis<double> &projectionBasis = const_cast<GenVecBasis<double> &>(dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis());
+    projectionBasis.makeSparseBasis(packedWeightedNodes_, domain->getCDSA());
   }
 }
 

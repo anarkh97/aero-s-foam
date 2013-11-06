@@ -8,12 +8,12 @@
 
 namespace Rom {
 
-class DistrExplicitPodPostProcessor : public MultiDomDynPostProcessor {
+class MultiDomDynPodPostProcessor : public MultiDomDynPostProcessor {
 
 public:
  
-  DistrExplicitPodPostProcessor(DecDomain *, StaticTimers* , DistrGeomState *, Corotator ***);
-  ~DistrExplicitPodPostProcessor();
+  MultiDomDynPodPostProcessor(DecDomain *, StaticTimers*, DistrGeomState *, Corotator ***);
+  ~MultiDomDynPodPostProcessor();
 
   void dynamOutput(int, double, MDDynamMat &, DistrVector &, DistrVector *aeroF, SysState<DistrVector> &);
   void printPODSize(int);
@@ -22,14 +22,11 @@ public:
 private:
 
   OutputInfo *oinfo;
-  DistrGeomState *geomState;
-  DecDomain *decDomain;
-  StaticTimers *times;
+  int numOutInfo;
   int podSize;
-  FILE *fn;
 
   void subBuildSensorNodeVector(int);
-  void subPrintSensorValues(int,GenDistrVector<double> &, OutputInfo *,double *);
+  void subPrintSensorValues(int, GenDistrVector<double> &, OutputInfo *, double *);
 
   DistrVecBasis *SensorBasis;
   GenDistrVector<double> *DispSensorValues;
@@ -43,8 +40,6 @@ private:
   bool VelSensor;
 
   std::vector<std::vector<int> > nodeVector;
-
-  int numOutInfo;    
 };
 
 class DistrExplicitPodProjectionNonLinDynamicBase : public MultiDomainDynam {
@@ -66,7 +61,7 @@ public:
   void getConstForce(DistrVector& v);
   void getInternalForce(DistrVector &d, DistrVector &f, double t, int tIndex);
   void printFullNorm(DistrVector &);
-  DistrExplicitPodPostProcessor *getPostProcessor();
+  MultiDomDynPodPostProcessor *getPostProcessor();
   MDDynamMat * buildOps(double, double, double); // Reduced-order matrix solver
 
 protected:
@@ -89,7 +84,7 @@ protected:
   GenParallelSolver<double> * fullMassSolver;
 
 private:
-  DistrExplicitPodPostProcessor *mddPostPro;
+  MultiDomDynPodPostProcessor *mddPostPro;
   // Disallow copy and assignment
   DistrExplicitPodProjectionNonLinDynamicBase(const DistrExplicitPodProjectionNonLinDynamicBase &);
   DistrExplicitPodProjectionNonLinDynamicBase &operator=(const DistrExplicitPodProjectionNonLinDynamicBase &);

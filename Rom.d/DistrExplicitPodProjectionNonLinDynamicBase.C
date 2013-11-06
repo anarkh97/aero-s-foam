@@ -28,16 +28,13 @@ extern Communicator *structCom;
 
 namespace Rom {
 
-DistrExplicitPodPostProcessor::DistrExplicitPodPostProcessor(DecDomain *d, StaticTimers* _times, DistrGeomState *_geomState = 0, Corotator ***_allCorot = 0) :
-    MultiDomDynPostProcessor(d, _times, _geomState, _allCorot),
+MultiDomDynPodPostProcessor::MultiDomDynPodPostProcessor(DecDomain *d, StaticTimers* times, DistrGeomState *geomState = 0, Corotator ***allCorot = 0) :
+    MultiDomDynPostProcessor(d, times, geomState, allCorot),
     DispSensorValues(NULL),
     AccSensorValues(NULL),
     VelSensorValues(NULL),
     all_cdsa(NULL)
 {
-  decDomain = d;
-  geomState = _geomState;
-  times = _times;
   oinfo = geoSource->getOutputInfo();
 
   numOutInfo = geoSource->getNumOutInfo();
@@ -112,10 +109,10 @@ DistrExplicitPodPostProcessor::DistrExplicitPodPostProcessor(DecDomain *d, Stati
 
   if(structCom) structCom->sync();
   nodeVector.resize(decDomain->getNumSub());
-  execParal(decDomain->getNumSub(), this, &DistrExplicitPodPostProcessor::subBuildSensorNodeVector);
+  execParal(decDomain->getNumSub(), this, &MultiDomDynPodPostProcessor::subBuildSensorNodeVector);
 }
 
-DistrExplicitPodPostProcessor::~DistrExplicitPodPostProcessor() {
+MultiDomDynPodPostProcessor::~MultiDomDynPodPostProcessor() {
 
   if(all_cdsa) delete [] all_cdsa;
   if(DispSensorValues) delete DispSensorValues;
@@ -124,7 +121,7 @@ DistrExplicitPodPostProcessor::~DistrExplicitPodPostProcessor() {
 }
 
 void
-DistrExplicitPodPostProcessor::printPODSize(int PODsize) {
+MultiDomDynPodPostProcessor::printPODSize(int PODsize) {
 
   podSize = PODsize;
 
@@ -149,7 +146,7 @@ DistrExplicitPodPostProcessor::printPODSize(int PODsize) {
 }
 
 void
-DistrExplicitPodPostProcessor::makeSensorBasis(DistrVecBasis *fullBasis) {
+MultiDomDynPodPostProcessor::makeSensorBasis(DistrVecBasis *fullBasis) {
 
   all_cdsa = new DofSetArray * [decDomain->getNumSub()];
 
@@ -174,7 +171,7 @@ DistrExplicitPodPostProcessor::makeSensorBasis(DistrVecBasis *fullBasis) {
 }
   
 void
-DistrExplicitPodPostProcessor::subBuildSensorNodeVector(int iSub) {
+MultiDomDynPodPostProcessor::subBuildSensorNodeVector(int iSub) {
 
   std::vector<int> &subSensorNodes = nodeVector[iSub];
 
@@ -194,7 +191,7 @@ DistrExplicitPodPostProcessor::subBuildSensorNodeVector(int iSub) {
 }
 
 void
-DistrExplicitPodPostProcessor::subPrintSensorValues(int iSub, GenDistrVector<double> &SensorData, OutputInfo *OINFO, double *time) {
+MultiDomDynPodPostProcessor::subPrintSensorValues(int iSub, GenDistrVector<double> &SensorData, OutputInfo *OINFO, double *time) {
 
 #ifdef DISTRIBUTED
   int locNode = decDomain->getSubDomain(iSub)->globalToLocal(OINFO->nodeNumber);
@@ -236,8 +233,8 @@ DistrExplicitPodPostProcessor::subPrintSensorValues(int iSub, GenDistrVector<dou
 }
 
 void
-DistrExplicitPodPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dynOps, DistrVector &distForce,
-                                           DistrVector *distAeroF, SysState<DistrVector>& distState) {
+MultiDomDynPodPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dynOps, DistrVector &distForce,
+                                         DistrVector *distAeroF, SysState<DistrVector>& distState) {
 
   //all MPI processes have a full copy of reduced coordinates, only master processes needs to print
   int p = std::numeric_limits<double>::digits10+1;
@@ -263,7 +260,7 @@ DistrExplicitPodPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dyn
                  SensorBasis->expand2(distState.getAccel(), *AccSensorValues);
                  AccProjected = true;
                }
-               execParal3R(decDomain->getNumSub(), this, &DistrExplicitPodPostProcessor::subPrintSensorValues, *AccSensorValues, &oinfo[iOut], &t);
+               execParal3R(decDomain->getNumSub(), this, &MultiDomDynPodPostProcessor::subPrintSensorValues, *AccSensorValues, &oinfo[iOut], &t);
              }
            }
            break;
@@ -281,7 +278,7 @@ DistrExplicitPodPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dyn
                  SensorBasis->expand2(distState.getDisp(), *DispSensorValues);
                  DispProjected = true;
                }
-               execParal3R(decDomain->getNumSub(), this, &DistrExplicitPodPostProcessor::subPrintSensorValues, *DispSensorValues, &oinfo[iOut], &t);
+               execParal3R(decDomain->getNumSub(), this, &MultiDomDynPodPostProcessor::subPrintSensorValues, *DispSensorValues, &oinfo[iOut], &t);
              }
            }
            break;
@@ -299,7 +296,7 @@ DistrExplicitPodPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dyn
                  SensorBasis->expand2(distState.getVeloc(), *VelSensorValues);
                  VelProjected = true;
                }
-               execParal3R(decDomain->getNumSub(), this, &DistrExplicitPodPostProcessor::subPrintSensorValues, *VelSensorValues, &oinfo[iOut], &t);
+               execParal3R(decDomain->getNumSub(), this, &MultiDomDynPodPostProcessor::subPrintSensorValues, *VelSensorValues, &oinfo[iOut], &t);
              }
            }
            break;
@@ -310,10 +307,10 @@ DistrExplicitPodPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dyn
   }
 }
 
-DistrExplicitPodPostProcessor *
+MultiDomDynPodPostProcessor *
 DistrExplicitPodProjectionNonLinDynamicBase::getPostProcessor() {
 
-  mddPostPro = new DistrExplicitPodPostProcessor(decDomain, times, geomState, allCorot);
+  mddPostPro = new MultiDomDynPodPostProcessor(decDomain, times, geomState, allCorot);
   mddPostPro->printPODSize(normalizedBasis_.numVectors());
   mddPostPro->makeSensorBasis(&normalizedBasis_);
 

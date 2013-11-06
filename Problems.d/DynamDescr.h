@@ -27,6 +27,7 @@ class Rbm;
 // Single Domain Dynamic Post Processor Class
 
 class SDDynamPostProcessor {
+  protected:
     Domain *domain;
     double *bcx;
     double *vcx, *acx;

@@ -19,14 +19,12 @@ public:
   ~GenGalerkinProjectionSolver();
 private:
   GenFullSquareMatrix<Scalar> reducedMatrix_;
-  bool rhsIsprojected_;
   bool pivotFlag_;
   int *ipiv_;
  
   // Overriden 
   virtual void resetSolver(int vCount, int vSize);
-  virtual void assembleAndFactorReducedSystem();
-  virtual void projectRhs(const GenVector<Scalar> &);
+  virtual void assembleAndFactorReducedSystem(double Mcoef);
   virtual double getReducedRhsNorm() const;
   virtual void solveReducedSystem(GenVector<Scalar> &);
  
@@ -42,7 +40,6 @@ GenGalerkinProjectionSolver<Scalar>::GenGalerkinProjectionSolver(Connectivity *c
                                                                  bool pivotFlag):
   GenDBSparsePodProjectionSolver<Scalar>(cn, dsa, c_dsa),
   reducedMatrix_(),
-  rhsIsprojected_(false),
   pivotFlag_(pivotFlag),
   ipiv_(NULL)
 {}
@@ -57,28 +54,20 @@ template <typename Scalar>
 void
 GenGalerkinProjectionSolver<Scalar>::resetSolver(int vCount, int) {
   reducedMatrix_.setSize(vCount);
-  rhsIsprojected_ = false;
 }
 
 template <typename Scalar>
 void
-GenGalerkinProjectionSolver<Scalar>::assembleAndFactorReducedSystem() {
+GenGalerkinProjectionSolver<Scalar>::assembleAndFactorReducedSystem(double Mcoef) {
   for (int row = 0; row < this->basisSize(); ++row) {
     const GenVector<Scalar> &action = this->lastReducedMatrixAction()[row];
     for (int col = row; col < this->basisSize(); ++col) {
       reducedMatrix_[row][col] = action * this->projectionBasis()[col];
     }
+    reducedMatrix_[row][row] += Mcoef;
   }
 
   performFactor();
-  rhsIsprojected_ = false;
-}
-
-template <typename Scalar>
-void
-GenGalerkinProjectionSolver<Scalar>::projectRhs(const GenVector<Scalar> &rhs) {
-  reduce(this->projectionBasis(), rhs, this->getReducedSolution());
-  rhsIsprojected_ = true;
 }
 
 template <typename Scalar>
@@ -90,15 +79,6 @@ GenGalerkinProjectionSolver<Scalar>::getReducedRhsNorm() const {
 template <typename Scalar>
 void
 GenGalerkinProjectionSolver<Scalar>::solveReducedSystem(GenVector<Scalar> &rhs) {
-/*
-  if (!rhsIsprojected_) {
-    reduce(this->projectionBasis(), rhs, this->getReducedSolution());
-  }
-  
-  performSolve();
-
-  rhsIsprojected_ = false;
-*/
   if(pivotFlag_) {
     if(!ipiv_) ipiv_ = new int[reducedMatrix_.dim()];
     ldlt_solve_upper(reducedMatrix_, rhs.data(), ipiv_);

@@ -8,7 +8,6 @@
 #include <Driver.d/Domain.h>
 #include "parser.hpp"
 #include <stack>
-//#include <Mortar.d/FaceElement.d/SurfaceEntity.h>
 int line_num = 1;
 
 // used for include
@@ -86,6 +85,8 @@ TRAIL [a-zA-Z]*
 "ZERO"[a-zA-Z]*|"zero"[a-zA-Z]*    { return ZERO;    }
 
 "READMODE"[a-zA-Z]*|"readmode"[a-zA-Z]* { return READMODE; }
+
+"USE_MASS_NORMALIZED_BASIS"|"use_mass_normalized_basis" { return USEMASSNORMALIZEDBASIS; }
 
 "PRES"[a-zA-Z]*|"pres"[a-zA-Z]*    { return PRESSURE; }
 

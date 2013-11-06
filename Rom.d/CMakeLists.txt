@@ -49,4 +49,6 @@ ADD_LIBRARY( Rom
   LawsonHanson.d/g1.cpp
   LawsonHanson.d/h12.cpp
   LawsonHanson.d/spnnls.cpp
+  SDDynamPodPostProcessor.C
+  EiGalerkinProjectionSolverInstance.C
 )

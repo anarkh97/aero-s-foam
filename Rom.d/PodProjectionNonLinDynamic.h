@@ -1,16 +1,54 @@
 #ifndef ROM_PODPROJECTIONNONLINDYNAMIC_H
 #define ROM_PODPROJECTIONNONLINDYNAMIC_H
 
+#include <Driver.d/GeoSource.h>
+#include <Problems.d/DynamDescr.h>
 #include <Problems.d/NonLinDynam.h>
 #include <Driver.d/StateUpdater.h>
 #include <Rom.d/ModalGeomState.h>
 #include <Corotational.d/GeomState.h>
+#include "VecBasis.h"
 
 #include <memory>
 
 namespace Rom {
 
 template <typename Scalar> class GenPodProjectionSolver;
+
+class SDDynamPodPostProcessor : public SDDynamPostProcessor
+{
+  public:
+    SDDynamPodPostProcessor(Domain *d, double *bcx, double *vcx, double *acx,
+                            StaticTimers *times, GeomState *geomState = 0,
+                            Corotator **allCorot = 0);
+    ~SDDynamPodPostProcessor();
+
+    // Perform output
+    void dynamOutput(int timeStepIndex, double time, DynamMat & dMat,
+                     Vector & externalForce, Vector * aeroForce,
+                     SysState<Vector> & systemState);
+    void printPODSize(int);
+    void makeSensorBasis(VecBasis *);
+
+  private:
+    OutputInfo *oinfo;
+    int numOutInfo;
+    int podSize;
+
+    void buildSensorNodeVector();
+    void printSensorValues(GenVector<double> &, OutputInfo *, double *);
+
+    VecBasis *SensorBasis;
+    GenVector<double> *DispSensorValues;
+    GenVector<double> *AccSensorValues;
+    GenVector<double> *VelSensorValues;
+
+    bool DispSensor;
+    bool AccSensor;
+    bool VelSensor;
+
+    std::vector<int> nodeVector;
+};
 
 class PodProjectionNonLinDynamic : public NonLinDynamic {
 public:
@@ -55,6 +93,7 @@ public:
 protected:
   class Impl;
   GeomState *geomState_Big, *refState_Big;
+  SDDynamPodPostProcessor *podPostPro;
 
 private:
   virtual bool factorWhenBuilding() const; // Overriden
@@ -65,6 +104,8 @@ private:
   void saveVelocitySnapshot(const Vector &);
   void saveAccelerationSnapshot(const Vector &);
   void handleResidualSnapshot(const Vector &);
+  void expandForce(Vector &fr, Vector &f) const;
+  void reduceDisp(Vector &d, Vector &dr) const;
 
   std::auto_ptr<Impl> impl_;
   std::auto_ptr<Impl> sttImpl_;

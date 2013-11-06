@@ -6,7 +6,6 @@
 // FEM headers
 #include <Mortar.d/FaceElement.d/FaceElement.h>
 #include <Mortar.d/MortarElement.d/MortarElement.h>
-//#include <Mortar.d/FFIPolygon.d/FFIPolygon.h>
 #include <Mortar.d/FFIPolygon.d/TriFacet.h>
 
 #include <Acme.d/search/Contact_Defines.h>
@@ -297,12 +296,8 @@ FFIPolygon<Scalar>::CreateTriangularization(Scalar* ACME_FFI_LocalCoordData)
   // Allocate space for Facets
   // By default assume as many triangular facet as polygon vertices
   // -> can be overwritten in for optimization
-#ifdef MORTAR_AUTO_DIFF_SACADO_RAD_FAD // workaround unresolved issue with Sacado::Rad and stl::vector 
-  Facet_pair_t dummy;
-  for(int i=0; i<nVertices; ++i) Facets.push_back(dummy);
-#else
-  Facets.assign(nVertices, Facet_pair_t(TriFacet<Scalar>(), TriFacet<Scalar>()));
-#endif
+  {Facets.clear(); Facet_pair_t val; for(int i=0; i<nVertices; ++i) Facets.push_back(val);} // workaround
+  //Facets.assign(nVertices, Facet_pair_t(TriFacet<Scalar>(), TriFacet<Scalar>()));
 
   // Create master & slave polygon centroids
   Scalar MasterCentroid[2] = {0.0, 0.0};

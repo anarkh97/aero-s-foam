@@ -664,19 +664,51 @@ PodProjectionNonLinDynamic::readRestartFile(Vector &d_n, Vector &v_n, Vector &a_
 int
 PodProjectionNonLinDynamic::getInitState(Vector &d, Vector &v, Vector &a, Vector &v_p)
 {
-  Vector d_Big(NonLinDynamic::solVecInfo(), 0.0),
-         v_Big(NonLinDynamic::solVecInfo(), 0.0),
-         a_Big(NonLinDynamic::solVecInfo(), 0.0),
-         v_p_Big(NonLinDynamic::solVecInfo(), 0.0);
+  int numIDisModal = domain->numInitDispModal();
+  if(numIDisModal) {
+    filePrint(stderr, " ... Using Modal IDISPLACEMENTS     ...\n");
+    BCond* iDisModal = domain->getInitDispModal();
+    d.zero();
+    for(int i = 0; i < numIDisModal; ++i) {
+      if(iDisModal[i].nnum < d.size())
+        d[iDisModal[i].nnum] = iDisModal[i].val;
+    }
+  }
+
+  int numIVelModal = domain->numInitVelocityModal();
+  if(numIVelModal) {
+    filePrint(stderr, " ... Using Modal IVELOCITIES        ...\n");
+    BCond* iVelModal = domain->getInitVelocityModal();
+    v.zero();
+    for(int i = 0; i < numIVelModal; ++i) {
+      if(iVelModal[i].nnum < v.size())
+        v[iVelModal[i].nnum] = iVelModal[i].val;
+    }
+  }
+
+  // XXX currently, if modal initial conditions are defined then any non-modal initial conditions are ignored
+  if(numIDisModal == 0 && numIVelModal == 0) {
+    Vector d_Big(NonLinDynamic::solVecInfo(), 0.0),
+           v_Big(NonLinDynamic::solVecInfo(), 0.0),
+           a_Big(NonLinDynamic::solVecInfo()),
+           v_p_Big(NonLinDynamic::solVecInfo());
   
-  int aeroAlg = NonLinDynamic::getInitState(d_Big, v_Big, a_Big, v_p_Big);
+    // XXX: for nonlinear dynamics (which this is), a_Big and v_p_Big are inputs to
+    // NonLinDynamic::getInitState, having been previously set in NonLinDynamic::readRestartFile
+    // and are used for AERO.
+    NonLinDynamic::getInitState(d_Big, v_Big, a_Big, v_p_Big);
 
-  reduceDisp(d_Big, d);
-  reduceDisp(v_Big, v);
-  reduceDisp(a_Big, a);
-  reduceDisp(v_p_Big, v_p);
+    if(numIDisModal == 0) {
+      if(d_Big.norm() != 0) reduceDisp(d_Big, d);
+      else d.zero();
+    }
+    if(numIVelModal == 0) {
+      if(v_Big.norm() != 0) reduceDisp(v_Big, v);
+      else v.zero();
+    }
+  }
 
-  return aeroAlg;
+  return domain->solInfo().aeroFlag;
 }
 
 void
@@ -688,18 +720,17 @@ PodProjectionNonLinDynamic::updatePrescribedDisplacement(ModalGeomState *geomSta
 void
 PodProjectionNonLinDynamic::getConstForce(Vector &constantForce)
 {
-  int nr = domain->nNeumannModal();
-  if(nr) {
+  int numNeumanModal = domain->nNeumannModal();
+  if(numNeumanModal) {
     filePrint(stderr, " ... Using Reduced Constant Force   ...\n");
     BCond* nbcModal = domain->getNBCModal();
     constantForce.zero();
-    for(int i=0; i<nr; ++i) {
+    for(int i = 0; i < numNeumanModal; ++i) {
       if(nbcModal[i].nnum < constantForce.size())
         constantForce[nbcModal[i].nnum] = nbcModal[i].val;
     }
   }
-  else { // XXX currently we are assuming that if modal forces are defined then there are no other constant forces
-         // however it would be quite simple to allow both.
+  else { // XXX currently, if modal forces are defined then any non-modal constant forces are ignored
     Vector constantForce_Big(NonLinDynamic::solVecInfo());
 
     NonLinDynamic::getConstForce(constantForce_Big);

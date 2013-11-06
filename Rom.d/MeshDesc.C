@@ -251,10 +251,12 @@ MeshDesc::init(Domain *domain, GeoSource *geoSource, const MeshRenumbering &ren)
   reduce(ren.elemRenumbering(), geoSource->getElementPressure().begin(), geoSource->getElementPressure().end(),
           std::inserter(elemPressures_, elemPressures_.end()));
 
+/* Now the initial conditions are outputted in the reduced coordinates, see ElementSamplingDriver::postProcess
   // Initial conditions
   reduce(ren.nodeRenumbering(), domain->getInitDisp(), domain->getInitDisp() + domain->numInitDisp(), std::back_inserter(initDisp_));
   reduce(ren.nodeRenumbering(), domain->getInitDisp6(), domain->getInitDisp6() + domain->numInitDisp6(), std::back_inserter(initDisp_));
   reduce(ren.nodeRenumbering(), domain->getInitVelocity(), domain->getInitVelocity() + domain->numInitVelocity(), std::back_inserter(initVel_));
+*/
 }
 
 std::ostream &
@@ -289,8 +291,10 @@ operator<<(std::ostream &out, const MeshDesc &mesh) {
   if (!mesh.sampleNodeIds().empty())
     out << make_section(mesh.sampleNodeIds().begin(), mesh.sampleNodeIds().end(), SampleNodeTag());
 
-  if (!mesh.elemWeights().empty())
+  if (!mesh.elemWeights().empty()) {
+    out.precision(std::numeric_limits<double>::digits10+1);
     out << make_section(mesh.elemWeights().begin(), mesh.elemWeights().end(), ElementWeightTag());
+  }
 
   return out;
 }

@@ -903,6 +903,22 @@ struct SolverInfo {
      return ((probType == Static) || (probType == NonLinStatic)
              || (probType == MatNonLinStatic) || (probType == ArcLength));
    }
+
+   bool keepModalInitialConditions() {
+     if(galerkinPodRom) {
+       // for nonlinear ROMs, keep the modal ivel and non-modal ivel separate
+       // only if the basis used to define the initial conditions is the same
+       // as the ROB.
+       std::string rob(readInROBorModes);
+       if(useMassNormalizedBasis) rob.append(".normalized");
+       std::string icb(readInModes);
+       return (rob.compare(icb) == 0); 
+     }
+     else {
+       // for linear ROMs, keep the modal ivel and non-modal ivel separate
+       return modal;
+     }
+   }
 };
 
 #endif

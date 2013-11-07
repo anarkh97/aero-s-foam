@@ -664,11 +664,11 @@ PodProjectionNonLinDynamic::readRestartFile(Vector &d_n, Vector &v_n, Vector &a_
 int
 PodProjectionNonLinDynamic::getInitState(Vector &d, Vector &v, Vector &a, Vector &v_p)
 {
+  // d, v, a and v_p are on entry are already initialized to zero
   int numIDisModal = domain->numInitDispModal();
   if(numIDisModal) {
     filePrint(stderr, " ... Using Modal IDISPLACEMENTS     ...\n");
     BCond* iDisModal = domain->getInitDispModal();
-    d.zero();
     for(int i = 0; i < numIDisModal; ++i) {
       if(iDisModal[i].nnum < d.size())
         d[iDisModal[i].nnum] = iDisModal[i].val;
@@ -679,7 +679,6 @@ PodProjectionNonLinDynamic::getInitState(Vector &d, Vector &v, Vector &a, Vector
   if(numIVelModal) {
     filePrint(stderr, " ... Using Modal IVELOCITIES        ...\n");
     BCond* iVelModal = domain->getInitVelocityModal();
-    v.zero();
     for(int i = 0; i < numIVelModal; ++i) {
       if(iVelModal[i].nnum < v.size())
         v[iVelModal[i].nnum] = iVelModal[i].val;
@@ -690,21 +689,16 @@ PodProjectionNonLinDynamic::getInitState(Vector &d, Vector &v, Vector &a, Vector
   if(numIDisModal == 0 && numIVelModal == 0) {
     Vector d_Big(NonLinDynamic::solVecInfo(), 0.0),
            v_Big(NonLinDynamic::solVecInfo(), 0.0),
-           a_Big(NonLinDynamic::solVecInfo()),
-           v_p_Big(NonLinDynamic::solVecInfo());
+           a_Big(NonLinDynamic::solVecInfo(), 0.0),
+           v_p_Big(NonLinDynamic::solVecInfo(), 0.0);
   
-    // XXX: for nonlinear dynamics (which this is), a_Big and v_p_Big are inputs to
-    // NonLinDynamic::getInitState, having been previously set in NonLinDynamic::readRestartFile
-    // and are used for AERO.
     NonLinDynamic::getInitState(d_Big, v_Big, a_Big, v_p_Big);
 
     if(numIDisModal == 0) {
       if(d_Big.norm() != 0) reduceDisp(d_Big, d);
-      else d.zero();
     }
     if(numIVelModal == 0) {
       if(v_Big.norm() != 0) reduceDisp(v_Big, v);
-      else v.zero();
     }
   }
 

@@ -145,7 +145,7 @@ private:
     MDDynamMat * buildOps(double, double, double);
     MultiDomDynPostProcessor *getPostProcessor();
 
-    const DistrInfo &solVecInfo();
+    const DistrInfo &solVecInfo() const;
     DistrInfo &bcInfo();
 
     int getTimeIntegration();

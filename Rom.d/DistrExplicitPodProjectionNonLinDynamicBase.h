@@ -82,6 +82,7 @@ protected:
   SysState<DistrVector> *dummyState;
   bool haveRot;
   GenParallelSolver<double> * fullMassSolver;
+  void reduceDisp(DistrVector &d, DistrVector &dr) const;
 
 private:
   MultiDomDynPodPostProcessor *mddPostPro;

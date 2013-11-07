@@ -405,9 +405,9 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcess(Vector &solution, 
   if(domain->solInfo().useMassNormalizedBasis || domain->solInfo().newmarkBeta == 0) {
     AllOps<double> allOps;
     if(reduce_idis || reduce_ivel) { 
-      std::cerr << "building mass matrix\n";
+      //std::cerr << "building mass matrix\n";
       allOps.M = domain->constructDBSparseMatrix<double>();
-      domain->buildOps(allOps, 0, 0, 0);
+      domain->makeSparseOps(allOps, 0, 0, 0);
     }
     if(reduce_idis) {
       allOps.M->mult(d0Full, tmp);

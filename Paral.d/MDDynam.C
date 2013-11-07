@@ -322,13 +322,13 @@ MultiDomainDynam::MultiDomainDynam(Domain *d)
   geomState = 0;
   dynMat = 0;
 }
-                                                                                                 
+
 const DistrInfo &
-MultiDomainDynam::solVecInfo()
+MultiDomainDynam::solVecInfo() const
 {
   return decDomain->solVecInfo();
 }
-                                                                                                 
+
 DistrInfo &
 MultiDomainDynam::bcInfo()
 {
@@ -343,12 +343,12 @@ MultiDomainDynam::processLastOutput()
   for (int iOut = 0; iOut < geoSource->getNumOutInfo(); iOut++)
     oinfo[iOut].interval = 1;
 }
-                                                                                                 
+
 void
 MultiDomainDynam::preProcess()
 {
   times->preProcess -= getTime();
-                                                                                                 
+
   // Makes local renumbering, connectivities and dofsets
   decDomain->preProcess();
 
@@ -489,7 +489,7 @@ MultiDomainDynam::getDomain()
 {
   return domain;
 }
-                                                                                                 
+
 void
 MultiDomainDynam::getNewMarkParameters(double &beta, double &gamma,
                                        double &alphaf, double &alpham)
@@ -499,14 +499,14 @@ MultiDomainDynam::getNewMarkParameters(double &beta, double &gamma,
   alphaf = domain->solInfo().newmarkAlphaF;
   alpham = domain->solInfo().newmarkAlphaM;
 }
-                                                                                                 
+
 void
 MultiDomainDynam::getQuasiStaticParameters(double &maxVel, double &delta)
 {
   maxVel  = domain->solInfo().qsMaxvel;
   delta  = domain->solInfo().delta;
 }
-                                                                                                 
+
 void
 MultiDomainDynam::getSteadyStateParam(int &steadyFlag, int &steadyMin,
                                       int &steadyMax, double &steadyTol)

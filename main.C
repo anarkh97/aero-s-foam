@@ -833,7 +833,8 @@ int main(int argc, char** argv)
     || (domain->solInfo().type == 1 && domain->solInfo().iterType == 1 && domain_decomp)
     || (domain->solInfo().type == 0 && domain->solInfo().subtype == 9 && domain_decomp)
     || (domain->solInfo().svdPodRom && domain_decomp)
-    || (domain->solInfo().samplingPodRom && domain_decomp)) {
+    || (domain->solInfo().samplingPodRom && domain_decomp)
+    || domain->solInfo().ROMPostProcess) {
 
    if(parallel_proc) {
 #ifdef USE_MPI
@@ -1013,7 +1014,7 @@ int main(int argc, char** argv)
                 else
                    filePrint(stderr, " ... POD: ROM with stiffness interpolation ...\n");
                 Rom::DistrExplicitDEIMPodProjectionNonLinDynamic dynamProb(domain);
-                DynamicSolver < MDDynamMat, DistrVector, Rom::DistrExplicitPodPostProcessor,
+                DynamicSolver < MDDynamMat, DistrVector, Rom::MultiDomDynPodPostProcessor,
                                 Rom::DistrExplicitDEIMPodProjectionNonLinDynamic, double > dynamSolver(&dynamProb);
                 dynamSolver.solve();
                } else {
@@ -1022,13 +1023,13 @@ int main(int argc, char** argv)
 	           else
                  filePrint(stderr, " ... POD: ROM with stiffness lumping ...\n");
                Rom::DistrExplicitLumpedPodProjectionNonLinDynamic dynamProb(domain);
-               DynamicSolver < MDDynamMat, DistrVector, Rom::DistrExplicitPodPostProcessor,
+               DynamicSolver < MDDynamMat, DistrVector, Rom::MultiDomDynPodPostProcessor,
                                Rom::DistrExplicitLumpedPodProjectionNonLinDynamic, double > dynamSolver(&dynamProb);
                dynamSolver.solve();}
              } else {
                filePrint(stderr, " ... POD: Explicit Galerkin         ...\n");
                Rom::DistrExplicitPodProjectionNonLinDynamic dynamProb(domain);
-               DynamicSolver < MDDynamMat, DistrVector, Rom::DistrExplicitPodPostProcessor,
+               DynamicSolver < MDDynamMat, DistrVector, Rom::MultiDomDynPodPostProcessor,
                              Rom::DistrExplicitPodProjectionNonLinDynamic, double > dynamSolver(&dynamProb);
                dynamSolver.solve();
              }

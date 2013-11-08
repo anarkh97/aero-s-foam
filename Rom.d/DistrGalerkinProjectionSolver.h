@@ -64,13 +64,13 @@ GenDistrGalerkinProjectionSolver<Scalar>::~GenDistrGalerkinProjectionSolver() {
 template <typename Scalar>
 void
 GenDistrGalerkinProjectionSolver<Scalar>::solve(GenDistrVector<Scalar> &rhs, GenDistrVector<Scalar> &result) {
-      normalizedBasis_.project(rhs, result);  //this actually doesn't do anything, fint and fext already projected
+  result = rhs;
 }
 
 template <typename Scalar>
 void
 GenDistrGalerkinProjectionSolver<Scalar>::reSolve(GenDistrVector<Scalar> &rhs) {
-  solve(rhs, rhs);
+  // Nothing to do
 }
 
 typedef GenDistrGalerkinProjectionSolver<double> DistrGalerkinProjectionSolver;

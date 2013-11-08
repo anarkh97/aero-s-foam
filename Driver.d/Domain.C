@@ -1264,11 +1264,11 @@ Domain::setUpData()
   numBC = geoSource->getIDis(bc);
   setIDis(numBC, bc);
   numBC = geoSource->getIDisModal(bc);
-  if(solInfo().modal) { // for modal dynamics, keep the modal idisp and non-modal idisp separate
-    setIDisModal(numBC, bc);
-  }
-  else { // for non-modal dynamics convert the modal idisp into non-modal idisp
-    if(numBC) {
+  if(numBC) {
+    if(solInfo().keepModalInitialConditions()) { // for modal dynamics, keep the modal idisp and non-modal idisp separate
+      setIDisModal(numBC, bc);
+    }
+    else { // for non-modal dynamics convert the modal idisp into non-modal idisp
       filePrint(stderr, " ... Compute initial displacement from given modal basis ...\n");
       int numIDisModal = modeData.numNodes*6;
       BCond *iDis_new = new BCond[numIDis+numIDisModal];
@@ -1288,11 +1288,11 @@ Domain::setUpData()
   numBC = geoSource->getIVel(bc);
   setIVel(numBC, bc);
   numBC = geoSource->getIVelModal(bc);
-  if(solInfo().modal) { // for modal dynamics, keep the modal ivel and non-modal ivel separate
-    setIVelModal(numBC, bc);
-  }
-  else {
-    if(numBC) {
+  if(numBC) {
+    if(solInfo().keepModalInitialConditions()) { // for modal dynamics, keep the modal ivel and non-modal ivel separate
+      setIVelModal(numBC, bc);
+    }
+    else {
       filePrint(stderr, " ... Compute initial velocity from given modal basis ...\n");
       int numIVelModal = modeData.numNodes*6;
       BCond *iVel_new = new BCond[numIVel+numIVelModal];

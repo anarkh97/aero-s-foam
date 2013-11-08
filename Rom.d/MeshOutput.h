@@ -114,6 +114,7 @@ template <typename TagType>
 std::string
 InputFileSectionHelper<std::pair<const int, typename TagType::SecondType>, TagType>::transformation(const ValueType &p) {
   std::ostringstream result;
+  result.precision(std::numeric_limits<double>::digits10+1);
   result << p.first + 1 << " " << TagType::valueTransformation(p.second);
   return result.str();
 }

@@ -14,6 +14,7 @@
 
 #include <Driver.d/GeoSource.h>
 #include <Driver.d/Domain.h>
+#include <Driver.d/SysState.h>
 #include <Math.d/Vector.h>
 #include <Timers.d/StaticTimers.h>
 #include <Utils.d/Connectivity.h>
@@ -68,11 +69,21 @@ void
 outputMeshFile(const FileNameInfo &fileInfo, const MeshDesc &mesh, const int podVectorCount) {
   const std::ios_base::openmode mode = std::ios_base::out; 
   std::ofstream meshOut(getMeshFilename(fileInfo).c_str(), mode);
-  filePrint(stderr,"... writing Mesh File to %s\n", getMeshFilename(fileInfo).c_str());
+  filePrint(stderr," ... Writing Mesh File to %s ...\n", getMeshFilename(fileInfo).c_str());
   meshOut.precision(std::numeric_limits<double>::digits10+1);
   std::string basisfile = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
   basisfile.append(".reduced");
-  meshOut << "READMODE \"" << basisfile << "\" " << podVectorCount << "\n*\n";
+  if(domain->numInitDisp() || domain->numInitDisp6() || domain->numInitVelocity()) {
+    std::string basisfile2(basisfile);
+    if(domain->solInfo().useMassNormalizedBasis || domain->solInfo().newmarkBeta == 0) basisfile2.append(".normalized");
+    meshOut << "READMODE \"" << basisfile << "\" \"" << basisfile2 << "\" " << podVectorCount << "\n";
+  }
+  else {
+    meshOut << "READMODE \"" << basisfile << "\" " << podVectorCount << "\n";
+  }
+  if(!domain->solInfo().useMassNormalizedBasis && domain->solInfo().newmarkBeta != 0)
+    meshOut << "use_mass_normalized_basis off\n";
+  meshOut << "*\n";
   meshOut << mesh;
 }
 
@@ -378,7 +389,39 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcess(Vector &solution, 
   Vector constForceFull(SingleDomainDynamic::solVecInfo());
   SingleDomainDynamic::getConstForce(constForceFull);
   Vector constForceRed(podBasis_.vectorCount());
-  reduce(podBasis_, constForceFull,  constForceRed);
+  bool reduce_f = (constForceFull.norm() != 0);
+  if(reduce_f) reduce(podBasis_, constForceFull, constForceRed);
+
+  // compute the reduced initial conditions
+  Vector d0Full(SingleDomainDynamic::solVecInfo()),
+         v0Full(SingleDomainDynamic::solVecInfo());
+  Vector tmp(SingleDomainDynamic::solVecInfo());
+  SysState<Vector> inState(d0Full, v0Full, tmp, tmp);
+  SingleDomainDynamic::getInitState(inState);
+  Vector d0Red(podBasis_.vectorCount()),
+         v0Red(podBasis_.vectorCount());
+  bool reduce_idis = (d0Full.norm() != 0),
+       reduce_ivel = (v0Full.norm() != 0);
+  if(domain->solInfo().useMassNormalizedBasis || domain->solInfo().newmarkBeta == 0) {
+    AllOps<double> allOps;
+    if(reduce_idis || reduce_ivel) { 
+      //std::cerr << "building mass matrix\n";
+      allOps.M = domain->constructDBSparseMatrix<double>();
+      domain->makeSparseOps(allOps, 0, 0, 0);
+    }
+    if(reduce_idis) {
+      allOps.M->mult(d0Full, tmp);
+      reduce(podBasis_, tmp, d0Red);
+    }
+    if(reduce_ivel) {
+      allOps.M->mult(v0Full, tmp);
+      reduce(podBasis_, tmp, v0Red);
+    }
+  }
+  else {
+    if(reduce_idis) reduce(podBasis_, d0Full, d0Red);
+    if(reduce_ivel) reduce(podBasis_, v0Full, v0Red);
+  }
 
   // output the reduced mesh
   std::auto_ptr<Connectivity> elemToNode(new Connectivity(&inputElemSet));
@@ -390,10 +433,26 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcess(Vector &solution, 
   // output the reduced forces
   std::ofstream meshOut(getMeshFilename(fileInfo).c_str(), std::ios_base::app);
   if(domain->solInfo().reduceFollower) meshOut << "REDFOL\n";
-  meshOut << "*\nFORCES\nMODAL\n";
-  meshOut.precision(std::numeric_limits<double>::digits10+1);
-  for(int i=0; i<podBasis_.vectorCount(); ++i) 
-    meshOut << i+1 << " "  << constForceRed[i] << std::endl;
+  if(reduce_f) {
+    meshOut << "*\nFORCES\nMODAL\n";
+    meshOut.precision(std::numeric_limits<double>::digits10+1);
+    for(int i=0; i<podBasis_.vectorCount(); ++i) 
+      meshOut << i+1 << " " << constForceRed[i] << std::endl;
+  }
+
+  // output the reduced initial conditions
+  if(reduce_idis) {
+    meshOut << "*\nIDISPLACEMENTS\nMODAL\n";
+    meshOut.precision(std::numeric_limits<double>::digits10+1);
+    for(int i=0; i<podBasis_.vectorCount(); ++i)
+      meshOut << i+1 << " " << d0Red[i] << std::endl;
+  }
+  if(reduce_ivel) {
+    meshOut << "*\nIVELOCITIES\nMODAL\n";
+    meshOut.precision(std::numeric_limits<double>::digits10+1);
+    for(int i=0; i<podBasis_.vectorCount(); ++i)
+      meshOut << i+1 << " " << v0Red[i] << std::endl;
+  }
 
 #ifdef USE_EIGEN3
   // build and output compressed basis
@@ -401,7 +460,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcess(Vector &solution, 
   {
     std::string filename = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
     filename.append(".reduced");
-    if(domain_->solInfo().newmarkBeta == 0) filename.append(".normalized");
+    if(domain_->solInfo().newmarkBeta == 0 || domain_->solInfo().useMassNormalizedBasis) filename.append(".normalized");
     filePrint(stderr," ... Writing compressed basis to file %s ...\n", filename.c_str());
     DofSetArray reduced_dsa(reducedMesh.nodes().size(), const_cast<Elemset&>(reducedMesh.elements()));
     ConstrainedDSA reduced_cdsa(reduced_dsa, reducedMesh.dirichletBConds().size(), const_cast<BCond*>(&reducedMesh.dirichletBConds()[0]));
@@ -409,7 +468,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcess(Vector &solution, 
     BasisOutputStream output(filename, converter, false);
 
     for (int iVec = 0; iVec < podBasis_.vectorCount(); ++iVec) {
-      output << podBasis_.getCompressedBasis().col(iVec);
+      output << podBasis_.compressedBasis().col(iVec);
     }
   }
 #endif
@@ -474,8 +533,8 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcess()
     if(accSnapshotCounts != snapshotCounts_) std::cerr << " *** WARNING: inconsistent acceleration snapshots\n";
   }
   
-  // Read in mass-normalized basis if explicit
-  if(domain_->solInfo().newmarkBeta == 0) {
+  // Read in mass-normalized basis if necessary
+  if(domain_->solInfo().newmarkBeta == 0 || domain_->solInfo().useMassNormalizedBasis) {
     std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
     fileName.append(".normalized");
     BasisInputStream in(fileName, vecDofConversion);

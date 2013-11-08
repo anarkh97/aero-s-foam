@@ -167,7 +167,7 @@ GenEiSparseMatrix<Scalar,SolverClass>::add(FullSquareMatrixC &kel, int *dofs)
       }
     }
   }
-} 
+}
 
 template<typename Scalar, typename SolverClass> 
 double

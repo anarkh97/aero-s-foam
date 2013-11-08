@@ -377,6 +377,7 @@ struct SolverInfo {
    double tolPodRom;
    bool oocPodRom; // if this is true and aero-s is compiled with stxxl, then out-of-core spnnls solver will be used
                    // by the single domain element lumping driver
+   bool useMassNormalizedBasis;
    bool ConwepOnOff;
    std::list<int> loadcases;
    bool basicDofCoords; // if this is true then all of the nodes use the basic coordinate frame 0 for DOF_FRM
@@ -644,6 +645,7 @@ struct SolverInfo {
                   numRODFile         = 0;
                   tolPodRom          = 1.0e-6;
                   oocPodRom          = true;
+                  useMassNormalizedBasis = true;
                   ConwepOnOff        = false;
                   basicDofCoords     = true;
                   basicPosCoords     = true;
@@ -908,6 +910,22 @@ struct SolverInfo {
    bool isStatic() {
      return ((probType == Static) || (probType == NonLinStatic)
              || (probType == MatNonLinStatic) || (probType == ArcLength));
+   }
+
+   bool keepModalInitialConditions() {
+     if(galerkinPodRom) {
+       // for nonlinear ROMs, keep the modal ivel and non-modal ivel separate
+       // only if the basis used to define the initial conditions is the same
+       // as the ROB.
+       std::string rob(readInROBorModes);
+       if(useMassNormalizedBasis) rob.append(".normalized");
+       std::string icb(readInModes);
+       return (rob.compare(icb) == 0); 
+     }
+     else {
+       // for linear ROMs, keep the modal ivel and non-modal ivel separate
+       return modal;
+     }
    }
 };
 

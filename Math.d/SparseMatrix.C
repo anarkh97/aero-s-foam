@@ -141,7 +141,6 @@ GenSparseMatrix<Scalar>::mult(const GenVector<Scalar> &rhs, Scalar *result)
  fprintf(stderr,"GenSparseMatrix<Scalar>::mult(const GenVector<Scalar> &rhs, Scalar *result) not implemented\n");
 }
 
-
 template<class Scalar> 
 void
 GenSparseMatrix<Scalar>::mult(const Scalar *rhs, Scalar *result)

@@ -21,23 +21,19 @@
 #include <Utils.d/DistHelper.h>
 
 #include <algorithm>
-#include <memory>
 #include <limits>
 
 extern Communicator *structCom;
 
 namespace Rom {
 
-DistrExplicitPodPostProcessor::DistrExplicitPodPostProcessor(DecDomain *d, StaticTimers* _times, DistrGeomState *_geomState = 0, Corotator ***_allCorot = 0) :
-    MultiDomDynPostProcessor(d, _times, _geomState, _allCorot),
+MultiDomDynPodPostProcessor::MultiDomDynPodPostProcessor(DecDomain *d, StaticTimers* times, DistrGeomState *geomState = 0, Corotator ***allCorot = 0) :
+    MultiDomDynPostProcessor(d, times, geomState, allCorot),
     DispSensorValues(NULL),
     AccSensorValues(NULL),
     VelSensorValues(NULL),
     all_cdsa(NULL)
 {
-  decDomain = d;
-  geomState = _geomState;
-  times = _times;
   oinfo = geoSource->getOutputInfo();
 
   numOutInfo = geoSource->getNumOutInfo();
@@ -112,10 +108,10 @@ DistrExplicitPodPostProcessor::DistrExplicitPodPostProcessor(DecDomain *d, Stati
 
   if(structCom) structCom->sync();
   nodeVector.resize(decDomain->getNumSub());
-  execParal(decDomain->getNumSub(), this, &DistrExplicitPodPostProcessor::subBuildSensorNodeVector);
+  execParal(decDomain->getNumSub(), this, &MultiDomDynPodPostProcessor::subBuildSensorNodeVector);
 }
 
-DistrExplicitPodPostProcessor::~DistrExplicitPodPostProcessor() {
+MultiDomDynPodPostProcessor::~MultiDomDynPodPostProcessor() {
 
   if(all_cdsa) delete [] all_cdsa;
   if(DispSensorValues) delete DispSensorValues;
@@ -124,7 +120,7 @@ DistrExplicitPodPostProcessor::~DistrExplicitPodPostProcessor() {
 }
 
 void
-DistrExplicitPodPostProcessor::printPODSize(int PODsize) {
+MultiDomDynPodPostProcessor::printPODSize(int PODsize) {
 
   podSize = PODsize;
 
@@ -149,7 +145,7 @@ DistrExplicitPodPostProcessor::printPODSize(int PODsize) {
 }
 
 void
-DistrExplicitPodPostProcessor::makeSensorBasis(DistrVecBasis *fullBasis) {
+MultiDomDynPodPostProcessor::makeSensorBasis(DistrVecBasis *fullBasis) {
 
   all_cdsa = new DofSetArray * [decDomain->getNumSub()];
 
@@ -174,7 +170,7 @@ DistrExplicitPodPostProcessor::makeSensorBasis(DistrVecBasis *fullBasis) {
 }
   
 void
-DistrExplicitPodPostProcessor::subBuildSensorNodeVector(int iSub) {
+MultiDomDynPodPostProcessor::subBuildSensorNodeVector(int iSub) {
 
   std::vector<int> &subSensorNodes = nodeVector[iSub];
 
@@ -194,7 +190,7 @@ DistrExplicitPodPostProcessor::subBuildSensorNodeVector(int iSub) {
 }
 
 void
-DistrExplicitPodPostProcessor::subPrintSensorValues(int iSub, GenDistrVector<double> &SensorData, OutputInfo *OINFO, double *time) {
+MultiDomDynPodPostProcessor::subPrintSensorValues(int iSub, GenDistrVector<double> &SensorData, OutputInfo *OINFO, double *time) {
 
 #ifdef DISTRIBUTED
   int locNode = decDomain->getSubDomain(iSub)->globalToLocal(OINFO->nodeNumber);
@@ -236,8 +232,8 @@ DistrExplicitPodPostProcessor::subPrintSensorValues(int iSub, GenDistrVector<dou
 }
 
 void
-DistrExplicitPodPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dynOps, DistrVector &distForce,
-                                           DistrVector *distAeroF, SysState<DistrVector>& distState) {
+MultiDomDynPodPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dynOps, DistrVector &distForce,
+                                         DistrVector *distAeroF, SysState<DistrVector>& distState) {
 
   //all MPI processes have a full copy of reduced coordinates, only master processes needs to print
   int p = std::numeric_limits<double>::digits10+1;
@@ -263,7 +259,7 @@ DistrExplicitPodPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dyn
                  SensorBasis->expand2(distState.getAccel(), *AccSensorValues);
                  AccProjected = true;
                }
-               execParal3R(decDomain->getNumSub(), this, &DistrExplicitPodPostProcessor::subPrintSensorValues, *AccSensorValues, &oinfo[iOut], &t);
+               execParal3R(decDomain->getNumSub(), this, &MultiDomDynPodPostProcessor::subPrintSensorValues, *AccSensorValues, &oinfo[iOut], &t);
              }
            }
            break;
@@ -281,7 +277,7 @@ DistrExplicitPodPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dyn
                  SensorBasis->expand2(distState.getDisp(), *DispSensorValues);
                  DispProjected = true;
                }
-               execParal3R(decDomain->getNumSub(), this, &DistrExplicitPodPostProcessor::subPrintSensorValues, *DispSensorValues, &oinfo[iOut], &t);
+               execParal3R(decDomain->getNumSub(), this, &MultiDomDynPodPostProcessor::subPrintSensorValues, *DispSensorValues, &oinfo[iOut], &t);
              }
            }
            break;
@@ -299,7 +295,7 @@ DistrExplicitPodPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dyn
                  SensorBasis->expand2(distState.getVeloc(), *VelSensorValues);
                  VelProjected = true;
                }
-               execParal3R(decDomain->getNumSub(), this, &DistrExplicitPodPostProcessor::subPrintSensorValues, *VelSensorValues, &oinfo[iOut], &t);
+               execParal3R(decDomain->getNumSub(), this, &MultiDomDynPodPostProcessor::subPrintSensorValues, *VelSensorValues, &oinfo[iOut], &t);
              }
            }
            break;
@@ -310,10 +306,10 @@ DistrExplicitPodPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dyn
   }
 }
 
-DistrExplicitPodPostProcessor *
+MultiDomDynPodPostProcessor *
 DistrExplicitPodProjectionNonLinDynamicBase::getPostProcessor() {
 
-  mddPostPro = new DistrExplicitPodPostProcessor(decDomain, times, geomState, allCorot);
+  mddPostPro = new MultiDomDynPodPostProcessor(decDomain, times, geomState, allCorot);
   mddPostPro->printPODSize(normalizedBasis_.numVectors());
   mddPostPro->makeSensorBasis(&normalizedBasis_);
 
@@ -411,20 +407,58 @@ DistrExplicitPodProjectionNonLinDynamicBase::printFullNorm(DistrVector &v) {
 }
 
 void
-DistrExplicitPodProjectionNonLinDynamicBase::getInitState(SysState<DistrVector> & _curState) {
-  //project initial state into reduced coordinates
+DistrExplicitPodProjectionNonLinDynamicBase::getInitState(SysState<DistrVector>& curState) {
 
-  MultiDomainDynam::getInitState( *dummyState );
+  DistrVector &dr_n = curState.getDisp();
+  DistrVector &vr_n = curState.getVeloc();
+  DistrVector &ar_n = curState.getAccel();
+  DistrVector &vr_p = curState.getPrevVeloc();
 
-  DistrVector &_d_n = _curState.getDisp(); 
-  DistrVector &_v_n = _curState.getVeloc();
-  DistrVector &_a_n = _curState.getAccel();
-  DistrVector &_v_p = _curState.getPrevVeloc();
+  dr_n.zero();
+  vr_n.zero();
+  ar_n.zero();
+  vr_p.zero();
 
-  normalizedBasis_.reduce( *d_n, _d_n);
-  normalizedBasis_.reduce( *v_n, _v_n);
-  normalizedBasis_.reduce( *a_n, _a_n);
-  normalizedBasis_.reduce( *v_p, _v_p);
+  int numIDisModal = domain->numInitDispModal();
+  if(numIDisModal) {
+    filePrint(stderr, " ... Using Modal IDISPLACEMENTS     ...\n");
+    BCond* iDisModal = domain->getInitDispModal();
+    for(int i = 0; i < numIDisModal; ++i) {
+      if(iDisModal[i].nnum < dr_n.size())
+        dr_n[iDisModal[i].nnum] = iDisModal[i].val;
+    }
+  }
+
+  int numIVelModal = domain->numInitVelocityModal();
+  if(numIVelModal) {
+    filePrint(stderr, " ... Using Modal IVELOCITIES        ...\n");
+    BCond* iVelModal = domain->getInitVelocityModal();
+    for(int i = 0; i < numIVelModal; ++i) {
+      if(iVelModal[i].nnum < vr_n.size())
+        vr_n[iVelModal[i].nnum] = iVelModal[i].val;
+    }
+  }
+
+  // XXX currently, if modal initial conditions are defined then any non-modal initial conditions are ignored
+  if(numIDisModal == 0 && numIVelModal == 0) {
+
+    MultiDomainDynam::getInitState(*dummyState);
+
+    MultiDomainDynam::buildOps(1.0, 0.0, 0.0);
+
+    if(d_n->norm() != 0) reduceDisp(*d_n, dr_n);
+    if(v_n->norm() != 0) reduceDisp(*v_n, vr_n);
+    if(a_n->norm() != 0) reduceDisp(*a_n, ar_n);
+    if(v_p->norm() != 0) reduceDisp(*v_p, vr_p);
+  }
+}
+
+void
+DistrExplicitPodProjectionNonLinDynamicBase::reduceDisp(DistrVector &d, DistrVector &dr) const
+{
+  DistrVector Md(MultiDomainDynam::solVecInfo());
+  dynMat->M->mult(d, Md);
+  normalizedBasis_.reduce(Md, dr);
 }
 
 void 
@@ -449,17 +483,17 @@ DistrExplicitPodProjectionNonLinDynamicBase::updateState(double dt_n_h, DistrVec
 
 void DistrExplicitPodProjectionNonLinDynamicBase::getConstForce(DistrVector& v)
 {
-  int nr = domain->nNeumannModal();
-  if(nr) {
+  int numNeumanModal = domain->nNeumannModal();
+  if(numNeumanModal) {
     filePrint(stderr, " ... Using Reduced Constant Force   ...\n");
     BCond* nbcModal = domain->getNBCModal();
     v.zero();
-    for(int i=0; i<nr; ++i) {
+    for(int i = 0; i < numNeumanModal; ++i) {
       if(nbcModal[i].nnum < v.size())
         v[nbcModal[i].nnum] = nbcModal[i].val;
     }
   }
-  else {
+  else { // XXX currently, if modal forces are defined then any non-modal constant forces are ignored
     //we really don't need to project down here since cnst_fBig is stored inside the probDesc class
     //just a formality. 
     MultiDomainDynam::getConstForce(*cnst_fBig);
@@ -492,33 +526,26 @@ DistrExplicitPodProjectionNonLinDynamicBase::computeExtForce2(SysState<DistrVect
                         DistrVector &f, DistrVector &cnst_f, int tIndex,
                         double t, DistrVector *aero_f,
                         double gamma, double alphaf) {
-
   f = cnst_f;
   MultiDomainDynam::computeExtForce2( *dummyState, *fExt, *cnst_fBig, tIndex, t, aero_fBig, gamma, alphaf);
-
-  //f += cnst_f; should implement another version were the constant force is added 
-  // in the reduced coordinates to get a little more speed
 }
 
 MDDynamMat *
 DistrExplicitPodProjectionNonLinDynamicBase::buildOps(double mCoef, double cCoef, double kCoef) {
-  MDDynamMat *result = MultiDomainDynam::buildOps(mCoef, cCoef, kCoef);
-
-  std::auto_ptr<DistrGalerkinProjectionSolver> solver(new DistrGalerkinProjectionSolver(normalizedBasis_));
+  if(!dynMat) MultiDomainDynam::buildOps(mCoef, cCoef, kCoef); // note: may be called previously in getInitState
 
   haveRot = geomState->getHaveRot();
   if(haveRot) {
-    fullMassSolver = result->dynMat;
+    fullMassSolver = dynMat->dynMat;
   }
   else {
-    delete result->dynMat;
+    delete dynMat->dynMat;
   }
 
-  result->dynMat = solver.release();
+  dynMat->dynMat = new DistrGalerkinProjectionSolver(normalizedBasis_);
 
-  return result;
+  return dynMat;
 }
-
 
 void
 DistrExplicitPodProjectionNonLinDynamicBase::computeStabilityTimeStep(double& dt, MDDynamMat& dynMat){

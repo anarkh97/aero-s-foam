@@ -11,6 +11,7 @@
 #include "BasisOps.h"
 
 #include <Driver.d/Domain.h>
+#include <Driver.d/SysState.h>
 #include <Utils.d/DistHelper.h>
 
 #include <algorithm>
@@ -109,12 +110,13 @@ PodProjectionNonLinDynamicDetail::BasicImpl::BasicImpl(PodProjectionNonLinDynami
   fileInfo_()
 {
   // Load projection basis
-  BasisInputStream projectionBasisInput(BasisFileId(fileInfo_, BasisId::STATE, BasisId::POD), vecNodeDof6Conversion_);
-/*
-  if (projectionBasisInput.vectorSize() != dynamic_cast<NonLinDynamic*>(parent)->solVecInfo()) {
-    throw std::domain_error("Projection basis has incorrect #rows");
+  std::string fileName = BasisFileId(fileInfo_, BasisId::STATE, BasisId::POD);
+  if(solInfo().useMassNormalizedBasis) {
+    filePrint(stderr, " ... Using Mass-normalized Basis    ...\n");
+    fileName.append(".normalized");
   }
-*/
+  BasisInputStream projectionBasisInput(fileName, vecNodeDof6Conversion_);
+
   const int projectionSubspaceSize = solInfo().maxSizePodRom ?
                                      std::min(solInfo().maxSizePodRom, projectionBasisInput.size()) :
                                      projectionBasisInput.size();
@@ -530,11 +532,12 @@ PodProjectionNonLinDynamic::PodProjectionNonLinDynamic(Domain *d) :
   velImpl_(NULL),
   accImpl_(NULL),
   resImpl_(NULL),
-  jacImpl_(NULL)
+  jacImpl_(NULL),
+  podPostPro(NULL)
 {}
 
 PodProjectionNonLinDynamic::~PodProjectionNonLinDynamic() {
-  // Nothing to do
+  if(podPostPro) delete podPostPro;
 }
 
 void
@@ -559,8 +562,12 @@ PodProjectionNonLinDynamic::preProcess() {
   } else {
     impl_.reset(new PodProjectionNonLinDynamicDetail::BasicImpl(this));
   }
-}
 
+  podPostPro = new SDDynamPodPostProcessor(domain, bcx, vcx, acx, times);
+  GenVecBasis<double> &projectionBasis = const_cast<GenVecBasis<double> &>(dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis());
+  podPostPro->printPODSize(projectionBasis.numVectors());
+  podPostPro->makeSensorBasis(&projectionBasis);
+}
 
 const PodProjectionSolver *
 PodProjectionNonLinDynamic::getSolver() const {
@@ -583,7 +590,7 @@ PodProjectionNonLinDynamic::checkConvergence(int iteration, double normRes, Vect
 
 double
 PodProjectionNonLinDynamic::getResidualNorm(const Vector &residual, ModalGeomState &, double) {
-  return getSolver()->projectAndComputeNorm(residual);
+  return residual.norm();
 }
 
 void
@@ -636,7 +643,6 @@ PodProjectionNonLinDynamic::solVecInfo() const
 void
 PodProjectionNonLinDynamic::readRestartFile(Vector &d_n, Vector &v_n, Vector &a_n, Vector &v_p, ModalGeomState &geomState)
 {
-  // XXX read and write restart file using reduced coordinates
   if(geoSource->getCheckFileInfo()->lastRestartFile) {
     Vector d_n_Big(NonLinDynamic::solVecInfo()),
            v_n_Big(NonLinDynamic::solVecInfo()),
@@ -646,33 +652,57 @@ PodProjectionNonLinDynamic::readRestartFile(Vector &d_n, Vector &v_n, Vector &a_
 
     NonLinDynamic::readRestartFile(d_n_Big, v_n_Big, a_n_Big, v_p_Big, *geomState_Big);
 
-    const GenVecBasis<double> &projectionBasis = dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis();
-    projectionBasis.reduce(d_n_Big, d_n);
-    projectionBasis.reduce(v_n_Big, v_n);
-    projectionBasis.reduce(a_n_Big, a_n);
-    projectionBasis.reduce(v_p_Big, v_p);
+    reduceDisp(d_n_Big, d_n);
+    reduceDisp(v_n_Big, v_n);
+    reduceDisp(a_n_Big, a_n);
+    reduceDisp(v_p_Big, v_p);
     geomState_Big->get_tot_displacement(q_Big);
-    projectionBasis.reduce(q_Big, geomState.q);
+    reduceDisp(q_Big, geomState.q);
   }
 }
 
 int
 PodProjectionNonLinDynamic::getInitState(Vector &d, Vector &v, Vector &a, Vector &v_p)
 {
-  Vector d_Big(NonLinDynamic::solVecInfo(), 0.0),
-         v_Big(NonLinDynamic::solVecInfo(), 0.0),
-         a_Big(NonLinDynamic::solVecInfo(), 0.0),
-         v_p_Big(NonLinDynamic::solVecInfo(), 0.0);
+  // d, v, a and v_p are on entry are already initialized to zero
+  int numIDisModal = domain->numInitDispModal();
+  if(numIDisModal) {
+    filePrint(stderr, " ... Using Modal IDISPLACEMENTS     ...\n");
+    BCond* iDisModal = domain->getInitDispModal();
+    for(int i = 0; i < numIDisModal; ++i) {
+      if(iDisModal[i].nnum < d.size())
+        d[iDisModal[i].nnum] = iDisModal[i].val;
+    }
+  }
+
+  int numIVelModal = domain->numInitVelocityModal();
+  if(numIVelModal) {
+    filePrint(stderr, " ... Using Modal IVELOCITIES        ...\n");
+    BCond* iVelModal = domain->getInitVelocityModal();
+    for(int i = 0; i < numIVelModal; ++i) {
+      if(iVelModal[i].nnum < v.size())
+        v[iVelModal[i].nnum] = iVelModal[i].val;
+    }
+  }
+
+  // XXX currently, if modal initial conditions are defined then any non-modal initial conditions are ignored
+  if(numIDisModal == 0 && numIVelModal == 0) {
+    Vector d_Big(NonLinDynamic::solVecInfo(), 0.0),
+           v_Big(NonLinDynamic::solVecInfo(), 0.0),
+           a_Big(NonLinDynamic::solVecInfo(), 0.0),
+           v_p_Big(NonLinDynamic::solVecInfo(), 0.0);
   
-  int aeroAlg = NonLinDynamic::getInitState(d_Big, v_Big, a_Big, v_p_Big);
+    NonLinDynamic::getInitState(d_Big, v_Big, a_Big, v_p_Big);
 
-  const GenVecBasis<double> &projectionBasis = dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis();
-  projectionBasis.reduce(d_Big, d);
-  projectionBasis.reduce(v_Big, v);
-  projectionBasis.reduce(a_Big, a);
-  projectionBasis.reduce(v_p_Big, v_p);
+    if(numIDisModal == 0) {
+      if(d_Big.norm() != 0) reduceDisp(d_Big, d);
+    }
+    if(numIVelModal == 0) {
+      if(v_Big.norm() != 0) reduceDisp(v_Big, v);
+    }
+  }
 
-  return aeroAlg;
+  return domain->solInfo().aeroFlag;
 }
 
 void
@@ -684,18 +714,17 @@ PodProjectionNonLinDynamic::updatePrescribedDisplacement(ModalGeomState *geomSta
 void
 PodProjectionNonLinDynamic::getConstForce(Vector &constantForce)
 {
-  int nr = domain->nNeumannModal();
-  if(nr) {
+  int numNeumanModal = domain->nNeumannModal();
+  if(numNeumanModal) {
     filePrint(stderr, " ... Using Reduced Constant Force   ...\n");
     BCond* nbcModal = domain->getNBCModal();
     constantForce.zero();
-    for(int i=0; i<nr; ++i) {
+    for(int i = 0; i < numNeumanModal; ++i) {
       if(nbcModal[i].nnum < constantForce.size())
         constantForce[nbcModal[i].nnum] = nbcModal[i].val;
     }
   }
-  else {
-
+  else { // XXX currently, if modal forces are defined then any non-modal constant forces are ignored
     Vector constantForce_Big(NonLinDynamic::solVecInfo());
 
     NonLinDynamic::getConstForce(constantForce_Big);
@@ -710,19 +739,23 @@ PodProjectionNonLinDynamic::getExternalForce(Vector &rhs, Vector &constantForce,
                                              ModalGeomState *geomState, Vector &elementInternalForce,
                                              Vector &aeroForce, double localDelta)
 {
+  // XXX need to add support for modal forces with mftt...
   Vector rhs_Big(NonLinDynamic::solVecInfo()),
          constantForce_Big(NonLinDynamic::solVecInfo(), 0.0),
          aeroForce_Big(NonLinDynamic::solVecInfo());
 
   const GenVecBasis<double> &projectionBasis = dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis();
-  projectionBasis.expand(rhs, rhs_Big);
-  projectionBasis.expand(aeroForce, aeroForce_Big);
   
   NonLinDynamic::getExternalForce(rhs_Big, constantForce_Big, tIndex, t, geomState_Big, elementInternalForce, 
                                   aeroForce_Big, localDelta);
 
-  projectionBasis.reduce(rhs_Big, rhs);
-  rhs += constantForce;
+  if(rhs_Big.norm() != 0) {
+    projectionBasis.reduce(rhs_Big, rhs);
+    rhs += constantForce;
+  }
+  else {
+    rhs = constantForce;
+  }
 }
 
 void
@@ -736,22 +769,39 @@ double
 PodProjectionNonLinDynamic::formRHScorrector(Vector &inc_displacement, Vector &velocity, Vector &acceleration,
                                              Vector &residual, Vector &rhs, ModalGeomState *geomState, double localDelta)
 {
-  Vector inc_displacement_Big(NonLinDynamic::solVecInfo()),
-         velocity_Big(NonLinDynamic::solVecInfo()),
-         acceleration_Big(NonLinDynamic::solVecInfo()),
-         residual_Big(NonLinDynamic::solVecInfo()),
-         rhs_Big(NonLinDynamic::solVecInfo());
+  double beta, gamma, alphaf, alpham, dt = 2*localDelta;
+  getNewmarkParameters(beta, gamma, alphaf, alpham);
 
-  const GenVecBasis<double> &projectionBasis = dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis();
-  projectionBasis.expand(inc_displacement, inc_displacement_Big);
-  projectionBasis.expand(velocity, velocity_Big);
-  projectionBasis.expand(acceleration, acceleration_Big);
-  projectionBasis.expand(residual, residual_Big);
+  if(domain->solInfo().useMassNormalizedBasis && C == 0) {
+    if(domain->solInfo().order == 1)
+      rhs = -1.0*inc_displacement;
+    else
+      rhs = -(1-alpham)/(1-alphaf)*inc_displacement + dt*(1-alpham)*velocity + dt*dt*((1-alpham)/2-beta)*acceleration;
+  }
+  else {
+    // this can be improved by pre-computing V^T*M*V and V^T*C*V
+    Vector inc_displacement_Big(NonLinDynamic::solVecInfo()),
+           velocity_Big(NonLinDynamic::solVecInfo()),
+           acceleration_Big(NonLinDynamic::solVecInfo()),
+           residual_Big(NonLinDynamic::solVecInfo(), 0.0),
+           rhs_Big(NonLinDynamic::solVecInfo());
 
-  NonLinDynamic::formRHScorrector(inc_displacement_Big, velocity_Big, acceleration_Big,
-                                  residual_Big, rhs_Big, geomState_Big, localDelta);
+    const GenVecBasis<double> &projectionBasis = dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis();
+    projectionBasis.expand(inc_displacement, inc_displacement_Big);
+    projectionBasis.expand(velocity, velocity_Big);
+    projectionBasis.expand(acceleration, acceleration_Big);
 
-  projectionBasis.reduce(rhs_Big, rhs);
+    NonLinDynamic::formRHScorrector(inc_displacement_Big, velocity_Big, acceleration_Big,
+                                    residual_Big, rhs_Big, geomState_Big, localDelta);
+
+    projectionBasis.reduce(rhs_Big, rhs);
+  }
+
+  if(domain->solInfo().order == 1)
+    rhs += localDelta*residual;
+  else
+    rhs += (dt*dt*beta)*residual;
+
   return rhs.norm();
 }
 
@@ -759,44 +809,31 @@ void
 PodProjectionNonLinDynamic::formRHSpredictor(Vector &velocity, Vector &acceleration, Vector &residual, Vector &rhs,
                                              ModalGeomState &geomState, double midtime, double localDelta)
 {
-  Vector velocity_Big(NonLinDynamic::solVecInfo()),
-         acceleration_Big(NonLinDynamic::solVecInfo()),
-         residual_Big(NonLinDynamic::solVecInfo()),
-         rhs_Big(NonLinDynamic::solVecInfo());
-
-  const GenVecBasis<double> &projectionBasis = dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis();
-  projectionBasis.expand(velocity, velocity_Big);
-  projectionBasis.expand(acceleration, acceleration_Big);
-  projectionBasis.expand(residual, residual_Big);
-
-  NonLinDynamic::formRHSpredictor(velocity_Big, acceleration_Big, residual_Big, rhs_Big, *geomState_Big,
-                                  midtime, localDelta);
-
-  projectionBasis.reduce(rhs_Big, rhs);
+  std::cerr << "PodProjectionNonLinDynamic::formRHSpredictor is not implemented\n";
 }
 
 void
 PodProjectionNonLinDynamic::formRHSinitializer(Vector &fext, Vector &velocity, Vector &elementInternalForce,
                                                ModalGeomState &geomState, Vector &rhs, ModalGeomState *refState)
 {
-  Vector fext_Big(NonLinDynamic::solVecInfo()),
+  Vector fext_Big(NonLinDynamic::solVecInfo(), 0.0),
          velocity_Big(NonLinDynamic::solVecInfo()),
          rhs_Big(NonLinDynamic::solVecInfo());
-  refState_Big = new GeomState(*geomState_Big);
 
   const GenVecBasis<double> &projectionBasis = dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis();
-  projectionBasis.expand(fext, fext_Big);
   projectionBasis.expand(velocity, velocity_Big);
 
   NonLinDynamic::formRHSinitializer(fext_Big, velocity_Big, elementInternalForce, *geomState_Big, rhs_Big, refState_Big);
 
   projectionBasis.reduce(rhs_Big, rhs);
+  rhs += fext;
 }
 
 ModalGeomState*
 PodProjectionNonLinDynamic::createGeomState()
 {
   geomState_Big = new GeomState( *domain->getDSA(), *domain->getCDSA(), domain->getNodes(), &domain->getElementSet() );
+  refState_Big = new GeomState(*geomState_Big);
 
   return new ModalGeomState(solVecInfo());
 }
@@ -810,7 +847,8 @@ PodProjectionNonLinDynamic::copyGeomState(ModalGeomState *geomState)
 void
 PodProjectionNonLinDynamic::updateStates(ModalGeomState *refState, ModalGeomState &geomState)
 {
-  // updateStates is called after midpoint update, so this is a good time to update the velocity and acceleration in geomState_Big
+  // updateStates is called after midpoint update (i.e. once per timestep)
+  // so it is a convenient place to update and copy geomState_Big
   Vector q_Big(NonLinDynamic::solVecInfo()),
          vel_Big(NonLinDynamic::solVecInfo()),
          acc_Big(NonLinDynamic::solVecInfo());
@@ -831,15 +869,16 @@ PodProjectionNonLinDynamic::getStiffAndForce(ModalGeomState &geomState, Vector &
                                              Vector &elementInternalForce, double t, ModalGeomState *refState)
 {
   Vector q_Big(NonLinDynamic::solVecInfo()),
-         residual_Big(NonLinDynamic::solVecInfo());
+         residual_Big(NonLinDynamic::solVecInfo(), 0.0);
   const GenVecBasis<double> &projectionBasis = dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis();
   projectionBasis.expand(geomState.q, q_Big);
   geomState_Big->explicitUpdate(domain->getNodes(), q_Big);
-  projectionBasis.expand(residual, residual_Big);
 
   NonLinDynamic::getStiffAndForce(*geomState_Big, residual_Big, elementInternalForce, t, refState_Big);
 
-  projectionBasis.reduce(residual_Big, residual);
+  Vector r(solVecInfo());
+  projectionBasis.reduce(residual_Big, r);
+  residual += r;
   return residual.norm();
 }
 
@@ -854,6 +893,7 @@ PodProjectionNonLinDynamic::dynamCommToFluid(ModalGeomState *geomState, ModalGeo
                                              Vector &bkVelocity, Vector &vp, Vector &bkVp, int step, int parity,
                                              int aeroAlg)
 {
+  // XXX this could be more implemented more efficiently (only called for AERO)
   Vector velocity_Big(NonLinDynamic::solVecInfo()),
          bkVelocity_Big(NonLinDynamic::solVecInfo()),
          vp_Big(NonLinDynamic::solVecInfo()),
@@ -873,6 +913,7 @@ PodProjectionNonLinDynamic::dynamOutput(ModalGeomState *geomState, Vector &veloc
                                         int step, Vector &force, Vector &aeroF, Vector &acceleration,
                                         ModalGeomState *refState) const
 {
+/* OLD METHOD
   Vector velocity_Big(NonLinDynamic::solVecInfo()),
          vp_Big(NonLinDynamic::solVecInfo()),
          force_Big(NonLinDynamic::solVecInfo()),
@@ -881,12 +922,15 @@ PodProjectionNonLinDynamic::dynamOutput(ModalGeomState *geomState, Vector &veloc
   const GenVecBasis<double> &projectionBasis = dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis();
   projectionBasis.expand(velocity, velocity_Big);
   projectionBasis.expand(vp, vp_Big);
-  projectionBasis.expand(force, force_Big);
-  projectionBasis.expand(aeroF, aeroF_Big);
+  expandForce(force, force_Big);
+  expandForce(aeroF, aeroF_Big);
   projectionBasis.expand(acceleration, acceleration_Big);
 
-  // XXX the velocity_Big and acceleration_Big and Psidot and Psiddot
   NonLinDynamic::dynamOutput(geomState_Big, velocity_Big, vp_Big, time, step, force_Big, aeroF_Big, acceleration_Big, refState_Big);
+*/
+  DynamMat dynOps;
+  SysState<Vector> systemState(geomState->q, velocity, acceleration, vp);
+  podPostPro->dynamOutput(step, time, dynOps, force, &aeroF, systemState);
 }
 
 void
@@ -905,6 +949,35 @@ void
 PodProjectionNonLinDynamic::updateParameters(ModalGeomState *geomState)
 {
   NonLinDynamic::updateParameters(geomState_Big);
+}
+
+void
+PodProjectionNonLinDynamic::expandForce(Vector &fr, Vector &f) const
+{
+  const GenVecBasis<double> &projectionBasis = dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis();
+  if(domain->solInfo().useMassNormalizedBasis) {
+    // note: this case should not be relied upon for modelIII with reduced mesh, because the full mass matrix is not available
+    Vector Vfr(NonLinDynamic::solVecInfo());
+    projectionBasis.fullExpand(fr, Vfr);
+    M->mult(Vfr, f);
+  }
+  else {
+    projectionBasis.fullExpand(fr, f);
+  }
+}
+
+void
+PodProjectionNonLinDynamic::reduceDisp(Vector &d, Vector &dr) const
+{
+  const GenVecBasis<double> &projectionBasis = dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis();
+  if(domain->solInfo().useMassNormalizedBasis) {
+    Vector Md(NonLinDynamic::solVecInfo());
+    M->mult(d, Md);
+    projectionBasis.reduce(Md, dr);
+  }
+  else {
+    projectionBasis.reduce(d, dr);
+  }
 }
 
 } /* end namespace Rom */

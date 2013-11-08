@@ -376,7 +376,7 @@ DistrElementSamplingDriver::solve()
       BasisOutputStream output(filename, converter, false);
 
       for (int iVec = 0; iVec < podBasis.vectorCount(); ++iVec) {
-        output << podBasis.getCompressedBasis().col(iVec);
+        output << podBasis.compressedBasis().col(iVec);
       }
     }
 #endif

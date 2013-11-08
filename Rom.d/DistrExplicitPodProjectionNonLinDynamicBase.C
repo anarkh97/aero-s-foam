@@ -318,7 +318,8 @@ DistrExplicitPodProjectionNonLinDynamicBase::getPostProcessor() {
 
 DistrExplicitPodProjectionNonLinDynamicBase::DistrExplicitPodProjectionNonLinDynamicBase(Domain *_domain) :
   MultiDomainDynam(_domain),
-  domain(_domain)
+  domain(_domain),
+  stableCount(0)
 {}
 
 void
@@ -548,17 +549,26 @@ DistrExplicitPodProjectionNonLinDynamicBase::buildOps(double mCoef, double cCoef
 }
 
 void
-DistrExplicitPodProjectionNonLinDynamicBase::computeStabilityTimeStep(double& dt, MDDynamMat& dynMat){
+DistrExplicitPodProjectionNonLinDynamicBase::computeStabilityTimeStep(double& dt, MDDynamMat& dynMat) {
+
+  if(stableCount != 0) {
+    GenMDDynamMat<double> ops;
+    ops.K = dynMat.K;
+    decDomain->rebuildOps(ops, 0, 0, 0, kelArray);
+  }
+
   GenFullSquareMatrix<double> K_reduced;
   calculateReducedStiffness(*dynMat.K, normalizedBasis_, K_reduced);
+  stableCount++;
+
   double dt_c;
   //computes stability timestep on root node then sends timestep to all other processes
-  int myID= (structCom) ? structCom->myID() : 0;
-  if(myID == 0){
+  int myID = (structCom) ? structCom->myID() : 0;
+  if(myID == 0) {
     dt_c = domain->computeStabilityTimeStepROM(K_reduced);
   }
   if(structCom)
-    structCom->broadcast(1,&dt_c,0);
+    structCom->broadcast(1, &dt_c, 0);
 
   if(dt_c == std::numeric_limits<double>::infinity()) {
     filePrint(stderr," **************************************\n");
@@ -571,14 +581,14 @@ DistrExplicitPodProjectionNonLinDynamicBase::computeStabilityTimeStep(double& dt
   else {
     filePrint(stderr," CONDITIONALLY STABLE NEWMARK ALGORITHM \n");
     filePrint(stderr," --------------------------------------\n");
-    filePrint(stderr," Specified time step      = %10.4e\n",dt);
-    filePrint(stderr," Stability max. time step = %10.4e\n",dt_c);
+    filePrint(stderr," Specified time step      = %10.4e\n", dt);
+    filePrint(stderr," Stability max. time step = %10.4e\n", dt_c);
     filePrint(stderr," **************************************\n");
     if((domain->solInfo().stable == 1 && dt_c < dt) || domain->solInfo().stable == 2) {
       dt = dt_c;
       filePrint(stderr," Stability max. time step is selected\n");
     }
-    else{
+    else {
       filePrint(stderr," Specified time step is selected\n");
     }
     filePrint(stderr," **************************************\n");
@@ -587,7 +597,6 @@ DistrExplicitPodProjectionNonLinDynamicBase::computeStabilityTimeStep(double& dt
   for(int i = 0; i < decDomain->getNumSub(); ++i)
     decDomain->getSubDomain(i)->solInfo().setTimeStep(dt);
   domain->solInfo().setTimeStep(dt);
-
 }
 
 } // end namespace Rom

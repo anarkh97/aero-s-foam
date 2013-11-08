@@ -830,9 +830,16 @@ void GeoSource::transformCoords()
 
     v = (T.transpose()*v).eval();
 
+    //double x_copy = nodes[i]->x, y_copy = nodes[i]->y, z_copy = nodes[i]->z;
+
     nodes[i]->x =v[0] + nfd[cp].origin[0];
     nodes[i]->y =v[1] + nfd[cp].origin[1];
     nodes[i]->z =v[2] + nfd[cp].origin[2];
+
+    //std::cout << std::fixed;
+    //std::cout << i+1 << " 1 " << setprecision(12) << nodes[i]->x - x_copy << std::endl;
+    //std::cout << i+1 << " 2 " << setprecision(12) << nodes[i]->y - y_copy << std::endl;
+    //std::cout << i+1 << " 3 " << setprecision(12) << nodes[i]->z - z_copy << std::endl;
   }
 #endif
 }

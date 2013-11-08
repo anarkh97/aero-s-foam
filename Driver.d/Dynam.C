@@ -545,6 +545,10 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
 
             // transform velocity from DOF_FRM to basic coordinate frame
             if(oinfo[i].oframe == OutputInfo::Global) transformVectorInv(&(data[nodeI][0]), first_node+iNode, false);
+            //std::cout << std::fixed;
+            //std::cout << first_node+iNode+1 << " 1 " << setprecision(12) << data[nodeI][0] << std::endl;
+            //std::cout << first_node+iNode+1 << " 2 " << setprecision(12) << data[nodeI][1] << std::endl;
+            //std::cout << first_node+iNode+1 << " 3 " << setprecision(12) << data[nodeI][2] << std::endl;
           }
           geoSource->outputNodeVectors(i, data, nNodesOut, time);
           delete [] data;

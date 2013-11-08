@@ -1963,7 +1963,7 @@ void GeoSource::outputNodeScalars(int fileNum, double *data,
   if(time != -1.0) {
     if(outputSize == 1)
       fprintf(oinfo[fileNum].filptr,"  % *.*E  ", w, p, time);
-    else
+    else 
       filePrint(oinfo[fileNum].filptr,"  % *.*E\n", w, p, time);
   }
 

@@ -122,7 +122,7 @@ class GeoSource {
 
   // output file info
   ControlInfo *cinfo;    // contains nodeset, elemset & timer file name
-  ResizeArray<OutputInfo> oinfo; // all output files
+  ResizeArray<OutputInfo> oinfo; // all output files except sensitivity outputs
   int numOutInfo;                // number of Output requests
   int outLimit; // maximum number of frequencies, eigenvectors or timesteps per file
   int numNodalOutput;   // number of disp output for single nodes

@@ -657,6 +657,10 @@ class Domain : public HData {
 
      void resProcessing(Vector &, int index=0, double t=0);
 
+     // sensitivity post processing function
+     template<class Scalar>
+     void sensitivityPostProcessing(Scalar *sensitivity, double quantity, int outputSize);
+
      // Nonlinear post processing function
      void postProcessing(GeomState *geomState, Vector &force, Vector &aeroForce, double time=0.0,
                          int step=0, double *velocity=0, double *vcx=0,

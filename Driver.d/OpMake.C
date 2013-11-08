@@ -2104,9 +2104,10 @@ Domain::makeSensitivityOps(AllOps<Scalar> &allOps, double &weight)
       }
     }
   }
- 
+
   filePrint(stderr," *** WEIGHT : %e\n", weight);
   allOps.Weight_deriv->print("printing weight derivative\n");
+  sensitivityPostProcessing(allOps.Weight_deriv->data(), weight, numParam()); 
 }
 
 template<class Scalar>
@@ -3416,6 +3417,18 @@ int Domain::processOutput(OutputInfo::Type &type, GenVector<Scalar> &d_n, Scalar
 }
 
 //-------------------------------------------------------------------------------------
+template<class Scalar>
+void Domain::sensitivityPostProcessing(Scalar *sensitivity, double quantity, int outputSize) {
+
+  OutputInfo *oinfo = geoSource->getOutputInfo();
+  int numOutInfo = geoSource->getNumOutInfo();
+  if(firstOutput) geoSource->openOutputFiles();
+  for(int i = 0; i < numOutInfo; ++i)  {
+    if(oinfo[i].sentype == 0) continue;
+    geoSource->outputNodeScalars(i, sensitivity, outputSize, quantity);
+  }
+  firstOutput = false;
+}
 
 // Templated Post-processing for direct solver statics, frequency response, helmholtz and eigen
 template<class Scalar>
@@ -3465,6 +3478,7 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
   int dof;
   int iNode;
   for(i = 0; i < numOutInfo; ++i)  {
+    if(oinfo[i].sentype > 0) continue;
     if(oinfo[i].ndtype != ndflag) continue;
     if(ndflag !=0 && oinfo[i].type != OutputInfo::Disp6DOF && oinfo[i].type !=  OutputInfo::Displacement) continue;
     // if non-deterministic and NOT displacement

@@ -959,6 +959,8 @@ TRAIL [a-zA-Z]*
 
 "gdispmod"|"GDISPMOD"              { yylval.ival = OutputInfo::TotMod; return STRESSID; }
 
+"optsweig"|"OPTSWEIG"              { yylval.ival = OutputInfo::OptsWeig; return SENSITIVITYID; }
+
 "elemental"[a-zA-Z]*|"ELEMENTAL"[a-zA-Z]* { yylval.ival =  0; return AVERAGED; }
 
 "gauss"[a-zA-Z]*|"GAUSS"[a-zA-Z]*  { yylval.ival =  -1; return AVERAGED; }

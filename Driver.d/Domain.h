@@ -119,8 +119,9 @@ struct AllOps
   GenSparseMatrix<Scalar> **Cuc_deriv;    // derivatives of constrained to unconstrained damping matrix for higher order sommerfeld
 
   GenVector<Scalar> *rhs_inpc;
+  GenVector<Scalar> *Weight_deriv;   // derivatives of weight with respect to a parameter
   // Constructor
-  AllOps() { sysSolver = 0; spm = 0; prec = 0; spp = 0; Msolver = 0; K = 0; M = 0; C = 0; Kuc = 0; Muc = 0; Cuc = 0; Kcc = 0; Mcc = 0; Ccc = 0; C_deriv = 0; Cuc_deriv = 0; rhs_inpc = 0;}
+  AllOps() { sysSolver = 0; spm = 0; prec = 0; spp = 0; Msolver = 0; K = 0; M = 0; C = 0; Kuc = 0; Muc = 0; Cuc = 0; Kcc = 0; Mcc = 0; Ccc = 0; C_deriv = 0; Cuc_deriv = 0; rhs_inpc = 0; Weight_deriv = 0;}
 
   void zero() {if(K) K->zeroAll();
                if(M) M->zeroAll();
@@ -254,6 +255,8 @@ class Domain : public HData {
      FullM *p_elstress;
      Vector *stressAllElems; // stores stresses of all the elements : used Sfem
      int sizeSfemStress;
+
+     double totWeight;
 
      // for compute energies
      double Wext;
@@ -527,6 +530,9 @@ class Domain : public HData {
 	 		  double Ccoef, GenSparseMatrix<Scalar> *mat = 0,
                           FullSquareMatrix *kelArray = 0, FullSquareMatrix *melArray = 0,
                           FullSquareMatrix *celArray = 0);
+
+     template<class Scalar>
+       void makeSensitivityOps(AllOps<Scalar> &ops, double &weight);
 
      template<class Scalar>
        GenDBSparseMatrix<Scalar> *constructDBSparseMatrix(DofSetArray *dof_set_array=0,
@@ -817,6 +823,12 @@ class Domain : public HData {
      // returns the number of unconstrained dof
      int numUncon() {
        return c_dsa ? c_dsa->size() : dsa ? dsa->size() : 0;
+     }
+
+     // returns the number of parameters
+     // Here, parameters are for optimization or sensitivity problems
+     int numParam() {
+       return sinfo.numParam;
      }
 
      // returns the number of unconstrained Fluid dof

@@ -33,6 +33,7 @@ class NFrameData;
 class CoefData;
 class LayInfo;
 struct Group;
+struct AttributeToElement;
 
 enum {SXX=0,SYY=1,SZZ=2,SXY= 3,SYZ= 4,SXZ= 5,VON=6,
       EXX=7,EYY=8,EZZ=9,EXY=10,EYZ=11,EXZ=12,STRAINVON=13,
@@ -174,6 +175,7 @@ class GeoSource {
   int namax;
   map<int, Attrib> attrib;
   int maxattrib;
+  map<int, int> optg;
 
   int numEframes;
   ResizeArray<EFrameData> efd;
@@ -269,6 +271,8 @@ class GeoSource {
   map<int, Group> group;
   map<int, list<int> > nodeGroup;
   map<int, list<int> > surfaceGroup;
+
+  map<int, AttributeToElement> atoe;
 
   int numSurfaceDirichlet;
   BCond *surface_dbc;
@@ -679,6 +683,11 @@ struct Group
 {
   vector<int> attributes;
   vector<RandomProperty> randomProperties;
+};
+
+struct AttributeToElement
+{
+  vector<int> elems;
 };
 
 #ifdef _TEMPLATE_FIX_

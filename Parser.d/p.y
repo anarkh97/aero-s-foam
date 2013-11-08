@@ -107,6 +107,7 @@
 %token PDIR HEFSB HEFRS HEINTERFACE  // Added for HEV Problem, EC, 20080512
 %token SNAPFI PODROB TRNVCT OFFSET ORTHOG SVDTOKEN CONVERSIONTOKEN CONVFI SAMPLING SNAPSHOTPROJECT PODSIZEMAX REFSUBSTRACT TOLER OUTOFCORE NORMALIZETOKEN FNUMBER SNAPWEIGHT ROBFI STAVCT VELVCT ACCVCT CONWEPCFG
 %token VECTORNORM LOCALTOLERANCE REBUILDFORCE SAMPNODESLOT FORCEROB DEIMINDICES UDEIMINDICES SVDFORCESNAP
+%token OPTSENSITIVITY 
 
 %type <complexFDBC> AxiHD
 %type <complexFNBC> AxiHN
@@ -330,6 +331,7 @@ Component:
 	| Sampling
         | SnapshotProject
         | ConversionToken
+        | OptSensitivity
         ;
 Noninpc:
         NONINPC NewLine Integer Integer NewLine
@@ -1231,6 +1233,13 @@ TimeInfo:
 	TIME Float Float Float NewLine
 	{ domain->solInfo().setTimes($4,$3,$2); }
 	;
+OptSensitivity:
+  OPTSENSITIVITY Integer NewLine
+  {
+    domain->solInfo().sensitivity = true;
+    domain->solInfo().numParam = $2;
+  }
+  ;
 ParallelInTimeInfo:
         PITA NewLine Integer Integer ParallelInTimeOptions
         {

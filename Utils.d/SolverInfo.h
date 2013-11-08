@@ -238,6 +238,10 @@ struct SolverInfo {
    double goldfarb_tol;
    bool goldfarb_check;
 
+   // YC : sensitivity and optimization parameters
+   bool sensitivity;
+   int numParam;
+
    // KAS :  map object for Mumps control CNTL and ICNTL matrices
    map<int, int> mumps_icntl;
    map<int, double> mumps_cntl;
@@ -394,6 +398,10 @@ struct SolverInfo {
                   modal = false;
                   lastIt = false;
                   mppFactor = 1.0;
+ 
+                  // Parameters for sensitivity
+                  sensitivity = true;
+                  numParam = 0; 
 		 
                   // Parameters for PITA 
                   activatePita = false;

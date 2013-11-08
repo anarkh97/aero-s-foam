@@ -199,6 +199,19 @@ TimoshenkoBeam::getMass(CoordSet& cs)
 	return mass;
 }
 
+double
+TimoshenkoBeam::weight(CoordSet& cs, double *gravityAcceleration, int altitude_direction)
+{
+  double _mass = getMass(cs);
+  return _mass*gravityAcceleration[altitude_direction];
+}
+
+double
+TimoshenkoBeam::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int altitude_direction)
+{
+  return 0.0;
+}
+
 void
 TimoshenkoBeam::getGravityForce(CoordSet& cs,double *gravityAcceleration,
                                 Vector& gravityForce, int gravflg, GeomState *geomState)

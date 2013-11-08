@@ -1053,6 +1053,10 @@ Domain::buildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Ccoe
     case 0:
       makeStaticOpsAndSolver<Scalar>(allOps, Kcoef, Mcoef, Ccoef,
                                      systemSolver, allOps.spm, rbm, kelArray, melArray, celArray); // also used for eigen
+      if(sinfo.sensitivity) {
+        allOps.rhs_inpc = new GenVector<Scalar>(domain->numUncon());
+        makeSensitivityOps<Scalar>(allOps, totWeight);
+      }
       break;
     case 1:
       makeDynamicOpsAndSolver<Scalar>(allOps, Kcoef, Mcoef, Ccoef,
@@ -2078,7 +2082,41 @@ void Domain::forceDistributedContinuity(Scalar *u, Scalar (*xyz)[11])//DofSet::m
 //  return ++realNode;
 }
 
+template<class Scalar>
+void
+Domain::makeSensitivityOps(AllOps<Scalar> &allOps, double &weight)
+{
+  // ... COMPUTE TOTAL STRUCTURAL WEIGHT AND DERIVATIVE WRT THICKNESS
+  weight = 0.0;
+  int altitude_direction = 2;
+  GenVector<Scalar> weightDerivative(numele);  // YC: the type can be changed to double
+  map<int, Group> &group = geoSource->group;
+  map<int, AttributeToElement> &atoe = geoSource->atoe;
+  if(numParam() != group.size()) {
+    cerr << " *** ERROR: numParam() is not equal to the size of group \n"; 
+    exit(-1);
+  }
+  allOps.Weight_deriv = new GenVector<Scalar>(numParam(), 0.0);
+  map<int, Attrib> &attributes = geoSource->getAttributes();
+  for(int iele = 0; iele < numele; ++iele) {
+    StructProp *prop = packedEset[iele]->getProperty();
+    if(prop == 0) continue; // phantom element
 
+    weight += packedEset[iele]->weight(nodes, gravityAcceleration, altitude_direction); 
+    weightDerivative[iele] = packedEset[iele]->weightDerivativeWRTthickness(nodes, gravityAcceleration, altitude_direction);
+  }
+
+  for(int gindex = 0; gindex < numParam(); ++gindex) {
+    for(int aindex = 0; aindex < group[gindex].attributes.size(); ++aindex) {
+      for(int eindex =0; eindex < atoe[group[gindex].attributes[aindex]].elems.size(); ++eindex) {
+        (*allOps.Weight_deriv)[gindex] += weightDerivative[atoe[group[gindex].attributes[aindex]].elems[eindex]]; 
+      }
+    }
+  }
+ 
+  filePrint(stderr," *** WEIGHT : %e\n", weight);
+  allOps.Weight_deriv->print("printing weight derivative\n");
+}
 
 template<class Scalar>
 void

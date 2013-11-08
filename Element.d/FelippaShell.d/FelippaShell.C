@@ -316,6 +316,29 @@ FelippaShell::getMass(CoordSet &cs)
   return totmas;
 }
 
+double
+FelippaShell::weight(CoordSet& cs, double *gravityAcceleration, int altitude_direction)
+{
+  if (prop == NULL) {
+    return 0.0;
+  }
+
+  double _mass = getMass(cs);
+  return _mass*gravityAcceleration[altitude_direction];
+}
+
+double
+FelippaShell::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int altitude_direction)
+{
+  if (prop == NULL) {
+    return 0.0;
+  }
+  
+  double _weight = weight(cs, gravityAcceleration, altitude_direction);
+  double thick = nmat->GetShellThickness();
+  return _weight/thick;
+} 
+
 FullSquareMatrix
 FelippaShell::massMatrix(CoordSet &cs, double *mel, int cmflg)
 {

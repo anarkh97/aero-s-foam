@@ -130,6 +130,19 @@ TwoNodeTruss::getMass(CoordSet& cs)
         return mass;
 }
 
+double
+TwoNodeTruss::weight(CoordSet& cs, double *gravityAcceleration, int altitude_direction)
+{
+  double _mass = getMass(cs);
+  return _mass*gravityAcceleration[altitude_direction];
+}
+
+double
+TwoNodeTruss::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int altitude_direction)
+{
+  return 0.0;
+}
+
 void
 TwoNodeTruss::getGravityForce(CoordSet& cs, double *gravityAcceleration, Vector &gravityForce,
                               int gravflg, GeomState *geomState)

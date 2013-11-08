@@ -662,6 +662,8 @@ TRAIL [a-zA-Z]*
 
 "time"|"TIME"                      { return TIME; }
 
+"optsensitivity"|"OPTSENSITIVITY"  { return OPTSENSITIVITY; }
+
 "pita"|"PITA"|"Pita"               { return PITA; }
 
 "mdpita"|"MDPITA"|"MdPita"         { return MDPITA; }

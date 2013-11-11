@@ -51,6 +51,7 @@ operator<<(std::ostream &out, const EFrameData &source) {
 
 std::ostream &
 operator<<(std::ostream &out, const NLMaterial &source) {
+  out.setf(std::ios_base::scientific, std::ios_base::floatfield);
   source.print(out);
   return out;
 }
@@ -103,7 +104,8 @@ operator<<(std::ostream &out, const SPropContainer &source) {
   for (SPropContainer::const_iterator it = source.begin(); it != itEnd; ++it) {
     out << it->first + 1 << " ";
     const StructProp &sp = it->second;
-    out << sp.A    << " "
+    out << std::scientific
+        << sp.A    << " "
         << sp.E    << " "
         << sp.nu   << " "
         << sp.rho  << " "

@@ -145,7 +145,7 @@ GaussIntgElement::getStiffAndForce(Node *nodes, double *disp,
   Tensor_d2s0 temp2(ndofs,false);
   Tensor_d2s0 temp3(ndofs,false);
 
-  fprintf(stderr,"Je suis dans getStiffAndForce\n");
+  //fprintf(stderr,"Je suis dans getStiffAndForce\n");
 
   int i,j;
   int ngp = getNumGaussPoints();

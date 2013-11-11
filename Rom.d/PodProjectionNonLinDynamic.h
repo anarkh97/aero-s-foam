@@ -94,6 +94,7 @@ protected:
   class Impl;
   GeomState *geomState_Big, *refState_Big;
   SDDynamPodPostProcessor *podPostPro;
+  Vector *v0_Big;
 
 private:
   virtual bool factorWhenBuilding() const; // Overriden

@@ -47,6 +47,7 @@ void
 GenEiSparseGalerkinProjectionSolver<Scalar>::factor()
 {
   const Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic,Eigen::ColMajor> &V = projectionBasis_->basis();
+  //std::cerr << "M = \n" << this->M << std::endl;
   reducedMatrix_.template triangularView<Eigen::Lower>()
     += V.transpose()*(this->M.template selfadjointView<Eigen::Upper>()*V);
 

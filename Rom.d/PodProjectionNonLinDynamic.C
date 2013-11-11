@@ -533,11 +533,13 @@ PodProjectionNonLinDynamic::PodProjectionNonLinDynamic(Domain *d) :
   accImpl_(NULL),
   resImpl_(NULL),
   jacImpl_(NULL),
-  podPostPro(NULL)
+  podPostPro(NULL),
+  v0_Big(NULL)
 {}
 
 PodProjectionNonLinDynamic::~PodProjectionNonLinDynamic() {
   if(podPostPro) delete podPostPro;
+  if(v0_Big) delete v0_Big;
 }
 
 void
@@ -640,30 +642,12 @@ PodProjectionNonLinDynamic::solVecInfo() const
   return getSolver()->basisSize();
 }
 
-void
-PodProjectionNonLinDynamic::readRestartFile(Vector &d_n, Vector &v_n, Vector &a_n, Vector &v_p, ModalGeomState &geomState)
-{
-  if(geoSource->getCheckFileInfo()->lastRestartFile) {
-    Vector d_n_Big(NonLinDynamic::solVecInfo()),
-           v_n_Big(NonLinDynamic::solVecInfo()),
-           a_n_Big(NonLinDynamic::solVecInfo()),
-           v_p_Big(NonLinDynamic::solVecInfo()),
-           q_Big(NonLinDynamic::solVecInfo());
-
-    NonLinDynamic::readRestartFile(d_n_Big, v_n_Big, a_n_Big, v_p_Big, *geomState_Big);
-
-    reduceDisp(d_n_Big, d_n);
-    reduceDisp(v_n_Big, v_n);
-    reduceDisp(a_n_Big, a_n);
-    reduceDisp(v_p_Big, v_p);
-    geomState_Big->get_tot_displacement(q_Big);
-    reduceDisp(q_Big, geomState.q);
-  }
-}
-
 int
 PodProjectionNonLinDynamic::getInitState(Vector &d, Vector &v, Vector &a, Vector &v_p)
 {
+  // need a copy of v0_Big to use later
+  v0_Big = new Vector(NonLinDynamic::solVecInfo(), 0.0);
+
   // d, v, a and v_p are on entry are already initialized to zero
   int numIDisModal = domain->numInitDispModal();
   if(numIDisModal) {
@@ -683,32 +667,58 @@ PodProjectionNonLinDynamic::getInitState(Vector &d, Vector &v, Vector &a, Vector
       if(iVelModal[i].nnum < v.size())
         v[iVelModal[i].nnum] = iVelModal[i].val;
     }
+    const GenVecBasis<double> &projectionBasis = dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis();
+    projectionBasis.expand(v, *v0_Big);
   }
 
   // XXX currently, if modal initial conditions are defined then any non-modal initial conditions are ignored
   if(numIDisModal == 0 && numIVelModal == 0) {
     Vector d_Big(NonLinDynamic::solVecInfo(), 0.0),
-           v_Big(NonLinDynamic::solVecInfo(), 0.0),
            a_Big(NonLinDynamic::solVecInfo(), 0.0),
            v_p_Big(NonLinDynamic::solVecInfo(), 0.0);
   
-    NonLinDynamic::getInitState(d_Big, v_Big, a_Big, v_p_Big);
+    NonLinDynamic::getInitState(d_Big, *v0_Big, a_Big, v_p_Big);
 
-    if(numIDisModal == 0) {
-      if(d_Big.norm() != 0) reduceDisp(d_Big, d);
-    }
-    if(numIVelModal == 0) {
-      if(v_Big.norm() != 0) reduceDisp(v_Big, v);
-    }
+    if(d_Big.norm() != 0) reduceDisp(d_Big, d);
+    if(v0_Big->norm() != 0) reduceDisp(*v0_Big, v);
   }
 
   return domain->solInfo().aeroFlag;
 }
 
 void
+PodProjectionNonLinDynamic::readRestartFile(Vector &d_n, Vector &v_n, Vector &a_n, Vector &v_p, ModalGeomState &geomState)
+{
+  if(geoSource->getCheckFileInfo()->lastRestartFile) {
+    Vector d_n_Big(NonLinDynamic::solVecInfo()),
+           v_n_Big(NonLinDynamic::solVecInfo()),
+           a_n_Big(NonLinDynamic::solVecInfo()),
+           v_p_Big(NonLinDynamic::solVecInfo()),
+           q_Big(NonLinDynamic::solVecInfo());
+
+    NonLinDynamic::readRestartFile(d_n_Big, v_n_Big, a_n_Big, v_p_Big, *geomState_Big);
+    // XXX set vel & acc in geomState_Big
+    geomState_Big->setVelocityAndAcceleration(v_n_Big, a_n_Big);
+
+    reduceDisp(d_n_Big, d_n);
+    reduceDisp(v_n_Big, v_n);
+    reduceDisp(a_n_Big, a_n);
+    reduceDisp(v_p_Big, v_p);
+    geomState_Big->get_tot_displacement(q_Big);
+    reduceDisp(q_Big, geomState.q);
+  }
+}
+
+void
 PodProjectionNonLinDynamic::updatePrescribedDisplacement(ModalGeomState *geomState)
 {
-  // XXX
+  if(domain->solInfo().initialTime == 0.0) {
+    Vector q_Big(NonLinDynamic::solVecInfo());
+    NonLinDynamic::updatePrescribedDisplacement(geomState_Big);
+    geomState_Big->get_tot_displacement(q_Big);
+    reduceDisp(q_Big, geomState->q);
+    geomState_Big->setVelocity(*v0_Big); // XXX need to save v0_Big in 
+  }
 }
 
 void
@@ -833,7 +843,6 @@ ModalGeomState*
 PodProjectionNonLinDynamic::createGeomState()
 {
   geomState_Big = new GeomState( *domain->getDSA(), *domain->getCDSA(), domain->getNodes(), &domain->getElementSet() );
-  refState_Big = new GeomState(*geomState_Big);
 
   return new ModalGeomState(solVecInfo());
 }
@@ -841,6 +850,7 @@ PodProjectionNonLinDynamic::createGeomState()
 ModalGeomState*
 PodProjectionNonLinDynamic::copyGeomState(ModalGeomState *geomState)
 {
+  refState_Big = new GeomState(*geomState_Big);
   return new ModalGeomState(*geomState);
 }
 

@@ -534,11 +534,13 @@ PodProjectionNonLinDynamic::PodProjectionNonLinDynamic(Domain *d) :
   resImpl_(NULL),
   jacImpl_(NULL),
   podPostPro(NULL),
+  d0_Big(NULL),
   v0_Big(NULL)
 {}
 
 PodProjectionNonLinDynamic::~PodProjectionNonLinDynamic() {
   if(podPostPro) delete podPostPro;
+  if(d0_Big) delete d0_Big;
   if(v0_Big) delete v0_Big;
 }
 
@@ -645,8 +647,9 @@ PodProjectionNonLinDynamic::solVecInfo() const
 int
 PodProjectionNonLinDynamic::getInitState(Vector &d, Vector &v, Vector &a, Vector &v_p)
 {
-  // need a copy of v0_Big to use later
+  // need a copy of d0_Big, v0_Big to use later
   v0_Big = new Vector(NonLinDynamic::solVecInfo(), 0.0);
+  d0_Big = new Vector(NonLinDynamic::solVecInfo(), 0.0);
 
   // d, v, a and v_p are on entry are already initialized to zero
   int numIDisModal = domain->numInitDispModal();
@@ -657,6 +660,8 @@ PodProjectionNonLinDynamic::getInitState(Vector &d, Vector &v, Vector &a, Vector
       if(iDisModal[i].nnum < d.size())
         d[iDisModal[i].nnum] = iDisModal[i].val;
     }
+    const GenVecBasis<double> &projectionBasis = dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis();
+    projectionBasis.expand(d, *d0_Big);
   }
 
   int numIVelModal = domain->numInitVelocityModal();
@@ -673,13 +678,12 @@ PodProjectionNonLinDynamic::getInitState(Vector &d, Vector &v, Vector &a, Vector
 
   // XXX currently, if modal initial conditions are defined then any non-modal initial conditions are ignored
   if(numIDisModal == 0 && numIVelModal == 0) {
-    Vector d_Big(NonLinDynamic::solVecInfo(), 0.0),
-           a_Big(NonLinDynamic::solVecInfo(), 0.0),
+    Vector a_Big(NonLinDynamic::solVecInfo(), 0.0),
            v_p_Big(NonLinDynamic::solVecInfo(), 0.0);
   
-    NonLinDynamic::getInitState(d_Big, *v0_Big, a_Big, v_p_Big);
+    NonLinDynamic::getInitState(*d0_Big, *v0_Big, a_Big, v_p_Big);
 
-    if(d_Big.norm() != 0) reduceDisp(d_Big, d);
+    if(d0_Big->norm() != 0) reduceDisp(*d0_Big, d);
     if(v0_Big->norm() != 0) reduceDisp(*v0_Big, v);
   }
 
@@ -707,17 +711,26 @@ PodProjectionNonLinDynamic::readRestartFile(Vector &d_n, Vector &v_n, Vector &a_
     geomState_Big->get_tot_displacement(q_Big);
     reduceDisp(q_Big, geomState.q);
   }
+  else if(domain->solInfo().initialTime == 0.0) {
+    if(domain->numInitDispModal() || domain->numInitVelocityModal()) {
+      geomState.q = d_n;
+      geomState_Big->explicitUpdate(domain->getNodes(), *d0_Big);
+      geomState_Big->setVelocity(*v0_Big);
+    }
+  }
 }
 
 void
 PodProjectionNonLinDynamic::updatePrescribedDisplacement(ModalGeomState *geomState)
 {
   if(domain->solInfo().initialTime == 0.0) {
-    Vector q_Big(NonLinDynamic::solVecInfo());
-    NonLinDynamic::updatePrescribedDisplacement(geomState_Big);
-    geomState_Big->get_tot_displacement(q_Big);
-    reduceDisp(q_Big, geomState->q);
-    geomState_Big->setVelocity(*v0_Big); // XXX need to save v0_Big in 
+    if(domain->numInitDispModal() == 0 && domain->numInitVelocityModal() == 0) {
+      Vector q_Big(NonLinDynamic::solVecInfo());
+      NonLinDynamic::updatePrescribedDisplacement(geomState_Big);
+      geomState_Big->get_tot_displacement(q_Big);
+      reduceDisp(q_Big, geomState->q);
+      geomState_Big->setVelocity(*v0_Big);
+    }
   }
 }
 

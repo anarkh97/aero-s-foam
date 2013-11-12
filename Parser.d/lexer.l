@@ -204,6 +204,8 @@ TRAIL [a-zA-Z]*
 
 "ITEM"[a-zA-Z]*|"item"[a-zA-Z]*    { return ITEMP; }
 
+"ETEM"[a-zA-Z]*|"etem"[a-zA-Z]*    { return ETEMP; }
+
 "TEMP"[a-zA-Z]*|"temp"[a-zA-Z]*    { return TEMP; }
 
 "PDIR"[a-zA-Z]*|"pdir"[a-zA-Z]*    { return PDIR; }

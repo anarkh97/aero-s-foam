@@ -596,9 +596,6 @@ class Domain : public HData {
      template<class Scalar>
        void addMpcRhs(GenVector<Scalar>& force, double t = 0);
 
-     template<class Scalar>
-       void addRadiationRhs(GenVector<Scalar>& force);
-
      void buildPrescDisp(Vector &v, double lambda);
      void buildPrescDisp(Vector &v, double t, double dt);
 

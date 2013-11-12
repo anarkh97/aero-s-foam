@@ -8,7 +8,6 @@
 #include <Corotational.d/GeomState.h>
 
 BarRadiation::BarRadiation(int* nodenums)
- : f(NULL)
 {
         nn[0] = nodenums[0];
         nn[1] = nodenums[1];
@@ -16,7 +15,6 @@ BarRadiation::BarRadiation(int* nodenums)
 
 BarRadiation::~BarRadiation()
 {
-        if(f) delete [] f;
 }
 
 Element *
@@ -65,23 +63,13 @@ BarRadiation::stiffness(CoordSet &cs, double *Kcv, int flg)
 
         FullSquareMatrix ret(2,Kcv);
 
-        if(prop->Te != prop->Tr) {
-          BarThermalCorotator corot(nn[0], nn[1], prop->P, prop->eps, prop->sigma, prop->Tr, cs);
-          GeomState ts(cs);
-          for(int i=0; i<2; ++i) ts[nn[i]].x = prop->Te;
-          if(!f) f = new double[2];
-          corot.getStiffAndForce(ts, cs, ret, f, 0, 0);
-        }
-        else {
-          ret[0][0] = 0.0;
-          ret[1][1] = 0.0;
-          ret[1][0] = 0.0;
-          ret[0][1] = 0.0;
-        }
+        ret[0][0] = 0.0;
+        ret[1][1] = 0.0;
+        ret[1][0] = 0.0;
+        ret[0][1] = 0.0;
         
         return ret;
 }
-
 
 Corotator *
 BarRadiation::getCorotator(CoordSet &cs, double* kel, int, int)
@@ -131,22 +119,4 @@ int
 BarRadiation::getTopNumber()
 {
   return 147;
-}
-
-void
-BarRadiation::computePressureForce(CoordSet& cs, Vector& elPressureForce,
-                                   GeomState *gs, int cflg, double t)
-{
-  // note: this function should only be called for linear analyses
-  if(prop->Te != prop->Tr) {
-    if(!f) { // compute f, only if it hasn't already been done
-      FullSquareMatrix tmp(2);
-      BarThermalCorotator corot(nn[0], nn[1], prop->P, prop->eps, prop->sigma, prop->Tr, cs);
-      GeomState ts(cs);
-      for(int i=0; i<2; ++i) ts[nn[i]].x = prop->Te;
-      f = new double[2];
-      corot.getInternalForce(ts, cs, tmp, f, 0, 0);
-    }
-    for(int i=0; i<2; ++i) elPressureForce[i] = -f[i];
-  }
 }

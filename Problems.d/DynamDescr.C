@@ -735,7 +735,7 @@ SingleDomainDynamic::preProcess()
   claw = geoSource->getControlLaw();
   userSupFunc = domain->getUserSuppliedFunction();
 
-  if((domain->numInitDisp6() > 0 && domain->solInfo().gepsFlg == 1) || domain->solInfo().isNonLin()) { // PJSA 3-31-08
+  if((domain->numInitDisp6() > 0 && domain->solInfo().gepsFlg == 1) || domain->solInfo().isNonLin()) {
     FullSquareMatrix *geomKelArray=0;
     // this function builds corotators, geomstate and kelArray 
     // for linear+geps only it updates geomState with IDISP6 and computes the element stiffness matrices using this updated geomState

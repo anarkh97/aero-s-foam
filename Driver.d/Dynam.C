@@ -34,7 +34,7 @@ Domain::initDispVeloc(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, const 
 
  // ... SET INITIAL VELOCITY
  if(numIVelModal) {
-   filePrint(stderr, " ... Compute initial velocity from given modal basis (v0=X.y0) ... \n"); //HB
+   filePrint(stderr, " ... Compute initial velocity from given modal basis (v0=X.y0) ... \n");
    modeData.addMultY(numIVelModal, iVelModal, v_n, c_dsa);
  }
  for(int i = 0; i < numIVel; ++i) {
@@ -51,7 +51,7 @@ Domain::initDispVeloc(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, const 
    // ... OR IF WE ARE USING GEOMETRIC PRE-STRESS (GEPS)
    if(domain->numInitDisp6() == 0 || sinfo.gepsFlg == 1) { // note: always use global num to do this check
      if(numIDisModal) {
-       filePrint(stderr, " ... Compute initial displacement from given modal basis (u0=X.y0) ... \n"); //HB
+       filePrint(stderr, " ... Compute initial displacement from given modal basis (u0=X.y0) ... \n");
        modeData.addMultY(numIDisModal, iDisModal, d_n, c_dsa);
      }
      for(int i = 0; i < numIDis; ++i) {
@@ -61,7 +61,8 @@ Domain::initDispVeloc(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, const 
    }
 
    // ... SET INITIAL DISPLACEMENT FROM IDISP6
-   if((domain->numInitDisp() == 0 && domain->numInitDispModal() == 0) || sinfo.gepsFlg == 0) {
+   // ... ONLY IF WE ARE NOT USING GEOMETRIC PRE-STRESS
+   if(sinfo.gepsFlg == 0) {
      for(int i = 0; i < numIDis6; ++i) {
        int dof = c_dsa->locate(iDis6[i].nnum, 1 << iDis6[i].dofnum);
        if(dof >= 0)
@@ -1019,7 +1020,7 @@ Domain::aeroPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
     //KW: send the embedded wet surface to fluid 
     if(aeroEmbeddedSurfaceId.size()!=0) {
       flExchanger->sendEmbeddedWetSurface();
-      if(verboseFlag) fprintf(stderr,"... [E] Sent embedded wet surface ...\n");
+      if(verboseFlag) fprintf(stderr," ... [E] Sent embedded wet surface ...\n");
     }
 
     //XML New step of negotiation with fluid code
@@ -1035,9 +1036,9 @@ Domain::aeroPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
       // If we are in the first time step, and we initialized with
       // IDISP6, do not send IDISP6
       if(numIDis == 0 && sinfo.zeroInitialDisp != 1) {
-        fprintf(stderr," ... DO NOT SEND IDISP6 0\n"); //HB
+        fprintf(stderr," ... DO NOT SEND IDISP6             ...\n");
       } else {
-        fprintf(stderr," ... SENDING IDISP6 0\n"); //HB
+        fprintf(stderr," ... SENDING IDISP6                 ...\n");
         int i;
         for(i = 0; i < numIDis6; ++i) {
           int dof = c_dsa->locate(iDis6[i].nnum, 1 << iDis6[i].dofnum);

@@ -40,5 +40,7 @@ public:
 	double trueWeight() {
 	  return weight();
 	}
+
+        Corotator * getCorotator(CoordSet &, double*, int, int) { return 0; }
 };
 #endif

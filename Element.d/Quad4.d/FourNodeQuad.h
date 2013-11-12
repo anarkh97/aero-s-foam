@@ -53,6 +53,8 @@ public:
 	
 	// DEC
 	PrioInfo examine(int sub, MultiFront *);
+
+        Corotator * getCorotator(CoordSet &, double*, int, int) { return 0; }
 };
 #endif
 

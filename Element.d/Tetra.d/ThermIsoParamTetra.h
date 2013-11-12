@@ -27,5 +27,7 @@ public:
 
         PrioInfo examine(int sub, MultiFront *mf);
         int getTopNumber();
+
+        Corotator * getCorotator(CoordSet &, double*, int, int) { return 0; }
 };
 #endif

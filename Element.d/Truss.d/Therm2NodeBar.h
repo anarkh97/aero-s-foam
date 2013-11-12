@@ -32,5 +32,7 @@ public:
         void getFlFlux(double gp[2], double *flF, double *resF);
         void trussHeatFluxes(double &elheatflux, CoordSet&, Vector &elTemp, 
                                          int hflIndex);
+
+        Corotator * getCorotator(CoordSet &, double*, int, int) { return 0; }
 };
 #endif

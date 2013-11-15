@@ -11,9 +11,6 @@ class Therm4NoShell : public SuperElement
 
     Element* clone();
     int  getTopNumber();
-    //bool isShell() { return true; }
-    //int numNodes(void) { return 4; };
-    //int numDofs(void)  { return 4; };
     PrioInfo examine(int sub, MultiFront *);
     bool hasRot(){return true;}
     // aero functions

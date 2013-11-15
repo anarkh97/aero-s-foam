@@ -34,10 +34,9 @@ public:
                         
 	void getFlFlux(double gp[2], double *flF, double *resF);
 
-        //bool isShell() { return true; }
-
         void getThermalForce(CoordSet &, Vector &, Vector &force, int, GeomState *geomState=0) { force.zero(); }
 
+        Corotator * getCorotator(CoordSet &, double*, int, int) { return 0; }
 };
 #endif
 

@@ -81,6 +81,7 @@ protected:
   DistrVector  * tempVec;
   SysState<DistrVector> *dummyState;
   bool haveRot;
+  int stableCount;
   GenParallelSolver<double> * fullMassSolver;
   void reduceDisp(DistrVector &d, DistrVector &dr) const;
 

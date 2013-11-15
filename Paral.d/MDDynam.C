@@ -1227,9 +1227,9 @@ MultiDomainDynam::aeroPreProcess(DistrVector &disp, DistrVector &vel,
     // If we are in the first time step, and we initialized with
     // IDISP6, do not send IDISP6
     if(domain->numInitDisp() == 0 && sinfo.zeroInitialDisp != 1) {
-      filePrint(stderr," ... DO NOT SEND IDISP6 0\n"); //HB
+      filePrint(stderr," ... DO NOT SEND IDISP6             ...\n");
     } else {
-      filePrint(stderr," ... SENDING IDISP6 0\n"); //HB
+      filePrint(stderr," ... SENDING IDISP6                 ...\n");
       for(iSub = 0; iSub < numLocSub; iSub++) {
         BCond* iDis6 = subdomain[iSub]->getInitDisp6();
         for(int i = 0; i < subdomain[iSub]->numInitDisp6(); ++i) {

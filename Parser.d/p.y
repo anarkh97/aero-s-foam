@@ -69,7 +69,7 @@
 %token CONSTANT CONWEP
 %token DAMPING DblConstant DEM DIMASS DISP DIRECT DLAMBDA DP DYNAM DETER DECOMPOSE DECOMPFILE DMPC DEBUGCNTL DEBUGICNTL
 %token CONSTRAINTS MULTIPLIERS PENALTY
-%token ELLUMP EIGEN EFRAMES ELSCATTERER END ELHSOMMERFELD EXPLICIT EPSILON ELEMENTARYFUNCTIONTYPE
+%token ELLUMP EIGEN EFRAMES ELSCATTERER END ELHSOMMERFELD ETEMP EXPLICIT EPSILON ELEMENTARYFUNCTIONTYPE
 %token FABMAT FACOUSTICS FETI FETI2TYPE FETIPREC FFP FFPDIR FITALG FNAME FLUX FORCE FRONTAL FETIH FILTEREIG
 %token FREQSWEEP FREQSWEEP1 FREQSWEEP2 FREQSWEEPA FSINTERFACE FSISCALING FSIELEMENT NOLOCALFSISPLITING FSICORNER FFIDEBUG FAILSAFE FRAMETYPE
 %token GEPS GLOBALTOL GRAVITY GRBM GTGSOLVER GLOBALCRBMTOL GROUP GROUPTYPE GOLDFARBTOL GOLDFARBCHECK
@@ -200,6 +200,7 @@ Component:
 	{}
 	| IVel
 	| ITemp
+        | ETemp
 	| SensorLocations
 	| ActuatorLocations
 	| UsddLocations
@@ -1816,6 +1817,12 @@ ITemp:
         { for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Itemperatures;
           if(geoSource->setIDis($3->n,$3->d) < 0) return -1; }
 	;
+ETemp:
+        ETEMP NewLine TBCDataList
+        { domain->solInfo().setGEPS();
+          for(int i=0; i<$3->n; ++i) $3->d[i].type = BCond::Etemperatures;
+          if(geoSource->setIDis6($3->n,$3->d) < 0) return -1; }
+        ;
 NeumanBC:
         FORCE NewLine
         { $$ = new BCList; }
@@ -2207,16 +2214,7 @@ MatData:
         | Integer THERMMAT Float Float Float Float Float Float Float Float Float NewLine
         { StructProp sp; 
           sp.A = $3; sp.rho = $4; sp.Q = $5; sp.c = $6; 
-          sp.sigma = $7; sp.k = $8; sp.eh = $9; sp.P = $10; sp.Ta = sp.Te = $11;
-          sp.isReal = true;
-          sp.type = StructProp::Thermal;
-          geoSource->addMat( $1-1, sp );
-        }
-        | Integer THERMMAT Float Float Float Float Float Float Float Float Float Float NewLine
-        { StructProp sp;
-          sp.A = $3; sp.rho = $4; sp.Q = $5; sp.c = $6;
-          sp.sigma = $7; sp.k = $8; sp.eh = $9; sp.P = $10; sp.Ta = $11; sp.Te = $12;
-          if(sp.Ta != sp.Te) domain->solInfo().radiationFlag = 1;
+          sp.sigma = $7; sp.k = $8; sp.eh = $9; sp.P = $10; sp.Ta = $11;
           sp.isReal = true;
           sp.type = StructProp::Thermal;
           geoSource->addMat( $1-1, sp );

@@ -533,11 +533,15 @@ PodProjectionNonLinDynamic::PodProjectionNonLinDynamic(Domain *d) :
   accImpl_(NULL),
   resImpl_(NULL),
   jacImpl_(NULL),
-  podPostPro(NULL)
+  podPostPro(NULL),
+  d0_Big(NULL),
+  v0_Big(NULL)
 {}
 
 PodProjectionNonLinDynamic::~PodProjectionNonLinDynamic() {
   if(podPostPro) delete podPostPro;
+  if(d0_Big) delete d0_Big;
+  if(v0_Big) delete v0_Big;
 }
 
 void
@@ -640,6 +644,52 @@ PodProjectionNonLinDynamic::solVecInfo() const
   return getSolver()->basisSize();
 }
 
+int
+PodProjectionNonLinDynamic::getInitState(Vector &d, Vector &v, Vector &a, Vector &v_p)
+{
+  // need a copy of d0_Big, v0_Big to use later
+  v0_Big = new Vector(NonLinDynamic::solVecInfo(), 0.0);
+  d0_Big = new Vector(NonLinDynamic::solVecInfo(), 0.0);
+
+  // d, v, a and v_p are on entry are already initialized to zero
+  int numIDisModal = domain->numInitDispModal();
+  if(numIDisModal) {
+    filePrint(stderr, " ... Using Modal IDISPLACEMENTS     ...\n");
+    BCond* iDisModal = domain->getInitDispModal();
+    for(int i = 0; i < numIDisModal; ++i) {
+      if(iDisModal[i].nnum < d.size())
+        d[iDisModal[i].nnum] = iDisModal[i].val;
+    }
+    const GenVecBasis<double> &projectionBasis = dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis();
+    projectionBasis.expand(d, *d0_Big);
+  }
+
+  int numIVelModal = domain->numInitVelocityModal();
+  if(numIVelModal) {
+    filePrint(stderr, " ... Using Modal IVELOCITIES        ...\n");
+    BCond* iVelModal = domain->getInitVelocityModal();
+    for(int i = 0; i < numIVelModal; ++i) {
+      if(iVelModal[i].nnum < v.size())
+        v[iVelModal[i].nnum] = iVelModal[i].val;
+    }
+    const GenVecBasis<double> &projectionBasis = dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis();
+    projectionBasis.expand(v, *v0_Big);
+  }
+
+  // XXX currently, if modal initial conditions are defined then any non-modal initial conditions are ignored
+  if(numIDisModal == 0 && numIVelModal == 0) {
+    Vector a_Big(NonLinDynamic::solVecInfo(), 0.0),
+           v_p_Big(NonLinDynamic::solVecInfo(), 0.0);
+  
+    NonLinDynamic::getInitState(*d0_Big, *v0_Big, a_Big, v_p_Big);
+
+    if(d0_Big->norm() != 0) reduceDisp(*d0_Big, d);
+    if(v0_Big->norm() != 0) reduceDisp(*v0_Big, v);
+  }
+
+  return domain->solInfo().aeroFlag;
+}
+
 void
 PodProjectionNonLinDynamic::readRestartFile(Vector &d_n, Vector &v_n, Vector &a_n, Vector &v_p, ModalGeomState &geomState)
 {
@@ -651,6 +701,8 @@ PodProjectionNonLinDynamic::readRestartFile(Vector &d_n, Vector &v_n, Vector &a_
            q_Big(NonLinDynamic::solVecInfo());
 
     NonLinDynamic::readRestartFile(d_n_Big, v_n_Big, a_n_Big, v_p_Big, *geomState_Big);
+    // XXX set vel & acc in geomState_Big
+    geomState_Big->setVelocityAndAcceleration(v_n_Big, a_n_Big);
 
     reduceDisp(d_n_Big, d_n);
     reduceDisp(v_n_Big, v_n);
@@ -659,56 +711,27 @@ PodProjectionNonLinDynamic::readRestartFile(Vector &d_n, Vector &v_n, Vector &a_
     geomState_Big->get_tot_displacement(q_Big);
     reduceDisp(q_Big, geomState.q);
   }
-}
-
-int
-PodProjectionNonLinDynamic::getInitState(Vector &d, Vector &v, Vector &a, Vector &v_p)
-{
-  // d, v, a and v_p are on entry are already initialized to zero
-  int numIDisModal = domain->numInitDispModal();
-  if(numIDisModal) {
-    filePrint(stderr, " ... Using Modal IDISPLACEMENTS     ...\n");
-    BCond* iDisModal = domain->getInitDispModal();
-    for(int i = 0; i < numIDisModal; ++i) {
-      if(iDisModal[i].nnum < d.size())
-        d[iDisModal[i].nnum] = iDisModal[i].val;
+  else if(domain->solInfo().initialTime == 0.0) {
+    if(domain->numInitDispModal() || domain->numInitVelocityModal()) {
+      geomState.q = d_n;
+      geomState_Big->explicitUpdate(domain->getNodes(), *d0_Big);
+      geomState_Big->setVelocity(*v0_Big);
     }
   }
-
-  int numIVelModal = domain->numInitVelocityModal();
-  if(numIVelModal) {
-    filePrint(stderr, " ... Using Modal IVELOCITIES        ...\n");
-    BCond* iVelModal = domain->getInitVelocityModal();
-    for(int i = 0; i < numIVelModal; ++i) {
-      if(iVelModal[i].nnum < v.size())
-        v[iVelModal[i].nnum] = iVelModal[i].val;
-    }
-  }
-
-  // XXX currently, if modal initial conditions are defined then any non-modal initial conditions are ignored
-  if(numIDisModal == 0 && numIVelModal == 0) {
-    Vector d_Big(NonLinDynamic::solVecInfo(), 0.0),
-           v_Big(NonLinDynamic::solVecInfo(), 0.0),
-           a_Big(NonLinDynamic::solVecInfo(), 0.0),
-           v_p_Big(NonLinDynamic::solVecInfo(), 0.0);
-  
-    NonLinDynamic::getInitState(d_Big, v_Big, a_Big, v_p_Big);
-
-    if(numIDisModal == 0) {
-      if(d_Big.norm() != 0) reduceDisp(d_Big, d);
-    }
-    if(numIVelModal == 0) {
-      if(v_Big.norm() != 0) reduceDisp(v_Big, v);
-    }
-  }
-
-  return domain->solInfo().aeroFlag;
 }
 
 void
 PodProjectionNonLinDynamic::updatePrescribedDisplacement(ModalGeomState *geomState)
 {
-  // XXX
+  if(domain->solInfo().initialTime == 0.0) {
+    if(domain->numInitDispModal() == 0 && domain->numInitVelocityModal() == 0) {
+      Vector q_Big(NonLinDynamic::solVecInfo());
+      NonLinDynamic::updatePrescribedDisplacement(geomState_Big);
+      geomState_Big->get_tot_displacement(q_Big);
+      reduceDisp(q_Big, geomState->q);
+      geomState_Big->setVelocity(*v0_Big);
+    }
+  }
 }
 
 void
@@ -833,7 +856,6 @@ ModalGeomState*
 PodProjectionNonLinDynamic::createGeomState()
 {
   geomState_Big = new GeomState( *domain->getDSA(), *domain->getCDSA(), domain->getNodes(), &domain->getElementSet() );
-  refState_Big = new GeomState(*geomState_Big);
 
   return new ModalGeomState(solVecInfo());
 }
@@ -841,6 +863,7 @@ PodProjectionNonLinDynamic::createGeomState()
 ModalGeomState*
 PodProjectionNonLinDynamic::copyGeomState(ModalGeomState *geomState)
 {
+  refState_Big = new GeomState(*geomState_Big);
   return new ModalGeomState(*geomState);
 }
 

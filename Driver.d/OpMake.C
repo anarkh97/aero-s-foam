@@ -1177,7 +1177,6 @@ Domain::rebuildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Cc
          systemSolver  = (GenEiSparseMatrix<Scalar,Eigen::SimplicialLDLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >*) spm;
        }
        break;
-#ifdef EIGEN_SPARSELU_SUPPORT
        case 15: {
          spm = (GenEiSparseMatrix<Scalar,Eigen::SparseLU<Eigen::SparseMatrix<Scalar>,Eigen::COLAMDOrdering<int> > >*)allOps.sysSolver;
          spm->zeroAll();
@@ -1185,7 +1184,6 @@ Domain::rebuildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Cc
          systemSolver  = (GenEiSparseMatrix<Scalar,Eigen::SparseLU<Eigen::SparseMatrix<Scalar>,Eigen::COLAMDOrdering<int> > >*) spm;
        }
        break;
-#endif
        case 17: {
          spm = (GenEiSparseMatrix<Scalar,Eigen::SparseQR<Eigen::SparseMatrix<Scalar>,Eigen::COLAMDOrdering<int> > >*)allOps.sysSolver;
          spm->zeroAll();
@@ -1412,13 +1410,11 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
       makeSparseOps<Scalar>(allOps, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray, celArray);
       systemSolver  = (GenEiSparseMatrix<Scalar,Eigen::SimplicialLDLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >*) spm;
       break;
-#ifdef EIGEN_SPARSELU_SUPPORT
     case 15:
       spm = constructEiSparseMatrix<Scalar,Eigen::SparseLU<Eigen::SparseMatrix<Scalar>,Eigen::COLAMDOrdering<int> > >(c_dsa, nodeToNode, false);
       makeSparseOps<Scalar>(allOps, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray, celArray);
       systemSolver  = (GenEiSparseMatrix<Scalar,Eigen::SparseLU<Eigen::SparseMatrix<Scalar>,Eigen::COLAMDOrdering<int> > >*) spm;
     break;
-#endif
     case 17:
       spm = constructEiSparseMatrix<Scalar,Eigen::SparseQR<Eigen::SparseMatrix<Scalar>,Eigen::COLAMDOrdering<int> > >(c_dsa, nodeToNode, false);
       makeSparseOps<Scalar>(allOps, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray, celArray);
@@ -1836,28 +1832,6 @@ Domain::addMpcRhs(GenVector<Scalar> &force, double t)
 
 template<class Scalar>
 void
-Domain::addRadiationRhs(GenVector<Scalar> &force)
-{
-  Vector elementForce(maxNumDOFs);
-
-  for(int iele = 0; iele < numele; ++iele) {
-    // If there is element is not a RadiationElement, skip it.
-    if(!packedEset[iele]->isRadiationElement()) continue;
-
-    // Otherwise, compute element force due to mpc rhs
-    packedEset[iele]->computePressureForce(nodes, elementForce);
-
-    // Assemble element pressure forces into domain force vector
-    for(int idof = 0; idof < allDOFs->num(iele); ++idof) {
-      int cn = c_dsa->getRCN((*allDOFs)[iele][idof]);
-      if(cn >= 0)
-        force[cn] += elementForce[idof];
-    }
-  }
-}
-
-template<class Scalar>
-void
 Domain::scaleDisp(Scalar *u)
 {
   // PJSA: 9-22-06 this is for multi-point pade with coupled fluid-structure
@@ -2212,9 +2186,6 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc)
 
   // ... ADD LMPC RHS
   if(!sinfo.isNonLin()) addMpcRhs<Scalar>(force);
-
-  // ... ADD RADIATION RHS TERM
-  if(radiationFlag() && !sinfo.isNonLin()) addRadiationRhs<Scalar>(force);
 
   // scale RHS force for coupled domains
   if(sinfo.isCoupled) {

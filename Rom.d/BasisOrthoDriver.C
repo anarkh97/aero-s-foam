@@ -157,12 +157,23 @@ BasisOrthoDriver::solve() {
                                     static_cast<VecTrans *>(new NoOp<double *>));
 
   double mratio = geoSource->getMRatio();
-  // Assembling mass matrix
-  DynamMat * dummyDynOps = SingleDomainDynamic::buildOps(1.0,0.0,0.0);
-  assert(dummyDynOps->M);
-  GenSparseMatrix<double> *fullMass = dummyDynOps->M;
+  // Assemble mass matrix, and factor if necessary
+  AllOps<double> allOps;
+  if(mratio != 0) {
+#ifdef USE_EIGEN3
+    allOps.M = domain->constructEiSparseMatrix<double,Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> >();
+#else
+    allOps.M = domain->constructDBSparseMatrix<double>();
+#endif
+  }
+  else {
+    allOps.M = new DiagMatrix(domain->getCDSA());
+  }
+  domain->makeSparseOps<double>(allOps, 0.0, 1.0, 0.0, (GenSparseMatrix<double>*) NULL, kelArray, melArray);
+
+  GenSparseMatrix<double> *fullMass = allOps.M;
   GenSolver<double> *fullMassSolver;
-  if(mratio!=0 && domain->solInfo().normalize==1) { 
+  if(mratio != 0 && domain->solInfo().normalize == 1) { 
     fullMassSolver = dynamic_cast<GenSolver<double>*>(fullMass);
     if(fullMassSolver) {
       filePrint(stderr, " ... Factoring mass matrix          ...\n");
@@ -178,7 +189,7 @@ BasisOrthoDriver::solve() {
   int sizeROB = 0;
   int skipTime = domain->solInfo().skipPodRom;
   if(domain->solInfo().snapfiPodRom.empty() && domain->solInfo().robfi.empty()) {
-    std::cerr << "*** Error: no files provided\n";
+    std::cerr << "*** ERROR: no files provided\n";
     exit(-1);
   }
  
@@ -206,8 +217,8 @@ BasisOrthoDriver::solve() {
     BasisId::Type type = *it;
     filePrint(stderr, " ... Computation of a basis of size %d ...\n", sizeSnap+sizeROB);
     int colCounter = 0;
-    readIntoSolver(solver, converter, BasisId::SNAPSHOTS, domain->solInfo().snapfiPodRom.size(), vectorSize, transform, type, colCounter, fullMass, fullMassSolver, skipTime); //read in snapshots
-    readIntoSolver(solver, converter, BasisId::ROB, domain->solInfo().robfi.size(), vectorSize, transform, type, colCounter, fullMass, fullMassSolver); //read in ROB
+    readIntoSolver(solver, converter, BasisId::SNAPSHOTS, domain->solInfo().snapfiPodRom.size(), vectorSize, transform, type, colCounter, fullMass, fullMassSolver, skipTime); // read in snapshots
+    readIntoSolver(solver, converter, BasisId::ROB, domain->solInfo().robfi.size(), vectorSize, transform, type, colCounter, fullMass, fullMassSolver); // read in ROB
     
     solver.solve();
 
@@ -218,7 +229,7 @@ BasisOrthoDriver::solve() {
                               solver.singularValueCount();
 
     // Output solution
-    if(mratio == 0 && domain->solInfo().normalize == 0) //old method for lumped: outputs identity normalized basis
+    if(domain->solInfo().normalize == 0) // old method for lumped: outputs identity normalized basis
       filePrint(stderr, " ... Writing orthonormal basis to file %s ...\n", BasisFileId(fileInfo, type, BasisId::POD).name().c_str());
     for (int iVec = 0; iVec < orthoBasisDim; ++iVec) {
       output << std::make_pair(solver.singularValue(iVec), solver.matrixCol(iVec));
@@ -232,9 +243,6 @@ BasisOrthoDriver::solve() {
     VecBasis normalizedBasis;
     if(domain->solInfo().normalize == 0) {
       // Old method: renormalize the orthonormal basis
-      if(mratio != 0) {
-        std::cerr << "********WARNING mnorma 0 with consistent mass-matrix, do not use with snapshots other than state snapshots*******\n";
-      }
       renormalized_basis(*fullMass, basis, normalizedBasis);
     }
     else if(domain->solInfo().normalize == 1) {

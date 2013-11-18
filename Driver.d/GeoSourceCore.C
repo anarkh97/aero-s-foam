@@ -4459,8 +4459,11 @@ void GeoSource::setElementLumpingWeight(int iele, double value) {
 }
 
 void GeoSource::setSampleNodesAndSlots(int node, int dof){
-//  nodeDofSlotMap_[node] = dof; 
   nodeDofSlotPairVec_.push_back(std::make_pair(node,dof));
+}
+
+void GeoSource::setSampleElemsAndDOFs(int node, int dof){
+  elemDofPairVec_.push_back(std::make_pair(node,dof));
 }
 
 ControlLawInfo::ControlLawInfo()

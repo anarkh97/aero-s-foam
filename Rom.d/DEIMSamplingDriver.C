@@ -375,10 +375,36 @@ DEIMSamplingDriver::writeSampledMesh(std::vector<int> &maskIndices) {
   meshOut.precision(std::numeric_limits<double>::digits10+1);
   for(int i=0; i<podBasis_.vectorCount(); ++i)
     meshOut << i+1 << " "  << constForceRed[i] << std::endl; 
-  meshOut << "\nSNSLOT\n";
-  for(std::vector<std::pair<int,int> >::iterator it = compressedNodeKey.begin(); it != compressedNodeKey.end(); it++)
-   meshOut << it->first + 1 << " " << it->second << std::endl;
- 
+
+  #ifdef USE_EIGEN3
+  // build and output compressed basis
+  podBasis_.makeSparseBasis(meshRenumbering.reducedNodeIds(), domain->getCDSA());
+  {
+    std::string filename = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
+    filename.append(".reduced");
+    if(domain->solInfo().newmarkBeta == 0 || domain->solInfo().useMassNormalizedBasis) filename.append(".normalized");
+    filePrint(stderr," ... Writing compressed basis to file %s ...\n", filename.c_str());
+    DofSetArray reduced_dsa(reducedMesh.nodes().size(), const_cast<Elemset&>(reducedMesh.elements()));
+    ConstrainedDSA reduced_cdsa(reduced_dsa, reducedMesh.dirichletBConds().size(), const_cast<BCond*>(&reducedMesh.dirichletBConds()[0]));
+    VecNodeDof6Conversion converter(reduced_cdsa);
+    BasisOutputStream output(filename, converter, false);
+
+    for (int iVec = 0; iVec < podBasis_.vectorCount(); ++iVec) {
+      output << podBasis_.compressedBasis().col(iVec);
+    }
+
+    std::map<int,int> nodeRenum(meshRenumbering.nodeRenumbering());
+    std::map<int,int> elemRenum(meshRenumbering.elemRenumbering());
+
+    meshOut << "*\nSNSLOT\n";
+    for(std::vector<std::pair<int,int> >::iterator it = compressedNodeKey.begin(); it != compressedNodeKey.end(); it++){
+     //output assembled indices in form of a node plus a node dof and an element with and element dof (to keep neighbor elements for adding to the same dof)
+     meshOut << nodeRenum[it->first] + 1 << " " << it->second << std::endl;
+    }
+
+  }
+#endif 
+
 }
 
 void
@@ -401,6 +427,7 @@ DEIMSamplingDriver::buildForceArray(VecBasis &forceBasis, const VecBasis &displa
     GenVector<double> FLint(solVecInfo());
     for(int jSnap = 0; jSnap != snapshotCounts_[i]; ++iSnap, ++jSnap){
       filePrint(stderr,"\r %4.2f%% complete, time = %f", double(iSnap)/double(std::accumulate(snapshotCounts_.begin(),snapshotCounts_.end(),0))*100.,*timeStampIt);
+
       geomState->explicitUpdate(domain->getNodes(), displac[iSnap]);
       if(veloc){ geomState->setVelocity((*veloc)[iSnap]);} //just set the velocity at the nodes
       if(accel){ geomState->setAcceleration((*accel)[iSnap]);} //just set the acceleration at the nodes
@@ -412,16 +439,9 @@ DEIMSamplingDriver::buildForceArray(VecBasis &forceBasis, const VecBasis &displa
       SingleDomainDynamic::getInternalForce( dummy, FNLint, *timeStampIt, jSnap);
       domain->getKtimesU(dummy, bcx, FLint, 1.0, kelArrayCopy);
     
-      //set up for external force vector
-/*      SysState<Vector> *dummyState;
-      dummyState = new SysState<Vector>( dummy, dummy, dummy, dummy);
-      SingleDomainDynamic::computeExtForce2( *dummyState, Fext, dummy, jSnap, *timeStampIt, &dummy, gamma, alphaf);*/
-
       //set vector in force snapshot container
       forceBasis[iSnap] = (FNLint-FLint); 
      
-//      std::cout << " NLF + LF norm = " << FNLint.norm() << " NLF norm = " << forceBasis[iSnap].norm() << " LF norm = " << FLint.norm() << std::endl;
- 
       timeStampIt++;
     }
   }

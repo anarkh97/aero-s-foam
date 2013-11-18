@@ -347,6 +347,7 @@ struct SolverInfo {
    bool orthogForceSnap;
    bool computeDEIMIndices;
    bool DEIMPodRom;
+   bool UDEIMPodRom;
    bool samplingPodRom;
    bool snapProjPodRom;
    bool galerkinPodRom;
@@ -611,6 +612,7 @@ struct SolverInfo {
 		  orthogForceSnap    = false;
                   computeDEIMIndices = false;
                   DEIMPodRom         = false;
+                  UDEIMPodRom        = false;
                   svdBlockSize       = 64;
                   samplingPodRom     = false;
                   snapProjPodRom     = false;

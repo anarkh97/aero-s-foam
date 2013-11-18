@@ -9,6 +9,7 @@
 #include "VecBasisFile.h"
 
 #include "VecNodeDof6Conversion.h"
+#include <set>
 
 #ifdef USE_EIGEN3
 #include <Eigen/LU>
@@ -31,23 +32,25 @@ private:
   void readAndProjectSnapshots(BasisId::Type type, const int vectorSize, VecBasis &podBasis,
                           const VecNodeDof6Conversion *vecDofConversion,
                           std::vector<int> &snapshotCounts, std::vector<double> &timeStamps, VecBasis &config);
-  void buildForceArray(VecBasis &forceBasis, const VecBasis &displac,
-                       const VecBasis *veloc, const VecBasis *accel,std::vector<double> timeStamps_,
+  void buildForceArray(VecBasis &unassembledForceBasis,VecBasis &assembledForceBasis,const VecBasis &displac,
+                       const VecBasis *veloc,const VecBasis *accel,std::vector<double> timeStamps_,
                        std::vector<int> snapshotCounts_);
   void OrthoForceSnap(VecBasis &forceBasis,std::vector<double> &SVs);  
+  void computeAssembledIndices(std::vector<int> &umaskIndices, std::vector<int> &amaskIndices, std::set<int> &selectedElems, std::vector<std::pair<int,int> > &elemRankDOFContainer); 
 
   int  elementCount() const; 
+  int  unassembledVecInfo(FullSquareMatrix *kelArray);
 
-  void writeProjForceSnap(); 
+  void writeUnassembledForceSnap(VecBasis &unassembledForceBasis,VecBasis &assembledForceBasis); 
 
   void computeInterpIndices(VecBasis &forceBasis, std::vector<int> &maskIndices); 
-  void computeAndWriteUDEIMBasis(VecBasis &forceBasis, std::vector<int> &maskIndices);  
-  void writeSampledMesh(std::vector<int> &maskIndices);
+  void computeAndWriteUDEIMBasis(VecBasis &unassembledForceBuf,VecBasis &assembledForceBuf,std::vector<int> &umaskIndices,std::vector<int> &amaskIndices);  
+  void writeSampledMesh(std::vector<int> &maskIndices, std::set<int> &selectedElems, std::vector<std::pair<int,int> > &elemRankDOFContainer);
 
   VecNodeDof6Conversion *converter;
 
   VecBasis podBasis_;
-
+  std::map<int, std::pair<int,int> > uDOFaDOFmap;
 };
 
 } /* end namespace Rom */

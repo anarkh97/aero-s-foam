@@ -13,6 +13,7 @@ class NLMaterial;
 #include <sstream>
 #include <utility>
 #include <stdexcept>
+#include <limits>
 
 namespace Rom {
 

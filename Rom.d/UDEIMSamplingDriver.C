@@ -23,7 +23,9 @@
 #include <Utils.d/dofset.h>
 #include <Utils.d/DistHelper.h>
 
+#ifdef USE_EIGEN3
 #include <Eigen/Dense>
+#endif
 #include <cmath>
 #include <utility>
 #include <algorithm>

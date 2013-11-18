@@ -311,7 +311,10 @@ Domain::getNodeFictitiousForce(int inode, GeomState &geomState, double time, Geo
     if(domain->solInfo().samplingPodRom) {
       // V and A are the convected angular velocity and acceleration at current snapshot after projection
       tangential_transf(Psi, T);
-      f = (T.transpose() - Eigen::Matrix3d::Identity())*M*(A+sinfo.alphaDamp*V) + T.transpose()*V.cross(M*V);
+      Eigen::Matrix3d Tinv = T.inverse();
+      Psidot = Tinv*V;
+      tangential_transf_dot(Psi, Psidot, Tdot);
+      f = T.transpose()*(M*A + V.cross(M*V)) - M*Tinv*(A-Tdot*Psidot);
     }
     else {
       Eigen::Vector3d f0;
@@ -321,6 +324,7 @@ Domain::getNodeFictitiousForce(int inode, GeomState &geomState, double time, Geo
         compute_tangents = false;
       }
       else if(domain->solInfo().galerkinPodRom) {
+        // in this case V and A are the first and second time derivatives of the total rotation vector
         Eigen::Vector3d incd = Psi - Psi_n;
         // compute the total angular velocity at t^{n+1-alphaf}
         V = gamma/(dt*beta)*incd + (1-(1-alphaf)*gamma/beta)*V_n + dt*(1-alphaf)*(2*beta-gamma)/(2*beta)*A_n;
@@ -340,13 +344,13 @@ Domain::getNodeFictitiousForce(int inode, GeomState &geomState, double time, Geo
 
       // compute the fictitious force and the correction to the inertial+viscous force computed in probDesc->formRHScorrector which is (M*A + C*V)
       if(domain->solInfo().galerkinPodRom) {
-        // the correct inertia+viscous force is T*R*(M*A + C*V + V.cross(M*V)). note T*R = T.transpose()
+        // the correct inertia+viscous force is T*R*(M*A + V.cross(M*V)). note T*R = T.transpose()
         tangential_transf(Psi, T);
         tangential_transf_dot(Psi, V, Tdot);
         f = T.transpose()*( M*(T*A + Tdot*V) + (T*V).cross(M*T*V) ) - f0;
       }
       else {
-        // the correct inertia+viscous force is R*(M*A + C*V + V.cross(M*V))
+        // the correct inertia+viscous force is R*(M*A + V.cross(M*V))
         f = (R - Eigen::Matrix3d::Identity())*M*(A+sinfo.alphaDamp*V) + R*V.cross(M*V);
       }
 

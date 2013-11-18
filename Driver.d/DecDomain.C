@@ -3658,7 +3658,7 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
      } break;
 #endif
      default :
-       cerr << " *** ERROR: subtype " << domain->solInfo().subtype << " not supported here in GenDecDomain::buildOps\n";
+       filePrint(stderr, " *** ERROR: subtype %d not supported here in GenDecDomain::buildOps\n", domain->solInfo().subtype);
        exit(-1);
    }
  }

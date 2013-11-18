@@ -786,7 +786,7 @@ int main(int argc, char** argv)
  bool parallel_proc = (threadManager->numThr() > 1);
 #endif
  // 3. choose lumped mass (also pressure and gravity) and diagonal "solver" for explicit dynamics 
- if(domain->solInfo().newmarkBeta == 0) {
+ if(domain->solInfo().newmarkBeta == 0 || (domain->solInfo().svdPodRom && geoSource->getMRatio() == 0)) {
    if(domain->solInfo().inertiaLumping == 2) {
      domain->solInfo().subtype = 1;
      domain->solInfo().getFetiInfo().solvertype = FetiInfo::sparse;

@@ -35,7 +35,6 @@ void readIntoSolver(DistrSvdOrthogonalization &solver, DistrNodeDof6Buffer &inpu
 {
   const BasisId::Type workload = BasisId::STATE;
   FileNameInfo fileInfo;
-  //const int skipFactor = domain->solInfo().skipPodRom;
   for(int i = 0; i < numEntries; i++){
     DistrBasisInputFile inputFile(BasisFileId(fileInfo,workload,type,i));
     nodeCount = inputFile.nodeCount();
@@ -53,10 +52,10 @@ void readIntoSolver(DistrSvdOrthogonalization &solver, DistrNodeDof6Buffer &inpu
 
           converter.paddedMasterVector(inputBuffer, vec);
           // TODO Multiply by weighting factor if given in input file
-          if(domain->solInfo().newmarkBeta == 0 && domain->solInfo().normalize == 1) { // new method
+          if(geoSource->getMRatio() == 0 && domain->solInfo().normalize == 1) {
             dynOps->dynMat->squareRootMult(vec);
           }
-          if(type== BasisId::ROB) vec *= inputFile.currentStateHeaderValue(); //multiply in singular values for robfiles
+          if(type== BasisId::ROB) vec *= inputFile.currentStateHeaderValue(); // multiply by singular values for robfiles
           std::fill(vecBuffer + vectorSize.totLen(), vecBuffer + solver.localRows(), 0.0);
           skipCounter = 1;
           ++solverCol;
@@ -132,24 +131,28 @@ DistrBasisOrthoDriver::solve() {
   }
   const int singularValueCount = std::min(masterLength, snapBasisStateCount+robBasisStateCount);
 
-  double beta = domain->solInfo().newmarkBeta;
+  double mratio = geoSource->getMRatio();
+  if(mratio != 0 && domain->solInfo().normalize == 1) {
+    filePrint(stderr, " *** ERROR: \"mnorma 1\" is only supported using LUMPED in DistrBasisOrthoDriver\n");
+    exit(-1);
+  }
   // Assembling mass matrix
   MDDynamMat *dynOps = MultiDomainDynam::buildOps(1.0, 0.0, 0.0);
   assert(dynOps->M);
   assert(dynOps->dynMat);
  
   if(domain->solInfo().snapfiPodRom.empty() && domain->solInfo().robfi.empty()) {
-    filePrint(stderr, " *** Error: no files provided\n");
+    filePrint(stderr, " *** ERROR: no files provided\n");
     exit(-1);
   }
    
   int solverCol = 0;
   DistrNodeDof6Buffer inputBuffer(masterMapping.localNodeBegin(), masterMapping.localNodeEnd());
   readIntoSolver(solver, inputBuffer, nodeCount, converter, dynOps, decDomain->solVecInfo(), BasisId::SNAPSHOTS,
-                 domain->solInfo().snapfiPodRom.size(), solverCol, domain->solInfo().skipPodRom); //reads in snapshots
+                 domain->solInfo().snapfiPodRom.size(), solverCol, domain->solInfo().skipPodRom); // read in snapshots
 
   readIntoSolver(solver, inputBuffer, nodeCount, converter, dynOps, decDomain->solVecInfo(), BasisId::ROB,
-                 domain->solInfo().robfi.size(), solverCol); //reads in robs
+                 domain->solInfo().robfi.size(), solverCol); // read in robs
   solver.solve();
 
   // Output solution
@@ -162,7 +165,7 @@ DistrBasisOrthoDriver::solve() {
                                     nodeCount, outputBuffer.globalNodeIndexBegin(), outputBuffer.globalNodeIndexEnd(),
                                     comm_, false);
 
-    if(beta != 0 || (beta == 0 && domain->solInfo().normalize == 0))
+    if(domain->solInfo().normalize == 0)
       filePrint(stderr, " ... Writing orthonormal basis to file %s ...\n", BasisFileId(fileInfo, workload, BasisId::POD).name().c_str());
     for (int iVec = 0; iVec < podVectorCount; ++iVec) {
       double * const vecBuffer = const_cast<double *>(solver.basisColBuffer(iVec));
@@ -173,62 +176,61 @@ DistrBasisOrthoDriver::solve() {
   }
   comm_->sync(); // this is important, do not delete.
 
-  // Renormalize basis for explicit
-  if(beta == 0) {
-    // Read back in output file to perform renormalization
-    DistrVecBasis basis;
-    {
-      DistrBasisInputFile inputFile(BasisFileId(fileInfo, workload, BasisId::POD));
-      DistrNodeDof6Buffer inputBuffer(masterMapping.localNodeBegin(), masterMapping.localNodeEnd());
-      basis.dimensionIs(podVectorCount, decDomain->masterSolVecInfo()); 
-      int i = 0;
-      for(DistrVecBasis::iterator it = basis.begin(),
-          it_end = basis.end();
-          it != it_end; ++it) {
-        assert(inputFile.validCurrentState());
+  // Read back in output file to perform renormalization
+  DistrVecBasis basis;
+  {
+    DistrBasisInputFile inputFile(BasisFileId(fileInfo, workload, BasisId::POD));
+    DistrNodeDof6Buffer inputBuffer(masterMapping.localNodeBegin(), masterMapping.localNodeEnd());
+    basis.dimensionIs(podVectorCount, decDomain->masterSolVecInfo()); 
+    int i = 0;
+    for(DistrVecBasis::iterator it = basis.begin(),
+        it_end = basis.end();
+        it != it_end; ++it) {
+      assert(inputFile.validCurrentState());
 
-        inputFile.currentStateBuffer(inputBuffer);
-        converter.vector(inputBuffer, *it);
+      inputFile.currentStateBuffer(inputBuffer);
+      converter.vector(inputBuffer, *it);
 
-        inputFile.currentStateIndexInc();
-      }
+      inputFile.currentStateIndexInc();
     }
+  }
 
-    DistrVecBasis normalizedBasis;
-    if(domain->solInfo().normalize == 0) {
-      // Old method: renormalize the orthonormal basis
-      renormalized_basis(*dynOps->M, basis, normalizedBasis);
-    }
-    if(domain->solInfo().normalize == 1) {
-      // New method: multiply by inverse square root of the mass matrix
+  DistrVecBasis normalizedBasis;
+  if(domain->solInfo().normalize == 0) {
+    // Old method: renormalize the orthonormal basis
+    renormalized_basis(*dynOps->M, basis, normalizedBasis);
+  }
+  if(domain->solInfo().normalize == 1) {
+    // New method: multiply by inverse square root of the mass matrix
+    if(mratio == 0) { // lumped
       for(int col = 0; col < podVectorCount; col++) {
         dynOps->dynMat->inverseSquareRootMult(basis[col]);
       }
-      normalizedBasis = basis;
     }
+    normalizedBasis = basis;
+  }
 
-    // Output the renormalized basis as separate file
+  // Output the renormalized basis as separate file
+  std::string fileName = BasisFileId(fileInfo, workload, BasisId::POD);
+  fileName.append(".normalized");
+  DistrNodeDof6Buffer outputBuffer(masterMapping.masterNodeBegin(), masterMapping.masterNodeEnd());
+  DistrBasisOutputFile outputNormalizedFile(fileName, nodeCount, outputBuffer.globalNodeIndexBegin(), outputBuffer.globalNodeIndexEnd(), comm_, false);
+  filePrint(stderr, " ... Writing mass-normalized basis to file %s ...\n", fileName.c_str());
+  for (int iVec = 0; iVec < podVectorCount; ++iVec) {
+    converter.paddedNodeDof6(normalizedBasis[iVec], outputBuffer);
+    outputNormalizedFile.stateAdd(outputBuffer, solver.singularValue(iVec));
+  }
+
+  // Compute and output identity normalized basis if using new method
+  if(domain->solInfo().normalize == 1) {
+    MGSVectors(normalizedBasis);
     std::string fileName = BasisFileId(fileInfo, workload, BasisId::POD);
-    fileName.append(".normalized");
     DistrNodeDof6Buffer outputBuffer(masterMapping.masterNodeBegin(), masterMapping.masterNodeEnd());
-    DistrBasisOutputFile outputNormalizedFile(fileName, nodeCount, outputBuffer.globalNodeIndexBegin(), outputBuffer.globalNodeIndexEnd(), comm_, false);
-    filePrint(stderr, " ... Writing mass-normalized basis to file %s ...\n", fileName.c_str());
+    DistrBasisOutputFile outputOrthoNormalFile(fileName, nodeCount, outputBuffer.globalNodeIndexBegin(), outputBuffer.globalNodeIndexEnd(), comm_, false);
+    filePrint(stderr, " ... Writing orthonormal basis to file %s ...\n", fileName.c_str());
     for (int iVec = 0; iVec < podVectorCount; ++iVec) {
       converter.paddedNodeDof6(normalizedBasis[iVec], outputBuffer);
-      outputNormalizedFile.stateAdd(outputBuffer, solver.singularValue(iVec));
-    }
-
-    // Compute and output identity normalized basis if using new method
-    if(domain->solInfo().normalize == 1) {
-      MGSVectors(normalizedBasis);
-      std::string fileName = BasisFileId(fileInfo, workload, BasisId::POD);
-      DistrNodeDof6Buffer outputBuffer(masterMapping.masterNodeBegin(), masterMapping.masterNodeEnd());
-      DistrBasisOutputFile outputOrthoNormalFile(fileName, nodeCount, outputBuffer.globalNodeIndexBegin(), outputBuffer.globalNodeIndexEnd(), comm_, false);
-      filePrint(stderr, " ... Writing orthonormal basis to file %s ...\n", fileName.c_str());
-      for (int iVec = 0; iVec < podVectorCount; ++iVec) {
-        converter.paddedNodeDof6(normalizedBasis[iVec], outputBuffer);
-        outputOrthoNormalFile.stateAdd(outputBuffer, solver.singularValue(iVec));
-      }
+      outputOrthoNormalFile.stateAdd(outputBuffer, solver.singularValue(iVec));
     }
   }
 }

@@ -27,19 +27,30 @@ int main (int argc, char *argv[]) {
   ifstream comp_file (argv[2]);
 
   string header_buffer;
-  int num_nodes, length2, num_time_steps;
+  int num_nodes, length2, num_time_steps, truthFlag, compFlag, i1, i2;
   double time1, time2, tFinal;
-  double a1, b1, c1, a2, b2, c2;
+  double a1, b1, c1, d1, e1, f1, a2, b2, c2, d2, e2, f2;
   double sumx, sumy, sumz, sumx2, sumy2, sumz2;
+  double sumrx, sumry, sumrz, sumrx2, sumry2, sumrz2;
   double cum_normx, cum_normy, cum_normz, normalize_factorx, normalize_factory, normalize_factorz;
+  double cum_normrx, cum_normry, cum_normrz, normalize_factorrx, normalize_factorry, normalize_factorrz;
   double relative_errorx, relative_errory, relative_errorz;
+  double relative_errorrx, relative_errorry, relative_errorrz;
   int getTime = 1;
   // check to see of both files were successfully opened
   if(truth_file.is_open() && comp_file.is_open()) {
 
-  std::cout << "calculate error up to time: ";
-  std::cin >> tFinal;
-  std::cout << "" << std::endl;
+    std::cout << "calculate error up to time: ";
+    std::cin >> tFinal;
+    std::cout << std::endl;
+
+    std::cout << "node numbers in truthfile? [0=no,1=yes]: "; 
+    std::cin >> truthFlag;
+    std::cout << std::endl;
+
+    std::cout << "node numbers in comparisonfile? [0=no,1=yes]: ";                                
+    std::cin >> compFlag;
+    std::cout << std::endl;
 
     // get header line and length of displacement vector 
     getline(truth_file, header_buffer);
@@ -55,7 +66,9 @@ int main (int argc, char *argv[]) {
 
     // first: loop over all timesteps
     cum_normx = 0; cum_normy = 0; cum_normz = 0;
+    cum_normrx = 0; cum_normry = 0; cum_normrz = 0;
     normalize_factorx = 0; normalize_factory = 0; normalize_factorz = 0;
+    normalize_factorrx = 0; normalize_factorry = 0; normalize_factorrz = 0;
     num_time_steps = 0;
     while((truth_file >> time1) && time1 <= tFinal) {
       num_time_steps += 1;
@@ -67,23 +80,35 @@ int main (int argc, char *argv[]) {
 
       // begin computation for L2-norm for timestep, 'num_time_step'
       sumx = 0; sumy = 0; sumz = 0; sumx2 = 0; sumy2 = 0; sumz2 = 0;
+      sumrx = 0; sumry = 0; sumrz = 0; sumrx2 = 0; sumry2 = 0; sumrz2 = 0;
       // second: loop of nodes
       for(int counter=0; counter < num_nodes; counter++) {
+        // read node number if necessary
+        if(truthFlag) truth_file >> i1;
         // third: read in all dofs
         truth_file >> a1; truth_file >> b1; truth_file >> c1;
+        truth_file >> d1; truth_file >> e1; truth_file >> f1;
 
 	if(time1 == time2) {
 
+          if(compFlag) comp_file >> i2;
 	  comp_file >> a2; comp_file >> b2; comp_file >> c2;
+          comp_file >> d2; comp_file >> e2; comp_file >> f2;
  	  getTime = 1;
 	  
 	  sumx += pow((a1-a2),2);      
           sumy += pow((b1-b2),2);
           sumz += pow((c1-c2),2);
+          sumrx += pow((d1-d2),2);
+          sumry += pow((e1-e2),2);
+          sumrz += pow((f1-f2),2);
 
           sumx2 += pow(a1,2);
           sumy2 += pow(b1,2);
           sumz2 += pow(c1,2);
+          sumrx2 += pow(d1,2);
+          sumry2 += pow(e1,2);
+          sumrz2 += pow(f1,2);
         }
 	else {
 	  if(counter == 0) {
@@ -97,10 +122,16 @@ int main (int argc, char *argv[]) {
       cum_normx += pow(sumx,0.5);
       cum_normy += pow(sumy,0.5);
       cum_normz += pow(sumz,0.5);
+      cum_normrx += pow(sumrx,0.5);
+      cum_normry += pow(sumry,0.5);
+      cum_normrz += pow(sumrz,0.5);
 
       normalize_factorx += pow(sumx2,0.5);
       normalize_factory += pow(sumy2,0.5);
       normalize_factorz += pow(sumz2,0.5);
+      normalize_factorrx += pow(sumrx2,0.5);
+      normalize_factorry += pow(sumry2,0.5);
+      normalize_factorrz += pow(sumrz2,0.5);
 
       if(!truth_file)
         break;
@@ -109,18 +140,24 @@ int main (int argc, char *argv[]) {
     relative_errorx = cum_normx/(normalize_factorx);
     relative_errory = cum_normy/(normalize_factory);
     relative_errorz = cum_normz/(normalize_factorz);
+    relative_errorrx = cum_normrx/(normalize_factorrx);
+    relative_errorry = cum_normry/(normalize_factorry);
+    relative_errorrz = cum_normrz/(normalize_factorrz);
 
     cout << "*** relative error: x ***  = " << relative_errorx*100 << "%" << endl;
     cout << "*** relative error: y ***  = " << relative_errory*100 << "%" << endl;
     cout << "*** relative error: z ***  = " << relative_errorz*100 << "%" << endl;
+    cout << "*** relative error: x rotation ***  = " << relative_errorrx*100 << "%" << endl;
+    cout << "*** relative error: y rotation ***  = " << relative_errorry*100 << "%" << endl;
+    cout << "*** relative error: z rotation ***  = " << relative_errorrz*100 << "%" << endl;
   }
 }
 
 void print_syntax() {
-  std::printf("Syntax: relerr truthfile comparisonfile\n");
+  std::printf("Syntax: relerr6 truthfile comparisonfile\n");
 }
 
 void print_help() {
-  std::printf("Relative error computation executable\n");
+  std::printf("Relative error computation executable for OUTPUT6 files\n");
   print_syntax();;
 }

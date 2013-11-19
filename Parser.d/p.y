@@ -2984,6 +2984,10 @@ SampNodeSlot:
         { domain->solInfo().DEIMPodRom = true; }
         | SampNodeSlot Integer Integer NewLine
         { geoSource->setSampleNodesAndSlots($2-1,$3);}
+        | SampNodeSlot Integer Integer Integer Integer NewLine
+        { geoSource->setSampleNodesAndSlots($2-1,$3);
+          geoSource->setSampleElemsAndDOFs($4-1,$5);
+          domain->solInfo().UDEIMPodRom = true;}
         ;
 
 Pressure:
@@ -4329,6 +4333,13 @@ SamplingOption:
   { domain->solInfo().skipOffSet = $2; }
   | PODSIZEMAX Integer
   { domain->solInfo().maxSizePodRom = $2; }
+  | PODSIZEMAX Integer Integer
+  { domain->solInfo().maxSizePodRom = $2; 
+    domain->solInfo().forcePodSize = $3;}
+  | PODSIZEMAX Integer Integer Integer
+  { domain->solInfo().maxSizePodRom = $2; 
+    domain->solInfo().forcePodSize = $3;
+    domain->solInfo().maxDeimBasisSize = $4; }
   | OUTOFCORE SWITCH
   { domain->solInfo().oocPodRom = bool($2); }
   | USEMASSNORMALIZEDBASIS SWITCH

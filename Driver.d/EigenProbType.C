@@ -633,6 +633,45 @@ LOBPCGSolver< EigOps, VecType, VecSet,
 }
 //------------------------------------------------------------------------------
 
+template <class EigOps, class VecType, class VecSet,
+    class PostProcessor, class ProblemDescriptor>
+void
+EigenSolver< EigOps, VecType, VecSet,
+         PostProcessor, ProblemDescriptor>::performQR()
+{
+#ifdef USE_EIGEN3
+   Eigen::MatrixXd Xeigen(probDesc->solVecInfo(),totalEig);
+   for(int j=0; j<totalEig; ++j) {
+     VecType col = (*this->eigVec)[j];
+     for(int i=0; i<probDesc->solVecInfo(); ++i) Xeigen(i,j) = col[i];
+     filePrint(stderr,"j-th original bases norm is %f\n", col.norm());
+   }
+
+   Eigen::HouseholderQR<Eigen::MatrixXd> qr(Xeigen);
+   const typename Eigen::HouseholderQR<Eigen::MatrixXd>::HouseholderSequenceType &Q = qr.householderQ();
+
+//   Eigen::ColPivHouseholderQR<Eigen::MatrixXd> qr(Xeigen);
+//   const Eigen::PermutationMatrix<Eigen::Dynamic,Eigen::Dynamic> &P = qr.colsPermutation();
+//  const typename Eigen::ColPivHouseholderQR<Eigen::MatrixXd>::HouseholderSequenceType &Q = qr.householderQ();
+
+   Eigen::MatrixXd Qupdated = Eigen::MatrixXd(Q).block(0,0,probDesc->solVecInfo(),totalEig);
+
+   Eigen::MatrixXd Reigen = (Qupdated.transpose()*Xeigen).block(0,0,totalEig,totalEig);
+
+   Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0);
+   cerr << Reigen.format(HeavyFmt) << endl;
+   cerr << Xeigen.rows() << "x" << Xeigen.cols() << endl;
+   cerr << Reigen.rows() << "x" << Reigen.cols() << endl;
+
+   // ... Output results
+   this->postProcessor->eigenQROutput(Xeigen,Qupdated,Reigen);
+#else
+  filePrint(stderr," ... ERROR: performQR() needs eigen3\n");
+  exit(-1);
+#endif
+}
+//------------------------------------------------------------------------------
+
 template <class EigOps, class VecType, class VecSet, 
 	  class PostProcessor, class ProblemDescriptor>
 void
@@ -814,6 +853,17 @@ SubSpaceSolver< EigOps, VecType, VecSet,
 
      filePrint(stderr, "EigProb Norm %d: %e (%e)\n", i, (*residual)[0].norm()/refNorm, refNorm);
    }
+ }
+
+ if(domain->solInfo().qrfactorization) {
+#ifdef USE_EIGEN3
+   if( strcmp(domain->solInfo().xmatrixname, "") == 0 || strcmp(domain->solInfo().qmatrixname, "") == 0 || strcmp(domain->solInfo().rmatrixname,"") == 0) {
+     filePrint(stderr, " ... error, xmatrix, qmatrix and rmatrix keywords must be specified in input file\n");
+   } else this->performQR();
+#else
+   filePrint(stderr, " ... Error: qrfactorization needs eigen3\n");
+   exit(-1);
+#endif
  }
 
  // ... Output results

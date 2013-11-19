@@ -803,6 +803,9 @@ class Domain : public HData {
 
      // Eigen solver
      void eigenOutput(Vector& eigenValues, VectorSet& eigenVectors, double* bcx = 0, int convEig = 0); // modified for SLOSHING PROBLEM, EC, 20070723
+#ifdef USE_EIGEN3 
+     void eigenQROutput(Eigen::MatrixXd& Xmatrix, Eigen::MatrixXd& Qmatrix, Eigen::MatrixXd& Rmatrix);
+#endif
      void setEigenValue(double _lbound, int _nshifts, int _maxArnItr = 0); //CBM
      void setEigenValues(double _lbound, double _ubound, int _neigps = 0, int _maxArnItr = 0);
 

@@ -108,7 +108,8 @@
 %token SNAPFI PODROB TRNVCT OFFSET ORTHOG SVDTOKEN CONVERSIONTOKEN CONVFI SAMPLING SNAPSHOTPROJECT PODSIZEMAX REFSUBSTRACT TOLER OUTOFCORE NORMALIZETOKEN FNUMBER SNAPWEIGHT ROBFI STAVCT VELVCT ACCVCT CONWEPCFG
 %token VECTORNORM LOCALTOLERANCE REBUILDFORCE SAMPNODESLOT FORCEROB DEIMINDICES UDEIMINDICES SVDFORCESNAP
 %token USEMASSNORMALIZEDBASIS 
-%token OPTSENSITIVITY SENSITIVITYID
+%token OPTSENSITIVITY SENSITIVITYID 
+%token QRFACTORIZATION QMATRIX RMATRIX XMATRIX
 
 %type <complexFDBC> AxiHD
 %type <complexFNBC> AxiHN
@@ -938,6 +939,12 @@ OutInfo:
         { $$.oframe = (OutputInfo::FrameType) $2; }
         | OutInfo MATLAB 
         { $$.matlab = true; }
+        | XMATRIX FNAME
+        { domain->solInfo().xmatrixname = $2; }
+        | QMATRIX FNAME
+        { domain->solInfo().qmatrixname = $2; }
+        | RMATRIX FNAME
+        { domain->solInfo().rmatrixname = $2; }
         ;
 DynInfo:
         DynamInfo
@@ -947,6 +954,8 @@ DynInfo:
 	| EIGEN Integer NewLine
 	{ domain->solInfo().setProbType(SolverInfo::Modal);
 	  domain->solInfo().nEig = $2;}
+  | QRFACTORIZATION SWITCH NewLine
+  { domain->solInfo().qrfactorization = $2;}
 	| NEIGPA Integer NewLine
 	{ domain->solInfo().nEig = $2; }
 	| SUBSPACE NewLine

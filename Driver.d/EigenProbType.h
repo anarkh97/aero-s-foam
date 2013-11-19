@@ -54,6 +54,7 @@ class EigenSolver {
                                                                                                                       
     virtual void initialize()=0;
     virtual void solve()=0;
+    void performQR();
 };
 
 template <class EigOps,

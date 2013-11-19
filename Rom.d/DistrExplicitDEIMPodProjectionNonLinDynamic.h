@@ -19,15 +19,16 @@ public:
 
 private:
   void buildInterpolationBasis();
+  void buildReducedLinearOperator();
   void subBuildInterpolationBasis(int iSub, std::vector< std::vector<std::pair<int,int> > > &maskedIndicesBuf);
+  void subBuildUnassembledMask(int iSub);
   void subGetKtimesU(int isub, DistrVector &d, DistrVector &f);
-
-  std::vector<std::map<int, double> > packedElementWeights_;
-  std::vector<std::vector<int> > packedWeightedNodes_;
+  void subGetWeightedInternalForceOnly(int iSub, DistrVector &f, double &t, int &tIndex);
 
   DistrVecBasis deimBasis_;
-  DistrVector * lin_fInt;
+  DistrVecBasis ReducedStiffness;
   GenFullSquareMatrix<double> **kelArrayCopy;
+  std::vector<std::map<int, std::vector<int> > > unassembledElemDOFMask;
 };
 
 } // end namespace Rom

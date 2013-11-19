@@ -2,7 +2,6 @@
 
 #include "ElementSamplingDriver.h"
 
-#include "SvdOrthogonalization.h"
 #include "VecNodeDof6Conversion.h"
 #include "NodalRestrictionMapping.h"
 #include "ConnectivityUtils.h"
@@ -47,25 +46,19 @@ UDEIMSamplingDriver::solve() {
   const int podSizeMax = domain->solInfo().maxSizePodRom; 
   bool normalized = true;
 
-  if(domain->solInfo().computeForceSnap){
-    readInBasis(podBasis_, BasisId::STATE, BasisId::POD, podSizeMax);
-    writeProjForceSnap();
-  } else if(domain->solInfo().orthogForceSnap) {
-    int forcePodSizeMax = domain->solInfo().forcePodSize;
-    VecBasis forceBasis;
-    readInBasis(forceBasis, BasisId::FORCE, BasisId::SNAPSHOTS,forcePodSizeMax);
-    std::vector<double> SVs;
-    OrthoForceSnap(forceBasis,SVs);
-    writeBasisToFile(forceBasis, SVs, BasisId::FORCE, BasisId::ROB);
-  } else {
-    readInBasis(podBasis_, BasisId::STATE, BasisId::POD, podSizeMax, normalized);
-    std::vector<int> maskIndices;
-    VecBasis forceBasis;
-    computeInterpIndices(forceBasis, maskIndices);
-    computeAndWriteUDEIMBasis(forceBasis, maskIndices);
-    writeSampledMesh(maskIndices);
-    }
+    VecBasis unassembledForceBuf;                          //container for unassembled force snapshots/svd
+    VecBasis assembledForceBuf;                            //container for assembled force svd
+    std::vector<int> umaskIndices;                         //unassembled indices container
+    std::vector<int> amaskIndices;                         //assembled indices container
+    std::set<int> selectedElemRank;                        //selected element rank container for unpacked element numbers
+    std::vector<std::pair<int,int> > elemRankDOFContainer; //container for each selected element's slected DOF
 
+    readInBasis(podBasis_, BasisId::STATE, BasisId::POD, podSizeMax, normalized);               //get POD projection basis
+    writeUnassembledForceSnap(unassembledForceBuf,assembledForceBuf);                           //get force snapshots
+    computeInterpIndices(unassembledForceBuf,umaskIndices);                                     //get UDEIM indices
+    computeAssembledIndices(umaskIndices,amaskIndices,selectedElemRank,elemRankDOFContainer);   //map unassembled indices to assembled indices
+    computeAndWriteUDEIMBasis(unassembledForceBuf,assembledForceBuf,umaskIndices,amaskIndices); //compute and write to file the UDEIM POD basis
+    writeSampledMesh(amaskIndices,selectedElemRank,elemRankDOFContainer);                       //write UDEIM sampled mesh to file
 }
 
 void
@@ -101,10 +94,8 @@ UDEIMSamplingDriver::writeBasisToFile(const VecBasis &OutputBasis, std::vector<S
 }
 
 void
-UDEIMSamplingDriver::writeProjForceSnap() 
+UDEIMSamplingDriver::writeUnassembledForceSnap(VecBasis &unassembledForceBasis,VecBasis &assembledForceBasis) 
 {
-  VecBasis forceBasis;
- 
   //First read in state snapshots 
   VecBasis displac;
   std::vector<double> timeStamps;
@@ -112,6 +103,7 @@ UDEIMSamplingDriver::writeProjForceSnap()
   readAndProjectSnapshots(BasisId::STATE, converter->vectorSize(), podBasis_, converter,
                           snapshotCounts, timeStamps, displac);
 
+  //read in velocity snapshots if provided
   VecBasis *veloc_;
   if(!domain->solInfo().velocPodRomFile.empty()) {
    std::vector<double> velTimeStamps;
@@ -122,6 +114,7 @@ UDEIMSamplingDriver::writeProjForceSnap()
    if(velSnapshotCounts != snapshotCounts) std::cerr << " *** WARNING: inconsistent velocity snapshots\n";
   } else { veloc_ = NULL;}
 
+  //read in acceleration snapshots if provided
   VecBasis *accel_;
   if(!domain->solInfo().accelPodRomFile.empty()) {
    std::vector<double> accTimeStamps;
@@ -133,8 +126,18 @@ UDEIMSamplingDriver::writeProjForceSnap()
   } else { accel_ = NULL; } 
 
   //Now build forcevectors
-  buildForceArray(forceBasis, displac, veloc_, accel_, timeStamps, snapshotCounts);
-  writeBasisToFile(forceBasis, timeStamps, BasisId::FORCE, BasisId::SNAPSHOTS);
+  std::vector<double> SVs;
+  buildForceArray(unassembledForceBasis,assembledForceBasis,displac,veloc_,accel_,timeStamps,snapshotCounts);
+  OrthoForceSnap(unassembledForceBasis,SVs); //orthogonalize unassembled vectors
+  
+  //assemble the unassembledSVD
+  for (std::map<int, std::pair<int,int> >::const_iterator it = uDOFaDOFmap.begin(); it != uDOFaDOFmap.end(); it++){
+    int iele = it->second.first;
+    int idof = it->second.second;
+    int aDofNum = domain->getCDSA()->getRCN((*domain->getAllDOFs())[iele][idof]); 
+    for(int vec = 0; vec != unassembledForceBasis.numVectors(); vec++)
+      assembledForceBasis[vec][aDofNum] += unassembledForceBasis[vec][it->first];
+  }
 }
 
 void
@@ -143,8 +146,6 @@ UDEIMSamplingDriver::computeInterpIndices(VecBasis &forceBasis, std::vector<int>
   //result is (U*(P^T*U)^-1) where U is the left singular vectors of force snapshots and P
   //is the column selection matrix
   
-  int forcePodSizeMax = domain->solInfo().forcePodSize;
-  readInBasis(forceBasis, BasisId::FORCE, BasisId::SNAPSHOTS,forcePodSizeMax);  
 #ifdef USE_EIGEN3
   Eigen::Map< Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > forceMatrix(forceBasis.data(),forceBasis.vectorSize(),forceBasis.vectorCount());
 
@@ -163,8 +164,8 @@ UDEIMSamplingDriver::computeInterpIndices(VecBasis &forceBasis, std::vector<int>
   }
 
   //start loop to compute mask indicies 
-  for(int i = 1; i < forceMatrix.cols(); ++i){ //loop starts at 1 i.e. the 2nd column
-    filePrint(stderr,"\r %4.2f%% complete", double(i)/double(forceBasis.vectorCount())*100.);
+  for(int i = 1; i < domain->solInfo().forcePodSize; ++i){ //loop starts at 1 i.e. the 2nd column
+    filePrint(stderr,"\r %4.2f%% complete", double(i)/double(domain->solInfo().forcePodSize)*100.);
 
     //allocate space for P^T*U and P^T*u_i
     Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> Umasked(maskIndices.size(),maskIndices.size());
@@ -181,7 +182,7 @@ UDEIMSamplingDriver::computeInterpIndices(VecBasis &forceBasis, std::vector<int>
 
     if(luOfUmasked.isInvertible())
       residual = forceMatrix.col(i) - forceMatrix.leftCols(maskIndices.size())*luOfUmasked.inverse()*u_i_masked;
-    else
+    else //check for invertability as a safegaurd against misuse of snapshots
       throw std::runtime_error("... Matrix Not Invertible ...");
 
     //take absolute value of residual vector
@@ -195,69 +196,85 @@ UDEIMSamplingDriver::computeInterpIndices(VecBasis &forceBasis, std::vector<int>
   filePrint(stderr,"\r %4.2f%% complete\n", 100.);
 
   Eigen::Map< Eigen::Matrix<int,Eigen::Dynamic,Eigen::Dynamic> > indSol(maskIndices.data(),maskIndices.size(),1);
-  std::cout << "selected indices:" << indSol.transpose() << std::endl;
+  std::cout << "unassembled selected indices:" << indSol.transpose() << std::endl;
 #endif
 }
 
+void 
+UDEIMSamplingDriver::computeAssembledIndices(std::vector<int> &umaskIndices, std::vector<int> &amaskIndices, std::set<int> &selectedElemRank, std::vector<std::pair<int,int> > &elemRankDOFContainer)
+{
+ //convert selected unassembled indices to assembled indices for compatibility with online DEIM code
+ //with mixed element types, each element could have a different number of dofs
+ for(int i = 0; i != umaskIndices.size(); i++){
+                      //unassembled to assembled DOF map
+   int selectedElem = uDOFaDOFmap.at(umaskIndices[i]).first;
+   int selectedDOF  = uDOFaDOFmap.at(umaskIndices[i]).second;
+
+   int assembledInd = domain->getCDSA()->getRCN((*domain->getAllDOFs())[selectedElem][selectedDOF]);
+   amaskIndices.push_back(assembledInd);   //assembled indices container
+   selectedElemRank.insert(selectedElem);  //unpacked element container
+   elemRankDOFContainer.push_back(std::make_pair(selectedElem,selectedDOF)); //map from selected element to selected DOF
+ }
+
+  Eigen::Map< Eigen::Matrix<int,Eigen::Dynamic,Eigen::Dynamic> > indSol(amaskIndices.data(),amaskIndices.size(),1);
+  std::cout << "assembled selected indices:" << indSol.transpose() << std::endl;
+
+}
+
 void
-UDEIMSamplingDriver::computeAndWriteUDEIMBasis(VecBasis &forceBasis, std::vector<int> &maskIndices)
+UDEIMSamplingDriver::computeAndWriteUDEIMBasis(VecBasis &unassembledForceBuf,VecBasis &assembledForceBuf, std::vector<int> &umaskIndices, std::vector<int> &amaskIndices)
 {
   //member function for computing and writing the UDEIM basis P*(P^T*U)^-T*U^T*V
   //where V is the mass-orthogonal POD basis, U is the left Singular vectors of the force snapshots
   //and P column selection matrix derived form the sampled indicies computed above
-  int maxDeimBasisSize = domain->solInfo().maxDeimBasisSize;
+  int maxDeimBasisSize = domain->solInfo().maxDeimBasisSize;//set max basis size in case we want to solve least squares problem
   if(maxDeimBasisSize == 0)
-    maxDeimBasisSize = maskIndices.size();
+    maxDeimBasisSize = umaskIndices.size();//if not, we solve a square system
 
   VecBasis deimBasis(podBasis_.vectorCount(),podBasis_.vectorInfo());
 #ifdef USE_EIGEN3
   Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > podMap(podBasis_.data(),podBasis_.size(), podBasis_.vectorCount());
-  Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > forceMap(forceBasis.data(),forceBasis.size(), forceBasis.vectorCount());
+  Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > uforceMap(unassembledForceBuf.data(), unassembledForceBuf.size(), unassembledForceBuf.vectorCount());
+  Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > aforceMap(assembledForceBuf.data(),assembledForceBuf.size(),assembledForceBuf.vectorCount());
   Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > deimMap(deimBasis.data(),deimBasis.size(), deimBasis.vectorCount());
 
-  Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> compressedDBTranspose(podBasis_.numVectors(),maskIndices.size());
-  Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> rowReducedFM(maskIndices.size(),maxDeimBasisSize);
+  Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> compressedDBTranspose(podBasis_.numVectors(),umaskIndices.size());
+  Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> rowReducedUFM(umaskIndices.size(),maxDeimBasisSize);
 
-  //initialize (P^T*U)
-  for(int row = 0; row != maskIndices.size(); row++)
-    rowReducedFM.row(row) = forceMap.block(maskIndices[row],0,1,maxDeimBasisSize);
+  //initialize (P^T*U_unassembled) were U_unassembled is the svd of the unassembled force snapshots
+  for(int row = 0; row != umaskIndices.size(); row++)
+    rowReducedUFM.row(row) = uforceMap.block(umaskIndices[row],0,1,maxDeimBasisSize);
 
-  //compute W^T = V^T*U*(P^T*U)^-1
-  Eigen::JacobiSVD< Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > SVDOfUmasked(rowReducedFM,Eigen::ComputeThinU | Eigen::ComputeThinV);
+  //compute W^T = V^T*U_assembled*(P^T*U_unassembled)^-1
+  Eigen::JacobiSVD< Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > SVDOfUmasked(rowReducedUFM,Eigen::ComputeThinU | Eigen::ComputeThinV);
   Eigen::Matrix<double,Eigen::Dynamic,1> invSVs(SVDOfUmasked.nonzeroSingularValues());
 
   for(int i = 0; i != invSVs.rows(); i++) invSVs(i) = 1.0/SVDOfUmasked.singularValues()(i);
 
-  compressedDBTranspose = podMap.transpose()*forceMap.leftCols(maxDeimBasisSize)*SVDOfUmasked.matrixV()*invSVs.asDiagonal()*SVDOfUmasked.matrixU().transpose();
+  compressedDBTranspose = podMap.transpose()*aforceMap.leftCols(maxDeimBasisSize)*SVDOfUmasked.matrixV()*invSVs.asDiagonal()*SVDOfUmasked.matrixU().transpose();
   //we are computing the transpose of the basis
 
   std::cout << "compressed Basis" << std::endl;
   std::cout << compressedDBTranspose.transpose() << std::endl;
 
-  //initialize deim basis to all zeros
+  //initialize deim basis container to all zeros
   for(int i = 0; i != deimMap.rows(); i++)
     for(int j = 0; j != deimMap.cols(); j++)
       deimMap(i,j) = 0.0;
 
   //expand rows W^T*P^T
   std::cout << " num of rows = " << compressedDBTranspose.rows() << " num of cols = " << compressedDBTranspose.cols() << std::endl;
-  for(int row = 0; row != maskIndices.size(); row++) {
-    deimMap.row(maskIndices[row]) = compressedDBTranspose.col(row);//use .col member to get rows of transposed basis
+  for(int row = 0; row != amaskIndices.size(); row++) {
+    deimMap.row(amaskIndices[row]) = compressedDBTranspose.col(row);//use .col member to get rows of basis in transposed configuration
   }
 
-/*  std::cout << "deimMap" << std::endl;
-  std::cout << deimMap << std::endl;
-
-  std::cout << "podMap" << std::endl;
-  std::cout << podMap << std::endl;*/
-
-  std::vector<double> dummySVs; 
+  std::vector<double> dummySVs; //we don't need the actual singular values for the POD basis
   writeBasisToFile(deimBasis, dummySVs, BasisId::FORCE, BasisId::ROB);
 #endif
 }
 
 void
-UDEIMSamplingDriver::writeSampledMesh(std::vector<int> &maskIndices) {
+UDEIMSamplingDriver::writeSampledMesh(std::vector<int> &maskIndices, std::set<int> &selectedElemRank, std::vector<std::pair<int,int> > &elemRankDOFContainer) {
 
   VecNodeDof6Map nodeDofMap(*domain->getCDSA());
 
@@ -271,34 +288,22 @@ UDEIMSamplingDriver::writeSampledMesh(std::vector<int> &maskIndices) {
     compressedNodeKey.push_back(std::make_pair(selectedNode,selectedNodeDof));
   }
 
-//  std::sort(compressedNodeKey.begin(),compressedNodeKey.end());
-
   //print nodes to screen
   filePrint(stderr,"selected Nodes:");
   for(std::set<int>::iterator it = selectedNodeSet.begin(); it != selectedNodeSet.end(); it++)
     filePrint(stderr," %d", *it);
-
   filePrint(stderr,"\n");
 
-  filePrint(stderr,"number of selectedNodeSet = %d, number of Indices = %d, number of dofs = %d\n", selectedNodeSet.size(),maskIndices.size(), compressedNodeKey.size());
-
-  {
+  {//more standard output information
    DofSetArray *cdsa = domain->getCDSA();
    for(std::vector<std::pair<int,int> >::iterator it = compressedNodeKey.begin(); it != compressedNodeKey.end(); it++)
      std::cout << "node: " << it->first+1 << " dof1 = " << cdsa->firstdof(it->first)+1 << " slot = " << it->second << std::endl;
   }
 
-  // compute the reduced forces (constant only)
-  Vector constForceFull(solVecInfo());
-  getConstForce(constForceFull);
-  Vector constForceRed(podBasis_.vectorCount());
-  reduce(podBasis_, constForceFull,  constForceRed);
-
   // Determine mapping between elements and nodes
   std::auto_ptr<Connectivity> elemToNode(new Connectivity(geoSource->getElemSet()));
-  std::auto_ptr<Connectivity> nodeToElem(elemToNode->reverse());
 
-  //fill element container with all elements 
+  //fill element container with all packed elements 
   std::vector<int> packedToInput(elementCount());
   {
    Elemset &inputElemSet = *(geoSource->getElemSet());
@@ -313,21 +318,16 @@ UDEIMSamplingDriver::writeSampledMesh(std::vector<int> &maskIndices) {
      }
    }
   }
-   //get elements belonging to sampledNodes
-   std::vector<int> sampleElemRanks;
-   std::vector<int> sampleNodeIds(selectedNodeSet.begin(),selectedNodeSet.end()); //fill vector container with sampled nodes
-   std::sort(sampleNodeIds.begin(),sampleNodeIds.end());//sort nodes in ascending order
-   connections(*nodeToElem, sampleNodeIds.begin(), sampleNodeIds.end(), std::back_inserter(sampleElemRanks));//get all adjecent elements
 
-   //fill sampled elements container
-   std::vector<int> sampleElemIds;
-   sampleElemIds.reserve(sampleElemRanks.size());
-   std::map<int, double> weights;
-   for (std::vector<int>::const_iterator it = sampleElemRanks.begin(), it_end = sampleElemRanks.end(); it != it_end; ++it) {
-     const int elemRank = packedToInput[*it];
-     weights.insert(std::make_pair(elemRank, 1.0));
-     sampleElemIds.push_back(elemRank);
-   }
+  //fill weight map with selected elements
+  std::vector<int> sampleElemIds;
+  sampleElemIds.reserve(selectedElemRank.size());
+  std::map<int, double> weights;
+  for(std::set<int>::const_iterator it = selectedElemRank.begin(), it_end = selectedElemRank.end(); it != it_end; ++it){
+    const int elemRank = packedToInput[*it];
+    weights.insert(std::make_pair(elemRank, 1.0));
+    sampleElemIds.push_back(elemRank);
+  }
  
   //construct element weight solution vector
   std::vector<double> solution(elementCount());
@@ -337,7 +337,7 @@ UDEIMSamplingDriver::writeSampledMesh(std::vector<int> &maskIndices) {
     else 
      solution[i] = 0.0;
  
-  //output Full Weights for compatibility with full mesh hyperreduction
+  //output Full Weights for compatibility with full mesh hyperreduction (i.e. old method)
   {
    const std::string fileName = domain->solInfo().reducedMeshFile;
    const std::ios_base::openmode mode = std::ios_base::out;
@@ -348,18 +348,25 @@ UDEIMSamplingDriver::writeSampledMesh(std::vector<int> &maskIndices) {
    for (int i = 0; i != solution.size(); i++) {
     if(i == 0 ){
       if(domain->solInfo().reduceFollower) 
-        weightOut << i + 1 << " 1 " << "HRC REDFOL" << " " << solution[i] << "\n";
+        weightOut << packedToInput[i]+1 << " 1 " << "HRC REDFOL" << " " << solution[i] << "\n";
       else
-        weightOut << i + 1 << " 1 " << "HRC" << " " << solution[i] << "\n";
+        weightOut << packedToInput[i]+1 << " 1 " << "HRC" << " " << solution[i] << "\n";
     } else {
-      weightOut << i + 1 << " 1 " << "HRC" << " " << solution[i] << "\n";
+      weightOut << packedToInput[i]+1 << " 1 " << "HRC" << " " << solution[i] << "\n";
     }
    }   
    
    weightOut << "*\n";
    weightOut << "SNSLOT\n";
-   for(std::vector<std::pair<int,int> >::iterator it = compressedNodeKey.begin(); it != compressedNodeKey.end(); it++)
-     weightOut << it->first + 1 << " " << it->second << std::endl; 
+   int counter = 0;
+   for(std::vector<std::pair<int,int> >::iterator it = compressedNodeKey.begin(); it != compressedNodeKey.end(); it++){
+     int selElem = elemRankDOFContainer[counter].first;
+     int selDOF  = elemRankDOFContainer[counter].second;
+     //output assembled indices in form of a node plus a node dof and an element with and element dof (to keep neighbor elements for adding to the same dof)
+     weightOut << it->first + 1 << " " << it->second << " " << packedToInput[selElem] + 1 << " " << selDOF << std::endl; 
+     counter++;
+   }
+
   }
  
   //construct and print renumbered mesh
@@ -368,72 +375,114 @@ UDEIMSamplingDriver::writeSampledMesh(std::vector<int> &maskIndices) {
   const MeshDesc reducedMesh(domain, geoSource, meshRenumbering, weights);
   outputMeshFile(fileInfo, reducedMesh, podBasis_.vectorCount());
 
+   // compute the reduced forces (constant only)
+   Vector constForceFull(SingleDomainDynamic::solVecInfo());
+   getConstForce(constForceFull);
+   Vector constForceRed(podBasis_.vectorCount());
+   reduce(podBasis_, constForceFull,  constForceRed); 
+   bool reduce_f = (constForceFull.norm() != 0);
+
   // output the reduced forces
   std::ofstream meshOut(getMeshFilename(fileInfo).c_str(), std::ios_base::app);
   if(domain->solInfo().reduceFollower) meshOut << "REDFOL\n";
-  meshOut << "*\nFORCES\nMODAL\n";
-  meshOut.precision(std::numeric_limits<double>::digits10+1);
-  for(int i=0; i<podBasis_.vectorCount(); ++i)
-    meshOut << i+1 << " "  << constForceRed[i] << std::endl; 
-  meshOut << "\nSNSLOT\n";
-  for(std::vector<std::pair<int,int> >::iterator it = compressedNodeKey.begin(); it != compressedNodeKey.end(); it++)
-   meshOut << it->first + 1 << " " << it->second << std::endl;
- 
+  if(reduce_f) {
+    meshOut << "*\nFORCES\nMODAL\n";
+    meshOut.precision(std::numeric_limits<double>::digits10+1);
+    for(int i=0; i<podBasis_.vectorCount(); ++i)
+      meshOut << i+1 << " "  << constForceRed[i] << std::endl; 
+  }
+
+#ifdef USE_EIGEN3
+  // build and output compressed basis
+  podBasis_.makeSparseBasis(meshRenumbering.reducedNodeIds(), domain->getCDSA());
+  {
+    std::string filename = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
+    filename.append(".reduced");
+    if(domain->solInfo().newmarkBeta == 0 || domain->solInfo().useMassNormalizedBasis) filename.append(".normalized");
+    filePrint(stderr," ... Writing compressed basis to file %s ...\n", filename.c_str());
+    DofSetArray reduced_dsa(reducedMesh.nodes().size(), const_cast<Elemset&>(reducedMesh.elements()));
+    ConstrainedDSA reduced_cdsa(reduced_dsa, reducedMesh.dirichletBConds().size(), const_cast<BCond*>(&reducedMesh.dirichletBConds()[0]));
+    VecNodeDof6Conversion converter(reduced_cdsa);
+    BasisOutputStream output(filename, converter, false);
+
+    for (int iVec = 0; iVec < podBasis_.vectorCount(); ++iVec) {
+      output << podBasis_.compressedBasis().col(iVec);
+    }
+
+    std::map<int,int> nodeRenum(meshRenumbering.nodeRenumbering());
+    std::map<int,int> elemRenum(meshRenumbering.elemRenumbering());
+
+    meshOut << "*\nSNSLOT\n";
+    int counter = 0;
+    for(std::vector<std::pair<int,int> >::iterator it = compressedNodeKey.begin(); it != compressedNodeKey.end(); it++){
+     int selElem = elemRankDOFContainer[counter].first;
+     int selDOF  = elemRankDOFContainer[counter].second;
+     //output assembled indices in form of a node plus a node dof and an element with and element dof (to keep neighbor elements for adding to the same dof)
+     meshOut << nodeRenum[it->first] + 1 << " " << it->second << " " << elemRenum[packedToInput[selElem]]  + 1 << " " << selDOF <<std::endl;    
+     counter++;
+    }
+
+  }
+#endif 
+
 }
 
 void
-UDEIMSamplingDriver::buildForceArray(VecBasis &forceBasis, const VecBasis &displac, const VecBasis *veloc,
-                                     const VecBasis *accel, std::vector<double> timeStamps_, std::vector<int> snapshotCounts_)
+UDEIMSamplingDriver::buildForceArray(VecBasis &unassembledForceBasis,VecBasis &assembledForceBasis,const VecBasis &displac,const VecBasis *veloc,
+                                     const VecBasis *accel,std::vector<double> timeStamps_,std::vector<int> snapshotCounts_)
 {//this memeber function is for converting state snapshots to force snapshots in the absence of precollected force snapshots from model I
   //most of the code is copied from assembleTrainingData in ElementSamplingDriver.C
   std::vector<double>::iterator timeStampIt = timeStamps_.begin();
 
-  forceBasis.dimensionIs(displac.vectorCount(), displac.vectorInfo());
+  FullSquareMatrix *kelArrayCopy; //copy of linear stiffness matrix that is not overwritten
+  domain->createKelArray(kelArrayCopy); //initialize linear stiffness matrix
 
-  FullSquareMatrix *kelArrayCopy(kelArray);
+  //initialize assembled and unassembled snapshot containers
+  unassembledForceBasis.dimensionIs(displac.vectorCount(), unassembledVecInfo(kelArrayCopy));
+  assembledForceBasis.dimensionIs(displac.vectorCount(), SingleDomainDynamic::solVecInfo());
+  
+  //temporary working arrays
+  Vector unassembledTarget(unassembledVecInfo(kelArrayCopy),0.0);
+  Vector assembledTarget(solVecInfo(),0.0);
 
   int iSnap = 0;
-  double gamma  = domain->solInfo().newmarkGamma;
-  double alphaf = domain->solInfo().newmarkAlphaF;
-  for(int i = 0; i < snapshotCounts_.size(); i++) {
-    GenVector<double> FNLint(solVecInfo());
-    GenVector<double> FLint(solVecInfo());
-    for(int jSnap = 0; jSnap != snapshotCounts_[i]; ++iSnap, ++jSnap){
+  for(int i = 0; i < snapshotCounts_.size(); i++) {//loop over snapshot sets
+
+    for(int jSnap = 0; jSnap != snapshotCounts_[i]; ++iSnap, ++jSnap){//loop over snapshots in set
       filePrint(stderr,"\r %4.2f%% complete, time = %f", double(iSnap)/double(std::accumulate(snapshotCounts_.begin(),snapshotCounts_.end(),0))*100.,*timeStampIt);
 
       geomState->explicitUpdate(domain->getNodes(), displac[iSnap]);
       if(veloc){ geomState->setVelocity((*veloc)[iSnap]);} //just set the velocity at the nodes
       if(accel){ geomState->setAcceleration((*accel)[iSnap]);} //just set the acceleration at the nodes
 
-      for (int iElem = 0; iElem != elementCount(); iElem++){
+      Vector dsp(solVecInfo());
+      dsp = displac[iSnap];
 
-        //set up for internal force vector
-        Vector dummy(solVecInfo()); 
-        dummy = displac[iSnap];
-        SingleDomainDynamic::getInternalForce( dummy, FNLint, *timeStampIt, jSnap);
-        domain->getKtimesU(dummy, bcx, FLint, 1.0, kelArrayCopy);
-    
-        //set vector in force snapshot container
-        forceBasis[iSnap] = (FNLint+FLint); 
-     
-        //std::cout << " NLF + LF norm = " << FNLint.norm() << " NLF norm = " << forceBasis[iSnap].norm() << " LF norm = " << FLint.norm() << std::endl;
+      //special function call to get unassembled snapshots and mapping from unassembled to assembled DOFS
+      SingleDomainDynamic::getUnassembledNonLinearInternalForce(dsp,assembledTarget,unassembledTarget,uDOFaDOFmap,kelArrayCopy,*timeStampIt,jSnap);
    
-        timeStampIt++;
+      assembledTarget.zero();
+
+      unassembledForceBasis[iSnap] = unassembledTarget;
+      assembledForceBasis[iSnap]   = assembledTarget;
+      timeStampIt++;
+
       }
+
     }
-  }
   filePrint(stderr,"\r %4.2f%% complete\n", 100.);
 }
 
 void UDEIMSamplingDriver::OrthoForceSnap(VecBasis &forceBasis,std::vector<double> &SVs)
 {
 #ifdef USE_EIGEN3
-  std::cout << "... Orthogonalizting Snapshots ..." << std::endl;
+  std::cout << "... Orthogonalizing Snapshots ..." << std::endl;
   SVs.resize(forceBasis.numVectors());
   Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,1> > SingularValueMap(SVs.data(),forceBasis.numVectors());
   Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > ForceMap(forceBasis.data(), forceBasis.size(), forceBasis.numVectors());
   Eigen::JacobiSVD<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > ForceSVD(ForceMap, Eigen::ComputeThinU);
-  ForceMap = ForceSVD.matrixU();
+
+  ForceMap         = ForceSVD.matrixU();
   SingularValueMap = ForceSVD.singularValues();
 #endif
 }
@@ -512,6 +561,26 @@ UDEIMSamplingDriver::readAndProjectSnapshots(BasisId::Type type, const int vecto
   }
 
   assert(timeStamps.size() == snapshotCount);
+}
+
+int UDEIMSamplingDriver::unassembledVecInfo(FullSquareMatrix *kelArray){
+
+  //compute number of unassembled indices on an element by element base
+  //to minimize the amount of storage required
+  //rather than just returning maxNumElementDOFs*numberOfElements
+  int unassembledLength = 0;
+
+  for(int iele = 0; iele != elementCount(); iele++){
+    for(int idof = 0; idof != kelArray[iele].dim(); idof++){
+      int uDofNum = domain->getCDSA()->getRCN((*domain->getAllDOFs())[iele][idof]);
+      if(uDofNum >=0)
+        unassembledLength += 1;
+    }
+  }
+ 
+  std::cout<<"unassembledLength = "<<unassembledLength<<std::endl;
+  return unassembledLength;
+
 }
 
 } /* end namespace Rom */

@@ -35,18 +35,15 @@ DistrExplicitDEIMPodProjectionNonLinDynamic::preProcess() {
 
   DistrExplicitLumpedPodProjectionNonLinDynamic::preProcess();
 
-  lin_fInt     = new DistrVector(MultiDomainDynam::solVecInfo());
   kelArrayCopy = new FullSquareMatrix*[decDomain->getNumSub()];
 
   buildInterpolationBasis();
+  buildReducedLinearOperator();
 }
 
 void
 DistrExplicitDEIMPodProjectionNonLinDynamic::getInternalForce(DistrVector &d, DistrVector &f, double t, int tIndex) {
 
-  normalizedBasis_.fullExpand( d, *d_n);
-  lin_fInt->zero();
-  execParal2R(decDomain->getNumSub(),this,&DistrExplicitDEIMPodProjectionNonLinDynamic::subGetKtimesU,*d_n,*lin_fInt);
   execParal3R(decDomain->getNumSub(),this,&DistrExplicitDEIMPodProjectionNonLinDynamic::subGetWeightedInternalForceOnly,*fInt,t,tIndex);
   
 
@@ -60,30 +57,27 @@ DistrExplicitDEIMPodProjectionNonLinDynamic::getInternalForce(DistrVector &d, Di
     trProject(*fInt);
   }
 
-  *a_n = *fInt - *fExt;
-//   *a_n = *lin_fInt - *fExt;
+//   Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > dummy(fInt->data(),fInt->size(),1);
+//   std::cout<<"fInt = "<<dummy<<std::endl;
 
-  if(haveRot) {
+   *a_n = *fInt - *fExt;
+
+  if(haveRot) {//must transform the two containers separately since they use different bases. 
     execParal2R(decDomain->getNumSub(),this,&DistrExplicitDEIMPodProjectionNonLinDynamic::subTransformWeightedNodesOnly,*a_n,3);
     fullMassSolver->reSolve(*a_n);
     execParal2R(decDomain->getNumSub(),this,&DistrExplicitDEIMPodProjectionNonLinDynamic::subTransformWeightedNodesOnly,*a_n,2);
     DistrVector toto(*a_n);
-    dynMat->M->mult(toto, *a_n);
+    dynMat->M->mult(toto,*a_n);
   }
 
-   DistrVector dummy(solVecInfo());
-   DistrVector nlin_fInt(MultiDomainDynam::solVecInfo());
-   DistrVector linMin_fExt(MultiDomainDynam::solVecInfo());
+  DistrVector fExt_reduced(solVecInfo());
+  DistrVector fLin_reduced(reducedVecInfo());
 
-   nlin_fInt   = *fInt - *lin_fInt;
-   linMin_fExt = *fExt - *lin_fInt;
-
-//  normalizedBasis_.reduce(*a_n,f);
-  normalizedBasis_.reduce(linMin_fExt,dummy);
-  deimBasis_.compressedVecReduce(nlin_fInt,f);
-  f -= dummy;
-  //  the residual is computed in this step to avoid projecting into the reduced coordinates twice
-
+  normalizedBasis_.sparseVecReduce(*fExt,fExt_reduced);
+  ReducedStiffness.fullExpand(d,fLin_reduced); //(V^T*K*V)*d_reduced
+  deimBasis_.compressedVecReduce(*fInt,f);
+  f -= fExt_reduced;
+  f += fLin_reduced;
 }
 
 void
@@ -96,11 +90,40 @@ DistrExplicitDEIMPodProjectionNonLinDynamic::subGetKtimesU(int isub, DistrVector
 }
 
 void
+DistrExplicitDEIMPodProjectionNonLinDynamic::subGetWeightedInternalForceOnly(int iSub, DistrVector &f, double &t, int &tIndex) {
+  SubDomain *sd = decDomain->getSubDomain(iSub);
+  Vector residual(f.subLen(iSub), 0.0);
+  Vector eIF(sd->maxNumDOF()); // eIF = element internal force for one element (a working array)
+  
+  if(domain->solInfo().stable && domain->solInfo().isNonLin() && tIndex%domain->solInfo().stable_freq == 0) {
+    sd->getWeightedStiffAndForceOnly(packedElementWeights_[iSub], *(*geomState)[iSub], eIF,
+                                     allCorot[iSub], kelArray[iSub], residual,
+                                     1.0, t, (*geomState)[iSub], melArray[iSub]); // residual -= internal force);
+  }
+  else {
+    if(domain->solInfo().UDEIMPodRom){
+      sd->getUDEIMInternalForceOnly(unassembledElemDOFMask[iSub], *(*geomState)[iSub], eIF,
+                                    allCorot[iSub], kelArray[iSub], residual,
+                                    1.0, t, (*geomState)[iSub], melArray[iSub],kelArrayCopy[iSub]); // residual -= internal force);     
+    }else{ 
+      sd->getWeightedInternalForceOnly(packedElementWeights_[iSub], *(*geomState)[iSub], eIF,
+                                    allCorot[iSub], kelArray[iSub], residual,
+                                    1.0, t, (*geomState)[iSub], melArray[iSub],kelArrayCopy[iSub]); // residual -= internal force);
+    }
+  }
+  StackVector subf(f.subData(iSub), f.subLen(iSub));
+  subf.linC(residual, -1.0); // f = -residual
+} 
+ 
+void
 DistrExplicitDEIMPodProjectionNonLinDynamic::buildInterpolationBasis() {
 
  FileNameInfo fileInfo;
  std::string fileName = BasisFileId(fileInfo, BasisId::FORCE, BasisId::POD);
- fileName = fileName + ".deim";
+ if(domain->solInfo().UDEIMPodRom)
+   fileName = fileName + ".udeim";
+ else
+   fileName = fileName + ".deim";
 
  DistrBasisInputFile BasisFile(fileName); //read in mass-normalized basis
  filePrint(stderr, " ... Reading Interpolation basis from file %s ...\n", fileName.c_str());
@@ -133,8 +156,14 @@ DistrExplicitDEIMPodProjectionNonLinDynamic::buildInterpolationBasis() {
  std::vector< std::vector<std::pair<int,int> > > maskedIndicesBuf;
  maskedIndicesBuf.resize(decDomain->getNumSub());
  execParal1R(decDomain->getNumSub(),this,&DistrExplicitDEIMPodProjectionNonLinDynamic::subBuildInterpolationBasis, maskedIndicesBuf); 
+ 
+ //if we are doing UDEIM, then we must only compute the DOFs we need in each element to prevent conflicts with neighboring elements
+ if(domain->solInfo().UDEIMPodRom){
+   unassembledElemDOFMask.resize(decDomain->getNumSub());
+   execParal(decDomain->getNumSub(),this,&DistrExplicitDEIMPodProjectionNonLinDynamic::subBuildUnassembledMask);
+ }
 
- filePrint(stderr," ...Compressing Interpolation Basis...\n");
+ filePrint(stderr," ... Compressing Interpolation Basis ...\n");
  DofSetArray **all_cdsa = new DofSetArray * [decDomain->getNumSub()];
  for(int i=0; i<decDomain->getNumSub(); ++i) {all_cdsa[i] = decDomain->getSubDomain(i)->getCDSA();}
  deimBasis_.makeSparseBasis(maskedIndicesBuf, all_cdsa); 
@@ -142,10 +171,26 @@ DistrExplicitDEIMPodProjectionNonLinDynamic::buildInterpolationBasis() {
 }
 
 void
+DistrExplicitDEIMPodProjectionNonLinDynamic::buildReducedLinearOperator() {
+ //build reduced stiffness matrix
+ filePrint(stderr," ... Constructing Reduced Linear Stiffness Matrix ...\n");
+ ReducedStiffness.dimensionIs(normalizedBasis_.numVectors(),reducedVecInfo()); //each mpi process gets a reduced linear operator
+
+ for( int column = 0; column != normalizedBasis_.numVectors(); ++column){
+   DistrVector columnOfKtimesV(MultiDomainDynam::solVecInfo());
+   columnOfKtimesV = 0;
+   //K*V
+   execParal2R(decDomain->getNumSub(),this,&DistrExplicitDEIMPodProjectionNonLinDynamic::subGetKtimesU, normalizedBasis_[column],columnOfKtimesV); 
+   //V^T*(K*V)
+   normalizedBasis_.reduce(columnOfKtimesV,ReducedStiffness[column]);
+ } 
+
+}
+
+void
 DistrExplicitDEIMPodProjectionNonLinDynamic::subBuildInterpolationBasis(int iSub, std::vector< std::vector<std::pair<int,int> > > &maskedIndicesBuf) {
 
   SubDomain *sd = decDomain->getSubDomain(iSub);
-  //std::map<int, int> &subMaskedIndicesBuf = maskedIndicesBuf[iSub];
   std::vector<std::pair<int,int> > &subMaskedIndicesBuf = maskedIndicesBuf[iSub];
 
   for (GeoSource::NodeDofPairVec::const_iterator it = geoSource->nodeDofSlotBegin(),
@@ -157,23 +202,36 @@ DistrExplicitDEIMPodProjectionNonLinDynamic::subBuildInterpolationBasis(int iSub
    
      if(packedId < 0) {continue;}
 
-//     subMaskedIndicesBuf.insert(subMaskedIndicesBuf.end(), std::make_pair(packedId,it->second));
      subMaskedIndicesBuf.push_back(std::make_pair(packedId,it->second));
 
   }
 
   sd->createKelArray(kelArrayCopy[iSub]);
  
-/*  std::cout<<"num row = " << kelArray[iSub][0].numRow()<< std::endl;
-  std::cout<<"num col = " << kelArray[iSub][0].numCol()<< std::endl;
-  std::cout<<"kelArray = " << std::endl;
-  for(int iele = 0; iele != sd->numElements(); iele++){
-    for(int col = 0; col != kelArrayCopy[iSub][0].numCol(); col++){
-      for(int row = 0; row != kelArrayCopy[iSub][0].numRow(); row++){
-         filePrint(stderr,"% 3.6e ",kelArrayCopy[iSub][0][row][col]);}
-      filePrint(stderr,"\n");}
-    filePrint(stderr,"\n");}*/
+}
 
+void
+DistrExplicitDEIMPodProjectionNonLinDynamic::subBuildUnassembledMask(int iSub) {
+  //create mask for unassembled DEIM 
+  SubDomain *sd = decDomain->getSubDomain(iSub);
+  std::map<int, std::vector<int> > &subUnassembledMaskBuf = unassembledElemDOFMask[iSub];
+
+  for (GeoSource::ElemDofPairVec::const_iterator it = geoSource->elemDofBegin(),
+                                                   it_end = geoSource->elemDofEnd();
+                                                   it != it_end; ++it) {
+
+     const int elemId = it->first;
+     const int packedId = sd->glToPackElem(elemId);
+     if(packedId < 0) {continue;}
+
+     if(subUnassembledMaskBuf[packedId].size() > 0){
+       subUnassembledMaskBuf[packedId].push_back(it->second);       
+     }else{
+       std::vector<int> DOFs;
+       subUnassembledMaskBuf.insert(std::make_pair(packedId,DOFs));
+       subUnassembledMaskBuf[packedId].push_back(it->second);
+     }
+  }
 }
 
 } // end namespace Rom

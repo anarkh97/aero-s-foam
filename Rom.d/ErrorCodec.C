@@ -53,21 +53,23 @@ int main (int argc, char *argv[]) {
       return EXIT_FAILURE;
     }
 
-    // first: loop over all timesteps
+    //initialize variables
     cum_normx = 0; cum_normy = 0; cum_normz = 0;
+    sumx = 0; sumy = 0; sumz = 0; sumx2 = 0; sumy2 = 0; sumz2 = 0;
     normalize_factorx = 0; normalize_factory = 0; normalize_factorz = 0;
     num_time_steps = 0;
+    
+    // begin Froebenius norm computation
+    // first: loop over all timesteps
     while((truth_file >> time1) && time1 <= tFinal) {
       num_time_steps += 1;
 
-      if(getTime == 1)
+      if(getTime == 1)//this is to handle timestamp offsets..it sort of works
         comp_file >> time2;
 
       printf("\r time stamp 1 = %f \n",time1);
 
-      // begin computation for L2-norm for timestep, 'num_time_step'
-      sumx = 0; sumy = 0; sumz = 0; sumx2 = 0; sumy2 = 0; sumz2 = 0;
-      // second: loop of nodes
+      // second: loop over nodes
       for(int counter=0; counter < num_nodes; counter++) {
         // third: read in all dofs
         truth_file >> a1; truth_file >> b1; truth_file >> c1;
@@ -93,18 +95,19 @@ int main (int argc, char *argv[]) {
         }
       }
 
-      // sum 2-norm for timestep, "num_time_step" (sum(n=1->n_t)[|v^n - v^n_I|]
-      cum_normx += pow(sumx,0.5);
-      cum_normy += pow(sumy,0.5);
-      cum_normz += pow(sumz,0.5);
-
-      normalize_factorx += pow(sumx2,0.5);
-      normalize_factory += pow(sumy2,0.5);
-      normalize_factorz += pow(sumz2,0.5);
-
       if(!truth_file)
         break;
     }
+
+    //square root of differences
+    cum_normx += pow(sumx,0.5);
+    cum_normy += pow(sumy,0.5);
+    cum_normz += pow(sumz,0.5);
+
+    //square root of absolute
+    normalize_factorx += pow(sumx2,0.5);
+    normalize_factory += pow(sumy2,0.5);
+    normalize_factorz += pow(sumz2,0.5);
 
     relative_errorx = cum_normx/(normalize_factorx);
     relative_errory = cum_normy/(normalize_factory);

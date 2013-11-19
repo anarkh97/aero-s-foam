@@ -31,6 +31,9 @@ class SDEigenPostProcessor {
     { domain = _domain; times = _times; bcx = _bcx;}
 
     void eigenOutput(Vector& eigvalues, VectorSet& eigVectors, int convEig = 0);
+#ifdef USE_EIGEN3
+    void eigenQROutput(Eigen::MatrixXd& X, Eigen::MatrixXd& Q, Eigen::MatrixXd& R);
+#endif
 };
 
 

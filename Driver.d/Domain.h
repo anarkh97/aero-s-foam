@@ -119,8 +119,9 @@ struct AllOps
   GenSparseMatrix<Scalar> **Cuc_deriv;    // derivatives of constrained to unconstrained damping matrix for higher order sommerfeld
 
   GenVector<Scalar> *rhs_inpc;
+  GenVector<Scalar> *Weight_deriv;   // derivatives of weight with respect to a parameter
   // Constructor
-  AllOps() { sysSolver = 0; spm = 0; prec = 0; spp = 0; Msolver = 0; K = 0; M = 0; C = 0; Kuc = 0; Muc = 0; Cuc = 0; Kcc = 0; Mcc = 0; Ccc = 0; C_deriv = 0; Cuc_deriv = 0; rhs_inpc = 0;}
+  AllOps() { sysSolver = 0; spm = 0; prec = 0; spp = 0; Msolver = 0; K = 0; M = 0; C = 0; Kuc = 0; Muc = 0; Cuc = 0; Kcc = 0; Mcc = 0; Ccc = 0; C_deriv = 0; Cuc_deriv = 0; rhs_inpc = 0; Weight_deriv = 0;}
 
   void zero() {if(K) K->zeroAll();
                if(M) M->zeroAll();
@@ -255,6 +256,8 @@ class Domain : public HData {
      Vector *stressAllElems; // stores stresses of all the elements : used Sfem
      int sizeSfemStress;
 
+     double totWeight;
+
      // for compute energies
      double Wext;
      double Waero;
@@ -380,6 +383,14 @@ class Domain : public HData {
                                          FullSquareMatrix *kel, Vector &residual,
                                          double time, GeomState *refState, Vector *reactions,
                                          FullSquareMatrix *mel, bool compute_tangents);
+     void getUnassembledFictitiousForce(GeomState &geomState, Vector &elementForce,
+                                        FullSquareMatrix *kel, Vector &residual, Vector &unassemResidual,
+                                        double time, GeomState *refState, Vector *reactions,
+                                        FullSquareMatrix *mel, bool compute_tangents);
+     void getUDEIMFictitiousForceOnly(const std::map<int, std::vector<int> > &weights, GeomState &geomState, Vector &elementForce,
+                                         FullSquareMatrix *kel, Vector &residual,
+                                         double time, GeomState *refState, Vector *reactions,
+                                         FullSquareMatrix *mel, bool compute_tangents);
      void transformElemStiffAndForce(const GeomState &geomState, double *elementForce,
                                      FullSquareMatrix &kel, int iele, bool compute_tangents);
      void transformNodalMoment(const GeomState &geomState, double G[],
@@ -405,7 +416,20 @@ class Domain : public HData {
                                        GeomState &u, Vector &elementInternalForce,
                                        Corotator **allCorot, FullSquareMatrix *kel,
                                        Vector &residual, double lambda, double time,
-                                       GeomState *refState, FullSquareMatrix *mel = NULL);
+                                       GeomState *refState, FullSquareMatrix *mel = NULL,
+                                       FullSquareMatrix *kelCopy = NULL);
+     void getUDEIMInternalForceOnly(const std::map<int, std::vector<int> > &weights,
+                                    GeomState &u, Vector &elementInternalForce,
+                                    Corotator **allCorot, FullSquareMatrix *kel,
+                                    Vector &residual, double lambda, double time,
+                                    GeomState *refState, FullSquareMatrix *mel = NULL,
+                                    FullSquareMatrix *kelCopy = NULL);
+     void getUnassembledNonLinearInternalForce(GeomState &u, Vector &elementInternalForce,
+                           Corotator **allCorot, FullSquareMatrix *kel,
+                           Vector &residual, Vector &unassemResidual, std::map<int, std::pair<int,int> > &uDOFaDOFmap,
+                           double lambda = 1.0, double time = 0.0, int tIndex = 0,
+                           GeomState *refState = NULL, Vector *reactions = NULL,
+                           FullSquareMatrix *mel = NULL,FullSquareMatrix *kelCopy = NULL);
 
      void applyResidualCorrection(GeomState &geomState, Corotator **corotators, Vector &residual, double rcoef = 1.0);
      void initializeParameters(GeomState &geomState, Corotator **corotators);
@@ -529,6 +553,9 @@ class Domain : public HData {
                           FullSquareMatrix *celArray = 0);
 
      template<class Scalar>
+       void makeSensitivityOps(AllOps<Scalar> &ops, double &weight);
+
+     template<class Scalar>
        GenDBSparseMatrix<Scalar> *constructDBSparseMatrix(DofSetArray *dof_set_array=0,
                            Connectivity *cn=0);
 
@@ -648,6 +675,10 @@ class Domain : public HData {
 
      void resProcessing(Vector &, int index=0, double t=0);
 
+     // sensitivity post processing function
+     template<class Scalar>
+     void sensitivityPostProcessing(Scalar *sensitivity, double quantity, int outputSize);
+
      // Nonlinear post processing function
      void postProcessing(GeomState *geomState, Vector &force, Vector &aeroForce, double time=0.0,
                          int step=0, double *velocity=0, double *vcx=0,
@@ -752,6 +783,8 @@ class Domain : public HData {
                            FullSquareMatrix *kelArray=0);
      void getKtimesU(Vector &dsp, double *bcx, Vector &ext_f, double eta,
                      FullSquareMatrix *kelArray=0);
+     void getElemKtimesU(int iele, int numEleDOFs, Vector &dsp, double *elForce,
+                   FullSquareMatrix *kelArray, double *karray);
      //ADDED FOR SLOSHING PROBLEM, EC, 20070723
      void getSloshDispAll(Vector &tsol, double *bcx, int fileNumber, double time);
      void getSloshDispAll(ComplexVector &tsol, complex<double> *bcx, int fileNumber, double time) { cerr << "getSloshDispAll(complex) not implemented\n"; }
@@ -793,6 +826,9 @@ class Domain : public HData {
 
      // Eigen solver
      void eigenOutput(Vector& eigenValues, VectorSet& eigenVectors, double* bcx = 0, int convEig = 0); // modified for SLOSHING PROBLEM, EC, 20070723
+#ifdef USE_EIGEN3 
+     void eigenQROutput(Eigen::MatrixXd& Xmatrix, Eigen::MatrixXd& Qmatrix, Eigen::MatrixXd& Rmatrix);
+#endif
      void setEigenValue(double _lbound, int _nshifts, int _maxArnItr = 0); //CBM
      void setEigenValues(double _lbound, double _ubound, int _neigps = 0, int _maxArnItr = 0);
 
@@ -814,6 +850,12 @@ class Domain : public HData {
      // returns the number of unconstrained dof
      int numUncon() {
        return c_dsa ? c_dsa->size() : dsa ? dsa->size() : 0;
+     }
+
+     // returns the number of parameters
+     // Here, parameters are for optimization or sensitivity problems
+     int numParam() {
+       return sinfo.numParam;
      }
 
      // returns the number of unconstrained Fluid dof

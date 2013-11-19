@@ -2404,6 +2404,17 @@ Domain::getKtimesU(Vector &dsp, double *bcx, Vector &ext_f, double eta,
   for(int iele=0; iele<numele; ++iele) {
 
      int numEleDOFs = allDOFs->num(iele);
+     Vector elForce(numEleDOFs,0.0);     
+
+     getElemKtimesU(iele,numEleDOFs,dsp,elForce.data(),kelArray,karray); 
+
+     for(int k=0; k<numEleDOFs; ++k) {
+       int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
+       if(cn >= 0) {
+         ext_f[cn] += eta * elForce[k]; }
+     }
+ 
+/*     int numEleDOFs = allDOFs->num(iele);
 
      Vector elDisp(numEleDOFs,0.0);
      Vector elForce(numEleDOFs,0.0);
@@ -2437,8 +2448,41 @@ Domain::getKtimesU(Vector &dsp, double *bcx, Vector &ext_f, double eta,
         int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
         if(cn >= 0) {
           ext_f[cn] += eta * elForce[k]; }
+     }*/
+  }
+}
+
+void
+Domain::getElemKtimesU(int iele, int numEleDOFs, Vector &dsp, double *elForce,
+                   FullSquareMatrix *kelArray, double *karray)
+{
+  Vector elDisp(numEleDOFs,0.0);
+
+  FullSquareMatrix kel(numEleDOFs,karray);
+
+  for(int k=0; k<numEleDOFs; ++k) {
+     int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
+     if(cn >= 0) {
+       elDisp[k] = dsp[cn];
+     }
+     else {
+       elDisp[k] = 0.0;
      }
   }
+
+  if(kelArray) {
+    kel.copy(kelArray[iele]); // PJSA 4-1-08
+  }
+  else {
+    kel=packedEset[iele]->stiffness(nodes,karray);
+  }
+
+  for(int i=0;i<numEleDOFs;i++) {
+    for(int j=0;j<numEleDOFs;j++) {
+      elForce[i] += kel[i][j]*elDisp[j] ;
+    }
+  }
+
 }
 
 double

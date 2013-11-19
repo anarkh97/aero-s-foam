@@ -108,6 +108,8 @@
 %token SNAPFI PODROB TRNVCT OFFSET ORTHOG SVDTOKEN CONVERSIONTOKEN CONVFI SAMPLING SNAPSHOTPROJECT PODSIZEMAX REFSUBSTRACT TOLER OUTOFCORE NORMALIZETOKEN FNUMBER SNAPWEIGHT ROBFI STAVCT VELVCT ACCVCT CONWEPCFG
 %token VECTORNORM LOCALTOLERANCE REBUILDFORCE SAMPNODESLOT FORCEROB DEIMINDICES UDEIMINDICES SVDFORCESNAP
 %token USEMASSNORMALIZEDBASIS
+%token OPTSENSITIVITY SENSITIVITYID 
+%token QRFACTORIZATION QMATRIX RMATRIX XMATRIX
 
 %type <complexFDBC> AxiHD
 %type <complexFNBC> AxiHN
@@ -131,6 +133,7 @@
 %type <rprop>    RPROP
 %type <ival>     WAVETYPE WAVEMETHOD
 %type <ival>     SCALINGTYPE SOLVERTYPE STRESSID SURFACE MOMENTTYPE
+%type <ival>     SENSITIVITYID
 %type <ldata>    LayData LayoData LayMatData
 %type <linfo>    LaycInfo LaynInfo LaydInfo LayoInfo
 %type <mftval>   MFTTInfo
@@ -332,6 +335,7 @@ Component:
 	| Sampling
         | SnapshotProject
         | ConversionToken
+        | OptSensitivity
         ;
 Noninpc:
         NONINPC NewLine Integer Integer NewLine
@@ -890,6 +894,10 @@ OutInfo:
         { $$.initialize(); $$.type = (OutputInfo::Type) $1; $$.width = $2; $$.precision = $3; $$.filename = $4; $$.interval = $5; $$.nodeNumber = $6-1; }
         | STRESSID Integer Integer FNAME Integer GROUPTYPE Integer // TDL: formatted output for node group or node
         { $$.initialize(); $$.type = (OutputInfo::Type) $1; $$.width = $2; $$.precision = $3; $$.filename = $4; $$.interval = $5; if ($6 == OutputInfo::NodeGroup) $$.groupNumber = $7; else $$.nodeNumber = $7-1; }
+        | SENSITIVITYID FNAME Integer // unformatted output for sensitivities
+        { $$.initialize(); $$.type = (OutputInfo::Type) $1; $$.filename = $2; $$.interval = $3; $$.sentype = 1; }
+        | SENSITIVITYID Integer Integer FNAME Integer // formatted output for sensitivities
+        { $$.initialize(); $$.type = (OutputInfo::Type) $1; $$.width = $2; $$.precision = $3; $$.filename = $4; $$.interval = $5; $$.sentype = 1; }
         | TDENFORC FNAME Integer // unformatted output for all nodes (for explicit dynamics tied/contact surfaces)
         { $$.initialize(); $$.type = OutputInfo::TDEnforcement; $$.tdenforc_var = $1; $$.filename = $2; $$.interval = $3; }
         | TDENFORC Integer Integer FNAME Integer // formatted output for all nodes (for explicit dynamics tied/contact surfaces)
@@ -931,6 +939,12 @@ OutInfo:
         { $$.oframe = (OutputInfo::FrameType) $2; }
         | OutInfo MATLAB 
         { $$.matlab = true; }
+        | XMATRIX FNAME
+        { domain->solInfo().xmatrixname = $2; }
+        | QMATRIX FNAME
+        { domain->solInfo().qmatrixname = $2; }
+        | RMATRIX FNAME
+        { domain->solInfo().rmatrixname = $2; }
         ;
 DynInfo:
         DynamInfo
@@ -940,6 +954,8 @@ DynInfo:
 	| EIGEN Integer NewLine
 	{ domain->solInfo().setProbType(SolverInfo::Modal);
 	  domain->solInfo().nEig = $2;}
+  | QRFACTORIZATION SWITCH NewLine
+  { domain->solInfo().qrfactorization = $2;}
 	| NEIGPA Integer NewLine
 	{ domain->solInfo().nEig = $2; }
 	| SUBSPACE NewLine
@@ -1233,6 +1249,13 @@ TimeInfo:
 	TIME Float Float Float NewLine
 	{ domain->solInfo().setTimes($4,$3,$2); }
 	;
+OptSensitivity:
+  OPTSENSITIVITY Integer NewLine
+  {
+    domain->solInfo().sensitivity = true;
+    domain->solInfo().numParam = $2;
+  }
+  ;
 ParallelInTimeInfo:
         PITA NewLine Integer Integer ParallelInTimeOptions
         {
@@ -2970,6 +2993,10 @@ SampNodeSlot:
         { domain->solInfo().DEIMPodRom = true; }
         | SampNodeSlot Integer Integer NewLine
         { geoSource->setSampleNodesAndSlots($2-1,$3);}
+        | SampNodeSlot Integer Integer Integer Integer NewLine
+        { geoSource->setSampleNodesAndSlots($2-1,$3);
+          geoSource->setSampleElemsAndDOFs($4-1,$5);
+          domain->solInfo().UDEIMPodRom = true;}
         ;
 
 Pressure:
@@ -4315,6 +4342,13 @@ SamplingOption:
   { domain->solInfo().skipOffSet = $2; }
   | PODSIZEMAX Integer
   { domain->solInfo().maxSizePodRom = $2; }
+  | PODSIZEMAX Integer Integer
+  { domain->solInfo().maxSizePodRom = $2; 
+    domain->solInfo().forcePodSize = $3;}
+  | PODSIZEMAX Integer Integer Integer
+  { domain->solInfo().maxSizePodRom = $2; 
+    domain->solInfo().forcePodSize = $3;
+    domain->solInfo().maxDeimBasisSize = $4; }
   | OUTOFCORE SWITCH
   { domain->solInfo().oocPodRom = bool($2); }
   | USEMASSNORMALIZEDBASIS SWITCH

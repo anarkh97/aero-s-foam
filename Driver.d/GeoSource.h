@@ -33,6 +33,7 @@ class NFrameData;
 class CoefData;
 class LayInfo;
 struct Group;
+struct AttributeToElement;
 
 enum {SXX=0,SYY=1,SZZ=2,SXY= 3,SYZ= 4,SXZ= 5,VON=6,
       EXX=7,EYY=8,EZZ=9,EXY=10,EYZ=11,EXZ=12,STRAINVON=13,
@@ -121,7 +122,7 @@ class GeoSource {
 
   // output file info
   ControlInfo *cinfo;    // contains nodeset, elemset & timer file name
-  ResizeArray<OutputInfo> oinfo; // all output files
+  ResizeArray<OutputInfo> oinfo; // all output files except sensitivity outputs
   int numOutInfo;                // number of Output requests
   int outLimit; // maximum number of frequencies, eigenvectors or timesteps per file
   int numNodalOutput;   // number of disp output for single nodes
@@ -174,6 +175,7 @@ class GeoSource {
   int namax;
   map<int, Attrib> attrib;
   int maxattrib;
+  map<int, int> optg;
 
   int numEframes;
   ResizeArray<EFrameData> efd;
@@ -269,6 +271,8 @@ class GeoSource {
   map<int, Group> group;
   map<int, list<int> > nodeGroup;
   map<int, list<int> > surfaceGroup;
+
+  map<int, AttributeToElement> atoe;
 
   int numSurfaceDirichlet;
   BCond *surface_dbc;
@@ -647,19 +651,25 @@ public:
   // POD-ROM elementary lumping weights
   typedef std::map<int, double> ElementWeightMap;
   typedef std::vector<std::pair<int, int> > NodeDofPairVec;
+  typedef std::vector<std::pair<int, int> > ElemDofPairVec;
 
   ElementWeightMap::const_iterator elementLumpingWeightBegin() const { return elementLumpingWeights_.begin(); }
   ElementWeightMap::const_iterator elementLumpingWeightEnd()   const { return elementLumpingWeights_.end();   }
 
   NodeDofPairVec::const_iterator nodeDofSlotBegin() const { return nodeDofSlotPairVec_.begin(); }
   NodeDofPairVec::const_iterator nodeDofSlotEnd()   const { return nodeDofSlotPairVec_.end();   }
+
+  ElemDofPairVec::const_iterator elemDofBegin() const { return elemDofPairVec_.begin(); }
+  ElemDofPairVec::const_iterator elemDofEnd()   const { return elemDofPairVec_.end();   }
   
   void setElementLumpingWeight(int iele, double value);
   void setSampleNodesAndSlots(int node, int dof);
+  void setSampleElemsAndDOFs(int elem,int dof);
 
 private:
   ElementWeightMap elementLumpingWeights_;
   NodeDofPairVec nodeDofSlotPairVec_;
+  ElemDofPairVec elemDofPairVec_;
 
 protected:
   void closeOutputFileImpl(int fileIndex);
@@ -679,6 +689,11 @@ struct Group
 {
   vector<int> attributes;
   vector<RandomProperty> randomProperties;
+};
+
+struct AttributeToElement
+{
+  vector<int> elems;
 };
 
 #ifdef _TEMPLATE_FIX_

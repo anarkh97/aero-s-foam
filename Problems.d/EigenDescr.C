@@ -277,3 +277,12 @@ SDEigenPostProcessor::eigenOutput(Vector& eigenValues, VectorSet& eigenVectors, 
  times->output += getTime(); 
 }
 
+#ifdef USE_EIGEN3
+void
+SDEigenPostProcessor::eigenQROutput(Eigen::MatrixXd& XVectors, Eigen::MatrixXd& QVectors, Eigen::MatrixXd& RVectors)
+{
+ times->output -= getTime();
+ domain->eigenQROutput(XVectors, QVectors,RVectors);
+ times->output += getTime();
+}
+#endif

@@ -187,7 +187,13 @@ struct SolverInfo {
    double tolJac;       // jacobi iteration tolerance
    bool   explicitK;    // determines whether or not to explicitly form K during eigprob
    int maxitEig;       
-    
+   bool qrfactorization; // determines if qr factorization of eigen modes to be conducted or not   
+                         // if true, qmatrix and rmatrix in OUTPUT has to be specified.
+                         // this is mainly used for interpolation of ROM.
+   const char* xmatrixname;
+   const char* qmatrixname;
+   const char* rmatrixname;
+
    // Sloshing problem flag, ADDED FOR SLOSHING PROBLEM, EC, 20070723
    int sloshing;
    // Hydroelastic vibration problem flag, ADDED FOR HEV PROBLEM, EC, 20070820
@@ -237,6 +243,10 @@ struct SolverInfo {
 
    double goldfarb_tol;
    bool goldfarb_check;
+
+   // YC : sensitivity and optimization parameters
+   bool sensitivity;
+   int numParam;
 
    // KAS :  map object for Mumps control CNTL and ICNTL matrices
    map<int, int> mumps_icntl;
@@ -347,6 +357,7 @@ struct SolverInfo {
    bool orthogForceSnap;
    bool computeDEIMIndices;
    bool DEIMPodRom;
+   bool UDEIMPodRom;
    bool samplingPodRom;
    bool snapProjPodRom;
    bool galerkinPodRom;
@@ -395,6 +406,10 @@ struct SolverInfo {
                   modal = false;
                   lastIt = false;
                   mppFactor = 1.0;
+ 
+                  // Parameters for sensitivity
+                  sensitivity = false;
+                  numParam = 0; 
 		 
                   // Parameters for PITA 
                   activatePita = false;
@@ -490,6 +505,10 @@ struct SolverInfo {
                   goldfarb_tol = 1.0;
                   goldfarb_check = false;
                   explicitK = false;
+                  qrfactorization = false;
+                  xmatrixname = "";
+                  qmatrixname = "";
+                  rmatrixname = "";
                   localScaled = false;
                   coarseScaled = false;
 
@@ -611,6 +630,7 @@ struct SolverInfo {
 		  orthogForceSnap    = false;
                   computeDEIMIndices = false;
                   DEIMPodRom         = false;
+                  UDEIMPodRom        = false;
                   svdBlockSize       = 64;
                   samplingPodRom     = false;
                   snapProjPodRom     = false;

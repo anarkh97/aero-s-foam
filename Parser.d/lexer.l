@@ -645,6 +645,8 @@ TRAIL [a-zA-Z]*
 
 "tolj"[a-zA-Z]*|"TOLJ"[a-zA-Z]*    { return TOLJAC; }
 
+"qrfactorization"|"QRFACTORIZATION" { return QRFACTORIZATION; }
+
 "expl"[a-zA-Z]*|"EXPL"[a-zA-Z]*    { return EXPLICIT; }
 
 "lobpcg"[a-zA-Z]*|"LOBPCG"[a-zA-Z]* { return LOBPCG; }
@@ -664,6 +666,8 @@ TRAIL [a-zA-Z]*
 "modd"[a-zA-Z]*|"MODD"[a-zA-Z]*    { return MODDAMP; }
 
 "time"|"TIME"                      { return TIME; }
+
+"optsensitivity"|"OPTSENSITIVITY"  { return OPTSENSITIVITY; }
 
 "pita"|"PITA"|"Pita"               { return PITA; }
 
@@ -959,6 +963,8 @@ TRAIL [a-zA-Z]*
 
 "gdispmod"|"GDISPMOD"              { yylval.ival = OutputInfo::TotMod; return STRESSID; }
 
+"optsweig"|"OPTSWEIG"              { yylval.ival = OutputInfo::OptsWeig; return SENSITIVITYID; }
+
 "elemental"[a-zA-Z]*|"ELEMENTAL"[a-zA-Z]* { yylval.ival =  0; return AVERAGED; }
 
 "gauss"[a-zA-Z]*|"GAUSS"[a-zA-Z]*  { yylval.ival =  -1; return AVERAGED; }
@@ -1222,6 +1228,12 @@ TRAIL [a-zA-Z]*
 "BauchauTrainelli"                 { yylval.ival = OutputInfo::BauchauTrainelli; return ROTVECOUTTYPE; }
 
 "rescal"[a-zA-Z]*|"RESCAL"[a-zA-Z]* { return RESCALING; }
+
+"xmatrix"|"XMATRIX"                { return XMATRIX; }
+
+"qmatrix"|"QMATRIX"                { return QMATRIX; }
+
+"rmatrix"|"RMATRIX"                { return RMATRIX; }
 
 "conface"|"CONFACE"                                  { yylval.ival = 1; return TDENFORC; }
 "normal_force_mag"|"NORMAL_FORCE_MAG"                { yylval.ival = 2; return TDENFORC; }

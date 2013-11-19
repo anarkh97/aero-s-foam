@@ -1053,6 +1053,10 @@ Domain::buildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Ccoe
     case 0:
       makeStaticOpsAndSolver<Scalar>(allOps, Kcoef, Mcoef, Ccoef,
                                      systemSolver, allOps.spm, rbm, kelArray, melArray, celArray); // also used for eigen
+      if(sinfo.sensitivity) {
+        allOps.rhs_inpc = new GenVector<Scalar>(domain->numUncon());
+        makeSensitivityOps<Scalar>(allOps, totWeight);
+      }
       break;
     case 1:
       makeDynamicOpsAndSolver<Scalar>(allOps, Kcoef, Mcoef, Ccoef,
@@ -2043,7 +2047,42 @@ void Domain::forceDistributedContinuity(Scalar *u, Scalar (*xyz)[11])//DofSet::m
 //  return ++realNode;
 }
 
+template<class Scalar>
+void
+Domain::makeSensitivityOps(AllOps<Scalar> &allOps, double &weight)
+{
+  // ... COMPUTE TOTAL STRUCTURAL WEIGHT AND DERIVATIVE WRT THICKNESS
+  weight = 0.0;
+  int altitude_direction = 2;
+  GenVector<Scalar> weightDerivative(numele);  // YC: the type can be changed to double
+  map<int, Group> &group = geoSource->group;
+  map<int, AttributeToElement> &atoe = geoSource->atoe;
+  if(numParam() != group.size()) {
+    cerr << " *** ERROR: numParam() is not equal to the size of group \n"; 
+    exit(-1);
+  }
+  allOps.Weight_deriv = new GenVector<Scalar>(numParam(), 0.0);
+  map<int, Attrib> &attributes = geoSource->getAttributes();
+  for(int iele = 0; iele < numele; ++iele) {
+    StructProp *prop = packedEset[iele]->getProperty();
+    if(prop == 0) continue; // phantom element
 
+    weight += packedEset[iele]->weight(nodes, gravityAcceleration, altitude_direction); 
+    weightDerivative[iele] = packedEset[iele]->weightDerivativeWRTthickness(nodes, gravityAcceleration, altitude_direction);
+  }
+
+  for(int gindex = 0; gindex < numParam(); ++gindex) {
+    for(int aindex = 0; aindex < group[gindex].attributes.size(); ++aindex) {
+      for(int eindex =0; eindex < atoe[group[gindex].attributes[aindex]].elems.size(); ++eindex) {
+        (*allOps.Weight_deriv)[gindex] += weightDerivative[atoe[group[gindex].attributes[aindex]].elems[eindex]]; 
+      }
+    }
+  }
+
+  filePrint(stderr," *** WEIGHT : %e\n", weight);
+  allOps.Weight_deriv->print("printing weight derivative\n");
+  sensitivityPostProcessing(allOps.Weight_deriv->data(), weight, numParam()); 
+}
 
 template<class Scalar>
 void
@@ -3349,6 +3388,18 @@ int Domain::processOutput(OutputInfo::Type &type, GenVector<Scalar> &d_n, Scalar
 }
 
 //-------------------------------------------------------------------------------------
+template<class Scalar>
+void Domain::sensitivityPostProcessing(Scalar *sensitivity, double quantity, int outputSize) {
+
+  OutputInfo *oinfo = geoSource->getOutputInfo();
+  int numOutInfo = geoSource->getNumOutInfo();
+  if(firstOutput) geoSource->openOutputFiles();
+  for(int i = 0; i < numOutInfo; ++i)  {
+    if(oinfo[i].sentype == 0) continue;
+    geoSource->outputNodeScalars(i, sensitivity, outputSize, quantity);
+  }
+  firstOutput = false;
+}
 
 // Templated Post-processing for direct solver statics, frequency response, helmholtz and eigen
 template<class Scalar>
@@ -3398,6 +3449,7 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
   int dof;
   int iNode;
   for(i = 0; i < numOutInfo; ++i)  {
+    if(oinfo[i].sentype > 0) continue;
     if(oinfo[i].ndtype != ndflag) continue;
     if(ndflag !=0 && oinfo[i].type != OutputInfo::Disp6DOF && oinfo[i].type !=  OutputInfo::Displacement) continue;
     // if non-deterministic and NOT displacement

@@ -292,3 +292,42 @@ Domain::eigenOutput(Vector& eigenValues, VectorSet& eigenVectors, double* bcx, i
 
  }
 }
+
+#ifdef USE_EIGEN3
+void
+Domain::eigenQROutput(Eigen::MatrixXd& Xmatrix, Eigen::MatrixXd& Qmatrix, Eigen::MatrixXd& Rmatrix)
+{
+  const char* Xoutput = domain->solInfo().xmatrixname;
+  const char* Qoutput = domain->solInfo().qmatrixname;
+  const char* Routput = domain->solInfo().rmatrixname;
+  ofstream xout(Xoutput, ios::out);
+  ofstream qout(Qoutput, ios::out);
+  ofstream rout(Routput, ios::out);
+
+  if(!xout) {
+    cerr << "Error: cannot open file " << Xoutput << endl;
+    exit(-1);
+  }
+  if(!qout) {
+    cerr << "Error: cannot open file " << Qoutput << endl;
+    exit(-1);
+  }
+  if(!rout) {
+    cerr << "Error: cannot open file " << Routput << endl;
+    exit(-1);
+  }
+
+  // write X, Q and R matrix
+  Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
+  xout << Xmatrix.rows() << endl << Xmatrix.cols() << endl;
+  xout << Xmatrix.transpose().format(HeavyFmt) << endl;
+  qout << Qmatrix.rows() << endl << Qmatrix.cols() << endl;
+  qout << Qmatrix.transpose().format(HeavyFmt) << endl;
+  rout << Rmatrix.rows() << endl << Rmatrix.cols() << endl;
+  rout << Rmatrix.format(HeavyFmt) << endl;
+
+  xout.close();
+  qout.close();
+  rout.close();
+}
+#endif

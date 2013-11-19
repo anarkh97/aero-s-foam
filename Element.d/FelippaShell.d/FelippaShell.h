@@ -56,6 +56,8 @@ public:
         int  numNodes();
         int* nodes(int * = 0);
 	double getMass(CoordSet &);
+        double weight(CoordSet&, double *, int);
+        double weightDerivativeWRTthickness(CoordSet&, double *, int);
 
         void computeDisp(CoordSet&, State &, const InterpPoint &,
                          double*, GeomState *gs=0);

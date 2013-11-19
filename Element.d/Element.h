@@ -401,6 +401,8 @@ class Element {
 	virtual FullSquareMatrix dampingMatrix(CoordSet& cs,double *m,int cmflg=1);
 
         virtual double getMass(CoordSet&) { return 0; }
+        virtual double weight(CoordSet&, double *, int) { return 0; }
+        virtual double weightDerivativeWRTthickness(CoordSet&, double *, int) { return 0; }
         virtual double getDCmass(CoordSet &,Vector &, double&) { return 0; }
 
         virtual void   getGravityForce(CoordSet&,double *gravity,Vector &force,

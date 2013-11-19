@@ -120,7 +120,7 @@ Domain::getWeightedInternalForceOnly(const std::map<int, double> &weights,
                                      GeomState &geomState, Vector& elementForce,
                                      Corotator **corotators, FullSquareMatrix *kel,
                                      Vector &residual, double lambda, double time,
-                                     GeomState *refState, FullSquareMatrix *mel)
+                                     GeomState *refState, FullSquareMatrix *mel, FullSquareMatrix *kelCopy)
 {
   const double pseudoTime = sinfo.isDynam() ? time : lambda; // MPC needs lambda for nonlinear statics
   BlastLoading::BlastData *conwep = (domain->solInfo().ConwepOnOff) ? &BlastLoading::InputFileData : NULL;
@@ -131,7 +131,16 @@ Domain::getWeightedInternalForceOnly(const std::map<int, double> &weights,
 
     elementForce.zero();
     FullSquareMatrix &elementStiff = kel[iele];
-    
+    Vector LinearElForce(maxNumDOFs,0.0);
+    LinearElForce.zero();
+ 
+    //option of remove linear component from nonlinear force, default is false 
+    if(kelCopy) {
+      Vector displacement(residual.size(),0.0);
+      geomState.get_tot_displacement(displacement,false);
+      getElemKtimesU(iele,elementStiff.dim(),displacement,LinearElForce.data(),kelCopy,(double *) dbg_alloca(sizeof(double)*maxNumDOFs*maxNumDOFs));
+    }
+  
     // Get updated tangent stiffness matrix and element internal force
     if(const Corotator *elementCorot = corotators[iele]) {
       getElemInternalForce(geomState, pseudoTime, refState, *elementCorot, elementForce.data(), elementStiff);
@@ -150,14 +159,17 @@ Domain::getWeightedInternalForceOnly(const std::map<int, double> &weights,
    
     // Apply lumping weight 
     const double lumpingWeight = it->second;
-    elementForce *= lumpingWeight;
+    elementForce  *= lumpingWeight;
+    LinearElForce *= lumpingWeight;
 
     // Assemble element internal force into residual force vector
     const int elemDofCount = elementStiff.dim();
     for(int iDof = 0; iDof < elemDofCount; ++iDof) {
       const int dofId = c_dsa->getRCN((*allDOFs)[iele][iDof]);
       if (dofId >= 0) {
-        residual[dofId] -= elementForce[iDof];
+        residual[dofId] -= elementForce[iDof]; 
+        if(kelCopy)
+          residual[dofId] += LinearElForce[iDof];        
       }
     }
   }
@@ -167,6 +179,129 @@ Domain::getWeightedInternalForceOnly(const std::map<int, double> &weights,
   }
 
   if(sinfo.isDynam() && mel) getWeightedFictitiousForceOnly(weights, geomState, elementForce, kel, residual, time, refState, NULL, mel, false);
+}
+
+void
+Domain::getUDEIMInternalForceOnly(const std::map<int, std::vector<int> > &weights,
+                                     GeomState &geomState, Vector& elementForce,
+                                     Corotator **corotators, FullSquareMatrix *kel,
+                                     Vector &residual, double lambda, double time,
+                                     GeomState *refState, FullSquareMatrix *mel, FullSquareMatrix *kelCopy)
+{
+  const double pseudoTime = sinfo.isDynam() ? time : lambda; // MPC needs lambda for nonlinear statics
+  BlastLoading::BlastData *conwep = (domain->solInfo().ConwepOnOff) ? &BlastLoading::InputFileData : NULL;
+  if(elemAdj.empty()) makeElementAdjacencyLists();
+
+  Vector LinearElForce(maxNumDOFs,0.0);  
+
+  for(std::map<int, std::vector<int> >::const_iterator it = weights.begin(), it_end = weights.end(); it != it_end; ++it) {
+    const int iele = it->first;
+    const std::vector<int> DOFvector(it->second);
+
+    elementForce.zero();
+    FullSquareMatrix &elementStiff = kel[iele];
+    LinearElForce.zero();
+
+    //option of remove linear component from nonlinear force, default is false 
+    if(kelCopy) {
+      Vector displacement(residual.size(),0.0);
+      geomState.get_tot_displacement(displacement,false);
+      getElemKtimesU(iele,elementStiff.dim(),displacement,LinearElForce.data(),kelCopy,(double *) dbg_alloca(sizeof(double)*maxNumDOFs*maxNumDOFs));
+    }
+
+    // Get updated tangent stiffness matrix and element internal force
+    if(const Corotator *elementCorot = corotators[iele]) {
+      getElemInternalForce(geomState, pseudoTime, refState, *elementCorot, elementForce.data(), elementStiff);
+    }
+
+    // Add configuration-dependent external forces and their element stiffness contributions
+    if(domain->solInfo().reduceFollower) {
+      getElemFollowerForce(iele, geomState, elementForce.data(), elementForce.size(),
+                           (corotators[iele]), elementStiff, lambda, time, false, conwep);
+    }
+
+    if(packedEset[iele]->hasRot()) {
+      // Transform element stiffness and force to solve for the increment in the total rotation vector
+      transformElemStiffAndForce(geomState, elementForce.data(), elementStiff, iele, false);
+    }
+
+    // Assemble element internal force into residual force vector
+    const int elemDofCount = elementStiff.dim();
+    for(std::vector<int>::const_iterator DOFit = DOFvector.begin(); DOFit != DOFvector.end(); DOFit++) {
+      const int dofId = c_dsa->getRCN((*allDOFs)[iele][*DOFit]);
+      if (dofId >= 0) {
+        residual[dofId] -= elementForce[*DOFit];
+        if(kelCopy)
+          residual[dofId] += LinearElForce[*DOFit];
+      }
+    }
+  }
+
+  if(!domain->solInfo().reduceFollower) {
+    getFollowerForce(geomState, elementForce, corotators, kel, residual, lambda, time, refState, NULL, false);
+  }
+
+  if(sinfo.isDynam() && mel) getUDEIMFictitiousForceOnly(weights, geomState, elementForce, kel, residual, time, refState, NULL, mel, false);
+}
+
+void
+Domain::getUnassembledNonLinearInternalForce(GeomState &geomState, Vector& elementForce,
+                                             Corotator **corotators, FullSquareMatrix *kel,
+                                             Vector &residual, Vector &unassemResidual, 
+                                             std::map<int, std::pair<int,int> > &uDOFaDOFmap,
+                                             double lambda, double time, int tIndex,
+                                             GeomState *refState, Vector *reactions, FullSquareMatrix *mel,
+                                             FullSquareMatrix *kelCopy)
+{//this function creates the assembled and unassembled force snap shots needed to compute the UDEIM ROM basis
+  int DOFcounter = 0; //counter variable for navigating unassembled dofs
+  const double pseudoTime = sinfo.isDynam() ? time : lambda; // mpc needs lambda for nonlinear statics
+  BlastLoading::BlastData *conwep = (domain->solInfo().ConwepOnOff) ? &BlastLoading::InputFileData : NULL;
+  if(elemAdj.empty()) makeElementAdjacencyLists();
+
+  Vector LinearElForce(maxNumDOFs,0.0);
+
+  for(int iele = 0; iele < numele; ++iele) {
+
+    elementForce.zero();
+    LinearElForce.zero();
+
+    // Get updated tangent stiffness matrix and element internal force
+    getElemInternalForce(geomState, pseudoTime, refState, *corotators[iele], elementForce.data(), kel[iele]);
+
+    Vector displacement(residual.size(),0.0);
+    geomState.get_tot_displacement(displacement,false);
+    getElemKtimesU(iele,kel[iele].dim(),displacement,LinearElForce.data(),kelCopy,(double *) dbg_alloca(sizeof(double)*maxNumDOFs*maxNumDOFs));
+
+    // Add configuration-dependent external forces and their element stiffness contributions
+    getElemFollowerForce(iele, geomState, elementForce.data(), elementForce.size(),
+    (corotators[iele]), kel[iele], lambda, time, false, conwep);
+
+    if(domain->solInfo().galerkinPodRom && packedEset[iele]->hasRot() && !solInfo().getNLInfo().linearelastic) {
+     // Transform element stiffness and force to solve for the increment in the total rotation vector
+     transformElemStiffAndForce(geomState, elementForce.data(), kel[iele], iele, false);
+    }
+
+    // Assemble element internal force into residual force vector
+    for(int idof = 0; idof < kel[iele].dim(); ++idof) {
+      int uDofNum = c_dsa->getRCN((*allDOFs)[iele][idof]);
+      if(uDofNum >= 0){
+        residual[uDofNum] -= elementForce[idof];
+        residual[uDofNum] += LinearElForce[idof];
+        unassemResidual[DOFcounter] -= elementForce[idof];
+        unassemResidual[DOFcounter] += LinearElForce[idof];
+        if(tIndex == 0){//initialize map from nunassembled, unconstrained DOFS to their elements/elemental dofs
+          std::pair<int,int> uDof_key_value(std::make_pair(iele,idof));
+          uDOFaDOFmap.insert(std::make_pair(DOFcounter,uDof_key_value));
+        }
+        DOFcounter += 1;
+      }else if(reactions) {
+        int cDofNum = c_dsa->invRCN((*allDOFs)[iele][idof]);
+        if(cDofNum >= 0)
+          (*reactions)[cDofNum] += elementForce[idof];
+      }
+    }
+   }
+  if(sinfo.isDynam() && mel) getUnassembledFictitiousForce(geomState, elementForce, kel, residual, unassemResidual, time, refState, reactions, mel, false);
 }
 
 void
@@ -186,6 +321,34 @@ Domain::getFictitiousForce(GeomState &geomState, Vector &elementForce, FullSquar
       if(uDofNum >= 0)
         residual[uDofNum] -= elementForce[idof];
       else if(reactions) {
+        int cDofNum = c_dsa->invRCN((*allDOFs)[iele][idof]);
+        if(cDofNum >= 0)
+          (*reactions)[cDofNum] += elementForce[idof];
+      }
+    }
+  }
+}
+
+void
+Domain::getUnassembledFictitiousForce(GeomState &geomState, Vector &elementForce, FullSquareMatrix *kel, Vector &residual,
+                                      Vector &unassemResidual, double time, GeomState *refState, Vector *reactions, 
+                                      FullSquareMatrix *mel, bool compute_tangents)
+{
+  int DOFcounter = 0;
+  for(int iele = 0; iele < numele; ++iele) {
+
+    elementForce.zero();
+
+    getElemFictitiousForce(iele, geomState, elementForce.data(), kel[iele], time, refState, mel[iele], compute_tangents);
+
+    // Assemble element force into residual force vector
+    for(int idof = 0; idof < kel[iele].dim(); ++idof) {
+      int uDofNum = c_dsa->getRCN((*allDOFs)[iele][idof]);
+      if(uDofNum >= 0){
+        residual[uDofNum] -= elementForce[idof];
+        unassemResidual[DOFcounter] -= elementForce[idof];
+        DOFcounter += 1;
+      }else if(reactions) {
         int cDofNum = c_dsa->invRCN((*allDOFs)[iele][idof]);
         if(cDofNum >= 0)
           (*reactions)[cDofNum] += elementForce[idof];
@@ -426,6 +589,33 @@ Domain::getWeightedFictitiousForceOnly(const std::map<int, double> &weights, Geo
         int cDofNum = c_dsa->invRCN((*allDOFs)[iele][idof]);
         if(cDofNum >= 0)
           (*reactions)[cDofNum] += elementForce[idof];
+      }
+    }
+  }
+}
+
+void
+Domain::getUDEIMFictitiousForceOnly(const std::map<int, std::vector<int> > &weights, GeomState &geomState, Vector &elementForce, FullSquareMatrix *kel,
+                                       Vector &residual, double time, GeomState *refState, Vector *reactions,
+                                       FullSquareMatrix *mel, bool compute_tangents)
+{
+  for (std::map<int, std::vector<int> >::const_iterator it = weights.begin(), it_end = weights.end(); it != it_end; ++it) {
+    const int iele = it->first;
+    const std::vector<int> DOFvector = it->second;
+
+    elementForce.zero();
+
+    getElemFictitiousForce(iele, geomState, elementForce.data(), kel[iele], time, refState, mel[iele], compute_tangents);
+
+    // Assemble element force into residual force vector
+   for(std::vector<int>::const_iterator DOFit = DOFvector.begin(); DOFit != DOFvector.end(); DOFit++) {
+      int uDofNum = c_dsa->getRCN((*allDOFs)[iele][*DOFit]);
+      if(uDofNum >= 0)
+        residual[uDofNum] -= elementForce[*DOFit];
+      else if(reactions) {
+        int cDofNum = c_dsa->invRCN((*allDOFs)[iele][*DOFit]);
+        if(cDofNum >= 0)
+          (*reactions)[cDofNum] += elementForce[*DOFit];
       }
     }
   }

@@ -925,6 +925,23 @@ SingleDomainDynamic::getInternalForce(Vector& d, Vector& f, double t, int tIndex
 }
 
 void
+SingleDomainDynamic::getUnassembledNonLinearInternalForce(Vector& d, Vector& f, Vector& uf, std::map<int, std::pair<int,int> > &uDOFaDOFmap, FullSquareMatrix *kelCopy, double t, int tIndex)
+{// this function is only used to construct unassembled force snapshots in the UDEIM ROM driver
+  Vector residual(domain->numUncon(),0.0);
+  Vector unassemResidual(uf.size(),0.0);
+  Vector fele(domain->maxNumDOF());
+
+  domain->getUnassembledNonLinearInternalForce(*geomState, fele, allCorot, kelArray, residual, unassemResidual, uDOFaDOFmap, 1.0, t, tIndex, geomState,
+                          (Vector*) NULL, melArray,kelCopy);
+
+  f.linC(-1.0,residual); // f = -residual
+  uf.linC(-1.0,unassemResidual);
+
+  if(domain->solInfo().filterFlags || domain->solInfo().hzemFilterFlag)
+    trProject(f);
+}
+
+void
 SingleDomainDynamic::computeTimeInfo()
 {
   // Time integration information

@@ -42,7 +42,8 @@ struct OutputInfo {
           ExternalXMom, ExternalYMom, ExternalZMom, Velocvector, InternalStateVar, Quaternion,
           PlasticStrainXX, PlasticStrainYY, PlasticStrainZZ, PlasticStrainXY,
           PlasticStrainYZ, PlasticStrainXZ, BackStressXX, BackStressYY,
-          BackStressZZ, BackStressXY, BackStressYZ, BackStressXZ };
+          BackStressZZ, BackStressXY, BackStressYZ, BackStressXZ, 
+          OptsWeig};
 
    enum Group  { Nodal, Attribute, NodeGroup };
    Type  type;
@@ -61,6 +62,7 @@ struct OutputInfo {
    double ylayer,zlayer;
    int timeSliceRank; // Global rank of the corresponding time-slice (used by PITA)
    int ndtype; // 0 = deterministic, 1 = mean, 2 = stddev, 3 = pdf
+   int sentype;  // 0 = non-sensitivity, 1 = sensitivity
    enum { realimag, modulusphase, animate };
    int complexouttype;
    int ncomplexout;   
@@ -94,6 +96,7 @@ struct OutputInfo {
      zlayer = 0.0;
      timeSliceRank = 0;
      ndtype = 0;
+     sentype = 0;
      complexouttype = OutputInfo::realimag;
      ncomplexout = 16;
      angularouttype = OutputInfo::convected;

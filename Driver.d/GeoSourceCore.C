@@ -275,6 +275,9 @@ int GeoSource::setAttrib(int n, int a, int ca, int cfrm, double ctheta)
   attrib[na].cmp_frm  = cfrm;
   attrib[na].cmp_theta = ctheta;
   na++;
+  if(domain->solInfo().sensitivity) {
+    atoe[a].elems.push_back(n);
+  }
   return 0;
 }
 
@@ -4459,8 +4462,11 @@ void GeoSource::setElementLumpingWeight(int iele, double value) {
 }
 
 void GeoSource::setSampleNodesAndSlots(int node, int dof){
-//  nodeDofSlotMap_[node] = dof; 
   nodeDofSlotPairVec_.push_back(std::make_pair(node,dof));
+}
+
+void GeoSource::setSampleElemsAndDOFs(int node, int dof){
+  elemDofPairVec_.push_back(std::make_pair(node,dof));
 }
 
 ControlLawInfo::ControlLawInfo()

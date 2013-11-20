@@ -39,7 +39,7 @@ int main (int argc, char *argv[]) {
 
   std::cout << "calculate error up to time: ";
   std::cin >> tFinal;
-  std::cout << "" << std::endl;
+  std::cout << std::endl;
 
     // get header line and length of displacement vector 
     getline(truth_file, header_buffer);
@@ -53,10 +53,8 @@ int main (int argc, char *argv[]) {
       return EXIT_FAILURE;
     }
 
-    //initialize variables
-    cum_normx = 0; cum_normy = 0; cum_normz = 0;
+    // initialize variables
     sumx = 0; sumy = 0; sumz = 0; sumx2 = 0; sumy2 = 0; sumz2 = 0;
-    normalize_factorx = 0; normalize_factory = 0; normalize_factorz = 0;
     num_time_steps = 0;
     
     // begin Froebenius norm computation
@@ -64,22 +62,22 @@ int main (int argc, char *argv[]) {
     while((truth_file >> time1) && time1 <= tFinal) {
       num_time_steps += 1;
 
-      if(getTime == 1)//this is to handle timestamp offsets..it sort of works
+      if(getTime == 1) // this is to handle timestamp offsets..it sort of works
         comp_file >> time2;
 
       printf("\r time stamp 1 = %f \n",time1);
 
       // second: loop over nodes
-      for(int counter=0; counter < num_nodes; counter++) {
+      for(int counter = 0; counter < num_nodes; counter++) {
         // third: read in all dofs
         truth_file >> a1; truth_file >> b1; truth_file >> c1;
 
-	if(time1 == time2) {
+        if(time1 == time2) {
 
-	  comp_file >> a2; comp_file >> b2; comp_file >> c2;
- 	  getTime = 1;
+          comp_file >> a2; comp_file >> b2; comp_file >> c2;
+          getTime = 1;
 	  
-	  sumx += pow((a1-a2),2);      
+          sumx += pow((a1-a2),2);      
           sumy += pow((b1-b2),2);
           sumz += pow((c1-c2),2);
 
@@ -87,11 +85,11 @@ int main (int argc, char *argv[]) {
           sumy2 += pow(b1,2);
           sumz2 += pow(c1,2);
         }
-	else {
-	  if(counter == 0) {
-	    std::cout << "skipping time step " << time1 << std::endl;
-	    getTime = 0;
-	  }
+        else {
+          if(counter == 0) {
+            std::cout << "skipping time step " << time1 << std::endl;
+            getTime = 0;
+          }
         }
       }
 
@@ -99,15 +97,15 @@ int main (int argc, char *argv[]) {
         break;
     }
 
-    //square root of differences
-    cum_normx += pow(sumx,0.5);
-    cum_normy += pow(sumy,0.5);
-    cum_normz += pow(sumz,0.5);
+    // square root of differences
+    cum_normx = pow(sumx,0.5);
+    cum_normy = pow(sumy,0.5);
+    cum_normz = pow(sumz,0.5);
 
-    //square root of absolute
-    normalize_factorx += pow(sumx2,0.5);
-    normalize_factory += pow(sumy2,0.5);
-    normalize_factorz += pow(sumz2,0.5);
+    // square root of absolute
+    normalize_factorx = pow(sumx2,0.5);
+    normalize_factory = pow(sumy2,0.5);
+    normalize_factorz = pow(sumz2,0.5);
 
     relative_errorx = cum_normx/(normalize_factorx);
     relative_errory = cum_normy/(normalize_factory);

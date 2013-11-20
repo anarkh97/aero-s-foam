@@ -64,12 +64,13 @@ int main (int argc, char *argv[]) {
       return EXIT_FAILURE;
     }
 
-    // first: loop over all timesteps
-    cum_normx = 0; cum_normy = 0; cum_normz = 0;
-    cum_normrx = 0; cum_normry = 0; cum_normrz = 0;
-    normalize_factorx = 0; normalize_factory = 0; normalize_factorz = 0;
-    normalize_factorrx = 0; normalize_factorry = 0; normalize_factorrz = 0;
+    // initialize variables
+    sumx = 0; sumy = 0; sumz = 0; sumx2 = 0; sumy2 = 0; sumz2 = 0;
+    sumrx = 0; sumry = 0; sumrz = 0; sumrx2 = 0; sumry2 = 0; sumrz2 = 0;
     num_time_steps = 0;
+    
+    // begin Froebenius norm computation
+    // first: loop over all timesteps
     while((truth_file >> time1) && time1 <= tFinal) {
       num_time_steps += 1;
 
@@ -78,25 +79,22 @@ int main (int argc, char *argv[]) {
 
       printf("\r time stamp 1 = %f \n",time1);
 
-      // begin computation for L2-norm for timestep, 'num_time_step'
-      sumx = 0; sumy = 0; sumz = 0; sumx2 = 0; sumy2 = 0; sumz2 = 0;
-      sumrx = 0; sumry = 0; sumrz = 0; sumrx2 = 0; sumry2 = 0; sumrz2 = 0;
-      // second: loop of nodes
-      for(int counter=0; counter < num_nodes; counter++) {
+      // second: loop over nodes
+      for(int counter = 0; counter < num_nodes; counter++) {
         // read node number if necessary
         if(truthFlag) truth_file >> i1;
         // third: read in all dofs
         truth_file >> a1; truth_file >> b1; truth_file >> c1;
         truth_file >> d1; truth_file >> e1; truth_file >> f1;
 
-	if(time1 == time2) {
+        if(time1 == time2) {
 
           if(compFlag) comp_file >> i2;
-	  comp_file >> a2; comp_file >> b2; comp_file >> c2;
+          comp_file >> a2; comp_file >> b2; comp_file >> c2;
           comp_file >> d2; comp_file >> e2; comp_file >> f2;
- 	  getTime = 1;
+          getTime = 1;
 	  
-	  sumx += pow((a1-a2),2);      
+          sumx += pow((a1-a2),2);      
           sumy += pow((b1-b2),2);
           sumz += pow((c1-c2),2);
           sumrx += pow((d1-d2),2);
@@ -110,32 +108,33 @@ int main (int argc, char *argv[]) {
           sumry2 += pow(e1,2);
           sumrz2 += pow(f1,2);
         }
-	else {
-	  if(counter == 0) {
-	    std::cout << "skipping time step " << time1 << std::endl;
-	    getTime = 0;
-	  }
+        else {
+          if(counter == 0) {
+            std::cout << "skipping time step " << time1 << std::endl;
+            getTime = 0;
+          }
         }
       }
-
-      // sum 2-norm for timestep, "num_time_step" (sum(n=1->n_t)[|v^n - v^n_I|]
-      cum_normx += pow(sumx,0.5);
-      cum_normy += pow(sumy,0.5);
-      cum_normz += pow(sumz,0.5);
-      cum_normrx += pow(sumrx,0.5);
-      cum_normry += pow(sumry,0.5);
-      cum_normrz += pow(sumrz,0.5);
-
-      normalize_factorx += pow(sumx2,0.5);
-      normalize_factory += pow(sumy2,0.5);
-      normalize_factorz += pow(sumz2,0.5);
-      normalize_factorrx += pow(sumrx2,0.5);
-      normalize_factorry += pow(sumry2,0.5);
-      normalize_factorrz += pow(sumrz2,0.5);
 
       if(!truth_file)
         break;
     }
+
+    // square root of differences
+    cum_normx = pow(sumx,0.5);
+    cum_normy = pow(sumy,0.5);
+    cum_normz = pow(sumz,0.5);
+    cum_normrx = pow(sumrx,0.5);
+    cum_normry = pow(sumry,0.5);
+    cum_normrz = pow(sumrz,0.5);
+
+    // square root of absolute
+    normalize_factorx = pow(sumx2,0.5);
+    normalize_factory = pow(sumy2,0.5);
+    normalize_factorz = pow(sumz2,0.5);
+    normalize_factorrx = pow(sumrx2,0.5);
+    normalize_factorry = pow(sumry2,0.5);
+    normalize_factorrz = pow(sumrz2,0.5);
 
     relative_errorx = cum_normx/(normalize_factorx);
     relative_errory = cum_normy/(normalize_factory);

@@ -1012,6 +1012,19 @@ Domain::constructEiSparseGalerkinProjectionSolver()
 
 template<class Scalar>
 void
+Domain::buildSensitivities(AllSensitivities<Scalar> &allSens)
+{
+  switch(sinfo.type) {
+    default:
+      fprintf(stderr," *** WARNING: Solver not Specified  ***\n");
+    case 0:
+      makeSensitivities<Scalar>(allSens, totWeight);
+      break;
+  }
+}
+
+template<class Scalar>
+void
 Domain::buildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Ccoef,
                  Rbm *rbm, FullSquareMatrix *kelArray, FullSquareMatrix *melArray,
                  FullSquareMatrix *celArray, bool factorize)
@@ -1053,10 +1066,6 @@ Domain::buildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Ccoe
     case 0:
       makeStaticOpsAndSolver<Scalar>(allOps, Kcoef, Mcoef, Ccoef,
                                      systemSolver, allOps.spm, rbm, kelArray, melArray, celArray); // also used for eigen
-      if(sinfo.sensitivity) {
-        allOps.rhs_inpc = new GenVector<Scalar>(domain->numUncon());
-        makeSensitivityOps<Scalar>(allOps, totWeight);
-      }
       break;
     case 1:
       makeDynamicOpsAndSolver<Scalar>(allOps, Kcoef, Mcoef, Ccoef,
@@ -2049,39 +2058,53 @@ void Domain::forceDistributedContinuity(Scalar *u, Scalar (*xyz)[11])//DofSet::m
 
 template<class Scalar>
 void
-Domain::makeSensitivityOps(AllOps<Scalar> &allOps, double &weight)
+Domain::makeSensitivities(AllSensitivities<Scalar> &allSens, double &weight)
 {
-  // ... COMPUTE TOTAL STRUCTURAL WEIGHT AND DERIVATIVE WRT THICKNESS
-  weight = 0.0;
-  int altitude_direction = 2;
-  GenVector<Scalar> weightDerivative(numele);  // YC: the type can be changed to double
-  map<int, Group> &group = geoSource->group;
-  map<int, AttributeToElement> &atoe = geoSource->atoe;
-  if(numParam() != group.size()) {
-    cerr << " *** ERROR: numParam() is not equal to the size of group \n"; 
-    exit(-1);
-  }
-  allOps.Weight_deriv = new GenVector<Scalar>(numParam(), 0.0);
-  map<int, Attrib> &attributes = geoSource->getAttributes();
-  for(int iele = 0; iele < numele; ++iele) {
-    StructProp *prop = packedEset[iele]->getProperty();
-    if(prop == 0) continue; // phantom element
+ for(int sindex=0; sindex < numSensitivity; ++sindex) {
+  switch(senInfo[sindex].type) {
+   case SensitivityInfo::WeightWRTthickness:
+   {
+     // ... COMPUTE TOTAL STRUCTURAL WEIGHT AND DERIVATIVE WRT THICKNESS
+     weight = 0.0;
+     int altitude_direction = 2;
+     GenVector<Scalar> weightDerivative(numele);  // YC: Isn't Scalar always double?
+     map<int, Group> &group = geoSource->group;
+     map<int, AttributeToElement> &atoe = geoSource->atoe;
+     if(senInfo[sindex].numParam != group.size()) {
+       cerr << " *** ERROR: number of parameters is not equal to the size of group \n"; 
+       exit(-1);
+     }
+     allSens.weightWRTthick = new GenVector<Scalar>(senInfo[sindex].numParam, 0.0);
+     map<int, Attrib> &attributes = geoSource->getAttributes();
+     for(int iele = 0; iele < numele; ++iele) {
+       StructProp *prop = packedEset[iele]->getProperty();
+       if(prop == 0) continue; // phantom element
 
-    weight += packedEset[iele]->weight(nodes, gravityAcceleration, altitude_direction); 
-    weightDerivative[iele] = packedEset[iele]->weightDerivativeWRTthickness(nodes, gravityAcceleration, altitude_direction);
-  }
+       weight += packedEset[iele]->weight(nodes, gravityAcceleration, altitude_direction); 
+       weightDerivative[iele] = packedEset[iele]->weightDerivativeWRTthickness(nodes, gravityAcceleration, altitude_direction);
+     }
 
-  for(int gindex = 0; gindex < numParam(); ++gindex) {
-    for(int aindex = 0; aindex < group[gindex].attributes.size(); ++aindex) {
-      for(int eindex =0; eindex < atoe[group[gindex].attributes[aindex]].elems.size(); ++eindex) {
-        (*allOps.Weight_deriv)[gindex] += weightDerivative[atoe[group[gindex].attributes[aindex]].elems[eindex]]; 
-      }
-    }
-  }
+     for(int gindex = 0; gindex < senInfo[sindex].numParam; ++gindex) {
+       for(int aindex = 0; aindex < group[gindex].attributes.size(); ++aindex) {
+         for(int eindex =0; eindex < atoe[group[gindex].attributes[aindex]].elems.size(); ++eindex) {
+           (*allSens.weightWRTthick)[gindex] += weightDerivative[atoe[group[gindex].attributes[aindex]].elems[eindex]]; 
+         }
+       }
+     }
 
-  filePrint(stderr," *** WEIGHT : %e\n", weight);
-  allOps.Weight_deriv->print("printing weight derivative\n");
-  sensitivityPostProcessing(allOps.Weight_deriv->data(), weight, numParam()); 
+     filePrint(stderr," *** WEIGHT : %e\n", weight);
+     allSens.weightWRTthick->print("printing weight derivative\n");
+
+     // ... post-processing for sensitivities
+     sensitivityPostProcessing(allSens.weightWRTthick->data(), weight, senInfo[sindex].numParam); // post-processing for weightWRTthick
+     break;
+   }
+   case SensitivityInfo::StressVMWRTthickness: 
+   {
+     break;
+   }
+  }
+ }
 }
 
 template<class Scalar>

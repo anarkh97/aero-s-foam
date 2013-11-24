@@ -35,6 +35,10 @@ public:
                          Vector &elDisp, int strInd, int surface = 0,
                          double *ndTemps = 0, double ylayer = 0, double zlayer = 0,
                          int avgnum = 0);
+#ifdef USE_EIGEN3
+        void getVonMisesThicknessSensitivity(Eigen::VectorXd &dStressdthick, CoordSet &cs, Vector &elDisp, 
+                                             int strInd, int surface, double *, double ylayer, double zlayer, int avgnum);
+#endif
 
         void getAllStress(FullM &stress, Vector &weight, CoordSet &cs,
                          Vector &elDisp, int strInd, int surface = 0,

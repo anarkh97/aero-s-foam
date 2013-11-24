@@ -2,6 +2,7 @@
 #define _SOLVER_INFO_
 
 #include <Utils.d/NonlinearInfo.h>
+#include <Utils.d/SensitivityInfo.h>
 #include <Feti.d/FetiInfo.h>
 #include <Utils.d/Conwep.d/BlastLoading.h>
 #include <cstdio>
@@ -246,7 +247,6 @@ struct SolverInfo {
 
    // YC : sensitivity and optimization parameters
    bool sensitivity;
-   int numParam;
 
    // KAS :  map object for Mumps control CNTL and ICNTL matrices
    map<int, int> mumps_icntl;
@@ -409,7 +409,6 @@ struct SolverInfo {
  
                   // Parameters for sensitivity
                   sensitivity = false;
-                  numParam = 0; 
 		 
                   // Parameters for PITA 
                   activatePita = false;

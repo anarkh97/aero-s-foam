@@ -965,6 +965,10 @@ TRAIL [a-zA-Z]*
 
 "optsweig"|"OPTSWEIG"              { yylval.ival = OutputInfo::OptsWeig; return SENSITIVITYID; }
 
+"weigthic"|"WEIGTHIC"              { yylval.ival = SensitivityInfo::WeightWRTthickness;   return SENSITIVITYTYPE; }
+
+"vmstthic"|"VMSTTHIC"              { yylval.ival = SensitivityInfo::StressVMWRTthickness; return SENSITIVITYTYPE; }
+
 "elemental"[a-zA-Z]*|"ELEMENTAL"[a-zA-Z]* { yylval.ival =  0; return AVERAGED; }
 
 "gauss"[a-zA-Z]*|"GAUSS"[a-zA-Z]*  { yylval.ival =  -1; return AVERAGED; }

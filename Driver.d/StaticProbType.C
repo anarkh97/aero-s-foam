@@ -11,6 +11,10 @@ StaticSolver< Scalar, OpSolver, VecType,
 	      PostProcessor, ProblemDescriptor, ComplexVecType >
   ::solve()
 {
+ if(domain->solInfo().sensitivity) { 
+   probDesc->preProcessSA();
+   return; 
+ }
  probDesc->preProcess();
 
  rhs = new VecType(probDesc->solVecInfo());

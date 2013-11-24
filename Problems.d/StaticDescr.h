@@ -75,6 +75,7 @@ class SingleDomainStatic
     DComplex *bcxC;
     GenSparseMatrix<T> *kuc, *kcc;
     AllOps<T> allOps;
+    AllSensitivities<T> allSens;
     SolverType *solver;
     StaticTimers *times; 
 
@@ -97,6 +98,7 @@ class SingleDomainStatic
     void getFreqSweepRHS(VectorType *rhs, VectorType **sol_prev, int iRHS);
     virtual void getRHS(VectorType &,double,double);
     void pade(VectorType *sol, VectorType **sol_prev, double *h, double x) { };
+    void preProcessSA();
     virtual void preProcess();
     void rebuildSolver()
       { clean(); preProcess(); }

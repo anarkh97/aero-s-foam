@@ -59,6 +59,7 @@ class GenMultiDomainStatic
     DistrInfo &solVecInfo(int i);
     void getRHS(GenDistrVector<Scalar> &);
     void getRHSinpc(GenDistrVector<Scalar>  &) {cerr << "GenMultiDomainStatic::getRHSinpc not implemented" << endl ; }
+    void preProcessSA() {cerr<< "GenMultiDomainStatic::preProcessSA() not implemented" << endl; }
     void preProcess();
     void assignRandMat() {cerr << "GenMultiDomainStatic::assignRandMat() not implemented" << endl ; }
     void retrieveElemset() {cerr << "GenMultiDomainStatic::retrieveElemset() not implemented" << endl ; }

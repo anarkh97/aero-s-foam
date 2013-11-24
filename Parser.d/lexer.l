@@ -573,8 +573,6 @@ TRAIL [a-zA-Z]*
 
 "HESSI"[a-zA-Z]*|"hessi"[a-zA-Z]*  { return HESSIAN; }
 
-"RIGID"|"rigid"                    { return RIGID; }
-
 "PENA"[a-zA-Z]*|"pena"[a-zA-Z]*    { return PENALTY; }
 
 "AUGMENTE"[a-zA-Z]*|"augmente"[a-zA-Z]* { return AUGMENTED; }

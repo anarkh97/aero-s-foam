@@ -198,7 +198,7 @@ class StructProp {
         int relop; // 0: equality (==), 1: inequality (<=)
         int constraint_hess;
         double constraint_hess_eps;
-        enum { Undefined=0, Fluid, Fabric, Thermal, Constraint } type;
+        enum PropType { Undefined=0, Fluid, Fabric, Thermal, Constraint } type;
         double k1, k2, k3;
 
 	// Fabric Material Options
@@ -222,7 +222,6 @@ class StructProp {
         PMLProps fp;
 
         bool isReal;
-        bool isRigid;
 
 	/** the W and E coefficient might encode integer values when they're negative
 	 * (see manual for this). Heavily templated Sower needs a temporary storage that's adressable.
@@ -237,7 +236,7 @@ class StructProp {
                        soundSpeed = 1.0; alphaDamp = 0.0; betaDamp = 0.0;
                        etaDamp = 0.0; etaDampTable = -1;
                        ymin = 0.0; ymax = 0.0;
-                       zmin = 0.0; zmax = 0.0; isReal = false; isRigid = false;
+                       zmin = 0.0; zmax = 0.0; isReal = false;
                        lagrangeMult = true; penalty = 0.0; initialPenalty = 0.0;
                        B = 1.0; C = 0.0; relop = 0; type = Undefined; funtype = 0;
                        k1 = 0; k2 = 0; k3 = 0; constraint_hess = 1; constraint_hess_eps = 0.0; } 

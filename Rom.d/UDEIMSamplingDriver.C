@@ -216,8 +216,10 @@ UDEIMSamplingDriver::computeAssembledIndices(std::vector<int> &umaskIndices, std
    elemRankDOFContainer.push_back(std::make_pair(selectedElem,selectedDOF)); //map from selected element to selected DOF
  }
 
+#ifdef USE_EIGEN3
   Eigen::Map< Eigen::Matrix<int,Eigen::Dynamic,Eigen::Dynamic> > indSol(amaskIndices.data(),amaskIndices.size(),1);
   std::cout << "assembled selected indices:" << indSol.transpose() << std::endl;
+#endif
 
 }
 

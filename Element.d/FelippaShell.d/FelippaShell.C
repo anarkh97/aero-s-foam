@@ -900,6 +900,15 @@ FelippaShell::updateStates(GeomState *refState, GeomState &geomState, CoordSet &
   }
 }
 
+void
+FelippaShell::initStates(double *staten)
+{
+ if(numStates() > 0) {
+   gpmat->SetState( staten+0 );
+   nmat->SetState ( staten+gpmat->GetNumStates() );
+ }
+}
+
 int
 FelippaShell::numNodes()
 {

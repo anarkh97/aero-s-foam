@@ -80,6 +80,7 @@ public:
         void getInternalForce(GeomState *refState, GeomState &geomState, CoordSet &cs,
                                FullSquareMatrix &elK, double *f, double dt, double t);
         void updateStates(GeomState *refState, GeomState &curState, CoordSet &C0);
+        void initStates(double *);
 
         // Routines for the decomposer
         PrioInfo examine(int sub, MultiFront *);

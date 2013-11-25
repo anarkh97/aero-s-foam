@@ -119,9 +119,8 @@ struct AllOps
   GenSparseMatrix<Scalar> **Cuc_deriv;    // derivatives of constrained to unconstrained damping matrix for higher order sommerfeld
 
   GenVector<Scalar> *rhs_inpc;
-  GenVector<Scalar> *Weight_deriv;   // derivatives of weight with respect to a parameter
   // Constructor
-  AllOps() { sysSolver = 0; spm = 0; prec = 0; spp = 0; Msolver = 0; K = 0; M = 0; C = 0; Kuc = 0; Muc = 0; Cuc = 0; Kcc = 0; Mcc = 0; Ccc = 0; C_deriv = 0; Cuc_deriv = 0; rhs_inpc = 0; Weight_deriv = 0;}
+  AllOps() { sysSolver = 0; spm = 0; prec = 0; spp = 0; Msolver = 0; K = 0; M = 0; C = 0; Kuc = 0; Muc = 0; Cuc = 0; Kcc = 0; Mcc = 0; Ccc = 0; C_deriv = 0; Cuc_deriv = 0; rhs_inpc = 0; }
 
   void zero() {if(K) K->zeroAll();
                if(M) M->zeroAll();
@@ -136,6 +135,19 @@ struct AllOps
                if (C_deriv) if (C_deriv[0]) C_deriv[0]->zeroAll();
                if (Cuc_deriv) if (Cuc_deriv[0]) Cuc_deriv[0]->zeroAll();
              }
+};
+
+template<class Scalar>
+struct AllSensitivities
+{
+  GenVector<Scalar> *weightWRTthick;    // derivatives of weight with respect to thickness 
+  GenVector<Scalar> *vonMisesWRTthick;  // derivatives of von Mises stress with respect to thickness
+  // Constructor
+  AllSensitivities() { weightWRTthick = 0; vonMisesWRTthick = 0;}
+
+  void zero() {if(weightWRTthick) weightWRTthick->zeroAll();
+               if(vonMisesWRTthick) vonMisesWRTthick->zeroAll();
+              }
 };
 
 // Structure to store discrete masses
@@ -176,7 +188,8 @@ class Domain : public HData {
      int numele;		// number of elements
      Elemset packedEset;	// The set of compressed elements
      int numdofs; 		// the total number of degrees of freedom
-
+     int numSensitivity;  // the total number of sensitivity types    
+ 
      // BC related data members
      int numDirichlet;		// number of dirichlet bc
      int numDirichletFluid;	// number of dirichlet bc in fluid, ADDED FOR HEV PROBLEM, 20070820
@@ -293,6 +306,7 @@ class Domain : public HData {
     std::vector<int> followedElemList;
 
   public:
+    SensitivityInfo *senInfo;  // sensitivity information structure array
     // Implements nonlinear dynamics postprocessing for file # fileId
     void postProcessingImpl(int fileId, GeomState*, Vector&, Vector&,
                             double, int, double *, double *,
@@ -451,6 +465,7 @@ class Domain : public HData {
      void updateSfemStress(double* str, int fileNumber);
      void updateSfemStress(DComplex* str, int fileNumber) {cerr <<"Domain::updateSfemStress(DComplex*,.) not implemented" << endl;};
      // Functions to suport the parsing:
+     void addSensitivity(SensitivityInfo &senInfo);
      int  addDMass(int, int, double, int jdof = -1);
      DMassData* getFirstDMassData() { return firstDiMass; }
      int getDMassNumber() { return nDimass; }
@@ -525,6 +540,9 @@ class Domain : public HData {
   * ... type (i.e. use makeSparseOps in statics, dynamics, eigen, etc.)
   */
      template<class Scalar>
+       void buildSensitivities(AllSensitivities<Scalar> &ops);
+
+     template<class Scalar>
        void buildOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef, double Ccoef,
                      Rbm *rbm = 0, FullSquareMatrix *kelArray = 0, FullSquareMatrix *melArray = 0,
                      FullSquareMatrix *celArray = 0, bool factor = true);
@@ -553,7 +571,7 @@ class Domain : public HData {
                           FullSquareMatrix *celArray = 0);
 
      template<class Scalar>
-       void makeSensitivityOps(AllOps<Scalar> &ops, double &weight);
+       void makeSensitivities(AllSensitivities<Scalar> &allSens, double &weight);
 
      template<class Scalar>
        GenDBSparseMatrix<Scalar> *constructDBSparseMatrix(DofSetArray *dof_set_array=0,
@@ -850,12 +868,6 @@ class Domain : public HData {
      // returns the number of unconstrained dof
      int numUncon() {
        return c_dsa ? c_dsa->size() : dsa ? dsa->size() : 0;
-     }
-
-     // returns the number of parameters
-     // Here, parameters are for optimization or sensitivity problems
-     int numParam() {
-       return sinfo.numParam;
      }
 
      // returns the number of unconstrained Fluid dof

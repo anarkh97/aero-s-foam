@@ -55,6 +55,7 @@
  OutputInfo oinfo;
  ConstraintOptions copt;
  BlastLoading::BlastData blastData;
+ SensitivityInfo sinfo;
 }
 
 %expect 6
@@ -108,7 +109,7 @@
 %token SNAPFI PODROB TRNVCT OFFSET ORTHOG SVDTOKEN CONVERSIONTOKEN CONVFI SAMPLING SNAPSHOTPROJECT PODSIZEMAX REFSUBSTRACT TOLER OUTOFCORE NORMALIZETOKEN FNUMBER SNAPWEIGHT ROBFI STAVCT VELVCT ACCVCT CONWEPCFG
 %token VECTORNORM LOCALTOLERANCE REBUILDFORCE SAMPNODESLOT FORCEROB DEIMINDICES UDEIMINDICES SVDFORCESNAP
 %token USEMASSNORMALIZEDBASIS
-%token OPTSENSITIVITY SENSITIVITYID 
+%token OPTSENSITIVITY SENSITIVITYID SENSITIVITYTYPE 
 %token QRFACTORIZATION QMATRIX RMATRIX XMATRIX
 
 %type <complexFDBC> AxiHD
@@ -133,7 +134,7 @@
 %type <rprop>    RPROP
 %type <ival>     WAVETYPE WAVEMETHOD
 %type <ival>     SCALINGTYPE SOLVERTYPE STRESSID SURFACE MOMENTTYPE
-%type <ival>     SENSITIVITYID
+%type <ival>     SENSITIVITYID SENSITIVITYTYPE
 %type <ldata>    LayData LayoData LayMatData
 %type <linfo>    LaycInfo LaynInfo LaydInfo LayoInfo
 %type <mftval>   MFTTInfo
@@ -157,6 +158,7 @@
 %type <oinfo>    OutInfo
 %type <copt>     ConstraintOptionsData
 %type <blastData> ConwepData
+%type <sinfo>    SenInfo
 %%
 FinalizedData:
 	All END
@@ -860,6 +862,19 @@ UsddLocations:
           if(geoSource->setUsddLocation($3->n,$3->d) < 0) return -1;
           if(geoSource->setDirichlet($3->n,$3->d) < 0)    return -1; }
 	;
+OptSensitivity:
+    OPTSENSITIVITY NewLine
+  { 
+    domain->solInfo().sensitivity = true;
+    domain->senInfo = new SensitivityInfo[50];  // maximum number of sensitivities are fixed to 50
+  } 
+  | OptSensitivity SenInfo NewLine
+  { domain->addSensitivity($2); }
+  ;
+SenInfo:
+    SENSITIVITYTYPE Integer    
+  { $$.type = (SensitivityInfo::Type) $1; $$.numParam = $2;  } 
+  ;
 Output:
 	OUTPUT NewLine
         { numColumns = 3; } // set number of output columns to 3 
@@ -1249,13 +1264,6 @@ TimeInfo:
 	TIME Float Float Float NewLine
 	{ domain->solInfo().setTimes($4,$3,$2); }
 	;
-OptSensitivity:
-  OPTSENSITIVITY Integer NewLine
-  {
-    domain->solInfo().sensitivity = true;
-    domain->solInfo().numParam = $2;
-  }
-  ;
 ParallelInTimeInfo:
         PITA NewLine Integer Integer ParallelInTimeOptions
         {

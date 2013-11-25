@@ -2939,6 +2939,7 @@ Domain::initialize()
  p = 0;
  g_dsa = 0;
  totWeight = 0;
+ numSensitivity = 0; senInfo = 0; 
 }
 
 Domain::~Domain()
@@ -3014,6 +3015,7 @@ Domain::~Domain()
  for(int i=0; i<contactSurfElems.size(); ++i)
    packedEset.deleteElem(contactSurfElems[i]);
  if(g_dsa) delete g_dsa;
+ if(senInfo) delete [] senInfo;
 }
 
 #include <Element.d/Helm.d/HelmElement.h>
@@ -3922,3 +3924,6 @@ void Domain::updateSDETAF(StructProp* p, double omega) {
  }
 }
 
+void Domain::addSensitivity(SensitivityInfo &_senInfo) {
+  senInfo[numSensitivity++] = _senInfo;
+}

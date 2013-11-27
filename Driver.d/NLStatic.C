@@ -1683,7 +1683,10 @@ Domain::computeGeometricPreStress(Corotator **&allCorot, GeomState *&geomState,
 #endif
 
    times->timeGeom -= getTime();
-   geomState = new GeomState( *getDSA(), *getCDSA(), getNodes(), &getElementSet() );
+   if(domain->solInfo().soltyp == 2)
+     geomState =  new TemperatureState( *getDSA(), *getCDSA(), getNodes() );
+   else 
+     geomState = new GeomState( *getDSA(), *getCDSA(), getNodes(), &getElementSet() );
    times->timeGeom += getTime();
 #ifdef PRINT_NLTIMERS
    fprintf(stderr," ... Build GeomState %29.5f s\n", times->timeGeom/1000.0);

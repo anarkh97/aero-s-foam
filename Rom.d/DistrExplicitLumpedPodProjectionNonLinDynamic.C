@@ -117,7 +117,7 @@ void
 DistrExplicitLumpedPodProjectionNonLinDynamic::subTransformWeightedNodesOnly(int iSub, DistrVector &v, int type) {
   StackVector vec(v.subData(iSub), v.subLen(iSub));
   GeomState *gs = (*geomState).getSubGeomState(iSub);
-  gs->transform(vec, packedWeightedNodes_[iSub], type);
+  gs->transform(vec, packedWeightedNodes_[iSub], type, true);
 }
 
 void

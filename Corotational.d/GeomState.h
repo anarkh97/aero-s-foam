@@ -112,7 +112,7 @@ class GeomState {
      virtual void push_forward(Vector &f);
      virtual void pull_back(Vector &f);
      virtual void transform(Vector &f, int flag, bool unscaled = false) const;
-     virtual void transform(Vector &f, const std::vector<int> &, int flag) const;
+     virtual void transform(Vector &f, const std::vector<int> &, int flag, bool unscaled = false) const;
      void zeroRotDofs(Vector &vec);
      void interp(double, const GeomState &, const GeomState &);
      void diff(const GeomState &unp, Vector &un);

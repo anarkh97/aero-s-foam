@@ -497,7 +497,6 @@ void mat_to_vec(const Eigen::Matrix<Scalar,3,3> &rten, Eigen::Matrix<Scalar,3,1>
       else {
         Scalar sthh = sqrt ( sthh2 );
         if( sthh < 0.7 ) {
-          sthh = sqrt( sthh2 );
           th = 2.0*asin( sthh );
         }
         else {

@@ -1,3 +1,4 @@
+#ifdef USE_EIGEN3
 #include <Element.d/Function.d/InertialForce.d/InertialForceFunction.h>
 #include <Element.d/Function.d/Rotation.d/IncrementalRotationVectorType1.h>
 #include <iostream>
@@ -48,3 +49,4 @@ Jacobian<double,InertialForceFunction>
 }
 
 } // namespace Simo
+#endif

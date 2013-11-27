@@ -385,6 +385,7 @@ struct SolverInfo {
    bool oocPodRom; // if this is true and aero-s is compiled with stxxl, then out-of-core spnnls solver will be used
                    // by the single domain element lumping driver
    bool useMassNormalizedBasis;
+   bool useMassOrthogonalProjection;
    bool ConwepOnOff;
    std::list<int> loadcases;
    bool basicDofCoords; // if this is true then all of the nodes use the basic coordinate frame 0 for DOF_FRM
@@ -657,6 +658,7 @@ struct SolverInfo {
                   tolPodRom          = 1.0e-6;
                   oocPodRom          = true;
                   useMassNormalizedBasis = true;
+                  useMassOrthogonalProjection = false;
                   ConwepOnOff        = false;
                   basicDofCoords     = true;
                   basicPosCoords     = true;

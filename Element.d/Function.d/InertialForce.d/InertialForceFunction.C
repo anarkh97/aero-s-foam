@@ -41,7 +41,7 @@ Jacobian<double,InertialForceFunction>
          P[2],     0, -P[0],
         -P[1],  P[0],     0;
 
-  Eigen::Array<double,18,1> sconst2 = sconst.template segment<18>(15);
+  Eigen::Array<double,18,1> sconst2 = sconst.segment<18>(15);
   Jacobian<double,IncrementalRotationVectorType1> dPsidq(sconst2, Eigen::Array<int,0,1>::Zero());
   //std::cerr << "d[mat_to_vec(R_n^T*vec_to_mat(psi)*Rref)]/dq = \n" << dPsidq(q, 0.) << std::endl;
 

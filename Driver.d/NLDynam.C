@@ -545,7 +545,7 @@ Domain::getNodeFictitiousForce(int inode, GeomState &geomState, double time, Geo
                     beta, gamma, alphaf, alpham, dt, sinfo.alphaDamp;
 
           // evaluate the jacobian of the inertial+viscous force
-          Simo::Jacobian<double,InertialForceFunction> dFdq(dconst,iconst);
+          Simo::Jacobian<double,Simo::InertialForceFunction> dFdq(dconst,iconst);
           q = Eigen::Vector3d::Zero();
           K = dFdq(q, time);
         }

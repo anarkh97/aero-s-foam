@@ -991,7 +991,7 @@ GeomState::transform(Vector &f, int type, bool unscaled) const
     if(flag[inode] == -1) continue;
 
     if(loc[inode][3] >= 0 || loc[inode][4] >= 0 || loc[inode][5] >= 0) {
-      Eigen::Vector3d vec, Psi, result;
+      Eigen::Vector3d vec, result;
       vec[0] = ( loc[inode][3] >= 0 ) ? f[loc[inode][3]] : 0;
       vec[1] = ( loc[inode][4] >= 0 ) ? f[loc[inode][4]] : 0;
       vec[2] = ( loc[inode][5] >= 0 ) ? f[loc[inode][5]] : 0;
@@ -1071,7 +1071,7 @@ GeomState::transform(Vector &f, int type, bool unscaled) const
 }
 
 void
-GeomState::transform(Vector &f, const std::vector<int> &weightedNodes, int type) const
+GeomState::transform(Vector &f, const std::vector<int> &weightedNodes, int type, bool unscaled) const
 {
 #ifdef USE_EIGEN3
   int inode;
@@ -1081,17 +1081,25 @@ GeomState::transform(Vector &f, const std::vector<int> &weightedNodes, int type)
     if(flag[inode] == -1) continue;
 
     if(loc[inode][3] >= 0 || loc[inode][4] >= 0 || loc[inode][5] >= 0) {
-      Eigen::Vector3d vec, Psi, result;
+      Eigen::Vector3d vec, result;
       vec[0] = ( loc[inode][3] >= 0 ) ? f[loc[inode][3]] : 0;
       vec[1] = ( loc[inode][4] >= 0 ) ? f[loc[inode][4]] : 0;
       vec[2] = ( loc[inode][5] >= 0 ) ? f[loc[inode][5]] : 0;
 
-      Eigen::Matrix3d R, T;
+      Eigen::Matrix3d R;
       R << ns[inode].R[0][0], ns[inode].R[0][1], ns[inode].R[0][2],
            ns[inode].R[1][0], ns[inode].R[1][1], ns[inode].R[1][2],
            ns[inode].R[2][0], ns[inode].R[2][1], ns[inode].R[2][2];
-      mat_to_vec(R, Psi);
-      tangential_transf(Psi, T);
+
+      Eigen::Vector3d PsiI;
+      if(unscaled) {
+        PsiI << ns[inode].theta[0], ns[inode].theta[1], ns[inode].theta[2];
+      }
+      else {
+        mat_to_vec(R, PsiI);
+      }
+      Eigen::Matrix3d T;
+      tangential_transf(PsiI, T);
 
       switch(type) {
         case 0 :

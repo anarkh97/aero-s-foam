@@ -1415,6 +1415,8 @@ TRAIL [a-zA-Z]*
 
 "MNORMA"|"MNorma"|"mnorma"		  { return NORMALIZETOKEN; }
 
+"MPRO"[a-zA-Z]*|"mpro"[a-zA-Z]*           { return MPROJECT; }
+
 "blcksz"|"BlckSz"|"BLCKSZ"                { return BLOCKSIZE; }
 
 "RODC"|"RodC"|"rodc"                      { return CONVERSIONTOKEN; } // reduced order data conversion token

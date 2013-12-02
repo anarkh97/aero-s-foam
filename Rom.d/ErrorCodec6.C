@@ -27,7 +27,7 @@ int main (int argc, char *argv[]) {
   ifstream comp_file (argv[2]);
 
   string header_buffer;
-  int num_nodes, length2, num_time_steps, truthFlag, compFlag, i1, i2;
+  int num_nodes, length2, truthFlag, compFlag, i1, i2;
   double time1, time2, tFinal;
   double a1, b1, c1, d1, e1, f1, a2, b2, c2, d2, e2, f2;
   double sumx, sumy, sumz, sumx2, sumy2, sumz2;
@@ -36,7 +36,7 @@ int main (int argc, char *argv[]) {
   double cum_normrx, cum_normry, cum_normrz, normalize_factorrx, normalize_factorry, normalize_factorrz;
   double relative_errorx, relative_errory, relative_errorz;
   double relative_errorrx, relative_errorry, relative_errorrz;
-  int getTime = 1;
+  bool getTime1 = true, getTime2 = true;
   // check to see of both files were successfully opened
   if(truth_file.is_open() && comp_file.is_open()) {
 
@@ -67,32 +67,43 @@ int main (int argc, char *argv[]) {
     // initialize variables
     sumx = 0; sumy = 0; sumz = 0; sumx2 = 0; sumy2 = 0; sumz2 = 0;
     sumrx = 0; sumry = 0; sumrz = 0; sumrx2 = 0; sumry2 = 0; sumrz2 = 0;
-    num_time_steps = 0;
     
     // begin Froebenius norm computation
     // first: loop over all timesteps
-    while((truth_file >> time1) && time1 <= tFinal) {
-      num_time_steps += 1;
+    while(true) {
 
-      if(getTime == 1)
+      if(getTime1) {
+       truth_file >> time1;
+       if(truth_file.eof() || time1 > tFinal) {
+         break;
+       }
+     }
+
+      if(getTime2) {
         comp_file >> time2;
+        if(comp_file.eof() || time2 > tFinal) {
+          break;
+        }
+      }
 
       printf("\r time stamp 1 = %f \n",time1);
 
       // second: loop over nodes
       for(int counter = 0; counter < num_nodes; counter++) {
-        // read node number if necessary
-        if(truthFlag) truth_file >> i1;
-        // third: read in all dofs
-        truth_file >> a1; truth_file >> b1; truth_file >> c1;
-        truth_file >> d1; truth_file >> e1; truth_file >> f1;
 
+        // if the timestamps are the same then read data from both files
         if(time1 == time2) {
 
+          // read node number if necessary
+          if(truthFlag) truth_file >> i1;
+          // third: read in all dofs
+          truth_file >> a1; truth_file >> b1; truth_file >> c1;
+          truth_file >> d1; truth_file >> e1; truth_file >> f1;
           if(compFlag) comp_file >> i2;
           comp_file >> a2; comp_file >> b2; comp_file >> c2;
           comp_file >> d2; comp_file >> e2; comp_file >> f2;
-          getTime = 1;
+          getTime1 = true;
+          getTime2 = true;
 	  
           sumx += pow((a1-a2),2);      
           sumy += pow((b1-b2),2);
@@ -109,9 +120,27 @@ int main (int argc, char *argv[]) {
           sumrz2 += pow(f1,2);
         }
         else {
-          if(counter == 0) {
-            std::cout << "skipping time step " << time1 << std::endl;
-            getTime = 0;
+
+          if(time1 < time2) {
+            if(truthFlag) truth_file >> i1;
+            truth_file >> a1; truth_file >> b1; truth_file >> c1;
+            truth_file >> d1; truth_file >> e1; truth_file >> f1;
+            if(counter == 0) {
+              std::cout << "skipping time step " << time1 << " in truthfile" << std::endl;
+              getTime1 = true;
+              getTime2 = false;
+            }
+          }
+
+          if(time1 > time2) {
+            if(compFlag) comp_file >> i2;
+            comp_file >> a2; comp_file >> b2; comp_file >> c2;
+            comp_file >> d2; comp_file >> e2; comp_file >> f2;
+            if(counter == 0) {
+              std::cout << "skipping time step " << time2 << " in comparisonfile" << std::endl;
+              getTime1 = false;
+              getTime2 = true;
+            }
           }
         }
       }

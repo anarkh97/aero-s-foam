@@ -3071,11 +3071,11 @@ Domain::makeSensitivities(AllSensitivities<double> &allSens, GenVector<double> &
              if(dofs[j] < 0 || (dof = unconstrNum[dofs[j]]) < 0) continue;  // Skip undefined/constrained dofs
              (*allSens.vonMisesWRTdisp)(node, dof) += dStressdDisp[k][j]; 
              (*allSens.stressWeight)(node, 0) += weight[k];
-             for(int row=0; row<3; row++) {
-               fprintf(stderr,"\n");
-               for(int col=0; col<3; col++)
-                 fprintf(stderr,"%e ", dStressdDisp[row][col]); 
-             }
+//             for(int row=0; row<3; row++) {
+//               fprintf(stderr,"\n");
+//               for(int col=0; col<3; col++)
+//                 fprintf(stderr,"%e ", dStressdDisp[row][col]); 
+//             }
            }
          }
        }

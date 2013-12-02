@@ -2938,7 +2938,6 @@ Domain::initialize()
  MpcDSA = 0; nodeToNodeDirect = 0;
  p = 0;
  g_dsa = 0;
- totWeight = 0;
  numSensitivity = 0; senInfo = 0; 
 }
 

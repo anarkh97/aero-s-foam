@@ -11,10 +11,6 @@ StaticSolver< Scalar, OpSolver, VecType,
 	      PostProcessor, ProblemDescriptor, ComplexVecType >
   ::solve()
 {
- if(domain->solInfo().sensitivity) { 
-   probDesc->preProcessSA();
-   return; 
- }
  probDesc->preProcess();
 
  rhs = new VecType(probDesc->solVecInfo());
@@ -719,6 +715,11 @@ filePrint(stderr,"Projection  time: %e\n",xtime);
    if(domain->solInfo().isCoupled) scaleDisp(*sol); // PJSA 9-22-06
    postProcessor->staticOutput(*sol, *rhs);
  }
+
+ if(domain->solInfo().sensitivity) { 
+   probDesc->postProcessSA(*sol);
+ }
+
  geoSource->closeOutputFiles(); 
 }
 

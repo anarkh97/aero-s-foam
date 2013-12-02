@@ -43,7 +43,7 @@ struct OutputInfo {
           PlasticStrainXX, PlasticStrainYY, PlasticStrainZZ, PlasticStrainXY,
           PlasticStrainYZ, PlasticStrainXZ, BackStressXX, BackStressYY,
           BackStressZZ, BackStressXY, BackStressYZ, BackStressXZ, 
-          OptsWeig};
+          WeigThic, VMstThic, VMstDisp};
 
    enum Group  { Nodal, Attribute, NodeGroup };
    Type  type;

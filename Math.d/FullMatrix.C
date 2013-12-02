@@ -180,6 +180,13 @@ GenFSFullMatrix<Scalar>::~GenFSFullMatrix()
   }
 }
 
+template<class Scalar>
+void
+GenFSFullMatrix<Scalar>::copy(Scalar* array)
+{
+  for(int i=0; i<nrow*ncolumn; ++i) v[i] = array[i];
+}
+
 template<class Scalar> 
 void
 GenFSFullMatrix<Scalar>::reSize(int nr, int nc, Scalar initVal)

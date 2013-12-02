@@ -1,4 +1,7 @@
 #ifdef USE_EIGEN3
+#ifndef _ANDESBENDINGTRIANGLETEMPLATE_CPP_
+#define _ANDESBENDINGTRIANGLETEMPLATE_CPP_
+
 #include <Element.d/FelippaShell.d/AndesBendingTriangle.hpp>
 #include <cmath>
 #include <stdexcept>
@@ -399,4 +402,5 @@ AndesBendingTriangle<doublereal>::Bd(doublereal x[3], doublereal y[3], doublerea
 
     return sqrt(beta)*T*A*Q;
 }
+#endif
 #endif

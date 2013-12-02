@@ -264,6 +264,13 @@ GenFullM<Scalar>::~GenFullM()
  if(ipcol) { delete [] ipcol; ipcol = 0; }
 }
 
+template<class Scalar>
+void
+GenFullM<Scalar>::copy(Scalar *array)
+{
+  for(int i=0; i<nrow*ncolumn; ++i) v[i] = array[i];
+}
+
 template<class Scalar> 
 void
 GenFullM<Scalar>::setNewSize(int nr, int nc, Scalar initVal)

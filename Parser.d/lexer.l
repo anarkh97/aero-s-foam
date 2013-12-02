@@ -961,11 +961,17 @@ TRAIL [a-zA-Z]*
 
 "gdispmod"|"GDISPMOD"              { yylval.ival = OutputInfo::TotMod; return STRESSID; }
 
-"optsweig"|"OPTSWEIG"              { yylval.ival = OutputInfo::OptsWeig; return SENSITIVITYID; }
+"oweigthi"|"OWEIGTHI"              { yylval.ival = OutputInfo::WeigThic; return SENSITIVITYID; }
 
-"weigthic"|"WEIGTHIC"              { yylval.ival = SensitivityInfo::WeightWRTthickness;   return SENSITIVITYTYPE; }
+"ovmstthi"|"OVMSTTHI"              { yylval.ival = OutputInfo::VMstThic; return SENSITIVITYID; }
 
-"vmstthic"|"VMSTTHIC"              { yylval.ival = SensitivityInfo::StressVMWRTthickness; return SENSITIVITYTYPE; }
+"ovmstdis"|"OVMSTDIS"              { yylval.ival = OutputInfo::VMstDisp; return SENSITIVITYID; }
+
+"weigthic"|"WEIGTHIC"              { yylval.ival = SensitivityInfo::WeightWRTthickness;      return SENSITIVITYTYPE; }
+
+"vmstthic"|"VMSTTHIC"              { yylval.ival = SensitivityInfo::StressVMWRTthickness;    return SENSITIVITYTYPE; }
+
+"vmstdisp"|"VMSTDISP"              { yylval.ival = SensitivityInfo::StressVMWRTdisplacement; return SENSITIVITYTYPE; }
 
 "elemental"[a-zA-Z]*|"ELEMENTAL"[a-zA-Z]* { yylval.ival =  0; return AVERAGED; }
 

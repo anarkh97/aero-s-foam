@@ -56,6 +56,7 @@ class GenFSFullMatrix {
    // Destructor
    ~GenFSFullMatrix();
 
+   void copy(Scalar *array);
    void reSize(int nr, int nc, Scalar d=0.0); // resize to M(nr,nc)=0.0
 
    // Operators

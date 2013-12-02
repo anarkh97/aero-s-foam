@@ -1,4 +1,7 @@
 #ifdef USE_EIGEN3
+#ifndef _SHELLELEMENTTEMPLATE_CPP_
+#define _SHELLELEMENTTEMPLATE_CPP_
+
 #include <cmath>
 #include <algorithm>
 #include <stdexcept>
@@ -1224,4 +1227,5 @@ ShellElementTemplate<doublereal,Membrane,Bending>
     }
 
 }
+#endif
 #endif

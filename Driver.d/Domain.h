@@ -140,14 +140,22 @@ struct AllOps
 template<class Scalar>
 struct AllSensitivities
 {
-  GenVector<Scalar> *weightWRTthick;    // derivatives of weight with respect to thickness 
-  GenVector<Scalar> *vonMisesWRTthick;  // derivatives of von Mises stress with respect to thickness
+#ifdef USE_EIGEN3
+  double weight; // total weight of the structure 
+  Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *weightWRTthick;                 // derivatives of weight with respect to thickness
+  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *vonMisesWRTthick;  // derivatives of von Mises stress with respect to thickness
+  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *vonMisesWRTdisp;  // derivatives of von Mises stress with respect to thickness
+  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *stressWeight;      // weight used to average stress sensitivity
   // Constructor
-  AllSensitivities() { weightWRTthick = 0; vonMisesWRTthick = 0;}
+  AllSensitivities() { weight = 0; weightWRTthick = 0; vonMisesWRTthick = 0; vonMisesWRTdisp = 0; stressWeight = 0;}
 
-  void zero() {if(weightWRTthick) weightWRTthick->zeroAll();
-               if(vonMisesWRTthick) vonMisesWRTthick->zeroAll();
-              }
+  void zero() {
+    if(weightWRTthick) weightWRTthick->Zero();
+    if(vonMisesWRTthick) vonMisesWRTthick->Zero();
+    if(vonMisesWRTdisp) vonMisesWRTdisp->Zero();
+    if(stressWeight) stressWeight->Zero();
+  }
+#endif
 };
 
 // Structure to store discrete masses
@@ -268,8 +276,6 @@ class Domain : public HData {
      FullM *p_elstress;
      Vector *stressAllElems; // stores stresses of all the elements : used Sfem
      int sizeSfemStress;
-
-     double totWeight;
 
      // for compute energies
      double Wext;
@@ -529,6 +535,9 @@ class Domain : public HData {
      void assignRandMat();
      void retrieveElemset();
 
+     void makeSensitivities(AllSensitivities<double> &allSens, GenVector<double> &sol, double *);
+     void makeSensitivities(AllSensitivities<DComplex> &allSens, GenVector<DComplex> &sol, DComplex *);
+
      /** Abstract method to assemble any type of operator
       *
       * the OpList takes care of distributing the contribution to the various components.
@@ -540,7 +549,7 @@ class Domain : public HData {
   * ... type (i.e. use makeSparseOps in statics, dynamics, eigen, etc.)
   */
      template<class Scalar>
-       void buildSensitivities(AllSensitivities<Scalar> &ops);
+       void buildSensitivities(AllSensitivities<Scalar> &ops, GenVector<Scalar> &sol, Scalar *);
 
      template<class Scalar>
        void buildOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef, double Ccoef,
@@ -569,9 +578,6 @@ class Domain : public HData {
 	 		  double Ccoef, GenSparseMatrix<Scalar> *mat = 0,
                           FullSquareMatrix *kelArray = 0, FullSquareMatrix *melArray = 0,
                           FullSquareMatrix *celArray = 0);
-
-     template<class Scalar>
-       void makeSensitivities(AllSensitivities<Scalar> &allSens, double &weight);
 
      template<class Scalar>
        GenDBSparseMatrix<Scalar> *constructDBSparseMatrix(DofSetArray *dof_set_array=0,
@@ -694,8 +700,10 @@ class Domain : public HData {
      void resProcessing(Vector &, int index=0, double t=0);
 
      // sensitivity post processing function
+#ifdef USE_EIGEN3
      template<class Scalar>
-     void sensitivityPostProcessing(Scalar *sensitivity, double quantity, int outputSize);
+     void sensitivityPostProcessing(AllSensitivities<Scalar> &allSens);
+#endif
 
      // Nonlinear post processing function
      void postProcessing(GeomState *geomState, Vector &force, Vector &aeroForce, double time=0.0,

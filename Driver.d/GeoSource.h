@@ -536,6 +536,12 @@ public:
     void outputNodeVectors9(int, double (*)[bound], int, double time = -1.0);
   template<int bound>
     void outputNodeVectors4(int, double (*)[bound], int, double time = -1.0);
+#ifdef USE_EIGEN3
+  template<class Scalar>
+    void outputEigenScalars(int, Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *, double time = 0.0);
+  template<class Scalar>
+    void outputEigenVectors(int, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *, double time = 0.0);
+#endif
   void outputNodeScalars(int, double *, int, double time = -1.0);
   void outputNodeScalars(int, DComplex *, int, double time = -1.0);
   void outputEnergies(int, double, double, double, double, double, double, double);

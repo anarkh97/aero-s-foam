@@ -53,6 +53,7 @@ class GenFullM {
    // destructor
    ~GenFullM();  
 
+   void copy(Scalar *array);
    void setNewSize(int nr, int nc, Scalar d=0.0);
    void setNewSize(int nr, Scalar d=0.0);
 

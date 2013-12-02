@@ -427,6 +427,32 @@ class Element {
 	virtual void   getVonMisesInt(CoordSet &,Vector &,double &,double &, int,
 				      double &,double &, double* dT=0 );
 
+        virtual void getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+                                              double * = 0, double ylayer = 0, double zlayer = 0, int avgnum = 0) {
+          weight = 1;
+          dStdThick.zero();  
+        }
+
+        virtual void getVonMisesThicknessSensitivity(ComplexVector &dStdThick, ComplexVector &weight, CoordSet &cs, ComplexVector &elDisp, int strInd, int surface,
+                                              double * = 0, double ylayer = 0, double zlayer = 0, int avgnum = 0) {
+          weight = DComplex(1,0);
+          dStdThick.zero();
+        }
+
+        virtual void getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, 
+                                                        CoordSet &cs, Vector &elDisp, int strInd, int surface,
+                                                        double * = 0, double ylayer = 0, double zlayer = 0, int avgnum = 0) {
+          weight = 1;
+          dStdDisp.zero();  
+        }
+
+        virtual void getVonMisesDisplacementSensitivity(GenFullM<DComplex> &dStdDisp, ComplexVector &weight, 
+                                                        CoordSet &cs, ComplexVector &elDisp, int strInd, int surface,
+                                                        double * = 0, double ylayer = 0, double zlayer = 0, int avgnum = 0) {
+          weight = DComplex(1,0);
+          dStdDisp.zero();
+        }
+
         virtual void   getAllStress(FullM &stress, Vector &weight, CoordSet &cs,
                                     Vector &elDisp, int strInd, int surface=0,
                                     double *ndTemps=0);

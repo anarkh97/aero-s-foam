@@ -8,7 +8,8 @@
 #include <Corotational.d/Shell3Corotator.h>
 #include <Corotational.d/utilities.h>
 #include <Element.d/FelippaShell.d/FelippaShell.h>
-#include <Element.d/FelippaShell.d/ShellElementThicknessSensitivity.h>
+#include <Element.d/FelippaShell.d/ShellElementStressWRTThicknessSensitivity.h>
+#include <Element.d/FelippaShell.d/ShellElementStressWRTDisplacementSensitivity.h>
 #include <Element.d/NonLinearity.d/ExpMat.h>
 #include <Element.d/NonLinearity.d/MaterialWrapper.h>
 #include <Element.d/Function.d/SpaceDerivatives.h>
@@ -1186,9 +1187,10 @@ FelippaShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
 
 #ifdef USE_EIGEN3
 void 
-FelippaShell::getVonMisesThicknessSensitivity(Eigen::VectorXd &dStressdThick, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+FelippaShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
                                               double *, double ylayer, double zlayer, int avgnum)
 {
+  weight = 1;
   // scalar parameters
   Eigen::Array<double,30,1> dconst;
 
@@ -1210,23 +1212,102 @@ FelippaShell::getVonMisesThicknessSensitivity(Eigen::VectorXd &dStressdThick, Co
   Eigen::Matrix<double,1,1> q;
   q[0] = nmat->GetShellThickness(); //prop->eh;   // value of thickness at which jacobian is to be evaluated
 
+/*
   // function evaluation
-  ShellElementThicknessSensitivity<double> foo(dconst,iconst);
+  ShellElementStressWRTThicknessSensitivity<double> foo(dconst,iconst);
   Eigen::Matrix<double,1,1> qp, qm;
   double h(1e-6);
   qp[0] = q[0] + h;   qm[0] = q[0] - h;
   Eigen::Matrix<double,3,1> Sp = foo(qp, 0);
   Eigen::Matrix<double,3,1> Sm = foo(qm, 0);
   Eigen::Matrix<double,3,1> dSdh_fd;
-  dSdh_fd = (Sp - Sm)/h;
-
+  dSdh_fd = (Sp - Sm)/(2*h);
   std::cerr << "dSdh_fd = " << dSdh_fd.transpose() << std::endl;
+*/
 
   // Jacobian evaluation
-  Simo::Jacobian<double,ShellElementThicknessSensitivity> dSdh(dconst,iconst);
+  Eigen::Vector3d dStressdThick;
+  Simo::Jacobian<double,ShellElementStressWRTThicknessSensitivity> dSdh(dconst,iconst);
   dStressdThick = dSdh(q, 0);
-  std::cerr << "J = " << dStressdThick.transpose() << std::endl;
+//  std::cerr << "J = " << dStressdThick.transpose() << std::endl;
+
+  dStdThick.copy(dStressdThick.data());
 
 }
+
+void 
+FelippaShell::getVonMisesThicknessSensitivity(ComplexVector &dStdThick, ComplexVector &weight, CoordSet &cs, ComplexVector &elDisp, int strInd, int surface,
+                                              double *, double ylayer, double zlayer, int avgnum)
+{
+  weight = DComplex(1,0);
+  //NOTE:: for complex numbers, getVonMisesThicknessSensitivity is not properly implemented
+  Eigen::Matrix<DComplex,3,1> dStressdThick;
+  dStressdThick.setZero();  
+
+  dStdThick.copy(dStressdThick.data());
+
+}
+
+void 
+FelippaShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+                                                 double *, double ylayer, double zlayer, int avgnum)
+{
+  weight = 1;
+  // scalar parameters
+  Eigen::Array<double,13,1> dconst;
+
+  Node &nd1 = cs.getNode(nn[0]);
+  Node &nd2 = cs.getNode(nn[1]);
+  Node &nd3 = cs.getNode(nn[2]);
+
+  dconst[0] = nd1.x; dconst[1] = nd2.x; dconst[2] = nd3.x; // x coordinates
+  dconst[3] = nd1.y; dconst[4] = nd2.y; dconst[5] = nd3.y; // y coordinates
+  dconst[6] = nd1.z; dconst[7] = nd2.z; dconst[8] = nd3.z; // z coordinates
+  dconst[9] = prop->E; // E
+  dconst[10] = prop->nu;   // nu
+  dconst[11] = prop->rho;  // rho
+  dconst[12] = prop->eh;    // thickness
+  
+  // integer parameters
+  Eigen::Array<int,1,1> iconst;
+  iconst[0] = surface; // surface
+  // inputs
+  Eigen::Matrix<double,18,1> q = Eigen::Map<Eigen::Matrix<double,18,1> >(elDisp.data()).segment(0,18); //displacements
+
+//  // function evaluation
+//  ShellElementStressWRTDisplacementSensitivity<double> foo(dconst,iconst);
+//  Eigen::Matrix<double,1,1> qp, qm;
+//  double h(1e-6);
+//  qp[0] = q[0] + h;   qm[0] = q[0] - h;
+//  Eigen::Matrix<double,3,1> Sp = foo(qp, 0);
+//  Eigen::Matrix<double,3,1> Sm = foo(qm, 0);
+//  Eigen::Matrix<double,3,1> dSdh_fd;
+//  dSdh_fd = (Sp - Sm)/(2*h);
+//  std::cerr << "dSdh_fd = " << dSdh_fd.transpose() << std::endl;
+
+  // Jacobian evaluation
+  Eigen::Matrix<double,3,18> dStressdDisp;
+  Simo::Jacobian<double,ShellElementStressWRTDisplacementSensitivity> dSdu(dconst,iconst);
+  dStressdDisp = dSdu(q, 0);
+//  std::cerr << "dStressdDisp = " << dStressdDisp << std::endl;
+
+  dStdDisp.copy(dStressdDisp.data());
+
+}
+
+void 
+FelippaShell::getVonMisesDisplacementSensitivity(GenFullM<DComplex> &dStdDisp, ComplexVector &weight, 
+                                                 CoordSet &cs, ComplexVector &elDisp, int strInd, int surface,
+                                                 double *, double ylayer, double zlayer, int avgnum)
+{
+  weight = DComplex(1,0);
+  //NOTE:: for complex numbers, getVonMisesDisplacementSensitivity is not properly implemented
+  Eigen::Matrix<DComplex,3,18> dStressdThick;
+  dStressdThick.setZero();  
+
+  dStdDisp.copy(dStressdThick.data());
+
+}
+
 #endif
 #endif

@@ -1,4 +1,7 @@
 #ifdef USE_EIGEN3
+#ifndef _EFFMEMBRANETRIANGLETEMPLATE_CPP_
+#define _EFFMEMBRANETRIANGLETEMPLATE_CPP_
+
 #include <Element.d/FelippaShell.d/EffMembraneTriangle.hpp>
 #include <cmath>
 #include <stdexcept>
@@ -304,4 +307,5 @@ EffMembraneTriangle<doublereal>::Bd(doublereal x[3], doublereal y[3], doublereal
 
     return -sqrt(beta) * (Bhbar * Z.asDiagonal() * Hh);
 }
+#endif
 #endif

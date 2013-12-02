@@ -1,4 +1,7 @@
 #ifdef USE_EIGEN3
+#ifndef _SHELLMATERIALTYPE0_CPP_
+#define _SHELLMATERIALTYPE0_CPP_
+
 #include <cmath>
 #include <stdexcept>
 #include <Element.d/FelippaShell.d/ShellMaterial.hpp>
@@ -221,4 +224,5 @@ template
 void
 ShellMaterialType0<double>
 ::GetLocalConstitutiveResponse(double *Upsilon, double *sigma, double z, double *, int);
+#endif
 #endif

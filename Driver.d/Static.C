@@ -2938,3 +2938,240 @@ Domain::transformMatrix(complex<double> *data, int inode)
 #endif
 }
 
+void
+Domain::makeSensitivities(AllSensitivities<double> &allSens, GenVector<double> &sol, double *bcx)
+{
+#ifdef USE_EIGEN3
+ for(int sindex=0; sindex < numSensitivity; ++sindex) {
+  switch(senInfo[sindex].type) {
+   case SensitivityInfo::WeightWRTthickness:
+   {
+     // ... COMPUTE TOTAL STRUCTURAL WEIGHT AND DERIVATIVE WRT THICKNESS
+     double weight(0);
+     int altitude_direction = 2;
+     GenVector<double> weightDerivative(numele);  
+     map<int, Group> &group = geoSource->group;
+     map<int, AttributeToElement> &atoe = geoSource->atoe;
+     if(senInfo[sindex].numParam != group.size()) {
+       cerr << " *** ERROR: number of parameters is not equal to the size of group \n"; 
+       exit(-1);
+     }
+     allSens.weightWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, 1>(senInfo[sindex].numParam);
+     allSens.weightWRTthick->setZero();
+     map<int, Attrib> &attributes = geoSource->getAttributes();
+     for(int iele = 0; iele < numele; ++iele) {
+       StructProp *prop = packedEset[iele]->getProperty();
+       if(prop == 0) continue; // phantom element
+
+       weight += packedEset[iele]->weight(nodes, gravityAcceleration, altitude_direction); 
+       weightDerivative[iele] = packedEset[iele]->weightDerivativeWRTthickness(nodes, gravityAcceleration, altitude_direction);
+     }
+
+     for(int iparam = 0; iparam < senInfo[sindex].numParam; ++iparam) {
+       for(int aindex = 0; aindex < group[iparam].attributes.size(); ++aindex) {
+         for(int eindex =0; eindex < atoe[group[iparam].attributes[aindex]].elems.size(); ++eindex) {
+           (*allSens.weightWRTthick)[iparam] += weightDerivative[atoe[group[iparam].attributes[aindex]].elems[eindex]]; 
+         }
+       }
+     }
+
+     filePrint(stderr," *** WEIGHT : %e\n", weight);
+     filePrint(stderr,"printing weight derivative\n");
+     cout << *allSens.weightWRTthick << endl;
+     allSens.weight = weight;
+
+     break;
+   }
+   case SensitivityInfo::StressVMWRTthickness: 
+   {
+     // ... COMPUTE DERIVATIVE OF VON MISES STRESS WITH RESPECT TO THICKNESS
+     map<int, Group> &group = geoSource->group;
+     map<int, AttributeToElement> &atoe = geoSource->atoe;
+     if(senInfo[sindex].numParam != group.size()) {
+       cerr << " *** ERROR: number of parameters is not equal to the size of group \n"; 
+       exit(-1);
+     }
+     allSens.vonMisesWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numNodes(), senInfo[sindex].numParam);
+     allSens.stressWeight     = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numNodes(), senInfo[sindex].numParam);
+     allSens.vonMisesWRTthick->setZero();     allSens.stressWeight->setZero();
+     if(elDisp == 0) elDisp = new Vector(maxNumDOFs,0.0);
+     int avgnum = 1; //TODO: it is hardcoded to be 1, which corresponds to NODALFULL. it needs to be fixed.
+     for(int iparam = 0; iparam < senInfo[sindex].numParam; ++iparam) {
+      for(int aindex = 0; aindex < group[iparam].attributes.size(); ++aindex) {  
+       for(int eindex = 0; eindex < atoe[group[iparam].attributes[aindex]].elems.size(); ++eindex) {
+         int iele = atoe[group[iparam].attributes[aindex]].elems[eindex];
+         GenVector<double> dStressdThick(3);
+         GenVector<double> weight(3);
+         int surface = 1;
+         elDisp->zero();       
+         // Determine element displacement vector
+         for (int k=0; k < allDOFs->num(iele); ++k) {
+           int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
+           if (cn >= 0)
+             (*elDisp)[k] = sol[cn];
+           else
+             (*elDisp)[k] = bcx[(*allDOFs)[iele][k]];
+         }
+         transformVectorInv(*elDisp, iele);         
+         packedEset[iele]->getVonMisesThicknessSensitivity(dStressdThick, weight, nodes, *elDisp, 0, surface); 
+         if(avgnum != 0) {
+           // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
+           int NodesPerElement = elemToNode->num(iele);
+           for(int k = 0; k < NodesPerElement; ++k) {
+             int node = (outFlag) ? nodeTable[(*elemToNode)[iele][k]]-1 : (*elemToNode)[iele][k];
+             (*allSens.vonMisesWRTthick)(node, iparam) += dStressdThick[k]; 
+             (*allSens.stressWeight)(node, iparam) += weight[k]; 
+           }
+         }
+       } 
+
+       // average vonMisesWRTthick vector
+       for(int inode = 0; inode < numNodes(); ++inode)  {
+         if((*allSens.stressWeight)(inode, iparam) == 0.0)
+           (*allSens.vonMisesWRTthick)(inode, iparam) = 0.0;
+         else
+           (*allSens.vonMisesWRTthick)(inode, iparam) /= (*allSens.stressWeight)(inode, iparam);
+       }
+      }
+     }
+
+     break;
+   }
+   case SensitivityInfo::StressVMWRTdisplacement:
+   {
+     allSens.vonMisesWRTdisp = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numNodes(), numdof());
+     allSens.stressWeight    = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numNodes(), 1);
+     allSens.vonMisesWRTdisp->setZero();
+     if(elDisp == 0) elDisp = new Vector(maxNumDOFs,0.0);
+     int avgnum = 1; //TODO: it is hardcoded to be 1, which corresponds to NODALFULL. it needs to be fixed.
+     for(int iele = 0; iele < numele; iele++) { 
+       GenFullM<double> dStressdDisp(3,18,double(0.0));
+       GenVector<double> weight(3);
+       int surface = 1;
+       elDisp->zero();       
+       // Determine element displacement vector
+       for (int k=0; k < allDOFs->num(iele); ++k) {
+         int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
+         if (cn >= 0)
+           (*elDisp)[k] = sol[cn];
+         else
+           (*elDisp)[k] = bcx[(*allDOFs)[iele][k]];
+       }
+       transformVectorInv(*elDisp, iele);         
+       packedEset[iele]->getVonMisesDisplacementSensitivity(dStressdDisp, weight, nodes, *elDisp, 0, surface); 
+       if(avgnum != 0) {
+         // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
+         int NodesPerElement = elemToNode->num(iele);
+         for(int k = 0; k < NodesPerElement; ++k) {
+           int node = (outFlag) ? nodeTable[(*elemToNode)[iele][k]]-1 : (*elemToNode)[iele][k];
+           int *dofs = (*allDOFs)[iele];
+           int dof;
+           for(int j = 0; j < 18; ++j) {
+             int *unconstrNum = c_dsa->getUnconstrNum();
+             if(dofs[j] < 0 || (dof = unconstrNum[dofs[j]]) < 0) continue;  // Skip undefined/constrained dofs
+             (*allSens.vonMisesWRTdisp)(node, dof) += dStressdDisp[k][j]; 
+             (*allSens.stressWeight)(node, 0) += weight[k];
+             for(int row=0; row<3; row++) {
+               fprintf(stderr,"\n");
+               for(int col=0; col<3; col++)
+                 fprintf(stderr,"%e ", dStressdDisp[row][col]); 
+             }
+           }
+         }
+       }
+     }
+     
+     for(int inode = 0; inode < numNodes(); ++inode)  {
+       if((*allSens.stressWeight)(inode, 0) == 0.0)
+         for(int dof = 0; dof < numdof(); ++dof) 
+           (*allSens.vonMisesWRTdisp)(inode,dof) = 0;
+       else
+         for(int dof = 0; dof < numdof(); ++dof)
+           (*allSens.vonMisesWRTdisp)(inode,dof) /= (*allSens.stressWeight)(inode, 0);
+     }
+
+     break;
+   } 
+  }
+ }
+
+ // post processing for sensitivities 
+ sensitivityPostProcessing(allSens);
+#endif
+}
+
+void
+Domain::makeSensitivities(AllSensitivities<DComplex> &allSens, GenVector<DComplex> &sol, DComplex *bcx)
+{
+#ifdef USE_EIGEN3
+ for(int sindex=0; sindex < numSensitivity; ++sindex) {
+  switch(senInfo[sindex].type) {
+   case SensitivityInfo::WeightWRTthickness:
+   {
+     // ... COMPUTE TOTAL STRUCTURAL WEIGHT AND DERIVATIVE WRT THICKNESS
+     double weight(0);
+     int altitude_direction = 2;
+     GenVector<DComplex> weightDerivative(numele);  
+     map<int, Group> &group = geoSource->group;
+     map<int, AttributeToElement> &atoe = geoSource->atoe;
+     if(senInfo[sindex].numParam != group.size()) {
+       cerr << " *** ERROR: number of parameters is not equal to the size of group \n"; 
+       exit(-1);
+     }
+     allSens.weightWRTthick = new Eigen::Matrix<DComplex, Eigen::Dynamic, 1>(senInfo[sindex].numParam);
+     allSens.weightWRTthick->setZero();
+     map<int, Attrib> &attributes = geoSource->getAttributes();
+     for(int iele = 0; iele < numele; ++iele) {
+       StructProp *prop = packedEset[iele]->getProperty();
+       if(prop == 0) continue; // phantom element
+
+       weight += packedEset[iele]->weight(nodes, gravityAcceleration, altitude_direction); 
+       weightDerivative[iele] = packedEset[iele]->weightDerivativeWRTthickness(nodes, gravityAcceleration, altitude_direction);
+     }
+
+     for(int gindex = 0; gindex < senInfo[sindex].numParam; ++gindex) {
+       for(int aindex = 0; aindex < group[gindex].attributes.size(); ++aindex) {
+         for(int eindex =0; eindex < atoe[group[gindex].attributes[aindex]].elems.size(); ++eindex) {
+           (*allSens.weightWRTthick)[gindex] += weightDerivative[atoe[group[gindex].attributes[aindex]].elems[eindex]]; 
+         }
+       }
+     }
+
+     filePrint(stderr," *** WEIGHT : %e\n", weight);
+     filePrint(stderr,"printing weight derivative\n");
+     cout << *allSens.weightWRTthick << endl;
+
+   }
+   case SensitivityInfo::StressVMWRTthickness: 
+   {
+     // ... COMPUTE DERIVATIVE OF VON MISES STRESS WITH RESPECT TO THICKNESS
+     allSens.vonMisesWRTthick = new Eigen::Matrix<DComplex, Eigen::Dynamic, Eigen::Dynamic>(numNodes(), senInfo[sindex].numParam);
+     allSens.vonMisesWRTthick->setZero();
+     ComplexVector *elDisp = new ComplexVector(maxNumDOFs,0.0);
+     for(int iparam = 0; iparam < senInfo[sindex].numParam; ++iparam) { 
+       for(int iele = 0; iele < numele; ++iele) {
+         GenVector<DComplex> dStressdThick(3);
+         GenVector<DComplex> weight(3);
+         int surface = 1;
+         elDisp->zero();       
+         // Determine element displacement vector
+         for (int k=0; k < allDOFs->num(iele); ++k) {
+           int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
+           if (cn >= 0)
+             (*elDisp)[k] = sol[cn];
+           else
+             (*elDisp)[k] = bcx[(*allDOFs)[iele][k]];
+         }
+         transformVectorInv(*elDisp, iele);         
+         packedEset[iele]->getVonMisesThicknessSensitivity(dStressdThick, weight, nodes, *elDisp, 0, surface);  
+       } 
+     }
+     break;
+   }
+  }
+ }
+#endif
+}
+
+
+

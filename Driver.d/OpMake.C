@@ -1012,13 +1012,13 @@ Domain::constructEiSparseGalerkinProjectionSolver()
 
 template<class Scalar>
 void
-Domain::buildSensitivities(AllSensitivities<Scalar> &allSens)
+Domain::buildSensitivities(AllSensitivities<Scalar> &allSens, GenVector<Scalar> &sol, Scalar *bcx)
 {
   switch(sinfo.type) {
     default:
       fprintf(stderr," *** WARNING: Solver not Specified  ***\n");
     case 0:
-      makeSensitivities<Scalar>(allSens, totWeight);
+      makeSensitivities(allSens, sol, bcx);
       break;
   }
 }
@@ -2056,56 +2056,6 @@ void Domain::forceDistributedContinuity(Scalar *u, Scalar (*xyz)[11])//DofSet::m
 //  return ++realNode;
 }
 
-template<class Scalar>
-void
-Domain::makeSensitivities(AllSensitivities<Scalar> &allSens, double &weight)
-{
- for(int sindex=0; sindex < numSensitivity; ++sindex) {
-  switch(senInfo[sindex].type) {
-   case SensitivityInfo::WeightWRTthickness:
-   {
-     // ... COMPUTE TOTAL STRUCTURAL WEIGHT AND DERIVATIVE WRT THICKNESS
-     weight = 0.0;
-     int altitude_direction = 2;
-     GenVector<Scalar> weightDerivative(numele);  // YC: Isn't Scalar always double?
-     map<int, Group> &group = geoSource->group;
-     map<int, AttributeToElement> &atoe = geoSource->atoe;
-     if(senInfo[sindex].numParam != group.size()) {
-       cerr << " *** ERROR: number of parameters is not equal to the size of group \n"; 
-       exit(-1);
-     }
-     allSens.weightWRTthick = new GenVector<Scalar>(senInfo[sindex].numParam, 0.0);
-     map<int, Attrib> &attributes = geoSource->getAttributes();
-     for(int iele = 0; iele < numele; ++iele) {
-       StructProp *prop = packedEset[iele]->getProperty();
-       if(prop == 0) continue; // phantom element
-
-       weight += packedEset[iele]->weight(nodes, gravityAcceleration, altitude_direction); 
-       weightDerivative[iele] = packedEset[iele]->weightDerivativeWRTthickness(nodes, gravityAcceleration, altitude_direction);
-     }
-
-     for(int gindex = 0; gindex < senInfo[sindex].numParam; ++gindex) {
-       for(int aindex = 0; aindex < group[gindex].attributes.size(); ++aindex) {
-         for(int eindex =0; eindex < atoe[group[gindex].attributes[aindex]].elems.size(); ++eindex) {
-           (*allSens.weightWRTthick)[gindex] += weightDerivative[atoe[group[gindex].attributes[aindex]].elems[eindex]]; 
-         }
-       }
-     }
-
-     filePrint(stderr," *** WEIGHT : %e\n", weight);
-     allSens.weightWRTthick->print("printing weight derivative\n");
-
-     // ... post-processing for sensitivities
-     sensitivityPostProcessing(allSens.weightWRTthick->data(), weight, senInfo[sindex].numParam); // post-processing for weightWRTthick
-     break;
-   }
-   case SensitivityInfo::StressVMWRTthickness: 
-   {
-     break;
-   }
-  }
- }
-}
 
 template<class Scalar>
 void
@@ -3411,19 +3361,24 @@ int Domain::processOutput(OutputInfo::Type &type, GenVector<Scalar> &d_n, Scalar
 }
 
 //-------------------------------------------------------------------------------------
-template<class Scalar>
-void Domain::sensitivityPostProcessing(Scalar *sensitivity, double quantity, int outputSize) {
+#ifdef USE_EIGEN3
+template <class Scalar>
+void Domain::sensitivityPostProcessing(AllSensitivities<Scalar> &allSens) {
 
   OutputInfo *oinfo = geoSource->getOutputInfo();
   int numOutInfo = geoSource->getNumOutInfo();
   if(firstOutput) geoSource->openOutputFiles();
   for(int i = 0; i < numOutInfo; ++i)  {
     if(oinfo[i].sentype == 0) continue;
-    geoSource->outputNodeScalars(i, sensitivity, outputSize, quantity);
+    if(oinfo[i].type == OutputInfo::WeigThic) geoSource->outputEigenScalars(i, allSens.weightWRTthick, allSens.weight);
+    if(oinfo[i].type == OutputInfo::VMstThic) geoSource->outputEigenVectors(i, allSens.vonMisesWRTthick);
+    if(oinfo[i].type == OutputInfo::VMstDisp) geoSource->outputEigenVectors(i, allSens.vonMisesWRTdisp);
   }
   firstOutput = false;
 }
+#endif
 
+//-------------------------------------------------------------------------------------
 // Templated Post-processing for direct solver statics, frequency response, helmholtz and eigen
 template<class Scalar>
 void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scalar> &force,

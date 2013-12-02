@@ -603,6 +603,40 @@ GeoSource::readDistributedInputFiles(int localSubNum, int subNum)
 }
 #endif
 
+//------------------------------------------------------------
+#ifdef USE_EIGEN3
+template<class Scalar>
+void 
+GeoSource::outputEigenScalars(int fileNum, Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *output, double time)
+{
+  int w = oinfo[fileNum].width;
+  int p = oinfo[fileNum].precision;
+
+  Eigen::IOFormat CleanFmt(w,0," ", "\n", " ", " ");
+  ofstream fileout(oinfo[fileNum].filename, ios::out);
+
+  fileout << "\t" << time << "\n";
+  fileout << (*output).format(CleanFmt) << endl;
+  fileout.close();
+}
+
+template<class Scalar>
+void
+GeoSource::outputEigenVectors(int fileNum, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *output, double time)
+{ 
+  int w = oinfo[fileNum].width;
+  int p = oinfo[fileNum].precision;
+  
+  Eigen::IOFormat CleanFmt(w,0," ", "\n", " ", " ");
+  ofstream fileout(oinfo[fileNum].filename, ios::out);
+
+  fileout << "\t" << time << "\n";
+  fileout << (*output).format(CleanFmt) << endl;
+  fileout.close();
+} 
+#endif
+//------------------------------------------------------------
+
 template<int bound>
 void
 GeoSource::outputNodeVectors(int fileNum, double (*glv)[bound], int outputSize, double time)

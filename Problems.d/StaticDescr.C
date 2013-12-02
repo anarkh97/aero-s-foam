@@ -212,17 +212,9 @@ SingleDomainStatic<T, VectorType, SolverType>::getRHSinpc(VectorType &rhs)
 
 template<class T, class VectorType, class SolverType>
 void
-SingleDomainStatic<T, VectorType, SolverType>::preProcessSA()
+SingleDomainStatic<T, VectorType, SolverType>::postProcessSA(GenVector<T> &sol)
 {
- times = new StaticTimers;
-
- startTimerMemory(times->preProcess, times->memoryPreProcess);
-
- // Makes renumbering, connectivities and dofsets
- domain->preProcessing();
-
- domain->buildSensitivities<T>(allSens);
-
+ domain->buildSensitivities<T>(allSens, sol, bcx);
 }
 
 template<class T, class VectorType, class SolverType>

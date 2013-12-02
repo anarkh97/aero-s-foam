@@ -36,8 +36,18 @@ public:
                          double *ndTemps = 0, double ylayer = 0, double zlayer = 0,
                          int avgnum = 0);
 #ifdef USE_EIGEN3
-        void getVonMisesThicknessSensitivity(Eigen::VectorXd &dStressdthick, CoordSet &cs, Vector &elDisp, 
-                                             int strInd, int surface, double *, double ylayer, double zlayer, int avgnum);
+        void getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight, CoordSet &cs, Vector &elDisp, 
+                                             int strInd, int surface, double * = 0, double ylayer = 0, double zlayer = 0, int avgnum = 0);
+
+        void getVonMisesThicknessSensitivity(ComplexVector &dStdThick, ComplexVector &weight, CoordSet &cs, ComplexVector &elDisp, 
+                                             int strInd, int surface, double * = 0, double ylayer = 0, double zlayer = 0, int avgnum = 0);
+
+        void getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, 
+                                                int strInd, int surface, double * = 0, double ylayer = 0, double zlayer = 0, int avgnum = 0);
+
+        void getVonMisesDisplacementSensitivity(GenFullM<DComplex> &dStdDisp, ComplexVector &weight, CoordSet &cs, ComplexVector &elDisp, 
+                                                int strInd, int surface, double * = 0, double ylayer = 0, double zlayer = 0, int avgnum = 0);
+
 #endif
 
         void getAllStress(FullM &stress, Vector &weight, CoordSet &cs,

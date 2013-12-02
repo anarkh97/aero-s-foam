@@ -2,6 +2,7 @@
 #define _INERTIALFORCEFUNCTION_H_
 
 #include <Element.d/Function.d/Function.h>
+#include <Element.d/Function.d/SpaceDerivatives.h>
 #include <Element.d/Function.d/utilities.hpp>
 
 // Compute the inertial moment for a rigid body with 3 rotational degrees of freedom.
@@ -10,6 +11,8 @@
 // Ref: UNCONDITIONALLY STABLE ALGORITHMS FOR RIGID BODY DYNAMICS THAT EXACTLY PRESERVE ENERGY
 //      AND MOMENTUM, J. C. SIMO AND K. K. WONG, INTERNATIONAL JOURNAL FOR NUMERICAL METHODS IN
 //      ENGINEERING, VOL. 31, 19-52 (1991)
+
+namespace Simo {
 
 template<typename Scalar>
 class InertialForceFunction : public VectorValuedFunction<3,3,Scalar,39,0,double>
@@ -85,5 +88,12 @@ class InertialForceFunction : public VectorValuedFunction<3,3,Scalar,39,0,double
   public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
+
+template<>
+Eigen::Matrix<double,3,3>
+Jacobian<double,InertialForceFunction>
+::operator() (const Eigen::Matrix<double,3,1>& q, double t);
+
+} // namespace Simo
 
 #endif

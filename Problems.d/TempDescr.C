@@ -14,6 +14,7 @@
 #include <Utils.d/dofset.h>
 #include <Element.d/State.h>
 #include <Solvers.d/Rbm.h>
+#include <Timers.d/StaticTimers.h>
 
 typedef FSFullMatrix FullMatrix;
 
@@ -213,8 +214,15 @@ SingleDomainTemp::preProcess()
  delete[]bc;
 
  domain->makeAllDOFs();
-}
 
+ if(domain->numInitDisp6() > 0 && domain->solInfo().gepsFlg == 1) {
+   StaticTimers times;
+   FullSquareMatrix *geomKelArray=0, *melArray = 0;
+   // this function builds corotators, geomstate and kelArray 
+   // for linear+geps only it updates geomState with ETEMP and computes the element stiffness matrices using this updated geomState
+   domain->computeGeometricPreStress(allCorot, geomState, kelArray, &times, geomKelArray, melArray, false);
+ }
+}
 
 DynamMat
 SingleDomainTemp::buildOps(double coeM, double coeC, double coeK)
@@ -267,9 +275,9 @@ SingleDomainTemp::buildOps(double coeM, double coeC, double coeK)
 
  // assemble operators (K,Kuc,M), also construct/assemble/factor Ax=b solver where A = coek*K+coeM*M 
  if(!useHzem || (domain->solInfo().timeIntegration != 1)) // only use for quasistatics
-   domain->buildOps<double>(allOps, coeK, coeM, 0.0);
+   domain->buildOps<double>(allOps, coeK, coeM, 0.0, (Rbm *)NULL, kelArray);
  else
-   domain->buildOps<double>(allOps, coeK, coeM, 0.0, rbm);
+   domain->buildOps<double>(allOps, coeK, coeM, 0.0, rbm, kelArray);
 
  if(useFilter) {
    fprintf(stderr," ... HZEMFilter Requested           ...\n");

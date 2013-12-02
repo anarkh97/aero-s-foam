@@ -42,8 +42,13 @@ class SingleDomainTemp {
     double **eigmodes;
     double **tPhiM;   // Stores Transpose(Phi)*M
 
+    //For etemp
+    FullSquareMatrix *kelArray;
+    Corotator **allCorot;
+    GeomState *geomState;
+
  public:
-    SingleDomainTemp(Domain *d) { domain = d; }
+    SingleDomainTemp(Domain *d) { domain = d; kelArray = 0; allCorot = 0; geomState = 0; }
     int* boundary() { return bc;}
     double* boundaryValue() { return bcx;}
 

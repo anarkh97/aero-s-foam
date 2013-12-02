@@ -345,6 +345,25 @@ BelytschkoTsayShell::getMass(CoordSet& cs)
   return mass;
 }
 
+double
+BelytschkoTsayShell::weight(CoordSet& cs, double *gravityAcceleration, int altitude_direction)
+{
+  if(prop) {
+    double _mass = getMass(cs);
+    return _mass*gravityAcceleration[altitude_direction];
+  } else return 0;
+}   
+
+double
+BelytschkoTsayShell::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int altitude_direction)
+{   
+  if(prop) {
+    double _weight = weight(cs, gravityAcceleration, altitude_direction);
+    double eh = expmat->ematpro[19];
+    return _weight/eh;
+  } else return 0;
+}
+
 void
 BelytschkoTsayShell::getGravityForce(CoordSet& cs, double *gravityAcceleration, 
                                      Vector& gravityForce, int gravflg, GeomState *geomState)

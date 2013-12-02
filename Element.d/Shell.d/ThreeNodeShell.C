@@ -216,6 +216,25 @@ ThreeNodeShell::getMass(CoordSet& cs)
 
 }
 
+double
+ThreeNodeShell::weight(CoordSet& cs, double *gravityAcceleration, int altitude_direction)
+{         
+  if(prop) {
+    double _mass = getMass(cs);
+    return _mass*gravityAcceleration[altitude_direction];
+  } else return 0;
+}   
+
+double
+ThreeNodeShell::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int altitude_direction)
+{
+  if(prop) { 
+    double _weight = weight(cs, gravityAcceleration, altitude_direction);
+    double eh = prop->eh;
+    return _weight/eh;
+  } else return 0;
+}
+
 void
 ThreeNodeShell::getGravityForce(CoordSet& cs, double *gravityAcceleration, 
                                 Vector& gravityForce, int gravflg, GeomState *geomState)

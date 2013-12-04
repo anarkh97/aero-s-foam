@@ -137,7 +137,8 @@ Force.d/FollowerMomentElement.C
 Force.d/FollowerForceElement.C
 Function.d/ExternalForce.d/FollowerMomentForceFunction.C
 Function.d/ExternalForce.d/FollowerForceFunction.C
-Function.d/InertialForce.d/InertialForceFunction.C
+Function.d/InertialForce.d/InertialType1ForceFunction.C
+Function.d/InertialForce.d/InertialType2ForceFunction.C
 Helm.d/GaussRule.C
 Helm.d/GaussRules.C
 Helm.d/genTetra10.C

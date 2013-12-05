@@ -226,6 +226,29 @@ ShearPanel::getMass(CoordSet& cs)
         return totmas;
 }
 
+double
+ShearPanel::weight(CoordSet& cs, double *gravityAcceleration, int altitude_direction)
+{
+  if (prop == NULL) {
+    return 0.0;
+  }
+
+  double _mass = getMass(cs);
+  return _mass*gravityAcceleration[altitude_direction];
+}
+
+double
+ShearPanel::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int altitude_direction)
+{
+  if (prop == NULL) {
+    return 0.0;
+  }
+
+  double _weight = weight(cs, gravityAcceleration, altitude_direction);
+  double thick = prop->eh;
+  return _weight/thick;
+}
+
 void
 ShearPanel::getGravityForce(CoordSet& cs,double *gravityAcceleration, 
                               Vector& gravityForce, int gravflg, GeomState *geomState)

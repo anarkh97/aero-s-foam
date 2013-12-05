@@ -82,6 +82,20 @@ double LEIsoParamQuad::getMass(CoordSet&) {
 }
 
 
+double LEIsoParamQuad::weight(CoordSet& cs, double *gravityAcceleration, int altitude_direction)
+{
+ fprintf(stderr,"LEIsoParamQuad::weight not implemented.\n");
+ return 0.0;
+}
+
+
+double LEIsoParamQuad::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int altitude_direction)
+{
+ fprintf(stderr,"LEIsoParamQuad::weightDerivativeWRTthickness not implemented.\n");
+ return 0.0;
+}
+
+
 FullSquareMatrix LEIsoParamQuad::massMatrix(CoordSet &cs, double *K, int fl) {
 
  IsoParamUtils2d ipu(order);

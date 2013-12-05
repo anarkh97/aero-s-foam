@@ -348,6 +348,17 @@ EightNodeBrick::getMass(CoordSet& cs)
   return prop->rho*volume;
 }
 
+double
+EightNodeBrick::weight(CoordSet& cs, double *gravityAcceleration, int altitude_direction)
+{
+  if (prop == NULL) {
+    return 0.0;
+  }
+
+  double _mass = getMass(cs);
+  return _mass*gravityAcceleration[altitude_direction];
+}
+
 void
 EightNodeBrick::getGravityForce(CoordSet& cs, double *gravityAcceleration, 
                                 Vector& gravityForce, int gravflg, GeomState *geomState)

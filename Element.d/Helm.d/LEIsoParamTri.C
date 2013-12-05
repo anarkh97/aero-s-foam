@@ -91,6 +91,17 @@ double LEIsoParamTri::getMass(CoordSet&) {
  return 0.0;
 }
 
+double LEIsoParamTri::weight(CoordSet& cs, double *gravityAcceleration, int altitude_direction)
+{
+ fprintf(stderr,"LEIsoParamTri::weight not implemented.\n");
+ return 0.0;
+}
+
+double LEIsoParamTri::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int altitude_direction)
+{
+ fprintf(stderr,"LEIsoParamTri::weightDerivativeWRTthickness not implemented.\n");
+ return 0.0;
+}
 
 FullSquareMatrix LEIsoParamTri::massMatrix(CoordSet &cs, double *K, int fl) {
 

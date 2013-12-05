@@ -52,6 +52,8 @@ public:
         int* nodes(int * = 0);
 	Corotator *getCorotator(CoordSet &, double *,int,int);
 	double getMass(CoordSet &);
+        double weight(CoordSet&, double *, int);
+        double weightDerivativeWRTthickness(CoordSet&, double *, int);
 
         void computeDisp(CoordSet&, State &, const InterpPoint &,
                          double*, GeomState *gs=0);

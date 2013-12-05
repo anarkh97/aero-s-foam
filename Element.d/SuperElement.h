@@ -60,6 +60,8 @@ class SuperElement : public Element
     FullSquareMatrix massMatrix(CoordSet& cs, double *m, int cmflg=1);
 
     double getMass(CoordSet&);
+    double weight(CoordSet&, double *, int);
+    double weightDerivativeWRTthickness(CoordSet&, double *, int);
     void getGravityForce(CoordSet &cs, double *gravity, Vector &force,
                          int gravflg, GeomState *gs=0);
     void getThermalForce(CoordSet &cs, Vector &ndT, Vector &force,

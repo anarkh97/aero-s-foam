@@ -17,6 +17,7 @@ class ShellMaterial
                                                                           // D is the tangent constitutive matrix { Dm, Dmb; Dbm, Db }
     virtual doublereal GetShellThickness() = 0;
     virtual doublereal GetAreaDensity() = 0; // mass per unit area
+    virtual doublereal GetSumDensity() { return 0; }
     virtual void GetLocalConstitutiveResponse(doublereal *Upsilon, doublereal *sigma, doublereal z,
                                               doublereal *eframe, int gp)
       { std::cerr << "GetLocalConstitutiveResponse is not defined\n"; }
@@ -50,6 +51,7 @@ class ShellMaterialType0 : public ShellMaterial<doublereal>
                                  doublereal *eframe, int gp);
     doublereal GetShellThickness() { return thick; }
     doublereal GetAreaDensity() { return rho*thick; }
+    doublereal GetSumDensity() { return rho; }
     void GetLocalConstitutiveResponse(doublereal *Upsilon, doublereal *sigma, doublereal z,
                                       doublereal *eframe, int gp);
 };
@@ -86,6 +88,7 @@ class ShellMaterialTypes2And3 : public ShellMaterial<doublereal>
     doublereal *aframe;
     doublereal thick;
     doublereal rhoh;
+    doublereal rho;
 
   public:
     ShellMaterialTypes2And3(int _nlayer, doublereal *_mtlayer, bool _couple, doublereal *_aframe);
@@ -94,6 +97,7 @@ class ShellMaterialTypes2And3 : public ShellMaterial<doublereal>
                                  doublereal *eframe, int gp);
     doublereal GetShellThickness() { return thick; }
     doublereal GetAreaDensity() { return rhoh; }
+    doublereal GetSumDensity() { return rho; }
     void GetLocalConstitutiveResponse(doublereal *Upsilon, doublereal *sigma, doublereal z,
                                       doublereal *eframe, int gp);
 };

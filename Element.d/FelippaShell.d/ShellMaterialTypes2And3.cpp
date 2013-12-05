@@ -25,6 +25,12 @@ ShellMaterialTypes2And3<doublereal>::ShellMaterialTypes2And3(
       rhoh += mtlayer(6, ilayer)*mtlayer(7, ilayer);
     }
 
+// .....COMPUTE THE SUM OF DENSITY FOR TYPE-2 AND TYPE-3 CONSTITUTIVE LAWS
+
+    rho = 0;
+    for (int ilayer = 0; ilayer < nlayer; ++ilayer) {
+      rho += mtlayer(6, ilayer);
+    }
 }
 
 template<typename doublereal>

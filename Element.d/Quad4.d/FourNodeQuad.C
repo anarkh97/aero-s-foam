@@ -276,6 +276,29 @@ FourNodeQuad::getMass(CoordSet& cs)
         return mass;
 }
 
+double
+FourNodeQuad::weight(CoordSet& cs, double *gravityAcceleration, int altitude_direction)
+{
+  if (prop == NULL) {
+    return 0.0;
+  }
+
+  double _mass = getMass(cs);
+  return _mass*gravityAcceleration[altitude_direction];
+}
+
+double
+FourNodeQuad::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int altitude_direction)
+{
+  if (prop == NULL) {
+    return 0.0;
+  }
+
+  double _weight = weight(cs, gravityAcceleration, altitude_direction);
+  double thick = prop->eh;
+  return _weight/thick;
+}
+
 void
 FourNodeQuad::getGravityForce(CoordSet& cs,double *gravityAcceleration, 
                               Vector& gravityForce, int gravflg, GeomState *geomState)

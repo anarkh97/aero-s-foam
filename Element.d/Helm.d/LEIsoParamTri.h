@@ -18,6 +18,8 @@ public:
         FullSquareMatrix stiffness(CoordSet&, double *d, int flg=1);
         FullSquareMatrix massMatrix(CoordSet&,double *d, int cmflg=1);
         double getMass(CoordSet&);
+        double weight(CoordSet&, double *, int);
+        double weightDerivativeWRTthickness(CoordSet&, double *, int);
 
 	Element *clone();
 	void renum(int *);

@@ -6,7 +6,7 @@ C=====================================================================C
      $                   emass   , medof   , nttly , ncmpfr , elm     ,
      $                   idlay   , mtlay   , cmpfr , iatt   , ctyp    ,
      $                   catt    , cfrm    , gamma , grvfor , grvflg  ,
-     $                   totmas  , masflg                             )
+     $                   totmas  , sumrho  , area  , masflg           )
 C=====================================================================C
 C                                                                     C
 C     Performs =   This subroutine will form the elemental mass       C
@@ -218,7 +218,7 @@ C
 C
       real*8     rho , emass(medof,medof) , mtlay(12,nttly)
       real*8     h(3) , cmpfr(9,ncmpfr) , x(3) , y(3) , z(3)
-      real*8     totmas , gamma(*) , grvfor(*)
+      real*8     totmas , sumrho , area , gamma(*) , grvfor(*)
 
       logical    grvflg , masflg
 C
@@ -235,7 +235,7 @@ C
       real*8     x13 , y13 , z13 , hlayer(maxlayer)
       real*8     x32 , y32 , z32 , rholayer(maxlayer)
       real*8     x21 , y21 , z21 , rhoh
-      real*8     dist(3) , rlr , rlb , bpr , area , twicearea2
+      real*8     dist(3) , rlr , rlb , bpr , twicearea2
       real*8     Ix , Iy , Iz
 C
 C     ----
@@ -412,6 +412,16 @@ C
       do 3001 ilayer=1,nlayer
          rhoh = rhoh + rholayer(ilayer)*hlayer(ilayer)
  3001 continue
+
+C
+C.....ACCUMULATE THE DENSITY PER LAYER
+C
+      sumrho = zero
+C
+      do 3002 ilayer=1,nlayer
+         sumrho = sumrho + rholayer(ilayer)
+ 3002 continue
+
 C
 C.....FORM THE MASS COEFFICIENTS PER DEGREE OF FREEDOM
 C

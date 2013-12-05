@@ -11,6 +11,7 @@ class FourNodeShell : public SuperElement
     Element* clone();
     int  getTopNumber();
     bool isShell() { return true; }
+    double weightDerivativeWRTthickness(CoordSet&, double *, int);
 
     // aero functions
     void computeDisp(CoordSet &cs, State &state, const InterpPoint &ip, double *res, GeomState *gs=0);

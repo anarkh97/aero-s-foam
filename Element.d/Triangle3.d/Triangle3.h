@@ -17,6 +17,8 @@ public:
         FullSquareMatrix stiffness(CoordSet& cs, double *d, int flg = 1);
         FullSquareMatrix massMatrix(CoordSet& cs, double *mel, int cmflg=1);
         double           getMass(CoordSet&);
+        double weight(CoordSet&, double *, int);
+        double weightDerivativeWRTthickness(CoordSet&, double *, int);
 
         void             getGravityForce(CoordSet&,double *gravity, Vector& f, int gravflg,
 	                                 GeomState *gs);

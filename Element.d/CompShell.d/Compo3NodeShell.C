@@ -21,7 +21,7 @@ void _FORTRAN(compms)(double*, double*, double*, double*,
                       const int&, const int&, int*, double*,    
                       double*, const int&, const int&, const int&, 
                       const int&, double*, double*, const int&, 
-                      double&, const int&);
+                      double&, double&, double&, const int&);
 
 void _FORTRAN(compvms)(const int&, const int&, const int&, const int&,
                        const int&, double&, double&, double*,
@@ -283,11 +283,13 @@ Compo3NodeShell::getGravityForce(CoordSet& cs, double *gravityAcceleration,
   int grvflg = 1, masflg = 0;
 
   double totmas = 0;
+  double sumrho = 0;
+  double area = 0;
 
   _FORTRAN(compms)(x, y, z, h, prop->rho, (double *)ElementMassMatrix,
                    18,numLayers, 1, 1, (int *)idlay, layData, cFrame,
                    1, type, 1, 1, gravityAcceleration, grvfor, grvflg,
-                   totmas, masflg);
+                   totmas, sumrho, area, masflg);
 
   // scale gravity force by number of nodes
   grvfor[0] /= 3.0;
@@ -420,13 +422,52 @@ Compo3NodeShell::getMass(CoordSet &cs)
   int grvflg = 0, masflg = 1;
 
   double totmas = 0.0;
+  double sumrho = 0.0;
+  double area = 0.0;
 
   _FORTRAN(compms)(x, y, z, h, prop->rho, (double *)ElementMassMatrix,
                    18,numLayers, 1, 1, (int *)idlay, layData, cFrame,
                    1, type, 1, 1, gravityAcceleration, grvfor, grvflg,
-                   totmas, masflg);
+                   totmas, sumrho, area, masflg);
 
   return totmas;
+}
+
+double
+Compo3NodeShell::weight(CoordSet& cs, double *gravityAcceleration, int altitude_direction)
+{
+  if (prop == NULL) {
+    return 0.0;
+  }
+
+  double _mass = getMass(cs);
+  return _mass*gravityAcceleration[altitude_direction];
+}
+
+double
+Compo3NodeShell::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int altitude_direction)
+{
+  if (prop == NULL) return 0.0;
+
+  double x[3] = { cs[nn[0]]->x, cs[nn[1]]->x, cs[nn[2]]->x };
+  double y[3] = { cs[nn[0]]->y, cs[nn[1]]->y, cs[nn[2]]->y };
+  double z[3] = { cs[nn[0]]->z, cs[nn[1]]->z, cs[nn[2]]->z };
+  double h[3], ElementMassMatrix[18][18];
+  double *grvfor=NULL;
+
+  h[0] = h[1] = h[2] = prop->eh;
+  int grvflg = 0, masflg = 1;
+
+  double area = 0;
+  double totmas = 0;
+  double sumrho = 0;
+
+  _FORTRAN(compms)(x, y, z, h, prop->rho, (double *)ElementMassMatrix,
+                   18,numLayers, 1, 1, (int *)idlay, layData, cFrame,
+                   1, type, 1, 1, gravityAcceleration, grvfor, grvflg,
+                   totmas, sumrho, area, masflg);
+
+  return area*sumrho*gravityAcceleration[altitude_direction];
 }
 
 FullSquareMatrix
@@ -454,11 +495,13 @@ Compo3NodeShell::massMatrix(CoordSet &cs, double *mel, int cmflg)
 
   int grvflg = 0, masflg = 0;
   double totmas = 0;
+  double sumrho = 0;
+  double area = 0;
 
   _FORTRAN(compms)(x, y, z, h, prop->rho, (double *)mel,
                    18,numLayers, 1, 1, (int *)idlay, layData, cFrame,
                    1, type, 1, 1, gravityAcceleration, grvfor, grvflg,
-                   totmas, masflg);
+                   totmas, sumrho, area, masflg);
 
   FullSquareMatrix ret(18,mel);
 

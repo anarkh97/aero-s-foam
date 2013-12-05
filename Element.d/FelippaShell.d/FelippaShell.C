@@ -333,13 +333,58 @@ FelippaShell::weight(CoordSet& cs, double *gravityAcceleration, int altitude_dir
 double
 FelippaShell::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int altitude_direction)
 {
-  if (prop == NULL) {
-    return 0.0;
+  if (prop == NULL) return 0.0;
+
+  double x[3] = { cs[nn[0]]->x, cs[nn[1]]->x, cs[nn[2]]->x };
+  double y[3] = { cs[nn[0]]->y, cs[nn[1]]->y, cs[nn[2]]->y };
+  double z[3] = { cs[nn[0]]->z, cs[nn[1]]->z, cs[nn[2]]->z };
+
+  using std::sqrt;
+  using std::abs;
+
+  int i, j, i1, i2, i3;
+  double twicearea2, x21, x13, y13, z13, x32, y32, z32, y21, z21, rlb, bpr, rlr, dist[3]; 
+
+  x21 = x[1] - x[0];
+  y21 = y[1] - y[0];
+  z21 = z[1] - z[0];
+
+  x32 = x[2] - x[1];
+  y32 = y[2] - y[1];
+  z32 = z[2] - z[1];
+
+  x13 = x[0] - x[2];
+  y13 = y[0] - y[2];
+  z13 = z[0] - z[2];
+
+  dist[0] = sqrt(x21 * x21 + y21 * y21 + z21 * z21);
+  dist[1] = sqrt(x32 * x32 + y32 * y32 + z32 * z32);
+  dist[2] = sqrt(x13 * x13 + y13 * y13 + z13 * z13);
+
+  rlr = sqrt(x21 * x21 + y21 * y21 + z21 * z21);
+
+  if (rlr == 0) {
+      throw std::runtime_error(
+        "*** FATAL ERROR in FelippaShell::weightDerivativeWRTthickness ***\n"
+        "*** The Side 1-2 has Zero Length                 ***\n"
+        "*** Check Coordinates and FE Topology            ***\n");
   }
+
+  rlb = sqrt(x32 * x32 + y32 * y32 + z32 * z32);
+  bpr = abs(x21 * x32 + y21 * y32 + z21 * z32) / rlr;
+
+  twicearea2 = rlb * rlb - bpr * bpr;
+
+  if (twicearea2 <= 0) {
+      throw std::runtime_error(
+        "*** FATAL ERROR in FelippaShell::weightDerivativeWRTthickness ***\n"
+        "*** The Area is Negative or Zero                 ***\n"
+        "*** Check Coordinates and FE Topology            ***\n");
+  }
+  double area = rlr * .5 * sqrt(twicearea2);
+  double sumrho = nmat->GetSumDensity();
   
-  double _weight = weight(cs, gravityAcceleration, altitude_direction);
-  double thick = nmat->GetShellThickness();
-  return _weight/thick;
+  return area*sumrho*gravityAcceleration[altitude_direction];
 } 
 
 FullSquareMatrix

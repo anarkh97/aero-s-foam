@@ -194,6 +194,22 @@ SuperElement::getMass(CoordSet &cs)
   return ret;
 }
 
+double
+SuperElement::weight(CoordSet& cs, double *gravityAcceleration, int altitude_direction)
+{
+  double ret = 0.0;
+  for(int i = 0; i < nSubElems; ++i) ret += subElems[i]->weight(cs,gravityAcceleration, altitude_direction);
+  return ret;
+}
+
+double 
+SuperElement::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int altitude_direction)
+{
+  double ret = 0.0;
+  for(int i = 0; i < nSubElems; ++i) ret += subElems[i]->weightDerivativeWRTthickness(cs,gravityAcceleration, altitude_direction);
+  return ret;
+}
+
 void
 SuperElement::getGravityForce(CoordSet &cs, double *gravityAcceleration, Vector &gravityForce,
                               int gravflg, GeomState *geomState)

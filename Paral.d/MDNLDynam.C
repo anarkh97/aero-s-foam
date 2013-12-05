@@ -400,7 +400,7 @@ MDNLDynamic::checkConvergence(int iteration, double normRes, DistrVector &residu
 
 double
 MDNLDynamic::getStiffAndForce(DistrGeomState& geomState, DistrVector& residual,
-                              DistrVector& elementInternalForce, double t, DistrGeomState *refState) 
+                              DistrVector& elementInternalForce, double t, DistrGeomState *refState, bool forceOnly) 
 {
   times->buildStiffAndForce -= getTime();
 
@@ -421,8 +421,8 @@ MDNLDynamic::getStiffAndForce(DistrGeomState& geomState, DistrVector& residual,
     }
   }
 
-  execParal5R(decDomain->getNumSub(), this, &MDNLDynamic::subGetStiffAndForce, geomState,
-              residual, elementInternalForce, t, refState);
+  execParal6R(decDomain->getNumSub(), this, &MDNLDynamic::subGetStiffAndForce, geomState,
+              residual, elementInternalForce, t, refState, forceOnly);
 
   if(t != domain->solInfo().initialTime) updateConstraintTerms(&geomState,t);
 
@@ -434,16 +434,21 @@ MDNLDynamic::getStiffAndForce(DistrGeomState& geomState, DistrVector& residual,
 void
 MDNLDynamic::subGetStiffAndForce(int isub, DistrGeomState &geomState,
                                  DistrVector &res, DistrVector &elemIntForce, double t,
-                                 DistrGeomState *refState)
+                                 DistrGeomState *refState, bool forceOnly)
 {
-  // PJSA: 10-4-2007 copied from MDNLStatic
   SubDomain *sd = decDomain->getSubDomain(isub);
   StackVector residual(res.subData(isub), res.subLen(isub));
   // eIF = element internal force
   StackVector eIF(elemIntForce.subData(isub), elemIntForce.subLen(isub));
   GeomState *subRefState = (refState) ? (*refState)[isub] : 0;
-  sd->getStiffAndForce(*geomState[isub], eIF, allCorot[isub], kelArray[isub], residual, 1.0, t, subRefState,
-                       (Vector *) NULL, melArray[isub]);
+  if(forceOnly) {
+    sd->getInternalForce(*geomState[isub], eIF, allCorot[isub], kelArray[isub], residual, 1.0, t, subRefState,
+                         (Vector *) NULL, melArray[isub]);
+  }
+  else {
+    sd->getStiffAndForce(*geomState[isub], eIF, allCorot[isub], kelArray[isub], residual, 1.0, t, subRefState,
+                         (Vector *) NULL, melArray[isub]);
+  }
 }
 
 void
@@ -1722,3 +1727,8 @@ MDNLDynamic::subUpdateStates(int isub, DistrGeomState *refState, DistrGeomState 
   sd->updateStates(subRefState, *(*geomState)[isub], allCorot[isub]);
 }
 
+LinesearchInfo&
+MDNLDynamic::linesearch()
+{
+  return domain->solInfo().getNLInfo().linesearch;
+}

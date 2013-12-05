@@ -75,7 +75,7 @@ NonLinStatic::updateStates(GeomState *refState, GeomState& geomState)
 
 double
 NonLinStatic::getStiffAndForce(GeomState& geomState, Vector& residual, Vector& elementInternalForce, 
-                               Vector &, double lambda, GeomState *refState)
+                               Vector &, double lambda, GeomState *refState, bool forceOnly)
 {
   times->buildStiffAndForce -= getTime();
 
@@ -93,8 +93,14 @@ NonLinStatic::getStiffAndForce(GeomState& geomState, Vector& residual, Vector& e
   }
 
   reactions->zero();
-  domain->getStiffAndForce(geomState, elementInternalForce, allCorot, 
-                           kelArray, residual, lambda, 0, refState, reactions);
+  if(forceOnly) {
+    domain->getInternalForce(geomState, elementInternalForce, allCorot,
+                             kelArray, residual, lambda, 0, refState, reactions);
+  }
+  else {
+    domain->getStiffAndForce(geomState, elementInternalForce, allCorot, 
+                             kelArray, residual, lambda, 0, refState, reactions);
+  }
 
   times->buildStiffAndForce += getTime();
 
@@ -268,7 +274,7 @@ NonLinStatic::getMaxLambda()
  return domain->solInfo().getNLInfo().maxLambda;
 }
 
-bool
+LinesearchInfo&
 NonLinStatic::linesearch()
 {
  return domain->solInfo().getNLInfo().linesearch;

@@ -56,7 +56,7 @@ class NonLinStatic {
 
     double getStiffAndForce(GeomState& geomState, Vector& residual, 
                             Vector& elementInternalForce, Vector &,
-                            double lambda = 1, GeomState *refState = NULL);
+                            double lambda = 1, GeomState *refState = NULL, bool forceOnly = false);
 
     void updatePrescribedDisplacement(GeomState *geomState, double lambda = 1);
     void initializeParameters(GeomState *geomState);
@@ -67,7 +67,7 @@ class NonLinStatic {
 
     double getTolerance() { return tolerance*firstRes; }
 
-    bool linesearch(); 
+    LinesearchInfo& linesearch(); 
     double getEnergy(double lambda, Vector& force, GeomState* geomState);
 
     double getResidualNorm(Vector &res, GeomState &geomState);

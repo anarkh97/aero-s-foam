@@ -27,6 +27,7 @@ template <class Scalar> class GenMDDynamMat;
 typedef GenMDDynamMat<double> MDDynamMat;
 class DistrInfo;
 class DistFlExchanger;
+class LinesearchInfo;
 
 // Multiple Domain Nonlinear Dynamic problem descriptor
 
@@ -147,10 +148,10 @@ class MDNLDynamic
 
     void updateStates(DistrGeomState *refState, DistrGeomState& geomState);
 
-    // getStiffAndForce forms element stiffness matrices and
+    // getStiffAndForce forms element stiffness matrices and/or
     // returns the residual force = external - internal forces
-    double getStiffAndForce(DistrGeomState& geomState, DistrVector& residual,
-                            DistrVector& elementInternalForce, double midtime=-1, DistrGeomState *refState = NULL);
+    double getStiffAndForce(DistrGeomState& geomState, DistrVector& residual, DistrVector& elementInternalForce,
+                            double midtime=-1, DistrGeomState *refState = NULL, bool forceOnly = false);
 
     // reBuild assembles new dynamic stiffness matrix
     void reBuild(DistrGeomState& geomState, int iter, double localDelta, double t);
@@ -178,6 +179,8 @@ class MDNLDynamic
     void updateParameters(DistrGeomState *geomState);
     bool checkConstraintViolation(double &err);
 
+    LinesearchInfo& linesearch();
+
   protected:
     Domain *getDomain() { return domain; }
     DecDomain *getDecDomain() { return decDomain; }
@@ -187,8 +190,8 @@ class MDNLDynamic
     void makeSubCorotators(int isub);
     void makeSubElementArrays(int isub);
     void subGetExternalForce(int isub, DistrVector& f, DistrVector& constantForce, double tf, double tm);
-    void subGetStiffAndForce(int isub, DistrGeomState &geomState,
-                             DistrVector &res, DistrVector &elemIntForce, double t, DistrGeomState *refState);
+    void subGetStiffAndForce(int isub, DistrGeomState &geomState, DistrVector &res,
+                             DistrVector &elemIntForce, double t, DistrGeomState *refState, bool forceOnly);
     void subUpdatePrescribedDisplacement(int isub, DistrGeomState& geomState);
     void addConstraintForces(int isub, DistrVector& rhs, DistrGeomState &geomState);
     void subGetConstraintMultipliers(int isub, DistrGeomState &geomState);

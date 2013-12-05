@@ -16,8 +16,8 @@
 #include <Driver.d/GeoSource.h>
 #include <Corotational.d/MatNLCorotator.h>
 #ifdef USE_EIGEN3
-#include <Element.d/Function.d/InertialForce.d/InertialForceFunction.h>
-#include <Element.d/Function.d/InertialForce.d/InertialForceFunctionExp.h>
+#include <Element.d/Function.d/InertialForce.d/InertialType1ForceFunction.h>
+#include <Element.d/Function.d/InertialForce.d/InertialType2ForceFunction.h>
 #include <Element.d/Function.d/SpaceDerivatives.h>
 #endif
 #include <algorithm>
@@ -487,7 +487,7 @@ Domain::getNodeFictitiousForce(int inode, GeomState &geomState, double time, Geo
         compute_tangents = false;
       }
       else if(domain->solInfo().galerkinPodRom) {
-        // in this case V and A are the first and second time derivatives of the total rotation vector
+        // in this case V and A are the first and second time-derivatives of the total rotation vector
         Eigen::Vector3d incd = Psi - Psi_n;
         // compute the total angular velocity at t^{n+1-alphaf}
         V = gamma/(dt*beta)*incd + (1-(1-alphaf)*gamma/beta)*V_n + dt*(1-alphaf)*(2*beta-gamma)/(2*beta)*A_n;
@@ -530,7 +530,7 @@ Domain::getNodeFictitiousForce(int inode, GeomState &geomState, double time, Geo
                     beta, gamma, alphaf, alpham, dt, sinfo.alphaDamp;
 
           // evaluate the jacobian of the inertial+viscous force
-          Simo::Jacobian<double,InertialForceFunctionExp> dFdq(dconst,iconst);
+          Simo::Jacobian<double,Simo::InertialType2ForceFunction> dFdq(dconst,iconst);
           q << geomState[inode].theta[0], geomState[inode].theta[1], geomState[inode].theta[2];
           K = dFdq(q, time);
         }
@@ -545,7 +545,7 @@ Domain::getNodeFictitiousForce(int inode, GeomState &geomState, double time, Geo
                     beta, gamma, alphaf, alpham, dt, sinfo.alphaDamp;
 
           // evaluate the jacobian of the inertial+viscous force
-          Simo::Jacobian<double,Simo::InertialForceFunction> dFdq(dconst,iconst);
+          Simo::Jacobian<double,Simo::InertialType1ForceFunction> dFdq(dconst,iconst);
           q = Eigen::Vector3d::Zero();
           K = dFdq(q, time);
         }

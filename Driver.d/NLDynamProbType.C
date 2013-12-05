@@ -61,6 +61,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
   VecType rhs(probDesc->solVecInfo());
   VecType residual(probDesc->solVecInfo());
   VecType totalRes(probDesc->sysVecInfo());
+  VecType rhsCopy(probDesc->solVecInfo());
 
   // Backup variables and states for Aeroelastic using A5 algorithm
   typename StateUpdate::RefState *bkRefState = 0;
@@ -244,6 +245,9 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
           resN = probDesc->getResidualNorm(rhs, *geomState, delta);
           if(iter == 0) initialRes = resN;
 
+          // Copy rhs if necessary before it gets overwritten
+          if(probDesc->linesearch().type != 0) rhsCopy = rhs;
+
           // If the convergence criteria does not involve the solution increment, then 
           // check for convergence now (to avoid potentially unnecessary solve)
           if(useTolInc || !(converged = probDesc->checkConvergence(iter, resN, rhs, rhs, midtime)) ) {
@@ -254,10 +258,16 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
             residual = rhs;
             totalNewtonIter++;
 
-            // Solve ([M] + delta^2 [K])dv = rhs (where rhs is over written)
+            // Solve ([M] + delta^2 [K])dv = rhs (where rhs is overwritten)
             probDesc->getSolver()->reSolve(rhs);
             probDesc->getConstraintMultipliers(*geomState);
 
+            if(probDesc->linesearch().type != 0) {
+              // Optional adjustment of the step length
+              StateUpdate::linesearch(probDesc, refState, geomState, stateIncr, rhsCopy, elementInternalForce,
+                                      totalRes, midtime, external_force, rhs, velocity_n, acceleration,
+                                      inc_displac, delta, domain->solInfo().zeroRot, residual);
+            }
             StateUpdate::updateIncr(stateIncr, rhs);  // stateIncr = rhs
 
             // Update state here if the maximum number of iterations is reached

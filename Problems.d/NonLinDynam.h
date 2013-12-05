@@ -24,6 +24,7 @@ template <typename T> struct AllOps;
 class ControlLawInfo;
 template <typename T> class GenFSFullMatrix;
 typedef GenFSFullMatrix<double> FSFullMatrix;
+class LinesearchInfo;
 
 class NLDynamPostProcessor
 {
@@ -170,17 +171,17 @@ class NonLinDynamic : public NLDynamPostProcessor {
 
     virtual void updateStates(GeomState *refState, GeomState& geomState);
 
-    // getStiffAndForce forms element stiffness matrices and
+    // getStiffAndForce forms element stiffness matrices and/or
     // returns the residual force = external - internal forces
-    double getStiffAndForce(GeomState& geomState, Vector& residual, 
-                            Vector& elementInternalForce, double midtime=-1, GeomState *refState = NULL);
+    double getStiffAndForce(GeomState& geomState, Vector& residual, Vector& elementInternalForce,
+                            double midtime=-1, GeomState *refState = NULL, bool forceOnly = false);
 
   private:
     // Overridable implementation of getStiffAndForce
     virtual void getStiffAndForceFromDomain(GeomState &geomState, Vector &elementInternalForce,
                                             Corotator **allCorot, FullSquareMatrix *kelArray,
                                             Vector &residual, double lambda, double time, GeomState *refState,
-                                            FullSquareMatrix *melArray);
+                                            FullSquareMatrix *melArray, bool forceOnly);
 
   public:
     // reBuild assembles new dynamic stiffness matrix
@@ -207,6 +208,8 @@ class NonLinDynamic : public NLDynamPostProcessor {
     void initializeParameters(GeomState *geomState);
     void updateParameters(GeomState *geomState);
     bool checkConstraintViolation(double &err);
+
+    LinesearchInfo& linesearch();
 
 private:
     virtual bool factorWhenBuilding() const;

@@ -1,5 +1,5 @@
-#ifndef _INCREMENTALROTATIONVECTORTYPE1_H_
-#define _INCREMENTALROTATIONVECTORTYPE1_H_
+#ifndef _INCREMENTALROTATIONVECTOR_H_
+#define _INCREMENTALROTATIONVECTOR_H_
 
 #include <Element.d/Function.d/Function.h>
 #include <Element.d/Function.d/utilities.hpp>
@@ -7,12 +7,12 @@
 namespace Simo {
 
 template<typename Scalar>
-class IncrementalRotationVectorType1 : public VectorValuedFunction<3,3,Scalar,18,0,double>
+class IncrementalRotationVector : public VectorValuedFunction<3,3,Scalar,18,0,double>
 {
    Eigen::Matrix3d R1, R2;
 
   public:
-    IncrementalRotationVectorType1(const Eigen::Array<double,18,1>& sconst, const Eigen::Array<int,0,1>&)
+    IncrementalRotationVector(const Eigen::Array<double,18,1>& sconst, const Eigen::Array<int,0,1>&)
     {
       R1 = Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor> >(const_cast<double*>(sconst.data())+0);
       R2 = Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor> >(const_cast<double*>(sconst.data())+9);

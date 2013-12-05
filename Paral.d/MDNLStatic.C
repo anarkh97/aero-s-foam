@@ -20,7 +20,7 @@
 void
 MDNLStatic::getSubStiffAndForce(int isub, DistrGeomState &geomState, 
                                 DistrVector &res, DistrVector &elemIntForce, double lambda,
-                                DistrGeomState *refState)
+                                DistrGeomState *refState, bool forceOnly)
 {
  SubDomain *sd = decDomain->getSubDomain(isub);
 
@@ -32,8 +32,14 @@ MDNLStatic::getSubStiffAndForce(int isub, DistrGeomState &geomState,
  GeomState *subRefState = (refState) ? (*refState)[isub] : 0;
  StackVector subReactions(reactions->subData(isub), reactions->subLen(isub));
  subReactions.zero();
- sd->getStiffAndForce(*geomState[isub], eIF, allCorot[isub], kelArray[isub],
-                      residual, lambda, 0, subRefState, &subReactions);
+ if(forceOnly) {
+   sd->getInternalForce(*geomState[isub], eIF, allCorot[isub], kelArray[isub],
+                        residual, lambda, 0, subRefState, &subReactions);
+ }
+ else {
+   sd->getStiffAndForce(*geomState[isub], eIF, allCorot[isub], kelArray[isub],
+                        residual, lambda, 0, subRefState, &subReactions);
+ }
 }
 
 double
@@ -239,14 +245,14 @@ MDNLStatic::checkConvergence(int iter, double normDv, double normRes)
 double
 MDNLStatic::getStiffAndForce(DistrGeomState& geomState, 
                              DistrVector& residual, DistrVector& elementInternalForce,
-                             DistrVector&, double _lambda, DistrGeomState *refState)
+                             DistrVector&, double _lambda, DistrGeomState *refState, bool forceOnly)
 {
  times->buildStiffAndForce -= getTime();
 
  updateConstraintTerms(&geomState, _lambda);
 
- execParal5R(decDomain->getNumSub(), this, &MDNLStatic::getSubStiffAndForce, geomState,
-             residual, elementInternalForce, _lambda, refState);
+ execParal6R(decDomain->getNumSub(), this, &MDNLStatic::getSubStiffAndForce, geomState,
+             residual, elementInternalForce, _lambda, refState, forceOnly);
 
  times->buildStiffAndForce += getTime();
 
@@ -395,7 +401,7 @@ MDNLStatic::getMaxLambda()
   return domain->solInfo().getNLInfo().maxLambda;
 }
 
-bool
+LinesearchInfo&
 MDNLStatic::linesearch()
 {
   return domain->solInfo().getNLInfo().linesearch;

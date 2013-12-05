@@ -831,6 +831,145 @@ void directional_deriv2(const Eigen::Matrix<Scalar,3,1> &Psi, const Eigen::Matri
 }
 
 template<typename Scalar>
+void directional_deriv4(const Eigen::Matrix<Scalar,3,1> &Psi, const Eigen::Matrix<Scalar,3,1> &Psidot,
+                        Eigen::Matrix<Scalar,3,3> &C4)
+{
+  Scalar psi2 = Psi.squaredNorm();
+  Eigen::Matrix<Scalar,3,3> Psiskew;
+  Psiskew <<      0, -Psi[2],  Psi[1],
+             Psi[2],       0, -Psi[0],
+            -Psi[1],  Psi[0],       0;
+
+  Eigen::Matrix<Scalar,3,3> Psidotskew;
+  Psidotskew <<         0, -Psidot[2],  Psidot[1],
+                Psidot[2],          0, -Psidot[0],
+               -Psidot[1],  Psidot[0],          0;
+
+  Scalar c1, c2, c3, c4, c5;
+  if(psi2 < 5e-6) {
+    Scalar psi4 = psi2*psi2;
+    c1 = -1/3.  + psi2/30   - psi4/840;   // + O(psi^6)
+    c2 = -1/12. + psi2/180  - psi4/6720;  // + O(psi^6)
+    c3 = -1/60. + psi2/1260 - psi4/60480; // + O(psi^6)
+    c4 = -1/2.  + psi2/24   - psi4/720;   // + O(psi^6)
+    c5 = 1/6.   - psi2/120  + psi4/5040;  // + O(psi^6)
+  }
+  else {
+    using std::sqrt;
+    using std::sin;
+    using std::cos;
+    Scalar psi  = sqrt(psi2);
+    Scalar psi3 = psi*psi2;
+    Scalar psi4 = psi*psi3;
+    Scalar psi5 = psi*psi4;
+    c1 = (psi*cos(psi)-sin(psi))/psi3;
+    c2 = (psi*sin(psi)+2*cos(psi)-2)/psi4;
+    c3 = (3*sin(psi)-2*psi-psi*cos(psi))/psi5;
+    c4 = (cos(psi)-1)/psi2;
+    c5 = (psi-sin(psi))/psi3;
+  }
+  C4 = (c1+c5)*Psi.dot(Psidot)*Eigen::Matrix<Scalar,3,3>::Identity() 
+         + 2*c3*Psi.dot(Psidot)*Psi*Psi.transpose() + 2*c5*(Psi*Psidot.transpose())
+         + (c1+c5)*Psidot*Psi.transpose() - c2*(Psiskew*Psidot)*Psi.transpose()
+         - c2*(Psi.dot(Psidot))*Psiskew;
+}
+
+template<typename Scalar>
+void
+directional_deriv5(const Eigen::Matrix<Scalar,3,1> &Psi, const Eigen::Matrix<Scalar,3,1> &Psidot, Eigen::Matrix<Scalar,3,3>& C5)
+{
+  Scalar psi2 = Psi.squaredNorm();
+  Eigen::Matrix<Scalar,3,3> Psiskew;
+  Psiskew <<      0, -Psi[2],  Psi[1],
+             Psi[2],       0, -Psi[0],
+            -Psi[1],  Psi[0],       0;
+
+  Eigen::Matrix<Scalar,3,3> Psidotskew;
+  Psidotskew <<         0, -Psidot[2],  Psidot[1],
+                Psidot[2],          0, -Psidot[0],
+               -Psidot[1],  Psidot[0],          0;
+
+  Scalar c1, c2, c3, c4, c5, c1p, c2p, c3p; // note: c1p = c1'/psi, c2p = c2'/psi, c3p = c3'/psi
+  if(psi2 < 5e-6) {
+    Scalar psi4 = psi2*psi2;
+    c1 = -1/3.  + psi2/30   - psi4/840;   // + O(psi^6)
+    c2 = -1/12. + psi2/180  - psi4/6720;  // + O(psi^6)
+    c3 = -1/60. + psi2/1260 - psi4/60480; // + O(psi^6)
+    c4 = -1/2.  + psi2/24   - psi4/720;   // + O(psi^6)
+    c5 = 1/6.   - psi2/120  + psi4/5040;  // + O(psi^6)
+    c1p = 1/15. - psi2/210  + psi4/7560;  // + O(psi^6)
+    c2p = 1/90. - psi2/1680 + psi4/75600; // + O(psi^6)
+    c3p = 1/630. - psi2/15120 + psi4/831600; // + O(psi^6)
+  }
+  else {
+    using std::sqrt;
+    using std::sin;
+    using std::cos;
+    Scalar psi  = sqrt(psi2);
+    Scalar psi3 = psi*psi2;
+    Scalar psi4 = psi*psi3;
+    Scalar psi5 = psi*psi4;
+    Scalar psi6 = psi*psi5;
+    Scalar psi7 = psi*psi6;
+    c1 = (psi*cos(psi)-sin(psi))/psi3;
+    c2 = (psi*sin(psi)+2*cos(psi)-2)/psi4;
+    c3 = (3*sin(psi)-2*psi-psi*cos(psi))/psi5;
+    c4 = (cos(psi)-1)/psi2;
+    c5 = (psi-sin(psi))/psi3;
+    c1p = (3*sin(psi)-psi2*sin(psi)-3*psi*cos(psi))/psi5;
+    c2p = (psi2*cos(psi)-5*psi*sin(psi)-8*cos(psi)+8)/psi6;
+    c3p = (7*psi*cos(psi)+8*psi+psi2*sin(psi)-15*sin(psi))/psi7;
+  }
+  using std::pow;
+
+  C5 = (c3*pow(Psi.dot(Psidot),2)+c5*Psidot.squaredNorm())*Eigen::Matrix<Scalar,3,3>::Identity()
+       + (c3p*pow(Psi.dot(Psidot),2) + c3*Psidot.squaredNorm())*Psi*Psi.transpose();
+       + 2*c3*Psi.dot(Psidot)*Psi*Psidot.transpose()
+       + (c1p+c3)*Psi.dot(Psidot)*Psidot*Psi.transpose()
+       - c2p*Psi.dot(Psidot)*Psiskew*Psidot*Psi.transpose()
+       - c2*Psiskew*Psidot*Psidot.transpose()
+       + c2*Psi.dot(Psidot)*Psidotskew
+       + (c1+c5)*Psidot*Psidot.transpose();
+}
+
+template<typename Scalar>
+void
+directional_deriv6(const Eigen::Matrix<Scalar,3,1> &Psi, const Eigen::Matrix<Scalar,3,1> &V, Eigen::Matrix<Scalar,3,3> C6)
+{
+  Scalar psi2 = Psi.squaredNorm();
+  Eigen::Matrix<Scalar,3,3> Psiskew;
+  Psiskew <<      0, -Psi[2],  Psi[1],
+             Psi[2],       0, -Psi[0],
+            -Psi[1],  Psi[0],       0;
+  Eigen::Matrix<Scalar,3,3> Vskew;
+  Vskew <<    0, -V[2],  V[1],
+           V[2],     0, -V[0],
+          -V[1],  V[0],     0;
+
+  Scalar a1, a2, a3;
+  if(psi2 < 5e-6) {
+    Scalar psi4 = psi2*psi2;
+    a1 = -1/6.  - psi2/180  - psi4/5040;   // + O(psi^6) 
+    a2 = 1/360. + psi2/7560 + psi4/201600; // + O(psi^6)
+    a3 = 1/12.  + psi2/720  + psi4/30240;  // + O(psi^6)
+  }
+  else {
+    using std::sqrt;
+    using std::cos;
+    using std::sin;
+    Scalar psi = sqrt(psi2);
+    Scalar psi4 = psi2*psi2;
+    a1 = (sin(psi)-psi)/(2*psi-2*psi*cos(psi));
+    a2 = (4*cos(psi)+psi*sin(psi)-4+psi2)/(2*psi4-2*psi4*cos(psi));
+    a3 = (2-2*cos(psi)-psi*sin(psi))/(2*psi2-2*psi2*cos(psi));
+  }
+  C6 = a1*V*Psi.transpose() + a2*Psi.dot(V)*(Psi*Psi.transpose())
+       + a3*(Psi.dot(V)*Eigen::Matrix<Scalar,3,3>::Identity() + Psi*V.transpose()) + 0.5*Vskew;
+
+  return C6;
+}
+
+template<typename Scalar>
 void tangential_transf_dot(const Eigen::Matrix<Scalar,3,1> &Psi, const Eigen::Matrix<Scalar,3,1> &Psidot,
                            Eigen::Matrix<Scalar,3,3> &Tdot)
 {

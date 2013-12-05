@@ -18,7 +18,7 @@ private:
   virtual void getStiffAndForceFromDomain(GeomState &geomState, Vector &elementInternalForce,
                                           Corotator **allCorot, FullSquareMatrix *kelArray,
                                           Vector &residual, double lambda, double time, GeomState *refState,
-                                          FullSquareMatrix *melArray);
+                                          FullSquareMatrix *melArray, bool forceOnly);
 
   std::map<int, double> packedElementWeights_;
   std::vector<int> packedWeightedNodes_;

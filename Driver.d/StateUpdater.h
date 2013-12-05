@@ -80,14 +80,14 @@ public:
   static void linesearch(ProbDescr *pbd, RefState *refState, GeomType *geomState, StateIncr *du, VecType &residual,
                          VecType &elementInternalForce, VecType &gRes, double lambda, VecType &force, VecType &p,
                          VecType &vel_n, VecType &accel, StateIncr &inc_displac, double delta, bool zeroRot, VecType &toto) {
-    DynamicResidualEvaluator<ProbDescr,VecType,GeomType,IncrUpdater> resEval(pbd, refState, du, elementInternalForce, gRes, lambda, force,
-                                                                             vel_n, accel, inc_displac, delta, zeroRot, toto);
+    DynamicResidualEvaluator<ProbDescr,VecType,GeomType,::IncrUpdater> resEval(pbd, refState, du, elementInternalForce, gRes, lambda, force,
+                                                                               vel_n, accel, inc_displac, delta, zeroRot, toto);
     linesearchImpl(pbd, geomState, residual, p, resEval);
   }
 
   static void linesearch(ProbDescr *pbd, RefState *refState, GeomType *geomState, StateIncr *du, VecType &residual,
                          VecType &elementInternalForce, VecType &gRes, double lambda, VecType &force, VecType &p) {
-    StaticResidualEvaluator<ProbDescr,VecType,GeomType,IncrUpdater> resEval(pbd, refState, du, elementInternalForce, gRes, lambda, force);
+    StaticResidualEvaluator<ProbDescr,VecType,GeomType,::IncrUpdater> resEval(pbd, refState, du, elementInternalForce, gRes, lambda, force);
     linesearchImpl(pbd, geomState, residual, p, resEval);
   }  
 };

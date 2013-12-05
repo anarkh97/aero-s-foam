@@ -2,6 +2,7 @@
 #define _LINE_SEARCH_H_
 
 #include <Utils.d/DistHelper.h>
+#include <limits>
 
 template<class ProbDescr, class VecType, class GeomType, template<typename P, typename V, typename G> class Updater>
 class StaticResidualEvaluator {

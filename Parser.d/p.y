@@ -3943,10 +3943,30 @@ NLInfo:
         { domain->solInfo().getNLInfo().unsymmetric = true; }
         | NLInfo LFACTOR Float NewLine
         { domain->solInfo().getNLInfo().lfactor = $3; }
-/* conflict
-        | NLInfo LINESEARCH NewLine
-        { domain->solInfo().getNLInfo().linesearch = true; }
-*/
+        | NLInfo LINESEARCH Integer NewLine
+        { domain->solInfo().getNLInfo().linesearch.type = $3; }
+        | NLInfo LINESEARCH Integer Integer NewLine
+        { domain->solInfo().getNLInfo().linesearch.type = $3; 
+          domain->solInfo().getNLInfo().linesearch.maxit = $4; }
+        | NLInfo LINESEARCH Integer Integer Float NewLine
+        { domain->solInfo().getNLInfo().linesearch.type = $3;
+          domain->solInfo().getNLInfo().linesearch.maxit = $4;
+          // note: currently we use either c1 or c2, but never both
+          domain->solInfo().getNLInfo().linesearch.c1 = $5;
+          domain->solInfo().getNLInfo().linesearch.c2 = $5; }
+        | NLInfo LINESEARCH Integer Integer Float Float NewLine
+        { domain->solInfo().getNLInfo().linesearch.type = $3;
+          domain->solInfo().getNLInfo().linesearch.maxit = $4;
+          domain->solInfo().getNLInfo().linesearch.c1 = $5; 
+          domain->solInfo().getNLInfo().linesearch.c2 = $5;
+          domain->solInfo().getNLInfo().linesearch.tau = $6; }
+        | NLInfo LINESEARCH Integer Integer Float Float Integer NewLine
+        { domain->solInfo().getNLInfo().linesearch.type = $3;
+          domain->solInfo().getNLInfo().linesearch.maxit = $4;
+          domain->solInfo().getNLInfo().linesearch.c1 = $5; 
+          domain->solInfo().getNLInfo().linesearch.c2 = $5;
+          domain->solInfo().getNLInfo().linesearch.tau = $6;
+          domain->solInfo().getNLInfo().linesearch.verbose = bool($7); }
         | NLInfo FAILSAFE NewLine
         { domain->solInfo().getNLInfo().failsafe = true; }
         | NLInfo FAILSAFE Float NewLine

@@ -77,11 +77,11 @@ class MDNLStatic
 
     double getStiffAndForce(DistrGeomState& geomState, DistrVector& residual, 
                             DistrVector& elementInternalForce, DistrVector& gRes,
-                            double lambda = 1.0, DistrGeomState *refState = NULL);
+                            double lambda = 1.0, DistrGeomState *refState = NULL, bool forceOnly = false);
 
     double getTolerance() { return tolerance*firstRes; }
 
-    bool linesearch();
+    LinesearchInfo& linesearch();
     double getEnergy(double lambda, DistrVector& force, DistrGeomState* geomState)
       { cerr << "MDNLStatic::getEnergy is not implemented\n"; return 0; }
 
@@ -90,7 +90,7 @@ class MDNLStatic
   private:
     void getSubStiffAndForce(int isub, DistrGeomState &geomState,
                              DistrVector &res, DistrVector &elemIntForce, double lambda,
-                             DistrGeomState *refState);
+                             DistrGeomState *refState, bool forceOnly);
 
     void makeSubCorotators(int isub);
     void deleteSubCorotators(int isub);

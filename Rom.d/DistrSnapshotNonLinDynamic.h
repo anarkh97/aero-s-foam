@@ -66,11 +66,11 @@ public:
   static double integrate(DistrSnapshotNonLinDynamic *pbd, DistrGeomState *refState, DistrGeomState *geomState,
                           GenDistrVector<double> *du, GenDistrVector<double> &residual,
                           GenDistrVector<double> &elementInternalForce, GenDistrVector<double> &gRes, GenDistrVector<double> &vel_n,
-                          GenDistrVector<double> &accel, double midTime) {
+                          GenDistrVector<double> &accel, double midTime, bool forceOnly=false) {
     pbd->saveMidTime(midTime);
 
     return IncrUpdater<DistrSnapshotNonLinDynamic, GenDistrVector<double>, DistrGeomState>::integrate(
-        pbd, refState, geomState, du, residual, elementInternalForce, gRes, vel_n, accel, midTime);
+        pbd, refState, geomState, du, residual, elementInternalForce, gRes, vel_n, accel, midTime, forceOnly);
   }
 
   static void midpointIntegrate(DistrSnapshotNonLinDynamic *pbd, GenDistrVector<double> &velN,

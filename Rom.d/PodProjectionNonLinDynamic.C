@@ -889,7 +889,7 @@ PodProjectionNonLinDynamic::updateStates(ModalGeomState *refState, ModalGeomStat
 
 double
 PodProjectionNonLinDynamic::getStiffAndForce(ModalGeomState &geomState, Vector &residual,
-                                             Vector &elementInternalForce, double t, ModalGeomState *refState)
+                                             Vector &elementInternalForce, double t, ModalGeomState *refState, bool forceOnly)
 {
   Vector q_Big(NonLinDynamic::solVecInfo()),
          residual_Big(NonLinDynamic::solVecInfo(), 0.0);
@@ -897,7 +897,7 @@ PodProjectionNonLinDynamic::getStiffAndForce(ModalGeomState &geomState, Vector &
   projectionBasis.expand(geomState.q, q_Big);
   geomState_Big->explicitUpdate(domain->getNodes(), q_Big);
 
-  NonLinDynamic::getStiffAndForce(*geomState_Big, residual_Big, elementInternalForce, t, refState_Big);
+  NonLinDynamic::getStiffAndForce(*geomState_Big, residual_Big, elementInternalForce, t, refState_Big, forceOnly);
 
   Vector r(solVecInfo());
   projectionBasis.reduce(residual_Big, r);

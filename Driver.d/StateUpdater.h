@@ -1,6 +1,8 @@
 #ifndef _STATE_UPDATER_H_
 #define _STATE_UPDATER_H_
 
+#include <Driver.d/LineSearch.h>
+
 template< class ProbDescr, class VecType, class GeomType >
 class IncrUpdater  {
 
@@ -24,17 +26,17 @@ public:
 
   static double integrate(ProbDescr *pbd, RefState *refState, GeomType *geomState,
 		  StateIncr *du, VecType &residual, 
-		  VecType &elementInternalForce, VecType &gRes, double lambda = 1.0) {
+		  VecType &elementInternalForce, VecType &gRes, double lambda=1.0, bool forceOnly=false) {
     updateState(pbd, geomState, *du);
-    return pbd->getStiffAndForce(*geomState, residual, elementInternalForce, gRes, lambda, refState);
+    return pbd->getStiffAndForce(*geomState, residual, elementInternalForce, gRes, lambda, refState, forceOnly);
   }
 
   static double integrate(ProbDescr *pbd, RefState *refState, GeomType *geomState,
 		  StateIncr *du, VecType &residual, 
 		  VecType &elementInternalForce, VecType &gRes, VecType& vel_n,
-                  VecType &accel, double midTime) {
+                  VecType &accel, double midTime, bool forceOnly=false) {
     updateState(pbd, geomState, *du);
-    return pbd->getStiffAndForce(*geomState, residual, elementInternalForce, midTime, refState);
+    return pbd->getStiffAndForce(*geomState, residual, elementInternalForce, midTime, refState, forceOnly);
   }
 
   static void midpointIntegrate(ProbDescr *pbd, 
@@ -74,6 +76,20 @@ public:
   static void updateState(ProbDescr *pbd, GeomType *geomState, const VecType &du) {
     geomState->update(const_cast<VecType &>(du));
   }
+
+  static void linesearch(ProbDescr *pbd, RefState *refState, GeomType *geomState, StateIncr *du, VecType &residual,
+                         VecType &elementInternalForce, VecType &gRes, double lambda, VecType &force, VecType &p,
+                         VecType &vel_n, VecType &accel, StateIncr &inc_displac, double delta, bool zeroRot, VecType &toto) {
+    DynamicResidualEvaluator<ProbDescr,VecType,GeomType,IncrUpdater> resEval(pbd, refState, du, elementInternalForce, gRes, lambda, force,
+                                                                             vel_n, accel, inc_displac, delta, zeroRot, toto);
+    linesearchImpl(pbd, geomState, residual, p, resEval);
+  }
+
+  static void linesearch(ProbDescr *pbd, RefState *refState, GeomType *geomState, StateIncr *du, VecType &residual,
+                         VecType &elementInternalForce, VecType &gRes, double lambda, VecType &force, VecType &p) {
+    StaticResidualEvaluator<ProbDescr,VecType,GeomType,IncrUpdater> resEval(pbd, refState, du, elementInternalForce, gRes, lambda, force);
+    linesearchImpl(pbd, geomState, residual, p, resEval);
+  }  
 };
 
 //-------------------------------------------------------------------------------------------------
@@ -88,7 +104,7 @@ public:
 
   static double integrate(ProbDescr *pbd, RefState *rs, GeomType *geomState,
     StateIncr *du, VecType &residual, VecType &elementInternalForce,
-    VecType &gRes, VecType& vel_n, VecType &accel, double midTime){
+    VecType &gRes, VecType& vel_n, VecType &accel, double midTime, bool forceOnly=false) {
 
 //************************************************
 //    pbd->derivTest(*geomState, vel_n, accel, residual);
@@ -156,7 +172,7 @@ public:
   
   static double integrate(ProbDescr *pbd, GeomType *sn, GeomType *snp,
 		  StateIncr *du, VecType &residual, 
-		  VecType &elementInternalForce, VecType &totalRes, double = 1.0) {
+		  VecType &elementInternalForce, VecType &totalRes, double=1.0, bool=false) {
     return pbd->integrate(*sn, *snp, *du, residual, 
                           elementInternalForce, totalRes);
   }
@@ -164,7 +180,7 @@ public:
   static double integrate(ProbDescr *pbd, GeomType *sn, GeomType *snp,
                   StateIncr *du, VecType &residual,
                   VecType &elementInternalForce, VecType &totalRes, VecType, VecType,
-                  double) {
+                  double, bool=false) {
     return pbd->integrate(*sn, *snp, *du, residual,
                           elementInternalForce, totalRes);
   }
@@ -206,6 +222,15 @@ public:
 
   static void updateState(ProbDescr *pbd, GeomType *geomState, const VecType &du) {}
 
+  static void linesearch(ProbDescr *pbd, RefState *refState, GeomType *geomState, StateIncr *du, VecType &residual,
+                         VecType &elementInternalForce, VecType &gRes, double lambda, VecType &force, VecType &ddu,
+                         VecType &vel_n, VecType &accel, StateIncr &inc_displac, double delta, bool zeroRot, VecType &toto) {
+    std::cerr << " *** WARNING: TotalUpdater::linesearch is not implemented\n";
+  }
+  static void linesearch(ProbDescr *pbd, RefState *refState, GeomType *geomState, StateIncr *du, VecType &residual,
+                         VecType &elementInternalForce, VecType &gRes, double lambda, VecType &force, VecType &ddu) {
+    std::cerr << " *** WARNING: TotalUpdater::linesearch is not implemented\n";
+  }
 };
 
 //-------------------------------------------------------------------------------------------------

@@ -70,7 +70,7 @@ public:
   ModalGeomState* createGeomState();
   ModalGeomState* copyGeomState(ModalGeomState *);
   virtual void updateStates(ModalGeomState *, ModalGeomState &);
-  double getStiffAndForce(ModalGeomState &, Vector &, Vector &, double = -1, ModalGeomState * = NULL);
+  double getStiffAndForce(ModalGeomState &, Vector &, Vector &, double = -1, ModalGeomState * = NULL, bool = false);
 
   void reBuild(ModalGeomState &, int, double, double);
   void dynamCommToFluid(ModalGeomState *, ModalGeomState *, Vector &, Vector &, Vector &, Vector &, int, int, int);
@@ -130,16 +130,11 @@ public:
   static double integrate(PodProjectionNonLinDynamic *pbd, ModalGeomState *refState, ModalGeomState *geomState,
                           GenVector<double> *du, GenVector<double> &residual,
                           GenVector<double> &elementInternalForce, GenVector<double> &gRes, GenVector<double> &vel_n,
-                          GenVector<double> &accel, double midTime) {
+                          GenVector<double> &accel, double midTime, bool forceOnly = false) {
     pbd->saveMidTime(midTime);
 
     return IncrUpdater<PodProjectionNonLinDynamic, GenVector<double>, ModalGeomState>::integrate(
-        pbd, refState, geomState, du, residual, elementInternalForce, gRes, vel_n, accel, midTime);
-
-/*
-    geomState->update(*du, 2);
-    return pbd->getStiffAndForce(*geomState, residual, elementInternalForce, midTime, refState);
-*/
+        pbd, refState, geomState, du, residual, elementInternalForce, gRes, vel_n, accel, midTime, forceOnly);
   }
   
   static void midpointIntegrate(PodProjectionNonLinDynamic *pbd, GenVector<double> &velN,
@@ -153,11 +148,11 @@ public:
         pbd, velN, delta, refState, geomState,
         dummy1, dummy2, dummy3, dummy4, acceleration, zeroRot);
 
-/* FIXME: needs to be full geomState
+/* XXX snapshot collection from Model II is currently not supported
     pbd->saveStateSnapshot(*geomState);
-*/
     pbd->saveVelocitySnapshot(velN);
     pbd->saveAccelerationSnapshot(acceleration);
+*/
   } 
 
  static double formRHScorrector(PodProjectionNonLinDynamic *pbd, GenVector<double> &inc_displac,

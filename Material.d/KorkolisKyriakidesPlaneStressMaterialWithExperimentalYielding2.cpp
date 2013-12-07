@@ -52,13 +52,10 @@ KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2(double iLambda, d
   equivEPSplastic = 0.;
 }
 
-
 // Destructor
 KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
 ~KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2() 
 {}
-
-
 
 // Copy constructor
 KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
@@ -72,12 +69,10 @@ KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2
   equivEPSplastic = Mat.equivEPSplastic;
 }
 
-
 // Cloning
 KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2 * 
 KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::Clone() const
 { return new KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2(*this); }
-
 
 // Return plastic strain
 std::vector<double> KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
@@ -108,7 +103,6 @@ double KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
 GetMaterialEquivalentPlasticStrain() const
 { return equivEPSplastic; }
 
-
 // Return Bulk modulus
 double KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
 GetBulkModulus() const
@@ -118,6 +112,15 @@ GetBulkModulus() const
 double KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
 GetShearModulus() const
 { return 0.5*E/(1.+nu); }
+
+// Return dissipated energy
+double KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
+GetDissipatedEnergy() const
+{ 
+  std::cerr<<"\n KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::GetDissipatedEnergy()- "
+           <<"not implemented.\n";
+  return 0;
+}
 
 // Set the plastic strain in the material
 void KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
@@ -152,9 +155,6 @@ CheckMaterialState(const std::vector<double> &CS, const double TOL) const
     return false;
 }
 
-
-
-
 // Compute the elastic constitutive response
 bool KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
 ComputeElasticConstitutiveResponse(const std::vector<double> &EPS, 
@@ -187,8 +187,6 @@ ComputeElasticConstitutiveResponse(const std::vector<double> &EPS,
  
   return true;
 }
-
-
 
 // Compute elastoplastic response of material
 bool KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
@@ -348,11 +346,6 @@ ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1,
   return true;
 }
 
-
-
-
-
-
 // Evaluate yield function
 double KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
 EvaluateYieldFunction(const double * CS, const double eqP) const
@@ -391,7 +384,6 @@ EvaluateYieldFunction(const double * CS, const double eqP) const
   return EffStress - EffYieldStress;
 }
 
-
 // Evaluate derivative of yield function with respect to cauchy stress
 std::vector<double> KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
 EvaluateDerivativeOfYieldFunction(const double * CS, const double eqP) const
@@ -426,8 +418,6 @@ EvaluateDerivativeOfYieldFunction(const double * CS, const double eqP) const
   return N;
 }
 
-
-
 // Linear transformations of stress involved in this model
 void KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
 ComputeLinearTransformationsOfStress(const double * CS, double * L1CS, double * L2CS) const
@@ -453,7 +443,6 @@ ComputeLinearTransformationsOfStress(const double * CS, double * L1CS, double * 
   L2CS[2] = Lvec[4]*CS[2];
 }
 
-
 // Compute yield stress by interpolating experimental stress-strain curve
 double KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
 GetYieldStressUsingExperimentalCurve(const double eqP) const
@@ -474,8 +463,6 @@ GetYieldStressUsingExperimentalCurve(const double eqP) const
     }
   return SigmaY;
 }
-
-
 
 // Compute \f$\sigma\f$ given \f$\sigma_{trial}, \lambda, {\bf N} \f$.
 void KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
@@ -498,15 +485,12 @@ ComputeCauchyStressGivenConsistencyParameterAndDirection(const double * CStrial,
     }
 }
 
-
-
 // Compute equivalent plastic strain given lambda and N.
 double KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
 ComputeEquivalentPlasticStrainGivenConsistencyParameterAndDirection(const double lambda, const double * N) const
 {
   return equivEPSplastic + sqrt(2./3.)*lambda*DeviatoricStressNorm(N);
 }
-
 
 bool KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
 ComputeConsistencyParameterGivenDirection(const double * CStrial, const double * N, 
@@ -589,7 +573,6 @@ ComputeConsistencyParameterGivenDirection(const double * CStrial, const double *
     return true;
 }
 
-
 // Compute eigenvalues
 void KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
 ComputeEigenvalues(const double * X, double &A, double &B) const
@@ -604,8 +587,6 @@ ComputeEigenvalues(const double * X, double &A, double &B) const
   B = 0.5*(sor - disc);
 }
 
-
-
 // Compute the norm of a deviatoric stress tensor 
 // given in vector form [Sxx, Syy, Sxy]
 double KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
@@ -613,7 +594,6 @@ DeviatoricStressNorm(const double * S) const
 {
   return sqrt( 2.*(pow(S[0],2.)+pow(S[1],2.)+pow(S[2],2.)+S[0]*S[1]) );
 }
-
 
 // Compute the norm of a deviatoric strain tensor 
 // given in vector form [Sxx, Syy, 2Sxy]

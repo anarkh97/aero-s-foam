@@ -295,6 +295,37 @@ ShellMaterialType4<doublereal,localmaterial>
   return mat[nlayer*nd+ilayer]->GetMaterialEquivalentPlasticStrain();
 }
 
+template<typename doublereal, typename localmaterial>
+doublereal
+ShellMaterialType4<doublereal,localmaterial>
+::GetDissipatedEnergy(int point)
+{ 
+    doublereal D = 0;
+    int ilayer;
+
+//     -------------------------------------------------- 
+//       (NUMERICAL INTEGRATION THROUGH THE THICKNESS)    
+//     -------------------------------------------------- 
+
+    // hardcoded 5 point Gauss-Legendre rule
+    doublereal nodes[5] = { -0.906179845938664, -0.538469310105683, 0.000000000000000, 0.538469310105683, 0.906179845938664 };
+    doublereal weights[5] = { 0.236926885056189, 0.478628670499366, 0.568888888888889, 0.478628670499366, 0.236926885056189 };
+/*
+    // hardcoded 7 point Gauss-Legendre rule
+    doublereal nodes[7] = {-0.9491079123427585245261897,-0.7415311855993944398638648,-0.4058451513773971669066064,
+                            0.0000000000000000000000000,0.4058451513773971669066064,0.7415311855993944398638648,0.9491079123427585245261897};
+    doublereal weights[7] = {0.1294849661688696932706114,0.2797053914892766679014678,0.3818300505051189449503698,
+                             0.4179591836734693877551020,0.3818300505051189449503698,0.2797053914892766679014678,0.1294849661688696932706114};
+*/
+    for (ilayer = 0; ilayer < nlayer; ++ilayer) {
+
+      D += weights[ilayer]*thick/2*mat[nlayer*point+ilayer]->GetDissipatedEnergy();
+
+    }
+
+    return D;
+}
+
 #include <Material.d/IsotropicLinearElasticJ2PlasticPlaneStressMaterial.h>
 template
 void
@@ -335,4 +366,9 @@ template
 double
 ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
 ::GetLocalEquivalentPlasticStrain(int nd, double z);
+
+template
+double
+ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
+::GetDissipatedEnergy(int gp);
 #endif

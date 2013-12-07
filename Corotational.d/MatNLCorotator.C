@@ -266,7 +266,6 @@ MatNLCorotator::updateStates(GeomState *refState, GeomState &curState, CoordSet 
     dispnp[3*i+2] = curState[nn[i]].z-nodes[i].z;
   }
   double *state = curState.getElemState(ele->getGlNum());
-  //for(int i=0; i<103; ++i) std::cerr << state[i] << " "; std::cerr << std::endl;
   
   ele->updateStates(nodes, state, dispn, dispnp);
 
@@ -274,6 +273,24 @@ MatNLCorotator::updateStates(GeomState *refState, GeomState &curState, CoordSet 
   delete [] nodes;
   delete [] dispn;
   delete [] dispnp;
+}
+
+double
+MatNLCorotator::getDissipatedEnergy(GeomState &curState, CoordSet &C0)
+{
+  int *nn = new int[ele->numNodes()];
+  ele->nodes(nn);
+  Node *nodes = new Node[ele->numNodes()];
+  for(int i = 0; i < ele->numNodes(); ++i) nodes[i] = *(C0[nn[i]]);
+
+  double *state = curState.getElemState(ele->getGlNum());
+
+  double D = ele->getDissipatedEnergy(nodes, state);
+
+  delete [] nn;
+  delete [] nodes;
+
+  return D;
 }
 
 int

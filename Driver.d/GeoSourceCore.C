@@ -3505,6 +3505,30 @@ int GeoSource::setUsdfLocation(int _numActuator, BCond *_actuator)
 
 //--------------------------------------------------------------------
 
+void GeoSource::outputEnergy(int fileNum, double time, double W) {
+
+  int w = oinfo[fileNum].width;
+  int p = oinfo[fileNum].precision;
+  
+  fprintf(oinfo[fileNum].filptr," %f % *.*E\n", time, w, p, W);
+
+  fflush(oinfo[fileNum].filptr);
+}
+
+void GeoSource::outputEnergy(int fileNum, double time, DComplex W) {
+
+  int w = oinfo[fileNum].width;
+  int p = oinfo[fileNum].precision;
+
+  // print real part
+  fprintf(oinfo[fileNum].filptr," %f % *.*E\n", time, w, p, W.real());
+
+  // print imaginary part
+  fprintf(oinfo[fileNum].filptr," %f % *.*E\n", time, w, p, W.imag());
+
+  fflush(oinfo[fileNum].filptr);
+}
+
 void GeoSource::outputEnergies(int fileNum, double time, double Wext, double Waero,
 			       double Wela, double Wkin, double Wdmp, double error) {
 

@@ -222,7 +222,7 @@ ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor &_en, Tensor  &_enp,
     delete tm;
   }
   else {
-    //state: from 0 to 5, plastic strain ; from 6 to 11, center of the yield surface; 12 equivalent plastic strain
+    //state: from 0 to 5, plastic strain; from 6 to 11, center of the yield surface; 12 equivalent plastic strain
 
     Tensor_d0s4_Ss12s34 tm; 
     Tensor_d0s2_Ss12 & enp = static_cast<Tensor_d0s2_Ss12 &>(_enp);

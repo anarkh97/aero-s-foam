@@ -53,14 +53,14 @@ class ElasPlasKinHardMat : public NLMaterial
 
     bool getPlasticStrain(double *statenp, Tensor *plasticstrain);
 
+    double getDissipatedEnergy(double *statenp) { return statenp[12]*sigE; }
+
     void print(std::ostream &out) const;
 };
 
 typedef ElasPlasKinHardMat<0> BilinPlasKinHardMat;
 typedef ElasPlasKinHardMat<1> FiniteStrainPlasKinHardMat;
 typedef ElasPlasKinHardMat<2> LogStrainPlasKinHardMat;
-
-//template <class T> inline double delta(T a, T b) { return (a==b) ? 1.0 : 0.0; }
 
 #ifdef _TEMPLATE_FIX_
 #include <Element.d/NonLinearity.d/BilinPlasKinHardMat.C>

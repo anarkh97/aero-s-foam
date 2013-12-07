@@ -25,8 +25,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
   // Local variables 
   int i, j;
   doublereal x21, y21, z21, x13, y13, z13, x32, y32, z32, signedarea,
-         projection, xcg, ycg, zcg, side21length, 
-         side32length, lengthy, lengthz;
+             projection, side21length, side32length;
   Eigen::Map<Eigen::Matrix<doublereal,3,1> > x(_x), y(_y), z(_z), xlp(_xlp), ylp(_ylp), zlp(_zlp);
   Eigen::Matrix<doublereal,3,3> xyz; xyz << x[0], x[1], x[2],
                                             y[0], y[1], y[2],
@@ -51,6 +50,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 //     XLP    <output>  triangular coordinates in the X-direction       
 //     YLP    <output>  triangular coordinates in the Y-direction       
 //     ZLP    <output>  triangular coordinates in the Z-direction       
+//     AREA   <output>  element area
 //                                                                      
 // ==================================================================== 
 // Author  = Francois M. Hemez                                          
@@ -1227,5 +1227,141 @@ ShellElementTemplate<doublereal,Membrane,Bending>
     }
 
 }
+
+template<typename doublereal, template<typename> class Membrane, template<typename> class Bending>
+void
+ShellElementTemplate<doublereal,Membrane,Bending>
+::andesare(int elm, doublereal *_x, doublereal *_y, doublereal *_z,
+           doublereal &area)
+{
+  // Builtin functions 
+  using std::sqrt;
+  using std::abs;
+
+  // Local variables 
+  int i, j;
+  doublereal x21, y21, z21, x13, y13, z13, x32, y32, z32, signedarea,
+             projection, side21length, side32length;
+  Eigen::Map<Eigen::Matrix<doublereal,3,1> > x(_x), y(_y), z(_z);
+  Eigen::Matrix<doublereal,3,3> xyz; xyz << x[0], x[1], x[2],
+                                            y[0], y[1], y[2],
+                                            z[0], z[1], z[2];
+  Eigen::Matrix<doublereal,3,1> side21, side13, side32;
+
+// ==================================================================== 
+//                                                                      
+//     Perform =    This subroutine computes the element area   
+//     --------- 
+//                                                                      
+//                                                                      
+//     Inputs/Outputs =                                                 
+//     ----------------                                                 
+//     ELM    <input>   finite element number                           
+//     X      <input>   nodal coordinates in the X-direction            
+//     Y      <input>   nodal coordinates in the Y-direction            
+//     Z      <input>   nodal coordinates in the Z-direction            
+//     AREA   <output>  element area                                    
+//                                                                      
+// ==================================================================== 
+// Author  = Francois M. Hemez                                          
+// Date    = June 9th, 1994                                             
+// Version = 1.0                                                        
+// Comment =                                                            
+// ==================================================================== 
+
+// .....COMPUTE THE NODAL COORDINATE DIFFERENCES 
+
+    side21 = xyz.col(1)-xyz.col(0);
+    side13 = xyz.col(0)-xyz.col(2);
+    side32 = xyz.col(2)-xyz.col(1);
+
+// .....COMPUTE THE LENGTH OF SIDE 2-1 
+
+    side21length = side21.norm();
+
+// .....CHECK IF LENGTH 2-1 IS DIFFERENT FROM ZERO 
+
+    if (side21length == 0) {
+        throw std::runtime_error(
+          "*** FATAL ERROR in ShellElementTemplate::andesela ***\n"
+          "*** Side Between Nodes 1 and 2 Has 0-Length       ***\n"
+          "*** Check Coordinates and FE Topology             ***\n");
+    }
+
+// .....COMPUTE THE LENGTH OF SIDE 3-2 
+
+    side32length = side32.norm();
+
+// .....CHECK IF LENGTH 3-2 IS DIFFERENT FROM ZERO 
+
+    if (side32length == 0) {
+        throw std::runtime_error(
+          "*** FATAL ERROR in ShellElementTemplate::andesela ***\n"
+          "*** Side Between Nodes 2 and 3 Has 0-Length       ***\n"
+          "*** Check Coordinates and FE Topology             ***\n");
+    }
+
+// .....COMPUTE THE DISTANCE OF THE OPPOSING NODE 3 TO SIDE 2-1 
+
+    projection = abs(side21.dot(side32))/side21length;
+
+// .....GET THE AREA OF THE TRIANGLE 
+
+    signedarea = side32length * side32length - projection * projection;
+
+    if (signedarea <= 0) {
+        throw std::runtime_error(
+          "*** FATAL ERROR in ShellElementTemplate::andesela ***\n"
+          "*** The Area is Negative or Zero                  ***\n"
+          "*** Check Coordinates and FE Topology             ***\n");
+    }
+
+    area = side21length * .5 * sqrt(signedarea);
+}
+
+template<typename doublereal, template<typename> class Membrane, template<typename> class Bending>
+void
+ShellElementTemplate<doublereal,Membrane,Bending>
+::andesden(int elm, doublereal *X, doublereal *Y, doublereal *Z, doublereal &D)
+{
+  // Local variables
+  int i;
+  doublereal area;
+
+// ==================================================================== 
+//                                                                      
+//     Perform =    This subroutine computes the cumulative energy   
+//     ---------    dissipated by the element
+//                                                                      
+//                                                                      
+//     Inputs/Outputs =                                                 
+//     ----------------                                                 
+//     ELM    <input>   finite element number                           
+//     X      <input>   nodal coordinates in the X-direction            
+//     Y      <input>   nodal coordinates in the Y-direction            
+//     Z      <input>   nodal coordinates in the Z-direction            
+//     D      <output>  cumulative dissipated energy                                   
+//                                                                      
+// ==================================================================== 
+// Author  = Philip J. S. Avery                                          
+// Date    = December 7th, 2013                                            
+// Version = 1.0                                                        
+// Comment =                                                            
+// ==================================================================== 
+
+// .....GET THE AREA OF THE TRIANGLE
+
+    andesare(elm, X, Y, Z, area);
+
+// .....INTEGRATE OVER THE AREA OF THE TRIANGLE
+
+    D = 0.0;
+    doublereal zeta[3][3] = { { 0.,.5,.5 }, { .5,0.,.5 }, { .5,.5,0. } }; // triangular coordinates of gauss integration points
+    doublereal weight[3] = { 1/3., 1/3., 1/3. };
+    for(i = 0; i < 3; ++i) {
+      D += area*weight[i]*gpmat->GetDissipatedEnergy(i);
+    }
+}
+
 #endif
 #endif

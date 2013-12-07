@@ -186,8 +186,9 @@ class GenDecDomain
   void getElementForce(GenDistrVector<Scalar>&, int, int, double);
  public:
   virtual void getStressStrain(GenDistrVector<Scalar>&, int, int, double, int printFlag=0);
+  void getDissipatedEnergy(DistrGeomState *geomState, Corotator ***allCorot, int fileNumber, double time);
  private:
-  void getElementStressStrain(GenDistrVector<Scalar>&, int, int, double, int printFlag=0); // YYY DG Implement printFlag
+  void getElementStressStrain(GenDistrVector<Scalar>&, int, int, double, int printFlag=0);
   void getElementAttr(int, int, double);
   void getPrincipalStress(GenDistrVector<Scalar>&, int, int, double);
   void getElementPrincipalStress(GenDistrVector<Scalar> &u, int, int, double);
@@ -217,6 +218,7 @@ class GenDecDomain
   void scaleSubDisp(int iSub, GenDistrVector<Scalar> &u);
   void scaleInvSubDisp(int iSub, GenDistrVector<Scalar> &u);
   void scaleSubDisp(int iSub, GenDistrVector<Scalar> &u, double alpha);
+  void subGetDissipatedEnergy(int iSub, DistrGeomState *geomState, Corotator ***allCorot, Scalar *subD);
 
   // Helmholtz Fluid functions
   void distribBC(int iSub, GenSubDomain<Scalar> **sd, Domain *domain,

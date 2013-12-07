@@ -52,6 +52,12 @@ class ShellElementTemplate : public Membrane<doublereal>, public Bending<doubler
     void
     andesups(int elm, doublereal *state, doublereal *X, doublereal *Y, 
              doublereal *Z, doublereal *v);
+
+    void
+    andesare(int elm, doublereal *X, doublereal *Y, doublereal *Z, doublereal &area);
+
+    void
+    andesden(int elm, doublereal *X, doublereal *Y, doublereal *Z, doublereal &D);
 };
 
 #endif

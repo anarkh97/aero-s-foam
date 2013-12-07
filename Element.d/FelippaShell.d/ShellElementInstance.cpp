@@ -43,4 +43,14 @@ template
 void
 ShellElementTemplate<double,EffMembraneTriangle,AndesBendingTriangle>
 ::andesups(int elm, double *state, double *X, double *Y, double *Z, double *_v);
+
+template
+void
+ShellElementTemplate<double,EffMembraneTriangle,AndesBendingTriangle>
+::andesare(int elm, double *X, double *Y, double *Z, double &area);
+
+template
+void
+ShellElementTemplate<double,EffMembraneTriangle,AndesBendingTriangle>
+::andesden(int elm, double *X, double *Y, double *Z, double &D);
 #endif

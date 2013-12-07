@@ -273,6 +273,16 @@ SuperCorotator::getElementEnergy(GeomState &geomState, CoordSet &cs)
   return ret;
 }
 
+double
+SuperCorotator::getDissipatedEnergy(GeomState &geomState, CoordSet &cs)
+{
+  int i;
+  double ret = 0.0;
+  for(i=0; i<nSubElems; ++i)
+    ret += subElemCorotators[i]->getDissipatedEnergy(geomState, cs);
+  return ret;
+}
+
 void 
 SuperCorotator::extractRigidBodyMotion(GeomState &geomState, CoordSet &cs, double *vlr) 
 {

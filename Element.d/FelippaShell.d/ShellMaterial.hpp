@@ -28,6 +28,7 @@ class ShellMaterial
     virtual std::vector<doublereal> GetLocalPlasticStrain(int nd, doublereal z) { return std::vector<doublereal>(); }
     virtual std::vector<doublereal> GetLocalBackStress(int nd, doublereal z) { return std::vector<doublereal>(); }
     virtual doublereal GetLocalEquivalentPlasticStrain(int nd, doublereal z) { return 0; }
+    virtual doublereal GetDissipatedEnergy(int gp) { return 0; }
 
   protected:
     Eigen::Matrix<doublereal,3,3>
@@ -137,6 +138,7 @@ class ShellMaterialType4 : public ShellMaterial<doublereal>
     std::vector<doublereal> GetLocalPlasticStrain(int nd, doublereal z);
     std::vector<doublereal> GetLocalBackStress(int nd, doublereal z);
     doublereal GetLocalEquivalentPlasticStrain(int nd, doublereal z);
+    doublereal GetDissipatedEnergy(int gp);
 };
 #endif
 

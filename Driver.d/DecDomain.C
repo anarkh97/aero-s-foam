@@ -2188,6 +2188,9 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***all
      case OutputInfo::EquivalentPlasticStrain:
        getStressStrain(geomState, allCorot, i, EQPLSTRN, x, refState);
        break;
+     case OutputInfo::DissipatedEnergy:
+       getDissipatedEnergy(geomState, allCorot, i, x);
+       break;
      case OutputInfo::StressPR1:
        getPrincipalStress(geomState, allCorot, i, PSTRESS1, x, refState);
        break;
@@ -3987,3 +3990,24 @@ GenDecDomain<Scalar>::solVecAssemblerNew() {
   return new GenBasicAssembler<Scalar>(numSub, subDomain, pat);
 }
 
+template<class Scalar>
+void GenDecDomain<Scalar>::getDissipatedEnergy(DistrGeomState *geomState, Corotator ***allCorot, 
+                                               int fileNumber, double time)
+{
+  Scalar *subD = new Scalar[numSub];
+  execParal3R(numSub, this, &GenDecDomain<Scalar>::subGetDissipatedEnergy, geomState, allCorot, subD);
+  Scalar D = 0;
+  for(int i=0; i<numSub; ++i) D += subD[i];
+#ifdef DISTRIBUTED
+  communicator->reduce(1, &D);
+  if(myCPU == 0)
+#endif
+  geoSource->outputEnergy(fileNumber, time, D);
+  delete [] subD;
+}
+
+template<class Scalar>
+void GenDecDomain<Scalar>::subGetDissipatedEnergy(int iSub, DistrGeomState *geomState, Corotator ***allCorot, Scalar *D)
+{
+  D[iSub] = subDomain[iSub]->getDissipatedEnergy((*geomState)[iSub], allCorot[iSub]);
+}

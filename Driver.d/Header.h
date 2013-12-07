@@ -35,7 +35,7 @@ static const char*header[] = {
 "Scalar AXMOMENT under %s for %s\n%d\n",
 "Scalar AYMOMENT under %s for %s\n%d\n",
 "Scalar AZMOMENT under %s for %s\n%d\n",
-"#   Time         Wext         Waer         Wela         Wkin         Wdmp         Error\n    ____         ____         ____         ____         ____         ____          ____\n\n",
+"#  Time       Wext        Waer        Wela        Wkin        Wdmp       Error\n",
 "Vector AEROFORCE under %s for %s\n%d\n",
 "Vector MODE under %s for %s\n%d\n",
 "Scalar VONMISES_STRAIN under %s for %s\n%d\n",
@@ -135,7 +135,11 @@ static const char*header[] = {
 "Scalar BACKSTRESSZZ under %s for %s\n%d\n",
 "Scalar BACKSTRESSXY under %s for %s\n%d\n",
 "Scalar BACKSTRESSYZ under %s for %s\n%d\n",
-"Scalar BACKSTRESSXZ under %s for %s\n%d\n"
+"Scalar BACKSTRESSXZ under %s for %s\n%d\n",
+"",
+"",
+"",
+"#  Time       Wdis\n"
 };
 
 static const char * ele_header[] = {
@@ -271,7 +275,11 @@ static const char * ele_header[] = {
 "ElemScalar ELE_BACKSTRESSZZ under %s using %s_pattern\n",
 "ElemScalar ELE_BACKSTRESSXY under %s using %s_pattern\n",
 "ElemScalar ELE_BACKSTRESSYZ under %s using %s_pattern\n",
-"ElemScalar ELE_BACKSTRESSXZ under %s using %s_pattern\n"
+"ElemScalar ELE_BACKSTRESSXZ under %s using %s_pattern\n",
+"",
+"",
+"",
+""
 };
 
 #endif

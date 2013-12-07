@@ -79,6 +79,7 @@ class MatNLElement : public Element {
      virtual double getDissipatedEnergy(Node *nodes, double *state) {
        fprintf(stderr, "MatNLElement::getDissipatedEnergyis being called on an element "
                "for which it is not defined\n");
+       return 0.0;
      }
 
      virtual int getNumGaussPoints() { return 0; }

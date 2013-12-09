@@ -20,11 +20,16 @@ Jacobian<double,FollowerForceFunction>
 
   Eigen::Matrix<double,3,1> f = Rref*f0;
 
-  // the jacobian is -skew(f)
-  J <<     0,  f[2], -f[1],
-       -f[2],     0,  f[0],
-        f[1], -f[0],     0;
-  J *= -1.0;
+  if((q.array() == 0).all()) {
+    // the jacobian is skew(f)
+    J <<     0, -f[2],  f[1],
+          f[2],     0, -f[0],
+         -f[1],  f[0],     0;
+  }
+  else {
+    std::cerr << "Jacobian<double,FollowerForceFunction>::operator() not implemented for this case\n";
+    J.setZero();
+  }
 
   return J;
 }

@@ -631,7 +631,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
          // note: for coupled problems we are assuming lumped mass is structural not fluid
          double mass = sinfo.isCoupled ? current->diMass*cscale_factor2 : current->diMass;
          double m_real = -omega2*mass;
-         double m_imag = isDamped ? -omega*alpha*mass : 0.0; 
+         double m_imag = isDamped ? -omega*alphaDamp*mass : 0.0; 
          ScalarTypes::initScalar(m, m_real, m_imag);
          if(mdds_flag) {
 #if defined(_OPENMP)
@@ -643,7 +643,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
          else if(mat) mat->add(dof, jdof, m);
          if(ops.spp) ops.spp->add(dof, jdof, m);
          if(isDamped) {
-           ScalarTypes::initScalar(m, 0.0, alpha*mass);
+           ScalarTypes::initScalar(m, 0.0, alphaDamp*mass);
            if(ops.C_deriv && ops.C_deriv[0]) ops.C_deriv[0]->add(dof, jdof, m);
          }
          if(ops.M) ops.M->add(dof, jdof, mass);
@@ -652,9 +652,9 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
        else {
          if(ops.M) ops.M->add(dof,jdof,current->diMass);
          if(ops.Msolver) ops.Msolver->add(dof,jdof,current->diMass);
-         if(ops.C) ops.C->add(dof,jdof,alpha*current->diMass);
+         if(ops.C) ops.C->add(dof,jdof,alphaDamp*current->diMass);
          double mass = Mcoef*current->diMass;
-         if (ops.C) mass += Ccoef*alpha*mass;
+         if (ops.C) mass += Ccoef*alphaDamp*mass;
          if(mdds_flag) {
 #if defined(_OPENMP)
            #pragma omp critical
@@ -670,7 +670,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
        if(isShifted) {  // add discrete mass contributions to global matrices for frequency response analysis
          double mass = sinfo.isCoupled ? current->diMass*cscale_factor2 : current->diMass;
          double m_real = -omega2*mass;
-         double m_imag = isDamped ? -omega*alpha*mass : 0.0;
+         double m_imag = isDamped ? -omega*alphaDamp*mass : 0.0;
          ScalarTypes::initScalar(m, m_real, m_imag);
          if(mdds_flag) {
 #if defined(_OPENMP)
@@ -681,7 +681,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
          else if(mat) mat->addDiscreteMass(dof, m);
          if(ops.spp) ops.spp->addDiscreteMass(dof, m);
          if(isDamped) {
-           ScalarTypes::initScalar(m, 0.0, alpha*mass);
+           ScalarTypes::initScalar(m, 0.0, alphaDamp*mass);
            if(ops.C_deriv && ops.C_deriv[0]) ops.C_deriv[0]->addDiscreteMass(dof, m);
          }
          if(ops.M) ops.M->addDiscreteMass(dof, mass);
@@ -690,9 +690,9 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
        else {
          if(ops.M) ops.M->addDiscreteMass(dof, current->diMass);
          if(ops.Msolver) ops.Msolver->addDiscreteMass(dof, current->diMass);
-         if(ops.C) ops.C->addDiscreteMass(dof, alpha*current->diMass);
+         if(ops.C) ops.C->addDiscreteMass(dof, alphaDamp*current->diMass);
          double mass = Mcoef*current->diMass;
-         if (ops.C) mass += Ccoef*alpha*mass;
+         if (ops.C) mass += Ccoef*alphaDamp*mass;
          if(mdds_flag) {
 #if defined(_OPENMP)
            #pragma omp critical

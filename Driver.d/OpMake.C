@@ -245,7 +245,6 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
 	 for(i = 0; i < dim; ++i)
 	   for(j = 0; j < dim; ++j)
              izel[i][j] = -omega*(beta*kel[i][j] + alpha*mel[i][j]);
-//if (iele==0) fprintf(stderr,"gaga beta: %.16e alpha: %.16e\n",beta,alpha);
        }
      }
      if(isComplexF) {
@@ -654,7 +653,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
          if(ops.Msolver) ops.Msolver->add(dof,jdof,current->diMass);
          if(ops.C) ops.C->add(dof,jdof,alphaDamp*current->diMass);
          double mass = Mcoef*current->diMass;
-         if (ops.C) mass += Ccoef*alphaDamp*mass;
+         if (isDamped) mass += Ccoef*alphaDamp*mass;
          if(mdds_flag) {
 #if defined(_OPENMP)
            #pragma omp critical
@@ -692,7 +691,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
          if(ops.Msolver) ops.Msolver->addDiscreteMass(dof, current->diMass);
          if(ops.C) ops.C->addDiscreteMass(dof, alphaDamp*current->diMass);
          double mass = Mcoef*current->diMass;
-         if (ops.C) mass += Ccoef*alphaDamp*mass;
+         if (isDamped) mass += Ccoef*alphaDamp*mass;
          if(mdds_flag) {
 #if defined(_OPENMP)
            #pragma omp critical

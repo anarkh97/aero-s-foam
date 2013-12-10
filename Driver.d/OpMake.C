@@ -653,7 +653,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
          if(ops.Msolver) ops.Msolver->add(dof,jdof,current->diMass);
          if(ops.C) ops.C->add(dof,jdof,alphaDamp*current->diMass);
          double mass = Mcoef*current->diMass;
-         if (isDamped) mass += Ccoef*alphaDamp*mass;
+         if (isDamped) mass += Ccoef*alphaDamp*current->diMass;
          if(mdds_flag) {
 #if defined(_OPENMP)
            #pragma omp critical
@@ -691,7 +691,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
          if(ops.Msolver) ops.Msolver->addDiscreteMass(dof, current->diMass);
          if(ops.C) ops.C->addDiscreteMass(dof, alphaDamp*current->diMass);
          double mass = Mcoef*current->diMass;
-         if (isDamped) mass += Ccoef*alphaDamp*mass;
+         if (isDamped) mass += Ccoef*alphaDamp*current->diMass;
          if(mdds_flag) {
 #if defined(_OPENMP)
            #pragma omp critical

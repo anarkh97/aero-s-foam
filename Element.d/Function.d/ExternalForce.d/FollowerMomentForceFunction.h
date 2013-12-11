@@ -32,7 +32,6 @@ class FollowerMomentForceFunction : public VectorValuedFunction<3,3,Scalar,12,0,
       Eigen::Matrix<Scalar,3,3> T;
       tangential_transf<Scalar>(q,T);
 
-      // note: for nonlinear statics, t is the load factor
       return -T.transpose()*Rref*m0;
     }
 

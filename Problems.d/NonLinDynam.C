@@ -409,11 +409,11 @@ NonLinDynamic::getStiffAndForceFromDomain(GeomState &geomState, Vector &elementI
                                           FullSquareMatrix *melArray, bool forceOnly) {
   if(forceOnly) {
     domain->getInternalForce(geomState, elementInternalForce, allCorot, kelArray, residual, lambda, time, refState,
-                             (Vector*) NULL, melArray);
+                             (Vector*) NULL, melArray, celArray);
   }
   else {
     domain->getStiffAndForce(geomState, elementInternalForce, allCorot, kelArray, residual, lambda, time, refState,
-                             (Vector*) NULL, melArray);
+                             (Vector*) NULL, melArray, celArray);
   }
 }
 

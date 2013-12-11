@@ -378,7 +378,7 @@ class Domain : public HData {
                            Corotator **allCorot, FullSquareMatrix *kel,
                            Vector &residual, double lambda = 1.0, double time = 0.0,
                            GeomState *refState = NULL, Vector *reactions = NULL,
-                           FullSquareMatrix *mel = NULL);
+                           FullSquareMatrix *mel = NULL, FullSquareMatrix *cel = NULL);
      void makeElementAdjacencyLists();
      std::vector<int>& getFollowedElemList() { return followedElemList; }
      void getFollowerForce(GeomState &u, Vector &elementInternalForce,
@@ -392,9 +392,10 @@ class Domain : public HData {
                                BlastLoading::BlastData *conwep);
      void getFictitiousForce(GeomState &geomState, Vector &elementForce, FullSquareMatrix *kel, Vector &residual,
                                 double time, GeomState *refState, Vector *reactions,
-                                FullSquareMatrix *mel, bool compute_tangents);
+                                FullSquareMatrix *mel, bool compute_tangents, FullSquareMatrix *cel = NULL);
      void getElemFictitiousForce(int iele, GeomState &geomState, double *f, FullSquareMatrix &kel,
-                                 double time, GeomState *refState, FullSquareMatrix &mel, bool compute_tangents);
+                                 double time, GeomState *refState, FullSquareMatrix &mel, bool compute_tangents,
+                                 FullSquareMatrix *celArray = NULL);
 #ifdef USE_EIGEN3
      void getNodeFictitiousForce(int inode, GeomState &geomState, double time, GeomState *refState, Eigen::Matrix3d &M,
                                 Eigen::Vector3d &f, Eigen::Matrix3d &K, bool compute_tangents);
@@ -431,7 +432,7 @@ class Domain : public HData {
                            Corotator **allCorot, FullSquareMatrix *kel,
                            Vector &residual, double lambda = 1.0, double time = 0.0,
                            GeomState *refState = NULL, Vector *reactions = NULL,
-                           FullSquareMatrix *mel = NULL);
+                           FullSquareMatrix *mel = NULL, FullSquareMatrix *cel = NULL);
      void getWeightedInternalForceOnly(const std::map<int, double> &weights,
                                        GeomState &u, Vector &elementInternalForce,
                                        Corotator **allCorot, FullSquareMatrix *kel,

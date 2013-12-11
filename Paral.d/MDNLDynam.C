@@ -443,11 +443,11 @@ MDNLDynamic::subGetStiffAndForce(int isub, DistrGeomState &geomState,
   GeomState *subRefState = (refState) ? (*refState)[isub] : 0;
   if(forceOnly) {
     sd->getInternalForce(*geomState[isub], eIF, allCorot[isub], kelArray[isub], residual, 1.0, t, subRefState,
-                         (Vector *) NULL, melArray[isub]);
+                         (Vector *) NULL, melArray[isub], (celArray) ? celArray[isub] : NULL);
   }
   else {
     sd->getStiffAndForce(*geomState[isub], eIF, allCorot[isub], kelArray[isub], residual, 1.0, t, subRefState,
-                         (Vector *) NULL, melArray[isub]);
+                         (Vector *) NULL, melArray[isub], (celArray) ? celArray[isub] : NULL);
   }
 }
 

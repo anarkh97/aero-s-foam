@@ -1313,6 +1313,9 @@ ParallelInTimeKeyWord:
 DampInfo:
 	RAYDAMP Float Float NewLine
 	{ domain->solInfo().setDamping($2,$3); }
+        | RAYDAMP Float Float MOMENTTYPE NewLine
+        { domain->solInfo().setDamping($2,$3);
+          domain->solInfo().mtypeDamp = (int)$4; } 
 	| MODDAMP NewLine ModalValList
 	{ if(geoSource->setModalDamping($3->n, $3->d) < 0) return -1; 
 	  domain->solInfo().modalCalled = true; }

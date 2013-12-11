@@ -86,21 +86,33 @@ void LEIsoParamTri::markDofs(DofSetArray &dsa) {
 }
 
 
-double LEIsoParamTri::getMass(CoordSet&) {
- fprintf(stderr,"LEIsoParamTri::getMass not implemented.\n");
- return 0.0;
+double LEIsoParamTri::getMass(CoordSet &cs) {
+ IsoParamUtils2dTri ipu(order);
+ int ordersq = ipu.getordersq();
+ double *xyz=(double*)alloca(sizeof(double)*3*ordersq);
+ cs.getCoordinates(nn,ordersq,xyz,xyz+ordersq,xyz+2*ordersq);
+
+ double area(0);
+ AreaFunction2d f(&area);
+ int gorder = 7*7;
+ if (order<=3) gorder = 13;
+ ipu.areaInt2d(xyz, f, gorder);
+
+ return area*prop->eh*prop->rho; 
 }
 
 double LEIsoParamTri::weight(CoordSet& cs, double *gravityAcceleration, int altitude_direction)
 {
- fprintf(stderr,"LEIsoParamTri::weight not implemented.\n");
- return 0.0;
+  if (prop == NULL) return 0.0;
+
+  double _mass = getMass(cs);
+  return _mass*gravityAcceleration[altitude_direction];
 }
 
 double LEIsoParamTri::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int altitude_direction)
 {
- fprintf(stderr,"LEIsoParamTri::weightDerivativeWRTthickness not implemented.\n");
- return 0.0;
+ double _weight = weight(cs, gravityAcceleration, altitude_direction);
+ return _weight/prop->eh;
 }
 
 FullSquareMatrix LEIsoParamTri::massMatrix(CoordSet &cs, double *K, int fl) {
@@ -110,10 +122,10 @@ FullSquareMatrix LEIsoParamTri::massMatrix(CoordSet &cs, double *K, int fl) {
  double *xyz=(double*)alloca(sizeof(double)*3*ordersq);
  cs.getCoordinates(nn,ordersq,xyz,xyz+ordersq,xyz+2*ordersq);
 
- LEMassFunction2d f(2*ordersq,prop->rho,K);
+ LEMassFunction2d f(2*ordersq,prop->rho*prop->eh,K);
  ipu.zeroOut<double> (ordersq*ordersq,K);
  int gorder = 7*7;
- if (order<=3) gorder = 4*4;
+ if (order<=3) gorder = 13;
  ipu.areaInt2d(xyz, f, gorder);
  ipu.symmetrize(2*ordersq,K);
 
@@ -131,7 +143,7 @@ FullSquareMatrix LEIsoParamTri::stiffness(CoordSet &cs, double *K, int flg ) {
  LEStiffFunction2d f(2*ordersq,prop->E, prop->nu,K);
  ipu.zeroOut<double> (4*ordersq*ordersq,K);
  int gorder = 7*7;
- if (order<=3) gorder = 4*4;
+ if (order<=3) gorder = 13;
  ipu.areaInt2d(xyz, f, gorder);
  ipu.symmetrize(2*ordersq,K);
 

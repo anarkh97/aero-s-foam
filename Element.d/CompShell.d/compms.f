@@ -375,6 +375,10 @@ C
       mass2 = rho*area*thick*Iy/1260.00D+00
       mass3 = rho*area*thick*Iz/1260.00D+00
 C
+C.....SUM OF DENSITY EQUALS AVERAGE DENSITY
+C
+      sumrho = rho
+C
 C.....END OF TREATMENT FOR A TYPE-0 CONSTITUTIVE LAW
 C
       endif
@@ -394,6 +398,14 @@ C
       mass1 = rho*area*Ix/1260.00D+00
       mass2 = rho*area*Iy/1260.00D+00
       mass3 = rho*area*Iz/1260.00D+00
+C
+C.....INITIALIZE THE ELEMENT'S CONSTANT THICKNESS
+C
+      thick = h(1)
+C
+C.....SUM OF DENSITY EQUALS AVERAGE DENSITY
+C
+      sumrho = rho/thick
 C
 C.....END OF TREATMENT FOR A TYPE-1 CONSTITUTIVE LAW
 C

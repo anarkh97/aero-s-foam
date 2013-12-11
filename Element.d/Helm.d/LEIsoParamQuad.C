@@ -76,23 +76,35 @@ void LEIsoParamQuad::markDofs(DofSetArray &dsa) {
 }
 
 
-double LEIsoParamQuad::getMass(CoordSet&) {
- fprintf(stderr,"LEIsoParamQuad::getMass not implemented.\n");
- return 0.0;
+double LEIsoParamQuad::getMass(CoordSet &cs) {
+ IsoParamUtils2d ipu(order);
+ int ordersq = ipu.getordersq();
+ double *xyz=(double*)alloca(sizeof(double)*3*ordersq);
+ cs.getCoordinates(nn,ordersq,xyz,xyz+ordersq,xyz+2*ordersq);
+
+ double area(0);
+ AreaFunction2d f(&area);
+ int gorder = 7;
+ if (order<=3) gorder = 4;
+ ipu.areaInt2d(xyz, f, gorder);
+
+ return area*prop->eh*prop->rho;
 }
 
 
 double LEIsoParamQuad::weight(CoordSet& cs, double *gravityAcceleration, int altitude_direction)
 {
- fprintf(stderr,"LEIsoParamQuad::weight not implemented.\n");
- return 0.0;
+  if (prop == NULL) return 0.0;
+
+  double _mass = getMass(cs);
+  return _mass*gravityAcceleration[altitude_direction];
 }
 
 
 double LEIsoParamQuad::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int altitude_direction)
 {
- fprintf(stderr,"LEIsoParamQuad::weightDerivativeWRTthickness not implemented.\n");
- return 0.0;
+ double _weight = weight(cs, gravityAcceleration, altitude_direction);
+ return _weight/prop->eh;
 }
 
 
@@ -103,7 +115,7 @@ FullSquareMatrix LEIsoParamQuad::massMatrix(CoordSet &cs, double *K, int fl) {
  double *xyz=(double*)alloca(sizeof(double)*3*ordersq);
  cs.getCoordinates(nn,ordersq,xyz,xyz+ordersq,xyz+2*ordersq);
 
- LEMassFunction2d f(2*ordersq,prop->rho,K);
+ LEMassFunction2d f(2*ordersq,prop->rho*prop->eh,K);
  ipu.zeroOut<double> (4*ordersq*ordersq,K);
  int gorder = 7;
  if (order<=3) gorder = 4;

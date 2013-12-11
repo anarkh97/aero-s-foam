@@ -98,6 +98,7 @@ class SingleDomainStatic
     void getFreqSweepRHS(VectorType *rhs, VectorType **sol_prev, int iRHS);
     virtual void getRHS(VectorType &,double,double);
     void pade(VectorType *sol, VectorType **sol_prev, double *h, double x) { };
+    void preProcessSA();
     void postProcessSA(GenVector<T> &sol);
     virtual void preProcess();
     void rebuildSolver()

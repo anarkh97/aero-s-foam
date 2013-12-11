@@ -138,6 +138,7 @@ Communicator *heatStructCom;
 Communicator *fluidCom;
 
 extern const char* problemTypeMessage[];
+extern const char* sensitivityTypeMessage[];
 extern const char* solverTypeMessage[];
 
 std::string clusterData_ = "INPUT.msh";
@@ -815,7 +816,17 @@ int main(int argc, char** argv)
    filePrint(stderr," ... ThermoElasticity Flag = %d      ...\n", domain->solInfo().thermohFlag);
 
  // ... PRINT PROBLEM TYPE
- filePrint(stderr, problemTypeMessage[domain->solInfo().probType]);
+ if(domain->solInfo().sensitivity) {
+   if(domain->runSAwAnalysis) {
+     filePrint(stderr, sensitivityTypeMessage[1]);
+     filePrint(stderr, problemTypeMessage[domain->solInfo().probType]);
+   } else {
+     filePrint(stderr, sensitivityTypeMessage[0]);
+   }
+ } else {
+   filePrint(stderr, problemTypeMessage[domain->solInfo().probType]);
+ }
+
  if(domain->solInfo().gepsFlg == 1) {
    if(domain->solInfo().isNonLin()) { // GEPS is not used for nonlinear
      domain->solInfo().gepsFlg = 0;

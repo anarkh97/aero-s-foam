@@ -312,6 +312,8 @@ class Domain : public HData {
     std::vector<int> followedElemList;
 
   public:
+    bool runSAwAnalysis; // if true, analysis will be run first then compute sensitivity
+                         // if false, no analysis will be run before computing sensitivity
     SensitivityInfo *senInfo;  // sensitivity information structure array
     // Implements nonlinear dynamics postprocessing for file # fileId
     void postProcessingImpl(int fileId, GeomState*, Vector&, Vector&,
@@ -535,8 +537,10 @@ class Domain : public HData {
      void assignRandMat();
      void retrieveElemset();
 
-     void makeSensitivities(AllSensitivities<double> &allSens, GenVector<double> &sol, double *);
-     void makeSensitivities(AllSensitivities<DComplex> &allSens, GenVector<DComplex> &sol, DComplex *);
+     void makePreSensitivities(AllSensitivities<double> &allSens, double *);
+     void makePreSensitivities(AllSensitivities<DComplex> &allSens, DComplex *);
+     void makePostSensitivities(AllSensitivities<double> &allSens, GenVector<double> &sol, double *);
+     void makePostSensitivities(AllSensitivities<DComplex> &allSens, GenVector<DComplex> &sol, DComplex *);
 
      /** Abstract method to assemble any type of operator
       *
@@ -549,7 +553,10 @@ class Domain : public HData {
   * ... type (i.e. use makeSparseOps in statics, dynamics, eigen, etc.)
   */
      template<class Scalar>
-       void buildSensitivities(AllSensitivities<Scalar> &ops, GenVector<Scalar> &sol, Scalar *);
+       void buildPreSensitivities(AllSensitivities<Scalar> &ops, Scalar *);
+
+     template<class Scalar>
+       void buildPostSensitivities(AllSensitivities<Scalar> &ops, GenVector<Scalar> &sol, Scalar *);
 
      template<class Scalar>
        void buildOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef, double Ccoef,
@@ -699,8 +706,12 @@ class Domain : public HData {
 
      void resProcessing(Vector &, int index=0, double t=0);
 
-     // sensitivity post processing function
 #ifdef USE_EIGEN3
+     // sensitivity pre-processing function
+     template<class Scalar>
+     void sensitivityPreProcessing(AllSensitivities<Scalar> &allSens);
+
+     // sensitivity post-processing function
      template<class Scalar>
      void sensitivityPostProcessing(AllSensitivities<Scalar> &allSens);
 #endif

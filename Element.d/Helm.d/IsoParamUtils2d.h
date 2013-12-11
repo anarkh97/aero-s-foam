@@ -335,6 +335,13 @@ public:
  }
 };
 
+class AreaFunction2d : public IntegFunctionA2d {
+ double *area;
+public:
+ AreaFunction2d(double *_area) { area = _area; }
+ void evaluate(double *x, double *N, double (*dNdx)[2], double w, double det) { *area += w*det; }
+};
+
 
 #ifdef _TEMPLATE_FIX_
 #include <Element.d/Helm.d/IsoParamUtils2dT.C>

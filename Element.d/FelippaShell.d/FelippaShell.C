@@ -383,8 +383,49 @@ FelippaShell::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAccelera
   }
   double area = rlr * .5 * sqrt(twicearea2);
   double sumrho = nmat->GetSumDensity();
-  
-  return area*sumrho*gravityAcceleration[altitude_direction];
+ 
+  double sensitivity = area*sumrho*gravityAcceleration[altitude_direction];
+
+/*
+  // finite difference for isotropic material
+  double dh = 1e-6;
+  gpmat->setThickness(prop->eh+dh);
+  double Mp = getMass(cs);
+  gpmat->setThickness(prop->eh-dh);
+  double Mm = getMass(cs);
+  double FDsen = (Mp-Mm)*gravityAcceleration[altitude_direction]/(2*dh);
+  fprintf(stderr, "Finite Difference is %7.3e\n", FDsen);
+  fprintf(stderr, "sensitivity is %7.3e\n", sensitivity);
+  if(abs(FDsen-sensitivity) > 1e-5) {
+    throw std::runtime_error(
+       "*** FATAL ERROR in FelippaShell::weightDerivativeWRTthickness ***\n"
+       "*** The sensitivity might be wrong                            ***\n");
+  }
+*/
+
+/*
+  // finite difference for layered composite
+  double dh = 1e-6;
+  int nlayer = 2;
+  double layerThickness[nlayer];
+  gpmat->GetLayerThickness(layerThickness);
+  for(int i=0; i<nlayer; ++i) layerThickness[i] += dh;
+  gpmat->resetLayerThickness(layerThickness);  gpmat->resetAreaDensity(); 
+  double Mp = getMass(cs);
+  for(int i=0; i<nlayer; ++i) layerThickness[i] -= (2*dh);
+  gpmat->resetLayerThickness(layerThickness);  gpmat->resetAreaDensity();
+  double Mm = getMass(cs);
+  double FDsen = (Mp-Mm)*gravityAcceleration[altitude_direction]/(2*dh);
+  fprintf(stderr, "Finite Difference is %7.3e\n", FDsen);
+  fprintf(stderr, "sensitivity is %7.3e\n", sensitivity);
+  if(abs(FDsen-sensitivity) > 1e-5) {
+    throw std::runtime_error(
+       "*** FATAL ERROR in FelippaShell::weightDerivativeWRTthickness ***\n"
+       "*** The sensitivity might be wrong                            ***\n");
+  }
+*/ 
+
+  return sensitivity;
 } 
 
 FullSquareMatrix
@@ -1328,22 +1369,30 @@ FelippaShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
   // inputs
   Eigen::Matrix<double,18,1> q = Eigen::Map<Eigen::Matrix<double,18,1> >(elDisp.data()).segment(0,18); //displacements
 
-//  // function evaluation
-//  ShellElementStressWRTDisplacementSensitivity<double> foo(dconst,iconst);
-//  Eigen::Matrix<double,1,1> qp, qm;
-//  double h(1e-6);
-//  qp[0] = q[0] + h;   qm[0] = q[0] - h;
-//  Eigen::Matrix<double,3,1> Sp = foo(qp, 0);
-//  Eigen::Matrix<double,3,1> Sm = foo(qm, 0);
-//  Eigen::Matrix<double,3,1> dSdh_fd;
-//  dSdh_fd = (Sp - Sm)/(2*h);
-//  std::cerr << "dSdh_fd = " << dSdh_fd.transpose() << std::endl;
+  // function evaluation
+  ShellElementStressWRTDisplacementSensitivity<double> foo(dconst,iconst);
+  Eigen::Matrix<double,18,1> qp, qm;
+  double h(1e-6);
+  Eigen::Matrix<double,3,18> dSdDispfd;
+  for(int i=0; i<18; ++i) {
+    qp = q;             qm = q;
+    qp[i] = q[i] + h;   qm[i] = q[i] - h;
+    Eigen::Matrix<double,3,1> Sp = foo(qp, 0);
+    Eigen::Matrix<double,3,1> Sm = foo(qm, 0);
+    Eigen::Matrix<double,3,1> fd = (Sp - Sm)/(2*h);
+    for(int j=0; j<3; ++j) {
+      dSdDispfd(j,i) = fd[j];
+    }
+  }
 
   // Jacobian evaluation
   Eigen::Matrix<double,3,18> dStressdDisp;
   Simo::Jacobian<double,ShellElementStressWRTDisplacementSensitivity> dSdu(dconst,iconst);
   dStressdDisp = dSdu(q, 0);
-//  std::cerr << "dStressdDisp = " << dStressdDisp << std::endl;
+  std::cerr << "dStressdDisp = " << dStressdDisp << std::endl;
+
+  std::cerr << "dSdDispfd = " << dSdDispfd << std::endl;
+  if((dSdDispfd-dStressdDisp).norm()/dStressdDisp.norm() > 1e-6) fprintf(stderr," ... discrepancy with finite difference is too large ...\n");
 
   dStdDisp.copy(dStressdDisp.data());
 

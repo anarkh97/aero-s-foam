@@ -1012,13 +1012,26 @@ Domain::constructEiSparseGalerkinProjectionSolver()
 
 template<class Scalar>
 void
-Domain::buildSensitivities(AllSensitivities<Scalar> &allSens, GenVector<Scalar> &sol, Scalar *bcx)
+Domain::buildPreSensitivities(AllSensitivities<Scalar> &allSens, Scalar *bcx)
 {
   switch(sinfo.type) {
     default:
       fprintf(stderr," *** WARNING: Solver not Specified  ***\n");
     case 0:
-      makeSensitivities(allSens, sol, bcx);
+      makePreSensitivities(allSens, bcx);
+      break;
+  }
+}
+
+template<class Scalar>
+void
+Domain::buildPostSensitivities(AllSensitivities<Scalar> &allSens, GenVector<Scalar> &sol, Scalar *bcx)
+{
+  switch(sinfo.type) {
+    default:
+      fprintf(stderr," *** WARNING: Solver not Specified  ***\n");
+    case 0:
+      makePostSensitivities(allSens, sol, bcx);
       break;
   }
 }
@@ -3363,7 +3376,7 @@ int Domain::processOutput(OutputInfo::Type &type, GenVector<Scalar> &d_n, Scalar
 //-------------------------------------------------------------------------------------
 #ifdef USE_EIGEN3
 template <class Scalar>
-void Domain::sensitivityPostProcessing(AllSensitivities<Scalar> &allSens) {
+void Domain::sensitivityPreProcessing(AllSensitivities<Scalar> &allSens) {
 
   OutputInfo *oinfo = geoSource->getOutputInfo();
   int numOutInfo = geoSource->getNumOutInfo();
@@ -3371,6 +3384,21 @@ void Domain::sensitivityPostProcessing(AllSensitivities<Scalar> &allSens) {
   for(int i = 0; i < numOutInfo; ++i)  {
     if(oinfo[i].sentype == 0) continue;
     if(oinfo[i].type == OutputInfo::WeigThic) geoSource->outputEigenScalars(i, allSens.weightWRTthick, allSens.weight);
+  }
+  firstOutput = false;
+}
+#endif
+
+//-------------------------------------------------------------------------------------
+#ifdef USE_EIGEN3
+template <class Scalar>
+void Domain::sensitivityPostProcessing(AllSensitivities<Scalar> &allSens) {
+
+  OutputInfo *oinfo = geoSource->getOutputInfo();
+  int numOutInfo = geoSource->getNumOutInfo();
+  if(firstOutput) geoSource->openOutputFiles();
+  for(int i = 0; i < numOutInfo; ++i)  {
+    if(oinfo[i].sentype == 0) continue;
     if(oinfo[i].type == OutputInfo::VMstThic) geoSource->outputEigenVectors(i, allSens.vonMisesWRTthick);
     if(oinfo[i].type == OutputInfo::VMstDisp) geoSource->outputEigenVectors(i, allSens.vonMisesWRTdisp);
   }

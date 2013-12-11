@@ -15,6 +15,10 @@ class ShellMaterial
                                          doublereal *eframe, int gp) = 0; // Upsilon is the generalized "strains" {e,chi}
                                                                           // Sigma is the generalized "stress" {N,M}
                                                                           // D is the tangent constitutive matrix { Dm, Dmb; Dbm, Db }
+    virtual void setThickness(doublereal _thick) = 0;
+    virtual void resetLayerThickness(doublereal *layerthickness) { }
+    virtual void resetAreaDensity() { }
+    virtual void GetLayerThickness(doublereal *layerThickness) { }
     virtual doublereal GetShellThickness() = 0;
     virtual doublereal GetAreaDensity() = 0; // mass per unit area
     virtual doublereal GetSumDensity() { return 0; }
@@ -49,6 +53,7 @@ class ShellMaterialType0 : public ShellMaterial<doublereal>
 
     void GetConstitutiveResponse(doublereal *Upsilon, doublereal *Sigma, doublereal *D,
                                  doublereal *eframe, int gp);
+    void setThickness(doublereal _thick) { thick = _thick; }
     doublereal GetShellThickness() { return thick; }
     doublereal GetAreaDensity() { return rho*thick; }
     doublereal GetSumDensity() { return rho; }
@@ -72,8 +77,10 @@ class ShellMaterialType1 : public ShellMaterial<doublereal>
 
     void GetConstitutiveResponse(doublereal *Upsilon, doublereal *Sigma, doublereal *D,
                                  doublereal *eframe, int gp);
+    void setThickness(doublereal _thick) { thick = _thick; }
     doublereal GetShellThickness();
-    doublereal GetAreaDensity() { return rhoh; } 
+    doublereal GetAreaDensity() { return rhoh; }
+    doublereal GetSumDensity() { return rhoh/thick; } 
 };
 
 //     ---------------------------------------------- 
@@ -95,6 +102,10 @@ class ShellMaterialTypes2And3 : public ShellMaterial<doublereal>
 
     void GetConstitutiveResponse(doublereal *Upsilon, doublereal *Sigma, doublereal *D,
                                  doublereal *eframe, int gp);
+    void setThickness(doublereal _thick) { thick = _thick; }
+    void resetLayerThickness(doublereal *layerthickness) { for(int i=0; i<nlayer; ++i) mtlayer(7,i) = layerthickness[i]; }
+    void resetAreaDensity() { rhoh = 0; for(int i=0; i<nlayer; ++i) rhoh += mtlayer(6, i)*mtlayer(7, i); }
+    void GetLayerThickness(doublereal *layerThickness) { for(int i=0; i<nlayer; ++i) layerThickness[i] = mtlayer(7,i); }
     doublereal GetShellThickness() { return thick; }
     doublereal GetAreaDensity() { return rhoh; }
     doublereal GetSumDensity() { return rho; }
@@ -126,8 +137,10 @@ class ShellMaterialType4 : public ShellMaterial<doublereal>
 
     void GetConstitutiveResponse(doublereal *Upsilon, doublereal *Sigma, doublereal *D,
                                  doublereal *eframe, int gp);
+    void setThickness(doublereal _thick) { thick = _thick; }
     doublereal GetShellThickness() { return thick; }
     doublereal GetAreaDensity() { return rho*thick; }
+    doublereal GetSumDensity() { return rho; }
     void GetLocalConstitutiveResponse(doublereal *Upsilon, doublereal *sigma, doublereal z,
                                       doublereal *eframe, int gp);
     int GetNumStates() { return nlayer*maxgus*7; } // TODO 7 should be provided by the localmaterial

@@ -212,9 +212,16 @@ SingleDomainStatic<T, VectorType, SolverType>::getRHSinpc(VectorType &rhs)
 
 template<class T, class VectorType, class SolverType>
 void
+SingleDomainStatic<T, VectorType, SolverType>::preProcessSA()
+{
+ domain->buildPreSensitivities<T>(allSens, bcx);
+}
+
+template<class T, class VectorType, class SolverType>
+void
 SingleDomainStatic<T, VectorType, SolverType>::postProcessSA(GenVector<T> &sol)
 {
- domain->buildSensitivities<T>(allSens, sol, bcx);
+ domain->buildPostSensitivities<T>(allSens, sol, bcx);
 }
 
 template<class T, class VectorType, class SolverType>

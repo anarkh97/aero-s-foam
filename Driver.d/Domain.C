@@ -2938,7 +2938,8 @@ Domain::initialize()
  MpcDSA = 0; nodeToNodeDirect = 0;
  p = 0;
  g_dsa = 0;
- numSensitivity = 0; senInfo = 0; 
+ numSensitivity = 0; senInfo = 0;
+ runSAwAnalysis = false;   
 }
 
 Domain::~Domain()
@@ -3925,4 +3926,7 @@ void Domain::updateSDETAF(StructProp* p, double omega) {
 
 void Domain::addSensitivity(SensitivityInfo &_senInfo) {
   senInfo[numSensitivity++] = _senInfo;
+  if(_senInfo.type != SensitivityInfo::WeightWRTthickness) {
+    runSAwAnalysis = true;
+  }
 }

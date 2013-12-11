@@ -66,6 +66,7 @@ class GenMultiDomainInpcStatic
     DistrBlockInfo &solVecInfo(int i);
     void getRHS(DistrBlockVector<Scalar> &) {cerr << "GenMultiDomainInpcStatic::getRHS not implemented" << endl;}
     void getRHSinpc(DistrBlockVector<Scalar>  &);
+    void preProcessSA() {cerr << "GenMultiDomainInpcStatic::preProcessSA not implemented" << endl; }
     void postProcessSA(DistrBlockVector<Scalar> &) {cerr << "GenMultiDomainInpcStatic::postProcessSA not implemented" << endl; }
     void preProcess();
     void rebuildSolver();

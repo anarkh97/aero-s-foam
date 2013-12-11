@@ -701,6 +701,11 @@ const char* problemTypeMessage[] = {
 ""
 };
 
+const char* sensitivityTypeMessage[] = {
+" ... Sensitivity Analysis without Static Analysis ...\n",
+" ... Sensitivity Analysis with Static Analysis ...\n"
+};
+
 const char* solverTypeMessage[] = {
 " ... Skyline Solver is Selected     ... \n",
 " ... Sparse Solver is Selected      ... \n",
@@ -2939,7 +2944,7 @@ Domain::transformMatrix(complex<double> *data, int inode)
 }
 
 void
-Domain::makeSensitivities(AllSensitivities<double> &allSens, GenVector<double> &sol, double *bcx)
+Domain::makePreSensitivities(AllSensitivities<double> &allSens, double *bcx)
 {
 #ifdef USE_EIGEN3
  for(int sindex=0; sindex < numSensitivity; ++sindex) {
@@ -2982,6 +2987,19 @@ Domain::makeSensitivities(AllSensitivities<double> &allSens, GenVector<double> &
 
      break;
    }
+  }
+ }
+ // post processing for sensitivities 
+ sensitivityPreProcessing(allSens);
+#endif
+}
+
+void
+Domain::makePostSensitivities(AllSensitivities<double> &allSens, GenVector<double> &sol, double *bcx)
+{
+#ifdef USE_EIGEN3
+ for(int sindex=0; sindex < numSensitivity; ++sindex) {
+  switch(senInfo[sindex].type) {
    case SensitivityInfo::StressVMWRTthickness: 
    {
      // ... COMPUTE DERIVATIVE OF VON MISES STRESS WITH RESPECT TO THICKNESS
@@ -3101,7 +3119,7 @@ Domain::makeSensitivities(AllSensitivities<double> &allSens, GenVector<double> &
 }
 
 void
-Domain::makeSensitivities(AllSensitivities<DComplex> &allSens, GenVector<DComplex> &sol, DComplex *bcx)
+Domain::makePreSensitivities(AllSensitivities<DComplex> &allSens, DComplex *bcx)
 {
 #ifdef USE_EIGEN3
  for(int sindex=0; sindex < numSensitivity; ++sindex) {
@@ -3142,6 +3160,17 @@ Domain::makeSensitivities(AllSensitivities<DComplex> &allSens, GenVector<DComple
      cout << *allSens.weightWRTthick << endl;
 
    }
+  }
+ }
+#endif
+}
+
+void
+Domain::makePostSensitivities(AllSensitivities<DComplex> &allSens, GenVector<DComplex> &sol, DComplex *bcx)
+{
+#ifdef USE_EIGEN3
+ for(int sindex=0; sindex < numSensitivity; ++sindex) {
+  switch(senInfo[sindex].type) {
    case SensitivityInfo::StressVMWRTthickness: 
    {
      // ... COMPUTE DERIVATIVE OF VON MISES STRESS WITH RESPECT TO THICKNESS
@@ -3172,6 +3201,4 @@ Domain::makeSensitivities(AllSensitivities<DComplex> &allSens, GenVector<DComple
  }
 #endif
 }
-
-
 

@@ -12,6 +12,10 @@ StaticSolver< Scalar, OpSolver, VecType,
   ::solve()
 {
  probDesc->preProcess();
+ if(domain->solInfo().sensitivity) { 
+   probDesc->preProcessSA();
+   if(!domain->runSAwAnalysis) return;
+ }
 
  rhs = new VecType(probDesc->solVecInfo());
  sol = new VecType(probDesc->solVecInfo());

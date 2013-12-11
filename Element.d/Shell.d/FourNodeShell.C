@@ -47,18 +47,6 @@ FourNodeShell::clone()
   return new FourNodeShell(*this);
 }
 
-double 
-FourNodeShell::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int altitude_direction)
-{ 
-  if (prop == NULL) {
-    return 0.0; 
-  } 
-  
-  double _weight = weight(cs, gravityAcceleration, altitude_direction);
-  double thick = dynamic_cast<ThreeNodeShell*>(subElems[0])->getProperty()->eh;
-  return _weight/thick;
-}
-
 int
 FourNodeShell::getTopNumber()
 {

@@ -1456,16 +1456,17 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
     for(int i=0; i<numOutInfo; ++i) numRes[i] = 0;
   }
 
-  if((x == 0) || (outLimit > 0 && x%outLimit == 0)) { // PJSA 3-31-06
+  if((x == 0) || (outLimit > 0 && x%outLimit == 0)) {
 #ifdef DISTRIBUTED
 
     for(int iInfo = 0; iInfo < numOutInfo; iInfo++) {
-      if(oinfo[iInfo].type == OutputInfo::Farfield || oinfo[iInfo].type == OutputInfo::AeroForce) {
+      if(oinfo[iInfo].type == OutputInfo::Farfield || oinfo[iInfo].type == OutputInfo::AeroForce
+         || oinfo[iInfo].type == OutputInfo::DissipatedEnergy) {
         int oI = iInfo;
         if(this->firstOutput) { geoSource->openOutputFiles(0,&oI,1); }
         continue;
       }
-      else if(oinfo[iInfo].nodeNumber == -1 && this->firstOutput) { // PJSA only need to call this the first time
+      else if(oinfo[iInfo].nodeNumber == -1 && this->firstOutput) {
         if(this->communicator->cpuNum() == 0) geoSource->createBinaryOutputFile(iInfo,this->localSubToGl[0],x);
         else geoSource->computeAndCacheHeaderLength(iInfo);
       }
@@ -1474,7 +1475,8 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
     this->communicator->sync();
 #endif
     for(int iInfo = 0; iInfo < numOutInfo; iInfo++) {
-      if(oinfo[iInfo].nodeNumber == -1 && oinfo[iInfo].type != OutputInfo::Farfield && oinfo[iInfo].type != OutputInfo::AeroForce) {
+      if(oinfo[iInfo].nodeNumber == -1 && oinfo[iInfo].type != OutputInfo::Farfield && oinfo[iInfo].type != OutputInfo::AeroForce
+         && oinfo[iInfo].type != OutputInfo::DissipatedEnergy) {
         numRes[iInfo] = 0;
         for(iSub = 0; iSub < this->numSub; iSub++) {
           int glSub = this->localSubToGl[iSub];
@@ -1604,6 +1606,9 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
       } break;
       case OutputInfo::EquivalentPlasticStrain:
         getStressStrain(geomState, allCorot, time, x, iOut, EQPLSTRN, refState);
+        break;
+      case OutputInfo::DissipatedEnergy:
+        this->getDissipatedEnergy(geomState, allCorot, iOut, time);
         break;
       case OutputInfo::StressPR1:
         getPrincipalStress(geomState, allCorot, time, x, iOut, PSTRESS1, refState);

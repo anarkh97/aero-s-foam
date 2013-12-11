@@ -7,12 +7,7 @@
 class MatNLElement : public Element { 
    public:
      MatNLElement() {}
-/*
-     // numStates() returns the number of states present in the state history
-     // vector for this element
-     virtual int numStates() { return 0; }
-     virtual void initStates(double *) {}
-*/
+
      virtual void getStiffAndForce(Node *nodes, double *disp,
                                    double *state, FullSquareMatrix &kTan,
                                    double *force) {
@@ -79,6 +74,12 @@ class MatNLElement : public Element {
      virtual void getPlasticStrainTens(double *statenp, double (*result)[9], int avgnum) {
        fprintf(stderr, "MatNLElement::getPlasticStrainTens is being called on an element "
                "for which it is not defined\n");
+     }
+
+     virtual double getDissipatedEnergy(Node *nodes, double *state) {
+       fprintf(stderr, "MatNLElement::getDissipatedEnergyis being called on an element "
+               "for which it is not defined\n");
+       return 0.0;
      }
 
      virtual int getNumGaussPoints() { return 0; }

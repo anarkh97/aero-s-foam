@@ -1427,69 +1427,73 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
             }
           }
         }
-      Wkin = 0.5 * (vtmp * tmpVec);
+        Wkin = 0.5 * (vtmp * tmpVec);
 
-      // Compute Internal Energy
-      // This is done at the element level.
-      double EleWela;
-      for(iele = 0; iele < numele; ++iele) {
-        EleWela = 0.0;
-        EleWela = allCorot[iele]->getElementEnergy(*geomState,nodes);
-        Wela += EleWela;
-      }
-
-      double error = (time==sinfo.initialTime) ? 0.0 : (Wela+Wkin)-(pWela+pWkin)-dW;
-      geoSource->outputEnergies(iInfo, time, Wext, Waero, Wela, Wkin, 0.0, error);
-
-      pWela=Wela;
-      pWkin=Wkin;
-
-      if(!previousDisp) {
-        previousDisp = new Vector(sol);
-      } else {
-        (*previousExtForce) = force;
-        (*previousAeroForce) = aeroForce;
-        (*previousDisp)     = sol;
-      }
-
-      // Non-Linear Statics
-    } else {
-      double lambda = time;
-      if (time == 0.0) {
-        double deltaLambda = solInfo().getNLInfo().dlambda;
-        double maxLambda = solInfo().getNLInfo().maxLambda;
-        if(deltaLambda == maxLambda) lambda = 1.0;
-      }
-      Wext=0.0;
-      Waero=0.0;
-      Wdmp=0.0;
-      pWela=0.0;
-      pWkin=0.0;
-
-      // Wkin = kinetic energy
-      // Total Energy = Wext+Wela+Wkin
-      double Wkin=0.0;
-
-      // Wext = external energy
-      Wext = lambda*force * sol;
-      Waero = lambda*aeroForce * sol;
-
-      // Compute Internal Energy
-      // This is done at the element level.
-      // Wela = elastic energy
-      int iele;
-      double Wela = 0.0;
-      double EleWela;
+        // Compute Internal Energy
+        // This is done at the element level.
+        double EleWela;
         for(iele = 0; iele < numele; ++iele) {
           EleWela = 0.0;
           EleWela = allCorot[iele]->getElementEnergy(*geomState,nodes);
           Wela += EleWela;
         }
 
-          double error = Wext+Wela+Wkin;
-          geoSource->outputEnergies(iInfo,time,Wext, Waero, Wela,Wkin,0.0,error);
+        double error = (time==sinfo.initialTime) ? 0.0 : (Wela+Wkin)-(pWela+pWkin)-dW;
+        geoSource->outputEnergies(iInfo, time, Wext, Waero, Wela, Wkin, 0.0, error);
+
+        pWela=Wela;
+        pWkin=Wkin;
+
+        if(!previousDisp) {
+          previousDisp = new Vector(sol);
+        } else {
+          (*previousExtForce) = force;
+          (*previousAeroForce) = aeroForce;
+          (*previousDisp)     = sol;
         }
+
+      // Non-Linear Statics
+      } else {
+        double lambda = time;
+        if (time == 0.0) {
+          double deltaLambda = solInfo().getNLInfo().dlambda;
+          double maxLambda = solInfo().getNLInfo().maxLambda;
+          if(deltaLambda == maxLambda) lambda = 1.0;
+        }
+        Wext=0.0;
+        Waero=0.0;
+        Wdmp=0.0;
+        pWela=0.0;
+        pWkin=0.0;
+
+        // Wkin = kinetic energy
+        // Total Energy = Wext+Wela+Wkin
+        double Wkin=0.0;
+
+        // Wext = external energy
+        Wext = lambda*force * sol;
+        Waero = lambda*aeroForce * sol;
+
+        // Compute Internal Energy
+        // This is done at the element level.
+        // Wela = elastic energy
+        int iele;
+        double Wela = 0.0;
+        double EleWela;
+        for(iele = 0; iele < numele; ++iele) {
+          EleWela = 0.0;
+          EleWela = allCorot[iele]->getElementEnergy(*geomState,nodes);
+          Wela += EleWela;
+        }
+
+        double error = Wext+Wela+Wkin;
+        geoSource->outputEnergies(iInfo, time, Wext, Waero, Wela, Wkin, 0.0, error);
+      }
     } break;
+    case OutputInfo::DissipatedEnergy: {
+      double D = getDissipatedEnergy(geomState, allCorot);
+      geoSource->outputEnergy(iInfo, time, D);
+    }
     case OutputInfo::AeroForce: break; // this is done in FlExchange.C
     case OutputInfo::AeroXForce:  {
       double *data = new double[nPrintNodes];
@@ -2529,4 +2533,17 @@ Domain::getElementDisp(int iele, GeomState& geomState, Vector& disp)
     }
   }
   delete [] nn;
+}
+
+double
+Domain::getDissipatedEnergy(GeomState *geomState, Corotator **allCorot)
+{
+  // Compute dissipated energy due to plastic deformation
+  double D = 0;
+  for(int iele = 0; iele < numele; ++iele) {
+    if(allCorot[iele] != NULL) {
+      D += allCorot[iele]->getDissipatedEnergy(*geomState, nodes);
+    }
+  }
+  return D;
 }

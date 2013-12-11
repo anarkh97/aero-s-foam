@@ -370,7 +370,7 @@ for (int i=0; i<ngp; ++i){
 
 
 void 
-GaussIntgElement::integrate(Node *nodes, double *dispn,  double *staten,
+GaussIntgElement::integrate(Node *nodes, double *dispn, double *staten,
                             double *dispnp, double *statenp,
                             FullSquareMatrix &kTan,
                             double *force, double)
@@ -483,7 +483,7 @@ GaussIntgElement::integrate(Node *nodes, double *dispn,  double *staten,
 }
 
 void 
-GaussIntgElement::integrate(Node *nodes, double *dispn,  double *staten,
+GaussIntgElement::integrate(Node *nodes, double *dispn, double *staten,
                             double *dispnp, double *statenp,
                             double *force, double)
 {
@@ -1135,3 +1135,31 @@ GaussIntgElement::getPlasticStrainTens(double *statenp, double (*result)[9], int
   }
 }
 
+double
+GaussIntgElement::getDissipatedEnergy(Node *nodes, double *state)
+{
+  int ndofs = numDofs();
+  ShapeFunction *shapeF = getShapeFunction();
+
+  // Obtain the material model
+  NLMaterial *material = getMaterial();
+
+  int i,j;
+  int ngp = getNumGaussPoints();
+  int nstatepgp = material->getNumStates();
+  
+  double D = 0;
+
+  for(i = 0; i < ngp; i++) {
+
+    double point[3], weight, jac;
+ 
+    getGaussPointAndWeight(i, point, weight);
+
+    shapeF->getJacobianDeterminant(&jac, nodes, point);
+
+    D += (weight * fabs(jac))*material->getDissipatedEnergy(state + i*material->getNumStates());
+  }
+
+  return D;
+}

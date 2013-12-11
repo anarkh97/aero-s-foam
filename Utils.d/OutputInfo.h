@@ -43,7 +43,8 @@ struct OutputInfo {
           PlasticStrainXX, PlasticStrainYY, PlasticStrainZZ, PlasticStrainXY,
           PlasticStrainYZ, PlasticStrainXZ, BackStressXX, BackStressYY,
           BackStressZZ, BackStressXY, BackStressYZ, BackStressXZ, 
-          WeigThic, VMstThic, VMstDisp};
+          WeigThic, VMstThic, VMstDisp,
+          DissipatedEnergy };
 
    enum Group  { Nodal, Attribute, NodeGroup };
    Type  type;
@@ -214,6 +215,7 @@ struct OutputInfo {
      case BackStressXY:
      case BackStressYZ:
      case BackStressXZ:
+     case DissipatedEnergy:
        return true; 
        break;
      default:

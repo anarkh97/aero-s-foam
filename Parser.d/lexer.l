@@ -1291,6 +1291,8 @@ TRAIL [a-zA-Z]*
 
 "bkstrsyz"|"BKSTRSYZ"              { yylval.ival = OutputInfo::BackStressYZ;    return STRESSID; }
 
+"dissipat"|"DISSIPAT"              { yylval.ival = OutputInfo::DissipatedEnergy;return STRESSID; }
+
 "MATSPEC"|"matspec"                { return MATSPEC; }
 
 "MATLAW"|"matlaw"                  { return MATSPEC; }

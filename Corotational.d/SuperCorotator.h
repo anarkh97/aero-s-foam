@@ -35,6 +35,7 @@ class SuperCorotator : public Corotator
   void getNLVonMises(Vector &stress, Vector &weight, GeomState &geomState, CoordSet &cs, int strInd);
   void getNLAllStress(FullM &stress, Vector &weight, GeomState &geomState, CoordSet &cs, int strInd);
   double getElementEnergy(GeomState &geomState, CoordSet &cs);
+  double getDissipatedEnergy(GeomState &geomState, CoordSet &cs);
   void extractRigidBodyMotion(GeomState &geomState, CoordSet &cs, double *vlr);
   void updateStates(GeomState *refState, GeomState &curState, CoordSet &C0);
 

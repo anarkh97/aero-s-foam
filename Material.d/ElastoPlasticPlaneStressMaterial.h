@@ -27,6 +27,9 @@ class ElastoPlasticPlaneStressMaterial
   //! Returns back stress in material (3x1 vector)
   virtual std::vector<double> GetMaterialBackStress() const = 0;
 
+  //! Returns dissipated energy in material
+  virtual double GetDissipatedEnergy() const = 0;
+
   //! Set the plastic strain in the material
   virtual void SetMaterialPlasticStrain(const std::vector<double> &EPSplastic) = 0;
 

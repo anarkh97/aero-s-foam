@@ -996,6 +996,32 @@ FelippaShell::initStates(double *staten)
  }
 }
 
+double
+FelippaShell::getDissipatedEnergy(GeomState &, CoordSet &cs)
+{
+ if(type <= 3) {
+
+   return 0.0;
+ }
+ else { // nonlinear material...
+
+   // Get Nodes original coordinates (C0 configuration)
+   Node &node1 = cs.getNode( n1 );
+   Node &node2 = cs.getNode( n2 );
+   Node &node3 = cs.getNode( n3 );
+
+   double x[3], y[3], z[3];
+   x[0] = node1.x; y[0] = node1.y; z[0] = node1.z;
+   x[1] = node2.x; y[1] = node2.y; z[1] = node2.z;
+   x[2] = node3.x; y[2] = node3.y; z[2] = node3.z;
+
+   double D;
+   andesden(glNum+1, x, y, z, D);
+
+   return D;
+ }
+}
+
 int
 FelippaShell::numNodes()
 {

@@ -52,6 +52,8 @@ class NLMaterial
 
      virtual bool getPlasticStrain(double *statenp, Tensor *plasticstrain) { return false; }
 
+     virtual double getDissipatedEnergy(double *statenp) { return 0; }
+
      virtual double getThickness() { return 0; }
 
      virtual double getPosdefifyTol() { return -1; }

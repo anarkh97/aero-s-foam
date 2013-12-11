@@ -91,6 +91,7 @@ public:
                                FullSquareMatrix &elK, double *f, double dt, double t);
         void updateStates(GeomState *refState, GeomState &curState, CoordSet &C0);
         void initStates(double *);
+        double getDissipatedEnergy(GeomState &, CoordSet &);
 
         // Routines for the decomposer
         PrioInfo examine(int sub, MultiFront *);

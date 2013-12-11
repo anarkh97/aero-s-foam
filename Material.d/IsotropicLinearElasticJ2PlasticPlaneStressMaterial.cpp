@@ -64,11 +64,9 @@ IsotropicLinearElasticJ2PlasticPlaneStressMaterial(double iLambda, double iMu,
   equivEPSplastic = 0.;
 }
 
-
 // Destructor
 IsotropicLinearElasticJ2PlasticPlaneStressMaterial::~IsotropicLinearElasticJ2PlasticPlaneStressMaterial()
 {}
-
 
 // Copy constructor
 IsotropicLinearElasticJ2PlasticPlaneStressMaterial::
@@ -85,13 +83,10 @@ IsotropicLinearElasticJ2PlasticPlaneStressMaterial(const IsotropicLinearElasticJ
   equivEPSplastic = Mat.equivEPSplastic;
 }
 
-
-
 // Cloning
 IsotropicLinearElasticJ2PlasticPlaneStressMaterial * 
 IsotropicLinearElasticJ2PlasticPlaneStressMaterial::Clone() const
 { return new IsotropicLinearElasticJ2PlasticPlaneStressMaterial(*this); }
-
 
 // Return plastic strain
 std::vector<double> IsotropicLinearElasticJ2PlasticPlaneStressMaterial::
@@ -109,12 +104,10 @@ GetMaterialPlasticStrain() const
   return EPSplastic;
 }
 
-
 // Return equivalent plastic strain
 double IsotropicLinearElasticJ2PlasticPlaneStressMaterial::
 GetMaterialEquivalentPlasticStrain() const
 { return equivEPSplastic; }
-
 
 // Return back stress
 std::vector<double> IsotropicLinearElasticJ2PlasticPlaneStressMaterial::
@@ -131,7 +124,6 @@ GetMaterialBackStress() const
 */
   return BackStress;
 }
-
 
 // Return isotropic hardening modulus
 double IsotropicLinearElasticJ2PlasticPlaneStressMaterial::
@@ -158,6 +150,10 @@ double IsotropicLinearElasticJ2PlasticPlaneStressMaterial::
 GetShearModulus() const
 { return 0.5*E/(1.+nu); }
 
+// Return dissipated energy
+double IsotropicLinearElasticJ2PlasticPlaneStressMaterial::
+GetDissipatedEnergy() const
+{ return SigmaY*equivEPSplastic; }
 
 // Set the plastic strain in the material
 void IsotropicLinearElasticJ2PlasticPlaneStressMaterial::
@@ -216,7 +212,6 @@ ComputeElasticConstitutiveResponse(const std::vector<double> &EPS,
   return true;
 }
 
-
 // Evaluate norm of deviatoric part of \f$\sigma-\sigma^b\f$
 double IsotropicLinearElasticJ2PlasticPlaneStressMaterial::ComputeJ2(const double *Xi) const
 {
@@ -232,7 +227,6 @@ double IsotropicLinearElasticJ2PlasticPlaneStressMaterial::ComputeJ2(const doubl
   return sqrt(normXi2);
 }
 
-
 // Evaluate yield function
 double IsotropicLinearElasticJ2PlasticPlaneStressMaterial::
 EvaluateYieldFunction(const double * Xi,  const double eqP) const
@@ -245,9 +239,6 @@ EvaluateYieldFunction(const double * Xi,  const double eqP) const
   
   return J2 - YSrad;
 }
-
-
-
 
 // Check if state of material lies within yield surface
 bool IsotropicLinearElasticJ2PlasticPlaneStressMaterial::
@@ -268,7 +259,6 @@ CheckMaterialState(const std::vector<double> &CS,
   else
     return false;
 }
-
 
 // Compute elastoplastic response of material
 bool IsotropicLinearElasticJ2PlasticPlaneStressMaterial::
@@ -413,7 +403,7 @@ ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1,
 	  if( counter%100 == 0) {
 	    std::cerr<<"\n WARNING: "
 		     <<"IsotropicLinearElasticJ2PlasticPlaneStressMaterial::ComputeElastoPlasticConstitutiveResponse()- "
-		     <<" Consistency parameter exceeds "<<counter<<" times initial estimate.\n";
+		     <<"Consistency parameter exceeds "<<counter<<" times initial estimate.\n";
 	  }
 	  // Upper limit on how far to probe- avoid an infinite loop.
 	  if( counter > 1000 ) 
@@ -545,10 +535,7 @@ ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1,
     delete Ce;
 
   return true;
-
 }
-
-
 
 // Given a value of consistency parameter and trial Xi, compute new Xi
 bool IsotropicLinearElasticJ2PlasticPlaneStressMaterial::

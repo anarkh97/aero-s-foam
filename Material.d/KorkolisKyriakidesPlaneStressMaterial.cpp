@@ -67,7 +67,6 @@ KorkolisKyriakidesPlaneStressMaterial(double iLambda, double iMu,
 KorkolisKyriakidesPlaneStressMaterial::~KorkolisKyriakidesPlaneStressMaterial()
 {}
 
-
 // Copy constructor
 KorkolisKyriakidesPlaneStressMaterial::
 KorkolisKyriakidesPlaneStressMaterial(const KorkolisKyriakidesPlaneStressMaterial &Mat)
@@ -82,7 +81,6 @@ KorkolisKyriakidesPlaneStressMaterial(const KorkolisKyriakidesPlaneStressMateria
     }
   equivEPSplastic = Mat.equivEPSplastic;
 }
-
 
 // Cloning
 KorkolisKyriakidesPlaneStressMaterial *
@@ -105,7 +103,6 @@ GetMaterialPlasticStrain() const
   return EPSplastic;
 }
 
-
 // Return equivalent plastic strain
 double KorkolisKyriakidesPlaneStressMaterial::
 GetMaterialEquivalentPlasticStrain() const
@@ -127,7 +124,6 @@ GetMaterialBackStress() const
 */
   return BackStress;
 }
-
 
 // Return isotropic hardening modulus
 double KorkolisKyriakidesPlaneStressMaterial::
@@ -153,6 +149,11 @@ GetBulkModulus() const
 double KorkolisKyriakidesPlaneStressMaterial::
 GetShearModulus() const
 { return 0.5*E/(1.+nu); }
+
+// Return dissipated energy
+double KorkolisKyriakidesPlaneStressMaterial::
+GetDissipatedEnergy() const
+{ return SigmaY*equivEPSplastic; }
 
 // Set the plastic strain in the material
 void KorkolisKyriakidesPlaneStressMaterial::
@@ -211,7 +212,6 @@ ComputeElasticConstitutiveResponse(const std::vector<double> &EPS,
   return true;
 }
 
-
 // Linear transformations of stress involved in this model
 void KorkolisKyriakidesPlaneStressMaterial::
 ComputeLinearTransformationsOfStress(const double * Xi, double * L1Xi, double * L2Xi) const
@@ -237,7 +237,6 @@ ComputeLinearTransformationsOfStress(const double * Xi, double * L1Xi, double * 
   L2Xi[2] = Lvec[4]*Xi[2];
 }
 
-
 // Compute eigenvalues
 void KorkolisKyriakidesPlaneStressMaterial::
 ComputeEigenvalues(const double * X, double &A, double &B) const
@@ -251,8 +250,6 @@ ComputeEigenvalues(const double * X, double &A, double &B) const
   A = 0.5*(sor + disc);
   B = 0.5*(sor - disc);
 }
-
-
 
 // Evaluate yield function
 double KorkolisKyriakidesPlaneStressMaterial::
@@ -287,9 +284,6 @@ EvaluateYieldFunction(const double * Xi, const double eqP) const
   return EffStress - Rad;
 }
 
-
-
-
 // Check if state of material lies within yield surface
 bool KorkolisKyriakidesPlaneStressMaterial::
 CheckMaterialState(const std::vector<double> &CS, const double TOL) const
@@ -308,7 +302,6 @@ CheckMaterialState(const std::vector<double> &CS, const double TOL) const
   else
     return false;
 }
-  
 
 // Evaluate derivative of yield function with respect to cauchy stress
 std::vector<double> KorkolisKyriakidesPlaneStressMaterial::
@@ -341,7 +334,6 @@ EvaluateDerivativeOfYieldFunction(const double * Xi, const double eqP) const
   return N;
 }
 
-
 // Compute the norm of a deviatoric stress tensor 
 // given in vector form [Sxx, Syy, Sxy]
 double KorkolisKyriakidesPlaneStressMaterial::
@@ -350,7 +342,6 @@ DeviatoricStressNorm(const double * S) const
   return sqrt( 2.*(pow(S[0],2.)+pow(S[1],2.)+pow(S[2],2.)+S[0]*S[1]) );
 }
 
-
 // Compute the norm of a deviatoric strain tensor 
 // given in vector form [Sxx, Syy, 2Sxy]
 double KorkolisKyriakidesPlaneStressMaterial::
@@ -358,8 +349,6 @@ DeviatoricStrainNorm(const double * S) const
 {
   return sqrt( 2.*(pow(S[0],2.)+pow(S[1],2.)+S[0]*S[1]) + 0.5*pow(S[2],2.) );
 }
-
-
 
 // Compute Xi given Xitrial, lambda and N.
 void KorkolisKyriakidesPlaneStressMaterial::
@@ -385,8 +374,6 @@ ComputeXiGivenConsistencyParameterAndDirection(const double * Xitrial, const dou
 	Xi[i] -= lambda*Cmat[i][j]*N[j];
     }
 }
-      
-
 
 // Compute equivalent plastic strain given lambda and N.
 double KorkolisKyriakidesPlaneStressMaterial::
@@ -394,8 +381,6 @@ ComputeEquivalentPlasticStrainGivenConsistencyParameterAndDirection(const double
 {
   return equivEPSplastic + sqrt(2./3.)*lambda*DeviatoricStressNorm(N);
 }
-
-
 
 // Compute elastoplastic response of material
 bool KorkolisKyriakidesPlaneStressMaterial::
@@ -567,9 +552,6 @@ ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1,
     }
   return true;
 }
-
-
-
 
 bool KorkolisKyriakidesPlaneStressMaterial::
 ComputeConsistencyParameterGivenDirection(const double * Xitrial, const double * N, 

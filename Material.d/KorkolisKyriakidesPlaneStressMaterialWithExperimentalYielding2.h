@@ -84,6 +84,9 @@ class KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2 : public El
   //! Returns shear modulus of material
   double GetShearModulus() const;
 
+  //! Returns dissipated energy in material
+  double GetDissipatedEnergy() const;
+
   //! Set the plastic strain in the material
   void SetMaterialPlasticStrain(const std::vector<double> &EPSplastic);
 

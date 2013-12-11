@@ -54,6 +54,29 @@ ShapeFunction::getGlobalGrads(Tensor *_gradU, Tensor *_dgradUdqk, double *jac,
 }
 
 void
+ShapeFunction::getJacobianDeterminant(double *jac, Node *nodes, double xi[3])
+{
+  Tensor_d1s2_sparse localderivatives(numdofs);
+  Tensor_d1s0 nodescoordinates(numdofs);
+  Tensor_d0s2 jacobian;
+
+  // localDerivatives(i,j,k) = at node i, the derivative of j^{th} shape function w.r.t xi[k]
+  getLocalDerivatives(&localderivatives, xi);
+
+  for (int j = 0; j < numdofs/3; j++) {
+    Node &nd = nodes[j];
+    nodescoordinates[3*j] = nd.x;
+    nodescoordinates[3*j+1] = nd.y;
+    nodescoordinates[3*j+2] = nd.z;
+  }
+
+  //isoparametric elements
+  jacobian = localderivatives%nodescoordinates; // dof contraction
+
+  jacobian.getDeterminant(*jac);
+}
+
+void
 ShapeFunction::getGradU(Tensor *_gradU, Node *nodes, double xi[3], Vector &disp)
 {
   Tensor_d0s2 * gradU = static_cast<Tensor_d0s2 *>(_gradU);

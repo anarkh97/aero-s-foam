@@ -60,6 +60,7 @@ class GaussIntgElement : public MatNLElement
     void getEquivPlasticStrain(double *statenp, double *result, int avgnum);
     void getBackStressTens(double *statenp, double (*result)[9], int avgnum);
     void getPlasticStrainTens(double *statenp, double (*result)[9], int avgnum);
+    double getDissipatedEnergy(Node *nodes, double *state);
 };
 
 template <class TensorTypes>

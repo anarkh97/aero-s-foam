@@ -301,13 +301,10 @@ SingleDomainTemp::buildOps(double coeM, double coeC, double coeK)
 }
 
 void
-SingleDomainTemp::getInternalForce(Vector& d,Vector& f)
+SingleDomainTemp::getInternalForce(Vector& d, Vector& f)
 {
   f.zero();
-  FullSquareMatrix *kelArray;
-  kelArray = 0;
-
-  domain->getKtimesU(d,bcx,f,1.0,kelArray);
+  domain->getKtimesU(d, bcx, f, 1.0, kelArray);
 }
 
 void

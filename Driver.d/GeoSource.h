@@ -544,6 +544,8 @@ public:
 #endif
   void outputNodeScalars(int, double *, int, double time = -1.0);
   void outputNodeScalars(int, DComplex *, int, double time = -1.0);
+  void outputEnergy(int, double, double);
+  void outputEnergy(int, double, DComplex);
   void outputEnergies(int, double, double, double, double, double, double, double);
   void outputEnergies(int, double, DComplex, DComplex, DComplex, DComplex, DComplex, DComplex);
   void outputElemVectors(int, double *, int, double time = -1.0);

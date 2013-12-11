@@ -52,6 +52,7 @@ class Corotator {
                                 GeomState &, CoordSet &, int);
 
     virtual double getElementEnergy(GeomState &, CoordSet &);
+    virtual double getDissipatedEnergy(GeomState &, CoordSet &) { return 0.0; }
  
     // NOT USED
     virtual void extractRigidBodyMotion(GeomState &geomState, CoordSet &cs,

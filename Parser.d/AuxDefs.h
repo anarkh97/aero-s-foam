@@ -123,7 +123,8 @@ int yylex(void);
 void yyerror(const char*);
 
 // dynamic weight for every type of elements
-// element numbers are those assigned in AddEle.C
-extern map<int, double > weightList;  
+// element numbers are those assigned in AddElem.C
+extern std::map<int, double> weightList;  
+extern std::map<int, double> relativeWeightList;
 
 #endif

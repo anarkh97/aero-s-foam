@@ -148,6 +148,8 @@ TRAIL [a-zA-Z]*
 
 "WEIGHTS"|"weights"                { return WEIGHTLIST; }
 
+"RWEI"[a-zA-Z]*|"rwei"[a-zA-Z]*    { return RELATIVEWEIGHTLIST; }
+
 "trivial"|"TRIVIAL"                { return TRIVIAL; }
 
 "decomposition"|"DECOMPOSITION"    { return DECOMPOSITION; }
@@ -689,11 +691,13 @@ TRAIL [a-zA-Z]*
 
 "jumpoutput"|"JUMPOUTPUT"          { return JUMPOUTPUT; }
 
-"heat"|"HEAT"                      { return HEAT; }
+"heat"|"HEAT"|"ther"|"THER"        { return HEAT; }
 
 "mech"|"MECH"                      { return MECH; }
 
 "acou"[a-zA-Z]*|"ACOU"[a-zA-Z]*    { return ACOU; }
+
+"flui"|"FLUI"                      { return FLUID; }
 
 "OUTPUT"|"output"                  { return OUTPUT; }
 

@@ -13,17 +13,16 @@
 namespace Simo {
 
 template<typename Scalar>
-class InertialType2ForceFunction : public VectorValuedFunction<3,3,Scalar,24,0,double>
+class InertialType2ForceFunction : public VectorValuedFunction<3,3,Scalar,23,0,double>
 {
   public:
     Eigen::Matrix<double,3,3> J;            // inertial tensor and damping matrix
     Eigen::Matrix<double,3,1> A_n, V_n;     // first and second time-derivatives of the total rotation vector at start of current time-step
     Eigen::Matrix<double,3,1> Psi_n;        // total rotation vector at start of current time-step
     double beta, gamma, alphaf, alpham, dt; // time integration scheme parameters
-    double alphaDamp;                       // mass-proportional damping parameter
 
   public:
-    InertialType2ForceFunction(const Eigen::Array<double,24,1>& sconst, const Eigen::Array<int,0,1>&)
+    InertialType2ForceFunction(const Eigen::Array<double,23,1>& sconst, const Eigen::Array<int,0,1>&)
     {
       J = Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor> >(const_cast<double*>(sconst.data())+0);
       A_n = Eigen::Map<Eigen::Matrix<double,3,1> >(const_cast<double*>(sconst.data())+9);
@@ -34,7 +33,6 @@ class InertialType2ForceFunction : public VectorValuedFunction<3,3,Scalar,24,0,d
       alphaf = sconst[20];
       alpham = sconst[21];
       dt     = sconst[22];
-      alphaDamp = sconst[23];
     }
 
     Eigen::Matrix<Scalar,3,1> operator() (const Eigen::Matrix<Scalar,3,1>& q, Scalar t)
@@ -63,12 +61,7 @@ class InertialType2ForceFunction : public VectorValuedFunction<3,3,Scalar,24,0,d
       Eigen::Matrix<Scalar,3,1> Omega = T*V;
 
       // transformed angular momentum balance equation
-      if(alphaDamp == 0) {
-        return T.transpose()*(J*(T*A + Tdot*V) + Omega.cross(J*Omega));
-      }
-      else {
-        return T.transpose()*(J*(T*A + Tdot*V + alphaDamp*V) + Omega.cross(J*Omega));
-      }
+      return T.transpose()*(J*(T*A + Tdot*V) + Omega.cross(J*Omega));
     }
 
   public:

@@ -1333,8 +1333,7 @@ FelippaShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight,
   Eigen::Matrix<double,1,1> q;
   q[0] = nmat->GetShellThickness(); //prop->eh;   // value of thickness at which jacobian is to be evaluated
 
-/*
-  // function evaluation
+  // finite difference
   ShellElementStressWRTThicknessSensitivity<double> foo(dconst,iconst);
   Eigen::Matrix<double,1,1> qp, qm;
   double h(1e-6);
@@ -1344,13 +1343,12 @@ FelippaShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight,
   Eigen::Matrix<double,3,1> dSdh_fd;
   dSdh_fd = (Sp - Sm)/(2*h);
   std::cerr << "dSdh_fd = " << dSdh_fd.transpose() << std::endl;
-*/
 
   // Jacobian evaluation
   Eigen::Vector3d dStressdThick;
   Simo::Jacobian<double,ShellElementStressWRTThicknessSensitivity> dSdh(dconst,iconst);
   dStressdThick = dSdh(q, 0);
-//  std::cerr << "J = " << dStressdThick.transpose() << std::endl;
+  std::cerr << "J = " << dStressdThick.transpose() << std::endl;
 
   dStdThick.copy(dStressdThick.data());
 
@@ -1400,12 +1398,15 @@ FelippaShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
   Eigen::Matrix<double,18,1> qp, qm;
   double h(1e-6);
   Eigen::Matrix<double,3,18> dSdDispfd;
+  cout << "displacement = " << q.transpose() << endl;
   for(int i=0; i<18; ++i) {
     qp = q;             qm = q;
-    qp[i] = q[i] + h;   qm[i] = q[i] - h;
+    if(q[i] == 0) { qp[i] = h;   qm[i] = -h; }
+    else { qp[i] = q[i]*(1 + h);   qm[i] = q[i]*(1 - h); }
+//    cout << q.transpose() << endl;
     Eigen::Matrix<double,3,1> Sp = foo(qp, 0);
     Eigen::Matrix<double,3,1> Sm = foo(qm, 0);
-    Eigen::Matrix<double,3,1> fd = (Sp - Sm)/(2*h);
+    Eigen::Matrix<double,3,1> fd = (Sp - Sm)/(2*(qp[i]-q[i]));
     for(int j=0; j<3; ++j) {
       dSdDispfd(j,i) = fd[j];
     }

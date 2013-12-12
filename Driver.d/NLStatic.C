@@ -50,7 +50,8 @@ void
 Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
                          Corotator **corotators, FullSquareMatrix *kel,
                          Vector &residual, double lambda, double time,
-                         GeomState *refState, Vector *reactions, FullSquareMatrix *mel)
+                         GeomState *refState, Vector *reactions,
+                         FullSquareMatrix *mel, FullSquareMatrix *cel)
 /*******************************************************************
  *
  * Purpose :
@@ -59,8 +60,8 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
  *  and assemble element internal force into global internal force.
  *  Also compute configuration-dependent external force contribution
  *  to both tangential stiffness matrix and residual.
- *  Also for dynamics, compute fictitious (inertial) force
- *  contribution to both tangential stiffness matrix and residual.
+ *  Also for dynamics, compute inertial and viscous
+ *  corrections to both tangential stiffness matrix and residual.
  *
  * Input :
  *
@@ -133,7 +134,7 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
 
   // XXX consider adding the element fictitious forces inside the loop
   if(sinfo.isDynam() && mel) getFictitiousForce(geomState, elementForce, kel, residual, time, refState, reactions,
-                                                mel, compute_tangents);
+                                                mel, compute_tangents, cel);
 
   if(!solInfo().getNLInfo().unsymmetric && solInfo().newmarkBeta != 0)
     for(int iele = 0; iele < numele; ++iele)
@@ -833,7 +834,7 @@ Domain::createKelArray(FullSquareMatrix *&kArray, FullSquareMatrix *&mArray, Ful
              mArray[iele][i][j] = 0.0;
              cArray[iele][i][j] = 0.0;
          }
-   } 
+   }
  }
 }
 

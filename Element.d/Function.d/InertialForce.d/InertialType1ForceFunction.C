@@ -23,7 +23,6 @@ Jacobian<double,InertialType1ForceFunction>
   const double &alphaf = sconst[35];
   const double &alpham = sconst[36];
   const double &dt     = sconst[37];
-  const double &alphaDamp = sconst[38]; // XXX
 
   double s1 = gamma/(dt*beta);
   double s2 = (1-alpham)/(dt*dt*beta*(1-alphaf));

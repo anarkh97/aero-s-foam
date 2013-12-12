@@ -15,7 +15,7 @@
 namespace Simo {
 
 template<typename Scalar>
-class InertialType1ForceFunction : public VectorValuedFunction<3,3,Scalar,39,0,double>
+class InertialType1ForceFunction : public VectorValuedFunction<3,3,Scalar,38,0,double>
 {
   public:
     Eigen::Matrix<double,3,3> J;            // inertial tensor and damping matrix
@@ -25,10 +25,9 @@ class InertialType1ForceFunction : public VectorValuedFunction<3,3,Scalar,39,0,d
     Eigen::Matrix<double,3,3> R_n;
     Eigen::Matrix<double,3,3> Rref;
     double beta, gamma, alphaf, alpham, dt; // time integration scheme parameters
-    double alphaDamp;                       // mass-proportional damping parameter
 
   public:
-    InertialType1ForceFunction(const Eigen::Array<double,39,1>& sconst, const Eigen::Array<int,0,1>&)
+    InertialType1ForceFunction(const Eigen::Array<double,38,1>& sconst, const Eigen::Array<int,0,1>&)
     {
       J = Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor> >(const_cast<double*>(sconst.data())+0);
       A_n = Eigen::Map<Eigen::Matrix<double,3,1> >(const_cast<double*>(sconst.data())+9);
@@ -40,7 +39,6 @@ class InertialType1ForceFunction : public VectorValuedFunction<3,3,Scalar,39,0,d
       alphaf = sconst[35];
       alpham = sconst[36];
       dt     = sconst[37];
-      alphaDamp = sconst[38];
     }
 
     Eigen::Matrix<Scalar,3,1> operator() (const Eigen::Matrix<Scalar,3,1>& q, Scalar t)
@@ -74,12 +72,7 @@ class InertialType1ForceFunction : public VectorValuedFunction<3,3,Scalar,39,0,d
       // premultiplied by transformation to fixed reference frame
       // note: Even though T(0) = I we still multiply by T.transpose() so that the Jacobian will correctly evaluated
       //       when this function is automatically or numerically differentiated
-      if(alphaDamp == 0) {
-        return T.transpose()*Rref*(J*A + V.cross(J*V));
-      }
-      else {
-        return T.transpose()*Rref*(J*(A + alphaDamp*V) + V.cross(J*V));
-      }
+      return T.transpose()*Rref*(J*A + V.cross(J*V));
     }
 
   public:

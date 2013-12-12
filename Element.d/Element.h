@@ -340,7 +340,7 @@ class MultiFront;
 
 class Element {
   public:
-        enum Category { Structural, Acoustic, Thermal, Sloshing, HEV, Undefined };
+        enum Category { Structural=0, Acoustic, Thermal, Fluid, Undefined };
   private:
         Category category;
         double _weight, _trueWeight;
@@ -594,7 +594,7 @@ class Element {
 	virtual FullSquareMatrixC complexMassMatrix(CoordSet& cs, DComplex* m, double mratio);
 
         Category getCategory() { return category; } 
-        void setCategory(Category _category) { category = _category; } // currently this is only called for thermal elements, could be extended.
+        void setCategory(Category _category) { category = _category; }
         bool isDamped() { return (getCategory() != Thermal && !isSpring()) ? (prop && (prop->alphaDamp != 0.0 || prop->betaDamp != 0.0)) : false; }
         bool isSDamped() { return (getCategory() != Thermal && !isSpring()) ? (prop && (prop->etaDamp != 0.0 )) : false; }
 

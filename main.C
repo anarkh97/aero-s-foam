@@ -83,8 +83,6 @@ void writeOptionsToScreen();
 DecInit * decInit=0;
 
 #ifdef TFLOP
-extern map<int,double> weightList;
-
 extern int optind;
 extern "C" int getopt (
              int argc,

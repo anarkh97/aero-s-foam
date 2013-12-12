@@ -89,7 +89,8 @@
 #include <Element.d/MpcElement.d/FsiElement.h>
 
 #include <map>
-extern map<int,double > weightList;
+extern std::map<int,double> weightList;
+extern std::map<int,double> relativeWeightList;
 #ifdef USE_EIGEN3
 #include <Element.d/Rigid.d/RigidBeam.h>
 #include <Element.d/Rigid.d/RigidSpring.h>
@@ -167,8 +168,17 @@ extern map<int,double > weightList;
 #include <Element.d/BelytschkoTsayShell.d/BelytschkoTsayShell.h>
 
 #include <Driver.d/Domain.h>
+
+#include <numeric>
+
 extern Domain *domain;
 extern std::auto_ptr<ElementFactory> elemFact;
+
+struct weight_add {
+  double operator()(double x, const std::pair<int, double>& y) {
+    return x + y.second;
+  }
+};
 
 void
 Elemset::elemadd(int num, int etype, int nnodes, int*n)
@@ -176,17 +186,20 @@ Elemset::elemadd(int num, int etype, int nnodes, int*n)
   Element *ele = elemFact->elemadd(num, etype, nnodes, n, ba);
   elemadd(num, ele);
   
-  map<int, double >::iterator it = weightList.find(etype);
-  if(it == weightList.end())
-    {
-      ele->setWeight(1.0);
-      ele->setTrueWeight(1.0);
+  std::map<int, double>::iterator it = weightList.find(etype);
+  double weight = (it == weightList.end()) ? 1.0 : it->second;
+
+  // adjust weight using RWEI if defined
+  if(!relativeWeightList.empty()) {
+    std::map<int,double>::iterator it2 = relativeWeightList.find((int)ele->getCategory());
+    if(it2 != relativeWeightList.end()) {
+      weight *= it2->second/std::accumulate(relativeWeightList.begin(), relativeWeightList.end(), 0, weight_add());
     }
-  else
-    {
-      ele->setWeight(it->second);
-      ele->setTrueWeight(it->second);
-    }
+  }
+
+  ele->setWeight(weight);
+  ele->setTrueWeight(weight);
+
   return;
 }
 
@@ -198,12 +211,11 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
    {
      case 1:
        ele = new (ba) TwoNodeTruss(n);
+       ele->setCategory(Element::Structural);
        break;
      case 2:
        ele = new (ba) FourNodeQuad(n);
-       // KHP: new Quad element that will work
-       //      for 4, 8, 12 nodes per element
-       //ele = new (ba) Quad(4, n);
+       ele->setCategory(Element::Structural);
        break;
      case 3:
        ele = new (ba) Therm3DQuad(n);
@@ -211,21 +223,25 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        break;
      case 4:
        ele = new (ba) Triangle3(n);
+        ele->setCategory(Element::Structural);
        break;
      case 6: {
        int nn[3] = { n[0], n[1], -1 };
        if(nnodes > 2) nn[2] = n[2];
        ele = new (ba) EulerBeam(nn);
+       ele->setCategory(Element::Structural);
        break;
        }
      case 7: {
        int nn[3] = { n[0], n[1], -1 };
        if(nnodes > 2) nn[2] = n[2];
        ele = new (ba) TimoshenkoBeam(nn);
+       ele->setCategory(Element::Structural);
        break;
        }
      case 8:
        ele = new (ba) ThreeNodeShell(n);
+       ele->setCategory(Element::Structural);
        break;
      case 9:
        ele = new (ba) Therm2NodeBar(n);
@@ -237,6 +253,7 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        break;
      case 11:
        ele = new (ba) TorSpring(n);
+       ele->setCategory(Element::Structural);
        break;
      case 15: case 1515:
 #ifdef USE_EIGEN3
@@ -244,6 +261,7 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
          ele = new (ba) FelippaShell(n);
        else 
          ele = new (ba) FelippaShellX2(n);
+       ele->setCategory(Element::Structural);
 #else
        std::cerr << "Error: Element type 15 requires AERO-S built with Eigen3 template library." << std::endl
                  << "exiting...\n";
@@ -257,69 +275,91 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        }
        else 
          ele = new (ba) BelytschkoTsayShell(n);
+       ele->setCategory(Element::Structural);
        break;
      case 17:
        ele = new (ba) EightNodeBrick(n);
+       ele->setCategory(Element::Structural);
        break;
      case 18:
        ele = new (ba) ShearPanel(n);
+       ele->setCategory(Element::Structural);
        break;
      case 19:
        ele = new (ba) Membrane(n);
+       ele->setCategory(Element::Structural);
        break;
      case 20:
        ele = new (ba) Compo3NodeShell(n);
+       ele->setCategory(Element::Structural);
        break;
      case 21:
        ele = new (ba) TransSprlink(n);
+       ele->setCategory(Element::Structural);
        break;
      case 22:
        ele = new (ba) RotnSprlink(n);
+       ele->setCategory(Element::Structural);
        break;
      case 23:
        ele = new (ba) Tetrahedral(n);
+       ele->setCategory(Element::Structural);
        break;
      case 24:
        ele = new (ba) Pentahedral(n);
+       ele->setCategory(Element::Structural);
        break;
      case 25:
        ele = new (ba) TenNodeTetrahedral(n);
+       ele->setCategory(Element::Structural);
        break;
      case 30:
        ele = new (ba) HelmQuadGal(n);
+       ele->setCategory(Element::Acoustic);
        break;
      case 31:
        ele = new (ba) HelmQuadGls(n);
+       ele->setCategory(Element::Acoustic);
        break;
      case 32:
        ele = new (ba) HelmQuad8Gal(n);
+       ele->setCategory(Element::Acoustic);
        break;
      case 35:
        ele = new (ba) HelmTri3Gal(n);
+       ele->setCategory(Element::Acoustic);
        break;
      case 36:
        ele = new (ba) HelmTri3Gls(n);
+       ele->setCategory(Element::Acoustic);
        break;
      case 38:
        ele = new (ba) HelmTri6Gal(n);
+       ele->setCategory(Element::Acoustic);
        break;
      case 40:
        ele = new (ba) TetraHelmGal(n);
+       ele->setCategory(Element::Acoustic);
        break;
      case 41:
        ele = new (ba) TetraHelmGLS(n);
+       ele->setCategory(Element::Acoustic);
        break;
      case 42:
        ele = new (ba) Tetra10HelmGal(n);
-	 break;
+       ele->setCategory(Element::Acoustic);
+       break;
      case 43:
        ele = new (ba) HelmLagQuadGal(nnodes,n);
+       ele->setCategory(Element::Acoustic);
        break;
      case 44:
        ele = new (ba) HelmBrickGLS(n);
+       ele->setCategory(Element::Acoustic);
        break;
      case 45:
        ele = new (ba) HelmBrick(n);
+       ele->setCategory(Element::Acoustic);
        break;
      case 46:
        ele = new (ba) Therm3NoShell(n);
@@ -363,88 +403,115 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        break;
      case 59:
        ele = new (ba) HelmAxiTri6(n);
+       ele->setCategory(Element::Acoustic);
        break;
      case 60:
        ele = new (ba) HelmAxiQuad(n);
+       ele->setCategory(Element::Acoustic);
        break;
      case 61:
        ele = new (ba) HelmAxiTri(n);
+       ele->setCategory(Element::Acoustic);
        break;
      case 62:
        ele = new (ba) HelmAxiQuad8(n);
+       ele->setCategory(Element::Acoustic);
        break;
      case 63:
        ele = new (ba) HelmLagQuadGal(nnodes,n);
+       ele->setCategory(Element::Acoustic);
        break;
 #ifdef USE_EIGEN3
      case 65:
        ele = new (ba) RigidTwoNodeTruss(n);
+       ele->setCategory(Element::Structural);
        break;
      case 66:
        ele = new (ba) RigidBeam(n);
+       ele->setCategory(Element::Structural);
        break;
      case 67:
        ele = new (ba) RigidSpring(n);
+       ele->setCategory(Element::Structural);
        break;
      case 68:
        ele = new (ba) RigidTransSprlink(n);
+       ele->setCategory(Element::Structural);
        break;
      case 69:
        ele = new (ba) RigidRotnSprlink(n);
+       ele->setCategory(Element::Structural);
        break;
      case 70:
        ele = new (ba) RigidEightNodeBrick(n);
+       ele->setCategory(Element::Structural);
        break;
      case 71:
        ele = new (ba) RigidSolid(nnodes,n);
+       ele->setCategory(Element::Structural);
        break;
 #endif
      case 72:
        ele = new (ba) Brick20(n);
+       ele->setCategory(Element::Structural);
        break;
 #ifdef USE_EIGEN3
      case 73:
        ele = new (ba) RigidThreeNodeShell(n);
+       ele->setCategory(Element::Structural);
        break;
      case 74:
        ele = new (ba) RigidSolid6Dof(nnodes,n);
+       ele->setCategory(Element::Structural);
        break;
      case 76:
        ele = new (ba) RigidFourNodeShell(n);
+       ele->setCategory(Element::Structural);
        break;
      case 77:
-        ele = new (ba) PointPointDistanceConstraintElement(n);
-        break;
+       ele = new (ba) PointPointDistanceConstraintElement(n);
+       ele->setCategory(Element::Structural);
+       break;
      case 78:
        ele = new (ba) PointLineDistanceConstraintElement(n);
+       ele->setCategory(Element::Structural);
        break;
      case 79:
-        ele = new (ba) PointPlaneDistanceConstraintElement(n);
-        break;
+       ele = new (ba) PointPlaneDistanceConstraintElement(n);
+       ele->setCategory(Element::Structural);
+       break;
 #endif
      case 80:
        ele = new (ba) ConnectedTri(n);
+       ele->setCategory(Element::Structural);
        break;
      case 81:
        ele = new (ba) QuadContact(n);  // Interface element
+       ele->setCategory(Element::Thermal);
        break;
      case 82:
        ele = new (ba) BrickContact(n);  // Interface element
+       ele->setCategory(Element::Thermal);
        break;
      case 83:
        ele = new (ba) PentaContact(n);  // Interface element
+       ele->setCategory(Element::Thermal);
        break;
      case 84:
        ele = new (ba) TriangleBulk(n);  // 2D Bulk Fluid Element
+       ele->setCategory(Element::Thermal);
        break;
      case 85:
        ele = new (ba) TetraBulk(n);  // 3D Bulk Fluid Element
+       ele->setCategory(Element::Thermal);
        break;
      case 86:
        ele = new (ba) PentaBulk(n);  // 3D Bulk Fluid Element
+       ele->setCategory(Element::Thermal);
        break;
      case 87:
        ele = new (ba) FourNodeMembrane(n);
+       ele->setCategory(Element::Structural);
        break;
      case 88:
        {
@@ -470,63 +537,82 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
          else {
            ele = new (ba) FourNodeShell(n); // superelement comprising two ThreeNodeShells
          }
+         ele->setCategory(Element::Structural);
        }
        break;
      case 89:
        ele = new (ba) ExpFourNodeShell(n);
+       ele->setCategory(Element::Structural);
        break;
      case 90:
        ele = new (ba) HelmPenta(n); 
+       ele->setCategory(Element::Acoustic);
        break;
      case 91:
        ele = new (ba) Brick32(n); 
+       ele->setCategory(Element::Structural);
        break;
      case 92:
        ele = new (ba) Penta26(n); 
+       ele->setCategory(Element::Structural);
        break;
      case 93:
        ele = new (ba) HelmBrick32(n); 
+       ele->setCategory(Element::Acoustic);
        break;
      case 94:
        ele = new (ba) HelmPenta26(n); 
+       ele->setCategory(Element::Acoustic);
        break;
      case 95:
        ele = new (ba) HelmIsoParamHexa(nnodes,n);
+       ele->setCategory(Element::Acoustic);
        break;
      case 96:
        ele = new (ba) HelmIsoParamTetra(nnodes,n);
+       ele->setCategory(Element::Acoustic);
        break;
      case 97:
        ele = new (ba) Penta15(n);
+       ele->setCategory(Element::Structural);
        break;
      case 98:
        ele = new (ba) HelmIsoParamQuad(nnodes,n);
+       ele->setCategory(Element::Acoustic);
        break;
      case 99:
        ele = new (ba) HelmIsoParamTri(nnodes,n);
+       ele->setCategory(Element::Acoustic);
        break;
      case 100:
        ele = new (ba) LEIsoParamQuad(nnodes,n);
+       ele->setCategory(Element::Structural);
        break;
      case 101:
        ele = new (ba) LEIsoParamTri(nnodes,n);
+       ele->setCategory(Element::Structural);
        break;
      case 102:
        ele = new (ba) LEIsoParamHexa(nnodes,n);
+       ele->setCategory(Element::Structural);
        break;
      case 103:
        ele = new (ba) LEIsoParamTetra(nnodes,n);
+       ele->setCategory(Element::Structural);
        break;
      case 105:
        ele = new (ba) HelmSpectralIsoParamHexa(nnodes,n);
+       ele->setCategory(Element::Acoustic);
        break;
 #ifdef USE_EIGEN3
      case 106:
        ele = new (ba) RigidBeam(n,1);
+       ele->setCategory(Element::Structural);
        break;
 #endif
      case 108:
        ele = new (ba) HelmSpectralIsoParamQuad(nnodes,n);
+       ele->setCategory(Element::Acoustic);
        break;
      case 109:
        ele = new (ba) ThermIsoParamHexa(nnodes,n);
@@ -534,134 +620,177 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        break;
      case 111:
        ele = new (ba) TwoNodeTrussF(n);
+       ele->setCategory(Element::Structural);
        break;
 #ifdef USE_EIGEN3
      case 113:
        ele = new (ba) RotationBlockerConstraint(n, 2, 1);
+       ele->setCategory(Element::Structural);
        break;
      case 114:
        ele = new (ba) CommonPointConstraint(n);
+       ele->setCategory(Element::Structural);
        break;
      case 115:
        ele = new (ba) ConstantDistanceConstraint(n);
+       ele->setCategory(Element::Structural);
        break;
      case 116:
        ele = new (ba) ParallelAxesConstraint(n);
+       ele->setCategory(Element::Structural);
        break;
      case 117:
        ele = new (ba) StraightLinePointFollowerConstraint(n);
+       ele->setCategory(Element::Structural);
        break;
      case 118:
        ele = new (ba) PlanarJoint(n);
+       ele->setCategory(Element::Structural);
        break;
      case 119:
        ele = new (ba) WeldedJoint(n);
+       ele->setCategory(Element::Structural);
        break;
      case 120:
        ele = new (ba) SphericalJoint(n); 
+       ele->setCategory(Element::Structural);
        break;
      case 121:
        ele = new (ba) TranslationalJoint(n);
+       ele->setCategory(Element::Structural);
        break;
      case 122:
        ele = new (ba) UniversalJoint(n);
+       ele->setCategory(Element::Structural);
        break;
      case 123:
        ele = new (ba) RevoluteJoint(n);
+       ele->setCategory(Element::Structural);
        break;
      case 124:
        ele = new (ba) CylindricalJoint(n);
+       ele->setCategory(Element::Structural);
        break;
      case 125:
        ele = new (ba) PrismaticJoint(n);
+       ele->setCategory(Element::Structural);
        break;
      case 126:
        ele = new (ba) RevoluteDriver(n);
+       ele->setCategory(Element::Structural);
        break;
      case 127:
        ele = new (ba) PinInSlotJoint(n);
+       ele->setCategory(Element::Structural);
        break;
      case 134:
        ele = new (ba) PrismaticDriver(n);
+       ele->setCategory(Element::Structural);
        break;
      case 140:
        ele = new (ba) FollowerForceElement(n);
+       ele->setCategory(Element::Structural);
        break;
      case 143:
        ele = new (ba) FollowerMomentElement(n);
+       ele->setCategory(Element::Structural);
        break;
      case 173:
        ele = new (ba) SegVariSegDistanceConstraintElement(n);
+       ele->setCategory(Element::Structural);
        break;
      case 174:
        ele = new (ba) SegmentSegmentDistanceConstraintElement(n);
+       ele->setCategory(Element::Structural);
        break;
      case 175:
        ele = new (ba) LineVariLineDistanceConstraintElement(n);
+       ele->setCategory(Element::Structural);
        break;
      case 176:
        ele = new (ba) LineLineDistanceConstraintElement(n);
+       ele->setCategory(Element::Structural);
        break;
      case 177:
        ele = new (ba) PointVariPointDistanceConstraintElement(n);
+       ele->setCategory(Element::Structural);
        break;
      case 178:
        ele = new (ba) PointVariLineDistanceConstraintElement(n);
+       ele->setCategory(Element::Structural);
        break;
      case 179:
        ele = new (ba) PointVariPlaneDistanceConstraintElement(n);
+       ele->setCategory(Element::Structural);
        break;
      case 200:
        ele = new (ba) LinearTranslationalSpring(n);
+       ele->setCategory(Element::Structural);
        break;
      case 201:
        ele = new (ba) NonlinearTranslationalSpring(n, 0);
+       ele->setCategory(Element::Structural);
        break;
      case 202:
        ele = new (ba) NonlinearTorsionalSpring(n, 2, 1);
+       ele->setCategory(Element::Structural);
        break;
      case 205: 
        ele = new (ba) FlexibleTwoNodeTruss(n);
+       ele->setCategory(Element::Structural);
        break;
      case 206:
        ele = new (ba) FlexibleBeam(n);
+       ele->setCategory(Element::Structural);
        break;
      case 220:
        ele = new (ba) SphericalJointSpringCombo(n);
+       ele->setCategory(Element::Structural);
        break;
      case 221:
        ele = new (ba) TranslationalJointSpringCombo(n);
+       ele->setCategory(Element::Structural);
        break;
      case 222:
        ele = new (ba) UniversalJointSpringCombo(n);
+       ele->setCategory(Element::Structural);
        break;
      case 223:
        ele = new (ba) RevoluteJointSpringCombo(n);
+       ele->setCategory(Element::Structural);
        break;
      case 224:
        ele = new (ba) CylindricalJointSpringCombo(n);
+       ele->setCategory(Element::Structural);
        break;
      case 225:
        ele = new (ba) PrismaticJointSpringCombo(n);
+       ele->setCategory(Element::Structural);
        break;
      case 226:
        ele = new (ba) RevoluteActuator(n);
+       ele->setCategory(Element::Structural);
        break;
      case 227:
        ele = new (ba) PinInSlotJointSpringCombo(n);
+       ele->setCategory(Element::Structural);
        break;
      case 234:
        ele = new (ba) PrismaticActuator(n);
+       ele->setCategory(Element::Structural);
        break;
 #endif
      case 128:
        ele = new (ba) NLMembrane4(n);
+       ele->setCategory(Element::Structural);
        break;
      case 129:
        ele = new (ba) NLMembrane(n);
+       ele->setCategory(Element::Structural);
        break;
      case 2020:
        ele = new (ba) Compo4NodeShell(n);
+       ele->setCategory(Element::Structural);
        break;
      case 4646:
        ele = new (ba) Therm4NoShell(n);
@@ -670,133 +799,164 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
 
      case 1100:
        ele = new (ba) DGMHelm2d_4(nnodes,n);
+       ele->setCategory(Element::Acoustic);
        break;
      case 1110:
        ele = new (ba) DGMHelm2d_4t(nnodes,n);
+       ele->setCategory(Element::Acoustic);
        break;
      case 1101:
        ele = new (ba) DGMHelm2d_8(nnodes,n);
+       ele->setCategory(Element::Acoustic);
        break;
      case 1111:
        ele = new (ba) DGMHelm2d_8t(nnodes,n);
+       ele->setCategory(Element::Acoustic);
        break;
      case 1102:
        ele = new (ba) DGMHelm2d_16(nnodes,n);
+       ele->setCategory(Element::Acoustic);
        break;
      case 1103:
        ele = new (ba) DGMHelm2d_32(nnodes,n);
+       ele->setCategory(Element::Acoustic);
        break;
      case 1104:
        ele = new (ba) DGMHelm2d_Eva2_8(nnodes,n);
+       ele->setCategory(Element::Acoustic);
        break;
      case 1120:
        ele = new (ba) DEMHelm2d_4(nnodes,n);
+       ele->setCategory(Element::Acoustic);
        break;
      case 1130:
        ele = new (ba) DEMHelm2d_4t(nnodes,n);
+       ele->setCategory(Element::Acoustic);
        break;
      case 1121:
        ele = new (ba) DEMHelm2d_8(nnodes,n);
+       ele->setCategory(Element::Acoustic);
        break;
      case 1131:
        ele = new (ba) DEMHelm2d_8t(nnodes,n);
+       ele->setCategory(Element::Acoustic);
        break;
      case 1122:
        ele = new (ba) DEMHelm2d_16(nnodes,n);
+       ele->setCategory(Element::Acoustic);
        break;
      case 1123:
        ele = new (ba) DEMHelm2d_32(nnodes,n);
+       ele->setCategory(Element::Acoustic);
        break;
 
      case 1200:
        ele = new (ba) DGMLE2d_4(nnodes,n);
+       ele->setCategory(Element::Structural);
        break;
      case 1201:
        ele = new (ba) DGMLE2d_16(nnodes,n);
+       ele->setCategory(Element::Structural);
        break;
      case 1220:
        ele = new (ba) DEMLE2d_4(nnodes,n);
+       ele->setCategory(Element::Structural);
        break;
 
      case 1150:
        ele = new (ba) DGMHelm3d_6(nnodes,n);
+       ele->setCategory(Element::Acoustic);
        break;
      case 1160:
        ele = new (ba) DGMHelm3d_6t(nnodes,n);
+       ele->setCategory(Element::Acoustic);
        break;
      case 1151:
        ele = new (ba) DGMHelm3d_26(nnodes,n);
+       ele->setCategory(Element::Acoustic);
        break;
      case 1161:
        ele = new (ba) DGMHelm3d_26t(nnodes,n);
+       ele->setCategory(Element::Acoustic);
        break;
      case 1152:
        ele = new (ba) DGMHelm3d_56(nnodes,n);
+       ele->setCategory(Element::Acoustic);
        break;
      case 1162:
        ele = new (ba) DGMHelm3d_56t(nnodes,n);
+       ele->setCategory(Element::Acoustic);
        break;
      case 1153:
        ele = new (ba) DGMHelm3d_98(nnodes,n);
+       ele->setCategory(Element::Acoustic);
        break;
      case 1170:
        ele = new (ba) DEMHelm3d_6(nnodes,n);
+       ele->setCategory(Element::Acoustic);
        break;
      case 1171:
        ele = new (ba) DEMHelm3d_26(nnodes,n);
+       ele->setCategory(Element::Acoustic);
        break;
      case 1172:
        ele = new (ba) DEMHelm3d_56(nnodes,n);
+       ele->setCategory(Element::Acoustic);
        break;
      case 1173:
        ele = new (ba) DEMHelm3d_98(nnodes,n);
+       ele->setCategory(Element::Acoustic);
        break;
 
      case 1250:
        ele = new (ba) DGMLE3d_6(nnodes,n);
+       ele->setCategory(Element::Structural);
        break;
      case 1251:
        ele = new (ba) DGMLE3d_26(nnodes,n);
+       ele->setCategory(Element::Structural);
        break;
      case 1252:
        ele = new (ba) DGMLE3d_50(nnodes,n);
+       ele->setCategory(Element::Structural);
        break;
 
      case 1270:
        ele = new (ba) DEMLE3d_6(nnodes,n);
+       ele->setCategory(Element::Structural);
        break;
      case 1271:
        ele = new (ba) DEMLE3d_26(nnodes,n);
+       ele->setCategory(Element::Structural);
        break;
      case 1272:
        ele = new (ba) DEMLE3d_50(nnodes,n);
+       ele->setCategory(Element::Structural);
        break;
 
-
-// ADDED FOR SLOSHING ELEMENTS, EC, 20070713
-     //case 5001:
      case 301:
        ele = new (ba) SloshQuadGal(n);
+       ele->setCategory(Element::Fluid);
        break;
-     //case 5002:
      case 302:
        ele = new (ba) BarSloshFS(n);
+       ele->setCategory(Element::Fluid);
        break;
-     //case 5011:
      case 311:
        ele = new (ba) SloshTetra(n);
+       ele->setCategory(Element::Fluid);
        break;
-     //case 5012:
      case 312:
        ele = new (ba) SloshTriangleFS(n);
+       ele->setCategory(Element::Fluid);
        break;
-     //case 5101:
      case 321:
        ele = new (ba) HEVibQuadGal(n);
+       ele->setCategory(Element::Fluid);
        break;
-     //case 5111:
      case 331:
        ele = new (ba) HEVibTetra(n);
+       ele->setCategory(Element::Fluid);
        break;
 //-----------------------------------------
      default:

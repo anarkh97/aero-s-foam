@@ -777,7 +777,6 @@ void IsoParamUtils2d::areaInt2d(double *xy, IntegFunctionA2d &f, int gorder) {
  double *N = (double*) alloca(sizeof(double)*3*ordersq);
  double (*dNdx)[2] = (double(*)[2])alloca(sizeof(double)*ordersq*2);
  int ng = gr.ngauss;
- fprintf(stderr,"ng is %d\n", ng);
  int i;
  for(i=0;i<ng;i++) {
    int j;
@@ -819,7 +818,6 @@ void IsoParamUtils2d::areaInt2d(double *xy, IntegFunctionA2d &f, int gorder) {
        x[0] += N[m]*xy[m];
        x[1] += N[m]*xy[m+ordersq];
      }
-     fprintf(stderr,"w = %e and det = %e \n", w, det);
      f.evaluate(x,N,dNdx,w,det);
    }
  }

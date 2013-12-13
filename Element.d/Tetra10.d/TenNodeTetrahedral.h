@@ -49,10 +49,6 @@ public:
 
 	PrioInfo examine(int sub, MultiFront *);
 
-	//double weight() { return 3.0; }
-	//double trueWeight() { return 3.0; }
-	//int facelist(PolygonSet &pgset, int *facelist=0);
-
         void setCompositeData(int _type, int nlays, double *lData,
                               double *coefs, double *frame)
           { cCoefs = coefs; cFrame = frame; } // HB 06-19-05 

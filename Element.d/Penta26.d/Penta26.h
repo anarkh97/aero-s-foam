@@ -63,8 +63,6 @@ public:
 			    GeomState *geomState);
 
        PrioInfo examine(int sub, MultiFront *); // dec
-       //double weight() { return 3; } // should be 12 for brick20
-       //double trueWeight() { return 3; } // should be 12 for brick20
 
         void setCompositeData(int _type, int nlays, double *lData,
                               double *coefs, double *frame) 

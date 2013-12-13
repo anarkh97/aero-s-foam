@@ -46,9 +46,6 @@ public:
 	// Routines for the decomposer
         PrioInfo examine(int sub, MultiFront *);
 
-	//bool hasRot() { return true; }
-	//double weight() { return 3; }
-        //double trueWeight() { return 3; }
 };
 #endif
 

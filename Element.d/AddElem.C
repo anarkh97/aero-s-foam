@@ -187,18 +187,22 @@ Elemset::elemadd(int num, int etype, int nnodes, int*n)
   elemadd(num, ele);
   
   std::map<int, double>::iterator it = weightList.find(etype);
-  double weight = (it == weightList.end()) ? 1.0 : it->second;
+  if(it != weightList.end()) {
+    ele->setWeight(it->second);
+    ele->setTrueWeight(it->second);
+  }
 
   // adjust weight using RWEI if defined
   if(!relativeWeightList.empty()) {
     std::map<int,double>::iterator it2 = relativeWeightList.find((int)ele->getCategory());
     if(it2 != relativeWeightList.end()) {
-      weight *= it2->second/std::accumulate(relativeWeightList.begin(), relativeWeightList.end(), 0, weight_add());
+      double weight = ele->weight();
+      double trueWeight = ele->trueWeight();
+      double rwf = it2->second/std::accumulate(relativeWeightList.begin(), relativeWeightList.end(), 0, weight_add());
+      ele->setWeight(weight*rwf);
+      ele->setTrueWeight(trueWeight*rwf);
     }
   }
-
-  ele->setWeight(weight);
-  ele->setTrueWeight(weight);
 
   return;
 }

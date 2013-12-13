@@ -18,6 +18,9 @@ HelmIsoParamQuad::HelmIsoParamQuad(int o, int* nodenums) {
  int ordersq = order*order;
  nn = new int[ordersq];
  for(i=0;i<ordersq;i++) nn[i] = nodenums[i];
+
+ setWeight(order);
+ setTrueWeight(order);
 }
 
 

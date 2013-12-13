@@ -541,8 +541,8 @@ class Element {
  	virtual PrioInfo examine(int sub, MultiFront *mf);
 	virtual double weight() { return _weight; }
 	virtual double trueWeight() { return _trueWeight; }
-	void setWeight(double weight){ _weight = weight; }
-	void setTrueWeight(double trueWeight){ _trueWeight = trueWeight; }
+	void setWeight(double weight) { _weight = weight; }
+	void setTrueWeight(double trueWeight) { _trueWeight = trueWeight; }
 
 	void getCG(CoordSet &cset, double &xcg, double &ycg, double &zcg);
 	// END FROM DEC

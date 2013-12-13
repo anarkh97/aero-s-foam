@@ -35,12 +35,5 @@ public:
 
         PrioInfo examine(int sub, MultiFront *mf);
 
-	double weight() {
-	  return order;
-	}
-	
-	double trueWeight() {
-	  return weight();
-	}
 };
 #endif

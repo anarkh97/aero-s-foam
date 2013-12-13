@@ -33,14 +33,6 @@ public:
 
         PrioInfo examine(int sub, MultiFront *mf);
 
-	double weight() {
-	  return order;
-	}
-	
-	double trueWeight() {
-	  return weight();
-	}
-
         Corotator * getCorotator(CoordSet &, double*, int, int) { return 0; }
 };
 #endif

@@ -34,14 +34,6 @@ public:
 	void		addFaces(PolygonSet *pset);
 	int getTopNumber() {return 163;}
 	
-	double weight() {
-	  return order;
-	}
-	
-	double trueWeight() {
-	  return weight();
-	}
-
 	PrioInfo examine(int sub, MultiFront *mf);
 };
 #endif

@@ -1019,7 +1019,7 @@ MultiDomainDynam::getInternalForce(DistrVector &d, DistrVector &f, double t, int
 {
   if(domain->solInfo().isNonLin()) {
     execParal3R(decDomain->getNumSub(), this, &MultiDomainDynam::subGetInternalForce, f, t, tIndex);
-    if(!domain->solInfo().galerkinPodRom) geomState->pull_back(f);
+    if(!domain->solInfo().galerkinPodRom && !domain->solInfo().getNLInfo().linearelastic) geomState->pull_back(f);
   }
   else {
     f.zero();

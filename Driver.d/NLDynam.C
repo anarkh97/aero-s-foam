@@ -114,7 +114,8 @@ Domain::getInternalForce(GeomState &geomState, Vector& elementForce,
     }
   }
 
-  if(sinfo.isDynam() && mel) getFictitiousForce(geomState, elementForce, kel, residual, time, refState, reactions, mel, false, cel);
+  if(sinfo.isDynam() && mel && !solInfo().getNLInfo().linearelastic)
+    getFictitiousForce(geomState, elementForce, kel, residual, time, refState, reactions, mel, false, cel);
 }
 
 void

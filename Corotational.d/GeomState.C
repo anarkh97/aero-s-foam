@@ -603,7 +603,8 @@ GeomState::setVelocity(const Vector &v, int SO3param)
         ns[i].v[j] = v[loc[i][j]];
       }
 #ifdef USE_EIGEN3
-    if(SO3param == 2 && (loc[i][3] >= 0 || loc[i][4] >= 0 || loc[i][5] >= 0)) {
+    if(SO3param == 2 && (loc[i][3] >= 0 || loc[i][4] >= 0 || loc[i][5] >= 0)
+       && !domain->solInfo().getNLInfo().linearelastic) {
       // conversion to convected angular velocity
       Eigen::Vector3d PsiI, PsiIdot, Omega;
       Eigen::Matrix3d R, T;
@@ -651,7 +652,8 @@ GeomState::setAcceleration(const Vector &a, int SO3param)
         ns[i].a[j] = a[loc[i][j]];
       }
 #ifdef USE_EIGEN3
-    if(SO3param == 2 && (loc[i][3] >= 0 || loc[i][4] >= 0 || loc[i][5] >= 0)) {
+    if(SO3param == 2 && (loc[i][3] >= 0 || loc[i][4] >= 0 || loc[i][5] >= 0)
+       && !domain->solInfo().getNLInfo().linearelastic) {
       // conversion from second time derivative of total rotation vector to convected angular acceleration
       Eigen::Vector3d PsiI, PsiIdot, PsiIddot, Omega, Alpha;
       Eigen::Matrix3d R, T, Tdot;
@@ -750,7 +752,7 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
     if(loc[i][3] >= 0 || loc[i][4] >= 0 || loc[i][5] >= 0) {
       double dtheta[3], dR[3][3];
       if(domain->solInfo().getNLInfo().linearelastic) {
-        for(int j=0; j<3; ++j) dtheta[j] = ss[i].theta[j] = ns[i].theta[j];
+        for(int j=0; j<3; ++j) dtheta[j] = ns[i].theta[j] - ss[i].theta[j];
       }
       else {
         mat_mult_mat(ss[i].R, ns[i].R, dR, 1); // dR = ss[i].R^T * ns[i].R (i.e. ns[i].R = ss[i].R * dR)
@@ -924,9 +926,15 @@ GeomState::get_inc_displacement(Vector &incVec, GeomState &ss, bool zeroRot)
         if(loc[inode][5] >= 0) incVec[loc[inode][5]] = 0.0;
       }
       else {
-        double dR[3][3], vec[3];
-        mat_mult_mat( ss[inode].R, ns[inode].R, dR, 1 ); // dR = ss[i].R^T * ns[i].R (i.e. ns[i].R = ss[i].R * dR)
-        mat_to_vec( dR, vec );
+        double vec[3];
+        if(domain->solInfo().getNLInfo().linearelastic) {
+          for(int j=0; j<3; ++j) vec[j] = ns[inode].theta[j] - ss[inode].theta[j];
+        }
+        else {
+          double dR[3][3];
+          mat_mult_mat( ss[inode].R, ns[inode].R, dR, 1 ); // dR = ss[i].R^T * ns[i].R (i.e. ns[i].R = ss[i].R * dR)
+          mat_to_vec( dR, vec );
+        }
         if( loc[inode][3] >= 0 ) incVec[loc[inode][3]] = vec[0];
         if( loc[inode][4] >= 0 ) incVec[loc[inode][4]] = vec[1];
         if( loc[inode][5] >= 0 ) incVec[loc[inode][5]] = vec[2];

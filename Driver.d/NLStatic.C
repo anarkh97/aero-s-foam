@@ -133,8 +133,8 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
   }
 
   // XXX consider adding the element fictitious forces inside the loop
-  if(sinfo.isDynam() && mel) getFictitiousForce(geomState, elementForce, kel, residual, time, refState, reactions,
-                                                mel, compute_tangents, cel);
+  if(sinfo.isDynam() && mel && !solInfo().getNLInfo().linearelastic)
+    getFictitiousForce(geomState, elementForce, kel, residual, time, refState, reactions, mel, compute_tangents, cel);
 
   if(!solInfo().getNLInfo().unsymmetric && solInfo().newmarkBeta != 0)
     for(int iele = 0; iele < numele; ++iele)
@@ -2501,7 +2501,6 @@ Domain::getElementDisp(int iele, GeomState& geomState, Vector& disp)
 
   for(int i=0,l=0; i<packedEset[iele]->numNodes(); ++i) {
     int ndofs = dsa->number(nn[i], DofSet::nonL_dof, dofs);
-    bool got_psi = false;
     for(int j=0; j<ndofs; ++j) {
       if(dofs[j] > -1) {
         for(int k=0; k<packedEset[iele]->numDofs(); ++k) {
@@ -2517,11 +2516,7 @@ Domain::getElementDisp(int iele, GeomState& geomState, Vector& disp)
                 disp[l++] = geomState[nn[i]].z - nodes[nn[i]]->z;
                 break;
               case 3 : case 4 : case 5 : // x,y,z rotations
-                if(!got_psi) { 
-                  mat_to_vec(geomState[nn[i]].R, psi);
-                  got_psi = true;
-                }
-                disp[l++] = psi[j-3];
+                disp[l++] = geomState[nn[i]].theta[j-3];
                 break;
               case 6 : case 7 : case 8 : // temperature and lagrange multipliers
                 disp[l++] = geomState[nn[i]].x;

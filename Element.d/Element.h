@@ -625,6 +625,7 @@ class Elemset
     BlockAlloc ba;
     bool myData;
     int dampingFlag;
+    std::vector<std::pair<int,int> > etypes;
   public:
     Elemset(int = 256);
     virtual ~Elemset() { deleteElems(); }
@@ -645,6 +646,7 @@ class Elemset
     bool hasDamping();
     void collapseRigid6(std::set<int> &);
     void deleteElem(int i);
+    void setWeights();
 };
 
 class EsetGeomAccessor {

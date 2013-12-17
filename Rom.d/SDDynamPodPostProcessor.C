@@ -21,12 +21,11 @@ SDDynamPodPostProcessor::SDDynamPodPostProcessor(Domain *d, double *bcx, double 
     switch(oinfo[iOut].type) {
       case OutputInfo::Accel6 : case OutputInfo::Acceleration :
         if(oinfo[iOut].nodeNumber != -1) {
-          if(oinfo[iOut].type == OutputInfo::Acceleration || (oinfo[iOut].angularouttype == OutputInfo::total && oinfo[iOut].rescaling == false)) {
-            AccSensor = true;
-          }
-          else {
-            filePrint(stderr, " *** WARNING: unsupported probe output type. Use OUTPUT instead of OUTPUT6, or\n");
-            filePrint(stderr, "     OUTPUT6 with ROTVECOUTTYPE=euler, ANGULAROUTTYPE=total, and RESCALING=off.\n");
+          AccSensor = true;
+          if(oinfo[iOut].type == OutputInfo::Accel6 && (oinfo[iOut].angularouttype != OutputInfo::total || oinfo[iOut].rescaling)) {
+            // in this case rotation vector and angular velocity are required for angular acceleration transformation
+            DispSensor = true;
+            VelSensor = true;
           }
         } else {
           oinfo[iOut].filptr = fopen(oinfo[iOut].filename, "wb");
@@ -35,13 +34,7 @@ SDDynamPodPostProcessor::SDDynamPodPostProcessor(Domain *d, double *bcx, double 
         break;
       case OutputInfo::Disp6DOF : case OutputInfo::Displacement :
         if(oinfo[iOut].nodeNumber != -1) {
-          if(oinfo[iOut].type == OutputInfo::Displacement || (oinfo[iOut].rotvecouttype == OutputInfo::Euler && oinfo[iOut].rescaling == false)) {
-            DispSensor = true;
-          }
-          else {
-            filePrint(stderr, " *** WARNING: unsupported probe output type. Use OUTPUT instead of OUTPUT6, or\n");
-            filePrint(stderr, "     OUTPUT6 with ROTVECOUTTYPE=euler, ANGULAROUTTYPE=total, and RESCALING=off.\n");
-          }
+          DispSensor = true;
         } else {
           oinfo[iOut].filptr = fopen(oinfo[iOut].filename, "wb");
           filePrint(oinfo[iOut].filptr, "1\n");
@@ -49,12 +42,10 @@ SDDynamPodPostProcessor::SDDynamPodPostProcessor(Domain *d, double *bcx, double 
         break;
       case OutputInfo::Velocity6 : case OutputInfo::Velocity :
         if(oinfo[iOut].nodeNumber != -1) {
-          if(oinfo[iOut].type == OutputInfo::Velocity || (oinfo[iOut].angularouttype == OutputInfo::total && oinfo[iOut].rescaling == false)) {
-            VelSensor = true;
-          }
-          else {
-            filePrint(stderr, " *** WARNING: unsupported probe output type. Use OUTPUT instead of OUTPUT6, or\n");
-            filePrint(stderr, "     OUTPUT6 with ROTVECOUTTYPE=euler, ANGULAROUTTYPE=total, and RESCALING=off.\n");
+          VelSensor = true;
+          if(oinfo[iOut].type == OutputInfo::Velocity6 && (oinfo[iOut].angularouttype != OutputInfo::total || oinfo[iOut].rescaling)) {
+            // in this case rotation vector is required for angular velocity transformation
+            DispSensor = true;
           }
         } else {
           oinfo[iOut].filptr = fopen(oinfo[iOut].filename, "wb");
@@ -146,6 +137,7 @@ SDDynamPodPostProcessor::buildSensorNodeVector() {
 void
 SDDynamPodPostProcessor::printSensorValues(GenVector<double> &SensorData, OutputInfo *OINFO, double *time) {
 
+  // TODO set correct prescribed values for constrained dofs
   int locNode = OINFO->nodeNumber;
   int ndofs;
   int dofs[6];
@@ -155,19 +147,42 @@ SDDynamPodPostProcessor::printSensorValues(GenVector<double> &SensorData, Output
   else {
     ndofs = domain->getCDSA()->number(locNode, DofSet::XYZdisp, dofs);
   }
+  double *data = new double[ndofs];
+  for(int j = 0; j < ndofs; ++j) {
+    data[j] = (dofs[j] != -1) ? SensorData[dofs[j]] : 0.0;
+  }
+  // transform rotation vector, if necessary
+  if(OINFO->type == OutputInfo::Disp6DOF && (OINFO->rotvecouttype != OutputInfo::Euler || OINFO->rescaling)) {
+    double rten[3][3], psi[3] = { data[3], data[4], data[5] };
+    if(OINFO->rescaling) vec_to_mat(psi, rten);
+    tran_rvec(rten, psi, OINFO->rescaling, OINFO->rotvecouttype, data+3);
+  }
+  // transform angular velocity, if necessary
+  else if(OINFO->type == OutputInfo::Velocity6 && (OINFO->angularouttype != OutputInfo::total || OINFO->rescaling)) {
+    double rten[3][3], psi[3], psidot[3] = { data[3], data[4], data[5] };
+    for(int j = 0; j < 3; ++j) psi[j] = (dofs[3+j] != -1) ? (*DispSensorValues)[dofs[3+j]] : 0.0;
+    if(OINFO->rescaling) vec_to_mat(psi, rten);
+    tran_veloc(rten, psi, psidot, 2, OINFO->angularouttype, false, OINFO->rescaling, data+3);
+  }
+  // transform angular acceleration, if necessary
+  else if(OINFO->type == OutputInfo::Accel6 && (OINFO->angularouttype != OutputInfo::total || OINFO->rescaling)) {
+    double rten[3][3], psi[3], psidot[3], psiddot[3] = { data[3], data[4], data[5] };
+    for(int j = 0; j < 3; ++j) {
+      psi[j] = (dofs[3+j] != -1) ? (*DispSensorValues)[dofs[3+j]] : 0.0;
+      psidot[j] = (dofs[3+j] != -1) ? (*VelSensorValues)[dofs[3+j]] : 0.0;
+    }
+    if(OINFO->rescaling) vec_to_mat(psi, rten);
+    tran_accel(rten, psi, psidot, psiddot, 2, OINFO->angularouttype, false, OINFO->rescaling, data+3);
+  }
   int w = OINFO->width;
   int p = OINFO->precision; 
   fprintf(OINFO->filptr, "  % *.*E  ", w, p, *time);
   for(int j = 0; j < ndofs; ++j) {
-    if(dofs[j] != -1) {
-      fprintf(OINFO->filptr, " % *.*E", w, p, SensorData[dofs[j]]);
-    }
-    else {
-      fprintf(OINFO->filptr, " % *.*E", w, p, 0.0); // TODO constrained dofs
-    }
+    fprintf(OINFO->filptr, " % *.*E", w, p, data[j]);
   }
   fprintf(OINFO->filptr, "\n");
   fflush(OINFO->filptr);
+  delete [] data;
 }
 
 void
@@ -193,10 +208,21 @@ SDDynamPodPostProcessor::dynamOutput(int tIndex, double t, DynamMat &dynOps, Vec
                }
                filePrint(oinfo[iOut].filptr, "\n");
              }
-             else if(oinfo[iOut].type == OutputInfo::Acceleration || (oinfo[iOut].angularouttype == OutputInfo::total && oinfo[iOut].rescaling == false)) {
+             else {
                if(!AccProjected) {
                  SensorBasis->expand2(systemState.getAccel(), *AccSensorValues);
                  AccProjected = true;
+               }
+               if(oinfo[iOut].type == OutputInfo::Accel6 && (oinfo[iOut].angularouttype != OutputInfo::total || oinfo[iOut].rescaling)) {
+                 // in this case rotation vector and angular velocity are required for angular acceleration transformation
+                 if(!DispProjected) {
+                   SensorBasis->expand2(systemState.getDisp(), *DispSensorValues);
+                   DispProjected = true;
+                 }
+                 if(!VelProjected) {
+                   SensorBasis->expand2(systemState.getVeloc(), *VelSensorValues);
+                   VelProjected = true;
+                 }
                }
                printSensorValues(*AccSensorValues, &oinfo[iOut], &t);
              }
@@ -211,7 +237,7 @@ SDDynamPodPostProcessor::dynamOutput(int tIndex, double t, DynamMat &dynOps, Vec
                }
                filePrint(oinfo[iOut].filptr, "\n");
              }
-             else if(oinfo[iOut].type == OutputInfo::Displacement || (oinfo[iOut].rotvecouttype == OutputInfo::Euler && oinfo[iOut].rescaling == false)) {
+             else {
                if(!DispProjected) {
                  SensorBasis->expand2(systemState.getDisp(), *DispSensorValues);
                  DispProjected = true;
@@ -229,10 +255,17 @@ SDDynamPodPostProcessor::dynamOutput(int tIndex, double t, DynamMat &dynOps, Vec
                }
                filePrint(oinfo[iOut].filptr, "\n");
              }
-             else if(oinfo[iOut].type == OutputInfo::Velocity || (oinfo[iOut].angularouttype == OutputInfo::total && oinfo[iOut].rescaling == false)) {
+             else {
                if(!VelProjected) {
                  SensorBasis->expand2(systemState.getVeloc(), *VelSensorValues);
                  VelProjected = true;
+               }
+               if(oinfo[iOut].type == OutputInfo::Velocity6 && (oinfo[iOut].angularouttype != OutputInfo::total || oinfo[iOut].rescaling)) {
+                 // in this case rotation vector is required for angular velocity transformation
+                 if(!DispProjected) {
+                   SensorBasis->expand2(systemState.getDisp(), *DispSensorValues);
+                   DispProjected = true;
+                 }
                }
                printSensorValues(*VelSensorValues, &oinfo[iOut], &t);
              }

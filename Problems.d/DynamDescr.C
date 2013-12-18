@@ -913,7 +913,8 @@ SingleDomainDynamic::getInternalForce(Vector& d, Vector& f, double t, int tIndex
                                (Vector*) NULL, melArray);
     }
     f.linC(-1.0,residual); // f = -residual
-    if(!domain->solInfo().galerkinPodRom) geomState->pull_back(f); // f = R^T*f
+    if(!domain->solInfo().galerkinPodRom && !domain->solInfo().getNLInfo().linearelastic)
+      geomState->pull_back(f); // f = R^T*f
   }
   else {
     f.zero();

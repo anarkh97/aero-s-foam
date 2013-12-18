@@ -671,26 +671,10 @@ int main(int argc, char** argv)
      domain->PrintMortarConds();
      domain->printLMPC();
 #endif
-     //if(domain->solInfo().fetiInfo.c_normalize) domain->normalizeLMPC(); // PJSA 5-24-06
    }
 #ifdef SOWER_SURFS
  }
 #endif
-/* XXXX
- bool ctcflag1 = geoSource->checkLMPCs(domain->getNumLMPC(), *(domain->getLMPC()));
- bool ctcflag2 = (domain->GetnContactSurfacePairs() && domain->solInfo().lagrangeMult);
- if((ctcflag1 || ctcflag2) && domain->solInfo().type != 2 && domain->solInfo().newmarkBeta != 0
-    && domain->solInfo().subtype != 14) { // note: subtype 14 is Goldfarb-Idnani QP solver
-   if(verboseFlag) {
-     filePrint(stderr, " *** WARNING: Selected solver does not support contact with Lagrange multipliers.\n");
-     filePrint(stderr, " ***          Using FETI-DP instead.\n");
-   }
-   domain->solInfo().type = 2;
-   domain->solInfo().fetiInfo.version = FetiInfo::fetidp;
-   domain->solInfo().fetiInfo.solvertype = (FetiInfo::Solvertype) domain->solInfo().subtype;
-   if(geoSource->getCheckFileInfo()->decPtr == 0) callDec = true;
- }
-*/
  if(!domain->solInfo().basicDofCoords) {
 #ifndef USE_EIGEN3
    filePrint(stderr," *** ERROR: use of Nodal Frames for degrees of freedom is not supported by this AERO-S build.\n");
@@ -723,32 +707,15 @@ int main(int argc, char** argv)
  }
 
  if(callDec) {
-//   if(domain->solInfo().type == 2 || domain->solInfo().type == 3) { // DEC requires FETI or BLOCKDIAG to be activated (see below)
-     Dec::dec(numProcessors, numThreads, numSubdomains, topFlag);
-     if(exitAfterDec && !callSower) {
-       filePrint(stderr," ... Exiting after Dec run          ...\n");
-       filePrint(stderr," --------------------------------------\n");
-       delete threadManager; // PJSA
-       exit(0);
-     }
-//   }
-//   else {
-//     //  It doesn't make sense to use DEC outside of FETI. However when preparing files, user might not specify
-//     //  the FETI solver in the input file as they are not solving yet. In that case proper FETI initializations do
-//     //  not occur and the decomposition is different than what it would have been if the FETI keyword was here.
-//     //  Thus as of 09/14/06 FETI has to be there to be able to use the decomposer.
-//     filePrint(stderr,"*******************************************\n");
-//     filePrint(stderr,"*** ERROR: FETI command missing            \n");
-//     filePrint(stderr,"*******************************************\n");
-//     delete threadManager; // PJSA
-//     exit(0);
-//   }
+   Dec::dec(numProcessors, numThreads, numSubdomains, topFlag);
+   if(exitAfterDec && !callSower) {
+     filePrint(stderr," ... Exiting after Dec run          ...\n");
+     filePrint(stderr," --------------------------------------\n");
+     delete threadManager;
+     exit(0);
+   }
  }
  useFull = true; // or TenNodeTetraHedral will crush ! (bad design not from me !)
-
-// if(!geoSource->binaryInput) {
-//   domain->setUpData();
-// }
 
  if(callSower) {
    filePrint(stderr," ... Writing Distributed Binary Input Files ... \n");

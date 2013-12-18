@@ -49,8 +49,6 @@ public:
                             Vector &elementThermalForce, int glflag, GeomState *geomState);
 
        PrioInfo examine(int sub, MultiFront *);
-       //double weight() { return 2; } // should be 12 for penta 15
-       //double trueWeight() { return 2; } // should be 12 for penta 15
 
         void setCompositeData(int _type, int nlays, double *lData,
                               double *coefs, double *frame)

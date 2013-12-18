@@ -27,6 +27,9 @@ LEIsoParamTri::LEIsoParamTri(int o, int* nodenums) {
  nn = new int[ordersq];
  int i;
  for(i=0;i<ordersq;i++) nn[i] = nodenums[i];
+
+ setWeight(order);
+ setTrueWeight(order);
 }
 
 

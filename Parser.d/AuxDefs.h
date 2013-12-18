@@ -125,6 +125,6 @@ void yyerror(const char*);
 // dynamic weight for every type of elements
 // element numbers are those assigned in AddElem.C
 extern std::map<int, double> weightList;  
-extern std::map<int, double> relativeWeightList;
+extern std::map<int, double> fieldWeightList;
 
 #endif

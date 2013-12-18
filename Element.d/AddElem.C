@@ -90,7 +90,7 @@
 
 #include <map>
 extern std::map<int,double> weightList;
-extern std::map<int,double> relativeWeightList;
+extern std::map<int,double> fieldWeightList;
 #ifdef USE_EIGEN3
 #include <Element.d/Rigid.d/RigidBeam.h>
 #include <Element.d/Rigid.d/RigidSpring.h>
@@ -185,22 +185,39 @@ Elemset::elemadd(int num, int etype, int nnodes, int*n)
 {
   Element *ele = elemFact->elemadd(num, etype, nnodes, n, ba);
   elemadd(num, ele);
-  
-  std::map<int, double>::iterator it = weightList.find(etype);
-  double weight = (it == weightList.end()) ? 1.0 : it->second;
 
-  // adjust weight using RWEI if defined
-  if(!relativeWeightList.empty()) {
-    std::map<int,double>::iterator it2 = relativeWeightList.find((int)ele->getCategory());
-    if(it2 != relativeWeightList.end()) {
-      weight *= it2->second/std::accumulate(relativeWeightList.begin(), relativeWeightList.end(), 0, weight_add());
+  etypes.push_back(std::pair<int,int>(etype,num));
+}
+
+void
+Elemset::setWeights()
+{
+  for(std::vector<std::pair<int,int> >::iterator it0 = etypes.begin(); it0 != etypes.end(); it0++) {
+
+    int etype = it0->first;
+    int num = it0->second;
+    Element *ele = elem[num];
+  
+    std::map<int, double>::iterator it1 = weightList.find(etype);
+    if(it1 != weightList.end()) {
+      ele->setWeight(it1->second);
+      ele->setTrueWeight(it1->second);
+    }
+
+    // adjust weight using FWEI if defined
+    if(!fieldWeightList.empty()) {
+      std::map<int,double>::iterator it2 = fieldWeightList.find((int)ele->getCategory());
+      if(it2 != fieldWeightList.end()) {
+        double weight = ele->weight();
+        double trueWeight = ele->trueWeight();
+        double ratio = it2->second/std::accumulate(fieldWeightList.begin(), fieldWeightList.end(), 0, weight_add());
+        ele->setWeight(weight*ratio);
+        ele->setTrueWeight(trueWeight*ratio);
+      }
     }
   }
 
-  ele->setWeight(weight);
-  ele->setTrueWeight(weight);
-
-  return;
+  etypes.clear();
 }
 
 Element*

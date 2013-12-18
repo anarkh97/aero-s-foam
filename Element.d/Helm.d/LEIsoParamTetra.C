@@ -28,6 +28,9 @@ LEIsoParamTetra::LEIsoParamTetra(int o, int* nodenums) {
  nn = new int[orderc];
  int i;
  for(i=0;i<orderc;i++) nn[i] = nodenums[i];
+
+ setWeight(order-1);
+ setTrueWeight(order-1);
 }
 
 

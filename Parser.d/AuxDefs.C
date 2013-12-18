@@ -15,7 +15,7 @@ GeoSource *geoSource = new GeoSource;
 #endif
 
 std::map<int,double > weightList;    // allows to change the weight of each class of elements dynamically
-std::map<int,double> relativeWeightList;
+std::map<int,double> fieldWeightList;
 
 BCList::BCList(int _loadsetid)
 {

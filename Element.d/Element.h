@@ -541,8 +541,8 @@ class Element {
  	virtual PrioInfo examine(int sub, MultiFront *mf);
 	virtual double weight() { return _weight; }
 	virtual double trueWeight() { return _trueWeight; }
-	void setWeight(double weight){ _weight = weight; }
-	void setTrueWeight(double trueWeight){ _trueWeight = trueWeight; }
+	void setWeight(double weight) { _weight = weight; }
+	void setTrueWeight(double trueWeight) { _trueWeight = trueWeight; }
 
 	void getCG(CoordSet &cset, double &xcg, double &ycg, double &zcg);
 	// END FROM DEC
@@ -625,6 +625,7 @@ class Elemset
     BlockAlloc ba;
     bool myData;
     int dampingFlag;
+    std::vector<std::pair<int,int> > etypes;
   public:
     Elemset(int = 256);
     virtual ~Elemset() { deleteElems(); }
@@ -645,6 +646,7 @@ class Elemset
     bool hasDamping();
     void collapseRigid6(std::set<int> &);
     void deleteElem(int i);
+    void setWeights();
 };
 
 class EsetGeomAccessor {

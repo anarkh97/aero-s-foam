@@ -148,7 +148,7 @@ TRAIL [a-zA-Z]*
 
 "WEIGHTS"|"weights"                { return WEIGHTLIST; }
 
-"RWEI"[a-zA-Z]*|"rwei"[a-zA-Z]*    { return RELATIVEWEIGHTLIST; }
+"FWEI"[a-zA-Z]*|"fwei"[a-zA-Z]*    { return FIELDWEIGHTLIST; }
 
 "trivial"|"TRIVIAL"                { return TRIVIAL; }
 
@@ -691,7 +691,7 @@ TRAIL [a-zA-Z]*
 
 "jumpoutput"|"JUMPOUTPUT"          { return JUMPOUTPUT; }
 
-"heat"|"HEAT"|"ther"|"THER"        { return HEAT; }
+"heat"|"HEAT"                      { return HEAT; }
 
 "mech"|"MECH"                      { return MECH; }
 

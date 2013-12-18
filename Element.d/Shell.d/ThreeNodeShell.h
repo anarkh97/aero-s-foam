@@ -82,11 +82,7 @@ public:
 	// DEC
 	bool hasRot() {return true;}
 	PrioInfo examine(int sub, MultiFront *mf);
-	//int facelist(PolygonSet &pgs, int *flist);
-	//
 
-	//double weight() { return w; }
-	//double trueWeight() { return w; }
 };
 #endif
 

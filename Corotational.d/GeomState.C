@@ -526,31 +526,26 @@ GeomState::update(const Vector &v, const std::vector<int> &weightedNodes, int SO
 void
 GeomState::explicitUpdate(CoordSet &cs, const Vector &v)
 {
- // v = total displacement vector
+ // v = total displacement vector (unconstrained dofs only)
 
  for(int i = 0; i < numnodes; ++i) {
    if(cs[i]) {
 
-     // Set translational displacements
+     // Set position vector components for non-prescribed dofs
+     if(loc[i][0] >= 0) ns[i].x = cs[i]->x + v[loc[i][0]];
+     if(loc[i][1] >= 0) ns[i].y = cs[i]->y + v[loc[i][1]];
+     if(loc[i][2] >= 0) ns[i].z = cs[i]->z + v[loc[i][2]];
 
-     double dx = (loc[i][0] >= 0) ? v[loc[i][0]] : 0.0;
-     double dy = (loc[i][1] >= 0) ? v[loc[i][1]] : 0.0;
-     double dz = (loc[i][2] >= 0) ? v[loc[i][2]] : 0.0;
+     if(loc[i][3] >= 0 || loc[i][4] >= 0 || loc[i][5] >= 0) {
 
-     // Set rotations
+       // Set rotation vector components for non-prescribed dofs
+       if(loc[i][3] >= 0) ns[i].theta[0] = v[loc[i][3]];
+       if(loc[i][4] >= 0) ns[i].theta[1] = v[loc[i][4]];
+       if(loc[i][5] >= 0) ns[i].theta[2] = v[loc[i][5]];
 
-     ns[i].theta[0] = (loc[i][3] >= 0) ? v[loc[i][3]] : 0.0;
-     ns[i].theta[1] = (loc[i][4] >= 0) ? v[loc[i][4]] : 0.0;
-     ns[i].theta[2] = (loc[i][5] >= 0) ? v[loc[i][5]] : 0.0;
-
-     // Update position
-
-     ns[i].x = cs[i]->x + dx;
-     ns[i].y = cs[i]->y + dy;
-     ns[i].z = cs[i]->z + dz;
-
-     // Update rotation tensor 
-     form_rottensor( ns[i].theta, ns[i].R );
+       // Set rotation tensor 
+       form_rottensor( ns[i].theta, ns[i].R );
+     }
    }
  }
 #ifdef COMPUTE_GLOBAL_ROTATION
@@ -567,26 +562,21 @@ GeomState::explicitUpdate(CoordSet &cs, int numNodes, int *nodes, const Vector &
    int i = nodes[j];
    if(cs[i]) {
 
-     // Set translational displacements
+    // Set position vector components for non-prescribed dofs
+     if(loc[i][0] >= 0) ns[i].x = cs[i]->x + v[loc[i][0]];
+     if(loc[i][1] >= 0) ns[i].y = cs[i]->y + v[loc[i][1]];
+     if(loc[i][2] >= 0) ns[i].z = cs[i]->z + v[loc[i][2]];
 
-     double dx = (loc[i][0] >= 0) ? v[loc[i][0]] : 0.0;
-     double dy = (loc[i][1] >= 0) ? v[loc[i][1]] : 0.0;
-     double dz = (loc[i][2] >= 0) ? v[loc[i][2]] : 0.0;
+     if(loc[i][3] >= 0 || loc[i][4] >= 0 || loc[i][5] >= 0) {
 
-     // Set rotations
-
-     ns[i].theta[0] = (loc[i][3] >= 0) ? v[loc[i][3]] : 0.0;
-     ns[i].theta[1] = (loc[i][4] >= 0) ? v[loc[i][4]] : 0.0;
-     ns[i].theta[2] = (loc[i][5] >= 0) ? v[loc[i][5]] : 0.0;
-
-     // Update position
-
-     ns[i].x = cs[i]->x + dx;
-     ns[i].y = cs[i]->y + dy;
-     ns[i].z = cs[i]->z + dz;
-
-     // Update rotation tensor 
-     form_rottensor( ns[i].theta, ns[i].R );
+       // Set rotation vector components for non-prescribed dofs
+       if(loc[i][3] >= 0) ns[i].theta[0] = v[loc[i][3]];
+       if(loc[i][4] >= 0) ns[i].theta[1] = v[loc[i][4]];
+       if(loc[i][5] >= 0) ns[i].theta[2] = v[loc[i][5]];
+     
+       // Set rotation tensor 
+       form_rottensor( ns[i].theta, ns[i].R );
+     }
    }
  }
 #ifdef COMPUTE_GLOBAL_ROTATION

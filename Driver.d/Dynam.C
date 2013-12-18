@@ -206,7 +206,7 @@ Domain::getOrAddDofForPrint(bool ad, Vector& d_n, double* bcx, int iNode, double
     // xloc1>=0 : dof exist but not free
     // xloc<0 && xloc1<0 : dof doesn't exist
   
-    if (dofx){                                                                                              
+    if (dofx){
       int xloc  = c_dsa->locate( iNode, *dofx);
       int xloc1 =   dsa->locate( iNode, *dofx);
       if(xloc >= 0)       { if(!ad) *xdata=d_n[xloc];  else d_n[xloc]+=*xdata; }
@@ -214,7 +214,7 @@ Domain::getOrAddDofForPrint(bool ad, Vector& d_n, double* bcx, int iNode, double
       else                { if(!ad) *xdata=0.0;}
     }
     
-    if(dofy){     
+    if(dofy){
      int yloc  = c_dsa->locate( iNode, *dofy);
      int yloc1 =   dsa->locate( iNode, *dofy);
      if(yloc >= 0)       { if(!ad) *ydata=d_n[yloc];  else d_n[yloc]+=*ydata; }
@@ -222,7 +222,7 @@ Domain::getOrAddDofForPrint(bool ad, Vector& d_n, double* bcx, int iNode, double
      else                { if(!ad) *ydata=0.0;}
     }
    
-    if(dofz){                                                                                         
+    if(dofz){
       int zloc  = c_dsa->locate( iNode, *dofz);
       int zloc1 =   dsa->locate( iNode, *dofz);
       if(zloc >= 0)       { if(!ad) *zdata=d_n[zloc];  else d_n[zloc]+=*zdata; }

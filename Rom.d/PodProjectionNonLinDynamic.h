@@ -36,7 +36,8 @@ class SDDynamPodPostProcessor : public SDDynamPostProcessor
     int podSize;
 
     void buildSensorNodeVector();
-    void printSensorValues(GenVector<double> &, OutputInfo *, double *);
+    void printSensorValues(GenVector<double> &, OutputInfo *, double *, double *);
+    double GetPrescribedSensorValue(int, int, double *);
 
     VecBasis *SensorBasis;
     GenVector<double> *DispSensorValues;

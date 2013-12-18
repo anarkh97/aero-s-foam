@@ -26,7 +26,8 @@ private:
   int podSize;
 
   void subBuildSensorNodeVector(int);
-  void subPrintSensorValues(int, GenDistrVector<double> &, OutputInfo *, double *);
+  void subPrintSensorValues(int, GenDistrVector<double> &, OutputInfo *, double *, int);
+  double subGetPrescribedSensorValue(int, int, int, int);
 
   DistrVecBasis *SensorBasis;
   GenDistrVector<double> *DispSensorValues;

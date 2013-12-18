@@ -134,10 +134,26 @@ SDDynamPodPostProcessor::buildSensorNodeVector() {
   nodeVector.resize(packedNodeIt-nodeVector.begin());
 }
 
-void
-SDDynamPodPostProcessor::printSensorValues(GenVector<double> &SensorData, OutputInfo *OINFO, double *time) {
+double
+SDDynamPodPostProcessor::GetPrescribedSensorValue(int locNode, int j, double *bcdata)
+{
+  int dof = -1;
+  switch(j) {
+    case 0 : dof = domain->getDSA()->locate(locNode, DofSet::Xdisp); break;
+    case 1 : dof = domain->getDSA()->locate(locNode, DofSet::Ydisp); break;
+    case 2 : dof = domain->getDSA()->locate(locNode, DofSet::Zdisp); break;
+    case 3 : dof = domain->getDSA()->locate(locNode, DofSet::Xrot); break;
+    case 4 : dof = domain->getDSA()->locate(locNode, DofSet::Yrot); break;
+    case 5 : dof = domain->getDSA()->locate(locNode, DofSet::Zrot); break;
+  }
 
-  // TODO set correct prescribed values for constrained dofs
+  return (dof != -1) ? bcdata[dof] : 0.0;
+}
+
+void
+SDDynamPodPostProcessor::printSensorValues(GenVector<double> &SensorData, OutputInfo *OINFO, double *time, double *bcdata) {
+
+  // XXX prescribed values in vcx and acx are convected.
   int locNode = OINFO->nodeNumber;
   int ndofs;
   int dofs[6];
@@ -149,7 +165,7 @@ SDDynamPodPostProcessor::printSensorValues(GenVector<double> &SensorData, Output
   }
   double *data = new double[ndofs];
   for(int j = 0; j < ndofs; ++j) {
-    data[j] = (dofs[j] != -1) ? SensorData[dofs[j]] : 0.0;
+    data[j] = (dofs[j] != -1) ? SensorData[dofs[j]] : GetPrescribedSensorValue(locNode,j,bcdata);
   }
   // transform rotation vector, if necessary
   if(OINFO->type == OutputInfo::Disp6DOF && (OINFO->rotvecouttype != OutputInfo::Euler || OINFO->rescaling)) {
@@ -160,7 +176,7 @@ SDDynamPodPostProcessor::printSensorValues(GenVector<double> &SensorData, Output
   // transform angular velocity, if necessary
   else if(OINFO->type == OutputInfo::Velocity6 && (OINFO->angularouttype != OutputInfo::total || OINFO->rescaling)) {
     double rten[3][3], psi[3], psidot[3] = { data[3], data[4], data[5] };
-    for(int j = 0; j < 3; ++j) psi[j] = (dofs[3+j] != -1) ? (*DispSensorValues)[dofs[3+j]] : 0.0;
+    for(int j = 0; j < 3; ++j) psi[j] = (dofs[3+j] != -1) ? (*DispSensorValues)[dofs[3+j]] : GetPrescribedSensorValue(locNode,3+j,bcx);
     if(OINFO->rescaling) vec_to_mat(psi, rten);
     tran_veloc(rten, psi, psidot, 2, OINFO->angularouttype, false, OINFO->rescaling, data+3);
   }
@@ -168,8 +184,8 @@ SDDynamPodPostProcessor::printSensorValues(GenVector<double> &SensorData, Output
   else if(OINFO->type == OutputInfo::Accel6 && (OINFO->angularouttype != OutputInfo::total || OINFO->rescaling)) {
     double rten[3][3], psi[3], psidot[3], psiddot[3] = { data[3], data[4], data[5] };
     for(int j = 0; j < 3; ++j) {
-      psi[j] = (dofs[3+j] != -1) ? (*DispSensorValues)[dofs[3+j]] : 0.0;
-      psidot[j] = (dofs[3+j] != -1) ? (*VelSensorValues)[dofs[3+j]] : 0.0;
+      psi[j] = (dofs[3+j] != -1) ? (*DispSensorValues)[dofs[3+j]] : GetPrescribedSensorValue(locNode,3+j,bcx);
+      psidot[j] = (dofs[3+j] != -1) ? (*VelSensorValues)[dofs[3+j]] : GetPrescribedSensorValue(locNode,3+j,vcx);
     }
     if(OINFO->rescaling) vec_to_mat(psi, rten);
     tran_accel(rten, psi, psidot, psiddot, 2, OINFO->angularouttype, false, OINFO->rescaling, data+3);
@@ -224,7 +240,7 @@ SDDynamPodPostProcessor::dynamOutput(int tIndex, double t, DynamMat &dynOps, Vec
                    VelProjected = true;
                  }
                }
-               printSensorValues(*AccSensorValues, &oinfo[iOut], &t);
+               printSensorValues(*AccSensorValues, &oinfo[iOut], &t, acx);
              }
            }
            break;
@@ -242,7 +258,7 @@ SDDynamPodPostProcessor::dynamOutput(int tIndex, double t, DynamMat &dynOps, Vec
                  SensorBasis->expand2(systemState.getDisp(), *DispSensorValues);
                  DispProjected = true;
                }
-               printSensorValues(*DispSensorValues, &oinfo[iOut], &t);
+               printSensorValues(*DispSensorValues, &oinfo[iOut], &t, bcx);
              }
            }
            break;
@@ -267,7 +283,7 @@ SDDynamPodPostProcessor::dynamOutput(int tIndex, double t, DynamMat &dynOps, Vec
                    DispProjected = true;
                  }
                }
-               printSensorValues(*VelSensorValues, &oinfo[iOut], &t);
+               printSensorValues(*VelSensorValues, &oinfo[iOut], &t, vcx);
              }
            }
            break;

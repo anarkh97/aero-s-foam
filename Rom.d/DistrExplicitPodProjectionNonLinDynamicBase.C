@@ -179,9 +179,34 @@ MultiDomDynPodPostProcessor::subBuildSensorNodeVector(int iSub) {
   subSensorNodes.resize(packedNodeIt-subSensorNodes.begin());
 }
 
-void
-MultiDomDynPodPostProcessor::subPrintSensorValues(int iSub, GenDistrVector<double> &SensorData, OutputInfo *OINFO, double *time) {
+double
+MultiDomDynPodPostProcessor::subGetPrescribedSensorValue(int iSub, int locNode, int j, int bctype)
+{
+  int dof = -1;
+  switch(j) {
+    case 0 : dof = decDomain->getSubDomain(iSub)->getDSA()->locate(locNode, DofSet::Xdisp); break;
+    case 1 : dof = decDomain->getSubDomain(iSub)->getDSA()->locate(locNode, DofSet::Ydisp); break;
+    case 2 : dof = decDomain->getSubDomain(iSub)->getDSA()->locate(locNode, DofSet::Zdisp); break;
+    case 3 : dof = decDomain->getSubDomain(iSub)->getDSA()->locate(locNode, DofSet::Xrot); break;
+    case 4 : dof = decDomain->getSubDomain(iSub)->getDSA()->locate(locNode, DofSet::Yrot); break;
+    case 5 : dof = decDomain->getSubDomain(iSub)->getDSA()->locate(locNode, DofSet::Zrot); break;
+  }
 
+  double val = 0;
+  if(dof != -1) {
+    switch(bctype) {
+      case 0 : val = decDomain->getSubDomain(iSub)->getBcx()[dof]; break;
+      case 1 : val = decDomain->getSubDomain(iSub)->getVcx()[dof]; break;
+      case 2 : val = decDomain->getSubDomain(iSub)->getAcx()[dof]; break;
+    }
+  }
+  return val;
+}
+
+void
+MultiDomDynPodPostProcessor::subPrintSensorValues(int iSub, GenDistrVector<double> &SensorData, OutputInfo *OINFO, double *time, int bctype) {
+
+  // XXX prescribed values in vcx and acx are convected.
 #ifdef DISTRIBUTED
   int locNode = decDomain->getSubDomain(iSub)->globalToLocal(OINFO->nodeNumber);
   if(locNode > -1) { // if node is -1, sensor node is not in this subdomain, don't print
@@ -202,7 +227,8 @@ MultiDomDynPodPostProcessor::subPrintSensorValues(int iSub, GenDistrVector<doubl
         }
         double *data = new double[ndofs];
         for(int j = 0; j < ndofs; ++j) {
-          data[j] = (dofs[j] != -1) ? SensorData.subData(decDomain->getSubDomain(iSub)->localSubNum())[dofs[j]] : 0.0;
+          data[j] = (dofs[j] != -1) ? SensorData.subData(decDomain->getSubDomain(iSub)->localSubNum())[dofs[j]] 
+                                    : subGetPrescribedSensorValue(iSub, locNode, j, bctype);
         }
         // transform rotation vector, if necessary
         if(OINFO->type == OutputInfo::Disp6DOF && (OINFO->rotvecouttype != OutputInfo::Euler || OINFO->rescaling)) {
@@ -213,7 +239,8 @@ MultiDomDynPodPostProcessor::subPrintSensorValues(int iSub, GenDistrVector<doubl
         // transform angular velocity, if necessary
         else if(OINFO->type == OutputInfo::Velocity6 && (OINFO->angularouttype != OutputInfo::total || OINFO->rescaling)) {
           double rten[3][3], psi[3], psidot[3] = { data[3], data[4], data[5] };
-          for(int j = 0; j < 3; ++j) psi[j] = (dofs[3+j] != -1) ? DispSensorValues->subData(decDomain->getSubDomain(iSub)->localSubNum())[dofs[3+j]] : 0.0;
+          for(int j = 0; j < 3; ++j) psi[j] = (dofs[3+j] != -1) ? DispSensorValues->subData(decDomain->getSubDomain(iSub)->localSubNum())[dofs[3+j]]
+                                                                : subGetPrescribedSensorValue(iSub, locNode, 3+j, 0);
           if(OINFO->rescaling) vec_to_mat(psi, rten);
           tran_veloc(rten, psi, psidot, 2, OINFO->angularouttype, false, OINFO->rescaling, data+3);
         }
@@ -221,8 +248,10 @@ MultiDomDynPodPostProcessor::subPrintSensorValues(int iSub, GenDistrVector<doubl
         else if(OINFO->type == OutputInfo::Accel6 && (OINFO->angularouttype != OutputInfo::total || OINFO->rescaling)) {
           double rten[3][3], psi[3], psidot[3], psiddot[3] = { data[3], data[4], data[5] };
           for(int j = 0; j < 3; ++j) {
-            psi[j] = (dofs[3+j] != -1) ? DispSensorValues->subData(decDomain->getSubDomain(iSub)->localSubNum())[dofs[3+j]] : 0.0;
-            psidot[j] = (dofs[3+j] != -1) ? VelSensorValues->subData(decDomain->getSubDomain(iSub)->localSubNum())[dofs[3+j]] : 0.0;
+            psi[j] = (dofs[3+j] != -1) ? DispSensorValues->subData(decDomain->getSubDomain(iSub)->localSubNum())[dofs[3+j]]
+                                       : subGetPrescribedSensorValue(iSub, locNode, 3+j, 0);
+            psidot[j] = (dofs[3+j] != -1) ? VelSensorValues->subData(decDomain->getSubDomain(iSub)->localSubNum())[dofs[3+j]]
+                                          : subGetPrescribedSensorValue(iSub, locNode, 3+j, 1);
           }
           if(OINFO->rescaling) vec_to_mat(psi, rten);
           tran_accel(rten, psi, psidot, psiddot, 2, OINFO->angularouttype, false, OINFO->rescaling, data+3);
@@ -283,7 +312,7 @@ MultiDomDynPodPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dynOp
                    VelProjected = true;
                  }
                }
-               execParal3R(decDomain->getNumSub(), this, &MultiDomDynPodPostProcessor::subPrintSensorValues, *AccSensorValues, &oinfo[iOut], &t);
+               execParal4R(decDomain->getNumSub(), this, &MultiDomDynPodPostProcessor::subPrintSensorValues, *AccSensorValues, &oinfo[iOut], &t, 2);
              }
            }
            break;
@@ -301,7 +330,7 @@ MultiDomDynPodPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dynOp
                  SensorBasis->expand2(distState.getDisp(), *DispSensorValues);
                  DispProjected = true;
                }
-               execParal3R(decDomain->getNumSub(), this, &MultiDomDynPodPostProcessor::subPrintSensorValues, *DispSensorValues, &oinfo[iOut], &t);
+               execParal4R(decDomain->getNumSub(), this, &MultiDomDynPodPostProcessor::subPrintSensorValues, *DispSensorValues, &oinfo[iOut], &t, 0);
              }
            }
            break;
@@ -326,7 +355,7 @@ MultiDomDynPodPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dynOp
                    DispProjected = true;
                  }
                }
-               execParal3R(decDomain->getNumSub(), this, &MultiDomDynPodPostProcessor::subPrintSensorValues, *VelSensorValues, &oinfo[iOut], &t);
+               execParal4R(decDomain->getNumSub(), this, &MultiDomDynPodPostProcessor::subPrintSensorValues, *VelSensorValues, &oinfo[iOut], &t, 1);
              }
            }
            break;

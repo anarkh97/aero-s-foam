@@ -724,7 +724,7 @@ NonLinDynamic::formRHSinitializer(Vector &fext, Vector &velocity, Vector &elemen
     C->mult(velocity, localTemp);
     rhs.linC(rhs, -1.0, localTemp);
   }
-  geomState.pull_back(rhs); // f = R^T*f
+  if(!domain->solInfo().galerkinPodRom) geomState.pull_back(rhs); // f = R^T*f
 }
 
 void

@@ -676,7 +676,7 @@ PodProjectionNonLinDynamic::getInitState(Vector &d, Vector &v, Vector &a, Vector
     projectionBasis.expand(v, *v0_Big);
   }
 
-  // XXX currently, if modal initial conditions are defined then any non-modal initial conditions are ignored
+  // currently, if modal initial conditions are defined then any non-modal initial conditions are ignored
   if(numIDisModal == 0 && numIVelModal == 0) {
     Vector a_Big(NonLinDynamic::solVecInfo(), 0.0),
            v_p_Big(NonLinDynamic::solVecInfo(), 0.0);
@@ -684,6 +684,8 @@ PodProjectionNonLinDynamic::getInitState(Vector &d, Vector &v, Vector &a, Vector
     NonLinDynamic::getInitState(*d0_Big, *v0_Big, a_Big, v_p_Big);
 
     if(d0_Big->norm() != 0) reduceDisp(*d0_Big, d);
+    // XXX the initial angular velocities are convected, by convention, so they should be transformed
+    //     to the first time-derivative of the total rotation vector before reducing
     if(v0_Big->norm() != 0) reduceDisp(*v0_Big, v);
   }
 
@@ -701,7 +703,6 @@ PodProjectionNonLinDynamic::readRestartFile(Vector &d_n, Vector &v_n, Vector &a_
            q_Big(NonLinDynamic::solVecInfo());
 
     NonLinDynamic::readRestartFile(d_n_Big, v_n_Big, a_n_Big, v_p_Big, *geomState_Big);
-    // XXX set vel & acc in geomState_Big
     geomState_Big->setVelocityAndAcceleration(v_n_Big, a_n_Big);
 
     reduceDisp(d_n_Big, d_n);
@@ -839,6 +840,8 @@ void
 PodProjectionNonLinDynamic::formRHSinitializer(Vector &fext, Vector &velocity, Vector &elementInternalForce,
                                                ModalGeomState &geomState, Vector &rhs, ModalGeomState *refState)
 {
+  // XXX For the case of initial values for the rotation, the transformed mass matrix
+  //     should be used to solve for the initial accelerations.
   Vector fext_Big(NonLinDynamic::solVecInfo(), 0.0),
          velocity_Big(NonLinDynamic::solVecInfo()),
          rhs_Big(NonLinDynamic::solVecInfo());

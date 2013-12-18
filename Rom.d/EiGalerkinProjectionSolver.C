@@ -9,8 +9,8 @@ namespace Rom {
 
 template <typename Scalar>
 GenEiSparseGalerkinProjectionSolver<Scalar>::GenEiSparseGalerkinProjectionSolver(Connectivity *cn,
-                                                   DofSetArray *dsa, ConstrainedDSA *c_dsa):
-  GenEiSparseMatrix<Scalar>(cn, dsa, c_dsa), basisSize_(0), projectionBasis_(NULL)
+                                                   DofSetArray *dsa, ConstrainedDSA *c_dsa, bool selfadjoint):
+  GenEiSparseMatrix<Scalar>(cn, dsa, c_dsa, selfadjoint), basisSize_(0), projectionBasis_(NULL), selfadjoint_(selfadjoint)
 {
 }
 
@@ -47,11 +47,16 @@ void
 GenEiSparseGalerkinProjectionSolver<Scalar>::factor()
 {
   const Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic,Eigen::ColMajor> &V = projectionBasis_->basis();
-  //std::cerr << "M = \n" << this->M << std::endl;
-  reducedMatrix_.template triangularView<Eigen::Lower>()
-    += V.transpose()*(this->M.template selfadjointView<Eigen::Upper>()*V);
+  if(selfadjoint_) {
+    reducedMatrix_.template triangularView<Eigen::Lower>()
+      += V.transpose()*(this->M.template selfadjointView<Eigen::Upper>()*V);
 
-  solver_.compute(reducedMatrix_);
+    llt_.compute(reducedMatrix_);
+  }
+  else {
+    reducedMatrix_ += V.transpose()*(this->M*V);
+    lu_.compute(reducedMatrix_);
+  }
 }
 
 template <typename Scalar>
@@ -59,8 +64,9 @@ void
 GenEiSparseGalerkinProjectionSolver<Scalar>::reSolve(GenVector<Scalar> &rhs)
 {
   const Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic,Eigen::ColMajor> &V = projectionBasis_->basis();
-  Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > x(rhs.data(), V.rows());
-  solver_.solveInPlace(x);
+  Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > x(rhs.data(), V.cols());
+  if(selfadjoint_) llt_.solveInPlace(x);
+  else x = (lu_.solve(x)).eval();
 }
 
 template <typename Scalar>
@@ -68,8 +74,9 @@ void
 GenEiSparseGalerkinProjectionSolver<Scalar>::solve(GenVector<Scalar> &rhs, GenVector<Scalar> &sol)
 {
   const Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic,Eigen::ColMajor> &V = projectionBasis_->basis();
-  Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > b(rhs.data(), V.rows()), x(sol.data(), V.rows());
-  x = solver_.solve(b);
+  Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > b(rhs.data(), V.cols()), x(sol.data(), V.cols());
+  if(selfadjoint_) x = llt_.solve(b);
+  else x = lu_.solve(b);
 }
 
 } /* end namespace Rom */

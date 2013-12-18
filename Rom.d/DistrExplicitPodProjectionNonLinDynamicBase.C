@@ -508,6 +508,8 @@ DistrExplicitPodProjectionNonLinDynamicBase::updateState(double dt_n_h, DistrVec
 
   if(haveRot) { // currently we only need to project the velocity up when there are rotation dofs
                 // int the future, there may be other cases in which this is also necessary, e.g. viscoelastic materials
+                // XXX this is a bit inconsistent, because the transformation to convected angular velocity
+                // in GeomState::setVelocity is done with the velocity at t_{n+0.5} and the rotation vector at t_{n+1}
     normalizedBasis_.expand(v_n_h, *v_n);
     geomState->setVelocity(*v_n, 2);
   }

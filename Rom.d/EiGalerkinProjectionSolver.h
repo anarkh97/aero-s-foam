@@ -5,7 +5,7 @@
 #include <Math.d/EiSparseMatrix.h>
 #include "PodProjectionSolver.h"
 #include "VecBasis.h"
-#include <Eigen/Cholesky>
+#include <Eigen/Dense>
 #include <iostream>
 
 namespace Rom {
@@ -13,7 +13,7 @@ namespace Rom {
 template <typename Scalar>
 class GenEiSparseGalerkinProjectionSolver : public GenPodProjectionSolver<Scalar>, public GenEiSparseMatrix<Scalar> {
 public:
-  GenEiSparseGalerkinProjectionSolver(Connectivity *cn, DofSetArray *dsa, ConstrainedDSA *c_dsa);
+  GenEiSparseGalerkinProjectionSolver(Connectivity *cn, DofSetArray *dsa, ConstrainedDSA *c_dsa, bool = true);
 
   using GenEiSparseMatrix<Scalar>::neqs;
 
@@ -44,10 +44,12 @@ public:
   }
 
 private:
+  bool selfadjoint_;
   int basisSize_;
   const GenVecBasis<Scalar> *projectionBasis_;
   Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> reducedMatrix_;
-  Eigen::LLT<Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic>, Eigen::Lower> solver_;
+  Eigen::LLT<Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic>, Eigen::Lower> llt_;
+  Eigen::PartialPivLU<Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> > lu_;
   
   // Disallow copy and assignment
   GenEiSparseGalerkinProjectionSolver(const GenEiSparseGalerkinProjectionSolver<Scalar> &);

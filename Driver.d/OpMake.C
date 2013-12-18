@@ -1005,7 +1005,7 @@ template<class Scalar>
 Rom::GenEiSparseGalerkinProjectionSolver<Scalar> *
 Domain::constructEiSparseGalerkinProjectionSolver()
 {
-  return new Rom::GenEiSparseGalerkinProjectionSolver<Scalar>(nodeToNode, dsa, c_dsa);
+  return new Rom::GenEiSparseGalerkinProjectionSolver<Scalar>(nodeToNode, dsa, c_dsa, !sinfo.unsym());
 }
 #endif
 

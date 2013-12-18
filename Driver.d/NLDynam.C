@@ -543,33 +543,21 @@ Domain::getNodeFictitiousForce(int inode, GeomState &geomState, double time, Geo
          &alpham = sinfo.newmarkAlphaM,
           dt = domain->solInfo().getTimeStep();
 
-  Eigen::Matrix3d R, T, Tdot, R_n;
-  R << geomState[inode].R[0][0], geomState[inode].R[0][1], geomState[inode].R[0][2],
-       geomState[inode].R[1][0], geomState[inode].R[1][1], geomState[inode].R[1][2],
-       geomState[inode].R[2][0], geomState[inode].R[2][1], geomState[inode].R[2][2];
-  if(refState) {
-    R_n << (*refState)[inode].R[0][0],(*refState)[inode].R[0][1], (*refState)[inode].R[0][2],
-           (*refState)[inode].R[1][0],(*refState)[inode].R[1][1], (*refState)[inode].R[1][2],
-           (*refState)[inode].R[2][0],(*refState)[inode].R[2][1], (*refState)[inode].R[2][2];
-  }
-
-  Eigen::Vector3d Psi, Psidot, V, A, Psi_n, V_n, A_n;
-  Psi << geomState[inode].theta[0], geomState[inode].theta[1], geomState[inode].theta[2];
+  Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor> > R(&geomState[inode].R[0][0]), R_n(&(*refState)[inode].R[0][0]);
+  Eigen::Matrix3d T, Tdot;
+  Eigen::Map<Eigen::Vector3d> Psi(&geomState[inode].theta[0]), Psi_n(&(*refState)[inode].theta[0]),
+                              V_n(&(*refState)[inode].v[3]), A_n(&(*refState)[inode].a[3]);
+  Eigen::Vector3d V, A;
   V << geomState[inode].v[3], geomState[inode].v[4], geomState[inode].v[5];
   A << geomState[inode].a[3], geomState[inode].a[4], geomState[inode].a[5];
-  if(refState) {
-    Psi_n << (*refState)[inode].theta[0], (*refState)[inode].theta[1], (*refState)[inode].theta[2];
-    V_n << (*refState)[inode].v[3], (*refState)[inode].v[4], (*refState)[inode].v[5];
-    A_n << (*refState)[inode].a[3], (*refState)[inode].a[4], (*refState)[inode].a[5];
-  }
 
   if(beta == 0) { // compute the tangent stiffness and/or force correction due to rotary inertia for explicit central difference
     // V is either the convected angular velocity at t^{n+1/2} for FOM or ROM model II or model III,
     //   or the convected angular velocity at current snapshot after projection for explicit ROM "training"
     if(domain->solInfo().galerkinPodRom || domain->solInfo().samplingPodRom) {
-      tangential_transf(Psi, T);
-      Psidot = T.inverse()*V;
-      tangential_transf_dot(Psi, Psidot, Tdot);
+      tangential_transf<double>(Psi, T);
+      Eigen::Vector3d Psidot = T.inverse()*V;
+      tangential_transf_dot<double>(Psi, Psidot, Tdot);
       f = T.transpose()*(J*Tdot*Psidot + V.cross(J*V));
     }
     else {
@@ -582,49 +570,42 @@ Domain::getNodeFictitiousForce(int inode, GeomState &geomState, double time, Geo
   else { // compute the tangent stiffness and/or force correction due to rotary inertia for implicit generalized-alpha
     if(domain->solInfo().samplingPodRom) {
       // V and A are the convected angular velocity and acceleration at current snapshot after projection
-      tangential_transf(Psi, T);
+      tangential_transf<double>(Psi, T);
       Eigen::Matrix3d Tinv = T.inverse();
-      Psidot = Tinv*V;
-      tangential_transf_dot(Psi, Psidot, Tdot);
+      Eigen::Vector3d Psidot = Tinv*V;
+      tangential_transf_dot<double>(Psi, Psidot, Tdot);
       f = T.transpose()*(J*A + V.cross(J*V)) - J*Tinv*(A-Tdot*Psidot);
     }
     else {
-      Eigen::Vector3d f0;
-      if(time == 0) {
-        Psi.setZero();
-        f0.setZero();
-        compute_tangents = false;
-      }
-      else if(domain->solInfo().galerkinPodRom) {
-        // in this case V and A are the first and second time-derivatives of the total rotation vector
-        Eigen::Vector3d incd = Psi - Psi_n;
-        // compute the total angular velocity at t^{n+1-alphaf}
-        V = gamma/(dt*beta)*incd + (1-(1-alphaf)*gamma/beta)*V_n + dt*(1-alphaf)*(2*beta-gamma)/(2*beta)*A_n;
-        // compute the total angular acceleration at t^{n+1-alpham}
-        A = (1-alpham)/(dt*dt*beta*(1-alphaf))*incd - (1-alpham)/(dt*beta)*V_n + ((alpham-1)/(2*beta)+1)*A_n;
-        f0 = J*A;
-      }
-      else {
+      // for HFM, V and A are the first and second time-derivatives of the total rotation vector at t_n
+      // and for ROM, V and A are the first and second time-derivatives of the total rotation vector at t_n
+      // at t_0, A should be zero!
+      if(time != 0) {
         Eigen::Vector3d incd;
-        Eigen::Matrix3d dR = R_n.transpose()*R;
-        mat_to_vec(dR, incd);
-        // compute the convected angular velocity at t^{n+1-alphaf}
+        if(domain->solInfo().galerkinPodRom) {
+          incd = Psi - Psi_n;
+        }
+        else {
+          Eigen::Matrix3d dR = R_n.transpose()*R;
+          mat_to_vec(dR, incd);
+        }
+        // compute the convected angular velocity at t^{n+1-alphaf} for HFM, or first time-derivative of total rotation vector at t^{n+1-alphaf} for ROM
         V = gamma/(dt*beta)*incd + (1-(1-alphaf)*gamma/beta)*V_n + dt*(1-alphaf)*(2*beta-gamma)/(2*beta)*A_n;
-        // compute the convected angular acceleration at t^{n+1-alpham}
+        // compute the convected angular acceleration at t^{n+1-alpham} for HFM, or second first time-derivative of total rotation vector at t^{n+1-alphaf} for ROM
         A = (1-alpham)/(dt*dt*beta*(1-alphaf))*incd - (1-alpham)/(dt*beta)*V_n + ((alpham-1)/(2*beta)+1)*A_n;
       }
 
-      // compute the correction to the inertial force computed in probDesc->formRHScorrector
+      // compute the inertial force
       if(domain->solInfo().galerkinPodRom) {
-        // the correct inertial force is T*R*(J*A + V.cross(J*V)). note T*R = T.transpose()
-        tangential_transf(Psi, T);
-        tangential_transf_dot(Psi, V, Tdot);
-        f = T.transpose()*( J*(T*A + Tdot*V) + (T*V).cross(J*T*V) ) - f0;
+        tangential_transf<double>(Psi, T);
+        tangential_transf_dot<double>(Psi, V, Tdot);
+        f = T.transpose()*( J*(T*A + Tdot*V) + (T*V).cross(J*T*V) ); // note T*R = T.transpose()
       }
       else {
-        // the correct inertial force is R*(J*A + V.cross(J*V))
-        f = (R - Eigen::Matrix3d::Identity())*J*A + R*V.cross(J*V);
+        f = R*(J*A + V.cross(J*V));
       }
+      // subtract the linear part which is added in probDesc->formRHScorrector
+      if(time != 0) f -= J*A;
 
       if(compute_tangents) { // tangent stiffness contribution of the inertial force
 
@@ -659,7 +640,7 @@ Domain::getNodeFictitiousForce(int inode, GeomState &geomState, double time, Geo
           K = dFdq(q, time);
         }
 
-        // subtract the part which is added to the dynamic tangent stiffness in probDesc->reBuild
+        // subtract the linear part which is added to the dynamic tangent stiffness in probDesc->reBuild
         K -= (1-alpham)/((1-alphaf)*(dt*dt*beta))*J;
       }
     }

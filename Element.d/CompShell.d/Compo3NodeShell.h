@@ -53,7 +53,7 @@ public:
 	Corotator *getCorotator(CoordSet &, double *,int,int);
 	double getMass(CoordSet &);
         double weight(CoordSet&, double *, int);
-        double weightDerivativeWRTthickness(CoordSet&, double *, int);
+        double weightDerivativeWRTthickness(CoordSet&, double *, int, int=1);
 
         void computeDisp(CoordSet&, State &, const InterpPoint &,
                          double*, GeomState *gs=0);

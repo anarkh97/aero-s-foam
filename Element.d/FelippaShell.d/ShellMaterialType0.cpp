@@ -215,6 +215,39 @@ ShellMaterialType0<doublereal>
     sigma = C*epsilon;
 }
 
+template<typename doublereal>
+void
+ShellMaterialType0<doublereal>
+::GetLocalConstitutiveResponseSensitivityWRTdisp(doublereal *_dUpsilondu, doublereal *_dsigmadu, doublereal z,
+                                                 doublereal *, int)
+{
+    // Local variables
+    Eigen::Matrix<doublereal,3,18> depsilondu;
+    Eigen::Matrix<doublereal,3,3> C;
+    Eigen::Map<Eigen::Matrix<doublereal,6,18> > dUpsilondu(_dUpsilondu);
+    Eigen::Map<Eigen::Matrix<doublereal,3,18> > dsigmadu(_dsigmadu);
+
+    // Some convenient definitions 
+    Eigen::Matrix<doublereal,3,18> e, chi;
+    e << dUpsilondu.block<3,18>(0,0);
+    chi << dUpsilondu.block<3,18>(3,0);
+
+// .....COMPUTE THE LOCAL STRAINS [epsilon] = {epsilonxx,epsilonyy,gammaxy} ON THE SPECIFIED SURFACE
+
+    depsilondu = e + z * chi;
+
+// .....GET THE PLANE STRESS ELASTICITY STIFFNESS MATRIX
+
+    doublereal v = E/(1-nu*nu);
+    C << v,    v*nu, 0,
+         v*nu, v,    0,
+         0,    0.,   v*(1-nu)/2;
+
+// .....COMPUTE THE LOCAL STRESSES [sigma] = {sigmaxx,sigmayy,sigmaxy} ON THE SPECIFIED SURFACE
+
+    dsigmadu = C*depsilondu;
+}
+
 template
 void
 ShellMaterialType0<double>

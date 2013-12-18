@@ -238,15 +238,20 @@ ShearPanel::weight(CoordSet& cs, double *gravityAcceleration, int altitude_direc
 }
 
 double
-ShearPanel::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int altitude_direction)
+ShearPanel::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int altitude_direction, int senMethod)
 {
   if (prop == NULL) {
     return 0.0;
   }
 
-  double _weight = weight(cs, gravityAcceleration, altitude_direction);
-  double thick = prop->eh;
-  return _weight/thick;
+  if(senMethod == 0) {
+    double _weight = weight(cs, gravityAcceleration, altitude_direction);
+    double thick = prop->eh;
+    return _weight/thick;
+  } else {
+    fprintf(stderr," ... Error: ShearPanel::weightDerivativeWRTthickness for automatic differentiation and finite difference is not implemented\n");
+    exit(-1);
+  }
 }
 
 void

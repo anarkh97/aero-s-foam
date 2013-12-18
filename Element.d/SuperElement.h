@@ -61,7 +61,7 @@ class SuperElement : public Element
 
     double getMass(CoordSet&);
     double weight(CoordSet&, double *, int);
-    double weightDerivativeWRTthickness(CoordSet&, double *, int);
+    double weightDerivativeWRTthickness(CoordSet&, double *, int, int=1);
     void getGravityForce(CoordSet &cs, double *gravity, Vector &force,
                          int gravflg, GeomState *gs=0);
     void getThermalForce(CoordSet &cs, Vector &ndT, Vector &force,

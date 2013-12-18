@@ -203,10 +203,10 @@ SuperElement::weight(CoordSet& cs, double *gravityAcceleration, int altitude_dir
 }
 
 double 
-SuperElement::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int altitude_direction)
+SuperElement::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int altitude_direction, int senMethod)
 {
   double ret = 0.0;
-  for(int i = 0; i < nSubElems; ++i) ret += subElems[i]->weightDerivativeWRTthickness(cs,gravityAcceleration, altitude_direction);
+  for(int i = 0; i < nSubElems; ++i) ret += subElems[i]->weightDerivativeWRTthickness(cs,gravityAcceleration, altitude_direction, senMethod);
   return ret;
 }
 

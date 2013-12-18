@@ -226,12 +226,17 @@ ThreeNodeShell::weight(CoordSet& cs, double *gravityAcceleration, int altitude_d
 }   
 
 double
-ThreeNodeShell::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int altitude_direction)
+ThreeNodeShell::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int altitude_direction, int senMethod)
 {
-  if(prop) { 
-    double _weight = weight(cs, gravityAcceleration, altitude_direction);
-    double eh = prop->eh;
-    return _weight/eh;
+  if(prop) {
+    if(senMethod == 0) { 
+      double _weight = weight(cs, gravityAcceleration, altitude_direction);
+      double eh = prop->eh;
+      return _weight/eh;
+    } else {
+      fprintf(stderr," ... Error: ThreeNodeShell::weightDerivativeWRTthickness for automatic differentiation and finite difference is not implemented\n");
+      exit(-1);
+    }
   } else return 0;
 }
 

@@ -401,7 +401,7 @@ class Element {
 
         virtual double getMass(CoordSet&) { return 0; }
         virtual double weight(CoordSet&, double *, int) { return 0; }
-        virtual double weightDerivativeWRTthickness(CoordSet&, double *, int) { return 0; }
+        virtual double weightDerivativeWRTthickness(CoordSet&, double *, int, int =1) { return 0; }
         virtual double getDCmass(CoordSet &,Vector &, double&) { return 0; }
 
         virtual void   getGravityForce(CoordSet&,double *gravity,Vector &force,
@@ -428,27 +428,27 @@ class Element {
 				      double &,double &, double* dT=0 );
 
         virtual void getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
-                                              double * = 0, double ylayer = 0, double zlayer = 0, int avgnum = 0) {
+                                              int senMethod = 1, double * = 0, double ylayer = 0, double zlayer = 0, int avgnum = 0) {
           weight = 1;
           dStdThick.zero();  
         }
 
         virtual void getVonMisesThicknessSensitivity(ComplexVector &dStdThick, ComplexVector &weight, CoordSet &cs, ComplexVector &elDisp, int strInd, int surface,
-                                              double * = 0, double ylayer = 0, double zlayer = 0, int avgnum = 0) {
+                                              int senMethod = 1, double * = 0, double ylayer = 0, double zlayer = 0, int avgnum = 0) {
           weight = DComplex(1,0);
           dStdThick.zero();
         }
 
         virtual void getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, 
                                                         CoordSet &cs, Vector &elDisp, int strInd, int surface,
-                                                        double * = 0, double ylayer = 0, double zlayer = 0, int avgnum = 0) {
+                                                        int senMethod = 1, double * = 0, double ylayer = 0, double zlayer = 0, int avgnum = 0) {
           weight = 1;
           dStdDisp.zero();  
         }
 
         virtual void getVonMisesDisplacementSensitivity(GenFullM<DComplex> &dStdDisp, ComplexVector &weight, 
                                                         CoordSet &cs, ComplexVector &elDisp, int strInd, int surface,
-                                                        double * = 0, double ylayer = 0, double zlayer = 0, int avgnum = 0) {
+                                                        int senMethod = 1, double * = 0, double ylayer = 0, double zlayer = 0, int avgnum = 0) {
           weight = DComplex(1,0);
           dStdDisp.zero();
         }

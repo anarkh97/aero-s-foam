@@ -1,4 +1,4 @@
-#ifndef _SHELLMATERIAL_HPP_
+       #ifndef _SHELLMATERIAL_HPP_
 #define _SHELLMATERIAL_HPP_
 
 #ifdef USE_EIGEN3
@@ -25,6 +25,9 @@ class ShellMaterial
     virtual void GetLocalConstitutiveResponse(doublereal *Upsilon, doublereal *sigma, doublereal z,
                                               doublereal *eframe, int gp)
       { std::cerr << "GetLocalConstitutiveResponse is not defined\n"; }
+    virtual void GetLocalConstitutiveResponseSensitivityWRTdisp(doublereal *dUpsilondu, doublereal *dsigmadu, doublereal z,
+                                                                doublereal *eframe, int gp)
+      { std::cerr << "GetLocalConstitutiveResponseWRTdisp is not defined\n"; }
     virtual int GetNumStates() { return 0; }
     virtual void SetState(doublereal *state) {}
     virtual void GetState(doublereal *state) {}
@@ -60,6 +63,8 @@ class ShellMaterialType0 : public ShellMaterial<doublereal>
     doublereal GetSumDensity() { return rho; }
     void GetLocalConstitutiveResponse(doublereal *Upsilon, doublereal *sigma, doublereal z,
                                       doublereal *eframe, int gp);
+    void GetLocalConstitutiveResponseSensitivityWRTdisp(doublereal *dUpsilondu, doublereal *dsigmadu, doublereal z,
+                                                        doublereal *eframe, int gp);
 };
 
 //     ------------------------------------------------- 

@@ -935,6 +935,274 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 
 }
 
+template<typename doublereal, template<typename> class Membrane, template<typename> class Bending>
+void
+ShellElementTemplate<doublereal,Membrane,Bending>
+::andesvmsWRTdisp(int elm, int maxstr, doublereal nu, 
+                  doublereal *X, doublereal *Y, doublereal *Z,
+                  doublereal *_v, doublereal *_stress, doublereal *_vmsWRTdisp,
+	                int ctyp, int strainflg, int surface)
+{
+  // Initialized data 
+  doublereal clr = 0;
+  doublereal cqr = 1;
+  doublereal betab = 1;
+  doublereal alpha = 1.5;
+  doublereal betam = .32;
+
+  // Local variables 
+  int i, j;
+  doublereal xlp[3], ylp[3], zlp[3];
+  doublereal area, thick;
+  doublereal str[6];
+  doublereal z, epszz;
+
+  Eigen::Matrix<doublereal,9,3> Lb, Lm;
+  Eigen::Matrix<doublereal,3,9> Bb, Bm;
+  Eigen::Matrix<doublereal,3,3> eframe, gframe = Eigen::Matrix<doublereal,3,3>::Identity();
+  Eigen::Matrix<doublereal,18,18> de_disp_du;
+  Eigen::Map<Eigen::Matrix<doublereal,3,18> > vmsWRTdisp(_vmsWRTdisp);
+  Eigen::Matrix<doublereal,18,1> vd;
+  Eigen::Map<Eigen::Matrix<doublereal,18,1> > v(_v);
+  Eigen::Matrix<doublereal,18,18> Eframe;
+  Eigen::Map<Eigen::Matrix<doublereal,Eigen::Dynamic,Eigen::Dynamic> > stress(_stress,maxstr,3);
+  Eigen::Matrix<doublereal,3,18> dsigmadu;
+  Eigen::Matrix<doublereal,3,1> sigma, epsilon;
+  Eigen::Matrix<doublereal,6,18> dUpsilondu;
+  Eigen::Matrix<doublereal,6,1> Upsilon, Sigma;
+
+  // Some convenient definitions 
+  Eigen::VectorBlock< Eigen::Matrix<doublereal,6,1> >
+    e = Upsilon.head(3), chi = Upsilon.tail(3);
+  Eigen::VectorBlock< Eigen::Matrix<doublereal,6,1> >
+    N = Sigma.head(3), M = Sigma.tail(3);
+
+
+// ==================================================================== 
+//                                                                      
+//     -----------------                                                
+//     V A R I A B L E S                                                
+//     -----------------                                                
+//                                                                      
+//     elm      <input>   Finite Element Number                         
+//     maxstr   <input>   Maximum Number of Stresses                    
+//     nu       <input>   Poisson's Ratio (for an Isotropic Element)    
+//     globalX  <input>   X- Nodal Coordinates                          
+//     globalY  <input>   Y- Nodal Coordinates                          
+//     globalZ  <input>   Z- Nodal Coordinates                          
+//     globalU  <input>   Global Displacements at the Nodal Joints      
+//     stress   <output>  Stresses (Von Mises Stress) of the Element    
+//     ctyp     <input>   Type of Constitutive Law (0, 1, 2, 3, or 4)      
+//                                                                      
+// ==================================================================== 
+// Author   = Francois M. Hemez                                         
+// Date     = June 10th, 1995                                           
+// Version  = 2.0                                                       
+// Modified = K. H. Pierson                                             
+// Date     = April 11, 1997                                            
+// Reason   = Added stress calculations for sigmaxx, sigmayy, sigmaxy   
+//            and von mises stress at top, median and bottom surfaces   
+//            Also added strain calculations for epsilonxx, epsilonyy,  
+//            epsilonzz, epsilonxy and an equivalent strain at top,     
+//            median and bottom surfaces.                               
+// ==================================================================== 
+
+    thick = nmat->GetShellThickness();
+
+//     ---------------------------------- 
+//     STEP 1                             
+//     COMPUTE THE TRIANGULAR COORDINATES 
+//     ---------------------------------- 
+
+// .....GET THE ELEMENT TRIANGULAR COORDINATES 
+// .....GET THE ELEMENT LEVEL FRAME
+
+    andescrd(elm, X, Y, Z, eframe.data(), xlp, ylp, zlp, area);
+    for(i = 0; i < 18; i += 3)
+        vd.segment(i,3) = eframe.transpose()*v.segment(i,3);
+    Eigen::Matrix<doublereal,3,3> zeros;
+    zeros.setZero();
+    Eframe << eframe.transpose(), zeros, zeros, zeros, zeros, zeros,
+              zeros, eframe.transpose(), zeros, zeros, zeros, zeros, 
+              zeros, zeros, eframe.transpose(), zeros, zeros, zeros,  
+              zeros, zeros, zeros, eframe.transpose(), zeros, zeros,
+              zeros, zeros, zeros, zeros, eframe.transpose(), zeros, 
+              zeros, zeros, zeros, zeros, zeros, eframe.transpose(); 
+
+//     --------------------------------------------------- 
+//     STEP 2                                              
+//     COMPUTE THE INTEGRATED CURVATURE-NODAL DISPLACEMENT 
+//     MATRIX FOR PURE BENDING (BASIC STIFFNESS MATRIX)    
+//     --------------------------------------------------- 
+
+    Lb = Bending<doublereal>::L(xlp, ylp, clr, cqr);
+
+//     ------------------------------------------------- 
+//     STEP 3                                            
+//     COMPUTE THE INTEGRATED STRAIN-NODAL DISPLACEMENT  
+//     MATRIX FOR PURE MEMBRANE (BASIC STIFFNESS MATRIX) 
+//     ------------------------------------------------- 
+
+    Lm = Membrane<doublereal>::L(xlp, ylp, alpha);
+
+//     ----------------------------------------------------- 
+//     STEP 5                                                
+//     COMPUTE THE ELEMENTAL EXTENSION AND CURVATURE VECTORS 
+//     ----------------------------------------------------- 
+
+    Eigen::Matrix<int,18,1> indices;
+    indices << 0, 1, 6, 7, 12, 13, 5, 11, 17, // M indices
+               2, 3, 4, 8, 9, 10, 14, 15, 16; // B indices
+    Eigen::PermutationMatrix<18,18,int> P(indices);
+
+    vd = P.transpose()*vd;
+    de_disp_du = P.transpose()*Eframe;
+
+// .....COMPUTE THE Z- COORDINATE OF THE SELECTED SURFACE
+
+    if(surface == 1) z = thick/2; // upper surface
+    else if(surface == 2) z = 0;  // median surface
+    else z = -thick/2;            // lower surface
+
+    // compute stresses and strains at the nodes
+    doublereal zeta[3][3] = { { 1.,0.,0. }, { 0.,1.,0. }, { 0.,0.,1. } }; // triangular coordinates of nodes
+    for(i = 0; i < 3; ++i) {
+
+#ifdef COMPATABILITY_MODE
+// .....ELEMENTAL CURVATURE COMPUTATION
+
+///        chi = (1/area)*Lb.transpose()*vd.tail(9);
+
+// .....ELEMENTAL EXTENSION COMPUTATION
+
+///        e = (1/area)*Lm.transpose()*vd.head(9);
+#else
+// .....ELEMENTAL CURVATURE COMPUTATION (including now the higher order contribution)
+
+        Bb = (1/area)*Lb.transpose() + Bending<doublereal>::Bd(xlp, ylp, betab, zeta[i]);
+        chi = Bb*vd.tail(9);
+
+// .....ELEMENTAL EXTENSION COMPUTATION (including now the higher order contribution)
+
+        Bm = (1/area)*Lm.transpose() +  Membrane<doublereal>::Bd(xlp, ylp, betam, zeta[i]);
+        e = Bm*vd.head(9);
+
+        Eigen::Matrix<doublereal,6,18> LB;
+        LB << Bm, Eigen::Matrix<doublereal,3,9>::Zero(),
+              Eigen::Matrix<doublereal,3,9>::Zero(), Bb;
+
+        dUpsilondu = LB*de_disp_du; 
+#endif
+
+//     -------------------------------------------------
+//     STEP 7
+//     COMPUTE THE STRESS OR STRAIN OR HISTORY VARIABLES
+//     -------------------------------------------------
+
+        switch(strainflg) {
+
+          case 1 : {
+
+          } break;
+
+          default :  
+          case 0 : {
+
+#ifdef COMPATABILITY_MODE
+
+#else
+
+// .....COMPUTE THE LOCAL STRESSES ON THE SPECIFIED SURFACE
+
+            nmat->GetLocalConstitutiveResponse(Upsilon.data(), sigma.data(), z, eframe.data(), i);
+            nmat->GetLocalConstitutiveResponseSensitivityWRTdisp(dUpsilondu.data(), dsigmadu.data(), z, eframe.data(), i);
+
+#endif
+
+// .....CALCULATE VON MISES EQUIVALENT STRESS
+
+            stress(6, i) = equivstr(sigma[0], sigma[1], 0, sigma[2]);
+            vmsWRTdisp.block<1,18>(i,0) = equivstrSensitivityWRTdisp(stress(6,i), sigma[0], sigma[1], 0, sigma[2], dsigmadu);
+
+// .....ROTATE LOCAL STRESSES TO GLOBAL
+
+            str[0] = sigma[0];
+            str[1] = sigma[1];
+            str[2] = 0.;
+            str[3] = sigma[2];
+            str[4] = 0.;
+            str[5] = 0.;
+            transform(eframe.data(), gframe.data(), str);
+            for (j = 0; j < 6; ++j)
+                stress(j, i) = str[j];
+
+          } break;
+
+          case 2 : {
+
+// .....COMPUTE THE EQUIVALENT PLASTIC STRAIN FOR ELASTO-PLASTIC MATERIALS
+            stress(0, i) = (ctyp == 4) ? nmat->GetLocalEquivalentPlasticStrain(i, z) : 0;
+
+          } break;
+
+          case 3 : {
+
+// .....COMPUTE THE BACKSTRESS FOR ELASTO-PLASTIC MATERIALS
+            if(ctyp == 4) {
+              std::vector<doublereal> sigma = nmat->GetLocalBackStress(i, z);
+
+// .....ROTATE LOCAL STRESSES TO GLOBAL
+
+              str[0] = sigma[0];
+              str[1] = sigma[1];
+              str[2] = 0.;
+              str[3] = sigma[2];
+              str[4] = 0.;
+              str[5] = 0.;
+              transform(eframe.data(), gframe.data(), str);
+              for (j = 0; j < 6; ++j)
+                stress(j, i) = str[j];
+  
+            }
+            else {
+              for (j = 0; j < 6; ++j)
+                stress(j, i) = 0;
+            }
+
+          } break;
+
+          case 4 : {
+
+// .....COMPUTE THE PLASTIC STRAIN TENSOR FOR ELASTO-PLASTIC MATERIALS
+            if(ctyp == 4) {
+              std::vector<doublereal> epsilon = nmat->GetLocalPlasticStrain(i, z);
+
+// .....ROTATE LOCAL STRAINS TO GLOBAL AND CONVERT SHEAR STRAINS TO ENGINEERING SHEAR STRAINS
+
+              str[0] = epsilon[0];
+              str[1] = epsilon[1];
+              str[2] = -(epsilon[0]+epsilon[1]);
+              str[3] = 0.5*epsilon[2];
+              str[4] = 0.;
+              str[5] = 0.;
+              transform(eframe.data(), gframe.data(), str);
+              for (j = 0; j < 3; ++j)
+                stress(j, i) = str[j];
+              for (j = 3; j < 6; ++j)
+                stress(j, i) = 2*str[j];
+
+            } 
+            else {
+              for (j = 0; j < 6; ++j)
+                stress(j, i) = 0;
+            }
+          
+          } break;
+
+        }
+    }
+
+}
 
 template<typename doublereal, template<typename> class Membrane, template<typename> class Bending>
 doublereal
@@ -963,6 +1231,43 @@ ShellElementTemplate<doublereal,Membrane,Bending>
     eq = sqrt(eq * 3.);
 
     return eq;
+}
+
+template<typename doublereal, template<typename> class Membrane, template<typename> class Bending>
+Eigen::Matrix<doublereal,1,18>
+ShellElementTemplate<doublereal,Membrane,Bending>
+::equivstrSensitivityWRTdisp(doublereal vms, doublereal sxx, doublereal syy, doublereal szz, doublereal sxy,
+                             Eigen::Matrix<doublereal,3,18> dsigmadu)
+{
+    // Builtin functions 
+    using std::sqrt;
+
+    // Local variables 
+    doublereal s0, dsxx, dsyy, dszz, eq;
+
+// ... COMPUTE MEAN HYDROSTATIC STRESS OR STRAIN 
+
+    s0 = (sxx + syy + szz) / 3.;
+
+// ... COMPUTE DEVIATORIC STRESSES OR STRAINS 
+
+    dsxx = sxx - s0;
+    dsyy = syy - s0;
+    dszz = szz - s0;
+
+// ... COMPUTE EQUIVALENT STRESS OR STRAIN 
+
+    Eigen::Matrix<doublereal,3,18> dsdu;
+    Eigen::Matrix<doublereal,3,3> D;
+    D << 2./3., -1./3., 0.,
+        -1./3.,  2./3., 0.,
+        -1./3., -1./3., 0.;
+    dsdu = D*dsigmadu;
+
+    return 3*dsxx/(2*vms)*dsdu.block<1,18>(0,0) + 
+           3*dsyy/(2*vms)*dsdu.block<1,18>(1,0) + 
+           3*dszz/(2*vms)*dsdu.block<1,18>(2,0) + 
+           3*sxy/vms*dsigmadu.block<1,18>(2,0);
 }
 
 template<typename doublereal, template<typename> class Membrane, template<typename> class Bending>

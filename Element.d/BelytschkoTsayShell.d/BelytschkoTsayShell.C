@@ -355,12 +355,17 @@ BelytschkoTsayShell::weight(CoordSet& cs, double *gravityAcceleration, int altit
 }   
 
 double
-BelytschkoTsayShell::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int altitude_direction)
+BelytschkoTsayShell::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int altitude_direction, int senMethod)
 {   
   if(prop) {
+   if(senMethod == 0) {
     double _weight = weight(cs, gravityAcceleration, altitude_direction);
     double eh = expmat->ematpro[19];
     return _weight/eh;
+   } else {
+    fprintf(stderr," ... Error: BelytschkoTsayShell::weightDerivativeWRTthickness for automatic differentiation and finite difference is not implemented\n");
+    exit(-1);
+   }
   } else return 0;
 }
 

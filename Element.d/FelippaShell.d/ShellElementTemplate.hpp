@@ -43,8 +43,17 @@ class ShellElementTemplate : public Membrane<doublereal>, public Bending<doubler
              doublereal *globaly, doublereal *globalz, doublereal *globalu,
              doublereal *stress, int ctyp, int strainflg, int surface);
 
+    void
+    andesvmsWRTdisp(int elm, int maxstr, doublereal nu, doublereal *globalx,
+             doublereal *globaly, doublereal *globalz, doublereal *globalu,
+             doublereal *stress, doublereal *_vmsWRTdisp, int ctyp, int strainflg, int surface);
+
     doublereal
     equivstr(doublereal sxx, doublereal syy, doublereal szz, doublereal sxy);
+
+    Eigen::Matrix<doublereal,1,18>
+    equivstrSensitivityWRTdisp(doublereal vms, doublereal sxx, doublereal syy, doublereal szz, doublereal sxy,
+                               Eigen::Matrix<doublereal,3,18> dsigmadu);
 
     void
     transform(doublereal *lframe, doublereal *gframe, doublereal *str);

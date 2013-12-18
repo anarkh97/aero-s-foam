@@ -2932,7 +2932,7 @@ Domain::makePreSensitivities(AllSensitivities<double> &allSens, double *bcx)
        if(prop == 0) continue; // phantom element
 
        weight += packedEset[iele]->weight(nodes, gravityAcceleration, altitude_direction); 
-       weightDerivative[iele] = packedEset[iele]->weightDerivativeWRTthickness(nodes, gravityAcceleration, altitude_direction);
+       weightDerivative[iele] = packedEset[iele]->weightDerivativeWRTthickness(nodes, gravityAcceleration, altitude_direction, senInfo[sindex].method);
      }
 
      for(int iparam = 0; iparam < senInfo[sindex].numParam; ++iparam) {
@@ -2994,7 +2994,7 @@ Domain::makePostSensitivities(AllSensitivities<double> &allSens, GenVector<doubl
              (*elDisp)[k] = bcx[(*allDOFs)[iele][k]];
          }
          transformVectorInv(*elDisp, iele);         
-         packedEset[iele]->getVonMisesThicknessSensitivity(dStressdThick, weight, nodes, *elDisp, 0, surface); 
+         packedEset[iele]->getVonMisesThicknessSensitivity(dStressdThick, weight, nodes, *elDisp, 0, surface, senInfo[sindex].method); 
          if(avgnum != 0) {
            // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
            int NodesPerElement = elemToNode->num(iele);
@@ -3038,8 +3038,9 @@ Domain::makePostSensitivities(AllSensitivities<double> &allSens, GenVector<doubl
          else
            (*elDisp)[k] = bcx[(*allDOFs)[iele][k]];
        }
-       transformVectorInv(*elDisp, iele);         
-       packedEset[iele]->getVonMisesDisplacementSensitivity(dStressdDisp, weight, nodes, *elDisp, 0, surface); 
+       transformVectorInv(*elDisp, iele);        
+       cout << "senInfo[sindex].method = " << senInfo[sindex].method << endl; 
+       packedEset[iele]->getVonMisesDisplacementSensitivity(dStressdDisp, weight, nodes, *elDisp, 0, surface, senInfo[sindex].method); 
        if(avgnum != 0) {
          // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
          int NodesPerElement = elemToNode->num(iele);
@@ -3107,7 +3108,7 @@ Domain::makePreSensitivities(AllSensitivities<DComplex> &allSens, DComplex *bcx)
        if(prop == 0) continue; // phantom element
 
        weight += packedEset[iele]->weight(nodes, gravityAcceleration, altitude_direction); 
-       weightDerivative[iele] = packedEset[iele]->weightDerivativeWRTthickness(nodes, gravityAcceleration, altitude_direction);
+       weightDerivative[iele] = packedEset[iele]->weightDerivativeWRTthickness(nodes, gravityAcceleration, altitude_direction, senInfo[sindex].method);
      }
 
      for(int gindex = 0; gindex < senInfo[sindex].numParam; ++gindex) {
@@ -3155,7 +3156,7 @@ Domain::makePostSensitivities(AllSensitivities<DComplex> &allSens, GenVector<DCo
              (*elDisp)[k] = bcx[(*allDOFs)[iele][k]];
          }
          transformVectorInv(*elDisp, iele);         
-         packedEset[iele]->getVonMisesThicknessSensitivity(dStressdThick, weight, nodes, *elDisp, 0, surface);  
+         packedEset[iele]->getVonMisesThicknessSensitivity(dStressdThick, weight, nodes, *elDisp, 0, surface, senInfo[sindex].method);  
        } 
      }
      break;

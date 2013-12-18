@@ -104,10 +104,15 @@ double LEIsoParamQuad::weight(CoordSet& cs, double *gravityAcceleration, int alt
 }
 
 
-double LEIsoParamQuad::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int altitude_direction)
+double LEIsoParamQuad::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int altitude_direction, int senMethod)
 {
- double _weight = weight(cs, gravityAcceleration, altitude_direction);
- return _weight/prop->eh;
+ if(senMethod == 0) {
+   double _weight = weight(cs, gravityAcceleration, altitude_direction);
+   return _weight/prop->eh;
+ } else {
+   fprintf(stderr," ... Error: LEIsoParamQuad::weightDerivativeWRTthickness for automatic differentiation and finite difference is not implemented\n");
+   exit(-1);
+ }
 }
 
 

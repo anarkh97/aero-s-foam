@@ -977,6 +977,12 @@ TRAIL [a-zA-Z]*
 
 "vmstdisp"|"VMSTDISP"              { yylval.ival = SensitivityInfo::StressVMWRTdisplacement; return SENSITIVITYTYPE; }
 
+"analytic"|"ANALYTIC"                                 { yylval.ival = SensitivityInfo::Analytic;                 return SENSITIVITYMETHOD; }
+
+"automaticdifferentiation"|"AUTOMATICDIFFERENTIATION" { yylval.ival = SensitivityInfo::AutomaticDifferentiation; return SENSITIVITYMETHOD; }
+
+"fdifference"|"FDIFFERENCE"                           { yylval.ival = SensitivityInfo::FiniteDifference;         return SENSITIVITYMETHOD; }
+
 "elemental"[a-zA-Z]*|"ELEMENTAL"[a-zA-Z]* { yylval.ival =  0; return AVERAGED; }
 
 "gauss"[a-zA-Z]*|"GAUSS"[a-zA-Z]*  { yylval.ival =  -1; return AVERAGED; }

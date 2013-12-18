@@ -112,10 +112,15 @@ double LEIsoParamTri::weight(CoordSet& cs, double *gravityAcceleration, int alti
   return _mass*gravityAcceleration[altitude_direction];
 }
 
-double LEIsoParamTri::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int altitude_direction)
+double LEIsoParamTri::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int altitude_direction, int senMethod)
 {
- double _weight = weight(cs, gravityAcceleration, altitude_direction);
- return _weight/prop->eh;
+ if(senMethod == 0) {
+   double _weight = weight(cs, gravityAcceleration, altitude_direction);
+   return _weight/prop->eh;
+ } else {
+   fprintf(stderr," ... Error: LEIsoParamTri::weightDerivativeWRTthickness for automatic differentiation and finite difference is not implemented\n");
+   exit(-1);
+ }
 }
 
 FullSquareMatrix LEIsoParamTri::massMatrix(CoordSet &cs, double *K, int fl) {

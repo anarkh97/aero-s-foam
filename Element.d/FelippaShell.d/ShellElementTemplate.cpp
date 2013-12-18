@@ -631,7 +631,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 ::andesvms(int elm, int maxstr, doublereal nu, 
            doublereal *X, doublereal *Y, doublereal *Z,
            doublereal *_v, doublereal *_stress,
-	   int ctyp, int strainflg, int surface)
+           int ctyp, int strainflg, int surface)
 {
   // Initialized data 
   doublereal clr = 0;
@@ -941,7 +941,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 ::andesvmsWRTdisp(int elm, int maxstr, doublereal nu, 
                   doublereal *X, doublereal *Y, doublereal *Z,
                   doublereal *_v, doublereal *_stress, doublereal *_vmsWRTdisp,
-	                int ctyp, int strainflg, int surface)
+                  int ctyp, int strainflg, int surface)
 {
   // Initialized data 
   doublereal clr = 0;
@@ -1122,7 +1122,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 // .....CALCULATE VON MISES EQUIVALENT STRESS
 
             stress(6, i) = equivstr(sigma[0], sigma[1], 0, sigma[2]);
-            vmsWRTdisp.block<1,18>(i,0) = equivstrSensitivityWRTdisp(stress(6,i), sigma[0], sigma[1], 0, sigma[2], dsigmadu);
+            vmsWRTdisp.template block<1,18>(i,0) = equivstrSensitivityWRTdisp(stress(6,i), sigma[0], sigma[1], 0, sigma[2], dsigmadu);
 
 // .....ROTATE LOCAL STRESSES TO GLOBAL
 
@@ -1264,10 +1264,10 @@ ShellElementTemplate<doublereal,Membrane,Bending>
         -1./3., -1./3., 0.;
     dsdu = D*dsigmadu;
 
-    return 3*dsxx/(2*vms)*dsdu.block<1,18>(0,0) + 
-           3*dsyy/(2*vms)*dsdu.block<1,18>(1,0) + 
-           3*dszz/(2*vms)*dsdu.block<1,18>(2,0) + 
-           3*sxy/vms*dsigmadu.block<1,18>(2,0);
+    return 3*dsxx/(2*vms)*dsdu.template block<1,18>(0,0) + 
+           3*dsyy/(2*vms)*dsdu.template block<1,18>(1,0) + 
+           3*dszz/(2*vms)*dsdu.template block<1,18>(2,0) + 
+           3*sxy/vms*dsigmadu.template block<1,18>(2,0);
 }
 
 template<typename doublereal, template<typename> class Membrane, template<typename> class Bending>

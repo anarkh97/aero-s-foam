@@ -229,8 +229,8 @@ ShellMaterialType0<doublereal>
 
     // Some convenient definitions 
     Eigen::Matrix<doublereal,3,18> e, chi;
-    e << dUpsilondu.block<3,18>(0,0);
-    chi << dUpsilondu.block<3,18>(3,0);
+    e << dUpsilondu.template block<3,18>(0,0);
+    chi << dUpsilondu.template block<3,18>(3,0);
 
 // .....COMPUTE THE LOCAL STRAINS [epsilon] = {epsilonxx,epsilonyy,gammaxy} ON THE SPECIFIED SURFACE
 

@@ -481,10 +481,10 @@ void GeoSource::addMpcElements(int numLMPC, ResizeArray<LMPCons *> &lmpc)
     //cerr << " ... Converted " << numLMPC << " LMPCs to constraint elements ...\n";
     // XXXX still needed for eigen GRBM lmpc.deleteArray(); domain->setNumLMPC(0);
   }
- for(int i=0; i<numLMPC; ++i) if(lmpc[i]) delete lmpc[i];
- lmpc.deleteArray();
- lmpc.restartArray();
- domain->setNumLMPC(0);
+  for(int i=0; i<numLMPC; ++i) if(lmpc[i]) delete lmpc[i];
+  lmpc.deleteArray();
+  lmpc.restartArray();
+  domain->setNumLMPC(0);
 }
 
 // Order the terms in MPCs so that the first term (slave) can be directly written in terms of the others (master)
@@ -3865,21 +3865,26 @@ GeoSource::simpleDecomposition(int numSubdomains, bool estFlag, bool weightOutFl
  int maxEle = elemSet.last();
 
  if(trivialFlag) {
+
+   int numEle = 0;
+   for(int i=0; i<maxEle; ++i)
+     if(elemSet[i]) numEle++;
+
    optDec = new Decomposition;
    optDec->nsub = numSubdomains;
    optDec->pele = new int[optDec->nsub+1];
-   optDec->eln = new int[maxEle];
+   optDec->eln = new int[numEle];
 
-   optDec->pele[0] = 0;
-   int div = maxEle / optDec->nsub;
-   int rem = maxEle % optDec->nsub;
+   int div = numEle / optDec->nsub;
+   int rem = numEle % optDec->nsub;
 
    optDec->pele[0] = 0;
    for(int i=0; i<optDec->nsub; i++)
      optDec->pele[i+1] = optDec->pele[i] + ((i < rem) ? div+1 : div);
 
+   int k = 0;
    for(int i=0; i<maxEle; i++)
-     optDec->eln[i] = i;
+     if(elemSet[i]) optDec->eln[k++] = i;
 
    if(verboseFlag)
      filePrint(stderr, " ... %d Elements Have Been Arranged in %d Subdomains ...\n",

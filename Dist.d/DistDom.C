@@ -61,32 +61,12 @@ template<class Scalar>
 void
 GenDistrDomain<Scalar>::initPostPro()
 {
-  //geoSource->setNumNodalOutput();
-
   if(geoSource->getNumOutInfo()) {
 #ifdef DISTRIBUTED
-/* moved to DecDomain::preProcess
-    if(geoSource->getNumNodalOutput()) {
-      for(int i=0; i<this->numSub; ++i)
-        geoSource->distributeOutputNodesX(this->subDomain[i], this->nodeToSub);
-    }
-*/
     createMasterFlag();
     createOutputOffsets();
     makeMasterInfo();
 #endif
-
-/*`
-    if(!this->elemToNode) { // check if elemToNode is required
-      OutputInfo *oinfo = geoSource->getOutputInfo();
-      for(int iInfo = 0; iInfo < geoSource->getNumOutInfo(); iInfo++) {
-        if(oinfo[iInfo].averageFlg == 0) {
-          this->createElemToNode();
-          break;
-        }
-      }
-    }
-*/ 
     if(!this->elemToNode && geoSource->elemOutput()) this->createElemToNode();
   }
 }
@@ -107,7 +87,6 @@ GenDistrDomain<Scalar>::makeMasterInfo()
 #endif
 }
 
-
 template<class Scalar>
 void
 GenDistrDomain<Scalar>::forceContinuity(GenDistrVector<Scalar> &u) {
@@ -124,10 +103,9 @@ GenDistrDomain<Scalar>::forceContinuity(GenDistrVector<Scalar> &u) {
     Scalar *bcx = this->subDomain[iSub]->getBcx();
     this->subDomain[iSub]->template mergeDistributedDisp<Scalar>(xyz, u.subData(iSub), bcx);
   }
-//  if(domain->solInfo().isCoupled && domain->solInfo().isMatching)
-  unify(disps); // PJSA 1-17-08 make sure master has both fluid and structure solutions before reducing
+  unify(disps); // make sure master has solution for all dofs before reducing
   disps.reduce(masterDisps, masterFlag, numFlags);
- this->communicator->sync();
+  this->communicator->sync();
   for(iSub = 0; iSub < this->numSub; ++iSub) {
     Scalar (*xyz)[11] = (Scalar (*)[11]) disps.subData(iSub);
     this->subDomain[iSub]->template forceDistributedContinuity<Scalar>(u.subData(iSub), xyz);
@@ -184,8 +162,8 @@ GenDistrDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector
     Scalar (*xyz_loc)[11] = (disps_loc) ? (Scalar (*)[11]) disps_loc->subData(iSub) : 0;
     this->subDomain[iSub]->template mergeDistributedDisp<Scalar>(xyz, u.subData(iSub), bcx, xyz_loc);
   }
-  if(domain->solInfo().isCoupled && domain->solInfo().isMatching) {
-    unify(disps_glo); // PJSA 1-17-08 make sure master has both fluid and structure solutions before reducing
+  if((domain->solInfo().isCoupled && domain->solInfo().isMatching) || domain->GetnContactSurfacePairs()) {
+    unify(disps_glo); // make sure master has solution for all dofs before reducing
     if(disps_loc) unify(*disps_loc);
   }
   disps_glo.reduce(masterDisps_glo, masterFlag, numFlags);
@@ -268,7 +246,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
     }
   }
 
-  if((x == domain->solInfo().initialTimeIndex) || (outLimit > 0 && x%outLimit == 0)) { // PJSA 3-31-06
+  if((x == domain->solInfo().initialTimeIndex) || (outLimit > 0 && x%outLimit == 0)) {
 #ifdef DISTRIBUTED
 
     for(int iInfo = 0; iInfo < numOutInfo; iInfo++) {
@@ -279,7 +257,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
         if(this->firstOutput) { geoSource->openOutputFiles(0,&oI,1); } 
         continue;
       }
-      else if(oinfo[iInfo].nodeNumber == -1 && this->firstOutput) { // PJSA only need to call this the first time
+      else if(oinfo[iInfo].nodeNumber == -1 && this->firstOutput) {
         if(this->communicator->cpuNum() == 0) geoSource->createBinaryOutputFile(iInfo,this->localSubToGl[0],x);
         else geoSource->computeAndCacheHeaderLength(iInfo);
       }
@@ -935,7 +913,6 @@ void
 GenDistrDomain<Scalar>::getElementPrincipalStress(GenDistrVector<Scalar> &u, double time,
                                                   int iter, int fileNumber, int strIndex)
 {
-  // PJSA: 3-23-05
   // set stress VS. strain for element subroutines
   int i, j;
   int strInd;
@@ -1008,8 +985,7 @@ void
 GenDistrDomain<Scalar>::getElementPrincipalStress(DistrGeomState *gs, Corotator ***allCorot, double time,
                                                   int x, int fileNumber, int strIndex, DistrGeomState *refState)
 {
-  // PJSA: 3-23-05 Non-linear version
-  // set stress VS. strain for element subroutines
+  // set stress VS. strain for element subroutines (Non-linear version)
   int i, j;
   int strInd;
   int stressORstrain;
@@ -1291,13 +1267,13 @@ GenDistrDomain<Scalar>::createOutputOffsets()
   // create cluster array of offsets
   int **clNodeOffsets = new int *[numClusters];
   int **clElemNodeOffsets = new int *[numClusters];
-  int **clElemOffsets = new int *[numClusters];  // PJSA
+  int **clElemOffsets = new int *[numClusters]; 
 
   for(iCluster = 0; iCluster < numClusters; iCluster++) {
     clNodeOffsets[iCluster] = new int[clusToSub->num(iCluster)];
     clElemNodeOffsets[iCluster] = new int[clusToSub->num(iCluster)];
     clElemOffsets[iCluster] = new int[clusToSub->num(iCluster)];
-    for(int j=0; j<clusToSub->num(iCluster); ++j) { // PJSA: initialize to zero so global sum will work
+    for(int j=0; j<clusToSub->num(iCluster); ++j) { // initialize to zero so global sum will work
       clNodeOffsets[iCluster][j] = 0;
       clElemNodeOffsets[iCluster][j] = 0;
       clElemOffsets[iCluster][j] = 0;
@@ -1396,7 +1372,9 @@ GenDistrDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***a
     Scalar (*xyz)[11] = (Scalar (*)[11]) disps.subData(iSub);//DofSet::max_known_nonL_dof
     this->subDomain[iSub]->mergeDistributedNLDisp(xyz, (*geomState)[iSub]);
   }
-  if(domain->solInfo().isCoupled && domain->solInfo().isMatching) unify(disps); // PJSA 1-17-08 make sure master has both fluid and structure solutions before reducing
+  if((domain->solInfo().isCoupled && domain->solInfo().isMatching) || domain->GetnContactSurfacePairs()) {
+    unify(disps); // make sure master has solution for all dofs before reducing
+  }
   disps.reduce(masterDisps, masterFlag, numFlags);
   // initialize and merge aeroelastic forces
   DistSVec<Scalar, 6> aerof(this->nodeInfo);
@@ -2087,7 +2065,7 @@ template<class Scalar>
 void
 GenDistrDomain<Scalar>::unify(DistSVec<Scalar, 11> &vec)
 { 
-  // XXXX PJSA 1-17-08: make sure that every subdomain sharing a node has the same solution for all the dofs. Actually the master sub is really the only one that needs it.
+  // make sure that every subdomain sharing a node has the same solution for all the dofs. Actually the master sub is really the only one that needs it.
   FSCommPattern<Scalar> *pat = new FSCommPattern<Scalar>(this->communicator, this->cpuToSub, this->myCPU, FSCommPattern<Scalar>::CopyOnSend);
   for(int i=0; i<this->numSub; ++i) this->subDomain[i]->setNodeCommSize(pat, 11);
   pat->finalize();
@@ -2097,8 +2075,6 @@ GenDistrDomain<Scalar>::unify(DistSVec<Scalar, 11> &vec)
   delete pat;
 }
 
-
-//------------------------------------------------------------------------------
 template<class Scalar>
 void GenDistrDomain<Scalar>::getElementAttr(int fileNumber,int iAttr, double time)
 {

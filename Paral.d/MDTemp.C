@@ -1,5 +1,6 @@
 #include <Paral.d/MDTemp.h>
 #include <Driver.d/DecDomain.h>
+#include <Dist.d/DistDom.h>
 #include <Driver.d/Domain.h>
 #include <Driver.d/Dynam.h>
 #include <Math.d/SparseMatrix.h>

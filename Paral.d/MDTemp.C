@@ -318,4 +318,5 @@ int
 MultiDomainTemp::cmdComHeat(int cmdFlag)
 {
   filePrint(stderr, " *** WARNING: MultiDomainTemp::cmdComHeat is not implemented\n");
+  return 0;
 }

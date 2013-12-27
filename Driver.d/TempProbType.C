@@ -84,7 +84,10 @@ TempSolver<
 { 
   double gamma;
   probDesc->getTempNeum(gamma);
-  filePrint(stderr, " ... Newmark Time Integration Scheme: gamma = %4.2f ...\n", gamma);
+  if(gamma != 0)
+    filePrint(stderr, " ... Implicit Generalized Midpoint Time Integration Scheme: alpha = %4.2f ...\n", gamma);
+  else
+    filePrint(stderr, " ... Explicit Forward Euler Time Integration Scheme ...\n");
 
   VecType &d_n = curState.getDisp();
   VecType &v_n = curState.getVeloc();
@@ -146,7 +149,7 @@ TempSolver<
 
     if(gamma != 0.0) { // IMPLICIT
       // Solve for temperature: d^{n+1/2} = (M + gamma*dt*K)^{-1}(gamma*dt*f^{n+1/2} + M*(d^n+dt/2*(1-2*gamma)*v^n))
-      if(gamma != 0.5) { // PJSA 8/7/2008
+      if(gamma != 0.5) {
         tmp.linC(d_n, dt/2.0*(1.0-2.0*gamma), v_n);
         dynOps.M->mult(tmp, rhs);
       }
@@ -167,7 +170,8 @@ TempSolver<
       // Solve for first time derivative of temperature: v^{n+1/2} = (M + gamma*dt*K)^{-1}(f^{n+1/2} - K*(d^n + dt/2*(1-2*gamma)*v^n))
       //                                                           = M^{-1}(f^{n+1/2} - K*(d^n+dt/2*v^n)) if gamma == 0
       tmp.linC(-1.0, d_n, -dt/2.0, v_n);
-      dynOps.K->mult(tmp, rhs);
+      if(domain->solInfo().isNonLin()) probDesc->getInternalForce(tmp, rhs);
+      else dynOps.K->mult(tmp, rhs);
       rhs += ext_f;
       dynOps.dynMat->reSolve(rhs);
 
@@ -271,7 +275,7 @@ TempSolver< DynOps, VecType, PostProcessor, ProblemDescriptor >
     probDesc->getInternalForce(d_n,rhs);
 
     // ... check for convergence
-    double relres = (rhs-ext_f).norm() / forceRef;
+    double relres = norm(rhs-ext_f) / forceRef;
     if(relres <= steadyTol) iSteady = 1;
 
     fprintf(stderr," ... Pseudo-Step = %d  Rel. Res. = %10.4e\n", tIndex, relres);

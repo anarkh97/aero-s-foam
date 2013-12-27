@@ -29,6 +29,7 @@ class TemperatureState : public GeomState
                                        double delta);
      void updatePrescribedDisplacement(BCond *dbc, int numDirichlet,
                                        CoordSet &cs);
+     void explicitUpdate(CoordSet &cs, const Vector &v);
 
      void midpoint_step_update(Vector &veloc_n, Vector &accel_n, double delta, GeomState &ss,
                                double beta, double gamma, double alphaf, double alpham,

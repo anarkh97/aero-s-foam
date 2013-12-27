@@ -32,6 +32,7 @@ using namespace std;
 #include <Paral.d/MDEigen.h>
 #include <Paral.d/MDNLStatic.h>
 #include <Paral.d/MDNLDynam.h>
+#include <Paral.d/MDTemp.h>
 #include <HelmAxi.d/FourierDescrip.h>
 #include <HelmAxi.d/FourierProbTyp.h>
 #include <HelmAxi.d/FourierHelmBCs.h>
@@ -825,8 +826,15 @@ int main(int argc, char** argv)
    }
 
    switch(domain->probType()) {
-     case SolverInfo::Dynamic: 
      case SolverInfo::TempDynamic:
+       {
+         MultiDomainTemp tempProb(domain);
+         TempSolver<MDDynamMat, DistrVector, MDTempDynamPostProcessor,
+                    MultiDomainTemp> dynaSolver(&tempProb);
+         dynaSolver.solve();
+       }
+       break;
+     case SolverInfo::Dynamic: 
        {
         if(domain->solInfo().mdPita) { // Not implemented yet
           filePrint(stderr, " ... PITA does not support multidomain - Aborting...\n");
@@ -976,10 +984,18 @@ int main(int argc, char** argv)
      case SolverInfo::NonLinDynam: {
        if(domain->solInfo().newmarkBeta == 0) { // explicit
          if (!domain->solInfo().activatePodRom) {
-           MultiDomainDynam dynamProb(domain);
-           DynamicSolver < MDDynamMat, DistrVector, MultiDomDynPostProcessor,
-                           MultiDomainDynam, double > dynamSolver(&dynamProb);
-           dynamSolver.solve();
+           if(domain->solInfo().soltyp == 2) {
+             MultiDomainTemp tempProb(domain);
+             TempSolver<MDDynamMat, DistrVector, MDTempDynamPostProcessor,
+                        MultiDomainTemp> dynamSolver(&tempProb);
+             dynamSolver.solve();
+           }
+           else {
+             MultiDomainDynam dynamProb(domain);
+             DynamicSolver<MDDynamMat, DistrVector, MultiDomDynPostProcessor,
+                           MultiDomainDynam, double> dynamSolver(&dynamProb);
+             dynamSolver.solve();
+           }
          } 
          else { // POD ROM
            if (domain->solInfo().galerkinPodRom) {
@@ -1207,7 +1223,6 @@ int main(int argc, char** argv)
        break;
 
      case SolverInfo::Dynamic:
-     //case SolverInfo::TempDynamic:
        {
         if(domain->solInfo().modal) {
 	  fprintf(stderr," ... Modal Method  ...\n");
@@ -1317,11 +1332,18 @@ int main(int argc, char** argv)
          }
          else {
            if(domain->solInfo().newmarkBeta == 0) { // explicit
-             SingleDomainDynamic dynamProb(domain);
-             DynamicSolver <GenDynamMat<double>, Vector,
-                   SDDynamPostProcessor, SingleDomainDynamic, double>
-               dynaSolver(&dynamProb);
-             dynaSolver.solve();
+             if(domain->solInfo().soltyp == 2) {
+               SingleDomainTemp tempProb(domain);
+               TempSolver<DynamMat, Vector, SDTempDynamPostProcessor,
+                          SingleDomainTemp> dynaSolver(&tempProb);
+               dynaSolver.solve();
+             }
+             else {
+               SingleDomainDynamic dynamProb(domain);
+               DynamicSolver<GenDynamMat<double>, Vector, SDDynamPostProcessor,
+                             SingleDomainDynamic, double> dynaSolver(&dynamProb);
+               dynaSolver.solve();
+             }
            }
            else { // implicit
              // filePrint(stderr, "Non-Linear Implicit Dynamic solver\n");

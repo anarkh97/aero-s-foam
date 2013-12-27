@@ -184,7 +184,7 @@ MultiDomDynPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dynOps, 
     }
   }
 
-  // PJSA 4-15-08: update bcx for time dependent prescribed displacements and velocities 
+  // Update bcx for time dependent prescribed displacements and velocities 
   ControlLawInfo *claw = geoSource->getControlLaw();
   ControlInterface *userSupFunc = domain->getUserSuppliedFunction();
   if(claw && claw->numUserDisp) {
@@ -292,7 +292,7 @@ MultiDomainDynam::buildOps(double coeM, double coeC, double coeK)
   // dynamic matrices in the Feti Solver
   dynMat = new MDDynamMat;
 
-  times->getFetiSolverTime -= getTime(); // PJSA 5-25-05
+  times->getFetiSolverTime -= getTime();
   decDomain->buildOps(*dynMat, coeM, coeC, coeK, (Rbm **) 0, kelArray);
 
   if(domain->tdenforceFlag()) { 
@@ -365,18 +365,18 @@ MultiDomainDynam::preProcess()
   claw = geoSource->getControlLaw();
   userSupFunc = geoSource->getUserSuppliedFunction();
 
-  // Make the geomState (used for prestress, explicit geometric nonlinear and contact)
+  // Make the geomState (used for prestress, explicit nonlinear and contact)
   if((domain->solInfo().gepsFlg == 1 && domain->numInitDisp6() > 0) || domain->solInfo().isNonLin() || domain->tdenforceFlag()) {
     times->timeGeom -= getTime();
     geomState = new DistrGeomState(decDomain);
     times->timeGeom += getTime();
   }
 
-  // Update geomState with prescribed dirichlet boundary conditions (explicit geometric nonlinear and contact)
+  // Update geomState with prescribed dirichlet boundary conditions (explicit nonlinear and contact)
   if(domain->solInfo().isNonLin() || domain->tdenforceFlag())
     execParal(decDomain->getNumSub(), this, &MultiDomainDynam::initSubPrescribedDisplacement);
 
-  // Make corotators and kelArray (used for prestress and explicit geometric nonlinear)
+  // Make corotators and kelArray (used for prestress and explicit nonlinear)
   if((domain->solInfo().gepsFlg == 1 && domain->numInitDisp6() > 0) || domain->solInfo().isNonLin()) {
     times->corotatorTime -= getTime();
     allCorot = new Corotator**[decDomain->getNumSub()];
@@ -393,10 +393,6 @@ MultiDomainDynam::preProcess()
   // Initialization for contact
   if(domain->tdenforceFlag())
     domain->InitializeDynamicContactSearch(decDomain->getNumSub(), decDomain->getAllSubDomains());
-/* currently done in main.C for linear case
-  else
-    domain->InitializeStaticContactSearch(MortarHandler::CTC, decDomain->getNumSub(), decDomain->getAllSubDomains());
-*/
 }
 
 void
@@ -413,20 +409,20 @@ MultiDomainDynam::makeSubElementArrays(int isub)
 {
   SubDomain *sd = decDomain->getSubDomain(isub);
 
-  // allocate the element stiffness array
+  // allocate the element mass and/or stiffness array
   if(melArray) sd->createKelArray(kelArray[isub], melArray[isub]);
   else sd->createKelArray(kelArray[isub]);
  
   // update geomState with IDISP6 if GEPS is requested (geometric prestress / linear only)
   if((sd->numInitDisp6() > 0) && (domain->solInfo().gepsFlg == 1)) // GEPS
-   (*geomState)[isub]->updatePrescribedDisplacement(sd->getInitDisp6(), sd->numInitDisp6(), sd->getNodes());
+    (*geomState)[isub]->updatePrescribedDisplacement(sd->getInitDisp6(), sd->numInitDisp6(), sd->getNodes());
 
   // build the element stiffness matrices.
   if(!domain->solInfo().ROMPostProcess && !domain->solInfo().elemLumpPodRom) {
     Vector elementInternalForce(sd->maxNumDOF(), 0.0);
     Vector residual(sd->numUncon(), 0.0);
     sd->getStiffAndForce(*(*geomState)[isub], elementInternalForce, allCorot[isub], kelArray[isub], residual,
-                         1.0, 0.0, (*geomState)[isub], (Vector*) NULL, melArray[isub]);
+                         1.0, 0.0, (*geomState)[isub], (Vector*) NULL, ((melArray) ? melArray[isub] : NULL));
   }
 }
 

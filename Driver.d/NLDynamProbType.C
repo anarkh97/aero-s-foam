@@ -50,7 +50,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
   bool failSafe = domain->solInfo().getNLInfo().failsafe;
 
   if(domain->solInfo().order == 1)
-    filePrint(stderr, " ... Implicit Newmark Algorithm     ...\n");
+    filePrint(stderr, " ... Implicit Generalized Midpoint Time Integration Scheme: alpha =  %4.2f ...\n", gamma);
   else
     filePrint(stderr, " ... Implicit Newmark Time Integration Scheme: beta = %4.2f, gamma = %4.2f, alphaf = %4.2f, alpham = %4.2f ...\n", beta, gamma, alphaf, alpham);
 

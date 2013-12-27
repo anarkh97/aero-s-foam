@@ -563,7 +563,10 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 		      NewmarkWorkVec<VecType,ProblemDescriptor>& workVec,
                       double dt, double tmax)
 {
-   filePrint(stderr, " ... Implicit Newmark Time Integration Scheme: beta = %4.2f, gamma = %4.2f, alphaf = %4.2f, alpham = %4.2f ...\n",beta,gamma,alphaf,alpham);
+   if(domain->solInfo().order == 1) 
+     filePrint(stderr, " ... Implicit Generalized Midpoint Time Integration Scheme: alpha = %4.2f ...\n", gamma);
+   else 
+     filePrint(stderr, " ... Implicit Newmark Time Integration Scheme: beta = %4.2f, gamma = %4.2f, alphaf = %4.2f, alpham = %4.2f ...\n",beta,gamma,alphaf,alpham);
 
    int parity = 0;
    SysState<VecType> *bkState = 0;

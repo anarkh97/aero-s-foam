@@ -49,16 +49,11 @@ class SingleDomainTemp {
 
  public:
     SingleDomainTemp(Domain *d) { domain = d; kelArray = 0; allCorot = 0; geomState = 0; }
-    int* boundary() { return bc;}
-    double* boundaryValue() { return bcx;}
 
     DynamMat buildOps(double, double, double);
-//    DynamMat buildDynamicOps(double, double, double);
-    Solver *getSolver();
 
     SDTempDynamPostProcessor *getPostProcessor();
     int solVecInfo();
-    int dbcVecInfo();
     int getTimeIntegration();
     int getAeroheatFlag();
     int getThermohFlag();
@@ -69,7 +64,6 @@ class SingleDomainTemp {
     void tempProject(Vector &v);
     void tempprojector_prep(Rbm *R, SparseMatrix *M);
     void getTempTimes(double &dtemp, double &tmax);
-    void getFluiddTime(double &dtfluid, double &tmaxfluid);
     void getTempNeum(double &epsiln);
     void tempInitState(TempState<Vector> &);
     void computeExtForce(Vector &, double t, int tIndex, Vector &);
@@ -87,8 +81,6 @@ class SingleDomainTemp {
     void modeDecomp(double t, int tIndex, Vector& d_n);
 
     int cmdComHeat(int cmdFlag);
-
 };
-
 
 #endif

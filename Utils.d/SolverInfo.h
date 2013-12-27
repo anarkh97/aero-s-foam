@@ -828,9 +828,6 @@ struct SolverInfo {
      order = 1;
      newmarkGamma = alphaTemp = epsiln;
      if(newmarkGamma == 0) newmarkBeta = 0; // this is used to flag explicit scheme
-     //if(alphaTemp < 0.5){
-     //   fprintf(stderr," ... WARNING: UNSTABLE EXPLICIT SCHEME ...\n");
-     // }
    }
 
    // set parameters for quasistatic problem

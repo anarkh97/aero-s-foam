@@ -8,9 +8,7 @@
 #include <Math.d/FullMatrix.h>
 #include <Math.d/SparseMatrix.h>
 #include <Math.d/DBSparseMatrix.h>
-#include <Math.d/NBSparseMatrix.h>
 #include <Math.d/CuCSparse.h>
-#include <Math.d/Skyline.d/SkyMatrix.h>
 #include <Utils.d/dofset.h>
 #include <Element.d/State.h>
 #include <Solvers.d/Rbm.h>
@@ -107,12 +105,6 @@ SingleDomainTemp::solVecInfo()
  return domain->numUncon();
 }
 
-int
-SingleDomainTemp::dbcVecInfo()
-{
- return domain->numdof();  // Watch  out!!!!!
-}
-
 void
 SingleDomainTemp::getTempTimes(double &dtemp, double &tmax)
 {
@@ -159,7 +151,7 @@ SingleDomainTemp::getZEMFlag()
 
 void
 SingleDomainTemp::getSteadyStateParam(int &steadyFlag, int &steadyMin,
-                                         int &steadyMax, double &steadyTol)
+                                      int &steadyMax, double &steadyTol)
 {
  steadyFlag  = domain->solInfo().steadyFlag;
  steadyMin   = domain->solInfo().steadyMin;
@@ -215,13 +207,21 @@ SingleDomainTemp::preProcess()
 
  domain->makeAllDOFs();
 
- if(domain->numInitDisp6() > 0 && domain->solInfo().gepsFlg == 1) {
+ if((domain->numInitDisp6() > 0 && domain->solInfo().gepsFlg == 1) || domain->solInfo().isNonLin()) {
    StaticTimers times;
    FullSquareMatrix *geomKelArray=0, *melArray = 0;
    // this function builds corotators, geomstate and kelArray 
    // for linear+geps only it updates geomState with ETEMP and computes the element stiffness matrices using this updated geomState
    domain->computeGeometricPreStress(allCorot, geomState, kelArray, &times, geomKelArray, melArray, false);
  }
+
+ if(domain->solInfo().isNonLin()) {
+    // for nonlinear explicit we only need to initialize geomState with the constant constrained temperatures (TEMP).
+    // the geomState is always updated before use with the current unconstrained temperatures
+    if(domain->nDirichlet() > 0) {
+      geomState->updatePrescribedDisplacement(domain->getDBC(), domain->nDirichlet(), domain->getNodes());
+    }
+  }
 }
 
 DynamMat
@@ -284,7 +284,7 @@ SingleDomainTemp::buildOps(double coeM, double coeC, double coeK)
    tempprojector_prep(rbm, allOps.M);
  }
 
- // PJSA 5-19-2008 Modal decomposition preprocessing
+ // Modal decomposition preprocessing
  int decompFlag = domain->solInfo().modeDecompFlag;
  if(decompFlag) {
    fprintf(stderr," ... Modal decomposition requested ...\n");
@@ -303,8 +303,19 @@ SingleDomainTemp::buildOps(double coeM, double coeC, double coeK)
 void
 SingleDomainTemp::getInternalForce(Vector& d, Vector& f)
 {
-  f.zero();
-  domain->getKtimesU(d, bcx, f, 1.0, kelArray);
+ if(domain->solInfo().isNonLin()) {
+   geomState->explicitUpdate(domain->getNodes(), d);
+   Vector residual(domain->numUncon(), 0.0);
+   Vector fele(domain->maxNumDOF());
+   domain->getInternalForce(*geomState, fele, allCorot, kelArray, residual, 1.0, 1.0, geomState);
+   // Note: a dummy value of t is passed to getInternalForce above. This is ok because there are no time-dependent
+   // follower forces for temperature dofs
+   f.linC(residual, -1.0);
+ }
+ else {
+   f.zero();
+   domain->getKtimesU(d, bcx, f, 1.0, kelArray);
+ }
 }
 
 void

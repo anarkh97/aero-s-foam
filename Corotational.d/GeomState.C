@@ -1834,11 +1834,6 @@ TemperatureState::TemperatureState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet
 
   }
 
-  // Initialize Global Rotation Matrix to Identity
-  //double zeroRot[3] = {0.0, 0.0, 0.0};
-  //computeRotMat(zeroRot, gRot);
-  //computeCG(refCG);
-
 }
 
 TemperatureState::TemperatureState(const TemperatureState &g2) : GeomState((CoordSet &) g2.X0)
@@ -1873,19 +1868,34 @@ TemperatureState::TemperatureState(const TemperatureState &g2) : GeomState((Coor
 void
 TemperatureState::update(const Vector &v, int)
 {
- // v = incremental displacement vector
+  // v = incremental displacement vector
 
- int i;
- for(i=0; i<numnodes; ++i) {
+  int i;
+  for(i=0; i<numnodes; ++i) {
 
-     // Set incremental translational displacements
-     double dx = (loc[i][0] >= 0) ? v[loc[i][0]] : 0.0;
+    // Set incremental translational displacements
+    double dx = (loc[i][0] >= 0) ? v[loc[i][0]] : 0.0;
 
-     // Increment total translational displacements
-     ns[i].x += dx;
+    // Increment total translational displacements
+    ns[i].x += dx;
 
-   }
+  }
 }
+
+void
+TemperatureState::explicitUpdate(CoordSet &cs, const Vector &v)
+{
+  // v = total displacement vector (unconstrained dofs only)
+
+  int i;
+  for(i=0; i<numnodes; ++i) {
+
+    // Set total displacements (unconstrained dofs only)
+    if (loc[i][0] >= 0) ns[i].x = v[loc[i][0]];
+
+  }
+}
+
 
 void
 TemperatureState::updatePrescribedDisplacement(BCond* dbc, int numDirichlet,

@@ -10,7 +10,7 @@
 extern Domain *domain;
 
 GeomState::GeomState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet &cs, Elemset *elems)
- : X0(cs)
+ : X0(&cs)
 /****************************************************************
  *
  *  Purpose: determine geometric state of nodal coordinates
@@ -25,11 +25,10 @@ GeomState::GeomState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet &cs, Elemset 
  *  Coded by: Michel Lesoinne and Teymour Manzouri
  ***************************************************************/
 {
-  numnodes = dsa.numNodes();		// Number of nodes
+  numnodes = dsa.numNodes();
   ns.resize(numnodes);
   loc.resize(numnodes);
   flag.resize(numnodes);
-  numReal = 0;
   haveRot = false;
 
   for(int i = 0; i < numnodes; ++i) {
@@ -67,7 +66,6 @@ GeomState::GeomState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet &cs, Elemset 
 
       if(dsa[i].list() != 0)  {
         flag[i] = 1;
-        numReal++;
       }
       else 
         flag[i] = 0;
@@ -116,7 +114,7 @@ GeomState::GeomState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet &cs, Elemset 
     for(int i = 0; i < last; ++i) {
       if((*elems)[i]->numStates()) numelems++;
     }
-    es = new ElemState[numelems];
+    es.reserve(numelems);
     numelems = 0;
     for(int i = 0; i < last; ++i) {
       int numStates = (*elems)[i]->numStates();
@@ -131,20 +129,19 @@ GeomState::GeomState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet &cs, Elemset 
       }
     }
   }
-  else {
-    es = 0;
-  }
+
+  numnodesFixed = numnodes;
 }
 
 CoordSet emptyCoord;
 
-GeomState::GeomState() : ns(0), numnodes(0), loc(0), X0(emptyCoord), numReal(0), flag(0), es(NULL), numelems(0), haveRot(false)
+GeomState::GeomState() : ns(0), numnodes(0), numnodesFixed(0), loc(0), X0(&emptyCoord), flag(0), numelems(0), haveRot(false)
 {
 }
 
-GeomState::GeomState(CoordSet &cs) : X0(cs), numReal(0), es(NULL), numelems(0), haveRot(false)
+GeomState::GeomState(CoordSet &cs) : X0(&cs), numelems(0), haveRot(false)
 {
-  numnodes = cs.size();                 // Number of nodes
+  numnodes = numnodesFixed = cs.size(); // Number of nodes
   ns.resize(numnodes);
 
   for(int i = 0; i < numnodes; ++i) {
@@ -179,7 +176,107 @@ GeomState::GeomState(CoordSet &cs) : X0(cs), numReal(0), es(NULL), numelems(0), 
 
 GeomState::~GeomState()
 {
-  if(es) delete[] es;
+}
+
+void
+GeomState::resize(DofSetArray &dsa, DofSetArray &cdsa, CoordSet &cs, Elemset *elems)
+{
+  multiplier_nodes.clear();
+  if(dsa.numNodes() != numnodesFixed) {
+    X0 = &cs;
+    numnodes = dsa.numNodes();
+    ns.resize(numnodes);
+    loc.resize(numnodes);
+    flag.resize(numnodes);
+
+    for(int i = numnodesFixed; i < numnodes; ++i) {
+
+      loc[i].resize(6);
+      // Store location of each degree of freedom
+      loc[i][0] = cdsa.locate( i, DofSet::Xdisp );
+      loc[i][1] = cdsa.locate( i, DofSet::Ydisp );
+      loc[i][2] = cdsa.locate( i, DofSet::Zdisp );
+      loc[i][3] = cdsa.locate( i, DofSet::Xrot  );
+      loc[i][4] = cdsa.locate( i, DofSet::Yrot  );
+      loc[i][5] = cdsa.locate( i, DofSet::Zrot  );
+      if(loc[i][3] >= 0 || loc[i][4] >= 0 || loc[i][5]) haveRot = true;
+ 
+      // Get Node i from the Coordinate (Node) set
+      Node *node_i = cs[i];
+
+      if (node_i)  {
+
+        // Set the ith node's coordinates
+        ns[i].x = node_i->x;
+        ns[i].y = node_i->y;
+        ns[i].z = node_i->z;
+ 
+        // Set ith node's rotation tensor equal to identity
+        ns[i].R[0][0] = 1.0;
+        ns[i].R[0][1] = 0.0;
+        ns[i].R[0][2] = 0.0;
+        ns[i].R[1][0] = 0.0;
+        ns[i].R[1][1] = 1.0;
+        ns[i].R[1][2] = 0.0;
+        ns[i].R[2][0] = 0.0;
+        ns[i].R[2][1] = 0.0;
+        ns[i].R[2][2] = 1.0;
+
+        if(dsa[i].list() != 0)  {
+          flag[i] = 1;
+        }
+        else 
+          flag[i] = 0;
+
+      }
+      else  {
+        // Set ith node's coordinates equal to zero
+        ns[i].x = 0.0;
+        ns[i].y = 0.0;
+        ns[i].z = 0.0;
+
+        // Set ith node's rotation tensor equal to identity
+        ns[i].R[0][0] = 1.0;
+        ns[i].R[0][1] = 0.0;
+        ns[i].R[0][2] = 0.0;
+        ns[i].R[1][0] = 0.0;
+        ns[i].R[1][1] = 1.0;
+        ns[i].R[1][2] = 0.0;
+        ns[i].R[2][0] = 0.0;
+        ns[i].R[2][1] = 0.0;
+        ns[i].R[2][2] = 1.0;
+
+        int dof;
+        if((dof = cdsa.locate( i, DofSet::LagrangeE )) > -1) {
+          loc[i][0] = dof;
+          flag[i] = 0;
+        }
+        else if((dof = cdsa.locate( i, DofSet::LagrangeI )) > -1) {
+          loc[i][0] = dof;
+          flag[i] = -1;
+        }
+        else 
+          flag[i] = 0;
+      }
+    
+    }
+
+    int last = elems->last();
+    for(int i = 0; i < last; ++i) {
+      if((*elems)[i] && (*elems)[i]->isMpcElement() && (*elems)[i]->numInternalNodes() == 1) {
+        LMPCons *lmpc = dynamic_cast<LMPCons*>((*elems)[i]);
+        if(lmpc && lmpc->getSource() == mpc::ContactSurfaces) {
+          int numNodes = (*elems)[i]->numNodes();
+          int *nodes = (*elems)[i]->nodes();
+          multiplier_nodes[lmpc->id] = nodes[numNodes-1];
+          delete [] nodes;
+        }
+      }
+    }
+  }
+
+  // XXX don't need to resize element states because added elements are constraint
+  //     elements which don't have any internal variables.
 }
 
 void
@@ -246,7 +343,7 @@ GeomState::operator=(const GeomState &g2)
     flag.resize(g2.numNodes());
   }
 
-  numReal = g2.numReal;
+  haveRot = g2.haveRot;
 
   // Copy dof locations
   for(int i = 0; i < numnodes; ++i) {
@@ -268,8 +365,8 @@ GeomState::operator=(const GeomState &g2)
 
   // now deal with element states
   numelems = g2.numelems;
-  if(es) delete [] es;
-  es = new ElemState[numelems];
+  es.clear();
+  es.reserve(numelems);
   for(int i = 0; i < numelems; ++i)
     es[i] = g2.es[i];
   emap = g2.emap;
@@ -280,6 +377,8 @@ GeomState::operator=(const GeomState &g2)
   for(int i=0; i<3; i++)
     for(int j=0; j<3; j++)
       gRot[i][j] = g2.gRot[i][j];
+
+  numnodesFixed = g2.numnodesFixed;
 
   return *this;
 }
@@ -316,7 +415,6 @@ GeomState::GeomState(const GeomState &g2) : X0(g2.X0), emap(g2.emap), multiplier
   // flag for node to element connectivity
   flag.resize(numnodes);    
 
-  numReal = g2.numReal;
   haveRot = g2.haveRot;
 
   // Copy dof locations
@@ -338,7 +436,7 @@ GeomState::GeomState(const GeomState &g2) : X0(g2.X0), emap(g2.emap), multiplier
 
   // now deal with element states
   numelems = g2.numelems;
-  es = new ElemState[numelems];
+  es.reserve(numelems);
   for(int i = 0; i < numelems; ++i)
     es[i] = g2.es[i];
  
@@ -349,6 +447,8 @@ GeomState::GeomState(const GeomState &g2) : X0(g2.X0), emap(g2.emap), multiplier
   for(int i=0; i<3; i++)
     for(int j=0; j<3; j++)
       gRot[i][j] = g2.gRot[i][j];
+
+  numnodesFixed = g2.numnodesFixed;
 }
 
 void
@@ -1133,15 +1233,15 @@ GeomState::get_tot_displacement(Vector &totVec, bool rescaled)
 
     // Insert total translational displacements of node i into totVec
     if(loc[i][0] >= 0) {
-      x0 = (X0[i]) ? X0[i]->x : 0;
+      x0 = ((*X0)[i]) ? (*X0)[i]->x : 0;
       totVec[loc[i][0]] = ns[i].x - x0;
     }
     if(loc[i][1] >= 0) {
-      y0 = (X0[i]) ? X0[i]->y : 0;
+      y0 = ((*X0)[i]) ? (*X0)[i]->y : 0;
       totVec[loc[i][1]] = ns[i].y - y0;
     }
     if(loc[i][2] >= 0) {
-      z0 = (X0[i]) ? X0[i]->z : 0;
+      z0 = ((*X0)[i]) ? (*X0)[i]->z : 0;
       totVec[loc[i][2]] = ns[i].z - z0;
     }
 
@@ -1485,7 +1585,7 @@ GeomState::getTotalNumElemStates() const
 }
 
 void
-GeomState::addMultiplierNode(std::pair<int,int> &lmpc_id, double value)
+GeomState::addMultiplierNode(const std::pair<int,int> &lmpc_id, double value)
 {
   NodeState n;
   n.x = value;
@@ -1494,13 +1594,33 @@ GeomState::addMultiplierNode(std::pair<int,int> &lmpc_id, double value)
 }
 
 double
-GeomState::getMultiplier(std::pair<int,int> &lmpc_id)
+GeomState::getMultiplier(const std::pair<int,int> &lmpc_id)
 {
-  std::map<std::pair<int,int>,int>::iterator it;
-  if((it = multiplier_nodes.find(lmpc_id)) != multiplier_nodes.end())
-    return ns[it->second].x;
-  else
-    return 0;
+  std::map<std::pair<int,int>,int>::iterator it = multiplier_nodes.find(lmpc_id);
+  return (it != multiplier_nodes.end()) ? ns[it->second].x : 0;
+}
+
+void
+GeomState::getMultipliers(std::map<std::pair<int,int>,double> &mu)
+{
+  for(std::map<std::pair<int,int>,double>::iterator it = mu.begin(); it != mu.end(); it++) {
+    it->second = getMultiplier(it->first);
+  }
+}
+
+void
+GeomState::setMultiplier(const std::pair<int,int> &lmpc_id, double mu)
+{
+  std::map<std::pair<int,int>,int>::iterator it = multiplier_nodes.find(lmpc_id);
+  if(it != multiplier_nodes.end()) ns[it->second].x = mu;
+}
+
+void
+GeomState::setMultipliers(std::map<std::pair<int,int>,double> &mu)
+{
+  for(std::map<std::pair<int,int>,double>::iterator it = mu.begin(); it != mu.end(); it++) {
+    setMultiplier(it->first, it->second);
+  }
 }
 
 void GeomState::computeGlobalRotation() 
@@ -1660,9 +1780,9 @@ void GeomState::computeRotGradAndJac(double cg[3], double grad[3], double jac[3]
     if (flag[i] <= 0) continue;
 
     double rd[3];
-    rd[0] = X0[i]->x - refCG[0]; 
-    rd[1] = X0[i]->y - refCG[1]; 
-    rd[2] = X0[i]->z - refCG[2]; 
+    rd[0] = (*X0)[i]->x - refCG[0]; 
+    rd[1] = (*X0)[i]->y - refCG[1]; 
+    rd[2] = (*X0)[i]->z - refCG[2]; 
     rotate(gRot, rd);
 
     // compute freq. used values
@@ -1716,12 +1836,13 @@ void GeomState::computeCG(double cg[3])
   cg[1] = 0.0;
   cg[2] = 0.0;
 
-  int i;
+  int i, numReal = 0;
   for ( i = 0; i < numnodes; ++i)  {
     if (flag[i] == 1)  {
       cg[0] += ns[i].x;
       cg[1] += ns[i].y;
       cg[2] += ns[i].z;
+      numReal++;
     }
   }
 
@@ -1793,7 +1914,6 @@ TemperatureState::TemperatureState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet
   ns.resize(numnodes);
   loc.resize(numnodes);
   flag.resize(numnodes);
-  numReal = 0;
 
   int i;
   for(i=0; i<numnodes; ++i) {
@@ -1811,7 +1931,6 @@ TemperatureState::TemperatureState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet
       ns[i].x = 0;
       if(dsa[i].list() != 0)  {
         flag[i] = 1;
-        numReal++;
       }
       else
         flag[i] = 0;
@@ -1836,7 +1955,7 @@ TemperatureState::TemperatureState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet
 
 }
 
-TemperatureState::TemperatureState(const TemperatureState &g2) : GeomState((CoordSet &) g2.X0)
+TemperatureState::TemperatureState(const TemperatureState &g2) : GeomState(*(g2.X0))
 {
   // Copy number of nodes
   numnodes = g2.numnodes;
@@ -1847,8 +1966,6 @@ TemperatureState::TemperatureState(const TemperatureState &g2) : GeomState((Coor
 
   // flag for node to element connectivity
   flag.resize(numnodes);
-
-  numReal = g2.numReal;
 
   // Copy dof locations
   int i;

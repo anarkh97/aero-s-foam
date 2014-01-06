@@ -614,7 +614,7 @@ class Element {
 // *****************************************************************
 // *                        WARNING                                *
 // *       The same remark as for node is valid for elements       *
-// *       The functions for this class are in Element.d/ElemSet.C *
+// *       The functions for this class are in Element.d/Elemset.C *
 // *****************************************************************
 
 class Elemset
@@ -641,7 +641,8 @@ class Elemset
     void setEmax(int max)  { emax = max; }
     void list();
     void deleteElems();
-    void remove(int num) { elem[num] = 0; }//DEC
+    void remove(int num) { elem[num] = 0; }
+    void removeAll();
     void setMyData(bool _myData) { myData = _myData; }
     bool hasDamping();
     void collapseRigid6(std::set<int> &);

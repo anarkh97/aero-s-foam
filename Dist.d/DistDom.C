@@ -95,7 +95,7 @@ GenDistrDomain<Scalar>::forceContinuity(GenDistrVector<Scalar> &u) {
   int iSub;
 
   // initialize and merge displacements from subdomains into cpu array
-  DistSVec<Scalar, 11> disps(this->nodeInfo);
+  DistSVec<Scalar, 11> disps(*this->nodeInfo);
   DistSVec<Scalar, 11> masterDisps(masterInfo);
   disps = 0;
   for(iSub = 0; iSub < this->numSub; ++iSub) {
@@ -148,12 +148,12 @@ GenDistrDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector
   int iSub;
 
   // initialize and merge displacements from subdomains into cpu array
-  DistSVec<Scalar, 11> disps_glo(this->nodeInfo);
+  DistSVec<Scalar, 11> disps_glo(*this->nodeInfo);
   DistSVec<Scalar, 11> masterDisps_glo(masterInfo);
   disps_glo = 0;
   DistSVec<Scalar, 11> *disps_loc = 0, *masterDisps_loc = 0;
   if(!domain->solInfo().basicDofCoords) {
-    disps_loc = new DistSVec<Scalar, 11>(this->nodeInfo);
+    disps_loc = new DistSVec<Scalar, 11>(*this->nodeInfo);
     masterDisps_loc = new DistSVec<Scalar, 11>(masterInfo);
   }
   for(iSub = 0; iSub < this->numSub; ++iSub) {
@@ -170,7 +170,7 @@ GenDistrDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector
   if(disps_loc) disps_loc->reduce(*masterDisps_loc, masterFlag, numFlags);
 
   // initialize and merge aeroelastic forces
-  DistSVec<Scalar, 6> aerof(this->nodeInfo);
+  DistSVec<Scalar, 6> aerof(*this->nodeInfo);
   DistSVec<Scalar, 6> masterAeroF(masterInfo);
   if(domain->solInfo().aeroFlag > -1 && aeroF) {
     GenDistrVector<Scalar> assembledAeroF(*aeroF);
@@ -184,13 +184,13 @@ GenDistrDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector
   }
 
   // initialize and merge velocities & accelerations
-  DistSVec<Scalar, 11> vels_glo(this->nodeInfo), accs_glo(this->nodeInfo);
+  DistSVec<Scalar, 11> vels_glo(*this->nodeInfo), accs_glo(*this->nodeInfo);
   DistSVec<Scalar, 11> masterVels_glo(masterInfo), masterAccs_glo(masterInfo);
   DistSVec<Scalar, 11> *vels_loc = 0, *masterVels_loc = 0, *accs_loc = 0, *masterAccs_loc = 0;
   if(!domain->solInfo().basicDofCoords) {
-    vels_loc = new DistSVec<Scalar, 11>(this->nodeInfo);
+    vels_loc = new DistSVec<Scalar, 11>(*this->nodeInfo);
     masterVels_loc = new DistSVec<Scalar, 11>(masterInfo);
-    accs_loc = new DistSVec<Scalar, 11>(this->nodeInfo);
+    accs_loc = new DistSVec<Scalar, 11>(*this->nodeInfo);
     masterAccs_loc = new DistSVec<Scalar, 11>(masterInfo);
   }
   if(distState) {
@@ -631,7 +631,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
         break;
       case OutputInfo::TDEnforcement: {
         if(domain->tdenforceFlag()) {
-          DistSVec<double, 1> all_data(this->nodeInfo);
+          DistSVec<double, 1> all_data(*this->nodeInfo);
           if(oinfo[iOut].tdenforc_var == 1) all_data = 0.5;
           else all_data = 0;
           double **sub_data = new double * [this->numSub];
@@ -820,8 +820,8 @@ GenDistrDomain<Scalar>::getStressStrain(GenDistrVector<Scalar> &u, double time,
     return;
   }
 
-  DistVec<Scalar> stress(this->nodeInfo);
-  DistVec<Scalar> weight(this->nodeInfo);
+  DistVec<Scalar> stress(*this->nodeInfo);
+  DistVec<Scalar> weight(*this->nodeInfo);
 
   stress = 0;
   weight = 0;
@@ -1088,12 +1088,12 @@ GenDistrDomain<Scalar>::getPrincipalStress(GenDistrVector<Scalar> &u, double tim
 
   // Allocate a distributed vector for stress
   DistVec<Scalar> **stress = new DistVec<Scalar>*[6];
-  DistVec<Scalar> weight(this->nodeInfo);
+  DistVec<Scalar> weight(*this->nodeInfo);
 
   int iSub;
   int str_loop;
   for(str_loop = 0; str_loop < 6; ++str_loop)
-    stress[str_loop] = new DistVec<Scalar> (this->nodeInfo);  
+    stress[str_loop] = new DistVec<Scalar> (*this->nodeInfo);  
 
   // each subdomain computes its stress/strain vector
 
@@ -1139,7 +1139,7 @@ GenDistrDomain<Scalar>::getPrincipalStress(GenDistrVector<Scalar> &u, double tim
 
   // Calculate Principals at each node
   Scalar svec[6], pvec[3];
-  DistVec<Scalar> allPVec(this->nodeInfo);
+  DistVec<Scalar> allPVec(*this->nodeInfo);
   for(iSub = 0; iSub < this->numSub; ++iSub)  {
 
     Vec<Scalar> &locPVec = allPVec(iSub);
@@ -1365,7 +1365,7 @@ GenDistrDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***a
   int iSub;
 
   // initialize and merge displacements from subdomains into cpu array
-  DistSVec<Scalar, 11> disps(this->nodeInfo);
+  DistSVec<Scalar, 11> disps(*this->nodeInfo);
   DistSVec<Scalar, 11> masterDisps(masterInfo);
   disps = 0;
   for(iSub = 0; iSub < this->numSub; ++iSub) {
@@ -1377,7 +1377,7 @@ GenDistrDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***a
   }
   disps.reduce(masterDisps, masterFlag, numFlags);
   // initialize and merge aeroelastic forces
-  DistSVec<Scalar, 6> aerof(this->nodeInfo);
+  DistSVec<Scalar, 6> aerof(*this->nodeInfo);
   DistSVec<Scalar, 6> masterAeroF(masterInfo);
   if(domain->solInfo().aeroFlag > -1 && aeroF) {
     GenDistrVector<Scalar> assembledAeroF(*aeroF);
@@ -1390,7 +1390,7 @@ GenDistrDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***a
     aerof.reduce(masterAeroF, masterFlag, numFlags);
   }
   // initialize and merge velocities & accelerations
-  DistSVec<Scalar, 11> vels(this->nodeInfo), accs(this->nodeInfo);
+  DistSVec<Scalar, 11> vels(*this->nodeInfo), accs(*this->nodeInfo);
   DistSVec<Scalar, 11> masterVels(masterInfo), masterAccs(masterInfo);
   if(distState) {
     GenDistrVector<Scalar> *v_n = &distState->getVeloc();
@@ -1409,7 +1409,7 @@ GenDistrDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***a
     accs.reduce(masterAccs, masterFlag, numFlags);
   }
   // initialize and merge reaction forces
-  DistSVec<Scalar, 11> reacts(this->nodeInfo);
+  DistSVec<Scalar, 11> reacts(*this->nodeInfo);
   DistSVec<Scalar, 11> masterReacts(masterInfo);
   if(reactions) {
     GenDistrVector<Scalar> assembledReactions(*reactions);
@@ -1782,7 +1782,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
         break;
       case OutputInfo::TDEnforcement: {
         if(domain->tdenforceFlag()) {
-          DistSVec<double, 1> all_data(this->nodeInfo);
+          DistSVec<double, 1> all_data(*this->nodeInfo);
           if(oinfo[iOut].tdenforc_var == 1) all_data = 0.5;
           else all_data = 0;
           double **sub_data = new double * [this->numSub];
@@ -1836,8 +1836,8 @@ GenDistrDomain<Scalar>::getStressStrain(DistrGeomState *gs, Corotator ***allCoro
     return;
   }
 
-  DistVec<Scalar> stress(this->nodeInfo);
-  DistVec<Scalar> weight(this->nodeInfo);
+  DistVec<Scalar> stress(*this->nodeInfo);
+  DistVec<Scalar> weight(*this->nodeInfo);
 
   stress = 0;
   weight = 0;
@@ -1952,12 +1952,12 @@ GenDistrDomain<Scalar>::getPrincipalStress(DistrGeomState *gs, Corotator ***allC
       strDir[i] = i+7;
   }
   DistVec<Scalar> **stress = new DistVec<Scalar>*[6];
-  DistVec<Scalar> weight(this->nodeInfo);
+  DistVec<Scalar> weight(*this->nodeInfo);
 
   int iSub;
   int str_loop;
   for(str_loop = 0; str_loop < 6; ++str_loop)
-    stress[str_loop] = new DistVec<Scalar> (this->nodeInfo);  
+    stress[str_loop] = new DistVec<Scalar> (*this->nodeInfo);  
 
   // each subdomain computes its stress/strain vector
 
@@ -2004,7 +2004,7 @@ GenDistrDomain<Scalar>::getPrincipalStress(DistrGeomState *gs, Corotator ***allC
 
   // Calculate Principals at each node
   Scalar svec[6], pvec[3];
-  DistVec<Scalar> allPVec(this->nodeInfo);
+  DistVec<Scalar> allPVec(*this->nodeInfo);
   for(iSub = 0; iSub < this->numSub; ++iSub) {
 
     Vec<Scalar> &locPVec = allPVec(iSub);
@@ -2086,8 +2086,8 @@ void GenDistrDomain<Scalar>::getElementAttr(int fileNumber,int iAttr, double tim
       return;
     }
 
-  DistVec<double> props(this->nodeInfo);
-  DistVec<double> weight(this->nodeInfo);
+  DistVec<double> props(*this->nodeInfo);
+  DistVec<double> weight(*this->nodeInfo);
 
   // Initialize distributed vector to zero
   props  = 0;

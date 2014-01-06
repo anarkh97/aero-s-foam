@@ -88,7 +88,7 @@ NonLinStatic::getStiffAndForce(GeomState& geomState, Vector& residual, Vector& e
     domain->UpdateContactSurfaceElements(&geomState);
     preProcess(false); // TODO consider case domain->solInfo().getNLInfo().updateK > 1
     geomState.resizeLocAndFlag(*domain->getCDSA());
-    residual.resize(domain->getCDSA()->size());
+    residual.conservativeResize(domain->getCDSA()->size());
     elementInternalForce.resize(domain->maxNumDOF());
   }
 
@@ -128,13 +128,15 @@ NonLinStatic::updatePrescribedDisplacement(GeomState *geomState, double)
 void
 NonLinStatic::initializeParameters(GeomState *geomState)
 {
-  domain->initializeParameters(*geomState, allCorot);
+  domain->initializeMultipliers(*geomState, allCorot);
+  domain->initializeParameters();
 }
 
 void
 NonLinStatic::updateParameters(GeomState *geomState)
 {
-  domain->updateParameters(*geomState, allCorot);
+  domain->updateMultipliers(*geomState, allCorot);
+  domain->updateParameters();
 }
 
 bool
@@ -454,4 +456,10 @@ NonLinStatic::getResidualNorm(Vector &rhs, GeomState &geomState)
   Vector res(rhs);
   domain->applyResidualCorrection(geomState, allCorot, res, 1.0);
   return solver->getResidualNorm(res);
+}
+
+bool
+NonLinStatic::getResizeFlag()
+{
+  return (domain->GetnContactSurfacePairs() > 0); // XXX only for "multipliers" constraint method
 }

@@ -210,6 +210,7 @@ class NonLinDynamic : public NLDynamPostProcessor {
     bool checkConstraintViolation(double &err);
 
     LinesearchInfo& linesearch();
+    bool getResizeFlag();
 
 private:
     virtual bool factorWhenBuilding() const;

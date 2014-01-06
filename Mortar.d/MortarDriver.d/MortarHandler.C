@@ -900,19 +900,13 @@ MortarHandler::AddMortarLMPCs(ResizeArray<LMPCons*>* LMPCArray, int& numLMPC, in
   int lmpcnum = 0; // !! NEED TO BE CHANGED FOR THE CASE OF SEVERAL MORTAR CONDITIONS
                    // OK FOR NOW BECAUSE WE DO NOT USE THIS ID NUMBER !!
 
-  // default dofs (tie Ux,Uy,Uz)
-  //int nddofs  = 3; 
-  //int ddofs[3]= {0,1,2};
   double rhs  = 0.0;  
-
-  //int ndofs = (nDofs) ? nDofs : nddofs;
-  //int*dofs  = (nDofs) ? Dofs  : ddofs ;
 
   // set the global ID num. of the first Mortar LMPC
   gIdFirstLMPC = numLMPC;
   nMortarLMPCs = 0;
-  if(InteractionType== MortarHandler::CTC) { // PJSA 12-20-05
-    for(int i=0; i<int(NodalMortars.size()); i++){
+  if(InteractionType == MortarHandler::CTC) {
+    for(int i=0; i<int(NodalMortars.size()); i++) {
       lmpcnum--;
       LMPCons* MortarLMPC = NodalMortars[i].CreateMortarCtcLMPCons(lmpcnum, SlaveLlToGlNodeMap, MasterLlToGlNodeMap);
       if(MortarLMPC) { 
@@ -928,6 +922,7 @@ MortarHandler::AddMortarLMPCs(ResizeArray<LMPCons*>* LMPCArray, int& numLMPC, in
     }
   }
   else {
+    // default dofs (tie Ux,Uy,Uz)
     int threedofs[3]= {0,1,2};
     int ndofs = (nDofs) ? nDofs : 3;
     int*dofs  = (nDofs) ? Dofs  : threedofs ;
@@ -2490,6 +2485,7 @@ MortarHandler::make_share(int numSub, SubDomain **sd)
 {
   // multiple domain version
   int num_nodes = PtrSlaveEntity->GetnVertices() + PtrMasterEntity->GetnVertices();
+  if(share) delete [] share;
   share = new int[3*num_nodes];
   for(int i=0; i<3*num_nodes; ++i) share[i] = 0;
 

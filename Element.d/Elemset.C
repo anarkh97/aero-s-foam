@@ -37,6 +37,11 @@ int Elemset::last() const
  return last+1;
 }
 
+void Elemset::removeAll()
+{
+  int l = last();
+  for(int i=0; i<l; ++i) remove(i);
+}
 
 void Elemset::list()
 {

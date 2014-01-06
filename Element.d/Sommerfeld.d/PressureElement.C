@@ -215,7 +215,7 @@ PressureElement<VectorValuedFunctionTemplate>
   // overriding SommerElement::findAndSetEle because the normal should not be reversed
   this->iEle = findEle(nodeToElem, eleTouch, eleCount, myNum, &eset, it);
   if(iEle == -1) {
-    std::cerr << "SommerElement::findAndSetEle could not find the corresponding element.\n";
+    std::cerr << "PressureElement::findAndSetEle could not find the corresponding element.\n";
     return 0;
   }
   el = eset[iEle];

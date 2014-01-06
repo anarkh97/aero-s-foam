@@ -14,9 +14,7 @@
 
 // FEM headers
 #include <Mortar.d/FaceElement.d/FaceElement.h>
-//#include <Utils.d/dofset.h>
-//#include <Hetero.d/FlExchange.h>
-//#include <Element.d/State.h>
+
 class CoordSet;
 template <class Scalar> class GenFullM;
 typedef GenFullM<double> FullM;

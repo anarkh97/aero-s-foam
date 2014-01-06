@@ -124,7 +124,8 @@ class GenVector {
    void insertData(Scalar *v);
    Scalar* getData() { return d; }
    void reset(int newlen, Scalar initialValue = 0.0);
-   void resize(int newlen);
+   void resize(int newlen); // no-op if the sizes match, otherwise data is lost
+   void conservativeResize(int newlen); // resizing with data preservation
 
    double squareNorm() const;
    double norm() const;

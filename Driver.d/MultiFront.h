@@ -135,6 +135,7 @@ class MultiFront {
 	int numSubForNode(int node);
   public:
         MultiFront(Elemset *eSet, CoordSet *nds = 0, bool have_fsi = false);
+        ~MultiFront();
         Decomposition * decompose(int nsub, bool have_fsi = false);
         // Weight of a node in a subdomain
         int weight(int sub, int node);

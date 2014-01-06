@@ -1388,7 +1388,8 @@ DirichletBC:
         { BCond *surf_bc = new BCond[1];
           surf_bc[0] = $3;
           surf_bc[0].type = BCond::Displacements;
-          geoSource->addSurfaceDirichlet(1,surf_bc); }
+          geoSource->addSurfaceDirichlet(1,surf_bc);
+          if(geoSource->getNumSurfaceDirichlet() > 1) delete [] surf_bc; }
 /* TODO | DirichletBC SURF Integer Integer Float USING ConstraintOptionsData NewLine
         { BCond *surf_bc = new BCond[1];
           surf_bc[0].nnum = $3-1; surf_bc[0].dofnum = $4-1; surf_bc[0].val = $5;
@@ -1406,6 +1407,7 @@ ConstrainedSurfaces:
           surf_bc[0].dofnum = $4-1;
           surf_bc[0].val = $5-1;
           geoSource->addSurfaceConstraint(1,surf_bc);
+          if(geoSource->getNumSurfaceConstraint() > 1) delete [] surf_bc;
         }
 HEVDirichletBC:
         PDIR NewLine HEVDBCDataList
@@ -1509,7 +1511,8 @@ TempNeumanBC:
           surf_bc[0].val = $4;
           surf_bc[0].type = BCond::Flux;
           surf_bc[0].loadsetid = $$->loadsetid;
-          geoSource->addSurfaceNeuman(1,surf_bc); }
+          geoSource->addSurfaceNeuman(1,surf_bc);
+          if(geoSource->getNumSurfaceNeuman() > 1) delete [] surf_bc; }
 	;
 TempConvection:
         CONVECTION NewLine
@@ -1872,7 +1875,8 @@ NeumanBC:
           surf_bc[0] = $3;
           surf_bc[0].type = BCond::Forces;
           surf_bc[0].loadsetid = $$->loadsetid;
-          geoSource->addSurfaceNeuman(1,surf_bc); }
+          geoSource->addSurfaceNeuman(1,surf_bc);
+          if(geoSource->getNumSurfaceNeuman() > 1) delete [] surf_bc; }
         ;
 ModalNeumanBC:
         FORCE NewLine MODAL NewLine ModalValList
@@ -3024,10 +3028,10 @@ Pressure:
             geoSource->setElementPressure(pbc);
           } }
         | Pressure SURF Integer Float NewLine
-        { PressureBCond *pbc = new PressureBCond;
-          pbc->setData($3-1, $4, $$, true);
+        { PressureBCond *pbc = new PressureBCond[1];
+          pbc[0].setData($3-1, $4, $$, true);
           geoSource->addSurfacePressure(1, pbc);
-          if(geoSource->getNumSurfacePressure() > 1) delete pbc; }
+          if(geoSource->getNumSurfacePressure() > 1) delete [] pbc; }
         | Pressure Integer Float SWITCH NewLine
         { PressureBCond pbc;
           pbc.setData($2-1, $3, $$, $4);
@@ -3039,10 +3043,10 @@ Pressure:
             geoSource->setElementPressure(pbc);
           } }
         | Pressure SURF Integer Float SWITCH NewLine
-        { PressureBCond *pbc = new PressureBCond;
-          pbc->setData($3-1, $4, $$, $5);
+        { PressureBCond *pbc = new PressureBCond[1];
+          pbc[0].setData($3-1, $4, $$, $5);
           geoSource->addSurfacePressure(1, pbc);
-          if(geoSource->getNumSurfacePressure() > 1) delete pbc; }
+          if(geoSource->getNumSurfacePressure() > 1) delete [] pbc; }
 	;
 Lumped:
 	LUMPED NewLine

@@ -2631,6 +2631,16 @@ void Domain::InitializeStaticContactSearch(MortarHandler::Interaction_Type t, in
   }
 }
 
+void Domain::ReInitializeStaticContactSearch(MortarHandler::Interaction_Type t, int numSub, SubDomain **sd)
+{
+  for(int iMortar = 0; iMortar < nMortarCond; iMortar++) {
+    MortarHandler* CurrentMortarCond = MortarConds[iMortar];
+    if(CurrentMortarCond->GetInteractionType() == t) {
+      if(sd && numSub != 0) CurrentMortarCond->make_share(numSub, sd);
+    }
+  }
+}
+
 void Domain::UpdateSurfaces(MortarHandler::Interaction_Type t, GeomState *geomState)
 {
   for(int iMortar = 0; iMortar < nMortarCond; iMortar++) {
@@ -2756,8 +2766,6 @@ void Domain::ComputeMortarLMPC(int nDofs, int *dofs)
       nMortarLMPCs += CurrentMortarCond->GetnMortarLMPCs();
     } else
       CurrentMortarCond->AddWetFSI(&fsi, numFSI);
-
-// CONTACT DEBUG    CurrentMortarCond->DeleteFFIData();
   }
 
   time00 += getTime();
@@ -2911,7 +2919,7 @@ Domain::initialize()
  numIDis = 0; numIDisModal = 0; numIVel = 0; numIVelModal = 0; numDirichlet = 0; numNeuman = 0; numSommer = 0;
  numComplexDirichlet = 0; numComplexNeuman = 0; numNeumanModal = 0;
  firstDiMass = 0; numIDis6 = 0; gravityAcceleration = 0;
- allDOFs = 0; stress = 0; weight = 0; elstress = 0; elweight = 0; claw = 0;
+ allDOFs = 0; stress = 0; weight = 0; elstress = 0; elweight = 0; claw = 0; com = 0;
  numLMPC = 0; numYMTT = 0; numCTETT = 0; numSDETAFT = 0; MidPoint = 0; temprcvd = 0;
  heatflux = 0; elheatflux = 0; elTemp = 0; dbc = 0; nbc = 0; nbcModal = 0;
  iDis = 0; iDisModal = 0; iVel = 0; iVelModal = 0; iDis6 = 0; elemToNode = 0; nodeToElem = 0;
@@ -2926,17 +2934,16 @@ Domain::initialize()
  nSurfEntity = 0; nMortarLMPCs = 0; mortarToMPC = 0; matrixTimers = 0;
  allDOFs = 0; haveNodes = false; nWetInterface = 0; wetInterfaces = 0;
  numFSI = 0; firstOutput = true; nodeToNode_sommer = 0; sowering = false; nDimass = 0;
- fluidDispSlosh = 0; elPotSlosh =0; elFluidDispSlosh =0; //ADDED FOR SLOSHING PROBLEM, EC, 20070723
- elFluidDispSloshAll =0; //ADDED FOR SLOSHING PROBLEM, EC, 20081101
- nodeToFsi = 0; //HB
- numCTC=0;
- output_match_in_top = false;//TG
+ fluidDispSlosh = 0; elPotSlosh = 0; elFluidDispSlosh = 0;
+ elFluidDispSloshAll = 0;
+ nodeToFsi = 0;
+ numCTC = 0;
+ output_match_in_top = false;
  C_condensed = 0;
  nContactSurfacePairs = 0;
  outFlag = 0;
  nodeTable = 0;
  MpcDSA = 0; nodeToNodeDirect = 0;
- p = 0;
  g_dsa = 0;
  numSensitivity = 0; senInfo = 0;
  runSAwAnalysis = false;   
@@ -2944,14 +2951,13 @@ Domain::initialize()
 
 Domain::~Domain()
 {
- // delete &nodes;
- if(nodeToNode)   { delete nodeToNode;   nodeToNode=0;   }
- if(nodeToNodeFluid)   { delete nodeToNodeFluid;   nodeToNodeFluid=0;   } //ADDED FOR HEV PROBLEM, EC, 20070820
- if(renumb.order) { delete [] renumb.order; renumb.order=0; }
- if(renumb.renum) { delete [] renumb.renum; renumb.renum=0; }
- if(renumb.xcomp) { delete [] renumb.xcomp; renumb.xcomp=0; }
- if(renumbFluid.order) { delete [] renumbFluid.order; renumbFluid.order=0; } //ADDED FOR HEV PROBLEM, EC, 20070820
- if(renumbFluid.renum) { delete [] renumbFluid.renum; renumbFluid.renum=0; } //ADDED FOR HEV PROBLEM, EC, 20070820
+ if(nodeToNode) { delete nodeToNode; nodeToNode = 0; }
+ if(nodeToNodeFluid) { delete nodeToNodeFluid; nodeToNodeFluid = 0; }
+ if(renumb.order) { delete [] renumb.order; renumb.order = 0; }
+ if(renumb.renum) { delete [] renumb.renum; renumb.renum = 0; }
+ if(renumb.xcomp) { delete [] renumb.xcomp; renumb.xcomp = 0; }
+ if(renumbFluid.order) { delete [] renumbFluid.order; renumbFluid.order = 0; }
+ if(renumbFluid.renum) { delete [] renumbFluid.renum; renumbFluid.renum = 0; }
  if(gravityAcceleration) { delete [] gravityAcceleration; gravityAcceleration = 0; }
  if(matrixTimers) { delete matrixTimers; matrixTimers = 0; }
  if(allDOFs) { delete allDOFs; allDOFs = 0; }
@@ -2959,16 +2965,15 @@ Domain::~Domain()
  if(c_dsa) { delete c_dsa; c_dsa = 0; }
  if(elemToNode) { delete elemToNode; elemToNode = 0; }
  if(nodeToElem) { delete nodeToElem; nodeToElem = 0; }
- if(allDOFsFluid) { delete allDOFsFluid; allDOFsFluid = 0; } //ADDED FOR HEV PROBLEM, EC, 20070820
- if(dsaFluid) { delete dsaFluid; dsaFluid = 0; } //ADDED FOR HEV PROBLEM, EC, 20070820
- if(c_dsaFluid) { delete c_dsaFluid; c_dsaFluid = 0; } //ADDED FOR HEV PROBLEM, EC, 20070820
- if(elemToNodeFluid) { delete elemToNodeFluid; elemToNodeFluid = 0; } //ADDED FOR HEV PROBLEM, EC, 20070820
- if(nodeToElemFluid) { delete nodeToElemFluid; nodeToElemFluid = 0; } //ADDED FOR HEV PROBLEM, EC, 20070820
+ if(allDOFsFluid) { delete allDOFsFluid; allDOFsFluid = 0; }
+ if(dsaFluid) { delete dsaFluid; dsaFluid = 0; }
+ if(c_dsaFluid) { delete c_dsaFluid; c_dsaFluid = 0; }
+ if(elemToNodeFluid) { delete elemToNodeFluid; elemToNodeFluid = 0; }
+ if(nodeToElemFluid) { delete nodeToElemFluid; nodeToElemFluid = 0; }
  if(mortarToMPC) { delete mortarToMPC; mortarToMPC = 0; }
  if(dbc) { delete [] dbc; dbc = 0; }
  if(nbc) { delete [] nbc; nbc = 0; }
  if(nbcModal) { delete [] nbcModal; nbcModal = 0; }
- //if(cvbc) { delete [] cvbc; cvbc = 0; }
  if(iDis) { delete [] iDis; iDis = 0; }
  if(iDisModal) { delete [] iDisModal; iDisModal = 0; }
  if(iVel) { delete [] iVel; iVel = 0; }
@@ -2980,17 +2985,16 @@ Domain::~Domain()
  if(weight) { delete weight; weight = 0; }
  if(elDisp) { delete elDisp; elDisp = 0; }
  if(elTemp) { delete elTemp; elTemp = 0; }
- if(fluidDispSlosh) { delete fluidDispSlosh; fluidDispSlosh = 0; } //ADDED FOR SLOSHING PROBLEM, EC, 20070723
- if(elPotSlosh) { delete elPotSlosh; elPotSlosh = 0; }  //ADDED FOR SLOSHING PROBLEM, EC, 20070723
- if(elFluidDispSlosh) { delete elFluidDispSlosh; elFluidDispSlosh = 0; } //ADDED FOR SLOSHING PROBLEM, EC, 20070723
+ if(fluidDispSlosh) { delete fluidDispSlosh; fluidDispSlosh = 0; }
+ if(elPotSlosh) { delete elPotSlosh; elPotSlosh = 0; }
+ if(elFluidDispSlosh) { delete elFluidDispSlosh; elFluidDispSlosh = 0; }
  if(elstress) { delete elstress; elstress = 0; }
  if(elweight) { delete elweight; elweight = 0; }
  if(p_stress) { delete p_stress; p_stress = 0; }
  if(p_elstress) { delete p_elstress; p_elstress = 0; }
  if(stressAllElems) { delete stressAllElems; stressAllElems = 0; }
  if(claw) { delete claw; claw = 0; }
- //if(mftval) { delete mftval; mftval = 0; }
- //if(hftval) { delete hftval; hftval = 0; }
+ if(com) { delete com; com = 0; }
  if(firstDiMass) { delete firstDiMass; firstDiMass = 0; }
  if(previousExtForce) { delete previousExtForce; previousExtForce = 0; }
  if(previousAeroForce) { delete previousAeroForce; previousAeroForce = 0; }
@@ -3001,17 +3005,15 @@ Domain::~Domain()
  delete &nodes;
  if(wetInterfaces) { delete wetInterfaces; wetInterfaces = 0; }
  if(nodeToNode_sommer) { delete nodeToNode_sommer; nodeToNode_sommer = 0; }
- if(nodeToFsi) { delete nodeToFsi; nodeToFsi = 0; } //HB
- //HB: try to avoid memory leaks but trouble with ~BlockAlloc() ...
+ if(nodeToFsi) { delete nodeToFsi; nodeToFsi = 0; }
  for(int i=0; i<SurfEntities.max_size(); i++)
    if(SurfEntities[i]) { SurfEntities[i]->~SurfaceEntity(); SurfEntities[i] = 0; }
- for(int i=0; i<nMortarCond; ++i) // HB
+ for(int i=0; i<nMortarCond; ++i)
    if(MortarConds[i]) delete MortarConds[i];
- for(int i=0; i<numLMPC; ++i) // HB
+ for(int i=0; i<numLMPC; ++i)
    if(lmpc[i]) delete lmpc[i];
  if(nodeTable) delete [] nodeTable;
  if(MpcDSA) delete MpcDSA; if(nodeToNodeDirect) delete nodeToNodeDirect;
- if(p) delete p;
  for(int i=0; i<contactSurfElems.size(); ++i)
    packedEset.deleteElem(contactSurfElems[i]);
  if(g_dsa) delete g_dsa;
@@ -3835,51 +3837,49 @@ Domain::deleteSomeLMPCs(mpc::ConstraintSource s)
 void
 Domain::UpdateContactSurfaceElements(GeomState *geomState)
 {
-  // copy the lagrange multipliers from geomState
-  std::vector<double> mu;
-  if(sinfo.lagrangeMult) {
-    for(int i = 0; i < numLMPC; ++i) {
-      if(lmpc[i]->getSource() == mpc::ContactSurfaces) {
-        mu.push_back(geomState->getMultiplier(lmpc[i]->id));
-      }
-    }
-    geomState->clearMultiplierNodes();
-  }
+  SPropContainer &sProps = geoSource->getStructProps();
+  std::map<int,int> &mortar_attrib = geoSource->getMortarAttributes();
 
-  if(!p) {
-    p = new StructProp(); 
-    p->lagrangeMult = sinfo.lagrangeMult;
-    p->initialPenalty = p->penalty = sinfo.penalty;
-    p->type = StructProp::Constraint;
-    p->constraint_hess = sinfo.constraint_hess;
-    p->constraint_hess_eps = sinfo.constraint_hess_eps;
+  // copy the Lagrange multipliers from geomState
+  std::map<std::pair<int,int>,double> mu;
+  for(int i = 0; i < numLMPC; ++i) {
+    if(lmpc[i]->getSource() == mpc::ContactSurfaces) {
+      if(sProps[mortar_attrib[lmpc[i]->id.first]].lagrangeMult)
+        mu.emplace(lmpc[i]->id, 0.0);
+    }
   }
+  geomState->getMultipliers(mu);
+  geomState->clearMultiplierNodes();
+
   int count = 0;
   int nEle = packedEset.last();
   int count1 = 0;
   int nNode = geomState->numNodes();
+  std::map<std::pair<int,int>,double>::iterator it1 = mu.begin(); 
   for(int i = 0; i < numLMPC; ++i) {
     if(lmpc[i]->getSource() == mpc::ContactSurfaces) {
       if(count < contactSurfElems.size()) { // replace
         //cerr << "replacing element " << contactSurfElems[count] << " with lmpc " << i << endl;
         packedEset.deleteElem(contactSurfElems[count]);
         packedEset.mpcelemadd(contactSurfElems[count], lmpc[i]); // replace 
-        packedEset[contactSurfElems[count]]->setProp(p);
-        if(packedEset[contactSurfElems[count]]->numInternalNodes() == 1) { // i.e. lagrange multiplier
+        packedEset[contactSurfElems[count]]->setProp(&sProps[mortar_attrib[lmpc[i]->id.first]]);
+        if(packedEset[contactSurfElems[count]]->numInternalNodes() == 1) { // i.e. Lagrange multiplier
           int in[1] = { nNode++ };
           packedEset[contactSurfElems[count]]->setInternalNodes(in);
-          geomState->addMultiplierNode(lmpc[i]->id, mu[i]);
+          geomState->addMultiplierNode(it1->first, it1->second);
+          it1++;
         }
         count1++;
       }
       else { // new
         //cerr << "adding lmpc " << i << " to elemset at index " << nEle << endl;
         packedEset.mpcelemadd(nEle, lmpc[i]); // new
-        packedEset[nEle]->setProp(p);
+        packedEset[nEle]->setProp(&sProps[mortar_attrib[lmpc[i]->id.first]]);
         if(packedEset[nEle]->numInternalNodes() == 1) {
           int in[1] = { nNode++ };
           packedEset[nEle]->setInternalNodes(in);
-          geomState->addMultiplierNode(lmpc[i]->id, mu[i]);
+          geomState->addMultiplierNode(it1->first, it1->second);
+          it1++;
         }
         contactSurfElems.push_back(nEle);
         nEle++;
@@ -3899,7 +3899,6 @@ Domain::UpdateContactSurfaceElements(GeomState *geomState)
   numele = packedEset.last(); 
   numnodes = geomState->numNodes();
 }
-
 
 void Domain::updateSDETAF(StructProp* p, double omega) {
  if (p->etaDamp<0.0 && p->betaDamp==0.0) {

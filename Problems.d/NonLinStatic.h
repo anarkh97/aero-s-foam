@@ -71,6 +71,7 @@ class NonLinStatic {
     double getEnergy(double lambda, Vector& force, GeomState* geomState);
 
     double getResidualNorm(Vector &res, GeomState &geomState);
+    bool getResizeFlag();
 
   private:
     void clean();

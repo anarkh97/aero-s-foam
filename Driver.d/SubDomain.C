@@ -2101,6 +2101,10 @@ GenSubDomain<Scalar>::renumberElementsGlobal()
 {
  for(int i=0; i < numele; ++i)
    packedEset[i]->renum(glNums);
+
+ for(int i=0; i < numNeum; ++i) {
+   neum[i]->renum(glNums);
+ }
 }
 
 template<class Scalar>
@@ -2550,7 +2554,7 @@ GenSubDomain<Scalar>::mergeDisp(Scalar (*xyz)[11], GeomState* u)//DOfSet::max_kn
  // Current configuration to get the displacement
  int i, nodeI;
  for(i = 0; i < numnodes; ++i) {
-   if(!nodes[i]) continue;
+   if(!nodes[i] || i >= u->numNodes()) continue; // XXX
    nodeI = (domain->outFlag) ? domain->nodeTable[glNums[i]]-1 : glNums[i];
 
    if(dynamic_cast<TemperatureState*>(u)) { xyz[nodeI][0] = (*u)[i].x; continue; }
@@ -4419,6 +4423,7 @@ GenSubDomain<Scalar>::~GenSubDomain()
       if(neighbG[i]) { delete neighbG[i]; neighbG[i] = 0; }
      delete [] neighbG; neighbG = 0;
   }
+  if(l2g) delete [] l2g;
 }
 
 template<class Scalar>
@@ -5955,7 +5960,71 @@ GenSubDomain<DComplex>::addNodalData(FSCommPattern<DComplex> *pat, DistVec<doubl
 
 template<class Scalar>
 void
+GenSubDomain<Scalar>::dispatchInterfaceGeomState(FSCommPattern<double> *pat, GeomState *geomState)
+{
+  for(int iSub = 0; iSub < scomm->numNeighb; ++iSub) {
+    FSSubRecInfo<double> sInfo = pat->getSendBuffer(subNumber, scomm->subNums[iSub]);
+    for(int iNode = 0; iNode < scomm->sharedNodes->num(iSub); ++iNode) {
+      if((*scomm->sharedNodes)[iSub][iNode] < geomState->numNodesFixed()) {
+        NodeState &ns = (*geomState)[(*scomm->sharedNodes)[iSub][iNode]];
+        sInfo.data[13*iNode] = 1; // status
+        sInfo.data[13*iNode+1 ] = ns.x;
+        sInfo.data[13*iNode+2 ] = ns.y;
+        sInfo.data[13*iNode+3 ] = ns.z;
+        sInfo.data[13*iNode+4 ] = ns.R[0][0];
+        sInfo.data[13*iNode+5 ] = ns.R[0][1];
+        sInfo.data[13*iNode+6 ] = ns.R[0][2];
+        sInfo.data[13*iNode+7 ] = ns.R[1][0];
+        sInfo.data[13*iNode+8 ] = ns.R[1][1];
+        sInfo.data[13*iNode+9 ] = ns.R[1][2];
+        sInfo.data[13*iNode+10] = ns.R[2][0];
+        sInfo.data[13*iNode+11] = ns.R[2][1];
+        sInfo.data[13*iNode+12] = ns.R[2][2];
+      }
+      else {
+        for(int j=0; j<13; ++j) sInfo.data[13*iNode+j] = 0;
+      }
+    }
+  }
+}
+
+template<class Scalar>
+void
+GenSubDomain<Scalar>::collectInterfaceGeomState(FSCommPattern<double> *pat, GeomState *geomState)
+{
+  for(int iSub = 0; iSub < scomm->numNeighb; ++iSub) {
+    FSSubRecInfo<double> rInfo = pat->recData(scomm->subNums[iSub], subNumber);
+    for(int iNode = 0; iNode < scomm->sharedNodes->num(iSub); ++iNode) {
+      if((*scomm->sharedNodes)[iSub][iNode] >= geomState->numNodesFixed() && rInfo.data[13*iNode] != 0) {
+        NodeState &ns = (*geomState)[(*scomm->sharedNodes)[iSub][iNode]];
+        ns.x       = rInfo.data[13*iNode+1 ];
+        ns.y       = rInfo.data[13*iNode+2 ];
+        ns.z       = rInfo.data[13*iNode+3 ];
+        ns.R[0][0] = rInfo.data[13*iNode+4 ];
+        ns.R[0][1] = rInfo.data[13*iNode+5 ];
+        ns.R[0][2] = rInfo.data[13*iNode+6 ];
+        ns.R[1][0] = rInfo.data[13*iNode+7 ];
+        ns.R[1][1] = rInfo.data[13*iNode+8 ];
+        ns.R[1][2] = rInfo.data[13*iNode+9 ];
+        ns.R[2][0] = rInfo.data[13*iNode+10];
+        ns.R[2][1] = rInfo.data[13*iNode+11];
+        ns.R[2][2] = rInfo.data[13*iNode+12];
+      }
+    }
+  }
+}
+
+template<class Scalar>
+void
 GenSubDomain<Scalar>::setWICommSize(FSCommPattern<Scalar> *pat)
+{
+  for(int i = 0; i < scomm->numT(SComm::fsi); ++i)
+    pat->setLen(subNumber, scomm->neighbT(SComm::fsi,i), numNeighbWIdof[i]);
+}
+
+template<class Scalar>
+void
+GenSubDomain<Scalar>::setCSCommSize(FSCommPattern<Scalar> *pat)
 {
   for(int i = 0; i < scomm->numT(SComm::fsi); ++i)
     pat->setLen(subNumber,  scomm->neighbT(SComm::fsi,i), numNeighbWIdof[i]);

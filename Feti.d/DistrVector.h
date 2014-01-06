@@ -27,7 +27,6 @@ struct DistrInfo {
    
    DistrInfo(int i);
    DistrInfo() { initialize(); };
-   DistrInfo(const DistrInfo &d);
    ~DistrInfo(); 
    void setMasterFlag();
    void setMasterFlag(bool *_masterFlag) { if(masterFlag) delete [] masterFlag; masterFlag = _masterFlag; }
@@ -36,6 +35,8 @@ struct DistrInfo {
    int masterLen() const;
    int *getMasterFlag(int i) const { return 0; }
    void recomputeOffsets();
+   bool operator==(const DistrInfo& other) const;
+   bool operator!=(const DistrInfo& other) const;
  private:
    void initialize();
 };
@@ -60,12 +61,12 @@ class GenDistrVector {
     int *subVOffset, *thOffset;
     bool *masterFlag;
     bool infoFlag;
-    const DistrInfo &inf;
+    DistrInfo const * inf;
     Scalar *partial;
   public:
     GenDistrVector() : myMemory(false), len(0), numDom(0), v(NULL), subV(NULL), subVLen(NULL), nT(0),
                        thLen(NULL), thV(NULL), subVOffset(NULL), thOffset(NULL), masterFlag(NULL),
-                       infoFlag(false), inf(*(new DistrInfo)), partial(NULL) {}
+                       infoFlag(false), inf(new DistrInfo), partial(NULL) {}
     GenDistrVector(const DistrInfo &dinfo);
     GenDistrVector(const GenDistrVector<Scalar> &v);
     GenDistrVector(const DistrInfo &dinfo, Scalar *, bool myMemory = true);
@@ -74,6 +75,8 @@ class GenDistrVector {
     void zero();
     void clean_up();
     int size() const { return len; }
+    void resize(const DistrInfo &dinfo); // no-op if the sizes match, otherwise data is lost
+    void conservativeResize(const DistrInfo &dinfo); // resizing with data preservation
     int num() const { return numDom; }
     Scalar &operator[](int i) { return v[i]; }
     Scalar operator[](int i) const { return v[i]; } 
@@ -145,8 +148,8 @@ class GenDistrVector {
 
    void scaleBlock(int k, Scalar s) { cerr << "Error : GenDistrVector::scaleBlock not implemented " << endl; } 
 
-    typedef const DistrInfo &InfoType;
-    const DistrInfo &info() const { return inf; }
+   typedef const DistrInfo &InfoType;
+   const DistrInfo &info() const { return *inf; }
 };
 
 template<class Scalar>

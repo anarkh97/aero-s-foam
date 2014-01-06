@@ -28,7 +28,9 @@ public:
 		  StateIncr *du, VecType &residual, 
 		  VecType &elementInternalForce, VecType &gRes, double lambda=1.0, bool forceOnly=false) {
     updateState(pbd, geomState, *du);
-    return pbd->getStiffAndForce(*geomState, residual, elementInternalForce, gRes, lambda, refState, forceOnly);
+    double ret = pbd->getStiffAndForce(*geomState, residual, elementInternalForce, gRes, lambda, refState, forceOnly);
+    if(pbd->getResizeFlag()) du->resize(pbd->solVecInfo());
+    return ret;
   }
 
   static double integrate(ProbDescr *pbd, RefState *refState, GeomType *geomState,
@@ -36,7 +38,9 @@ public:
 		  VecType &elementInternalForce, VecType &gRes, VecType& vel_n,
                   VecType &accel, double midTime, bool forceOnly=false) {
     updateState(pbd, geomState, *du);
-    return pbd->getStiffAndForce(*geomState, residual, elementInternalForce, midTime, refState, forceOnly);
+    double ret = pbd->getStiffAndForce(*geomState, residual, elementInternalForce, midTime, refState, forceOnly);
+    if(pbd->getResizeFlag()) du->resize(pbd->solVecInfo()); 
+    return ret;
   }
 
   static void midpointIntegrate(ProbDescr *pbd, 

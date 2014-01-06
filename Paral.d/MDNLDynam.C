@@ -312,25 +312,41 @@ MDNLDynamic::~MDNLDynamic()
 void
 MDNLDynamic::initializeParameters(DistrGeomState *geomState)
 {
-  execParal1R(decDomain->getNumSub(), this, &MDNLDynamic::subInitializeParameters, *geomState);
+  execParal1R(decDomain->getNumSub(), this, &MDNLDynamic::subInitializeMultipliers, *geomState);
+  execParal(decDomain->getNumSub(), this, &MDNLDynamic::subInitializeParameters);
+  domain->initializeParameters();
 }
 
 void
-MDNLDynamic::subInitializeParameters(int isub, DistrGeomState& geomState)
+MDNLDynamic::subInitializeMultipliers(int isub, DistrGeomState& geomState)
 {
-  decDomain->getSubDomain(isub)->initializeParameters(*(geomState[isub]), allCorot[isub]);
+  decDomain->getSubDomain(isub)->initializeMultipliers(*(geomState[isub]), allCorot[isub]);
+}
+
+void
+MDNLDynamic::subInitializeParameters(int isub)
+{
+  decDomain->getSubDomain(isub)->initializeParameters(false);
 }
 
 void
 MDNLDynamic::updateParameters(DistrGeomState *geomState)
 {
-  execParal1R(decDomain->getNumSub(), this, &MDNLDynamic::subUpdateParameters, *geomState);
+  execParal1R(decDomain->getNumSub(), this, &MDNLDynamic::subUpdateMultipliers, *geomState);
+  execParal(decDomain->getNumSub(), this, &MDNLDynamic::subUpdateParameters);
+  domain->updateParameters();
 }
 
 void
-MDNLDynamic::subUpdateParameters(int isub, DistrGeomState& geomState)
+MDNLDynamic::subUpdateMultipliers(int isub, DistrGeomState& geomState)
 {
-  decDomain->getSubDomain(isub)->updateParameters(*(geomState[isub]), allCorot[isub]);
+  decDomain->getSubDomain(isub)->updateMultipliers(*(geomState[isub]), allCorot[isub]);
+}
+
+void
+MDNLDynamic::subUpdateParameters(int isub)
+{
+  decDomain->getSubDomain(isub)->updateParameters(false);
 }
 
 bool
@@ -1731,4 +1747,10 @@ LinesearchInfo&
 MDNLDynamic::linesearch()
 {
   return domain->solInfo().getNLInfo().linesearch;
+}
+
+bool
+MDNLDynamic::getResizeFlag()
+{
+  return (domain->GetnContactSurfacePairs() > 0); // XXX only for "penalty" and "augmented" constraint methods
 }

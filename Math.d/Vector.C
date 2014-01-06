@@ -104,10 +104,11 @@ template<class Scalar>
 void
 GenVector<Scalar>::reset(int newlen, Scalar initialvalue)
 {
- if(d) { delete [] d; }
+ if(myMemory && d) { delete [] d; }
 
  len = newlen;
  d = new Scalar[len];
+ myMemory = true;
  for(int i=0; i<len; ++i)
    d[i] = initialvalue;
 }
@@ -115,6 +116,17 @@ GenVector<Scalar>::reset(int newlen, Scalar initialvalue)
 template<class Scalar>
 void
 GenVector<Scalar>::resize(int newlen)
+{
+ if(len == newlen) return;
+ if(myMemory && d) { delete [] d; }
+ len = newlen;
+ d = new Scalar[len];
+ myMemory = true;
+}
+
+template<class Scalar>
+void
+GenVector<Scalar>::conservativeResize(int newlen)
 {
  if(len == newlen) return;
  Scalar *newd = new Scalar[newlen];
@@ -136,21 +148,19 @@ GenVector<Scalar>::putIn(Scalar *array, int position, int num)
   if (num>len) fprintf(stderr,"Incompatible length in GenVector<Scalar> putIn\n");
   for (int i=0; i<num; i++)
     array[position+i]=d[i];
-                                                                                                                                                   
 }
+
 template<class Scalar>
 void
 GenVector<Scalar>::getFrom(Scalar *array, int position, int numdata)
 {
   if ( numdata > len )
     fprintf(stderr,"Incompatible length of GenVector<Scalar>s in GenVector<Scalar> getFrom\n");
-                                                                                                                                                   
+
   for (int i=0; i<numdata; i++)
     d[i]=array[position+i];
-                                                                                                                                                   
 }
-                                                                                                                                                   
-                                                                                                                                                   
+
 template<class Scalar>
 void
 GenVector<Scalar>::getDataFrom(Scalar *array, int num)
@@ -159,7 +169,7 @@ GenVector<Scalar>::getDataFrom(Scalar *array, int num)
   for (int i=0; i<num; i++)
     d[i]=array[i];
 }
-                                                                                                                                                   
+
 template<class Scalar>
 void
 GenVector<Scalar>::addDataFrom(double *array, int num)
@@ -168,7 +178,7 @@ GenVector<Scalar>::addDataFrom(double *array, int num)
   for (int i=0; i<num; i++)
     d[i]+=array[i];
 }
-                                                                                                                                                   
+
 template<class Scalar>
 GenVector<Scalar>
 GenVector<Scalar>::operator+(const GenVector<Scalar> &v2)

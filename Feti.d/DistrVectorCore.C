@@ -83,3 +83,18 @@ DistrInfo::masterLen() const
   toto = 1;
   return toto.sqNorm();
 }
+
+bool
+DistrInfo::operator==(const DistrInfo& other) const
+{
+  if((len != other.len) || (numLocSub != other.numLocSub)) return false;
+  for(int i=0; i<numLocSub; ++i)
+    if(subLen[i] != other.subLen[i]) return false;
+  return true;
+}
+
+bool
+DistrInfo::operator!=(const DistrInfo& other) const
+{
+  return !(*this == other);
+}

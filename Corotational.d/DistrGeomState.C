@@ -286,3 +286,54 @@ DistrGeomState::getHaveRot()
   return bool(ret);
 }
 
+void
+DistrGeomState::resize(DecDomain* domain)
+{
+  execParal1R(numSub, this, &DistrGeomState::subResize, domain);
+}
+
+void
+DistrGeomState::subResize(int isub, DecDomain* domain)
+{
+ SubDomain *sd = domain->getSubDomain(isub);
+ gs[isub]->resize( *sd->getDSA(), *sd->getCDSA(), sd->getNodes(), &sd->getElementSet() );
+}
+
+void
+DistrGeomState::print()
+{
+  for(int i=0; i<numSub; ++i) {
+    gs[i]->print();
+  }
+}
+
+void
+DistrGeomState::getMultipliers(std::map<std::pair<int,int>,double> &mu)
+{
+  for(std::map<std::pair<int,int>,double>::iterator it = mu.begin(); it != mu.end(); it++) {
+    it->second = 0;
+    for(int isub=0; isub<numSub; ++isub) {
+      double val = gs[isub]->getMultiplier(it->first);
+      if(val != 0) { it->second = val; break; }
+    }
+  }
+#ifdef USE_MPI
+  std::vector<double> values;
+  for(std::map<std::pair<int,int>,double>::iterator it = mu.begin(); it != mu.end(); it++) values.push_back(it->second);
+  structCom->globalMax(values.size(), values.data()); // XXX inequlity constraint multipliers always non-negative?
+  std::vector<double>::iterator it2 = values.begin();
+  for(std::map<std::pair<int,int>,double>::iterator it = mu.begin(); it != mu.end(); it++) { it->second = *it2; it2++; }
+#endif
+}
+
+void
+DistrGeomState::setMultipliers(std::map<std::pair<int,int>,double> &mu)
+{
+  execParal1R(numSub, this, &DistrGeomState::subSetMultipliers, mu);
+}
+
+void
+DistrGeomState::subSetMultipliers(int isub, std::map<std::pair<int,int>,double> &mu)
+{
+  gs[isub]->setMultipliers(mu);
+}

@@ -34,6 +34,7 @@ class CoefData;
 class LayInfo;
 struct Group;
 struct AttributeToElement;
+class DistrGeomState;
 
 enum {SXX=0,SYY=1,SZZ=2,SXY= 3,SYZ= 4,SXZ= 5,VON=6,
       EXX=7,EYY=8,EZZ=9,EXY=10,EYZ=11,EXZ=12,STRAINVON=13,
@@ -176,6 +177,7 @@ class GeoSource {
   map<int, Attrib> attrib;
   int maxattrib;
   map<int, int> optg;
+  map<int, int> mortar_attrib;
 
   int numEframes;
   ResizeArray<EFrameData> efd;
@@ -266,7 +268,7 @@ class GeoSource {
   int numDampedModes;   // number of modes that have damping
   BCond *modalDamping;  // the value of damping for those modes with damping reuses BCond class
 
-  Decomposition *optDec;
+  Decomposition *optDec, *optDecCopy;
 
   map<int, Group> group;
   map<int, list<int> > nodeGroup;
@@ -351,6 +353,7 @@ public:
   CoefData* getCoefData(int i) { assert(i >= 0 && i < numCoefData); return coefData[i]; }
   int  addLayMat(int m, double *);
   int  setAttrib(int n, int a, int ca = -1, int cfrm = -1, double ctheta = 0.0);
+  void setMortarAttrib(int n, int a);
   int  setFrame(int, double *);
   int  setNodalFrame(int, double *, double *, int);
   int  setCSFrame(int, double *);
@@ -468,6 +471,7 @@ public:
   int consistentPFlag() { return constpflg; }
   int consistentQFlag() { return constqflg; }
   map<int, Attrib> &getAttributes()  { return attrib; }
+  map<int, int> &getMortarAttributes() { return mortar_attrib; }
   int getNumAttributes() { return na; }
 
   int getNumDirichlet()  { return numDirichlet; }
@@ -491,10 +495,13 @@ public:
   void setNumProps(int n) { numProps = n; }
 
   int getSurfaceDirichletBC(BCond *&);
+  int getNumSurfaceDirichlet() { return numSurfaceDirichlet; }
   int getSurfaceNeumanBC(BCond *&);
+  int getNumSurfaceNeuman() { return numSurfaceNeuman; }
   int getSurfacePressure(PressureBCond *&);
   int getNumSurfacePressure() { return numSurfacePressure; }
   int getSurfaceConstraint(BCond *&);
+  int getNumSurfaceConstraint() { return numSurfaceConstraint; }
 
   int getModalDamping(BCond *&);
 
@@ -522,6 +529,7 @@ public:
   Elemset* getElemSet(void){return(&elemSet);}
 
   void simpleDecomposition(int numSubdomains, bool estFlag, bool weightOutFlag, bool makeTrivial);
+  void modifyDecomposition(int maxEleKeep);
 
   // Output Functions
   template<int bound>
@@ -629,6 +637,10 @@ public:
   void addMpcElements(int numLMPC, ResizeArray<LMPCons *> &lmpc);
   void addFsiElements(int numFSI, ResizeArray<LMPCons *> &fsi);
   Element* getElem(int topid) { return elemSet[topid]; }
+  void UpdateContactSurfaceElements(DistrGeomState *, std::map<std::pair<int,int>,double> &);
+  vector<int> contactSurfElems;
+  void initializeParameters();
+  void updateParameters();
 
   double global_average_E, global_average_nu, global_average_rhof;
 

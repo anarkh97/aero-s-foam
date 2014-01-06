@@ -306,10 +306,10 @@ class Domain : public HData {
     Elemset elems_copy; // Needed for SFEM
     Elemset elems_fullcopy; // copy of the full elementset, needed for SFEM
 
-    StructProp *p; // property for new constraints
-
     std::vector<AdjacencyLists> elemAdj;
     std::vector<int> followedElemList;
+
+    FSCommunicator *com;
 
   public:
     bool runSAwAnalysis; // if true, analysis will be run first then compute sensitivity
@@ -455,8 +455,10 @@ class Domain : public HData {
                            FullSquareMatrix *mel = NULL,FullSquareMatrix *kelCopy = NULL);
 
      void applyResidualCorrection(GeomState &geomState, Corotator **corotators, Vector &residual, double rcoef = 1.0);
-     void initializeParameters(GeomState &geomState, Corotator **corotators);
-     void updateParameters(GeomState &geomState, Corotator **corotators);
+     void initializeMultipliers(GeomState &geomState, Corotator **corotators);
+     void initializeParameters(bool flag=true);
+     void updateMultipliers(GeomState &geomState, Corotator **corotators);
+     void updateParameters(bool flag=true);
      double getError(Corotator **corotators);
      void getElementDisp(int iele, GeomState& geomState, Vector& disp);
      double getDissipatedEnergy(GeomState *geomState, Corotator **allCorot);
@@ -1072,6 +1074,7 @@ class Domain : public HData {
      void AddContactForces(double dt_old, double dt, DistrVector &f);
 
      void InitializeStaticContactSearch(MortarHandler::Interaction_Type t, int numSub = 0, SubDomain **sd = 0);
+     void ReInitializeStaticContactSearch(MortarHandler::Interaction_Type t, int numSub = 0, SubDomain **sd = 0);
      void UpdateSurfaces(MortarHandler::Interaction_Type t, GeomState *geomState);
      void UpdateSurfaces(MortarHandler::Interaction_Type t, DistrGeomState *geomState, SubDomain **sd);
      void PerformStaticContactSearch(MortarHandler::Interaction_Type t);

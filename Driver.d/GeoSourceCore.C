@@ -15,6 +15,7 @@
 #include <Dec.d/Decomp.d/Decomp.h>
 #include <Driver.d/MultiFront.h>
 #include <Driver.d/Header.h>
+#include <Corotational.d/DistrGeomState.h>
 #ifndef WINDOWS
 #include <dlfcn.h>
 #endif
@@ -39,6 +40,9 @@ BCond null_bcond;
 CoefData null_coef;
 OutputInfo emptyInfo;
 extern ModeData modeData;
+extern bool estFlag;
+extern bool weightOutFlag;
+extern bool trivialFlag;
 #ifndef SALINAS
 extern Sfem *sfem;
 #endif
@@ -148,8 +152,9 @@ GeoSource::GeoSource(int iniSize) : oinfo(emptyInfo, iniSize), nodes(iniSize*16)
   surface_pres = 0;
   surface_cfe = 0;
 
-  maxattrib = -1; // PJSA
+  maxattrib = -1;
   optDec = 0;
+  optDecCopy = 0;
 
   numInternalNodes = 0;
   allNumClusElems = 0;
@@ -164,6 +169,7 @@ GeoSource::GeoSource(int iniSize) : oinfo(emptyInfo, iniSize), nodes(iniSize*16)
 #endif
 */
   subToClus = 0;
+  clusToSub = 0;
 
   mratio = 1.0; // consistent mass matrix
 
@@ -188,10 +194,19 @@ GeoSource::~GeoSource()
   if(outNodeIndex) delete [] outNodeIndex;
   if(headLen) delete [] headLen;
   if(subToClus) delete subToClus;
+  if(clusToSub) delete clusToSub;
+  if(unsortedSubToElem) delete unsortedSubToElem;
+  if(subToCPU) delete [] subToCPU;
   // claw is deleted by domain
   for(int iInfo = 0; iInfo < numOutInfo; ++iInfo) {
     if(oinfo[iInfo].filptr) fclose(oinfo[iInfo].filptr);
   }
+  if(surface_dbc) delete [] surface_dbc;
+  if(surface_nbc) delete [] surface_nbc;
+  if(surface_pres) delete [] surface_pres;
+  if(surface_cfe) delete [] surface_cfe;
+  if(optDec) delete optDec;
+  if(optDecCopy) delete optDecCopy;
 }
 
 //----------------------------------------------------------------------
@@ -268,7 +283,7 @@ int GeoSource::addLayMat(int m, double *d)
 
 int GeoSource::setAttrib(int n, int a, int ca, int cfrm, double ctheta)
 {
-  if(a>maxattrib) maxattrib = a; // PJSA
+  if(a>maxattrib) maxattrib = a;
   attrib[na].nele = n;
   attrib[na].attr = a;
   attrib[na].cmp_attr = ca;
@@ -279,6 +294,14 @@ int GeoSource::setAttrib(int n, int a, int ca, int cfrm, double ctheta)
     atoe[a].elems.push_back(n);
   }
   return 0;
+}
+
+//----------------------------------------------------------------------
+
+void GeoSource::setMortarAttrib(int n, int a)
+{
+  if(a>maxattrib) maxattrib = a;
+  mortar_attrib[n] = a;
 }
 
 //----------------------------------------------------------------------
@@ -471,20 +494,109 @@ void GeoSource::addMpcElements(int numLMPC, ResizeArray<LMPCons *> &lmpc)
         p.lagrangeMult = lmpc[i]->lagrangeMult;
         p.initialPenalty = p.penalty = lmpc[i]->penalty;
         p.type = StructProp::Constraint;
-        p.constraint_hess = domain->solInfo().constraint_hess;
-        p.constraint_hess_eps = domain->solInfo().constraint_hess_eps;
         addMat(a, p);
         setAttrib(nEle, a);
       }
       nEle++;
     }
     //cerr << " ... Converted " << numLMPC << " LMPCs to constraint elements ...\n";
-    // XXXX still needed for eigen GRBM lmpc.deleteArray(); domain->setNumLMPC(0);
   }
   for(int i=0; i<numLMPC; ++i) if(lmpc[i]) delete lmpc[i];
   lmpc.deleteArray();
   lmpc.restartArray();
   domain->setNumLMPC(0);
+}
+
+void GeoSource::UpdateContactSurfaceElements(DistrGeomState *geomState, std::map<std::pair<int,int>,double > &mu)
+{
+  SolverInfo &sinfo = domain->solInfo();
+  ResizeArray<LMPCons *> &lmpc = *domain->getLMPC();
+  int numLMPC = domain->getNumLMPC();
+
+  // copy the Lagrange multipliers from geomState
+  mu.clear();
+  for(int i = 0; i < numLMPC; ++i) {
+    if(lmpc[i]->getSource() == mpc::ContactSurfaces) {
+      if(sProps[mortar_attrib[lmpc[i]->id.first]].lagrangeMult)
+        mu.emplace(lmpc[i]->id, 0.0);
+    }
+  }
+  geomState->getMultipliers(mu);
+
+  int count = 0;
+  int nEle = elemSet.last();
+  int count1 = 0;
+  int nNode = nodes.size();
+  for(int i = 0; i < numLMPC; ++i) {
+    if(lmpc[i]->getSource() == mpc::ContactSurfaces) {
+      if(count < contactSurfElems.size()) { // replace
+        //cerr << "replacing element " << contactSurfElems[count] << " with lmpc " << i << endl;
+        elemSet.deleteElem(contactSurfElems[count]);
+        elemSet.mpcelemadd(contactSurfElems[count], lmpc[i]); // replace 
+        elemSet[contactSurfElems[count]]->setProp(&sProps[mortar_attrib[lmpc[i]->id.first]]);
+        if(elemSet[contactSurfElems[count]]->numInternalNodes() == 1) { // i.e. lagrange multiplier
+          int in[1] = { nNode++ };
+          elemSet[contactSurfElems[count]]->setInternalNodes(in);
+          //XXX geomState->addMultiplierNode(lmpc[i]->id, mu[i]);
+        }
+        count1++;
+      }
+      else { // new
+        //cerr << "adding lmpc " << i << " to elemset at index " << nEle << endl;
+        elemSet.mpcelemadd(nEle, lmpc[i]); // new
+        elemSet[nEle]->setProp(&sProps[mortar_attrib[lmpc[i]->id.first]]);
+        if(elemSet[nEle]->numInternalNodes() == 1) {
+          int in[1] = { nNode++ };
+          elemSet[nEle]->setInternalNodes(in);
+          //XXX geomState->addMultiplierNode(lmpc[i]->id, mu[i]);
+        }
+        contactSurfElems.push_back(nEle);
+        nEle++;
+      }
+      count++;
+    }
+  }
+  int count2 = 0;
+  while(count < contactSurfElems.size()) {
+    //cerr << "deleting elemset " << contactSurfElems.back() << endl;
+    elemSet.deleteElem(contactSurfElems.back());
+    contactSurfElems.pop_back();
+    count2++;
+  }
+  //XXX elemSet.setEmax(nEle-count2); // because element set is packed
+  //cerr << "replaced " << count1 << " and added " << count-count1 << " new elements while removing " << count2 << endl;
+  nElem = elemSet.last();
+  //XXX numnodes = geomState->numNodes();
+
+  if(optDecCopy == 0) {
+    optDecCopy = optDec;
+  }
+  else {
+    delete optDec;
+  }
+  modifyDecomposition(nElem-contactSurfElems.size());
+}
+
+void
+GeoSource::initializeParameters()
+{
+  SPropContainer::iterator it = sProps.begin();
+  while(it != sProps.end()) {
+    StructProp* p = &(it->second);
+    p->penalty = p->initialPenalty;
+    it++;
+  }
+}
+
+void
+GeoSource::updateParameters()
+{
+  SPropContainer::iterator it = sProps.begin();
+  while(it != sProps.end()) {
+    StructProp* p = &(it->second);
+    p->penalty *= domain->solInfo().penalty_beta;
+    it++;
+  }
 }
 
 // Order the terms in MPCs so that the first term (slave) can be directly written in terms of the others (master)
@@ -833,16 +945,9 @@ void GeoSource::transformCoords()
 
     v = (T.transpose()*v).eval();
 
-    //double x_copy = nodes[i]->x, y_copy = nodes[i]->y, z_copy = nodes[i]->z;
-
     nodes[i]->x =v[0] + nfd[cp].origin[0];
     nodes[i]->y =v[1] + nfd[cp].origin[1];
     nodes[i]->z =v[2] + nfd[cp].origin[2];
-
-    //std::cout << std::fixed;
-    //std::cout << i+1 << " 1 " << setprecision(12) << nodes[i]->x - x_copy << std::endl;
-    //std::cout << i+1 << " 2 " << setprecision(12) << nodes[i]->y - y_copy << std::endl;
-    //std::cout << i+1 << " 3 " << setprecision(12) << nodes[i]->z - z_copy << std::endl;
   }
 #endif
 }
@@ -906,11 +1011,12 @@ void GeoSource::setUpData()
     if(attrib[i].nele < nMaxEle)
       hasAttr[attrib[i].nele] = true;
   }
-  int dattr = maxattrib + 1;
+  int dattr;
   bool hasAddedDummy = false;
   for(int i = 0; i < nMaxEle; ++i) {
     if(elemSet[i] && !hasAttr[i]) {
       if (!hasAddedDummy) {
+        dattr = maxattrib + 1;
         addMat(dattr, StructProp());
         hasAddedDummy = true;
       }
@@ -919,6 +1025,28 @@ void GeoSource::setUpData()
     }
   }
   delete [] hasAttr;
+
+  // add properties for mortar conditions
+  for(int i=0; i<domain->GetnMortarConds(); ++i) {
+    ConstraintOptions *copt = domain->GetMortarCond(i)->GetConstraintOptions();
+    if(copt) {
+      int a = maxattrib + 1;
+      StructProp p;
+      p.lagrangeMult = copt->lagrangeMult;
+      p.initialPenalty = p.penalty = copt->penalty;
+      p.type = StructProp::Constraint;
+      addMat(a, p);
+      setMortarAttrib(domain->GetMortarCond(i)->GetId(), a);
+    }
+    else {
+      if(!hasAddedDummy) {
+        dattr = maxattrib + 1;
+        addMat(dattr, StructProp());
+        hasAddedDummy = true;
+      }
+      setMortarAttrib(domain->GetMortarCond(i)->GetId(), dattr);
+    }
+  }
 
   // assign default properties
   SPropContainer::iterator it = sProps.begin();
@@ -1235,6 +1363,7 @@ int GeoSource::getElems(Elemset &packedEset, int nElems, int *elemList)
   int nPhantoms = 0;
 
   // add real elements to list
+  glToPckElems.clear();
   for(iEle = 0; iEle < numele; ++iEle) {
     Element *ele = elemSet[iEle];
     if(ele) {
@@ -1295,100 +1424,9 @@ int GeoSource::getElems(Elemset &packedEset, int nElems, int *elemList)
     }
     iEle++;
   }
+
   return nRealElems;
-
 }
-
-/*
-//identical to original getElems function; for generating top files
-int GeoSource::getElemsTopHEV(Elemset &packedEset, int nElems, int *elemList)
-{
-  SolverInfo sinfo = domain->solInfo();
-  //ADDED FOR HEV PROBLEM, EC, 20070820
-  //if(sinfo.HEV) { packedEsetFluid = new Elemset(); nElemFluid = 0; }
-
-  int iEle, numele;
-
-  if(nElems) numele = nElems;
-  else numele = elemSet.last();
-
-  int packFlag = 0;
-  if(!nElems) packFlag = 1;
-
-  nElem = 0; // counting the phantom elements as well
-  int nPhantoms = 0;
-
-  // add real elements to list
-  for(iEle = 0; iEle < numele; ++iEle) {
-    Element *ele = elemSet[iEle];
-    if(ele)  {
-      if(ele->isPhantomElement()==0) {//getProperty()  //original
-      //if(!ele->isPhantomElement() && !ele->isHEVFluidElement()) {//getProperty()  //MODIFIED FOR HEV PROBLEM, EC, 20070820
-        packedEset.elemadd(nElem, ele);
-        packedEset[nElem]->setGlNum(iEle);
-        if(packFlag)
-          glToPckElems[iEle] = nElem;
-        nElem++;
-      }
-      //ADDED FOR HEV PROBLEM, EC, 20070820
-      //else if(!ele->isPhantomElement() && ele->isHEVFluidElement()) {
-        //packedEsetFluid->elemadd(nElemFluid, ele);
-        //(*packedEsetFluid)[nElemFluid]->setGlNum(iEle);
-        //nElemFluid++;
-      //}
-      else
-        nPhantoms++;
-    }
-  }
-
-  if(!domain->getSowering())
-    {
-      //add the sommerElement from vector sommer -JF
-      //cerr << "GeoSourceCore.C, adding sommer in packedEset" << endl;
-      if (sinfo.ATDARBFlag!=-2.0) {
-	for (int i = 0 ;i<domain->numSommer;i++) {
-	  packedEset.elemadd(nElem,domain->sommer[i]);
-	  packedEset[nElem]->setGlNum(numele+i);
-	  if(packFlag)
-	    glToPckElems[numele+i] = nElem;
-	  nElem++;
-	}
-      }
-    }
-
-  int nRealElems = nElem;
-
-  // set number of real elements
-  packedEset.setEmax(nElem);
-  packedEset.setNumPhantoms(nPhantoms);
-
-  //ADDED FOR HEV PROBLEM, EC, 20070820
-  //if(sinfo.HEV) {
-    //packedEsetFluid->setEmax(nElemFluid);
-    //packedEsetFluid->setNumPhantoms(0);
-  //}
-
-  // add phantom elements to list
-  iEle = 0;
-  int nPhants = 0;
-  while (nPhants < nPhantoms)  {
-    Element *ele = elemSet[iEle];
-    if(ele)  {
-      if(ele->isPhantomElement()) {//getProperty() == 0
-        packedEset.elemadd(nElem, ele);
-        packedEset[nElem]->setGlNum(iEle);
-        if(packFlag)
-          glToPckElems[iEle] = nElem;
-        nElem++;
-        nPhants++;
-      }
-    }
-    iEle++;
-  }
-  return nRealElems;
-
-}
-*/
 
 int GeoSource::getNonMpcElems(Elemset &eset)
 {
@@ -2989,6 +3027,7 @@ int GeoSource::getCPUMap(FILE *f, int numSub)
      numCPU = structCom->numCPUs();
      if(verboseFlag) filePrint(stderr, " ... Making Trivial CPU Map, numCPU = %d ... \n", numCPU);
      int *cx  = new int[numCPU+1];
+     if(subToCPU) delete [] subToCPU;
      subToCPU = new int[totSub];
 
      int curSub = 0;
@@ -3006,10 +3045,12 @@ int GeoSource::getCPUMap(FILE *f, int numSub)
        }
      }
      cx[numCPU] = curSub;
+     if(cpuToSub) delete cpuToSub;
      cpuToSub = new Connectivity(numCPU,cx,connect);
      // cpuToSub->print();
 
      Connectivity *subDomainToCPU = cpuToSub->reverse();
+     if(cpuToCPU) delete cpuToCPU;
      cpuToCPU = cpuToSub->transcon(subDomainToCPU);
      delete subDomainToCPU;
   }
@@ -4051,6 +4092,48 @@ GeoSource::simpleDecomposition(int numSubdomains, bool estFlag, bool weightOutFl
  optDec->outputDump(optFilePtr, 0);
 #endif
  fclose(optFilePtr);
+}
+
+void
+GeoSource::modifyDecomposition(int maxEleCopy)
+{
+ //std::cerr << "here in GeoSource::modifyDecomposition, maxEleCopy = " << maxEleCopy << std::endl;
+ int maxEle = elemSet.last();
+ //std::cerr << "maxEle = " << maxEle << std::endl;
+
+ optDec = new Decomposition;
+ optDec->nsub = optDecCopy->nsub;
+ optDec->pele = new int[optDec->nsub+1];
+ optDec->eln = new int[maxEle];
+
+ int div = (maxEle-maxEleCopy) / optDec->nsub;
+ int rem = (maxEle-maxEleCopy) % optDec->nsub;
+ //std::cerr << "div = " << div << ", rem = " << rem << std::endl;
+
+ optDec->pele[0] = 0;
+ for(int i=0; i<optDec->nsub; i++)
+   optDec->pele[i+1] = optDec->pele[i] + (optDecCopy->pele[i+1]-optDecCopy->pele[i]) + ((i < rem) ? div+1 : div);
+ //std::cerr << "pele = "; for(int i=0; i<optDec->nsub+1; ++i) std::cerr << optDec->pele[i] << " "; std::cerr << std::endl;
+
+ int k=0, l=maxEleCopy;
+ for(int i=0; i<optDec->nsub; i++) {
+   for(int j=optDecCopy->pele[i]; j<optDecCopy->pele[i+1]; ++j) {
+     optDec->eln[k++] = optDecCopy->eln[j];
+   }
+   for(int j=optDec->pele[i]+(optDecCopy->pele[i+1]-optDecCopy->pele[i]); j<optDec->pele[i+1]; ++j) {
+     optDec->eln[k++] = l++;
+   }
+ }
+ //std::cerr << "eln = "; for(int i=0; i<maxEle; ++i) std::cerr << optDec->eln[i] << " "; std::cerr << std::endl;
+
+ if(verboseFlag)
+   filePrint(stderr, " ... %d Elements Have Been Arranged in %d Subdomains ...\n",
+             maxEle, optDec->nsub);
+
+ if(subToElem) { delete subToElem; subToElem = 0; }
+ if(subToClus) { delete subToClus; subToClus = 0; }
+ if(clusToSub) { delete clusToSub; clusToSub = 0; }
+ if(unsortedSubToElem) { delete unsortedSubToElem; unsortedSubToElem = 0; }
 }
 
 void

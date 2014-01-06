@@ -1480,7 +1480,8 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
 #ifdef USE_MUMPS
     case 9:
 #ifdef DISTRIBUTED
-      spm = constructMumps<Scalar>(c_dsa, rbm, new FSCommunicator(structCom));
+      if(!com) com = new FSCommunicator(structCom);
+      spm = constructMumps<Scalar>(c_dsa, rbm, com);
 #else
       spm = constructMumps<Scalar>(c_dsa, rbm);
 #endif
@@ -1864,7 +1865,6 @@ Domain::scaleDisp(Scalar *u)
   }
 }
 
-
 template<class Scalar>
 void
 Domain::scaleInvDisp(Scalar *u)
@@ -2195,8 +2195,8 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc)
       if(dof < 0) continue;
       dof = c_dsa->invRCN(dof);
       if(dof >= 0) {
-        if(sinfo.isCoupled && dbc[i].dofnum < 6) ScalarTypes::initScalar(Vc[dof], dbc[i].val/coupledScaling); else // PJSA 1-9-08
-        ScalarTypes::initScalar(Vc[dof], dbc[i].val);
+        if(sinfo.isCoupled && dbc[i].dofnum < 6) ScalarTypes::initScalar(Vc[dof], dbc[i].val/coupledScaling);
+        else ScalarTypes::initScalar(Vc[dof], dbc[i].val);
       }
     }
 
@@ -2207,8 +2207,8 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc)
       if(dof2 < 0) continue;
       dof2 = c_dsa->invRCN(dof2);
       if(dof2 >= 0) {
-        if(sinfo.isCoupled && cdbc[i].dofnum < 6) ScalarTypes::initScalar(Vc[dof2], cdbcMRHS[i].reval/coupledScaling, cdbcMRHS[i].imval/coupledScaling); else // PJSA 1-9-08
-        ScalarTypes::initScalar(Vc[dof2], cdbcMRHS[i].reval, cdbcMRHS[i].imval);
+        if(sinfo.isCoupled && cdbc[i].dofnum < 6) ScalarTypes::initScalar(Vc[dof2], cdbcMRHS[i].reval/coupledScaling, cdbcMRHS[i].imval/coupledScaling);
+        else ScalarTypes::initScalar(Vc[dof2], cdbcMRHS[i].reval, cdbcMRHS[i].imval);
       }
     }
 
@@ -2374,8 +2374,8 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenVector<Scalar> &tmp,
     if(dof < 0) continue;
     dof = c_dsa->invRCN(dof);
     if(dof >= 0) {
-      if(sinfo.isCoupled && dbc[i].dofnum < 6) ScalarTypes::initScalar(Vc[dof], dbc[i].val/coupledScaling); else // PJSA 1-9-08
-      ScalarTypes::initScalar(Vc[dof], dbc[i].val);
+      if(sinfo.isCoupled && dbc[i].dofnum < 6) ScalarTypes::initScalar(Vc[dof], dbc[i].val/coupledScaling);
+      else ScalarTypes::initScalar(Vc[dof], dbc[i].val);
     }
   }
 
@@ -2386,8 +2386,8 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenVector<Scalar> &tmp,
     if(dof2 < 0) continue;
     dof2 = c_dsa->invRCN(dof2);
     if(dof2 >= 0) {
-      if(sinfo.isCoupled && cdbc[i].dofnum < 6) ScalarTypes::initScalar(Vc[dof2], cdbcMRHS[i].reval/coupledScaling, cdbcMRHS[i].imval/coupledScaling); else // PJSA 1-9-08
-      ScalarTypes::initScalar(Vc[dof2], cdbcMRHS[i].reval, cdbcMRHS[i].imval);
+      if(sinfo.isCoupled && cdbc[i].dofnum < 6) ScalarTypes::initScalar(Vc[dof2], cdbcMRHS[i].reval/coupledScaling, cdbcMRHS[i].imval/coupledScaling);
+      else ScalarTypes::initScalar(Vc[dof2], cdbcMRHS[i].reval, cdbcMRHS[i].imval);
     }
   }
 
@@ -2984,33 +2984,6 @@ Domain::computeSommerDerivatives(double HH, double KK, int curvatureFlag, int *d
     else cerr << " *** WARNING: 3D 2nd order Sommerfeld with curvatureFlag 2 is not supported for frequency sweep \n";
   }
 
-/* PJSA DEBUG    
-  GenFullSquareMatrix<DComplex> bt2(ms.dim(),(DComplex*)dbg_alloca(ms.dim()*ms.dim()*sizeof(DComplex)));
-  int kDof=0;
-  for(int iDof=0; iDof<ms.dim(); iDof++) {
-    for(int jDof=0; jDof<ms.dim(); jDof++) {
-      bt2[iDof][jDof] = bt2Matrix[kDof];
-      kDof++;
-    }
-  }
-  FullSquareMatrix ksRe(ms.dim(),(double*)dbg_alloca(ms.dim()*ms.dim()*sizeof(double)));
-  FullSquareMatrix ksIm(ms.dim(),(double*)dbg_alloca(ms.dim()*ms.dim()*sizeof(double)));
-
-  GenFullSquareMatrix<DComplex> bt2n(bt2,1.0);
-  for(int n=1; n<=N; ++n) {
-    GenFullSquareMatrix<DComplex> copy(bt2n, 1.0);
-    copy.multiply(bt2,bt2n);  // bt2n = bt2n*bt2
-    DComplex cm = -pow(1.0/(2.0*ii*kappa),n+1)*pow(-2.0*ii,n)*double(DFactorial(n));
-    for(int iDof=0; iDof<ms.dim(); iDof++) {
-      for(int jDof=0; jDof<ms.dim(); jDof++) {
-        DComplex cmbt = cm*bt2n[iDof][jDof];
-        ksRe[iDof][jDof] = real(cmbt);
-        ksIm[iDof][jDof] = imag(cmbt);
-      }
-    }
-    updateDampingMatrices(ops,dofs,&ksRe,&ksIm,ss,n);
-  }
-*/
   FullSquareMatrix ksRe(ms.dim(),(double*)dbg_alloca(ms.dim()*ms.dim()*sizeof(double)));
   FullSquareMatrix ksIm(ms.dim(),(double*)dbg_alloca(ms.dim()*ms.dim()*sizeof(double)));
   for(int n=1; n<=N; ++n) {

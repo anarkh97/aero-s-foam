@@ -40,15 +40,14 @@ class ElemState {
 class GeomState {
   protected:
      std::vector<NodeState> ns; // node state (x,y,z position and rotation tensor)
-     int numnodes;	// number of nodes
+     int numnodes, numnodesFixed; // number of nodes
      std::vector<std::vector<int> > loc; // dof location array
      double refCG[3];   // reference CG
      double gRot[3][3]; // Global Rotation Matrix
-     const CoordSet &X0;
-     int    numReal;    // number of 'real' nodes
+     CoordSet *X0;
      std::vector<int> flag; // signifies if node is connected to element
      int numelems;
-     ElemState *es;
+     std::vector<ElemState> es;
      std::map<int,int> emap;
      std::map<std::pair<int,int>,int> multiplier_nodes;
      bool haveRot;
@@ -66,6 +65,8 @@ class GeomState {
 
      virtual ~GeomState();
 
+     void resize(DofSetArray &dsa, DofSetArray &cdsa, CoordSet &cs, Elemset *elems = 0);
+
      NodeState & operator[](int i)  { return ns[i]; }
      const NodeState & operator[](int i) const { return ns[i]; }
      void clearMultiplierNodes();
@@ -77,6 +78,7 @@ class GeomState {
 
      // int getLocation(int inode, int dof) { return (loc[inode][dof]-1); }
      int numNodes() const { return numnodes; }
+     int numNodesFixed() const { return numnodesFixed; }
 
      void getPositions(double *positions);
      void getRotations(double *rotations);
@@ -134,8 +136,11 @@ class GeomState {
      void rotate(double mat[3][3], double vec[3]);
      void setNewmarkParameters(double _beta, double _gamma, double _alpham, double _alphaf);
 
-     void addMultiplierNode(std::pair<int,int> &lmpc_id, double value);
-     double getMultiplier(std::pair<int,int> &lmpc_id);
+     void addMultiplierNode(const std::pair<int,int> &lmpc_id, double value);
+     double getMultiplier(const std::pair<int,int> &lmpc_id);
+     void getMultipliers(std::map<std::pair<int,int>,double> &mu);
+     void setMultiplier(const std::pair<int,int> &lmpc_id, double mu);
+     void setMultipliers(std::map<std::pair<int,int>,double> &mu);
 
      bool getHaveRot() const { return haveRot; }
 };

@@ -149,8 +149,9 @@ SARule::SARule() {
 }
 
 MultiFront::MultiFront(Elemset *eset, CoordSet *cs, bool have_fsi) 
+ : nw(0), nSubPerNode(0), boundIndex(0), boundNode(0), elemPerSub(0), subWeight(0), arInfo(0), nodeMask(0)
 #ifdef NOTMPL
-		: prio(eset->size())
+ , prio(eset->size())
 #endif
 {
  iterationN=0;
@@ -211,6 +212,25 @@ MultiFront::MultiFront(Elemset *eset, CoordSet *cs, bool have_fsi)
      break; 
    } 
  }
+}
+
+MultiFront::~MultiFront()
+{
+ if(nw) delete [] nw;
+ if(nSubPerNode) delete [] nSubPerNode;
+ if(boundIndex) delete [] boundIndex;
+ if(boundNode) delete [] boundNode;
+ if(elemPerSub) delete[] elemPerSub;
+ if(subWeight) delete [] subWeight;
+ if(arInfo) delete [] arInfo;
+ if(nodeMask) delete [] nodeMask;
+ if(eToN) delete eToN;
+ if(nToE) delete nToE;
+ if(assignedSubD) delete [] assignedSubD;
+ if(elemHasRot) delete [] elemHasRot;
+ if(flag) delete [] flag;
+ if(isFsiConnected) delete [] isFsiConnected;
+ if(elemCG) delete [] elemCG;
 }
 
 void
@@ -861,6 +881,7 @@ MultiFront::rebuildInfo(Decomposition *dec)
  for(iNode = 0; iNode < nToE->csize(); ++iNode)
    boundIndex[iNode] = -1;
  numBoundNodes = 0;
+ if(elemPerSub) delete [] elemPerSub;
  elemPerSub = new int[dec->nsub];
  for(iSub = 0; iSub < dec->nsub; ++iSub) {
    elemPerSub[iSub] = dec->num(iSub);
@@ -970,8 +991,7 @@ MultiFront::eliminateEmpty(Decomposition *origDec)
 Decomposition *
 MultiFront::removeFsiElements(Decomposition *dec)
 {
- cerr << " ... Removing Fsi Elements \n";
- // PJSA 7-31-06
+ filePrint(stderr, " ... Removing Fsi Elements \n");
  int nsubs = 0;
  int *ptr = new int[dec->nsub+1];
  int *list = new int[numEle];
@@ -1048,7 +1068,6 @@ MultiFront::checkComponents(Decomposition *dec)
  }
  numBoundNodes = 0;
 
- //int *cElem = new int[numEle];
  int *oldSub = new int[numEle];
  for(iEle = 0; iEle < numEle; ++iEle) {
    oldSub[iEle] = assignedSubD[iEle];
@@ -1112,6 +1131,7 @@ MultiFront::checkComponents(Decomposition *dec)
          dec->eln[ --dec->pele[assignedSubD[iEle]] ] = iEle;
        }
  } 
+ delete [] oldSub;
  return dec;
 }
 
@@ -1160,7 +1180,7 @@ MultiFront::optimize(Decomposition *origDec)
    
  // Compute the cost function and normalize it
  // if no boundary nodes are found, we cannot improve the decomposition
- if(numBoundNodes == 0) return origDec;
+ if(numBoundNodes == 0) { delete [] nBNode; return origDec; }
  boundCoef = oc3/numBoundNodes;
  arInfo =  new ARInfo[numSub];
  double arCost = buildARInfo(origDec);
@@ -1199,7 +1219,7 @@ MultiFront::optimize(Decomposition *origDec)
    T0 += dc >= 0 ? dc : -dc;
  }
  if(n > 0) T0 = T0/n;
- else return origDec;
+ else { delete [] nBNode; return origDec; }
  // Iterate through the boundary elements to try to flip them to another
  // subdomain.
  int nIter = 80*boundList.size();
@@ -1317,6 +1337,7 @@ MultiFront::optimize(Decomposition *origDec)
    }
  arCost = buildARInfo(origDec);
 
+ delete [] nBNode;
  return origDec;
 }
 
@@ -1677,6 +1698,7 @@ MultiFront::computeBalCost(Decomposition *dec)
      totWeight += (*elems)[ (*dec)[iSub][iEle] ]->weight();
  avgWeight = totWeight/numSub;
  invAvgWeight = numSub/totWeight;
+ if(subWeight) delete [] subWeight;
  subWeight = new double[numSub];
  double cost = 0.0;
  for(iSub = 0; iSub < numSub; ++iSub) {

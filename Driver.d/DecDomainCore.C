@@ -11,49 +11,35 @@ template<>
 double
 GenDecDomain<double>::computeStabilityTimeStep(GenMDDynamMat<double>& dMat)
 {
-      double eigmax;
-      double relTol    = domain->solInfo().stable_tol; // stable_tol default is 1.0e-3
-      double preeigmax = 0.0;
-      int numdofs = internalInfo.len;
-      int maxIte  = domain->solInfo().stable_maxit; // stable_maxit default is 100
-      GenDistrVector<double> v(internalInfo);
-      GenDistrVector<double> z(internalInfo);
-// Starts from an arbitrary array.
-      int i;
-      for (i=0; i<numdofs; ++i)
-        v.data()[i] = (double) (i+1) / (double) numdofs;
+  double eigmax;
+  double relTol    = domain->solInfo().stable_tol; // stable_tol default is 1.0e-3
+  double preeigmax = 0.0;
+  int numdofs = internalInfo->len;
+  int maxIte  = domain->solInfo().stable_maxit; // stable_maxit default is 100
+  GenDistrVector<double> v(*internalInfo);
+  GenDistrVector<double> z(*internalInfo);
+  // Starts from an arbitrary array.
+  int i;
+  for (i=0; i<numdofs; ++i)
+    v.data()[i] = (double) (i+1) / (double) numdofs;
 
- Assembler *assembler = getSolVecAssembler();
- dMat.K->setAssembler(assembler); 
- dMat.M->setAssembler(assembler);
-// Power iteration loop
-      for (i=0; i<maxIte; ++i) {
+  Assembler *assembler = getSolVecAssembler();
+  dMat.K->setAssembler(assembler); 
+  dMat.M->setAssembler(assembler);
+  // Power iteration loop
+  for (i=0; i<maxIte; ++i) {
 
-        dMat.K->mult(v,z);
-        dMat.M->multInvertDiag(z);
+    dMat.K->mult(v,z);
+    dMat.M->multInvertDiag(z);
 
-
-
-        //for (j=0; j< numdofs; ++j)
-        // z[j] /= dMat.M->diag(j);
-// Normalize
-/*
-        double zmax = z[0];
-        for (j=1; j< numdofs; ++j)
-          if (abs(z.data()[j])>zmax) zmax = abs(z[j]);
-#ifdef DISTRIBUTED
-  zmax = communicator->globalMax(zmax);
-#endif
-*/
-        double zmax = z.infNorm();
-        eigmax = zmax;
-        //v = (1.0/zmax)*z;
-        v.linC(z,1.0/zmax);
-        if ( abs(eigmax - preeigmax) < relTol*abs(preeigmax) ) break;
-        preeigmax = eigmax;
-      }
-      // compute stability maximum time step
-      double sdt = 2.0 / sqrt(eigmax);
+    double zmax = z.infNorm();
+    eigmax = zmax;
+    v.linC(z,1.0/zmax);
+    if ( abs(eigmax - preeigmax) < relTol*abs(preeigmax) ) break;
+    preeigmax = eigmax;
+  }
+  // compute stability maximum time step
+  double sdt = 2.0 / sqrt(eigmax);
   
   dMat.K->setAssembler((BasicAssembler *)0);
   dMat.M->setAssembler((BasicAssembler *)0);

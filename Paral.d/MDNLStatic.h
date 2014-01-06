@@ -86,6 +86,7 @@ class MDNLStatic
       { cerr << "MDNLStatic::getEnergy is not implemented\n"; return 0; }
 
     double getResidualNorm(DistrVector &vec, DistrGeomState &geomState);
+    bool getResizeFlag();
 
   private:
     void getSubStiffAndForce(int isub, DistrGeomState &geomState,
@@ -103,8 +104,11 @@ class MDNLStatic
     void getConstraintMultipliers(int isub);
     void updateConstraintTerms(DistrGeomState* geomState, double _lambda);
     void subUpdateStates(int isub, DistrGeomState *refState, DistrGeomState *geomState);
-    void subInitializeParameters(int isub, DistrGeomState& geomState);
-    void subUpdateParameters(int isub, DistrGeomState& geomState);
+    void subInitializeMultipliers(int isub, DistrGeomState& geomState);
+    void subInitializeParameters(int isub);
+    void subUpdateMultipliers(int isub, DistrGeomState& geomState);
+    void subUpdateParameters(int isub);
+    void clean();
 };
 
 #endif

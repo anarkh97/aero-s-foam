@@ -632,7 +632,7 @@ int main(int argc, char** argv)
    geoSource->transformCoords();
  }
 
- if(geoSource->binaryInput) geoSource->readGlobalBinaryData(); // SOWERX
+ if(geoSource->binaryInput) geoSource->readGlobalBinaryData();
 #ifdef SOWER_SURFS
  else {
 #endif
@@ -1346,7 +1346,6 @@ int main(int argc, char** argv)
              }
            }
            else { // implicit
-             // filePrint(stderr, "Non-Linear Implicit Dynamic solver\n");
              if (!domain->solInfo().activatePodRom) {
                NonLinDynamic nldynamic(domain);
                NLDynamSolver <Solver, Vector, SDDynamPostProcessor, NonLinDynamic, GeomState> nldynamicSolver(&nldynamic);

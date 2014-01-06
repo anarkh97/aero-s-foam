@@ -30,7 +30,7 @@ CoordSet::operator = (const CoordSet & other)
       std::copy(other.nodes, other.nodes + other.nmax, new_nodes);
 
       // 2: deallocate old memory
-      if(nodes) { for(int i = 0; i < nmax; ++i) if(nodes[i]) delete nodes[i]; delete [] nodes; }
+      if(nodes) { /*for(int i = 0; i < nmax; ++i) if(nodes[i]) delete nodes[i];*/ delete [] nodes; }
 
       // 3: assign the new memory to the object
       nodes = new_nodes;

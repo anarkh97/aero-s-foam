@@ -567,6 +567,10 @@ class GenSubDomain : public BaseSub
   void sendExpDOFList(FSCommPattern<int> *pat);
   template<class Scalar1> void dispatchNodalData(FSCommPattern<Scalar> *pat, NewVec::DistVec<Scalar1> *);
   template<class Scalar1> void addNodalData(FSCommPattern<Scalar> *pat, NewVec::DistVec<Scalar1> *);
+  void dispatchInterfaceGeomState(FSCommPattern<double> *geomStatePat, GeomState *geomState);
+  void collectInterfaceGeomState(FSCommPattern<double> *geomStatePat, GeomState *geomState);
+  void dispatchGeomStateData(FSCommPattern<double> *, GeomState *);
+  void collectGeomStateData(FSCommPattern<double> *, GeomState *);
   void computeElementForce(int, Scalar *u, int Findex, Scalar *force);
   void computeStressStrain(int, Scalar *u, int Findex,
                            Scalar *stress, Scalar *weight = 0);
@@ -729,6 +733,7 @@ class GenSubDomain : public BaseSub
   void constructKww();
   void constructKcw();
   void setWICommSize(FSCommPattern<Scalar> *wiPat);
+  void setCSCommSize(FSCommPattern<Scalar> *csPat);
   void fetiBaseOpCoupled1(GenSolver<Scalar> *s, Scalar *localvec, Scalar *interfvec, 
                           FSCommPattern<Scalar> *wiPat);
   void fetiBaseOpCoupled2(Scalar *uc, Scalar *localvec, Scalar *interfvec, 

@@ -70,18 +70,21 @@ GenDecDomain<Scalar>::initialize()
   glSubToLocal = 0;
   communicator = 0;
   cpuToCPU = 0; 
-  //subToCPU = 0; 
   mpcToCpu = 0;
   numPrimalMpc = 0;
   numDualMpc = 0;
   firstOutput = true;
   soweredInput = false;
+  internalInfo = 0;
+  internalInfo2 = 0;
   masterSolVecInfo_ = 0;
+  nodeInfo = 0;
   nodeVecInfo = 0;
   eleVecInfo = 0;
   bcVecInfo = 0;
   wiPat = 0;
   ba = 0;
+  ba2 = 0;
 } 
 
 template<class Scalar>
@@ -111,15 +114,20 @@ GenDecDomain<Scalar>::~GenDecDomain()
   if(!cpuToSub && localSubToGl) { delete [] localSubToGl; localSubToGl = 0; }
   if(communicator) { delete communicator; communicator = 0; }
   if(cpuToCPU) { delete cpuToCPU; cpuToCPU = 0; }
-  //if(subToCPU) { delete [] subToCPU; subToCPU = 0; }
   if(glSubToLocal) { delete [] glSubToLocal; glSubToLocal = 0; }
   if(mpcToCpu) { delete mpcToCpu; mpcToCpu = 0; }
   if(subToElem) { delete subToElem; subToElem = 0; }
+  if(internalInfo) delete internalInfo;
+  if(internalInfo2) delete internalInfo2;
+  if(nodeInfo) delete nodeInfo;
   if(nodeVecInfo) delete nodeVecInfo;
   if(eleVecInfo) delete eleVecInfo;
   if(bcVecInfo) delete bcVecInfo;
-  delete masterSolVecInfo_;
-  delete ba;
+  if(masterSolVecInfo_) delete masterSolVecInfo_;
+  if(ba) delete ba;
+  if(ba2) delete ba2;
+  for(std::vector<DistrInfo*>::iterator it = vecInfoStore.begin(); it != vecInfoStore.end(); ++it) delete *it;
+  for(std::vector<DistrInfo*>::iterator it = vecInfoStore2.begin(); it != vecInfoStore2.end(); ++it) delete *it;
 }
 
 template<class Scalar>
@@ -426,9 +434,9 @@ void
 GenDecDomain<Scalar>::deleteMPCs()
 {
   paralApply(numSub, subDomain, &GenSubDomain<Scalar>::deleteMPCs);
-  if(mpcToSub_dual) delete mpcToSub_dual; mpcToSub_dual = 0;
-  if(mpcToMpc) delete mpcToMpc; mpcToMpc = 0;
-  if(mpcToCpu) delete mpcToCpu; mpcToCpu = 0;
+  if(mpcToSub_dual) { delete mpcToSub_dual; mpcToSub_dual = 0; }
+  if(mpcToMpc) { delete mpcToMpc; mpcToMpc = 0; }
+  if(mpcToCpu) { delete mpcToCpu; mpcToCpu = 0; }
   numDualMpc = 0;
 }
 
@@ -458,7 +466,7 @@ GenDecDomain<Scalar>::makeSubToSubEtc()
   if(soweredInput) {
     subToSub = geoSource->getSubToSub();
     subToNode = geoSource->getSubToNode();
-    subToNode->sortTargets(); // PJSA 11-16-2006
+    subToNode->sortTargets();
 
     mt.memoryNodeToSub -= memoryUsed();
     nodeToSub = subToNode->reverse();
@@ -474,7 +482,7 @@ GenDecDomain<Scalar>::makeSubToSubEtc()
 
     mt.memorySubToNode -= memoryUsed();
     subToNode = subToElem->transcon(elemToNode);
-    subToNode->sortTargets(); // PJSA 11-16-2006
+    if(!domain->GetnContactSurfacePairs()) subToNode->sortTargets();
     mt.memorySubToNode += memoryUsed();
 
     mt.memoryNodeToSub -= memoryUsed();
@@ -493,7 +501,7 @@ GenDecDomain<Scalar>::makeSubToSubEtc()
 #endif 
       // sommerfeld, scatter, wet, distributed neum PJSA 6/28/2010 multidomain mumps PJSA 12/01/2010 non-binary output for mpi
       mt.memoryNodeToElem -= memoryUsed();
-      domain->nodeToElem = elemToNode->reverse();
+      if(!domain->nodeToElem) domain->nodeToElem = elemToNode->reverse();
       mt.memoryNodeToElem += memoryUsed();
 
       mt.memoryElemToSub -= memoryUsed();
@@ -600,7 +608,6 @@ GenDecDomain<Scalar>::getCPUMap()
   char *mapName = geoSource->getCpuMapFile(); 
   FILE *f = fopen(mapName,"r");
   numCPU = geoSource->getCPUMap(f, globalNumSub);
-  //subToCPU = geoSource->getSubToCPU();
   cpuToCPU = geoSource->getCpuTOCPU();
   if(f) fclose(f);
 #else
@@ -681,7 +688,6 @@ GenDecDomain<Scalar>::preProcess()
  paralApply(numSub, subDomain, &GenSubDomain<Scalar>::applySplitting);
 
  //paralApply(numSub, subDomain, &GenSubDomain<Scalar>::initSrc);
-
  makeInternalInfo();
 
  makeNodeInfo();
@@ -1399,8 +1405,8 @@ GenDecDomain<Scalar>::getStressStrain(DistrGeomState *gs, Corotator ***allCorot,
 
  // Allocate a distributed vector and initialize it to zero
  // if it hasn't already been allocated.
- if(stress == 0) stress = new GenDistrVector<Scalar>(nodeInfo);
- if(weight == 0) weight = new GenDistrVector<Scalar>(nodeInfo);
+ if(stress == 0) stress = new GenDistrVector<Scalar>(*nodeInfo);
+ if(weight == 0) weight = new GenDistrVector<Scalar>(*nodeInfo);
 
  stress->zero();
  weight->zero();
@@ -1511,8 +1517,8 @@ void GenDecDomain<Scalar>::getStressStrain(GenDistrVector<Scalar> &u, int fileNu
 
   // Allocate a distributed vector and initialize it to zero
   // if it hasn't already been allocated.
-  if(stress == 0) stress = new GenDistrVector<Scalar>(nodeInfo);
-  if(weight == 0) weight = new GenDistrVector<Scalar>(nodeInfo);
+  if(stress == 0) stress = new GenDistrVector<Scalar>(*nodeInfo);
+  if(weight == 0) weight = new GenDistrVector<Scalar>(*nodeInfo);
 
   stress->zero();
   weight->zero();
@@ -1616,8 +1622,8 @@ GenDecDomain<Scalar>::getPrincipalStress(DistrGeomState *gs, Corotator ***allCor
   }
 
   // Allocate a distributed vector for stress if it hasn't already been allocated
-  if(stress == 0) stress = new GenDistrVector<Scalar>(nodeInfo);
-  if(weight == 0) weight = new GenDistrVector<Scalar>(nodeInfo);
+  if(stress == 0) stress = new GenDistrVector<Scalar>(*nodeInfo);
+  if(weight == 0) weight = new GenDistrVector<Scalar>(*nodeInfo);
 
   // stress storage
   int numNodes = (domain->outFlag) ? domain->exactNumNodes : geoSource->numNode();
@@ -1885,8 +1891,8 @@ GenDecDomain<Scalar>::getPrincipalStress(GenDistrVector<Scalar> &u, int fileNumb
   }
 
   // Allocate a distributed vector for stress if it hasn't already been allocated
-  if(stress == 0) stress = new GenDistrVector<Scalar>(nodeInfo);
-  if(weight == 0) weight = new GenDistrVector<Scalar>(nodeInfo);
+  if(stress == 0) stress = new GenDistrVector<Scalar>(*nodeInfo);
+  if(weight == 0) weight = new GenDistrVector<Scalar>(*nodeInfo);
 
   // stress storage
   int numNodes = (domain->outFlag) ? domain->exactNumNodes : geoSource->numNode();
@@ -2372,6 +2378,7 @@ GenDecDomain<Scalar>::elementVectorInfo()
     eleVecInfo = new DistrInfo;
     makeBasicDistrInfo(*eleVecInfo, &Domain::maxNumDOF);
   }
+
   return eleVecInfo;
 }
 
@@ -2404,12 +2411,15 @@ void
 GenDecDomain<Scalar>::makeSolVecInfo()
 {
  // Create internal Distributed information, only for unconstrained dofs
- makeBasicDistrInfo(internalInfo, &Domain::numUncon);
+ if(!internalInfo) {
+   internalInfo = new DistrInfo();
+   makeBasicDistrInfo(*internalInfo, &Domain::numUncon);
 
- if(domain->solInfo().inpc || domain->solInfo().timeIntegration == SolverInfo::Qstatic) {
-   setNonTrivialMasterFlag(internalInfo);
- } else {
-   internalInfo.setMasterFlag();
+   if(domain->solInfo().inpc || domain->solInfo().timeIntegration == SolverInfo::Qstatic) {
+     setNonTrivialMasterFlag(*internalInfo);
+   } else {
+     internalInfo->setMasterFlag();
+   }
  }
 }
 
@@ -2418,8 +2428,11 @@ void
 GenDecDomain<Scalar>::makeSysVecInfo()
 {
  // Create internal Distributed information for all dofs, both constrained and unconstrained
- makeBasicDistrInfo(internalInfo2, &Domain::numdof);
- internalInfo2.setMasterFlag();
+ if(!internalInfo2) {
+   internalInfo2 = new DistrInfo();
+   makeBasicDistrInfo(*internalInfo2, &Domain::numdof);
+   internalInfo2->setMasterFlag();
+ }
 }
 
 template<class Scalar>
@@ -2429,11 +2442,12 @@ GenDecDomain<Scalar>::makeNodeInfo()
  startTimerMemory(mt.makeInternalInfo, mt.memoryInternal);
 
  // Create nodal Distributed information (used for nodal stress output)
- makeBasicDistrInfo(nodeInfo, &Domain::numNodes);
+ nodeInfo = new DistrInfo;
+ makeBasicDistrInfo(*nodeInfo, &Domain::numNodes);
 #ifdef DISTRIBUTED
- nodeInfo.computeOffsets();
+ nodeInfo->computeOffsets();
 #else
- nodeInfo.setMasterFlag();
+ nodeInfo->setMasterFlag();
 #endif
  stopTimerMemory(mt.makeInternalInfo, mt.memoryInternal);
 }
@@ -3369,7 +3383,7 @@ GenDecDomain<Scalar>::makeGlobalMpcToMpc(Connectivity *_procMpcToMpc)
       startp += size[j]+1;
       startt += numtarget[j];
     }
-    tmpMpcToMpc[i] = new Connectivity(size[i], pointer+startp, target+startt);
+    tmpMpcToMpc[i] = new Connectivity(size[i], pointer+startp, target+startt, 0);
   }
   // now each processor has the _procMpcToMpc connectivities for all other processors
   Connectivity *subToCpu = cpuToSub->reverse();
@@ -3420,6 +3434,7 @@ GenDecDomain<Scalar>::makeGlobalMpcToMpc(Connectivity *_procMpcToMpc)
   delete [] flags;
   delete [] pointer;
   delete [] target;
+  for(i=0; i<numCPU; ++i) delete tmpMpcToMpc[i];
   delete [] tmpMpcToMpc;
 #ifdef USE_MUMPS
   if(domain->solInfo().fetiInfo.cctSolver == FetiInfo::mumps && domain->solInfo().mumps_icntl[18] == 3) {
@@ -3724,6 +3739,8 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
      dgt.dynMats[0]->unify(communicator);
      res.dynMat = dynamic_cast<GenParallelSolver<Scalar>* >(dgt.dynMats[0]);
      if(factor) res.dynMat->refactor();
+     delete [] dgt.dynMats;
+     delete [] dgt.spMats;
    } break;
    case 1 : { // iterative
      switch(domain->solInfo().iterType) {
@@ -3748,6 +3765,8 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
    case 2 : { // feti
      if(myCPU == 0) cerr << " ... FETI-DP Solver is Selected     ...\n";
      res.dynMat = getFetiSolver(dgt);
+     delete [] dgt.dynMats;
+     delete [] dgt.spMats;
    } break;
    case 3 : { // block diag
      if(myCPU == 0) cerr << " ... Diagonal Solver is Selected    ...\n";
@@ -4010,4 +4029,73 @@ template<class Scalar>
 void GenDecDomain<Scalar>::subGetDissipatedEnergy(int iSub, DistrGeomState *geomState, Corotator ***allCorot, Scalar *D)
 {
   D[iSub] = subDomain[iSub]->getDissipatedEnergy((*geomState)[iSub], allCorot[iSub]);
+}
+
+template<class Scalar>
+void
+GenDecDomain<Scalar>::exchangeInterfaceGeomState(DistrGeomState *geomState)
+{
+  FSCommPattern<double> *geomStatePat = new FSCommPattern<double>(communicator, cpuToSub, myCPU, FSCommPattern<Scalar>::CopyOnSend,
+                                                                  FSCommPattern<Scalar>::NonSym);
+  for(int i=0; i<numSub; ++i) subDomain[i]->setNodeCommSize(geomStatePat, 13);
+  geomStatePat->finalize();
+
+  execParal2R(numSub, this, &GenDecDomain<Scalar>::dispatchInterfaceGeomState, geomStatePat, geomState);
+  geomStatePat->exchange();
+  execParal2R(numSub, this, &GenDecDomain<Scalar>::collectInterfaceGeomState, geomStatePat, geomState);
+
+  delete geomStatePat;
+}
+
+template<class Scalar>
+void
+GenDecDomain<Scalar>::dispatchInterfaceGeomState(int isub, FSCommPattern<double> *geomStatePat, DistrGeomState *geomState)
+{
+  subDomain[isub]->dispatchInterfaceGeomState(geomStatePat, (*geomState)[isub]);
+}
+
+template<class Scalar>
+void
+GenDecDomain<Scalar>::collectInterfaceGeomState(int isub, FSCommPattern<double> *geomStatePat, DistrGeomState *geomState)
+{
+  subDomain[isub]->collectInterfaceGeomState(geomStatePat, (*geomState)[isub]);
+}
+
+template<class Scalar>
+void
+GenDecDomain<Scalar>::clean()
+{
+  // this function should be used before re-calling preProcess() to prevent memory leaks
+  if(ba2) delete ba2;
+  if(subDomain) {
+    for(int i=0; i<numSub; ++i)
+      if(subDomain[i]) { delete subDomain[i]; subDomain[i] = 0; }
+     delete [] subDomain; subDomain = 0;
+  }
+  if(elemToNode) { delete elemToNode; elemToNode = 0; }
+  if(subToNode) { delete subToNode; subToNode = 0; }
+  if(nodeToSub) { delete nodeToSub; nodeToSub = 0; }
+  if(subToSub) { delete subToSub; subToSub = 0; }
+  if(elemToSub) { delete elemToSub; elemToSub = 0; }
+  if(glSubToLocal) { delete [] glSubToLocal; glSubToLocal = 0; }
+  if(vecInfoStore.empty()) {
+    if(internalInfo) { vecInfoStore.push_back(internalInfo); internalInfo = 0; }
+    if(internalInfo2) { vecInfoStore.push_back(internalInfo2); internalInfo2 = 0; }
+    if(masterSolVecInfo_) { vecInfoStore.push_back(masterSolVecInfo_); masterSolVecInfo_ = 0; }
+    if(nodeInfo) { vecInfoStore.push_back(nodeInfo); nodeInfo = 0; }
+    if(nodeVecInfo) { vecInfoStore.push_back(nodeVecInfo); nodeVecInfo = 0; }
+    if(eleVecInfo) { vecInfoStore.push_back(eleVecInfo); eleVecInfo = 0; }
+    if(bcVecInfo) { vecInfoStore.push_back(bcVecInfo); bcVecInfo = 0; }
+  }
+  else {
+    for(std::vector<DistrInfo*>::iterator it = vecInfoStore2.begin(); it != vecInfoStore2.end(); ++it) delete *it;
+    vecInfoStore2.clear();
+    if(internalInfo) { vecInfoStore2.push_back(internalInfo); internalInfo = 0; }
+    if(internalInfo2) { vecInfoStore2.push_back(internalInfo2); internalInfo2 = 0; }
+    if(masterSolVecInfo_) { vecInfoStore2.push_back(masterSolVecInfo_); masterSolVecInfo_ = 0; }
+    if(nodeInfo) { vecInfoStore2.push_back(nodeInfo); nodeInfo = 0; }
+    if(nodeVecInfo) { vecInfoStore2.push_back(nodeVecInfo); nodeVecInfo = 0; }
+    if(eleVecInfo) { vecInfoStore2.push_back(eleVecInfo); eleVecInfo = 0; }
+    if(bcVecInfo) { vecInfoStore2.push_back(bcVecInfo); bcVecInfo = 0; }
+  }
 }

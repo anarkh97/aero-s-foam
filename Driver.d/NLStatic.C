@@ -411,7 +411,7 @@ Domain::makeElementAdjacencyLists()
   // 2. pressure using surfacetopo
   //    build the map from kel array index to neum array index
   SubDomain *subCast = (numNeum > 0) ? dynamic_cast<SubDomain*>(this) : NULL;
-  if(!subCast && !sommerChecked) checkSommerTypeBC(this);
+  if(!subCast && !sommerChecked && numNeum > 0) { checkSommerTypeBC(this); }
   for(int i = 0; i < numNeum; ++i) {
     if((neum[i]->getPressure()) == NULL) continue;
     int iele = (subCast) ? subCast->globalToLocalElem(neum[i]->getAdjElementIndex()) : neum[i]->getAdjElementIndex();
@@ -657,39 +657,31 @@ Domain::updateWeightedElemStatesOnly(const std::map<int, double> &weights, GeomS
 }
 
 void
-Domain::initializeParameters(GeomState &geomState, Corotator **corotators)
+Domain::initializeMultipliers(GeomState &geomState, Corotator **corotators)
 {
   for(int iele = 0; iele < numele; ++iele) {
     if(corotators[iele]) corotators[iele]->initMultipliers(geomState);
   }
-
-  SPropContainer &sProps = geoSource->getStructProps();
-  SPropContainer::iterator it = sProps.begin();
-  while(it != sProps.end()) {
-    StructProp* p = &(it->second);
-    p->penalty = p->initialPenalty;
-    it++;
-  }
-  if(p) p->penalty = sinfo.penalty; 
 }
 
 void
-Domain::updateParameters(GeomState &geomState, Corotator **corotators)
+Domain::initializeParameters(bool flag)
+{
+  if(flag) geoSource->initializeParameters();
+}
+
+void
+Domain::updateMultipliers(GeomState &geomState, Corotator **corotators)
 {
   for(int iele = 0; iele < numele; ++iele) {
     if(corotators[iele]) corotators[iele]->updateMultipliers(geomState);
   }
+}
 
-  SPropContainer &sProps = geoSource->getStructProps();
-  SPropContainer::iterator it = sProps.begin();
-  while(it != sProps.end()) {
-    StructProp* p = &(it->second);
-    p->penalty *= sinfo.penalty_beta;
-    it++;
-  }
-  if(p) p->penalty *= sinfo.penalty_beta;
-  // TODO this doesn't allow for elements that have a property that is not in the sProps container
-  // or StructProps that don't use the global default penalty parameter from SolverInfo
+void
+Domain::updateParameters(bool flag)
+{
+  if(flag) geoSource->updateParameters();
 }
 
 double

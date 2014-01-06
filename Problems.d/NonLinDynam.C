@@ -389,7 +389,7 @@ NonLinDynamic::getStiffAndForce(GeomState& geomState, Vector& residual,
     factor = false;
     preProcess();
     geomState.resizeLocAndFlag(*domain->getCDSA());
-    residual.resize(domain->getCDSA()->size());
+    residual.conservativeResize(domain->getCDSA()->size());
     elementInternalForce.resize(domain->maxNumDOF());
     localTemp.resize(domain->getCDSA()->size());
   }
@@ -707,9 +707,6 @@ void
 NonLinDynamic::getIncDisplacement(GeomState *geomState, Vector &du, GeomState *refState,
                                   bool zeroRot)
 {
-  if(domain->GetnContactSurfacePairs()) {
-    du.resize(domain->getCDSA()->size());
-  }
   geomState->get_inc_displacement(du, *refState, zeroRot);
 }
 
@@ -792,8 +789,8 @@ NonLinDynamic::formRHScorrector(Vector &inc_displacement, Vector &velocity, Vect
 {
   times->correctorTime -= getTime();
   if(domain->GetnContactSurfacePairs()) {
-    velocity.resize(domain->getCDSA()->size());
-    acceleration.resize(domain->getCDSA()->size());
+    velocity.conservativeResize(domain->getCDSA()->size());
+    acceleration.conservativeResize(domain->getCDSA()->size());
     rhs.resize(domain->getCDSA()->size());
   }
 
@@ -1263,13 +1260,15 @@ NonLinDynamic::factorWhenBuilding() const {
 void
 NonLinDynamic::initializeParameters(GeomState *geomState)
 {
-  domain->initializeParameters(*geomState, allCorot);
+  domain->initializeMultipliers(*geomState, allCorot);
+  domain->initializeParameters();
 }
 
 void
 NonLinDynamic::updateParameters(GeomState *geomState)
 {
-  domain->updateParameters(*geomState, allCorot);
+  domain->updateMultipliers(*geomState, allCorot);
+  domain->updateParameters();
 }
 
 bool
@@ -1283,4 +1282,10 @@ LinesearchInfo&
 NonLinDynamic::linesearch()
 {
  return domain->solInfo().getNLInfo().linesearch;
+}
+
+bool
+NonLinDynamic::getResizeFlag()
+{
+  return (domain->GetnContactSurfacePairs() > 0); // XXX only for "multipliers" constraint method
 }

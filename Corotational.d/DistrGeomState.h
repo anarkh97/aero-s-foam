@@ -26,6 +26,8 @@ class DistrGeomState {
      // Destructor
      ~DistrGeomState();
 
+     void resize(DecDomain *domain);
+
      // return the ith subdomain's GeomState
      GeomState* operator[](int i) const { return gs[i]; }
      GeomState* getSubGeomState(int i) { return gs[i]; }
@@ -49,13 +51,16 @@ class DistrGeomState {
      void get_tot_displacement(DistrVector &totVec, bool rescaled = true);
      void interp(double, DistrGeomState &, DistrGeomState &);
      void diff(DistrGeomState &unp, DistrVector &un);
-     void print() { };
+     void print();
 
      DistrGeomState &operator=(DistrGeomState &unp);     
      void subCopy(int isub, DistrGeomState &unp);
 
      int getNumSub() const { return numSub; }
      bool getHaveRot();
+
+     void getMultipliers(std::map<std::pair<int,int>,double> &mu);
+     void setMultipliers(std::map<std::pair<int,int>,double> &mu);
 
   private:
      void subStep_update(int isub, DistrVector &veloc_n, DistrVector &accel_n,
@@ -75,6 +80,8 @@ class DistrGeomState {
      void subPushForward(int isub, DistrVector &f);
      void subPullBack(int isub, DistrVector &f);
      void subTransform(int isub, DistrVector &f, int, bool);
+     void subResize(int isub, DecDomain* domain);
+     void subSetMultipliers(int isub, std::map<std::pair<int,int>,double> &mu);
 };
 
 #endif

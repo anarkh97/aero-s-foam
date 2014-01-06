@@ -180,6 +180,7 @@ class MDNLDynamic
     bool checkConstraintViolation(double &err);
 
     LinesearchInfo& linesearch();
+    bool getResizeFlag();
 
   protected:
     Domain *getDomain() { return domain; }
@@ -219,8 +220,10 @@ class MDNLDynamic
     void deleteSubCorotators(int isub);
     void deleteSubElementArrays(int isub);
 
-    void subInitializeParameters(int isub, DistrGeomState& geomState);
-    void subUpdateParameters(int isub, DistrGeomState& geomState);
+    void subInitializeMultipliers(int isub, DistrGeomState& geomState);
+    void subInitializeParameters(int isub);
+    void subUpdateMultipliers(int isub, DistrGeomState& geomState);
+    void subUpdateParameters(int isub);
 };
 
 #endif

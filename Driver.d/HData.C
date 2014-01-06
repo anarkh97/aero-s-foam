@@ -82,6 +82,7 @@ HData::HData() : sommer(0), scatter(0), neum(0), wet(0), sBoundNodes(0)
   fluidCelerity = 1.0;
 
   sommerChecked = false;
+  subScaToSca = 0;
 }
 
 int
@@ -2287,6 +2288,7 @@ HData::wError(Domain *dom, double *l2err, double *h1err, double *l2, double *h1,
 void 
 HData::checkSommerTypeBC(Domain *dom, Connectivity *_elemToNode, Connectivity *_nodeToElem) 
 {
+ if(sommerChecked) return;
  int totEle = dom->numElements();
  int *eleTouch = new int[totEle];
  int *eleCount = new int[totEle];
@@ -2509,4 +2511,5 @@ HData::~HData()
   if(somNodeToElem) delete somNodeToElem;
   if(somNodeToNode) delete somNodeToNode;
   if(Kss) delete Kss;
+  if(subScaToSca) delete [] subScaToSca;
 }

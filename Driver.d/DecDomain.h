@@ -42,10 +42,11 @@ class GenDecDomain
   Connectivity *cpuToSub;
   Connectivity *elemToSub;
   GenSubDomain<Scalar> **subDomain;
-  DistrInfo internalInfo, internalInfo2;
+  DistrInfo *internalInfo, *internalInfo2;
   DistrInfo *masterSolVecInfo_;
-  DistrInfo nodeInfo;
+  DistrInfo *nodeInfo;
   DistrInfo *nodeVecInfo, *eleVecInfo, *bcVecInfo;
+  std::vector<DistrInfo*> vecInfoStore, vecInfoStore2;
   Connectivity *grToSub;
   FILE *primalFile; // file to store primal residual
 
@@ -85,6 +86,7 @@ class GenDecDomain
   GenDecDomain(Domain *d);
   virtual ~GenDecDomain();
 
+  void clean();
   Domain *getDomain() { return domain; }
 
   GenSubDomain<Scalar>** getAllSubDomains() { return subDomain; }
@@ -110,9 +112,9 @@ class GenDecDomain
                               SysState<GenDistrVector<Scalar> > *distState = 0, int ndflag = 0); 
   virtual void postProcessing(DistrGeomState *u, Corotator ***, double x = 0, SysState<GenDistrVector<Scalar> > *distState = 0,
                               GenDistrVector<Scalar> *aeroF = 0, DistrGeomState *refState = 0, GenDistrVector<Scalar> *reactions = 0);
-  DistrInfo &solVecInfo() { return internalInfo; } // unconstrained dofs
+  DistrInfo &solVecInfo() { return *internalInfo; } // unconstrained dofs
   const DistrInfo &masterSolVecInfo() const;
-  DistrInfo &sysVecInfo() { return internalInfo2; } // all dofs
+  DistrInfo &sysVecInfo() { return *internalInfo2; } // all dofs
   DistrInfo &ndVecInfo(); // all nodes
   // user defined control functions
   void extractControlData(GenDistrVector<Scalar> &, GenDistrVector<Scalar> &,
@@ -141,6 +143,7 @@ class GenDecDomain
   void setConstraintGap(DistrGeomState *geomState, GenFetiSolver<Scalar> *fetisolver, double _lambda);
   FSCommPattern<Scalar> * getWiCommPattern();
   GenAssembler<Scalar> * getSolVecAssembler();
+  void exchangeInterfaceGeomState(DistrGeomState *geomState);
 
  protected:
   void makeSubDomains();
@@ -176,6 +179,8 @@ class GenDecDomain
   void deleteMPCs();
   void extractPosition(int iSub, DistrGeomState &geomState, GenDistrVector<Scalar> &x);
   virtual void setMpcRhs(int iSub, GenDistrVector<Scalar> &cu, double t);
+  void dispatchInterfaceGeomState(int isub, FSCommPattern<double> *geomStatePat, DistrGeomState *geomState);
+  void collectInterfaceGeomState(int isub, FSCommPattern<double> *geomStatePat, DistrGeomState *geomState);
 
  public:
   void printLMPC();

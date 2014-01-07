@@ -3845,7 +3845,7 @@ Domain::UpdateContactSurfaceElements(GeomState *geomState)
   for(int i = 0; i < numLMPC; ++i) {
     if(lmpc[i]->getSource() == mpc::ContactSurfaces) {
       if(sProps[mortar_attrib[lmpc[i]->id.first]].lagrangeMult)
-        mu.emplace(lmpc[i]->id, 0.0);
+        mu.insert(std::pair<std::pair<int,int>,double>(lmpc[i]->id, 0.0));
     }
   }
   geomState->getMultipliers(mu);

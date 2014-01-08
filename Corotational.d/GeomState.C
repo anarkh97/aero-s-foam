@@ -114,7 +114,7 @@ GeomState::GeomState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet &cs, Elemset 
     for(int i = 0; i < last; ++i) {
       if((*elems)[i]->numStates()) numelems++;
     }
-    es.reserve(numelems);
+    es.resize(numelems);
     numelems = 0;
     for(int i = 0; i < last; ++i) {
       int numStates = (*elems)[i]->numStates();
@@ -366,7 +366,7 @@ GeomState::operator=(const GeomState &g2)
   // now deal with element states
   numelems = g2.numelems;
   es.clear();
-  es.reserve(numelems);
+  es.resize(numelems);
   for(int i = 0; i < numelems; ++i)
     es[i] = g2.es[i];
   emap = g2.emap;
@@ -436,7 +436,8 @@ GeomState::GeomState(const GeomState &g2) : X0(g2.X0), emap(g2.emap), multiplier
 
   // now deal with element states
   numelems = g2.numelems;
-  es.reserve(numelems);
+  es.clear();
+  es.resize(numelems);
   for(int i = 0; i < numelems; ++i)
     es[i] = g2.es[i];
  

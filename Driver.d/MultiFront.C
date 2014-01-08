@@ -856,8 +856,6 @@ MultiFront::improveDec(Decomposition *origDec, double coef)
 	 elL[--subP[mps]] = (*origDec)[iSub][iEle];    
    }
    delete [] origRemap;
-   delete [] origDec->pele;
-   delete [] origDec->eln;
    delete origDec;
    origDec = new Decomposition(totSubs, subP, elL);
  }

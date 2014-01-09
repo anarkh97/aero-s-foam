@@ -1407,14 +1407,14 @@ FelippaShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
   Eigen::Matrix<double,7,3> stress;
   cout << "senMethod is " << senMethod << endl;
  
-  if(senMethod == 1) {
+  if(senMethod == 1) { // automatic differentiation
     Simo::Jacobian<double,ShellElementStressWRTDisplacementSensitivity> dSdu(dconst,iconst);
     dStressdDisp = dSdu(q, 0);
     dStdDisp.copy(dStressdDisp.data());
     std::cerr << "dStressdDisp(AD) = " << dStressdDisp << std::endl;
   }
 
-  if(senMethod == 0) {
+  if(senMethod == 0) { // analytic
     dStressdDisp.setZero();
     andesvmsWRTdisp(0, 7, prop->nu, globalx.data(), globaly.data(), globalz.data(), q.data(),
                     stress.data(), dStressdDisp.data(), 0, 0, surface);   
@@ -1422,7 +1422,7 @@ FelippaShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
     std::cerr << "dStressdDisp(analytic) = " << dStressdDisp << std::endl;
   }
 
-  if(senMethod == 2) {
+  if(senMethod == 2) { // finite difference
     // finite difference
     dStressdDisp.setZero();
     ShellElementStressWRTDisplacementSensitivity<double> foo(dconst,iconst);

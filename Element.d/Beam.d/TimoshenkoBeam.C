@@ -1,4 +1,6 @@
 #include 	<Element.d/Beam.d/TimoshenkoBeam.h>
+#include  <Element.d/Beam.d/TimoshenkoBeamStressWRTDisplacementSensitivity.h>
+#include  <Element.d/Function.d/SpaceDerivatives.h>
 #include	<Math.d/FullSquareMatrix.h>
 #include        <Corotational.d/BeamCorotator.h>
 #include        <Corotational.d/GeomState.h>
@@ -162,12 +164,12 @@ TimoshenkoBeam::getIntrnForce(Vector& elForce,CoordSet& cs,
                         (double*)elStress,numel,maxgus,maxstr,maxsze,
 			prop->W, prop->Ta, ndTemps);
 
-// forceIndex    = 0 =  Nodal stresses along longitudinal axis of the beam
-//               = 1 =  Nodal  strains along longitudinal axis of the beam
-//               = 2 =  Nodal curvatures in local x-y plane
-//               = 3 =  Nodal moments in local x-y plane
-//               = 4 =  Nodal curvatures in local x-z plane
-//               = 5 =  Nodal moments in local x-z plane
+// forceIndex    = 0 =  FORCE_X
+//               = 1 =  FORCE_Y
+//               = 2 =  FORCE_Z
+//               = 3 =  MOMENT_X
+//               = 4 =  MOMENT_Y
+//               = 5 =  MOMENT_Z
 
         elForce[0] = elStress[0][forceIndex];
         elForce[1] = elStress[1][forceIndex];
@@ -595,12 +597,20 @@ TimoshenkoBeam::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
    double elStress[2][7];
    double elForce[3][2]={{0.0,0.0},{0.0,0.0},{0.0,0.0}};
 
+/*
   _FORTRAN(sands7)(elm,prop->A,prop->E,(double*)*elemframe,
                    prop->Ixx,prop->Iyy,prop->Izz,prop->alphaY,
                    prop->alphaZ,prop->c,prop->nu,x,y,z,elDisp.data(),
                    (double*)elStress,numel,maxgus,maxstr,maxsze,
                    prop->W, prop->Ta, ndTemps);
+*/
 
+
+   sands7(elm,prop->A,prop->E,(double*)*elemframe,
+          prop->Ixx,prop->Iyy,prop->Izz,prop->alphaY,
+          prop->alphaZ,prop->c,prop->nu,x,y,z,elDisp.data(),
+          (double*)elStress,numel,maxgus,maxstr,maxsze,
+          prop->W, prop->Ta, ndTemps);
 
    // elForce[0] -> Axial Force (x-direction)
    // elForce[1] -> Moment around the y-axis (My)
@@ -636,52 +646,57 @@ TimoshenkoBeam::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
       Z =  zlayer*prop->zmax;
    }
 
+
    switch (avgnum) {
     
-      case 0:
+      case 0: // elemental
       {
         if (strInd == 0) {
 	
-	  // Axial Stress
-	
- 	  double IY = prop->Iyy;
+          // Axial Stress
+          double IY = prop->Iyy;
           double IZ = prop->Izz;
           double cA = prop->A;
 	      
-	  stress[0] = elForce[0][0]/cA - elForce[2][0]*Y/IZ + elForce[1][0]*Z/IY;
-  	  stress[1] = elForce[0][1]/cA - elForce[2][1]*Y/IZ + elForce[1][1]*Z/IY;
+          stress[0] = elForce[0][0]/cA - elForce[2][0]*Y/IZ + elForce[1][0]*Z/IY;
+          stress[1] = elForce[0][1]/cA - elForce[2][1]*Y/IZ + elForce[1][1]*Z/IY;
+
+        } else if (strInd == 7) {
 	
-	} else if (strInd == 7) {
-	
-	  // Axial Strain
+          // Axial Strain
         
-	  double EA  = prop->E*prop->A;
-	  double EIZ = prop->E*prop->Izz;
-	  double EIY = prop->E*prop->Iyy;
+          double EA  = prop->E*prop->A;
+          double EIZ = prop->E*prop->Izz;
+          double EIY = prop->E*prop->Iyy;
+
+          double Tref  = prop->Ta;
+          double alpha = prop->W;
+
+          double dT1 = ndTemps[0]-Tref;
+          double dT2 = ndTemps[1]-Tref;
 	
-	  double Tref  = prop->Ta;
-	  double alpha = prop->W;
-	
-	  double dT1 = ndTemps[0]-Tref;
-	  double dT2 = ndTemps[1]-Tref;
-	
-	  double localThS;
+          double localThS;
           localThS = alpha * (0.5 * dT1 + 0.5 * dT2);
 	
           stress[0] = elForce[0][0]/EA - elForce[2][0]*Y/EIZ + elForce[1][0]*Z/EIY + localThS;
-  	  stress[1] = elForce[0][1]/EA - elForce[2][1]*Y/EIZ + elForce[1][1]*Z/EIY + localThS;
+          stress[1] = elForce[0][1]/EA - elForce[2][1]*Y/EIZ + elForce[1][1]*Z/EIY + localThS;
 	 
-	} else {
-	  stress[0] = 0.0;
-	  stress[1] = 0.0;
-	}	
+        } else {
+          stress[0] = 0.0;
+          stress[1] = 0.0;
+        }	
         break;
       }
 
-      case 1:
+      case 1: // nodalfull
       {
-       if (strInd < 6) {
+        if (strInd == 6) { 
 
+          // von Mises stress resultant
+          stress[0] = elStress[0][6]; 
+          stress[1] = elStress[1][6]; 
+
+        } else if (strInd < 6) {
           // Axial Stress
 
           double IY = prop->Iyy;
@@ -745,7 +760,7 @@ TimoshenkoBeam::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
         break;
       }
 
-      case 2:
+      case 2: // nodalpartial
       {
         weight = 0.0;
         stress[0] = 0.0;
@@ -756,6 +771,112 @@ TimoshenkoBeam::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
       default:
         cerr << "avgnum = " << avgnum << " is not a valid number\n";
     }
+}
+
+void
+TimoshenkoBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+                                                   int senMethod, double *, double ylayer, double zlayer, int avgnum)
+{
+// TODO:delete comments below
+//  Vector _stress(2);
+//  Vector _ndtemp(2);
+//  _ndtemp[0] = 0;
+//  _ndtemp[1] = 0; 
+//  getVonMises(_stress, weight, cs, elDisp, strInd, surface, _ndtemp.data(), ylayer, zlayer, avgnum);
+
+  weight = 1;
+  // scalar parameters
+  Eigen::Array<double,32,1> dconst;
+  Node &nd1 = cs.getNode(nn[0]);
+  Node &nd2 = cs.getNode(nn[1]);
+
+  double x[2], y[2], z[2];
+
+  x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+  x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+
+  dconst[0] = nd1.x; dconst[1] = nd2.x; // x coordinates
+  dconst[2] = nd1.y; dconst[3] = nd2.y; // y coordinates
+  dconst[4] = nd1.z; dconst[5] = nd2.z; // z coordinates
+  dconst[6] = prop->A;
+  dconst[7] = prop->E;
+  for(int i=0; i<3; ++i) {
+    for(int j=0; j<3; ++j) {
+      dconst[8+3*i+j] = (*elemframe)[i][j]; 
+    }
+  }    
+  dconst[17] = prop->Ixx;
+  dconst[18] = prop->Iyy;
+  dconst[19] = prop->Izz;
+  dconst[20] = prop->alphaY;
+  dconst[21] = prop->alphaZ;
+  dconst[22] = prop->c;
+  dconst[23] = prop->nu;
+  dconst[24] = prop->W;
+  dconst[25] = prop->Ta;
+  dconst[26] = prop->ymin;
+  dconst[27] = prop->ymax;
+  dconst[28] = prop->zmin;
+  dconst[29] = prop->zmax;
+  dconst[30] = ylayer;
+  dconst[31] = zlayer;
+
+  // integer parameters
+  Eigen::Array<int,1,1> iconst;
+  iconst[0] = avgnum;
+  // inputs
+  Eigen::Matrix<double,12,1> q = Eigen::Map<Eigen::Matrix<double,12,1> >(elDisp.data()).segment(0,12); // displacements
+
+  //Jacobian evaluation
+  Eigen::Matrix<double,2,12> dStressdDisp;
+  Eigen::Matrix<double,7,3> stress;
+  cout << " ... senMethod is " << senMethod << endl;
+
+  if(senMethod == 1) { // via automatic differentiation
+    Simo::Jacobian<double,TimoshenkoBeamStressWRTDisplacementSensitivity> dSdu(dconst,iconst);
+    dStressdDisp = dSdu(q, 0);
+    dStdDisp.copy(dStressdDisp.data());
+    std::cerr << " ... dStressdDisp(AD) = \n" << dStressdDisp << std::endl;
+  }
+
+  if(senMethod == 0) { // analytic
+    dStressdDisp.setZero();
+    Eigen::Matrix<double,9,1> eframe = Eigen::Map<Eigen::Matrix<double,32,1> >(dconst.data()).segment(8,9); // extract eframe
+    vmsWRTdisp(1, prop->A, prop->E, eframe.data(), prop->Ixx, prop->Iyy, prop->Izz, prop->alphaY, prop->alphaZ, prop->c,
+                  prop->nu, x, y, z, q.data(), dStressdDisp.data(), prop->W, prop->Ta, 0);
+    dStdDisp.copy(dStressdDisp.data());
+    std::cerr << " ... dStressdDisp(analytic) = \n" << dStressdDisp << std::endl;
+  }
+
+  if(senMethod == 2) { // via finite difference
+    TimoshenkoBeamStressWRTDisplacementSensitivity<double> foo(dconst,iconst);
+    double h = 1.0e-6;
+    for(int j=0; j<12; ++j) {
+      Eigen::Matrix<double,12,1> q_plus(q);
+      Eigen::Matrix<double,12,1> q_minus(q);
+      q_plus[j] += h;  q_minus[j] -= h;
+      Eigen::Matrix<double,2,1> S_plus = foo(q_plus,0);   
+      Eigen::Matrix<double,2,1> S_minus = foo(q_minus,0);
+      Eigen::Matrix<double,2,1> dS = (S_plus-S_minus)/(2*h);
+      dStressdDisp(0,j) = dS[0];
+      dStressdDisp(1,j) = dS[1];
+    }
+    dStdDisp.copy(dStressdDisp.data());
+    std::cerr << " ... dStressdDisp(FD) = \n" << dStressdDisp << std::endl;
+  }
+}
+
+void
+TimoshenkoBeam::getVonMisesDisplacementSensitivity(GenFullM<DComplex> &dStdDisp, ComplexVector &weight,
+                                                   CoordSet &cs, ComplexVector &elDisp, int strInd, int surface,
+                                                   int senMethod, double *, double ylayer, double zlayer, int avgnum)
+{
+  weight = DComplex(1,0);
+  //NOTE:: for complex numbers, getVonMisesDisplacementSensitivity is not properly implemented
+  Eigen::Matrix<DComplex,3,18> dStressdThick;
+  dStressdThick.setZero();
+
+  dStdDisp.copy(dStressdThick.data());
 }
 
 void

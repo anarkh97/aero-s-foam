@@ -777,16 +777,9 @@ void
 TimoshenkoBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
                                                    int senMethod, double *, double ylayer, double zlayer, int avgnum)
 {
-// TODO:delete comments below
-//  Vector _stress(2);
-//  Vector _ndtemp(2);
-//  _ndtemp[0] = 0;
-//  _ndtemp[1] = 0; 
-//  getVonMises(_stress, weight, cs, elDisp, strInd, surface, _ndtemp.data(), ylayer, zlayer, avgnum);
-
   weight = 1;
   // scalar parameters
-  Eigen::Array<double,32,1> dconst;
+  Eigen::Array<double,26,1> dconst;
   Node &nd1 = cs.getNode(nn[0]);
   Node &nd2 = cs.getNode(nn[1]);
 
@@ -814,12 +807,6 @@ TimoshenkoBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, V
   dconst[23] = prop->nu;
   dconst[24] = prop->W;
   dconst[25] = prop->Ta;
-  dconst[26] = prop->ymin;
-  dconst[27] = prop->ymax;
-  dconst[28] = prop->zmin;
-  dconst[29] = prop->zmax;
-  dconst[30] = ylayer;
-  dconst[31] = zlayer;
 
   // integer parameters
   Eigen::Array<int,1,1> iconst;
@@ -841,8 +828,8 @@ TimoshenkoBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, V
 
   if(senMethod == 0) { // analytic
     dStressdDisp.setZero();
-    Eigen::Matrix<double,9,1> eframe = Eigen::Map<Eigen::Matrix<double,32,1> >(dconst.data()).segment(8,9); // extract eframe
-    vmsWRTdisp(1, prop->A, prop->E, eframe.data(), prop->Ixx, prop->Iyy, prop->Izz, prop->alphaY, prop->alphaZ, prop->c,
+    Eigen::Matrix<double,9,1> eframe = Eigen::Map<Eigen::Matrix<double,26,1> >(dconst.data()).segment(8,9); // extract eframe
+    vms7WRTdisp(1, prop->A, prop->E, eframe.data(), prop->Ixx, prop->Iyy, prop->Izz, prop->alphaY, prop->alphaZ, prop->c,
                   prop->nu, x, y, z, q.data(), dStressdDisp.data(), prop->W, prop->Ta, 0);
     dStdDisp.copy(dStressdDisp.data());
     std::cerr << " ... dStressdDisp(analytic) = \n" << dStressdDisp << std::endl;

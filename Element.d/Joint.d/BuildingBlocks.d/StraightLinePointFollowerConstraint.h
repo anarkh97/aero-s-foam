@@ -12,6 +12,7 @@ class StraightLinePointFollowerConstraint : public SuperElement
   public:
     StraightLinePointFollowerConstraint(int*, int=0);
     int getTopNumber();
+    bool hasRot() { return true; }
 };
 
 #endif

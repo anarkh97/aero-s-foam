@@ -12,6 +12,7 @@ class ParallelAxesConstraint : public SuperElement
   public:
     ParallelAxesConstraint(int*, int=0);
     int getTopNumber();
+    bool hasRot() { return true; }
 };
 
 #endif

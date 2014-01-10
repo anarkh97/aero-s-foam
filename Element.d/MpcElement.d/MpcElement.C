@@ -122,8 +122,8 @@ MpcElement::~MpcElement()
 int
 MpcElement::getNumMPCs()
 {
-  if(prop && prop->penalty > 0) return 0;  // penalty and augmented lagrangian
-  else return 1;
+  if(prop->lagrangeMult && prop->penalty == 0) return 1;
+  else return 0; // penalty and augmented lagrangian
 }
 
 LMPCons** 

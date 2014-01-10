@@ -380,7 +380,7 @@ Domain::getElemFictitiousForce(int iele, GeomState &geomState, double *_fel, Ful
     int numDofs = packedEset[iele]->numDofs();
     int numNodes = packedEset[iele]->numNodes() - packedEset[iele]->numInternalNodes();
     int dofsPerNode = (numDofs-packedEset[iele]->getNumMPCs())/numNodes;
-    if((dofsPerNode == 3 || dofsPerNode == 6) && numDofs%numNodes == 0) {
+    if((dofsPerNode == 3 || dofsPerNode == 6) && (numDofs-packedEset[iele]->getNumMPCs())%numNodes == 0) {
       Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> > mel(&_mel[0][0],numDofs,numDofs), kel(&_kel[0][0],numDofs,numDofs);
       Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,1> > fel(_fel,numDofs);
       Eigen::Matrix3d J, K;

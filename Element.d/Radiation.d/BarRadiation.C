@@ -120,3 +120,15 @@ BarRadiation::getTopNumber()
 {
   return 147;
 }
+
+void
+BarRadiation::computeTemp(CoordSet&, State &, double[2], double*)
+{
+  fprintf(stderr," *** WARNING: BarRadiation::computeTemp is not implemented\n");
+}
+
+void
+BarRadiation::getFlFlux(double[2], double *, double *)
+{
+  fprintf(stderr," *** WARNING: BarRadiation::getFlFlux is not implemented\n");
+}

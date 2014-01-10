@@ -156,18 +156,12 @@ Therm2NodeBar::computeTemp(CoordSet&cs,
 {
   double Temp[2][2];
   
- state.getTemp(nn[0], Temp[0], Temp[0]+1);
- state.getTemp(nn[1], Temp[1], Temp[1]+1);
+  state.getTemp(nn[0], Temp[0], Temp[0]+1);
+  state.getTemp(nn[1], Temp[1], Temp[1]+1);
 
-/* fprintf(stderr, "TEMP iS : %14.5e\n", Temp[0][0]);
- fprintf(stderr, "TEMP iS : %14.5e\n", Temp[1][0]); */
-
- int j;
- for(j=0; j<2; ++j)
+  int j;
+  for(j=0; j<2; ++j)
     tres[j] = (1-gp[0])*Temp[0][j] + gp[0]*Temp[1][j] ; 
-
-//     fprintf(stderr, "TEMP1 : %14.5e\n",tres[0]);
-//     fprintf(stderr, "DTEMP1: %14.5e\n",tres[1]);
 }
 
 void
@@ -175,7 +169,6 @@ Therm2NodeBar::getFlFlux(double gp[2], double *flF, double *tresF)
 {
 // Projects a fluid flux contained in flF[0] to all 2 nodes
 // Returns tresF
-// fprintf(stderr, "Gauss Point %f\n ", gp[0]);
 
    tresF[0] = (1-gp[0])*flF[0] ;
    tresF[1] = gp[0]    *flF[0] ;

@@ -191,7 +191,7 @@ Therm3NoShell::markDofs(DofSetArray &dsa)
 
 void
 Therm3NoShell::computeTemp(CoordSet&cs, State &state, double gp[2],
-                            double *tres)
+                           double *tres)
 {
  double Temp[3][2];
 
@@ -215,7 +215,6 @@ Therm3NoShell::getFlFlux(double gp[2], double *flF, double *tresF)
 {
 // Projects a fluid flux contained in flF[0] to all 3 nodes of triangle
 // Returns tresF
-// fprintf(stderr, "Gauss Points %f %f\n ", gp[0], gp[1]);
 
    tresF[0]  = (1-gp[0]-gp[1])* flF[0];
    tresF[1]  = gp[0] * flF[0];

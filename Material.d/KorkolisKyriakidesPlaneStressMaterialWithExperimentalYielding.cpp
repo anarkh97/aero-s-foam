@@ -120,6 +120,7 @@ GetDissipatedEnergy() const
 {
   std::cerr<<"\n KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding::GetDissipatedEnergy()- "
            <<"not implemented.\n";
+  return 0;
 }
 
 // Set the plastic strain in the material

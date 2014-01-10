@@ -2,10 +2,12 @@
 #define _EULERBEAM_H_
 
 #include <Element.d/Element.h>
+#include <Element.d/Beam.d/BeamElementTemplate.hpp>
 
 class GeomState;
 
-class EulerBeam : public Element 
+class EulerBeam : public Element,
+                  public BeamElementTemplate<double>  
 {
         EFrame *elemframe;
         int nn[3];
@@ -60,6 +62,8 @@ public:
                          int strInd,int surface=0, double *ndTemps=0, 
                          double ylayer=0.0, double zlayer=0.0, int avgnum=0);
 
+        void getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+                                                int senMethod, double *, double ylayer, double zlayer, int avgnum);
         // Routines for the decomposer
         PrioInfo examine(int sub, MultiFront *);
         bool hasRot() { return true; }

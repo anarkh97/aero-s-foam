@@ -980,11 +980,17 @@ EulerBeam::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
    double elStress[2][7];
    double elForce[3][2]={{0.0,0.0},{0.0,0.0},{0.0,0.0}};
 
+/*
+  sands6(prop->A, prop->E, elm, (double*)elStress, maxsze, maxgus,
+         maxstr, (double*)*elemframe, prop->Ixx, prop->Iyy,
+         prop->Izz, prop->nu,x,y,z,elDisp.data(), prop->W, prop->Ta, 
+         ndTemps);
+*/
 
   _FORTRAN(sands6)(prop->A, prop->E, elm, (double*)elStress, maxsze, maxgus,
                    maxstr, (double*)*elemframe, prop->Ixx, prop->Iyy,
                    prop->Izz, prop->nu,x,y,z,elDisp.data(), prop->W, prop->Ta, 
-                   ndTemps);
+                   ndTemps); 
 
    // elForce[0] -> Axial Force (x-direction)
    // elForce[1] -> Moment around the y-axis (My)
@@ -1064,7 +1070,14 @@ EulerBeam::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
 
       case 1:
       {
-       if (strInd < 6) {
+       if (strInd == 6) {
+
+          // von Mises stress resultant
+          
+          stress[0] = elStress[0][6];
+          stress[1] = elStress[1][6];
+
+       } else if (strInd < 6) {
 
           // Axial Stress
 

@@ -2,10 +2,12 @@
 #define _EULERBEAM_H_
 
 #include <Element.d/Element.h>
+#include <Element.d/Beam.d/BeamElementTemplate.hpp>
 
 class GeomState;
 
-class EulerBeam : public Element 
+class EulerBeam : public Element,
+                  public BeamElementTemplate<double>  
 {
         EFrame *elemframe;
         int nn[3];

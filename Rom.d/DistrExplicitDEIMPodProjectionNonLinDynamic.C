@@ -184,7 +184,28 @@ DistrExplicitDEIMPodProjectionNonLinDynamic::buildReducedLinearOperator() {
    //V^T*(K*V)
    normalizedBasis_.reduce(columnOfKtimesV,ReducedStiffness[column]);
  } 
+/*
+ DistrVecBasis DEIMReducedStiffness(normalizedBasis_.numVectors(),reducedVecInfo());
 
+ for( int column = 0; column != normalizedBasis_.numVectors(); ++column){
+   DistrVector columnOfKtimesV(MultiDomainDynam::solVecInfo());
+   columnOfKtimesV = 0;
+   execParal2R(decDomain->getNumSub(),this,&DistrExplicitDEIMPodProjectionNonLinDynamic::subGetKtimesU, deimBasis_[column],columnOfKtimesV);
+   deimBasis_.reduce(columnOfKtimesV,DEIMReducedStiffness[column]);
+ }
+
+ Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > symmetricK(ReducedStiffness.data(),ReducedStiffness.size(),ReducedStiffness.numVectors());
+ Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > antiSymmetricK(DEIMReducedStiffness.data(),DEIMReducedStiffness.size(),DEIMReducedStiffness.numVectors());
+
+ Eigen::EigenSolver<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > EigSolve(symmetricK);
+ std::cout << "symmetric K: \n" << symmetricK-symmetricK.transpose() << std::endl;
+ std::cout << "symmetric K eigenvalues : \n" << EigSolve.eigenvalues() << std::endl;
+
+ Eigen::EigenSolver<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > EigSolve2(antiSymmetricK);
+ std::cout << "anti-symmetric K: \n" << antiSymmetricK << std::endl;
+ std::cout << "anti-symmetric K difference: \n" << antiSymmetricK-antiSymmetricK.transpose() << std::endl;
+ std::cout << "anti-symmetric K eigenvalues : \n" << EigSolve2.eigenvalues() << std::endl;
+*/
 }
 
 void

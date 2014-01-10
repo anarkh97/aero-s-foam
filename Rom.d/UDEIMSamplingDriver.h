@@ -42,9 +42,11 @@ private:
   int  unassembledVecInfo(FullSquareMatrix *kelArray);
 
   void writeUnassembledForceSnap(VecBasis &unassembledForceBasis,VecBasis &assembledForceBasis); 
+  void assembleBasisVectors(VecBasis &assembledForceBasis, VecBasis &unassembledForceBasis);
+  void readUnassembledForceSnap(VecBasis &unassembledForceBasis, std::vector<double> &SVs);
 
   void computeInterpIndices(VecBasis &forceBasis, std::vector<int> &maskIndices); 
-  void computeAndWriteUDEIMBasis(VecBasis &unassembledForceBuf,VecBasis &assembledForceBuf,std::vector<int> &umaskIndices,std::vector<int> &amaskIndices);  
+  void computeAndWriteUDEIMBasis(VecBasis &unassembledForceBuf,VecBasis &assembledForceBuf,std::vector<int> &umaskIndices,std::vector<int> &amaskIndices, std::vector<double> &singularVals);  
   void writeSampledMesh(std::vector<int> &maskIndices, std::set<int> &selectedElems, std::vector<std::pair<int,int> > &elemRankDOFContainer);
 
   VecNodeDof6Conversion *converter;

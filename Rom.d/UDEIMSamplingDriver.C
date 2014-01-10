@@ -29,6 +29,8 @@
 #include <utility>
 #include <algorithm>
 #include <numeric>
+#include <iostream>
+#include <iomanip>
 
 namespace Rom {
 
@@ -51,14 +53,21 @@ UDEIMSamplingDriver::solve() {
     std::vector<int> umaskIndices;                         //unassembled indices container
     std::vector<int> amaskIndices;                         //assembled indices container
     std::set<int> selectedElemRank;                        //selected element rank container for unpacked element numbers
+    std::vector<double> singularVals;                      //singular Values for error estimator
     std::vector<std::pair<int,int> > elemRankDOFContainer; //container for each selected element's slected DOF
 
-    readInBasis(podBasis_, BasisId::STATE, BasisId::POD, podSizeMax, normalized);               //get POD projection basis
-    writeUnassembledForceSnap(unassembledForceBuf,assembledForceBuf);                           //get force snapshots
-    computeInterpIndices(unassembledForceBuf,umaskIndices);                                     //get UDEIM indices
-    computeAssembledIndices(umaskIndices,amaskIndices,selectedElemRank,elemRankDOFContainer);   //map unassembled indices to assembled indices
-    computeAndWriteUDEIMBasis(unassembledForceBuf,assembledForceBuf,umaskIndices,amaskIndices); //compute and write to file the UDEIM POD basis
-    writeSampledMesh(amaskIndices,selectedElemRank,elemRankDOFContainer);                       //write UDEIM sampled mesh to file
+    readInBasis(podBasis_, BasisId::STATE, BasisId::POD, podSizeMax, normalized);                              //get POD projection basis
+
+    if(domain->solInfo().computeForceSnap){
+      writeUnassembledForceSnap(unassembledForceBuf,assembledForceBuf);                                        //get force snapshots
+    } else {
+      readUnassembledForceSnap(unassembledForceBuf,singularVals);                                              //read basis from file
+      assembleBasisVectors(assembledForceBuf, unassembledForceBuf);
+      computeInterpIndices(unassembledForceBuf,umaskIndices);                                                  //get UDEIM indices
+      computeAssembledIndices(umaskIndices,amaskIndices,selectedElemRank,elemRankDOFContainer);                //map unassembled indices to assembled indices
+      computeAndWriteUDEIMBasis(unassembledForceBuf,assembledForceBuf,umaskIndices,amaskIndices,singularVals); //compute and write to file the UDEIM POD basis
+      writeSampledMesh(amaskIndices,selectedElemRank,elemRankDOFContainer);                                    //write UDEIM sampled mesh to file
+    }
 }
 
 void
@@ -129,8 +138,35 @@ UDEIMSamplingDriver::writeUnassembledForceSnap(VecBasis &unassembledForceBasis,V
   std::vector<double> SVs;
   buildForceArray(unassembledForceBasis,assembledForceBasis,displac,veloc_,accel_,timeStamps,snapshotCounts);
   OrthoForceSnap(unassembledForceBasis,SVs); //orthogonalize unassembled vectors
-  
+
+  Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > unassembledMap(unassembledForceBasis.data(),unassembledForceBasis.size(),unassembledForceBasis.numVectors());
+
+  ofstream svdFile;
+  FileNameInfo fileInfo;
+  std::string svdFileName = BasisFileId(fileInfo, BasisId::FORCE, BasisId::SNAPSHOTS);
+  svdFile.open(svdFileName.c_str());
+
+  svdFile << uDOFaDOFmap.size() << " " << unassembledMap.rows() << " " << unassembledMap.cols() << std::endl;
+  for(std::map<int, std::pair<int,int> >::const_iterator it = uDOFaDOFmap.begin(); it != uDOFaDOFmap.end(); it++)
+    svdFile << it->first << " " << it->second.first << " " << it->second.second << std::endl;
+ 
+  svdFile << std::setprecision(16); 
+  for(int column = 0; column != unassembledMap.cols(); column++){
+    svdFile << SVs[column] << std::endl;
+    svdFile << unassembledMap.col(column) << std::endl;
+  }
+}
+ 
+void
+UDEIMSamplingDriver::assembleBasisVectors(VecBasis &assembledForceBasis, VecBasis &unassembledForceBasis) 
+{ 
+  assembledForceBasis.dimensionIs(unassembledForceBasis.vectorCount(), SingleDomainDynamic::solVecInfo());
   //assemble the unassembledSVD
+
+  for(int i = 0; i != assembledForceBasis.vectorCount(); i++)  
+    for(int j = 0; j != assembledForceBasis.size(); j++) 
+      assembledForceBasis[i][j] = 0;
+
   for (std::map<int, std::pair<int,int> >::const_iterator it = uDOFaDOFmap.begin(); it != uDOFaDOFmap.end(); it++){
     int iele = it->second.first;
     int idof = it->second.second;
@@ -138,6 +174,42 @@ UDEIMSamplingDriver::writeUnassembledForceSnap(VecBasis &unassembledForceBasis,V
     for(int vec = 0; vec != unassembledForceBasis.numVectors(); vec++)
       assembledForceBasis[vec][aDofNum] += unassembledForceBasis[vec][it->first];
   }
+}
+
+void
+UDEIMSamplingDriver::readUnassembledForceSnap(VecBasis &unassembledForceBasis, std::vector<double> &SVs){
+  ifstream svdFile;
+  FileNameInfo fileInfo;
+  std::string svdFileName = BasisFileId(fileInfo, BasisId::FORCE, BasisId::SNAPSHOTS);
+  svdFile.open(svdFileName.c_str());
+
+  int mapSize;
+  int numRows;
+  int numCols = domain->solInfo().forcePodSize;
+  int maxCols;
+
+  svdFile >> mapSize; svdFile >> numRows; svdFile >> maxCols;
+  unassembledForceBasis.dimensionIs(numCols,numRows);
+   
+  int first, second1, second2;
+  for(int i = 0; i != mapSize; i++){
+    svdFile >> first; svdFile >> second1; svdFile >> second2;
+    uDOFaDOFmap.insert(std::make_pair(first,std::make_pair(second1,second2)));
+  }
+ 
+  double element, singularValue;
+  for(int col = 0; col != numCols; col++){
+    svdFile >> singularValue;
+    SVs.push_back(singularValue);
+    for(int row = 0; row != numRows; row++){
+      svdFile >> element;
+      unassembledForceBasis[col][row] = element;
+    }
+  }
+  
+  svdFile >> singularValue;
+  SVs.push_back(singularValue);
+
 }
 
 void
@@ -224,7 +296,7 @@ UDEIMSamplingDriver::computeAssembledIndices(std::vector<int> &umaskIndices, std
 }
 
 void
-UDEIMSamplingDriver::computeAndWriteUDEIMBasis(VecBasis &unassembledForceBuf,VecBasis &assembledForceBuf, std::vector<int> &umaskIndices, std::vector<int> &amaskIndices)
+UDEIMSamplingDriver::computeAndWriteUDEIMBasis(VecBasis &unassembledForceBuf,VecBasis &assembledForceBuf, std::vector<int> &umaskIndices, std::vector<int> &amaskIndices, std::vector<double> &singularVals)
 {
   //member function for computing and writing the UDEIM basis P*(P^T*U)^-T*U^T*V
   //where V is the mass-orthogonal POD basis, U is the left Singular vectors of the force snapshots
@@ -253,11 +325,16 @@ UDEIMSamplingDriver::computeAndWriteUDEIMBasis(VecBasis &unassembledForceBuf,Vec
 
   for(int i = 0; i != invSVs.rows(); i++) invSVs(i) = 1.0/SVDOfUmasked.singularValues()(i);
 
+  std::cout << "condition Number of (P^T*U) = " << SVDOfUmasked.singularValues()(0)/SVDOfUmasked.singularValues()(SVDOfUmasked.nonzeroSingularValues()-1) << std::endl;
+  std::cout << "||(P^T*U)^-1)||_2 = " << invSVs(SVDOfUmasked.nonzeroSingularValues()-1) << std::endl;
+  std::cout << "sigma_m+1 = " << singularVals[singularVals.size()-1] << std::endl;
+  std::cout << "E(f) = " << invSVs(SVDOfUmasked.nonzeroSingularValues()-1)*singularVals[singularVals.size()-1]<< std::endl;
+
   compressedDBTranspose = podMap.transpose()*aforceMap.leftCols(maxDeimBasisSize)*SVDOfUmasked.matrixV()*invSVs.asDiagonal()*SVDOfUmasked.matrixU().transpose();
   //we are computing the transpose of the basis
 
-  std::cout << "compressed Basis" << std::endl;
-  std::cout << compressedDBTranspose.transpose() << std::endl;
+/*  std::cout << "compressed Basis" << std::endl;
+  std::cout << compressedDBTranspose.transpose() << std::endl;*/
 
   //initialize deim basis container to all zeros
   for(int i = 0; i != deimMap.rows(); i++)

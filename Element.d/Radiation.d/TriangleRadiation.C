@@ -150,3 +150,16 @@ TriangleRadiation::getTopNumber()
 {
   return 149;
 }
+
+void 
+TriangleRadiation::computeTemp(CoordSet&, State &, double[2], double*)
+{
+  fprintf(stderr," *** WARNING: TriangleRadiation::computeTemp is not implemented\n");
+}
+
+void 
+TriangleRadiation::getFlFlux(double[2], double *, double *)
+{
+  fprintf(stderr," *** WARNING: TriangleRadiation::getFlFlux is not implemented\n");
+}
+

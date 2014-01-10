@@ -41,6 +41,8 @@ C
       integer   i , j , k
 C     integer   l
       real*8    T(9) , zero , half
+      real*8    stress_0dxy , stress_0dyz , stress_0dxz
+      real*8    stress_1dxy , stress_1dyz , stress_1dxz
       real*8    JJ , dx , dy , dz , length , G , one , two
       real*8    Ue(12) , estif(12,12) , Fe(12) , Le(12,12)
       real*8    c11 , c22 , c33 , c12 , c13 , c23 , eps
@@ -547,6 +549,26 @@ C
       stress(elm,4,2) = Fe(10)
       stress(elm,5,2) = Fe(11)
       stress(elm,6,2) = Fe(12)
+C
+C.... WRITE THE VON MISES RESULTANT INTO THE STRESS ARRAY
+C
+      stress_0dxy = stress(elm,1,1) - stress(elm,2,1)
+      stress_0dyz = stress(elm,2,1) - stress(elm,3,1)
+      stress_0dxz = stress(elm,1,1) - stress(elm,3,1)
+      stress_1dxy = stress(elm,1,2) - stress(elm,2,2)
+      stress_1dyz = stress(elm,2,2) - stress(elm,3,2)
+      stress_1dxz = stress(elm,1,2) - stress(elm,3,2)
+C
+      stress(elm,7,1) = dsqrt( 0.5d00*(stress_0dxy*stress_0dxy + 
+     +      stress_0dyz*stress_0dyz + stress_0dxz*stress_0dxz) + 
+     +                 3.0d00*(stress(elm,4,1)*stress(elm,4,1) + 
+     +                         stress(elm,5,1)*stress(elm,5,1) + 
+     +                         stress(elm,6,1)*stress(elm,6,1)) )
+      stress(elm,7,2) = dsqrt( 0.5d00*(stress_1dxy*stress_1dxy + 
+     +      stress_1dyz*stress_1dyz + stress_1dxz*stress_1dxz) + 
+     +                 3.0d00*(stress(elm,4,2)*stress(elm,4,2) + 
+     +                         stress(elm,5,2)*stress(elm,5,2) + 
+     +                         stress(elm,6,2)*stress(elm,6,2)) )
 C
 C     ------
 C     RETURN

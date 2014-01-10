@@ -12,6 +12,9 @@ class NonlinearTranslationalSpring2 : public DotType3ConstraintElement
     void setProp(StructProp *p, bool _myProp = false);
     void buildFrame(CoordSet&);
     void update(GeomState *refState, GeomState& gState, CoordSet& cs, double);
+
+    bool isSpring() { return true; }
+    bool hasRot() { return true; }
 };
 
 #endif

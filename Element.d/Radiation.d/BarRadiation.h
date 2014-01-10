@@ -31,6 +31,9 @@ public:
 	int 		getTopNumber();
 
         bool isRadiationElement() { return true; }
+
+        void computeTemp(CoordSet&, State &, double[2], double*);
+        void getFlFlux(double[2], double *, double *);
 };
 
 #endif

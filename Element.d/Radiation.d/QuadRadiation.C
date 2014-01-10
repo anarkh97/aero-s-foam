@@ -147,3 +147,16 @@ QuadRadiation::getTopNumber()
 {
   return 148;
 }
+
+void 
+QuadRadiation::computeTemp(CoordSet&, State &, double[2], double*)
+{
+  fprintf(stderr," *** WARNING: QuadRadiation::computeTemp is not implemented\n");
+}
+
+void 
+QuadRadiation::getFlFlux(double[2], double *, double *)
+{
+  fprintf(stderr," *** WARNING: QuadRadiation::getFlFlux is not implemented\n");
+}
+

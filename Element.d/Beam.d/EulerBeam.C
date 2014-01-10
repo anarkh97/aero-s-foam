@@ -1,5 +1,7 @@
 #include <cstdio>
 #include <Element.d/Beam.d/EulerBeam.h>
+#include <Element.d/Beam.d/EulerBeamStressWRTDisplacementSensitivity.h>
+#include <Element.d/Function.d/SpaceDerivatives.h>
 #include <Math.d/FullSquareMatrix.h>
 #include <Utils.d/dofset.h>
 #include <Utils.d/linkfc.h>
@@ -980,11 +982,18 @@ EulerBeam::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
    double elStress[2][7];
    double elForce[3][2]={{0.0,0.0},{0.0,0.0},{0.0,0.0}};
 
+#ifdef USE_EIGEN3
+   sands6(prop->A, prop->E, elm, (double*)elStress, maxsze, maxgus,
+         maxstr, (double*)*elemframe, prop->Ixx, prop->Iyy,
+         prop->Izz, prop->nu,x,y,z,elDisp.data(), prop->W, prop->Ta, 
+         ndTemps);
 
+#else
   _FORTRAN(sands6)(prop->A, prop->E, elm, (double*)elStress, maxsze, maxgus,
                    maxstr, (double*)*elemframe, prop->Ixx, prop->Iyy,
                    prop->Izz, prop->nu,x,y,z,elDisp.data(), prop->W, prop->Ta, 
-                   ndTemps);
+                   ndTemps); 
+#endif
 
    // elForce[0] -> Axial Force (x-direction)
    // elForce[1] -> Moment around the y-axis (My)
@@ -1064,7 +1073,14 @@ EulerBeam::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
 
       case 1:
       {
-       if (strInd < 6) {
+       if (strInd == 6) {
+
+          // von Mises stress resultant
+          
+          stress[0] = elStress[0][6];
+          stress[1] = elStress[1][6];
+
+       } else if (strInd < 6) {
 
           // Axial Stress
 
@@ -1141,3 +1157,85 @@ EulerBeam::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
         cerr << "avgnum = " << avgnum << " is not a valid number\n";
     }
 }
+
+#ifdef USE_EIGEN3
+void
+EulerBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+                                              int senMethod, double *, double ylayer, double zlayer, int avgnum)
+{
+  
+  weight = 1;
+  // scalar parameters
+  Eigen::Array<double,23,1> dconst;
+  Node &nd1 = cs.getNode(nn[0]);
+  Node &nd2 = cs.getNode(nn[1]);
+
+  double x[2], y[2], z[2];
+
+  x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+  x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+
+  dconst[0] = nd1.x; dconst[1] = nd2.x; // x coordinates
+  dconst[2] = nd1.y; dconst[3] = nd2.y; // y coordinates
+  dconst[4] = nd1.z; dconst[5] = nd2.z; // z coordinates
+  dconst[6] = prop->A;
+  dconst[7] = prop->E;
+  for(int i=0; i<3; ++i) {
+    for(int j=0; j<3; ++j) {
+      dconst[8+3*i+j] = (*elemframe)[i][j];
+    }
+  }
+  dconst[17] = prop->Ixx;
+  dconst[18] = prop->Iyy;
+  dconst[19] = prop->Izz;
+  dconst[20] = prop->nu;
+  dconst[21] = prop->W;
+  dconst[22] = prop->Ta;
+
+  // integer parameters
+  Eigen::Array<int,1,1> iconst;
+  iconst[0] = avgnum;
+
+  // inputs
+  Eigen::Matrix<double,12,1> q = Eigen::Map<Eigen::Matrix<double,12,1> >(elDisp.data()).segment(0,12); // displacements
+  
+  //Jacobian evaluation
+  Eigen::Matrix<double,2,12> dStressdDisp;
+  Eigen::Matrix<double,7,3> stress;
+  cout << " ... senMethod is " << senMethod << endl;
+
+  if(senMethod == 1) { // via automatic differentiation
+    Simo::Jacobian<double,EulerBeamStressWRTDisplacementSensitivity> dSdu(dconst,iconst);
+    dStressdDisp = dSdu(q, 0);
+    dStdDisp.copy(dStressdDisp.data());
+    std::cerr << " ... dStressdDisp(AD) = \n" << dStressdDisp << std::endl;
+  }
+
+  if(senMethod == 0) { // analytic
+    dStressdDisp.setZero();
+    Eigen::Matrix<double,9,1> eframe = Eigen::Map<Eigen::Matrix<double,23,1> >(dconst.data()).segment(8,9); // extract eframe
+    vms6WRTdisp(prop->A, prop->E, 1, dStressdDisp.data(), 1, 2, 7,
+                eframe.data(), prop->Ixx, prop->Iyy, prop->Izz, prop->nu,
+                x, y, z, q.data(), prop->W, prop->Ta, 0);
+    dStdDisp.copy(dStressdDisp.data());
+    std::cerr << " ... dStressdDisp(analytic) = \n" << dStressdDisp << std::endl;
+  }
+
+  if(senMethod == 2) { // via finite difference
+    EulerBeamStressWRTDisplacementSensitivity<double> foo(dconst,iconst);
+    double h = 1.0e-6;
+    for(int j=0; j<12; ++j) {
+      Eigen::Matrix<double,12,1> q_plus(q);
+      Eigen::Matrix<double,12,1> q_minus(q);
+      q_plus[j] += h;  q_minus[j] -= h;
+      Eigen::Matrix<double,2,1> S_plus = foo(q_plus,0);
+      Eigen::Matrix<double,2,1> S_minus = foo(q_minus,0);
+      Eigen::Matrix<double,2,1> dS = (S_plus-S_minus)/(2*h);
+      dStressdDisp(0,j) = dS[0];
+      dStressdDisp(1,j) = dS[1];
+    }
+    dStdDisp.copy(dStressdDisp.data());
+    std::cerr << " ... dStressdDisp(FD) = \n" << dStressdDisp << std::endl;
+  }
+}
+#endif

@@ -528,7 +528,7 @@ Domain::makeElementAdjacencyLists()
             break;
           }
         }
-        if(!foundAdj) std::cerr << " *** WARNING: could not find adjacent element for discrete mass\n";
+        if(!foundAdj) std::cerr << " *** WARNING: could not find adjacent element for discrete mass at node " << current->node+1 << std::endl;
       }
       current = current->next;
     }
@@ -2390,34 +2390,42 @@ Domain::transformElemStiffAndForce(const GeomState &geomState, double *elementFo
     G(elementForce, packedEset[iele]->numDofs());
   Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> >
     H(kel.data(),packedEset[iele]->numDofs(),packedEset[iele]->numDofs());
+  int numDofs = packedEset[iele]->numDofs();
   int numNodes = packedEset[iele]->numNodes() - packedEset[iele]->numInternalNodes();
-  int *nodes = packedEset[iele]->nodes();
-  for(int k = 0; k < numNodes; ++k) {
-    Eigen::Vector3d Psi;
-    Psi << geomState[nodes[k]].theta[0], geomState[nodes[k]].theta[1], geomState[nodes[k]].theta[2];
+  int dofsPerNode = (numDofs-packedEset[iele]->getNumMPCs())/numNodes;
+  if((dofsPerNode == 6) && (numDofs-packedEset[iele]->getNumMPCs())%numNodes == 0) {
+    int *nodes = packedEset[iele]->nodes();
+    for(int k = 0; k < numNodes; ++k) {
+      Eigen::Vector3d Psi;
+      Psi << geomState[nodes[k]].theta[0], geomState[nodes[k]].theta[1], geomState[nodes[k]].theta[2];
 
-    Eigen::Matrix3d T;
-    tangential_transf(Psi, T);
+      Eigen::Matrix3d T;
+      tangential_transf(Psi, T);
 
-    Eigen::Vector3d V = G.segment<3>(6*k+3);
-    G.segment<3>(6*k+3) = T*V;
+      Eigen::Vector3d V = G.segment<3>(6*k+3);
+      G.segment<3>(6*k+3) = T*V;
  
-    if(compute_tangents) {
-      Eigen::Matrix3d C1;
-      directional_deriv1(Psi, V, C1);
+      if(compute_tangents) {
+        Eigen::Matrix3d C1;
+        directional_deriv1(Psi, V, C1);
 
-      for(int l=0; l<2*numNodes; ++l) {
-        H.block<3,3>(6*k+3,3*l) = (T*H.block<3,3>(6*k+3,3*l)).eval();
-        H.block<3,3>(3*l,6*k+3) = (H.block<3,3>(3*l,6*k+3)*T.transpose()).eval();
+        for(int l=0; l<2*numNodes; ++l) {
+          H.block<3,3>(6*k+3,3*l) = (T*H.block<3,3>(6*k+3,3*l)).eval();
+          H.block<3,3>(3*l,6*k+3) = (H.block<3,3>(3*l,6*k+3)*T.transpose()).eval();
+        }
+        for(int l=0; l<packedEset[iele]->numInternalNodes(); ++l) {
+          H.block<3,1>(6*k+3,6*numNodes+l) = (T*H.block<3,1>(6*k+3,6*numNodes+l)).eval();
+          H.block<1,3>(6*numNodes+l,6*k+3) = (H.block<1,3>(6*numNodes+l,6*k+3)*T.transpose()).eval();
+        }
+        H.block<3,3>(6*k+3,6*k+3) += 0.5*(C1 + C1.transpose());
       }
-      for(int l=0; l<packedEset[iele]->numInternalNodes(); ++l) {
-        H.block<3,1>(6*k+3,6*numNodes+l) = (T*H.block<3,1>(6*k+3,6*numNodes+l)).eval();
-        H.block<1,3>(6*numNodes+l,6*k+3) = (H.block<1,3>(6*numNodes+l,6*k+3)*T.transpose()).eval();
-      }
-      H.block<3,3>(6*k+3,6*k+3) += 0.5*(C1 + C1.transpose());
     }
+    delete [] nodes;
   }
-  delete [] nodes;
+  else {
+    std::cerr << " *** WARNING: Domain::transformElemStiffAndForce is not implemented for element " << packedEset[iele]->getGlNum()+1
+              << " type " << packedEset[iele]->getElementType() << std::endl;
+  }
 #else
   cerr << "USE_EIGEN3 is not defined here in Domain::transformElemStiffAndForce\n";
   exit(-1);
@@ -2460,24 +2468,51 @@ Domain::transformElemStiff(const GeomState &geomState, FullSquareMatrix &kel, in
   // Convert from eulerian spatial to eulerian convected
   Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> >
     H(kel.data(),packedEset[iele]->numDofs(),packedEset[iele]->numDofs());
+  int numDofs = packedEset[iele]->numDofs();
   int numNodes = packedEset[iele]->numNodes() - packedEset[iele]->numInternalNodes();
-  int *nodes = packedEset[iele]->nodes();
-  for(int k = 0; k < numNodes; ++k) {
-    Eigen::Matrix3d R;
-    R << geomState[nodes[k]].R[0][0], geomState[nodes[k]].R[0][1], geomState[nodes[k]].R[0][2],
-         geomState[nodes[k]].R[1][0], geomState[nodes[k]].R[1][1], geomState[nodes[k]].R[1][2],
-         geomState[nodes[k]].R[2][0], geomState[nodes[k]].R[2][1], geomState[nodes[k]].R[2][2];
+  int dofsPerNode = (numDofs-packedEset[iele]->getNumMPCs())/numNodes;
+  if((dofsPerNode == 3 || dofsPerNode == 6) && (numDofs-packedEset[iele]->getNumMPCs())%numNodes == 0) {
+    int *nodes = packedEset[iele]->nodes();
+    for(int k = 0; k < numNodes; ++k) {
+      Eigen::Map<const Eigen::Matrix<double,3,3,Eigen::RowMajor> > R(&geomState[nodes[k]].R[0][0],3,3);
+      if(R.isIdentity()) continue;
 
-    for(int l=0; l<2*numNodes; ++l) {
-      H.block<3,3>(6*k+3,3*l) = (R.transpose()*H.block<3,3>(6*k+3,3*l)).eval();
-      H.block<3,3>(3*l,6*k+3) = (H.block<3,3>(3*l,6*k+3)*R).eval();
+      if(dofsPerNode == 6) {
+        for(int l=0; l<2*numNodes; ++l) {
+          H.block<3,3>(6*k+3,3*l) = (R.transpose()*H.block<3,3>(6*k+3,3*l)).eval();
+          H.block<3,3>(3*l,6*k+3) = (H.block<3,3>(3*l,6*k+3)*R).eval();
+        }
+        for(int l=0; l<packedEset[iele]->numInternalNodes(); ++l) {
+          H.block<3,1>(6*k+3,6*numNodes+l) = (R.transpose()*H.block<3,1>(6*k+3,6*numNodes+l)).eval();
+          H.block<1,3>(6*numNodes+l,6*k+3) = (H.block<1,3>(6*numNodes+l,6*k+3)*R).eval();
+        }
+      }
+      else if(dofsPerNode == 3) {
+        for(int l=0; l<numNodes; ++l) {
+          H.block<3,3>(3*k,3*l) = (R.transpose()*H.block<3,3>(3*k,3*l)).eval();
+          H.block<3,3>(3*l,3*k) = (H.block<3,3>(3*l,3*k)*R).eval();
+        }
+        for(int l=0; l<packedEset[iele]->numInternalNodes(); ++l) {
+          H.block<3,1>(3*k,3*numNodes+l) = (R.transpose()*H.block<3,1>(3*k,3*numNodes+l)).eval();
+          H.block<1,3>(3*numNodes+l,3*k) = (H.block<1,3>(3*numNodes+l,3*k)*R).eval();
+        }
+      }
     }
-    for(int l=0; l<packedEset[iele]->numInternalNodes(); ++l) {
-      H.block<3,1>(6*k+3,6*numNodes+l) = (R.transpose()*H.block<3,1>(6*k+3,6*numNodes+l)).eval();
-      H.block<1,3>(6*numNodes+l,6*k+3) = (H.block<1,3>(6*numNodes+l,6*k+3)*R).eval();
-    }
+    delete [] nodes;
   }
-  delete [] nodes;
+  else { 
+    // XXX there are a few elements with 3 dofs at one node and 6 at the other, eg. element 201 and 117
+    int *nodes = packedEset[iele]->nodes();
+    for(int k = 0; k < numNodes; ++k) {
+      Eigen::Map<const Eigen::Matrix<double,3,3,Eigen::RowMajor> > R(&geomState[nodes[k]].R[0][0],3,3);
+      if(!R.isIdentity()) {
+        std::cerr << " *** WARNING: Domain::transformElemStiff is not implemented for element " << packedEset[iele]->getGlNum()+1
+                  << " type " << packedEset[iele]->getElementType() << std::endl;
+        break;
+      }
+    }
+    delete [] nodes;
+  }
 #else
   cerr << "USE_EIGEN3 is not defined here in Domain::transformElemStiff\n";
   exit(-1);

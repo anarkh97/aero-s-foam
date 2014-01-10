@@ -15,6 +15,7 @@ Beam.d/sands6.f
 Beam.d/sands7.f
 Beam.d/TimoshenkoBeam.C
 Beam.d/transf.f
+Beam.d/BeamElementInstance.cpp
 BelytschkoTsayShell.d/BelytschkoTsayShell.C
 BelytschkoTsayShell.d/fint3dshl_hypo.f90
 BelytschkoTsayShell.d/base_mech_transf.f90

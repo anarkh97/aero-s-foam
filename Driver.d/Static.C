@@ -2981,8 +2981,9 @@ Domain::makePostSensitivities(AllSensitivities<double> &allSens, GenVector<doubl
       for(int aindex = 0; aindex < group[iparam].attributes.size(); ++aindex) {  
        for(int eindex = 0; eindex < atoe[group[iparam].attributes[aindex]].elems.size(); ++eindex) {
          int iele = atoe[group[iparam].attributes[aindex]].elems[eindex];
-         GenVector<double> dStressdThick(3);
-         GenVector<double> weight(3);
+         int NodesPerElement = elemToNode->num(iele);
+         GenVector<double> dStressdThick(NodesPerElement);
+         GenVector<double> weight(NodesPerElement);
          int surface = 1;
          elDisp->zero();       
          // Determine element displacement vector
@@ -2997,7 +2998,6 @@ Domain::makePostSensitivities(AllSensitivities<double> &allSens, GenVector<doubl
          packedEset[iele]->getVonMisesThicknessSensitivity(dStressdThick, weight, nodes, *elDisp, 0, surface, senInfo[sindex].method); 
          if(avgnum != 0) {
            // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
-           int NodesPerElement = elemToNode->num(iele);
            for(int k = 0; k < NodesPerElement; ++k) {
              int node = (outFlag) ? nodeTable[(*elemToNode)[iele][k]]-1 : (*elemToNode)[iele][k];
              (*allSens.vonMisesWRTthick)(node, iparam) += dStressdThick[k]; 
@@ -3026,8 +3026,10 @@ Domain::makePostSensitivities(AllSensitivities<double> &allSens, GenVector<doubl
      if(elDisp == 0) elDisp = new Vector(maxNumDOFs,0.0);
      int avgnum = 1; //TODO: it is hardcoded to be 1, which corresponds to NODALFULL. it needs to be fixed.
      for(int iele = 0; iele < numele; iele++) { 
-       GenFullM<double> dStressdDisp(3,18,double(0.0));
-       GenVector<double> weight(3);
+       int NodesPerElement = elemToNode->num(iele);
+       int DofsPerElement = packedEset[iele]->numDofs();
+       GenFullM<double> dStressdDisp(NodesPerElement,DofsPerElement,double(0.0));
+       GenVector<double> weight(NodesPerElement);
        int surface = 1;
        elDisp->zero();       
        // Determine element displacement vector
@@ -3039,16 +3041,14 @@ Domain::makePostSensitivities(AllSensitivities<double> &allSens, GenVector<doubl
            (*elDisp)[k] = bcx[(*allDOFs)[iele][k]];
        }
        transformVectorInv(*elDisp, iele);        
-       cout << "senInfo[sindex].method = " << senInfo[sindex].method << endl; 
        packedEset[iele]->getVonMisesDisplacementSensitivity(dStressdDisp, weight, nodes, *elDisp, 0, surface, senInfo[sindex].method); 
        if(avgnum != 0) {
          // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
-         int NodesPerElement = elemToNode->num(iele);
          for(int k = 0; k < NodesPerElement; ++k) {
            int node = (outFlag) ? nodeTable[(*elemToNode)[iele][k]]-1 : (*elemToNode)[iele][k];
            int *dofs = (*allDOFs)[iele];
            int dof;
-           for(int j = 0; j < 18; ++j) {
+           for(int j = 0; j < DofsPerElement; ++j) {
              int *unconstrNum = c_dsa->getUnconstrNum();
              if(dofs[j] < 0 || (dof = unconstrNum[dofs[j]]) < 0) continue;  // Skip undefined/constrained dofs
              (*allSens.vonMisesWRTdisp)(node, dof) += dStressdDisp[k][j]; 

@@ -597,20 +597,19 @@ TimoshenkoBeam::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
    double elStress[2][7];
    double elForce[3][2]={{0.0,0.0},{0.0,0.0},{0.0,0.0}};
 
-/*
-  _FORTRAN(sands7)(elm,prop->A,prop->E,(double*)*elemframe,
-                   prop->Ixx,prop->Iyy,prop->Izz,prop->alphaY,
-                   prop->alphaZ,prop->c,prop->nu,x,y,z,elDisp.data(),
-                   (double*)elStress,numel,maxgus,maxstr,maxsze,
-                   prop->W, prop->Ta, ndTemps);
-*/
-
-
+#ifdef USE_EIGEN3
    sands7(elm,prop->A,prop->E,(double*)*elemframe,
           prop->Ixx,prop->Iyy,prop->Izz,prop->alphaY,
           prop->alphaZ,prop->c,prop->nu,x,y,z,elDisp.data(),
           (double*)elStress,numel,maxgus,maxstr,maxsze,
           prop->W, prop->Ta, ndTemps);
+#else
+  _FORTRAN(sands7)(elm,prop->A,prop->E,(double*)*elemframe,
+                   prop->Ixx,prop->Iyy,prop->Izz,prop->alphaY,
+                   prop->alphaZ,prop->c,prop->nu,x,y,z,elDisp.data(),
+                   (double*)elStress,numel,maxgus,maxstr,maxsze,
+                   prop->W, prop->Ta, ndTemps);
+#endif
 
    // elForce[0] -> Axial Force (x-direction)
    // elForce[1] -> Moment around the y-axis (My)
@@ -773,6 +772,7 @@ TimoshenkoBeam::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
     }
 }
 
+#ifdef USE_EIGEN3
 void
 TimoshenkoBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
                                                    int senMethod, double *, double ylayer, double zlayer, int avgnum)
@@ -865,6 +865,7 @@ TimoshenkoBeam::getVonMisesDisplacementSensitivity(GenFullM<DComplex> &dStdDisp,
 
   dStdDisp.copy(dStressdThick.data());
 }
+#endif
 
 void
 TimoshenkoBeam::updTransMatrix(CoordSet& cs, GeomState *geomState, double t0n[3][3], double &length)
@@ -941,3 +942,4 @@ TimoshenkoBeam::updTransMatrix(CoordSet& cs, GeomState *geomState, double t0n[3]
     crossprod( t0n[0], t0n[1], t0n[2]);
     normalize( t0n[2] );
 }
+

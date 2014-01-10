@@ -982,17 +982,18 @@ EulerBeam::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
    double elStress[2][7];
    double elForce[3][2]={{0.0,0.0},{0.0,0.0},{0.0,0.0}};
 
+#ifdef USE_EIGEN3
    sands6(prop->A, prop->E, elm, (double*)elStress, maxsze, maxgus,
          maxstr, (double*)*elemframe, prop->Ixx, prop->Iyy,
          prop->Izz, prop->nu,x,y,z,elDisp.data(), prop->W, prop->Ta, 
          ndTemps);
 
-/*
+#else
   _FORTRAN(sands6)(prop->A, prop->E, elm, (double*)elStress, maxsze, maxgus,
                    maxstr, (double*)*elemframe, prop->Ixx, prop->Iyy,
                    prop->Izz, prop->nu,x,y,z,elDisp.data(), prop->W, prop->Ta, 
                    ndTemps); 
-*/
+#endif
 
    // elForce[0] -> Axial Force (x-direction)
    // elForce[1] -> Moment around the y-axis (My)
@@ -1157,10 +1158,12 @@ EulerBeam::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
     }
 }
 
+#ifdef USE_EIGEN3
 void
 EulerBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
                                               int senMethod, double *, double ylayer, double zlayer, int avgnum)
 {
+  
   weight = 1;
   // scalar parameters
   Eigen::Array<double,23,1> dconst;
@@ -1235,3 +1238,4 @@ EulerBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector
     std::cerr << " ... dStressdDisp(FD) = \n" << dStressdDisp << std::endl;
   }
 }
+#endif

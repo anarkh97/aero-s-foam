@@ -374,17 +374,17 @@ BeamElementTemplate<doublereal>
     Eigen::Map<Eigen::Matrix<doublereal,9,1> > g(_g);
 
     Eigen::Matrix<doublereal,3,1> xl;
-    xl << l.block<3,1>(0,0);
+    xl << l.template block<3,1>(0,0);
     Eigen::Matrix<doublereal,3,1> yl;
-    yl << l.block<3,1>(3,0);
+    yl << l.template block<3,1>(3,0);
     Eigen::Matrix<doublereal,3,1> zl;
-    zl << l.block<3,1>(6,0);
+    zl << l.template block<3,1>(6,0);
     Eigen::Matrix<doublereal,3,1> xg;
-    xg << g.block<3,1>(0,0);
+    xg << g.template block<3,1>(0,0);
     Eigen::Matrix<doublereal,3,1> yg;
-    yg << g.block<3,1>(3,0);
+    yg << g.template block<3,1>(3,0);
     Eigen::Matrix<doublereal,3,1> zg;
-    zg << g.block<3,1>(6,0);
+    zg << g.template block<3,1>(6,0);
     Eigen::Map<Eigen::Matrix<doublereal,6,1> > str(_str);
 
     doublereal l1, l2, l3;

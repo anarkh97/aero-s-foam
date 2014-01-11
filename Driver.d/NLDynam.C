@@ -228,6 +228,10 @@ Domain::getUDEIMInternalForceOnly(const std::map<int, std::vector<int> > &weight
       transformElemStiffAndForce(geomState, elementForce.data(), elementStiff, iele, false);
     }
 
+
+
+
+
     // Assemble element internal force into residual force vector
     const int elemDofCount = elementStiff.dim();
     for(std::vector<int>::const_iterator DOFit = DOFvector.begin(); DOFit != DOFvector.end(); DOFit++) {

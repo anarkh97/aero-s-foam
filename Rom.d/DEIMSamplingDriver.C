@@ -228,6 +228,11 @@ DEIMSamplingDriver::computeAndWriteDEIMBasis(VecBasis &forceBasis, std::vector<i
 
   for(int i = 0; i != invSVs.rows(); i++) invSVs(i) = 1.0/SVDOfUmasked.singularValues()(i);
 
+  std::cout << "condition Number of (P^T*U) = " << SVDOfUmasked.singularValues()(0)/SVDOfUmasked.singularValues()(SVDOfUmasked.nonzeroSingularValues()-1) << std::endl;
+  std::cout << "||(P^T*U)^-1)||_2 = " << invSVs(SVDOfUmasked.nonzeroSingularValues()-1) << std::endl;
+  std::cout << "sigma_m+1 = " << SVDOfUmasked.singularValues()(forceMap.cols()) << std::endl;
+  std::cout << "E(f) = " << invSVs(SVDOfUmasked.nonzeroSingularValues()-1)*SVDOfUmasked.singularValues()(forceMap.cols()) << std::endl;
+
   compressedDBTranspose = podMap.transpose()*forceMap.leftCols(maxDeimBasisSize)*SVDOfUmasked.matrixV()*invSVs.asDiagonal()*SVDOfUmasked.matrixU().transpose();
   //we are computing the transpose of the basis
 
@@ -244,12 +249,6 @@ DEIMSamplingDriver::computeAndWriteDEIMBasis(VecBasis &forceBasis, std::vector<i
   for(int row = 0; row != maskIndices.size(); row++) {
     deimMap.row(maskIndices[row]) = compressedDBTranspose.col(row);//use .col member to get rows of transposed basis
   }
-
-/*  std::cout << "deimMap" << std::endl;
-  std::cout << deimMap << std::endl;
-
-  std::cout << "podMap" << std::endl;
-  std::cout << podMap << std::endl;*/
 
   std::vector<double> dummySVs; 
   writeBasisToFile(deimBasis, dummySVs, BasisId::FORCE, BasisId::ROB);

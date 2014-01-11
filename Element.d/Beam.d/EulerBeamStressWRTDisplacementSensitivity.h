@@ -8,16 +8,17 @@
 // class template to facilitate computation of the sensitivities of the nodal von mises stress w.r.t the nodal displacements
 
 template<typename Scalar>
-class EulerBeamStressWRTDisplacementSensitivity : public VectorValuedFunction<12,2,Scalar,23,1,double>
+class EulerBeamStressWRTDisplacementSensitivity : public VectorValuedFunction<12,2,Scalar,25,1,double>
 {
   public:
     BeamElementTemplate<Scalar> ele;
     Eigen::Array<Scalar,2,1> globalx, globaly, globalz; // nodal coordinates
     Scalar A, E, Ixx, Iyy, Izz, c, nu, W, Ta; // material properties
     Eigen::Array<Scalar,9,1> elemframe;
+    Eigen::Array<Scalar,2,1> ndTemps;
 
   public:
-    EulerBeamStressWRTDisplacementSensitivity(const Eigen::Array<double,23,1>& sconst, const Eigen::Array<int,1,1>& iconst)
+    EulerBeamStressWRTDisplacementSensitivity(const Eigen::Array<double,25,1>& sconst, const Eigen::Array<int,1,1>& iconst)
     {
       globalx = sconst.segment<2>(0).cast<Scalar>();
       globaly = sconst.segment<2>(2).cast<Scalar>();
@@ -33,6 +34,8 @@ class EulerBeamStressWRTDisplacementSensitivity : public VectorValuedFunction<12
       nu = sconst[20];
       W = sconst[21];
       Ta = sconst[22];
+      ndTemps[0] = sconst[23];
+      ndTemps[1] = sconst[24];
     }
 
     Eigen::Matrix<Scalar,2,1> operator() (const Eigen::Matrix<Scalar,12,1>& q, Scalar)
@@ -55,7 +58,7 @@ class EulerBeamStressWRTDisplacementSensitivity : public VectorValuedFunction<12
                  elemframe.data(),
                  Ixx,Iyy,Izz,nu,
                  globalx.data(),globaly.data(),globalz.data(),globalu.data(),                 
-                 W, Ta, 0);
+                 W, Ta, ndTemps.data());
 
       // return value:
 

@@ -415,8 +415,8 @@ TwoNodeTruss::getVonMises(Vector& stress, Vector& weight, CoordSet& cs,
 
       case 0:
       {
-	if (strInd == 0) {
-	   // Compute axial force
+        if (strInd == 0 || strInd == 6) {
+           // Compute axial force
            double f = prop->A*prop->E*exx;
 	
            // Add Preload
@@ -430,20 +430,25 @@ TwoNodeTruss::getVonMises(Vector& stress, Vector& weight, CoordSet& cs,
            double fth2 = coefficient*(ndTemps[1]-Tref);
 
            // compute stresses 
-	   double elForce[2]={0.0,0.0};
+	         double elForce[2]={0.0,0.0};
            elForce[0] = -f + fth1;
            elForce[1] =  f - fth2;
-	   stress[0] = -elForce[0]/prop->A;
-	   stress[1] =  elForce[1]/prop->A;
-	}
-	else if (strInd == 7) {
-	   stress[0] =  exx;
-	   stress[1] =  exx;
-	}
-	else {
-	   stress[0] = 0.0;
-	   stress[1] = 0.0;
-	}
+           if(strInd == 0) {    
+              stress[0] = -elForce[0]/prop->A;
+              stress[1] =  elForce[1]/prop->A;
+           } else {
+              stress[0] = abs(elForce[0]);
+              stress[1] = abs(elForce[1]);
+           }
+        }
+        else if (strInd == 7) {
+           stress[0] =  exx;
+           stress[1] =  exx;
+        }
+        else {
+           stress[0] = 0.0;
+           stress[1] = 0.0;
+        }
         break;
       }
 
@@ -478,8 +483,21 @@ TwoNodeTruss::getVonMises(Vector& stress, Vector& weight, CoordSet& cs,
           _FORTRAN(transform)(xl[0], xl[1], xl[2], xg[0], xg[1], xg[2], tmpStr2);
            stress[0] = tmpStr1[strInd];
            stress[1] = tmpStr2[strInd];
-        }
-        else if (strInd > 6 && strInd < 13) {
+        } else if (strInd == 6) {
+          // Compute von Mises stress resultant
+          double f = prop->A*prop->E*exx;
+          f += preload;
+
+          // Compute thermal force
+          double coefficient = prop->E*prop->A*prop->W;
+          double Tref = prop->Ta;
+          double fth1 = coefficient*(ndTemps[0]-Tref);
+          double fth2 = coefficient*(ndTemps[1]-Tref);
+   
+          stress[0] = abs(-f + fth1);
+          stress[1] = abs( f - fth1);      
+
+        } else if (strInd > 6 && strInd < 13) {
            double tmpStr[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
            tmpStr[0] = exx;
            _FORTRAN(transform)(xl[0], xl[1], xl[2], xg[0], xg[1], xg[2], tmpStr);
@@ -498,6 +516,102 @@ TwoNodeTruss::getVonMises(Vector& stress, Vector& weight, CoordSet& cs,
         weight = 0.0;
         stress[0] = 0.0;
         stress[1] = 0.0;
+        break;
+      }
+
+      default:
+        cerr << "avgnum = " << avgnum << " is not a valid number\n";
+    }
+#endif
+}
+
+void
+TwoNodeTruss::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+                                                 int senMethod, double *ndTemps, int avgnum, double ylayer, double zlayer)
+{
+#ifndef SALINAS
+   if(strInd != 6) {
+     cerr << " ... Error: strInd must be 6 in TwoNodeTruss::getVonMisesDisplacementSensitivity\n";
+     exit(-1);
+   }
+   if(dStdDisp.numRow() != 2 || dStdDisp.numCol() !=6) {
+     cerr << " ... Error: dimenstion of sensitivity matrix is wrong\n";
+     exit(-1);
+   }
+   weight = 1.0;
+
+   Node &nd1 = cs.getNode( nn[0] );
+   Node &nd2 = cs.getNode( nn[1] );
+
+   double dx = nd2.x - nd1.x;
+   double dy = nd2.y - nd1.y;
+   double dz = nd2.z - nd1.z;
+
+   double length = sqrt(dx*dx + dy*dy + dz*dz);
+
+   // scale dx, dy, and dz by the length
+   dx /= length;
+   dy /= length;
+   dz /= length;
+
+   // Compute the change in length of the element
+   double dq = dx*(elDisp[3]-elDisp[0])
+             + dy*(elDisp[4]-elDisp[1])
+             + dz*(elDisp[5]-elDisp[2]);
+
+   // Compute axial strain
+   double exx = dq/length;
+
+    switch (avgnum) {
+
+      case 0:
+      case 1:
+      {
+        // Compute axial force
+        double f = prop->A*prop->E*exx;
+	
+        // Add Preload
+        f  += preload;
+
+        // Compute thermal force
+        double coefficient = prop->E*prop->A*prop->W;
+        double Tref = prop->Ta;
+        double fth1, fth2;
+
+        if(ndTemps) {
+          fth1 = coefficient*(ndTemps[0]-Tref);
+          fth2 = coefficient*(ndTemps[1]-Tref);
+        } else {
+          fth1 = 0.0;
+          fth2 = 0.0;
+        }
+
+        // compute stresses
+        double stress[2]; 
+        double elForce[2]={0.0,0.0};
+        elForce[0] = -f + fth1;
+        elForce[1] =  f - fth2;
+        stress[0] = abs(elForce[0]);
+        stress[1] = abs(elForce[1]);
+        double f1s1 = elForce[0]/stress[0];
+        double f2s2 = elForce[1]/stress[1];
+       
+        dStdDisp[0][0] =  f1s1*dx;   dStdDisp[0][1] =  f1s1*dy;   dStdDisp[0][2] =  f1s1*dz;   
+        dStdDisp[0][3] = -f1s1*dx;   dStdDisp[0][4] = -f1s1*dy;   dStdDisp[0][5] = -f1s1*dz; 
+        dStdDisp[1][0] = -f2s2*dx;   dStdDisp[1][1] = -f2s2*dy;   dStdDisp[1][2] = -f2s2*dz;   
+        dStdDisp[1][3] =  f2s2*dx;   dStdDisp[1][4] =  f2s2*dy;   dStdDisp[1][5] =  f2s2*dz; 
+         
+        dStdDisp *= (prop->A*prop->E/length);
+        cerr << " ... dStressdDisp(analytic) = \n" << endl;
+        dStdDisp.print();
+
+        break;
+      }
+
+      case 2:
+      {
+        weight = 0.0;
+        dStdDisp.zero();
         break;
       }
 

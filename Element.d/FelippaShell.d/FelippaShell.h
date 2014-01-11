@@ -37,16 +37,16 @@ public:
                          int avgnum = 0);
 #ifdef USE_EIGEN3
         void getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight, CoordSet &cs, Vector &elDisp, 
-                                             int strInd, int surface, int senMethod = 1, double * = 0, double ylayer = 0, double zlayer = 0, int avgnum = 0);
+                                             int strInd, int surface, int senMethod = 1, double * = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0);
 
         void getVonMisesThicknessSensitivity(ComplexVector &dStdThick, ComplexVector &weight, CoordSet &cs, ComplexVector &elDisp, 
-                                             int strInd, int surface, int senMethod = 1, double * = 0, double ylayer = 0, double zlayer = 0, int avgnum = 0);
+                                             int strInd, int surface, int senMethod = 1, double * = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0);
 
         void getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, 
-                                                int strInd, int surface, int senMethod = 1, double * = 0, double ylayer = 0, double zlayer = 0, int avgnum = 0);
+                                                int strInd, int surface, int senMethod = 1, double * = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0);
 
         void getVonMisesDisplacementSensitivity(GenFullM<DComplex> &dStdDisp, ComplexVector &weight, CoordSet &cs, ComplexVector &elDisp, 
-                                                int strInd, int surface, int senMethod = 1, double * = 0, double ylayer = 0, double zlayer = 0, int avgnum = 0);
+                                                int strInd, int surface, int senMethod = 1, double * = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0);
 
 #endif
 

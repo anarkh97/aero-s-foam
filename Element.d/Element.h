@@ -412,43 +412,43 @@ class Element {
         virtual void   getThermalForceAdj(CoordSet& cs,Vector &ndT,Vector &force,
                                           int glflag);
 
-	virtual void   getIntrnForce(Vector &elForce, CoordSet& cs,
-				     double *elDisp, int Index, double *ndTemps);
+        virtual void   getIntrnForce(Vector &elForce, CoordSet& cs,
+                                     double *elDisp, int Index, double *ndTemps);
 
         // this can't be templated, c++ doesn't allow virtual member functions to be templated
-	virtual void   getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
-		                   Vector &elDisp, int strInd, int surface=0,
-                                   double *ndTemps=0, double ylayer=0.0, double zlayer=0.0, int avgnum = 0); //CBM
+        virtual void   getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
+                                   Vector &elDisp, int strInd, int surface=0,
+                                   double *ndTemps=0, double ylayer=0.0, double zlayer=0.0, int avgnum = 1); //CBM
 
         virtual void   getVonMises(ComplexVector &stress, Vector &weight, CoordSet &cs,
                                    ComplexVector &elDisp, int strInd, int surface=0,
-                                   double *ndTemps=0, double ylayer=0.0, double zlayer=0.0, int avgnum = 0); //CBM
+                                   double *ndTemps=0, double ylayer=0.0, double zlayer=0.0, int avgnum = 1); //CBM
 
-	virtual void   getVonMisesInt(CoordSet &,Vector &,double &,double &, int,
-				      double &,double &, double* dT=0 );
+        virtual void   getVonMisesInt(CoordSet &,Vector &,double &,double &, int,
+                                      double &,double &, double* dT=0 );
 
         virtual void getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
-                                              int senMethod = 1, double * = 0, double ylayer = 0, double zlayer = 0, int avgnum = 0) {
+                                              int senMethod = 1, double * = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0) {
           weight = 1;
           dStdThick.zero();  
         }
 
         virtual void getVonMisesThicknessSensitivity(ComplexVector &dStdThick, ComplexVector &weight, CoordSet &cs, ComplexVector &elDisp, int strInd, int surface,
-                                              int senMethod = 1, double * = 0, double ylayer = 0, double zlayer = 0, int avgnum = 0) {
+                                              int senMethod = 1, double * = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0) {
           weight = DComplex(1,0);
           dStdThick.zero();
         }
 
         virtual void getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, 
                                                         CoordSet &cs, Vector &elDisp, int strInd, int surface,
-                                                        int senMethod = 1, double * = 0, double ylayer = 0, double zlayer = 0, int avgnum = 0) {
+                                                        int senMethod = 1, double * = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0) {
           weight = 1;
           dStdDisp.zero();  
         }
 
         virtual void getVonMisesDisplacementSensitivity(GenFullM<DComplex> &dStdDisp, ComplexVector &weight, 
                                                         CoordSet &cs, ComplexVector &elDisp, int strInd, int surface,
-                                                        int senMethod = 1, double * = 0, double ylayer = 0, double zlayer = 0, int avgnum = 0) {
+                                                        int senMethod = 1, double * = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0) {
           weight = DComplex(1,0);
           dStdDisp.zero();
         }

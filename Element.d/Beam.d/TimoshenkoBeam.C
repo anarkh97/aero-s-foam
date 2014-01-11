@@ -660,6 +660,12 @@ TimoshenkoBeam::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
           stress[0] = elForce[0][0]/cA - elForce[2][0]*Y/IZ + elForce[1][0]*Z/IY;
           stress[1] = elForce[0][1]/cA - elForce[2][1]*Y/IZ + elForce[1][1]*Z/IY;
 
+        } else if (strInd == 6) {
+          
+          // von Mises stress resultant
+          stress[0] = elStress[0][6];
+          stress[1] = elStress[1][6];
+
         } else if (strInd == 7) {
 	
           // Axial Strain
@@ -775,11 +781,19 @@ TimoshenkoBeam::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
 #ifdef USE_EIGEN3
 void
 TimoshenkoBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
-                                                   int senMethod, double *, double ylayer, double zlayer, int avgnum)
+                                                   int senMethod, double *ndTemps, int avgnum, double ylayer, double zlayer)
 {
+  if(strInd != 6) {
+    cerr << " ... Error: strInd must be 6 in TwoNodeTruss::getVonMisesDisplacementSensitivity\n";
+    exit(-1);
+  }
+  if(dStdDisp.numRow() != 2 || dStdDisp.numCol() !=12) {
+    cerr << " ... Error: dimenstion of sensitivity matrix is wrong\n";
+    exit(-1);
+  }
   weight = 1;
   // scalar parameters
-  Eigen::Array<double,26,1> dconst;
+  Eigen::Array<double,28,1> dconst;
   Node &nd1 = cs.getNode(nn[0]);
   Node &nd2 = cs.getNode(nn[1]);
 
@@ -807,6 +821,13 @@ TimoshenkoBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, V
   dconst[23] = prop->nu;
   dconst[24] = prop->W;
   dconst[25] = prop->Ta;
+  if(ndTemps) {
+    dconst[26] = ndTemps[0];
+    dconst[27] = ndTemps[1];
+  } else {
+    dconst[26] = 0.0;
+    dconst[27] = 0.0;
+  }
 
   // integer parameters
   Eigen::Array<int,1,1> iconst;
@@ -819,44 +840,46 @@ TimoshenkoBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, V
   Eigen::Matrix<double,7,3> stress;
   cout << " ... senMethod is " << senMethod << endl;
 
-  if(senMethod == 1) { // via automatic differentiation
-    Simo::Jacobian<double,TimoshenkoBeamStressWRTDisplacementSensitivity> dSdu(dconst,iconst);
-    dStressdDisp = dSdu(q, 0);
-    dStdDisp.copy(dStressdDisp.data());
-    std::cerr << " ... dStressdDisp(AD) = \n" << dStressdDisp << std::endl;
-  }
-
-  if(senMethod == 0) { // analytic
-    dStressdDisp.setZero();
-    Eigen::Matrix<double,9,1> eframe = Eigen::Map<Eigen::Matrix<double,26,1> >(dconst.data()).segment(8,9); // extract eframe
-    vms7WRTdisp(1, prop->A, prop->E, eframe.data(), prop->Ixx, prop->Iyy, prop->Izz, prop->alphaY, prop->alphaZ, prop->c,
-                  prop->nu, x, y, z, q.data(), dStressdDisp.data(), prop->W, prop->Ta, 0);
-    dStdDisp.copy(dStressdDisp.data());
-    std::cerr << " ... dStressdDisp(analytic) = \n" << dStressdDisp << std::endl;
-  }
-
-  if(senMethod == 2) { // via finite difference
-    TimoshenkoBeamStressWRTDisplacementSensitivity<double> foo(dconst,iconst);
-    double h = 1.0e-6;
-    for(int j=0; j<12; ++j) {
-      Eigen::Matrix<double,12,1> q_plus(q);
-      Eigen::Matrix<double,12,1> q_minus(q);
-      q_plus[j] += h;  q_minus[j] -= h;
-      Eigen::Matrix<double,2,1> S_plus = foo(q_plus,0);   
-      Eigen::Matrix<double,2,1> S_minus = foo(q_minus,0);
-      Eigen::Matrix<double,2,1> dS = (S_plus-S_minus)/(2*h);
-      dStressdDisp(0,j) = dS[0];
-      dStressdDisp(1,j) = dS[1];
+  if(avgnum == 1 || avgnum == 0) { // ELEMENTAL or NODALFULL
+    if(senMethod == 1) { // via automatic differentiation
+      Simo::Jacobian<double,TimoshenkoBeamStressWRTDisplacementSensitivity> dSdu(dconst,iconst);
+      dStressdDisp = dSdu(q, 0);
+      dStdDisp.copy(dStressdDisp.data());
+      std::cerr << " ... dStressdDisp(AD) = \n" << dStressdDisp << std::endl;
     }
-    dStdDisp.copy(dStressdDisp.data());
-    std::cerr << " ... dStressdDisp(FD) = \n" << dStressdDisp << std::endl;
-  }
+ 
+    if(senMethod == 0) { // analytic
+      dStressdDisp.setZero();
+      Eigen::Matrix<double,9,1> eframe = Eigen::Map<Eigen::Matrix<double,28,1> >(dconst.data()).segment(8,9); // extract eframe
+      vms7WRTdisp(1, prop->A, prop->E, eframe.data(), prop->Ixx, prop->Iyy, prop->Izz, prop->alphaY, prop->alphaZ, prop->c,
+                    prop->nu, x, y, z, q.data(), dStressdDisp.data(), prop->W, prop->Ta, ndTemps);
+      dStdDisp.copy(dStressdDisp.data());
+      std::cerr << " ... dStressdDisp(analytic) = \n" << dStressdDisp << std::endl;
+    }
+
+    if(senMethod == 2) { // via finite difference
+      TimoshenkoBeamStressWRTDisplacementSensitivity<double> foo(dconst,iconst);
+      double h = 1.0e-6;
+      for(int j=0; j<12; ++j) {
+        Eigen::Matrix<double,12,1> q_plus(q);
+        Eigen::Matrix<double,12,1> q_minus(q);
+        q_plus[j] += h;  q_minus[j] -= h;
+        Eigen::Matrix<double,2,1> S_plus = foo(q_plus,0);   
+        Eigen::Matrix<double,2,1> S_minus = foo(q_minus,0);
+        Eigen::Matrix<double,2,1> dS = (S_plus-S_minus)/(2*h);
+        dStressdDisp(0,j) = dS[0];
+        dStressdDisp(1,j) = dS[1];
+      }
+      dStdDisp.copy(dStressdDisp.data());
+      std::cerr << " ... dStressdDisp(FD) = \n" << dStressdDisp << std::endl;
+    }
+  } else dStdDisp.zero(); // NODALPARTIAL or GAUSS or any others
 }
 
 void
 TimoshenkoBeam::getVonMisesDisplacementSensitivity(GenFullM<DComplex> &dStdDisp, ComplexVector &weight,
                                                    CoordSet &cs, ComplexVector &elDisp, int strInd, int surface,
-                                                   int senMethod, double *, double ylayer, double zlayer, int avgnum)
+                                                   int senMethod, double *, int avgnum, double ylayer, double zlayer)
 {
   weight = DComplex(1,0);
   //NOTE:: for complex numbers, getVonMisesDisplacementSensitivity is not properly implemented

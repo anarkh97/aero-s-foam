@@ -60,6 +60,7 @@ class GenFullM {
    // OPERATORS
    void  operator =  (const GenFullM<Scalar> &);
    void  operator =  (const Scalar c);
+   void  operator *=  (const Scalar c);
    GenFullM<Scalar>  operator *(GenFullM<Scalar>&);   // product A*B
    GenVector<Scalar> operator *(GenVector<Scalar>&); // product A*x
    GenFullM<Scalar>  operator ^(GenFullM<Scalar>&);   // product A^T*B

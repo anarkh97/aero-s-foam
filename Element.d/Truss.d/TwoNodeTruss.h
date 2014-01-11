@@ -25,6 +25,9 @@ public:
         void getVonMises(Vector& stress, Vector& weight,CoordSet &cs,
 	                 Vector& elDisp, int strInd,int surface=0, 
 	                 double *ndTemps=0,double ylayer=0.0, double zlayer=0.0, int avgnum=0);
+        void getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, 
+                                                Vector &elDisp, int strInd, int surface,
+                                                int senMethod, double *ndTemps, int avgnum, double ylayer, double zlayer);
         void markDofs(DofSetArray &);
         int* dofs(DofSetArray &, int *p=0);
         int numDofs();

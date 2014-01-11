@@ -330,6 +330,15 @@ GenFullM<Scalar>::operator=(const Scalar c)
    v[i] = c;
 }
 
+template<class Scalar>
+void
+GenFullM<Scalar>::operator*=(const Scalar c)
+{
+ int i;
+ for(i=0; i<nrow*ncolumn; ++i)
+   v[i] *= c;
+}
+
 template<class Scalar> 
 GenFullM<Scalar> 
 GenFullM<Scalar>::operator+(GenFullM<Scalar> &m)

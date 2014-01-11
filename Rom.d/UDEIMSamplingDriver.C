@@ -105,6 +105,7 @@ UDEIMSamplingDriver::writeBasisToFile(const VecBasis &OutputBasis, std::vector<S
 void
 UDEIMSamplingDriver::writeUnassembledForceSnap(VecBasis &unassembledForceBasis,VecBasis &assembledForceBasis) 
 {
+#ifdef USE_EIGEN3
   //First read in state snapshots 
   VecBasis displac;
   std::vector<double> timeStamps;
@@ -155,6 +156,7 @@ UDEIMSamplingDriver::writeUnassembledForceSnap(VecBasis &unassembledForceBasis,V
     svdFile << SVs[column] << std::endl;
     svdFile << unassembledMap.col(column) << std::endl;
   }
+#endif
 }
  
 void

@@ -43,6 +43,9 @@ void
 UDEIMSamplingDriver::solve() {
 
   SingleDomainDynamic::preProcess();
+  if(domain->solInfo().newmarkBeta == 0) {
+    domain->assembleNodalInertiaTensors(melArray);
+  }
   converter = new VecNodeDof6Conversion(*domain->getCDSA());
 
   const int podSizeMax = domain->solInfo().maxSizePodRom; 
@@ -598,7 +601,7 @@ UDEIMSamplingDriver::readAndProjectSnapshots(BasisId::Type type, const int vecto
                                               std::vector<int> &snapshotCounts, std::vector<double> &timeStamps, VecBasis &config)
 {
   const int snapshotCount = snapSize(type, snapshotCounts);
-  filePrint(stderr, " ... Reading in and Projecting %d %s Snapshots ...\n", snapshotCount, toString(type).c_str());
+  filePrint(stderr, " ... Reading in %d %s Snapshots ...\n", snapshotCount, toString(type).c_str());
 
   config.dimensionIs(snapshotCount, vectorSize);
   timeStamps.clear();

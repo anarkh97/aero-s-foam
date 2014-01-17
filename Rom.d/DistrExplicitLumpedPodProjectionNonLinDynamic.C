@@ -62,19 +62,9 @@ DistrExplicitLumpedPodProjectionNonLinDynamic::getInternalForce(DistrVector &d, 
     trProject(*fInt);
   }
 
-  *a_n = *fInt - *fExt;
-
-  if(haveRot) {
-    execParal2R(decDomain->getNumSub(),this,&DistrExplicitLumpedPodProjectionNonLinDynamic::subTransformWeightedNodesOnly,*a_n,3);
-    fullMassSolver->reSolve(*a_n);
-    execParal2R(decDomain->getNumSub(),this,&DistrExplicitLumpedPodProjectionNonLinDynamic::subTransformWeightedNodesOnly,*a_n,2);
-    DistrVector toto(*a_n);
-    dynMat->M->mult(toto, *a_n);
-  }
-
-  normalizedBasis_.sparseVecReduce(*a_n,f);
+  *tempVec = *fInt - *fExt;
+  normalizedBasis_.sparseVecReduce(*tempVec, f);
   //  the residual is computed in this step to avoid projecting into the reduced coordinates twice
-
 }
 
 void

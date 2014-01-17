@@ -96,7 +96,7 @@ Domain::getInternalForce(GeomState &geomState, Vector& elementForce,
     getElemFollowerForce(iele, geomState, elementForce.data(), elementForce.size(),
                          (corotators[iele]), kel[iele], lambda, time, false, conwep);
 
-    if(domain->solInfo().galerkinPodRom && packedEset[iele]->hasRot() && !solInfo().getNLInfo().linearelastic) {
+    if((domain->solInfo().galerkinPodRom || domain->solInfo().DEIMBasisPod) && packedEset[iele]->hasRot() && !solInfo().getNLInfo().linearelastic) {
       // Transform element stiffness and force to solve for the increment in the total rotation vector
       transformElemStiffAndForce(geomState, elementForce.data(), kel[iele], iele, false);
     }
@@ -186,10 +186,10 @@ Domain::getWeightedInternalForceOnly(const std::map<int, double> &weights,
 
 void
 Domain::getUDEIMInternalForceOnly(const std::map<int, std::vector<int> > &weights,
-                                     GeomState &geomState, Vector& elementForce,
-                                     Corotator **corotators, FullSquareMatrix *kel,
-                                     Vector &residual, double lambda, double time,
-                                     GeomState *refState, FullSquareMatrix *mel, FullSquareMatrix *kelCopy)
+                                  GeomState &geomState, Vector& elementForce,
+                                  Corotator **corotators, FullSquareMatrix *kel,
+                                  Vector &residual, double lambda, double time,
+                                  GeomState *refState, FullSquareMatrix *mel, FullSquareMatrix *kelCopy)
 {
   const double pseudoTime = sinfo.isDynam() ? time : lambda; // MPC needs lambda for nonlinear statics
   BlastLoading::BlastData *conwep = (domain->solInfo().ConwepOnOff) ? &BlastLoading::InputFileData : NULL;
@@ -228,10 +228,6 @@ Domain::getUDEIMInternalForceOnly(const std::map<int, std::vector<int> > &weight
       transformElemStiffAndForce(geomState, elementForce.data(), elementStiff, iele, false);
     }
 
-
-
-
-
     // Assemble element internal force into residual force vector
     const int elemDofCount = elementStiff.dim();
     for(std::vector<int>::const_iterator DOFit = DOFvector.begin(); DOFit != DOFvector.end(); DOFit++) {
@@ -259,7 +255,8 @@ Domain::getUnassembledNonLinearInternalForce(GeomState &geomState, Vector& eleme
                                              double lambda, double time, int tIndex,
                                              GeomState *refState, Vector *reactions, FullSquareMatrix *mel,
                                              FullSquareMatrix *kelCopy)
-{//this function creates the assembled and unassembled force snap shots needed to compute the UDEIM ROM basis
+{
+  //this function creates the assembled and unassembled force snap shots needed to compute the UDEIM ROM basis
   int DOFcounter = 0; //counter variable for navigating unassembled dofs
   const double pseudoTime = sinfo.isDynam() ? time : lambda; // mpc needs lambda for nonlinear statics
   BlastLoading::BlastData *conwep = (domain->solInfo().ConwepOnOff) ? &BlastLoading::InputFileData : NULL;
@@ -283,7 +280,7 @@ Domain::getUnassembledNonLinearInternalForce(GeomState &geomState, Vector& eleme
     getElemFollowerForce(iele, geomState, elementForce.data(), elementForce.size(),
     (corotators[iele]), kel[iele], lambda, time, false, conwep);
 
-    if(domain->solInfo().galerkinPodRom && packedEset[iele]->hasRot() && !solInfo().getNLInfo().linearelastic) {
+    if((domain->solInfo().galerkinPodRom || domain->solInfo().UDEIMBasisPod) && packedEset[iele]->hasRot() && !solInfo().getNLInfo().linearelastic) {
      // Transform element stiffness and force to solve for the increment in the total rotation vector
      transformElemStiffAndForce(geomState, elementForce.data(), kel[iele], iele, false);
     }
@@ -307,7 +304,7 @@ Domain::getUnassembledNonLinearInternalForce(GeomState &geomState, Vector& eleme
           (*reactions)[cDofNum] += elementForce[idof];
       }
     }
-   }
+  }
   if(sinfo.isDynam() && mel) getUnassembledFictitiousForce(geomState, elementForce, kel, residual, unassemResidual, time, refState, reactions, mel, false);
 }
 
@@ -558,11 +555,14 @@ Domain::getNodeFictitiousForce(int inode, GeomState &geomState, double time, Geo
   if(beta == 0) { // compute the tangent stiffness and/or force correction due to rotary inertia for explicit central difference
     // V is either the convected angular velocity at t^{n+1/2} for FOM or ROM model II or model III,
     //   or the convected angular velocity at current snapshot after projection for explicit ROM "training"
-    if(domain->solInfo().galerkinPodRom || domain->solInfo().samplingPodRom) {
+    if(domain->solInfo().galerkinPodRom || domain->solInfo().samplingPodRom || domain->solInfo().DEIMBasisPod || domain->solInfo().UDEIMBasisPod) {
       tangential_transf<double>(Psi, T);
       Eigen::Vector3d Psidot = T.inverse()*V;
       tangential_transf_dot<double>(Psi, Psidot, Tdot);
-      f = T.transpose()*(J*Tdot*Psidot + V.cross(J*V));
+      // f = J'*(T^t*J'*T)^{-1}*T*R*(J*Tdot*Psidot + V.cross(J*V))
+      // note: T*R = T^t and J' is the assembled nodal inertia, i.e. J' = Jn[inode]
+      // --> f = J'*(J'*T)^{-1}*(J*Tdot*Psidot + V.cross(J*V))
+      f = Jn[inode]*(Jn[inode]*T).inverse()*(J*Tdot*Psidot + V.cross(J*V));
     }
     else {
       f = R*V.cross(J*V);
@@ -690,8 +690,8 @@ Domain::getWeightedFictitiousForceOnly(const std::map<int, double> &weights, Geo
 
 void
 Domain::getUDEIMFictitiousForceOnly(const std::map<int, std::vector<int> > &weights, GeomState &geomState, Vector &elementForce, FullSquareMatrix *kel,
-                                       Vector &residual, double time, GeomState *refState, Vector *reactions,
-                                       FullSquareMatrix *mel, bool compute_tangents)
+                                    Vector &residual, double time, GeomState *refState, Vector *reactions,
+                                    FullSquareMatrix *mel, bool compute_tangents)
 {
   for (std::map<int, std::vector<int> >::const_iterator it = weights.begin(), it_end = weights.end(); it != it_end; ++it) {
     const int iele = it->first;
@@ -713,4 +713,47 @@ Domain::getUDEIMFictitiousForceOnly(const std::map<int, std::vector<int> > &weig
       }
     }
   }
+}
+
+void
+Domain::assembleNodalInertiaTensors(FullSquareMatrix *melArray)
+{
+#ifdef USE_EIGEN3
+  if(elemAdj.empty()) makeElementAdjacencyLists();
+  Jn.resize(numnodes);
+  for(int i = 0; i < numnodes; ++i) Jn[i].setZero();
+
+  for(int iele = 0; iele < numele; ++iele) {
+
+    if(packedEset[iele]->hasRot()) {
+      int numDofs = packedEset[iele]->numDofs();
+      int numNodes = packedEset[iele]->numNodes() - packedEset[iele]->numInternalNodes();
+      int dofsPerNode = (numDofs-packedEset[iele]->getNumMPCs())/numNodes;
+      if((dofsPerNode == 3 || dofsPerNode == 6) && (numDofs-packedEset[iele]->getNumMPCs())%numNodes == 0) {
+        Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> > mel(&melArray[iele][0][0],numDofs,numDofs);
+        int *nodes = packedEset[iele]->nodes();
+        for(int i=0; i<numNodes; ++i) {
+          int offset = (dofsPerNode == 6) ? 6*i+3 : 3*i;
+          Jn[nodes[i]] += mel.block(offset,offset,3,3);
+        }
+        delete [] nodes;
+      }
+    }
+
+    if(iele >= elemAdj.size()) return;
+
+    // add contribution of of discrete inertias adjacent to the element
+    for(std::vector<std::pair<DMassData*,std::vector<int> > >::iterator it = elemAdj[iele].dimass.begin(); it != elemAdj[iele].dimass.end(); ++it) {
+
+      DMassData *current = it->first;
+      std::vector<int> &eledofs = it->second;
+
+      int idof = current->dof;
+      int jdof = (current->jdof > -1) ? current->jdof : idof;
+
+      Jn[current->node](idof-3,jdof-3) += current->diMass;
+      if(idof != jdof) Jn[current->node](jdof-3,idof-3) += current->diMass;
+    }
+  }
+#endif
 }

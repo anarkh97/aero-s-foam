@@ -91,7 +91,7 @@ private:
   // Disallow copy and assignment
   DistrExplicitPodProjectionNonLinDynamicBase(const DistrExplicitPodProjectionNonLinDynamicBase &);
   DistrExplicitPodProjectionNonLinDynamicBase &operator=(const DistrExplicitPodProjectionNonLinDynamicBase &);
-
+  void subInitStiff(int isub);
 };
 
 } // end namespace Rom

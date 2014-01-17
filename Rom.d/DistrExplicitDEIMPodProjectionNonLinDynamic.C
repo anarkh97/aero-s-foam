@@ -45,7 +45,6 @@ void
 DistrExplicitDEIMPodProjectionNonLinDynamic::getInternalForce(DistrVector &d, DistrVector &f, double t, int tIndex) {
 
   execParal3R(decDomain->getNumSub(),this,&DistrExplicitDEIMPodProjectionNonLinDynamic::subGetWeightedInternalForceOnly,*fInt,t,tIndex);
-  
 
   if(domain->solInfo().stable && domain->solInfo().isNonLin() && tIndex%domain->solInfo().stable_freq == 0) {
     GenMDDynamMat<double> ops;
@@ -55,19 +54,6 @@ DistrExplicitDEIMPodProjectionNonLinDynamic::getInternalForce(DistrVector &d, Di
   
   if (domain->solInfo().filterFlags) {
     trProject(*fInt);
-  }
-
-//   Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > dummy(fInt->data(),fInt->size(),1);
-//   std::cout<<"fInt = "<<dummy<<std::endl;
-
-   *a_n = *fInt - *fExt;
-
-  if(haveRot) {//must transform the two containers separately since they use different bases. 
-    execParal2R(decDomain->getNumSub(),this,&DistrExplicitDEIMPodProjectionNonLinDynamic::subTransformWeightedNodesOnly,*a_n,3);
-    fullMassSolver->reSolve(*a_n);
-    execParal2R(decDomain->getNumSub(),this,&DistrExplicitDEIMPodProjectionNonLinDynamic::subTransformWeightedNodesOnly,*a_n,2);
-    DistrVector toto(*a_n);
-    dynMat->M->mult(toto,*a_n);
   }
 
   DistrVector fExt_reduced(solVecInfo());

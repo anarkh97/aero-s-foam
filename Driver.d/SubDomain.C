@@ -6016,6 +6016,38 @@ GenSubDomain<Scalar>::collectInterfaceGeomState(FSCommPattern<double> *pat, Geom
 
 template<class Scalar>
 void
+GenSubDomain<Scalar>::dispatchInterfaceNodalInertiaTensors(FSCommPattern<double> *pat)
+{
+#ifdef USE_EIGEN3
+  for(int iSub = 0; iSub < scomm->numNeighb; ++iSub) {
+    FSSubRecInfo<double> sInfo = pat->getSendBuffer(subNumber, scomm->subNums[iSub]);
+    for(int iNode = 0; iNode < scomm->sharedNodes->num(iSub); ++iNode) {
+      for(int j=0; j<3; ++j)
+        for(int k=0; k<3; ++k)
+          sInfo.data[3*j+k] = Jn[(*scomm->sharedNodes)[iSub][iNode]](j,k);
+    }
+  }
+#endif
+}
+
+template<class Scalar>
+void
+GenSubDomain<Scalar>::collectInterfaceNodalInertiaTensors(FSCommPattern<double> *pat)
+{
+#ifdef USE_EIGEN3
+  for(int iSub = 0; iSub < scomm->numNeighb; ++iSub) {
+    FSSubRecInfo<double> rInfo = pat->recData(scomm->subNums[iSub], subNumber);
+    for(int iNode = 0; iNode < scomm->sharedNodes->num(iSub); ++iNode) {
+      for(int j=0; j<3; ++j)
+        for(int k=0; k<3; ++k)
+          Jn[(*scomm->sharedNodes)[iSub][iNode]](j,k) += rInfo.data[3*j+k];
+    }
+  }
+#endif
+}
+
+template<class Scalar>
+void
 GenSubDomain<Scalar>::setWICommSize(FSCommPattern<Scalar> *pat)
 {
   for(int i = 0; i < scomm->numT(SComm::fsi); ++i)

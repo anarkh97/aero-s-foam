@@ -1180,6 +1180,13 @@ class Domain : public HData {
                   // the default is 0, for compatibility with top files generated using -t command line argument
      int *nodeTable;
      int exactNumNodes;
+
+     void assembleNodalInertiaTensors(FullSquareMatrix *mel);
+#ifdef USE_EIGEN3
+  protected:
+     Eigen::Array<Eigen::Matrix3d,Eigen::Dynamic,1> Jn; // array of nodal inertia tensors for each node including contributions
+                                                        // from both elements and DIMASS. Used for nonlinear explicit ROM only
+#endif
 };
 
 #ifdef _TEMPLATE_FIX_

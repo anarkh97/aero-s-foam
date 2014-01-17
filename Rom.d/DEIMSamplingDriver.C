@@ -42,6 +42,9 @@ void
 DEIMSamplingDriver::solve() {
 
   SingleDomainDynamic::preProcess();
+  if(domain->solInfo().newmarkBeta == 0) {
+    domain->assembleNodalInertiaTensors(melArray);
+  }
   converter = new VecNodeDof6Conversion(*domain->getCDSA());
 
   const int podSizeMax = domain->solInfo().maxSizePodRom; 
@@ -230,8 +233,9 @@ DEIMSamplingDriver::computeAndWriteDEIMBasis(VecBasis &forceBasis, std::vector<i
 
   std::cout << "condition Number of (P^T*U) = " << SVDOfUmasked.singularValues()(0)/SVDOfUmasked.singularValues()(SVDOfUmasked.nonzeroSingularValues()-1) << std::endl;
   std::cout << "||(P^T*U)^-1)||_2 = " << invSVs(SVDOfUmasked.nonzeroSingularValues()-1) << std::endl;
-  std::cout << "sigma_m+1 = " << SVDOfUmasked.singularValues()(forceMap.cols()) << std::endl;
-  std::cout << "E(f) = " << invSVs(SVDOfUmasked.nonzeroSingularValues()-1)*SVDOfUmasked.singularValues()(forceMap.cols()) << std::endl;
+  //XXX note there is an invalid read error in each of the the next two lines
+  //std::cout << "sigma_m+1 = " << SVDOfUmasked.singularValues()(forceMap.cols()) << std::endl;
+  //std::cout << "E(f) = " << invSVs(SVDOfUmasked.nonzeroSingularValues()-1)*SVDOfUmasked.singularValues()(forceMap.cols()) << std::endl;
 
   compressedDBTranspose = podMap.transpose()*forceMap.leftCols(maxDeimBasisSize)*SVDOfUmasked.matrixV()*invSVs.asDiagonal()*SVDOfUmasked.matrixU().transpose();
   //we are computing the transpose of the basis
@@ -490,7 +494,7 @@ DEIMSamplingDriver::readAndProjectSnapshots(BasisId::Type type, const int vector
                                               std::vector<int> &snapshotCounts, std::vector<double> &timeStamps, VecBasis &config)
 {
   const int snapshotCount = snapSize(type, snapshotCounts);
-  filePrint(stderr, " ... Reading in and Projecting %d %s Snapshots ...\n", snapshotCount, toString(type).c_str());
+  filePrint(stderr, " ... Reading in %d %s Snapshots ...\n", snapshotCount, toString(type).c_str());
 
   config.dimensionIs(snapshotCount, vectorSize);
   timeStamps.clear();

@@ -39,7 +39,7 @@ private:
   void computeAssembledIndices(std::vector<int> &umaskIndices, std::vector<int> &amaskIndices, std::set<int> &selectedElems, std::vector<std::pair<int,int> > &elemRankDOFContainer); 
 
   int  elementCount() const; 
-  int  unassembledVecInfo(FullSquareMatrix *kelArray);
+  int  unassembledVecInfo();
 
   void writeUnassembledForceSnap(VecBasis &unassembledForceBasis,VecBasis &assembledForceBasis); 
   void assembleBasisVectors(VecBasis &assembledForceBasis, VecBasis &unassembledForceBasis);
@@ -52,7 +52,11 @@ private:
   VecNodeDof6Conversion *converter;
 
   VecBasis podBasis_;
+  VecBasis udeimBasis;
   std::map<int, std::pair<int,int> > uDOFaDOFmap;
+
+  FullSquareMatrix *kelArrayCopy; 
+
 };
 
 } /* end namespace Rom */

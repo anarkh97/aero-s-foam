@@ -159,17 +159,33 @@ DistrExplicitDEIMPodProjectionNonLinDynamic::buildInterpolationBasis() {
 void
 DistrExplicitDEIMPodProjectionNonLinDynamic::buildReducedLinearOperator() {
  //build reduced stiffness matrix
- filePrint(stderr," ... Constructing Reduced Linear Stiffness Matrix ...\n");
  ReducedStiffness.dimensionIs(normalizedBasis_.numVectors(),reducedVecInfo()); //each mpi process gets a reduced linear operator
 
- for( int column = 0; column != normalizedBasis_.numVectors(); ++column){
-   DistrVector columnOfKtimesV(MultiDomainDynam::solVecInfo());
-   columnOfKtimesV = 0;
-   //K*V
-   execParal2R(decDomain->getNumSub(),this,&DistrExplicitDEIMPodProjectionNonLinDynamic::subGetKtimesU, normalizedBasis_[column],columnOfKtimesV); 
-   //V^T*(K*V)
-   normalizedBasis_.reduce(columnOfKtimesV,ReducedStiffness[column]);
- } 
+  if(domain->solInfo().ReducedStiffness){
+    filePrint(stderr," ... Reading Pre-computed Reduced Linear Stiffness Matrix ...\n");
+
+    int vector = 0; int ind = 0;
+    for(std::vector<double>::const_iterator it = geoSource->RedKVecBegin(), it_end = geoSource->RedKVecEnd(); it != it_end; ++it){
+      ReducedStiffness[vector][ind] = *it; ++ind;
+      if(ind == normalizedBasis_.numVectors()){
+        ind = 0; 
+        ++vector;
+      }
+    }
+
+  } else {
+    filePrint(stderr," ... Constructing Reduced Linear Stiffness Matrix ...\n");
+ 
+    for( int column = 0; column != normalizedBasis_.numVectors(); ++column){
+      DistrVector columnOfKtimesV(MultiDomainDynam::solVecInfo());
+      columnOfKtimesV = 0;
+      //K*V
+      execParal2R(decDomain->getNumSub(),this,&DistrExplicitDEIMPodProjectionNonLinDynamic::subGetKtimesU, normalizedBasis_[column],columnOfKtimesV); 
+      //V^T*(K*V)
+      normalizedBasis_.reduce(columnOfKtimesV,ReducedStiffness[column]);
+    } 
+  }
+
 /*
  DistrVecBasis DEIMReducedStiffness(normalizedBasis_.numVectors(),reducedVecInfo());
 

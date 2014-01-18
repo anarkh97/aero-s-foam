@@ -1415,6 +1415,8 @@ TRAIL [a-zA-Z]*
 
 "SNSLOT"|"SnSlot"|"snslot"                { return SAMPNODESLOT; }
 
+"REDSTIFF"|"RedStiff"|"redstiff"	  { return REDUCEDSTIFFNESS; }
+
 "FPODRB"|"FPODRb"|"fpodrb"                { return FORCEROB; }
  
 "svdfrc"|"SvdFrc"|"svdfrc"		  { return SVDFORCESNAP; }

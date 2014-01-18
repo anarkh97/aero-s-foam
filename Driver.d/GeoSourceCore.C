@@ -4574,6 +4574,10 @@ void GeoSource::setElementLumpingWeight(int iele, double value) {
   elementLumpingWeights_[iele] = value;
 }
 
+void GeoSource::pushBackStiffVec(double Kelem) {
+  ReducedStiffVec.push_back(Kelem);
+}
+
 void GeoSource::setSampleNodesAndSlots(int node, int dof){
   nodeDofSlotPairVec_.push_back(std::make_pair(node,dof));
 }

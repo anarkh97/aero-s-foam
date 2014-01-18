@@ -50,6 +50,8 @@ DEIMSamplingDriver::solve() {
   const int podSizeMax = domain->solInfo().maxSizePodRom; 
   bool normalized = true;
 
+  domain->createKelArray(kelArrayCopy);  
+
   if(domain->solInfo().computeForceSnap){
     readInBasis(podBasis_, BasisId::STATE, BasisId::POD, podSizeMax);
     writeProjForceSnap();
@@ -212,7 +214,7 @@ DEIMSamplingDriver::computeAndWriteDEIMBasis(VecBasis &forceBasis, std::vector<i
   if(maxDeimBasisSize == 0)
     maxDeimBasisSize = maskIndices.size();
 
-  VecBasis deimBasis(podBasis_.vectorCount(),podBasis_.vectorInfo());
+  deimBasis.dimensionIs(podBasis_.vectorCount(),podBasis_.vectorInfo());
 #ifdef USE_EIGEN3
   Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > podMap(podBasis_.data(),podBasis_.size(), podBasis_.vectorCount());
   Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > forceMap(forceBasis.data(),forceBasis.size(), forceBasis.vectorCount());
@@ -371,29 +373,52 @@ DEIMSamplingDriver::writeSampledMesh(std::vector<int> &maskIndices) {
   const MeshDesc reducedMesh(domain, geoSource, meshRenumbering, weights);
   outputMeshFile(fileInfo, reducedMesh, podBasis_.vectorCount());
 
-  // output the reduced forces
   std::ofstream meshOut(getMeshFilename(fileInfo).c_str(), std::ios_base::app);
+  meshOut.precision(std::numeric_limits<double>::digits10+1);
+  
+  // reduced stiffness
+  meshOut << "*\nREDSTIFF\n"  ;
+  
+  for(int column=0; column<podBasis_.vectorCount(); ++column){
+    Vector columnOfKtimesV(solVecInfo());
+    Vector columnOfRedK(podBasis_.vectorCount());
+    columnOfKtimesV.zero();
+    domain->getKtimesU(podBasis_[column], bcx, columnOfKtimesV, 1.0, kelArrayCopy);
+    reduce(podBasis_, columnOfKtimesV, columnOfRedK);
+    for(int i=0; i<podBasis_.vectorCount(); ++i){
+      meshOut << columnOfRedK[i] << std::endl;}
+  }
+
+  // output the reduced forces
   if(domain->solInfo().reduceFollower) meshOut << "REDFOL\n";
   meshOut << "*\nFORCES\nMODAL\n";
-  meshOut.precision(std::numeric_limits<double>::digits10+1);
   for(int i=0; i<podBasis_.vectorCount(); ++i)
     meshOut << i+1 << " "  << constForceRed[i] << std::endl; 
 
+
   #ifdef USE_EIGEN3
-  // build and output compressed basis
+  // build and output compressed basis and mask operator P
   podBasis_.makeSparseBasis(meshRenumbering.reducedNodeIds(), domain->getCDSA());
+  deimBasis.makeSparseBasis(meshRenumbering.reducedNodeIds(), domain->getCDSA());
   {
-    std::string filename = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
-    filename.append(".reduced");
-    if(domain->solInfo().newmarkBeta == 0 || domain->solInfo().useMassNormalizedBasis) filename.append(".normalized");
-    filePrint(stderr," ... Writing compressed basis to file %s ...\n", filename.c_str());
+    std::string PODfilename = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
+    std::string DEIMfilename = BasisFileId(fileInfo, BasisId::FORCE, BasisId::ROB);
+    PODfilename.append(".reduced");
+    DEIMfilename.erase(DEIMfilename.end()-5,DEIMfilename.end());
+    DEIMfilename.append(".reduced.deim");
+    if(domain->solInfo().newmarkBeta == 0 || domain->solInfo().useMassNormalizedBasis) {
+      PODfilename.append(".normalized");
+    }
+    filePrint(stderr," ... Writing compressed POD/DEIM basis to file %s and %s ...\n", PODfilename.c_str(), DEIMfilename.c_str());
     DofSetArray reduced_dsa(reducedMesh.nodes().size(), const_cast<Elemset&>(reducedMesh.elements()));
     ConstrainedDSA reduced_cdsa(reduced_dsa, reducedMesh.dirichletBConds().size(), const_cast<BCond*>(&reducedMesh.dirichletBConds()[0]));
     VecNodeDof6Conversion converter(reduced_cdsa);
-    BasisOutputStream output(filename, converter, false);
+    BasisOutputStream outputPOD(PODfilename, converter, false);
+    BasisOutputStream outputDEIM(DEIMfilename, converter, false);
 
     for (int iVec = 0; iVec < podBasis_.vectorCount(); ++iVec) {
-      output << podBasis_.compressedBasis().col(iVec);
+      outputPOD  << podBasis_.compressedBasis().col(iVec);
+      outputDEIM << deimBasis.compressedBasis().col(iVec);      
     }
 
     std::map<int,int> nodeRenum(meshRenumbering.nodeRenumbering());
@@ -419,9 +444,6 @@ DEIMSamplingDriver::buildForceArray(VecBasis &forceBasis, const VecBasis &displa
 
   forceBasis.dimensionIs(displac.vectorCount(), displac.vectorInfo());
 
-  FullSquareMatrix *kelArrayCopy;
-  domain->createKelArray(kelArrayCopy);
-
   int iSnap = 0;
   double gamma  = domain->solInfo().newmarkGamma;
   double alphaf = domain->solInfo().newmarkAlphaF;
@@ -441,7 +463,7 @@ DEIMSamplingDriver::buildForceArray(VecBasis &forceBasis, const VecBasis &displa
       FLint.zero();
       SingleDomainDynamic::getInternalForce( dummy, FNLint, *timeStampIt, jSnap);
       domain->getKtimesU(dummy, bcx, FLint, 1.0, kelArrayCopy);
-    
+   
       //set vector in force snapshot container
       forceBasis[iSnap] = (FNLint-FLint); 
      

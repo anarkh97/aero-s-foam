@@ -47,6 +47,9 @@ private:
   VecNodeDof6Conversion *converter;
 
   VecBasis podBasis_;
+  VecBasis deimBasis;
+
+  FullSquareMatrix *kelArrayCopy;
 
 };
 

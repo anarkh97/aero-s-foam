@@ -49,6 +49,11 @@ public:
                                    double *flF, double *resF, GeomState *gs=0);
 
 	int getTopNumber();
+        int nDecFaces() { return 1;}
+        int getDecFace(int iFace, int *fn) {
+          for(int i=0;i<3;i++) fn[i] = nn[i]; return 3; }
+
+
 
         void setPressure(PressureBCond *_pbc) { pbc = _pbc; }
         PressureBCond* getPressure() { return pbc; }

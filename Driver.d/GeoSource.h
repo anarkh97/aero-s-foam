@@ -528,7 +528,8 @@ public:
 
   Elemset* getElemSet(void){return(&elemSet);}
 
-  void simpleDecomposition(int numSubdomains, bool estFlag, bool weightOutFlag, bool makeTrivial);
+  void simpleDecomposition(int numSubdomains, bool estFlag, bool weightOutFlag,
+                            bool makeTrivial, bool fsglFlag);
   void modifyDecomposition(int maxEleKeep);
 
   // Output Functions

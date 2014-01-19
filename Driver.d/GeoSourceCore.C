@@ -3898,7 +3898,7 @@ GeoSource::addMaterial(int i, const char *matName, DoubleList &args)
 }
 
 void
-GeoSource::simpleDecomposition(int numSubdomains, bool estFlag, bool weightOutFlag, bool trivialFlag)
+GeoSource::simpleDecomposition(int numSubdomains, bool estFlag, bool weightOutFlag, bool trivialFlag, bool fsglFlag)
 {
  decJustCalled=true;
  double    t1 = getTime();
@@ -3953,7 +3953,7 @@ GeoSource::simpleDecomposition(int numSubdomains, bool estFlag, bool weightOutFl
    }
  if(nSpring > 0) filePrint(stderr, " ... This mesh has %d springs ...\n", nSpring);
 
- MultiFront mf(&baseSet, &nodes, bool(domain->getNumFSI()));
+ MultiFront mf(&baseSet, &nodes, bool(domain->getNumFSI()), fsglFlag);
 
  // Decompose and optimize the structure into subdomains
  if ( domain->solInfo().isCoupled && (domain->solInfo().type != 2 || 

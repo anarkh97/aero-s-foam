@@ -259,4 +259,16 @@ HelmBrick::addFaces(PolygonSet *pset)
 */
 }
 
+int HelmBrick::getDecFace(int iFace, int *fn) {
+ switch(iFace) {
+  case 0: fn[0] = nn[0];  fn[1] = nn[1]; fn[2] = nn[2]; fn[3] = nn[3]; break;
+  case 1: fn[0] = nn[4];  fn[1] = nn[5]; fn[2] = nn[6]; fn[3] = nn[7]; break;
+  case 2: fn[0] = nn[3];  fn[1] = nn[0]; fn[2] = nn[4]; fn[3] = nn[7]; break;
+  case 3: fn[0] = nn[0];  fn[1] = nn[1]; fn[2] = nn[5]; fn[3] = nn[4]; break;
+  case 4: fn[0] = nn[2];  fn[1] = nn[1]; fn[2] = nn[5]; fn[3] = nn[6]; break;
+  default:
+  case 5: fn[0] = nn[3];  fn[1] = nn[2]; fn[2] = nn[6]; fn[3] = nn[7]; break;
+ }
+ return 4;
+}
 

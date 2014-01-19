@@ -414,3 +414,14 @@ TetraHelmGLS::addFaces(PolygonSet *pset)
 */
 }
 
+int TetraHelmGLS::getDecFace(int iFace, int *fn) {
+ switch(iFace) {
+  case 0: fn[0] = nn[0];  fn[1] = nn[2]; fn[2] = nn[1]; break;
+  case 1: fn[0] = nn[0];  fn[1] = nn[1]; fn[2] = nn[3]; break;
+  case 2: fn[0] = nn[0];  fn[1] = nn[3]; fn[2] = nn[2]; break;
+  default:
+  case 3: fn[0] = nn[2];  fn[1] = nn[3]; fn[2] = nn[1]; break;
+  }
+  return 3;
+}
+

@@ -276,3 +276,15 @@ HelmIsoParamHexa::numNodes() {
     return(8);   // to ignore effect of mid-size nodes in dec
 }
 
+
+
+int HelmIsoParamHexa::getDecFace(int iFace, int *fn) {
+  IsoParamUtils ipu(order);
+  int ordersq = ipu.getordersq();
+  ipu.faceindeces(iFace+1, fn);
+  for(int i=0;i<ordersq;i++) {
+    int tmp = fn[i];
+    fn[i] = nn[tmp];
+  }
+  return ordersq;
+}

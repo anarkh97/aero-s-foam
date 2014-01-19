@@ -334,8 +334,6 @@ UDEIMSamplingDriver::computeAndWriteUDEIMBasis(VecBasis &unassembledForceBuf,Vec
 
   std::cout << "condition Number of (P^T*U) = " << SVDOfUmasked.singularValues()(0)/SVDOfUmasked.singularValues()(SVDOfUmasked.nonzeroSingularValues()-1) << std::endl;
   std::cout << "||(P^T*U)^-1)||_2 = " << invSVs(SVDOfUmasked.nonzeroSingularValues()-1) << std::endl;
-  std::cout << "sigma_m+1 = " << singularVals[singularVals.size()-1] << std::endl;
-  std::cout << "E(f) = " << invSVs(SVDOfUmasked.nonzeroSingularValues()-1)*singularVals[singularVals.size()-1]<< std::endl;
 
   compressedDBTranspose = podMap.transpose()*aforceMap.leftCols(maxDeimBasisSize)*SVDOfUmasked.matrixV()*invSVs.asDiagonal()*SVDOfUmasked.matrixU().transpose();
   //we are computing the transpose of the basis

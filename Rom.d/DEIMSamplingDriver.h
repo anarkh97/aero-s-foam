@@ -51,6 +51,7 @@ private:
 
   FullSquareMatrix *kelArrayCopy;
 
+  double MPOSingularValue; //m+1 singular value of basis V
 };
 
 } /* end namespace Rom */

@@ -83,6 +83,14 @@ DEIMSamplingDriver::readInBasis(VecBasis &podBasis, BasisId::Type type, BasisId:
  if (podSizeMax != 0) {
    std::cout << "reading in " << podSizeMax << " vectors from " << fileName.c_str() << std::endl;
    readVectors(in, podBasis, podSizeMax);
+   if(type == BasisId::FORCE){
+     Vector dummyV(solVecInfo());
+     double dummyD = 0;
+     std::pair<double,Vector> foo;
+     foo = std::make_pair(dummyD,dummyV);
+     in >> foo;
+     MPOSingularValue = foo.first;
+   }
  } else {
    std::cout << "reading in all vectors from " << fileName.c_str() << std::endl;
    readVectors(in, podBasis);
@@ -235,9 +243,8 @@ DEIMSamplingDriver::computeAndWriteDEIMBasis(VecBasis &forceBasis, std::vector<i
 
   std::cout << "condition Number of (P^T*U) = " << SVDOfUmasked.singularValues()(0)/SVDOfUmasked.singularValues()(SVDOfUmasked.nonzeroSingularValues()-1) << std::endl;
   std::cout << "||(P^T*U)^-1)||_2 = " << invSVs(SVDOfUmasked.nonzeroSingularValues()-1) << std::endl;
-  //XXX note there is an invalid read error in each of the the next two lines
-  //std::cout << "sigma_m+1 = " << SVDOfUmasked.singularValues()(forceMap.cols()) << std::endl;
-  //std::cout << "E(f) = " << invSVs(SVDOfUmasked.nonzeroSingularValues()-1)*SVDOfUmasked.singularValues()(forceMap.cols()) << std::endl;
+  std::cout << "Sigma_m+1 = " << MPOSingularValue << std::endl;
+  std::cout << "E(f) = " << invSVs(SVDOfUmasked.nonzeroSingularValues()-1)*MPOSingularValue << std::endl;
 
   compressedDBTranspose = podMap.transpose()*forceMap.leftCols(maxDeimBasisSize)*SVDOfUmasked.matrixV()*invSVs.asDiagonal()*SVDOfUmasked.matrixU().transpose();
   //we are computing the transpose of the basis

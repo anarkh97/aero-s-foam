@@ -128,19 +128,21 @@ Domain::getWeightedInternalForceOnly(const std::map<int, double> &weights,
   const double pseudoTime = sinfo.isDynam() ? time : lambda; // MPC needs lambda for nonlinear statics
   BlastLoading::BlastData *conwep = (domain->solInfo().ConwepOnOff) ? &BlastLoading::InputFileData : NULL;
   if(elemAdj.empty()) makeElementAdjacencyLists();
-  
+ 
+  Vector LinearElForce(maxNumDOFs,0.0);
+  Vector displacement(residual.size(),0.0);
+  if(kelCopy)
+    geomState.get_tot_displacement(displacement,false);
+ 
   for(std::map<int, double>::const_iterator it = weights.begin(), it_end = weights.end(); it != it_end; ++it) {
     const int iele = it->first;
 
     elementForce.zero();
     FullSquareMatrix &elementStiff = kel[iele];
-    Vector LinearElForce(maxNumDOFs,0.0);
-    LinearElForce.zero();
  
     //option of remove linear component from nonlinear force, default is false 
     if(kelCopy) {
-      Vector displacement(residual.size(),0.0);
-      geomState.get_tot_displacement(displacement,false);
+      LinearElForce.zero();
       getElemKtimesU(iele,elementStiff.dim(),displacement,LinearElForce.data(),kelCopy,(double *) dbg_alloca(sizeof(double)*maxNumDOFs*maxNumDOFs));
     }
   
@@ -196,6 +198,9 @@ Domain::getUDEIMInternalForceOnly(const std::map<int, std::vector<int> > &weight
   if(elemAdj.empty()) makeElementAdjacencyLists();
 
   Vector LinearElForce(maxNumDOFs,0.0);  
+  Vector displacement(residual.size(),0.0);
+  if(kelCopy)
+    geomState.get_tot_displacement(displacement,false);
 
   for(std::map<int, std::vector<int> >::const_iterator it = weights.begin(), it_end = weights.end(); it != it_end; ++it) {
     const int iele = it->first;
@@ -203,12 +208,10 @@ Domain::getUDEIMInternalForceOnly(const std::map<int, std::vector<int> > &weight
 
     elementForce.zero();
     FullSquareMatrix &elementStiff = kel[iele];
-    LinearElForce.zero();
 
     //option of remove linear component from nonlinear force, default is false 
     if(kelCopy) {
-      Vector displacement(residual.size(),0.0);
-      geomState.get_tot_displacement(displacement,false);
+      LinearElForce.zero();
       getElemKtimesU(iele,elementStiff.dim(),displacement,LinearElForce.data(),kelCopy,(double *) dbg_alloca(sizeof(double)*maxNumDOFs*maxNumDOFs));
     }
 
@@ -263,6 +266,8 @@ Domain::getUnassembledNonLinearInternalForce(GeomState &geomState, Vector& eleme
   if(elemAdj.empty()) makeElementAdjacencyLists();
 
   Vector LinearElForce(maxNumDOFs,0.0);
+  Vector displacement(residual.size(),0.0);
+  geomState.get_tot_displacement(displacement,false);
 
   for(int iele = 0; iele < numele; ++iele) {
 
@@ -272,8 +277,6 @@ Domain::getUnassembledNonLinearInternalForce(GeomState &geomState, Vector& eleme
     // Get updated tangent stiffness matrix and element internal force
     getElemInternalForce(geomState, pseudoTime, refState, *corotators[iele], elementForce.data(), kel[iele]);
 
-    Vector displacement(residual.size(),0.0);
-    geomState.get_tot_displacement(displacement,false);
     getElemKtimesU(iele,kel[iele].dim(),displacement,LinearElForce.data(),kelCopy,(double *) dbg_alloca(sizeof(double)*maxNumDOFs*maxNumDOFs));
 
     // Add configuration-dependent external forces and their element stiffness contributions

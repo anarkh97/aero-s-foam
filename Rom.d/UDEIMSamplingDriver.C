@@ -195,28 +195,69 @@ UDEIMSamplingDriver::readUnassembledForceSnap(VecBasis &unassembledForceBasis, s
   int numCols = domain->solInfo().forcePodSize;
   int maxCols;
 
-  svdFile >> mapSize; svdFile >> numRows; svdFile >> maxCols;
-  unassembledForceBasis.dimensionIs(numCols,numRows);
-   
-  int first, second1, second2;
-  for(int i = 0; i != mapSize; i++){
-    svdFile >> first; svdFile >> second1; svdFile >> second2;
-    uDOFaDOFmap.insert(std::make_pair(first,std::make_pair(second1,second2)));
-  }
- 
-  double element, singularValue;
-  for(int col = 0; col != numCols; col++){
-    svdFile >> singularValue;
-    SVs.push_back(singularValue);
-    for(int row = 0; row != numRows; row++){
-      svdFile >> element;
-      unassembledForceBasis[col][row] = element;
-    }
-  }
-  
-  svdFile >> singularValue;
-  SVs.push_back(singularValue);
+  std::cout << "reading in unassembled force snapshots from " << svdFileName.c_str() << std::endl;
 
+  if(svdFile.is_open()){
+ 
+   if(svdFile.good())
+     svdFile >> mapSize;
+   else
+       throw std::runtime_error("... Bad File ...");
+
+   if(svdFile.good())
+     svdFile >> numRows; 
+    else
+       throw std::runtime_error("... Bad File ...");
+
+   if(svdFile.good())
+     svdFile >> maxCols;
+    else
+       throw std::runtime_error("... Bad File ...");
+   
+   std::cout << "Map size = " << mapSize << " Unassembled Length = " << numRows << " Maximum Basis size = " << maxCols << std::endl;
+   unassembledForceBasis.dimensionIs(numCols,numRows);
+    
+   int first, second1, second2;
+   for(int i = 0; i != mapSize; i++){
+     if(svdFile.good())
+       svdFile >> first; 
+     else
+       throw std::runtime_error("... Bad File ...");
+
+     if(svdFile.good())
+       svdFile >> second1; 
+     else
+       throw std::runtime_error("... Bad File ...");
+
+     if(svdFile.good())
+       svdFile >> second2;
+     else
+       throw std::runtime_error("... Bad File ...");
+
+     uDOFaDOFmap.insert(std::make_pair(first,std::make_pair(second1,second2)));
+   }
+   
+   std::cout << "Singular Values:" << std::endl;
+   double element, singularValue;
+   for(int col = 0; col != numCols; col++){
+     if(svdFile.good())
+       svdFile >> singularValue;
+     else
+       throw std::runtime_error("... Bad File ...");
+
+     SVs.push_back(singularValue);
+     std::cout << singularValue << " ";
+     for(int row = 0; row != numRows; row++){
+       svdFile >> element;
+       unassembledForceBasis[col][row] = element;
+     }
+   }
+   std::cout << std::endl;
+   svdFile >> singularValue;
+   SVs.push_back(singularValue);
+ } else {
+   throw std::runtime_error("... File not Open ...");
+ }
 }
 
 void

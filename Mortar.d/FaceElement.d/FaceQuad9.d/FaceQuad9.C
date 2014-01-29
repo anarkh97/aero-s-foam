@@ -466,7 +466,7 @@ FaceQuad9::ScalarMass(CoordSet &cs, double rho, int ngp)
   double dA, Shape[9];
   double xi, eta, weight, m[2];
 
-  FullM Mass(8);
+  FullM Mass(9);
   Mass.zero();
 
   for(int igp=0;igp<ngp;igp++){

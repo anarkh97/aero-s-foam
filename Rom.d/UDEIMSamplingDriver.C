@@ -64,7 +64,7 @@ UDEIMSamplingDriver::solve() {
     readInBasis(podBasis_, BasisId::STATE, BasisId::POD, podSizeMax, normalized);                              //get POD projection basis
 
     if(domain->solInfo().computeForceSnap){
-      writeUnassembledForceSnap(unassembledForceBuf,assembledForceBuf);                                        //get force snapshots
+      writeUnassembledForceSnap(unassembledForceBuf);                                        //get force snapshots
     } else {
       readUnassembledForceSnap(unassembledForceBuf,singularVals);                                              //read basis from file
       assembleBasisVectors(assembledForceBuf, unassembledForceBuf);
@@ -108,7 +108,7 @@ UDEIMSamplingDriver::writeBasisToFile(const VecBasis &OutputBasis, std::vector<S
 }
 
 void
-UDEIMSamplingDriver::writeUnassembledForceSnap(VecBasis &unassembledForceBasis,VecBasis &assembledForceBasis) 
+UDEIMSamplingDriver::writeUnassembledForceSnap(VecBasis &unassembledForceBasis) 
 {
 #ifdef USE_EIGEN3
   //First read in state snapshots 
@@ -142,7 +142,7 @@ UDEIMSamplingDriver::writeUnassembledForceSnap(VecBasis &unassembledForceBasis,V
 
   //Now build forcevectors
   std::vector<double> SVs;
-  buildForceArray(unassembledForceBasis,assembledForceBasis,displac,veloc_,accel_,timeStamps,snapshotCounts);
+  buildForceArray(unassembledForceBasis,displac,veloc_,accel_,timeStamps,snapshotCounts);
   OrthoForceSnap(unassembledForceBasis,SVs); //orthogonalize unassembled vectors
 
   Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > unassembledMap(unassembledForceBasis.data(),unassembledForceBasis.size(),unassembledForceBasis.numVectors());
@@ -574,7 +574,7 @@ UDEIMSamplingDriver::writeSampledMesh(std::vector<int> &maskIndices, std::set<in
 }
 
 void
-UDEIMSamplingDriver::buildForceArray(VecBasis &unassembledForceBasis,VecBasis &assembledForceBasis,const VecBasis &displac,const VecBasis *veloc,
+UDEIMSamplingDriver::buildForceArray(VecBasis &unassembledForceBasis,const VecBasis &displac,const VecBasis *veloc,
                                      const VecBasis *accel,std::vector<double> timeStamps_,std::vector<int> snapshotCounts_)
 {//this memeber function is for converting state snapshots to force snapshots in the absence of precollected force snapshots from model I
   //most of the code is copied from assembleTrainingData in ElementSamplingDriver.C
@@ -582,11 +582,9 @@ UDEIMSamplingDriver::buildForceArray(VecBasis &unassembledForceBasis,VecBasis &a
 
   //initialize assembled and unassembled snapshot containers
   unassembledForceBasis.dimensionIs(displac.vectorCount(), unassembledVecInfo());
-  assembledForceBasis.dimensionIs(displac.vectorCount(), SingleDomainDynamic::solVecInfo());
   
   //temporary working arrays
   Vector unassembledTarget(unassembledVecInfo(),0.0);
-  Vector assembledTarget(solVecInfo(),0.0);
 
   int iSnap = 0;
   for(int i = 0; i < snapshotCounts_.size(); i++) {//loop over snapshot sets
@@ -602,12 +600,9 @@ UDEIMSamplingDriver::buildForceArray(VecBasis &unassembledForceBasis,VecBasis &a
       dsp = displac[iSnap];
 
       //special function call to get unassembled snapshots and mapping from unassembled to assembled DOFS
-      SingleDomainDynamic::getUnassembledNonLinearInternalForce(dsp,assembledTarget,unassembledTarget,uDOFaDOFmap,kelArrayCopy,*timeStampIt,jSnap);
+      SingleDomainDynamic::getUnassembledNonLinearInternalForce(dsp,unassembledTarget,uDOFaDOFmap,kelArrayCopy,*timeStampIt,jSnap);
    
-      assembledTarget.zero();
-
       unassembledForceBasis[iSnap] = unassembledTarget;
-      assembledForceBasis[iSnap]   = assembledTarget;
       timeStampIt++;
 
       }

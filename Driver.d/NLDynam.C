@@ -253,7 +253,7 @@ Domain::getUDEIMInternalForceOnly(const std::map<int, std::vector<int> > &weight
 void
 Domain::getUnassembledNonLinearInternalForce(GeomState &geomState, Vector& elementForce,
                                              Corotator **corotators, FullSquareMatrix *kel,
-                                             Vector &residual, Vector &unassemResidual, 
+                                             Vector &unassemResidual, 
                                              std::map<int, std::pair<int,int> > &uDOFaDOFmap,
                                              double lambda, double time, int tIndex,
                                              GeomState *refState, Vector *reactions, FullSquareMatrix *mel,
@@ -266,7 +266,7 @@ Domain::getUnassembledNonLinearInternalForce(GeomState &geomState, Vector& eleme
   if(elemAdj.empty()) makeElementAdjacencyLists();
 
   Vector LinearElForce(maxNumDOFs,0.0);
-  Vector displacement(residual.size(),0.0);
+  Vector displacement(domain->numUncon(),0.0);
   geomState.get_tot_displacement(displacement,false);
 
   for(int iele = 0; iele < numele; ++iele) {
@@ -292,8 +292,6 @@ Domain::getUnassembledNonLinearInternalForce(GeomState &geomState, Vector& eleme
     for(int idof = 0; idof < kel[iele].dim(); ++idof) {
       int uDofNum = c_dsa->getRCN((*allDOFs)[iele][idof]);
       if(uDofNum >= 0){
-        residual[uDofNum] -= elementForce[idof];
-        residual[uDofNum] += LinearElForce[idof];
         unassemResidual[DOFcounter] -= elementForce[idof];
         unassemResidual[DOFcounter] += LinearElForce[idof];
         if(tIndex == 0){//initialize map from nunassembled, unconstrained DOFS to their elements/elemental dofs
@@ -308,7 +306,7 @@ Domain::getUnassembledNonLinearInternalForce(GeomState &geomState, Vector& eleme
       }
     }
   }
-  if(sinfo.isDynam() && mel) getUnassembledFictitiousForce(geomState, elementForce, kel, residual, unassemResidual, time, refState, reactions, mel, false);
+  if(sinfo.isDynam() && mel) getUnassembledFictitiousForce(geomState, elementForce, kel, unassemResidual, time, refState, reactions, mel, false);
 }
 
 void
@@ -337,7 +335,7 @@ Domain::getFictitiousForce(GeomState &geomState, Vector &elementForce, FullSquar
 }
 
 void
-Domain::getUnassembledFictitiousForce(GeomState &geomState, Vector &elementForce, FullSquareMatrix *kel, Vector &residual,
+Domain::getUnassembledFictitiousForce(GeomState &geomState, Vector &elementForce, FullSquareMatrix *kel,
                                       Vector &unassemResidual, double time, GeomState *refState, Vector *reactions, 
                                       FullSquareMatrix *mel, bool compute_tangents)
 {
@@ -352,7 +350,6 @@ Domain::getUnassembledFictitiousForce(GeomState &geomState, Vector &elementForce
     for(int idof = 0; idof < kel[iele].dim(); ++idof) {
       int uDofNum = c_dsa->getRCN((*allDOFs)[iele][idof]);
       if(uDofNum >= 0){
-        residual[uDofNum] -= elementForce[idof];
         unassemResidual[DOFcounter] -= elementForce[idof];
         DOFcounter += 1;
       }else if(reactions) {

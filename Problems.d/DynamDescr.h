@@ -172,7 +172,7 @@ class SingleDomainDynamic
     void modeDecomp(double t, int tIndex, Vector& d_n);
 
     void getInternalForce(Vector&, Vector&, double t, int tIndex);
-    void getUnassembledNonLinearInternalForce(Vector &, Vector &, Vector &, std::map<int, std::pair<int,int> > &, FullSquareMatrix *kelCopy, double t, int tIndex);
+    void getUnassembledNonLinearInternalForce(Vector &, Vector &, std::map<int, std::pair<int,int> > &, FullSquareMatrix *kelCopy, double t, int tIndex);
 
     // Aeroelastic problems related subroutines
     void computeTimeInfo();

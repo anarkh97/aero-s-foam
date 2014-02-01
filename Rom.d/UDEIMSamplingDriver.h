@@ -32,7 +32,7 @@ private:
   void readAndProjectSnapshots(BasisId::Type type, const int vectorSize, VecBasis &podBasis,
                           const VecNodeDof6Conversion *vecDofConversion,
                           std::vector<int> &snapshotCounts, std::vector<double> &timeStamps, VecBasis &config);
-  void buildForceArray(VecBasis &unassembledForceBasis,VecBasis &assembledForceBasis,const VecBasis &displac,
+  void buildForceArray(VecBasis &unassembledForceBasis,const VecBasis &displac,
                        const VecBasis *veloc,const VecBasis *accel,std::vector<double> timeStamps_,
                        std::vector<int> snapshotCounts_);
   void OrthoForceSnap(VecBasis &forceBasis,std::vector<double> &SVs);  
@@ -41,7 +41,7 @@ private:
   int  elementCount() const; 
   int  unassembledVecInfo();
 
-  void writeUnassembledForceSnap(VecBasis &unassembledForceBasis,VecBasis &assembledForceBasis); 
+  void writeUnassembledForceSnap(VecBasis &unassembledForceBasis); 
   void assembleBasisVectors(VecBasis &assembledForceBasis, VecBasis &unassembledForceBasis);
   void readUnassembledForceSnap(VecBasis &unassembledForceBasis, std::vector<double> &SVs);
 

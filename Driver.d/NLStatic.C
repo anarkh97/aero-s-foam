@@ -285,14 +285,14 @@ Domain::getElemFollowerForce(int iele, GeomState &geomState, double *_f, int buf
 
     // Include the "load stiffness matrix" in kel
     if(compute_tangents) {
-      FullSquareMatrix k(neum[i]->numDofs());
-      k.zero();
+      FullSquareMatrix kTan(neum[i]->numDofs());
+      kTan.zero();
 
-      neum[i]->neumVectorJacobian(nodes, k, 0, &geomState, time);
+      neum[i]->neumVectorJacobian(nodes, kTan, 0, &geomState, time);
 
-      for(int i = 0; i < neum[i]->numDofs(); ++i)
-        for(int j = 0; j < neum[i]->numDofs(); ++j)
-          kel[eledofs[i]][eledofs[j]] -= k[i][j];
+      for(int j = 0; j < neum[i]->numDofs(); ++j)
+        for(int k = 0; k < neum[i]->numDofs(); ++k)
+          kel[eledofs[j]][eledofs[k]] -= kTan[j][k];
     }
 
     pbc->val = p0;

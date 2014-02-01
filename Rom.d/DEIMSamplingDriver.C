@@ -360,11 +360,11 @@ DEIMSamplingDriver::writeSampledMesh(std::vector<int> &maskIndices) {
    for (int i = 0; i != solution.size(); i++) {
     if(i == 0 ){
       if(domain->solInfo().reduceFollower) 
-        weightOut << i + 1 << " 1 " << "HRC REDFOL" << " " << solution[i] << "\n";
+        weightOut << packedToInput[i] + 1 << " 1 " << "HRC REDFOL" << " " << solution[i] << "\n";
       else
-        weightOut << i + 1 << " 1 " << "HRC" << " " << solution[i] << "\n";
+        weightOut << packedToInput[i] + 1 << " 1 " << "HRC" << " " << solution[i] << "\n";
     } else {
-      weightOut << i + 1 << " 1 " << "HRC" << " " << solution[i] << "\n";
+      weightOut << packedToInput[i] + 1 << " 1 " << "HRC" << " " << solution[i] << "\n";
     }
    }   
    

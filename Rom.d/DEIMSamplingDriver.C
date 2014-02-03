@@ -306,14 +306,10 @@ DEIMSamplingDriver::writeSampledMesh(std::vector<int> &maskIndices) {
   Vector constForceRed(podBasis_.vectorCount());
   reduce(podBasis_, constForceFull,  constForceRed);
 
-  // Determine mapping between elements and nodes
-  std::auto_ptr<Connectivity> elemToNode(new Connectivity(geoSource->getElemSet()));
-  std::auto_ptr<Connectivity> nodeToElem(elemToNode->reverse());
-
   //fill element container with all elements 
   std::vector<int> packedToInput(elementCount());
+  Elemset &inputElemSet = *(geoSource->getElemSet());
   {
-   Elemset &inputElemSet = *(geoSource->getElemSet());
    for (int iElem = 0, iElemEnd = inputElemSet.size(); iElem != iElemEnd; ++iElem) {
      Element *elem = inputElemSet[iElem];
      if (elem) {
@@ -325,6 +321,12 @@ DEIMSamplingDriver::writeSampledMesh(std::vector<int> &maskIndices) {
      }
    }
   }
+ 
+  // Determine mapping between elements and nodes
+  std::auto_ptr<Connectivity> elemToNode(new Connectivity(&inputElemSet));
+  std::auto_ptr<Connectivity> nodeToElem(elemToNode->reverse());
+ 
+
    //get elements belonging to sampledNodes
    std::vector<int> sampleElemRanks;
    std::vector<int> sampleNodeIds(selectedNodeSet.begin(),selectedNodeSet.end()); //fill vector container with sampled nodes
@@ -336,11 +338,11 @@ DEIMSamplingDriver::writeSampledMesh(std::vector<int> &maskIndices) {
    sampleElemIds.reserve(sampleElemRanks.size());
    std::map<int, double> weights;
    for (std::vector<int>::const_iterator it = sampleElemRanks.begin(), it_end = sampleElemRanks.end(); it != it_end; ++it) {
-     const int elemRank = packedToInput[*it];
+     const int elemRank = *it;
      weights.insert(std::make_pair(elemRank, 1.0));
      sampleElemIds.push_back(elemRank);
    }
- 
+  std::cout << std::endl;
   //construct element weight solution vector
   std::vector<double> solution(elementCount());
   for(int i = 0; i != elementCount(); i++)
@@ -382,7 +384,8 @@ DEIMSamplingDriver::writeSampledMesh(std::vector<int> &maskIndices) {
 
   std::ofstream meshOut(getMeshFilename(fileInfo).c_str(), std::ios_base::app);
   meshOut.precision(std::numeric_limits<double>::digits10+1);
-  
+  if(domain->solInfo().reduceFollower) meshOut << "REDFOL\n";
+ 
   // reduced stiffness
   meshOut << "*\nREDSTIFF\n"  ;
   
@@ -397,7 +400,6 @@ DEIMSamplingDriver::writeSampledMesh(std::vector<int> &maskIndices) {
   }
 
   // output the reduced forces
-  if(domain->solInfo().reduceFollower) meshOut << "REDFOL\n";
   meshOut << "*\nFORCES\nMODAL\n";
   for(int i=0; i<podBasis_.vectorCount(); ++i)
     meshOut << i+1 << " "  << constForceRed[i] << std::endl; 

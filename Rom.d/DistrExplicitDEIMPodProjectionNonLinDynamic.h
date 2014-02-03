@@ -24,6 +24,7 @@ private:
   void subBuildUnassembledMask(int iSub);
   void subGetKtimesU(int isub, DistrVector &d, DistrVector &f);
   void subGetWeightedInternalForceOnly(int iSub, DistrVector &f, double &t, int &tIndex);
+  void subGetFollowerForceOnly(int iSub, DistrVector &f, double &t, int &tIndex);
 
   DistrVecBasis deimBasis_;
   DistrVecBasis ReducedStiffness;

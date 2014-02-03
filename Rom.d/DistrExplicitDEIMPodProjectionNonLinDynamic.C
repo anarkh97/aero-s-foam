@@ -46,6 +46,9 @@ DistrExplicitDEIMPodProjectionNonLinDynamic::getInternalForce(DistrVector &d, Di
 
   execParal3R(decDomain->getNumSub(),this,&DistrExplicitDEIMPodProjectionNonLinDynamic::subGetWeightedInternalForceOnly,*fInt,t,tIndex);
 
+  if(!domain->solInfo().reduceFollower) 
+    execParal3R(decDomain->getNumSub(),this,&DistrExplicitDEIMPodProjectionNonLinDynamic::subGetFollowerForceOnly,*fExt,t,tIndex);
+
   if(domain->solInfo().stable && domain->solInfo().isNonLin() && tIndex%domain->solInfo().stable_freq == 0) {
     GenMDDynamMat<double> ops;
     ops.K = K;
@@ -97,9 +100,26 @@ DistrExplicitDEIMPodProjectionNonLinDynamic::subGetWeightedInternalForceOnly(int
                                     1.0, t, (*geomState)[iSub], melArray[iSub],kelArrayCopy[iSub]); // residual -= internal force);
     }
   }
+
+  if(!domain->solInfo().reduceFollower) {
+   sd->getFollowerForce(*(*geomState)[iSub], eIF, allCorot[iSub], kelArray[iSub], residual, 1.0, t, (*geomState)[iSub], NULL, false);
+  }
+
   StackVector subf(f.subData(iSub), f.subLen(iSub));
   subf.linC(residual, -1.0); // f = -residual
 } 
+
+void
+DistrExplicitDEIMPodProjectionNonLinDynamic::subGetFollowerForceOnly(int iSub, DistrVector &f, double &t, int &tIndex) {
+  SubDomain *sd = decDomain->getSubDomain(iSub);
+  Vector residual(f.subLen(iSub), 0.0);
+  Vector eIF(sd->maxNumDOF()); // eIF = element internal force for one element (a working array)
+
+  sd->getFollowerForce(*(*geomState)[iSub], eIF, allCorot[iSub], kelArray[iSub], residual, 1.0, t, (*geomState)[iSub], NULL, false);
+
+  StackVector subf(f.subData(iSub), f.subLen(iSub));
+  subf.linC(residual, 1.0); // f = -residual
+}
  
 void
 DistrExplicitDEIMPodProjectionNonLinDynamic::buildInterpolationBasis() {

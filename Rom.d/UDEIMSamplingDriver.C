@@ -510,6 +510,7 @@ UDEIMSamplingDriver::writeSampledMesh(std::vector<int> &maskIndices, std::set<in
   //initialize reduced mesh output file stream
   std::ofstream meshOut(getMeshFilename(fileInfo).c_str(), std::ios_base::app);
   meshOut.precision(std::numeric_limits<double>::digits10+1);
+  if(domain->solInfo().reduceFollower) meshOut << "REDFOL\n";
 
   // reduced stiffness
   meshOut << "*\nREDSTIFF\n"  ;
@@ -525,7 +526,6 @@ UDEIMSamplingDriver::writeSampledMesh(std::vector<int> &maskIndices, std::set<in
   }
 
   // output the reduced forces
-  if(domain->solInfo().reduceFollower) meshOut << "REDFOL\n";
   if(reduce_f) {
     meshOut << "*\nFORCES\nMODAL\n";
     for(int i=0; i<podBasis_.vectorCount(); ++i)

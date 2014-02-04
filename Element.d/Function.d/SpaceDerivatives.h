@@ -46,6 +46,15 @@ struct assign_coherent_impl<Eigen::Matrix<Scalar, A_Rows, A_Cols, A_Options, A_M
   static void run(const A& a, B& b) { b = Eigen::Map<B>(const_cast<Scalar*>(a.data()),a.rows(),a.cols()); }
 };
 
+template<typename Scalar, int A_Rows, int A_Cols, int A_Options, int A_MaxRows, int A_MaxCols,
+                          int B_Rows, int B_Cols, int B_Options, int B_MaxRows, int B_MaxCols>
+struct assign_coherent_impl<Eigen::Matrix<Scalar, A_Rows, A_Cols, A_Options, A_MaxRows, A_MaxCols>,
+                            Eigen::Array<Eigen::Matrix<Scalar, B_Rows, B_Cols, B_Options, B_MaxRows, B_MaxCols>, 1, 1, 0, 1, 1> > {
+  typedef Eigen::Matrix<Scalar, A_Rows, A_Cols, A_Options, A_MaxRows, A_MaxCols> A;
+  typedef Eigen::Array<Eigen::Matrix<Scalar, B_Rows, B_Cols, B_Options, B_MaxRows, B_MaxCols>, 1, 1, 0, 1, 1> B;
+  static void run(const A& a, B& b) { assign_coherent(a, b[0]); }
+};
+
 // wrapper "Functor" to support automatic and numerical differentiation of spatio-temporal
 // matrix valued function of a matrix w.r.t spatial coordinates, q
 template<typename _Scalar, template <typename S> class FunctionTemplate>
@@ -104,29 +113,35 @@ class SpatialView
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
-// FunctionTemplate should be a vector (or scalar) valued function of a vector
-template<typename Scalar, template <typename S> class FunctionTemplate, int Options=0>
-class Jacobian : public MatrixValuedFunctionOfAVector<FunctionTemplate<Scalar>::NumberOfGeneralizedCoordinates,
-                                                      FunctionTemplate<Scalar>::NumberOfValues,
-                                                      FunctionTemplate<Scalar>::NumberOfGeneralizedCoordinates,
-                                                      Scalar,
-                                                      FunctionTemplate<Scalar>::NumberOfScalarConstants,
-                                                      FunctionTemplate<Scalar>::NumberOfIntegerConstants,
-                                                      typename FunctionTemplate<Scalar>::ScalarConstantType>
+template<typename _Scalar, template <typename S> class FunctionTemplate, int Options=0>
+class FirstPartialSpaceDerivatives
 {
+  public:
+    typedef _Scalar Scalar;
+    typedef typename FunctionTemplate<Scalar>::ScalarConstantType ScalarConstantType;
+    enum { InputNumberOfRows               = FunctionTemplate<Scalar>::InputNumberOfRows,
+           InputNumberOfColumns            = FunctionTemplate<Scalar>::InputNumberOfColumns,
+           NumberOfScalarConstants         = FunctionTemplate<Scalar>::NumberOfScalarConstants,
+           NumberOfIntegerConstants        = FunctionTemplate<Scalar>::NumberOfIntegerConstants,
+           NumberOfGeneralizedCoordinates  = InputNumberOfRows*InputNumberOfColumns,
+           NumberOfValues                  = FunctionTemplate<Scalar>::NumberOfValues*NumberOfGeneralizedCoordinates
+    };
+    typedef Eigen::Array<typename FunctionTemplate<Scalar>::ReturnType,InputNumberOfColumns,InputNumberOfRows> ReturnType;
+
+  protected:
     const Eigen::Array<typename FunctionTemplate<Scalar>::ScalarConstantType,
                        FunctionTemplate<Scalar>::NumberOfScalarConstants,1>& sconst;
     const Eigen::Array<int,
                        FunctionTemplate<Scalar>::NumberOfIntegerConstants,1>& iconst;
 
   public:
-    Jacobian(const Eigen::Array<typename FunctionTemplate<Scalar>::ScalarConstantType,
-             FunctionTemplate<Scalar>::NumberOfScalarConstants,1>& _sconst, const
-             Eigen::Array<int, FunctionTemplate<Scalar>::NumberOfIntegerConstants,1>& _iconst)
+    FirstPartialSpaceDerivatives(const Eigen::Array<typename FunctionTemplate<Scalar>::ScalarConstantType,
+                                 FunctionTemplate<Scalar>::NumberOfScalarConstants,1>& _sconst, const
+                                 Eigen::Array<int, FunctionTemplate<Scalar>::NumberOfIntegerConstants,1>& _iconst)
      : sconst(_sconst), iconst(_iconst) {}
 
     typename FunctionTemplate<Scalar>::JacobianType
-    operator() (const Eigen::Matrix<Scalar,FunctionTemplate<Scalar>::NumberOfGeneralizedCoordinates,1>& q, Scalar t) {
+    operator() (const Eigen::Matrix<Scalar,InputNumberOfRows,InputNumberOfColumns>& q, Scalar t) {
 
       typename FunctionTemplate<Scalar>::JacobianType ret;
 
@@ -147,23 +162,35 @@ class Jacobian : public MatrixValuedFunctionOfAVector<FunctionTemplate<Scalar>::
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
-// FunctionTemplate should be a vector (or scalar) valued function of a vector
-template<typename Scalar, template <typename S> class FunctionTemplate>
-class Jacobian<Scalar, FunctionTemplate, 1>
+template<typename _Scalar, template <typename S> class FunctionTemplate>
+class FirstPartialSpaceDerivatives<_Scalar, FunctionTemplate, 1>
 {
+  public:
+    typedef _Scalar Scalar;
+    typedef typename FunctionTemplate<Scalar>::ScalarConstantType ScalarConstantType;
+    enum { InputNumberOfRows           = FunctionTemplate<Scalar>::InputNumberOfRows,
+           InputNumberOfColumns        = FunctionTemplate<Scalar>::InputNumberOfColumns,
+           NumberOfScalarConstants     = FunctionTemplate<Scalar>::NumberOfScalarConstants,
+           NumberOfIntegerConstants    = FunctionTemplate<Scalar>::NumberOfIntegerConstants,
+           NumberOfGeneralizedCoordinates  = InputNumberOfRows*InputNumberOfColumns,
+           NumberOfValues              = FunctionTemplate<Scalar>::NumberOfValues*NumberOfGeneralizedCoordinates
+    };
+    typedef Eigen::Array<typename FunctionTemplate<Scalar>::ReturnType,InputNumberOfColumns,InputNumberOfRows> ReturnType;
+
+  protected:
     const Eigen::Array<typename FunctionTemplate<Scalar>::ScalarConstantType,
                        FunctionTemplate<Scalar>::NumberOfScalarConstants,1>& sconst;
     const Eigen::Array<int,
                        FunctionTemplate<Scalar>::NumberOfIntegerConstants,1>& iconst;
 
   public:
-    Jacobian(const Eigen::Array<typename FunctionTemplate<Scalar>::ScalarConstantType,
-             FunctionTemplate<Scalar>::NumberOfScalarConstants,1>& _sconst, const
-             Eigen::Array<int, FunctionTemplate<Scalar>::NumberOfIntegerConstants,1>& _iconst)
+    FirstPartialSpaceDerivatives(const Eigen::Array<typename FunctionTemplate<Scalar>::ScalarConstantType,
+                                 FunctionTemplate<Scalar>::NumberOfScalarConstants,1>& _sconst, const
+                                 Eigen::Array<int, FunctionTemplate<Scalar>::NumberOfIntegerConstants,1>& _iconst)
      : sconst(_sconst), iconst(_iconst) {}
 
     typename FunctionTemplate<Scalar>::JacobianType
-    operator() (const Eigen::Matrix<Scalar,FunctionTemplate<Scalar>::NumberOfGeneralizedCoordinates,1>& q, Scalar t) {
+    operator() (const Eigen::Matrix<Scalar,InputNumberOfRows,InputNumberOfColumns>& q, Scalar t) {
 
       typename FunctionTemplate<Scalar>::JacobianType ret;
 
@@ -182,8 +209,61 @@ class Jacobian<Scalar, FunctionTemplate, 1>
 
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
+
+// Jacobian: the M*N matrix of the first partial space derivatives of a M*1 vector valued function of a N*1 (column) vector
+template<typename _Scalar, template <typename S> class VectorValuedFunctionTemplate, int Options=0>
+class Jacobian : MatrixValuedFunction<VectorValuedFunctionTemplate<_Scalar>::NumberOfGeneralizedCoordinates,
+                                      VectorValuedFunctionTemplate<_Scalar>::NumberOfValues,
+                                      VectorValuedFunctionTemplate<_Scalar>::NumberOfGeneralizedCoordinates,
+                                      typename VectorValuedFunctionTemplate<_Scalar>::Scalar,
+                                      VectorValuedFunctionTemplate<_Scalar>::NumberOfScalarConstants,
+                                      VectorValuedFunctionTemplate<_Scalar>::NumberOfIntegerConstants,
+                                      typename VectorValuedFunctionTemplate<_Scalar>::ScalarConstantType>
+{
+    typedef MatrixValuedFunction<VectorValuedFunctionTemplate<_Scalar>::NumberOfGeneralizedCoordinates,
+                                 VectorValuedFunctionTemplate<_Scalar>::NumberOfValues,
+                                 VectorValuedFunctionTemplate<_Scalar>::NumberOfGeneralizedCoordinates,
+                                 typename VectorValuedFunctionTemplate<_Scalar>::Scalar,
+                                 VectorValuedFunctionTemplate<_Scalar>::NumberOfScalarConstants,
+                                 VectorValuedFunctionTemplate<_Scalar>::NumberOfIntegerConstants,
+                                 typename VectorValuedFunctionTemplate<_Scalar>::ScalarConstantType> MatrixValuedFunctionBase;
+
+  public:
+    typedef typename MatrixValuedFunctionBase::Scalar Scalar;
+    typedef typename MatrixValuedFunctionBase::ScalarConstantType ScalarConstantType;
+    enum { InputNumberOfRows        = MatrixValuedFunctionBase::InputNumberOfRows,
+           InputNumberOfColumns     = MatrixValuedFunctionBase::InputNumberOfColumns,
+           NumberOfGeneralizedCoordinates = MatrixValuedFunctionBase::NumberOfGeneralizedCoordinates,
+           NumberOfValuesPerColumn  = MatrixValuedFunctionBase::NumberOfValuesPerColumn,
+           NumberOfValuesPerRow     = MatrixValuedFunctionBase::NumberOfValuesPerRow,
+           NumberOfScalarConstants  = MatrixValuedFunctionBase::NumberOfScalarConstants,
+           NumberOfIntegerConstants = MatrixValuedFunctionBase::NumberOfIntegerConstants,
+           NumberOfValues           = NumberOfValuesPerRow*NumberOfValuesPerColumn
+    };
+    typedef typename Eigen::Matrix<Scalar,NumberOfValuesPerColumn,NumberOfValuesPerRow> ReturnType;
+
+  protected:
+    const Eigen::Array<typename VectorValuedFunctionTemplate<Scalar>::ScalarConstantType,
+                       VectorValuedFunctionTemplate<Scalar>::NumberOfScalarConstants,1>& sconst;
+    const Eigen::Array<int,
+                       VectorValuedFunctionTemplate<Scalar>::NumberOfIntegerConstants,1>& iconst;
+
+  public:
+    Jacobian(const Eigen::Array<typename VectorValuedFunctionTemplate<Scalar>::ScalarConstantType,
+                  VectorValuedFunctionTemplate<Scalar>::NumberOfScalarConstants,1>& _sconst, const
+                  Eigen::Array<int, VectorValuedFunctionTemplate<Scalar>::NumberOfIntegerConstants,1> & _iconst)
+     : sconst(_sconst), iconst(_iconst) {}
+
+    Eigen::Matrix<Scalar,NumberOfValuesPerColumn,NumberOfValuesPerRow>
+    operator() (const Eigen::Matrix<Scalar,NumberOfGeneralizedCoordinates,1>& q, Scalar t)
+    {
+      FirstPartialSpaceDerivatives<Scalar, VectorValuedFunctionTemplate, Options> J(sconst, iconst);
+      return J(q,t);
+    }
+
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+};
  
-// FunctionTemplate should be a vector (or scalar) valued function of a vector
 template<typename Scalar, template <typename S> class FunctionTemplate, int Options=0>
 class JacobianVectorProduct : public VectorValuedFunction<FunctionTemplate<Scalar>::NumberOfGeneralizedCoordinates,
                                                           FunctionTemplate<Scalar>::NumberOfValues,
@@ -227,15 +307,15 @@ class JacobianVectorProduct : public VectorValuedFunction<FunctionTemplate<Scala
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
-// FunctionTemplate should be a scalar valued function of a vector
+// Hessian: the N*N matrix of the second partial space derivatives of a scalar valued function of a N*1 (column) vector
 template<typename Scalar, template <typename S> class FunctionTemplate>
-class Hessian : public MatrixValuedFunctionOfAVector<FunctionTemplate<Scalar>::NumberOfGeneralizedCoordinates,
-                                                     FunctionTemplate<Scalar>::NumberOfGeneralizedCoordinates,
-                                                     FunctionTemplate<Scalar>::NumberOfGeneralizedCoordinates,
-                                                     Scalar,
-                                                     FunctionTemplate<Scalar>::NumberOfScalarConstants,
-                                                     FunctionTemplate<Scalar>::NumberOfIntegerConstants,
-                                                     typename FunctionTemplate<Scalar>::ScalarConstantType>
+class Hessian : public MatrixValuedFunction<FunctionTemplate<Scalar>::NumberOfGeneralizedCoordinates,
+                                            FunctionTemplate<Scalar>::NumberOfGeneralizedCoordinates,
+                                            FunctionTemplate<Scalar>::NumberOfGeneralizedCoordinates,
+                                            Scalar,
+                                            FunctionTemplate<Scalar>::NumberOfScalarConstants,
+                                            FunctionTemplate<Scalar>::NumberOfIntegerConstants,
+                                            typename FunctionTemplate<Scalar>::ScalarConstantType>
 {
     const Eigen::Array<typename FunctionTemplate<Scalar>::ScalarConstantType,
                        FunctionTemplate<Scalar>::NumberOfScalarConstants,1>& sconst;

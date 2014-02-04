@@ -571,13 +571,13 @@ ShellElementTemplate<doublereal,Membrane,Bending>
             }
 
 // .....CHECK THE CONSTITUTIVE MATRIX (USED FOR DEBUGGING ONLY)
-
+#ifdef DEBUG_SHELL_ELEMENT_TEMPLATE
             if(debug && (i == 0 || ctyp == 4)) {
                 std::cerr << "Here are the eigenvalues of the constitutive matrix (element " << elm 
                           << ", gauss point " << i << ") :\n"
                           << D->eigenvalues().transpose() << std::endl;
             }
-
+#endif
         }
 
         if(_fint) {
@@ -615,12 +615,12 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 
 // .....CHECK THE POSITIVITY OF THE OUTPUT STIFFNESS MATRIX 
 // .....(USED FOR DEBUGGING ONLY) 
-
+#ifdef DEBUG_SHELL_ELEMENT_TEMPLATE
     if(debug && _estiff) {
         std::cerr << "Here are the eigenvalues of the stiffness matrix (element " << elm << ") :\n"
                   << K.eigenvalues().transpose() << std::endl;
     }
-
+#endif
     if(_estiff) delete D;
 }
 

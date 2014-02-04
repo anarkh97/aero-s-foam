@@ -26,6 +26,9 @@ public:
         void renum(EleRenumMap&);
 
         FullSquareMatrix stiffness(CoordSet& cs, double *d, int flg=1);
+#ifdef USE_EIGEN3
+        FullSquareMatrix getStiffnessThicknessSensitivity(CoordSet& cs, Vector &elDisp, double *d, int flg=1, int senMethod=0);
+#endif
         FullSquareMatrix massMatrix(CoordSet& cs,double *mel,int cmflg=1);
 
         void getGravityForce(CoordSet&,double *gravity, Vector&, int gravflg,
@@ -47,6 +50,9 @@ public:
 
         void getVonMisesDisplacementSensitivity(GenFullM<DComplex> &dStdDisp, ComplexVector &weight, CoordSet &cs, ComplexVector &elDisp, 
                                                 int strInd, int surface, int senMethod = 1, double * = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0);
+
+        void getStiffnessThicknessSensitivity(GenFullM<double> &dStiffdThick, CoordSet &cs, Vector &elDisp, 
+                                               int senMethod, double *, double ylayer = 0, double zlayer = 0);
 
 #endif
 

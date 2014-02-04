@@ -10,6 +10,7 @@
 #include <Element.d/FelippaShell.d/FelippaShell.h>
 #include <Element.d/FelippaShell.d/ShellElementStressWRTThicknessSensitivity.h>
 #include <Element.d/FelippaShell.d/ShellElementStressWRTDisplacementSensitivity.h>
+#include <Element.d/FelippaShell.d/FelippaShellStiffnessWRTThicknessSensitivity.h>
 #include <Element.d/NonLinearity.d/ExpMat.h>
 #include <Element.d/NonLinearity.d/MaterialWrapper.h>
 #include <Element.d/Function.d/SpaceDerivatives.h>
@@ -1312,6 +1313,73 @@ FelippaShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
 }
 
 #ifdef USE_EIGEN3
+FullSquareMatrix 
+FelippaShell::getStiffnessThicknessSensitivity(CoordSet &cs, Vector &elDisp, double *dStiffdThick, int flg, int senMethod)
+{
+  // scalar parameters
+  Eigen::Array<double,12,1> dconst;
+
+  Node &nd1 = cs.getNode(nn[0]);
+  Node &nd2 = cs.getNode(nn[1]);
+  Node &nd3 = cs.getNode(nn[2]);
+
+  dconst[0] = nd1.x; dconst[1] = nd2.x; dconst[2] = nd3.x; // x coordinates
+  dconst[3] = nd1.y; dconst[4] = nd2.y; dconst[5] = nd3.y; // y coordinates
+  dconst[6] = nd1.z; dconst[7] = nd2.z; dconst[8] = nd3.z; // z coordinates
+  dconst.segment<18>(9) = Eigen::Map<Eigen::Matrix<double,18,1> >(elDisp.data()).segment(0,18); // displacements 
+  dconst[27] = prop->E; // E
+  dconst[28] = prop->nu;   // nu
+  dconst[29] = prop->rho;  // rho
+  // integer parameters
+  Eigen::Array<int,1,1> iconst;
+  iconst[0] = 0;
+  // inputs
+  Eigen::Matrix<double,1,1> q;
+  q[0] = nmat->GetShellThickness(); //prop->eh;   // value of thickness at which jacobian is to be evaluated
+
+  Eigen::Matrix<double,18,18> dStiffnessdThick;
+  if(senMethod == 0) { // analytic
+
+    double x[3], y[3], z[3];
+    x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+    x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+    x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
+
+    double *fint = NULL;
+
+    andesstfWRTthick(glNum+1, dStiffnessdThick.data(), fint, prop->nu, x, y, z, elDisp.data(), type, flg);
+    std::cerr << "dStiffnessdThick(analytic) =\n" << dStiffnessdThick << std::endl;
+  }
+
+  if(senMethod == 1) { // automatic differentiation
+    Eigen::Array<Eigen::Matrix<double,18,18>,1,1> dStiffnessdThick;
+    Simo::FirstPartialSpaceDerivatives<double, FelippaShellStiffnessWRTThicknessSensitivity> dSdh(dconst,iconst); 
+    dStiffnessdThick = dSdh(q, 0);
+    std::cerr << "dStiffnessdThick(AD) = " << dStiffnessdThick << std::endl;
+  }
+
+  if(senMethod == 2) { // finite difference
+    Eigen::Matrix<double,18,18,1> dStiffnessdThick;
+    FelippaShellStiffnessWRTThicknessSensitivity<double> foo(dconst,iconst);
+    Eigen::Matrix<double,1,1> qp, qm;
+    double h(1e-6);
+    for(int i=0; i<18; ++i) {
+      qp[0] = q[0] + h;   qm[0] = q[0] - h;
+      Eigen::Matrix<double,18,18> Sp = foo(qp, 0);
+      Eigen::Matrix<double,18,18> Sm = foo(qm, 0);
+      Eigen::Matrix<double,18,18> dSdh_fd = (Sp-Sm)/(2*h);
+      for(int j=0; j<18; ++j) {
+          dStiffnessdThick(j,i) =dSdh_fd[j];
+      }
+    }
+    std::cerr << "dStiffnessdThick(FD) = " << dStiffnessdThick << std::endl;
+  }
+
+  FullSquareMatrix ret(18,dStiffnessdThick.data());
+  return ret;
+}
+
+
 void 
 FelippaShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
                                               int senMethod, double *, int avgnum, double ylayer, double zlayer)
@@ -1337,25 +1405,39 @@ FelippaShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight,
   // inputs
   Eigen::Matrix<double,1,1> q;
   q[0] = nmat->GetShellThickness(); //prop->eh;   // value of thickness at which jacobian is to be evaluated
+  Eigen::Array<double,3,1> globalx = dconst.segment<3>(0).cast<double>();
+  Eigen::Array<double,3,1> globaly = dconst.segment<3>(3).cast<double>();
+  Eigen::Array<double,3,1> globalz = dconst.segment<3>(6).cast<double>();
 
-  // finite difference
-  ShellElementStressWRTThicknessSensitivity<double> foo(dconst,iconst);
-  Eigen::Matrix<double,1,1> qp, qm;
-  double h(1e-6);
-  qp[0] = q[0] + h;   qm[0] = q[0] - h;
-  Eigen::Matrix<double,3,1> Sp = foo(qp, 0);
-  Eigen::Matrix<double,3,1> Sm = foo(qm, 0);
-  Eigen::Matrix<double,3,1> dSdh_fd;
-  dSdh_fd = (Sp - Sm)/(2*h);
-  std::cerr << "dSdh_fd = " << dSdh_fd.transpose() << std::endl;
+  if(senMethod == 0) { // analytic
+    Eigen::Vector3d dStressdThick;
+    dStressdThick.setZero();
+    Eigen::Matrix<double,7,3> stress;
+    andesvmsWRTthic(0, 7, prop->nu, globalx.data(), globaly.data(), globalz.data(), elDisp.data(),
+                    stress.data(), dStressdThick.data(), 0, 0, surface);   
+    dStdThick.copy(dStressdThick.data());
+    std::cerr << "dStressdThick(analytic) =\n" << dStressdThick << std::endl;
+  }
 
-  // Jacobian evaluation
-  Eigen::Vector3d dStressdThick;
-  Simo::Jacobian<double,ShellElementStressWRTThicknessSensitivity> dSdh(dconst,iconst);
-  dStressdThick = dSdh(q, 0);
-  std::cerr << "J = " << dStressdThick.transpose() << std::endl;
+  if(senMethod == 1) { // automatic differentiation
+    Eigen::Vector3d dStressdThick;
+    Simo::Jacobian<double,ShellElementStressWRTThicknessSensitivity> dSdh(dconst,iconst);
+    dStressdThick = dSdh(q, 0);
+    std::cerr << "dStressdThick(AD) =\n" << dStressdThick << std::endl;
+    dStdThick.copy(dStressdThick.data());
+  }
 
-  dStdThick.copy(dStressdThick.data());
+  if(senMethod == 2) { // finite difference
+    ShellElementStressWRTThicknessSensitivity<double> foo(dconst,iconst);
+    Eigen::Matrix<double,1,1> qp, qm;
+    double h(1e-6);
+    qp[0] = q[0] + h;   qm[0] = q[0] - h;
+    Eigen::Matrix<double,3,1> Sp = foo(qp, 0);
+    Eigen::Matrix<double,3,1> Sm = foo(qm, 0);
+    Eigen::Vector3d dStressdThick = (Sp - Sm)/(2*h);
+    std::cerr << "dStressdThick(FD) =\n" << dStressdThick << std::endl;
+    dStdThick.copy(dStressdThick.data());
+  }
 
 }
 
@@ -1363,13 +1445,8 @@ void
 FelippaShell::getVonMisesThicknessSensitivity(ComplexVector &dStdThick, ComplexVector &weight, CoordSet &cs, ComplexVector &elDisp, int strInd, int surface,
                                               int senMethod, double *, int avgnum, double ylayer, double zlayer)
 {
-  weight = DComplex(1,0);
-  //NOTE:: for complex numbers, getVonMisesThicknessSensitivity is not properly implemented
-  Eigen::Matrix<DComplex,3,1> dStressdThick;
-  dStressdThick.setZero();  
-
-  dStdThick.copy(dStressdThick.data());
-
+  std::cerr << " ... Error: FelippaShel::getVonMisesThicknessSensitivity is not implemented for ComplexVector\n";
+  exit(-1);
 }
 
 void 
@@ -1395,10 +1472,10 @@ FelippaShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
   dconst[0] = nd1.x; dconst[1] = nd2.x; dconst[2] = nd3.x; // x coordinates
   dconst[3] = nd1.y; dconst[4] = nd2.y; dconst[5] = nd3.y; // y coordinates
   dconst[6] = nd1.z; dconst[7] = nd2.z; dconst[8] = nd3.z; // z coordinates
-  dconst[9] = prop->E; // E
+  dconst[9] = prop->E;     // E
   dconst[10] = prop->nu;   // nu
   dconst[11] = prop->rho;  // rho
-  dconst[12] = prop->eh;    // thickness
+  dconst[12] = prop->eh;   // thickness
 
   Eigen::Array<double,3,1> globalx = dconst.segment<3>(0).cast<double>();
   Eigen::Array<double,3,1> globaly = dconst.segment<3>(3).cast<double>();
@@ -1416,20 +1493,21 @@ FelippaShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
   cout << "senMethod is " << senMethod << endl;
  
   if(avgnum == 0 || avgnum == 1) { // NODALFULL or ELEMENTAL
-    if(senMethod == 1) { // automatic differentiation
-      Simo::Jacobian<double,ShellElementStressWRTDisplacementSensitivity> dSdu(dconst,iconst);
-      dStressdDisp = dSdu(q, 0);
-      dStdDisp.copy(dStressdDisp.data());
-      std::cerr << "dStressdDisp(AD) = " << dStressdDisp << std::endl;
-    }
- 
     if(senMethod == 0) { // analytic
       dStressdDisp.setZero();
       andesvmsWRTdisp(0, 7, prop->nu, globalx.data(), globaly.data(), globalz.data(), q.data(),
                       stress.data(), dStressdDisp.data(), 0, 0, surface);   
       dStdDisp.copy(dStressdDisp.data());
-      std::cerr << "dStressdDisp(analytic) = " << dStressdDisp << std::endl;
+      std::cerr << "dStressdDisp(analytic) =\n" << dStressdDisp << std::endl;
     }
+
+    if(senMethod == 1) { // automatic differentiation
+      Simo::Jacobian<double,ShellElementStressWRTDisplacementSensitivity> dSdu(dconst,iconst);
+      dStressdDisp = dSdu(q, 0);
+      dStdDisp.copy(dStressdDisp.data());
+      std::cerr << "dStressdDisp(AD) =\n" << dStressdDisp << std::endl;
+    }
+ 
 
     if(senMethod == 2) { // finite difference
       // finite difference
@@ -1463,12 +1541,9 @@ FelippaShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
         }
       }
       dStdDisp.copy(dStressdDisp.data());
-      std::cerr << "dStressdDisp(FD) = " << dStressdDisp << std::endl;
+      std::cerr << "dStressdDisp(FD) =\n" << dStressdDisp << std::endl;
     }
   } else dStdDisp.zero(); // NODALPARTIAL or GAUSS or any others
-  
-//  if((dSdDispfd-dStressdDisp).norm()/dStressdDisp.norm() > 1e-6) fprintf(stderr," ... discrepancy with finite difference is too large ...\n");
-
 
 }
 
@@ -1477,13 +1552,8 @@ FelippaShell::getVonMisesDisplacementSensitivity(GenFullM<DComplex> &dStdDisp, C
                                                  CoordSet &cs, ComplexVector &elDisp, int strInd, int surface,
                                                  int senMethod, double *, int avgnum, double ylayer, double zlayer)
 {
-  weight = DComplex(1,0);
-  //NOTE:: for complex numbers, getVonMisesDisplacementSensitivity is not properly implemented
-  Eigen::Matrix<DComplex,3,18> dStressdThick;
-  dStressdThick.setZero();  
-
-  dStdDisp.copy(dStressdThick.data());
-
+  cerr << " ... Error: FelippaShell::getVonMisesDisplacementSensitivity is not implemented\n";  
+  exit(-1);
 }
 
 #endif

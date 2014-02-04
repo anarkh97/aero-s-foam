@@ -1,4 +1,6 @@
 #include	<Element.d/Quad4.d/FourNodeQuad.h>
+#include  <Element.d/Quad4.d/FourNodeQuadStressWRTDisplacementSensitivity.h>
+#include  <Element.d/Function.d/SpaceDerivatives.h>
 #include        <Math.d/Vector.h>
 #include	<Math.d/FullSquareMatrix.h>
 #include        <Utils.d/dofset.h>
@@ -69,7 +71,7 @@ FourNodeQuad::renum(EleRenumMap& table)
 void
 FourNodeQuad::getVonMises(Vector& stress,Vector& weight,CoordSet &cs, 
                           Vector& elDisp, int strInd,int,double *ndTemps,
-			  double ylayer, double zlayer, int avgnum)
+                          double ylayer, double zlayer, int avgnum)
 {
          
         // NOTE: SIGMAZZ, SIGMAYZ, SIGMAXZ, STRAINZZ, STRAINYZ & STRAINXZ
@@ -78,7 +80,7 @@ FourNodeQuad::getVonMises(Vector& stress,Vector& weight,CoordSet &cs,
         if(strInd == 2 || strInd == 4  || strInd == 5  ||
            strInd == 11 || strInd == 12   ) {
 
-	   weight = 0.0; stress = 0.0;
+           weight = 0.0; stress = 0.0;
 
            return;
         }
@@ -86,9 +88,9 @@ FourNodeQuad::getVonMises(Vector& stress,Vector& weight,CoordSet &cs,
         // ELSE CALCULATE SIGMAXX, SIGMAYY, SIGMAXY, STRAINXX, STRAINYY, 
         // STRAINXY AND VONMISES STRESS
 
- 	weight = 1.0;
+        weight = 1.0;
 
-	Node &nd1 = cs.getNode(nn[0]);
+        Node &nd1 = cs.getNode(nn[0]);
         Node &nd2 = cs.getNode(nn[1]);
         Node &nd3 = cs.getNode(nn[2]);
         Node &nd4 = cs.getNode(nn[3]);
@@ -100,7 +102,8 @@ FourNodeQuad::getVonMises(Vector& stress,Vector& weight,CoordSet &cs,
         x[2] = nd3.x; y[2] = nd3.y;
         x[3] = nd4.x; y[3] = nd4.y;
 
-	_FORTRAN(getcmt)(prop->A, prop->E, prop->nu, c);
+//       _FORTRAN(getcmt)(prop->A, prop->E, prop->nu, c);
+       getcmt(prop->A, prop->E, prop->nu, c);
 
        int maxgus = 4;
        int maxstr = 7;
@@ -125,9 +128,13 @@ FourNodeQuad::getVonMises(Vector& stress,Vector& weight,CoordSet &cs,
        //char ESCM[7] = "DIRECT"; // ... DIRECT STRESS VALUE CALCULATION
        char ESCM[7] = "EXTRAP";   // ... STRESS EXTRAPOLATION FROM GAUSS POINTS
 
-      _FORTRAN(sands2)(ESCM,x,y,c,elDisp.data(),(double*)elStress,
+      sands2(ESCM,x,y,c,elDisp.data(),(double*)elStress,
+             (double*)elStrain, maxgus,maxstr,elm,numel,
+             vmflg,strainFlg,tc,Tref,ndTemps);
+
+/*      _FORTRAN(sands2)(ESCM,x,y,c,elDisp.data(),(double*)elStress,
                        (double*)elStrain, maxgus,maxstr,elm,numel,
-                       vmflg,strainFlg,tc,Tref,ndTemps);
+                       vmflg,strainFlg,tc,Tref,ndTemps); */
 
 // if strInd <= 6, you are retrieving a stress value:
 // if strInd >  6, you are retrieving a strain value:
@@ -572,3 +579,111 @@ FourNodeQuad::getThermalForce(CoordSet &cs, Vector &ndTemps,
 //         elementThermalForce.print("FourNodeQuad");
 }
 
+void
+FourNodeQuad::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+                                                 int senMethod, double *ndTemps, int avgnum, double ylayer, double zlayer)
+{
+  if(strInd != 6) {
+    cerr << " ... Error: strInd must be 6 in FourNodeQuad::getVonMisesDisplacementSensitivity\n";
+    exit(-1);
+  }
+  if(dStdDisp.numRow() != 4 || dStdDisp.numCol() !=8) {
+    cerr << " ... Error: dimenstion of sensitivity matrix is wrong\n";
+    exit(-1);
+  }
+  weight = 1;
+  // scalar parameters
+  Eigen::Array<double,17,1> dconst;
+  Node &nd1 = cs.getNode(nn[0]);
+  Node &nd2 = cs.getNode(nn[1]);
+  Node &nd3 = cs.getNode(nn[2]);
+  Node &nd4 = cs.getNode(nn[3]);
+
+  double x[4], y[4];
+
+  x[0] = nd1.x; y[0] = nd1.y; 
+  x[1] = nd2.x; y[1] = nd2.y; 
+  x[2] = nd3.x; y[2] = nd3.y; 
+  x[3] = nd4.x; y[3] = nd4.y; 
+
+  dconst[0] = nd1.x; dconst[1] = nd2.x; dconst[2] = nd3.x; dconst[3] = nd4.x; // x coordinates
+  dconst[4] = nd1.y; dconst[5] = nd2.y; dconst[6] = nd3.y; dconst[7] = nd4.y; // y coordinates
+  dconst[8] = prop->E;
+  dconst[9] = prop->A;
+  dconst[10] = prop->nu;
+  dconst[11] = prop->W;
+  dconst[12] = prop->Ta;
+  if(ndTemps) {
+    dconst[13] = ndTemps[0];
+    dconst[14] = ndTemps[1];
+    dconst[15] = ndTemps[2];
+    dconst[16] = ndTemps[3];
+  } else {
+    dconst[13] = 0;
+    dconst[14] = 0;
+    dconst[15] = 0;
+    dconst[16] = 0;
+  }
+
+  // integer parameters
+  Eigen::Array<int,1,1> iconst;
+  iconst[0] = avgnum;
+  // inputs
+  Eigen::Matrix<double,8,1> q = Eigen::Map<Eigen::Matrix<double,8,1> >(elDisp.data()).segment(0,8); // displacements
+
+  //Jacobian evaluation
+  Eigen::Matrix<double,4,8> dStressdDisp;
+  Eigen::Matrix<double,7,3> stress;
+  cout << " ... senMethod is " << senMethod << endl;
+
+  if(avgnum == 1 || avgnum == 0) { // ELEMENTAL or NODALFULL
+    if(senMethod == 1) { // via automatic differentiation
+      Simo::Jacobian<double,FourNodeQuadStressWRTDisplacementSensitivity> dSdu(dconst,iconst);
+      dStressdDisp = dSdu(q, 0);
+      dStdDisp.copy(dStressdDisp.data());
+      std::cerr << " ... dStressdDisp(AD) = \n" << dStressdDisp << std::endl;
+    }
+ 
+    if(senMethod == 0) { // analytic
+      dStressdDisp.setZero();
+      char escm[7] = "extrap";
+      int numel = 1;
+      int elm = 1;
+      int maxgus = 4;
+      int maxstr = 7;
+      bool vmflg = true;
+      bool strainFlg = false;
+      double c[9];
+      getcmt(prop->A, prop->E, prop->nu, c);
+      double tc = prop->E*prop->W/(1.0-prop->nu);
+      
+      Eigen::Matrix<double,4,1> ndtemps = Eigen::Map<Eigen::Matrix<double,17,1> >(dconst.data()).segment(13,4); // extract eframe
+      vms2WRTdisp(escm, x, y, c, q.data(), 
+                  dStressdDisp.data(),  
+                  maxgus, maxstr, elm, numel, vmflg, 
+                  strainFlg, tc, prop->Ta, ndtemps.data());
+      dStdDisp.copy(dStressdDisp.data());
+      std::cerr << " ... dStressdDisp(analytic) =\n" << dStressdDisp << std::endl;
+    }
+
+    if(senMethod == 2) { // via finite difference
+      FourNodeQuadStressWRTDisplacementSensitivity<double> foo(dconst,iconst);
+      double h = 1.0e-6;
+      for(int j=0; j<8; ++j) {
+        Eigen::Matrix<double,8,1> q_plus(q);
+        Eigen::Matrix<double,8,1> q_minus(q);
+        q_plus[j] += h;  q_minus[j] -= h;
+        Eigen::Matrix<double,4,1> S_plus = foo(q_plus,0);   
+        Eigen::Matrix<double,4,1> S_minus = foo(q_minus,0);
+        Eigen::Matrix<double,4,1> dS = (S_plus-S_minus)/(2*h);
+        dStressdDisp(0,j) = dS[0];
+        dStressdDisp(1,j) = dS[1];
+        dStressdDisp(2,j) = dS[2];
+        dStressdDisp(3,j) = dS[3];
+      }
+      dStdDisp.copy(dStressdDisp.data());
+      std::cerr << " ... dStressdDisp(FD) =\n" << dStressdDisp << std::endl;
+    }
+  } else dStdDisp.zero(); // NODALPARTIAL or GAUSS or any others
+
+}

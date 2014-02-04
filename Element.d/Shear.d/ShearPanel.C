@@ -1,4 +1,5 @@
 #include	<Element.d/Shear.d/ShearPanel.h>
+#include	<Element.d/Shear.d/ShearPanelTemplate.cpp>
 #include	<Utils.d/dbg_alloca.h>
 #include        <Math.d/Vector.h>
 #include	<Math.d/FullSquareMatrix.h>
@@ -88,6 +89,8 @@ ShearPanel::getVonMises(Vector& stress,Vector& weight,CoordSet &cs,
        double F2 = prop->Iyy;
 
        double vmssig, vmseps;
+//       spstress(x,y,z,elDisp.data(),G,E,F1,F2,
+//                (double*)elStress, (double*)elStrain, vmssig, vmseps);
       _FORTRAN(spstress)(x,y,z,elDisp.data(),G,E,F1,F2,
                         (double*)elStress, (double*)elStrain, vmssig,
                          vmseps);

@@ -55,6 +55,7 @@ BeamElementTemplate<doublereal>
 /*     Element.                                                        C */
 /*                                                                     C */
 /*     Francois M. Hemez - July 12th 1994 - Version 1.0                C */
+/*     transformed to C++ by Youngsoo Choi - Jan.2014                  C */
 /*                                                                     C */
 /* =====================================================================C */
 
@@ -551,10 +552,10 @@ BeamElementTemplate<doublereal>
 
 /* =====================================================================C */
 /*                                                                     C */
-/*     This Routine Retreives the Stresses for the 3D Timoshenko Beam  C */
-/*     Element.                                                        C */
+/*     This Routine Retreives the sensitivity of Stresses wrt          C */
+/*     displacement for the 3D Timoshenko Beam Element.                C */
 /*                                                                     C */
-/*     Francois M. Hemez - July 12th 1994 - Version 1.0                C */
+/*     Youngsoo Choi - January 2014                                    C */
 /*                                                                     C */
 /* =====================================================================C */
 
@@ -923,6 +924,8 @@ BeamElementTemplate<doublereal>
 *	DATE    :  SEPTEMBER 1991
 *	VERSION :  3.0 Multielement Revison
 *
+* Tranformed to C++ by Youngsoo Choi, January 2014
+*
 *********************************************************************
 *
 *		DEFINE THE GLOBAL VARIABLES
@@ -1134,14 +1137,13 @@ BeamElementTemplate<doublereal>
               doublereal *_ug, doublereal alpha, doublereal tref, doublereal *_temp)
 {
 /*********************************************************************
-*	THIS SUBROUTINE WILL COMPUTE THE INTERNAL FORCES FOR THE    *
-* EULER-BERNOULLI BEAM ELEMENT AND STORE THEM IN THE STRESS ARRAY   *
+*	THIS SUBROUTINE WILL COMPUTE THE SENSITIVITY OF VON MISES STRESS  *
+*	WITH RESPECT TO DISPLACEMENT FOR EULER-BERNOULLI BEAM ELEMENT     *
 *                                                                   *
 *********************************************************************
 *
-*	AUTHOR  :  P.R. STERN
-*	DATE    :  SEPTEMBER 1991
-*	VERSION :  3.0 Multielement Revison
+*	AUTHOR  :  YOUNGSOO CHOI
+*	DATE    :  JANUARY 2014
 *
 *********************************************************************
 *
@@ -1149,26 +1151,21 @@ BeamElementTemplate<doublereal>
 *
 *	  AREA = CROSS-SECTIONAL AREA OF THE BEAM
 *	     E = YOUNGS MODULUS FORTHE BEAM
-*        ALPHA = DILATATION COEFFICIENT
+*  ALPHA = DILATATION COEFFICIENT
 *	   ELM = CURRENT ELEMENT NUMBER
-*	STRESS = INTERNAL FORCE ARRAY
-*       MAXSZE = LEADING DIMENSION OF STRESS AND STRAIN ARRAYS
+* MAXSZE = LEADING DIMENSION OF STRESS AND STRAIN ARRAYS
 *	MAXGUS = SECOND DIMENSION OF STRESS
 *	MAXSTR = THIRD DIMENSION OF STRESS
 *	EFRAME = ELEMENT REFERENCE FRAMES
-*     IX,IY,IZ = BEAM MOMENTS OF INERTIA
+* IX,IY,IZ = BEAM MOMENTS OF INERTIA
 *	    NU = POISSON'S RATIO
-*        X,Y,Z = COORDINATES FOR THE BEAM
-*           UG = GLOBAL DISPLACEMENT VECTOR FOR ELEMENT #ELM
-*         TEMP = NODAL TEMPERATURE
-*         TREF = REFERENCE TEMPERATURE
-*      TSTRESS = THERMAL STRESS
+*  X,Y,Z = COORDINATES FOR THE BEAM
+*     UG = GLOBAL DISPLACEMENT VECTOR FOR ELEMENT #ELM
+*   TEMP = NODAL TEMPERATURE
+*   TREF = REFERENCE TEMPERATURE
+*TSTRESS = THERMAL STRESS
 *
-*********************************************************************
-*
-*		CALLED BY : MDERIV
-*
-*********************************************************************/
+********************************************************************/
 
         doublereal eiy,eiz,length2,length3,tstress;
 

@@ -971,11 +971,15 @@ TRAIL [a-zA-Z]*
 
 "ovmstdis"|"OVMSTDIS"              { yylval.ival = OutputInfo::VMstDisp; return SENSITIVITYID; }
 
+"ostifthi"|"OSTIFTHI"              { yylval.ival = OutputInfo::StifThic; return SENSITIVITYID; }
+
 "weigthic"|"WEIGTHIC"              { yylval.ival = SensitivityInfo::WeightWRTthickness;      return SENSITIVITYTYPE; }
 
 "vmstthic"|"VMSTTHIC"              { yylval.ival = SensitivityInfo::StressVMWRTthickness;    return SENSITIVITYTYPE; }
 
 "vmstdisp"|"VMSTDISP"              { yylval.ival = SensitivityInfo::StressVMWRTdisplacement; return SENSITIVITYTYPE; }
+
+"stffthic"|"STFFTHIC"              { yylval.ival = SensitivityInfo::StiffnessWRTthickness; return SENSITIVITYTYPE; }
 
 "analytic"|"ANALYTIC"                                 { yylval.ival = SensitivityInfo::Analytic;                 return SENSITIVITYMETHOD; }
 

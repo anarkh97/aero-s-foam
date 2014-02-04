@@ -2,8 +2,10 @@
 #define _SHEARPANEL_H_
 
 #include <Element.d/Element.h>
+#include <Element.d/Shear.d/ShearPanelTemplate.hpp>
 
-class ShearPanel: public Element {
+class ShearPanel: public Element,
+                  public ShearPanelTemplate<double> {
 
 	int nn[4];
 public:

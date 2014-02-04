@@ -185,6 +185,94 @@ ShellMaterialType0<doublereal>::GetConstitutiveResponse(doublereal *_Upsilon, do
 
 template<typename doublereal>
 void
+ShellMaterialType0<doublereal>::GetConstitutiveSensitivityWRTthickness(doublereal *_Upsilon, doublereal *_Sigma, doublereal *_dDdthick,
+                                                                       doublereal *, int)
+{
+  // Initialized data 
+  doublereal zero = 0.;
+  doublereal one = 1.;
+
+  // Local variables 
+  doublereal *data = (_dDdthick == NULL) ? new doublereal[36] : _dDdthick;
+  Eigen::Map<Eigen::Matrix<doublereal,6,1> > Upsilon(_Upsilon), Sigma(_Sigma);
+  Eigen::Map<Eigen::Matrix<doublereal,6,6> > D(data); 
+  Eigen::Block< Eigen::Map<Eigen::Matrix<doublereal,6,6> > >
+    Dm = D.topLeftCorner(3,3),     Dmb = D.topRightCorner(3,3),
+    Dbm = D.bottomLeftCorner(3,3), Db = D.bottomRightCorner(3,3);
+
+// ==================================================================== 
+//                                                                      
+//     Perform =   Computes the 6 by 6 Sensitivity of Constitutive Matrix WRT thickness   
+//     ---------   according to the Type of Constitutive Law Requested.           
+//                                                                      
+//                                                                      
+//     Input/Output =                                                   
+//     --------------                                                   
+//     E       <input>  Young modulus                                   
+//     thick   <input>  thickness (assumed constant over the element)   
+//     nu      <input>  Poisson's ratio                                 
+//     D       <output> 6 by 6 sensitivity of constitutive matrix WRT thickness
+//     Sigma   <output> 6 by 1 sensitivity of stress WRT thickness                                                                 
+//                                                                      
+//     Computations =                                                   
+//     --------------                                                   
+//                                                          [ [D_m]   [D_mb] ]                       
+//     [Sensitivity of Constitutive_Matrix WRT thickness] = [                ]                       
+//            6 by 6                                        [ [D_bm]  [D_b]  ]                       
+//                                                                      
+//     where "b" and "m" stand for bending and membrane, respectively:  
+//
+//     Caution =   It is assumed that the element has a constant        
+//     ---------   thickness so that no numerical interpolation is      
+//                 required.                                            
+//                                                                      
+// ==================================================================== 
+// Author  = Youngsoo Choi 
+// Date    = January 17th, 2014                                             
+// Version = 1.0                                                        
+// ==================================================================== 
+
+// .....ASSEMBLE THE SENSITIVITY OF CONSTITUTIVE MATRIX FOR PURE BENDING
+// .....WITH RESPECT TO THICKNESS
+
+    Db(0, 0) = E * (thick * thick) / ((one - nu * nu) * 4.);
+    Db(0, 1) = nu * E * (thick * thick) / ((one - nu * nu) * 4.);
+    Db(0, 2) = zero;
+    Db(1, 0) = nu * E * (thick * thick) / ((one - nu * nu) * 4.);
+    Db(1, 1) = E * (thick * thick) / ((one - nu * nu) * 4.);
+    Db(1, 2) = zero;
+    Db(2, 0) = zero;
+    Db(2, 1) = zero;
+    Db(2, 2) = E * (thick * thick) / ((one + nu) * 8.);
+
+// .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR PURE MEMBRANE 
+    Dm(0, 0) = E / (one - nu * nu);
+    Dm(0, 1) = nu * E / (one - nu * nu);
+    Dm(0, 2) = zero;
+    Dm(1, 0) = nu * E / (one - nu * nu);
+    Dm(1, 1) = E / (one - nu * nu);
+    Dm(1, 2) = zero;
+    Dm(2, 0) = zero;
+    Dm(2, 1) = zero;
+    Dm(2, 2) = E / ((one + nu) * 2.);
+
+// .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR COUPLING BENDING-MEMBRANE
+
+    Dbm = Eigen::Matrix<doublereal,3,3>::Zero();
+
+// .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR COUPLING MEMBRANE-BENDING
+
+    Dmb = Eigen::Matrix<doublereal,3,3>::Zero();
+
+// .....COMPUTE THE GENERALIZED "STRESSES"
+
+    Sigma = D*Upsilon;
+
+    if(_dDdthick == NULL) delete [] data;
+}
+
+template<typename doublereal>
+void
 ShellMaterialType0<doublereal>
 ::GetLocalConstitutiveResponse(doublereal *_Upsilon, doublereal *_sigma, doublereal z,
                                doublereal *, int)
@@ -214,6 +302,39 @@ ShellMaterialType0<doublereal>
 
     sigma = C*epsilon;
 }
+
+template<typename doublereal>
+void
+ShellMaterialType0<doublereal>
+::GetLocalConstitutiveResponseSensitivityWRTthick(doublereal *_Upsilon, doublereal *_dsigmadh, doublereal dzdh,
+                                                  doublereal *, int)
+{
+    // Local variables
+    Eigen::Matrix<doublereal,3,1> depsilondh;
+    Eigen::Matrix<doublereal,3,3> C;
+    Eigen::Map<Eigen::Matrix<doublereal,6,1> > Upsilon(_Upsilon);
+    Eigen::Map<Eigen::Matrix<doublereal,3,1> > dsigmadh(_dsigmadh);
+
+    // Some convenient definitions 
+    Eigen::VectorBlock< Eigen::Map< Eigen::Matrix<doublereal,6,1> > >
+        e = Upsilon.head(3), chi = Upsilon.tail(3);
+
+// .....COMPUTE THE LOCAL STRAINS [epsilon] = {epsilonxx,epsilonyy,gammaxy} ON THE SPECIFIED SURFACE
+
+    depsilondh = dzdh * chi;
+
+// .....GET THE PLANE STRESS ELASTICITY STIFFNESS MATRIX
+
+    doublereal v = E/(1-nu*nu);
+    C << v,    v*nu, 0,
+         v*nu, v,    0,
+         0,    0.,   v*(1-nu)/2;
+
+// .....COMPUTE THE LOCAL STRESSES [sigma] = {sigmaxx,sigmayy,sigmaxy} ON THE SPECIFIED SURFACE
+
+    dsigmadh = C*depsilondh;
+}
+
 
 template<typename doublereal>
 void

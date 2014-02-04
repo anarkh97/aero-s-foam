@@ -5,7 +5,7 @@
 
 struct SensitivityInfo {
 
-   enum Type { WeightWRTthickness, StressVMWRTthickness, StressVMWRTdisplacement };
+   enum Type { WeightWRTthickness, StressVMWRTthickness, StressVMWRTdisplacement, StiffnessWRTthickness };
    enum Method { Analytic, AutomaticDifferentiation, FiniteDifference };
 
    Type type;

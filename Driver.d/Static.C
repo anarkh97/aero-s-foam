@@ -2950,6 +2950,36 @@ Domain::makePreSensitivities(AllSensitivities<double> &allSens, double *bcx)
 
      break;
    }
+   case SensitivityInfo::StiffnessWRTthickness:
+   {
+     // ... COMPUTE SENSITIVITY OF STIFFNESS MATRIX WRT THICKNESS
+     allSens.stiffnessWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numUncon(),numUncon()); 
+     allSens.stiffnessWRTthick->setZero();
+ 
+     for(int iele = 0; iele < numele; iele++) { 
+       int DofsPerElement = packedEset[iele]->numDofs();
+       FullSquareMatrix dStiffnessdThick(DofsPerElement);
+       packedEset[iele]->getStiffnessThicknessSensitivity(nodes, dStiffnessdThick.data(),1,0);
+//       allSens.stiffnessWRTthick->add(dStiffnessdThick,(*allDOFs)[iele]);
+       // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
+       int *dofs = (*allDOFs)[iele];
+       int *unconstrNum = c_dsa->getUnconstrNum();
+//       for(int k = 0; k < DofsPerElement; ++k) cerr << dofs[k] << " ";
+//       cerr << "\n";
+//       for(int k = 0; k < DofsPerElement; ++k) cerr << unconstrNum[dofs[k]] << " ";
+//       cerr << "\n";
+       for(int k = 0; k < DofsPerElement; ++k) {
+         int dofk = unconstrNum[dofs[k]];
+         if(dofs[k] < 0 || dofk < 0) continue;  // Skip undefined/constrained dofs
+         for(int j = 0; j < DofsPerElement; ++j) {
+           int dofj = unconstrNum[dofs[j]];
+           if(dofs[j] < 0 || dofj < 0) continue;  // Skip undefined/constrained dofs
+           (*allSens.stiffnessWRTthick)(dofk, dofj) += dStiffnessdThick[k][j]; 
+         }
+       }
+     }
+     break;
+   }
   }
  }
  // post processing for sensitivities 
@@ -2983,7 +3013,7 @@ Domain::makePostSensitivities(AllSensitivities<double> &allSens, GenVector<doubl
          int iele = atoe[group[iparam].attributes[aindex]].elems[eindex];
          int NodesPerElement = elemToNode->num(iele);
          GenVector<double> dStressdThick(NodesPerElement);
-         GenVector<double> weight(NodesPerElement);
+         GenVector<double> weight(NodesPerElement,0.0);
          int surface = 1;
          elDisp->zero();       
          // Determine element displacement vector
@@ -2995,7 +3025,7 @@ Domain::makePostSensitivities(AllSensitivities<double> &allSens, GenVector<doubl
              (*elDisp)[k] = bcx[(*allDOFs)[iele][k]];
          }
          transformVectorInv(*elDisp, iele);         
-         packedEset[iele]->getVonMisesThicknessSensitivity(dStressdThick, weight, nodes, *elDisp, 0, surface, senInfo[sindex].method); 
+         packedEset[iele]->getVonMisesThicknessSensitivity(dStressdThick, weight, nodes, *elDisp, 6, surface, senInfo[sindex].method); 
          if(avgnum != 0) {
            // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
            for(int k = 0; k < NodesPerElement; ++k) {
@@ -3023,13 +3053,14 @@ Domain::makePostSensitivities(AllSensitivities<double> &allSens, GenVector<doubl
      allSens.vonMisesWRTdisp = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numNodes(), numdof());
      allSens.stressWeight    = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numNodes(), 1);
      allSens.vonMisesWRTdisp->setZero();
+     allSens.stressWeight->setZero();
      if(elDisp == 0) elDisp = new Vector(maxNumDOFs,0.0);
      int avgnum = 1; //TODO: it is hardcoded to be 1, which corresponds to NODALFULL. it needs to be fixed.
      for(int iele = 0; iele < numele; iele++) { 
        int NodesPerElement = elemToNode->num(iele);
        int DofsPerElement = packedEset[iele]->numDofs();
        GenFullM<double> dStressdDisp(NodesPerElement,DofsPerElement,double(0.0));
-       GenVector<double> weight(NodesPerElement);
+       GenVector<double> weight(NodesPerElement,0.0);
        int surface = 1;
        elDisp->zero();       
        // Determine element displacement vector
@@ -3047,12 +3078,11 @@ Domain::makePostSensitivities(AllSensitivities<double> &allSens, GenVector<doubl
          for(int k = 0; k < NodesPerElement; ++k) {
            int node = (outFlag) ? nodeTable[(*elemToNode)[iele][k]]-1 : (*elemToNode)[iele][k];
            int *dofs = (*allDOFs)[iele];
-           int dof;
+           (*allSens.stressWeight)(node,0) += weight[k];
            for(int j = 0; j < DofsPerElement; ++j) {
              int *unconstrNum = c_dsa->getUnconstrNum();
-             if(dofs[j] < 0 || (dof = unconstrNum[dofs[j]]) < 0) continue;  // Skip undefined/constrained dofs
-             (*allSens.vonMisesWRTdisp)(node, dof) += dStressdDisp[k][j]; 
-             (*allSens.stressWeight)(node, 0) += weight[k];
+             if(dofs[j] < 0) continue;  // Skip undefined dofs
+             (*allSens.vonMisesWRTdisp)(node, dofs[j]) += dStressdDisp[k][j]; 
 //             for(int row=0; row<3; row++) {
 //               fprintf(stderr,"\n");
 //               for(int col=0; col<3; col++)
@@ -3062,14 +3092,14 @@ Domain::makePostSensitivities(AllSensitivities<double> &allSens, GenVector<doubl
          }
        }
      }
-     
+    
      for(int inode = 0; inode < numNodes(); ++inode)  {
        if((*allSens.stressWeight)(inode, 0) == 0.0)
          for(int dof = 0; dof < numdof(); ++dof) 
            (*allSens.vonMisesWRTdisp)(inode,dof) = 0;
        else
          for(int dof = 0; dof < numdof(); ++dof)
-           (*allSens.vonMisesWRTdisp)(inode,dof) /= (*allSens.stressWeight)(inode, 0);
+           (*allSens.vonMisesWRTdisp)(inode,dof) /= (*allSens.stressWeight)(inode,0);
      }
 
      break;
@@ -3122,7 +3152,7 @@ Domain::makePreSensitivities(AllSensitivities<DComplex> &allSens, DComplex *bcx)
      filePrint(stderr," *** WEIGHT : %e\n", weight);
      filePrint(stderr,"printing weight derivative\n");
      cout << *allSens.weightWRTthick << endl;
-
+     break;
    }
   }
  }
@@ -3156,7 +3186,7 @@ Domain::makePostSensitivities(AllSensitivities<DComplex> &allSens, GenVector<DCo
              (*elDisp)[k] = bcx[(*allDOFs)[iele][k]];
          }
          transformVectorInv(*elDisp, iele);         
-         packedEset[iele]->getVonMisesThicknessSensitivity(dStressdThick, weight, nodes, *elDisp, 0, surface, senInfo[sindex].method);  
+         packedEset[iele]->getVonMisesThicknessSensitivity(dStressdThick, weight, nodes, *elDisp, 6, surface, senInfo[sindex].method);  
        } 
      }
      break;

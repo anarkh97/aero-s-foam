@@ -369,7 +369,7 @@ class Element {
         }
 
         // By default ignore any element pressure
-	virtual void setPressure(PressureBCond *pbc) {}
+        virtual void setPressure(PressureBCond *pbc) {}
         virtual PressureBCond* getPressure() { return NULL; }
 
         // By default ignore any element preload
@@ -391,13 +391,14 @@ class Element {
                                            double *coefs, CoordSet &cs, double theta);
 
         virtual FullSquareMatrix stiffness(CoordSet& cs,double *k,int flg=1);
-	virtual FullSquareMatrix massMatrix(CoordSet& cs,double *m,int cmflg=1);
+        virtual FullSquareMatrix getStiffnessThicknessSensitivity(CoordSet& cs,double *k, int flg=1, int senMethod=0) { return FullSquareMatrix(); }
+        virtual FullSquareMatrix massMatrix(CoordSet& cs,double *m,int cmflg=1);
         virtual FullSquareMatrix imStiffness(CoordSet& cs,double *k,int flg=1);
-	FullSquareMatrix massMatrix(CoordSet& cs, double* m, double mratio);
+        FullSquareMatrix massMatrix(CoordSet& cs, double* m, double mratio);
         virtual FullSquareMatrixC stiffness(CoordSet&, complex<double> *d) {return FullSquareMatrixC();};
         virtual FullSquareMatrixC massMatrix(CoordSet&, complex<double> *d) {return FullSquareMatrixC();};
 
-	virtual FullSquareMatrix dampingMatrix(CoordSet& cs,double *m,int cmflg=1);
+        virtual FullSquareMatrix dampingMatrix(CoordSet& cs,double *m,int cmflg=1);
 
         virtual double getMass(CoordSet&) { return 0; }
         virtual double weight(CoordSet&, double *, int) { return 0; }
@@ -430,13 +431,15 @@ class Element {
         virtual void getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
                                               int senMethod = 1, double * = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0) {
           weight = 1;
-          dStdThick.zero();  
+          dStdThick.zero(); 
+          cerr << " ... Error! ::getVonMisesThicknessSensitivity is not implemented\n"; 
         }
 
         virtual void getVonMisesThicknessSensitivity(ComplexVector &dStdThick, ComplexVector &weight, CoordSet &cs, ComplexVector &elDisp, int strInd, int surface,
                                               int senMethod = 1, double * = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0) {
           weight = DComplex(1,0);
           dStdThick.zero();
+          cerr << " ... Error! ::getVonMisesThicknessSensitivity is not implemented\n"; 
         }
 
         virtual void getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, 
@@ -444,6 +447,7 @@ class Element {
                                                         int senMethod = 1, double * = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0) {
           weight = 1;
           dStdDisp.zero();  
+          cerr << " ... Error! ::getVonMisesDisplacementSensitivity is not implemented\n"; 
         }
 
         virtual void getVonMisesDisplacementSensitivity(GenFullM<DComplex> &dStdDisp, ComplexVector &weight, 
@@ -451,6 +455,7 @@ class Element {
                                                         int senMethod = 1, double * = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0) {
           weight = DComplex(1,0);
           dStdDisp.zero();
+          cerr << " ... Error! ::getVonMisesDisplacementSensitivity is not implemented\n"; 
         }
 
         virtual void   getAllStress(FullM &stress, Vector &weight, CoordSet &cs,

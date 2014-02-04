@@ -144,16 +144,19 @@ struct AllSensitivities
   double weight; // total weight of the structure 
   Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *weightWRTthick;                 // derivatives of weight with respect to thickness
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *vonMisesWRTthick;  // derivatives of von Mises stress with respect to thickness
-  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *vonMisesWRTdisp;  // derivatives of von Mises stress with respect to thickness
+  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *vonMisesWRTdisp;   // derivatives of von Mises stress with respect to displacement
+  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *stiffnessWRTthick;  // derivatives of stiffness with respect to thickness 
+//  GenSparseMatrix<Scalar> *stiffnessWRTthick;                               // derivatives of stiffness with respect to thickness
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *stressWeight;      // weight used to average stress sensitivity
   // Constructor
-  AllSensitivities() { weight = 0; weightWRTthick = 0; vonMisesWRTthick = 0; vonMisesWRTdisp = 0; stressWeight = 0;}
+  AllSensitivities() { weight = 0; weightWRTthick = 0; vonMisesWRTthick = 0; vonMisesWRTdisp = 0; stressWeight = 0; stiffnessWRTthick = 0; }
 
   void zero() {
-    if(weightWRTthick) weightWRTthick->Zero();
-    if(vonMisesWRTthick) vonMisesWRTthick->Zero();
-    if(vonMisesWRTdisp) vonMisesWRTdisp->Zero();
-    if(stressWeight) stressWeight->Zero();
+    if(weightWRTthick) weightWRTthick->setZero();
+    if(vonMisesWRTthick) vonMisesWRTthick->setZero();
+    if(vonMisesWRTdisp) vonMisesWRTdisp->setZero();
+    if(stressWeight) stressWeight->setZero();
+    if(stiffnessWRTthick) stiffnessWRTthick->setZero();
   }
 #endif
 };

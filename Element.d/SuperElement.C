@@ -211,6 +211,54 @@ SuperElement::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAccelera
 }
 
 void
+SuperElement::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+                                              int senMethod, double *, int avgnum, double ylayer, double zlayer)
+{
+  for(int i = 0; i < nSubElems; ++i) {
+    Vector subVonMisesThicknessSensitivity(subElems[i]->numNodes(),0.0); 
+    Vector subWeight(subElems[i]->numNodes(),0.0);
+    Vector subElDisp(subElems[i]->numDofs(),0.0);
+    for(int j = 0; j < subElems[i]->numDofs(); ++j) {
+      subElDisp[j] = elDisp[subElemDofs[i][j]];
+    }
+    subElems[i]->getVonMisesThicknessSensitivity(subVonMisesThicknessSensitivity, subWeight, cs, subElDisp, strInd, surface, 
+                                                 senMethod, 0, avgnum, ylayer, zlayer); 
+    weight.add(subWeight, subElemNodes[i]);
+    dStdThick.add(subVonMisesThicknessSensitivity, subElemNodes[i]);
+  }
+  for(int i = 0; i < dStdThick.size(); ++i) dStdThick[i] /= weight[i]; 
+
+}
+
+void
+SuperElement::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+                                                 int senMethod, double *ndTemps, int avgnum, double ylayer, double zlayer)
+{
+  for(int i = 0; i < nSubElems; ++i) {
+    GenFullM<double> subVonMisesDisplacementSensitivity(subElems[i]->numNodes(),subElems[i]->numDofs(),0.0);        
+    Vector subWeight(subElems[i]->numNodes(),0.0);
+    Vector subElDisp(subElems[i]->numDofs(),0.0);
+    for(int j = 0; j < subElems[i]->numDofs(); ++j) {
+      subElDisp[j] = elDisp[subElemDofs[i][j]];
+    }
+    subElems[i]->getVonMisesDisplacementSensitivity(subVonMisesDisplacementSensitivity, subWeight, cs, subElDisp, strInd, surface, 
+                                                    senMethod, 0, avgnum, ylayer, zlayer);
+    weight.add(subWeight, subElemNodes[i]);
+    for(int j = 0; j < subElems[i]->numDofs(); ++j) {
+      for(int k = 0; k < subElems[i]->numNodes(); ++k) {
+        dStdDisp[subElemNodes[i][k]][subElemDofs[i][j]] = subVonMisesDisplacementSensitivity[k][j];
+      }
+    }
+  }
+  for(int i = 0; i < dStdDisp.numRow(); ++i) {
+    for(int j = 0; j < dStdDisp.numCol(); ++j) {
+      dStdDisp[i][j] /= weight[i]; 
+    }
+  }
+ 
+}
+
+void
 SuperElement::getGravityForce(CoordSet &cs, double *gravityAcceleration, Vector &gravityForce,
                               int gravflg, GeomState *geomState)
 {

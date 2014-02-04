@@ -3356,6 +3356,7 @@ void Domain::sensitivityPreProcessing(AllSensitivities<Scalar> &allSens) {
   for(int i = 0; i < numOutInfo; ++i)  {
     if(oinfo[i].sentype == 0) continue;
     if(oinfo[i].type == OutputInfo::WeigThic) geoSource->outputEigenScalars(i, allSens.weightWRTthick, allSens.weight);
+    if(oinfo[i].type == OutputInfo::StifThic) geoSource->outputEigenVectors(i, allSens.stiffnessWRTthick);
   }
   firstOutput = false;
 }

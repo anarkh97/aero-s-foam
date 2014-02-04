@@ -2,8 +2,11 @@
 #define _TRIANGLE3_H_
 
 #include <Element.d/Element.h>
+#include <Element.d/Triangle3.d/Triangle3ElementTemplate.hpp>
 
-class Triangle3: public Element {
+class Triangle3: public Element,
+                 public Triangle3ElementTemplate<double>
+{
 
 	int nn[3];
 public:
@@ -27,7 +30,10 @@ public:
                                       CoordSet &cs, Vector &elDisp, 
                                       int strInd, int surface=0,
                                       double *ndTemps=0,
-				      double ylayer=0.0, double zlayer=0.0, int avgnum=0);
+                                      double ylayer=0.0, double zlayer=0.0, int avgnum=0);
+
+        void getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+                                                             int senMethod, double *ndTemps, int avgnum, double ylayer, double zlayer);
 
         virtual void     getAllStress(FullM &stress, Vector &weight, 
                                       CoordSet &cs, Vector &elDisp, 

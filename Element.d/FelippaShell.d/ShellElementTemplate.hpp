@@ -38,6 +38,12 @@ class ShellElementTemplate : public Membrane<doublereal>, public Bending<doubler
              doublereal *x, doublereal *y, doublereal *z, doublereal *globalu,
              int ctyp, int flag);
 
+    void 
+    andesstfWRTthick(int elm, doublereal *_destiffdthick, doublereal *_fint, doublereal nu,
+                     doublereal *x, doublereal *y, doublereal *z, doublereal *_v,
+                     int ctyp, int flag);
+
+
     void
     andesvms(int elm, int maxstr, doublereal nu, doublereal *globalx,
              doublereal *globaly, doublereal *globalz, doublereal *globalu,
@@ -48,12 +54,21 @@ class ShellElementTemplate : public Membrane<doublereal>, public Bending<doubler
              doublereal *globaly, doublereal *globalz, doublereal *globalu,
              doublereal *stress, doublereal *_vmsWRTdisp, int ctyp, int strainflg, int surface);
 
+    void
+    andesvmsWRTthic(int elm, int maxstr, doublereal nu, doublereal *globalx,
+                    doublereal *globaly, doublereal *globalz, doublereal *globalu,
+                    doublereal *stress, doublereal *_vmsWRTthic, int ctyp, int strainflg, int surface);
+
     doublereal
     equivstr(doublereal sxx, doublereal syy, doublereal szz, doublereal sxy);
 
     Eigen::Matrix<doublereal,1,18>
     equivstrSensitivityWRTdisp(doublereal vms, doublereal sxx, doublereal syy, doublereal szz, doublereal sxy,
                                Eigen::Matrix<doublereal,3,18> dsigmadu);
+
+    Eigen::Matrix<doublereal,1,1>
+    equivstrSensitivityWRTthic(doublereal vms, doublereal sxx, doublereal syy, doublereal szz, doublereal sxy,
+                               Eigen::Matrix<doublereal,3,1> dsigmadh);
 
     void
     transform(doublereal *lframe, doublereal *gframe, doublereal *str);

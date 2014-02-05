@@ -278,7 +278,7 @@ C
 C
 C... Get Stress for Shear Portion
       call sands2(escm,x,y,c,vl,quadstress,quadstrain,four,
-     &                  seven,one,one,falseflag,falseflag)
+     &                  seven,one,one,falseflag,falseflag,0,0,0) 
 C
 C... Output Stresses for Shear Portion
       if (output) then

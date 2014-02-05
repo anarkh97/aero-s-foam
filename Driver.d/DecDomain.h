@@ -144,6 +144,7 @@ class GenDecDomain
   FSCommPattern<Scalar> * getWiCommPattern();
   GenAssembler<Scalar> * getSolVecAssembler();
   void exchangeInterfaceGeomState(DistrGeomState *geomState);
+  void assembleNodalInertiaTensors(FullSquareMatrix **melArray);
 
  protected:
   void makeSubDomains();
@@ -181,6 +182,8 @@ class GenDecDomain
   virtual void setMpcRhs(int iSub, GenDistrVector<Scalar> &cu, double t);
   void dispatchInterfaceGeomState(int isub, FSCommPattern<double> *geomStatePat, DistrGeomState *geomState);
   void collectInterfaceGeomState(int isub, FSCommPattern<double> *geomStatePat, DistrGeomState *geomState);
+  void dispatchInterfaceNodalInertiaTensors(int isub, FSCommPattern<double> *pat, FullSquareMatrix **melArray);
+  void collectInterfaceNodalInertiaTensors(int isub, FSCommPattern<double> *pat);
 
  public:
   void printLMPC();

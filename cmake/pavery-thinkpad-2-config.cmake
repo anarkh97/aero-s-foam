@@ -4,14 +4,14 @@ SET(CMAKE_INCLUDE_PATH
     /home/avery/Codes/eigen
     /home/avery/Codes/MUMPS_4.10.0/include
     /home/avery/Codes/SuperLU/SuperLU_4.3/SRC
-    /home/avery/Codes/trilinos/trilinos-11.2.3-Source/packages/sacado/src
-    /home/avery/Codes/trilinos/trilinos-11.2.3-Obj_cmake/include
-    /home/avery/Codes/trilinos/trilinos-11.2.3-Source/packages/zoltan/src)
+    /home/avery/Codes/trilinos/trilinos-11.4.3-Source/packages/sacado/src
+    /home/avery/Codes/trilinos/trilinos-11.4.3-Obj_cmake/include
+    /home/avery/Codes/trilinos/trilinos-11.4.3-Source/packages/zoltan/src)
 SET(CMAKE_LIBRARY_PATH
     /home/avery/Codes/ARPACK
     /home/avery/Codes/MUMPS_4.10.0/lib
     /home/avery/Codes/SuperLU/SuperLU_4.3/lib
-    /home/avery/Codes/trilinos/trilinos-11.2.3-Obj_cmake/lib)
+    /home/avery/Codes/trilinos/trilinos-11.4.3-Obj_cmake/lib)
 SET(EXTRALIB_MPI /usr/lib/libmpif77.so
                  CACHE STRING "Extra MPI link parameters")
 SET(CMAKE_Fortran_FLAGS_RELEASE "-O2")

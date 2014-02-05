@@ -45,7 +45,9 @@ void
 DistrExplicitDEIMPodProjectionNonLinDynamic::getInternalForce(DistrVector &d, DistrVector &f, double t, int tIndex) {
 
   execParal3R(decDomain->getNumSub(),this,&DistrExplicitDEIMPodProjectionNonLinDynamic::subGetWeightedInternalForceOnly,*fInt,t,tIndex);
-  
+
+  if(!domain->solInfo().reduceFollower) 
+    execParal3R(decDomain->getNumSub(),this,&DistrExplicitDEIMPodProjectionNonLinDynamic::subGetFollowerForceOnly,*fExt,t,tIndex);
 
   if(domain->solInfo().stable && domain->solInfo().isNonLin() && tIndex%domain->solInfo().stable_freq == 0) {
     GenMDDynamMat<double> ops;
@@ -55,19 +57,6 @@ DistrExplicitDEIMPodProjectionNonLinDynamic::getInternalForce(DistrVector &d, Di
   
   if (domain->solInfo().filterFlags) {
     trProject(*fInt);
-  }
-
-//   Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > dummy(fInt->data(),fInt->size(),1);
-//   std::cout<<"fInt = "<<dummy<<std::endl;
-
-   *a_n = *fInt - *fExt;
-
-  if(haveRot) {//must transform the two containers separately since they use different bases. 
-    execParal2R(decDomain->getNumSub(),this,&DistrExplicitDEIMPodProjectionNonLinDynamic::subTransformWeightedNodesOnly,*a_n,3);
-    fullMassSolver->reSolve(*a_n);
-    execParal2R(decDomain->getNumSub(),this,&DistrExplicitDEIMPodProjectionNonLinDynamic::subTransformWeightedNodesOnly,*a_n,2);
-    DistrVector toto(*a_n);
-    dynMat->M->mult(toto,*a_n);
   }
 
   DistrVector fExt_reduced(solVecInfo());
@@ -111,9 +100,26 @@ DistrExplicitDEIMPodProjectionNonLinDynamic::subGetWeightedInternalForceOnly(int
                                     1.0, t, (*geomState)[iSub], melArray[iSub],kelArrayCopy[iSub]); // residual -= internal force);
     }
   }
+
+  if(!domain->solInfo().reduceFollower) {
+   sd->getFollowerForce(*(*geomState)[iSub], eIF, allCorot[iSub], kelArray[iSub], residual, 1.0, t, (*geomState)[iSub], NULL, false);
+  }
+
   StackVector subf(f.subData(iSub), f.subLen(iSub));
   subf.linC(residual, -1.0); // f = -residual
 } 
+
+void
+DistrExplicitDEIMPodProjectionNonLinDynamic::subGetFollowerForceOnly(int iSub, DistrVector &f, double &t, int &tIndex) {
+  SubDomain *sd = decDomain->getSubDomain(iSub);
+  Vector residual(f.subLen(iSub), 0.0);
+  Vector eIF(sd->maxNumDOF()); // eIF = element internal force for one element (a working array)
+
+  sd->getFollowerForce(*(*geomState)[iSub], eIF, allCorot[iSub], kelArray[iSub], residual, 1.0, t, (*geomState)[iSub], NULL, false);
+
+  StackVector subf(f.subData(iSub), f.subLen(iSub));
+  subf.linC(residual, 1.0); // f = -residual
+}
  
 void
 DistrExplicitDEIMPodProjectionNonLinDynamic::buildInterpolationBasis() {
@@ -173,17 +179,33 @@ DistrExplicitDEIMPodProjectionNonLinDynamic::buildInterpolationBasis() {
 void
 DistrExplicitDEIMPodProjectionNonLinDynamic::buildReducedLinearOperator() {
  //build reduced stiffness matrix
- filePrint(stderr," ... Constructing Reduced Linear Stiffness Matrix ...\n");
  ReducedStiffness.dimensionIs(normalizedBasis_.numVectors(),reducedVecInfo()); //each mpi process gets a reduced linear operator
 
- for( int column = 0; column != normalizedBasis_.numVectors(); ++column){
-   DistrVector columnOfKtimesV(MultiDomainDynam::solVecInfo());
-   columnOfKtimesV = 0;
-   //K*V
-   execParal2R(decDomain->getNumSub(),this,&DistrExplicitDEIMPodProjectionNonLinDynamic::subGetKtimesU, normalizedBasis_[column],columnOfKtimesV); 
-   //V^T*(K*V)
-   normalizedBasis_.reduce(columnOfKtimesV,ReducedStiffness[column]);
- } 
+  if(domain->solInfo().ReducedStiffness){
+    filePrint(stderr," ... Reading Pre-computed Reduced Linear Stiffness Matrix ...\n");
+
+    int vector = 0; int ind = 0;
+    for(std::vector<double>::const_iterator it = geoSource->RedKVecBegin(), it_end = geoSource->RedKVecEnd(); it != it_end; ++it){
+      ReducedStiffness[vector][ind] = *it; ++ind;
+      if(ind == normalizedBasis_.numVectors()){
+        ind = 0; 
+        ++vector;
+      }
+    }
+
+  } else {
+    filePrint(stderr," ... Constructing Reduced Linear Stiffness Matrix ...\n");
+ 
+    for( int column = 0; column != normalizedBasis_.numVectors(); ++column){
+      DistrVector columnOfKtimesV(MultiDomainDynam::solVecInfo());
+      columnOfKtimesV = 0;
+      //K*V
+      execParal2R(decDomain->getNumSub(),this,&DistrExplicitDEIMPodProjectionNonLinDynamic::subGetKtimesU, normalizedBasis_[column],columnOfKtimesV); 
+      //V^T*(K*V)
+      normalizedBasis_.reduce(columnOfKtimesV,ReducedStiffness[column]);
+    } 
+  }
+
 /*
  DistrVecBasis DEIMReducedStiffness(normalizedBasis_.numVectors(),reducedVecInfo());
 

@@ -528,7 +528,8 @@ public:
 
   Elemset* getElemSet(void){return(&elemSet);}
 
-  void simpleDecomposition(int numSubdomains, bool estFlag, bool weightOutFlag, bool makeTrivial);
+  void simpleDecomposition(int numSubdomains, bool estFlag, bool weightOutFlag,
+                            bool makeTrivial, bool fsglFlag);
   void modifyDecomposition(int maxEleKeep);
 
   // Output Functions
@@ -678,11 +679,17 @@ public:
 
   NodeDofPairVec::const_iterator nodeDofSlotBegin() const { return nodeDofSlotPairVec_.begin(); }
   NodeDofPairVec::const_iterator nodeDofSlotEnd()   const { return nodeDofSlotPairVec_.end();   }
+ 
+  std::vector<double>::const_iterator RedKVecBegin() const { return ReducedStiffVec.begin();}
+  std::vector<double>::const_iterator RedKVecEnd() const { return ReducedStiffVec.end();}
+  
+  double * RedKData() { return ReducedStiffVec.data(); }
 
   ElemDofPairVec::const_iterator elemDofBegin() const { return elemDofPairVec_.begin(); }
   ElemDofPairVec::const_iterator elemDofEnd()   const { return elemDofPairVec_.end();   }
-  
+
   void setElementLumpingWeight(int iele, double value);
+  void pushBackStiffVec(double Kelem);
   void setSampleNodesAndSlots(int node, int dof);
   void setSampleElemsAndDOFs(int elem,int dof);
 
@@ -690,6 +697,7 @@ private:
   ElementWeightMap elementLumpingWeights_;
   NodeDofPairVec nodeDofSlotPairVec_;
   ElemDofPairVec elemDofPairVec_;
+  std::vector<double> ReducedStiffVec;
 
 protected:
   void closeOutputFileImpl(int fileIndex);

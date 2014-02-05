@@ -801,6 +801,9 @@ TRAIL [a-zA-Z]*
 
 "fsi_cor"[a-zA-Z]*|"FSI_COR"[a-zA-Z]* { return FSICORNER; }
 
+
+"FSGL"|"fsgl" { return FSGL; }
+
 "coupled_scale"      { return COUPLEDSCALE; }
 
 "wet_corners"        { return WETCORNERS; }
@@ -1418,6 +1421,8 @@ TRAIL [a-zA-Z]*
 "CONFOR"|"ConFor"|"confor"                { return REBUILDFORCE; }
 
 "SNSLOT"|"SnSlot"|"snslot"                { return SAMPNODESLOT; }
+
+"REDSTIFF"|"RedStiff"|"redstiff"	  { return REDUCEDSTIFFNESS; }
 
 "FPODRB"|"FPODRb"|"fpodrb"                { return FORCEROB; }
  

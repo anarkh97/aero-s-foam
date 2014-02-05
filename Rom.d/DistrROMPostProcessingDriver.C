@@ -247,6 +247,7 @@ DistrROMPostProcessingDriver::solve() {
      }
 
      geomState->explicitUpdate(decDomain, *fullDispBuffer);
+     execParal(decDomain->getNumSub(), this, &DistrROMPostProcessingDriver::subUpdateStates);
      if(!dummyDynOps) dummyDynOps = new MDDynamMat;
      mddPostPro->dynamOutput(counter, *it, *dummyDynOps, *fullDummyBuffer, fullDummyBuffer, *curState);
 
@@ -258,6 +259,11 @@ DistrROMPostProcessingDriver::solve() {
 
 }
 
+void
+DistrROMPostProcessingDriver::subUpdateStates(int i)
+{
+  decDomain->getSubDomain(i)->updateStates((*geomState)[i],*((*geomState)[i]),allCorot[i]);  
+}
 
 } //end namespace Rom
 

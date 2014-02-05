@@ -447,6 +447,9 @@ DistrExplicitPodProjectionNonLinDynamicBase::preProcess() {
   times      = new StaticTimers;}
   ///////////////////////////////////////////////////////////////////////////////////////
 
+  decDomain->assembleNodalInertiaTensors(melArray);
+  if(domain->solInfo().stable && !domain->solInfo().elemLumpPodRom)
+    execParal(decDomain->getNumSub(), this, &DistrExplicitPodProjectionNonLinDynamicBase::subInitStiff);
 }
 
 const DistrInfo &
@@ -569,19 +572,10 @@ void
 DistrExplicitPodProjectionNonLinDynamicBase::getInternalForce(DistrVector &d, DistrVector &f, double t, int tIndex) {
   //Build internal force and project into reduced coordinates
 
-  MultiDomainDynam::getInternalForce( *d_n, *fInt, t, tIndex);
+  MultiDomainDynam::getInternalForce(*d_n, *fInt, t, tIndex);
   //compute residual here to prevent having to project into reduced basis twice
-  *a_n = *fInt - *fExt;
-
-  if(haveRot) {
-    geomState->transform(*a_n, 3, true);
-    fullMassSolver->reSolve(*a_n);
-    geomState->transform(*a_n, 2, true);
-    DistrVector toto(*a_n);
-    dynMat->M->mult(toto, *a_n);
-  }
-
-  normalizedBasis_.reduce(*a_n,f); 
+  *tempVec = *fInt - *fExt;
+  normalizedBasis_.reduce(*tempVec, f); 
 }
 
 void
@@ -598,12 +592,7 @@ DistrExplicitPodProjectionNonLinDynamicBase::buildOps(double mCoef, double cCoef
   if(!dynMat) MultiDomainDynam::buildOps(mCoef, cCoef, kCoef); // note: may be called previously in getInitState
 
   haveRot = geomState->getHaveRot();
-  if(haveRot) {
-    fullMassSolver = dynMat->dynMat;
-  }
-  else {
-    delete dynMat->dynMat;
-  }
+  delete dynMat->dynMat;
 
   dynMat->dynMat = new DistrGalerkinProjectionSolver(normalizedBasis_);
 
@@ -659,6 +648,17 @@ DistrExplicitPodProjectionNonLinDynamicBase::computeStabilityTimeStep(double& dt
   for(int i = 0; i < decDomain->getNumSub(); ++i)
     decDomain->getSubDomain(i)->solInfo().setTimeStep(dt);
   domain->solInfo().setTimeStep(dt);
+}
+
+void
+DistrExplicitPodProjectionNonLinDynamicBase::subInitStiff(int isub)
+{
+  SubDomain *sd = decDomain->getSubDomain(isub);
+
+  Vector elementInternalForce(sd->maxNumDOF(), 0.0);
+  Vector residual(sd->numUncon(), 0.0);
+  sd->getStiffAndForce(*(*geomState)[isub], elementInternalForce, allCorot[isub], kelArray[isub], residual,
+                       1.0, 0.0, (*geomState)[isub], (Vector*) NULL, ((melArray) ? melArray[isub] : NULL));
 }
 
 } // end namespace Rom

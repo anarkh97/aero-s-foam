@@ -51,6 +51,8 @@ public:
 
 	// DEC
 	PrioInfo examine(int sub, MultiFront *);
+        int nDecFaces() { return 3;}
+        int getDecFace(int iFace, int *fn);
 
         void setCompositeData(int _type, int nlays, double *lData,
                               double *coefs, double *frame)

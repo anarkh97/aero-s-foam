@@ -34,6 +34,18 @@ public:
 	void addFaces(PolygonSet *pset);
 
         PrioInfo examine(int sub, MultiFront *mf);
+        int nDecFaces() { return 4;}
+        int getDecFace(int iFace, int *fn);
 
+
+//	double weight() {
+// RT: using a condensed dofs number
+//           double w = 
+//                      (6.0*double(order)*double(order+1) -
+//                       29.0*double(order) +
+//                       23.0)/6.0 ;
+//           return w;
+//	}
+	
 };
 #endif

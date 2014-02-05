@@ -291,8 +291,8 @@ FaceTri10::LocalToGlobalCoord(double *M, double *m, CoordSet &cs)
   for(int i=0; i<10; i+=2){
     Node &ndi = cs.getNode(Nodes[i]);
     X[i]  = ndi.x ; Y[i]  = ndi.y ; Z[i]  = ndi.z ;
-    //Node &ndii= cs.getNode(Nodes[i+1]);
-    //X[i]  = ndi.x ; Y[i]  = ndi.y ; Z[i]  = ndi.z ;
+    Node &ndii= cs.getNode(Nodes[i+1]);
+    X[i]  = ndi.x ; Y[i]  = ndi.y ; Z[i]  = ndi.z ;
   }
 
   M[0] = M[1] = M[2] = 0.0;

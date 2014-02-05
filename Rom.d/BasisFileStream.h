@@ -35,7 +35,7 @@ public:
   
   template <typename VectorBufferType>
   friend BasisInputStream &operator>>(BasisInputStream &, std::pair<double, VectorBufferType> &);
-  
+
 private:
   template <typename VectorBufferType> void performInput(VectorBufferType &);
   template <typename VectorBufferType> void performUncheckedInput(VectorBufferType &);

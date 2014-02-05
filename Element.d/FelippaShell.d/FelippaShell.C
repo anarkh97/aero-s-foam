@@ -1317,7 +1317,7 @@ FullSquareMatrix
 FelippaShell::getStiffnessThicknessSensitivity(CoordSet &cs, Vector &elDisp, double *dStiffdThick, int flg, int senMethod)
 {
   // scalar parameters
-  Eigen::Array<double,12,1> dconst;
+  Eigen::Array<double,30,1> dconst;
 
   Node &nd1 = cs.getNode(nn[0]);
   Node &nd2 = cs.getNode(nn[1]);
@@ -1331,8 +1331,7 @@ FelippaShell::getStiffnessThicknessSensitivity(CoordSet &cs, Vector &elDisp, dou
   dconst[28] = prop->nu;   // nu
   dconst[29] = prop->rho;  // rho
   // integer parameters
-  Eigen::Array<int,1,1> iconst;
-  iconst[0] = 0;
+  Eigen::Array<int,0,1> iconst;
   // inputs
   Eigen::Matrix<double,1,1> q;
   q[0] = nmat->GetShellThickness(); //prop->eh;   // value of thickness at which jacobian is to be evaluated
@@ -1352,27 +1351,21 @@ FelippaShell::getStiffnessThicknessSensitivity(CoordSet &cs, Vector &elDisp, dou
   }
 
   if(senMethod == 1) { // automatic differentiation
-    Eigen::Array<Eigen::Matrix<double,18,18>,1,1> dStiffnessdThick;
     Simo::FirstPartialSpaceDerivatives<double, FelippaShellStiffnessWRTThicknessSensitivity> dSdh(dconst,iconst); 
-    dStiffnessdThick = dSdh(q, 0);
-    std::cerr << "dStiffnessdThick(AD) = " << dStiffnessdThick << std::endl;
+    Eigen::Array<Eigen::Matrix<double,18,18>,1,1> dStifdThick = dSdh(q, 0);
+    std::cerr << "dStifdThick(AD) =\n" << dStifdThick[0] << std::endl;
+    dStiffnessdThick = dStifdThick[0];
   }
 
   if(senMethod == 2) { // finite difference
-    Eigen::Matrix<double,18,18,1> dStiffnessdThick;
     FelippaShellStiffnessWRTThicknessSensitivity<double> foo(dconst,iconst);
     Eigen::Matrix<double,1,1> qp, qm;
     double h(1e-6);
-    for(int i=0; i<18; ++i) {
-      qp[0] = q[0] + h;   qm[0] = q[0] - h;
-      Eigen::Matrix<double,18,18> Sp = foo(qp, 0);
-      Eigen::Matrix<double,18,18> Sm = foo(qm, 0);
-      Eigen::Matrix<double,18,18> dSdh_fd = (Sp-Sm)/(2*h);
-      for(int j=0; j<18; ++j) {
-          dStiffnessdThick(j,i) =dSdh_fd[j];
-      }
-    }
-    std::cerr << "dStiffnessdThick(FD) = " << dStiffnessdThick << std::endl;
+    qp[0] = q[0] + h;   qm[0] = q[0] - h;
+    Eigen::Matrix<double,18,18> Sp = foo(qp, 0);
+    Eigen::Matrix<double,18,18> Sm = foo(qm, 0);
+    dStiffnessdThick = (Sp-Sm)/(2*h);
+    std::cerr << "dStiffnessdThick(FD) =\n" << dStiffnessdThick << std::endl;
   }
 
   FullSquareMatrix ret(18,dStiffnessdThick.data());

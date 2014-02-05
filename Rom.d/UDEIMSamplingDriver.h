@@ -32,16 +32,16 @@ private:
   void readAndProjectSnapshots(BasisId::Type type, const int vectorSize, VecBasis &podBasis,
                           const VecNodeDof6Conversion *vecDofConversion,
                           std::vector<int> &snapshotCounts, std::vector<double> &timeStamps, VecBasis &config);
-  void buildForceArray(VecBasis &unassembledForceBasis,VecBasis &assembledForceBasis,const VecBasis &displac,
+  void buildForceArray(VecBasis &unassembledForceBasis,const VecBasis &displac,
                        const VecBasis *veloc,const VecBasis *accel,std::vector<double> timeStamps_,
                        std::vector<int> snapshotCounts_);
   void OrthoForceSnap(VecBasis &forceBasis,std::vector<double> &SVs);  
   void computeAssembledIndices(std::vector<int> &umaskIndices, std::vector<int> &amaskIndices, std::set<int> &selectedElems, std::vector<std::pair<int,int> > &elemRankDOFContainer); 
 
   int  elementCount() const; 
-  int  unassembledVecInfo(FullSquareMatrix *kelArray);
+  int  unassembledVecInfo();
 
-  void writeUnassembledForceSnap(VecBasis &unassembledForceBasis,VecBasis &assembledForceBasis); 
+  void writeUnassembledForceSnap(VecBasis &unassembledForceBasis); 
   void assembleBasisVectors(VecBasis &assembledForceBasis, VecBasis &unassembledForceBasis);
   void readUnassembledForceSnap(VecBasis &unassembledForceBasis, std::vector<double> &SVs);
 
@@ -52,7 +52,11 @@ private:
   VecNodeDof6Conversion *converter;
 
   VecBasis podBasis_;
+  VecBasis udeimBasis;
   std::map<int, std::pair<int,int> > uDOFaDOFmap;
+
+  FullSquareMatrix *kelArrayCopy; 
+
 };
 
 } /* end namespace Rom */

@@ -35,6 +35,8 @@ public:
         int* nodes(int * = 0);
 
         PrioInfo examine(int sub, MultiFront *mf);
+        int nDecFaces() { return 6;}
+        int getDecFace(int iFace, int *fn);
 
 };
 #endif

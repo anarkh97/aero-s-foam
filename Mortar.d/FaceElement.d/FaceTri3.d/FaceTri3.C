@@ -300,7 +300,7 @@ FaceTri3::ComputeArea(CoordSet &cs,const int ngp=0)
 FullM
 FaceTri3::ScalarMass(CoordSet &cs, double rho, int ngp)
 {
-   FullM Mass;
+   FullM Mass(3);
    Mass.zero();
    double Area = 0.5*GetJacobian<double,CoordSet>(cs);
    Area *= rho/24;

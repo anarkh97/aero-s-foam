@@ -1144,7 +1144,7 @@ MortarHandler::build_search(bool tdenforceFlag, int numSub, SubDomain **sd)
         for(int k=0; k<numSub; ++k) if(sd[k]->globalToLocal(glNodes[j]) > -1) localNode = true;
         if(!localNode) localEle = false; 
       }
-      if(localEle) PtrLocalMasterEntity->AddFaceElement(num++, (*MasterFaceElemSet)[i]->GetACMEFaceElemType(), masterFaceElemToNode->csize(), glNodes);
+      if(localEle) PtrLocalMasterEntity->AddFaceElement(num++, (*MasterFaceElemSet)[i]->GetFaceElemType(), masterFaceElemToNode->csize(), glNodes);
       delete [] glNodes;
     }
     delete masterFaceElemToNode;
@@ -1165,7 +1165,7 @@ MortarHandler::build_search(bool tdenforceFlag, int numSub, SubDomain **sd)
         for(int k=0; k<numSub; ++k) if(sd[k]->globalToLocal(glNodes[j]) > -1) localNode = true; 
         if(!localNode) localEle = false;
       }
-      if(localEle) PtrLocalSlaveEntity->AddFaceElement(num++, (*SlaveFaceElemSet)[i]->GetACMEFaceElemType(), slaveFaceElemToNode->csize(), glNodes);
+      if(localEle) PtrLocalSlaveEntity->AddFaceElement(num++, (*SlaveFaceElemSet)[i]->GetFaceElemType(), slaveFaceElemToNode->csize(), glNodes);
       delete [] glNodes;
     }
     delete slaveFaceElemToNode;

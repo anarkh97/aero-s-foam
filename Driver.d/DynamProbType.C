@@ -875,7 +875,10 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
   double eps1 = domain->solInfo().epsilon1;
   double eps2 = domain->solInfo().epsilon2;
 #ifdef PRINT_ENERGIES
-  std::ofstream toto("energies");
+  if(domain->solInfo().isNonLin() && domain->solInfo().check_energy_balance) {
+  std::ofstream energies("energies");
+  energies << "n " << "time " << "       Wkin           " << "   Wext          " << "    Wint         " << "   Wdis         " << "    Sum(W_i)     " 
+           << " abs(Wkin+Wint-Wext) " << " eps1*max(We,Wi,Wk) " << "  dt " << std::endl;}
 #endif
 
   for( ; t_n < tmax-0.01*dt_n_h; ) {
@@ -989,8 +992,11 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
       if(domain->solInfo().isNonLin() && domain->solInfo().check_energy_balance) {
 
         // 1. compute the kinetic energy
+        if(domain->solInfo().activatePodRom)
+           Wkin = 0.5*(v_n*v_n);
+        else {
         dynOps.M->mult(v_n,tmp1); // tmp1 = M*v_n
-        Wkin = 0.5*(v_n*tmp1);
+        Wkin = 0.5*(v_n*tmp1);}
 
         // 2. compute the external energy. 
         tmp2 = *fext_p + fext;
@@ -1002,8 +1008,12 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
 #ifdef PRINT_ENERGIES
         // 4. compute the dissipation
+        double Wdis;
+        if(domain->solInfo().activatePodRom)
+          Wdis = -0.125*dt_n_h*dt_n_h*(a_n*a_n);
+        else {
         dynOps.M->mult(a_n,tmp1);
-        double Wdis = -0.125*dt_n_h*dt_n_h*(a_n*tmp1);
+        Wdis = -0.125*dt_n_h*dt_n_h*(a_n*tmp1);}
 
         energies << setprecision(16) << n+1 << " " << t_n+dt_n_h << " "
                  << Wkin << " " << Wext << " " << Wint << " " << Wdis << " "
@@ -1012,11 +1022,11 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
                  << dt_n_h << std::endl;
 #endif
         // check |Wkin + Wint - Wext| <= 0.01*max(Wext,Wint,Wkin)
-        if(std::abs(Wkin+Wint-Wext) > std::max(eps1*std::max(Wext,std::max(Wint,Wkin)),eps2)) {
+        /*if(std::abs(Wkin+Wint-Wext) <= std::max(eps1*std::max(Wext,std::max(Wint,Wkin)),eps2)) {
           std::cerr << "Warning: energy balance check failed at t = " << t_n << std::endl;
           std::cerr << "exiting...\n";
           exit(-1);
-        }
+        }*/
       }
 
       // Update the time index

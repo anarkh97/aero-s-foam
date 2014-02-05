@@ -391,7 +391,7 @@ class Element {
                                            double *coefs, CoordSet &cs, double theta);
 
         virtual FullSquareMatrix stiffness(CoordSet& cs,double *k,int flg=1);
-        virtual FullSquareMatrix getStiffnessThicknessSensitivity(CoordSet& cs,double *k, int flg=1, int senMethod=0) { return FullSquareMatrix(); }
+        virtual FullSquareMatrix getStiffnessThicknessSensitivity(CoordSet& cs,Vector&,double *k, int flg=1, int senMethod=0) { return FullSquareMatrix(); }
         virtual FullSquareMatrix massMatrix(CoordSet& cs,double *m,int cmflg=1);
         virtual FullSquareMatrix imStiffness(CoordSet& cs,double *k,int flg=1);
         FullSquareMatrix massMatrix(CoordSet& cs, double* m, double mratio);
@@ -550,6 +550,8 @@ class Element {
 	void setTrueWeight(double trueWeight) { _trueWeight = trueWeight; }
 
 	void getCG(CoordSet &cset, double &xcg, double &ycg, double &zcg);
+        virtual int nDecFaces() { return 0; } 
+        virtual int getDecFace(int iFace, int *fn) { return 0; }
 	// END FROM DEC
 
          // PJSA: this need to be defined for 6 node tri shell & 8 node quad shell

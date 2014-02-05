@@ -86,8 +86,8 @@ DualMortarTri3::SetDualCoeffs()
 void
 DualMortarTri3::ComputeDualCoeffs(CoordSet &cs)
 {
-  if(Alpha==0) Alpha = new FullM(4);
-  else{ delete Alpha; Alpha = new FullM(4); }
+  if(Alpha==0) Alpha = new FullM(3);
+  else{ delete Alpha; Alpha = new FullM(3); }
   Alpha->zero();
 
   // 1) compute scalar mass matrix (M) of supporting face element
@@ -98,7 +98,7 @@ DualMortarTri3::ComputeDualCoeffs(CoordSet &cs)
   FaceElem->IntegrateShapeFcts(ShapeIntg, cs, 1.0, 2);
   // 3) solve M.alpha=b to get the dual shape fcts coeffs alpha
   M.factor();
-  for(int j=0; j<4; j++){
+  for(int j=0; j<3; j++){
     (*Alpha)[j][j] = ShapeIntg[j];
     M.reSolve((*Alpha)[j]); 
   }

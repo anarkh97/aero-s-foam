@@ -4099,3 +4099,33 @@ GenDecDomain<Scalar>::clean()
     if(bcVecInfo) { vecInfoStore2.push_back(bcVecInfo); bcVecInfo = 0; }
   }
 }
+
+template<class Scalar>
+void
+GenDecDomain<Scalar>::assembleNodalInertiaTensors(FullSquareMatrix **melArray)
+{
+  FSCommPattern<double> *pat = new FSCommPattern<double>(communicator, cpuToSub, myCPU, FSCommPattern<Scalar>::CopyOnSend);
+  for(int i=0; i<numSub; ++i) subDomain[i]->setNodeCommSize(pat, 9);
+  pat->finalize();
+
+  execParal2R(numSub, this, &GenDecDomain<Scalar>::dispatchInterfaceNodalInertiaTensors, pat, melArray);
+  pat->exchange();
+  execParal1R(numSub, this, &GenDecDomain<Scalar>::collectInterfaceNodalInertiaTensors, pat);
+
+  delete pat;
+}
+
+template<class Scalar>
+void
+GenDecDomain<Scalar>::dispatchInterfaceNodalInertiaTensors(int isub, FSCommPattern<double> *pat, FullSquareMatrix **melArray)
+{
+  subDomain[isub]->assembleNodalInertiaTensors(melArray[isub]);
+  subDomain[isub]->dispatchInterfaceNodalInertiaTensors(pat);
+}
+
+template<class Scalar>
+void
+GenDecDomain<Scalar>::collectInterfaceNodalInertiaTensors(int isub, FSCommPattern<double> *pat)
+{
+  subDomain[isub]->collectInterfaceNodalInertiaTensors(pat);
+}

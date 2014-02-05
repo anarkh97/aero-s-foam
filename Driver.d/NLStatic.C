@@ -285,14 +285,14 @@ Domain::getElemFollowerForce(int iele, GeomState &geomState, double *_f, int buf
 
     // Include the "load stiffness matrix" in kel
     if(compute_tangents) {
-      FullSquareMatrix k(neum[i]->numDofs());
-      k.zero();
+      FullSquareMatrix kTan(neum[i]->numDofs());
+      kTan.zero();
 
-      neum[i]->neumVectorJacobian(nodes, k, 0, &geomState, time);
+      neum[i]->neumVectorJacobian(nodes, kTan, 0, &geomState, time);
 
-      for(int i = 0; i < neum[i]->numDofs(); ++i)
-        for(int j = 0; j < neum[i]->numDofs(); ++j)
-          kel[eledofs[i]][eledofs[j]] -= k[i][j];
+      for(int j = 0; j < neum[i]->numDofs(); ++j)
+        for(int k = 0; k < neum[i]->numDofs(); ++k)
+          kel[eledofs[j]][eledofs[k]] -= kTan[j][k];
     }
 
     pbc->val = p0;
@@ -1699,16 +1699,18 @@ Domain::computeGeometricPreStress(Corotator **&allCorot, GeomState *&geomState,
 #endif
    }
 
-   times->buildStiffAndForce -= getTime();
-   Vector elementInternalForce(maxNumDOF(), 0.0);
-   Vector residual(numUncon(), 0.0);
-   getStiffAndForce(*geomState, elementInternalForce, allCorot,
-                    kelArray, residual, 1.0, 0.0, geomState, (Vector*) NULL, melArray);
-   times->buildStiffAndForce += getTime();
+   if(!domain->solInfo().samplingPodRom && !domain->solInfo().DEIMBasisPod && !domain->solInfo().UDEIMBasisPod) {
+     times->buildStiffAndForce -= getTime();
+     Vector elementInternalForce(maxNumDOF(), 0.0);
+     Vector residual(numUncon(), 0.0);
+     getStiffAndForce(*geomState, elementInternalForce, allCorot,
+                      kelArray, residual, 1.0, 0.0, geomState, (Vector*) NULL, melArray);
+     times->buildStiffAndForce += getTime();
 #ifdef PRINT_NLTIMERS
-   fprintf(stderr," ... Build Element Tangent Stiffness %13.5f s\n",
-           times->buildStiffAndForce/1000.0);
+     fprintf(stderr," ... Build Element Tangent Stiffness %13.5f s\n",
+             times->buildStiffAndForce/1000.0);
 #endif
+   }
 
    // Buckling analysis if requested
    if(geomKelArray) {
@@ -2403,7 +2405,7 @@ Domain::transformElemStiffAndForce(const GeomState &geomState, double *elementFo
       tangential_transf(Psi, T);
 
       Eigen::Vector3d V = G.segment<3>(6*k+3);
-      G.segment<3>(6*k+3) = T*V;
+      G.segment<3>(6*k+3) = (sinfo.newmarkBeta == 0) ? Jn[nodes[k]]*(T.transpose()*Jn[nodes[k]]*T).inverse()*T*V : T*V;
  
       if(compute_tangents) {
         Eigen::Matrix3d C1;
@@ -2448,7 +2450,7 @@ Domain::transformNodalMoment(const GeomState &geomState, double _G[],
   tangential_transf(Psi, T);
 
   Eigen::Vector3d V = G;
-  G = T*V;
+  G = (sinfo.newmarkBeta == 0) ? Jn[inode]*(T.transpose()*Jn[inode]*T).inverse()*T*V : T*V;
   if(compute_tangents) {
     Eigen::Matrix3d C1;
     directional_deriv1(Psi, V, C1);

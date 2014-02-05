@@ -124,6 +124,7 @@ bool weightOutFlag=false;
 bool nosa=false;
 bool useFull=false;
 bool trivialFlag=false;
+bool fsglFlag = false;
 
 int verboseFlag = 0;
 int salinasFlag = 0;
@@ -219,7 +220,6 @@ int main(int argc, char** argv)
  weightList[97] = 4.0;  // 3d 15 node serendipity wedge
  weightList[201] = 3.0; // nonlinear translational spring
  weightList[202] = 3.0; // nonlinear torsional spring
- weightList[102] = 3.0; // 3d LEIsoParamHexa
  weightList[301] = 1.0; // 2d 4-node sloshing (fluid) quadrilateral
  weightList[302] = 1.0; // 2d 2-node free-surface (fluid)
  weightList[311] = 3.0; // 3d 4-node sloshing (fluid) tetrahedron
@@ -560,6 +560,8 @@ int main(int argc, char** argv)
      weightOutFlag = true;
    if(decInit->trivial)
      trivialFlag = true;
+   if (decInit->fsgl)
+     fsglFlag = true;
    if(decInit->memory) {
      estFlag = true;
      useFull = true;

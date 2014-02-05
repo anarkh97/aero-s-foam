@@ -34,6 +34,7 @@ public:
 	void addFaces(PolygonSet *pset);
 
         PrioInfo examine(int sub, MultiFront *mf);
-
+        int nDecFaces() { return 6;}
+        int getDecFace(int iFace, int *fn);
 };
 #endif

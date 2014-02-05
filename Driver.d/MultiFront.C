@@ -20,6 +20,72 @@
 extern bool nosa;
 extern int verboseFlag;
 
+#include <Element.d/Element.h>
+class DecGluedElement: public Element {
+       int *nn;
+       int numN;
+       Element *e1, *e2;
+public:
+       int ie1, ie2;
+        DecGluedElement(Element *_e1, int _ie1, Element *_e2, int _ie2) { 
+          e1 = _e1; ie1 = _ie1; e2 = _e2; ie2 = _ie2;
+          int* n1 = e1->nodes();
+          int* n2 = e2->nodes();
+          nn = new int[e1->numNodes()+e2->numNodes()]; 
+          int c=0;
+          for(int i=0;i<e1->numNodes();i++) nn[c++] = n1[i]; 
+          for(int i=0;i<e2->numNodes();i++) nn[c++] = n2[i]; 
+          delete[] n1;
+          delete[] n2;
+          std::sort(nn,nn+e1->numNodes()+e2->numNodes());
+          int *p = std::unique(nn,nn+e1->numNodes()+e2->numNodes());
+          numN = p-nn;
+        }
+        ~DecGluedElement() { delete[] nn; } 
+        void renum(int *) {
+          fprintf(stderr,"DecGluedElement::renum not implemented\n");
+        }
+        void renum(EleRenumMap&) {
+          fprintf(stderr,"DecGluedElement::renum not implemented\n");
+        }
+        int* dofs(DofSetArray &, int *p=0) {
+          fprintf(stderr,"DecGluedElement::dofs not implemented\n");
+          return 0;
+        }
+        void markDofs(DofSetArray &) { 
+          fprintf(stderr,"DecGluedElement::markDofs not implemented\n");
+        }
+        int numDofs() {
+          fprintf(stderr,"DecGluedElement::numDofs not implemented\n");
+          return 0;
+        }
+        int numNodes() {
+           return numN;
+        }
+        int* nodes(int *p = 0) {
+          if(p == 0) p = new int[numN];
+          for(int i=0;i<numN;i++) p[i] = nn[i];
+          return p;
+        }
+        PrioInfo examine(int sub, MultiFront *mf) {
+          PrioInfo p1 = e1->examine(sub,mf);
+          PrioInfo p2 = e2->examine(sub,mf);
+          PrioInfo res;
+          if (p1.isReady || p2.isReady) res.isReady = true;
+          if(!res.isReady) return res;
+          if (p1.isReady && p2.isReady) {
+            res.priority = (p1.priority < p2.priority)? p1.priority:p2.priority;
+          } else if (p1.isReady) {
+            res.priority =  p1.priority;
+          } else {
+            res.priority =  p2.priority;
+          }
+          return res;
+        }
+//        bool hasRot() { return e1->hasRot() || e2->hasRot(); }
+
+};
+
 OrderList::OrderList(int l)
 {
   length = l;
@@ -148,19 +214,108 @@ SARule::SARule() {
     ee[i] = exp(-i/200.0);
 }
 
-MultiFront::MultiFront(Elemset *eset, CoordSet *cs, bool have_fsi) 
+MultiFront::MultiFront(Elemset *eset, CoordSet *cs, bool have_fsi, bool _fsGlFlag)
  : nw(0), nSubPerNode(0), boundIndex(0), boundNode(0), elemPerSub(0), subWeight(0), arInfo(0), nodeMask(0)
 #ifdef NOTMPL
  , prio(eset->size())
 #endif
 {
+ fsGlFlag = _fsGlFlag;
  iterationN=0;
  elems = eset;
+ fsGlued_eset = 0;
  nds = cs;
  eToN = new Connectivity(eset);
  nToE = eToN->reverse();
  numEle = elems->size();
  if(verboseFlag) filePrint(stderr, " ... Mesh Contains %d Elements and %d Nodes ...\n", numEle, nToE->csize());
+
+// RT: Glue fluid and solid wet interface elements into elements of two
+ fsGluedCounter = -1;
+ bool reallyHaveFSI = false;
+ if (have_fsi) {
+   for(int iEle = 0; iEle < numEle; ++iEle)
+   if ((*elems)[iEle] && (*elems)[iEle]->isFsiElement()) {
+     reallyHaveFSI = true; 
+     break;
+   }
+ }
+
+//fprintf(stderr,"haha MultiFront::MultiFront %d %d %d\n",int(have_fsi),int(reallyHaveFSI),
+//int(fsGlFlag));
+ if (reallyHaveFSI) fsGlFlag = false;
+ if (fsGlFlag) {
+   fsGlued_eset = new Elemset();
+   fsGluedCounter = 0;
+   int *tags = new int[numEle];
+   for(int iEle = 0; iEle < numEle; ++iEle) {
+     tags[iEle] = -1;
+     if ((*elems)[iEle]) fsGlued_eset->elemadd(iEle,(*elems)[iEle]);
+   }
+  
+   for(int iEle = 0; iEle < numEle; ++iEle) {
+     if ( (*elems)[iEle] && (*elems)[iEle]->nDecFaces()>0 ) {
+       int eventTag = getEventTag();
+       for(int iNode = 0; iNode < eToN->num(iEle); ++iNode) {
+         int node = (*eToN)[iEle][iNode];
+         for(int iEle2=0;iEle2 < nToE->num(node); ++iEle2) {
+           int thisElem = (*nToE)[node][iEle2];
+           if (tags[thisElem]==eventTag) continue;
+           tags[thisElem] = eventTag;
+           if ((*elems)[thisElem] && (*elems)[thisElem]->nDecFaces()>0) {
+             bool isF = (*elems)[iEle]->isFluidElement();
+             bool isF2 = (*elems)[thisElem]->isFluidElement();
+             if ( (isF2 && !isF) || (isF && !isF2) ) {
+               for(int iFace=0; iFace<(*elems)[iEle]->nDecFaces();iFace++) {
+                 int nn[64];
+                 int nFaceN = (*elems)[iEle]->getDecFace(iFace,nn); 
+                 std::sort(nn,nn+nFaceN);
+                 for(int iFace2=0; iFace2<(*elems)[thisElem]->nDecFaces();
+                   iFace2++) {
+                   int nn2[64];
+                   int nFaceN2 = (*elems)[thisElem]->getDecFace(iFace2,nn2); 
+                   if (nFaceN!=nFaceN2) break;
+                   std::sort(nn2,nn2+nFaceN2);
+                   bool isEqual = true;
+                   int i=0,j=0;
+                   while (i<nFaceN) {
+                     while(j<nFaceN2) {
+                       if (nn[i]!=nn2[j]) j++;
+                       else break;
+                     }
+                     if (j==nFaceN2) { isEqual = false; break; }
+                     i++;
+                   }
+                   if (isEqual) if ((*fsGlued_eset)[iEle]!=0)  {
+                     DecGluedElement *dec_e =
+                       new DecGluedElement((*elems)[iEle],iEle,
+                                          (*elems)[thisElem],thisElem);
+                     fsGlued_eset->remove(iEle);
+                     fsGlued_eset->remove(thisElem);
+                     fsGlued_eset->elemadd(numEle+fsGluedCounter,dec_e);
+                     fsGluedCounter++;
+  //                   fsAffinity.insert(make_pair(iEle,thisElem));
+                   }
+                 }
+               }
+             }
+           }
+         }
+       }
+     }
+   }
+   delete[] tags;
+   elems = fsGlued_eset;
+   delete eToN;
+   eToN = new Connectivity(elems);
+   delete nToE;
+   nToE = eToN->reverse();
+   numEle = elems->last();
+//   if(verboseFlag) filePrint(stderr, " ... Glued Mesh Contains %d Elements and %d Nodes ...\n", numEle, nToE->csize());
+
+ }
+
+
  int nrnodes = 0;
  for(int x = 0; x < nToE->csize(); ++x)
    if(nToE->num(x) != 0)
@@ -171,8 +326,8 @@ MultiFront::MultiFront(Elemset *eset, CoordSet *cs, bool have_fsi)
  // mark all of the elements as not assigned yet
  for(iEle = 0; iEle < numEle; ++iEle) {
    assignedSubD[iEle] = -1;
-   if((*eset)[iEle])
-     elemHasRot[iEle] = (*eset)[iEle]->hasRot();
+   if((*elems)[iEle])
+     elemHasRot[iEle] = (*elems)[iEle]->hasRot();
  }
  int numNode = nToE->csize();
  // Now we create a flag array used for checking during an operation
@@ -184,11 +339,13 @@ MultiFront::MultiFront(Elemset *eset, CoordSet *cs, bool have_fsi)
    flag[i] = -1;
  elemCG = 0;
 
+
+
  
 // JLchange: determine which elements are connected with a fsi node 
  isFsiConnected   = new bool[numEle];
  for(iEle = 0; iEle < numEle; ++iEle) 
-   if((*eset)[iEle]) isFsiConnected[iEle] = false; 
+   if((*elems)[iEle]) isFsiConnected[iEle] = false; 
  if (have_fsi) { 
    for(iEle = 0; iEle < numEle; ++iEle)  
    if ((*elems)[iEle] && (*elems)[iEle]->isFsiElement()) {
@@ -196,11 +353,11 @@ MultiFront::MultiFront(Elemset *eset, CoordSet *cs, bool have_fsi)
      int strutNode = (*elems)[iEle]->fsiStrutNode(); 
      for(int iele = 0; iele < nToE->num(fluidNode); ++iele) { 
        int thisElem = (*nToE)[fluidNode][iele];
-       if ((*eset)[thisElem]) isFsiConnected[thisElem] = true; 
+       if ((*elems)[thisElem]) isFsiConnected[thisElem] = true; 
      } 
      for(int iele = 0; iele < nToE->num(strutNode); ++iele) { 
        int thisElem = (*nToE)[strutNode][iele];
-       if ((*eset)[thisElem]) isFsiConnected[thisElem] = true; 
+       if ((*elems)[thisElem]) isFsiConnected[thisElem] = true; 
      } 
    }
 
@@ -212,6 +369,7 @@ MultiFront::MultiFront(Elemset *eset, CoordSet *cs, bool have_fsi)
      break; 
    } 
  }
+
 }
 
 MultiFront::~MultiFront()
@@ -255,7 +413,7 @@ MultiFront::redoConnect()
 }
 
 void
-MultiFront::updateElement(int sub, int elem)
+MultiFront::updateElement(int cur_elem, int sub, int elem)
 {
  PrioInfo ePrio = (*elems)[elem]->examine(sub, this);
  // don't do anything if this element is not ready
@@ -274,6 +432,7 @@ MultiFront::updateElement(int sub, int elem)
  // if this element is not yet in the boundary list, add it.
 // JLchange:
 // prio.add(elem);
+
  if (isFsiConnected[elem]) prio.addInfinity(elem); 
  else prio.add(elem);
 #else
@@ -304,7 +463,7 @@ MultiFront::updateElement(int sub, int elem)
 }
 
 void
-MultiFront::addNodesToSub(int sub, int numNewNodes, int *newNodes)
+MultiFront::addNodesToSub(int cur_elem, int sub, int numNewNodes, int *newNodes)
 {
  int iElem, iNode;
 
@@ -312,7 +471,8 @@ MultiFront::addNodesToSub(int sub, int numNewNodes, int *newNodes)
  for(iNode = 0; iNode < numNewNodes; ++iNode) 
    for(iElem = 0; iElem < nToE->num(newNodes[iNode]); ++iElem) {
      int elem = (*nToE)[newNodes[iNode]][iElem];
-     if(flag[ elem ] != eventTag && assignedSubD[elem] < 0) updateElement(sub, elem);
+     if(flag[ elem ] != eventTag && assignedSubD[elem] < 0)
+        updateElement(cur_elem, sub, elem);
      flag[elem] = eventTag;
    }
 }
@@ -374,7 +534,7 @@ MultiFront::addElemToSub(int sub, int elem)
    }
  }
  if(numNewNodes > 0)
-   addNodesToSub(sub, numNewNodes, newNodes);
+   addNodesToSub(elem, sub, numNewNodes, newNodes);
 }
 
 void
@@ -481,6 +641,7 @@ MultiFront::decompose(int numSub, bool have_fsi)
      int minNode = -1;
      for(iNode = 0; iNode < numNodes; ++iNode) {
        if(nodeMask[iNode] > 0 && nodeMask[iNode] < minDeg) {
+
          minDeg = nodeMask[iNode];
          minNode = iNode;
        }
@@ -493,7 +654,7 @@ MultiFront::decompose(int numSub, bool have_fsi)
      }
      if(iElem == nToE->num(minNode)) {
        break;
-     }
+	     }
    } 
    prio.clear();
    count = 0;
@@ -553,7 +714,6 @@ subdomain, from a fsi node/element in the current priority list.
        remWeight -= thisElemWeight; 
      }
    }
-
 
    iSub++;
    nRemain -= count;
@@ -640,6 +800,53 @@ subdomain, from a fsi node/element in the current priority list.
 
  // filePrint(stderr," ... Total Time for Mesh Decomposition Is %14.5f sec and %14.3f Mb\n",
  //          (getTime() - tDec)/1000.0, (memoryUsed()-mDec)/(1024.0*1024.0));
+
+
+ if (fsGluedCounter>0) {
+  
+   Decomposition *origDec = dec;
+   dec = new Decomposition;
+   dec->nsub = origDec->nsub;
+   dec->pele = new int[dec->nsub+1];
+   dec->eln = new int[numEle-fsGluedCounter];
+   
+   for(iSub = 0; iSub <= dec->nsub; ++iSub)
+     dec->pele[iSub] = 0;
+  
+   for(iSub = 0; iSub < dec->nsub; ++iSub) {
+     for(int i = origDec->pele[iSub]; i< origDec->pele[iSub+1]; i++) {
+       dec->pele[iSub+1]++;
+       if (origDec->eln[i] >= numEle-fsGluedCounter) dec->pele[iSub+1]++;
+     }
+   }
+  
+   for(iSub = 0; iSub < dec->nsub; ++iSub) {
+     dec->pele[iSub+1] += dec->pele[iSub];
+   }
+  
+   for(iSub = 0; iSub < dec->nsub; ++iSub) {
+     int c = dec->pele[iSub];
+     for(int i = origDec->pele[iSub]; i< origDec->pele[iSub+1]; i++) {
+       int iEle = origDec->eln[i];
+       if (iEle >= numEle-fsGluedCounter) {
+         DecGluedElement *pe = dynamic_cast<DecGluedElement*>( (*elems)[iEle] );
+         dec->eln[c] = pe->ie1;
+         c++;
+         dec->eln[c] = pe->ie2;
+         c++;
+       } else {
+         dec->eln[c] = iEle;
+         c++;
+       }
+     }
+   }
+  
+   delete origDec;
+ }
+ if (fsGluedCounter>-1) { 
+// RT: Where to delete elems = fsGlued_eset;
+  delete fsGlued_eset;
+ }
 
  return dec;
 }

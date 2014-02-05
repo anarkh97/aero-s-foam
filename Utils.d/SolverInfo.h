@@ -354,6 +354,7 @@ struct SolverInfo {
    int  svdBlockSize;
    bool DEIMBasisPod;
    bool UDEIMBasisPod;
+   bool ReducedStiffness;
    bool computeForceSnap;
    bool orthogForceSnap;
    bool computeDEIMIndices;
@@ -628,6 +629,7 @@ struct SolverInfo {
                   svdPodRom          = false;
                   DEIMBasisPod       = false;
                   UDEIMBasisPod	     = false;
+		  ReducedStiffness   = false;
                   computeForceSnap   = false;
 		  orthogForceSnap    = false;
                   computeDEIMIndices = false;

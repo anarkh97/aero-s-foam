@@ -505,6 +505,9 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcess()
   if(domain_->nDirichlet() > 0) {
     geomState_->updatePrescribedDisplacement(domain_->getDBC(), domain_->nDirichlet(), domain_->getNodes());
   }
+  if(domain_->solInfo().newmarkBeta == 0) {
+    domain_->assembleNodalInertiaTensors(melArray_);
+  }
 
   const FileNameInfo fileInfo;
   

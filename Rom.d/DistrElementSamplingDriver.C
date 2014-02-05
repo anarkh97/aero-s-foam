@@ -104,6 +104,9 @@ void
 DistrElementSamplingDriver::solve()
 {
   MultiDomainDynam::preProcess();
+  if(domain->solInfo().newmarkBeta == 0) {
+    decDomain->assembleNodalInertiaTensors(melArray);
+  }
 
   FileNameInfo fileInfo;
 

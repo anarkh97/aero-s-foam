@@ -2950,6 +2950,19 @@ Domain::makePreSensitivities(AllSensitivities<double> &allSens, double *bcx)
 
      break;
    }
+  }
+ }
+ // post processing for sensitivities 
+ sensitivityPreProcessing(allSens);
+#endif
+}
+
+void
+Domain::makePostSensitivities(AllSensitivities<double> &allSens, GenVector<double> &sol, double *bcx)
+{
+#ifdef USE_EIGEN3
+ for(int sindex=0; sindex < numSensitivity; ++sindex) {
+  switch(senInfo[sindex].type) {
    case SensitivityInfo::StiffnessWRTthickness:
    {
      // ... COMPUTE SENSITIVITY OF STIFFNESS MATRIX WRT THICKNESS
@@ -2959,7 +2972,17 @@ Domain::makePreSensitivities(AllSensitivities<double> &allSens, double *bcx)
      for(int iele = 0; iele < numele; iele++) { 
        int DofsPerElement = packedEset[iele]->numDofs();
        FullSquareMatrix dStiffnessdThick(DofsPerElement);
-       packedEset[iele]->getStiffnessThicknessSensitivity(nodes, dStiffnessdThick.data(),1,0);
+       // Determine element displacement vector
+       if(elDisp == 0) elDisp = new Vector(maxNumDOFs,0.0);
+       for (int k=0; k < allDOFs->num(iele); ++k) {
+         int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
+         if (cn >= 0)
+           (*elDisp)[k] = sol[cn];
+         else
+           (*elDisp)[k] = bcx[(*allDOFs)[iele][k]];
+       }
+       transformVectorInv(*elDisp, iele);         
+       packedEset[iele]->getStiffnessThicknessSensitivity(nodes, *elDisp, dStiffnessdThick.data(),1,senInfo[sindex].method);
 //       allSens.stiffnessWRTthick->add(dStiffnessdThick,(*allDOFs)[iele]);
        // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
        int *dofs = (*allDOFs)[iele];
@@ -2980,19 +3003,6 @@ Domain::makePreSensitivities(AllSensitivities<double> &allSens, double *bcx)
      }
      break;
    }
-  }
- }
- // post processing for sensitivities 
- sensitivityPreProcessing(allSens);
-#endif
-}
-
-void
-Domain::makePostSensitivities(AllSensitivities<double> &allSens, GenVector<double> &sol, double *bcx)
-{
-#ifdef USE_EIGEN3
- for(int sindex=0; sindex < numSensitivity; ++sindex) {
-  switch(senInfo[sindex].type) {
    case SensitivityInfo::StressVMWRTthickness: 
    {
      // ... COMPUTE DERIVATIVE OF VON MISES STRESS WITH RESPECT TO THICKNESS

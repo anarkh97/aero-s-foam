@@ -43,10 +43,15 @@ void
 UDEIMSamplingDriver::solve() {
 
   SingleDomainDynamic::preProcess();
+  if(domain->solInfo().newmarkBeta == 0) {
+    domain->assembleNodalInertiaTensors(melArray);
+  }
   converter = new VecNodeDof6Conversion(*domain->getCDSA());
 
   const int podSizeMax = domain->solInfo().maxSizePodRom; 
   bool normalized = true;
+
+  domain->createKelArray(kelArrayCopy);                    // initialize linear stiffness matrix
 
     VecBasis unassembledForceBuf;                          //container for unassembled force snapshots/svd
     VecBasis assembledForceBuf;                            //container for assembled force svd
@@ -59,7 +64,7 @@ UDEIMSamplingDriver::solve() {
     readInBasis(podBasis_, BasisId::STATE, BasisId::POD, podSizeMax, normalized);                              //get POD projection basis
 
     if(domain->solInfo().computeForceSnap){
-      writeUnassembledForceSnap(unassembledForceBuf,assembledForceBuf);                                        //get force snapshots
+      writeUnassembledForceSnap(unassembledForceBuf);                                        //get force snapshots
     } else {
       readUnassembledForceSnap(unassembledForceBuf,singularVals);                                              //read basis from file
       assembleBasisVectors(assembledForceBuf, unassembledForceBuf);
@@ -103,7 +108,7 @@ UDEIMSamplingDriver::writeBasisToFile(const VecBasis &OutputBasis, std::vector<S
 }
 
 void
-UDEIMSamplingDriver::writeUnassembledForceSnap(VecBasis &unassembledForceBasis,VecBasis &assembledForceBasis) 
+UDEIMSamplingDriver::writeUnassembledForceSnap(VecBasis &unassembledForceBasis) 
 {
 #ifdef USE_EIGEN3
   //First read in state snapshots 
@@ -137,7 +142,7 @@ UDEIMSamplingDriver::writeUnassembledForceSnap(VecBasis &unassembledForceBasis,V
 
   //Now build forcevectors
   std::vector<double> SVs;
-  buildForceArray(unassembledForceBasis,assembledForceBasis,displac,veloc_,accel_,timeStamps,snapshotCounts);
+  buildForceArray(unassembledForceBasis,displac,veloc_,accel_,timeStamps,snapshotCounts);
   OrthoForceSnap(unassembledForceBasis,SVs); //orthogonalize unassembled vectors
 
   Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > unassembledMap(unassembledForceBasis.data(),unassembledForceBasis.size(),unassembledForceBasis.numVectors());
@@ -190,28 +195,69 @@ UDEIMSamplingDriver::readUnassembledForceSnap(VecBasis &unassembledForceBasis, s
   int numCols = domain->solInfo().forcePodSize;
   int maxCols;
 
-  svdFile >> mapSize; svdFile >> numRows; svdFile >> maxCols;
-  unassembledForceBasis.dimensionIs(numCols,numRows);
-   
-  int first, second1, second2;
-  for(int i = 0; i != mapSize; i++){
-    svdFile >> first; svdFile >> second1; svdFile >> second2;
-    uDOFaDOFmap.insert(std::make_pair(first,std::make_pair(second1,second2)));
-  }
- 
-  double element, singularValue;
-  for(int col = 0; col != numCols; col++){
-    svdFile >> singularValue;
-    SVs.push_back(singularValue);
-    for(int row = 0; row != numRows; row++){
-      svdFile >> element;
-      unassembledForceBasis[col][row] = element;
-    }
-  }
-  
-  svdFile >> singularValue;
-  SVs.push_back(singularValue);
+  std::cout << "reading in unassembled force snapshots from " << svdFileName.c_str() << std::endl;
 
+  if(svdFile.is_open()){
+ 
+   if(svdFile.good())
+     svdFile >> mapSize;
+   else
+       throw std::runtime_error("... Bad File ...");
+
+   if(svdFile.good())
+     svdFile >> numRows; 
+    else
+       throw std::runtime_error("... Bad File ...");
+
+   if(svdFile.good())
+     svdFile >> maxCols;
+    else
+       throw std::runtime_error("... Bad File ...");
+   
+   std::cout << "Map size = " << mapSize << " Unassembled Length = " << numRows << " Maximum Basis size = " << maxCols << std::endl;
+   unassembledForceBasis.dimensionIs(numCols,numRows);
+    
+   int first, second1, second2;
+   for(int i = 0; i != mapSize; i++){
+     if(svdFile.good())
+       svdFile >> first; 
+     else
+       throw std::runtime_error("... Bad File ...");
+
+     if(svdFile.good())
+       svdFile >> second1; 
+     else
+       throw std::runtime_error("... Bad File ...");
+
+     if(svdFile.good())
+       svdFile >> second2;
+     else
+       throw std::runtime_error("... Bad File ...");
+
+     uDOFaDOFmap.insert(std::make_pair(first,std::make_pair(second1,second2)));
+   }
+   
+   std::cout << "Singular Values:" << std::endl;
+   double element, singularValue;
+   for(int col = 0; col != numCols; col++){
+     if(svdFile.good())
+       svdFile >> singularValue;
+     else
+       throw std::runtime_error("... Bad File ...");
+
+     SVs.push_back(singularValue);
+     std::cout << singularValue << " ";
+     for(int row = 0; row != numRows; row++){
+       svdFile >> element;
+       unassembledForceBasis[col][row] = element;
+     }
+   }
+   std::cout << std::endl;
+   svdFile >> singularValue;
+   SVs.push_back(singularValue);
+ } else {
+   throw std::runtime_error("... File not Open ...");
+ }
 }
 
 void
@@ -307,12 +353,12 @@ UDEIMSamplingDriver::computeAndWriteUDEIMBasis(VecBasis &unassembledForceBuf,Vec
   if(maxDeimBasisSize == 0)
     maxDeimBasisSize = umaskIndices.size();//if not, we solve a square system
 
-  VecBasis deimBasis(podBasis_.vectorCount(),podBasis_.vectorInfo());
+  udeimBasis.dimensionIs(podBasis_.vectorCount(),podBasis_.vectorInfo());
 #ifdef USE_EIGEN3
   Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > podMap(podBasis_.data(),podBasis_.size(), podBasis_.vectorCount());
   Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > uforceMap(unassembledForceBuf.data(), unassembledForceBuf.size(), unassembledForceBuf.vectorCount());
   Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > aforceMap(assembledForceBuf.data(),assembledForceBuf.size(),assembledForceBuf.vectorCount());
-  Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > deimMap(deimBasis.data(),deimBasis.size(), deimBasis.vectorCount());
+  Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > deimMap(udeimBasis.data(),udeimBasis.size(), udeimBasis.vectorCount());
 
   Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> compressedDBTranspose(podBasis_.numVectors(),umaskIndices.size());
   Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> rowReducedUFM(umaskIndices.size(),maxDeimBasisSize);
@@ -329,8 +375,6 @@ UDEIMSamplingDriver::computeAndWriteUDEIMBasis(VecBasis &unassembledForceBuf,Vec
 
   std::cout << "condition Number of (P^T*U) = " << SVDOfUmasked.singularValues()(0)/SVDOfUmasked.singularValues()(SVDOfUmasked.nonzeroSingularValues()-1) << std::endl;
   std::cout << "||(P^T*U)^-1)||_2 = " << invSVs(SVDOfUmasked.nonzeroSingularValues()-1) << std::endl;
-  std::cout << "sigma_m+1 = " << singularVals[singularVals.size()-1] << std::endl;
-  std::cout << "E(f) = " << invSVs(SVDOfUmasked.nonzeroSingularValues()-1)*singularVals[singularVals.size()-1]<< std::endl;
 
   compressedDBTranspose = podMap.transpose()*aforceMap.leftCols(maxDeimBasisSize)*SVDOfUmasked.matrixV()*invSVs.asDiagonal()*SVDOfUmasked.matrixU().transpose();
   //we are computing the transpose of the basis
@@ -350,7 +394,7 @@ UDEIMSamplingDriver::computeAndWriteUDEIMBasis(VecBasis &unassembledForceBuf,Vec
   }
 
   std::vector<double> dummySVs; //we don't need the actual singular values for the POD basis
-  writeBasisToFile(deimBasis, dummySVs, BasisId::FORCE, BasisId::ROB);
+  writeBasisToFile(udeimBasis, dummySVs, BasisId::FORCE, BasisId::ROB);
 #endif
 }
 
@@ -463,12 +507,27 @@ UDEIMSamplingDriver::writeSampledMesh(std::vector<int> &maskIndices, std::set<in
    reduce(podBasis_, constForceFull,  constForceRed); 
    bool reduce_f = (constForceFull.norm() != 0);
 
-  // output the reduced forces
+  //initialize reduced mesh output file stream
   std::ofstream meshOut(getMeshFilename(fileInfo).c_str(), std::ios_base::app);
+  meshOut.precision(std::numeric_limits<double>::digits10+1);
   if(domain->solInfo().reduceFollower) meshOut << "REDFOL\n";
+
+  // reduced stiffness
+  meshOut << "*\nREDSTIFF\n"  ;
+
+  for(int column=0; column<podBasis_.vectorCount(); ++column){
+    Vector columnOfKtimesV(solVecInfo());
+    Vector columnOfRedK(podBasis_.vectorCount());
+    columnOfKtimesV.zero();
+    domain->getKtimesU(podBasis_[column], bcx, columnOfKtimesV, 1.0, kelArrayCopy);
+    reduce(podBasis_, columnOfKtimesV, columnOfRedK);
+    for(int i=0; i<podBasis_.vectorCount(); ++i){
+      meshOut << columnOfRedK[i] << std::endl;}
+  }
+
+  // output the reduced forces
   if(reduce_f) {
     meshOut << "*\nFORCES\nMODAL\n";
-    meshOut.precision(std::numeric_limits<double>::digits10+1);
     for(int i=0; i<podBasis_.vectorCount(); ++i)
       meshOut << i+1 << " "  << constForceRed[i] << std::endl; 
   }
@@ -476,18 +535,24 @@ UDEIMSamplingDriver::writeSampledMesh(std::vector<int> &maskIndices, std::set<in
 #ifdef USE_EIGEN3
   // build and output compressed basis
   podBasis_.makeSparseBasis(meshRenumbering.reducedNodeIds(), domain->getCDSA());
+  udeimBasis.makeSparseBasis(meshRenumbering.reducedNodeIds(), domain->getCDSA());
   {
-    std::string filename = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
-    filename.append(".reduced");
-    if(domain->solInfo().newmarkBeta == 0 || domain->solInfo().useMassNormalizedBasis) filename.append(".normalized");
-    filePrint(stderr," ... Writing compressed basis to file %s ...\n", filename.c_str());
+    std::string PODfilename = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
+    std::string DEIMfilename = BasisFileId(fileInfo, BasisId::FORCE, BasisId::ROB);
+    PODfilename.append(".reduced");
+    DEIMfilename.erase(DEIMfilename.end()-6,DEIMfilename.end());
+    DEIMfilename.append(".reduced.udeim");
+    if(domain->solInfo().newmarkBeta == 0 || domain->solInfo().useMassNormalizedBasis) PODfilename.append(".normalized");
+    filePrint(stderr," ... Writing compressed POD/UDEIM basis to file %s and %s ...\n", PODfilename.c_str(), DEIMfilename.c_str());
     DofSetArray reduced_dsa(reducedMesh.nodes().size(), const_cast<Elemset&>(reducedMesh.elements()));
     ConstrainedDSA reduced_cdsa(reduced_dsa, reducedMesh.dirichletBConds().size(), const_cast<BCond*>(&reducedMesh.dirichletBConds()[0]));
     VecNodeDof6Conversion converter(reduced_cdsa);
-    BasisOutputStream output(filename, converter, false);
+    BasisOutputStream PODoutput(PODfilename, converter, false);
+    BasisOutputStream DEIMoutput(DEIMfilename, converter, false);
 
     for (int iVec = 0; iVec < podBasis_.vectorCount(); ++iVec) {
-      output << podBasis_.compressedBasis().col(iVec);
+      PODoutput << podBasis_.compressedBasis().col(iVec);
+      DEIMoutput << udeimBasis.compressedBasis().col(iVec);
     }
 
     std::map<int,int> nodeRenum(meshRenumbering.nodeRenumbering());
@@ -509,22 +574,17 @@ UDEIMSamplingDriver::writeSampledMesh(std::vector<int> &maskIndices, std::set<in
 }
 
 void
-UDEIMSamplingDriver::buildForceArray(VecBasis &unassembledForceBasis,VecBasis &assembledForceBasis,const VecBasis &displac,const VecBasis *veloc,
+UDEIMSamplingDriver::buildForceArray(VecBasis &unassembledForceBasis,const VecBasis &displac,const VecBasis *veloc,
                                      const VecBasis *accel,std::vector<double> timeStamps_,std::vector<int> snapshotCounts_)
 {//this memeber function is for converting state snapshots to force snapshots in the absence of precollected force snapshots from model I
   //most of the code is copied from assembleTrainingData in ElementSamplingDriver.C
   std::vector<double>::iterator timeStampIt = timeStamps_.begin();
 
-  FullSquareMatrix *kelArrayCopy; //copy of linear stiffness matrix that is not overwritten
-  domain->createKelArray(kelArrayCopy); //initialize linear stiffness matrix
-
   //initialize assembled and unassembled snapshot containers
-  unassembledForceBasis.dimensionIs(displac.vectorCount(), unassembledVecInfo(kelArrayCopy));
-  assembledForceBasis.dimensionIs(displac.vectorCount(), SingleDomainDynamic::solVecInfo());
+  unassembledForceBasis.dimensionIs(displac.vectorCount(), unassembledVecInfo());
   
   //temporary working arrays
-  Vector unassembledTarget(unassembledVecInfo(kelArrayCopy),0.0);
-  Vector assembledTarget(solVecInfo(),0.0);
+  Vector unassembledTarget(unassembledVecInfo(),0.0);
 
   int iSnap = 0;
   for(int i = 0; i < snapshotCounts_.size(); i++) {//loop over snapshot sets
@@ -540,12 +600,9 @@ UDEIMSamplingDriver::buildForceArray(VecBasis &unassembledForceBasis,VecBasis &a
       dsp = displac[iSnap];
 
       //special function call to get unassembled snapshots and mapping from unassembled to assembled DOFS
-      SingleDomainDynamic::getUnassembledNonLinearInternalForce(dsp,assembledTarget,unassembledTarget,uDOFaDOFmap,kelArrayCopy,*timeStampIt,jSnap);
+      SingleDomainDynamic::getUnassembledNonLinearInternalForce(dsp,unassembledTarget,uDOFaDOFmap,kelArrayCopy,*timeStampIt,jSnap);
    
-      assembledTarget.zero();
-
       unassembledForceBasis[iSnap] = unassembledTarget;
-      assembledForceBasis[iSnap]   = assembledTarget;
       timeStampIt++;
 
       }
@@ -598,7 +655,7 @@ UDEIMSamplingDriver::readAndProjectSnapshots(BasisId::Type type, const int vecto
                                               std::vector<int> &snapshotCounts, std::vector<double> &timeStamps, VecBasis &config)
 {
   const int snapshotCount = snapSize(type, snapshotCounts);
-  filePrint(stderr, " ... Reading in and Projecting %d %s Snapshots ...\n", snapshotCount, toString(type).c_str());
+  filePrint(stderr, " ... Reading in %d %s Snapshots ...\n", snapshotCount, toString(type).c_str());
 
   config.dimensionIs(snapshotCount, vectorSize);
   timeStamps.clear();
@@ -644,7 +701,7 @@ UDEIMSamplingDriver::readAndProjectSnapshots(BasisId::Type type, const int vecto
   assert(timeStamps.size() == snapshotCount);
 }
 
-int UDEIMSamplingDriver::unassembledVecInfo(FullSquareMatrix *kelArray){
+int UDEIMSamplingDriver::unassembledVecInfo(){
 
   //compute number of unassembled indices on an element by element base
   //to minimize the amount of storage required
@@ -652,7 +709,7 @@ int UDEIMSamplingDriver::unassembledVecInfo(FullSquareMatrix *kelArray){
   int unassembledLength = 0;
 
   for(int iele = 0; iele != elementCount(); iele++){
-    for(int idof = 0; idof != kelArray[iele].dim(); idof++){
+    for(int idof = 0; idof != kelArrayCopy[iele].dim(); idof++){
       int uDofNum = domain->getCDSA()->getRCN((*domain->getAllDOFs())[iele][idof]);
       if(uDofNum >=0)
         unassembledLength += 1;

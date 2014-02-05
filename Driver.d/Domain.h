@@ -410,7 +410,7 @@ class Domain : public HData {
                                          double time, GeomState *refState, Vector *reactions,
                                          FullSquareMatrix *mel, bool compute_tangents);
      void getUnassembledFictitiousForce(GeomState &geomState, Vector &elementForce,
-                                        FullSquareMatrix *kel, Vector &residual, Vector &unassemResidual,
+                                        FullSquareMatrix *kel, Vector &unassemResidual,
                                         double time, GeomState *refState, Vector *reactions,
                                         FullSquareMatrix *mel, bool compute_tangents);
      void getUDEIMFictitiousForceOnly(const std::map<int, std::vector<int> > &weights, GeomState &geomState, Vector &elementForce,
@@ -452,7 +452,7 @@ class Domain : public HData {
                                     FullSquareMatrix *kelCopy = NULL);
      void getUnassembledNonLinearInternalForce(GeomState &u, Vector &elementInternalForce,
                            Corotator **allCorot, FullSquareMatrix *kel,
-                           Vector &residual, Vector &unassemResidual, std::map<int, std::pair<int,int> > &uDOFaDOFmap,
+                           Vector &unassemResidual, std::map<int, std::pair<int,int> > &uDOFaDOFmap,
                            double lambda = 1.0, double time = 0.0, int tIndex = 0,
                            GeomState *refState = NULL, Vector *reactions = NULL,
                            FullSquareMatrix *mel = NULL,FullSquareMatrix *kelCopy = NULL);
@@ -1183,6 +1183,13 @@ class Domain : public HData {
                   // the default is 0, for compatibility with top files generated using -t command line argument
      int *nodeTable;
      int exactNumNodes;
+
+     void assembleNodalInertiaTensors(FullSquareMatrix *mel);
+#ifdef USE_EIGEN3
+  protected:
+     Eigen::Array<Eigen::Matrix3d,Eigen::Dynamic,1> Jn; // array of nodal inertia tensors for each node including contributions
+                                                        // from both elements and DIMASS. Used for nonlinear explicit ROM only
+#endif
 };
 
 #ifdef _TEMPLATE_FIX_

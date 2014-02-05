@@ -250,3 +250,15 @@ HelmIsoParamTetra::numNodes() {
     return(4);   // to ignore effect of mid-size nodes in dec
 }
 
+int HelmIsoParamTetra::getDecFace(int iFace, int *fn) {
+  IsoParamUtilsTetra ipu(order);
+  int ordersq = ipu.getordersq();
+  ipu.faceindeces(iFace+1, fn);
+  for(int i=0;i<ordersq;i++) {
+    int tmp = fn[i];
+    fn[i] = nn[tmp];
+  }
+  return ordersq;
+}
+
+

@@ -188,7 +188,7 @@ GeoSource::writeNodeScalarToFile(double *data, int numData, int glSub, int offse
     int k = 0;
     for(int i = 0; i < numData/numComponents; ++i) {
       while(true) { if(glNodeNums[k] == -1) k++; else break; }
-      if(glNodeNums[k] >= numNodes /*nodes.size()*/) continue; // don't print "internal" nodes eg for rigid beams
+      if(glNodeNums[k] >= numNodes /*nodes.size()*/) { k++; continue; } // don't print "internal" nodes eg for rigid beams
                                                                // note: nodes.size() is not available when using "binaryinput on"
       int glNode = (domain->outFlag) ? domain->nodeTable[glNodeNums[k]]-1 : glNodeNums[k]; k++;
       if(group != -1) {

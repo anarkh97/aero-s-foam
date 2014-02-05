@@ -47,7 +47,11 @@ private:
   VecNodeDof6Conversion *converter;
 
   VecBasis podBasis_;
+  VecBasis deimBasis;
 
+  FullSquareMatrix *kelArrayCopy;
+
+  double MPOSingularValue; //m+1 singular value of basis V
 };
 
 } /* end namespace Rom */

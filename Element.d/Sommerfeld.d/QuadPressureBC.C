@@ -157,4 +157,17 @@ QuadPressureBC::getNormal(CoordSet &cs, double normal[3])
   normal[2] = nz/l;
 }
 
+int
+QuadPressureBC::findAndSetEle(CoordSet& cs, Elemset &eset, Connectivity *nodeToElem, int *eleTouch, int *eleCount, int myNum, int it)
+{
+  // overriding SommerElement::findAndSetEle because the normal should not be reversed
+  this->iEle = findEle(nodeToElem, eleTouch, eleCount, myNum, &eset, it);
+  if(iEle == -1) {
+    std::cerr << "QuadPressureBC::findAndSetEle could not find the corresponding element.\n";
+    return 0;
+  }
+  el = eset[iEle];
+  return -1;
+}
+
 #endif

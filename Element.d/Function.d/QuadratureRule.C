@@ -626,16 +626,16 @@ template<typename T, typename VecType>
 int
 TriangleQuadratureRule<T,VecType>::getN()
 {
-  // TODO: higher order rules
-  return 1;
+  return n;
 }
+
+extern void getGaussPtOnTriangle(int, int, double&, double&, double&, double&); // Mortar.d/Divers.d/Divers.C
 
 template<typename T, typename VecType>
 void
 TriangleQuadratureRule<T,VecType>::getAbscissaAndWeight(int i, VecType& xi, T& weight)
 {
-  // TODO: higher order rules
-  xi[0] = 1/3.;
-  xi[1] = 1/3.;
-  weight = 1;
+  T zeta;
+  getGaussPtOnTriangle(n, i, xi[0], xi[1], zeta, weight);
 }
+

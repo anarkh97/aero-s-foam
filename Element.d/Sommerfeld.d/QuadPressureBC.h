@@ -44,9 +44,8 @@ class QuadPressureBC : public SommerElement
     PressureBCond* getPressure() { return pbc; }
     void neumVector(CoordSet&, Vector&, int = 0, GeomState* = 0, double t = 0);
 
-    int findAndSetEle(CoordSet& cs,Elemset &eset,
-        Connectivity *nodeToEle, int *eleTouch, int *eleCount, int myNum,
-        int it = 0) { return 0; } // normals will never be flipped. TODO reconsider this
+    int findAndSetEle(CoordSet& cs, Elemset &eset, Connectivity *nodeToEle,
+                      int *eleTouch, int *eleCount, int myNum, int it = 0);
 };
 
 #endif

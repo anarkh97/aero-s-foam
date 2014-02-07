@@ -16,7 +16,7 @@ Triangle6PressureBC::getConstants(CoordSet& cs, Eigen::Array<double,27,1> &scons
               cs[nn[4]]->x, cs[nn[4]]->y, cs[nn[4]]->z,
               cs[nn[5]]->x, cs[nn[5]]->y, cs[nn[5]]->z,
               pbc->val, 0, 0, 0, 0, 0, 0, 0, 0;
-    iconst << 1, // quadrature rule degree
+    iconst << 3, // number of gauss points
               0;
   }
   else {
@@ -35,7 +35,7 @@ Triangle6PressureBC::getConstants(CoordSet& cs, Eigen::Array<double,27,1> &scons
               pbc->conwep->ScaleLength,
               pbc->conwep->ScaleTime,
               pbc->conwep->ScaleMass;
-     iconst << 1, // quadrature rule degree
+     iconst << 6, // number of gauss points
                (pbc->conwep->BlastType == BlastLoading::BlastData::SurfaceBurst ? 1 : 2);
   }
 }

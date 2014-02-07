@@ -14,7 +14,7 @@ TrianglePressureBC::getConstants(CoordSet& cs, Eigen::Array<double,18,1> &sconst
               cs[nn[1]]->x, cs[nn[1]]->y, cs[nn[1]]->z,
               cs[nn[2]]->x, cs[nn[2]]->y, cs[nn[2]]->z,
               pbc->val, 0, 0, 0, 0, 0, 0, 0, 0;
-    iconst << 1, // quadrature rule degree
+    iconst << 1, // number of gauss points
               0;
   }
   else {
@@ -30,7 +30,7 @@ TrianglePressureBC::getConstants(CoordSet& cs, Eigen::Array<double,18,1> &sconst
               pbc->conwep->ScaleLength,
               pbc->conwep->ScaleTime,
               pbc->conwep->ScaleMass;
-     iconst << 1, // quadrature rule degree
+     iconst << 3, // number of gauss points
                (pbc->conwep->BlastType == BlastLoading::BlastData::SurfaceBurst ? 1 : 2);
   }
 }
@@ -71,7 +71,7 @@ void
 TrianglePressureBC::neumVector(CoordSet &cs, Vector &f, int, GeomState *geomState, double t)
 {
   double pressure = pbc->val;
-  // Check if Conwep is being used. If so, use the pressure from the blast loading function.
+  // Check if Conwep is being used. If so, add the pressure from the blast loading function.
   if (pbc->conwep && pbc->conwepswitch) {
     double* CurrentElementNodePositions = (double*) dbg_alloca(sizeof(double)*3*4);
     int Offset;
@@ -129,7 +129,7 @@ TrianglePressureBC::numDofs()
 void
 TrianglePressureBC::markDofs(DofSetArray &dsa)
 {
-  dsa.mark(nn, nnode,  DofSet::XYZdisp);
+  dsa.mark(nn, nnode, DofSet::XYZdisp);
 }
 
 void
@@ -164,6 +164,19 @@ TrianglePressureBC::getNormal(CoordSet &cs, double normal[3])
   normal[0] = w1/l;
   normal[1] = w2/l;
   normal[2] = w3/l;
+}
+
+int
+TrianglePressureBC::findAndSetEle(CoordSet& cs, Elemset &eset, Connectivity *nodeToElem, int *eleTouch, int *eleCount, int myNum, int it)
+{
+  // overriding SommerElement::findAndSetEle because the normal should not be reversed
+  this->iEle = findEle(nodeToElem, eleTouch, eleCount, myNum, &eset, it);
+  if(iEle == -1) {
+    std::cerr << "TrianglePressureBC::findAndSetEle could not find the corresponding element.\n";
+    return 0;
+  }
+  el = eset[iEle];
+  return -1;
 }
 
 #endif

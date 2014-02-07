@@ -1002,8 +1002,6 @@ TRAIL [a-zA-Z]*
 
 "gdisplac"|"GDISPLAC"              { yylval.ival = OutputInfo::Displacement; return STRESSID; }
 
-"disp6dof"|"DISP6DOF"              { yylval.ival = OutputInfo::Disp6DOF;     return STRESSID; }
-
 "romatrix"|"ROMATRIX"              { yylval.ival = OutputInfo::RotationMatrix; return STRESSID; }
 
 "quaterni"|"QUATERNI"              { yylval.ival = OutputInfo::Quaternion;   return STRESSID; }
@@ -1112,8 +1110,6 @@ TRAIL [a-zA-Z]*
 
 "geigenpa"|"GEIGENPA"              { yylval.ival = OutputInfo::EigenPair;    return STRESSID; }
 
-"geig6dof"|"GEIG6DOF"              { yylval.ival = OutputInfo::EigenPair6;   return STRESSID; }
-
 "strainvm"|"STRAINVM"              { yylval.ival = OutputInfo::StrainVM;     return STRESSID; }
 
 "ghelmhol"|"gacoustd"|"pressure"   { yylval.ival = OutputInfo::Helmholtz;    return STRESSID; }
@@ -1150,10 +1146,6 @@ TRAIL [a-zA-Z]*
 
 "gacceler"|"GACCELER"              { yylval.ival = OutputInfo::Acceleration; return STRESSID; }
 
-"gvel6dof"|"GVEL6DOF"              { yylval.ival = OutputInfo::Velocity6;     return STRESSID; }
-
-"gacc6dof"|"GACC6DOF"              { yylval.ival = OutputInfo::Accel6; return STRESSID; }
-
 "gtempvel"|"GTEMPVEL"              { yylval.ival = OutputInfo::TemperatureFirstTimeDerivative; return STRESSID; }
 
 "gacouvel"|"GACOUVEL"              { yylval.ival = OutputInfo::PressureFirstTimeDerivative; return STRESSID; }
@@ -1185,10 +1177,6 @@ TRAIL [a-zA-Z]*
 "heatflx"|"HEATFLX"                { yylval.ival = OutputInfo::HeatFlX;       return STRESSID; }
 
 "grdtemp"|"GRDTEMP"                { yylval.ival = OutputInfo::GrdTemp;       return STRESSID; }
-
-"velo6dof"|"VELO6DOF"              { yylval.ival = OutputInfo::Velocity6;    return STRESSID; }
-
-"accl6dof"|"ACCL6DOF"              { yylval.ival = OutputInfo::Accel6;       return STRESSID; }
 
 "gencoord"|"GENCOORD"              { yylval.ival = OutputInfo::ModeAlpha;    return STRESSID; }
 

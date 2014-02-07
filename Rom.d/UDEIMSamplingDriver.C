@@ -614,7 +614,7 @@ UDEIMSamplingDriver::buildForceArray(VecBasis &unassembledForceBasis,const VecBa
 void UDEIMSamplingDriver::OrthoForceSnap(VecBasis &forceBasis,std::vector<double> &SVs)
 {
 #ifdef USE_EIGEN3
-  std::cout << "... Orthogonalizing Snapshots ..." << std::endl;
+  std::cout << "  ... Orthogonalizing Snapshots ..." << std::endl;
   SVs.resize(forceBasis.numVectors());
   Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,1> > SingularValueMap(SVs.data(),forceBasis.numVectors());
   Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > ForceMap(forceBasis.data(), forceBasis.size(), forceBasis.numVectors());

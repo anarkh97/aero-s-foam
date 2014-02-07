@@ -957,7 +957,7 @@ class Domain : public HData {
      int  pressureFlag();
 
      // returns the value of the contact force flag
-     int  tdenforceFlag() { return int(nMortarCond > 0 && sinfo.newmarkBeta == 0.0 && sinfo.penalty == 0.0); } // TD enforcement (contact/tied surfaces with ACME) used for explicit dynamics
+     int  tdenforceFlag() { return int(nMortarCond > 0 && sinfo.newmarkBeta == 0.0/* && sinfo.penalty == 0.0*/); } // TD enforcement (contact/tied surfaces with ACME) used for explicit dynamics
 
      int  thermalFlag() { return sinfo.thermalLoadFlag || sinfo.thermoeFlag >= 0; }
 

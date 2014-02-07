@@ -2222,7 +2222,13 @@ MortarHandler::build_td_enforcement()
   bool get_cvars = true;
   bool calc_plot_force = false;
   ContactSearch::ContactErrorCode error;
-  contact_obj = new ContactTDEnforcement(Enforcement_Data, search_obj, error, get_cvars, calc_plot_force);
+  if((ConstraintOptionsData && ConstraintOptionsData->lagrangeMult == 0 && ConstraintOptionsData->penalty != 0) ||
+     (ConstraintOptionsData == NULL && domain->solInfo().lagrangeMult == 0 && domain->solInfo().penalty != 0)) {
+    contact_obj = new ContactTDEnfPenalty(Enforcement_Data, search_obj, error, get_cvars, calc_plot_force);
+  }
+  else {
+    contact_obj = new ContactTDEnforcement(Enforcement_Data, search_obj, error, get_cvars, calc_plot_force);
+  }
   if(error) { 
     std::cerr << "Error in ACME ContactTDEnforcement::ContactTDEnforcement: error code = " << error << std::endl;
     for(int i=1; i<=contact_obj->Number_of_Errors(); ++i)

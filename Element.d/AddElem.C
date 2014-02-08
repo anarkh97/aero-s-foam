@@ -280,8 +280,7 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
          ele = new (ba) FelippaShellX2(n);
        ele->setCategory(Element::Structural);
 #else
-       std::cerr << "Error: Element type 15 requires AERO-S built with Eigen3 template library." << std::endl
-                 << "exiting...\n";
+       std::cerr << " *** ERROR: Element type 15 requires AERO-S configured with the Eigen library. Exiting...\n";
        exit(-1);
 #endif 
        break;

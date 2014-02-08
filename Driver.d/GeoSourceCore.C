@@ -811,7 +811,7 @@ GeoSource::reduceMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
   delete [] colmap;
   return rank;
 #else
-  cerr << "error: GeoSource::reduceMPCs requires Eigen3 library\n"; exit(-1);
+  cerr << " *** ERROR: GeoSource::reduceMPCs requires AERO-S configured with Eigen library. Exiting...\n"; exit(-1);
   return 0;
 #endif
 }

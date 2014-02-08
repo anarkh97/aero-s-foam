@@ -24,8 +24,8 @@ AutoShapeFunction<ShapeFunctionTemplate,NumberOfNodes>::getLocalDerivatives(Tens
       (*localDerivatives)[k][3*i+2] = dNdxi(k,2);
     }
 #else
-  std::cerr << "ERROR: Implementation of AutoShapeFunction::getLocalDerivatives in file" << std::endl
-            << "       Element.d/NonLinearity.d/SolidElementTemplate.C required Eigen3 library.\n";
+  std::cerr << " *** ERROR: Implementation of AutoShapeFunction::getLocalDerivatives in file" << std::endl
+            << "            Element.d/NonLinearity.d/SolidElementTemplate.C requires AERO-S configured with Eigen library. Exiting...\n";
   exit(-1);
 #endif
 }

@@ -533,7 +533,7 @@ NLMembrane::massMatrix(CoordSet &cs, double *mel, int cmflg)
          0, 0, 1, 0, 0, 1, 0, 0, 2;
      M *= mass/12;
 #else
-     std::cerr << " ERROR: consistent mass matrix for NLMembrane element requires Eigen3 library\n";
+     std::cerr << " *** ERROR: Consistent mass matrix for NLMembrane element requires AERO-S configured with Eigen library. Exiting...\n";
      exit(-1);
 #endif
   }

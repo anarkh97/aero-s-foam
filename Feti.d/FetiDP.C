@@ -903,22 +903,18 @@ GenFetiDPSolver<Scalar>::makeKcc()
      }
      break;
 #endif
-#ifdef USE_SPOOLES
      case FetiInfo::spooles: {
        GenSpoolesSolver<Scalar> *spsolver = new GenSpoolesSolver<Scalar>(coarseConnectivity, cornerEqs);
        KccSparse = spsolver;
        KccSolver = spsolver;
      }
      break;
-#endif
-#ifdef USE_MUMPS
      case FetiInfo::mumps: {
        GenMumpsSolver<Scalar> *mumpsolver = new GenMumpsSolver<Scalar>(coarseConnectivity, cornerEqs, (int *)0, this->fetiCom);
        KccSparse = mumpsolver;
        KccSolver = mumpsolver;
      }
      break;
-#endif
    }
    this->times.memoryGtGsky += memoryUsed();
 

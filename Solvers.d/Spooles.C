@@ -99,6 +99,9 @@ GenSpoolesSolver<Scalar>::GenSpoolesSolver(Connectivity *nToN, EqNumberer *_dsa,
 
   // We should know what the number of entries is...
   InpMtx_init(inpMtx, INPMTX_BY_COLUMNS, SpoolesType<Scalar>::type, nNonZero, neq);
+#else
+  std::cerr << " *** ERROR: Solver requires AERO-S configured with the SPOOLES library. Exiting...\n";
+  exit(-1);
 #endif
 }
 
@@ -123,6 +126,9 @@ GenSpoolesSolver<Scalar>::GenSpoolesSolver(Connectivity *nToN, DofSetArray *_dsa
   inpMtx = InpMtx_new();
 
   InpMtx_init(inpMtx, INPMTX_BY_COLUMNS, SpoolesType<Scalar>::type, nNonZero, neq);
+#else
+  std::cerr << " *** ERROR: Solver requires AERO-S configured with the SPOOLES library. Exiting...\n";
+  exit(-1);
 #endif
 }
 

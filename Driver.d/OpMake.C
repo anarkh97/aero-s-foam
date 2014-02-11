@@ -99,7 +99,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
 
  int size = sizeof(double)*maxNumDOFs*maxNumDOFs;
 
- double *karray = new double[maxNumDOFs*maxNumDOFs];
+ double *karray = new double[std::max(maxNumDOFs*maxNumDOFs,maxNumDOFsFluid*maxNumDOFsFluid)];
  double *ikarray = new double[maxNumDOFs*maxNumDOFs];
  double *marray = new double[maxNumDOFs*maxNumDOFs];
 
@@ -1248,8 +1248,11 @@ Domain::rebuildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Cc
        }
        break;
 #endif
+#else
+       case 3: case 4: case 5: case 6: case 7: case 15: case 16: case 17:
+         std::cerr << " *** ERROR: Solver requires AERO-S configured with the Eigen library. Exiting...\n";         
+         exit(-1);
 #endif
-#ifdef USE_SPOOLES
        case 8: {
          spm =(GenSpoolesSolver<Scalar>*)allOps.sysSolver;
          spm->zeroAll();
@@ -1257,8 +1260,6 @@ Domain::rebuildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Cc
          systemSolver   = (GenSpoolesSolver<Scalar>*) spm;
        }
        break;
-#endif
-#ifdef USE_MUMPS
        case 9: {
          spm = (GenMumpsSolver<Scalar>*)allOps.sysSolver;
          spm->zeroAll();
@@ -1266,7 +1267,6 @@ Domain::rebuildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Cc
          systemSolver   = (GenMumpsSolver<Scalar>*) spm;
        }
        break;
-#endif
      }
      break;
 
@@ -1469,15 +1469,16 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
       systemSolver  = (GenEiSparseMatrix<Scalar,Eigen::SuperLU<Eigen::SparseMatrix<Scalar> > >*) spm;
       break;
 #endif
+#else
+     case 3: case 4: case 5: case 6: case 7: case 15: case 16: case 17:
+       std::cerr << " *** ERROR: Solver requires AERO-S configured with the Eigen library. Exiting...\n";           
+       exit(-1);
 #endif
-#ifdef USE_SPOOLES
     case 8:
       spm = constructSpooles<Scalar>(c_dsa);
       makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray,celArray);
       systemSolver   = (GenSpoolesSolver<Scalar>*) spm;
       break;
-#endif
-#ifdef USE_MUMPS
     case 9:
 #ifdef DISTRIBUTED
       if(!com) com = new FSCommunicator(structCom);
@@ -1488,7 +1489,6 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
       makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray,celArray);
       systemSolver   = (GenMumpsSolver<Scalar>*) spm;
       break;
-#endif
     case 10:
       spm = new GenDiagMatrix<Scalar>(c_dsa);
       makeSparseOps<Scalar>(allOps,Kcoef,Mcoef,Ccoef,spm,kelArray,melArray,celArray);

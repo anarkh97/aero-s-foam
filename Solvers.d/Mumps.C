@@ -26,6 +26,10 @@ template<class Scalar>
 GenMumpsSolver<Scalar>::GenMumpsSolver(Connectivity *nToN, EqNumberer *_dsa, int *map, FSCommunicator *_mpicomm)
  : SparseData(_dsa,nToN,map,0,1)
 {
+#ifndef USE_MUMPS
+  std::cerr << " *** ERROR: Solver requires AERO-S configured with the MUMPS library. Exiting...\n";
+  exit(-1);
+#endif
   neq = numUncon;
   nNonZero = xunonz[numUncon]-1; 
   unonz = new Scalar[nNonZero];
@@ -38,6 +42,10 @@ template<class Scalar>
 GenMumpsSolver<Scalar>::GenMumpsSolver(Connectivity *nToN, DofSetArray *_dsa, ConstrainedDSA *c_dsa, FSCommunicator *_mpicomm)
  : SparseData(_dsa,c_dsa,nToN,0,1,domain->solInfo().unsym())
 {
+#ifndef USE_MUMPS
+  std::cerr << " *** ERROR: Solver requires AERO-S configured with the MUMPS library. Exiting...\n";
+  exit(-1);
+#endif
   neq = numUncon;
   myMem = 0; 
   nNonZero = xunonz[numUncon]-1;
@@ -52,6 +60,10 @@ GenMumpsSolver<Scalar>::GenMumpsSolver(Connectivity *nToN, DofSetArray *_dsa, Co
                                        GenSubDomain<Scalar> **sd, FSCommunicator *_mpicomm)
  : SparseData(_dsa,c_dsa,nToN,0,1,domain->solInfo().unsym()), MultiDomainSolver<Scalar>(numUncon, nsub, sd, _mpicomm)
 {
+#ifndef USE_MUMPS
+  std::cerr << " *** ERROR: Solver requires AERO-S configured with the MUMPS library. Exiting...\n";
+  exit(-1);
+#endif
   neq = numUncon;
   myMem = 0;
   nNonZero = xunonz[numUncon]-1;

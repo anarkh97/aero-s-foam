@@ -491,7 +491,7 @@ FourNodeQuad::markDofs(DofSetArray &dsa)
 int
 FourNodeQuad::getTopNumber()
 {
-  return 102;//2;
+  return 102;
 }
 
 

@@ -2222,7 +2222,13 @@ MortarHandler::build_td_enforcement()
   bool get_cvars = true;
   bool calc_plot_force = false;
   ContactSearch::ContactErrorCode error;
-  contact_obj = new ContactTDEnforcement(Enforcement_Data, search_obj, error, get_cvars, calc_plot_force);
+  if((ConstraintOptionsData && ConstraintOptionsData->lagrangeMult == 0 && ConstraintOptionsData->penalty != 0) ||
+     (ConstraintOptionsData == NULL && domain->solInfo().lagrangeMult == 0 && domain->solInfo().penalty != 0)) {
+    contact_obj = new ContactTDEnfPenalty(Enforcement_Data, search_obj, error, get_cvars, calc_plot_force);
+  }
+  else {
+    contact_obj = new ContactTDEnforcement(Enforcement_Data, search_obj, error, get_cvars, calc_plot_force);
+  }
   if(error) { 
     std::cerr << "Error in ACME ContactTDEnforcement::ContactTDEnforcement: error code = " << error << std::endl;
     for(int i=1; i<=contact_obj->Number_of_Errors(); ++i)
@@ -2697,6 +2703,22 @@ MortarHandler::compute_td_contact_force(double dt_old, double dt, Vector &f)
 {
 #ifdef USE_ACME
   ContactSearch::ContactErrorCode error;
+
+  // override the default penalty parameter with the value set in the AERO-S input file
+  if((ConstraintOptionsData && ConstraintOptionsData->lagrangeMult == 0 && ConstraintOptionsData->penalty != 0) ||
+     (ConstraintOptionsData == NULL && domain->solInfo().lagrangeMult == 0 && domain->solInfo().penalty != 0)) {
+    double dt2 = 1.0/(0.5*(dt+dt_old)*dt);
+    double penalty = (ConstraintOptionsData) ? ConstraintOptionsData->penalty : domain->solInfo().penalty;
+    double penalty_scale = 2*penalty/dt2;
+    error = static_cast<ContactTDEnfPenalty*>(contact_obj)->Set_Penalty_Scale(penalty_scale);
+    if(error) {
+      std::cerr << "Error in ACME ContactTDEnfPenalty::Set_Penalty_Scale: error code = " << error << std::endl;
+      for(int i=1; i<=contact_obj->Number_of_Errors(); ++i)
+        std::cerr << contact_obj->Error_Message(i) << std::endl;
+      exit(error);
+    }
+  }
+
   int nACMENodes  = nMasterNodes + nSlaveNodes; // !! Assume NO COMMON nodes !!
   double *force = new double[nACMENodes*3]; // force vectors
   error = contact_obj->Compute_Contact_Force(dt_old, dt, mass, density, wavespeed, force);

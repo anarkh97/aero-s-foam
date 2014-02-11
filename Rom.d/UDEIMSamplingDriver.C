@@ -493,21 +493,21 @@ UDEIMSamplingDriver::writeSampledMesh(std::vector<int> &maskIndices, std::set<in
    }
 
   }
+
+  // compute the reduced forces (constant only). 
+  Vector constForceFull(SingleDomainDynamic::solVecInfo());
+  getConstForce(constForceFull);
+  Vector constForceRed(podBasis_.vectorCount());
+  reduce(podBasis_, constForceFull,  constForceRed);
+  bool reduce_f = (constForceFull.norm() != 0);
  
-  //construct and print renumbered mesh
+  // construct and print renumbered mesh
   const FileNameInfo fileInfo;
   const MeshRenumbering meshRenumbering(sampleElemIds.begin(), sampleElemIds.end(), *elemToNode, true);
   const MeshDesc reducedMesh(domain, geoSource, meshRenumbering, weights);
   outputMeshFile(fileInfo, reducedMesh, podBasis_.vectorCount());
 
-   // compute the reduced forces (constant only)
-   Vector constForceFull(SingleDomainDynamic::solVecInfo());
-   getConstForce(constForceFull);
-   Vector constForceRed(podBasis_.vectorCount());
-   reduce(podBasis_, constForceFull,  constForceRed); 
-   bool reduce_f = (constForceFull.norm() != 0);
-
-  //initialize reduced mesh output file stream
+  // initialize reduced mesh output file stream
   std::ofstream meshOut(getMeshFilename(fileInfo).c_str(), std::ios_base::app);
   meshOut.precision(std::numeric_limits<double>::digits10+1);
   if(domain->solInfo().reduceFollower) meshOut << "REDFOL\n";
@@ -576,7 +576,7 @@ UDEIMSamplingDriver::writeSampledMesh(std::vector<int> &maskIndices, std::set<in
 void
 UDEIMSamplingDriver::buildForceArray(VecBasis &unassembledForceBasis,const VecBasis &displac,const VecBasis *veloc,
                                      const VecBasis *accel,std::vector<double> timeStamps_,std::vector<int> snapshotCounts_)
-{//this memeber function is for converting state snapshots to force snapshots in the absence of precollected force snapshots from model I
+{//this member function is for converting state snapshots to force snapshots in the absence of precollected force snapshots from model I
   //most of the code is copied from assembleTrainingData in ElementSamplingDriver.C
   std::vector<double>::iterator timeStampIt = timeStamps_.begin();
 
@@ -614,7 +614,7 @@ UDEIMSamplingDriver::buildForceArray(VecBasis &unassembledForceBasis,const VecBa
 void UDEIMSamplingDriver::OrthoForceSnap(VecBasis &forceBasis,std::vector<double> &SVs)
 {
 #ifdef USE_EIGEN3
-  std::cout << "... Orthogonalizing Snapshots ..." << std::endl;
+  std::cout << "  ... Orthogonalizing Snapshots ..." << std::endl;
   SVs.resize(forceBasis.numVectors());
   Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,1> > SingularValueMap(SVs.data(),forceBasis.numVectors());
   Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > ForceMap(forceBasis.data(), forceBasis.size(), forceBasis.numVectors());

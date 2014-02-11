@@ -42,10 +42,10 @@ computeTet10DShapeFct(double dShape[10][3], double X[10], double Y[10], double Z
                                                                                                                              
   double J = xd1*a11 + yd1*a21 + zd1*a31 ;
   if ( J == 0.0 ) {
-   fprintf(stderr," *** WARNING: NULL JACOBIAN IN computeTet10DShapeFct.C ROUTINE.\n");
+   fprintf(stderr," *** WARNING: NULL JACOBIAN IN computeTet10DShapeFct ROUTINE.\n");
   }
   if ( J < 0.0 ) {
-    fprintf(stderr," *** WARNING: NEGATIVE JACOBIAN IN computeTet10DShapeFct.C ROUTINE.\n");
+    fprintf(stderr," *** WARNING: NEGATIVE JACOBIAN IN computeTet10DShapeFct ROUTINE.\n");
     J *= -1.; // BAD !!! BUT WORKS !!!
   }
   double cdet = 1.0 / J ;
@@ -93,7 +93,7 @@ computeTet10DShapeFct(double dShape[10][3], double X[10], double Y[10], double Z
 void 
 Tetra10ShapeFct(double Shape[10], double dShape[10][3], double m[3])
 {
-  fprintf(stderr," *** ERROR: subroutine Tetra10ShapeFct.C NOT implemented. ABORT.\n");
+  fprintf(stderr," *** ERROR: subroutine Tetra10ShapeFct NOT implemented. ABORT.\n");
   exit(-1);
                                                                                                                                          
   double r = m[0]; // = x

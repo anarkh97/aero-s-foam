@@ -3485,7 +3485,8 @@ Domain::ProcessSurfaceBCs()
       int SurfId = SurfEntities[j]->ID();
       if(SurfId-1 == surface_pres[i].surfid) {
         FaceElemSet &faceElemSet = SurfEntities[j]->GetFaceElemSet();
-        for(int iele = 0; iele < faceElemSet.last(); ++iele) {
+        int last = (SurfEntities[j]->GetIsShellFace() && tdenforceFlag()) ? faceElemSet.last()/2 : faceElemSet.last();
+        for(int iele = 0; iele < last; ++iele) {
           int nVertices = faceElemSet[iele]->nVertices();
           if(nVertices == 3 || nVertices == 4 || nVertices == 6 || nVertices == 8 || nVertices == 9
              || nVertices == 12 || nVertices == 10) {

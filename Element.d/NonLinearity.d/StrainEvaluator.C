@@ -390,7 +390,7 @@ LogarithmicStrain::getEBandDB(Tensor &_e, Tensor &__B, Tensor &_DB, const Tensor
       e(i,j) = E(i,j);
 
 #else
-  std::cerr << "Error: LogarithmicStrain requires AERO-S built with Eigen3 template library." << std::endl;
+  std::cerr << " *** ERROR: LogarithmicStrain requires AERO-S configured with Eigen library. Exiting..." << std::endl;
   exit(-1);
 #endif
 }
@@ -495,7 +495,7 @@ LogarithmicStrain::getEandB(Tensor &_e, Tensor &__B, const Tensor &_gradU, const
       e(i,j) = E(i,j);
 
 #else
-  std::cerr << "Error: LogarithmicStrain requires AERO-S built with Eigen3 template library." << std::endl;
+  std::cerr << " *** ERROR: LogarithmicStrain requires AERO-S configured with Eigen library. Exiting..." << std::endl;
   exit(-1);
 #endif
 }
@@ -523,7 +523,7 @@ LogarithmicStrain::getE(Tensor &_e, Tensor &_gradU)
     for(int j=i; j<3; ++j)
       e(i,j) = E(i,j);
 #else
-  std::cerr << "Error: LogarithmicStrain requires AERO-S built with Eigen3 template library." << std::endl;
+  std::cerr << " *** ERROR: LogarithmicStrain requires AERO-S configured with Eigen library. Exiting..." << std::endl;
   exit(-1);
 #endif
 }

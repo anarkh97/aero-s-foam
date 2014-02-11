@@ -239,21 +239,21 @@ GenDomainGroupTask<Scalar>::runFor(int isub, bool make_feti)
           spMats[isub] = eism;
         } break;
 #endif
+#else
+       case 3: case 4: case 5: case 6: case 7:
+         std::cerr << " *** ERROR: Solver requires AERO-S configured with the Eigen library. Exiting...\n";
+         exit(-1);
 #endif
-#ifdef USE_SPOOLES
         case 8 : {
           GenSpoolesSolver<Scalar> *ssmat = sd[isub]->template constructSpooles<Scalar>(sd[isub]->getCCDSA());
           dynMats[isub] = ssmat;
           spMats[isub] = ssmat;
         } break;
-#endif
-#ifdef USE_MUMPS
         case 9 : {
           GenMumpsSolver<Scalar> *msmat = sd[isub]->template constructMumps<Scalar>(sd[isub]->getCCDSA());
           dynMats[isub] = msmat;
           spMats[isub] = msmat;
         } break;
-#endif
         case 10 : {
           GenDiagMatrix<Scalar> *spm = new GenDiagMatrix<Scalar>(sd[isub]->getCCDSA()); 
           dynMats[isub] = spm;

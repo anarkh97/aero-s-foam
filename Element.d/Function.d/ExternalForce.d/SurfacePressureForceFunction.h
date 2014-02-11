@@ -131,7 +131,7 @@ class SurfacePressureForceFunction
             fext[k*NumberOfDimensions+i] += Scalar(N(k)*weight*pressure)*normal(i);
       }
 
-      return -fext;
+      return fext;
     }
 
   public:

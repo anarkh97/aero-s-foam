@@ -3671,20 +3671,16 @@ GenFetiSolver<Scalar>::newSolver(int type, Connectivity *con, EqNumberer *nums, 
       solver = (GenSolver<Scalar> *) s;
       sparse = (GenSparseMatrix<Scalar> *) s;
     } break;
-#ifdef USE_SPOOLES
     case FetiInfo::spooles: {
       GenSpoolesSolver<Scalar> *s = new GenSpoolesSolver<Scalar>(con, nums);
       solver = (GenSolver<Scalar> *) s;
       sparse = (GenSparseMatrix<Scalar> *) s;
     } break;
-#endif
-#ifdef USE_MUMPS
     case FetiInfo::mumps: {
       GenMumpsSolver<Scalar> *s = new GenMumpsSolver<Scalar>(con, nums, (int *) 0, fetiCom);
       solver = (GenSolver<Scalar> *) s;
       sparse = (GenSparseMatrix<Scalar> *) s;
     } break;
-#endif
   }
   return solver;
 }

@@ -8,7 +8,7 @@
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 
-
+extern int verboseFlag;
 /*
 C=AUTHOR C. A. Felippa, May 1967
 C=REVISED P. R. STERN, MARCH 1990
@@ -386,18 +386,20 @@ QuadElementTemplate<doublereal>
           dvmsdstress(n,3*n+1) = (2.*stress(1,n)-stress(0,n))/(2.*stress(6,n));    
           dvmsdstress(n,3*n+2) = (3.*stress(3,n))/stress(6,n);   
         }
-        cerr << "printing quadstress\n" << stress << endl; 
+//        if(verboseFlag) cerr << "printing quadstress\n" << stress << endl; 
         vmsWRTdisp = dvmsdstress * dstressdsigauss * dsigaussdepsilon * depsilondv;
-        cerr << "printing vmsWRTdisp in quadelement template\n" << vmsWRTdisp << endl;
+//        if(verboseFlag) cerr << "printing vmsWRTdisp in quadelement template\n" << vmsWRTdisp << endl;
       }
 
       if (stressFlg) {
         stressWRTdisp = (dstressdsigauss * dsigaussdepsilon) * depsilondv;
-        cerr << "printing depsilondv in quadelement template\n" << depsilondv << endl;
-        cerr << "printing dsigaussdepsilon in quadelement template\n" << dsigaussdepsilon << endl;
-        cerr << "printing dstressdsigauss in quadelement template\n" << dstressdsigauss << endl;
-        cerr << "printing dstressdsigauss*dsigaussdepsilon in quadelement template\n" << dstressdsigauss * dsigaussdepsilon << endl;
-        cerr << "printing stressWRTdisp in quadelement template\n" << stressWRTdisp << endl;
+/*        if(verboseFlag) {
+          cerr << "printing depsilondv in quadelement template\n" << depsilondv << endl;
+          cerr << "printing dsigaussdepsilon in quadelement template\n" << dsigaussdepsilon << endl;
+          cerr << "printing dstressdsigauss in quadelement template\n" << dstressdsigauss << endl;
+          cerr << "printing dstressdsigauss*dsigaussdepsilon in quadelement template\n" << dstressdsigauss * dsigaussdepsilon << endl;
+          cerr << "printing stressWRTdisp in quadelement template\n" << stressWRTdisp << endl;
+        }  */
       }
 }
 

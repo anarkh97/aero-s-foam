@@ -29,9 +29,9 @@ class Quad4LagrangePolynomialShapeFunction : public VectorValuedFunction<2,4,Sca
       //    0-------1
 
       N[0] = 1/4.*(1-xi)*(1-eta);
-      N[1] = 1/4.*(1-xi)*(1+eta);
+      N[1] = 1/4.*(1+xi)*(1-eta);
       N[2] = 1/4.*(1+xi)*(1+eta);
-      N[3] = 1/4.*(1+xi)*(1-eta);
+      N[3] = 1/4.*(1-xi)*(1+eta);
 
       return N;
     }

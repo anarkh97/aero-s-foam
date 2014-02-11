@@ -106,6 +106,8 @@ class GenSpoolesSolver : public GenSolver<Scalar>, public GenSparseMatrix<Scalar
    void    cleanUp();
    double  getSolutionTime()  { return 0.0; }
    double  getConstructTime() { return 0.0; }
+
+   int numRBM() { return 0; } // note: spooles should not be used for singular matrices.
  
  private:
    void init();

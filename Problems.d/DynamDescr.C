@@ -824,14 +824,11 @@ SingleDomainDynamic::buildOps(double coeM, double coeC, double coeK)
          allOps.Msolver = m;
          dMat->Msolver = m;
        } break;
-#ifdef USE_SPOOLES
        case 8 : {
          GenSpoolesSolver<double> *m = domain->constructSpooles<double>(domain->getCDSA());
          allOps.Msolver = m;
          dMat->Msolver = m;
        } break;
-#endif
-#ifdef USE_MUMPS
      case 9 : {
 #ifdef DISTRIBUTED
          GenMumpsSolver<double> *m = domain->constructMumps<double>(domain->getCDSA(), (Rbm*) NULL, new FSCommunicator(structCom));
@@ -841,7 +838,6 @@ SingleDomainDynamic::buildOps(double coeM, double coeC, double coeK)
          allOps.Msolver = m;
          dMat->Msolver = m;
        } break;
-#endif
    }
  }
 

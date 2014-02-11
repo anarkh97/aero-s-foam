@@ -96,6 +96,7 @@ ShearPanel::getVonMises(Vector& stress,Vector& weight,CoordSet &cs,
                 (double*)elStress, (double*)elStrain, vmssig, vmseps);
 //      _FORTRAN(spstress)(x,y,z,elDisp.data(),G,E,F1,F2,
 //                        (double*)elStress, (double*)elStrain, vmssig, vmseps);
+                                  //      when calling sands2.f
 
 // if strInd <= 6, you are retrieving a stress value:
 // if strInd >  6, you are retrieving a strain value:

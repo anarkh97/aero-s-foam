@@ -1560,16 +1560,25 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 // .....ELEMENTAL EXTENSION COMPUTATION
 
         e = (1./area)*Lm.transpose()*vd.head(9);
+        
+
+// .....COMPUTE SENSITIVITY
+        Eigen::Matrix<doublereal,6,18> LB;
+        LB << (1./area)*Lm.transpose(), Eigen::Matrix<doublereal,3,9>::Zero(),
+              Eigen::Matrix<doublereal,3,9>::Zero(), (1./area)*Lb.transpose();
+
+        dUpsilondu = LB*de_disp_du; 
 #else
 // .....ELEMENTAL CURVATURE COMPUTATION (including now the higher order contribution)
 
-        Bb = (1/area)*Lb.transpose() + Bending<doublereal>::Bd(xlp, ylp, betab, zeta[i]);
+        Bb = (1./area)*Lb.transpose() + Bending<doublereal>::Bd(xlp, ylp, betab, zeta[i]);
         chi = Bb*vd.tail(9);
 
 // .....ELEMENTAL EXTENSION COMPUTATION (including now the higher order contribution)
 
-        Bm = (1/area)*Lm.transpose() +  Membrane<doublereal>::Bd(xlp, ylp, betam, zeta[i]);
+        Bm = (1./area)*Lm.transpose() +  Membrane<doublereal>::Bd(xlp, ylp, betam, zeta[i]);
         e = Bm*vd.head(9);
+// .....COMPUTE SENSITIVITY
 #endif
 
 //     -------------------------------------------------
@@ -1619,8 +1628,22 @@ ShellElementTemplate<doublereal,Membrane,Bending>
                 dsigmadh = 1./thick*dSigmadh.head(3) - 6./(thick*thick)*dSigmadh.tail(3)
                          - N/(thick*thick) + 12*M/(thick*thick*thick);
             }
-#else
+            else if (surface == 2) {
 
+// .....ESTIMATE THE LOCAL STRESSES ON THE MEDIAN SURFACE
+
+                sigma = N/thick;
+                dsigmadu = 1./thick*dSigmadu.topRows(3);
+            }
+
+            else if (surface == 3) {
+
+// .....ESTIMATE THE LOCAL STRESSES ON THE LOWER SURFACE
+
+                sigma = N/thick - 6*M/(thick*thick);
+                dsigmadu = 1./thick*dSigmadu.topRows(3) - 6./(thick*thick)*dSigmadu.bottomRows(3);
+            }
+#else
 // .....COMPUTE THE LOCAL STRESSES ON THE SPECIFIED SURFACE
 
             nmat->GetLocalConstitutiveResponse(Upsilon.data(), sigma.data(), z, eframe.data(), i);

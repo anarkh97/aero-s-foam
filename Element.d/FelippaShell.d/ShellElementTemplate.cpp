@@ -1071,22 +1071,31 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 #ifdef COMPATABILITY_MODE
 // .....ELEMENTAL CURVATURE COMPUTATION
 
-///        chi = (1/area)*Lb.transpose()*vd.tail(9);
+        chi = (1./area)*Lb.transpose()*vd.tail(9);
 
 // .....ELEMENTAL EXTENSION COMPUTATION
 
-///        e = (1/area)*Lm.transpose()*vd.head(9);
+        e = (1./area)*Lm.transpose()*vd.head(9);
+        
+
+// .....COMPUTE SENSITIVITY
+        Eigen::Matrix<doublereal,6,18> LB;
+        LB << (1./area)*Lm.transpose(), Eigen::Matrix<doublereal,3,9>::Zero(),
+              Eigen::Matrix<doublereal,3,9>::Zero(), (1./area)*Lb.transpose();
+
+        dUpsilondu = LB*de_disp_du; 
 #else
 // .....ELEMENTAL CURVATURE COMPUTATION (including now the higher order contribution)
 
-        Bb = (1/area)*Lb.transpose() + Bending<doublereal>::Bd(xlp, ylp, betab, zeta[i]);
+        Bb = (1./area)*Lb.transpose() + Bending<doublereal>::Bd(xlp, ylp, betab, zeta[i]);
         chi = Bb*vd.tail(9);
 
 // .....ELEMENTAL EXTENSION COMPUTATION (including now the higher order contribution)
 
-        Bm = (1/area)*Lm.transpose() +  Membrane<doublereal>::Bd(xlp, ylp, betam, zeta[i]);
+        Bm = (1./area)*Lm.transpose() +  Membrane<doublereal>::Bd(xlp, ylp, betam, zeta[i]);
         e = Bm*vd.head(9);
 
+// .....COMPUTE SENSITIVITY
         Eigen::Matrix<doublereal,6,18> LB;
         LB << Bm, Eigen::Matrix<doublereal,3,9>::Zero(),
               Eigen::Matrix<doublereal,3,9>::Zero(), Bb;
@@ -1109,9 +1118,38 @@ ShellElementTemplate<doublereal,Membrane,Bending>
           case 0 : {
 
 #ifdef COMPATABILITY_MODE
+// .....COMPUTE THE GENERALIZED STRESSES [Sigma = {N,M}] WHICH ARE
+// .....FORCE AND MOMENT PER UNIT LENGTH
+            Eigen::Matrix<doublereal, 6, 18> dSigmadu;
+            dSigmadu.setZero();
+            if(i == 0 || ctyp == 4)
+                nmat->GetConstitutiveResponse(Upsilon.data(), Sigma.data(), NULL, eframe.data(), i);
+                nmat->GetConstitutiveResponseSensitivityWRTdisp(dUpsilondu.data(), dSigmadu.data(), NULL, eframe.data(), i);
 
+            if (surface == 1) {
+
+// .....ESTIMATE THE LOCAL STRESSES ON THE UPPER SURFACE
+
+                sigma = N/thick + 6*M/(thick*thick); 
+                dsigmadu = 1./thick*dSigmadu.topRows(3) + 6./(thick*thick)*dSigmadu.bottomRows(3);
+            }
+
+            else if (surface == 2) {
+
+// .....ESTIMATE THE LOCAL STRESSES ON THE MEDIAN SURFACE
+
+                sigma = N/thick;
+                dsigmadu = 1./thick*dSigmadu.topRows(3);
+            }
+
+            else if (surface == 3) {
+
+// .....ESTIMATE THE LOCAL STRESSES ON THE LOWER SURFACE
+
+                sigma = N/thick - 6*M/(thick*thick);
+                dsigmadu = 1./thick*dSigmadu.topRows(3) - 6./(thick*thick)*dSigmadu.bottomRows(3);
+            }
 #else
-
 // .....COMPUTE THE LOCAL STRESSES ON THE SPECIFIED SURFACE
 
             nmat->GetLocalConstitutiveResponse(Upsilon.data(), sigma.data(), z, eframe.data(), i);

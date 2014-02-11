@@ -976,13 +976,15 @@ TRAIL [a-zA-Z]*
 
 "ostifthi"|"OSTIFTHI"              { yylval.ival = OutputInfo::StifThic; return SENSITIVITYID; }
 
-"weigthic"|"WEIGTHIC"              { yylval.ival = SensitivityInfo::WeightWRTthickness;      return SENSITIVITYTYPE; }
+"weigthic"|"WEIGTHIC"              { yylval.ival = SensitivityInfo::WeightWRTthickness;       return SENSITIVITYTYPE; }
 
-"vmstthic"|"VMSTTHIC"              { yylval.ival = SensitivityInfo::StressVMWRTthickness;    return SENSITIVITYTYPE; }
+"vmstthic"|"VMSTTHIC"              { yylval.ival = SensitivityInfo::StressVMWRTthickness;     return SENSITIVITYTYPE; }
 
-"vmstdisp"|"VMSTDISP"              { yylval.ival = SensitivityInfo::StressVMWRTdisplacement; return SENSITIVITYTYPE; }
+"vmstdisp"|"VMSTDISP"              { yylval.ival = SensitivityInfo::StressVMWRTdisplacement;  return SENSITIVITYTYPE; }
 
-"stffthic"|"STFFTHIC"              { yylval.ival = SensitivityInfo::StiffnessWRTthickness; return SENSITIVITYTYPE; }
+"stffthic"|"STFFTHIC"              { yylval.ival = SensitivityInfo::StiffnessWRTthickness;    return SENSITIVITYTYPE; }
+
+"lstathic"|"LSTATHIC"              { yylval.ival = SensitivityInfo::LinearStaticWRTthickness; return SENSITIVITYTYPE; }
 
 "analytic"|"ANALYTIC"                                 { yylval.ival = SensitivityInfo::Analytic;                 return SENSITIVITYMETHOD; }
 

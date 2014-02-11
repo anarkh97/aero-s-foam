@@ -1,5 +1,7 @@
 #include	<Element.d/Shear.d/ShearPanel.h>
 #include	<Element.d/Shear.d/ShearPanelTemplate.cpp>
+#include	<Element.d/Shear.d/ShearPanelStressWRTDisplacementSensitivity.h>
+#include  <Element.d/Function.d/SpaceDerivatives.h>
 #include	<Utils.d/dbg_alloca.h>
 #include        <Math.d/Vector.h>
 #include	<Math.d/FullSquareMatrix.h>
@@ -9,6 +11,7 @@
 #include        <Utils.d/pstress.h>
 #include        <Corotational.d/utilities.h>
 
+extern int verboseFlag;
 extern "C"      {
 void    _FORTRAN(shearpanel)(double*, double*, double*, double&, double&,
                              double&, double&, double&, const int&, double*, 
@@ -89,10 +92,10 @@ ShearPanel::getVonMises(Vector& stress,Vector& weight,CoordSet &cs,
        double F2 = prop->Iyy;
 
        double vmssig, vmseps;
-//       spstress(x,y,z,elDisp.data(),G,E,F1,F2,
-//                (double*)elStress, (double*)elStrain, vmssig, vmseps);
-      _FORTRAN(spstress)(x,y,z,elDisp.data(),G,E,F1,F2,
-                        (double*)elStress, (double*)elStrain, vmssig, vmseps);
+       spstress(x,y,z,elDisp.data(),G,E,F1,F2,
+                (double*)elStress, (double*)elStrain, vmssig, vmseps);
+//      _FORTRAN(spstress)(x,y,z,elDisp.data(),G,E,F1,F2,
+//                        (double*)elStress, (double*)elStrain, vmssig, vmseps);
 
 // if strInd <= 6, you are retrieving a stress value:
 // if strInd >  6, you are retrieving a strain value:
@@ -122,6 +125,97 @@ ShearPanel::getVonMises(Vector& stress,Vector& weight,CoordSet &cs,
           stress[3] = elStrain[3][strInd-7]; 
         }
       } 
+}
+
+void
+ShearPanel::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+                                               int senMethod, double *ndTemps, int avgnum, double ylayer, double zlayer)
+{
+   if(strInd != 6) {
+     cerr << " ... Error: strInd must be 6 in ShearPanel::getVonMisesDisplacementSensitivity\n";
+     exit(-1);
+   }
+   if(dStdDisp.numRow() != 4 || dStdDisp.numCol() !=12) {
+     cerr << " ... Error: dimenstion of sensitivity matrix is wrong\n";
+     exit(-1);
+   }
+   weight = 1.0;
+
+   Node &nd1 = cs.getNode(nn[0]);
+   Node &nd2 = cs.getNode(nn[1]);
+   Node &nd3 = cs.getNode(nn[2]);
+   Node &nd4 = cs.getNode(nn[3]);
+
+   double vmssig;
+
+  // scalar parameters
+  Eigen::Array<double,14,1> dconst;
+
+  dconst[0] = nd1.x; dconst[1] = nd2.x; dconst[2] = nd3.x;  dconst[3] = nd4.x;  // x coordinates
+  dconst[4] = nd1.y; dconst[5] = nd2.y; dconst[6] = nd3.y;  dconst[7] = nd4.y;  // y coordinates
+  dconst[8] = nd1.z; dconst[9] = nd2.z; dconst[10] = nd3.z; dconst[11] = nd4.z; // z coordinates
+  dconst[12] = prop->E;     // E
+  dconst[13] = prop->E/(2.0*(1.0+prop->nu));   // G
+
+  Eigen::Array<double,4,1> globalx = dconst.segment<4>(0).cast<double>();
+  Eigen::Array<double,4,1> globaly = dconst.segment<4>(4).cast<double>();
+  Eigen::Array<double,4,1> globalz = dconst.segment<4>(8).cast<double>();
+   
+  // integer parameters
+  Eigen::Array<int,0,1> iconst;
+  // inputs
+  Eigen::Matrix<double,12,1> q = Eigen::Map<Eigen::Matrix<double,12,1> >(elDisp.data()).segment(0,12); //displacements
+
+  // Jacobian evaluation
+  Eigen::Matrix<double,4,12> dStressdDisp;
+  if(verboseFlag) cout << "senMethod is " << senMethod << endl;
+ 
+  if(avgnum == 0 || avgnum == 1) { // NODALFULL or ELEMENTAL
+    if(senMethod == 0) { // analytic
+      dStressdDisp.setZero();
+      vmssWRTdisp(globalx.data(), globaly.data(), globalz.data(), elDisp.data(),
+                  dconst[13], prop->E, dStressdDisp.data(), vmssig);   
+      dStdDisp.copy(dStressdDisp.data());
+      if(verboseFlag) std::cerr << "dStressdDisp(analytic) =\n" << dStressdDisp << std::endl;
+    }
+
+    if(senMethod == 1) { // automatic differentiation
+      Simo::Jacobian<double,ShearPanelStressWRTDisplacementSensitivity> dSdu(dconst,iconst);
+      dStressdDisp = dSdu(q, 0);
+      dStdDisp.copy(dStressdDisp.data());
+      if(verboseFlag) std::cerr << "dStressdDisp(AD) =\n" << dStressdDisp << std::endl;
+    }
+
+    if(senMethod == 2) { // finite difference
+      // finite difference
+      dStressdDisp.setZero();
+      ShearPanelStressWRTDisplacementSensitivity<double> foo(dconst,iconst);
+      Eigen::Matrix<double,12,1> qp, qm;
+      double h(1e-5);
+      Eigen::Matrix<double,4,1> S = foo(q,0);
+      cout << "displacement = " << q.transpose() << endl;
+      for(int i=0; i<12; ++i) {
+        qp = q;             qm = q;
+        if(q[i] == 0) { qp[i] = h;   qm[i] = -h; }
+        else { qp[i] = q[i]*(1 + h);   qm[i] = q[i]*(1 - h); }
+        Eigen::Matrix<double,4,1> Sp = foo(qp, 0);
+        Eigen::Matrix<double,4,1> Sm = foo(qm, 0);
+        Eigen::Matrix<double,4,1> fd = (Sp - Sm)/(2*(qp[i]-q[i]));
+//        if(i==2) {
+//          Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " "); 
+//          cout << Sp.transpose().format(HeavyFmt) << endl;
+//          cout << Sm.transpose().format(HeavyFmt) << endl;
+//          cout << fd.transpose().format(HeavyFmt) << endl;
+//        }
+        for(int j=0; j<4; ++j) {
+          dStressdDisp(j,i) = fd[j];
+        }
+      }
+      dStdDisp.copy(dStressdDisp.data());
+      if(verboseFlag) std::cerr << "dStressdDisp(FD) =\n" << dStressdDisp << std::endl;
+    }
+
+  } else dStdDisp.zero(); // NODALPARTIAL or GAUSS or any others
 }
 
 void

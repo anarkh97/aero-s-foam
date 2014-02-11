@@ -2942,10 +2942,12 @@ Domain::makePreSensitivities(AllSensitivities<double> &allSens, double *bcx)
          }
        }
      }
-
-     filePrint(stderr," *** WEIGHT : %e\n", weight);
-     filePrint(stderr,"printing weight derivative\n");
-     cout << *allSens.weightWRTthick << endl;
+     
+     if(verboseFlag) {
+       filePrint(stderr," *** WEIGHT : %e\n", weight);
+       filePrint(stderr,"printing weight derivative\n");
+       cout << *allSens.weightWRTthick << endl;
+     }
      allSens.weight = weight;
 
      break;
@@ -2966,43 +2968,72 @@ Domain::makePostSensitivities(AllSensitivities<double> &allSens, GenVector<doubl
    case SensitivityInfo::StiffnessWRTthickness:
    {
      // ... COMPUTE SENSITIVITY OF STIFFNESS MATRIX WRT THICKNESS
-     allSens.stiffnessWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numUncon(),numUncon()); 
-     allSens.stiffnessWRTthick->setZero();
- 
-     for(int iele = 0; iele < numele; iele++) { 
-       int DofsPerElement = packedEset[iele]->numDofs();
-       FullSquareMatrix dStiffnessdThick(DofsPerElement);
-       // Determine element displacement vector
-       if(elDisp == 0) elDisp = new Vector(maxNumDOFs,0.0);
-       for (int k=0; k < allDOFs->num(iele); ++k) {
-         int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
-         if (cn >= 0)
-           (*elDisp)[k] = sol[cn];
-         else
-           (*elDisp)[k] = bcx[(*allDOFs)[iele][k]];
-       }
-       transformVectorInv(*elDisp, iele);         
-       packedEset[iele]->getStiffnessThicknessSensitivity(nodes, *elDisp, dStiffnessdThick.data(),1,senInfo[sindex].method);
-//       allSens.stiffnessWRTthick->add(dStiffnessdThick,(*allDOFs)[iele]);
-       // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
-       int *dofs = (*allDOFs)[iele];
-       int *unconstrNum = c_dsa->getUnconstrNum();
-//       for(int k = 0; k < DofsPerElement; ++k) cerr << dofs[k] << " ";
-//       cerr << "\n";
-//       for(int k = 0; k < DofsPerElement; ++k) cerr << unconstrNum[dofs[k]] << " ";
-//       cerr << "\n";
-       for(int k = 0; k < DofsPerElement; ++k) {
-         int dofk = unconstrNum[dofs[k]];
-         if(dofs[k] < 0 || dofk < 0) continue;  // Skip undefined/constrained dofs
-         for(int j = 0; j < DofsPerElement; ++j) {
-           int dofj = unconstrNum[dofs[j]];
-           if(dofs[j] < 0 || dofj < 0) continue;  // Skip undefined/constrained dofs
-           (*allSens.stiffnessWRTthick)(dofk, dofj) += dStiffnessdThick[k][j]; 
+     allSens.stiffnessWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[senInfo[sindex].numParam];
+     map<int, Group> &group = geoSource->group;
+     map<int, AttributeToElement> &atoe = geoSource->atoe;
+     if(senInfo[sindex].numParam != group.size()) {
+       cerr << " *** ERROR: number of parameters is not equal to the size of group \n"; 
+       exit(-1);
+     }
+     for(int g=0; g<group.size(); ++g) {
+       allSens.stiffnessWRTthick[g] = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numUncon(),numUncon()); 
+       allSens.stiffnessWRTthick[g]->setZero();
+     } 
+
+     for(int iparam = 0; iparam < senInfo[sindex].numParam; ++iparam) {
+       for(int aindex = 0; aindex < group[iparam].attributes.size(); ++aindex) {
+         for(int eindex =0; eindex < atoe[group[iparam].attributes[aindex]].elems.size(); ++eindex) {
+           int iele = atoe[group[iparam].attributes[aindex]].elems[eindex];
+           int DofsPerElement = packedEset[iele]->numDofs();
+           FullSquareMatrix dStiffnessdThick(DofsPerElement);
+           // Determine element displacement vector
+           if(elDisp == 0) elDisp = new Vector(maxNumDOFs,0.0);
+           for (int k=0; k < allDOFs->num(iele); ++k) {
+             int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
+             if (cn >= 0)
+               (*elDisp)[k] = sol[cn];
+             else
+               (*elDisp)[k] = bcx[(*allDOFs)[iele][k]];
+           }
+           transformVectorInv(*elDisp, iele);         
+           packedEset[iele]->getStiffnessThicknessSensitivity(nodes, *elDisp, dStiffnessdThick,1,senInfo[sindex].method);
+           // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
+           int *dofs = (*allDOFs)[iele];
+           int *unconstrNum = c_dsa->getUnconstrNum();
+           for(int k = 0; k < DofsPerElement; ++k) {
+             int dofk = unconstrNum[dofs[k]];
+             if(dofs[k] < 0 || dofk < 0) continue;  // Skip undefined/constrained dofs
+             for(int j = 0; j < DofsPerElement; ++j) {
+               int dofj = unconstrNum[dofs[j]];
+               if(dofs[j] < 0 || dofj < 0) continue;  // Skip undefined/constrained dofs
+               (*allSens.stiffnessWRTthick[iparam])(dofk, dofj) += dStiffnessdThick[k][j]; 
+             }
+           }
          }
        }
      }
      break;
    }
+   case SensitivityInfo::LinearStaticWRTthickness:
+   {
+     allSens.linearstaticWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[senInfo[sindex].numParam];
+     map<int, Group> &group = geoSource->group;
+     map<int, AttributeToElement> &atoe = geoSource->atoe;
+     if(senInfo[sindex].numParam != group.size()) {
+       cerr << " *** ERROR: number of parameters is not equal to the size of group \n";
+       exit(-1);
+     }
+     for(int g=0; g<group.size(); ++g) {
+       allSens.linearstaticWRTthick[g] = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numUncon(),1);
+       allSens.linearstaticWRTthick[g]->setZero();
+     }
+     for(int iparam = 0; iparam < senInfo[sindex].numParam; ++iparam) {
+       Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > disp(sol.data(),numUncon(),1);
+       *allSens.linearstaticWRTthick[iparam] = (*allSens.stiffnessWRTthick[iparam]) * disp;
+       if(verboseFlag) cerr << "printing linearstaticWRTthick[" << iparam << "]\n" << *allSens.linearstaticWRTthick[iparam] << endl;
+     }
+     break;
+   } 
    case SensitivityInfo::StressVMWRTthickness: 
    {
      // ... COMPUTE DERIVATIVE OF VON MISES STRESS WITH RESPECT TO THICKNESS
@@ -3159,9 +3190,11 @@ Domain::makePreSensitivities(AllSensitivities<DComplex> &allSens, DComplex *bcx)
        }
      }
 
-     filePrint(stderr," *** WEIGHT : %e\n", weight);
-     filePrint(stderr,"printing weight derivative\n");
-     cout << *allSens.weightWRTthick << endl;
+     if(verboseFlag) {
+       filePrint(stderr," *** WEIGHT : %e\n", weight);
+       filePrint(stderr,"printing weight derivative\n");
+       cout << *allSens.weightWRTthick << endl;
+     }
      break;
    }
   }

@@ -7,6 +7,8 @@
 #include        <Utils.d/pstress.h>
 #include        <cmath>
 
+extern int verboseFlag;
+
 Triangle3::Triangle3(int* nodenums)
 {
 	nn[0] = nodenums[0];
@@ -627,14 +629,14 @@ Triangle3::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector
 
   //Jacobian evaluation
   Eigen::Matrix<double,3,6> dStressdDisp;
-  cout << " ... senMethod is " << senMethod << endl;
+  if(verboseFlag) cout << " ... senMethod is " << senMethod << endl;
 
   if(avgnum == 1 || avgnum == 0) { // ELEMENTAL or NODALFULL
     if(senMethod == 1) { // via automatic differentiation
       Simo::Jacobian<double,Triangle3StressWRTDisplacementSensitivity> dSdu(dconst,iconst);
       dStressdDisp = dSdu(q, 0);
       dStdDisp.copy(dStressdDisp.data());
-      std::cerr << " ... dStressdDisp(AD) = \n" << dStressdDisp << std::endl;
+      if(verboseFlag) std::cerr << " ... dStressdDisp(AD) = \n" << dStressdDisp << std::endl;
     }
  
     if(senMethod == 0) { // analytic
@@ -643,7 +645,7 @@ Triangle3::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector
                   dStressdDisp.data(), 
                   prop->E, prop->nu); 
       dStdDisp.copy(dStressdDisp.data());
-      std::cerr << " ... dStressdDisp(analytic) = \n" << dStressdDisp << std::endl;
+      if(verboseFlag) std::cerr << " ... dStressdDisp(analytic) = \n" << dStressdDisp << std::endl;
     }
 
     if(senMethod == 2) { // via finite difference
@@ -661,7 +663,7 @@ Triangle3::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector
         dStressdDisp(2,j) = dS[2];
       }
       dStdDisp.copy(dStressdDisp.data());
-      std::cerr << " ... dStressdDisp(FD) = \n" << dStressdDisp << std::endl;
+      if(verboseFlag) std::cerr << " ... dStressdDisp(FD) = \n" << dStressdDisp << std::endl;
     }
   } else dStdDisp.zero(); // NODALPARTIAL or GAUSS or any others
 

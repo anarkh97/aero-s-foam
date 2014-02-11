@@ -27,6 +27,7 @@
 // sands8   - three node shell stress routine
 // trithmfr - three node shell thermal load routine 
 
+extern int verboseFlag;
 extern "C"      {
 void _FORTRAN(tria3d)(int&, double* ,double* ,double* ,double& , double& ,
                       double* ,double*);
@@ -935,7 +936,7 @@ ThreeNodeShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weigh
   // Jacobian evaluation
   Eigen::Matrix<double,3,1> dStressdThic;
   Eigen::Matrix<double,7,3> stress;
-  cout << "senMethod is " << senMethod << endl;
+  if(verboseFlag) cout << "senMethod is " << senMethod << endl;
  
   if(avgnum == 0 || avgnum == 1) { // NODALFULL or ELEMENTAL
     if(senMethod == 0) { // analytic
@@ -946,14 +947,14 @@ ThreeNodeShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weigh
                   prop->E, prop->nu, h, elDisp.data(), 
                   dStressdThic.data(), 0, surface, 0);   
       dStdThick.copy(dStressdThic.data());
-      std::cerr << "dStressdThic(analytic) =\n" << dStressdThic << std::endl;
+      if(verboseFlag) std::cerr << "dStressdThic(analytic) =\n" << dStressdThic << std::endl;
     }
 
     if(senMethod == 1) { // automatic differentiation
       Simo::Jacobian<double,ThreeNodeShellStressWRTThicknessSensitivity> dSdu(dconst,iconst);
       dStressdThic = dSdu(q, 0);
       dStdThick.copy(dStressdThic.data());
-      std::cerr << "dStressdThic(AD) =\n" << dStressdThic << std::endl;
+      if(verboseFlag) std::cerr << "dStressdThic(AD) =\n" << dStressdThic << std::endl;
     }
  
 
@@ -982,7 +983,7 @@ ThreeNodeShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weigh
         dStressdThic(j,0) = fd[j];
       }
       dStdThick.copy(dStressdThic.data());
-      std::cerr << "dStressdThic(FD) =\n" << dStressdThic << std::endl;
+      if(verboseFlag) std::cerr << "dStressdThic(FD) =\n" << dStressdThic << std::endl;
     }
   } else dStdThick.zero(); // NODALPARTIAL or GAUSS or any others
 }
@@ -1031,7 +1032,7 @@ ThreeNodeShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, V
   // Jacobian evaluation
   Eigen::Matrix<double,3,18> dStressdDisp;
   Eigen::Matrix<double,7,3> stress;
-  cout << "senMethod is " << senMethod << endl;
+  if(verboseFlag) cout << "senMethod is " << senMethod << endl;
  
   if(avgnum == 0 || avgnum == 1) { // NODALFULL or ELEMENTAL
     if(senMethod == 0) { // analytic
@@ -1042,14 +1043,14 @@ ThreeNodeShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, V
                   prop->E, prop->nu, h, q.data(), 
                   dStressdDisp.data(), 0, surface, 0);   
       dStdDisp.copy(dStressdDisp.data());
-      std::cerr << "dStressdDisp(analytic) =\n" << dStressdDisp << std::endl;
+      if(verboseFlag) std::cerr << "dStressdDisp(analytic) =\n" << dStressdDisp << std::endl;
     }
 
     if(senMethod == 1) { // automatic differentiation
       Simo::Jacobian<double,ThreeNodeShellStressWRTDisplacementSensitivity> dSdu(dconst,iconst);
       dStressdDisp = dSdu(q, 0);
       dStdDisp.copy(dStressdDisp.data());
-      std::cerr << "dStressdDisp(AD) =\n" << dStressdDisp << std::endl;
+      if(verboseFlag) std::cerr << "dStressdDisp(AD) =\n" << dStressdDisp << std::endl;
     }
  
 
@@ -1080,7 +1081,7 @@ ThreeNodeShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, V
         }
       }
       dStdDisp.copy(dStressdDisp.data());
-      std::cerr << "dStressdDisp(FD) =\n" << dStressdDisp << std::endl;
+      if(verboseFlag) std::cerr << "dStressdDisp(FD) =\n" << dStressdDisp << std::endl;
     }
   } else dStdDisp.zero(); // NODALPARTIAL or GAUSS or any others
 

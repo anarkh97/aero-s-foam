@@ -23,6 +23,8 @@
 #include <Utils.d/linkfc.h>
 #include <Utils.d/pstress.h>
 
+extern int verboseFlag;
+
 FelippaShell::FelippaShell(int* nodenums)
 {
   nn[0] = nodenums[0];
@@ -1313,9 +1315,14 @@ FelippaShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
 }
 
 #ifdef USE_EIGEN3
-FullSquareMatrix 
-FelippaShell::getStiffnessThicknessSensitivity(CoordSet &cs, Vector &elDisp, double *dStiffdThick, int flg, int senMethod)
+void 
+FelippaShell::getStiffnessThicknessSensitivity(CoordSet &cs, Vector &elDisp, FullSquareMatrix &dStiffdThick, int flg, int senMethod)
 {
+   if(dStiffdThick.dim() != 18) {
+     cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
+     exit(-1);
+   }
+
   // scalar parameters
   Eigen::Array<double,30,1> dconst;
 
@@ -1347,13 +1354,13 @@ FelippaShell::getStiffnessThicknessSensitivity(CoordSet &cs, Vector &elDisp, dou
     double *fint = NULL;
 
     andesstfWRTthick(glNum+1, dStiffnessdThick.data(), fint, prop->nu, x, y, z, elDisp.data(), type, flg);
-    std::cerr << "dStiffnessdThick(analytic) =\n" << dStiffnessdThick << std::endl;
+    if(verboseFlag) std::cerr << "dStiffnessdThick(analytic) =\n" << dStiffnessdThick << std::endl;
   }
 
   if(senMethod == 1) { // automatic differentiation
     Simo::FirstPartialSpaceDerivatives<double, FelippaShellStiffnessWRTThicknessSensitivity> dSdh(dconst,iconst); 
     Eigen::Array<Eigen::Matrix<double,18,18>,1,1> dStifdThick = dSdh(q, 0);
-    std::cerr << "dStifdThick(AD) =\n" << dStifdThick[0] << std::endl;
+    if(verboseFlag) std::cerr << "dStifdThick(AD) =\n" << dStifdThick[0] << std::endl;
     dStiffnessdThick = dStifdThick[0];
   }
 
@@ -1365,11 +1372,10 @@ FelippaShell::getStiffnessThicknessSensitivity(CoordSet &cs, Vector &elDisp, dou
     Eigen::Matrix<double,18,18> Sp = foo(qp, 0);
     Eigen::Matrix<double,18,18> Sm = foo(qm, 0);
     dStiffnessdThick = (Sp-Sm)/(2*h);
-    std::cerr << "dStiffnessdThick(FD) =\n" << dStiffnessdThick << std::endl;
+    if(verboseFlag) std::cerr << "dStiffnessdThick(FD) =\n" << dStiffnessdThick << std::endl;
   }
 
-  FullSquareMatrix ret(18,dStiffnessdThick.data());
-  return ret;
+  dStiffdThick.copy(dStiffnessdThick.data());
 }
 
 
@@ -1409,14 +1415,14 @@ FelippaShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight,
     andesvmsWRTthic(0, 7, prop->nu, globalx.data(), globaly.data(), globalz.data(), elDisp.data(),
                     stress.data(), dStressdThick.data(), 0, 0, surface);   
     dStdThick.copy(dStressdThick.data());
-    std::cerr << "dStressdThick(analytic) =\n" << dStressdThick << std::endl;
+    if(verboseFlag) std::cerr << "dStressdThick(analytic) =\n" << dStressdThick << std::endl;
   }
 
   if(senMethod == 1) { // automatic differentiation
     Eigen::Vector3d dStressdThick;
     Simo::Jacobian<double,ShellElementStressWRTThicknessSensitivity> dSdh(dconst,iconst);
     dStressdThick = dSdh(q, 0);
-    std::cerr << "dStressdThick(AD) =\n" << dStressdThick << std::endl;
+    if(verboseFlag) std::cerr << "dStressdThick(AD) =\n" << dStressdThick << std::endl;
     dStdThick.copy(dStressdThick.data());
   }
 
@@ -1428,7 +1434,7 @@ FelippaShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight,
     Eigen::Matrix<double,3,1> Sp = foo(qp, 0);
     Eigen::Matrix<double,3,1> Sm = foo(qm, 0);
     Eigen::Vector3d dStressdThick = (Sp - Sm)/(2*h);
-    std::cerr << "dStressdThick(FD) =\n" << dStressdThick << std::endl;
+    if(verboseFlag) std::cerr << "dStressdThick(FD) =\n" << dStressdThick << std::endl;
     dStdThick.copy(dStressdThick.data());
   }
 
@@ -1483,7 +1489,7 @@ FelippaShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
   // Jacobian evaluation
   Eigen::Matrix<double,3,18> dStressdDisp;
   Eigen::Matrix<double,7,3> stress;
-  cout << "senMethod is " << senMethod << endl;
+  if(verboseFlag) cout << "senMethod is " << senMethod << endl;
  
   if(avgnum == 0 || avgnum == 1) { // NODALFULL or ELEMENTAL
     if(senMethod == 0) { // analytic
@@ -1491,14 +1497,14 @@ FelippaShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
       andesvmsWRTdisp(0, 7, prop->nu, globalx.data(), globaly.data(), globalz.data(), q.data(),
                       stress.data(), dStressdDisp.data(), 0, 0, surface);   
       dStdDisp.copy(dStressdDisp.data());
-      std::cerr << "dStressdDisp(analytic) =\n" << dStressdDisp << std::endl;
+      if(verboseFlag) std::cerr << "dStressdDisp(analytic) =\n" << dStressdDisp << std::endl;
     }
 
     if(senMethod == 1) { // automatic differentiation
       Simo::Jacobian<double,ShellElementStressWRTDisplacementSensitivity> dSdu(dconst,iconst);
       dStressdDisp = dSdu(q, 0);
       dStdDisp.copy(dStressdDisp.data());
-      std::cerr << "dStressdDisp(AD) =\n" << dStressdDisp << std::endl;
+      if(verboseFlag) std::cerr << "dStressdDisp(AD) =\n" << dStressdDisp << std::endl;
     }
  
 
@@ -1534,7 +1540,7 @@ FelippaShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
         }
       }
       dStdDisp.copy(dStressdDisp.data());
-      std::cerr << "dStressdDisp(FD) =\n" << dStressdDisp << std::endl;
+      if(verboseFlag) std::cerr << "dStressdDisp(FD) =\n" << dStressdDisp << std::endl;
     }
   } else dStdDisp.zero(); // NODALPARTIAL or GAUSS or any others
 

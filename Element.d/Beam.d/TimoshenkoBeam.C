@@ -13,6 +13,7 @@
 #include 	<cmath>
 #include        <cstring>
 
+extern int verboseFlag;
 extern "C"      {
 void _FORTRAN(modmstif7)(double*, double&, double&, double*, 
                          double&, double&, double&, double&, double&, 
@@ -206,12 +207,6 @@ TimoshenkoBeam::weight(CoordSet& cs, double *gravityAcceleration, int altitude_d
 {
   double _mass = getMass(cs);
   return _mass*gravityAcceleration[altitude_direction];
-}
-
-double
-TimoshenkoBeam::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int altitude_direction)
-{
-  return 0.0;
 }
 
 void
@@ -838,14 +833,14 @@ TimoshenkoBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, V
   //Jacobian evaluation
   Eigen::Matrix<double,2,12> dStressdDisp;
   Eigen::Matrix<double,7,3> stress;
-  cout << " ... senMethod is " << senMethod << endl;
+  if(verboseFlag) cout << " ... senMethod is " << senMethod << endl;
 
   if(avgnum == 1 || avgnum == 0) { // ELEMENTAL or NODALFULL
     if(senMethod == 1) { // via automatic differentiation
       Simo::Jacobian<double,TimoshenkoBeamStressWRTDisplacementSensitivity> dSdu(dconst,iconst);
       dStressdDisp = dSdu(q, 0);
       dStdDisp.copy(dStressdDisp.data());
-      std::cerr << " ... dStressdDisp(AD) = \n" << dStressdDisp << std::endl;
+      if(verboseFlag) std::cerr << " ... dStressdDisp(AD) = \n" << dStressdDisp << std::endl;
     }
  
     if(senMethod == 0) { // analytic
@@ -854,7 +849,7 @@ TimoshenkoBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, V
       vms7WRTdisp(1, prop->A, prop->E, eframe.data(), prop->Ixx, prop->Iyy, prop->Izz, prop->alphaY, prop->alphaZ, prop->c,
                     prop->nu, x, y, z, q.data(), dStressdDisp.data(), prop->W, prop->Ta, ndTemps);
       dStdDisp.copy(dStressdDisp.data());
-      std::cerr << " ... dStressdDisp(analytic) = \n" << dStressdDisp << std::endl;
+      if(verboseFlag) std::cerr << " ... dStressdDisp(analytic) = \n" << dStressdDisp << std::endl;
     }
 
     if(senMethod == 2) { // via finite difference
@@ -871,7 +866,7 @@ TimoshenkoBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, V
         dStressdDisp(1,j) = dS[1];
       }
       dStdDisp.copy(dStressdDisp.data());
-      std::cerr << " ... dStressdDisp(FD) = \n" << dStressdDisp << std::endl;
+      if(verboseFlag) std::cerr << " ... dStressdDisp(FD) = \n" << dStressdDisp << std::endl;
     }
   } else dStdDisp.zero(); // NODALPARTIAL or GAUSS or any others
 }

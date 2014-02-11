@@ -4,7 +4,7 @@
 #include <Element.d/FelippaShell.d/ShellMaterial.hpp>
 
 // Note: the following needs to be defined for full compatability with the implementation of elements 8 and 20
-//#define COMPATABILITY_MODE
+#define COMPATABILITY_MODE
 
 template<typename doublereal, template<typename> class Membrane, template<typename> class Bending>
 class ShellElementTemplate : public Membrane<doublereal>, public Bending<doublereal>

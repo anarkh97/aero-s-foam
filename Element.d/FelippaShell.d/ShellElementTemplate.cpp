@@ -761,7 +761,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 
         if(i == 0 || ctyp == 4) {
           doublereal *_D = (_destiffdthick) ? D->data() : NULL;
-          gpmat->GetConstitutiveSensitivityWRTthickness(Upsilon.data(), Sigma.data(), _D, eframe.data(), i);
+          gpmat->GetConstitutiveResponseSensitivityWRTthickness(Upsilon.data(), Sigma.data(), _D, eframe.data(), i);
         }
 
         if(_destiffdthick) {
@@ -1186,6 +1186,8 @@ ShellElementTemplate<doublereal,Membrane,Bending>
   Eigen::Matrix<doublereal,3,1> sigma, epsilon;
   Eigen::Matrix<doublereal,6,18> dUpsilondu;
   Eigen::Matrix<doublereal,6,1> Upsilon, Sigma;
+  Eigen::Matrix<doublereal, 6, 18> dSigmadu;
+  dSigmadu.setZero();
 
   // Some convenient definitions 
   Eigen::VectorBlock< Eigen::Matrix<doublereal,6,1> >
@@ -1193,37 +1195,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
   Eigen::VectorBlock< Eigen::Matrix<doublereal,6,1> >
     N = Sigma.head(3), M = Sigma.tail(3);
 
-
-// ==================================================================== 
-//                                                                      
-//     -----------------                                                
-//     V A R I A B L E S                                                
-//     -----------------                                                
-//                                                                      
-//     elm      <input>   Finite Element Number                         
-//     maxstr   <input>   Maximum Number of Stresses                    
-//     nu       <input>   Poisson's Ratio (for an Isotropic Element)    
-//     globalX  <input>   X- Nodal Coordinates                          
-//     globalY  <input>   Y- Nodal Coordinates                          
-//     globalZ  <input>   Z- Nodal Coordinates                          
-//     globalU  <input>   Global Displacements at the Nodal Joints      
-//     stress   <output>  Stresses (Von Mises Stress) of the Element    
-//     ctyp     <input>   Type of Constitutive Law (0, 1, 2, 3, or 4)      
-//                                                                      
-// ==================================================================== 
-// Author   = Francois M. Hemez                                         
-// Date     = June 10th, 1995                                           
-// Version  = 2.0                                                       
-// Modified = K. H. Pierson                                             
-// Date     = April 11, 1997                                            
-// Reason   = Added stress calculations for sigmaxx, sigmayy, sigmaxy   
-//            and von mises stress at top, median and bottom surfaces   
-//            Also added strain calculations for epsilonxx, epsilonyy,  
-//            epsilonzz, epsilonxy and an equivalent strain at top,     
-//            median and bottom surfaces.                               
-// ==================================================================== 
-
-    thick = nmat->GetShellThickness();
+  thick = nmat->GetShellThickness();
 
 //     ---------------------------------- 
 //     STEP 1                             
@@ -1287,11 +1259,18 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 #ifdef COMPATABILITY_MODE
 // .....ELEMENTAL CURVATURE COMPUTATION
 
-///        chi = (1/area)*Lb.transpose()*vd.tail(9);
+        chi = (1./area)*Lb.transpose()*vd.tail(9);
 
 // .....ELEMENTAL EXTENSION COMPUTATION
 
-///        e = (1/area)*Lm.transpose()*vd.head(9);
+        e = (1./area)*Lm.transpose()*vd.head(9);
+
+// .....COMPUTE SENSITIVITY
+        Eigen::Matrix<doublereal,6,18> LB;
+        LB << (1./area)*Lm.transpose(), Eigen::Matrix<doublereal,3,9>::Zero(),
+              Eigen::Matrix<doublereal,3,9>::Zero(), (1./area)*Lb.transpose();
+
+        dUpsilondu = LB*de_disp_du;
 #else
 // .....ELEMENTAL CURVATURE COMPUTATION (including now the higher order contribution)
 
@@ -1303,6 +1282,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
         Bm = (1/area)*Lm.transpose() +  Membrane<doublereal>::Bd(xlp, ylp, betam, zeta[i]);
         e = Bm*vd.head(9);
 
+// .....COMPUTE SENSITIVITY
         Eigen::Matrix<doublereal,6,18> LB;
         LB << Bm, Eigen::Matrix<doublereal,3,9>::Zero(),
               Eigen::Matrix<doublereal,3,9>::Zero(), Bb;
@@ -1325,7 +1305,35 @@ ShellElementTemplate<doublereal,Membrane,Bending>
           case 0 : {
 
 #ifdef COMPATABILITY_MODE
+// .....COMPUTE THE GENERALIZED STRESSES [Sigma = {N,M}] WHICH ARE
+// .....FORCE AND MOMENT PER UNIT LENGTH
+            if(i == 0 || ctyp == 4)
+                nmat->GetConstitutiveResponse(Upsilon.data(), Sigma.data(), NULL, eframe.data(), i);
+                nmat->GetConstitutiveResponseSensitivityWRTdisp(dUpsilondu.data(), dSigmadu.data(), NULL, eframe.data(), i);
 
+            if (surface == 1) {
+
+// .....ESTIMATE THE LOCAL STRESSES ON THE UPPER SURFACE
+
+                sigma = N/thick + 6*M/(thick*thick); 
+                dsigmadu = 1./thick*dSigmadu.topRows(3) + 6./(thick*thick)*dSigmadu.bottomRows(3);
+            }
+
+            else if (surface == 2) {
+
+// .....ESTIMATE THE LOCAL STRESSES ON THE MEDIAN SURFACE
+
+                sigma = N/thick;
+                dsigmadu = 1./thick*dSigmadu.topRows(3);
+            }
+
+            else if (surface == 3) {
+
+// .....ESTIMATE THE LOCAL STRESSES ON THE LOWER SURFACE
+
+                sigma = N/thick - 6*M/(thick*thick);
+                dsigmadu = 1./thick*dSigmadu.topRows(3) - 6./(thick*thick)*dSigmadu.bottomRows(3);
+            }
 #else
 
 // .....COMPUTE THE LOCAL STRESSES ON THE SPECIFIED SURFACE
@@ -1452,6 +1460,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
   Eigen::Map<Eigen::Matrix<doublereal,Eigen::Dynamic,Eigen::Dynamic> > stress(_stress,maxstr,3);
   Eigen::Matrix<doublereal,3,1> sigma, epsilon, dsigmadh;
   Eigen::Matrix<doublereal,6,1> Upsilon, Sigma;
+  Eigen::Matrix<doublereal,6,1> dSigmadh;
 
   // Some convenient definitions 
   Eigen::VectorBlock< Eigen::Matrix<doublereal,6,1> >
@@ -1544,6 +1553,13 @@ ShellElementTemplate<doublereal,Membrane,Bending>
     for(i = 0; i < 3; ++i) {
 
 #ifdef COMPATABILITY_MODE
+// .....ELEMENTAL CURVATURE COMPUTATION
+
+        chi = (1./area)*Lb.transpose()*vd.tail(9);
+
+// .....ELEMENTAL EXTENSION COMPUTATION
+
+        e = (1./area)*Lm.transpose()*vd.head(9);
 #else
 // .....ELEMENTAL CURVATURE COMPUTATION (including now the higher order contribution)
 
@@ -1554,10 +1570,6 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 
         Bm = (1/area)*Lm.transpose() +  Membrane<doublereal>::Bd(xlp, ylp, betam, zeta[i]);
         e = Bm*vd.head(9);
-
-        Eigen::Matrix<doublereal,6,18> LB;
-        LB << Bm, Eigen::Matrix<doublereal,3,9>::Zero(),
-              Eigen::Matrix<doublereal,3,9>::Zero(), Bb;
 #endif
 
 //     -------------------------------------------------
@@ -1575,6 +1587,38 @@ ShellElementTemplate<doublereal,Membrane,Bending>
           case 0 : {
 
 #ifdef COMPATABILITY_MODE
+// .....COMPUTE THE GENERALIZED STRESSES [Sigma = {N,M}] WHICH ARE
+// .....FORCE AND MOMENT PER UNIT LENGTH
+            if(i == 0 || ctyp == 4)
+                nmat->GetConstitutiveResponse(Upsilon.data(), Sigma.data(), NULL, eframe.data(), i);
+                nmat->GetConstitutiveResponseSensitivityWRTthickness(Upsilon.data(), dSigmadh.data(), NULL, eframe.data(), i);
+
+            if (surface == 1) {
+
+// .....ESTIMATE THE LOCAL STRESSES ON THE UPPER SURFACE
+
+                sigma = N/thick + 6*M/(thick*thick); 
+                dsigmadh = 1./thick*dSigmadh.head(3) + 6./(thick*thick)*dSigmadh.tail(3)
+                         - N/(thick*thick) - 12*M/(thick*thick*thick);
+            }
+
+            else if (surface == 2) {
+
+// .....ESTIMATE THE LOCAL STRESSES ON THE MEDIAN SURFACE
+
+                sigma = N/thick;
+                dsigmadh = 1./thick*dSigmadh.head(3) 
+                         - N/(thick*thick);
+            }
+
+            else if (surface == 3) {
+
+// .....ESTIMATE THE LOCAL STRESSES ON THE LOWER SURFACE
+
+                sigma = N/thick - 6*M/(thick*thick);
+                dsigmadh = 1./thick*dSigmadh.head(3) - 6./(thick*thick)*dSigmadh.tail(3)
+                         - N/(thick*thick) + 12*M/(thick*thick*thick);
+            }
 #else
 
 // .....COMPUTE THE LOCAL STRESSES ON THE SPECIFIED SURFACE

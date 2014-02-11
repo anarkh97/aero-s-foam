@@ -15,9 +15,12 @@ class ShellMaterial
                                          doublereal *eframe, int gp) = 0; // Upsilon is the generalized "strains" {e,chi}
                                                                           // Sigma is the generalized "stress" {N,M}
                                                                           // D is the tangent constitutive matrix { Dm, Dmb; Dbm, Db }
-    virtual void GetConstitutiveSensitivityWRTthickness(doublereal *Upsilon, doublereal *Sigma, doublereal *dDdthick,
-                                                        doublereal *eframe, int gp) { 
-      std::cerr << "GetConstitutiveSensitivityWRTthickness is not defined\n"; }
+    virtual void GetConstitutiveResponseSensitivityWRTthickness(doublereal *Upsilon, doublereal *Sigma, doublereal *dDdthick,
+                                                                doublereal *eframe, int gp) { 
+      std::cerr << "GetConstitutiveResponseSensitivityWRTthickness is not defined\n"; }
+    virtual void GetConstitutiveResponseSensitivityWRTdisp(doublereal *dUpsilondu, doublereal *dSigmadu, doublereal *D,
+                                                           doublereal *eframe, int gp) {
+      std::cerr << "GetConstitutiveResponseSensitivityWRTdisp is not defined\n"; }
     virtual void GetLocalConstitutiveResponseSensitivityWRTthick(doublereal *_Upsilon, doublereal *_dsigmadh, doublereal dzdh,
                                                                  doublereal *, int) {
       std::cerr << "GetLocalConstitutiveResponseSensitivityWRTthick is not defined\n"; }
@@ -63,8 +66,10 @@ class ShellMaterialType0 : public ShellMaterial<doublereal>
 
     void GetConstitutiveResponse(doublereal *Upsilon, doublereal *Sigma, doublereal *D,
                                  doublereal *eframe, int gp);
-    void GetConstitutiveSensitivityWRTthickness(doublereal *Upsilon, doublereal *Sigma, doublereal *dDdthick,
-                                                doublereal *eframe, int gp);
+    void GetConstitutiveResponseSensitivityWRTthickness(doublereal *Upsilon, doublereal *Sigma, doublereal *dDdthick,
+                                                        doublereal *eframe, int gp);
+    void GetConstitutiveResponseSensitivityWRTdisp(doublereal *dUpsilondu, doublereal *dSigmadu, doublereal *D,
+                                                   doublereal *eframe, int gp);
     void GetLocalConstitutiveResponseSensitivityWRTthick(doublereal *_Upsilon, doublereal *_dsigmadh, doublereal dzdh,
                                                          doublereal *, int);
     void setThickness(doublereal _thick) { thick = _thick; }
@@ -93,6 +98,8 @@ class ShellMaterialType1 : public ShellMaterial<doublereal>
 
     void GetConstitutiveResponse(doublereal *Upsilon, doublereal *Sigma, doublereal *D,
                                  doublereal *eframe, int gp);
+    void GetConstitutiveResponseSensitivityWRTdisp(doublereal *dUpsilondu, doublereal *dSigmadu, doublereal *D,
+                                                   doublereal *eframe, int gp);
     void setThickness(doublereal _thick) { thick = _thick; }
     doublereal GetShellThickness();
     doublereal GetAreaDensity() { return rhoh; }
@@ -118,6 +125,8 @@ class ShellMaterialTypes2And3 : public ShellMaterial<doublereal>
 
     void GetConstitutiveResponse(doublereal *Upsilon, doublereal *Sigma, doublereal *D,
                                  doublereal *eframe, int gp);
+    void GetConstitutiveResponseSensitivityWRTdisp(doublereal *dUpsilondu, doublereal *dSigmadu, doublereal *D,
+                                                   doublereal *eframe, int gp);
     void setThickness(doublereal _thick) { thick = _thick; }
     void resetLayerThickness(doublereal *layerthickness) { for(int i=0; i<nlayer; ++i) mtlayer(7,i) = layerthickness[i]; }
     void resetAreaDensity() { rhoh = 0; for(int i=0; i<nlayer; ++i) rhoh += mtlayer(6, i)*mtlayer(7, i); }

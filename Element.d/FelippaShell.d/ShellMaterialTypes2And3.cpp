@@ -306,6 +306,170 @@ ShellMaterialTypes2And3<doublereal>::GetConstitutiveResponse(doublereal *_Upsilo
 
 template<typename doublereal>
 void
+ShellMaterialTypes2And3<doublereal>::GetConstitutiveResponseSensitivityWRTdisp(doublereal *_dUpsilondu, doublereal *_dSigmadu, doublereal *_D,
+                                                                               doublereal *eframe, int gp)
+{
+    // Initialized data 
+    doublereal one = 1.;
+
+    // Builtin functions 
+    using std::acos;
+
+    // Local variables 
+    int i, j, k;
+    doublereal c, s, e1, e2, z0, g12, s11, s12, s13, s22, pi, s23, s33, mu1, mu2, nu12;
+    int irot, ilayer;
+    doublereal dets, thetaf, zsup, zinf, intthick;
+    doublereal *data = (_D == NULL) ? new doublereal[36] : _D;
+    Eigen::Map<Eigen::Matrix<doublereal,6,18> > dUpsilondu(_dUpsilondu), dSigmadu(_dSigmadu);
+    Eigen::Map<Eigen::Matrix<doublereal,6,6> > D(data);
+    Eigen::Block< Eigen::Map<Eigen::Matrix<doublereal,6,6> > >
+        Dm = D.topLeftCorner(3,3),     Dmb = D.topRightCorner(3,3),
+        Dbm = D.bottomLeftCorner(3,3), Db = D.bottomRightCorner(3,3);
+    Eigen::Matrix<doublereal,3,3> C, invT;
+
+
+    pi = acos(-one);
+
+// .....CLEAR THE 3 BY 3 CONSTITUTIVE MATRIX 
+
+    D.setZero();
+
+// .....CALCULATE THE TOTAL HALF-HEIGHT OF THE LAYER 
+
+    z0 = -0.5 * GetShellThickness();
+
+// .....LOOP ON LAYERS OF THE COMPOSITE SHELL ELEMENT 
+
+    for (ilayer = 0; ilayer < nlayer; ++ilayer) {
+
+// .....INITIALIZE THE LAYER MATERIAL PROPERTIES 
+
+        e1     = mtlayer(0, ilayer);
+        e2     = mtlayer(1, ilayer);
+        nu12   = mtlayer(2, ilayer);
+        g12    = mtlayer(3, ilayer);
+        mu1    = mtlayer(4, ilayer);
+        mu2    = mtlayer(5, ilayer);
+        thetaf = mtlayer(8, ilayer);
+
+// .....CALCULATE THE COMPLIANCE MATRIX [S] WHICH RELATES THE STRESSES 
+// .....[s1], [s2] AND [s12] TO THE STRAINS [e1], [e2] AND [e12] IN 
+// .....THE COORDINATE SYSTEM {1;2} ASSOCIATED WITH THE FIBER ORIENTATION 
+
+        s11 = 1 / e1;
+        s12 = -nu12 / e1;
+        s13 = mu1 / g12;
+        s22 = 1 / e2;
+        s23 = mu2 / g12;
+        s33 = 1 / g12;
+
+// .....CALCULATE THE DETERMINANT OF THE COMPLIANCE MATRIX 
+
+        dets = s33 * (s11 * s22 - s12 * s12) - s11 * s23 * s23 - s22 *
+                s13 * s13;
+        dets += s12 * 2. * s13 * s23;
+
+        if (dets == 0) {
+            throw std::runtime_error(
+                "*** FATAL ERROR in Routine COMPCST    ***\n"
+                "*** The Compliance Matrix is Singular ***\n"
+                "*** ... Check Material Properties ... ***\n"
+                "*** STOP ALL TREATMENTS RIGHT HERE    ***\n");
+            break;
+        }
+
+// .....CALCULATE THE INVERSE OF THE COMPLIANCE MATRIX (i.e. THE ELASTICITY 
+// .....STIFFNESS MATRIX) WHICH RELATES THE STRAINS [e1], [e2] AND [e12] 
+// .....TO THE STRESSES [s1], [s2] AND [s12] IN THE COORDINATE SYSTEM {1;2}
+// .....OF THE FIBER ORIENTATION 
+
+        C(0, 0) = s22 * s33 - s23 * s23;
+        C(0, 1) = s13 * s23 - s12 * s33;
+        C(0, 2) = s12 * s23 - s13 * s22;
+
+        C(1, 0) = C(0, 1);
+        C(1, 1) = s11 * s33 - s13 * s13;
+        C(1, 2) = s12 * s13 - s11 * s23;
+
+        C(2, 0) = C(0, 2);
+        C(2, 1) = C(1, 2);
+        C(2, 2) = s11 * s22 - s12 * s12;
+
+        C /= dets;
+
+// .....TRANSFORM ANGLE IN THE RANGE BETWEEN 0-360 
+
+        if (thetaf < 0 || thetaf > 360.) {
+            irot = (int) (thetaf / 360.);
+            thetaf -= (doublereal) irot * 360.;
+            if (thetaf < 0.) {
+                thetaf += 360.;
+            }
+        }
+
+// .....TRANSFORM FROM DEGREE TO RADIAN THE ANGLE BETWEEN THE 
+// .....REFERENCE ORIENTATION VECTOR AND THE ORIENTATION OF THE FIBERS 
+
+        thetaf = pi * thetaf / 180.;
+
+// .....CALCULATE THE INVERSE OF THE COMPLIANCE MATRIX (i.e. THE ELASTICITY
+// .....STIFFNESS MATRIX WHICH RELATES THE STRAINS [ex], [ey] AND [exy] 
+// .....TO THE STRESSES [sx], [sy] AND [sxy] IN THE TRIANGULAR COORDINATE 
+// .....SYSTEM {x;y}: 
+// .....[C'] = [invT] * [C] * [invT]^t 
+
+        invT = this->andesinvt(eframe, aframe, thetaf);
+        C = invT * C * invT.transpose();
+
+// .....INITIALIZE THE UPPER AND LOWER [z] COORDINATES FOR THE LAYER 
+
+        zinf = z0;
+        zsup = z0;
+
+        for (i = 0; i < nlayer; ++i) {
+            if (i < ilayer) {
+                zinf += mtlayer(7, i);
+            }
+            if (i <= ilayer) {
+                zsup += mtlayer(7, i);
+            }
+        }
+
+//     -------------------------------------------------- 
+//       (NUMERICAL INTEGRATION THROUGH THE THICKNESS)    
+//     -------------------------------------------------- 
+
+// .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR PURE BENDING 
+
+        Db += C * (zsup * zsup * zsup - zinf * zinf * zinf) / 3.;
+
+// .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR PURE MEMBRANE 
+
+        Dm += C * (zsup - zinf);
+
+        if(couple) {
+
+// .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR COUPLING BENDING-MEMBRANE 
+
+            Dbm += C.transpose() * (zsup * zsup - zinf * zinf) * .5;
+
+// .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR COUPLING MEMBRANE-BENDING 
+
+            Dmb += C * (zsup * zsup - zinf * zinf) * .5;
+        }
+
+    }
+
+// .....COMPUTE THE GENERALIZED "STRESSES"
+
+    dSigmadu = D*dUpsilondu; // this could alternatively be formed by integrating the stresses through the thickness
+
+    if(_D == NULL) delete [] data;
+}
+
+template<typename doublereal>
+void
 ShellMaterialTypes2And3<doublereal>
 ::GetLocalConstitutiveResponse(doublereal *_Upsilon, doublereal *_sigma, doublereal z,
                                doublereal *eframe, int)

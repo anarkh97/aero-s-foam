@@ -142,21 +142,23 @@ struct AllSensitivities
 {
 #ifdef USE_EIGEN3
   double weight; // total weight of the structure 
-  Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *weightWRTthick;                 // derivatives of weight with respect to thickness
-  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *vonMisesWRTthick;  // derivatives of von Mises stress with respect to thickness
-  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *vonMisesWRTdisp;   // derivatives of von Mises stress with respect to displacement
-  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *stiffnessWRTthick;  // derivatives of stiffness with respect to thickness 
-//  GenSparseMatrix<Scalar> *stiffnessWRTthick;                               // derivatives of stiffness with respect to thickness
+  Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *weightWRTthick;                 // derivatives of weight wrto thickness
+  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *vonMisesWRTthick;  // derivatives of von Mises stress wrt thickness
+  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *vonMisesWRTdisp;   // derivatives of von Mises stress wrt displacement
+  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **stiffnessWRTthick;  // derivatives of stiffness wrt thickness 
+//  GenSparseMatrix<Scalar> *stiffnessWRTthick;                               // derivatives of stiffness wrt thickness
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *stressWeight;      // weight used to average stress sensitivity
+  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **linearstaticWRTthick; // derivative of linear static structural formulation wrt thickness
   // Constructor
-  AllSensitivities() { weight = 0; weightWRTthick = 0; vonMisesWRTthick = 0; vonMisesWRTdisp = 0; stressWeight = 0; stiffnessWRTthick = 0; }
+  AllSensitivities() { weight = 0; weightWRTthick = 0; vonMisesWRTthick = 0; vonMisesWRTdisp = 0; stressWeight = 0; stiffnessWRTthick = 0;  linearstaticWRTthick = 0; }
 
   void zero() {
     if(weightWRTthick) weightWRTthick->setZero();
     if(vonMisesWRTthick) vonMisesWRTthick->setZero();
     if(vonMisesWRTdisp) vonMisesWRTdisp->setZero();
     if(stressWeight) stressWeight->setZero();
-    if(stiffnessWRTthick) stiffnessWRTthick->setZero();
+    if(stiffnessWRTthick) stiffnessWRTthick[0]->setZero();
+    if(linearstaticWRTthick) linearstaticWRTthick[0]->setZero();
   }
 #endif
 };

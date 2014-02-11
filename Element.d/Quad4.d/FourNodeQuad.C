@@ -9,6 +9,7 @@
 #include        <Utils.d/pstress.h>
 #include        <Hetero.d/InterpPoint.h>
 
+extern int verboseFlag;
 extern "C"      {
 void    _FORTRAN(getcmt)(double&, double&, double&, double* );
 void    _FORTRAN(quad4m)(double*, double*, double*, double*, const int&,
@@ -634,14 +635,14 @@ FourNodeQuad::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
   //Jacobian evaluation
   Eigen::Matrix<double,4,8> dStressdDisp;
   Eigen::Matrix<double,7,3> stress;
-  cout << " ... senMethod is " << senMethod << endl;
+  if(verboseFlag) cout << " ... senMethod is " << senMethod << endl;
 
   if(avgnum == 1 || avgnum == 0) { // ELEMENTAL or NODALFULL
     if(senMethod == 1) { // via automatic differentiation
       Simo::Jacobian<double,FourNodeQuadStressWRTDisplacementSensitivity> dSdu(dconst,iconst);
       dStressdDisp = dSdu(q, 0);
       dStdDisp.copy(dStressdDisp.data());
-      std::cerr << " ... dStressdDisp(AD) = \n" << dStressdDisp << std::endl;
+      if(verboseFlag) std::cerr << " ... dStressdDisp(AD) = \n" << dStressdDisp << std::endl;
     }
  
     if(senMethod == 0) { // analytic
@@ -659,11 +660,11 @@ FourNodeQuad::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
       
       Eigen::Matrix<double,4,1> ndtemps = Eigen::Map<Eigen::Matrix<double,17,1> >(dconst.data()).segment(13,4); // extract eframe
       vms2WRTdisp(escm, x, y, c, q.data(), 
-                  dStressdDisp.data(),  
+                  dStressdDisp.data(), 0, 
                   maxgus, maxstr, elm, numel, vmflg, 
                   strainFlg, tc, prop->Ta, ndtemps.data());
       dStdDisp.copy(dStressdDisp.data());
-      std::cerr << " ... dStressdDisp(analytic) =\n" << dStressdDisp << std::endl;
+      if(verboseFlag) std::cerr << " ... dStressdDisp(analytic) =\n" << dStressdDisp << std::endl;
     }
 
     if(senMethod == 2) { // via finite difference
@@ -682,7 +683,7 @@ FourNodeQuad::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
         dStressdDisp(3,j) = dS[3];
       }
       dStdDisp.copy(dStressdDisp.data());
-      std::cerr << " ... dStressdDisp(FD) =\n" << dStressdDisp << std::endl;
+      if(verboseFlag) std::cerr << " ... dStressdDisp(FD) =\n" << dStressdDisp << std::endl;
     }
   } else dStdDisp.zero(); // NODALPARTIAL or GAUSS or any others
 

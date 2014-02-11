@@ -185,8 +185,63 @@ ShellMaterialType0<doublereal>::GetConstitutiveResponse(doublereal *_Upsilon, do
 
 template<typename doublereal>
 void
-ShellMaterialType0<doublereal>::GetConstitutiveSensitivityWRTthickness(doublereal *_Upsilon, doublereal *_Sigma, doublereal *_dDdthick,
-                                                                       doublereal *, int)
+ShellMaterialType0<doublereal>::GetConstitutiveResponseSensitivityWRTdisp(doublereal *_dUpsilondu, doublereal *_dSigmadu, doublereal *_D,
+                                                                          doublereal *, int)
+{
+  // Initialized data 
+  doublereal zero = 0.;
+  doublereal one = 1.;
+
+  // Local variables 
+  doublereal *data = (_D == NULL) ? new doublereal[36] : _D;
+  Eigen::Map<Eigen::Matrix<doublereal,6,18> > dUpsilondu(_dUpsilondu), dSigmadu(_dSigmadu);
+  Eigen::Map<Eigen::Matrix<doublereal,6,6> > D(data); 
+  Eigen::Block< Eigen::Map<Eigen::Matrix<doublereal,6,6> > >
+    Dm = D.topLeftCorner(3,3),     Dmb = D.topRightCorner(3,3),
+    Dbm = D.bottomLeftCorner(3,3), Db = D.bottomRightCorner(3,3);
+
+// .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR PURE BENDING
+
+    Db(0, 0) = E * (thick * thick * thick) / ((one - nu * nu) * 12.);
+    Db(0, 1) = nu * E * (thick * thick * thick) / ((one - nu * nu) * 12.);
+    Db(0, 2) = zero;
+    Db(1, 0) = nu * E * (thick * thick * thick) / ((one - nu * nu) * 12.);
+    Db(1, 1) = E * (thick * thick * thick) / ((one - nu * nu) * 12.);
+    Db(1, 2) = zero;
+    Db(2, 0) = zero;
+    Db(2, 1) = zero;
+    Db(2, 2) = E * (thick * thick * thick) / ((one + nu) * 24.);
+
+// .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR PURE MEMBRANE 
+    Dm(0, 0) = E * thick / (one - nu * nu);
+    Dm(0, 1) = nu * E * thick / (one - nu * nu);
+    Dm(0, 2) = zero;
+    Dm(1, 0) = nu * E * thick / (one - nu * nu);
+    Dm(1, 1) = E * thick / (one - nu * nu);
+    Dm(1, 2) = zero;
+    Dm(2, 0) = zero;
+    Dm(2, 1) = zero;
+    Dm(2, 2) = E * thick / ((one + nu) * 2.);
+
+// .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR COUPLING BENDING-MEMBRANE
+
+    Dbm = Eigen::Matrix<doublereal,3,3>::Zero();
+
+// .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR COUPLING MEMBRANE-BENDING
+
+    Dmb = Eigen::Matrix<doublereal,3,3>::Zero();
+
+// .....COMPUTE THE GENERALIZED "STRESSES"
+
+    dSigmadu = D*dUpsilondu;
+
+    if(_D == NULL) delete [] data;
+}
+
+template<typename doublereal>
+void
+ShellMaterialType0<doublereal>::GetConstitutiveResponseSensitivityWRTthickness(doublereal *_Upsilon, doublereal *_Sigma, doublereal *_dDdthick,
+                                                                               doublereal *, int)
 {
   // Initialized data 
   doublereal zero = 0.;

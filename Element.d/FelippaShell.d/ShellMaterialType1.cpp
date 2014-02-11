@@ -174,6 +174,53 @@ ShellMaterialType1<doublereal>::GetConstitutiveResponse(doublereal *_Upsilon, do
 }
 
 template<typename doublereal>
+void
+ShellMaterialType1<doublereal>::GetConstitutiveResponseSensitivityWRTdisp(doublereal *_dUpsilondu, doublereal *_dSigmadu, doublereal *_D,
+                                                                          doublereal *eframe, int gp)
+{
+  // Initialized data 
+  doublereal zero = 0.;
+
+  // Local variables 
+  Eigen::Map<Eigen::Matrix<doublereal,6,18> > dUpsilondu(_dUpsilondu), dSigmadu(_dSigmadu);
+  doublereal *data = (_D == NULL) ? new doublereal[36] : _D;
+  Eigen::Map<Eigen::Matrix<doublereal,6,6> > D(data);
+  Eigen::Block< Eigen::Map<Eigen::Matrix<doublereal,6,6> > >
+    Dm = D.topLeftCorner(3,3),     Dmb = D.topRightCorner(3,3),
+    Dbm = D.bottomLeftCorner(3,3), Db = D.bottomRightCorner(3,3);
+  Eigen::Matrix<doublereal,3,3> invT;
+
+// .....CALCULATE THE INVERSE OF THE COMPLIANCE MATRIX WHICH RELATES 
+// .....THE STRAINS [ex], [ey] AND [exy] TO THE STRESSES [sx], [sy] 
+// .....AND [sxy] IN THE TRIANGULAR COORDINATE SYSTEM {x;y}: 
+// .....[D] = [invT] * [D'] * [invT]^t 
+
+    invT = this->andesinvt(eframe, aframe, zero);
+
+// .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR PURE BENDING 
+
+    Db = invT * coef.bottomRightCorner(3,3) * invT.transpose();
+
+// .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR PURE MEMBRANE
+
+    Dm = invT * coef.topLeftCorner(3,3) * invT.transpose();
+
+// .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR COUPLING BENDING-MEMBRANE
+
+    Dbm = invT * coef.bottomLeftCorner(3,3) * invT.transpose();
+
+// .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR COUPLING MEMBRANE-BENDING
+
+    Dmb = invT * coef.topRightCorner(3,3) * invT.transpose();
+
+// .....COMPUTE THE GENERALIZED "STRESSES"
+
+    dSigmadu = D*dUpsilondu;
+
+    if(_D == NULL) delete [] data;
+}
+
+template<typename doublereal>
 doublereal
 ShellMaterialType1<doublereal>::GetShellThickness()
 {

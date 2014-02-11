@@ -15,6 +15,7 @@
 #include <Hetero.d/InterpPoint.h>
 #include <iostream>
 
+extern int verboseFlag;
 // Define FORTRAN routines as external function
 extern "C" {
  void _FORTRAN(modmstif6)(double&, double&, double*,
@@ -1224,14 +1225,14 @@ EulerBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector
   //Jacobian evaluation
   Eigen::Matrix<double,2,12> dStressdDisp;
   Eigen::Matrix<double,7,3> stress;
-  cout << " ... senMethod is " << senMethod << endl;
+  if(verboseFlag) cout << " ... senMethod is " << senMethod << endl;
 
   if(avgnum == 0 || avgnum == 1) {
     if(senMethod == 1) { // via automatic differentiation
       Simo::Jacobian<double,EulerBeamStressWRTDisplacementSensitivity> dSdu(dconst,iconst);
       dStressdDisp = dSdu(q, 0);
       dStdDisp.copy(dStressdDisp.data());
-      std::cerr << " ... dStressdDisp(AD) = \n" << dStressdDisp << std::endl;
+      if(verboseFlag) std::cerr << " ... dStressdDisp(AD) = \n" << dStressdDisp << std::endl;
     }
 
     if(senMethod == 0) { // analytic
@@ -1241,7 +1242,7 @@ EulerBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector
                   eframe.data(), prop->Ixx, prop->Iyy, prop->Izz, prop->nu,
                   x, y, z, q.data(), prop->W, prop->Ta, ndTemps);
       dStdDisp.copy(dStressdDisp.data());
-      std::cerr << " ... dStressdDisp(analytic) = \n" << dStressdDisp << std::endl;
+      if(verboseFlag) std::cerr << " ... dStressdDisp(analytic) = \n" << dStressdDisp << std::endl;
     }
 
     if(senMethod == 2) { // via finite difference
@@ -1258,7 +1259,7 @@ EulerBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector
         dStressdDisp(1,j) = dS[1];
       }
       dStdDisp.copy(dStressdDisp.data());
-      std::cerr << " ... dStressdDisp(FD) = \n" << dStressdDisp << std::endl;
+      if(verboseFlag) std::cerr << " ... dStressdDisp(FD) = \n" << dStressdDisp << std::endl;
     }
   } else dStdDisp.zero(); // NODALPARTIAL or GAUSS or any others
 }

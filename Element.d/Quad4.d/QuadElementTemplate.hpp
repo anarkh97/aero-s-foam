@@ -16,7 +16,7 @@ class QuadElementTemplate
     void getcmt(doublereal rip, doublereal e, doublereal nu, doublereal *_c);
 
     void vms2WRTdisp(char *escm, doublereal *_x, doublereal *_y, doublereal *_c, doublereal *_v,
-                     doublereal *_vmsWRTdisp,
+                     doublereal *_vmsWRTdisp, doublereal *_stressWRTdisp,
                      int maxgus, int maxstr, int elm, int msize, bool vmflg,
                      bool strainFlg, doublereal tc, doublereal tref, doublereal *_ndtemps);
 

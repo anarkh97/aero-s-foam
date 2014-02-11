@@ -10,6 +10,7 @@
 #include <Math.d/Vector.h>
 #include <Corotational.d/Shell3Corotator.h>
 
+extern int verboseFlag;
 extern "C"      {
 void _FORTRAN(trimem)(int&, double* ,double* ,double* ,double& , double& ,
                       double* ,double* );

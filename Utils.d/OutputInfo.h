@@ -75,6 +75,7 @@ struct OutputInfo {
                       // reference: "The vectorial parameterization of rotation" by Bauchau and Trainelli
    bool matlab;
    bool PodRomfile;
+   bool isFirst;
    int tdenforc_var; // CONFACE=1, NORMAL_FORCE_MAG, NORMAL_TRACTION_MAG, TANGENTIAL_FORCE_MAG, TANGENTIAL_TRACTION_MAG,
                      // CDIRNORX, CDIRNORY, CDIRNORZ, CDIRTANX, CDIRTANY, CDIRTANZ, SLIP_MAG, NODAL_DISSIPATION,
                      // CONTACT_AREA, GAP_CUR, GAP_OLD
@@ -105,6 +106,7 @@ struct OutputInfo {
      rotvecouttype = OutputInfo::Euler;
      tdenforc_var = 3;
      matlab = false;
+     isFirst = true;
      PodRomfile = false;
      topFlag = 0;
      oframe = OutputInfo::Global;

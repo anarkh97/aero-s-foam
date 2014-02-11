@@ -3373,7 +3373,11 @@ void Domain::sensitivityPostProcessing(AllSensitivities<Scalar> &allSens) {
     if(oinfo[i].sentype == 0) continue;
     if(oinfo[i].type == OutputInfo::VMstThic) geoSource->outputEigenVectors(i, allSens.vonMisesWRTthick);
     if(oinfo[i].type == OutputInfo::VMstDisp) geoSource->outputEigenVectors(i, allSens.vonMisesWRTdisp);
-    if(oinfo[i].type == OutputInfo::StifThic) geoSource->outputEigenVectors(i, allSens.stiffnessWRTthick);
+    if(oinfo[i].type == OutputInfo::StifThic) {
+      for(int g = 0; g < geoSource->group.size(); ++g) {
+        geoSource->outputEigenVectors(i, allSens.stiffnessWRTthick[g]);
+      }
+    }
   }
   firstOutput = false;
 }

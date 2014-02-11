@@ -62,7 +62,7 @@ C
       Eigen::Matrix<doublereal,8,1> vl;
 // Working Vectors
       Eigen::Matrix<doublereal,3,4> node, local;
-      Eigen::Matrix<doublereal,3,1> v1, v2,v3,v4;
+      Eigen::Matrix<doublereal,3,1> v1,v2,v3,v4;
       doublereal len;
 // Consitutive Matrix
       Eigen::Matrix<doublereal,3,3> c;
@@ -75,7 +75,7 @@ C
 // Rod Coordinates and Stiffness
       Eigen::Matrix<doublereal,6,4> rodstrain;
       doublereal epsrod;
-      Eigen::Matrix<doublereal,2,1> xr, yr, zr,vrx, vry;
+      Eigen::Matrix<doublereal,2,1> xr, yr, vrx, vry;
       Eigen::Matrix<int, 2,4> rnod; 
       doublereal l1,l2,q1,q2,dq;
 // For vms routine
@@ -111,7 +111,7 @@ C... shift origin to node 0
         node(2,i) = zg(i)-zg(0);
       }
 
-
+      Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
 //... Vector from 0->1 (Local X axis = v1)
       v1(0) = node(0,1) - node(0,0);
       v1(1) = node(1,1) - node(1,0);
@@ -119,9 +119,9 @@ C... shift origin to node 0
       v1.normalize();
 
 //... Vector from 3->1
-      v2(0) = node(0,3) - node(0,1);
-      v2(1) = node(1,3) - node(1,1);
-      v2(2) = node(2,3) - node(2,1);
+      v2(0) = node(0,1) - node(0,3);
+      v2(1) = node(1,1) - node(1,3);
+      v2(2) = node(2,1) - node(2,3);
       v2.normalize();
 
 //... Vector from 0->2
@@ -172,7 +172,7 @@ C... shift origin to node 0
         }
       }
 
-//... Transform displamcents
+//... Transform displacements
 //... vl = T*v
 
       for(i = 0; i<4; ++i) {
@@ -191,7 +191,7 @@ C... shift origin to node 0
         z(i) = local(2,i);
       }
 
-//... Check amount of out-of-plane behaviore
+//... Check amount of out-of-plane behavior
 //    Use x coordinate of node 2 as representative length
 
       for(i = 0; i<4; ++i) {
@@ -226,7 +226,8 @@ C... shift origin to node 0
 
 //... Get Stress for Shear Portion
       sands2(escm,x.data(),y.data(),c.data(),vl.data(),quadstress.data(),quadstrain.data(),
-             four,seven,one,one,falseflag,falseflag);
+             four,seven,one,one,falseflag,falseflag,0,0,0);
+
 
 //... Compute Extensional Stresses
 //    This is defined as rods along the edges
@@ -246,10 +247,6 @@ C... shift origin to node 0
         area[3] = 1.;
       }
 
-// Local Z contribution to rods is ignored 
-      zr[0] = 0.0;
-      zr[1] = 0.0;
-
 // Node definition of each rod
 // Side 0-1
       rnod(0,0) = 0;
@@ -265,7 +262,7 @@ C... shift origin to node 0
       rnod(1,3) = 2;
 
       rodstrain.setZero();
-
+/*
 // Begin Loop Over 4 Rods
       for(k = 0; k < 4; ++k) {
         if (area[k] != 0.) {
@@ -343,6 +340,7 @@ C... shift origin to node 0
           quadstrain(i,j) =  quadstrain(i,j)/avg;
         }
       }
+*/
 
 // Transform to Global Frame
 
@@ -352,40 +350,26 @@ C... shift origin to node 0
 // each part of quadstress holds [sigxx,sigyy,sigzz,tauxy,tauyz,tauxz]
 
       for(j = 0; j < 4; ++j) {
+        stress(0,j) = quadstress(0,j)*v1[0]*v1[0] + quadstress(3,j)*v2[0]*v1[0] + quadstress(3,j)*v1[0]*v2[0] + quadstress(1,j)*v2[0]*v2[0]; // Global XX Stress
+        stress(1,j) = quadstress(0,j)*v1[1]*v1[1] + quadstress(3,j)*v2[1]*v1[1] + quadstress(3,j)*v1[1]*v2[1] + quadstress(1,j)*v2[1]*v2[1]; // Global YY Stress
+        stress(2,j) = quadstress(0,j)*v1[2]*v1[2] + quadstress(3,j)*v2[2]*v1[2] + quadstress(3,j)*v1[2]*v2[2] + quadstress(1,j)*v2[2]*v2[2]; // Global ZZ Stress
+        stress(3,j) = quadstress(0,j)*v1[0]*v1[1] + quadstress(3,j)*v2[0]*v1[1] + quadstress(3,j)*v1[0]*v2[1] + quadstress(1,j)*v2[0]*v2[1]; // Global XY Stress
+        stress(4,j) = quadstress(0,j)*v1[1]*v1[2] + quadstress(3,j)*v2[1]*v1[2] + quadstress(3,j)*v1[1]*v2[2] + quadstress(1,j)*v2[1]*v2[2]; // Global YZ Stress
+        stress(5,j) = quadstress(0,j)*v1(0)*v1(2) + quadstress(3,j)*v2[0]*v1[2] + quadstress(3,j)*v1[0]*v2[2] + quadstress(1,j)*v2[0]*v2[2]; // Global XZ Stress
 
-// Global XX Strain
-        strain(0,j) = quadstrain(0,j)*v1[0]*v1[0] + quadstrain(3,j)*v2[0]*v1[0] + quadstrain(3,j)*v1[0]*v2[0] + quadstrain(1,j)*v2[0]*v2[0];
-// Global YY Strain
-        strain(1,j) = quadstrain(0,j)*v1[1]*v1[1] + quadstrain(3,j)*v2[1]*v1[1] + quadstrain(3,j)*v1[1]*v2[1] + quadstrain(1,j)*v2[1]*v2[1];
-// Global ZZ Strain
-        strain(2,j) = quadstrain(0,j)*v1[2]*v1[2] + quadstrain(3,j)*v2[2]*v1[2] + quadstrain(3,j)*v1[2]*v2[2] + quadstrain(1,j)*v2[2]*v2[2];
-// Global XY Strain
-        strain(3,j) = quadstrain(0,j)*v1[0]*v1[1] + quadstrain(3,j)*v2[0]*v1[1] + quadstrain(3,j)*v1[0]*v2[1] + quadstrain(1,j)*v2[0]*v2[1];
-// Global YZ Strain
-        strain(4,j) = quadstrain(0,j)*v1[1]*v1[2] + quadstrain(3,j)*v2[1]*v1[2] + quadstrain(3,j)*v1[1]*v2[2] + quadstrain(1,j)*v2[1]*v2[2];
-// Global XZ Strain
-        strain(5,j) = quadstrain(0,j)*v1(0)*v1(2) + quadstrain(3,j)*v2[0]*v1[2] + quadstrain(3,j)*v1[0]*v2[2] + quadstrain(1,j)*v2[0]*v2[2];
-
-// Global XX Stress
-        stress(0,j) = quadstress(0,j)*v1[0]*v1[0] + quadstress(3,j)*v2[0]*v1[0] + quadstress(3,j)*v1[0]*v2[0] + quadstress(1,j)*v2[0]*v2[0];
-// Global YY Stress
-        stress(1,j) = quadstress(0,j)*v1[1]*v1[1] + quadstress(3,j)*v2[1]*v1[1] + quadstress(3,j)*v1[1]*v2[1] + quadstress(1,j)*v2[1]*v2[1];
-// Global ZZ Stress
-        stress(2,j) = quadstress(0,j)*v1[2]*v1[2] + quadstress(3,j)*v2[2]*v1[2] + quadstress(3,j)*v1[2]*v2[2] + quadstress(1,j)*v2[2]*v2[2];
-// Global XY Stress
-        stress(3,j) = quadstress(0,j)*v1[0]*v1[1] + quadstress(3,j)*v2[0]*v1[1] + quadstress(3,j)*v1[0]*v2[1] + quadstress(1,j)*v2[0]*v2[1];
-// Global YZ Stress
-        stress(4,j) = quadstress(0,j)*v1[1]*v1[2] + quadstress(3,j)*v2[1]*v1[2] + quadstress(3,j)*v1[1]*v2[2] + quadstress(1,j)*v2[1]*v2[2];
-// Global XZ Stress
-        stress(5,j) = quadstress(0,j)*v1(0)*v1(2) + quadstress(3,j)*v2[0]*v1[2] + quadstress(3,j)*v1[0]*v2[2] + quadstress(1,j)*v2[0]*v2[2];
-
+        strain(0,j) = quadstrain(0,j)*v1[0]*v1[0] + quadstrain(3,j)*v2[0]*v1[0] + quadstrain(3,j)*v1[0]*v2[0] + quadstrain(1,j)*v2[0]*v2[0]; // Global XX Strain
+        strain(1,j) = quadstrain(0,j)*v1[1]*v1[1] + quadstrain(3,j)*v2[1]*v1[1] + quadstrain(3,j)*v1[1]*v2[1] + quadstrain(1,j)*v2[1]*v2[1]; // Global YY Strain
+        strain(2,j) = quadstrain(0,j)*v1[2]*v1[2] + quadstrain(3,j)*v2[2]*v1[2] + quadstrain(3,j)*v1[2]*v2[2] + quadstrain(1,j)*v2[2]*v2[2]; // Global ZZ Strain
+        strain(3,j) = quadstrain(0,j)*v1[0]*v1[1] + quadstrain(3,j)*v2[0]*v1[1] + quadstrain(3,j)*v1[0]*v2[1] + quadstrain(1,j)*v2[0]*v2[1]; // Global XY Strain
+        strain(4,j) = quadstrain(0,j)*v1[1]*v1[2] + quadstrain(3,j)*v2[1]*v1[2] + quadstrain(3,j)*v1[1]*v2[2] + quadstrain(1,j)*v2[1]*v2[2]; // Global YZ Strain
+        strain(5,j) = quadstrain(0,j)*v1(0)*v1(2) + quadstrain(3,j)*v2[0]*v1[2] + quadstrain(3,j)*v1[0]*v2[2] + quadstrain(1,j)*v2[0]*v2[2]; // Global XZ Strain
       }
 
 //... Compute the Von Mises Stress
 
       for(j = 0; j < 4; ++j) {
-        vmsstress(7,j) = 0;
-        vmsstrain(7,j) = 0;
+        vmsstress(6,j) = 0;
+        vmsstrain(6,j) = 0;
         for(i = 0; i < 6; ++i) {
           vmsstress(i,j) = stress(i,j);
           vmsstrain(i,j) = strain(i,j);
@@ -393,8 +377,343 @@ C... shift origin to node 0
       }
       vmelmv(vmsstress.data(),four,seven,one,one,four);
       strainvm(vmsstrain.data(),four,seven,one,four);
-      vmssig = vmsstress(7,1);
-      vmseps = vmsstrain(7,1);
+      vmssig = vmsstress(6,1);
+      vmseps = vmsstrain(6,1);
+}
+
+template<typename doublereal>
+void
+ShearPanelTemplate<doublereal>
+::vmssWRTdisp(doublereal *_xg, doublereal *_yg, doublereal *_zg, doublereal *_v,
+              doublereal G, doublereal E, doublereal *_vmsWRTdisp, doublereal &vmssig)
+{ 
+/*
+C+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+C
+C     vmssWRTdisp calculates sensitivity of von Mises stress
+C     wrt displacements on four-node shear panel element.
+C
+C       xg        (4 x 1) array of global x coordinates
+C       yg        (4 x 1) array of global y coordinates
+C       zg        (4 x 1) array of global y coordinates
+C       v         (12x 1) array of node dispalcements
+C                 arranged, vx1,vy1,vz1,...,vz4
+C       G         Shear Modulus of element
+C       E         Youngs Modulus of element
+C
+C     The outputs are:
+C
+C       stress    (6x4) corner node stresses arranged
+C                  (sigxx, sigyy, sigzz, tauxy, tauyz, tauxz)
+C       vmssig    Vommises stress
+*/
+      Eigen::Map<Eigen::Matrix<doublereal,4,12> > vmsWRTdisp(_vmsWRTdisp);
+      Eigen::Map<Eigen::Matrix<doublereal,4,1> > xg(_xg), yg(_yg), zg(_zg);
+      Eigen::Map<Eigen::Matrix<doublereal,12,1> > v(_v);
+
+//                   L O C A L   V A R I A B L E S
+
+// Local Coordinates
+      Eigen::Matrix<doublereal,4,1> x,y,z;
+      Eigen::Matrix<doublereal,8,1> vl;
+// Working Vectors
+      Eigen::Matrix<doublereal,3,4> node, local;
+      Eigen::Matrix<doublereal,3,1> v1, v2,v3,v4;
+      doublereal len;
+// Consitutive Matrix
+      Eigen::Matrix<doublereal,3,3> c;
+// For sands2 routine
+      Eigen::Matrix<doublereal,7,4> quadstress, quadstrain;
+      int four, three, one, seven;
+      bool falseflag;
+// Effective Extentional Areas
+      Eigen::Matrix<doublereal,4,1> area;
+// Rod Coordinates and Stiffness
+      doublereal epsrod;
+      Eigen::Matrix<doublereal,2,1> xr, yr, vrx, vry;
+      doublereal l1,l2,q1,q2,dq;
+      Eigen::Matrix<doublereal,6,4> stress;
+// For vms routine
+      Eigen::Matrix<doublereal,7,4> vmsstress, vmsstrain;
+// Output Control
+      bool output;
+// Other Variables
+      int i, j, k;
+      doublereal avg;
+
+// Set Output Status
+      output = false;
+
+/*
+C     COMPUTE LOCAL COORDINATE SYSTEM 
+C  (works best if element is plane)
+C
+C      Y                             
+C     /|\                            
+C      |  3            2             
+C      |  /------------|             
+C      | /             |             
+C      |/              |             
+C      /---------------|-----> X     
+C      0               1             
+C
+C... store nodal coordinates in "node"
+C... shift origin to node 0
+*/
+      for(i = 0; i<4; ++i) {
+        node(0,i) = xg(i)-xg(0);
+        node(1,i) = yg(i)-yg(0);
+        node(2,i) = zg(i)-zg(0);
+      }
+
+      Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
+//... Vector from 0->1 (Local X axis = v1)
+      v1(0) = node(0,1) - node(0,0);
+      v1(1) = node(1,1) - node(1,0);
+      v1(2) = node(2,1) - node(2,0);
+      v1.normalize();
+
+//... Vector from 3->1
+      v2(0) = node(0,1) - node(0,3);
+      v2(1) = node(1,1) - node(1,3);
+      v2(2) = node(2,1) - node(2,3);
+      v2.normalize();
+
+//... Vector from 0->2
+      v3(0) = node(0,2) - node(0,0);
+      v3(1) = node(1,2) - node(1,0);
+      v3(2) = node(2,2) - node(2,0);
+      v3.normalize();
+
+//... Define perpendicular as cross between v2 and v3
+      v4 = v2.cross(v3);
+      v4.normalize();
+      len = v4.norm();
+      if (len == 0.0) { 
+        cerr << " ... ERROR: Element has zero area.\n";
+      }
+
+
+//... Cross v4 and v1 (Local Y axis = v2)
+      v2 = v4.cross(v1);
+      v2.normalize();
+
+//... Cross v1 and v2 (Local Z axis = v3)
+      v3 = v1.cross(v2);
+      v3.normalize();
+
+      cerr << "printing v1, v2, v3\n" << endl;
+      cerr << v1 << endl << v2 << endl << v3 << endl;
+
+//... Compute Local Coordinates: store in "local"
+
+      for(i = 0; i < 4; ++i) {
+        x[i] = 0.0;
+        y[i] = 0.0;
+        z[i] = 0.0;
+        for(j = 0; j < 3; ++j) {
+          local(j,i) = 0.0;
+        }
+      }
+      for(i = 0; i < 8; ++i) {
+        vl[i] = 0.0;
+      }
+
+//... v1,v2,v3 form transformation matrix
+//... local = T*node
+
+      for(i = 0; i < 4; ++i) {
+        for(j = 0; j < 3; ++j) {
+          local(0,i) = local(0,i) + v1[j]*node(j,i);
+          local(1,i) = local(1,i) + v2[j]*node(j,i);
+          local(2,i) = local(2,i) + v3[j]*node(j,i);
+        }
+      }
+
+//... Transform displacements
+//... vl = T*v
+
+      for(i = 0; i<4; ++i) {
+        for(j = 0; j<3; ++j) {
+          vl[2*i]   = vl[2*i]   + v1[j]*v[(3*i)+j];
+          vl[2*i+1] = vl[2*i+1] + v2[j]*v[(3*i)+j];
+        }
+      }
+      cerr << "printint vl\n" << vl << endl;
+
+//... Construct T
+      Eigen::Matrix<doublereal, 8, 12> T;
+      T.setZero();
+      Eigen::Matrix<doublereal, 1, 3> zero13;
+      zero13.setZero();
+      T << v1.transpose(), zero13, zero13, zero13,
+           v2.transpose(), zero13, zero13, zero13,
+           zero13, v1.transpose(), zero13, zero13,
+           zero13, v2.transpose(), zero13, zero13,
+           zero13, zero13, v1.transpose(), zero13,
+           zero13, zero13, v2.transpose(), zero13,
+           zero13, zero13, zero13, v1.transpose(),
+           zero13, zero13, zero13, v2.transpose();
+
+      cerr << "printing T\n" << T << endl;
+
+//... Store Local Coordinates in x,y,z
+
+      for(i = 0; i < 4; ++i) {
+        x(i) = local(0,i);
+        y(i) = local(1,i);
+        z(i) = local(2,i);
+      }
+
+//... Check amount of out-of-plane behavior
+//    Use x coordinate of node 2 as representative length
+
+      for(i = 0; i<4; ++i) {
+        len = abs(local(2,i)/local(0,1));
+        if (len > 0.1) {
+          cerr << " ... Error: Element has warp > 10%\n";
+        }
+      }
+
+//... Set Parameters for sands2.f
+
+//... Create consitutive matrix relevant to Shear element
+//    The only non-zero entry is for the shear c(3,3) = G
+
+      for(i = 0; i<3; ++i) {
+        for(j = 0; j<3; ++j) {
+          c(i,j) = 0.0;
+        }
+      }
+      c(2,2) = G;
+
+      char escm[7] = "EXTRA";
+
+      seven = 7;
+      four  = 4;
+      three = 3;
+      one   = 1;
+      falseflag = false;
+      quadstress.setZero();
+      quadstrain.setZero();
+
+//... Get Stress for Shear Portion
+      sands2(escm,x.data(),y.data(),c.data(),vl.data(),quadstress.data(),quadstrain.data(),
+             four,seven,one,one,falseflag,falseflag,0,0,0);
+      Eigen::Matrix<doublereal,12,8> DquadstressDdisp;
+      Eigen::Matrix<doublereal,4,8> DvmsDdisp2;
+      DquadstressDdisp.setZero();
+      DvmsDdisp2.setZero();
+      vms2WRTdisp(escm,x.data(),y.data(),c.data(),vl.data(),DvmsDdisp2.data(),DquadstressDdisp.data(),
+                  four,seven,one,one,true,true,0,0,0);
+      cerr << "printing DvmsDdisp2\n" << DvmsDdisp2 << endl;
+      cerr << "printing DquadstressDdisp\n" << DquadstressDdisp << endl;
+
+// Transform to Global Frame
+
+//     stress = T^t stress_local T
+
+// each part of quadstress holds [sigxx,sigyy,tauxy]
+// each part of quadstress holds [sigxx,sigyy,sigzz,tauxy,tauyz,tauxz]
+
+      for(j = 0; j < 4; ++j) {
+        stress(0,j) = quadstress(0,j)*v1[0]*v1[0] + quadstress(3,j)*v2[0]*v1[0] + quadstress(3,j)*v1[0]*v2[0] + quadstress(1,j)*v2[0]*v2[0]; // Global XX Stress
+        stress(1,j) = quadstress(0,j)*v1[1]*v1[1] + quadstress(3,j)*v2[1]*v1[1] + quadstress(3,j)*v1[1]*v2[1] + quadstress(1,j)*v2[1]*v2[1]; // Global YY Stress
+        stress(2,j) = quadstress(0,j)*v1[2]*v1[2] + quadstress(3,j)*v2[2]*v1[2] + quadstress(3,j)*v1[2]*v2[2] + quadstress(1,j)*v2[2]*v2[2]; // Global ZZ Stress
+        stress(3,j) = quadstress(0,j)*v1[0]*v1[1] + quadstress(3,j)*v2[0]*v1[1] + quadstress(3,j)*v1[0]*v2[1] + quadstress(1,j)*v2[0]*v2[1]; // Global XY Stress
+        stress(4,j) = quadstress(0,j)*v1[1]*v1[2] + quadstress(3,j)*v2[1]*v1[2] + quadstress(3,j)*v1[1]*v2[2] + quadstress(1,j)*v2[1]*v2[2]; // Global YZ Stress
+        stress(5,j) = quadstress(0,j)*v1(0)*v1(2) + quadstress(3,j)*v2[0]*v1[2] + quadstress(3,j)*v1[0]*v2[2] + quadstress(1,j)*v2[0]*v2[2]; // Global XZ Stress
+      }
+ 
+      cerr << "printing stress\n" << stress << endl;
+
+      Eigen::Matrix<doublereal, 24, 12> DstressDquadstress;
+      DstressDquadstress.setZero(); 
+      for(j = 0; j < 4; ++j) {
+        DstressDquadstress(6*j,3*j) = v1[0]*v1[0];
+        DstressDquadstress(6*j,3*j+1) = v2[0]*v2[0];
+        DstressDquadstress(6*j,3*j+2) = 2*v2[0]*v1[0]; //
+
+        DstressDquadstress(6*j+1,3*j) = v1[1]*v1[1];
+        DstressDquadstress(6*j+1,3*j+1) = v2[1]*v2[1];
+        DstressDquadstress(6*j+1,3*j+2) = 2*v2[1]*v1[1]; //
+
+        DstressDquadstress(6*j+2,3*j) = v1[2]*v1[2];
+        DstressDquadstress(6*j+2,3*j+1) = v2[2]*v2[2];
+        DstressDquadstress(6*j+2,3*j+2) = 2*v2[2]*v1[2]; //
+
+        DstressDquadstress(6*j+3,3*j) = v1[0]*v1[1];
+        DstressDquadstress(6*j+3,3*j+1) = v2[0]*v2[1];
+        DstressDquadstress(6*j+3,3*j+2) = v2[0]*v1[1] + v1[0]*v2[1]; //
+
+        DstressDquadstress(6*j+4,3*j) = v1[1]*v1[2];
+        DstressDquadstress(6*j+4,3*j+1) = v2[1]*v2[2];
+        DstressDquadstress(6*j+4,3*j+2) = v2[1]*v1[2] + v1[1]*v2[2]; //
+
+        DstressDquadstress(6*j+5,3*j) = v1[0]*v1[2];
+        DstressDquadstress(6*j+5,3*j+1) = v2[0]*v2[2];
+        DstressDquadstress(6*j+5,3*j+2) = v2[0]*v1[2] + v1[0]*v2[2]; //
+      }
+/*
+      DstressDquadstress(0,0) = v1[0]*v1[0];
+      DstressDquadstress(0,1) = v2[0]*v2[0];
+      DstressDquadstress(0,2) = 2*v2[0]*v1[0]; //
+
+      DstressDquadstress(1,0) = v1[1]*v1[1];
+      DstressDquadstress(1,1) = v2[1]*v2[1];
+      DstressDquadstress(1,2) = 2*v2[1]*v1[1]; //
+
+      DstressDquadstress(2,0) = v1[2]*v1[2];
+      DstressDquadstress(2,1) = v2[2]*v2[2];
+      DstressDquadstress(2,2) = 2*v2[2]*v1[2]; //
+
+      DstressDquadstress(3,0) = v1[0]*v1[1];
+      DstressDquadstress(3,1) = v2[0]*v2[1];
+      DstressDquadstress(3,2) = v2[0]*v1[1] + v1[0]*v2[1]; //
+
+      DstressDquadstress(4,0) = v1[1]*v1[2];
+      DstressDquadstress(4,1) = v2[1]*v2[2];
+      DstressDquadstress(4,2) = v2[1]*v1[2] + v1[1]*v2[2]; //
+
+      DstressDquadstress(5,0) = v1[0]*v1[2];
+      DstressDquadstress(5,1) = v2[0]*v2[2];
+      DstressDquadstress(5,2) = v2[0]*v1[2] + v1[0]*v2[2]; //
+*/
+      cerr << "printing DstressDquadstress\n" << DstressDquadstress << endl;
+//... Compute the Von Mises Stress
+
+      for(j = 0; j < 4; ++j) {
+        vmsstress(6,j) = 0;
+        for(i = 0; i < 6; ++i) {
+          vmsstress(i,j) = stress(i,j);
+        }
+      }
+      vmelmv(vmsstress.data(),four,seven,one,one,four);
+      vmssig = vmsstress(6,0);
+      cerr << vmsstress(6,0) << " "  << vmsstress(6,1) <<  " " << vmsstress(6,2) << " " << vmsstress(6,3) << endl;
+
+      Eigen::Matrix<doublereal,4,24> dvmsdStress;
+      dvmsdStress.setZero();
+/*      dvmsdStress(3,0) = dvmsdStress(2,0) = dvmsdStress(1,0) = dvmsdStress(0,0) = (2.*stress(0,0)-stress(1,0)-stress(2,0))/(2.*vmsstress(6,0));
+      dvmsdStress(3,1) = dvmsdStress(2,1) = dvmsdStress(1,1) = dvmsdStress(0,1) = (2.*stress(1,0)-stress(0,0)-stress(2,0))/(2.*vmsstress(6,0));
+      dvmsdStress(3,2) = dvmsdStress(2,2) = dvmsdStress(1,2) = dvmsdStress(0,2) = (2.*stress(2,0)-stress(1,0)-stress(0,0))/(2.*vmsstress(6,0));
+      dvmsdStress(3,3) = dvmsdStress(2,3) = dvmsdStress(1,3) = dvmsdStress(0,3) = (3.*stress(3,0))/vmsstress(6,0);
+      dvmsdStress(3,4) = dvmsdStress(2,4) = dvmsdStress(1,4) = dvmsdStress(0,4) = (3.*stress(4,0))/vmsstress(6,0);
+      dvmsdStress(3,5) = dvmsdStress(2,5) = dvmsdStress(1,5) = dvmsdStress(0,5) = (3.*stress(5,0))/vmsstress(6,0); */
+      for(int n=0; n<4; ++n) {
+        dvmsdStress(n,6*n) = (2.*stress(0,n)-stress(1,n)-stress(2,n))/(2.*vmsstress(6,n));
+        dvmsdStress(n,6*n+1) = (2.*stress(1,n)-stress(0,n)-stress(2,n))/(2.*vmsstress(6,n));
+        dvmsdStress(n,6*n+2) = (2.*stress(2,n)-stress(1,n)-stress(0,n))/(2.*vmsstress(6,n));
+        dvmsdStress(n,6*n+3) = (3.*stress(3,n))/vmsstress(6,n);
+        dvmsdStress(n,6*n+4) = (3.*stress(4,n))/vmsstress(6,n);
+        dvmsdStress(n,6*n+5) = (3.*stress(5,n))/vmsstress(6,n);
+      }
+
+      cerr << "printing dvmsdStress\n" << dvmsdStress << endl;
+
+      vmsWRTdisp = (dvmsdStress * DstressDquadstress) * (DquadstressDdisp * T);
+      cerr << "printing vmsWRTdisp\n" << vmsWRTdisp << endl;
+ 
 }
 
 #endif

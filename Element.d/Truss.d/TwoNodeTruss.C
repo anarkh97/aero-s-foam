@@ -10,6 +10,8 @@
 #include <Utils.d/dofset.h>
 #include <Utils.d/linkfc.h>
 
+extern int verboseFlag;
+
 extern "C" {
  void _FORTRAN(transform)(double*, double*, double*, double*, double*, double*, double*);
 }
@@ -135,12 +137,6 @@ TwoNodeTruss::weight(CoordSet& cs, double *gravityAcceleration, int altitude_dir
 {
   double _mass = getMass(cs);
   return _mass*gravityAcceleration[altitude_direction];
-}
-
-double
-TwoNodeTruss::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int altitude_direction)
-{
-  return 0.0;
 }
 
 void
@@ -426,8 +422,12 @@ TwoNodeTruss::getVonMises(Vector& stress, Vector& weight, CoordSet& cs,
            double coefficient = prop->E*prop->A*prop->W;
            double Tref = prop->Ta;
  
-           double fth1 = coefficient*(ndTemps[0]-Tref);
-           double fth2 = coefficient*(ndTemps[1]-Tref);
+           double fth1(0); 
+           double fth2(0); 
+           if(ndTemps) {
+              fth1 = coefficient*(ndTemps[0]-Tref);
+              fth2 = coefficient*(ndTemps[1]-Tref);
+           }
 
            // compute stresses 
 	         double elForce[2]={0.0,0.0};
@@ -468,8 +468,12 @@ TwoNodeTruss::getVonMises(Vector& stress, Vector& weight, CoordSet& cs,
            // Compute thermal force
            double coefficient = prop->E*prop->A*prop->W;
            double Tref = prop->Ta;
-           double fth1 = coefficient*(ndTemps[0]-Tref);
-           double fth2 = coefficient*(ndTemps[1]-Tref);
+           double fth1(0);
+           double fth2(0);
+           if(ndTemps) {
+             fth1 = coefficient*(ndTemps[0]-Tref);
+             fth2 = coefficient*(ndTemps[1]-Tref);
+           }
 
            // return stresses
            double elForce[2]={0.0,0.0};
@@ -491,8 +495,12 @@ TwoNodeTruss::getVonMises(Vector& stress, Vector& weight, CoordSet& cs,
           // Compute thermal force
           double coefficient = prop->E*prop->A*prop->W;
           double Tref = prop->Ta;
-          double fth1 = coefficient*(ndTemps[0]-Tref);
-          double fth2 = coefficient*(ndTemps[1]-Tref);
+           double fth1(0);
+           double fth2(0);
+           if(ndTemps) {
+             fth1 = coefficient*(ndTemps[0]-Tref);
+             fth2 = coefficient*(ndTemps[1]-Tref);
+           }
    
           stress[0] = abs(-f + fth1);
           stress[1] = abs( f - fth1);      
@@ -529,7 +537,6 @@ void
 TwoNodeTruss::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
                                                  int senMethod, double *ndTemps, int avgnum, double ylayer, double zlayer)
 {
-#ifndef SALINAS
    if(strInd != 6) {
      cerr << " ... Error: strInd must be 6 in TwoNodeTruss::getVonMisesDisplacementSensitivity\n";
      exit(-1);
@@ -595,16 +602,42 @@ TwoNodeTruss::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
         stress[1] = abs(elForce[1]);
         double f1s1 = elForce[0]/stress[0];
         double f2s2 = elForce[1]/stress[1];
-       
-        dStdDisp[0][0] =  f1s1*dx;   dStdDisp[0][1] =  f1s1*dy;   dStdDisp[0][2] =  f1s1*dz;   
-        dStdDisp[0][3] = -f1s1*dx;   dStdDisp[0][4] = -f1s1*dy;   dStdDisp[0][5] = -f1s1*dz; 
-        dStdDisp[1][0] = -f2s2*dx;   dStdDisp[1][1] = -f2s2*dy;   dStdDisp[1][2] = -f2s2*dz;   
-        dStdDisp[1][3] =  f2s2*dx;   dStdDisp[1][4] =  f2s2*dy;   dStdDisp[1][5] =  f2s2*dz; 
+   
+        if(senMethod == 0 ||senMethod == 1) { // analytic
+          // replace automatic differentiation routine with analytic one
+          dStdDisp[0][0] =  f1s1*dx;   dStdDisp[0][1] =  f1s1*dy;   dStdDisp[0][2] =  f1s1*dz;   
+          dStdDisp[0][3] = -f1s1*dx;   dStdDisp[0][4] = -f1s1*dy;   dStdDisp[0][5] = -f1s1*dz; 
+          dStdDisp[1][0] = -f2s2*dx;   dStdDisp[1][1] = -f2s2*dy;   dStdDisp[1][2] = -f2s2*dz;   
+          dStdDisp[1][3] =  f2s2*dx;   dStdDisp[1][4] =  f2s2*dy;   dStdDisp[1][5] =  f2s2*dz; 
          
-        dStdDisp *= (prop->A*prop->E/length);
-        cerr << " ... dStressdDisp(analytic) = \n" << endl;
-        dStdDisp.print();
+          dStdDisp *= (prop->A*prop->E/length);
+          if(verboseFlag) {
+            cerr << " ... dStressdDisp(analytic) = \n" << endl;
+            dStdDisp.print();
+          }
+        }
 
+        if(senMethod == 2) { // finite difference
+        // v.v. with finite difference
+           Vector dummyweight(2);
+           Vector dispp(6), dispm(6);
+           Vector sp(2), sm(2);
+           double h = 1.0e-6;
+           for(int i=0; i<6; ++i) {
+             dispp = dispm = elDisp;
+             dispp[i] += h;  dispm[i] -= h;
+             getVonMises(sp, dummyweight, cs, dispp, strInd, surface, ndTemps, ylayer, zlayer, avgnum);
+             getVonMises(sm, dummyweight, cs, dispm, strInd, surface, ndTemps, ylayer, zlayer, avgnum);
+             Vector fd = (1.0/(2.0*h))*(sp - sm);
+             for(int j=0; j<2; ++j) {
+               dStdDisp[j][i] = fd[j];
+             }
+           }
+           if(verboseFlag) {
+             cerr << " ... dStressdDisp(FD) = \n" << endl;
+             dStdDisp.print();
+           }
+        }
         break;
       }
 
@@ -618,7 +651,6 @@ TwoNodeTruss::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
       default:
         cerr << "avgnum = " << avgnum << " is not a valid number\n";
     }
-#endif
 }
 
 void

@@ -20,6 +20,7 @@ using namespace Eigen;
 using std::vector;
 #endif
 
+extern int verboseFlag;
 extern "C" {
   void _FORTRAN(getgqsize)(int&, int&, int*, int*, int*);
   void _FORTRAN(getgq1d)(int&, double*, double*);

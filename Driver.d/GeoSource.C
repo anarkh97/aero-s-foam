@@ -613,11 +613,18 @@ GeoSource::outputEigenScalars(int fileNum, Eigen::Matrix<Scalar, Eigen::Dynamic,
   int p = oinfo[fileNum].precision;
 
   Eigen::IOFormat CleanFmt(w,0," ", "\n", " ", " ");
-  ofstream fileout(oinfo[fileNum].filename, ios::out);
-
-  fileout << "\t" << time << "\n";
-  fileout << (*output).format(CleanFmt) << endl;
-  fileout.close();
+  if(oinfo[fileNum].isFirst) {
+    ofstream fileout(oinfo[fileNum].filename, ios::out);
+    fileout << "\t" << time << "\n";
+    fileout << (*output).format(CleanFmt) << endl;
+    fileout.close();
+    oinfo[fileNum].isFirst = false;
+  } else {
+    ofstream fileout(oinfo[fileNum].filename, ios::app);
+    fileout << "\t" << time << "\n";
+    fileout << (*output).format(CleanFmt) << endl;
+    fileout.close();
+  }
 }
 
 template<class Scalar>
@@ -628,11 +635,18 @@ GeoSource::outputEigenVectors(int fileNum, Eigen::Matrix<Scalar, Eigen::Dynamic,
   int p = oinfo[fileNum].precision;
   
   Eigen::IOFormat CleanFmt(w,0," ", "\n", " ", " ");
-  ofstream fileout(oinfo[fileNum].filename, ios::out);
-
-  fileout << "\t" << time << "\n";
-  fileout << (*output).format(CleanFmt) << endl;
-  fileout.close();
+  if(oinfo[fileNum].isFirst) {
+    ofstream fileout(oinfo[fileNum].filename, ios::out);
+    fileout << "\t" << time << "\n";
+    fileout << (*output).format(CleanFmt) << endl;
+    fileout.close();
+    oinfo[fileNum].isFirst = false;
+  } else {
+    ofstream fileout(oinfo[fileNum].filename, ios::app);
+    fileout << "\t" << time << "\n";
+    fileout << (*output).format(CleanFmt) << endl;
+    fileout.close();
+  }
 } 
 #endif
 //------------------------------------------------------------

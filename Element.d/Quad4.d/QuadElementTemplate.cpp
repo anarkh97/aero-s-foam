@@ -70,6 +70,7 @@ QuadElementTemplate<doublereal>
       Eigen::Matrix<doublereal,3,1> sigauss;
       Eigen::Matrix<doublereal,4,4> cext;
       doublereal xi, eta, det, epsxx, epsyy, gamxy, tgp, eptxo, eptyo;
+      tl.setZero();      
 
       xinod << -1.0, 1.0, 1.0,-1.0;
       etanod << -1.0,-1.0, 1.0, 1.0;
@@ -137,7 +138,7 @@ QuadElementTemplate<doublereal>
           eta =    etanod[i]*0.577350269;
           q4shpe(xi, eta, x.data(), y.data(), q.data(), qx.data(), qy.data(), det);
           if (det <= 0.0) {
-            cerr << " ... Error: Negative Jacobian determinant\n";
+            cerr << " ... Error: Negative Jacobian determinant, " << det << "\n";
             if (det == 0.0) {
               cerr << " ... Error: Zero Jacobian determinant\n";
             }
@@ -202,9 +203,9 @@ template<typename doublereal>
 void
 QuadElementTemplate<doublereal>
 ::vms2WRTdisp(char *escm, doublereal *_x, doublereal *_y, doublereal *_c, doublereal *_v, 
-              doublereal *_vmsWRTdisp,  
+              doublereal *_vmsWRTdisp, doublereal *_stressWRTdisp, 
               int maxgus, int maxstr, int elm, int msize, bool vmflg, 
-              bool strainFlg, doublereal tc, doublereal tref, doublereal *_ndtemps)
+              bool stressFlg, doublereal tc, doublereal tref, doublereal *_ndtemps)
 {
       Eigen::Map<Eigen::Matrix<doublereal,4,1> > x(_x), y(_y);
       Eigen::Map<Eigen::Matrix<doublereal,3,3> > c(_c);
@@ -221,6 +222,7 @@ QuadElementTemplate<doublereal>
       Eigen::Matrix<doublereal,12,12> dsigaussdepsilon;
       Eigen::Matrix<doublereal,12,12> dstressdsigauss;
       Eigen::Matrix<doublereal,4,12> dvmsdstress;
+      Eigen::Map<Eigen::Matrix<doublereal,12,8> > stressWRTdisp(_stressWRTdisp);
    
       doublereal xi, eta, det, epsxx, epsyy, gamxy, tgp, eptxo, eptyo;
 
@@ -229,6 +231,7 @@ QuadElementTemplate<doublereal>
       dsigaussdepsilon.setZero();
       dvmsdstress.setZero(); 
       dstressdsigauss.setZero();
+      tl.setZero();
 
       xinod << -1.0, 1.0, 1.0,-1.0;
       etanod << -1.0,-1.0, 1.0, 1.0;
@@ -382,11 +385,20 @@ QuadElementTemplate<doublereal>
           dvmsdstress(n,3*n) = (2.*stress(0,n)-stress(1,n))/(2.*stress(6,n));    
           dvmsdstress(n,3*n+1) = (2.*stress(1,n)-stress(0,n))/(2.*stress(6,n));    
           dvmsdstress(n,3*n+2) = (3.*stress(3,n))/stress(6,n);   
-        } 
+        }
+        cerr << "printing quadstress\n" << stress << endl; 
+        vmsWRTdisp = dvmsdstress * dstressdsigauss * dsigaussdepsilon * depsilondv;
+        cerr << "printing vmsWRTdisp in quadelement template\n" << vmsWRTdisp << endl;
       }
 
-      vmsWRTdisp = dvmsdstress * dstressdsigauss * dsigaussdepsilon * depsilondv; 
-
+      if (stressFlg) {
+        stressWRTdisp = (dstressdsigauss * dsigaussdepsilon) * depsilondv;
+        cerr << "printing depsilondv in quadelement template\n" << depsilondv << endl;
+        cerr << "printing dsigaussdepsilon in quadelement template\n" << dsigaussdepsilon << endl;
+        cerr << "printing dstressdsigauss in quadelement template\n" << dstressdsigauss << endl;
+        cerr << "printing dstressdsigauss*dsigaussdepsilon in quadelement template\n" << dstressdsigauss * dsigaussdepsilon << endl;
+        cerr << "printing stressWRTdisp in quadelement template\n" << stressWRTdisp << endl;
+      }
 }
 
 template<typename doublereal>

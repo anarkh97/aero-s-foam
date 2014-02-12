@@ -1560,14 +1560,6 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 // .....ELEMENTAL EXTENSION COMPUTATION
 
         e = (1./area)*Lm.transpose()*vd.head(9);
-        
-
-// .....COMPUTE SENSITIVITY
-        Eigen::Matrix<doublereal,6,18> LB;
-        LB << (1./area)*Lm.transpose(), Eigen::Matrix<doublereal,3,9>::Zero(),
-              Eigen::Matrix<doublereal,3,9>::Zero(), (1./area)*Lb.transpose();
-
-        dUpsilondu = LB*de_disp_du; 
 #else
 // .....ELEMENTAL CURVATURE COMPUTATION (including now the higher order contribution)
 
@@ -1627,21 +1619,6 @@ ShellElementTemplate<doublereal,Membrane,Bending>
                 sigma = N/thick - 6*M/(thick*thick);
                 dsigmadh = 1./thick*dSigmadh.head(3) - 6./(thick*thick)*dSigmadh.tail(3)
                          - N/(thick*thick) + 12*M/(thick*thick*thick);
-            }
-            else if (surface == 2) {
-
-// .....ESTIMATE THE LOCAL STRESSES ON THE MEDIAN SURFACE
-
-                sigma = N/thick;
-                dsigmadu = 1./thick*dSigmadu.topRows(3);
-            }
-
-            else if (surface == 3) {
-
-// .....ESTIMATE THE LOCAL STRESSES ON THE LOWER SURFACE
-
-                sigma = N/thick - 6*M/(thick*thick);
-                dsigmadu = 1./thick*dSigmadu.topRows(3) - 6./(thick*thick)*dSigmadu.bottomRows(3);
             }
 #else
 // .....COMPUTE THE LOCAL STRESSES ON THE SPECIFIED SURFACE

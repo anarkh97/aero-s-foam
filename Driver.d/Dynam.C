@@ -1123,6 +1123,8 @@ Domain::computeStabilityTimeStep(DynamMat& dMat)
       double preeigmax = 0.0;
 
       int numdofs = dMat.K->dim();
+      if(numdofs == 0) return std::numeric_limits<double>::infinity();
+
       int maxIte  = sinfo.stable_maxit; // stable_maxit default is 100
 
       Vector v(numdofs);

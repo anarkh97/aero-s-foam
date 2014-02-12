@@ -2934,6 +2934,7 @@ Domain::initialize()
  nSurfEntity = 0; nMortarLMPCs = 0; mortarToMPC = 0; matrixTimers = 0;
  allDOFs = 0; haveNodes = false; nWetInterface = 0; wetInterfaces = 0;
  numFSI = 0; firstOutput = true; nodeToNode_sommer = 0; sowering = false; nDimass = 0;
+ maxNumDOFs = 0; maxNumDOFsFluid = 0;
  fluidDispSlosh = 0; elPotSlosh = 0; elFluidDispSlosh = 0;
  elFluidDispSloshAll = 0;
  nodeToFsi = 0;

@@ -618,7 +618,6 @@ SingleDomainDynamic::computeExtForce2(SysState<Vector> &state, Vector &ext_f,
       userSupFunc->usd_disp(t, userDefineDisp, userDefineVel, userDefineAcc);
       setBC(userDefineDisp, userDefineVel, userDefineAcc); // update bcx, vcx, acx
       domain->updateUsddInDbc(userDefineDisp);
-      delete [] userDefineVel; delete [] userDefineAcc;
     }
     if(claw->numUserForce) { // USDF
       double *userDefineForce = new double[claw->numUserForce];
@@ -1030,7 +1029,7 @@ SingleDomainDynamic::printTimers(DynamMat *dynamMat, double timeLoop)
 
  times->printStaticTimers(solveTime, memoryUsed, domain, timeLoop);
 
-  if(domain->solInfo().massFlag)  {
+ if(domain->solInfo().massFlag) {
    double mass = domain->computeStructureMass();
    fprintf(stderr," --------------------------------------\n");
    fprintf(stderr," ... Structure mass = %e  ...\n",mass);

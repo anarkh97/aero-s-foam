@@ -1251,9 +1251,9 @@ template<class Scalar>
 void
 GenBLKSparseMatrix<Scalar>::allocateMemory()
 {
+  solveTime = 0.0;
   if(numUncon == 0) return;
 
-  solveTime = 0.0;
   double t1 = -getTime();
 
   snode  = new int[numUncon];

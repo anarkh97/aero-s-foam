@@ -606,7 +606,6 @@ MultiDomainDynam::computeExtForce2(SysState<DistrVector> &distState,
       userSupFunc->usd_disp(t, userDefineDisp, userDefineVel, userDefineAcc);
       paralApply(decDomain->getNumSub(), decDomain->getAllSubDomains(), &GenSubDomain<double>::setUserDefBC,
                  userDefineDisp, userDefineVel, userDefineAcc, false); // update bcx, vcx, acx
-      delete [] userDefineVel; delete [] userDefineAcc;
     }
   }
 

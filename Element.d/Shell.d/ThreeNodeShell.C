@@ -110,12 +110,15 @@ ThreeNodeShell::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
 	int strainFlg = 0;
 	if( strInd > 6) strainFlg = 1;
 
+#ifdef USE_EIGEN3
        sands8(x,y,z,prop->E,prop->nu,h,elDisp.data(),
               (double*)elStress,
               strainFlg,surface,thermalStrain);
-//       _FORTRAN(sands8)(x,y,z,prop->E,prop->nu,h,elDisp.data(),
-//                      (double*)elStress,
-//                      strainFlg, maxsze,maxstr,maxgus,elm,surface,thermalStrain);
+#else
+       _FORTRAN(sands8)(x,y,z,prop->E,prop->nu,h,elDisp.data(),
+                      (double*)elStress,
+                      strainFlg, maxsze,maxstr,maxgus,elm,surface,thermalStrain);
+#endif
 
         if(strInd < 7) {
           stress[0] = elStress[0][strInd];
@@ -897,6 +900,7 @@ void
 ThreeNodeShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
                                               int senMethod, double *, int avgnum, double ylayer, double zlayer)
 {
+#ifdef USE_EIGEN3
    if(strInd != 6) {
      cerr << " ... Error: strInd must be 6 in TwoNodeTruss::getVonMisesDisplacementSensitivity\n";
      exit(-1);
@@ -986,12 +990,17 @@ ThreeNodeShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weigh
       if(verboseFlag) std::cerr << "dStressdThic(FD) =\n" << dStressdThic << std::endl;
     }
   } else dStdThick.zero(); // NODALPARTIAL or GAUSS or any others
+#else
+  cerr << " ... Error! ThreeNodeShell::getVonMisesThicknessSensitivity needs Eigen library\n";
+  exit(-1);
+#endif
 }
 
 void 
 ThreeNodeShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
                                                    int senMethod, double *ndTemps, int avgnum, double ylayer, double zlayer)
 {
+#ifdef USE_EIGEN3
    if(strInd != 6) {
      cerr << " ... Error: strInd must be 6 in TwoNodeTruss::getVonMisesDisplacementSensitivity\n";
      exit(-1);
@@ -1084,5 +1093,8 @@ ThreeNodeShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, V
       if(verboseFlag) std::cerr << "dStressdDisp(FD) =\n" << dStressdDisp << std::endl;
     }
   } else dStdDisp.zero(); // NODALPARTIAL or GAUSS or any others
-
+#else
+  cerr << " ... Error! ThreeNodeShell::getVonMisesDisplacementSensitivity needs Eigen library.\n";
+  exit(-1);
+#endif
 }

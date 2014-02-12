@@ -4,8 +4,10 @@
 #include <Element.d/Element.h>
 #include <Element.d/Membrane.d/MembraneElementTemplate.cpp>
 
-class Membrane : public Element,
-                 public MembraneElementTemplate<double> 
+class Membrane : public Element
+#ifdef USE_EIGEN3
+                 , public MembraneElementTemplate<double> 
+#endif
 {
 
         int nn[3];

@@ -92,11 +92,13 @@ ShearPanel::getVonMises(Vector& stress,Vector& weight,CoordSet &cs,
        double F2 = prop->Iyy;
 
        double vmssig, vmseps;
+#ifdef USE_EIGEN3
        spstress(x,y,z,elDisp.data(),G,E,F1,F2,
                 (double*)elStress, (double*)elStrain, vmssig, vmseps);
-//      _FORTRAN(spstress)(x,y,z,elDisp.data(),G,E,F1,F2,
-//                        (double*)elStress, (double*)elStrain, vmssig, vmseps);
-                                  //      when calling sands2.f
+#else
+      _FORTRAN(spstress)(x,y,z,elDisp.data(),G,E,F1,F2,
+                        (double*)elStress, (double*)elStrain, vmssig, vmseps);
+#endif
 
 // if strInd <= 6, you are retrieving a stress value:
 // if strInd >  6, you are retrieving a strain value:
@@ -132,6 +134,7 @@ void
 ShearPanel::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
                                                int senMethod, double *ndTemps, int avgnum, double ylayer, double zlayer)
 {
+#ifdef USE_EIGEN3
    if(strInd != 6) {
      cerr << " ... Error: strInd must be 6 in ShearPanel::getVonMisesDisplacementSensitivity\n";
      exit(-1);
@@ -217,6 +220,10 @@ ShearPanel::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vecto
     }
 
   } else dStdDisp.zero(); // NODALPARTIAL or GAUSS or any others
+#else
+  cerr << " ... Error! ShearPanel::getVonMisesDisplacementSensitivity needs Eigen library.\n";
+  exit(-1);
+#endif
 }
 
 void

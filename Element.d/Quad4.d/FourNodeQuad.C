@@ -103,8 +103,11 @@ FourNodeQuad::getVonMises(Vector& stress,Vector& weight,CoordSet &cs,
         x[2] = nd3.x; y[2] = nd3.y;
         x[3] = nd4.x; y[3] = nd4.y;
 
-//       _FORTRAN(getcmt)(prop->A, prop->E, prop->nu, c);
+#ifdef USE_EIGEN3
        getcmt(prop->A, prop->E, prop->nu, c);
+#else
+       _FORTRAN(getcmt)(prop->A, prop->E, prop->nu, c);
+#endif
 
        int maxgus = 4;
        int maxstr = 7;
@@ -129,13 +132,15 @@ FourNodeQuad::getVonMises(Vector& stress,Vector& weight,CoordSet &cs,
        //char ESCM[7] = "DIRECT"; // ... DIRECT STRESS VALUE CALCULATION
        char ESCM[7] = "EXTRAP";   // ... STRESS EXTRAPOLATION FROM GAUSS POINTS
 
+#ifdef USE_EIGEN3
       sands2(ESCM,x,y,c,elDisp.data(),(double*)elStress,
              (double*)elStrain, maxgus,maxstr,elm,numel,
              vmflg,strainFlg,tc,Tref,ndTemps);
-
-/*      _FORTRAN(sands2)(ESCM,x,y,c,elDisp.data(),(double*)elStress,
+#else
+      _FORTRAN(sands2)(ESCM,x,y,c,elDisp.data(),(double*)elStress,
                        (double*)elStrain, maxgus,maxstr,elm,numel,
-                       vmflg,strainFlg,tc,Tref,ndTemps); */
+                       vmflg,strainFlg,tc,Tref,ndTemps); 
+#endif
 
 // if strInd <= 6, you are retrieving a stress value:
 // if strInd >  6, you are retrieving a strain value:
@@ -584,6 +589,7 @@ void
 FourNodeQuad::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
                                                  int senMethod, double *ndTemps, int avgnum, double ylayer, double zlayer)
 {
+#ifdef USE_EIGEN3
   if(strInd != 6) {
     cerr << " ... Error: strInd must be 6 in FourNodeQuad::getVonMisesDisplacementSensitivity\n";
     exit(-1);
@@ -686,5 +692,8 @@ FourNodeQuad::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
       if(verboseFlag) std::cerr << " ... dStressdDisp(FD) =\n" << dStressdDisp << std::endl;
     }
   } else dStdDisp.zero(); // NODALPARTIAL or GAUSS or any others
-
+#else
+  cerr << " ... ERROR! FourNodeQuad::getVonMisesDisplacementSensitivity needs Eigen library.\n";
+  exit(-1);
+#endif
 }

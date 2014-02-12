@@ -76,9 +76,12 @@ Membrane::getVonMises(Vector& stress,Vector& weight,CoordSet &cs, Vector& elDisp
 	int strainFlg;
 	if(strInd > 6) strainFlg = 1; 
 
+#ifdef USE_EIGEN3
        sands19(x,y,z,prop->E,prop->nu,h,elDisp.data(),(double*)elStress, strainFlg);
-//       _FORTRAN(sands19)(x,y,z,prop->E,prop->nu,h,elDisp.data(),(double*)elStress,
-//                         msize,maxstr,maxgus,elm,strainFlg);
+#else
+       _FORTRAN(sands19)(x,y,z,prop->E,prop->nu,h,elDisp.data(),(double*)elStress,
+                         msize,maxstr,maxgus,elm,strainFlg);
+#endif
 
 	if(strInd < 7) {
           stress[0] = elStress[0][strInd];

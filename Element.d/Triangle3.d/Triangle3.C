@@ -595,6 +595,7 @@ void
 Triangle3::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
                                                            int senMethod, double *ndTemps, int avgnum, double ylayer, double zlayer)
 { 
+#ifdef USE_EIGEN3
   if(strInd != 6) {
     cerr << " ... Error: strInd must be 6 in FourNodeQuad::getVonMisesDisplacementSensitivity\n";
     exit(-1); 
@@ -666,5 +667,8 @@ Triangle3::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector
       if(verboseFlag) std::cerr << " ... dStressdDisp(FD) = \n" << dStressdDisp << std::endl;
     }
   } else dStdDisp.zero(); // NODALPARTIAL or GAUSS or any others
-
+#else
+  cerr << " ... Error! Triangle3::getVonMisesDisplacementSensitivity needs Eigen library\n";
+  exit(-1);
+#endif
 }

@@ -491,6 +491,8 @@ DistrExplicitPodProjectionNonLinDynamicBase::getInitState(SysState<DistrVector>&
       if(iDisModal[i].nnum < dr_n.size())
         dr_n[iDisModal[i].nnum] = iDisModal[i].val;
     }
+    normalizedBasis_.expand( dr_n, *d_n);
+    geomState->update(*d_n);
   }
 
   int numIVelModal = domain->numInitVelocityModal();
@@ -501,6 +503,8 @@ DistrExplicitPodProjectionNonLinDynamicBase::getInitState(SysState<DistrVector>&
       if(iVelModal[i].nnum < vr_n.size())
         vr_n[iVelModal[i].nnum] = iVelModal[i].val;
     }
+    normalizedBasis_.expand( vr_n, *v_n);
+    geomState->setVelocity(*v_n);
   }
 
   // XXX currently, if modal initial conditions are defined then any non-modal initial conditions are ignored

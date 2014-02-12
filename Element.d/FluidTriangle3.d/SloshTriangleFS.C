@@ -38,7 +38,7 @@ SloshTriangleFS::renum(EleRenumMap& table)
 
 
 double
-SloshTriangleFS::getMass(CoordSet& cs)
+SloshTriangleFS::getArea(CoordSet& cs)
 {
   Node &nd1 = cs.getNode(nn[0]);
   Node &nd2 = cs.getNode(nn[1]);
@@ -58,16 +58,14 @@ SloshTriangleFS::getMass(CoordSet& cs)
   v3 = v1.cross(v2);
 
   double area = 0.5*v3.magnitude();
-  double mass = area*prop->rho*prop->eh;
 
-  return mass;
+  return area;
 }
 
 FullSquareMatrix
 SloshTriangleFS::massMatrix(CoordSet &cs,double *mel,int cmflg)
 {
-	double mass = getMass(cs);
-	//double massPerNode = mass/3.0;
+	double area = getArea(cs);
 
         FullSquareMatrix ret(3,mel);
 
@@ -80,37 +78,27 @@ SloshTriangleFS::massMatrix(CoordSet &cs,double *mel,int cmflg)
 // This is the LUMPED mass 
 
         //for(i=0; i<3; ++i)
-        //  ret[i][i] = massPerNode;
+        //  ret[i][i] = area/3;
 
-// This is the CONSISTENT MASS
+// This is the CONSISTENT mass
 
         for(i=0; i<3; ++i) {
            for(j=0; j<3; ++j)
-              ret[i][j] = mass/12;
+              ret[i][j] = area/12;
         }
 
         for(i=0; i<3; ++i)
-           ret[i][i] = mass/6;
+           ret[i][i] = area/6;
         
-//      ret.print();
-//      cout<<endl;
-
         return ret;
 }
 
 FullSquareMatrix
 SloshTriangleFS::stiffness(CoordSet &cs, double *d, int flg)
 {
-/*
-	double t  = prop->eh;
-        double k = prop ->k;
-*/
         FullSquareMatrix K(3,d);
 
         K.zero();
-
-//      K.print();
-//      cout<<endl;
 
         return K;
 }
@@ -161,50 +149,3 @@ SloshTriangleFS::getTopNumber()
   return 153;//4;
 }
 
-/*
-void
-SloshTriangleFS::computeTemp(CoordSet&cs,
-      State &state, double gp[2], double*tres)
-{
-// 3 is for the number of nodes, 2 is for temp and its derivative
-// with respect to time
- double Temp[3][2];
-
- state.getTemp(nn[0], Temp[0], Temp[0]+1);
- state.getTemp(nn[1], Temp[1], Temp[1]+1);
- state.getTemp(nn[2], Temp[2], Temp[2]+1);
-
-//   fprintf(stderr, "TEMP iS : %14.5e\n", Temp[0][0]);
-// fprintf(stderr, "TEMP iS : %14.5e\n", Temp[1][0]);
-// fprintf(stderr, "TEMP iS : %14.5e\n", Temp[2][0]);
-
-// tres[0] = temperature
-// tres[1] = d(Temperature)/dt
-
- int j;
- for(j=0; j<2; ++j)
-    tres[j] = (1-gp[0]-gp[1])* Temp[0][j] +
-                       gp[0] * Temp[1][j] +
-                       gp[1] * Temp[2][j] ;
-
-//     fprintf(stderr, "TEMP1 : %14.5e\n",tres[0]);
-//     fprintf(stderr, "DTEMP1: %14.5e\n",tres[1]);
-}
-
-void
-SloshTriangleFS::getFlFlux(double gp[2], double *flF, double *tresF)
-{
-// Projects a fluid flux contained in flF[0] to all 3 nodes of triangle
-// Returns tresF
-// fprintf(stderr, "Gauss Points %f %f\n ", gp[0], gp[1]);
-
-   tresF[0]  = (1-gp[0]-gp[1])* flF[0];
-   tresF[1]  = gp[0] * flF[0];
-   tresF[2]  = gp[1] * flF[0];
-
-//   fprintf(stderr, "Fluxes are node 1: %f\n", tresF[0]);
-//   fprintf(stderr, "Fluxes are node 2: %f\n", tresF[1]);
-//   fprintf(stderr, "Fluxes are node 3: %f\n", tresF[2]);
-//   fflush(stderr);
-}
-*/

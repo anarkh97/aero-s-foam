@@ -7,7 +7,7 @@
 
 extern "C"      {
 void    _FORTRAN(barsloshfs)(double*, double*, double&,
-                              double*, const int *, const int *);
+                             double*, const int *, const int *);
 }
 
 BarSloshFS::BarSloshFS(int* nodenums)
@@ -36,27 +36,6 @@ BarSloshFS::renum(EleRenumMap& table)
 	nn[1] = table[nn[1]];
 }
 
-double
-BarSloshFS::getMass(CoordSet& cs)
-{
-  Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]);
-
-  Vector r1(3), r2(3);
-
-  r1[0] = nd1.x; r1[1] = nd1.y; r1[2] = nd1.z;
-  r2[0] = nd2.x; r2[1] = nd2.y; r2[2] = nd2.z;
-
-  Vector v1(3);
-
-  v1 = r2 - r1;
-
-  double length = v1.magnitude();
-
-  double mass = length*(prop->rho)*(prop->A);
-  return mass;
-}
-
 FullSquareMatrix
 BarSloshFS::massMatrix(CoordSet &cs, double *Ms, int cmflg)
 {
@@ -76,6 +55,9 @@ BarSloshFS::massMatrix(CoordSet &cs, double *Ms, int cmflg)
         const int numdof   = 2;
 
         double h = prop ->eh;
+        if(h == 0) { // PJSA 12/2/2014
+          std::cerr << " *** ERROR: BarSloshFS element (type 302) has zero thickness.\n";
+        }
 
         _FORTRAN(barsloshfs)(x, y, h, MassMat, &numgauss, &numdof);
 
@@ -83,7 +65,6 @@ BarSloshFS::massMatrix(CoordSet &cs, double *Ms, int cmflg)
          Ms[i] = MassMat[i];
 
         FullSquareMatrix ret(2, Ms);
-        //ret.print();
 
         return ret;
 

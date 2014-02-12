@@ -557,6 +557,7 @@ class Element {
         bool isFluidElement();
         virtual bool isSommerElement() { return false; }
         virtual bool isRadiationElement() { return false; }
+        virtual bool isSloshingElement() { return false; }
         virtual bool isMpcElement() { return false; }
         virtual bool isFsiElement() { return false; }
         virtual bool isHEVFluidElement() { return false; }  //ADDED FOR HEV PROBLEM, EC, 20070820

@@ -444,6 +444,9 @@ UDEIMSamplingDriver::writeSampledMesh(std::vector<int> &maskIndices, std::set<in
    }
   }
 
+  //construct element weight solution vector
+  std::vector<double> solution(elementCount(),0.0);
+
   //fill weight map with selected elements
   std::vector<int> sampleElemIds;
   sampleElemIds.reserve(selectedElemRank.size());
@@ -451,16 +454,9 @@ UDEIMSamplingDriver::writeSampledMesh(std::vector<int> &maskIndices, std::set<in
   for(std::set<int>::const_iterator it = selectedElemRank.begin(), it_end = selectedElemRank.end(); it != it_end; ++it){
     const int elemRank = packedToInput[*it];
     weights.insert(std::make_pair(elemRank, 1.0));
+    solution[*it] = 1.0;
     sampleElemIds.push_back(elemRank);
   }
- 
-  //construct element weight solution vector
-  std::vector<double> solution(elementCount());
-  for(int i = 0; i != elementCount(); i++)
-    if(weights[i])
-     solution[i] = weights[i];
-    else 
-     solution[i] = 0.0;
  
   //output Full Weights for compatibility with full mesh hyperreduction (i.e. old method)
   {
@@ -472,15 +468,15 @@ UDEIMSamplingDriver::writeSampledMesh(std::vector<int> &maskIndices, std::set<in
    weightOut << "ATTRIBUTES\n";
    for (int i = 0; i != solution.size(); i++) {
     if(i == 0 ){
-      if(domain->solInfo().reduceFollower) 
-        weightOut << packedToInput[i]+1 << " 1 " << "HRC REDFOL" << " " << solution[i] << "\n";
+      if(domain->solInfo().reduceFollower)
+        weightOut << packedToInput[i] + 1 << " 1 " << "HRC REDFOL" << " " << solution[i] << "\n";
       else
-        weightOut << packedToInput[i]+1 << " 1 " << "HRC" << " " << solution[i] << "\n";
+        weightOut << packedToInput[i] + 1 << " 1 " << "HRC" << " " << solution[i] << "\n";
     } else {
-      weightOut << packedToInput[i]+1 << " 1 " << "HRC" << " " << solution[i] << "\n";
+      weightOut << packedToInput[i] + 1 << " 1 " << "HRC" << " " << solution[i] << "\n";
     }
-   }   
-   
+   }
+ 
    weightOut << "*\n";
    weightOut << "SNSLOT\n";
    int counter = 0;
@@ -500,6 +496,37 @@ UDEIMSamplingDriver::writeSampledMesh(std::vector<int> &maskIndices, std::set<in
   Vector constForceRed(podBasis_.vectorCount());
   reduce(podBasis_, constForceFull,  constForceRed);
   bool reduce_f = (constForceFull.norm() != 0);
+
+  // compute the reduced initial conditions
+  Vector d0Full(SingleDomainDynamic::solVecInfo()),
+         v0Full(SingleDomainDynamic::solVecInfo());
+  Vector tmp(SingleDomainDynamic::solVecInfo());
+  SysState<Vector> inState(d0Full, v0Full, tmp, tmp);
+  SingleDomainDynamic::getInitState(inState);
+  Vector d0Red(podBasis_.vectorCount()),
+         v0Red(podBasis_.vectorCount());
+  bool reduce_idis = (d0Full.norm() != 0),
+       reduce_ivel = (v0Full.norm() != 0);
+  if(domain->solInfo().useMassNormalizedBasis || domain->solInfo().newmarkBeta == 0) {
+    AllOps<double> allOps;
+    if(reduce_idis || reduce_ivel) {
+      //std::cerr << "building mass matrix\n";
+      allOps.M = domain->constructDBSparseMatrix<double>();
+      domain->makeSparseOps(allOps, 0, 0, 0);
+    }
+    if(reduce_idis) {
+      allOps.M->mult(d0Full, tmp);
+      reduce(podBasis_, tmp, d0Red);
+    }
+    if(reduce_ivel) {
+      allOps.M->mult(v0Full, tmp);
+      reduce(podBasis_, tmp, v0Red);
+    }
+  }
+  else {
+    if(reduce_idis) reduce(podBasis_, d0Full, d0Red);
+    if(reduce_ivel) reduce(podBasis_, v0Full, v0Red);
+  }
  
   // construct and print renumbered mesh
   const FileNameInfo fileInfo;
@@ -530,6 +557,21 @@ UDEIMSamplingDriver::writeSampledMesh(std::vector<int> &maskIndices, std::set<in
     meshOut << "*\nFORCES\nMODAL\n";
     for(int i=0; i<podBasis_.vectorCount(); ++i)
       meshOut << i+1 << " "  << constForceRed[i] << std::endl; 
+  }
+
+
+  // output the reduced initial conditions
+  if(reduce_idis) {
+    meshOut << "*\nIDISPLACEMENTS\nMODAL\n";
+    meshOut.precision(std::numeric_limits<double>::digits10+1);
+    for(int i=0; i<podBasis_.vectorCount(); ++i)
+      meshOut << i+1 << " " << d0Red[i] << std::endl;
+  }
+  if(reduce_ivel) {
+    meshOut << "*\nIVELOCITIES\nMODAL\n";
+    meshOut.precision(std::numeric_limits<double>::digits10+1);
+    for(int i=0; i<podBasis_.vectorCount(); ++i)
+      meshOut << i+1 << " " << v0Red[i] << std::endl;
   }
 
 #ifdef USE_EIGEN3

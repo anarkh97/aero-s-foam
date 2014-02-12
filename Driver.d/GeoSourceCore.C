@@ -997,12 +997,14 @@ void GeoSource::setUpData()
 
   // Set up element attributes
   SolverInfo &sinfo = domain->solInfo();
+/*
   if((na == 0) && (sinfo.probType != SolverInfo::Top) && (sinfo.probType != SolverInfo::Decomp)) {
     filePrint(stderr," **************************************\n");
     filePrint(stderr," *** ERROR: ATTRIBUTES not defined  ***\n");
     filePrint(stderr," **************************************\n");
     exit(-1);
   }
+*/
 
   // check for elements with no attribute, and add dummy properties in certain cases
   bool *hasAttr = new bool[nMaxEle];
@@ -1020,7 +1022,8 @@ void GeoSource::setUpData()
         addMat(dattr, StructProp());
         hasAddedDummy = true;
       }
-      if(sinfo.probType == SolverInfo::Top || sinfo.probType == SolverInfo::Decomp || elemSet[i]->isConstraintElement()) setAttrib(i,dattr);
+      if(sinfo.probType == SolverInfo::Top || sinfo.probType == SolverInfo::Decomp || elemSet[i]->isConstraintElement()
+         || elemSet[i]->isSloshingElement()) setAttrib(i,dattr);
       else filePrint(stderr, " *** WARNING: Element %d has no attribute defined\n", i+1);
     }
   }

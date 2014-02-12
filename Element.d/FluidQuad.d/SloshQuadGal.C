@@ -8,7 +8,6 @@ extern "C"      {
 // Overload thermquad3b for the stiffness operator of the sloshing problem
 void    _FORTRAN(thermquad3b)(double*, double*, double&, double&, double&, 
                               double*, const int *, const int *);
-// void    _FORTRAN(q4d1dofmas)(double*, double*, const int&, double*, const int&);
 void    _FORTRAN(slsas2)(char*, double*, double*, double&, double*, double*, 
                          int&, const int&, const int&, const int&);
 }
@@ -81,35 +80,6 @@ SloshQuadGal::getMass(CoordSet& cs)
 FullSquareMatrix
 SloshQuadGal::massMatrix(CoordSet &cs, double *d, int cmflg)
 {
-/*      Node &nd1 = cs.getNode(nn[0]);
-        Node &nd2 = cs.getNode(nn[1]);
-        Node &nd3 = cs.getNode(nn[2]);
-        Node &nd4 = cs.getNode(nn[3]);
-
-        int i;
-        double x[4], y[4], mm[16];
-
-        x[0] = nd1.x; y[0] = nd1.y;
-        x[1] = nd2.x; y[1] = nd2.y;
-        x[2] = nd3.x; y[2] = nd3.y;
-        x[3] = nd4.x; y[3] = nd4.y;
-
-        const int numgauss = 2;
-        const int numdof   = 4;
-
-        double capacitance = prop->rho*prop->Q*prop->eh;
-
-// Consistent mass
-
-        _FORTRAN(q4d1dofmas)(x, y, numgauss, mm, numdof);
-
-// Lumped mass
-
-        _FORTRAN(q4maslumpheat)(x,y,numgauss, mm, numdof);
-
-        for (i=0;i<16;i++)
-         d[i] = capacitance*mm[i];
-*/
         FullSquareMatrix mass(4,d);
         
         mass.zero();
@@ -140,6 +110,9 @@ SloshQuadGal::stiffness(CoordSet &cs,double *Ks, int)
         
         double k = 1.;
         double h = prop ->eh;
+        if(h == 0) { // PJSA 12/2/2014
+          std::cerr << " *** ERROR: SloshQuadGal element (type 301) has zero thickness.\n";
+        }
         double c = 0.;
 
         _FORTRAN(thermquad3b)(x, y, k, c, h, Kstiff, &numgauss, &numdof);
@@ -148,7 +121,6 @@ SloshQuadGal::stiffness(CoordSet &cs,double *Ks, int)
          Ks[i] = Kstiff[i];
 
         FullSquareMatrix ret(4, Ks);
-        //ret.print();
 
         return ret;
 }
@@ -201,58 +173,6 @@ SloshQuadGal::getTopNumber()
   return 110; // 2
 }
 
-/*
-void
-SloshQuadGal::computeTemp(CoordSet&cs,
-      State &state, double gp[2], double*tres)
-{
-// 4 is for the number of nodes, 2 is for temp and its derivative
-// with respect to time
- double Temp[4][2];
-
- state.getTemp(nn[0], Temp[0], Temp[0]+1);
- state.getTemp(nn[1], Temp[1], Temp[1]+1);
- state.getTemp(nn[2], Temp[2], Temp[2]+1);
- state.getTemp(nn[3], Temp[3], Temp[3]+1);
-
-// fprintf(stderr, "TEMP iS : %14.5e\n", Temp[0][0]);
-// fprintf(stderr, "TEMP iS : %14.5e\n", Temp[1][0]);
-// fprintf(stderr, "TEMP iS : %14.5e\n", Temp[2][0]);
-// fprintf(stderr, "TEMP iS : %14.5e\n", Temp[3][0]);
-
-// tres[0] = temperature
-// tres[1] = d(Temperature)/dt
-
- int j;
- for(j=0; j<2; ++j)
-    tres[j] = (1-gp[0])*(1-gp[1])* Temp[0][j] +
-              gp[0]*(1-gp[1])    * Temp[1][j] +
-              gp[0]*gp[1]        * Temp[2][j] +
-              (1-gp[0])*gp[1]    * Temp[3][j]; 
-//     fprintf(stderr, "TEMP1 : %14.5e\n",tres[0]);
-//     fprintf(stderr, "DTEMP1: %14.5e\n",tres[1]);
-}
-
-void
-ThermQuadGal::getFlFlux(double gp[2], double *flF, double *tresF)
-{
-// Projects a fluid flux contained in flF[0] to all 4 nodes of quad
-// Returns tresF
-// fprintf(stderr, "Gauss Points %f %f\n ", gp[0], gp[1]);
-
-   tresF[0]  = (1-gp[0])*(1-gp[1])* flF[0];
-   tresF[1]  = gp[0]*(1-gp[1])    * flF[0];
-   tresF[2]  = gp[0]*gp[1]        * flF[0];
-   tresF[3]  = (1-gp[0])*gp[1]    * flF[0];
-
-//   fprintf(stderr, "Fluxes are node 1: %f\n", tresF[0]);
-//   fprintf(stderr, "Fluxes are node 2: %f\n", tresF[1]);
-//   fprintf(stderr, "Fluxes are node 3: %f\n", tresF[2]);
-//   fprintf(stderr, "Fluxes are node 4: %f\n", tresF[3]);
-//   fflush(stderr); 
-}
-
-*/
 void
 SloshQuadGal::computeSloshDisp(Vector& fluidDispSlosh, CoordSet &cs, Vector& elPotSlosh,
                                    int hgInd)
@@ -284,15 +204,12 @@ SloshQuadGal::computeSloshDisp(Vector& fluidDispSlosh, CoordSet &cs, Vector& elP
    int elm    = 1;
    int numel  = 1;
 
-   //double k = prop ->k;
    double k = 1.;
 
    double elFluidDispSlosh[4][6];
 
    char ESCM[7] = "DIRECT"; // ... DIRECT Heat Fluxes CALCULATION
    //char ESCM[7] = "EXTRAP";   // ... EXTRAPOLATION FROM GAUSS POINTS
-
-//   elPotSlosh.print();
 
    _FORTRAN(slsas2)(ESCM, x, y, k, elPotSlosh.data(),
                     (double*)elFluidDispSlosh, maxgus, maxstr, elm, numel);

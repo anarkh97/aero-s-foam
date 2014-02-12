@@ -5,35 +5,32 @@
 
 class SloshTriangleFS: public Element {
 
-	int nn[3];
+        int nn[3];
 public:
-	SloshTriangleFS(int*);
+        SloshTriangleFS(int*);
 
-	Element *clone();
+        Element *clone();
 
-	void renum(int *);
+        void renum(int *);
         void renum(EleRenumMap&);
 
-        FullSquareMatrix  stiffness(CoordSet& cs, double *d, int flg = 1);
-        FullSquareMatrix  massMatrix(CoordSet& cs, double *mel, int cmflg=1);
-        double            getMass(CoordSet&);
+        FullSquareMatrix stiffness(CoordSet& cs, double *d, int flg = 1);
+        FullSquareMatrix massMatrix(CoordSet& cs, double *mel, int cmflg=1);
+        double           getArea(CoordSet&);
+        bool             isSloshingElement() { return true; }
 
-
-	void             markDofs(DofSetArray &);
+        void             markDofs(DofSetArray &);
         int*             dofs(DofSetArray &, int *p=0);
         int              numDofs();
 
         int              numNodes();
         int*             nodes(int * = 0);
-	int              getTopNumber();
+        int              getTopNumber();
 
-	PrioInfo examine(int sub, MultiFront *)   {
-           fprintf(stderr,"SloshTriangleFS.h: PrioInfo examine is commented in Dec.d/ElemFSCheck.C"); return *(new PrioInfo);
+        PrioInfo examine(int sub, MultiFront *) {
+          fprintf(stderr,"SloshTriangleFS.h: PrioInfo examine is commented in Dec.d/ElemFSCheck.C");
+          return *(new PrioInfo);
         };
-        //void computeTemp(CoordSet&cs, State &state, double gp[2], double*res);
-        //void getFlFlux(double gp[2], double *flF, double *resF);
-        //void getThermalForce(CoordSet &, Vector &, Vector &force, int, GeomState *geomState=0) { force.zero(); }
-
 };
-#endif
 
+#endif

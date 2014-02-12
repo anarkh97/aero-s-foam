@@ -306,6 +306,37 @@ DEIMSamplingDriver::writeSampledMesh(std::vector<int> &maskIndices) {
   Vector constForceRed(podBasis_.vectorCount());
   reduce(podBasis_, constForceFull,  constForceRed);
 
+  // compute the reduced initial conditions
+  Vector d0Full(SingleDomainDynamic::solVecInfo()),
+         v0Full(SingleDomainDynamic::solVecInfo());
+  Vector tmp(SingleDomainDynamic::solVecInfo());
+  SysState<Vector> inState(d0Full, v0Full, tmp, tmp);
+  SingleDomainDynamic::getInitState(inState);
+  Vector d0Red(podBasis_.vectorCount()),
+         v0Red(podBasis_.vectorCount());
+  bool reduce_idis = (d0Full.norm() != 0),
+       reduce_ivel = (v0Full.norm() != 0);
+  if(domain->solInfo().useMassNormalizedBasis || domain->solInfo().newmarkBeta == 0) {
+    AllOps<double> allOps;
+    if(reduce_idis || reduce_ivel) {
+      //std::cerr << "building mass matrix\n";
+      allOps.M = domain->constructDBSparseMatrix<double>();
+      domain->makeSparseOps(allOps, 0, 0, 0);
+    }
+    if(reduce_idis) {
+      allOps.M->mult(d0Full, tmp);
+      reduce(podBasis_, tmp, d0Red);
+    }
+    if(reduce_ivel) {
+      allOps.M->mult(v0Full, tmp);
+      reduce(podBasis_, tmp, v0Red);
+    }
+  }
+  else {
+    if(reduce_idis) reduce(podBasis_, d0Full, d0Red);
+    if(reduce_ivel) reduce(podBasis_, v0Full, v0Red);
+  }
+
   //fill element container with all elements 
   std::vector<int> packedToInput(elementCount());
   Elemset &inputElemSet = *(geoSource->getElemSet());
@@ -346,8 +377,8 @@ DEIMSamplingDriver::writeSampledMesh(std::vector<int> &maskIndices) {
   //construct element weight solution vector
   std::vector<double> solution(elementCount());
   for(int i = 0; i != elementCount(); i++)
-    if(weights[i])
-     solution[i] = weights[i];
+    if(weights[packedToInput[i]])
+     solution[i] = weights[packedToInput[i]];
     else 
      solution[i] = 0.0;
  
@@ -404,6 +435,20 @@ DEIMSamplingDriver::writeSampledMesh(std::vector<int> &maskIndices) {
   for(int i=0; i<podBasis_.vectorCount(); ++i)
     meshOut << i+1 << " "  << constForceRed[i] << std::endl; 
 
+  // output the reduced initial conditions
+  if(reduce_idis) {
+    meshOut << "*\nIDISPLACEMENTS\nMODAL\n";
+    meshOut.precision(std::numeric_limits<double>::digits10+1);
+    for(int i=0; i<podBasis_.vectorCount(); ++i)
+      meshOut << i+1 << " " << d0Red[i] << std::endl;
+  }
+  if(reduce_ivel) {
+    meshOut << "*\nIVELOCITIES\nMODAL\n";
+    meshOut.precision(std::numeric_limits<double>::digits10+1);
+    for(int i=0; i<podBasis_.vectorCount(); ++i)
+      meshOut << i+1 << " " << v0Red[i] << std::endl;
+  }
+
 
   #ifdef USE_EIGEN3
   // build and output compressed basis and mask operator P
@@ -456,6 +501,12 @@ DEIMSamplingDriver::buildForceArray(VecBasis &forceBasis, const VecBasis &displa
   int iSnap = 0;
   double gamma  = domain->solInfo().newmarkGamma;
   double alphaf = domain->solInfo().newmarkAlphaF;
+
+  double TotalSum = 0;
+  double NonlinearSum = 0;
+  double LinearSum = 0;
+  int counter = 0;
+
   for(int i = 0; i < snapshotCounts_.size(); i++) {
     GenVector<double> FNLint(solVecInfo());
     GenVector<double> FLint(solVecInfo());
@@ -475,11 +526,20 @@ DEIMSamplingDriver::buildForceArray(VecBasis &forceBasis, const VecBasis &displa
    
       //set vector in force snapshot container
       forceBasis[iSnap] = (FNLint-FLint); 
+      TotalSum     += FNLint.norm();
+      NonlinearSum += forceBasis[iSnap].norm();
+      LinearSum    += FLint.norm();
      
+      counter += 1;
       timeStampIt++;
     }
   }
   filePrint(stderr,"\r %4.2f%% complete\n", 100.);
+
+  std::cout << "Avg.     Total Norm = " << TotalSum/double(counter) << std::endl;
+  std::cout << "Avg. Nonlinear Norm = " << NonlinearSum/double(counter) << std::endl;
+  std::cout << "Avg.    Linear Norm = " << LinearSum/double(counter) << std::endl;
+
 }
 
 void DEIMSamplingDriver::OrthoForceSnap(VecBasis &forceBasis,std::vector<double> &SVs)

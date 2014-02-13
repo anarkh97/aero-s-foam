@@ -263,4 +263,9 @@ ShellMaterialType1<double>::GetConstitutiveResponse(double *Upsilon, double *Sig
 template
 double 
 ShellMaterialType1<double>::GetShellThickness();
+
+template
+void
+ShellMaterialType1<double>::GetConstitutiveResponseSensitivityWRTdisp(double *_dUpsilondu, double *_dSigmadu, double *_D,
+                                                                      double *eframe, int gp);
 #endif

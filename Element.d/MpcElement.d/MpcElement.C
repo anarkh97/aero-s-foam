@@ -122,7 +122,7 @@ MpcElement::~MpcElement()
 int
 MpcElement::getNumMPCs()
 {
-  if(prop->lagrangeMult && prop->penalty == 0) return 1;
+  if(prop->penalty == 0) return 1; // lagrange multiplier and elimination 
   else return 0; // penalty and augmented lagrangian
 }
 

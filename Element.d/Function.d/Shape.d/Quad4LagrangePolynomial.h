@@ -23,9 +23,9 @@ class Quad4LagrangePolynomialShapeFunction : public VectorValuedFunction<2,4,Sca
       //        η           shape functions
       //        ↑           ---------------
       //    3-------2       N₀ = 1/4(1-ξ)(1-η)
-      //    ¦       ¦       N₁ = 1/4(1-ξ)(1+η)
+      //    ¦       ¦       N₁ = 1/4(1+ξ)(1-η)
       //    ¦       ¦ → ξ   N₂ = 1/4(1+ξ)(1+η)
-      //    ¦       ¦       N₃ = 1/4(1+ξ)(1-η)
+      //    ¦       ¦       N₃ = 1/4(1-ξ)(1+η)
       //    0-------1
 
       N[0] = 1/4.*(1-xi)*(1-eta);

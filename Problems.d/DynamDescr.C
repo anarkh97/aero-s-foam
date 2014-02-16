@@ -186,9 +186,9 @@ SingleDomainDynamic::projector_prep(Rbm *rbms, SparseMatrix *M)
 
  if (!numR) return;
 
- fprintf(stderr," ... Building the RBM/HZEM Projector     ...\n");
+ filePrint(stderr," ... Building the RBM/HZEM Projector     ...\n");
 
- fprintf(stderr," ... Number of RBM/HZEM(s)     =   %d     ...\n",numR);
+ filePrint(stderr," ... Number of RBM/HZEM(s)     =   %d     ...\n",numR);
 
  // KHP: store this pointer to the RBMs to use in the actual
  //      projection step within the time loop.
@@ -858,11 +858,11 @@ SingleDomainDynamic::buildOps(double coeM, double coeC, double coeK)
    domain->buildOps(allOps, coeK, coeM, coeC, 0, kelArray, melArray);
 
  if(useRbmFilter == 1)
-    fprintf(stderr," ... RBM filter Level 1 Requested    ...\n");
+    filePrint(stderr," ... RBM filter Level 1 Requested    ...\n");
  if(useRbmFilter == 2)
-    fprintf(stderr," ... RBM filter Level 2 Requested    ...\n");
+    filePrint(stderr," ... RBM filter Level 2 Requested    ...\n");
  if(useHzemFilter)
-    fprintf(stderr," ... HZEM filter Requested    ...\n");
+    filePrint(stderr," ... HZEM filter Requested    ...\n");
 
  if(useRbmFilter || useHzemFilter)
    projector_prep(rigidBodyModes, allOps.M);
@@ -948,7 +948,7 @@ SingleDomainDynamic::computeTimeInfo()
   double remainder = totalTime - maxStep*dt;
   if(std::abs(remainder)>0.01*dt){
     domain->solInfo().tmax = maxStep*dt;
-    fprintf(stderr, " Warning: Total time is being changed to : %e\n", domain->solInfo().tmax);
+    filePrint(stderr, " Warning: Total time is being changed to : %e\n", domain->solInfo().tmax);
   }
 }
 
@@ -1023,19 +1023,17 @@ SingleDomainDynamic::getPostProcessor()
 void
 SingleDomainDynamic::printTimers(DynamMat *dynamMat, double timeLoop)
 {
+  long memoryUsed = (dynamMat->dynMat)->size();
+  double solveTime  = dynamMat->dynMat->getSolutionTime();
 
- long memoryUsed = (dynamMat->dynMat)->size();//solver->size();
- double solveTime  = dynamMat->dynMat->getSolutionTime();//solver->getSolutionTime();
+  times->printStaticTimers(solveTime, memoryUsed, domain, timeLoop);
 
- times->printStaticTimers(solveTime, memoryUsed, domain, timeLoop);
-
- if(domain->solInfo().massFlag) {
-   double mass = domain->computeStructureMass();
-   fprintf(stderr," --------------------------------------\n");
-   fprintf(stderr," ... Structure mass = %e  ...\n",mass);
-   fprintf(stderr," --------------------------------------\n");
- }
-
+  if(domain->solInfo().massFlag) {
+    double mass = domain->computeStructureMass();
+    filePrint(stderr," --------------------------------------\n");
+    filePrint(stderr," ... Structure mass = %e  ...\n",mass);
+    filePrint(stderr," --------------------------------------\n");
+  }
 }
 
 /*
@@ -1150,7 +1148,7 @@ SingleDomainDynamic::modeDecompPreProcess(SparseMatrix *M)
 // Compute Transpose(Phi_i)*M once and for all
 // ===========================================
  
-   if(verboseFlag) fprintf(stderr, " ... Preparing Transpose(Phi_i)*M for %d modes ...\n", maxmode);
+   if(verboseFlag) filePrint(stderr, " ... Preparing Transpose(Phi_i)*M for %d modes ...\n", maxmode);
  
    tPhiM =  new double*[maxmode];
      for (i=0; i<maxmode; ++i)

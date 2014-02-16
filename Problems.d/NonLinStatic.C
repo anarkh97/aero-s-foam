@@ -385,14 +385,21 @@ NonLinStatic::getPostProcessor()
 void
 NonLinStatic::printTimers()
 {
- times->timeTimers -= getTime();
+  times->timeTimers -= getTime();
 
- long memoryUsed = solver->size();
- double solveTime  = solver->getSolutionTime();
+  long memoryUsed = solver->size();
+  double solveTime  = solver->getSolutionTime();
 
- times->printStaticTimers(solveTime, memoryUsed, domain);
+  times->printStaticTimers(solveTime, memoryUsed, domain);
 
- times->timeTimers += getTime();
+  times->timeTimers += getTime();
+
+  if(domain->solInfo().massFlag) {
+    double mass = domain->computeStructureMass();
+    filePrint(stderr," --------------------------------------\n");
+    filePrint(stderr," ... Structure mass = %e  ...\n",mass);
+    filePrint(stderr," --------------------------------------\n");
+  }
 }
 
 void

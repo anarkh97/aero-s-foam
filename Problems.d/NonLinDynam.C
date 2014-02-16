@@ -116,8 +116,8 @@ NonLinDynamic::projector_prep(Rbm *rbms, SparseMatrix *M)
 
  if (!numR) return;
 
- fprintf(stderr," ... Building the RBM Projector     ...\n");
- //fprintf(stderr," ... Number of RBM(s)     =   %d     ...\n",numR);
+ filePrint(stderr," ... Building the RBM Projector     ...\n");
+ //filePrint(stderr," ... Number of RBM(s)     =   %d     ...\n",numR);
 
  int ndof = M->dim();
 
@@ -339,7 +339,7 @@ NonLinDynamic::computeTimeInfo()
   double remainder = totalTime - maxStep*dt0;
   if(std::abs(remainder)>0.01*dt0){
     domain->solInfo().tmax = totalTime = maxStep*dt0; 
-    fprintf(stderr, " Warning: Total time is being changed to : %e\n", totalTime);
+    filePrint(stderr, " Warning: Total time is being changed to : %e\n", totalTime);
   }
 
   // set half time step size in user defined functions 
@@ -904,11 +904,11 @@ NonLinDynamic::preProcess(double Kcoef, double Mcoef, double Ccoef)
                           melArray, celArray, factorWhenBuilding()); // don't use Rbm's to factor in dynamics
 
  if(useRbmFilter == 1)
-    fprintf(stderr," ... RBM filter Level 1 Requested    ...\n");
+    filePrint(stderr," ... RBM filter Level 1 Requested    ...\n");
  if(useRbmFilter == 2)
-    fprintf(stderr," ... RBM filter Level 2 Requested    ...\n");
+    filePrint(stderr," ... RBM filter Level 2 Requested    ...\n");
  if(useHzemFilter)
-    fprintf(stderr," ... HZEM filter Requested    ...\n");
+    filePrint(stderr," ... HZEM filter Requested    ...\n");
 
  if(useRbmFilter || useHzemFilter)
    projector_prep(rigidBodyModes, allOps.M);
@@ -978,17 +978,23 @@ NonLinDynamic::getSolver()
 SDDynamPostProcessor* 
 NonLinDynamic::getPostProcessor()
 {
- return new SDDynamPostProcessor(domain, bcx, vcx, acx, times);
+  return new SDDynamPostProcessor(domain, bcx, vcx, acx, times);
 }
 
 void
 NonLinDynamic::printTimers(double timeLoop)
 {
+  long memoryUsed = solver->size();
+  double solveTime = solver->getSolutionTime();
 
- long memoryUsed = solver->size();
- double solveTime = solver->getSolutionTime();
+  times->printStaticTimers( solveTime, memoryUsed, domain, timeLoop );
 
- times->printStaticTimers( solveTime, memoryUsed, domain, timeLoop );
+  if(domain->solInfo().massFlag) {
+    double mass = domain->computeStructureMass();
+    filePrint(stderr," --------------------------------------\n");
+    filePrint(stderr," ... Structure mass = %e  ...\n",mass);
+    filePrint(stderr," --------------------------------------\n");
+  }
 }
 
 int

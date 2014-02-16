@@ -1212,12 +1212,6 @@ GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<S
     if(globVal) { delete [] globVal; globVal = 0; }
   }
   firstOutput = false; 
-  // ... CALCULATE STRUCTURE MASS IF REQUESTED
-  if(domain->solInfo().massFlag)  {
-    double mass = domain->computeStructureMass();
-    filePrint(stderr," ... Structure mass = %10.4f    ...\n",mass);
-    filePrint(stderr," --------------------------------------\n");
-  }
 
   if(glMergedDis) delete [] glMergedDis;
   if(locMergedDis) delete [] locMergedDis;

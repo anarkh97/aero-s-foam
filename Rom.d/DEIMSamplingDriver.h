@@ -7,6 +7,7 @@
 #include "VecBasisOps.h"
 #include "FileNameInfo.h"
 #include "VecBasisFile.h"
+#include "VecNodeDof6Map.h"
 
 #include "VecNodeDof6Conversion.h"
 
@@ -40,11 +41,14 @@ private:
 
   void writeProjForceSnap(); 
 
+  void getFullNodeIndices(Eigen::Matrix<double,Eigen::Dynamic,1> res,int MaxCoeff,std::vector<int> &container, std::vector<int> &auxilaryIndices);
+
   void computeInterpIndices(VecBasis &forceBasis, std::vector<int> &maskIndices); 
   void computeAndWriteDEIMBasis(VecBasis &forceBasis, std::vector<int> &maskIndices);  
   void writeSampledMesh(std::vector<int> &maskIndices);
 
   VecNodeDof6Conversion *converter;
+  VecNodeDof6Map *nodeDofMap;
 
   VecBasis podBasis_;
   VecBasis deimBasis;

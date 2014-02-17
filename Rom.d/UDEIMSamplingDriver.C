@@ -5,7 +5,6 @@
 #include "VecNodeDof6Conversion.h"
 #include "NodalRestrictionMapping.h"
 #include "ConnectivityUtils.h"
-#include "VecNodeDof6Map.h"
 #include "BasisFileStream.h"
 #include "FileNameInfo.h"
 #include "SimpleBuffer.h"
@@ -36,6 +35,7 @@ namespace Rom {
 
 UDEIMSamplingDriver::UDEIMSamplingDriver(Domain *domain) :
   SingleDomainDynamic(domain),
+  nodeDofMap(NULL),
   converter(NULL)
 {}
 
@@ -46,7 +46,9 @@ UDEIMSamplingDriver::solve() {
   if(domain->solInfo().newmarkBeta == 0) {
     domain->assembleNodalInertiaTensors(melArray);
   }
+
   converter = new VecNodeDof6Conversion(*domain->getCDSA());
+  nodeDofMap = new VecNodeDof6Map(*domain->getCDSA());
 
   const int podSizeMax = domain->solInfo().maxSizePodRom; 
   bool normalized = true;
@@ -401,15 +403,13 @@ UDEIMSamplingDriver::computeAndWriteUDEIMBasis(VecBasis &unassembledForceBuf,Vec
 void
 UDEIMSamplingDriver::writeSampledMesh(std::vector<int> &maskIndices, std::set<int> &selectedElemRank, std::vector<std::pair<int,int> > &elemRankDOFContainer) {
 
-  VecNodeDof6Map nodeDofMap(*domain->getCDSA());
-
   //get nodes & dofs belonging to sampled indices (global numbering)
   std::set<int> selectedNodeSet; //To ensure unicity, since several locations (i.e. vector indices) can correspond to one node
   std::vector<std::pair<int,int> > compressedNodeKey; //need separate vector container for repeated nodes with different selected dofs
   for (std::vector<int>::const_iterator it = maskIndices.begin(); it != maskIndices.end(); ++it) {
-    selectedNodeSet.insert(nodeDofMap.nodeDof(*it).nodeRank);
-    int selectedNode = nodeDofMap.nodeDof(*it).nodeRank;
-    int selectedNodeDof = std::log10(nodeDofMap.nodeDof(*it).dofId)/std::log10(2.0); //this function call is returning 2^dof for some reason, call log to normalize
+    selectedNodeSet.insert(nodeDofMap->nodeDof(*it).nodeRank);
+    int selectedNode = nodeDofMap->nodeDof(*it).nodeRank;
+    int selectedNodeDof = std::log10(nodeDofMap->nodeDof(*it).dofId)/std::log10(2.0); //this function call is returning 2^dof for some reason, call log to normalize
     compressedNodeKey.push_back(std::make_pair(selectedNode,selectedNodeDof));
   }
 

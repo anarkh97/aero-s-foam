@@ -172,6 +172,8 @@ TRAIL [a-zA-Z]*
 
 "REDFOL"|"redfol"                  { return REDFOL; }
 
+"FULLND"|"fullnd"		   { return PSEUDOGNAT; }
+
 "ELLUMP"                           { return ELLUMP; }
 
 "IDENTITY"|"identity"              { return IDENTITY; }
@@ -1415,12 +1417,12 @@ TRAIL [a-zA-Z]*
 "REDSTIFF"|"RedStiff"|"redstiff"	  { return REDUCEDSTIFFNESS; }
 
 "FPODRB"|"FPODRb"|"fpodrb"                { return FORCEROB; }
- 
+
 "svdfrc"|"SvdFrc"|"svdfrc"		  { return SVDFORCESNAP; }
 
 "DEIM"|"Deim"|"deim"                      { return DEIMINDICES; }
  
-"UDEIM"|"UDeim"|"udeim"                      { return UDEIMINDICES; }
+"UDEIM"|"UDeim"|"udeim"                   { return UDEIMINDICES; }
 
 "ROBC"|"RobC"|"robc" 			  { return SVDTOKEN; } 
 

@@ -367,6 +367,7 @@ struct SolverInfo {
    bool onlineSvdPodRom;
    int  maxSizePodRom;
    int  maxDeimBasisSize;
+   bool selectFullNode;
    int  forcePodSize;
    int  normalize;
    bool substractRefPodRom;
@@ -643,6 +644,7 @@ struct SolverInfo {
                   onlineSvdPodRom    = false;
                   maxSizePodRom      = 0;
 		  maxDeimBasisSize   = 0;
+                  selectFullNode     = false;
                   forcePodSize	     = 0;
 		  normalize          = 1;
                   substractRefPodRom = false;

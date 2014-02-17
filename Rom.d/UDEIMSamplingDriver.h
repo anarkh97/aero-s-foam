@@ -7,6 +7,7 @@
 #include "VecBasisOps.h"
 #include "FileNameInfo.h"
 #include "VecBasisFile.h"
+#include "VecNodeDof6Map.h"
 
 #include "VecNodeDof6Conversion.h"
 #include <set>
@@ -50,13 +51,13 @@ private:
   void writeSampledMesh(std::vector<int> &maskIndices, std::set<int> &selectedElems, std::vector<std::pair<int,int> > &elemRankDOFContainer);
 
   VecNodeDof6Conversion *converter;
+  VecNodeDof6Map *nodeDofMap;
 
   VecBasis podBasis_;
   VecBasis udeimBasis;
   std::map<int, std::pair<int,int> > uDOFaDOFmap;
 
   FullSquareMatrix *kelArrayCopy; 
-
 };
 
 } /* end namespace Rom */

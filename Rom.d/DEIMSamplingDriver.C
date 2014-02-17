@@ -6,7 +6,6 @@
 #include "VecNodeDof6Conversion.h"
 #include "NodalRestrictionMapping.h"
 #include "ConnectivityUtils.h"
-#include "VecNodeDof6Map.h"
 #include "BasisFileStream.h"
 #include "FileNameInfo.h"
 #include "SimpleBuffer.h"
@@ -45,7 +44,9 @@ DEIMSamplingDriver::solve() {
   if(domain->solInfo().newmarkBeta == 0) {
     domain->assembleNodalInertiaTensors(melArray);
   }
+
   converter = new VecNodeDof6Conversion(*domain->getCDSA());
+  nodeDofMap = new VecNodeDof6Map(*domain->getCDSA());  
 
   const int podSizeMax = domain->solInfo().maxSizePodRom; 
   bool normalized = true;
@@ -155,12 +156,19 @@ DEIMSamplingDriver::computeInterpIndices(VecBasis &forceBasis, std::vector<int> 
   //member function for determining the sampling indicies for DEIM
   //result is (U*(P^T*U)^-1) where U is the left singular vectors of force snapshots and P
   //is the column selection matrix
-  
-  int forcePodSizeMax = domain->solInfo().forcePodSize;
+
+  int forcePodSizeMax; 
+  if(domain->solInfo().selectFullNode) 
+    forcePodSizeMax = domain->solInfo().forcePodSize*6;
+  else
+    forcePodSizeMax = domain->solInfo().forcePodSize;
+
   readInBasis(forceBasis, BasisId::FORCE, BasisId::SNAPSHOTS,forcePodSizeMax);  
 #ifdef USE_EIGEN3
   Eigen::Map< Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > forceMatrix(forceBasis.data(),forceBasis.vectorSize(),forceBasis.vectorCount());
-
+  
+  std::vector<int> auxilaryIndices;
+ 
   int maxCoeffSlot;
 
   {
@@ -168,16 +176,18 @@ DEIMSamplingDriver::computeInterpIndices(VecBasis &forceBasis, std::vector<int> 
    firstCol = forceMatrix.col(0);
    //take absolute value of first column
    for(int row = 0; row != firstCol.rows(); row++)
-     if(firstCol(row) < 0.0)
-       firstCol(row) = -1.0*firstCol(row);
+       firstCol(row) = firstCol(row)*firstCol(row);
    //find maximum component
    firstCol.maxCoeff(&maxCoeffSlot);
-   maskIndices.push_back(maxCoeffSlot);
+   if(domain->solInfo().selectFullNode)
+      getFullNodeIndices(firstCol,maxCoeffSlot,maskIndices,auxilaryIndices);
+   else
+      maskIndices.push_back(maxCoeffSlot);
   }
 
   //start loop to compute mask indicies 
-  for(int i = 1; i < forceMatrix.cols(); ++i){ //loop starts at 1 i.e. the 2nd column
-    filePrint(stderr,"\r %4.2f%% complete", double(i)/double(forceBasis.vectorCount())*100.);
+  for(int i = 1; i < domain->solInfo().forcePodSize; ++i){ //loop starts at 1 i.e. the 2nd column
+    filePrint(stderr,"\r %4.2f%% complete", double(i)/double(domain->solInfo().forcePodSize)*100.);
 
     //allocate space for P^T*U and P^T*u_i
     Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> Umasked(maskIndices.size(),maskIndices.size());
@@ -185,7 +195,7 @@ DEIMSamplingDriver::computeInterpIndices(VecBasis &forceBasis, std::vector<int> 
 
     for(int j = 0; j < maskIndices.size(); ++j) {//select proper rows and columns of force basis
       Umasked.row(j) = forceMatrix.block(maskIndices[j],0,1,maskIndices.size()); //(P^T*U) is square
-      u_i_masked(j) = forceMatrix(maskIndices[j],i);//mask next column over
+      u_i_masked(j) = forceMatrix(maskIndices[j],maskIndices.size());//mask next column over
     }
 
     Eigen::FullPivLU< Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > luOfUmasked(Umasked); //invert row reduced basis
@@ -193,23 +203,51 @@ DEIMSamplingDriver::computeInterpIndices(VecBasis &forceBasis, std::vector<int> 
     Eigen::Matrix<double,Eigen::Dynamic,1> residual(forceBasis.vectorSize());
 
     if(luOfUmasked.isInvertible())
-      residual = forceMatrix.col(i) - forceMatrix.leftCols(maskIndices.size())*luOfUmasked.inverse()*u_i_masked;
+      residual = forceMatrix.col(maskIndices.size()) - forceMatrix.leftCols(maskIndices.size())*luOfUmasked.inverse()*u_i_masked;
     else
       throw std::runtime_error("... Matrix Not Invertible ...");
 
     //take absolute value of residual vector
     for(int row = 0; row != residual.rows(); row++)
-      if(residual(row) < 0.0)
-        residual(row) = -1.0*residual(row);
+      residual(row) = residual(row)*residual(row);
 
     residual.maxCoeff(&maxCoeffSlot); //find indice of maximum component
-    maskIndices.push_back(maxCoeffSlot);
+
+    if(domain->solInfo().selectFullNode)
+      getFullNodeIndices(residual,maxCoeffSlot,maskIndices,auxilaryIndices);
+    else
+      maskIndices.push_back(maxCoeffSlot);
+     
   }
   filePrint(stderr,"\r %4.2f%% complete\n", 100.);
+
+  if(domain->solInfo().selectFullNode)
+    std::copy(auxilaryIndices.begin(),auxilaryIndices.end(),std::back_inserter(maskIndices));
 
   Eigen::Map< Eigen::Matrix<int,Eigen::Dynamic,Eigen::Dynamic> > indSol(maskIndices.data(),maskIndices.size(),1);
   std::cout << "selected indices:" << indSol.transpose() << std::endl;
 #endif
+}
+
+void
+DEIMSamplingDriver::getFullNodeIndices(Eigen::Matrix<double,Eigen::Dynamic,1> res,int MaxCoeff,std::vector<int> &container,std::vector<int> &auxilaryIndices){
+  //this member function adds all indices for a selected node in order of largest residual contribution
+  std::vector<int> nodalIndices;
+
+  int selectedNode = nodeDofMap->nodeDof(MaxCoeff).nodeRank;
+  
+  nodeDofMap->locations(selectedNode,std::back_inserter(nodalIndices));
+
+  std::map<double,int> myMap;
+  for(int i = 0; i != nodalIndices.size(); i++){
+    myMap.insert(std::make_pair(res(nodalIndices[i]),nodalIndices[i]));
+  }
+
+  container.push_back(MaxCoeff); 
+
+  myMap.erase(myMap.find(res(MaxCoeff)));
+  for(std::map<double,int>::reverse_iterator rit = myMap.rbegin(); rit != myMap.rend(); rit++)
+    auxilaryIndices.push_back(rit->second);
 }
 
 void
@@ -218,7 +256,7 @@ DEIMSamplingDriver::computeAndWriteDEIMBasis(VecBasis &forceBasis, std::vector<i
   //member function for computing and writing the DEIM basis P*(P^T*U)^-T*U^T*V
   //where V is the mass-orthogonal POD basis, U is the left Singular vectors of the force snapshots
   //and P column selection matrix derived form the sampled indicies computed above
-  int maxDeimBasisSize = domain->solInfo().maxDeimBasisSize;
+  int maxDeimBasisSize = domain->solInfo().maxDeimBasisSize;//if this is less than the number of indices, then we solve a least squares problem
   if(maxDeimBasisSize == 0)
     maxDeimBasisSize = maskIndices.size();
 
@@ -271,15 +309,13 @@ DEIMSamplingDriver::computeAndWriteDEIMBasis(VecBasis &forceBasis, std::vector<i
 void
 DEIMSamplingDriver::writeSampledMesh(std::vector<int> &maskIndices) {
 
-  VecNodeDof6Map nodeDofMap(*domain->getCDSA());
-
   //get nodes & dofs belonging to sampled indices (global numbering)
   std::set<int> selectedNodeSet; //To ensure unicity, since several locations (i.e. vector indices) can correspond to one node
   std::vector<std::pair<int,int> > compressedNodeKey; //need separate vector container for repeated nodes with different selected dofs
   for (std::vector<int>::const_iterator it = maskIndices.begin(); it != maskIndices.end(); ++it) {
-    selectedNodeSet.insert(nodeDofMap.nodeDof(*it).nodeRank);
-    int selectedNode = nodeDofMap.nodeDof(*it).nodeRank;
-    int selectedNodeDof = std::log10(nodeDofMap.nodeDof(*it).dofId)/std::log10(2.0); //this function call is returning 2^dof for some reason, call log to normalize
+    selectedNodeSet.insert(nodeDofMap->nodeDof(*it).nodeRank);
+    int selectedNode = nodeDofMap->nodeDof(*it).nodeRank;
+    int selectedNodeDof = std::log10(nodeDofMap->nodeDof(*it).dofId)/std::log10(2.0); //this function call is returning 2^dof for some reason, call log to normalize
     compressedNodeKey.push_back(std::make_pair(selectedNode,selectedNodeDof));
   }
 

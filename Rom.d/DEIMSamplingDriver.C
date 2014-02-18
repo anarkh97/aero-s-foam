@@ -157,17 +157,13 @@ DEIMSamplingDriver::computeInterpIndices(VecBasis &forceBasis, std::vector<int> 
   //result is (U*(P^T*U)^-1) where U is the left singular vectors of force snapshots and P
   //is the column selection matrix
 
-  int forcePodSizeMax; 
-  if(domain->solInfo().selectFullNode) 
-    forcePodSizeMax = domain->solInfo().forcePodSize*6;
-  else
-    forcePodSizeMax = domain->solInfo().forcePodSize;
+  int forcePodSizeMax = domain->solInfo().forcePodSize;
 
   readInBasis(forceBasis, BasisId::FORCE, BasisId::SNAPSHOTS,forcePodSizeMax);  
 #ifdef USE_EIGEN3
   Eigen::Map< Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > forceMatrix(forceBasis.data(),forceBasis.vectorSize(),forceBasis.vectorCount());
   
-  std::vector<int> auxilaryIndices;
+  std::set<int> auxilaryIndices;//container for all dofs of selected nodes. Pseudo-GNAT type hyper-reduction
  
   int maxCoeffSlot;
 
@@ -221,8 +217,12 @@ DEIMSamplingDriver::computeInterpIndices(VecBasis &forceBasis, std::vector<int> 
   }
   filePrint(stderr,"\r %4.2f%% complete\n", 100.);
 
-  if(domain->solInfo().selectFullNode)
-    std::copy(auxilaryIndices.begin(),auxilaryIndices.end(),std::back_inserter(maskIndices));
+  if(domain->solInfo().selectFullNode){
+    for(int i = 0; i != maskIndices.size(); i++)
+      auxilaryIndices.erase(auxilaryIndices.erase(maskIndices[i]));//remove redundant auxilary indices from set
+
+   std::copy(auxilaryIndices.begin(),auxilaryIndices.end(),std::back_inserter(maskIndices));//append auxilarry indices to end to selected indices list
+  }
 
   Eigen::Map< Eigen::Matrix<int,Eigen::Dynamic,Eigen::Dynamic> > indSol(maskIndices.data(),maskIndices.size(),1);
   std::cout << "selected indices:" << indSol.transpose() << std::endl;
@@ -230,7 +230,7 @@ DEIMSamplingDriver::computeInterpIndices(VecBasis &forceBasis, std::vector<int> 
 }
 
 void
-DEIMSamplingDriver::getFullNodeIndices(Eigen::Matrix<double,Eigen::Dynamic,1> res,int MaxCoeff,std::vector<int> &container,std::vector<int> &auxilaryIndices){
+DEIMSamplingDriver::getFullNodeIndices(Eigen::Matrix<double,Eigen::Dynamic,1> res,int MaxCoeff,std::vector<int> &container,std::set<int> &auxilaryIndices){
   //this member function adds all indices for a selected node in order of largest residual contribution
   std::vector<int> nodalIndices;
 
@@ -247,7 +247,7 @@ DEIMSamplingDriver::getFullNodeIndices(Eigen::Matrix<double,Eigen::Dynamic,1> re
 
   myMap.erase(myMap.find(res(MaxCoeff)));
   for(std::map<double,int>::reverse_iterator rit = myMap.rbegin(); rit != myMap.rend(); rit++)
-    auxilaryIndices.push_back(rit->second);
+    auxilaryIndices.insert(rit->second);
 }
 
 void

@@ -11,6 +11,8 @@
 
 #include "VecNodeDof6Conversion.h"
 
+#include <set>
+
 #ifdef USE_EIGEN3
 #include <Eigen/LU>
 #endif
@@ -41,7 +43,7 @@ private:
 
   void writeProjForceSnap(); 
 
-  void getFullNodeIndices(Eigen::Matrix<double,Eigen::Dynamic,1> res,int MaxCoeff,std::vector<int> &container, std::vector<int> &auxilaryIndices);
+  void getFullNodeIndices(Eigen::Matrix<double,Eigen::Dynamic,1> res,int MaxCoeff,std::vector<int> &container, std::set<int> &auxilaryIndices);
 
   void computeInterpIndices(VecBasis &forceBasis, std::vector<int> &maskIndices); 
   void computeAndWriteDEIMBasis(VecBasis &forceBasis, std::vector<int> &maskIndices);  

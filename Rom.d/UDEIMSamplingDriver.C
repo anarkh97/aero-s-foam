@@ -322,11 +322,22 @@ UDEIMSamplingDriver::computeInterpIndices(VecBasis &forceBasis, std::vector<int>
 #endif
 }
 
+void
+UDEIMSamplingDriver::getFullElemIndices(int MaxCoeff,std::vector<int> &container,std::vector<int> &auxilaryIndices){
+
+  
+
+}
+
 void 
 UDEIMSamplingDriver::computeAssembledIndices(std::vector<int> &umaskIndices, std::vector<int> &amaskIndices, std::set<int> &selectedElemRank, std::vector<std::pair<int,int> > &elemRankDOFContainer)
 {
  //convert selected unassembled indices to assembled indices for compatibility with online DEIM code
  //with mixed element types, each element could have a different number of dofs
+
+ std::vector<int> uAuxilaryIndices;
+ std::set<int> aAuxilaryIndices;
+
  for(int i = 0; i != umaskIndices.size(); i++){
                       //unassembled to assembled DOF map
    int selectedElem = uDOFaDOFmap.at(umaskIndices[i]).first;

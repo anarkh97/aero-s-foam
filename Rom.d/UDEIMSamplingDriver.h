@@ -49,13 +49,14 @@ private:
   void computeInterpIndices(VecBasis &forceBasis, std::vector<int> &maskIndices); 
   void computeAndWriteUDEIMBasis(VecBasis &unassembledForceBuf,VecBasis &assembledForceBuf,std::vector<int> &umaskIndices,std::vector<int> &amaskIndices, std::vector<double> &singularVals);  
   void writeSampledMesh(std::vector<int> &maskIndices, std::set<int> &selectedElems, std::vector<std::pair<int,int> > &elemRankDOFContainer);
+  void getFullElemIndices(int MaxCoeff,std::vector<int> &container,std::vector<int> &auxilaryIndices);
 
   VecNodeDof6Conversion *converter;
   VecNodeDof6Map *nodeDofMap;
 
   VecBasis podBasis_;
   VecBasis udeimBasis;
-  std::map<int, std::pair<int,int> > uDOFaDOFmap;
+  std::map<int, std::pair<int,int> > uDOFaDOFmap;// key: unassembled index, MapValue: paired element and element DOF
 
   FullSquareMatrix *kelArrayCopy; 
 };

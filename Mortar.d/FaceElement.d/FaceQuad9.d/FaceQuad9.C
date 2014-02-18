@@ -308,7 +308,7 @@ FaceQuad9::GetdShapeFct(double *dShapex, double *dShapey, double *m)
   dShapey[2] = onequart*(xp*( x+2.*y) + dShapey[8]);
   dShapey[3] = onequart*(xm*(-x+2.*y) + dShapey[8]);
   dShapey[4] = -onehalf*xxm - onehalf*dShapey[8];
-  dShapey[5] = -y*xp        - onehalf*dShapex[8];  
+  dShapey[5] = -y*xp        - onehalf*dShapey[8];  
   dShapey[6] = onehalf*xxm  - onehalf*dShapey[8];
   dShapey[7] = -y*xm        - onehalf*dShapey[8];  
 }

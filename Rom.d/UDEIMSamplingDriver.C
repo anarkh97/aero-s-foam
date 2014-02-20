@@ -323,10 +323,43 @@ UDEIMSamplingDriver::computeInterpIndices(VecBasis &forceBasis, std::vector<int>
 }
 
 void
-UDEIMSamplingDriver::getFullElemIndices(int MaxCoeff,std::vector<int> &container,std::vector<int> &auxilaryIndices){
+UDEIMSamplingDriver::getFullElemIndices(int selectedElem,std::set<int> &uAuxilary, std::set<int> &aAuxilary){
+//this function will add all dofs for a given element. 
 
-  
+  int NumElemDof =  kelArrayCopy[selectedElem].dim();
 
+  //loop over all dofs for given element. Determing which of those DOFS correspond to the chosen node
+  for(int ElemDof = 0; ElemDof != NumElemDof; ElemDof++){
+    int candidateAssemInd = domain->getCDSA()->getRCN((*domain->getAllDOFs())[selectedElem][ElemDof]);
+    if(candidateAssemInd >= 0){ //make sure indice is in domain
+    aAuxilary.insert(candidateAssemInd);//if so add assembled and unassembled indices to auxilary sets 
+    for(std::map<int,std::pair<int,int> >::const_iterator it = uDOFaDOFmap.begin(); it != uDOFaDOFmap.end(); it++)//find unassembled rank for elem/dof pair
+      if(it->second.first == selectedElem && it->second.second == ElemDof)
+        uAuxilary.insert(it->first);
+    }
+  }
+}
+
+void
+UDEIMSamplingDriver::getFullNodeIndices(int selectedElem,int assembledInd, std::set<int> &uAuxilary, std::set<int> &aAuxilary){
+//this functiona dds all dofs for a selected node
+  int selectedNode = nodeDofMap->nodeDof(assembledInd).nodeRank;
+ 
+  int NumElemDof =  kelArrayCopy[selectedElem].dim();
+
+  //loop over all dofs for given element. Determing which of those DOFS correspond to the chosen node
+  for(int ElemDof = 0; ElemDof != NumElemDof; ElemDof++){
+    int candidateAssemInd = domain->getCDSA()->getRCN((*domain->getAllDOFs())[selectedElem][ElemDof]);
+    if(candidateAssemInd >= 0){ //make sure indice is in domain
+      int candidateNode = nodeDofMap->nodeDof(candidateAssemInd).nodeRank;
+      if(candidateNode == selectedNode){//see if current elem dof is in given node
+        aAuxilary.insert(candidateAssemInd);//if so add assembled and unassembled indices to auxilary sets 
+        for(std::map<int,std::pair<int,int> >::const_iterator it = uDOFaDOFmap.begin(); it != uDOFaDOFmap.end(); it++)//find unassembled rank for elem/dof pair
+ 	  if(it->second.first == selectedElem && it->second.second == ElemDof)
+            uAuxilary.insert(it->first);
+      }
+    }
+  }
 }
 
 void 
@@ -335,7 +368,7 @@ UDEIMSamplingDriver::computeAssembledIndices(std::vector<int> &umaskIndices, std
  //convert selected unassembled indices to assembled indices for compatibility with online DEIM code
  //with mixed element types, each element could have a different number of dofs
 
- std::vector<int> uAuxilaryIndices;
+ std::set<int> uAuxilaryIndices;
  std::set<int> aAuxilaryIndices;
 
  for(int i = 0; i != umaskIndices.size(); i++){
@@ -345,9 +378,34 @@ UDEIMSamplingDriver::computeAssembledIndices(std::vector<int> &umaskIndices, std
 
    int assembledInd = domain->getCDSA()->getRCN((*domain->getAllDOFs())[selectedElem][selectedDOF]);
    amaskIndices.push_back(assembledInd);   //assembled indices container
+
+   if(domain->solInfo().selectFullNode)  
+     getFullNodeIndices(selectedElem,assembledInd,uAuxilaryIndices,aAuxilaryIndices);
+
+   if(domain->solInfo().selectFullElem)
+     getFullElemIndices(selectedElem,uAuxilaryIndices,aAuxilaryIndices);
+
    selectedElemRank.insert(selectedElem);  //unpacked element container
    elemRankDOFContainer.push_back(std::make_pair(selectedElem,selectedDOF)); //map from selected element to selected DOF
  }
+
+  if(domain->solInfo().selectFullNode || domain->solInfo().selectFullElem){
+    for(int i = 0; i != amaskIndices.size(); i++)
+      aAuxilaryIndices.erase(aAuxilaryIndices.erase(amaskIndices[i]));//remove redundant auxilary indices from set
+    for(int i = 0; i != umaskIndices.size(); i++)
+      uAuxilaryIndices.erase(uAuxilaryIndices.erase(umaskIndices[i]));
+
+   for(std::set<int>::const_iterator it = uAuxilaryIndices.begin(); it != uAuxilaryIndices.end(); it++){
+      int selectedAuxElem = uDOFaDOFmap.at(*it).first;
+      int selectedAuxDOF  = uDOFaDOFmap.at(*it).second;
+
+      elemRankDOFContainer.push_back(std::make_pair(selectedAuxElem,selectedAuxDOF)); //map from selected element to selected DOF
+   }
+
+   std::copy(aAuxilaryIndices.begin(),aAuxilaryIndices.end(),std::back_inserter(amaskIndices));//append auxilarry indices to end to selected indices list
+   std::copy(uAuxilaryIndices.begin(),uAuxilaryIndices.end(),std::back_inserter(umaskIndices));
+  }
+
 
 #ifdef USE_EIGEN3
   Eigen::Map< Eigen::Matrix<int,Eigen::Dynamic,Eigen::Dynamic> > indSol(amaskIndices.data(),amaskIndices.size(),1);
@@ -364,7 +422,7 @@ UDEIMSamplingDriver::computeAndWriteUDEIMBasis(VecBasis &unassembledForceBuf,Vec
   //and P column selection matrix derived form the sampled indicies computed above
   int maxDeimBasisSize = domain->solInfo().maxDeimBasisSize;//set max basis size in case we want to solve least squares problem
   if(maxDeimBasisSize == 0)
-    maxDeimBasisSize = umaskIndices.size();//if not, we solve a square system
+    maxDeimBasisSize = unassembledForceBuf.size();//if not, we solve a square system
 
   udeimBasis.dimensionIs(podBasis_.vectorCount(),podBasis_.vectorInfo());
 #ifdef USE_EIGEN3

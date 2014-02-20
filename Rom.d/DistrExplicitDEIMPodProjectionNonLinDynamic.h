@@ -26,6 +26,7 @@ private:
   void subGetWeightedInternalForceOnly(int iSub, DistrVector &f, double &t, int &tIndex);
   void subGetFollowerForceOnly(int iSub, DistrVector &f, double &t, int &tIndex);
 
+  DistrInfo unassembledInfo;
   DistrVecBasis deimBasis_;
   DistrVecBasis ReducedStiffness;
   GenFullSquareMatrix<double> **kelArrayCopy;

@@ -174,6 +174,8 @@ TRAIL [a-zA-Z]*
 
 "FULLND"|"fullnd"		   { return PSEUDOGNAT; }
 
+"FULLEL"|"fullel"		   { return PSEUDOGNATELEM; }
+
 "ELLUMP"                           { return ELLUMP; }
 
 "IDENTITY"|"identity"              { return IDENTITY; }

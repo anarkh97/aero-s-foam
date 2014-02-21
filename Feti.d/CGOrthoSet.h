@@ -73,7 +73,7 @@ class CGOrthoOp : public GenOrthoOp<Scalar>
     void reset();
     void clean_up();
 
-    int length() { return this->loclen; }
+    long int length() { return this->loclen; }
     int offset() { return this->idx;  }
     Scalar* getAllP()   { return this->locAllP; }
     Scalar* getAllFiP() { return locAllFiP; }

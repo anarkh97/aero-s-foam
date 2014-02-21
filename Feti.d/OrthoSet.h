@@ -41,7 +41,7 @@ class GenOrthoOp : public TaskDescr
 {
   protected:
     Scalar *locAllP;
-    int loclen;
+    long int loclen;
     int numP;
     int idx;
 

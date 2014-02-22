@@ -74,7 +74,7 @@ public:
   double getStiffAndForce(ModalGeomState &, Vector &, Vector &, double = -1, ModalGeomState * = NULL, bool = false);
 
   void reBuild(ModalGeomState &, int, double, double);
-  void dynamCommToFluid(ModalGeomState *, ModalGeomState *, Vector &, Vector &, Vector &, Vector &, int, int, int);
+  void dynamCommToFluid(ModalGeomState *, ModalGeomState *, Vector &, Vector &, Vector &, Vector &, int, int, int, double);
   void dynamOutput(ModalGeomState *, Vector &, Vector &, double, int, Vector &, Vector &, Vector &, ModalGeomState *) const;
   void getConstraintMultipliers(ModalGeomState &);
   void initializeParameters(ModalGeomState *);

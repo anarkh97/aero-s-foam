@@ -163,7 +163,7 @@ class MDNLDynamic
     void dynamCommToFluid(DistrGeomState* geomState, DistrGeomState* bkGeomState,
                           DistrVector& velocity, DistrVector& bkVelocity,
                           DistrVector& vp, DistrVector& bkVp, int step, int parity,
-                          int aeroAlg);
+                          int aeroAlg, double time);
 
     void getConstraintMultipliers(DistrGeomState &geomState);
     double getResidualNorm(DistrVector &vec, DistrGeomState &, double);

@@ -192,7 +192,34 @@ NonLinDynamic::readRestartFile(Vector &d_n, Vector &v_n, Vector &a_n,
 {
   if(geoSource->getCheckFileInfo()->lastRestartFile) {
     filePrint(stderr, " ... Restarting From a Previous Run ...\n");
+
     domain->readRestartFile(d_n, v_n, a_n, v_p, bcx, vcx, geomState);
+
+    // update geomState and bcx/vcx/acx for time dependent prescribed displacements and their time derivatives
+    // this is necessary because only the unconstrained velocities/accelerations are currently saved in the restart file
+    if(claw && userSupFunc) {
+      if(claw->numUserDisp > 0) {
+        double *userDefineDisp = new double[claw->numUserDisp];
+        double *userDefineVel  = new double[claw->numUserDisp];
+        double *userDefineAcc  = new double[claw->numUserDisp];
+        for(int i=0; i<claw->numUserDisp; ++i) {
+          userDefineVel[i] = 0;
+          userDefineAcc[i] = 0;
+        }
+        userSupFunc->usd_disp(domain->solInfo().initialTime, userDefineDisp, userDefineVel, userDefineAcc);
+
+        geomState.updatePrescribedDisplacement(userDefineDisp, claw, domain->getNodes(),
+                                               userDefineVel, userDefineAcc);
+
+        setBC(userDefineDisp, userDefineVel, userDefineAcc);
+        delete [] userDefineDisp; delete [] userDefineVel; delete [] userDefineAcc;
+      }
+    }
+
+    if(domain->solInfo().aeroFlag >= 0) {
+      domain->aeroPreProcess( d_n, v_n, a_n, v_p, bcx, vcx );
+    }
+
     updateStates(&geomState, geomState);
   }
 }
@@ -1021,18 +1048,33 @@ NonLinDynamic::getAeroheatFlag()
   return domain->solInfo().aeroheatFlag;
 }
 
-
 void 
 NonLinDynamic::dynamCommToFluid(GeomState* geomState, GeomState* bkGeomState,
                                 Vector& velocity, Vector& bkVelocity,
                                 Vector& vp, Vector& bkVp, int step, int parity, 
-                                int aeroAlg)
+                                int aeroAlg, double time)
 {
-
   times->output -= getTime();
 
   if(domain->solInfo().aeroFlag >= 0 && !domain->solInfo().lastIt) {
     domain->getTimers().sendFluidTime -= getTime();
+
+    // update geomState bcx/vcx/acx for time dependent prescribed displacements and their time derivatives
+    ControlLawInfo *claw = geoSource->getControlLaw();
+    ControlInterface *userSupFunc = domain->getUserSuppliedFunction();
+    if(claw && claw->numUserDisp) {
+      double *userDefineDisp = new double[claw->numUserDisp];
+      double *userDefineVel  = new double[claw->numUserDisp];
+      double *userDefineAcc  = new double[claw->numUserDisp];
+      for(int i = 0; i < claw->numUserDisp; ++i) {
+        userDefineVel[i] = 0;
+        userDefineAcc[i] = 0;
+      }
+      userSupFunc->usd_disp(time, userDefineDisp, userDefineVel, userDefineAcc);
+      setBC(userDefineDisp, userDefineVel, userDefineAcc);
+      geomState->updatePrescribedDisplacement(userDefineDisp, claw, domain->getNodes(), userDefineVel, userDefineAcc);
+      delete [] userDefineDisp; delete [] userDefineVel; delete [] userDefineAcc;
+    }
 
     // Make d_n_aero from geomState
     ConstrainedDSA *c_dsa = domain->getCDSA();
@@ -1161,7 +1203,7 @@ NonLinDynamic::dynamOutput(GeomState* geomState, Vector& velocity,
 {
   times->output -= getTime();
 
-  // update geomState for time dependent prescribed displacements and their time derivatives prior to output
+  // update geomState bcx/vcx/acx for time dependent prescribed displacements and their time derivatives prior to output
   ControlLawInfo *claw = geoSource->getControlLaw();
   ControlInterface *userSupFunc = domain->getUserSuppliedFunction();
   if(claw && claw->numUserDisp) {

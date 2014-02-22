@@ -33,7 +33,7 @@ public:
   virtual void dynamCommToFluid(GeomState* geomState, GeomState* bkGeomState, 
                                 Vector& velocity, Vector& bkVelocity,
                                 Vector& vp, Vector& bkVp, int step, int parity,
-                                int aeroAlg) = 0;
+                                int aeroAlg, double time) = 0;
   virtual void dynamOutput(GeomState *, GenVector<double> &, GenVector<double> &, double, int, GenVector<double> &, GenVector<double> &,
                            GenVector<double> &, GeomState *) const = 0;
 };
@@ -191,7 +191,7 @@ class NonLinDynamic : public NLDynamPostProcessor {
     void dynamCommToFluid(GeomState* geomState, GeomState* bkGeomState,
                           Vector& velocity, Vector& bkVelocity,
                           Vector& vp, Vector& bkVp, int step, int parity,
-                          int aeroAlg);
+                          int aeroAlg, double time);
     void dynamOutput(GeomState* geomState, Vector& velocity, Vector &vp,
                      double time, int timestep, Vector& force, Vector &aeroF, Vector &acceleration,
                      GeomState *refState) const;

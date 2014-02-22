@@ -1134,7 +1134,7 @@ void
 MDNLDynamic::dynamCommToFluid(DistrGeomState* geomState, DistrGeomState* bkGeomState,
                               DistrVector& velocity, DistrVector& bkVelocity,
                               DistrVector& vp, DistrVector& bkVp, int step, int parity,
-                              int aeroAlg) 
+                              int aeroAlg, double time) 
 {  
   if(domain->solInfo().aeroFlag >= 0 && !domain->solInfo().lastIt) {
     DistrVector d_n(decDomain->solVecInfo()); d_n.zero();

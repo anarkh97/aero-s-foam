@@ -917,7 +917,7 @@ PodProjectionNonLinDynamic::reBuild(ModalGeomState &geomState, int iteration, do
 void
 PodProjectionNonLinDynamic::dynamCommToFluid(ModalGeomState *geomState, ModalGeomState *bkGeomState, Vector &velocity,
                                              Vector &bkVelocity, Vector &vp, Vector &bkVp, int step, int parity,
-                                             int aeroAlg)
+                                             int aeroAlg, double time)
 {
   // XXX this could be more implemented more efficiently (only called for AERO)
   Vector velocity_Big(NonLinDynamic::solVecInfo()),
@@ -931,7 +931,7 @@ PodProjectionNonLinDynamic::dynamCommToFluid(ModalGeomState *geomState, ModalGeo
   projectionBasis.expand(vp, vp_Big);
   projectionBasis.expand(bkVp, bkVp_Big);
 
-  NonLinDynamic::dynamCommToFluid(geomState_Big, bkGeomState_Big, velocity_Big, bkVelocity_Big, vp_Big, bkVp_Big, step, parity, aeroAlg);
+  NonLinDynamic::dynamCommToFluid(geomState_Big, bkGeomState_Big, velocity_Big, bkVelocity_Big, vp_Big, bkVp_Big, step, parity, aeroAlg, time);
 }
 
 void

@@ -18,6 +18,7 @@ ADD_LIBRARY( Rom
   DistrExplicitPodProjectionNonLinDynamic.C
   DistrExplicitLumpedPodProjectionNonLinDynamic.C
   DistrExplicitDEIMPodProjectionNonLinDynamic.C
+  DistrExplicitUDEIMPodProjectionNonLinDynamic.C
   DistrROMPostProcessingDriver.C
   DistrNodeDof6Buffer.C
   DistrVecBasis.C

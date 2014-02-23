@@ -54,6 +54,7 @@ using namespace std;
 #include <Rom.d/DistrExplicitPodProjectionNonLinDynamicBase.h>
 #include <Rom.d/DistrExplicitLumpedPodProjectionNonLinDynamic.h>
 #include <Rom.d/DistrExplicitDEIMPodProjectionNonLinDynamic.h>
+#include <Rom.d/DistrExplicitUDEIMPodProjectionNonLinDynamic.h>
 #ifdef DISTRIBUTED
   #include <Pita.d/Old.d/PitaNonLinDynam.h>
   #include <Pita.d/Old.d/NLDistrTimeDecompSolver.h>
@@ -1010,6 +1011,15 @@ int main(int argc, char** argv)
                 Rom::DistrExplicitDEIMPodProjectionNonLinDynamic dynamProb(domain);
                 DynamicSolver < MDDynamMat, DistrVector, Rom::MultiDomDynPodPostProcessor,
                                 Rom::DistrExplicitDEIMPodProjectionNonLinDynamic, double > dynamSolver(&dynamProb);
+                dynamSolver.solve();
+               } else if(domain->solInfo().UDEIMPodRom) {
+                 if (domain->solInfo().reduceFollower)
+                   filePrint(stderr, " ... POD: unassembled ROM with stiffness & follower interpolation ...\n");
+                else
+                   filePrint(stderr, " ... POD: unassembled ROM with stiffness interpolation ...\n");
+                Rom::DistrExplicitUDEIMPodProjectionNonLinDynamic dynamProb(domain);
+                DynamicSolver < MDDynamMat, DistrVector, Rom::MultiDomDynPodPostProcessor,
+                                Rom::DistrExplicitUDEIMPodProjectionNonLinDynamic, double > dynamSolver(&dynamProb);
                 dynamSolver.solve();
                } else {
                if (domain->solInfo().reduceFollower)

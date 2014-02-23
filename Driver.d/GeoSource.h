@@ -682,14 +682,19 @@ public:
  
   std::vector<double>::const_iterator RedKVecBegin() const { return ReducedStiffVec.begin();}
   std::vector<double>::const_iterator RedKVecEnd() const { return ReducedStiffVec.end();}
+
+  std::vector<double>::const_iterator UDEIMVecBegin() const { return UDEIMBasisVec.begin();}
+  std::vector<double>::const_iterator UDEIMVecEnd() const { return UDEIMBasisVec.end();}
   
   double * RedKData() { return ReducedStiffVec.data(); }
+  double * UDEIMData() { return UDEIMBasisVec.data(); }
 
   ElemDofPairVec::const_iterator elemDofBegin() const { return elemDofPairVec_.begin(); }
   ElemDofPairVec::const_iterator elemDofEnd()   const { return elemDofPairVec_.end();   }
 
   void setElementLumpingWeight(int iele, double value);
   void pushBackStiffVec(double Kelem);
+  void pushBackUDEIMVec(double Uelem);
   void setSampleNodesAndSlots(int node, int dof);
   void setSampleElemsAndDOFs(int elem,int dof);
 
@@ -698,6 +703,7 @@ private:
   NodeDofPairVec nodeDofSlotPairVec_;
   ElemDofPairVec elemDofPairVec_;
   std::vector<double> ReducedStiffVec;
+  std::vector<double> UDEIMBasisVec;
 
 protected:
   void closeOutputFileImpl(int fileIndex);

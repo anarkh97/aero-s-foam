@@ -55,8 +55,9 @@ private:
   VecNodeDof6Conversion *converter;
   VecNodeDof6Map *nodeDofMap;
 
+  Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> compressedDBTranspose;
+
   VecBasis podBasis_;
-  VecBasis udeimBasis;
   std::map<int, std::pair<int,int> > uDOFaDOFmap;// key: unassembled index, MapValue: paired element and element DOF
 
   FullSquareMatrix *kelArrayCopy; 

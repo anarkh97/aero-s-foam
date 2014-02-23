@@ -449,7 +449,7 @@ class Domain : public HData {
      void getUDEIMInternalForceOnly(const std::map<int, std::vector<int> > &weights,
                                     GeomState &u, Vector &elementInternalForce,
                                     Corotator **allCorot, FullSquareMatrix *kel,
-                                    Vector &residual, double lambda, double time,
+                                    Vector &residual, int dispSize, double lambda, double time,
                                     GeomState *refState, FullSquareMatrix *mel = NULL,
                                     FullSquareMatrix *kelCopy = NULL);
      void getUnassembledNonLinearInternalForce(GeomState &u, Vector &elementInternalForce,

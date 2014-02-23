@@ -4581,6 +4581,10 @@ void GeoSource::pushBackStiffVec(double Kelem) {
   ReducedStiffVec.push_back(Kelem);
 }
 
+void GeoSource::pushBackUDEIMVec(double Uelem) {
+  UDEIMBasisVec.push_back(Uelem);
+}
+
 void GeoSource::setSampleNodesAndSlots(int node, int dof){
   nodeDofSlotPairVec_.push_back(std::make_pair(node,dof));
 }

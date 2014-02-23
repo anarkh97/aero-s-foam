@@ -90,19 +90,9 @@ DistrExplicitDEIMPodProjectionNonLinDynamic::subGetWeightedInternalForceOnly(int
                                      1.0, t, (*geomState)[iSub], melArray[iSub]); // residual -= internal force);
   }
   else {
-    if(domain->solInfo().UDEIMPodRom){
-      sd->getUDEIMInternalForceOnly(unassembledElemDOFMask[iSub], *(*geomState)[iSub], eIF,
-                                    allCorot[iSub], kelArray[iSub], residual,
-                                    1.0, t, (*geomState)[iSub], melArray[iSub],kelArrayCopy[iSub]); // residual -= internal force);     
-    }else{ 
       sd->getWeightedInternalForceOnly(packedElementWeights_[iSub], *(*geomState)[iSub], eIF,
                                     allCorot[iSub], kelArray[iSub], residual,
                                     1.0, t, (*geomState)[iSub], melArray[iSub],kelArrayCopy[iSub]); // residual -= internal force);
-    }
-  }
-
-  if(!domain->solInfo().reduceFollower) {
-   sd->getFollowerForce(*(*geomState)[iSub], eIF, allCorot[iSub], kelArray[iSub], residual, 1.0, t, (*geomState)[iSub], NULL, false);
   }
 
   StackVector subf(f.subData(iSub), f.subLen(iSub));
@@ -126,10 +116,7 @@ DistrExplicitDEIMPodProjectionNonLinDynamic::buildInterpolationBasis() {
 
  FileNameInfo fileInfo;
  std::string fileName = BasisFileId(fileInfo, BasisId::FORCE, BasisId::POD);
- if(domain->solInfo().UDEIMPodRom)
-   fileName = fileName + ".udeim";
- else
-   fileName = fileName + ".deim";
+ fileName = fileName + ".deim";
 
  DistrBasisInputFile BasisFile(fileName); //read in mass-normalized basis
  filePrint(stderr, " ... Reading Interpolation basis from file %s ...\n", fileName.c_str());
@@ -163,12 +150,6 @@ DistrExplicitDEIMPodProjectionNonLinDynamic::buildInterpolationBasis() {
  maskedIndicesBuf.resize(decDomain->getNumSub());
  execParal1R(decDomain->getNumSub(),this,&DistrExplicitDEIMPodProjectionNonLinDynamic::subBuildInterpolationBasis, maskedIndicesBuf); 
  
- //if we are doing UDEIM, then we must only compute the DOFs we need in each element to prevent conflicts with neighboring elements
- if(domain->solInfo().UDEIMPodRom){
-   unassembledElemDOFMask.resize(decDomain->getNumSub());
-   execParal(decDomain->getNumSub(),this,&DistrExplicitDEIMPodProjectionNonLinDynamic::subBuildUnassembledMask);
- }
-
  filePrint(stderr," ... Compressing Interpolation Basis ...\n");
  DofSetArray **all_cdsa = new DofSetArray * [decDomain->getNumSub()];
  for(int i=0; i<decDomain->getNumSub(); ++i) {all_cdsa[i] = decDomain->getSubDomain(i)->getCDSA();}
@@ -251,30 +232,6 @@ DistrExplicitDEIMPodProjectionNonLinDynamic::subBuildInterpolationBasis(int iSub
 
   sd->createKelArray(kelArrayCopy[iSub]);
  
-}
-
-void
-DistrExplicitDEIMPodProjectionNonLinDynamic::subBuildUnassembledMask(int iSub) {
-  //create mask for unassembled DEIM 
-  SubDomain *sd = decDomain->getSubDomain(iSub);
-  std::map<int, std::vector<int> > &subUnassembledMaskBuf = unassembledElemDOFMask[iSub];
-
-  for (GeoSource::ElemDofPairVec::const_iterator it = geoSource->elemDofBegin(),
-                                                   it_end = geoSource->elemDofEnd();
-                                                   it != it_end; ++it) {
-
-     const int elemId = it->first;
-     const int packedId = sd->glToPackElem(elemId);
-     if(packedId < 0) {continue;}
-
-     if(subUnassembledMaskBuf[packedId].size() > 0){
-       subUnassembledMaskBuf[packedId].push_back(it->second);       
-     }else{
-       std::vector<int> DOFs;
-       subUnassembledMaskBuf.insert(std::make_pair(packedId,DOFs));
-       subUnassembledMaskBuf[packedId].push_back(it->second);
-     }
-  }
 }
 
 } // end namespace Rom

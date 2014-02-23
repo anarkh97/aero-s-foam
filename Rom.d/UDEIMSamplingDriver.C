@@ -349,9 +349,9 @@ UDEIMSamplingDriver::getFullNodeIndices(int selectedElem,int assembledInd, std::
 
   //loop over all dofs for given element. Determing which of those DOFS correspond to the chosen node
   for(int ElemDof = 0; ElemDof != NumElemDof; ElemDof++){
-    int candidateAssemInd = domain->getCDSA()->getRCN((*domain->getAllDOFs())[selectedElem][ElemDof]);
+    int candidateAssemInd = domain->getCDSA()->getRCN((*domain->getAllDOFs())[selectedElem][ElemDof]);//see which assembled indice this belongs to
     if(candidateAssemInd >= 0){ //make sure indice is in domain
-      int candidateNode = nodeDofMap->nodeDof(candidateAssemInd).nodeRank;
+      int candidateNode = nodeDofMap->nodeDof(candidateAssemInd).nodeRank;//get corresponding node
       if(candidateNode == selectedNode){//see if current elem dof is in given node
         aAuxilary.insert(candidateAssemInd);//if so add assembled and unassembled indices to auxilary sets 
         for(std::map<int,std::pair<int,int> >::const_iterator it = uDOFaDOFmap.begin(); it != uDOFaDOFmap.end(); it++)//find unassembled rank for elem/dof pair
@@ -424,14 +424,12 @@ UDEIMSamplingDriver::computeAndWriteUDEIMBasis(VecBasis &unassembledForceBuf,Vec
   if(maxDeimBasisSize == 0)
     maxDeimBasisSize = unassembledForceBuf.size();//if not, we solve a square system
 
-  udeimBasis.dimensionIs(podBasis_.vectorCount(),podBasis_.vectorInfo());
 #ifdef USE_EIGEN3
   Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > podMap(podBasis_.data(),podBasis_.size(), podBasis_.vectorCount());
   Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > uforceMap(unassembledForceBuf.data(), unassembledForceBuf.size(), unassembledForceBuf.vectorCount());
   Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > aforceMap(assembledForceBuf.data(),assembledForceBuf.size(),assembledForceBuf.vectorCount());
-  Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > deimMap(udeimBasis.data(),udeimBasis.size(), udeimBasis.vectorCount());
 
-  Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> compressedDBTranspose(podBasis_.numVectors(),umaskIndices.size());
+  compressedDBTranspose(podBasis_.numVectors(),umaskIndices.size());
   Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> rowReducedUFM(umaskIndices.size(),maxDeimBasisSize);
 
   //initialize (P^T*U_unassembled) were U_unassembled is the svd of the unassembled force snapshots
@@ -450,22 +448,11 @@ UDEIMSamplingDriver::computeAndWriteUDEIMBasis(VecBasis &unassembledForceBuf,Vec
   compressedDBTranspose = podMap.transpose()*aforceMap.leftCols(maxDeimBasisSize)*SVDOfUmasked.matrixV()*invSVs.asDiagonal()*SVDOfUmasked.matrixU().transpose();
   //we are computing the transpose of the basis
 
-/*  std::cout << "compressed Basis" << std::endl;
-  std::cout << compressedDBTranspose.transpose() << std::endl;*/
-
-  //initialize deim basis container to all zeros
-  for(int i = 0; i != deimMap.rows(); i++)
-    for(int j = 0; j != deimMap.cols(); j++)
-      deimMap(i,j) = 0.0;
+  std::cout << "compressed Basis" << std::endl;
+  std::cout << compressedDBTranspose.transpose() << std::endl;
 
   //expand rows W^T*P^T
   std::cout << " num of rows = " << compressedDBTranspose.rows() << " num of cols = " << compressedDBTranspose.cols() << std::endl;
-  for(int row = 0; row != amaskIndices.size(); row++) {
-    deimMap.row(amaskIndices[row]) = compressedDBTranspose.col(row);//use .col member to get rows of basis in transposed configuration
-  }
-
-  std::vector<double> dummySVs; //we don't need the actual singular values for the POD basis
-  writeBasisToFile(udeimBasis, dummySVs, BasisId::FORCE, BasisId::ROB);
 #endif
 }
 
@@ -548,14 +535,26 @@ UDEIMSamplingDriver::writeSampledMesh(std::vector<int> &maskIndices, std::set<in
  
    weightOut << "*\n";
    weightOut << "SNSLOT\n";
-   int counter = 0;
+/*   int counter = 0;
    for(std::vector<std::pair<int,int> >::iterator it = compressedNodeKey.begin(); it != compressedNodeKey.end(); it++){
      int selElem = elemRankDOFContainer[counter].first;
      int selDOF  = elemRankDOFContainer[counter].second;
      //output assembled indices in form of a node plus a node dof and an element with and element dof (to keep neighbor elements for adding to the same dof)
      weightOut << it->first + 1 << " " << it->second << " " << packedToInput[selElem] + 1 << " " << selDOF << std::endl; 
      counter++;
+   }*/
+   for(int counter = 0; counter != elemRankDOFContainer.size(); counter++){
+     int selElem = elemRankDOFContainer[counter].first;
+     int selDOF  = elemRankDOFContainer[counter].second;
+     //output basis column, element, element DOF
+     weightOut << counter << " " << packedToInput[selElem] + 1 << " " << selDOF << std::endl;
    }
+
+   weightOut << "*\nUDBASIS\n"  ;
+   weightOut << compressedDBTranspose.rows() << " " <<  compressedDBTranspose.cols() << std::endl;
+   for(int row = 0; row < compressedDBTranspose.rows(); ++row){
+     weightOut << compressedDBTranspose.row(row).transpose() << std::endl;
+   } 
 
   }
 
@@ -621,6 +620,12 @@ UDEIMSamplingDriver::writeSampledMesh(std::vector<int> &maskIndices, std::set<in
       meshOut << columnOfRedK[i] << std::endl;}
   }
 
+  meshOut << "*\nUDBASIS\n"  ;
+  meshOut << compressedDBTranspose.rows() << " " << compressedDBTranspose.cols() << std::endl;
+  for(int row = 0; row < compressedDBTranspose.rows(); ++row){
+    meshOut << compressedDBTranspose.row(row).transpose() << std::endl;
+  }
+
   // output the reduced forces
   if(reduce_f) {
     meshOut << "*\nFORCES\nMODAL\n";
@@ -646,7 +651,6 @@ UDEIMSamplingDriver::writeSampledMesh(std::vector<int> &maskIndices, std::set<in
 #ifdef USE_EIGEN3
   // build and output compressed basis
   podBasis_.makeSparseBasis(meshRenumbering.reducedNodeIds(), domain->getCDSA());
-  udeimBasis.makeSparseBasis(meshRenumbering.reducedNodeIds(), domain->getCDSA());
   {
     std::string PODfilename = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
     std::string DEIMfilename = BasisFileId(fileInfo, BasisId::FORCE, BasisId::ROB);
@@ -663,7 +667,6 @@ UDEIMSamplingDriver::writeSampledMesh(std::vector<int> &maskIndices, std::set<in
 
     for (int iVec = 0; iVec < podBasis_.vectorCount(); ++iVec) {
       PODoutput << podBasis_.compressedBasis().col(iVec);
-      DEIMoutput << udeimBasis.compressedBasis().col(iVec);
     }
 
     std::map<int,int> nodeRenum(meshRenumbering.nodeRenumbering());

@@ -2,6 +2,7 @@
 #include "Utils.d/DistHelper.h"
 #include "Math.d/Vector.h"
 
+#include <set>
 namespace Rom {
 
 template <>
@@ -211,6 +212,41 @@ GenVecBasis<double, GenDistrVector>::makeSparseBasis(const std::vector<std::vect
 
   for(int i = 0; i < compressedKey_.size(); i++) {
     compressedBasis_.row(i) = basis_.row(compressedKey_[i]);
+  }
+#endif
+}
+
+template<>
+void
+GenVecBasis<double, GenDistrVector>::makeSparseBasis(const std::vector<std::map<int,std::vector<int> > > & nodeVec)
+{
+#ifdef USE_EIGEN3
+  int dof1, numdofs;
+  std::vector<int> dummyKey;
+  std::set<int> rowSet;
+
+  compressedKey_.clear();
+  for(int n = 0; n < nodeVec.size(); n++) {//loop over subdomains
+    const std::map<int,std::vector<int> > &subNVMap = nodeVec[n];
+    for(std::map<int,std::vector<int> >::const_iterator it = subNVMap.begin(); it != subNVMap.end(); it++) { //loop over elements
+      const std::vector<int> &ColMap = it->second;
+      for(std::vector<int>::const_iterator it2 = ColMap.begin(); it2 != ColMap.end(); it2++){//loop over DOFS
+      dummyKey.push_back(vectors_[0].subOffset(n)+(*it2));
+      rowSet.insert(*it2);
+      }
+    }
+  }
+
+  compressedKey_.resize(dummyKey.size());
+  for(int row = 0; row != dummyKey.size(); row++)
+     compressedKey_[dummyKey[row]] = row;
+
+  new (&compressedBasis_) Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic>(compressedKey_.size(), vectorCount());
+
+  int row = 0;
+  for(std::set<int>::const_iterator it = rowSet.begin(); it != rowSet.end(); it++) {
+    compressedBasis_.row(row) = basis_.row(*it);
+    row++;
   }
 #endif
 }

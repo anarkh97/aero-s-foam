@@ -420,18 +420,19 @@ DistrExplicitPodProjectionNonLinDynamicBase::preProcess() {
   ///////////////////////////////////////////////////////////////////////////////////////
 
   //preProcessing for solution vecotor information///////////////////////////////////////
-  {reducedInfo.domLen = new int[MultiDomainDynam::solVecInfo().numDom]; 
-  reducedInfo.numDom = MultiDomainDynam::solVecInfo().numDom;
-  int totLen = 0;
-  for(int iSub = 0; iSub < MultiDomainDynam::solVecInfo().numDom; ++iSub) {
-    reducedInfo.domLen[iSub] = (iSub==0) ? normalizedBasis_.numVec() : 0;
-    totLen += reducedInfo.domLen[iSub];
-  }
+  {
+   reducedInfo.domLen = new int[MultiDomainDynam::solVecInfo().numDom]; 
+   reducedInfo.numDom = MultiDomainDynam::solVecInfo().numDom;
+   int totLen = 0;
+   for(int iSub = 0; iSub < MultiDomainDynam::solVecInfo().numDom; ++iSub) {
+     reducedInfo.domLen[iSub] = (iSub==0) ? normalizedBasis_.numVec() : 0;
+     totLen += reducedInfo.domLen[iSub];
+   }
 
-  reducedInfo.len = totLen;
-  reducedInfo.setMasterFlag();
+   reducedInfo.len = totLen;
+   reducedInfo.setMasterFlag();
   }
-  //////////////////////////////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////////////////////////
   
   //preProcessing for dummy working variables///////////////////////////////////////////////////
   {fExt      = new DistrVector(MultiDomainDynam::solVecInfo());

@@ -107,7 +107,7 @@
 %token SLOSH SLGRAV SLZEM SLZEMFILTER 
 %token PDIR HEFSB HEFRS HEINTERFACE  // Added for HEV Problem, EC, 20080512
 %token SNAPFI PODROB TRNVCT OFFSET ORTHOG SVDTOKEN CONVERSIONTOKEN CONVFI SAMPLING SNAPSHOTPROJECT PODSIZEMAX REFSUBSTRACT TOLER OUTOFCORE NORMALIZETOKEN FNUMBER SNAPWEIGHT ROBFI STAVCT VELVCT ACCVCT CONWEPCFG PSEUDOGNAT PSEUDOGNATELEM
-%token VECTORNORM LOCALTOLERANCE REBUILDFORCE SAMPNODESLOT REDUCEDSTIFFNESS FORCEROB DEIMINDICES UDEIMINDICES SVDFORCESNAP
+%token VECTORNORM LOCALTOLERANCE REBUILDFORCE SAMPNODESLOT REDUCEDSTIFFNESS UDEIMBASIS FORCEROB DEIMINDICES UDEIMINDICES SVDFORCESNAP
 %token USEMASSNORMALIZEDBASIS
 %token OPTSENSITIVITY SENSITIVITYID SENSITIVITYTYPE SENSITIVITYMETHOD
 %token QRFACTORIZATION QMATRIX RMATRIX XMATRIX
@@ -188,6 +188,7 @@ Component:
         | Ellump
         | SampNodeSlot
  	| ReducedStiffness
+	| UDeimBasis
 	| Materials
         | Statics
 	| Pressure
@@ -3010,14 +3011,21 @@ ReducedStiffness:
         | ReducedStiffness Float NewLine
         { geoSource->pushBackStiffVec($2);}
 
+UDeimBasis:
+	UDEIMBASIS NewLine
+        | UDeimBasis Integer Integer NewLine
+        { domain->solInfo().forcePodSize = $2;
+          domain->solInfo().maxDeimBasisSize = $3;}
+        | UDeimBasis Float NewLine
+        { geoSource->pushBackUDEIMVec($2);}
+
 SampNodeSlot:
         SAMPNODESLOT NewLine
-        { domain->solInfo().DEIMPodRom = true; }
         | SampNodeSlot Integer Integer NewLine
-        { geoSource->setSampleNodesAndSlots($2-1,$3);}
-        | SampNodeSlot Integer Integer Integer Integer NewLine
-        { geoSource->setSampleNodesAndSlots($2-1,$3);
-          geoSource->setSampleElemsAndDOFs($4-1,$5);
+        { domain->solInfo().DEIMPodRom = true;
+          geoSource->setSampleNodesAndSlots($2-1,$3);}
+        | SampNodeSlot Integer Integer Integer NewLine
+        { geoSource->setSampleElemsAndDOFs($3-1,$4);
           domain->solInfo().UDEIMPodRom = true;}
         ;
 

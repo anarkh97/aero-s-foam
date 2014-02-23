@@ -1418,6 +1418,8 @@ TRAIL [a-zA-Z]*
 
 "REDSTIFF"|"RedStiff"|"redstiff"	  { return REDUCEDSTIFFNESS; }
 
+"UDBASIS"|"UDBasis"|"udbasis"		  { return UDEIMBASIS; }
+
 "FPODRB"|"FPODRb"|"fpodrb"                { return FORCEROB; }
 
 "svdfrc"|"SvdFrc"|"svdfrc"		  { return SVDFORCESNAP; }

@@ -190,15 +190,16 @@ void
 Domain::getUDEIMInternalForceOnly(const std::map<int, std::vector<int> > &weights,
                                   GeomState &geomState, Vector& elementForce,
                                   Corotator **corotators, FullSquareMatrix *kel,
-                                  Vector &residual, double lambda, double time,
+                                  Vector &residual, int dispSize, double lambda, double time,
                                   GeomState *refState, FullSquareMatrix *mel, FullSquareMatrix *kelCopy)
 {
   const double pseudoTime = sinfo.isDynam() ? time : lambda; // MPC needs lambda for nonlinear statics
   BlastLoading::BlastData *conwep = (domain->solInfo().ConwepOnOff) ? &BlastLoading::InputFileData : NULL;
   if(elemAdj.empty()) makeElementAdjacencyLists();
 
+  int uDofCounter = 0;
   Vector LinearElForce(maxNumDOFs,0.0);  
-  Vector displacement(residual.size(),0.0);
+  Vector displacement(dispSize,0.0);
   if(kelCopy)
     geomState.get_tot_displacement(displacement,false);
 
@@ -236,9 +237,10 @@ Domain::getUDEIMInternalForceOnly(const std::map<int, std::vector<int> > &weight
     for(std::vector<int>::const_iterator DOFit = DOFvector.begin(); DOFit != DOFvector.end(); DOFit++) {
       const int dofId = c_dsa->getRCN((*allDOFs)[iele][*DOFit]);
       if (dofId >= 0) {
-        residual[dofId] -= elementForce[*DOFit];
+        residual[uDofCounter] -= elementForce[*DOFit];
         if(kelCopy)
-          residual[dofId] += LinearElForce[*DOFit];
+          residual[uDofCounter] += LinearElForce[*DOFit];
+        uDofCounter += 1;
       }
     }
   }
@@ -693,6 +695,9 @@ Domain::getUDEIMFictitiousForceOnly(const std::map<int, std::vector<int> > &weig
                                     Vector &residual, double time, GeomState *refState, Vector *reactions,
                                     FullSquareMatrix *mel, bool compute_tangents)
 {
+
+  int uDofCounter = 0;  
+  
   for (std::map<int, std::vector<int> >::const_iterator it = weights.begin(), it_end = weights.end(); it != it_end; ++it) {
     const int iele = it->first;
     const std::vector<int> DOFvector = it->second;
@@ -704,8 +709,10 @@ Domain::getUDEIMFictitiousForceOnly(const std::map<int, std::vector<int> > &weig
     // Assemble element force into residual force vector
    for(std::vector<int>::const_iterator DOFit = DOFvector.begin(); DOFit != DOFvector.end(); DOFit++) {
       int uDofNum = c_dsa->getRCN((*allDOFs)[iele][*DOFit]);
-      if(uDofNum >= 0)
-        residual[uDofNum] -= elementForce[*DOFit];
+      if(uDofNum >= 0){
+        residual[uDofCounter] -= elementForce[*DOFit];
+        uDofCounter += 1;
+      }
       else if(reactions) {
         int cDofNum = c_dsa->invRCN((*allDOFs)[iele][*DOFit]);
         if(cDofNum >= 0)

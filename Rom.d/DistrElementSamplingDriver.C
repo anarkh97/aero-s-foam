@@ -369,7 +369,7 @@ DistrElementSamplingDriver::solve()
     {
       std::string filename = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
       filename.append(".reduced");
-      if(domain->solInfo().newmarkBeta == 0 || domain_->solInfo().useMassNormalizedBasis) filename.append(".normalized");
+      if(domain->solInfo().newmarkBeta == 0 || domain->solInfo().useMassNormalizedBasis) filename.append(".normalized");
       filePrint(stderr," ... Writing compressed basis to file %s ...\n", filename.c_str());
       DofSetArray reduced_dsa(reducedMesh.nodes().size(), const_cast<Elemset&>(reducedMesh.elements()));
       int num_bc = reducedMesh.dirichletBConds().size();

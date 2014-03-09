@@ -41,13 +41,15 @@ private:
 
   int  elementCount() const; 
 
-  void writeProjForceSnap(); 
+  void writeProjForceSnap(VecBasis &forceBasis,std::vector<double> &timeStamps); 
 
   void getFullNodeIndices(Eigen::Matrix<double,Eigen::Dynamic,1> res,int MaxCoeff,std::vector<int> &container, std::set<int> &auxilaryIndices);
 
   void computeInterpIndices(VecBasis &forceBasis, std::vector<int> &maskIndices); 
   void computeAndWriteDEIMBasis(VecBasis &forceBasis, std::vector<int> &maskIndices);  
   void writeSampledMesh(std::vector<int> &maskIndices);
+
+  void computeErrorBound();
 
   VecNodeDof6Conversion *converter;
   VecNodeDof6Map *nodeDofMap;

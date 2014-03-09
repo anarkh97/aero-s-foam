@@ -51,6 +51,7 @@ private:
   void writeSampledMesh(std::vector<int> &maskIndices, std::set<int> &selectedElems, std::vector<std::pair<int,int> > &elemRankDOFContainer);
   void getFullElemIndices(int ,std::set<int> &,std::set<int> &);
   void getFullNodeIndices(int ,int ,std::set<int> &,std::set<int> &);
+  void computeErrorBound(std::vector<int> &umaskIndices);
 
   VecNodeDof6Conversion *converter;
   VecNodeDof6Map *nodeDofMap;

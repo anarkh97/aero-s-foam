@@ -74,7 +74,75 @@ UDEIMSamplingDriver::solve() {
       computeAssembledIndices(umaskIndices,amaskIndices,selectedElemRank,elemRankDOFContainer);                //map unassembled indices to assembled indices
       computeAndWriteUDEIMBasis(unassembledForceBuf,assembledForceBuf,umaskIndices,amaskIndices,singularVals); //compute and write to file the UDEIM POD basis
       writeSampledMesh(amaskIndices,selectedElemRank,elemRankDOFContainer);                                    //write UDEIM sampled mesh to file
+      if(domain->solInfo().statePodRomFile.size() ==1 && domain->solInfo().velocPodRomFile.size() ==1)
+        computeErrorBound(umaskIndices);
     }
+}
+
+void
+UDEIMSamplingDriver::computeErrorBound(std::vector<int> &umaskIndices){
+
+  std::cout << "Computing Error Bound" << std::endl;
+  VecBasis aForceSnapshots;
+  readInBasis(aForceSnapshots, BasisId::STATE, BasisId::SNAPSHOTS,0);
+
+  ifstream uForceFile;
+  FileNameInfo fileInfo;
+  std::string fileName = BasisFileId(fileInfo, BasisId::VELOCITY, BasisId::SNAPSHOTS);
+  uForceFile.open(fileName.c_str());
+
+  double squareNorm     = 0.0;
+  double squareNormDiff = 0.0;
+
+  if(uForceFile.is_open()){
+    std::cout << "reading unassembled snapshots from " << fileName.c_str() << std::endl;
+    int lengthVec; int numSnaps;
+    if(uForceFile.good()){
+      uForceFile >> lengthVec; std::cout << "vector length = " << lengthVec << std::endl; 
+      uForceFile >> numSnaps;  std::cout << "number of snapshots = " << numSnaps << std::endl;
+    }else{
+      throw std::runtime_error("... Bad File ...");
+    }
+
+    for(int column = 0; column != numSnaps; column++){
+      Vector dummy1(podBasis_.numVec());
+      Vector uforceSnapshot(unassembledVecInfo());
+      Eigen::Matrix<double,Eigen::Dynamic,1>  dummy2(podBasis_.numVec());
+      Eigen::Matrix<double,Eigen::Dynamic,1>  buffer(umaskIndices.size());
+ 
+      podBasis_.reduce(aForceSnapshots[column],dummy1);
+      squareNorm += dummy1.squareNorm();
+      Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,1> > dummy1Map(dummy1.data(),dummy1.size());
+
+      double timeStamp;
+      uForceFile >> timeStamp; 
+      std::cout << "\r timestamp = " << timeStamp;
+      for(int i = 0; i != lengthVec; i++){
+        if(uForceFile.good()){
+          uForceFile >> uforceSnapshot[i];
+        }else{
+          throw std::runtime_error("... Bad File ...");
+        }
+      }
+
+      for(int row = 0; row != buffer.rows(); row++){
+        buffer(row) = uforceSnapshot[umaskIndices[row]];
+      }
+
+      dummy2 = compressedDBTranspose*buffer;
+      dummy1Map -= dummy2;
+      squareNormDiff += dummy1Map.squaredNorm();
+    }
+
+    squareNormDiff = sqrt(squareNormDiff);
+    squareNorm     = sqrt(squareNorm);
+ 
+    std::cout << "\n||V^T(F-U(P^TU)^-1(P^T)F)||_F/||V^TF||_F = " << squareNormDiff/squareNorm << std::endl;
+
+  }else{
+    throw std::runtime_error("... Bad File ...");
+  }
+
 }
 
 void
@@ -145,12 +213,27 @@ UDEIMSamplingDriver::writeUnassembledForceSnap(VecBasis &unassembledForceBasis)
   //Now build forcevectors
   std::vector<double> SVs;
   buildForceArray(unassembledForceBasis,displac,veloc_,accel_,timeStamps,snapshotCounts);
-  OrthoForceSnap(unassembledForceBasis,SVs); //orthogonalize unassembled vectors
-
   Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > unassembledMap(unassembledForceBasis.data(),unassembledForceBasis.size(),unassembledForceBasis.numVectors());
 
-  ofstream svdFile;
+  //output unassembled force snapshots for use in error bound computation
+  ofstream snpFile;
   FileNameInfo fileInfo;
+  std::string snpFileName = BasisFileId(fileInfo, BasisId::FORCE, BasisId::SNAPSHOTS);
+  snpFileName.erase(snpFileName.end()-3,snpFileName.end());
+  snpFileName += "snap";
+  snpFile.open(snpFileName.c_str());
+ 
+  snpFile << std::setprecision(16);
+  snpFile << unassembledMap.rows() << " " << unassembledMap.cols() << std::endl;
+  for(int column = 0; column != unassembledMap.cols(); column++){
+    snpFile << "\t" << timeStamps[column] << std::endl;
+    snpFile << unassembledMap.col(column) << std::endl;
+  }
+  snpFile.close();
+
+  OrthoForceSnap(unassembledForceBasis,SVs); //orthogonalize unassembled vectors
+  //output orthogonalized force snapshots for use in UDEIM basis
+  ofstream svdFile;
   std::string svdFileName = BasisFileId(fileInfo, BasisId::FORCE, BasisId::SNAPSHOTS);
   svdFile.open(svdFileName.c_str());
 
@@ -163,6 +246,7 @@ UDEIMSamplingDriver::writeUnassembledForceSnap(VecBasis &unassembledForceBasis)
     svdFile << SVs[column] << std::endl;
     svdFile << unassembledMap.col(column) << std::endl;
   }
+  svdFile.close();
 #endif
 }
  
@@ -830,7 +914,7 @@ int UDEIMSamplingDriver::unassembledVecInfo(){
     }
   }
  
-  std::cout<<"unassembledLength = "<<unassembledLength<<std::endl;
+//  std::cout<<"unassembledLength = "<<unassembledLength<<std::endl;
   return unassembledLength;
 
 }

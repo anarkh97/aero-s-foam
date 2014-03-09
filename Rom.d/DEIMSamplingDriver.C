@@ -53,12 +53,15 @@ DEIMSamplingDriver::solve() {
 
   domain->createKelArray(kelArrayCopy);  
 
+  VecBasis forceBasis;
+
   if(domain->solInfo().computeForceSnap){
+    std::vector<double> timeStamps;
     readInBasis(podBasis_, BasisId::STATE, BasisId::POD, podSizeMax);
-    writeProjForceSnap();
+    writeProjForceSnap(forceBasis,timeStamps);
+    writeBasisToFile(forceBasis, timeStamps, BasisId::FORCE, BasisId::SNAPSHOTS);
   } else if(domain->solInfo().orthogForceSnap) {
     int forcePodSizeMax = domain->solInfo().forcePodSize;
-    VecBasis forceBasis;
     readInBasis(forceBasis, BasisId::FORCE, BasisId::SNAPSHOTS,forcePodSizeMax);
     std::vector<double> SVs;
     OrthoForceSnap(forceBasis,SVs);
@@ -66,11 +69,42 @@ DEIMSamplingDriver::solve() {
   } else {
     readInBasis(podBasis_, BasisId::STATE, BasisId::POD, podSizeMax, normalized);
     std::vector<int> maskIndices;
-    VecBasis forceBasis;
+    std::vector<double> timeStamps;
     computeInterpIndices(forceBasis, maskIndices);
     computeAndWriteDEIMBasis(forceBasis, maskIndices);
     writeSampledMesh(maskIndices);
+    if(domain->solInfo().statePodRomFile.size() > 0)
+      computeErrorBound();
     }
+
+}
+
+void
+DEIMSamplingDriver::computeErrorBound(){
+
+  std::cout << "Computing Error Bound" << std::endl;
+  VecBasis forceSnapshots;
+  std::vector<double> timeStamps;
+  readInBasis(forceSnapshots, BasisId::STATE, BasisId::SNAPSHOTS,0);
+
+  double squareNorm     = 0.0;
+  double squareNormDiff = 0.0;
+
+  for(int column = 0; column != forceSnapshots.numVectors(); column++){
+    Vector dummy1(deimBasis.numVec());
+    Vector dummy2(podBasis_.numVec());
+    deimBasis.reduce(forceSnapshots[column],dummy1);
+    podBasis_.reduce(forceSnapshots[column],dummy2);
+
+    squareNorm = dummy2.squareNorm();
+    dummy2 = dummy2 - dummy1;
+    squareNormDiff += dummy2.squareNorm();  
+  }
+  
+  squareNormDiff = sqrt(squareNormDiff);
+  squareNorm     = sqrt(squareNorm);
+
+  std::cout << "||V^T(F-U(P^TU)^-1(P^T)F)||_F/||V^TF||_F = " << squareNormDiff/squareNorm << std::endl;
 
 }
 
@@ -115,13 +149,10 @@ DEIMSamplingDriver::writeBasisToFile(const VecBasis &OutputBasis, std::vector<Sc
 }
 
 void
-DEIMSamplingDriver::writeProjForceSnap() 
+DEIMSamplingDriver::writeProjForceSnap(VecBasis &forceBasis,std::vector<double> &timeStamps) 
 {
-  VecBasis forceBasis;
- 
   //First read in state snapshots 
   VecBasis displac;
-  std::vector<double> timeStamps;
   std::vector<int> snapshotCounts;
   readAndProjectSnapshots(BasisId::STATE, converter->vectorSize(), podBasis_, converter,
                           snapshotCounts, timeStamps, displac);
@@ -148,7 +179,6 @@ DEIMSamplingDriver::writeProjForceSnap()
 
   //Now build forcevectors
   buildForceArray(forceBasis, displac, veloc_, accel_, timeStamps, snapshotCounts);
-  writeBasisToFile(forceBasis, timeStamps, BasisId::FORCE, BasisId::SNAPSHOTS);
 }
 
 void

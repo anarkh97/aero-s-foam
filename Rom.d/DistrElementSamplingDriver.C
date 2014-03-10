@@ -336,7 +336,7 @@ DistrElementSamplingDriver::solve()
     domain->preProcessing();
     buildDomainCdsa();
     std::string fileName2 = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
-    if(domain->solInfo().newmarkBeta == 0) fileName2.append(".normalized");
+    if(domain->solInfo().newmarkBeta == 0 || domain->solInfo().useMassNormalizedBasis) fileName2.append(".normalized");
     const VecNodeDof6Conversion vecDofConversion(*domain->getCDSA());
     BasisInputStream in(fileName2, vecDofConversion);
     VecBasis podBasis;

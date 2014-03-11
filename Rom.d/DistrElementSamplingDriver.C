@@ -193,6 +193,7 @@ DistrElementSamplingDriver::solve()
   int myID = (structCom) ? structCom->myID() : 0;
   bool verboseFlag = (myID == 0); // output to the screen only for subdomains assigned to mpi process with rank 0
   double glTargMagnitude = 0;
+  Vector glTrainingTarget(podVectorCount*snapshotCount, 0.0);
 #if defined(_OPENMP)
   #pragma omp parallel for schedule(static,1)
 #endif
@@ -239,15 +240,19 @@ DistrElementSamplingDriver::solve()
 
     StackVector trainingTarget(subDrivers[i]->solver().rhsBuffer(), podVectorCount*snapshotCount);
     targetMagnitudes[i] = trainingTarget.norm();
-    glTargMagnitude += targetMagnitudes[i]*targetMagnitudes[i];
+#if defined(_OPENMP)
+    #pragma omp critical
+#endif
+    glTrainingTarget += trainingTarget;
   }
   delete displac;
   if(veloc) delete veloc;
   if(accel) delete accel;
 
-  if(structCom)
-    structCom->globalSum(1, &glTargMagnitude);
-  glTargMagnitude = sqrt(glTargMagnitude);
+  if(structCom) 
+    structCom->globalSum(glTrainingTarget.size(), glTrainingTarget.data()); 
+  glTargMagnitude = glTrainingTarget.norm();
+  //if(structCom->myID() == 0) std::cerr << "glTargMagnitude = " << glTargMagnitude << std::endl;
 
 #if defined(_OPENMP)
   #pragma omp parallel for schedule(static,1)

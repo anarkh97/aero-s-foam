@@ -234,7 +234,7 @@ DistrElementSamplingDriver::solve()
 
     for(int j=0; j<subDrivers[i]->solver().equationCount(); ++j) subDrivers[i]->solver().rhsBuffer()[j] = 0.0;
     subDrivers[i]->assembleTrainingData(subPodBasis, podVectorCount, subDisplac, subVeloc, subAccel);
-    subDrivers[i]->clean();
+    if(!domain->solInfo().globalErr) subDrivers[i]->clean();
     if(subVeloc) delete subVeloc;
     if(subAccel) delete subAccel;
 
@@ -245,14 +245,18 @@ DistrElementSamplingDriver::solve()
 #endif
     glTrainingTarget += trainingTarget;
   }
-  delete displac;
-  if(veloc) delete veloc;
-  if(accel) delete accel;
+  if(!domain->solInfo().globalErr) {
+    delete displac;
+    if(veloc) delete veloc;
+    if(accel) delete accel;
+  }
 
   if(structCom) 
     structCom->globalSum(glTrainingTarget.size(), glTrainingTarget.data()); 
   glTargMagnitude = glTrainingTarget.norm();
   //if(structCom->myID() == 0) std::cerr << "glTargMagnitude = " << glTargMagnitude << std::endl;
+
+  Vector glAx(podVectorCount*snapshotCount, 0.0);
 
 #if defined(_OPENMP)
   #pragma omp parallel for schedule(static,1)
@@ -264,6 +268,61 @@ DistrElementSamplingDriver::solve()
     if(verboseFlag) filePrint(stderr, " ... Training Tolerance for SubDomain %d is %f ...\n",
                               decDomain->getSubDomain(i)->subNum()+1, relativeTolerance);
     subDrivers[i]->computeSolution(solutions[i], relativeTolerance, verboseFlag);
+
+    if(domain->solInfo().globalErr) {
+      std::vector<StackVector> subPodBasis(podVectorCount);
+      for(int j = 0; j < podVectorCount; ++j) {
+        subPodBasis[j].setData(podBasis[j].subData(i), podBasis[j].subLen(i));
+      }
+
+      std::vector<StackVector> subDisplac(snapshotCount);
+      for(int j = 0; j < snapshotCount; ++j) {
+        subDisplac[j].setData((*displac)[j].subData(i), (*displac)[j].subLen(i));
+      }
+
+      subDrivers[i]->timeStampsIs(timeStamps);
+      subDrivers[i]->snapshotCountsIs(snapshotCounts);
+
+      std::vector<StackVector> *subVeloc = 0;
+      if(veloc) {
+        subVeloc = new std::vector<StackVector>(snapshotCount);
+        for(int j = 0; j < snapshotCount; ++j) {
+          (*subVeloc)[j].setData((*veloc)[j].subData(i), (*veloc)[j].subLen(i));
+        }
+      }
+
+      std::vector<StackVector> *subAccel = 0;
+      if(accel) {
+        subAccel = new std::vector<StackVector>(snapshotCount);
+        for(int j = 0; j < snapshotCount; ++j) {
+          (*subAccel)[j].setData((*accel)[j].subData(i), (*accel)[j].subLen(i));
+        }
+      }
+
+      StackVector Ax(subDrivers[i]->solver().rhsBuffer(), podVectorCount*snapshotCount);
+      Ax.zero();
+      subDrivers[i]->assembleWeightedTrainingData(subPodBasis, podVectorCount, subDisplac, subVeloc, subAccel, solutions[i]);
+      if(verboseFlag) std::cerr << " ... Norm of training solution (A*x) for subdomain " << decDomain->getSubDomain(i)->subNum()+1 
+                                << " is " << Ax.norm() << " ...\n";
+      subDrivers[i]->clean();
+      if(subVeloc) delete subVeloc;
+      if(subAccel) delete subAccel;
+
+#if defined(_OPENMP)
+      #pragma omp critical
+#endif
+      glAx += Ax;
+    }
+  }
+  if(domain->solInfo().globalErr) {
+    if(structCom)
+      structCom->globalSum(glAx.size(), glAx.data());
+    glAx -= glTrainingTarget;
+    if(structCom->myID() == 0) std::cerr << " ... Global relative residual = " << glAx.norm()/glTargMagnitude << " ...\n";
+
+    delete displac;
+    if(veloc) delete veloc;
+    if(accel) delete accel;
   }
   delete [] targetMagnitudes;
   

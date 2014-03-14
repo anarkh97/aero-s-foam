@@ -49,6 +49,9 @@ public:
   template<typename VecBasisType>
   void assembleTrainingData(const VecBasisType &podBasis, const int podVectorCount, const VecBasisType &displac,
                             const VecBasisType *veloc, const VecBasisType *accel);
+  template<typename VecBasisType>
+  void assembleWeightedTrainingData(const VecBasisType &podBasis, const int podVectorCount, const VecBasisType &displac,
+                                    const VecBasisType *veloc, const VecBasisType *accel, const Vector &weights);
   void clean();
   SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>& solver() { return solver_; }
   int elementCount() const;

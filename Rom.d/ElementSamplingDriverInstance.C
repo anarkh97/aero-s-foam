@@ -35,6 +35,12 @@ ElementSamplingDriver<std::vector<double>,size_t>
 template
 void
 ElementSamplingDriver<std::vector<double>,size_t>
+::assembleWeightedTrainingData(const std::vector<StackVector> &podBasis, const int podVectorCount, const std::vector<StackVector> &displac,
+                               const std::vector<StackVector> *veloc, const std::vector<StackVector> *accel, const Vector &weights);
+
+template
+void
+ElementSamplingDriver<std::vector<double>,size_t>
 ::solve();
 
 template

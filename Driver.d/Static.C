@@ -1005,13 +1005,13 @@ void Domain::writeTopFileElementSets(ControlInfo *cinfo, int * nodeTable, int* n
            SurfEntities[iSurf]->GetId(), cinfo->nodeSetName);
    FaceElemSet &faceElemSet = SurfEntities[iSurf]->GetFaceElemSet();
    for(iele=0; iele<faceElemSet.last(); ++iele) {
-     if(SurfEntities[iSurf]->GetIsShellFace() && iele%2==1) continue;
+     if(SurfEntities[iSurf]->GetIsShellFace() && tdenforceFlag() && iele%2==1) continue;
      int nVertices = faceElemSet[iele]->nVertices();
      int eletype;
      if(nVertices == 3) eletype = 104;
      else if(nVertices == 4) eletype = 2;
      else { cerr << "don't know xpost eletype for surface " << SurfEntities[iSurf]->GetId() << " element " << iele << " nVertices = " << nVertices << endl; continue; }
-     int eleID = (SurfEntities[iSurf]->GetIsShellFace()) ? iele/2+1 : iele+1;
+     int eleID = (SurfEntities[iSurf]->GetIsShellFace() && tdenforceFlag()) ? iele/2+1 : iele+1;
      fprintf(cinfo->checkfileptr,"%6d  %4d ",eleID,eletype);
      for(inode=0; inode<nVertices; ++inode) {
        int nodeNumber = faceElemSet[iele]->GetVertex(inode);

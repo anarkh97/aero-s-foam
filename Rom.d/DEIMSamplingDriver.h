@@ -43,7 +43,9 @@ private:
 
   void writeProjForceSnap(VecBasis &forceBasis,std::vector<double> &timeStamps); 
 
+#ifdef USE_EIGEN3
   void getFullNodeIndices(Eigen::Matrix<double,Eigen::Dynamic,1> res,int MaxCoeff,std::vector<int> &container, std::set<int> &auxilaryIndices);
+#endif
 
   void computeInterpIndices(VecBasis &forceBasis, std::vector<int> &maskIndices); 
   void computeAndWriteDEIMBasis(VecBasis &forceBasis, std::vector<int> &maskIndices);  

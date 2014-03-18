@@ -82,6 +82,7 @@ UDEIMSamplingDriver::solve() {
 void
 UDEIMSamplingDriver::computeErrorBound(std::vector<int> &umaskIndices){
 
+#ifdef USE_EIGEN3
   std::cout << "Computing Error Bound" << std::endl;
   VecBasis aForceSnapshots;
   readInBasis(aForceSnapshots, BasisId::STATE, BasisId::SNAPSHOTS,0);
@@ -143,6 +144,7 @@ UDEIMSamplingDriver::computeErrorBound(std::vector<int> &umaskIndices){
     throw std::runtime_error("... Bad File ...");
   }
 
+#endif
 }
 
 void
@@ -635,11 +637,12 @@ UDEIMSamplingDriver::writeSampledMesh(std::vector<int> &maskIndices, std::set<in
    }
 
    weightOut << "*\nUDBASIS\n"  ;
+#ifdef USE_EIGEN3
    weightOut << compressedDBTranspose.rows() << " " <<  compressedDBTranspose.cols() << std::endl;
    for(int row = 0; row < compressedDBTranspose.rows(); ++row){
      weightOut << compressedDBTranspose.row(row).transpose() << std::endl;
    } 
-
+#endif
   }
 
   // compute the reduced forces (constant only). 
@@ -704,11 +707,13 @@ UDEIMSamplingDriver::writeSampledMesh(std::vector<int> &maskIndices, std::set<in
       meshOut << columnOfRedK[i] << std::endl;}
   }
 
+#ifdef USE_EIGEN3
   meshOut << "*\nUDBASIS\n"  ;
   meshOut << compressedDBTranspose.rows() << " " << compressedDBTranspose.cols() << std::endl;
   for(int row = 0; row < compressedDBTranspose.rows(); ++row){
     meshOut << compressedDBTranspose.row(row).transpose() << std::endl;
   }
+#endif
 
   // output the reduced forces
   if(reduce_f) {

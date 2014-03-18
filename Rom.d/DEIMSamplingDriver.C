@@ -259,6 +259,7 @@ DEIMSamplingDriver::computeInterpIndices(VecBasis &forceBasis, std::vector<int> 
 #endif
 }
 
+#ifdef USE_EIGEN3
 void
 DEIMSamplingDriver::getFullNodeIndices(Eigen::Matrix<double,Eigen::Dynamic,1> res,int MaxCoeff,std::vector<int> &container,std::set<int> &auxilaryIndices){
   //this member function adds all indices for a selected node in order of largest residual contribution
@@ -279,6 +280,7 @@ DEIMSamplingDriver::getFullNodeIndices(Eigen::Matrix<double,Eigen::Dynamic,1> re
   for(std::map<double,int>::reverse_iterator rit = myMap.rbegin(); rit != myMap.rend(); rit++)
     auxilaryIndices.insert(rit->second);
 }
+#endif
 
 void
 DEIMSamplingDriver::computeAndWriteDEIMBasis(VecBasis &forceBasis, std::vector<int> &maskIndices)

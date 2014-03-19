@@ -601,7 +601,8 @@ StaticTimers::printStaticTimers(MatrixTimers matrixTimer, double solveTime,
 
  if(f != 0) {
  
- int numCon = domain->nDirichlet();
+ int numDof = domain->numDofs();
+ int numCon = domain->nDirichlet() + domain->nCDirichlet();
  filePrint(f,"\n***********************************************************"
            "********************\n");
  filePrint(f," ... %s Problem Information ... \n",problemType[sInfo.probType]);
@@ -612,9 +613,9 @@ StaticTimers::printStaticTimers(MatrixTimers matrixTimer, double solveTime,
             domain->numNode());
  filePrint(f,"2. Number of Elements                      = %14d\n\n",
             domain->numElements());
- filePrint(f,"3. Number of Degrees of Freedom            =          blank\n");
+ filePrint(f,"3. Number of Degrees of Freedom            = %14d\n",numDof);
  filePrint(f,"         Number of Constrained Dofs        = %14d\n",numCon);
- filePrint(f,"         Number of Unconstrained Dofs      =          blank\n\n");
+ filePrint(f,"         Number of Unconstrained Dofs      = %14d\n\n",numDof-numCon);
  filePrint(f,"4. Number of Applied Loads                 = %14d\n\n",
             domain->nNeumann());
  filePrint(f,"5. Number of Output Files                  = %14d\n\n",

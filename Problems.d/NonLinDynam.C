@@ -447,110 +447,125 @@ NonLinDynamic::getStiffAndForceFromDomain(GeomState &geomState, Vector &elementI
 int
 NonLinDynamic::getNumStages()
 {
-/*
- const double targetFirstResidual= 1.0E5;
- int numStages=2;
- if(firstRes > targetFirstResidual)
-   numStages= int(firstRes/targetFirstResidual)+2;
- return numStages;
-*/
- return int(0.2+ domain->solInfo().getNLInfo().maxLambda / domain->solInfo().getNLInfo().dlambda);
+  return int(0.2+ domain->solInfo().getNLInfo().maxLambda / domain->solInfo().getNLInfo().dlambda);
 }
 
 int
 NonLinDynamic::checkConvergence(int iteration, double normRes, Vector &residual, Vector& dv, 
                                 double time)
 {
-     /*if(dofTypeArray == 0)
-       dofTypeArray = cdsa->makeDofTypeArray();*/
 #ifdef PRINT_FORCENORMS
-     ConstrainedDSA *cdsa = domain->getCDSA();
-     double momenNorm = 0.0;
-     double forceNorm = 0.0;
-     int i;
-     for(i=0; i<domain->numNodes(); ++i) {
-       if(domain->solInfo().order == 1) {
-         int dof = cdsa->locate(i, DofSet::Temp);
-         if(dof >= 0)
-           forceNorm += (residual[dof]*residual[dof]);
-       }
-       else {
-         int dof = cdsa->locate(i, DofSet::Xdisp);
-         if(dof >= 0)
-           forceNorm += (residual[dof]*residual[dof]);
-         dof = cdsa->locate(i, DofSet::Ydisp);
-         if(dof >= 0)
-           forceNorm += (residual[dof]*residual[dof]);
-         dof = cdsa->locate(i, DofSet::Zdisp);
-         if(dof >= 0)
-           forceNorm += (residual[dof]*residual[dof]);
-         dof = cdsa->locate(i, DofSet::Xrot);
-         if(dof >= 0)
-           momenNorm += (residual[dof]*residual[dof]);
-         dof = cdsa->locate(i, DofSet::Yrot);
-         if(dof >= 0)
-           momenNorm += (residual[dof]*residual[dof]); 
-         dof = cdsa->locate(i, DofSet::Zrot);
-         if(dof >= 0)
-           momenNorm += (residual[dof]*residual[dof]); 
-       }
-     }
-     if(iteration == 0) {
-       firstForceNorm = (forceNorm == 0.0) ? 1.0 : sqrt(forceNorm);
-       firstMomenNorm = (momenNorm == 0.0) ? 1.0 : sqrt(momenNorm);
-     }
-     fprintf(stderr,"===> time %f force Norm %e Moment Norm %e\n",
-             time,
-             sqrt(forceNorm)/firstForceNorm,
-             sqrt(momenNorm)/firstMomenNorm);
+  ConstrainedDSA *cdsa = domain->getCDSA();
+  double momenNorm = 0.0;
+  double forceNorm = 0.0;
+  int i;
+  for(i=0; i<domain->numNodes(); ++i) {
+    if(domain->solInfo().order == 1) {
+      int dof = cdsa->locate(i, DofSet::Temp);
+      if(dof >= 0)
+        forceNorm += (residual[dof]*residual[dof]);
+    }
+    else {
+      int dof = cdsa->locate(i, DofSet::Xdisp);
+      if(dof >= 0)
+        forceNorm += (residual[dof]*residual[dof]);
+      dof = cdsa->locate(i, DofSet::Ydisp);
+      if(dof >= 0)
+        forceNorm += (residual[dof]*residual[dof]);
+      dof = cdsa->locate(i, DofSet::Zdisp);
+      if(dof >= 0)
+        forceNorm += (residual[dof]*residual[dof]);
+      dof = cdsa->locate(i, DofSet::Xrot);
+      if(dof >= 0)
+        momenNorm += (residual[dof]*residual[dof]);
+      dof = cdsa->locate(i, DofSet::Yrot);
+      if(dof >= 0)
+        momenNorm += (residual[dof]*residual[dof]); 
+      dof = cdsa->locate(i, DofSet::Zrot);
+      if(dof >= 0)
+        momenNorm += (residual[dof]*residual[dof]); 
+    }
+  }
+  if(iteration == 0) {
+    firstForceNorm = (forceNorm == 0.0) ? 1.0 : sqrt(forceNorm);
+    firstMomenNorm = (momenNorm == 0.0) ? 1.0 : sqrt(momenNorm);
+  }
+  fprintf(stderr,"===> time %f force Norm %e Moment Norm %e\n",
+          time,
+          sqrt(forceNorm)/firstForceNorm,
+          sqrt(momenNorm)/firstMomenNorm);
 #endif
 
-     double normDv     = dv.norm();
-     double normEnergy = residual*dv;
+  // Note when useTolInc is false, this function is called before normDv is calculated
+  bool useTolInc = (domain->solInfo().getNLInfo().tolInc != std::numeric_limits<double>::infinity() ||
+                    domain->solInfo().getNLInfo().absTolInc != std::numeric_limits<double>::infinity());
 
-     if(iteration == 0)  { 
-       firstRes = normRes;
-       firstDv  = normDv;
-       firstEng = normEnergy;
-     }
-     if(iteration == 1) secondRes = normRes;
+  double normDv     = dv.norm();
+  double normEnergy = residual*dv;
 
-     double relRes = normRes/firstRes;
-     double relDv  = normDv /firstDv;
-     double relEng = normEnergy/firstEng;
+  if(iteration == 0) { 
+    firstRes = normRes;
+    if(useTolInc) {
+      firstDv  = normDv;
+      firstEng = normEnergy;
+    }
+    else {
+      normDv = 0; firstDv = 1;
+      normEnergy = 0; firstEng = 1;
+    }
+  }
+  if(iteration == 1) {
+    secondRes = normRes;
+    if(!useTolInc) {
+      firstDv  = normDv;
+      firstEng = normEnergy;
+    }
+  }
 
-     int converged = 0;
+  double relRes = normRes/firstRes;
+  double relDv  = normDv /firstDv;
 
-     if(iteration > 0 && ((normRes <= tolerance*firstRes && normDv <= domain->solInfo().getNLInfo().tolInc*firstDv) 
-        || (normRes < domain->solInfo().getNLInfo().absTolRes && normDv < domain->solInfo().getNLInfo().absTolInc))) 
-       converged = 1;
+  int converged = 0;
 
-     // Check for divergence
-     else if(iteration > 1 && (normRes >= 1.0e10 * firstRes && normRes > secondRes))
-       converged = -1;
+  // Check for convergence
+  if(iteration > 0 && ((normRes <= tolerance*firstRes && normDv <= domain->solInfo().getNLInfo().tolInc*firstDv) 
+     || (normRes < domain->solInfo().getNLInfo().absTolRes && normDv < domain->solInfo().getNLInfo().absTolInc))) 
+    converged = 1;
 
-     if(verboseFlag) {
-       filePrint(stderr," Iteration # %d\n",iteration);
-       filePrint(stderr," r      = %e dv      = %e energy      = %e\n"
+  // Check for divergence
+  else if(iteration > 1 && (normRes >= 1.0e10 * firstRes && normRes > secondRes))
+    converged = -1;
+
+  if(verboseFlag) {
+    filePrint(stderr, " Iteration # %d\n", iteration);
+    if(useTolInc || iteration >= 1) {
+      double relEng = normEnergy/firstEng;
+      filePrint(stderr, " r      = %e dv      = %e energy      = %e\n"
                         " rel. r = %e rel. dv = %e rel. energy = %e\n",
-                          normRes,normDv,normEnergy,
-                          relRes,relDv,relEng);
-     }
+                        normRes, normDv, normEnergy,
+                        relRes, relDv, relEng);
+    }
+    else {
+      filePrint(stderr, " r      = %e\n"
+                        " rel. r = %e\n",
+                        normRes, relRes);
+    }
+  }
 
-     totIter++;
-     filePrint(res,"%d %19.12e %e %e %e %e\n",totIter,time,normRes,relRes, normDv, relDv);
-     fflush(res);
+  totIter++;
+  filePrint(res, "%d %19.12e %e %e %e %e\n", totIter, time, normRes, relRes, normDv, relDv);
+  fflush(res);
 
-     // Store residual norm and dv norm for output
-     times->norms[numSystems].normDv      = normDv;
-     times->norms[numSystems].relativeDv  = relDv;
-     times->norms[numSystems].normRes     = normRes;
-     times->norms[numSystems].relativeRes = relRes;
-     times->numSystems = numSystems;
+  // Store residual norm and dv norm for output
+  times->norms[numSystems].normDv      = normDv;
+  times->norms[numSystems].relativeDv  = relDv;
+  times->norms[numSystems].normRes     = normRes;
+  times->norms[numSystems].relativeRes = relRes;
+  times->numSystems = numSystems;
 
-     numSystems += 1;
+  numSystems += 1;
 
-     return converged;
+  return converged;
 }
 
 GeomState*

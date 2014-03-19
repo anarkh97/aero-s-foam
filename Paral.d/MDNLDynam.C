@@ -365,22 +365,38 @@ int
 MDNLDynamic::checkConvergence(int iteration, double normRes, DistrVector &residual, DistrVector& dv, double time)
 {
   times->timeCheck -= getTime();
+
+  // Note when useTolInc is false, this function is called before normDv is calculated
+  bool useTolInc = (domain->solInfo().getNLInfo().tolInc != std::numeric_limits<double>::infinity() ||
+                    domain->solInfo().getNLInfo().absTolInc != std::numeric_limits<double>::infinity());
+
   double normDv  = dv.norm();
   double normEnergy = residual*dv;
 
-  if(iteration == 0)  {
+  if(iteration == 0) {
     firstRes = normRes;
-    firstDv  = normDv;
-    firstEng = normEnergy;
+    if(useTolInc) {
+      firstDv  = normDv;
+      firstEng = normEnergy;
+    }
+    else {
+      normDv = 0; firstDv = 1;
+      normEnergy = 0; firstEng = 1;
+    }
   }
-
-  if(iteration == 1)
+  if(iteration == 1) {
     secondRes = normRes;
+    if(!useTolInc) {
+      firstDv  = normDv;
+      firstEng = normEnergy;
+    }
+  }
 
   double relRes = normRes/firstRes;
   double relDv  = normDv /firstDv;
 
   int converged = 0;
+
   // Check for convergence
   if(iteration > 0 && ((normRes <= tolerance*firstRes && normDv <= domain->solInfo().getNLInfo().tolInc*firstDv) 
      || (normRes < domain->solInfo().getNLInfo().absTolRes && normDv < domain->solInfo().getNLInfo().absTolInc)))
@@ -390,16 +406,22 @@ MDNLDynamic::checkConvergence(int iteration, double normRes, DistrVector &residu
   else if(iteration > 1 && (normRes >= 1.0e10 * firstRes && normRes > secondRes)) 
     converged = -1;
 
-//#ifdef PRINT_RESIDUALS
-  double relEng = normEnergy/firstEng;
   if(verboseFlag) {
-    filePrint(stderr," Iteration # %d\n",iteration);
-    filePrint(stderr," r      = %e dv      = %e energy      = %e\n"
-                     " rel. r = %e rel. dv = %e rel. energy = %e\n",
-                       normRes,normDv,normEnergy,
-                       relRes,relDv,relEng);
+    filePrint(stderr, " Iteration # %d\n", iteration);
+    if(useTolInc || iteration >= 1) {
+      double relEng = normEnergy/firstEng;
+      filePrint(stderr, " r      = %e dv      = %e energy      = %e\n"
+                        " rel. r = %e rel. dv = %e rel. energy = %e\n",
+                        normRes, normDv, normEnergy,
+                        relRes, relDv, relEng);
+    }
+    else {
+      filePrint(stderr, " r      = %e\n"
+                        " rel. r = %e\n",
+                        normRes, relRes);
+    }
   }
-//#endif
+
   totIter++;
 
   // Store residual norm and dv norm for output

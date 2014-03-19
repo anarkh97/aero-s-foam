@@ -107,23 +107,27 @@ Domain::openFile(char *fileName, const char *extension)
 void
 Domain::printStatistics(bool domain_decomp)
 {
-   filePrint(stderr,"\n ---------- PROBLEM PARAMETERS --------");
-   filePrint(stderr,"\n ... # Nodes              = %7d ...",numnodes-geoSource->internalNumNodes());
-   filePrint(stderr,"\n ... # Elements           = %7d ...",numele);
-   if(!domain_decomp) {
-     filePrint(stderr,"\n ... # Unconstrained dofs = %7d ...",numUncon());
-   }
-   filePrint(stderr,"\n ... # Constrained dofs   = %7d ...",
-           numDirichlet+numComplexDirichlet);
-   if(!domain_decomp) {
-     filePrint(stderr,"\n ... Total # dofs         = %7d ...",numdof());
-   }
-   filePrint(stderr,"\n ... # Loaded dofs        = %7d ...",
-           numNeuman+numComplexNeuman);
-   if(gravityFlag())
-     filePrint(stderr,"\n ... Gravity Load is Applied        ...");
-   filePrint(stderr,"\n ... # Output Files       = %7d ...",geoSource->getNumOutInfo());
-   filePrint(stderr,"\n --------------------------------------\n");
+  filePrint(stderr, "\n ---------- PROBLEM PARAMETERS --------");
+  filePrint(stderr, "\n ... # Nodes              = %7d ...", numnodes-geoSource->internalNumNodes());
+  filePrint(stderr, "\n ... # Elements           = %7d ...", numele);
+  if(domain_decomp) {
+    filePrint(stderr, "\n ... # Unconstrained dofs = %7d ...", numDofs()-numDirichlet-numComplexDirichlet);
+  }
+  else {
+    filePrint(stderr, "\n ... # Unconstrained dofs = %7d ...", numUncon());
+  }
+  filePrint(stderr, "\n ... # Constrained dofs   = %7d ...", numDirichlet+numComplexDirichlet);
+  if(domain_decomp) {
+    filePrint(stderr,"\n ... Total # dofs         = %7d ...", numDofs());
+  }
+  else {
+    filePrint(stderr,"\n ... Total # dofs         = %7d ...", numdof());
+  }
+  filePrint(stderr,"\n ... # Loaded dofs        = %7d ...", numNeuman+numComplexNeuman);
+  if(gravityFlag())
+    filePrint(stderr,"\n ... Gravity Load is Applied        ...");
+  filePrint(stderr,"\n ... # Output Files       = %7d ...", geoSource->getNumOutInfo());
+  filePrint(stderr,"\n --------------------------------------\n");
 }
 
 double

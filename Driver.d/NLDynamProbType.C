@@ -59,6 +59,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
   VecType external_force(probDesc->solVecInfo());
   VecType aeroForce(probDesc->solVecInfo()); aeroForce.zero();
   VecType rhs(probDesc->solVecInfo());
+  VecType dv(probDesc->solVecInfo());
   VecType residual(probDesc->solVecInfo());
   VecType totalRes(probDesc->sysVecInfo());
   VecType rhsCopy(probDesc->solVecInfo());
@@ -80,6 +81,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
   // zero vectors
   external_force.zero();
   rhs.zero();
+  dv.zero();
   residual.zero();
   totalRes.zero();
 
@@ -245,12 +247,12 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
           resN = probDesc->getResidualNorm(rhs, *geomState, delta);
           if(iter == 0) initialRes = resN;
 
-          // Copy rhs if necessary before it gets overwritten
-          if(probDesc->linesearch().type != 0) rhsCopy = rhs;
-
           // If the convergence criteria does not involve the solution increment, then 
           // check for convergence now (to avoid potentially unnecessary solve)
-          if(useTolInc || !(converged = probDesc->checkConvergence(iter, resN, rhs, rhs, midtime)) ) {
+          if(useTolInc || !(converged = probDesc->checkConvergence(iter, resN, rhs, dv, midtime)) ) {
+
+            // Copy rhs if necessary before it gets overwritten
+            if(probDesc->linesearch().type != 0) rhsCopy = rhs;
 
             // Assemble global tangent stiffness
             if(!domain->solInfo().mpcDirect) probDesc->reBuild(*geomState, iter, delta, midtime);
@@ -260,6 +262,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
 
             // Solve ([M] + delta^2 [K])dv = rhs (where rhs is overwritten)
             probDesc->getSolver()->reSolve(rhs);
+            dv = rhs;
             probDesc->getConstraintMultipliers(*geomState);
 
             if(probDesc->linesearch().type != 0) {

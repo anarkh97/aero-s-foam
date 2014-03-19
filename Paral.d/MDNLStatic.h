@@ -30,7 +30,6 @@ class MDNLStatic
 
     double firstDv;
     double firstRes;
-    double lastRes;
     double tolerance;
     StaticTimers *times;
     int numSystems;

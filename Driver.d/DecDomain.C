@@ -700,8 +700,12 @@ GenDecDomain<Scalar>::preProcess()
  }
 #endif
 
+ // compute the number of unconstrained dofs for timing file and screen output
+ GenDistrVector<int> toto(masterSolVecInfo());
+ toto = 1;
+ domain->setNumDofs(toto.sqNorm()+domain->nDirichlet()+domain->nCDirichlet());
+
  // free up some memory
- //delete nodeToSub; nodeToSub = 0;
  if(domain->solInfo().type != 0 && domain->solInfo().aeroFlag < 0) {
    delete elemToSub; elemToSub = 0;
    if(!geoSource->elemOutput() && elemToNode) { delete elemToNode; elemToNode = 0; }
@@ -2528,29 +2532,11 @@ GenDecDomain<Scalar>::getSharedDOFs()
   paralApplyToAll(numSub, subDomain, &GenSubDomain<Scalar>::sendDOFList, nodeIntPat);
   nodeIntPat->exchange();
   paralApply(numSub, subDomain, &GenSubDomain<Scalar>::gatherDOFList, nodeIntPat);
-  //XXXXif(domain->solInfo().inpc || ((domain->solInfo().newmarkBeta==0.0)&&(domain->solInfo().isDynam()||domain->solInfo().acoustic)))
-    paralApply(numSub, subDomain, &GenSubDomain<Scalar>::gatherDOFListPlus, nodeIntPat);
+  paralApply(numSub, subDomain, &GenSubDomain<Scalar>::gatherDOFListPlus, nodeIntPat);
 
   delete nodeIntPat;
   
   stopTimerMemory(mt.makeInterface, mt.memoryInterface);
-/*
-  // PJSA: compute the total number of DOFs for the timing file
-  int totalCornerDofs = 0;
-  for(i=0; i<totalDofs; ++i) if(cornerWeight[i]) totalCornerDofs += (cornerWeight[i] - 1);
-  int totalDofs = 0;
-  double totalSharedDofs = 0.0;
-  for(i=0; i<numSub; ++i) {
-    totalDofs += subDomain[i]->getTotalDofCount();
-    totalSharedDofs += subDomain[i]->getSharedDofCount();
-  }
-#ifdef DISTRIBUTED
-  totalDofs = communicator->globalSum(totalDofs);
-  totalSharedDofs = communicator->globalSum(totalSharedDofs);
-#endif
-  totalDofs -= (totalCornerDofs + int(floor(totalSharedDofs+0.5)));
-  domain->setNumDofs(totalDofs);
-*/
 }
 
 template<class Scalar>
@@ -2573,7 +2559,6 @@ GenDecDomain<Scalar>::makeCorners()
   
   paralApply(numSub, subDomain, &BaseSub::makeCCDSA);
 }
-
 
 template<class Scalar>
 void

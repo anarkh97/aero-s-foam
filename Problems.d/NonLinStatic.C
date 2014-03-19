@@ -153,35 +153,48 @@ NonLinStatic::checkConvergence(int iter, double normDv, double normRes)
 
  times->timeCheck -= getTime();
 
+ // Note when useTolInc is false, this function is called before normDv is calculated
+ bool useTolInc = (domain->solInfo().getNLInfo().tolInc != std::numeric_limits<double>::infinity() ||
+                   domain->solInfo().getNLInfo().absTolInc != std::numeric_limits<double>::infinity());
+
  if(iter == 0) {
-   firstDv  = normDv;
+   if(useTolInc) firstDv  = normDv;
+   else { normDv = 0; firstDv = 1; }
    firstRes = normRes;
+ }
+ else if(iter == 1 && !useTolInc) {
+  firstDv  = normDv;
  }
 
  double relativeDv  = normDv/firstDv;
  double relativeRes = normRes/firstRes;
 
- if(verboseFlag)
-  {
-    filePrint(stderr,"----------------------------------------------------\n");
-    filePrint(stderr,"Newton Iter    #%d\tcurrent dv   = % e\n \t\t\t"
-                   "first dv     = % e\n \t\t\trelative dv  = % e\n",
-                    iter+1, normDv, firstDv, relativeDv);
-    filePrint(stderr,"                \tcurrent Res  = % e\n \t\t\t"
-                   "first Res    = % e\n \t\t\trelative Res = % e\n",
-                    normRes, firstRes, relativeRes);
-
-    filePrint(stderr,"----------------------------------------------------\n");
-  }
+ if(verboseFlag) {
+   filePrint(stderr," ----------------------------------------------------\n");
+   if(useTolInc || iter >= 1) {
+     filePrint(stderr, " Newton Iter    #%d\tcurrent dv   = % e\n \t\t\t"
+                       "first dv     = % e\n \t\t\trelative dv  = % e\n",
+                       iter+1, normDv, firstDv, relativeDv);
+     filePrint(stderr, "                \tcurrent Res  = % e\n \t\t\t"
+                       "first Res    = % e\n \t\t\trelative Res = % e\n",
+                       normRes, firstRes, relativeRes);
+   }
+   else {
+     filePrint(stderr, " Newton Iter    #%d\tcurrent Res  = % e\n \t\t\t"
+                       "first Res    = % e\n \t\t\trelative Res = % e\n",
+                       iter+1, normRes, firstRes, relativeRes);
+   }
+   filePrint(stderr," ----------------------------------------------------\n");
+ }
 
  int converged = 0;
 
- // Check relative convergence criteria
+ // Check convergence criteria
  if(iter > 0 && ((normRes <= tolerance*firstRes && normDv <= domain->solInfo().getNLInfo().tolInc*firstDv)
     || (normRes < domain->solInfo().getNLInfo().absTolRes && normDv < domain->solInfo().getNLInfo().absTolInc)))
    converged = 1;
 
- // Check Divergence
+ // Check divergence
  else if(iter > 0 && normRes > 10000*firstRes)
    converged = -1;
 
@@ -194,7 +207,6 @@ NonLinStatic::checkConvergence(int iter, double normDv, double normRes)
  times->timeCheck += getTime();
 
  return converged;
-
 }
 
 GeomState*
@@ -221,7 +233,6 @@ NonLinStatic::reBuild(int iteration, int step, GeomState&)
  int rebuildFlag = 0;
 
  if(iteration % domain->solInfo().getNLInfo().updateK == 0 && (step-1) % domain->solInfo().getNLInfo().stepUpdateK == 0) {
-   if(verboseFlag) filePrint(stderr, " ... Rebuilding Tangent Stiffness for Step %d Iteration %d ...\n", step, iteration);
    if(domain->solInfo().mpcDirect != 0) {
      if(solver) delete solver;
      if(prec) delete prec;

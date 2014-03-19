@@ -326,7 +326,10 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
   double timeStiff   = 0.0;
   double timeRebuild = 0.0;
 
-  int maxit = probDesc->getMaxit();
+  int maxit = probDesc->getMaxit(), rebuildFlag;
+  bool useTolInc = (domain->solInfo().getNLInfo().tolInc != std::numeric_limits<double>::infinity()
+                 || domain->solInfo().getNLInfo().absTolInc != std::numeric_limits<double>::infinity());
+  double residualNorm, normDv;
   
   // Zero the state increment
   StateUpdate::zeroInc(stateIncr);
@@ -350,54 +353,80 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
 #endif    
 
     // Rebuild tangent stiffness matrix when necessary
-    timeRebuild -= getTime();
-    int rebuildFlag = probDesc->reBuild(iter, step, *geomState);
-    timeRebuild += getTime();
+    if(domain->solInfo().mpcDirect) {
+      timeRebuild -= getTime();
+      rebuildFlag = probDesc->reBuild(iter, step, *geomState);
+      timeRebuild += getTime();
 #ifdef PRINT_TIMERS
-    filePrint(stderr,"  Rebuild Tangent Stiffness Matrix time = %13.4f s\n",
-              timeRebuild/1000.0);
+      filePrint(stderr,"  Rebuild Tangent Stiffness Matrix time = %13.4f s\n",
+                timeRebuild/1000.0);
 #endif
+    }
+
     // note the residual norm needs to be computed after reBuild for "constraints direct"
-    double residualNorm = probDesc->getResidualNorm(residual, *geomState);
+    residualNorm = probDesc->getResidualNorm(residual, *geomState);
 
-    if(rebuildFlag) {
-      filePrint(stderr," ... Newton : Iter #%d --- Rebuild Tangent Stiffness (res = %e)\n", iter+1, residualNorm);
-    }
-    else filePrint(stderr," ... Newton : Iter #%d (res = %e)\n", iter+1, residualNorm);
+    // If the convergence criteria does not involve the solution increment, then 
+    // check for convergence now (to avoid potentially unnecessary solve)
+    if(useTolInc || !(converged = probDesc->checkConvergence(iter, normDv, residualNorm)) ) {
 
-    // Copy residual if necessary before it gets overwritten
-    if(probDesc->linesearch().type != 0) residualCopy = residual;
+      // Copy residual if necessary before it gets overwritten
+      if(probDesc->linesearch().type != 0) residualCopy = residual;
 
-    // Solve current system Kt*u = residual, overwrite residual with u
-    timeSolve -= getTime();
-    probDesc->getSolver()->reSolve(residual);
-    timeSolve += getTime();
+      // Rebuild tangent stiffness matrix when necessary
+      if(!domain->solInfo().mpcDirect) {
+        timeRebuild -= getTime();
+        rebuildFlag = probDesc->reBuild(iter, step, *geomState);
+        timeRebuild += getTime();
 #ifdef PRINT_TIMERS
-    filePrint(stderr,"  Solve Incremental Displacement %13.4f s\n",
-              timeSolve/1000.0);
+        filePrint(stderr,"  Rebuild Tangent Stiffness Matrix time = %13.4f s\n",
+                  timeRebuild/1000.0);
+#endif
+      }
+
+      if(rebuildFlag) {
+        filePrint(stderr," ... Newton : Iter #%d --- Rebuild Tangent Stiffness (res = %e)\n", iter+1, residualNorm);
+      }
+      else filePrint(stderr," ... Newton : Iter #%d (res = %e)\n", iter+1, residualNorm);
+
+      totalNewtonIter++;
+
+      // Solve current system Kt*u = residual, overwrite residual with u
+      timeSolve -= getTime();
+      probDesc->getSolver()->reSolve(residual);
+      timeSolve += getTime();
+#ifdef PRINT_TIMERS
+      filePrint(stderr,"  Solve Incremental Displacement %13.4f s\n",
+                timeSolve/1000.0);
 #endif
 
-    if(probDesc->linesearch().type != 0) {
-      // Optional adjustment of the step length
-      StateUpdate::linesearch(probDesc, refState, geomState, stateIncr,
-                              residualCopy, elementInternalForce, totalRes, lambda, force, residual);
+      if(probDesc->linesearch().type != 0) {
+        // Optional adjustment of the step length
+        StateUpdate::linesearch(probDesc, refState, geomState, stateIncr,
+                                residualCopy, elementInternalForce, totalRes, lambda, force, residual);
+      }
+      StateUpdate::updateIncr(stateIncr, residual);
+
+      // Update state here if the maximum number of iterations is reached
+      if(iter == maxit-1) StateUpdate::updateState(probDesc, geomState, *stateIncr);
+
+      // Compute incremental displacement norm
+      normDv = residual.norm();
     }
-    StateUpdate::updateIncr(stateIncr, residual);
 
-    // Update state here if the maximum number of iterations is reached
-    if(iter == maxit-1) StateUpdate::updateState(probDesc, geomState, *stateIncr);
-
-    // Compute incremental displacement norm
-    double normDv = residual.norm();
-
-    // Check convergence using residual norm & incremental displacement norm
-    converged = probDesc->checkConvergence(iter, normDv, residualNorm);
+    // If the converged criteria does involve the solution increment, then
+    // check for convergence now
+    if(useTolInc) {
+      converged = probDesc->checkConvergence(iter, normDv, residualNorm);
+    }
+    else if(converged) {
+      filePrint(stderr," ... Newton : Iter #%d (res = %e)\n", iter+1, residualNorm);
+    }
 
 #ifdef DEBUG_NEWTON
     probDesc->staticOutput(geomState, double(iter), force, totalRes, refState);
 #endif
 
-    totalNewtonIter++;
     // If converged, break out of loop
     if(converged == 1) break; // don't test for divergence
   }

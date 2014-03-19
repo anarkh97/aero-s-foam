@@ -219,36 +219,48 @@ MDNLStatic::checkConvergence(int iter, double normDv, double normRes)
 {
  times->timeCheck -= getTime();
 
- if(iter == 0) { 
-   firstDv  = normDv;
+ // Note when useTolInc is false, this function is called before normDv is calculated
+ bool useTolInc = (domain->solInfo().getNLInfo().tolInc != std::numeric_limits<double>::infinity() ||
+                   domain->solInfo().getNLInfo().absTolInc != std::numeric_limits<double>::infinity());
+
+ if(iter == 0) {
+   if(useTolInc) firstDv  = normDv;
+   else { normDv = 0; firstDv = 1; }
    firstRes = normRes;
-   lastRes  = 0.0;
+ }
+ else if(iter == 1 && !useTolInc) {
+  firstDv  = normDv;
  }
 
  double relativeDv  = normDv/firstDv;
  double relativeRes = normRes/firstRes;
- lastRes = normRes;
 
  if(verboseFlag) {
-   filePrint(stderr,"----------------------------------------------------\n");
-   filePrint(stderr,"Nonlinear Iter #%d\tcurrent dv   = % e\n \t\t\t"
-                    "first dv     = % e\n \t\t\trelative dv  = % e\n",
-                     iter+1, normDv, firstDv, relativeDv);
-   filePrint(stderr,"                \tcurrent Res  = % e\n \t\t\t"
-                    "first Res    = % e\n \t\t\trelative Res = % e\n",
-                     normRes, firstRes, relativeRes);
-
-   filePrint(stderr,"----------------------------------------------------\n");
+   filePrint(stderr," ----------------------------------------------------\n");
+   if(useTolInc || iter >= 1) {
+     filePrint(stderr, " Newton Iter    #%d\tcurrent dv   = % e\n \t\t\t"
+                       "first dv     = % e\n \t\t\trelative dv  = % e\n",
+                       iter+1, normDv, firstDv, relativeDv);
+     filePrint(stderr, "                \tcurrent Res  = % e\n \t\t\t"
+                       "first Res    = % e\n \t\t\trelative Res = % e\n",
+                       normRes, firstRes, relativeRes);
+   }
+   else {
+     filePrint(stderr, " Newton Iter    #%d\tcurrent Res  = % e\n \t\t\t"
+                       "first Res    = % e\n \t\t\trelative Res = % e\n",
+                       iter+1, normRes, firstRes, relativeRes);
+   }
+   filePrint(stderr," ----------------------------------------------------\n");
  }
  
  int converged = 0;
 
- // Convergence check
+ // Check convergence criteria
  if(iter > 0 && ((relativeRes <= domain->solInfo().getNLInfo().tolRes && relativeDv <= domain->solInfo().getNLInfo().tolInc) 
     || (normRes < domain->solInfo().getNLInfo().absTolRes && normDv < domain->solInfo().getNLInfo().absTolInc)))
   converged = 1;
 
- // Divergence check
+ // Check divergence
  if(iter > 0 && normRes > 10000*firstRes)
    converged = -1;
 
@@ -350,7 +362,6 @@ MDNLStatic::reBuild(int iteration, int step, DistrGeomState& geomState)
  int rebuildFlag = 0;
 
  if(iteration % domain->solInfo().getNLInfo().updateK == 0 && (step-1) % domain->solInfo().getNLInfo().stepUpdateK == 0) {
-   if(verboseFlag) filePrint(stderr, " ... Rebuilding Tangent Stiffness for Step %d Iteration %d ...\n", step, iteration);
    GenMDDynamMat<double> allOps;
    allOps.sysSolver = solver;
    decDomain->rebuildOps(allOps, 0.0, 0.0, 1.0, kelArray);

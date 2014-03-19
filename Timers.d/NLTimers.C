@@ -64,6 +64,7 @@ StaticTimers::printTimers(Domain* domain, Timings& timers, double solveTime)
  int numele   = domain->numElements();
  int numnod   = domain->numNode();
  int numCon   = domain->nDirichlet();
+ int numdof   = domain->numDofs();
  int numloads = domain->nNeumann();
  int numFiles = geoSource->getNumOutInfo();
 
@@ -247,9 +248,9 @@ StaticTimers::printTimers(Domain* domain, Timings& timers, double solveTime)
  fprintf(f,"***********************************************************\n\n");
  fprintf(f,"1. Number of Nodes                         = %14d\n\n",numnod);
  fprintf(f,"2. Number of Elements                      = %14d\n\n",numele);
- fprintf(f,"3. Number of Degrees of Freedom            =          blank\n");
+ fprintf(f,"3. Number of Degrees of Freedom            = %14d\n",numdof);
  fprintf(f,"         Number of Constrained Dofs        = %14d\n",numCon);
- fprintf(f,"         Number of Unconstrained Dofs      =          blank\n\n");
+ fprintf(f,"         Number of Unconstrained Dofs      = %14d\n\n",numdof-numCon);
  fprintf(f,"4. Number of Applied Loads                 = %14d\n\n",numloads);
  fprintf(f,"5. Number of Output Files                  = %14d\n\n",numFiles);
  fprintf(f,"6. Renumbering                             = %14s\n\n",

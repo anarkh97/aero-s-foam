@@ -20,6 +20,7 @@ class ShapeFunction
      virtual void getGlobalGrads(Tensor *gradU, Tensor *dgradUdqk, double *jac, 
                                  Node *nodes, double xi[3], Vector &disp);
      virtual void getGradU(Tensor *gradU, Node *nodes, double xi[3], Vector &disp);
+     virtual void getGradU(Tensor *gradU, double *jac, Node *nodes, double xi[3], Vector &disp);
      virtual void getJacobianDeterminant(double *jac, Node *nodes, double xi[3]);
 };
 

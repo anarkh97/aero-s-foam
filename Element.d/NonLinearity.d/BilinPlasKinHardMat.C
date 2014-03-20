@@ -135,7 +135,7 @@ ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor *_tm, Tensor &_en, Tens
     strialnp = 2*mu*(edevnp - eplastdevn);
     xitrialnp = strialnp - betan;
 
-    double xitrialnpnorm = sqrt(2*(xitrialnp.secondInvariant()));
+    double xitrialnpnorm = sqrt(xitrialnp.innerProduct());
 
     double trialyieldnp = xitrialnpnorm - sqrt(2./3)*(sigE+theta*Hprime*staten[12]); // Yield Criterion (Simo & Hughes eq. 3.3.6)
 
@@ -250,7 +250,7 @@ ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor &_en, Tensor  &_enp,
     strialnp = 2*mu*(edevnp - eplastdevn);
     xitrialnp = strialnp - betan;
 
-    double xitrialnpnorm = sqrt(2*(xitrialnp.secondInvariant()));
+    double xitrialnpnorm = sqrt(xitrialnp.innerProduct());
 
     double trialyieldnp = xitrialnpnorm - sqrt(2./3)*(sigE+theta*Hprime*staten[12]); // Yield Criterion (Simo & Hughes eq. 3.3.6)
 
@@ -336,6 +336,37 @@ ElasPlasKinHardMat<e>::getPlasticStrain(double *statenp, Tensor *_plasticstrain)
   }
 
   return true;
+}
+
+template<int e>
+double
+ElasPlasKinHardMat<e>::getStrainEnergyDensity(Tensor &_enp, double *statenp)
+{
+  Tensor_d0s2_Ss12 &enp = static_cast<Tensor_d0s2_Ss12 &>(_enp);
+  Tensor_d0s2_Ss12 eplastnp;
+  Tensor_d0s2_Ss12 eelastnp;
+
+  eplastnp.buildTensorOf(statenp);
+  eelastnp = enp-eplastnp;
+
+  double lambda = E*nu/((1+nu)*(1-2*nu));
+  double mu = E/(2*(1+nu));
+
+  double I1 = eelastnp.getTrace();
+  return lambda/2*I1*I1 + mu*eelastnp.innerProduct();
+}
+
+template<int e>
+double
+ElasPlasKinHardMat<e>::getDissipatedEnergy(double *statenp)
+{
+  if(theta == 0) { // pure kinematic hardening
+    return statenp[12]*sigE;
+  }
+  else { // isotropic or mixed hardening
+    double Hprime = (E != Ep) ? (E*Ep)/(E-Ep) : std::numeric_limits<double>::max(); 
+    return statenp[12]*(sigE+0.5*theta*Hprime*statenp[12]);
+  }
 }
 
 template<>

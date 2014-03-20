@@ -35,7 +35,7 @@ static const char*header[] = {
 "Scalar AXMOMENT under %s for %s\n%d\n",
 "Scalar AYMOMENT under %s for %s\n%d\n",
 "Scalar AZMOMENT under %s for %s\n%d\n",
-"#  Time       Wext        Waer        Wela        Wkin        Wdmp       Error\n",
+"#    Time         Wext        Waer        Wela        Wkin        Wdmp       Error\n",
 "Vector AEROFORCE under %s for %s\n%d\n",
 "Vector MODE under %s for %s\n%d\n",
 "Scalar VONMISES_STRAIN under %s for %s\n%d\n",

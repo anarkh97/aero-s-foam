@@ -1339,7 +1339,7 @@ GenDistrDomain<Scalar>::createOutputOffsets()
 template<class Scalar>
 void
 GenDistrDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***allCorot, double time, SysState<GenDistrVector<Scalar> > *distState,
-                                       GenDistrVector<Scalar> *aeroF, DistrGeomState *refState, GenDistrVector<Scalar> *reactions)
+                                       GenDistrVector<Scalar> *aeroF, DistrGeomState *refState, GenDistrVector<Scalar> *reactions, FullSquareMatrix **melArray)
 {
   int numOutInfo = geoSource->getNumOutInfo();
   if(numOutInfo == 0) return;
@@ -1439,7 +1439,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
 
     for(int iInfo = 0; iInfo < numOutInfo; iInfo++) {
       if(oinfo[iInfo].type == OutputInfo::Farfield || oinfo[iInfo].type == OutputInfo::AeroForce
-         || oinfo[iInfo].type == OutputInfo::DissipatedEnergy) {
+         || oinfo[iInfo].type == OutputInfo::Energies || oinfo[iInfo].type == OutputInfo::DissipatedEnergy) {
         int oI = iInfo;
         if(this->firstOutput) { geoSource->openOutputFiles(0,&oI,1); }
         continue;
@@ -1454,7 +1454,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
 #endif
     for(int iInfo = 0; iInfo < numOutInfo; iInfo++) {
       if(oinfo[iInfo].nodeNumber == -1 && oinfo[iInfo].type != OutputInfo::Farfield && oinfo[iInfo].type != OutputInfo::AeroForce
-         && oinfo[iInfo].type != OutputInfo::DissipatedEnergy) {
+         && oinfo[iInfo].type != OutputInfo::Energies && oinfo[iInfo].type != OutputInfo::DissipatedEnergy) {
         numRes[iInfo] = 0;
         for(iSub = 0; iSub < this->numSub; iSub++) {
           int glSub = this->localSubToGl[iSub];
@@ -1584,6 +1584,9 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
       } break;
       case OutputInfo::EquivalentPlasticStrain:
         getStressStrain(geomState, allCorot, time, x, iOut, EQPLSTRN, refState);
+        break;
+      case OutputInfo::Energies:
+        this->getEnergies(geomState, allCorot, iOut, time, melArray, distState->getVeloc());
         break;
       case OutputInfo::DissipatedEnergy:
         this->getDissipatedEnergy(geomState, allCorot, iOut, time);

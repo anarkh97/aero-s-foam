@@ -3554,7 +3554,7 @@ void GeoSource::outputEnergy(int fileNum, double time, double W) {
   int w = oinfo[fileNum].width;
   int p = oinfo[fileNum].precision;
   
-  fprintf(oinfo[fileNum].filptr," %f % *.*E\n", time, w, p, W);
+  fprintf(oinfo[fileNum].filptr," %e % *.*E\n", time, w, p, W);
 
   fflush(oinfo[fileNum].filptr);
 }
@@ -3565,10 +3565,10 @@ void GeoSource::outputEnergy(int fileNum, double time, DComplex W) {
   int p = oinfo[fileNum].precision;
 
   // print real part
-  fprintf(oinfo[fileNum].filptr," %f % *.*E\n", time, w, p, W.real());
+  fprintf(oinfo[fileNum].filptr," %e % *.*E\n", time, w, p, W.real());
 
   // print imaginary part
-  fprintf(oinfo[fileNum].filptr," %f % *.*E\n", time, w, p, W.imag());
+  fprintf(oinfo[fileNum].filptr," %e % *.*E\n", time, w, p, W.imag());
 
   fflush(oinfo[fileNum].filptr);
 }
@@ -3579,7 +3579,7 @@ void GeoSource::outputEnergies(int fileNum, double time, double Wext, double Wae
   int w = oinfo[fileNum].width;
   int p = oinfo[fileNum].precision;
 
-  fprintf(oinfo[fileNum].filptr," %f % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
+  fprintf(oinfo[fileNum].filptr," %e % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
           time, w, p, Wext, w, p, Waero, w, p, Wela, w, p, Wkin, w, p, Wdmp, w, p, error);
 
   fflush(oinfo[fileNum].filptr);
@@ -3592,12 +3592,12 @@ void GeoSource::outputEnergies(int fileNum, double time, DComplex Wext, DComplex
   int p = oinfo[fileNum].precision;
 
   // print real part
-  fprintf(oinfo[fileNum].filptr," %f % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
+  fprintf(oinfo[fileNum].filptr," %e % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
           time, w, p, Wext.real(), w, p, Waero.real(), w, p, Wela.real(),
                 w, p, Wkin.real(), w, p, Wdmp.real(), w, p, error.real());
 
   // print imaginary part
-  fprintf(oinfo[fileNum].filptr," %f % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
+  fprintf(oinfo[fileNum].filptr," %e % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
           time, w, p, Wext.imag(), w, p, Waero.imag(), w, p, Wela.imag(),
                 w, p, Wkin.imag(), w, p, Wdmp.imag(), w, p, error.imag());
 

@@ -502,7 +502,7 @@ template<>
 inline double
 MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::getDensity()
 {
-  std::cerr << "Warning IsotropicLinearElasticJ2PlasticMaterial doesn't implement GetDensityInReference function\n";
+  std::cerr << "WARNING: MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::getDensity is not implemented\n";
   return 0.0;
 }
 
@@ -510,7 +510,7 @@ template<>
 inline double
 MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::getDensity()
 {
-  std::cerr << "Warning IsotropicLinearElasticJ2PlasticPlaneStressMaterial doesn't implement GetDensityInReference function\n";
+  std::cerr << "WARNING: MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::getDensity is not implemented\n";
   return 0.0;
 }
 
@@ -531,9 +531,46 @@ MaterialWrapper<Material>::getEquivPlasticStrain(double *statenp)
 }
 
 template<>
-inline
-double MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::getEquivPlasticStrain(double *statenp)
+inline double
+MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::getEquivPlasticStrain(double *statenp)
 {
   return statenp[18];
 }
 
+template<typename Material>
+double
+MaterialWrapper<Material>::getStrainEnergyDensity(Tensor &_enp, double *)
+{
+  std::cerr << "WARNING: MaterialWrapper<Material>::getStrainEnergyDensity is not implemented\n";
+  return 0.0;
+}
+
+#ifdef USE_EIGEN3
+template<>
+inline double
+MaterialWrapper<NeoHookean>::getStrainEnergyDensity(Tensor &_enp, double *)
+{
+  Tensor_d0s2 &enp = static_cast<Tensor_d0s2 &>(_enp);
+  Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor> > F(&enp[0]);
+
+  using std::log;
+  double lnJ = log(F.determinant());
+  return mu/2*((F*F.transpose()).trace() - 3) - mu*lnJ + lambda/2*lnJ*lnJ;
+}
+
+template<>
+inline double
+MaterialWrapper<MooneyRivlin>::getStrainEnergyDensity(Tensor &_enp, double *)
+{
+  Tensor_d0s2 &enp = static_cast<Tensor_d0s2 &>(_enp);
+  Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor> > F(&enp[0]);
+
+  using std::log;
+  Eigen::Matrix<double,3,3> C = F.transpose()*F;
+  double I1 = C.trace();
+  double I2 = 0.5*(I1*I1-(C*C).trace());
+  double J = F.determinant();
+  double d = 2*(mu1+2*mu2);
+  return mu1*(I1-3) + mu2*(I2-3) + kappa*(J-1)*(J-1) - d*log(J);
+}
+#endif

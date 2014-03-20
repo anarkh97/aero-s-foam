@@ -217,6 +217,7 @@ struct OutputInfo {
      case BackStressXY:
      case BackStressYZ:
      case BackStressXZ:
+     case Energies:
      case DissipatedEnergy:
        return true; 
        break;
@@ -244,7 +245,6 @@ struct OutputInfo {
    }
  }
 
- 
  void copyParam(const OutputInfo& oI) {
     *this = oI;  
     filptr = 0;

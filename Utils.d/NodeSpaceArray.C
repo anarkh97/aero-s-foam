@@ -1060,9 +1060,17 @@ Tensor_d0s2_Ss12::getDeviation(Tensor_d0s2_Ss12 &t)
 }
 
 double 
+Tensor_d0s2_Ss12::innerProduct()
+{
+  // return value: tr(A*A)
+  return ((v[0]*v[0]+v[3]*v[3]+v[5]*v[5])+2*(v[1]*v[1]+v[2]*v[2]+v[4]*v[4]));
+}
+
+double
 Tensor_d0s2_Ss12::secondInvariant()
 {
-  return ((v[0]*v[0]+v[3]*v[3]+v[5]*v[5])/2.+(v[1]*v[1]+v[2]*v[2]+v[4]*v[4]));
+  // return value: the second invariant defined as 0.5*((trA)^2 - tr(A*A))
+  return v[0]*v[3]+v[3]*v[5]+v[0]*v[5] - v[1]*v[1] - v[2]*v[2] - v[4]*v[4];
 }
 
 double 

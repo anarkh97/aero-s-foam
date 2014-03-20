@@ -36,6 +36,7 @@ class SDDynamPostProcessor {
     GeomState *geomState;
     Corotator **allCorot;
     FullSquareMatrix *melArray;
+    Vector *dummy;
 
   public:
     SDDynamPostProcessor(Domain *d, double *_bcx, double *_vcx, double *_acx,

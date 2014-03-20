@@ -76,8 +76,14 @@ class MatNLElement : public Element {
                "for which it is not defined\n");
      }
 
+     virtual double getStrainEnergy(Node *nodes, double *dispnp, double *state) {
+       fprintf(stderr, "MatNLElement::getStrainEnergy is being called on an element "
+               "for which it is not defined\n");
+       return 0.0;
+     }
+
      virtual double getDissipatedEnergy(Node *nodes, double *state) {
-       fprintf(stderr, "MatNLElement::getDissipatedEnergyis being called on an element "
+       fprintf(stderr, "MatNLElement::getDissipatedEnergy is being called on an element "
                "for which it is not defined\n");
        return 0.0;
      }

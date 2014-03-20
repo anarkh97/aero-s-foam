@@ -1402,34 +1402,11 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
         Wext += dW;
         Waero += dWaero;
 
-        Vector vtmp(velocity,numUncon());
-        Vector tmpVec(numUncon(),0.0);
-        int iele, idof, jdof, dofn1, dofn2;
-
         // Compute Kinetic Energy
-        // Compute vtmp^t M vtmp
-        for(iele = 0; iele < numele; ++iele) {
-          for(idof = 0; idof <  mel[iele].dim(); ++idof) {
-            dofn1 = c_dsa->getRCN((*allDOFs)[iele][idof]);
-            if(dofn1 >= 0) {
-              for(jdof = 0; jdof <  mel[iele].dim(); ++jdof) {
-                dofn2 = c_dsa->getRCN((*allDOFs)[iele][jdof]);
-                if(dofn2 >= 0)
-                  tmpVec[dofn1] += vtmp[dofn2]*mel[iele][idof][jdof];
-              }
-            }
-          }
-        }
-        Wkin = 0.5 * (vtmp * tmpVec);
+        Wkin = getKineticEnergy(velocity, mel);
 
         // Compute Internal Energy
-        // This is done at the element level.
-        double EleWela;
-        for(iele = 0; iele < numele; ++iele) {
-          EleWela = 0.0;
-          EleWela = allCorot[iele]->getElementEnergy(*geomState,nodes);
-          Wela += EleWela;
-        }
+        Wela = getStrainEnergy(geomState, allCorot);
 
         double error = (time==sinfo.initialTime) ? 0.0 : (Wela+Wkin)-(pWela+pWkin)-dW;
         geoSource->outputEnergies(iInfo, time, Wext, Waero, Wela, Wkin, 0.0, error);
@@ -1470,14 +1447,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
         // Compute Internal Energy
         // This is done at the element level.
         // Wela = elastic energy
-        int iele;
-        double Wela = 0.0;
-        double EleWela;
-        for(iele = 0; iele < numele; ++iele) {
-          EleWela = 0.0;
-          EleWela = allCorot[iele]->getElementEnergy(*geomState,nodes);
-          Wela += EleWela;
-        }
+        double Wela = getStrainEnergy(geomState, allCorot);
 
         double error = Wext+Wela+Wkin;
         geoSource->outputEnergies(iInfo, time, Wext, Waero, Wela, Wkin, 0.0, error);
@@ -2559,6 +2529,42 @@ Domain::getElementDisp(int iele, GeomState& geomState, Vector& disp)
     }
   }
   delete [] nn;
+}
+
+double
+Domain::getKineticEnergy(double* velocity, FullSquareMatrix *mel)
+{
+  Vector vtmp(velocity, numUncon());
+  Vector tmpVec(numUncon(), 0.0);
+  int iele, idof, jdof, dofn1, dofn2;
+
+  // Compute Kinetic Energy as vtmp^t M vtmp
+  for(iele = 0; iele < numele; ++iele) {
+    for(idof = 0; idof < mel[iele].dim(); ++idof) {
+      dofn1 = c_dsa->getRCN((*allDOFs)[iele][idof]);
+      if(dofn1 >= 0) {
+        for(jdof = 0; jdof < mel[iele].dim(); ++jdof) {
+          dofn2 = c_dsa->getRCN((*allDOFs)[iele][jdof]);
+          if(dofn2 >= 0)
+            tmpVec[dofn1] += vtmp[dofn2]*mel[iele][idof][jdof];
+        }
+      }
+    }
+  }
+  return 0.5*(vtmp*tmpVec);
+}
+
+double
+Domain::getStrainEnergy(GeomState *geomState, Corotator **allCorot)
+{
+  // Compute strain energy
+  double W = 0;
+  for(int iele = 0; iele < numele; ++iele) {
+    if(allCorot[iele] != NULL) {
+      W += allCorot[iele]->getElementEnergy(*geomState, nodes);
+    }
+  }
+  return W;
 }
 
 double

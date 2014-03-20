@@ -153,7 +153,7 @@ GetShearModulus() const
 // Return dissipated energy
 double IsotropicLinearElasticJ2PlasticPlaneStressMaterial::
 GetDissipatedEnergy() const
-{ return SigmaY*equivEPSplastic; }
+{ return (SigmaY +0.5*K*equivEPSplastic)*equivEPSplastic; }
 
 // Set the plastic strain in the material
 void IsotropicLinearElasticJ2PlasticPlaneStressMaterial::

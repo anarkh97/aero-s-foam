@@ -1136,6 +1136,47 @@ GaussIntgElement::getPlasticStrainTens(double *statenp, double (*result)[9], int
 }
 
 double
+GaussIntgElement::getStrainEnergy(Node *nodes, double *dispnp, double *state)
+{
+  int ndofs = numDofs();
+  ShapeFunction *shapeF = getShapeFunction();
+
+  // Obtain the strain function. It can be linear or non-linear
+  StrainEvaluator *strainEvaluator = getStrainEvaluator();
+
+  // Obtain the storage for gradU ( 3x3 )
+  Tensor &gradUnp = *shapeF->getGradUInstance();
+
+  Tensor &enp = *strainEvaluator->getStrainInstance();
+
+  // Obtain the material model
+  NLMaterial *material = getMaterial();
+
+  int i,j;
+  int ngp = getNumGaussPoints();
+  int nstatepgp = material->getNumStates();
+
+  double W = 0;
+
+  for(i = 0; i < ngp; i++) {
+
+    StackVector dispVecnp(dispnp, ndofs);
+
+    double point[3], weight, jac;
+
+    getGaussPointAndWeight(i, point, weight);
+
+    shapeF->getGradU(&gradUnp, &jac, nodes, point, dispVecnp);
+
+    strainEvaluator->getE(enp, gradUnp);
+
+    W += (weight * fabs(jac))*material->getStrainEnergyDensity(enp, state + i*material->getNumStates());
+  }
+
+  return W;
+}
+
+double
 GaussIntgElement::getDissipatedEnergy(Node *nodes, double *state)
 {
   int ndofs = numDofs();

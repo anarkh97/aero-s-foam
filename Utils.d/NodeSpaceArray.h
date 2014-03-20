@@ -488,6 +488,7 @@ class Tensor_d0s2_Ss12 : public Tensor
     void getDeviation(Tensor_d0s2_Ss12 &t);
     double getTrace();
     double secondInvariant();
+    double innerProduct();
 
     void dblContractInto(const Tensor &, Tensor *) const;
     friend Tensor_d0s2_Ss12 operator *(double d, const Tensor_d0s2_Ss12 &t);

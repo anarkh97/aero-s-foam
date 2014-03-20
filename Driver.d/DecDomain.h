@@ -111,7 +111,8 @@ class GenDecDomain
                               GenDistrVector<Scalar> *aeroF = 0, int x = 0, GenMDDynamMat<Scalar> *dynOps = 0,
                               SysState<GenDistrVector<Scalar> > *distState = 0, int ndflag = 0); 
   virtual void postProcessing(DistrGeomState *u, Corotator ***, double x = 0, SysState<GenDistrVector<Scalar> > *distState = 0,
-                              GenDistrVector<Scalar> *aeroF = 0, DistrGeomState *refState = 0, GenDistrVector<Scalar> *reactions = 0);
+                              GenDistrVector<Scalar> *aeroF = 0, DistrGeomState *refState = 0, GenDistrVector<Scalar> *reactions = 0,
+                              FullSquareMatrix** = NULL);
   DistrInfo &solVecInfo() { return *internalInfo; } // unconstrained dofs
   const DistrInfo &masterSolVecInfo() const;
   DistrInfo &sysVecInfo() { return *internalInfo2; } // all dofs
@@ -194,6 +195,8 @@ class GenDecDomain
   void getElementForce(GenDistrVector<Scalar>&, int, int, double);
  public:
   virtual void getStressStrain(GenDistrVector<Scalar>&, int, int, double, int printFlag=0);
+  void getEnergies(DistrGeomState *geomState, Corotator ***allCorot, int fileNumber, double time,
+                   FullSquareMatrix **melArray, GenDistrVector<Scalar> &velocity);
   void getDissipatedEnergy(DistrGeomState *geomState, Corotator ***allCorot, int fileNumber, double time);
  private:
   void getElementStressStrain(GenDistrVector<Scalar>&, int, int, double, int printFlag=0);
@@ -226,6 +229,8 @@ class GenDecDomain
   void scaleSubDisp(int iSub, GenDistrVector<Scalar> &u);
   void scaleInvSubDisp(int iSub, GenDistrVector<Scalar> &u);
   void scaleSubDisp(int iSub, GenDistrVector<Scalar> &u, double alpha);
+  void subGetKineticEnergy(int iSub, GenDistrVector<Scalar> &velocity, FullSquareMatrix **melArray, Scalar *W);
+  void subGetStrainEnergy(int iSub, DistrGeomState *geomState, Corotator ***allCorot, Scalar *subD);
   void subGetDissipatedEnergy(int iSub, DistrGeomState *geomState, Corotator ***allCorot, Scalar *subD);
 
   // Helmholtz Fluid functions

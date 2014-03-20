@@ -45,11 +45,12 @@ extern int verboseFlag;
 SDDynamPostProcessor::SDDynamPostProcessor(Domain *d, double *_bcx, double *_vcx, double *_acx,
                                            StaticTimers *_times, GeomState *_geomState,
                                            Corotator **_allCorot, FullSquareMatrix *_melArray)
-{ domain = d; bcx = _bcx; vcx = _vcx; acx = _acx; times = _times; geomState = _geomState; 
-  allCorot = _allCorot; melArray = _melArray; }
+{ domain = d; bcx = _bcx; vcx = _vcx; acx = _acx; times = _times; geomState = _geomState;
+  allCorot = _allCorot; melArray = _melArray; dummy = 0; }
 
 SDDynamPostProcessor::~SDDynamPostProcessor() {
   geoSource->closeOutputFiles();
+  if(dummy) delete dummy;
 }
 
 void
@@ -80,10 +81,13 @@ SDDynamPostProcessor::getKineticEnergy(Vector & vel, SparseMatrix * gMass) {
 void
 SDDynamPostProcessor::dynamOutput(int tIndex, double time, DynamMat& dMat, Vector& ext_f, Vector *aeroForce, SysState<Vector> &state)
 {
-  // PJSA 4-9-08 ext_f passed here may not be for the correct time
   startTimerMemory(times->output, times->memoryOutput);
   
-  //const double time = tIndex * domain->solInfo().getTimeStep();
+  if(!aeroForce) { // check to avoid dereferencing a null pointer
+    if(!dummy) dummy = new Vector(domain->numUncon(), 0.0);
+    aeroForce = dummy;
+  }
+
   this->fillBcxVcx(time);
 
   if(domain->solInfo().isNonLin() && domain->solInfo().nRestart > 0) {
@@ -93,8 +97,8 @@ SDDynamPostProcessor::dynamOutput(int tIndex, double time, DynamMat& dMat, Vecto
   domain->dynamOutput(tIndex, time, bcx, dMat, ext_f, *aeroForce, state.getDisp(), state.getVeloc(),
                       state.getAccel(), state.getPrevVeloc(), vcx, acx);
 
-  // PJSA: need to output the stresses for nonlinear using corotator functions for some elements (bt shell is an exception)
-  //       also rotation, angular velocity and angular acceleration output uses geomState
+  // need to output the stresses for nonlinear using corotator functions for some elements (bt shell is an exception)
+  // also rotation, angular velocity, angular acceleration and energy outputs use geomState
   if(domain->solInfo().isNonLin()) {
     geomState->setVelocityAndAcceleration(state.getVeloc(), state.getAccel());
     int numOutInfo = geoSource->getNumOutInfo();
@@ -102,7 +106,7 @@ SDDynamPostProcessor::dynamOutput(int tIndex, double time, DynamMat& dMat, Vecto
     for(int iInfo = 0; iInfo < numOutInfo; ++iInfo) {
       if(oinfo[iInfo].isStressOrStrain() || oinfo[iInfo].isRotation()) {
         domain->postProcessingImpl(iInfo, geomState, ext_f, *aeroForce, time, tIndex, state.getVeloc().data(), vcx,
-                                   allCorot, melArray, state.getAccel().data(), acx);
+                                   allCorot, melArray, state.getAccel().data(), acx, geomState);
       }
     }
   }

@@ -276,6 +276,31 @@ MatNLCorotator::updateStates(GeomState *refState, GeomState &curState, CoordSet 
 }
 
 double
+MatNLCorotator::getElementEnergy(GeomState &curState, CoordSet &C0)
+{
+  int *nn = new int[ele->numNodes()];
+  ele->nodes(nn);
+  Node *nodes = new Node[ele->numNodes()];
+  for(int i = 0; i < ele->numNodes(); ++i) nodes[i] = *(C0[nn[i]]);
+
+  double *dispnp = new double[ele->numDofs()];
+  for(int i = 0; i < ele->numNodes(); ++i) {
+    dispnp[3*i+0] = curState[nn[i]].x-nodes[i].x;
+    dispnp[3*i+1] = curState[nn[i]].y-nodes[i].y;
+    dispnp[3*i+2] = curState[nn[i]].z-nodes[i].z;
+  }
+
+  double *state = curState.getElemState(ele->getGlNum());
+
+  double W = ele->getStrainEnergy(nodes, dispnp, state);
+
+  delete [] nn;
+  delete [] nodes;
+
+  return W;
+}
+
+double
 MatNLCorotator::getDissipatedEnergy(GeomState &curState, CoordSet &C0)
 {
   int *nn = new int[ele->numNodes()];

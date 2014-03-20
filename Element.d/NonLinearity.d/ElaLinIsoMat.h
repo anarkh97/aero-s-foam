@@ -41,6 +41,8 @@ class ElaLinIsoMat : public NLMaterial
 
     StrainEvaluator * getStrainEvaluator();
 
+    double getStrainEnergyDensity(Tensor &enp, double *statenp);
+
     void print(std::ostream &out) const {
       out << "Linear " << rho << " " << E << " " << nu;
     }

@@ -18,7 +18,7 @@ ElaLinIsoMat::ElaLinIsoMat(double _rho, double _E, double _nu)
 }
 
 void
-ElaLinIsoMat::getStress(Tensor *_stress,Tensor &_strain, double*)
+ElaLinIsoMat::getStress(Tensor *_stress, Tensor &_strain, double*)
 {
   Tensor_d0s4_Ss12s34 tm;
   Tensor_d0s2_Ss12 & strain = static_cast<Tensor_d0s2_Ss12 &>(_strain);
@@ -28,7 +28,7 @@ ElaLinIsoMat::getStress(Tensor *_stress,Tensor &_strain, double*)
 }
 
 void 
-ElaLinIsoMat::getTangentMaterial(Tensor *_tm,Tensor &,double*)
+ElaLinIsoMat::getTangentMaterial(Tensor *_tm, Tensor &, double*)
 {
   Tensor_d0s4_Ss12s34 * tm = static_cast<Tensor_d0s4_Ss12s34 *>(_tm);
 
@@ -129,6 +129,18 @@ ElaLinIsoMat::integrate(Tensor *_stress, Tensor &, Tensor &_enp,
   (*stress) = (*tm)||enp;
 
   delete tm;
+}
+
+double
+ElaLinIsoMat::getStrainEnergyDensity(Tensor &_enp, double *)
+{
+  Tensor_d0s2_Ss12 &enp = static_cast<Tensor_d0s2_Ss12 &>(_enp);
+
+  double lambda = E*nu/((1+nu)*(1-2*nu));
+  double mu = E/(2*(1+nu));
+
+  double I1 = enp.getTrace();
+  return lambda/2*I1*I1 + mu*enp.innerProduct();
 }
 
 extern LinearStrain linearStrain;

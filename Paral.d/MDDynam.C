@@ -252,15 +252,10 @@ MultiDomDynPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dynOps, 
   }
 
   if(sinfo.isNonLin())
-    decDomain->postProcessing(geomState, allCorot, t, &distState, distAeroF);
+    decDomain->postProcessing(geomState, allCorot, t, &distState, distAeroF, geomState, (DistrVector*) NULL, melArray);
   else
     decDomain->postProcessing(distState.getDisp(), distForce, t, distAeroF, tIndex, &dynOps, &distState); 
   stopTimerMemory(times->output, times->memoryOutput);
-
-//  SolverInfo& sinfo = domain->solInfo();
-//  if(sinfo.aeroFlag >= 0)
-//    if(tIndex != sinfo.initialTimeIndex)
-//      distFlExchanger->sendDisplacements(distState, usrDefDisps, usrDefVels);
 }
 
 MultiDomainDynam::~MultiDomainDynam() 
@@ -828,11 +823,11 @@ MultiDomDynPostProcessor *
 MultiDomainDynam::getPostProcessor()
 {
  if(domain->solInfo().aeroFlag >= 0) {
-   mddPostPro = new MultiDomDynPostProcessor(decDomain, distFlExchanger, times, geomState, allCorot); 
+   mddPostPro = new MultiDomDynPostProcessor(decDomain, distFlExchanger, times, geomState, allCorot, melArray); 
    return mddPostPro;
  }
  else {
-   mddPostPro = new MultiDomDynPostProcessor(decDomain, times, geomState, allCorot);
+   mddPostPro = new MultiDomDynPostProcessor(decDomain, times, geomState, allCorot, melArray);
  }
  return mddPostPro;
 }
@@ -1402,7 +1397,7 @@ MultiDomainDynam::thermoePreProcess(DistrVector&, DistrVector&, DistrVector&)
     }
 
     nodalTemps = new DistrVector(decDomain->ndVecInfo());
-    for(int iSub = 0; iSub < numLocSub; iSub++) subdomain[iSub]->temprcvd = nodalTemps->subData(iSub); // XXXX
+    for(int iSub = 0; iSub < numLocSub; iSub++) subdomain[iSub]->temprcvd = nodalTemps->subData(iSub);
     int buffLen = nodalTemps->size();
    
     distFlExchanger->thermoread(buffLen);

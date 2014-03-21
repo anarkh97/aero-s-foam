@@ -2,7 +2,8 @@
 #include <cstdio>
 #include <cstdlib>
 
-
+#define UNROLL_LOOPS_IN_NODESPACE_ARRAY_C
+#define NO_DYNAMIC_CAST_IN_NODESPACE_ARRAY_C
 
 Contraction
 Tensor::operator | (const Tensor &b) const
@@ -19,17 +20,37 @@ Tensor::operator || (const Tensor &b) const
 void 
 Tensor::dblContractInto(const Tensor &, Tensor *) const 
 {
-  fprintf(stderr," Be careful my dear, it seems that the operands don`t fit the operator ||...   \n");
+  fprintf(stderr," It seems that the operands don't fit the operator ||...   \n");
   exit(-1);
 }
 
 void 
 Tensor::splContractInto(const Tensor &, Tensor *) const
 {
-  fprintf(stderr," Be careful my dear, it seems that the operands don`t fit the operator |...   \n");
+  fprintf(stderr," It seems that the operands don't fit the operator |...   \n");
   exit(-1);
 }
 
+void
+Tensor::dblContractWith(const Tensor_d0s4_Ss12s34 &, Tensor *) const
+{
+  fprintf(stderr," It seems that the operands don't fit the operator ||...   \n");
+  exit(-1);
+}
+
+void
+Tensor::dblContractWith(const Tensor_d0s4 &, Tensor *) const
+{
+  fprintf(stderr," It seems that the operands don't fit the operator ||...   \n");
+  exit(-1);
+}
+
+void
+Tensor::splContractWith(const Tensor_d0s2 &, Tensor *) const
+{
+  fprintf(stderr," It seems that the operands don't fit the operator |...   \n");
+  exit(-1);
+}
 
 Tensor_d0s2
 Tensor_d0s2::operator + (const Tensor_d0s2 &tens) const
@@ -114,8 +135,48 @@ Tensor_d0s2::operator | (const Tensor_d1s2_sparse &tens) const
 */
 
 void
+Tensor_d0s2::dblContractWith(const Tensor_d0s4 &tens, Tensor *result) const
+{
+  Tensor_d0s2 &t = static_cast<Tensor_d0s2 &>(*result);
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++) {
+      t[3*i+j] = 0.0;
+      for (int k = 0; k < 3; k++)
+        for (int l = 0; l < 3; l++)
+          t[3*i+j] +=  tens[i*27+j*9+k*3+l] * v[3*k+l];
+    }
+}
+
+void
+Tensor_d0s2::splContractWith(const Tensor_d0s2 &tens, Tensor *result) const
+{
+  Tensor_d0s2 &t = static_cast<Tensor_d0s2 &>(*result);
+#ifdef UNROLL_LOOPS_IN_NODESPACE_ARRAY_C
+  t[0] = tens[0]*v[0] + tens[1]*v[3] + tens[2]*v[6];
+  t[1] = tens[0]*v[1] + tens[1]*v[4] + tens[2]*v[7];
+  t[2] = tens[0]*v[2] + tens[1]*v[5] + tens[2]*v[8];
+  t[3] = tens[3]*v[0] + tens[4]*v[3] + tens[5]*v[6];
+  t[4] = tens[3]*v[1] + tens[4]*v[4] + tens[5]*v[7];
+  t[5] = tens[3]*v[2] + tens[4]*v[5] + tens[5]*v[8];
+  t[6] = tens[6]*v[0] + tens[7]*v[3] + tens[8]*v[6];
+  t[7] = tens[6]*v[1] + tens[7]*v[4] + tens[8]*v[7];
+  t[8] = tens[6]*v[2] + tens[7]*v[5] + tens[8]*v[8];
+#else
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++) {
+      t[3*i+j] = 0.0;
+      for (int k = 0; k < 3; k++)
+        t[3*i+j] += tens[3*i+k] * v[3*k+j];
+    }
+#endif
+}
+
+void
 Tensor_d0s2::splContractInto(const Tensor &b, Tensor *result) const
 {
+#ifdef NO_DYNAMIC_CAST_IN_NODESPACE_ARRAY_C
+  b.splContractWith(*this, result);
+#else
   const Tensor_d0s2 *tens = dynamic_cast<const Tensor_d0s2 *>(&b);
   if(tens)
   {
@@ -153,6 +214,7 @@ Tensor_d0s2::splContractInto(const Tensor &b, Tensor *result) const
           }
     }
   }
+#endif
 }
 
 void
@@ -363,6 +425,65 @@ Tensor_d1s2_full::operator | (const Tensor_d0s2 &tens) const
 */
 
 void
+Tensor_d1s2_full::dblContractWith(const Tensor_d0s4 &tens, Tensor *result) const
+{
+  Tensor_d1s2_full &t = static_cast<Tensor_d1s2_full &>(*result);
+#ifdef UNROLL_LOOPS_IN_NODESPACE_ARRAY_C
+  for (int m = 0; m < size; m++) {
+    t[m][0] = tens[0 ]*v[m][0] + tens[1 ]*v[m][1] + tens[2 ]*v[m][2] +
+              tens[3 ]*v[m][3] + tens[4 ]*v[m][4] + tens[5 ]*v[m][5] +
+              tens[6 ]*v[m][6] + tens[7 ]*v[m][7] + tens[8 ]*v[m][8];
+    t[m][1] = tens[9 ]*v[m][0] + tens[10]*v[m][1] + tens[11]*v[m][2] +
+              tens[12]*v[m][3] + tens[13]*v[m][4] + tens[14]*v[m][5] +
+              tens[15]*v[m][6] + tens[16]*v[m][7] + tens[17]*v[m][8];
+    t[m][2] = tens[18]*v[m][0] + tens[19]*v[m][1] + tens[20]*v[m][2] +
+              tens[21]*v[m][3] + tens[22]*v[m][4] + tens[23]*v[m][5] +
+              tens[24]*v[m][6] + tens[25]*v[m][7] + tens[26]*v[m][8];
+    t[m][3] = tens[27]*v[m][0] + tens[28]*v[m][1] + tens[29]*v[m][2] +
+              tens[30]*v[m][3] + tens[31]*v[m][4] + tens[32]*v[m][5] +
+              tens[33]*v[m][6] + tens[34]*v[m][7] + tens[35]*v[m][8];
+    t[m][4] = tens[36]*v[m][0] + tens[37]*v[m][1] + tens[38]*v[m][2] +
+              tens[39]*v[m][3] + tens[40]*v[m][4] + tens[41]*v[m][5] +
+              tens[42]*v[m][6] + tens[43]*v[m][7] + tens[44]*v[m][8];
+    t[m][5] = tens[45]*v[m][0] + tens[46]*v[m][1] + tens[47]*v[m][2] +
+              tens[48]*v[m][3] + tens[49]*v[m][4] + tens[50]*v[m][5] +
+              tens[51]*v[m][6] + tens[52]*v[m][7] + tens[53]*v[m][8];
+    t[m][6] = tens[54]*v[m][0] + tens[55]*v[m][1] + tens[56]*v[m][2] +
+              tens[57]*v[m][3] + tens[58]*v[m][4] + tens[59]*v[m][5] +
+              tens[60]*v[m][6] + tens[61]*v[m][7] + tens[62]*v[m][8];
+    t[m][7] = tens[63]*v[m][0] + tens[64]*v[m][1] + tens[65]*v[m][2] +
+              tens[66]*v[m][3] + tens[67]*v[m][4] + tens[68]*v[m][5] +
+              tens[69]*v[m][6] + tens[70]*v[m][7] + tens[71]*v[m][8];
+    t[m][8] = tens[72]*v[m][0] + tens[73]*v[m][1] + tens[74]*v[m][2] +
+              tens[75]*v[m][3] + tens[76]*v[m][4] + tens[77]*v[m][5] +
+              tens[78]*v[m][6] + tens[79]*v[m][7] + tens[80]*v[m][8];
+  }
+#else
+  for (int m = 0; m < size; m++)
+    for (int i = 0; i < 3; i++)
+      for (int j = 0; j < 3; j++) {
+        t[m][3*i+j] = 0.0;
+        for (int k = 0; k < 3; k++)
+          for (int l = 0; l < 3; l++)
+            t[m][3*i+j] += tens[i*27+j*9+k*3+l] * v[m][3*k+l];
+      }
+#endif
+}
+
+void
+Tensor_d1s2_full::splContractWith(const Tensor_d0s2 &tens, Tensor *result) const
+{
+  Tensor_d1s2_full &t = static_cast<Tensor_d1s2_full &>(*result);
+  for (int m = 0; m < size; m++)
+    for (int i = 0; i < 3; i++)
+      for (int j = 0; j < 3; j++) {
+        t[m][3*i+j] = 0.0;
+        for (int k = 0; k < 3; k++)
+          t[m][3*i+j] += tens[3*i+k] * v[m][3*k+j];
+      }
+}
+
+void
 Tensor_d1s2_full::splContractInto(const Tensor &b, Tensor *result) const
 {
   const Tensor_d1s2_full &tens = dynamic_cast<const Tensor_d1s2_full &>(b);
@@ -399,11 +520,17 @@ Tensor_d1s2_full::dblContractInto(const Tensor &b, Tensor *result) const
   Tensor_d2s0 &t = static_cast<Tensor_d2s0 &>(*result);
   for (int m = 0; m < size; m++)
     for (int n = 0; n < size; n++) {
+#ifdef UNROLL_LOOPS_IN_NODESPACE_ARRAY_C
+      t[n+size*m] = v[m][0]*tens[n][0] + v[m][1]*tens[n][1] + v[m][2]*tens[n][2] +
+                    v[m][3]*tens[n][3] + v[m][4]*tens[n][4] + v[m][5]*tens[n][5] +
+                    v[m][6]*tens[n][6] + v[m][7]*tens[n][7] + v[m][8]*tens[n][8];
+#else
       t[n+size*m] = 0.0;
       for (int i = 0; i < 3; i++) {
         for (int j = 0; j < 3; j++)
           t[n+size*m] += v[m][3*i+j] * tens[n][3*i+j];
       }
+#endif
     }                               
 }
 
@@ -481,10 +608,21 @@ Tensor_d1s2_Ss23
 Tensor_d1s2_full::symPart() const
 {
   Tensor_d1s2_Ss23 t(size);
+#ifdef UNROLL_LOOPS_IN_NODESPACE_ARRAY_C
+  for (int m = 0; m < size; m++) {
+    t[m][0] = v[m][0];
+    t[m][1] = 0.5*(v[m][1] + v[m][3]);
+    t[m][2] = 0.5*(v[m][2] + v[m][6]);
+    t[m][3] = v[m][4];
+    t[m][4] = 0.5*(v[m][5] + v[m][7]);
+    t[m][5] = v[m][8];
+  }
+#else
   for (int m = 0; m < size; m++)
     for (int i = 0; i < 3; i++)
       for (int j = i; j < 3; j++)
          t[m][i*(5-i)/2+j] = (1./2)*(v[m][3*i+j] + v[m][3*j+i]);
+#endif
   return t;
 };
 
@@ -520,7 +658,6 @@ Tensor_d1s2_sparse::operator = (const Tensor_d1s2_sparse &t)
     size = t.size;
     v = new Tensor_d0s2[size/3];
   }
-  //fprintf(stderr, "Un tiens vaut mieux que deux tu l`auras ter\n"); 
   for(int i = 0; i < size/3; ++i)
     v[i] = t.v[i];
   return *this;
@@ -530,10 +667,24 @@ Tensor_d0s2
 Tensor_d1s2_sparse::operator % (const Tensor_d1s0 &tens) const
 {
   Tensor_d0s2 t;
+#ifdef UNROLL_LOOPS_IN_NODESPACE_ARRAY_C
+  for (int m = 0, i = 0; m < size; m += 3, i++) {
+    t[0] += v[i][0]*tens[m];
+    t[1] += v[i][1]*tens[m];
+    t[2] += v[i][2]*tens[m];
+    t[3] += v[i][3]*tens[m+1];
+    t[4] += v[i][4]*tens[m+1];
+    t[5] += v[i][5]*tens[m+1];
+    t[6] += v[i][6]*tens[m+2];
+    t[7] += v[i][7]*tens[m+2];
+    t[8] += v[i][8]*tens[m+2];
+  }
+#else
   for (int j = 0; j < 3; j++)
     for (int m = 0; m < size; m++) {
       t[3*(m%3)+j] += v[(m-(m%3))/3][3*(m%3)+j] * tens[m];
     }
+#endif
   return t;
 }
 
@@ -551,17 +702,54 @@ Tensor_d1s2_sparse::operator | (const Tensor_d0s2 &tens) const
 */
 
 void
+Tensor_d1s2_sparse::splContractWith(const Tensor_d0s2 &tens, Tensor *result) const
+{
+  Tensor_d1s2_full &t = static_cast<Tensor_d1s2_full &>(*result);
+#ifdef UNROLL_LOOPS_IN_NODESPACE_ARRAY_C
+  for (int n = 0, k = 0; n < size; n += 3, k++) {
+    t[n  ][0] = tens[0]*v[k][0]; t[n  ][1] = tens[0]*v[k][1]; t[n  ][2] = tens[0]*v[k][2];
+    t[n  ][3] = tens[3]*v[k][0]; t[n  ][4] = tens[3]*v[k][1]; t[n  ][5] = tens[3]*v[k][2];
+    t[n  ][6] = tens[6]*v[k][0]; t[n  ][7] = tens[6]*v[k][1]; t[n  ][8] = tens[6]*v[k][2];
+    t[n+1][0] = tens[1]*v[k][3]; t[n+1][1] = tens[1]*v[k][4]; t[n+1][2] = tens[1]*v[k][5];
+    t[n+1][3] = tens[4]*v[k][3]; t[n+1][4] = tens[4]*v[k][4]; t[n+1][5] = tens[4]*v[k][5];
+    t[n+1][6] = tens[7]*v[k][3]; t[n+1][7] = tens[7]*v[k][4]; t[n+1][8] = tens[7]*v[k][5];
+    t[n+2][0] = tens[2]*v[k][6]; t[n+2][1] = tens[2]*v[k][7]; t[n+2][2] = tens[2]*v[k][8];
+    t[n+2][3] = tens[5]*v[k][6]; t[n+2][4] = tens[5]*v[k][7]; t[n+2][5] = tens[5]*v[k][8];
+    t[n+2][6] = tens[8]*v[k][6]; t[n+2][7] = tens[8]*v[k][7]; t[n+2][8] = tens[8]*v[k][8];
+  }
+#else
+  for (int n = 0; n < size; n++)
+    for (int i = 0; i < 3; i++)
+      for (int j = 0; j < 3; j++)
+        t[n][3*i+j] = tens[3*i+(n%3)] * v[(n-(n%3))/3][3*(n%3)+j];
+#endif
+}
+
+void
 Tensor_d1s2_sparse::splContractInto(const Tensor &b, Tensor *result) const
 {
   const Tensor_d0s2 &tens = static_cast<const Tensor_d0s2 &>(b);
   Tensor_d1s2_sparse &t = static_cast<Tensor_d1s2_sparse &>(*result);
-  //fprintf(stderr, "Un tiens vaut mieux que deux tu l`auras\n");
+#ifdef UNROLL_LOOPS_IN_NODESPACE_ARRAY_C
+  for (int n = 0, i = 0; n < size; n += 3, i++) {
+    t[i][0] = v[i][0]*tens[0] + v[i][1]*tens[3] + v[i][2]*tens[6];
+    t[i][1] = v[i][0]*tens[1] + v[i][1]*tens[4] + v[i][2]*tens[7];
+    t[i][2] = v[i][0]*tens[2] + v[i][1]*tens[5] + v[i][2]*tens[8];
+    t[i][3] = v[i][3]*tens[0] + v[i][4]*tens[3] + v[i][5]*tens[6];
+    t[i][4] = v[i][3]*tens[1] + v[i][4]*tens[4] + v[i][5]*tens[7];
+    t[i][5] = v[i][3]*tens[2] + v[i][4]*tens[5] + v[i][5]*tens[8];
+    t[i][6] = v[i][6]*tens[0] + v[i][7]*tens[3] + v[i][8]*tens[6];
+    t[i][7] = v[i][6]*tens[1] + v[i][7]*tens[4] + v[i][8]*tens[7];
+    t[i][8] = v[i][6]*tens[2] + v[i][7]*tens[5] + v[i][8]*tens[8];
+  }
+#else
   for (int n = 0; n < size; n++)
     for (int i = 0; i < 3; i++) {
       t[(n-(n%3))/3][3*(n%3)+i] = 0.0;
       for (int j = 0; j < 3; j++)
         t[(n-(n%3))/3][3*(n%3)+i] += v[(n-(n%3))/3][3*(n%3)+j] * tens[3*j+i];
     }
+#endif
 }
 
 double
@@ -594,6 +782,19 @@ Tensor_d1s2_Ss23
 Tensor_d1s2_sparse::symPart() const
 {
   Tensor_d1s2_Ss23 t(size);
+#ifdef UNROLL_LOOPS_IN_NODESPACE_ARRAY_C
+  for (int n = 0, k = 0; n < size; n += 3, k++) {
+    t[n  ][0] = v[k][0];
+    t[n  ][1] = 0.5*v[k][1];
+    t[n  ][2] = 0.5*v[k][2];
+    t[n+1][1] = 0.5*v[k][3];
+    t[n+1][3] = v[k][4];
+    t[n+1][4] = 0.5*v[k][5];
+    t[n+2][2] = 0.5*v[k][6];
+    t[n+2][4] = 0.5*v[k][7];
+    t[n+2][5] = v[k][8];
+  }
+#else
   for (int n = 0; n < size; n++) {
     for (int i = (n%3); i < 3; i++) {
       t[n][(n%3)*(5-(n%3))/2+i] += (1./2) * v[(n-(n%3))/3][3*(n%3)+i]; // t[n](I,J) += 1/2*v[N](I,J) where I=n%3 and J=i
@@ -601,7 +802,8 @@ Tensor_d1s2_sparse::symPart() const
     for (int j = 0; j < (n%3)+1; j++) {
       t[n][j*(5-j)/2+(n%3)] += (1./2) * v[(n-(n%3))/3][3*(n%3)+j];     // t[n](I,J) += 1/2*v[N](J,I) where I=j and J=n%3
     }
-  } 
+  }
+#endif
   return t;
 }
 
@@ -617,11 +819,40 @@ Tensor_d1s2_sparse::getSymSquare(Tensor_d2s2_Sd12s34_dense &t) const
   std::cerr << "Tensor_d1s2_sparse::getSymSquare(Tensor_d2s2 &t) is not implemented\n";
 }
 
+#include <Utils.d/dbg_alloca.h>
 void 
 Tensor_d1s2_sparse::getSymSquare(Tensor_d2s2_Sd12s34_sparse &t) const
 {
+#ifdef UNROLL_LOOPS_IN_NODESPACE_ARRAY_C
+  for(int m = 0, k = 0, i = 0; m < size; m += 3, i++) {
+    for (int n = m, j = i; n < size; n += 3, k++, j++) {
+      t[k][0] = v[i][0]*v[j][0];
+      t[k][1] = 0.5*(v[i][1]*v[j][0] + v[i][0]*v[j][1]);
+      t[k][2] = 0.5*(v[i][2]*v[j][0] + v[i][0]*v[j][2]);
+      t[k][3] = v[i][1]*v[j][1];
+      t[k][4] = 0.5*(v[i][2]*v[j][1] + v[i][1]*v[j][2]);
+      t[k][5] = v[i][2]*v[j][2];
+    }
+    for (int n = m+1, j = i; n < size; n += 3, k++, j++) {
+      t[k][0] = v[i][3]*v[j][3];
+      t[k][1] = 0.5*(v[i][4]*v[j][3] + v[i][3]*v[j][4]);
+      t[k][2] = 0.5*(v[i][5]*v[j][3] + v[i][3]*v[j][5]);
+      t[k][3] = v[i][4]*v[j][4];
+      t[k][4] = 0.5*(v[i][5]*v[j][4] + v[i][4]*v[j][5]);
+      t[k][5] = v[i][5]*v[j][5];
+    }
+    for (int n = m+2, j = i; n < size; n += 3, k++, j++) {
+      t[k][0] = v[i][6]*v[j][6];
+      t[k][1] = 0.5*(v[i][7]*v[j][6] + v[i][6]*v[j][7]);
+      t[k][2] = 0.5*(v[i][8]*v[j][6] + v[i][6]*v[j][8]);
+      t[k][3] = v[i][7]*v[j][7];
+      t[k][4] = 0.5*(v[i][8]*v[j][7] + v[i][7]*v[j][8]);
+      t[k][5] = v[i][8]*v[j][8];
+    }
+  }
+#else
   for (int m = 0; m < size; m++)
-    for (int n = m; n < size; n++)  
+    for (int n = m; n < size; n++)
       if (((n-m)%3) == 0) {
         for (int i = 0; i < 3; i++)
           for (int j = i; j < 3; j++) {
@@ -629,6 +860,7 @@ Tensor_d1s2_sparse::getSymSquare(Tensor_d2s2_Sd12s34_sparse &t) const
               = 0.5*(v[(m-(m%3))/3][3*(m%3)+j] * v[(n-(n%3))/3][3*(n%3)+i] + v[(m-(m%3))/3][3*(m%3)+i] * v[(n-(n%3))/3][3*(n%3)+j]);
           }
       }	           
+#endif
 }
 
 Tensor_d2s0::Tensor_d2s0(int _size, bool isNull)
@@ -637,17 +869,19 @@ Tensor_d2s0::Tensor_d2s0(int _size, bool isNull)
   if(isNull) 
     v = 0;
   else {
-    v = new double[size*size]; 
-    for (int i = 0; i < (size*size); i++)
-    v[i] = 0.;
+    int len = size*size;
+    v = new double[len]; 
+    //for (int i = 0; i < len; i++)
+    //  v[i] = 0.;
   }
 }
 
 Tensor_d2s0::Tensor_d2s0(const Tensor_d2s0 &t)
 {
   size = t.size;
-  v = new double[size*size];
-  for(int i = 0; i < (size*size); i++)
+  int len = size*size;
+  v = new double[len];
+  for(int i = 0; i < len; i++)
     v[i] = t.v[i];
 }
 
@@ -659,7 +893,8 @@ Tensor_d2s0::operator + (const Tensor_d2s0 &tens) const
   if(v == 0)
     return tens;
   Tensor_d2s0 t(size);
-  for (int i = 0; i < size*size; i++)
+  int len = size*size;
+  for (int i = 0; i < len; i++)
     t[i] = v[i]+tens[i];
   return t;
 }
@@ -669,7 +904,8 @@ operator * (double scal, const Tensor_d2s0 &tens)
 {
   int size = tens.getSize();
   Tensor_d2s0 t(size);
-  for(int i = 0; i < size*size; ++i)
+  int len = size*size;
+  for(int i = 0; i < len; ++i)
     t[i] = tens[i]*scal;
   return t;
 };
@@ -677,12 +913,13 @@ operator * (double scal, const Tensor_d2s0 &tens)
 Tensor_d2s0 &
 Tensor_d2s0::operator = (const Tensor_d2s0 &t)
 {
+  int len = size*size;
   if(size != t.size) {
     if(v) delete[] v;
     size = t.size;
-    v = new double[size*size];
+    v = new double[len];
   }
-  for(int i = 0; i < size*size; ++i)
+  for(int i = 0; i < len; ++i)
     v[i] = t.v[i];
   return *this;
 }
@@ -815,12 +1052,13 @@ Tensor_d2s2_Sd12s34_null::Tensor_d2s2_Sd12s34_null(const Tensor_d2s2_Sd12s34_nul
 Tensor_d2s2_Sd12s34_null &
 Tensor_d2s2_Sd12s34_null::operator = (const Tensor_d2s2_Sd12s34_null &t)
 {
+  int len = size*(size+1)/2;
   if(size != t.size) {
     if(v) delete[] v;
     size = t.size;
-    v = new Tensor_d0s2_Ss12[size*(size+1)/2];
+    v = new Tensor_d0s2_Ss12[len];
   }
-  for (int i = 0; i < size*(size+1)/2; ++i)
+  for (int i = 0; i < len; ++i)
     v[i] = t.v[i];
   return *this;
 }
@@ -833,21 +1071,23 @@ Tensor_d2s2_Sd12s34_dense::Tensor_d2s2_Sd12s34_dense(int _size)
 
 Tensor_d2s2_Sd12s34_dense::Tensor_d2s2_Sd12s34_dense(const Tensor_d2s2_Sd12s34_dense &t)
 {
+  int len = size*(size+1)/2;
   size = t.size;
-  v = new Tensor_d0s2_Ss12[size*(size+1)/2];
-  for (int i = 0; i < size*(size+1)/2; ++i)
+  v = new Tensor_d0s2_Ss12[len];
+  for (int i = 0; i < len; ++i)
     v[i] = t.v[i];
 }
 
 Tensor_d2s2_Sd12s34_dense &
 Tensor_d2s2_Sd12s34_dense::operator = (const Tensor_d2s2_Sd12s34_dense &t)
 {
+  int len = size*(size+1)/2;
   if(size != t.size) {
     if(v) delete[] v;
     size = t.size;
-    v = new Tensor_d0s2_Ss12[size*(size+1)/2];
+    v = new Tensor_d0s2_Ss12[len];
   }
-  for (int i = 0; i < size*(size+1)/2; ++i)
+  for (int i = 0; i < len; ++i)
     v[i] = t.v[i];
   return *this;
 }
@@ -860,21 +1100,23 @@ Tensor_d2s2_Sd12s34_sparse::Tensor_d2s2_Sd12s34_sparse(int _size)
 
 Tensor_d2s2_Sd12s34_sparse::Tensor_d2s2_Sd12s34_sparse(const Tensor_d2s2_Sd12s34_sparse &t)
 {
+  int len = size*(size+3)/6;
   size = t.size;
-  v = new Tensor_d0s2_Ss12[size*(size+3)/6];
-  for (int i = 0; i < size*(size+3)/6; ++i)
+  v = new Tensor_d0s2_Ss12[len];
+  for (int i = 0; i < len; ++i)
     v[i] = t.v[i];
 }
 
 Tensor_d2s2_Sd12s34_sparse &
 Tensor_d2s2_Sd12s34_sparse::operator = (const Tensor_d2s2_Sd12s34_sparse &t)
 {
+  int len = size*(size+3)/6;
   if(size != t.size) {
     if(v) delete[] v;
     size = t.size;
-    v = new Tensor_d0s2_Ss12[size*(size+3)/6];
+    v = new Tensor_d0s2_Ss12[len];
   }
-  for(int i = 0; i < size*(size+3)/6; ++i)
+  for(int i = 0; i < len; ++i)
     v[i] = t.v[i];
   return *this;
 }
@@ -901,6 +1143,15 @@ Tensor_d2s2_Sd12s34_sparse::dblContractInto(const Tensor &b, Tensor *result) con
   const Tensor_d0s2_Ss12 &tens = static_cast<const Tensor_d0s2_Ss12 &>(b);
   Tensor_d2s0 &t = static_cast<Tensor_d2s0 &>(*result);
 
+#ifdef UNROLL_LOOPS_IN_NODESPACE_ARRAY_C
+  int size2 = size*size;
+  for (int i = 0; i < size2; ++i) t[i] = 0;
+  for (int i = 0, k = 0; i < size; i++) {
+    for (int j = i; j < size; j += 3, k++) {
+      t[j*size+i] = t[i*size+j] = tens[0]*v[k][0] + tens[3]*v[k][3] + tens[5]*v[k][5] + 2*(tens[1]*v[k][1] + tens[2]*v[k][2] + tens[4]*v[k][4]);
+    }
+  }
+#else
   int i,j;
   for (i = 0; i < size; i++)
     for (j = i; j < size; j++) {
@@ -914,6 +1165,7 @@ Tensor_d2s2_Sd12s34_sparse::dblContractInto(const Tensor &b, Tensor *result) con
       }
       t[j*size+i] = t[i*size+j];           
     }
+#endif
 }
 
 /*
@@ -929,9 +1181,9 @@ void
 Tensor_d2s2_Sd12s34_null::dblContractInto(const Tensor &b, Tensor *result) const
 {
   Tensor_d2s0 &t = static_cast<Tensor_d2s0 &>(*result);
-  for(int i = 0; i < size; ++i)
-    for(int j = 0; j < size; ++j)
-      t[i*size+j] = 0.0;
+  int len = size*size;
+  for(int i = 0; i < len; ++i)
+    t[i] = 0.0;
 }
 
 /*
@@ -991,18 +1243,29 @@ Tensor_d0s2_Ss12::operator || (const Tensor_d1s2_Ss23 &tens) const
 */
 
 void
+Tensor_d0s2_Ss12::dblContractWith(const Tensor_d0s4_Ss12s34 &tens, Tensor *result) const
+{
+  Tensor_d0s2_Ss12 &t = static_cast<Tensor_d0s2_Ss12 &>(*result);
+  for (int i = 0; i < 3; i++)
+    for (int j = i; j < 3; j++) {
+      t[i*(5-i)/2+j] = 0.0;
+      for (int k = 0; k < 3; k++) {
+        t[i*(5-i)/2+j] += -tens[i*(5-i)/2+j][k*(5-k)/2+k] * v[k*(5-k)/2+k];
+        for (int l = k; l < 3; l++)
+          t[i*(5-i)/2+j] += 2.0 * tens[i*(5-i)/2+j][k*(5-k)/2+l] * v[k*(5-k)/2+l];
+      }
+    }
+}
+
+void
 Tensor_d0s2_Ss12::dblContractInto(const Tensor &b, Tensor *result) const
 {
   const Tensor_d1s2_Ss23 &tens = static_cast<const Tensor_d1s2_Ss23 &>(b);
   Tensor_d1s0 &t = static_cast<Tensor_d1s0 &>(*result);
   int size = tens.getSize();
   for (int i = 0; i < size; i++)
-    t[i] = v[0] * tens[i][0]
-         + v[3] * tens[i][3]
-         + v[5] * tens[i][5]
-         + 2.0 * v[1] * tens[i][1]
-         + 2.0 * v[2] * tens[i][2]
-         + 2.0 * v[4] * tens[i][4];
+    t[i] = v[0]*tens[i][0] + v[3]*tens[i][3] + v[5]*tens[i][5]
+         + 2.0*(v[1]*tens[i][1] + v[2]*tens[i][2] + v[4]*tens[i][4]);
 }
 
 void
@@ -1088,6 +1351,9 @@ Tensor_d0s4::print() const
 void
 Tensor_d0s4::dblContractInto(const Tensor &b, Tensor *result) const
 {
+#ifdef NO_DYNAMIC_CAST_IN_NODESPACE_ARRAY_C
+  b.dblContractWith(*this, result);
+#else
   const Tensor_d0s2 *tens = dynamic_cast<const Tensor_d0s2 *>( &b);
   if(tens)
   {
@@ -1114,6 +1380,7 @@ Tensor_d0s4::dblContractInto(const Tensor &b, Tensor *result) const
               t[m][3*i+j] += v[i*27+j*9+k*3+l] * tens[m][3*k+l];
         }
   }
+#endif
 }
 
 /*
@@ -1166,6 +1433,9 @@ Tensor_d0s4_Ss12s34::print() const
 void
 Tensor_d0s4_Ss12s34::dblContractInto(const Tensor &b, Tensor *result) const
 {
+#ifdef NO_DYNAMIC_CAST_IN_NODESPACE_ARRAY_C
+  b.dblContractWith(*this, result);
+#else
   const Tensor_d0s2_Ss12 *tens = dynamic_cast<const Tensor_d0s2_Ss12 *>( &b);
   if(tens)
   {
@@ -1196,15 +1466,27 @@ Tensor_d0s4_Ss12s34::dblContractInto(const Tensor &b, Tensor *result) const
           }
         }
   }
+#endif
 }
 
 Tensor_d1s2_Ss23 
 Tensor_d1s2_Ss23::operator + (const Tensor_d1s2_Ss23 &tens) const
 {
   Tensor_d1s2_Ss23 t(size);
+#ifdef UNROLL_LOOPS_IN_NODESPACE_ARRAY_C
+  for (int k = 0; k < size; k++) {
+    t.v[k][0] = v[k][0] + tens[k][0];
+    t.v[k][1] = v[k][1] + tens[k][1];
+    t.v[k][2] = v[k][2] + tens[k][2];
+    t.v[k][3] = v[k][3] + tens[k][3];
+    t.v[k][4] = v[k][4] + tens[k][4];
+    t.v[k][5] = v[k][5] + tens[k][5];
+  }
+#else
   for (int k = 0; k < size; k++)
     for (int i = 0; i < 6; i++)
        t.v[k][i] = v[k][i] + tens[k][i];
+#endif
   return t;
 }
 
@@ -1216,7 +1498,6 @@ Tensor_d1s2_Ss23::operator = (const Tensor_d1s2_Ss23 &t)
     size = t.size;
     v = new Tensor_d0s2_Ss12[size];
   }
-  //fprintf(stderr, "Un tiens vaut mieux que deux tu l`auras ter\n");
   for (int i = 0; i < size; ++i)
     v[i] = t.v[i];
   return *this;
@@ -1256,10 +1537,44 @@ Tensor_d1s2_Ss23::operator || (const Tensor_d1s2_Ss23 &tens) const
 */
 
 void
+Tensor_d1s2_Ss23::dblContractWith(const Tensor_d0s4_Ss12s34 &tens, Tensor *result) const
+{
+  Tensor_d1s2_Ss23 &t = static_cast<Tensor_d1s2_Ss23 &>(*result);
+#ifdef UNROLL_LOOPS_IN_NODESPACE_ARRAY_C
+  for (int m = 0; m < size; m++) {
+    t[m][0] = tens[0][0]*v[m][0] + tens[0][3]*v[m][3] + tens[0][5]*v[m][5] + 2*(tens[0][1]*v[m][1] + tens[0][2]*v[m][2] + tens[0][4]*v[m][4]);
+    t[m][1] = tens[1][0]*v[m][0] + tens[1][3]*v[m][3] + tens[1][5]*v[m][5] + 2*(tens[1][1]*v[m][1] + tens[1][2]*v[m][2] + tens[1][4]*v[m][4]);
+    t[m][2] = tens[2][0]*v[m][0] + tens[2][3]*v[m][3] + tens[2][5]*v[m][5] + 2*(tens[2][1]*v[m][1] + tens[2][2]*v[m][2] + tens[2][4]*v[m][4]);
+    t[m][3] = tens[3][0]*v[m][0] + tens[3][3]*v[m][3] + tens[3][5]*v[m][5] + 2*(tens[3][1]*v[m][1] + tens[3][2]*v[m][2] + tens[3][4]*v[m][4]);
+    t[m][4] = tens[4][0]*v[m][0] + tens[4][3]*v[m][3] + tens[4][5]*v[m][5] + 2*(tens[4][1]*v[m][1] + tens[4][2]*v[m][2] + tens[4][4]*v[m][4]);
+    t[m][5] = tens[5][0]*v[m][0] + tens[5][3]*v[m][3] + tens[5][5]*v[m][5] + 2*(tens[5][1]*v[m][1] + tens[5][2]*v[m][2] + tens[5][4]*v[m][4]);
+  }
+#else
+  for (int m = 0; m < size; m++)
+    for (int i = 0; i < 3; i++)
+      for (int j = i; j < 3; j++){
+        t[m][i*(5-i)/2+j] = 0.0;
+        for (int k = 0; k < 3; k++) {
+          t[m][i*(5-i)/2+j] += -tens[(i*(5-i)/2+j)][k*(5-k)/2+k] * v[m][k*(5-k)/2+k];
+          for (int l = k; l < 3; l++)
+            t[m][i*(5-i)/2+j] += 2.0*tens[(i*(5-i)/2+j)][k*(5-k)/2+l] * v[m][k*(5-k)/2+l];
+        }
+      }
+#endif
+}
+
+void
 Tensor_d1s2_Ss23::dblContractInto(const Tensor &b, Tensor *result) const
 {
   const Tensor_d1s2_Ss23 &tens = static_cast<const Tensor_d1s2_Ss23 &>(b);
   Tensor_d2s0 &t = static_cast<Tensor_d2s0 &>(*result);
+#ifdef UNROLL_LOOPS_IN_NODESPACE_ARRAY_C
+  for (int m = 0; m < size; m++)
+    for (int n = m; n < size; n++) {
+      t[m+size*n] = t[n+size*m] = v[m][0]*tens[n][0] + v[m][3]*tens[n][3] + v[m][5]*tens[n][5] +
+                               2*(v[m][1]*tens[n][1] + v[m][2]*tens[n][2] + v[m][4]*tens[n][4]);
+    }
+#else
   for (int m = 0; m < size; m++)
     for (int n = m; n < size; n++) {
       t[n+size*m] = 0.0;
@@ -1272,5 +1587,6 @@ Tensor_d1s2_Ss23::dblContractInto(const Tensor &b, Tensor *result) const
   for (int o = 1; o < size; o++)
     for (int p = 0; p < o; p++)
       t[p+size*o] = t[o+size*p];
+#endif
 }
 

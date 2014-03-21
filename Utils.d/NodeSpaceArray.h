@@ -7,6 +7,9 @@
 
 class DoubleContraction;
 class Contraction;
+class Tensor_d0s4_Ss12s34;
+class Tensor_d0s4;
+class Tensor_d0s2;
 
 class Tensor
 {
@@ -19,6 +22,9 @@ class Tensor
     Tensor &operator = (const Contraction &);
     virtual ~Tensor() {}
     virtual void print() const {} 
+    virtual void dblContractWith(const Tensor_d0s4_Ss12s34 &, Tensor *) const;
+    virtual void dblContractWith(const Tensor_d0s4 &, Tensor *) const;
+    virtual void splContractWith(const Tensor_d0s2 &, Tensor *) const;
 };
 
 class Contraction
@@ -56,8 +62,6 @@ Tensor &Tensor::operator = (const Contraction &dc)
 }
 
 class Tensor_d0s2_Ss12;
-
-class Tensor_d0s4_Ss12s34;
 
 class Tensor_d2s0_Sd12;
 
@@ -126,6 +130,8 @@ class Tensor_d0s2 : public Tensor
     friend Tensor_d0s2 operator * (double d, const Tensor_d0s2 &t);
     void print() const { for(int i = 0; i < 9; ++i) std::cerr << v[i] << " ";
                          std::cerr << std::endl; }
+    void dblContractWith(const Tensor_d0s4 &, Tensor *) const;
+    void splContractWith(const Tensor_d0s2 &, Tensor *) const;
 };
  
 Tensor_d0s2 operator * (double, const Tensor_d0s2 &);
@@ -263,6 +269,8 @@ class Tensor_d1s2_full : public Tensor_d1s2
     int getSize() const { return size; }
     void print() const;
     friend Tensor_d1s2_full operator * (double d, const Tensor_d1s2_full &t);
+    void dblContractWith(const Tensor_d0s4 &, Tensor *) const;
+    void splContractWith(const Tensor_d0s2 &, Tensor *) const;
 };
 
 inline void
@@ -330,6 +338,7 @@ class Tensor_d1s2_sparse : public Tensor_d1s2
     int getSize() const {return size;}
     friend Tensor_d1s2_sparse operator* (double d, const Tensor_d1s2_sparse &t);
     void print() const;
+    void splContractWith(const Tensor_d0s2 &, Tensor *) const;
 };
 
 inline void
@@ -468,7 +477,7 @@ class Tensor_d2s0_null : public Tensor_d2s0
 */
 
 class Tensor_d0s2_Ss12 : public Tensor
-{ //Stress ans Strain  
+{ //Stress and Strain  
   protected:
     double v[6]; 
   public:
@@ -494,6 +503,7 @@ class Tensor_d0s2_Ss12 : public Tensor
     friend Tensor_d0s2_Ss12 operator *(double d, const Tensor_d0s2_Ss12 &t);
     void print() const { for(int i = 0; i < 3; ++i) for(int j = 0; j < 3; ++j)
                      std::cerr << (*this)(i,j) << " "; std::cerr << std::endl; }
+    void dblContractWith(const Tensor_d0s4_Ss12s34 &, Tensor *) const;
 };
 
 inline double 
@@ -785,6 +795,7 @@ class Tensor_d1s2_Ss23 : public Tensor
       Tensor_d1s2_Ss23 &operator=(const Tensor_d1s2_Ss23&);
       int getSize() const { return size; }
       void print() const { for(int i = 0; i < size; ++i) v[i].print(); }
+      void dblContractWith(const Tensor_d0s4_Ss12s34 &, Tensor *) const;
 };
 
 inline double 

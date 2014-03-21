@@ -388,15 +388,12 @@ GaussIntgElement::integrate(Node *nodes, double *dispn, double *staten,
   Tensor &gradUn = *shapeF->getGradUInstance();
   Tensor &gradUnp = *shapeF->getGradUInstance();
   // Obtain the storage for dgradUdqk ( ndof x3x3 )
-  Tensor &dgradUdqkn = *shapeF->getDgradUDqkInstance();
   Tensor &dgradUdqknp = *shapeF->getDgradUDqkInstance();
 
   // NDofsx3x3x-> 6xNDofs
-  Tensor &Bn = *strainEvaluator->getBInstance(ndofs);
   Tensor &Bnp = *strainEvaluator->getBInstance(ndofs);
 
   // NdofsxNdofsx3x3x -> 6xNdofsxNdofs but sparse
-  Tensor &DBn = *strainEvaluator->getDBInstance(ndofs);
   Tensor &DBnp = *strainEvaluator->getDBInstance(ndofs);
 
   Tensor &Dnp = *strainEvaluator->getTMInstance();
@@ -426,10 +423,10 @@ GaussIntgElement::integrate(Node *nodes, double *dispn, double *staten,
  
     getGaussPointAndWeight(i, point, weight);
 
-    shapeF->getGlobalGrads(&gradUn, &dgradUdqkn, &jacn, nodes, point, dispVecn);
+    shapeF->getGradU(&gradUn, nodes, point, dispVecn);
     shapeF->getGlobalGrads(&gradUnp, &dgradUdqknp, &jacnp, nodes, point, dispVecnp);
 
-    strainEvaluator->getEBandDB(en, Bn, DBn, gradUn, dgradUdqkn);
+    strainEvaluator->getE(en, gradUn);
     strainEvaluator->getEBandDB(enp, Bnp, DBnp, gradUnp, dgradUdqknp);
 
     material->integrate(&s, &Dnp, en, enp,
@@ -470,10 +467,7 @@ GaussIntgElement::integrate(Node *nodes, double *dispn, double *staten,
   delete &temp1;
   delete &gradUn;
   delete &gradUnp;
-  delete &dgradUdqkn;
   delete &dgradUdqknp;
-  delete &Bn;
-  delete &DBn;
   delete &Bnp;
   delete &DBnp;
   delete &en;
@@ -500,11 +494,9 @@ GaussIntgElement::integrate(Node *nodes, double *dispn, double *staten,
   Tensor &gradUn = *shapeF->getGradUInstance();
   Tensor &gradUnp = *shapeF->getGradUInstance();
   // Obtain the storage for dgradUdqk ( ndof x3x3 )
-  Tensor &dgradUdqkn = *shapeF->getDgradUDqkInstance();
   Tensor &dgradUdqknp = *shapeF->getDgradUDqkInstance();
 
   // NDofsx3x3x-> 6xNDofs
-  Tensor &Bn = *strainEvaluator->getBInstance(ndofs);
   Tensor &Bnp = *strainEvaluator->getBInstance(ndofs);
 
   Tensor &en = *strainEvaluator->getStrainInstance();
@@ -528,10 +520,10 @@ GaussIntgElement::integrate(Node *nodes, double *dispn, double *staten,
  
     getGaussPointAndWeight(i, point, weight);
 
-    shapeF->getGlobalGrads(&gradUn, &dgradUdqkn, &jacn, nodes, point, dispVecn);
+    shapeF->getGradU(&gradUn, nodes, point, dispVecn);
     shapeF->getGlobalGrads(&gradUnp, &dgradUdqknp, &jacnp, nodes, point, dispVecnp);
 
-    strainEvaluator->getEandB(en, Bn, gradUn, dgradUdqkn);
+    strainEvaluator->getE(en, gradUn);
     strainEvaluator->getEandB(enp, Bnp, gradUnp, dgradUdqknp);
 
     material->integrate(&s, en, enp,
@@ -547,9 +539,7 @@ GaussIntgElement::integrate(Node *nodes, double *dispn, double *staten,
 
   delete &gradUn;
   delete &gradUnp;
-  delete &dgradUdqkn;
   delete &dgradUdqknp;
-  delete &Bn;
   delete &Bnp;
   delete &en;
   delete &enp;

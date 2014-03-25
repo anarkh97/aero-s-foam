@@ -84,6 +84,8 @@ class FlExchanger {
      void waitOnSend();
      double getFluidLoad(Vector& force, int tIndex, double time,
                          double alphaf, int& iscollocated, GeomState* geomState = 0);
+     double getFluidLoadSensitivity(Vector& forceSen, int tIndex, double time,
+                                    double alphaf, int& iscollocated, GeomState* geomState = 0);
 
      double getFluidFlux(Vector &flux, double time, double &fl);
      void sendStrucTemp(Vector &tempsent);
@@ -134,5 +136,6 @@ class FlExchanger {
 #define OPTRESMSG 9100
 #define NBPRESSDATAMAX 7
 #define FL_NEGOT 10000
+#define FLTOSTSEN 15000
 
 #endif

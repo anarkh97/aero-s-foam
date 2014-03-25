@@ -119,6 +119,7 @@ class SingleDomainStatic
     StaticTimers *getStaticTimers() { return times; }
     void assignRandMat() {domain->assignRandMat(); }
     void retrieveElemset() {domain->retrieveElemset();}
+    AllSensitivities<T> *getAllSensitivities() { return &allSens; }
 #ifdef STRUCTOPT
     void preoptProcess();
     void reBuild(); 

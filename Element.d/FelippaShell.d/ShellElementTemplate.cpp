@@ -366,6 +366,111 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 
 }
 
+template<typename doublereal, template<typename> class Membrane, template<typename> class Bending>
+void
+ShellElementTemplate<doublereal,Membrane,Bending>
+::andesmsWRTthic(int elm, doublereal *x, doublereal *y, doublereal *z, 
+                 doublereal *gamma, doublereal *grvforSen, bool grvflg)
+{
+  // Builtin functions 
+  using std::sqrt;
+  using std::abs;
+
+  // Local variables 
+  int i, j, i1, i2, i3;
+  doublereal twicearea2, x21, x13, y13, z13, x32, y32, z32, y21, z21,
+    ix, iy, iz, rlb, bpr, rlr, area, rho, dist[3], mass0, mass1, 
+    mass2, mass3, thick, alpha;
+
+// ==================================================================== 
+//                                                                      
+//     Performs =   This subroutine will form the elemental gravitational        
+//     ----------   force sensitivity wrt thickness
+//                                                                      
+//                                                                      
+//     reference = see the implementation of andesms                     
+//                                                                      
+// ==================================================================== 
+
+//     -------------------------- 
+//     CHECKS AND INITIALIZATIONS 
+//     -------------------------- 
+
+// .....COMPUTE THE DISTANCE BETWEEN X-, Y- AND Z- NODAL COORDINATES
+
+    x21 = x[1] - x[0];
+    y21 = y[1] - y[0];
+    z21 = z[1] - z[0];
+
+    x32 = x[2] - x[1];
+    y32 = y[2] - y[1];
+    z32 = z[2] - z[1];
+
+    x13 = x[0] - x[2];
+    y13 = y[0] - y[2];
+    z13 = z[0] - z[2];
+
+// .....COMPUTE THE DISTANCE BETWEEN NODES 1-2, 2-3 AND 3-1
+
+    dist[0] = sqrt(x21 * x21 + y21 * y21 + z21 * z21);
+    dist[1] = sqrt(x32 * x32 + y32 * y32 + z32 * z32);
+    dist[2] = sqrt(x13 * x13 + y13 * y13 + z13 * z13);
+
+// .....COMPUTE THE LENGTH OF SIDE 1-2
+
+    rlr = sqrt(x21 * x21 + y21 * y21 + z21 * z21);
+
+// .....CHECK FOR ZERO-SIDE LENGTH
+
+    if (rlr == 0) {
+        throw std::runtime_error(
+          "*** FATAL ERROR in ShellElementTemplate::andesms ***\n"
+          "*** The Side 1-2 has Zero Length                 ***\n"
+          "*** Check Coordinates and FE Topology            ***\n");
+    }
+
+// .....COMPUTE THE DISTANCE OF THE OPPOSING NODE (3) TO THAT SIDE (1-2)
+
+    rlb = sqrt(x32 * x32 + y32 * y32 + z32 * z32);
+    bpr = abs(x21 * x32 + y21 * y32 + z21 * z32) / rlr;
+
+// .....COMPUTE THE SQUARE OF TWICE THE TRIANGLE'S AREA
+
+    twicearea2 = rlb * rlb - bpr * bpr;
+
+// .....CHECK IF THE TRIANGLE'S AREA IS POSITIVE
+
+    if (twicearea2 <= 0) {
+        throw std::runtime_error(
+          "*** FATAL ERROR in ShellElementTemplate::andesms ***\n"
+          "*** The Area is Negative or Zero                 ***\n"
+          "*** Check Coordinates and FE Topology            ***\n");
+    }
+
+// .....COMPUTE THE AREA OF THE TRIANGLE
+
+    area = rlr * .5 * sqrt(twicearea2);
+
+// .....COMPUTE THE THREE PSEUDO MOMENTS OF INERTIA
+
+    ix = dist[0] * dist[0] + dist[2] * dist[2];
+    iy = dist[0] * dist[0] + dist[1] * dist[1];
+    iz = dist[1] * dist[1] + dist[2] * dist[2];
+
+// .....FORM THE MASS COEFFICIENTS PER DEGREE OF FREEDOM
+
+    rho = gpmat->GetSumDensity();
+    mass0 = rho * area / 3.;
+
+// ..... COMPUTE THE BODY FORCE DUE TO GRAVITY IF NEEDED
+
+    if (grvflg) {
+        grvforSen[0] = mass0 * 3. * gamma[0];
+        grvforSen[1] = mass0 * 3. * gamma[1];
+        grvforSen[2] = mass0 * 3. * gamma[2];
+    }
+
+}
 
 template<typename doublereal, template<typename> class Membrane, template<typename> class Bending>
 void
@@ -627,8 +732,8 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 template<typename doublereal, template<typename> class Membrane, template<typename> class Bending>
 void
 ShellElementTemplate<doublereal,Membrane,Bending>
-::andesstfWRTthick(int elm, doublereal *_destiffdthick, doublereal *_fint, doublereal nu,
-                   doublereal *x, doublereal *y, doublereal *z, doublereal *_v,
+::andesstfWRTthick(int elm, doublereal *_destiffdthick, doublereal nu,
+                   doublereal *x, doublereal *y, doublereal *z,
                    int ctyp, int flag)
 {
   // Initialized data 
@@ -648,26 +753,17 @@ ShellElementTemplate<doublereal,Membrane,Bending>
   Eigen::Matrix<doublereal,3,9> Bb, Bm;
 
   Eigen::Map< Eigen::Matrix<doublereal,18,18,Eigen::RowMajor> > dKdthick(_destiffdthick);
-  Eigen::Map< Eigen::Matrix<doublereal,18,1> > F(_fint);
   Eigen::Matrix<doublereal,6,1> Upsilon, Sigma;
   Eigen::Matrix<doublereal,6,6> *D = (_destiffdthick) ? new Eigen::Matrix<doublereal,6,6> : NULL;
   Eigen::Matrix<doublereal,3,3> eframe;
-  Eigen::Matrix<doublereal,18,1> vd;
-  Eigen::Map<Eigen::Matrix<doublereal,18,1> > v(_v);
 
   // Some convenient definitions 
   Eigen::Block< Eigen::Map<Eigen::Matrix<doublereal,18,18,Eigen::RowMajor> >,9,9 >
     Km = dKdthick.template topLeftCorner<9,9>(),     Kmb = dKdthick.template topRightCorner<9,9>(),
     Kbm = dKdthick.template bottomLeftCorner<9,9>(), Kb = dKdthick.template bottomRightCorner<9,9>();
-  Eigen::VectorBlock< Eigen::Map<Eigen::Matrix<doublereal,18,1> >,9 >
-    Fm = F.template head<9>(), Fb = F.template tail<9>();
   Eigen::Block< Eigen::Matrix<doublereal,6,6>,3,3 > 
     Dm = D->template topLeftCorner<3,3>(),     Dmb = D->template topRightCorner<3,3>(),
     Dbm = D->template bottomLeftCorner<3,3>(), Db = D->template bottomRightCorner<3,3>();
-  Eigen::VectorBlock< Eigen::Matrix<doublereal,6,1>,3 >
-    e = Upsilon.template head<3>(), chi = Upsilon.template tail<3>();
-  Eigen::VectorBlock< Eigen::Matrix<doublereal,6,1>,3 >
-    N = Sigma.template head<3>(), M = Sigma.template tail<3>();
 
 // ================================================================== 
 //                                                                    
@@ -707,24 +803,6 @@ ShellElementTemplate<doublereal,Membrane,Bending>
                2, 3, 4, 8, 9, 10, 14, 15, 16; // B indices
     Eigen::PermutationMatrix<18,18,int> P(indices);
 
-//  .....ROTATE THE NODAL DISPLACEMENTS TO THE LOCAL 
-//       FRAME SYSTEM (LOCAL TO THE SHELL ELEMENT) 
-//       AND APPLY PERMUTATION to {M,B} ordering
-
-    if(flag == 1) {
-
-        for(i = 0; i < 18; i += 3)
-            vd.segment(i,3) = eframe.transpose()*v.segment(i,3);
-
-        vd = P.transpose()*vd;
-    }
-    else {
-
-        // for Corotational Formulation, v is already local
-        vd = P.transpose()*v; 
-
-    }
-
     // Note: betam = 0.32 is max(1/2*(1-4*nu^2),0.01) assuming nu to be 0.3
     // Reference: "Membrane triangles with corner drilling freedoms III. Implementation and performance evaluation"
     //             Carlos A. Felippa and Scott Alexander
@@ -740,7 +818,6 @@ ShellElementTemplate<doublereal,Membrane,Bending>
     Lm = Membrane<doublereal>::L(xlp, ylp, alpha);
 
     if(_destiffdthick) dKdthick.setZero();
-    if(_fint) F.setZero();
     doublereal zeta[3][3] = { { 0.,.5,.5 }, { .5,0.,.5 }, { .5,.5,0. } }; // triangular coordinates of gauss integration points
     doublereal weight[3] = { 1/3., 1/3., 1/3. };
     for(i = 0; i < 3; ++i) {
@@ -748,13 +825,11 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 // .....FORM HIGHER ORDER INTEGRATED CURVATURE-TO-DISPLACEMENT MATRIX
 //      AND THE ELEMENT CURVATURE VECTOR 
         Bb = 1/area*Lb.transpose() + Bending<doublereal>::Bd(xlp, ylp, betab, zeta[i]);
-        chi = Bb*vd.tail(9);
 
 // .....FORM THE HIGHER ORDER INTEGRATED EXTENSION-TO-DISPLACEMENT MATRIX
 //      AND THE ELEMENT EXTENSION VECTOR
 
         Bm = 1/area*Lm.transpose() + Membrane<doublereal>::Bd(xlp, ylp, betam, zeta[i]);
-        e = Bm*vd.head(9);
 
 // .....GET THE TANGENT CONSTITUTIVE MATRIX [D = {Dm,Dmb;Dbm,Db}] 
 //      AND THE GENERALIZED STRESSES [Sigma = {N,M}]
@@ -796,24 +871,11 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 
         }
 
-        if(_fint) {
-
-// ..... FORM THE INTERNAL FORCE FOR BENDING
-
-            Fb.noalias() += (area*weight[i])*Bb.transpose()*M;
-
-// ..... FORM THE INTERNAL FORCE FOR MEMBRANE
-
-            Fm.noalias() += (area*weight[i])*Bm.transpose()*N;
-
-        }
-
     }
 
 // .....APPLY PERMUTATION 
 
     if(_destiffdthick) dKdthick = P*dKdthick*P.transpose();
-    if(_fint)   F = P*F;
 
 // .....ROTATE ELEMENT STIFFNESS AND/OR FORCE TO GLOBAL COORDINATES 
 //      (only if flag equals 1)
@@ -822,11 +884,6 @@ ShellElementTemplate<doublereal,Membrane,Bending>
         for(i = 0; i < 18; i += 3)
             for(j = 0; j < 18; j += 3)
                  dKdthick.template block<3,3>(i,j) = eframe*dKdthick.template block<3,3>(i,j)*eframe.transpose();
-    }
-
-    if (flag == 1 && _fint) {
-        for(i = 0; i < 18; i += 3)
-            F.template segment<3>(i) = eframe*F.template segment<3>(i);
     }
 
 // .....CHECK THE POSITIVITY OF THE OUTPUT STIFFNESS MATRIX 

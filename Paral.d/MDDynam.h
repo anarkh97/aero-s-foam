@@ -1,6 +1,11 @@
 #ifndef _MD_DYNAM_DESCR_H_
 #define _MD_DYNAM_DESCR_H_
 
+#include <cstdlib>
+#ifdef DISTRIBUTED
+#include <Utils.d/DistHelper.h>
+#endif
+
 template <class Scalar> class GenVector;
 typedef GenVector<double> Vector;
 template <class Scalar> class GenSparseMatrix;
@@ -23,6 +28,7 @@ class Rbm;
 
 template <typename T> class SysState;
 template <typename T> class GenParallelSolver;
+template <typename Scalar> struct AllSensitivities;
 
 class ControlLawInfo;
 class Corotator;
@@ -103,6 +109,7 @@ class MultiDomainDynam
 protected:
     DecDomain *decDomain;
     Domain *domain;
+    AllSensitivities<double> *allSens;
 
 private:
     CuCSparse **cucs;
@@ -153,6 +160,7 @@ private:
     int* boundary();
     double* boundaryValue();
     Domain* getDomain();
+    AllSensitivities<double> *getAllSensitivities() { return allSens; }
     void getTimes(double &dt, double &t);
     void getNewMarkParameters(double &beta, double &gamma,
                               double &alphaf, double &alpham);
@@ -164,14 +172,20 @@ private:
     void getSteadyStateParam(int &steadyFlag, int &steadyMin, int &steadMax,
                              double &steadyTol); 
     void getConstForce(DistrVector &);
+    void addConstForceSensitivity(DistrVector &);
     void getContactForce(DistrVector &d_n, DistrVector &dinc, DistrVector &ctc_f, double t_n_p, double dt, double dt_old);
     void computeExtForce2(SysState<DistrVector> &, DistrVector &, 
                           DistrVector &, int tIndex, double t,
                           DistrVector * aero_f=0,
                           double gamma=0.5, double alphaf=0.5);
+    void getAeroelasticForceSensitivity(int t_index, double t, DistrVector * aero_f=0, double gamma=0.5, double alphaf=0.5) {
+      filePrint(stderr," ... MultiDomainDynam::getAeroelasticForceSensitivity\n");  exit(-1);
+    }
 
     void getRHS(DistrVector &);
     void preProcess();
+    void preProcessSA() {  filePrint(stderr," ... MultiDomainDynam::preProcessSA is not implemented\n");  exit(-1);  }
+    void postProcessSA(DistrVector &sol) {  filePrint(stderr," ... MultiDomainDynam::postProcessSA is not implemented\n");  exit(-1);  }
     void processLastOutput();
     void printTimers(MDDynamMat *, double);
 
@@ -200,8 +214,9 @@ private:
 
     // Aeroelastic problems related subroutines
     void computeTimeInfo();
-    int aeroPreProcess(DistrVector &, DistrVector &, DistrVector &, 
-		       DistrVector &); 
+    int aeroPreProcess(DistrVector &, DistrVector &, DistrVector &, DistrVector &); 
+    int aeroSensitivityPreProcess(DistrVector &, DistrVector &, DistrVector &, DistrVector &); 
+    int sendDisplacements(DistrVector &, DistrVector &, DistrVector &, DistrVector &); 
     int cmdCom(int cmdFlag);
     int getAeroAlg();
     void aeroSend(double time, DistrVector& d, DistrVector& v, DistrVector& a, DistrVector& v_p);

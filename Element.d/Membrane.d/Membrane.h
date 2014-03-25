@@ -27,6 +27,8 @@ class Membrane : public Element
 
         void             getGravityForce(CoordSet&,double *gravity, Vector&, int gravflg,
 	                                 GeomState *gs);
+        void getGravityForceSensitivityWRTthickness(CoordSet&,double *gravity, Vector&, int gravflg,
+	                                                  GeomState *gs);
 
         void             getVonMises
                                 (Vector &stress, Vector &weight, CoordSet &cs,

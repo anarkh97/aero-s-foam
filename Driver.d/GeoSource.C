@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <cstdlib>
+#include <fstream>
 #include <Utils.d/Connectivity.h>
 #include <Utils.d/DistHelper.h>
 #include <Driver.d/Domain.h>
@@ -20,6 +21,8 @@
 #ifdef SOWER_SURFS
 #include <Mortar.d/FaceElement.d/SurfaceEntity.h>
 #endif
+
+extern int verboseFlag;
 
 template<class Scalar>
 void GeoSource::distributeBCs(GenSubDomain<Scalar> *&tmpSub, int *cl2LocNodeMap,
@@ -612,10 +615,13 @@ GeoSource::outputEigenScalars(int fileNum, Eigen::Matrix<Scalar, Eigen::Dynamic,
   int w = oinfo[fileNum].width;
   int p = oinfo[fileNum].precision;
 
-  Eigen::IOFormat CleanFmt(w,0," ", "\n", " ", " ");
+  Eigen::IOFormat CleanFmt(Eigen::FullPrecision,0," ", "\n", " ", " ");
   if(oinfo[fileNum].isFirst) {
     ofstream fileout(oinfo[fileNum].filename, ios::out);
-    fileout << "\t" << time << "\n";
+    if(verboseFlag) cerr << oinfo[fileNum].filename << endl;
+    if(verboseFlag) cerr << time << endl;
+    if(verboseFlag) cerr << (*output) << endl;
+    fileout << "\t" << time << endl;
     fileout << (*output).format(CleanFmt) << endl;
     fileout.close();
     oinfo[fileNum].isFirst = false;
@@ -634,7 +640,7 @@ GeoSource::outputEigenVectors(int fileNum, Eigen::Matrix<Scalar, Eigen::Dynamic,
   int w = oinfo[fileNum].width;
   int p = oinfo[fileNum].precision;
   
-  Eigen::IOFormat CleanFmt(w,0," ", "\n", " ", " ");
+  Eigen::IOFormat CleanFmt(Eigen::FullPrecision,0," ", "\n", " ", " ");
   if(oinfo[fileNum].isFirst) {
     ofstream fileout(oinfo[fileNum].filename, ios::out);
     fileout << "\t" << time << "\n";

@@ -288,6 +288,82 @@ Membrane::getGravityForce(CoordSet& cs, double *gravityAcceleration,
         gravityForce[8] =  fz;
 }
 
+void
+Membrane::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravityAcceleration,
+                                                 Vector& gravityForceSensitivity, int gravflg, GeomState *geomState)
+{
+        double mass = getMass(cs);
+        double massPerNodePerThick = mass/(3.0*prop->eh);
+        double fx, fy, fz;
+
+        // Lumped
+        if(gravflg != 2) {
+
+          fx = massPerNodePerThick*gravityAcceleration[0];
+          fy = massPerNodePerThick*gravityAcceleration[1];
+          fz = massPerNodePerThick*gravityAcceleration[2];
+
+        }
+        // Consistent
+        else {
+          int i;
+          Node &nd1 = cs.getNode(nn[0]);
+          Node &nd2 = cs.getNode(nn[1]);
+          Node &nd3 = cs.getNode(nn[2]);
+          double x[3], y[3], z[3], localg[3];
+          double T1[3],T2[3],T3[3];
+
+          // Set the coordinates
+          x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+          x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+          x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
+
+          // Local X-axis
+          T1[0] = x[1] - x[0];
+          T1[1] = y[1] - y[0];
+          T1[2] = z[1] - z[0];
+          normalize( T1 );
+          // 2nd Vector In Plane
+          T2[0] = x[2] - x[0];
+          T2[1] = y[2] - y[0];
+          T2[2] = z[2] - z[0];
+          normalize( T2 );
+          // Local Z-axis as cross product of x-axis and in-plane vector
+          crossprod( T1, T2, T3 );
+          normalize( T3 );
+          // Local Y-axis as cross product of x-axis and z-axis
+          crossprod( T3, T1, T2 );
+          normalize( T2 );
+
+          for(i=0; i<3; ++i)
+            localg[i] = 0.0;
+
+          for(i=0; i<3; ++i) {
+            localg[0] += T1[i]*gravityAcceleration[i];
+            localg[1] += T2[i]*gravityAcceleration[i];
+            localg[2] += T3[i]*gravityAcceleration[i];
+          }
+          double localf[3];
+          localf[0] = massPerNodePerThick*localg[0];
+          localf[1] = massPerNodePerThick*localg[1];
+          localf[2] = massPerNodePerThick*localg[2];
+
+          fx = (T1[0]*localf[0]) + (T2[0]*localf[1]) + (T3[0]*localf[2]);
+          fy = (T1[1]*localf[0]) + (T2[1]*localf[1]) + (T3[1]*localf[2]);
+          fz = (T1[2]*localf[0]) + (T2[2]*localf[1]) + (T3[2]*localf[2]);
+        }
+
+        gravityForceSensitivity[0] =  fx;
+        gravityForceSensitivity[1] =  fy;
+        gravityForceSensitivity[2] =  fz;
+        gravityForceSensitivity[3] =  fx;
+        gravityForceSensitivity[4] =  fy;
+        gravityForceSensitivity[5] =  fz;
+        gravityForceSensitivity[6] =  fx;
+        gravityForceSensitivity[7] =  fy;
+        gravityForceSensitivity[8] =  fz;
+}
+
 FullSquareMatrix
 Membrane::massMatrix(CoordSet &cs,double *mel,int cmflg)
 {

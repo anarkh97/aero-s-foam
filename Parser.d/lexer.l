@@ -976,6 +976,8 @@ TRAIL [a-zA-Z]*
 
 "ostifthi"|"OSTIFTHI"              { yylval.ival = OutputInfo::StifThic; return SENSITIVITYID; }
 
+"odispthi"|"ODISPTHI"              { yylval.ival = OutputInfo::DispThic; return SENSITIVITYID; }
+
 "weigthic"|"WEIGTHIC"              { yylval.ival = SensitivityInfo::WeightWRTthickness;       return SENSITIVITYTYPE; }
 
 "vmstthic"|"VMSTTHIC"              { yylval.ival = SensitivityInfo::StressVMWRTthickness;     return SENSITIVITYTYPE; }

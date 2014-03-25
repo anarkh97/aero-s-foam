@@ -142,15 +142,18 @@ struct AllSensitivities
 {
 #ifdef USE_EIGEN3
   double weight; // total weight of the structure 
-  Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *weightWRTthick;                 // derivatives of weight wrto thickness
-  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *vonMisesWRTthick;  // derivatives of von Mises stress wrt thickness
-  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *vonMisesWRTdisp;   // derivatives of von Mises stress wrt displacement
-  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **stiffnessWRTthick;  // derivatives of stiffness wrt thickness 
-//  GenSparseMatrix<Scalar> *stiffnessWRTthick;                               // derivatives of stiffness wrt thickness
-  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *stressWeight;      // weight used to average stress sensitivity
+  Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *weightWRTthick;                     // derivatives of weight wrt thickness
+  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *vonMisesWRTthick;      // derivatives of von Mises stress wrt thickness
+  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *vonMisesWRTdisp;       // derivatives of von Mises stress wrt displacement
+  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **stiffnessWRTthick;    // derivatives of stiffness wrt thickness 
+//  GenSparseMatrix<Scalar> *stiffnessWRTthick;                                 // derivatives of stiffness wrt thickness
+  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *stressWeight;          // weight used to average stress sensitivity
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **linearstaticWRTthick; // derivative of linear static structural formulation wrt thickness
+  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **dispWRTthick;         // derivative of displacement wrt thickness
   // Constructor
-  AllSensitivities() { weight = 0; weightWRTthick = 0; vonMisesWRTthick = 0; vonMisesWRTdisp = 0; stressWeight = 0; stiffnessWRTthick = 0;  linearstaticWRTthick = 0; }
+  AllSensitivities() { weight = 0;                weightWRTthick = 0;        vonMisesWRTthick = 0;     
+                       vonMisesWRTdisp = 0;       stressWeight = 0;          stiffnessWRTthick = 0;   
+                       linearstaticWRTthick = 0;  dispWRTthick = 0; }
 
   void zero() {
     if(weightWRTthick) weightWRTthick->setZero();
@@ -159,6 +162,7 @@ struct AllSensitivities
     if(stressWeight) stressWeight->setZero();
     if(stiffnessWRTthick) stiffnessWRTthick[0]->setZero();
     if(linearstaticWRTthick) linearstaticWRTthick[0]->setZero();
+    if(dispWRTthick) dispWRTthick[0]->setZero();
   }
 #endif
 };
@@ -649,6 +653,9 @@ class Domain : public HData {
        void addGravityForce(GenVector<Scalar>& force);
 
      template<class Scalar>
+       void addGravityForceSensitivity(GenVector<Scalar>& forceSen);
+
+     template<class Scalar>
        void addPressureForce(GenVector<Scalar>& force, int which = 2, double time = 0.0);
 
      template<class Scalar>
@@ -716,10 +723,6 @@ class Domain : public HData {
      void resProcessing(Vector &, int index=0, double t=0);
 
 #ifdef USE_EIGEN3
-     // sensitivity pre-processing function
-     template<class Scalar>
-     void sensitivityPreProcessing(AllSensitivities<Scalar> &allSens);
-
      // sensitivity post-processing function
      template<class Scalar>
      void sensitivityPostProcessing(AllSensitivities<Scalar> &allSens);
@@ -750,6 +753,8 @@ class Domain : public HData {
        { cerr << " *** WARNING: Domain::getTrussHeatFlux(Complex) is not implemented \n"; }
      template <class Scalar>
        void computeConstantForce(GenVector<Scalar>& constantForce, GenSparseMatrix<Scalar>* kuc = 0);
+     template <class Scalar>
+       void addConstantForceSensitivity(GenVector<Scalar>& constantForce, GenSparseMatrix<Scalar>* kuc = 0);
      template <class Scalar> 
        void computeExtForce4(GenVector<Scalar>& force, const GenVector<Scalar>& constantForce, double t,
                              GenSparseMatrix<Scalar> *kuc = 0, ControlInterface *userSupFunc = 0,
@@ -784,6 +789,7 @@ class Domain : public HData {
      void aeroheatSend(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, double* bcx, double* vcx, GeomState* geomState = 0);
      void thermohSend(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, double* bcx, double* vcx, GeomState* geomState = 0);
      void buildAeroelasticForce(Vector &f, PrevFrc& prevFrc, int tIndex, double t, double gamma, double alphaf, GeomState* geomState = 0);
+     void buildAeroelasticForceSensitivity(Vector &fSen, PrevFrc& prevFrc, int tIndex, double t, double gamma, double alphaf, GeomState* geomState = 0);
      void buildAeroheatFlux(Vector &f, Vector &prev_f, int tIndex, double t);
      void thermoeComm();
      void dynamOutput(int, double, double*, DynamMat&, Vector&, Vector &, Vector&, Vector&, Vector&, Vector &, double*, double* = 0);
@@ -1008,6 +1014,8 @@ class Domain : public HData {
      void getCompositeData(int iInfo,double time);
 
      void aeroPreProcess(Vector&, Vector&, Vector&, Vector &,double*,double*);
+     void aeroSensitivityPreProcess(Vector&, Vector&, Vector&, Vector &,double*,double*);
+     void sendDisplacements(Vector&, Vector&, Vector&, Vector&, double*, double *);
      void thermoePreProcess();
 
      void aeroHeatPreProcess(Vector&, Vector&, Vector&, double *bcx );

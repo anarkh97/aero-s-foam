@@ -14,6 +14,9 @@ class ShellElementSemiTemplate
          doublereal e, doublereal nu, doublereal *_h,
          doublereal *_v, doublereal *_stress,
          bool strainFlg, int surface, doublereal thrmStr);
+    
+    void tria3d(bool flag, doublereal *_xl, doublereal *_yl, doublereal *_zl,
+                doublereal e, doublereal nu, doublereal h, doublereal *_rk);
 
     void vms8WRTdisp(doublereal *_xl,doublereal *_yl, doublereal *_zl,
                      doublereal e, doublereal nu, doublereal *_h,
@@ -51,6 +54,15 @@ class ShellElementSemiTemplate
 
     void equiv(doublereal ex, doublereal ey, doublereal ez, doublereal exy, doublereal &eq);
 
+    void basico(doublereal *_x, doublereal *_y, doublereal *_db, doublereal f,
+                doublereal clr, doublereal cqr, doublereal *_ls, doublereal *_sm, int m, char *status);
+
+    void sm3mb(doublereal *_x, doublereal *_y, doublereal *_dm,
+               doublereal alpha, doublereal f, doublereal *_ls, doublereal *_sm, int m, char *status);
+
+    void smcbh(doublereal *_x, doublereal *_y, doublereal *_db,
+               doublereal f, int *_ls, doublereal *_sm, int m, char *status);
+   
 };
 
 #endif

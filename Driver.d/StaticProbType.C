@@ -14,7 +14,11 @@ StaticSolver< Scalar, OpSolver, VecType,
  probDesc->preProcess();
  if(domain->solInfo().sensitivity) { 
    probDesc->preProcessSA();
-   if(!domain->runSAwAnalysis) return;
+   if(!domain->runSAwAnalysis) {
+     AllSensitivities<Scalar> *allSens = probDesc->getAllSensitivities();
+     domain->sensitivityPostProcessing(*allSens);
+     return;
+   }
  }
 
  rhs = new VecType(probDesc->solVecInfo());

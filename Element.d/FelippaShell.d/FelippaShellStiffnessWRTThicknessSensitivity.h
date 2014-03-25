@@ -11,7 +11,7 @@
 // class template to facilitate computation of the sensitivities of the nodal von mises stress w.r.t the nodal displacements
 
 template<typename Scalar>
-class FelippaShellStiffnessWRTThicknessSensitivity : public MatrixValuedFunction<1,18,18,Scalar,30,0,double>
+class FelippaShellStiffnessWRTThicknessSensitivity : public MatrixValuedFunction<1,18,18,Scalar,12,0,double>
 {
   public:
     ShellElementTemplate<Scalar,EffMembraneTriangle,AndesBendingTriangle> ele;
@@ -20,15 +20,15 @@ class FelippaShellStiffnessWRTThicknessSensitivity : public MatrixValuedFunction
     Scalar E, nu, rho; // material properties
 
   public:
-    FelippaShellStiffnessWRTThicknessSensitivity(const Eigen::Array<double,30,1>& sconst, const Eigen::Array<int,0,1>& iconst)
+    FelippaShellStiffnessWRTThicknessSensitivity(const Eigen::Array<double,12,1>& sconst, const Eigen::Array<int,0,1>& iconst)
     {
       globalx = sconst.segment<3>(0).cast<Scalar>();
       globaly = sconst.segment<3>(3).cast<Scalar>();
       globalz = sconst.segment<3>(6).cast<Scalar>();
-      globalu = sconst.segment<18>(9).cast<Scalar>(); 
-      E = sconst[27];
-      nu = sconst[28];
-      rho = sconst[29];
+      E = sconst[9];
+      nu = sconst[10];
+      rho = sconst[11];
+      globalu.setZero();
     }
 
     Eigen::Matrix<Scalar,18,18> operator() (const Eigen::Matrix<Scalar,1,1>& h, Scalar)

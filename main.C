@@ -1227,10 +1227,10 @@ int main(int argc, char** argv)
      case SolverInfo::Dynamic:
        {
         if(domain->solInfo().modal) {
-	  fprintf(stderr," ... Modal Method  ...\n");
+          fprintf(stderr," ... Modal Method  ...\n");
           ModalDescr<double> * modalProb = new ModalDescr<double>(domain);
           DynamicSolver<ModalOps, Vector, ModalDescr<double>, ModalDescr<double>, double>
-              modalSolver(modalProb);
+          modalSolver(modalProb);
           modalSolver.solve();
         }
         else {

@@ -388,6 +388,24 @@ BelytschkoTsayShell::getGravityForce(CoordSet& cs, double *gravityAcceleration,
   }
 }
 
+void
+BelytschkoTsayShell::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravityAcceleration, 
+                                                            Vector& gravityForceSensitivity, int gravflg, GeomState *geomState)
+{
+  gravityForceSensitivity.zero();
+
+  double massPerNodePerThick = 0.25*getMass(cs)/prop->eh;
+  double fx = massPerNodePerThick*gravityAcceleration[0];
+  double fy = massPerNodePerThick*gravityAcceleration[1];
+  double fz = massPerNodePerThick*gravityAcceleration[2];
+
+  for(int i = 0; i < nnode; ++i) {
+    gravityForceSensitivity[nndof*i+0] = fx;
+    gravityForceSensitivity[nndof*i+1] = fy;
+    gravityForceSensitivity[nndof*i+2] = fz;
+  }
+}
+
 FullSquareMatrix
 BelytschkoTsayShell::massMatrix(CoordSet &cs, double *mel, int cmflg)
 {

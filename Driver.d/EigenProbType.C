@@ -645,6 +645,7 @@ EigenSolver< EigOps, VecType, VecSet,
      VecType col = (*this->eigVec)[j];
      for(int i=0; i<probDesc->solVecInfo(); ++i) Xeigen(i,j) = col[i];
      filePrint(stderr,"j-th original bases norm is %f\n", col.norm());
+     filePrint(stderr,"size of col is %d\n", col.size());
    }
 
    Eigen::HouseholderQR<Eigen::MatrixXd> qr(Xeigen);

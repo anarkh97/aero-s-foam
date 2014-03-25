@@ -159,6 +159,14 @@ Element::getGravityForce(CoordSet&, double *, Vector &force, int, GeomState *)
 }
 
 void
+Element::getGravityForceSensitivityWRTthickness(CoordSet&, double *, Vector &forceSen, int, GeomState *)
+{
+  if(!isConstraintElement() && !isSpring())
+    fprintf(stderr," *** WARNING: Gravity force Sensitivity not implemented for element (%6d), type %3d\n", getGlNum()+1, elementType);
+  forceSen.zero();
+}
+
+void
 Element::getThermalForce(CoordSet&, Vector &, Vector &force, int glflag,
                          GeomState *)
 {

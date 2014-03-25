@@ -1649,6 +1649,35 @@ Domain::addGravityForce(GenVector<Scalar> &force)
 
 template<class Scalar>
 void
+Domain::addGravityForceSensitivity(GenVector<Scalar> &forceSen)
+{
+  // ... ADD ELEMENT MASS CONTRIBUTION ...
+  Vector elementGravityForceSen(maxNumDOFs);
+  int gravflg;
+  for(int iele = 0; iele < numele; ++iele) {
+    if(packedEset[iele]->getProperty() == 0) continue; // phantom element
+       
+    if(geoSource->consistentQFlag() && !(sinfo.isDynam() && packedEset[iele]->getMassType() == 0)) 
+      gravflg = 2;                       // 2: consistent (for dynamics, consistent gravity should not be used if element only has a lumped mass matrix)
+    else gravflg = geoSource->fixedEndM; // 1: lumped with fixed-end moments
+                                         // 0: lumped without fixed-end moments
+
+    elementGravityForceSen.zero();
+    packedEset[iele]->getGravityForceSensitivityWRTthickness(nodes, gravityAcceleration, elementGravityForceSen, gravflg);
+
+    // transform vector from basic to DOF_FRM coordinates
+    transformVector(elementGravityForceSen, iele);
+
+    for(int idof = 0; idof < allDOFs->num(iele); ++idof) {
+      int cn = c_dsa->getRCN((*allDOFs)[iele][idof]);
+      if(cn >= 0)
+        forceSen[cn] += elementGravityForceSen[idof];
+    }
+  }
+}
+
+template<class Scalar>
+void
 Domain::addPressureForce(GenVector<Scalar> &force, int which, double time)
 {
   // which = 0: add only constant pressure
@@ -2067,7 +2096,6 @@ void Domain::forceDistributedContinuity(Scalar *u, Scalar (*xyz)[11])//DofSet::m
 
 //  return ++realNode;
 }
-
 
 template<class Scalar>
 void
@@ -3348,22 +3376,6 @@ int Domain::processOutput(OutputInfo::Type &type, GenVector<Scalar> &d_n, Scalar
 //-------------------------------------------------------------------------------------
 #ifdef USE_EIGEN3
 template <class Scalar>
-void Domain::sensitivityPreProcessing(AllSensitivities<Scalar> &allSens) {
-
-  OutputInfo *oinfo = geoSource->getOutputInfo();
-  int numOutInfo = geoSource->getNumOutInfo();
-  if(firstOutput) geoSource->openOutputFiles();
-  for(int i = 0; i < numOutInfo; ++i)  {
-    if(oinfo[i].sentype == 0) continue;
-    if(oinfo[i].type == OutputInfo::WeigThic) geoSource->outputEigenScalars(i, allSens.weightWRTthick, allSens.weight);
-  }
-  firstOutput = false;
-}
-#endif
-
-//-------------------------------------------------------------------------------------
-#ifdef USE_EIGEN3
-template <class Scalar>
 void Domain::sensitivityPostProcessing(AllSensitivities<Scalar> &allSens) {
 
   OutputInfo *oinfo = geoSource->getOutputInfo();
@@ -3371,18 +3383,29 @@ void Domain::sensitivityPostProcessing(AllSensitivities<Scalar> &allSens) {
   if(firstOutput) geoSource->openOutputFiles();
   for(int i = 0; i < numOutInfo; ++i)  {
     if(oinfo[i].sentype == 0) continue;
+    if(oinfo[i].type == OutputInfo::WeigThic) {
+      if(verboseFlag) filePrint(stderr," ... output weight wrt thickness sensitivity\n");
+      if(verboseFlag) cerr << (*allSens.weightWRTthick);
+      geoSource->outputEigenScalars(i, allSens.weightWRTthick, allSens.weight);
+    }
+    if(oinfo[i].type == OutputInfo::StifThic) {
+      if(verboseFlag) filePrint(stderr," ... output stiffness wrt thickness sensitivity\n");
+      for(int g = 0; g < geoSource->group.size(); ++g) {
+        geoSource->outputEigenVectors(i, allSens.stiffnessWRTthick[g], double(g+1));
+      }
+    }
     if(oinfo[i].type == OutputInfo::VMstThic) geoSource->outputEigenVectors(i, allSens.vonMisesWRTthick);
     if(oinfo[i].type == OutputInfo::VMstDisp) geoSource->outputEigenVectors(i, allSens.vonMisesWRTdisp);
-    if(oinfo[i].type == OutputInfo::StifThic) {
+    if(oinfo[i].type == OutputInfo::DispThic) {
+      if(verboseFlag) filePrint(stderr," ... output displacement wrt thickness sensitivity\n");
       for(int g = 0; g < geoSource->group.size(); ++g) {
-        geoSource->outputEigenVectors(i, allSens.stiffnessWRTthick[g]);
+        geoSource->outputEigenVectors(i, allSens.dispWRTthick[g], double(g+1));
       }
     }
   }
   firstOutput = false;
 }
 #endif
-
 //-------------------------------------------------------------------------------------
 // Templated Post-processing for direct solver statics, frequency response, helmholtz and eigen
 template<class Scalar>
@@ -3561,6 +3584,13 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
 
  if (xyz) delete [] xyz;
  if (xyz_loc) delete [] xyz_loc;
+}
+
+template<class Scalar>
+void
+Domain::addConstantForceSensitivity(GenVector<Scalar>& cnst_fSen, GenSparseMatrix<Scalar>* kuc)
+{
+  if(domain->gravityFlag()) addGravityForceSensitivity(cnst_fSen);
 }
 
 template <class Scalar>

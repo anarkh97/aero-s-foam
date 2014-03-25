@@ -34,13 +34,17 @@ class ShellElementTemplate : public Membrane<doublereal>, public Bending<doubler
             bool grvflg, doublereal &totmas, bool masflg);
 
     void
+    andesmsWRTthic(int elm, doublereal *x, doublereal *y, doublereal *z,
+                   doublereal *gamma, doublereal *grvforSen, bool grvflg);
+
+    void
     andesstf(int elm, doublereal *estiff, doublereal *fint, doublereal nu,
              doublereal *x, doublereal *y, doublereal *z, doublereal *globalu,
              int ctyp, int flag);
 
     void 
-    andesstfWRTthick(int elm, doublereal *_destiffdthick, doublereal *_fint, doublereal nu,
-                     doublereal *x, doublereal *y, doublereal *z, doublereal *_v,
+    andesstfWRTthick(int elm, doublereal *_destiffdthick, doublereal nu,
+                     doublereal *x, doublereal *y, doublereal *z,
                      int ctyp, int flag);
 
 

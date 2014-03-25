@@ -157,7 +157,9 @@ typedef FSFullMatrix FullMatrix;
 
 SingleDomainDynamic::SingleDomainDynamic(Domain *d)
 { 
-  domain = d; 
+  domain = d;
+  if(domain->solInfo().sensitivity) allSens = new AllSensitivities<double>; 
+  else allSens = 0;
   kelArray = 0; 
   melArray = 0;
   allCorot = 0;
@@ -175,6 +177,7 @@ SingleDomainDynamic::~SingleDomainDynamic()
   if(bcx) delete [] bcx;
   if(vcx) delete [] vcx;
   if(acx) delete [] acx;
+  if(allSens) delete allSens;
 }
 
 //#define DEBUG_RBM_FILTER
@@ -532,6 +535,12 @@ SingleDomainDynamic::getConstForce(Vector &cnst_f)
 }
 
 void
+SingleDomainDynamic::addConstForceSensitivity(Vector &cnst_fSen)
+{
+  domain->addConstantForceSensitivity(cnst_fSen, kuc);
+}
+
+void
 SingleDomainDynamic::getContactForce(Vector &d_n, Vector &dinc, Vector &ctc_f, double t_n_p, double dt, double dt_old)
 {
   times->tdenforceTime -= getTime();
@@ -693,12 +702,32 @@ SingleDomainDynamic::computeExtForce2(SysState<Vector> &state, Vector &ext_f,
 }
 
 void
+SingleDomainDynamic::getAeroelasticForceSensitivity(int tIndex, double t,
+                                                    Vector *aero_f, double gamma, double alphaf)
+{
+  // get aeroelastic force sensitivity from fluid code
+  domain->buildAeroelasticForceSensitivity(*aero_f, *prevFrc, tIndex, t, gamma, alphaf);
+}
+
+void
 SingleDomainDynamic::processLastOutput()
 {
   OutputInfo *oinfo = geoSource->getOutputInfo();
   domain->solInfo().lastIt = true;
   for (int iOut = 0; iOut < geoSource->getNumOutInfo(); iOut++)
     oinfo[iOut].interval = 1;
+}
+
+void
+SingleDomainDynamic::preProcessSA()
+{
+  domain->buildPreSensitivities<double>(*allSens, bcx);
+}
+
+void
+SingleDomainDynamic::postProcessSA(Vector &sol)
+{
+  domain->buildPostSensitivities<double>(*allSens, sol, bcx);
 }
 
 void
@@ -957,6 +986,22 @@ SingleDomainDynamic::aeroPreProcess(Vector& d_n, Vector& v_n,
                                     Vector& a_n, Vector& v_p)
 {
   domain->aeroPreProcess(d_n, v_n, a_n, v_p, bcx, vcx);
+  return domain->solInfo().aeroFlag;
+}
+
+int 
+SingleDomainDynamic::aeroSensitivityPreProcess(Vector& d_n, Vector& v_n, 
+                                               Vector& a_n, Vector& v_p)
+{
+  domain->aeroSensitivityPreProcess(d_n, v_n, a_n, v_p, bcx, vcx);
+  return domain->solInfo().aeroFlag;
+}
+
+int
+SingleDomainDynamic::sendDisplacements(Vector& d_n, Vector& v_n,
+                                       Vector& a_n, Vector& v_p)
+{
+  domain->sendDisplacements(d_n, v_n, a_n, v_p, bcx, vcx);
   return domain->solInfo().aeroFlag;
 }
 

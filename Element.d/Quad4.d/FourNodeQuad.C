@@ -386,6 +386,75 @@ FourNodeQuad::getGravityForce(CoordSet& cs,double *gravityAcceleration,
   }
 }
 
+void
+FourNodeQuad::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravityAcceleration,
+                                                     Vector& gravityForceSensitivity, int gravflg, GeomState *geomState)
+{
+
+  // Lumped
+  if (gravflg != 2) {
+    double massPerNodePerThickness = 0.25*getMass(cs)/prop->eh;
+
+    double fx = massPerNodePerThickness*gravityAcceleration[0];
+    double fy = massPerNodePerThickness*gravityAcceleration[1];
+
+    gravityForceSensitivity[0] = fx;
+    gravityForceSensitivity[1] = fy;
+    gravityForceSensitivity[2] = fx;
+    gravityForceSensitivity[3] = fy;
+    gravityForceSensitivity[4] = fx;
+    gravityForceSensitivity[5] = fy;
+    gravityForceSensitivity[6] = fx;
+    gravityForceSensitivity[7] = fy;
+  }
+  // Consistent
+  else {
+
+    int i;
+    int numgauss = 2;
+    Node &nd1 = cs.getNode(nn[0]);
+    Node &nd2 = cs.getNode(nn[1]);
+    Node &nd3 = cs.getNode(nn[2]);
+    Node &nd4 = cs.getNode(nn[3]);
+
+    double x[4], y[4];
+    x[0] = nd1.x; y[0] = nd1.y;
+    x[1] = nd2.x; y[1] = nd2.y;
+    x[2] = nd3.x; y[2] = nd3.y;
+    x[3] = nd4.x; y[3] = nd4.y;
+    double rho = prop->rho;
+    double h = prop->eh;
+
+    double lforce[4];
+    for (i = 0; i < 4; ++i)
+      lforce[i] = 0.0;
+
+    int fortran = 1;  // fortran routines start from index 1
+    int pt1, pt2;
+    for (pt1 = 0 + fortran; pt1 < numgauss + fortran; pt1++)  {
+      for (pt2 = 0 + fortran; pt2 < numgauss + fortran; pt2++)  {
+        // get gauss point
+        double xi, eta, wt;
+        _FORTRAN(qgauss)(numgauss, pt1, numgauss, pt2, xi, eta, wt);
+
+        //compute shape functions
+        double shapeFunc[4], shapeGradX[4], shapeGradY[4];
+        double detJ;  //det of jacobian
+
+        _FORTRAN(q4shpe)(xi, eta, x, y,
+                         shapeFunc, shapeGradX, shapeGradY, detJ);
+
+        for (i = 0; i < 4; ++i)
+          lforce[i] += wt*shapeFunc[i]*detJ;
+      }
+    }
+    for(i=0; i<4; ++i) {
+      gravityForceSensitivity[2*i+0] = lforce[i]*rho*gravityAcceleration[0];
+      gravityForceSensitivity[2*i+1] = lforce[i]*rho*gravityAcceleration[1];
+    }
+  }
+}
+
 FullSquareMatrix
 FourNodeQuad::massMatrix(CoordSet &cs,double *mel,int cmflg)
 {

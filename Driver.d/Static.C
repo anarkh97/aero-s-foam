@@ -2916,19 +2916,6 @@ Domain::makePreSensitivities(AllSensitivities<double> &allSens, double *bcx)
 
      break;
    }
-  }
- }
- // post processing for sensitivities 
- sensitivityPreProcessing(allSens);
-#endif
-}
-
-void
-Domain::makePostSensitivities(AllSensitivities<double> &allSens, GenVector<double> &sol, double *bcx)
-{
-#ifdef USE_EIGEN3
- for(int sindex=0; sindex < numSensitivity; ++sindex) {
-  switch(senInfo[sindex].type) {
    case SensitivityInfo::StiffnessWRTthickness:
    {
      // ... COMPUTE SENSITIVITY OF STIFFNESS MATRIX WRT THICKNESS
@@ -2950,17 +2937,7 @@ Domain::makePostSensitivities(AllSensitivities<double> &allSens, GenVector<doubl
            int iele = atoe[group[iparam].attributes[aindex]].elems[eindex];
            int DofsPerElement = packedEset[iele]->numDofs();
            FullSquareMatrix dStiffnessdThick(DofsPerElement);
-           // Determine element displacement vector
-           if(elDisp == 0) elDisp = new Vector(maxNumDOFs,0.0);
-           for (int k=0; k < allDOFs->num(iele); ++k) {
-             int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
-             if (cn >= 0)
-               (*elDisp)[k] = sol[cn];
-             else
-               (*elDisp)[k] = bcx[(*allDOFs)[iele][k]];
-           }
-           transformVectorInv(*elDisp, iele);         
-           packedEset[iele]->getStiffnessThicknessSensitivity(nodes, *elDisp, dStiffnessdThick,1,senInfo[sindex].method);
+           packedEset[iele]->getStiffnessThicknessSensitivity(nodes, dStiffnessdThick,1,senInfo[sindex].method);
            // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
            int *dofs = (*allDOFs)[iele];
            int *unconstrNum = c_dsa->getUnconstrNum();
@@ -2978,6 +2955,17 @@ Domain::makePostSensitivities(AllSensitivities<double> &allSens, GenVector<doubl
      }
      break;
    }
+  }
+ }
+#endif
+}
+
+void
+Domain::makePostSensitivities(AllSensitivities<double> &allSens, GenVector<double> &sol, double *bcx)
+{
+#ifdef USE_EIGEN3
+ for(int sindex=0; sindex < numSensitivity; ++sindex) {
+  switch(senInfo[sindex].type) {
    case SensitivityInfo::LinearStaticWRTthickness:
    {
      allSens.linearstaticWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[senInfo[sindex].numParam];
@@ -2989,8 +2977,10 @@ Domain::makePostSensitivities(AllSensitivities<double> &allSens, GenVector<doubl
      }
      for(int g=0; g<group.size(); ++g) {
        allSens.linearstaticWRTthick[g] = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numUncon(),1);
-       allSens.linearstaticWRTthick[g]->setZero();
+       allSens.linearstaticWRTthick[g]->setZero();   // this line and next line are for DEBUG purpose
+//       allSens.linearstaticWRTthick[g]->setIdentity();
      }
+// COMMENTED THE BLOCK BELOW FOR DEBUG PURPOSE
      for(int iparam = 0; iparam < senInfo[sindex].numParam; ++iparam) {
        Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > disp(sol.data(),numUncon(),1);
        *allSens.linearstaticWRTthick[iparam] = (*allSens.stiffnessWRTthick[iparam]) * disp;
@@ -3111,9 +3101,6 @@ Domain::makePostSensitivities(AllSensitivities<double> &allSens, GenVector<doubl
    } 
   }
  }
-
- // post processing for sensitivities 
- sensitivityPostProcessing(allSens);
 #endif
 }
 

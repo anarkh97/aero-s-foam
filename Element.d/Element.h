@@ -391,7 +391,7 @@ class Element {
                                            double *coefs, CoordSet &cs, double theta);
 
         virtual FullSquareMatrix stiffness(CoordSet& cs,double *k,int flg=1);
-        virtual void getStiffnessThicknessSensitivity(CoordSet& cs,Vector&,FullSquareMatrix &dStiffdThick, int flg=1, int senMethod=0) { dStiffdThick.zero(); }
+        virtual void getStiffnessThicknessSensitivity(CoordSet& cs,FullSquareMatrix &dStiffdThick, int flg=1, int senMethod=0) { dStiffdThick.zero(); }
         virtual FullSquareMatrix massMatrix(CoordSet& cs,double *m,int cmflg=1);
         virtual FullSquareMatrix imStiffness(CoordSet& cs,double *k,int flg=1);
         FullSquareMatrix massMatrix(CoordSet& cs, double* m, double mratio);
@@ -407,6 +407,9 @@ class Element {
 
         virtual void   getGravityForce(CoordSet&,double *gravity,Vector &force,
                                        int gravflg, GeomState *gs=0);
+
+        virtual void   getGravityForceSensitivityWRTthickness(CoordSet&,double *gravity,Vector &force,
+                                                              int gravflg, GeomState *gs=0);
 
         virtual void   getThermalForce(CoordSet& cs,Vector &ndT,Vector &force,
                                        int glflag, GeomState *gs=0);

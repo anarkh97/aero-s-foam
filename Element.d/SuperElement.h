@@ -58,12 +58,15 @@ class SuperElement : public Element
     void setMaterial(NLMaterial *);
 
     FullSquareMatrix massMatrix(CoordSet& cs, double *m, int cmflg=1);
+    void getStiffnessThicknessSensitivity(CoordSet& cs, FullSquareMatrix &dStiffdThick, int flg=1, int senMethod=0);
 
     double getMass(CoordSet&);
     double weight(CoordSet&, double *, int);
     double weightDerivativeWRTthickness(CoordSet&, double *, int, int=1);
     void getGravityForce(CoordSet &cs, double *gravity, Vector &force,
                          int gravflg, GeomState *gs=0);
+    void getGravityForceSensitivityWRTthickness(CoordSet &cs, double *gravity, Vector &forceSen,
+                                                int gravflg, GeomState *gs=0);
     void getThermalForce(CoordSet &cs, Vector &ndT, Vector &force,
                          int glflag, GeomState *gs=0);
     void getIntrnForce(Vector &elForce, CoordSet &cs,

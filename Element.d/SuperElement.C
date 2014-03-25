@@ -173,6 +173,21 @@ SuperElement::stiffness(CoordSet &cs, double *karray, int flg)
   return ret;
 }
 
+void 
+SuperElement::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix &dStiffdThick, int flg, int senMethod)
+{
+  if(dStiffdThick.dim() !=24) { // 24 is specific to FelippaShellX2
+     cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
+     exit(-1);
+  }
+  dStiffdThick.zero();
+  for(int i = 0; i < nSubElems; ++i) {
+    FullSquareMatrix subdStiffdThick(subElems[i]->numDofs());
+    subElems[i]->getStiffnessThicknessSensitivity(cs, subdStiffdThick, flg, senMethod); 
+    dStiffdThick.add(subdStiffdThick, subElemDofs[i]);
+  }
+}
+
 FullSquareMatrix 
 SuperElement::massMatrix(CoordSet &cs, double *marray, int cmflg)
 {
@@ -267,6 +282,18 @@ SuperElement::getGravityForce(CoordSet &cs, double *gravityAcceleration, Vector 
     Vector subGravityForce(subElems[i]->numDofs());
     subElems[i]->getGravityForce(cs, gravityAcceleration, subGravityForce, gravflg, geomState);
     gravityForce.add(subGravityForce, subElemDofs[i]);
+  }
+}
+
+void
+SuperElement::getGravityForceSensitivityWRTthickness(CoordSet &cs, double *gravityAcceleration,
+                                                     Vector &gravityForceSen, int gravflg, GeomState *geomState)
+{
+  gravityForceSen.zero();
+  for(int i = 0; i < nSubElems; ++i) {
+    Vector subGravityForceSen(subElems[i]->numDofs());
+    subElems[i]->getGravityForceSensitivityWRTthickness(cs, gravityAcceleration, subGravityForceSen, gravflg, geomState);
+    gravityForceSen.add(subGravityForceSen, subElemDofs[i]);
   }
 }
 

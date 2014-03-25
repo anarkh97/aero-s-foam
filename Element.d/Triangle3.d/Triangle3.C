@@ -430,6 +430,23 @@ Triangle3::getGravityForce(CoordSet& cs,double *gravityAcceleration,
 	gravityForce[5] = fy;
 }
 
+void
+Triangle3::getGravityForceSensitivityWRTthickness(CoordSet& cs,double *gravityAcceleration,
+                                                  Vector& gravityForceSensitivity, int gravflg, GeomState *geomState)
+{
+  double massPerNode = getMass(cs)/3.0;
+  
+  double fx = massPerNode*gravityAcceleration[0];
+  double fy = massPerNode*gravityAcceleration[1];
+
+  gravityForceSensitivity[0] = fx;
+  gravityForceSensitivity[1] = fy;
+  gravityForceSensitivity[2] = fx;
+  gravityForceSensitivity[3] = fy;
+  gravityForceSensitivity[4] = fx;
+  gravityForceSensitivity[5] = fy;
+}
+
 FullSquareMatrix
 Triangle3::massMatrix(CoordSet &cs,double *mel,int cmflg)
 {

@@ -27,12 +27,15 @@ public:
 
         FullSquareMatrix stiffness(CoordSet& cs, double *d, int flg=1);
 #ifdef USE_EIGEN3
-        void getStiffnessThicknessSensitivity(CoordSet& cs, Vector &elDisp, FullSquareMatrix &dStiffdThick, int flg=1, int senMethod=0);
+        void getStiffnessThicknessSensitivity(CoordSet& cs, FullSquareMatrix &dStiffdThick, int flg=1, int senMethod=0);
 #endif
         FullSquareMatrix massMatrix(CoordSet& cs,double *mel,int cmflg=1);
 
         void getGravityForce(CoordSet&,double *gravity, Vector&, int gravflg,
 	                     GeomState *gs);
+
+        void getGravityForceSensitivityWRTthickness(CoordSet&,double *gravity, Vector&, int gravflg,
+ 	                     GeomState *gs = 0);
 
         void getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
                          Vector &elDisp, int strInd, int surface = 0,
@@ -51,7 +54,7 @@ public:
         void getVonMisesDisplacementSensitivity(GenFullM<DComplex> &dStdDisp, ComplexVector &weight, CoordSet &cs, ComplexVector &elDisp, 
                                                 int strInd, int surface, int senMethod = 1, double * = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0);
 
-        void getStiffnessThicknessSensitivity(GenFullM<double> &dStiffdThick, CoordSet &cs, Vector &elDisp, 
+        void getStiffnessThicknessSensitivity(GenFullM<double> &dStiffdThick, CoordSet &cs, 
                                                int senMethod, double *, double ylayer = 0, double zlayer = 0);
 
 #endif

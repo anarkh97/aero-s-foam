@@ -24,7 +24,9 @@ public:
         double weightDerivativeWRTthickness(CoordSet&, double *, int, int=1);
 
         void             getGravityForce(CoordSet&,double *gravity, Vector& f, int gravflg,
-	                                 GeomState *gs);
+	                                       GeomState *gs);
+        void getGravityForceSensitivityWRTthickness(CoordSet&,double *gravity, Vector& f, int gravflg,
+                                                    GeomState *gs);
 
         virtual void     getVonMises (Vector &stress, Vector &weight, 
                                       CoordSet &cs, Vector &elDisp, 

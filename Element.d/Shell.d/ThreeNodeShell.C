@@ -370,6 +370,126 @@ ThreeNodeShell::getGravityForce(CoordSet& cs, double *gravityAcceleration,
         gravityForce[17] = mz[2];
 }
 
+void
+ThreeNodeShell::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravityAcceleration, 
+                                                       Vector& gravityForceSensitivity, int gravflg, GeomState *geomState)
+{
+        double mass = getMass(cs);
+        double massPerNodePerThick = mass/(3.0*prop->eh);
+
+        double fx = massPerNodePerThick*gravityAcceleration[0];
+        double fy = massPerNodePerThick*gravityAcceleration[1];
+        double fz = massPerNodePerThick*gravityAcceleration[2];
+        double mx[3],my[3],mz[3];
+        int i;   
+        for(i = 0; i < 3; ++i) {
+          mx[i] = 0.0;
+          my[i] = 0.0;
+          mz[i] = 0.0;
+        }
+
+        // Lumped with no fixed-end moments
+        if (gravflg == 0) {
+
+        }
+        // Consistent or lumped with fixed end moments.  Compute treating shell as 3 beams.
+        else {
+
+          Node &nd1 = cs.getNode(nn[0]);
+          Node &nd2 = cs.getNode(nn[1]);
+          Node &nd3 = cs.getNode(nn[2]);
+          double x[3], y[3], z[3];
+          x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+          x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+          x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
+
+          double T1[3],T2[3],T3[3];
+          // Vector 1 from Node 1->2
+          T1[0] = x[1] - x[0];
+          T1[1] = y[1] - y[0];
+          T1[2] = z[1] - z[0];
+          normalize( T1 );
+          // Vector 2 from Node 1->3
+          T2[0] = x[2] - x[0];
+          T2[1] = y[2] - y[0];
+          T2[2] = z[2] - z[0];
+          normalize( T2 );
+          // Local Z-axis as cross between V1 and V2
+          crossprod( T1, T2, T3 );
+          normalize( T3);
+
+          int beam, beamnode[3][2];
+          beamnode[0][0] = 0;
+          beamnode[0][1] = 1;
+          beamnode[1][0] = 0;
+          beamnode[1][1] = 2;
+          beamnode[2][0] = 1;
+          beamnode[2][1] = 2;
+
+          for(beam=0; beam<3; ++beam) {
+            double length, dx, dy, dz, localg[3];
+            int n1, n2;
+            n1 = beamnode[beam][0];
+            n2 = beamnode[beam][1];
+            dx = x[n2] - x[n1];
+            dy = y[n2] - y[n1];
+            dz = z[n2] - z[n1];
+            length = sqrt(dx*dx + dy*dy + dz*dz);
+            // Local X-axis from Node 1->2
+            T1[0] = x[n2] - x[n1];
+            T1[1] = y[n2] - y[n1];
+            T1[2] = z[n2] - z[n1];
+            normalize( T1 );
+            // Local Y-axis as cross between Z and X
+            crossprod( T3, T1, T2 );
+            normalize( T2);
+
+            for(i = 0; i < 3; ++i)
+              localg[i] = 0.0;
+            for(i = 0; i < 3; ++i) {
+              localg[0] += T1[i]*gravityAcceleration[i];
+              localg[1] += T2[i]*gravityAcceleration[i];
+              localg[2] += T3[i]*gravityAcceleration[i];
+            }
+            double lmy,lmz;
+            if (gravflg == 2) { // consistent
+              lmy = -massPerNodePerThick*localg[2]*length/12.0;
+              lmz = massPerNodePerThick*localg[1]*length/12.0;
+            }
+            else { // lumped with fixed-end moments
+              lmy = -massPerNodePerThick*localg[2]*length/16.0;
+              lmz = massPerNodePerThick*localg[1]*length/16.0;
+            }
+            mx[n1] += ((T2[0]*lmy) + (T3[0]*lmz));
+            my[n1] += ((T2[1]*lmy) + (T3[1]*lmz));
+            mz[n1] += ((T2[2]*lmy) + (T3[2]*lmz));
+            mx[n2] -= ((T2[0]*lmy) + (T3[0]*lmz));
+            my[n2] -= ((T2[1]*lmy) + (T3[1]*lmz));
+            mz[n2] -= ((T2[2]*lmy) + (T3[2]*lmz));
+          }
+        }
+        
+        gravityForceSensitivity[0]  = fx;
+        gravityForceSensitivity[1]  = fy;
+        gravityForceSensitivity[2]  = fz;
+        gravityForceSensitivity[3]  = mx[0];
+        gravityForceSensitivity[4]  = my[0];
+        gravityForceSensitivity[5]  = mz[0];
+        gravityForceSensitivity[6]  = fx;
+        gravityForceSensitivity[7]  = fy;
+        gravityForceSensitivity[8]  = fz;
+        gravityForceSensitivity[9]  = mx[1];
+        gravityForceSensitivity[10] = my[1];
+        gravityForceSensitivity[11] = mz[1];
+        gravityForceSensitivity[12] = fx;
+        gravityForceSensitivity[13] = fy;
+        gravityForceSensitivity[14] = fz;
+        gravityForceSensitivity[15] = mx[2];
+        gravityForceSensitivity[16] = my[2];
+        gravityForceSensitivity[17] = mz[2];
+}
+
+
 FullSquareMatrix
 ThreeNodeShell::massMatrix(CoordSet &cs, double *mel, int cmflg)
 {
@@ -411,24 +531,24 @@ ThreeNodeShell::stiffness(CoordSet &cs, double *d, int flg)
         // Check for phantom element, which has no stiffness
         if (prop == NULL) {
            FullSquareMatrix ret(18,d);
-	   ret.zero();
+           ret.zero();
            return ret;
         }
 
-	Node &nd1 = cs.getNode(nn[0]);
-	Node &nd2 = cs.getNode(nn[1]);
-	Node &nd3 = cs.getNode(nn[2]);
+        Node &nd1 = cs.getNode(nn[0]);
+        Node &nd2 = cs.getNode(nn[1]);
+        Node &nd3 = cs.getNode(nn[2]);
 
-	double x[3], y[3], z[3], h[3];
+        double x[3], y[3], z[3], h[3];
 
-	x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
-	x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
-	x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
+        x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+        x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+        x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
 
-	h[0] = h[1] = h[2] = prop->eh;
+        h[0] = h[1] = h[2] = prop->eh;
 
         // Check for a zero thickness
-	if(h[0] <= 0.0) {
+        if(h[0] <= 0.0) {
           fprintf(stderr," *** ERROR: Zero shell thickness "
                          "(ThreeNodeShell.C) %d %d %d\n",
                          nn[0]+1, nn[1]+1, nn[2]+1);
@@ -442,6 +562,72 @@ ThreeNodeShell::stiffness(CoordSet &cs, double *d, int flg)
        
         return ret;
 }
+
+/*
+#ifdef USE_EIGEN3
+void 
+ThreeNodeShell::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix &dStiffdThick, int flg, int senMethod)
+{
+  if(dStiffdThick.dim() != 18) {
+     cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
+     exit(-1); 
+  }
+
+  // scalar parameters
+  Eigen::Array<double,12,1> dconst;
+
+  Node &nd1 = cs.getNode(nn[0]);
+  Node &nd2 = cs.getNode(nn[1]);
+  Node &nd3 = cs.getNode(nn[2]);
+
+  dconst[0] = nd1.x; dconst[1] = nd2.x; dconst[2] = nd3.x; // x coordinates
+  dconst[3] = nd1.y; dconst[4] = nd2.y; dconst[5] = nd3.y; // y coordinates
+  dconst[6] = nd1.z; dconst[7] = nd2.z; dconst[8] = nd3.z; // z coordinates
+  dconst[9] = prop->E; // E
+  dconst[10] = prop->nu;   // nu
+  dconst[11] = prop->rho;  // rho
+  // integer parameters
+  Eigen::Array<int,0,1> iconst;
+  // inputs
+  Eigen::Matrix<double,1,1> q;
+  q[0] = nmat->GetShellThickness(); //prop->eh;   // value of thickness at which jacobian is to be evaluated
+
+  Eigen::Matrix<double,18,18> dStiffnessdThick;
+  if(senMethod == 0) { // analytic
+
+    double x[3], y[3], z[3];
+    x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+    x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+    x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
+
+    andesstfWRTthick(glNum+1, dStiffnessdThick.data(), prop->nu, x, y, z, type, flg);
+    if(verboseFlag) std::cerr << "dStiffnessdThick(analytic) =\n" << dStiffnessdThick << std::endl;
+  }
+
+  if(senMethod == 1) { // automatic differentiation
+    Simo::FirstPartialSpaceDerivatives<double, FelippaShellStiffnessWRTThicknessSensitivity> dSdh(dconst,iconst); 
+    Eigen::Array<Eigen::Matrix<double,18,18>,1,1> dStifdThick = dSdh(q, 0);
+    if(verboseFlag) std::cerr << "dStifdThick(AD) =\n" << dStifdThick[0] << std::endl;
+    dStiffnessdThick = dStifdThick[0];
+  }
+
+  if(senMethod == 2) { // finite difference
+    FelippaShellStiffnessWRTThicknessSensitivity<double> foo(dconst,iconst);
+    Eigen::Matrix<double,1,1> qp, qm;
+    double h(1e-6);
+    qp[0] = q[0] + h;   qm[0] = q[0] - h;
+    Eigen::Matrix<double,18,18> Sp = foo(qp, 0);
+    Eigen::Matrix<double,18,18> Sm = foo(qm, 0);
+    dStiffnessdThick = (Sp-Sm)/(2*h);
+    if(verboseFlag) std::cerr << "dStiffnessdThick(FD) =\n" << dStiffnessdThick << std::endl;
+  }
+
+  dStiffdThick.copy(dStiffnessdThick.data());
+
+}
+#endif
+*/
+
 
 int
 ThreeNodeShell::numNodes()

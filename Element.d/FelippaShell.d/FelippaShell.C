@@ -303,6 +303,135 @@ FelippaShell::getGravityForce(CoordSet& cs, double *gravityAcceleration,
   gravityForce[17] = mz[2];
 }
 
+void
+FelippaShell::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravityAcceleration, 
+                                                     Vector& gravityForceSensitivity, int gravflg, GeomState *geomState)
+{
+  if (prop == NULL) {
+    gravityForceSensitivity.zero();
+    return;
+  }
+
+  double x[3] = { cs[nn[0]]->x, cs[nn[1]]->x, cs[nn[2]]->x };
+  double y[3] = { cs[nn[0]]->y, cs[nn[1]]->y, cs[nn[2]]->y };
+  double z[3] = { cs[nn[0]]->z, cs[nn[1]]->z, cs[nn[2]]->z };
+  double grvforSen[3];
+  bool grvflg = true, masflg = false;
+  double totmas = 0;
+
+  andesmsWRTthic(glNum+1, x, y, z, gravityAcceleration, grvforSen, grvflg);
+
+  // scale gravity force by number of nodes
+  grvforSen[0] /= 3.0;
+  grvforSen[1] /= 3.0;
+  grvforSen[2] /= 3.0;
+
+  double mx[3],my[3],mz[3];
+  int i;
+  for(i=0; i<3; ++i) {
+    mx[i]=0.0;
+    my[i]=0.0;
+    mz[i]=0.0;
+  }
+
+  // Lumped
+  if(gravflg == false) {
+
+  }
+  // Consistent or lumped with fixed end moments.  Compute treating shell as 3 beams.
+  else {
+    //Node &nd1 = cs.getNode(nn[0]);
+    //Node &nd2 = cs.getNode(nn[1]);
+    //Node &nd3 = cs.getNode(nn[2]);
+
+    double T1[3],T2[3],T3[3];
+    // Vector 1 from Node 1->2
+    T1[0] = x[1] - x[0];
+    T1[1] = y[1] - y[0];
+    T1[2] = z[1] - z[0];
+    normalize( T1 );
+    // Vector 2 from Node 1->3
+    T2[0] = x[2] - x[0];
+    T2[1] = y[2] - y[0];
+    T2[2] = z[2] - z[0];
+    normalize( T2 );
+    // Local Z-axis as cross between V1 and V2
+    crossprod( T1, T2, T3 );
+    normalize( T3);
+
+    int beam, beamnode[3][2];
+    beamnode[0][0] = 0;
+    beamnode[0][1] = 1;
+    beamnode[1][0] = 0;
+    beamnode[1][1] = 2;
+    beamnode[2][0] = 1;
+    beamnode[2][1] = 2;
+
+    for(beam=0; beam<3; ++beam) {
+      double length, dx, dy, dz, localg[3];
+      int n1, n2;
+      n1 = beamnode[beam][0];
+      n2 = beamnode[beam][1];
+      dx = x[n2] - x[n1];
+      dy = y[n2] - y[n1];
+      dz = z[n2] - z[n1];
+      length = sqrt(dx*dx + dy*dy + dz*dz);
+      // Local X-axis from Node 1->2
+      T1[0] = x[n2] - x[n1];
+      T1[1] = y[n2] - y[n1];
+      T1[2] = z[n2] - z[n1];
+      normalize( T1 );
+      // Local Y-axis as cross between Z and X
+      crossprod( T3, T1, T2 );
+      normalize( T2);
+
+      for(i=0; i<3; ++i)
+        localg[i] = 0.0;
+      for(i=0; i<3; ++i) {
+        localg[0] += T1[i]*grvforSen[i];
+        localg[1] += T2[i]*grvforSen[i];
+        localg[2] += T3[i]*grvforSen[i];
+      }
+      double lmy,lmz;
+      if (gravflg == 2) { // consistent
+        lmy = -localg[2]*length/12.0;
+        lmz = localg[1]*length/12.0;
+      }
+      else { // lumped with fixed-end moments
+        lmy = -localg[2]*length/16.0;
+        lmz = localg[1]*length/16.0;
+      }
+      mx[n1] += ((T2[0]*lmy) + (T3[0]*lmz));
+      my[n1] += ((T2[1]*lmy) + (T3[1]*lmz));
+      mz[n1] += ((T2[2]*lmy) + (T3[2]*lmz));
+      mx[n2] -= ((T2[0]*lmy) + (T3[0]*lmz));
+      my[n2] -= ((T2[1]*lmy) + (T3[1]*lmz));
+      mz[n2] -= ((T2[2]*lmy) + (T3[2]*lmz));
+    }
+  }
+
+  // set gravity force
+  gravityForceSensitivity[0]  = grvforSen[0];
+  gravityForceSensitivity[1]  = grvforSen[1];
+  gravityForceSensitivity[2]  = grvforSen[2];
+  gravityForceSensitivity[3]  = mx[0];
+  gravityForceSensitivity[4]  = my[0];
+  gravityForceSensitivity[5]  = mz[0];
+  gravityForceSensitivity[6]  = grvforSen[0];
+  gravityForceSensitivity[7]  = grvforSen[1];
+  gravityForceSensitivity[8]  = grvforSen[2];
+  gravityForceSensitivity[9]  = mx[1];
+  gravityForceSensitivity[10] = my[1];
+  gravityForceSensitivity[11] = mz[1];
+  gravityForceSensitivity[12] = grvforSen[0];
+  gravityForceSensitivity[13] = grvforSen[1];
+  gravityForceSensitivity[14] = grvforSen[2];
+  gravityForceSensitivity[15] = mx[2];
+  gravityForceSensitivity[16] = my[2];
+  gravityForceSensitivity[17] = mz[2];
+}
+
+
 double
 FelippaShell::getMass(CoordSet &cs)
 { 
@@ -1316,7 +1445,7 @@ FelippaShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
 
 #ifdef USE_EIGEN3
 void 
-FelippaShell::getStiffnessThicknessSensitivity(CoordSet &cs, Vector &elDisp, FullSquareMatrix &dStiffdThick, int flg, int senMethod)
+FelippaShell::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix &dStiffdThick, int flg, int senMethod)
 {
    if(dStiffdThick.dim() != 18) {
      cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
@@ -1324,7 +1453,7 @@ FelippaShell::getStiffnessThicknessSensitivity(CoordSet &cs, Vector &elDisp, Ful
    }
 
   // scalar parameters
-  Eigen::Array<double,30,1> dconst;
+  Eigen::Array<double,12,1> dconst;
 
   Node &nd1 = cs.getNode(nn[0]);
   Node &nd2 = cs.getNode(nn[1]);
@@ -1333,10 +1462,9 @@ FelippaShell::getStiffnessThicknessSensitivity(CoordSet &cs, Vector &elDisp, Ful
   dconst[0] = nd1.x; dconst[1] = nd2.x; dconst[2] = nd3.x; // x coordinates
   dconst[3] = nd1.y; dconst[4] = nd2.y; dconst[5] = nd3.y; // y coordinates
   dconst[6] = nd1.z; dconst[7] = nd2.z; dconst[8] = nd3.z; // z coordinates
-  dconst.segment<18>(9) = Eigen::Map<Eigen::Matrix<double,18,1> >(elDisp.data()).segment(0,18); // displacements 
-  dconst[27] = prop->E; // E
-  dconst[28] = prop->nu;   // nu
-  dconst[29] = prop->rho;  // rho
+  dconst[9] = prop->E; // E
+  dconst[10] = prop->nu;   // nu
+  dconst[11] = prop->rho;  // rho
   // integer parameters
   Eigen::Array<int,0,1> iconst;
   // inputs
@@ -1351,9 +1479,7 @@ FelippaShell::getStiffnessThicknessSensitivity(CoordSet &cs, Vector &elDisp, Ful
     x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
     x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
 
-    double *fint = NULL;
-
-    andesstfWRTthick(glNum+1, dStiffnessdThick.data(), fint, prop->nu, x, y, z, elDisp.data(), type, flg);
+    andesstfWRTthick(glNum+1, dStiffnessdThick.data(), prop->nu, x, y, z, type, flg);
     if(verboseFlag) std::cerr << "dStiffnessdThick(analytic) =\n" << dStiffnessdThick << std::endl;
   }
 

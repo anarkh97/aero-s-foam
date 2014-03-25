@@ -11,7 +11,6 @@
 #include <Threads.d/PHelper.h>
 #include <Paral.d/SubDOp.h>
 #ifdef DISTRIBUTED
-#include <Utils.d/DistHelper.h>
 #include <Dist.d/DistDom.h>
 #endif
 #include <Driver.d/DecDomain.h>
@@ -751,6 +750,12 @@ MultiDomainDynam::getConstForce(DistrVector& v)
 }
 
 void
+MultiDomainDynam::addConstForceSensitivity(DistrVector& v)
+{
+  filePrint(stderr," ... MultiDomainDynam::addConstForceSensitivity is not implemented \n");
+}
+
+void
 MultiDomainDynam::getInitState(SysState<DistrVector>& state)
 {
   // initialize state with IDISP/IDISP6/IVEL/IACC or RESTART
@@ -1107,6 +1112,20 @@ MultiDomainDynam::computeTimeInfo()
     domain->solInfo().tmax = maxStep*dt;
     filePrint(stderr, " Warning: Total time is being changed to : %e\n", domain->solInfo().tmax);
   }
+}
+
+int
+MultiDomainDynam::aeroSensitivityPreProcess(DistrVector &disp, DistrVector &vel, DistrVector &accel, DistrVector &lastVel)  
+{
+  filePrint(stderr," ... MultiDomainDynam::aeroSensitivityPreProcess has not been implemented\n");
+  return 0;
+}
+
+int
+MultiDomainDynam::sendDisplacements(DistrVector &disp, DistrVector &vel, DistrVector &accel, DistrVector &lastVel)  
+{
+  filePrint(stderr," ... MultiDomainDynam::sendDisplacements has not been implemented\n");
+  return 0;
 }
 
 int

@@ -112,6 +112,66 @@ FlExchanger::getFluidLoad(Vector& force, int tIndex, double time,
  return (time+alphaf*dt);
 }
 
+
+double
+FlExchanger::getFluidLoadSensitivity(Vector& forceSen, int tIndex, double time,
+                                     double alphaf, int& iscollocated, GeomState* geomState)
+{
+ aforce[0] = aforce[1] = aforce[2]=0.0;
+ int i,j,iDof;
+
+ FaceElemSet *feset;
+ if(useFaceElem) {
+   feset = &(surface->GetFaceElemSet());
+ }
+
+ Element     *thisElement;
+ FaceElement *thisFaceElem;
+
+ for(i=0; i<nbrReceivingFromMe; i++) {
+     int fromNd;
+     int tag =  FLTOSTSEN + ((rcvParity > 0) ? 1 : 0) ;
+     RecInfo rInfo = fluidCom->recFrom(tag, buffer, bufferLen);
+     fromNd = rInfo.cpu;
+     int origin = consOrigin[fromNd];
+     for(j=0; j<nbSendTo[origin]; ++j) {
+        int nDof;
+        if(!useFaceElem) {
+          thisElement = eset[sndTable[origin][j].elemNum];
+          thisElement->getFlLoad(cs, sndTable[origin][j], buffer+3*j, localF, geomState);
+          nDof = thisElement->numDofs();
+        } else {
+          thisFaceElem = (*feset)[sndTable[origin][j].elemNum];
+          thisFaceElem->getFlLoad(sndTable[origin][j], buffer+3*j, localF);
+          nDof = thisFaceElem->numDofs();
+        }
+        int *dof = sndTable[origin][j].dofs;
+        for(iDof=0; iDof<nDof; ++iDof)
+          if(dof[iDof] >= 0) {
+            forceSen[dof[iDof]] += localF[iDof];
+          }
+        aforce[0] += buffer[3*j];
+        aforce[1] += buffer[3*j+1];
+        aforce[2] += buffer[3*j+2];
+     }
+ }
+
+ flipRcvParity();
+
+ if(oinfo) {
+   if (tIndex % oinfo->interval == 0 && oinfo->filptr != NULL) {
+     fprintf(oinfo->filptr,"%e   ",time);
+     fprintf(oinfo->filptr,"%e %e %e\n",aforce[0],aforce[1],aforce[2]);
+     fflush(oinfo->filptr);
+   }
+ }
+
+ // ML & KP For 'corrected' aeroelastic forceSen
+ iscollocated = (isCollocated) ? 1 : 0;
+ return (time+alphaf*dt);
+}
+
+
 /*
         Inform the Fluid Code About the Selected AeroeElasticity
         Algorithms and Structure Time Step
@@ -171,7 +231,6 @@ FlExchanger::sendDisplacements(State& state, int tag, GeomState* geomState)
      yyy += buffer[ip+3]*buffer[ip+3] + buffer[ip+4]*buffer[ip+4] +
             buffer[ip+5]*buffer[ip+5];
    }
-
    fluidCom->sendTo(fluidNode, tag, buffer+origPos, pos-origPos);
 
  }

@@ -8,6 +8,7 @@
 
 template<class VecType> class SysState;
 class FlExchanger;
+template <typename Scalar> struct AllSensitivities;
 
 template <class Scalar>
 class ModalDescr : public ModalBase {
@@ -17,6 +18,7 @@ class ModalDescr : public ModalBase {
 private:
 
   ModalOps modalOps;
+  AllSensitivities<Scalar> *allSens;
 
 public:
 
@@ -28,6 +30,8 @@ public:
   void expand(const Vector &modalV, Vector& fullV);
 
   void preProcess();
+  void preProcessSA() {  filePrint(stderr," ... ModalDescr::preProcessSA is not implemented\n");  exit(-1);  }
+  void postProcessSA(Vector &sol) {  filePrint(stderr," ... ModalDescr::postProcessSA is not implemented\n");  exit(-1);  }
   void processLastOutput();
 
   ModalDescr* getPostProcessor() { return this; }
@@ -41,11 +45,13 @@ public:
   int bcInfo() {return 0;}
 
   void getConstForce(Vector &constF);
+  void addConstForceSensitivity(Vector &gravityForceSen);
   void getSteadyStateParam(int &flag, int &min, int &max, double &tol);
   int getTimeIntegration() { return domain->solInfo().timeIntegration; }
   void getNewMarkParameters(double &beta, double &gamma,
     double &alphaf, double  &alpham);
   Domain *getDomain() { return domain; };
+  AllSensitivities<Scalar> *getAllSensitivities() { return allSens; }
   void getInitialTime(int &tIndex, double &time);
   void getRayleighCoef(double &alpha) { alpha =  domain->solInfo().alphaDamp; }
 
@@ -62,6 +68,10 @@ public:
   void computeExtForce2(SysState<Vector>& state, Vector &extF,
                         Vector &constF, int tIndex, double time, Vector *aeroF = 0,
                         double gamma = 0.5, double alphaf = 0.5);
+  void getAeroelasticForceSensitivity(int t_index, double t, Vector * aero_f=0, double gamma=0.5, double alphaf=0.5) {
+      filePrint(stderr," ... ModalDescr::getAeroelasticForceSensitivity\n");  exit(-1);
+  }
+
   void getInternalForce(Vector &d, Vector &f, double t, int tIndex);
 
   void printTimers(ModalOps *, double) { /* leave blank */}
@@ -76,6 +86,8 @@ public:
 
   void computeTimeInfo() {};
   int aeroPreProcess(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p);
+  int aeroSensitivityPreProcess(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p);
+  int sendDisplacements(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p);
   int cmdCom(int cmdFlag){ return flExchanger->cmdCom(cmdFlag); }
  
   void a5TimeLoopCheck(int& parity, double& t, double dt);

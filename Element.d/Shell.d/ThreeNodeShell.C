@@ -11,6 +11,7 @@
 #include <Element.d/Shell.d/ShellElementSemiTemplate.cpp>
 #include <Element.d/Shell.d/ThreeNodeShellStressWRTDisplacementSensitivity.h>
 #include <Element.d/Shell.d/ThreeNodeShellStressWRTThicknessSensitivity.h>
+#include <Element.d/Shell.d/ThreeNodeShellStiffnessWRTThicknessSensitivity.h>
 #include <Element.d/State.h>
 #include <Element.d/Function.d/SpaceDerivatives.h>
 #include <Hetero.d/InterpPoint.h>
@@ -556,14 +557,14 @@ ThreeNodeShell::stiffness(CoordSet &cs, double *d, int flg)
           exit(-1);
         }
 
-        _FORTRAN(tria3d)(flg, x, y, z, prop->E, prop->nu, h, (double *)d);
+//        _FORTRAN(tria3d)(flg, x, y, z, prop->E, prop->nu, h, (double *)d);
+        tria3d(flg, x, y, z, prop->E, prop->nu, h, d);
 
         FullSquareMatrix ret(18,d);
        
         return ret;
 }
 
-/*
 #ifdef USE_EIGEN3
 void 
 ThreeNodeShell::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix &dStiffdThick, int flg, int senMethod)
@@ -574,7 +575,7 @@ ThreeNodeShell::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix 
   }
 
   // scalar parameters
-  Eigen::Array<double,12,1> dconst;
+  Eigen::Array<double,11,1> dconst;
 
   Node &nd1 = cs.getNode(nn[0]);
   Node &nd2 = cs.getNode(nn[1]);
@@ -585,34 +586,36 @@ ThreeNodeShell::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix 
   dconst[6] = nd1.z; dconst[7] = nd2.z; dconst[8] = nd3.z; // z coordinates
   dconst[9] = prop->E; // E
   dconst[10] = prop->nu;   // nu
-  dconst[11] = prop->rho;  // rho
   // integer parameters
-  Eigen::Array<int,0,1> iconst;
+  Eigen::Array<int,1,1> iconst;
+  iconst[0] = flg; 
   // inputs
   Eigen::Matrix<double,1,1> q;
-  q[0] = nmat->GetShellThickness(); //prop->eh;   // value of thickness at which jacobian is to be evaluated
+  q[0] = prop->eh;   // value of thickness at which jacobian is to be evaluated
 
   Eigen::Matrix<double,18,18> dStiffnessdThick;
   if(senMethod == 0) { // analytic
-
-    double x[3], y[3], z[3];
+/*
+    double x[3], y[3], z[3], h[3];
     x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
     x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
     x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
-
+    h[0] = h[1] = h[2] = prop->eh;
+   
     andesstfWRTthick(glNum+1, dStiffnessdThick.data(), prop->nu, x, y, z, type, flg);
     if(verboseFlag) std::cerr << "dStiffnessdThick(analytic) =\n" << dStiffnessdThick << std::endl;
+*/
   }
 
   if(senMethod == 1) { // automatic differentiation
-    Simo::FirstPartialSpaceDerivatives<double, FelippaShellStiffnessWRTThicknessSensitivity> dSdh(dconst,iconst); 
+    Simo::FirstPartialSpaceDerivatives<double, ThreeNodeShellStiffnessWRTThicknessSensitivity> dSdh(dconst,iconst); 
     Eigen::Array<Eigen::Matrix<double,18,18>,1,1> dStifdThick = dSdh(q, 0);
     if(verboseFlag) std::cerr << "dStifdThick(AD) =\n" << dStifdThick[0] << std::endl;
     dStiffnessdThick = dStifdThick[0];
   }
 
   if(senMethod == 2) { // finite difference
-    FelippaShellStiffnessWRTThicknessSensitivity<double> foo(dconst,iconst);
+    ThreeNodeShellStiffnessWRTThicknessSensitivity<double> foo(dconst,iconst);
     Eigen::Matrix<double,1,1> qp, qm;
     double h(1e-6);
     qp[0] = q[0] + h;   qm[0] = q[0] - h;
@@ -626,8 +629,6 @@ ThreeNodeShell::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix 
 
 }
 #endif
-*/
-
 
 int
 ThreeNodeShell::numNodes()

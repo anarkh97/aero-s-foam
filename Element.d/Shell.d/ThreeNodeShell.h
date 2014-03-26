@@ -23,6 +23,7 @@ public:
         void renum(EleRenumMap&);
 
         FullSquareMatrix stiffness(CoordSet&, double *d, int flg=1);
+        void getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix &dStiffdThick, int flg, int senMethod);
         FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg=1);
 	double           getMass(CoordSet& cs);
         double weight(CoordSet&, double *, int);

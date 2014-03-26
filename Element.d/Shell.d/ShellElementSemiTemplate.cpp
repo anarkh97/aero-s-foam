@@ -1546,7 +1546,7 @@ template<typename doublereal>
 void
 ShellElementSemiTemplate<doublereal>
 ::tria3d(bool flag, doublereal *_xl, doublereal *_yl, doublereal *_zl,
-         doublereal e, doublereal nu, doublereal h, doublereal *_rk)
+         doublereal e, doublereal nu, doublereal *_h, doublereal *_rk)
 {
 /*
 c-------------------------------------------------------------------*
@@ -1581,22 +1581,22 @@ c
 *-------------------------------------------------------------------*/
 
         Eigen::Map<Eigen::Matrix<doublereal,18,18,Eigen::RowMajor> > rk(_rk);
-        Eigen::Map<Eigen::Matrix<doublereal,3,1> > xl(_xl), yl(_yl), zl(_zl);
-        Eigen::Matrix<doublereal,3,1> h, xp, yp, zp, xlp, ylp, zlp, v1n, v2n, v3n;
+        Eigen::Map<Eigen::Matrix<doublereal,3,1> > xl(_xl), yl(_yl), zl(_zl), h(_h);
+        Eigen::Matrix<doublereal,3,1> xp, yp, zp, xlp, ylp, zlp, v1n, v2n, v3n;
         Eigen::Matrix<doublereal,3,3> db, dm, r1;
         Eigen::Matrix<doublereal,18,18> rkm, rkb;
         doublereal cb,x21,y21,z21,x32,y32,z32,x13,y13,z13;
         doublereal rlr,rlb,bpr,area,ylr,zlr;
         doublereal ycg,xcg,zcg,xlcg,ylcg,zlcg,esp;
-        const doublereal f(1,0);
+        const doublereal f(1.0);
         const doublereal clr(0);
         const doublereal cqr(1.0);
         const doublereal alpha(1.5);
-        Eigen::Matrix<int,9,1> int lb,le;
-        int i,j, flag;
+        Eigen::Matrix<int,9,1> lb,le;
+        int i,j;
         char status[10];
-        lb << 3,4,5,9,10,11,15,16,17;
-        le << 1,2,7,8,13,14,6,12,18;
+        lb << 2,3,4,8,9,10,14,15,16;
+        le << 0,1,6,7,12,13,5,11,17;
         v1n << 1.0,0.0,0.0;
         v2n << 0.0,1.0,0.0;
         v3n << 0.0,0.0,1.0;
@@ -1608,7 +1608,7 @@ c
         esp = h[0];
 
 // bending elastic matrix
-        cb      = e*esp**3/12.0/(1.0-(nu*nu));
+        cb      = e*esp*esp*esp/12.0/(1.0-(nu*nu));
         db(0,0) =    cb;
         db(0,1) = nu*cb;
         db(0,2) = 0.0;
@@ -1645,7 +1645,7 @@ c
 // opposing node to that side to compute the area
         rlr = sqrt( x21*x21 + y21*y21 + z21*z21 );
         rlb = sqrt( x32*x32 + y32*y32 + z32*z32 );
-        bpr = abs(x21 * x32 + y21 * y32 + z21 *z32 )/rlr;
+        bpr = sqrt((x21 * x32 + y21 * y32 + z21 *z32 )*(x21 * x32 + y21 * y32 + z21 *z32 ))/rlr;
         area= rlr*(sqrt(rlb*rlb-bpr*bpr))/2.0;
 // direction cosines of the local system . X' is directed parallel 
 // to the 2-1 side
@@ -1689,6 +1689,7 @@ c
         rkb.setZero();
 
 // form local basic bending stiffness
+        
         basico(xlp.data(),ylp.data(),db.data(),1.0,clr,cqr,lb.data(),rkb.data(),18,status);
 
 // form local basic membrane stiffness
@@ -1698,10 +1699,10 @@ c
         smcbh(xlp.data(),ylp.data(),db.data(),1.0,lb.data(),rkb.data(),18,status);
 
 // form local higher order membrane stiffness
-      call sm3mhe(xlp,ylp,dm,0.32d+00,le,rkm,18,status);
+        sm3mhe(xlp.data(),ylp.data(),dm.data(),0.32,le.data(),rkm.data(),18,status);
 
 // add bending stiffness and membrane stiffness
-      rk = rkb + rkm;
+        rk = rkb + rkm;
 
 // rotate stiffness matrix from local coordinate system to global
 // coordinate system in the case of linear FEM. In the case of
@@ -1710,8 +1711,8 @@ c
 // matrix in local coordinates.
       if(flag) {
 //     compute local to global rotation matrix
-        call rotation(xp,yp,zp,v1n,v2n,v3n,r1);
-        call trirotation(rk,r1);
+        rotation(xp.data(),yp.data(),zp.data(),v1n.data(),v2n.data(),v3n.data(),r1.data());
+        trirotation(rk.data(),r1.data());
       }
 }
 
@@ -1719,12 +1720,12 @@ template<typename doublereal>
 void
 ShellElementSemiTemplate<doublereal>
 ::basico(doublereal *_x, doublereal *_y, doublereal *_db, doublereal f, 
-         doublereal clr, doublereal cqr, doublereal *_ls, doublereal *_sm, int m, char *status)
+         doublereal clr, doublereal cqr, int *_ls, doublereal *_sm, int m, char *status)
 {
       Eigen::Map<Eigen::Matrix<doublereal,3,1> > x(_x), y(_y);
       Eigen::Map<Eigen::Matrix<doublereal,3,3> > db(_db);
       Eigen::Map<Eigen::Matrix<doublereal,Eigen::Dynamic,Eigen::Dynamic> > sm(_sm,m,m);
-      Eigen::Map<Eigen::Matrix<doublereal,9,1> > ls(_ls);
+      Eigen::Map<Eigen::Matrix<int,9,1> > ls(_ls);
       
 //    t y p e   &   d i m e n s i o n
       Eigen::Matrix<doublereal,9,3> llr,lqr,l;
@@ -1848,28 +1849,29 @@ ShellElementSemiTemplate<doublereal>
       db12 =     c*db(0,1);
       db13 =     c*db(0,2);
       db23 =     c*db(1,2);
+     
       for(j=0; j<9; ++j) {
         jj =     ls[j];
         s1 =     db11*l(j,0) + db12*l(j,1) + db13*l(j,2);
         s2 =     db12*l(j,0) + db22*l(j,1) + db23*l(j,2);
         s3 =     db13*l(j,0) + db23*l(j,1) + db33*l(j,2);
-        for(i=0; i<j; ++i) {
+        for(i=0; i<=j; ++i) {
           ii =      ls[i];
           sm(jj,ii) =  sm(jj,ii) + (s1*l(i,0)+s2*l(i,1)+s3*l(i,2));
           sm(ii,jj) =  sm(jj,ii);
         }
       }
-      return;
 }
 
 template<typename doublereal>
 void
 ShellElementSemiTemplate<doublereal>
 ::sm3mb(doublereal *_x, doublereal *_y, doublereal *_dm, 
-        doublereal alpha, doublereal f, doublereal *_ls, doublereal *_sm, int m, char *status)
+        doublereal alpha, doublereal f, int *_ls, doublereal *_sm, int m, char *status)
 {
       Eigen::Map<Eigen::Matrix<doublereal,3,1> > x(_x), y(_y);
       Eigen::Map<Eigen::Matrix<doublereal,3,3> > dm(_dm);
+      Eigen::Map<Eigen::Matrix<int,9,1> > ls(_ls);
       Eigen::Matrix<doublereal,9,3> p(9,3);
       Eigen::Map<Eigen::Matrix<doublereal,Eigen::Dynamic,Eigen::Dynamic> > sm(_sm,m,m);
       doublereal   area2, c;
@@ -1878,7 +1880,7 @@ ShellElementSemiTemplate<doublereal>
       doublereal   x12, x23, x31, y12, y23, y31;
       doublereal   s1, s2, s3;
 
-      integer       i, j, k, l, n;
+      int          i, j, k, l, n;
 
 //                   L O G I C
 
@@ -1899,7 +1901,7 @@ ShellElementSemiTemplate<doublereal>
       if (area2 <= 0.0) {
         status = "SM3MB: Zero area";
         if (area2 == 0.0)   status = "SM3MB: Zero area";
-        return
+        return;
       }
       p(0,0) =   y23;
       p(1,0) =   0.0;
@@ -1921,8 +1923,8 @@ ShellElementSemiTemplate<doublereal>
       p(5,2) =   y12;
       n =        6;
       if (alpha != 0.0) {
-        coef1  = alpha/6.0;
-        coef2  = alpha/3.0;
+        doublereal coef1  = alpha/6.0;
+        doublereal coef2  = alpha/3.0;
         p(6,0) =  y23*(y13-y21)*coef1;
         p(6,1) =  x32*(x31-x12)*coef1;
         p(6,2) =  (x31*y13-x12*y21)*coef2;
@@ -1946,8 +1948,8 @@ ShellElementSemiTemplate<doublereal>
         s1 =     d11*p(j,0) + d12*p(j,1) + d13*p(j,2);
         s2 =     d12*p(j,0) + d22*p(j,1) + d23*p(j,2);
         s3 =     d13*p(j,0) + d23*p(j,1) + d33*p(j,2);
-        for(i = 0; i < j; ++i) {
-          k =      ls(i);
+        for(i = 0; i <= j; ++i) {
+          k =      ls[i];
           sm(k,l) =  sm(k,l) + (s1*p(i,0) + s2*p(i,1) + s3*p(i,2));
           sm(l,k) =  sm(k,l);
         }
@@ -1978,7 +1980,7 @@ ShellElementSemiTemplate<doublereal>
       int    i, j, k, l;
       pg << 0,0.5,0.5,0.5,0.,0.5,0.5,0.5,0.;
 
-      status =   ' ';
+      status =   " ";
       rm.setZero();
       q.setZero();
       rsd.setZero();
@@ -2000,7 +2002,7 @@ ShellElementSemiTemplate<doublereal>
       area2 = y21*x13 - x21*y13;
       if (area2 <= 0.0) {
         status = "nega_area";
-        if (area2 .eq. 0.0)   status = "zero_area";
+        if (area2 == 0.0)   status = "zero_area";
         return;
       }
 //          side lenghts
@@ -2023,7 +2025,7 @@ ShellElementSemiTemplate<doublereal>
       sq(1,0)=(  x21*x32*x32*y21 - x21*x21*x32*y32)/cc;
       sq(1,1)=( -x13*x32*x32*y13 + x13*x13*x32*y32)/cc;
       sq(1,2)=( -x21*x13*x13*y21 + x21*x21*x13*y13)/cc;
-      sq(2,0)=(  x21*x32*y32*y32  - x32*x32*y21*y21)/cc;
+      sq(2,0)=(  x21*x21*y32*y32  - x32*x32*y21*y21)/cc;
       sq(2,1)=( -x13*x13*y32*y32  + x32*x32*y13*y13)/cc;
       sq(2,2)=( -x21*x21*y13*y13  + x13*x13*y21*y21)/cc;
       d11 =      db(0,0);
@@ -2037,7 +2039,7 @@ ShellElementSemiTemplate<doublereal>
         s1=   d11*sq(0,j) + d12*sq(1,j) + d13*sq(2,j);
         s2=   d12*sq(0,j) + d22*sq(1,j) + d23*sq(2,j);
         s3=   d13*sq(0,j) + d23*sq(1,j) + d33*sq(2,j);
-        for(i=0; i<j; ++i) {
+        for(i=0; i<=j; ++i) {
           sds(i,j)= sds(i,j)+ (s1*sq(0,i)+s2*sq(1,i)+s3*sq(2,i));
           sds(j,i)= sds(i,j);
         }
@@ -2091,7 +2093,7 @@ ShellElementSemiTemplate<doublereal>
 //    compute rm in the integration point
         rm(0,0)= l3 +al1 *l2 -(1.+al1)/3.;
         rm(0,1)= l1 +bl1 *l2 -(1.+bl1)/3.;
-        rm(0,2)= l1 +al2 *l3 -(1.+al2)/3.;
+        rm(1,2)= l1 +al2 *l3 -(1.+al2)/3.;
         rm(1,3)= l2 +bl2 *l3 -(1.+bl2)/3.;
         rm(2,4)= l2 +al3 *l1 -(1.+al3)/3.;
         rm(2,5)= l3 +bl3 *l1 -(1.+bl3)/3.;
@@ -2099,27 +2101,282 @@ ShellElementSemiTemplate<doublereal>
           s1=sds(0,0)*rm(0,j)+sds(0,1)*rm(1,j)+sds(0,2)*rm(2,j);
           s2=sds(1,0)*rm(0,j)+sds(1,1)*rm(1,j)+sds(1,2)*rm(2,j);
           s3=sds(2,0)*rm(0,j)+sds(2,1)*rm(1,j)+sds(2,2)*rm(2,j);
-          for( i=0; i<j; ++i) {
+          for( i=0; i<=j; ++i) {
             rsd(i,j)=rsd(i,j)+(s1*rm(0,i)+s2*rm(1,i)+s3*rm(2,i));
             rsd(j,i)=rsd(i,j);
           }
         }
       }
       for (j=0; j<9; ++j) {
-        k =ls(j)
+        k =ls[j];
         s1=rsd(0,0)*q(0,j)+rsd(0,1)*q(1,j)+rsd(0,2)*q(2,j)+rsd(0,3)*q(3,j)+rsd(0,4)*q(4,j)+rsd(0,5)*q(5,j);
         s2=rsd(1,0)*q(0,j)+rsd(1,1)*q(1,j)+rsd(1,2)*q(2,j)+rsd(1,3)*q(3,j)+rsd(1,4)*q(4,j)+rsd(1,5)*q(5,j);
         s3=rsd(2,0)*q(0,j)+rsd(2,1)*q(1,j)+rsd(2,2)*q(2,j)+rsd(2,3)*q(3,j)+rsd(2,4)*q(4,j)+rsd(2,5)*q(5,j);
         s4=rsd(3,0)*q(0,j)+rsd(3,1)*q(1,j)+rsd(3,2)*q(2,j)+rsd(3,3)*q(3,j)+rsd(3,4)*q(4,j)+rsd(3,5)*q(5,j);
         s5=rsd(4,0)*q(0,j)+rsd(4,1)*q(1,j)+rsd(4,2)*q(2,j)+rsd(4,3)*q(3,j)+rsd(4,4)*q(4,j)+rsd(4,5)*q(5,j);
         s6=rsd(5,0)*q(0,j)+rsd(5,1)*q(1,j)+rsd(5,2)*q(2,j)+rsd(5,3)*q(3,j)+rsd(5,4)*q(4,j)+rsd(5,5)*q(5,j);
-        for (i=0; i<j; ++i) {
-          l = ls(i);
+        for (i=0; i<=j; ++i) {
+          l = ls[i];
           sm(l,k)=sm(l,k)+(s1*q(0,i)+s2*q(1,i)+s3*q(2,i)+s4*q(3,i)+s5*q(4,i)+s6*q(5,i));
           sm(k,l)=sm(l,k);
         }
        }
-      return;
+}
+
+template<typename doublereal>
+void
+ShellElementSemiTemplate<doublereal>
+::sm3mhe(doublereal *_x, doublereal *_y, doublereal *_dm, doublereal f, int *_ls, doublereal *_sm, int m, char *status)
+{
+      Eigen::Map<Eigen::Matrix<doublereal,3,1> > x(_x), y(_y);
+      Eigen::Map<Eigen::Matrix<int,9,1> > ls(_ls);
+      Eigen::Map<Eigen::Matrix<doublereal,3,3> > dm(_dm);
+      Eigen::Map<Eigen::Matrix<doublereal,Eigen::Dynamic,Eigen::Dynamic> > sm(_sm,m,m);
+
+      doublereal  x0,y0, x10,x20,x30, y10,y20,y30;
+      doublereal  x12, x21, x23, x32, x31, x13;
+      doublereal  y12, y21, y23, y32, y31, y13;
+      doublereal  aa12,aa23,aa31,ss12,ss23,ss31,ss1,ss2,ss3;
+      doublereal  caa12,caa23,caa31, sum;
+      doublereal  ca,cax10,cax20,cax30,cay10,cay20,cay30;
+      doublereal  area, area2, kfac;
+      Eigen::Matrix<doublereal,6,6> kqh;
+      Eigen::Matrix<doublereal,6,3> hmt, hqt;
+      Eigen::Matrix<doublereal,3,3> kth;
+      Eigen::Matrix<doublereal,3,1> s;
+      Eigen::Matrix<doublereal,6,1> w, xyij;
+      doublereal  e11,e22,e33,e12,e13,e23;
+      int         i,j,k,l;
+
+//                   L O G I C
+
+      status =   " ";
+      if (f == 0.0) return;
+      x12 =      x[0] - x[1];
+      x21 =     -x12;
+      x23 =      x[1] - x[2];
+      x32 =     -x23;
+      x31 =      x[2] - x[0];
+      x13 =     -x31;
+      y12 =      y[0] - y[1];
+      y21 =     -y12;
+      y23 =      y[1] - y[2];
+      y32 =     -y23;
+      y31 =      y[2] - y[0];
+      y13 =     -y31;
+      area2 =    x21*y31-x31*y21;
+      if (area2 <= 0.0) {
+        status = "SM3MBE: Negative area";
+        if (area2 == 0.0)   status = "SM3MBE: Zero area";
+        return;
+      }
+      area  =    0.5*area2;
+      x0 =       (x[0]+x[1]+x[2])/3.0;
+      y0 =       (y[0]+y[1]+y[2])/3.0;
+      x10 =      x[0] - x0;
+      x20 =      x[1] - x0;
+      x30 =      x[2] - x0;
+      y10 =      y[0] - y0;
+      y20 =      y[1] - y0;
+      y30 =      y[2] - y0;
+      aa12 =     2.25*(x30*x30+y30*y30);
+      aa23 =     2.25*(x10*x10+y10*y10);
+      aa31 =     2.25*(x20*x20+y20*y20);
+      caa12 =    15./(32.*aa12);
+      caa23 =    15./(32.*aa23);
+      caa31 =    15./(32.*aa31);
+      ss12 =     x12*x12+y12*y12;
+      ss23 =     x23*x23+y23*y23;
+      ss31 =     x31*x31+y31*y31;
+      ss1 =      0.25*(ss12-ss31);
+      ss2 =      0.25*(ss23-ss12);
+      ss3 =      0.25*(ss31-ss23);
+      cay10 =    0.1875*y10;
+      cay20 =    0.1875*y20;
+      cay30 =    0.1875*y30;
+      cax10 =    0.1875*x10;
+      cax20 =    0.1875*x20;
+      cax30 =    0.1875*x30;
+      hmt(0,0) = caa12*((-ss3+0.6*aa12)*y30+area*x30);
+      hmt(0,1) =  3.*cay30 - hmt(0,0);
+      hmt(0,2) = cay30;
+      hmt(1,0) = cay10;
+      hmt(1,1) = caa23*((-ss1+0.6*aa23)*y10+area*x10);
+      hmt(1,2) =  3.*cay10 - hmt(1,1);
+      hmt(2,0) = caa31*((ss2+0.6*aa31)*y20-area*x20);
+      hmt(2,1) = cay20;
+      hmt(2,2) =  3.*cay20 - hmt(2,0);
+      hmt(3,0) = caa12*((ss3-0.6*aa12)*x30+area*y30);
+      hmt(3,1) = -3.*cax30 - hmt(3,0);
+      hmt(3,2) = -cax30;
+      hmt(4,0) = -cax10;
+      hmt(4,1) = caa23*((ss1-0.6*aa23)*x10+area*y10);
+      hmt(4,2) = -3.*cax10 - hmt(4,1);
+      hmt(5,0) = caa31*((-ss2-0.6*aa31)*x20-area*y20);
+      hmt(5,1) = -cax20;
+      hmt(5,2) = -3.*cax20 - hmt(5,0);
+      for(j = 0; j<3; ++j) {
+        sum =    (2./9.)*(hmt(0,j)+hmt(1,j)+hmt(2,j));
+        hqt(0,j) =  sum - (4./3.)*hmt(0,j);
+        hqt(1,j) =  sum - (4./3.)*hmt(1,j);
+        hqt(2,j) =  sum - (4./3.)*hmt(2,j);
+        sum =    (2./9.)*(hmt(3,j)+hmt(4,j)+hmt(5,j));
+        hqt(3,j) =  sum - (4./3.)*hmt(3,j);
+        hqt(4,j) =  sum - (4./3.)*hmt(4,j);
+        hqt(5,j) =  sum - (4./3.)*hmt(5,j);
+      }
+      kfac =     1.5*f/area2;
+      e11 =      kfac * dm(0,0);
+      e22 =      kfac * dm(1,1);
+      e33 =      kfac * dm(2,2);
+      e12 =      kfac * dm(0,1);
+      e13 =      kfac * dm(0,2);
+      e23 =      kfac * dm(1,2);
+      kqh(0,0) = 2*(e11*y30*y30-2*e13*x30*y30+e33*x30*x30);
+      kqh(0,1) = ((e13*x10-e11*y10)*y30+(e13*y10-e33*x10)*x30);
+      kqh(0,2) = ((e13*x20-e11*y20)*y30+(e13*y20-e33*x20)*x30);
+      kqh(0,3) = 2*(e13*y30*y30-(e33+e12)*x30*y30+e23*x30*x30);
+      kqh(0,4) = ((e12*x10-e13*y10)*y30+(e33*y10-e23*x10)*x30);
+      kqh(0,5) = ((e12*x20-e13*y20)*y30+(e33*y20-e23*x20)*x30);
+      kqh(1,0) = kqh(0,1);
+      kqh(1,1) = 2*(e11*y10*y10-2*e13*x10*y10+e33*x10*x10);
+      kqh(1,2) = ((e13*x10-e11*y10)*y20+(e13*y10-e33*x10)*x20);
+      kqh(1,3) = ((e33*x10-e13*y10)*y30+(e12*y10-e23*x10)*x30);
+      kqh(1,4) = 2*(e13*y10*y10-(e33+e12)*x10*y10+e23*x10*x10);
+      kqh(1,5) = ((e33*x10-e13*y10)*y20+(e12*y10-e23*x10)*x20);
+      kqh(2,0) = kqh(0,2);
+      kqh(2,1) = kqh(1,2);
+      kqh(2,2) = 2*(e11*y20*y20-2*e13*x20*y20+e33*x20*x20);
+      kqh(2,3) = ((e33*x20-e13*y20)*y30+(e12*y20-e23*x20)*x30);
+      kqh(2,4) = ((e12*x10-e13*y10)*y20+(e33*y10-e23*x10)*x20);
+      kqh(2,5) = 2*(e13*y20*y20-(e33+e12)*x20*y20+e23*x20*x20);
+      kqh(3,0) = kqh(0,3);
+      kqh(3,1) = kqh(1,3);
+      kqh(3,2) = kqh(2,3);
+      kqh(3,3) = 2*(e33*y30*y30-2*e23*x30*y30+e22*x30*x30);
+      kqh(3,4) = ((e23*x10-e33*y10)*y30+(e23*y10-e22*x10)*x30);
+      kqh(3,5) = ((e23*x20-e33*y20)*y30+(e23*y20-e22*x20)*x30);
+      kqh(4,0) = kqh(0,4);
+      kqh(4,1) = kqh(1,4);
+      kqh(4,2) = kqh(2,4);
+      kqh(4,3) = kqh(3,4);
+      kqh(4,4) = 2*(e33*y10*y10-2*e23*x10*y10+e22*x10*x10);
+      kqh(4,5) = ((e23*x10-e33*y10)*y20+(e23*y10-e22*x10)*x20);
+      kqh(5,0) = kqh(0,5);
+      kqh(5,1) = kqh(1,5);
+      kqh(5,2) = kqh(2,5);
+      kqh(5,3) = kqh(3,5);
+      kqh(5,4) = kqh(4,5);
+      kqh(5,5) = 2*(e33*y20*y20-2*e23*x20*y20+e22*x20*x20);
+      kth(0,0) =  0.0;
+      kth(0,1) =  0.0;
+      kth(1,1) =  0.0;
+      kth(0,2) =  0.0;
+      kth(1,2) =  0.0;
+      kth(2,2) =  0.0;
+      for(j = 0; j<3; ++j) {
+        for(i = 0; i<6; ++i) {
+          w[i] =    kqh(i,0)*hqt(0,j) + kqh(i,1)*hqt(1,j)
+                   + kqh(i,2)*hqt(2,j) + kqh(i,3)*hqt(3,j)
+                   + kqh(i,4)*hqt(4,j) + kqh(i,5)*hqt(5,j);
+        }
+        for(i = 0; i<=j; ++i) {
+          kth(i,j) = kth(i,j) + hqt(0,i)*w[0] + hqt(1,i)*w[1]
+                              + hqt(2,i)*w[2] + hqt(3,i)*w[3]
+                              + hqt(4,i)*w[4] + hqt(5,i)*w[5];
+          kth(j,i) = kth(i,j);
+        }
+      }
+      s[0] =   kth(0,0) + kth(0,1) + kth(0,2);
+      s[1] =   kth(1,0) + kth(1,1) + kth(1,2);
+      s[2] =   kth(2,0) + kth(2,1) + kth(2,2);
+      ca =       0.25/area;
+      xyij[0] =  ca*x32;
+      xyij[1] =  ca*y32;
+      xyij[2] =  ca*x13;
+      xyij[3] =  ca*y13;
+      xyij[4] =  ca*x21;
+      xyij[5] =  ca*y21;
+      for(j = 0; j < 9; ++j) {
+        l =    ls[j];
+        for(i = 0; i<3; ++i) {
+          if (j < 6) {
+             w[i] =  s[i]*xyij[j];
+          } else {
+             w[i] =  kth(i,j-6);
+          }
+        }
+        sum =    w[0] + w[1] + w[2];
+        for(i = 0; i<=j; ++i) {
+          k =      ls[i];
+          if (i < 6) {
+             sm(k,l) =  sm(k,l) + sum*xyij(i);
+          } else {
+             sm(k,l) =  sm(k,l) + w(i-6);
+          }
+          sm(l,k) =  sm(k,l);
+        }
+      }
+}
+
+template<typename doublereal>
+void
+ShellElementSemiTemplate<doublereal>
+::trirotation(doublereal *_sm, doublereal *_r1)
+{
+      Eigen::Map<Eigen::Matrix<doublereal,3,3> > r1(_r1);
+      Eigen::Map<Eigen::Matrix<doublereal,18,18> > sm(_sm);
+
+      Eigen::Matrix<doublereal,18,1> prod1;
+      int i, j, k;
+
+// premultiplication by rotation matrix
+
+      for(j=0; j<18; ++j) {
+        for(k=0; k<3; ++k) {
+          prod1[k]    = 0.0;
+          prod1[k+3]  = 0.0;
+          prod1[k+6]  = 0.0;
+          prod1[k+9]  = 0.0;
+          prod1[k+12] = 0.0;
+          prod1[k+15] = 0.0;
+          for(i=0; i<3; ++i) {
+            prod1[k]    = prod1[k]    + r1(k,i)*sm(i   ,j);
+            prod1[k+3]  = prod1[k+3]  + r1(k,i)*sm(i+3 ,j);
+            prod1[k+6]  = prod1[k+6]  + r1(k,i)*sm(i+6 ,j);
+            prod1[k+9]  = prod1[k+9]  + r1(k,i)*sm(i+9 ,j);
+            prod1[k+12] = prod1[k+12] + r1(k,i)*sm(i+12,j);
+            prod1[k+15] = prod1[k+15] + r1(k,i)*sm(i+15,j);
+          }
+        }
+
+        for(k=0; k<18; ++k) {
+          sm(k,j) = prod1[k];
+        }
+      }
+
+// postmultiplication by rotation matrix transposed
+
+      for(j=0; j<18; ++j) {
+        for(k=0; k<3; ++k) {
+          prod1[k]   =0.0;
+          prod1[k+3] =0.0;
+          prod1[k+6] =0.0;
+          prod1[k+9] =0.0;
+          prod1[k+12]=0.0;
+          prod1[k+15]=0.0;
+          for(i=0; i<3; ++i) {
+            prod1[k]   =prod1[k]   +sm(j,i)*r1(k,i);
+            prod1[k+3] =prod1[k+3] +sm(j,i+3)*r1(k,i);
+            prod1[k+6] =prod1[k+6] +sm(j,i+6)*r1(k,i);
+            prod1[k+9] =prod1[k+9] +sm(j,i+9)*r1(k,i);
+            prod1[k+12]=prod1[k+12]+sm(j,i+12)*r1(k,i);
+            prod1[k+15]=prod1[k+15]+sm(j,i+15)*r1(k,i);
+          }
+        }
+
+        for(k=0; k<18; ++k) sm(j,k)=prod1[k];
+      }
 }
 
 #endif

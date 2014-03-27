@@ -21,7 +21,7 @@ WeldedJoint::WeldedJoint(int* _nn)
 WeldedJoint::~WeldedJoint()
 {
   if(elemframe && myframe) {
-    delete elemframe;
+    delete [] elemframe;
   }
 }
 

@@ -83,7 +83,6 @@ StaticTimers::openTimingFile(ControlInfo &cinfo)
   }
 }
 
-//const double oneMegaByte = (1024.0*1024.0); 
 const double byteToMb    = (1.0 / oneMegaByte);
 
 // This function prints timers for non-FETI solvers: i.e. skyline, pcg, etc.
@@ -188,19 +187,19 @@ StaticTimers::printStaticTimers(double solveTime, long memUsed,
            times.assemble/1000.0);
  }
  else {
- filePrint(f,"\n3. Total Matrix Processing             time: %14.5f s %12.3f Mb\n",
+ filePrint(f,"3. Total Matrix Processing             time: %14.5f s %12.3f Mb\n",
            (sfemBuildOps)/1000.0,
            memorySfemBuildOps*byteToMb);
  }
  // This is to subtract the time spent solving the fluid equations
  formRhs -= times.receiveFluidTime;
- filePrint(f,"\n4. Total RHS Processing                time: %14.5f s %12.3f Mb\n\n",
+ filePrint(f,"4. Total RHS Processing                time: %14.5f s %12.3f Mb\n\n",
            formRhs/1000.0, memoryRhs*byteToMb);
 
  double totalSolver = times.factor + solveTime + times.constructTime +
                       rebuild + buildStiffAndForce + timeFreqSweep;
 
- times.memorySolve += (totMemSpooles+totMemMumps); // PJSA
+ times.memorySolve += (totMemSpooles+totMemMumps);
 
  if(timeLoop==0.0) {
    if (mesNum == 2)
@@ -208,7 +207,6 @@ StaticTimers::printStaticTimers(double solveTime, long memUsed,
    else
      filePrint(f,"5. Total Solver                        time: %14.5f s %12.3f Mb\n", totalSolver/1000.0, times.memorySolve*byteToMb);
  } else {
-   //totalSolver=timeLoop;
    totalSolver=timeLoop-times.receiveFluidTime-times.sendFluidTime;
    if (mesNum == 2)
      filePrint(f,"5. Total Solve Loop                    time: %14.5f s        N/A\n", totalSolver/1000.0);
@@ -239,7 +237,6 @@ StaticTimers::printStaticTimers(double solveTime, long memUsed,
  if(domain->tdenforceFlag()) // ACME search and forces for explicit dynamics
    filePrint(f,"         TD Enforcement                time: %14.5f s \n", 
              tdenforceTime/1000.0);
- //cerr << "tdenforceTime = " << tdenforceTime << ", updateSurfsTime = " << updateSurfsTime << ", contactSearchTime = " << contactSearchTime << ", contactForcesTime = " << contactForcesTime << endl;
 
  output -= times.sendFluidTime;
  filePrint(f,"\n6. Write Output Files                  time: %14.5f s %12.3f Mb\n",
@@ -459,7 +456,6 @@ StaticTimers::printStaticTimers(MatrixTimers matrixTimer, double solveTime,
  double precondMax   = timers.precond;
  double sAndJMaximum = timers.sAndJ;
 
- // TDL >>>>
  long totMemPreProcess = memoryPreProcess;
  long memorySetUp = matrixTimer.memorySetUp;
  long memorySubMatrices = timers.memorySubMatrices;
@@ -489,7 +485,6 @@ StaticTimers::printStaticTimers(MatrixTimers matrixTimer, double solveTime,
  sAndJMaximum = structCom->globalMax(sAndJMaximum);
  solutionTime = structCom->globalMax(solutionTime);
 
- // TDL >>>>
  memorySetUp = timers.globalMemorySum(matrixTimer.memorySetUp);
  memorySubMatrices = timers.globalMemorySum(timers.memorySubMatrices);
  totMemPreProcess = timers.globalMemorySum(memoryPreProcess);
@@ -585,7 +580,6 @@ StaticTimers::printStaticTimers(MatrixTimers matrixTimer, double solveTime,
 
  subTotal[5] = output;
 
-// TDL >>>>>
  double totPreProMax = subTotal[1];
 #ifdef DISTRIBUTED
  totalMemRead = timers.globalMemorySum(localMemRead);
@@ -596,7 +590,6 @@ StaticTimers::printStaticTimers(MatrixTimers matrixTimer, double solveTime,
  subTotal[4] = structCom->globalMax(subTotal[4]);
  subTotal[5] = structCom->globalMax(subTotal[5]);
 #endif
-// TDL <<<<<<
 
 
  if(f != 0) {
@@ -751,7 +744,6 @@ filePrint(f,  "         Make Internal Information     time: %14.5f s %14.3f Mb\n
  double factorTimeMin = timers.factor;
  double factorTimeAvg = timers.factor;
  
-// TDL >>>>>
  long totMemReortho = timers.memoryOSet;
  long locMemUsed = memoryUsed();
  long totMemUsed = locMemUsed;
@@ -770,7 +762,6 @@ filePrint(f,  "         Make Internal Information     time: %14.5f s %14.3f Mb\n
  totMemFeti = timers.globalMemorySum(timers.memoryFETI);
 #endif
  factorTimeAvg /= numCPUs;
-// TDL <<<<<<
 
  if(f != 0) {
 
@@ -790,7 +781,6 @@ filePrint(f,  "         Make Internal Information     time: %14.5f s %14.3f Mb\n
    filePrint(f,"         Total Solve loop              time: %14.5f s %14.3f Mb\n",
            timers.solve/1000.0, totalMemorySolve*byteToMb);
    filePrint(f,"               Project 1st Level       time: %14.5f s %14.3f Mb\n",
-           //project1Tot.time/1000.0, timers.memoryProject1*byteToMb);
            timers.project/1000.0, timers.memoryProject1*byteToMb);
    filePrint(f,"                  Seq. Forw/Back       time: %14.5f s\n",
            forBack1Max/1000.0);
@@ -808,8 +798,6 @@ filePrint(f,  "         Make Internal Information     time: %14.5f s %14.3f Mb\n
  if(domain->tdenforceFlag()) // ACME search and forces for explicit dynamics
    filePrint(f,"         TD Enforcement                time: %14.5f s \n",
              tdenforceTime/1000.0);
- //cerr << "tdenforceTime = " << tdenforceTime << ", updateSurfsTime = " << updateSurfsTime << ", contactSearchTime = " << contactSearchTime << ", contactForcesTime = " << contactForcesTime << endl;
-
 
  filePrint(f,"\n6. Write Output Files                  time: %14.5f s %14.3f Mb\n",subTotal[5]/1000.0, memoryOutput*byteToMb);
 
@@ -1151,7 +1139,6 @@ filePrint(f,  "         Make Internal Information     time: %14.5f s %14.3f Mb\n
            "********************\n");
  filePrint(f,"\n                                             minimum      average      maximum\n");
 
- // TDL >>>>
  // get overall prec memory stats
  TimeData *precOverall = timers.preconditioner.getOverAll();
 
@@ -1205,7 +1192,6 @@ filePrint(f,  "         Make Internal Information     time: %14.5f s %14.3f Mb\n
  long orthoMemoryAvg = totMemReortho / numMPI;
  long coarseMemoryAvg = totMemCoarse / numMPI;
  precMemoryAvg /= numMPI;
-// TDL <<<<<
 
 
  filePrint(f,"\n1. Total Read Input Files             : %12.4f %12.4f %12.4f\n",
@@ -1304,14 +1290,4 @@ filePrint(f,  "         Make Internal Information     time: %14.5f s %14.3f Mb\n
  
 #endif
 
-
 }
-
-
-
-
-
-
-
-
-

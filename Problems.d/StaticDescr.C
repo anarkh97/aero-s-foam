@@ -373,7 +373,6 @@ SingleDomainPostProcessor<T, VectorType, SolverType>::staticOutput(VectorType &s
  solveTime  = solver->getSolutionTime();
  if(printTimers) {
    times->printStaticTimers(solveTime, memoryUsed, domain);
-   //geoSource->closeOutputFiles();
  }
 
  filePrint(stderr," --------------------------------------\n");

@@ -29,11 +29,13 @@ void
 GenEiSparseMatrix<double,Eigen::UmfPackLU<Eigen::SparseMatrix<double> > >::reSolve(double* _rhs)
 {
   // umfpack does not support in-place solve
+  solveTime -= getTime();
   Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > rhs(_rhs,numUncon,1);
   Eigen::Matrix<double, Eigen::Dynamic, 1> sol(numUncon);
   sol = solver.solve(rhs);
   rhs = sol;
   if(solver.info() != Eigen::Success) std::cerr << "sparse solve failed\n";
+  solveTime += getTime();
 }
 
 template<>
@@ -41,11 +43,13 @@ void
 GenEiSparseMatrix<std::complex<double>,Eigen::UmfPackLU<Eigen::SparseMatrix<std::complex<double> > > >::reSolve(std::complex<double>* _rhs)
 {
   // umfpack does not support in-place solve
+  solveTime -= getTime();
   Eigen::Map< Eigen::Matrix<std::complex<double>, Eigen::Dynamic, 1> > rhs(_rhs,numUncon,1);
   Eigen::Matrix<std::complex<double>, Eigen::Dynamic, 1> sol(numUncon);
   sol = solver.solve(rhs);
   rhs = sol;
   if(solver.info() != Eigen::Success) std::cerr << "sparse solve failed\n";
+  solveTime += getTime();
 }
 
 template<>
@@ -53,11 +57,13 @@ void
 GenEiSparseMatrix<double,Eigen::UmfPackLU<Eigen::SparseMatrix<double> > >::reSolve(GenVector<double> &_rhs)
 {
   // umfpack does not support in-place solve
+  solveTime -= getTime();
   Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > rhs(_rhs.data(),numUncon,1);
   Eigen::Matrix<double, Eigen::Dynamic, 1> sol(numUncon);
   sol = solver.solve(rhs);
   rhs = sol;
   if(solver.info() != Eigen::Success) std::cerr << "sparse solve failed\n";
+  solveTime += getTime();
 }
 
 template<>
@@ -65,11 +71,13 @@ void
 GenEiSparseMatrix<std::complex<double>,Eigen::UmfPackLU<Eigen::SparseMatrix<std::complex<double> > > >::reSolve(GenVector<std::complex<double> > &_rhs)
 {
   // umfpack does not support in-place solve
+  solveTime -= getTime();
   Eigen::Map< Eigen::Matrix<std::complex<double>, Eigen::Dynamic, 1> > rhs(_rhs.data(),numUncon,1);
   Eigen::Matrix<std::complex<double>, Eigen::Dynamic, 1> sol(numUncon);
   sol = solver.solve(rhs);
   rhs = sol;
   if(solver.info() != Eigen::Success) std::cerr << "sparse solve failed\n";
+  solveTime += getTime();
 }
 #endif
 

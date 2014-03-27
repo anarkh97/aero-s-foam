@@ -290,27 +290,33 @@ template<typename Scalar, typename SolverClass>
 void 
 GenEiSparseMatrix<Scalar,SolverClass>::solve(Scalar *_rhs, Scalar *_solution)
 {
+  this->solveTime -= getTime();
   Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > rhs(_rhs,numUncon,1), solution(_solution,numUncon,1);
   solution = solver.solve(rhs);
   if(solver.info() != Eigen::Success) std::cerr << "sparse solve failed\n";
+  this->solveTime += getTime();
 }
 
 template<typename Scalar, typename SolverClass>
 void
 GenEiSparseMatrix<Scalar,SolverClass>::solve(GenVector<Scalar> &_rhs, GenVector<Scalar> &_solution)
 {
+  this->solveTime -= getTime();
   Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > rhs(_rhs.data(),numUncon,1), solution(_solution.data(),numUncon,1);
   solution = solver.solve(rhs);
   if(solver.info() != Eigen::Success) std::cerr << "sparse solve failed\n";
+  this->solveTime += getTime();
 }
 
 template<typename Scalar, typename SolverClass>
 void
 GenEiSparseMatrix<Scalar,SolverClass>::reSolve(Scalar *_rhs)
 {
+  this->solveTime -= getTime();
   Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > rhs(_rhs,numUncon,1);
   rhs = solver.solve(rhs);
   if(solver.info() != Eigen::Success) std::cerr << "sparse solve failed\n";
+  this->solveTime += getTime();
 }
 
 #ifdef EIGEN_UMFPACK_SUPPORT
@@ -327,9 +333,11 @@ template<typename Scalar, typename SolverClass>
 void
 GenEiSparseMatrix<Scalar,SolverClass>::reSolve(GenVector<Scalar> &_rhs)
 {
+  this->solveTime -= getTime();
   Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > rhs(_rhs.data(),numUncon,1);
   rhs = solver.solve(rhs);
   if(solver.info() != Eigen::Success) std::cerr << "sparse solve failed\n";
+  this->solveTime += getTime();
 }
 
 #ifdef EIGEN_UMFPACK_SUPPORT

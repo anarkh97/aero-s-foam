@@ -306,7 +306,7 @@ StaticTimers::printFetiDPtimers(MatrixTimers matrixTimer, double solveTime,
  TimeStats precStats      = timers.preconditioner.getStats();
  TimeStats orthoStats  = timers.orthogonalize.getStats();
  TimeStats project1Stats = timers.projection.getStats();
- TimeStats applyFetiPrecondStats = timers.applyFetiPrecond.getStats();  // YYY DG
+ TimeStats applyFetiPrecondStats = timers.applyFetiPrecond.getStats();
 
 #ifdef DISTRIBUTED
  if(structCom->myID() == 0)
@@ -324,7 +324,7 @@ StaticTimers::printFetiDPtimers(MatrixTimers matrixTimer, double solveTime,
 #ifdef USE_MPI
  }
 #endif
- long totMemSubMatrices = memorySubMatrices - memoryPrecond - memoryK; // PJSA
+ long totMemSubMatrices = memorySubMatrices - memoryPrecond - memoryK;
 
  long localMemRead = matrixTimer.memoryParse + matrixTimer.memorySetUp;
  long totalMemRead = localMemRead;
@@ -358,7 +358,7 @@ StaticTimers::printFetiDPtimers(MatrixTimers matrixTimer, double solveTime,
 
  if(f != 0) {
 
- int numDispCon = domain->nDispDirichlet();  // PJSA: domain->nDirichlet() includes temperature loads
+ int numDispCon = domain->nDispDirichlet();  // domain->nDirichlet() includes temperature loads
  int numTempCon = domain->nDirichlet() - domain->nDispDirichlet();
  filePrint(f,"\n***********************************************************"
            "********************\n");
@@ -556,7 +556,6 @@ StaticTimers::printFetiDPtimers(MatrixTimers matrixTimer, double solveTime,
 
  double coarseTime   = coarse1Max;
 
-// double locMemCoarse = double(timers.memoryGtG + timers.memoryPCtFPC)*byteToMb; //CBM
  long locMemCoarse = timers.memoryGtG + timers.memoryPCtFPC;
  long totMemCoarse = locMemCoarse;
 
@@ -576,12 +575,11 @@ StaticTimers::printFetiDPtimers(MatrixTimers matrixTimer, double solveTime,
  double factorTimeMin = timers.factor;
  double factorTimeAvg = timers.factor;
 
- // TDL >>>>>
  long totMemReortho = timers.memoryOSet;
  //long locMemUsed = memoryUsed();
  //long totMemUsed = locMemUsed;
- double locMemUsed = double(memoryUsed())*byteToMb;//CBM
- double totMemUsed = locMemUsed;//CBM
+ double locMemUsed = double(memoryUsed())*byteToMb;
+ double totMemUsed = locMemUsed;
  long totMemFeti = timers.memoryFETI;
 
  long localMemoryCCt = timers.memoryBuildCCt;
@@ -598,7 +596,7 @@ StaticTimers::printFetiDPtimers(MatrixTimers matrixTimer, double solveTime,
  factorTimeMax = structCom->globalMax(timers.factor);
  factorTimeMin = structCom->globalMin(timers.factor);
  factorTimeAvg = structCom->globalSum(timers.factor);
- totMemUsed = timers.globalMemorySum(locMemUsed);//CBM
+ totMemUsed = timers.globalMemorySum(locMemUsed);
  totMemFeti = timers.globalMemorySum(timers.memoryFETI);
  
  totalMemoryCCt = timers.globalMemorySum(localMemoryCCt);
@@ -607,7 +605,6 @@ StaticTimers::printFetiDPtimers(MatrixTimers matrixTimer, double solveTime,
 #endif
  factorTimeAvg /= numCPUs;
 
-// TDL <<<<<<
 
  if(f != 0) {
 
@@ -970,7 +967,6 @@ StaticTimers::printFetiDPtimers(MatrixTimers matrixTimer, double solveTime,
            "********************\n");
  filePrint(f,"\n                                             minimum      average      maximum\n");
 
-// TDL >>>>
  // get overall prec memory stats
  TimeData *precOverall = timers.preconditioner.getOverAll();
 
@@ -1037,7 +1033,6 @@ StaticTimers::printFetiDPtimers(MatrixTimers matrixTimer, double solveTime,
  planMemoryAvg /= numMPI;
  nlprecMemoryAvg /= numMPI;
 
-// TDL <<<<<
 
  filePrint(f,"\n1. Total Read Input Files             : %12.4f %12.4f %12.4f\n",
          readMemoryMin*byteToMb, readMemoryAvg*byteToMb, readMemoryMax*byteToMb);
@@ -1122,7 +1117,7 @@ StaticTimers::printFetiDPtimers(MatrixTimers matrixTimer, double solveTime,
            totSimMin*byteToMb, totSimAvg*byteToMb, totSimMax*byteToMb);
  filePrint(f,"\n***********************************************************"
            "********************\n");
- if(f) fclose(f); // PJSA
+ if(f) fclose(f);
 
 #endif
 #endif

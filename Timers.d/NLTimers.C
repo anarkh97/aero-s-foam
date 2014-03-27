@@ -26,7 +26,6 @@ extern const char* subSolverMessage[];
 extern const char* precSolverMessage[];
 extern const char* solverMessage[];
 
-//const double oneMegaByte = (1024.0*1024.0); 
 const double byteToMb    = (1.0 / oneMegaByte);
 
 // ---------------------------------
@@ -69,8 +68,7 @@ StaticTimers::printTimers(Domain* domain, Timings& timers, double solveTime)
  int numFiles = geoSource->getNumOutInfo();
 
  // Do a bunch of summations if distributed
- // TDL >>>>
-  double coarse1Max  = timers.coarse1;
+ double coarse1Max  = timers.coarse1;
  double coarse1Tot  = timers.coarse1;
  double coarse1Min  = timers.coarse1;
 
@@ -351,7 +349,6 @@ StaticTimers::printTimers(Domain* domain, Timings& timers, double solveTime)
  double factorTimeMin = timers.factor;
  double factorTimeAvg = timers.factor;
 
-// TDL >>>>>
  long locMemUsed = memoryUsed();
  long totMemUsed = locMemUsed;
  long totMemFeti = timers.memoryFETI;
@@ -378,7 +375,6 @@ StaticTimers::printTimers(Domain* domain, Timings& timers, double solveTime)
 
 #endif
  factorTimeAvg /= numCPUs;
-// TDL <<<<<<
 
  // Timers for Rebuilding
  double totalReBuild = rebuild + buildStiffAndForce + timers.reBuildPrec;
@@ -707,7 +703,6 @@ StaticTimers::printTimers(Domain* domain, Timings& timers, double solveTime)
            "********************\n");
  filePrint(f,"\n                                             minimum      average      maximum\n");
 
- // TDL >>>>
  // get overall prec memory stats
  TimeData *precOverall = timers.preconditioner.getOverAll();
 
@@ -760,7 +755,6 @@ StaticTimers::printTimers(Domain* domain, Timings& timers, double solveTime)
  long orthoMemoryAvg = totMemReortho / numMPI;
  long coarseMemoryAvg = totMemCoarse / numMPI;
  precMemoryAvg /= numMPI;
-// TDL <<<<<
 
 
  filePrint(f,"\n1. Total Read Input Files             : %12.4f %12.4f %12.4f\n",

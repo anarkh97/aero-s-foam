@@ -2,8 +2,6 @@
 #include <map>
 
 #ifdef USE_MUMPS
-//#include <dmumps_c.h> // double precision mumps header
-//#include <zmumps_c.h> // complex double precision 
 
 inline void Tmumps_c(DMUMPS_STRUC_C &id) { dmumps_c(&id); }
 inline void Tmumps_c(ZMUMPS_STRUC_C &id) { zmumps_c(&id); }
@@ -343,7 +341,7 @@ template<class Scalar>
 void
 GenMumpsSolver<Scalar>::solve(Scalar *rhs, Scalar *solution)
 {
-  this->solveTime = -getTime();
+  this->solveTime -= getTime();
 #ifdef USE_MUMPS
   if(host) {
     copyToMumpsRHS(mumpsId.id.rhs, rhs, numUncon); // mumpsId.id.rhs = copy of rhs;
@@ -364,7 +362,7 @@ template<class Scalar>
 void
 GenMumpsSolver<Scalar>::reSolve(int nRHS, Scalar *rhs)
 {
-  this->solveTime = -getTime();
+  this->solveTime -= getTime();
 #ifdef USE_MUMPS
   if(host) {
     copyToMumpsRHS(mumpsId.id.rhs, rhs, numUncon*nRHS); // mumpsId.id.rhs = copy of rhs;
@@ -386,7 +384,7 @@ template<class Scalar>
 void
 GenMumpsSolver<Scalar>::reSolve(int nRHS, Scalar **rhs)
 {
-  this->solveTime = -getTime();
+  this->solveTime -= getTime();
 #ifdef USE_MUMPS
   if(host) {
     copyToMumpsRHS(mumpsId.id.rhs, rhs, numUncon, nRHS); // mumpsId.id.rhs = copy of rhs;
@@ -408,7 +406,7 @@ template<class Scalar>
 void
 GenMumpsSolver<Scalar>::reSolve(int nRHS, GenVector<Scalar> *rhs)
 {
-  this->solveTime = -getTime();
+  this->solveTime -= getTime();
 #ifdef USE_MUMPS
   if(host) {
     copyToMumpsRHS(mumpsId.id.rhs, rhs, numUncon, nRHS); // mumpsId.id.rhs = copy of rhs;

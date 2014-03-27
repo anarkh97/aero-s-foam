@@ -270,7 +270,7 @@ template<class Scalar>
 void
 GenSpoolesSolver<Scalar>::add(GenFullM<Scalar> &knd, int fi, int fj)
 {
-  // PJSA 1-24-07 this needs to work for a rectangular matrix also
+  // XXX this needs to work for a rectangular matrix also
   int i, j, m, mstart, mstop, ri, rj;
   //int kndof = knd.dim();                           // Dimension of element stiff.
   for(i = 0; i < knd.numRow(); ++i ) {             // Loop over rows.
@@ -294,10 +294,9 @@ template<class Scalar>
 void
 GenSpoolesSolver<Scalar>::addDiscreteMass(int dof, Scalar dmass)
 {
-  // PJSA: 8-26-04 fixed this function, wasn't adding mass properly
   if(dof < 0) return;
   int cdof;
-  if(unconstrNum) cdof = unconstrNum[dof]; // PJSA: dof is now in unconstrained numbering
+  if(unconstrNum) cdof = unconstrNum[dof]; // dof is now in unconstrained numbering
   else cdof = dof;
   if(cdof < 0) return;
 
@@ -311,18 +310,9 @@ GenSpoolesSolver<Scalar>::addDiscreteMass(int dof, Scalar dmass)
       break;
     }
   }
-
-/*  OLD CODE  (this isn't correct)
-  if(dof < 0) return;
-  if(unconstrNum[dof] < 0) return;  // Skip constrained dofs
-  int m = xunonz[unconstrNum[dof]];
-  if(rowu[m-1] == (unconstrNum[dof] + 1)) {
-    unonz[m-1] += dmass;
-  }
-*/
 }
 
-//PJSA warning THREADS defined causes bug for nonlinear
+// warning THREADS defined causes bug for nonlinear
 #define THREADS
 
 template<class Scalar>
@@ -336,7 +326,7 @@ GenSpoolesSolver<Scalar>::diag(int dof) const
 
   for(m=mstart; m<mstop; ++m) {
     if(rowu[m]-1 == dof) {
-/* PJSA this is done in symmetricScaling ... this function should be consistent with diag - 2
+/* this is done in symmetricScaling ... this function should be consistent with diag - 2
       if(unonz[m] == 0.0) {
         return (1.0);
       } else
@@ -369,17 +359,13 @@ void
 GenSpoolesSolver<Scalar>::symmetricScaling()
 {
   if(numUncon == 0) return;
-  //HB: delete scale array if it already exists
-  //    -> for NonLinSpooles, to avoid memory leak
-  //    each time factor(...) is called (see reBuild(...))
   if(scale) { delete [] scale; scale = 0; }
   scale = new Scalar[numUncon];
 
   int i, j, m, mstart, mstop;
   for(i = 0; i < numUncon; ++i) {
-    //scale[i] = Scalar(1.0) / ScalarTypes::sqrt(ScalarTypes::norm(diag(i)));
     Scalar d = ScalarTypes::norm(diag(i));
-    scale[i] = (d != 0.0) ? Scalar(1.0)/ScalarTypes::sqrt(d) : Scalar(1.0); // PJSA 1-9-08 correction to allow for zero diagonals
+    scale[i] = (d != 0.0) ? Scalar(1.0)/ScalarTypes::sqrt(d) : Scalar(1.0); // correction to allow for zero diagonals
   }
   for(j = 0; j < numUncon; ++j) {
 
@@ -481,12 +467,10 @@ GenSpoolesSolver<Scalar>::allFactor(bool fctIsParal)
   int maxdomainsize = int(neq/domain->solInfo().spooles_maxdomainsize+0.5);  // default is neq/24
   int maxsize = domain->solInfo().spooles_maxsize;  // default is 64
   int maxzeros = int(neq*domain->solInfo().spooles_maxzeros+0.5);  // default is 0.04*neq
-  //cerr << "neq = " << neq << ", maxdomainsize = " << maxdomainsize << ", maxsize = " << maxsize << ", maxzeros = " << maxzeros << ", seed = " << seed << endl;
-  //cerr << "spooles_pivot = " << domain->solInfo().pivot << ", spooles_scale = " << domain->solInfo().spooles_scale << ", spooles_renum = " << domain->solInfo().spooles_renum << endl;
 
   //tt0=getTime();
 
-  switch(domain->solInfo().spooles_renum) { // PJSA 10-11-2007
+  switch(domain->solInfo().spooles_renum) {
     default:
     case 0: // best of nested dissection and multisection ordering 
       frontETree = orderViaBestOfNDandMS(graph, maxdomainsize, maxzeros, maxsize, seed, msglvl, msgfile); break;
@@ -516,7 +500,7 @@ GenSpoolesSolver<Scalar>::allFactor(bool fctIsParal)
   InpMtx_changeStorageMode(inpMtx, INPMTX_BY_VECTORS);
   //tt0=getTime();
 
-  symbfacIVL = SymbFac_initFromInpMtx(frontETree, inpMtx); // PJSA
+  symbfacIVL = SymbFac_initFromInpMtx(frontETree, inpMtx);
   //tt0=getTime();
 
 /*
@@ -553,7 +537,7 @@ GenSpoolesSolver<Scalar>::allFactor(bool fctIsParal)
   else
 #endif
     ChvManager_init(chvmanager, NO_LOCK, 1);
-  DVfill(22, cpus, 0.0); // PJSA changed 1st argument from 10 to 20
+  DVfill(22, cpus, 0.0);
   IVfill(7, stats, 0);
 
   double tau = domain->solInfo().spooles_tau; // default is 100.0
@@ -628,29 +612,17 @@ GenSpoolesSolver<Scalar>::solve(Scalar *rhs)
 {
   if(numUncon==0) return;
   Scalar *solution = (Scalar *) dbg_alloca(sizeof(Scalar)*numUncon);
-  for(int i=0; i < numUncon; i++) solution[i] = 0.0;  // PJSA 8-25-04 debugging test
+  for(int i=0; i < numUncon; i++) solution[i] = 0.0;
   solve(rhs, solution);
   for(int i=0; i < numUncon; i++)
     rhs[i] = solution[i];
 }
 
-/* PJSA: just for debugging
-template<class Scalar>
-double getMaxRealSq(Scalar *vec, int len) {
-  double ret = 0.0;
-  for(int i=0; i<len; ++i) {
-    double tmp = ScalarTypes::Real(vec[i])*ScalarTypes::Real(vec[i]);
-    if(tmp > ret) ret = tmp;
-  }
-  return ret;
-}
-*/
-
 template<class Scalar>
 void
 GenSpoolesSolver<Scalar>::solve(Scalar *_rhs, Scalar *solution)
 {
-  this->solveTime = -getTime();
+  this->solveTime -= getTime();
 #ifdef USE_SPOOLES
   //double tt0 = getTime();
   Scalar *rhs = (Scalar *) dbg_alloca(sizeof(Scalar)*numUncon);
@@ -720,7 +692,7 @@ for(i=0;i<neq;i++) solution[i] = 0;
        << "     total solve time = " << cpus[4] << endl;
 #endif
 #endif
-  this->solveTime = +getTime();
+  this->solveTime += getTime();
 }
 
 template<class Scalar>
@@ -746,7 +718,6 @@ GenSpoolesSolver<Scalar>::print()
  }
 }
 
-
 template<class Scalar>
 long
 GenSpoolesSolver<Scalar>::size() 
@@ -768,10 +739,10 @@ void
 GenSpoolesSolver<Scalar>::zeroAll() 
 {
 #ifdef USE_SPOOLES
-  cleanUp(); // PJSA 6-15-06
+  cleanUp();
   // InpMtx_clearData(inpMtx);
   inpMtx = InpMtx_new();
-  InpMtx_init(inpMtx, INPMTX_BY_COLUMNS, SpoolesType<Scalar>::type, nNonZero, neq);  // PJSA
+  InpMtx_init(inpMtx, INPMTX_BY_COLUMNS, SpoolesType<Scalar>::type, nNonZero, neq);
 
   for(int i = 0; i < nNonZero; ++i)
     unonz[i] = 0.0;
@@ -792,10 +763,10 @@ GenSpoolesSolver<Scalar>::cleanUp()
   if(ownersIV) { IV_free(ownersIV); ownersIV = 0; }
   if(mtxB) { DenseMtx_free(mtxB); mtxB = 0; }
   if(mtxX) { DenseMtx_free(mtxX); mtxX = 0; }
-  if(symbfacIVL) { IVL_free(symbfacIVL); symbfacIVL = 0; } // PJSA
-  if(frontETree) { ETree_free(frontETree); frontETree = 0; } // PJSA
-  if(cumopsDV) { DV_free(cumopsDV); cumopsDV = 0; } // PJSA
-  if(graph) { Graph_free(graph); graph = 0; } // PJSA
+  if(symbfacIVL) { IVL_free(symbfacIVL); symbfacIVL = 0; }
+  if(frontETree) { ETree_free(frontETree); frontETree = 0; }
+  if(cumopsDV) { DV_free(cumopsDV); cumopsDV = 0; }
+  if(graph) { Graph_free(graph); graph = 0; }
 #endif
 }
 

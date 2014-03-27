@@ -103,10 +103,8 @@ class GenMumpsSolver : public GenSolver<Scalar>, public GenSparseMatrix<Scalar>,
    void zeroAll();
 
    // for parallel solver
-   double getSolutionTime() { return 0.0; }
-   //TODO: void getRBMs(Scalar *) {}
+   double getSolutionTime() { return GenSolver<Scalar>::getSolutionTime(); }
    Timings& getTimers() { return times; }
-   //TODO: void getRBMs(GenDistrVectorSet<Scalar> &) {}
    void refactor() { factor(); }
    
  private:

@@ -501,10 +501,12 @@ void GeoSource::addMpcElements(int numLMPC, ResizeArray<LMPCons *> &lmpc)
     }
     //cerr << " ... Converted " << numLMPC << " LMPCs to constraint elements ...\n";
   }
-  for(int i=0; i<numLMPC; ++i) if(lmpc[i]) delete lmpc[i];
-  lmpc.deleteArray();
-  lmpc.restartArray();
-  domain->setNumLMPC(0);
+  if(!(domain->solInfo().rbmflg == 1 && domain->solInfo().grbm_use_lmpc)) { // still needed for GRBM
+    for(int i=0; i<numLMPC; ++i) if(lmpc[i]) delete lmpc[i];
+    lmpc.deleteArray();
+    lmpc.restartArray();
+    domain->setNumLMPC(0);
+  }
 }
 
 void GeoSource::UpdateContactSurfaceElements(DistrGeomState *geomState, std::map<std::pair<int,int>,double> &mu)
@@ -1439,9 +1441,8 @@ int GeoSource::getNonMpcElems(Elemset &eset)
   for(int iEle = 0; iEle < numele; ++iEle) {
     Element *ele = elemSet[iEle];
     if(ele)  {
-      if(!ele->isRigidElement() && !ele->isMpcElement())  {
+      if(ele->isRigidElement() || !ele->isMpcElement()) {
         eset.elemadd(elecount, ele);
-        //eset[nElem]->setGlNum(iEle);
         elecount++;
       }
       else mpccount++;

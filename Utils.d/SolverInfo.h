@@ -224,6 +224,8 @@ struct SolverInfo {
    int rbmflg;          // 0 = algebraic rbm, 1 = geometric rbm
    int rbmFilters[6];   // rbm filtering for nonlinear modal problems for each
                         //   of the six rigid body modes: 0 = do not filter, 1 = do filter
+   bool grbm_use_lmpc;  // true = lmpcs treated algebraically in GRBM method
+                        // false (default) = lmpcs are assumed to not introduce any mechanisms (i.e. like springs)
 
    double condNumTolerance; // Condition number tolerance
    int condNumMaxit;
@@ -494,6 +496,7 @@ struct SolverInfo {
                   epsilon2 = 1e-10;
                   rbmflg = 0;
                   rbmFilters[0] = rbmFilters[1] = rbmFilters[2] = rbmFilters[3] = rbmFilters[4] = rbmFilters[5] = 0;
+                  grbm_use_lmpc = false;
                   buckling = 0;
 
                   sparse_renum = 0;

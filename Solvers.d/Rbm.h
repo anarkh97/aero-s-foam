@@ -58,7 +58,7 @@ public:
   Rbm(DofSetArray *dsa, ConstrainedDSA *c_dsa, CoordSet &cs, double tolgrb,
       compStruct &components, IntFullM *fm = 0);
   Rbm(DofSetArray *dsa, ConstrainedDSA *c_dsa, CoordSet &cs, double tolgrb,
-      compStruct &components, int numMPC, ResizeArray<LMPCons *> &mpc, IntFullM *fm = 0); // PJSA
+      compStruct &components, int numMPC, ResizeArray<LMPCons *> &mpc, IntFullM *fm = 0);
   Rbm(DofSetArray *_dsa, ConstrainedDSA *_c_dsa, CoordSet &cs,
       double _tolgrb, double *centroid,
       int *cornerNodes, int numCRN, int numCRNdof, DofSet *cornerDofs,

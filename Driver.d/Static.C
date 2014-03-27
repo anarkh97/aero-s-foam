@@ -651,11 +651,16 @@ Rbm *
 Domain::constructRbm(bool printFlag)
 {
   Rbm *rbm = 0;
-  if(numLMPC) {
+  if(numLMPC && sinfo.grbm_use_lmpc) {
     if(renumb_nompc.numComp == 0)
-      rbm = new Rbm(dsa, c_dsa, nodes, sinfo.tolsvd, renumb,  numLMPC, lmpc);
+      rbm = new Rbm(dsa, c_dsa, nodes, sinfo.tolsvd, renumb, numLMPC, lmpc);
     else
-      rbm = new Rbm(dsa, c_dsa, nodes, sinfo.tolsvd, renumb_nompc,  numLMPC, lmpc);
+      rbm = new Rbm(dsa, c_dsa, nodes, sinfo.tolsvd, renumb_nompc, numLMPC, lmpc);
+    // delete the LMPCs
+    for(int i=0; i<numLMPC; ++i) if(lmpc[i]) delete lmpc[i];
+    lmpc.deleteArray();
+    lmpc.restartArray();
+    numLMPC = 0;
   }
   else 
     rbm = new Rbm(dsa, c_dsa, nodes, sinfo.tolsvd, renumb);
@@ -2604,6 +2609,12 @@ Domain::transformVector(Vector &vec, int iele)
 {
   // transform element vector from basic to DOF_FRM coordinates
   if(domain->solInfo().basicDofCoords) return;
+  LMPCons *lmpcons;
+  if((lmpcons = dynamic_cast<LMPCons*>(packedEset[iele])) &&
+     (lmpcons->getSource() == mpc::Lmpc || lmpcons->getSource() == mpc::NodalContact ||
+      lmpcons->getSource() == mpc::TiedSurfaces || lmpcons->getSource() == mpc::ContactSurfaces)) {
+    return;
+  }
   int numNodes = packedEset[iele]->numNodes()-packedEset[iele]->numInternalNodes();
   int *nn = packedEset[iele]->nodes();
   if(packedEset[iele]->hasRot()) {
@@ -2653,6 +2664,12 @@ Domain::transformVectorInv(Vector &vec, int iele)
 {
   // transform element vector from DOF_FRM to basic coordinates
   if(domain->solInfo().basicDofCoords) return;
+  LMPCons *lmpcons;
+  if((lmpcons = dynamic_cast<LMPCons*>(packedEset[iele])) &&
+     (lmpcons->getSource() == mpc::Lmpc || lmpcons->getSource() == mpc::NodalContact ||
+      lmpcons->getSource() == mpc::TiedSurfaces || lmpcons->getSource() == mpc::ContactSurfaces)) {
+    return;
+  }
   int numNodes = packedEset[iele]->numNodes()-packedEset[iele]->numInternalNodes();
   int *nn = packedEset[iele]->nodes();
   if(packedEset[iele]->hasRot()) {

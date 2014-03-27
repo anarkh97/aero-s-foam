@@ -1213,7 +1213,7 @@ Domain::setUpData()
   geoSource->setUpData();
 
   if(sinfo.type == 0) {
-    if(numLMPC) {
+    if(numLMPC && domain->solInfo().rbmflg == 1 && domain->solInfo().grbm_use_lmpc) {
       Connectivity *elemToNode_tmp = new Connectivity(&eset_tmp);
       Connectivity *nodeToElem_tmp = elemToNode_tmp->reverse();
       Connectivity *nodeToNode_tmp = nodeToElem_tmp->transcon(elemToNode_tmp);

@@ -1218,21 +1218,21 @@ SlzemInfo:
 RbmTolerance:
         TRBM NewLine Float NewLine
         { domain->solInfo().setTrbm($3); }
-/* 
-        | TRBM NewLine Float Float NewLine
-        { domain->solInfo().setTrbm($3); }
-*/
 	;
 ToleranceInfo:
         GRBM NewLine Float Float NewLine
         { domain->solInfo().setGrbm($3,$4); 
-         filePrint(stderr," ... Using Geometric RBM Method     ...\n");}
+          filePrint(stderr," ... Using Geometric RBM Method     ...\n"); }
         | GRBM NewLine Float NewLine
         { domain->solInfo().setGrbm($3); 
-         filePrint(stderr," ... Using Geometric RBM Method     ...\n");}
+          filePrint(stderr," ... Using Geometric RBM Method     ...\n"); }
         | GRBM NewLine 
         { domain->solInfo().setGrbm();
-         filePrint(stderr," ... Using Geometric RBM Method     ...\n");}
+          filePrint(stderr," ... Using Geometric RBM Method     ...\n"); }
+        | GRBM NewLine Float Float Integer NewLine
+        { domain->solInfo().setGrbm($3,$4);
+          domain->solInfo().grbm_use_lmpc = bool($5);
+          filePrint(stderr," ... Using Geometric RBM Method     ...\n"); }
 	;
 ModeFilterInfo:
         MODEFILTER Integer NewLine

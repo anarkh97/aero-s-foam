@@ -1636,12 +1636,24 @@ Domain::addGravityForce(GenVector<Scalar> &force)
   while(current != 0) {
     int thisDof = c_dsa->locate(current->node, (1 << current->dof));
     if(thisDof >= 0 ) {
-      if(current->dof == 0)
-        force[thisDof] += (current->diMass)*gravityAcceleration[0];
-      if(current->dof == 1)
-        force[thisDof] += (current->diMass)*gravityAcceleration[1];
-      if(current->dof == 2)
-        force[thisDof] += (current->diMass)*gravityAcceleration[2];
+      if(nodes[current->node]->cd == 0) {
+        if(current->dof == 0)
+          force[thisDof] += (current->diMass)*gravityAcceleration[0];
+        if(current->dof == 1)
+          force[thisDof] += (current->diMass)*gravityAcceleration[1];
+        if(current->dof == 2)
+          force[thisDof] += (current->diMass)*gravityAcceleration[2];
+      }
+      else {
+        double g[3] = { gravityAcceleration[0], gravityAcceleration[1], gravityAcceleration[2] }; 
+        transformVector(g, current->node, false);
+        if(current->dof == 0)
+          force[thisDof] += (current->diMass)*g[0];
+        if(current->dof == 1)
+          force[thisDof] += (current->diMass)*g[1];
+        if(current->dof == 2)
+          force[thisDof] += (current->diMass)*g[2];
+      }
     }
     current = current->next;
   }
@@ -2000,7 +2012,7 @@ int Domain::mergeDistributedDisp(Scalar (*xyz)[11], Scalar *u, Scalar *bcx, Scal
       && c_dsa->locate(inode, DofSet::LagrangeI) < 0) {
       if(xyz_loc) for(int j=0; j<11; ++j) xyz_loc[nodeI][j] = xyz[nodeI][j];
       bool hasRot = (xRot >= 0 || xRot1 >= 0 || yRot >= 0 || yRot1 >= 0 || zRot >= 0 || zRot1 >= 0);
-      transformVectorInv(&(xyz[nodeI][0]), nodeI, hasRot);
+      transformVectorInv(&(xyz[nodeI][0]), inode, hasRot);
     }
 
   }

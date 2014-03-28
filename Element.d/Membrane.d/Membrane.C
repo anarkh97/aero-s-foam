@@ -6,6 +6,10 @@
 #include <Utils.d/linkfc.h>
 #include <Utils.d/pstress.h>
 #include <Corotational.d/utilities.h>
+#include <Element.d/Membrane.d/MembraneStressWRTThicknessSensitivity.h>
+#include <Element.d/Membrane.d/MembraneStressWRTDisplacementSensitivity.h>
+#include <Element.d/Membrane.d/MembraneStiffnessWRTThicknessSensitivity.h>
+#include <Element.d/Function.d/SpaceDerivatives.h>
 #include <Math.d/FullSquareMatrix.h>
 #include <Math.d/Vector.h>
 #include <Corotational.d/Shell3Corotator.h>
@@ -94,6 +98,211 @@ Membrane::getVonMises(Vector& stress,Vector& weight,CoordSet &cs, Vector& elDisp
           stress[2] = elStress[2][strInd-7];
 	}
 
+}
+
+void 
+Membrane::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+                                             int senMethod, double *ndTemps, int avgnum, double ylayer, double zlayer)
+{
+#ifdef USE_EIGEN3
+   if(strInd != 6) {
+     cerr << " ... Error: strInd must be 6 in TwoNodeTruss::getVonMisesDisplacementSensitivity\n";
+     exit(-1);
+   }
+   if(dStdDisp.numRow() != 3 || dStdDisp.numCol() !=18) {
+     cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
+     exit(-1);
+   }
+   if(ndTemps != 0) {
+     cerr << " ... Error: thermal stress should not be passed in sensitivity computation\n";
+     exit(-1);
+   }
+  weight = 1;
+  // scalar parameters
+  Eigen::Array<double,12,1> dconst;
+
+  Node &nd1 = cs.getNode(nn[0]);
+  Node &nd2 = cs.getNode(nn[1]);
+  Node &nd3 = cs.getNode(nn[2]);
+
+  dconst[0] = nd1.x; dconst[1] = nd2.x; dconst[2] = nd3.x; // x coordinates
+  dconst[3] = nd1.y; dconst[4] = nd2.y; dconst[5] = nd3.y; // y coordinates
+  dconst[6] = nd1.z; dconst[7] = nd2.z; dconst[8] = nd3.z; // z coordinates
+  dconst[9] = prop->E;     // E
+  dconst[10] = prop->nu;   // nu
+  dconst[11] = prop->eh;   // thickness
+
+  Eigen::Array<double,3,1> globalx = dconst.segment<3>(0).cast<double>();
+  Eigen::Array<double,3,1> globaly = dconst.segment<3>(3).cast<double>();
+  Eigen::Array<double,3,1> globalz = dconst.segment<3>(6).cast<double>();
+   
+  // integer parameters
+  Eigen::Array<int,1,1> iconst;
+  iconst[0] = surface; // surface
+  // inputs
+  Eigen::Matrix<double,18,1> q = Eigen::Map<Eigen::Matrix<double,18,1> >(elDisp.data()).segment(0,18); //displacements
+
+  // Jacobian evaluation
+  Eigen::Matrix<double,3,18> dStressdDisp;
+  Eigen::Matrix<double,7,3> stress;
+  if(verboseFlag) cout << "senMethod is " << senMethod << endl;
+ 
+  if(avgnum == 0 || avgnum == 1) { // NODALFULL or ELEMENTAL
+    if(senMethod == 0) { // analytic
+/*      dStressdDisp.setZero();
+      double h[3]; 
+      h[0] = h[1] = h[2] = prop->eh;
+      vms8WRTdisp(globalx.data(), globaly.data(), globalz.data(),
+                  prop->E, prop->nu, h, q.data(), 
+                  dStressdDisp.data(), 0, surface, 0);   
+      dStdDisp.copy(dStressdDisp.data());
+      if(verboseFlag) std::cerr << "dStressdDisp(analytic) =\n" << dStressdDisp << std::endl;
+*/
+    }
+
+    if(senMethod == 1) { // automatic differentiation
+      Simo::Jacobian<double,MembraneStressWRTDisplacementSensitivity> dSdu(dconst,iconst);
+      dStressdDisp = dSdu(q, 0);
+      dStdDisp.copy(dStressdDisp.data());
+      if(verboseFlag) std::cerr << "dStressdDisp(AD) =\n" << dStressdDisp << std::endl;
+    }
+ 
+
+    if(senMethod == 2) { // finite difference
+      // finite difference
+      dStressdDisp.setZero();
+      MembraneStressWRTDisplacementSensitivity<double> foo(dconst,iconst);
+      Eigen::Matrix<double,18,1> qp, qm;
+      double h(1e-6);
+      Eigen::Matrix<double,3,1> S = foo(q,0);
+//      cout << "displacement = " << q.transpose() << endl;
+      for(int i=0; i<18; ++i) {
+        qp = q;             qm = q;
+        qp[i] += h;         qm[i] -= h;
+//        if(q[i] == 0) { qp[i] = h;   qm[i] = -h; }
+//        else { qp[i] = q[i]*(1 + h);   qm[i] = q[i]*(1 - h); }
+        Eigen::Matrix<double,3,1> Sp = foo(qp, 0);
+        Eigen::Matrix<double,3,1> Sm = foo(qm, 0);
+        Eigen::Matrix<double,3,1> fd = (Sp - Sm)/(2*h);
+//        if(i==2) {
+//          Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " "); 
+//          cout << Sp.transpose().format(HeavyFmt) << endl;
+//          cout << Sm.transpose().format(HeavyFmt) << endl;
+//          cout << fd.transpose().format(HeavyFmt) << endl;
+//        }
+        for(int j=0; j<3; ++j) {
+          dStressdDisp(j,i) = fd[j];
+        }
+      }
+      dStdDisp.copy(dStressdDisp.data());
+      if(verboseFlag) std::cerr << "dStressdDisp(FD) =\n" << dStressdDisp << std::endl;
+    }
+  } else dStdDisp.zero(); // NODALPARTIAL or GAUSS or any others
+#else
+  cerr << " ... Error! Membrane::getVonMisesDisplacementSensitivity needs Eigen library.\n";
+  exit(-1);
+#endif
+}
+
+void 
+Membrane::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+                                          int senMethod, double *, int avgnum, double ylayer, double zlayer)
+{
+#ifdef USE_EIGEN3
+   if(strInd != 6) {
+     cerr << " ... Error: strInd must be 6 in TwoNodeTruss::getVonMisesThicknessSensitivity\n";
+     exit(-1);
+   }
+   if(dStdThick.size() !=3) {
+     cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
+     exit(-1);
+   }
+  weight = 1;
+  // scalar parameters
+  Eigen::Array<double,29,1> dconst;
+
+  Node &nd1 = cs.getNode(nn[0]);
+  Node &nd2 = cs.getNode(nn[1]);
+  Node &nd3 = cs.getNode(nn[2]);
+
+  dconst[0] = nd1.x; dconst[1] = nd2.x; dconst[2] = nd3.x; // x coordinates
+  dconst[3] = nd1.y; dconst[4] = nd2.y; dconst[5] = nd3.y; // y coordinates
+  dconst[6] = nd1.z; dconst[7] = nd2.z; dconst[8] = nd3.z; // z coordinates
+  for(int i=0; i<18; ++i) {
+    dconst[i+9] = elDisp[i];
+  }
+  dconst[27] = prop->E;     // E
+  dconst[28] = prop->nu;   // nu
+
+  Eigen::Array<double,3,1> globalx = dconst.segment<3>(0).cast<double>();
+  Eigen::Array<double,3,1> globaly = dconst.segment<3>(3).cast<double>();
+  Eigen::Array<double,3,1> globalz = dconst.segment<3>(6).cast<double>();
+   
+  // integer parameters
+  Eigen::Array<int,1,1> iconst;
+  iconst[0] = surface; // surface
+  // inputs
+  Eigen::Matrix<double,1,1> q;
+  q[0] = prop->eh;
+
+  // Jacobian evaluation
+  Eigen::Matrix<double,3,1> dStressdThic;
+  Eigen::Matrix<double,7,3> stress;
+  if(verboseFlag) cout << "senMethod is " << senMethod << endl;
+ 
+  if(avgnum == 0 || avgnum == 1) { // NODALFULL or ELEMENTAL
+    if(senMethod == 0) { // analytic
+/*      dStressdThic.setZero();
+      double h[3]; 
+      h[0] = h[1] = h[2] = q[0];
+      vms8WRTthic(globalx.data(), globaly.data(), globalz.data(),
+                  prop->E, prop->nu, h, elDisp.data(), 
+                  dStressdThic.data(), 0, surface, 0);   
+      dStdThick.copy(dStressdThic.data());
+      if(verboseFlag) std::cerr << "dStressdThic(analytic) =\n" << dStressdThic << std::endl;
+*/
+    }
+
+    if(senMethod == 1) { // automatic differentiation
+      Simo::Jacobian<double,MembraneStressWRTThicknessSensitivity> dSdu(dconst,iconst);
+      dStressdThic = dSdu(q, 0);
+      dStdThick.copy(dStressdThic.data());
+      if(verboseFlag) std::cerr << "dStressdThic(AD) =\n" << dStressdThic << std::endl;
+    }
+ 
+
+    if(senMethod == 2) { // finite difference
+      // finite difference
+      dStressdThic.setZero();
+      MembraneStressWRTThicknessSensitivity<double> foo(dconst,iconst);
+      Eigen::Matrix<double,1,1> qp, qm;
+      double h(1e-6);
+      Eigen::Matrix<double,3,1> S = foo(q,0);
+//      cout << "displacement = " << q.transpose() << endl;
+      qp = q;             qm = q;
+      qp[0] += h;         qm[0] -= h;
+//        if(q[i] == 0) { qp[i] = h;   qm[i] = -h; }
+//        else { qp[i] = q[i]*(1 + h);   qm[i] = q[i]*(1 - h); }
+      Eigen::Matrix<double,3,1> Sp = foo(qp, 0);
+      Eigen::Matrix<double,3,1> Sm = foo(qm, 0);
+      Eigen::Matrix<double,3,1> fd = (Sp - Sm)/(2*h);
+//        if(i==2) {
+//          Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " "); 
+//          cout << Sp.transpose().format(HeavyFmt) << endl;
+//          cout << Sm.transpose().format(HeavyFmt) << endl;
+//          cout << fd.transpose().format(HeavyFmt) << endl;
+//        }
+      for(int j=0; j<3; ++j) {
+        dStressdThic(j,0) = fd[j];
+      }
+      dStdThick.copy(dStressdThic.data());
+      if(verboseFlag) std::cerr << "dStressdThic(FD) =\n" << dStressdThic << std::endl;
+    }
+  } else dStdThick.zero(); // NODALPARTIAL or GAUSS or any others
+#else
+  cerr << " ... Error! Membrane::getVonMisesThicknessSensitivity needs Eigen library\n";
+  exit(-1);
+#endif
 }
 
 void
@@ -432,13 +641,81 @@ Membrane::stiffness(CoordSet &cs, double *d, int flg)
           fprintf(stderr,"ERROR: Zero shell thickness (ThreeNodeShell.C) %d %d %d\n",
                 nn[0], nn[1], nn[2]);
 
+#ifdef USE_EIGEN3
+        trimem(flg, x, y, z, prop->E, prop->nu, h, d);
+#else
         _FORTRAN(trimem)(flg, x, y, z, prop->E, prop->nu, h, (double *)d);
+#endif
 
         FullSquareMatrix ret(18,d);
 
         //cerr << "here in Membrane::stiffness\n"; ret.print();
 
         return ret;
+}
+
+void 
+Membrane::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix &dStiffdThick, int flg, int senMethod)
+{
+#ifdef USE_EIGEN3
+  if(dStiffdThick.dim() != 18) {
+     cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
+     exit(-1); 
+  }
+
+  // scalar parameters
+  Eigen::Array<double,11,1> dconst;
+
+  Node &nd1 = cs.getNode(nn[0]);
+  Node &nd2 = cs.getNode(nn[1]);
+  Node &nd3 = cs.getNode(nn[2]);
+
+  dconst[0] = nd1.x; dconst[1] = nd2.x; dconst[2] = nd3.x; // x coordinates
+  dconst[3] = nd1.y; dconst[4] = nd2.y; dconst[5] = nd3.y; // y coordinates
+  dconst[6] = nd1.z; dconst[7] = nd2.z; dconst[8] = nd3.z; // z coordinates
+  dconst[9] = prop->E; // E
+  dconst[10] = prop->nu;   // nu
+  // integer parameters
+  Eigen::Array<int,1,1> iconst;
+  iconst[0] = flg; 
+  // inputs
+  Eigen::Matrix<double,1,1> q;
+  q[0] = prop->eh;   // value of thickness at which jacobian is to be evaluated
+
+  Eigen::Matrix<double,18,18> dStiffnessdThick;
+  if(senMethod == 0) { // analytic
+/*
+    double x[3], y[3], z[3], h[3];
+    x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+    x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+    x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
+    h[0] = h[1] = h[2] = prop->eh;
+   
+    andesstfWRTthick(glNum+1, dStiffnessdThick.data(), prop->nu, x, y, z, type, flg);
+    if(verboseFlag) std::cerr << "dStiffnessdThick(analytic) =\n" << dStiffnessdThick << std::endl;
+*/
+  }
+
+  if(senMethod == 1) { // automatic differentiation
+    Simo::FirstPartialSpaceDerivatives<double, MembraneStiffnessWRTThicknessSensitivity> dSdh(dconst,iconst); 
+    Eigen::Array<Eigen::Matrix<double,18,18>,1,1> dStifdThick = dSdh(q, 0);
+    if(verboseFlag) std::cerr << "dStifdThick(AD) =\n" << dStifdThick[0] << std::endl;
+    dStiffnessdThick = dStifdThick[0];
+  }
+
+  if(senMethod == 2) { // finite difference
+    MembraneStiffnessWRTThicknessSensitivity<double> foo(dconst,iconst);
+    Eigen::Matrix<double,1,1> qp, qm;
+    double h(1e-6);
+    qp[0] = q[0] + h;   qm[0] = q[0] - h;
+    Eigen::Matrix<double,18,18> Sp = foo(qp, 0);
+    Eigen::Matrix<double,18,18> Sm = foo(qm, 0);
+    dStiffnessdThick = (Sp-Sm)/(2*h);
+    if(verboseFlag) std::cerr << "dStiffnessdThick(FD) =\n" << dStiffnessdThick << std::endl;
+  }
+
+  dStiffdThick.copy(dStiffnessdThick.data());
+#endif
 }
 
 int

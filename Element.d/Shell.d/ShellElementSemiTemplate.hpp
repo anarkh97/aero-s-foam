@@ -29,22 +29,22 @@ class ShellElementSemiTemplate
                      bool strainFlg, int surface, doublereal thrmStr = 0);
 
   protected:
-    void rotation(doublereal *_v1o, doublereal *_v2o, doublereal *_v3o,
-                  doublereal *_v1n, doublereal *_v2n, doublereal *_v3n,
-                  doublereal *_r);
+    virtual void rotation(doublereal *_v1o, doublereal *_v2o, doublereal *_v3o,
+                          doublereal *_v1n, doublereal *_v2n, doublereal *_v3n,
+                          doublereal *_r);
 
-    void membra(doublereal *_x, doublereal *_y, doublereal alpha,
-                int *_le, doublereal *_q);
+    virtual void membra(doublereal *_x, doublereal *_y, doublereal alpha,
+                        int *_le, doublereal *_q);
 
-    void transform(doublereal *_xl, doublereal *_yl, doublereal *_zl,
-                   doublereal *_xg, doublereal *_yg, doublereal *_zg,
-                   doublereal *_str, doublereal *_tMat);
+    virtual void transform(doublereal *_xl, doublereal *_yl, doublereal *_zl,
+                           doublereal *_xg, doublereal *_yg, doublereal *_zg,
+                           doublereal *_str, doublereal *_tMat);
 
-    void vonmis(doublereal rmx, doublereal rmy, doublereal rmxy,
-                doublereal rnx, doublereal rny, doublereal rnxy,
-                doublereal &t,  doublereal &sv, int surface);
+    virtual void vonmis(doublereal rmx, doublereal rmy, doublereal rmxy,
+                        doublereal rnx, doublereal rny, doublereal rnxy,
+                        doublereal &t,  doublereal &sv, int surface=1);
 
-    void compj2(doublereal sx, doublereal sy, doublereal sxy, doublereal &svm);
+    virtual void compj2(doublereal sx, doublereal sy, doublereal sxy, doublereal &svm);
 
     void momen(doublereal *_x, doublereal *_y, int *_lb, doublereal *_l);
 

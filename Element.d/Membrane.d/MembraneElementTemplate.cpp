@@ -7,6 +7,7 @@
 #include <stdexcept>
 #include <iostream>
 #include <Element.d/Membrane.d/MembraneElementTemplate.hpp>
+#include <Element.d/Shell.d/ShellElementSemiTemplate.cpp>
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 
@@ -56,6 +57,7 @@ MembraneElementTemplate<doublereal>
         doublereal rmmx,rmmy,rmmxy,rnnx,rnny,rnnxy,sbf;
         Eigen::Matrix<doublereal,3,1> xg,yg,zg;
         Eigen::Matrix<doublereal,6,1> str;
+        Eigen::Matrix<doublereal,6,6> trsM;
 
 //.... INIALIZE DATA
 
@@ -157,7 +159,7 @@ MembraneElementTemplate<doublereal>
         v3n[1] = 0.0;
         v3n[2] = 1.0;
 
-        rotation(xp.data(),yp.data(),zp.data(),v1n.data(),v2n.data(),v3n.data(),r1.data());
+        this->rotation(xp.data(),yp.data(),zp.data(),v1n.data(),v2n.data(),v3n.data(),r1.data());
 
 //.... COMPUTE THE VON MISES STRESS
 
@@ -180,7 +182,7 @@ MembraneElementTemplate<doublereal>
 
 //.... COMPUTE CENTROIDAL MEMBRANE STRAINS
 
-        membra(xlp.data(),ylp.data(),1.5,le.data(),rmem.data());
+        this->membra(xlp.data(),ylp.data(),1.5,le.data(),rmem.data());
 
         rmx  = 0.0;
         rmy  = 0.0;
@@ -214,7 +216,7 @@ MembraneElementTemplate<doublereal>
          str(3) = 0.5*rnxy;
          str(4) = -(nu/(1.0-nu))*(rnx + rny);
          str(5) = 0.0;
-         transform(xp.data(),yp.data(),zp.data(),xg.data(),yg.data(),zg.data(),str.data());
+         this->transform(xp.data(),yp.data(),zp.data(),xg.data(),yg.data(),zg.data(),str.data(),trsM.data());
          stress(0,0) = str[0];
          stress(0,1) = str[0];
          stress(0,2) = str[0];
@@ -256,7 +258,7 @@ MembraneElementTemplate<doublereal>
 
 // ...  COMPUTE VON MISES STRESS RESULTANT
 
-       vonmis(rmmx,rmmy,rmmxy,rnnx,rnny,rnnxy,t,sbf);
+       this->vonmis(rmmx,rmmy,rmmxy,rnnx,rnny,rnnxy,t,sbf);
 
 // ... COMPUTE SIGMAXX SIGMAYY AND SIGMAXY
 
@@ -267,7 +269,7 @@ MembraneElementTemplate<doublereal>
       str[4] = 0.0;
       str[5] = 0.0;
 
-      transform(xp.data(),yp.data(),zp.data(),xg.data(),yg.data(),zg.data(),str.data());
+      this->transform(xp.data(),yp.data(),zp.data(),xg.data(),yg.data(),zg.data(),str.data(),trsM.data());
 
       stress(0,0) = str[0];
       stress(0,1) = str[0];
@@ -301,300 +303,143 @@ MembraneElementTemplate<doublereal>
 template<typename doublereal>
 void
 MembraneElementTemplate<doublereal>
-::rotation(doublereal *_v1o, doublereal *_v2o, doublereal *_v3o,
-           doublereal *_v1n, doublereal *_v2n, doublereal *_v3n,
-           doublereal *_r)
+::trimem(int flag, doublereal *_xl, doublereal *_yl, doublereal *_zl,
+         doublereal e, doublereal nu, doublereal *_h, doublereal *_rk) 
 {
-// Declarations
-      Eigen::Map<Eigen::Matrix<doublereal,3,1> > v1o(_v1o), v2o(_v2o), v3o(_v3o), v1n(_v1n), v2n(_v2n), v3n(_v3n);
-      Eigen::Map<Eigen::Matrix<doublereal,3,3> > r(_r);
+        Eigen::Map<Eigen::Matrix<doublereal,18,18> > rk(_rk);
+        Eigen::Map<Eigen::Matrix<doublereal,3,1> > xl(_xl), yl(_yl), zl(_zl), h(_h);
 
-// Local Declarations
-      int i,j;
+        Eigen::Matrix<doublereal,9,9> sm;
+        Eigen::Matrix<doublereal,3,3> dm, r1;
+        Eigen::Matrix<doublereal,3,1> xp, yp, zp, xlp, ylp, zlp, v1n, v2n, v3n;
 
-// Zero rotation matrix
-      r.setZero();
+        doublereal cb,x21,y21,z21,x32,y32,z32,x13,z13;
+        doublereal rx,ry,rz,bx,by,bz,rlr,rlb,bpr,area,ylr,zlr;
+        doublereal ycg,xcg,zcg,xlcg,ylcg,zlcg,esp;
+        Eigen::Matrix<int,9,1> le, ptr;
 
-// Compute rotation matrix
-      for(i=0; i<3; ++i) {
-        r(0,0) = r(0,0) + v1n[i]*v1o[i];
-        r(0,1) = r(0,1) + v1n[i]*v2o[i];
-        r(0,2) = r(0,2) + v1n[i]*v3o[i];
-        r(1,0) = r(1,0) + v2n[i]*v1o[i];
-        r(1,1) = r(1,1) + v2n[i]*v2o[i];
-        r(1,2) = r(1,2) + v2n[i]*v3o[i];
-        r(2,0) = r(2,0) + v3n[i]*v1o[i];
-        r(2,1) = r(2,1) + v3n[i]*v2o[i];
-        r(2,2) = r(2,2) + v3n[i]*v3o[i];
-      }
-}
+        int i,j;
+        char* status = " ";
+        le << 0,1,6,7,12,13,5,11,17;
+        ptr << 0,1,5,6,7,11,12,13,17;
+        v1n << 1.0,0.0,0.0;
+        v2n << 0.0,1.0,0.0;
+        v3n << 0.0,0.0,1.0;
 
-template<typename doublereal>
-void
-MembraneElementTemplate<doublereal>
-::membra(doublereal *_x, doublereal *_y, doublereal alpha,
-         int *_le, doublereal *_q)
-{
-      Eigen::Map<Eigen::Matrix<doublereal,3,1> > x(_x), y(_y);
-      Eigen::Map<Eigen::Matrix<doublereal,18,3> > q(_q);
-      Eigen::Map<Eigen::Matrix<int,9,1> > le(_le);
+//.... thickness
 
-      Eigen::Matrix<doublereal,9,3> p;
-      doublereal area2, c, x21, x32, x13, y21, y32, y13, x12, x23, x31, y12, y23, y31; 
+        esp = h[0];
 
-      int i, j, kk, n;
+//.... elastic matrix
 
-      x21 =      x[1] - x[0];
-      x12 =     -x21;
-      x32 =      x[2] - x[1];
-      x23 =     -x32;
-      x13 =      x[0] - x[2];
-      x31 =     -x13;
-      y21 =      y[1] - y[0];
-      y12 =     -y21;
-      y32 =      y[2] - y[1];
-      y23 =     -y32;
-      y13 =      y[0] - y[2];
-      y31 =     -y13;
-      area2 =    y21*x13 - x21*y13;
-      if (area2 <= 0.0) {
-        cerr << " ... Error! SM3MB: Zero area\n";
-        if (area2 == 0.0)   cerr << " ... Error! SM3MB: Zero area\n";
-        exit(-1);
-      }
-      p(0,0) =   y23;
-      p(1,0) =   0.0;
-      p(2,0) =   y31;
-      p(3,0) =   0.0;
-      p(4,0) =   y12;
-      p(5,0) =   0.0;
-      p(0,1) =   0.0;
-      p(1,1) =   x32;
-      p(2,1) =   0.0;
-      p(3,1) =   x13;
-      p(4,1) =   0.0;
-      p(5,1) =   x21;
-      p(0,2) =   x32;
-      p(1,2) =   y23;
-      p(2,2) =   x13;
-      p(3,2) =   y31;
-      p(4,2) =   x21;
-      p(5,2) =   y12;
-      if (alpha != 0.0) {
-        p(6,0) =  y23*(y13-y21)*alpha/6.;
-        p(6,1) =  x32*(x31-x12)*alpha/6.;
-        p(6,2) =  (x31*y13-x12*y21)*alpha/3.;
-        p(7,0) =  y31*(y21-y32)*alpha/6.;
-        p(7,1) =  x13*(x12-x23)*alpha/6.;
-        p(7,2) =  (x12*y21-x23*y32)*alpha/3.;
-        p(8,0) =  y12*(y32-y13)*alpha/6.;
-        p(8,1) =  x21*(x23-x31)*alpha/6.;
-        p(8,2) =  (x23*y32-x31*y13)*alpha/3.;
-        n =        9;
-      }
-      c =   1.0   /area2;
-      for(i=0; i<9; ++i) {
-        kk=le[i];
-        for(j=0; j<3; ++j) {
-          q(kk,j)=p(i,j)*c;
+        cb=(e*esp)/(1.0-(nu*nu));
+        dm(0,0) = cb;
+        dm(0,1) = nu*cb;
+        dm(0,2) = 0.0;
+        dm(1,0) = dm(0,1);
+        dm(1,1) = cb;
+        dm(1,2) = 0.0;
+        dm(2,0) = 0.0;
+        dm(2,1) = 0.0;
+        dm(2,2) = ((1.0-nu)/2.0)*cb;
+
+//.... dimension variables
+
+        x21 = xl[1] - xl[0];
+        y21 = yl[1] - yl[0];
+        z21 = zl[1] - zl[0];
+        x32 = xl[2] - xl[1];
+        y32 = yl[2] - yl[1];
+        z32 = zl[2] - zl[1];
+        x13 = xl[0] - xl[2];
+        z13 = zl[0] - zl[2];
+
+//.... triangle in space : we compute the length of one 
+//.... side and the distance of the
+//.... opposing node to that side to compute the area
+
+        rx   = x21;
+        ry   = y21;
+        rz   = z21;
+        bx   = x32;
+        by   = y32;
+        bz   = z32;
+
+        rlr  = sqrt( rx*rx + ry*ry + rz*rz );
+        rlb  = sqrt( bx*bx + by*by + bz*bz );
+        bpr  = sqrt((rx * bx + ry * by + rz *bz)*(rx * bx + ry * by + rz *bz))/rlr;
+        area = 0.5*rlr*(sqrt(rlb*rlb-bpr*bpr));
+
+//.... direction cosines of the local system . 
+//.... X' is dircted parallel to the 2-1 side
+//.... Z' is the external normal (counterclockwise). 
+//.... Y' computed as Z'x X'
+
+        xp[0] = x21/rlr;
+        xp[1] = y21/rlr;
+        xp[2] = z21/rlr;
+
+//.... Z'
+
+        zp[0] = y21 * z32 - z21 * y32;
+        zp[1] = z21 * x32 - x21 * z32;
+        zp[2] = x21 * y32 - y21 * x32;
+        zlr   = sqrt( zp[0]*zp[0] + zp[1]*zp[1] + zp[2]*zp[2] );
+        zp[0] = zp[0]/zlr;
+        zp[1] = zp[1]/zlr;
+        zp[2] = zp[2]/zlr;
+
+//.... Y'
+
+        yp[0] = zp[1] * xp[2] - zp[2] * xp[1];
+        yp[1] = zp[2] * xp[0] - zp[0] * xp[2];
+        yp[2] = zp[0] * xp[1] - zp[1] * xp[0];
+        ylr   = sqrt( yp[0]*yp[0] + yp[1]*yp[1] + yp[2]*yp[2] );
+        yp[0] = yp[0]/ylr;
+        yp[1] = yp[1]/ylr;
+        yp[2] = yp[2]/ylr;
+
+//.... center of gravity
+
+        xcg = (xl[0] + xl[1] + xl[2])/3.0;
+        ycg = (yl[0] + yl[1] + yl[2])/3.0;
+        zcg = (zl[0] + zl[1] + zl[2])/3.0;
+
+//.... computing local coordinates 
+
+        for(i=0; i<3; ++i) {
+          xlcg   = xl[i]-xcg;
+          ylcg   = yl[i]-ycg;
+          zlcg   = zl[i]-zcg;
+          xlp[i] = xp[0] * xlcg + xp[1] * ylcg + xp[2] * zlcg;
+          ylp[i] = yp[0] * xlcg + yp[1] * ylcg + yp[2] * zlcg;
+          zlp[i] = zp[0] * xlcg + zp[1] * ylcg + zp[2] * zlcg;
         }
-      }
-}
 
-template<typename doublereal>
-void
-MembraneElementTemplate<doublereal>
-::transform(doublereal *_xl, doublereal *_yl, doublereal *_zl,
-            doublereal *_xg, doublereal *_yg, doublereal *_zg,
-            doublereal *_str)
-{
+//.... cleaning stiffness matrix
+        rk.setZero();
 
-/**********************************************************************C
-C
-C Purpose: to form a transformation matrix from local coordinates to
-C          global coordinates
-C
-C input variables:
-C      xl = x local unit vector
-C      yl = y local unit vector
-C      zl = z local unit vector
-C      xg = x global unit vector
-C      yg = y global unit vector
-C      zg = z global unit vector
-C      str = stress/strain 6x1 vector
-C            sigmaxx, sigmayy, sigmazz, sigma12, sigma23, sigma13
-C
-C local variables:
-C      l1 = direction cosine between xl and xg
-C      l2 = direction cosine between xl and yg
-C      l3 = direction cosine between xl and zg
-C      m1 = direction cosine between yl and xg
-C      m2 = direction cosine between yl and yg
-C      m3 = direction cosine between yl and zg
-C      n1 = direction cosine between zl and xg
-C      n2 = direction cosine between zl and yg
-C      n3 = direction cosine between zl and zg
-C      t  = transformation matrix from local to global
-C
-C**********************************************************************/
+//.... forming local basic stiffness for membrane
 
-        Eigen::Map<Eigen::Matrix<doublereal,3,1> > xl(_xl),yl(_yl),zl(_zl), xg(_xg), yg(_yg), zg(_zg);
-        Eigen::Map<Eigen::Matrix<doublereal,6,1> > str(_str);
+        this->sm3mb(xlp.data(),ylp.data(),dm.data(),1.5,1.0,le.data(),rk.data(),18,status);
 
-// Local Declarations
+//.... forming local higher order stiffness for membrane
 
-        doublereal l1,l2,l3;
-        doublereal m1,m2,m3;
-        doublereal n1,n2,n3;
-        Eigen::Matrix<doublereal,6,1> s;
-        Eigen::Matrix<doublereal,6,6> t;
+        this->sm3mhe(xlp.data(),ylp.data(),dm.data(),0.32,le.data(),rk.data(),18,status);
 
-// Copy stress/strain values to a temporary array
+// rotate stiffness matrix from local coordinate system to global
+// coordinate system in the case of linear FEM. In the case of
+// nonlinear FEM with corotational method, do not perform this 
+// transformation as the corotational routines expect a stiffness
+// matrix in local coordinates.
 
-        s = str;
+        if(flag == 1) {
+          //.... computing nodal rotation matrices
+          this->rotation(xp.data(),yp.data(),zp.data(),v1n.data(),v2n.data(),v3n.data(),r1.data());
+          //.... rotate membrane stiffness
+          this->trirotation(rk.data(),r1.data());
+        }
 
-// Compute direction cosines
-      
-        l1 = xg.dot(xl);
-        l2 = yg.dot(xl);
-        l3 = zg.dot(xl);
-        
-        m1 = xg.dot(yl);
-        m2 = yg.dot(yl);
-        m3 = zg.dot(yl);
-        
-        n1 = xg.dot(zl);
-        n2 = yg.dot(zl);
-        n3 = zg.dot(zl);
-
-// Construct the 6x6 transformation matrix
-       
-        t(0,0) = l1*l1;
-        t(0,1) = m1*m1;
-        t(0,2) = n1*n1;
-        t(0,3) = 2.0*l1*m1;
-        t(0,4) = 2.0*m1*n1;
-        t(0,5) = 2.0*n1*l1;
-       
-        t(1,0) = l2*l2;
-        t(1,1) = m2*m2;
-        t(1,2) = n2*n2;
-        t(1,3) = 2.0*l2*m2;
-        t(1,4) = 2.0*m2*n2;
-        t(1,5) = 2.0*n2*l2;
-       
-        t(2,0) = l3*l3;
-        t(2,1) = m3*m3;
-        t(2,2) = n3*n3;
-        t(2,3) = 2.0*l3*m3;
-        t(2,4) = 2.0*m3*n3;
-        t(2,5) = 2.0*n3*l3;
-       
-        t(3,0) = l1*l2;
-        t(3,1) = m1*m2;
-        t(3,2) = n1*n2;
-        t(3,3) = l1*m2 + l2*m1;
-        t(3,4) = m1*n2 + m2*n1;
-        t(3,5) = n1*l2 + n2*l1;
-       
-        t(4,0) = l2*l3;
-        t(4,1) = m2*m3;
-        t(4,2) = n2*n3;
-        t(4,3) = l2*m3 + l3*m2;
-        t(4,4) = m2*n3 + m3*n2;
-        t(4,5) = n2*l3 + n3*l2;
-       
-        t(5,0) = l3*l1;
-        t(5,1) = m3*m1;
-        t(5,2) = n3*n1;
-        t(5,3) = l3*m1 + l1*m3;
-        t(5,4) = m3*n1 + m1*n3;
-        t(5,5) = n3*l1 + n1*l3;
-
-// Perform the multiplication {str'} = T{str}
-       
-        str = t*s;
-} 
-
-template<typename doublereal>
-void
-MembraneElementTemplate<doublereal>
-::vonmis(doublereal rmx, doublereal rmy, doublereal rmxy,
-         doublereal rnx, doublereal rny, doublereal rnxy,
-         doublereal &t,   doublereal &sv)
-{
-//.... LOCAL VARIABLES
-// st = von mises stress in top surface
-// sm = von mises stress in median surface
-// sb = von mises stress in bottom surface
-
-      doublereal sx,sy,sxy,st,sb,sm,t2,sq3;
-      doublereal rnxt,rnyt,rnxyt,rmxt,rmyt,rmxyt;
-
-      t    = abs(t);
-      t2   = t*t;
-
-      sq3  = sqrt(3.0);
-
-      rnxt  =  rnx/t;
-      rnyt  =  rny/t;
-      rnxyt =  rnxy/t;
-
-      rmxt  = 6.0 * rmx / t2;
-      rmyt  = 6.0 * rmy / t2;
-      rmxyt = 6.0 *rmxy / t2;
-
-// ... COMPUTE VON MISES STRESS IN BOTTOM SURFACE
-      sx  =  rnxt -  rmxt;
-      sy  =  rnyt -  rmyt;
-      sxy = rnxyt - rmxyt;
-      compj2(sx,sy,sxy,sb);
-      sb = sq3 * sb;
-
-// ... COMPUTE VON MISES STRESS IN MEDIAN SURFACE
-      sx  = rnxt;
-      sy  = rnyt;
-      sxy = rnxyt;
-      compj2(sx,sy,sxy,sm);
-      sm = sq3 * sm;
-
-// ... COMPUTE VON MISES STRESS IN TOP SURFACE
-      sx  =  rnxt +  rmxt;
-      sy  =  rnyt +  rmyt;
-      sxy = rnxyt + rmxyt;
-      compj2(sx,sy,sxy,st);
-      st = sq3 *st;
-
-// ... VON MISES STRESS = max(sb,st)
-      sv = max(sb,st);
-}
-
-template<typename doublereal>
-void
-MembraneElementTemplate<doublereal>
-::compj2(doublereal sx, doublereal sy, doublereal sxy, doublereal &svm)
-{
-
-// ... SUBROUTINE TO CALCULATE J2
-      doublereal sz,s0,dsx,dsy,dsz,j2;
-
-// ... SET sz = 0 TO REMIND USER OF THIS ASSUMPTION
-      sz = 0.0;
-
-// ... COMPUTE AVERAGE HYDROSTATIC STRESS
-      s0 = (sx + sy + sz)/3.0;
-
-// ... COMPUTE DEVIATORIC STRESSES
-      dsx  = sx - s0;
-      dsy  = sy - s0;
-      dsz  = sz - s0;
-
-// ... COMPUTE J2
-
-      j2 = 0.5*((dsx*dsx) + (dsy*dsy) + (dsz*dsz)) + (sxy*sxy);
-
-// ... COMPUTE VON MISES STRESS
-      svm = sqrt(j2);
 }
 
 #endif

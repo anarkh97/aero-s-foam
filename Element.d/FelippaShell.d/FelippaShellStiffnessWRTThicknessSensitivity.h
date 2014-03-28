@@ -8,8 +8,6 @@
 #include <Element.d/FelippaShell.d/AndesBendingTriangleTemplate.cpp>
 #include <Element.d/FelippaShell.d/ShellElementTemplate.cpp>
 
-// class template to facilitate computation of the sensitivities of the nodal von mises stress w.r.t the nodal displacements
-
 template<typename Scalar>
 class FelippaShellStiffnessWRTThicknessSensitivity : public MatrixValuedFunction<1,18,18,Scalar,12,0,double>
 {

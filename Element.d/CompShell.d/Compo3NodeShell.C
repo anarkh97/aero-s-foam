@@ -401,6 +401,12 @@ Compo3NodeShell::getGravityForce(CoordSet& cs, double *gravityAcceleration,
   gravityForce[17] = mz[2];
 }
 
+void 
+Compo3NodeShell::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravityAcceleration,
+                                                        Vector& gravityForceSensitivity, int gravflg, GeomState *geomState)
+{
+}
+ 
 double
 Compo3NodeShell::getMass(CoordSet &cs)
 { 

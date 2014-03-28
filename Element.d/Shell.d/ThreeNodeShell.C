@@ -557,8 +557,12 @@ ThreeNodeShell::stiffness(CoordSet &cs, double *d, int flg)
           exit(-1);
         }
 
-//        _FORTRAN(tria3d)(flg, x, y, z, prop->E, prop->nu, h, (double *)d);
+
+#ifdef USE_EIGEN3
         tria3d(flg, x, y, z, prop->E, prop->nu, h, d);
+#else
+        _FORTRAN(tria3d)(flg, x, y, z, prop->E, prop->nu, h, (double *)d);
+#endif
 
         FullSquareMatrix ret(18,d);
        
@@ -1089,7 +1093,7 @@ ThreeNodeShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weigh
 {
 #ifdef USE_EIGEN3
    if(strInd != 6) {
-     cerr << " ... Error: strInd must be 6 in TwoNodeTruss::getVonMisesDisplacementSensitivity\n";
+     cerr << " ... Error: strInd must be 6 in TwoNodeTruss::getVonMisesThicknessSensitivity\n";
      exit(-1);
    }
    if(dStdThick.size() !=3) {

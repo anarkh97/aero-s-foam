@@ -41,6 +41,7 @@ C
         double precision cb,x21,y21,z21,x32,y32,z32,x13,y13,z13
         double precision rx,ry,rz,bx,by,bz,rlr,rlb,bpr,area,ylr,zlr
         double precision ycg,xcg,zcg,xlcg,ylcg,zlcg,t
+        double precision trM(6,6)
         double precision rmem(18,3)
         double precision rmx,rmy,rmxy,rnx,rny,rnxy,ebar
         double precision rmmx,rmmy,rmmxy,rnnx,rnny,rnnxy,sbf
@@ -215,7 +216,7 @@ C
          str(4) = 0.5*rnxy
          str(5) = -(nu/(1.0-nu))*(rnx + rny)
          str(6) = 0.0
-         call transform(xp,yp,zp,xg,yg,zg,str)
+         call transform(xp,yp,zp,xg,yg,zg,str,trM)
          stress(elm,1,1) = str(1)
          stress(elm,1,2) = str(1)
          stress(elm,1,3) = str(1)
@@ -260,7 +261,7 @@ C
 C
 C ...  COMPUTE VON MISES STRESS RESULTANT
 C
-       call vonmis(rmmx,rmmy,rmmxy,rnnx,rnny,rnnxy,t,sbf)
+       call vonmis(rmmx,rmmy,rmmxy,rnnx,rnny,rnnxy,t,sbf,1)
 C
 C ... COMPUTE SIGMAXX SIGMAYY AND SIGMAXY
 C
@@ -271,7 +272,7 @@ C
       str(5) = 0.0
       str(6) = 0.0
 
-      call transform(xp,yp,zp,xg,yg,zg,str)
+      call transform(xp,yp,zp,xg,yg,zg,str,trM)
 
       stress(elm,1,1) = str(1)
       stress(elm,1,2) = str(1)

@@ -752,32 +752,6 @@ Tensor_d1s2_sparse::splContractInto(const Tensor &b, Tensor *result) const
 #endif
 }
 
-double
-Tensor_d1s2_sparse::operator()(int n, int I, int J) const
-{
-  if(n >= size) { throw "first index out of range\n"; }
-
-  for (int i = (n%3); i < 3; i++) 
-    if(I == n%3 && J == i) return v[(n-(n%3))/3][3*(n%3)+i];
-  for (int j = 0; j < (n%3)+1; j++) 
-    if(J == j && I == n%3) return v[(n-(n%3))/3][3*(n%3)+j];
-
-  return 0;
-}
-
-inline double &
-Tensor_d1s2_sparse::operator()(int n, int I, int J)
-{
-  if(n >= size) { throw "first index out of range\n"; }
-
-  for (int i = (n%3); i < 3; i++)   
-    if(I == n%3 && J == i) return v[(n-(n%3))/3][3*(n%3)+i];
-  for (int j = 0; j < (n%3)+1; j++)   
-    if(J == j && I == n%3) return v[(n-(n%3))/3][3*(n%3)+j];
-
-  throw "Error : the tensor is sparse ! Check the constructor.\n";
-}
-
 Tensor_d1s2_Ss23 
 Tensor_d1s2_sparse::symPart() const
 {
@@ -1211,6 +1185,12 @@ Tensor_d2s2_Sd12s34_dense::dblContractInto(const Tensor &b, Tensor *result) cons
 {
   const Tensor_d0s2_Ss12 &tens = static_cast<const Tensor_d0s2_Ss12 &>(b);
   Tensor_d2s0 &t = static_cast<Tensor_d2s0 &>(*result);
+#ifdef UNROLL_LOOPS_IN_NODESPACE_ARRAY_C
+  for (int i = 0, k = 0; i < size; i++)
+    for (int j = i; j < size; j++, k++)
+      t[j*size+i] = t[i*size+j] = tens[0]*v[k][0] + tens[3]*v[k][3] + tens[5]*v[k][5]
+                             + 2*(tens[1]*v[k][1] + tens[2]*v[k][2] + tens[4]*v[k][4]);
+#else
   for (int i = 0; i < size; i++)
     for (int j = i; j < size; j++) {
       t[i*size+j] = 0.0;
@@ -1223,6 +1203,7 @@ Tensor_d2s2_Sd12s34_dense::dblContractInto(const Tensor &b, Tensor *result) cons
   for (int l = 1; l < size; l++)
     for (int m = 0; m < l; m++)
       t[l*size+m] = t[m*size+l];
+#endif
 }
 
 /*

@@ -242,8 +242,10 @@ LogarithmicStrain::getDBInstance(int numdofs)
 
 #ifdef USE_EIGEN3
 #include <Eigen/Dense>
+#if EIGEN_GNUC_AT_LEAST(4,7)
+__attribute__((flatten))
 #endif
-
+#endif
 void
 LogarithmicStrain::getEBandDB(Tensor &_e, Tensor &__B, Tensor &_DB, const Tensor &_gradU, const Tensor &_dgradUdqk)
 {
@@ -257,14 +259,10 @@ LogarithmicStrain::getEBandDB(Tensor &_e, Tensor &__B, Tensor &_DB, const Tensor
   int numdofs = dgradUdqk.getSize();
 
   Eigen::Matrix3d GradU;
-  for(int i=0; i<3; ++i)
-    for(int j=0; j<3; ++j)
-      GradU(i,j) = gradU(i,j);
+  gradU.assignTo(GradU);
+
   Eigen::Array<Eigen::Matrix3d,Eigen::Dynamic,1> dGradUdq(numdofs);
-  for(int i=0; i<numdofs; ++i)
-    for(int j=0; j<3; ++j)
-      for(int k=0; k<3; ++k)
-        dGradUdq(i)(j,k) = dgradUdqk(i,j,k);
+  dgradUdqk.assignTo(dGradUdq);
 
   Eigen::Matrix3d E;
   Eigen::Matrix3d dEdqk;
@@ -276,13 +274,9 @@ LogarithmicStrain::getEBandDB(Tensor &_e, Tensor &__B, Tensor &_DB, const Tensor
     E = 0.5*(GradU + GradU.transpose());
     for(int k=0; k<numdofs; ++k) {
       dEdqk = 0.5*(dGradUdq[k] + dGradUdq[k].transpose());
-      for(int l=0; l<3; ++l)
-        for(int m=l; m<3; ++m) {
-          B(k,l,m) = dEdqk(l,m);
-          for(int j=0; j<=k; ++j)
-            DB(j,k,l,m) = 0;
-        }
+      B[k] = dEdqk;
     }
+    DB.setZero();
   }
   else {
     // new implementation. this should be significantly faster...
@@ -376,18 +370,12 @@ LogarithmicStrain::getEBandDB(Tensor &_e, Tensor &__B, Tensor &_DB, const Tensor
                              + dec.eigenvectors()*d2lnldqkdqj.asDiagonal()*dec.eigenvectors().adjoint());
       }
 
-      for(int l=0; l<3; ++l)
-        for(int m=l; m<3; ++m) {
-          B(k,l,m) = dEdqk(l,m);
-          for(int j=0; j<=k; ++j)
-            DB(j,k,l,m) = d2Edqkdq[j](l,m);
-        }
+      B[k] = dEdqk;
+      for(int j=0; j<=k; ++j) DB[j*(2*numdofs-j-1)/2+k] = d2Edqkdq[j];
     }
   }
 
-  for(int i=0; i<3; ++i)
-    for(int j=i; j<3; ++j)
-      e(i,j) = E(i,j);
+  e = E;
 
 #else
   std::cerr << " *** ERROR: LogarithmicStrain requires AERO-S configured with Eigen library. Exiting..." << std::endl;
@@ -395,6 +383,11 @@ LogarithmicStrain::getEBandDB(Tensor &_e, Tensor &__B, Tensor &_DB, const Tensor
 #endif
 }
 
+#ifdef USE_EIGEN3
+#if EIGEN_GNUC_AT_LEAST(4,7)
+__attribute__((flatten))
+#endif
+#endif
 void
 LogarithmicStrain::getEandB(Tensor &_e, Tensor &__B, const Tensor &_gradU, const Tensor &_dgradUdqk)
 {
@@ -407,14 +400,10 @@ LogarithmicStrain::getEandB(Tensor &_e, Tensor &__B, const Tensor &_gradU, const
   int numdofs = dgradUdqk.getSize();
 
   Eigen::Matrix3d GradU;
-  for(int i=0; i<3; ++i)
-    for(int j=0; j<3; ++j)
-      GradU(i,j) = gradU(i,j);
+  gradU.assignTo(GradU);
+
   Eigen::Array<Eigen::Matrix3d,Eigen::Dynamic,1> dGradUdq(numdofs);
-  for(int i=0; i<numdofs; ++i)
-    for(int j=0; j<3; ++j)
-      for(int k=0; k<3; ++k)
-        dGradUdq(i)(j,k) = dgradUdqk(i,j,k);
+  dgradUdqk.assignTo(dGradUdq);
 
   Eigen::Matrix3d E;
   Eigen::Matrix3d dEdqk;
@@ -426,10 +415,7 @@ LogarithmicStrain::getEandB(Tensor &_e, Tensor &__B, const Tensor &_gradU, const
     E = 0.5*(GradU + GradU.transpose());
     for(int k=0; k<numdofs; ++k) {
       dEdqk = 0.5*(dGradUdq[k] + dGradUdq[k].transpose());
-      for(int l=0; l<3; ++l)
-        for(int m=l; m<3; ++m) {
-          B(k,l,m) = dEdqk(l,m);
-        }
+      B[k] = dEdqk;
     }
   }
   else {
@@ -483,16 +469,11 @@ LogarithmicStrain::getEandB(Tensor &_e, Tensor &__B, const Tensor &_gradU, const
                     + dec.eigenvectors()*dlnldq[k].asDiagonal()*dec.eigenvectors().adjoint()
                       + ylnl*dydq[k].adjoint());
 
-      for(int l=0; l<3; ++l)
-        for(int m=l; m<3; ++m) {
-          B(k,l,m) = dEdqk(l,m);
-        }
+      B[k] = dEdqk;
     }
   }
 
-  for(int i=0; i<3; ++i)
-    for(int j=i; j<3; ++j)
-      e(i,j) = E(i,j);
+  e = E;
 
 #else
   std::cerr << " *** ERROR: LogarithmicStrain requires AERO-S configured with Eigen library. Exiting..." << std::endl;
@@ -509,9 +490,7 @@ LogarithmicStrain::getE(Tensor &_e, Tensor &_gradU)
 
   // in this case e = matrix logarithm of the right stretch tensor, or alternatively 1/2 ln(F^T*F)
   Eigen::Matrix3d GradU;
-  for(int i=0; i<3; ++i)
-    for(int j=0; j<3; ++j)
-      GradU(i,j) = gradU(i,j);
+  gradU.assignTo(GradU);
 
   Eigen::Matrix3d F = GradU + Eigen::Matrix3d::Identity();
   //Eigen::JacobiSVD<Eigen::Matrix3d,Eigen::NoQRPreconditioner> dec(F, Eigen::ComputeFullV);
@@ -519,9 +498,7 @@ LogarithmicStrain::getE(Tensor &_e, Tensor &_gradU)
   Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> dec(F.transpose()*F);
   Eigen::Matrix3d E = 0.5*(dec.eigenvectors() * dec.eigenvalues().array().log().matrix().asDiagonal() * dec.eigenvectors().adjoint());
 
-  for(int i=0; i<3; ++i)
-    for(int j=i; j<3; ++j)
-      e(i,j) = E(i,j);
+  e = E;
 #else
   std::cerr << " *** ERROR: LogarithmicStrain requires AERO-S configured with Eigen library. Exiting..." << std::endl;
   exit(-1);

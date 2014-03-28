@@ -3,7 +3,9 @@
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
-
+#ifdef USE_EIGEN3
+#include <Eigen/Core>
+#endif
 
 class DoubleContraction;
 class Contraction;
@@ -132,6 +134,10 @@ class Tensor_d0s2 : public Tensor
                          std::cerr << std::endl; }
     void dblContractWith(const Tensor_d0s4 &, Tensor *) const;
     void splContractWith(const Tensor_d0s2 &, Tensor *) const;
+#ifdef USE_EIGEN3
+    Tensor_d0s2 &operator=(const Eigen::Matrix3d &);
+    void assignTo(Eigen::Matrix3d &m) const;
+#endif
 };
  
 Tensor_d0s2 operator * (double, const Tensor_d0s2 &);
@@ -149,6 +155,25 @@ Tensor_d0s2 &Tensor_d0s2::operator = (const DoubleContraction &dc)
   dc.assignTo(this);
   return *this;
 }
+
+#ifdef USE_EIGEN3
+inline Tensor_d0s2 &
+Tensor_d0s2::operator=(const Eigen::Matrix3d &m)
+{
+  v[0] = m(0,0); v[1] = m(0,1); v[2] = m(0,2);
+  v[3] = m(1,0); v[4] = m(1,1); v[5] = m(1,2);
+  v[6] = m(2,0); v[7] = m(2,1); v[8] = m(2,2);
+  return *this;
+}
+
+inline void
+Tensor_d0s2::assignTo(Eigen::Matrix3d &m) const
+{
+  m << v[0], v[1], v[2],
+       v[3], v[4], v[5],
+       v[6], v[7], v[8];
+}
+#endif
 
 class Tensor_d0s4 : public Tensor
 {
@@ -216,7 +241,7 @@ class Tensor_d1s1 : public Tensor
 inline double
 Tensor_d1s1::operator() (int i, int j) const
 {
-#ifdef DEBUG
+#ifndef NDEBUG
   if(i >= size) { throw "first index out of range\n"; } 
 #endif
   return v[i][j];
@@ -225,7 +250,7 @@ Tensor_d1s1::operator() (int i, int j) const
 inline double&
 Tensor_d1s1::operator() (int i, int j)
 {
-#ifdef DEBUG
+#ifndef NDEBUG
   if(i >= size) { throw "first index out of range\n"; } 
 #endif
   return v[i][j];
@@ -287,7 +312,7 @@ Tensor_d1s2_full::print() const
 inline double 
 Tensor_d1s2_full::operator()(int i, int j, int k) const
 {
-#ifdef DEBUG
+#ifndef NDEBUG
   if(i >= size) {throw "first index out of range\n"; } 
 #endif
   return v[i][3*j+k];
@@ -296,7 +321,7 @@ Tensor_d1s2_full::operator()(int i, int j, int k) const
 inline double& 
 Tensor_d1s2_full::operator()(int i, int j, int k)
 {
-#ifdef DEBUG
+#ifndef NDEBUG
   if(i >= size) { throw "first index out of range\n"; } 
 #endif
   return v[i][3*j+k];
@@ -339,6 +364,9 @@ class Tensor_d1s2_sparse : public Tensor_d1s2
     friend Tensor_d1s2_sparse operator* (double d, const Tensor_d1s2_sparse &t);
     void print() const;
     void splContractWith(const Tensor_d0s2 &, Tensor *) const;
+#ifdef USE_EIGEN3
+    void assignTo(Eigen::Array<Eigen::Matrix3d,Eigen::Dynamic,1> &) const;
+#endif
 };
 
 inline void
@@ -357,10 +385,58 @@ Tensor_d1s2_sparse operator * (double d, const Tensor_d1s2_sparse &t);
 inline
 Tensor_d1s2_sparse &Tensor_d1s2_sparse::operator = (const Contraction &dc)
 {
-  //fprintf(stderr, "Un tiens vaut mieux que deux tu l`auras\n"); 
   dc.assignTo(this);
   return *this;
 }
+
+inline double
+Tensor_d1s2_sparse::operator()(int n, int I, int J) const
+{
+#ifndef NDEBUG
+  if(n >= size) { throw "first index out of range\n"; }
+#endif
+  for (int i = (n%3); i < 3; i++)
+    if(I == n%3 && J == i) return v[(n-(n%3))/3][3*(n%3)+i];
+  for (int j = 0; j < (n%3)+1; j++)
+    if(J == j && I == n%3) return v[(n-(n%3))/3][3*(n%3)+j];
+
+  return 0;
+}
+
+inline double &
+Tensor_d1s2_sparse::operator()(int n, int I, int J)
+{
+#ifndef NDEBUG
+  if(n >= size) { throw "first index out of range\n"; }
+#endif
+  for (int i = (n%3); i < 3; i++)
+    if(I == n%3 && J == i) return v[(n-(n%3))/3][3*(n%3)+i];
+  for (int j = 0; j < (n%3)+1; j++)
+    if(J == j && I == n%3) return v[(n-(n%3))/3][3*(n%3)+j];
+#ifndef NDEBUG
+  throw "Error : the tensor is sparse ! Check the constructor.\n";
+#endif
+}
+
+#ifdef USE_EIGEN3
+inline void
+Tensor_d1s2_sparse::assignTo(Eigen::Array<Eigen::Matrix3d,Eigen::Dynamic,1> &m) const
+{
+  for(int i=0; i<size/3; i++) {
+    m[3*i  ] << v[i][0], v[i][1], v[i][2],
+                      0,       0,       0,
+                      0,       0,       0;
+
+    m[3*i+1] <<       0,       0,       0,
+                v[i][3], v[i][4], v[i][5],
+                      0,       0,       0;
+
+    m[3*i+2] <<       0,       0,       0,
+                      0,       0,       0,
+                v[i][6], v[i][7], v[i][8];
+  }
+}
+#endif
 
 class Tensor_d2s2 : public Tensor
 {
@@ -393,7 +469,7 @@ class Tensor_d2s2 : public Tensor
 inline double 
 Tensor_d2s2::operator()(int i, int j, int k, int l) const
 {
-#ifdef DEBUG
+#ifndef NDEBUG
   if(i >= size || j >= size) { throw "Index out of range\n"; } 
 #endif
   return v[i*size+j][k*3+l];
@@ -402,7 +478,7 @@ Tensor_d2s2::operator()(int i, int j, int k, int l) const
 inline double& 
 Tensor_d2s2::operator()(int i, int j, int k, int l)
 {
-#ifdef DEBUG
+#ifndef NDEBUG
   if(i >= size || j >= size) { throw "Index out of range\n"; } 
 #endif
   return v[i*size+j][k*3+l];
@@ -436,7 +512,7 @@ class Tensor_d2s0 : public Tensor
 inline double 
 Tensor_d2s0::operator()(int i, int j) const
 {
-#ifdef DEBUG
+#ifndef NDEBUG
   if(i >= size || j >= size) { throw"Index out of range\n"; }
 #endif
   return v[i*size+j];
@@ -445,7 +521,7 @@ Tensor_d2s0::operator()(int i, int j) const
 inline double& 
 Tensor_d2s0::operator()(int i, int j)
 {
-#ifdef DEBUG
+#ifndef NDEBUG
   if(i >= size || j>=size) { throw"Index out of range\n"; } 
 #endif
   return v[i*size+j];
@@ -504,6 +580,11 @@ class Tensor_d0s2_Ss12 : public Tensor
     void print() const { for(int i = 0; i < 3; ++i) for(int j = 0; j < 3; ++j)
                      std::cerr << (*this)(i,j) << " "; std::cerr << std::endl; }
     void dblContractWith(const Tensor_d0s4_Ss12s34 &, Tensor *) const;
+    void setZero() { for(int i=0; i<6; ++i) v[i] = 0; }
+#ifdef USE_EIGEN3
+    Tensor_d0s2_Ss12 &operator=(const Eigen::Matrix3d &);
+    void assignTo(Eigen::Matrix3d &) const;
+#endif
 };
 
 inline double 
@@ -528,6 +609,25 @@ Tensor_d0s2_Ss12 &Tensor_d0s2_Ss12::operator = (const DoubleContraction &dc)
   dc.assignTo(this);
   return *this;
 }
+
+#ifdef USE_EIGEN3
+inline Tensor_d0s2_Ss12 &
+Tensor_d0s2_Ss12::operator=(const Eigen::Matrix3d &m)
+{
+  v[0] = m(0,0); v[1] = m(0,1); v[2] = m(0,2);
+                 v[3] = m(1,1); v[4] = m(1,2);
+                                v[5] = m(2,2);
+  return *this;
+}
+
+inline void
+Tensor_d0s2_Ss12::assignTo(Eigen::Matrix3d &m) const
+{
+  m << v[0], v[1], v[2],
+       v[1], v[3], v[4],
+       v[2], v[4], v[5];
+}
+#endif
 
 class Tensor_d0s4_Ss12s34 : public Tensor
 { //Tangent material
@@ -574,7 +674,9 @@ Tensor_d0s4_Ss12s34::operator()(int i, int j, int k, int l)
   if((j >= i) && (l >= k)) {
     return v[i*(5-i)/2+j][k*(5-k)/2+l];
   }
+#ifndef NDEBUG
   else { throw "Error : symetric tensor indices are triangular\n"; }
+#endif
 }
 
 class Tensor_d2s2_Sd12s34 : public Tensor
@@ -607,12 +709,16 @@ class Tensor_d2s2_Sd12s34_dense : public Tensor_d2s2_Sd12s34
     void dblContractInto(const Tensor &, Tensor *) const;
     int getSize() { return size; }
     int getSize() const { return size; }
+    void setZero() {
+      int len = size*(size+1)/2;
+      for(int i=0; i<len; ++i) v[i].setZero();
+    }
 };
 
 inline double 
 Tensor_d2s2_Sd12s34_dense::operator()(int i, int j, int k, int l) const
 {
-#ifdef DEBUG
+#ifndef NDEBUG
   if(i >= size || j >= size) { throw "Index out of range\n"; } 
 #endif
   if(j >= i) {
@@ -636,13 +742,15 @@ Tensor_d2s2_Sd12s34_dense::operator()(int i, int j, int k, int l) const
 inline double& 
 Tensor_d2s2_Sd12s34_dense::operator()(int i, int j, int k, int l)
 {
-#ifdef DEBUG
+#ifndef NDEBUG
   if(i >= size || j >= size) { throw "Index out of range\n"; } 
 #endif
   if((j >= i) && (l >= k)) {
     return v[i*(2*size-i-1)/2+j][k*(5-k)/2+l];
   }
+#ifndef NDEBUG
   else { throw "Error : symetric tensor indices are triangular\n"; }
+#endif
 }
 
 class Tensor_d2s2_Sd12s34_sparse : public Tensor_d2s2_Sd12s34
@@ -696,7 +804,7 @@ Tensor_d2s2_Sd12s34_sparse::print() const
 inline double 
 Tensor_d2s2_Sd12s34_sparse::operator()(int m, int n, int i, int j) const
 {
-#ifdef DEBUG
+#ifndef NDEBUG
   if(m >= size || n >= size) { throw "Index out of range\n"; } 
 #endif
   if((m-n)%3 == 0) {
@@ -723,16 +831,20 @@ Tensor_d2s2_Sd12s34_sparse::operator()(int m, int n, int i, int j) const
 inline double& 
 Tensor_d2s2_Sd12s34_sparse::operator()(int m, int n, int i, int j)
 {
-#ifdef DEBUG
+#ifndef NDEBUG
   if(m >= size || n >= size) { throw "Index out of range\n"; } 
 #endif
   if((m-n)%3 == 0) {
     if((n >= m) && (j >= i)) {   
       return v[(size*(size+3)-(size-m+m%3)*(size-m-m%3+3)+2*(n-m))/6][i*(5-i)/2+j];
     }                   
+#ifndef NDEBUG
     else { throw "Error : symetric tensor indices are triangular\n"; }
+#endif
   }
+#ifndef NDEBUG
   else { throw "Error : the tensor is sparse ! Check the constructor.\n"; }
+#endif
 }
 
 class Tensor_d2s2_Sd12s34_null : public Tensor_d2s2_Sd12s34
@@ -757,7 +869,7 @@ class Tensor_d2s2_Sd12s34_null : public Tensor_d2s2_Sd12s34
 inline double 
 Tensor_d2s2_Sd12s34_null::operator()(int m, int n, int i, int j) const
 {
-#ifdef DEBUG
+#ifndef NDEBUG
   if(m >= size || n >= size) { fprintf(stderr, "Index out of range\n"); exit(10); } 
 #endif
   return 0;
@@ -766,7 +878,7 @@ Tensor_d2s2_Sd12s34_null::operator()(int m, int n, int i, int j) const
 inline double& 
 Tensor_d2s2_Sd12s34_null::operator()(int m, int n, int i, int j) const
 {
-#ifdef DEBUG
+#ifndef NDEBUG
   if(m >= size || n >= size) { fprintf(stderr, "Index out of range\n"); exit(10); } 
 #endif
   fprintf(stderr, "Error : A null tensor doesn`t need to be filled !.\n");
@@ -801,7 +913,7 @@ class Tensor_d1s2_Ss23 : public Tensor
 inline double 
 Tensor_d1s2_Ss23::operator()(int i, int j, int k) const
 {
-#ifdef DEBUG
+#ifndef NDEBUG
   if(i >= size) { throw "Index out of range\n"; } 
 #endif
   if(k >= j) { return v[i][j*(5-j)/2+k]; }
@@ -811,10 +923,10 @@ Tensor_d1s2_Ss23::operator()(int i, int j, int k) const
 inline double&
 Tensor_d1s2_Ss23::operator()(int i, int j, int k)
 {
-#ifdef DEBUG
+#ifndef NDEBUG
   if(i >= size) { throw"Index out of range\n"; } 
-#endif
   if(j > k) { throw "Error : symetric tensor indices are triangular\n"; }
+#endif
   return v[i][j*(5-j)/2+k];
 }
 

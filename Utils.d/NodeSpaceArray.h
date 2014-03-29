@@ -413,9 +413,8 @@ Tensor_d1s2_sparse::operator()(int n, int I, int J)
     if(I == n%3 && J == i) return v[(n-(n%3))/3][3*(n%3)+i];
   for (int j = 0; j < (n%3)+1; j++)
     if(J == j && I == n%3) return v[(n-(n%3))/3][3*(n%3)+j];
-#ifndef NDEBUG
+
   throw "Error : the tensor is sparse ! Check the constructor.\n";
-#endif
 }
 
 #ifdef USE_EIGEN3
@@ -674,9 +673,7 @@ Tensor_d0s4_Ss12s34::operator()(int i, int j, int k, int l)
   if((j >= i) && (l >= k)) {
     return v[i*(5-i)/2+j][k*(5-k)/2+l];
   }
-#ifndef NDEBUG
   else { throw "Error : symetric tensor indices are triangular\n"; }
-#endif
 }
 
 class Tensor_d2s2_Sd12s34 : public Tensor
@@ -748,9 +745,7 @@ Tensor_d2s2_Sd12s34_dense::operator()(int i, int j, int k, int l)
   if((j >= i) && (l >= k)) {
     return v[i*(2*size-i-1)/2+j][k*(5-k)/2+l];
   }
-#ifndef NDEBUG
   else { throw "Error : symetric tensor indices are triangular\n"; }
-#endif
 }
 
 class Tensor_d2s2_Sd12s34_sparse : public Tensor_d2s2_Sd12s34
@@ -838,13 +833,9 @@ Tensor_d2s2_Sd12s34_sparse::operator()(int m, int n, int i, int j)
     if((n >= m) && (j >= i)) {   
       return v[(size*(size+3)-(size-m+m%3)*(size-m-m%3+3)+2*(n-m))/6][i*(5-i)/2+j];
     }                   
-#ifndef NDEBUG
     else { throw "Error : symetric tensor indices are triangular\n"; }
-#endif
   }
-#ifndef NDEBUG
   else { throw "Error : the tensor is sparse ! Check the constructor.\n"; }
-#endif
 }
 
 class Tensor_d2s2_Sd12s34_null : public Tensor_d2s2_Sd12s34

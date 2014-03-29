@@ -530,11 +530,12 @@ FSCommPattern<T>::makeSendAndRecvConnectivities()
  while(iter != channelMap.end()) {
    Triplet key = (*iter).first;
    int cpuID = key.cpuID;
-   if(cpuID >= 0)
+   if(cpuID >= 0) {
      if((*subToCPU)[key.from][0] == myCPU) // send pair
        sendPtr[glToLocCPU[cpuID]]++;
      else // receive
        recvPtr[glToLocCPU[cpuID]]++;
+   }
    ++iter;
  }
 

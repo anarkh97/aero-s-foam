@@ -75,7 +75,7 @@ ContactNode<DataType>::~ContactNode()
   for(int i = 0; i < NodeNodeInteractions.size(); ++i) {
     ContactInteractionEntity* link=NULL;
     NodeNodeInteractions[i].IteratorStart();
-    while (link=NodeNodeInteractions[i].IteratorForward()) {
+    while ((link=NodeNodeInteractions[i].IteratorForward())) {
       ContactNodeNodeInteraction* cnni = static_cast<ContactNodeNodeInteraction*>(link);
       cnni->~ContactNodeNodeInteraction();
       allocators[ContactSearch::ALLOC_ContactNodeNodeInteraction].Delete_Frag(cnni);
@@ -114,7 +114,7 @@ int ContactNode<DataType>::Size_Interactions(int state)
   if(interactions != NULL) {
     interactions->IteratorStart();
     ContactInteractionEntity* entity;
-    while (entity=interactions->IteratorForward()) {
+    while ((entity=interactions->IteratorForward())) {
       ContactNodeNodeInteraction* i = 
         static_cast<ContactNodeNodeInteraction*>(entity);
       size += i->Size();
@@ -142,7 +142,7 @@ void ContactNode<DataType>::Pack_Interactions( char* Buffer, int state )
   if(state < NodeNodeInteractions.size()) {
     ContactInteractionEntity* entity;
     NodeNodeInteractions[state].IteratorStart();
-    while (entity=NodeNodeInteractions[state].IteratorForward()) {
+    while ((entity=NodeNodeInteractions[state].IteratorForward())) {
       ContactNodeNodeInteraction* i = 
         static_cast<ContactNodeNodeInteraction*>(entity);
       buffer = i->Pack(buffer);
@@ -208,7 +208,7 @@ void ContactNode<DataType>::Copy_Interactions( ContactNode* src, int state )
   if(state < src->NodeNodeInteractions.size()) {
     ContactInteractionEntity* entity;
     src->NodeNodeInteractions[state].IteratorStart();
-    while (entity=src->NodeNodeInteractions[state].IteratorForward()) {
+    while ((entity=src->NodeNodeInteractions[state].IteratorForward())) {
       ContactNodeNodeInteraction* old_nni = 
         static_cast<ContactNodeNodeInteraction*>(entity);
       ContactNodeNodeInteraction* new_nni = 
@@ -265,7 +265,7 @@ void ContactNode<DataType>::Pack_Interactions_ForSecondary( char* Buffer, int st
   if(state < NodeNodeInteractions.size()) {
     ContactInteractionEntity* entity;
     NodeNodeInteractions[state].IteratorStart();
-    while (entity=NodeNodeInteractions[state].IteratorForward()) {
+    while ((entity=NodeNodeInteractions[state].IteratorForward())) {
       ContactNodeNodeInteraction* i = 
         static_cast<ContactNodeNodeInteraction*>(entity);
       buffer = i->Pack(buffer);
@@ -330,7 +330,7 @@ void ContactNode<DataType>::Copy_Interactions_ForSecondary( ContactNode* src, in
   if(state < src->NodeNodeInteractions.size()) {
     ContactInteractionEntity* entity;
     src->NodeNodeInteractions[state].IteratorStart();
-    while (entity=src->NodeNodeInteractions[state].IteratorForward()) {
+    while ((entity=src->NodeNodeInteractions[state].IteratorForward())) {
       ContactNodeNodeInteraction* old_nni = 
         static_cast<ContactNodeNodeInteraction*>(entity);
       ContactNodeNodeInteraction* new_nni = 
@@ -361,7 +361,7 @@ ContactNode<DataType>::Get_NodeNode_Interaction(int interaction_number, int stat
   if(state >= NodeNodeInteractions.size()) return NULL;
 
   NodeNodeInteractions[state].IteratorStart();
-  while (entity=NodeNodeInteractions[state].IteratorForward()) {
+  while ((entity=NodeNodeInteractions[state].IteratorForward())) {
     if (entity->Index()==interaction_number) break;
   }
   ContactNodeNodeInteraction* nni=NULL;
@@ -392,7 +392,7 @@ ContactNode<DataType>::Delete_NodeNode_Interaction(
   if(state >= NodeNodeInteractions.size()) return;
 
   NodeNodeInteractions[state].IteratorStart();
-  while (link=NodeNodeInteractions[state].IteratorForward()) {
+  while ((link=NodeNodeInteractions[state].IteratorForward())) {
     if (link->Index()==nni->Index()) {
       ContactNodeNodeInteraction* cnni = static_cast<ContactNodeNodeInteraction*>(link);
       cnni->~ContactNodeNodeInteraction();
@@ -413,7 +413,7 @@ ContactNode<DataType>::Delete_NodeNode_Interactions( int state )
 
 
   NodeNodeInteractions[state].IteratorStart();
-  while (link=NodeNodeInteractions[state].IteratorForward()) {
+  while ((link=NodeNodeInteractions[state].IteratorForward())) {
     ContactNodeNodeInteraction* cnni = static_cast<ContactNodeNodeInteraction*>(link);
     cnni->~ContactNodeNodeInteraction();
     allocators[ContactSearch::ALLOC_ContactNodeNodeInteraction].Delete_Frag(cnni);
@@ -430,7 +430,7 @@ ContactNode<DataType>::Display_NodeNode_Interactions( ContactParOStream& postrea
   if(state >= NodeNodeInteractions.size()) return;
   ContactInteractionEntity* link=NULL;
   NodeNodeInteractions[state].IteratorStart();
-  while (link=NodeNodeInteractions[state].IteratorForward()) {
+  while ((link=NodeNodeInteractions[state].IteratorForward())) {
     ContactNodeNodeInteraction* cnni = static_cast<ContactNodeNodeInteraction*>(link);
     ContactHostGlobalID Node_GID( cnni->MasterNodeEntityData()->host_gid[0], 
                                   cnni->MasterNodeEntityData()->host_gid[1] );

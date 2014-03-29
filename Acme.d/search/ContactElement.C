@@ -178,7 +178,7 @@ ContactElement::~ContactElement()
   for( int i=0 ; i<number_of_states ; ++i ){
     ContactInteractionEntity* link=NULL;
     ElementElementInteractions[i]->IteratorStart();
-    while (link=ElementElementInteractions[i]->IteratorForward()) {
+    while ((link=ElementElementInteractions[i]->IteratorForward())) {
       ContactElementElementInteraction* ceei = 
         static_cast<ContactElementElementInteraction*>(link);
       ceei->~ContactElementElementInteraction();
@@ -283,7 +283,7 @@ void ContactElement::Copy_Interactions( ContactElement* src, int state )
   if (src->ElementElementInteractions[state]->NumEntities()>0) {
     interactions = src->ElementElementInteractions[state];
     interactions->IteratorStart();
-    while (entity=interactions->IteratorForward()) {
+    while ((entity=interactions->IteratorForward())) {
       ContactElementElementInteraction* new_eei = 
         ContactElementElementInteraction::new_ContactElementElementInteraction( 
             allocators[ContactSearch::ALLOC_ContactElementElementInteraction]);
@@ -375,7 +375,7 @@ void ContactElement::Copy_Interactions_ForSecondary( ContactElement* src, int st
   if (src->ElementElementInteractions[state]->NumEntities()>0) {
     interactions = src->ElementElementInteractions[state];
     interactions->IteratorStart();
-    while (entity=interactions->IteratorForward()) {
+    while ((entity=interactions->IteratorForward())) {
       ContactElementElementInteraction* new_eei = 
         ContactElementElementInteraction::new_ContactElementElementInteraction( 
             allocators[ContactSearch::ALLOC_ContactElementElementInteraction]);
@@ -394,7 +394,7 @@ ContactElement::Get_ElementElement_Interaction(int interaction_number, int state
 {
   ContactInteractionEntity* entity=NULL;
   ElementElementInteractions[state]->IteratorStart();
-  while (entity=ElementElementInteractions[state]->IteratorForward()) {
+  while ((entity=ElementElementInteractions[state]->IteratorForward())) {
     if (entity->Index()==interaction_number) break;
   }
   ContactElementElementInteraction* eei=NULL;
@@ -419,7 +419,7 @@ ContactElement::Delete_ElementElement_Interaction(
 {
   ContactInteractionEntity* link=NULL;
   ElementElementInteractions[state]->IteratorStart();
-  while (link=ElementElementInteractions[state]->IteratorForward()) {
+  while ((link=ElementElementInteractions[state]->IteratorForward())) {
     if (link->Index()==eei->Index()) {
       ContactElementElementInteraction* ceei = static_cast<ContactElementElementInteraction*>(link);
       ceei->~ContactElementElementInteraction();
@@ -466,7 +466,7 @@ ContactElement::Update_Interactions( )
   ElementElementInteractions[0] = temp;
 
   ElementElementInteractions[0]->IteratorStart();
-  while (link=ElementElementInteractions[0]->IteratorForward()) {
+  while ((link=ElementElementInteractions[0]->IteratorForward())) {
     ContactElementElementInteraction* cffi = 
       static_cast<ContactElementElementInteraction*>(link);
     cffi->~ContactElementElementInteraction();

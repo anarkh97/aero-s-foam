@@ -116,7 +116,7 @@ ContactSearch::Process_Face_Coverage()
 	// Determine the total number of polygons and vertices
 	int nverts = face->Nodes_Per_Face();
 	interactions->IteratorStart();
-	while (interaction=interactions->IteratorForward()){
+	while ((interaction=interactions->IteratorForward())){
 	  cffi = static_cast<ContactFaceFaceInteraction*> (interaction);
 	  nverts += cffi->NumEdges();
 	}
@@ -171,7 +171,7 @@ ContactSearch::Process_Face_Coverage()
 	// Add the nodes from the interactions
 	k = 0;
 	interactions->IteratorStart();
-	while (interaction=interactions->IteratorForward()){
+	while ((interaction=interactions->IteratorForward())){
 	  cffi = static_cast<ContactFaceFaceInteraction*> (interaction);
 	  ContactFaceFaceVertex* vertices = cffi->Get_Vertices();
 	  plist[pindex] = ContactPoly::new_ContactPoly(allocators[ALLOC_ContactPoly],

@@ -446,9 +446,10 @@ MDAxiData::defineKs(int **glBoundMap, int **glInternalMap) {
  KC = new ComplexSolver *[locBCs->numModes+1];
  KbbC = new DBComplexSparseMatrix *[locBCs->numModes+1];
 
- if (solInfo().getFetiInfo().precno == FetiInfo::dirichlet)
+ if (solInfo().getFetiInfo().precno == FetiInfo::dirichlet) {
    if (internalLen>0)
      KiiC = new ComplexSolver *[locBCs->numModes+1];
+ }
  else
    KiiC = 0;
 

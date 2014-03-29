@@ -1513,7 +1513,7 @@ ContactSearch::Global_FaceFaceSearch(SearchType search_type, int num_configs,
         if(interactions) {
           ContactInteractionEntity* entity;
           interactions->IteratorStart();
-          while (entity=interactions->IteratorForward()) {
+          while ((entity=interactions->IteratorForward())) {
             ContactFaceFaceInteraction* new_ffi =
               ContactFaceFaceInteraction::new_ContactFaceFaceInteraction(allocators[ContactSearch::ALLOC_ContactFaceFaceInteraction]);
             ContactFaceFaceInteraction* old_ffi = static_cast<ContactFaceFaceInteraction*>(entity);
@@ -1551,6 +1551,9 @@ ContactSearch::Global_FaceFaceSearch(SearchType search_type, int num_configs,
         case SHELLQUADFACEL4:
           active_allocators[ALLOC_ContactShellQuadFaceL4].Delete_Frag(active_slave_face);
           break;
+        default:
+          PRECONDITION(0);
+          break;
         }
 
         // delete active_master_face
@@ -1578,6 +1581,9 @@ ContactSearch::Global_FaceFaceSearch(SearchType search_type, int num_configs,
         case SHELLQUADFACEL4:
           active_allocators[ALLOC_ContactShellQuadFaceL4].Delete_Frag(active_master_face);
           break;
+        default:
+          PRECONDITION(0);
+          break;
         }
 
         // delete active_master_element
@@ -1589,6 +1595,9 @@ ContactSearch::Global_FaceFaceSearch(SearchType search_type, int num_configs,
           break;
         case WEDGEELEML6:
           active_allocators[ALLOC_ContactWedgeElemL6].Delete_Frag(active_master_element);
+          break;
+        default:
+          PRECONDITION(0);
           break;
         }
         }

@@ -3559,6 +3559,8 @@ Domain::ProcessSurfaceBCs()
               nEle++;
             }
           } break;
+          default :
+            break;
         }
       }
     }

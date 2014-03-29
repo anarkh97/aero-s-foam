@@ -191,7 +191,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
     }
 
     if(aeroAlg == 5 || failSafe) {
-      if(aeroAlg == 5 && parity == 0 || failSafe && !failed) { // copy current state to backup state
+      if((aeroAlg == 5 && parity == 0) || (failSafe && !failed)) { // copy current state to backup state
         StateUpdate::copyTo(refState, geomState, stepState, stateIncr, velocity_n, acceleration, v_p, aeroForce,
                             bkRefState, bkGeomState, bkStepState, bkStateIncr, *bkVelocity_n, *bkAcceleration, *bkV_p, *bkAeroForce);
       }
@@ -301,7 +301,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
                          midtime, maxit, initialRes, resN, probDesc->getTolerance());
       }
 
-      if(failed = (failSafe && converged != 1 && resN > domain->solInfo().getNLInfo().failsafe_tol)) {
+      if((failed = (failSafe && converged != 1 && resN > domain->solInfo().getNLInfo().failsafe_tol))) {
         // if a Newton solve fails to converge, terminate constraint enforcement iterations
         break;
       }

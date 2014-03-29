@@ -462,6 +462,8 @@ GenFetiDPSolver<Scalar>::makeKcc()
      if(coarseToSub != cornerToSub) delete coarseToSub;
      coarseToSub = augcoarseToSub;
    } break;
+   default:
+     break;
  }
  Connectivity *subToCoarse = (coarseToSub != cornerToSub) ? coarseToSub->reverse() : subToCorner;
  Connectivity *coarseConnectivity = coarseToSub->transcon(subToCoarse);
@@ -2749,7 +2751,7 @@ GenFetiDPSolver<Scalar>::project(GenDistrVector<Scalar> &z, GenDistrVector<Scala
       status_change = updateActiveSet(x, 0, -this->fetiInfo->dual_plan_tol);
   }
 
-  if(dualStatusChange = (i > 1)) {
+  if((dualStatusChange = (i > 1))) {
     nSubIterDual += (i-1);
     nStatChDual++;
     if(this->fetiInfo->contactPrintFlag && this->myCPU == 0) cerr << endl;
@@ -2814,7 +2816,7 @@ GenFetiDPSolver<Scalar>::tProject(GenDistrVector<Scalar> &r, GenDistrVector<Scal
     }
   }
 
-  if(primalStatusChange = (i > 1)) {
+  if((primalStatusChange = (i > 1))) {
     nSubIterPrimal += (i-1);
     nStatChPrimal++;
     if(this->fetiInfo->contactPrintFlag && this->myCPU == 0) cerr << endl;

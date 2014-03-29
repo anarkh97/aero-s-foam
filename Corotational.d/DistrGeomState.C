@@ -51,7 +51,7 @@ void
 DistrGeomState::subCopyConstructor(int isub, const DistrGeomState &g2)
 {
   TemperatureState* ts;
-  if(ts = dynamic_cast<TemperatureState*>(g2[isub])) gs[isub] = new TemperatureState(*ts);
+  if((ts = dynamic_cast<TemperatureState*>(g2[isub]))) gs[isub] = new TemperatureState(*ts);
   else gs[isub] = new GeomState(*(g2[isub]));
 
   mu[isub] = g2.mu[isub];

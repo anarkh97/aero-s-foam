@@ -210,7 +210,7 @@ GenFetiSolver<Scalar>::GenFetiSolver(int _nsub, GenSubDomain<Scalar> **_sd, Conn
 #ifndef DISTRIBUTED
  if(fetiInfo->feti2version == FetiInfo::sparseCoarse) {
 
-   if(isFeti2 && fetiInfo->type == FetiInfo::linear || (glNumMpc > 0))
+   if((isFeti2 && fetiInfo->type == FetiInfo::linear) || (glNumMpc > 0))
      makeSingleCoarse();
    else
      makeGtG();
@@ -233,7 +233,7 @@ GenFetiSolver<Scalar>::GenFetiSolver(int _nsub, GenSubDomain<Scalar> **_sd, Conn
    times.memoryDV += memoryUsed();
  }
 #else
- if (isFeti2 && (isDynamic == 0) || glNumMpc > 0) {
+ if ((isFeti2 && (isDynamic == 0)) || glNumMpc > 0) {
    makeSingleCoarse();
    times.memoryDV -= threadManager->memoryUsed();
    wksp = new GenFetiWorkSpace<Scalar>(interface, internalDI, fetiInfo->type,
@@ -1102,7 +1102,7 @@ GenFetiSolver<Scalar>::solve(GenDistrVector<Scalar> &f, GenDistrVector<Scalar> &
  }
 
  if(fetiInfo->feti2version == FetiInfo::sparseCoarse) {
-   if(isFeti2 && fetiInfo->type == FetiInfo::linear || 
+   if((isFeti2 && fetiInfo->type == FetiInfo::linear) || 
      (mpcToSub != 0 && mpcToSub->csize() > 0 ))
    {
      singleCoarseSolve(f,u);

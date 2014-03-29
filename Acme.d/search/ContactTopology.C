@@ -385,7 +385,7 @@ ContactTopology::ContactTopology( ContactErrors* Errors,
 					   this );
     ContactTopologyEntity<Real>* entity;
     node_blocks[i]->NodeList()->IteratorStart();
-    while (entity=node_blocks[i]->NodeList()->IteratorForward()) {
+    while ((entity=node_blocks[i]->NodeList()->IteratorForward())) {
       entity->HostGlobalArrayIndex(entity->HostArrayIndex()+offset);
     }
     offset   += number_nodes_per_block[i];
@@ -466,7 +466,7 @@ ContactTopology::ContactTopology( ContactErrors* Errors,
                                              host_ids,
                                              this );
       face_blocks[i]->FaceList()->IteratorStart();
-      while (entity=face_blocks[i]->FaceList()->IteratorForward()) {
+      while ((entity=face_blocks[i]->FaceList()->IteratorForward())) {
         entity->HostGlobalArrayIndex(entity->HostArrayIndex()+offset);
       }
       offset   += number_faces_per_block[i];
@@ -490,7 +490,7 @@ ContactTopology::ContactTopology( ContactErrors* Errors,
     int index = 0;
     for( i=0 ; i<number_of_face_blocks ; ++i ){
       face_blocks[i]->FaceList()->IteratorStart();
-      while (entity=face_blocks[i]->FaceList()->IteratorForward()) {
+      while ((entity=face_blocks[i]->FaceList()->IteratorForward())) {
         ContactFace<Real>* face = static_cast<ContactFace<Real>*>(entity);
         for( k=0 ; k<face->Nodes_Per_Face() ; ++k ){
           int n = face_connectivity[index++]-1; // -1 Fortran->C
@@ -543,7 +543,7 @@ ContactTopology::ContactTopology( ContactErrors* Errors,
                                                    host_ids,
                                                    this );
       element_blocks[i]->ElemList()->IteratorStart();
-      while (entity=element_blocks[i]->ElemList()->IteratorForward()) {
+      while ((entity=element_blocks[i]->ElemList()->IteratorForward())) {
         entity->HostGlobalArrayIndex(entity->HostArrayIndex()+offset);
       }
       offset   += number_elements_per_block[i];
@@ -567,7 +567,7 @@ ContactTopology::ContactTopology( ContactErrors* Errors,
     int index = 0;
     for( i=0 ; i<number_of_element_blocks ; ++i ){
       element_blocks[i]->ElemList()->IteratorStart();
-      while (entity=element_blocks[i]->ElemList()->IteratorForward()) {
+      while ((entity=element_blocks[i]->ElemList()->IteratorForward())) {
         ContactElement* element = static_cast<ContactElement*>(entity);
         for( k=0 ; k<element->Nodes_Per_Element() ; ++k ){
           int n = element_connectivity[index++]-1; // -1 Fortran->C
@@ -2555,7 +2555,7 @@ void ContactTopology::Delete_All_Interactions()
       interactions = face->Get_FaceFace_Interactions(j);
       if(interactions != NULL) {
         interactions->IteratorStart();
-        while (link = interactions->IteratorForward()) {
+        while ((link = interactions->IteratorForward())) {
   	  ContactFaceFaceInteraction* cffi = 
   	         static_cast<ContactFaceFaceInteraction*>(link);
   	  cffi->~ContactFaceFaceInteraction();
@@ -2565,7 +2565,7 @@ void ContactTopology::Delete_All_Interactions()
       interactions = face->Get_FaceCoverage_Interactions(j);
       if(interactions != NULL) {
         interactions->IteratorStart();
-        while (link = interactions->IteratorForward()) {
+        while ((link = interactions->IteratorForward())) {
   	  ContactFaceCoverageInteraction* cfci = 
   	         static_cast<ContactFaceCoverageInteraction*>(link);
   	  cfci->~ContactFaceCoverageInteraction();
@@ -2581,7 +2581,7 @@ void ContactTopology::Delete_All_Interactions()
     for (j=0; j<number_of_states; ++j) {
       interactions = element->Get_ElementElement_Interactions(j);
       interactions->IteratorStart();
-      while (link = interactions->IteratorForward()) {
+      while ((link = interactions->IteratorForward())) {
    	ContactElementElementInteraction* ceei = 
    	       static_cast<ContactElementElementInteraction*>(link);
    	ceei->~ContactElementElementInteraction();
@@ -5974,7 +5974,7 @@ void ContactTopology::MigrateExportedData()
     ContactTopologyEntity<Real>* entity;
     ContactBlockEntityList* block_face_list = ghosted_face_blocks[i]->FaceList();
     block_face_list->IteratorStart();
-    while( entity=block_face_list->IteratorForward() ){
+    while( (entity=block_face_list->IteratorForward()) ){
       ContactFace<Real>* face = static_cast<ContactFace<Real>*>(entity);
       ContactTopologyEntity<Real>::connection_data *node_info = face->NodeInfo();
       POSTCONDITION( node_info );
@@ -5998,7 +5998,7 @@ void ContactTopology::MigrateExportedData()
     ContactTopologyEntity<Real>* entity;
     ContactBlockEntityList* block_element_list = element_blocks[i]->ElemList();
     block_element_list->IteratorStart();
-    while( entity=block_element_list->IteratorForward() ){
+    while( (entity=block_element_list->IteratorForward()) ){
       ContactElement* element = static_cast<ContactElement*>(entity);
         
       ContactTopologyEntity<Real>::connection_data *node_info = element->NodeInfo();
@@ -6230,7 +6230,7 @@ void ContactTopology::MigrateExportedData()
     ContactTopologyEntity<Real>* entity = NULL;
     ContactBlockEntityList* block_list = ghosted_node_blocks[i]->NodeList();
     block_list->IteratorStart();
-    while( entity=block_list->IteratorForward() ){
+    while( (entity=block_list->IteratorForward()) ){
       entity->SetContextBit(ContactTopologyEntity<Real>::GHOSTED_FOR_SEARCH);
     }
   }                                     
@@ -6238,7 +6238,7 @@ void ContactTopology::MigrateExportedData()
     ContactTopologyEntity<Real>* entity = NULL;
     ContactBlockEntityList* block_list = ghosted_face_blocks[i]->FaceList();
     block_list->IteratorStart();
-    while( entity=block_list->IteratorForward() ){
+    while( (entity=block_list->IteratorForward()) ){
       entity->SetContextBit(ContactTopologyEntity<Real>::GHOSTED_FOR_SEARCH);
     }
   }
@@ -6246,7 +6246,7 @@ void ContactTopology::MigrateExportedData()
     ContactTopologyEntity<Real>* entity = NULL;
     ContactBlockEntityList* block_list = element_blocks[i]->ElemList();
     block_list->IteratorStart();
-    while( entity=block_list->IteratorForward() ){
+    while( (entity=block_list->IteratorForward()) ){
       entity->SetContextBit(ContactTopologyEntity<Real>::GHOSTED_FOR_SEARCH);
     }
   }

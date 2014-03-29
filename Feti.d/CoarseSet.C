@@ -291,12 +291,13 @@ GenCoarseSet<Scalar>::getNeighbQGs(GenCoarseSet<Scalar> *csets, GenSubDomain<Sca
      //                     (either Kbb, or Kbb - Kib^T Kii^-1 Kib)
      //     projType = 3 -> Q = kc
      //     projType = 4 -> Q = Diag(Kbb)
-     if(!solver) 
+     if(!solver) {
       if(projType != 4) {
         sd->multKbb(neighbQGs[iSub]+i*gSize, neighbQGs[iSub]+i*gSize);
       } else {
         sd->multDiagKbb(neighbQGs[iSub]+i*gSize, neighbQGs[iSub]+i*gSize);
       }
+    }
    }
 
   // multiple rhs version of multFi

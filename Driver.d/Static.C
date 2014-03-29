@@ -2937,6 +2937,8 @@ Domain::makePreSensitivities(AllSensitivities<double> &allSens, double *bcx)
 
      break;
    }
+   default :
+     break;
   }
  }
  // post processing for sensitivities 
@@ -3130,6 +3132,8 @@ Domain::makePostSensitivities(AllSensitivities<double> &allSens, GenVector<doubl
 
      break;
    } 
+   default:
+     break;
   }
  }
 
@@ -3182,6 +3186,8 @@ Domain::makePreSensitivities(AllSensitivities<DComplex> &allSens, DComplex *bcx)
      }
      break;
    }
+   default:
+     break;
   }
  }
 #endif
@@ -3219,6 +3225,8 @@ Domain::makePostSensitivities(AllSensitivities<DComplex> &allSens, GenVector<DCo
      }
      break;
    }
+   default:
+     break;
   }
  }
 #endif

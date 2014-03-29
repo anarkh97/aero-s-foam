@@ -264,7 +264,7 @@ SnapshotProjectionDriver::compProjError() {
 
     accelError = paccelBuf - accelBuf;
 
-    if(!domain->solInfo().PODerrornorm.size() < 3) {
+    if(domain->solInfo().PODerrornorm.size() < 3) {
      std::cerr << "...No acceleration file specified, exiting..." << std::endl;
      exit(-1);
     }

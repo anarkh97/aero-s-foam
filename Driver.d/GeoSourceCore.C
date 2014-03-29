@@ -1320,6 +1320,8 @@ void GeoSource::setUpData()
         domain->solInfo().forcePodRomFile = oinfo[iOut].filename;
         oinfo[iOut].PodRomfile = true;
         break;
+      default :
+        break;
     }
 
     if (oinfo[iOut].groupNumber > 0)  {

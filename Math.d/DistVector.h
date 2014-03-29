@@ -24,7 +24,6 @@ private:
 
 public:
   
-  DistVec();
   DistVec(const DistrInfo &);
   DistVec(const DistVec<Scalar> &);
   DistVec(const DistrInfo &, Scalar *, Vec<Scalar> **);
@@ -82,15 +81,6 @@ public:
 };
 
 //------------------------------------------------------------------------------
-
-template <class Scalar>
-DistVec<Scalar>::DistVec() : Vec<Scalar>(0), distInfo(0), subVec(0)
-{
-
-}
-
-//------------------------------------------------------------------------------
-
 
 template <class Scalar>
 DistVec<Scalar>::DistVec(const DistrInfo &dI) : 

@@ -1360,11 +1360,12 @@ CornerMaker::chooseCorners(char *glCornerList, double (*crnXYZ)[3],
         int pref = -1;
         if(tied[ fav[iGr][0] ] == false)
           pref = 0;
-        else if(fav[iGr][1] >= 0 && tied[ fav[iGr][1] ] == false)
+        else if(fav[iGr][1] >= 0 && tied[ fav[iGr][1] ] == false) {
           if(bamax[iGr][1] > 0.25*bamax[iGr][0])
             pref = 1;
           else
             pref = 0;
+        }
         if(pref >= 0) {
           glCornerList[choices[iGr][pref][0]] = 1;
           if(choices[iGr][pref][1] > -1) glCornerList[choices[iGr][pref][1]] = 1; // PJSA

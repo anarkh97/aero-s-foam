@@ -67,7 +67,7 @@ ContactFace<DataType>::~ContactFace()
   for(int i = 0; i < FaceFaceInteractions.size(); ++i) {
     ContactInteractionEntity* link=NULL;
     FaceFaceInteractions[i].IteratorStart();
-    while (link=FaceFaceInteractions[i].IteratorForward()) {
+    while ((link=FaceFaceInteractions[i].IteratorForward())) {
       ContactFaceFaceInteraction* cffi = 
         static_cast<ContactFaceFaceInteraction*>(link);
       cffi->~ContactFaceFaceInteraction();
@@ -77,7 +77,7 @@ ContactFace<DataType>::~ContactFace()
   for( int i=0 ; i<FaceCoverageInteractions.size() ; ++i ){
     ContactInteractionEntity* link=NULL;
     FaceCoverageInteractions[i].IteratorStart();
-    while (link=FaceCoverageInteractions[i].IteratorForward()) {
+    while ((link=FaceCoverageInteractions[i].IteratorForward())) {
       ContactFaceCoverageInteraction* cfci = 
         static_cast<ContactFaceCoverageInteraction*>(link);
       cfci->~ContactFaceCoverageInteraction();
@@ -186,7 +186,7 @@ int ContactFace<DataType>::Size_Interactions(int state)
   interactions = Get_FaceFace_Interactions(state);
   if(interactions != NULL) {
     interactions->IteratorStart();
-    while (entity=interactions->IteratorForward()) {
+    while ((entity=interactions->IteratorForward())) {
       ContactFaceFaceInteraction* i = 
         static_cast<ContactFaceFaceInteraction*>(entity);
       size += i->Size()+sizeof(int);
@@ -195,7 +195,7 @@ int ContactFace<DataType>::Size_Interactions(int state)
   interactions = Get_FaceCoverage_Interactions(state);
   if(interactions != NULL) {
     interactions->IteratorStart();
-    while (entity=interactions->IteratorForward()) {
+    while ((entity=interactions->IteratorForward())) {
       ContactFaceCoverageInteraction* i = 
         static_cast<ContactFaceCoverageInteraction*>(entity);
       size += i->Size()+sizeof(int);
@@ -220,7 +220,7 @@ void ContactFace<DataType>::Pack_Interactions( char* buffer, int state )
   interactions = Get_FaceFace_Interactions(state);
   if(interactions != NULL) {
     interactions->IteratorStart();
-    while (entity=interactions->IteratorForward()) {
+    while ((entity=interactions->IteratorForward())) {
       ContactFaceFaceInteraction* i = 
         static_cast<ContactFaceFaceInteraction*>(entity);
       int* ibuf = reinterpret_cast<int*>(buffer);
@@ -232,7 +232,7 @@ void ContactFace<DataType>::Pack_Interactions( char* buffer, int state )
   interactions = Get_FaceCoverage_Interactions(state);
   if(interactions != NULL) {
     interactions->IteratorStart();
-    while (entity=interactions->IteratorForward()) {
+    while ((entity=interactions->IteratorForward())) {
       ContactFaceCoverageInteraction* i = 
         static_cast<ContactFaceCoverageInteraction*>(entity);
       int* ibuf = reinterpret_cast<int*>(buffer);
@@ -287,7 +287,7 @@ void ContactFace<DataType>::Copy_Interactions( ContactFace<DataType>* src, int s
   if(src->FaceFaceInteractions.size() > state && src->FaceFaceInteractions[state].NumEntities() > 0) {
     ContactInteractionDLL &interactions = src->FaceFaceInteractions[state];
     interactions.IteratorStart();
-    while (entity=interactions.IteratorForward()) {
+    while ((entity=interactions.IteratorForward())) {
       ContactFaceFaceInteraction* new_ffi = 
         ContactFaceFaceInteraction::new_ContactFaceFaceInteraction( 
             allocators[ContactSearch::ALLOC_ContactFaceFaceInteraction]);
@@ -302,7 +302,7 @@ void ContactFace<DataType>::Copy_Interactions( ContactFace<DataType>* src, int s
   if (src->FaceCoverageInteractions.size() > state && src->FaceCoverageInteractions[state].NumEntities()>0) {
     ContactInteractionDLL &interactions = src->FaceCoverageInteractions[state];
     interactions.IteratorStart();
-    while (entity=interactions.IteratorForward()) {
+    while ((entity=interactions.IteratorForward())) {
       ContactFaceCoverageInteraction* new_fci = 
         ContactFaceCoverageInteraction::new_ContactFaceCoverageInteraction( 
             allocators[ContactSearch::ALLOC_ContactFaceCoverageInteraction]);
@@ -330,7 +330,7 @@ int ContactFace<DataType>::Size_Interactions_ForSecondary(int state)
   interactions = Get_FaceFace_Interactions(state);
   if(interactions != NULL) {
     interactions->IteratorStart();
-    while (entity=interactions->IteratorForward()) {
+    while ((entity=interactions->IteratorForward())) {
       ContactFaceFaceInteraction* i = 
         static_cast<ContactFaceFaceInteraction*>(entity);
       size += i->Size()+sizeof(int);
@@ -339,7 +339,7 @@ int ContactFace<DataType>::Size_Interactions_ForSecondary(int state)
   interactions = Get_FaceCoverage_Interactions(state);
   if(interactions != NULL) {
     interactions->IteratorStart();
-    while (entity=interactions->IteratorForward()) {
+    while ((entity=interactions->IteratorForward())) {
       ContactFaceCoverageInteraction* i = 
         static_cast<ContactFaceCoverageInteraction*>(entity);
       size += i->Size()+sizeof(int);
@@ -364,7 +364,7 @@ void ContactFace<DataType>::Pack_Interactions_ForSecondary( char* buffer, int st
   interactions = Get_FaceFace_Interactions(state);
   if(interactions != NULL) {
     interactions->IteratorStart();
-    while (entity=interactions->IteratorForward()) {
+    while ((entity=interactions->IteratorForward())) {
       ContactFaceFaceInteraction* i = 
         static_cast<ContactFaceFaceInteraction*>(entity);
       int* ibuf = reinterpret_cast<int*> (buffer);
@@ -376,7 +376,7 @@ void ContactFace<DataType>::Pack_Interactions_ForSecondary( char* buffer, int st
   interactions = Get_FaceCoverage_Interactions(state);
   if(interactions != NULL) {
     interactions->IteratorStart();
-    while (entity=interactions->IteratorForward()) {
+    while ((entity=interactions->IteratorForward())) {
       ContactFaceCoverageInteraction* i = 
         static_cast<ContactFaceCoverageInteraction*>(entity);
       int* ibuf = reinterpret_cast<int*> (buffer);
@@ -431,7 +431,7 @@ void ContactFace<DataType>::Copy_Interactions_ForSecondary( ContactFace<DataType
   if(src->FaceFaceInteractions.size() > state && src->FaceFaceInteractions[state].NumEntities() > 0) {
     ContactInteractionDLL &interactions = src->FaceFaceInteractions[state];
     interactions.IteratorStart();
-    while (entity=interactions.IteratorForward()) {
+    while ((entity=interactions.IteratorForward())) {
       ContactFaceFaceInteraction* new_ffi = 
         ContactFaceFaceInteraction::new_ContactFaceFaceInteraction( 
             allocators[ContactSearch::ALLOC_ContactFaceFaceInteraction]);
@@ -445,7 +445,7 @@ void ContactFace<DataType>::Copy_Interactions_ForSecondary( ContactFace<DataType
   if (src->FaceCoverageInteractions.size() > state && src->FaceCoverageInteractions[state].NumEntities()>0) {
     ContactInteractionDLL &interactions = src->FaceCoverageInteractions[state];
     interactions.IteratorStart();
-    while (entity=interactions.IteratorForward()) {
+    while ((entity=interactions.IteratorForward())) {
       ContactFaceCoverageInteraction* new_fci = 
         ContactFaceCoverageInteraction::new_ContactFaceCoverageInteraction( 
             allocators[ContactSearch::ALLOC_ContactFaceCoverageInteraction]);
@@ -488,7 +488,7 @@ ContactFace<DataType>::Get_FaceFace_Interaction(int interaction_number, int stat
 
   if(FaceFaceInteractions.size() > state) {
     FaceFaceInteractions[state].IteratorStart();
-    while (entity=FaceFaceInteractions[state].IteratorForward()) {
+    while ((entity=FaceFaceInteractions[state].IteratorForward())) {
       if (entity->Index()==interaction_number) break;
     }
     ContactFaceFaceInteraction* ffi=NULL;
@@ -520,7 +520,7 @@ ContactFace<DataType>::Delete_FaceFace_Interaction(
 
   if(FaceFaceInteractions.size() <= state) return;
   FaceFaceInteractions[state].IteratorStart();
-  while (link=FaceFaceInteractions[state].IteratorForward()) {
+  while ((link=FaceFaceInteractions[state].IteratorForward())) {
     if (link->Index()==ffi->Index()) {
       ContactFaceFaceInteraction* cffi = static_cast<ContactFaceFaceInteraction*>(link);
       cffi->~ContactFaceFaceInteraction();
@@ -636,7 +636,7 @@ ContactFace<DataType>::Update_Interactions( )
     }
     FaceFaceInteractions[0] = temp;
     FaceFaceInteractions[0].IteratorStart();
-    while (link=FaceFaceInteractions[0].IteratorForward()) {
+    while ((link=FaceFaceInteractions[0].IteratorForward())) {
       ContactFaceFaceInteraction* cffi = 
         static_cast<ContactFaceFaceInteraction*>(link);
       cffi->~ContactFaceFaceInteraction();
@@ -652,7 +652,7 @@ ContactFace<DataType>::Update_Interactions( )
     }
     FaceCoverageInteractions[0] = temp;
     FaceCoverageInteractions[0].IteratorStart();
-    while (link=FaceCoverageInteractions[0].IteratorForward()) {
+    while ((link=FaceCoverageInteractions[0].IteratorForward())) {
       ContactFaceCoverageInteraction* cfci =
          static_cast<ContactFaceCoverageInteraction*> (link);
       cfci->~ContactFaceCoverageInteraction();

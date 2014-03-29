@@ -38,7 +38,6 @@ void vec_to_mat_new( double rvec[3], double rten[3][3] )
  *****************************************************************/
 {
    double th, sth, cth,alpha,beta;
-   double sdot();
 
    th = sqrt(rvec[0]*rvec[0] + rvec[1]*rvec[1] + rvec[2]*rvec[2]);
 

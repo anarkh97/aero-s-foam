@@ -655,7 +655,7 @@ void ContactMigrateUnpackInteractions(void *data, int num_gid_entries,
         ContactInteractionDLL* interactions = face->Get_FaceFace_Interactions();
         if(interactions == NULL) continue;
         interactions->IteratorStart();
-        while (interaction=interactions->IteratorForward()){
+        while ((interaction=interactions->IteratorForward())){
           ContactFaceFaceInteraction* cffi = 
             static_cast<ContactFaceFaceInteraction*>(interaction);
           cffi->Connect_MasterFace( dest_topology );
@@ -670,7 +670,7 @@ void ContactMigrateUnpackInteractions(void *data, int num_gid_entries,
 	element->Unpack_Interactions(buf);
         ContactInteractionDLL* interactions = element->Get_ElementElement_Interactions();
         interactions->IteratorStart();
-        while (interaction=interactions->IteratorForward()){
+        while ((interaction=interactions->IteratorForward())){
           ContactElementElementInteraction* ceei = 
             static_cast<ContactElementElementInteraction*>(interaction);
           ceei->Connect_MasterElement( dest_topology );

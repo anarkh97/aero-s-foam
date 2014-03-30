@@ -1391,6 +1391,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
            f^n = (f^{n-1/2} + f^{n+1/2})/2 to minimize
            code changes. On the other hand, f^{n+1/2} = (f^n + f^{n+1})/2
            holds without any assumption.
+     XXX this needs to be updated for generalized-alpha
 */
 
           dW = (c*force + (1.0-c)*(*previousExtForce)) * (sol - (*previousDisp));

@@ -380,7 +380,7 @@ MultiDomainDynam::preProcess()
 
     kelArray = new FullSquareMatrix*[decDomain->getNumSub()];
     if(domain->solInfo().isNonLin() && (domain->solInfo().newmarkBeta == 0 || domain->solInfo().samplingPodRom
-       || domain->solInfo().svdPodRom))
+       || domain->solInfo().svdPodRom || domain->solInfo().ROMPostProcess))
       melArray = new FullSquareMatrix*[decDomain->getNumSub()];
     execParal(decDomain->getNumSub(), this, &MultiDomainDynam::makeSubElementArrays);
   }

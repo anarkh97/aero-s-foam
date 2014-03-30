@@ -247,6 +247,10 @@ DistrROMPostProcessingDriver::solve() {
      }
 
      geomState->explicitUpdate(decDomain, *fullDispBuffer);
+     geomState->transform(*fullVelBuffer, 0, true); // transform angular velocity from the 1st time derivative
+                                                    // of the (unscaled) total rotation vector to convected
+     geomState->transform(*fullAccBuffer, 4, true); // transform angular acceleration from the 2nd time derivative
+                                                    // of the (unscaled) total rotation vector to convected
      execParal(decDomain->getNumSub(), this, &DistrROMPostProcessingDriver::subUpdateStates);
      if(!dummyDynOps) dummyDynOps = new MDDynamMat;
      mddPostPro->dynamOutput(counter, *it, *dummyDynOps, *fullDummyBuffer, fullDummyBuffer, *curState);

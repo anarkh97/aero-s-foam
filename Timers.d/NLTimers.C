@@ -128,9 +128,9 @@ StaticTimers::printTimers(Domain* domain, Timings& timers, double solveTime)
 
  double totalMatricesProcess = timers.assemble+timers.constructMatrices;
  double coarseTime   = timers.coarse1 + timers.coarse2;
- double localSolutionTime = timers.solve+timers.factor + coarseTime 
-                          + timers.pfactor + timers.pfactor2 
-                          - totalMatricesProcess;
+ double localSolutionTime = (sInfo.type == 0) ? solveTime : timers.solve + timers.factor + coarseTime 
+                                                            + timers.pfactor + timers.pfactor2 
+                                                            - totalMatricesProcess;
  double solutionTimeMin = localSolutionTime;
  double solutionTimeAvg = localSolutionTime;
  double solutionTimeMax = localSolutionTime;
@@ -259,28 +259,32 @@ StaticTimers::printTimers(Domain* domain, Timings& timers, double solveTime)
  fprintf(f," ... Solver Information ... \n");
  fprintf(f,"***********************************************************\n\n");
 
- fprintf(f,"%s",solverMessage[sInfo.getFetiInfo().version]);
- fprintf(f,"         %s", precMessage[sInfo.getFetiInfo().precno]);
- fprintf(f,"         %s", scalingMessage[sInfo.getFetiInfo().scaling]);
- fprintf(f,"         %s", projectMessage[sInfo.getFetiInfo().nonLocalQ]);
- fprintf(f,"         %s", subSolverMessage[sInfo.getFetiInfo().solvertype]);
- fprintf(f,"         %s",precSolverMessage[sInfo.getFetiInfo().solvertype]);
+ if(sInfo.type == 0) {
+   fprintf(f,"1. Mumps Sparse\n\n");
+ }
+ else {
+   fprintf(f,"%s", solverMessage[sInfo.getFetiInfo().version]);
+   fprintf(f,"         %s", precMessage[sInfo.getFetiInfo().precno]);
+   fprintf(f,"         %s", scalingMessage[sInfo.getFetiInfo().scaling]);
+   fprintf(f,"         %s", projectMessage[sInfo.getFetiInfo().nonLocalQ]);
+   fprintf(f,"         %s", subSolverMessage[sInfo.getFetiInfo().solvertype]);
+   fprintf(f,"         %s", precSolverMessage[sInfo.getFetiInfo().solvertype]);
 
- if(sInfo.rbmflg == 0)
-   fprintf(f,"         %s %29e\n",rbmMessage[sInfo.rbmflg],sInfo.trbm);
- else
-   fprintf(f,"         %s%17e %e\n",rbmMessage[sInfo.rbmflg],
-                                    sInfo.tolsvd,sInfo.trbm);
+   if(sInfo.rbmflg == 0)
+     fprintf(f,"         %s %29e\n",rbmMessage[sInfo.rbmflg],sInfo.trbm);
+   else
+     fprintf(f,"         %s%17e %e\n",rbmMessage[sInfo.rbmflg],sInfo.tolsvd,sInfo.trbm);
 
- fprintf(f,"         Maximum Number of Iterations      = %14d\n",
+   fprintf(f,"         Maximum Number of Iterations      = %14d\n",
            sInfo.getFetiInfo().maxiter());
- fprintf(f,"         Maximum Size of Reortho. Vectors  = %14d\n",
+   fprintf(f,"         Maximum Size of Reortho. Vectors  = %14d\n",
            sInfo.getFetiInfo().maxorth());
- fprintf(f,"         Tolerance for Convergence         = %14.3e\n",
+   fprintf(f,"         Tolerance for Convergence         = %14.3e\n",
            sInfo.getFetiInfo().tolerance());
- fprintf(f,"         %s\n", KrylovMessage[sInfo.getFetiInfo().nlPrecFlg]);
+   fprintf(f,"         %s\n", KrylovMessage[sInfo.getFetiInfo().nlPrecFlg]);
+ }
 
- fprintf(f,"\n***********************************************************\n");
+ fprintf(f,"***********************************************************\n");
  fprintf(f," ... Timing Statistics for %d Threads and %d Subdomains ...\n",
                 numThreads, numSubdomains);
  fprintf(f,"***********************************************************\n\n");
@@ -294,8 +298,6 @@ StaticTimers::printTimers(Domain* domain, Timings& timers, double solveTime)
  fprintf(f,"         Read Mesh Partition           time: %14.5f\n",
          times.readDecomp/1000.0);          
 
-
- 
 
  fprintf(f,"\n2. Total Preprocessing                 time: %14.5f %14.3f Mb\n",
          (totalPreProcess)/1000.0, totMemPreProcess*byteToMb);
@@ -312,11 +314,11 @@ StaticTimers::printTimers(Domain* domain, Timings& timers, double solveTime)
  fprintf(f,  "         Make Internal Information     time: %14.5f\n",  
          times.makeInternalInfo/1000.0);
  fprintf(f,  "         Make Geometric Node States    time: %14.5f\n",
-           timeGeom/1000.0);
+         timeGeom/1000.0);
  fprintf(f,  "         Make Element Corotators       time: %14.5f\n",
-           corotatorTime/1000.0);
+         corotatorTime/1000.0);
  fprintf(f,  "         Make Stiffness & Mass Arrays  time: %14.5f\n\n",
-           kelArrayTime/1000.0);
+         kelArrayTime/1000.0);
 
 
  fprintf(f,"3. Total Subdomain Matrices Processing time: %14.5f %14.3f Mb\n\n",
@@ -389,40 +391,42 @@ StaticTimers::printTimers(Domain* domain, Timings& timers, double solveTime)
  if (f != 0) {
  fprintf(f,"5. Total Solver                        time: %14.5f %14.3f Mb\n\n",
          solutionTimeMax/1000.0, totalSolverMemory*byteToMb);
- fprintf(f,"         Factor Subdomain Matrices     time: %14.5f %14.3f Mb\n\n",
-         timers.factor/1000.0, totalMemFactor*byteToMb);
- fprintf(f,"         Total Building  Coarse Pbs.   time: %14.5f %14.3f\n",
-         coarseTime/1000.0, totMemCoarse *byteToMb );
- fprintf(f,"               1st Level Coarse Pb.    time: %14.5f %14.3f Mb\n",
-         timers.coarse1/1000.0, totMemGtGAvg*numCPUs*byteToMb);
- fprintf(f,"               2nd Level Coarse Pb.    time: %14.5f %14.3f Mb\n\n",
-         coarse2TimeMax/1000.0, timers.memoryPCtFPC*byteToMb);
- fprintf(f,"         Total Paral. Fac. Coarse Pbs. time: %14.5f %14.3f Mb\n",
-         (parfac1Max+parfac2Max)/1000.0, 0.0);
- fprintf(f,"               1st Level Factor        time: %14.5f %14.3f Mb\n",
-         parfac1Max/1000.0, 0.0);
- fprintf(f,"               2nd Level Factor        time: %14.5f %14.3f Mb\n\n",
-         parfac2Max/1000.0, 0.0);
- fprintf(f,"         Total Solve loop              time: %14.5f %14.3f Mb\n",
-         solveLoopMax/1000.0, totalMemorySolve*byteToMb);
- fprintf(f,"               Project 1st Level       time: %14.5f %14.3f Mb\n",
-         project1TimeMax/1000.0, timers.memoryProject1*byteToMb);
- fprintf(f,"                  Seq. Forw/Back       time: %14.5f\n",
-         forBack1Max/1000.0);
- fprintf(f,"               Project 2nd Level       time: %14.5f %14.3f Mb\n",
-         project2TimeMax/1000.0,timers.memoryProject2*byteToMb);
- fprintf(f,"                  Paral. Forw/Back     time: %14.5f\n",
-         forBack2Max/1000.0);
- fprintf(f,"               Precondition            time: %14.5f %14.3f Mb\n",
-         precondMax/1000.0, 8*memoryPrecond*byteToMb);
- fprintf(f,"               Krylov Precondition     time: %14.5f\n",
-         timers.nlPreCond/1000.0);
- fprintf(f,"               Local Solve             time: %14.5f %14.3f Mb\n",
-         timers.sAndJ/1000.0, timers.memorySAndJ*byteToMb);
- fprintf(f,"               Reorthogonalize         time: %14.5f %14.3f Mb\n",
-         timers.reOrtho/1000.0, timers.memoryOSet*byteToMb);
+ if(sInfo.type == 2) {
+   fprintf(f,"         Factor Subdomain Matrices     time: %14.5f %14.3f Mb\n\n",
+           timers.factor/1000.0, totalMemFactor*byteToMb);
+   fprintf(f,"         Total Building  Coarse Pbs.   time: %14.5f %14.3f\n",
+           coarseTime/1000.0, totMemCoarse *byteToMb );
+   fprintf(f,"               1st Level Coarse Pb.    time: %14.5f %14.3f Mb\n",
+           timers.coarse1/1000.0, totMemGtGAvg*numCPUs*byteToMb);
+   fprintf(f,"               2nd Level Coarse Pb.    time: %14.5f %14.3f Mb\n\n",
+           coarse2TimeMax/1000.0, timers.memoryPCtFPC*byteToMb);
+   fprintf(f,"         Total Paral. Fac. Coarse Pbs. time: %14.5f %14.3f Mb\n",
+           (parfac1Max+parfac2Max)/1000.0, 0.0);
+   fprintf(f,"               1st Level Factor        time: %14.5f %14.3f Mb\n",
+           parfac1Max/1000.0, 0.0);
+   fprintf(f,"               2nd Level Factor        time: %14.5f %14.3f Mb\n\n",
+           parfac2Max/1000.0, 0.0);
+   fprintf(f,"         Total Solve loop              time: %14.5f %14.3f Mb\n",
+           solveLoopMax/1000.0, totalMemorySolve*byteToMb);
+   fprintf(f,"               Project 1st Level       time: %14.5f %14.3f Mb\n",
+           project1TimeMax/1000.0, timers.memoryProject1*byteToMb);
+   fprintf(f,"                  Seq. Forw/Back       time: %14.5f\n",
+           forBack1Max/1000.0);
+   fprintf(f,"               Project 2nd Level       time: %14.5f %14.3f Mb\n",
+           project2TimeMax/1000.0,timers.memoryProject2*byteToMb);
+   fprintf(f,"                  Paral. Forw/Back     time: %14.5f\n",
+           forBack2Max/1000.0);
+   fprintf(f,"               Precondition            time: %14.5f %14.3f Mb\n",
+           precondMax/1000.0, 8*memoryPrecond*byteToMb);
+   fprintf(f,"               Krylov Precondition     time: %14.5f\n",
+           timers.nlPreCond/1000.0);
+   fprintf(f,"               Local Solve             time: %14.5f %14.3f Mb\n",
+           timers.sAndJ/1000.0, timers.memorySAndJ*byteToMb);
+   fprintf(f,"               Reorthogonalize         time: %14.5f %14.3f Mb\n\n",
+           timers.reOrtho/1000.0, timers.memoryOSet*byteToMb);
+ }
  
- fprintf(f,"\n6. Write Output Files                  time: %14.5f %14.3f Mb\n",
+ fprintf(f,"6. Write Output Files                  time: %14.5f %14.3f Mb\n",
          outputTimeMax/1000.0, memoryOutput*byteToMb);
 
 
@@ -431,10 +435,12 @@ StaticTimers::printTimers(Domain* domain, Timings& timers, double solveTime)
  fprintf(f,"         Element Stiffness Matrices    time: %14.5f\n",
          buildStiffAndForce/1000.0);
 
- fprintf(f,"         FETI Preconditioner           time: %14.5f\n",
-         timers.reBuildPrec/1000.0);
- fprintf(f,"         Error Estimator               time: %14.5f\n\n",
-         timers.reBuildError/1000.0);
+ if(sInfo.type == 2) {
+   fprintf(f,"         FETI Preconditioner           time: %14.5f\n",
+           timers.reBuildPrec/1000.0);
+   fprintf(f,"         Error Estimator               time: %14.5f\n",
+           timers.reBuildError/1000.0);
+ }
 
  // Compute the total time spent on this simulation
  double total = totalRead + totalPreProcess + solutionTimeMax + formRhsMax + output + 
@@ -466,69 +472,64 @@ StaticTimers::printTimers(Domain* domain, Timings& timers, double solveTime)
    fprintf(f,"4. Size of 1st Level Coarse Problem        = %14d %14.3f Mb\n\n",
            timers.numRBMs,timers.memoryGtG*byteToMb);
 
-   fprintf(f,"5. Size of 2nd Level Coarse Problem        = %14d %14.3f Mb\n\n",
+   fprintf(f,"5. Size of 2nd Level Coarse Problem        = %14d %14.3f Mb\n",
            timers.numCRNs,timers.memoryPCtFPC*byteToMb);
-
-   fprintf(f,"***********************************************************\n");
  }
 
- if(sInfo.getFetiInfo().solvertype == 0)
-   fprintf(f,"Memory Skyline = %14.3f Mb\n", 8.0*totMemSky*byteToMb );
- else if(sInfo.getFetiInfo().solvertype == 1)
-   fprintf(f,"Memory Sparse  = %14.3f Mb\n", 8.0*totMemSparse*byteToMb );
+ //if(sInfo.getFetiInfo().solvertype == 0)
+ //  fprintf(f,"Memory Skyline = %14.3f Mb\n", 8.0*totMemSky*byteToMb );
+ //else if(sInfo.getFetiInfo().solvertype == 1)
+ //  fprintf(f,"Memory Sparse  = %14.3f Mb\n", 8.0*totMemSparse*byteToMb );
 
- if(domain->probType() == SolverInfo::NonLinStatic ||
-    domain->probType() == SolverInfo::NonLinDynam  ||
-    domain->probType() == SolverInfo::ArcLength ) {
+ if((domain->probType() == SolverInfo::NonLinStatic ||
+     domain->probType() == SolverInfo::NonLinDynam  ||
+     domain->probType() == SolverInfo::ArcLength) && sInfo.type == 2) {
 
- fprintf(f,"\n***********************************************************\n");
- fprintf(f," ... Nonlinear Statics Monitoring ... \n");
- fprintf(f,"***********************************************************\n\n");
- fprintf(f,"Rebuild FETI Solver             %d\n",sInfo.getNLInfo().updateK);
- fprintf(f,"Rebuild preconditioner          %d\n",
-         sInfo.getFetiInfo().nPrecond());
- fprintf(f,"Max number of Newton iterations %d\n",sInfo.getNLInfo().maxiter);
- fprintf(f,"Nonlinear tolerance = %e\n",sInfo.getNLInfo().tolRes);
- fprintf(f,"Delta Lambda        = %e\n",sInfo.getNLInfo().dlambda);
- fprintf(f,"Maximum Lambda      = %e\n",sInfo.getNLInfo().maxLambda);
- fprintf(f,"Fit Algorithms: Shell %d Beam %d\n",sInfo.getNLInfo().fitAlgShell,
-                                                sInfo.getNLInfo().fitAlgBeam );
+   fprintf(f,"\n***********************************************************\n");
+   fprintf(f," ... Nonlinear Statics Monitoring ... \n");
+   fprintf(f,"***********************************************************\n\n");
+   fprintf(f,"Rebuild solver                  %d\n",sInfo.getNLInfo().updateK);
+   fprintf(f,"Rebuild preconditioner          %d\n",sInfo.getFetiInfo().nPrecond());
+   fprintf(f,"Max number of Newton iterations %d\n",sInfo.getNLInfo().maxiter);
+   fprintf(f,"Nonlinear tolerance = %e\n",sInfo.getNLInfo().tolRes);
+   fprintf(f,"Delta Lambda        = %e\n",sInfo.getNLInfo().dlambda);
+   fprintf(f,"Maximum Lambda      = %e\n",sInfo.getNLInfo().maxLambda);
+   fprintf(f,"Fit Algorithms: Shell %d Beam %d\n",sInfo.getNLInfo().fitAlgShell,
+                                                  sInfo.getNLInfo().fitAlgBeam );
 
- // If arclength, print some more information about algorithm parameters
- 
- fprintf(f,"\nIter\tFETI\tRebuild\tRebuild\tPrimal\t\tDual\t  Stagnation\n");
- fprintf(f,"\tIter\tTangent\tKrylov\tError\t\tError\n");
+   // If arclength, print some more information about algorithm parameters
+   fprintf(f,"\nIter\tFETI\tRebuild\tRebuild\tPrimal\t\tDual\t  Stagnation\n");
+   fprintf(f,"\tIter\tTangent\tKrylov\tError\t\tError\n");
 
- int i;
- for(i=0; i<timers.numSystems; ++i) {
-   if(norms[i].relativeDv == 1.0) 
-     fprintf(f,
-     "--------------------------------------------------------------------\n");
+   int i;
+   for(i=0; i<timers.numSystems; ++i) {
+     if(norms[i].relativeDv == 1.0) 
+       fprintf(f,
+       "--------------------------------------------------------------------\n");
 
-   fprintf(f,"%3d\t%d\t%s\t%s\t%10.4e\t%10.4e\t%s\n",i+1,
+     fprintf(f,"%3d\t%d\t%s\t%s\t%10.4e\t%10.4e\t%s\n",i+1,
                                   timers.iterations[i].numFetiIter,
 				  yesno[norms[i].rebuildTang],
 			          yesno[timers.iterations[i].rebuildKrylov],
                                   timers.iterations[i].finalPrimal,
                                   timers.iterations[i].finalDual,
                                   yesno[timers.iterations[i].stagnated]);
- }
- fprintf(f,"------------------------------------------------"
-           "--------------------\n");
- fprintf(f,"Total\t%d\n",timers.numIter);
- if(timers.numSystems != 0) fprintf(f,"Average\t%d\n",timers.numIter/(timers.numSystems));
+   }
+   fprintf(f,"------------------------------------------------"
+             "--------------------\n");
+   fprintf(f,"Total\t%d\n",timers.numIter);
+   if(timers.numSystems != 0) fprintf(f,"Average\t%d\n",timers.numIter/(timers.numSystems));
 
-
- fprintf(f,"\nIter\tDv\t        Relative Dv\tResidual\tRelative Res\n");
- for(i=0; i<timers.numSystems; ++i) {
-   if(norms[i].relativeDv == 1.0) 
-     fprintf(f,
-     "--------------------------------------------------------------------\n");
-   fprintf(f,"%3d%16e\t%e\t%e\t%e\n",i+1,norms[i].normDv,norms[i].relativeDv,
-           norms[i].normRes,norms[i].relativeRes);
- }
- fprintf(f,"------------------------------------------------"
-           "--------------------\n");
+   fprintf(f,"\nIter\tDv\t        Relative Dv\tResidual\tRelative Res\n");
+   for(i=0; i<timers.numSystems; ++i) {
+     if(norms[i].relativeDv == 1.0) 
+       fprintf(f,
+       "--------------------------------------------------------------------\n");
+     fprintf(f,"%3d%16e\t%e\t%e\t%e\n",i+1,norms[i].normDv,norms[i].relativeDv,
+             norms[i].normRes,norms[i].relativeRes);
+   }
+   fprintf(f,"------------------------------------------------"
+             "--------------------\n");
  }
 
  } // end if(f != 0)
@@ -601,6 +602,8 @@ StaticTimers::printTimers(Domain* domain, Timings& timers, double solveTime)
 
  if(f) {
 
+ filePrint(f,"\n***********************************************************"
+           "********************\n");
  filePrint(f," ... Detailed CPU Statistics (Seconds) ");
  filePrint(f,"\n***********************************************************"
            "********************\n");
@@ -645,44 +648,46 @@ StaticTimers::printTimers(Domain* domain, Timings& timers, double solveTime)
  filePrint(f,"5. Total Solver                       : %12.4f %12.4f %12.4f\n\n",
          solutionTimeMin/1000.0, solutionTimeAvg/1000.0, solutionTimeMax/1000.0);
 
- filePrint(f,"         Factor Subdomain Matrices    : %12.4f %12.4f %12.4f\n\n",
-         factorTimeMin/1000.0,factorTimeAvg/1000.0,factorTimeMax/1000.0);
+ if(sInfo.type == 2) {
+   filePrint(f,"         Factor Subdomain Matrices    : %12.4f %12.4f %12.4f\n\n",
+             factorTimeMin/1000.0,factorTimeAvg/1000.0,factorTimeMax/1000.0);
 
- filePrint(f,"         Total Building  Coarse Pbs.  : %12.4f %12.4f %12.4f\n",
-         timeCoarseMin/1000.0,timeCoarseTot/1000.0,timeCoarseMax/1000.0);
- filePrint(f,"               1st Level Coarse Pb.   : %12.4f %12.4f %12.4f\n",
-         coarse1Min/1000.0,coarse1Tot/1000.0,coarse1Max/1000.0);
- filePrint(f,"               2nd Level Coarse Pb.   : %12.4f %12.4f %12.4f\n\n",
-         coarse2TimeMin/1000.0,coarse2TimeAvg/1000.0,coarse2TimeMax/1000.0);
+   filePrint(f,"         Total Building  Coarse Pbs.  : %12.4f %12.4f %12.4f\n",
+             timeCoarseMin/1000.0,timeCoarseTot/1000.0,timeCoarseMax/1000.0);
+   filePrint(f,"               1st Level Coarse Pb.   : %12.4f %12.4f %12.4f\n",
+             coarse1Min/1000.0,coarse1Tot/1000.0,coarse1Max/1000.0);
+   filePrint(f,"               2nd Level Coarse Pb.   : %12.4f %12.4f %12.4f\n\n",
+             coarse2TimeMin/1000.0,coarse2TimeAvg/1000.0,coarse2TimeMax/1000.0);
 
- filePrint(f,"         Total Paral. Fac. Coarse Pbs.: %12.4f %12.4f %12.4f\n",
-    (parfac1Min+parfac2Min)/1000.0,(parfac1Tot+parfac2Tot)/1000.0,(parfac1Max+parfac2Max)/1000.0);
- filePrint(f,"               1st Level Factor       : %12.4f %12.4f %12.4f\n",
-         parfac1Min/1000.0,parfac1Tot/1000.0,parfac1Max/1000.0);
- filePrint(f,"               2nd Level Factor       : %12.4f %12.4f %12.4f\n\n",
-         parfac2Min/1000.0,parfac2Tot/1000.0,parfac2Max/1000.0);
+   filePrint(f,"         Total Paral. Fac. Coarse Pbs.: %12.4f %12.4f %12.4f\n",
+             (parfac1Min+parfac2Min)/1000.0,(parfac1Tot+parfac2Tot)/1000.0,(parfac1Max+parfac2Max)/1000.0);
+   filePrint(f,"               1st Level Factor       : %12.4f %12.4f %12.4f\n",
+             parfac1Min/1000.0,parfac1Tot/1000.0,parfac1Max/1000.0);
+   filePrint(f,"               2nd Level Factor       : %12.4f %12.4f %12.4f\n\n",
+             parfac2Min/1000.0,parfac2Tot/1000.0,parfac2Max/1000.0);
 
- filePrint(f,"         Total Solve loop             : %12.4f %12.4f %12.4f\n",
-         solveLoopMin/1000.0, solveLoopAvg/1000.0, solveLoopMax/1000.0);
- filePrint(f,"               Project 1st Level      : %12.4f %12.4f %12.4f\n",
-       project1TimeMin/1000.0,project1TimeAvg/1000.0,project1TimeMax/1000.0);
- filePrint(f,"                  Seq. Forw/Back      : %12.4f %12.4f %12.4f\n",
-         forBack1Min/1000.0,forBack1Tot/1000.0, forBack1Max/1000.0);
- filePrint(f,"               Project 2nd Level      : %12.4f %12.4f %12.4f\n",
-         project2TimeMin/1000.0,project2TimeAvg/(1000.0),project2TimeMax/1000.0);
- filePrint(f,"                  Paral. Forw/Back    : %12.4f %12.4f %12.4f\n",
-         forBack2Min/1000.0,forBack2Tot/(1000.0), forBack2Max/1000.0);
+   filePrint(f,"         Total Solve loop             : %12.4f %12.4f %12.4f\n",
+             solveLoopMin/1000.0, solveLoopAvg/1000.0, solveLoopMax/1000.0);
+   filePrint(f,"               Project 1st Level      : %12.4f %12.4f %12.4f\n",
+             project1TimeMin/1000.0,project1TimeAvg/1000.0,project1TimeMax/1000.0);
+   filePrint(f,"                  Seq. Forw/Back      : %12.4f %12.4f %12.4f\n",
+             forBack1Min/1000.0,forBack1Tot/1000.0, forBack1Max/1000.0);
+   filePrint(f,"               Project 2nd Level      : %12.4f %12.4f %12.4f\n",
+             project2TimeMin/1000.0,project2TimeAvg/(1000.0),project2TimeMax/1000.0);
+   filePrint(f,"                  Paral. Forw/Back    : %12.4f %12.4f %12.4f\n",
+             forBack2Min/1000.0,forBack2Tot/(1000.0), forBack2Max/1000.0);
 
+   filePrint(f,"               Precondition           : %12.4f %12.4f %12.4f\n",
+             precondMin/1000.0,precondAvg/1000.0, precondMax/1000.0);
 
- filePrint(f,"               Precondition           : %12.4f %12.4f %12.4f\n", precondMin/1000.0,precondAvg/1000.0, precondMax/1000.0);
+   filePrint(f,"               Local Solve            : %12.4f %12.4f %12.4f\n",
+             sAndJMin/1000.0, sAndJAvg/1000.0, sAndJMaximum/1000.0);
+   filePrint(f,"               Reorthogonalize        : %12.4f %12.4f %12.4f\n\n",
+             reOrthoMin/1000.0,reOrthoAvg/1000.0,reOrthoMax/1000.0);
+ }
 
-
- filePrint(f,"               Local Solve            : %12.4f %12.4f %12.4f\n",
-         sAndJMin/1000.0, sAndJAvg/1000.0, sAndJMaximum/1000.0);
- filePrint(f,"               Reorthogonalize        : %12.4f %12.4f %12.4f\n", reOrthoMin/1000.0,reOrthoAvg/1000.0,reOrthoMax/1000.0);
-
- filePrint(f,"\n6. Write Output Files                 : %12.4f %12.4f %12.4f\n",
-         outputTimeMin/1000.0,outputTimeAvg/1000.0,outputTimeMax/1000.0);
+ filePrint(f,"6. Write Output Files                 : %12.4f %12.4f %12.4f\n",
+           outputTimeMin/1000.0,outputTimeAvg/1000.0,outputTimeMax/1000.0);
 
  double timeSimMin = tot1MinTime + tot2MinTime + tot3MinTime + formRhsMin
                    + solutionTimeMin + outputTimeMin;

@@ -519,16 +519,18 @@ DistrGeomState*
 MDNLDynamic::createGeomState()
 {
   times->timeGeom -= getTime();
-  return new DistrGeomState(decDomain);
+  DistrGeomState *geomState = new DistrGeomState(decDomain);
   times->timeGeom += getTime();
+  return geomState;
 }
 
 DistrGeomState*
 MDNLDynamic::copyGeomState(DistrGeomState* geomState)
 {
  times->timeGeom -= getTime();
- return new DistrGeomState(*geomState);
+ DistrGeomState *geomStateCopy = new DistrGeomState(*geomState);
  times->timeGeom += getTime();
+ return geomStateCopy;
 }
 
 void

@@ -970,6 +970,7 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
   
   if (glDisp) delete [] glDisp;
   if (locDisp) delete [] locDisp;
+  firstOutput = false;
 }
 
 //----------------------------------------------------------------------------------------------

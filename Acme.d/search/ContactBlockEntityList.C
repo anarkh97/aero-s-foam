@@ -530,7 +530,7 @@ ContactBlockEntityList::Find( ContactTopologyEntity<Real>::connection_data* cdat
 }
 
 ContactTopologyEntity<Real>* 
-ContactBlockEntityList::Find( ContactInteractionEntity::entity_data* edata )
+ContactBlockEntityList::Find( ContactInteractionEntity<Real>::entity_data* edata )
 {
   if (do_hash) {
     if (hash_nbins==0) return(NULL);

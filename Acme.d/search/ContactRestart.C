@@ -56,7 +56,7 @@ int ContactSearch::Restart_Size(){
   int size = 0;
   int i,k;
   ContactTopologyEntity<Real>* entity;
-  ContactInteractionEntity* interaction;
+  ContactInteractionEntity<Real>* interaction;
   
   // Add the initial size parameters
   size += 33; // NOTE this has to be updated for new Search_Options
@@ -201,13 +201,13 @@ int ContactSearch::Restart_Size(){
   primary_topology->FaceList()->IteratorStart();
   while ((entity=primary_topology->FaceList()->IteratorForward())) {
     ContactFace<Real>* face = static_cast<ContactFace<Real>*>(entity);
-    ContactInteractionDLL* interactions = face->Get_FaceFace_Interactions();
+    ContactInteractionDLL<Real>* interactions = face->Get_FaceFace_Interactions();
     if(interactions != NULL) {
       interactions->IteratorStart();
       if(interactions == NULL) continue;
       while ((interaction=interactions->IteratorForward())){
-        ContactFaceFaceInteraction* cffi = 
-          static_cast<ContactFaceFaceInteraction*>(interaction);
+        ContactFaceFaceInteraction<Real>* cffi = 
+          static_cast<ContactFaceFaceInteraction<Real>*>(interaction);
         size += cffi->Restart_Size();
       }
     }
@@ -220,7 +220,7 @@ int ContactSearch::Restart_Size(){
   primary_topology->FaceList()->IteratorStart();
   while ((entity=primary_topology->FaceList()->IteratorForward())) {
     ContactFace<Real>* face = static_cast<ContactFace<Real>*>(entity);
-    ContactInteractionDLL* interactions = face->Get_FaceCoverage_Interactions();
+    ContactInteractionDLL<Real>* interactions = face->Get_FaceCoverage_Interactions();
     if(interactions != NULL) {
       interactions->IteratorStart();
       while ((interaction=interactions->IteratorForward())){
@@ -238,7 +238,7 @@ int ContactSearch::Restart_Size(){
   primary_topology->ElemList()->IteratorStart();
   while ((entity=primary_topology->ElemList()->IteratorForward())) {
     ContactElement* element = static_cast<ContactElement*>(entity);
-    ContactInteractionDLL* interactions = element->Get_ElementElement_Interactions();
+    ContactInteractionDLL<Real>* interactions = element->Get_ElementElement_Interactions();
     interactions->IteratorStart();
     while ((interaction=interactions->IteratorForward())){
       ContactElementElementInteraction* ceei = 
@@ -256,7 +256,7 @@ ContactSearch::Extract_Restart_Data( Real* buffer )
   int i,j,k;
   Real* buf_loc = buffer;
   ContactTopologyEntity<Real>* entity;
-  ContactInteractionEntity* interaction;
+  ContactInteractionEntity<Real>* interaction;
 
   *buf_loc++ = step_number;
   *buf_loc++ = num_tracked_nodes;
@@ -518,12 +518,12 @@ ContactSearch::Extract_Restart_Data( Real* buffer )
     primary_topology->Face_Block(i)->FaceList()->IteratorStart();
     while ((entity=primary_topology->Face_Block(i)->FaceList()->IteratorForward())) {
       ContactFace<Real>* face = static_cast<ContactFace<Real>*>(entity);
-      ContactInteractionDLL* interactions = face->Get_FaceFace_Interactions();
+      ContactInteractionDLL<Real>* interactions = face->Get_FaceFace_Interactions();
       if(interactions == NULL) continue;
       interactions->IteratorStart();
       while ((interaction=interactions->IteratorForward())){
-        ContactFaceFaceInteraction* cffi = 
-          static_cast<ContactFaceFaceInteraction*>(interaction);
+        ContactFaceFaceInteraction<Real>* cffi = 
+          static_cast<ContactFaceFaceInteraction<Real>*>(interaction);
         cffi->Restart_Pack( buf_loc );
         buf_loc += cffi->Restart_Size();
       }
@@ -546,7 +546,7 @@ ContactSearch::Extract_Restart_Data( Real* buffer )
     primary_topology->Face_Block(i)->FaceList()->IteratorStart();
     while ((entity=primary_topology->Face_Block(i)->FaceList()->IteratorForward())) {
       ContactFace<Real>* face = static_cast<ContactFace<Real>*>(entity);
-      ContactInteractionDLL* interactions = face->Get_FaceCoverage_Interactions();
+      ContactInteractionDLL<Real>* interactions = face->Get_FaceCoverage_Interactions();
       if(interactions != NULL) {
         interactions->IteratorStart();
         while ((interaction=interactions->IteratorForward())){
@@ -575,7 +575,7 @@ ContactSearch::Extract_Restart_Data( Real* buffer )
     primary_topology->Element_Block(i)->ElemList()->IteratorStart();
     while ((entity=primary_topology->Element_Block(i)->ElemList()->IteratorForward())) {
       ContactElement* element = static_cast<ContactElement*>(entity);
-      ContactInteractionDLL* interactions = element->Get_ElementElement_Interactions();
+      ContactInteractionDLL<Real>* interactions = element->Get_ElementElement_Interactions();
       interactions->IteratorStart();
       while ((interaction=interactions->IteratorForward())){
         ContactElementElementInteraction* ceei = 
@@ -1024,8 +1024,8 @@ ContactSearch::ContactSearch( Real* buffer,
 
   // Read the face-face interactions (Current State only)
   for( i=0 ; i<num_faceface_interactions ; ++i){
-    ContactFaceFaceInteraction* cffi = 
-      ContactFaceFaceInteraction::new_ContactFaceFaceInteraction(
+    ContactFaceFaceInteraction<Real>* cffi = 
+      ContactFaceFaceInteraction<Real>::new_ContactFaceFaceInteraction(
          allocators[ALLOC_ContactFaceFaceInteraction]);
     cffi->Restart_Unpack( buf_loc );
     buf_loc += cffi->Restart_Size();
@@ -1200,7 +1200,7 @@ ContactSearch::ResetInteractionHostIDs( )
 
   int i;
   ContactTopologyEntity<Real>* entity;
-  ContactInteractionEntity* interaction;
+  ContactInteractionEntity<Real>* interaction;
   int num_query = 0;
   //==========================================================================
   // Process Node/Face Interactions...
@@ -1237,12 +1237,12 @@ ContactSearch::ResetInteractionHostIDs( )
   primary_topology->FaceList()->IteratorStart();
   while( (entity=primary_topology->FaceList()->IteratorForward()) ){
     ContactFace<Real>* face = static_cast<ContactFace<Real>*>(entity);
-    ContactInteractionDLL* interactions = face->Get_FaceFace_Interactions();
+    ContactInteractionDLL<Real>* interactions = face->Get_FaceFace_Interactions();
     if(interactions == NULL) continue;
     interactions->IteratorStart();
     while ((interaction=interactions->IteratorForward())) {
-      ContactFaceFaceInteraction* cffi = 
-        static_cast<ContactFaceFaceInteraction*>(interaction);
+      ContactFaceFaceInteraction<Real>* cffi = 
+        static_cast<ContactFaceFaceInteraction<Real>*>(interaction);
       cffi->Set_SlaveFaceEntityData();
       if (cffi->Set_MasterFaceEntityData()) num_query++;
     }
@@ -1254,7 +1254,7 @@ ContactSearch::ResetInteractionHostIDs( )
   primary_topology->FaceList()->IteratorStart();
   while( (entity=primary_topology->FaceList()->IteratorForward()) ){
     ContactFace<Real>* face = static_cast<ContactFace<Real>*>(entity);
-    ContactInteractionDLL* interactions = face->Get_FaceCoverage_Interactions();
+    ContactInteractionDLL<Real>* interactions = face->Get_FaceCoverage_Interactions();
     if(interactions != NULL) {
       interactions->IteratorStart();
       while ((interaction=interactions->IteratorForward())) {
@@ -1271,7 +1271,7 @@ ContactSearch::ResetInteractionHostIDs( )
   primary_topology->ElemList()->IteratorStart();
   while( (entity=primary_topology->ElemList()->IteratorForward()) ){
     ContactElement* element = static_cast<ContactElement*>(entity);
-    ContactInteractionDLL* interactions = element->Get_ElementElement_Interactions();
+    ContactInteractionDLL<Real>* interactions = element->Get_ElementElement_Interactions();
     interactions->IteratorStart();
     while ((interaction=interactions->IteratorForward())) {
       ContactElementElementInteraction* ceei = 
@@ -1316,12 +1316,12 @@ ContactSearch::ResetInteractionHostIDs( )
   primary_topology->FaceList()->IteratorStart();
   while( (entity=primary_topology->FaceList()->IteratorForward()) ){
     ContactFace<Real>* face = static_cast<ContactFace<Real>*>(entity);
-    ContactInteractionDLL* interactions = face->Get_FaceFace_Interactions();
+    ContactInteractionDLL<Real>* interactions = face->Get_FaceFace_Interactions();
     if(interactions == NULL) continue;
     interactions->IteratorStart();
     while ((interaction=interactions->IteratorForward())) {
-      ContactFaceFaceInteraction* cffi = 
-        static_cast<ContactFaceFaceInteraction*>(interaction);
+      ContactFaceFaceInteraction<Real>* cffi = 
+        static_cast<ContactFaceFaceInteraction<Real>*>(interaction);
       if (!cffi->MasterFace()) {
         zoltan_lid[0] = CT_FACE;
         zoltan_lid[1] = cffi->MasterFaceEntityData()->index_in_owner_proc_array;
@@ -1340,7 +1340,7 @@ ContactSearch::ResetInteractionHostIDs( )
   primary_topology->ElemList()->IteratorStart();
   while( (entity=primary_topology->ElemList()->IteratorForward()) ){
     ContactElement* element = static_cast<ContactElement*>(entity);
-    ContactInteractionDLL* interactions = element->Get_ElementElement_Interactions();
+    ContactInteractionDLL<Real>* interactions = element->Get_ElementElement_Interactions();
     interactions->IteratorStart();
     while ((interaction=interactions->IteratorForward())) {
       ContactElementElementInteraction* ceei = 
@@ -1360,7 +1360,7 @@ ContactSearch::ResetInteractionHostIDs( )
  
 #ifndef CONTACT_NO_MPI
   if (contact_number_of_processors( SearchComm )>1) {
-    std::vector<ContactInteractionEntity::entity_data*> query_linklist;
+    std::vector<ContactInteractionEntity<Real>::entity_data*> query_linklist;
     primary_topology->QueryLinkList(&query_linklist);
     int       num_import   = ZoltanHostidQueryComm.Num_Import();
     LB_ID_PTR import_gids  = ZoltanHostidQueryComm.Import_GIDS();
@@ -1397,7 +1397,7 @@ ContactSearch::ResetInteractionHostIDs( )
         ContactNodeFaceInteraction* cnfi = dynamic_cast<ContactNodeFaceInteraction*>(interactions[i]);
         if (cnfi!=NULL) {
           if (!cnfi->Face()) {
-            ContactInteractionEntity::entity_data*
+            ContactInteractionEntity<Real>::entity_data*
                 face_struct = hostid_query_hash->find( cnfi->FaceEntityData(), 0, NULL, 0 );
             PRECONDITION(face_struct);
             cnfi->FaceEntityData()->host_gid[0] = face_struct->host_gid[0];
@@ -1413,14 +1413,14 @@ ContactSearch::ResetInteractionHostIDs( )
     primary_topology->FaceList()->IteratorStart();
     while( (entity=primary_topology->FaceList()->IteratorForward()) ){
       ContactFace<Real>* face = static_cast<ContactFace<Real>*>(entity);
-      ContactInteractionDLL* interactions = face->Get_FaceFace_Interactions();
+      ContactInteractionDLL<Real>* interactions = face->Get_FaceFace_Interactions();
       if(interactions == NULL) continue;
       interactions->IteratorStart();
       while ((interaction=interactions->IteratorForward())) {
-        ContactFaceFaceInteraction* cffi = 
-          static_cast<ContactFaceFaceInteraction*>(interaction);
+        ContactFaceFaceInteraction<Real>* cffi = 
+          static_cast<ContactFaceFaceInteraction<Real>*>(interaction);
         if (!cffi->MasterFace()) {
-          ContactInteractionEntity::entity_data*
+          ContactInteractionEntity<Real>::entity_data*
               face_struct = hostid_query_hash->find( cffi->MasterFaceEntityData(), 0, NULL, 0 );
           PRECONDITION(face_struct);
           cffi->MasterFaceEntityData()->host_gid[0] = face_struct->host_gid[0];
@@ -1435,13 +1435,13 @@ ContactSearch::ResetInteractionHostIDs( )
     primary_topology->ElemList()->IteratorStart();
     while( (entity=primary_topology->ElemList()->IteratorForward()) ){
       ContactElement* element = static_cast<ContactElement*>(entity);
-      ContactInteractionDLL* interactions = element->Get_ElementElement_Interactions();
+      ContactInteractionDLL<Real>* interactions = element->Get_ElementElement_Interactions();
       interactions->IteratorStart();
       while ((interaction=interactions->IteratorForward())) {
         ContactElementElementInteraction* ceei = 
           static_cast<ContactElementElementInteraction*>(interaction);
         if (!ceei->MasterElement()) {
-          ContactInteractionEntity::entity_data*
+          ContactInteractionEntity<Real>::entity_data*
               element_struct = hostid_query_hash->find( ceei->MasterElementEntityData(), 0, NULL, 0 );
           PRECONDITION(element_struct);
           ceei->MasterElementEntityData()->host_gid[0] = element_struct->host_gid[0];
@@ -1451,7 +1451,7 @@ ContactSearch::ResetInteractionHostIDs( )
     }
     
     for(i = 0; i < query_linklist.size(); ++i) {
-      ContactInteractionEntity::entity_data *entity_data = query_linklist[i];
+      ContactInteractionEntity<Real>::entity_data *entity_data = query_linklist[i];
       delete [] entity_data;
     }
     if (hostid_query_hash) delete hostid_query_hash;

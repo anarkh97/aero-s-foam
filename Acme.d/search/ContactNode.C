@@ -73,7 +73,7 @@ template<typename DataType>
 ContactNode<DataType>::~ContactNode()
 {
   for(int i = 0; i < NodeNodeInteractions.size(); ++i) {
-    ContactInteractionEntity* link=NULL;
+    ContactInteractionEntity<Real>* link=NULL;
     NodeNodeInteractions[i].IteratorStart();
     while ((link=NodeNodeInteractions[i].IteratorForward())) {
       ContactNodeNodeInteraction* cnni = static_cast<ContactNodeNodeInteraction*>(link);
@@ -110,10 +110,10 @@ int ContactNode<DataType>::Size_Interactions(int state)
 {
   int size = 2*sizeof(int);
  
-  ContactInteractionDLL* interactions = Get_NodeNode_Interactions(state);
+  ContactInteractionDLL<Real>* interactions = Get_NodeNode_Interactions(state);
   if(interactions != NULL) {
     interactions->IteratorStart();
-    ContactInteractionEntity* entity;
+    ContactInteractionEntity<Real>* entity;
     while ((entity=interactions->IteratorForward())) {
       ContactNodeNodeInteraction* i = 
         static_cast<ContactNodeNodeInteraction*>(entity);
@@ -140,7 +140,7 @@ void ContactNode<DataType>::Pack_Interactions( char* Buffer, int state )
   buffer      += cnt*sizeof(int);
   
   if(state < NodeNodeInteractions.size()) {
-    ContactInteractionEntity* entity;
+    ContactInteractionEntity<Real>* entity;
     NodeNodeInteractions[state].IteratorStart();
     while ((entity=NodeNodeInteractions[state].IteratorForward())) {
       ContactNodeNodeInteraction* i = 
@@ -156,12 +156,12 @@ void ContactNode<DataType>::Pack_Interactions( char* Buffer, int state )
   }
 }
 
-template<typename DataType>
-void ContactNode<DataType>::Unpack_Interactions( char* buffer, int state )
+template<>
+inline void ContactNode<Real>::Unpack_Interactions( char* buffer, int state )
 {
   int* i_buf = reinterpret_cast<int*>(buffer);
   
-  //status_flag = (ContactTopologyEntity<DataType>::ActiveStatus)i_buf[2];
+  //status_flag = (ContactTopologyEntity<Real>::ActiveStatus)i_buf[2];
   int num_interactions = i_buf[1];
   char* buf = buffer+2*sizeof(int);
   for (int n=0; n<num_interactions; ++n) {
@@ -203,10 +203,16 @@ void ContactNode<DataType>::Unpack_Interactions( char* buffer, int state )
 }
 
 template<typename DataType>
-void ContactNode<DataType>::Copy_Interactions( ContactNode* src, int state )
+void ContactNode<DataType>::Unpack_Interactions( char* buffer, int state )
+{
+  std::cerr << "ContactNode<DataType>::Unpack_Interactions is not implemented\n";
+}
+
+template<>
+inline void ContactNode<Real>::Copy_Interactions( ContactNode* src, int state )
 {
   if(state < src->NodeNodeInteractions.size()) {
-    ContactInteractionEntity* entity;
+    ContactInteractionEntity<Real>* entity;
     src->NodeNodeInteractions[state].IteratorStart();
     while ((entity=src->NodeNodeInteractions[state].IteratorForward())) {
       ContactNodeNodeInteraction* old_nni = 
@@ -229,6 +235,13 @@ void ContactNode<DataType>::Copy_Interactions( ContactNode* src, int state )
     }
   }
 }
+
+template<typename DataType>
+void ContactNode<DataType>::Copy_Interactions( ContactNode* src, int state )
+{
+  std::cerr << "ContactNode<DataType>::Copy_Interactions is not implemented\n";
+}
+
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Size/Pack/Unpack/Copy functions that are to be used for 
 // transferring entities from the primary to secondary decomposition
@@ -263,9 +276,9 @@ void ContactNode<DataType>::Pack_Interactions_ForSecondary( char* Buffer, int st
   
 
   if(state < NodeNodeInteractions.size()) {
-    ContactInteractionEntity* entity;
+    ContactInteractionEntity<Real>* entity;
     NodeNodeInteractions[state].IteratorStart();
-    while ((entity=NodeNodeInteractions[state].IteratorForward())) {
+    while (entity=NodeNodeInteractions[state].IteratorForward()) {
       ContactNodeNodeInteraction* i = 
         static_cast<ContactNodeNodeInteraction*>(entity);
       buffer = i->Pack(buffer);
@@ -279,8 +292,8 @@ void ContactNode<DataType>::Pack_Interactions_ForSecondary( char* Buffer, int st
   }
 }
 
-template<typename DataType>
-void ContactNode<DataType>::Unpack_Interactions_ForSecondary( char* buffer, int state )
+template<>
+inline void ContactNode<Real>::Unpack_Interactions_ForSecondary( char* buffer, int state )
 {
   int* i_buf = reinterpret_cast<int*> (buffer);
   int num_interactions = *i_buf;
@@ -324,11 +337,16 @@ void ContactNode<DataType>::Unpack_Interactions_ForSecondary( char* buffer, int 
 }
 
 template<typename DataType>
-void ContactNode<DataType>::Copy_Interactions_ForSecondary( ContactNode* src, int state )
+void ContactNode<DataType>::Unpack_Interactions_ForSecondary( char* buffer, int state )
 {
+  std::cerr << "ContactNode<DataType>::Unpack_Interactions_ForSecondary is not implemented\n";
+}
 
+template<>
+inline void ContactNode<Real>::Copy_Interactions_ForSecondary( ContactNode* src, int state )
+{
   if(state < src->NodeNodeInteractions.size()) {
-    ContactInteractionEntity* entity;
+    ContactInteractionEntity<Real>* entity;
     src->NodeNodeInteractions[state].IteratorStart();
     while ((entity=src->NodeNodeInteractions[state].IteratorForward())) {
       ContactNodeNodeInteraction* old_nni = 
@@ -353,10 +371,16 @@ void ContactNode<DataType>::Copy_Interactions_ForSecondary( ContactNode* src, in
 }
 
 template<typename DataType>
+void ContactNode<DataType>::Copy_Interactions_ForSecondary( ContactNode* src, int state )
+{
+  std::cerr << "ContactNode<DataType>::Copy_Interactions_ForSecondary is not implemented\n";
+}
+
+template<typename DataType>
 ContactNodeNodeInteraction* 
 ContactNode<DataType>::Get_NodeNode_Interaction(int interaction_number, int state )
 {
-  ContactInteractionEntity* entity=NULL;
+  ContactInteractionEntity<Real>* entity=NULL;
 
   if(state >= NodeNodeInteractions.size()) return NULL;
 
@@ -387,7 +411,7 @@ void
 ContactNode<DataType>::Delete_NodeNode_Interaction( 
                 ContactNodeNodeInteraction* nni, int state )
 {
-  ContactInteractionEntity* link=NULL;
+  ContactInteractionEntity<Real>* link=NULL;
 
   if(state >= NodeNodeInteractions.size()) return;
 
@@ -407,7 +431,7 @@ template<typename DataType>
 void 
 ContactNode<DataType>::Delete_NodeNode_Interactions( int state )
 {
-  ContactInteractionEntity* link=NULL;
+  ContactInteractionEntity<Real>* link=NULL;
 
   if(state >= NodeNodeInteractions.size()) return;
 
@@ -428,7 +452,7 @@ ContactNode<DataType>::Display_NodeNode_Interactions( ContactParOStream& postrea
 {
 
   if(state >= NodeNodeInteractions.size()) return;
-  ContactInteractionEntity* link=NULL;
+  ContactInteractionEntity<Real>* link=NULL;
   NodeNodeInteractions[state].IteratorStart();
   while ((link=NodeNodeInteractions[state].IteratorForward())) {
     ContactNodeNodeInteraction* cnni = static_cast<ContactNodeNodeInteraction*>(link);

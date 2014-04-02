@@ -179,7 +179,7 @@ inline ContactFace<Real>* ContactNodeFaceInteraction::Face()
   return static_cast<ContactFace<Real> *>(entity);
 }
 
-inline ContactInteractionEntity::entity_data* ContactNodeFaceInteraction::FaceEntityData()
+inline ContactInteractionEntity<Real>::entity_data* ContactNodeFaceInteraction::FaceEntityData()
 {
   return &entity_entity_data;
 }

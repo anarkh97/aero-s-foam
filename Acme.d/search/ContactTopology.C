@@ -2393,10 +2393,11 @@ ContactTopology::Display_ElementElement_Interactions_Summary( ContactParOStream&
   postream << margin << "Found "<<cnt<<" element/element interactions\n";
 }
 
-void ContactTopology::Set_Up_Variable_Handles()
+void
+ContactTopology::Set_Up_Variable_Handles()
 {
   Var_Handles = new VariableHandle[MAX_VARIABLE_ENUM];
-  
+
   int i;
   int index = 0;
   int var_handle_offset = 0;
@@ -2535,8 +2536,8 @@ void ContactTopology::Delete_All_Interactions()
 {
   int i, j;
   int number_of_states = 2;
-  ContactInteractionEntity* link;
-  ContactInteractionDLL* interactions;
+  ContactInteractionEntity<Real>* link;
+  ContactInteractionDLL<Real>* interactions;
   
   ContactNode<Real>** Nodes = 
     reinterpret_cast<ContactNode<Real>**>(node_list->EntityList());
@@ -2556,8 +2557,8 @@ void ContactTopology::Delete_All_Interactions()
       if(interactions != NULL) {
         interactions->IteratorStart();
         while ((link = interactions->IteratorForward())) {
-  	  ContactFaceFaceInteraction* cffi = 
-  	         static_cast<ContactFaceFaceInteraction*>(link);
+  	  ContactFaceFaceInteraction<Real>* cffi = 
+  	         static_cast<ContactFaceFaceInteraction<Real>*>(link);
   	  cffi->~ContactFaceFaceInteraction();
         }
         interactions->Clear();
@@ -2718,10 +2719,10 @@ void ContactTopology::Get_NodeNode_Interactions(int* slave_node_block_ids,
   ContactNode<Real>** Nodes = 
     reinterpret_cast<ContactNode<Real>**>(node_list->EntityList());
   for( int i=0; i<number_of_nodes; ++i) {
-    ContactInteractionDLL* interactions = Nodes[i]->Get_NodeNode_Interactions();
+    ContactInteractionDLL<Real>* interactions = Nodes[i]->Get_NodeNode_Interactions();
     if(interactions != NULL) {
       interactions->IteratorStart();
-      while (ContactInteractionEntity* interaction=interactions->IteratorForward()){
+      while (ContactInteractionEntity<Real>* interaction=interactions->IteratorForward()){
         ContactNodeNodeInteraction* cnni =
     	   static_cast<ContactNodeNodeInteraction*> (interaction);
         slave_node_block_ids[index] = cnni->SlaveNode()->BlockID()+1;
@@ -2829,12 +2830,12 @@ void ContactTopology::Size_FaceFace_Interactions( int& num_interactions,
     reinterpret_cast<ContactFace<Real>**>(face_list->EntityList());
   for( int i=0; i<number_of_faces; ++i) {
     ContactFace<Real>* face = Faces[i];
-    ContactInteractionDLL* interactions = face->Get_FaceFace_Interactions();
+    ContactInteractionDLL<Real>* interactions = face->Get_FaceFace_Interactions();
     if(interactions == NULL) continue;
     interactions->IteratorStart();
-    while (ContactInteractionEntity* interaction=interactions->IteratorForward()){
-      ContactFaceFaceInteraction* cffi =
-  	static_cast<ContactFaceFaceInteraction*> (interaction);
+    while (ContactInteractionEntity<Real>* interaction=interactions->IteratorForward()){
+      ContactFaceFaceInteraction<Real>* cffi =
+  	static_cast<ContactFaceFaceInteraction<Real>*> (interaction);
       data_size += cffi->Data_Size();
       ++num_interactions;
     }
@@ -2843,6 +2844,7 @@ void ContactTopology::Size_FaceFace_Interactions( int& num_interactions,
 
 void ContactTopology::Get_FaceFace_Interactions( int* slave_face_block_ids,
 						 int* slave_face_indexes_in_block,
+						 int* slave_face_proc,
 						 int* master_face_block_ids,
 						 int* master_face_indexes_in_block,
 						 int* master_face_proc,
@@ -2853,22 +2855,26 @@ void ContactTopology::Get_FaceFace_Interactions( int* slave_face_block_ids,
   int index1 = 0;
   ContactFace<Real>** Faces = 
     reinterpret_cast<ContactFace<Real>**>(face_list->EntityList());
+  ContactSearch::Search_Option_Status compute_partials;
+  Real order;
+  search->Get_Search_Option(ContactSearch::COMPUTE_PARTIALS, compute_partials, &order);
   for( int i=0; i<number_of_faces; ++i) {
     ContactFace<Real>* face = Faces[i];
-    ContactInteractionDLL* interactions = face->Get_FaceFace_Interactions();
+    ContactInteractionDLL<Real>* interactions = face->Get_FaceFace_Interactions();
     if(interactions == NULL) continue;
     interactions->IteratorStart();
-    while (ContactInteractionEntity* interaction=interactions->IteratorForward()){
-      ContactFaceFaceInteraction* cffi =
-  	 static_cast<ContactFaceFaceInteraction*> (interaction);
+    while (ContactInteractionEntity<Real>* interaction=interactions->IteratorForward()){
+      ContactFaceFaceInteraction<Real>* cffi =
+  	 static_cast<ContactFaceFaceInteraction<Real>*> (interaction);
       slave_face_block_ids[index0] = cffi->SlaveFace()->BlockID()+1;
       slave_face_indexes_in_block[index0] = cffi->SlaveFace()->HostArrayIndex()+1;
+      slave_face_proc[index0] = cffi->SlaveFaceEntityData()->owner;
       master_face_block_ids[index0] = cffi->MasterFaceEntityData()->block_id+1;
       master_face_indexes_in_block[index0] = cffi->MasterFaceEntityData()->index_in_host_array+1;
       master_face_proc[index0] = cffi->MasterFaceEntityData()->owner;
       interaction_index[index0] = index1++;
       *interaction_data++ = cffi->NumEdges();
-      ContactFaceFaceVertex* vertices = cffi->Get_Vertices();
+      ContactFaceFaceVertex<Real>* vertices = cffi->Get_Vertices();
       int j;
       for (j=0; j<cffi->NumEdges(); ++j) {
   	if (vertices[j].master_edge_flag) {
@@ -2892,29 +2898,33 @@ void ContactTopology::Get_FaceFace_Interactions( int* slave_face_block_ids,
   	*interaction_data++ = vertices[j].master_x;
   	*interaction_data++ = vertices[j].master_y;
   	index1 += 4;
-#if (MAX_FFI_DERIVATIVES > 0)
+      }
+      if(compute_partials == ContactSearch::ACTIVE && order > 0) {
         int k;
-        for (k=0; k<MAX_FFI_DERIVATIVES; ++k)
-          *interaction_data++ = vertices[j].slave_x_derivatives[k];
-        for (k=0; k<MAX_FFI_DERIVATIVES; ++k) 
-          *interaction_data++ = vertices[j].slave_y_derivatives[k];
-        for (k=0; k<MAX_FFI_DERIVATIVES; ++k) 
-          *interaction_data++ = vertices[j].master_x_derivatives[k];
-        for (k=0; k<MAX_FFI_DERIVATIVES; ++k) 
-          *interaction_data++ = vertices[j].master_y_derivatives[k];
-        index1 += 4*MAX_FFI_DERIVATIVES;
-#ifdef COMPUTE_FFI_SECOND_DERIVATIVES
-        for (k=0; k<MAX_FFI_SECOND_DERIVATIVES; ++k)
-          *interaction_data++ = vertices[j].slave_x_second_derivatives[k];
-        for (k=0; k<MAX_FFI_SECOND_DERIVATIVES; ++k)
-          *interaction_data++ = vertices[j].slave_y_second_derivatives[k];
-        for (k=0; k<MAX_FFI_SECOND_DERIVATIVES; ++k)
-          *interaction_data++ = vertices[j].master_x_second_derivatives[k];
-        for (k=0; k<MAX_FFI_SECOND_DERIVATIVES; ++k)
-          *interaction_data++ = vertices[j].master_y_second_derivatives[k];
-        index1 += 4*MAX_FFI_SECOND_DERIVATIVES;
-#endif
-#endif
+        for (j=0; j<cffi->NumEdges(); ++j) {
+          for (k=0; k<cffi->NumDerivatives(); ++k)
+            *interaction_data++ = vertices[j].slave_x_derivatives[k];
+          for (k=0; k<cffi->NumDerivatives(); ++k) 
+            *interaction_data++ = vertices[j].slave_y_derivatives[k];
+          for (k=0; k<cffi->NumDerivatives(); ++k) 
+            *interaction_data++ = vertices[j].master_x_derivatives[k];
+          for (k=0; k<cffi->NumDerivatives(); ++k) 
+            *interaction_data++ = vertices[j].master_y_derivatives[k];
+          index1 += 4*cffi->NumDerivatives();
+        }
+        if(order == 2) {
+          for (j=0; j<cffi->NumEdges(); ++j) {
+            for (k=0; k<cffi->NumSecondDerivatives(); ++k)
+              *interaction_data++ = vertices[j].slave_x_second_derivatives[k];
+            for (k=0; k<cffi->NumSecondDerivatives(); ++k)
+              *interaction_data++ = vertices[j].slave_y_second_derivatives[k];
+            for (k=0; k<cffi->NumSecondDerivatives(); ++k)
+              *interaction_data++ = vertices[j].master_x_second_derivatives[k];
+            for (k=0; k<cffi->NumSecondDerivatives(); ++k)
+              *interaction_data++ = vertices[j].master_y_second_derivatives[k];
+            index1 += 4*cffi->NumSecondDerivatives();
+          }
+        }
       }
       ++index0;
     }
@@ -2942,10 +2952,10 @@ void ContactTopology::Size_FaceCoverage_Interactions( int& num_interactions,
     reinterpret_cast<ContactFace<Real>**>(face_list->EntityList());
   for( int i=0; i<number_of_faces; ++i) {
     ContactFace<Real>* face = Faces[i];
-    ContactInteractionDLL* interactions = face->Get_FaceCoverage_Interactions();
+    ContactInteractionDLL<Real>* interactions = face->Get_FaceCoverage_Interactions();
     if(interactions != NULL) {
       interactions->IteratorStart();
-      while (ContactInteractionEntity* interaction=interactions->IteratorForward()){
+      while (ContactInteractionEntity<Real>* interaction=interactions->IteratorForward()){
         ContactFaceCoverageInteraction* cfci =
   	  static_cast<ContactFaceCoverageInteraction*> (interaction);
         data_size += cfci->Data_Size();
@@ -2966,10 +2976,10 @@ void ContactTopology::Get_FaceCoverage_Interactions( int* face_block_ids,
     reinterpret_cast<ContactFace<Real>**>(face_list->EntityList());
   for( int i=0; i<number_of_faces; ++i) {
     ContactFace<Real>* face = Faces[i];
-    ContactInteractionDLL* interactions = face->Get_FaceCoverage_Interactions();
+    ContactInteractionDLL<Real>* interactions = face->Get_FaceCoverage_Interactions();
     if(interactions != NULL) {
       interactions->IteratorStart();
-      while (ContactInteractionEntity* interaction=interactions->IteratorForward()){
+      while (ContactInteractionEntity<Real>* interaction=interactions->IteratorForward()){
         ContactFaceCoverageInteraction* cfci =
   	     static_cast<ContactFaceCoverageInteraction*> (interaction);
         face_block_ids[index0] = cfci->SlaveFace()->BlockID()+1;
@@ -3024,9 +3034,9 @@ void ContactTopology::Get_ElementElement_Interactions( int* slave_element_block_
     reinterpret_cast<ContactElement**>(elem_list->EntityList());
   for( int i=0; i<number_of_elements; ++i) {
     ContactElement* element = Elements[i];
-    ContactInteractionDLL* interactions = element->Get_ElementElement_Interactions();
+    ContactInteractionDLL<Real>* interactions = element->Get_ElementElement_Interactions();
     interactions->IteratorStart();
-    while (ContactInteractionEntity* interaction=interactions->IteratorForward()){
+    while (ContactInteractionEntity<Real>* interaction=interactions->IteratorForward()){
       ContactElementElementInteraction* ceei =
     	 static_cast<ContactElementElementInteraction*> (interaction);
       slave_element_block_ids[index] = ceei->SlaveElement()->BlockID()+1;
@@ -4934,10 +4944,10 @@ ContactTopology::DeleteGhosting()
       ContactNode<Real>** Nodes = reinterpret_cast<ContactNode<Real>**>(node_list->EntityList());
       for (int i=0; i<number_of_nodes; ++i) {
         ContactNode<Real>* node = Nodes[i];
-        ContactInteractionDLL* interactions = node->Get_NodeNode_Interactions();
+        ContactInteractionDLL<Real>* interactions = node->Get_NodeNode_Interactions();
         if(interactions != NULL) {
           interactions->IteratorStart();
-          while (ContactInteractionEntity* interaction=interactions->IteratorForward()) {
+          while (ContactInteractionEntity<Real>* interaction=interactions->IteratorForward()) {
             ContactNodeNodeInteraction* cnni = 
               static_cast<ContactNodeNodeInteraction*>(interaction);
             if (cnni->MasterNodeEntityData()->owner != my_proc) {
@@ -4979,12 +4989,12 @@ ContactTopology::DeleteGhosting()
       ContactFace<Real>** Faces = reinterpret_cast<ContactFace<Real>**>(face_list->EntityList());
       for (int i=0; i<number_of_faces; ++i) {
         ContactFace<Real>* face = Faces[i];
-        ContactInteractionDLL* interactions = face->Get_FaceFace_Interactions();
+        ContactInteractionDLL<Real>* interactions = face->Get_FaceFace_Interactions();
         if(interactions == NULL) continue;
         interactions->IteratorStart();
-        while (ContactInteractionEntity* interaction=interactions->IteratorForward()) {
-          ContactFaceFaceInteraction* cffi = 
-            static_cast<ContactFaceFaceInteraction*>(interaction);
+        while (ContactInteractionEntity<Real>* interaction=interactions->IteratorForward()) {
+          ContactFaceFaceInteraction<Real>* cffi = 
+            static_cast<ContactFaceFaceInteraction<Real>*>(interaction);
           if (cffi->MasterFaceEntityData()->owner != my_proc) {
             cffi->Connect_MasterFace( (ContactFace<Real>*)NULL );
           }
@@ -4997,9 +5007,9 @@ ContactTopology::DeleteGhosting()
       ContactElement** Elems = reinterpret_cast<ContactElement**>(elem_list->EntityList());
       for (int i=0; i<number_of_elements; ++i) {
         ContactElement* element = Elems[i];
-        ContactInteractionDLL* interactions = element->Get_ElementElement_Interactions();
+        ContactInteractionDLL<Real>* interactions = element->Get_ElementElement_Interactions();
         interactions->IteratorStart();
-        while (ContactInteractionEntity* interaction=interactions->IteratorForward()) {
+        while (ContactInteractionEntity<Real>* interaction=interactions->IteratorForward()) {
           ContactElementElementInteraction* ceei = 
             static_cast<ContactElementElementInteraction*>(interaction);
           if (ceei->MasterElementEntityData()->owner != my_proc) {

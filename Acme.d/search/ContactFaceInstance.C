@@ -56,18 +56,18 @@ Real ContactFace<Real>::MaxSize( VariableHandle POSITION );
 #endif
 
 template
-ContactFaceFaceInteraction* 
+ContactFaceFaceInteraction<Real>* 
 ContactFace<Real>::Get_FaceFace_Interaction(int interaction_number, int state );
 
 template
 void 
 ContactFace<Real>::Store_FaceFace_Interaction( 
-             ContactFaceFaceInteraction* ffi, int state );
+             ContactFaceFaceInteraction<Real>* ffi, int state );
 
 template
 void 
 ContactFace<Real>::Delete_FaceFace_Interaction( 
-             ContactFaceFaceInteraction* ffi, int state );
+             ContactFaceFaceInteraction<Real>* ffi, int state );
 
 template
 void 
@@ -173,12 +173,12 @@ void
 ContactFace<ActiveScalar>::GetEdgeSmoothedNormal(int i, ActiveScalar* smoothed_normal);
 
 template
-ContactFaceFaceInteraction*
+ContactFaceFaceInteraction<ActiveScalar>*
 ContactFace<ActiveScalar>::Get_FaceFace_Interaction(int interaction_number, int state );
 
 template
 void
 ContactFace<ActiveScalar>::Store_FaceFace_Interaction(
-             ContactFaceFaceInteraction* ffi, int state );
+             ContactFaceFaceInteraction<ActiveScalar>* ffi, int state );
 
 #endif

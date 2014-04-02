@@ -29,11 +29,11 @@
 class ContactEntityDataHash {
   
  public:
-  ContactEntityDataHash( std::vector<ContactInteractionEntity::entity_data*> *list );
+  ContactEntityDataHash( std::vector<ContactInteractionEntity<Real>::entity_data*> *list );
   ~ContactEntityDataHash();
 
   struct hash {
-    ContactInteractionEntity::entity_data* entity;
+    ContactInteractionEntity<Real>::entity_data* entity;
     struct hash *next;
   };
 
@@ -42,8 +42,8 @@ class ContactEntityDataHash {
     struct hash_list *next;
   };
 
-  ContactInteractionEntity::entity_data* find( ContactInteractionEntity::entity_data*, int, hash*, 
-                                               ContactInteractionEntity::entity_data* );
+  ContactInteractionEntity<Real>::entity_data* find( ContactInteractionEntity<Real>::entity_data*, int, hash*, 
+                                                     ContactInteractionEntity<Real>::entity_data* );
   friend std::ostream& operator<<( std::ostream& os, const ContactEntityDataHash& hash );
 
  private:
@@ -60,8 +60,8 @@ class ContactEntityDataHash {
 
   void create_space();
   int hash_func(int);  
-  int CompareEntityData(ContactInteractionEntity::entity_data*,
-                        ContactInteractionEntity::entity_data*);
+  int CompareEntityData(ContactInteractionEntity<Real>::entity_data*,
+                        ContactInteractionEntity<Real>::entity_data*);
 };
 
 inline int

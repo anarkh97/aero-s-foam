@@ -100,7 +100,6 @@
 #ifndef _MORTARHANDLER_H_
 #define _MORTARHANDLER_H_
 
-#include <Mortar.d/MortarAutoDiff.h>
 // Locally define flags
 #include <Mortar.d/MortarDriver.d/MortarHandlerDefs.h>
 
@@ -108,7 +107,7 @@
 #include <vector>
 #include <map>
 
-#include <Mortar.d/FaceElement.d/FaceElemSet.h>
+#include <Mortar.d/FaceElement.d/SurfaceEntity.h>
 #include <Utils.d/resize_array.h>
 #include <Utils.d/MyComplex.h>
 #include <Parser.d/AuxDefs.h>
@@ -119,11 +118,11 @@ class Connectivity;
 class Elemset;
 class BCond;
 
-class SurfaceEntity;
 class FaceElement;
-template <class Scalar> class FFIPolygon;
 class MortarElement;
 class NodalMortarShapeFct;
+template <class MasterFaceElementType, class SolveFaceElement, class MortarElementType> class FFIPolygonTemplate;
+typedef FFIPolygonTemplate<FaceElement, FaceElement, MortarElement> FFIPolygon;
 
 class ContactSearch;
 class ContactTDEnforcement;
@@ -162,6 +161,7 @@ class MortarHandler {
         double MortarScaling;
 
         bool NoSecondary;
+        bool AveragedNodalNormals;
 
         // Currently, the following member data ONLY POINT to 
         // the (pair of) surface entities involved in the 
@@ -183,8 +183,10 @@ class MortarHandler {
         //     of the (originaly) SAME surface entity 
         //     (see distributed memory)  
         // -> introduce a Copy/Own flag ??     
-	SurfaceEntity* PtrMasterEntity; 
-	SurfaceEntity* PtrSlaveEntity; 
+        SurfaceEntity* PtrMasterEntity; 
+        SurfaceEntity* PtrSlaveEntity; 
+        SurfaceEntity* PtrGlobalMasterEntity;
+        SurfaceEntity* PtrGlobalSlaveEntity;
 
         // ACME output data (see ACME API guide)
         int nFFI;
@@ -194,11 +196,12 @@ class MortarHandler {
         int* Master_face_block_id;
         int* Master_face_index_in_block;
         int* Slave_face_procs;
+        int* Master_face_procs;
         int* ACMEFFI_index;
         double* ACMEFFI_data;
     
         // Mortar data (FFIPolygon, etc, ...)
-        //std::vector<FFIPolygon> CtcPolygons;          // Face-Face-Interaction polygons built from the ACME data
+        std::vector<FFIPolygon*> CtcPolygons;         // Face-Face-Interaction polygons built from the ACME data
 	std::vector<MortarElement*>      MortarEls;   // "Mortar els" built on the "active" slace face els
 	std::vector<NodalMortarShapeFct> NodalMortars;// "global" mortar shape fct associated to each "active" slave node
 
@@ -214,13 +217,10 @@ class MortarHandler {
         int gIdFirstLMPC;         
         int gIdLastLMPC;         
         
-        template<typename Scalar>
-	void ComputeOneFFIMandN(int iFFI, CoordSet& cs, std::vector<FFIPolygon<Scalar> > &CtcPolygons);
-        template<typename Scalar>
-	void MakeOneNodalMortarLMPC(int i, std::vector<FFIPolygon<Scalar> > &CtcPolygons, bool Dual=false);
+	void ComputeOneFFIMandN(int iFFI, CoordSet& cs, std::vector<FFIPolygon*> &CtcPolygons);
+	void MakeOneNodalMortarLMPC(int i, std::vector<FFIPolygon*> &CtcPolygons, bool Dual=false);
 
         bool SelfContact;
-        bool AutoDiff;
 
   public:
         // Public data 
@@ -275,6 +275,7 @@ class MortarHandler {
         void SetFrictionCoef(double _StaticCoef, double _DynamicCoef, double _VelocityDecay); // TD_VELOCITY_DEPENDENT
 
         void SetNoSecondary(bool _NoSecondary);
+        void SetAveragedNodalNormals(bool _AveragedNodalNormals);
         void SetSelfContact(bool _SelfContact);
         void SetDistAcme(int _DistAcme);
         void SetMortarScaling(double _MortarScaling);
@@ -322,15 +323,12 @@ class MortarHandler {
 
 	// FFI/NFI search methods
         // ~~~~~~~~~~~~~~~~~~~~~~
-	void PerformACMEFFISearch(CoordSet &cs); // DEPRECATED
         void PerformACMEFFISearch();
         void CreateACMEFFIData();
 
         // Mortar methods
         // ~~~~~~~~~~~~~~
-        void CreateFFIPolygon(CoordSet& cs); // DEPRECATED
-        template<typename Scalar>
-          void CreateFFIPolygon();
+        void CreateFFIPolygon();
     
         void AddMortarLMPCs(ResizeArray<LMPCons*>*, int& numLMPC, int& numCtc, int nDofs=0, int* Dofs=0);
         void AddWetFSI(ResizeArray<LMPCons*>* FSIArray, int& numFSI);
@@ -382,9 +380,5 @@ class MortarHandler {
         void remove_gap(Vector &d);
         void make_share(int numSub, SubDomain **sd);
 };
-
-#ifdef _TEMPLATE_FIX_
-  #include <Mortar.d/MortarDriver.d/MortarHandlerCore.C>
-#endif
 
 #endif

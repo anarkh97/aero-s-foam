@@ -1,39 +1,56 @@
+#ifndef _FFIPOLYGON_C_ 
+#define _FFIPOLYGON_C_
+
 // Std C/C++ headers
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
 
 // FEM headers
+#include <Mortar.d/FFIPolygon.d/FFIPolygon.h>
 #include <Mortar.d/FaceElement.d/FaceElement.h>
 #include <Mortar.d/MortarElement.d/MortarElement.h>
-#include <Mortar.d/FFIPolygon.d/TriFacet.h>
+#include <Mortar.d/MortarDefines.h>
 
 #include <Acme.d/search/Contact_Defines.h>
 
 // -----------------------------------------------------------------------------------------------------
 //                                            CONSTRUCTORS 
 // -----------------------------------------------------------------------------------------------------
-template<class Scalar>
-FFIPolygon<Scalar>::FFIPolygon()
+template<class MasterFaceType, class SlaveFaceType, class MortarType>
+FFIPolygonTemplate<MasterFaceType,SlaveFaceType,MortarType>
+::FFIPolygonTemplate()
 : Facets()
 {
   Initialize();
 }
 
-template<class Scalar>
-FFIPolygon<Scalar>::FFIPolygon(FaceElement* MasterFaceEl, FaceElement* SlaveFaceEl, int nVert, double* ACME_FFI_Data,
-                               int MaxFFIDerivatives, int MaxFFISecondDerivatives)
+template<class MasterFaceType, class SlaveFaceType, class MortarType>
+FFIPolygonTemplate<MasterFaceType,SlaveFaceType,MortarType>
+::FFIPolygonTemplate(MasterFaceType* MasterFaceEl, SlaveFaceType* SlaveFaceEl)
 : Facets()
 {
   Initialize();
-  SetFFIPolygon(MasterFaceEl, SlaveFaceEl, nVert, ACME_FFI_Data, MaxFFIDerivatives, MaxFFISecondDerivatives);
+  MasterFace = MasterFaceEl;
+  SlaveFace = SlaveFaceEl;
+}
+
+template<class MasterFaceType, class SlaveFaceType, class MortarType>
+FFIPolygonTemplate<MasterFaceType,SlaveFaceType,MortarType>
+::FFIPolygonTemplate(MasterFaceType* MasterFaceEl, SlaveFaceType* SlaveFaceEl, int nVert, double* ACME_FFI_Data,
+                     int ACME_FFI_Derivatives_Order)
+: Facets()
+{
+  Initialize();
+  SetFFIPolygon(MasterFaceEl, SlaveFaceEl, nVert, ACME_FFI_Data, ACME_FFI_Derivatives_Order);
 }
 
 // -----------------------------------------------------------------------------------------------------
 //                                            DESTRUCTORS 
 // -----------------------------------------------------------------------------------------------------
-template<class Scalar>
-FFIPolygon<Scalar>::~FFIPolygon()
+template<class MasterFaceType, class SlaveFaceType, class MortarType>
+FFIPolygonTemplate<MasterFaceType,SlaveFaceType,MortarType>
+::~FFIPolygonTemplate()
 {
 #ifdef HB_ACME_FFI_DEBUG
   if(VertexLlCoordOnSFaceEl) { delete VertexLlCoordOnSFaceEl; }
@@ -46,9 +63,10 @@ FFIPolygon<Scalar>::~FFIPolygon()
 // -----------------------------------------------------------------------------------------------------
 //                                    INITIALIZATION & CLEAR/CLEAN METHODS
 // -----------------------------------------------------------------------------------------------------
-template<class Scalar>
+template<class MasterFaceType, class SlaveFaceType, class MortarType>
 void 
-FFIPolygon<Scalar>::Initialize()
+FFIPolygonTemplate<MasterFaceType,SlaveFaceType,MortarType>
+::Initialize()
 {
   Area      = 0.0;
   nVertices = 0;
@@ -71,124 +89,50 @@ FFIPolygon<Scalar>::Initialize()
 // -----------------------------------------------------------------------------------------------------
 //                                            SET METHODS 
 // -----------------------------------------------------------------------------------------------------
-template<class Scalar>
+template<class MasterFaceType, class SlaveFaceType, class MortarType>
 void
-FFIPolygon<Scalar>::SetPtrMasterFace(FaceElement* PtrMasterFace) { MasterFace = PtrMasterFace; }
+FFIPolygonTemplate<MasterFaceType,SlaveFaceType,MortarType>
+::SetPtrMasterFace(MasterFaceType* PtrMasterFace) { MasterFace = PtrMasterFace; }
 
-template<class Scalar>
+template<class MasterFaceType, class SlaveFaceType, class MortarType>
 void
-FFIPolygon<Scalar>::SetPtrSlaveFace(FaceElement* PtrSlaveFace) { SlaveFace = PtrSlaveFace; }
+FFIPolygonTemplate<MasterFaceType,SlaveFaceType,MortarType>
+::SetPtrSlaveFace(SlaveFaceType* PtrSlaveFace) { SlaveFace = PtrSlaveFace; }
 
 
-
-template<class Scalar>
+template<class MasterFaceType, class SlaveFaceType, class MortarType>
 void
-FFIPolygon<Scalar>::SetFFIPolygon(FaceElement* MasterFaceEl, FaceElement* SlaveFaceEl, 
-                                  int nVert, double* ACME_FFI_Data, int _MaxFFIDerivatives,
-                                  int _MaxFFISecondDerivatives)
+FFIPolygonTemplate<MasterFaceType,SlaveFaceType,MortarType>
+::SetFFIPolygon(MasterFaceType* MasterFaceEl, SlaveFaceType* SlaveFaceEl, int nVert, double* ACME_FFI_Data,
+                int ACME_FFI_Derivatives_Order)
 {
   nVertices  = nVert;
   MasterFace = MasterFaceEl;
   SlaveFace  = SlaveFaceEl;
-  MaxFFIDerivatives = _MaxFFIDerivatives;
-  MaxFFISecondDerivatives = _MaxFFISecondDerivatives;
-
-  // Create & fill polygon triangularization
-  int LocalCoordOffset = 2*nVertices+1;
- 
-  double* ACME_FFI_LocalCoordData = &ACME_FFI_Data[LocalCoordOffset];
-  Scalar* ACME_FFI_LocalCoordData_copy = new Scalar[nVertices*4];
-
-  for(int i=0; i<nVertices; ++i) {
-    ACME_FFI_LocalCoordData_copy[4*i  ] = *ACME_FFI_LocalCoordData++;
-    ACME_FFI_LocalCoordData_copy[4*i+1] = *ACME_FFI_LocalCoordData++;
-    ACME_FFI_LocalCoordData_copy[4*i+2] = *ACME_FFI_LocalCoordData++;
-    ACME_FFI_LocalCoordData_copy[4*i+3] = *ACME_FFI_LocalCoordData++;
-    ACME_FFI_LocalCoordData += 4*MaxFFIDerivatives;
-  }
-  CreateTriangularization(ACME_FFI_LocalCoordData_copy);
-  delete [] ACME_FFI_LocalCoordData_copy;
-}
-
-#if (MAX_MORTAR_DERIVATIVES > 0)
-template<>
-inline void
-FFIPolygon<ActiveDouble>::SetFFIPolygon(FaceElement* MasterFaceEl, FaceElement* SlaveFaceEl,
-                                        int nVert, double* ACME_FFI_Data, int _MaxFFIDerivatives,
-                                        int _MaxFFISecondDerivatives)
-{
-  nVertices  = nVert;
-  MasterFace = MasterFaceEl;
-  SlaveFace  = SlaveFaceEl;
-  MaxFFIDerivatives = _MaxFFIDerivatives;
-  MaxFFISecondDerivatives = _MaxFFISecondDerivatives;
 
   // Create & fill polygon triangularization
   int LocalCoordOffset = 2*nVertices+1;
   ACME_FFI_LocalCoordData = &ACME_FFI_Data[LocalCoordOffset];
-}
-
-template<>
-inline void
-FFIPolygon<ActiveDouble>::PrepLocalCoordData()
-{
-  ActiveDouble* ACME_FFI_LocalCoordData_copy = new ActiveDouble[nVertices*4];
-
-  for(int i=0; i<nVertices; ++i) {
-    ACME_FFI_LocalCoordData_copy[4*i  ] = *ACME_FFI_LocalCoordData++;
-    ACME_FFI_LocalCoordData_copy[4*i+1] = *ACME_FFI_LocalCoordData++;
-    ACME_FFI_LocalCoordData_copy[4*i+2] = *ACME_FFI_LocalCoordData++;
-    ACME_FFI_LocalCoordData_copy[4*i+3] = *ACME_FFI_LocalCoordData++;
-#ifdef MORTAR_AUTO_DIFF_SACADO_FAD
-    for(int j=0; j<MaxFFIDerivatives; ++j) ACME_FFI_LocalCoordData_copy[4*i+0].fastAccessDx(j) = *ACME_FFI_LocalCoordData++;
-    for(int j=0; j<MaxFFIDerivatives; ++j) ACME_FFI_LocalCoordData_copy[4*i+1].fastAccessDx(j) = *ACME_FFI_LocalCoordData++;
-    for(int j=0; j<MaxFFIDerivatives; ++j) ACME_FFI_LocalCoordData_copy[4*i+2].fastAccessDx(j) = *ACME_FFI_LocalCoordData++;
-    for(int j=0; j<MaxFFIDerivatives; ++j) ACME_FFI_LocalCoordData_copy[4*i+3].fastAccessDx(j) = *ACME_FFI_LocalCoordData++;
-#elif defined(MORTAR_AUTO_DIFF_EIGEN_FAD)
-    for(int j=0; j<MaxFFIDerivatives; ++j) ACME_FFI_LocalCoordData_copy[4*i+0].derivatives()[j] = *ACME_FFI_LocalCoordData++;
-    for(int j=0; j<MaxFFIDerivatives; ++j) ACME_FFI_LocalCoordData_copy[4*i+1].derivatives()[j] = *ACME_FFI_LocalCoordData++;
-    for(int j=0; j<MaxFFIDerivatives; ++j) ACME_FFI_LocalCoordData_copy[4*i+2].derivatives()[j] = *ACME_FFI_LocalCoordData++;
-    for(int j=0; j<MaxFFIDerivatives; ++j) ACME_FFI_LocalCoordData_copy[4*i+3].derivatives()[j] = *ACME_FFI_LocalCoordData++;
-#elif defined(MORTAR_AUTO_DIFF_SACADO_RAD_FAD)
-    for(int k=0; k<4; ++k)
-      for(int j=0; j<MaxFFIDerivatives; ++j)
-       ACME_FFI_LocalCoordData++; // TODO need to use the first derivatives of the FFI, but how?
-    for(int k=0; k<4; ++k) {
-      for(int j=0; j<MaxFFIDerivatives; ++j)
-        for(int l=0; l<=j; ++l) {
-          ACME_FFI_LocalCoordData++; // TODO need to use the second derivatives of the FFI, but how?
-        }
-    }
-#elif defined(MORTAR_AUTO_DIFF_EIGEN_FAD_FAD)
-    for(int k=0; k<4; ++k)
-      for(int j=0; j<MaxFFIDerivatives; ++j) {
-        ACME_FFI_LocalCoordData_copy[4*i+k].derivatives()[j].value() = *ACME_FFI_LocalCoordData;
-        ACME_FFI_LocalCoordData_copy[4*i+k].value().derivatives()[j] = *ACME_FFI_LocalCoordData++; // NOTE!!!
-      }
-    for(int k=0; k<4; ++k) {
-      for(int j=0; j<MaxFFIDerivatives; ++j)
-        for(int l=0; l<=j; ++l) {
-          ACME_FFI_LocalCoordData_copy[4*i+k].derivatives()[j].derivatives()[l] = *ACME_FFI_LocalCoordData;
-          ACME_FFI_LocalCoordData_copy[4*i+k].derivatives()[l].derivatives()[j] = *ACME_FFI_LocalCoordData++;
-        }
-    }
-#else
-    // TODO: MORTAR_AUTO_DIFF_SACADO_RAD_FAD
-    ACME_FFI_LocalCoordData += (4*MaxFFIDerivatives+4*MaxFFISecondDerivatives);
-#endif
+  switch(ACME_FFI_Derivatives_Order) {
+    case 0 :
+      CreateTriangularization(ACME_FFI_LocalCoordData);
+      break;
+    case 1 :
+      CreateTriangularizationExp(ACME_FFI_LocalCoordData);
+      break;
+    case 2 :
+      CreateTriangularizationExp2(ACME_FFI_LocalCoordData);
+      break;
   }
-
-  CreateTriangularization(ACME_FFI_LocalCoordData_copy);
-  delete [] ACME_FFI_LocalCoordData_copy;
 }
-#endif
 
 // -----------------------------------------------------------------------------------------------------
 //                                            PRINT METHODS 
 // -----------------------------------------------------------------------------------------------------
-template<class Scalar>
+template<class MasterFaceType, class SlaveFaceType, class MortarType>
 void
-FFIPolygon<Scalar>::Print()
+FFIPolygonTemplate<MasterFaceType,SlaveFaceType,MortarType>
+::Print()
 {
   fprintf(stderr," * -------------------------------- \n");
   fprintf(stderr," * FFIPolygon data:\n");
@@ -211,18 +155,20 @@ FFIPolygon<Scalar>::Print()
   fprintf(stderr," * -------------------------------- \n");
 }
 
-template<class Scalar>
+template<class MasterFaceType, class SlaveFaceType, class MortarType>
 void
-FFIPolygon<Scalar>::PrintM()
+FFIPolygonTemplate<MasterFaceType,SlaveFaceType,MortarType>
+::PrintM()
 {
   GetPtrSlaveFace()->print(); 
   GetPtrSlaveFace()->print(); 
   M.print("M[FFI] = ");
 }
 
-template<class Scalar>
+template<class MasterFaceType, class SlaveFaceType, class MortarType>
 void
-FFIPolygon<Scalar>::PrintN()
+FFIPolygonTemplate<MasterFaceType,SlaveFaceType,MortarType>
+::PrintN()
 {
   GetPtrSlaveFace()->print(); 
   GetPtrMasterFace()->print(); 
@@ -230,9 +176,10 @@ FFIPolygon<Scalar>::PrintN()
 }
 
 #ifdef HB_ACME_FFI_DEBUG
-template<class Scalar>
+template<class MasterFaceType, class SlaveFaceType, class MortarType>
 void 
-FFIPolygon<Scalar>::PrintSlaveVertices(FILE* file, CoordSet& cs, int& firstVertId)
+FFIPolygonTemplate<MasterFaceType,SlaveFaceType,MortarType>
+::PrintSlaveVertices(FILE* file, CoordSet& cs, int& firstVertId)
 {
   double XYZ[3];
   for(int iVert=0; iVert<nVertices; iVert++){
@@ -243,9 +190,10 @@ FFIPolygon<Scalar>::PrintSlaveVertices(FILE* file, CoordSet& cs, int& firstVertI
   }
 }
 
-template<class Scalar>
+template<class MasterFaceType, class SlaveFaceType, class MortarType>
 void
-FFIPolygon<Scalar>::PrintMasterVertices(FILE* file, CoordSet& cs, int& firstVertId)
+FFIPolygonTemplate<MasterFaceType,SlaveFaceType,MortarType>
+::PrintMasterVertices(FILE* file, CoordSet& cs, int& firstVertId)
 {
   double XYZ[3];
   for(int iVert=0; iVert<nVertices; iVert++){
@@ -256,9 +204,10 @@ FFIPolygon<Scalar>::PrintMasterVertices(FILE* file, CoordSet& cs, int& firstVert
   }
 }
 
-template<class Scalar>
+template<class MasterFaceType, class SlaveFaceType, class MortarType>
 void
-FFIPolygon<Scalar>::PrintFFIPolygonTopo(FILE* file, int& EdgeOffset, int& VertOffset, int elCode)
+FFIPolygonTemplate<MasterFaceType,SlaveFaceType,MortarType>
+::PrintFFIPolygonTopo(FILE* file, int& EdgeOffset, int& VertOffset, int elCode)
 {
    int firstVertId = VertOffset;
    switch(nVertices) {
@@ -283,28 +232,25 @@ FFIPolygon<Scalar>::PrintFFIPolygonTopo(FILE* file, int& EdgeOffset, int& VertOf
 #endif
 
 // -----------------------------------------------------------------------------------------------------
-//                                       MEMORY ALLOCATION/DESALOCATION  METHODS 
-// -----------------------------------------------------------------------------------------------------
-
-// -----------------------------------------------------------------------------------------------------
 //                                       TRIANGULARIZATION METHODS 
 // -----------------------------------------------------------------------------------------------------
-template<class Scalar>
+template<class MasterFaceType, class SlaveFaceType, class MortarType>
 void
-FFIPolygon<Scalar>::CreateTriangularization(Scalar* ACME_FFI_LocalCoordData)
+FFIPolygonTemplate<MasterFaceType,SlaveFaceType,MortarType>
+::CreateTriangularization(double* ACME_FFI_LocalCoordData, bool use_acme_centroid)
 {
   // Allocate space for Facets
   // By default assume as many triangular facet as polygon vertices
-  // -> can be overwritten in for optimization
-  {Facets.clear(); Facet_pair_t val; for(int i=0; i<nVertices; ++i) Facets.push_back(val);} // workaround
-  //Facets.assign(nVertices, Facet_pair_t(TriFacet<Scalar>(), TriFacet<Scalar>()));
+  // -> can be overwritten in for optimization XXX
+  Facets.assign(nVertices, Facet_pair_t(TriFacetTemplate<double,MasterFaceType>(), TriFacetTemplate<double,SlaveFaceType>()));
 
   // Create master & slave polygon centroids
-  Scalar MasterCentroid[2] = {0.0, 0.0};
-  Scalar SlaveCentroid[2]  = {0.0, 0.0};
+  double MasterCentroid[2] = {0.0, 0.0};
+  double SlaveCentroid[2]  = {0.0, 0.0};
+
 #ifdef HB_ACME_FFI_DEBUG
-  VertexLlCoordOnSFaceEl = new Scalar[nVertices][2];
-  VertexLlCoordOnMFaceEl = new Scalar[nVertices][2];
+  VertexLlCoordOnSFaceEl = new double[nVertices][2];
+  VertexLlCoordOnMFaceEl = new double[nVertices][2];
 #endif
   for(int iVert=0; iVert<nVertices; ++iVert) {
      int offset = 4*iVert;
@@ -319,28 +265,166 @@ FFIPolygon<Scalar>::CreateTriangularization(Scalar* ACME_FFI_LocalCoordData)
      SlaveCentroid[0]  += ACME_FFI_LocalCoordData[offset+2]; 
      SlaveCentroid[1]  += ACME_FFI_LocalCoordData[offset+3]; 
   }
-  SlaveCentroid[0]  /= Scalar(nVertices); SlaveCentroid[1]  /= Scalar(nVertices);
-  MasterCentroid[0] /= Scalar(nVertices); MasterCentroid[1] /= Scalar(nVertices);
-
-  //std::cerr << " SlaveCentroid : x = " << SlaveCentroid[0] << ", y = " << SlaveCentroid[1] << std::endl;
-  //std::cerr << " MasterCentroid : x = " << MasterCentroid[0] << ", y = " << MasterCentroid[1] << std::endl;
+  SlaveCentroid[0]  /= nVertices; SlaveCentroid[1]  /= nVertices;
+  MasterCentroid[0] /= nVertices; MasterCentroid[1] /= nVertices;
 
   // Create master & slave triangularization
-  for(size_t i=0, ii=GetnFacets(), offsetm1=0; i<ii; i++, offsetm1+=4) {
+  for(size_t i=0, ii=Facets.size(), offsetm1=0; i<ii; i++, offsetm1+=4) {
      size_t offsetm2 = (i==ii-1) ? 0 : offsetm1+4;
      //HB: note that ACME Master <=> our Slave, ... 
-     MasterFacet(Facets, i).SetTriFacet(MasterFace, MasterCentroid, &ACME_FFI_LocalCoordData[offsetm1],
-                                                                    &ACME_FFI_LocalCoordData[offsetm2]);
-     SlaveFacet(Facets , i).SetTriFacet(SlaveFace,  SlaveCentroid,  &ACME_FFI_LocalCoordData[offsetm1+2],
-                                                                    &ACME_FFI_LocalCoordData[offsetm2+2]);
+     if(use_acme_centroid) {
+       size_t offsetmc = 4*Facets.size();
+       MasterFacet(Facets, i).SetTriFacet(MasterFace, &ACME_FFI_LocalCoordData[offsetmc],   &ACME_FFI_LocalCoordData[offsetm1],
+                                                                                            &ACME_FFI_LocalCoordData[offsetm2]);
+       SlaveFacet(Facets , i).SetTriFacet(SlaveFace,  &ACME_FFI_LocalCoordData[offsetmc+2], &ACME_FFI_LocalCoordData[offsetm1+2],
+                                                                                            &ACME_FFI_LocalCoordData[offsetm2+2]);
+     }
+     else {
+       MasterFacet(Facets, i).SetTriFacet(MasterFace, MasterCentroid, &ACME_FFI_LocalCoordData[offsetm1],
+                                                                      &ACME_FFI_LocalCoordData[offsetm2]);
+       SlaveFacet(Facets , i).SetTriFacet(SlaveFace,  SlaveCentroid,  &ACME_FFI_LocalCoordData[offsetm1+2],
+                                                                      &ACME_FFI_LocalCoordData[offsetm2+2]);
+    }
   } 
+}
+
+template<class MasterFaceType, class SlaveFaceType, class MortarType>
+void
+FFIPolygonTemplate<MasterFaceType,SlaveFaceType,MortarType>
+::CreateTriangularizationExp(double* ACME_FFI_LocalCoordData, bool no_ffi_derivatives)
+{
+  int nbDer = 3*(MasterFace->nNodes() + SlaveFace->nNodes());
+  // Allocate space for Facets
+  Facets.assign(nVertices, Facet_pair_t(TriFacetTemplate<double,MasterFaceType>(), TriFacetTemplate<double,SlaveFaceType>()));
+  // Create master & slave polygon centroids
+  double MasterCentroid[2] = { 0.0, 0.0 };
+  double SlaveCentroid[2]  = { 0.0, 0.0 };
+  double *MasterCentroidDerivatives, *SlaveCentroidDerivatives;
+  MasterCentroidDerivatives = new double[2*nbDer];
+  SlaveCentroidDerivatives = new double[2*nbDer];
+  for(int i=0; i<2*nbDer; ++i) {
+    MasterCentroidDerivatives[i] = 0.0;
+    SlaveCentroidDerivatives[i]  = 0.0;
+  }
+
+  for(int iVert=0; iVert<nVertices; ++iVert) {
+    int offset = 4*iVert;
+    MasterCentroid[0] += ACME_FFI_LocalCoordData[offset  ];
+    MasterCentroid[1] += ACME_FFI_LocalCoordData[offset+1];
+    SlaveCentroid[0]  += ACME_FFI_LocalCoordData[offset+2];
+    SlaveCentroid[1]  += ACME_FFI_LocalCoordData[offset+3];
+    for(int j=0; j<nbDer; ++j) {
+      MasterCentroidDerivatives[j]       += ACME_FFI_LocalCoordData[4*nVertices+nbDer*(offset  )+j];
+      MasterCentroidDerivatives[nbDer+j] += ACME_FFI_LocalCoordData[4*nVertices+nbDer*(offset+1)+j];
+      SlaveCentroidDerivatives[j]        += ACME_FFI_LocalCoordData[4*nVertices+nbDer*(offset+2)+j];
+      SlaveCentroidDerivatives[nbDer+j]  += ACME_FFI_LocalCoordData[4*nVertices+nbDer*(offset+3)+j];
+    }
+  }
+  MasterCentroid[0] /= nVertices; MasterCentroid[1] /= nVertices;
+  SlaveCentroid[0]  /= nVertices; SlaveCentroid[1]  /= nVertices;
+  for(int i=0; i<2*nbDer; ++i) {
+    MasterCentroidDerivatives[i] /= nVertices;
+    SlaveCentroidDerivatives[i]  /= nVertices;
+  }
+  // Create master & slave triangularization
+  for(size_t i=0, ii=Facets.size(), offsetm1=0; i<ii; i++, offsetm1+=4) {
+    size_t offsetm2 = (i==ii-1) ? 0 : offsetm1+4;
+    //HB: note that ACME Master <=> our Slave, ... 
+    MasterFacet(Facets, i).SetTriFacet(MasterFace, MasterCentroid, &ACME_FFI_LocalCoordData[offsetm1], &ACME_FFI_LocalCoordData[offsetm2],
+                                       MasterCentroidDerivatives, &ACME_FFI_LocalCoordData[4*nVertices+nbDer*offsetm1],
+                                       &ACME_FFI_LocalCoordData[4*nVertices+nbDer*offsetm2], nbDer);
+    SlaveFacet(Facets , i).SetTriFacet(SlaveFace,  SlaveCentroid,  &ACME_FFI_LocalCoordData[offsetm1+2], &ACME_FFI_LocalCoordData[offsetm2+2],
+                                       SlaveCentroidDerivatives, &ACME_FFI_LocalCoordData[4*nVertices+nbDer*(offsetm1+2)],
+                                       &ACME_FFI_LocalCoordData[4*nVertices+nbDer*(offsetm2+2)], nbDer);
+  }
+  delete [] MasterCentroidDerivatives;
+  delete [] SlaveCentroidDerivatives;
+}
+
+template<class MasterFaceType, class SlaveFaceType, class MortarType>
+void
+FFIPolygonTemplate<MasterFaceType,SlaveFaceType,MortarType>
+::CreateTriangularizationExp2(double* ACME_FFI_LocalCoordData, bool no_ffi_derivatives)
+{
+  int nbDer = 3*(MasterFace->nNodes() + SlaveFace->nNodes());
+  int nbDer2 = nbDer*nbDer;
+  // Allocate space for Facets
+  Facets.assign(nVertices, Facet_pair_t(TriFacetTemplate<double,MasterFaceType>(), TriFacetTemplate<double,SlaveFaceType>()));
+  // Create master & slave polygon centroids
+  double MasterCentroid[2] = { 0.0, 0.0 };
+  double SlaveCentroid[2]  = { 0.0, 0.0 };
+  double *MasterCentroidDerivatives, *SlaveCentroidDerivatives;
+  double *MasterCentroid2ndDerivatives, *SlaveCentroid2ndDerivatives;
+  MasterCentroidDerivatives = new double[2*nbDer];
+  SlaveCentroidDerivatives = new double[2*nbDer];
+  for(int i=0; i<2*nbDer; ++i) {
+    MasterCentroidDerivatives[i] = 0.0;
+    SlaveCentroidDerivatives[i]  = 0.0;
+  }
+  MasterCentroid2ndDerivatives = new double[2*nbDer2];
+  SlaveCentroid2ndDerivatives = new double[2*nbDer2];
+  for(int i=0; i<2*nbDer2; ++i) {
+    MasterCentroid2ndDerivatives[i] = 0.0;
+    SlaveCentroid2ndDerivatives[i]  = 0.0;
+  }
+
+  for(int iVert=0; iVert<nVertices; ++iVert) {
+    int offset = 4*iVert;
+    MasterCentroid[0] += ACME_FFI_LocalCoordData[offset  ];
+    MasterCentroid[1] += ACME_FFI_LocalCoordData[offset+1];
+    SlaveCentroid[0]  += ACME_FFI_LocalCoordData[offset+2];
+    SlaveCentroid[1]  += ACME_FFI_LocalCoordData[offset+3];
+    for(int j=0; j<nbDer; ++j) {
+      MasterCentroidDerivatives[j]       += ACME_FFI_LocalCoordData[4*nVertices+nbDer*(offset  )+j];
+      MasterCentroidDerivatives[nbDer+j] += ACME_FFI_LocalCoordData[4*nVertices+nbDer*(offset+1)+j];
+      SlaveCentroidDerivatives[j]        += ACME_FFI_LocalCoordData[4*nVertices+nbDer*(offset+2)+j];
+      SlaveCentroidDerivatives[nbDer+j]  += ACME_FFI_LocalCoordData[4*nVertices+nbDer*(offset+3)+j];
+    }
+    for(int j=0; j<nbDer2; ++j) {
+      MasterCentroid2ndDerivatives[j]        += ACME_FFI_LocalCoordData[4*nVertices*(1+nbDer)+nbDer2*(offset  )+j];
+      MasterCentroid2ndDerivatives[nbDer2+j] += ACME_FFI_LocalCoordData[4*nVertices*(1+nbDer)+nbDer2*(offset+1)+j];
+      SlaveCentroid2ndDerivatives[j]         += ACME_FFI_LocalCoordData[4*nVertices*(1+nbDer)+nbDer2*(offset+2)+j];
+      SlaveCentroid2ndDerivatives[nbDer2+j]  += ACME_FFI_LocalCoordData[4*nVertices*(1+nbDer)+nbDer2*(offset+3)+j];
+    }
+  }
+  MasterCentroid[0] /= nVertices; MasterCentroid[1] /= nVertices;
+  SlaveCentroid[0]  /= nVertices; SlaveCentroid[1]  /= nVertices;
+  for(int i=0; i<2*nbDer; ++i) {
+    MasterCentroidDerivatives[i] /= nVertices;
+    SlaveCentroidDerivatives[i]  /= nVertices;
+  }
+  for(int i=0; i<2*nbDer2; ++i) {
+    MasterCentroid2ndDerivatives[i] /= nVertices;
+    SlaveCentroid2ndDerivatives[i]  /= nVertices;
+  }
+  // Create master & slave triangularization
+  for(size_t i=0, ii=Facets.size(), offsetm1=0; i<ii; i++, offsetm1+=4) {
+    size_t offsetm2 = (i==ii-1) ? 0 : offsetm1+4;
+    //HB: note that ACME Master <=> our Slave, ... 
+    MasterFacet(Facets, i).SetTriFacet(MasterFace, MasterCentroid, &ACME_FFI_LocalCoordData[offsetm1], &ACME_FFI_LocalCoordData[offsetm2],
+                                       MasterCentroidDerivatives, &ACME_FFI_LocalCoordData[4*nVertices+nbDer*offsetm1],
+                                       &ACME_FFI_LocalCoordData[4*nVertices+nbDer*offsetm2], MasterCentroid2ndDerivatives,
+                                       &ACME_FFI_LocalCoordData[4*nVertices*(1+nbDer)+nbDer2*offsetm1],
+                                       &ACME_FFI_LocalCoordData[4*nVertices*(1+nbDer)+nbDer2*offsetm2], nbDer);
+    SlaveFacet(Facets , i).SetTriFacet(SlaveFace,  SlaveCentroid,  &ACME_FFI_LocalCoordData[offsetm1+2], &ACME_FFI_LocalCoordData[offsetm2+2],
+                                       SlaveCentroidDerivatives, &ACME_FFI_LocalCoordData[4*nVertices+nbDer*(offsetm1+2)],
+                                       &ACME_FFI_LocalCoordData[4*nVertices+nbDer*(offsetm2+2)], SlaveCentroid2ndDerivatives,
+                                       &ACME_FFI_LocalCoordData[4*nVertices*(1+nbDer)+nbDer2*(offsetm1+2)],
+                                       &ACME_FFI_LocalCoordData[4*nVertices*(1+nbDer)+nbDer2*(offsetm2+2)], nbDer);
+  }
+  delete [] MasterCentroidDerivatives;
+  delete [] SlaveCentroidDerivatives;
+  delete [] MasterCentroid2ndDerivatives;
+  delete [] SlaveCentroid2ndDerivatives;
 }
 
 // -----------------------------------------------------------------------------------------------------
 //                                            MISCELLEANEOUS METHODS 
 // -----------------------------------------------------------------------------------------------------
-/*double
-FFIPolygon<Scalar>::ComputeArea()
+/*
+template<class MasterFaceType, class SlaveFaceType, class MortarType>
+double
+FFIPolygonTemplate<MasterFaceType,SlaveFaceType,MortarType>::ComputeArea()
 {
    double Area = 0.0;
    for(size_t i=0, ii=GetnFacets(); i<ii; i++) {
@@ -352,9 +436,10 @@ FFIPolygon<Scalar>::ComputeArea()
 // -----------------------------------------------------------------------------------------------------
 //                         INTEGRATION OF SHAPE FUNCTIONS PRODUCT METHODS 
 // -----------------------------------------------------------------------------------------------------
-template<class Scalar>
+template<class MasterFaceType, class SlaveFaceType, class MortarType>
 FullM
-FFIPolygon<Scalar>::IntegrateOnMaster_MasterShapeFctProduct(MortarElement* MortarEl, CoordSet &cs, int ngp)
+FFIPolygonTemplate<MasterFaceType,SlaveFaceType,MortarType>
+::IntegrateOnMaster_MasterShapeFctProduct(MortarType* MortarEl, CoordSet &cs, int ngp)
 // *****************************************************************************************************
 // Integrate on the MASTER SIDE the product of the shape functions defined by the given
 // MortarElement and the shape functions of the MASTER face element
@@ -365,24 +450,25 @@ FFIPolygon<Scalar>::IntegrateOnMaster_MasterShapeFctProduct(MortarElement* Morta
 //         of the MORTAR & MASTER face element node ordering
 // *****************************************************************************************************
 {
-   int nMortarShapeFct = MortarEl->nNodes();
-   int nMasterShapeFct = MasterFace->nNodes();
+  int nMortarShapeFct = MortarEl->nNodes();
+  int nMasterShapeFct = MasterFace->nNodes();
 
-   FullM MatShapeFctProd(nMortarShapeFct,nMasterShapeFct);
-   MatShapeFctProd.zero();
+  FullM MatShapeFctProd(nMortarShapeFct,nMasterShapeFct);
+  MatShapeFctProd.zero();
 
-   // Loop over triangularization
-   for(size_t i=0, ii=GetnFacets(); i<ii; ++i) {
-     MatShapeFctProd += MasterFacet(Facets, i).IntegrateShapeFctProduct(MortarEl, MasterFacet(Facets, i),
-                                                                        cs, ngp);
-   }
+  // Loop over triangularization
+  for(size_t i=0, ii=GetnFacets(); i<ii; ++i) {
+    MatShapeFctProd += MasterFacet(Facets, i).IntegrateShapeFctProduct(MortarEl, MasterFacet(Facets, i),
+                                                                       cs, ngp);
+  }
 
-   return MatShapeFctProd;
+  return MatShapeFctProd;
 }
 
-template<class Scalar>
+template<class MasterFaceType, class SlaveFaceType, class MortarType>
 FullM
-FFIPolygon<Scalar>::IntegrateOnMaster_SlaveShapeFctProduct(MortarElement* MortarEl, CoordSet &cs, int ngp)
+FFIPolygonTemplate<MasterFaceType,SlaveFaceType,MortarType>
+::IntegrateOnMaster_SlaveShapeFctProduct(MortarType* MortarEl, CoordSet &cs, int ngp)
 // *****************************************************************************************************
 // Integrate on the MASTER SIDE the product of the shape functions defined by the given
 // MortarElement and the shape functions of the SLAVE face element
@@ -393,24 +479,25 @@ FFIPolygon<Scalar>::IntegrateOnMaster_SlaveShapeFctProduct(MortarElement* Mortar
 //         of the MORTAR & SLAVE face element node ordering
 // *****************************************************************************************************
 {
-   int nMortarShapeFct = MortarEl->nNodes();
-   int nSlaveShapeFct  = SlaveFace->nNodes();
+  int nMortarShapeFct = MortarEl->nNodes();
+  int nSlaveShapeFct  = SlaveFace->nNodes();
 
-   FullM MatShapeFctProd(nMortarShapeFct,nSlaveShapeFct);
-   MatShapeFctProd.zero();
+  FullM MatShapeFctProd(nMortarShapeFct,nSlaveShapeFct);
+  MatShapeFctProd.zero();
 
-   // Loop over triangularization
-   for(size_t i=0, ii=GetnFacets(); i<ii; ++i) {
-     MatShapeFctProd += MasterFacet(Facets, i).IntegrateShapeFctProduct(MortarEl, SlaveFacet(Facets, i),
-                                                                        cs, ngp);
-   } 
+  // Loop over triangularization
+  for(size_t i=0, ii=GetnFacets(); i<ii; ++i) {
+    MatShapeFctProd += MasterFacet(Facets, i).IntegrateShapeFctProduct(MortarEl, SlaveFacet(Facets, i),
+                                                                       cs, ngp);
+  } 
 
-   return MatShapeFctProd;
+  return MatShapeFctProd;
 }
 
-template<class Scalar>
+template<class MasterFaceType, class SlaveFaceType, class MortarType>
 FullM
-FFIPolygon<Scalar>::IntegrateOnSlave_MasterShapeFctProduct(MortarElement* MortarEl, CoordSet &cs, int ngp)
+FFIPolygonTemplate<MasterFaceType,SlaveFaceType,MortarType>
+::IntegrateOnSlave_MasterShapeFctProduct(MortarType* MortarEl, CoordSet &cs, int ngp)
 // *****************************************************************************************************
 // Integrate on the SLAVE SIDE the product of the shape functions defined by the given
 // MortarElement and the shape functions of the MASTER face element
@@ -421,29 +508,25 @@ FFIPolygon<Scalar>::IntegrateOnSlave_MasterShapeFctProduct(MortarElement* Mortar
 //         of the MORTAR & MASTER face element node ordering
 // *****************************************************************************************************
 {
-   int nMortarShapeFct = MortarEl->nNodes();
-   int nMasterShapeFct = MasterFace->nNodes();
+  int nMortarShapeFct = MortarEl->nNodes();
+  int nMasterShapeFct = MasterFace->nNodes();
 
-   //cerr << "In FFIPolygon<Scalar>::IntegrateOnSlave_MasterShapeFctProduct" << endl;
-   //cerr << " -> nMortarShapeFct = " << nMortarShapeFct << endl;
-   //cerr << " -> nMasterShapeFct = " << nMasterShapeFct << endl;
-   //cerr << " -> ngp             = " << ngp << endl;
-   
-   FullM MatShapeFctProd(nMortarShapeFct,nMasterShapeFct);
-   MatShapeFctProd.zero();
+  FullM MatShapeFctProd(nMortarShapeFct,nMasterShapeFct);
+  MatShapeFctProd.zero();
 
-   // Loop over triangularization
-   for(size_t i=0, ii=GetnFacets(); i<ii; ++i) {
-     MatShapeFctProd += SlaveFacet(Facets, i).IntegrateShapeFctProduct(MortarEl, MasterFacet(Facets, i),
-                                                                       cs, ngp);
-   }
+  // Loop over triangularization
+  for(size_t i=0, ii=GetnFacets(); i<ii; ++i) {
+    MatShapeFctProd += SlaveFacet(Facets, i).IntegrateShapeFctProduct(MortarEl, MasterFacet(Facets, i),
+                                                                      cs, ngp);
+  }
 
-   return MatShapeFctProd;
+  return MatShapeFctProd;
 }
 
-template<class Scalar>
+template<class MasterFaceType, class SlaveFaceType, class MortarType>
 FullM
-FFIPolygon<Scalar>::IntegrateOnSlave_SlaveShapeFctProduct(MortarElement* MortarEl, CoordSet &cs, int ngp)
+FFIPolygonTemplate<MasterFaceType,SlaveFaceType,MortarType>
+::IntegrateOnSlave_SlaveShapeFctProduct(MortarType* MortarEl, CoordSet &cs, int ngp)
 // *****************************************************************************************************
 // Integrate on the SLAVE SIDE the product of the shape functions defined by the given
 // MortarElement and the shape functions of the SLAVE face element
@@ -454,63 +537,59 @@ FFIPolygon<Scalar>::IntegrateOnSlave_SlaveShapeFctProduct(MortarElement* MortarE
 //         of the MORTAR & SLAVE face element node ordering
 // *****************************************************************************************************
 {
-   int nMortarShapeFct = MortarEl->nNodes();
-   int nSlaveShapeFct  = SlaveFace->nNodes();
+  int nMortarShapeFct = MortarEl->nNodes();
+  int nSlaveShapeFct  = SlaveFace->nNodes();
    
-   //cerr << "In FFIPolygon<Scalar>::IntegrateOnSlave_SlaveShapeFctProduct" << endl;
-   //cerr << " -> nMortarShapeFct = " << nMortarShapeFct << endl;
-   //cerr << " -> nSlaveShapeFct  = " << nSlaveShapeFct << endl;
-   //cerr << " -> ngp             = " << ngp << endl;
+  FullM MatShapeFctProd(nMortarShapeFct,nSlaveShapeFct);
+  MatShapeFctProd.zero();
 
-   FullM MatShapeFctProd(nMortarShapeFct,nSlaveShapeFct);
-   MatShapeFctProd.zero();
+  // Loop over triangularization
+  for(size_t i=0, ii=GetnFacets(); i<ii; ++i) {
+    MatShapeFctProd += SlaveFacet(Facets, i).IntegrateShapeFctProduct(MortarEl, SlaveFacet(Facets, i),
+                                                                      cs, ngp);
+  }
 
-   // Loop over triangularization
-   for(size_t i=0, ii=GetnFacets(); i<ii; ++i) {
-     MatShapeFctProd += SlaveFacet(Facets, i).IntegrateShapeFctProduct(MortarEl, SlaveFacet(Facets, i),
-                                                                       cs, ngp);
-   }
-
-   return MatShapeFctProd;
+  return MatShapeFctProd;
 }
 
-template<class Scalar>
+template<class MasterFaceType, class SlaveFaceType, class MortarType>
 void 
-FFIPolygon<Scalar>::ComputeM(MortarElement* MortarEl, CoordSet &cs, int ngp)
+FFIPolygonTemplate<MasterFaceType,SlaveFaceType,MortarType>
+::ComputeM(MortarType* MortarEl, CoordSet &cs, int ngp)
 // *****************************************************************************************************
 // Compute the FFI contribution to the Mortar-Slave shape fcts product mass-like matrix M
 // NOTE:
 //     (1) by DEFAULT integrate on the SLAVE SIDE
-//         -> see FFIPolygon<Scalar>::IntegrateOnSlave_SlaveShapeFctProduct for more details
+//         -> see FFIPolygonTemplate::IntegrateOnSlave_SlaveShapeFctProduct for more details
 //     (2) the rows & colums ordering of the matrix M is ASSOCIATED with the ordering 
 //         of the MORTAR & SLAVE face element node ordering
-//         -> see FFIPolygon<Scalar>::IntegrateOnSlave_SlaveShapeFctProduct for more details
+//         -> see FFIPolygonTemplate::IntegrateOnSlave_SlaveShapeFctProduct for more details
 // *****************************************************************************************************
 {
   M = IntegrateOnSlave_SlaveShapeFctProduct(MortarEl, cs, ngp);
-  //M.print();
 }
 
-template<class Scalar>
-void 
-FFIPolygon<Scalar>::ComputeN(MortarElement* MortarEl, CoordSet &cs, int ngp)
+template<class MasterFaceType, class SlaveFaceType, class MortarType>
+void
+FFIPolygonTemplate<MasterFaceType,SlaveFaceType,MortarType>
+::ComputeN(MortarType* MortarEl, CoordSet &cs, int ngp)
 // *****************************************************************************************************
 // Compute the FFI contribution to the Mortar-Master shape fcts product mass-like matrix N
 // NOTE:
 //     (1) by DEFAULT integrate on the SLAVE SIDE
-//         -> see FFIPolygon<Scalar>::IntegrateOnSlave_MasterShapeFctProduct for more details
+//         -> see FFIPolygonTemplate::IntegrateOnSlave_MasterShapeFctProduct for more details
 //     (2) the rows & colums ordering of the matrix M is ASSOCIATED with the ordering 
 //         of the MORTAR & MASTER face element node ordering
-//         -> see FFIPolygon<Scalar>::IntegrateOnSlave_MasterShapeFctProduct for more details
+//         -> see FFIPolygonTemplate::IntegrateOnSlave_MasterShapeFctProduct for more details
 // *****************************************************************************************************
 {
   N = IntegrateOnSlave_MasterShapeFctProduct(MortarEl, cs, ngp);
-  //N.print();
 }
 
-template<class Scalar>
+template<class MasterFaceType, class SlaveFaceType, class MortarType>
 FullM
-FFIPolygon<Scalar>::IntegrateOnSlave_MasterNormalShapeFctProduct(MortarElement* MortarEl, CoordSet &cs, int ngp)
+FFIPolygonTemplate<MasterFaceType,SlaveFaceType,MortarType>
+::IntegrateOnSlave_MasterNormalShapeFctProduct(MortarType* MortarEl, CoordSet &cs, int ngp)
 // *****************************************************************************************************
 // Integrate on the SLAVE SIDE the product of the normal and the shape functions defined by the given
 // MortarElement and the shape functions of the MASTER face element 
@@ -524,26 +603,22 @@ FFIPolygon<Scalar>::IntegrateOnSlave_MasterNormalShapeFctProduct(MortarElement* 
    int nMortarShapeFct = MortarEl->nNodes();
    int nMasterShapeFct = MasterFace->nNodes();
 
-   //cerr << "In FFIPolygon::IntegrateOnSlave_MasterNormalShapeFctProduct" << endl;
-   //cerr << " -> nMortarShapeFct = " << nMortarShapeFct << endl;
-   //cerr << " -> nMasterShapeFct = " << nMasterShapeFct << endl;
-   //cerr << " -> ngp             = " << ngp << endl;
+  FullM MatShapeFctProd(nMortarShapeFct,3*nMasterShapeFct);
+  MatShapeFctProd.zero();
 
-   FullM MatShapeFctProd(nMortarShapeFct,3*nMasterShapeFct);
-   MatShapeFctProd.zero();
+  // Loop over triangularization
+  for(size_t i=0, ii=GetnFacets(); i<ii; ++i) {
+    MatShapeFctProd += SlaveFacet(Facets, i).IntegrateNormalShapeFctProduct(MortarEl, MasterFacet(Facets, i),
+                                                                            cs, ngp);
+  }
 
-   // Loop over triangularization
-   for(size_t i=0, ii=GetnFacets(); i<ii; ++i) {
-     MatShapeFctProd += SlaveFacet(Facets, i).IntegrateNormalShapeFctProduct(MortarEl, MasterFacet(Facets, i),
-                                                                             cs, ngp);
-   }
-
-   return MatShapeFctProd;
+  return MatShapeFctProd;
 }
 
-template<class Scalar>
+template<class MasterFaceType, class SlaveFaceType, class MortarType>
 FullM
-FFIPolygon<Scalar>::IntegrateOnSlave_SlaveNormalShapeFctProduct(MortarElement* MortarEl, CoordSet &cs, int ngp)
+FFIPolygonTemplate<MasterFaceType,SlaveFaceType,MortarType>
+::IntegrateOnSlave_SlaveNormalShapeFctProduct(MortarType* MortarEl, CoordSet &cs, int ngp)
 // *****************************************************************************************************
 // Integrate on the SLAVE SIDE the product of the normal and the shape functions defined by the given
 // MortarElement and the shape functions of the SLAVE face element
@@ -554,55 +629,53 @@ FFIPolygon<Scalar>::IntegrateOnSlave_SlaveNormalShapeFctProduct(MortarElement* M
 //         of the MORTAR & MASTER face element node ordering
 // *****************************************************************************************************
 {
-   int nMortarShapeFct = MortarEl->nNodes();
-   int nSlaveShapeFct  = SlaveFace->nNodes();                                                                                                                                          
-   //cerr << "In FFIPolygon::IntegrateOnSlave_SlaveNormalShapeFctProduct" << endl;
-   //cerr << " -> nMortarShapeFct = " << nMortarShapeFct << endl;
-   //cerr << " -> nMasterShapeFct = " << nMasterShapeFct << endl;
-   //cerr << " -> ngp             = " << ngp << endl;
+  int nMortarShapeFct = MortarEl->nNodes();
+  int nSlaveShapeFct  = SlaveFace->nNodes();                                                                                                                                          
+  FullM MatShapeFctProd(nMortarShapeFct,3*nSlaveShapeFct);
+  MatShapeFctProd.zero();
 
-   FullM MatShapeFctProd(nMortarShapeFct,3*nSlaveShapeFct);
-   MatShapeFctProd.zero();
+  // Loop over triangularization
+  for(size_t i=0, ii=GetnFacets(); i<ii; ++i) {
+    MatShapeFctProd += SlaveFacet(Facets, i).IntegrateNormalShapeFctProduct(MortarEl, SlaveFacet(Facets, i),
+                                                                            cs, ngp);
+  }
 
-   // Loop over triangularization
-   for(size_t i=0, ii=GetnFacets(); i<ii; ++i) {
-     MatShapeFctProd += SlaveFacet(Facets, i).IntegrateNormalShapeFctProduct(MortarEl, SlaveFacet(Facets, i),
-                                                                             cs, ngp);
-   }
-
-   return MatShapeFctProd;
+  return MatShapeFctProd;
 }
 
-template<class Scalar>
+template<class MasterFaceType, class SlaveFaceType, class MortarType>
 void
-FFIPolygon<Scalar>::ComputeNormalM(MortarElement* MortarEl, CoordSet &cs, int ngp)
+FFIPolygonTemplate<MasterFaceType,SlaveFaceType,MortarType>
+::ComputeNormalM(MortarType* MortarEl, CoordSet &cs, int ngp)
 {
   M = IntegrateOnSlave_SlaveNormalShapeFctProduct(MortarEl, cs, ngp);
 }
 
-template<class Scalar>
+template<class MasterFaceType, class SlaveFaceType, class MortarType>
 void
-FFIPolygon<Scalar>::ComputeNormalN(MortarElement* MortarEl, CoordSet &cs, int ngp)
+FFIPolygonTemplate<MasterFaceType,SlaveFaceType,MortarType>
+::ComputeNormalN(MortarType* MortarEl, CoordSet &cs, int ngp)
 // *****************************************************************************************************
 // Compute the FFI contribution to the Mortar-Master shape fcts product mass-like matrix N
 // NOTE:
 //     (1) by DEFAULT integrate on the SLAVE SIDE
-//         -> see FFIPolygon<Scalar>::IntegrateOnSlave_MasterShapeFctProduct for more details
+//         -> see FFIPolygonTemplate::IntegrateOnSlave_MasterShapeFctProduct for more details
 //     (2) the rows & colums ordering of the matrix M is ASSOCIATED with the ordering
 //         of the MORTAR & MASTER face element node ordering
-//         -> see FFIPolygon<Scalar>::IntegrateOnSlave_MasterShapeFctProduct for more details
+//         -> see FFIPolygonTemplate::IntegrateOnSlave_MasterShapeFctProduct for more details
 // *****************************************************************************************************
 {
   N = IntegrateOnSlave_MasterNormalShapeFctProduct(MortarEl, cs, ngp);
 }
 
-template<class Scalar>
+template<class MasterFaceType, class SlaveFaceType, class MortarType>
 FullM
-FFIPolygon<Scalar>::IntegrateOnSlave_MasterGradNormalShapeFctProduct(MortarElement* MortarEl, CoordSet &SlaveCoords, CoordSet &MasterCoords, int ngp)
+FFIPolygonTemplate<MasterFaceType,SlaveFaceType,MortarType>
+::IntegrateOnSlave_GradNormalGeoGap(MortarType* MortarEl, CoordSet &SlaveCoords, CoordSet &MasterCoords, int ngp, double offset)
 // *****************************************************************************************************
 // Integrate on the SLAVE SIDE the contribution to the gradient of the gap function term due to the
-// product of the normal and the shape functions defined by the given MortarElement and the shape
-// functions of the MASTER face element
+// products of the normal and the shape functions defined by the given MortarElement and the shape
+// functions of both the MASTER and the SLAVE face elements i.e. C = [-N M]
 // NOTE:
 //     (1) you HAVE to ensure that the MortarElement is ASSOCIATED with the SLAVE (or MASTER) face
 //         element of THIS FFIPolygon object
@@ -610,312 +683,90 @@ FFIPolygon<Scalar>::IntegrateOnSlave_MasterGradNormalShapeFctProduct(MortarEleme
 //         of the MORTAR & MASTER face element node ordering
 // *****************************************************************************************************
 {
-   int nMortarShapeFct = MortarEl->nNodes();
-   int nMasterShapeFct = MasterFace->nNodes();
+  int nMortarShapeFct = MortarEl->nNodes();
+  int nMasterShapeFct = MasterFace->nNodes();
+  int nSlaveShapeFct  = SlaveFace->nNodes();
 
-   //cerr << "In FFIPolygon::IntegrateOnSlave_MasterGradNormalShapeFctProduct" << endl;
-   //cerr << " -> nMortarShapeFct = " << nMortarShapeFct << endl;
-   //cerr << " -> nMasterShapeFct = " << nMasterShapeFct << endl;
-   //cerr << " -> ngp             = " << ngp << endl;
+  FullM MatShapeFctProd(nMortarShapeFct,3*nMasterShapeFct+3*nSlaveShapeFct);
+  MatShapeFctProd.zero();
 
-   FullM MatShapeFctProd(nMortarShapeFct,3*nMasterShapeFct);
-   MatShapeFctProd.zero();
-
-   // Loop over triangularization
-   for(size_t i=0, ii=GetnFacets(); i<ii; ++i) {
-     MatShapeFctProd += SlaveFacet(Facets, i).IntegrateGradNormalShapeFctProduct(MortarEl, MasterFacet(Facets, i), SlaveCoords,
-                                                                                 MasterCoords, MasterFacet(Facets, i), MasterCoords, ngp);
-   }
-
-   return MatShapeFctProd;
-}
-
-template<class Scalar>
-FullM
-FFIPolygon<Scalar>::IntegrateOnSlave_SlaveGradNormalShapeFctProduct(MortarElement* MortarEl, CoordSet &SlaveCoords, CoordSet &MasterCoords, int ngp)
-// *****************************************************************************************************
-// Integrate on the SLAVE SIDE the contribution to the gradient of the gap function term due to the
-// product of the normal and the shape functions defined by the given MortarElement and the shape
-// functions of the SLAVE face element
-// NOTE:
-//     (1) you HAVE to ensure that the MortarElement is ASSOCIATED with the SLAVE (or MASTER) face
-//         element of THIS FFIPolygon object
-//     (2) the rows & colums ordering of the shape fcts product matrix is ASSOCIATED with the ordering
-//         of the MORTAR & MASTER face element node ordering
-// *****************************************************************************************************
-{
-   int nMortarShapeFct = MortarEl->nNodes();
-   int nSlaveShapeFct  = SlaveFace->nNodes();
-
-   //cerr << "In FFIPolygon::IntegrateOnSlave_SlaveGradNormalShapeFctProduct" << endl;
-   //cerr << " -> nMortarShapeFct = " << nMortarShapeFct << endl;
-   //cerr << " -> nMasterShapeFct = " << nMasterShapeFct << endl;
-   //cerr << " -> ngp             = " << ngp << endl;
-
-   FullM MatShapeFctProd(nMortarShapeFct,3*nSlaveShapeFct);
-   MatShapeFctProd.zero();
-
-   // Loop over triangularization
-   for(size_t i=0, ii=GetnFacets(); i<ii; ++i) {
-     MatShapeFctProd += SlaveFacet(Facets, i).IntegrateGradNormalShapeFctProduct(MortarEl, SlaveFacet(Facets, i), SlaveCoords,
-                                                                                 SlaveCoords, MasterFacet(Facets, i), MasterCoords, ngp);
-   }
-
-   return MatShapeFctProd;
-}
-
-template<>
-inline void
-FFIPolygon<double>::ComputeGradNormalM(MortarElement* MortarEl, CoordSet &SlaveCoords, CoordSet &MasterCoords, int ngp)
-{
-  M = IntegrateOnSlave_SlaveGradNormalShapeFctProduct(MortarEl, SlaveCoords, MasterCoords, ngp);
-}
-
-template<>
-inline void
-FFIPolygon<double>::ComputeGradNormalN(MortarElement* MortarEl, CoordSet &SlaveCoords, CoordSet &MasterCoords, int ngp)
-{
-  N = IntegrateOnSlave_MasterGradNormalShapeFctProduct(MortarEl, SlaveCoords, MasterCoords, ngp);
-}
-
-template<>
-inline void
-FFIPolygon<double>::ComputeNormalGeoGap(MortarElement* MortarEl, CoordSet &SlaveCoords, CoordSet &MasterCoords, int ngp,
-                                        double offset)
-{
-   int nMortarShapeFct = MortarEl->nNodes();
-
-   NormalGeoGaps.reset(nMortarShapeFct,0.0);
-
-   // Loop over triangularization
-   for(size_t i=0, ii=GetnFacets(); i<ii; ++i) {
-/*   // old version
-     NormalGeoGaps += SlaveFacet(Facets, i).IntegrateNormalGeoGagsProduct(MortarEl, SlaveFacet(Facets, i), SlaveCoords,
-                                                                          SlaveCoords, ngp, offset);
-     NormalGeoGaps -= SlaveFacet(Facets, i).IntegrateNormalGeoGagsProduct(MortarEl, MasterFacet(Facets, i), SlaveCoords,
-                                                                          MasterCoords, ngp);*/
-     // new version
-     NormalGeoGaps += SlaveFacet(Facets, i).IntegrateNormalGeoGagsProduct(MortarEl, SlaveFacet(Facets, i), MasterFacet(Facets, i),
-                                                                          SlaveCoords, SlaveCoords, MasterCoords, ngp, offset);
-   }
-   //NormalGeoGaps.print(" NormalGeoGaps[FFIPolygon]");
-}
-
-#if (MAX_MORTAR_DERIVATIVES > 0)
-template<>
-inline void
-FFIPolygon<ActiveDouble>::ComputeGradNormalM(MortarElement* MortarEl, CoordSet &SlaveCoords, CoordSet &MasterCoords, int ngp)
-{
-   // M is computed in FFIPolygon<ActiveDouble>::ComputeNormalGeoGap
-}
-
-template<>
-inline void
-FFIPolygon<ActiveDouble>::ComputeGradNormalN(MortarElement* MortarEl, CoordSet &SlaveCoords, CoordSet &MasterCoords, int ngp)
-{
-   // N is computed in FFIPolygon<ActiveDouble>::ComputeNormalGeoGap
-}
-
-template<>
-inline void
-FFIPolygon<ActiveDouble>::ComputeNormalGeoGap(MortarElement* MortarEl, CoordSet &SlaveCoords, CoordSet &MasterCoords, int ngp,
-                                           double offset)
-{
-   PrepLocalCoordData();
-   int nMortarShapeFct = MortarEl->nNodes();
-
-   GenVector<ActiveDouble> MadNormalGeoGaps(nMortarShapeFct,ActiveDouble(0.0));
-
-   MadCoordSet MadMasterCoords, MadSlaveCoords;
-   for (int i=0; i<MasterFace->nNodes(); ++i) {
-     Node& node = MasterCoords.getNode(MasterFace->GetNode(i));
-     MadNode *mynode = new MadNode(node.x,node.y,node.z);
-#ifdef MORTAR_AUTO_DIFF_SACADO_FAD
-     mynode->x.diff(3*i+0, MAX_MORTAR_DERIVATIVES);
-     mynode->y.diff(3*i+1, MAX_MORTAR_DERIVATIVES);
-     mynode->z.diff(3*i+2, MAX_MORTAR_DERIVATIVES);
-#elif defined(MORTAR_AUTO_DIFF_SACADO_RAD_FAD)
-     mynode->x = Sacado::Fad::SFad<double,MAX_MORTAR_DERIVATIVES>(MAX_MORTAR_DERIVATIVES, 3*i+0, node.x);
-     mynode->y = Sacado::Fad::SFad<double,MAX_MORTAR_DERIVATIVES>(MAX_MORTAR_DERIVATIVES, 3*i+1, node.y);
-     mynode->z = Sacado::Fad::SFad<double,MAX_MORTAR_DERIVATIVES>(MAX_MORTAR_DERIVATIVES, 3*i+2, node.z);
-#elif defined(MORTAR_AUTO_DIFF_EIGEN_FAD)
-     mynode->x.derivatives() = DerivativeType::Unit(MAX_MORTAR_DERIVATIVES, 3*i+0);
-     mynode->y.derivatives() = DerivativeType::Unit(MAX_MORTAR_DERIVATIVES, 3*i+1);
-     mynode->z.derivatives() = DerivativeType::Unit(MAX_MORTAR_DERIVATIVES, 3*i+2);
-#else // MORTAR_AUTO_DIFF_EIGEN_FAD_FAD
-     mynode->x = ActiveDouble(Eigen::AutoDiffScalar<DerivativeType>(node.x,MAX_MORTAR_DERIVATIVES,3*i+0), MAX_MORTAR_DERIVATIVES, 3*i+0);
-     mynode->y = ActiveDouble(Eigen::AutoDiffScalar<DerivativeType>(node.y,MAX_MORTAR_DERIVATIVES,3*i+1), MAX_MORTAR_DERIVATIVES, 3*i+1);
-     mynode->z = ActiveDouble(Eigen::AutoDiffScalar<DerivativeType>(node.z,MAX_MORTAR_DERIVATIVES,3*i+2), MAX_MORTAR_DERIVATIVES, 3*i+2);
-#endif
-     MadMasterCoords[MasterFace->GetNode(i)] = mynode;
-   }
-   for (int i=0; i<SlaveFace->nNodes(); ++i) {
-     Node& node = SlaveCoords.getNode(SlaveFace->GetNode(i));
-     MadNode *mynode = new MadNode(node.x,node.y,node.z);
-#ifdef MORTAR_AUTO_DIFF_SACADO_FAD
-     mynode->x.diff(MAX_MORTAR_DERIVATIVES/2+3*i+0, MAX_MORTAR_DERIVATIVES);
-     mynode->y.diff(MAX_MORTAR_DERIVATIVES/2+3*i+1, MAX_MORTAR_DERIVATIVES);
-     mynode->z.diff(MAX_MORTAR_DERIVATIVES/2+3*i+2, MAX_MORTAR_DERIVATIVES);
-#elif defined(MORTAR_AUTO_DIFF_SACADO_RAD_FAD)
-     mynode->x = Sacado::Fad::SFad<double,MAX_MORTAR_DERIVATIVES>(MAX_MORTAR_DERIVATIVES, MAX_MORTAR_DERIVATIVES/2+3*i+0, node.x);
-     mynode->y = Sacado::Fad::SFad<double,MAX_MORTAR_DERIVATIVES>(MAX_MORTAR_DERIVATIVES, MAX_MORTAR_DERIVATIVES/2+3*i+1, node.y);
-     mynode->z = Sacado::Fad::SFad<double,MAX_MORTAR_DERIVATIVES>(MAX_MORTAR_DERIVATIVES, MAX_MORTAR_DERIVATIVES/2+3*i+2, node.z);
-#elif defined(MORTAR_AUTO_DIFF_EIGEN_FAD)
-     mynode->x.derivatives() = DerivativeType::Unit(MAX_MORTAR_DERIVATIVES, MAX_MORTAR_DERIVATIVES/2+3*i+0);
-     mynode->y.derivatives() = DerivativeType::Unit(MAX_MORTAR_DERIVATIVES, MAX_MORTAR_DERIVATIVES/2+3*i+1);
-     mynode->z.derivatives() = DerivativeType::Unit(MAX_MORTAR_DERIVATIVES, MAX_MORTAR_DERIVATIVES/2+3*i+2);
-#else // MORTAR_AUTO_DIFF_EIGEN_FAD_FAD
-     mynode->x = ActiveDouble(Eigen::AutoDiffScalar<DerivativeType>(node.x,MAX_MORTAR_DERIVATIVES,MAX_MORTAR_DERIVATIVES/2+3*i+0),
-                           MAX_MORTAR_DERIVATIVES, MAX_MORTAR_DERIVATIVES/2+3*i+0);
-     mynode->y = ActiveDouble(Eigen::AutoDiffScalar<DerivativeType>(node.y,MAX_MORTAR_DERIVATIVES,MAX_MORTAR_DERIVATIVES/2+3*i+1),
-                           MAX_MORTAR_DERIVATIVES, MAX_MORTAR_DERIVATIVES/2+3*i+1);
-     mynode->z = ActiveDouble(Eigen::AutoDiffScalar<DerivativeType>(node.z,MAX_MORTAR_DERIVATIVES,MAX_MORTAR_DERIVATIVES/2+3*i+2),
-                           MAX_MORTAR_DERIVATIVES, MAX_MORTAR_DERIVATIVES/2+3*i+2);
-#endif
-     MadSlaveCoords[SlaveFace->GetNode(i)] = mynode;
-   }
-
-   // Loop over triangularization
-   for(size_t i=0, ii=GetnFacets(); i<ii; ++i) {
-/*   // old version
-     MadNormalGeoGaps += SlaveFacet(Facets, i).IntegrateNormalGeoGagsProduct(MortarEl, SlaveFacet(Facets, i), MadSlaveCoords,
-                                                                             MadSlaveCoords, ngp, offset);
-     MadNormalGeoGaps -= SlaveFacet(Facets, i).IntegrateNormalGeoGagsProduct(MortarEl, MasterFacet(Facets, i), MadSlaveCoords,
-                                                                             MadMasterCoords, ngp); */
-     // new version
-     MadNormalGeoGaps += SlaveFacet(Facets, i).IntegrateNormalGeoGagsProduct(MortarEl, SlaveFacet(Facets, i), MasterFacet(Facets, i),
-                                                                             MadSlaveCoords, MadSlaveCoords, MadMasterCoords, ngp, offset);
-   }
-
-   NormalGeoGaps.reset(nMortarShapeFct,0.0);
-   M.setNewSize(nMortarShapeFct,3*SlaveFace->nNodes());
-   N.setNewSize(nMortarShapeFct,3*MasterFace->nNodes());
-#if defined(MORTAR_AUTO_DIFF_SACADO_RAD_FAD) || defined(MORTAR_AUTO_DIFF_EIGEN_FAD_FAD)
-   if(!dM) dM = new FullM[nMortarShapeFct];
-   if(!dN) dN = new FullM[nMortarShapeFct];
-   for(int i=0; i<nMortarShapeFct; ++i) { 
-     dM[i].setNewSize(3*SlaveFace->nNodes(),MAX_MORTAR_DERIVATIVES);
-     dN[i].setNewSize(3*MasterFace->nNodes(),MAX_MORTAR_DERIVATIVES);
-   }
-#endif
-   for(int i = 0; i < nMortarShapeFct; ++i) {
-#ifdef MORTAR_AUTO_DIFF_SACADO_FAD
-     NormalGeoGaps[i] = MadNormalGeoGaps[i].val();
-#elif defined(MORTAR_AUTO_DIFF_SACADO_RAD_FAD)
-     Sacado::RadVec::ADvar< Sacado::Fad::SFad<double,MAX_MORTAR_DERIVATIVES> >::Outvar_Gradcomp(MadNormalGeoGaps[i]);
-     NormalGeoGaps[i] = MadNormalGeoGaps[i].val().val();
-#elif defined(MORTAR_AUTO_DIFF_EIGEN_FAD)
-     NormalGeoGaps[i] = MadNormalGeoGaps[i].value();
-#else // MORTAR_AUTO_DIFF_EIGEN_FAD_FAD
-     NormalGeoGaps[i] = MadNormalGeoGaps[i].value().value();
-#endif
-     for(int j = 0; j < SlaveFace->nNodes(); ++j) {
-#ifdef MORTAR_AUTO_DIFF_SACADO_FAD
-       for(int k = 0; k < 3; ++k)
-         M[i][3*j+k] = MadNormalGeoGaps[i].dx(MAX_MORTAR_DERIVATIVES/2+3*j+k);
-#elif defined(MORTAR_AUTO_DIFF_SACADO_RAD_FAD)
-       M[i][3*j+0] = MadSlaveCoords[SlaveFace->GetNode(j)]->x.adj().val();
-       M[i][3*j+1] = MadSlaveCoords[SlaveFace->GetNode(j)]->y.adj().val();
-       M[i][3*j+2] = MadSlaveCoords[SlaveFace->GetNode(j)]->z.adj().val();
-       for(int l = 0; l < MAX_MORTAR_DERIVATIVES; ++l) {
-         dM[i][3*j+0][l] = MadSlaveCoords[SlaveFace->GetNode(j)]->x.adj().dx(l);
-         dM[i][3*j+1][l] = MadSlaveCoords[SlaveFace->GetNode(j)]->y.adj().dx(l);
-         dM[i][3*j+2][l] = MadSlaveCoords[SlaveFace->GetNode(j)]->z.adj().dx(l);
-       }
-#elif defined(MORTAR_AUTO_DIFF_EIGEN_FAD)
-       for(int k = 0; k < 3; ++k)
-         M[i][3*j+k] = MadNormalGeoGaps[i].derivatives()[MAX_MORTAR_DERIVATIVES/2+3*j+k];
-#else // MORTAR_AUTO_DIFF_EIGEN_FAD_FAD
-       for(int k = 0; k < 3; ++k) {
-         M[i][3*j+k] = MadNormalGeoGaps[i].derivatives()[MAX_MORTAR_DERIVATIVES/2+3*j+k].value();
-         for(int l = 0; l < MAX_MORTAR_DERIVATIVES; ++l)
-           dM[i][3*j+k][l] = MadNormalGeoGaps[i].derivatives()[MAX_MORTAR_DERIVATIVES/2+3*j+k].derivatives()[l];
-       }
-#endif
-     }
-
-     for(int j = 0; j < MasterFace->nNodes(); ++j) {
-#ifdef MORTAR_AUTO_DIFF_SACADO_FAD
-       for(int k = 0; k < 3; ++k)
-         N[i][3*j+k] = -MadNormalGeoGaps[i].dx(3*j+k);
-#elif defined(MORTAR_AUTO_DIFF_SACADO_RAD_FAD)
-       N[i][3*j+0] = -MadMasterCoords[MasterFace->GetNode(j)]->x.adj().val();
-       N[i][3*j+1] = -MadMasterCoords[MasterFace->GetNode(j)]->y.adj().val();
-       N[i][3*j+2] = -MadMasterCoords[MasterFace->GetNode(j)]->z.adj().val();
-       for(int l = 0; l < MAX_MORTAR_DERIVATIVES; ++l) {
-         dN[i][3*j+0][l] = MadMasterCoords[MasterFace->GetNode(j)]->x.adj().dx(l);
-         dN[i][3*j+1][l] = MadMasterCoords[MasterFace->GetNode(j)]->y.adj().dx(l);
-         dN[i][3*j+2][l] = MadMasterCoords[MasterFace->GetNode(j)]->z.adj().dx(l);
-       }
-#elif defined(MORTAR_AUTO_DIFF_EIGEN_FAD)
-       for(int k = 0; k < 3; ++k)
-         N[i][3*j+k] = -MadNormalGeoGaps[i].derivatives()[3*j+k];
-#else // MORTAR_AUTO_DIFF_EIGEN_FAD_FAD
-       for(int k = 0; k < 3; ++k) {
-         N[i][3*j+k] = -MadNormalGeoGaps[i].derivatives()[3*j+k].value();
-         for(int l = 0; l < MAX_MORTAR_DERIVATIVES; ++l)
-           dN[i][3*j+k][l] = -MadNormalGeoGaps[i].derivatives()[3*j+k].derivatives()[l];
-       }
-#endif
-     }
-   }
-
-   for (int i=0; i<MasterFace->nNodes(); ++i)
-     delete MadMasterCoords[MasterFace->GetNode(i)];
-   for (int i=0; i<SlaveFace->nNodes(); ++i) 
-     delete MadSlaveCoords[SlaveFace->GetNode(i)];
-
-#ifdef MORTAR_AUTO_DIFF_SACADO_RAD_FAD
-   Sacado::RadVec::ADvar< Sacado::Fad::SFad<double,MAX_MORTAR_DERIVATIVES> >::aval_reset();
-#endif
-}
-#endif
-
-/*
-// EXPERIMENTAL
-// Alternative implementation that do not store the (triangular) facets but
-// construct them on-the-fly when performing the integrations
-// This may save memory as the nodes of the facets are no more duplicated and stored
-// Also the FFIPolygon object may only references the ACME_FFI_Data array instead of
-// extracting and storing its revelant data; in which case the ACME_FFI_Data may
-// must NOT be destroyed before the FFIPolygon objects are used. This approach should
-// be OK in case of multi-threads because as the ACME_FFI_Data array is only read, no 
-// false-sharing should happen. 
-
-FullM
-FFIPolygon::IntegrateOnMaster_MasterShapeFctProduct(MortarElement* MortarEl, CoordSet &cs, int ngp)
-// *****************************************************************************************************
-// Integrate on the MASTER SIDE the product of the shape functions defined by the given
-// MortarElement and the shape functions of the MASTER face element
-// NOTE:
-//     (1) you HAVE to ensure that the MortarElement is ASSOCIATED with the SLAVE (or MASTER) face
-//         element of THIS FFIPolygon object
-//     (2) the rows & colums ordering of the shape fcts product matrix is ASSOCIATED with the ordering
-//         of the MORTAR & MASTER face element node ordering
-// *****************************************************************************************************
-{
-   int nMortarShapeFct = MortarEl->nNodes();
-   int nMasterShapeFct = MasterFace->nNodes();
-
-   FullM MatShapeFctProd(nMortarShapeFct,nMasterShapeFct);
-   MatShapeFctProd.zero();
-
-   // Loop over triangularization
-  //double m1M[2], m2M[2], m3M[2];
-  //double m1S[2], m2S[2], m3S[2];
-  int offsetm1, offsetm2;
-  TriFacet MasterFacet;
-  for(int i=0, ii=GetnFacets(); i<ii; i++) {
-     offsetm1 = 4*i; offsetm2 = 4*((4*(i+1))%ii);
-
-     // !! Swap Master & Slave (ACME Master <=> our Slave, ...) !!
-     // !! Swap ordering to have the centroid as the first vertex of the TriFacet !! 
-     MasterFacet.SetTriFacet(MasterFace, SlaveCentroid, &ACME_FFI_LocalCoordData[offsetm1], 
-                                                        &ACME_FFI_LocalCoordData[offsetm2]);
-
-     MatShapeFctProd += MasterFacet.IntegrateShapeFctProduct(MortarEl, MasterFacet, cs, ngp);
+  // Loop over triangularization
+  for(size_t i=0, ii=GetnFacets(); i<ii; ++i) {
+    MatShapeFctProd += SlaveFacet(Facets, i).IntegrateGradNormalGeoGap(MortarEl, MasterFacet(Facets, i),
+                                                                       SlaveCoords, MasterCoords, ngp, offset);
   }
 
   return MatShapeFctProd;
 }
-*/
+
+template<class MasterFaceType, class SlaveFaceType, class MortarType>
+FullM
+FFIPolygonTemplate<MasterFaceType,SlaveFaceType,MortarType>
+::IntegrateOnSlave_HessNormalGeoGap(MortarType* MortarEl, CoordSet &SlaveCoords, CoordSet &MasterCoords, double *mu, int ngp, double offset)
+// *****************************************************************************************************
+// Integrate on the SLAVE SIDE the contribution to the hessian of the gap function contracted with mu due to the
+// products of the normal and the shape functions defined by the given MortarElement and the shape
+// functions of both the MASTER and the SLAVE face elements i.e. H = sum_i mu[i]*(Jacobian of [-N[i] M[i] ])
+// NOTE:
+//     (1) you HAVE to ensure that the MortarElement is ASSOCIATED with the SLAVE (or MASTER) face
+//         element of THIS FFIPolygon object
+//     (2) the rows & colums ordering of the shape fcts product matrix is ASSOCIATED with the ordering
+//         of the MORTAR & MASTER face element node ordering
+// *****************************************************************************************************
+{
+  int nMortarShapeFct = MortarEl->nNodes();
+  int nMasterShapeFct = MasterFace->nNodes();
+  int nSlaveShapeFct  = SlaveFace->nNodes();
+
+  FullM MatShapeFctProd(3*nMasterShapeFct+3*nSlaveShapeFct, 3*nMasterShapeFct+3*nSlaveShapeFct);
+  MatShapeFctProd.zero();
+
+  // Loop over triangularization
+  for(size_t i=0, ii=GetnFacets(); i<ii; ++i) {
+    MatShapeFctProd += SlaveFacet(Facets, i).IntegrateHessNormalGeoGap(MortarEl, MasterFacet(Facets, i),
+                                                                       SlaveCoords, MasterCoords, mu, ngp, offset);
+  }
+
+  return MatShapeFctProd;
+}
+
+template<class MasterFaceType, class SlaveFaceType, class MortarType>
+void
+FFIPolygonTemplate<MasterFaceType,SlaveFaceType,MortarType>
+::ComputeNormalGeoGap(MortarType* MortarEl, CoordSet &SlaveCoords, CoordSet &MasterCoords, int ngp, double offset)
+{
+  int nMortarShapeFct = MortarEl->nNodes();
+
+  NormalGeoGaps.reset(nMortarShapeFct,0.0);
+
+  // Loop over triangularization
+  for(size_t i=0, ii=GetnFacets(); i<ii; ++i) {
+    NormalGeoGaps += SlaveFacet(Facets, i).IntegrateNormalGeoGap(MortarEl, MasterFacet(Facets, i),
+                                                                 SlaveCoords, MasterCoords, ngp, offset);
+  }
+}
+
+template<class MasterFaceType, class SlaveFaceType, class MortarType>
+void
+FFIPolygonTemplate<MasterFaceType,SlaveFaceType,MortarType>
+::ComputeGradNormalGeoGap(MortarType* MortarEl, CoordSet &SlaveCoords, CoordSet &MasterCoords, int ngp, double offset)
+{
+  FullM C = IntegrateOnSlave_GradNormalGeoGap(MortarEl, SlaveCoords, MasterCoords, ngp, offset);
+
+  int nMortarShapeFct = MortarEl->nNodes();
+  M.setNewSize(nMortarShapeFct,3*SlaveFace->nNodes());
+  N.setNewSize(nMortarShapeFct,3*MasterFace->nNodes());
+  for(int i=0; i<nMortarShapeFct; ++i) {
+    for(int j=0; j<3*SlaveFace->nNodes(); ++j) M[i][j] = C(i,3*MasterFace->nNodes()+j);
+    for(int j=0; j<3*MasterFace->nNodes(); ++j) N[i][j] = -C(i,j);
+  }
+}
+
+template<class MasterFaceType, class SlaveFaceType, class MortarType>
+void
+FFIPolygonTemplate<MasterFaceType,SlaveFaceType,MortarType>
+::ComputeHessNormalGeoGap(MortarType* MortarEl, CoordSet &SlaveCoords, CoordSet &MasterCoords, double *mu, int ngp, double offset)
+{
+  H = IntegrateOnSlave_HessNormalGeoGap(MortarEl, SlaveCoords, MasterCoords, mu, ngp, offset);
+}
+#endif

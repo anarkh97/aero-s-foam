@@ -42,7 +42,7 @@ namespace topology_hash_0
     void SetupHash(int, ContactTopologyEntity<Real> **);
     void ClearHash();
     ContactTopologyEntity<Real> *find( ContactHostGlobalID & );
-    ContactTopologyEntity<Real>* find( ContactInteractionEntity::entity_data *data );
+    ContactTopologyEntity<Real>* find( ContactInteractionEntity<Real>::entity_data *data );
     void insert(ContactHostGlobalID &Global_ID, ContactTopologyEntity<Real>* Entity);
 
     int nbins;
@@ -91,7 +91,7 @@ namespace topology_hash_1
     void AddEntities(ContactBlockEntityList *);
     void ClearHash();
     ContactTopologyEntity<Real> *find( ContactHostGlobalID & );
-    ContactTopologyEntity<Real>* find( ContactInteractionEntity::entity_data *data );
+    ContactTopologyEntity<Real>* find( ContactInteractionEntity<Real>::entity_data *data );
     void insert(ContactHostGlobalID &, ContactTopologyEntity<Real> *);
 
     std::ostream& stream_data(std::ostream &) const;

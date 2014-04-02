@@ -20,7 +20,7 @@
 
 #include "ContactEntityDataHash.h"
 
-ContactEntityDataHash::ContactEntityDataHash( std::vector<ContactInteractionEntity::entity_data*> *list)
+ContactEntityDataHash::ContactEntityDataHash( std::vector<ContactInteractionEntity<Real>::entity_data*> *list)
 {
   number_of_entities = list->size();
   hash_space = NULL;
@@ -57,7 +57,7 @@ ContactEntityDataHash::ContactEntityDataHash( std::vector<ContactInteractionEnti
 
   // Add each entity to the hash table
   for(int i = 0; i < list->size(); ++i) {
-    ContactInteractionEntity::entity_data *entity = (*list)[i];
+    ContactInteractionEntity<Real>::entity_data *entity = (*list)[i];
     find(entity, 1, NULL, entity);
   }
 }
@@ -90,10 +90,10 @@ void ContactEntityDataHash::create_space()
 }
 
 
-ContactInteractionEntity::entity_data* 
-ContactEntityDataHash::find( ContactInteractionEntity::entity_data* data, 
+ContactInteractionEntity<Real>::entity_data* 
+ContactEntityDataHash::find( ContactInteractionEntity<Real>::entity_data* data, 
                              int flag, hash* newpt, 
-                             ContactInteractionEntity::entity_data* Entity )
+                             ContactInteractionEntity<Real>::entity_data* Entity )
 {
   hash* ptr;
   hash** previous;
@@ -125,8 +125,8 @@ ContactEntityDataHash::find( ContactInteractionEntity::entity_data* data,
 }
 
 int
-ContactEntityDataHash::CompareEntityData(ContactInteractionEntity::entity_data* e1,
-                                         ContactInteractionEntity::entity_data* e2)
+ContactEntityDataHash::CompareEntityData(ContactInteractionEntity<Real>::entity_data* e1,
+                                         ContactInteractionEntity<Real>::entity_data* e2)
 {
   if (e1->type < e2->type) {
     return -1;

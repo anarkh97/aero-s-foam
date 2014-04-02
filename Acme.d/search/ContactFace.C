@@ -65,17 +65,17 @@ template<typename DataType>
 ContactFace<DataType>::~ContactFace()
 {
   for(int i = 0; i < FaceFaceInteractions.size(); ++i) {
-    ContactInteractionEntity* link=NULL;
+    ContactInteractionEntity<DataType>* link=NULL;
     FaceFaceInteractions[i].IteratorStart();
     while ((link=FaceFaceInteractions[i].IteratorForward())) {
-      ContactFaceFaceInteraction* cffi = 
-        static_cast<ContactFaceFaceInteraction*>(link);
+      ContactFaceFaceInteraction<DataType>* cffi = 
+        static_cast<ContactFaceFaceInteraction<DataType>*>(link);
       cffi->~ContactFaceFaceInteraction();
       allocators[ContactSearch::ALLOC_ContactFaceFaceInteraction].Delete_Frag(cffi);      
     }
   }
   for( int i=0 ; i<FaceCoverageInteractions.size() ; ++i ){
-    ContactInteractionEntity* link=NULL;
+    ContactInteractionEntity<Real>* link=NULL;
     FaceCoverageInteractions[i].IteratorStart();
     while ((link=FaceCoverageInteractions[i].IteratorForward())) {
       ContactFaceCoverageInteraction* cfci = 
@@ -180,15 +180,15 @@ int ContactFace<DataType>::Size_Interactions(int state)
 {
   int size = sizeof(int);
   
-  ContactInteractionDLL* interactions;
-  ContactInteractionEntity* entity;
+  ContactInteractionDLL<DataType>* interactions;
+  ContactInteractionEntity<DataType>* entity;
   
   interactions = Get_FaceFace_Interactions(state);
   if(interactions != NULL) {
     interactions->IteratorStart();
     while ((entity=interactions->IteratorForward())) {
-      ContactFaceFaceInteraction* i = 
-        static_cast<ContactFaceFaceInteraction*>(entity);
+      ContactFaceFaceInteraction<DataType>* i = 
+        static_cast<ContactFaceFaceInteraction<DataType>*>(entity);
       size += i->Size()+sizeof(int);
     }
   }
@@ -213,16 +213,16 @@ void ContactFace<DataType>::Pack_Interactions( char* buffer, int state )
   
   *i_buf = num_interactions;
   
-  ContactInteractionDLL* interactions;
-  ContactInteractionEntity* entity;
+  ContactInteractionDLL<DataType>* interactions;
+  ContactInteractionEntity<DataType>* entity;
   buffer += sizeof(int);
   
   interactions = Get_FaceFace_Interactions(state);
   if(interactions != NULL) {
     interactions->IteratorStart();
     while ((entity=interactions->IteratorForward())) {
-      ContactFaceFaceInteraction* i = 
-        static_cast<ContactFaceFaceInteraction*>(entity);
+      ContactFaceFaceInteraction<DataType>* i = 
+        static_cast<ContactFaceFaceInteraction<DataType>*>(entity);
       int* ibuf = reinterpret_cast<int*>(buffer);
       *ibuf = i->Size();
       i->Pack(buffer+sizeof(int));
@@ -257,8 +257,8 @@ void ContactFace<DataType>::Unpack_Interactions( char* buffer, int state )
     switch (interaction_type) {
     case CT_FFI:
       {
-	ContactFaceFaceInteraction* i = 
-          ContactFaceFaceInteraction::new_ContactFaceFaceInteraction( 
+	ContactFaceFaceInteraction<DataType>* i = 
+          ContactFaceFaceInteraction<DataType>::new_ContactFaceFaceInteraction( 
               allocators[ContactSearch::ALLOC_ContactFaceFaceInteraction]);
 	i->Unpack( buf );
 	i->Connect_SlaveFace( this );
@@ -283,16 +283,16 @@ void ContactFace<DataType>::Unpack_Interactions( char* buffer, int state )
 template<typename DataType>
 void ContactFace<DataType>::Copy_Interactions( ContactFace<DataType>* src, int state )
 {
-  ContactInteractionEntity* entity;
+  ContactInteractionEntity<DataType>* entity;
   if(src->FaceFaceInteractions.size() > state && src->FaceFaceInteractions[state].NumEntities() > 0) {
-    ContactInteractionDLL &interactions = src->FaceFaceInteractions[state];
+    ContactInteractionDLL<DataType> &interactions = src->FaceFaceInteractions[state];
     interactions.IteratorStart();
     while ((entity=interactions.IteratorForward())) {
-      ContactFaceFaceInteraction* new_ffi = 
-        ContactFaceFaceInteraction::new_ContactFaceFaceInteraction( 
+      ContactFaceFaceInteraction<DataType>* new_ffi = 
+        ContactFaceFaceInteraction<DataType>::new_ContactFaceFaceInteraction( 
             allocators[ContactSearch::ALLOC_ContactFaceFaceInteraction]);
-      ContactFaceFaceInteraction* old_ffi = 
-        static_cast<ContactFaceFaceInteraction*>(entity);
+      ContactFaceFaceInteraction<DataType>* old_ffi = 
+        static_cast<ContactFaceFaceInteraction<DataType>*>(entity);
       new_ffi->Copy( old_ffi );
       new_ffi->Connect_SlaveFace( this );
       Store_FaceFace_Interaction( new_ffi, state );
@@ -300,7 +300,7 @@ void ContactFace<DataType>::Copy_Interactions( ContactFace<DataType>* src, int s
   }
 
   if (src->FaceCoverageInteractions.size() > state && src->FaceCoverageInteractions[state].NumEntities()>0) {
-    ContactInteractionDLL &interactions = src->FaceCoverageInteractions[state];
+    ContactInteractionDLL<Real> &interactions = src->FaceCoverageInteractions[state];
     interactions.IteratorStart();
     while ((entity=interactions.IteratorForward())) {
       ContactFaceCoverageInteraction* new_fci = 
@@ -324,15 +324,15 @@ int ContactFace<DataType>::Size_Interactions_ForSecondary(int state)
 {
   int size = sizeof(int);
   
-  ContactInteractionDLL* interactions;
-  ContactInteractionEntity* entity;
+  ContactInteractionDLL<DataType>* interactions;
+  ContactInteractionEntity<DataType>* entity;
   
   interactions = Get_FaceFace_Interactions(state);
   if(interactions != NULL) {
     interactions->IteratorStart();
     while ((entity=interactions->IteratorForward())) {
-      ContactFaceFaceInteraction* i = 
-        static_cast<ContactFaceFaceInteraction*>(entity);
+      ContactFaceFaceInteraction<DataType>* i = 
+        static_cast<ContactFaceFaceInteraction<DataType>*>(entity);
       size += i->Size()+sizeof(int);
     }
   }
@@ -357,16 +357,16 @@ void ContactFace<DataType>::Pack_Interactions_ForSecondary( char* buffer, int st
   
   *i_buf = num_interactions;
   
-  ContactInteractionDLL* interactions;
-  ContactInteractionEntity* entity;
+  ContactInteractionDLL<DataType>* interactions;
+  ContactInteractionEntity<DataType>* entity;
   buffer += sizeof(int);
   
   interactions = Get_FaceFace_Interactions(state);
   if(interactions != NULL) {
     interactions->IteratorStart();
     while ((entity=interactions->IteratorForward())) {
-      ContactFaceFaceInteraction* i = 
-        static_cast<ContactFaceFaceInteraction*>(entity);
+      ContactFaceFaceInteraction<DataType>* i = 
+        static_cast<ContactFaceFaceInteraction<DataType>*>(entity);
       int* ibuf = reinterpret_cast<int*> (buffer);
       *ibuf = i->Size();
       i->Pack(buffer+sizeof(int));
@@ -401,8 +401,8 @@ void ContactFace<DataType>::Unpack_Interactions_ForSecondary( char* buffer, int 
     switch (interaction_type) {
     case CT_FFI:
       {
-	ContactFaceFaceInteraction* i = 
-          ContactFaceFaceInteraction::new_ContactFaceFaceInteraction( 
+	ContactFaceFaceInteraction<DataType>* i = 
+          ContactFaceFaceInteraction<DataType>::new_ContactFaceFaceInteraction( 
               allocators[ContactSearch::ALLOC_ContactFaceFaceInteraction]);
 	i->Unpack( buf );
 	i->Connect_SlaveFace( this );
@@ -427,23 +427,23 @@ void ContactFace<DataType>::Unpack_Interactions_ForSecondary( char* buffer, int 
 template<typename DataType>
 void ContactFace<DataType>::Copy_Interactions_ForSecondary( ContactFace<DataType>* src, int state )
 {
-  ContactInteractionEntity* entity;
+  ContactInteractionEntity<DataType>* entity;
   if(src->FaceFaceInteractions.size() > state && src->FaceFaceInteractions[state].NumEntities() > 0) {
-    ContactInteractionDLL &interactions = src->FaceFaceInteractions[state];
+    ContactInteractionDLL<DataType> &interactions = src->FaceFaceInteractions[state];
     interactions.IteratorStart();
     while ((entity=interactions.IteratorForward())) {
-      ContactFaceFaceInteraction* new_ffi = 
-        ContactFaceFaceInteraction::new_ContactFaceFaceInteraction( 
+      ContactFaceFaceInteraction<DataType>* new_ffi = 
+        ContactFaceFaceInteraction<DataType>::new_ContactFaceFaceInteraction( 
             allocators[ContactSearch::ALLOC_ContactFaceFaceInteraction]);
-      ContactFaceFaceInteraction* old_ffi = 
-        static_cast<ContactFaceFaceInteraction*>(entity);
+      ContactFaceFaceInteraction<DataType>* old_ffi = 
+        static_cast<ContactFaceFaceInteraction<DataType>*>(entity);
       new_ffi->Copy( old_ffi );
       new_ffi->Connect_SlaveFace( this );
       Store_FaceFace_Interaction( new_ffi, state );
     }
   }
   if (src->FaceCoverageInteractions.size() > state && src->FaceCoverageInteractions[state].NumEntities()>0) {
-    ContactInteractionDLL &interactions = src->FaceCoverageInteractions[state];
+    ContactInteractionDLL<Real> &interactions = src->FaceCoverageInteractions[state];
     interactions.IteratorStart();
     while ((entity=interactions.IteratorForward())) {
       ContactFaceCoverageInteraction* new_fci = 
@@ -481,18 +481,18 @@ DataType ContactFace<DataType>::MaxSize( VariableHandle POSITION )
 #endif
 
 template<typename DataType>
-ContactFaceFaceInteraction* 
+ContactFaceFaceInteraction<DataType>* 
 ContactFace<DataType>::Get_FaceFace_Interaction(int interaction_number, int state )
 {
-  ContactInteractionEntity* entity=NULL;
+  ContactInteractionEntity<DataType>* entity=NULL;
 
   if(FaceFaceInteractions.size() > state) {
     FaceFaceInteractions[state].IteratorStart();
     while ((entity=FaceFaceInteractions[state].IteratorForward())) {
       if (entity->Index()==interaction_number) break;
     }
-    ContactFaceFaceInteraction* ffi=NULL;
-    if (entity) ffi = static_cast<ContactFaceFaceInteraction*>(entity);
+    ContactFaceFaceInteraction<DataType>* ffi=NULL;
+    if (entity) ffi = static_cast<ContactFaceFaceInteraction<DataType>*>(entity);
     return ffi;
   }
   return NULL;
@@ -501,7 +501,7 @@ ContactFace<DataType>::Get_FaceFace_Interaction(int interaction_number, int stat
 template<typename DataType>
 void 
 ContactFace<DataType>::Store_FaceFace_Interaction( 
-             ContactFaceFaceInteraction* ffi, int state )
+             ContactFaceFaceInteraction<DataType>* ffi, int state )
 {
   PRECONDITION( ffi );
 
@@ -514,15 +514,15 @@ ContactFace<DataType>::Store_FaceFace_Interaction(
 template<typename DataType>
 void 
 ContactFace<DataType>::Delete_FaceFace_Interaction( 
-             ContactFaceFaceInteraction* ffi, int state )
+             ContactFaceFaceInteraction<DataType>* ffi, int state )
 {
-  ContactInteractionEntity* link=NULL;
+  ContactInteractionEntity<DataType>* link=NULL;
 
   if(FaceFaceInteractions.size() <= state) return;
   FaceFaceInteractions[state].IteratorStart();
   while ((link=FaceFaceInteractions[state].IteratorForward())) {
     if (link->Index()==ffi->Index()) {
-      ContactFaceFaceInteraction* cffi = static_cast<ContactFaceFaceInteraction*>(link);
+      ContactFaceFaceInteraction<DataType>* cffi = static_cast<ContactFaceFaceInteraction<DataType>*>(link);
       cffi->~ContactFaceFaceInteraction();
       allocators[ContactSearch::ALLOC_ContactFaceFaceInteraction].Delete_Frag(cffi);
       FaceFaceInteractions[state].DeletePrev();
@@ -551,13 +551,13 @@ ContactFace<DataType>::Display_FaceFace_Interactions( ContactParOStream& postrea
 
   if(FaceFaceInteractions.size() <= state) return;
   FaceFaceInteractions[state].IteratorStart();
-  while (ContactInteractionEntity* entity=FaceFaceInteractions[state].IteratorForward()) {
+  while (ContactInteractionEntity<DataType>* entity=FaceFaceInteractions[state].IteratorForward()) {
     int n;
-    ContactFaceFaceInteraction* cffi =
-       static_cast<ContactFaceFaceInteraction*> (entity);
+    ContactFaceFaceInteraction<DataType>* cffi =
+       static_cast<ContactFaceFaceInteraction<DataType>*> (entity);
     ContactHostGlobalID Master_GID( cffi->MasterFaceEntityData()->host_gid[0], 
                                     cffi->MasterFaceEntityData()->host_gid[1] );
-    ContactFaceFaceVertex* vertices = cffi->Get_Vertices();
+    ContactFaceFaceVertex<DataType>* vertices = cffi->Get_Vertices();
     postream << "Slave Face " << cffi->SlaveFace()->Global_ID() << "\n";
     postream << "Master Face " << Master_GID << "\n";
     postream << "\t\t Num Areas = " << cffi->NumEdges() << "\n";
@@ -598,7 +598,7 @@ ContactFace<DataType>::Display_FaceCoverage_Interactions( ContactParOStream& pos
 
   if(FaceCoverageInteractions.size() <= state) return;
   FaceCoverageInteractions[state].IteratorStart();
-  while (ContactInteractionEntity* entity=FaceCoverageInteractions[state].IteratorForward()) {
+  while (ContactInteractionEntity<Real>* entity=FaceCoverageInteractions[state].IteratorForward()) {
     ContactFaceCoverageInteraction* cfci =
          static_cast<ContactFaceCoverageInteraction*> (entity);
     postream << "Slave Face " << cfci->SlaveFace()->Global_ID() << "\n";
@@ -625,20 +625,20 @@ void
 ContactFace<DataType>::Update_Interactions( )
 {
   int i;
-  ContactInteractionEntity* link;
+  ContactInteractionEntity<DataType>* link;
   
   // State 0 is the "new" state, State 1 is the "n-1" state, etc.
   
   if( FaceFaceInteractions.size() >= NumberOfStates()) {
-    ContactInteractionDLL temp = FaceFaceInteractions[NumberOfStates()-1];
+    ContactInteractionDLL<DataType> temp = FaceFaceInteractions[NumberOfStates()-1];
     for( i=NumberOfStates()-1 ; i>0 ; --i ) {
       FaceFaceInteractions[i] = FaceFaceInteractions[i-1];
     }
     FaceFaceInteractions[0] = temp;
     FaceFaceInteractions[0].IteratorStart();
     while ((link=FaceFaceInteractions[0].IteratorForward())) {
-      ContactFaceFaceInteraction* cffi = 
-        static_cast<ContactFaceFaceInteraction*>(link);
+      ContactFaceFaceInteraction<DataType>* cffi = 
+        static_cast<ContactFaceFaceInteraction<DataType>*>(link);
       cffi->~ContactFaceFaceInteraction();
       allocators[ContactSearch::ALLOC_ContactFaceFaceInteraction].Delete_Frag(cffi);
     }
@@ -646,7 +646,7 @@ ContactFace<DataType>::Update_Interactions( )
   }
 
   if( FaceCoverageInteractions.size() >= NumberOfStates()) {
-    ContactInteractionDLL temp = FaceCoverageInteractions[NumberOfStates()-1];
+    ContactInteractionDLL<Real> temp = FaceCoverageInteractions[NumberOfStates()-1];
     for( i=NumberOfStates()-1 ; i>0 ; --i ){
       FaceCoverageInteractions[i] = FaceCoverageInteractions[i-1];
     }

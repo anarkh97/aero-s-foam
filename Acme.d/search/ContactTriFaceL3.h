@@ -59,6 +59,8 @@ class ContactTriFaceL3 : public ContactFace<DataType> {
   int Get_Edge_Number( DataType* );
 
   void Compute_Normal(VariableHandle, VariableHandle );
+  void Compute_Partial_Face_Normal(VariableHandle, DataType (*)[3] );
+  void Compute_Second_Partial_Face_Normal(VariableHandle, DataType (*)[3] );
   void Compute_Normal(VariableHandle, DataType*, DataType* );
   void Compute_Normal(DataType**, DataType*, DataType* );
   void Compute_CharacteristicLength(VariableHandle, VariableHandle );
@@ -68,6 +70,12 @@ class ContactTriFaceL3 : public ContactFace<DataType> {
   void Compute_Local_Coordinates( DataType, VariableHandle, VariableHandle,
 				  VariableHandle, DataType*, DataType* );
   void Compute_Local_Coordinates( VariableHandle, DataType*, DataType* );
+  void Compute_Partial_Local_Coordinates_1( VariableHandle, DataType*, DataType (*)[2] );
+  void Compute_Partial_Local_Coordinates_2( VariableHandle, DataType*, DataType[2], DataType[2], DataType[2] );
+  void Compute_Second_Partial_Local_Coordinates_1( VariableHandle, DataType*, DataType (*)[2] );
+  void Compute_Second_Partial_Local_Coordinates_2( VariableHandle, DataType*, DataType[2], DataType[2], DataType[2],
+                                                   DataType[2], DataType[2], DataType[2] );
+  void Compute_Second_Partial_Local_Coordinates_12(VariableHandle, DataType*, DataType (*)[2], DataType (*)[2], DataType (*)[2] );
   void Compute_Global_Coordinates( VariableHandle, DataType*, DataType* );
   void Evaluate_Shape_Functions( DataType* local_coords, DataType* shape_funcs );
   bool Is_Inside_Face( DataType* local_coords );

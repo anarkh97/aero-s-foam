@@ -54,7 +54,7 @@ class ContactTopologyEntityList : public ContactTopologyEntityHash {
   inline ContactTopologyEntity<Real>* Find( ContactTopologyEntity<Real>::connection_data* data )
     { ContactHostGlobalID GID( data->host_gid[0], data->host_gid[1] );
       return find(GID); };
-  inline ContactTopologyEntity<Real>* Find( ContactInteractionEntity::entity_data* data )
+  inline ContactTopologyEntity<Real>* Find( ContactInteractionEntity<Real>::entity_data* data )
     { ContactHostGlobalID GID( data->host_gid[0], data->host_gid[1] );
       return find(GID); };
   inline ContactTopologyEntity<Real>* Find( ContactHostGlobalID& GID ) 

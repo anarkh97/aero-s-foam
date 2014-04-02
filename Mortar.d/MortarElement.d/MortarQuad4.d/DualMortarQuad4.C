@@ -40,8 +40,6 @@ DualMortarQuad4::DualMortarQuad4(FaceElement* FaceElem, CoordSet &cs)
   Initialize();
   SetPtrMasterFace(FaceElem);
   ComputeDualCoeffs(cs);
-  //cerr << " In DualMortarQuad4::DualMortarQuad4: " << endl;
-  //Alpha->print("Alpha=");
 }
 
 DualMortarQuad4::DualMortarQuad4(double _area, FaceElement* FaceElem, CoordSet &cs)
@@ -87,7 +85,7 @@ void
 DualMortarQuad4::ComputeDualCoeffs(CoordSet &cs)
 {
   if(Alpha==0) Alpha = new FullM(4);
-  else{ delete Alpha; Alpha = new FullM(4); }
+  else { delete Alpha; Alpha = new FullM(4); }
   Alpha->zero();
 
   // 1) compute scalar mass matrix (M) of supporting face element
@@ -98,30 +96,24 @@ DualMortarQuad4::ComputeDualCoeffs(CoordSet &cs)
   FaceElem->IntegrateShapeFcts(ShapeIntg, cs, 1.0, 2);
   // 3) solve M.alpha=b to get the dual shape fcts coeffs alpha
   M.factor();
-  for(int j=0; j<4; j++){
+  for(int j=0; j<4; j++) {
     (*Alpha)[j][j] = ShapeIntg[j];
     M.reSolve((*Alpha)[j]); 
   }
 }
 
 // !!! ASSUME THAT DUAL MORTAR COEFFS Alpha HAVE ALREADY BEEN COMPUTED !!!
+template<>
 void
-DualMortarQuad4::GetDualMortarShapeFct(double* Shape, double* m)
+DualMortarQuad4::GetShapeFctVal(double* Shape, double* m)
 {
-   if(Shape==0) Shape = new double[4];
-   double StdShape[4];
-   GetPtrMasterFace()->GetShapeFctVal(StdShape, m);
-   for(int i=0; i<4; ++i){
-     Shape[i] = 0;
-     for(int j=0; j<4; j++)
-       Shape[i] += (*Alpha)[i][j]*StdShape[j]; 
-   }
-}
-
-void
-DualMortarQuad4::GetShapeFct(double* Shape, double* m)
-{ 
-   GetDualMortarShapeFct(Shape, m); 
+  double StdShape[4];
+  GetPtrMasterFace()->GetShapeFctVal(StdShape, m);
+  for(int i=0; i<4; ++i) {
+    Shape[i] = 0;
+    for(int j=0; j<4; j++)
+      Shape[i] += (*Alpha)[i][j]*StdShape[j]; 
+  }
 }
 
 // ---------------------------------
@@ -130,6 +122,5 @@ DualMortarQuad4::GetShapeFct(double* Shape, double* m)
 void
 DualMortarQuad4::GetShapeFctVal(double* Shape, double* m)
 { 
-   GetDualMortarShapeFct(Shape, m); 
+  GetShapeFctVal<double>(Shape, m); 
 }
-

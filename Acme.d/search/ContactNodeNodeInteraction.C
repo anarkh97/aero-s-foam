@@ -28,7 +28,7 @@
 ContactNodeNodeInteraction::ContactNodeNodeInteraction( 
    ContactNode<Real>* SlaveNode, ContactNode<Real>* MasterNode, 
    int node_entity_key, Real distance)
-  : ContactInteractionEntity(DataArray, CT_NNI)
+  : ContactInteractionEntity<Real>(DataArray, CT_NNI)
 {
   PRECONDITION( SlaveNode && MasterNode);
   slave_node = SlaveNode;
@@ -41,7 +41,7 @@ ContactNodeNodeInteraction::ContactNodeNodeInteraction(
 
 
 ContactNodeNodeInteraction::ContactNodeNodeInteraction()
-  : ContactInteractionEntity(DataArray, CT_NNI)
+  : ContactInteractionEntity<Real>(DataArray, CT_NNI)
 {
   slave_node  = NULL;
   master_node = NULL;
@@ -49,7 +49,7 @@ ContactNodeNodeInteraction::ContactNodeNodeInteraction()
 
 ContactNodeNodeInteraction::ContactNodeNodeInteraction( 
                                        ContactNodeNodeInteraction& nni )
-: ContactInteractionEntity(DataArray, CT_NNI)
+: ContactInteractionEntity<Real>(DataArray, CT_NNI)
 {
   std::memcpy( &(DataArray[0]), &(nni.DataArray[0]), 
 	  (NUMBER_SCALAR_VARS+3*NUMBER_VECTOR_VARS)*sizeof(Real) );

@@ -78,9 +78,9 @@ ContactTopology::Exodus_Output_Results(int Exodus_ID, Real Time,
 {
   int i,j,k,l,n,ierr,index;
   ContactNodeFaceInteraction* cnfi;
-  ContactFaceFaceInteraction* cffi;
+  ContactFaceFaceInteraction<Real>* cffi;
   ContactTopologyEntity<Real>* entity;
-  ContactInteractionEntity* interaction;
+  ContactInteractionEntity<Real>* interaction;
   int ProcArrayIndex;
   ContactNode<Real>** Nodes = 
     reinterpret_cast<ContactNode<Real>**>(primary_node_list->EntityList());
@@ -1968,7 +1968,7 @@ ContactTopology::Exodus_Output_Results(int Exodus_ID, Real Time,
               reinterpret_cast<ContactFace<Real>**>(primary_face_list->BlockEntityList(i));
             for (j=0; j<primary_face_list->BlockNumEntities(i); ++j) {
 	      int jj = 0;
-              ContactInteractionDLL* interactions = BlockFaces[j]->Get_FaceFace_Interactions();
+              ContactInteractionDLL<Real>* interactions = BlockFaces[j]->Get_FaceFace_Interactions();
               if(interactions == NULL) continue;
               interactions->IteratorStart();
               while (interaction=interactions->IteratorForward()){
@@ -1976,7 +1976,7 @@ ContactTopology::Exodus_Output_Results(int Exodus_ID, Real Time,
                 jj++;
 	      }
 	      if (interaction) {
-		cffi = static_cast<ContactFaceFaceInteraction*> 
+		cffi = static_cast<ContactFaceFaceInteraction<Real>*> 
 		  (interaction);
 		elem_data1[j] = cffi->MasterFaceEntityData()->index_in_owner_proc_array;
 		elem_data2[j] = cffi->NumEdges()+1;
@@ -2021,7 +2021,7 @@ ContactTopology::Exodus_Output_Results(int Exodus_ID, Real Time,
               while (entity=face_blocks[i]->FaceList()->IteratorForward()) {
                 ContactFace<Real>* face = static_cast<ContactFace<Real>*>(entity);
 		int jj = 0;
-                ContactInteractionDLL* interactions = face->Get_FaceFace_Interactions();
+                ContactInteractionDLL<Real>* interactions = face->Get_FaceFace_Interactions();
                 if(interactions != NULL) {
                   interactions->IteratorStart();
                   while (interaction=interactions->IteratorForward()){
@@ -2029,7 +2029,7 @@ ContactTopology::Exodus_Output_Results(int Exodus_ID, Real Time,
                     jj++;
 		  }
 		  if (interaction) {
-		    cffi = static_cast<ContactFaceFaceInteraction*> (interaction);
+		    cffi = static_cast<ContactFaceFaceInteraction<Real>*> (interaction);
   		    if (k2<cffi->NumEdges()+1) {
 		      ContactFaceFaceVertex* vertices = cffi->Get_Vertices();
 		      elem_data3[j] = vertices[k2].slave_x;
@@ -2171,7 +2171,7 @@ ContactTopology::Exodus_Output_Results(int Exodus_ID, Real Time,
               reinterpret_cast<ContactFace<Real>**>(primary_face_list->BlockEntityList(i));
             for (j=0; j<primary_face_list->BlockNumEntities(i); ++j) {
 	      int jj = 0;
-              ContactInteractionDLL* interactions = BlockFaces[j]->Get_FaceCoverage_Interactions();
+              ContactInteractionDLL<Real>* interactions = BlockFaces[j]->Get_FaceCoverage_Interactions();
               if(interactions != NULL) {
                 interactions->IteratorStart();
                 while (interaction=interactions->IteratorForward()){
@@ -2207,7 +2207,7 @@ ContactTopology::Exodus_Output_Results(int Exodus_ID, Real Time,
 	    for (int k2=0; k2<max_fci_verts; ++k2) {
               for (j=0; j<primary_face_list->BlockNumEntities(i); ++j) {
 		int jj = 0;
-                ContactInteractionDLL* interactions = BlockFaces[j]->Get_FaceCoverage_Interactions();
+                ContactInteractionDLL<Real>* interactions = BlockFaces[j]->Get_FaceCoverage_Interactions();
                 if(interactions != NULL) {
 		  interactions->IteratorStart();
 		  while (interaction=interactions->IteratorForward()){
@@ -2486,7 +2486,7 @@ ContactTopology::Exodus_Output_Results(int Exodus_ID, Real Time,
               reinterpret_cast<ContactElement**>(primary_elem_list->BlockEntityList(i));
             for (j=0; j<num_elements; ++j) {
 	      int jj = 0;
-              ContactInteractionDLL* interactions = BlockElements[j]->Get_ElementElement_Interactions();
+              ContactInteractionDLL<Real>* interactions = BlockElements[j]->Get_ElementElement_Interactions();
               interactions->IteratorStart();
               while (interaction=interactions->IteratorForward()){
 		if (jj==k1) break;

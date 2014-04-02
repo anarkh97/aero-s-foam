@@ -179,7 +179,7 @@ class ContactNode : public ContactTopologyEntity<DataType> {
     return NodeNodeInteractions[state].NumEntities();
   };
       
-  inline ContactInteractionDLL* Get_NodeNode_Interactions( int state = 0 ) {
+  inline ContactInteractionDLL<Real>* Get_NodeNode_Interactions( int state = 0 ) {
     if((int)NodeNodeInteractions.size() <= state) return NULL;
     return &(NodeNodeInteractions[state]);
    };
@@ -287,7 +287,7 @@ class ContactNode : public ContactTopologyEntity<DataType> {
 
   DataType DataArray[NUMBER_SCALAR_VARS + 3*NUMBER_VECTOR_VARS];
   
-  std::vector<ContactInteractionDLL> NodeNodeInteractions;
+  std::vector<ContactInteractionDLL<Real> > NodeNodeInteractions;
   std::vector< std::vector<ContactNodeEntityInteraction*> >NodeEntityInteractions;
 };
 

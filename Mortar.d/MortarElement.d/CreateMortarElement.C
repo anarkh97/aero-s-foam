@@ -8,7 +8,6 @@
 #include <iostream>
 
 // FEM headers
-//#include <Mortar.d/FaceElement.d/FaceElemSet.h>
 #include <Mortar.d/FaceElement.d/FaceElement.h>
 
 #include <Mortar.d/MortarElement.d/MortarElement.h>
@@ -16,13 +15,22 @@
 #include <Mortar.d/MortarElement.d/MortarQuad4.d/DualMortarQuad4.h>
 
 #include <Mortar.d/MortarElement.d/MortarQuad8.d/StdMortarQuad8.h>
+#include <Mortar.d/MortarElement.d/MortarQuad8.d/DualMortarQuad8.h>
+
+#include <Mortar.d/MortarElement.d/MortarQuad9.d/StdMortarQuad9.h>
+#include <Mortar.d/MortarElement.d/MortarQuad9.d/DualMortarQuad9.h>
+
 #include <Mortar.d/MortarElement.d/MortarQuad12.d/StdMortarQuad12.h>
+#include <Mortar.d/MortarElement.d/MortarQuad12.d/DualMortarQuad12.h>
 
 #include <Mortar.d/MortarElement.d/MortarTri3.d/StdMortarTri3.h>
 #include <Mortar.d/MortarElement.d/MortarTri3.d/DualMortarTri3.h>
 
 #include <Mortar.d/MortarElement.d/MortarTri6.d/StdMortarTri6.h>
+#include <Mortar.d/MortarElement.d/MortarTri6.d/DualMortarTri6.h>
+
 #include <Mortar.d/MortarElement.d/MortarTri10.d/StdMortarTri10.h>
+#include <Mortar.d/MortarElement.d/MortarTri10.d/DualMortarTri10.h>
 
 MortarElement*
 CreateMortarElement(FaceElement* FaceElem, CoordSet& cs, bool DualFlag=false)
@@ -42,22 +50,21 @@ CreateMortarElement(FaceElement* FaceElem, CoordSet& cs, bool DualFlag=false)
 
      case FaceElement::QUADFACEQ8:
      {
-       if(DualFlag){
-         fprintf(stderr," *** WARNING: In CreateMortarElement: Dual mortar element "
-                          "is NOT SUPPORTED for Quad8 face element.\n");
-         exit(-1);
-       } 
+       if(DualFlag) MortarElem = new DualMortarQuad8(FaceElem, cs);
        else         MortarElem = new StdMortarQuad8(FaceElem);
+       break;
+     }
+
+     case FaceElement::QUADFACEQ9:
+     {
+       if(DualFlag) MortarElem = new DualMortarQuad9(FaceElem, cs);
+       else         MortarElem = new StdMortarQuad9(FaceElem);
        break;
      }
 
      case FaceElement::QUADFACEC12:
      {
-       if(DualFlag){
-         fprintf(stderr," *** WARNING: In CreateMortarElement: Dual mortar element "
-                          "is NOT SUPPORTED for Quad12 face element.\n");
-         exit(-1);
-       }
+       if(DualFlag) MortarElem = new DualMortarQuad12(FaceElem, cs);
        else         MortarElem = new StdMortarQuad12(FaceElem);
        break;
      }
@@ -71,22 +78,14 @@ CreateMortarElement(FaceElement* FaceElem, CoordSet& cs, bool DualFlag=false)
 
      case FaceElement::TRIFACEQ6:
      {
-       if(DualFlag){
-         fprintf(stderr," *** WARNING: In CreateMortarElement: Dual mortar element "
-                          "is NOT SUPPORTED for Tri6 face element.\n");
-         exit(-1);
-       }
+       if(DualFlag) MortarElem = new DualMortarTri6(FaceElem, cs);
        else         MortarElem = new StdMortarTri6(FaceElem);
        break;
      }
 
      case FaceElement::TRIFACEC10:
      {
-       if(DualFlag){
-         fprintf(stderr," *** WARNING: In CreateMortarElement: Dual mortar element "
-                          "is NOT SUPPORTED for Tri10 face element.\n");
-         exit(-1);
-       }
+       if(DualFlag) MortarElem = new DualMortarTri10(FaceElem, cs);
        else         MortarElem = new StdMortarTri10(FaceElem);
        break;
      }
@@ -99,3 +98,4 @@ CreateMortarElement(FaceElement* FaceElem, CoordSet& cs, bool DualFlag=false)
 
   return(MortarElem);
 }
+

@@ -41,6 +41,9 @@ class ContactWedgeElemL6 : public ContactElem<DataType> {
   void DeleteTopology(ContactFixedSizeAllocator*);
   void UpdateTopology(ContactFace<DataType>*, VariableHandle, VariableHandle,
                       VariableHandle, Real, bool use_node_normals=false);
+  void Compute_Partial_Face_Normal( int, VariableHandle, VariableHandle, DataType (*)[3], Real, DataType (*)[3], DataType * );
+  void Compute_Second_Partial_Face_Normal( int, VariableHandle, VariableHandle, DataType (*)[3], DataType (*)[3], Real,
+                                           DataType (*)[3], DataType * );
   int Nodes_Per_Element() { return 6; };
   int Edges_Per_Element() { return 9; };
   int Faces_Per_Element() { return 5; };
@@ -57,7 +60,7 @@ class ContactWedgeElemL6 : public ContactElem<DataType> {
     {return ContactSearch::LINEEDGEL2;};
   ContactSearch::ContactFace_Type Face_Type(int i) 
     {return faces[i]->FaceType();};
-                      
+
   static void Compute_Shape_Functions( DataType local_coords[4], 
                                        DataType Shape_Funcs[6] );
   

@@ -131,59 +131,21 @@ typedef int MPI_Comm;
 #define CONTACT_USE_BLOCKING_SEND
 #endif
 
-//
-//  Number of derivatives for Face-Face interactions
-//  use MAX_FFI_DERIVATIVES=54 for dimensionality 3 and support for linear and quadratic faces
-//  use MAX_FFI_DERIVATIVES=24 for dimensionality 3 and support for linear faces only
-//  use MAX_FFI_DERIVATIVES=16 for dimensionality 2 and support for linear faces only
-//
-#ifdef USE_EIGEN3
+#define COMPUTE_CENTROID_AND_LOCAL_EDGE_COORDS
+
+#if defined(USE_EIGEN3) && defined(USE_EIGEN3_AUTODIFF)
 #include <Eigen/Core>
 #include <Eigen/Sparse>
 #include <unsupported/Eigen/AutoDiff>
-#endif
 
-#ifdef USE_SACADO
-#include <Sacado.hpp>
-#endif
-
-#if defined(USE_EIGEN3) && defined(USE_EIGEN3_AUTODIFF)
 #  define MAX_FFI_DERIVATIVES 24
-#  define FFI_AUTO_DIFF_EIGEN3
-#elif defined(USE_EIGEN3) && defined(USE_SACADO)
-#  define MAX_FFI_DERIVATIVES 24
-#  define FFI_AUTO_DIFF_SACADO
+   typedef Eigen::Matrix<Real, MAX_FFI_DERIVATIVES, 1> DerivativeType;
+   typedef Eigen::AutoDiffScalar<DerivativeType> ActiveScalar;
+   inline ActiveScalar InitActiveScalar(int nbDer, int derNumber, const Real& value) { return ActiveScalar(value, nbDer, derNumber); }
+   inline Real GetActiveScalarValue(const ActiveScalar& s) { return s.value(); }
+   inline Real GetActiveScalarDerivative(const ActiveScalar& s, int i) { return s.derivatives()[i]; }
 #else
 #  define MAX_FFI_DERIVATIVES 0
-   const int MAX_FFI_SECOND_DERIVATIVES = 0;
-#endif
-
-#if defined(FFI_AUTO_DIFF_EIGEN3) 
-#  ifndef COMPUTE_FFI_SECOND_DERIVATIVES
-     typedef Eigen::Matrix<Real, MAX_FFI_DERIVATIVES, 1> DerivativeType;
-     typedef Eigen::AutoDiffScalar<DerivativeType> ActiveScalar;
-     inline ActiveScalar InitActiveScalar(int nbDer, int derNumber, const Real& value) { return ActiveScalar(value, nbDer, derNumber); }
-     inline Real GetActiveScalarValue(const ActiveScalar& s) { return s.value(); }
-     inline Real GetActiveScalarDerivative(const ActiveScalar& s, int i) { return s.derivatives()[i]; }
-     const int MAX_FFI_SECOND_DERIVATIVES = 0;
-#  else
-     typedef Eigen::Matrix<Real, MAX_FFI_DERIVATIVES, 1> DerivativeType1;
-     typedef Eigen::Matrix<Eigen::AutoDiffScalar<DerivativeType1>, MAX_FFI_DERIVATIVES, 1> DerivativeType2;
-     typedef Eigen::AutoDiffScalar<DerivativeType2> ActiveScalar;
-     inline ActiveScalar InitActiveScalar(int nbDer, int derNumber, const Real& value) {
-       return ActiveScalar(Eigen::AutoDiffScalar<DerivativeType1>(value,nbDer,derNumber), nbDer, derNumber);
-     }
-     inline Real GetActiveScalarValue(const ActiveScalar& s) { return s.value().value(); }
-     inline Real GetActiveScalarDerivative(const ActiveScalar& s, int i) { return s.derivatives()[i].value(); }
-     const int MAX_FFI_SECOND_DERIVATIVES = MAX_FFI_DERIVATIVES*(MAX_FFI_DERIVATIVES+1)/2;
-     inline Real GetActiveScalarSecondDerivative(const ActiveScalar& s, int i, int j) { return s.derivatives()[i].derivatives()[j]; }
-#  endif
-#elif defined(FFI_AUTO_DIFF_SACADO)
-   typedef Sacado::Fad::SFad<Real,MAX_FFI_DERIVATIVES> ActiveScalar;
-   inline ActiveScalar InitActiveScalar(int nbDer, int derNumber, const Real& value) { return ActiveScalar(nbDer, derNumber, value); }
-   inline Real GetActiveScalarValue(const ActiveScalar& s) { return s.val(); }
-   inline Real GetActiveScalarDerivative(const ActiveScalar& s, int i) { return s.dx(i); }
-   const int MAX_FFI_SECOND_DERIVATIVES = 0;
 #endif
 
 #endif // #ifdef Contact_Defines_h_

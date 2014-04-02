@@ -17,48 +17,46 @@
 class Connectivity;
 class FaceElement;
 class FaceElemSet;
-template <class Scalar> class FFIPolygon;
+template <class MasterFaceElementType, class SolveFaceElement, class MortarElementType> class FFIPolygonTemplate;
+typedef FFIPolygonTemplate<FaceElement, FaceElement, MortarElement> FFIPolygon;
 class LMPCons;
 
 class NodalMortarShapeFct {
   private:
         typedef std::pair<int, double> node_pair_t;
         std::vector<node_pair_t > NodalData;
-	//int nFaceElems;  
-	//int* FaceElemsId; 
-	//FaceElement** PtrFaceElems;
 
-	std::vector<int> LinkedSlaveNodes;
-	std::vector<int> LinkedMasterNodes;
+        std::vector<int> LinkedSlaveNodes;
+        std::vector<int> LinkedMasterNodes;
 
-	std::vector<double> SlaveMPCCoeffs;
-	std::vector<double> MasterMPCCoeffs;
+        std::vector<double> SlaveMPCCoeffs;
+        std::vector<double> MasterMPCCoeffs;
         double MPCRhs;
 #ifdef USE_EIGEN3
         Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> SlaveMPCCoeffDerivs;
         Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> MasterMPCCoeffDerivs;
-#endif	
+#endif
   public:
-	// Constructors
-	// ~~~~~~~~~~~~
-	NodalMortarShapeFct();
-	NodalMortarShapeFct(int ref_node, double ref_coeff);
-	
-	// Destructors
-	// ~~~~~~~~~~~
-	~NodalMortarShapeFct();
+        // Constructors
+        // ~~~~~~~~~~~~
+        NodalMortarShapeFct();
+        NodalMortarShapeFct(int ref_node, double ref_coeff);
+        
+        // Destructors
+        // ~~~~~~~~~~~
+        ~NodalMortarShapeFct();
 
         // Initialization & clean/clear methods
         // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         void ClearData();
         void Reset();
 
-	// Set methods
-	// ~~~~~~~~~~~
+        // Set methods
+        // ~~~~~~~~~~~
         void SetRefData(int ref_node, double ref_coeff);
 
-	// Get methods
-	// ~~~~~~~~~~~
+        // Get methods
+        // ~~~~~~~~~~~
         int GetnNodes()  { return NodalData.size(); }
         int GetRefNode() { return NodalData[0].first; }
         double GetRefNodalCoeff() { return NodalData[0].second; }
@@ -66,35 +64,26 @@ class NodalMortarShapeFct {
         int GetNodeId(int i)        { return NodalData[i].first; }
         double GetNodalCoeff(int i) { return NodalData[i].second; }
 
- 	// Mortar LMPC methods
-	// ~~~~~~~~~~~~~~~~~~~
-	void MakeSlaveLink(Connectivity*, FaceElemSet*, bool Dual=false);
-        template<class Scalar>
-	void MakeMasterLink(Connectivity*, FaceElemSet*, Connectivity*, FFIPolygon<Scalar>*);
-        template<class Scalar>
-	void BuildMortarLMPC(Connectivity*, FaceElemSet*, Connectivity*, FFIPolygon<Scalar>*);
-        template<class Scalar>
-        void BuildMortarCtcLMPC(Connectivity*, FaceElemSet*, Connectivity*, FFIPolygon<Scalar>*);
+         // Mortar LMPC methods
+        // ~~~~~~~~~~~~~~~~~~~
+        void MakeSlaveLink(Connectivity*, FaceElemSet*, bool Dual=false);
+        void MakeMasterLink(Connectivity*, FaceElemSet*, Connectivity*, FFIPolygon**);
+        void BuildMortarLMPC(Connectivity*, FaceElemSet*, Connectivity*, FFIPolygon**);
+        void BuildMortarCtcLMPC(Connectivity*, FaceElemSet*, Connectivity*, FFIPolygon**);
 
         LMPCons* CreateMortarLMPCons(int, int, double, int* SlaveLlToGlNodeMap=0, 
                                                        int* MasterLlToGlNodeMap=0);
 
         LMPCons* CreateMortarCtcLMPCons(int, int* SlaveLlToGlNodeMap=0, int* MasterLlToGlNodeMap=0);
 
-	// Print, display methods
-	// ~~~~~~~~~~~~~~~~~~~~~~
-	void print(int* SlaveLlToGlNodeMap=0, int* MasterLlToGlNodeMap=0);
+        // Print, display methods
+        // ~~~~~~~~~~~~~~~~~~~~~~
+        void print(int* SlaveLlToGlNodeMap=0, int* MasterLlToGlNodeMap=0);
 
         // Test wet FSI methods (NEED TO BE REDESIGNED)
         // ~~~~~~~~~~~~~~~~~~~~
-        template<class Scalar>
-	void BuildWetFSICoupling(Connectivity*, FaceElemSet*, Connectivity*, FFIPolygon<Scalar>*);
+        void BuildWetFSICoupling(Connectivity*, FaceElemSet*, Connectivity*, FFIPolygon**);
         LMPCons* CreateWetFSICons(int* SlaveLlToGlNodeMap=0, int* MasterLlToGlNodeMap=0);
 };
 
-#ifdef _TEMPLATE_FIX_
-  #include <Mortar.d/NodalMortarShapeFct.d/NodalMortarShapeFct.C>
 #endif
-
-#endif
-

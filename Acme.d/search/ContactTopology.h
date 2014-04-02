@@ -128,7 +128,7 @@ class ContactTopology {
 		   int num_elem_blocks, const ContactSearch::ContactElement_Type*,
 		   MPI_Comm communicator,
                    ContactSearch* );
-		  
+
   ~ContactTopology();
   
   void UpdateTopology( ContactErrors* Errors, 
@@ -347,7 +347,7 @@ class ContactTopology {
   void Size_NodeSurface_Interactions( int&, int& );
   void Get_NodeSurface_Interactions( int*, int*, int*, Real* );
   void Size_FaceFace_Interactions( int&, int& );
-  void Get_FaceFace_Interactions( int*, int*, int*, int*, int*, int*, Real* );
+  void Get_FaceFace_Interactions( int*, int*, int*, int*, int*, int*, int*, Real* );
   void Size_FaceCoverage_Interactions( int&, int& );
   void Get_FaceCoverage_Interactions( int*, int*, int*, Real* );
   void Size_ElementElement_Interactions( int&, int& );
@@ -388,9 +388,9 @@ class ContactTopology {
   void Complete_Edge_Comm_List( int, std::vector< std::pair<ContactTopologyEntity<Real>*,int> >*, int*);
   int  Compare_Edges( ContactEdge<Real>*, ContactEdge<Real>* );
   void Assign_Secondary_Ownership( ContactZoltan*, VariableHandle );
-  inline std::vector<ContactInteractionEntity::entity_data*>* QueryLinkList()
+  inline std::vector<ContactInteractionEntity<Real>::entity_data*>* QueryLinkList()
     { return query_linklist;};
-  inline void QueryLinkList( std::vector<ContactInteractionEntity::entity_data*>* list)
+  inline void QueryLinkList( std::vector<ContactInteractionEntity<Real>::entity_data*>* list)
     { query_linklist=list;};
 #endif
 
@@ -472,6 +472,8 @@ class ContactTopology {
   TopologyType topology_type;
   
   bool HaveGhosting() {return have_global_ghosting|have_local_ghosting;};
+
+  void Set_Up_Variable_Handles();
 
  protected:
 
@@ -561,7 +563,7 @@ class ContactTopology {
   ContactAsymComm* Node_AsymComm;
   ContactSymComm* Node_SymComm;
   ContactSymComm* Edge_SymComm;
-  std::vector<ContactInteractionEntity::entity_data*> *query_linklist;
+  std::vector<ContactInteractionEntity<Real>::entity_data*> *query_linklist;
   ContactZoltanCommUtils* GhostingCommSpec;
   ContactZoltanComm*      GhostFaces_ZoltanComm;
   ContactZoltanComm*      GhostOthers_ZoltanComm;
@@ -602,8 +604,6 @@ class ContactTopology {
 #endif
 
   VariableHandle* Var_Handles;
-
-  void Set_Up_Variable_Handles();
 
   // Variables
 #define    NODE_SCALAR_VAR(a,b) VariableHandle b;

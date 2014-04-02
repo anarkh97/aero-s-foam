@@ -58,7 +58,7 @@ class ScratchVariable {
     return Get_Scratch(entity->EnfArrayIndex());
   }
 
-  inline Real* Get_Scratch(const ContactInteractionEntity *entity) {
+  inline Real* Get_Scratch(const ContactInteractionEntity<Real> *entity) {
     return Get_Scratch(entity->EnfArrayIndex());
   }
 

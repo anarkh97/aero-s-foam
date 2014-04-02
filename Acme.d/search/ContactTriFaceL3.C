@@ -29,6 +29,7 @@
 #include "ContactQuadFaceL4.h"
 #include "ContactFixedSizeAllocator.h"
 #include "ContactNode.h"
+#include "contact_tolerances.h"
 #include <iostream>
 #include <cmath>
 #include <new>
@@ -94,7 +95,46 @@ void ContactTriFaceL3<DataType>::Compute_Normal( VariableHandle CURRENT_POSITION
   DataType* face_normal = Variable(FACE_NORMAL);
 
   acme::Cross(Vec01, Vec02, face_normal);
+
   Normalize(face_normal);
+
+}
+
+#include <Mortar.d/FaceElement.d/FaceTri3.d/FaceTri3.h>
+template<typename DataType>
+void ContactTriFaceL3<DataType>::Compute_Partial_Face_Normal(VariableHandle CURRENT_POSITION, DataType (*dface_normal)[3] )
+{
+  typedef std::vector<NodeTemplate<DataType>*> CoordSetType;
+  CoordSetType CoordSet(this->Nodes_Per_Face());
+  for (int i=0; i<this->Nodes_Per_Face(); ++i) {
+    CoordSet[i] = new NodeTemplate<DataType>(Node(i)->Variable(CURRENT_POSITION)[0],
+                                             Node(i)->Variable(CURRENT_POSITION)[1],
+                                             Node(i)->Variable(CURRENT_POSITION)[2]);
+  }
+
+  int nodes[3] = { 0, 1, 2 };
+  FaceTri3 face(nodes); 
+  face.GetdUnitNormal<DataType,CoordSetType>(dface_normal, (DataType*)NULL, CoordSet);
+
+  for (int i=0; i<this->Nodes_Per_Face(); ++i) delete CoordSet[i];
+}
+
+template<typename DataType>
+void ContactTriFaceL3<DataType>::Compute_Second_Partial_Face_Normal(VariableHandle CURRENT_POSITION, DataType (*d2face_normal)[3] )
+{
+  typedef std::vector<NodeTemplate<DataType>*> CoordSetType;
+  CoordSetType CoordSet(this->Nodes_Per_Face());
+  for (int i=0; i<this->Nodes_Per_Face(); ++i) {
+    CoordSet[i] = new NodeTemplate<DataType>(Node(i)->Variable(CURRENT_POSITION)[0],
+                                             Node(i)->Variable(CURRENT_POSITION)[1],
+                                             Node(i)->Variable(CURRENT_POSITION)[2]);
+  }
+
+  int nodes[3] = { 0, 1, 2 };
+  FaceTri3 face(nodes);
+  face.Getd2UnitNormal<DataType,CoordSetType>(d2face_normal, (DataType*)NULL, CoordSet);
+
+  for (int i=0; i<this->Nodes_Per_Face(); ++i) delete CoordSet[i];
 }
 
 template<typename DataType>
@@ -1083,13 +1123,13 @@ int ContactTriFaceL3<DataType>::FaceEdge_Intersection(VariableHandle POSITION,
   DataType n_dot_d = Dot(normal, edge_dir);
 
   // if (edge ray) and (tri3 plane) are parallel => no intersection
-  if (abs(n_dot_d)<1.0e-10) {
+  if (abs(n_dot_d)<is_parallel_tol) {
     return 0;
   }
 
-  DataType q[3] = {node_position0[0]-edge_pnt[0],
-               node_position0[1]-edge_pnt[1],
-               node_position0[2]-edge_pnt[2]};
+  DataType q[3] = { node_position0[0] - edge_pnt[0],
+                    node_position0[1] - edge_pnt[1],
+                    node_position0[2] - edge_pnt[2]};
 
   DataType t = Dot(normal,q)/n_dot_d;
 
@@ -1098,8 +1138,8 @@ int ContactTriFaceL3<DataType>::FaceEdge_Intersection(VariableHandle POSITION,
   }
 
   DataType P[3] = { edge_pnt[0] + edge_dir[0]*t,
-                edge_pnt[1] + edge_dir[1]*t,
-                edge_pnt[2] + edge_dir[2]*t};
+                    edge_pnt[1] + edge_dir[1]*t,
+                    edge_pnt[2] + edge_dir[2]*t};
 
   // now determine if this point is inside the face
   DataType u0, u1, u2, v0, v1, v2;
@@ -1233,6 +1273,109 @@ void ContactTriFaceL3<DataType>::Compute_Local_Coordinates( VariableHandle POSIT
   Compute_Local_Coords(node_positions, global_coords, local_coords);
 }
 
+template<typename DataType>
+void ContactTriFaceL3<DataType>::Compute_Partial_Local_Coordinates_1( VariableHandle POSITION,
+                                                                      DataType* global_coords,
+                                                                      DataType (*dlocal_coords)[2] )
+{
+  typedef std::vector<NodeTemplate<DataType>*> CoordSetType;
+  CoordSetType CoordSet(this->Nodes_Per_Face());
+  for (int i=0; i<this->Nodes_Per_Face(); ++i) {
+    CoordSet[i] = new NodeTemplate<DataType>(Node(i)->Variable(POSITION)[0],
+                                             Node(i)->Variable(POSITION)[1],
+                                             Node(i)->Variable(POSITION)[2]);
+  }
+
+  int nodes[3] = { 0, 1, 2 };
+  FaceTri3 face(nodes);
+  face.GetdLocalCoords<DataType,CoordSetType>(dlocal_coords, global_coords, CoordSet);
+
+  for (int i=0; i<this->Nodes_Per_Face(); ++i) delete CoordSet[i];
+}
+
+template<typename DataType>
+void ContactTriFaceL3<DataType>::Compute_Partial_Local_Coordinates_2( VariableHandle POSITION,
+                                                                      DataType* global_coords,
+                                                                      DataType dmdX[2], DataType dmdY[2], DataType dmdZ[2] )
+{
+  typedef std::vector<NodeTemplate<DataType>*> CoordSetType;
+  CoordSetType CoordSet(this->Nodes_Per_Face());
+  for (int i=0; i<this->Nodes_Per_Face(); ++i) {
+    CoordSet[i] = new NodeTemplate<DataType>(Node(i)->Variable(POSITION)[0],
+                                             Node(i)->Variable(POSITION)[1],
+                                             Node(i)->Variable(POSITION)[2]);
+  }
+
+  int nodes[3] = { 0, 1, 2 };
+  FaceTri3 face(nodes);
+  face.ComputedmdXdmdYAnddmdZ<DataType,CoordSetType>(dmdX, dmdY, dmdZ, global_coords, CoordSet);
+
+  for (int i=0; i<this->Nodes_Per_Face(); ++i) delete CoordSet[i];
+}
+
+template<typename DataType>
+void ContactTriFaceL3<DataType>::Compute_Second_Partial_Local_Coordinates_1( VariableHandle POSITION,
+                                                                             DataType* global_coords,
+                                                                             DataType (*d2local_coords)[2] )
+{
+  typedef std::vector<NodeTemplate<DataType>*> CoordSetType;
+  CoordSetType CoordSet(this->Nodes_Per_Face());
+  for (int i=0; i<this->Nodes_Per_Face(); ++i) {
+    CoordSet[i] = new NodeTemplate<DataType>(Node(i)->Variable(POSITION)[0],
+                                             Node(i)->Variable(POSITION)[1],
+                                             Node(i)->Variable(POSITION)[2]);
+  }
+
+  int nodes[3] = { 0, 1, 2 };
+  FaceTri3 face(nodes);
+  face.Getd2LocalCoords<DataType,CoordSetType>(d2local_coords, global_coords, CoordSet);
+
+  for (int i=0; i<this->Nodes_Per_Face(); ++i) delete CoordSet[i];
+}
+
+template<typename DataType>
+void ContactTriFaceL3<DataType>::Compute_Second_Partial_Local_Coordinates_2( VariableHandle POSITION,
+                                                                             DataType* global_coords,
+                                                                             DataType d2mdX2[2], DataType d2mdY2[2], DataType d2mdZ2[2],
+                                                                             DataType d2mdXdY[2], DataType d2mdYdZ[2], DataType d2mdXdZ[2] )
+{
+  typedef std::vector<NodeTemplate<DataType>*> CoordSetType;
+  CoordSetType CoordSet(this->Nodes_Per_Face());
+  for (int i=0; i<this->Nodes_Per_Face(); ++i) {
+    CoordSet[i] = new NodeTemplate<DataType>(Node(i)->Variable(POSITION)[0],
+                                             Node(i)->Variable(POSITION)[1],
+                                             Node(i)->Variable(POSITION)[2]);
+  }
+
+  int nodes[3] = { 0, 1, 2 };
+  FaceTri3 face(nodes);
+  face.Computed2mdX2d2mdY2Etc<DataType,CoordSetType>(d2mdX2, d2mdY2, d2mdZ2, d2mdXdY, d2mdYdZ, d2mdXdZ, global_coords, CoordSet);
+
+  for (int i=0; i<this->Nodes_Per_Face(); ++i) delete CoordSet[i];
+}
+
+template<typename DataType>
+void ContactTriFaceL3<DataType>::Compute_Second_Partial_Local_Coordinates_12( VariableHandle POSITION,
+                                                                              DataType* global_coords,
+                                                                              DataType (*ddLocalCoordsdX)[2],
+                                                                              DataType (*ddLocalCoordsdY)[2],
+                                                                              DataType (*ddLocalCoordsdZ)[2] )
+{
+  typedef std::vector<NodeTemplate<DataType>*> CoordSetType;
+  CoordSetType CoordSet(this->Nodes_Per_Face());
+  for (int i=0; i<this->Nodes_Per_Face(); ++i) {
+    CoordSet[i] = new NodeTemplate<DataType>(Node(i)->Variable(POSITION)[0],
+                                             Node(i)->Variable(POSITION)[1],
+                                             Node(i)->Variable(POSITION)[2]);
+  }
+
+  int nodes[3] = { 0, 1, 2 };
+  FaceTri3 face(nodes);
+  face.GetddLocalCoordsdXddLocalCoordsdYAndddLocalCoordsdZ<DataType,CoordSetType>(ddLocalCoordsdX, ddLocalCoordsdY, ddLocalCoordsdZ, global_coords, CoordSet);
+
+  for (int i=0; i<this->Nodes_Per_Face(); ++i) delete CoordSet[i];
+}
+
 /*************************************************************************/
 /*************************************************************************/
 /*                                                                       */
@@ -1276,38 +1419,39 @@ void ContactTriFaceL3<DataType>::Compute_Local_Coords( DataType node_positions[M
 {
   using std::sqrt;
   int  i;
-  DataType spatial_tolerance = 1.0e-10;
   //
   // check for coincidence with one of the face nodes
   //
   // KHP: Couldn't we avoid the sqrt here by squaring both
   // sides of the spatial_tolerance comparison?
   //
-  for (i=0; i<3; ++i) {
-    DataType dx = node_positions[i][0]-global_coords[0];
-    DataType dy = node_positions[i][1]-global_coords[1];
-    DataType dz = node_positions[i][2]-global_coords[2];
-    DataType d  = sqrt(dx*dx+dy*dy+dz*dz);
-    if (d<spatial_tolerance) break;
+  if(spatial_tolerance_pre > 0) {
+    for (i=0; i<3; ++i) {
+      DataType dx = node_positions[i][0]-global_coords[0];
+      DataType dy = node_positions[i][1]-global_coords[1];
+      DataType dz = node_positions[i][2]-global_coords[2];
+      DataType dd  = dx*dx+dy*dy+dz*dz;
+      if (dd == 0 || sqrt(dd) < spatial_tolerance_pre) break;
+    }
+    switch (i) {
+    case 0:
+      local_coords[0] = 1.0;
+      local_coords[1] = 0.0;
+      local_coords[2] = 0.0;
+      break;
+    case 1:
+      local_coords[0] = 0.0;
+      local_coords[1] = 1.0;
+      local_coords[2] = 0.0;
+      break;
+    case 2:
+      local_coords[0] = 0.0;
+      local_coords[1] = 0.0;
+      local_coords[2] = 1.0;
+      break;
+    }
+    if (i<3) return;
   }
-  switch (i) {
-  case 0:
-    local_coords[0] = 1.0;
-    local_coords[1] = 0.0;
-    local_coords[2] = 0.0;
-    break;
-  case 1:
-    local_coords[0] = 0.0;
-    local_coords[1] = 1.0;
-    local_coords[2] = 0.0;
-    break;
-  case 2:
-    local_coords[0] = 0.0;
-    local_coords[1] = 0.0;
-    local_coords[2] = 1.0;
-    break;
-  }
-  if (i<3) return;
 
   /*
                       2
@@ -1322,24 +1466,24 @@ void ContactTriFaceL3<DataType>::Compute_Local_Coords( DataType node_positions[M
 
   // Compute vectors from the point to each node
   DataType v_c_0[3] = { node_positions[0][0] - global_coords[0],
-                    node_positions[0][1] - global_coords[1],
-                    node_positions[0][2] - global_coords[2] };
+                        node_positions[0][1] - global_coords[1],
+                        node_positions[0][2] - global_coords[2] };
 
   DataType v_c_1[3] = { node_positions[1][0] - global_coords[0],
-                    node_positions[1][1] - global_coords[1],
-                    node_positions[1][2] - global_coords[2] };
+                        node_positions[1][1] - global_coords[1],
+                        node_positions[1][2] - global_coords[2] };
 
   DataType v_c_2[3] = { node_positions[2][0] - global_coords[0],
-                    node_positions[2][1] - global_coords[1],
-                    node_positions[2][2] - global_coords[2] };
+                        node_positions[2][1] - global_coords[1],
+                        node_positions[2][2] - global_coords[2] };
 
   // Compute the normal (as v_0_1 x v_0_2)
   DataType v_0_1[3] = { node_positions[1][0] - node_positions[0][0],
-                    node_positions[1][1] - node_positions[0][1],
-                    node_positions[1][2] - node_positions[0][2] };
+                        node_positions[1][1] - node_positions[0][1],
+                        node_positions[1][2] - node_positions[0][2] };
   DataType v_0_2[3] = { node_positions[2][0] - node_positions[0][0],
-                    node_positions[2][1] - node_positions[0][1],
-                    node_positions[2][2] - node_positions[0][2] };
+                        node_positions[2][1] - node_positions[0][1],
+                        node_positions[2][2] - node_positions[0][2] };
 
   DataType Normal[3];
   acme::Cross(v_0_1, v_0_2, Normal);
@@ -1353,20 +1497,23 @@ void ContactTriFaceL3<DataType>::Compute_Local_Coords( DataType node_positions[M
   DataType area = a0 + a1 + a2;
   DataType L1   = a0/area;
   DataType L2   = a1/area;
-  // If it's close to any of the edges, snap to it
-  using std::min; using std::max;
-  if (L1<1.0+spatial_tolerance) {
-    L1 = min(L1, 1.0);
+  if(spatial_tolerance_post > 0) {
+    // If it's close to any of the edges, snap to it
+    using std::min; using std::max;
+    if (L1<1.0+spatial_tolerance_post) {
+      L1 = min(L1, 1.0);
+    }
+    if (L1>-spatial_tolerance_post) {
+      L1 = max(L1, 0.0);
+    }
+    if (L2<1.0+spatial_tolerance_post) {
+      L2 = min(L2, 1.0);
+    }
+    if (L2>-spatial_tolerance_post) {
+      L2 = max(L2, 0.0);
+    }
   }
-  if (L1>-spatial_tolerance) {
-    L1 = max(L1, 0.0);
-  }
-  if (L2<1.0+spatial_tolerance) {
-    L2 = min(L2, 1.0);
-  }
-  if (L2>-spatial_tolerance) {
-    L2 = max(L2, 0.0);
-  }
+
   local_coords[0] = L1;
   local_coords[1] = L2;
   local_coords[2] = 1.0-L1-L2;

@@ -2448,10 +2448,6 @@ Domain::SetMortarPairing()
 // HB: to setup internal data & renumber surfaces
 void Domain::SetUpSurfaces(CoordSet* cs)
 {
-#if defined(MORTAR_LOCALNUMBERING) && defined(MORTAR_DEBUG)
-  // if we want to work with local numbering of the surface entities (Salinas)
-  if(nSurfEntity) filePrint(stderr," ... Use local numbering (and local nodeset) in the surface entities\n");
-#endif
   for(int iSurf=0; iSurf<nSurfEntity; iSurf++){
 
     // For acme shells it is necessary to include both sides of the element in the face block
@@ -2481,9 +2477,7 @@ void Domain::SetUpSurfaces(CoordSet* cs)
     //if(cs) SurfEntities[iSurf]->PrintFaceNormal(cs);
 #endif
     SurfEntities[iSurf]->SetUpData(cs);
-#ifdef MORTAR_LOCALNUMBERING
     SurfEntities[iSurf]->Renumber();
-#endif
 #ifdef MORTAR_DEBUG
   #ifdef HB_NODALNORMAL
     SurfEntities[iSurf]->ComputeNodalNormals(SurfEntities[iSurf]->GetNodeSet());
@@ -2684,13 +2678,7 @@ void Domain::ExpComputeMortarLMPC(MortarHandler::Interaction_Type t, int nDofs, 
   for(int iMortar = 0; iMortar < nMortarCond; iMortar++) {
     MortarHandler* CurrentMortarCond = MortarConds[iMortar];
     if(CurrentMortarCond->GetInteractionType() == t) {
-#if (MAX_MORTAR_DERIVATIVES > 0)
-      if(CurrentMortarCond->GetInteractionType() == MortarHandler::CTC && !tdenforceFlag()
-         && sinfo.probType != SolverInfo::Decomp)
-        CurrentMortarCond->CreateFFIPolygon<ActiveDouble>();
-      else
-#endif
-      CurrentMortarCond->CreateFFIPolygon<double>();
+      CurrentMortarCond->CreateFFIPolygon();
       CurrentMortarCond->AddMortarLMPCs(&lmpc, numLMPC, numCTC, nDofs, dofs);
       nMortarLMPCs += CurrentMortarCond->GetnMortarLMPCs();
       num_interactions += CurrentMortarCond->GetnFFI();
@@ -2739,13 +2727,7 @@ void Domain::ComputeMortarLMPC(int nDofs, int *dofs)
     filePrint(stderr," -> time spent in the ACME search: %e s\n",time/1000);
     time = -getTime();
 #endif
-#if (MAX_MORTAR_DERIVATIVES > 0)
-    if(CurrentMortarCond->GetInteractionType()==MortarHandler::CTC && !tdenforceFlag()
-       && sinfo.probType != SolverInfo::Decomp)
-      CurrentMortarCond->CreateFFIPolygon<ActiveDouble>();
-    else
-#endif
-    CurrentMortarCond->CreateFFIPolygon<double>();
+    CurrentMortarCond->CreateFFIPolygon();
 #ifdef MORTAR_TIMINGS
     time += getTime();
     filePrint(stderr," -> time spent in building the Mortar B matrices: %e s\n",time/1000);

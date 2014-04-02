@@ -60,7 +60,7 @@ class ContactBlockEntityList : public ContactTopologyDLL {
   
   ContactTopologyEntity<Real>*  Find( ContactHostGlobalID& );
   ContactTopologyEntity<Real>*  Find( ContactTopologyEntity<Real>::connection_data* );
-  ContactTopologyEntity<Real>*  Find( ContactInteractionEntity::entity_data* );
+  ContactTopologyEntity<Real>*  Find( ContactInteractionEntity<Real>::entity_data* );
 #ifndef CONTACT_NO_MPI
   ContactTopologyEntity<Real>*  CreateEntity(char*);
   ContactTopologyEntity<Real>*  CreateEntity_ForSecondary(char*);

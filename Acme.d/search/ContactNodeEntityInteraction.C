@@ -34,7 +34,7 @@ ContactNodeEntityInteraction::ContactNodeEntityInteraction(bool is_tied_,
                                                            int Location,
                                                            InteractionType type_,
                                                            ContactType base_type_) :
-  ContactInteractionEntity((Real*) &DataArray, base_type_),
+  ContactInteractionEntity<Real>((Real*) &DataArray, base_type_),
   is_tied(is_tied_),
   is_infSlip(is_infSlip_),
   is_glued(is_glued_),

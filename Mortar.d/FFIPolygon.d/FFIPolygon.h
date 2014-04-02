@@ -17,57 +17,58 @@ template <class Scalar> class GenVector;
 typedef GenVector<double> Vector;
 
 class CoordSet;
-class FaceElement;
-class MortarElement;
+class SurfaceEntity;
 
-template<class Scalar>
-class FFIPolygon {
+template<class MasterFaceType, class SlaveFaceType, class MortarType>
+class FFIPolygonTemplate {
   private:
-	double Area;                 // (approximate) area 
+        double Area;                 // (approximate) area 
         int nVertices;               // number of polygon vertices
 
-        FaceElement* MasterFace;     // ptr to the associated master face el.
-        FaceElement* SlaveFace ;     // ptr to the associated salve face el.
+        MasterFaceType* MasterFace;     // ptr to the associated master face el.
+        SlaveFaceType* SlaveFace;       // ptr to the associated slave face el.
 
-        typedef std::pair<TriFacet<Scalar>, TriFacet<Scalar> > Facet_pair_t; // first  -> master
-                                                                             // second -> slave
+        typedef std::pair<TriFacetTemplate<double,MasterFaceType>,               // first  -> master
+                          TriFacetTemplate<double,SlaveFaceType> > Facet_pair_t; // second -> slave
         std::vector<Facet_pair_t> Facets;
 
-        FullM M;                     // store the (FFI contibution to) M matrix (Mortar-Slave)
-        FullM N;                     // store the (FFI contibution to) N matrix (Mortar-Master)
+        FullM M;                     // store the (FFI contribution to) M matrix (Mortar-Slave)
+        FullM N;                     // store the (FFI contribution to) N matrix (Mortar-Master)
 
-        Vector NormalGeoGaps;        // store the (FFI contibution to) the "geometrical" normal gaps (Slave-Master)
+        Vector NormalGeoGaps;        // store the (FFI contribution to) the "geometrical" normal gaps (Slave-Master)
 
-        FullM *dM;                   // store the (FFI contibution to) derivative of the M matrix (Mortar-Slave)
-        FullM *dN;                   // store the (FFI contibution to) derivative of the N matrix (Mortar-Master)
+        FullM *dM;                   // store the (FFI contribution to) derivative of the M matrix (Mortar-Slave)
+        FullM *dN;                   // store the (FFI contribution to) derivative of the N matrix (Mortar-Master)
+
+        FullM H;                     // store the (FFI contribution to) derivative of [-N,M] contracted with mu (vector of Lagrange multipliers)
 #ifdef HB_ACME_FFI_DEBUG
-        Scalar (*VertexLlCoordOnSFaceEl)[2];
-        Scalar (*VertexLlCoordOnMFaceEl)[2];
+        double (*VertexLlCoordOnSFaceEl)[2];
+        double (*VertexLlCoordOnMFaceEl)[2];
 #endif
-        int MaxFFIDerivatives;
-        int MaxFFISecondDerivatives;
         double* ACME_FFI_LocalCoordData;
+
         // Helper methods
         // ~~~~~~~~~~~~~~
-        static TriFacet<Scalar>& MasterFacet(std::vector<Facet_pair_t>& FacetSet, size_t i) 
-        { 
-          return FacetSet[i].first; 
+        static TriFacetTemplate<double,MasterFaceType>& MasterFacet(std::vector<Facet_pair_t>& FacetSet, size_t i)
+        {
+          return FacetSet[i].first;
         }
-        static TriFacet<Scalar>& SlaveFacet(std::vector<Facet_pair_t>& FacetSet, size_t i) 
-        { 
-          return FacetSet[i].second; 
+        static TriFacetTemplate<double,SlaveFaceType>& SlaveFacet(std::vector<Facet_pair_t>& FacetSet, size_t i)
+        {
+          return FacetSet[i].second;
         }
 
   public:
         // Constructors
         // ~~~~~~~~~~~~
-        FFIPolygon();
-        FFIPolygon(FaceElement* MasterFaceEl, FaceElement* SlaveFaceEl, int nVert, double* ACME_FFI_Data,
-                   int MaxFFIDerivatives, int MaxFFISecondDerivatives);
+        FFIPolygonTemplate();
+        FFIPolygonTemplate(MasterFaceType* MasterFaceEl, SlaveFaceType* SlaveFaceEl);
+        FFIPolygonTemplate(MasterFaceType* MasterFaceEl, SlaveFaceType* SlaveFaceEl, int nVert, double* ACME_FFI_Data,
+                           int ACME_FFI_Derivatives_Order = 0);
         
-	// Destructor 
+        // Destructor 
         // ~~~~~~~~~~
-	~FFIPolygon();
+        ~FFIPolygonTemplate();
 
         // Initialize & clear/clean methods
         // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -75,20 +76,20 @@ class FFIPolygon {
 
         // Set methods
         // ~~~~~~~~~~~ 
-        void SetFFIPolygon(FaceElement* MasterFaceEl, FaceElement* SlaveFaceEl, int nVert, double* ACME_FFI_Data,
-                           int MaxFFIDerivatives, int MaxFFISecondDerivatives);
-        void SetPtrMasterFace(FaceElement*); 
-	void SetPtrSlaveFace( FaceElement*);
-	
-	// Get methods  
+        void SetFFIPolygon(MasterFaceType* MasterFaceEl, SlaveFaceType* SlaveFaceEl, int nVert, double* ACME_FFI_Data,
+                           int ACME_FFI_Derivatives_Order);
+        void SetPtrMasterFace(MasterFaceType*); 
+        void SetPtrSlaveFace(SlaveFaceType*);
+        
+        // Get methods  
         // ~~~~~~~~~~~
         int GetnVertices() { return nVertices; }
 
         int GetnFacets() { return Facets.size(); }
 
-        FaceElement* GetPtrMasterFace() { return MasterFace; }
+        MasterFaceType* GetPtrMasterFace() { return MasterFace; }
 
-        FaceElement* GetPtrSlaveFace() { return SlaveFace; }
+        SlaveFaceType* GetPtrSlaveFace() { return SlaveFace; }
 
         FullM* GetPtrM() { return &M; }
 
@@ -103,128 +104,6 @@ class FFIPolygon {
         // Print, display methods
         // ~~~~~~~~~~~~~~~~~~~~~~
         void Print(); 
-	void PrintM();
-	void PrintN();
-#ifdef HB_ACME_FFI_DEBUG
-	void PrintSlaveVertices(FILE* file, CoordSet& cs, int& firstVertId);
-	void PrintMasterVertices(FILE* file, CoordSet& cs, int& firstVertId);
-	void PrintFFIPolygonTopo(FILE* file, int& EdgeOffset, int& VertOffset, int elCode);
-#endif
-	// Triangularization methods
-	// ~~~~~~~~~~~~~~~~~~~~~~~~~
-	void CreateTriangularization(Scalar*);
-
-        // Integration methods
-        // ~~~~~~~~~~~~~~~~~~~ 
-	FullM IntegrateOnMaster_MasterShapeFctProduct(MortarElement*, CoordSet&, int ngp=6);
-	FullM IntegrateOnMaster_SlaveShapeFctProduct( MortarElement*, CoordSet&, int ngp=6);
-	
-        FullM IntegrateOnSlave_MasterShapeFctProduct(MortarElement*, CoordSet&, int ngp=6);
-	FullM IntegrateOnSlave_SlaveShapeFctProduct( MortarElement*, CoordSet&, int ngp=6);
-
-	FullM IntegrateOnSlave_MasterNormalShapeFctProduct(MortarElement* , CoordSet &, int ngp=6);
-        FullM IntegrateOnSlave_SlaveNormalShapeFctProduct(MortarElement* MortarEl, CoordSet &cs, int ngp=6);
-
-        FullM IntegrateOnSlave_MasterGradNormalShapeFctProduct(MortarElement*, CoordSet&, CoordSet&, int ngp=6);
-        FullM IntegrateOnSlave_SlaveGradNormalShapeFctProduct(MortarElement*, CoordSet&, CoordSet&, int ngp=6);
-
-        void ComputeM(MortarElement*, CoordSet&, int ngp=6);
-        void ComputeN(MortarElement*, CoordSet&, int ngp=6);
-
-        void ComputeNormalM(MortarElement*, CoordSet&, int ngp=6);
-        void ComputeNormalN(MortarElement*, CoordSet&, int ngp=6);
-
-        void ComputeGradNormalM(MortarElement*, CoordSet&, CoordSet&, int ngp=6);
-        void ComputeGradNormalN(MortarElement*, CoordSet&, CoordSet&, int ngp=6);
-
-	void ComputeNormalGeoGap(MortarElement* MortarEl, CoordSet&, CoordSet&, int ngp=6, double offset=0.);
-
-        // Space/memory allocation/desallocation methods
-	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-   private:
-        void PrepLocalCoordData();
-};
-
-#ifdef _TEMPLATE_FIX_
-  #include <Mortar.d/FFIPolygon.d/FFIPolygon.C>
-#endif
-
-#endif
-
-/*
-// EXPERIMENTAL
-// Alternative implementation that do not store the (triangular) facets but
-// construct them on-the-fly when performing the integrations
-// This may save memory as the nodes of the facets are no more duplicated and stored
-// Also the FFIPolygon object may only references the ACME_FFI_Data array instead of
-// extracting and storing its revelant data; in which case the ACME_FFI_Data may
-// must NOT be destroyed before the FFIPolygon objects are used. This approach should
-// be OK in case of multi-threads because as the ACME_FFI_Data array is only read, no
-// false-sharing should happen.
-class FFIPolygon {
-  private:
-        double Area;                 // (approximate) area
-        int nVertices;               // number of polygon vertices
-
-        FaceElement* MasterFace;     // ptr to the associated master face el.
-        FaceElement* SlaveFace ;     // ptr to the associated salve face el.
-
-        double MasterCentroid[2];
-        double SlaveCentroid[2];
-
-        double* ACME_FFI_Data;
-
-        FullM M;                     // store the (FFI contibution to) M matrix (Mortar-Slave)
-        FullM N;                     // store the (FFI contibution to) N matrix (Mortar-Master)
-
-        Vector NormalGeoGaps;        // store the (FFI contibution to) the "geometrical" normal gaps (Slave-Master)
-
-#ifdef HB_ACME_FFI_DEBUG
-        double (*VertexLlCoordOnSFaceEl)[2];
-        double (*VertexLlCoordOnMFaceEl)[2];
-#endif
-        // Helper methods
-        // ~~~~~~~~~~~~~~
-        double* ACME_FFI_LocalCoordData() { return &ACME_FFI_Data[2*nVertices+1]; }
-
-  public:
-        // Constructors
-        // ~~~~~~~~~~~~
-        FFIPolygon();
-        FFIPolygon(FaceElement* MasterFaceEl, FaceElement* SlaveFaceEl, int nVert, double* ACME_FFI_Data);
-
-        // Destructor
-        // ~~~~~~~~~~
-        ~FFIPolygon();
-
-        // Initialize & clear/clean methods
-        // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        void Initialize();
-
-        // Set methods
-        // ~~~~~~~~~~~
-        void SetFFIPolygon(FaceElement* MasterFaceEl, FaceElement* SlaveFaceEl, int nVert, double* ACME_FFI_Data);
-        void SetPtrMasterFace(FaceElement*);
-        void SetPtrSlaveFace( FaceElement*);
-
-        // Get methods
-        // ~~~~~~~~~~~
-        int GetnVertices() { return nVertices; }
-
-        int GetnFacets() { return nVertices; }
-
-        FaceElement* GetPtrMasterFace() { return MasterFace; }
-
-        FaceElement* GetPtrSlaveFace() { return SlaveFace; }
-
-        FullM* GetPtrM() { return &M; }
-
-        FullM* GetPtrN() { return &N; }
-
-        // Print, display methods
-        // ~~~~~~~~~~~~~~~~~~~~~~
-        void Print();
         void PrintM();
         void PrintN();
 #ifdef HB_ACME_FFI_DEBUG
@@ -234,30 +113,37 @@ class FFIPolygon {
 #endif
         // Triangularization methods
         // ~~~~~~~~~~~~~~~~~~~~~~~~~
-        void CreateTriangularization(double*);
+        void CreateTriangularization(double*, bool use_acme_centroid = false);
+        void CreateTriangularizationExp(double*, bool use_acme_centroid = false);
+        void CreateTriangularizationExp2(double*, bool use_acme_centroid = false);
 
         // Integration methods
-        // ~~~~~~~~~~~~~~~~~~~
-        FullM IntegrateOnMaster_MasterShapeFctProduct(MortarElement*, CoordSet&, int ngp=6);
-        FullM IntegrateOnMaster_SlaveShapeFctProduct( MortarElement*, CoordSet&, int ngp=6);
+        // ~~~~~~~~~~~~~~~~~~~ 
+        FullM IntegrateOnMaster_MasterShapeFctProduct(MortarType*, CoordSet&, int ngp=6);
+        FullM IntegrateOnMaster_SlaveShapeFctProduct(MortarType*, CoordSet&, int ngp=6);
 
-        FullM IntegrateOnSlave_MasterShapeFctProduct(MortarElement*, CoordSet&, int ngp=6);
-        FullM IntegrateOnSlave_SlaveShapeFctProduct( MortarElement*, CoordSet&, int ngp=6);
+        FullM IntegrateOnSlave_MasterShapeFctProduct(MortarType*, CoordSet&, int ngp=6);
+        FullM IntegrateOnSlave_SlaveShapeFctProduct(MortarType*, CoordSet&, int ngp=6);
 
-        FullM IntegrateOnSlave_MasterNormalShapeFctProduct(MortarElement* , CoordSet &, int ngp=6);
-        FullM IntegrateOnSlave_SlaveNormalShapeFctProduct(MortarElement* MortarEl, CoordSet &cs, int ngp=6);
+        FullM IntegrateOnSlave_MasterNormalShapeFctProduct(MortarType*, CoordSet &, int ngp=6);
+        FullM IntegrateOnSlave_SlaveNormalShapeFctProduct(MortarType*, CoordSet &, int ngp=6);
 
-        void ComputeM(MortarElement*, CoordSet&, int ngp=6);
-        void ComputeN(MortarElement*, CoordSet&, int ngp=6);
+        FullM IntegrateOnSlave_GradNormalGeoGap(MortarType*, CoordSet &, CoordSet &, int ngp=6, double offset=0.);
+        FullM IntegrateOnSlave_HessNormalGeoGap(MortarType*, CoordSet &, CoordSet &, double*, int ngp=6, double offset=0.);
 
-        void ComputeNormalM(MortarElement*, CoordSet&, int ngp=6);
-        void ComputeNormalN(MortarElement*, CoordSet&, int ngp=6);
+        void ComputeM(MortarType*, CoordSet&, int ngp=6);
+        void ComputeN(MortarType*, CoordSet&, int ngp=6);
 
-        void ComputeNormalGeoGap(MortarElement* MortarEl, CoordSet &cs, int ngp=6);
+        void ComputeNormalM(MortarType*, CoordSet&, int ngp=6);
+        void ComputeNormalN(MortarType*, CoordSet&, int ngp=6);
 
-        // Space/memory allocation/desallocation methods
-        // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        void ComputeNormalGeoGap(MortarType*, CoordSet&, CoordSet&, int ngp=6, double offset=0.);
+        void ComputeGradNormalGeoGap(MortarType*, CoordSet&, CoordSet&, int ngp=6, double offset=0.);
+        void ComputeHessNormalGeoGap(MortarType*, CoordSet&, CoordSet&, double*, int ngp=6, double offset=0.);
 };
-#endif
 
-*/
+class FaceElement;
+class MortarElement;
+typedef FFIPolygonTemplate<FaceElement,FaceElement,MortarElement> FFIPolygon;
+
+#endif

@@ -23,6 +23,12 @@ void ContactTriFaceL3<Real>::Compute_Normal( VariableHandle CURRENT_POSITION,
 				       VariableHandle FACE_NORMAL );
 
 template
+void ContactTriFaceL3<Real>::Compute_Partial_Face_Normal(VariableHandle CURRENT_POSITION, Real (*dface_normal)[3]);
+
+template
+void ContactTriFaceL3<Real>::Compute_Second_Partial_Face_Normal(VariableHandle CURRENT_POSITION, Real (*d2face_normal)[3]);
+
+template
 void ContactTriFaceL3<Real>::Compute_Normal(VariableHandle POSITION,
 				       Real* normal, Real* local_coords );
 template
@@ -116,6 +122,34 @@ void ContactTriFaceL3<Real>::Compute_Local_Coordinates( Real Config_Param,
 						  VariableHandle FACE_NORMAL,
 						  Real* global_coords,
 						  Real* local_coords );
+
+template
+void ContactTriFaceL3<Real>::Compute_Partial_Local_Coordinates_1( VariableHandle POSITION,
+                                                                  Real* global_coords,
+                                                                  Real (*dlocal_coords)[2] );
+
+template
+void ContactTriFaceL3<Real>::Compute_Partial_Local_Coordinates_2( VariableHandle POSITION,
+                                                                  Real* global_coords,
+                                                                  Real dmdX[2], Real dmdY[2], Real dmdZ[2] );
+
+template
+void ContactTriFaceL3<Real>::Compute_Second_Partial_Local_Coordinates_1( VariableHandle POSITION,
+                                                                         Real* global_coords,
+                                                                         Real (*d2local_coords)[2] );
+
+template
+void ContactTriFaceL3<Real>::Compute_Second_Partial_Local_Coordinates_2( VariableHandle POSITION,
+                                                                         Real* global_coords,
+                                                                         Real d2mdX2[2], Real d2mdY2[2], Real d2mdZ2[2],
+                                                                         Real d2mdXdY[2], Real d2mdYdZ[2], Real d2mdXdZ[2] );
+
+template
+void ContactTriFaceL3<Real>::Compute_Second_Partial_Local_Coordinates_12( VariableHandle POSITION,
+                                                                          Real* global_coords,
+                                                                          Real (*ddLocalCoordsdX)[2],
+                                                                          Real (*ddLocalCoordsdY)[2],
+                                                                          Real (*ddLocalCoordsdZ)[2] );
 
 template
 void ContactTriFaceL3<Real>::Compute_Local_Coordinates( VariableHandle POSITION,

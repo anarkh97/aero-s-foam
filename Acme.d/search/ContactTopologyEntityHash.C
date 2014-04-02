@@ -160,7 +160,7 @@ ContactTopologyEntity<Real> *implementation::find(ContactHostGlobalID &Global_ID
   return ptr->entity;
 }
 
-ContactTopologyEntity<Real> *implementation::find(ContactInteractionEntity::entity_data *data)
+ContactTopologyEntity<Real> *implementation::find(ContactInteractionEntity<Real>::entity_data *data)
 {
   ContactHostGlobalID id(data->host_gid[0], data->host_gid[1]);
   return find(id);
@@ -417,7 +417,7 @@ namespace topology_hash_1 {
     }
   }
 
-  ContactTopologyEntity<Real> *implementation::find(ContactInteractionEntity::entity_data *data)
+  ContactTopologyEntity<Real> *implementation::find(ContactInteractionEntity<Real>::entity_data *data)
   {
     ContactHostGlobalID id(data->host_gid[0], data->host_gid[1]);
     return find(id);

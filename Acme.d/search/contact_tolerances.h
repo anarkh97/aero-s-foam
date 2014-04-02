@@ -54,4 +54,21 @@
 //static Real REL_TANG_TOL  = 1.e-12;
 #define REL_TANG_TOL   1.e-12
 
+// The following two tolerances are used in ContactFaceFaceSearch.C
+#include <limits>
+#define THICK_PLANE_TOL std::numeric_limits<double>::epsilon()
+#define SMALL_AREA_TOL 10*std::numeric_limits<double>::epsilon()
+
+// The following tolerances are used in Compute_Local_Coordinates for some ContactElems
+#define spatial_tolerance_pre 0
+#define spatial_tolerance_post 0
+#define newton_tolerance 1.0e-12
+#define abs_newton_tolerance 1.0e-29
+
+// The following tolerance is used to define a planar face
+#define is_planar_tol 0.999999
+
+// The following tolerance is used to define when a ray is parallel to a plane
+#define is_parallel_tol 1e-10
+
 #endif

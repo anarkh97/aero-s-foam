@@ -1,6 +1,6 @@
 // $Id$
 
-#include "ContactElement.C"
+#include "ContactElem.C"
 
 template
 ContactElem<Real>::ContactElem(ContactSearch::ContactElem_Type Type, 

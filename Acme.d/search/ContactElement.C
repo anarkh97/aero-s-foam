@@ -18,9 +18,6 @@
 // along with ACME.  If not, see <http://www.gnu.org/licenses/>.
 
 
-#ifndef ContactElement_C_
-#define ContactElement_C_
-
 #include "ContactSearch.h"
 #include "ContactElement.h"
 #include "ContactFace.h"
@@ -34,129 +31,6 @@
 #include <cstring>
 #include <cmath>
 
-template<typename DataType>
-ContactElem<DataType>::ContactElem(ContactSearch::ContactElem_Type Type, 
-			 int Block_Index, int Host_Index_in_Block, int key)
-  : ContactTopologyEntity<DataType>( Block_Index, Host_Index_in_Block, DataArray, CT_ELEM)
-{
-  type       = Type;
-  entity_key = key;
-}
-
-template<typename DataType>
-ContactElem<DataType>::~ContactElem()
-{}
-
-template<typename DataType>
-void ContactElem<DataType>::ConnectNode( int num, ContactNode<DataType>* node )
-{
-  PRECONDITION( num < Nodes_Per_Element() );
-  PRECONDITION( Nodes() );
-  Nodes()[num] = node;
-}
-
-
-
-template<typename DataType>
-void ContactElem<DataType>::ConnectEdge( int num, ContactEdge<DataType>* edge )
-{
-  PRECONDITION( num < Edges_Per_Element() );
-  PRECONDITION( Edges() );
-  Edges()[num] = edge;
-}
-
-template<typename DataType>
-void ContactElem<DataType>::ConnectFace( int num, ContactFace<DataType>* face )
-{
-  PRECONDITION( num < Faces_Per_Element() );
-  PRECONDITION( Faces() );
-  Faces()[num] = face;
-}
-
-
-template<typename DataType>
-int ContactElem<DataType>::Size()
-{
-  return( ContactTopologyEntity<DataType>::Size(DataArray_Length()) + 
-	  2*(Nodes_Per_Element()+
-             Edges_Per_Element()+
-             Faces_Per_Element())*sizeof(int) );
-}
-
-template<typename DataType>
-void ContactElem<DataType>::Pack( char* buffer )
-{
-  int i;
-  int* i_buf = reinterpret_cast<int*>(buffer);
-  // ContactTopologyEntity<DataType> packs in location 0 as ContactFace<DataType> and here we pack
-  // in the derived type in location 1.
-  i_buf[1] = type;
-  ContactTopologyEntity<DataType>::Pack( buffer, DataArray_Length() );
-  // Add the global ids of the nodes
-  i_buf = reinterpret_cast<int*>(buffer+ContactTopologyEntity<DataType>::Size(DataArray_Length()));
-  int index = 0;
-  for( i=0 ; i<Nodes_Per_Element() ; ++i ){
-    i_buf[index++] = Node(i)->Global_ID().HiInt();
-    i_buf[index++] = Node(i)->Global_ID().LoInt();
-  }
-  for( i=0 ; i<Edges_Per_Element() ; ++i ){
-    i_buf[index++] = Edge(i)->Global_ID().HiInt();
-    i_buf[index++] = Edge(i)->Global_ID().LoInt();
-  }
-  for( i=0 ; i<Faces_Per_Element() ; ++i ){
-    i_buf[index++] = Face(i)->Global_ID().HiInt();
-    i_buf[index++] = Face(i)->Global_ID().LoInt();
-  }
-  POSTCONDITION( index == 2*(Nodes_Per_Element()+
-                             Edges_Per_Element()+
-                             Faces_Per_Element()) );
-}
-
-template<typename DataType>
-void ContactElem<DataType>::Unpack( char* buffer )
-{
-  ContactTopologyEntity<DataType>::Unpack( buffer, DataArray_Length() );
-  entity_key = block_id;
-
-  PRECONDITION( ((int*)buffer)[1] == type );
-  // Store off the global ids of the nodes
-  int* i_buf = reinterpret_cast<int*>( buffer + ContactTopologyEntity<DataType>::Size(DataArray_Length()) );
-  std::memcpy( Node_Ids(), i_buf, 2*Nodes_Per_Element()*sizeof(int) );
-  i_buf += 2*Nodes_Per_Element();
-  std::memcpy( Edge_Ids(), i_buf, 2*Edges_Per_Element()*sizeof(int) );
-  i_buf += 2*Edges_Per_Element();
-  std::memcpy( Face_Ids(), i_buf, 2*Faces_Per_Element()*sizeof(int) );
-}
-
-#ifndef CONTACT_NO_MPI
-template<typename DataType>
-DataType ContactElem<DataType>::MaxSize( VariableHandle POSITION )
-{
-  int  i, j;
-  DataType size=0.0, node_positions[8][3];
-  
-  for (i=0; i<Nodes_Per_Element(); ++i) {
-    DataType* node_position = Node(i)->Variable(POSITION);
-    for (j=0; j<3; ++j) {
-      node_positions[i][j] = node_position[j];
-    }
-  }
-  for (i=0,j=1; i<Edges_Per_Element(); ++i,j=(i+1)%Edges_Per_Element()) {
-    DataType dx = node_positions[i][0]-node_positions[j][0];
-    DataType dy = node_positions[i][1]-node_positions[j][1];
-    DataType dz = node_positions[i][2]-node_positions[j][2];
-    size = std::max(size,std::sqrt(dx*dx+dy*dy+dz*dz));
-  }
-  for (i=0,j=1; i<Faces_Per_Element(); ++i,j=(i+1)%Faces_Per_Element()) {
-    DataType dx = node_positions[i][0]-node_positions[j][0];
-    DataType dy = node_positions[i][1]-node_positions[j][1];
-    DataType dz = node_positions[i][2]-node_positions[j][2];
-    size = std::max(size,std::sqrt(dx*dx+dy*dy+dz*dz));
-  }
-  return (size);
-}
-#endif
-
 ContactElement::ContactElement( ContactFixedSizeAllocator* alloc,
                                 ContactSearch::ContactElement_Type Type, 
 				int Block_Index, int Host_Index_in_Block, 
@@ -166,9 +40,9 @@ ContactElement::ContactElement( ContactFixedSizeAllocator* alloc,
   type = Type;
   entity_key = key;
   number_of_states = 2;
-  ElementElementInteractions = new ContactInteractionDLL*[number_of_states];
+  ElementElementInteractions = new ContactInteractionDLL<Real>*[number_of_states];
   for( int i=0 ; i<number_of_states ; ++i ){
-    ElementElementInteractions[i] = new ContactInteractionDLL();
+    ElementElementInteractions[i] = new ContactInteractionDLL<Real>();
   }
 }
 
@@ -176,7 +50,7 @@ ContactElement::ContactElement( ContactFixedSizeAllocator* alloc,
 ContactElement::~ContactElement()
 {
   for( int i=0 ; i<number_of_states ; ++i ){
-    ContactInteractionEntity* link=NULL;
+    ContactInteractionEntity<Real>* link=NULL;
     ElementElementInteractions[i]->IteratorStart();
     while ((link=ElementElementInteractions[i]->IteratorForward())) {
       ContactElementElementInteraction* ceei = 
@@ -215,11 +89,11 @@ int ContactElement::Size_Interactions(int state)
 {
   int size = sizeof(int);
   
-  ContactInteractionDLL* interactions;
+  ContactInteractionDLL<Real>* interactions;
   
   interactions = Get_ElementElement_Interactions(state);
   interactions->IteratorStart();
-  while (ContactInteractionEntity* entity=interactions->IteratorForward()) {
+  while (ContactInteractionEntity<Real>* entity=interactions->IteratorForward()) {
     ContactElementElementInteraction* i = 
       static_cast<ContactElementElementInteraction*>(entity);
     size += i->Size()+sizeof(int);
@@ -237,10 +111,10 @@ void ContactElement::Pack_Interactions( char* buffer, int state )
   
   buffer += sizeof(int);
   
-  ContactInteractionDLL* interactions = 
+  ContactInteractionDLL<Real>* interactions = 
     Get_ElementElement_Interactions(state);
   interactions->IteratorStart();
-  while (ContactInteractionEntity* entity=interactions->IteratorForward()) {
+  while (ContactInteractionEntity<Real>* entity=interactions->IteratorForward()) {
     ContactElementElementInteraction* i = 
       static_cast<ContactElementElementInteraction*>(entity);
     int* ibuf = reinterpret_cast<int*>(buffer);
@@ -278,8 +152,8 @@ void ContactElement::Unpack_Interactions( char* buffer, int state )
 
 void ContactElement::Copy_Interactions( ContactElement* src, int state )
 {
-  ContactInteractionEntity* entity;
-  ContactInteractionDLL* interactions;
+  ContactInteractionEntity<Real>* entity;
+  ContactInteractionDLL<Real>* interactions;
   if (src->ElementElementInteractions[state]->NumEntities()>0) {
     interactions = src->ElementElementInteractions[state];
     interactions->IteratorStart();
@@ -304,11 +178,11 @@ int ContactElement::Size_Interactions_ForSecondary(int state)
 {
   int size = sizeof(int);
   
-  ContactInteractionDLL* interactions;
+  ContactInteractionDLL<Real>* interactions;
   
   interactions = Get_ElementElement_Interactions(state);
   interactions->IteratorStart();
-  while (ContactInteractionEntity* entity=interactions->IteratorForward()) {
+  while (ContactInteractionEntity<Real>* entity=interactions->IteratorForward()) {
     ContactElementElementInteraction* i = 
       static_cast<ContactElementElementInteraction*>(entity);
     size += i->Size()+sizeof(int);
@@ -326,10 +200,10 @@ void ContactElement::Pack_Interactions_ForSecondary( char* buffer, int state )
   
   buffer += sizeof(int);
   
-  ContactInteractionDLL* interactions = 
+  ContactInteractionDLL<Real>* interactions = 
     Get_ElementElement_Interactions(state);
   interactions->IteratorStart();
-  while (ContactInteractionEntity* entity=interactions->IteratorForward()) {
+  while (ContactInteractionEntity<Real>* entity=interactions->IteratorForward()) {
     ContactElementElementInteraction* i = 
       static_cast<ContactElementElementInteraction*>(entity);
     int* ibuf = reinterpret_cast<int*> (buffer);
@@ -370,8 +244,8 @@ void ContactElement::Unpack_Interactions_ForSecondary( char* buffer, int state )
 
 void ContactElement::Copy_Interactions_ForSecondary( ContactElement* src, int state )
 {
-  ContactInteractionEntity* entity;
-  ContactInteractionDLL* interactions;
+  ContactInteractionEntity<Real>* entity;
+  ContactInteractionDLL<Real>* interactions;
   if (src->ElementElementInteractions[state]->NumEntities()>0) {
     interactions = src->ElementElementInteractions[state];
     interactions->IteratorStart();
@@ -392,7 +266,7 @@ void ContactElement::Copy_Interactions_ForSecondary( ContactElement* src, int st
 ContactElementElementInteraction* 
 ContactElement::Get_ElementElement_Interaction(int interaction_number, int state )
 {
-  ContactInteractionEntity* entity=NULL;
+  ContactInteractionEntity<Real>* entity=NULL;
   ElementElementInteractions[state]->IteratorStart();
   while ((entity=ElementElementInteractions[state]->IteratorForward())) {
     if (entity->Index()==interaction_number) break;
@@ -417,7 +291,7 @@ void
 ContactElement::Delete_ElementElement_Interaction( 
                 ContactElementElementInteraction* eei, int state )
 {
-  ContactInteractionEntity* link=NULL;
+  ContactInteractionEntity<Real>* link=NULL;
   ElementElementInteractions[state]->IteratorStart();
   while ((link=ElementElementInteractions[state]->IteratorForward())) {
     if (link->Index()==eei->Index()) {
@@ -435,7 +309,7 @@ ContactElement::Display_ElementElement_Interactions( ContactParOStream& postream
 {
 #if CONTACT_DEBUG_PRINT_LEVEL>=4
   ElementElementInteractions[state]->IteratorStart();
-  while (ContactInteractionEntity* entity=ElementElementInteractions[state]->IteratorForward()) {
+  while (ContactInteractionEntity<Real>* entity=ElementElementInteractions[state]->IteratorForward()) {
     ContactElementElementInteraction* ceei =
        static_cast<ContactElementElementInteraction*> (entity);
    ContactHostGlobalID Slave_GID ( ceei->SlaveElementEntityData()->host_gid[0], 
@@ -455,11 +329,11 @@ void
 ContactElement::Update_Interactions( )
 {
   int i;
-  ContactInteractionEntity* link;
+  ContactInteractionEntity<Real>* link;
   
   // State 0 is the "new" state, State 1 is the "n-1" state, etc.
   
-  ContactInteractionDLL* temp = ElementElementInteractions[number_of_states-1];
+  ContactInteractionDLL<Real>* temp = ElementElementInteractions[number_of_states-1];
   for( i=number_of_states-1 ; i>0 ; --i ) {
     ElementElementInteractions[i] = ElementElementInteractions[i-1];
   }
@@ -513,5 +387,3 @@ ContactElement::ComputeBoundingBoxForSearch(const int num_configs,
     //box.add_tolerance(user_tol);
   }
 }
-
-#endif  // #define ContactElement_C_

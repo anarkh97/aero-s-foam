@@ -41,7 +41,7 @@ class ContactElement;
 class ContactAsymComm;
 class ContactSymComm;
 class ContactZoltanComm;
-class ContactFaceFaceInteraction;
+template<typename DataType> class ContactFaceFaceInteraction;
 class ContactElementElementInteraction;
 class ContactEnfModel;
 class ContactParOStream;

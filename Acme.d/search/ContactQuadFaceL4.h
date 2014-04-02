@@ -59,6 +59,8 @@ class ContactQuadFaceL4 : public ContactFace<DataType> {
   int Get_Edge_Number( DataType* );
 
   void Compute_Normal(VariableHandle, VariableHandle );
+  void Compute_Partial_Face_Normal(VariableHandle, DataType (*)[3] );
+  void Compute_Second_Partial_Face_Normal(VariableHandle, DataType (*)[3] );
   void Compute_Normal(VariableHandle, DataType*, DataType* );
   void Compute_Normal(DataType**, DataType*, DataType* );
   void Compute_CharacteristicLength(VariableHandle, VariableHandle);

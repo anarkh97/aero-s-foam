@@ -31,7 +31,7 @@
 #include <new>
 
 ContactElementElementInteraction::ContactElementElementInteraction( )
-   : ContactInteractionEntity(DataArray, CT_EEI)
+   : ContactInteractionEntity<Real>(DataArray, CT_EEI)
 {
   slave_element  = NULL;
   master_element = NULL;
@@ -54,7 +54,7 @@ ContactElementElementInteraction::ContactElementElementInteraction( )
 ContactElementElementInteraction::ContactElementElementInteraction( ContactElement* Selement,
 							ContactElement* Melement,
                                                         Real Volume )
-: ContactInteractionEntity(DataArray, CT_EEI)
+: ContactInteractionEntity<Real>(DataArray, CT_EEI)
 {
   PRECONDITION( Selement && Melement );
   slave_element  = Selement;
@@ -66,7 +66,7 @@ ContactElementElementInteraction::ContactElementElementInteraction( ContactEleme
 
 ContactElementElementInteraction::ContactElementElementInteraction( 
                                        ContactElementElementInteraction& eei )
-: ContactInteractionEntity(DataArray, CT_EEI)
+: ContactInteractionEntity<Real>(DataArray, CT_EEI)
 {
   slave_element              = eei.slave_element;
   master_element             = eei.master_element;
@@ -121,7 +121,7 @@ ContactElementElementInteraction::~ContactElementElementInteraction()
 
 int ContactElementElementInteraction::Size()
 {
-  return(ContactInteractionEntity::Size() +
+  return(ContactInteractionEntity<Real>::Size() +
          2*sizeof(entity_data) +
          sizeof(Real) +
          DataArray_Length()*sizeof(Real));
@@ -130,12 +130,12 @@ int ContactElementElementInteraction::Size()
 void ContactElementElementInteraction::Pack( char* buffer )
 {
   int cnt=0;
-  ContactInteractionEntity::Pack( buffer );
-  int* i_buf = reinterpret_cast<int*>(buffer + ContactInteractionEntity::Size());
+  ContactInteractionEntity<Real>::Pack( buffer );
+  int* i_buf = reinterpret_cast<int*>(buffer + ContactInteractionEntity<Real>::Size());
   cnt += PackEntityData(&slave_element_entity_data, &i_buf[cnt]);
   cnt += PackEntityData(&master_element_entity_data, &i_buf[cnt]);
   
-  char* buf = buffer+ContactInteractionEntity::Size()+cnt*sizeof(int);
+  char* buf = buffer+ContactInteractionEntity<Real>::Size()+cnt*sizeof(int);
   
   // Pack the data
   std::memcpy( buf, DataArray, DataArray_Length()*sizeof(Real) );
@@ -144,18 +144,18 @@ void ContactElementElementInteraction::Pack( char* buffer )
 void ContactElementElementInteraction::Unpack( char* buffer )
 {
   int cnt=0;
-  ContactInteractionEntity::Unpack( buffer );
-  int* i_buf = reinterpret_cast<int*>(buffer + ContactInteractionEntity::Size());
+  ContactInteractionEntity<Real>::Unpack( buffer );
+  int* i_buf = reinterpret_cast<int*>(buffer + ContactInteractionEntity<Real>::Size());
   cnt += UnPackEntityData(&slave_element_entity_data, &i_buf[cnt]);
   cnt += UnPackEntityData(&master_element_entity_data, &i_buf[cnt]);
   
-  char* buf = buffer+ContactInteractionEntity::Size()+cnt*sizeof(int);
+  char* buf = buffer+ContactInteractionEntity<Real>::Size()+cnt*sizeof(int);
   std::memcpy( DataArray, buf, DataArray_Length()*sizeof(Real) );
 }
 
 void ContactElementElementInteraction::Copy( ContactElementElementInteraction* src )
 {
-  ContactInteractionEntity::Copy( src );
+  ContactInteractionEntity<Real>::Copy( src );
   slave_element_entity_data  = src->slave_element_entity_data;
   master_element_entity_data = src->master_element_entity_data;
   std::memcpy( DataArray,      src->DataArray_Buffer(), DataArray_Length()*sizeof(Real) );

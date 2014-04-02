@@ -33,7 +33,7 @@ class ContactGlobalID;
 class ContactHostGlobalID;
 class ContactFixedSizeAllocator;
 
-class ContactElementElementInteraction : public ContactInteractionEntity {
+class ContactElementElementInteraction : public ContactInteractionEntity<Real> {
   
  public:
   

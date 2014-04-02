@@ -1,6 +1,6 @@
 // $Id$
 
-#include "ContactHexElementL8.C"
+#include "ContactHexElemL8.C"
 
 template
 ContactHexElemL8<Real>::ContactHexElemL8( int Block_Index, 

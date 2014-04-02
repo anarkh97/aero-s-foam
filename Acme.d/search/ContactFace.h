@@ -31,8 +31,7 @@
 
 template<typename DataType> class ContactNode;
 template<typename DataType> class ContactEdge;
-class ContactFaceFaceInteraction;
-class ContactFaceFaceInteraction;
+template<typename DataType> class ContactFaceFaceInteraction;
 class ContactFaceCoverageInteraction;
 
 template<typename DataType>
@@ -108,6 +107,10 @@ class ContactFace : public ContactTopologyEntity<DataType> {
   virtual int  Get_Edge_Number( ContactNode<DataType>** ) = 0;
   virtual int  Get_Edge_Number( DataType* ) = 0;
   virtual void Compute_Normal(VariableHandle, VariableHandle ) = 0;
+  virtual void Compute_Partial_Face_Normal(VariableHandle, DataType (*)[3] )
+               { std::cerr << "ContactFace::Compute_Partial_Face_Normal is not implemented\n"; }
+  virtual void Compute_Second_Partial_Face_Normal(VariableHandle, DataType (*)[3] )
+               { std::cerr << "ContactFace::Compute_Second_Partial_Face_Normal is not implemented\n"; }
   virtual void Compute_Normal(VariableHandle, DataType*, DataType* ) = 0;
   virtual void Compute_Normal(DataType**, DataType*, DataType* ) = 0;
   virtual void Compute_CharacteristicLength(VariableHandle, VariableHandle ) = 0;
@@ -124,6 +127,17 @@ class ContactFace : public ContactTopologyEntity<DataType> {
 
 
   virtual void Compute_Local_Coordinates( VariableHandle, DataType*, DataType* ) = 0;
+  virtual void Compute_Partial_Local_Coordinates_1(VariableHandle, DataType*, DataType (*)[2] )
+               { std::cerr << "ContactFace::Compute_Partial_Local_Coordinates_1 is not implemented\n"; }
+  virtual void Compute_Partial_Local_Coordinates_2(VariableHandle, DataType*, DataType[2], DataType[2], DataType[2] )
+               { std::cerr << "ContactFace::Compute_Partial_Local_Coordinates_2 is not implemented\n"; }
+  virtual void Compute_Second_Partial_Local_Coordinates_1(VariableHandle, DataType*, DataType (*)[2] )
+               { std::cerr << "ContactFace::Compute_Second_Partial_Local_Coordinates_1 is not implemented\n"; }
+  virtual void Compute_Second_Partial_Local_Coordinates_2(VariableHandle, DataType*, DataType[2], DataType[2], DataType[2],
+                                                          DataType[2], DataType[2], DataType[2] )
+               { std::cerr << "ContactFace::Compute_Second_Partial_Local_Coordinates_2 is not implemented\n"; }
+  virtual void Compute_Second_Partial_Local_Coordinates_12(VariableHandle, DataType*, DataType (*)[2], DataType (*)[2], DataType (*)[2] )
+               { std::cerr << "ContactFace::Compute_Second_Partial_Local_Coordinates_12 is not implemented\n"; }
   virtual void Compute_Global_Coordinates( VariableHandle, DataType*, DataType* ) = 0;
   virtual void Evaluate_Shape_Functions( DataType* local_coord, 
 					 DataType* shape_fnc) = 0;
@@ -215,18 +229,18 @@ class ContactFace : public ContactTopologyEntity<DataType> {
     return FaceFaceInteractions[state].NumEntities(); 
   };
                                          
-  inline ContactInteractionDLL* Get_FaceFace_Interactions( int state = 0 ) { 
+  inline ContactInteractionDLL<DataType>* Get_FaceFace_Interactions( int state = 0 ) { 
     if((int)FaceFaceInteractions.size() <= state) return NULL;
     return &(FaceFaceInteractions[state]); 
   };
       
-  ContactFaceFaceInteraction* Get_FaceFace_Interaction(int interaction_number,
+  ContactFaceFaceInteraction<DataType>* Get_FaceFace_Interaction(int interaction_number,
 						       int state = 0 );
                                          
-  void Store_FaceFace_Interaction( ContactFaceFaceInteraction*, 
+  void Store_FaceFace_Interaction( ContactFaceFaceInteraction<DataType>*, 
                                    int state = 0 );
                                          
-  void Delete_FaceFace_Interaction( ContactFaceFaceInteraction*, 
+  void Delete_FaceFace_Interaction( ContactFaceFaceInteraction<DataType>*, 
                                     int state = 0 );
                                    
   void Display_FaceFace_Interactions( ContactParOStream&, int state = 0 );
@@ -236,7 +250,7 @@ class ContactFace : public ContactTopologyEntity<DataType> {
     return FaceCoverageInteractions[state].NumEntities(); 
   };
                                          
-  inline ContactInteractionDLL* Get_FaceCoverage_Interactions( int state = 0 ) { 
+  inline ContactInteractionDLL<DataType>* Get_FaceCoverage_Interactions( int state = 0 ) { 
     if((int)FaceCoverageInteractions.size() <= state) return NULL;
     return &(FaceCoverageInteractions[state]); 
   };
@@ -321,8 +335,8 @@ class ContactFace : public ContactTopologyEntity<DataType> {
   
   inline int NumberOfStates() const {return 2;};
 
-  std::vector<ContactInteractionDLL> FaceFaceInteractions;
-  std::vector<ContactInteractionDLL> FaceCoverageInteractions;
+  std::vector<ContactInteractionDLL<DataType> > FaceFaceInteractions;
+  std::vector<ContactInteractionDLL<Real> > FaceCoverageInteractions;
 };
 
 template<typename DataType>

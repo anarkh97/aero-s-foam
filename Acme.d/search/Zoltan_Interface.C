@@ -613,7 +613,7 @@ void ContactMigrateUnpackInteractions(void *data, int num_gid_entries,
 
   ZOLTAN_ID_PTR gid = gids;
   for( int i=0 ; i<num_ids ; ++i ){
-    ContactInteractionEntity* interaction;
+    ContactInteractionEntity<Real>* interaction;
     char* buf       = &(Buf[indices[i]]);
     int entity_type = ContactZoltanGID::Type(gid);
     ContactHostGlobalID GID(gid);
@@ -652,12 +652,12 @@ void ContactMigrateUnpackInteractions(void *data, int num_gid_entries,
                             (dest_topology->FaceList()->Find(GID));
 	POSTCONDITION( face );
 	face->Unpack_Interactions(buf);
-        ContactInteractionDLL* interactions = face->Get_FaceFace_Interactions();
+        ContactInteractionDLL<Real>* interactions = face->Get_FaceFace_Interactions();
         if(interactions == NULL) continue;
         interactions->IteratorStart();
         while ((interaction=interactions->IteratorForward())){
-          ContactFaceFaceInteraction* cffi = 
-            static_cast<ContactFaceFaceInteraction*>(interaction);
+          ContactFaceFaceInteraction<Real>* cffi = 
+            static_cast<ContactFaceFaceInteraction<Real>*>(interaction);
           cffi->Connect_MasterFace( dest_topology );
         }
       }
@@ -668,7 +668,7 @@ void ContactMigrateUnpackInteractions(void *data, int num_gid_entries,
                             (dest_topology->ElemList()->Find(GID));
 	POSTCONDITION( element );
 	element->Unpack_Interactions(buf);
-        ContactInteractionDLL* interactions = element->Get_ElementElement_Interactions();
+        ContactInteractionDLL<Real>* interactions = element->Get_ElementElement_Interactions();
         interactions->IteratorStart();
         while ((interaction=interactions->IteratorForward())){
           ContactElementElementInteraction* ceei = 
@@ -707,7 +707,7 @@ int ContactHostidQuerySize(void *data,
 {
   PRECONDITION(num_gid_entries==ZOLTAN_GID_SIZE);
   PRECONDITION(num_lid_entries==ZOLTAN_LID_SIZE);
-  int size = sizeof(ContactInteractionEntity::entity_data);
+  int size = sizeof(ContactInteractionEntity<Real>::entity_data);
   *ierr = ZOLTAN_OK;
   return size;
 }
@@ -820,9 +820,9 @@ void ContactHostidQueryUnpack(void *data, int num_gid_entries,
     ContactSearch*   search   = (ContactSearch *)data;
     ContactTopology* topology = search->Get_Primary_Topology();
 
-    std::vector<ContactInteractionEntity::entity_data *> *query_linklist = topology->QueryLinkList();
-    ContactInteractionEntity::entity_data* entity_data = 
-        new ContactInteractionEntity::entity_data[1];
+    std::vector<ContactInteractionEntity<Real>::entity_data *> *query_linklist = topology->QueryLinkList();
+    ContactInteractionEntity<Real>::entity_data* entity_data = 
+        new ContactInteractionEntity<Real>::entity_data[1];
     entity_data->type                      = *i_buffer++;
     entity_data->host_gid[0]               = *i_buffer++;
     entity_data->host_gid[1]               = *i_buffer++;

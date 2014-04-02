@@ -32,6 +32,19 @@ void ContactWedgeElemL6<Real>::UpdateTopology(ContactFace<Real>* face,
 					Real tol, bool use_node_normals);
 
 template
+void ContactWedgeElemL6<Real>::Compute_Partial_Face_Normal(int i, VariableHandle CURRENT_POSITION,
+                                                           VariableHandle FACE_NORMAL,
+                                                           Real (*face_dface_normal)[3], Real tol,
+                                                           Real (*elem_facei_dface_normal)[3], Real *dd );
+
+template
+void ContactWedgeElemL6<Real>::Compute_Second_Partial_Face_Normal( int i, VariableHandle CURRENT_POSITION,
+                                                                   VariableHandle FACE_NORMAL,
+                                                                   Real (*face_dface_normal)[3],
+                                                                   Real (*face_d2face_normal)[3], Real tol,
+                                                                   Real (*elem_d2face_normal)[3], Real *d2d );
+
+template
 bool ContactWedgeElemL6<Real>::Is_Local_Coordinates_Inside_Element( Real* local_coords );
 
 template

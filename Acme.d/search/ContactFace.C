@@ -70,7 +70,7 @@ ContactFace<DataType>::~ContactFace()
     while ((link=FaceFaceInteractions[i].IteratorForward())) {
       ContactFaceFaceInteraction<DataType>* cffi = 
         static_cast<ContactFaceFaceInteraction<DataType>*>(link);
-      cffi->~ContactFaceFaceInteraction();
+      cffi->~ContactFaceFaceInteraction<DataType>();
       allocators[ContactSearch::ALLOC_ContactFaceFaceInteraction].Delete_Frag(cffi);      
     }
   }
@@ -523,7 +523,7 @@ ContactFace<DataType>::Delete_FaceFace_Interaction(
   while ((link=FaceFaceInteractions[state].IteratorForward())) {
     if (link->Index()==ffi->Index()) {
       ContactFaceFaceInteraction<DataType>* cffi = static_cast<ContactFaceFaceInteraction<DataType>*>(link);
-      cffi->~ContactFaceFaceInteraction();
+      cffi->~ContactFaceFaceInteraction<DataType>();
       allocators[ContactSearch::ALLOC_ContactFaceFaceInteraction].Delete_Frag(cffi);
       FaceFaceInteractions[state].DeletePrev();
       break;
@@ -639,7 +639,7 @@ ContactFace<DataType>::Update_Interactions( )
     while ((link=FaceFaceInteractions[0].IteratorForward())) {
       ContactFaceFaceInteraction<DataType>* cffi = 
         static_cast<ContactFaceFaceInteraction<DataType>*>(link);
-      cffi->~ContactFaceFaceInteraction();
+      cffi->~ContactFaceFaceInteraction<DataType>();
       allocators[ContactSearch::ALLOC_ContactFaceFaceInteraction].Delete_Frag(cffi);
     }
     FaceFaceInteractions[0].Clear();

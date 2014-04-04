@@ -43,6 +43,7 @@ StdMortarTri3::nMortarShapeFct() { return 3; }
 // -----------------------------------------------------------------------------------------------------
 // LOCAL METHODS
 // -------------
+#if !defined(__INTEL_COMPILER) || __INTEL_COMPILER >= 1300
 template<>
 void
 StdMortarTri3::GetShapeFctVal(double* Shape, double* m)
@@ -63,6 +64,7 @@ StdMortarTri3::Getd2ShapeFct(double* d2Shapex, double* d2Shapey, double* d2Shape
 {
   GetPtrMasterFace()->Getd2ShapeFct(d2Shapex, d2Shapey, d2Shapexy, m);
 }
+#endif
 
 // ---------------------------------
 // IMPLEMENTATION OF VIRTUAL METHODS

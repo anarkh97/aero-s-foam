@@ -68,7 +68,7 @@ ContactFaceFaceInteraction<DataType>::ContactFaceFaceInteraction( ContactFace<Da
   num_derivatives = (Sarea_derivatives && Marea_derivatives) ?
                     3*(slave_face->Nodes_Per_Face() + master_face->Nodes_Per_Face()) : 0;
   num_second_derivatives = (Sarea_second_derivatives && Marea_second_derivatives) ?
-                           pow(3*(slave_face->Nodes_Per_Face() + master_face->Nodes_Per_Face()),2) : 0;
+                           num_derivatives*num_derivatives : 0;
   if (num_edges>0) {
     int i, j;
     vertices = new ContactFaceFaceVertex<DataType>[num_edges+1];

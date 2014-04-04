@@ -95,6 +95,7 @@ DualMortarTri3::ComputeDualCoeffs(CoordSet &cs)
 }
 */
 
+#if !defined(__INTEL_COMPILER) || __INTEL_COMPILER >= 1300
 template<>
 void
 DualMortarTri3::GetShapeFctVal(double* Shape, double* m)
@@ -106,6 +107,7 @@ DualMortarTri3::GetShapeFctVal(double* Shape, double* m)
   Shape[1] =  - StdShape[0] + 3.*StdShape[1] -    StdShape[2];
   Shape[2] =  - StdShape[0] -    StdShape[1] + 3.*StdShape[2];
 }
+#endif
 
 // ---------------------------------
 // IMPLEMENTATION OF VIRTUAL METHODS

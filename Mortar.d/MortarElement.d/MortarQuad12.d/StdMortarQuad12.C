@@ -43,6 +43,7 @@ StdMortarQuad12::nMortarShapeFct() { return(12); }
 // -----------------------------------------------------------------------------------------------------
 // LOCAL METHODS
 // -------------
+#if !defined(__INTEL_COMPILER) || __INTEL_COMPILER >= 1300
 template<>
 void
 StdMortarQuad12::GetShapeFctVal(double* Shape, double* m)
@@ -63,6 +64,7 @@ StdMortarQuad12::Getd2ShapeFct(double* d2Shapex, double* d2Shapey, double* d2Sha
 {
   GetPtrMasterFace()->Getd2ShapeFct(d2Shapex, d2Shapey, d2Shapexy, m);
 }
+#endif
 
 // ---------------------------------
 // IMPLEMENTATION OF VIRTUAL METHODS

@@ -102,6 +102,7 @@ DualMortarQuad4::ComputeDualCoeffs(CoordSet &cs)
   }
 }
 
+#if !defined(__INTEL_COMPILER) || __INTEL_COMPILER >= 1300
 // !!! ASSUME THAT DUAL MORTAR COEFFS Alpha HAVE ALREADY BEEN COMPUTED !!!
 template<>
 void
@@ -115,6 +116,7 @@ DualMortarQuad4::GetShapeFctVal(double* Shape, double* m)
       Shape[i] += (*Alpha)[i][j]*StdShape[j]; 
   }
 }
+#endif
 
 // ---------------------------------
 // IMPLEMENTATION OF VIRTUAL METHODS

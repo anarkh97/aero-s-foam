@@ -341,6 +341,7 @@ template<class Scalar>
 void
 GenMumpsSolver<Scalar>::solve(Scalar *rhs, Scalar *solution)
 {
+  if(numUncon == 0) return;
   this->solveTime -= getTime();
 #ifdef USE_MUMPS
   if(host) {
@@ -362,6 +363,7 @@ template<class Scalar>
 void
 GenMumpsSolver<Scalar>::reSolve(int nRHS, Scalar *rhs)
 {
+  if(numUncon == 0) return;
   this->solveTime -= getTime();
 #ifdef USE_MUMPS
   if(host) {
@@ -384,6 +386,7 @@ template<class Scalar>
 void
 GenMumpsSolver<Scalar>::reSolve(int nRHS, Scalar **rhs)
 {
+  if(numUncon == 0) return;
   this->solveTime -= getTime();
 #ifdef USE_MUMPS
   if(host) {
@@ -406,6 +409,7 @@ template<class Scalar>
 void
 GenMumpsSolver<Scalar>::reSolve(int nRHS, GenVector<Scalar> *rhs)
 {
+  if(numUncon == 0) return;
   this->solveTime -= getTime();
 #ifdef USE_MUMPS
   if(host) {

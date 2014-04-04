@@ -66,7 +66,7 @@ MDNLDynamic::getInitState(DistrVector &d_n, DistrVector &v_n, DistrVector &a_n, 
   }
 
   int aeroAlg = domain->solInfo().aeroFlag;
-  if(aeroAlg >= 0)
+  if(aeroAlg >= 0 && geoSource->getCheckFileInfo()->lastRestartFile == 0)
     aeroPreProcess(d_n, v_n, a_n, v_p);
 
   if(domain->solInfo().thermoeFlag >= 0)
@@ -240,12 +240,6 @@ MDNLDynamic::computeTimeInfo()
     domain->solInfo().tmax = totalTime = maxStep*dt0;
     filePrint(stderr, " Warning: Total time is being changed to : %e\n", totalTime);
   }
-
-  // XXXX
-  // set half time step size in user defined functions 
-  //if(userSupFunc)
-  //  userSupFunc->setDt(delta);
-
 }
 
 MDNLDynamic::MDNLDynamic(Domain *d)
@@ -1161,13 +1155,31 @@ MDNLDynamic::dynamCommToFluid(DistrGeomState* geomState, DistrGeomState* bkGeomS
                               int aeroAlg, double time) 
 {  
   if(domain->solInfo().aeroFlag >= 0 && !domain->solInfo().lastIt) {
+
+    // update the geomState according to the USDD prescribed displacements
+    if(claw && userSupFunc) {
+      if(claw->numUserDisp > 0) {
+        double *userDefineDisp = new double[claw->numUserDisp];
+        double *userDefineVel  = new double[claw->numUserDisp];
+        double *userDefineAcc  = new double[claw->numUserDisp];
+        for(int i=0; i<claw->numUserDisp; ++i) {
+          userDefineVel[i] = 0;
+          userDefineAcc[i] = 0;
+        }
+        userSupFunc->usd_disp(time, userDefineDisp, userDefineVel, userDefineAcc);
+        execParal4R(decDomain->getNumSub(), this, &MDNLDynamic::subUpdateGeomStateUSDD, geomState, userDefineDisp,
+                    userDefineVel, userDefineAcc);
+       delete [] userDefineDisp; delete [] userDefineVel; delete [] userDefineAcc;
+      } 
+    }
+
     DistrVector d_n(decDomain->solVecInfo()); d_n.zero();
     execParal5R(decDomain->getNumSub(), this, &MDNLDynamic::subDynamCommToFluid, d_n, geomState, bkGeomState, parity, aeroAlg);
     if(!parity && aeroAlg == 5) {
       velocity.linC(0.5, velocity, 0.5, bkVelocity);
       vp.linC(0.5, vp, 0.5, bkVp);
     }
-    DistrVector acceleration(decDomain->solVecInfo()); acceleration.zero(); // XXXX
+    DistrVector acceleration(decDomain->solVecInfo()); acceleration.zero();
 
     SysState<DistrVector> state(d_n, velocity, acceleration, vp);
 
@@ -1206,6 +1218,7 @@ MDNLDynamic::subDynamCommToFluid(int isub, DistrVector& v, DistrGeomState* distr
   StackVector d_n(v.subData(isub), v.subLen(isub));
   GeomState* geomState = (*distrGeomState)[isub];
   double* bcx = usrDefDisps[isub];
+  double* vcx = usrDefVels[isub];
 
   // Make d_n_aero from geomState
   ConstrainedDSA *c_dsa = sd->getCDSA();
@@ -1220,24 +1233,30 @@ MDNLDynamic::subDynamCommToFluid(int isub, DistrVector& v, DistrGeomState* distr
 
     if(xloc >= 0)
       d_n[xloc]  = ( (*geomState)[i].x - nodes[i]->x);
-    else if (xloc1 >= 0)
+    else if (xloc1 >= 0) {
       bcx[xloc1] = ( (*geomState)[i].x - nodes[i]->x);
+      vcx[xloc1] = (*geomState)[i].v[0];
+    }
 
     int yloc  = c_dsa->locate(i, DofSet::Ydisp );
     int yloc1 =   dsa->locate(i, DofSet::Ydisp );
 
     if(yloc >= 0)
       d_n[yloc]  = ( (*geomState)[i].y - nodes[i]->y);
-    else if (yloc1 >= 0)
+    else if (yloc1 >= 0) {
       bcx[yloc1] = ( (*geomState)[i].y - nodes[i]->y);
+      vcx[yloc1] = (*geomState)[i].v[1];
+    }
 
     int zloc  = c_dsa->locate(i, DofSet::Zdisp);
     int zloc1 =   dsa->locate(i, DofSet::Zdisp);
 
     if(zloc >= 0)
       d_n[zloc]  = ( (*geomState)[i].z - nodes[i]->z);
-    else if (zloc1 >= 0)
+    else if (zloc1 >= 0) {
       bcx[zloc1] = ( (*geomState)[i].z - nodes[i]->z);
+      vcx[zloc1] = (*geomState)[i].v[2];
+    }
   }
 
   if(!parity && aeroAlg == 5) {
@@ -1309,9 +1328,32 @@ MDNLDynamic::readRestartFile(DistrVector &d_n, DistrVector &v_n, DistrVector &a_
 #else
     execParal5R(decDomain->getNumSub(), this, &MDNLDynamic::subReadRestartFile, d_n, v_n, a_n, v_p, geomState);
 #endif
-    updateStates(&geomState, geomState);
     domain->solInfo().initialTimeIndex = decDomain->getSubDomain(0)->solInfo().initialTimeIndex;
     domain->solInfo().initialTime = decDomain->getSubDomain(0)->solInfo().initialTime;
+
+    // update geomState for time dependent prescribed displacements and their time derivatives
+    // this is necessary because only the unconstrained velocities/accelerations are currently saved in the restart file
+    if(claw && userSupFunc) {
+      if(claw->numUserDisp > 0) {
+        double *userDefineDisp = new double[claw->numUserDisp];
+        double *userDefineVel  = new double[claw->numUserDisp];
+        double *userDefineAcc  = new double[claw->numUserDisp];
+        for(int i=0; i<claw->numUserDisp; ++i) {
+          userDefineVel[i] = 0;
+          userDefineAcc[i] = 0;
+        }
+        userSupFunc->usd_disp(domain->solInfo().initialTime, userDefineDisp, userDefineVel, userDefineAcc);
+        execParal4R(decDomain->getNumSub(), this, &MDNLDynamic::subUpdateGeomStateUSDD, &geomState, userDefineDisp,
+                    userDefineVel, userDefineAcc);
+       delete [] userDefineDisp; delete [] userDefineVel; delete [] userDefineAcc;
+      }
+    }
+
+    if(domain->solInfo().aeroFlag >= 0) {
+      aeroPreProcess(d_n, v_n, a_n, v_p, &geomState);
+    }
+
+    updateStates(&geomState, geomState);
   }
 }
 
@@ -1333,7 +1375,7 @@ MDNLDynamic::subReadRestartFile(int i, DistrVector &d_n, DistrVector &v_n, Distr
 
 int
 MDNLDynamic::aeroPreProcess(DistrVector &disp, DistrVector &vel,
-                            DistrVector &accel, DistrVector &lastVel)
+                            DistrVector &accel, DistrVector &lastVel, DistrGeomState *distrGeomState)
 {
   // get solver info
   SolverInfo& sinfo = domain->solInfo();
@@ -1373,7 +1415,7 @@ MDNLDynamic::aeroPreProcess(DistrVector &disp, DistrVector &vel,
   usrDefVels = new double *[numLocSub];
 
   int iSub;
-  for(iSub = 0; iSub < numLocSub; iSub++)  {
+  for(iSub = 0; iSub < numLocSub; iSub++) {
 
     // assemble coordsets in this mpi
     cs[iSub] = &subdomain[iSub]->getNodes();
@@ -1390,9 +1432,41 @@ MDNLDynamic::aeroPreProcess(DistrVector &disp, DistrVector &vel,
     usrDefDisps[iSub] = new double[numDofs];
     usrDefVels[iSub] = new double[numDofs];
 
-    for(int iDof = 0; iDof < numDofs; iDof++)  {
+    for(int iDof = 0; iDof < numDofs; iDof++) {
       usrDefDisps[iSub][iDof] = 0.0;
       usrDefVels[iSub][iDof] = 0.0;
+    }
+    if(distrGeomState) {
+      GeomState* geomState = (*distrGeomState)[iSub];
+      CoordSet &nodes = subdomain[iSub]->getNodes();
+      int numNodes = subdomain[iSub]->numNodes();
+
+      for(int i = 0; i < numNodes; ++i) {
+
+        int xloc  = cdsa[iSub]->locate(i, DofSet::Xdisp );
+        int xloc1 =  dsa[iSub]->locate(i, DofSet::Xdisp );
+
+        if (xloc < 0 && xloc1 >= 0) {
+          usrDefDisps[iSub][xloc1] = ( (*geomState)[i].x - nodes[i]->x);
+          usrDefVels[iSub][xloc1] = (*geomState)[i].v[0];
+        }
+
+        int yloc  = cdsa[iSub]->locate(i, DofSet::Ydisp );
+        int yloc1 =  dsa[iSub]->locate(i, DofSet::Ydisp );
+
+        if (yloc < 0 && yloc1 >= 0) {
+          usrDefDisps[iSub][yloc1] = ( (*geomState)[i].y - nodes[i]->y);
+          usrDefVels[iSub][yloc1] = (*geomState)[i].v[1];
+        }
+
+        int zloc  = cdsa[iSub]->locate(i, DofSet::Zdisp);
+        int zloc1 =  dsa[iSub]->locate(i, DofSet::Zdisp);
+
+        if (zloc < 0 && zloc1 >= 0) {
+          usrDefDisps[iSub][zloc1] = ( (*geomState)[i].z - nodes[i]->z);
+          usrDefVels[iSub][zloc1] = (*geomState)[i].v[2];
+        }
+      }
     }
   }
 
@@ -1476,12 +1550,12 @@ MDNLDynamic::aeroPreProcess(DistrVector &disp, DistrVector &vel,
 
     // initialize the Parity
     if(sinfo.aeroFlag == 5 || sinfo.aeroFlag == 4) {
-       distFlExchanger->initRcvParity(1);
-       distFlExchanger->initSndParity(1);
-     } else {
-       distFlExchanger->initRcvParity(-1);
-       distFlExchanger->initSndParity(-1);
-     }
+      distFlExchanger->initRcvParity(1);
+      distFlExchanger->initSndParity(1);
+    } else {
+      distFlExchanger->initRcvParity(-1);
+      distFlExchanger->initSndParity(-1);
+    }
 
     // send initial displacements
     distFlExchanger->sendDisplacements(state, usrDefDisps, usrDefVels);
@@ -1547,7 +1621,7 @@ MDNLDynamic::thermoePreProcess()
     }
 
     nodalTemps = new DistrVector(decDomain->ndVecInfo());
-    for(int iSub = 0; iSub < numLocSub; iSub++) subdomain[iSub]->temprcvd = nodalTemps->subData(iSub); // XXXX
+    for(int iSub = 0; iSub < numLocSub; iSub++) subdomain[iSub]->temprcvd = nodalTemps->subData(iSub);
     int buffLen = nodalTemps->size();
 
     distFlExchanger->thermoread(buffLen);

@@ -201,7 +201,7 @@ class MDNLDynamic
     void makeSubClawDofs(int isub);
     void subKucTransposeMultSubtractClaw(int iSub, DistrVector& residual, double *userDefineDisp);
     void subExtractControlDisp(int isub, DistrGeomState &geomState, double *ctrdsp);
-    int aeroPreProcess(DistrVector &, DistrVector &, DistrVector &, DistrVector &);
+    int aeroPreProcess(DistrVector &, DistrVector &, DistrVector &, DistrVector &, DistrGeomState *geomState = 0);
     void thermoePreProcess();
     void thermohPreProcess(DistrVector &);
     void aeroheatPreProcess(DistrVector &, DistrVector &, DistrVector &);

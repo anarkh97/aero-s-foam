@@ -798,19 +798,10 @@ GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<S
   // get output information
   OutputInfo *oinfo = geoSource->getOutputInfo();
 
-  // check if there are any output files which need to be printed now
-  bool noOut = true;
-  for(int i = 0; i < numOutInfo; i++) {
-    if(oinfo[i].ndtype != ndflag) continue;
-    if(ndflag !=0 && oinfo[i].type != OutputInfo::Disp6DOF && oinfo[i].type !=  OutputInfo::Displacement) continue;
-    if(oinfo[i].interval != 0 && x % oinfo[i].interval == 0) {
-      noOut = false;
-      break;
-    }
-  }
-  if(noOut) return;
+  // check if there are any output files which need to be processed now
+  if(geoSource->noOutput(x) && x != domain->solInfo().initialTimeIndex) return;
 
-  if(verboseFlag && numOutInfo && x == 0 && ndflag == 0 && !domain->solInfo().isDynam())
+  if(verboseFlag && x == 0 && ndflag == 0 && !domain->solInfo().isDynam())
     filePrint(stderr," ... Postprocessing                 ...\n");
 
   Scalar *globVal = 0;  
@@ -2024,18 +2015,11 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***all
   // get output information
   OutputInfo *oinfo = geoSource->getOutputInfo();
 
-  // check if there are any output files which need to be printed now
-  bool noOut = true;
-  for(int i = 0; i < numOutInfo; i++) {
-    int step = (domain->solInfo().isDynam()) ? int(x/domain->solInfo().getTimeStep()+0.5) : int(x/domain->solInfo().getNLInfo().dlambda+0.5);
-    if(oinfo[i].interval != 0 && step % oinfo[i].interval == 0) {
-      noOut = false;
-      break;
-    }
-  }
-  if(noOut) return;
+  // check if there are any output files which need to be processed now
+  int step = (domain->solInfo().isDynam()) ? int(x/domain->solInfo().getTimeStep()+0.5) : int(x/domain->solInfo().getNLInfo().dlambda+0.5);
+  if(geoSource->noOutput(step) && x != domain->solInfo().initialTime) return;
 
-  if(verboseFlag && numOutInfo && x == 0)
+  if(verboseFlag && x == 0)
     filePrint(stderr," ... Postprocessing                 ...\n");
 
   if(domain->outFlag && domain->nodeTable == 0) domain->makeNodeTable(domain->outFlag);
@@ -2094,9 +2078,7 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***all
 
   int inode;
   for(i = 0; i < numOutInfo; i++) {
-   int step = (domain->solInfo().isDynam()) ? int(x/domain->solInfo().getTimeStep()+0.5) : int(x/domain->solInfo().getNLInfo().dlambda+0.5);
    if(oinfo[i].interval != 0 && step % oinfo[i].interval == 0) {
-    // int dof = -1;
     switch(oinfo[i].type) {
      case OutputInfo::FreqRespModes:
      case OutputInfo::Displacement:

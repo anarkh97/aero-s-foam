@@ -422,10 +422,8 @@ Domain::thermoeComm()
 
 void
 Domain::dynamOutput(int tIndex, double time, double *bcx, DynamMat& dMat, Vector& ext_f, Vector &aeroForce, 
-                    Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, double* vcx, double* acx) {
-  // Current time stamp
-  //double time = tIndex*sinfo.getTimeStep();
-   
+                    Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, double* vcx, double* acx)
+{
   if(sinfo.nRestart > 0 && !sinfo.modal && probType() != SolverInfo::NonLinDynam) {
     writeRestartFile(time, tIndex, d_n, v_n, v_p, sinfo.initExtForceNorm);
   }
@@ -447,6 +445,9 @@ Domain::dynamOutput(int tIndex, double time, double *bcx, DynamMat& dMat, Vector
     if(numOutInfo > 0)
       geoSource->openOutputFiles();
   }
+
+  // Check if there are any output files which need to be processed at this time
+  if(geoSource->noOutput(tIndex)) return;
 
   this->dynamOutputImpl(tIndex, bcx, dMat, ext_f, aeroForce, d_n, v_n, a_n, v_p, vcx, acx, time, 0, numOutInfo);
 } 

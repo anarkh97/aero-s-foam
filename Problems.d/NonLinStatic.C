@@ -246,8 +246,10 @@ NonLinStatic::reBuild(int iteration, int step, GeomState&)
        ops.spp = spp;
      }
      domain->makeSparseOps<double>(ops, 1.0, 0.0, 0.0, spm, kelArray, (FullSquareMatrix *) NULL);
+     domain->getTimers().factor -= getTime();
      solver->factor();
      if(prec) prec->factor();
+     domain->getTimers().factor += getTime();
   }
   rebuildFlag = 1;
  }

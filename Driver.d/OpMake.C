@@ -1054,7 +1054,6 @@ Domain::buildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Ccoe
 //   allOps.sysSolver = 0;
 // }
 
- //GenSparseMatrix<Scalar> *spm = 0;
  allOps.spm = 0;
  SfemBlockMatrix<Scalar> *sfbm = 0;
  int L = 1;
@@ -1068,7 +1067,6 @@ Domain::buildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Ccoe
    if(sinfo.inpc)  sfbm = new SfemBlockMatrix<Scalar>(L,n,P,ndim,output_order);
  }
 
-// for(int i=0; i<L; ++i) {
  for(int i=0; i<ndim+1; ++i) {
    if(sinfo.inpc)  domain->setNewProperties(i);
    if(sinfo.noninpc && i>0) break;
@@ -1141,8 +1139,9 @@ Domain::buildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Ccoe
      }
 
      if(matrixTimers) matrixTimers->factor += getTime();
-     if(matrixTimers) matrixTimers->memorySolve += memoryUsed();
    }
+
+ if(matrixTimers) matrixTimers->memorySolve += memoryUsed();
 }
 
 template<class Scalar>

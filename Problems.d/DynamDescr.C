@@ -82,7 +82,7 @@ void
 SDDynamPostProcessor::dynamOutput(int tIndex, double time, DynamMat& dMat, Vector& ext_f, Vector *aeroForce, SysState<Vector> &state)
 {
   startTimerMemory(times->output, times->memoryOutput);
-  
+
   if(!aeroForce) { // check to avoid dereferencing a null pointer
     if(!dummy) dummy = new Vector(domain->numUncon(), 0.0);
     aeroForce = dummy;
@@ -116,13 +116,12 @@ SDDynamPostProcessor::dynamOutput(int tIndex, double time, DynamMat& dMat, Vecto
 
 void
 SDDynamPostProcessor::pitaDynamOutput(int tIndex, DynamMat& dMat, Vector& ext_f, Vector *aeroForce, 
-           SysState<Vector> &state, int sliceRank, double time)
+                                      SysState<Vector> &state, int sliceRank, double time)
 {
   startTimerMemory(times->output, times->memoryOutput);
 
   this->fillBcxVcx(time);
 
-  // PJSA 4-9-08 ext_f passed here may not be for the correct time
   domain->pitaDynamOutput(tIndex, bcx, dMat, ext_f, *aeroForce, state.getDisp(), state.getVeloc(),
                           state.getAccel(), state.getPrevVeloc(), vcx, acx,
                           sliceRank, time);
@@ -785,6 +784,7 @@ SingleDomainDynamic::buildOps(double coeM, double coeC, double coeK)
  AllOps<double> allOps;
  DynamMat *dMat = new DynamMat;
 
+ domain->getTimers().constructTime -= getTime();
  allOps.K   = domain->constructDBSparseMatrix<double>();
  if(geoSource->getMRatio() != 0) {
 #ifdef USE_EIGEN3
@@ -843,6 +843,7 @@ SingleDomainDynamic::buildOps(double coeM, double coeC, double coeK)
        } break;
    }
  }
+ domain->getTimers().constructTime += getTime();
 
  Rbm *rigidBodyModes = 0;
 
@@ -888,7 +889,12 @@ SingleDomainDynamic::buildOps(double coeM, double coeC, double coeK)
  kuc = dMat->Kuc = allOps.Kuc;
  dMat->Kcc       = allOps.Kcc;
  dMat->dynMat    = allOps.sysSolver;
- if(dMat->Msolver) { if(verboseFlag) filePrint(stderr," ... Factoring mass matrix for iacc...\n"); dMat->Msolver->factor(); }
+ if(dMat->Msolver) {
+   if(verboseFlag) filePrint(stderr," ... Factoring mass matrix for iacc...\n");
+   domain->getTimers().factor -= getTime();
+   dMat->Msolver->factor();
+   domain->getTimers().factor += getTime();
+ }
 
  if(domain->tdenforceFlag()) domain->MakeNodalMass(allOps.M, allOps.Mcc); 
 

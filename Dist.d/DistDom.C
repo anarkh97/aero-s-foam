@@ -125,23 +125,15 @@ GenDistrDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector
   // get output information
   OutputInfo *oinfo = geoSource->getOutputInfo();
 
-  // check if there are any output files which need to be printed now
-  bool noOut = true;
-  for(int iOut = 0; iOut < numOutInfo; iOut++) {
-    if(oinfo[iOut].interval == 0 || x % oinfo[iOut].interval != 0) continue;
-    if(oinfo[iOut].ndtype != ndflag) continue;
-    if(ndflag != 0 && oinfo[iOut].type != OutputInfo::Disp6DOF && oinfo[iOut].type !=  OutputInfo::Displacement) continue;
-    noOut = false;
-    break;
-  }
-  if(noOut) return;
+  // check if there are any output files which need to be processed now
+  int outLimit = geoSource->getOutLimit();
+  if(geoSource->noOutput(x, ndflag) && !((x == domain->solInfo().initialTimeIndex) || (outLimit > 0 && x%outLimit == 0))) return;
 
   if(domain->outFlag && domain->nodeTable == 0) domain->makeNodeTable(domain->outFlag);
   int iOut_ffp = -1;
   int iOut_kir = -1;
 
-  int outLimit = geoSource->getOutLimit();
-  if(numOutInfo && x == domain->solInfo().initialTimeIndex && ndflag == 0 && !domain->solInfo().isDynam())
+  if(x == domain->solInfo().initialTimeIndex && ndflag == 0 && !domain->solInfo().isDynam())
     filePrint(stderr," ... Postprocessing                 ...\n");
   if(!masterFlag) initPostPro();
 
@@ -1343,21 +1335,18 @@ GenDistrDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***a
 {
   int numOutInfo = geoSource->getNumOutInfo();
   if(numOutInfo == 0) return;
+
   // get output information
   OutputInfo *oinfo = geoSource->getOutputInfo();
-  // check if there are any output files which need to be printed now
-  bool noOut = true;
-  for(int iOut = 0; iOut < numOutInfo; iOut++) {
-    if(oinfo[iOut].interval == 0 || x % oinfo[iOut].interval != 0) continue;
-    noOut = false; 
-    break;
-  }
 
-  if(noOut) { x++; return; }
+  // check if there are any output files which need to be processed now
+  int outLimit = geoSource->getOutLimit();
+  if(geoSource->noOutput(x) && !((x == 0) || (outLimit > 0 && x%outLimit == 0))) {
+    x++; return;
+  }
 
   if(domain->outFlag && domain->nodeTable == 0) domain->makeNodeTable(domain->outFlag);
 
-  int outLimit = geoSource->getOutLimit();
   if(numOutInfo && x == 0 && !domain->solInfo().isDynam())
     filePrint(stderr," ... Postprocessing                 ...\n");
   if(!masterFlag) initPostPro();

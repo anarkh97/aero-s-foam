@@ -637,8 +637,10 @@ NonLinDynamic::reBuild(GeomState& geomState, int iteration, double localDelta, d
        domain->makeSparseOps<double>(ops, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray, celArray);
      }
      if(!verboseFlag) solver->setPrintNullity(false);
+     domain->getTimers().factor -= getTime();
      solver->factor();
      if(prec) prec->factor();
+     domain->getTimers().factor += getTime();
    }
 
  }

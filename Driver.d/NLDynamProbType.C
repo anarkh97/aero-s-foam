@@ -164,7 +164,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
   int maxStep = probDesc->getMaxStep();
 
   // Begin time marching
-  double timeLoop =- getTime();
+  double s0 = -getTime(), s1 = -51, s2 = 0;
   double midtime;
   char ch[4] = { '|', '/', '-', '\\' };
   bool useTolInc = (domain->solInfo().getNLInfo().tolInc != std::numeric_limits<double>::infinity() 
@@ -178,15 +178,16 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
   double tmax = maxStep*dt0 + 10*std::numeric_limits<double>::epsilon();
 
   // Time stepping loop
-  for(step = 0; time+dt0/q <= tmax || failed; ) {
+  for(step = 0; time+dt0/q <= tmax || failed; s2 = s0+getTime()) {
 
     dt = dt0/q;
     domain->solInfo().setTimeStep(dt);
     delta = dt/2;
 
-    if(aeroAlg < 0) {
-      filePrint(stderr,"\r  %c  Time Integration Loop: t = %9.3e, dt = %9.3e, %3d%% complete ",
-                ch[int((timeLoop + getTime())/250.)%4], time, dt, int((time-t0)/(tmax-t0)*100+0.5));
+    if(aeroAlg < 0 && (s2-s1 > 50)) {
+      s1 = s2;
+      filePrint(stderr, "\r  %c  Time Integration Loop: t = %9.3e, dt = %9.3e, %3d%% complete ",
+                ch[int(s1/250.)%4], time, dt, int((time-t0)/(tmax-t0)*100+0.5));
       if(verboseFlag) filePrint(stderr,"\n");
     }
 
@@ -361,14 +362,13 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
   } // end of time stepping loop
 
   if(aeroAlg < 0)
-    filePrint(stderr,"\r ... Time Integration Loop: t = %9.3e, dt = %9.3e, 100%% complete ...\n", time, dt);
+    filePrint(stderr, "\r ... Time Integration Loop: t = %9.3e, dt = %9.3e, 100%% complete ...\n", time, dt);
 
-  timeLoop += getTime();
 #ifdef PRINT_TIMERS
-  filePrint(stderr," ... Total Loop Time = %.2e s   ...\n",timeLoop/1000.0);
+  filePrint(stderr, " ... Total Loop Time = %.2e s   ...\n", s2/1000.0);
 #endif
 
-  probDesc->printTimers(timeLoop);
+  probDesc->printTimers(s2);
 
   delete stepState;
   delete geomState;

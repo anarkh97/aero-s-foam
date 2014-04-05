@@ -4576,6 +4576,20 @@ bool GeoSource::elemOutput()
   return false;
 }
 
+bool GeoSource::noOutput(int x, int ndflag)
+{
+  bool noOut = true;
+  for(int i = 0; i < numOutInfo; i++) {
+    if(oinfo[i].ndtype != ndflag) continue;
+    if(ndflag != 0 && oinfo[i].type != OutputInfo::Disp6DOF && oinfo[i].type != OutputInfo::Displacement) continue;
+    if(oinfo[i].interval != 0 && x % oinfo[i].interval == 0) {
+      noOut = false;
+      break;
+    }
+  }
+  return noOut;
+}
+
 void GeoSource::setElementLumpingWeight(int iele, double value) {
   elementLumpingWeights_[iele] = value;
 }

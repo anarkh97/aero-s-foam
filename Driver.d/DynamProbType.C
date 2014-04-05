@@ -374,7 +374,6 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
    timeLoop += getTime();
    probDesc->printTimers(dynOps, timeLoop);
    
-
    // Delete arrays
    delete curState;
    delete workVec;
@@ -384,7 +383,6 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
    delete a_n;
    delete constForce;
    delete v_p;
-
 }
 
 // -----------------------------------------------------------------------------//
@@ -563,6 +561,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 		      NewmarkWorkVec<VecType,ProblemDescriptor>& workVec,
                       double dt, double tmax)
 {
+   MatrixTimers &matrixTimers = domain->getTimers();
    if(domain->solInfo().order == 1) 
      filePrint(stderr, " ... Implicit Generalized Midpoint Time Integration Scheme: alpha = %4.2f ...\n", gamma);
    else 
@@ -617,18 +616,22 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
    if(domain->solInfo().iacc_switch && dynOps.Msolver) {
      if(domain->solInfo().order == 1) {
        if(verboseFlag) filePrint(stderr," ... Computing initial first time derivative of temperature ...\n");
+       matrixTimers.formRhs -= getTime();
        dynOps.K->mult(d_n, tmp1);
        v_n = ext_f - tmp1;
+       matrixTimers.formRhs += getTime();
        dynOps.Msolver->reSolve(v_n);
      }
      else {
        if(verboseFlag) filePrint(stderr," ... Computing initial acceleration ...\n");
+       matrixTimers.formRhs -= getTime();
        dynOps.K->mult(d_n, tmp1);
        a_n = ext_f - tmp1;
        if(dynOps.C) {
          dynOps.C->mult(v_n, tmp1);
          a_n -= tmp1;
        }
+       matrixTimers.formRhs += getTime();
        dynOps.Msolver->reSolve(a_n);
        if(probDesc->getFilterFlag() == 2) probDesc->project(a_n);
      }
@@ -638,13 +641,14 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
    postProcessor->dynamOutput(n, t, dynOps, ext_f, aeroForce, curState);
 
    // ... BEGIN MAIN TIME-LOOP
-   double totalTime = -getTime();
+   double s0 = -getTime(), s1 = -51, s2 = 0;
    char ch[4] = { '|', '/', '-', '\\' };
 
-   for( ; t < tmax-0.01*dt; t += dt) {
-     if(aeroAlg < 0) {
-       filePrint(stderr,"\r  %c  Time Integration Loop: t = %9.3e, %3d%% complete ",
-                 ch[int((totalTime + getTime())/250.)%4], t+dt, int((t+dt)/(tmax-0.01*dt)*100));
+   for( ; t < tmax-0.01*dt; t += dt, s2 = s0+getTime()) {
+     if(aeroAlg < 0 && (s2-s1 > 50)) {
+       s1 = s2;
+       filePrint(stderr, "\r  %c  Time Integration Loop: t = %9.3e, %3d%% complete ",
+                 ch[int(s1/250)%4], t+dt, int((t+dt)/(tmax-0.01*dt)*100));
      }
 
      // ... For Aeroelastic A5 Algorithm, Do restore and backup here
@@ -662,12 +666,15 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
      if(domain->solInfo().order == 1) { // heat (CURRENTLY ONLY IMPLEMENTED FOR alpham = alphaf = 1/2)
        // Solve for temperature: d^{n+1/2} = (M + gamma*dt*K)^{-1}(gamma*dt*f^{n+1/2} + M*(d^n+dt/2*(1-2*gamma)*v^n))
+       matrixTimers.formRhs -= getTime();
        d_n_h = 1.0*d_n + (dt/2.0*(1.0-2.0*gamma))*v_n;
        dynOps.M->mult( d_n_h, Md_n_h );
        rhs = 1.0*Md_n_h + gamma*dt*ext_f;
+       matrixTimers.formRhs += getTime();
        dynOps.dynMat->reSolve( rhs );
 
        // Extrapolate temperature solution to t^{n+1} : d^{n+1} = 2*d^{n+1/2} - d^n
+       matrixTimers.updateState -= getTime();
        d_n = 2.0*rhs - 1.0*d_n;
 
        // Compute the first time derivative of temperature at t^{n+1}: v^{n+1} = 2/(gamma*dt)*(d^{n+1/2 - d^n) - (1-gamma)/(gamma)*v^n
@@ -676,6 +683,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
      }
      else { // mech, acou
        // ... Construct R.H.S. vector
+       matrixTimers.formRhs -= getTime();
        // First: d_n_h = ((1-alpham)/(1-alphaf))*d_n + dt*(1-alpham)*v_n + dt*dt*((1-alpham)/2 - beta)*a_n
        d_n_h = ((1-alpham)/(1-alphaf))*d_n + dt*(1-alpham)*v_n + dt*dt*((1-alpham)/2 - beta)*a_n;
 
@@ -695,6 +703,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
          // Sixth: Accumulate in rhs vector 
          rhs += Cd_n_h;
        }
+       matrixTimers.formRhs += getTime();
 
        dynOps.dynMat->reSolve( rhs ); // Now rhs contains d_(n+1-alphaf)
 
@@ -702,6 +711,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
        if (probDesc->getFilterFlag() == 2) probDesc->project( rhs );
 
        // one time step forward
+       matrixTimers.updateState -= getTime();
        // d_n_p = 1/(1-alphaf)*[d_(n+1-alphaf)-alphaf*d_n] = d_(n+1)
        d_n_p = 1/(1-alphaf)*(1.0*rhs-alphaf*d_n);
    
@@ -723,6 +733,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
      // Increment time index
      n++;
+     matrixTimers.updateState += getTime();
 
      // ... current state is replaced by predicted value 
      // NOTE: current state is modified here only for output
@@ -745,11 +756,10 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
    }
    if(aeroAlg < 0)
-     filePrint(stderr,"\r ... Time Integration Loop: t = %9.3e, 100%% complete ...\n", t);
+     filePrint(stderr, "\r ... Time Integration Loop: t = %9.3e, 100%% complete ...\n", t);
 
-   totalTime += getTime();
 #ifdef PRINT_TIMERS
-   if(verboseFlag) filePrint(stderr," ... Total Loop Time = %.2e s   ...\n",totalTime/1000.0);
+   if(verboseFlag) filePrint(stderr, " ... Total Loop Time = %.2e s   ...\n", s2/1000.0);
 #endif
 }
 
@@ -781,6 +791,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
                       NewmarkWorkVec<VecType,ProblemDescriptor>& workVec,
                       double dt0, double tmax)
 {
+  MatrixTimers &matrixTimers = domain->getTimers();
   filePrint(stderr, " ... Explicit Newmark Time Integration Scheme: beta = %4.2f, gamma = %4.2f, alphaf = %4.2f, alpham = %4.2f ...\n",0.0,0.5,0.0,0.0);
 
   int parity = 0;
@@ -842,11 +853,13 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
   // Compute the initial acceleration a^0 = M^{-1}(fext^0 - fint^0 - C*v^0)
   if(verboseFlag) filePrint(stderr," ... Computing initial acceleration ...\n");
+  domain->getTimers().formRhs -= getTime();
   if(dynOps.C) {
     dynOps.C->mult(v_n,tmp2);
     fint += tmp2;
   }
   a_n = fext - fint;
+  domain->getTimers().formRhs += getTime();
   handleForce(*probDesc, fint);
   dynOps.dynMat->reSolve(a_n);
 
@@ -859,7 +872,6 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
   handleAcceleration(*probDesc, a_n);
   if(probDesc->getFilterFlag() == 2) probDesc->project(a_n);
 
-
   // Output the state at t^0: d^0, v^0, a^0, fext^0
   postProcessor->dynamOutput(n, t_n, dynOps, fext, aeroForce, curState);
 
@@ -869,7 +881,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
   bool fourthOrder = probDesc->getDomain()->solInfo().modifiedWaveEquation;
 
   // ... BEGIN MAIN TIME-LOOP
-  double totalTime = -getTime();
+  double s0 = -getTime(), s1 = -51, s2 = 0;
   char ch[4] = { '|', '/', '-', '\\' };
 
   double eps1 = domain->solInfo().epsilon1;
@@ -881,19 +893,22 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
            << " abs(Wkin+Wint-Wext) " << " eps1*max(We,Wi,Wk) " << "  dt " << std::endl;}
 #endif
 
-  for( ; t_n < tmax-0.01*dt_n_h; ) {
+  for( ; t_n < tmax-0.01*dt_n_h; s2 = s0+getTime()) {
 
     // Time update:
     t_n_h = t_n + dt_n_h/2; // t^{n+1/2} = t^n + 1/2*deltat^{n+1/2}
 
-    if(aeroAlg < 0) {
-      filePrint(stderr,"\r  %c  Time Integration Loop: t = %9.3e, dt = %9.3e, %3d%% complete ",
-                ch[int((totalTime + getTime())/250.)%4], t_n, dt_n_h, int((t_n-t0)/((tmax-t0)-0.01*dt_n_h)*100));
+    if(aeroAlg < 0 && (s2-s1 > 50)) {
+      s1 = s2;
+      filePrint(stderr, "\r  %c  Time Integration Loop: t = %9.3e, dt = %9.3e, %3d%% complete ",
+                ch[int(s1/250)%4], t_n, dt_n_h, int((t_n-t0)/((tmax-t0)-0.01*dt_n_h)*100));
     }
 
     // First partial update nodal velocities:
+    matrixTimers.updateState -= getTime();
     v_h_p = v_n_h;
     v_n_h.linC(v_n, t_n_h-t_n, a_n); // v^{n+1/2} = v^n + (t^{n+1/2} - t^n)*a^n
+    matrixTimers.updateState += getTime();
 
     if (fourthOrder) { // TODO check this for case of variable timestep
       // this is as in the previous release of the FEM code (before august 28th 2008)
@@ -945,10 +960,12 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
       if(probDesc->getModeDecompFlag()) probDesc->modeDecomp(t_n, n, d_n);
 
       // Update the displacement at t^(n+1): d^{n+1} = d^n + dt^{n+1/2}*v^{n+1/2}
+      matrixTimers.updateState -= getTime();
       if(domain->solInfo().isNonLin()) {
         probDesc->updateState(dt_n_h, v_n_h, d_n);
       }
       else d_n.linAdd(dt_n_h, v_n_h);
+      matrixTimers.updateState += getTime();
 
       // C0: Send predicted displacement at t^{n+1.5} to fluid
       if(aeroAlg == 20) probDesc->aeroSend(t_n+dt_n_h, d_n, v_n_h, a_n, v_h_p);
@@ -965,14 +982,16 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
       getInternalForce(dynOps, d_n, fint, t_n+dt_n_h, n+1);
 
       // Compute the acceleration at t^{n+1}: a^{n+1} = M^{-1}(fext^{n+1}-fint^{n+1}-C*v^{n+1/2})
+      domain->getTimers().formRhs -= getTime();
       if(dynOps.C) {
          dynOps.C->mult(v_n_h, tmp1);
          fint.linAdd(1.0, tmp1);
       }
       a_n.linC(1.0, fext, -1.0, fint);
+      domain->getTimers().formRhs += getTime();
       handleForce(*probDesc, fint);
 
-      dynOps.dynMat->reSolve(a_n);//*************************************
+      dynOps.dynMat->reSolve(a_n);
 
       if(domain->tdenforceFlag()) { // Contact corrector step
         tmp1.linC(dt_n_h, v_n_h, dt_n_h*dt_n_h, a_n); // predicted displacement d^{n+2} = d^{n+1} + dt^{n+1/2}*(v^{n+1/2} + dt^{n+1/2}*a^{n+1})
@@ -984,8 +1003,10 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
       if(probDesc->getFilterFlag() == 2) probDesc->project(a_n);
 
       // Update the velocity at t^{n+1}: v^{n+1} = v^{n+1/2}+dt^{n+1/2}/2*a^{n+1}
+      matrixTimers.updateState -= getTime();
       v_p = v_n;
       v_n.linC(1.0, v_n_h, 0.5*dt_n_h, a_n);
+      matrixTimers.updateState += getTime();
       handleVelocity(*probDesc, v_n);
 
       // Energy balance check
@@ -1064,11 +1085,10 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
     } 
   }
   if(aeroAlg < 0)
-    filePrint(stderr,"\r ... Time Integration Loop: t = %9.3e, dt = %9.3e, 100%% complete ...\n", t_n, dt_n_h);
+    filePrint(stderr, "\r ... Time Integration Loop: t = %9.3e, dt = %9.3e, 100%% complete ...\n", t_n, dt_n_h);
 
-  totalTime += getTime();
 #ifdef PRINT_TIMERS
-  if(verboseFlag) filePrint(stderr," ... Total Loop Time = %.2e s   ...\n",totalTime/1000.0);
+  if(verboseFlag) filePrint(stderr, " ... Total Loop Time = %.2e s   ...\n", s2/1000.0);
 #endif
 
   if(domain->solInfo().check_energy_balance) {
@@ -1114,7 +1134,9 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar >
   if (domain->solInfo().isNonLin()) {
       probDesc->getInternalForce(const_cast<VecType &>(disp), result, time, tIndex);
     } else {
+      domain->getTimers().formRhs -= getTime();
       const_cast<DynOps &>(dynamOps).K->mult(const_cast<VecType &>(disp), result);
+      domain->getTimers().formRhs += getTime();
     }
 }
 

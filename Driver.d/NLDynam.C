@@ -79,6 +79,7 @@ Domain::getInternalForce(GeomState &geomState, Vector& elementForce,
 
   for(int iele = 0; iele < numele; ++iele) {
 
+    if(matrixTimers) matrixTimers->formTime -= getTime();
     elementForce.zero();
 
     // Get updated tangent stiffness matrix and element internal force
@@ -100,8 +101,10 @@ Domain::getInternalForce(GeomState &geomState, Vector& elementForce,
       // Transform element stiffness and force to solve for the increment in the total rotation vector
       transformElemStiffAndForce(geomState, elementForce.data(), kel[iele], iele, false);
     }
+    if(matrixTimers) matrixTimers->formTime += getTime();
 
     // Assemble element internal force into residual force vector
+    if(matrixTimers) matrixTimers->assemble -= getTime();
     for(int idof = 0; idof < kel[iele].dim(); ++idof) {
       int uDofNum = c_dsa->getRCN((*allDOFs)[iele][idof]);
       if(uDofNum >= 0)
@@ -112,6 +115,7 @@ Domain::getInternalForce(GeomState &geomState, Vector& elementForce,
           (*reactions)[cDofNum] += elementForce[idof];
       }
     }
+    if(matrixTimers) matrixTimers->assemble += getTime();
   }
 
   if(sinfo.isDynam() && mel && !solInfo().getNLInfo().linearelastic)
@@ -318,11 +322,13 @@ Domain::getFictitiousForce(GeomState &geomState, Vector &elementForce, FullSquar
 {
   for(int iele = 0; iele < numele; ++iele) {
 
+    if(matrixTimers) matrixTimers->formTime -= getTime();
     elementForce.zero();
-
     getElemFictitiousForce(iele, geomState, elementForce.data(), kel[iele], time, refState, mel[iele], compute_tangents, cel);
+    if(matrixTimers) matrixTimers->formTime += getTime();
 
     // Assemble element force into residual force vector
+    if(matrixTimers) matrixTimers->assemble -= getTime();
     for(int idof = 0; idof < kel[iele].dim(); ++idof) {
       int uDofNum = c_dsa->getRCN((*allDOFs)[iele][idof]);
       if(uDofNum >= 0)
@@ -333,6 +339,7 @@ Domain::getFictitiousForce(GeomState &geomState, Vector &elementForce, FullSquar
           (*reactions)[cDofNum] += elementForce[idof];
       }
     }
+    if(matrixTimers) matrixTimers->assemble += getTime();
   }
 }
 

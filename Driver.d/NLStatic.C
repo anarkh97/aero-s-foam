@@ -89,6 +89,7 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
 
   for(int iele = 0; iele < numele; ++iele) {
 
+    if(matrixTimers) matrixTimers->formTime -= getTime();
     elementForce.zero();
 
     // Get updated tangent stiffness matrix and element internal force
@@ -118,8 +119,10 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
       // Transform element stiffness and force to solve for the increment in the total rotation vector
       transformElemStiffAndForce(geomState, elementForce.data(), kel[iele], iele, true);
     }
+    if(matrixTimers) matrixTimers->formTime += getTime();
 
     // Assemble element force into residual vector
+    if(matrixTimers) matrixTimers->assemble -= getTime();
     for(int idof = 0; idof < kel[iele].dim(); ++idof) {
       int uDofNum = c_dsa->getRCN((*allDOFs)[iele][idof]);
       if(uDofNum >= 0)
@@ -130,15 +133,19 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
           (*reactions)[cDofNum] += elementForce[idof];
       }
     }
+    if(matrixTimers) matrixTimers->assemble += getTime();
   }
 
   // XXX consider adding the element fictitious forces inside the loop
   if(sinfo.isDynam() && mel && !solInfo().getNLInfo().linearelastic)
     getFictitiousForce(geomState, elementForce, kel, residual, time, refState, reactions, mel, compute_tangents, cel);
 
-  if(!solInfo().getNLInfo().unsymmetric && solInfo().newmarkBeta != 0)
+  if(!solInfo().getNLInfo().unsymmetric && solInfo().newmarkBeta != 0) {
+    if(matrixTimers) matrixTimers->formTime -= getTime(); 
     for(int iele = 0; iele < numele; ++iele)
       kel[iele].symmetrize();
+    if(matrixTimers) matrixTimers->formTime += getTime();
+  }
 }
 
 void
@@ -641,9 +648,11 @@ Domain::applyResidualCorrection(GeomState &geomState, Corotator **corotators, Ve
 void
 Domain::updateStates(GeomState *refState, GeomState &geomState, Corotator **corotators)
 {
+  if(matrixTimers) matrixTimers->updateState -= getTime();
   for(int iele = 0; iele < numele; ++iele) {
     if(corotators[iele]) corotators[iele]->updateStates(refState, geomState, nodes);
   }
+  if(matrixTimers) matrixTimers->updateState += getTime();
 }
 
 void

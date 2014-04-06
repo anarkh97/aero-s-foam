@@ -2542,29 +2542,6 @@ Domain::getElementDisp(int iele, GeomState& geomState, Vector& disp)
 }
 
 double
-Domain::getKineticEnergy(double* velocity, FullSquareMatrix *mel)
-{
-  Vector vtmp(velocity, numUncon());
-  Vector tmpVec(numUncon(), 0.0);
-  int iele, idof, jdof, dofn1, dofn2;
-
-  // Compute Kinetic Energy as vtmp^t M vtmp
-  for(iele = 0; iele < numele; ++iele) {
-    for(idof = 0; idof < mel[iele].dim(); ++idof) {
-      dofn1 = c_dsa->getRCN((*allDOFs)[iele][idof]);
-      if(dofn1 >= 0) {
-        for(jdof = 0; jdof < mel[iele].dim(); ++jdof) {
-          dofn2 = c_dsa->getRCN((*allDOFs)[iele][jdof]);
-          if(dofn2 >= 0)
-            tmpVec[dofn1] += vtmp[dofn2]*mel[iele][idof][jdof];
-        }
-      }
-    }
-  }
-  return 0.5*(vtmp*tmpVec);
-}
-
-double
 Domain::getStrainEnergy(GeomState *geomState, Corotator **allCorot)
 {
   // Compute strain energy

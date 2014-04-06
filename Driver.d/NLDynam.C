@@ -771,3 +771,53 @@ Domain::assembleNodalInertiaTensors(FullSquareMatrix *melArray)
   }
 #endif
 }
+
+double
+Domain::getKineticEnergy(double* velocity, FullSquareMatrix *mel)
+{
+  // Compute Kinetic Energy as 0.5*(vtmp^t M vtmp)
+  // note #1: assuming angular velocity is convected
+  // note #2: contribution due to prescribed velocity is currently not included
+  Vector vtmp(velocity, numUncon());
+  Vector tmpVec(numUncon(), 0.0);
+  int iele, idof, jdof, dofn1, dofn2;
+
+  // contribution of elements
+  for(iele = 0; iele < numele; ++iele) {
+    for(idof = 0; idof < mel[iele].dim(); ++idof) {
+      dofn1 = c_dsa->getRCN((*allDOFs)[iele][idof]);
+      if(dofn1 >= 0) {
+        for(jdof = 0; jdof < mel[iele].dim(); ++jdof) {
+          dofn2 = c_dsa->getRCN((*allDOFs)[iele][jdof]);
+          if(dofn2 >= 0)
+            tmpVec[dofn1] += vtmp[dofn2]*mel[iele][idof][jdof];
+        }
+      }
+    }
+  }
+  double T = 0.5*(vtmp*tmpVec);
+
+  // contribution due to discrete masses
+  if(firstDiMass != NULL) {
+    DMassData *current = firstDiMass;
+    while(current != 0) {
+      int cdof = c_dsa->locate(current->node, (1 << current->dof));
+      if(current->jdof < 0 || current->dof == current->jdof) { // diagonal entry
+        if(cdof > -1) {
+          T += 0.5*vtmp[cdof]*current->diMass*vtmp[cdof];
+        }
+      }
+      else { // off-diagonal entry
+        int jcdof = c_dsa->locate(current->node, (1 << current->jdof));
+        if(cdof > -1 && jcdof > -1) {
+          T += vtmp[cdof]*current->diMass*vtmp[jcdof]; // note: 0.5 is deliberately omitted here because only the lower
+                                                       // triangular part of the inertia tensor should be specified
+        }
+      }
+      current = current->next;
+    }
+  }
+
+  return T;
+}
+

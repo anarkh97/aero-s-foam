@@ -31,7 +31,7 @@ public:
 
   void preProcess();
   void preProcessSA() {  filePrint(stderr," ... ModalDescr::preProcessSA is not implemented\n");  exit(-1);  }
-  void postProcessSA(Vector &sol) {  filePrint(stderr," ... ModalDescr::postProcessSA is not implemented\n");  exit(-1);  }
+  void postProcessSA(ModalOps *,Vector &sol) {  filePrint(stderr," ... ModalDescr::postProcessSA is not implemented\n");  exit(-1);  }
   void processLastOutput();
 
   ModalDescr* getPostProcessor() { return this; }

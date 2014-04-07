@@ -1024,13 +1024,13 @@ Domain::buildPreSensitivities(AllSensitivities<Scalar> &allSens, Scalar *bcx)
 
 template<class Scalar>
 void
-Domain::buildPostSensitivities(AllSensitivities<Scalar> &allSens, GenVector<Scalar> &sol, Scalar *bcx)
+Domain::buildPostSensitivities(GenSolver<Scalar> *sysSolver, AllSensitivities<Scalar> &allSens, GenVector<Scalar> &sol, Scalar *bcx)
 {
   switch(sinfo.type) {
     default:
       fprintf(stderr," *** WARNING: Solver not Specified  ***\n");
     case 0:
-      makePostSensitivities(allSens, sol, bcx);
+      makePostSensitivities(sysSolver, allSens, sol, bcx);
       break;
   }
 }

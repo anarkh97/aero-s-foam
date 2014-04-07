@@ -396,17 +396,17 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
        // Aeroelastic Sensitivity Quasi-Static 
        if(domain->solInfo().sensitivity) { 
-         probDesc->postProcessSA(*d_n);
+         probDesc->postProcessSA(dynOps,*d_n);
          AllSensitivities<double> *allSens = probDesc->getAllSensitivities();
          map<int, Group> &group = geoSource->group;
          allSens->dispWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[group.size()]; 
          for(int iparam=0; iparam< group.size(); ++iparam) {
            allSens->dispWRTthick[iparam] = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(domain->numUncon(),1);
-           constForceSen = new VecType( probDesc->solVecInfo() );
-           constForceSen->copy(allSens->linearstaticWRTthick[iparam]->data());
-           probDesc->addConstForceSensitivity( *constForceSen );
+           rhsSen = new VecType( probDesc->solVecInfo() );
+           rhsSen->copy(allSens->linearstaticWRTthick[iparam]->data());
+           (*rhsSen) *= -1; 
            aeroForceSen->zero();
-           aeroSensitivityQuasistaticLoop( *curSenState, *constForceSen, *dynOps, *workSenVec, dt, tmax, aeroAlg);
+           aeroSensitivityQuasistaticLoop( *curSenState, *rhsSen, *dynOps, *workSenVec, dt, tmax, aeroAlg);
            *allSens->dispWRTthick[iparam] = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> >(d_nSen->data(),domain->numUncon(),1);
            allSens->vonMisesWRTthick->col(iparam) += *allSens->vonMisesWRTdisp * (*allSens->dispWRTthick[iparam]);
          }  
@@ -548,9 +548,9 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
     // ... stop quasi-transient simulation if converged
     if(iSteady) {
-      filePrint(stderr," --------------------------------------\n");
+      filePrint(stderr," ------------------------------------------------------\n");
       filePrint(stderr," ... Quasistatic Analysis Converged After %d Steps ...\n",tIndex);
-      filePrint(stderr," --------------------------------------\n");
+      filePrint(stderr," ------------------------------------------------------\n");
       probDesc->processLastOutput();
       postProcessor->dynamOutput( tIndex, (double)tIndex*delta, dynOps, ext_f, aeroForce, curState );
       break; 
@@ -578,9 +578,9 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
   }
 
   if (!iSteady && aeroAlg != 10) {
-    filePrint(stderr," --------------------------------------\n");
+    filePrint(stderr," -----------------------------------------------------------\n");
     filePrint(stderr," ... Quasistatic Analysis Did Not Converge After %d Steps ...\n",tIndex);
-    filePrint(stderr," --------------------------------------\n");
+    filePrint(stderr," -----------------------------------------------------------\n");
   }
 
   // ... output CPU time spent in quasi-static loop
@@ -725,9 +725,9 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
   }
 
   if (!iSteady && aeroAlg != 10) {
-    filePrint(stderr," --------------------------------------\n");
-    filePrint(stderr," ... Quasistatic Analysis Did Not Converge After %d Steps ...\n",tIndex);
-    filePrint(stderr," --------------------------------------\n");
+    filePrint(stderr," ------------------------------------------------------------------------\n");
+    filePrint(stderr," ... Aeroelastic Sensitivity Analysis Did Not Converge After %d Steps ...\n",tIndex);
+    filePrint(stderr," ------------------------------------------------------------------------\n");
   }
 //  probDesc->processLastOutput();
 //  postProcessor->dynamOutput( tIndex, (double)tIndex*delta, dynOps, ext_fSen, aeroForceSen, curState );

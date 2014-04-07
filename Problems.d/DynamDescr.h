@@ -152,7 +152,7 @@ class SingleDomainDynamic
     void getAeroelasticForceSensitivity(int t_index, double t, Vector * aero_f=0, double gamma=0.5, double alphaf=0.5);
     void preProcess();
     void preProcessSA();
-    void postProcessSA(Vector &sol);
+    void postProcessSA(DynamMat *dMat, Vector &sol);
     void processLastOutput();
     DynamMat * buildOps(double coeM, double coeC, double coeK);
     GenSolver<double> *getSolver();

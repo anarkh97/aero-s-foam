@@ -116,6 +116,22 @@ FelippaShell::getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
   stress[0] = elStress[0][strInd-offset];
   stress[1] = elStress[1][strInd-offset];
   stress[2] = elStress[2][strInd-offset];
+
+  if(verboseFlag) {
+    cerr << "glNum + 1 is" << glNum + 1 << endl;
+    cerr << "maxstr is " << maxstr << endl;
+    cerr << "prop->nu is " << prop->nu << endl;
+    cerr << "disp = " << disp[0] << " " << disp[1] << " " << disp[2] << endl;
+    cerr << "type = " << type << endl;
+    cerr << "strainFlg = " << strainFlg << endl;
+    cerr << "surface = " << surface << endl;
+    cerr << "strInd is " << strInd << endl;
+    cerr << "offset is " << offset << endl;
+    cerr << "elStress[0] is " << elStress[0][strInd-offset] << endl;
+    cerr << "elStress[1] is " << elStress[1][strInd-offset] << endl;
+    cerr << "elStress[2] is " << elStress[2][strInd-offset] << endl;
+  }
+
 }
 
 void
@@ -1524,6 +1540,10 @@ FelippaShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight,
   dconst[27] = prop->E; // E
   dconst[28] = prop->nu;   // nu
   dconst[29] = prop->rho;  // rho
+
+  if(verboseFlag) std::cerr << "nu is " << prop->nu << endl;
+  if(verboseFlag) std::cerr << "dconst =\n" << dconst << endl;
+
   // integer parameters
   Eigen::Array<int,1,1> iconst;
   iconst[0] = surface; // surface
@@ -1556,10 +1576,13 @@ FelippaShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight,
     ShellElementStressWRTThicknessSensitivity<double> foo(dconst,iconst);
     Eigen::Matrix<double,1,1> qp, qm;
     double h(1e-6);
-    qp[0] = q[0] + h;   qm[0] = q[0] - h;
+    qp[0] = q[0] + h;   cerr << "qp[0] = " << qp[0] << endl;
+    qm[0] = q[0] - h;   cerr << "qm[0] = " << qm[0] << endl;
     Eigen::Matrix<double,3,1> Sp = foo(qp, 0);
     Eigen::Matrix<double,3,1> Sm = foo(qm, 0);
     Eigen::Vector3d dStressdThick = (Sp - Sm)/(2*h);
+    cerr << "Sp =\n" << Sp << endl;
+    cerr << "Sm =\n" << Sm << endl;
     if(verboseFlag) std::cerr << "dStressdThick(FD) =\n" << dStressdThick << std::endl;
     dStdThick.copy(dStressdThick.data());
   }

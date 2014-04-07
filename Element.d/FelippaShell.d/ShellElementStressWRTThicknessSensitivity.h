@@ -52,8 +52,13 @@ class ShellElementStressWRTThicknessSensitivity : public VectorValuedFunction<1,
       // flag     <input>   0: stress, 1: strain, >= 2: internal variables
       // surface  <input>   1: upper, 2: median, 3: lower
       Eigen::Array<Scalar,7,3> stress;
-      ele.andesvms(0, 7, nu, globalx.data(), globaly.data(), globalz.data(), globalu.data(),
+      ele.andesvms(1, 7, nu, globalx.data(), globaly.data(), globalz.data(), globalu.data(),
                    stress.data(), 0, 0, surface);
+
+//      std::cerr << "nu = " << nu << endl;
+//      std::cerr << "surface = " << surface << endl;
+//      std::cerr << "disp =\n" << globalu << endl;
+
 
       // return value:
       // von mises stresses at nodes

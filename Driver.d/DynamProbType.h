@@ -149,7 +149,7 @@ private:
      VecType * v_nSen;
      VecType * a_nSen;
      VecType * v_pSen;
-     VecType * constForceSen;
+     VecType * rhsSen;
      VecType * aeroForceSen;
 
      SysState<VecType> * curSenState;    

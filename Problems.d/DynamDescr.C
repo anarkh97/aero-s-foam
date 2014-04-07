@@ -725,9 +725,9 @@ SingleDomainDynamic::preProcessSA()
 }
 
 void
-SingleDomainDynamic::postProcessSA(Vector &sol)
+SingleDomainDynamic::postProcessSA(DynamMat *dMat, Vector &sol)
 {
-  domain->buildPostSensitivities<double>(*allSens, sol, bcx);
+  domain->buildPostSensitivities<double>(dMat->dynMat, *allSens, sol, bcx);
 }
 
 void

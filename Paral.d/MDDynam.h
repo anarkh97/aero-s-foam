@@ -185,7 +185,7 @@ private:
     void getRHS(DistrVector &);
     void preProcess();
     void preProcessSA() {  filePrint(stderr," ... MultiDomainDynam::preProcessSA is not implemented\n");  exit(-1);  }
-    void postProcessSA(DistrVector &sol) {  filePrint(stderr," ... MultiDomainDynam::postProcessSA is not implemented\n");  exit(-1);  }
+    void postProcessSA(MDDynamMat *, DistrVector &sol) {  filePrint(stderr," ... MultiDomainDynam::postProcessSA is not implemented\n");  exit(-1);  }
     void processLastOutput();
     void printTimers(MDDynamMat *, double);
 

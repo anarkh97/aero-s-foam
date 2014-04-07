@@ -306,6 +306,12 @@ FaceTri6::ComputeddJNormaldxAndddJNormaldy(double ddJNormaldx[][3], double ddJNo
   ComputeddJNormaldxAndddJNormaldy<double,CoordSet>(ddJNormaldx, ddJNormaldy, m, cs);
 }
 
+void
+FaceTri6::GetUnitNormal(double UnitNormal[3], double* m, CoordSet& cs)
+{
+  GetUnitNormal<double,CoordSet>(UnitNormal, m, cs);
+}
+
 // -----------------------------------------------------------------------------------------------------
 //                                            MISCELLEANEOUS METHODS 
 // -----------------------------------------------------------------------------------------------------

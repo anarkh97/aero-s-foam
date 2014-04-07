@@ -360,13 +360,6 @@ Sommerfeld.d/SpectralIsoParamQuadSommer.C
 Sommerfeld.d/Tri6Gauss.C
 Sommerfeld.d/Triangle6SommerBC.C
 Sommerfeld.d/TriangleSommerBC.C
-Sommerfeld.d/QuadPressureBC.C
-Sommerfeld.d/TrianglePressureBC.C
-Sommerfeld.d/Quad8PressureBC.C
-Sommerfeld.d/Quad9PressureBC.C
-Sommerfeld.d/Triangle6PressureBC.C
-Sommerfeld.d/Quad12PressureBC.C
-Sommerfeld.d/Triangle10PressureBC.C
 Spring.d/mstf11.f
 Spring.d/mstf21.f
 Spring.d/mstf22.f

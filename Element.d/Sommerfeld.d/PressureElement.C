@@ -1,26 +1,23 @@
 #ifdef USE_EIGEN3
 #include <Utils.d/dofset.h>
 #include <Corotational.d/GeomState.h>
-#include <Corotational.d/utilities.h>
-#include <Element.d/Function.d/Function.h>
+#include <Mortar.d/MortarDefines.h>
 #include <iostream>
-#include <unsupported/Eigen/NumericalDiff>
 
-template<template <typename S> class VectorValuedFunctionTemplate>
-PressureElement<VectorValuedFunctionTemplate>
-::PressureElement(int _nNodes, DofSet nodalDofs, int* _nn, PressureBCond* _pbc)
- : nNodes(_nNodes), pbc(_pbc)
+template<typename FaceElementType, typename QuadratureRule, int ConstantDegree, int VariableDegree>
+PressureElement<FaceElementType,QuadratureRule,ConstantDegree,VariableDegree>
+::PressureElement(int* _nn, PressureBCond* _pbc)
+ : nNodes(FaceElementType::NumberOfNodes), pbc(_pbc)
 {
-  // this constructor is for a force involving the same DofSet on each node, used for both inputs and outputs
   nn = new int[nNodes];
   for(int i = 0; i < nNodes; ++i)
     nn[i] = _nn[i];
-  addTerms(nodalDofs);
+  addTerms(DofSet::XYZdisp);
 }
 
-template<template <typename S> class VectorValuedFunctionTemplate>
+template<typename FaceElementType, typename QuadratureRule, int ConstantDegree, int VariableDegree>
 void
-PressureElement<VectorValuedFunctionTemplate>
+PressureElement<FaceElementType,QuadratureRule,ConstantDegree,VariableDegree>
 ::addTerms(DofSet nodalDofs)
 {
   terms.clear();
@@ -39,24 +36,24 @@ PressureElement<VectorValuedFunctionTemplate>
   }
 }
 
-template<template <typename S> class VectorValuedFunctionTemplate>
-PressureElement<VectorValuedFunctionTemplate>
+template<typename FaceElementType, typename QuadratureRule, int ConstantDegree, int VariableDegree>
+PressureElement<FaceElementType,QuadratureRule,ConstantDegree,VariableDegree>
 ::~PressureElement()
 {
   delete [] nn;
 }
 
-template<template <typename S> class VectorValuedFunctionTemplate>
+template<typename FaceElementType, typename QuadratureRule, int ConstantDegree, int VariableDegree>
 int
-PressureElement<VectorValuedFunctionTemplate>
+PressureElement<FaceElementType,QuadratureRule,ConstantDegree,VariableDegree>
 ::numNodes()
 {
   return nNodes;
 }
 
-template<template <typename S> class VectorValuedFunctionTemplate>
+template<typename FaceElementType, typename QuadratureRule, int ConstantDegree, int VariableDegree>
 void
-PressureElement<VectorValuedFunctionTemplate>
+PressureElement<FaceElementType,QuadratureRule,ConstantDegree,VariableDegree>
 ::renum(int* table)
 {
   for(int i = 0; i < numNodes(); ++i)
@@ -66,9 +63,9 @@ PressureElement<VectorValuedFunctionTemplate>
     terms[i].nnum = table[terms[i].nnum];
 }
 
-template<template <typename S> class VectorValuedFunctionTemplate>
+template<typename FaceElementType, typename QuadratureRule, int ConstantDegree, int VariableDegree>
 void
-PressureElement<VectorValuedFunctionTemplate>
+PressureElement<FaceElementType,QuadratureRule,ConstantDegree,VariableDegree>
 ::renum(EleRenumMap& table)
 {
   for(int i = 0; i < numNodes(); ++i)
@@ -78,9 +75,9 @@ PressureElement<VectorValuedFunctionTemplate>
     terms[i].nnum = table[terms[i].nnum];
 }
 
-template<template <typename S> class VectorValuedFunctionTemplate>
+template<typename FaceElementType, typename QuadratureRule, int ConstantDegree, int VariableDegree>
 int*
-PressureElement<VectorValuedFunctionTemplate>
+PressureElement<FaceElementType,QuadratureRule,ConstantDegree,VariableDegree>
 ::nodes(int* p)
 {
   if(p == 0) p = new int[numNodes()];
@@ -88,17 +85,17 @@ PressureElement<VectorValuedFunctionTemplate>
   return p;
 }
 
-template<template <typename S> class VectorValuedFunctionTemplate>
+template<typename FaceElementType, typename QuadratureRule, int ConstantDegree, int VariableDegree>
 int
-PressureElement<VectorValuedFunctionTemplate>
+PressureElement<FaceElementType,QuadratureRule,ConstantDegree,VariableDegree>
 ::numDofs()
 {
   return nterms;
 }
 
-template<template <typename S> class VectorValuedFunctionTemplate>
+template<typename FaceElementType, typename QuadratureRule, int ConstantDegree, int VariableDegree>
 int *
-PressureElement<VectorValuedFunctionTemplate>
+PressureElement<FaceElementType,QuadratureRule,ConstantDegree,VariableDegree>
 ::dofs(DofSetArray &dsa, int *p)
 {
   if(p == 0) p = new int[numDofs()];
@@ -107,98 +104,138 @@ PressureElement<VectorValuedFunctionTemplate>
   return p;
 }
 
-template<template <typename S> class VectorValuedFunctionTemplate>
+template<typename FaceElementType, typename QuadratureRule, int ConstantDegree, int VariableDegree>
 void
-PressureElement<VectorValuedFunctionTemplate>
+PressureElement<FaceElementType,QuadratureRule,ConstantDegree,VariableDegree>
 ::markDofs(DofSetArray &dsa)
 {
   for(int i = 0; i < nterms; i++)
     dsa.mark(terms[i].nnum, 1 << terms[i].dofnum);
 }
 
-template<template <typename S> class VectorValuedFunctionTemplate>
+template<typename FaceElementType, typename QuadratureRule, int ConstantDegree, int VariableDegree>
 void
-PressureElement<VectorValuedFunctionTemplate>
-::getInputs(Eigen::Matrix<double,VectorValuedFunctionTemplate<double>::NumberOfGeneralizedCoordinates,1> &q,
-            CoordSet& c0, GeomState *curState)
+PressureElement<FaceElementType,QuadratureRule,ConstantDegree,VariableDegree>::neumVector(CoordSet& c0, Vector& F, int, GeomState *c1, double t)
 {
-  // prepare the constraint function inputs
-  if(curState == NULL) {
-    // in this case the function will be evaluated in the undeformed configuration
-    q.setZero();
+  // construct face element & local coordsets
+  int nodes[FaceElementType::NumberOfNodes]; 
+  typedef std::vector<NodeTemplate<double>*> CoordSetType;
+  CoordSetType face_c0(FaceElementType::NumberOfNodes); // reference configuration
+  CoordSetType face_c1(FaceElementType::NumberOfNodes); // current configuration
+  for(int inode = 0; inode < FaceElementType::NumberOfNodes; ++inode) {
+    nodes[inode] = inode;
+    face_c0[inode] = new NodeTemplate<double>(c0[nn[inode]]->x, c0[nn[inode]]->y, c0[nn[inode]]->z);
+    face_c1[inode] = new NodeTemplate<double>((*c1)[nn[inode]].x, (*c1)[nn[inode]].y, (*c1)[nn[inode]].z);
   }
-  else {
-    for (int i = 0; i < terms.size(); i++) {
-      switch(terms[i].dofnum) {
-        case 0 :
-          q[i] = (*curState)[terms[i].nnum].x - c0[terms[i].nnum]->x;
-          break;
-        case 1 :
-          q[i] = (*curState)[terms[i].nnum].y - c0[terms[i].nnum]->y;
-          break;
-        case 2 :
-          q[i] = (*curState)[terms[i].nnum].z - c0[terms[i].nnum]->z;
-          break;
-        case 3 : case 4 : case 5 : {
-          q[i] = 0;
-        } break;
+  FaceElementType *FaceEl = new FaceElementType(nodes);
+
+  // quadrature rule
+  int deg = (pbc->conwep) ? VariableDegree : ConstantDegree;  // quadrature rule degree
+  QuadratureRule c(deg);
+
+  // local variables to be computed at each integration point
+  double xi[2];                             // abscissa
+  double weight;                            // weight
+  double N[FaceElementType::NumberOfNodes]; // shape function values
+  double normal[3];
+  double Xi[3], Normal[3];                  // reference coordinates and unit normal
+  double pressure = pbc->val;
+
+  F.zero();
+
+  // loop over the integration points
+  for(int ip = 0; ip < c.getN(); ++ip) {
+
+    // get the integration point abscissa and weight
+    c.getAbscissaAndWeight(ip, xi, weight);
+
+    // compute shape functions
+    FaceEl->GetShapeFctVal(N, xi);
+
+    // compute the surface normal
+    FaceEl->GetIsoParamMappingNormalJacobianProduct(normal, xi, face_c1);
+
+    if(pbc->conwep) {
+      FaceEl->GetUnitNormal(Normal, xi, face_c0);
+      FaceEl->LocalToGlobalCoord(Xi, xi, face_c0);
+      pressure = pbc->val + BlastLoading::ComputeGaussPointPressure(Xi, Normal, t, *(pbc->conwep));
+    }
+
+    for(int k = 0; k < FaceElementType::NumberOfNodes; ++k) {
+      double tmp = N[k]*weight*pressure;
+      F[3*k+0] += tmp*normal[0];
+      F[3*k+1] += tmp*normal[1];
+      F[3*k+2] += tmp*normal[2];
+    }
+  }
+
+  delete FaceEl;
+}
+
+template<typename FaceElementType, typename QuadratureRule, int ConstantDegree, int VariableDegree>
+void 
+PressureElement<FaceElementType,QuadratureRule,ConstantDegree,VariableDegree>::neumVectorJacobian(CoordSet& c0, FullSquareMatrix& Ktan, int, GeomState* c1, double t)
+{
+  // construct face element & local coordsets
+  int nodes[FaceElementType::NumberOfNodes];
+  typedef std::vector<NodeTemplate<double>*> CoordSetType;
+  CoordSetType face_c0(FaceElementType::NumberOfNodes); // reference configuration
+  CoordSetType face_c1(FaceElementType::NumberOfNodes); // current configuration
+  for(int inode = 0; inode < FaceElementType::NumberOfNodes; ++inode) {
+    nodes[inode] = inode;
+    face_c0[inode] = new NodeTemplate<double>(c0[nn[inode]]->x, c0[nn[inode]]->y, c0[nn[inode]]->z);
+    face_c1[inode] = new NodeTemplate<double>((*c1)[nn[inode]].x, (*c1)[nn[inode]].y, (*c1)[nn[inode]].z);
+  }
+  FaceElementType *FaceEl = new FaceElementType(nodes);
+
+  // quadrature rule
+  int deg = (pbc->conwep) ? VariableDegree : ConstantDegree;  // quadrature rule degree
+  QuadratureRule c(deg);
+
+  // local variables to be computed at each integration point
+  double xi[2];                             // abscissa
+  double weight;                            // weight
+  double N[FaceElementType::NumberOfNodes]; // shape function values
+  double dJNormal[3*FaceElementType::NumberOfNodes][3]; // derivatives of normal
+  double Xi[3], Normal[3];                  // reference coordinates and unit normal
+  double pressure = pbc->val;
+
+  Ktan.zero();
+
+  // loop over the integration points
+  for(int ip = 0; ip < c.getN(); ++ip) {
+
+    // get the integration point abscissa and weight
+    c.getAbscissaAndWeight(ip, xi, weight);
+
+    // compute shape functions
+    FaceEl->GetShapeFctVal(N, xi);
+
+    // compute the partial derivatives of the surface normal w.r.t. the nodal coordinates
+    FaceEl->GetdJNormal(dJNormal, xi, face_c1);
+
+    if(pbc->conwep) {
+      FaceEl->GetUnitNormal(Normal, xi, face_c0);
+      FaceEl->LocalToGlobalCoord(Xi, xi, face_c0);
+      pressure = pbc->val + BlastLoading::ComputeGaussPointPressure(Xi, Normal, t, *(pbc->conwep));
+    }
+
+    for(int k = 0; k < FaceElementType::NumberOfNodes; ++k) {
+      double tmp = N[k]*weight*pressure;
+      for(int l = 0; l < 3*FaceElementType::NumberOfNodes; ++l) {
+        Ktan[3*k+0][l] += tmp*dJNormal[l][0];
+        Ktan[3*k+1][l] += tmp*dJNormal[l][1];
+        Ktan[3*k+2][l] += tmp*dJNormal[l][2];
       }
     }
   }
+
+  delete FaceEl;
 }
 
-template<template <typename S> class VectorValuedFunctionTemplate>
-void
-PressureElement<VectorValuedFunctionTemplate>::neumVector(CoordSet& c0, Vector& F, int, GeomState *c1, double t)
-{
-  // instantiate the function object
-  Eigen::Array<double, VectorValuedFunctionTemplate<double>::NumberOfScalarConstants, 1> sconst;
-  Eigen::Array<int, VectorValuedFunctionTemplate<double>::NumberOfIntegerConstants, 1> iconst;
-  getConstants(c0, sconst, iconst);
-  VectorValuedFunctionTemplate<double> f(sconst,iconst);
-
-  // prepare the function inputs
-  const int N = VectorValuedFunctionTemplate<double>::NumberOfGeneralizedCoordinates;
-  Eigen::Matrix<double,N,1> q;
-  getInputs(q, c0, c1);
-
-  // evaluate the function and store values terms
-  const int M = VectorValuedFunctionTemplate<double>::NumberOfValues;
-  Eigen::Matrix<double,M,1> fval = f(q,t);
-
-  // fill F
-  for(int i=0; i<M; ++i) {
-    F[i] = fval[i];
-  }
-}
-
-template<template <typename S> class VectorValuedFunctionTemplate>
-void 
-PressureElement<VectorValuedFunctionTemplate>::neumVectorJacobian(CoordSet& c0, FullSquareMatrix& Ktan, int, GeomState* c1, double t)
-{
-  // instantiate the function object
-  Eigen::Array<double, VectorValuedFunctionTemplate<double>::NumberOfScalarConstants, 1> sconst;
-  Eigen::Array<int, VectorValuedFunctionTemplate<double>::NumberOfIntegerConstants, 1> iconst;
-  getConstants(c0, sconst, iconst);
-  VectorValuedFunctionTemplate<double> f(sconst,iconst);
-
-  // prepare the function inputs
-  const int N = VectorValuedFunctionTemplate<double>::NumberOfGeneralizedCoordinates;
-  Eigen::Matrix<double,N,1> q;
-  getInputs(q, c0, c1);
-
-  // instantiate the jacobian object
-  Simo::Jacobian<double,VectorValuedFunctionTemplate> dfdq(sconst,iconst);
-
-  // evaluate the jacobian
-  const int M = VectorValuedFunctionTemplate<double>::NumberOfValues;
-  Eigen::Map<Eigen::Matrix<double,M,N,Eigen::RowMajor> > J(Ktan.data());
-  J = dfdq(q, t);
-}
-
-template<template <typename S> class VectorValuedFunctionTemplate>
+template<typename FaceElementType, typename QuadratureRule, int ConstantDegree, int VariableDegree>
 FullSquareMatrix
-PressureElement<VectorValuedFunctionTemplate>
+PressureElement<FaceElementType,QuadratureRule,ConstantDegree,VariableDegree>
 ::sommerMatrix(CoordSet &cs, double *d)
 {
   FullSquareMatrix sommerM(numDofs(),d);
@@ -207,9 +244,9 @@ PressureElement<VectorValuedFunctionTemplate>
   return sommerM;
 }
 
-template<template <typename S> class VectorValuedFunctionTemplate>
+template<typename FaceElementType, typename QuadratureRule, int ConstantDegree, int VariableDegree>
 int
-PressureElement<VectorValuedFunctionTemplate>
+PressureElement<FaceElementType,QuadratureRule,ConstantDegree,VariableDegree>
 ::findAndSetEle(CoordSet& cs, Elemset &eset, Connectivity *nodeToElem, int *eleTouch, int *eleCount, int myNum, int it)
 {
   // overriding SommerElement::findAndSetEle because the normal should not be reversed

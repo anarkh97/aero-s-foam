@@ -300,6 +300,12 @@ FaceQuad12::ComputeddJNormaldxAndddJNormaldy(double ddJNormaldx[][3], double ddJ
   ComputeddJNormaldxAndddJNormaldy<double,CoordSet>(ddJNormaldx, ddJNormaldy, m, cs);
 }
 
+void
+FaceQuad12::GetUnitNormal(double UnitNormal[3], double* m, CoordSet& cs)
+{
+  GetUnitNormal<double,CoordSet>(UnitNormal, m, cs);
+}
+
 // -----------------------------------------------------------------------------------------------------
 //                                            MISCELLEANEOUS METHODS 
 // -----------------------------------------------------------------------------------------------------

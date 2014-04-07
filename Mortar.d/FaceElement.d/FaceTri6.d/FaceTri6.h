@@ -106,6 +106,8 @@ class FaceTri6: public FaceElement {
           void Computed2JNormaldx2d2JNormaldy2Andd2JNormaldxdy(Scalar *d2JNormaldx2, Scalar *d2JNormaldy2, Scalar *d2JNormaldxdy, Scalar *m, CoordSetT &cs);
         template<typename Scalar, typename CoordSetT>
           void ComputeddJNormaldxAndddJNormaldy(Scalar ddJNormaldx[][3], Scalar ddJNormaldy[][3], Scalar* m, CoordSetT& cs);
+        template<typename Scalar, typename CoordSetT>
+          void GetUnitNormal(Scalar UnitNormal[3], Scalar* m, CoordSetT& cs);
 
         // -> implementation of pure virtual fcts
         void   LocalToGlobalCoord(double*, double*, CoordSet&);
@@ -127,6 +129,7 @@ class FaceTri6: public FaceElement {
         void ComputedJNormaldxAnddJNormaldy(double *dJNormaldx, double *dJNormaldy, double *m, CoordSet &cs);
         void Computed2JNormaldx2d2JNormaldy2Andd2JNormaldxdy(double *d2JNormaldx2, double *d2JNormaldy2, double *d2JNormaldxdy, double *m, CoordSet &cs);
         void ComputeddJNormaldxAndddJNormaldy(double ddJNormaldx[][3], double ddJNormaldy[][3], double* m, CoordSet& cs);
+        void GetUnitNormal(double UnitNormal[3], double* m, CoordSet& cs);
 
         // Miscelleaneous methods
         // ~~~~~~~~~~~~~~~~~~~~~~
@@ -733,6 +736,22 @@ FaceTri6::Getd2JNormal(Scalar H[][3], Scalar* m, CoordSetT& cs)
       H[18*(3*j+2)+3*i+2][1] = 0;
       H[18*(3*j+2)+3*i+2][2] = 0;
     }
+  }
+}
+
+template<typename Scalar, typename CoordSetT>
+void
+FaceTri6::GetUnitNormal(Scalar Normal[3], Scalar *m, CoordSetT &cs)
+{
+  // Computes the unit vector normal to the surface at a point P.
+
+  GetIsoParamMappingNormalJacobianProduct(Normal, m, cs);
+
+  using std::sqrt;
+  Scalar J = sqrt(Normal[0]*Normal[0]+Normal[1]*Normal[1]+Normal[2]*Normal[2]);
+
+  if(J != 0.0) {
+    Normal[0] /= J; Normal[1] /= J; Normal[2] /= J;
   }
 }
 

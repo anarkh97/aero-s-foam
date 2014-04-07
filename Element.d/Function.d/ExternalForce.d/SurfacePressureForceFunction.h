@@ -121,7 +121,7 @@ class SurfacePressureForceFunction
 
         if(conwep) {
           J = dNdxi.transpose()*X;
-          Normal = J.row(0).cross(J.row(1));
+          Normal = (J.row(0).cross(J.row(1))).normalized();
           Xip = X.transpose()*N;
           pressure = p + BlastLoading::ComputeGaussPointPressure(Xip.data(), Normal.data(), t, *conwep);
         }

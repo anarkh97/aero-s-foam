@@ -625,7 +625,8 @@ NonLinDynamic::reBuild(GeomState& geomState, int iteration, double localDelta, d
      preProcess(Kcoef, Mcoef, Ccoef);
    }
    else {
-     spm->zeroAll();
+     if(!(domain->solInfo().DEIMPodRom || domain->solInfo().UDEIMPodRom))
+       spm->zeroAll();
      AllOps<double> ops;
      if(Kuc) { Kuc->zeroAll(); ops.Kuc = Kuc; }
      if(spp) { spp->zeroAll(); ops.spp = spp; }

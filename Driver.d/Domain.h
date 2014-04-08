@@ -428,7 +428,14 @@ class Domain : public HData {
                                        GeomState &u, Vector &elementInternalForce,
                                        Corotator **allCorot, FullSquareMatrix *kel,
                                        Vector &residual, double lambda, double time,
-                                       GeomState *refState, FullSquareMatrix *mel = NULL);
+                                       GeomState *refState, FullSquareMatrix *mel = NULL,
+                                       FullSquareMatrix *kelCopy = NULL);
+     void getUnassembledStiffAndForceOnly(const std::map<int, std::vector<int> > &weights,
+                                          GeomState &u, Vector &elementInternalForce,
+                                          Corotator **allCorot, FullSquareMatrix *kel,
+                                          Vector &residual, int dispSize, double lambda, double time,
+                                          GeomState *refState, FullSquareMatrix *mel = NULL,
+                                          FullSquareMatrix *kelCopy = NULL);
      void getElemInternalForce(const GeomState &geomState, double time,
                                const GeomState *refState, const Corotator &elemCorot,
                                double *elemForce, FullSquareMatrix &elemStiff);
@@ -831,6 +838,12 @@ class Domain : public HData {
                            FullSquareMatrix *kelArray=0);
      void getKtimesU(Vector &dsp, double *bcx, Vector &ext_f, double eta,
                      FullSquareMatrix *kelArray=0);
+     void getWeightedKtimesU(const std::map<int, double> &weights,
+                             Vector &dsp, double *bcx, Vector &ext_f, double eta,
+                             FullSquareMatrix *kelArray=0);
+     void getUnassembledKtimesU(const std::map<int, std::vector<int> > &weights,
+                                Vector &dsp, double *bcx, Vector &ext_f, double eta,
+                                FullSquareMatrix *kelArray=0);
      void getElemKtimesU(int iele, int numEleDOFs, Vector &dsp, double *elForce,
                    FullSquareMatrix *kelArray, double *karray);
      //ADDED FOR SLOSHING PROBLEM, EC, 20070723

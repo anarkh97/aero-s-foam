@@ -26,6 +26,8 @@ public:
   virtual int basisSize() const = 0;
   virtual const GenVecBasis<Scalar> &projectionBasis() const = 0;
   virtual void projectionBasisIs(const GenVecBasis<Scalar> &) = 0; 
+  virtual void EmpiricalSolver() = 0; 
+  virtual void addToReducedMatrix(const Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> &, double = 1.0) = 0;
 
   // Data collection
   virtual const GenVector<Scalar> &lastReducedSolution() const = 0;
@@ -54,6 +56,8 @@ public:
   int basisSize() const { return basisSize_; }
   const GenVecBasis<Scalar> &projectionBasis() const { return *projectionBasis_; }
   void projectionBasisIs(const GenVecBasis<Scalar> &); // Passed objects must be kept alive by owner
+  void EmpiricalSolver();
+  void addToReducedMatrix(const Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> &, double);
   
   // Data collection
   const GenVector<Scalar> &lastReducedSolution() const { return reducedSolution_; }
@@ -123,6 +127,18 @@ GenDBSparsePodProjectionSolver<Scalar>::projectionBasisIs(const GenVecBasis<Scal
   reducedSolution_.swap(newReducedSolution);
   projectionBasis_ = &reducedBasis;
   basisSize_ = reducedBasis.vectorCount();
+}
+
+template <typename Scalar>
+void
+GenDBSparsePodProjectionSolver<Scalar>::EmpiricalSolver() {
+//nothing to do here
+}
+
+template <typename Scalar>
+void
+GenDBSparsePodProjectionSolver<Scalar>::addToReducedMatrix(const Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> & dummy, double dummy2){
+//nothing to do
 }
 
 template <typename Scalar>

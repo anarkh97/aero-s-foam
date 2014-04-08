@@ -45,6 +45,8 @@ using namespace std;
 #include <Rom.d/DistrSnapshotNonLinDynamic.h>
 #include <Rom.d/PodProjectionNonLinDynamic.h>
 #include <Rom.d/LumpedPodProjectionNonLinDynamic.h>
+#include <Rom.d/DEIMPodProjectionNonLinDynamic.h>
+#include <Rom.d/UDEIMPodProjectionNonLinDynamic.h>
 #include <Rom.d/CheckNonLinDynamic.h>
 #include <Rom.d/PodProjectionSolver.h>
 #include <Rom.d/EiGalerkinProjectionSolver.h>
@@ -1013,7 +1015,7 @@ int main(int argc, char** argv)
                                 Rom::DistrExplicitDEIMPodProjectionNonLinDynamic, double > dynamSolver(&dynamProb);
                 dynamSolver.solve();
                } else if(domain->solInfo().UDEIMPodRom) {
-                 if (domain->solInfo().reduceFollower)
+                if (domain->solInfo().reduceFollower)
                    filePrint(stderr, " ... POD: unassembled ROM with stiffness & follower interpolation ...\n");
                 else
                    filePrint(stderr, " ... POD: unassembled ROM with stiffness interpolation ...\n");
@@ -1022,14 +1024,15 @@ int main(int argc, char** argv)
                                 Rom::DistrExplicitUDEIMPodProjectionNonLinDynamic, double > dynamSolver(&dynamProb);
                 dynamSolver.solve();
                } else {
-               if (domain->solInfo().reduceFollower)
+                if (domain->solInfo().reduceFollower)
                  filePrint(stderr, " ... POD: ROM with stiffness & follower lumping ...\n");
-	           else
+	        else
                  filePrint(stderr, " ... POD: ROM with stiffness lumping ...\n");
-               Rom::DistrExplicitLumpedPodProjectionNonLinDynamic dynamProb(domain);
-               DynamicSolver < MDDynamMat, DistrVector, Rom::MultiDomDynPodPostProcessor,
+                Rom::DistrExplicitLumpedPodProjectionNonLinDynamic dynamProb(domain);
+                DynamicSolver < MDDynamMat, DistrVector, Rom::MultiDomDynPodPostProcessor,
                                Rom::DistrExplicitLumpedPodProjectionNonLinDynamic, double > dynamSolver(&dynamProb);
-               dynamSolver.solve();}
+                dynamSolver.solve();
+               }
              } else {
                filePrint(stderr, " ... POD: Explicit Galerkin         ...\n");
                Rom::DistrExplicitPodProjectionNonLinDynamic dynamProb(domain);
@@ -1364,14 +1367,34 @@ int main(int argc, char** argv)
                nldynamicSolver.solve();
              } else { // POD ROM
                if (domain->solInfo().galerkinPodRom && domain->solInfo().elemLumpPodRom) {
-                 if (domain->solInfo().reduceFollower)
-                   filePrint(stderr, " ... POD: ROM with stiffness & follower lumping ...\n");
-                 else
-                   filePrint(stderr, " ... POD: ROM with stiffness lumping ...\n");
-                 Rom::LumpedPodProjectionNonLinDynamic nldynamic(domain);
-                 NLDynamSolver <Rom::PodProjectionSolver, Vector, SDDynamPostProcessor, Rom::PodProjectionNonLinDynamic,
-                                ModalGeomState, Rom::PodProjectionNonLinDynamic::Updater> nldynamicSolver(&nldynamic);
-                 nldynamicSolver.solve();
+                 if(domain->solInfo().DEIMPodRom){
+                   if (domain->solInfo().reduceFollower)
+                     filePrint(stderr, " ... POD: ROM with stiffness & follower interpolation ...\n");
+                   else
+                     filePrint(stderr, " ... POD: ROM with stiffness interpolation ...\n");
+                   Rom::DEIMPodProjectionNonLinDynamic nldynamic(domain);
+                   NLDynamSolver <Rom::PodProjectionSolver, Vector, SDDynamPostProcessor, Rom::PodProjectionNonLinDynamic,
+                                  ModalGeomState, Rom::PodProjectionNonLinDynamic::Updater> nldynamicSolver(&nldynamic);
+                   nldynamicSolver.solve();
+                 } else if(domain->solInfo().UDEIMPodRom) {
+                   if (domain->solInfo().reduceFollower)
+                     filePrint(stderr, " ... POD: unassembled ROM with stiffness & follower interpolation ...\n");
+                   else
+                     filePrint(stderr, " ... POD: unassembled ROM with stiffness interpolation ...\n");
+                   Rom::UDEIMPodProjectionNonLinDynamic nldynamic(domain);
+                   NLDynamSolver <Rom::PodProjectionSolver, Vector, SDDynamPostProcessor, Rom::PodProjectionNonLinDynamic,
+                                  ModalGeomState, Rom::PodProjectionNonLinDynamic::Updater> nldynamicSolver(&nldynamic);
+                   nldynamicSolver.solve();
+                 } else {
+                   if (domain->solInfo().reduceFollower)
+                     filePrint(stderr, " ... POD: ROM with stiffness & follower lumping ...\n");
+                   else
+                     filePrint(stderr, " ... POD: ROM with stiffness lumping ...\n");
+                   Rom::LumpedPodProjectionNonLinDynamic nldynamic(domain);
+                   NLDynamSolver <Rom::PodProjectionSolver, Vector, SDDynamPostProcessor, Rom::PodProjectionNonLinDynamic,
+                                  ModalGeomState, Rom::PodProjectionNonLinDynamic::Updater> nldynamicSolver(&nldynamic);
+                   nldynamicSolver.solve();
+                 }
                } else if (domain->solInfo().galerkinPodRom) {
                  filePrint(stderr, " ... POD: Reduced-order model       ...\n");
                  Rom::PodProjectionNonLinDynamic nldynamic(domain);

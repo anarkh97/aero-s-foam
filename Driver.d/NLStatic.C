@@ -553,7 +553,8 @@ Domain::getWeightedStiffAndForceOnly(const std::map<int, double> &weights,
                                      GeomState &geomState, Vector& elementForce,
                                      Corotator **corotators, FullSquareMatrix *kel,
                                      Vector &residual, double lambda, double time,
-                                     GeomState *refState, FullSquareMatrix *mel)
+                                     GeomState *refState, FullSquareMatrix *mel,
+                                     FullSquareMatrix *kelCopy)
 {
   const double pseudoTime = sinfo.isDynam() ? time : lambda; // MPC needs lambda for nonlinear statics
   const bool initialTime = (sinfo.isDynam() && time == 0 && solInfo().newmarkBeta != 0);
@@ -567,11 +568,22 @@ Domain::getWeightedStiffAndForceOnly(const std::map<int, double> &weights,
     for(std::vector<int>::iterator it = followedElemList.begin(), it_end = followedElemList.end(); it != it_end; ++it) kel[*it].zero();
   }
   
+  Vector LinearElForce(maxNumDOFs,0.0);
+  Vector displacement(residual.size(),0.0);
+  if(kelCopy)                        
+    geomState.get_tot_displacement(displacement,false);
+
   for(std::map<int, double>::const_iterator it = weights.begin(), it_end = weights.end(); it != it_end; ++it) {
     const int iele = it->first;
 
     elementForce.zero();
     FullSquareMatrix &elementStiff = kel[iele];
+
+    //option of remove linear component from nonlinear force, default is false 
+    if(kelCopy) {
+      LinearElForce.zero();
+      getElemKtimesU(iele,elementStiff.dim(),displacement,LinearElForce.data(),kelCopy,(double *) dbg_alloca(sizeof(double)*maxNumDOFs*maxNumDOFs));
+    }
 
     // Get updated tangent stiffness matrix and element internal force
     if (const Corotator *elementCorot = corotators[iele]) {
@@ -594,12 +606,18 @@ Domain::getWeightedStiffAndForceOnly(const std::map<int, double> &weights,
     elementForce *= lumpingWeight;
     elementStiff *= lumpingWeight;
 
+    if(kelCopy)
+     elementStiff -= kelCopy[iele];
+
     // Assemble element force into residual vector
     const int elemDofCount = elementStiff.dim();
     for(int iDof = 0; iDof < elemDofCount; ++iDof) {
       const int dofId = c_dsa->getRCN((*allDOFs)[iele][iDof]);
       if (dofId >= 0) {
         residual[dofId] -= elementForce[iDof];
+        if(kelCopy){
+          residual[dofId] += LinearElForce[iDof];
+        }
       }
     }
   }
@@ -615,6 +633,102 @@ Domain::getWeightedStiffAndForceOnly(const std::map<int, double> &weights,
 
   if(!solInfo().getNLInfo().unsymmetric && solInfo().newmarkBeta != 0) {
     for(std::map<int, double>::const_iterator it = weights.begin(), it_end = weights.end(); it != it_end; ++it) {
+      const int iele = it->first;
+      kel[iele].symmetrize();
+    }
+    if(!domain->solInfo().reduceFollower) {
+      for(std::vector<int>::iterator it = followedElemList.begin(), it_end = followedElemList.end(); it != it_end; ++it) {
+        kel[*it].symmetrize();
+      }
+    }
+  }
+}
+
+
+void
+Domain::getUnassembledStiffAndForceOnly(const std::map<int, std::vector<int> > &weights,
+                                        GeomState &geomState, Vector& elementForce,
+                                        Corotator **corotators, FullSquareMatrix *kel,
+                                        Vector &residual, int dispSize, double lambda, double time,
+                                        GeomState *refState, FullSquareMatrix *mel,
+                                        FullSquareMatrix *kelCopy)
+{
+  const double pseudoTime = sinfo.isDynam() ? time : lambda; // MPC needs lambda for nonlinear statics
+  const bool initialTime = (sinfo.isDynam() && time == 0 && solInfo().newmarkBeta != 0);
+
+  BlastLoading::BlastData *conwep = (domain->solInfo().ConwepOnOff) ? &BlastLoading::InputFileData : NULL;
+  bool compute_tangents = !initialTime;
+  if(elemAdj.empty()) makeElementAdjacencyLists();
+
+  if(!domain->solInfo().reduceFollower) {
+    // Zero element stiffness. otherwise, the follower force tangents will accumulate
+    for(std::vector<int>::iterator it = followedElemList.begin(), it_end = followedElemList.end(); it != it_end; ++it) kel[*it].zero();
+  }
+
+  Vector LinearElForce(maxNumDOFs,0.0);
+  Vector displacement(dispSize,0.0);
+  if(kelCopy)                        
+    geomState.get_tot_displacement(displacement,false);
+
+  int uDofCounter = 0;
+  for(std::map<int, std::vector<int> >::const_iterator mapit = weights.begin(), mapit_end = weights.end(); mapit != mapit_end; ++mapit) {
+    const int iele = mapit->first;
+    const std::vector<int> DOFvector(mapit->second);
+
+    elementForce.zero();
+
+    FullSquareMatrix &elementStiff = kel[iele];
+
+    //option of remove linear component from nonlinear force, default is false 
+    if(kelCopy) {
+      LinearElForce.zero();
+      getElemKtimesU(iele,elementStiff.dim(),displacement,LinearElForce.data(),kelCopy,(double *) dbg_alloca(sizeof(double)*maxNumDOFs*maxNumDOFs));
+    }
+
+    // Get updated tangent stiffness matrix and element internal force
+    if (const Corotator *elementCorot = corotators[iele]) {
+      getElemStiffAndForce(geomState, pseudoTime, refState, *elementCorot, elementForce.data(), elementStiff);
+    }
+
+    // Add configuration-dependent external forces and their element stiffness contributions
+    if(domain->solInfo().reduceFollower) {
+      getElemFollowerForce(iele, geomState, elementForce.data(), elementForce.size(),
+                           (corotators[iele]), elementStiff, lambda, time, compute_tangents, conwep);
+    }
+
+
+    if(packedEset[iele]->hasRot()) {
+      // Transform element stiffness and force to solve for the increment in the total rotation vector
+      transformElemStiffAndForce(geomState, elementForce.data(), elementStiff, iele, true);
+    }
+
+    if(kelCopy)
+     elementStiff -= kelCopy[iele];
+
+    // Assemble element force into residual vector
+    const int elemDofCount = elementStiff.dim();
+    for(std::vector<int>::const_iterator DOFit = DOFvector.begin(); DOFit != DOFvector.end(); DOFit++) {
+      const int dofId = c_dsa->getRCN((*allDOFs)[iele][*DOFit]);
+      if (dofId >= 0) {
+        residual[uDofCounter] -= elementForce[*DOFit];
+        if(kelCopy)
+          residual[uDofCounter] += LinearElForce[*DOFit];
+        uDofCounter += 1;
+      }
+    }
+  }
+
+//  if(!domain->solInfo().reduceFollower) {
+ //   getFollowerForce(geomState, elementForce, corotators, kel, residual, lambda, time, refState, NULL, compute_tangents);
+//  }
+
+  if(sinfo.isDynam() && mel) {
+    getUDEIMFictitiousForceOnly(weights, geomState, elementForce, kel, residual, time,
+                                   refState, NULL, mel, compute_tangents);
+  }
+
+  if(!solInfo().getNLInfo().unsymmetric && solInfo().newmarkBeta != 0) {
+    for(std::map<int, std::vector<int> >::const_iterator it = weights.begin(), it_end = weights.end(); it != it_end; ++it) {
       const int iele = it->first;
       kel[iele].symmetrize();
     }

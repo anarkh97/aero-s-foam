@@ -13,7 +13,7 @@ class ModalGeomState {
    passed as a tmeplate parameter GeomType to class NLDynamSolver defined in
    Driver.d/NLDynamProbType.[Ch]
 */
-private:
+protected:
 
   Vector q;          // modal deformation coefficients
   Vector vel;
@@ -22,6 +22,8 @@ private:
   int numFlex;
 
 public:
+
+  //Vector q;
 
   ModalGeomState(int numModes);
   ModalGeomState(const ModalGeomState& mgs);
@@ -39,6 +41,8 @@ public:
   void setVelocity(const Vector &_vel, int SO3param = 0) { vel = _vel; }
   void setAcceleration(const Vector &_acc, int SO3param = 0) { acc = _acc; } 
   void setVelocityAndAcceleration(Vector &_vel, Vector &_acc) { vel = _vel; acc = _acc; }
+
+  Vector *getModalq() {return &q; }
 
   friend class Rom::PodProjectionNonLinDynamic;
   friend class Rom::LumpedPodProjectionNonLinDynamic;

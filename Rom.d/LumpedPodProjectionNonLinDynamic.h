@@ -20,9 +20,11 @@ private:
                                           Vector &residual, double lambda, double time, GeomState *refState,
                                           FullSquareMatrix *melArray, bool forceOnly);
 
+protected:
   std::map<int, double> packedElementWeights_;
   std::vector<int> packedWeightedNodes_;
   void buildPackedElementWeights();
+
 };
 
 } /* end namespace Rom */

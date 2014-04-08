@@ -10,7 +10,11 @@ namespace Rom {
 template <typename Scalar>
 GenEiSparseGalerkinProjectionSolver<Scalar>::GenEiSparseGalerkinProjectionSolver(Connectivity *cn,
                                                    DofSetArray *dsa, ConstrainedDSA *c_dsa, bool selfadjoint):
-  GenEiSparseMatrix<Scalar>(cn, dsa, c_dsa, selfadjoint), basisSize_(0), projectionBasis_(NULL), selfadjoint_(selfadjoint)
+  GenEiSparseMatrix<Scalar>(cn, dsa, c_dsa, selfadjoint), 
+  basisSize_(0), 
+  projectionBasis_(NULL), 
+  Empirical(false),
+  selfadjoint_(selfadjoint)
 {
 }
 
@@ -31,6 +35,14 @@ GenEiSparseGalerkinProjectionSolver<Scalar>::addReducedMass(double Mcoef)
 
 template <typename Scalar>
 void
+GenEiSparseGalerkinProjectionSolver<Scalar>::addToReducedMatrix(const Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> &ContributionMat, double Coef){
+
+  reducedMatrix_ += Coef*ContributionMat;
+
+}
+
+template <typename Scalar>
+void
 GenEiSparseGalerkinProjectionSolver<Scalar>::projectionBasisIs(const GenVecBasis<Scalar> &reducedBasis)
 {
   if (reducedBasis.vectorSize() != GenEiSparseMatrix<Scalar>::neqs()) {
@@ -44,18 +56,32 @@ GenEiSparseGalerkinProjectionSolver<Scalar>::projectionBasisIs(const GenVecBasis
 
 template <typename Scalar>
 void
+GenEiSparseGalerkinProjectionSolver<Scalar>::EmpiricalSolver()
+{
+  std::cout << " ... Empirical Solver Selected ..." << std::endl;
+  Empirical = true;
+}
+
+template <typename Scalar>
+void
 GenEiSparseGalerkinProjectionSolver<Scalar>::factor()
 {
   const Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic,Eigen::ColMajor> &V = projectionBasis_->basis();
-  if(selfadjoint_) {
-    reducedMatrix_.template triangularView<Eigen::Lower>()
+  if(selfadjoint_ && !Empirical) {
+    if(Empirical){
+      llt_.compute(reducedMatrix_);//this is unstable for Empirical methods, symmetry is lost
+    }else {
+      reducedMatrix_.template triangularView<Eigen::Lower>()
       += V.transpose()*(this->M.template selfadjointView<Eigen::Upper>()*V);
-
-    llt_.compute(reducedMatrix_);
-  }
-  else {
-    reducedMatrix_ += V.transpose()*(this->M*V);
-    lu_.compute(reducedMatrix_);
+      llt_.compute(reducedMatrix_);
+    }
+  } else {
+    if(Empirical){
+      lu_.compute(reducedMatrix_);
+    } else {
+      reducedMatrix_ += V.transpose()*(this->M*V);
+      lu_.compute(reducedMatrix_);
+    }
   }
 }
 
@@ -65,7 +91,7 @@ GenEiSparseGalerkinProjectionSolver<Scalar>::reSolve(GenVector<Scalar> &rhs)
 {
   const Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic,Eigen::ColMajor> &V = projectionBasis_->basis();
   Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > x(rhs.data(), V.cols());
-  if(selfadjoint_) llt_.solveInPlace(x);
+  if(selfadjoint_ && !Empirical) llt_.solveInPlace(x);
   else x = (lu_.solve(x)).eval();
 }
 
@@ -75,7 +101,7 @@ GenEiSparseGalerkinProjectionSolver<Scalar>::solve(GenVector<Scalar> &rhs, GenVe
 {
   const Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic,Eigen::ColMajor> &V = projectionBasis_->basis();
   Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > b(rhs.data(), V.cols()), x(sol.data(), V.cols());
-  if(selfadjoint_) x = llt_.solve(b);
+  if(selfadjoint_ && !Empirical) x = llt_.solve(b);
   else x = lu_.solve(b);
 }
 

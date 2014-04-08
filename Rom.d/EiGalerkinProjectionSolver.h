@@ -32,7 +32,9 @@ public:
   int basisSize() const { return basisSize_; };
   const GenVecBasis<Scalar> &projectionBasis() const { return *projectionBasis_; }
   void projectionBasisIs(const GenVecBasis<Scalar> &); // Passed objects must be kept alive by owner
-  
+  void EmpiricalSolver(); 
+  void addToReducedMatrix(const Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> &, double = 1.0); 
+
   // Data collection
   const GenVector<Scalar> &lastReducedSolution() const { 
     std::cerr << "ERROR: GenEiSparseGalerkinProjectionSolver does not implement lastReducedSolution\n";
@@ -45,6 +47,7 @@ public:
 
 private:
   bool selfadjoint_;
+  bool Empirical;
   int basisSize_;
   const GenVecBasis<Scalar> *projectionBasis_;
   Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> reducedMatrix_;

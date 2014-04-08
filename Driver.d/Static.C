@@ -2395,6 +2395,62 @@ Domain::getKtimesU(Vector &dsp, double *bcx, Vector &ext_f, double eta,
 }
 
 void
+Domain::getWeightedKtimesU(const std::map<int, double> &weights,
+                          Vector &dsp, double *bcx, Vector &ext_f, double eta,
+                          FullSquareMatrix *kelArray)
+{
+  int size = sizeof(double)*maxNumDOFs*maxNumDOFs;
+  double *karray = (double *) dbg_alloca(size);
+
+  for(std::map<int, double>::const_iterator it = weights.begin(), it_end = weights.end(); it != it_end; ++it) {
+     const int iele = it->first;
+     const double lumpingWeight = it->second;
+ 
+     int numEleDOFs = allDOFs->num(iele);
+     Vector elForce(numEleDOFs,0.0);
+
+     getElemKtimesU(iele,numEleDOFs,dsp,elForce.data(),kelArray,karray);
+
+     elForce *= lumpingWeight;
+
+     for(int k=0; k<numEleDOFs; ++k) {
+       int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
+       if(cn >= 0) {
+         ext_f[cn] += eta * elForce[k]; }
+     }
+  }
+}
+
+void 
+Domain::getUnassembledKtimesU(const std::map<int, std::vector<int> > &weights,
+                              Vector &dsp, double *bcx, Vector &ext_f, double eta,
+                              FullSquareMatrix *kelArray)
+{
+  int size = sizeof(double)*maxNumDOFs*maxNumDOFs;
+  double *karray = (double *) dbg_alloca(size);
+
+  int uDofCounter = 0;
+
+  for(std::map<int, std::vector<int> >::const_iterator it = weights.begin(), it_end = weights.end(); it != it_end; ++it) {
+     const int iele = it->first;
+     const std::vector<int> DOFvector(it->second);
+
+     int numEleDOFs = allDOFs->num(iele);
+     Vector elForce(numEleDOFs,0.0);
+
+     getElemKtimesU(iele,numEleDOFs,dsp,elForce.data(),kelArray,karray);
+
+     for(std::vector<int>::const_iterator DOFit = DOFvector.begin(); DOFit != DOFvector.end(); DOFit++) {
+       int cn = c_dsa->getRCN((*allDOFs)[iele][*DOFit]);
+       if(cn >= 0) {
+         ext_f[uDofCounter] += eta * elForce[*DOFit]; 
+         uDofCounter += 1;
+       }
+     }
+  }
+}
+
+void
 Domain::getElemKtimesU(int iele, int numEleDOFs, Vector &dsp, double *elForce,
                        FullSquareMatrix *kelArray, double *karray)
 {

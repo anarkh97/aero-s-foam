@@ -28,6 +28,8 @@ ADD_LIBRARY( Rom
   FileNameInfo.C
   SubElementSamplingDriver.C
   LumpedPodProjectionNonLinDynamic.C
+  DEIMPodProjectionNonLinDynamic.C
+  UDEIMPodProjectionNonLinDynamic.C
   SparseNonNegativeLeastSquaresSolverInstance.C
   NodalRestrictionMapping.C
   MappedNodeDof6Buffer.C

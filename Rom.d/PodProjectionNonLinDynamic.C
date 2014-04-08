@@ -45,11 +45,14 @@ protected:
   int solVecInfo() const { return parent_->solVecInfo(); }
   const SolverInfo &solInfo() const { return parent_->domain->solInfo(); }
   PodProjectionSolver *getSolver() { return parent_->getSolver(); }
+  void getKtimesU(Vector &dsp, double *bcx, Vector &ext_f, double eta,
+                     FullSquareMatrix *kelArray=0) { return parent_->domain->getKtimesU(dsp, bcx, ext_f, eta, kelArray); }
+  void createKelArray(FullSquareMatrix *& kel) { return parent_->domain->createKelArray(kel); }
   const PodProjectionSolver *getSolver() const { return parent_->getSolver(); }
     
-private:
   PodProjectionNonLinDynamic *parent_;
 
+private:
   // Disallow copy & assignment
   Impl(const Impl &);
   Impl &operator=(const Impl &);
@@ -98,6 +101,8 @@ public:
 protected: 
   VecNodeDof6Conversion vecNodeDof6Conversion_;
   FileNameInfo fileInfo_, fileInfo2_;
+
+  VecNodeDof6Conversion &getDof6Conv() { return vecNodeDof6Conversion_; }
 
   VecBasis projectionBasis_;
 };
@@ -818,7 +823,8 @@ PodProjectionNonLinDynamic::formRHScorrector(Vector &inc_displacement, Vector &v
     NonLinDynamic::formRHScorrector(inc_displacement_Big, velocity_Big, acceleration_Big,
                                     residual_Big, rhs_Big, geomState_Big, localDelta);
 
-    projectionBasis.reduce(rhs_Big, rhs);
+
+   projectionBasis.reduce(rhs_Big, rhs);
   }
 
   if(domain->solInfo().order == 1)
@@ -903,8 +909,10 @@ PodProjectionNonLinDynamic::getStiffAndForce(ModalGeomState &geomState, Vector &
   NonLinDynamic::getStiffAndForce(*geomState_Big, residual_Big, elementInternalForce, t, refState_Big, forceOnly);
 
   Vector r(solVecInfo());
+
   projectionBasis.reduce(residual_Big, r);
   residual += r;
+
   return residual.norm();
 }
 

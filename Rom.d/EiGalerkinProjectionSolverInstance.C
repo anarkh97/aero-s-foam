@@ -34,12 +34,32 @@ GenEiSparseGalerkinProjectionSolver<std::complex<double> >
 template
 void
 GenEiSparseGalerkinProjectionSolver<double>
+::addToReducedMatrix(const Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> &, double);
+
+template
+void
+GenEiSparseGalerkinProjectionSolver<std::complex<double> >
+::addToReducedMatrix(const Eigen::Matrix<std::complex<double>,Eigen::Dynamic,Eigen::Dynamic> &, double);
+
+template
+void
+GenEiSparseGalerkinProjectionSolver<double>
 ::projectionBasisIs(const GenVecBasis<double>&);
 
 template
 void
 GenEiSparseGalerkinProjectionSolver<std::complex<double> >
 ::projectionBasisIs(const GenVecBasis<std::complex<double> >&);
+
+template
+void
+GenEiSparseGalerkinProjectionSolver<double>
+::EmpiricalSolver();
+
+template
+void
+GenEiSparseGalerkinProjectionSolver<std::complex<double> >
+::EmpiricalSolver();
 
 template
 void

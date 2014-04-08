@@ -121,6 +121,22 @@ GenVecBasis<double, GenDistrVector>::compressedVecReduce(GenDistrVector<double> 
 }
 
 template <>
+GenVector<double> &
+GenVecBasis<double, GenVector>::compressedVecReduce(GenVector<double> &x, GenVector<double> &_result) const {
+#ifdef USE_EIGEN3
+  Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > FullCoordinates(x.data(), x.size());
+  Eigen::Map< Eigen::Matrix<double, Eigen::Dynamic, 1> > result(_result.data(), _result.size());
+
+  Eigen::VectorXd coordBuffer(compressedKey_.size());
+  for(int i = 0; i < compressedKey_.size(); i++)
+    coordBuffer(i) = FullCoordinates(compressedKey_[i]);
+
+  result = compressedBasis_.transpose()*coordBuffer;
+#endif
+  return _result;
+}
+
+template <>
 GenDistrVector<double> &
 GenVecBasis<double, GenDistrVector>::sparseVecReduce(GenDistrVector<double> &x, GenDistrVector<double> &_result) const {
 #ifdef USE_EIGEN3
@@ -218,6 +234,27 @@ GenVecBasis<double, GenDistrVector>::makeSparseBasis(const std::vector<std::vect
 
 template<>
 void
+GenVecBasis<double, GenVector>::makeSparseBasis(const std::vector<std::pair<int, int> > & nodeVec, DofSetArray *dsa)
+{
+#ifdef USE_EIGEN3
+  int dof1, numdofs;
+
+  compressedKey_.clear();
+   for(std::vector<std::pair<int,int> >::const_iterator it = nodeVec.begin(); it != nodeVec.end(); it++) {
+     dof1 = dsa->firstdof(it->first);
+     compressedKey_.push_back(dof1+(it->second));
+   }
+
+  new (&compressedBasis_) Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic>(compressedKey_.size(), vectorCount());
+
+  for(int i = 0; i < compressedKey_.size(); i++) {
+    compressedBasis_.row(i) = basis_.row(compressedKey_[i]);
+  }
+#endif
+}
+
+template<>
+void
 GenVecBasis<double, GenDistrVector>::makeSparseBasis(const std::vector<std::map<int,std::vector<int> > > & nodeVec)
 {
 #ifdef USE_EIGEN3
@@ -234,6 +271,38 @@ GenVecBasis<double, GenDistrVector>::makeSparseBasis(const std::vector<std::map<
       dummyKey.push_back(vectors_[0].subOffset(n)+(*it2));
       rowSet.insert(*it2);
       }
+    }
+  }
+
+  compressedKey_.resize(dummyKey.size());
+  for(int row = 0; row != dummyKey.size(); row++)
+     compressedKey_[dummyKey[row]] = row;
+
+  new (&compressedBasis_) Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic>(compressedKey_.size(), vectorCount());
+
+  int row = 0;
+  for(std::set<int>::const_iterator it = rowSet.begin(); it != rowSet.end(); it++) {
+    compressedBasis_.row(row) = basis_.row(*it);
+    row++;
+  }
+#endif
+}
+
+template<>
+void
+GenVecBasis<double, GenVector>::makeSparseBasis(const std::map<int,std::vector<int> > &nodeVec)
+{
+#ifdef USE_EIGEN3
+  int dof1, numdofs;
+  std::vector<int> dummyKey;
+  std::set<int> rowSet;
+
+  compressedKey_.clear();
+  for(std::map<int,std::vector<int> >::const_iterator it = nodeVec.begin(); it != nodeVec.end(); it++) { //loop over elements
+    const std::vector<int> &ColMap = it->second;
+    for(std::vector<int>::const_iterator it2 = ColMap.begin(); it2 != ColMap.end(); it2++){//loop over DOFS
+    dummyKey.push_back(*it2);
+    rowSet.insert(*it2);
     }
   }
 

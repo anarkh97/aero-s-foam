@@ -15,8 +15,9 @@ class StrainEvaluator
     virtual Tensor *getStrainInstance() = 0;
     virtual Tensor *getBInstance(int numdofs) = 0;
     virtual Tensor *getDBInstance(int numdofs) = 0;
-    virtual void getEBandDB(Tensor &e, Tensor &B, Tensor &DB, const Tensor &gradU, const Tensor &dgradUdqk) = 0;
-    virtual void getEandB(Tensor &e, Tensor &B, const Tensor &gradU, const Tensor &dgradUdqk) = 0;
+    virtual Tensor *getTempInstance(int numdofs) { return NULL; }
+    virtual void getEBandDB(Tensor &e, Tensor &B, Tensor &DB, const Tensor &gradU, const Tensor &dgradUdqk, Tensor *temp) = 0;
+    virtual void getEandB(Tensor &e, Tensor &B, const Tensor &gradU, const Tensor &dgradUdqk, Tensor *temp) = 0;
     virtual void getE(Tensor &e, Tensor &gradU) = 0;
 };
 
@@ -30,8 +31,8 @@ class LinearStrain : public StrainEvaluator
     Tensor *getStrainInstance();
     Tensor *getBInstance(int numdofs);
     Tensor *getDBInstance(int numdofs);
-    void getEBandDB(Tensor &e, Tensor &B, Tensor &DB, const Tensor &gradU, const Tensor &dgradUdqk);
-    void getEandB(Tensor &e, Tensor &B, const Tensor &gradU, const Tensor &dgradUdqk);
+    void getEBandDB(Tensor &e, Tensor &B, Tensor &DB, const Tensor &gradU, const Tensor &dgradUdqk, Tensor *temp);
+    void getEandB(Tensor &e, Tensor &B, const Tensor &gradU, const Tensor &dgradUdqk, Tensor *temp);
     void getE(Tensor &e, Tensor &gradU);
 };
 
@@ -48,8 +49,9 @@ class GreenLagrangeStrain : public StrainEvaluator
     Tensor *getStrainInstance();
     Tensor *getBInstance(int numdofs);
     Tensor *getDBInstance(int numdofs);
-    void getEBandDB(Tensor &e, Tensor &B, Tensor &DB, const Tensor &gradU, const Tensor &dgradUdqk);
-    void getEandB(Tensor &e, Tensor &B, const Tensor &gradU, const Tensor &dgradUdqk);
+    Tensor *getTempInstance(int numdofs);
+    void getEBandDB(Tensor &e, Tensor &B, Tensor &DB, const Tensor &gradU, const Tensor &dgradUdqk, Tensor *temp);
+    void getEandB(Tensor &e, Tensor &B, const Tensor &gradU, const Tensor &dgradUdqk, Tensor *temp);
     void getE(Tensor &e, Tensor &gradU);
 };
 
@@ -61,8 +63,8 @@ class LogarithmicStrain : public StrainEvaluator
     Tensor *getStrainInstance();
     Tensor *getBInstance(int numdofs);
     Tensor *getDBInstance(int numdofs);
-    void getEBandDB(Tensor &e, Tensor &B, Tensor &DB, const Tensor &gradU, const Tensor &dgradUdqk);
-    void getEandB(Tensor &e, Tensor &B, const Tensor &gradU, const Tensor &dgradUdqk);
+    void getEBandDB(Tensor &e, Tensor &B, Tensor &DB, const Tensor &gradU, const Tensor &dgradUdqk, Tensor *temp);
+    void getEandB(Tensor &e, Tensor &B, const Tensor &gradU, const Tensor &dgradUdqk, Tensor *temp);
     void getE(Tensor &e, Tensor &gradU);
 };
 
@@ -79,8 +81,8 @@ class DeformationGradient : public StrainEvaluator
     Tensor *getStrainInstance();
     Tensor *getBInstance(int numdofs);
     Tensor *getDBInstance(int numdofs);
-    void getEBandDB(Tensor &e, Tensor &B, Tensor &DB, const Tensor &gradU, const Tensor &dgradUdqk);
-    void getEandB(Tensor &e, Tensor &B, const Tensor &gradU, const Tensor &dgradUdqk);
+    void getEBandDB(Tensor &e, Tensor &B, Tensor &DB, const Tensor &gradU, const Tensor &dgradUdqk, Tensor *temp);
+    void getEandB(Tensor &e, Tensor &B, const Tensor &gradU, const Tensor &dgradUdqk, Tensor *temp);
     void getE(Tensor &e, Tensor &gradU);
 };
 

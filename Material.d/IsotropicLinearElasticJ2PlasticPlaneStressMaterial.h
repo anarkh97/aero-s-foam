@@ -355,6 +355,9 @@ class IsotropicLinearElasticJ2PlasticPlaneStressMaterial : public ElastoPlasticP
   
   //! Equivalent plastic strain
   double equivEPSplastic;
+
+  //! Pre-computed tensor coefficients
+  double t00, t01, t22;
 };
 
 #endif

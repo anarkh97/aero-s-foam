@@ -223,7 +223,6 @@ Tensor_d0s2::getDeterminant(double &det)
   det = v[0]*v[4]*v[8]+v[3]*v[7]*v[2]+v[1]*v[5]*v[6] - (v[6]*v[4]*v[2]+v[3]*v[1]*v[8]+v[0]*v[7]*v[5]);
 }
 
-#include <limits>
 void
 Tensor_d0s2::getInverse(Tensor_d0s2 &t)
 {
@@ -251,17 +250,29 @@ Tensor_d0s2::getInverse(Tensor_d0s2 &t)
 void 
 Tensor_d0s2::getTranspose(Tensor_d0s2 &t) const
 {
+#ifdef UNROLL_LOOPS_IN_NODESPACE_ARRAY_C
+  t[0] = v[0]; t[1] = v[3]; t[2] = v[6];
+  t[3] = v[1]; t[4] = v[4]; t[5] = v[7];
+  t[6] = v[2]; t[7] = v[5]; t[8] = v[8];
+#else
   for (int i = 0; i < 3; i++)
     for (int j = 0; j < 3; j++)
       t[3*i+j] = v[3*j+i];
+#endif
 }
 
 void 
 Tensor_d0s2::convertToSym(Tensor_d0s2_Ss12 &t)
 {
+#ifdef UNROLL_LOOPS_IN_NODESPACE_ARRAY_C
+  t[0] = v[0]; t[1] = v[1]; t[2] = v[2];
+               t[3] = v[4]; t[4] = v[5];
+                            t[5] = v[8];
+#else
   for (int i = 0; i < 3; i++)
     for (int j = i; j < 3; j++)
       t[i*(5-i)/2+j] = v[3*i+j];
+#endif
 } 
 
 void
@@ -271,10 +282,16 @@ Tensor_d0s2::dblContractInto(const Tensor &b, Tensor *result) const
   Tensor_d1s0 &t = static_cast<Tensor_d1s0 &>(*result);
   int size = tens.getSize();
   for (int m = 0; m < size; m++) {
+#ifdef UNROLL_LOOPS_IN_NODESPACE_ARRAY_C
+    t[m] = v[0]*tens[m][0] + v[1]*tens[m][1] + v[2]*tens[m][2] +
+           v[3]*tens[m][3] + v[4]*tens[m][4] + v[5]*tens[m][5] +
+           v[6]*tens[m][6] + v[7]*tens[m][7] + v[8]*tens[m][8];
+#else
     t[m] = 0.0;
     for (int i = 0; i < 3; i++)
       for (int j = 0; j < 3; j++)
         t[m] += v[3*i+j] * tens[m][3*i+j];
+#endif
   }
 }
 
@@ -579,10 +596,27 @@ Tensor_d1s2_full::operator = (const Tensor_d1s2_sparse &t)
     size = t.getSize();
     v = new Tensor_d0s2[size];
   }
+#ifdef UNROLL_LOOPS_IN_NODESPACE_ARRAY_C
+  for(int i = 0, j = 0, k = 1, l = 2; i < size/3; ++i, j+=3, k+=3, l+=3) {
+    v[j][0] = t[i][0]; v[j][1] = t[i][1]; v[j][2] = t[i][2];
+    v[j][3] = 0;       v[j][4] = 0;       v[j][5] = 0;
+    v[j][6] = 0;       v[j][7] = 0;       v[j][8] = 0;
+
+    v[k][0] = 0;       v[k][1] = 0;       v[k][2] = 0;
+    v[k][3] = t[i][3]; v[k][4] = t[i][4]; v[k][5] = t[i][5];
+    v[k][6] = 0;       v[k][7] = 0;       v[k][8] = 0;
+
+    v[l][0] = 0;       v[l][1] = 0;       v[l][2] = 0;
+    v[l][3] = 0;       v[l][4] = 0;       v[l][5] = 0;
+    v[l][6] = t[i][6]; v[l][7] = t[i][7]; v[l][8] = t[i][8];
+  }
+#else
   for(int i = 0; i < size; ++i)
     for(int j = 0; j < 3; ++j)
       for(int k = 0; k < 3; ++k)
         (*this)(i,j,k) = t(i,j,k);
+#endif
+
   return *this;
 }
 
@@ -790,10 +824,9 @@ Tensor_d1s2_sparse::getSymSquare(Tensor_d2s2 &t) const
 void 
 Tensor_d1s2_sparse::getSymSquare(Tensor_d2s2_Sd12s34_dense &t) const
 {
-  std::cerr << "Tensor_d1s2_sparse::getSymSquare(Tensor_d2s2 &t) is not implemented\n";
+  std::cerr << "Tensor_d1s2_sparse::getSymSquare(Tensor_d2s2_Sd12s34_dense &t) is not implemented\n";
 }
 
-#include <Utils.d/dbg_alloca.h>
 void 
 Tensor_d1s2_sparse::getSymSquare(Tensor_d2s2_Sd12s34_sparse &t) const
 {
@@ -1227,6 +1260,14 @@ void
 Tensor_d0s2_Ss12::dblContractWith(const Tensor_d0s4_Ss12s34 &tens, Tensor *result) const
 {
   Tensor_d0s2_Ss12 &t = static_cast<Tensor_d0s2_Ss12 &>(*result);
+#ifdef UNROLL_LOOPS_IN_NODESPACE_ARRAY_C
+  t[0] = tens[0][0]*v[0] + tens[0][3]*v[3] + tens[0][5]*v[5] + 2*(tens[0][1]*v[1] + tens[0][2]*v[2] + tens[0][4]*v[4]);
+  t[1] = tens[1][0]*v[0] + tens[1][3]*v[3] + tens[1][5]*v[5] + 2*(tens[1][1]*v[1] + tens[1][2]*v[2] + tens[1][4]*v[4]);
+  t[2] = tens[2][0]*v[0] + tens[2][3]*v[3] + tens[2][5]*v[5] + 2*(tens[2][1]*v[1] + tens[2][2]*v[2] + tens[2][4]*v[4]);
+  t[3] = tens[3][0]*v[0] + tens[3][3]*v[3] + tens[3][5]*v[5] + 2*(tens[3][1]*v[1] + tens[3][2]*v[2] + tens[3][4]*v[4]);
+  t[4] = tens[4][0]*v[0] + tens[4][3]*v[3] + tens[4][5]*v[5] + 2*(tens[4][1]*v[1] + tens[4][2]*v[2] + tens[4][4]*v[4]);
+  t[5] = tens[5][0]*v[0] + tens[5][3]*v[3] + tens[5][5]*v[5] + 2*(tens[5][1]*v[1] + tens[5][2]*v[2] + tens[5][4]*v[4]);
+#else
   for (int i = 0; i < 3; i++)
     for (int j = i; j < 3; j++) {
       t[i*(5-i)/2+j] = 0.0;
@@ -1236,6 +1277,7 @@ Tensor_d0s2_Ss12::dblContractWith(const Tensor_d0s4_Ss12s34 &tens, Tensor *resul
           t[i*(5-i)/2+j] += 2.0 * tens[i*(5-i)/2+j][k*(5-k)/2+l] * v[k*(5-k)/2+l];
       }
     }
+#endif
 }
 
 void
@@ -1571,3 +1613,49 @@ Tensor_d1s2_Ss23::dblContractInto(const Tensor &b, Tensor *result) const
 #endif
 }
 
+void
+Tensor_d1s2_Ss23::addSymPart(const Tensor_d1s2_sparse &t)
+{
+#ifdef UNROLL_LOOPS_IN_NODESPACE_ARRAY_C
+  for (int n = 0, k = 0; n < size; n += 3, k++) {
+    v[n  ][0] += t[k][0];
+    v[n  ][1] += 0.5*t[k][1];
+    v[n  ][2] += 0.5*t[k][2];
+    v[n+1][1] += 0.5*t[k][3];
+    v[n+1][3] += t[k][4];
+    v[n+1][4] += 0.5*t[k][5];
+    v[n+2][2] += 0.5*t[k][6];
+    v[n+2][4] += 0.5*t[k][7];
+    v[n+2][5] += t[k][8];
+  }
+#else
+  for (int n = 0; n < size; n++) {
+    for (int i = (n%3); i < 3; i++) {
+      v[n][(n%3)*(5-(n%3))/2+i] += (1./2) * t[(n-(n%3))/3][3*(n%3)+i]; // t[n](I,J) += 1/2*v[N](I,J) where I=n%3 and J=i
+    }
+    for (int j = 0; j < (n%3)+1; j++) {
+      v[n][j*(5-j)/2+(n%3)] += (1./2) * t[(n-(n%3))/3][3*(n%3)+j];     // t[n](I,J) += 1/2*v[N](J,I) where I=j and J=n%3
+    }
+  }
+#endif
+}
+
+void
+Tensor_d1s2_Ss23::addSymPart(const Tensor_d1s2_full &t)
+{
+#ifdef UNROLL_LOOPS_IN_NODESPACE_ARRAY_C
+  for (int m = 0; m < size; m++) {
+    v[m][0] += t[m][0];
+    v[m][1] += 0.5*(t[m][1] + t[m][3]);
+    v[m][2] += 0.5*(t[m][2] + t[m][6]);
+    v[m][3] += t[m][4];
+    v[m][4] += 0.5*(t[m][5] + t[m][7]);
+    v[m][5] += t[m][8];
+  }
+#else
+  for (int m = 0; m < size; m++)
+    for (int i = 0; i < 3; i++)
+      for (int j = i; j < 3; j++)
+         v[m][i*(5-i)/2+j] += (1./2)*(t[m][3*i+j] + t[m][3*j+i]);
+#endif
+}

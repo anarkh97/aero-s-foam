@@ -884,21 +884,24 @@ class Tensor_d1s2_Ss23 : public Tensor
     int size;
     Tensor_d0s2_Ss12 *v;
    public:
-      Tensor_d1s2_Ss23(){};
-      Tensor_d1s2_Ss23(int _size);
-      Tensor_d1s2_Ss23(const Tensor_d1s2_Ss23 &t);
-      virtual ~Tensor_d1s2_Ss23() { if (v) delete [] v; }
-      //Tensor_d2s0 operator ||(const Tensor_d1s2_Ss23 &) const;
-      void dblContractInto(const Tensor &, Tensor *) const;
-      Tensor_d0s2_Ss12 &operator[] (int i) { return v[i]; }
-      Tensor_d0s2_Ss12 operator[] (int i) const { return v[i]; }
-      double &operator() (int i, int j, int k);
-      double operator() (int i, int j, int k) const;
-      Tensor_d1s2_Ss23 operator + (const Tensor_d1s2_Ss23 &) const;
-      Tensor_d1s2_Ss23 &operator=(const Tensor_d1s2_Ss23&);
-      int getSize() const { return size; }
-      void print() const { for(int i = 0; i < size; ++i) v[i].print(); }
-      void dblContractWith(const Tensor_d0s4_Ss12s34 &, Tensor *) const;
+    Tensor_d1s2_Ss23(){};
+    Tensor_d1s2_Ss23(int _size);
+    Tensor_d1s2_Ss23(const Tensor_d1s2_Ss23 &t);
+    virtual ~Tensor_d1s2_Ss23() { if (v) delete [] v; }
+    //Tensor_d2s0 operator ||(const Tensor_d1s2_Ss23 &) const;
+    void dblContractInto(const Tensor &, Tensor *) const;
+    Tensor_d0s2_Ss12 &operator[] (int i) { return v[i]; }
+    Tensor_d0s2_Ss12 operator[] (int i) const { return v[i]; }
+    double &operator() (int i, int j, int k);
+    double operator() (int i, int j, int k) const;
+    Tensor_d1s2_Ss23 operator + (const Tensor_d1s2_Ss23 &) const;
+    Tensor_d1s2_Ss23 &operator=(const Tensor_d1s2_Ss23&);
+    int getSize() const { return size; }
+    void print() const { for(int i = 0; i < size; ++i) v[i].print(); }
+    void dblContractWith(const Tensor_d0s4_Ss12s34 &, Tensor *) const;
+    void setZero() { for(int i=0; i<size; ++i) v[i].setZero(); }
+    void addSymPart(const Tensor_d1s2_sparse &);
+    void addSymPart(const Tensor_d1s2_full &);
 };
 
 inline double 

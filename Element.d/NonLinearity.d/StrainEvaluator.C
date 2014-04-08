@@ -45,7 +45,7 @@ LinearStrain::getDBInstance(int numdofs)
 
 void 
 LinearStrain::getEBandDB(Tensor &_e, Tensor & bB, Tensor &DB,
-                         const Tensor &_gradU, const Tensor &_dgradUdqk)
+                         const Tensor &_gradU, const Tensor &_dgradUdqk, Tensor *)
 {
   const Tensor_d0s2 & gradU = static_cast<const Tensor_d0s2 &>(_gradU);
   const Tensor_d1s2_sparse & dgradUdqk = static_cast<const Tensor_d1s2_sparse &>(_dgradUdqk);
@@ -59,12 +59,14 @@ LinearStrain::getEBandDB(Tensor &_e, Tensor & bB, Tensor &DB,
   enonsym = (1/2.)*(gradU + tgradU);
   enonsym.convertToSym(e);
 
-  B = dgradUdqk.symPart();
+  //B = dgradUdqk.symPart();
+  B.setZero();
+  B.addSymPart(dgradUdqk);
 }
 
 void
 LinearStrain::getEandB(Tensor &_e, Tensor & __B, 
-                       const Tensor &_gradU, const Tensor &_dgradUdqk)
+                       const Tensor &_gradU, const Tensor &_dgradUdqk, Tensor *)
 {
   const Tensor_d0s2 & gradU = static_cast<const Tensor_d0s2 &>(_gradU);
   const Tensor_d1s2_sparse & dgradUdqk = static_cast<const Tensor_d1s2_sparse &>(_dgradUdqk);
@@ -78,7 +80,9 @@ LinearStrain::getEandB(Tensor &_e, Tensor & __B,
   enonsym = (1/2.)*(gradU + tgradU);
   enonsym.convertToSym(e);
 
-  B = dgradUdqk.symPart();
+  //B = dgradUdqk.symPart();
+  B.setZero();
+  B.addSymPart(dgradUdqk);
 }
 
 void 
@@ -130,8 +134,15 @@ GreenLagrangeStrain::getDBInstance(int numdofs)
   return DB;
 }
 
+Tensor *
+GreenLagrangeStrain::getTempInstance(int numdofs)
+{
+  Tensor_d1s2_full *temp2 = new Tensor_d1s2_full(numdofs);
+  return temp2;
+}
+
 void 
-GreenLagrangeStrain::getEBandDB(Tensor &_e, Tensor &__B, Tensor &_DB, const Tensor &_gradU, const Tensor &_dgradUdqk)
+GreenLagrangeStrain::getEBandDB(Tensor &_e, Tensor &__B, Tensor &_DB, const Tensor &_gradU, const Tensor &_dgradUdqk, Tensor *_temp2)
 {
   const Tensor_d0s2 & gradU = static_cast<const Tensor_d0s2 &>(_gradU);
   const Tensor_d1s2_sparse & dgradUdqk = static_cast<const Tensor_d1s2_sparse &>(_dgradUdqk);
@@ -151,17 +162,22 @@ GreenLagrangeStrain::getEBandDB(Tensor &_e, Tensor &__B, Tensor &_DB, const Tens
   enonsym = (1/2.)*(tgradU + (gradU + temp1));
   enonsym.convertToSym(e);
 
-  int size = B.getSize();
-  Tensor_d1s2_full temp2(size);
-  temp2 = tgradU | dgradUdqk;
+  //int size = B.getSize();
+  //Tensor_d1s2_full temp2(size);
+  //temp2 = tgradU | dgradUdqk;
+  Tensor_d1s2_full * temp2 = static_cast<Tensor_d1s2_full*>(_temp2);
+  *temp2 = tgradU | dgradUdqk;
 
-  B = dgradUdqk.symPart() + temp2.symPart();
+  //B = dgradUdqk.symPart() + temp2.symPart();
+  B.setZero();
+  B.addSymPart(dgradUdqk);
+  B.addSymPart(*temp2);
 
   dgradUdqk.getSymSquare(DB);
 }
 
 void
-GreenLagrangeStrain::getEandB(Tensor &_e, Tensor &__B, const Tensor &_gradU, const Tensor &_dgradUdqk)
+GreenLagrangeStrain::getEandB(Tensor &_e, Tensor &__B, const Tensor &_gradU, const Tensor &_dgradUdqk, Tensor *_temp2)
 {
   const Tensor_d0s2 & gradU = static_cast<const Tensor_d0s2 &>(_gradU);
   const Tensor_d1s2_sparse & dgradUdqk = static_cast<const Tensor_d1s2_sparse &>(_dgradUdqk);
@@ -180,11 +196,16 @@ GreenLagrangeStrain::getEandB(Tensor &_e, Tensor &__B, const Tensor &_gradU, con
   enonsym = (1/2.)*(tgradU + (gradU + temp1));
   enonsym.convertToSym(e);
 
-  int size = B.getSize();
-  Tensor_d1s2_full temp2(size);
-  temp2 = tgradU | dgradUdqk;
+  //int size = B.getSize();
+  //Tensor_d1s2_full temp2(size);
+  //temp2 = tgradU | dgradUdqk;
+  Tensor_d1s2_full * temp2 = static_cast<Tensor_d1s2_full*>(_temp2);
+  *temp2 = tgradU | dgradUdqk;
 
-  B = dgradUdqk.symPart() + temp2.symPart();
+  //B = dgradUdqk.symPart() + temp2.symPart();
+  B.setZero();
+  B.addSymPart(dgradUdqk);
+  B.addSymPart(*temp2);
 }
 
 void 
@@ -247,7 +268,7 @@ __attribute__((flatten))
 #endif
 #endif
 void
-LogarithmicStrain::getEBandDB(Tensor &_e, Tensor &__B, Tensor &_DB, const Tensor &_gradU, const Tensor &_dgradUdqk)
+LogarithmicStrain::getEBandDB(Tensor &_e, Tensor &__B, Tensor &_DB, const Tensor &_gradU, const Tensor &_dgradUdqk, Tensor *)
 {
 #ifdef USE_EIGEN3
   const Tensor_d0s2 & gradU = static_cast<const Tensor_d0s2 &>(_gradU);
@@ -389,7 +410,7 @@ __attribute__((flatten))
 #endif
 #endif
 void
-LogarithmicStrain::getEandB(Tensor &_e, Tensor &__B, const Tensor &_gradU, const Tensor &_dgradUdqk)
+LogarithmicStrain::getEandB(Tensor &_e, Tensor &__B, const Tensor &_gradU, const Tensor &_dgradUdqk, Tensor *)
 {
 #ifdef USE_EIGEN3
   const Tensor_d0s2 & gradU = static_cast<const Tensor_d0s2 &>(_gradU);
@@ -542,7 +563,7 @@ DeformationGradient::getDBInstance(int numdofs)
 }
 
 void 
-DeformationGradient::getEBandDB(Tensor &_e, Tensor &__B, Tensor &_DB, const Tensor &_gradU, const Tensor &_dgradUdqk)
+DeformationGradient::getEBandDB(Tensor &_e, Tensor &__B, Tensor &_DB, const Tensor &_gradU, const Tensor &_dgradUdqk, Tensor *)
 {
   const Tensor_d0s2 & gradU = static_cast<const Tensor_d0s2 &>(_gradU);
   const Tensor_d1s2_sparse & dgradUdqk = static_cast<const Tensor_d1s2_sparse &>(_dgradUdqk);
@@ -559,7 +580,7 @@ DeformationGradient::getEBandDB(Tensor &_e, Tensor &__B, Tensor &_DB, const Tens
 }
 
 void 
-DeformationGradient::getEandB(Tensor &_e, Tensor &__B, const Tensor &_gradU, const Tensor &_dgradUdqk)
+DeformationGradient::getEandB(Tensor &_e, Tensor &__B, const Tensor &_gradU, const Tensor &_dgradUdqk, Tensor *)
 {
   const Tensor_d0s2 & gradU = static_cast<const Tensor_d0s2 &>(_gradU);
   const Tensor_d1s2_sparse & dgradUdqk = static_cast<const Tensor_d1s2_sparse &>(_dgradUdqk);

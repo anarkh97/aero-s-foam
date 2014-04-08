@@ -62,6 +62,11 @@ IsotropicLinearElasticJ2PlasticPlaneStressMaterial(double iLambda, double iMu,
       BackStress.push_back( 0. );
     }
   equivEPSplastic = 0.;
+
+  // Pre-compute tensor coefficients
+  t00 = (2./3.)*H + E/(3.*(1.-nu*nu))*(2.-nu);
+  t01 = E/(3.*(1.-nu*nu))*(2.*nu-1.);
+  t22 = (2./3.)*H + E/(1.-nu*nu)*(1.-nu);
 }
 
 // Destructor
@@ -71,7 +76,7 @@ IsotropicLinearElasticJ2PlasticPlaneStressMaterial::~IsotropicLinearElasticJ2Pla
 // Copy constructor
 IsotropicLinearElasticJ2PlasticPlaneStressMaterial::
 IsotropicLinearElasticJ2PlasticPlaneStressMaterial(const IsotropicLinearElasticJ2PlasticPlaneStressMaterial &Mat)
-  :E(Mat.E), nu(Mat.nu), SigmaY(Mat.SigmaY), K(Mat.K), H(Mat.H), Tol(Mat.Tol)
+  :E(Mat.E), nu(Mat.nu), SigmaY(Mat.SigmaY), K(Mat.K), H(Mat.H), Tol(Mat.Tol), t00(Mat.t00), t01(Mat.t01), t22(Mat.t22)
 {
   EPSplastic.clear();
   BackStress.clear();
@@ -215,6 +220,7 @@ ComputeElasticConstitutiveResponse(const std::vector<double> &EPS,
 // Evaluate norm of deviatoric part of \f$\sigma-\sigma^b\f$
 double IsotropicLinearElasticJ2PlasticPlaneStressMaterial::ComputeJ2(const double *Xi) const
 {
+/* ORIG:
   double P[3][3] = {{2./3.,  -1./3., 0.},
 		    {-1./3., 2./3.,  0.},
 		    {0., 0., 2.}};
@@ -224,7 +230,10 @@ double IsotropicLinearElasticJ2PlasticPlaneStressMaterial::ComputeJ2(const doubl
   for(int i=0; i<3; i++)
     for(int j=0; j<3; j++)
       normXi2 += Xi[i]*P[i][j]*Xi[j];
+
   return sqrt(normXi2);
+*/
+  return sqrt(2/3.*(Xi[0]*Xi[0] - Xi[0]*Xi[1] + Xi[1]*Xi[1]) + 2*Xi[2]*Xi[2]);
 }
 
 // Evaluate yield function
@@ -541,12 +550,13 @@ ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1,
 bool IsotropicLinearElasticJ2PlasticPlaneStressMaterial::
 ComputeXiGivenConsistencyParameter(const double * Xitrial, const double lambda, double * Xi) const
 {
+/* ORIG:
   double v = lambda*E/(3.*(1.-nu*nu));
  
   double a = 1.+(2./3.)*lambda*H + v*(2.-nu);
   double b = v*(2.*nu-1.);
   double c = 1.+(2./3.)*lambda*H + v*3.*(1.-nu);
-  
+
   // M*Xi = Xitrial,
   // where M = (1+(2/3)*lambda*H) + lambda*C*P
   // M = [a b 0]
@@ -554,6 +564,12 @@ ComputeXiGivenConsistencyParameter(const double * Xitrial, const double lambda, 
   //     [0 0 c]
   
   double a2mb2 = pow(a,2.)-pow(b,2.);
+*/
+  double a = 1.+lambda*t00;
+  double b =    lambda*t01;
+  double c = 1.+lambda*t22;
+
+  double a2mb2 = a*a - b*b;
   
   // Check that M is invertible.
   if( fabs(c*a2mb2) < 1.e-6 )

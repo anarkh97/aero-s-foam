@@ -169,6 +169,8 @@ SingleDomainDynamic::SingleDomainDynamic(Domain *d)
   bcx = 0;
   vcx = 0;
   acx = 0;
+  claw = 0;
+  userSupFunc = 0;
 
   flExchanger = domain->getFileExchanger();
 }
@@ -418,7 +420,7 @@ SingleDomainDynamic::getInitState(SysState<Vector> &inState)
   // initialize state with IDISP/IDISP6/IVEL/IACC or RESTART
   domain->initDispVeloc(inState.getDisp(),  inState.getVeloc(),
                         inState.getAccel(), inState.getPrevVeloc()); // IVEL, IDISP, IDISP6, restart for linear 
- 
+
   if(geoSource->getCheckFileInfo()->lastRestartFile) { 
     filePrint(stderr, " ... Restarting From a Previous Run ...\n");
     if(domain->solInfo().isNonLin()) { // restart for nonlinear

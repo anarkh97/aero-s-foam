@@ -2042,7 +2042,6 @@ HData::addNeumElem(int num, int etype, double sommerConst, int nnodes, int *n, P
        ele = new QuadPressureBC(n, pbc);
        addNeum(ele);
        break;
-#if defined(USE_EIGEN3) && (__cplusplus >= 201103L) && defined(HAS_CXX11_TEMPLATE_ALIAS)
      case 17:
        ele = new Triangle6PressureBC(n, pbc);
        addNeum(ele);
@@ -2063,13 +2062,6 @@ HData::addNeumElem(int num, int etype, double sommerConst, int nnodes, int *n, P
        ele = new Triangle10PressureBC(n, pbc);
        addNeum(ele);
        break;
-#else
-     case 17: case 18: case 19: case 20: case 21:
-       std::cerr << " *** ERROR: Selected PressureBC element requires Eigen 3 library and C++11 " << std::endl
-                 << "     compiler support for template alias (e.g. icpc 12.1 or g++ 4.7). Exiting...\n";
-       exit(-1);
-       break;
-#endif
      default:
        return;
    }

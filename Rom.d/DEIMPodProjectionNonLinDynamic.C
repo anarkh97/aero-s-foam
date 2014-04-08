@@ -52,10 +52,10 @@ DEIMPodProjectionNonLinDynamic::reBuild(ModalGeomState &geomState, int iteration
 
   spm->zeroAll();
   computeRedKDyn(Kcoef);
-
+#ifdef USE_EIGEN3
   Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > LinearStiffnessMatrixMap(LinearStiffness_.data(), LinearStiffness_.vectorSize(), LinearStiffness_.numVec());
   getSolver()->addToReducedMatrix(LinearStiffnessMatrixMap,Kcoef);
-
+#endif
   NonLinDynamic::reBuild(*geomState_Big, iteration, localDelta, t);
 }
 
@@ -71,10 +71,10 @@ DEIMPodProjectionNonLinDynamic::computeRedKDyn(double Kcoef){
    domain->getWeightedKtimesU(packedElementWeights_, projectionBasis[column], (double *) 0, columnOfKtimesV, Kcoef, kelArray);
    deimBasis_.compressedVecReduce(columnOfKtimesV,RedKDyn[column]);
  }
-
+#ifdef USE_EIGEN3
  Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > RKDMap(RedKDyn.data(),RedKDyn.size(),RedKDyn.numVec());
  getSolver()->addToReducedMatrix(RKDMap);
-
+#endif
 }
 
 double

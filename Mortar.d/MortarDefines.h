@@ -67,11 +67,13 @@ inline Scalar GetActiveScalarValue(const Sacado::RadVec::ADvar<Sacado::Fad::SFad
   return s.val().val();
 }
 
+#ifdef USE_EIGEN3
 template<typename Scalar, int MAX_NBDER>
 inline Scalar GetActiveScalarValue(const Sacado::RadVec::ADvar<Eigen::AutoDiffScalar<Eigen::Matrix<Scalar, MAX_NBDER,1> > >& s)
 {
   return s.val().value();
 }
+#endif
 #endif
 
 #endif

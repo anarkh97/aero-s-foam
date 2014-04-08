@@ -1,4 +1,3 @@
-#ifdef USE_EIGEN3
 #include <Utils.d/dofset.h>
 #include <Corotational.d/GeomState.h>
 #include <Mortar.d/MortarDefines.h>
@@ -258,5 +257,3 @@ PressureElement<FaceElementType,QuadratureRule,ConstantDegree,VariableDegree>
   el = eset[iEle];
   return -1;
 }
-
-#endif

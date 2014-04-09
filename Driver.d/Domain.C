@@ -2685,7 +2685,7 @@ void Domain::ExpComputeMortarLMPC(MortarHandler::Interaction_Type t, int nDofs, 
       CurrentMortarCond->DeleteFFIData();
     }
   }
-  if(verboseFlag) filePrint(stderr," ... Built %d Mortar Surface/Surface Interactions ...\n", nMortarLMPCs);
+  if(verboseFlag && nMortarCond > 0) filePrint(stderr," ... Built %d Mortar Surface/Surface Interactions ...\n", nMortarLMPCs);
 #ifdef HB_ACME_FFI_DEBUG
   if(sinfo.ffi_debug && num_interactions > 0) {
     char fname[16];
@@ -2751,7 +2751,7 @@ void Domain::ComputeMortarLMPC(int nDofs, int *dofs)
   }
 
   time00 += getTime();
-  if(verboseFlag) filePrint(stderr," ... Built %d Mortar Surface/Surface Interactions ...\n", nMortarLMPCs+numFSI);
+  if(verboseFlag && nMortarCond > 0) filePrint(stderr," ... Built %d Mortar Surface/Surface Interactions ...\n", nMortarLMPCs+numFSI);
 #ifdef MORTAR_TIMINGS
   filePrint(stderr," ... CPU time for building mortar surface/surface interactions: %e s\n",time00/1000);
 #endif

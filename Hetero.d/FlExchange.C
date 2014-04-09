@@ -112,11 +112,6 @@ FlExchanger::getFluidLoad(Vector& force, int tIndex, double time,
  return (time+alphaf*dt);
 }
 
-/*
-        Inform the Fluid Code About the Selected AeroeElasticity
-        Algorithms and Structure Time Step
-*/
-
 extern int mflag;
 
 void

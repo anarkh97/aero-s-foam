@@ -125,14 +125,10 @@ Domain::initDispVeloc(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, const 
 
        close(fn);
      } else {
-        perror(" *** ERROR: Restart file could not be opened: ");
-        //exit(-1);
+       perror(" *** ERROR: Restart file could not be opened: ");
      }
    
    } 
-   //else {
-   //    fprintf(stderr, " ... No restart                     ...\n");
-   //}
  }
 }
 
@@ -267,7 +263,7 @@ Domain::aeroSend(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, double* bcx
   State state(c_dsa, dsa, bcx, vcx, d_n_aero, v_n, a_n, v_p);
 
   flExchanger->sendDisplacements(state, -1, geomState);
-  if(verboseFlag) fprintf(stderr, " ... [E] Sent displacements ...\n");
+  if(verboseFlag) filePrint(stderr, " ... [E] Sent displacements         ...\n");
 
   getTimers().sendFluidTime += getTime();
 }
@@ -278,19 +274,12 @@ Domain::aeroheatSend(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, double*
   State tempState(c_dsa, dsa, bcx, d_n, v_n, v_p);
 
   flExchanger->sendTemperature(tempState);
-  if(verboseFlag) fprintf(stderr," ... [T] Sent temperatures ...\n");
+  if(verboseFlag) filePrint(stderr, " ... [T] Sent temperatures          ...\n");
 }
 
 void
 Domain::thermohSend(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, double* bcx, double* vcx, GeomState* geomState)
 {
-/* we have to send the vector of temperatures in NODAL order, not
-int DOF order (in which is d_n)!
-print(), zero() can be put behind VECTORS!
-numUncon() is a function and sets the vector in its correspond. size.
-d_n.print("comment"); 
-*/
-
   int iNode;
   Vector tempsent(numnodes);
 
@@ -303,7 +292,7 @@ d_n.print("comment");
   }
 
   flExchanger->sendStrucTemp(tempsent);
-  if(verboseFlag) filePrint(stderr," ... [T] Sent temperatures ...\n");
+  if(verboseFlag) filePrint(stderr, " ... [T] Sent temperatures          ...\n");
 }
 
 void
@@ -320,7 +309,7 @@ Domain::buildAeroelasticForce(Vector& aero_f, PrevFrc& prevFrc, int tIndex, doub
   int iscollocated;
   double tFluid = flExchanger->getFluidLoad(tmpF, tIndex, t,
                                             alphaf, iscollocated, geomState);
-  if(verboseFlag) filePrint(stderr," ... [E] Received fluid load ...\n");
+  if(verboseFlag) filePrint(stderr, " ... [E] Received fluid load        ...\n");
 
   if(sinfo.aeroFlag == 20) {
     if(prevFrc.lastTIndex >= 0)
@@ -369,7 +358,7 @@ Domain::buildAeroheatFlux(Vector &f, Vector &prev_f, int tIndex, double t)
   tmpF.zero();
   flExchanger->getFluidFlux(tmpF, t, bfl);
 
-  if(verboseFlag) filePrint(stderr, " ... [T] Received fluid fluxes ...\n");
+  if(verboseFlag) filePrint(stderr, " ... [T] Received fluid fluxes      ...\n");
 
   int vectlen = tmpF.size();
 
@@ -416,8 +405,7 @@ void
 Domain::thermoeComm()
 {
   flExchanger->getStrucTemp(temprcvd);
-  if(verboseFlag) fprintf(stderr," ... [E] Received temperatures ...\n");
-  //buildThermalForce(temprcvd, f, geomState);
+  if(verboseFlag) filePrint(stderr, " ... [E] Received temperatures      ...\n");
 }
 
 void
@@ -1021,7 +1009,7 @@ Domain::aeroPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
     //KW: send the embedded wet surface to fluid 
     if(aeroEmbeddedSurfaceId.size()!=0) {
       flExchanger->sendEmbeddedWetSurface();
-      if(verboseFlag) fprintf(stderr," ... [E] Sent embedded wet surface ...\n");
+      if(verboseFlag) filePrint(stderr, " ... [E] Sent embedded wet surface  ...\n");
     }
 
     //XML New step of negotiation with fluid code
@@ -1055,17 +1043,17 @@ Domain::aeroPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
       flExchanger->sendParam(sinfo.aeroFlag, sinfo.getTimeStep(), sinfo.mppFactor,
                              restartinc, sinfo.isCollocated, sinfo.alphas);
       flExchanger->sendModeFreq(modeData.frequencies, modeData.numModes);
-      if(verboseFlag) fprintf(stderr," ... [E] Sent parameters and mode frequencies ...\n");
+      if(verboseFlag) filePrint(stderr, " ... [E] Sent parameters and mode frequencies ...\n");
       flExchanger->sendModeShapes(modeData.numModes, modeData.numNodes,
                    modeData.modes, curState, sinfo.mppFactor);
-      if(verboseFlag) fprintf(stderr," ... [E] Sent mode shapes ...\n");
+      if(verboseFlag) filePrint(stderr, " ... [E] Sent mode shapes           ...\n");
     }
     else {
       double aero_tmax = sinfo.tmax;
       if(sinfo.newmarkBeta == 0) aero_tmax += sinfo.getTimeStep();
       flExchanger->sendParam(sinfo.aeroFlag, sinfo.getTimeStep(), aero_tmax, restartinc,
                              sinfo.isCollocated, sinfo.alphas);
-      if(verboseFlag) fprintf(stderr," ... [E] Sent parameters ...\n");
+      if(verboseFlag) filePrint(stderr, " ... [E] Sent parameters            ...\n");
 
       if(sinfo.aeroFlag == 5 || sinfo.aeroFlag == 4) {
         flExchanger->initRcvParity(1);
@@ -1075,8 +1063,11 @@ Domain::aeroPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
         flExchanger->initSndParity(-1);
       }
 
-      flExchanger->sendDisplacements(curState);
-      if(verboseFlag) fprintf(stderr," ... [E] Sent initial displacements ...\n");
+      if(!(geoSource->getCheckFileInfo()->lastRestartFile && (sinfo.aeroFlag == 20 ||
+          (sinfo.isNonLin() && sinfo.isDynam() && sinfo.newmarkBeta != 0)))) {
+        flExchanger->sendDisplacements(curState);
+        if(verboseFlag) filePrint(stderr, " ... [E] Sent initial displacements ...\n");
+      }
 
       if(sinfo.aeroFlag == 1) { // Ping pong only
         fprintf(stderr, "Ping Pong Only requested. Structure code exiting\n");
@@ -1102,7 +1093,7 @@ Domain::thermoePreProcess()
     flExchanger->thermoread(buffLen);
  
     flExchanger->getStrucTemp(temprcvd) ;
-    if(verboseFlag) fprintf(stderr,"... [E] Received initial temperatures ...\n");
+    if(verboseFlag) filePrint(stderr," ... [E] Received initial temperatures ...\n");
   }
 }
 

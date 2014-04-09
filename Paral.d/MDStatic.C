@@ -28,9 +28,6 @@ GenMultiDomainStatic<Scalar>::GenMultiDomainStatic(Domain *d)
 #endif
 
  times  = new StaticTimers;
-
- // debug: check static timers are initialized
- //MatrixTimers &mt = domain->getTimers();
 }
 
 template<class Scalar>
@@ -232,7 +229,7 @@ GenMultiDomainPostProcessor<Scalar>::staticOutput(GenDistrVector<Scalar> &sol, G
  times->memoryK       = totMemK;
 
  if(printTimers) {
-   filePrint(stderr," ... Print Timers                   ... \n");
+   //filePrint(stderr," ... Print Timers                   ... \n");
    switch(domain->solInfo().fetiInfo.version) {
      default:
      case FetiInfo::feti1:

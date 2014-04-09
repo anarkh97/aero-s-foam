@@ -2410,15 +2410,8 @@ Domain::readRestartFile(Vector &d_n, Vector &v_n, Vector &a_n,
        else if (zloc1 >= 0)
          bcx[zloc1] = ( (geomState)[i].z - nodes[i]->z);
      }
-
-/* XXX this is now called in NonLinDynamic::readRestartFile
-     if(solInfo().aeroFlag >= 0 && solInfo().newmarkBeta != 0  // for nonlinear explicit aeroPreProcess is called in the main driver
-        && !dynamic_cast<SubDomain*>(this))         // likewise for multi-domain
-       aeroPreProcess( d_n, v_n, a_n, v_p, bcx, vcx );
-*/
    } else {
-      perror(" *** ERROR: Restart file could not be opened: ");
-      //exit(-1);
+     perror(" *** ERROR: Restart file could not be opened: ");
    }
  }
 }

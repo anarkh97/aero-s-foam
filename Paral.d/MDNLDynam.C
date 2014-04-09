@@ -66,7 +66,7 @@ MDNLDynamic::getInitState(DistrVector &d_n, DistrVector &v_n, DistrVector &a_n, 
   }
 
   int aeroAlg = domain->solInfo().aeroFlag;
-  if(aeroAlg >= 0 && geoSource->getCheckFileInfo()->lastRestartFile == 0)
+  if(aeroAlg >= 0)
     aeroPreProcess(d_n, v_n, a_n, v_p);
 
   if(domain->solInfo().thermoeFlag >= 0)
@@ -720,7 +720,7 @@ MDNLDynamic::getExternalForce(DistrVector& f, DistrVector& constantForce,
   // update nodal temperature for thermoe
   if(domain->solInfo().thermoeFlag >= 0 && tIndex >= 0) {
     distFlExchanger->getStrucTemp(nodalTemps->data());
-    if(verboseFlag) filePrint(stderr," ... [E] Received temperatures ...\n");
+    if(verboseFlag) filePrint(stderr, " ... [E] Received temperatures      ...\n");
   }
 
   double beta, gamma, alphaf, alpham;
@@ -770,7 +770,7 @@ MDNLDynamic::getExternalForce(DistrVector& f, DistrVector& constantForce,
     int iscollocated;
     double tFluid = distFlExchanger->getFluidLoad(*aeroForce, tIndex, t,
                                                   alphaf, iscollocated);
-    if(verboseFlag) filePrint(stderr," ... [E] Received fluid forces ...\n");
+    if(verboseFlag) filePrint(stderr, " ... [E] Received fluid load        ...\n");
 
     if(sinfo.aeroFlag == 20) {
       if(prevIndex >= 0)
@@ -803,7 +803,7 @@ MDNLDynamic::getExternalForce(DistrVector& f, DistrVector& constantForce,
 
     aeroForce->zero();
     double tFluid = distFlExchanger->getFluidFlux(*aeroForce, tIndex, t);
-    if(verboseFlag) filePrint(stderr," ... [T] Received fluid fluxes (%e) ...\n", aeroForce->sqNorm());
+    if(verboseFlag) filePrint(stderr, " ... [T] Received fluid fluxes      ...\n");
 
     /*  Compute fluid flux at n+1/2, since we use midpoint rule in thermal */
 
@@ -962,7 +962,7 @@ MDNLDynamic::dynamOutput(DistrGeomState *geomState, DistrVector &vel_n, DistrVec
       int extlen = std::log10((double) sd->subNum()+1) + 1;
       char *ext = new char[extlen+2];
       sprintf(ext,"_%d",sd->subNum()+1);
-      sd->writeRestartFile(time, index, vel_ni, acc_ni, (*geomState)[i], ext);
+      sd->writeRestartFile(time, index+1, vel_ni, acc_ni, (*geomState)[i], ext);
       delete [] ext;
     }
 #else
@@ -987,7 +987,7 @@ MDNLDynamic::subWriteRestartFile(int i, double &time, int &index, DistrVector &v
   int extlen = (int)std::log10((double) sd->subNum()+1) + 1;
   char *ext = new char[extlen+2];
   sprintf(ext,"_%d",sd->subNum()+1);
-  sd->writeRestartFile(time, index, vel_ni, acc_ni, geomState[i], ext);
+  sd->writeRestartFile(time, index+1, vel_ni, acc_ni, geomState[i], ext);
   delete [] ext;
 }
 
@@ -1184,7 +1184,7 @@ MDNLDynamic::dynamCommToFluid(DistrGeomState* geomState, DistrGeomState* bkGeomS
     SysState<DistrVector> state(d_n, velocity, acceleration, vp);
 
     distFlExchanger->sendDisplacements(state, usrDefDisps, usrDefVels);
-    if(verboseFlag) filePrint(stderr," ... [E] Sent displacements to Fluid at step %d ...\n", step+1);
+    if(verboseFlag) filePrint(stderr, " ... [E] Sent displacements         ...\n");
   }
 
   if(domain->solInfo().aeroheatFlag >= 0) {
@@ -1194,7 +1194,7 @@ MDNLDynamic::dynamCommToFluid(DistrGeomState* geomState, DistrGeomState* bkGeomS
     SysState<DistrVector> tempState(d_n, velocity, vp);
 
     distFlExchanger->sendTemperature(tempState);
-    if(verboseFlag) filePrint(stderr," ... [T] Sent temperatures to Structure at step %d ...\n", step+1);
+    if(verboseFlag) filePrint(stderr, " ... [T] Sent temperatures          ...\n");
   }
 
   if(domain->solInfo().thermohFlag >= 0) {
@@ -1206,7 +1206,7 @@ MDNLDynamic::dynamCommToFluid(DistrGeomState* geomState, DistrGeomState* bkGeomS
     }
 
     distFlExchanger->sendStrucTemp(*nodalTemps);
-    if(verboseFlag) filePrint(stderr," ... [T] Sent temperatures to Structure at step %d ...\n", step+1);
+    if(verboseFlag) filePrint(stderr, " ... [T] Sent temperatures          ...\n");
   }
 }
 
@@ -1331,8 +1331,18 @@ MDNLDynamic::readRestartFile(DistrVector &d_n, DistrVector &v_n, DistrVector &a_
     domain->solInfo().initialTimeIndex = decDomain->getSubDomain(0)->solInfo().initialTimeIndex;
     domain->solInfo().initialTime = decDomain->getSubDomain(0)->solInfo().initialTime;
 
-    // update geomState for time dependent prescribed displacements and their time derivatives
-    // this is necessary because only the unconstrained velocities/accelerations are currently saved in the restart file
+    int aeroFlag = domain->solInfo().aeroFlag;
+    if(aeroFlag >= 0) {
+      double t = domain->solInfo().initialTime;
+      double dt = domain->solInfo().getTimeStep();
+      double t_n_k = (aeroFlag == 6) ? t+dt/2 : t+dt; // this is the time at which the displacements to be sent to the
+                                                      // fluid are predicted/computed: t^{n+1/2} for A6 and t^{n+1} otherwise
+      dynamCommToFluid(&geomState, &geomState, v_n, v_n, v_p, v_p, domain->solInfo().initialTimeIndex, 1,
+                       domain->solInfo().aeroFlag, t_n_k);
+    }
+
+    // update geomState and bcx/vcx/acx for time dependent prescribed displacements and their time derivatives
+    // at the initial time
     if(claw && userSupFunc) {
       if(claw->numUserDisp > 0) {
         double *userDefineDisp = new double[claw->numUserDisp];
@@ -1348,11 +1358,11 @@ MDNLDynamic::readRestartFile(DistrVector &d_n, DistrVector &v_n, DistrVector &a_
        delete [] userDefineDisp; delete [] userDefineVel; delete [] userDefineAcc;
       }
     }
-
+/* XXX
     if(domain->solInfo().aeroFlag >= 0) {
       aeroPreProcess(d_n, v_n, a_n, v_p, &geomState);
     }
-
+*/
     updateStates(&geomState, geomState);
   }
 }
@@ -1538,15 +1548,15 @@ MDNLDynamic::aeroPreProcess(DistrVector &disp, DistrVector &vel,
     distFlExchanger->sendParam(sinfo.aeroFlag, sinfo.getTimeStep(), sinfo.mppFactor,
                                restartinc, sinfo.isCollocated, sinfo.alphas);
     distFlExchanger->sendModeFreq(modeData.frequencies, modeData.numModes);
-    if(verboseFlag) filePrint(stderr,"... [E] Sent parameters and mode frequencies ...\n");
+    if(verboseFlag) filePrint(stderr, " ... [E] Sent parameters and mode frequencies ...\n");
     distFlExchanger->sendModeShapes(modeData.numModes, modeData.numNodes,
                                     modeData.modes, state, sinfo.mppFactor);
-    if(verboseFlag) filePrint(stderr,"... [E] Sent mode shapes ...\n");
+    if(verboseFlag) filePrint(stderr, " ... [E] Sent mode shapes           ...\n");
   }
   else {
     distFlExchanger->sendParam(sinfo.aeroFlag, sinfo.getTimeStep(), sinfo.tmax, restartinc,
                                sinfo.isCollocated, sinfo.alphas);
-    if(verboseFlag) filePrint(stderr,"... [E] Sent parameters ...\n");
+    if(verboseFlag) filePrint(stderr, " ... [E] Sent parameters            ...\n");
 
     // initialize the Parity
     if(sinfo.aeroFlag == 5 || sinfo.aeroFlag == 4) {
@@ -1558,8 +1568,10 @@ MDNLDynamic::aeroPreProcess(DistrVector &disp, DistrVector &vel,
     }
 
     // send initial displacements
-    distFlExchanger->sendDisplacements(state, usrDefDisps, usrDefVels);
-    if(verboseFlag) filePrint(stderr,"... [E] Sent initial displacements ...\n");
+    if(!(geoSource->getCheckFileInfo()->lastRestartFile)) {
+      distFlExchanger->sendDisplacements(state, usrDefDisps, usrDefVels);
+      if(verboseFlag) filePrint(stderr, " ... [E] Sent initial displacements ...\n");
+    }
 
     if(sinfo.aeroFlag == 1) { // Ping pong only
       filePrint(stderr, "Ping Pong Only requested. Structure code exiting\n");
@@ -1627,7 +1639,7 @@ MDNLDynamic::thermoePreProcess()
     distFlExchanger->thermoread(buffLen);
 
     distFlExchanger->getStrucTemp(nodalTemps->data()) ;
-    if(verboseFlag) filePrint(stderr," ... [E] Received initial temperatures ...\n");
+    if(verboseFlag) filePrint(stderr, " ... [E] Received initial temperatures ...\n");
   }
 }
 
@@ -1700,7 +1712,7 @@ MDNLDynamic::thermohPreProcess(DistrVector& d)
     }
 
     distFlExchanger->sendStrucTemp(*nodalTemps);
-    if(verboseFlag) filePrint(stderr," ... [T] Sent initial temperatures ...\n");
+    if(verboseFlag) filePrint(stderr, " ... [T] Sent initial temperatures  ...\n");
   }
 
 }
@@ -1796,11 +1808,11 @@ MDNLDynamic::aeroheatPreProcess(DistrVector &disp, DistrVector &vel, DistrVector
 
   distFlExchanger->sendTempParam(sinfo.aeroheatFlag, sinfo.getTimeStep(), sinfo.tmax, restartinc,
                                  sinfo.alphat);
-  if(verboseFlag) filePrint(stderr,"... [T] Sent parameters ...\n");
+  if(verboseFlag) filePrint(stderr, " ... [T] Sent parameters            ...\n");
 
   // send initial displacements
   distFlExchanger->sendTemperature(state);
-  if(verboseFlag) filePrint(stderr,"... [T] Sent initial temperatures ...\n");
+  if(verboseFlag) filePrint(stderr, " ... [T] Sent initial temperatures  ...\n");
 }
 
 int

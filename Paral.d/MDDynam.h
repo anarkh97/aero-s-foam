@@ -230,6 +230,7 @@ private:
     void initSubPrescribedDisplacement(int isub);
     void subUpdateGeomStateUSDD(int isub, double *userDefineDisp, DistrGeomState *geomState,
                                 double *userDefineVel, double *userDefineAcc);
+    void subUpdateUsrDefDispsAndVels(int isub, double *userDefineDisp, double *userDefineVel);
     void subExplicitUpdate(int isub, DistrVector &d, DistrGeomState *geomState);
 };
 

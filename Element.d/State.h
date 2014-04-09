@@ -18,11 +18,13 @@ class State {
    Vector      &prevVeloc;	// previous velocity
  public:
    State() : disp(nillVec), veloc(nillVec), accel(nillVec), prevVeloc(nillVec)
-         {} // Carfull that you know what you are doing here
+         {} // Careful that you know what you are doing here
+
    State(const State &s) : dsa(s.dsa), DSA(s.DSA), bcx(s.bcx), vcx(s.vcx),
        disp(s.disp), veloc(s.veloc), accel(s.accel), 
        prevVeloc(s.prevVeloc)
      {}
+
    // Constructor
    State (DofSetArray *_dsa, Vector &d, Vector &v, Vector &a, Vector &pv) :
       disp(d), veloc(v), accel(a) , prevVeloc(pv)
@@ -35,16 +37,15 @@ class State {
       disp(d), veloc(v), accel(a) , prevVeloc(pv)
       { dsa = _dsa; DSA = _DSA; bcx = _bcx; vcx = _vcx; }
 
-   //For heat Problem
+   // For heat problem
    State (DofSetArray *_dsa, DofSetArray *_DSA,
           double *_bcx, Vector &d, Vector &v, Vector &pv) :
       disp(d), veloc(v), accel(v), prevVeloc(pv)   /*accel has to be here, but useless*/
       { dsa = _dsa; DSA = _DSA; bcx = _bcx; vcx = 0; }
-   // For Heat Problem
+
+   // For heat problem
    State (DofSetArray *_dsa, Vector &d, Vector &v, Vector &pv) :
       disp(d), veloc(v), accel(v), prevVeloc(pv) { dsa = _dsa; }
-
-
 
    State (const State &s, Vector &n_d) : disp(n_d), veloc(s.veloc),
         accel(s.accel), prevVeloc(s.prevVeloc)
@@ -68,7 +69,7 @@ class State {
    void getTemp(int node, double[1], double[1]);
 
    //void setData(DofSetArray *, DofSetArray *, double *, double *,
-    //       	Vector &, Vector &, Vector &); 
+   //       	  Vector &, Vector &, Vector &); 
 };
 
 #endif

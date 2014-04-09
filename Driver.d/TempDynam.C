@@ -252,14 +252,8 @@ Domain::tempdynamOutput(int tIndex, double *bcx, DynamMat& dMat,
   if(sinfo.aeroheatFlag >= 0)
     if (tIndex != 0 ) {
       flExchanger->sendTemperature(tempState);
-      //if(verboseFlag) fprintf(stderr," ... [T] Sent temperatures ...\n");
+      if(verboseFlag) filePrint(stderr, " ... [T] Sent temperatures          ...\n");
     }
-
-// we have to send the vector of temperatures in NODAL order, not
-//int DOF order (in which is d_n)!
-//print(), zero() can be put behind VECTORS!
-//numUncon() is a function and sets the vector in its correspond. size.
-//d_n.print("comment"); 
 
   if(sinfo.thermohFlag >=0) 
     if (tIndex !=0) {
@@ -275,8 +269,7 @@ Domain::tempdynamOutput(int tIndex, double *bcx, DynamMat& dMat,
       }
 
       flExchanger->sendStrucTemp(tempsent);
-      //if(verboseFlag) fprintf(stderr," ... [T] Sent temperatures ...\n");
-
+      if(verboseFlag) filePrint(stderr, " ... [T] Sent temperatures          ...\n");
    }
 
 // Open the file and write the header in the first time step
@@ -425,7 +418,7 @@ Domain::computeExtForce(Vector &f, double t, int tIndex, SparseMatrix *kuc, Vect
     tmpF.zero();
     flExchanger->getFluidFlux(tmpF, t, bfl);
 
-    if(verboseFlag) fprintf(stderr, " ... [T] Received fluid fluxes ...\n");
+    if(verboseFlag) filePrint(stderr, " ... [T] Received fluid fluxes      ...\n");
 
     int vectlen = tmpF.size();
 
@@ -509,11 +502,10 @@ Domain::aeroHeatPreProcess(Vector& d_n, Vector& v_n, Vector& v_p, double* bcx)
    flExchanger->sendTempParam(sinfo.aeroheatFlag, sinfo.getTimeStep(), 
                               sinfo.tmax, restartinc, sinfo.alphat);
 
-   if(verboseFlag) fprintf(stderr," ... [T] Sent temperature parameters ...\n");
+   if(verboseFlag) filePrint(stderr, " ... [T] Sent temperature parameters...\n");
 
    flExchanger->sendTemperature(tempState);
-   if(verboseFlag) fprintf(stderr," ... [T] Sent initial temperatures ...\n");
-
+   if(verboseFlag) filePrint(stderr, " ... [T] Sent initial temperatures  ...\n");
  }
 }
 
@@ -543,8 +535,7 @@ Domain::thermohPreProcess(Vector& d_n, Vector& v_n, Vector& v_p, double* bcx)
      }
 
      flExchanger->sendStrucTemp(tempsent);
-     if(verboseFlag) fprintf(stderr," ... [T] Sent initial temperatures ...\n");
-
+     if(verboseFlag) filePrint(stderr, " ... [T] Sent initial temperatures  ...\n");
   }
 }
 

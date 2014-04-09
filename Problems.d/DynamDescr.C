@@ -678,7 +678,8 @@ SingleDomainDynamic::computeExtForce2(SysState<Vector> &state, Vector &ext_f,
   if(userDefineAcc) delete [] userDefineAcc;
 
   // add aeroelastic forces from fluid dynamics code
-  if(domain->solInfo().aeroFlag >= 0 && tIndex >= 0) {
+  if(domain->solInfo().aeroFlag >= 0 && tIndex >= 0 &&
+     !(geoSource->getCheckFileInfo()->lastRestartFile && domain->solInfo().aeroFlag == 20 && tIndex == domain->solInfo().initialTimeIndex)) {
     domain->buildAeroelasticForce(*aero_f, *prevFrc, tIndex, t, gamma, alphaf);
     ext_f += *aero_f;
   }
@@ -1314,7 +1315,24 @@ SparseMatrix* getpC(DynamMat* dynOps)
 void
 SingleDomainDynamic::aeroSend(double time, Vector& d, Vector& v, Vector& a, Vector& v_p)
 {
-  // XXXX need to compute bcx properly for USDD so appropriate prescribed displacements are sent to fluid
+  if(claw && userSupFunc) {
+    if(claw->numUserDisp) { // USDD
+      // Note: the approprate value of "time" passed into this function should be
+      // t^{n+1/2} for explicit and A6 implicit, and t^{n+1} otherwise.
+      double *userDefineDisp = new double[claw->numUserDisp];
+      double *userDefineVel = new double[claw->numUserDisp];
+      double *userDefineAcc = new double[claw->numUserDisp];
+      for(int i=0; i<claw->numUserDisp; ++i) {
+        userDefineVel[i] = 0;
+        userDefineAcc[i] = 0;
+      }
+      userSupFunc->usd_disp(time, userDefineDisp, userDefineVel, userDefineAcc);
+      setBC(userDefineDisp, userDefineVel, userDefineAcc); // update bcx, vcx, acx
+      delete [] userDefineDisp;
+      delete [] userDefineVel;
+      delete [] userDefineAcc;
+    }
+  }
   domain->aeroSend(d, v, a, v_p, bcx, vcx);
 }
 

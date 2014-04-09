@@ -195,8 +195,18 @@ NonLinDynamic::readRestartFile(Vector &d_n, Vector &v_n, Vector &a_n,
 
     domain->readRestartFile(d_n, v_n, a_n, v_p, bcx, vcx, geomState);
 
+    int aeroFlag = domain->solInfo().aeroFlag;
+    if(aeroFlag >= 0) {
+      double t = domain->solInfo().initialTime;
+      double dt = domain->solInfo().getTimeStep();
+      double t_n_k = (aeroFlag == 6) ? t+dt/2 : t+dt; // this is the time at which the displacements to be sent to the
+                                                      // fluid are predicted/computed: t^{n+1/2} for A6 and t^{n+1} otherwise
+      dynamCommToFluid(&geomState, &geomState, v_n, v_n, v_p, v_p, domain->solInfo().initialTimeIndex, 1,
+                       domain->solInfo().aeroFlag, t_n_k);
+    }
+
     // update geomState and bcx/vcx/acx for time dependent prescribed displacements and their time derivatives
-    // this is necessary because only the unconstrained velocities/accelerations are currently saved in the restart file
+    // at the initial time
     if(claw && userSupFunc) {
       if(claw->numUserDisp > 0) {
         double *userDefineDisp = new double[claw->numUserDisp];
@@ -216,10 +226,6 @@ NonLinDynamic::readRestartFile(Vector &d_n, Vector &v_n, Vector &a_n,
       }
     }
 
-    if(domain->solInfo().aeroFlag >= 0) {
-      domain->aeroPreProcess( d_n, v_n, a_n, v_p, bcx, vcx );
-    }
-
     updateStates(&geomState, geomState);
   }
 }
@@ -233,8 +239,8 @@ NonLinDynamic::getInitState(Vector& d_n, Vector& v_n, Vector &a_n, Vector &v_p)
   updateUserSuppliedFunction(d_n, v_n, a_n, v_p, domain->solInfo().initialTime);
 
   int aeroAlg = domain->solInfo().aeroFlag; // by default, non-aeroelastic computation
-  // call aeroPreProcess if a restart file does not exist
-  if(aeroAlg >= 0 && geoSource->getCheckFileInfo()->lastRestartFile == 0) 
+  // call aeroPreProcess (note: for restarts the initial state is now sent to the fluid in readRestartFile, not aeroPreProcess)
+  if(aeroAlg >= 0)
     domain->aeroPreProcess(d_n, v_n, a_n, v_p, bcx, vcx);
 
   if(domain->solInfo().aeroheatFlag >= 0)
@@ -1081,6 +1087,8 @@ NonLinDynamic::dynamCommToFluid(GeomState* geomState, GeomState* bkGeomState,
     ControlLawInfo *claw = geoSource->getControlLaw();
     ControlInterface *userSupFunc = domain->getUserSuppliedFunction();
     if(claw && claw->numUserDisp) {
+      // Note: the approprate value of "time" passed into this function should be
+      // t^{n+1/2} for A6 and t^{n+1} otherwise.
       double *userDefineDisp = new double[claw->numUserDisp];
       double *userDefineVel  = new double[claw->numUserDisp];
       double *userDefineAcc  = new double[claw->numUserDisp];
@@ -1155,12 +1163,11 @@ NonLinDynamic::dynamCommToFluid(GeomState* geomState, GeomState* bkGeomState,
       vp.linC(0.5,vp,0.5,bkVp);
     }
     Vector a_n( domain->numUncon(), 0.0 );
-    
 
     State state( c_dsa, dsa, bcx, vcx, d_n, velocity, a_n, vp );
 
     domain->getFileExchanger()->sendDisplacements(state, -1, geomState);
-    if(verboseFlag) filePrint(stderr," ... Sent displacements to Fluid at step %d\n",(step+1));
+    if(verboseFlag) filePrint(stderr, " ... [E] Sent displacements         ...\n");
 
     domain->getTimers().sendFluidTime += getTime();
   }

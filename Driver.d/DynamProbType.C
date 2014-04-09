@@ -677,7 +677,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
        matrixTimers.updateState -= getTime();
        d_n = 2.0*rhs - 1.0*d_n;
 
-       // Compute the first time derivative of temperature at t^{n+1}: v^{n+1} = 2/(gamma*dt)*(d^{n+1/2 - d^n) - (1-gamma)/(gamma)*v^n
+       // Compute the first time derivative of temperature at t^{n+1}: v^{n+1} = 2/(gamma*dt)*(d^{n+1/2} - d^n) - (1-gamma)/(gamma)*v^n
        v_n_p = 2/(gamma*dt)*(d_n - rhs);
        if(gamma != 1.0) v_n_p -= (1.0-gamma)/gamma*v_n;
      }
@@ -774,10 +774,10 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 //
 // WARNINGS:    1. The mass matrix is automatically LUMPED (in main.C) unless MRATIO is set to 1
 //              2. Viscous damping is supported, but to keep the scheme explicit the equilibrium 
-//                 condition is expressed as M*a^{n+1} + C*v^{n+1/2} + K*u^{n+1} = fext^{n+1}
+//                 condition is expressed as M*a^{n+1} + C*v^{n+1/2} + fint(u^{n+1}) = fext^{n+1}
 //                 where v^{n+1/2} = v^n + dt/2*a^n
-//              3. Constraints must be enforced with the penalty method, except for Contact/tied
-//                 surfaces are supported using ACME
+//              3. Constraints must be enforced with the penalty method, except for contact/tied
+//                 surfaces with multipliers which are supported using ACME
 //
 // -----------------------------------------------------------------------------
  
@@ -852,25 +852,28 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
   getInternalForce(dynOps, d_n, fint, t_n, n);
 
   // Compute the initial acceleration a^0 = M^{-1}(fext^0 - fint^0 - C*v^0)
-  if(verboseFlag) filePrint(stderr," ... Computing initial acceleration ...\n");
-  domain->getTimers().formRhs -= getTime();
-  if(dynOps.C) {
-    dynOps.C->mult(v_n,tmp2);
-    fint += tmp2;
-  }
-  a_n = fext - fint;
-  domain->getTimers().formRhs += getTime();
-  handleForce(*probDesc, fint);
-  dynOps.dynMat->reSolve(a_n);
+  // note: for restarted nonlinear, the initial acceleration is read from the restart file
+  if(!(geoSource->getCheckFileInfo()->lastRestartFile && domain->solInfo().isNonLin())) {
+    if(verboseFlag) filePrint(stderr," ... Computing initial acceleration ...\n");
+    domain->getTimers().formRhs -= getTime();
+    if(dynOps.C) {
+      dynOps.C->mult(v_n,tmp2);
+      fint += tmp2;
+    }
+    a_n = fext - fint;
+    domain->getTimers().formRhs += getTime();
+    handleForce(*probDesc, fint);
+    dynOps.dynMat->reSolve(a_n);
 
-  if(domain->tdenforceFlag()) { // Contact corrector step: a^0 += M^{-1}*Fctc
-    tmp1.linC(dt_n_h, v_n, 0.5*dt_n_h*dt_n_h, a_n); // predicted displacement d^1 = d^0 + dt^{1/2}*v^0 + dt^{1/2}*dt^{1/2}/2*a^0
-    probDesc->getContactForce(d_n, tmp1, tmp2, t_n+dt_n_h, dt_n_h, dt_old);
-    dynOps.dynMat->reSolve(tmp2);
-    a_n += tmp2;
+    if(domain->tdenforceFlag()) { // Contact corrector step: a^0 += M^{-1}*Fctc
+      tmp1.linC(dt_n_h, v_n, 0.5*dt_n_h*dt_n_h, a_n); // predicted displacement d^1 = d^0 + dt^{1/2}*v^0 + dt^{1/2}*dt^{1/2}/2*a^0
+      probDesc->getContactForce(d_n, tmp1, tmp2, t_n+dt_n_h, dt_n_h, dt_old);
+      dynOps.dynMat->reSolve(tmp2);
+      a_n += tmp2;
+    }
+    if(probDesc->getFilterFlag() == 2) probDesc->project(a_n);
   }
   handleAcceleration(*probDesc, a_n);
-  if(probDesc->getFilterFlag() == 2) probDesc->project(a_n);
 
   // Output the state at t^0: d^0, v^0, a^0, fext^0
   postProcessor->dynamOutput(n, t_n, dynOps, fext, aeroForce, curState);
@@ -968,7 +971,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
       matrixTimers.updateState += getTime();
 
       // C0: Send predicted displacement at t^{n+1.5} to fluid
-      if(aeroAlg == 20) probDesc->aeroSend(t_n+dt_n_h, d_n, v_n_h, a_n, v_h_p);
+      if(aeroAlg == 20) probDesc->aeroSend(t_n_h+dt_n_h, d_n, v_n_h, a_n, v_h_p);
 
       // Compute the external force at t^{n+1}
       if(domain->solInfo().check_energy_balance) *fext_p = fext;
@@ -999,8 +1002,8 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
         dynOps.dynMat->reSolve(tmp2);
         a_n += tmp2;
       }
-      handleAcceleration(*probDesc, a_n);
       if(probDesc->getFilterFlag() == 2) probDesc->project(a_n);
+      handleAcceleration(*probDesc, a_n);
 
       // Update the velocity at t^{n+1}: v^{n+1} = v^{n+1/2}+dt^{n+1/2}/2*a^{n+1}
       matrixTimers.updateState -= getTime();

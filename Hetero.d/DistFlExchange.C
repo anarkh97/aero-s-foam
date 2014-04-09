@@ -587,11 +587,8 @@ DistFlExchanger::getFluidLoad(DistrVector& force, int tIndex,
     }
   }
 
-  //fprintf(stderr,"First Buffer Norms: %e %e %e \n", aforce[0],aforce[1],aforce[2]);
-
   flipRcvParity();
 
-  // KHP
   if (oinfo) {
     if (tIndex % oinfo->interval == 0 && oinfo->filptr != NULL) {
       structCom->reduce(3,aforce);

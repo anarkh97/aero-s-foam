@@ -172,13 +172,13 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
   double dt = dt0;
   bool failed = false;
   int numConverged = 0;
-  int p = 0, q = 1;
+  int p = step, q = 1;
 
   double t0 = time;
   double tmax = maxStep*dt0 + 10*std::numeric_limits<double>::epsilon();
 
   // Time stepping loop
-  for(step = 0; time+dt0/q <= tmax || failed; s2 = s0+getTime()) {
+  for( ; time+dt0/q <= tmax || failed; s2 = s0+getTime()) {
 
     dt = dt0/q;
     domain->solInfo().setTimeStep(dt);
@@ -345,7 +345,8 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
       // Output results at current time
       if(step+1 == maxStep && (aeroAlg != 5 || parity == 1)) probDesc->processLastOutput();
       else if(aeroAlg >= 0 || probDesc->getThermohFlag() >= 0 || probDesc->getAeroheatFlag() >= 0) {
-        probDesc->dynamCommToFluid(geomState, bkGeomState, velocity_n, *bkVelocity_n, v_p, *bkV_p, step, parity, aeroAlg, time);
+        double t_n_k =(aeroAlg == 6) ? time + dt/2 : time+dt; // used to compute prescribed displacements and velociities
+        probDesc->dynamCommToFluid(geomState, bkGeomState, velocity_n, *bkVelocity_n, v_p, *bkV_p, step, parity, aeroAlg, t_n_k);
       }
       probDesc->dynamOutput(geomState, velocity_n, v_p, time, step, external_force, aeroForce, acceleration, refState);
 

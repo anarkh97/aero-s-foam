@@ -778,13 +778,13 @@ int main(int argc, char** argv)
  }
 
  if(domain->solInfo().aeroFlag >= 0)
-   filePrint(stderr," ... AeroElasticity Flag   = %d      ...\n", domain->solInfo().aeroFlag);
+   filePrint(stderr," ... AeroElasticity Flag   = %2d     ...\n", domain->solInfo().aeroFlag);
  if(domain->solInfo().thermoeFlag >= 0)
-   filePrint(stderr," ... ThermoElasticity Flag = %d      ...\n", domain->solInfo().thermoeFlag);
+   filePrint(stderr," ... ThermoElasticity Flag = %2d     ...\n", domain->solInfo().thermoeFlag);
  if(domain->solInfo().aeroheatFlag >= 0)
-   filePrint(stderr," ... AeroThermo Flag       = %d      ...\n", domain->solInfo().aeroheatFlag);
+   filePrint(stderr," ... AeroThermo Flag       = %2d     ...\n", domain->solInfo().aeroheatFlag);
  if(domain->solInfo().thermohFlag >= 0)
-   filePrint(stderr," ... ThermoElasticity Flag = %d      ...\n", domain->solInfo().thermohFlag);
+   filePrint(stderr," ... ThermoElasticity Flag = %2d     ...\n", domain->solInfo().thermohFlag);
 
  // ... PRINT PROBLEM TYPE
  if(domain->solInfo().sensitivity) {

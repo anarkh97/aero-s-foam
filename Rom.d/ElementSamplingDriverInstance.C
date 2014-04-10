@@ -3,6 +3,14 @@
 namespace Rom {
 
 template
+void
+outputFullWeights<Vector,std::vector<int> >(const Vector &weights, const std::vector<int> &elemIds);
+
+template
+void
+outputFullWeights<std::vector<double>,std::vector<int> >(const std::vector<double> &weights, const std::vector<int> &elemIds);
+
+template
 int
 ElementSamplingDriver<std::vector<double>,size_t>
 ::elementCount() const;

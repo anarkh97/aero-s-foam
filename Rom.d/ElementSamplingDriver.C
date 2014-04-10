@@ -87,8 +87,10 @@ outputMeshFile(const FileNameInfo &fileInfo, const MeshDesc &mesh, const int pod
   meshOut << mesh;
 }
 
+template<typename WeightsVecType, typename ElemIdsVecType>
 void
-outputFullWeights(const FileNameInfo &fileInfo, const Vector &weights, const std::vector<int> &elemIds) {
+outputFullWeights(const WeightsVecType &weights, const ElemIdsVecType &elemIds)
+{
   assert(weights.size() == elemIds.size());
 
   const std::string fileName = domain->solInfo().reducedMeshFile;
@@ -97,16 +99,43 @@ outputFullWeights(const FileNameInfo &fileInfo, const Vector &weights, const std
   weightOut.precision(std::numeric_limits<double>::digits10+1);
   bool firstTime = true;
 
+  std::map<int, Attrib> &attrib = geoSource->getAttributes();
+  int na = geoSource->getNumAttributes();
+  int nMaxEle = geoSource->getElemSet()->last();
+
+  std::map<int, Attrib>::iterator *elemAttrib = new std::map<int, Attrib>::iterator[nMaxEle];
+  for(int i = 0; i < nMaxEle; ++i) elemAttrib[i] = attrib.end();
+  for (std::map<int, Attrib>::iterator it = attrib.begin(); it != attrib.end(); ++it) {
+    if(it->second.nele < nMaxEle)
+      elemAttrib[it->second.nele] = it;
+  }
+
   weightOut << "ATTRIBUTES\n";
   for (int i = 0, iEnd = weights.size(); i != iEnd; ++i) {
+    if(elemAttrib[elemIds[i]] != attrib.end()) {
+      // element has an attribute
+      Attrib &a = elemAttrib[elemIds[i]]->second;
+      weightOut << elemIds[i]+1 << " " << a.attr+1 << " ";
+      if(a.cmp_attr >= 0) {
+        if(a.cmp_frm >= -0) weightOut << a.cmp_attr+1 << " " << a.cmp_frm+1 << " ";
+        else  weightOut << a.cmp_attr+1 << " THETA " << a.cmp_theta << " ";
+      }
+    }
+    else {
+      // element has no attribute, however we still need to define the weight for it
+      weightOut << elemIds[i]+1 << " ";
+    }
     if(domain->solInfo().reduceFollower && firstTime) {
-      weightOut << elemIds[i] + 1 << " 1 " << "HRC REDFOL" << " " << weights[i] << "\n";
+      weightOut << "HRC " << weights[i] << " EXTFOL\n";
       firstTime = false;
     }
     else {
-      weightOut << elemIds[i] + 1 << " 1 " << "HRC" << " " << weights[i] << "\n";
+      weightOut << "HRC " << weights[i] << "\n";
     }
   }
+
+  delete [] elemAttrib;
+  weightOut.close();
 }
 
 int snapSize(BasisId::Type type, std::vector<int> &snapshotCounts)
@@ -508,7 +537,6 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcess(Vector &solution, 
   if(domain->solInfo().useMassNormalizedBasis || domain->solInfo().newmarkBeta == 0) {
     AllOps<double> allOps;
     if(reduce_idis || reduce_ivel) { 
-      //std::cerr << "building mass matrix\n";
       allOps.M = domain->constructDBSparseMatrix<double>();
       domain->makeSparseOps(allOps, 0, 0, 0);
     }
@@ -531,7 +559,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcess(Vector &solution, 
   const MeshRenumbering meshRenumbering(sampleElemIds.begin(), sampleElemIds.end(), *elemToNode, verboseFlag);
   const MeshDesc reducedMesh(domain_, geoSource, meshRenumbering, weights);
   outputMeshFile(fileInfo, reducedMesh, podBasis_.vectorCount());
-  outputFullWeights(fileInfo, solution, packedToInput);
+  outputFullWeights(solution, packedToInput);
 
   // output the reduced forces
   std::ofstream meshOut(getMeshFilename(fileInfo).c_str(), std::ios_base::app);

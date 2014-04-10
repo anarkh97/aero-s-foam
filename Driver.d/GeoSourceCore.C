@@ -1011,9 +1011,10 @@ void GeoSource::setUpData()
   // check for elements with no attribute, and add dummy properties in certain cases
   bool *hasAttr = new bool[nMaxEle];
   for(int i = 0; i < nMaxEle; ++i) hasAttr[i] = false;
-  for(int i = 0; i < na; ++i) {
-    if(attrib[i].nele < nMaxEle)
-      hasAttr[attrib[i].nele] = true;
+  for(std::map<int,Attrib>::iterator it = attrib.begin(); it != attrib.end(); ++it) {
+    Attrib &attrib_i = it->second;
+    if(attrib_i.nele < nMaxEle)
+      hasAttr[attrib_i.nele] = true;
   }
   int dattr;
   bool hasAddedDummy = false;
@@ -1085,22 +1086,23 @@ void GeoSource::setUpData()
   global_average_E = 0.0;
   global_average_nu = 0.0;
   global_average_rhof = 0.0;
-  for(int i = 0; i < na; ++i) {
-    Element *ele = elemSet[ attrib[i].nele ];
+  for(std::map<int,Attrib>::iterator it = attrib.begin(); it != attrib.end(); ++it) {
+    Attrib &attrib_i = it->second;
+    Element *ele = elemSet[ attrib_i.nele ];
 
     // Check if element exists
     if (ele == 0) {
-       filePrint(stderr, " *** WARNING: Attribute was found for non existent element %d\n", attrib[i].nele+1);
+       filePrint(stderr, " *** WARNING: Attribute was found for non existent element %d\n", attrib_i.nele+1);
       continue;
     }
-    if(attrib[i].attr < -1) { // phantom elements
+    if(attrib_i.attr < -1) { // phantom elements
       phantomFlag = 1;
       ele->setProp(0);
     }
     else {
-      SPropContainer::iterator it = sProps.find(attrib[i].attr);
+      SPropContainer::iterator it = sProps.find(attrib_i.attr);
       if(it == sProps.end()) {
-        filePrint(stderr, " *** ERROR: The material for element %d does not exist\n", attrib[i].nele+1);
+        filePrint(stderr, " *** ERROR: The material for element %d does not exist\n", attrib_i.nele+1);
       }
       else {
         StructProp *prop = &(it->second);
@@ -1108,7 +1110,7 @@ void GeoSource::setUpData()
 
         // compute global average structural and fluid properties
         if(!ele->isConstraintElement()) {
-          if(! dynamic_cast<HelmElement *>(elemSet[attrib[i].nele])) { // not a fluid element
+          if(! dynamic_cast<HelmElement *>(elemSet[attrib_i.nele])) { // not a fluid element
             global_average_E += prop->E;
             global_average_nu += prop->nu;
             structure_element_count++;
@@ -1120,21 +1122,21 @@ void GeoSource::setUpData()
       }
     }
 
-    if(attrib[i].cmp_attr >= 0) {
-      if(coefData[attrib[i].cmp_attr] != 0) {
-        if(attrib[i].cmp_frm > -1) { // cframe
-          ele->setCompositeData(1, 0, 0, coefData[attrib[i].cmp_attr]->values(),
-                                cframes[attrib[i].cmp_frm]);
+    if(attrib_i.cmp_attr >= 0) {
+      if(coefData[attrib_i.cmp_attr] != 0) {
+        if(attrib_i.cmp_frm > -1) { // cframe
+          ele->setCompositeData(1, 0, 0, coefData[attrib_i.cmp_attr]->values(),
+                                cframes[attrib_i.cmp_frm]);
         }
         else { // ctheta
-          ele->setCompositeData2(1, 0, 0, coefData[attrib[i].cmp_attr]->values(),
-                                 nodes, attrib[i].cmp_theta);
+          ele->setCompositeData2(1, 0, 0, coefData[attrib_i.cmp_attr]->values(),
+                                 nodes, attrib_i.cmp_theta);
         }
       }
       else {
-        LayInfo *li = layInfo[attrib[i].cmp_attr];
+        LayInfo *li = layInfo[attrib_i.cmp_attr];
         if(li == 0) {
-          filePrint(stderr, " *** WARNING: Attribute found that refers to nonexistant composite data: %d\n", attrib[i].cmp_attr+1);
+          filePrint(stderr, " *** WARNING: Attribute found that refers to nonexistant composite data: %d\n", attrib_i.cmp_attr+1);
           continue;
         }
         // Set up layer material properties if necessary
@@ -1147,13 +1149,13 @@ void GeoSource::setUpData()
         }
         // type is 3 for LAYC 2 for LAYN
         int type = 3 - li->getType();
-        if(attrib[i].cmp_frm > -1) { // cframe
+        if(attrib_i.cmp_frm > -1) { // cframe
           ele->setCompositeData(type, li->nLayers(), li->values(), 0,
-                                cframes[attrib[i].cmp_frm]);
+                                cframes[attrib_i.cmp_frm]);
         }
         else { // ctheta
           ele->setCompositeData2(type, li->nLayers(), li->values(), 0,
-                                 nodes, attrib[i].cmp_theta);
+                                 nodes, attrib_i.cmp_theta);
         }
       }
     }

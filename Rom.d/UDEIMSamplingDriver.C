@@ -602,23 +602,15 @@ UDEIMSamplingDriver::writeSampledMesh(std::vector<int> &maskIndices, std::set<in
  
   //output Full Weights for compatibility with full mesh hyperreduction (i.e. old method)
   {
+   // 1. write the ATTRIBUTES data
+   outputFullWeights(solution, packedToInput);
+
+   // 2. append the SNSLOT and UDBASIS data
    const std::string fileName = domain->solInfo().reducedMeshFile;
-   const std::ios_base::openmode mode = std::ios_base::out;
+   const std::ios_base::openmode mode = std::ios_base::out | std::ios_base::app;
    std::ofstream weightOut(fileName.c_str(), mode);
    weightOut.precision(std::numeric_limits<double>::digits10+1);
 
-   weightOut << "ATTRIBUTES\n";
-   for (int i = 0; i != solution.size(); i++) {
-    if(i == 0 ){
-      if(domain->solInfo().reduceFollower)
-        weightOut << packedToInput[i] + 1 << " 1 " << "HRC REDFOL" << " " << solution[i] << "\n";
-      else
-        weightOut << packedToInput[i] + 1 << " 1 " << "HRC" << " " << solution[i] << "\n";
-    } else {
-      weightOut << packedToInput[i] + 1 << " 1 " << "HRC" << " " << solution[i] << "\n";
-    }
-   }
- 
    weightOut << "*\n";
    weightOut << "SNSLOT\n";
 /*   int counter = 0;

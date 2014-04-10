@@ -172,6 +172,8 @@ TRAIL [a-zA-Z]*
 
 "REDFOL"|"redfol"                  { return REDFOL; }
 
+"EXTFOL"|"extfol"                  { return EXTFOL; }
+
 "FULLND"|"fullnd"		   { return PSEUDOGNAT; }
 
 "FULLEL"|"fullel"		   { return PSEUDOGNATELEM; }

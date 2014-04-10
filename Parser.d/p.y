@@ -70,7 +70,7 @@
 %token CONSTANT CONWEP
 %token DAMPING DblConstant DEM DIMASS DISP DIRECT DLAMBDA DP DYNAM DETER DECOMPOSE DECOMPFILE DMPC DEBUGCNTL DEBUGICNTL
 %token CONSTRAINTS MULTIPLIERS PENALTY
-%token ELLUMP EIGEN EFRAMES ELSCATTERER END ELHSOMMERFELD ETEMP EXPLICIT EPSILON ELEMENTARYFUNCTIONTYPE
+%token ELLUMP EIGEN EFRAMES ELSCATTERER END ELHSOMMERFELD ETEMP EXPLICIT EXTFOL EPSILON ELEMENTARYFUNCTIONTYPE
 %token FABMAT FACOUSTICS FETI FETI2TYPE FETIPREC FFP FFPDIR FITALG FNAME FLUX FORCE FRONTAL FETIH FIELDWEIGHTLIST FILTEREIG FLUID
 %token FREQSWEEP FREQSWEEP1 FREQSWEEP2 FREQSWEEPA FSGL FSINTERFACE FSISCALING FSIELEMENT NOLOCALFSISPLITING FSICORNER FFIDEBUG FAILSAFE FRAMETYPE
 %token GEPS GLOBALTOL GRAVITY GRBM GTGSOLVER GLOBALCRBMTOL GROUP GROUPTYPE GOLDFARBTOL GOLDFARBCHECK
@@ -89,12 +89,12 @@
 %token QSTATIC QLOAD
 %token PITA PITADISP6 PITAVEL6 NOFORCE MDPITA GLOBALBASES LOCALBASES TIMEREVERSIBLE REMOTECOARSE ORTHOPROJTOL READINITSEED JUMPCVG JUMPOUTPUT
 %token PRECNO PRECONDITIONER PRELOAD PRESSURE PRINTMATLAB PROJ PIVOT PRECTYPE PRECTYPEID PICKANYCORNER PADEPIVOT PROPORTIONING PLOAD PADEPOLES POINTSOURCE PLANEWAVE PTOL PLANTOL PMAXIT PIECEWISE
-%token RADIATION RAYDAMP RBMFILTER RBMSET READMODE REBUILD RENUM RENUMBERID REORTHO RESTART RECONS RECONSALG REBUILDCCT RANDOM RPROP RNORM REVERSENORMALS ROTVECOUTTYPE RESCALING
+%token RADIATION RAYDAMP RBMFILTER RBMSET READMODE REBUILD REDFOL RENUM RENUMBERID REORTHO RESTART RECONS RECONSALG REBUILDCCT RANDOM RPROP RNORM REVERSENORMALS ROTVECOUTTYPE RESCALING
 %token SCALING SCALINGTYPE STRDAMP SDETAFT SENSORS SOLVERTYPE SHIFT
 %token SPOOLESTAU SPOOLESSEED SPOOLESMAXSIZE SPOOLESMAXDOMAINSIZE SPOOLESMAXZEROS SPOOLESMSGLVL SPOOLESSCALE SPOOLESPIVOT SPOOLESRENUM SPARSEMAXSUP SPARSEDEFBLK
 %token STATS STRESSID SUBSPACE SURFACE SAVEMEMCOARSE SPACEDIMENSION SCATTERER STAGTOL SCALED SWITCH STABLE SUBTYPE STEP SOWER SHELLTHICKNESS SURF SPRINGMAT
 %token TANGENT TEMP TIME TOLEIG TOLFETI TOLJAC TOLPCG TOPFILE TOPOLOGY TRBM THERMOE THERMOH 
-%token TETT TOLCGM TURKEL TIEDSURFACES THETA REDFOL HRC THIRDNODE THERMMAT TDENFORC TESTULRICH THRU TRIVIAL
+%token TETT TOLCGM TURKEL TIEDSURFACES THETA HRC THIRDNODE THERMMAT TDENFORC TESTULRICH THRU TRIVIAL
 %token USE USERDEFINEDISP USERDEFINEFORCE UPROJ UNSYMMETRIC USING
 %token VERSION WETCORNERS YMTT 
 %token ZERO BINARY GEOMETRY DECOMPOSITION GLOBAL MATCHER CPUMAP
@@ -2956,25 +2956,56 @@ BoffsetList:
 Attributes:
 	ATTRIBUTES NewLine 
         { $$ = 0; }
+        /* define hyper reduction coefficient for element with no attribute */
+        | Attributes Integer HRC Float NewLine
+        { geoSource->setElementLumpingWeight($2-1,$4);
+          domain->solInfo().elemLumpPodRom = true; }
+        | Attributes Integer HRC Float EXTFOL NewLine
+        { geoSource->setElementLumpingWeight($2-1,$4);
+          domain->solInfo().elemLumpPodRom = true;
+          domain->solInfo().reduceFollower = true; }
+        /* define attribute and hyper reduction coefficient for non-composite element */
 	| Attributes Integer Integer NewLine
 	{ geoSource->setAttrib($2-1,$3-1); }
-        | Attributes Integer Integer HRC Float NewLine // added HRC keyword for Hyper Reduction Coefficient
+        | Attributes Integer Integer HRC Float NewLine
         { geoSource->setAttrib($2-1,$3-1); 
-	  geoSource->setElementLumpingWeight($2 - 1, $5);
+	  geoSource->setElementLumpingWeight($2-1,$5);
 	  domain->solInfo().elemLumpPodRom = true; }
-        | Attributes Integer Integer HRC REDFOL Float NewLine // added HRC keyword for Hyper Reduction Coefficient
+        | Attributes Integer Integer HRC REDFOL Float NewLine /* deprecated syntax */
         { geoSource->setAttrib($2-1,$3-1);
-          geoSource->setElementLumpingWeight($2 - 1, $6);
+          geoSource->setElementLumpingWeight($2-1,$6);
           domain->solInfo().elemLumpPodRom = true; 
-          domain->solInfo().reduceFollower = true;}
+          domain->solInfo().reduceFollower = true; }
+        | Attributes Integer Integer HRC Float EXTFOL NewLine /* new syntax */
+        { geoSource->setAttrib($2-1,$3-1);
+          geoSource->setElementLumpingWeight($2-1,$5);
+          domain->solInfo().elemLumpPodRom = true;
+          domain->solInfo().reduceFollower = true; }
+        /* define attribute and hyper reduction coefficient for composite element with CFRAME */
 	| Attributes Integer Integer Integer Integer NewLine
 	{ geoSource->setAttrib($2-1,$3-1,$4-1,$5-1); }
-        | Attributes Integer Integer Integer Integer HRC Float NewLine // added HRC keyword for Hyper Reduction Coefficient
+        | Attributes Integer Integer Integer Integer HRC Float NewLine
         { geoSource->setAttrib($2-1,$3-1,$4-1,$5-1);
-	  geoSource->setElementLumpingWeight($2 - 1, $7); 
+	  geoSource->setElementLumpingWeight($2-1,$7); 
 	  domain->solInfo().elemLumpPodRom = true; }
-        | Attributes Integer Integer Integer THETA Float NewLine // PJSA: added THETA keyword to eliminate conflict
+        | Attributes Integer Integer Integer Integer HRC Float EXTFOL NewLine
+        { geoSource->setAttrib($2-1,$3-1,$4-1,$5-1);
+          geoSource->setElementLumpingWeight($2-1,$7);   
+          domain->solInfo().elemLumpPodRom = true;
+          domain->solInfo().reduceFollower = true; }
+        /* define attribute and hyper reduction coefficient for composite element with reference angle  */
+        | Attributes Integer Integer Integer THETA Float NewLine
         { geoSource->setAttrib($2-1,$3-1,$4-1,-1,$6); }
+        | Attributes Integer Integer Integer THETA Float HRC Float NewLine
+        { geoSource->setAttrib($2-1,$3-1,$4-1,-1,$6);
+          geoSource->setElementLumpingWeight($2-1,$8);
+          domain->solInfo().elemLumpPodRom = true; }
+        | Attributes Integer Integer Integer THETA Float HRC Float EXTFOL NewLine
+        { geoSource->setAttrib($2-1,$3-1,$4-1,-1,$6); 
+          geoSource->setElementLumpingWeight($2-1,$8);
+          domain->solInfo().elemLumpPodRom = true;
+          domain->solInfo().reduceFollower = true; }
+        /* define attributes for a range of elements */
 	| Attributes Integer Integer IDENTITY NewLine
         { int i;
           for(i=$2; i<$3+1; ++i)
@@ -2990,7 +3021,7 @@ Attributes:
 	  for(i=$2; i<$3+1; ++i)
 	    geoSource->setAttrib(i-1, $4-1, $5-1, $6-1);
 	}
-        | Attributes Integer Integer Integer Integer THETA Float NewLine // PJSA: added THETA keyword to eliminate conflict
+        | Attributes Integer Integer Integer Integer THETA Float NewLine
         { int i;
           for(i=$2; i<$3+1; ++i)
             geoSource->setAttrib(i-1, $4-1, $5-1, -1, $7);

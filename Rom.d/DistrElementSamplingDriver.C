@@ -365,21 +365,7 @@ DistrElementSamplingDriver::solve()
 
   if(myID == 0) {
     // Weights output file generation
-    const std::string fileName = domain->solInfo().reducedMeshFile;
-    std::ofstream weightOut(fileName.c_str(), std::ios_base::out);
-    weightOut.precision(std::numeric_limits<double>::digits10+1);
-    weightOut << "ATTRIBUTES\n";
-    bool firstTime = true;
-    for(int i = 0; i < gweights.size(); i++) {
-      if(domain->solInfo().reduceFollower && firstTime) {
-        weightOut << gelemIds[i]+1 << " 1 " << "HRC REDFOL" << " " << gweights[i] << "\n";
-        firstTime = false;
-      }
-      else {
-        weightOut << gelemIds[i]+1 << " 1 " << "HRC" << " " << gweights[i] << "\n";
-      }
-    }
-    weightOut.close();
+    outputFullWeights(gweights, gelemIds);
 
     // Mesh output file generation
     std::map<int,double> weightsMap;

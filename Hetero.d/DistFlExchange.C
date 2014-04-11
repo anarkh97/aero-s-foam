@@ -490,12 +490,17 @@ void DistFlExchanger::sendParam(int algnum, double step, double totaltime,
 
   isCollocated = _isCollocated;
   dt = step;
+/* PJSA 4/11/2014: the alphas have already been set to zero in the parser for A6 (algnum 6) and
+                   A7 (algnum 7) because for these schemes the predictor is on the fluid side.
+                   For other schemes particularly C0 (algnum 20) it should not have been done here.
   if (algnum > 4) 
     alpha[0] = alpha[1] = 0;
   else  {
     alpha[0] = _a[0];
     alpha[1] = _a[1];
-  }
+  } */
+  alpha[0] = _a[0];
+  alpha[1] = _a[1];
 }
 
 //---------------------------------------------------------------------

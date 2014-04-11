@@ -1330,6 +1330,9 @@ MultiDomainDynam::aeroSend(double time, DistrVector& d_n, DistrVector& v_n, Dist
 
   if(claw && userSupFunc) {
     if(claw->numUserDisp) { // USDD
+      // Note: the approprate value of "time" passed into this function should be t^n for A6 and A7
+      // (because for these schemes the predictor is done on the fluid side), t^{n+1/2} for C0, and
+      // t^{n+1} otherwise, where t^n denotes the end of the current structure timestep.
       double *userDefineDisp = new double[claw->numUserDisp];
       double *userDefineVel  = new double[claw->numUserDisp];
       double *userDefineAcc  = new double[claw->numUserDisp];
@@ -1338,7 +1341,7 @@ MultiDomainDynam::aeroSend(double time, DistrVector& d_n, DistrVector& v_n, Dist
         userDefineAcc[i] = 0;
       }
       userSupFunc->usd_disp(time, userDefineDisp, userDefineVel, userDefineAcc);
-      // XXX update usrDefDisps, usrDefVels
+      // update usrDefDisps, usrDefVels
       execParal2R(decDomain->getNumSub(), this, &MultiDomainDynam::subUpdateUsrDefDispsAndVels, userDefineDisp,
                   userDefineVel);
       delete [] userDefineDisp;

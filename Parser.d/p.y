@@ -1169,8 +1169,14 @@ AeroInfo:
         { domain->solInfo().setAero($3);
           domain->solInfo().isCollocated = 0;
           if($3 < 6 || $3 == 20) {
-              domain->solInfo().alphas[0] = $4+$5;
-              domain->solInfo().alphas[1] = -$5;
+            // Only schemes A0, A4, A5 and C0 use the inputted alphas
+            // In the case of A6 and A7 the predictor is on the fluid side so alpha[0] and alpha[1] should be zero.
+            domain->solInfo().alphas[0] = $4+$5;
+            domain->solInfo().alphas[1] = -$5;
+          }
+          else if($3 == 8) {
+            // MPP uses only the first of the two inputted alphas
+            domain->solInfo().mppFactor = $4;
           }
         }
         | AERO NewLine AEROTYPE Float NewLine

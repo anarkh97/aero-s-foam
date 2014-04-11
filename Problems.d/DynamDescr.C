@@ -1317,8 +1317,9 @@ SingleDomainDynamic::aeroSend(double time, Vector& d, Vector& v, Vector& a, Vect
 {
   if(claw && userSupFunc) {
     if(claw->numUserDisp) { // USDD
-      // Note: the approprate value of "time" passed into this function should be
-      // t^{n+1/2} for explicit and A6 implicit, and t^{n+1} otherwise.
+      // Note: the approprate value of "time" passed into this function should be t^n for A6 and A7
+      // (because for these schemes the predictor is done on the fluid side), t^{n+1/2} for C0, and
+      // t^{n+1} otherwise, where t^n denotes the end of the current structure timestep.
       double *userDefineDisp = new double[claw->numUserDisp];
       double *userDefineVel = new double[claw->numUserDisp];
       double *userDefineAcc = new double[claw->numUserDisp];

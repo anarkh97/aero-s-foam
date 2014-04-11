@@ -197,12 +197,11 @@ NonLinDynamic::readRestartFile(Vector &d_n, Vector &v_n, Vector &a_n,
 
     int aeroFlag = domain->solInfo().aeroFlag;
     if(aeroFlag >= 0) {
-      double t = domain->solInfo().initialTime;
+      double time = domain->solInfo().initialTime;
       double dt = domain->solInfo().getTimeStep();
-      double t_n_k = (aeroFlag == 6) ? t+dt/2 : t+dt; // this is the time at which the displacements to be sent to the
-                                                      // fluid are predicted/computed: t^{n+1/2} for A6 and t^{n+1} otherwise
+      double t = (aeroFlag == 6 || aeroFlag == 7) ? time : time+dt; // used to compute prescribed displacements
       dynamCommToFluid(&geomState, &geomState, v_n, v_n, v_p, v_p, domain->solInfo().initialTimeIndex, 1,
-                       domain->solInfo().aeroFlag, t_n_k);
+                       domain->solInfo().aeroFlag, t);
     }
 
     // update geomState and bcx/vcx/acx for time dependent prescribed displacements and their time derivatives
@@ -1087,8 +1086,9 @@ NonLinDynamic::dynamCommToFluid(GeomState* geomState, GeomState* bkGeomState,
     ControlLawInfo *claw = geoSource->getControlLaw();
     ControlInterface *userSupFunc = domain->getUserSuppliedFunction();
     if(claw && claw->numUserDisp) {
-      // Note: the approprate value of "time" passed into this function should be
-      // t^{n+1/2} for A6 and t^{n+1} otherwise.
+      // Note: the approprate value of "time" passed into this function should be t^n for A6 and A7 
+      // (because for these schemes the predictor is done on the fluid side), and t^{n+1} otherwise,
+      // where t^n denotes the time at the end of the current structure timestep.
       double *userDefineDisp = new double[claw->numUserDisp];
       double *userDefineVel  = new double[claw->numUserDisp];
       double *userDefineAcc  = new double[claw->numUserDisp];

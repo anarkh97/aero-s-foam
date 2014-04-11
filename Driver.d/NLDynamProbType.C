@@ -345,8 +345,8 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
       // Output results at current time
       if(step+1 == maxStep && (aeroAlg != 5 || parity == 1)) probDesc->processLastOutput();
       else if(aeroAlg >= 0 || probDesc->getThermohFlag() >= 0 || probDesc->getAeroheatFlag() >= 0) {
-        double t_n_k =(aeroAlg == 6) ? time + dt/2 : time+dt; // used to compute prescribed displacements and velociities
-        probDesc->dynamCommToFluid(geomState, bkGeomState, velocity_n, *bkVelocity_n, v_p, *bkV_p, step, parity, aeroAlg, t_n_k);
+        double t = (aeroAlg == 6 || aeroAlg == 7) ? time : time+dt0; // used to compute prescribed displacements
+        probDesc->dynamCommToFluid(geomState, bkGeomState, velocity_n, *bkVelocity_n, v_p, *bkV_p, step, parity, aeroAlg, t);
       }
       probDesc->dynamOutput(geomState, velocity_n, v_p, time, step, external_force, aeroForce, acceleration, refState);
 

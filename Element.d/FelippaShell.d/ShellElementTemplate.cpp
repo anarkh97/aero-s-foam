@@ -966,7 +966,6 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 // ==================================================================== 
 
     thick = nmat->GetShellThickness();
-    std::cerr << "thickness = " << thick << std::endl;
 
 //     ---------------------------------- 
 //     STEP 1                             

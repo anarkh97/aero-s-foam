@@ -1024,13 +1024,15 @@ Domain::buildPreSensitivities(AllSensitivities<Scalar> &allSens, Scalar *bcx)
 
 template<class Scalar>
 void
-Domain::buildPostSensitivities(GenSolver<Scalar> *sysSolver, AllSensitivities<Scalar> &allSens, GenVector<Scalar> &sol, Scalar *bcx)
+Domain::buildPostSensitivities(GenSolver<Scalar> *sysSolver, 
+                               GenSparseMatrix<Scalar> *K, GenSparseMatrix<Scalar> *spm,
+                               AllSensitivities<Scalar> &allSens, GenVector<Scalar> &sol, Scalar *bcx)
 {
   switch(sinfo.type) {
     default:
       fprintf(stderr," *** WARNING: Solver not Specified  ***\n");
     case 0:
-      makePostSensitivities(sysSolver, allSens, sol, bcx);
+      makePostSensitivities(sysSolver, K, spm, allSens, sol, bcx);
       break;
   }
 }
@@ -1314,6 +1316,7 @@ Domain::getSolverAndKuc(GenSolver<Scalar> *&solver, GenSparseMatrix<Scalar> *&ku
 
  // ... Build stiffness matrix K and Kuc
  buildOps<Scalar>(allOps, 1.0, 0.0, 0.0, rbm, kelArray, factorize);
+ allOps.K->print();
 
  // ... Return with solver and Kuc
  solver = allOps.sysSolver;
@@ -1324,12 +1327,14 @@ template<class Scalar>
 void
 Domain::getSolverAndKuc(AllOps<Scalar> &allOps, FullSquareMatrix *kelArray, bool factorize)
 {
+ cerr << " ... ... ... Domain::getSolverAndKuc\n";
  // PJSA 10-5-04: new version, this one can pass all sys matricies back via allOps
  // not just K and Kuc. This is required for frequency sweep analysis
 
  // ... Call necessary Operator's constructors
  allOps.Kuc = constructCuCSparse<Scalar>();
  allOps.Kcc = constructCCSparse<Scalar>();
+ allOps.K = constructEiSparseMatrix<Scalar, Eigen::SimplicialLLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >(c_dsa, nodeToNode, false);
 
  Rbm *rbm = 0;
  // ... Construct geometric rigid body modes if necessary
@@ -1352,6 +1357,7 @@ Domain::getSolverAndKuc(AllOps<Scalar> &allOps, FullSquareMatrix *kelArray, bool
  // for freqency sweep: need M, Muc, C, Cuc
  bool isDamped = (sinfo.alphaDamp != 0.0) || (sinfo.betaDamp != 0.0) || packedEset.hasDamping();
  if((sinfo.doFreqSweep && (sinfo.getSweepParams()->nFreqSweepRHS > 1 || isDamped)) || sinfo.getSweepParams()->isAdaptSweep) {
+   cerr << ".a.fda.... in UH\n";
    //---- UH ----
    if(sinfo.getSweepParams()->freqSweepMethod == SweepParams::PadeLanczos ||
       sinfo.getSweepParams()->freqSweepMethod == SweepParams::GalProjection ||
@@ -1623,6 +1629,7 @@ Domain::addGravityForce(GenVector<Scalar> &force)
 
     // transform vector from basic to DOF_FRM coordinates
     transformVector(elementGravityForce, iele);
+    cerr << "norm of elementGravityForce is " << elementGravityForce.norm() << endl;
 
     for(int idof = 0; idof < allDOFs->num(iele); ++idof) {
       int cn = c_dsa->getRCN((*allDOFs)[iele][idof]);
@@ -1709,6 +1716,7 @@ Domain::addPressureForce(GenVector<Scalar> &force, int which, double time)
       // Compute element pressure force
       elementPressureForce.zero();
       packedEset[iele]->computePressureForce(nodes, elementPressureForce, (GeomState *) 0, cflg, time);
+      cerr << "norm of pressure force is " << elementPressureForce.norm() << endl;
       pbc->val = p0;
 
       // Transform vector from basic to DOF_FRM coordinates
@@ -1743,6 +1751,7 @@ Domain::addPressureForce(GenVector<Scalar> &force, int which, double time)
     // Compute structural element distributed Neumann force
     elementPressureForce.zero();
     neum[iele]->neumVector(nodes, elementPressureForce, 0, (GeomState*) 0, time);
+    cerr << "norm of pressure force is " << elementPressureForce.norm() << endl;
     pbc->val = p0;
 
     // transform vector from basic to DOF_FRM coordinates
@@ -1871,6 +1880,7 @@ Domain::addMpcRhs(GenVector<Scalar> &force, double t)
 
     // Otherwise, compute element force due to mpc rhs
     packedEset[iele]->computePressureForce(nodes, elementForce, (GeomState *) 0, 0, t);
+    cerr << "norm of Mpc element force is " << elementForce.norm() << endl;
 
     // Assemble element pressure forces into domain force vector
     for(int idof = 0; idof < allDOFs->num(iele); ++idof) {
@@ -2117,6 +2127,11 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc)
       case(BCond::Forces) : case(BCond::Flux) : case(BCond::Convection) : case(BCond::Hneu) : {
         double loadFactor = domain->getLoadFactor(nbc[i].loadsetid);
         ScalarTypes::addScalar(force[dof], loadFactor*nbc[i].val);
+        cerr << "nbc[i].nnum = " << nbc[i].nnum << endl;
+        cerr << "nbc[i].dofnum = " << nbc[i].dofnum << endl;
+        cerr << "nbc[i].val = " << nbc[i].val << endl;
+        cerr << "loadFactor = " << loadFactor << endl;
+        cerr << "dof = " << dof << endl;
       } break;
       default : 
        ScalarTypes::addScalar(force[dof], nbc[i].val);
@@ -2138,6 +2153,7 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc)
   }
 
   if (implicitFlag) {
+    cerr << "implicitFlag is on\n";
     int i, iele;
     double *direction = getWaveDirection();
     ComplexVector elementNeumanScatterForce(this->maxNumDOFs,0.0);
@@ -2189,19 +2205,32 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc)
   }
 
   // ... ADD GRAVITY FORCES
-  if(gravityFlag()) addGravityForce<Scalar>(force);
+  if(gravityFlag()) {
+    cerr << "gravityFlag is on\n";
+    addGravityForce<Scalar>(force);
+  }
 
   // ... ADD THERMAL FORCES
-  if(thermalFlag() && !sinfo.isNonLin()) addThermalForce<Scalar>(force);
+  if(thermalFlag() && !sinfo.isNonLin()) {
+    cerr << "thermalFlag is on\n";
+    addThermalForce<Scalar>(force);
+  }
 
   // ... ADD PRESSURE LOAD
-  if(!sinfo.isNonLin()) addPressureForce<Scalar>(force);
+  if(!sinfo.isNonLin()) {
+    cerr << "pressureFlag is on\n";
+    addPressureForce<Scalar>(force);
+  }
 
   // ... ADD LMPC RHS
-  if(!sinfo.isNonLin()) addMpcRhs<Scalar>(force);
+  if(!sinfo.isNonLin()) { 
+    cerr << "LMPC RHS is added\n";
+    addMpcRhs<Scalar>(force);
+  }
 
   // scale RHS force for coupled domains
   if(sinfo.isCoupled) {
+    cerr << "coupled RHS force is added\n";
     int cdofs[6];  DofSet structdofs = DofSet::XYZdisp | DofSet::XYZrot;
     for(i=0; i<numnodes; ++i) {
       c_dsa->number(i, structdofs, cdofs);
@@ -2215,6 +2244,7 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc)
   // ARE TAKEN CARE OF USING THE GEOMSTATE CLASS, NOT BY
   // MODIFYING THE RHS VECTOR
   if(kuc && !sinfo.isNonLin()) {
+    cerr << "non-homogeneous forces is added to rhs\n";
     GenVector<Scalar> Vc(numDirichlet+numComplexDirichlet, 0.0);
 
     // CONSTRUCT NON-HOMONGENOUS DIRICHLET BC VECTOR (PRESCRIBED)
@@ -2239,6 +2269,7 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc)
         else ScalarTypes::initScalar(Vc[dof2], cdbcMRHS[i].reval, cdbcMRHS[i].imval);
       }
     }
+    cerr << "norm of Vc is " << Vc.norm() << endl;
 
     kuc->multSubtract(Vc, force);
   }

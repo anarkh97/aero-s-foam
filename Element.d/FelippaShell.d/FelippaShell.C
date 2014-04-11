@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <stdexcept>
+#include <iomanip>
 
 #include <Corotational.d/GeomState.h>
 #include <Corotational.d/Shell3Corotator.h>
@@ -116,22 +117,26 @@ FelippaShell::getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
   stress[0] = elStress[0][strInd-offset];
   stress[1] = elStress[1][strInd-offset];
   stress[2] = elStress[2][strInd-offset];
-
-  if(verboseFlag) {
+/*
+//  if(verboseFlag) {
     cerr << "glNum + 1 is" << glNum + 1 << endl;
     cerr << "maxstr is " << maxstr << endl;
     cerr << "prop->nu is " << prop->nu << endl;
-    cerr << "disp = " << disp[0] << " " << disp[1] << " " << disp[2] << endl;
+    cerr << "disp = \n"; 
+    for(int i=0; i<elDisp.size(); ++i) cerr << elDisp[i] << "  ";
+    cerr << endl;
+    cerr << "x = " << x[0] << "  " << x[1] << "  " << x[2] << endl;
+    cerr << "y = " << y[0] << "  " << y[1] << "  " << y[2] << endl;
+    cerr << "z = " << z[0] << "  " << z[1] << "  " << z[2] << endl;
     cerr << "type = " << type << endl;
     cerr << "strainFlg = " << strainFlg << endl;
     cerr << "surface = " << surface << endl;
     cerr << "strInd is " << strInd << endl;
-    cerr << "offset is " << offset << endl;
-    cerr << "elStress[0] is " << elStress[0][strInd-offset] << endl;
-    cerr << "elStress[1] is " << elStress[1][strInd-offset] << endl;
-    cerr << "elStress[2] is " << elStress[2][strInd-offset] << endl;
-  }
-
+    cerr << "offset is " << offset << endl; */
+    cerr << "elStress[0] is " << std::setprecision(20) << elStress[0][strInd-offset] << endl;
+    cerr << "elStress[1] is " << std::setprecision(20) << elStress[1][strInd-offset] << endl;
+    cerr << "elStress[2] is " << std::setprecision(20) << elStress[2][strInd-offset] << endl;
+//  } 
 }
 
 void
@@ -1514,7 +1519,10 @@ FelippaShell::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix &d
     Eigen::Matrix<double,18,18> Sp = foo(qp, 0);
     Eigen::Matrix<double,18,18> Sm = foo(qm, 0);
     dStiffnessdThick = (Sp-Sm)/(2*h);
-    if(verboseFlag) std::cerr << "dStiffnessdThick(FD) =\n" << dStiffnessdThick << std::endl;
+    Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
+    if(verboseFlag) std::cerr << "Sp =\n" << Sp.format(HeavyFmt) << std::endl;
+    if(verboseFlag) std::cerr << "Sm =\n" << Sm.format(HeavyFmt) << std::endl;
+    if(verboseFlag) std::cerr << "dStiffnessdThick(FD) =\n" << dStiffnessdThick.format(HeavyFmt) << std::endl;
   }
 
   dStiffdThick.copy(dStiffnessdThick.data());
@@ -1541,8 +1549,9 @@ FelippaShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight,
   dconst[28] = prop->nu;   // nu
   dconst[29] = prop->rho;  // rho
 
-  if(verboseFlag) std::cerr << "nu is " << prop->nu << endl;
-  if(verboseFlag) std::cerr << "dconst =\n" << dconst << endl;
+  cerr << "print displacement =\n";
+  for(int i=0; i<18; ++i) cerr << elDisp[i] << "  ";
+  cerr << endl;
 
   // integer parameters
   Eigen::Array<int,1,1> iconst;
@@ -1558,10 +1567,16 @@ FelippaShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight,
     Eigen::Vector3d dStressdThick;
     dStressdThick.setZero();
     Eigen::Matrix<double,7,3> stress;
-    andesvmsWRTthic(0, 7, prop->nu, globalx.data(), globaly.data(), globalz.data(), elDisp.data(),
-                    stress.data(), dStressdThick.data(), 0, 0, surface);   
+    andesvmsWRTthic(1, 7, prop->nu, globalx.data(), globaly.data(), globalz.data(), elDisp.data(),
+                    stress.data(), dStressdThick.data(), 0, 0, surface);  
+
+//    cerr << "stress[0] is " << std::setprecision(15) << stress(6,0) << endl;
+//    cerr << "stress[1] is " << std::setprecision(15) << stress(6,1) << endl;
+//    cerr << "stress[2] is " << std::setprecision(15) << stress(6,2) << endl;
+ 
     dStdThick.copy(dStressdThick.data());
     if(verboseFlag) std::cerr << "dStressdThick(analytic) =\n" << dStressdThick << std::endl;
+//    std::cerr << "dStressdThick(analytic) =\n" << dStressdThick << std::endl;
   }
 
   if(senMethod == 1) { // automatic differentiation
@@ -1578,12 +1593,16 @@ FelippaShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight,
     double h(1e-6);
     qp[0] = q[0] + h;   cerr << "qp[0] = " << qp[0] << endl;
     qm[0] = q[0] - h;   cerr << "qm[0] = " << qm[0] << endl;
+    Eigen::Matrix<double,3,1> S = foo(q,0);
     Eigen::Matrix<double,3,1> Sp = foo(qp, 0);
     Eigen::Matrix<double,3,1> Sm = foo(qm, 0);
     Eigen::Vector3d dStressdThick = (Sp - Sm)/(2*h);
-    cerr << "Sp =\n" << Sp << endl;
-    cerr << "Sm =\n" << Sm << endl;
-    if(verboseFlag) std::cerr << "dStressdThick(FD) =\n" << dStressdThick << std::endl;
+    Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
+    cerr << "S =\n" << S.format(HeavyFmt) << endl;
+    cerr << "Sp =\n" << Sp.format(HeavyFmt) << endl;
+    cerr << "Sm =\n" << Sm.format(HeavyFmt) << endl;
+//    if(verboseFlag) std::cerr << "dStressdThick(FD) =\n" << dStressdThick << std::endl;
+    std::cerr << "dStressdThick(FD) =\n" << dStressdThick.format(HeavyFmt) << std::endl;
     dStdThick.copy(dStressdThick.data());
   }
 
@@ -1643,7 +1662,7 @@ FelippaShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
   if(avgnum == 0 || avgnum == 1) { // NODALFULL or ELEMENTAL
     if(senMethod == 0) { // analytic
       dStressdDisp.setZero();
-      andesvmsWRTdisp(0, 7, prop->nu, globalx.data(), globaly.data(), globalz.data(), q.data(),
+      andesvmsWRTdisp(1, 7, prop->nu, globalx.data(), globaly.data(), globalz.data(), q.data(),
                       stress.data(), dStressdDisp.data(), 0, 0, surface);   
       dStdDisp.copy(dStressdDisp.data());
       if(verboseFlag) std::cerr << "dStressdDisp(analytic) =\n" << dStressdDisp << std::endl;

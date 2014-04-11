@@ -558,7 +558,9 @@ class Domain : public HData {
      void makePreSensitivities(AllSensitivities<DComplex> &allSens, DComplex *);
 
      void subtractGravityForceSensitivity(int, AllSensitivities<double> &allSens);
-     void computeDisplacementWRTthicknessSensitivity(int, GenSolver<double> *, AllSensitivities<double> &);
+     void computeDisplacementWRTthicknessSensitivity(int, GenSolver<double> *, 
+                                                     GenSparseMatrix<double> *, GenSparseMatrix<double> *,
+                                                     AllSensitivities<double> &);
      void computeLinearStaticWRTthicknessSensitivity(int, AllSensitivities<double> &allSens,
                                                      GenVector<double> &sol);
      void computeStressVMWRTthicknessSensitivity(int, GenSolver<double> *,
@@ -566,8 +568,10 @@ class Domain : public HData {
                                                  GenVector<double> &sol, double *bcx);
      void computeStressVMWRTdisplacementSensitivity(int, AllSensitivities<double> &allSens,
                                                     GenVector<double> &sol, double *bcx);
-     void makePostSensitivities(GenSolver<double> *, AllSensitivities<double> &allSens, GenVector<double> &sol, double *);
-     void makePostSensitivities(GenSolver<DComplex> *, AllSensitivities<DComplex> &allSens, GenVector<DComplex> &sol, DComplex *);
+     void makePostSensitivities(GenSolver<double> *, GenSparseMatrix<double> *, GenSparseMatrix<double> *,
+                                AllSensitivities<double> &allSens, GenVector<double> &sol, double *);
+     void makePostSensitivities(GenSolver<DComplex> *, GenSparseMatrix<DComplex> *, GenSparseMatrix<DComplex> *, 
+                                AllSensitivities<DComplex> &allSens, GenVector<DComplex> &sol, DComplex *);
 
      /** Abstract method to assemble any type of operator
       *
@@ -583,7 +587,9 @@ class Domain : public HData {
        void buildPreSensitivities(AllSensitivities<Scalar> &ops, Scalar *);
 
      template<class Scalar>
-       void buildPostSensitivities(GenSolver<Scalar> *sysSolver, AllSensitivities<Scalar> &ops, GenVector<Scalar> &sol, Scalar *);
+       void buildPostSensitivities(GenSolver<Scalar> *sysSolver, 
+                                   GenSparseMatrix<Scalar> *, GenSparseMatrix<Scalar> *,
+                                   AllSensitivities<Scalar> &ops, GenVector<Scalar> &sol, Scalar *);
 
      template<class Scalar>
        void buildOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef, double Ccoef,
@@ -905,7 +911,7 @@ class Domain : public HData {
                             FullSquareMatrix *kelArray = 0, bool factorize=true);
      template<class Scalar>
        void getSolverAndKuc(AllOps<Scalar> &allOps, FullSquareMatrix *kelArray, bool factorize=true);
-
+     
      void make_constrainedDSA();
      void make_constrainedDSA(int *bc);
      void make_constrainedDSA(int fake);
@@ -1177,10 +1183,12 @@ class Domain : public HData {
      void transformVector(Vector &vec, int iele);
      void transformNeumVector(Vector &vec, int iele);
      void transformVector(ComplexVector &vec, int iele);
+     void transformElementSensitivityInv(GenFullM<double> *vec, int iele);
      void transformVectorInv(Vector &vec, int iele);
      void transformVectorInv(ComplexVector &vec, int iele);
      void transformVector(double *data, int inode, bool hasRot);
      void transformVector(complex<double> *data, int inode, bool hasRot);
+     void transformElementSensitivityInv(double *data, int inode, int numNodes, bool hasRot);
      void transformVectorInv(double *data, int inode, bool hasRot);
      void transformVectorInv(complex<double> *data, int inode, bool hasRot);
      void transformStressStrain(FullM &mat, int iele);

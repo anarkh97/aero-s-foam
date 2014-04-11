@@ -225,8 +225,8 @@ C... shift origin to node 0
 
 
 //... Get Stress for Shear Portion
-      sands2(escm,x.data(),y.data(),c.data(),vl.data(),quadstress.data(),quadstrain.data(),
-             four,seven,one,one,falseflag,falseflag,0,0,0);
+      this->sands2(escm,x.data(),y.data(),c.data(),vl.data(),quadstress.data(),quadstrain.data(),
+                   four,seven,one,one,falseflag,falseflag,0,0,0);
 
 
 //... Compute Extensional Stresses
@@ -375,8 +375,8 @@ C... shift origin to node 0
           vmsstrain(i,j) = strain(i,j);
         }
       }
-      vmelmv(vmsstress.data(),four,seven,one,one,four);
-      strainvm(vmsstrain.data(),four,seven,one,four);
+      this->vmelmv(vmsstress.data(),four,seven,one,one,four);
+      this->strainvm(vmsstrain.data(),four,seven,one,four);
       vmssig = vmsstress(6,1);
       vmseps = vmsstrain(6,1);
 }
@@ -598,14 +598,14 @@ C... shift origin to node 0
       quadstrain.setZero();
 
 //... Get Stress for Shear Portion
-      sands2(escm,x.data(),y.data(),c.data(),vl.data(),quadstress.data(),quadstrain.data(),
-             four,seven,one,one,falseflag,falseflag,0,0,0);
+      this->sands2(escm,x.data(),y.data(),c.data(),vl.data(),quadstress.data(),quadstrain.data(),
+                   four,seven,one,one,falseflag,falseflag,0,0,0);
       Eigen::Matrix<doublereal,12,8> DquadstressDdisp;
       Eigen::Matrix<doublereal,4,8> DvmsDdisp2;
       DquadstressDdisp.setZero();
       DvmsDdisp2.setZero();
-      vms2WRTdisp(escm,x.data(),y.data(),c.data(),vl.data(),DvmsDdisp2.data(),DquadstressDdisp.data(),
-                  four,seven,one,one,true,true,0,0,0);
+      this->vms2WRTdisp(escm,x.data(),y.data(),c.data(),vl.data(),DvmsDdisp2.data(),DquadstressDdisp.data(),
+                        four,seven,one,one,true,true,0,0,0);
       cerr << "printing DvmsDdisp2\n" << DvmsDdisp2 << endl;
       cerr << "printing DquadstressDdisp\n" << DquadstressDdisp << endl;
 
@@ -688,7 +688,7 @@ C... shift origin to node 0
           vmsstress(i,j) = stress(i,j);
         }
       }
-      vmelmv(vmsstress.data(),four,seven,one,one,four);
+      this->vmelmv(vmsstress.data(),four,seven,one,one,four);
       vmssig = vmsstress(6,0);
       cerr << vmsstress(6,0) << " "  << vmsstress(6,1) <<  " " << vmsstress(6,2) << " " << vmsstress(6,3) << endl;
 

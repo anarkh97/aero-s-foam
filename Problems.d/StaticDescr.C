@@ -221,7 +221,14 @@ template<class T, class VectorType, class SolverType>
 void
 SingleDomainStatic<T, VectorType, SolverType>::postProcessSA(GenVector<T> &sol)
 {
- domain->buildPostSensitivities<T>(allOps.sysSolver, allSens, sol, bcx);
+/* if(allOps.K) {
+   cerr << "print allOps.K\n";
+   allOps.K->print();
+ } else {
+   cerr << "allOps.K is not defined\n";
+ }*/
+
+ domain->buildPostSensitivities<T>(allOps.sysSolver, allOps.K, allOps.spm, allSens, sol, bcx);
 }
 
 template<class T, class VectorType, class SolverType>

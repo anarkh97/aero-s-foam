@@ -1502,6 +1502,7 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
   double ylayer = oinfo[fileNumber].ylayer;
   double zlayer = oinfo[fileNumber].zlayer;
   int surface = oinfo[fileNumber].surface;
+  cerr << "oinfo[fileNumber].surface is " << oinfo[fileNumber].surface << endl;
     // upper  surface = 1
     // median surface = 2
     // lower  surface = 3
@@ -1524,7 +1525,6 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
     }
     else if(stressAllElems == 0) stressAllElems = new Vector(sizeSfemStress,0.0);
     if(elDisp == 0) elDisp = new Vector(maxNumDOFs,0.0);
-
 
     if((elstress == 0)||(elweight == 0)||(p_elstress == 0 && oframe == OutputInfo::Local)) {
       int NodesPerElement, maxNodesPerElement=0;
@@ -1614,6 +1614,23 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
         packedEset[iele]->getVonMises(*elstress, *elweight, nodes,
                                       *elDisp, stressIndex, surface,
                                       elemNodeTemps.data(), ylayer, zlayer, avgnum);
+/*        cerr << "print elstress\n";
+        for(int i=0; i<elstress->size(); ++i) cerr << (*elstress)[i] << "  ";
+        cerr << endl;
+        cerr << "print elweight\n";
+        for(int i=0; i<elweight->size(); ++i) cerr << (*elweight)[i] << "  ";
+        cerr << endl;
+        cerr << "print elDisp\n";
+        for(int i=0; i<maxNumDOFs; ++i) cerr << (*elDisp)[i] << "  ";
+        cerr << endl;
+        cerr << "stressIndex = " << stressIndex << endl;
+        cerr << "surface = " << surface << endl;
+        cerr << "print elemNodeTemps\n";
+        for(int i=0; i<maxNumNodes; ++i) cerr << elemNodeTemps[i] << "  ";
+        cerr << endl;
+        cerr << "ylayer = " << ylayer << endl;
+        cerr << "zlayer = " << zlayer << endl;
+        cerr << "avgnum = " << avgnum << endl;  */
       }
 
       if(avgnum != 0) {
@@ -1703,6 +1720,7 @@ Domain::getStressStrain(ComplexVector &sol, DComplex *bcx, int fileNumber,
   double ylayer = oinfo[fileNumber].ylayer;
   double zlayer = oinfo[fileNumber].zlayer;
   int surface = oinfo[fileNumber].surface;
+  cerr << "oinfo[fileNumber].surface is " << oinfo[fileNumber].surface << endl;
     // upper  surface = 1
     // median surface = 2
     // lower  surface = 3
@@ -2643,6 +2661,23 @@ Domain::transformVector(ComplexVector &vec, int iele)
   delete [] nn;
 }
 
+void
+Domain::transformElementSensitivityInv(GenFullM<double> *dStressdDisp, int iele)
+{
+  // transform element vector from DOF_FRM to basic coordinates
+  if(domain->solInfo().basicDofCoords) return;
+  int numNodes = packedEset[iele]->numNodes()-packedEset[iele]->numInternalNodes();
+  int *nn = packedEset[iele]->nodes();
+  if(packedEset[iele]->hasRot()) {
+    for(int k=0; k<numNodes; ++k)
+      transformElementSensitivityInv(dStressdDisp->data()+6*k*dStressdDisp->numCol(), nn[k], numNodes, true);
+  }
+  else {
+    for(int k=0; k<numNodes; ++k)
+      transformElementSensitivityInv(dStressdDisp->data()+3*k*dStressdDisp->numCol(), nn[k], numNodes, false);
+  }
+  delete [] nn;
+}
 
 void
 Domain::transformVectorInv(Vector &vec, int iele)
@@ -2730,6 +2765,44 @@ Domain::transformVector(complex<double> *data, int inode, bool hasRot)
   else {
     Eigen::Map<Eigen::Vector3cd> v(data);
     v = (T*v).eval();
+  }
+#endif
+}
+
+void 
+Domain::transformElementSensitivityInv(double *data, int inode, int numNodes, bool hasRot)
+{
+  // dStressdDisp->data()+6*k*dStressdDisp->numCol(), nn[k], true);
+  // transform node vector from DOF_FRM to basic coordinates
+  if(inode >= numnodes || nodes[inode] == NULL) return;
+  int cd = nodes[inode]->cd;
+  if(cd == 0) return;
+
+  NFrameData *nfd = geoSource->getNFrames();
+#ifdef USE_EIGEN3
+  Eigen::Matrix3d T;
+  T << nfd[cd].frame[0][0], nfd[cd].frame[0][1], nfd[cd].frame[0][2],
+       nfd[cd].frame[1][0], nfd[cd].frame[1][1], nfd[cd].frame[1][2],
+       nfd[cd].frame[2][0], nfd[cd].frame[2][1], nfd[cd].frame[2][2];
+
+  if(hasRot) {
+    for(int row = 0; row < numNodes ; ++row) {
+      Eigen::Matrix<double,6,1> v;
+      v << data[row], data[row+numNodes], data[row+2*numNodes], data[row+3*numNodes], data[row+4*numNodes], data[row+5*numNodes];
+      v.head<3>() = (T*v.head<3>()).eval();
+      v.tail<3>() = (T*v.tail<3>()).eval();
+      data[row] = v[0];            data[row+numNodes] = v[1];
+      data[row+2*numNodes] = v[2]; data[row+3*numNodes] = v[3];
+      data[row+4*numNodes] = v[4]; data[row+5*numNodes] = v[5];
+    }
+  }
+  else {
+    for(int row = 0; row < numNodes ; ++row) {
+      Eigen::Matrix<double,3,1> v;
+      v << data[row], data[row+numNodes], data[row+2*numNodes]; 
+      v = (T*v).eval();
+      data[row] = v[0];      data[row+numNodes] = v[1];     data[row+2*numNodes] = v[2];
+    }
   }
 #endif
 }
@@ -2937,8 +3010,10 @@ Domain::computeStiffnessWRTthicknessSensitivity(int sindex, AllSensitivities<dou
          for(int eindex =0; eindex < atoe[group[iparam].attributes[aindex]].elems.size(); ++eindex) {
            int iele = atoe[group[iparam].attributes[aindex]].elems[eindex];
            int DofsPerElement = packedEset[iele]->numDofs();
+           cerr << "DofsPerElement is " << DofsPerElement << endl;
            FullSquareMatrix dStiffnessdThick(DofsPerElement);
            packedEset[iele]->getStiffnessThicknessSensitivity(nodes, dStiffnessdThick,1,senInfo[sindex].method);
+//           dStiffnessdThick = packedEset[iele]->stiffness(nodes, dStiffnessdThick.data());
            // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
            int *dofs = (*allDOFs)[iele];
            int *unconstrNum = c_dsa->getUnconstrNum();
@@ -2960,7 +3035,10 @@ Domain::computeStiffnessWRTthicknessSensitivity(int sindex, AllSensitivities<dou
          }
        }
      }
-     if(verboseFlag) cerr << "print dKucdthick\n" << (*allSens.dKucdthick[0]) << endl;
+
+     Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
+     if(verboseFlag) cerr << "print stiffnessWRTthick\n" << (*allSens.stiffnessWRTthick[0]).format(HeavyFmt) << endl;
+     if(verboseFlag) cerr << "print dKucdthick\n" << (*allSens.dKucdthick[0]).format(HeavyFmt) << endl;
 #endif
 }
 
@@ -3006,7 +3084,15 @@ Domain::computeLinearStaticWRTthicknessSensitivity(int sindex,
 // COMMENTED THE BLOCK BELOW FOR DEBUG PURPOSE
      for(int iparam = 0; iparam < senInfo[sindex].numParam; ++iparam) {
        Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > disp(sol.data(),numUncon(),1);
-       *allSens.linearstaticWRTthick[iparam] = (*allSens.stiffnessWRTthick[iparam]) * disp;
+       Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
+       cerr << "print disp\n" << disp.format(HeavyFmt) << endl;
+       if(allSens.stiffnessWRTthick) {
+         *allSens.linearstaticWRTthick[iparam] = (*allSens.stiffnessWRTthick[iparam]) * disp;
+       } else {
+         cerr << "ERROR! stiffnessWRTthick is not defined yet\n";
+         exit(-1);
+       }
+//       cerr << "print displacement\n" << disp << endl;
        if(numDirichlet) {
          Eigen::Matrix<double, Eigen::Dynamic, 1> Vc(numDirichlet);
          Vc.setZero();
@@ -3049,13 +3135,12 @@ Domain::subtractGravityForceSensitivity(int sindex, AllSensitivities<double> &al
  
          // transform vector from basic to DOF_FRM coordinates
          transformVector(elementGravityForceSen, iele);
-
+         cerr << "norm of elementGravityForceSen is " << elementGravityForceSen.norm() << endl;
+  
          for(int idof = 0; idof < allDOFs->num(iele); ++idof) {
            int cn = c_dsa->getRCN((*allDOFs)[iele][idof]);
            if(cn >= 0) {
-             cerr << "numUncon() is " << numUncon() << endl;
-             cerr << "cn is " << cn << endl; 
-             (*allSens.linearstaticWRTthick[iparam])(cn,1) -= elementGravityForceSen[idof];
+             (*allSens.linearstaticWRTthick[iparam])(cn,0) -= elementGravityForceSen[idof];
            } 
          }      
        }
@@ -3068,6 +3153,8 @@ Domain::subtractGravityForceSensitivity(int sindex, AllSensitivities<double> &al
 void
 Domain::computeDisplacementWRTthicknessSensitivity(int sindex,
                                                    GenSolver<double> *sysSolver,
+                                                   GenSparseMatrix<double> *K,
+                                                   GenSparseMatrix<double> *spm,
                                                    AllSensitivities<double> &allSens)
 {
 #ifdef USE_EIGEN3
@@ -3079,10 +3166,22 @@ Domain::computeDisplacementWRTthicknessSensitivity(int sindex,
      }
      allSens.dispWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[group.size()];
      for(int iparam = 0; iparam < senInfo[sindex].numParam; ++iparam) {
-       allSens.dispWRTthick[iparam] = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(domain->numUncon(),1);
-       Vector rhs(allSens.linearstaticWRTthick[iparam]->data(), domain->numUncon()), sol(domain->numUncon(),0.0);
+       allSens.dispWRTthick[iparam] = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numUncon(),1);
+       Vector rhs(allSens.linearstaticWRTthick[iparam]->data(), numUncon()), sol(numUncon(),0.0);
+       rhs *= -1;
+       cerr << "print rhs\n";
+       for(int i=0; i<numUncon(); ++i) cerr << rhs[i] << "  ";
+       cerr << endl;
        sysSolver->solve(rhs,sol);
-       *allSens.dispWRTthick[iparam] = Eigen::Map<Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> >(sol.data(),domain->numUncon(),1);
+       Vector res(numUncon(),0.0), resBlk(numUncon(),0.0);
+       K->mult(sol,res);
+       res.linAdd(-1.0,rhs);
+       cerr << "norm of absolute residual is " << res.norm() << endl;
+       cerr << "norm of relative residual is " << res.norm()/rhs.norm() << endl;
+       for(int i=0; i<numUncon(); ++i) cerr << sol[i] << "  ";
+       cerr << endl;
+       *allSens.dispWRTthick[iparam] = Eigen::Map<Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> >(sol.data(),numUncon(),1);
+       cerr << "printing dispWRTthick[iparam]\n" << *allSens.dispWRTthick[iparam] << endl;
      }
 #endif
 }
@@ -3106,7 +3205,7 @@ Domain::computeStressVMWRTthicknessSensitivity(int sindex,
      allSens.stressWeight     = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numNodes(), senInfo[sindex].numParam);
      allSens.vonMisesWRTthick->setZero();     allSens.stressWeight->setZero();
      if(elDisp == 0) elDisp = new Vector(maxNumDOFs,0.0);
-     int avgnum = 1; //TODO: it is hardcoded to be 1, which corresponds to NODALFULL. it needs to be fixed.
+     int avgnum = 1; //TODO: It is hardcoded to be 1, which corresponds to NODALFULL. It needs to be fixed.
      for(int iparam = 0; iparam < senInfo[sindex].numParam; ++iparam) {
       for(int aindex = 0; aindex < group[iparam].attributes.size(); ++aindex) {  
        for(int eindex = 0; eindex < atoe[group[iparam].attributes[aindex]].elems.size(); ++eindex) {
@@ -3114,7 +3213,7 @@ Domain::computeStressVMWRTthicknessSensitivity(int sindex,
          int NodesPerElement = elemToNode->num(iele);
          GenVector<double> dStressdThick(NodesPerElement);
          GenVector<double> weight(NodesPerElement,0.0);
-         int surface = 1; //TODO: it is hardcoded to be 1, which corresponds to upper.
+         int surface = senInfo[sindex].surface; //TODO: it is hardcoded to be 1, which corresponds to upper.
          elDisp->zero();       
          // Determine element displacement vector
          for (int k=0; k < allDOFs->num(iele); ++k) {
@@ -3146,6 +3245,7 @@ Domain::computeStressVMWRTthicknessSensitivity(int sindex,
 //       cerr << "printing stressWeight\n" << (*allSens.stressWeight) << endl;
       }
       allSens.vonMisesWRTthick->col(iparam) += *allSens.vonMisesWRTdisp * (*allSens.dispWRTthick[iparam]);
+      cerr << "print vonMisesWRTthick\n" << allSens.vonMisesWRTthick->col(iparam) << endl;
      }
 #endif
 }
@@ -3162,13 +3262,16 @@ Domain::computeStressVMWRTdisplacementSensitivity(int sindex,
      allSens.vonMisesWRTdisp->setZero();
      allSens.stressWeight->setZero();
      if(elDisp == 0) elDisp = new Vector(maxNumDOFs,0.0);
-     int avgnum = 1; //TODO: it is hardcoded to be 1, which corresponds to NODALFULL. it needs to be fixed.
+     int avgnum = 1; //TODO: It is hardcoded to be 1, which corresponds to NODALFULL. It needs to be fixed.
+/*     cerr << "printing displacement\n";
+     for(int i=0; i<sol.size(); ++i) cerr << sol[i] << "  ";
+     cerr << endl;  */
      for(int iele = 0; iele < numele; iele++) { 
        int NodesPerElement = elemToNode->num(iele);
        int DofsPerElement = packedEset[iele]->numDofs();
        GenFullM<double> dStressdDisp(NodesPerElement,DofsPerElement,double(0.0));
        GenVector<double> weight(NodesPerElement,0.0);
-       int surface = 1;
+       int surface = senInfo[sindex].surface;
        elDisp->zero();       
        // Determine element displacement vector
        for (int k=0; k < allDOFs->num(iele); ++k) {
@@ -3178,8 +3281,14 @@ Domain::computeStressVMWRTdisplacementSensitivity(int sindex,
          else
            (*elDisp)[k] = bcx[(*allDOFs)[iele][k]];
        }
+//       cerr << "print elDisp\n";
+//       for(int i=0; i<maxNumDOFs; ++i) cerr << (*elDisp)[i] << "  ";
+//       cerr << endl; 
        transformVectorInv(*elDisp, iele);        
-       packedEset[iele]->getVonMisesDisplacementSensitivity(dStressdDisp, weight, nodes, *elDisp, 6, surface, senInfo[sindex].method, 0); 
+       packedEset[iele]->getVonMisesDisplacementSensitivity(dStressdDisp, weight, nodes, *elDisp, 6, surface, senInfo[sindex].method, 0);
+//       cerr << "print dStressdDisp\n";
+//       dStressdDisp.print();
+       transformElementSensitivityInv(&dStressdDisp,iele); 
        if(avgnum != 0) {
          // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
          int *unconstrNum = c_dsa->getUnconstrNum();
@@ -3199,8 +3308,8 @@ Domain::computeStressVMWRTdisplacementSensitivity(int sindex,
            }
          }
        }
-     }
-    
+     }   
+ 
      for(int inode = 0; inode < numNodes(); ++inode)  {
        if((*allSens.stressWeight)(inode, 0) == 0.0)
          for(int dof = 0; dof < numUncon(); ++dof) 
@@ -3209,11 +3318,16 @@ Domain::computeStressVMWRTdisplacementSensitivity(int sindex,
          for(int dof = 0; dof < numUncon(); ++dof)
            (*allSens.vonMisesWRTdisp)(inode,dof) /= (*allSens.stressWeight)(inode,0);
      }
+     cerr << "print vonMisesWRTdisp\n" << (*allSens.vonMisesWRTdisp) << endl;
 #endif
 }
 
 void
-Domain::makePostSensitivities(GenSolver<double> *sysSolver, AllSensitivities<double> &allSens, GenVector<double> &sol, double *bcx)
+Domain::makePostSensitivities(GenSolver<double> *sysSolver, 
+                              GenSparseMatrix<double> *K,
+                              GenSparseMatrix<double> *spm,
+                              AllSensitivities<double> &allSens, 
+                              GenVector<double> &sol, double *bcx)
 {
 #ifdef USE_EIGEN3
  for(int sindex=0; sindex < numSensitivity; ++sindex) {
@@ -3227,8 +3341,9 @@ Domain::makePostSensitivities(GenSolver<double> *sysSolver, AllSensitivities<dou
    case SensitivityInfo::StressVMWRTthickness: 
    {
      if(!allSens.vonMisesWRTdisp) computeStressVMWRTdisplacementSensitivity(sindex,allSens,sol,bcx);
+     if(!allSens.stiffnessWRTthick) computeStiffnessWRTthicknessSensitivity(sindex, allSens);
      if(!allSens.linearstaticWRTthick) computeLinearStaticWRTthicknessSensitivity(sindex,allSens,sol);
-     if(!allSens.dispWRTthick) computeDisplacementWRTthicknessSensitivity(sindex, sysSolver, allSens);
+     if(!allSens.dispWRTthick) computeDisplacementWRTthicknessSensitivity(sindex, sysSolver, K, spm, allSens);
      computeStressVMWRTthicknessSensitivity(sindex,sysSolver,allSens,sol,bcx);
      break;
    }
@@ -3246,4 +3361,7 @@ void
 Domain::makePreSensitivities(AllSensitivities<DComplex> &allSens, DComplex *bcx) {}
 
 void
-Domain::makePostSensitivities(GenSolver<DComplex> *sysSolver, AllSensitivities<DComplex> &allSens, GenVector<DComplex> &sol, DComplex *bcx) {}
+Domain::makePostSensitivities(GenSolver<DComplex> *sysSolver, 
+                              GenSparseMatrix<DComplex> *K,
+                              GenSparseMatrix<DComplex> *spm,
+                              AllSensitivities<DComplex> &allSens, GenVector<DComplex> &sol, DComplex *bcx) {}

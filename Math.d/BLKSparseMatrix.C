@@ -1101,9 +1101,10 @@ GenBLKSparseMatrix<Scalar>::print()
          numUncon, xlnz[numUncon]);
  int i;
  for(i=0; i<xlnz[numUncon]-1; ++i)
-   cerr << lnz[i] << "\n"; //endl;
+   cerr << lnz[i] << "  "; //endl;
    //fprintf(stderr,"%e %e\n",ScalarTypes::Real(lnz[i]), ScalarTypes::Imag(lnz[i]));
    //fprintf(stdout,"%e %e\n",ScalarTypes::Real(lnz[i]), ScalarTypes::Imag(lnz[i]));
+ cerr << endl;
 
  fprintf(stdout,"============\n"); fflush(stdout);
 }

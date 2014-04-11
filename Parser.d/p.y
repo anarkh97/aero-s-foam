@@ -884,8 +884,10 @@ OptSensitivity:
   ;
 SenInfo:
     SENSITIVITYTYPE SENSITIVITYMETHOD Integer    
-  { $$.type = (SensitivityInfo::Type) $1; $$.method = (SensitivityInfo::Method) $2; $$.numParam = $3;  
-  } 
+  { $$.initialize(); $$.type = (SensitivityInfo::Type) $1; $$.method = (SensitivityInfo::Method) $2; $$.numParam = $3;  
+  }
+  |  SenInfo SURFACE
+  { $$.surface = $2; }
   ;
 Output:
 	OUTPUT NewLine

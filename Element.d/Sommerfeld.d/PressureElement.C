@@ -124,7 +124,7 @@ PressureElement<FaceElementType,QuadratureRule,ConstantDegree,VariableDegree>::n
   for(int inode = 0; inode < FaceElementType::NumberOfNodes; ++inode) {
     nodes[inode] = inode;
     face_c0[inode] = new NodeTemplate<double>(c0[nn[inode]]->x, c0[nn[inode]]->y, c0[nn[inode]]->z);
-    face_c1[inode] = new NodeTemplate<double>((*c1)[nn[inode]].x, (*c1)[nn[inode]].y, (*c1)[nn[inode]].z);
+    face_c1[inode] = (c1) ? new NodeTemplate<double>((*c1)[nn[inode]].x, (*c1)[nn[inode]].y, (*c1)[nn[inode]].z) : face_c0[inode];
   }
   FaceElementType *FaceEl = new FaceElementType(nodes);
 
@@ -169,6 +169,10 @@ PressureElement<FaceElementType,QuadratureRule,ConstantDegree,VariableDegree>::n
   }
 
   delete FaceEl;
+  for(int inode = 0; inode < FaceElementType::NumberOfNodes; ++inode) {
+    delete face_c0[inode];
+    if(c1) delete face_c1[inode];
+  }
 }
 
 template<typename FaceElementType, typename QuadratureRule, int ConstantDegree, int VariableDegree>
@@ -183,7 +187,7 @@ PressureElement<FaceElementType,QuadratureRule,ConstantDegree,VariableDegree>::n
   for(int inode = 0; inode < FaceElementType::NumberOfNodes; ++inode) {
     nodes[inode] = inode;
     face_c0[inode] = new NodeTemplate<double>(c0[nn[inode]]->x, c0[nn[inode]]->y, c0[nn[inode]]->z);
-    face_c1[inode] = new NodeTemplate<double>((*c1)[nn[inode]].x, (*c1)[nn[inode]].y, (*c1)[nn[inode]].z);
+    face_c1[inode] = (c1) ? new NodeTemplate<double>((*c1)[nn[inode]].x, (*c1)[nn[inode]].y, (*c1)[nn[inode]].z) : face_c0[inode];
   }
   FaceElementType *FaceEl = new FaceElementType(nodes);
 
@@ -230,6 +234,10 @@ PressureElement<FaceElementType,QuadratureRule,ConstantDegree,VariableDegree>::n
   }
 
   delete FaceEl;
+  for(int inode = 0; inode < FaceElementType::NumberOfNodes; ++inode) {
+    delete face_c0[inode];
+    if(c1) delete face_c1[inode];
+  }
 }
 
 template<typename FaceElementType, typename QuadratureRule, int ConstantDegree, int VariableDegree>

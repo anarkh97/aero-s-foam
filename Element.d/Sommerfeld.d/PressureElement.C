@@ -39,6 +39,7 @@ template<typename FaceElementType, typename QuadratureRule, int ConstantDegree, 
 PressureElement<FaceElementType,QuadratureRule,ConstantDegree,VariableDegree>
 ::~PressureElement()
 {
+  delete pbc;
   delete [] nn;
 }
 
@@ -129,7 +130,7 @@ PressureElement<FaceElementType,QuadratureRule,ConstantDegree,VariableDegree>::n
   FaceElementType *FaceEl = new FaceElementType(nodes);
 
   // quadrature rule
-  int deg = (pbc->conwep) ? VariableDegree : ConstantDegree;  // quadrature rule degree
+  int deg = (pbc->conwep && pbc->conwepswitch) ? VariableDegree : ConstantDegree;  // quadrature rule degree
   QuadratureRule c(deg);
 
   // local variables to be computed at each integration point
@@ -154,7 +155,7 @@ PressureElement<FaceElementType,QuadratureRule,ConstantDegree,VariableDegree>::n
     // compute the surface normal
     FaceEl->GetIsoParamMappingNormalJacobianProduct(normal, xi, face_c1);
 
-    if(pbc->conwep) {
+    if(pbc->conwep && pbc->conwepswitch) {
       FaceEl->GetUnitNormal(Normal, xi, face_c0);
       FaceEl->LocalToGlobalCoord(Xi, xi, face_c0);
       pressure = pbc->val + BlastLoading::ComputeGaussPointPressure(Xi, Normal, t, *(pbc->conwep));
@@ -192,7 +193,7 @@ PressureElement<FaceElementType,QuadratureRule,ConstantDegree,VariableDegree>::n
   FaceElementType *FaceEl = new FaceElementType(nodes);
 
   // quadrature rule
-  int deg = (pbc->conwep) ? VariableDegree : ConstantDegree;  // quadrature rule degree
+  int deg = (pbc->conwep && pbc->conwepswitch) ? VariableDegree : ConstantDegree;  // quadrature rule degree
   QuadratureRule c(deg);
 
   // local variables to be computed at each integration point
@@ -217,7 +218,7 @@ PressureElement<FaceElementType,QuadratureRule,ConstantDegree,VariableDegree>::n
     // compute the partial derivatives of the surface normal w.r.t. the nodal coordinates
     FaceEl->GetdJNormal(dJNormal, xi, face_c1);
 
-    if(pbc->conwep) {
+    if(pbc->conwep && pbc->conwepswitch) {
       FaceEl->GetUnitNormal(Normal, xi, face_c0);
       FaceEl->LocalToGlobalCoord(Xi, xi, face_c0);
       pressure = pbc->val + BlastLoading::ComputeGaussPointPressure(Xi, Normal, t, *(pbc->conwep));

@@ -1317,9 +1317,10 @@ SingleDomainDynamic::aeroSend(double time, Vector& d, Vector& v, Vector& a, Vect
 {
   if(claw && userSupFunc) {
     if(claw->numUserDisp) { // USDD
-      // Note: the approprate value of "time" passed into this function should be t^n for A6 and A7
-      // (because for these schemes the predictor is done on the fluid side), t^{n+1/2} for C0, and
-      // t^{n+1} otherwise, where t^n denotes the end of the current structure timestep.
+      // Note: the approprate value of "time" passed into this function should be t^{n+½} for A6 and C0, and
+      // t^{n+1} otherwise, where t^n denotes the time at the end of the current structure timestep. Note that
+      // the predictor in FlExchanger::sendDisplacements is not applied to prescribed displacements; we directly
+      // compute here the desired values of the prescribed displacements/velocities rather than predicting them.
       double *userDefineDisp = new double[claw->numUserDisp];
       double *userDefineVel = new double[claw->numUserDisp];
       double *userDefineAcc = new double[claw->numUserDisp];

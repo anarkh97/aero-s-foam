@@ -979,6 +979,15 @@ Domain::aeroPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
       }
     }
 
+    if(sinfo.aeroFlag == 20 && sinfo.newmarkBeta != 0) {
+      filePrint(stderr, " *** ERROR: Requested AERO Algorithm is not available with implicit time-integrator. Aborting...\n");
+      exit(-1);
+    }
+    if(sinfo.aeroFlag != 20 && sinfo.newmarkBeta == 0) {
+      filePrint(stderr, " *** ERROR: Requested AERO Algorithm is not available with explicit time-integrator. Aborting...\n");
+      exit(-1);
+    }
+
     OutputInfo *oinfo_aero = (flag) ? oinfo+iInfo : NULL;
     if(aeroEmbeddedSurfaceId.size()!=0) {
       int iSurf = -1;
@@ -988,7 +997,7 @@ Domain::aeroPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
           break; //only allows one Surface.
         }
       if(iSurf<0) {
-        fprintf(stderr,"ERROR: Embedded wet surface not found! Aborting...\n");
+        filePrint(stderr, " *** ERROR: Embedded wet surface not found! Aborting...\n");
         exit(-1);
       }
       flExchanger = new FlExchanger(nodes, packedEset, SurfEntities[iSurf], c_dsa, oinfo_aero); //packedEset is not used, but flExchanger needs

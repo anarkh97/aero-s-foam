@@ -48,6 +48,7 @@ class DistFlExchanger {
   double aflux;
   int rcvParity, sndParity;
   OutputInfo *oinfo;
+  int algnum;
   int isCollocated;
   double alpha[2];
   double alph[2];

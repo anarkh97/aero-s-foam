@@ -435,12 +435,21 @@ DistFlExchanger::sendDisplacements(SysState<DistrVector>& dState,
       if(!useFaceElem) {
         thisElement = (*eset[locSub])[locElem];
         thisElement->computeDisp(*cs[locSub], localState,
-                                sndTable[mpiNum][iData], buffer+pos, geomState);
+                                 sndTable[mpiNum][iData], buffer+pos, geomState);
       }
       else {
         thisFaceElem = (*feset)[locElem];
         thisFaceElem->computeDisp(*cs[locSub], localState, sndTable[mpiNum][iData],
                                   buffer+pos, geomState, fnId2[locSub]); // TODO fnId2 must map from embedded surface to locSub node numbers
+      }
+      // PJSA 4/14/2014: Now that the predictor is applied on the structure side for A6 and
+      // A7, we need to compensate for the legacy predictor which is applied on the fluid side
+      // (see MatchNodeSet::getDisplacement in MatchNodeCore.C). 
+      if(algnum == 6) {
+        for(int k=0; k<3; ++k) buffer[pos+k] -= 0.5*dt*buffer[pos+k+3];
+      }
+      else if(algnum == 7) {
+        for(int k=0; k<3; ++k) buffer[pos+k] -= dt*buffer[pos+k+3];
       }
 
       pos += 6;
@@ -466,17 +475,15 @@ DistFlExchanger::sendDisplacements(SysState<DistrVector>& dState,
 
 //---------------------------------------------------------------------
 
-void DistFlExchanger::sendParam(int algnum, double step, double totaltime, 
+void DistFlExchanger::sendParam(int _algnum, double step, double totaltime, 
 		                int rstinc, int _isCollocated, double _a[2])
 {
-  //int zero = 0;
   int TNd  = 0;
   int thisNode = structCom->myID();
 
   double buffer[5];
-  buffer[0] = (double) algnum;
-  buffer[1] = (algnum==5)? step/2 : step;
-  //buffer[1] = step;
+  buffer[0] = (double) _algnum;
+  buffer[1] = (_algnum==5)? step/2 : step;
   buffer[2] = totaltime;
   buffer[3] = (double) rstinc;
   buffer[4] = (double) 2; // Used to be AeroScheme now always conservative
@@ -484,15 +491,14 @@ void DistFlExchanger::sendParam(int algnum, double step, double totaltime,
   int tag = 3000;
 
   if(thisNode == 0) {
-     fluidCom->sendTo(TNd, tag, buffer, msglen);
-     fluidCom->waitForAllReq();
+    fluidCom->sendTo(TNd, tag, buffer, msglen);
+    fluidCom->waitForAllReq();
   }
 
+  algnum = _algnum;
   isCollocated = _isCollocated;
   dt = step;
-/* PJSA 4/11/2014: the alphas have already been set to zero in the parser for A6 (algnum 6) and
-                   A7 (algnum 7) because for these schemes the predictor is on the fluid side.
-                   For other schemes particularly C0 (algnum 20) it should not have been done here.
+/* PJSA 4/14/2014: see comments in Parser.d/p.y under AeroInfo
   if (algnum > 4) 
     alpha[0] = alpha[1] = 0;
   else  {
@@ -506,7 +512,7 @@ void DistFlExchanger::sendParam(int algnum, double step, double totaltime,
 //---------------------------------------------------------------------
 
 void
-DistFlExchanger::sendTempParam(int algnum, double step, double totaltime,
+DistFlExchanger::sendTempParam(int _algnum, double step, double totaltime,
                                int rstinc, double alphat[2])
 {
   int TNd  = 0;
@@ -514,7 +520,7 @@ DistFlExchanger::sendTempParam(int algnum, double step, double totaltime,
   thisNode = structCom->myID();
 
   double buffer[5];
-  buffer[0] = (double) algnum;
+  buffer[0] = (double) _algnum;
   buffer[1] = step;
   buffer[2] = totaltime;
   buffer[3] = (double) rstinc;
@@ -522,17 +528,15 @@ DistFlExchanger::sendTempParam(int algnum, double step, double totaltime,
   int msglen = 5;
   int tag = 3000;
 
-// Send to SUBROUTINE GETTEMPALG of Fluid Code
   if(thisNode == 0){
-   fluidCom->sendTo(TNd, tag, buffer, msglen);
-   fluidCom->waitForAllReq();
-   }
+    fluidCom->sendTo(TNd, tag, buffer, msglen);
+    fluidCom->waitForAllReq();
+  }
 
+  algnum = _algnum;
   dtemp = step;
   alph[0] = alphat[0];
   alph[1] = alphat[1];
-
-//  waitOnSend();
 }
 
 //---------------------------------------------------------------------

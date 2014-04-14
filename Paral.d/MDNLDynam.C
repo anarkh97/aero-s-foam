@@ -1159,9 +1159,10 @@ MDNLDynamic::dynamCommToFluid(DistrGeomState* geomState, DistrGeomState* bkGeomS
     // update the geomState according to the USDD prescribed displacements
     if(claw && userSupFunc) {
       if(claw->numUserDisp > 0) {
-        // Note: the approprate value of "time" passed into this function should be t^n for A6 and A7 
-        // (because for these schemes the predictor is done on the fluid side), and t^{n+1} otherwise,
-        // where t^n denotes the time at the end of the current structure timestep.
+        // Note: the approprate value of "time" passed into this function should be t^{n+½} for A6 and t^{n+1}
+        // otherwise, where t^n denotes the time at the end of the current structure timestep. Note that the
+        // predictor in FlExchanger::sendDisplacements is not applied to prescribed displacements; we directly
+        // compute here the desired values of the prescribed displacements/velocities rather than predicting them.
         double *userDefineDisp = new double[claw->numUserDisp];
         double *userDefineVel  = new double[claw->numUserDisp];
         double *userDefineAcc  = new double[claw->numUserDisp];
@@ -1338,9 +1339,9 @@ MDNLDynamic::readRestartFile(DistrVector &d_n, DistrVector &v_n, DistrVector &a_
     if(aeroFlag >= 0) {
       double time = domain->solInfo().initialTime;
       double dt = domain->solInfo().getTimeStep();
-      double t = (aeroFlag == 6 || aeroFlag == 7) ? time : time+dt; // used to compute prescribed displacements
+      double t_aero = (aeroFlag == 6) ? time+dt/2 : time+dt;
       dynamCommToFluid(&geomState, &geomState, v_n, v_n, v_p, v_p, domain->solInfo().initialTimeIndex, 1,
-                       domain->solInfo().aeroFlag, t);
+                       domain->solInfo().aeroFlag, t_aero);
     }
 
     // update geomState and bcx/vcx/acx for time dependent prescribed displacements and their time derivatives
@@ -1360,11 +1361,7 @@ MDNLDynamic::readRestartFile(DistrVector &d_n, DistrVector &v_n, DistrVector &a_
        delete [] userDefineDisp; delete [] userDefineVel; delete [] userDefineAcc;
       }
     }
-/* XXX
-    if(domain->solInfo().aeroFlag >= 0) {
-      aeroPreProcess(d_n, v_n, a_n, v_p, &geomState);
-    }
-*/
+
     updateStates(&geomState, geomState);
   }
 }

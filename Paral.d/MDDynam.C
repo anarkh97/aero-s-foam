@@ -1309,30 +1309,14 @@ MultiDomainDynam::getAeroAlg()
 void
 MultiDomainDynam::aeroSend(double time, DistrVector& d_n, DistrVector& v_n, DistrVector& a_n, DistrVector& v_p)
 {
-  // Send u + IDISP6 to fluid code.
-  // IDISP6 is used to compute pre-stress effects.
-  DistrVector d_n_aero(d_n);
-
-  if(domain->solInfo().gepsFlg == 1) {
-
-    for(int i = 0; i < decDomain->getNumSub(); ++i) {
-      SubDomain *sd = decDomain->getSubDomain(i);
-      BCond* iDis6 = sd->getInitDisp6();
-      for(int j = 0; j < sd->numInitDisp6(); ++j) {
-        int dof = sd->getCDSA()->locate(iDis6[j].nnum, 1 << iDis6[j].dofnum);
-        if(dof >= 0)
-          d_n_aero.subData(i)[dof] += iDis6[j].val;
-      }
-    }
-  }
-
-  SysState<DistrVector> state(d_n_aero, v_n, a_n, v_p);
+  SysState<DistrVector> state(d_n, v_n, a_n, v_p);
 
   if(claw && userSupFunc) {
     if(claw->numUserDisp) { // USDD
-      // Note: the approprate value of "time" passed into this function should be t^n for A6 and A7
-      // (because for these schemes the predictor is done on the fluid side), t^{n+1/2} for C0, and
-      // t^{n+1} otherwise, where t^n denotes the end of the current structure timestep.
+      // Note: the approprate value of "time" passed into this function should be t^{n+½} for A6 and C0, and
+      // t^{n+1} otherwise, where t^n denotes the time at the end of the current structure timestep. Note that
+      // the predictor in FlExchanger::sendDisplacements is not applied to prescribed displacements; we directly
+      // compute here the desired values of the prescribed displacements/velocities rather than predicting them.
       double *userDefineDisp = new double[claw->numUserDisp];
       double *userDefineVel  = new double[claw->numUserDisp];
       double *userDefineAcc  = new double[claw->numUserDisp];

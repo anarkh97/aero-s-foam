@@ -1164,19 +1164,26 @@ AeroInfo:
           domain->solInfo().isCollocated = 0; }
 	| AERO NewLine AEROTYPE NewLine
         { domain->solInfo().setAero($3); 
-          domain->solInfo().isCollocated = 0; }
+          domain->solInfo().isCollocated = 0;
+          if($3 == 20) { // set default alphas for C0
+            domain->solInfo().alphas[0] = 0.5+0.375;
+            domain->solInfo().alphas[1] = -0.375;
+          }
+        }
 	| AERO NewLine AEROTYPE Float Float NewLine
         { domain->solInfo().setAero($3);
           domain->solInfo().isCollocated = 0;
-          if($3 < 6 || $3 == 20) {
-            // Only schemes A0, A4, A5 and C0 use the inputted alphas
-            // In the case of A6 and A7 the predictor is on the fluid side so alpha[0] and alpha[1] should be zero.
-            domain->solInfo().alphas[0] = $4+$5;
-            domain->solInfo().alphas[1] = -$5;
-          }
-          else if($3 == 8) {
+          if($3 == 8) {
             // MPP uses only the first of the two inputted alphas
             domain->solInfo().mppFactor = $4;
+          }
+          else {
+            // These alphas are used in FlExchanger::sendDisplacements and DistFlExchanger::sendDisplacements
+            // As of 4/14/2014 the following schemes can use the displacement predictor on the structure side:
+            // A0, A4, A5, A6, A7 and C0. Furthermore, we now apply a separate "anti-predictor" for A6 and A7
+            // to compensate for the legacy predictor on the fluid side (in MatchNodeSet::getDisplacement)
+            domain->solInfo().alphas[0] = $4+$5;
+            domain->solInfo().alphas[1] = -$5;
           }
         }
         | AERO NewLine AEROTYPE Float NewLine

@@ -30,55 +30,53 @@ SPACES [ \t]+
 NAME [a-zA-Z_][a-zA-Z_0-9]*
 TRAIL [a-zA-Z]*
 %%
-"INCLUDE"|"include" 		{ BEGIN(incl); 	} // go to include state 
+"INCLUDE"|"include" { BEGIN(incl);   } // go to include state 
 <incl>[ \t]* 
-<incl>[^ \t\n]+		{
-				// clean up !
-				int c = yyinput();
-				while(c == '\t' || c == ' ')
-					c = yyinput();
-				if(c != '\n')
-					yyunput(c,yytext_ptr);
-				string fname = string(yytext);
-				if(fname.length() > 0)
-				{
-					if(fname[0]=='"' && fname[ fname.length()-1 ]=='"' && fname.length()> 2)
-						fname = fname.substr(1,fname.length()-2);
-						
-					FILE * f = fopen(fname.c_str(),"r");
-					if(f!=NULL)
-					{	// open the file and substitute it as the current buffer
-						//std::cout << " ... Including file " << fname << endl;
-						includedFiles.push(YY_CURRENT_BUFFER);
-						lineNumber.push(line_num);
-						line_num = 1;
-						yy_switch_to_buffer( yy_create_buffer(f,YY_BUF_SIZE) );
-					}
-					else
-					{
-						std::cout << " **************************************************** "<< endl 
-							  << " ** ERROR :  Couldn't open file " << fname << endl
-							  << " **************************************************** "<< endl; 
-                                                exit(-1);
-;
-					}
-					BEGIN(INITIAL); // go back to parsing
-				}	
-		    }
-<<EOF>>	    {
-			if(includedFiles.size()==0)
-			{	// end of everything
-				yyterminate();
-			}
-			else
-			{	// switch to previous buffer
-		    	   yy_delete_buffer( YY_CURRENT_BUFFER );
-            		   yy_switch_to_buffer( includedFiles.top());
-			   line_num = lineNumber.top()+1;
-			   lineNumber.pop();
-			   includedFiles.pop();
-			}
-	    }
+<incl>[^ \t\n\r]+ {
+        int c = yyinput();
+        while(c == '\t' || c == ' ' || c == '\r')
+          c = yyinput();
+        if(c != '\n')
+          yyunput(c,yytext_ptr);
+        string fname = string(yytext);
+        if(fname.length() > 0)
+        {
+          if(fname[0]=='"' && fname[ fname.length()-1 ]=='"' && fname.length()>2) {
+            fname = fname.substr(1,fname.length()-2);
+          }
+
+          FILE * f = fopen(fname.c_str(),"r");
+          if(f!=NULL)
+          { // open the file and substitute it as the current buffer
+            includedFiles.push(YY_CURRENT_BUFFER);
+            lineNumber.push(line_num);
+            line_num = 1;
+            yy_switch_to_buffer( yy_create_buffer(f,YY_BUF_SIZE) );
+          }
+          else
+          {
+            std::cout << " **************************************************** " << std::endl 
+                      << " ** ERROR :  Couldn't open file " << fname << std::endl
+                      << " **************************************************** " << std::endl; 
+             exit(-1);
+          }
+          BEGIN(INITIAL); // go back to parsing
+        }  
+      }
+<<EOF>> {
+      if(includedFiles.size()==0)
+      { // end of everything
+        yyterminate();
+      }
+      else
+      { // switch to previous buffer
+        yy_delete_buffer( YY_CURRENT_BUFFER );
+        yy_switch_to_buffer( includedFiles.top());
+        line_num = lineNumber.top()+1;
+        lineNumber.pop();
+        includedFiles.pop();
+      }
+    }
 
 "NODE"[a-zA-Z]*|"node"[a-zA-Z]*    { return NODETOKEN;    }
 

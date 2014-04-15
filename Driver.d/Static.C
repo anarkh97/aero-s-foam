@@ -107,27 +107,33 @@ Domain::openFile(char *fileName, const char *extension)
 void
 Domain::printStatistics(bool domain_decomp)
 {
+  // Note 1: # Nodes does include nodes which are not attached to any element, but does not
+  //         include the so-called "internal nodes" (e.g. Lagrange multiplier nodes).
+  // Note 2: # Elements does not include "LMPC elements".
+  // Note 3: # Unconstrained dofs does not include dofs of nodes which are not attached to any
+  //         elements or LMPC elements.
+  // Note 4: # Constrained dofs and Total # dofs do include constraints on dofs of nodes which
+  //         (a) are not defined in the input file, and (b) are defined in the input file but
+  //         not attached to any elements or LMPC elements.
+  if(!nodeTable) {
+    exactNumNodes = 0;
+    for(int i=0; i<numnodes; ++i) {
+      if(nodes[i] != 0) exactNumNodes++;
+    }
+  }
+  if(!domain_decomp) setNumDofs(numUncon()+numDirichlet+numComplexDirichlet);
+
   filePrint(stderr, "\n ---------- PROBLEM PARAMETERS --------");
-  filePrint(stderr, "\n ... # Nodes              = %7d ...", numnodes-geoSource->internalNumNodes());
-  filePrint(stderr, "\n ... # Elements           = %7d ...", numele);
-  if(domain_decomp) {
-    filePrint(stderr, "\n ... # Unconstrained dofs = %7d ...", numDofs()-numDirichlet-numComplexDirichlet);
-  }
-  else {
-    filePrint(stderr, "\n ... # Unconstrained dofs = %7d ...", numUncon());
-  }
+  filePrint(stderr, "\n ... # Nodes              = %7d ...", exactNumNodes);
+  filePrint(stderr, "\n ... # Elements           = %7d ...", numele-geoSource->numMpcElem());
+  filePrint(stderr, "\n ... # Unconstrained dofs = %7d ...", numDofs()-numDirichlet-numComplexDirichlet);
   filePrint(stderr, "\n ... # Constrained dofs   = %7d ...", numDirichlet+numComplexDirichlet);
-  if(domain_decomp) {
-    filePrint(stderr,"\n ... Total # dofs         = %7d ...", numDofs());
-  }
-  else {
-    filePrint(stderr,"\n ... Total # dofs         = %7d ...", numdof());
-  }
-  filePrint(stderr,"\n ... # Loaded dofs        = %7d ...", numNeuman+numComplexNeuman);
+  filePrint(stderr, "\n ... Total # dofs         = %7d ...", numDofs());
+  //filePrint(stderr, "\n ... # Loaded dofs        = %7d ...", numNeuman+numComplexNeuman);
   if(gravityFlag())
-    filePrint(stderr,"\n ... Gravity Load is Applied        ...");
-  filePrint(stderr,"\n ... # Output Files       = %7d ...", geoSource->getNumOutInfo());
-  filePrint(stderr,"\n --------------------------------------\n");
+    filePrint(stderr, "\n ... Gravity Load is Applied        ...");
+  filePrint(stderr, "\n ... # Output Files       = %7d ...", geoSource->getNumOutInfo());
+  filePrint(stderr, "\n --------------------------------------\n");
 }
 
 double

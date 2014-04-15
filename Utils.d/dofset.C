@@ -63,25 +63,16 @@ DofSet::locate(int dof) const
   int seekeddof = (int) dof;
   int num = 0;
   int dofn;
-  //fprintf(stderr," ... max_known_dof is %d ...\n", max_known_dof);
   for(dofn = max_known_dof; dofn--; ) {
-    //fprintf(stderr," ... cdof is %d ...\n", cdof);
-    //fprintf(stderr," ... seekeddof is %d ...\n", seekeddof);
-    //fprintf(stderr," ... num is %d ...\n", num);
-    //fprintf(stderr," ... dofn is %d ...\n", dofn);
     if(seekeddof & 1)  { 
-       //fprintf(stderr," ... 'seekeddof and 1' is true...\n");
        return (cdof & 1) ? num : -1;
     }
     if(cdof & 1) num++;
     cdof >>= 1;
     seekeddof >>=1;
   }
-  //fprintf(stderr,"why missed dof? ...\n");
   return -1; // should normally never happen if well used
-  // Except at print time
 }
-
 
 int
 DofSet::number(DofSet r, int *list)
@@ -138,8 +129,7 @@ DofSetArray::DofSetArray(int nnode, Elemset &eles, int *renumtable, int _myMap)
  for(iele=0; iele < nele; ++iele) {
    Element *c_ele = eles[iele];
    if(c_ele)
-     //PJSA this is a bad idea if(!c_ele->isPhantomElement())
-       c_ele->markDofs(*this);
+     c_ele->markDofs(*this);
  }
  renummap = renumtable;
  makeOffset();
@@ -191,7 +181,7 @@ DofSetArray::clean_up()
 
 DofSetArray::DofSetArray(int nnode, int *renumtable, int _myMap)
 {
- initialize(); //HB
+ initialize();
  rowcolnum=invrowcol=dofType=0;
  myMap = _myMap;
  numnodes = nnode;
@@ -866,11 +856,8 @@ DofSetArray::mark(int *node, int numNodes, int ds)
 int
 DofSetArray::locate(int node, int ds) const
 {
- //fprintf(stderr," ... numnodes is %d ...\n",numnodes);
- //fprintf(stderr," ... node is %d ...\n",node);
  if(node >= numnodes) return -1;
  int dnum = dofs[node].locate(ds);
- //fprintf(stderr," ... dnum is %d ...\n",dnum);
  if(dnum < 0) return dnum;
  return  node_offset[node] + dnum;
 }
@@ -883,7 +870,6 @@ DofSetArray::number(int node, DofSet ds, int *p)
  int i;
  for(i=0; i < nn; ++i) {
    if(p[i] >= 0) p[i] += node_offset[node];
-   //p[i] += node_offset[node];
  }
  return nn;
 }
@@ -914,25 +900,6 @@ SimpleNumberer::setWeight(int node, int w)
 void
 SimpleNumberer::makeOffset()
 {
-
-/*
-
- int i;
- node_offset[renummap ? renummap[0] : 0] = 0;
- if(renummap) {
-   for(i = 0; i < numnodes-1; ++i)
-      node_offset[renummap[i+1]] =
-         node_offset[renummap[i]] + node_num_dofs[renummap[i]];
-   node_offset[numnodes] =
-         node_offset[renummap[numnodes-1]] +
-                  node_num_dofs[renummap[numnodes-1]];
- } else
-   for(i = 0; i < numnodes; ++i)
-      node_offset[i+1] = node_offset[i] + node_num_dofs[i];
-
-
-*/
-
  int *remapedoffset = new int[numnodes+1];
 
  int inode;

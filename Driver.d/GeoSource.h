@@ -140,9 +140,9 @@ class GeoSource {
   int numNodes, numInternalNodes;
   CoordSet nodes;
   Elemset elemSet;
-  Elemset *packedEsetFluid; //ADDED FOR HEV PROBLEM, EC, 20070820
-  int nElem;
-  int nElemFluid;      //ADDED FOR HEV PROBLEM, EC, 20070820
+  Elemset *packedEsetFluid;
+  int nElem, nMpcElem;
+  int nElemFluid;
   int nElemAllClusters;
   int *allNumClusElems;
   int phantomFlag;
@@ -437,6 +437,7 @@ public:
   char *getCpuMapFile()  { return mapName; }
   char *getMatchFileName()  { return matchName; }
   int  numElem() { return nElem; }
+  int  numMpcElem() { return nMpcElem; }
   int  numElemFluid() { return nElemFluid; }   //ADDED FOR HEV PROBLEM, EC 20070820
   int  numNode() { return numNodes; }
   void setNumNodes(int n) { numNodes = n; }

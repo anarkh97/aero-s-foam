@@ -305,7 +305,6 @@ public:
         void getCoordinates(int *nn, int numNodes,
                             double *xx, double *yy, double *zz);
 
-        //Node * operator[] (int i) { return (i >= nmax) ? 0 : nodes[i]; }
         Node * operator[] (int i) const { return (i >= nmax) ? 0 : nodes[i]; }
         Node *& operator[] (int i);
 
@@ -313,11 +312,10 @@ public:
 };
 
 
- //DEC
+// DEC
 struct PrioInfo {
   int priority; // the level of priority (undefined in isReady == 0)
   bool isReady; // whether this element is ready to be inserted
-  // PrioInfo() { isReady = false; }  PJSA
 };
 
 class MultiFront;
@@ -468,11 +466,9 @@ class Element {
         virtual void  trussHeatFluxes(double &trussflux, CoordSet &cs,
                                       Vector& elTemp, int hflInd) {}
 
-        //ADDED FOR SLOSHING PROBLEM, EC, 20070723
         virtual void   computeSloshDisp(Vector& fluidDispSlosh, CoordSet &cs,
                                          Vector& elPotSlosh, int hflInd);
 
-        //ADDED FOR SLOSHING PROBLEM, EC, 20081101
         virtual void   computeSloshDispAll(Vector& fluidDispSlosh, CoordSet &cs,
                                          Vector& elPotSlosh);
 
@@ -523,11 +519,9 @@ class Element {
 
 	virtual bool isSafe() { return true; }
 
-
 	// from DEC
 	// TOP/DOMDEC Element Functions
 	virtual int facelist(PolygonSet &, int * = 0) {return 0; }
-
 
 	// DEC : Routines for the decomposer
 	// isStart indicates if an element is suitable to
@@ -560,7 +554,7 @@ class Element {
         virtual bool isSloshingElement() { return false; }
         virtual bool isMpcElement() { return false; }
         virtual bool isFsiElement() { return false; }
-        virtual bool isHEVFluidElement() { return false; }  //ADDED FOR HEV PROBLEM, EC, 20070820
+        virtual bool isHEVFluidElement() { return false; }
         virtual int  fsiFluidNode() { return -1; }
         virtual int  fsiStrutNode() { return -1; }
         //virtual bool isRigidMpcElement(const DofSet & = DofSet::nullDofset, bool forAllNodes=false) { return false; }

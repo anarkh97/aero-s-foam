@@ -64,6 +64,7 @@ GeoSource::GeoSource(int iniSize) : oinfo(emptyInfo, iniSize), nodes(iniSize*16)
 
   nElem = 0;
   nElemFluid = 0;
+  nMpcElem = 0;
   phantomFlag = 0;  // 0 => no phantom elems
   numClusters = 0;
 
@@ -498,6 +499,7 @@ void GeoSource::addMpcElements(int numLMPC, ResizeArray<LMPCons *> &lmpc)
         setAttrib(nEle, a);
       }
       nEle++;
+      nMpcElem++;
     }
     //cerr << " ... Converted " << numLMPC << " LMPCs to constraint elements ...\n";
   }

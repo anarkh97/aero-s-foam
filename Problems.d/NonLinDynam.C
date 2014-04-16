@@ -1260,7 +1260,7 @@ NonLinDynamic::dynamOutput(GeomState* geomState, Vector& velocity,
   }
 
   domain->postProcessing(geomState, force, aeroF, time, (step+1), velocity.data(), vcx,
-                         allCorot, melArray, acceleration.data(), acx, refState, reactions);
+                         allCorot, acceleration.data(), acx, refState, reactions, M, C);
   times->output += getTime();
 }
 

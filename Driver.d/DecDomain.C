@@ -531,8 +531,8 @@ GenDecDomain<Scalar>::makeSubDomains()
   }
   else {
     execParal(numSub, this, &GenDecDomain<Scalar>::constructSubDomains);
-    if(domain->solInfo().isCoupled) { // JLchange
-      for(int iSub = 0; iSub < numSub; ++iSub) subDomain[iSub]->setnodeToSubConnectivity(nodeToSub); // JLchange
+    if(domain->solInfo().isCoupled) {
+      for(int iSub = 0; iSub < numSub; ++iSub) subDomain[iSub]->setnodeToSubConnectivity(nodeToSub);
       addFsiElements();
     }
     paralApply(numSub, subDomain, &GenSubDomain<Scalar>::renumberElements); 
@@ -540,19 +540,6 @@ GenDecDomain<Scalar>::makeSubDomains()
   
   paralApply(numSub, subDomain, &BaseSub::makeDSA); 
   stopTimerMemory(mt.makeSubDomains, mt.memorySubdomain);
-/*
-  //added JF to check the memory allocated
-  fprintf(stderr,"in Driver.d/DecDomain.C\n");
-  for(int iSub = 0; iSub < this->numSub;iSub++) {
-    fprintf(stderr,"SubDomain # = %d\n",iSub);
-    fprintf(stderr,"   Number of nodes in the nodeSet = %d\n",subDomain[iSub]->numNodes());
-    fprintf(stderr,"   Number of elements in the elemSet = %d\n",subDomain[iSub]->numElements());
-    fprintf(stderr,"  size of the memory allocated:\n");
-    fprintf(stderr,"   name of geoSource pointer: %d\n",geoSource);
-    fprintf(stderr,"   nodes = %d\n",geoSource->numNode());
-    fprintf(stderr,"   elements = %d\n",geoSource->numElem());
-  }
-*/
 }
 
 template<class Scalar>
@@ -1127,13 +1114,8 @@ GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<S
           }
           break;
 */
-        case OutputInfo::Energies: {
-            Wext = f * u;
-            if(aeroF) Waero = (*aeroF) * u;
-            Wela = 0.5 * Wext;
-            Scalar error = Wext+Wela+Wkin+Wdmp;
-            geoSource->outputEnergies(i, time, Wext, Waero, Wela, Wkin, Wdmp, error);
-          }
+        case OutputInfo::Energies:
+          getEnergies(u, f, i, time, distState, dynOps, aeroF);
           break;
         case OutputInfo::Farfield: 
           domain->nffp = oinfo[i].interval;
@@ -2002,10 +1984,9 @@ GenDecDomain<Scalar>::outputPrimal(GenDistrVector<Scalar> &primal, int iter)
 
 template<class Scalar>
 void
-GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***allCorot,
-                                     double x, SysState<GenDistrVector<Scalar> > *distState,
-                                     GenDistrVector<Scalar> *aeroF, DistrGeomState *refState,
-                                     GenDistrVector<Scalar> *reactions, FullSquareMatrix **melArray)
+GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, GenDistrVector<Scalar> &extF, Corotator ***allCorot, double x,
+                                     SysState<GenDistrVector<Scalar> > *distState, GenDistrVector<Scalar> *aeroF, DistrGeomState *refState,
+                                     GenDistrVector<Scalar> *reactions, GenMDDynamMat<Scalar> *dynOps)
 {
   // NOTE: for dynamic runs, x represents the time
   //       for static runs, x represents the load parameter, lambda
@@ -2175,7 +2156,7 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***all
        getStressStrain(geomState, allCorot, i, EQPLSTRN, x, refState);
        break;
      case OutputInfo::Energies:
-       getEnergies(geomState, allCorot, i, x, melArray, distState->getVeloc());
+       getEnergies(geomState, extF, allCorot, i, x, distState, dynOps, aeroF);
        break;
      case OutputInfo::DissipatedEnergy:
        getDissipatedEnergy(geomState, allCorot, i, x);
@@ -3414,7 +3395,7 @@ void GenDecDomain<Scalar>::addFsiElements()
 {
  if ( domain->solInfo().isCoupled && domain->solInfo().type == 2 &&
       domain->solInfo().isMatching && domain->solInfo().fetiInfo.fsi_corner != 0 ) {
-// JLchange: replace addSubFsiElem() such that fsi elements are added only to structure elements. 
+   // JLchange: replace addSubFsiElem() such that fsi elements are added only to structure elements. 
    for (int i=0; i< domain->getNumFSI(); ++i) {
      LMPCons *thisGlFSI = domain->getFsi(i);
      int glFluidNode = thisGlFSI->lmpcnum;
@@ -3508,7 +3489,6 @@ void GenDecDomain<Scalar>::distributeWetInterfaceNodes()
   if ((domain->solInfo().isCoupled) && (domain->solInfo().fetiInfo.fsi_corner != 0)) { 
     execParal(numSub, this, &GenDecDomain<Scalar>::markSubWetInterface,
               nWetInterfaceNodesPerSub, subWetInterfaceNodes);
-    //makeCorners();  // XXXX JLchange
   }  
 
   execParal(numSub, this, &GenDecDomain<Scalar>::setSubWetInterface, nWetInterfaceNodesPerSub, subWetInterfaceNodes);
@@ -3974,55 +3954,139 @@ GenDecDomain<Scalar>::solVecAssemblerNew() {
 }
 
 template<class Scalar>
-void GenDecDomain<Scalar>::getEnergies(DistrGeomState *geomState, Corotator ***allCorot,
-                                       int fileNumber, double time, FullSquareMatrix **melArray,
-                                       GenDistrVector<Scalar> &velocity)
+void GenDecDomain<Scalar>::getEnergies(GenDistrVector<Scalar> &disp, GenDistrVector<Scalar> &extF, int fileNumber, double time,
+                                       SysState<GenDistrVector<Scalar> > *distState, GenMDDynamMat<Scalar> *dynOps,
+                                       GenDistrVector<Scalar> *aeroF)
 {
-  Scalar Wext = 0.0, Waero = 0.0, Wela = 0.0, Wkin = 0.0, Wdmp = 0.0;
-  Scalar *subW = new Scalar[numSub];
-  if(domain->solInfo().isDynam() && melArray) {
-    execParal3R(numSub, this, &GenDecDomain<Scalar>::subGetKineticEnergy, velocity, melArray, subW);
-    for(int i=0; i<numSub; ++i) Wkin += subW[i];
+  double Wext = 0.0, Waero = 0.0, Wdmp = 0.0, Wela = 0.0, Wkin = 0.0, error = 0.0;
+  if(domain->solInfo().isDynam()) {
+    double *subW = new double[6*numSub];
+    execParal7R(numSub, this, &GenDecDomain<Scalar>::subGetEnergies, disp, extF, time, distState, dynOps, aeroF, subW);
+
+    for(int i=0; i<numSub; ++i) {
+      Wext  += subW[6*i  ];
+      Waero += subW[6*i+1];
+      Wdmp  += subW[6*i+2];
+      Wela  += subW[6*i+3];
+      Wkin  += subW[6*i+4];
+      error += subW[6*i+5];
+    }
+    delete [] subW;
 #ifdef DISTRIBUTED
+    communicator->reduce(1, &Wext);
+    communicator->reduce(1, &Waero);
+    communicator->reduce(1, &Wdmp);
+    communicator->reduce(1, &Wela);
     communicator->reduce(1, &Wkin);
+    communicator->reduce(1, &error);
 #endif
   }
-  execParal3R(numSub, this, &GenDecDomain<Scalar>::subGetStrainEnergy, geomState, allCorot, subW);
-  for(int i=0; i<numSub; ++i) Wela += subW[i];
+  else {
+    Wext = ScalarTypes::Real(extF * disp);
+    Wela = 0.5 * Wext;
+  }
+
 #ifdef DISTRIBUTED
-  communicator->reduce(1, &Wela);
   if(myCPU == 0)
 #endif
-  geoSource->outputEnergies(fileNumber, time, Wext, Waero, Wela, Wkin, Wdmp, -Wext+Wkin+Wela);
-  delete [] subW;
-}
-
-template<>
-inline void GenDecDomain<double>::subGetKineticEnergy(int iSub, GenDistrVector<double> &velocity, FullSquareMatrix **melArray, double *W)
-{
-  W[iSub] = subDomain[iSub]->getKineticEnergy(velocity.subData(iSub), melArray[iSub]);
-}
-
-template<>
-inline void GenDecDomain<std::complex<double> >::subGetKineticEnergy(int iSub, GenDistrVector<std::complex<double> > &velocity,
-                                                                     FullSquareMatrix **melArray, std::complex<double> *W)
-{
-  W[iSub] = 0;
+  geoSource->outputEnergies(fileNumber, time, Wext, Waero, Wela, Wkin, Wdmp, error);
 }
 
 template<class Scalar>
-void GenDecDomain<Scalar>::subGetStrainEnergy(int iSub, DistrGeomState *geomState, Corotator ***allCorot, Scalar *W)
+void GenDecDomain<Scalar>::getEnergies(DistrGeomState *geomState, GenDistrVector<Scalar> &extF,
+                                       Corotator ***allCorot, int fileNumber, double time,
+                                       SysState<GenDistrVector<Scalar> > *distState, GenMDDynamMat<Scalar> *dynOps,
+                                       GenDistrVector<Scalar> *aeroF)
 {
-  W[iSub] = subDomain[iSub]->getStrainEnergy((*geomState)[iSub], allCorot[iSub]);
+  double Wext = 0.0, Waero = 0.0, Wdmp = 0.0, Wela = 0.0, Wkin = 0.0, error = 0.0;
+  double *subW = new double[6*numSub];
+  execParal8R(numSub, this, &GenDecDomain<Scalar>::subGetEnergies, geomState, extF, allCorot, time,
+              distState, dynOps, aeroF, subW);
+
+  for(int i=0; i<numSub; ++i) {
+    Wext  += subW[6*i  ];
+    Waero += subW[6*i+1];
+    Wdmp  += subW[6*i+2];
+    Wela  += subW[6*i+3];
+    Wkin  += subW[6*i+4];
+    error += subW[6*i+5];
+  }
+  delete [] subW;
+#ifdef DISTRIBUTED
+  communicator->reduce(1, &Wext);
+  communicator->reduce(1, &Waero);
+  communicator->reduce(1, &Wdmp);
+  communicator->reduce(1, &Wela);
+  communicator->reduce(1, &Wkin);
+  communicator->reduce(1, &error);
+
+  if(myCPU == 0)
+#endif
+  geoSource->outputEnergies(fileNumber, time, Wext, Waero, Wela, Wkin, Wdmp, error);
+}
+
+template<>
+inline void GenDecDomain<double>::subGetEnergies(int iSub, GenDistrVector<double> &disp, GenDistrVector<double> &extF, double time,
+                                                 SysState<GenDistrVector<double> > *distState, GenMDDynamMat<double> *dynOps,
+                                                 GenDistrVector<double> *aeroF, double *subW)
+{
+  GenStackVector<double> subDisp(disp.subData(iSub), disp.subLen(iSub));
+  GenStackVector<double> subExtF(extF.subData(iSub), extF.subLen(iSub));
+  GenStackVector<double> *subAeroF = (aeroF) ? new GenStackVector<double>(aeroF->subData(iSub), aeroF->subLen(iSub)) : NULL;
+  GenStackVector<double> *subVel = (distState) ? new GenStackVector<double>(distState->getVeloc().subData(iSub), distState->getVeloc().subLen(iSub)) : NULL;
+  GenSparseMatrix<double> *subK = (dynOps && dynOps->K) ? (*dynOps->K)[iSub] : NULL;
+  GenSparseMatrix<double> *subM = (dynOps && dynOps->M) ? (*dynOps->M)[iSub] : NULL;
+  GenSparseMatrix<double> *subC = (dynOps && dynOps->C) ? (*dynOps->C)[iSub] : NULL;
+  subDomain[iSub]->computeEnergies(subDisp, subExtF, time, subAeroF, subVel, subK, subM, subC,
+                                   subW[6*iSub+3], subW[6*iSub+4], subW[6*iSub+5]);
+  subW[6*iSub+0] = subDomain[iSub]->getWext();
+  subW[6*iSub+1] = subDomain[iSub]->getWaero();
+  subW[6*iSub+2] = subDomain[iSub]->getWdmp();
+  if(subAeroF) delete subAeroF;
+  if(subVel) delete subVel;
+}
+
+template<>
+inline void GenDecDomain<std::complex<double> >::subGetEnergies(int iSub, GenDistrVector<std::complex<double> > &, GenDistrVector<std::complex<double> > &,
+                                                                double, SysState<GenDistrVector<std::complex<double> > > *,
+                                                                GenMDDynamMat<std::complex<double> > *, GenDistrVector<std::complex<double> > *, double *subW)
+{
+  for(int i=0; i<6; ++i) subW[6*iSub+i] = 0;
+}
+
+template<>
+inline void GenDecDomain<double>::subGetEnergies(int iSub, DistrGeomState *geomState, GenDistrVector<double> &extF,
+                                                 Corotator ***allCorot, double time, SysState<GenDistrVector<double> > *distState,
+                                                 GenMDDynamMat<double> *dynOps, GenDistrVector<double> *aeroF, double *subW)
+{
+  GenStackVector<double> subExtF(extF.subData(iSub), extF.subLen(iSub));
+  GenStackVector<double> *subAeroF = (aeroF) ? new GenStackVector<double>(aeroF->subData(iSub), aeroF->subLen(iSub)) : NULL;
+  double *subVel = (distState) ? distState->getVeloc().subData(iSub) : NULL;
+  GenSparseMatrix<double> *subM = (dynOps && dynOps->M) ? (*dynOps->M)[iSub] : NULL;
+  GenSparseMatrix<double> *subC = (dynOps && dynOps->C) ? (*dynOps->C)[iSub] : NULL;
+  subDomain[iSub]->computeEnergies((*geomState)[iSub], subExtF, time, subAeroF, subVel, allCorot[iSub], subM, subC,
+                                   subW[6*iSub+3], subW[6*iSub+4], subW[6*iSub+5]);
+  subW[6*iSub+0] = subDomain[iSub]->getWext();
+  subW[6*iSub+1] = subDomain[iSub]->getWaero();
+  subW[6*iSub+2] = subDomain[iSub]->getWdmp();
+  if(subAeroF) delete subAeroF;
+}
+
+template<>
+inline void GenDecDomain<std::complex<double> >::subGetEnergies(int iSub, DistrGeomState *, GenDistrVector<std::complex<double> > &,
+                                                                Corotator ***, double, SysState<GenDistrVector<std::complex<double> > > *,
+                                                                GenMDDynamMat<std::complex<double> > *, GenDistrVector<std::complex<double> > *, double *subW)
+{
+  for(int i=0; i<6; ++i) subW[6*iSub+i] = 0;
 }
 
 template<class Scalar>
 void GenDecDomain<Scalar>::getDissipatedEnergy(DistrGeomState *geomState, Corotator ***allCorot, 
                                                int fileNumber, double time)
 {
-  Scalar *subD = new Scalar[numSub];
+  double *subD = new double[numSub];
   execParal3R(numSub, this, &GenDecDomain<Scalar>::subGetDissipatedEnergy, geomState, allCorot, subD);
-  Scalar D = 0;
+  double D = 0;
   for(int i=0; i<numSub; ++i) D += subD[i];
 #ifdef DISTRIBUTED
   communicator->reduce(1, &D);
@@ -4033,7 +4097,7 @@ void GenDecDomain<Scalar>::getDissipatedEnergy(DistrGeomState *geomState, Corota
 }
 
 template<class Scalar>
-void GenDecDomain<Scalar>::subGetDissipatedEnergy(int iSub, DistrGeomState *geomState, Corotator ***allCorot, Scalar *D)
+void GenDecDomain<Scalar>::subGetDissipatedEnergy(int iSub, DistrGeomState *geomState, Corotator ***allCorot, double *D)
 {
   D[iSub] = subDomain[iSub]->getDissipatedEnergy((*geomState)[iSub], allCorot[iSub]);
 }

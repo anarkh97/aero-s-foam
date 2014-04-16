@@ -92,7 +92,7 @@ PitaNonLinDynamic::pitaDynamOutput(int timeSliceRank, GeomState* geomState, VecT
   times->output -= getTime();
   domain->pitaPostProcessing(timeSliceRank, geomState, force, aeroF,
                              time, step, velocity.data(), vcx,
-                             allCorot, melArray, acceleration.data());
+                             allCorot, acceleration.data());
   times->output += getTime();
 }
 

@@ -106,7 +106,7 @@ SDDynamPostProcessor::dynamOutput(int tIndex, double time, DynamMat& dMat, Vecto
     for(int iInfo = 0; iInfo < numOutInfo; ++iInfo) {
       if(oinfo[iInfo].isStressOrStrain() || oinfo[iInfo].isRotation()) {
         domain->postProcessingImpl(iInfo, geomState, ext_f, *aeroForce, time, tIndex, state.getVeloc().data(), vcx,
-                                   allCorot, melArray, state.getAccel().data(), acx, geomState);
+                                   allCorot, state.getAccel().data(), acx, geomState, (Vector*) NULL, dMat.M, dMat.C);
       }
     }
   }

@@ -110,9 +110,10 @@ class GenDecDomain
   virtual void postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<Scalar> &f, double eigV = 0.0,
                               GenDistrVector<Scalar> *aeroF = 0, int x = 0, GenMDDynamMat<Scalar> *dynOps = 0,
                               SysState<GenDistrVector<Scalar> > *distState = 0, int ndflag = 0); 
-  virtual void postProcessing(DistrGeomState *u, Corotator ***, double x = 0, SysState<GenDistrVector<Scalar> > *distState = 0,
-                              GenDistrVector<Scalar> *aeroF = 0, DistrGeomState *refState = 0, GenDistrVector<Scalar> *reactions = 0,
-                              FullSquareMatrix** = NULL);
+  virtual void postProcessing(DistrGeomState *u, GenDistrVector<Scalar> &, Corotator ***, double x = 0,
+                              SysState<GenDistrVector<Scalar> > *distState = 0, GenDistrVector<Scalar> *aeroF = 0,
+                              DistrGeomState *refState = 0, GenDistrVector<Scalar> *reactions = 0,
+                              GenMDDynamMat<Scalar> *dynOps = 0);
   DistrInfo &solVecInfo() { return *internalInfo; } // unconstrained dofs
   const DistrInfo &masterSolVecInfo() const;
   DistrInfo &sysVecInfo() { return *internalInfo2; } // all dofs
@@ -134,9 +135,9 @@ class GenDecDomain
   void setNewProperties(int);
   void assignRandMat();
   void retrieveElemset();
-  virtual void setsizeSfemStress(int fileNumber);  // YYY DG implementation incomplete: do the element stresses
+  virtual void setsizeSfemStress(int fileNumber);
   virtual int getsizeSfemStress() { return sizeSfemStress; }
-  virtual Scalar* getSfemStress(int fileNumber) { return globalStress; } // YYY DG ok for nodal stress, modify for element stresses
+  virtual Scalar* getSfemStress(int fileNumber) { return globalStress; }
   virtual void updateSfemStress(Scalar* str, int fileNumber);
   double computeStabilityTimeStep(GenMDDynamMat<Scalar>&);
   void extractSubDomainMPCs(int iSub);
@@ -195,8 +196,12 @@ class GenDecDomain
   void getElementForce(GenDistrVector<Scalar>&, int, int, double);
  public:
   virtual void getStressStrain(GenDistrVector<Scalar>&, int, int, double, int printFlag=0);
-  void getEnergies(DistrGeomState *geomState, Corotator ***allCorot, int fileNumber, double time,
-                   FullSquareMatrix **melArray, GenDistrVector<Scalar> &velocity);
+  void getEnergies(GenDistrVector<Scalar> &disp, GenDistrVector<Scalar> &extF, int fileNumber, double time,
+                   SysState<GenDistrVector<Scalar> > *distState, GenMDDynamMat<Scalar> *dynOps,
+                   GenDistrVector<Scalar> *aeroF);
+  void getEnergies(DistrGeomState *geomState, GenDistrVector<Scalar> &extF, Corotator ***allCorot, int fileNumber,
+                   double time, SysState<GenDistrVector<Scalar> > *distState, GenMDDynamMat<Scalar> *dynOps,
+                   GenDistrVector<Scalar> *aeroF);
   void getDissipatedEnergy(DistrGeomState *geomState, Corotator ***allCorot, int fileNumber, double time);
  private:
   void getElementStressStrain(GenDistrVector<Scalar>&, int, int, double, int printFlag=0);
@@ -229,15 +234,18 @@ class GenDecDomain
   void scaleSubDisp(int iSub, GenDistrVector<Scalar> &u);
   void scaleInvSubDisp(int iSub, GenDistrVector<Scalar> &u);
   void scaleSubDisp(int iSub, GenDistrVector<Scalar> &u, double alpha);
-  void subGetKineticEnergy(int iSub, GenDistrVector<Scalar> &velocity, FullSquareMatrix **melArray, Scalar *W);
-  void subGetStrainEnergy(int iSub, DistrGeomState *geomState, Corotator ***allCorot, Scalar *subD);
-  void subGetDissipatedEnergy(int iSub, DistrGeomState *geomState, Corotator ***allCorot, Scalar *subD);
+  void subGetEnergies(int iSub, GenDistrVector<Scalar> &disp, GenDistrVector<Scalar> &extF, double time,
+                      SysState<GenDistrVector<Scalar> > *distState, GenMDDynamMat<Scalar> *dynOps,
+                      GenDistrVector<Scalar> *aeroF, double *subW);
+  void subGetEnergies(int iSub, DistrGeomState *geomState, GenDistrVector<Scalar> &extF,
+                      Corotator ***allCorot, double time, SysState<GenDistrVector<Scalar> > *distState,
+                      GenMDDynamMat<Scalar> *dynOps, GenDistrVector<Scalar> *aeroF, double *subW);
+  void subGetDissipatedEnergy(int iSub, DistrGeomState *geomState, Corotator ***allCorot, double *subD);
 
   // Helmholtz Fluid functions
   void distribBC(int iSub, GenSubDomain<Scalar> **sd, Domain *domain,
      int *somToSub, int *scaToSub, int *neumToSub, int (*wetToSub)[2],
      int *sBoundFlag);
-//  void checkSommerTypeBC(int iSub);
   void buildLocalFFP(int iSub, GenDistrVector<Scalar> *u,
                      Scalar **ffp, int *numSample, double (*dir)[3], bool direction);
   void getWError(int iSub, GenDistrVector<Scalar> *u,
@@ -247,8 +255,6 @@ class GenDecDomain
   void distributeWetInterfaceNodes();
   void setSubWetInterface(int iSub, int *nWetInterfaceNodesPerSub, int **subWetInterfaceNodes);
   void getSharedFSIs();
-
-  // JLchange coupled_dph functions
   void markSubWetInterface(int iSub, int *nWetInterfaceNodesPerSub, int **subWetInterfaceNodes);
   void addFsiElements();
   

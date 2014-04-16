@@ -112,7 +112,6 @@ GenDistrDomain<Scalar>::forceContinuity(GenDistrVector<Scalar> &u) {
   }
 }
 
-
 template<class Scalar>
 void
 GenDistrDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<Scalar> &f,
@@ -243,6 +242,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
 
     for(int iInfo = 0; iInfo < numOutInfo; iInfo++) {
       if(oinfo[iInfo].type == OutputInfo::Farfield || 
+         oinfo[iInfo].type == OutputInfo::Energies ||
          oinfo[iInfo].type == OutputInfo::Kirchhoff || 
          oinfo[iInfo].type == OutputInfo::AeroForce) { 
         int oI = iInfo;
@@ -261,6 +261,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
     for(int iInfo = 0; iInfo < numOutInfo; iInfo++) {
       if(oinfo[iInfo].nodeNumber == -1 && 
          oinfo[iInfo].type != OutputInfo::Farfield && 
+         oinfo[iInfo].type != OutputInfo::Energies &&
          oinfo[iInfo].type != OutputInfo::Kirchhoff && 
          oinfo[iInfo].type != OutputInfo::AeroForce) {
         for(iSub = 0; iSub < this->numSub; iSub++) {
@@ -580,6 +581,9 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
           }
         }
         break;
+      case OutputInfo::Energies:
+        this->getEnergies(u, f, iOut, time, distState, dynOps, aeroF);
+        break;
       case OutputInfo::Farfield: 
         domain->nffp = oinfo[iOut].interval;
         iOut_ffp = iOut; // PJSA 3-1-2007 buildFFP doesn't work with serialized output
@@ -761,17 +765,11 @@ GenDistrDomain<Scalar>::setsizeSfemStress(int fileNumber)
 
   if(avgnum == 1) this->sizeSfemStress = masterInfo.totLen(); 
   else if(avgnum == 0) {  // element-based output
-  this->sizeSfemStress = 0;
-/*   Connectivity *elemToNode = new Connectivity(domain->getEset());
-   int numele = geoSource->getNumAttributes();  // number of elements; another option domain->numElements();
-   for(int iele=0; iele<numele; ++iele)   {
-//     cerr << "number of nodes in this element  = " << elemToNode->num(iele) << endl;
-     sizeSfemStress = sizeSfemStress + elemToNode->num(iele); // add number of nodes for each element
-   }*/
+    this->sizeSfemStress = 0;
   }
   else {
-   cerr << "avgnum = " << avgnum << " not implemented in Domain::setsizeSfemStress()" << endl;
-   this->sizeSfemStress = 0;
+    cerr << "avgnum = " << avgnum << " not implemented in Domain::setsizeSfemStress()" << endl;
+    this->sizeSfemStress = 0;
   }
 }
 
@@ -783,7 +781,7 @@ GenDistrDomain<Scalar>::getSfemStress(int fileNumber)
   int avgnum = oinfo[fileNumber].averageFlg;
 
   if(avgnum == 1) return masterStress->data(); // node-based
-  else if(avgnum == 0) return 0; // element-based YYY DG Implement
+  else if(avgnum == 0) return 0; // element-based
   else  { cerr << "avgnum = " << avgnum << " not implemented in Domain::getSfemStress()" << endl; return 0; }
 }
 
@@ -794,10 +792,8 @@ GenDistrDomain<Scalar>::updateSfemStress(Scalar* str, int fileNumber)
   OutputInfo *oinfo = geoSource->getOutputInfo();
   int avgnum = oinfo[fileNumber].averageFlg;
 
-  //int numNodes = masterInfo.totLen(); //  size(masterStress)
-
-  if(avgnum == 1)  masterStress->setNewData(str); // YYY DG
-  else if(avgnum == 0) cerr << "updateSfemStress for element not yet implemented" << endl; // YYY DG
+  if(avgnum == 1)  masterStress->setNewData(str);
+  else if(avgnum == 0) cerr << "updateSfemStress for element not yet implemented" << endl;
   else {cerr << "avgnum = " << avgnum << " not implemented in Domain::updateSfemStress()" << endl;}
 }
 
@@ -1330,8 +1326,9 @@ GenDistrDomain<Scalar>::createOutputOffsets()
 
 template<class Scalar>
 void
-GenDistrDomain<Scalar>::postProcessing(DistrGeomState *geomState, Corotator ***allCorot, double time, SysState<GenDistrVector<Scalar> > *distState,
-                                       GenDistrVector<Scalar> *aeroF, DistrGeomState *refState, GenDistrVector<Scalar> *reactions, FullSquareMatrix **melArray)
+GenDistrDomain<Scalar>::postProcessing(DistrGeomState *geomState, GenDistrVector<Scalar> &extF, Corotator ***allCorot, double time,
+                                       SysState<GenDistrVector<Scalar> > *distState, GenDistrVector<Scalar> *aeroF, DistrGeomState *refState,
+                                       GenDistrVector<Scalar> *reactions, GenMDDynamMat<Scalar> *dynOps)
 {
   int numOutInfo = geoSource->getNumOutInfo();
   if(numOutInfo == 0) return;
@@ -1575,7 +1572,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
         getStressStrain(geomState, allCorot, time, x, iOut, EQPLSTRN, refState);
         break;
       case OutputInfo::Energies:
-        this->getEnergies(geomState, allCorot, iOut, time, melArray, distState->getVeloc());
+        this->getEnergies(geomState, extF, allCorot, iOut, time, distState, dynOps, aeroF);
         break;
       case OutputInfo::DissipatedEnergy:
         this->getDissipatedEnergy(geomState, allCorot, iOut, time);

@@ -27,14 +27,15 @@ class GenDistrDomain : virtual public GenDecDomain<Scalar>
     void postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<Scalar> &f, double eigV = 0.0,
                         GenDistrVector<Scalar> *aeroF = 0, int x = 0, GenMDDynamMat<Scalar> *dynOps = 0,
                         SysState<GenDistrVector<Scalar> > *distState = 0, int ndflag = 0); 
-    void postProcessing(DistrGeomState *u, Corotator ***, double x = 0, SysState<GenDistrVector<Scalar> > *distState = 0,
-                        GenDistrVector<Scalar> *aeroF = 0, DistrGeomState *refState = 0, GenDistrVector<Scalar> *reactions = 0,
-                        FullSquareMatrix **melArray = 0);
+    void postProcessing(DistrGeomState *u, GenDistrVector<Scalar> &, Corotator ***, double x = 0,
+                        SysState<GenDistrVector<Scalar> > *distState = 0, GenDistrVector<Scalar> *aeroF = 0,
+                        DistrGeomState *refState = 0, GenDistrVector<Scalar> *reactions = 0,
+                        GenMDDynamMat<Scalar> *dynOps = 0);
     virtual void forceContinuity(GenDistrVector<Scalar> &u);
 
-    void setsizeSfemStress(int fileNumber);  // YYY DG implementation incomplete: do the element stresses 
-    int getsizeSfemStress() { return this->sizeSfemStress; } // YYY DG for both node- and element-based ?
-    Scalar * getSfemStress(int fileNumber); // YYY DG implementation incomplete: do the element stresses 
+    void setsizeSfemStress(int fileNumber);
+    int getsizeSfemStress() { return this->sizeSfemStress; }
+    Scalar * getSfemStress(int fileNumber);
     void updateSfemStress(Scalar* str, int fileNumber);
 
   private:
@@ -48,11 +49,10 @@ class GenDistrDomain : virtual public GenDecDomain<Scalar>
                    double time, int x, int fileNumber, int ndof, int startdof);//DofSet::max_known_nonL_dof
     void getAeroForceScalar(DistSVec<Scalar, 6> &aerof, DistSVec<Scalar, 6> &masterAeroF,
                             double time, int x, int fileNumber, int dof);
-//    void getStressStrain(GenDistrVector<Scalar> &, double, int, int, int);
     void getStressStrain(GenDistrVector<Scalar> &u, double time, int x, int fileNumber, int Findex, int printFlag=0);
-    void getStressStrain(GenDistrVector<Scalar> &sol, int fileNumber, int stressIndex, double time, int printFlag=0)  // To keep the same arguments as DecDomain
-            { getStressStrain(sol, time, 0, fileNumber, stressIndex, printFlag);} // YYY DG assuming x=0, but what is x ?
-    void getElementStressStrain(GenDistrVector<Scalar> &, double, int, int, int, int printFlag=0); // YYY DG Implement printFlag
+    void getStressStrain(GenDistrVector<Scalar> &sol, int fileNumber, int stressIndex, double time, int printFlag=0) 
+            { getStressStrain(sol, time, 0, fileNumber, stressIndex, printFlag); }
+    void getElementStressStrain(GenDistrVector<Scalar> &, double, int, int, int, int printFlag=0);
     void getPrincipalStress(GenDistrVector<Scalar> &, double, int, int, int);
     void getElementPrincipalStress(GenDistrVector<Scalar> &, double, int, int, int);
     void getElementForce(GenDistrVector<Scalar> &, double, int, int, int);

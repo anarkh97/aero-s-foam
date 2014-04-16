@@ -968,8 +968,9 @@ Domain::reactionsReqd(double time, int step)
 void
 Domain::postProcessing(GeomState *geomState, Vector& force, Vector &aeroForce,
                        double time, int step, double* velocity, double *vcx,
-                       Corotator **allCorot, FullSquareMatrix *mel, double *acceleration,
-                       double *acx, GeomState *refState, Vector *reactions)
+                       Corotator **allCorot, double *acceleration, double *acx,
+                       GeomState *refState, Vector *reactions, SparseMatrix *M,
+                       SparseMatrix *C)
 {
   if(time == sinfo.initialTime) {
     geoSource->openOutputFiles();
@@ -985,7 +986,7 @@ Domain::postProcessing(GeomState *geomState, Vector& force, Vector &aeroForce,
   for(int iInfo = 0; iInfo < numOutInfo; ++iInfo)
   {
     postProcessingImpl(iInfo, geomState, force, aeroForce, time, step, velocity, vcx,
-                       allCorot, mel, acceleration, acx, refState, reactions);
+                       allCorot, acceleration, acx, refState, reactions, M, C);
   }
 
 }
@@ -993,8 +994,9 @@ Domain::postProcessing(GeomState *geomState, Vector& force, Vector &aeroForce,
 void
 Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vector &aeroForce,
                            double time, int step, double* velocity, double *vcx,
-                           Corotator **allCorot, FullSquareMatrix *mel, double *acceleration,
-                           double *acx, GeomState *refState, Vector *reactions)
+                           Corotator **allCorot, double *acceleration, double *acx,
+                           GeomState *refState, Vector *reactions, SparseMatrix *M,
+                           SparseMatrix *C)
 {
  if(outFlag && !nodeTable) makeNodeTable(outFlag);
  int numNodes = geoSource->numNode();  // PJSA 8-26-04 don't want to print displacements for internal nodes
@@ -1458,129 +1460,14 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
       getElementForces(*geomState, allCorot, iInfo, AZM, time);
       break;
     case OutputInfo::Energies: {
-
-      // Since this file is used for both Non-linear Statics
-      // and Non-linear Dynamics
-      // we need both included in this routine.
-
-      // Build displacement Vector
-      Vector sol(numUncon(), 0.0 );
-      int i;
-      for(i=0; i<numNodes; ++i) {
-        int xloc  = c_dsa->locate(i, DofSet::Xdisp);
-        if(xloc >= 0)
-          sol[xloc]  = ( (*geomState)[i].x - nodes[i]->x);
-        int yloc  = c_dsa->locate(i, DofSet::Ydisp);
-        if(yloc >= 0)
-          sol[yloc]  = ( (*geomState)[i].y - nodes[i]->y);
-        int zloc  = c_dsa->locate(i, DofSet::Zdisp);
-        if(zloc >= 0)
-          sol[zloc]  = ( (*geomState)[i].z - nodes[i]->z);
-        double rot[3];
-        mat_to_vec((*geomState)[i].R,rot);
-        int xrot  = c_dsa->locate(i, DofSet::Xrot);
-        if(xrot >= 0)
-          sol[xrot]  = rot[0];
-        int yrot  = c_dsa->locate(i, DofSet::Yrot);
-        if(yrot >= 0)
-          sol[yrot]  = rot[1];
-        int zrot  = c_dsa->locate(i, DofSet::Zrot);
-        if(zrot >= 0)
-          sol[zrot]  = rot[2];
-      }
-
-      // Non-Linear Dynamics
-      if (sinfo.probType == SolverInfo::NonLinDynam) {
-        double dW=0.0, dWaero = 0.0, Wela=0.0, Wkin=0.0;
-
-        if(!previousExtForce) {
-          Wext=0.0;
-          Waero=0.0;
-          Wdmp=0.0;
-          pWela=0.0;
-          pWkin=0.0;
-          previousExtForce = new Vector(force);
-          previousAeroForce = new Vector(aeroForce);
-          dW = force*sol;
-          dWaero = aeroForce*sol;
-        } else {
-          double c = solInfo().newmarkGamma;
-/*
-     NOTE: The formula for dW should be (1-c)*f^n + c*f^{n+1}.
-           However, force stores f^{n+1/2}
-           and previousExtForce stores f^{n-1/2}. For this reason,
-           the formula below looksk
-           different. Furthermore, we had to assume
-           f^n = (f^{n-1/2} + f^{n+1/2})/2 to minimize
-           code changes. On the other hand, f^{n+1/2} = (f^n + f^{n+1})/2
-           holds without any assumption.
-     XXX this needs to be updated for generalized-alpha
-*/
-
-          dW = (c*force + (1.0-c)*(*previousExtForce)) * (sol - (*previousDisp));
-          dWaero = (c*aeroForce + (1.0-c)*(*previousAeroForce)) *(sol - (*previousDisp));
-
-          if(step==sinfo.initialTimeIndex) { dW*=2.0; dWaero *= 2.0; }
-        }
-
-        Wext += dW;
-        Waero += dWaero;
-
-        // Compute Kinetic Energy
-        Wkin = getKineticEnergy(velocity, mel);
-
-        // Compute Internal Energy
-        Wela = getStrainEnergy(geomState, allCorot);
-
-        double error = (time==sinfo.initialTime) ? 0.0 : (Wela+Wkin)-(pWela+pWkin)-dW;
-        geoSource->outputEnergies(iInfo, time, Wext, Waero, Wela, Wkin, 0.0, error);
-
-        pWela=Wela;
-        pWkin=Wkin;
-
-        if(!previousDisp) {
-          previousDisp = new Vector(sol);
-        } else {
-          (*previousExtForce) = force;
-          (*previousAeroForce) = aeroForce;
-          (*previousDisp)     = sol;
-        }
-
-      // Non-Linear Statics
-      } else {
-        double lambda = time;
-        if (time == 0.0) {
-          double deltaLambda = solInfo().getNLInfo().dlambda;
-          double maxLambda = solInfo().getNLInfo().maxLambda;
-          if(deltaLambda == maxLambda) lambda = 1.0;
-        }
-        Wext=0.0;
-        Waero=0.0;
-        Wdmp=0.0;
-        pWela=0.0;
-        pWkin=0.0;
-
-        // Wkin = kinetic energy
-        // Total Energy = Wext+Wela+Wkin
-        double Wkin=0.0;
-
-        // Wext = external energy
-        Wext = lambda*force * sol;
-        Waero = lambda*aeroForce * sol;
-
-        // Compute Internal Energy
-        // This is done at the element level.
-        // Wela = elastic energy
-        double Wela = getStrainEnergy(geomState, allCorot);
-
-        double error = Wext+Wela+Wkin;
-        geoSource->outputEnergies(iInfo, time, Wext, Waero, Wela, Wkin, 0.0, error);
-      }
+      double Wkin, Wela, error;
+      computeEnergies(geomState, force, time, &aeroForce, velocity, allCorot, M, C, Wela, Wkin, error);
+      geoSource->outputEnergies(iInfo, time, Wext, Waero, Wela, Wkin, Wdmp, error);
     } break;
     case OutputInfo::DissipatedEnergy: {
       double D = getDissipatedEnergy(geomState, allCorot);
       geoSource->outputEnergy(iInfo, time, D);
-    }
+    } break;
     case OutputInfo::AeroForce: break; // this is done in FlExchange.C
     case OutputInfo::AeroXForce:  {
       double *data = new double[nPrintNodes];
@@ -2646,6 +2533,71 @@ Domain::getElementDisp(int iele, GeomState& geomState, Vector& disp)
     }
   }
   delete [] nn;
+}
+
+void
+Domain::computeEnergies(GeomState *geomState, Vector &force, double time, Vector *aeroForce, double *velocity,
+                        Corotator **allCorot, SparseMatrix *M, SparseMatrix *C, double &Wela, double &Wkin,
+                        double &error)
+{
+  // Build displacement vector
+  Vector disp(numUncon(), 0.0);
+  for(int i = 0; i < geomState->numNodes(); ++i) { // XXX consider gaps, internal nodes, etc.
+    int xloc = c_dsa->locate(i, DofSet::Xdisp);
+    if(xloc >= 0)
+      disp[xloc] = ((*geomState)[i].x - nodes[i]->x);
+    int yloc = c_dsa->locate(i, DofSet::Ydisp);
+    if(yloc >= 0)
+      disp[yloc] = ((*geomState)[i].y - nodes[i]->y);
+    int zloc = c_dsa->locate(i, DofSet::Zdisp);
+    if(zloc >= 0)
+      disp[zloc] = ((*geomState)[i].z - nodes[i]->z);
+    double rot[3];
+    mat_to_vec((*geomState)[i].R,rot);
+    int xrot = c_dsa->locate(i, DofSet::Xrot);
+    if(xrot >= 0)
+      disp[xrot] = rot[0];
+    int yrot = c_dsa->locate(i, DofSet::Yrot);
+    if(yrot >= 0)
+      disp[yrot] = rot[1];
+    int zrot = c_dsa->locate(i, DofSet::Zrot);
+    if(zrot >= 0)
+      disp[zrot]  = rot[2];
+  }
+
+  if(sinfo.isDynam()) {
+    double pWext = Wext, pWdmp = Wdmp;
+    StackVector vel(velocity, numUncon());
+    computeExtAndDmpEnergies(disp, force, time, aeroForce, &vel, C);
+
+    Vector tmpVec(numUncon());
+    if(M) {
+      M->mult(vel, tmpVec);
+      Wkin = 0.5 * (vel * tmpVec);
+    }
+    Wela = getStrainEnergy(geomState, allCorot);
+
+    // XXX consider sign of Wdmp in this equation:
+    error = (time == sinfo.initialTime) ? 0.0 : (Wela+Wkin+Wdmp-Wext)-(pWela+pWkin+pWdmp-pWext);
+
+    pWela = Wela;
+    pWkin = Wkin;
+  }
+  else { // nonlinear statics
+    double lambda = time;
+    if (time == 0.0) {
+      double deltaLambda = solInfo().getNLInfo().dlambda;
+      double maxLambda = solInfo().getNLInfo().maxLambda;
+      if(deltaLambda == maxLambda) lambda = 1.0;
+    }
+
+    Wext  = lambda*force * disp;
+    Waero = 0;
+    Wdmp  = 0;
+    Wkin  = 0;
+    Wela  = getStrainEnergy(geomState, allCorot);
+    error = 0;
+  }
 }
 
 double

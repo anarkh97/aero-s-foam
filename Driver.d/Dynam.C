@@ -1,6 +1,5 @@
 #include <Utils.d/dbg_alloca.h>
 #include <cstdio>
-//#include <cstdlib>
 
 #ifndef TFLOP
 #ifndef WINDOWS 
@@ -8,7 +7,6 @@
 #endif
 #endif
 
-// New include files for Restart file
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -535,10 +533,6 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
 
             // transform velocity from DOF_FRM to basic coordinate frame
             if(oinfo[i].oframe == OutputInfo::Global) transformVectorInv(&(data[nodeI][0]), first_node+iNode, false);
-            //std::cout << std::fixed;
-            //std::cout << first_node+iNode+1 << " 1 " << setprecision(12) << data[nodeI][0] << std::endl;
-            //std::cout << first_node+iNode+1 << " 2 " << setprecision(12) << data[nodeI][1] << std::endl;
-            //std::cout << first_node+iNode+1 << " 3 " << setprecision(12) << data[nodeI][2] << std::endl;
           }
           geoSource->outputNodeVectors(i, data, nNodesOut, time);
           delete [] data;
@@ -614,72 +608,11 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
         }
           break;
         case OutputInfo::Energies: {
-
-          double dW=0.0, dWaero = 0.0, dWdmp=0.0, Wela=0.0, Wkin=0.0;
-          int numUncon = c_dsa->size();
-
-          if (time==sinfo.initialTime) {
-            Wext=0.0;
-            Waero=0.0;
-            Wdmp=0.0;
-            pWela=0.0;
-            pWkin=0.0;
-            Vector F(numUncon);
-            buildRHSForce(F);
-            previousExtForce = new Vector(F);
-            if(sinfo.aeroFlag >= 0) {
-              previousAeroForce = new Vector(aeroForce);
-              dWaero = aeroForce*d_n;
-            }
-            dW = F*d_n;
-          } else {
-            double c = solInfo().newmarkGamma;
-
-//NOTE:   The formula for dW should be (1-c)*f^n + c*f^{n+1}.
-//        However, ext_f stores f^{n+1/2}
-//        and previousExtForce stores f^{n-1/2}. For this reason,
-//        the formula below looks
-//        different. Furthermore, we had to
-//        assume f^n = (f^{n-1/2} + f^{n+1/2})/2 to minimize
-//        code changes. On the other hand, f^{n+1/2} = (f^n + f^{n+1})/2
-//        holds without any assumption.
-//
-            dW = (c*ext_f + (1.0-c)*(*previousExtForce)) * (d_n - (*previousDisp));
-            if(sinfo.aeroFlag >= 0) {
-              dWaero = (c*aeroForce + (1.0-c)*(*previousAeroForce)) *(d_n - (*previousDisp));
-            }
-            if (tIndex==sinfo.initialTimeIndex) { dW *= 2.0; dWaero *= 2.0; }
-          }
-          Wext += dW;
-          Waero += dWaero;
-          Vector tmpVec(numUncon);
-          dMat.M->mult(v_n,tmpVec);
-          Wkin = 0.5 * (v_n * tmpVec);
-          dMat.K->mult(d_n,tmpVec);
-          Wela = 0.5 * (d_n * tmpVec);
-          if (dMat.C && (time > sinfo.initialTime)) {  //??????????????????????
-            dMat.C->mult(v_n, tmpVec);
-            double c = solInfo().newmarkGamma;
-            dWdmp = (c*tmpVec + (1.0-c)*(*previousCq))*(d_n - (*previousDisp));
-            Wdmp += dWdmp;
-          }
-          //??????????????????????
-          double error = (time==sinfo.initialTime) ? 0.0 : (Wela+Wkin)-(pWela+pWkin)+dWdmp-dW; 
-          geoSource->outputEnergies(i, time, Wext, Waero, Wela, Wkin, -Wdmp, error);
-          pWela=Wela;
-          pWkin=Wkin;
-          if (time==sinfo.initialTime) {  //?????????????????????
-            previousDisp = new Vector(d_n);
-            previousCq   = new Vector(tmpVec);
-          } else {
-            (*previousExtForce) = ext_f;
-            if(sinfo.aeroFlag >= 0) (*previousAeroForce) = aeroForce;
-            (*previousDisp)     = d_n;
-            (*previousCq)       = tmpVec;
-          }
+          double Wela, Wkin, error; 
+          computeEnergies(d_n, ext_f, time, &aeroForce, &v_n, dMat.K, dMat.M, dMat.C, Wela, Wkin, error);
+          geoSource->outputEnergies(i, time, Wext, Waero, Wela, Wkin, Wdmp, error);
         }
-        break;
-
+          break;
         case OutputInfo::AeroForce: break; // this is done in FlExchange.C
         case OutputInfo::AeroXForce:  {
           if(sinfo.aeroFlag >= 0) {
@@ -1343,6 +1276,76 @@ Domain::computeReactionForce(Vector &fc, Vector &Du, Vector &Vu, Vector &Au,
   if(kcc) kcc->multAddNew(Dc.data(), fc.data()); // fc += Kcc * Dc
   if(ccc) ccc->multAddNew(Vc.data(), fc.data()); // fc += Ccc * Vc
   if(mcc) mcc->multAddNew(Ac.data(), fc.data()); // fc += Mcc * Ac
+}
 
+void
+Domain::computeEnergies(Vector &disp, Vector &force, double time, Vector *aeroForce, Vector *vel, SparseMatrix *K,
+                        SparseMatrix *M, SparseMatrix *C, double &Wela, double &Wkin, double &error)
+{
+  double pWext = Wext, pWdmp = Wdmp;
+  computeExtAndDmpEnergies(disp, force, time, aeroForce, vel, C);
+
+  Vector tmpVec(numUncon());
+  if(M) {
+    M->mult(*vel, tmpVec);
+    Wkin = 0.5 * ((*vel) * tmpVec);
+  }
+  if(K) {
+    K->mult(disp, tmpVec);
+    Wela = 0.5 * (disp * tmpVec);
+  }
+
+  // XXX consider sign of Wdmp in this equation:
+  error = (time == sinfo.initialTime) ? 0.0 : (Wela+Wkin+Wdmp-Wext)-(pWela+pWkin+pWdmp-pWext);
+
+  pWela = Wela;
+  pWkin = Wkin;
+}
+
+void
+Domain::computeExtAndDmpEnergies(Vector &disp, Vector &force, double time, Vector *aeroForce,
+                                 Vector *vel, SparseMatrix *C)
+{
+  // compute work done by external forces and dissipation due to viscous damping
+  Vector tmpVec(numUncon());
+
+  if(time == sinfo.initialTime) {
+    Wext  = 0.0;
+    Waero = 0.0;
+    Wdmp  = 0.0;
+    previousExtForce = new Vector(force);
+    if(sinfo.aeroFlag >= 0) {
+      previousAeroForce = new Vector(*aeroForce);
+    }
+    if(C) {
+      C->mult((*vel), tmpVec);
+      previousCq = new Vector(tmpVec);
+    }
+    previousDisp = new Vector(disp);
+  }
+  else {
+    double c = solInfo().newmarkGamma;
+    // NOTE: The formula for dW should be (1-c)*f^n + c*f^{n+1}. However, force 
+    //       stores f^{n+1-alpha_f} and previousExtForce stores f^n.
+    //       For this reason, first f^{n+1} is approximately computed as follows
+    //       f_{n+1} ≈ 1/(1-alpha_f)*(f_{n+1-alpha_f} - alpha_f*f_n)
+    double alphaf = (solInfo().newmarkBeta == 0) ? 0 : solInfo().newmarkAlphaF;
+    tmpVec = 1/(1-alphaf)*(force - alphaf*(*previousExtForce));
+    Wext += (c*tmpVec + (1.0-c)*(*previousExtForce)) * (disp - (*previousDisp));
+    (*previousExtForce) = tmpVec;
+
+    if(sinfo.aeroFlag >= 0) {
+      tmpVec = 1/(1-alphaf)*((*aeroForce) - alphaf*(*previousAeroForce));
+      Waero += (c*tmpVec + (1.0-c)*(*previousAeroForce)) *(disp - (*previousDisp));
+      (*previousAeroForce) = tmpVec;
+    }
+
+    if(C) {
+      C->mult((*vel), tmpVec);
+      Wdmp += (c*tmpVec + (1.0-c)*(*previousCq))*(disp - (*previousDisp));
+      (*previousCq) = tmpVec;
+    }
+    (*previousDisp) = disp;
+  }
 }
 

@@ -252,7 +252,7 @@ MultiDomDynPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dynOps, 
   }
 
   if(sinfo.isNonLin())
-    decDomain->postProcessing(geomState, allCorot, t, &distState, distAeroF, geomState, (DistrVector*) NULL, melArray);
+    decDomain->postProcessing(geomState, distForce, allCorot, t, &distState, distAeroF, geomState, (DistrVector*) NULL, &dynOps);
   else
     decDomain->postProcessing(distState.getDisp(), distForce, t, distAeroF, tIndex, &dynOps, &distState); 
   stopTimerMemory(times->output, times->memoryOutput);

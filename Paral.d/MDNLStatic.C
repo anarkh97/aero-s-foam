@@ -513,7 +513,7 @@ MDNLStatic::staticOutput(DistrGeomState *geomState, double lambda,
                          DistrVector &Force, DistrVector &, DistrGeomState *refState)
 {
   startTimerMemory(times->output, times->memoryOutput);
-  decDomain->postProcessing(geomState, allCorot, lambda, (SysState<GenDistrVector<double> > *) 0,
+  decDomain->postProcessing(geomState, Force, allCorot, lambda, (SysState<GenDistrVector<double> > *) 0,
                             (GenDistrVector<double> *) 0, refState, reactions);
   stopTimerMemory(times->output, times->memoryOutput);
 }

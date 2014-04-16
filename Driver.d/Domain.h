@@ -321,10 +321,9 @@ class Domain : public HData {
                          // if false, no analysis will be run before computing sensitivity
     SensitivityInfo *senInfo;  // sensitivity information structure array
     // Implements nonlinear dynamics postprocessing for file # fileId
-    void postProcessingImpl(int fileId, GeomState*, Vector&, Vector&,
-                            double, int, double *, double *,
-                            Corotator **, FullSquareMatrix *, double *acceleration = 0,
-                            double *acx = 0, GeomState *refState=0, Vector *reactions=0);
+    void postProcessingImpl(int fileId, GeomState*, Vector&, Vector&, double, int, double *, double *,
+                            Corotator **, double *acceleration = 0, double *acx = 0, GeomState *refState = 0,
+                            Vector *reactions = 0, SparseMatrix *M = 0, SparseMatrix *C = 0);
 
      Domain(int iniSize = 16);
      Domain(Domain &, int nele, int *ele, int nnodes, int *nodes);
@@ -338,7 +337,7 @@ class Domain : public HData {
      int numContactPairs;  // used for timing file
      char * optinputfile;
 
-     int* glWetNodeMap; //HB
+     int* glWetNodeMap;
 
      int*  umap_add;            // mapping for coupling matrix assembly, ADDED FOR HEV PROBLEM, EC, 20070820
      int*  umap;                // mapping for coupling matrix, ADDED FOR HEV PROBLEM, EC, 20070820
@@ -476,6 +475,17 @@ class Domain : public HData {
      double getKineticEnergy(double *velocity, FullSquareMatrix *mel);
      double getStrainEnergy(GeomState *geomState, Corotator **allCorot);
      double getDissipatedEnergy(GeomState *geomState, Corotator **allCorot);
+     void computeEnergies(GeomState *geomState, Vector &force, double time, Vector *aeroForce, double *vel,
+                          Corotator **allCorot, SparseMatrix *M, SparseMatrix *C, double &Wela, double &Wkin,
+                          double &error); // Nonlinear statics and dynamics
+     void computeEnergies(Vector &disp, Vector &force, double time, Vector *aeroForce, Vector *vel,
+                          SparseMatrix *K, SparseMatrix *M, SparseMatrix *C, double &Wela, double &Wkin,
+                          double &error); // Linear dynamics
+     void computeExtAndDmpEnergies(Vector &disp, Vector &force, double time, Vector *aeroForce,
+                                   Vector *vel, SparseMatrix *C);
+     double getWext() { return Wext; }
+     double getWaero() { return Waero; }
+     double getWdmp() { return Wdmp; }
 
      void getGeometricStiffness(GeomState &u, Vector &elementInternalForce,
         			Corotator **allCorot, FullSquareMatrix *&kel);
@@ -735,15 +745,16 @@ class Domain : public HData {
 #endif
 
      // Nonlinear post processing function
-     void postProcessing(GeomState *geomState, Vector &force, Vector &aeroForce, double time=0.0,
-                         int step=0, double *velocity=0, double *vcx=0,
-                         Corotator **allCorot=0, FullSquareMatrix *mArray=0, double *acceleration=0,
-                         double *acx=0, GeomState *refState=0, Vector *reactions=0);
+     void postProcessing(GeomState *geomState, Vector &force, Vector &aeroForce, double time = 0.0,
+                         int step = 0, double *velocity = 0, double *vcx = 0, Corotator **allCorot = 0,
+                         double *acceleration = 0, double *acx = 0, GeomState *refState = 0,
+                         Vector *reactions = 0, SparseMatrix *M = 0, SparseMatrix *C = 0);
 
      // Pita Nonlinear post processing function
      void pitaPostProcessing(int timeSliceRank, GeomState *geomState, Vector &force, Vector &aeroForce, double time = 0.0,
-                             int step = 0, double *velocity = 0, double *vcx = 0,
-                             Corotator **allCorot = 0, FullSquareMatrix *mArray = 0, double * acceleration = 0);
+                             int step = 0, double *velocity = 0, double *vcx = 0, Corotator **allCorot = 0,
+                             double *acceleration = 0, double *acx = 0, GeomState *refState = 0,
+                             Vector *reactions = 0, SparseMatrix *M = 0, SparseMatrix *C = 0);
 
      // Dynamic functions and thermal functions
      void aeroSolve();

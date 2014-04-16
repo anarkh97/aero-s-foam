@@ -2909,7 +2909,7 @@ Domain::initialize()
  dsaFluid = 0; c_dsaFluid = 0; allDOFsFluid = 0; dbcFluid = 0;
  elemToNodeFluid = 0; nodeToElemFluid = 0; nodeToNodeFluid = 0;
  nSurfEntity = 0; nMortarCond = 0; nMortarLMPCs= 0; mortarToMPC = 0;
- solver = 0; csolver = 0; //mftval = 0; hftval = 0;
+ solver = 0; csolver = 0;
  flExchanger = 0; outFile = 0; elDisp = 0; p_stress = 0; p_elstress = 0; stressAllElems = 0;
  previousExtForce = 0; previousAeroForce = 0; previousDisp = 0; previousCq = 0;
  temprcvd = 0; optinputfile = 0;

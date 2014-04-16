@@ -974,8 +974,9 @@ MDNLDynamic::dynamOutput(DistrGeomState *geomState, DistrVector &vel_n, DistrVec
     execParal5R(decDomain->getNumSub(), this, &MDNLDynamic::subGetReactionForce, *geomState, *refState, vel_n, acc_n, time);
   }
 
-  SysState<DistrVector> distState(ext_force, vel_n, acc_n, vel_p); 
-  decDomain->postProcessing(geomState, allCorot, time, &distState, &aeroF, refState, reactions, melArray);
+  DistrVector d_n(decDomain->solVecInfo()); d_n.zero();
+  SysState<DistrVector> distState(d_n, vel_n, acc_n, vel_p); 
+  decDomain->postProcessing(geomState, ext_force, allCorot, time, &distState, &aeroF, refState, reactions, allOps);
 }
 
 void

@@ -3432,14 +3432,6 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
   // Open files and write file headers in first time step
   if(firstOutput) geoSource->openOutputFiles();
 
-  // Define Energy Terms
-  // Total Energy = Wext+Wela+Wkin+Wdmp
-  Wext = 0.0;  // external energy
-  Waero = 0.0;  // aerodynamic force energy
-  Wdmp = 0.0;  // damping energy
-  double Wela=0.0;  // elastic energy
-  double Wkin=0.0;  // kinetic energy
-
   int dof;
   int iNode;
   for(i = 0; i < numOutInfo; ++i)  {
@@ -3462,12 +3454,10 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
       success = 1;
       switch(oinfo[i].type)  {
         case OutputInfo::Energies: {
-          Wext = ScalarTypes::Real(force*sol);   // Wext = external energy
-          Wela =   0.5 * Wext;   // Wela = elastic energy
-          double error = Wext+Wela+Wkin+Wdmp;
-          geoSource->outputEnergies(i, freq, Wext, Waero, Wela, Wkin, Wdmp, error);
-          }
-          break;
+          double Wext = ScalarTypes::Real(force*sol); // Wext = external energy
+          double Wela =   0.5 * Wext;                 // Wela = elastic energy
+          geoSource->outputEnergies(i, freq, Wext, 0.0, Wela, 0.0, 0.0, 0.0);
+        } break;
         case OutputInfo::Farfield: case OutputInfo::Kirchhoff:
           outputFFP(sol, i);
           break;

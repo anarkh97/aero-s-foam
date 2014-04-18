@@ -510,21 +510,5 @@ void FourierStatic::Reconstruction3D(ComplexVector *globalsol) {
         fclose(sortie[iInfo].filptr);
       }
    }
-
-/*
- fprintf(stderr,"\n ---------- PROBLEM PARAMETERS --------");
- fprintf(stderr,"\n ... # nodes              = %7d ...",domain->numNode());
- fprintf(stderr,"\n ... # elements           = %7d ...",domain->numElements());
- fprintf(stderr,"\n ... # unconstrained dofs = %7d ...",domain->numUncon());
- fprintf(stderr,"\n ... # constrained dofs   = %7d ...",bcs->numDir);
- fprintf(stderr,"\n ... total # dofs         = %7d ...",domain->numdof());
- fprintf(stderr,"\n ... # applied loads      = %7d ...",bcs->numNeu);
- fprintf(stderr,"\n ... # output files       = %7d ...",number);
- for (k=0; k<=bcs->numModes; ++k)
-    fprintf(stderr,"\n ... Mode # %d        = %e ...",k,sqrt(coeff[k]));
- fprintf(stderr,"\n --------------------------------------\n");
-*/
 }
-
-
 

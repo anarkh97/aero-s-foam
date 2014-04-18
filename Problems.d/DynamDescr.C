@@ -29,7 +29,7 @@
 #include <Driver.d/GeoSource.h>
 
 #include <Hetero.d/FlExchange.h>
-#include<Driver.d/SysState.h>
+#include <Driver.d/SysState.h>
 
 #ifdef DISTRIBUTED
 #include <Comm.d/Communicator.h>
@@ -44,9 +44,10 @@ extern int verboseFlag;
 
 SDDynamPostProcessor::SDDynamPostProcessor(Domain *d, double *_bcx, double *_vcx, double *_acx,
                                            StaticTimers *_times, GeomState *_geomState,
-                                           Corotator **_allCorot, FullSquareMatrix *_melArray)
+                                           Corotator **_allCorot, FullSquareMatrix *_melArray,
+                                           Vector *_reactions)
 { domain = d; bcx = _bcx; vcx = _vcx; acx = _acx; times = _times; geomState = _geomState;
-  allCorot = _allCorot; melArray = _melArray; dummy = 0; }
+  allCorot = _allCorot; melArray = _melArray; reactions = _reactions; dummy = 0; }
 
 SDDynamPostProcessor::~SDDynamPostProcessor() {
   geoSource->closeOutputFiles();
@@ -98,7 +99,7 @@ SDDynamPostProcessor::dynamOutput(int tIndex, double time, DynamMat& dMat, Vecto
                       state.getAccel(), state.getPrevVeloc(), vcx, acx);
 
   // need to output the stresses for nonlinear using corotator functions for some elements (bt shell is an exception)
-  // also rotation, angular velocity, angular acceleration and energy outputs use geomState
+  // also rotation, angular velocity, angular acceleration, energy and reaction force outputs use geomState
   if(domain->solInfo().isNonLin()) {
     geomState->setVelocityAndAcceleration(state.getVeloc(), state.getAccel());
     int numOutInfo = geoSource->getNumOutInfo();
@@ -106,7 +107,7 @@ SDDynamPostProcessor::dynamOutput(int tIndex, double time, DynamMat& dMat, Vecto
     for(int iInfo = 0; iInfo < numOutInfo; ++iInfo) {
       if(oinfo[iInfo].isStressOrStrain() || oinfo[iInfo].isRotation()) {
         domain->postProcessingImpl(iInfo, geomState, ext_f, *aeroForce, time, tIndex, state.getVeloc().data(), vcx,
-                                   allCorot, state.getAccel().data(), acx, geomState, (Vector*) NULL, dMat.M, dMat.C);
+                                   allCorot, state.getAccel().data(), acx, geomState, reactions, dMat.M, dMat.C);
       }
     }
   }
@@ -173,6 +174,7 @@ SingleDomainDynamic::SingleDomainDynamic(Domain *d)
   userSupFunc = 0;
 
   flExchanger = domain->getFileExchanger();
+  reactions = 0;
 }
 
 SingleDomainDynamic::~SingleDomainDynamic()
@@ -180,9 +182,8 @@ SingleDomainDynamic::~SingleDomainDynamic()
   if(bcx) delete [] bcx;
   if(vcx) delete [] vcx;
   if(acx) delete [] acx;
+  if(reactions) delete reactions;
 }
-
-//#define DEBUG_RBM_FILTER
 
 void
 SingleDomainDynamic::projector_prep(Rbm *rbms, SparseMatrix *M)
@@ -191,9 +192,9 @@ SingleDomainDynamic::projector_prep(Rbm *rbms, SparseMatrix *M)
 
  if (!numR) return;
 
- filePrint(stderr," ... Building the RBM/HZEM Projector     ...\n");
+ filePrint(stderr," ... Building the RBM/HZEM Projector...\n");
 
- filePrint(stderr," ... Number of RBM/HZEM(s)     =   %d     ...\n",numR);
+ filePrint(stderr," ... Number of RBM/HZEM(s) = %3d    ...\n",numR);
 
  // KHP: store this pointer to the RBMs to use in the actual
  //      projection step within the time loop.
@@ -202,12 +203,6 @@ SingleDomainDynamic::projector_prep(Rbm *rbms, SparseMatrix *M)
  Rmem = new double[numR*ndof];
  rbms->getRBMs(Rmem);
  StackFSFullMatrix Rt(numR, ndof, Rmem); 
-
- //DEBUG
-//#ifdef DEBUG_RBM_FILTER
- FullMatrix R = Rt.transpose();
- //R.print("","R");
-//#endif
 
  double *MRmem = new double[numR*ndof];
  StackFSFullMatrix MR(numR, ndof, MRmem);
@@ -225,7 +220,6 @@ SingleDomainDynamic::projector_prep(Rbm *rbms, SparseMatrix *M)
 
  X = new FullMatrix(ndof,numR); 
  MRt.mult(RtMRinverse,(*X));
-
 }
 
 void
@@ -766,6 +760,7 @@ SingleDomainDynamic::preProcess()
 
   prevFrc = new PrevFrc(domain->numUncon());
   prevFrcBackup = new PrevFrc(domain->numUncon());
+  reactions = new Vector(domain->nDirichlet());
 
   stopTimerMemory(times->preProcess, times->memoryPreProcess);
 }
@@ -779,11 +774,6 @@ SingleDomainDynamic::preProcess()
 DynamMat *
 SingleDomainDynamic::buildOps(double coeM, double coeC, double coeK)
 {
-
- // KHP: 7-30-98 added sparse matrices for Muc and Cuc 
- // to allow for prescribed displacements
- // that are changing with respect to time.
-
  AllOps<double> allOps;
  DynamMat *dMat = new DynamMat;
 
@@ -910,14 +900,15 @@ SingleDomainDynamic::getInternalForce(Vector& d, Vector& f, double t, int tIndex
   if(domain->solInfo().isNonLin()) {
     Vector residual(domain->numUncon(),0.0);
     Vector fele(domain->maxNumDOF());
+    if(reactions) reactions->zero();
     // NOTE: for explicit nonlinear dynamics, geomState and refState are the same object
     if(domain->solInfo().stable && domain->solInfo().isNonLin() && tIndex%domain->solInfo().stable_freq == 0) {
       domain->getStiffAndForce(*geomState, fele, allCorot, kelArray, residual, 1.0, t, geomState,
-                               (Vector*) NULL, melArray);
+                               reactions, melArray);
     }
     else {
       domain->getInternalForce(*geomState, fele, allCorot, kelArray, residual, 1.0, t, geomState,
-                               (Vector*) NULL, melArray);
+                               reactions, melArray);
     }
     f.linC(-1.0,residual); // f = -residual
     if(!domain->solInfo().galerkinPodRom && !domain->solInfo().getNLInfo().linearelastic)
@@ -1030,7 +1021,7 @@ SingleDomainDynamic::thermohPreProcess(Vector& d_n, Vector& v_n, Vector& v_p)
 SDDynamPostProcessor *
 SingleDomainDynamic::getPostProcessor()
 {
-  return new SDDynamPostProcessor(domain, bcx, vcx, acx, times, geomState, allCorot, melArray);
+  return new SDDynamPostProcessor(domain, bcx, vcx, acx, times, geomState, allCorot, melArray, reactions);
 }
 
 void
@@ -1048,62 +1039,6 @@ SingleDomainDynamic::printTimers(DynamMat *dynamMat, double timeLoop)
     filePrint(stderr," --------------------------------------\n");
   }
 }
-
-/*
-void
-SingleDomainDynamic::getPrescContrib(SparseMatrix *Muc, SparseMatrix *Cuc, Vector& vnc,
-                                     Vector& anc, Vector& result, double tm, double tf)
-{
-  result.zero();
-
-  if( claw && userSupFunc ) {
-
-    double *userDefineDisp = (double *) dbg_alloca( sizeof(double)*claw->numUserDisp );
-    double *userDefineVel  = (double *) dbg_alloca( sizeof(double)*claw->numUserDisp );
-    double *userDefineAcc  = (double *) dbg_alloca( sizeof(double)*claw->numUserDisp );
-
-    for(int i = 0; i < claw->numUserDisp; ++i) {
-      userDefineVel[i] = 0;
-      userDefineAcc[i] = 0;
-    }
-    userSupFunc->usd_disp( tm, userDefineDisp, userDefineVel, userDefineAcc );
-
-    anc.zero();
-    for(int i=0; i<claw->numUserDisp; ++i) {
-      int dof = domain->getDSA()->locate( claw->userDisp[i].nnum,
-                                          1 << claw->userDisp[i].dofnum );
-      if(dof < 0) continue;
-      int dof1 = domain->getCDSA()->invRCN( dof );
-      if(dof1 >= 0) {
-        anc[dof1] = userDefineAcc[i];
-      }
-    }
-
-    Muc->multSubtract(anc.data(), result.data()); // fu -= Muc * a_c^{n+1-alpha_m}
-
-    if(Cuc) {
-
-      for(int i = 0; i < claw->numUserDisp; ++i) {
-        userDefineVel[i] = 0;
-        userDefineAcc[i] = 0;
-      }
-      userSupFunc->usd_disp( tf, userDefineDisp, userDefineVel, userDefineAcc );
-
-      vnc.zero();
-      for(int i=0; i<claw->numUserDisp; ++i) {
-        int dof = domain->getDSA()->locate( claw->userDisp[i].nnum,
-                                            1 << claw->userDisp[i].dofnum );
-        if(dof < 0) continue;
-        int dof1 = domain->getCDSA()->invRCN( dof );
-        if(dof1 >= 0)
-          vnc[dof1] = userDefineVel[i];
-      }
-
-      Cuc->multSubtract(vnc.data(), result.data()); // fu -= Cuc * v_c^{n+1-alpha_f}
-    }
-  }
-}
-*/
 
 double
 SingleDomainDynamic::betaDamp() const {
@@ -1137,10 +1072,8 @@ SingleDomainDynamic::modeDecompPreProcess(SparseMatrix *M)
  
     BinFileHandler modefile("EIGENMODES" ,"r");
     modefile.read(&maxmode, 1);
-    //fprintf(stderr,"Number of Modes = %d\n", maxmode);
  
     modefile.read(&eigsize, 1);
-    //fprintf(stderr,"Size of EigenVector = %d\n", eigsize);
  
     eigmodes = new double*[maxmode];
     int i;
@@ -1188,10 +1121,6 @@ SingleDomainDynamic::modeDecompPreProcess(SparseMatrix *M)
      fprintf(stderr,"\n");
    }
 */
-
-//  Need eigmodes for error computation
-//   delete eigmodes;
-
 }
 
 void
@@ -1216,7 +1145,6 @@ SingleDomainDynamic::modeDecomp(double t, int tIndex, Vector& d_n)
 
       switch(oinfo[i].type) {
         case OutputInfo::ModeAlpha: {
-          //fprintf(stderr, "Computing alfa_i\n");
 
           if(!alfa) {
             alfa = new double[maxmode];
@@ -1239,7 +1167,6 @@ SingleDomainDynamic::modeDecomp(double t, int tIndex, Vector& d_n)
         } break;
 
         case OutputInfo::ModeError: {
-          //fprintf(stderr, "Computing relative error, maxmode = %d\n", maxmode);
 
           if(!alfa) {
             alfa = new double[maxmode];
@@ -1271,7 +1198,6 @@ SingleDomainDynamic::modeDecomp(double t, int tIndex, Vector& d_n)
 
           for (j=0; j < ersize; ++j) {
             error[j] = d_n[j]-sumalfa[j];
-            //cerr << "j = " << j << ", d_n[j] = " << d_n[j] << ", sumalfa[j] = " << sumalfa[j] << ", error[j] = " << error[j] << endl;
             sumerror += error[j]*error[j];
             sumdisp += d_n[j]*d_n[j];
           }
@@ -1359,11 +1285,11 @@ SingleDomainDynamic::getThermoeFlag()
 int
 SingleDomainDynamic::getAeroheatFlag()
 {
- return domain->solInfo().aeroheatFlag;
+  return domain->solInfo().aeroheatFlag;
 }
 
 int
 SingleDomainDynamic::getThermohFlag()
 {
- return domain->solInfo().thermohFlag;
+  return domain->solInfo().thermohFlag;
 }

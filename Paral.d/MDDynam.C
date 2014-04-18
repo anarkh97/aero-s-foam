@@ -252,7 +252,7 @@ MultiDomDynPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dynOps, 
   }
 
   if(sinfo.isNonLin())
-    decDomain->postProcessing(geomState, distForce, allCorot, t, &distState, distAeroF, geomState, (DistrVector*) NULL, &dynOps);
+    decDomain->postProcessing(geomState, distForce, allCorot, t, &distState, distAeroF, geomState, reactions, &dynOps);
   else
     decDomain->postProcessing(distState.getDisp(), distForce, t, distAeroF, tIndex, &dynOps, &distState); 
   stopTimerMemory(times->output, times->memoryOutput);
@@ -278,6 +278,7 @@ MultiDomainDynam::~MultiDomainDynam()
     delete [] allCorot;
   }
   delete decDomain;
+  if(reactions) delete reactions;
 }
 
 MDDynamMat *
@@ -316,6 +317,7 @@ MultiDomainDynam::MultiDomainDynam(Domain *d)
   allCorot = 0;
   geomState = 0;
   dynMat = 0;
+  reactions = 0;
 }
 
 const DistrInfo &
@@ -388,6 +390,9 @@ MultiDomainDynam::preProcess()
   // Initialization for contact
   if(domain->tdenforceFlag())
     domain->InitializeDynamicContactSearch(decDomain->getNumSub(), decDomain->getAllSubDomains());
+
+  // Allocate vector to store reaction forces
+  if(!reactions) reactions = new DistrVector(*decDomain->pbcVectorInfo());
 }
 
 void
@@ -823,11 +828,11 @@ MultiDomDynPostProcessor *
 MultiDomainDynam::getPostProcessor()
 {
  if(domain->solInfo().aeroFlag >= 0) {
-   mddPostPro = new MultiDomDynPostProcessor(decDomain, distFlExchanger, times, geomState, allCorot, melArray); 
+   mddPostPro = new MultiDomDynPostProcessor(decDomain, distFlExchanger, times, geomState, allCorot, melArray, reactions); 
    return mddPostPro;
  }
  else {
-   mddPostPro = new MultiDomDynPostProcessor(decDomain, times, geomState, allCorot, melArray);
+   mddPostPro = new MultiDomDynPostProcessor(decDomain, times, geomState, allCorot, melArray, reactions);
  }
  return mddPostPro;
 }
@@ -896,15 +901,6 @@ void
 MultiDomainDynam::getRayleighCoef(double& alpha)
 {
   alpha = domain->solInfo().alphaDamp;
-}
-
-void
-MultiDomainDynam::addPrescContrib(SubDOp*, SubDOp*, DistrVector&,
-                                  DistrVector&, DistrVector&, DistrVector& result,
-                                  double tm, double tf)
-{
-  result.zero(); // TODO
-  //filePrint(stderr, "Paral.d/MDDynam.C: addPrescContrib not implemented here\n");
 }
 
 SubDOp*
@@ -1081,17 +1077,21 @@ MultiDomainDynam::subGetInternalForce(int isub, DistrVector &f, double &t, int &
   SubDomain *sd = decDomain->getSubDomain(isub);
   Vector residual(f.subLen(isub), 0.0);
   Vector eIF(sd->maxNumDOF()); // eIF = element internal force for one element (a working array)
+  StackVector *subReactions = NULL;
+  if(reactions) { subReactions = new StackVector(reactions->subData(isub), reactions->subLen(isub)); subReactions->zero(); }
+  
   // NOTE: for explicit nonlinear dynamics, geomState and refState are the same object
   if(domain->solInfo().stable && domain->solInfo().isNonLin() && tIndex%domain->solInfo().stable_freq == 0) {
     sd->getStiffAndForce(*(*geomState)[isub], eIF, allCorot[isub], kelArray[isub], residual, 1.0, t, (*geomState)[isub],
-                         (Vector*) NULL, melArray[isub]);
+                         subReactions, melArray[isub]);
   }
   else {
     sd->getInternalForce(*(*geomState)[isub], eIF, allCorot[isub], kelArray[isub], residual, 1.0, t, (*geomState)[isub],
-                         (Vector*) NULL, melArray[isub]);
+                         subReactions, melArray[isub]);
   }
   StackVector subf(f.subData(isub), f.subLen(isub));
   subf.linC(residual,-1.0); // f = -residual
+  if(subReactions) delete subReactions;
 }
 
 void

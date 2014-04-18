@@ -208,7 +208,7 @@ GeoSource::writeNodeScalarToFile(double *data, int numData, int glSub, int offse
       }
       if(group != -1) { // print NODENUMBER, X0, Y0, Z0
         outfile.width(2+oinfo[fileNumber].width);
-        outfile << glNodeNums[k-1];
+        outfile << glNodeNums[k-1]+1;
         outfile.width(2+oinfo[fileNumber].width);
         outfile << nodes[glNodeNums[k-1]]->x;
         outfile.width(2+oinfo[fileNumber].width);

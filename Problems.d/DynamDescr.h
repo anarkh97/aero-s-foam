@@ -36,12 +36,14 @@ class SDDynamPostProcessor {
     GeomState *geomState;
     Corotator **allCorot;
     FullSquareMatrix *melArray;
+    Vector *reactions;
     Vector *dummy;
 
   public:
     SDDynamPostProcessor(Domain *d, double *_bcx, double *_vcx, double *_acx,
                          StaticTimers *_times, GeomState *_geomState = 0,
-                         Corotator **_allCorot = 0, FullSquareMatrix *_melArray = 0);
+                         Corotator **_allCorot = 0, FullSquareMatrix *_melArray = 0,
+                         Vector *_reactions = 0);
 
     ~SDDynamPostProcessor();
 
@@ -101,6 +103,7 @@ class SingleDomainDynamic
     double **tPhiM;   // Stores Transpose(Phi)*M
 
     FlExchanger *flExchanger;
+    Vector *reactions;
 
  protected:
     // extract gets an acceleration, velocity and disp vector according to the claw sensors

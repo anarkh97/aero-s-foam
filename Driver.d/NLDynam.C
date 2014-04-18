@@ -184,7 +184,7 @@ Domain::getWeightedInternalForceOnly(const std::map<int, double> &weights,
   }
 
   if(!domain->solInfo().reduceFollower && !domain->solInfo().DEIMPodRom) {
-    getFollowerForce(geomState, elementForce, corotators, kel, residual, lambda, time, refState, NULL, false);
+    getFollowerForce(geomState, elementForce, corotators, kel, residual, lambda, time, NULL, false);
   }
 
   if(sinfo.isDynam() && mel) getWeightedFictitiousForceOnly(weights, geomState, elementForce, kel, residual, time, refState, NULL, mel, false);
@@ -250,7 +250,7 @@ Domain::getUDEIMInternalForceOnly(const std::map<int, std::vector<int> > &weight
   }
 
 //  if(!domain->solInfo().reduceFollower) {
-//    getFollowerForce(geomState, elementForce, corotators, kel, residual, lambda, time, refState, NULL, false);
+//    getFollowerForce(geomState, elementForce, corotators, kel, residual, lambda, time, NULL, false);
 //  }
 
   if(sinfo.isDynam() && mel) getUDEIMFictitiousForceOnly(weights, geomState, elementForce, kel, residual, time, refState, NULL, mel, false);

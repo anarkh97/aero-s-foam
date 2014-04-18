@@ -105,7 +105,7 @@ DistrExplicitDEIMPodProjectionNonLinDynamic::subGetFollowerForceOnly(int iSub, D
   Vector residual(f.subLen(iSub), 0.0);
   Vector eIF(sd->maxNumDOF()); // eIF = element internal force for one element (a working array)
 
-  sd->getFollowerForce(*(*geomState)[iSub], eIF, allCorot[iSub], kelArray[iSub], residual, 1.0, t, (*geomState)[iSub], NULL, false);
+  sd->getFollowerForce(*(*geomState)[iSub], eIF, allCorot[iSub], kelArray[iSub], residual, 1.0, t, NULL, false);
 
   StackVector subf(f.subData(iSub), f.subLen(iSub));
   subf.linC(residual, 1.0); // f = -residual

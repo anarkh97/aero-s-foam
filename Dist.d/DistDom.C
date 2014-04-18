@@ -613,6 +613,12 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
       case OutputInfo::AeroZMom:
         if(aeroF) getAeroForceScalar(aerof, masterAeroF, time, x, iOut, 5);
         break;
+/* TODO
+      case OutputInfo::Reactions:
+        break;
+      case OutputInfo::Reactions6:
+        break;
+*/
       case OutputInfo::EigenSlosh:
         getPrimal(disps, masterDisps, time, x, iOut, 1, 10);
         break;

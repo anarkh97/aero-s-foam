@@ -271,9 +271,6 @@ MDNLDynamic::MDNLDynamic(Domain *d)
   allCorot = 0;
   localTemp = 0;
   reactions = 0;
-#ifdef DEBUG_REACTIONS
-  std::ofstream rout("reactions"); 
-#endif
 }
 
 MDNLDynamic::~MDNLDynamic()
@@ -1008,18 +1005,6 @@ MDNLDynamic::subGetReactionForce(int i, DistrGeomState &geomState, DistrGeomStat
   // TODO: the lagrange multipliers should probably be extrapolated to t^{n+1}
   //       check if the equality constraint forces are incremental
   sd->addCConstraintForces(geomState.mu[i], geomState.lambda[i], ri, 1/Kcoef_p);
-#ifdef DEBUG_REACTIONS
-  double rx=0,ry=0,rz=0;
-  for(int j=0; j<reactions->subLen(i)/3; ++j) {
-    rx += ri[3*j+0];
-    ry += ri[3*j+1];
-    rz += ri[3*j+2];
-  }
-  std::ofstream rout; rout.open("reactions",  ofstream::app);
-  if(i == 0) rout << time << " ";
-  rout << rx << " " << ry << " " << rz << " ";
-  if(i == decDomain->getNumSub()-1) rout << std::endl;
-#endif
 }
 
 void
@@ -1628,8 +1613,6 @@ MDNLDynamic::thermoePreProcess()
       }
 
       distFlExchanger = new DistFlExchanger(cs, elemSet, cdsa, dsa);
-      //mddPostPro->setPostProcessor(distFlExchanger);
-      //mddPostPro->setUserDefs(usrDefDisps, usrDefVels);
     }
 
     nodalTemps = new DistrVector(decDomain->ndVecInfo());
@@ -1690,13 +1673,10 @@ MDNLDynamic::thermohPreProcess(DistrVector& d)
       }
 
       distFlExchanger = new DistFlExchanger(cs, elemSet, cdsa, dsa);
-      //mddPostPro->setPostProcessor(distFlExchanger);
-      //mddPostPro->setUserDefs(usrDefDisps, usrDefVels);
     }
 
     nodalTemps = new DistrVector(decDomain->ndVecInfo());
     int buffLen = nodalTemps->size();
-    //mddPostPro->setNodalTemps(nodalTemps);
 
     distFlExchanger->thermoread(buffLen);
 

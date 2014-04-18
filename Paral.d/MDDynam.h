@@ -75,25 +75,29 @@ class MultiDomDynPostProcessor
     DistrGeomState *geomState;
     Corotator ***allCorot;
     GenFullSquareMatrix<double> **melArray;
+    GenDistrVector<double> *reactions;
 
   public:
     MultiDomDynPostProcessor(DecDomain *d, StaticTimers* _times, DistrGeomState *_geomState = 0,
-                             Corotator ***_allCorot = 0, GenFullSquareMatrix<double> **_melArray = 0) {
+                             Corotator ***_allCorot = 0, GenFullSquareMatrix<double> **_melArray = 0,
+                             GenDistrVector<double> *_reactions = 0) {
       decDomain = d;
       times = _times;
       geomState = _geomState;
       allCorot = _allCorot;
       melArray = _melArray;
+      reactions = _reactions;
     }
     MultiDomDynPostProcessor(DecDomain *d, DistFlExchanger *_distFlExchanger, StaticTimers* _times,
                              DistrGeomState *_geomState = 0, Corotator ***_allCorot = 0,
-                             GenFullSquareMatrix<double> **_melArray = 0) {
+                             GenFullSquareMatrix<double> **_melArray = 0, GenDistrVector<double> *_reactions = 0) {
       decDomain = d;
       distFlExchanger = _distFlExchanger;
       times = _times;
       geomState = _geomState;
       allCorot = _allCorot;
       melArray = _melArray;
+      reactions = _reactions;
     }
     void setPostProcessor(DistFlExchanger *);
     void setUserDefs(double **, double **);
@@ -143,6 +147,9 @@ private:
     // thermoe/thermoh data
     DistrVector* nodalTemps;
 
+    // reaction forces
+    DistrVector *reactions;
+
   public:
     MultiDomainDynam(Domain *d);
     virtual ~MultiDomainDynam();
@@ -182,9 +189,6 @@ private:
     void trProject(DistrVector &);
     void project(DistrVector &);
     void getRayleighCoef(double& alpha);
-
-    void addPrescContrib(SubDOp*, SubDOp*, DistrVector&, DistrVector&, 
-                         DistrVector&, DistrVector&, double tm, double tf);
 
     SubDOp* getpK(MDDynamMat* dynOps);
     SubDOp* getpM(MDDynamMat* dynOps);

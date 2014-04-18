@@ -56,7 +56,7 @@ class MpcElement : public Element, public Corotator, public LMPCons
     void getStiffAndForce(GeomState*, GeomState&, CoordSet&, FullSquareMatrix&, double*, double, double);
     void getInternalForce(GeomState*, GeomState&, CoordSet&, FullSquareMatrix&, double*, double, double);
     void getResidualCorrection(GeomState& c1, double* r);
-    double getElementEnergy(GeomState&, CoordSet&) { return 0; }
+    double getElementEnergy(GeomState&, CoordSet&);
 
     virtual void update(GeomState*, GeomState&, CoordSet&, double);
     virtual void getHessian(GeomState*, GeomState&, CoordSet&, FullSquareMatrix&, double);

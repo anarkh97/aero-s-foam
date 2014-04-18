@@ -1144,6 +1144,12 @@ GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<S
         case OutputInfo::AeroZMom:
           if(aeroF) getAeroForceScalar(i, mergedAeroF, numNodes, 5, time);
           break;
+/* TODO
+        case OutputInfo::Reactions:
+          break;
+        case OutputInfo::Reactions6:
+          break;
+*/
         case OutputInfo::YModulus:
           this->getElementAttr(i,YOUNG, time);
           break;
@@ -2312,24 +2318,6 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, GenDistrVector<S
  if(mergedVel) delete [] mergedVel;
  if(mergedAcc) delete [] mergedAcc;
  if(mergedReactions) delete [] mergedReactions;
-
- // --- Print Problem statistics -------------------------------------
-/*
- if(x == 0.0 || x == 1.0) {
-   int numnod = domain->numnodes;
-   int numele = domain->numElements();
-   int numsub = getNumSub();
-   int numNeuman = domain->numNeuman;
-   //int numOutput = numOutInfo;
-   filePrint(stderr,"\n ---------- PROBLEM PARAMETERS --------");
-   filePrint(stderr,"\n ... # subdomains         = %7d ...",numsub);
-   filePrint(stderr,"\n ... # nodes              = %7d ...",numnod);
-   filePrint(stderr,"\n ... # elements           = %7d ...",numele);
-   filePrint(stderr,"\n ... # applied loads      = %7d ...",numNeuman);
-   filePrint(stderr,"\n ... # output files       = %7d ...",numOutInfo);
-   filePrint(stderr,"\n --------------------------------------\n");
- }
-*/
 }
 
 // element vector distributed vector info

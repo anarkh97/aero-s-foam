@@ -33,7 +33,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
  // Get right hand side (external force)
  probDesc->getRHS(force);
 
- // Initialize geometric state of Problem
+ // Initialize geometric state of problem
  GeomType *geomState = probDesc->createGeomState();
  stateIncr = StateUpdate::initInc(geomState, &residual);
  

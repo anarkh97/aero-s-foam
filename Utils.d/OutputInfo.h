@@ -219,6 +219,8 @@ struct OutputInfo {
      case BackStressXZ:
      case Energies:
      case DissipatedEnergy:
+     case Reactions:
+     case Reactions6:
        return true; 
        break;
      default:

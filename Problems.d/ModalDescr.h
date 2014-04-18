@@ -22,7 +22,6 @@ public:
 
   ModalDescr() {}
   ModalDescr(Domain *d);
-  //~ModalDescr()  { if (modalOps)  delete modalOps; modalOps = 0; }
 
   void projectForce(Vector &fullV, Vector& modalV);
   void expand(const Vector &modalV, Vector& fullV);
@@ -49,7 +48,6 @@ public:
   void getInitialTime(int &tIndex, double &time);
   void getRayleighCoef(double &alpha) { alpha =  domain->solInfo().alphaDamp; }
 
-//  template <class Scalar> 
   ModalOps* buildOps(double kcoef, double ccoef, double mcoef);
 
   void computeStabilityTimeStep(double &dt, ModalOps &){ /* leave blank */ }
@@ -90,13 +88,10 @@ public:
 
   void aeroHeatPreProcess(Vector& d_n, Vector& v_n, Vector& v_p) { domain->aeroHeatPreProcess(d_n, v_n, v_p, bcx); }
   int getAeroheatFlag() { return domain->solInfo().aeroheatFlag; }
-
-  void addPrescContrib(SparseMatrix *Muc, SparseMatrix *Cuc, Vector& dnc, Vector& vnc, Vector& anc,
-                       Vector& result, double tm, double tf) { result.zero(); } // TODO
 };
+
 #ifdef _TEMPLATE_FIX_
   #include <Problems.d/ModalDescrTem.C>
-//  #include <Problems.d/ModalDescr.C>
 #endif
 
 #endif

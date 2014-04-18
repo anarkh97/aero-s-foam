@@ -4580,6 +4580,15 @@ bool GeoSource::elemOutput()
   return false;
 }
 
+bool GeoSource::energiesOutput()
+{
+  for(int iInfo = 0; iInfo < geoSource->getNumOutInfo(); iInfo++) {
+    if(oinfo[iInfo].type == OutputInfo::Energies)
+      return true;
+  }
+  return false;
+}
+
 bool GeoSource::noOutput(int x, int ndflag)
 {
   bool noOut = true;

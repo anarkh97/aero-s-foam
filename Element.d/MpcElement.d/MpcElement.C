@@ -475,6 +475,13 @@ MpcElement::getResidualCorrection(GeomState& c1, double* r)
   }
 }
 
+double
+MpcElement::getElementEnergy(GeomState& c1, CoordSet& c0)
+{
+  // TODO
+  return 0;
+}
+
 void
 MpcElement::computePressureForce(CoordSet&, Vector& f, GeomState*, int, double)
 {

@@ -1304,7 +1304,7 @@ Domain::computeEnergies(Vector &disp, Vector &force, double time, Vector *aeroFo
 
 void
 Domain::computeExtAndDmpEnergies(Vector &disp, Vector &force, double time, Vector *aeroForce,
-                                 Vector *vel, SparseMatrix *C)
+                                 Vector *vel, SparseMatrix *C, Vector *folForce)
 {
   // compute work done by external forces and dissipation due to viscous damping
   Vector tmpVec(numUncon());
@@ -1314,6 +1314,7 @@ Domain::computeExtAndDmpEnergies(Vector &disp, Vector &force, double time, Vecto
     Waero = 0.0;
     Wdmp  = 0.0;
     previousExtForce = new Vector(force);
+    if(folForce) (*previousExtForce) += (*folForce);
     if(sinfo.aeroFlag >= 0) {
       previousAeroForce = new Vector(*aeroForce);
     }
@@ -1331,6 +1332,7 @@ Domain::computeExtAndDmpEnergies(Vector &disp, Vector &force, double time, Vecto
     //       f_{n+1} ≈ 1/(1-alpha_f)*(f_{n+1-alpha_f} - alpha_f*f_n)
     double alphaf = (solInfo().newmarkBeta == 0) ? 0 : solInfo().newmarkAlphaF;
     tmpVec = 1/(1-alphaf)*(force - alphaf*(*previousExtForce));
+    if(folForce) tmpVec += (*folForce);
     Wext += (c*tmpVec + (1.0-c)*(*previousExtForce)) * (disp - (*previousDisp));
     (*previousExtForce) = tmpVec;
 

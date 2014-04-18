@@ -517,6 +517,7 @@ public:
   int getNumNodalOutput() { return numNodalOutput; }
   OutputInfo *getOutputInfo()  { return oinfo+0; }
   bool elemOutput();
+  bool energiesOutput();
   bool noOutput(int x, int ndflag = 0);
 
   int *getSubToCPU()  { return subToCPU; }

@@ -390,8 +390,7 @@ class Domain : public HData {
      void getFollowerForce(GeomState &u, Vector &elementInternalForce,
                            Corotator **allCorot, FullSquareMatrix *kel,
                            Vector &residual, double lambda = 1.0, double time = 0.0,
-                           GeomState *refState = NULL, Vector *reactions = NULL,
-                           bool compute_tangents = false);
+                           Vector *reactions = NULL, bool compute_tangents = false);
      void getElemFollowerForce(int iele, GeomState &geomState, double *_f, int bufSize,
                                Corotator *corotator, FullSquareMatrix &kel,
                                double loadFactor, double time, bool compute_tangents,
@@ -482,7 +481,7 @@ class Domain : public HData {
                           SparseMatrix *K, SparseMatrix *M, SparseMatrix *C, double &Wela, double &Wkin,
                           double &error); // Linear dynamics
      void computeExtAndDmpEnergies(Vector &disp, Vector &force, double time, Vector *aeroForce,
-                                   Vector *vel, SparseMatrix *C);
+                                   Vector *vel, SparseMatrix *C, Vector *folForce = NULL);
      double getWext() { return Wext; }
      double getWaero() { return Waero; }
      double getWdmp() { return Wdmp; }

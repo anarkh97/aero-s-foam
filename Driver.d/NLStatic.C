@@ -152,15 +152,21 @@ void
 Domain::getFollowerForce(GeomState &geomState, Vector& elementForce,
                          Corotator **corotators, FullSquareMatrix *kel,
                          Vector &residual, double lambda, double time,
-                         GeomState *refState, Vector *reactions, bool compute_tangents)
+                         Vector *reactions, bool compute_tangents)
 {
+  // Note #1: If compute_tangents is true, then the jacobian of the element follower forces 
+  //          will be added to kel. If compute_tangents is false, then kel can be NULL.
+  // Note #2: This function requires followedElemList to be pre-computed; ensure makeFollowedElemList
+  //          is set to true in Domain::makeElementAdjacencyLists().
+
   BlastLoading::BlastData *conwep = (domain->solInfo().ConwepOnOff) ? &BlastLoading::InputFileData : NULL;
 
   for(std::vector<int>::iterator it = followedElemList.begin(), it_end = followedElemList.end(); it != it_end; ++it) {
     const int iele = *it;
 
     elementForce.zero();
-    FullSquareMatrix elementStiff(kel[iele].dim());
+    const int elemDofCount = packedEset[iele]->numDofs();
+    FullSquareMatrix elementStiff(elemDofCount);
     elementStiff.zero();
 
     getElemFollowerForce(iele, geomState, elementForce.data(), elementForce.size(),
@@ -169,10 +175,9 @@ Domain::getFollowerForce(GeomState &geomState, Vector& elementForce,
     if(domain->solInfo().galerkinPodRom && packedEset[iele]->hasRot())
       transformElemStiffAndForce(geomState, elementForce.data(), elementStiff, iele, compute_tangents);
 
-    kel[iele] += elementStiff;
+    if(compute_tangents) kel[iele] += elementStiff;
 
     // Assemble element force into residual vector
-    const int elemDofCount = kel[iele].dim();
     for(int iDof = 0; iDof < elemDofCount; ++iDof) {
       const int dofId = c_dsa->getRCN((*allDOFs)[iele][iDof]);
       if (dofId >= 0) {
@@ -404,7 +409,7 @@ void
 Domain::makeElementAdjacencyLists()
 {
   elemAdj.resize(numele); 
-  bool makeFollowedElemList = (!domain->solInfo().reduceFollower && domain->solInfo().galerkinPodRom);
+  bool makeFollowedElemList = ((!domain->solInfo().reduceFollower && domain->solInfo().galerkinPodRom) || geoSource->energiesOutput());
 
   // 1. pressure applied to elements
   if(domain->pressureFlag()) {
@@ -623,7 +628,7 @@ Domain::getWeightedStiffAndForceOnly(const std::map<int, double> &weights,
   }
 
   if(!domain->solInfo().reduceFollower) {
-    getFollowerForce(geomState, elementForce, corotators, kel, residual, lambda, time, refState, NULL, compute_tangents);
+    getFollowerForce(geomState, elementForce, corotators, kel, residual, lambda, time, NULL, compute_tangents);
   }
 
   if(sinfo.isDynam() && mel) {
@@ -719,7 +724,7 @@ Domain::getUnassembledStiffAndForceOnly(const std::map<int, std::vector<int> > &
   }
 
 //  if(!domain->solInfo().reduceFollower) {
- //   getFollowerForce(geomState, elementForce, corotators, kel, residual, lambda, time, refState, NULL, compute_tangents);
+ //   getFollowerForce(geomState, elementForce, corotators, kel, residual, lambda, time, NULL, compute_tangents);
 //  }
 
   if(sinfo.isDynam() && mel) {
@@ -2354,7 +2359,6 @@ Domain::computeReactionForce(Vector &fc, GeomState *geomState, Corotator **corot
 
   if(ccc) ccc->multAddNew(Vc.data(), fc.data()); // fc += Ccc * Vc
   if(mcc) mcc->multAddNew(Ac.data(), fc.data()); // fc += Mcc * Ac
-
 }
 
 void
@@ -2536,7 +2540,7 @@ Domain::getElementDisp(int iele, GeomState& geomState, Vector& disp)
 }
 
 void
-Domain::computeEnergies(GeomState *geomState, Vector &force, double time, Vector *aeroForce, double *velocity,
+Domain::computeEnergies(GeomState *geomState, Vector &force, double t, Vector *aeroForce, double *velocity,
                         Corotator **allCorot, SparseMatrix *M, SparseMatrix *C, double &Wela, double &Wkin,
                         double &error)
 {
@@ -2565,10 +2569,25 @@ Domain::computeEnergies(GeomState *geomState, Vector &force, double time, Vector
       disp[zrot]  = rot[2];
   }
 
+  double lambda, time;
+  if(sinfo.isDynam()) { time = t; lambda = 1.0; }
+  else {
+    time = 0.0;
+    double &dlambda = solInfo().getNLInfo().dlambda;
+    double &maxLambda = solInfo().getNLInfo().maxLambda;
+    lambda = (dlambda == maxLambda) ? maxLambda : t;
+  }
+
+  // Compute follower force
+  Vector elemForce(maxNumDOFs);
+  Vector folForce(numUncon(), 0.0);
+  getFollowerForce(*geomState, elemForce, allCorot, (FullSquareMatrix *) NULL,
+                   folForce, lambda, time, (Vector *) NULL, false);
+
   if(sinfo.isDynam()) {
     double pWext = Wext, pWdmp = Wdmp;
     StackVector vel(velocity, numUncon());
-    computeExtAndDmpEnergies(disp, force, time, aeroForce, &vel, C);
+    computeExtAndDmpEnergies(disp, force, time, aeroForce, &vel, C, &folForce);
 
     Vector tmpVec(numUncon());
     if(M) {
@@ -2584,14 +2603,7 @@ Domain::computeEnergies(GeomState *geomState, Vector &force, double time, Vector
     pWkin = Wkin;
   }
   else { // nonlinear statics
-    double lambda = time;
-    if (time == 0.0) {
-      double deltaLambda = solInfo().getNLInfo().dlambda;
-      double maxLambda = solInfo().getNLInfo().maxLambda;
-      if(deltaLambda == maxLambda) lambda = 1.0;
-    }
-
-    Wext  = lambda*force * disp;
+    Wext  = (lambda*force + folForce) * disp;
     Waero = 0;
     Wdmp  = 0;
     Wkin  = 0;

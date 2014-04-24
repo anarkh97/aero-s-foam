@@ -7,8 +7,6 @@
 #include <Driver.d/Domain.h>
 #include <Utils.d/Connectivity.h>
 #include <Element.d/Element.h>
-#include <Driver.d/Dynam.h>
-#include <Utils.d/linkfc.h>
 #include <Math.d/VectorSet.h>
 #include <Math.d/mathUtility.h>
 #include <Utils.d/resize_array.h>
@@ -16,73 +14,10 @@
 
 #include <Driver.d/GeoSource.h>
 
-extern "C"      {
-void _FORTRAN(cfjacobi)(double *,double *,double *, double *,int&,double&,int &);
-}
-
-void
-EigenMat::ortho(Vector *v1, Vector *vr, int nsub, int nrbm)
-{
-  int i,j;
-  for(j=0; j<nsub; ++j) {
-    for(i=0; i<nrbm; ++i) {
-      double s = v1[i]*vr[j+nrbm];
-      vr[j+nrbm] -= s*vr[i]; // Vector -= operation
-    }
-  }
-}
-
-void
-EigenMat::ortho(VectorSet& v1, VectorSet& vr, int nsub, int nrbm)
-{
-  int i,j;
-  for(j=0; j<nsub; ++j) {
-    for(i=0; i<nrbm; ++i) {
-      double s = v1[i]*vr[j+nrbm];
-
-      vr[j+nrbm] -= s*vr[i]; // Vector -= operation
-    }
-  }
-}
-
-void
-EigenMat::getJacobi(double *kappa, double * mu, FullSquareMatrix &xx,
-                    double *eigVal,int nsmax,int subSpaceSize, double tolJac)
-{
-  int i,j;
-
-  _FORTRAN(cfjacobi)(kappa,mu,xx[0],eigVal,nsmax,tolJac,subSpaceSize);
-
-  // sort eigenvalues.
-  int is = 1;
-  while(is != 0) {
-    is = 0;
-    for(i=1; i<subSpaceSize; ++i) {
-      if(eigVal[i] < eigVal[i-1] ) {
-        is = 1;
-        double tr = eigVal[i-1];
-        eigVal[i-1] = eigVal[i];
-        eigVal[i] = tr;
-
-        for(j=0; j<subSpaceSize; ++j) {
-          tr         = xx[i][j];
-
-          xx[i][j]   = xx[i-1][j];
-
-          xx[i-1][j] = tr;
-        }
-      }
-    }
-  }
- fprintf(stderr,"%f\n",eigVal[0]);
-}
-
-
 void
 Domain::getSloshDisp(Vector &sloshPotSol, double *bcx, int fileNumber, int hgIndex, double time)
 {
   // Postprocessing: Computes the NODAL displacements for sloshing problem
-  // ADDED FOR SLOSHING PROBLEM, EC, 20070723
   if(outFlag && !nodeTable) makeNodeTable(outFlag);
   int numNodes = (outFlag) ? exactNumNodes : geoSource->numNode();
   OutputInfo *oinfo = geoSource->getOutputInfo();
@@ -156,7 +91,6 @@ void
 Domain::getSloshDispAll(Vector &sloshPotSol, double *bcx, int fileNumber, double time)
 {
   // Postprocessing: Computes the NODAL displacements for sloshing problem
-  // ADDED FOR SLOSHING PROBLEM, EC, 20081101
   if(outFlag && !nodeTable) makeNodeTable(outFlag);
   int numNodes = (outFlag) ? exactNumNodes : geoSource->numNode();
   OutputInfo *oinfo = geoSource->getOutputInfo();
@@ -223,7 +157,7 @@ Domain::getSloshDispAll(Vector &sloshPotSol, double *bcx, int fileNumber, double
 }
 
 void
-Domain::eigenOutput(Vector& eigenValues, VectorSet& eigenVectors, double* bcx, int convEig) //modified FOR SLOSHING PROBLEM, EC, 20070723
+Domain::eigenOutput(Vector& eigenValues, VectorSet& eigenVectors, double* bcx, int convEig)
 {
   const double pi = 3.141592653589793;
   

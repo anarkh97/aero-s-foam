@@ -721,6 +721,7 @@ class Domain : public HData {
      // Main program control functions.
      void arcLength();
      void createCorotators(Corotator **allCorot);
+     void createContactCorotators(Corotator **allCorot, FullSquareMatrix *kArray, FullSquareMatrix *mArray);
      void preProcessing();
      FILE * openFile(char *fileName, const char *extension);
      void printStatistics(bool domain_decomp);
@@ -973,6 +974,10 @@ class Domain : public HData {
      int addElem(int ele, int type, int nnd, int *nd)
         { packedEset.elemadd(ele, type, nnd, nd); return ele; }
 
+     // returns the maximum possible number of elements for simulations in which the 
+     // number elements may change from one load/time step to another
+     int maxNumElements() { return numele - contactSurfElems.size() + maxContactSurfElems; }
+
      // returns the number of dofs
      void setNumDofs(int n) { numdofs = n; }
      int  numDofs() { return numdofs; }
@@ -987,7 +992,7 @@ class Domain : public HData {
      int  pressureFlag();
 
      // returns the value of the contact force flag
-     int  tdenforceFlag() { return int(nMortarCond > 0 && sinfo.newmarkBeta == 0.0/* && sinfo.penalty == 0.0*/); } // TD enforcement (contact/tied surfaces with ACME) used for explicit dynamics
+     int  tdenforceFlag() { return int(nMortarCond > 0 && sinfo.newmarkBeta == 0.0 && sinfo.tdenforceFlag); } // TD enforcement (contact/tied surfaces with ACME) used for explicit dynamics
 
      int  thermalFlag() { return sinfo.thermalLoadFlag || sinfo.thermoeFlag >= 0; }
 
@@ -1073,6 +1078,7 @@ class Domain : public HData {
      int nMortarLMPCs;                         // total number of Mortar LMPCs generated
      Connectivity* mortarToMPC;                //
      vector<int> contactSurfElems;
+     int maxContactSurfElems;
      std::set<int> aeroEmbeddedSurfaceId;  //KW: Ids of wet surfaces
   public:
      int AddSurfaceEntity(SurfaceEntity*);
@@ -1123,6 +1129,7 @@ class Domain : public HData {
      ResizeArray<SurfaceEntity*>* viewSurfEntities() { return(&SurfEntities); }
      void setNumSurfs(int nSurfs) { nSurfEntity = nSurfs; }
      int getNumSurfs() { return(nSurfEntity); }
+     int getMaxContactSurfElems() { return maxContactSurfElems; }
 
 #ifdef HB_ACME_FFI_DEBUG
      void WriteFFITopFile(FILE* file);

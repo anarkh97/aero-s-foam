@@ -242,6 +242,8 @@ class ContactFace : public ContactTopologyEntity<DataType> {
                                          
   void Delete_FaceFace_Interaction( ContactFaceFaceInteraction<DataType>*, 
                                     int state = 0 );
+
+  void Clear_FaceFace_Interactions() { FaceFaceInteractions.clear(); }
                                    
   void Display_FaceFace_Interactions( ContactParOStream&, int state = 0 );
   

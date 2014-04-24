@@ -2560,6 +2560,7 @@ void ContactTopology::Delete_All_Interactions()
   	  ContactFaceFaceInteraction<Real>* cffi = 
   	         static_cast<ContactFaceFaceInteraction<Real>*>(link);
   	  cffi->~ContactFaceFaceInteraction();
+          search->Get_Allocators()[ContactSearch::ALLOC_ContactFaceFaceInteraction].Delete_Frag(cffi); // PJSA
         }
         interactions->Clear();
       }
@@ -2574,6 +2575,7 @@ void ContactTopology::Delete_All_Interactions()
         interactions->Clear();
       }
     }
+    face->Clear_FaceFace_Interactions(); // PJSA
   }
   ContactElement** Elements = 
     reinterpret_cast<ContactElement**>(elem_list->EntityList());
@@ -2590,6 +2592,7 @@ void ContactTopology::Delete_All_Interactions()
       interactions->Clear();
     }
   }
+  search->Get_Allocators()[ContactSearch::ALLOC_ContactFaceFaceInteraction].Purge(); // PJSA
 }
 
 int ContactTopology::Number_NodeFace_Interactions()

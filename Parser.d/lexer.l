@@ -1391,7 +1391,9 @@ TRAIL [a-zA-Z]*
 
 "POINTPLANE"|"pointplane"|"PointPlane" { yylval.ival = BCond::PointPlaneDistance; return CSTYPE; }
 
-"NO_SECONDARY"|"no_secondary"  { return NOSECONDARY; }
+"NO_SECONDARY"|"no_secondary"      { return NOSECONDARY; }
+
+"TDEN"[a-zA-Z]*|"tden"[a-zA-Z]*    { return TDENFORCE; }
 
 "ACME"[a-zA-Z]*|"acme"[a-zA-Z]*    { return ACMECNTL; }
 

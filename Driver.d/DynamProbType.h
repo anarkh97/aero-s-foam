@@ -15,7 +15,7 @@ template <class VecType,
           class ProblemDescriptor> 
 class NewmarkWorkVec {
 
-   // Type of Newmark (imlicit = 0 / explicit = 1 / quasistatic = -1)
+   // Type of Newmark (explicit = 0 / implicit = 1 / quasistatic = -1)
    int typ;      
 
    VecType * d_n_p;
@@ -28,18 +28,9 @@ class NewmarkWorkVec {
    VecType * v_n_h;
    VecType * Md_n_h;
    VecType * Cd_n_h;
-
    VecType * tmp1;
-
-   union { 
-      VecType * dnc;
-      VecType * tmp2;
-   };
-   union {
-      VecType * vnc;
-      VecType * fint;
-   };
-   VecType * anc;
+   VecType * tmp2;
+   VecType * fint;
 
    public:
    
@@ -59,9 +50,6 @@ class NewmarkWorkVec {
    VecType & get_Md_n_h() { return *Md_n_h;}
    VecType & get_Cd_n_h() { return *Cd_n_h;}
    VecType & get_tmp1()   { return *tmp1;  }
-   VecType & get_dnc()    { return *dnc;   }
-   VecType & get_vnc()    { return *vnc;   }
-   VecType & get_anc()    { return *anc;   }
    VecType & get_tmp2()   { return *tmp2;  }
    VecType & get_fint()   { return *fint;  }
 
@@ -75,9 +63,6 @@ class NewmarkWorkVec {
    VecType & get_Md_n_hConst()const { return *Md_n_h;}
    VecType & get_Cd_n_hConst()const { return *Cd_n_h;}
    VecType & get_tmp1Const()  const { return *tmp1;  }
-   VecType & get_dncConst()   const { return *dnc;   }
-   VecType & get_vncConst()   const { return *vnc;   }
-   VecType & get_ancConst()   const { return *anc;   }
    VecType & get_tmp2Const()  const { return *tmp2;  }
    VecType & get_fintConst()  const { return *fint;  }
 };
@@ -138,7 +123,6 @@ private:
      VecType * v_p;
      VecType * constForce;
      VecType * aeroForce;
-     VecType * adjVec;
      
      SysState<VecType> * curState; 
      

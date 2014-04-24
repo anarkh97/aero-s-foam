@@ -36,6 +36,8 @@
 extern Communicator *structCom;
 #endif
 
+#include <algorithm>
+
 typedef FSFullMatrix FullMatrix;
 
 extern int verboseFlag;
@@ -172,6 +174,9 @@ SingleDomainDynamic::SingleDomainDynamic(Domain *d)
   acx = 0;
   claw = 0;
   userSupFunc = 0;
+  times = 0;
+  prevFrc = 0;
+  prevFrcBackup = 0;
 
   flExchanger = domain->getFileExchanger();
   reactions = 0;
@@ -182,7 +187,23 @@ SingleDomainDynamic::~SingleDomainDynamic()
   if(bcx) delete [] bcx;
   if(vcx) delete [] vcx;
   if(acx) delete [] acx;
+  if(geomState) delete geomState;
+  if(times) delete times;
+  if(prevFrc) delete prevFrc;
+  if(prevFrcBackup) delete prevFrcBackup;
   if(reactions) delete reactions;
+  if(kelArray) { delete [] kelArray; kelArray = 0; }
+  if(melArray) { delete [] melArray; melArray = 0; }
+  if(allCorot) {
+
+    for (int iElem = 0; iElem < domain->numElements(); ++iElem) {
+      if(allCorot[iElem] && (allCorot[iElem] != dynamic_cast<Corotator*>(domain->getElementSet()[iElem])))
+        delete allCorot[iElem];
+    }
+
+    delete [] allCorot;
+    allCorot = 0;
+  }
 }
 
 void
@@ -263,7 +284,6 @@ SingleDomainDynamic::project(Vector &v)
  // y = Xt*v
  (*X).trMult(v,y);
  
-
  // z = R*y
  Rt.trMult(y,z);
 
@@ -272,7 +292,6 @@ SingleDomainDynamic::project(Vector &v)
  (*X).trMult(v,y);
 }
 
-#include <algorithm>
 int
 SingleDomainDynamic::getFilterFlag()
 {
@@ -548,7 +567,7 @@ SingleDomainDynamic::getContactForce(Vector &d_n, Vector &dinc, Vector &ctc_f, d
     else {
       Vector d_n_p(domain->numUncon());
       d_n_p = d_n + dinc;
-      geomState->explicitUpdate(domain->getNodes(), d_n_p);
+      predictedState->explicitUpdate(domain->getNodes(), d_n_p);
     }
 
     // update the prescribed displacements to their correct value at the time of the predictor
@@ -653,6 +672,8 @@ SingleDomainDynamic::computeExtForce2(SysState<Vector> &state, Vector &ext_f,
     domain->deleteSomeLMPCs(mpc::ContactSurfaces);
     domain->ExpComputeMortarLMPC(MortarHandler::CTC);
     domain->UpdateContactSurfaceElements(geomState);
+    domain->makeAllDOFs();
+    domain->createContactCorotators(allCorot, kelArray, melArray);
   }
 
   // THERMOE update nodal temperatures
@@ -742,7 +763,7 @@ SingleDomainDynamic::preProcess()
        // for nonlinear explicit dynamics to compute the critical time step
     domain->computeGeometricPreStress(allCorot, geomState, kelArray, times, geomKelArray, melArray, melFlag);
   }
-  else if(domain->tdenforceFlag()) 
+  else if(domain->tdenforceFlag())
     geomState = new GeomState(*domain->getDSA(), *domain->getCDSA(), domain->getNodes(), &domain->getElementSet());
 
   if(domain->solInfo().isNonLin() || domain->tdenforceFlag()) {
@@ -775,7 +796,7 @@ DynamMat *
 SingleDomainDynamic::buildOps(double coeM, double coeC, double coeK)
 {
  AllOps<double> allOps;
- DynamMat *dMat = new DynamMat;
+ DynamMat *dMat = new DynamMat(true);
 
  domain->getTimers().constructTime -= getTime();
  allOps.K   = domain->constructDBSparseMatrix<double>();

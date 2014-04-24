@@ -24,7 +24,6 @@ TransSprlink::clone()
   return new TransSprlink(*this);
 }
 
-
 void
 TransSprlink::renum(int *table)
 {
@@ -61,15 +60,6 @@ TransSprlink::stiffness(CoordSet &, double *d, int flg)
   //
   // karray contains the spring's stiffness matrix
   //
-
-#ifdef DEBUG_SPRING
-  std::cout << "local dofs: " << localDofs[0] << " "
-                              << localDofs[1] << " "
-                              << localDofs[2] << " "
-                              << localDofs[3] << " "
-                              << localDofs[4] << " "
-                              << localDofs[5] << std::endl;
-#endif
 
   FullSquareMatrix ret(numDofs(), d);
   FullSquareMatrix kel(6,karray);

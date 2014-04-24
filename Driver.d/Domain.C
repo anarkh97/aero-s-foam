@@ -116,9 +116,6 @@ Domain::Domain(int iniSize) : nodes(*(new CoordSet(iniSize*16))), packedEset(ini
 void
 Domain::makeAllDOFs() // build the dof connectivity
 {
- // Test if allDOFs has been made already
- //if(allDOFs) return;
-
  int numele = packedEset.last(); // PJSA 5-2-05: include phantoms here
 
  int iele;
@@ -145,7 +142,6 @@ Domain::makeAllDOFs() // build the dof connectivity
 }
 
 // build the dof connectivity for fluid
-// ADDED FOR HEV PROBLEM, EC, 20070820
 void
 Domain::makeAllDOFsFluid()
 {
@@ -601,7 +597,6 @@ void Domain::getInterestingDofs(DofSet &ret, int glNode)
 
 double ** Domain::getCMatrix()
 //returns the coupling matrix for hydroelastic vibration problems
-//ADDED FOR HEV PROBLEM, EC, 20070820
 {
   if(C_condensed) return C_condensed;
   int np = c_dsaFluid->size();
@@ -1580,7 +1575,6 @@ Domain::getRenumbering()
  if(nodeToNode) delete nodeToNode;
  nodeToNode = nodeToElem->transcon(elemToNode);
 
- //ADDED FOR HEV PROBLEM, EC, 20070820
  if(solInfo().HEV == 1 && solInfo().addedMass == 1) {
    int numWetNodes = 0;
    int *wetIFNodes = getAllWetInterfaceNodes(numWetNodes);
@@ -2152,8 +2146,6 @@ Domain::getNodeToNode() {
 
 ConstrainedDSA *
 Domain::makeCDSA(int nbc, BCond *bcs) {
-  //MODIFIED FOR HEV PROBLEM, EC, 20070820
-  //if (c_dsa) return c_dsa;
 
   if(!c_dsa) c_dsa = new ConstrainedDSA(*dsa, nbc, bcs);
   if(solInfo().HEV) {
@@ -2426,9 +2418,9 @@ Domain::SetMortarPairing()
   std::map<int, SurfaceEntity*> SurfIdToPtrSurfMap;
   for(int iSurf=0; iSurf<nSurfEntity; iSurf++){
     SurfIdToPtrSurfMap[SurfEntities[iSurf]->ID()] = SurfEntities[iSurf];
-    //SurfIdToPtrSurfMap.insert(map<int, SurfaceEntity*>::value_type(SurfId, SurfEntities[iSurf]));
   }
 
+  maxContactSurfElems = 0;
   for(int iMortar=0; iMortar<nMortarCond; iMortar++){
     MortarConds[iMortar]->SetPtrSurfaceEntity(SurfIdToPtrSurfMap[MortarConds[iMortar]->GetMasterEntityId()],
                                               SurfIdToPtrSurfMap[MortarConds[iMortar]->GetSlaveEntityId()]);
@@ -2441,6 +2433,9 @@ Domain::SetMortarPairing()
               MortarConds[iMortar]->GetPtrMasterEntity()->ID(),
               MortarConds[iMortar]->GetPtrSlaveEntity()->ID());
 #endif
+
+    if(MortarConds[iMortar]->GetInteractionType() == MortarHandler::CTC && !tdenforceFlag())
+      maxContactSurfElems += MortarConds[iMortar]->GetPtrSlaveEntity()->GetnNodes();
   }
   }
 }
@@ -2495,7 +2490,7 @@ void Domain::SetUpSurfaces(CoordSet* cs)
   }
 }
 
-// PJSA 5-30-08 *********************************************************************************************************
+// **********************************************************************************************************************
 // These functions use ACME's dynamic 2-configuation search algorithm and contact enforcement model for explicit dynamics
 void Domain::InitializeDynamicContactSearch(int numSub, SubDomain **sd)
 {
@@ -2504,7 +2499,10 @@ void Domain::InitializeDynamicContactSearch(int numSub, SubDomain **sd)
     CurrentMortarCond->SetDistAcme(sinfo.dist_acme);
     CurrentMortarCond->build_search(true, numSub, sd);
     CurrentMortarCond->build_td_enforcement();
-    CurrentMortarCond->set_search_data(1); // interaction_type = 1 (NodeFace) 
+    if(CurrentMortarCond->GetInteractionType() == MortarHandler::TIED)
+      CurrentMortarCond->set_search_data(2);
+    else
+      CurrentMortarCond->set_search_data(1);
     CurrentMortarCond->SetNoSecondary(solInfo().no_secondary);
     CurrentMortarCond->set_search_options();
     if(numSub == 0 && !sd) CurrentMortarCond->set_node_constraints(numDirichlet, dbc);
@@ -2923,7 +2921,7 @@ Domain::initialize()
  numCTC = 0;
  output_match_in_top = false;
  C_condensed = 0;
- nContactSurfacePairs = 0;
+ nContactSurfacePairs = 0; maxContactSurfElems = 0;
  outFlag = 0;
  nodeTable = 0;
  MpcDSA = 0; nodeToNodeDirect = 0;

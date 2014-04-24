@@ -844,8 +844,7 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
         fprintf(stderr, " *** AS.WRN: output %d is not supported \n", i);
     }
   }
-       
-  
+
   if (glDisp) delete [] glDisp;
   if (locDisp) delete [] locDisp;
 }

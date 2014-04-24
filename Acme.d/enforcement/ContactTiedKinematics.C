@@ -63,7 +63,6 @@ ContactTiedKinematics::ContactTiedKinematics( ContactSearch* Search,
   error = ContactSearch::NO_ERROR;
 }
 
-
 ContactTiedKinematics::~ContactTiedKinematics()
 {
   if( final_position ) delete [] final_position;
@@ -101,7 +100,6 @@ ContactTiedKinematics::Extract_Nodal_Restart_Variable( int n, Real* data, int* n
   return ContactSearch::NO_ERROR;
 }
 
-
 ContactSearch::ContactErrorCode
 ContactTiedKinematics::Implant_Nodal_Restart_Variable( int n, Real* data )
 {
@@ -112,6 +110,7 @@ ContactTiedKinematics::Implant_Nodal_Restart_Variable( int n, Real* data )
   }
   return ContactSearch::NO_ERROR;
 }
+
 ContactSearch::ContactErrorCode
 ContactTiedKinematics::Extract_Edge_Restart_Variable( int n, Real* data )
 {

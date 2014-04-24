@@ -390,6 +390,10 @@ MultiDomainDynam::preProcess()
   // Initialization for contact
   if(domain->tdenforceFlag())
     domain->InitializeDynamicContactSearch(decDomain->getNumSub(), decDomain->getAllSubDomains());
+  else if(domain->solInfo().isNonLin() && domain->GetnContactSurfacePairs()) {
+    filePrint(stderr, " *** ERROR: \"tdenforce off\" is not supported for multi-domain nonlinear dynamics. Exiting...\n");
+    exit(-1);
+  }
 
   // Allocate vector to store reaction forces
   if(!reactions) reactions = new DistrVector(*decDomain->pbcVectorInfo());

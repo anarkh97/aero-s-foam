@@ -308,6 +308,7 @@ struct SolverInfo {
    bool ffi_debug;
    double mortar_scaling;
    int mortar_integration_rule;
+   bool tdenforceFlag;
 
    bool lagrangeMult;
    double penalty;
@@ -595,6 +596,7 @@ struct SolverInfo {
                   ffi_debug = false;
                   mortar_scaling = 1.0;
                   mortar_integration_rule = 6;
+                  tdenforceFlag = true;
 
                   lagrangeMult = true;
                   penalty = 0;

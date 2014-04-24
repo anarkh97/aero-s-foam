@@ -989,7 +989,10 @@ void
 Elemset::mpcelemadd(int num, LMPCons *mpc, bool nlflag)
 {
    Element *ele;
-   ele = new (ba) MpcElement(mpc, nlflag);
+   if(mpc->getSource() == mpc::ContactSurfaces)
+     ele = new MpcElement(mpc, nlflag);
+   else
+     ele = new (ba) MpcElement(mpc, nlflag);
    ele->setElementType(1001);
    elemadd(num, ele);
 

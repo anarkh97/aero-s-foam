@@ -57,7 +57,7 @@ class SingleDomainEigen {
  public:
 
     // Constructor
-    SingleDomainEigen(Domain *d) { domain = d; kelArray = 0; melArray =0; 
+    SingleDomainEigen(Domain *d) { domain = d; kelArray = 0; melArray = 0; 
                                    geomState = 0; allCorot = 0; geomKelArray = 0; }
 
     SDEigenPostProcessor *getPostProcessor();

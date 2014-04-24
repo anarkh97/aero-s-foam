@@ -1,4 +1,5 @@
 #include <Element.d/Element.h>
+#include <Element.d/MpcElement.d/MpcElement.h>
 #include <iostream>
 #include <set>
 #include <queue>
@@ -6,7 +7,10 @@
 
 void Elemset::deleteElem(int i)
 {
-  elem[i]->~Element();
+  if(elem[i]->getElementType() == 1001 && static_cast<MpcElement*>(elem[i])->getSource() == mpc::ContactSurfaces)
+    delete elem[i]; // note: contact surface mpc elements do not use placement new (see Elemset::mpcelemadd)
+  else
+    elem[i]->~Element();
   elem[i] = 0;
 }
 
@@ -18,7 +22,7 @@ void Elemset::deleteElems()
 
   if (myData) { 
     for (int i = 0; i < size(); ++i) {
-      if (elem[i]) elem[i]->~Element();
+      if (elem[i]) deleteElem(i);
     }
   }
   

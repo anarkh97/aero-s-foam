@@ -847,11 +847,10 @@ Domain::createKelArray(FullSquareMatrix *&kArray)
 void
 Domain::createKelArray(FullSquareMatrix *&kArray, FullSquareMatrix *&mArray)
 {
-
  // Allocate array of pointers to FullSquareMatrix to store
  // the element stiffness matrices and element mass matrices
- kArray = new FullSquareMatrix[numele];
- mArray = new FullSquareMatrix[numele];
+ kArray = new FullSquareMatrix[maxNumElements()];
+ mArray = new FullSquareMatrix[maxNumElements()];
 
  // Allocate the correct size for each element's stiffness & mass matrix
  int iele;
@@ -1605,6 +1604,26 @@ Domain::createCorotators(Corotator **allCorot)
 }
 
 void
+Domain::createContactCorotators(Corotator **allCorot, FullSquareMatrix *kArray, FullSquareMatrix *mArray)
+{
+ // Allocate memory for element stiffness matrix
+ double *kmatrix = new double[maxNumDOFs*maxNumDOFs];
+
+ // Loop over elements to get their Corotators
+ for(int iele = numele-contactSurfElems.size(); iele < numele; ++iele) {
+   allCorot[iele] = packedEset[iele]->getCorotator(nodes, kmatrix,
+                                      sinfo.getNLInfo().fitAlgShell,
+                                      sinfo.getNLInfo().fitAlgBeam);
+
+   int dimension = packedEset[iele]->numDofs();
+   kArray[iele].setSize(dimension);
+   mArray[iele].setSize(dimension);
+ }
+
+ delete [] kmatrix;
+}
+
+void
 Domain::getGeometricStiffness(GeomState &geomState, Vector& elementInternalForce,
                               Corotator **allCorot, FullSquareMatrix *&geomKelArray)
 {
@@ -1647,7 +1666,7 @@ Domain::computeGeometricPreStress(Corotator **&allCorot, GeomState *&geomState,
 {
    // ... ALLOCATE MEMORY FOR THE ARRAY OF COROTATORS
    times->corotatorTime -= getTime();
-   allCorot = new Corotator *[numElements()];
+   allCorot = new Corotator *[maxNumElements()];
 
    // ... CREATE THE ARRAY OF POINTERS TO COROTATORS
    createCorotators(allCorot);
@@ -1870,7 +1889,7 @@ Domain::getStressStrain(GeomState &geomState, Corotator **allCorot,
 
 void
 Domain::getPrincipalStress(GeomState &geomState, Corotator **allCorot,
-                         int fileNumber, int stressIndex, double time)
+                           int fileNumber, int stressIndex, double time)
 {
   OutputInfo *oinfo = geoSource->getOutputInfo();
 

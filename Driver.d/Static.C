@@ -792,43 +792,6 @@ Domain::preProcessing()
    dsaFluid = new DofSetArray(numnodesFluid, *(geoSource->getPackedEsetFluid()), rnumFluid->renumb);
  }
  matrixTimers->createDofs += getTime();
-
-// TEMP CODE TO OUTPUT ACTIVE DOFS IN PROFILE
-// dsa = dof set array
-
-/*
-  ofstream dof_file;
-  dof_file.open("profile.dat");
-  if(dof_file.fail()) {
-    cout << "ERROR: opening profile.dat" << endl;
-  }
-  dof_file << setw(6) << numnodes << endl;
-
-  int inode,d;
-  int flag[6];
-  for(inode = 0; inode < numnodes; ++inode) {
-    flag[0] = dsa->locate(inode, DofSet::Xdisp);
-    flag[1] = dsa->locate(inode, DofSet::Ydisp);
-    flag[2] = dsa->locate(inode, DofSet::Zdisp);
-    flag[3] = dsa->locate(inode, DofSet::Xrot);
-    flag[4] = dsa->locate(inode, DofSet::Yrot);
-    flag[5] = dsa->locate(inode, DofSet::Zrot);
-
-    for(d=0;d<6; ++d) {
-      if(flag[d] > 0) // active
-        flag[d] = 1;
-      else // inactive
-        flag[d] = 0;
-    }
-    dof_file << setw(6) << (inode+1);
-    for(d=0;d<6; ++d) {
-      dof_file << " " << setw(1) << flag[d];
-    }
-    dof_file << endl;
-  }
-  dof_file.close();
-  exit(1);
-*/
 }
 
 void
@@ -836,7 +799,6 @@ Domain::make_constrainedDSA()
 {
  if(c_dsa) delete c_dsa;
  c_dsa = new ConstrainedDSA(*dsa, numDirichlet, dbc);
- //ADDED FOR HEV PROBLEM, EC, 20070820
  if (solInfo().HEV)  {
    c_dsaFluid = new ConstrainedDSA(*dsaFluid, numDirichletFluid, dbcFluid);
  }
@@ -858,7 +820,6 @@ Domain::make_constrainedDSA(int *bc)
  // bc = integer array marking dofs that are
  //      constrained or have forces applied
 
- //ADDED FOR HEV PROBLEM, EC, 20070820
  if (solInfo().HEV)  {
    //int numdofFluid = dsaFluid->size();
    //int numdof = dsa->size();
@@ -1079,7 +1040,6 @@ Domain::makeNodeTable(int topFlag)
 void
 Domain::makeTopFile(int topFlag)
 {
- //MODIFIED FOR HEV PROBLEM, EC, 20070820
  if (solInfo().HEV)  {
    solInfo().HEV = 0;
    packedEset.deleteElems();

@@ -206,13 +206,14 @@ MortarHandler::~MortarHandler()
   for(size_t i=0; i<MortarEls.size(); ++i) 
     if(MortarEls[i]) delete MortarEls[i];
 
+  for(std::vector<FFIPolygon*>::iterator it = CtcPolygons.begin(); it != CtcPolygons.end(); ++it) {
+    delete *it;
+  }
+
   if(ActiveSlaveNodeToElem) { delete ActiveSlaveNodeToElem ; ActiveSlaveNodeToElem  = 0; }
   if(ActiveMasterNodeToElem){ delete ActiveMasterNodeToElem; ActiveMasterNodeToElem = 0; }
   if(SlaveFaceToFFIConnect) { delete SlaveFaceToFFIConnect ; SlaveFaceToFFIConnect  = 0; }
 
-  //ActiveSlaveNodes.clear();
-  //ActiveSlaveFacesToMortarEl.clear();
- 
   // this only delete the array of pointers to the (active) master/slave elements
   // but not the element themselves (i.e. they are currently owned by the SurfaceEntity objects) 
   ActiveSlaveElemSet.deleteElems();
@@ -1904,7 +1905,8 @@ MortarHandler::set_search_data(int interaction_type)
   double Tangential_Tol = GetTangentialTol();
   double Interaction_Typ;
   switch(interaction_type) {
-    case 1 : case 2 : Interaction_Typ = (double)(ContactSearch::SLIDING_INTERACTION); break;
+    case 1 : Interaction_Typ = (double)(ContactSearch::SLIDING_INTERACTION); break;
+    case 2 : Interaction_Typ = (double)(ContactSearch::TIED_INTERACTION); break;
     case 3 : case 4 : case 6 : Interaction_Typ = (double)(ContactSearch::GENERIC_INTERACTION); break;
     case 5 : Interaction_Typ = (double)(ContactSearch::COVERAGE_INTERACTION); break;
   }
@@ -2096,7 +2098,6 @@ MortarHandler::set_node_configuration(int config_type, int numSub, SubDomain **s
     exit(error);
   }
 
-  //cerr << "positions = "; for(int i=0; i<3*num_nodes; ++i) cerr << positions[i] << " "; cerr << endl;
   if(positions != 0) delete [] positions;
 #endif
 }
@@ -2328,7 +2329,7 @@ MortarHandler::perform_search(int search_algorithm, double dt_old, double dt)
   switch(search_algorithm) {
     default:
     case 1:
-      search_obj->Delete_All_Interactions(); // PJSA 4/14/2009
+      search_obj->Delete_All_Interactions();
       error = search_obj->Static_Search_1_Configuration();
       break;
     case 2:
@@ -2545,7 +2546,14 @@ MortarHandler::build_td_enforcement()
   for(int i=0; i<4; ++i) real_data[i] = FrictionCoef[i];
   contact_obj->Add_Enforcement_Model(type, ID, integer_data, real_data);
   
-  int number_iterations = TDEnfNumIter;
+  int number_iterations;
+  if((ConstraintOptionsData && ConstraintOptionsData->lagrangeMult == 0 && ConstraintOptionsData->penalty > 0) ||
+     (ConstraintOptionsData == NULL && domain->solInfo().lagrangeMult == 0 && domain->solInfo().penalty > 0)) {
+    number_iterations = 1;
+  }
+  else {
+    number_iterations = TDEnfNumIter;
+  }
   error = contact_obj->Set_Number_of_Iterations(number_iterations);
   if(error) {
     std::cerr << "Error in ACME ContactTDEnforcement::Set_Number_of_Iterations: error code = " << error << std::endl;
@@ -2993,12 +3001,13 @@ MortarHandler::compute_td_contact_force(double dt_old, double dt, Vector &f)
 #ifdef USE_ACME
   ContactSearch::ContactErrorCode error;
 
-  // override the default penalty parameter with the value set in the AERO-S input file
+  // override the default ACME penalty parameter with the value set in the AERO-S input file
   if((ConstraintOptionsData && ConstraintOptionsData->lagrangeMult == 0 && ConstraintOptionsData->penalty != 0) ||
      (ConstraintOptionsData == NULL && domain->solInfo().lagrangeMult == 0 && domain->solInfo().penalty != 0)) {
     double dt2 = 1.0/(0.5*(dt+dt_old)*dt);
     double penalty = (ConstraintOptionsData) ? ConstraintOptionsData->penalty : domain->solInfo().penalty;
-    double penalty_scale = 2*penalty/dt2;
+    // if the penalty parameter is less than zero, then by convention it's absolute value is the scale factor
+    double penalty_scale = (penalty > 0) ? 2*penalty/dt2 : -penalty;
     error = static_cast<ContactTDEnfPenalty*>(contact_obj)->Set_Penalty_Scale(penalty_scale);
     if(error) {
       std::cerr << "Error in ACME ContactTDEnfPenalty::Set_Penalty_Scale: error code = " << error << std::endl;
@@ -3029,6 +3038,23 @@ MortarHandler::compute_td_contact_force(double dt_old, double dt, DistrVector &f
   // multiple domain version
 #ifdef USE_ACME
   ContactSearch::ContactErrorCode error;
+
+  // override the ACME default penalty parameter with the value set in the AERO-S input file
+  if((ConstraintOptionsData && ConstraintOptionsData->lagrangeMult == 0 && ConstraintOptionsData->penalty != 0) ||
+     (ConstraintOptionsData == NULL && domain->solInfo().lagrangeMult == 0 && domain->solInfo().penalty != 0)) {
+    double dt2 = 1.0/(0.5*(dt+dt_old)*dt);
+    double penalty = (ConstraintOptionsData) ? ConstraintOptionsData->penalty : domain->solInfo().penalty;
+    // if the penalty parameter is less than zero, then by convention it's absolute value is the scale factor
+    double penalty_scale = (penalty > 0) ? 2*penalty/dt2 : -penalty;
+    error = static_cast<ContactTDEnfPenalty*>(contact_obj)->Set_Penalty_Scale(penalty_scale);
+    if(error) {
+      std::cerr << "Error in ACME ContactTDEnfPenalty::Set_Penalty_Scale: error code = " << error << std::endl;
+      for(int i=1; i<=contact_obj->Number_of_Errors(); ++i)
+        std::cerr << contact_obj->Error_Message(i) << std::endl;
+      exit(error);
+    }
+  }
+
   int nACMENodes = nMasterNodes + nSlaveNodes; 
   double *force = new double[nACMENodes*3]; 
   error = contact_obj->Compute_Contact_Force(dt_old, dt, mass, density, wavespeed, force);

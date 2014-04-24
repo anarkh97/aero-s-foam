@@ -23,7 +23,7 @@ SysState<VecType> & SysState<VecType>::operator=(const SysState<VecType> &v2)
 
 template <class VecType,
           class ProblemDescriptor> 
-NewmarkWorkVec<VecType,ProblemDescriptor>::NewmarkWorkVec(int _typ,ProblemDescriptor *probDesc)
+NewmarkWorkVec<VecType,ProblemDescriptor>::NewmarkWorkVec(int _typ, ProblemDescriptor *probDesc)
 {
    typ=_typ;
 
@@ -53,9 +53,6 @@ NewmarkWorkVec<VecType,ProblemDescriptor>::NewmarkWorkVec(int _typ,ProblemDescri
        Md_n_h = new VecType( probDesc->solVecInfo() );
        Cd_n_h = new VecType( probDesc->solVecInfo() );
        tmp1   = new VecType( probDesc->solVecInfo() );
-       dnc    = new VecType( probDesc->bcInfo() );
-       vnc    = new VecType( probDesc->bcInfo() );
-       anc    = new VecType( probDesc->bcInfo() );
        break;
    }
 }
@@ -80,6 +77,8 @@ NewmarkWorkVec<VecType,ProblemDescriptor> & NewmarkWorkVec<VecType,ProblemDescri
        		delete  tmp1;
        		delete  tmp2;
        		delete  fint;
+                delete  ext_f;
+                delete  v_n_h;
        		break;
      	     case 1:
        		delete  d_n_p;
@@ -92,9 +91,6 @@ NewmarkWorkVec<VecType,ProblemDescriptor> & NewmarkWorkVec<VecType,ProblemDescri
        		delete  Md_n_h;
        		delete  Cd_n_h;
        		delete  tmp1;
-       		delete  dnc;
-       		delete  vnc;
-       		delete  anc;
        		break;
       	 }
          typ=v.typ;
@@ -119,6 +115,10 @@ NewmarkWorkVec<VecType,ProblemDescriptor> & NewmarkWorkVec<VecType,ProblemDescri
             *tmp2 = v.get_tmp2Const();
             fint  = new VecType();
             *fint = v.get_fintConst();
+            ext_f  = new VecType();
+            *ext_f = v.get_ext_fConst();
+            v_n_h  = new VecType();
+            *v_n_h = v.get_v_n_hConst();
             break;
          case 1:
             d_n_p  = new VecType();
@@ -141,12 +141,6 @@ NewmarkWorkVec<VecType,ProblemDescriptor> & NewmarkWorkVec<VecType,ProblemDescri
             *Cd_n_h = v.get_Cd_n_hConst();
             tmp1   = new VecType();
             *tmp1  = v.get_tmp1Const();
-            dnc    = new VecType();
-            *dnc   = v.get_dncConst();
-            vnc    = new VecType();
-            *vnc   = v.get_vncConst();
-            anc    = new VecType();
-            *anc   = v.get_ancConst();
             break;
    }
 
@@ -169,6 +163,8 @@ NewmarkWorkVec<VecType,ProblemDescriptor>::~NewmarkWorkVec()
        delete  tmp1;
        delete  tmp2;
        delete  fint;
+       delete  ext_f;
+       delete  v_n_h;
        break;
      case 1:
        delete  d_n_p;  
@@ -181,9 +177,6 @@ NewmarkWorkVec<VecType,ProblemDescriptor>::~NewmarkWorkVec()
        delete  Md_n_h;
        delete  Cd_n_h;
        delete  tmp1;
-       delete  dnc;
-       delete  vnc;
-       delete  anc;
        break;
    }
 }
@@ -201,6 +194,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>::Dynam
     aeroAlg = -1;
     dynOps = 0;
     postProcessor = 0;
+    aeroForce = 0;
 }
 
 //------------------------------------------------------------------------------
@@ -212,7 +206,9 @@ template <
      class ProblemDescriptor,
      class Scalar>
 DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>::~DynamicSolver() {
-  delete postProcessor;
+  if(postProcessor) delete postProcessor;
+  if(dynOps) delete dynOps;
+  if(aeroForce) delete aeroForce;
 }
 
 //------------------------------------------------------------------------------
@@ -600,9 +596,6 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
    VecType &Md_n_h = workVec.get_Md_n_h();
    VecType &Cd_n_h = workVec.get_Cd_n_h();
    VecType   &tmp1 = workVec.get_tmp1();
-   VecType    &dnc = workVec.get_dnc();
-   VecType    &vnc = workVec.get_vnc();
-   VecType    &anc = workVec.get_anc();
 
    // Get initial time and time index
    int n = 0;

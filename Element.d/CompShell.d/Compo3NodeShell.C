@@ -4,6 +4,7 @@
 #include <cmath>
 
 #include <Element.d/CompShell.d/Compo3NodeShell.h>
+#include <Element.d/State.h>
 #include <Corotational.d/Shell3Corotator.h>
 #include <Corotational.d/utilities.h>
 #include <Corotational.d/GeomState.h>
@@ -47,6 +48,7 @@ void _FORTRAN(compthmfr)(double*, double*,  double*, double&, double*, double*,
 			 double*, double *, const int&, int&);
 }
 
+extern int quietFlag;
 
 Compo3NodeShell::Compo3NodeShell(int* nodenums)
 {
@@ -85,8 +87,6 @@ Compo3NodeShell::renum(EleRenumMap& table)
   nn[1] = table[nn[1]];
   nn[2] = table[nn[2]];
 }
-
-
 
 void
 Compo3NodeShell::getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
@@ -503,6 +503,11 @@ Compo3NodeShell::massMatrix(CoordSet &cs, double *mel, int cmflg)
   double sumrho = 0;
   double area = 0;
 
+  if((h[0] == 0.0 || prop->rho == 0) && quietFlag == 0) {
+    fprintf(stderr," *** WARNING: Composite shell element # %d has zero thickness and/or density so the mass\n"
+                   "              matrix will be zero. Use command line parameter -q to suppress this warning.\n", getGlNum()+1);
+  }
+
   _FORTRAN(compms)(x, y, z, h, prop->rho, (double *)mel,
                    18,numLayers, 1, 1, (int *)idlay, layData, cFrame,
                    1, type, 1, 1, gravityAcceleration, grvfor, grvflg,
@@ -540,7 +545,7 @@ double *
 Compo3NodeShell::setCompositeData2(int _type, int nlays, double *lData,
                                    double *coefs, CoordSet &cs, double theta)
 {
- // PJSA: variant where cframe is not pre-defined but calculated from nodal coordinates and angle theta
+ // variant where cframe is not pre-defined but calculated from nodal coordinates and angle theta
  // theta is the angle in degrees between node1-node2 and the material x axis
  type = _type;
  numLayers = nlays;
@@ -580,17 +585,7 @@ Compo3NodeShell::setCompositeData2(int _type, int nlays, double *lData,
  // rotate x and y about z
  theta *= PI/180.; // convert to radians
  double c = cos(theta), s = sin(theta);
-/*
- cFrame[0] = x[0]*c-y[0]*s;
- cFrame[1] = x[1]*c-y[1]*s;
- cFrame[2] = x[2]*c-y[2]*s;
- cFrame[3] = x[0]*s+y[0]*c;
- cFrame[4] = x[1]*s+y[1]*c;
- cFrame[5] = x[2]*s+y[2]*c;
- cFrame[6] = z[0];
- cFrame[7] = z[1];
- cFrame[8] = z[2];
-*/
+
  // use Rodrigues' Rotation Formula to rotation x and y about z by an angle theta
  double R[3][3];
  normalize(x); normalize(y); normalize(z); double wx = z[0], wy = z[1], wz = z[2];
@@ -614,12 +609,6 @@ Compo3NodeShell::setCompositeData2(int _type, int nlays, double *lData,
  cFrame[7] = z[1];
  cFrame[8] = z[2];
  
- // DEBUG
- //cerr << "cFrame: x = " << cFrame[0] << "," << cFrame[1] << "," << cFrame[2] << endl
- //     << "        y = " << cFrame[3] << "," << cFrame[4] << "," << cFrame[5] << endl
- //     << "        z = " << cFrame[6] << "," << cFrame[7] << "," << cFrame[8] << endl;
- //cerr << "cCoefs = "; for(int i=0; i<36; ++i) cerr << cCoefs[i] << " "; cerr << endl;
-
  return cFrame;
 }
 
@@ -645,9 +634,7 @@ Compo3NodeShell::stiffness(CoordSet &cs, double *d, int flg)
 
   // check if the thickness is negative or zero
   if(h[0] <= 0.0 && type == 0) {
-    fprintf(stderr,"ERROR: Zero composite shell thickness %d %d %d\n",
-            nn[0], nn[1], nn[2]);
-    fprintf(stderr," ... exiting fem program ...\n");
+    fprintf(stderr," *** ERROR: Composite shell element # %d has zero or negative thickness. Exiting...\n", getGlNum()+1);
     exit(-1);
   }
 
@@ -700,8 +687,6 @@ Compo3NodeShell::markDofs(DofSetArray &dsa)
 {
   dsa.mark(nn, 3, DofSet::XYZdisp | DofSet::XYZrot);
 }
-
-#include <Element.d/State.h>
 
 void
 Compo3NodeShell::

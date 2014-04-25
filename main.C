@@ -134,6 +134,7 @@ int salinasFlag = 0;
 int totalNewtonIter = 0;
 int iterTotal = 0;
 int debugFlag = 0;
+int quietFlag = 0;
 
 SysCom *syscom = 0;
 Communicator *structCom = 0;
@@ -282,6 +283,7 @@ int main(int argc, char** argv)
  //      the number of materials in the input file.lok
  // -r = output topdomdec file for axisymmetric mesh and exit
  // -p = output primal residual at each FETI iteration to a file
+ // -q = suppress certain warnings
 
  // Process command line arguments for DEC
  //
@@ -334,6 +336,7 @@ int main(int argc, char** argv)
    {"prefix", 1, 0, 1011},
    {"nclus", 1, 0, 1012},
    {"debug", 0, 0, 1006},
+   {"quiet", 0, 0, 'q'},
    {0, 0, 0, 0}
  };
  // end getopt_long
@@ -343,7 +346,7 @@ int main(int argc, char** argv)
  filePrint(stderr," ... Changeset ID%15s    ...\n",THE_VERSION);
 #endif
  FILE * weightFile;
- while ((c = getopt_long(argc, argv, "n:d:p:v:c:DVtTPmMr:Pfs:",long_options, &option_index)) != -1)
+ while ((c = getopt_long(argc, argv, "n:d:p:v:c:DVtTPmMr:Pfs:q",long_options, &option_index)) != -1)
       switch (c) {
       case 1000 :  // call dec from FEM
 	callDec = true;
@@ -496,6 +499,9 @@ int main(int argc, char** argv)
         break;
       case 'c':
         domain->solInfo().fetiInfo.contactPrintFlag = atoi(optarg);
+        break;
+      case 'q':
+        quietFlag = 1;
         break;
       case '?':
         {
@@ -1579,7 +1585,8 @@ writeOptionsToScreen()
  fprintf(stderr,"                                 the various Xpost element sets; useful only\n");
  fprintf(stderr,"                                 in conjonction with the -m and -M options\n");
  fprintf(stderr,"                                 which can generate multiple Xpost element sets;\n");
- fprintf(stderr,"                                 automatically generates a global element set");
+ fprintf(stderr,"                                 automatically generates a global element set\n");
+ fprintf(stderr," -q                            = suppress certain warnings");
  fprintf(stderr,"\n*********** DOMDEC Options (FETI) *************************************************\n");
  fprintf(stderr," --dec                         = embedded DOMDEC module is applied to input file\n"
 	        "                                 to generate a mesh decomposition\n");
@@ -1603,6 +1610,4 @@ writeOptionsToScreen()
 
  fprintf(stderr,"************************************************************************************\n");
  exit(-1);
-
-
 }

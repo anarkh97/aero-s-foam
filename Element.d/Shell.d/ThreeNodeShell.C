@@ -429,10 +429,7 @@ ThreeNodeShell::stiffness(CoordSet &cs, double *d, int flg)
 
         // Check for a zero thickness
 	if(h[0] <= 0.0) {
-          fprintf(stderr," *** ERROR: Zero shell thickness "
-                         "(ThreeNodeShell.C) %d %d %d\n",
-                         nn[0]+1, nn[1]+1, nn[2]+1);
-          fprintf(stderr," ... exiting fem program ...\n");
+          fprintf(stderr," *** ERROR: Shell element # %d has zero or negative thickness. Exiting...\n", getGlNum()+1);
           exit(-1);
         }
 

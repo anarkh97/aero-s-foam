@@ -1366,6 +1366,17 @@ Tensor_d0s2_Ss12::getTrace()
 }
 
 void
+Tensor_d0s2_Ss12::addSymPart(const Tensor_d0s2 &t)
+{
+  v[0] += t[0];
+  v[1] += 0.5*(t[1]+t[3]);
+  v[2] += 0.5*(t[2]+t[6]);
+  v[3] += t[4];
+  v[4] += 0.5*(t[5]+t[7]);
+  v[5] += t[8];
+}
+
+void
 Tensor_d0s4::print() const
 {
   for(int i = 0; i < 81; ++i) std::cerr << v[i] << " "; std::cerr << std::endl;

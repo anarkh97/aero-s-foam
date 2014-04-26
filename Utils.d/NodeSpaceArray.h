@@ -584,6 +584,7 @@ class Tensor_d0s2_Ss12 : public Tensor
     Tensor_d0s2_Ss12 &operator=(const Eigen::Matrix3d &);
     void assignTo(Eigen::Matrix3d &) const;
 #endif
+    void addSymPart(const Tensor_d0s2 &);
 };
 
 inline double 

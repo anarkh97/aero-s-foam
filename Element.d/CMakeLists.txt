@@ -297,8 +297,6 @@ Rigid.d/RigidThreeNodeShell.C
 Rigid.d/RigidTransSprlink.C
 Rigid.d/RigidTwoNodeTruss.C
 Rigid.d/RigidFourNodeShell.C
-Rigid.d/FlexibleBeam.C
-Rigid.d/FlexibleTwoNodeTruss.C
 Shear.d/b3dstf.f
 Shear.d/shearmass.f
 Shear.d/ShearPanel.C

@@ -100,8 +100,6 @@
 #include <Element.d/Rigid.d/RigidSolid.h>
 #include <Element.d/Rigid.d/RigidSolid6Dof.h>
 #include <Element.d/Rigid.d/RigidFourNodeShell.h>
-#include <Element.d/Rigid.d/FlexibleBeam.h>
-#include <Element.d/Rigid.d/FlexibleTwoNodeTruss.h>
 
 #include <Element.d/Joint.d/WeldedJoint.h>
 #include <Element.d/Joint.d/SphericalJoint.h>
@@ -1255,19 +1253,7 @@ RigidTwoNodeTruss::examine(int sub, MultiFront *mf)
 }
 
 PrioInfo
-FlexibleTwoNodeTruss::examine(int sub, MultiFront *mf)
-{
-  return examineBar2(sub, mf, nn);
-}
-
-PrioInfo
 RigidBeam::examine(int sub, MultiFront *mf)
-{
-  return examineBeam2(sub, mf, nn);
-}
-
-PrioInfo
-FlexibleBeam::examine(int sub, MultiFront *mf)
 {
   return examineBeam2(sub, mf, nn);
 }

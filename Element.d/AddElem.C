@@ -102,8 +102,6 @@ extern std::map<int,double> fieldWeightList;
 #include <Element.d/Rigid.d/RigidTwoNodeTruss.h>
 #include <Element.d/Rigid.d/RigidSolid6Dof.h>
 #include <Element.d/Rigid.d/RigidFourNodeShell.h>
-#include <Element.d/Rigid.d/FlexibleBeam.h>
-#include <Element.d/Rigid.d/FlexibleTwoNodeTruss.h>
 #include <Element.d/Joint.d/BuildingBlocks.d/CommonPointConstraint.h>
 #include <Element.d/Joint.d/BuildingBlocks.d/ParallelAxesConstraint.h>
 #include <Element.d/Joint.d/BuildingBlocks.d/StraightLinePointFollowerConstraint.h>
@@ -749,14 +747,6 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        break;
      case 202:
        ele = new (ba) NonlinearTorsionalSpring(n, 2, 1);
-       ele->setCategory(Element::Structural);
-       break;
-     case 205: 
-       ele = new (ba) FlexibleTwoNodeTruss(n);
-       ele->setCategory(Element::Structural);
-       break;
-     case 206:
-       ele = new (ba) FlexibleBeam(n);
        ele->setCategory(Element::Structural);
        break;
      case 220:

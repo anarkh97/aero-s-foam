@@ -13,7 +13,7 @@ class GenBCGSolver : public GenSolver<Scalar> {
    double solveTime;
  public:
    GenBCGSolver(int _maxit, double _tol, AnyOperator *_A, AnyPreconditioner *__P = 0)
-     { maxiter = _maxit; tolerance = _tol; A = _A; P = __P; }
+     { maxiter = _maxit; tolerance = _tol; A = _A; P = __P; solveTime = 0; }
    ~GenBCGSolver() {};
    int neqs() { return A->neqs(); }
    void solve(AnyVector &, AnyVector &);

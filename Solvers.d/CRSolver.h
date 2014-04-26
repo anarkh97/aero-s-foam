@@ -13,7 +13,7 @@ protected:
    double solveTime;
  public:
    GenCRSolver(int _maxit, double _tol, AnyOperator* _A, AnyPreconditioner* __P = 0)
-     { maxiter = _maxit; tolerance = _tol; A = _A; P = __P;}
+     { maxiter = _maxit; tolerance = _tol; A = _A; P = __P; solveTime = 0; }
    void solve(AnyVector&, AnyVector&);
    void reSolve(AnyVector &rhs) { AnyVector rhs_copy(rhs); solve(rhs_copy, rhs); }
    int neqs() { return A->neqs(); }

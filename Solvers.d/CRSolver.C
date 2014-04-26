@@ -10,7 +10,7 @@ template<class Scalar, class AnyVector, class AnyOperator, class AnyPrecondition
 void
 GenCRSolver<Scalar, AnyVector, AnyOperator, AnyPreconditioner>::solve(AnyVector &rhs, AnyVector &sol)
 {
- solveTime = -getTime();
+ solveTime -= getTime();
  AnyVector r(rhs);
 
  // ... INITIALIZE SOL TO ZERO
@@ -18,7 +18,10 @@ GenCRSolver<Scalar, AnyVector, AnyOperator, AnyPreconditioner>::solve(AnyVector 
 
  double r0r0 = r.squareNorm();
 
- if(r0r0 == 0.0) return;
+ if(r0r0 == 0.0) {
+   solveTime += getTime();
+   return;
+ }
 
  // ... FIRST ITERATION
  AnyVector q ( r );

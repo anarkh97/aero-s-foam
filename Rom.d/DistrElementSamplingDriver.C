@@ -357,14 +357,17 @@ DistrElementSamplingDriver::solve()
   }
 
   // Compute the reduced forces
-  DistrVector forceFull(MultiDomainDynam::solVecInfo());
+  DistrVector forceFull(decDomain->masterSolVecInfo());
+  GenAssembler<double> * assembler = decDomain->getSolVecAssembler();
   // 1) gravity
   MultiDomainDynam::getGravityForce(forceFull);
+  assembler->assemble(forceFull);
   bool reduce_g = (forceFull.norm() != 0);
   Vector gravForceRed(podBasis.vectorCount());
   if(reduce_g) reduce(podBasis, forceFull, gravForceRed);
   // 2) constant force or constant part of time-dependent forces (default loadset only) TODO add support for multiple loadsets
   MultiDomainDynam::getUnamplifiedExtForce(forceFull, 0);
+  assembler->assemble(forceFull);
   Vector constForceRed(podBasis.vectorCount());
   bool reduce_f = (forceFull.norm() != 0);
   if(reduce_f) reduce(podBasis, forceFull, constForceRed);

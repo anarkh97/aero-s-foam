@@ -749,11 +749,15 @@ PodProjectionNonLinDynamic::getConstForce(Vector &constantForce)
     BCond* nbcModal = domain->getNBCModal();
     constantForce.zero();
     for(int i = 0; i < numNeumanModal; ++i) {
-      if(nbcModal[i].nnum < constantForce.size())
-        constantForce[nbcModal[i].nnum] = nbcModal[i].val;
+      if(nbcModal[i].nnum < constantForce.size()) {
+        if(!domain->getMFTT(nbcModal[i].loadsetid)) {
+          double loadFactor = (nbcModal[i].loadsetid == -1) ? 1.0 : domain->getLoadFactor(nbcModal[i].loadsetid); // -1 is gravity
+          constantForce[nbcModal[i].nnum] = loadFactor*nbcModal[i].val;
+        }
+      }
     }
   }
-  else { // XXX currently, if modal forces are defined then any non-modal constant forces are ignored
+  else { // XXX currently, if modal forces are defined then any non-modal forces are ignored
     Vector constantForce_Big(NonLinDynamic::solVecInfo());
 
     NonLinDynamic::getConstForce(constantForce_Big);
@@ -768,22 +772,35 @@ PodProjectionNonLinDynamic::getExternalForce(Vector &rhs, Vector &constantForce,
                                              ModalGeomState *geomState, Vector &elementInternalForce,
                                              Vector &aeroForce, double localDelta)
 {
-  // XXX need to add support for modal forces with mftt...
-  Vector rhs_Big(NonLinDynamic::solVecInfo()),
-         constantForce_Big(NonLinDynamic::solVecInfo(), 0.0),
-         aeroForce_Big(NonLinDynamic::solVecInfo());
-
-  const GenVecBasis<double> &projectionBasis = dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis();
-  
-  NonLinDynamic::getExternalForce(rhs_Big, constantForce_Big, tIndex, t, geomState_Big, elementInternalForce, 
-                                  aeroForce_Big, localDelta);
-
-  if(rhs_Big.norm() != 0) {
-    projectionBasis.reduce(rhs_Big, rhs);
-    rhs += constantForce;
-  }
-  else {
+  int numNeumanModal = domain->nNeumannModal();
+  if(numNeumanModal) {
+    BCond* nbcModal = domain->getNBCModal();
     rhs = constantForce;
+    if(domain->getNumMFTT() > 0) {
+      for(int i = 0; i < numNeumanModal; ++i) {
+        if(nbcModal[i].nnum < constantForce.size()) {
+          if(MFTTData *mftt = domain->getMFTT(nbcModal[i].loadsetid)) rhs[nbcModal[i].nnum] += mftt->getVal(t)*nbcModal[i].val;
+        }
+      }
+    }
+  }
+  else { // XXX currently, if modal forces are defined then any non-modal forces are ignored
+    Vector rhs_Big(NonLinDynamic::solVecInfo()),
+           constantForce_Big(NonLinDynamic::solVecInfo(), 0.0),
+           aeroForce_Big(NonLinDynamic::solVecInfo());
+
+    const GenVecBasis<double> &projectionBasis = dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis();
+  
+    NonLinDynamic::getExternalForce(rhs_Big, constantForce_Big, tIndex, t, geomState_Big, elementInternalForce, 
+                                    aeroForce_Big, localDelta);
+
+    if(rhs_Big.norm() != 0) {
+      projectionBasis.reduce(rhs_Big, rhs);
+      rhs += constantForce;
+    }
+    else {
+      rhs = constantForce;
+    }
   }
 }
 

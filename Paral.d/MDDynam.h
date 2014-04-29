@@ -180,6 +180,8 @@ private:
                           DistrVector &, int tIndex, double t,
                           DistrVector * aero_f=0,
                           double gamma=0.5, double alphaf=0.5);
+    void getGravityForce(DistrVector &);
+    void getUnamplifiedExtForce(DistrVector &, int);
 
     void getRHS(DistrVector &);
     void preProcess();
@@ -236,6 +238,8 @@ private:
                                 double *userDefineVel, double *userDefineAcc);
     void subUpdateUsrDefDispsAndVels(int isub, double *userDefineDisp, double *userDefineVel);
     void subExplicitUpdate(int isub, DistrVector &d, DistrGeomState *geomState);
+    void subGetGravityForce(int isub, DistrVector &);
+    void subGetUnamplifiedExtForce(int isub, DistrVector &, int);
 };
 
 #endif

@@ -110,7 +110,6 @@ DistrElementSamplingDriver::solve()
 
   FileNameInfo fileInfo;
 
-  // Read order reduction data
   DistrVecBasis podBasis;
   DistrBasisInputFile podBasisFile(BasisFileId(fileInfo, BasisId::STATE, BasisId::POD));
 
@@ -171,7 +170,7 @@ DistrElementSamplingDriver::solve()
   const int snapshotCount = std::accumulate(snapshotCounts.begin(), snapshotCounts.end(), 0);
 
   // read in mass-normalized basis
-  if(domain->solInfo().newmarkBeta == 0) {
+  if(domain->solInfo().newmarkBeta == 0 || domain->solInfo().useMassNormalizedBasis) {
     std::string normalizedBasisFileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
     normalizedBasisFileName.append(".normalized");
     DistrBasisInputFile normalizedBasisFile(normalizedBasisFileName);
@@ -357,11 +356,18 @@ DistrElementSamplingDriver::solve()
     gelemIds = lelemIds;
   }
 
-  // Compute the reduced forces (constant only)
-  DistrVector constForceFull(MultiDomainDynam::solVecInfo());
-  MultiDomainDynam::getConstForce(constForceFull);
+  // Compute the reduced forces
+  DistrVector forceFull(MultiDomainDynam::solVecInfo());
+  // 1) gravity
+  MultiDomainDynam::getGravityForce(forceFull);
+  bool reduce_g = (forceFull.norm() != 0);
+  Vector gravForceRed(podBasis.vectorCount());
+  if(reduce_g) reduce(podBasis, forceFull, gravForceRed);
+  // 2) constant force or constant part of time-dependent forces (default loadset only) TODO add support for multiple loadsets
+  MultiDomainDynam::getUnamplifiedExtForce(forceFull, 0);
   Vector constForceRed(podBasis.vectorCount());
-  reduce(podBasis, constForceFull, constForceRed);
+  bool reduce_f = (forceFull.norm() != 0);
+  if(reduce_f) reduce(podBasis, forceFull, constForceRed);
 
   if(myID == 0) {
     // Weights output file generation
@@ -407,10 +413,18 @@ DistrElementSamplingDriver::solve()
     // Output the reduced forces
     std::ofstream meshOut(getMeshFilename(fileInfo).c_str(), std::ios_base::app);
     if(domain->solInfo().reduceFollower) meshOut << "REDFOL\n";
-    meshOut << "*\nFORCES\nMODAL\n";
-    meshOut.precision(std::numeric_limits<double>::digits10+1);
-    for(int i = 0; i < podBasis.vectorCount(); ++i)
-      meshOut << i+1 << " " << constForceRed[i] << std::endl;
+    if(reduce_g) {
+      meshOut << "*\nFORCES -1\nMODAL\n"; // note: gravity forces are put in loadset -1 so that MFTT (if present) will not be applied
+      meshOut.precision(std::numeric_limits<double>::digits10+1);
+      for(int i = 0; i < podBasis.vectorCount(); ++i)
+        meshOut << i+1 << " " << gravForceRed[i] << std::endl;
+    }
+    if(reduce_f) {
+      meshOut << "*\nFORCES\nMODAL\n";
+      meshOut.precision(std::numeric_limits<double>::digits10+1);
+      for(int i = 0; i < podBasis.vectorCount(); ++i)
+        meshOut << i+1 << " " << constForceRed[i] << std::endl;
+    }
     meshOut.close();
 
 #ifdef USE_EIGEN3

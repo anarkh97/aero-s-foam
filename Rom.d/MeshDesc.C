@@ -242,10 +242,10 @@ MeshDesc::init(Domain *domain, GeoSource *geoSource, const MeshRenumbering &ren)
 
   // Boundary conditions
   reduce(ren.nodeRenumbering(), domain->getDBC(), domain->getDBC() + domain->nDirichlet(), std::back_inserter(dirichletBConds_));
-  if(domain->getDefaultMFTT() != NULL) { // TODO: add support for combination load cases
-    // note: reduced constant forces are now precomputed
-    reduce(ren.nodeRenumbering(), domain->getNBC(), domain->getNBC() + domain->nNeumann(), std::back_inserter(neumannBConds_));
-  }
+/* Now both constant and time-dependent forces are outputted in reduced coordinates, see ElementSamplingDriver::postProcess
+   TODO configuration-dependent nodal forces and moments still should be outputted here, though
+  reduce(ren.nodeRenumbering(), domain->getNBC(), domain->getNBC() + domain->nNeumann(), std::back_inserter(neumannBConds_));
+*/
 
   // Element pressures
   reduce(ren.elemRenumbering(), geoSource->getElementPressure().begin(), geoSource->getElementPressure().end(),

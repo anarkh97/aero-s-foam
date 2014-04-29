@@ -1350,3 +1350,25 @@ Domain::computeExtAndDmpEnergies(Vector &disp, Vector &force, double time, Vecto
   }
 }
 
+void
+Domain::computeUnamplifiedExtForce(GenVector<double>& fcon, int loadsetid)
+{
+  // Compute unamplified constant force or constant part (f^con) of a time-dependent external force of the form
+  // f^ext(t) = lambda(t)*f^con belonging to the specified loadset, where lambda(t) is the scalar amplification
+  // factor obtained from an MFTT/HFTT.
+
+  fcon.zero();
+
+  for(int i = 0; i < numNeuman; ++i) {
+    if(nbc[i].loadsetid != loadsetid) continue; // skip forces not belonging to the specified loadset
+    if(sinfo.isNonLin() && nbc[i].type == BCond::Forces && 
+       !(nbc[i].mtype == BCond::Axial && nbc[i].dofnum < 3)) continue; // skip configuration-dependent forces
+    int dof  = c_dsa->locate(nbc[i].nnum, (1 << nbc[i].dofnum));
+    if(dof < 0) continue;
+    switch(nbc[i].type) {
+      case(BCond::Forces) : if(MFTTData *mftt = domain->getMFTT(nbc[i].loadsetid)) fcon[dof] += nbc[i].val; break;
+      case(BCond::Flux)   : if(MFTTData *hftt = domain->getHFTT(nbc[i].loadsetid)) fcon[dof] += nbc[i].val; break;
+      default : /* all other cases are not included, e.g. Usdf and Actuators */ ;
+    }
+  }
+}

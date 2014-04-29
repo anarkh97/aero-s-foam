@@ -560,21 +560,25 @@ void DistrExplicitPodProjectionNonLinDynamicBase::getConstForce(DistrVector& v)
     BCond* nbcModal = domain->getNBCModal();
     v.zero();
     for(int i = 0; i < numNeumanModal; ++i) {
-      if(nbcModal[i].nnum < v.size())
-        v[nbcModal[i].nnum] = nbcModal[i].val;
+      if(nbcModal[i].nnum < v.size()) {
+        if(!domain->getMFTT(nbcModal[i].loadsetid)) {
+          double loadFactor = (nbcModal[i].loadsetid == -1) ? 1.0 : domain->getLoadFactor(nbcModal[i].loadsetid); // -1 is gravity
+          v[nbcModal[i].nnum] = loadFactor*nbcModal[i].val;
+        }
+      }
     }
+    fExt->zero();
   }
-  else { // XXX currently, if modal forces are defined then any non-modal constant forces are ignored
-    //we really don't need to project down here since cnst_fBig is stored inside the probDesc class
-    //just a formality. 
+  else { // XXX currently, if modal forces are defined then any non-modal forces are ignored
     MultiDomainDynam::getConstForce(*cnst_fBig);
     normalizedBasis_.reduce(*cnst_fBig,v);
+    cnst_fBig->zero();
   }
-  cnst_fBig->zero();
 }
 
 void
-DistrExplicitPodProjectionNonLinDynamicBase::getInternalForce(DistrVector &d, DistrVector &f, double t, int tIndex) {
+DistrExplicitPodProjectionNonLinDynamicBase::getInternalForce(DistrVector &d, DistrVector &f, double t, int tIndex)
+{
   //Build internal force and project into reduced coordinates
 
   MultiDomainDynam::getInternalForce(*d_n, *fInt, t, tIndex);
@@ -587,9 +591,24 @@ void
 DistrExplicitPodProjectionNonLinDynamicBase::computeExtForce2(SysState<DistrVector> &distState,
                         DistrVector &f, DistrVector &cnst_f, int tIndex,
                         double t, DistrVector *aero_f,
-                        double gamma, double alphaf) {
-  f = cnst_f;
-  MultiDomainDynam::computeExtForce2( *dummyState, *fExt, *cnst_fBig, tIndex, t, aero_fBig, gamma, alphaf);
+                        double gamma, double alphaf)
+{
+  int numNeumanModal = domain->nNeumannModal();
+  if(numNeumanModal) {
+    BCond* nbcModal = domain->getNBCModal();
+    f = cnst_f;
+    if(domain->getNumMFTT() > 0) {
+      for(int i = 0; i < numNeumanModal; ++i) {
+        if(nbcModal[i].nnum < cnst_f.size()) {
+          if(MFTTData *mftt = domain->getMFTT(nbcModal[i].loadsetid)) f[nbcModal[i].nnum] += mftt->getVal(t)*nbcModal[i].val;
+        }
+      }
+    }
+  }
+  else { // currently, if modal forces are defined then any non-modal forces are ignored
+    f = cnst_f;
+    MultiDomainDynam::computeExtForce2( *dummyState, *fExt, *cnst_fBig, tIndex, t, aero_fBig, gamma, alphaf);
+  }
 }
 
 MDDynamMat *

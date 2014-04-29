@@ -1633,3 +1633,32 @@ MultiDomainDynam::getAeroheatFlag()
   return domain->solInfo().aeroheatFlag;
 }
 
+void
+MultiDomainDynam::getGravityForce(DistrVector &f)
+{
+  execParal(decDomain->getNumSub(), this, &MultiDomainDynam::subGetGravityForce, f);
+}
+
+void
+MultiDomainDynam::subGetGravityForce(int isub, DistrVector &f)
+{
+  SubDomain *sd = decDomain->getSubDomain(isub);
+  StackVector subf(f.subData(isub), f.subLen(isub));
+  subf.zero();
+  sd->addGravityForce(subf);
+}
+
+void
+MultiDomainDynam::getUnamplifiedExtForce(DistrVector &f, int loadcaseid)
+{
+  execParal2R(decDomain->getNumSub(), this, &MultiDomainDynam::subGetUnamplifiedExtForce, f, loadcaseid);
+}
+
+void
+MultiDomainDynam::subGetUnamplifiedExtForce(int isub, DistrVector &f, int loadcaseid)
+{
+  SubDomain *sd = decDomain->getSubDomain(isub);
+  StackVector subf(f.subData(isub), f.subLen(isub));
+  sd->computeUnamplifiedExtForce(subf, loadcaseid);
+}
+

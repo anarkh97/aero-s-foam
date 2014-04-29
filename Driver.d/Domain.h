@@ -779,7 +779,7 @@ class Domain : public HData {
                             GenSparseMatrix<Scalar> *cuc = 0, double tm = 0, GenSparseMatrix<Scalar> *muc = 0);
      void computeExtForce(Vector &f, double t, int tIndex,
                           SparseMatrix *kuc, Vector &prev_f);
-
+     void computeUnamplifiedExtForce(GenVector<double>& fcon, int loadsetid);
 
      int  probType() { return sinfo.probType; }
 

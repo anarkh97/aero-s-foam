@@ -1901,6 +1901,9 @@ ModalNeumanBC:
         FORCE NewLine MODAL NewLine ModalValList
         { for(int i=0; i<$5->n; ++i) $5->d[i].type = BCond::Forces;
           if(geoSource->setNeumanModal($5->n, $5->d) < 0) return -1; }
+        | FORCE Integer NewLine MODAL NewLine ModalValList
+        { for(int i=0; i<$6->n; ++i) { $6->d[i].type = BCond::Forces; $6->d[i].loadsetid = $2; }
+          if(geoSource->setNeumanModal($6->n, $6->d) < 0) return -1; }
         ;
 BCDataList:
 	BC_Data

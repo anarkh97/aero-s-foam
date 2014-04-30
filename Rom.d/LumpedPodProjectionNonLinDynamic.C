@@ -97,6 +97,16 @@ LumpedPodProjectionNonLinDynamic::buildPackedElementWeights() {
     GenVecBasis<double> &projectionBasis = const_cast<GenVecBasis<double> &>(dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis());
     projectionBasis.makeSparseBasis(packedWeightedNodes_, domain->getCDSA());
   }
+  else {
+    if(!domain->solInfo().useMassNormalizedBasis) {
+      // XXX to support this case we would need to precompute offline and the load online the reduced mass matrix,
+      //     or we could hyper reduce the entire inertial force vector rather than just the nonlinear part
+      filePrint(stderr, " *** ERROR: \"use_mass_normalized_basis off\" is not supported for\n"
+                        "     for model III when \"samplmsh.elementmesh.inc\" file is used.\n"
+                        "     Aborting ...\n");
+      exit(-1);
+    }
+  }
 }
 
 } /* end namespace Rom */

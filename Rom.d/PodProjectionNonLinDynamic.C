@@ -833,15 +833,15 @@ PodProjectionNonLinDynamic::formRHScorrector(Vector &inc_displacement, Vector &v
            rhs_Big(NonLinDynamic::solVecInfo());
 
     const GenVecBasis<double> &projectionBasis = dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis();
-    projectionBasis.expand(inc_displacement, inc_displacement_Big);
-    projectionBasis.expand(velocity, velocity_Big);
-    projectionBasis.expand(acceleration, acceleration_Big);
+    projectionBasis.fullExpand(inc_displacement, inc_displacement_Big);
+    projectionBasis.fullExpand(velocity, velocity_Big);
+    projectionBasis.fullExpand(acceleration, acceleration_Big);
 
     NonLinDynamic::formRHScorrector(inc_displacement_Big, velocity_Big, acceleration_Big,
                                     residual_Big, rhs_Big, geomState_Big, localDelta);
 
 
-   projectionBasis.reduce(rhs_Big, rhs);
+    projectionBasis.reduce(rhs_Big, rhs);
   }
 
   if(domain->solInfo().order == 1)

@@ -360,11 +360,12 @@ DistrElementSamplingDriver::solve()
   DistrVector forceFull(decDomain->masterSolVecInfo());
   GenAssembler<double> * assembler = decDomain->getSolVecAssembler();
   // 1) gravity
-  MultiDomainDynam::getGravityForce(forceFull);
-  assembler->assemble(forceFull);
-  bool reduce_g = (forceFull.norm() != 0);
   Vector gravForceRed(podBasis.vectorCount());
-  if(reduce_g) reduce(podBasis, forceFull, gravForceRed);
+  if(domain->gravityFlag()) {
+    MultiDomainDynam::getGravityForce(forceFull);
+    assembler->assemble(forceFull);
+    reduce(podBasis, forceFull, gravForceRed);
+  }
   // 2) constant force or constant part of time-dependent forces (default loadset only) TODO add support for multiple loadsets
   MultiDomainDynam::getUnamplifiedExtForce(forceFull, 0);
   assembler->assemble(forceFull);
@@ -416,7 +417,7 @@ DistrElementSamplingDriver::solve()
     // Output the reduced forces
     std::ofstream meshOut(getMeshFilename(fileInfo).c_str(), std::ios_base::app);
     if(domain->solInfo().reduceFollower) meshOut << "REDFOL\n";
-    if(reduce_g) {
+    if(domain->gravityFlag()) {
       meshOut << "*\nFORCES -1\nMODAL\n"; // note: gravity forces are put in loadset -1 so that MFTT (if present) will not be applied
       meshOut.precision(std::numeric_limits<double>::digits10+1);
       for(int i = 0; i < podBasis.vectorCount(); ++i)

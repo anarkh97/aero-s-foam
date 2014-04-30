@@ -520,10 +520,11 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcess(Vector &solution, 
   // compute the reduced forces
   Vector forceFull(SingleDomainDynamic::solVecInfo(),0.0);
   // 1) gravity
-  domain->addGravityForce(forceFull);
   Vector gravForceRed(podBasis_.vectorCount());
-  bool reduce_g = (forceFull.norm() != 0);
-  if(reduce_g) reduce(podBasis_, forceFull, gravForceRed);
+  if(domain->gravityFlag()) {
+    domain->addGravityForce(forceFull);
+    reduce(podBasis_, forceFull, gravForceRed);
+  }
   // 2) constant force or constant part of time-dependent forces (default loadset only) TODO add support for multiple loadsets
   domain->computeUnamplifiedExtForce(forceFull, 0);
   Vector constForceRed(podBasis_.vectorCount());
@@ -570,7 +571,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcess(Vector &solution, 
   // output the reduced forces
   std::ofstream meshOut(getMeshFilename(fileInfo).c_str(), std::ios_base::app);
   if(domain->solInfo().reduceFollower) meshOut << "REDFOL\n";
-  if(reduce_g) {
+  if(domain->gravityFlag()) {
     meshOut << "*\nFORCES -1\nMODAL\n"; // note: gravity forces are put in loadset -1 so that MFTT (if present) will not be applied
     meshOut.precision(std::numeric_limits<double>::digits10+1);
     for(int i=0; i<podBasis_.vectorCount(); ++i)

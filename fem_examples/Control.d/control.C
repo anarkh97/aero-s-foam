@@ -1,21 +1,22 @@
 #include <cstdio>
 #include <cmath>
 
-#include "ControlInterface.h"
+#include "Control.d/ControlInterface.h"
 
 class MyControl : public ControlInterface {
 
   public:
   
     // initialization routine
-    void init(double *displacement, double *velocity, double *acceleration);
+    void init(double *displacement, double *velocity, double *acceleration,
+              SingleDomainDynamic *probDesc=0);
 
     // control force
     void ctrl(double *displacement, double *velocity, double *acceleration, 
-              double *force);
+              double *force, double time=0, SysState<Vector> *state=0, Vector *ext_f=0);
 	      
     void usd_disp(double time, double *userDefineDisplacement, 
-                  double *userDefineVelocity);
+                  double *userDefineVelocity, double *userDefineAcc);
 
     void usd_forc(double time, double *userDefineForce);
     
@@ -34,7 +35,8 @@ ControlInterface *controlObj = new MyControl();
 const double F0 = 1.0;
 const double omega = 1.0;
 void
-MyControl::ctrl(double *disp, double *vel, double *accel, double *force)
+MyControl::ctrl(double *disp, double *vel, double *accel, double *force,
+                double time, SysState<Vector> *state, Vector *ext_f)
 {
  fprintf(stderr,"Apply Control Force \n");
  force[0] = F0*cos(omega*disp[0]);
@@ -42,11 +44,10 @@ MyControl::ctrl(double *disp, double *vel, double *accel, double *force)
  force[2] = F0*cos(omega*disp[2]);
 }
 
-
 // init = initialization routine
 
 void
-MyControl::init(double *disp, double *vel, double *accel)
+MyControl::init(double *disp, double *vel, double *accel, SingleDomainDynamic *probDesc)
 {
 
 }
@@ -54,7 +55,8 @@ MyControl::init(double *disp, double *vel, double *accel)
 // usd_disp = user defined displacements
 
 void
-MyControl::usd_disp(double time, double *userDefineDisp, double *userDefineVel)
+MyControl::usd_disp(double time, double *userDefineDisp, double *userDefineVel,
+                    double *userDefineAcc)
 {
  // blank intentionally
 }
@@ -64,6 +66,5 @@ MyControl::usd_disp(double time, double *userDefineDisp, double *userDefineVel)
 void
 MyControl::usd_forc(double time, double *usdForce)
 {
-
-
+  // blank intentionally
 }

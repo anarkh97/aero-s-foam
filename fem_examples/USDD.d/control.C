@@ -1,21 +1,22 @@
 #include <cstdio>
 #include <cmath>
 
-#include "ControlInterface.h"
+#include "Control.d/ControlInterface.h"
 
 class MyControl : public ControlInterface {
 
   public:
   
     // initialization routine
-    void init(double *displacement, double *velocity, double *acceleration);
+    void init(double *displacement, double *velocity, double *acceleration,
+              SingleDomainDynamic *probDesc=0);
 
     // control force
     void ctrl(double *displacement, double *velocity, double *acceleration, 
-              double *force);
+              double *force, double time=0, SysState<Vector> *state=0, Vector *ext_f=0);
 	      
     void usd_disp(double time, double *userDefineDisplacement, 
-                  double *userDefineVelocity);
+                  double *userDefineVelocity, double *userDefineAcc);
 
     void usd_forc(double time, double *userDefineForce);
     
@@ -32,23 +33,25 @@ ControlInterface *controlObj = new MyControl();
 // accel = acceleration
 
 void
-MyControl::ctrl(double *disp, double *vel, double *accel, double *force)
+MyControl::ctrl(double *disp, double *vel, double *accel, double *force,
+                double time, SysState<Vector> *state, Vector *ext_f)
 {
 
 }
 
-
 // init = initialization routine
 
 void
-MyControl::init(double *disp, double *vel, double *accel)
+MyControl::init(double *disp, double *vel, double *accel, SingleDomainDynamic *probDesc)
 {
 
 }
 
 // usd_disp = user defined displacements
+
 void
-MyControl::usd_disp(double time, double *userDefineDisp, double *userDefineVel)
+MyControl::usd_disp(double time, double *userDefineDisp, double *userDefineVel,
+                    double *userDefineAcc)
 {
  fprintf(stderr,"Applying Time Dependent Prescribed Displacement, time = %f, 4*sin(time) = %f\n",time,4.0*sin(time));
 
@@ -74,4 +77,5 @@ MyControl::usd_disp(double time, double *userDefineDisp, double *userDefineVel)
 void
 MyControl::usd_forc(double time, double *usdForce)
 {
+  // blank intentionally
 }

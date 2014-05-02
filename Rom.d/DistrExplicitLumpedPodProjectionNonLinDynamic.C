@@ -78,7 +78,7 @@ DistrExplicitLumpedPodProjectionNonLinDynamic::buildPackedElementWeights() {
   for(int i=0; i<decDomain->getNumSub(); ++i) elemCounter += packedElementWeights_[i].size();
   if(structCom) elemCounter = structCom->globalSum(elemCounter);
 
-  filePrint(stderr, " ... Number of Elements in Reduced Mesh = %d ...\n", elemCounter);
+  filePrint(stderr, " ... # Elems. in Reduced Mesh = %-4d...\n", elemCounter);
 
   if(elemCounter < domain->numElements()) {
     filePrint(stderr, " ... Compressing Basis              ...\n");

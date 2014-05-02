@@ -59,8 +59,8 @@ DistrROMPostProcessingDriver::preProcess() {
   std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
   fileName.append(".normalized");  
   DistrBasisInputFile podBasisFile(fileName);  //read in mass-normalized basis
-  filePrint(stderr, " ... Reading basis from file %s ...\n", fileName.c_str());
-  filePrint(stderr, " ... Projection subspace of dimension = %d ...\n", projectionSubspaceSize);
+  if(verboseFlag) filePrint(stderr, " ... Reading basis from file %s ...\n", fileName.c_str());
+  filePrint(stderr, " ... Proj. Subspace Dimension = %-3d ...\n", projectionSubspaceSize);
   normalizedBasis_.dimensionIs(projectionSubspaceSize, decDomain->masterSolVecInfo());
 
   DistrVecNodeDof6Conversion converter(decDomain->getAllSubDomains(), decDomain->getAllSubDomains() + decDomain->getNumSub());

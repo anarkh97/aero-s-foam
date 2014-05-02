@@ -1033,7 +1033,7 @@ int main(int argc, char** argv)
                 if (domain->solInfo().reduceFollower)
                  filePrint(stderr, " ... POD: ROM with stiffness & follower lumping ...\n");
 	        else
-                 filePrint(stderr, " ... POD: ROM with stiffness lumping ...\n");
+                 filePrint(stderr, " ... POD: ROM with stiffness lumping...\n");
                 Rom::DistrExplicitLumpedPodProjectionNonLinDynamic dynamProb(domain);
                 DynamicSolver < MDDynamMat, DistrVector, Rom::MultiDomDynPodPostProcessor,
                                Rom::DistrExplicitLumpedPodProjectionNonLinDynamic, double > dynamSolver(&dynamProb);
@@ -1395,7 +1395,7 @@ int main(int argc, char** argv)
                    if (domain->solInfo().reduceFollower)
                      filePrint(stderr, " ... POD: ROM with stiffness & follower lumping ...\n");
                    else
-                     filePrint(stderr, " ... POD: ROM with stiffness lumping ...\n");
+                     filePrint(stderr, " ... POD: ROM with stiffness lumping...\n");
                    Rom::LumpedPodProjectionNonLinDynamic nldynamic(domain);
                    NLDynamSolver <Rom::PodProjectionSolver, Vector, SDDynamPostProcessor, Rom::PodProjectionNonLinDynamic,
                                   ModalGeomState, Rom::PodProjectionNonLinDynamic::Updater> nldynamicSolver(&nldynamic);

@@ -90,7 +90,7 @@ LumpedPodProjectionNonLinDynamic::buildPackedElementWeights() {
   packedWeightedNodes_.resize(packedNodeIt-packedWeightedNodes_.begin());
 
   int elemCounter = packedElementWeights_.size();
-  filePrint(stderr, " ... Number of Elements in Reduced Mesh = %d ...\n", elemCounter);
+  filePrint(stderr, " ... # Elems. in Reduced Mesh = %-4d...\n", elemCounter);
 
   if(elemCounter < domain->numElements()) {
     filePrint(stderr, " ... Compressing Basis              ...\n");

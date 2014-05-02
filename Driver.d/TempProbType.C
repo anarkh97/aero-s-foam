@@ -84,10 +84,18 @@ TempSolver<
 { 
   double gamma;
   probDesc->getTempNeum(gamma);
-  if(gamma != 0)
-    filePrint(stderr, " ... Implicit Generalized Midpoint Time Integration Scheme: alpha = %4.2f ...\n", gamma);
+  if(gamma == 0)
+    filePrint(stderr, " ... Explicit Forward Euler Method  ..."
+                      " ... i.e. α = 0                     ...\n");
+  else if(gamma == 0.5)
+    filePrint(stderr, " ... Implicit Midpoint Rule         ..."
+                      " ... i.e. α = ½                     ...\n");
+  else if(gamma == 1.0)
+    filePrint(stderr, " ... Implicit Backward Euler Method ..."
+                      " ... i.e. α = 1                     ...\n");
   else
-    filePrint(stderr, " ... Explicit Forward Euler Time Integration Scheme ...\n");
+    filePrint(stderr, " ... Imp. Generalized Midpoint Rule ...\n"
+                      " ... with α = %5.3f                 ...\n", gamma);
 
   VecType &d_n = curState.getDisp();
   VecType &v_n = curState.getVeloc();
@@ -135,13 +143,14 @@ TempSolver<
   char ch[4] = { '|', '/', '-', '\\' };
 
   bool coupled = (probDesc->getAeroheatFlag() >= 0 || probDesc->getThermohFlag() >= 0);
+  if(!coupled) filePrint(stderr, " ⌈\x1B[33m Time Integration Loop In Progress: \x1B[0m⌉\n");
 
   for( ; t < tmax-0.01*dt; t += dt, s2 = s0+getTime()) {
 
     if(!coupled && (s2-s1 > 50)) {
       s1 = s2;
-      filePrint(stderr, "\r  %c  Time Integration Loop: t = %9.3e, %3d%% complete ",
-                ch[int(s1/250.)%4], t+dt, int((t+dt)/(tmax-0.01*dt)*100));
+      filePrint(stderr, "\r ⌊\x1B[33m %c t = %9.3e Δt = %8.2e %3d%% \x1B[0m⌋",
+                ch[int(s1/250.)%4], t+dt, dt, int((t+dt)/(tmax-0.01*dt)*100));
     }
 
     // Mode decomposition of displacement
@@ -199,7 +208,7 @@ TempSolver<
 
   }
   if(!coupled)
-    filePrint(stderr, "\r ... Time Integration Loop: t = %9.3e, 100%% complete ...\n", t);
+    filePrint(stderr, "\r ⌊\x1B[33m   t = %9.3e Δt = %8.2e 100%% \x1B[0m⌋\n", t, dt);
 
 #ifdef PRINT_TIMERS
   if(verboseFlag) filePrint(stderr, " ... Total Loop Time = %.2e s   ...\n", s2/1000.0);

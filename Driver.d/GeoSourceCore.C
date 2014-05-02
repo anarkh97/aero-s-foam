@@ -1252,7 +1252,8 @@ void GeoSource::setUpData()
 
     switch (oinfo[iOut].type) {
       case OutputInfo::Statevector :
-        filePrint(stderr, " ... Saving state snapshots every %d time steps to %s ...\n", oinfo[iOut].interval, oinfo[iOut].filename);
+        if(verboseFlag) filePrint(stderr, " ... Saving state snapshots every %d time steps to %s ...\n",
+                                  oinfo[iOut].interval, oinfo[iOut].filename);
         domain->solInfo().activatePodRom = true;
         domain->solInfo().snapshotsPodRom = true;
         domain->solInfo().statevectPodRom = true;
@@ -1261,7 +1262,8 @@ void GeoSource::setUpData()
         oinfo[iOut].PodRomfile = true;
         break;
       case OutputInfo::Residual :
-        filePrint(stderr, " ... Saving residual snapshots every %d time steps to %s ...\n", oinfo[iOut].interval, oinfo[iOut].filename);
+        if(verboseFlag) filePrint(stderr, " ... Saving residual snapshots every %d time steps to %s ...\n",
+                                  oinfo[iOut].interval, oinfo[iOut].filename);
         domain->solInfo().activatePodRom = true;
         domain->solInfo().snapshotsPodRom = true;
         domain->solInfo().residvectPodRom = true;
@@ -1270,7 +1272,8 @@ void GeoSource::setUpData()
         oinfo[iOut].PodRomfile = true;
         break;
       case OutputInfo::Jacobian :
-        filePrint(stderr, " ... Saving jacobian snapshots every %d time steps to %s ...\n", oinfo[iOut].interval, oinfo[iOut].filename);
+        if(verboseFlag) filePrint(stderr, " ... Saving jacobian snapshots every %d time steps to %s ...\n",
+                                  oinfo[iOut].interval, oinfo[iOut].filename);
         domain->solInfo().activatePodRom = true;
         domain->solInfo().snapshotsPodRom = true;
         domain->solInfo().jacobvectPodRom = true;
@@ -1279,17 +1282,20 @@ void GeoSource::setUpData()
         oinfo[iOut].PodRomfile = true;
         break;
       case OutputInfo::RobData :
-        filePrint(stderr, " ... Reduced Order Basis Construction: saving to %s ...\n", oinfo[iOut].filename);
+        if(verboseFlag) filePrint(stderr, " ... Reduced Order Basis Construction: saving to %s ...\n",
+                                  oinfo[iOut].filename);
         domain->solInfo().SVDoutput = oinfo[iOut].filename; 
         oinfo[iOut].PodRomfile = true;
         break;
       case OutputInfo::SampleMesh :
-        filePrint(stderr, " ... Computing Hyper-Reduction Coefficients: saving to %s ...\n", oinfo[iOut].filename);
+        if(verboseFlag) filePrint(stderr, " ... Computing Hyper-Reduction Coefficients: saving to %s ...\n",
+                                  oinfo[iOut].filename);
         domain->solInfo().reducedMeshFile = oinfo[iOut].filename; 
         oinfo[iOut].PodRomfile = true;
         break;
       case OutputInfo::Accelvector :
-        filePrint(stderr, " ... Saving acceleration snapshots every %d time steps to %s ...\n", oinfo[iOut].interval, oinfo[iOut].filename);
+        if(verboseFlag) filePrint(stderr, " ... Saving acceleration snapshots every %d time steps to %s ...\n",
+                                  oinfo[iOut].interval, oinfo[iOut].filename);
         domain->solInfo().activatePodRom = true;
         domain->solInfo().snapshotsPodRom = true;
         domain->solInfo().accelvectPodRom = true;
@@ -1298,7 +1304,8 @@ void GeoSource::setUpData()
         oinfo[iOut].PodRomfile = true;
         break;
       case OutputInfo::Velocvector :
-        filePrint(stderr, " ... Saving velocity snapshots every %d time steps to %s ...\n", oinfo[iOut].interval, oinfo[iOut].filename);
+        if(verboseFlag) filePrint(stderr, " ... Saving velocity snapshots every %d time steps to %s ...\n",
+                                  oinfo[iOut].interval, oinfo[iOut].filename);
         domain->solInfo().activatePodRom = true;
         domain->solInfo().snapshotsPodRom = true;
         domain->solInfo().velocvectPodRom = true;
@@ -1307,7 +1314,8 @@ void GeoSource::setUpData()
         oinfo[iOut].PodRomfile = true;
         break;
       case OutputInfo::InternalStateVar :
-        filePrint(stderr, " ... Saving internal state variables snapshots every %d time steps to %s ...\n", oinfo[iOut].interval, oinfo[iOut].filename);
+        if(verboseFlag) filePrint(stderr, " ... Saving internal state variables snapshots every %d time steps to %s ...\n",
+                                  oinfo[iOut].interval, oinfo[iOut].filename);
         domain->solInfo().activatePodRom = true;
         domain->solInfo().snapshotsPodRom = true;
         domain->solInfo().isvPodRom = true;
@@ -1316,7 +1324,8 @@ void GeoSource::setUpData()
         oinfo[iOut].PodRomfile = true;
         break;
       case OutputInfo::Forcevector :
-        filePrint(stderr, " ... Saving force snapshots every %d time steps to %s ...\n", oinfo[iOut].interval, oinfo[iOut].filename);
+        if(verboseFlag) filePrint(stderr, " ... Saving force snapshots every %d time steps to %s ...\n",
+                                  oinfo[iOut].interval, oinfo[iOut].filename);
         domain->solInfo().activatePodRom = true;
         domain->solInfo().snapshotsPodRom = true;
         domain->solInfo().forcevectPodRom = true;

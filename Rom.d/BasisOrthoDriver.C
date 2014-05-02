@@ -132,24 +132,24 @@ BasisOrthoDriver::solve() {
        
   if(domain->solInfo().statevectPodRom) {
 	workload.push_back(BasisId::STATE);
-        fprintf(stderr," ... For State SVD, workload size = %zd ...\n", workload.size());}
+        if(verboseFlag) fprintf(stderr," ... For State SVD, workload size = %zd ...\n", workload.size());}
   else if(domain->solInfo().residvectPodRom) {
 	workload.push_back(BasisId::RESIDUAL);
-	fprintf(stderr," ... For Residual SVD, workload size = %zd ...\n", workload.size());}
+	if(verboseFlag) fprintf(stderr," ... For Residual SVD, workload size = %zd ...\n", workload.size());}
   else if(domain->solInfo().jacobvectPodRom) {
         workload.push_back(BasisId::JACOBIAN);
-	fprintf(stderr," ... For Jacobian SVD, workload size = %zd ...\n", workload.size());}
+	if(verboseFlag) fprintf(stderr," ... For Jacobian SVD, workload size = %zd ...\n", workload.size());}
   else if(domain->solInfo().forcevectPodRom) {
         workload.push_back(BasisId::FORCE);
-	fprintf(stderr," ... For Force SVD, workload size = %zd ...\n", workload.size());}
+	if(verboseFlag) fprintf(stderr," ... For Force SVD, workload size = %zd ...\n", workload.size());}
   else if(domain->solInfo().accelvectPodRom) {
         workload.push_back(BasisId::ACCELERATION);
-	fprintf(stderr," ... For Acceleration SVD, workload size = %zd ...\n", workload.size());}
+	if(verboseFlag) fprintf(stderr," ... For Acceleration SVD, workload size = %zd ...\n", workload.size());}
   else if(domain->solInfo().velocvectPodRom) {
         workload.push_back(BasisId::VELOCITY);
-        fprintf(stderr," ... For Velocity SVD, workload size = %zd ...\n", workload.size());}
+        if(verboseFlag) fprintf(stderr," ... For Velocity SVD, workload size = %zd ...\n", workload.size());}
   else { workload.push_back(BasisId::STATE);
-	fprintf(stderr," ... For default SVD, workload size = %zd ...\n", workload.size());}
+	if(verboseFlag) fprintf(stderr," ... For default SVD, workload size = %zd ...\n", workload.size());}
 
   typedef VectorTransform<double *> VecTrans;
   std::auto_ptr<VecTrans> transform(domain->solInfo().substractRefPodRom ?

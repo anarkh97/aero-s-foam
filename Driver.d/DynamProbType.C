@@ -558,10 +558,29 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
                       double dt, double tmax)
 {
    MatrixTimers &matrixTimers = domain->getTimers();
-   if(domain->solInfo().order == 1) 
-     filePrint(stderr, " ... Implicit Generalized Midpoint Time Integration Scheme: alpha = %4.2f ...\n", gamma);
-   else 
-     filePrint(stderr, " ... Implicit Newmark Time Integration Scheme: beta = %4.2f, gamma = %4.2f, alphaf = %4.2f, alpham = %4.2f ...\n",beta,gamma,alphaf,alpham);
+   if(domain->solInfo().order == 1) {
+     if(gamma == 0.5)
+       filePrint(stderr, " ... Implicit Midpoint Rule         ..."
+                         " ... i.e. α = ½                     ...\n");
+     else if(gamma == 1.0)
+       filePrint(stderr, " ... Implicit Backward Euler Method ..."
+                         " ... i.e. α = 1                     ...\n");
+     else
+       filePrint(stderr, " ... Imp. Generalized Midpoint Rule ...\n"
+                         " ... with α = %5.3f                 ...\n", gamma);
+   }
+   else {
+     if(beta == 0.25 && gamma == 0.5 && alphaf == 0.5 && alpham == 0.5)
+       filePrint(stderr, " ... Implicit Midpoint Rule         ...\n"
+                         " ... i.e. β = ¼, γ = ½, αf = αm = ½ ...\n");
+     else if(beta == 0.25 && gamma == 0.5 && alphaf == 0 && alpham == 0)
+       filePrint(stderr, " ... Implicit Newmark Method        ...\n"
+                         " ... i.e. β = ¼, γ = ½, αf = αm = 0 ...\n");
+     else
+       filePrint(stderr, " ... Implicit Generalized-α Method  ...\n"
+                         " ... with β  = %5.3f, γ  = %5.3f    ...\n"
+                         " ...      αf = %5.3f, αm = %5.3f    ...\n", beta, gamma, alphaf, alpham);
+   }
 
    int parity = 0;
    SysState<VecType> *bkState = 0;
@@ -636,12 +655,13 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
    // ... BEGIN MAIN TIME-LOOP
    double s0 = -getTime(), s1 = -51, s2 = 0;
    char ch[4] = { '|', '/', '-', '\\' };
+   if(aeroAlg < 0) filePrint(stderr, " ⌈\x1B[33m Time Integration Loop In Progress: \x1B[0m⌉\n");
 
    for( ; t < tmax-0.01*dt; t += dt, s2 = s0+getTime()) {
      if(aeroAlg < 0 && (s2-s1 > 50)) {
        s1 = s2;
-       filePrint(stderr, "\r  %c  Time Integration Loop: t = %9.3e, %3d%% complete ",
-                 ch[int(s1/250)%4], t+dt, int((t+dt)/(tmax-0.01*dt)*100));
+       filePrint(stderr, "\r ⌊\x1B[33m %c t = %9.3e Δt = %8.2e %3d%% \x1B[0m⌋",
+                 ch[int(s1/250)%4], t+dt, dt, int((t+dt)/(tmax-0.01*dt)*100));
      }
 
      // ... For Aeroelastic A5 Algorithm, Do restore and backup here
@@ -749,7 +769,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
    }
    if(aeroAlg < 0)
-     filePrint(stderr, "\r ... Time Integration Loop: t = %9.3e, 100%% complete ...\n", t);
+     filePrint(stderr, "\r ⌊\x1B[33m   t = %9.3e Δt = %8.2e 100%% \x1B[0m⌋\n", t, dt);
 
 #ifdef PRINT_TIMERS
    if(verboseFlag) filePrint(stderr, " ... Total Loop Time = %.2e s   ...\n", s2/1000.0);
@@ -785,7 +805,8 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
                       double dt0, double tmax)
 {
   MatrixTimers &matrixTimers = domain->getTimers();
-  filePrint(stderr, " ... Explicit Newmark Time Integration Scheme: beta = %4.2f, gamma = %4.2f, alphaf = %4.2f, alpham = %4.2f ...\n",0.0,0.5,0.0,0.0);
+  filePrint(stderr, " ... Exp. Central Difference Method ...\n"
+                    " ... i.e. β = 0, γ = ½, αf = αm = 0 ...\n");
 
   int parity = 0;
   SysState<VecType> *bkState = 0;
@@ -888,6 +909,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
   energies << "n " << "time " << "       Wkin           " << "   Wext          " << "    Wint         " << "   Wdis         " << "    Sum(W_i)     " 
            << " abs(Wkin+Wint-Wext) " << " eps1*max(We,Wi,Wk) " << "  dt " << std::endl;}
 #endif
+  if(aeroAlg < 0) filePrint(stderr, " ⌈\x1B[33m Time Integration Loop In Progress: \x1B[0m⌉\n");
 
   for( ; t_n < tmax-0.01*dt_n_h; s2 = s0+getTime()) {
 
@@ -896,7 +918,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
     if(aeroAlg < 0 && (s2-s1 > 50)) {
       s1 = s2;
-      filePrint(stderr, "\r  %c  Time Integration Loop: t = %9.3e, dt = %9.3e, %3d%% complete ",
+      filePrint(stderr, "\r ⌊\x1B[33m %c t = %9.3e Δt = %8.2e %3d%% \x1B[0m⌋",
                 ch[int(s1/250)%4], t_n, dt_n_h, int((t_n-t0)/((tmax-t0)-0.01*dt_n_h)*100));
     }
 
@@ -1081,7 +1103,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
     } 
   }
   if(aeroAlg < 0)
-    filePrint(stderr, "\r ... Time Integration Loop: t = %9.3e, dt = %9.3e, 100%% complete ...\n", t_n, dt_n_h);
+    filePrint(stderr, "\r ⌊\x1B[33m   t = %9.3e Δt = %8.2e 100%% \x1B[0m⌋\n", t_n, dt_n_h);
 
 #ifdef PRINT_TIMERS
   if(verboseFlag) filePrint(stderr, " ... Total Loop Time = %.2e s   ...\n", s2/1000.0);

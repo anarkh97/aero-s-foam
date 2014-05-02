@@ -123,7 +123,7 @@ Domain::printStatistics(bool domain_decomp)
   }
   if(!domain_decomp) setNumDofs(numUncon()+numDirichlet+numComplexDirichlet);
 
-  filePrint(stderr, "\n ---------- PROBLEM PARAMETERS --------");
+  filePrint(stderr, "\n --------- PROBLEM PARAMETERS ---------");
   filePrint(stderr, "\n ... # Nodes              = %7d ...", exactNumNodes);
   filePrint(stderr, "\n ... # Elements           = %7d ...", numele-geoSource->numMpcElem()-contactSurfElems.size());
   filePrint(stderr, "\n ... # Unconstrained dofs = %7d ...", numDofs()-numDirichlet-numComplexDirichlet);

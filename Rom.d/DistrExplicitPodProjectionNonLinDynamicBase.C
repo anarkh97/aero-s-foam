@@ -391,12 +391,12 @@ DistrExplicitPodProjectionNonLinDynamicBase::preProcess() {
   fileName.append(".normalized");
 
   DistrBasisInputFile BasisFile(fileName); //read in mass-normalized basis
-  filePrint(stderr, " ... Reading basis from file %s ...\n", fileName.c_str());
+  if(verboseFlag) filePrint(stderr, " ... Reading basis from file %s ...\n", fileName.c_str());
   const int projectionSubspaceSize = domain->solInfo().maxSizePodRom ?
                                      std::min(domain->solInfo().maxSizePodRom, BasisFile.stateCount()) :
                                      BasisFile.stateCount();
 
-  filePrint(stderr, " ... Projection subspace of dimension = %d ...\n", projectionSubspaceSize);
+  filePrint(stderr, " ... Proj. Subspace Dimension = %-3d ...\n", projectionSubspaceSize);
   normalizedBasis_.dimensionIs(projectionSubspaceSize, decDomain->masterSolVecInfo()); 
 
   DistrVecNodeDof6Conversion converter(decDomain->getAllSubDomains(), decDomain->getAllSubDomains() + decDomain->getNumSub());

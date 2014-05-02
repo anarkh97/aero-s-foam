@@ -128,7 +128,7 @@ PodProjectionNonLinDynamicDetail::BasicImpl::BasicImpl(PodProjectionNonLinDynami
   
   readVectors(projectionBasisInput, projectionBasis_, projectionSubspaceSize);
   
-  filePrint(stderr, " ... Projection subspace of dimension = %d ...\n", projectionBasis_.vectorCount());
+  filePrint(stderr, " ... Proj. Subspace Dimension = %-3d ...\n", projectionBasis_.vectorCount());
 
   // Setup solver
   PodProjectionSolver *solver = getSolver();

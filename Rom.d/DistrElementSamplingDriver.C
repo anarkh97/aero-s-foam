@@ -117,7 +117,7 @@ DistrElementSamplingDriver::solve()
                                      std::min(domain->solInfo().maxSizePodRom, podBasisFile.stateCount()) :
                                      podBasisFile.stateCount();
 
-  filePrint(stderr, " ... Projection subspace of dimension = %d ...\n", projectionSubspaceSize);
+  filePrint(stderr, " ... Proj. Subspace Dimension = %-3d ...\n", projectionSubspaceSize);
   podBasis.dimensionIs(projectionSubspaceSize, vectorSize());
 
   DistrVecNodeDof6Conversion converter(decDomain->getAllSubDomains(), decDomain->getAllSubDomains() + decDomain->getNumSub());

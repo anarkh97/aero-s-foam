@@ -503,9 +503,10 @@ Compo3NodeShell::massMatrix(CoordSet &cs, double *mel, int cmflg)
   double sumrho = 0;
   double area = 0;
 
-  if((h[0] == 0.0 || prop->rho == 0) && quietFlag == 0) {
-    fprintf(stderr," *** WARNING: Composite shell element # %d has zero thickness and/or density so the mass\n"
-                   "              matrix will be zero. Use command line parameter -q to suppress this warning.\n", getGlNum()+1);
+  // check if the density is negative or zero
+  if(prop->rho <= 0.0 && (type == 0 || type == 1) && quietFlag == 0) {
+    fprintf(stderr," *** WARNING: Composite shell element # %d has zero or negative density.\n"
+                   "              Use command line parameter -q to suppress this warning.\n", getGlNum()+1);
   }
 
   _FORTRAN(compms)(x, y, z, h, prop->rho, (double *)mel,

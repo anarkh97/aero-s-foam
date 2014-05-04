@@ -373,6 +373,40 @@ DistrElementSamplingDriver::solve()
   bool reduce_f = (forceFull.norm() != 0);
   if(reduce_f) reduce(podBasis, forceFull, constForceRed);
 
+  // compute the reduced initial conditions
+  DistrVector d0Full(MultiDomainDynam::solVecInfo()),
+              v0Full(MultiDomainDynam::solVecInfo());
+  DistrVector tmp(/*MultiDomainDynam::solVecInfo()*/decDomain->masterSolVecInfo());
+  SysState<DistrVector> inState(d0Full, v0Full, tmp, tmp);
+  MultiDomainDynam::getInitState(inState);
+  Vector d0Red(podBasis.vectorCount()),
+         v0Red(podBasis.vectorCount());
+  bool reduce_idis = (d0Full.norm() != 0),
+       reduce_ivel = (v0Full.norm() != 0);
+  if(domain->solInfo().useMassNormalizedBasis || domain->solInfo().newmarkBeta == 0) {
+    SubDOp *M = NULL;
+    if(reduce_idis || reduce_ivel) {
+      SparseMatrix **subM = new SparseMatrix * [decDomain->getNumSub()];
+      execParal1R(decDomain->getNumSub(), this, &DistrElementSamplingDriver::subMakeMass, subM);
+      M = new SubDOp(decDomain->getNumSub(), subM);
+    }
+    if(reduce_idis) {
+      M->mult(d0Full, tmp);
+      assembler->assemble(tmp);
+      reduce(podBasis, tmp, d0Red);
+    }
+    if(reduce_ivel) {
+      M->mult(v0Full, tmp);
+      assembler->assemble(tmp);
+      reduce(podBasis, tmp, v0Red);
+    }
+    if(M) delete M;
+  }
+  else {
+    if(reduce_idis) reduce(podBasis, d0Full, d0Red);
+    if(reduce_ivel) reduce(podBasis, v0Full, v0Red);
+  }
+
   if(myID == 0) {
     // Weights output file generation
     outputFullWeights(gweights, gelemIds);
@@ -429,6 +463,21 @@ DistrElementSamplingDriver::solve()
       for(int i = 0; i < podBasis.vectorCount(); ++i)
         meshOut << i+1 << " " << constForceRed[i] << std::endl;
     }
+
+    // output the reduced initial conditions
+    if(reduce_idis) {
+      meshOut << "*\nIDISPLACEMENTS\nMODAL\n";
+      meshOut.precision(std::numeric_limits<double>::digits10+1);
+      for(int i=0; i<podBasis.vectorCount(); ++i)
+        meshOut << i+1 << " " << d0Red[i] << std::endl;
+    }
+    if(reduce_ivel) {
+      meshOut << "*\nIVELOCITIES\nMODAL\n";
+      meshOut.precision(std::numeric_limits<double>::digits10+1);
+      for(int i=0; i<podBasis.vectorCount(); ++i)
+        meshOut << i+1 << " " << v0Red[i] << std::endl;
+    }
+
     meshOut.close();
 
 #ifdef USE_EIGEN3
@@ -463,6 +512,14 @@ DistrElementSamplingDriver::buildDomainCdsa()
 
   domain->make_bc(bc.array(), bcx.array());
   domain->make_constrainedDSA(bc.array());
+}
+
+void
+DistrElementSamplingDriver::subMakeMass(int i, SparseMatrix **subM)
+{
+  AllOps<double> allOps;
+  allOps.M = subM[i] = decDomain->getSubDomain(i)->constructDBSparseMatrix<double>();
+  decDomain->getSubDomain(i)->template makeSparseOps<double>(allOps, 0, 0, 0);
 }
 
 } /* end namespace Rom */

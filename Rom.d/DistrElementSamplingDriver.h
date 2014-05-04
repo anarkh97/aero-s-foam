@@ -20,6 +20,7 @@ public:
 private:
   Communicator *comm_;
   void buildDomainCdsa();
+  void subMakeMass(int isub, SparseMatrix **subM);
 };
 
 } /* end namespace Rom */

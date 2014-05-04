@@ -376,7 +376,7 @@ DistrElementSamplingDriver::solve()
   // compute the reduced initial conditions
   DistrVector d0Full(MultiDomainDynam::solVecInfo()),
               v0Full(MultiDomainDynam::solVecInfo());
-  DistrVector tmp(/*MultiDomainDynam::solVecInfo()*/decDomain->masterSolVecInfo());
+  DistrVector tmp(decDomain->masterSolVecInfo());
   SysState<DistrVector> inState(d0Full, v0Full, tmp, tmp);
   MultiDomainDynam::getInitState(inState);
   Vector d0Red(podBasis.vectorCount()),
@@ -519,7 +519,7 @@ DistrElementSamplingDriver::subMakeMass(int i, SparseMatrix **subM)
 {
   AllOps<double> allOps;
   allOps.M = subM[i] = decDomain->getSubDomain(i)->constructDBSparseMatrix<double>();
-  decDomain->getSubDomain(i)->template makeSparseOps<double>(allOps, 0, 0, 0);
+  decDomain->getSubDomain(i)->makeSparseOps<double>(allOps, 0, 0, 0);
 }
 
 } /* end namespace Rom */

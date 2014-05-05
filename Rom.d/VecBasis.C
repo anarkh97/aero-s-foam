@@ -372,6 +372,36 @@ GenVecBasis<double, GenVector>::makeSparseBasis(const std::vector<int> & nodeVec
 
 template<>
 void
+GenVecBasis<double, GenVector>::makeSparseBasis(const std::vector<int> & nodeVec, DofSetArray *dsa, DofSetArray *reduced_dsa)
+{
+#ifdef USE_EIGEN3
+  int dof1, numdofs, numdofs2;
+
+  compressedKey_.clear();
+  for(int i = 0; i < nodeVec.size(); i++) {
+    dof1 = dsa->firstdof(nodeVec[i]);
+    numdofs = dsa->weight(nodeVec[i]);
+    numdofs2 = reduced_dsa->weight(i);
+    int *rdofs = new int[numdofs];
+    reduced_dsa->number(i, (*dsa)[nodeVec[i]], rdofs);
+    for(int j = 0; j < numdofs; j++) {
+      // note: in this version we only push back if dof is in reduced dsa
+      if(rdofs[j] >= 0)
+        compressedKey_.push_back(dof1+j);
+    }
+    delete [] rdofs;
+  }
+
+  new (&compressedBasis_) Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic>(compressedKey_.size(), vectorCount());
+
+  for(int i = 0; i < compressedKey_.size(); i++) {
+    compressedBasis_.row(i) = basis_.row(compressedKey_[i]);
+  }
+#endif
+}
+
+template<>
+void
 GenVecBasis<double, GenVector>::makeSparseBasis2(const std::vector<int> & nodeVec, DofSetArray *dsa)
 {
 #ifdef USE_EIGEN3

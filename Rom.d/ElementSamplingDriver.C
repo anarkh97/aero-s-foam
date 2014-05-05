@@ -600,14 +600,16 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcess(Vector &solution, 
 
 #ifdef USE_EIGEN3
   // build and output compressed basis
-  podBasis_.makeSparseBasis(meshRenumbering.reducedNodeIds(), domain_->getCDSA());
+  DofSetArray reduced_dsa(reducedMesh.nodes().size(), const_cast<Elemset&>(reducedMesh.elements()));
+  int num_bc = reducedMesh.dirichletBConds().size();
+  BCond *bc = (num_bc > 0) ? const_cast<BCond*>(&reducedMesh.dirichletBConds()[0]) : NULL;
+  ConstrainedDSA reduced_cdsa(reduced_dsa, num_bc, bc);
+  podBasis_.makeSparseBasis(meshRenumbering.reducedNodeIds(), domain_->getCDSA(), &reduced_cdsa);
   {
     std::string filename = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
     filename.append(".reduced");
     if(domain_->solInfo().newmarkBeta == 0 || domain_->solInfo().useMassNormalizedBasis) filename.append(".normalized");
     filePrint(stderr," ... Writing compressed basis to file %s ...\n", filename.c_str());
-    DofSetArray reduced_dsa(reducedMesh.nodes().size(), const_cast<Elemset&>(reducedMesh.elements()));
-    ConstrainedDSA reduced_cdsa(reduced_dsa, reducedMesh.dirichletBConds().size(), const_cast<BCond*>(&reducedMesh.dirichletBConds()[0]));
     VecNodeDof6Conversion converter(reduced_cdsa);
     BasisOutputStream output(filename, converter, false);
 

@@ -684,6 +684,7 @@ int main(int argc, char** argv)
      domain->printLMPC();
 #endif
    }
+   else domain->ProcessSurfaceBCs();
 #ifdef SOWER_SURFS
  }
 #endif

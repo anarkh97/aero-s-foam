@@ -81,6 +81,7 @@ public:
   void makeSparseBasis(const std::vector<std::map<int,std::vector<int> > > & nodeVec);
   void makeSparseBasis(const std::map<int,std::vector<int> > &nodeVec);
   void makeSparseBasis(const std::vector<int> &, DofSetArray *); 
+  void makeSparseBasis(const std::vector<int> & nodeVec, DofSetArray *dsa, DofSetArray *reduced_dsa);
   void makeSparseBasis2(const std::vector<std::vector<int> > &, DofSetArray **);
   void makeSparseBasis2(const std::vector<int> &, DofSetArray *);
 

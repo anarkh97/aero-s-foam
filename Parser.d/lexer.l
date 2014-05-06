@@ -1029,9 +1029,11 @@ TRAIL [a-zA-Z]*
 
 "accelvct"|"ACCELVCT"		   { yylval.ival = OutputInfo::Accelvector;  return STRESSID; }
 
-"frcgvect"|"FRCGVECT"		   { yylval.ival = OutputInfo::Forcevector;  return STRESSID; }
+"frcgvect"|"FRCGVECT"		   { yylval.ival = OutputInfo::Forcevector;  return STRESSID; } /* deprecated */
+"frcngvct"|"FRCNGVCT"              { yylval.ival = OutputInfo::Forcevector;  return STRESSID; }
 
-"residvct"|"RESIDVCT"		   { yylval.ival = OutputInfo::Residual;     return STRESSID; }
+"residvct"|"RESIDVCT"		   { yylval.ival = OutputInfo::Residual;     return STRESSID; } /* deprecated */
+"fdiffvct"|"FDIFFVCT"              { yylval.ival = OutputInfo::Residual;     return STRESSID; }
 
 "jacobvct"|"JACOBVCT"		   { yylval.ival = OutputInfo::Jacobian;     return STRESSID; }
 
@@ -1439,15 +1441,16 @@ TRAIL [a-zA-Z]*
 
 "blcksz"|"BlckSz"|"BLCKSZ"                { return BLOCKSIZE; }
 
-"RODC"|"RodC"|"rodc"                      { return CONVERSIONTOKEN; } // reduced order data conversion token
+"RODC"|"RodC"|"rodc"                      { return CONVERSIONTOKEN; } /* reduced order data conversion token */
  
-"CONFIL"|"ConFil"|"confil" 	 	  { return CONVFI; } // reduced order data conversion files
+"CONFIL"|"ConFil"|"confil" 	 	  { return CONVFI; } /* reduced order data conversion files */
 
 "SNAPFI"|"SnapFi"|"snapfi"		  { return SNAPFI; }
 
 "ROBFI"|"RobFi"|"robfi"		          { return ROBFI; }
 
-"SNAPWEIGHT"|"SnapWeight"|"snapweight"    { return SNAPWEIGHT; }
+"SNAPWEIGHT"|"SnapWeight"|"snapweight"    { return SNAPWEIGHT; } /* deprecated */
+"SSCALI"|"SScali"|"sscali"                { return SNAPWEIGHT; }
 
 "CONCFG"|"ConCfg"|"concfg"                { return CONWEPCFG; }
 
@@ -1455,7 +1458,8 @@ TRAIL [a-zA-Z]*
 
 "PODROB"|"PodRob"|"podrob"		  { return PODROB; }
 
-"TRNVCT"|"TrnVct"|"trnvct"		  { return TRNVCT; }
+"TRNVCT"|"TrnVct"|"trnvct"		  { return TRNVCT; } /* deprecated */
+"TRNSOL"|"TrnSol"|"trnsol"                { return TRNVCT; }
 
 "OFFSET"|"OffSet"|"offset"		  { return OFFSET; }
 
@@ -1465,15 +1469,17 @@ TRAIL [a-zA-Z]*
 
 "RMSHC"|"Rmshc"|"rmshc" 		  { return SAMPLING; }
 
-"SNAPPR"|"SnapPr"|"snappr"        { return SNAPSHOTPROJECT; }
+"SNAPPR"|"SnapPr"|"snappr"                { return SNAPSHOTPROJECT; }
 
-"TOLOPT"|"TolOpt"|"tolopt" 		  { return TOLER; }
+"TOLOPT"|"TolOpt"|"tolopt" 		  { return TOLER; } /* deprecated */
+"TOLERA"|"Tolera"|"tolera"                { return TOLER; }
 
 "LOCTOL"|"LocTol"|"loctol"		  { return LOCALTOLERANCE; }
 
 "GLOERR"|"GloErr"|"gloerr"                { return GLOBALERROR; }
 
 "NUMSKP"|"NumSkp"|"numskp"		  { return SKIP; }
+"SAMFRQ"|"SamFrq"|"samfrq"                { return SKIP; }
 
 "OUT_OF"[a-zA-Z_]*|"Out_Of"[a-zA-Z_]*|"out_of"[a-zA-Z_]* { return OUTOFCORE; }
 

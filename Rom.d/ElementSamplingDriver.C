@@ -570,7 +570,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcess(Vector &solution, 
 
   // output the reduced forces
   std::ofstream meshOut(getMeshFilename(fileInfo).c_str(), std::ios_base::app);
-  if(domain->solInfo().reduceFollower) meshOut << "REDFOL\n";
+  if(domain->solInfo().reduceFollower) meshOut << "EXTFOL\n";
   if(domain->gravityFlag()) {
     meshOut << "*\nFORCES -1\nMODAL\n"; // note: gravity forces are put in loadset -1 so that MFTT (if present) will not be applied
     meshOut.precision(std::numeric_limits<double>::digits10+1);

@@ -105,7 +105,7 @@
 %token NSUBS EXITAFTERDEC SKIP OUTPUTMEMORY OUTPUTWEIGHT
 %token WEIGHTLIST GMRESRESIDUAL 
 %token SLOSH SLGRAV SLZEM SLZEMFILTER 
-%token PDIR HEFSB HEFRS HEINTERFACE  // Added for HEV Problem, EC, 20080512
+%token PDIR HEFSB HEFRS HEINTERFACE
 %token SNAPFI PODROB TRNVCT OFFSET ORTHOG SVDTOKEN CONVERSIONTOKEN CONVFI SAMPLING SNAPSHOTPROJECT PODSIZEMAX REFSUBSTRACT TOLER OUTOFCORE NORMALIZETOKEN FNUMBER SNAPWEIGHT ROBFI STAVCT VELVCT ACCVCT CONWEPCFG PSEUDOGNAT PSEUDOGNATELEM
 %token VECTORNORM LOCALTOLERANCE GLOBALERROR REBUILDFORCE SAMPNODESLOT REDUCEDSTIFFNESS UDEIMBASIS FORCEROB DEIMINDICES UDEIMINDICES SVDFORCESNAP
 %token USEMASSNORMALIZEDBASIS
@@ -3050,10 +3050,11 @@ Ellump:
         { domain->solInfo().elemLumpPodRom = true; }
         | Ellump Integer Float NewLine
         { geoSource->setElementLumpingWeight($2 - 1, $3); }
-        | Ellump REDFOL NewLine
+        | Ellump REDFOL NewLine /* deprecated */
+        { domain->solInfo().reduceFollower = true;}
+        | Ellump EXTFOL NewLine
         { domain->solInfo().reduceFollower = true;}
         ;
-
 ReducedStiffness:
 	REDUCEDSTIFFNESS NewLine
 	{ domain->solInfo().ReducedStiffness = true;}
@@ -4377,10 +4378,17 @@ SvdOption:
   { domain->solInfo().maxSizePodRom = $2; }
   | NORMALIZETOKEN Integer
   { domain->solInfo().normalize = $2; }
-  | SNAPWEIGHT FloatList
+  | NORMALIZETOKEN SWITCH
+  { domain->solInfo().normalize = $2; }
+  | SNAPWEIGHT FloatList /* deprecated */
   { for(int i=0; i<$2.nval; ++i) domain->solInfo().snapshotWeights.push_back($2.v[i]); }
+  | SNAPWEIGHT SWITCH FloatList
+  { if($2) for(int i=0; i<$3.nval; ++i) domain->solInfo().snapshotWeights.push_back($3.v[i]); }
   | SKIP Integer
   { domain->solInfo().skipPodRom = $2; } 
+  | SKIP Integer Integer
+  { domain->solInfo().skipPodRom = $2;
+    domain->solInfo().skipOffSet = $3; }
   | ROBFI StringList
   { for(int i=0; i<$2.nval; ++i) domain->solInfo().robfi.push_back(std::string($2.v[i])); }
   | BLOCKSIZE Integer
@@ -4454,7 +4462,9 @@ SamplingOption:
   { domain->solInfo().useMassNormalizedBasis = bool($2); }
   | MPROJECT SWITCH
   { domain->solInfo().useMassOrthogonalProjection = bool($2); }
-  | REDFOL SWITCH
+  | REDFOL SWITCH /* deprecated */
+  { domain->solInfo().reduceFollower = bool($2); }
+  | EXTFOL SWITCH
   { domain->solInfo().reduceFollower = bool($2); }
   | VECTORNORM FNAME
   { domain->solInfo().PODerrornorm.push_back($2); }

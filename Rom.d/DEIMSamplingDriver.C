@@ -475,7 +475,7 @@ DEIMSamplingDriver::writeSampledMesh(std::vector<int> &maskIndices) {
 
   std::ofstream meshOut(getMeshFilename(fileInfo).c_str(), std::ios_base::app);
   meshOut.precision(std::numeric_limits<double>::digits10+1);
-  if(domain->solInfo().reduceFollower) meshOut << "REDFOL\n";
+  if(domain->solInfo().reduceFollower) meshOut << "EXTFOL\n";
  
   // reduced stiffness
   meshOut << "*\nREDSTIFF\n"  ;

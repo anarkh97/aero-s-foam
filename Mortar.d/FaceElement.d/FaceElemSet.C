@@ -10,7 +10,6 @@
 
 // STL
 #include <map>
-using std::map;
 
 // FEM headers
 #include <Utils.d/DistHelper.h>
@@ -125,10 +124,10 @@ FaceElemSet::WriteSower(BinFileHandler& file, int* ndMap)
 }
 #endif
 
-map<int,locoord> FaceElemSet::computeNodeLocalCoords(int* fnId, int size) 
+std::map<int,locoord> FaceElemSet::computeNodeLocalCoords(int* fnId, int size) 
 {
-  map<int,locoord> exy;  //Node Id -> (iElem, (x,y))
-  map<int,locoord>::iterator it;
+  std::map<int,locoord> exy;  //Node Id -> (iElem, (x,y))
+  std::map<int,locoord>::iterator it;
 
   for(int iel=0; iel<last(); iel++) {
     double* coords = elem[iel]->ViewRefCoords();
@@ -136,7 +135,7 @@ map<int,locoord> FaceElemSet::computeNodeLocalCoords(int* fnId, int size)
       int gId = elem[iel]->GetNode(k);
       it = exy.find(gId);
       if(it==exy.end()) //not found before 
-        exy[gId] = locoord(iel,pair<double,double>(coords[2*k],coords[2*k+1]));
+        exy[gId] = locoord(iel,std::pair<double,double>(coords[2*k],coords[2*k+1]));
     }
   }
 

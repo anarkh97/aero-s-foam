@@ -480,7 +480,6 @@ Pentahedral::stiffness(CoordSet &cs,double *d, int flg)
   double C[6][6];
   if(cCoefs) { // anisotropic/orthotropic material
     // transform local constitutive matrix to global frame
-    //cerr<<" *** DEBUG: in Pentahedral::stiffness, anisotropic/orthotropic material\n";
     rotateConstitutiveMatrix(cCoefs, cFrame, C);
   } else  // isotropic material
     _FORTRAN(brkcmt)(prop->E, prop->nu, (double*)C);
@@ -601,7 +600,6 @@ Pentahedral::getThermalForce(CoordSet &cs, Vector &ndTemps,
   double C[6][6];
   if(cCoefs) { // anisotropic/orthotropic material
     // transform local constitutive matrix to global frame
-    //cerr<<" *** DEBUG: in Pentahedral::stiffness, anisotropic/orthotropic material\n";
      rotateConstitutiveMatrix(cCoefs, cFrame, C);
   } else  // isotropic material
     _FORTRAN(brkcmt)(prop->E, prop->nu, (double*)C);
@@ -674,11 +672,6 @@ Pentahedral::getThermalForce(CoordSet &cs, Vector &ndTemps,
       }
     }
   }
-  
-  //cerr<<" ---------------------------------------"<<endl;
-  //for(int i=0; i<18; i++){
-  //  cerr<<" elementThermalForce["<<i<<"] = "<<elementThermalForce[i]<<endl;
-  //}
 }
 
 //---------------------------------------------------------------------------------
@@ -734,7 +727,6 @@ Pentahedral::getVonMisesAniso(Vector &stress, Vector &weight, CoordSet &cs,
   double C[6][6];
   if(cCoefs) { // anisotropic/orthotropic material
     // transform local constitutive matrix to global frame
-    cerr<<" *** DEBUG: Pentahedral::getVonMises, anisotropic/orthotropic material\n";
     rotateConstitutiveMatrix(cCoefs, cFrame, C);
   } else  // isotropic material
     _FORTRAN(brkcmt)(prop->E, prop->nu, (double*)C);
@@ -818,7 +810,6 @@ Pentahedral::getAllStressAniso(FullM &stress, Vector &weight, CoordSet &cs,
   double C[6][6];
   if(cCoefs) { // anisotropic/orthotropic material
     // transform local constitutive matrix to global frame
-    cerr<<" *** DEBUG: Pentahedral::getVonMises, anisotropic/orthotropic material\n";
     rotateConstitutiveMatrix(cCoefs, cFrame, C);
   } else  // isotropic material
     _FORTRAN(brkcmt)(prop->E, prop->nu, (double*)C);

@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <cstdlib>
+#include <iostream>
 #include <stdexcept>
 
 #include <Utils.d/Memory.h>
@@ -51,7 +52,7 @@ void _FORTRAN(blkldl)(int& nsuper, int* xsuper, int *pnode, int* xlindx,
                       int& iflag);
 
 void _FORTRAN(zblkldl)(int& nsuper, int* xsuper, int *pnode, int* xlindx,
-                      int* lindx,  int* xlnz,   complex<double> *lnz, int& defblk,
+                      int* lindx,  int* xlnz, complex<double> *lnz, int& defblk,
                       int &asdef,  int& numZEM, int& lbdef, int *def,
                       double& tol,
                       int *iprow, int* ipcol, int& tmpsiz, complex<double> *temp,
@@ -457,7 +458,7 @@ GenBLKSparseMatrix<Scalar>::factor()
   }
 
   if(this->print_nullity && numrbm > 0)
-     cerr << " ... Matrix is singular: size = " << numUncon << ", rank = " << numUncon-numrbm << ", nullity = " << numrbm << " ...\n";
+     std::cerr << " ... Matrix is singular: size = " << numUncon << ", rank = " << numUncon-numrbm << ", nullity = " << numrbm << " ...\n";
   
   delete [] rwork;  
   delete [] tmpvec; 
@@ -1017,7 +1018,7 @@ template<class Scalar>
 void
 GenBLKSparseMatrix<Scalar>::mult(const Scalar *rhs, Scalar *result)
 {
-  cerr << " *** WARNING: GenBLKSparseMatrix<Scalar>::mult(const Scalar *rhs, Scalar *result) is not implemented \n";
+  std::cerr << " *** WARNING: GenBLKSparseMatrix<Scalar>::mult(const Scalar *rhs, Scalar *result) is not implemented \n";
 }
 
 template<class Scalar>
@@ -1079,7 +1080,7 @@ GenBLKSparseMatrix<Scalar>::print()
          numUncon, xlnz[numUncon]);
  int i;
  for(i=0; i<xlnz[numUncon]-1; ++i)
-   cerr << lnz[i] << "\n";
+   std::cerr << lnz[i] << "\n";
 
  fprintf(stdout,"============\n"); fflush(stdout);
 }
@@ -1226,6 +1227,7 @@ template<class Scalar>
 void
 GenBLKSparseMatrix<Scalar>::allocateMemory()
 {
+  using std::min;
   solveTime = 0.0;
   if(numUncon == 0) return;
 

@@ -3,6 +3,7 @@
 #include <Utils.d/BinaryOutputFile.h>
 
 #include <fstream>
+#include <iostream>
 #include <memory>
 #include <cstddef>
 #include <stdexcept>
@@ -81,8 +82,8 @@ void GeoSource::createBinaryOutputFile(int fileId, int glSub, int iter)
       // Write header information
       outputHeader(*binFile, oinfo[fileId].dim, fileId);
     } else { // ASCII output
-      ofstream outfile;
-      outfile.open(oinfo[fileId].filename, ofstream::out | ofstream::trunc);
+      std::ofstream outfile;
+      outfile.open(oinfo[fileId].filename, std::ofstream::out | std::ofstream::trunc);
       char headDescrip[200];
       const int headerLength = getHeaderDescriptionAndLength(headDescrip, fileId);
       headDescrip[headerLength] = '\0'; // Ensure we have a valid C-style string
@@ -139,25 +140,25 @@ GeoSource::writeNodeScalarToFile(double *data, int numData, int glSub, int offse
   if (binaryOutput && group == -1) { // Group output is always ASCII
     writeArrayToBinFile(data, numData, glSub, offset, fileNumber, iter, numRes, time, numComponents * numClusNodes, numClusNodes);
   } else {
-    ofstream outfile;
-    outfile.open(oinfo[fileNumber].filename,  ios_base::in | ios_base::out);
+    std::ofstream outfile;
+    outfile.open(oinfo[fileNumber].filename, std::ios_base::in | std::ios_base::out);
     outfile.precision(oinfo[fileNumber].precision);
 
     int numComponentsPlus = (group == -1) ? numComponents : numComponents + 4; // group output: allow for NODENUMBER, X0, Y0, Z0
     int numNodesPlus = (group == -1) ? (domain->outFlag ? domain->exactNumNodes : numNodes) : nodeGroup[group].size();
 
-    long timeOffset = long(headLen[fileNumber])  // header including endl
-                      + long(numRes-1)*(3 + oinfo[fileNumber].width + 1)  // 3 spaces + time(s) + endl for all previous timesteps
+    long timeOffset = long(headLen[fileNumber])  // header including std::endl
+                      + long(numRes-1)*(3 + oinfo[fileNumber].width + 1)  // 3 spaces + time(s) + std::endl for all previous timesteps
                       + long(numRes-1)*long(numNodesPlus)*(numComponentsPlus*(2+oinfo[fileNumber].width)+1);
-                                                                     // 2 spaces + first_component + ... + 2 spaces + last_component + endl
+                                                                     // 2 spaces + first_component + ... + 2 spaces + last_component + std::endl
                                                                      // for each node for all previous timesteps
 
-    outfile.setf(ios_base::showpoint | ios_base::right | ios_base::scientific | ios_base::uppercase);
+    outfile.setf(std::ios_base::showpoint | std::ios_base::right | std::ios_base::scientific | std::ios_base::uppercase);
     int glNode_prev = -1;
     if(glSub == 0) { // if first subdomain in cluster, write time
       outfile.seekp(timeOffset);
       outfile.width(3+oinfo[fileNumber].width);
-      outfile << time << endl;
+      outfile << time << std::endl;
       // fix for gaps in node numbering (note: this isn't required for group output or when domain->outFlag != 0)
       // the first subdomain writes zeros for all unasigned nodes
       // TODO for "binaryinput on", Domain->nodeToElem is NULL this fix doesn't work: we need to precompute a list
@@ -169,7 +170,7 @@ GeoSource::writeNodeScalarToFile(double *data, int numData, int glSub, int offse
             int glNode = i;
             if(glNode-glNode_prev != 1) { // need to seek in file for correct position to write next node
               long relativeOffset = long(glNode-glNode_prev-1)*(numComponents*(2+oinfo[fileNumber].width) + 1);
-              outfile.seekp(relativeOffset, ios_base::cur);
+              outfile.seekp(relativeOffset, std::ios_base::cur);
             }
             for(int j=0; j<numComponents; ++j) { 
               outfile.width(2+oinfo[fileNumber].width);
@@ -182,7 +183,7 @@ GeoSource::writeNodeScalarToFile(double *data, int numData, int glSub, int offse
         }
       }
     }
-    timeOffset += (3+oinfo[fileNumber].width+1); // 3 spaces + width + 1 for endl
+    timeOffset += (3+oinfo[fileNumber].width+1); // 3 spaces + width + 1 for std::endl
     if(glSub != 0) outfile.seekp(timeOffset);
   
     int k = 0;
@@ -192,7 +193,7 @@ GeoSource::writeNodeScalarToFile(double *data, int numData, int glSub, int offse
                                                                // note: nodes.size() is not available when using "binaryinput on"
       int glNode = (domain->outFlag) ? domain->nodeTable[glNodeNums[k]]-1 : glNodeNums[k]; k++;
       if(group != -1) {
-        list<int>::iterator it = nodeGroup[group].begin();
+        std::list<int>::iterator it = nodeGroup[group].begin();
         int grNode = 0;
         while(it != nodeGroup[group].end()) {
           int inode = *it;
@@ -204,7 +205,7 @@ GeoSource::writeNodeScalarToFile(double *data, int numData, int glSub, int offse
       }
       if(glNode-glNode_prev != 1) { // need to seek in file for correct position to write next node
         long relativeOffset = long(glNode-glNode_prev-1)*(numComponentsPlus*(2+oinfo[fileNumber].width) + 1);
-        outfile.seekp(relativeOffset, ios_base::cur);
+        outfile.seekp(relativeOffset, std::ios_base::cur);
       }
       if(group != -1) { // print NODENUMBER, X0, Y0, Z0
         outfile.width(2+oinfo[fileNumber].width);
@@ -272,25 +273,25 @@ GeoSource::writeElemScalarToFile(double *data, int numData, int glSub, int offse
   if (binaryOutput) {
     writeArrayToBinFile(data, numData, glSub, offset, fileNumber, iter, numRes, time, totData, numClusElems);
   } else {
-    ofstream outfile;
-    outfile.open(oinfo[fileNumber].filename,  ios_base::in | ios_base::out);
+    std::ofstream outfile;
+    outfile.open(oinfo[fileNumber].filename, std::ios_base::in | std::ios_base::out);
     outfile.precision(oinfo[fileNumber].precision);
 
-    long timeOffset = headLen[fileNumber]  // header including endl
+    long timeOffset = headLen[fileNumber]  // header including std::endl
                       + long(numRes-1)*(3 + oinfo[fileNumber].width + 1) 
                       + long(numRes-1)*(long(totData)*(2+oinfo[fileNumber].width)+nElem);
 
-    outfile.setf(ios_base::showpoint | ios_base::right | ios_base::scientific | ios_base::uppercase);
+    outfile.setf(std::ios_base::showpoint | std::ios_base::right | std::ios_base::scientific | std::ios_base::uppercase);
     if(glSub == 0) { // if first subdomain in cluster, write time
       outfile.seekp(timeOffset);
       outfile.width(3+oinfo[fileNumber].width);
-      outfile << time << endl;
+      outfile << time << std::endl;
     }
-    timeOffset += (3+oinfo[fileNumber].width+1); // 3 spaces + width + 1 for endl
+    timeOffset += (3+oinfo[fileNumber].width+1); // 3 spaces + width + 1 for std::endl
 
     int numNodesPerElem = totData/nElem;
-    if(glSub==0 && time == 0) cerr << " *** WARNING: text file output for element stresses in distributed mode is only correctly\n"
-                                   << " ***          implemented for models in which all elements have the same number of nodes \n";
+    if(glSub==0 && time == 0) std::cerr << " *** WARNING: text file output for element stresses in distributed mode is only correctly\n"
+                                        << " ***          implemented for models in which all elements have the same number of nodes \n";
      
     int k = 0;
     for(int i=0; i<numData/numNodesPerElem; ++i) {
@@ -298,7 +299,7 @@ GeoSource::writeElemScalarToFile(double *data, int numData, int glSub, int offse
       long totalOffset = timeOffset + long(glElem)*((2+oinfo[fileNumber].width)*numNodesPerElem + 1);
       outfile.seekp(totalOffset);
       for(int j=0; j<numNodesPerElem; ++j) { outfile.width(2+oinfo[fileNumber].width); outfile << data[k++]; }
-      outfile << endl;
+      outfile << std::endl;
     }
     outfile.close();
   }

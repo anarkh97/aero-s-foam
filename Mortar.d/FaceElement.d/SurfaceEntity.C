@@ -2,7 +2,6 @@
 // HB - 06/30/03 
 // ------------------------------------------------------------
 // Std C/C++ lib
-
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
@@ -253,7 +252,7 @@ SurfaceEntity::MakeVertexMaps()
   LlToGlVertexMap = gVertexIds;
   
   if(GlToLlVertexMap) { delete GlToLlVertexMap; GlToLlVertexMap= 0; }
-  GlToLlVertexMap = new map<int,int>(); 
+  GlToLlVertexMap = new std::map<int,int>(); 
   for(int ivertex=0; ivertex<nVertices; ivertex++) 
     (*GlToLlVertexMap)[gVertexIds[ivertex]] = ivertex;
 }
@@ -285,7 +284,7 @@ SurfaceEntity::MakeNodeSet(CoordSet& cs)
 }
 
 void
-SurfaceEntity::MakeNodeSet(map<int,Node>& NodeCoordMap)
+SurfaceEntity::MakeNodeSet(std::map<int,Node>& NodeCoordMap)
 {
   if(!gNodeIds) MakeGlNodeIds();
   if(NodeSet) { delete NodeSet; NodeSet = 0; }
@@ -297,8 +296,8 @@ SurfaceEntity::MakeNodeSet(map<int,Node>& NodeCoordMap)
       Node &node = (*Imap).second;
       NodeSet->nodeadd(inode, node);
     } else {
-      std::cerr << " ### PB in SurfaceEntity::MakeNodeSet(map<int,Node>&) ###" << endl;
-      std::cerr << " ### NODE " <<gNodeIds[inode]<<" NOT FOUND IN INPUT NodeCoordMap ###" << endl;
+      std::cerr << " ### PB in SurfaceEntity::MakeNodeSet(map<int,Node>&) ###" << std::endl;
+      std::cerr << " ### NODE " <<gNodeIds[inode]<<" NOT FOUND IN INPUT NodeCoordMap ###" << std::endl;
     }
   }
 }
@@ -332,10 +331,10 @@ SurfaceEntity::MakeACMEBlocksMap()
   //         & store their position (index) in the ElemSet array
   nTri3 = nTri6 = nQuad4 = nQuad8 = 0;
   int nElems = GetnFaceElems();
-  vector<int> IndexTri3;  IndexTri3.reserve(512); // to avoid too many
-  vector<int> IndexTri6;  IndexTri6.reserve(512); // automatic memory
-  vector<int> IndexQuad4; IndexQuad4.reserve(512);// re-allocation
-  vector<int> IndexQuad8; IndexQuad8.reserve(512);
+  std::vector<int> IndexTri3;  IndexTri3.reserve(512); // to avoid too many
+  std::vector<int> IndexTri6;  IndexTri6.reserve(512); // automatic memory
+  std::vector<int> IndexQuad4; IndexQuad4.reserve(512);// re-allocation
+  std::vector<int> IndexQuad8; IndexQuad8.reserve(512);
   for(int iel=0; iel<nElems; iel++){
    int etype = ElemSet[iel]->GetFaceElemType();
    switch(etype)
@@ -360,7 +359,7 @@ SurfaceEntity::MakeACMEBlocksMap()
        nTri6++;
        break;
      default:
-       cerr << "Face element Type " << etype << " is NOT supported/implemented." << endl;
+       std::cerr << "Face element Type " << etype << " is NOT supported/implemented." << std::endl;
        exit(-1);
        return;
    }
@@ -421,7 +420,7 @@ SurfaceEntity::GetnFaceElems(int etype)
        return nTri6;
        break;
      default:
-       cerr << "Face element Type " << etype << " is NOT supported/implemented." << endl;
+       std::cerr << "Face element Type " << etype << " is NOT supported/implemented." << std::endl;
        exit(-1);
        return;
    }
@@ -709,7 +708,7 @@ SurfaceEntity::PrintFaceNormal(CoordSet& cs)
         m[0] = m[1] = 1./3.;
         break;
       default:
-        cerr << "Face element Type " << ElemSet[iel]->GetFaceElemType() << " is NOT supported/implemented." << endl;
+        std::cerr << "Face element Type " << ElemSet[iel]->GetFaceElemType() << " is NOT supported/implemented." << std::endl;
         exit(-1);
         return;
     }

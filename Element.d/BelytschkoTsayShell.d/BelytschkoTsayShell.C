@@ -11,6 +11,7 @@
 #include <Material.d/KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding.h>
 #include <Material.d/KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2.h>
 #include <Utils.d/Conwep.d/BlastLoading.h>
+#include <iostream>
 
 #ifdef USE_EIGEN3
 #include <Eigen/Core>
@@ -299,7 +300,7 @@ BelytschkoTsayShell::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
     }
   }
 #else
-  cerr << "USE_EIGEN3 is not defined here in BelytschkoTsayShell::getVonMises\n";
+  std::cerr << "USE_EIGEN3 is not defined here in BelytschkoTsayShell::getVonMises\n";
   exit(-1);
 #endif
 }
@@ -309,7 +310,7 @@ BelytschkoTsayShell::getAllStress(FullM& stress, Vector& weight, CoordSet &cs,
                                   Vector& elDisp, int strInd, int surface,
                                   double *ndTemps)
 {
-  cerr << "BelytschkoTsayShell::getAllStress not implemented\n";
+  std::cerr << "BelytschkoTsayShell::getAllStress not implemented\n";
 }
 
 double
@@ -422,7 +423,7 @@ BelytschkoTsayShell::massMatrix(CoordSet &cs, double *mel, int cmflg)
 FullSquareMatrix
 BelytschkoTsayShell::stiffness(CoordSet &cs, double *d, int flg)
 {
-  //if(prop) cerr << "BelytschkoTsayShell::stiffness not implemented. This element only works for explicit dynamics\n";
+  //if(prop) std::cerr << "BelytschkoTsayShell::stiffness not implemented. This element only works for explicit dynamics\n";
   FullSquareMatrix ret(nnode*nndof, d);
   ret.zero();
   return ret;
@@ -641,7 +642,7 @@ BelytschkoTsayShell::getThermalForce(CoordSet& cs, Vector& ndTemps,
                                      Vector &elThermalForce, int glflag, 
                                      GeomState *geomState)
 {
-  cerr << "BelytschkoTsayShell::getThermalForce not implemented\n";
+  std::cerr << "BelytschkoTsayShell::getThermalForce not implemented\n";
   elThermalForce.zero();
 }
 
@@ -840,7 +841,7 @@ BelytschkoTsayShell::Elefintbt1(double delt, double *_ecord, double *_edisp, dou
   // check current element configuration
   // -----------------------------------
   if(area <= 0) {
-     cerr << " *** ERROR: in BelytschkoTsayShell::Elefintbt1 current element has negative or zero area: " << area << endl;
+     std::cerr << " *** ERROR: in BelytschkoTsayShell::Elefintbt1 current element has negative or zero area: " << area << std::endl;
      exit(-1);
   }
 
@@ -902,7 +903,7 @@ BelytschkoTsayShell::Elefintbt1(double delt, double *_ecord, double *_edisp, dou
       F[7] = 0.5*evoit3[6*igaus+3]; // zy
       F[8] = 1+evoit3[6*igaus+2]; // zz
       if(!mat[igaus]->ComputeElastoPlasticConstitutiveResponse(F, &CauchyStress)) {
-        cerr << " *** ERROR: ComputeElastoPlasticConstitutiveResponse failed\n";
+        std::cerr << " *** ERROR: ComputeElastoPlasticConstitutiveResponse failed\n";
         exit(-1);
       }
       // copy CauchyStress into sigvoitloc, i.e. evoit2[6*igaus+0]
@@ -966,7 +967,7 @@ BelytschkoTsayShell::Elefintbt1(double delt, double *_ecord, double *_edisp, dou
   // -------------------------------------
   efint = locbvec*efintloc;
 #else
-  cerr << "USE_EIGEN3 is not defined here in BelytschkoTsayShell::Elefintbt1\n";
+  std::cerr << "USE_EIGEN3 is not defined here in BelytschkoTsayShell::Elefintbt1\n";
   exit(-1);
 #endif
 }
@@ -1027,7 +1028,7 @@ BelytschkoTsayShell::computeStabilityTimeStep(FullSquareMatrix &K, FullSquareMat
     return std::numeric_limits<double>::infinity();
   }
 #else
-  cerr << "USE_EIGEN3 is not defined here in BelytschkoTsayShell::computeStabilityTimeStep\n";
+  std::cerr << "USE_EIGEN3 is not defined here in BelytschkoTsayShell::computeStabilityTimeStep\n";
   exit(-1);
 #endif
 }

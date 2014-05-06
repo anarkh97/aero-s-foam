@@ -2,6 +2,7 @@
 #define _SKYMATRIX_C_
 
 #include <cstdio>
+#include <iostream>
 #include <Utils.d/dbg_alloca.h>
 
 #include <Utils.d/linkfc.h>
@@ -197,7 +198,7 @@ inline void Tfor1(double *a, int *b, double *c1, int *d, int &e, int nzem = 0)
 }
 inline void Tfor1(DComplex *a, int *b, DComplex *c1, int *d, int &e, int nzem = 0)
 {
-  cerr << "WARNING ...";
+  std::cerr << "WARNING ...";
 }
 
 inline void Tback1(double *a, int *b, double *c1, int *d, int &e, int nzem = 0)
@@ -207,7 +208,7 @@ inline void Tback1(double *a, int *b, double *c1, int *d, int &e, int nzem = 0)
 }
 inline void Tback1(DComplex *a, int *b, DComplex *c1, int *d, int &e, int nzem = 0)
 {
-  cerr << "WARNING ...";
+  std::cerr << "WARNING ...";
 }
 
 template<class Scalar>
@@ -498,11 +499,11 @@ GenSkyMatrix<Scalar>::factor()
  // fprintf(stderr, "Stats %d %f\n",numUncon,float(dlp[numUncon-1])/numUncon);
 
   if(isTRBM) {
-    //cerr << " ... Using TRBM method to factor Skyline Matrix ...\n";
+    //std::cerr << " ... Using TRBM method to factor Skyline Matrix ...\n";
     Factor();    // tolerance method
   }
   else {
-    //cerr << " ... Using GRBM method to factor Skyline Matrix ...\n";
+    //std::cerr << " ... Using GRBM method to factor Skyline Matrix ...\n";
     Factor(rbm); // geometric method
   }
 }
@@ -529,7 +530,7 @@ GenSkyMatrix<Scalar>::Factor()
            flag, nops, numrbm, dummyZEM);
 
    if(numrbm > 0 && this->print_nullity)
-     cerr << " ... Matrix is singular: size = " << numUncon << ", rank = " << numUncon-numrbm << ", nullity = " << numrbm << " ...\n";
+     std::cerr << " ... Matrix is singular: size = " << numUncon << ", rank = " << numUncon-numrbm << ", nullity = " << numrbm << " ...\n";
 
    // set number of zero energy modes
    nzem = numrbm;
@@ -611,7 +612,7 @@ GenSkyMatrix<Scalar>::parallelFactor()
    }
 #endif
   if(numrbm > 0 && this->print_nullity)
-     cerr << " ... Matrix is singular: size = " << numUncon << ", rank = " << numUncon-numrbm << ", nullity = " << numrbm << " ...\n";
+     std::cerr << " ... Matrix is singular: size = " << numUncon << ", rank = " << numUncon-numrbm << ", nullity = " << numrbm << " ...\n";
 
   // set number of zero energy modes
   GenVector<Scalar> *zem = getNullSpace();
@@ -1203,7 +1204,7 @@ GenSkyMatrix<Scalar>::symmetricScaling()
   scale = new Scalar[numUncon];
   int i;
   for(i=0; i<numUncon; ++i) {
-    if(diag(i) == 0.0) cerr << " *** WARNING: in GenSkyMatrix<Scalar>::symmetricScaling(), diag(i) = 0.0\n";
+    if(diag(i) == 0.0) std::cerr << " *** WARNING: in GenSkyMatrix<Scalar>::symmetricScaling(), diag(i) = 0.0\n";
     scale[i] = Scalar(1.0) / ScalarTypes::sqrt(diag(i));
   }
 

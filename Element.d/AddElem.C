@@ -11,7 +11,6 @@
 #include <Element.d/Beam.d/TimoshenkoBeam.h>
 #include <Element.d/Shell.d/ThreeNodeShell.h>
 #include <Element.d/Shell.d/FourNodeShell.h>
-#include <Element.d/Shell.d/ExpFourNodeShell.h>
 #include <Element.d/Shell.d/Therm3NoShell.h>
 #include <Element.d/Shell.d/Therm4NoShell.h>
 #include <Element.d/Quad4.d/FourNodeQuad.h>
@@ -554,10 +553,6 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
          ele->setCategory(Element::Structural);
        }
        break;
-     case 89:
-       ele = new (ba) ExpFourNodeShell(n);
-       ele->setCategory(Element::Structural);
-       break;
      case 90:
        ele = new (ba) HelmPenta(n); 
        ele->setCategory(Element::Acoustic);
@@ -986,7 +981,7 @@ Elemset::mpcelemadd(int num, LMPCons *mpc, bool nlflag)
    ele->setElementType(1001);
    elemadd(num, ele);
 
-   map<int, double >::iterator it = weightList.find(1001);
+   std::map<int, double >::iterator it = weightList.find(1001);
    if(it == weightList.end()) {
      ele->setWeight(1.0);
      ele->setTrueWeight(1.0);
@@ -1004,7 +999,7 @@ Elemset::fsielemadd(int num, LMPCons *fsi)
    ele->setElementType(1002);
    elemadd(num, ele);
 
-   map<int, double >::iterator it = weightList.find(1002);
+   std::map<int, double >::iterator it = weightList.find(1002);
    if(it == weightList.end()) {
      ele->setWeight(1.0);
      ele->setTrueWeight(1.0);

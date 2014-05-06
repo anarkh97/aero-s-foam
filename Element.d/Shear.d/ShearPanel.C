@@ -1,34 +1,36 @@
-#include	<Element.d/Shear.d/ShearPanel.h>
-#include	<Element.d/Shear.d/ShearPanelTemplate.cpp>
-#include	<Element.d/Shear.d/ShearPanelStressWRTDisplacementSensitivity.h>
-#include  <Element.d/Function.d/SpaceDerivatives.h>
-#include	<Utils.d/dbg_alloca.h>
-#include        <Math.d/Vector.h>
-#include	<Math.d/FullSquareMatrix.h>
-#include        <Utils.d/dofset.h>
-#include        <Element.d/State.h>
-#include        <Utils.d/linkfc.h>
-#include        <Utils.d/pstress.h>
-#include        <Corotational.d/utilities.h>
+#include <Element.d/Shear.d/ShearPanel.h>
+#include <Element.d/Shear.d/ShearPanelTemplate.cpp>
+#include <Element.d/Shear.d/ShearPanelStressWRTDisplacementSensitivity.h>
+#include <Element.d/Function.d/SpaceDerivatives.h>
+#include <Utils.d/dbg_alloca.h>
+#include <Math.d/Vector.h>
+#include <Math.d/FullSquareMatrix.h>
+#include <Utils.d/dofset.h>
+#include <Element.d/State.h>
+#include <Utils.d/linkfc.h>
+#include <Utils.d/pstress.h>
+#include <Corotational.d/utilities.h>
+#include <iostream>
 
 extern int verboseFlag;
-extern "C"      {
-void    _FORTRAN(shearpanel)(double*, double*, double*, double&, double&,
-                             double&, double&, double&, const int&, double*, 
-                             const int&, double&);
-void    _FORTRAN(shearmass) (double*, double*, double*, double&, double&,
-                             const int&, double*, const int&, double&,
-                             double*, double*, int&, double&, int&);
-void    _FORTRAN(spstress) (double*, double*, double*, double*, double&, 
-                            double&, double&, double&, double*, double*,
-                            double&, double&);
+extern "C" {
+void _FORTRAN(shearpanel)(double*, double*, double*, double&, double&,
+                          double&, double&, double&, const int&, double*, 
+                          const int&, double&);
+
+void _FORTRAN(shearmass) (double*, double*, double*, double&, double&,
+                          const int&, double*, const int&, double&,
+                          double*, double*, int&, double&, int&);
+
+void _FORTRAN(spstress) (double*, double*, double*, double*, double&, 
+                         double&, double&, double&, double*, double*,
+                         double&, double&);
 
 void _FORTRAN(qgauss)(int &, int &, int &, int &,
                       double &,  double &, double &);
 
 void _FORTRAN(q4shpe)(double &, double &, double *, double *,
                       double *, double *, double *, double &);
-
 }
 
 ShearPanel::ShearPanel(int* nodenums)
@@ -136,11 +138,11 @@ ShearPanel::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vecto
 {
 #ifdef USE_EIGEN3
    if(strInd != 6) {
-     cerr << " ... Error: strInd must be 6 in ShearPanel::getVonMisesDisplacementSensitivity\n";
+     std::cerr << " ... Error: strInd must be 6 in ShearPanel::getVonMisesDisplacementSensitivity\n";
      exit(-1);
    }
    if(dStdDisp.numRow() != 4 || dStdDisp.numCol() !=12) {
-     cerr << " ... Error: dimenstion of sensitivity matrix is wrong\n";
+     std::cerr << " ... Error: dimenstion of sensitivity matrix is wrong\n";
      exit(-1);
    }
    weight = 1.0;
@@ -172,7 +174,7 @@ ShearPanel::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vecto
 
   // Jacobian evaluation
   Eigen::Matrix<double,4,12> dStressdDisp;
-  if(verboseFlag) cout << "senMethod is " << senMethod << endl;
+  if(verboseFlag) std::cout << "senMethod is " << senMethod << std::endl;
  
   if(avgnum == 0 || avgnum == 1) { // NODALFULL or ELEMENTAL
     if(senMethod == 0) { // analytic
@@ -197,7 +199,7 @@ ShearPanel::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vecto
       Eigen::Matrix<double,12,1> qp, qm;
       double h(1e-5);
       Eigen::Matrix<double,4,1> S = foo(q,0);
-      cout << "displacement = " << q.transpose() << endl;
+      std::cout << "displacement = " << q.transpose() << std::endl;
       for(int i=0; i<12; ++i) {
         qp = q;             qm = q;
         if(q[i] == 0) { qp[i] = h;   qm[i] = -h; }
@@ -207,9 +209,9 @@ ShearPanel::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vecto
         Eigen::Matrix<double,4,1> fd = (Sp - Sm)/(2*(qp[i]-q[i]));
 //        if(i==2) {
 //          Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " "); 
-//          cout << Sp.transpose().format(HeavyFmt) << endl;
-//          cout << Sm.transpose().format(HeavyFmt) << endl;
-//          cout << fd.transpose().format(HeavyFmt) << endl;
+//          std::cout << Sp.transpose().format(HeavyFmt) << std::endl;
+//          std::cout << Sm.transpose().format(HeavyFmt) << std::endl;
+//          std::cout << fd.transpose().format(HeavyFmt) << std::endl;
 //        }
         for(int j=0; j<4; ++j) {
           dStressdDisp(j,i) = fd[j];
@@ -221,7 +223,7 @@ ShearPanel::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vecto
 
   } else dStdDisp.zero(); // NODALPARTIAL or GAUSS or any others
 #else
-  cerr << " ... Error! ShearPanel::getVonMisesDisplacementSensitivity needs Eigen library.\n";
+  std::cerr << " ... Error! ShearPanel::getVonMisesDisplacementSensitivity needs Eigen library.\n";
   exit(-1);
 #endif
 }

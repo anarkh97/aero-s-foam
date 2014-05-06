@@ -31,6 +31,8 @@ double HData::coupledScaling = 1.0, HData::cscale_factor = 1.0, HData::cscale_fa
 
 extern int verboseFlag;
 
+using std::complex;
+
 HData::HData() : sommer(0), scatter(0), neum(0), wet(0), sBoundNodes(0)
 {
   iRHS = 0;
@@ -2471,7 +2473,7 @@ void
 HData::addFrequency(double _w)
 {
   // for multiple frequency sweep analysis, add single freq to list
-  if(frequencies == 0) frequencies = new list<double>();
+  if(frequencies == 0) frequencies = new std::list<double>();
   frequencies->push_back(_w);
   numFrequencies = frequencies->size() + coarse_frequencies->size();
 }
@@ -2490,8 +2492,8 @@ HData::addCoarseFrequency(double _w)
 void
 HData::initFreqSweep(double w0)
 {
-  if(frequencies == 0) frequencies = new list<double>();
-  if(coarse_frequencies == 0) coarse_frequencies = new list<double>();
+  if(frequencies == 0) frequencies = new std::list<double>();
+  if(coarse_frequencies == 0) coarse_frequencies = new std::list<double>();
   domain->solInfo().doFreqSweep = true;
 }
 

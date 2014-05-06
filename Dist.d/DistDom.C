@@ -774,7 +774,7 @@ GenDistrDomain<Scalar>::setsizeSfemStress(int fileNumber)
     this->sizeSfemStress = 0;
   }
   else {
-    cerr << "avgnum = " << avgnum << " not implemented in Domain::setsizeSfemStress()" << endl;
+    std::cerr << "avgnum = " << avgnum << " not implemented in Domain::setsizeSfemStress()" << std::endl;
     this->sizeSfemStress = 0;
   }
 }
@@ -788,7 +788,7 @@ GenDistrDomain<Scalar>::getSfemStress(int fileNumber)
 
   if(avgnum == 1) return masterStress->data(); // node-based
   else if(avgnum == 0) return 0; // element-based
-  else  { cerr << "avgnum = " << avgnum << " not implemented in Domain::getSfemStress()" << endl; return 0; }
+  else  { std::cerr << "avgnum = " << avgnum << " not implemented in Domain::getSfemStress()" << std::endl; return 0; }
 }
 
 template<class Scalar>
@@ -799,8 +799,8 @@ GenDistrDomain<Scalar>::updateSfemStress(Scalar* str, int fileNumber)
   int avgnum = oinfo[fileNumber].averageFlg;
 
   if(avgnum == 1)  masterStress->setNewData(str);
-  else if(avgnum == 0) cerr << "updateSfemStress for element not yet implemented" << endl;
-  else {cerr << "avgnum = " << avgnum << " not implemented in Domain::updateSfemStress()" << endl;}
+  else if(avgnum == 0) std::cerr << "updateSfemStress for element not yet implemented" << std::endl;
+  else std::cerr << "avgnum = " << avgnum << " not implemented in Domain::updateSfemStress()" << std::endl;
 }
 
 template<class Scalar>

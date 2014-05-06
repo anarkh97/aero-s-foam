@@ -1,3 +1,4 @@
+#include <iostream>
 #include <Math.d/CuCSparse.h>
 #include <Math.d/matrix.h>
 #include <Utils.d/Connectivity.h>
@@ -48,13 +49,12 @@ void
 GenCuCSparse<Scalar>::print()
 {
  int i, mstart, mstop, m;
- cerr << "numConstrained = " << numConstrained << endl;
+ std::cerr << "numConstrained = " << numConstrained << std::endl;
  for(i=0; i<numConstrained; ++i) {
    mstart = xunonz[i];
    mstop  = xunonz[i+1];
    for(m=mstart; m<mstop; ++m)
-     cerr << "Kuc(" << rowu[m]+1 << "," << i+1 << ") = " << Kuc[m] << endl;
-     // fprintf(stderr,"Kuc(%d,%d) = %22.15e,\n",rowu[m]+1,i+1,Kuc[m]);
+     std::cerr << "Kuc(" << rowu[m]+1 << "," << i+1 << ") = " << Kuc[m] << std::endl;
  }
 }
 
@@ -338,7 +338,7 @@ GenCuCSparse<Scalar>::transposeMultSubtract(const Scalar *rhs, Scalar *result)
     int m;
     for(m=mstart; m<mstop; ++m) {
       if(rowu[m] < 0) 
-        cerr << "**Error in GenCuCSparse<Scalar>::transposeMultSubtract \n";
+        std::cerr << "**Error in GenCuCSparse<Scalar>::transposeMultSubtract \n";
       result[rowu[m]] -= Kuc[m]*rhs[i];
     }
   }

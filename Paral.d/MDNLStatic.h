@@ -82,7 +82,7 @@ class MDNLStatic
 
     LinesearchInfo& linesearch();
     double getEnergy(double lambda, DistrVector& force, DistrGeomState* geomState)
-      { cerr << "MDNLStatic::getEnergy is not implemented\n"; return 0; }
+      { std::cerr << "MDNLStatic::getEnergy is not implemented\n"; return 0; }
 
     double getResidualNorm(DistrVector &vec, DistrGeomState &geomState);
     bool getResizeFlag();

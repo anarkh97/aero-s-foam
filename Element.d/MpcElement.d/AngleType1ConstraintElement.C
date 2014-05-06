@@ -1,6 +1,7 @@
 #ifdef USE_EIGEN3
 #include <Element.d/MpcElement.d/AngleType1ConstraintElement.h>
 #include <Corotational.d/GeomState.h>
+#include <iostream>
 
 AngleType1ConstraintElement::AngleType1ConstraintElement(int* _nn, int _axis1, int _axis2, double _offset)
  : ConstraintFunctionElement<Simo::AngleType1ConstraintFunction>(2, DofSet::XYZrot, _nn, 0)
@@ -48,7 +49,7 @@ void
 AngleType1ConstraintElement::buildFrame(CoordSet& cs)
 {
   if(!C0) {
-    cerr << " *** ERROR: element frame is not defined for AngleType1 constraint function element\n";
+    std::cerr << " *** ERROR: element frame is not defined for AngleType1 constraint function element\n";
     exit(-1);
   }
 

@@ -90,11 +90,11 @@ combine_projections<double>(const GenVecBasis<double> &targetPod,
 }
 
 template <>
-const GenVecBasis<std::complex<double> > &
-combine_projections<std::complex<double> >(const GenVecBasis<std::complex<double> > &targetPod,
-                                           const GenVecBasis<std::complex<double> > &originPod,
-                                           const GenVecBasis<std::complex<double> > &originProjection,
-                                           GenVecBasis<std::complex<double> > &result) {
+const GenVecBasis<complex<double> > &
+combine_projections<complex<double> >(const GenVecBasis<complex<double> > &targetPod,
+                                           const GenVecBasis<complex<double> > &originPod,
+                                           const GenVecBasis<complex<double> > &originProjection,
+                                           GenVecBasis<complex<double> > &result) {
   throw std::logic_error("Not implemented");
 }
 

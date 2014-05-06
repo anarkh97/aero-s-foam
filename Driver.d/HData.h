@@ -149,19 +149,19 @@ class HData
      void   addCoarseFrequency(double w);
      void   initFreqSweep(double w0);
 
-     map<int,list<double> *> set_of_frequencies;
-     map<int,list<double> *> set_of_coarse_frequencies;
+     std::map<int,std::list<double> *> set_of_frequencies;
+     std::map<int,std::list<double> *> set_of_coarse_frequencies;
      void setFrequencySet(int i) {
        if (set_of_frequencies.find(i)==set_of_frequencies.end())
-         set_of_frequencies[i] = new list<double>();
+         set_of_frequencies[i] = new std::list<double>();
        if (set_of_coarse_frequencies.find(i)==set_of_coarse_frequencies.end())
-       set_of_coarse_frequencies[i] = new list<double>();
+       set_of_coarse_frequencies[i] = new std::list<double>();
        frequencies = set_of_frequencies[i];
        coarse_frequencies = set_of_coarse_frequencies[i];
        initFreqSweep(0.0);
      }
-     list<double> *frequencies;  
-     list<double> *coarse_frequencies;  
+     std::list<double> *frequencies;  
+     std::list<double> *coarse_frequencies;  
      bool isCoarseGridSolve;
 
      // Shape Opt
@@ -190,7 +190,7 @@ class HData
      // output
      void outputFFP(ComplexVector& sol, int iInfo);
      void outputFFP(Vector& sol, int iInfo) 
-       { cerr << " *** WARNING: HData::outputFFP(Vector& sol, int iInfo) is not implemented \n"; }
+       { std::cerr << " *** WARNING: HData::outputFFP(Vector& sol, int iInfo) is not implemented \n"; }
 };
 
 #endif

@@ -16,33 +16,33 @@ Sower::Sower(Connectivity* subToElem, Elemset& eset, int nClus, ResizeArray<Surf
   subToClus = 0;
   tocRead=false;
 #ifdef SOWER_DEBUG
-  cerr << " ** Sower Constructor : " << endl;
-  cerr << " ** subdomain to elements connectivity : " << endl;
+  std::cerr << " ** Sower Constructor : " << std::endl;
+  std::cerr << " ** subdomain to elements connectivity : " << std::endl;
   subToElem->print();
 #endif
   Connectivity* eTos = subToElem->reverse();
 #ifdef SOWER_DEBUG
-  cerr << " ** elements to subdomains connectivity : " << endl;
+  std::cerr << " ** elements to subdomains connectivity : " << std::endl;
   eTos->print();
 #endif 
   Connectivity* sTos = subToElem->transcon(eTos);
 #ifdef SOWER_DEBUG
-  cerr << " ** subdomains to subdomains connectivity : " << endl;
+  std::cerr << " ** subdomains to subdomains connectivity : " << std::endl;
   sTos->print();
 #endif   
   Connectivity* eToN = new Connectivity(&eset);
 #ifdef SOWER_DEBUG
-  cerr << " ** elements to nodes connectivity : " << endl;
+  std::cerr << " ** elements to nodes connectivity : " << std::endl;
   eToN->print();
 #endif   
   Connectivity* sToN = subToElem->transcon(eToN);
 #ifdef SOWER_DEBUG
-  cerr << " ** subdomains to nodes connectivity : " << endl;
+  std::cerr << " ** subdomains to nodes connectivity : " << std::endl;
   sToN->print();
 #endif     
   Connectivity* nToS = sToN->reverse();
 #ifdef SOWER_DEBUG
-  cerr << " ** nodes to subdomain connectivity : " << endl;
+  std::cerr << " ** nodes to subdomain connectivity : " << std::endl;
   nToS->print();
 #endif   
   // number of elements in a subdomain as weight
@@ -56,7 +56,7 @@ Sower::Sower(Connectivity* subToElem, Elemset& eset, int nClus, ResizeArray<Surf
   //addParentToChildData<Elemset*,Connectivity*>(ELEMENTS,CLUSTER,0,&eset,clusToSub);
 
 #ifdef SOWER_DEBUG
-  cerr << " ** cluster to subdomain connectivity : " << endl;
+  std::cerr << " ** cluster to subdomain connectivity : " << std::endl;
   clusToSub->print();
 #endif   
   // PJSA: write clusToSub file
@@ -88,7 +88,7 @@ Sower::Sower(Connectivity* subToElem, Elemset& eset, int nClus, ResizeArray<Surf
     for(int i=0; i<Surfaces->max_size(); i++)
       if((*Surfaces)[i]) nSurfaces++;
   }
-  if(nSurfaces) cerr << " ... "<<nSurfaces<<" surfaces have been defined in input file"<<endl;
+  if(nSurfaces) std::cerr << " ... "<<nSurfaces<<" surfaces have been defined in input file"<<std::endl;
   // Write (global) number of surfaces into connectivity files
   file3.write(&nSurfaces,1);
 
@@ -101,7 +101,7 @@ Sower::Sower(Connectivity* subToElem, Elemset& eset, int nClus, ResizeArray<Surf
 
 Sower::~Sower()
 {
-  for(map<TypeTag,DataStruct*>::iterator it = entries.begin(); it != entries.end(); it++)
+  for(std::map<TypeTag,DataStruct*>::iterator it = entries.begin(); it != entries.end(); it++)
     if((*it).second != 0)
       delete((*it).second);
   if(clusToSub)
@@ -111,12 +111,12 @@ Sower::~Sower()
 void Sower::printDebug()
 {
   std::cerr << " def : END=0,NODES=1,ELEMENTS=2,ATTRIBUTES=3,FORCES=4,MATERIALS=5,DISPLACEMENTS=6,\
-	     EFRAMES=7,COMPOSITE=8,CFRAMES=9,CLUSTER=10 etc " << endl;
-  for(map<TypeTag,DataStruct*>::iterator it = entries.begin(); it != entries.end(); it++)
+	     EFRAMES=7,COMPOSITE=8,CFRAMES=9,CLUSTER=10 etc " << std::endl;
+  for(std::map<TypeTag,DataStruct*>::iterator it = entries.begin(); it != entries.end(); it++)
     {
-      std::cerr << endl << " Cluster to " << (*it).first << " connectivity : " << endl;
+      std::cerr << std::endl << " Cluster to " << (*it).first << " connectivity : " << std::endl;
       (*it).second->getClusterToData(clusToSub)->print();
-      std::cerr << endl << " SubDomain to " << (*it).first << " connectivity : " << endl;
+      std::cerr << std::endl << " SubDomain to " << (*it).first << " connectivity : " << std::endl;
       (*it).second->getSubToData()->print();
     }
 }
@@ -303,24 +303,21 @@ void Sower::write()
       strcpy(filename, clusterData_.c_str());
       strcat(filename, clusterNumStr);
 #ifdef SOWER_DEBUG
-      cout << " ** Writing to file " << filename << endl;
+      std::cout << " ** Writing to file " << filename << std::endl;
 #endif
       BinFileHandler file(filename, "wb");
       
       // counting number of data types in cluster
       int dataTypesNumber = 0;
-      map<TypeTag,DataStruct*>::iterator it = entries.begin();
+      std::map<TypeTag,DataStruct*>::iterator it = entries.begin();
       for(; it!=entries.end(); it++) {
-//cerr << "Passage" << (*it).second->getClusterToData(clusToSub)->num(currentClusNum-1) << endl;
-//(*it).second->getClusterToData(clusToSub)->print();
 	if((*it).second->getClusterToData(clusToSub)->num(currentClusNum-1) > 0) {
-//cerr << "selection" << endl;
 	  dataTypesNumber++;
         }
       }
       if(nSurfaces) dataTypesNumber++; //HB: make room for surfaces header/toc
 #ifdef SOWER_DEBUG
-      cout << " ** " << dataTypesNumber << " different data types will be written to this file." << endl;
+      std::cout << " ** " << dataTypesNumber << " different data types will be written to this file." << std::endl;
 #endif     
       
       // saving space for the table of content
@@ -375,13 +372,9 @@ size_t
 DataStruct::write(int clusNumber, Connectivity* clusToSub, int numSubdomains, 
                   BinFileHandler& file, INT64BIT& curRangeSetLocation)
 {
-  map<int, RangeSet*> rangeSet;  // where is each subdomain's data written ?
+  std::map<int, RangeSet*> rangeSet;  // where is each subdomain's data written ?
 
-  // Connectivity * clusterToData = clusToSub->transcon(subToData);
-  // Connectivity * clusterToData = getClusterToData(clusToSub); // PJSA
   if(!clusterToData) clusterToData = clusToSub->transcon(subToData);
-//  cerr << "subToData = \n"; subToData->print();
-//  cerr << "clusterToData = \n"; clusterToData->print();
   Connectivity * objToSub = subToData->reverse();
   bool * subIsInClus = new bool[numSubdomains];
   for(int i=0; i<numSubdomains; i++)
@@ -439,7 +432,7 @@ DataStruct::write(int clusNumber, Connectivity* clusToSub, int numSubdomains,
   file.seek(file.tell() + sizeof(int));
   // writing range set for this datatype
   int realNumOfSubs = 0;
-  for(map<int, RangeSet*>::iterator it = rangeSet.begin(); it != rangeSet.end(); ++it) {
+  for(std::map<int, RangeSet*>::iterator it = rangeSet.begin(); it != rangeSet.end(); ++it) {
     if(!(*it).second->empty()) {
       ++realNumOfSubs;
       int subNum = (*it).first;
@@ -493,7 +486,7 @@ size_t ElemsetIO::write(Elemset* eset, int index, BinFileHandler& file, int curO
 void Sower::writeSurfaces(BinFileHandler& file, INT64BIT& tocCurrentOffset, INT64BIT& nextEntryOffset, INT64BIT& curRangeSetLocation)
 {
 #ifdef SOWER_DEBUG_SURFS
-   cerr<<" ** Write surfaces"<<endl;
+   std::cerr<<" ** Write surfaces"<<std::endl;
 #endif
    // updating toc with entry for this datatype
    file.seek(tocCurrentOffset);
@@ -505,10 +498,10 @@ void Sower::writeSurfaces(BinFileHandler& file, INT64BIT& tocCurrentOffset, INT6
 
    // preparing to write all the data of this datatype
    file.seek(nextEntryOffset);
-   map<int, RangeSet*> surfRangeSet;  
+   std::map<int, RangeSet*> surfRangeSet;  
    for(int isurf=0; isurf<nSurfaces; isurf++) { //assume the surface are "packed" in the Surfaces array
 #ifdef SOWER_DEBUG_SURFS
-   cerr<<" ** Write surface "<< isurf<<endl;
+   std::cerr<<" ** Write surface "<< isurf<<std::endl;
 #endif
    surfRangeSet[isurf] = new RangeSet();
    surfRangeSet[isurf]->start(file.tell(), isurf);
@@ -520,13 +513,10 @@ void Sower::writeSurfaces(BinFileHandler& file, INT64BIT& tocCurrentOffset, INT6
   file.seek(file.tell() + sizeof(int));
   // writing range set for this datatype
   int realNumOfSurfs = 0;
-  for(map<int, RangeSet*>::iterator it = surfRangeSet.begin(); it != surfRangeSet.end(); ++it) {
+  for(std::map<int, RangeSet*>::iterator it = surfRangeSet.begin(); it != surfRangeSet.end(); ++it) {
     if(!(*it).second->empty()) {
       ++realNumOfSurfs;
       int surfNum = (*it).first;
-//#ifdef SOWER_DEBUG_SURFS
-//cerr << "Driver.d/Sower.C, surfNum = " << surfNum << endl;//-JFD
-//#endif
       file.write(&surfNum,1);
 #ifdef SOWER_DEBUG_SURFS
       (*it).second->print();

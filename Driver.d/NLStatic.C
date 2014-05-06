@@ -2427,7 +2427,7 @@ Domain::transformElemStiffAndForce(const GeomState &geomState, double *elementFo
               << " type " << packedEset[iele]->getElementType() << std::endl;
   }
 #else
-  cerr << "USE_EIGEN3 is not defined here in Domain::transformElemStiffAndForce\n";
+  std::cerr << "USE_EIGEN3 is not defined here in Domain::transformElemStiffAndForce\n";
   exit(-1);
 #endif
 }
@@ -2456,7 +2456,7 @@ Domain::transformNodalMoment(const GeomState &geomState, double _G[],
     H = (T*H*T.transpose()).eval() + 0.5*(C1 + C1.transpose());
   }
 #else
-  cerr << "USE_EIGEN3 is not defined here in Domain::transformNodalMoment\n";
+  std::cerr << "USE_EIGEN3 is not defined here in Domain::transformNodalMoment\n";
   exit(-1);
 #endif
 }
@@ -2514,7 +2514,7 @@ Domain::transformElemStiff(const GeomState &geomState, FullSquareMatrix &kel, in
     delete [] nodes;
   }
 #else
-  cerr << "USE_EIGEN3 is not defined here in Domain::transformElemStiff\n";
+  std::cerr << "USE_EIGEN3 is not defined here in Domain::transformElemStiff\n";
   exit(-1);
 #endif
 }

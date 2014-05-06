@@ -25,7 +25,9 @@ extern std::string connectivity_;
 #include <Element.d/Sommerfeld.d/Triangle6SommerBC.h>
 #include <Element.d/Sommerfeld.d/IsoParamQuadSommer.h>
 #include <Element.d/Sommerfeld.d/IsoParamTriSommer.h>
+#include <iostream>
 #include <list>
+#include <map>
 #include <vector>
 #include <Driver.d/Access.h>
 #include <Utils.d/CompositeInfo.h>
@@ -201,14 +203,14 @@ class TOCEntry
 class Sower 
 {
  private:
-  map<TypeTag,DataStruct*> entries;
+  std::map<TypeTag,DataStruct*> entries;
   int nCluster;                                /* true number of cluster */
   int numSubdomains;                           /* number of subdomains in mesh decomposition */ 
   Connectivity * clusToSub; // used for writing
   Connectivity * subToClus; // used for reading
-  map<TypeTag,map<int,int>* > globalToLocal;   // mapsglobalnumber to local indexes
-  map<TypeTag,map<int,RangeSet*>* > rangeSets; // rangesets for each type of data
-  map<TypeTag,TOCEntry*> toc;                  // we read the table of content only one time
+  std::map<TypeTag,std::map<int,int>* > globalToLocal;   // mapsglobalnumber to local indexes
+  std::map<TypeTag,std::map<int,RangeSet*>* > rangeSets; // rangesets for each type of data
+  std::map<TypeTag,TOCEntry*> toc;                  // we read the table of content only one time
   bool tocRead;
 
   int nSurfaces; //HB
@@ -319,20 +321,20 @@ class Sower
   /* returns the rangeSet for a particlar datatype and subdomain -- bufferised so we read rangesets once */
   RangeSet * getRangeSet(TypeTag datatype, int subdomain, BinFileHandler &file)
     {
-      map<TypeTag, map<int,RangeSet*>* >::iterator it = rangeSets.find(datatype);
-      map<int,RangeSet*>* rs;
+      std::map<TypeTag, std::map<int,RangeSet*>* >::iterator it = rangeSets.find(datatype);
+      std::map<int,RangeSet*>* rs;
       if(it == rangeSets.end()) { // range sets never read for this type of data
         // find location of rangeset in TOC
-        map<TypeTag,TOCEntry*>::iterator ite = toc.find(datatype);
+        std::map<TypeTag,TOCEntry*>::iterator ite = toc.find(datatype);
         if(ite == toc.end()) {
 #ifdef SOWER_DEBUG
-          std::cerr << "Warning : no entry in toc for this datatype" << datatype << endl;
+          std::cerr << "Warning : no entry in toc for this datatype" << datatype << std::endl;
 #endif
           return 0;
         }
         file.seek(toc[datatype]->range);
 	// now read the rangeset
-        rs = new map<int, RangeSet*>();
+        rs = new std::map<int, RangeSet*>();
         int numOfSubs;
         file.read(&numOfSubs, 1);
         for(int i=0; i<numOfSubs; ++i) {
@@ -347,12 +349,12 @@ class Sower
       }
 #ifdef SOWER_DEBUG
       // show me the rangeset
-      //for(map<int, RangeSet*>::iterator ite = rs->begin(); ite!=rs->end(); ++ite) {
-      //  std::cerr<<"Sub "<<(*ite).first<<endl;
+      //for(std::map<int, RangeSet*>::iterator ite = rs->begin(); ite!=rs->end(); ++ite) {
+      //  std::cerr<<"Sub "<<(*ite).first<<std::endl;
       //  (*ite).second->print();
       //}
 #endif      
-      map<int, RangeSet*>::iterator ite = rs->find(subdomain); 
+      std::map<int, RangeSet*>::iterator ite = rs->find(subdomain); 
       if(ite == rs->end()) {
 #ifdef SOWER_DEBUG
         std::cerr << " ** WARNING getRangeSet :: subdomain " << subdomain << " has no data of type " << datatype << std::endl;
@@ -394,17 +396,17 @@ class Sower
     size_t readNum(TypeTag type, Scalar *p, int nobjs, BinFileHandler& file)
     {
       file.read(p, nobjs);
-      map<TypeTag, map<int, int>* >::iterator it = globalToLocal.find(type);
+      std::map<TypeTag, std::map<int, int>* >::iterator it = globalToLocal.find(type);
       if(it == globalToLocal.end()) {
         std::cerr << " ** Error : globalToLocal table not found for "<< type << std::endl;
         exit(1);
       }
-      map<int,int>* table = (*it).second;
+      std::map<int,int>* table = (*it).second;
       for(int i = 0; i < nobjs; ++i) {
-        map<int, int>::iterator fs = (*table).find(p[i]); 
+        std::map<int, int>::iterator fs = (*table).find(p[i]); 
 	if(fs == table->end())
 	  std::cerr << " ** WARNING (CRITICAL) : could'nt find translation for entry " << p[i] 
-                    << " in table "<< type << endl;
+                    << " in table "<< type << std::endl;
 	else
 	  p[i] = (*table)[ p[i] ];
       }
@@ -415,10 +417,10 @@ class Sower
   void printDebug();
   void printTables()
     {
-      for(map<TypeTag, map<int, int>* >::iterator ite = globalToLocal.begin(); ite != globalToLocal.end(); ++ite) {
+      for(std::map<TypeTag, std::map<int, int>* >::iterator ite = globalToLocal.begin(); ite != globalToLocal.end(); ++ite) {
         std::cerr << "Table for type " << ite->first << std::endl;
-        map<int, int>* m = ite->second;
-        for(map<int, int>::iterator it = (*m).begin(); it!=(*m).end(); ++it) {
+        std::map<int, int>* m = ite->second;
+        for(std::map<int, int>::iterator it = (*m).begin(); it!=(*m).end(); ++it) {
           std::cerr << it->first << " -> " << it->second << std::endl;
         }
       }
@@ -449,7 +451,7 @@ std::cerr << "Sower.h, readData, ElemsetIO" << std::endl;
       // Element * el;
       s->read(&elType, 1, file);
       s->read(&nNodes, 1, file);
-      if(nNodes == 0) { cerr << "Sower.h found void element in readData, elType = " << elType << endl; return; }
+      if(nNodes == 0) { std::cerr << "Sower.h found void element in readData, elType = " << elType << std::endl; return; }
       s->readNum<>(NODES_TYPE, nodes, nNodes, file);
       obj->elemadd(localIndex, elType, nNodes, nodes);
       double pressure;
@@ -476,25 +478,25 @@ std::cerr << "Sower.h, readData, ElemsetIO" << std::endl;
 class AttribIO
 {
  public:
-  static size_t write(std::pair<int, map<int,Attrib>* >* attribp, int index, BinFileHandler& file, int curObjID)
+  static size_t write(std::pair<int, std::map<int,Attrib>* >* attribp, int index, BinFileHandler& file, int curObjID)
     {
 #ifdef SOWER_DEBUG
-      cerr << "writing attribute index = " << index << " curObjID = " << curObjID << endl;
+      std::cerr << "writing attribute index = " << index << " curObjID = " << curObjID << std::endl;
 #endif
       file.write(&curObjID, 1);
-      map<int, Attrib>* attrib = attribp->second;
+      std::map<int, Attrib>* attrib = attribp->second;
       file.write(&(*attrib)[index].nele, 1);
       file.write(&(*attrib)[index].attr, 1);
       return 0;
     }
 
-  typedef std::pair<int, map<int,Attrib>* >* oType;
+  typedef std::pair<int, std::map<int,Attrib>* >* oType;
   const static TypeTag dataType = ATTRIBUTES_TYPE;
 
   static oType create(int size)
     {
       Attrib a;
-      return(new std::pair<int, map<int,Attrib>* >(0, new map<int,Attrib>() ));
+      return(new std::pair<int, std::map<int,Attrib>* >(0, new std::map<int,Attrib>() ));
     }
 
   static void readData(oType obj, Sower* s, int localIndex, BinFileHandler& file)
@@ -614,7 +616,7 @@ class DMassIO
 {
  public:
   /* will write to file the node at index index's coordinates */
-  static size_t write(vector<DMassData*>* dmd, int index, BinFileHandler& file, int curObjID)
+  static size_t write(std::vector<DMassData*>* dmd, int index, BinFileHandler& file, int curObjID)
     {
 #ifdef SOWER_DEBUG
       std::cerr << "writing discrete mass index = " << index << " curObjID = " << curObjID << std::endl;
@@ -625,12 +627,12 @@ class DMassIO
       return 0;
     }
 
-  typedef vector<DMassData*>* oType;
+  typedef std::vector<DMassData*>* oType;
   const static TypeTag dataType = DIMASS_TYPE;
 
   static oType create(int size)
     {
-      return new vector<DMassData*> ();
+      return new std::vector<DMassData*> ();
     }
 
   static void readData(oType obj, Sower* s, int localIndex, BinFileHandler& file)
@@ -650,7 +652,7 @@ class BoffsetIO
 {
  public:
   /* will write to file the node at index index's coordinates */
-  static size_t write(vector<OffsetData>* data, int index, BinFileHandler& file, int curObjID)
+  static size_t write(std::vector<OffsetData>* data, int index, BinFileHandler& file, int curObjID)
     {
 #ifdef SOWER_DEBUG
       std::cerr << "writing beam offset index = " << index << " curObjID = " << curObjID << std::endl;
@@ -664,12 +666,12 @@ class BoffsetIO
       return 0;
     }
 
-  typedef vector<OffsetData>* oType;
+  typedef std::vector<OffsetData>* oType;
   const static TypeTag dataType = BOFFSET_TYPE;
 
   static oType create(int size)
     {
-      return(new vector<OffsetData>());
+      return(new std::vector<OffsetData>());
     }
 
   static void readData(oType obj, Sower* s, int localIndex, BinFileHandler& file)
@@ -718,12 +720,12 @@ class EFrameIO
       return 0;
     }
 
-  typedef vector<EFrameData>* oType;
+  typedef std::vector<EFrameData>* oType;
   const static TypeTag dataType = EFRAME_TYPE;
 
   static oType create(int size)
     {
-      return(new vector<EFrameData>());
+      return(new std::vector<EFrameData>());
     }
 
   static void readData(oType obj, Sower* s, int localIndex, BinFileHandler& file)
@@ -775,11 +777,11 @@ class BCDataIO
       return 0;
     }
 
-  typedef list<BCond *>* oType;
+  typedef std::list<BCond *>* oType;
   const static TypeTag dataType = DATATYPE;
   static oType create(int size)
     {
-      return(new list<BCond *>());
+      return(new std::list<BCond *>());
     }
 
   static void readData(oType obj, Sower* s, int localIndex, BinFileHandler& file)
@@ -818,11 +820,11 @@ class ComplexBCDataIO
       return 0;
     }
 
-  typedef list<ComplexBCond *>* oType;
+  typedef std::list<ComplexBCond *>* oType;
   const static TypeTag dataType = DATATYPE;
   static oType create(int size)
     {
-      return(new list<ComplexBCond *>());
+      return(new std::list<ComplexBCond *>());
     }
 
   static void readData(oType obj, Sower* s, int localIndex, BinFileHandler& file)
@@ -864,11 +866,11 @@ class SommerDataIO
       return 0;
     }
 
-  typedef list<SommerElement *>* oType;
+  typedef std::list<SommerElement *>* oType;
   const static TypeTag dataType = DATATYPE;
   static oType create(int size)
     {
-      return(new list<SommerElement *>());
+      return(new std::list<SommerElement *>());
     }
 
   static void readData(oType obj, Sower* s, int localIndex, BinFileHandler& file)
@@ -966,13 +968,13 @@ class MatIO
       return 0;
     }
 
-  typedef std::pair<int,map<int,StructProp>* >* oType;
+  typedef std::pair<int,std::map<int,StructProp>* >* oType;
   const static TypeTag dataType = MATERIALS_TYPE;
 
   static oType create(int size)
     {
       StructProp h;
-      return(new std::pair<int, map<int,StructProp>* >(0, new map<int,StructProp>() ));
+      return(new std::pair<int, std::map<int,StructProp>* >(0, new std::map<int,StructProp>() ));
     }
 
   static void readData(oType obj, Sower* s, int localIndex, BinFileHandler& file)
@@ -1229,12 +1231,12 @@ class CompositeLIO
       return 0;
     }
 
-  typedef std::pair<int,map<int,LayInfo*>* >* oType;
+  typedef std::pair<int,std::map<int,LayInfo*>* >* oType;
   const static TypeTag dataType = COMPOSITEL_TYPE;
 
   static oType create(int size)
     {
-      return(new std::pair<int, map<int,LayInfo*>* >(0, new map<int,LayInfo*>() ));
+      return(new std::pair<int, std::map<int,LayInfo*>* >(0, new std::map<int,LayInfo*>() ));
     }
 
   static void readData(oType obj, Sower* s, int localIndex, BinFileHandler& file)
@@ -1283,12 +1285,12 @@ class CompositeCIO
       return 0;
     }
 
-  typedef std::pair<int,map<int,CoefData*>* >* oType;
+  typedef std::pair<int,std::map<int,CoefData*>* >* oType;
   const static TypeTag dataType = COMPOSITEC_TYPE;
 
   static oType create(int size)
     {
-      return(new std::pair<int, map<int,CoefData*>* >(0, new map<int,CoefData*>() ));
+      return(new std::pair<int, std::map<int,CoefData*>* >(0, new std::map<int,CoefData*>() ));
     }
 
   static void readData(oType obj, Sower* s, int localIndex, BinFileHandler& file)
@@ -1329,12 +1331,12 @@ class CFramesIO
       return 0;
     }
 
-  typedef std::pair<int,map<int,double*>* >* oType;
+  typedef std::pair<int,std::map<int,double*>* >* oType;
   const static TypeTag dataType = CFRAMES_TYPE;
 
   static oType create(int size)
     {
-      return(new std::pair<int, map<int,double*>* >(0, new map<int,double*>() ));
+      return(new std::pair<int, std::map<int,double*>* >(0, new std::map<int,double*>() ));
     }
 
   static void readData(oType obj, Sower* s, int localIndex, BinFileHandler& file)
@@ -1408,7 +1410,7 @@ void
 Sower::addParentToChildData(TypeTag thisType, TypeTag parentType, int ndata, 
                             DataType data, MapType parentToChild)
 {
-  map<TypeTag,DataStruct*>::iterator it = entries.find(parentType);
+  std::map<TypeTag,DataStruct*>::iterator it = entries.find(parentType);
   if(it != entries.end()) { // found cluster to parent connectivity
     // construct cluster to child with parent to child connectivity
     entries[thisType] = new GenDataStruct<DataType,IOObject>
@@ -1423,7 +1425,7 @@ void
 Sower::addChildToParentData(TypeTag thisType, TypeTag parentType, int ndata, 
                             DataType data, MapType childToParent)
 {
-  map<TypeTag,DataStruct*>::iterator it = entries.find(parentType);
+  std::map<TypeTag,DataStruct*>::iterator it = entries.find(parentType);
     if(it != entries.end()) { // found cluster to parent connectivity
       // construct cluster to child with parent to child connectivity
       Connectivity* reChildToParent = childToParent->reverse();
@@ -1461,11 +1463,11 @@ IOObject::oType Sower::read(BinFileHandler& file, int subNum, int*& localToGloba
   if(rs == 0)  // nothing for this subdomain in this datatype !
     return(0);
 #ifdef SOWER_DEBUG
-  else cerr  << "found some data of type " << IOObject::dataType << " in subdomain " << subNum << endl;
+  else std::cerr  << "found some data of type " << IOObject::dataType << " in subdomain " << subNum << std::endl;
 #endif
   std::list<RangeEntry*>* rangeEntries = rs->getRangeEntries();
   typename IOObject::oType obj = IOObject::create(rs->size());
-  map<int,int>* table = new map<int, int>(); // global to local index table
+  std::map<int,int>* table = new std::map<int, int>(); // global to local index table
   int localIndex = 0;
   ResizeArray<int> localToGlobalMap(0);  // PJSA
   for(std::list<RangeEntry*>::iterator it = rangeEntries->begin(); it != rangeEntries->end(); ++it) 
@@ -1475,7 +1477,7 @@ IOObject::oType Sower::read(BinFileHandler& file, int subNum, int*& localToGloba
       while(true) {
 	file.read(&globObjID, 1); // element global number   
 	(*table)[globObjID] = localIndex;
-//        cerr << "localIndex = " << localIndex << ", globObjID = " << globObjID << endl;
+//      std::cerr << "localIndex = " << localIndex << ", globObjID = " << globObjID << std::endl;
 	IOObject::readData(obj, this, localIndex, file);
         localToGlobalMap[localIndex] = globObjID;  // PJSA
         localIndex++;

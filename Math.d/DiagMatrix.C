@@ -1,4 +1,5 @@
 #include <cstdio>
+#include <iostream>
 
 template<class Scalar>
 GenDiagMatrix<Scalar>::GenDiagMatrix(DofSetArray *_dsa)
@@ -16,7 +17,6 @@ GenDiagMatrix<Scalar>::~GenDiagMatrix()
 {
   if(v) { delete [] v; v = 0; }
 }
-
 
 template<class Scalar>
 void
@@ -179,5 +179,5 @@ GenDiagMatrix<Scalar>::factor()
       count++;
     }
   }
-  if(count > 0) cerr << " *** WARNING: " << count << " zero diagonal/s detected in mass matrix set to " << small << endl;
+  if(count > 0) std::cerr << " *** WARNING: " << count << " zero diagonal/s detected in mass matrix set to " << small << std::endl;
 }

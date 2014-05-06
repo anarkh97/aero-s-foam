@@ -1,6 +1,9 @@
 #ifndef _ACCESS_H_
 #define _ACCESS_H_
 
+#include <iostream>
+#include <vector>
+
 struct OffsetData {
   int first, last;
   double o[3];
@@ -25,7 +28,7 @@ class BoffsetAccessor{
 	  else
 	    {
 	      ndr = new int(getNum(l,i));
-	      std ::cerr << "(W) warning : unefficient use of BoffsetAccessor" << std::endl;
+	      std::cerr << "(W) warning : unefficient use of BoffsetAccessor" << std::endl;
 	    }
           for(int k = (l[i]).first; k <= (l[i]).last; ++k,++j)
             ndr[j] = k;
@@ -33,7 +36,7 @@ class BoffsetAccessor{
 	}
       else
 	{
-	  std::cerr << "BoffsetAccessor : offset out of range" << endl;
+	  std::cerr << "BoffsetAccessor : offset out of range" << std::endl;
 	}
       return(0);
     }

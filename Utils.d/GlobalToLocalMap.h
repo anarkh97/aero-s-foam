@@ -2,6 +2,7 @@
 #define _GLOBALTOLOCALMAP_H_
 
 #include "Driver.d/Communicator.h"
+#include <iostream>
 
 //#define HB_USE_MEMCPY
 #ifdef HB_USE_MEMCPY
@@ -96,13 +97,13 @@ class GlobalToLocalMap : public CommunicatableObject
     }
 
     void print(bool skip=false) {
-      cerr << "GlobalToLocalMap of size "<<size()<<": ";
+      std::cerr << "GlobalToLocalMap of size "<<size()<<": ";
       std::map<int,int>::iterator I = globalToLocalArray.begin();
       while(I!=globalToLocalArray.end()){
-        cerr <<"("<<(*I).first<<","<<(*I).second<<") ; ";
+        std::cerr <<"("<<(*I).first<<","<<(*I).second<<") ; ";
         I++;
       }
-      cerr << endl;
+      std::cerr << std::endl;
     }
 
     int size() { return globalToLocalArray.size(); }
@@ -159,7 +160,7 @@ class GlobalToLocalMap : public CommunicatableObject
         if(localToGlobalArray[i] > max) max = localToGlobalArray[i];
       }
       if(min<0)
-        cerr<<" ### PB in GlobalToLocalMap::initialize(...): min ("<<min<<") < 0"<<endl;
+        std::cerr<<" ### PB in GlobalToLocalMap::initialize(...): min ("<<min<<") < 0"<<std::endl;
       globalToLocalArray = new int[max-min+1];
       for(int i=0; i < (max-min+1); ++i) globalToLocalArray[i] = -1;
       nKeys = 0;
@@ -174,12 +175,12 @@ class GlobalToLocalMap : public CommunicatableObject
       else return globalToLocalArray[glNum-min];
     }
     void print(bool skip=false) {
-      cerr << "GlobalToLocalMap of size "<<max-min+1<<": ";
+      std::cerr << "GlobalToLocalMap of size "<<max-min+1<<": ";
       for(int i=min; i<=max; ++i){
         if(skip && (*this)[i]<0) continue;
-        cerr <<"("<<i<<","<<(*this)[i]<<") ; ";
+        std::cerr <<"("<<i<<","<<(*this)[i]<<") ; ";
       }
-      cerr << endl;
+      std::cerr << std::endl;
     }
     int size() { return (max-min+1>0) ? max-min+1 : 0; } 
     int numKeys() { return nKeys; }
@@ -207,7 +208,7 @@ class GlobalToLocalMap : public CommunicatableObject
         min  = rInfo.data[0];
         max  = rInfo.data[1];
         nKeys= rInfo.data[2];
-        //cerr<<" in GlobalToLocalMap::unpack(...): min = "<<min<<", max = "<<max<<endl;
+        //std::cerr<<" in GlobalToLocalMap::unpack(...): min = "<<min<<", max = "<<max<<std::endl;
         if(max-min+1<=0) { min = 0; max = -1; globalToLocalArray = 0; nKeys = 0; return; }
         globalToLocalArray = new int[max-min+1];
 #ifdef HB_USE_MEMCPY

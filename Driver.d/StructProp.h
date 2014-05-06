@@ -18,11 +18,11 @@ struct Attrib {
 
 class ElemAttrAccessor{
  public:
-  static int getNum(/*const*/ std::pair<int,map<int,Attrib> *> &, int )
+  static int getNum(/*const*/ std::pair<int,std::map<int,Attrib> *> &, int )
     { return 1; }
-  static int getSize(const std::pair<int,map<int,Attrib> *> &o)
+  static int getSize(const std::pair<int,std::map<int,Attrib> *> &o)
     { return o.first; }
-  static int *getData(/*const*/ std::pair<int,map<int,Attrib> *> &o, int i, int *nd)
+  static int *getData(/*const*/ std::pair<int,std::map<int,Attrib> *> &o, int i, int *nd)
      { 
        if(nd) { nd[0] = (*(o.second))[i].nele; return nd; }
        else return &(*(o.second))[i].nele;
@@ -31,11 +31,11 @@ class ElemAttrAccessor{
 
 class MatAttrAccessor{ // EleToMat
  public:
-  static int getNum(/*const*/ std::pair<int,map<int,Attrib> *> &, int )
+  static int getNum(/*const*/ std::pair<int,std::map<int,Attrib> *> &, int )
     { return 1; }
-  static int getSize(const std::pair<int,map<int,Attrib> *> &o)
+  static int getSize(const std::pair<int,std::map<int,Attrib> *> &o)
     { return o.first; }
-  static int *getData(/*const*/ std::pair<int,map<int,Attrib> *> &o, int i, int *nd)
+  static int *getData(/*const*/ std::pair<int,std::map<int,Attrib> *> &o, int i, int *nd)
      { 
        if(nd) { nd[0] = (*(o.second))[i].attr; return nd; }
        else return &(*(o.second))[i].attr;
@@ -46,16 +46,16 @@ class MatAttrAccessor{ // EleToMat
 
 class CmpAttrAccessor{
  public:
-  static int getNum(/*const*/ std::pair<int,map<int,Attrib> *> &o, int i)
+  static int getNum(/*const*/ std::pair<int,std::map<int,Attrib> *> &o, int i)
     { 
       if ( (*(o.second))[i].cmp_attr != -1 )
 	return 1; 
       else
 	return 0;
     }
-  static int getSize(const std::pair<int,map<int,Attrib> *> &o)
+  static int getSize(const std::pair<int,std::map<int,Attrib> *> &o)
     { return o.first; }
-  static int *getData(/*const*/ std::pair<int,map<int,Attrib> *> &o, int i, int *nd)
+  static int *getData(/*const*/ std::pair<int,std::map<int,Attrib> *> &o, int i, int *nd)
      { 
        if ( (*(o.second))[i].cmp_attr != -1 )
 	 {
@@ -69,16 +69,16 @@ class CmpAttrAccessor{
 
 class CmpFrAttrAccessor{
  public:
-  static int getNum(/*const*/ std::pair<int,map<int,Attrib> *> &o, int i)
+  static int getNum(/*const*/ std::pair<int,std::map<int,Attrib> *> &o, int i)
     { 
       if ( (*(o.second))[i].cmp_frm != -1 )
 	return 1; 
       else
 	return 0;
     }
-  static int getSize(const std::pair<int,map<int,Attrib> *> &o)
+  static int getSize(const std::pair<int,std::map<int,Attrib> *> &o)
     { return o.first; }
-  static int *getData(/*const*/ std::pair<int,map<int,Attrib> *> &o, int i, int *nd)
+  static int *getData(/*const*/ std::pair<int,std::map<int,Attrib> *> &o, int i, int *nd)
      { 
        if ( (*(o.second))[i].cmp_frm != -1 )
 	 {

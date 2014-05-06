@@ -13,6 +13,7 @@
 #include <Utils.d/dbg_alloca.h>
 #include <Feti.d/DistrVectorSet.h>
 #include <Solvers.d/ParallelSolver.h>
+#include <iostream>
 
 template <class Scalar> class GenFetiOp;
 typedef GenFetiOp<double> FetiOp;
@@ -442,7 +443,7 @@ class GenFetiDPSolver : public GenFetiSolver<Scalar>
     // Contact functions
   public:
     void makeGtG();
-    void deleteGtG() { cerr << "deleteGtG is not implemented\n"; };
+    void deleteGtG() { std::cerr << "deleteGtG is not implemented\n"; };
     void trMultC(GenDistrVector<Scalar> &lambda, GenDistrVector<Scalar> &f);
     void multC(GenDistrVector<Scalar> &u, GenDistrVector<Scalar> &cu);
   private:

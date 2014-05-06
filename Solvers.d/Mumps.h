@@ -13,6 +13,7 @@
 #include <Math.d/VectorSet.h>
 #include <Solvers.d/MultiDomainSolver.h>
 #include <Feti.d/DistrVectorSet.h>
+#include <complex>
 
 class EqNumberer;
 class ConstrainedDSA;

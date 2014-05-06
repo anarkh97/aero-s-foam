@@ -1094,7 +1094,7 @@ void Connectivity::renumberTargets(int *map)  {
 
 //----------------------------------------------------------------------
  
-void Connectivity::renumberTargets(map<int, int> &map)  {
+void Connectivity::renumberTargets(std::map<int, int> &map)  {
  
   for (int i = 0; i < numtarget; i++)  {
     if (map.find(target[i]) == map.end())

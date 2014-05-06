@@ -894,7 +894,7 @@ ContactSearch::Create_Search_Topology( VariableHandle POSITION )
 	      if (printlimit < 5) {
 		ContactNodeFaceInteraction* cnfi = 
 		  dynamic_cast<ContactNodeFaceInteraction*>(cnei);
-		cout 
+		std::cout 
 		  <<"In ContactSearch::Create_Search_Topology(), step "
 		  <<step_number<<"\n"
 		  <<"  can't reconnect interaction " << j 

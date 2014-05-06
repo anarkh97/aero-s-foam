@@ -20,7 +20,7 @@
 
 #include <algorithm>
 #include <memory>
-
+#include <fstream>
 #include <iostream>
 #include <cassert>
 
@@ -107,7 +107,7 @@ DistrROMPostProcessingDriver::bufferReducedFiles(){
   for(int i = 0; i < numConversionFiles; i++) {
     //have all threads parse the reduced coordinate input file
     //there should be plenty of memory per node since projectionSubspaceSize is small
-    ifstream reducedCoordFile(decDomain->getDomain()->solInfo().RODConversionFiles[i].c_str());
+    std::ifstream reducedCoordFile(decDomain->getDomain()->solInfo().RODConversionFiles[i].c_str());
     if(reducedCoordFile.is_open()) {
       if(skipTime > 1) filePrint(stderr, " ... Skipping every %3d snapshots   ...\n", skipTime);
 

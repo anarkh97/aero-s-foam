@@ -135,7 +135,7 @@ C... shift origin to node 0
       v4.normalize();
       len = v4.norm();
       if (len == 0.0) { 
-        cerr << " ... ERROR: Element has zero area.\n";
+        std::cerr << " ... ERROR: Element has zero area.\n";
       }
 
 //... Cross v4 and v1 (Local Y axis = v2)
@@ -197,7 +197,7 @@ C... shift origin to node 0
       for(i = 0; i<4; ++i) {
         len = abs(local(2,i)/local(0,1));
         if (len > 0.1) {
-          cerr << " ... Error: Element has warp > 10%\n";
+          std::cerr << " ... Error: Element has warp > 10%\n";
         }
       }
 
@@ -277,7 +277,7 @@ C... shift origin to node 0
 // Length of Rod
           len =  xr[1]*xr[1] + yr[1]*yr[1];
           if (len < 0) {
-            cerr << " ... Error: Rod has zero or negative length.\n";
+            std::cerr << " ... Error: Rod has zero or negative length.\n";
             exit(-1);
           }
           len = abs(sqrt(len));
@@ -490,7 +490,7 @@ C... shift origin to node 0
       v4.normalize();
       len = v4.norm();
       if (len == 0.0) { 
-        cerr << " ... ERROR: Element has zero area.\n";
+        std::cerr << " ... ERROR: Element has zero area.\n";
       }
 
 
@@ -502,8 +502,8 @@ C... shift origin to node 0
       v3 = v1.cross(v2);
       v3.normalize();
 
-      cerr << "printing v1, v2, v3\n" << endl;
-      cerr << v1 << endl << v2 << endl << v3 << endl;
+      std::cerr << "printing v1, v2, v3\n" << std::endl;
+      std::cerr << v1 << std::endl << v2 << std::endl << v3 << std::endl;
 
 //... Compute Local Coordinates: store in "local"
 
@@ -539,7 +539,7 @@ C... shift origin to node 0
           vl[2*i+1] = vl[2*i+1] + v2[j]*v[(3*i)+j];
         }
       }
-      cerr << "printint vl\n" << vl << endl;
+      std::cerr << "printint vl\n" << vl << std::endl;
 
 //... Construct T
       Eigen::Matrix<doublereal, 8, 12> T;
@@ -555,7 +555,7 @@ C... shift origin to node 0
            zero13, zero13, zero13, v1.transpose(),
            zero13, zero13, zero13, v2.transpose();
 
-      cerr << "printing T\n" << T << endl;
+      std::cerr << "printing T\n" << T << std::endl;
 
 //... Store Local Coordinates in x,y,z
 
@@ -571,7 +571,7 @@ C... shift origin to node 0
       for(i = 0; i<4; ++i) {
         len = abs(local(2,i)/local(0,1));
         if (len > 0.1) {
-          cerr << " ... Error: Element has warp > 10%\n";
+          std::cerr << " ... Error: Element has warp > 10%\n";
         }
       }
 
@@ -606,8 +606,8 @@ C... shift origin to node 0
       DvmsDdisp2.setZero();
       this->vms2WRTdisp(escm,x.data(),y.data(),c.data(),vl.data(),DvmsDdisp2.data(),DquadstressDdisp.data(),
                         four,seven,one,one,true,true,0,0,0);
-      cerr << "printing DvmsDdisp2\n" << DvmsDdisp2 << endl;
-      cerr << "printing DquadstressDdisp\n" << DquadstressDdisp << endl;
+      std::cerr << "printing DvmsDdisp2\n" << DvmsDdisp2 << std::endl;
+      std::cerr << "printing DquadstressDdisp\n" << DquadstressDdisp << std::endl;
 
 // Transform to Global Frame
 
@@ -625,7 +625,7 @@ C... shift origin to node 0
         stress(5,j) = quadstress(0,j)*v1(0)*v1(2) + quadstress(3,j)*v2[0]*v1[2] + quadstress(3,j)*v1[0]*v2[2] + quadstress(1,j)*v2[0]*v2[2]; // Global XZ Stress
       }
  
-      cerr << "printing stress\n" << stress << endl;
+      std::cerr << "printing stress\n" << stress << std::endl;
 
       Eigen::Matrix<doublereal, 24, 12> DstressDquadstress;
       DstressDquadstress.setZero(); 
@@ -679,7 +679,7 @@ C... shift origin to node 0
       DstressDquadstress(5,1) = v2[0]*v2[2];
       DstressDquadstress(5,2) = v2[0]*v1[2] + v1[0]*v2[2]; //
 */
-      cerr << "printing DstressDquadstress\n" << DstressDquadstress << endl;
+      std::cerr << "printing DstressDquadstress\n" << DstressDquadstress << std::endl;
 //... Compute the Von Mises Stress
 
       for(j = 0; j < 4; ++j) {
@@ -690,7 +690,7 @@ C... shift origin to node 0
       }
       this->vmelmv(vmsstress.data(),four,seven,one,one,four);
       vmssig = vmsstress(6,0);
-      cerr << vmsstress(6,0) << " "  << vmsstress(6,1) <<  " " << vmsstress(6,2) << " " << vmsstress(6,3) << endl;
+      std::cerr << vmsstress(6,0) << " "  << vmsstress(6,1) <<  " " << vmsstress(6,2) << " " << vmsstress(6,3) << std::endl;
 
       Eigen::Matrix<doublereal,4,24> dvmsdStress;
       dvmsdStress.setZero();
@@ -709,10 +709,10 @@ C... shift origin to node 0
         dvmsdStress(n,6*n+5) = (3.*stress(5,n))/vmsstress(6,n);
       }
 
-      cerr << "printing dvmsdStress\n" << dvmsdStress << endl;
+      std::cerr << "printing dvmsdStress\n" << dvmsdStress << std::endl;
 
       vmsWRTdisp = (dvmsdStress * DstressDquadstress) * (DquadstressDdisp * T);
-      cerr << "printing vmsWRTdisp\n" << vmsWRTdisp << endl;
+      std::cerr << "printing vmsWRTdisp\n" << vmsWRTdisp << std::endl;
  
 }
 

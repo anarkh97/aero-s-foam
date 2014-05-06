@@ -127,7 +127,7 @@ Penta15::getVonMises(Vector& stress,Vector& weight,CoordSet &cs,
   if(cCoefs) { // anisotropic/orthotropic material
     // transform local constitutive matrix to global frame
 #ifdef PENTA15_DEBUG 
-    cerr<<" *** DEBUG: Penta15::getVonMises, anisotropic/orthotropic material\n";
+    std::cerr<<" *** DEBUG: Penta15::getVonMises, anisotropic/orthotropic material\n";
 #endif
     rotateConstitutiveMatrix(cCoefs, cFrame, C);
   } else  // isotropic material
@@ -219,7 +219,7 @@ Penta15::getAllStress(FullM& stress,Vector& weight,CoordSet &cs,
   if(cCoefs) { // anisotropic/orthotropic material
     // transform local constitutive matrix to global frame
 #ifdef PENTA15_DEBUG 
-    cerr<<" *** DEBUG: Brick15::getVonMises, anisotropic/orthotropic material\n";
+    std::cerr<<" *** DEBUG: Brick15::getVonMises, anisotropic/orthotropic material\n";
 #endif
     rotateConstitutiveMatrix(cCoefs, cFrame, C);
   } else  // isotropic material

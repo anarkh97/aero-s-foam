@@ -1,22 +1,11 @@
 #ifndef _FS_COMMUNICATOR_H_
 #define _FS_COMMUNICATOR_H_
-#include <fstream>
 #include <Utils.d/Connectivity.h>
-#include <complex>
-
-#include <algorithm>
-using namespace std;
-//#ifdef SUNOS
-//#include <algorithm.cc>
-//#else
-//#include <algo.h>
 
 #ifdef USE_MPI
 #ifdef RS6000_SYS
 #include "/usr/lpp/ppe.poe/include/mpi.h"
 #else
-#include <iostream>
-using namespace std;
 #ifndef MPI_NO_CPPBIND
 #define MPI_NO_CPPBIND
 #endif
@@ -27,6 +16,10 @@ using namespace std;
 #include <map>
 #include <vector>
 #include <iterator>
+#include <iostream>
+#include <fstream>
+#include <complex>
+#include <algorithm>
 
 struct
 FSRecInfo {
@@ -57,7 +50,7 @@ class FSCommunicator {
      void exchange(int tag, int numNeighb, int *cpus,
        int *sndLen, double **sndData, int *crvLen, double **rcvData); 
      void exchange(int tag, int numNeighb, int *cpus,
-       int *sndLen, complex<double> **sndData, int *crvLen, complex<double> **rcvData);
+       int *sndLen, std::complex<double> **sndData, int *crvLen, std::complex<double> **rcvData);
 
      void abort(int errorCode);
      void sync() {
@@ -149,7 +142,7 @@ class FSSubRecInfo {
 
 };
 
-typedef map<Triplet, int> MapType;
+typedef std::map<Triplet, int> MapType;
 typedef MapType::value_type ValuePair;
 typedef MapType::iterator MapIter;
 
@@ -178,7 +171,7 @@ class FSCommPattern {
      int myCPU;
      int numChannels;
      MapType channelMap;
-     vector< FSSubRecInfo<T> > sRecInfo;
+     std::vector< FSSubRecInfo<T> > sRecInfo;
      Connectivity *subToCPU;
      int numCPUs;
      int *reverseChannel; // corresponding reverse channel

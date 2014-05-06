@@ -2,12 +2,7 @@
 #define _MULTI_FRONT_H_
 
 #define NOTMPL
-#ifndef OLD_STL
 #include <map>
-using namespace std;
-#else
-#include <map.h>
-#endif
 
 #include <cstdio>
 

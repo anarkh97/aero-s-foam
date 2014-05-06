@@ -278,7 +278,7 @@ void ContactNode<DataType>::Pack_Interactions_ForSecondary( char* Buffer, int st
   if(state < NodeNodeInteractions.size()) {
     ContactInteractionEntity<Real>* entity;
     NodeNodeInteractions[state].IteratorStart();
-    while (entity=NodeNodeInteractions[state].IteratorForward()) {
+    while ((entity=NodeNodeInteractions[state].IteratorForward())) {
       ContactNodeNodeInteraction* i = 
         static_cast<ContactNodeNodeInteraction*>(entity);
       buffer = i->Pack(buffer);

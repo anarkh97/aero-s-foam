@@ -2,6 +2,7 @@
 #define DB_SPARSEMATRIX_H_
 
 #include <cstdio>
+#include <iostream>
 #include <Utils.d/MyComplex.h> 
 #include <Math.d/SparseMatrix.h>
 class FSCommunicator;
@@ -61,8 +62,8 @@ class GenDBSparseMatrix : public SparseData, public GenSparseMatrix<Scalar> {
    void symmetricScaling();
    void applyScaling(Scalar *v);
    GenFullM<Scalar> *getFullMatrix();
-   int*   getFirstDof() { cerr << "int*  GenDBSparseMatrix::getFirstDof() called" << endl; firstdof = new int[1]; firstdof[0]=0; return firstdof; }
-   int getBlockSize() {cerr << "dim() = " << dim() << endl; return dim();}
+   int*   getFirstDof() { std::cerr << "int*  GenDBSparseMatrix::getFirstDof() called" << std::endl; firstdof = new int[1]; firstdof[0]=0; return firstdof; }
+   int getBlockSize() {std::cerr << "dim() = " << dim() << std::endl; return dim();}
 };
 
 typedef GenDBSparseMatrix<double> DBSparseMatrix;

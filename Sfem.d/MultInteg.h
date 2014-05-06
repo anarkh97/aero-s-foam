@@ -17,8 +17,6 @@
 #include <Driver.d/GeoSource.h>
 #include <Utils.d/Connectivity.h>
 
-using namespace std;
-
 extern Domain *domain;
 extern Sfem *sfem;
 extern GeoSource *geoSource;

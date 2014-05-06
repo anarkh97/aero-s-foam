@@ -4,15 +4,11 @@
 #include <cstdio>
 #include <map>
 #include <iostream>
-using std::map;
 
 class Elemset;
 class EqNumberer;
 class BinFileHandler;
 class SommerElement;
-
-
-//HB
 class FaceElemSet;
 
 // component data structure
@@ -179,7 +175,7 @@ class Connectivity : public BaseConnectivity<Connectivity,DirectAccess<Connectiv
 	Connectivity *copy();
 	void sortTargets();
         void renumberTargets(int *map);
-        void renumberTargets(map<int, int> &);
+        void renumberTargets(std::map<int, int> &);
         int numNonZeroP();
 
         bool isDiagonal(); // returns true if each target is only connected to itself
@@ -187,7 +183,7 @@ class Connectivity : public BaseConnectivity<Connectivity,DirectAccess<Connectiv
         void combine(Connectivity *con2, int *&cmap, int *cmap2);  // adds con2 to this
         // adds all the entries in cmap (of size addSize)to each of the line in the current connectivity specified by entries in cmap
         // e.g. cmap = [2 3] and (*this)[2] = [1 2 4 5] (*this)[3] = [3 5], then (*this)[2] becomes [1 2 4 5 3]; (*this)[3] becomes [3 5 2]
-        Connectivity *combineAll(int addSize, int *cmap); //ADDED FOR HEV PROBLEM, EC, 20070820 
+        Connectivity *combineAll(int addSize, int *cmap);
 
         double estimateComponentCost(EqNumberer *eqn, compStruct &cs, double *cost, double *bandwidth, 
                                      double coef=400, int unroll=1);

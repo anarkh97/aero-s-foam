@@ -817,7 +817,7 @@ Domain::constructEiSparseMatrix(DofSetArray *c_dsa, Connectivity *nodeToNode, bo
   if(nodeToNode == 0) nodeToNode = Domain::nodeToNode;
   return new GenEiSparseMatrix<Scalar,SolverClass>(nodeToNode, dsa, c_dsa, flag);
 #else
- cerr << "USE_EIGEN3 is not defined\n";
+ std::cerr << "USE_EIGEN3 is not defined\n";
 #endif
 }
 
@@ -834,7 +834,7 @@ Domain::constructGoldfarb(DofSetArray *c_dsa, Connectivity *nodeToNode)
   typename WrapEiSparseMat<Scalar,SolverClass>::CtorData baseArg(nodeToNodeG, dsa, g_dsa);
   return new GoldfarbIdnaniQpSolver<WrapEiSparseMat<Scalar,SolverClass>, Scalar>(baseArg, Domain::c_dsa, sinfo.goldfarb_tol, sinfo.goldfarb_check);
 #else
- cerr << "USE_EIGEN3 is not defined\n";
+ std::cerr << "USE_EIGEN3 is not defined\n";
 #endif
 }
 
@@ -1304,7 +1304,6 @@ Domain::getSolverAndKuc(GenSolver<Scalar> *&solver, GenSparseMatrix<Scalar> *&ku
  }
 
  // ... Construct "Sloshing rigid body mode" if necessary
- // ADDED FOR SLOSHING PROBLEM, EC, 20070723
  if(sinfo.slzemFlag) {
    fprintf(stderr," ... constructSlzem called in OpMake.C -- THIS CALL HAS NOT BEEN DEBUGGED ...\n");
    rbm = constructSlzem();
@@ -1341,9 +1340,7 @@ Domain::getSolverAndKuc(AllOps<Scalar> &allOps, FullSquareMatrix *kelArray, bool
  }
 
  // ... Construct "Sloshing rigid body mode" if necessary
- // ADDED FOR SLOSHING PROBLEM, EC, 20070723
  if(sinfo.slzemFlag) {
-   fprintf(stderr," ... constructSlzem called in OpMake.C -- THIS CALL HAS NOT BEEN DEBUGGED ...\n");
    rbm = constructSlzem();
    if(rbm->numRBM() == 0) rbm = 0;
  }
@@ -2958,7 +2955,7 @@ Domain::assembleSommer(GenSparseMatrix<Scalar> *K, AllOps<Scalar> *ops)
            break;
          case 2:
          default:
-           cerr << " *** ERROR: Sommerfeld type " << sommerfeldType << " is not supported for frequency sweep \n";
+           std::cerr << " *** ERROR: Sommerfeld type " << sommerfeldType << " is not supported for frequency sweep \n";
            break;
        }
      }
@@ -2992,7 +2989,7 @@ Domain::computeSommerDerivatives(double HH, double KK, int curvatureFlag, int *d
       ms.multiply(mm,imag(cm)); // mm = imaginary part of cm*ms
       updateDampingMatrices(ops,dofs,0,&mm,ss,n);
     }
-    else cerr << " *** WARNING: 3D 2nd order Sommerfeld with curvatureFlag 2 is not supported for frequency sweep \n";
+    else std::cerr << " *** WARNING: 3D 2nd order Sommerfeld with curvatureFlag 2 is not supported for frequency sweep \n";
   }
 
   FullSquareMatrix ksRe(ms.dim(),(double*)dbg_alloca(ms.dim()*ms.dim()*sizeof(double)));

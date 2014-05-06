@@ -7,7 +7,6 @@
 
 #include <map>
 #include <algorithm>
-using namespace std;
 
 class CoordSet;
 class State;
@@ -24,7 +23,7 @@ typedef GenSubDomain<double> SubDomain;
 
 #define FL_NEGOT 10000
 
-typedef map<int, InterpPoint> MatchMap;
+typedef std::map<int, InterpPoint> MatchMap;
 
 class DofSetArray;
 

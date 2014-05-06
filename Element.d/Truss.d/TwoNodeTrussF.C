@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <cmath>
 #include <cstdlib>
+#include <iostream>
 
 #include <Element.d/Truss.d/TwoNodeTrussF.h>
 #include <Corotational.d/BarFCorotator.h>
@@ -479,7 +480,7 @@ TwoNodeTrussF::getVonMises(Vector& stress, Vector& weight, CoordSet& cs,
       }
 
       default:
-        cerr << "avgnum = " << avgnum << " is not a valid number\n";
+        std::cerr << "avgnum = " << avgnum << " is not a valid number\n";
     }
 #endif
 }

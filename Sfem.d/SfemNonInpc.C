@@ -8,9 +8,7 @@
 #include <Math.d/Vector.h>
 #include <Sfem.d/cijk.h>
 
-using std::map;
 #include <list>
-using namespace std;
 
 extern GeoSource *geoSource;
 

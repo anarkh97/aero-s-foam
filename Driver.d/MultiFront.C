@@ -524,7 +524,7 @@ MultiFront::addElemToSub(int sub, int elem)
    if(nodeMask[node] == 0) { // remove the node from the interface list
      removeBoundNode(node);
    }
-   if(nodeMask[node] < 0) cerr << "Bad bad bad" << node << "\n";
+   if(nodeMask[node] < 0) std::cerr << "Bad bad bad" << node << "\n";
    // increment the weight
    incrWeight(sub, node, elemHasRot[elem] ? 1 : 0);
 
@@ -634,7 +634,7 @@ MultiFront::decompose(int numSub, bool have_fsi)
        startElem = -1;
      }
    } else {
-     // cerr << " ...     No Connection! numBoundNodes = " << numBoundNodes << "\n";
+     // std::cerr << " ...     No Connection! numBoundNodes = " << numBoundNodes << "\n";
    }
    if(startElem < 0) {
      int minDeg = numEle+1;
@@ -734,7 +734,7 @@ subdomain, from a fsi node/element in the current priority list.
  for(iEle = 0; iEle < numEle; ++iEle)
    if((*elems)[iEle]) {
       if(assignedSubD[iEle] < 0) {
-        cerr << "Element " << iEle+1 << "Is not assigned. it will not be in"
+        std::cerr << "Element " << iEle+1 << "Is not assigned. it will not be in"
                 "the decomposition\n" ;
         continue;
       }
@@ -890,7 +890,7 @@ MultiFront::incrWeight(int sub, int node, int rmode)
       nSubPerNode[node]++;
       return 1;
  }
- cerr << "Error in node weight, subdomain count exceeds maximum " << nSubPerNode[node] << " vs "<< nToE->offset(node+1)-nToE->offset(node);
+ std::cerr << "Error in node weight, subdomain count exceeds maximum " << nSubPerNode[node] << " vs "<< nToE->offset(node+1)-nToE->offset(node);
  throw "Error in node weight, subdomain count exceeds maximum";
  return 0;
 }
@@ -913,7 +913,7 @@ MultiFront::decWeight(int sub, int node, int rmode)
       return nw[ip].weight;
    }
  }
- cerr << "Error in dec node weight, subdomain was not found\n";
+ std::cerr << "Error in dec node weight, subdomain was not found\n";
  throw "Error in dec node weight, subdomain was not found";
 }
 
@@ -1139,7 +1139,7 @@ MultiFront::updateFsiConnection(Decomposition *origDec)
  for(iEle = 0; iEle < numEle; ++iEle)
    if((*elems)[iEle]) { 
      if(assignedSubD[iEle] < 0) {
-       cerr << "Element " << iEle+1 << "Is not assigned. it will not be in"
+       std::cerr << "Element " << iEle+1 << "Is not assigned. it will not be in"
                "the decomposition\n";
        continue;
      }
@@ -1318,7 +1318,7 @@ MultiFront::checkComponents(Decomposition *dec)
    for(iEle = 0; iEle < numEle; ++iEle)
      if((*elems)[iEle]) {
        if(assignedSubD[iEle] < 0) {
-          cerr << "Element " << iEle+1 << "Is not assigned." 
+          std::cerr << "Element " << iEle+1 << "Is not assigned." 
                  "it will not be in the decomposition\n" ;
          continue;
        }
@@ -1524,8 +1524,8 @@ MultiFront::optimize(Decomposition *origDec)
  for(iEle = 0; iEle < numEle; ++iEle)
    if((*elems)[iEle]) {
      if(assignedSubD[iEle] < 0) {
-       cerr << "Element " << iEle+1 << "Is not assigned. it will not be in"
-               "the decomposition\n";
+       std::cerr << "Element " << iEle+1 << "Is not assigned. it will not be in"
+                    "the decomposition\n";
        continue;
      }
      origDec->pele[assignedSubD[iEle]]++;

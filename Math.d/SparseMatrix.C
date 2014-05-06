@@ -283,15 +283,12 @@ int* GenSparseMatrix<Scalar>::getFirstDof()
     firstdof[0]=0;
   }
   return firstdof;
-  cerr << "GenSparseMatrix<Scalar>::getFirstDof() called " << endl;
-//fprintf(stderr,"GenSparseMatrix<Scalar>::getFirstDof() not implemented\n");
 }
 
 template<class Scalar>
 int GenSparseMatrix<Scalar>::numNodes()
 {
   return 1;
-//fprintf(stderr,"GenSparseMatrix<Scalar>::numNodes() not implemented\n");
 }
 
 template<class Scalar>

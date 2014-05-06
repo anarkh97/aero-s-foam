@@ -141,7 +141,7 @@ GenSkyMatrix<double>::Factor(Rbm *rigid)
 // ... NOW COPY MECHANISM MODES TO GEOMETRIC RIGID BODY MODES IF NECESSARY
    nzem = nTotZem + ngrbm;
    if(print_nullity && nzem > 0)
-     cerr << " ... Matrix is singular: size = " << numUncon << ", rank = " << numUncon-nzem << ", nullity = " << nzem << " ...\n";
+     std::cerr << " ... Matrix is singular: size = " << numUncon << ", rank = " << numUncon-nzem << ", nullity = " << nzem << " ...\n";
 
    if(nTotZem > 0) {
      rbm = new Rbm(allrbms,nzem,numUncon);

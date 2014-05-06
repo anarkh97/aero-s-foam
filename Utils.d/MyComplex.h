@@ -1,9 +1,6 @@
 #ifndef _MYCOMPLEX_H_
 #define _MYCOMPLEX_H_
-#include <complex>
-
-using namespace std;
-typedef complex<double> DComplex;
+#include "Math.d/ComplexD.h"
 
 namespace ScalarTypes 
 {

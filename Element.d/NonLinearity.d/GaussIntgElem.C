@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <Utils.d/dbg_alloca.h>
 #include <cmath>
+#include <iostream>
 #include <Element.d/NonLinearity.d/GaussIntgElem.h>
 #include <Element.d/NonLinearity.d/StrainEvaluator.h>
 #include <Math.d/FullSquareMatrix.h>
@@ -97,7 +98,7 @@ FullSquareMatrix
 GaussIntgElement::massMatrix(CoordSet& cs, double* k, int)
 {
   FullSquareMatrix m(numDofs(), k);
-  cerr << "GaussIntgElement::massMatrix not implemented\n"; exit(-1);
+  std::cerr << "GaussIntgElement::massMatrix not implemented\n"; exit(-1);
   return m;
 }
  
@@ -558,7 +559,7 @@ copyTens(Tensor *stens, double *svec)
         for(int k = 0; k < 3; ++k)
           svec[3*j+k] = (*nonsymmetricTensor)(j,k);
     }
-    else { cerr << "ERROR: unrecognized tensor type"; exit(-1); }
+    else { std::cerr << "ERROR: unrecognized tensor type"; exit(-1); }
   }
 }
 
@@ -579,7 +580,7 @@ copyTens(Tensor *stens, Eigen::Matrix3d &smat)
         for(int k = 0; k < 3; ++k)
           smat(j,k) = (*nonsymmetricTensor)(j,k);
     }
-    else { cerr << "ERROR: unrecognized tensor type"; exit(-1); }
+    else { std::cerr << "ERROR: unrecognized tensor type"; exit(-1); }
   }
 }
 #endif

@@ -41,10 +41,9 @@ template<class Scalar>
 DistrInfo &
 GenMultiDomainStatic<Scalar>::solVecInfo(int i) 
 {
- cerr << "Warning : GenMultiDomainStatic<Scalar>::solVecInfo(int i) should not be called" << endl;
+ std::cerr << "Warning : GenMultiDomainStatic<Scalar>::solVecInfo(int i) should not be called" << std::endl;
  return decDomain->solVecInfo();
 }
-
 
 template<class Scalar>
 void
@@ -259,6 +258,44 @@ GenMultiDomainPostProcessor<Scalar>::staticOutput(GenDistrVector<Scalar> &sol, G
 
 template<class Scalar>
 void
+GenMultiDomainPostProcessor<Scalar>::getStressStrain(GenDistrVector<Scalar> &, int fileNumber,
+                                                     int stressIndex, double time, int pflag)
+{
+  std::cerr << "GenMultiDomainPostProcessor::getStressStrain not implemented" << std::endl;
+}
+
+template<class Scalar>
+void
+GenMultiDomainPostProcessor<Scalar>::setsizeSfemStress(int fileNumber)
+{
+  std::cerr << "GenMultiDomainPostProcessor::setsizeSfemStress(int fileNumber) not implemented" << std::endl;
+}
+
+template<class Scalar>
+int
+GenMultiDomainPostProcessor<Scalar>::getsizeSfemStress()
+{
+  std::cerr << "GenMultiDomainPostProcessor::getsizeSfemStress() not implemented" << std::endl;
+  return 0;
+}
+
+template<class Scalar>
+Scalar*
+GenMultiDomainPostProcessor<Scalar>::getSfemStress(int fileNumber)
+{
+  std::cerr << "GenMultiDomainPostProcessor::getSfemStress() not implemented" << std::endl;
+  return 0;
+}
+
+template<class Scalar>
+void
+GenMultiDomainPostProcessor<Scalar>::updateSfemStress(Scalar* str, int fileNumber)
+{
+  std::cerr << "GenMultiDomainPostProcessor::updateSfemStress() not implemented" << std::endl;
+}
+
+template<class Scalar>
+void
 GenMultiDomainPostProcessor<Scalar>::getMemoryK(int iSub, long *memory)
 {
  memory[iSub] = decDomain->getSubDomain(iSub)->getMemoryK();
@@ -455,7 +492,40 @@ GenMultiDomainStatic<Scalar>::project(GenDistrVector<Scalar> &b)
   RtRinverse->mult(Rtb, x);
   for(int i=0; i<b.size(); ++i) 
     for(int j=0; j<numR; ++j) b.data()[i] -= Rmem[j]->data()[i]*x[j];
+}
 
-  ///*check:*/ for(int i=0; i<numR; ++i) cerr << (*Rmem[i]) * b << " "; cerr << endl;
+template<class Scalar>
+void
+GenMultiDomainStatic<Scalar>::getRHSinpc(GenDistrVector<Scalar> &)
+{
+  std::cerr << "GenMultiDomainStatic::getRHSinpc not implemented" << std::endl;
+}
+
+template<class Scalar>
+void
+GenMultiDomainStatic<Scalar>::preProcessSA()
+{
+  std::cerr<< "GenMultiDomainStatic::PreProcessSA not implemented" << std::endl;
+}
+
+template<class Scalar>
+void
+GenMultiDomainStatic<Scalar>::postProcessSA(GenDistrVector<Scalar> &)
+{
+  std::cerr<< "GenMultiDomainStatic::PostProcessSA not implemented" << std::endl;
+}
+
+template<class Scalar>
+void
+GenMultiDomainStatic<Scalar>::assignRandMat()
+{
+  std::cerr << "GenMultiDomainStatic::assignRandMat() not implemented" << std::endl;
+}
+
+template<class Scalar>
+void
+GenMultiDomainStatic<Scalar>::retrieveElemset()
+{
+  std::cerr << "GenMultiDomainStatic::retrieveElemset() not implemented" << std::endl;
 }
 

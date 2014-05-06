@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <Utils.d/dbg_alloca.h>
 #include <cmath>
+#include <fstream>
 
 #include <Utils.d/dofset.h>
 #include <Driver.d/Domain.h>
@@ -234,31 +235,31 @@ Domain::eigenQROutput(Eigen::MatrixXd& Xmatrix, Eigen::MatrixXd& Qmatrix, Eigen:
   const char* Xoutput = domain->solInfo().xmatrixname;
   const char* Qoutput = domain->solInfo().qmatrixname;
   const char* Routput = domain->solInfo().rmatrixname;
-  ofstream xout(Xoutput, ios::out);
-  ofstream qout(Qoutput, ios::out);
-  ofstream rout(Routput, ios::out);
+  std::ofstream xout(Xoutput, std::ios::out);
+  std::ofstream qout(Qoutput, std::ios::out);
+  std::ofstream rout(Routput, std::ios::out);
 
   if(!xout) {
-    cerr << "Error: cannot open file " << Xoutput << endl;
+    std::cerr << "Error: cannot open file " << Xoutput << std::endl;
     exit(-1);
   }
   if(!qout) {
-    cerr << "Error: cannot open file " << Qoutput << endl;
+    std::cerr << "Error: cannot open file " << Qoutput << std::endl;
     exit(-1);
   }
   if(!rout) {
-    cerr << "Error: cannot open file " << Routput << endl;
+    std::cerr << "Error: cannot open file " << Routput << std::endl;
     exit(-1);
   }
 
   // write X, Q and R matrix
   Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
-  xout << Xmatrix.rows() << endl << Xmatrix.cols() << endl;
-  xout << Xmatrix.transpose().format(HeavyFmt) << endl;
-  qout << Qmatrix.rows() << endl << Qmatrix.cols() << endl;
-  qout << Qmatrix.transpose().format(HeavyFmt) << endl;
-  rout << Rmatrix.rows() << endl << Rmatrix.cols() << endl;
-  rout << Rmatrix.format(HeavyFmt) << endl;
+  xout << Xmatrix.rows() << std::endl << Xmatrix.cols() << std::endl;
+  xout << Xmatrix.transpose().format(HeavyFmt) << std::endl;
+  qout << Qmatrix.rows() << std::endl << Qmatrix.cols() << std::endl;
+  qout << Qmatrix.transpose().format(HeavyFmt) << std::endl;
+  rout << Rmatrix.rows() << std::endl << Rmatrix.cols() << std::endl;
+  rout << Rmatrix.format(HeavyFmt) << std::endl;
 
   xout.close();
   qout.close();

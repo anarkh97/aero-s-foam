@@ -1,6 +1,7 @@
 #ifndef _DOMAIN_H_
 #define _DOMAIN_H_
 
+#include <iostream>
 #include <cassert>
 #include <set>
 #include <map>
@@ -16,8 +17,6 @@
 #include <Sfem.d/Sfem.h>
 #include <Utils.d/OutputInfo.h>
 #include <Mortar.d/MortarDriver.d/MortarHandler.h>
-
-#include <map>
 
 class MortarHandler;
 class MFTTData;
@@ -496,9 +495,9 @@ class Domain : public HData {
      void setsizeSfemStress(int fileNumber);
      int getsizeSfemStress() { return sizeSfemStress; }
      double * getSfemStress(int fileNumber, double* dummystress); // dummystress is an arbitrary vector that tells that the stress is double*
-     DComplex * getSfemStress(int fileNumber, DComplex* dummystress) {cerr <<"DComplex * Domain::getSfemStress not implemented" << endl; return 0;};
+     DComplex * getSfemStress(int fileNumber, DComplex* dummystress) {std::cerr <<"DComplex * Domain::getSfemStress not implemented" << std::endl; return 0;};
      void updateSfemStress(double* str, int fileNumber);
-     void updateSfemStress(DComplex* str, int fileNumber) {cerr <<"Domain::updateSfemStress(DComplex*,.) not implemented" << endl;};
+     void updateSfemStress(DComplex* str, int fileNumber) {std::cerr <<"Domain::updateSfemStress(DComplex*,.) not implemented" << std::endl;};
      // Functions to suport the parsing:
      void addSensitivity(SensitivityInfo &senInfo);
      int  addDMass(int, int, double, int jdof = -1);
@@ -763,11 +762,11 @@ class Domain : public HData {
      void getHeatFlux(Vector &tsol, double *bcx, int fileNumber, int hgIndex,
                       double time=0);
      void getHeatFlux(ComplexVector &tsol, DComplex *bcx, int fileNumber, int hgIndex, double time=0)
-       { cerr << " *** WARNING: Domain::getHeatFlux(Complex) is not implemented \n"; }
+       { std::cerr << " *** WARNING: Domain::getHeatFlux(Complex) is not implemented \n"; }
      void getTrussHeatFlux(Vector &tsol, double *bcx, int fileNumber,
                            int hgIndex, double time=0);
      void getTrussHeatFlux(ComplexVector &tsol, DComplex *bcx, int fileNumber, int hgIndex, double time=0)
-       { cerr << " *** WARNING: Domain::getTrussHeatFlux(Complex) is not implemented \n"; }
+       { std::cerr << " *** WARNING: Domain::getTrussHeatFlux(Complex) is not implemented \n"; }
      template <class Scalar>
        void computeConstantForce(GenVector<Scalar>& constantForce, GenSparseMatrix<Scalar>* kuc = 0);
      template <class Scalar> 
@@ -839,11 +838,11 @@ class Domain : public HData {
      void getPrincipalStress(Vector &sol, double *bcx, int fileNumber,
                              int strInd, double time = 0);
      void getPrincipalStress(ComplexVector &sol, DComplex *bcx, int fileNumber,
-                             int strInd, double time = 0) { cerr << "Domain::getPrincipalStress is not implemented for complex\n"; }
+                             int strInd, double time = 0) { std::cerr << "Domain::getPrincipalStress is not implemented for complex\n"; }
      void getElementForces(Vector &sol, double *bcx, int fileNumber,
                            int forceIndex, double time = 0);
      void getElementForces(ComplexVector &sol, DComplex *bcx, int fileNumber,
-                           int forceIndex, double time = 0) { cerr << "Domain::getElementForces is not implemented for complex\n"; }
+                           int forceIndex, double time = 0) { std::cerr << "Domain::getElementForces is not implemented for complex\n"; }
      void getElementAttr(int fileNumber, int typ, double time=0.0);
      void getElasticForces(Vector &dsp, double *bcx, Vector &ext_f, double eta,
                            FullSquareMatrix *kelArray=0);
@@ -859,10 +858,10 @@ class Domain : public HData {
                    FullSquareMatrix *kelArray, double *karray);
      //ADDED FOR SLOSHING PROBLEM, EC, 20070723
      void getSloshDispAll(Vector &tsol, double *bcx, int fileNumber, double time);
-     void getSloshDispAll(ComplexVector &tsol, complex<double> *bcx, int fileNumber, double time) { cerr << "getSloshDispAll(complex) not implemented\n"; }
+     void getSloshDispAll(ComplexVector &tsol, complex<double> *bcx, int fileNumber, double time) { std::cerr << "getSloshDispAll(complex) not implemented\n"; }
      //ADDED FOR SLOSHING PROBLEM, EC, 20070723
      void getSloshDisp(Vector &tsol, double *bcx, int fileNumber, int hgIndex, double time);
-     void getSloshDisp(ComplexVector &tsol, complex<double> *bcx, int fileNumber, int hgIndex, double time) { cerr << "getSloshDisp(complex) not implemented\n"; }
+     void getSloshDisp(ComplexVector &tsol, complex<double> *bcx, int fileNumber, int hgIndex, double time) { std::cerr << "getSloshDisp(complex) not implemented\n"; }
      double getStrainEnergy(Vector &sol, double *bcx, SparseMatrix *gStiff=0,
                             FullSquareMatrix *kelArray=0);
      double getNodalStressStrain(Vector &sol ,double *bcx,
@@ -1077,7 +1076,7 @@ class Domain : public HData {
      ResizeArray<SurfaceEntity*> SurfEntities; //
      int nMortarLMPCs;                         // total number of Mortar LMPCs generated
      Connectivity* mortarToMPC;                //
-     vector<int> contactSurfElems;
+     std::vector<int> contactSurfElems;
      int maxContactSurfElems;
      std::set<int> aeroEmbeddedSurfaceId;  //KW: Ids of wet surfaces
   public:

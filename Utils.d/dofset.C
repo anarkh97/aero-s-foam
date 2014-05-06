@@ -34,15 +34,15 @@ DofSet DofSet::nullDofset(-1);
 void
 DofSet::print(char* msg)
 {
-  if(msg) cerr<<" --- DofSet "<<msg<<" contains "<<count()<<" dofs: ";
-  else    cerr<<" --- DofSet contains "<<count()<<" dofs: ";
+  if(msg) std::cerr<<" --- DofSet "<<msg<<" contains "<<count()<<" dofs: ";
+  else    std::cerr<<" --- DofSet contains "<<count()<<" dofs: ";
   int dmap[10];
   DofSet sevenDofs;
   sevenDofs.mark(DofSet::XYZdisp | DofSet::XYZrot | DofSet::Temp | DofSet::Helm | DofSet::Contact | DofSet::IntPress);
   sevenDofs.number(*this, dmap);
   for(int i=0; i<count(); i++)
-    cerr<<dmap[i]<<" ";
-  cerr<<endl;
+    std::cerr<<dmap[i]<<" ";
+  std::cerr<<std::endl;
 }
 
 int

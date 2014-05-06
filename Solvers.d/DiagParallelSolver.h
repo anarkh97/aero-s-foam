@@ -3,6 +3,7 @@
 
 #include <Driver.d/Communicator.h>
 #include <Solvers.d/ParallelSolver.h>
+#include <iostream>
 
 template<class Scalar> class GenDistrVector;
 template<class Scalar> class GenDistrVectorSet;
@@ -134,7 +135,7 @@ DiagParallelSolver<Scalar>::assembleDiag(int iSub)
       count++;
     }
   }
-  if(count > 0) cerr << " *** WARNING: " << count << " zero diagonal/s detected in subdomain mass matrix set to " << small << endl;
+  if(count > 0) std::cerr << " *** WARNING: " << count << " zero diagonal/s detected in subdomain mass matrix set to " << small << std::endl;
   delete [] diagVals;
 }
 

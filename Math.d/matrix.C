@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <strings.h>
 #include <iostream>
+#include <complex>
 
 #include <Math.d/FullSquareMatrix.h>
 #include <Math.d/Vector.h>
@@ -359,7 +360,7 @@ GenFullM<Scalar>
 GenFullM<Scalar>::operator*(GenFullM<Scalar> &m)
 {
  if(ncolumn != m.nrow) {
-   cerr << " *** ERROR in GenFullM<Scalar>::operator*(GenFullM<Scalar> &m), ncolumn != m.nrow \n";
+   std::cerr << " *** ERROR in GenFullM<Scalar>::operator*(GenFullM<Scalar> &m), ncolumn != m.nrow \n";
    return GenFullM<Scalar>(1,1) ; //error
  }
  GenFullM<Scalar> res(nrow,m.ncolumn) ;
@@ -408,7 +409,7 @@ GenFullM<Scalar>
 GenFullM<Scalar>::operator += (const GenFullM<Scalar> &M2)
 {
  if((ncolumn!=M2.ncolumn)&(nrow!=M2.nrow)){
-  cerr <<" !!! In GenFullM::operator += : matrices don't have the same size !!!"<< endl;
+  std::cerr <<" !!! In GenFullM::operator += : matrices don't have the same size !!!"<< std::endl;
   return *this;
  }  
  int length = ncolumn*nrow;
@@ -423,7 +424,7 @@ GenFullM<Scalar>
 GenFullM<Scalar>::operator -= (const GenFullM<Scalar> &M2)
 {
  if((ncolumn!=M2.ncolumn)&(nrow!=M2.nrow)){
-  cerr <<" !!! In GenFullM::operator -= : matrices don't have the same size !!!"<< endl;
+  std::cerr <<" !!! In GenFullM::operator -= : matrices don't have the same size !!!"<< std::endl;
   return *this;
  }
  int length = ncolumn*nrow;
@@ -487,7 +488,7 @@ template<class Scalar>
 GenFullM<Scalar>
 GenFullM<Scalar>::invert()
 {
- if(nrow != ncolumn) { cerr << " *** ERROR: GenFullM<Scalar>::invert(), nrow != ncolumn \n"; return GenFullM<Scalar>(); }
+ if(nrow != ncolumn) { std::cerr << " *** ERROR: GenFullM<Scalar>::invert(), nrow != ncolumn \n"; return GenFullM<Scalar>(); }
  GenFullM<Scalar> res(*this);
  res.factor();
  GenFullM<Scalar> inv(nrow,nrow,0.0);
@@ -502,7 +503,7 @@ template<class Scalar>
 GenFullM<Scalar>
 GenFullM<Scalar>::Invert(double tol)
 {
- if(nrow != ncolumn) { cerr << " *** ERROR: GenFullM<Scalar>::Invert(double tol), nrow != ncolumn \n"; return GenFullM<Scalar>(); }
+ if(nrow != ncolumn) { std::cerr << " *** ERROR: GenFullM<Scalar>::Invert(double tol), nrow != ncolumn \n"; return GenFullM<Scalar>(); }
  GenFullM<Scalar> res(*this);
  res.Factor(tol);
  GenFullM<Scalar> inv(nrow,nrow,0.0);
@@ -549,7 +550,7 @@ void
 GenFullM<Scalar>::Factor(double tol, bool print_ndef)
 {
   // triangular factorization of a real general matrix using Gaussian elimination with complete pivoting
-  if(nrow != ncolumn) cerr << " *** WARNING: GenFullM<Scalar>::Factor(double tol), nrow != ncolumn \n";
+  if(nrow != ncolumn) std::cerr << " *** WARNING: GenFullM<Scalar>::Factor(double tol), nrow != ncolumn \n";
   
   if(iprow) { delete [] iprow; iprow = 0; }
   if(ipcol) { delete [] ipcol; ipcol = 0; }
@@ -567,8 +568,8 @@ GenFullM<Scalar>::Factor(double tol, bool print_ndef)
 
   Tgecp(nrow, v, ncolumn, tol, 0, ndef, iprow, ipcol, info);
 
-  if(info != 0) cerr << " *** WARNING: error in Tgecp, info = " << info << endl;
-  else if(ndef > 0 && print_ndef) cerr << "Matrix factored by dgecp/zgecp is rank deficient, ndef = " << ndef << endl; 
+  if(info != 0) std::cerr << " *** WARNING: error in Tgecp, info = " << info << std::endl;
+  else if(ndef > 0 && print_ndef) std::cerr << "Matrix factored by dgecp/zgecp is rank deficient, ndef = " << ndef << std::endl; 
 }
 
 template<class Scalar>
@@ -579,7 +580,7 @@ GenFullM<Scalar>::ReSolve(Scalar *b)
   int info;
   Tgers(nrow, 1, v, nrow, ndef, iprow, ipcol, b, nrow, info);
                                                                                                                                                           
-  if(info != 0) cerr << " *** WARNING: error in Tgers, info = " << info << endl;
+  if(info != 0) std::cerr << " *** WARNING: error in Tgers, info = " << info << std::endl;
 }
 
 template<class Scalar> 
@@ -633,7 +634,7 @@ GenFullM<Scalar>::Print()
 {
  for(int i = 0 ; i < nrow ; ++i) 
    for(int j=0; j < ncolumn ; ++j) 
-     cerr << "(" << i+1 << "," << j+1 << ") = " << (*this)[i][j] << endl;
+     std::cerr << "(" << i+1 << "," << j+1 << ") = " << (*this)[i][j] << std::endl;
 }
 
 template<class Scalar> 
@@ -788,7 +789,7 @@ GenFullM<Scalar>::addrows(GenFullM<Scalar> &mat, int *rows)
 {
   int mrow = mat.numRow();
   int mcol = mat.numCol();
-  if(mcol > ncolumn) { cerr << " *** ERROR in GenFullM<Scalar>::addrows(GenFullM<Scalar> &mat, int *rows) \n"; return; }
+  if(mcol > ncolumn) { std::cerr << " *** ERROR in GenFullM<Scalar>::addrows(GenFullM<Scalar> &mat, int *rows) \n"; return; }
 
   int icol,irow;
   for(icol = 0; icol < mcol; ++icol) {
@@ -804,7 +805,7 @@ GenFullM<Scalar>::add(GenFullM<Scalar> &mat, int *rc)
 {
   int mrow = mat.numRow();
   int mcol = mat.numCol();
-  if(mrow != mcol) { cerr << " *** ERROR in GenFullM<Scalar>::add(GenFullM<Scalar> &mat, int *rc) \n"; return; }
+  if(mrow != mcol) { std::cerr << " *** ERROR in GenFullM<Scalar>::add(GenFullM<Scalar> &mat, int *rc) \n"; return; }
 
   int icol,irow;
   for(icol = 0; icol < mcol; ++icol) {

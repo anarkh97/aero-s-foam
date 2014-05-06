@@ -591,11 +591,11 @@ FourNodeQuad::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
 {
 #ifdef USE_EIGEN3
   if(strInd != 6) {
-    cerr << " ... Error: strInd must be 6 in FourNodeQuad::getVonMisesDisplacementSensitivity\n";
+    std::cerr << " ... Error: strInd must be 6 in FourNodeQuad::getVonMisesDisplacementSensitivity\n";
     exit(-1);
   }
   if(dStdDisp.numRow() != 4 || dStdDisp.numCol() !=8) {
-    cerr << " ... Error: dimenstion of sensitivity matrix is wrong\n";
+    std::cerr << " ... Error: dimenstion of sensitivity matrix is wrong\n";
     exit(-1);
   }
   weight = 1;
@@ -641,7 +641,7 @@ FourNodeQuad::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
   //Jacobian evaluation
   Eigen::Matrix<double,4,8> dStressdDisp;
   Eigen::Matrix<double,7,3> stress;
-  if(verboseFlag) cout << " ... senMethod is " << senMethod << endl;
+  if(verboseFlag) std::cout << " ... senMethod is " << senMethod << std::endl;
 
   if(avgnum == 1 || avgnum == 0) { // ELEMENTAL or NODALFULL
     if(senMethod == 1) { // via automatic differentiation
@@ -693,7 +693,7 @@ FourNodeQuad::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
     }
   } else dStdDisp.zero(); // NODALPARTIAL or GAUSS or any others
 #else
-  cerr << " ... ERROR! FourNodeQuad::getVonMisesDisplacementSensitivity needs Eigen library.\n";
+  std::cerr << " ... ERROR! FourNodeQuad::getVonMisesDisplacementSensitivity needs Eigen library.\n";
   exit(-1);
 #endif
 }

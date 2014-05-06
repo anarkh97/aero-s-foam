@@ -1,6 +1,7 @@
 #ifdef USE_EIGEN3
 #include <Element.d/MpcElement.d/DotType3ConstraintElement.h>
 #include <Corotational.d/GeomState.h>
+#include <iostream>
 
 DotType3ConstraintElement::DotType3ConstraintElement(int* _nn, int _axis)
  : ConstraintFunctionElement<Simo::DotType3ConstraintFunction>(2, DofSet::XYZdisp | DofSet::XYZrot, _nn, 0)
@@ -51,7 +52,7 @@ void
 DotType3ConstraintElement::buildFrame(CoordSet& cs)
 {
   if(!C0) {
-    cerr << " *** ERROR: element frame is not defined for DotType3 constraint function element\n";
+    std::cerr << " *** ERROR: element frame is not defined for DotType3 constraint function element\n";
     exit(-1);
   }
 

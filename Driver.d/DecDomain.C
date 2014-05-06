@@ -134,7 +134,7 @@ template<class Scalar>
 void GenDecDomain<Scalar>::addBMPCs()
 {
   // step 1. create all the candidate bmpcs 
-  vector<LMPCons *> bmpcs; // candidate bmpcs
+  std::vector<LMPCons *> bmpcs; // candidate bmpcs
   int nbmpc = 0; // number of bmpcs
   int nsn; // number of subdomains sharing node
   for(int i=0; i<nodeToSub->csize(); ++i) {
@@ -154,7 +154,6 @@ void GenDecDomain<Scalar>::addBMPCs()
       }
     }
   }
-  //cerr << "number of candidate bmpcs = " << nbmpc << endl;
 
   // step 2. check which of the candidates are active (ie both subdomains share an active "r" dof)
   int *pstatus = new int[2*nbmpc];
@@ -186,12 +185,10 @@ void GenDecDomain<Scalar>::addBMPCs()
         }
         if(count > 0) { 
           got_enough = true;
-          //cerr << "added " << count << " bmpcs at node " << i << " dof " << dof << endl;
         }
       }
     }
   }
-  //cerr << "final number of bmpcs = " << total << endl;
 }
 
 template<class Scalar>
@@ -1440,21 +1437,11 @@ void GenDecDomain<Scalar>::setsizeSfemStress(int fileNumber)
   int avgnum = oinfo[fileNumber].averageFlg;
 
   if(avgnum == 1)  sizeSfemStress = geoSource->numNode();  // node-based output
-  else if(avgnum == 0) {  // element-based output
-   sizeSfemStress = 0;
-/*   Connectivity *elemToNode = new Connectivity(domain->getEset());
-   int numele = geoSource->getNumAttributes();  // number of elements; another option domain->numElements();
-   for(int iele=0; iele<numele; ++iele)   {
-//     cerr << "number of nodes in this element  = " << elemToNode->num(iele) << endl;
-     sizeSfemStress = sizeSfemStress + elemToNode->num(iele); // add number of nodes for each element
-   }*/
-  }
   else {
-   cerr << "avgnum = " << avgnum << " not implemented in Domain::setsizeSfemStress()" << endl;
+   std::cerr << "avgnum = " << avgnum << " not implemented in Domain::setsizeSfemStress()" << std::endl;
    sizeSfemStress = 0;
   }
 }
-
 
 template<class Scalar>
 void GenDecDomain<Scalar>::updateSfemStress(Scalar* str, int fileNumber)
@@ -1463,10 +1450,8 @@ void GenDecDomain<Scalar>::updateSfemStress(Scalar* str, int fileNumber)
   int avgnum = oinfo[fileNumber].averageFlg;
   int numNodes = geoSource->numNode();
   if(avgnum == 1)  for (int i=0;i<numNodes;++i) globalStress[i] = str[i];
-  else if(avgnum == 0) cerr << "updateSfemStress for element not yet implemented" << endl; // for (int i=0;i<stressAllElems->size();++i) (*stressAllElems) = str[i]; // YYY DG
-  else {cerr << "avgnum = " << avgnum << " not implemented in Domain::updateSfemStress()" << endl;}
+  else std::cerr << "avgnum = " << avgnum << " not implemented in Domain::updateSfemStress()" << std::endl;
 }
-
 
 template<class Scalar>
 void GenDecDomain<Scalar>::getElementStressStrain(GenDistrVector<Scalar> &u, int fileNumber,
@@ -3667,7 +3652,6 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
 // RT end
  switch(domain->solInfo().type) {
    case 0 : { // direct
-     //if(myCPU == 0) cerr << " ... Mumps Solver is Selected       ...\n";
      dgt.dynMats[0]->unify(communicator);
      res.dynMat = dynamic_cast<GenParallelSolver<Scalar>* >(dgt.dynMats[0]);
      if(factor) res.dynMat->refactor();
@@ -3677,7 +3661,7 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
    case 1 : { // iterative
      switch(domain->solInfo().iterType) {
        case 1: {
-         if(myCPU == 0) cerr << " ... GMRES Solver is Selected       ...\n";
+         if(myCPU == 0) std::cerr << " ... GMRES Solver is Selected       ...\n";
          res.spMat = new GenSubDOp<Scalar>(numSub, dgt.spMats, assembler);
          if(domain->solInfo().precond == 1) res.prec = getDiagSolver(numSub, dgt.sd, dgt.sps);
          GmresSolver<Scalar, GenDistrVector<Scalar>, GenSubDOp<Scalar>, GenParallelSolver<Scalar>, GenParallelSolver<Scalar> > *gmresSolver
@@ -3690,18 +3674,18 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
          res.dynMat = gmresSolver;
        } break;
        default:
-         cerr << " *** ERROR: iterType " << domain->solInfo().iterType << " not supported here in GenDecDomain::buildOps\n";
+         std::cerr << " *** ERROR: iterType " << domain->solInfo().iterType << " not supported here in GenDecDomain::buildOps\n";
          exit(-1);
      }
    } break;
    case 2 : { // feti
-     if(myCPU == 0) cerr << " ... FETI-DP Solver is Selected     ...\n";
+     if(myCPU == 0) std::cerr << " ... FETI-DP Solver is Selected     ...\n";
      res.dynMat = getFetiSolver(dgt);
      delete [] dgt.dynMats;
      delete [] dgt.spMats;
    } break;
    case 3 : { // block diag
-     if(myCPU == 0) cerr << " ... Diagonal Solver is Selected    ...\n";
+     if(myCPU == 0) std::cerr << " ... Diagonal Solver is Selected    ...\n";
      res.dynMat = getDiagSolver(numSub, dgt.sd, dgt.dynMats);
    } break;
  }
@@ -4035,9 +4019,9 @@ inline void GenDecDomain<double>::subGetEnergies(int iSub, GenDistrVector<double
 }
 
 template<>
-inline void GenDecDomain<std::complex<double> >::subGetEnergies(int iSub, GenDistrVector<std::complex<double> > &, GenDistrVector<std::complex<double> > &,
-                                                                double, SysState<GenDistrVector<std::complex<double> > > *,
-                                                                GenMDDynamMat<std::complex<double> > *, GenDistrVector<std::complex<double> > *, double *subW)
+inline void GenDecDomain<complex<double> >::subGetEnergies(int iSub, GenDistrVector<complex<double> > &, GenDistrVector<complex<double> > &,
+                                                                double, SysState<GenDistrVector<complex<double> > > *,
+                                                                GenMDDynamMat<complex<double> > *, GenDistrVector<complex<double> > *, double *subW)
 {
   for(int i=0; i<6; ++i) subW[6*iSub+i] = 0;
 }
@@ -4061,9 +4045,9 @@ inline void GenDecDomain<double>::subGetEnergies(int iSub, DistrGeomState *geomS
 }
 
 template<>
-inline void GenDecDomain<std::complex<double> >::subGetEnergies(int iSub, DistrGeomState *, GenDistrVector<std::complex<double> > &,
-                                                                Corotator ***, double, SysState<GenDistrVector<std::complex<double> > > *,
-                                                                GenMDDynamMat<std::complex<double> > *, GenDistrVector<std::complex<double> > *, double *subW)
+inline void GenDecDomain<complex<double> >::subGetEnergies(int iSub, DistrGeomState *, GenDistrVector<complex<double> > &,
+                                                                Corotator ***, double, SysState<GenDistrVector<complex<double> > > *,
+                                                                GenMDDynamMat<complex<double> > *, GenDistrVector<complex<double> > *, double *subW)
 {
   for(int i=0; i<6; ++i) subW[6*iSub+i] = 0;
 }

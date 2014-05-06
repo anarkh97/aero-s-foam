@@ -2,13 +2,14 @@
 #define ROM_SUBELEMENTSAMPLINGDRIVER_H
 
 #include "ElementSamplingDriver.h"
+#include <vector>
 
 namespace Rom {
 
 class SubElementSamplingDriver : public ElementSamplingDriver<std::vector<double>,size_t> {
 public:
   explicit SubElementSamplingDriver(Domain *);
-  void getGlobalWeights(Vector &solution, vector<double> &lweights, vector<int> &lelemids, bool verboseFlag = true);
+  void getGlobalWeights(Vector &solution, std::vector<double> &lweights, std::vector<int> &lelemids, bool verboseFlag = true);
   void preProcess();
 };
 

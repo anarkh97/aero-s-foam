@@ -16,7 +16,7 @@
 
 
 // this is a fix to get around apparent template bug in solaris compiler
-inline double abs(std::complex<double> a)
+inline double abs(complex<double> a)
 {
   return sqrt(a.real()*a.real() + a.imag()*a.imag());
 }
@@ -347,7 +347,7 @@ class Element {
 	StructProp *prop;	// structural properties for this element
         bool myProp;
         int glNum, subNum, stateOffset;
-        vector<double> factors;
+        std::vector<double> factors;
 	void lumpMatrix(FullSquareMatrix&);
   public:
         Element() { prop = 0; _weight = 1.0; _trueWeight = 1.0; myProp = false; category = Undefined; };
@@ -689,7 +689,7 @@ class  EFrameDataAccessor{
     static int *getData(/*const*/ std::pair<int,ResizeArray<EFrameData>* > &o, int i, int *nd)
      {
        if(i>=o.first)
-	 cout << "EFrameDataAccessor corruption" << endl;
+	 std::cout << "EFrameDataAccessor corruption" << std::endl;
        if(nd) { nd[0] = ((*(o.second))[i]).elnum; return nd; }
        else return &(*o.second)[i].elnum;
      }
@@ -699,11 +699,11 @@ class  EFrameDataAccessor{
 
 class DimassAccessor{
  public:
-  static int getNum(/*const*/ vector<DMassData*> &, int )
+  static int getNum(/*const*/ std::vector<DMassData*> &, int )
     { return 1; }
-  static int getSize(const  vector<DMassData*> &o)
+  static int getSize(const  std::vector<DMassData*> &o)
     { return o.size(); }
-  static int *getData(/*const*/  vector<DMassData*> &o, int i, int *nd)
+  static int *getData(/*const*/  std::vector<DMassData*> &o, int i, int *nd)
     {
       if(nd != 0)
 	{
@@ -723,7 +723,7 @@ class BCDataAccessor {
     static int *getData(/*const*/ std::pair<int,BCond *> &o, int i, int *nd)
      {
        if(i>=o.first)
-	 cout << "BCDataAccessor" << endl;
+	 std::cout << "BCDataAccessor" << std::endl;
        if(nd) { nd[0] = o.second[i].nnum; return nd; }
        else return &o.second[i].nnum;
      }
@@ -738,7 +738,7 @@ class ComplexBCDataAccessor {
     static int *getData(/*const*/ std::pair<int,ComplexBCond *> &o, int i, int *nd)
      {
        if(i>=o.first)
-         cout << "ComplexBCDataAccessor" << endl;
+         std::cout << "ComplexBCDataAccessor" << std::endl;
        if(nd) { nd[0] = o.second[i].nnum; return nd; }
        else return &o.second[i].nnum;
      }

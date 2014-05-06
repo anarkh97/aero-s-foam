@@ -833,8 +833,8 @@ MortarHandler::CreateFFIPolygon()
   int SlaveBlkId, MasterBlkId;
   for(int iFFI=0; iFFI < nFFI; iFFI++) {
     SlaveBlkId  = Slave_face_block_id[iFFI]-1;
-    if(Slave_face_index_in_block[iFFI] <= 0) cerr << "error here in MortarHandler::CreateFFIPolygon, iFFI = " << iFFI
-                                                  << ", Slave_face_index_in_block[iFFI] = " << Slave_face_index_in_block[iFFI] << endl;
+    if(Slave_face_index_in_block[iFFI] <= 0) std::cerr << "error here in MortarHandler::CreateFFIPolygon, iFFI = " << iFFI
+                                                  << ", Slave_face_index_in_block[iFFI] = " << Slave_face_index_in_block[iFFI] << std::endl;
     int slave_face  = (*SlaveACMEBlocksMap)[SlaveBlkId][Slave_face_index_in_block[iFFI]-1];
     FaceElement *SlaveFaceEl  = (*SlaveElemSet)[slave_face];
 
@@ -847,8 +847,8 @@ MortarHandler::CreateFFIPolygon()
     else {
       MasterBlkId = Master_face_block_id[iFFI]-1 - 4; // in all the ACME blocks, the master blocks are last
     }
-    if(Master_face_index_in_block[iFFI] <= 0) cerr << "error here in MortarHandler::CreateFFIPolygon, iFFI = " << iFFI 
-                                                   << ", Master_face_index_in_block[iFFI] = " << Master_face_index_in_block[iFFI] << endl;
+    if(Master_face_index_in_block[iFFI] <= 0) std::cerr << "error here in MortarHandler::CreateFFIPolygon, iFFI = " << iFFI 
+                                                   << ", Master_face_index_in_block[iFFI] = " << Master_face_index_in_block[iFFI] << std::endl;
     int master_face = (*MasterACMEBlocksMap)[MasterBlkId][Master_face_index_in_block[iFFI]-1];
     FaceElement *MasterFaceEl = (*MasterElemSet)[master_face];
 
@@ -1131,7 +1131,7 @@ MortarHandler::CreateACMEFFIData()
        ACMEFFI_data[offset++] = 0.0; ACMEFFI_data[offset++] = 0.0; 
        break;
      default:
-       cerr << "Face element Type " << etype << " is NOT supported/implemented." << endl;
+       std::cerr << "Face element Type " << etype << " is NOT supported/implemented." << std::endl;
        exit(-1);
        return;
     }
@@ -1575,7 +1575,7 @@ MortarHandler::build_search(bool tdenforceFlag, int numSub, SubDomain **sd)
       int locnode = -1;
       if((it = slave_entity->find(glnode)) == slave_entity->end()) {
         if((it = master_entity->find(glnode)) == master_entity->end()) {
-          cerr<<glnode<<" is not in the slave or master entity!"<<endl;
+          std::cerr<<glnode<<" is not in the slave or master entity!"<<std::endl;
         }
         else { locnode = it->second + nSlaveNodes + 1; }
       }
@@ -1591,13 +1591,13 @@ MortarHandler::build_search(bool tdenforceFlag, int numSub, SubDomain **sd)
 #ifdef MORTAR_DEBUG
     for(int i=0; i<structCom->numCPUs(); ++i) {
       if(i == structCom->myID()) {
-        cerr << "cpu#" << i << ", num_comm_partners = " << num_comm_partners << ", comm_proc_id = ";
-        for(int j=0; j<num_comm_partners; ++j) cerr << comm_proc_id[j] << " "; cerr << endl;
-        cerr << "number_nodes_to_partner = "; 
-        for(int j=0; j<num_comm_partners; ++j) cerr << number_nodes_to_partner[j] << " "; cerr << endl;
-        cerr << "comm_node = ";
-        for(int j=0; j<interfNode[i]->numConnect(); ++j) cerr << comm_node[j] << " "; cerr << endl;
-        cerr << "interfNode = \n"; interfNode[structCom->myID()]->print();
+        std::cerr << "cpu#" << i << ", num_comm_partners = " << num_comm_partners << ", comm_proc_id = ";
+        for(int j=0; j<num_comm_partners; ++j) std::cerr << comm_proc_id[j] << " "; std::cerr << std::endl;
+        std::cerr << "number_nodes_to_partner = "; 
+        for(int j=0; j<num_comm_partners; ++j) std::cerr << number_nodes_to_partner[j] << " "; std::cerr << std::endl;
+        std::cerr << "comm_node = ";
+        for(int j=0; j<interfNode[i]->numConnect(); ++j) std::cerr << comm_node[j] << " "; std::cerr << std::endl;
+        std::cerr << "interfNode = \n"; interfNode[structCom->myID()]->print();
       } 
       structCom->sync();
     }
@@ -2377,15 +2377,15 @@ MortarHandler::get_interactions(int interaction_type)
   switch(interaction_type) {
 
     case 1 :  // NodeFace_Interactions
-      cerr << "get NodeFace_Interactions not supported\n";
+      std::cerr << "get NodeFace_Interactions not supported\n";
       break;
 
     case 2 :  // NodeSurface_Interactions
-      cerr << "get NodeSurface_Interactions not supported\n";
+      std::cerr << "get NodeSurface_Interactions not supported\n";
       break;
 
     case 3 :  // NodeNode_Interactions
-      cerr << "get NodeNode_Interactions not supported\n";
+      std::cerr << "get NodeNode_Interactions not supported\n";
       break;
 
     default:
@@ -2452,10 +2452,10 @@ MortarHandler::get_interactions(int interaction_type)
         structCom->broadcast(num_FFI, ACMEFFI_index);
         structCom->broadcast(FFI_data_size, ACMEFFI_data);
 #endif
-        //for(int i = 0; i < num_FFI; ++i) cerr << Master_face_block_id[i] << " " << Master_face_index_in_block[i] << " " << Slave_face_block_id[i] << " " 
+        //for(int i = 0; i < num_FFI; ++i) std::cerr << Master_face_block_id[i] << " " << Master_face_index_in_block[i] << " " << Slave_face_block_id[i] << " " 
         //                                      << Slave_face_index_in_block[i] << " " << Slave_face_procs[i] << " " << Master_face_procs[i] << " "
-        //                                      << ACMEFFI_index[i] << " " << endl;
-        //cerr << "ACMEFFI_data = "; for(int i = 0; i < FFI_data_size; ++i) cerr << ACMEFFI_data[i] << " "; cerr << endl;
+        //                                      << ACMEFFI_index[i] << " " << std::endl;
+        //cerr << "ACMEFFI_data = "; for(int i = 0; i < FFI_data_size; ++i) std::cerr << ACMEFFI_data[i] << " "; std::cerr << std::endl;
         //TODO: for self contact we should eliminate the redundant constraints.
       } else {
 #ifdef MORTAR_DEBUG
@@ -2466,11 +2466,11 @@ MortarHandler::get_interactions(int interaction_type)
     } break;
 
     case 5 :  // FaceCoverage_Interactions
-      cerr << "get FaceCoverage_Interactions not supported\n";
+      std::cerr << "get FaceCoverage_Interactions not supported\n";
       break;
 
     case 6 :  // ElementElement_Interactions
-      cerr << "get ElementElement_Interactions not supported\n";
+      std::cerr << "get ElementElement_Interactions not supported\n";
       break;
   }
 #endif
@@ -2529,14 +2529,14 @@ MortarHandler::build_td_enforcement()
   ContactEnforcement::Enforcement_Model_Types type = (InteractionType == MortarHandler::TIED) ? ContactEnforcement::TD_TIED : (ContactEnforcement::Enforcement_Model_Types) FrictionModel;
 #ifdef MORTAR_DEBUG
   switch(type) {
-    case ContactEnforcement::TD_FRICTIONLESS: cerr << "Enforcement Model: FRICTIONLESS\n"; break;
-    case ContactEnforcement::TD_TIED: cerr << "Enforcement Model: TIED\n"; break;
-    case ContactEnforcement::TD_CONSTANT_FRICTION: cerr << "Enforcement Model: CONSTANT FRICTION (friction coeff = " << FrictionCoef[0] << ")\n"; break;
-    case ContactEnforcement::TD_VELOCITY_DEPENDENT: cerr << "Enforcement Model: VELOCITY DEPENDENT (static coeff = " << FrictionCoef[0] 
+    case ContactEnforcement::TD_FRICTIONLESS: std::cerr << "Enforcement Model: FRICTIONLESS\n"; break;
+    case ContactEnforcement::TD_TIED: std::cerr << "Enforcement Model: TIED\n"; break;
+    case ContactEnforcement::TD_CONSTANT_FRICTION: std::cerr << "Enforcement Model: CONSTANT FRICTION (friction coeff = " << FrictionCoef[0] << ")\n"; break;
+    case ContactEnforcement::TD_VELOCITY_DEPENDENT: std::cerr << "Enforcement Model: VELOCITY DEPENDENT (static coeff = " << FrictionCoef[0] 
            << ", dynamic coeff = " << FrictionCoef[1] << ", velocity decay = " << FrictionCoef[2] << ")\n"; break;
-    case ContactEnforcement::TD_PRESSURE_DEPENDENT: cerr << "Enforcement Model: PRESSURE DEPENDENT (friction coeff = " << FrictionCoef[0] 
+    case ContactEnforcement::TD_PRESSURE_DEPENDENT: std::cerr << "Enforcement Model: PRESSURE DEPENDENT (friction coeff = " << FrictionCoef[0] 
            << ", reference pressure = " << FrictionCoef[1] << ", offset pressure = " << FrictionCoef[2] << ", pressure exponent = " << FrictionCoef[3] << ")\n"; break;
-    default: cerr << "Error in MortarHandler::build_td_enforcement: Enforcement model " << type << " not supported\n"; exit(-1); break;
+    default: std::cerr << "Error in MortarHandler::build_td_enforcement: Enforcement model " << type << " not supported\n"; exit(-1); break;
   }
 #endif
 

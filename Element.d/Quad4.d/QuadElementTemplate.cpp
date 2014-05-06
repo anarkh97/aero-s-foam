@@ -91,9 +91,9 @@ QuadElementTemplate<doublereal>
           eta = etanod[n];
           q4shpe(xi, eta, x.data(), y.data(), q.data(), qx.data(), qy.data(), det);
           if (det <= 0.0) {
-            cerr << " ... Error: Negative Jacobian determinant\n";
+            std::cerr << " ... Error: Negative Jacobian determinant\n";
             if (det == 0.0) {
-              cerr << " ... Error: Zero Jacobian determinant\n";
+              std::cerr << " ... Error: Zero Jacobian determinant\n";
             }
             exit(-1); 
           }
@@ -138,9 +138,9 @@ QuadElementTemplate<doublereal>
           eta =    etanod[i]*0.577350269;
           q4shpe(xi, eta, x.data(), y.data(), q.data(), qx.data(), qy.data(), det);
           if (det <= 0.0) {
-            cerr << " ... Error: Negative Jacobian determinant, " << det << "\n";
+            std::cerr << " ... Error: Negative Jacobian determinant, " << det << "\n";
             if (det == 0.0) {
-              cerr << " ... Error: Zero Jacobian determinant\n";
+              std::cerr << " ... Error: Zero Jacobian determinant\n";
             }
             exit(-1); 
           }
@@ -252,9 +252,9 @@ QuadElementTemplate<doublereal>
           eta = etanod[n];
           q4shpe(xi, eta, x.data(), y.data(), q.data(), qx.data(), qy.data(), det);
           if (det <= 0.0) {
-            cerr << " ... Error: Negative Jacobian determinant\n";
+            std::cerr << " ... Error: Negative Jacobian determinant\n";
             if (det == 0.0) {
-              cerr << " ... Error: Zero Jacobian determinant\n";
+              std::cerr << " ... Error: Zero Jacobian determinant\n";
             }
             exit(-1); 
           }
@@ -315,9 +315,9 @@ QuadElementTemplate<doublereal>
           eta =    etanod[i]*0.577350269;
           q4shpe(xi, eta, x.data(), y.data(), q.data(), qx.data(), qy.data(), det);
           if (det <= 0.0) {
-            cerr << " ... Error: Negative Jacobian determinant\n";
+            std::cerr << " ... Error: Negative Jacobian determinant\n";
             if (det == 0.0) {
-              cerr << " ... Error: Zero Jacobian determinant\n";
+              std::cerr << " ... Error: Zero Jacobian determinant\n";
             }
             exit(-1); 
           }
@@ -386,19 +386,19 @@ QuadElementTemplate<doublereal>
           dvmsdstress(n,3*n+1) = (2.*stress(1,n)-stress(0,n))/(2.*stress(6,n));    
           dvmsdstress(n,3*n+2) = (3.*stress(3,n))/stress(6,n);   
         }
-//        if(verboseFlag) cerr << "printing quadstress\n" << stress << endl; 
+//        if(verboseFlag) std::cerr << "printing quadstress\n" << stress << std::endl; 
         vmsWRTdisp = dvmsdstress * dstressdsigauss * dsigaussdepsilon * depsilondv;
-//        if(verboseFlag) cerr << "printing vmsWRTdisp in quadelement template\n" << vmsWRTdisp << endl;
+//        if(verboseFlag) std::cerr << "printing vmsWRTdisp in quadelement template\n" << vmsWRTdisp << std::endl;
       }
 
       if (stressFlg) {
         stressWRTdisp = (dstressdsigauss * dsigaussdepsilon) * depsilondv;
 /*        if(verboseFlag) {
-          cerr << "printing depsilondv in quadelement template\n" << depsilondv << endl;
-          cerr << "printing dsigaussdepsilon in quadelement template\n" << dsigaussdepsilon << endl;
-          cerr << "printing dstressdsigauss in quadelement template\n" << dstressdsigauss << endl;
-          cerr << "printing dstressdsigauss*dsigaussdepsilon in quadelement template\n" << dstressdsigauss * dsigaussdepsilon << endl;
-          cerr << "printing stressWRTdisp in quadelement template\n" << stressWRTdisp << endl;
+          std::cerr << "printing depsilondv in quadelement template\n" << depsilondv << std::endl;
+          std::cerr << "printing dsigaussdepsilon in quadelement template\n" << dsigaussdepsilon << std::endl;
+          std::cerr << "printing dstressdsigauss in quadelement template\n" << dstressdsigauss << std::endl;
+          std::cerr << "printing dstressdsigauss*dsigaussdepsilon in quadelement template\n" << dstressdsigauss * dsigaussdepsilon << std::endl;
+          std::cerr << "printing stressWRTdisp in quadelement template\n" << stressWRTdisp << std::endl;
         }  */
       }
 }

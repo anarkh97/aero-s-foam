@@ -769,7 +769,7 @@ TimoshenkoBeam::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
       }
 
       default:
-        cerr << "avgnum = " << avgnum << " is not a valid number\n";
+        std::cerr << "avgnum = " << avgnum << " is not a valid number\n";
     }
 }
 
@@ -779,11 +779,11 @@ TimoshenkoBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, V
                                                    int senMethod, double *ndTemps, int avgnum, double ylayer, double zlayer)
 {
   if(strInd != 6) {
-    cerr << " ... Error: strInd must be 6 in TwoNodeTruss::getVonMisesDisplacementSensitivity\n";
+    std::cerr << " ... Error: strInd must be 6 in TwoNodeTruss::getVonMisesDisplacementSensitivity\n";
     exit(-1);
   }
   if(dStdDisp.numRow() != 2 || dStdDisp.numCol() !=12) {
-    cerr << " ... Error: dimenstion of sensitivity matrix is wrong\n";
+    std::cerr << " ... Error: dimenstion of sensitivity matrix is wrong\n";
     exit(-1);
   }
   weight = 1;
@@ -833,7 +833,7 @@ TimoshenkoBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, V
   //Jacobian evaluation
   Eigen::Matrix<double,2,12> dStressdDisp;
   Eigen::Matrix<double,7,3> stress;
-  if(verboseFlag) cout << " ... senMethod is " << senMethod << endl;
+  if(verboseFlag) std::cout << " ... senMethod is " << senMethod << std::endl;
 
   if(avgnum == 1 || avgnum == 0) { // ELEMENTAL or NODALFULL
     if(senMethod == 1) { // via automatic differentiation

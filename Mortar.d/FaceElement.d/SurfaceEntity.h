@@ -81,7 +81,7 @@ class SurfaceEntity {
         void MakeVertexMaps();
         void MakeNodeMaps();
         void MakeNodeSet(CoordSet&);
-        void MakeNodeSet(map<int,Node>& NodeCoordMap);
+        void MakeNodeSet(std::map<int,Node>& NodeCoordMap);
         void ExtractNodeSet(CoordSet&);
         void MakeLlVertexToLlNodeMap();
 

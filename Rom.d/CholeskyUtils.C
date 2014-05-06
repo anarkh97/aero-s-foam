@@ -205,62 +205,62 @@ ldlt_solve_lower(const GenFullSquareMatrix<double> &m, double *v, int *ipiv) {
 //-------------------------------------------------------------------
 
 template <>
-const GenFullSquareMatrix<std::complex<double> > &
-cholesky_factor_upper(GenFullSquareMatrix<std::complex<double> > &) {
+const GenFullSquareMatrix<complex<double> > &
+cholesky_factor_upper(GenFullSquareMatrix<complex<double> > &) {
   throw std::logic_error("Not implemented");
 }
 
 template <>
-const GenFullSquareMatrix<std::complex<double> > &
-cholesky_factor_lower(GenFullSquareMatrix<std::complex<double> > &) {
+const GenFullSquareMatrix<complex<double> > &
+cholesky_factor_lower(GenFullSquareMatrix<complex<double> > &) {
   throw std::logic_error("Not implemented");
 }
 
 template <>
-const std::complex<double> *
-cholesky_solve_upper(const GenFullSquareMatrix<std::complex<double> > &, std::complex<double> *) {
+const complex<double> *
+cholesky_solve_upper(const GenFullSquareMatrix<complex<double> > &, complex<double> *) {
   throw std::logic_error("Not implemented");
 }
 
 template <>
-const std::complex<double> *
-cholesky_solve_lower(const GenFullSquareMatrix<std::complex<double> > &, std::complex<double> *) {
+const complex<double> *
+cholesky_solve_lower(const GenFullSquareMatrix<complex<double> > &, complex<double> *) {
   throw std::logic_error("Not implemented");
 }
 
 template <>
-const GenFullSquareMatrix<std::complex<double> > &
-inverse_triangular_upper(GenFullSquareMatrix<std::complex<double> > &) {
+const GenFullSquareMatrix<complex<double> > &
+inverse_triangular_upper(GenFullSquareMatrix<complex<double> > &) {
   throw std::logic_error("Not implemented");
 }
 
 template <>
-const GenFullSquareMatrix<std::complex<double> > &
-inverse_triangular_lower(GenFullSquareMatrix<std::complex<double> > &) {
+const GenFullSquareMatrix<complex<double> > &
+inverse_triangular_lower(GenFullSquareMatrix<complex<double> > &) {
   throw std::logic_error("Not implemented");
 }
 
 template <>
-const GenFullSquareMatrix<std::complex<double> > &
-ldlt_factor_upper(GenFullSquareMatrix<std::complex<double> > &, int*) {
+const GenFullSquareMatrix<complex<double> > &
+ldlt_factor_upper(GenFullSquareMatrix<complex<double> > &, int*) {
   throw std::logic_error("Not implemented");
 }
 
 template <>
-const GenFullSquareMatrix<std::complex<double> > &
-ldlt_factor_lower(GenFullSquareMatrix<std::complex<double> > &, int*) {
+const GenFullSquareMatrix<complex<double> > &
+ldlt_factor_lower(GenFullSquareMatrix<complex<double> > &, int*) {
   throw std::logic_error("Not implemented");
 }
 
 template <>
-const std::complex<double> *
-ldlt_solve_upper(const GenFullSquareMatrix<std::complex<double> > &, std::complex<double> *, int*) {
+const complex<double> *
+ldlt_solve_upper(const GenFullSquareMatrix<complex<double> > &, complex<double> *, int*) {
   throw std::logic_error("Not implemented");
 }
 
 template <>
-const std::complex<double> *
-ldlt_solve_lower(const GenFullSquareMatrix<std::complex<double> > &, std::complex<double> *, int*) {
+const complex<double> *
+ldlt_solve_lower(const GenFullSquareMatrix<complex<double> > &, complex<double> *, int*) {
   throw std::logic_error("Not implemented");
 }
 

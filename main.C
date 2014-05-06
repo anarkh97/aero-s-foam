@@ -1,7 +1,6 @@
 #include <cstdlib>
 #include <cstdio>
 #include <iostream>
-using namespace std;
 #include <unistd.h>
 #include <memory>
 #include <Utils.d/dbg_alloca.h>

@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <iostream>
 #include <iomanip>
+#include <limits>
 #include <stdexcept>
 
 #include <Driver.d/SubDomain.h>
@@ -34,8 +35,6 @@
 #include <Math.d/VecSet.h>
 #include <Math.d/FullMatrix.h>
 #include <Utils.d/print_debug.h>
-
-#include <limits>
 
 extern int verboseFlag;
 
@@ -409,9 +408,9 @@ GenFetiDPSolver<Scalar>::makeKcc()
 #endif
    glNumCorners = 0;
 #ifdef TFLOP
-  map<int, int, less<int> > glCornerMap;
+   std::map<int, int, std::less<int> > glCornerMap;
 #else
-   map<int, int> glCornerMap;
+   std::map<int, int> glCornerMap;
 #endif
    for(int iCorner=0; iCorner<total; ++iCorner)
      if(glCornerMap.find(glCornerNodes[iCorner]) == glCornerMap.end() )
@@ -948,9 +947,9 @@ GenFetiDPSolver<Scalar>::makeKcc()
 
    if(rbmFlag && geometricRbms && this->myCPU == 0) {
      if(KccSolver->neqs() > 0 && KccSolver->numRBM() != ngrbms) {
-       cerr << " *** WARNING: number of singularities in Kcc (" << KccSolver->numRBM() << ")" << endl
-            << "     does not match the number of Geometric RBMs (" << ngrbms << ")" << endl
-            << " *** try adjusting global_cor_rbm_tol or use TRBM method" << endl;
+       std::cerr << " *** WARNING: number of singularities in Kcc (" << KccSolver->numRBM() << ")" << std::endl
+            << "     does not match the number of Geometric RBMs (" << ngrbms << ")" << std::endl
+            << " *** try adjusting global_cor_rbm_tol or use TRBM method" << std::endl;
      }
    } 
  
@@ -1046,7 +1045,7 @@ GenFetiDPSolver<Scalar>::updateActiveSet(GenDistrVector<Scalar> &v, int flag, do
     status_change2 = this->fetiCom->globalMax((int) status_change2);
 #endif
     if(status_change2 && ngrbms) rebuildGtGtilda();
-    if(this->fetiInfo->contactPrintFlag && this->myCPU == 0) cerr << " ";
+    if(this->fetiInfo->contactPrintFlag && this->myCPU == 0) std::cerr << " ";
     delete [] local_status_change;
     return status_change2;
   }
@@ -1102,7 +1101,7 @@ GenFetiDPSolver<Scalar>::update(Scalar nu, GenDistrVector<Scalar> &lambda, GenDi
       //if(ScalarTypes::lessThan(pFp, 0)) throw std::runtime_error("FETI operator is not positive semidefinite");
       Scalar delta_f = nu*nu/2.0*pFp + nu*rp;
       if(this->fetiInfo->contactPrintFlag >= 2 && this->myCPU == 0)
-        cerr << " linesearch: iteration = " << i << ", delta_f = " << delta_f << ", pFp = " << pFp << ", nu = " << nu << ", rp = " << rp << endl;
+        std::cerr << " linesearch: iteration = " << i << ", delta_f = " << delta_f << ", pFp = " << pFp << ", nu = " << nu << ", rp = " << rp << std::endl;
       if(ScalarTypes::lessThanEq(delta_f, 0)) break; // sequence is monotonic (note: check for gcr and gmres)
       else {
         if(i < this->fetiInfo->linesearch_maxit) { 
@@ -1154,7 +1153,7 @@ GenFetiDPSolver<Scalar>::solve(GenDistrVector<Scalar> &f, GenDistrVector<Scalar>
          filePrint (stderr, " ... CG solver selected             ...\n\n");
        }
        if(this->myCPU == 0 && typeid(Scalar)==typeid(DComplex) && !this->fetiInfo->complex_hermitian)
-         cerr << " *** WARNING: CG is not valid for all complex symmetric matrices even if positive definite.\n"
+         std::cerr << " *** WARNING: CG is not valid for all complex symmetric matrices even if positive definite.\n"
               << " *** If your matrix is complex hermitian include \"outerloop CG hermitian\" under FETI in your input file.\n"
               << " *** Otherwise, \"outerloop GMRES\" or \"outerloop GCR\" are safer choices.\n";
        if(verboseFlag) {
@@ -1655,7 +1654,7 @@ GenFetiDPSolver<Scalar>::preCondition(GenDistrVector<Scalar> &v, GenDistrVector<
     cctSolveMpc(Mv); 
   }
   else error = GenFetiSolver<Scalar>::preCondition(v, Mv, errorFlag);
-  return (errorFlag) ? error : numeric_limits<double>::max();
+  return (errorFlag) ? error : std::numeric_limits<double>::max();
 }
 
 template<class Scalar>
@@ -1815,7 +1814,7 @@ GenFetiDPSolver<Scalar>::localSolveAndJump(GenDistrVector<Scalar> &p, GenDistrVe
  Scalar pHFp = ScalarTypes::conj(ret); // note: p*Fp = (Fp)^H p therefore p^H Fp = conj(p*Fp)
  if(this->myCPU == 0 && (this->fetiInfo->outerloop == FetiInfo::CG)
     && (ScalarTypes::Real(pHFp) < 0.0 || fabs(ScalarTypes::Imag(pHFp)) > 1.0e-10))
-   cerr << " *** WARNING: x^H F x = " << pHFp << ", must be positive and real for any x when F is Hermitian and positive definite. CG may not work \n";
+   std::cerr << " *** WARNING: x^H F x = " << pHFp << ", must be positive and real for any x when F is Hermitian and positive definite. CG may not work \n";
 #endif
  nMatVecProd++;
  stopTimerMemory(this->times.sAndJ, this->times.memorySAndJ);
@@ -2162,7 +2161,7 @@ GenFetiDPSolver<Scalar>::getFNormSq(GenDistrVector<Scalar> &f)
 #ifdef DISTRIBUTED
   mpcerr = this->fetiCom->globalSum(mpcerr);
 #endif
-  //cerr << "mpc error = " << mpcerr << endl;
+  //cerr << "mpc error = " << mpcerr << std::endl;
 
   return (fr.sqNorm() + fc.sqNorm() + mpcerr);
 }
@@ -2298,7 +2297,7 @@ GenFetiDPSolver<Scalar>::buildCCt()
                                                   this->fetiInfo, this->fetiCom, super_flag, sub_flag);
     } break;
     default :
-      cerr << " *** ERROR: don't know mpc_precno = " << this->fetiInfo->mpc_precno << endl;
+      std::cerr << " *** ERROR: don't know mpc_precno = " << this->fetiInfo->mpc_precno << std::endl;
       break;
   }
   CCtsolver->assemble();
@@ -2730,10 +2729,10 @@ GenFetiDPSolver<Scalar>::project(GenDistrVector<Scalar> &z, GenDistrVector<Scala
     // check stopping criteria
     if(i > 0) {
       double resnorm = (eflag && ngrbms) ? res.norm() : 0;
-      if(this->fetiInfo->contactPrintFlag && this->myCPU == 0) cerr << "dual planing: iteration = " << i << ", residual = " << resnorm << endl;
+      if(this->fetiInfo->contactPrintFlag && this->myCPU == 0) std::cerr << "dual planing: iteration = " << i << ", residual = " << resnorm << std::endl;
       if(/*resnorm <= this->fetiInfo->dual_proj_tol ||*/ !status_change) break;
       else if(i == MAX(1,this->fetiInfo->dual_plan_maxit)) {
-        if(this->myCPU == 0) cerr << "warning: dual planing did not converge after " << i << " iterations. Error = " << resnorm << endl;
+        if(this->myCPU == 0) std::cerr << "warning: dual planing did not converge after " << i << " iterations. Error = " << resnorm << std::endl;
         // note: if we break the loop here then y will not be feasible wrt the equality constraints (i.e. G^T*y != e)
         // if we don't break here then y will not be feasible wrt the inequality constraints
         break;
@@ -2754,7 +2753,7 @@ GenFetiDPSolver<Scalar>::project(GenDistrVector<Scalar> &z, GenDistrVector<Scala
   if((dualStatusChange = (i > 1))) {
     nSubIterDual += (i-1);
     nStatChDual++;
-    if(this->fetiInfo->contactPrintFlag && this->myCPU == 0) cerr << endl;
+    if(this->fetiInfo->contactPrintFlag && this->myCPU == 0) std::cerr << std::endl;
   }
 
   stopTimerMemory(this->times.project, this->times.memoryProject1);
@@ -2792,10 +2791,10 @@ GenFetiDPSolver<Scalar>::tProject(GenDistrVector<Scalar> &r, GenDistrVector<Scal
     // check stopping criteria
     if(i > 0) {
       double resnorm = (ngrbms) ? res.norm() : 0;
-      if(this->fetiInfo->contactPrintFlag && this->myCPU == 0) cerr << "primal planing: iteration " << i << ", residual = " << resnorm << endl;
+      if(this->fetiInfo->contactPrintFlag && this->myCPU == 0) std::cerr << "primal planing: iteration " << i << ", residual = " << resnorm << std::endl;
       if(/*resnorm <= this->fetiInfo->primal_proj_tol ||*/ !status_change) break;
       else if(i == MAX(1,this->fetiInfo->primal_plan_maxit)) {
-        if(this->myCPU == 0) cerr << "warning: primal planing did not converge after " << i << " iterations. " << endl;
+        if(this->myCPU == 0) std::cerr << "warning: primal planing did not converge after " << i << " iterations. " << std::endl;
         break;
       }
     }
@@ -2819,7 +2818,7 @@ GenFetiDPSolver<Scalar>::tProject(GenDistrVector<Scalar> &r, GenDistrVector<Scal
   if((primalStatusChange = (i > 1))) {
     nSubIterPrimal += (i-1);
     nStatChPrimal++;
-    if(this->fetiInfo->contactPrintFlag && this->myCPU == 0) cerr << endl;
+    if(this->fetiInfo->contactPrintFlag && this->myCPU == 0) std::cerr << std::endl;
   }
 
   stopTimerMemory(this->times.project, this->times.memoryProject1);

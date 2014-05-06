@@ -4,6 +4,7 @@
 #include <Feti.d/DistrVector.h>
 #include <Feti.d/DistrVectorSet.h>
 #include <Paral.d/SubDOp.h>
+#include <vector>
 
 class Domain;
 template <class Scalar> class GenSubDomain;

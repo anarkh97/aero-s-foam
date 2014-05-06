@@ -4,15 +4,16 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <stack>
+#include <string>
 #include <Parser.d/AuxDefs.h>
 #include <Driver.d/Domain.h>
 #include "parser.hpp"
-#include <stack>
 int line_num = 1;
 
 // used for include
-stack<YY_BUFFER_STATE> includedFiles;
-stack<int> lineNumber;	// for fancy error message
+std::stack<YY_BUFFER_STATE> includedFiles;
+std::stack<int> lineNumber; // for fancy error message
 
 %}
 
@@ -38,7 +39,7 @@ TRAIL [a-zA-Z]*
           c = yyinput();
         if(c != '\n')
           yyunput(c,yytext_ptr);
-        string fname = string(yytext);
+        std::string fname = std::string(yytext);
         if(fname.length() > 0)
         {
           if(fname[0]=='"' && fname[ fname.length()-1 ]=='"' && fname.length()>2) {

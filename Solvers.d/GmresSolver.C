@@ -2,8 +2,6 @@
 #include <iostream>
 #include <iomanip>
 
-using namespace std;
-
 template<class Scalar, class AnyVector, class AnyOperator, class LeftPreconditioner, class RightPreconditioner>
 GmresSolver<Scalar, AnyVector, AnyOperator, LeftPreconditioner, RightPreconditioner>::GmresSolver(
   int _maxit, double _tol, AnyOperator *_op, void (AnyOperator::*_matvec)(AnyVector &, AnyVector &),
@@ -49,13 +47,13 @@ GmresSolver<Scalar, AnyVector, AnyOperator, LeftPreconditioner, RightPreconditio
 */
   if(leftprec) (leftprec->*applyLeft)(b, v); else v = b;
   beta = v.norm();
-//  cerr  << "alpha = " << alpha << ", beta = " << beta << endl;
+//  std::cerr  << "alpha = " << alpha << ", beta = " << beta << std::endl;
  
   // x^0 = 0 (arbitrary)
   x.zero(); //x.setRandom();
 
   if(verbose && rank == 0 && printNumber > 0)
-    cerr << " Iteration   Backward Error\n";
+    std::cerr << " Iteration   Backward Error\n";
 
   bool stop = false;
   while(!stop) {
@@ -78,7 +76,7 @@ GmresSolver<Scalar, AnyVector, AnyOperator, LeftPreconditioner, RightPreconditio
       stop = (iter == maxit || error <= tol);
 
       if(verbose && rank == 0 && (stop || ((printNumber > 0) && (iter % printNumber == 0))))
-        cerr << " " << setw(5) << iter << "     " << scientific << setprecision(8) << "  " << setw(14) << error << "  " << endl;
+        std::cerr << " " << std::setw(5) << iter << "     " << std::scientific << std::setprecision(8) << "  " << std::setw(14) << error << "  " << std::endl;
 
       if(stop) break;
 
@@ -94,7 +92,7 @@ GmresSolver<Scalar, AnyVector, AnyOperator, LeftPreconditioner, RightPreconditio
       x = x0 - w;
     }
 
-    if(!stop && verbose && rank == 0)  cerr << "restarting GMRES\n";
+    if(!stop && verbose && rank == 0)  std::cerr << "restarting GMRES\n";
   }
   if(rightprec) (rightprec->*applyRight)(x, x);
 }

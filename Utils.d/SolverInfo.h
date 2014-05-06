@@ -12,14 +12,13 @@
 #include <algorithm>
 #include <list>
 #include <vector>
+#include <limits>
 
 #if defined(WINDOWS) || defined(MACOSX)
  #include <cfloat>
 #else
  #include <limits>
 #endif
-
-using namespace std;
 
 struct AdaptiveSweepParams {
 public:
@@ -41,7 +40,7 @@ public:
                   pade_tol = 1.0e-16;
                   pade_poles = false;
                   pade_poles_sigmaL = 0.0;
-                  pade_poles_sigmaU = numeric_limits<double>::max();
+                  pade_poles_sigmaU = std::numeric_limits<double>::max();
    }
    int nFreqSweepRHS;
    enum { Taylor, Pade1, Pade, Fourier, PadeLanczos, GalProjection, KrylovGalProjection, QRGalProjection };
@@ -251,14 +250,14 @@ struct SolverInfo {
    // YC : sensitivity and optimization parameters
    bool sensitivity;
 
-   // KAS :  map object for Mumps control CNTL and ICNTL matrices
-   map<int, int> mumps_icntl;
-   map<int, double> mumps_cntl;
+   // map object for Mumps control CNTL and ICNTL matrices
+   std::map<int, int> mumps_icntl;
+   std::map<int, double> mumps_cntl;
 
    bool localScaled, coarseScaled;
 
    int curSweepParam;
-   map<int,SweepParams> sweepParams;
+   std::map<int,SweepParams> sweepParams;
    SweepParams* getSweepParams() { return &(sweepParams[curSweepParam]); }
    bool doFreqSweep,doEigSweep;
 /*
@@ -291,8 +290,8 @@ struct SolverInfo {
    bool inpc;
    int nsample;
 
-   map<int, int> debug_icntl;   // used for debugging
-   map<int, float> debug_cntl;  // used for debugging
+   std::map<int, int> debug_icntl;   // used for debugging
+   std::map<int, float> debug_cntl;  // used for debugging
 
    bool iacc_switch; // mech/acou: true --> compute consistent initial second time derivative ie, a^0 = M^{-1}(fext^0 - fint^0 - Cv^0) for a second order differential equation (ie mech/acou)
                      //            false --> a^0 = 0
@@ -534,7 +533,7 @@ struct SolverInfo {
                   pade_pivot = false;
                   pade_tol = 1.0e-16;
                   pade_poles = false;
-                  pade_poles_sigmaL = 0.0; pade_poles_sigmaU = numeric_limits<double>::max();
+                  pade_poles_sigmaL = 0.0; pade_poles_sigmaU = std::numeric_limits<double>::max();
 */
                   modeFilterFlag = 0;
                   test_ulrich = false;
@@ -795,7 +794,7 @@ struct SolverInfo {
          probType = NonLinDynam;
          break;
        case(ArcLength) :
-         cerr << "ARCLENGTH + DYNAMICS not supported\n"; 
+         std::cerr << "ARCLENGTH + DYNAMICS not supported\n"; 
          exit(-1);
          break;
        case(MatNonLinDynam) :
@@ -803,7 +802,7 @@ struct SolverInfo {
          probType = MatNonLinDynam;
          break;
        default :
-         if(probType != None && probType != Static && probType != Dynamic) cerr << "WARNING: switching problem type from " << probType << " to Dynamic\n";
+         if(probType != None && probType != Static && probType != Dynamic) std::cerr << "WARNING: switching problem type from " << probType << " to Dynamic\n";
          probType = Dynamic;
          break;
      }

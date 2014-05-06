@@ -52,8 +52,6 @@ class ScratchVariable;
 
 #ifndef CONTACT_NO_MPI
 
-using namespace std;
-
 class ContactEnfZoltan;
 class ContactHostGlobalID;
 

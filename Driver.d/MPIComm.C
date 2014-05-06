@@ -9,8 +9,9 @@
 #endif
 
 #include <Driver.d/Communicator.h>
-
 #include <Comm.d/Communicator.h>
+#include <complex>
+#include <iostream>
 
 /*
 #if !(defined(USE_MPI) && defined (RS6000_SYS) && defined(MPI_INTEGER))
@@ -453,14 +454,14 @@ complex<double> FSCommunicator::globalSum(complex<double> data)
 template <>
 complex<double> FSCommunicator::globalMax(complex<double> data)
 {
-  cerr << "ERROR: FSCommunicator::globalMax called with complex data\n";
+  std::cerr << "ERROR: FSCommunicator::globalMax called with complex data\n";
   return complex<double>(0.0,0.0);
 }
 
 template <>
 complex<double> FSCommunicator::globalMin(complex<double> data)
 {
-  cerr << "ERROR: FSCommunicator::globalMin called with complex data\n";
+  std::cerr << "ERROR: FSCommunicator::globalMin called with complex data\n";
   return complex<double>(0.0,0.0);
 }
 
@@ -479,52 +480,52 @@ template <>
 void
 FSCommunicator::globalMax(int num, complex<double> *data)
 {
-  cerr << "ERROR: FSCommunicator::globalMax called with complex data\n";
+  std::cerr << "ERROR: FSCommunicator::globalMax called with complex data\n";
 }
 
 template <>
 void
 FSCommunicator::globalMin(int num, complex<double> *data)
 {
-  cerr << "ERROR: FSCommunicator::globalMin called with complex data\n";
+  std::cerr << "ERROR: FSCommunicator::globalMin called with complex data\n";
 }
 
 template <>
 void FSCommunicator::sendTo(int cpu, int tag, complex<double> *buffer, int len)
 {
-  cerr << "ERROR: FSCommunicator::sendTo called with complex data\n";
+  std::cerr << "ERROR: FSCommunicator::sendTo called with complex data\n";
 }
 
 template <>
 FSRecInfo FSCommunicator::recFrom(int tag, complex<double> *buffer, int len)
 {
-  cerr << "ERROR: FSCommunicator::recFrom called with complex data\n";
+  std::cerr << "ERROR: FSCommunicator::recFrom called with complex data\n";
   return FSRecInfo();
 }
 
 template <>
 void FSCommunicator::allGather(complex<double> *send_data, int send_count, complex<double> *recv_data, int recv_count)
 {
-  cerr << "ERROR: FSCommunicator::allGather called with complex data\n";
+  std::cerr << "ERROR: FSCommunicator::allGather called with complex data\n";
 }
 
 template <>
 void FSCommunicator::allGatherv(complex<double> *send_data, int send_count, complex<double> *recv_data, int recv_counts[], int displacements[]) 
 {
-  cerr << "ERROR: FSCommunicator::allGatherv called with complex data\n";
+  std::cerr << "ERROR: FSCommunicator::allGatherv called with complex data\n";
 }
 
 template <>
 void
 FSCommunicator::reduce(int num, complex<double> *data, int root)
 { 
-  cerr << "ERROR: FSCommunicator::reduce called with complex data\n";
+  std::cerr << "ERROR: FSCommunicator::reduce called with complex data\n";
 }
 
 template <>
 void
 FSCommunicator::broadcast(int num, complex<double> *data, int root)
 {
-  cerr << "ERROR: FSCommunicator::broadcast called with complex data\n";
+  std::cerr << "ERROR: FSCommunicator::broadcast called with complex data\n";
 }
 #endif

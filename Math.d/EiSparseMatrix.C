@@ -141,7 +141,7 @@ GenEiSparseMatrix<Scalar,SolverClass>::addImaginary(FullSquareMatrix &kel, int *
       if(dofs[j] < 0 || (l = unconstrNum[dofs[j]]) < 0) continue;  // Skip undefined/constrained dofs
       for(int m = xunonz[l]; m < xunonz[l+1]; ++m) {
         if(rowu[m] == k) {
-          ScalarTypes::addComplex(unonz[m], std::complex<double>(0,kel[i][j]));
+          ScalarTypes::addComplex(unonz[m], complex<double>(0,kel[i][j]));
           break;
         }
       }
@@ -283,7 +283,7 @@ GenEiSparseMatrix<double,Eigen::UmfPackLU<Eigen::SparseMatrix<double> > >::facto
 
 template<>
 void
-GenEiSparseMatrix<std::complex<double>,Eigen::UmfPackLU<Eigen::SparseMatrix<std::complex<double> > > >::factor();
+GenEiSparseMatrix<complex<double>,Eigen::UmfPackLU<Eigen::SparseMatrix<complex<double> > > >::factor();
 #endif
 
 template<typename Scalar, typename SolverClass>
@@ -326,7 +326,7 @@ GenEiSparseMatrix<double,Eigen::UmfPackLU<Eigen::SparseMatrix<double> > >::reSol
 
 template<>
 void
-GenEiSparseMatrix<std::complex<double>,Eigen::UmfPackLU<Eigen::SparseMatrix<std::complex<double> > > >::reSolve(std::complex<double>* _rhs);
+GenEiSparseMatrix<complex<double>,Eigen::UmfPackLU<Eigen::SparseMatrix<complex<double> > > >::reSolve(complex<double>* _rhs);
 #endif
 
 template<typename Scalar, typename SolverClass>
@@ -347,7 +347,7 @@ GenEiSparseMatrix<double,Eigen::UmfPackLU<Eigen::SparseMatrix<double> > >::reSol
 
 template<>
 void
-GenEiSparseMatrix<std::complex<double>,Eigen::UmfPackLU<Eigen::SparseMatrix<std::complex<double> > > >::reSolve(GenVector<std::complex<double> > &_rhs);
+GenEiSparseMatrix<complex<double>,Eigen::UmfPackLU<Eigen::SparseMatrix<complex<double> > > >::reSolve(GenVector<complex<double> > &_rhs);
 #endif
 
 template<typename Scalar, typename SolverClass>
@@ -364,7 +364,7 @@ GenEiSparseMatrix<double,Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen:
 
 template<>
 void
-GenEiSparseMatrix<std::complex<double>,Eigen::SimplicialLLT<Eigen::SparseMatrix<std::complex<double> >,Eigen::Upper> >::upperMult(std::complex<double>* _rhs);
+GenEiSparseMatrix<complex<double>,Eigen::SimplicialLLT<Eigen::SparseMatrix<complex<double> >,Eigen::Upper> >::upperMult(complex<double>* _rhs);
 
 template<typename Scalar, typename SolverClass>
 void
@@ -380,4 +380,4 @@ GenEiSparseMatrix<double,Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen:
 
 template<>
 void
-GenEiSparseMatrix<std::complex<double>,Eigen::SimplicialLLT<Eigen::SparseMatrix<std::complex<double> >,Eigen::Upper> >::backward(std::complex<double>* _rhs);
+GenEiSparseMatrix<complex<double>,Eigen::SimplicialLLT<Eigen::SparseMatrix<complex<double> >,Eigen::Upper> >::backward(complex<double>* _rhs);

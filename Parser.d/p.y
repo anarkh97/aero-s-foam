@@ -1453,7 +1453,7 @@ HEVFRSBC:  // Added for HEV problem, EC, 20080512
 
           for (int ii=0; ii < $3->n; ii++)
             allPDirNodes[ii]=($3->d[ii]).nnum;
-          sort(allPDirNodes,allPDirNodes + $3->n);
+          std::sort(allPDirNodes,allPDirNodes + $3->n);
 
           int maxFSNodes = 32;
           int* allHEVFSNodes = new int[maxFSNodes];
@@ -2578,26 +2578,26 @@ ElemSet:
 	;
 FaceSet:
 	SURFACETOPOLOGY Integer NewLine 
-	{ if($2 == 0) { cerr << " *** ERROR: surface id must be non-zero integer\n"; exit(-1); } // zero reserved for self-contact
+	{ if($2 == 0) { std::cerr << " *** ERROR: surface id must be non-zero integer\n"; exit(-1); } // zero reserved for self-contact
           $$ = new SurfaceEntity($2);
           $$->SetReverseNormals(false);
           domain->AddSurfaceEntity($$);
         }
         | SURFACETOPOLOGY Integer REVERSENORMALS NewLine 
-        { if($2 == 0) { cerr << " *** ERROR: surface id must be non-zero integer\n"; exit(-1); } // zero reserved for self-contact
+        { if($2 == 0) { std::cerr << " *** ERROR: surface id must be non-zero integer\n"; exit(-1); } // zero reserved for self-contact
           $$ = new SurfaceEntity($2);
           $$->SetReverseNormals(true);
           domain->AddSurfaceEntity($$);
         }
         | SURFACETOPOLOGY Integer SHELLTHICKNESS Float NewLine 
-        { if($2 == 0) { cerr << " *** ERROR: surface id must be non-zero integer\n"; exit(-1); } // zero reserved for self-contact
+        { if($2 == 0) { std::cerr << " *** ERROR: surface id must be non-zero integer\n"; exit(-1); } // zero reserved for self-contact
           $$ = new SurfaceEntity($2);
           $$->SetIsShellFace(true);
           $$->SetShellThickness($4);
           domain->AddSurfaceEntity($$);
         }
         | SURFACETOPOLOGY Integer SHELLTHICKNESS Float REVERSENORMALS NewLine 
-        { if($2 == 0) { cerr << " *** ERROR: surface id must be non-zero integer\n"; exit(-1); } // zero reserved for self-contact
+        { if($2 == 0) { std::cerr << " *** ERROR: surface id must be non-zero integer\n"; exit(-1); } // zero reserved for self-contact
           $$ = new SurfaceEntity($2);
           $$->SetIsShellFace(true);
           $$->SetShellThickness($4);

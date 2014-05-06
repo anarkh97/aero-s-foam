@@ -1,12 +1,13 @@
 #ifdef USE_EIGEN3
 #include <Element.d/Rigid.d/RigidSolid.h>
 #include <Element.d/Rigid.d/RigidTwoNodeTruss.h>
+#include <iostream>
 
 RigidSolid::RigidSolid(int _nnodes, int* _nn)
  : SuperElement(true)
 {
   if(_nnodes < 3) {
-    cerr << " *** ERROR: minimum number of nodes is 3 for rigid solid. Exiting...\n";
+    std::cerr << " *** ERROR: minimum number of nodes is 3 for rigid solid. Exiting...\n";
     exit(-1);
   }
   nnodes = _nnodes;

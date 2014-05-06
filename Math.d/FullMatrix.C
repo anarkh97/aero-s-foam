@@ -8,6 +8,7 @@
  *****************************************************************************/
 
 #include <cstdio>
+#include <iostream>
 #include <Utils.d/linkfc.h>
 // #include <Math.d/FullMatrix.h>
 #include <Math.d/Vector.h>
@@ -416,13 +417,12 @@ template<class Scalar>
 void
 GenFSFullMatrix<Scalar>::print(const char *msg, const char *msg2)
 {
- if(*msg) cerr << msg << "\n";
+ if(*msg) std::cerr << msg << "\n";
  int i,j;
  for(i = 0 ; i < nrow ; ++i) {
    for(j=0; j < ncolumn ; ++j)
-     cerr << msg2 << "(" << i+1 << "," << j+1 << ")" << (*this)[i][j] << endl;
-     // fprintf(stderr,"%s(%d,%d) = % e;",msg2,i+1,j+1,(*this)[i][j]) ;
-   cerr << "\n";
+     std::cerr << msg2 << "(" << i+1 << "," << j+1 << ")" << (*this)[i][j] << std::endl;
+   std::cerr << "\n";
  }
 }
 
@@ -430,7 +430,6 @@ template<class Scalar>
 double
 GenFSFullMatrix<Scalar>::max()
 {
-// Jing Li's problem, check with Michel
  double max = ScalarTypes::norm( (*this)[0][0] );
  int i,j;
  for(i = 0; i<nrow; ++i)

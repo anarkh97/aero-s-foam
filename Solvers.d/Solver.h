@@ -49,9 +49,9 @@ class GenSolver {
     virtual void solve(GenVector<Scalar> &rhs, GenVector<Scalar> &solution);
     virtual void solve(Scalar *rhs, Scalar *solution);
     virtual void solve(GenDistrVector<Scalar> &rhs, GenDistrVector<Scalar> &solution)
-             {cerr << "GenSolver::solve(GenDistrVector<Scalar> NOT implemented" << endl; } 
+             {std::cerr << "GenSolver::solve(GenDistrVector<Scalar> NOT implemented" << std::endl; } 
     virtual void solve(DistrBlockVector<Scalar> &rhs, DistrBlockVector<Scalar> &solution)
-             {cerr << "GenSolver::solve(DistrBlockVector<Scalar> NOT implemented" << endl; } 
+             {std::cerr << "GenSolver::solve(DistrBlockVector<Scalar> NOT implemented" << std::endl; } 
 
     // reSolve functions overwrite the rhs vector with the solution
     virtual void reSolve(Scalar *rhs); 

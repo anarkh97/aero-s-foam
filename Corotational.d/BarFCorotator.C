@@ -1,4 +1,5 @@
 #include <cmath>
+#include <iostream>
 
 #include <Math.d/FullSquareMatrix.h>
 #include <Element.d/Element.h>
@@ -75,7 +76,7 @@ BarFCorotator::BarFCorotator(int _n1, int _n2, double _e,
  if (_Seed == -1)
  {
    // Display Material Values
-   cerr << "Young's Modulus = " << em << "; Lambda = " << lambda << endl;
+   std::cerr << "Young's Modulus = " << em << "; Lambda = " << lambda << std::endl;
  }
 }
 
@@ -201,9 +202,6 @@ BarFCorotator::MicroCalcLambda(int np, double *pDamage, double *pU_vec, double l
     if (fabs(dr) < tol)
       break;
   }
-  //cerr << "Lambda = " << lambda << endl;
-  //cerr << "k = " << k << endl;
-  //cerr << "dr = " << dr << endl;
 }
 
 double
@@ -331,14 +329,11 @@ BarFCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
 	damage = alpha;
  if (damage < 0.0)
 	damage = 0.0;
- //cerr << "U = " << (ld/l0) << endl;
- //cerr << "damage = " << damage << endl;
  // Compute current PK2-stress
  double sigma = damage*em*e;
  // Enforce zero stress on compression
  if (e < 0.0)
 	sigma = 0.0;
- //cerr << "stress = " << sigma << endl;
  // Compute current axial force: p
  double p = (ld/l0)*sigma*a0;
 
@@ -356,7 +351,6 @@ BarFCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
 
  elK.zero();  // this element is only used for nonlinear explicit
  //damage += 1.0;
- //cerr << "damage = " << damage << endl;
 }
 
 void

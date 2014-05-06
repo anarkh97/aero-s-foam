@@ -1,6 +1,5 @@
-#include <iostream>
+#include <complex>
 #include <cstdlib>
-#include <cstdio>
 #include <Utils.d/linkfc.h>
 #include <Math.d/Vector.h>
 #include <Driver.d/Communicator.h>
@@ -10,7 +9,7 @@ void    _FORTRAN(micspsmvp)(int&, double*, int*, int*, const double*, double*);
 void    _FORTRAN(sptmv)(double*, int*, int*, int&, double*, double*);
 void    _FORTRAN(cspsmvp)(int&, complex<double> *, int*, int*, const complex<double> *, 
                           complex<double> *);
-void    _FORTRAN(cdspsmvp)(int&, double*, int*, int*, const DComplex*, DComplex*);
+void    _FORTRAN(cdspsmvp)(int&, double*, int*, int*, const complex<double>*, complex<double>*);
 }
 
 inline void Tcspsmvp(int& a, double* b, int* c, int* d, const double* e, double* f)
@@ -59,7 +58,6 @@ GenDBSparseMatrix<Scalar>::print()
   for (int dof = 0; dof < numUncon; ++dof)
     for (int i = xunonz[dof]; i<xunonz[dof+1]; ++i)
       std::cerr << " " << rowu[i-1] - 1 << " " << dof << " " << unonz[i-1] << "\n";
-      //fprintf(stderr," %d %d %e\n",rowu[i-1]-1, dof, unonz[i-1]);
 }
 
 template<class Scalar>
@@ -213,7 +211,7 @@ GenDBSparseMatrix<Scalar>::addBoeing(int nl, const int *Kai, const int *Kaj,
        }
      }
      if(m==mstop) {
-       cerr << "Warning: m = mstop in DBSparseMatrix::addBoeing(), i = " << i << ", map[i] = " << map[i] << endl;
+       std::cerr << "Warning: m = mstop in DBSparseMatrix::addBoeing(), i = " << i << ", map[i] = " << map[i] << std::endl;
        //exit(-1);
      }
    }

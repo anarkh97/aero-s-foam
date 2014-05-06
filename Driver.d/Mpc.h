@@ -13,11 +13,6 @@
 #include <Utils.d/Connectivity.h>
 #include <vector>
 
-
-// TODO remove nterms and type from LMPCons and SubLMPCons
-//      use terms.size() and m_type/m_source instead
-//      merge LMPCons/SubLMPCons
-
 struct RealOrComplex 
 {
   double r_value;
@@ -170,7 +165,7 @@ class SubLMPCons
  private:
   mpc::ConstraintType m_type;
   mpc::ConstraintSource m_source;
-  SubLMPCons(const SubLMPCons<Scalar> &) { cerr << "SubLMPCons copy constructor is not implemented \n"; }
+  SubLMPCons(const SubLMPCons<Scalar> &) { std::cerr << "SubLMPCons copy constructor is not implemented \n"; }
  public:
   Scalar rhs;              
   Scalar original_rhs;     
@@ -242,10 +237,10 @@ class SubLMPCons
 
   void print()
   {
-    std::cerr << "lmpcnum = " << lmpcnum << ", rhs = " << rhs << ", nterms = " << nterms << endl;
+    std::cerr << "lmpcnum = " << lmpcnum << ", rhs = " << rhs << ", nterms = " << nterms << std::endl;
     for(int i=0; i<nterms; ++i)
       std::cerr << "  term " << i+1 << ": node " << terms[i].nnum+1 << "  dof "
-                << terms[i].dofnum << "  coef " << terms[i].coef << endl;
+                << terms[i].dofnum << "  coef " << terms[i].coef << std::endl;
   }
 
   void setType(mpc::ConstraintType _type) { m_type = _type; }
@@ -255,7 +250,7 @@ class SubLMPCons
 };
 
 inline void LMPCons::removeNullTerms() {
-    vector<LMPCTerm>::iterator i = terms.begin();
+    std::vector<LMPCTerm>::iterator i = terms.begin();
     while(i != terms.end()) {
       if(i->isNull())
         i = terms.erase(i);
@@ -284,7 +279,7 @@ class SetAccess<LMPCons>
     }
     void getNodes(int i, int *nd) {
       for(int j = 0; j < lmpc[i]->nterms; ++j)
-        nd[j] = dofID[pair<int,int>(lmpc[i]->terms[j].nnum, lmpc[i]->terms[j].dofnum)];
+        nd[j] = dofID[std::pair<int,int>(lmpc[i]->terms[j].nnum, lmpc[i]->terms[j].dofnum)];
     }
 };
 

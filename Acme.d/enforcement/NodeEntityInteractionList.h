@@ -47,8 +47,6 @@ class ContactEnfModel;
 class ContactParOStream;
 class ScratchVariable;
 
-using namespace std;
-
 class Node_Constraint_Group {
  public:
   Node_Constraint_Group(const int global_entity_list_index_,

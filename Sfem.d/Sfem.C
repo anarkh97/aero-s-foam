@@ -3,9 +3,8 @@
 #include <cmath>
 #include <cstdlib>
 #include <cstdio>
-//#include <iostream>
 #include <map>
-#include<Driver.d/GeoSource.h>
+#include <Driver.d/GeoSource.h>
 #include <Sfem.d/cijk.h>
 #include <Utils.d/Memory.h>
 
@@ -123,7 +122,7 @@ void Sfem::genXi(int seed)
 /* if(seed==0) {
    readfile.open("xifile",ios::in);
 
-   ifstream readintegfile2("integparamfile",ios::in);
+   std::ifstream readintegfile2("integparamfile",ios::in);
    int junk;
    readintegfile2 >> junk;
    readintegfile2 >> nosamp_deletelater;

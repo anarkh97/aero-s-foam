@@ -2,6 +2,7 @@
 #include <Corotational.d/SuperCorotator.h>
 #include <Utils.d/dbg_alloca.h>
 #include <Driver.d/Mpc.h>
+#include <iostream>
 
 SuperElement::SuperElement(bool _localFlag)
  : eset(0), dsa(0), superCorotator(0), nInternalNodes(0), css(0),
@@ -422,20 +423,20 @@ SuperElement::trussHeatFluxes(double &trussflux, CoordSet &cs, Vector &elTemp, i
 void 
 SuperElement::computeDisp(CoordSet &cs, State &state, const InterpPoint &ip, double *res, GeomState *gs)
 {
-  cerr << " *** WARNING: SuperElement::computeDisp(...) is not implemented \n";
+  std::cerr << " *** WARNING: SuperElement::computeDisp(...) is not implemented \n";
 }
 
 void
 SuperElement::getFlLoad(CoordSet &cs, const InterpPoint &ip, double *flF,
                         double *resF, GeomState *gs)
 {
-  cerr << " *** WARNING: SuperElement::getFlLoad(...) is not implemented \n";
+  std::cerr << " *** WARNING: SuperElement::getFlLoad(...) is not implemented \n";
 }
 
 void
 SuperElement::computeTemp(CoordSet &cs, State &state, double gp[2], double *tres)
 {
-  cerr << " *** WARNING: SuperElement::computeTemp(...) is not implemented \n";
+  std::cerr << " *** WARNING: SuperElement::computeTemp(...) is not implemented \n";
   // need to determine from gauss point values (gp) the appropriate sub element i
   // for which to call subElems[i]->computeTemp(cs, state, subElem_gp, tres)
 }
@@ -443,7 +444,7 @@ SuperElement::computeTemp(CoordSet &cs, State &state, double gp[2], double *tres
 void
 SuperElement::getFlFlux(double gp[2], double *flF, double *tresF)
 {
-  cerr << " *** WARNING: SuperElement::getFlFlux(...) is not implemented \n";
+  std::cerr << " *** WARNING: SuperElement::getFlFlux(...) is not implemented \n";
 }
 
 void
@@ -581,7 +582,7 @@ SuperElement::dim()
 void 
 SuperElement::addFaces(PolygonSet *pset)
 {
-  cerr << " *** WARNING: SuperElement::addFaces(...) is not implemented \n";
+  std::cerr << " *** WARNING: SuperElement::addFaces(...) is not implemented \n";
 }
 
 bool 

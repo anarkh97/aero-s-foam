@@ -1,5 +1,6 @@
 #include <Feti.d/DistrVector.h>
 #include <Driver.d/SubDomain.h>
+#include <iostream>
 
 template<class Scalar>
 GenBasicAssembler<Scalar>::GenBasicAssembler(int _numSub, GenSubDomain<Scalar> **_sd, FSCommPattern<Scalar> *_pat)
@@ -33,7 +34,7 @@ GenBasicAssembler<Scalar>::assembleSubVec(int iSub, GenDistrVector<Scalar> &v, i
   Scalar *subV = v.subData(sd[iSub]->localSubNum());
   if(flag == 0) sd[iSub]->assembleInterf(subV, pat);
   else if(flag == 1) sd[iSub]->assembleInterfInvert(subV, pat);
-  else cerr << "BasicAssembler::assembleSubVec bad flag\n";
+  else std::cerr << "BasicAssembler::assembleSubVec bad flag\n";
 }
 
 template<class Scalar>

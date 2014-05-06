@@ -36,7 +36,7 @@ AffineBasisCollector::sourceIs(const HalfSliceId & sliceId, const AffineDynamPro
 
 AffineBasisCollector::CollectedState
 AffineBasisCollector::firstForwardFinalState() const {
-  return !forwardFinalState_.empty() ? forwardFinalState_.top() : make_pair(HalfSliceRank(-1), DynamState());
+  return !forwardFinalState_.empty() ? forwardFinalState_.top() : std::make_pair(HalfSliceRank(-1), DynamState());
 }
 
 void
@@ -46,7 +46,7 @@ AffineBasisCollector::firstForwardFinalStateDel() {
 
 AffineBasisCollector::CollectedState
 AffineBasisCollector::firstBackwardFinalState() const {
-  return !backwardFinalState_.empty() ? backwardFinalState_.top() : make_pair(HalfSliceRank(-1), DynamState());
+  return !backwardFinalState_.empty() ? backwardFinalState_.top() : std::make_pair(HalfSliceRank(-1), DynamState());
 }
 
 void
@@ -58,7 +58,7 @@ void
 AffineBasisCollector::finalStateIs(const HalfSliceId & sliceId, const DynamState & state) {
   Direction dir = sliceId.direction();
   StateContainer & stateContainer = (dir == FORWARD) ? forwardFinalState_ : backwardFinalState_;
-  stateContainer.push(make_pair(sliceId.rank(), state));
+  stateContainer.push(std::make_pair(sliceId.rank(), state));
 }
 
 AffineBasisCollector::PropagationReactor *

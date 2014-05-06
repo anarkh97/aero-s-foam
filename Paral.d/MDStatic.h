@@ -22,14 +22,12 @@ class GenMultiDomainPostProcessor
        { decDomain = d; solver = s; times = _times; }
     void staticOutput(GenDistrVector<Scalar> &, GenDistrVector<Scalar> &, bool printTimers = true, int ndflag=0);
     void staticOutput(DistrGeomState *u, double lambda = 1.0);
-//    void staticOutput_convertdispstress(GenDistrVector<Scalar> &,  GenDistrVector<Scalar> &, int fileNumber,
-//                   int stressIndex, double time = 0) { cerr << "GenMultiDomainPostProcessor::staticOutput_convertdispstress not implemented" << endl; }
     void getStressStrain(GenDistrVector<Scalar> &, int fileNumber,
-                   int stressIndex, double time, int pflag) { cerr << "GenMultiDomainPostProcessor::getStressStrain not implemented" << endl; }
-    void setsizeSfemStress(int fileNumber) { cerr << "GenMultiDomainPostProcessor::setsizeSfemStress(int fileNumber) not implemented" << endl; }
-    int getsizeSfemStress() { cerr << "GenMultiDomainPostProcessor::getsizeSfemStress() not implemented" << endl; return 0; }
-    Scalar* getSfemStress(int fileNumber) {cerr << "GenMultiDomainPostProcessor::getSfemStress() not implemented" << endl; return 0;}
-    void updateSfemStress(Scalar* str, int fileNumber) { cerr << "GenMultiDomainPostProcessor::updateSfemStress() not implemented" << endl;}
+                   int stressIndex, double time, int pflag);
+    void setsizeSfemStress(int fileNumber);
+    int getsizeSfemStress();
+    Scalar* getSfemStress(int fileNumber);
+    void updateSfemStress(Scalar* str, int fileNumber);
     void getMemoryK(int iSub, long *memory);
     void getMemoryPrec(int iSub, long *memory);
     void setSolver(GenParallelSolver<Scalar> *s) { solver = s; }
@@ -58,12 +56,12 @@ class GenMultiDomainStatic
     DistrInfo &solVecInfo();
     DistrInfo &solVecInfo(int i);
     void getRHS(GenDistrVector<Scalar> &);
-    void getRHSinpc(GenDistrVector<Scalar>  &) {cerr << "GenMultiDomainStatic::getRHSinpc not implemented" << endl ; }
-    void preProcessSA() {cerr<< "GenMultiDomainStatic::PreProcessSA not implemented" << endl; }
-    void postProcessSA(GenDistrVector<Scalar> &) {cerr<< "GenMultiDomainStatic::PostProcessSA not implemented" << endl; }
+    void getRHSinpc(GenDistrVector<Scalar> &);
+    void preProcessSA();
+    void postProcessSA(GenDistrVector<Scalar> &);
     void preProcess();
-    void assignRandMat() {cerr << "GenMultiDomainStatic::assignRandMat() not implemented" << endl ; }
-    void retrieveElemset() {cerr << "GenMultiDomainStatic::retrieveElemset() not implemented" << endl ; }
+    void assignRandMat();
+    void retrieveElemset();
     void rebuildSolver();
     void scaleDisp(GenDistrVector<Scalar> &);
     void scaleInvDisp(GenDistrVector<Scalar> &);

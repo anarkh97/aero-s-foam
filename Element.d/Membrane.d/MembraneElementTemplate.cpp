@@ -358,8 +358,8 @@ MembraneElementTemplate<doublereal>
       y31 =     -y13;
       area2 =    y21*x13 - x21*y13;
       if (area2 <= 0.0) {
-        cerr << " ... Error! SM3MB: Zero area\n";
-        if (area2 == 0.0)   cerr << " ... Error! SM3MB: Zero area\n";
+        std::cerr << " ... Error! SM3MB: Zero area\n";
+        if (area2 == 0.0) std::cerr << " ... Error! SM3MB: Zero area\n";
         exit(-1);
       }
       p(0,0) =   y23;
@@ -523,6 +523,7 @@ MembraneElementTemplate<doublereal>
          doublereal rnx, doublereal rny, doublereal rnxy,
          doublereal &t,   doublereal &sv)
 {
+      using std::max;
 //.... LOCAL VARIABLES
 // st = von mises stress in top surface
 // sm = von mises stress in median surface

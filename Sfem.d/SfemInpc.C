@@ -3,11 +3,9 @@
 #include <cstdlib>
 #include <cstdio>
 #include <iostream>
-#include<Driver.d/GeoSource.h>
-using std::map;
+#include <Driver.d/GeoSource.h>
 #include <list>
 #include <Sfem.d/cijk.h>
-using namespace std;
 
 extern GeoSource *geoSource;
 

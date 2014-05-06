@@ -131,8 +131,8 @@ DistFlExchanger::getMatchData()
 
     // find node to elem connectivity and local coords. 
     // local coords convention given in "Mortar.d/FaceElement.d/FaceTri3.d/FaceTri3.C"
-    map<int,locoord> exy = feset.computeNodeLocalCoords(fnId, fnodes.size());
-    map<int,locoord>::iterator it;
+    std::map<int,locoord> exy = feset.computeNodeLocalCoords(fnId, fnodes.size());
+    std::map<int,locoord>::iterator it;
     for(int j = 0; j < fnodes.size(); ++j) {
       it = exy.find(j);
       if(it==exy.end()) { fprintf(stderr,"Oh no!\n"); exit(-1); }
@@ -284,8 +284,8 @@ void DistFlExchanger::negotiate()
         if(!useFaceElem) {
           Element *thisElement = (*eset[locSub])[locElem];
           if(thisElement == NULL) {
-            cerr << " ERROR: DistFlExchanger::negotiate() cpu " << structCom->myID() << ", locSub = " 
-                 << locSub << ", locElem = " << locElem << endl;
+            std::cerr << " ERROR: DistFlExchanger::negotiate() cpu " << structCom->myID() << ", locSub = " 
+                      << locSub << ", locElem = " << locElem << std::endl;
           }
           nDof = thisElement->numDofs();
         }
@@ -646,7 +646,7 @@ void
 DistFlExchanger::sendModeShapes(int numModes, int numN, double (**v)[6],
                                 SysState<DistrVector>& st, double ampFactor)
 {
-  cerr << "ERROR: DistFlExchanger::sendModeShapes is not implemented\n"; 
+  std::cerr << "ERROR: DistFlExchanger::sendModeShapes is not implemented\n"; 
   exit(-1);
 /*
   int iMode;
@@ -878,7 +878,7 @@ DistFlExchanger::sendEmbeddedWetSurface()
   FaceElemSet& feset = surface->GetFaceElemSet();
   CoordSet&   fnodes = surface->GetNodeSet();
   int*          fnId = surface->GetPtrGlNodeIds();
-  map<int,int>*  g2l = surface->GetPtrGlToLlNodeMap();
+  std::map<int,int>*  g2l = surface->GetPtrGlToLlNodeMap();
   int         nNodes = fnodes.size();
   int         nElems = surface->nFaceElements();
   bool    renumbered = surface->IsRenumbered();

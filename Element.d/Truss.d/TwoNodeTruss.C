@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <cmath>
 #include <cstdlib>
+#include <iostream>
 
 #include <Element.d/Truss.d/TwoNodeTruss.h>
 #include <Corotational.d/BarCorotator.h>
@@ -528,7 +529,7 @@ TwoNodeTruss::getVonMises(Vector& stress, Vector& weight, CoordSet& cs,
       }
 
       default:
-        cerr << "avgnum = " << avgnum << " is not a valid number\n";
+        std::cerr << "avgnum = " << avgnum << " is not a valid number\n";
     }
 #endif
 }
@@ -538,11 +539,11 @@ TwoNodeTruss::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
                                                  int senMethod, double *ndTemps, int avgnum, double ylayer, double zlayer)
 {
    if(strInd != 6) {
-     cerr << " ... Error: strInd must be 6 in TwoNodeTruss::getVonMisesDisplacementSensitivity\n";
+     std::cerr << " ... Error: strInd must be 6 in TwoNodeTruss::getVonMisesDisplacementSensitivity\n";
      exit(-1);
    }
    if(dStdDisp.numRow() != 2 || dStdDisp.numCol() !=6) {
-     cerr << " ... Error: dimenstion of sensitivity matrix is wrong\n";
+     std::cerr << " ... Error: dimenstion of sensitivity matrix is wrong\n";
      exit(-1);
    }
    weight = 1.0;
@@ -612,7 +613,7 @@ TwoNodeTruss::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
          
           dStdDisp *= (prop->A*prop->E/length);
           if(verboseFlag) {
-            cerr << " ... dStressdDisp(analytic) = \n" << endl;
+            std::cerr << " ... dStressdDisp(analytic) = \n" << std::endl;
             dStdDisp.print();
           }
         }
@@ -634,7 +635,7 @@ TwoNodeTruss::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
              }
            }
            if(verboseFlag) {
-             cerr << " ... dStressdDisp(FD) = \n" << endl;
+             std::cerr << " ... dStressdDisp(FD) = \n" << std::endl;
              dStdDisp.print();
            }
         }
@@ -649,7 +650,7 @@ TwoNodeTruss::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
       }
 
       default:
-        cerr << "avgnum = " << avgnum << " is not a valid number\n";
+        std::cerr << "avgnum = " << avgnum << " is not a valid number\n";
     }
 }
 

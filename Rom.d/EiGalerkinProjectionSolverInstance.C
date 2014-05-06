@@ -8,7 +8,7 @@ GenEiSparseGalerkinProjectionSolver<double>
 ::GenEiSparseGalerkinProjectionSolver(Connectivity*, DofSetArray*, ConstrainedDSA*, bool);
 
 template
-GenEiSparseGalerkinProjectionSolver<std::complex<double> >
+GenEiSparseGalerkinProjectionSolver<complex<double> >
 ::GenEiSparseGalerkinProjectionSolver(Connectivity*, DofSetArray*, ConstrainedDSA*, bool);
 
 template
@@ -18,7 +18,7 @@ GenEiSparseGalerkinProjectionSolver<double>
 
 template
 void
-GenEiSparseGalerkinProjectionSolver<std::complex<double> >
+GenEiSparseGalerkinProjectionSolver<complex<double> >
 ::zeroAll();
 
 template
@@ -28,7 +28,7 @@ GenEiSparseGalerkinProjectionSolver<double>
 
 template
 void
-GenEiSparseGalerkinProjectionSolver<std::complex<double> >
+GenEiSparseGalerkinProjectionSolver<complex<double> >
 ::addReducedMass(double);
 
 template
@@ -38,8 +38,8 @@ GenEiSparseGalerkinProjectionSolver<double>
 
 template
 void
-GenEiSparseGalerkinProjectionSolver<std::complex<double> >
-::addToReducedMatrix(const Eigen::Matrix<std::complex<double>,Eigen::Dynamic,Eigen::Dynamic> &, double);
+GenEiSparseGalerkinProjectionSolver<complex<double> >
+::addToReducedMatrix(const Eigen::Matrix<complex<double>,Eigen::Dynamic,Eigen::Dynamic> &, double);
 
 template
 void
@@ -48,8 +48,8 @@ GenEiSparseGalerkinProjectionSolver<double>
 
 template
 void
-GenEiSparseGalerkinProjectionSolver<std::complex<double> >
-::projectionBasisIs(const GenVecBasis<std::complex<double> >&);
+GenEiSparseGalerkinProjectionSolver<complex<double> >
+::projectionBasisIs(const GenVecBasis<complex<double> >&);
 
 template
 void
@@ -58,7 +58,7 @@ GenEiSparseGalerkinProjectionSolver<double>
 
 template
 void
-GenEiSparseGalerkinProjectionSolver<std::complex<double> >
+GenEiSparseGalerkinProjectionSolver<complex<double> >
 ::EmpiricalSolver();
 
 template
@@ -68,7 +68,7 @@ GenEiSparseGalerkinProjectionSolver<double>
 
 template
 void
-GenEiSparseGalerkinProjectionSolver<std::complex<double> >
+GenEiSparseGalerkinProjectionSolver<complex<double> >
 ::factor();
    
 template
@@ -78,8 +78,8 @@ GenEiSparseGalerkinProjectionSolver<double>
 
 template
 void
-GenEiSparseGalerkinProjectionSolver<std::complex<double> >
-::reSolve(GenVector<std::complex<double> >&);
+GenEiSparseGalerkinProjectionSolver<complex<double> >
+::reSolve(GenVector<complex<double> >&);
 
 template
 void
@@ -88,8 +88,8 @@ GenEiSparseGalerkinProjectionSolver<double>
 
 template
 void
-GenEiSparseGalerkinProjectionSolver<std::complex<double> >
-::solve(GenVector<std::complex<double> >&, GenVector<std::complex<double> >&);
+GenEiSparseGalerkinProjectionSolver<complex<double> >
+::solve(GenVector<complex<double> >&, GenVector<complex<double> >&);
 
 } /* end namespace Rom */
 #endif

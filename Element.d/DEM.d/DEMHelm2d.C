@@ -600,8 +600,8 @@ void DGMHelm2d_Eva1_2_LM::init() {
  tau[0] /= l;
  tau[1] /= l;
 
- double lkappa = max(e1->getProperty()->kappaHelm,
-                     e2->getProperty()->kappaHelm);
+ double lkappa = std::max(e1->getProperty()->kappaHelm,
+                          e2->getProperty()->kappaHelm);
  
 
  DGMHelm2d_Eva *ee1 = dynamic_cast<DGMHelm2d_Eva*>(e1);
@@ -641,8 +641,8 @@ void DGMHelm2d_Eva1_2_LM::init() {
 
 
 complex<double> DGMHelm2d_Eva1_2_LM::ldir(int n, double tau[2]) {
- double lkappa = max(e1->getProperty()->kappaHelm,
-                     e2->getProperty()->kappaHelm);
+ double lkappa = std::max(e1->getProperty()->kappaHelm,
+                          e2->getProperty()->kappaHelm);
  if (n==0) return complex<double>(0.0, 0.5*lkappa*tau[0]);
  else if (n==1) return complex<double>(0.0, 0.5*lkappa*tau[1]);
  else if (n==2) return complex<double>(0.0, -0.5*lkappa*tau[0]);
@@ -763,8 +763,8 @@ void DGMHelm2d::createM(complex<double>*M) {
      }
      else {
        // Max kappa
-       double lkappa = max(l->e1->getProperty()->kappaHelm,
-                           l->e2->getProperty()->kappaHelm);
+       double lkappa = std::max(l->e1->getProperty()->kappaHelm,
+                                l->e2->getProperty()->kappaHelm);
        for(int j=0;j<lm[i]->nDofs();j++) {
          cldir[2*cc+0] = complex<double>(0.0, lkappa)*l->coef(j)*tau[0];
          cldir[2*cc+1] = complex<double>(0.0, lkappa)*l->coef(j)*tau[1];
@@ -1356,8 +1356,8 @@ void DEMHelm2d::createM(complex<double>*M) {
      }
      else {
        // Max kappa
-       double lkappa = max(l->e1->getProperty()->kappaHelm,
-                           l->e2->getProperty()->kappaHelm);
+       double lkappa = std::max(l->e1->getProperty()->kappaHelm,
+                                l->e2->getProperty()->kappaHelm);
        for(int j=0;j<lm[i]->nDofs();j++) {
          cldir[2*cc+0] = complex<double>(0.0, lkappa)*l->coef(j)*tau[0];
          cldir[2*cc+1] = complex<double>(0.0, lkappa)*l->coef(j)*tau[1];

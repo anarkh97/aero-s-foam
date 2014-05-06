@@ -694,20 +694,20 @@ GenFetiSolver<Scalar>::orthoAddCG(GenDistrVector<Scalar> &p, GenDistrVector<Scal
  Scalar hpFp = 0.0;
  for(int i=0; i<halfSize; ++i)
    hpFp += hp[i]*hFp[i];
- cerr << "hpFp = " << hpFp << ", pFp = " << pFp << endl;
+ std::cerr << "hpFp = " << hpFp << ", pFp = " << pFp << std::endl;
 // debug: check scatter/gather half interface
  GenDistrVector<Scalar> p_copy(p); p_copy.zero();
  timedParal(times.orthogonalize, nsub, this, &GenFetiSolver<Scalar>::scatterHalfInterface, hp, &p_copy);
  vPat->exchange();
  timedParal1R(times.orthogonalize, nsub, this, &GenFetiSolver<Scalar>::rebuildInterface, p_copy);
- cerr << "p - rebuilt p: ";
- for(int i=0; i<p.size(); ++i) cerr << p.data()[i] - p_copy.data()[i] << " "; cerr << endl;
+ std::cerr << "p - rebuilt p: ";
+ for(int i=0; i<p.size(); ++i) std::cerr << p.data()[i] - p_copy.data()[i] << " "; std::cerr << std::endl;
  GenDistrVector<Scalar> Fp_copy(Fp); Fp_copy.zero();
  timedParal(times.orthogonalize, nsub, this, &GenFetiSolver<Scalar>::scatterHalfInterface, hFp, &Fp_copy);
  vPat->exchange();
  timedParal1R(times.orthogonalize, nsub, this, &GenFetiSolver<Scalar>::rebuildInterface, Fp_copy);
- cerr << "Fp - rebuilt Fp: ";
- for(int i=0; i<Fp.size(); ++i) cerr << Fp.data()[i] - Fp_copy.data()[i] << " "; cerr << endl;
+ std::cerr << "Fp - rebuilt Fp: ";
+ for(int i=0; i<Fp.size(); ++i) std::cerr << Fp.data()[i] - Fp_copy.data()[i] << " "; std::cerr << std::endl;
 */
 
  times.memoryOSet -= memoryUsed();
@@ -990,8 +990,8 @@ GenFetiSolver<Scalar>::orthogonalize(GenDistrVector<Scalar> &r, GenDistrVector<S
     timedParal(times.orthogonalize, nsub, this, &GenFetiSolver<Scalar>::scatterHalfInterface, hp, &r_copy);
     vPat->exchange();
     timedParal1R(times.orthogonalize, nsub, this, &GenFetiSolver<Scalar>::rebuildInterface, r_copy);
-    cerr << "r - rebuilt r: ";
-    for(int i=0; i<r.size(); ++i) cerr << r.data()[i] - r_copy.data()[i] << " "; cerr << endl;
+    std::cerr << "r - rebuilt r: ";
+    for(int i=0; i<r.size(); ++i) std::cerr << r.data()[i] - r_copy.data()[i] << " "; std::cerr << std::endl;
 */
     oSetCG->orthogonalizeTimed(times.orthogonalize, hp, hOp, fetiInfo->complex_hermitian);
 
@@ -2177,7 +2177,7 @@ template<class Scalar>
 void
 GenFetiSolver<Scalar>::getRBMs(GenDistrVectorSet<Scalar> &)
 {
-  cerr << "WARNING: GenFetiSolver<Scalar>::getRBMs(GenDistrVectorSet<Scalar> &) is not implemented \n";
+  std::cerr << "WARNING: GenFetiSolver<Scalar>::getRBMs(GenDistrVectorSet<Scalar> &) is not implemented \n";
 }
 
 template<class Scalar>
@@ -2210,8 +2210,8 @@ GenFetiSolver<Scalar>::clean_up()
    opControl=0;
  }
 
- //cerr << "Size of FetiOps pointer = " << sizeof(FetiOp*) << endl;
- //cerr << "Deleted FetiOps memory  = " << -m1 << endl;
+ //cerr << "Size of FetiOps pointer = " << sizeof(FetiOp*) << std::endl;
+ //cerr << "Deleted FetiOps memory  = " << -m1 << std::endl;
 
  m1 = -memoryUsed();
  if(GtGsolver) GtGsolver->clean_up();
@@ -2225,14 +2225,14 @@ GenFetiSolver<Scalar>::clean_up()
  m1 += memoryUsed();
  std::cerr << std::endl 
       << "Deleted FETI Work Space          :" 
-      << -m1/(1024.0*1024.0) << " Mb" << endl;
+      << -m1/(1024.0*1024.0) << " Mb" << std::endl;
 
  m1 = -memoryUsed();
  if(oSetCG) oSetCG->clean_up();
  m1 += memoryUsed();
  std::cerr << std::endl
       << "Deleted ReOrtho Vectors          :" 
-      << -m1/(1024.0*1024.0) << " Mb" << endl << endl;
+      << -m1/(1024.0*1024.0) << " Mb" << std::endl << std::endl;
 
 }
 
@@ -2376,37 +2376,34 @@ GenFetiSolver<Scalar>::makeSingleCoarse()
  // YYY c = glNumMpc;
  for(i = 0; i < glNumSub; ++i) {
    glRenum[c] = invRen[i]+gtfgOffset; 
-   //cerr << "GtFG: before: glRenum["<<c<<"] = " << glRenum[c] << endl;
+   //cerr << "GtFG: before: glRenum["<<c<<"] = " << glRenum[c] << std::endl;
    c++;
    glRenum[c] = invRen[i]+cOffset; 
-   //cerr << "   C: before: glRenum["<<c<<"] = " << glRenum[c] << endl;
+   //cerr << "   C: before: glRenum["<<c<<"] = " << glRenum[c] << std::endl;
    c++;
    glRenum[c] = invRen[i]+gOffset; 
-   //cerr << " GtG: before: glRenum["<<c<<"] = " << glRenum[c] << endl;
+   //cerr << " GtG: before: glRenum["<<c<<"] = " << glRenum[c] << std::endl;
    c++;
  }
 
 #ifdef DEBUG_MPC
  for(i = 0; i < glRenumSize; ++i)
-   cerr << "before MPCs: glRenum[" << i << "] = " << glRenum[i] << endl;
+   std::cerr << "before MPCs: glRenum[" << i << "] = " << glRenum[i] << std::endl;
 
  // Number the multiple point constraints separately
- cerr << " cOffset = " << cOffset 
+ std::cerr << " cOffset = " << cOffset 
       << " gOffset = " << gOffset
       << " mOffset = " << mOffset
-      << endl;
+      << std::endl;
 #endif
 
  int location = 3*glNumSub;
- // YYY int location = 0;
- // cerr << "--- MPC equation numbers ---" << endl;
  for(i=0; i<glNumMpc; ++i) {
    glRenum[location+i] = mOffset + i;
  }
 
  int *ngRen =  new int[glRenumSize];
  for(i = 0; i < glRenumSize; ++i) {
-//   cerr << "glRenum[" << i << "] = " << glRenum[i] << endl;
    ngRen[glRenum[i]] = i;
  }
 

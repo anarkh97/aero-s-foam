@@ -2,6 +2,7 @@
 #define _GEO_SOURCE_H_
 
 #include <cstring>
+#include <iostream>
 #include <list>
 #include <vector>
 #include <map>
@@ -174,14 +175,14 @@ class GeoSource {
   SPropContainer sProps;
   int na;  			// number of attributes
   int namax;
-  map<int, Attrib> attrib;
+  std::map<int, Attrib> attrib;
   int maxattrib;
-  map<int, int> optg;
-  map<int, int> mortar_attrib;
+  std::map<int, int> optg;
+  std::map<int, int> mortar_attrib;
 
   int numEframes;
   ResizeArray<EFrameData> efd;
-  vector<OffsetData> offsets;
+  std::vector<OffsetData> offsets;
 
   int numNframes;
   ResizeArray<NFrameData> nfd;
@@ -243,7 +244,7 @@ class GeoSource {
   BCond *iDis6; // set of those intitial displacements
 
   // PITA
-  map<int, std::pair<int, int> > timeSliceOutputFiles;
+  std::map<int, std::pair<int, int> > timeSliceOutputFiles;
   BCond *PitaIDis6;    // Array of initial seed displacement array
   int numPitaIDis6;    // # of initial seed initial displacement conditions
   int numTSPitaIDis6;  // # of initial seed displacement vectors
@@ -270,11 +271,11 @@ class GeoSource {
 
   Decomposition *optDec, *optDecCopy;
 
-  map<int, Group> group;
-  map<int, list<int> > nodeGroup;
-  map<int, list<int> > surfaceGroup;
+  std::map<int, Group> group;
+  std::map<int, std::list<int> > nodeGroup;
+  std::map<int, std::list<int> > surfaceGroup;
 
-  map<int, AttributeToElement> atoe;
+  std::map<int, AttributeToElement> atoe;
 
   int numSurfaceDirichlet;
   BCond *surface_dbc;
@@ -292,7 +293,7 @@ public:
   GeoSource(int iniSize = 16);
   virtual ~GeoSource();
 
-  vector<int> localToGlobalElementsNumber;
+  std::vector<int> localToGlobalElementsNumber;
 
   // Input Read Functions
   void readCpuToSub();
@@ -471,8 +472,8 @@ public:
   int pressureFlag() { return prsflg; }
   int consistentPFlag() { return constpflg; }
   int consistentQFlag() { return constqflg; }
-  map<int, Attrib> &getAttributes()  { return attrib; }
-  map<int, int> &getMortarAttributes() { return mortar_attrib; }
+  std::map<int, Attrib> &getAttributes()  { return attrib; }
+  std::map<int, int> &getMortarAttributes() { return mortar_attrib; }
   int getNumAttributes() { return na; }
 
   int getNumDirichlet()  { return numDirichlet; }
@@ -625,7 +626,7 @@ public:
   double shiftVal() { return shiftV; }
   double freq() { return sqrt(shiftV)/(2.0*PI); }
   double omega() { return sqrt(shiftV); }
-  double kappa() { if(numProps > 1) cerr << "Warning: assuming homogenous fluid (attr #1), k = " << sProps[0].kappaHelm << endl; return sProps[0].kappaHelm; }
+  double kappa() { if(numProps > 1) std::cerr << "Warning: assuming homogenous fluid (attr #1), k = " << sProps[0].kappaHelm << std::endl; return sProps[0].kappaHelm; }
 
   void setMRatio(double _mratio) { assert(_mratio >= 0.0 && _mratio <= 1.0); mratio = _mratio; }
   double getMRatio() const { return mratio; }
@@ -642,7 +643,7 @@ public:
   void addFsiElements(int numFSI, ResizeArray<LMPCons *> &fsi);
   Element* getElem(int topid) { return elemSet[topid]; }
   void UpdateContactSurfaceElements(DistrGeomState *, std::map<std::pair<int,int>,double> &);
-  vector<int> contactSurfElems;
+  std::vector<int> contactSurfElems;
   void initializeParameters();
   void updateParameters();
 
@@ -724,13 +725,13 @@ struct RandomProperty
 
 struct Group
 {
-  vector<int> attributes;
-  vector<RandomProperty> randomProperties;
+  std::vector<int> attributes;
+  std::vector<RandomProperty> randomProperties;
 };
 
 struct AttributeToElement
 {
-  vector<int> elems;
+  std::vector<int> elems;
 };
 
 #ifdef _TEMPLATE_FIX_

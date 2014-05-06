@@ -1,5 +1,6 @@
 #include <Utils.d/dbg_alloca.h>
 #include <cstdio>
+#include <iostream>
 
 #include <Driver.d/Domain.h>
 #include <Solvers.d/Solver.h>
@@ -241,7 +242,7 @@ Domain::tempdynamOutput(int tIndex, double *bcx, DynamMat& dMat,
   double time = tIndex*sinfo.getTimeStep();
 
   if (sinfo.nRestart > 0 && !sinfo.modal) {
-    cerr << "writing restart file\n";
+    std::cerr << "writing restart file\n";
 #ifndef SALINAS
     writeRestartFile(time, tIndex, d_n, v_n, v_p, sinfo.initExtForceNorm);
 #endif
@@ -356,7 +357,7 @@ Domain::tempdynamOutput(int tIndex, double *bcx, DynamMat& dMat,
          getTrussHeatFlux(d_n, bcx, i, GRTX, time);
          break;
        default:
-         cerr << "output type " << oinfo[i].type << " is not supported\n";
+         std::cerr << "output type " << oinfo[i].type << " is not supported\n";
          break;
        }
      }

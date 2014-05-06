@@ -1,6 +1,5 @@
 #include <cstdio>
 #include <cstdlib>
-#include <iostream>
 #include <cmath>
 #include <Math.d/mathUtility.h>
 
@@ -526,20 +525,9 @@ template<class Scalar>
 void
 GenVector<Scalar>::print(const char *msg, const char* msg2)
 {
- if(msg) cerr << msg << " ";
- for(int i=0; i<len; ++i) cerr << d[i] << " ";
- cerr << endl;
-/*
- if(*msg) fprintf(stderr,"%s\n",msg);
- if(d) {
-   int i;
-   for(i=0; i<len; ++i)
-      fprintf(stderr,"%s(%d) = % e,\n",msg2,i+1,d[i]);
-      //cerr<<msg2<<"("<<i+1<<") = "<<d[i]<<endl;
- }
- else
-   fprintf(stderr,"--- This GenVector<Scalar> is Null ---\n");
-*/
+ if(msg) std::cerr << msg << " ";
+ for(int i=0; i<len; ++i) std::cerr << d[i] << " ";
+ std::cerr << std::endl;
 }
 
 template<class Scalar>

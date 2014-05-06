@@ -1,11 +1,12 @@
-#include	<cstdio>
+#include <cstdio>
+#include <iostream>
 
-#include	<Element.d/Tetra10.d/TenNodeTetrahedral.h>
-#include        <Math.d/matrix.h>
-#include	<Math.d/FullSquareMatrix.h>
-#include        <Utils.d/dofset.h>
-#include        <Utils.d/linkfc.h>
-#include        <Utils.d/pstress.h>
+#include <Element.d/Tetra10.d/TenNodeTetrahedral.h>
+#include <Math.d/matrix.h>
+#include <Math.d/FullSquareMatrix.h>
+#include <Utils.d/dofset.h>
+#include <Utils.d/linkfc.h>
+#include <Utils.d/pstress.h>
 
 #include <Driver.d/PolygonSet.h>
 
@@ -549,7 +550,7 @@ TenNodeTetrahedral::stiffness(CoordSet &cs,double *d, int flg)
   if(cCoefs) {  //anisotropic/orthotropic material
     // transform local constitutive matrix to global frame
 #ifdef TET10_DEBUG    
-    cerr<<" *** DEBUG: in TenNodeTetrahedral::stiffness, anisotropic/orthotropic material\n";
+    std::cerr<<" *** DEBUG: in TenNodeTetrahedral::stiffness, anisotropic/orthotropic material\n";
 #endif
     rotateConstitutiveMatrix(cCoefs, cFrame, C);
   } else  // isotropic material
@@ -717,7 +718,7 @@ TenNodeTetrahedral::getVonMisesAniso(Vector &stress, Vector &weight, CoordSet &c
   if(cCoefs) { // anisotropic/orthotropic material
     // transform local constitutive matrix to global frame
 #ifdef TETRA10_DEBUG 
-    cerr<<" *** DEBUG: TenNodeTetrahedral::getVonMisesAniso, anisotropic/orthotropic material\n";
+    std::cerr<<" *** DEBUG: TenNodeTetrahedral::getVonMisesAniso, anisotropic/orthotropic material\n";
 #endif
     rotateConstitutiveMatrix(cCoefs, cFrame, C);
   } else  // isotropic material
@@ -806,7 +807,7 @@ TenNodeTetrahedral::getAllStressAniso(FullM& stress,Vector& weight,CoordSet &cs,
   if(cCoefs) { // anisotropic/orthotropic material
     // transform local constitutive matrix to global frame
 #ifdef TETRA10_DEBUG 
-    cerr<<" *** DEBUG: TenNodeTetrahedral::getVonMisesAniso, anisotropic/orthotropic material\n";
+    std::cerr<<" *** DEBUG: TenNodeTetrahedral::getVonMisesAniso, anisotropic/orthotropic material\n";
 #endif
     rotateConstitutiveMatrix(cCoefs, cFrame, C);
   } else  // isotropic material

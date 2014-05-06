@@ -8,6 +8,7 @@
 #include <Driver.d/CornerMaker.h>
 #include <Utils.d/GlobalToLocalMap.h>
 #include <algorithm>
+#include <iostream>
 
 extern int verboseFlag;
 extern int isFeti3;
@@ -20,8 +21,9 @@ extern "C" {
   void _FORTRAN(dgemv)(const char &, const int &,const int &,
                 const double &, double *, const int &,
                 double *, const int &, const double &, double *, const int &);
-
 }
+
+using std::list;
 
 BaseSub::BaseSub() 
  : Domain()
@@ -403,9 +405,9 @@ BaseSub::makeBMaps(DofSetArray *dof_set_array)
       else {
 	dualToBoundary[iDof] = invBoundMap[ccToC[allBoundDofs[iDof]]];  
 	if(dualToBoundary[iDof] < 0) {
-          cerr << "Error in makeBMaps " << endl;
-          cerr << "Tried to map " << allBoundDofs[iDof] 
-               << " which in cdsa is " << ccToC[allBoundDofs[iDof]] << endl;
+          std::cerr << "Error in makeBMaps " << std::endl;
+          std::cerr << "Tried to map " << allBoundDofs[iDof] 
+               << " which in cdsa is " << ccToC[allBoundDofs[iDof]] << std::endl;
           exit(-1);
         }
       }
@@ -1047,9 +1049,9 @@ BaseSub::setWetInterface(int nWI, int *wiNum)
   }
 
   if ((numWInodes > 0) && solInfo().isCoupled && (solInfo().fetiInfo.fsi_corner != 0))
-    cout << " ERROR: no wetINterface nodes should exist. " << endl; 
+    std::cout << " ERROR: no wetINterface nodes should exist. " << std::endl; 
 
-  sort(myWetInterfaceNodes, myWetInterfaceNodes+numWInodes);
+  std::sort(myWetInterfaceNodes, myWetInterfaceNodes+numWInodes);
   //small optimization of the memory 
   int* llToGlobalWImap = new int[DOFBASE*numWInodes]; //HB: 7*numWInodes is an upper bound
   wDofToNode = new int[DOFBASE*numWInodes]; //HB: 7*numWInodes is an upper bound
@@ -1126,7 +1128,7 @@ void BaseSub::applyAuxData()
 {
   // get attributes
   //int nAttr = geoSource->getNumAttributes();
-  map<int, Attrib> &attributes = geoSource->getAttributes();
+  std::map<int, Attrib> &attributes = geoSource->getAttributes();
 
   // get struct props
   SPropContainer &sProps = geoSource->getStructProps();
@@ -1463,7 +1465,7 @@ void BaseSub::setNumGroupRBM(int *ngrbmGr)
 
 void BaseSub::getNumGroupRBM(int *ngrbmGr)
 {
-  //cerr << "in getNumGroupRBM " << subNumber << " " << group << " " << numGroupRBM << endl;
+  //cerr << "in getNumGroupRBM " << subNumber << " " << group << " " << numGroupRBM << std::endl;
   ngrbmGr[group] = numGroupRBM;
 }
 
@@ -2355,7 +2357,7 @@ BaseSub::makeEdgeQ(FSCommPattern<double> *qPat)
   double pi = 3.141592653589793;
   int spaceDim = solInfo().fetiInfo.spaceDimension; // whether problem is 1D, 2D or 3D
   if((spaceDim < 1) || (spaceDim > 3)) {
-    cerr << " *** ERROR: spacedim = " << spacedim << endl;
+    std::cerr << " *** ERROR: spacedim = " << spacedim << std::endl;
     exit(-1);
   }
 
@@ -2427,7 +2429,7 @@ BaseSub::makeEdgeQ(FSCommPattern<double> *qPat)
       getDirections(numDirec, wDir_x, wDir_y, wDir_z); 
     }
     else {
-      cerr << " *** ERROR: spacedim " << spacedim << " is not implemented \n";
+      std::cerr << " *** ERROR: spacedim " << spacedim << " is not implemented \n";
       exit(-1);
     }
   }
@@ -2636,7 +2638,7 @@ BaseSub::GramSchmidt(double *Q, bool *isUsed, int numDofPerNode, int nQPerNeighb
   else if(numDofPerNode == 3) desired = DofSet::XYZdisp;
   else if(numDofPerNode == 6) desired = DofSet::XYZdisp | DofSet::XYZrot;
   else {
-    cerr << " *** WARNING: numDofPerNode = 0 in BaseSub::GramSchmidt(...) sub " << subNumber << endl;
+    std::cerr << " *** WARNING: numDofPerNode = 0 in BaseSub::GramSchmidt(...) sub " << subNumber << std::endl;
     return;
   }
 

@@ -33,7 +33,7 @@ GoldfarbIdnaniQpSolver<WrapSparseMat<double>,double>::solve(double* _rhs, double
 
 template<>
 void
-GoldfarbIdnaniQpSolver<WrapSparseMat<std::complex<double> >,std::complex<double> >::solve(std::complex<double>*, std::complex<double>*)
+GoldfarbIdnaniQpSolver<WrapSparseMat<complex<double> >,complex<double> >::solve(complex<double>*, complex<double>*)
 {
   cerr << "GoldfarbIdnaniQpSolver not implemented for complex\n";
 }
@@ -88,7 +88,7 @@ GoldfarbIdnaniQpSolver<WrapEiSparseMat<double>,double>::solve(double* _rhs, doub
 
 template<>
 void
-GoldfarbIdnaniQpSolver<WrapEiSparseMat<std::complex<double> >,std::complex<double> >::solve(std::complex<double>*, std::complex<double>*)
+GoldfarbIdnaniQpSolver<WrapEiSparseMat<complex<double> >,complex<double> >::solve(complex<double>*, complex<double>*)
 {
   cerr << "GoldfarbIdnaniQpSolver not implemented for complex\n";
 }

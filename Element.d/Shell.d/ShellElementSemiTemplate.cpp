@@ -416,7 +416,7 @@ C
 // t = thickness of triangle
 
        if(thrmStr != 0.0) {
-         cerr << " ... Error: thermal stress should not be passed in sensitivity computation\n";
+         std::cerr << " ... Error: thermal stress should not be passed in sensitivity computation\n";
          exit(-1);
        }
 
@@ -633,7 +633,7 @@ C
           transform(xp.data(),yp.data(),zp.data(),xg.data(),yg.data(),zg.data(),str.data(),tMat.data());
           straineq(rmx,rmy,rmxy,rnx,rny,rnxy,nu,surface,ebar);
 
-          cerr << "print von Mises strain:\n" << ebar << endl;
+          std::cerr << "print von Mises strain:\n" << ebar << std::endl;
 
           return;
         }
@@ -719,7 +719,7 @@ ShellElementSemiTemplate<doublereal>
 // t = thickness of triangle
 
        if(thrmStr != 0.0) {
-         cerr << " ... Error: thermal stress should not be passed in sensitivity computation\n";
+         std::cerr << " ... Error: thermal stress should not be passed in sensitivity computation\n";
          exit(-1);
        }
 
@@ -953,7 +953,7 @@ ShellElementSemiTemplate<doublereal>
           transform(xp.data(),yp.data(),zp.data(),xg.data(),yg.data(),zg.data(),str.data(),tMat.data());
           straineq(rmx,rmy,rmxy,rnx,rny,rnxy,nu,surface,ebar);
 
-          cerr << "print von Mises strain:\n" << ebar << endl;
+          std::cerr << "print von Mises strain:\n" << ebar << std::endl;
 
           return;
         }
@@ -1090,8 +1090,8 @@ ShellElementSemiTemplate<doublereal>
       y31 =     -y13;
       area2 =    y21*x13 - x21*y13;
       if (area2 <= 0.0) {
-        cerr << " ... Error! SM3MB: Zero area\n";
-        if (area2 == 0.0)   cerr << " ... Error! SM3MB: Zero area\n";
+        std::cerr << " ... Error! SM3MB: Zero area\n";
+        if (area2 == 0.0)   std::cerr << " ... Error! SM3MB: Zero area\n";
         exit(-1);
       }
       p(0,0) =   y23;
@@ -1372,8 +1372,8 @@ ShellElementSemiTemplate<doublereal>
       y31 =     -y13;
       area2 =    y21*x13 - x21*y13;
       if (area2 <= 0.0) {
-        cerr << " ... Error! basico: negative area\n";
-        if (area2 == 0.0)   cerr << " ... Error! basico: zero area\n";
+        std::cerr << " ... Error! basico: negative area\n";
+        if (area2 == 0.0)   std::cerr << " ... Error! basico: zero area\n";
         exit(-1);
       }
       x0 =      (x[0]+x[1]+x[2])/3.;

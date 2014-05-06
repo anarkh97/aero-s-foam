@@ -1,7 +1,5 @@
 #include <iostream>
-using std::ifstream;
 #include <sstream>
-using std::istringstream;
 #include <ctime>
 #include <Utils.d/dbg_alloca.h>
 
@@ -431,7 +429,7 @@ void Domain::normalizeLMPC()
  // PJSA 5-24-06
  for(int i=0; i<numLMPC; i++) {
    if(lmpc[i]->isComplex) {
-     cerr << " *** WARNING: normalizeLMPC not implemented for complex coefficients \n";
+     std::cerr << " *** WARNING: normalizeLMPC not implemented for complex coefficients \n";
    }
    else {
      double cnorm = 0.0;
@@ -470,7 +468,7 @@ void Domain::setPrimalLMPCs(int& numDual, int &numPrimal)
    }
  }
 */
- //cerr << "numDual = " << numDual << ", numPrimal = " << numPrimal << endl;
+ //std::cerr << "numDual = " << numDual << ", numPrimal = " << numPrimal << std::endl;
  // note other strategies may be implemented here
 }
 
@@ -1517,7 +1515,7 @@ Domain::prepDirectMPC()
       }
     }
   }
-  //cerr << "extracted " << numLMPC << " lmpcs from the element set\n";
+  //std::cerr << "extracted " << numLMPC << " lmpcs from the element set\n";
 
   geoSource->makeDirectMPCs(numLMPC, lmpc);
   // MPC Connectivity treatment in direct way.
@@ -2264,7 +2262,7 @@ void Domain::computeTDProps()
             avTemp += elemNodeTemps[iNode];
           }
           avTemp /= NodesPerElement;
-          // if(avTemp > 0) cerr << "element = " << iele << ", avTemp = " << avTemp << endl;
+          // if(avTemp > 0) std::cerr << "element = " << iele << ", avTemp = " << avTemp << std::endl;
 
           StructProp *newProp = new StructProp(*packedEset[iele]->getProperty());
           // compute E using interp table
@@ -2454,7 +2452,7 @@ void Domain::SetUpSurfaces(CoordSet* cs)
       for(int i = 0; i < nFaceElems; ++i) {
         int etype = SurfEntities[iSurf]->GetFaceElemSet()[i]->GetFaceElemType();
         if(etype != 1 && etype != 3) {
-          cerr << " *** ERROR: Surface element type " << etype << " not supported with SHELL_THICKNESS option\n";
+          std::cerr << " *** ERROR: Surface element type " << etype << " not supported with SHELL_THICKNESS option\n";
           exit(-1);
         }
         int nNodes = SurfEntities[iSurf]->GetFaceElemSet()[i]->nNodes();
@@ -3105,7 +3103,7 @@ Domain::getAllWetInterfaceNodes(int &count)
     return allWetInterfaceNodes;
   }
   else {
-    //cerr << " *** WARNING: No Wet Interfaces have been defined \n";
+    //std::cerr << " *** WARNING: No Wet Interfaces have been defined \n";
     return 0;
   }
 }
@@ -3180,8 +3178,8 @@ Domain::computeCoupledScaleFactors()
   cscale_factor = omega2*coupledScaling; // RADEK
 
   cscale_factor2 = cscale_factor*coupledScaling;
-  //cerr << "coupledScaling = " << coupledScaling << ", cscale_factor = " << cscale_factor
-  //     << ", cscale_factor2 = " << cscale_factor2 << endl;
+  //std::cerr << "coupledScaling = " << coupledScaling << ", cscale_factor = " << cscale_factor
+  //     << ", cscale_factor2 = " << cscale_factor2 << std::endl;
 }
 
 void
@@ -3208,7 +3206,7 @@ Domain::addNodalCTC(int n1, int n2, double nx, double ny, double nz,
  double normal[3] = { cs[n2]->x - cs[n1]->x, cs[n2]->y - cs[n1]->y, cs[n2]->z - cs[n1]->z };
  double gap = std::sqrt(normal[0]*normal[0] + normal[1]*normal[1] + normal[2]*normal[2]);
  normalize(normal);
- cerr << n1+1 << " " << n2+1 << "  " << std::setprecision(12) << -normal[0] << " " << -normal[1] << " " << -normal[2] << " GAP " << std::setprecision(2) << -gap << endl;
+ std::cerr << n1+1 << " " << n2+1 << "  " << std::setprecision(12) << -normal[0] << " " << -normal[1] << " " << -normal[2] << " GAP " << std::setprecision(2) << -gap << std::endl;
 */
  int lmpcnum = 0;
 
@@ -3299,7 +3297,7 @@ Domain::addNodeToNodeLMPCs(int lmpcnum, int n1, int n2, double face_normal[3], d
   }
   else if(itype == 1) { // normal contact
     double norm = sqrt(face_normal[0]*face_normal[0]+face_normal[1]*face_normal[1]+face_normal[2]*face_normal[2]);
-    if(norm == 0.0) cerr << " *** ERROR in Domain::addNodeToNodeLMPCs, face_normal has length 0.0." << endl;
+    if(norm == 0.0) std::cerr << " *** ERROR in Domain::addNodeToNodeLMPCs, face_normal has length 0.0." << std::endl;
     double gap = (face_normal[0]*gap_vector[0] + face_normal[1]*gap_vector[1] + face_normal[2]*gap_vector[2])/norm;
     addNodalCTC(n1, n2, face_normal[0], face_normal[1], face_normal[2], gap, true, 1, true, lmpcnum);
   }
@@ -3488,7 +3486,7 @@ Domain::ProcessSurfaceBCs()
              delete [] nodes;
           }
           else {
-            cerr << " *** ERROR: can't set pressure for surface " << SurfId << " element " << iele << " nVertices = " << nVertices << endl;
+            std::cerr << " *** ERROR: can't set pressure for surface " << SurfId << " element " << iele << " nVertices = " << nVertices << std::endl;
             continue;
           }
         }
@@ -3583,7 +3581,7 @@ void Domain::setNewProperties(int s)
                newProp->kz = it->second.randomProperties[0].mean;
               break;
             default:
-               cerr << "case " << it->second.randomProperties[0].rprop << " not handled\n";
+               std::cerr << "case " << it->second.randomProperties[0].rprop << " not handled\n";
               break;
           }
 
@@ -3625,7 +3623,7 @@ void Domain::setNewProperties(int s)
                else newProp->kz = geoSource->group[s-1].randomProperties[0].std_dev/sqrt(2.0);
               break;
             default:
-               cerr << "case " << geoSource->group[s-1].randomProperties[0].rprop << " not handled\n";
+               std::cerr << "case " << geoSource->group[s-1].randomProperties[0].rprop << " not handled\n";
               break;
           }
           elems_copy[jele]->setProp(newProp,true);
@@ -3673,7 +3671,7 @@ void Domain::assignRandMat()  // Equivalent to the non-intrusive version, but us
               newProp->kz = it->second.randomProperties[0].mean;
              break;
            default:
-              cerr << "case " << it->second.randomProperties[0].rprop << " not handled\n";
+              std::cerr << "case " << it->second.randomProperties[0].rprop << " not handled\n";
              break;
          }
          packedEset[jele]->setProp(newProp,true);
@@ -3712,7 +3710,7 @@ void Domain::assignRandMat()  // Equivalent to the non-intrusive version, but us
                else newProp->kz = newProp->kz + geoSource->group[s-1].randomProperties[0].std_dev*(pow(xitemp[s-1],2)-1)/sqrt(2.0);
               break;
             default:
-               cerr << "case " << geoSource->group[s-1].randomProperties[0].rprop << " not handled\n";
+               std::cerr << "case " << geoSource->group[s-1].randomProperties[0].rprop << " not handled\n";
               break;
           }
           packedEset[jele]->setProp(newProp,true);
@@ -3810,7 +3808,7 @@ Domain::deleteSomeLMPCs(mpc::ConstraintSource s)
       j++; 
     }
   }
-  //cerr << "deleted " << numLMPC-j << " mpcs, ";
+  //std::cerr << "deleted " << numLMPC-j << " mpcs, ";
   numLMPC = j;
   if(mortarToMPC && (s == mpc::ContactSurfaces || s == mpc::TiedSurfaces)) {
     delete mortarToMPC;
@@ -3843,7 +3841,7 @@ Domain::UpdateContactSurfaceElements(GeomState *geomState)
   for(int i = 0; i < numLMPC; ++i) {
     if(lmpc[i]->getSource() == mpc::ContactSurfaces) {
       if(count < contactSurfElems.size()) { // replace
-        //cerr << "replacing element " << contactSurfElems[count] << " with lmpc " << i << endl;
+        //std::cerr << "replacing element " << contactSurfElems[count] << " with lmpc " << i << std::endl;
         packedEset.deleteElem(contactSurfElems[count]);
         packedEset.mpcelemadd(contactSurfElems[count], lmpc[i]); // replace 
         packedEset[contactSurfElems[count]]->setProp(&sProps[mortar_attrib[lmpc[i]->id.first]]);
@@ -3856,7 +3854,7 @@ Domain::UpdateContactSurfaceElements(GeomState *geomState)
         count1++;
       }
       else { // new
-        //cerr << "adding lmpc " << i << " to elemset at index " << nEle << endl;
+        //std::cerr << "adding lmpc " << i << " to elemset at index " << nEle << std::endl;
         packedEset.mpcelemadd(nEle, lmpc[i]); // new
         packedEset[nEle]->setProp(&sProps[mortar_attrib[lmpc[i]->id.first]]);
         if(packedEset[nEle]->numInternalNodes() == 1) {
@@ -3873,13 +3871,13 @@ Domain::UpdateContactSurfaceElements(GeomState *geomState)
   }
   int count2 = 0;
   while(count < contactSurfElems.size()) {
-    //cerr << "deleting elemset " << contactSurfElems.back() << endl;
+    //std::cerr << "deleting elemset " << contactSurfElems.back() << std::endl;
     packedEset.deleteElem(contactSurfElems.back());
     contactSurfElems.pop_back();
     count2++;
   }
   packedEset.setEmax(nEle-count2); // because element set is packed
-  //cerr << "replaced " << count1 << " and added " << count-count1 << " new elements while removing " << count2 << endl;
+  //std::cerr << "replaced " << count1 << " and added " << count-count1 << " new elements while removing " << count2 << std::endl;
   numele = packedEset.last(); 
   numnodes = geomState->numNodes();
 }

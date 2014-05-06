@@ -1,4 +1,5 @@
 #include <Driver.d/Communicator.h>
+#include <iostream>
 #include <map>
 
 #ifdef USE_MUMPS
@@ -91,14 +92,14 @@ GenMumpsSolver<Scalar>::init()
   host = (mpicomm) ? (mpicomm->cpuNum() == 0) : true;
 
   // Set control parameters CNTL and ICNTL
-  map<int,double>::iterator CntlIter = domain->solInfo().mumps_cntl.begin();
+  std::map<int,double>::iterator CntlIter = domain->solInfo().mumps_cntl.begin();
   while(CntlIter != domain->solInfo().mumps_cntl.end()) {
     int CntlNum         = CntlIter->first;
     double CntlPar      = CntlIter->second;
     mumpsId.id.CNTL(CntlNum) = CntlPar;
     CntlIter ++;
   }
-  map<int,int>::iterator IcntlIter = domain->solInfo().mumps_icntl.begin();
+  std::map<int,int>::iterator IcntlIter = domain->solInfo().mumps_icntl.begin();
   while(IcntlIter != domain->solInfo().mumps_icntl.end()) {
     int IcntlNum        = IcntlIter->first;
     int IcntlPar        = IcntlIter->second;
@@ -108,20 +109,20 @@ GenMumpsSolver<Scalar>::init()
   // NOTE: centralized assembled matrix input (ICNTL(5) = 0 with ICNTL(18) = 0) is the only option fully supported
   //       distributed assembled matrix input (ICNTL(5) = 0 with ICNTL(18) = 3) is currently supported only for the FETI-DP coarse_solver
   if(mumpsId.id.ICNTL(5) != 0) {
-    cerr << "user defined ICNTL(5) not supported, setting to 0\n";
+    std::cerr << "user defined ICNTL(5) not supported, setting to 0\n";
     mumpsId.id.ICNTL(5) = 0; // 0: assembled matrix input
   }
   if(mumpsId.id.ICNTL(18) != 0 && mumpsId.id.ICNTL(18) != 3) {
-    cerr << "user defined ICNTL(18) not supported, setting to 0\n";
+    std::cerr << "user defined ICNTL(18) not supported, setting to 0\n";
     mumpsId.id.ICNTL(18) = 0; // 0: centralized assembled matrix input, 3: distributed assembled matrix input
   }
   // NOTE: centralized dense right-hand-side and solution (ICNTL(20) = 0 with ICNTL(21) = 0) is the only option supported
   if(mumpsId.id.ICNTL(20) != 0) {
-    cerr << "user defined ICNTL(20) not supported, setting to 0\n";
+    std::cerr << "user defined ICNTL(20) not supported, setting to 0\n";
     mumpsId.id.ICNTL(20) = 0; // 0: dense RHS 
   }
   if(mumpsId.id.ICNTL(21) != 0) {
-    cerr << "user defined ICNTL(21) not supported, setting to 0\n";
+    std::cerr << "user defined ICNTL(21) not supported, setting to 0\n";
     mumpsId.id.ICNTL(21) = 0; // 0: centralized solution
   }
   if(domain->solInfo().pivot) { // matrix is not assumed to be positive definite, may be singularities 
@@ -306,12 +307,12 @@ GenMumpsSolver<Scalar>::factor()
     Tmumps_c(mumpsId.id);
 
     if(mumpsId.id.INFOG(1) == -8 || mumpsId.id.INFOG(1)  == -9) { 
-       if(host) cerr << " ... increasing MUMPS workspace     ...\n"; 
+       if(host) std::cerr << " ... increasing MUMPS workspace     ...\n"; 
        mumpsId.id.ICNTL(14) *= 2; 
        mumpsId.id.job = 2; // recall factorization
     }
     else if(mumpsId.id.INFOG(1) < 0) { 
-      if(host) cerr << " *** ERROR: MUMPS factorization returned error code. Exiting...\n";
+      if(host) std::cerr << " *** ERROR: MUMPS factorization returned error code. Exiting...\n";
       exit(-1);
     }
     else break;
@@ -319,7 +320,7 @@ GenMumpsSolver<Scalar>::factor()
 
   nrbm = mumpsId.id.INFOG(28); // number of zero pivots detected
   if(this->print_nullity && host && nrbm > 0) 
-    cerr << " ... Matrix is singular: size = " << neq << ", rank = " << neq-nrbm << ", nullity = " << nrbm << " ...\n";
+    std::cerr << " ... Matrix is singular: size = " << neq << ", rank = " << neq-nrbm << ", nullity = " << nrbm << " ...\n";
 
   totMemMumps += mumpsId.id.INFOG(19)*1024; // INFOG(19) is the size in millions of bytes of all mumps internal data 
                                             // allocated during factorization: sum over all processors
@@ -446,7 +447,7 @@ GenMumpsSolver<Scalar>::print()
 #ifdef USE_MUMPS
  if((mumpsId.id.ICNTL(18) == 0 && host) || mumpsId.id.ICNTL(18) == 3) { // centralized matrix on host
    for(int i = 0; i < nNonZero; ++i)
-     cerr << "A(" << rowu[i] << "," << colu[i] << ") = " << unonz[i] << endl;
+     std::cerr << "A(" << rowu[i] << "," << colu[i] << ") = " << unonz[i] << std::endl;
  }
 #endif
 }
@@ -469,10 +470,10 @@ GenMumpsSolver<Scalar>::printStatistics()
 {
 #ifdef USE_MUMPS
   if(host) {
-    cerr << "RINFOG(4,...,11) = " << "("
+    std::cerr << "RINFOG(4,...,11) = " << "("
          << mumpsId.id.RINFOG(4) << ", " << mumpsId.id.RINFOG(5) << ", "  << mumpsId.id.RINFOG(6) << ", "
          << mumpsId.id.RINFOG(7) << ", " << mumpsId.id.RINFOG(8) << ", "  << mumpsId.id.RINFOG(9) << ", "
-         << mumpsId.id.RINFOG(10) << ", " << mumpsId.id.RINFOG(11) << ")" << endl;
+         << mumpsId.id.RINFOG(10) << ", " << mumpsId.id.RINFOG(11) << ")" << std::endl;
   }
 #endif
 }

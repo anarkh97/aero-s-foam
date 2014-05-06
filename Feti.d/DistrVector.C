@@ -1230,8 +1230,8 @@ void
 GenDistrVector<Scalar>::print()
 {
  int i;
- for(i=0; i < len; ++i) cerr << "v[" << i << "] = " << v[i] << endl;
- cerr << endl;
+ for(i=0; i < len; ++i) std::cerr << "v[" << i << "] = " << v[i] << std::endl;
+ std::cerr << std::endl;
 }
 
 template<class Scalar>
@@ -1240,8 +1240,8 @@ GenDistrVector<Scalar>::printNonZeroTerms()
 {
  int i;
  for(i=0; i < len; ++i) 
-   if(fabs(v[i]) > 0.00000001) cerr << "v[" << i << "] = " << v[i] << endl;
-  cerr << endl;
+   if(fabs(v[i]) > 0.00000001) std::cerr << "v[" << i << "] = " << v[i] << std::endl;
+  std::cerr << std::endl;
 }
 
 
@@ -1249,15 +1249,15 @@ template<class Scalar>
 void
 GenDistrVector<Scalar>::printAll()
 {
- cerr << "Length of GenDistrVector<Scalar> = " << len << endl;
- cerr << "Number of Domains = " << numDom << endl;
+ std::cerr << "Length of GenDistrVector<Scalar> = " << len << std::endl;
+ std::cerr << "Number of Domains = " << numDom << std::endl;
  int i,j;
  for(i=0; i<numDom; ++i) {
-   cerr << "--- Sub Vector Length = " << subVLen[i] << endl;
+   std::cerr << "--- Sub Vector Length = " << subVLen[i] << std::endl;
    for(j=0; j<subVLen[i]; ++j)
-     cerr << "v(" << j+1 << ") = " << subV[i][j] << endl;
+     std::cerr << "v(" << j+1 << ") = " << subV[i][j] << std::endl;
  }
- cerr << endl;
+ std::cerr << std::endl;
 }
 
 template <class Scalar>

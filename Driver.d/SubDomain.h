@@ -10,7 +10,8 @@
 #include <Driver.d/SComm.h>
 #include <Utils.d/GlobalToLocalMap.h>
 #include <Utils.d/MathUtils.h>
-
+#include <vector>
+#include <list>
 
 extern GeoSource *geoSource;
 
@@ -338,25 +339,25 @@ class BaseSub : virtual public Domain
   void sendMatProps(FSCommPattern<double> *matPat);
   void collectMatProps(FSCommPattern<double> *matPat);
 
-  void setDirichletBC(list<BCond *> *_list);
-  void setNeumanBC(list<BCond *> *_list);
-  void setInitialDisplacement(list<BCond *> *_list);
-  void setInitialDisplacement6(list<BCond *> *_list);
-  void setInitialVelocity(list<BCond *> *_list);
-  void setSensor(list<BCond *> *_list);
-  void setActuator(list<BCond *> *_list);
-  void setUsdd(list<BCond *> *_list);
-  void setUsdf(list<BCond *> *_list);
+  void setDirichletBC(std::list<BCond *> *_list);
+  void setNeumanBC(std::list<BCond *> *_list);
+  void setInitialDisplacement(std::list<BCond *> *_list);
+  void setInitialDisplacement6(std::list<BCond *> *_list);
+  void setInitialVelocity(std::list<BCond *> *_list);
+  void setSensor(std::list<BCond *> *_list);
+  void setActuator(std::list<BCond *> *_list);
+  void setUsdd(std::list<BCond *> *_list);
+  void setUsdf(std::list<BCond *> *_list);
   void setClaw(char* _fileName, char* _routineName) {
     claw = new ControlLawInfo; 
     claw->fileName = _fileName;
     claw->routineName = _routineName;
   }
-  void setComplexDirichletBC(list<ComplexBCond *> *_list);
-  void setComplexNeumanBC(list<ComplexBCond *> *_list);
-  void setDnb(list<SommerElement *> *_list);
-  void setScat(list<SommerElement *> *_list);
-  void setArb(list<SommerElement *> *_list);
+  void setComplexDirichletBC(std::list<ComplexBCond *> *_list);
+  void setComplexNeumanBC(std::list<ComplexBCond *> *_list);
+  void setDnb(std::list<SommerElement *> *_list);
+  void setScat(std::list<SommerElement *> *_list);
+  void setArb(std::list<SommerElement *> *_list);
 //  void updateKappa() { kappa = domain->getWaveNumber(); }
 //  void updateKappaAndScalings() { kappa = domain->getWaveNumber();
 //                       coupledScaling = domain->coupledScaling;
@@ -657,7 +658,7 @@ class GenSubDomain : public BaseSub
 
   void projectActiveIneq(Scalar *v);
   void split(Scalar *v, Scalar *v_f, Scalar *v_c);
-  void bmpcQualify(vector<LMPCons *> *bmpcs, int *pstatus, int *nstatus);
+  void bmpcQualify(std::vector<LMPCons *> *bmpcs, int *pstatus, int *nstatus);
   void updateActiveSet(Scalar *v, double tol, int flag, bool &statusChange);
   void assembleGlobalCCtsolver(GenSolver<Scalar> *CCtsolver, SimpleNumberer *mpcEqNums);
   void computeSubContributionToGlobalCCt(SimpleNumberer *mpcEqNums); //HB: only compute the subdomain contribution to global CCt

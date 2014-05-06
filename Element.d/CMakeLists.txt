@@ -307,7 +307,6 @@ Shear.d/vec.f
 Shell.d/basico.f
 Shell.d/ConnectedTri.C
 Shell.d/FourNodeShell.C
-Shell.d/ExpFourNodeShell.C
 #Shell.d/g_basico.f
 #Shell.d/g_dummy.f
 #Shell.d/g_mass8.f

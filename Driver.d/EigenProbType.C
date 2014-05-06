@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <iostream>
 #include <cmath>
+#include <list>
 
 #include <Driver.d/Dynam.h>
 
@@ -15,13 +16,6 @@
 #include <Driver.d/GeoSource.h>
 #include <Driver.d/Communicator.h>
 #include <Comm.d/Communicator.h>
-
-#ifdef OLD_STL
-#include <list.h>
-#else
-#include <list>
-using std::list;
-#endif
 
 #ifdef DISTRIBUTED
 #include <mpi.h>
@@ -659,9 +653,9 @@ EigenSolver< EigOps, VecType, VecSet,
    Eigen::MatrixXd Reigen = (Qupdated.transpose()*Xeigen).block(0,0,totalEig,totalEig);
 
    Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0);
-   cerr << Reigen.format(HeavyFmt) << endl;
-   cerr << Xeigen.rows() << "x" << Xeigen.cols() << endl;
-   cerr << Reigen.rows() << "x" << Reigen.cols() << endl;
+   std::cerr << Reigen.format(HeavyFmt) << std::endl;
+   std::cerr << Xeigen.rows() << "x" << Xeigen.cols() << std::endl;
+   std::cerr << Reigen.rows() << "x" << Reigen.cols() << std::endl;
 
    // ... Output results
    this->postProcessor->eigenQROutput(Xeigen,Qupdated,Reigen);
@@ -923,10 +917,10 @@ EigenSolver< EigOps, VecType, VecSet,
                       xx.dim(), work, info);
       if(info !=0) {
         //int N = subSpaceSize;
-        //cerr << "N = " << N << endl;
-        //cerr << "AP = "; for(int i=0; i<N*(N+1)/2; ++i) cerr << kappa[i] << " "; cerr << endl;
-        //cerr << "BP = "; for(int i=0; i<N*(N+1)/2; ++i) cerr << mu[i] << " "; cerr << endl;
-        //cerr << "LDZ = " << xx.dim() << endl;
+        //cerr << "N = " << N << std::endl;
+        //cerr << "AP = "; for(int i=0; i<N*(N+1)/2; ++i) std::cerr << kappa[i] << " "; std::cerr << std::endl;
+        //cerr << "BP = "; for(int i=0; i<N*(N+1)/2; ++i) std::cerr << mu[i] << " "; std::cerr << std::endl;
+        //cerr << "LDZ = " << xx.dim() << std::endl;
         filePrint(stderr, "Error in dspgv: info = %d, N = %d\n", info, subSpaceSize);
       }
       delete [] work;
@@ -1094,7 +1088,7 @@ SymArpackSolver< EigOps, VecType, VecSet,
   const double pi = 3.141592653589793;
   int counter = 0, diffEig = 0, convEig = 0;
   int myTotalEig = 0;
-  list <double> TotEigVal;
+  std::list<double> TotEigVal;
   int i,j;
 
   //--------------------Multiple shift eigen analysis------------------------
@@ -1268,7 +1262,7 @@ SymArpackSolver< EigOps, VecType, VecSet,
         case -1: // Performing y <- OP*M*x
         { 
 #ifdef ARPACK_DEBUG
-          cerr<<" perform y <- OP*M*x (1)\n"; 
+          std::cerr<<" perform y <- OP*M*x (1)\n"; 
 #endif
           VecType x(this->probDesc->solVecInfo(),&workd[ipntr[0]-1],false);
           VecType y(this->probDesc->solVecInfo(),&workd[ipntr[1]-1],false);
@@ -1296,7 +1290,7 @@ SymArpackSolver< EigOps, VecType, VecSet,
         case 1:  // Performing y <- OP*M*x. z=M*x is already available
         {
 #ifdef ARPACK_DEBUG
-          cerr<<" perform y <- OP*M*x (2)\n";
+          std::cerr<<" perform y <- OP*M*x (2)\n";
 #endif
           VecType x(this->probDesc->solVecInfo(),&workd[ipntr[0]-1],false);
           VecType y(this->probDesc->solVecInfo(),&workd[ipntr[1]-1],false);
@@ -1325,7 +1319,7 @@ SymArpackSolver< EigOps, VecType, VecSet,
         case 2: // Performing z <- M*x
         {  
 #ifdef ARPACK_DEBUG
-          cerr<<" perform z <- M*x\n";
+          std::cerr<<" perform z <- M*x\n";
 #endif
           VecType x(this->probDesc->solVecInfo(),&workd[ipntr[0]-1],false);
           VecType z(this->probDesc->solVecInfo(),&workd[ipntr[1]-1],false);

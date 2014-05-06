@@ -117,7 +117,7 @@ Elemset::elemadd(int num, Element *el)
     if(elem) delete [] elem;
     elem = np;
    }
-  if(elem[num]) cerr << " *** WARNING: found repeated ELEMENT# " << num+1 << endl; 
+  if(elem[num]) std::cerr << " *** WARNING: found repeated ELEMENT# " << num+1 << std::endl; 
   elem[num] = el;
 }
 

@@ -3,10 +3,11 @@
 #include <Math.d/FullSquareMatrix.h>
 #include <Comm.d/Communicator.h>
 #include <Threads.d/Paral.h>
+#include <Driver.d/Domain.h>
+#include <iostream>
 
 extern double getTime();
 
-#include<Driver.d/Domain.h>
 extern Domain *domain;
 extern long totMemSpooles;
 
@@ -559,7 +560,7 @@ GenSpoolesSolver<Scalar>::allFactor(bool fctIsParal)
 #endif
   rootchv = FrontMtx_factorInpMtx(frontMtx, inpMtx, tau, 0.0, chvmanager,
                                          &error, cpus, stats, msglvl, msgfile);
-  if(rootchv != NULL) cerr << " ... WARNING: Matrix factored by spooles found to be singular ... \n";
+  if(rootchv != NULL) std::cerr << " ... WARNING: Matrix factored by spooles found to be singular ... \n";
   // note: spooles is only for full rank matrices. For symmetric positive semi definite matrices try sparse or skyline, and for general symmetric indefinite try mumps pivot
 
   ChvManager_free(chvmanager);
@@ -575,31 +576,30 @@ GenSpoolesSolver<Scalar>::allFactor(bool fctIsParal)
   //FrontMtx_writeToFile(frontMtx,"frontMtx1");
 
 #if DEBUG_SPOOLES >= 1
-  cerr << " ... Spooles stats: \n"
-       << "     # of pivots = " << stats[0] << endl
-       << "     # of pivot tests = " << stats[1] << endl
-       << "     # of delayed rows and cols = " << stats[2] << endl
-       << "     # of entries in D = " << stats[3] << endl
-       << "     # of entries in L = " << stats[4] << endl
-       << "     # of entries in U = " << stats[5] << endl;
-  cerr << " ... Spools timings: \n"
-       << "     time to construct graph = " << cpus[0] << endl
-       << "     time to compress graph = " << cpus[1] << endl
-       << "     time to order graph = " << cpus[2] << endl
-       << "     time for symbolic factorization = " << cpus[3] << endl
-       << "     total setup time = " << cpus[4] << endl
-       << "     time to setup the factorization = " << cpus[5] << endl
-       << "     time to permute matrix = " << cpus[6] << endl
-       << "     time to initialize front matrix = " << cpus[7] << endl
-       << "     time to factor matrix = " << cpus[8] << endl
-       << "     time to post-process matrix = " << cpus[9] << endl
-       << "     total factor time = " << cpus[10] << endl;
+  std::cerr << " ... Spooles stats: \n"
+       << "     # of pivots = " << stats[0] << std::endl
+       << "     # of pivot tests = " << stats[1] << std::endl
+       << "     # of delayed rows and cols = " << stats[2] << std::endl
+       << "     # of entries in D = " << stats[3] << std::endl
+       << "     # of entries in L = " << stats[4] << std::endl
+       << "     # of entries in U = " << stats[5] << std::endl;
+  std::cerr << " ... Spools timings: \n"
+       << "     time to construct graph = " << cpus[0] << std::endl
+       << "     time to compress graph = " << cpus[1] << std::endl
+       << "     time to order graph = " << cpus[2] << std::endl
+       << "     time for symbolic factorization = " << cpus[3] << std::endl
+       << "     total setup time = " << cpus[4] << std::endl
+       << "     time to setup the factorization = " << cpus[5] << std::endl
+       << "     time to permute matrix = " << cpus[6] << std::endl
+       << "     time to initialize front matrix = " << cpus[7] << std::endl
+       << "     time to factor matrix = " << cpus[8] << std::endl
+       << "     time to post-process matrix = " << cpus[9] << std::endl
+       << "     total factor time = " << cpus[10] << std::endl;
 #endif
   _size = stats[3]+stats[4]+stats[5];
   totMemSpooles += sizeof(Scalar)*_size/1024;
 #endif
 }
-
 
 
 /***********************************************************************************/
@@ -684,12 +684,12 @@ for(i=0;i<neq;i++) solution[i] = 0;
   // End Solution Phase
 
 #if DEBUG_SPOOLES == 2
-  cerr << " ... Spools timings: \n"
-       << "     time to setup the parallel solve = " << cpus[0] << endl
-       << "     time to permute rhs = " << cpus[1] << endl
-       << "     time to solve = " << cpus[2] << endl
-       << "     time to permute solution = " << cpus[3] << endl
-       << "     total solve time = " << cpus[4] << endl;
+  std::cerr << " ... Spools timings: \n"
+       << "     time to setup the parallel solve = " << cpus[0] << std::endl
+       << "     time to permute rhs = " << cpus[1] << std::endl
+       << "     time to solve = " << cpus[2] << std::endl
+       << "     time to permute solution = " << cpus[3] << std::endl
+       << "     total solve time = " << cpus[4] << std::endl;
 #endif
 #endif
   this->solveTime += getTime();
@@ -706,15 +706,15 @@ template<class Scalar>
 void
 GenSpoolesSolver<Scalar>::print()
 {
- cout << endl;
- cerr.setf(ios_base::scientific,ios_base::floatfield);
- cerr.precision(16);
+ std::cerr << std::endl;
+ std::cerr.setf(std::ios_base::scientific, std::ios_base::floatfield);
+ std::cerr.precision(16);
  int i, mstart, mstop, m;
  for(i=0; i<numUncon; ++i) {
    mstart = xunonz[i];
    mstop  = xunonz[i+1];
    for(m=mstart; m<mstop; ++m)
-     cerr << "K(" << i+1 << "," << rowu[m-1] << ") = " << unonz[m-1] << ",\n";
+     std::cerr << "K(" << i+1 << "," << rowu[m-1] << ") = " << unonz[m-1] << ",\n";
  }
 }
 

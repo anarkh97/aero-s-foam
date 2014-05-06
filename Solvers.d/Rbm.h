@@ -8,6 +8,7 @@
 #include <Element.d/Element.h>
 #include <Corotational.d/GeomState.h>
 #include <Feti.d/DistrVectorSet.h>
+#include <iostream>
 
 template <class Scalar> class GenVector;
 typedef GenVector<double> Vector;
@@ -67,7 +68,7 @@ public:
       double _tolgrb, double *centroid,
       int *cornerNodes, int numCRN, int numCRNdof, DofSet *cornerDofs,
       int numMPC, SubLMPCons<DComplex> **mpc) 
-    { cerr << "Rbm(...) not implemented for complex LMPCs \n"; }
+    { std::cerr << "Rbm(...) not implemented for complex LMPCs \n"; }
   ~Rbm();
   
   void computeRbms(CoordSet& cs, double *centroid, int *cornerNodes,
@@ -97,7 +98,7 @@ public:
   void getScaledRBMs(double *, int nc, int *dofs, double *scaling, int _numG=-1, int offset=0);
   void getRBMs(Vector* rigidBodyModes);
   void getRBMs(VectorSet& rigidBodyModes);
-  void getRBMs(DistrVectorSet& rigidBodyModes) { cerr << "Rbm::getRBMs(DistrVectorSet& rigidBodyModes) is not implemented\n"; }
+  void getRBMs(DistrVectorSet& rigidBodyModes) { std::cerr << "Rbm::getRBMs(DistrVectorSet& rigidBodyModes) is not implemented\n"; }
 
   void singularValueDecomposition(FullM &A, FullM &U, int ncol, int nrow,
                                   double max_value, int &numgrbm, int &rank);

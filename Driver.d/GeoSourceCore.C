@@ -21,7 +21,6 @@
 #endif
 #include <map>
 #include <utility>
-using std::map;
 #include <list>
 #include <vector>
 #include <queue>
@@ -226,7 +225,7 @@ int GeoSource::addElem(int en, int type, int nn, int *nodeNumbers)
 #ifndef SALINAS
   elemSet.elemadd(en, type, nn, nodeNumbers);
 #else
-  cerr << "*** ERROR: GeoSource::addElem(...) not included in Salinas library \n";
+  std::cerr << "*** ERROR: GeoSource::addElem(...) not included in Salinas library \n";
 #endif
 
 
@@ -467,7 +466,7 @@ void GeoSource::transformLMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
     }
 
     // remove the old terms and insert new terms lmpc[i]
-    vector<LMPCTerm>::iterator it = lmpc[i]->terms.begin();
+    std::vector<LMPCTerm>::iterator it = lmpc[i]->terms.begin();
     while(it != lmpc[i]->terms.end()) {
       if(nodes[it->nnum]->cd != 0)
         it = lmpc[i]->terms.erase(it);
@@ -534,7 +533,7 @@ void GeoSource::UpdateContactSurfaceElements(DistrGeomState *geomState, std::map
   for(int i = 0; i < numLMPC; ++i) {
     if(lmpc[i]->getSource() == mpc::ContactSurfaces) {
       if(count < contactSurfElems.size()) { // replace
-        //cerr << "replacing element " << contactSurfElems[count] << " with lmpc " << i << endl;
+        //cerr << "replacing element " << contactSurfElems[count] << " with lmpc " << i << std::endl;
         elemSet.deleteElem(contactSurfElems[count]);
         elemSet.mpcelemadd(contactSurfElems[count], lmpc[i]); // replace 
         elemSet[contactSurfElems[count]]->setProp(&sProps[mortar_attrib[lmpc[i]->id.first]]);
@@ -546,7 +545,7 @@ void GeoSource::UpdateContactSurfaceElements(DistrGeomState *geomState, std::map
         count1++;
       }
       else { // new
-        //cerr << "adding lmpc " << i << " to elemset at index " << nEle << endl;
+        //cerr << "adding lmpc " << i << " to elemset at index " << nEle << std::endl;
         elemSet.mpcelemadd(nEle, lmpc[i]); // new
         elemSet[nEle]->setProp(&sProps[mortar_attrib[lmpc[i]->id.first]]);
         if(elemSet[nEle]->numInternalNodes() == 1) {
@@ -562,13 +561,13 @@ void GeoSource::UpdateContactSurfaceElements(DistrGeomState *geomState, std::map
   }
   int count2 = 0;
   while(count < contactSurfElems.size()) {
-    //cerr << "deleting elemset " << contactSurfElems.back() << endl;
+    //cerr << "deleting elemset " << contactSurfElems.back() << std::endl;
     elemSet.deleteElem(contactSurfElems.back());
     contactSurfElems.pop_back();
     count2++;
   }
   //XXX elemSet.setEmax(nEle-count2); // because element set is packed
-  //cerr << "replaced " << count1 << " and added " << count-count1 << " new elements while removing " << count2 << endl;
+  //cerr << "replaced " << count1 << " and added " << count-count1 << " new elements while removing " << count2 << std::endl;
   nElem = elemSet.last();
   //XXX numnodes = geomState->numNodes();
 
@@ -607,7 +606,7 @@ GeoSource::updateParameters()
 void GeoSource::makeDirectMPCs(int &numLMPC, ResizeArray<LMPCons *> &lmpc)
 {
   if(numLMPC) {
-    if(verboseFlag) cerr << " ... Using direct elimination method for " << numLMPC << " constraints ...\n";
+    if(verboseFlag) std::cerr << " ... Using direct elimination method for " << numLMPC << " constraints ...\n";
 
     using std::map;
     using std::pair;
@@ -617,9 +616,9 @@ void GeoSource::makeDirectMPCs(int &numLMPC, ResizeArray<LMPCons *> &lmpc)
     int nID = 0;
     map<pair<int,int>, int> dofID;
 
-    set<pair<int,int> > dispBC;
+    std::set<pair<int,int> > dispBC;
     for(int i = 0; i < numDirichlet; ++i)
-      dispBC.insert(std::pair<int, int>(dbc[i].nnum, dbc[i].dofnum));
+      dispBC.insert(pair<int, int>(dbc[i].nnum, dbc[i].dofnum));
 
     for(int i = 0; i < numLMPC; ++i) {
       // First flush the MPC from any zero terms
@@ -654,9 +653,9 @@ void GeoSource::makeDirectMPCs(int &numLMPC, ResizeArray<LMPCons *> &lmpc)
     //std::cerr << "Number of components = " << renumb.numComp << std::endl;
 
     // Determine for each MPC which DOF will be slave
-    std::vector<int> mpcSlaveDOF(numLMPC);
+    vector<int> mpcSlaveDOF(numLMPC);
     for(int i=0; i<numLMPC;++i) mpcSlaveDOF[i] = -1;
-    std::vector<int> dofSlaveOf(dofToLMPC->csize(), -1);
+    vector<int> dofSlaveOf(dofToLMPC->csize(), -1);
     for(int i=0; i<dofToLMPC->csize(); ++i) dofSlaveOf[i] = -1;
     int nMPCtoView = numLMPC;
     for(int i = 0; i < dofToLMPC->csize(); ++i)
@@ -717,7 +716,7 @@ void GeoSource::makeDirectMPCs(int &numLMPC, ResizeArray<LMPCons *> &lmpc)
       }
       else delete lmpc[i];
     }
-    if(verboseFlag && j < numLMPC) cerr << " ... Found " << numLMPC-j << " redundant constraints ...\n";
+    if(verboseFlag && j < numLMPC) std::cerr << " ... Found " << numLMPC-j << " redundant constraints ...\n";
     numLMPC = j;
     delete dofToLMPC;
     renumb.clearMemory();
@@ -728,6 +727,8 @@ int
 GeoSource::reduceMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
 {
 #ifdef USE_EIGEN3
+  using std::map;
+  using std::pair;
   // create a unique integer ID for every DOF involved in the MPCs
   int nID = 0;
   map<pair<int,int>, int> dofID;
@@ -752,8 +753,8 @@ GeoSource::reduceMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
   Connectivity lmpcToDof(lmpcAccess);
   Connectivity *dofToLMPC = lmpcToDof.reverse();
 
-  vector<int> *term2col = new vector<int>[numLMPC];
-  vector<pair<int,int> > col2pair(dofToLMPC->csize());
+  std::vector<int> *term2col = new std::vector<int>[numLMPC];
+  std::vector<pair<int,int> > col2pair(dofToLMPC->csize());
   for(int i = 0; i < numLMPC; ++i) {
     for(int j = 0; j < lmpc[i]->nterms; ++j) {
       pair<int, int> p(lmpc[i]->terms[j].nnum, lmpc[i]->terms[j].dofnum);
@@ -775,13 +776,13 @@ GeoSource::reduceMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
   delete [] term2col;
 
   /*double t = -getTime();
-  cerr << " ... Converting " << numLMPC << " LMPCs to Reduced Row Echelon Form";*/
+  std::cerr << " ... Converting " << numLMPC << " LMPCs to Reduced Row Echelon Form";*/
   int *colmap = new int[c.cols()];
   for(int i = 0; i < c.cols(); ++i) colmap[i] = i;
   int rank = rowEchelon<double, Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> >(c, true, NULL, colmap, optc, domain->solInfo().mpcDirectTol, domain->solInfo().usePrescribedThreshold);
   //cerr << "took " << (t += getTime())/1000. << " seconds ...\n";
   //if(rank != numLMPC)
-  //  cerr << "rowEchelon detected " << numLMPC-rank << " redundant constraints\n";
+  //  std::cerr << "rowEchelon detected " << numLMPC-rank << " redundant constraints\n";
 
   // copy the coefficients of the rref matrix into the lmpc data structure 
   double tol1 = domain->solInfo().coefFilterTol*std::numeric_limits<double>::epsilon(),
@@ -792,7 +793,7 @@ GeoSource::reduceMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
     lmpc[i]->rhs.r_value = 0;
     if(i >= rank) {
       if(std::fabs(c(i,m)) > domain->solInfo().inconsistentTol)
-        cerr << "warning: inconsistent constraint detected (" << c(i,m) << ")\n";
+        std::cerr << "warning: inconsistent constraint detected (" << c(i,m) << ")\n";
       continue;
     }
     for(int j = i; j < m; ++j) {
@@ -805,7 +806,7 @@ GeoSource::reduceMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
       }
     }
     if(optc) { 
-      if(colmap[m] != m) cerr << "error: mpc rhs was pivoted\n"; // this should not happen
+      if(colmap[m] != m) std::cerr << "error: mpc rhs was pivoted\n"; // this should not happen
       if(std::fabs(c(i,m)) > tol2) // set the rhs to exactly zero if it is already very close
         lmpc[i]->rhs.r_value = c(i,m);
     }
@@ -815,7 +816,7 @@ GeoSource::reduceMPCs(int numLMPC, ResizeArray<LMPCons *> &lmpc)
   delete [] colmap;
   return rank;
 #else
-  cerr << " *** ERROR: GeoSource::reduceMPCs requires AERO-S configured with Eigen library. Exiting...\n"; exit(-1);
+  std::cerr << " *** ERROR: GeoSource::reduceMPCs requires AERO-S configured with Eigen library. Exiting...\n"; exit(-1);
   return 0;
 #endif
 }
@@ -848,7 +849,7 @@ void GeoSource::addFsiElements(int numFSI, ResizeArray<LMPCons *> &fsi)
 
 //  fsi.deleteArray(); domain->setNumFSI(0); // DEBUG fsi_element
 #else
-  cerr << "*** ERROR: GeoSource::addFsiElements(...) not included in Salinas library \n";
+  std::cerr << "*** ERROR: GeoSource::addFsiElements(...) not included in Salinas library \n";
 #endif
 }
 
@@ -882,7 +883,7 @@ void GeoSource::duplicateFilesForPita(int localNumSlices, const int* sliceRankSe
       addOutput(oI);
     }
     int lastRequest = numOutInfo;
-    timeSliceOutputFiles.insert(std::make_pair(sliceRankSet[i], make_pair(firstRequest, lastRequest)));
+    timeSliceOutputFiles.insert(std::make_pair(sliceRankSet[i], std::make_pair(firstRequest, lastRequest)));
   }
 
   // Append the time-slice rank to the output file names
@@ -958,6 +959,8 @@ void GeoSource::transformCoords()
 
 void GeoSource::setUpData()
 {
+  using std::map;
+  using std::list;
   int lastNode = numNodes = nodes.size();
   const int nMaxEle = elemSet.last();
 
@@ -1171,7 +1174,7 @@ void GeoSource::setUpData()
   }
 
   // Set up beam element offsets
-  for(vector<OffsetData>::iterator offIt = offsets.begin(); offIt != offsets.end(); ++offIt) {
+  for(std::vector<OffsetData>::iterator offIt = offsets.begin(); offIt != offsets.end(); ++offIt) {
     for(int i = offIt->first; i <= offIt->last; ++i) {
       if(elemSet[i] == 0) {
 	filePrint(stderr, " *** WARNING: Setting up offset on non-existent element %d ***\n", i+1);
@@ -1517,14 +1520,14 @@ void GeoSource::setElementPreLoad(int elemNum, double _preload)
 {
  std::vector<double> preload; 
  preload.push_back(_preload);
- eleprl.push_back(pair<int,std::vector<double> >(elemNum,preload));
+ eleprl.push_back(std::pair<int,std::vector<double> >(elemNum,preload));
 }
 
 void GeoSource::setElementPreLoad(int elemNum, double _preload[3])
 {
  std::vector<double> preload;
  for(int i=0; i<3; ++i) preload.push_back(_preload[i]);
- eleprl.push_back(pair<int,std::vector<double> >(elemNum,preload));
+ eleprl.push_back(std::pair<int,std::vector<double> >(elemNum,preload));
 }
 
 void GeoSource::setConsistentPFlag(int _constpflg)
@@ -2034,7 +2037,7 @@ void GeoSource::outputNodeScalars(int fileNum, double *data,
   if (oinfo[fileNum].groupNumber > 0)  {
 
     int group = oinfo[fileNum].groupNumber;
-    list<int>::iterator it = nodeGroup[group].begin();
+    std::list<int>::iterator it = nodeGroup[group].begin();
 
     while (it != nodeGroup[group].end() )  {
       int inode = *it;
@@ -2074,7 +2077,7 @@ void GeoSource::outputNodeScalars(int fileNum, DComplex *data, int outputSize, d
       if (oinfo[fileNum].groupNumber > 0)  {
 
         int group = oinfo[fileNum].groupNumber;
-        list<int>::iterator it = nodeGroup[group].begin();
+        std::list<int>::iterator it = nodeGroup[group].begin();
 
         while (it != nodeGroup[group].end() )  {
           int inode = *it;
@@ -2110,7 +2113,7 @@ void GeoSource::outputNodeScalars(int fileNum, DComplex *data, int outputSize, d
       if (oinfo[fileNum].groupNumber > 0)  {
 
         int group = oinfo[fileNum].groupNumber;
-        list<int>::iterator it = nodeGroup[group].begin();
+        std::list<int>::iterator it = nodeGroup[group].begin();
 
         while (it != nodeGroup[group].end() )  {
           int inode = *it;
@@ -2148,7 +2151,7 @@ void GeoSource::outputNodeScalars(int fileNum, DComplex *data, int outputSize, d
           phi += incr;
         }
       }
-      else cerr << " *** WARNING: animate not supported for single-node or nodal group output \n";
+      else std::cerr << " *** WARNING: animate not supported for single-node or nodal group output \n";
       break;
   }
 
@@ -2262,7 +2265,7 @@ void GeoSource::outputElemVectors(int fileNum, DComplex *data,
           phi += incr;
         }
       }
-      else cerr << " *** WARNING: animate not supported for single-node output \n";
+      else std::cerr << " *** WARNING: animate not supported for single-node output \n";
       break;
   }
 
@@ -2613,11 +2616,11 @@ int GeoSource::setIDis6(int _numIDis6, BCond *_iDis6)
 int GeoSource::setPitaIDis6(int n, BCond *i, int numTSPitaIDis6_)
 {
   // numTSPitaIDis6 corresponds to the number of time-slices and also
-	// to the number of displacement vectors read from the input file.
+  // to the number of displacement vectors read from the input file.
   // numPitaIDis6 corresponds to the number of boundary conditions for
-	// each vector, that is 6 * #dof.
+  // each vector, that is 6 * #dof.
   // These values will be used to check that the all necessary seed
-	// values have been specified
+  // values have been specified
   numPitaIDis6   = n / numTSPitaIDis6_;
   numTSPitaIDis6 = numTSPitaIDis6_;
   PitaIDis6 = i;
@@ -3149,7 +3152,7 @@ int GeoSource::getCPUMap(FILE *f, int numSub)
     if(matchName != NULL) {
       BinFileHandler connectivityFile(conName, "rb");
       Connectivity *clusToSub = new Connectivity(connectivityFile, true);
-      //cerr << "totSub = " << totSub << endl;
+      //cerr << "totSub = " << totSub << std::endl;
                    
       // build global to cluster subdomain map
       int *gl2ClSubMap = new int[totSub];
@@ -3158,7 +3161,7 @@ int GeoSource::getCPUMap(FILE *f, int numSub)
         for (int iSub = 0; iSub < clusToSub->num(iClus); iSub++)
           gl2ClSubMap[ (*clusToSub)[iClus][iSub] ] = clusNum++;
       }
-      //if(myID == 0) cerr << "clusToSub = \n"; clusToSub->print();
+      //if(myID == 0) std::cerr << "clusToSub = \n"; clusToSub->print();
       delete clusToSub;
 
       for(int locSub = 0; locSub < numLocSub; ++locSub) {
@@ -3173,7 +3176,7 @@ int GeoSource::getCPUMap(FILE *f, int numSub)
         BinFileHandler::OffType curLoc = decFile.tell();
         int glSub = (*cpuToSub)[myID][locSub];
         int clusSub = gl2ClSubMap[glSub];
-        //cerr << "locSub = " << locSub << ", glSub = " << glSub << ", clusSub = " << clusSub << endl;
+        //cerr << "locSub = " << locSub << ", glSub = " << glSub << ", clusSub = " << clusSub << std::endl;
         decFile.seek(curLoc + sizeof(BinFileHandler::OffType) * clusSub);
         BinFileHandler::OffType infoLoc;
         decFile.read(&infoLoc, 1);
@@ -3184,7 +3187,7 @@ int GeoSource::getCPUMap(FILE *f, int numSub)
         int (*elemRanges)[2];
         int numElemRanges;
         int numLocElems = readRanges(decFile, numElemRanges, elemRanges);
-        //cerr << "numLocElems = " << numLocElems << endl;
+        //cerr << "numLocElems = " << numLocElems << std::endl;
 
         int minElemNum = elemRanges[0][0];
         int maxElemNum = 0;
@@ -4193,9 +4196,9 @@ void GeoSource::writeDistributedInputFiles(int nCluster, Domain *domain)
   delete eToN;
 
   // ATTRIBUTES
-  std::pair<int, map<int, Attrib>* > attrPair = std::make_pair(na, &attrib);
-  ImplicitConnectivity<std::pair<int,map<int, Attrib>* >*, ElemAttrAccessor>
-    *EtoAtt = new ImplicitConnectivity<std::pair<int, map<int, Attrib>* >*, ElemAttrAccessor>(&attrPair);
+  std::pair<int, std::map<int, Attrib>* > attrPair = std::make_pair(na, &attrib);
+  ImplicitConnectivity<std::pair<int,std::map<int, Attrib>* >*, ElemAttrAccessor>
+    *EtoAtt = new ImplicitConnectivity<std::pair<int, std::map<int, Attrib>* >*, ElemAttrAccessor>(&attrPair);
   sower.addParentToChildData<AttribIO>(ATTRIBUTES_TYPE, ELEMENTS_TYPE, 0, &attrPair, EtoAtt);
 
   // NEUMAN BOUNDARY CONDITIONS
@@ -4214,7 +4217,7 @@ void GeoSource::writeDistributedInputFiles(int nCluster, Domain *domain)
 
   // MATERIALS
   typedef std::pair<int, SPropContainer* > MATPair;
-  typedef ImplicitConnectivity<std::pair<int,map<int,Attrib>* >*, MatAttrAccessor> implicitMat;
+  typedef ImplicitConnectivity<std::pair<int,std::map<int,Attrib>* >*, MatAttrAccessor> implicitMat;
   MATPair matPair = std::make_pair(numProps, &sProps);
   implicitMat* EleToMat = new implicitMat(&attrPair);
   sower.addParentToChildData<MatIO>(MATERIALS_TYPE, ELEMENTS_TYPE, 0, &matPair, EleToMat);
@@ -4242,7 +4245,7 @@ void GeoSource::writeDistributedInputFiles(int nCluster, Domain *domain)
   delete ImplicitLMPC;
 
   // COMPOSITE
-  typedef std::pair<int,map<int,Attrib>* > AttPair;
+  typedef std::pair<int,std::map<int,Attrib>* > AttPair;
   typedef ImplicitConnectivity<AttPair*, CmpAttrAccessor> implicitCMP;
   implicitCMP* EleToCmp =  new implicitCMP(&attrPair);
   typedef std::pair<int, ResizeArray<LayInfo *>* > layInfoPair;
@@ -4260,7 +4263,7 @@ void GeoSource::writeDistributedInputFiles(int nCluster, Domain *domain)
   sower.addParentToChildData<CFramesIO>(CFRAMES_TYPE, ELEMENTS_TYPE, 0, &cfp, EleToCFM);
 
   // BOFFSET
-  typedef ImplicitConnectivity<vector<OffsetData>*, BoffsetAccessor> implicitBoffset;
+  typedef ImplicitConnectivity<std::vector<OffsetData>*, BoffsetAccessor> implicitBoffset;
   implicitBoffset* offToElem = new implicitBoffset(&offsets);
   sower.addChildToParentData<BoffsetIO>(BOFFSET_TYPE, ELEMENTS_TYPE, 0, &offsets, offToElem);
   delete offToElem;
@@ -4273,7 +4276,7 @@ void GeoSource::writeDistributedInputFiles(int nCluster, Domain *domain)
   sower.addChildToParentData<EFrameIO>(EFRAME_TYPE, ELEMENTS_TYPE, 0, &efPair, efToElem);
 
   // DIMASS
-  vector<DMassData*> dmv; // what can I do with a chained list !
+  std::vector<DMassData*> dmv; // what can I do with a chained list !
   DMassData* fdm = domain->getFirstDMassData();
   if(fdm != 0) // some DMASS
     {
@@ -4283,7 +4286,7 @@ void GeoSource::writeDistributedInputFiles(int nCluster, Domain *domain)
 	  fdm = fdm->next;
 	}
       while(fdm->next!= 0);
-      typedef ImplicitConnectivity<vector<DMassData* >*, DimassAccessor > implicitDMass;
+      typedef ImplicitConnectivity<std::vector<DMassData* >*, DimassAccessor > implicitDMass;
       implicitDMass * massToNode = new implicitDMass(&dmv);
       sower.addChildToParentData<DMassIO>(DIMASS_TYPE, NODES_TYPE, 0, &dmv, massToNode);
     }
@@ -4382,7 +4385,7 @@ void GeoSource::writeDistributedInputFiles(int nCluster, Domain *domain)
 
   // done adding data to sower object
 #ifdef SOWER_DEBUG
-  cerr << "  Debug requested for sower\n" << endl;
+  std::cerr << "  Debug requested for sower\n" << std::endl;
   sower.printDebug();
 #endif
   sower.write();
@@ -4436,8 +4439,8 @@ void GeoSource::getBinaryDecomp()
     subToElem = new Connectivity(fp);
     subToNode = new Connectivity(fp);
 #ifdef SOWER_DEBUG
-    cerr << "*** subToElem, from decomposition binary file: \n"; subToElem->print();
-    cerr << "*** subToNode, from decomposition binary file: \n"; subToNode->print();
+    std::cerr << "*** subToElem, from decomposition binary file: \n"; subToElem->print();
+    std::cerr << "*** subToNode, from decomposition binary file: \n"; subToNode->print();
 #endif
   }
 }
@@ -4452,8 +4455,8 @@ void GeoSource::readGlobalBinaryData()
     subToClus = clusToSub->reverse();
     subToSub = new Connectivity(fp2);
 #ifdef SOWER_DEBUG
-    cerr << "*** subToClus, from connectivity binary file: \n"; subToClus->print();
-    cerr << "*** subToSub, from connectivity binary file: \n"; subToSub->print();
+    std::cerr << "*** subToClus, from connectivity binary file: \n"; subToClus->print();
+    std::cerr << "*** subToSub, from connectivity binary file: \n"; subToSub->print();
 #endif
 
     // build global to cluster subdomain map
@@ -4471,8 +4474,8 @@ void GeoSource::readGlobalBinaryData()
     fp2.read(&nGlobElems, 1);
     domain->setNumElements(nGlobElems);
 #ifdef SOWER_DEBUG
-    cerr << "*** global number of nodes = " << nGlobNodes << endl;
-    cerr << "*** global number of elements = " << nGlobElems << endl;
+    std::cerr << "*** global number of nodes = " << nGlobNodes << std::endl;
+    std::cerr << "*** global number of elements = " << nGlobElems << std::endl;
 #endif
     if(numClusters == 1) {
       numClusNodes = nGlobNodes;
@@ -4488,7 +4491,7 @@ void GeoSource::readGlobalBinaryData()
     fp2.read(&nGlobSurfs,1);
     domain->setNumSurfs(nGlobSurfs);
 #ifdef SOWER_DEBUG
-    cerr << "*** global number of surfaces = " << nGlobSurfs << endl;
+    std::cerr << "*** global number of surfaces = " << nGlobSurfs << std::endl;
 #endif
 /*
     if(nGlobSurfs > 0) {
@@ -4553,19 +4556,19 @@ void GeoSource::setSurfaceGroup(int sn, int id)  {
 
 void GeoSource::printGroups()
 {
-  for(map<int, Group >::iterator it = group.begin(); it != group.end(); ++it) {
-    cerr << "group_id = " << it->first+1 << endl;
-    cerr << "  number of attributes in this group =  " << it->second.attributes.size() << endl;
-    cerr << "  number of random properties in this group =  " << it->second.randomProperties.size() << endl;
-    cerr << "  attributes: ";
-    for(int i = 0; i < int(it->second.attributes.size()); ++i) cerr << it->second.attributes[i]+1 << " ";
-    cerr << "\n  random properties: ";
+  for(std::map<int, Group >::iterator it = group.begin(); it != group.end(); ++it) {
+    std::cerr << "group_id = " << it->first+1 << std::endl;
+    std::cerr << "  number of attributes in this group =  " << it->second.attributes.size() << std::endl;
+    std::cerr << "  number of random properties in this group =  " << it->second.randomProperties.size() << std::endl;
+    std::cerr << "  attributes: ";
+    for(int i = 0; i < int(it->second.attributes.size()); ++i) std::cerr << it->second.attributes[i]+1 << " ";
+    std::cerr << "\n  random properties: ";
     for(int i = 0; i < int(it->second.randomProperties.size()); ++i) {
-      cerr << "rprop = " << it->second.randomProperties[i].rprop
+      std::cerr << "rprop = " << it->second.randomProperties[i].rprop
            << ", mean = " << it->second.randomProperties[i].mean
-           << ", std_dev = " << it->second.randomProperties[i].std_dev << endl;
+           << ", std_dev = " << it->second.randomProperties[i].std_dev << std::endl;
      }
-    cerr << endl;
+    std::cerr << std::endl;
   }
 }
 

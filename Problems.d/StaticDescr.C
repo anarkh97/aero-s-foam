@@ -46,11 +46,9 @@ SingleDomainStatic<T, VectorType, SolverType>::projector_prep(Rbm *rbms)
    for(int n=0; n<ndof; ++n) Rmem[n] = 1.;
  }
 
- //ADDED FOR SLOSHING PROBLEM, EC, 20070723
  int useSlzemFilter = domain->solInfo().slzemFilterFlag;
  if(useSlzemFilter) {
    filePrint(stderr," ... Building the SLZEM Projector    ...\n");
-   filePrint(stderr," ... THIS PART OF THE CODE HAS NOT BEEN DEBUGGED!!!    ...\n");
  }
 
  if (useSlzemFilter) {
@@ -299,11 +297,9 @@ SingleDomainStatic<T, VectorType, SolverType>::preProcess()
    projector_prep(rigidBodyModes);
  }
 
- //ADDED FOR SLOSHING PROBLEM, EC, 20070723
  int useSlzemFilter = domain->solInfo().slzemFilterFlag;
  if(useSlzemFilter) {
    std::cout << " ... SLZEMfilter Requested           ..." << std::endl;
-   std::cout << " ... THIS PART OF THE CODE HAS NOT BEEN DEBUGGED!! ..." << std::endl;
    rigidBodyModes = domain->constructSlzem();
    projector_prep(rigidBodyModes);
  }

@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
+#include <iostream>
 #include <Utils.d/dbg_alloca.h>
 #include <Element.d/Sommerfeld.d/SommerElement.h>
 #include <Driver.d/Domain.h>
@@ -1003,7 +1004,7 @@ SommerElement::massMatrix(CoordSet &cs,double *d,int cmflg)
   //This function calls subfunctions and assembles the matrix using the submatrixes produced.
   double numD = dom->solInfo().ATDARBFlag;
   if (numD==1.5) {
-    cerr << "SommerElement::massMatrix, ATDARBFlag>1 does not work" << endl;
+    std::cerr << "SommerElement::massMatrix, ATDARBFlag>1 does not work" << std::endl;
 /*
     FullSquareMatrix ret(2*numNodes(),d);
     ret.zero();
@@ -1042,7 +1043,7 @@ FullSquareMatrix SommerElement::stiffness(CoordSet &cs, double *Ks, int flg)
   double numD = dom->solInfo().ATDARBFlag;
   int nNo = numNodes();
   if (numD==1.5) {
-    cerr << "SommerElement::stiffness, ATDARBFlag>1 does not work" << endl;
+    std::cerr << "SommerElement::stiffness, ATDARBFlag>1 does not work" << std::endl;
 /*
     double ss = el->getProperty()->ss;
     int i, j;
@@ -1130,7 +1131,7 @@ FullSquareMatrix SommerElement::dampingMatrix(CoordSet &cs, double *Cs, int flg)
   double ss = el->getProperty()->ss;
   int nNo = numNodes();
   if (numD==1.5) {
-    cerr << "SommerElement::dampingMatrix ATDARBFlag>1 has not been implemented" << endl;
+    std::cerr << "SommerElement::dampingMatrix ATDARBFlag>1 has not been implemented" << std::endl;
 /*
     // this function is commented because it diverges ... 
     int i, j;

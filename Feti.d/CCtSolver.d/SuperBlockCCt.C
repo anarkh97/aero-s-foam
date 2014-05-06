@@ -1,7 +1,5 @@
-#include<set>
-#include<list>
-using std::set;
-using std::list;
+#include <set>
+#include <list>
 
 extern Domain * domain;
 
@@ -428,7 +426,7 @@ SuperBlockCCtSolver<Scalar>::createSuperBlockCCt(Connectivity *mpcToSub)
   nExtMpcBlocksOnMyCPU = BlockIdConnectedToMyCPU.size();
   if(myCPUExtBlockIdArray) { delete [] myCPUExtBlockIdArray; myCPUExtBlockIdArray = 0; }
   myCPUExtBlockIdArray = new int[nExtMpcBlocksOnMyCPU];
-  list<int>::iterator Ilist = BlockIdConnectedToMyCPU.begin();
+  std::list<int>::iterator Ilist = BlockIdConnectedToMyCPU.begin();
   i = 0;
   while(Ilist!=BlockIdConnectedToMyCPU.end()) { myCPUExtBlockIdArray[i++] = *Ilist++; }
 #else

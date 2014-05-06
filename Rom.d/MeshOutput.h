@@ -85,7 +85,7 @@ operator<<(std::ostream &out, const InputFileSection<InputIterator, TagType> &so
       out << InputFileSectionHelper<ValueType, TagType>::transformation(*it) << "\n";
     }
     catch(std::exception& e) {
-      std::cerr << "caught exception: " << e.what() << endl;
+      std::cerr << "caught exception: " << e.what() << std::endl;
     }
   }
 

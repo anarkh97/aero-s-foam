@@ -2,6 +2,7 @@
 #define _DISTRVECTOR_H_
 
 #include <cstdio>
+#include <iostream>
 #include <Driver.d/Communicator.h>
 #include <Utils.d/MyComplex.h>
 
@@ -109,13 +110,13 @@ class GenDistrVector {
     template <class T>
       GenDistrVector &operator-=(const Expr<T,Scalar> &);
 
-    void updateBlock(int ii, Scalar c, GenDistrVector<Scalar> &) {cerr << "GenDistrVector::updateBlock not implemented" << endl;}
-    void copyBlock(GenDistrVector<Scalar> &, int ii) {cerr << "GenDistrVector::copyBlock not implemented" << endl;}
+    void updateBlock(int ii, Scalar c, GenDistrVector<Scalar> &) {std::cerr << "GenDistrVector::updateBlock not implemented" << std::endl;}
+    void copyBlock(GenDistrVector<Scalar> &, int ii) {std::cerr << "GenDistrVector::copyBlock not implemented" << std::endl;}
     void addBlockSqr(int ii, Scalar c, GenDistrVector<Scalar> &);
     void computeSqrt();
-    void computeRealz(int ii, Scalar c, GenDistrVector<Scalar> &) {cerr << "GenDistrVector::computeRealz not implemented" << endl;}
+    void computeRealz(int ii, Scalar c, GenDistrVector<Scalar> &) {std::cerr << "GenDistrVector::computeRealz not implemented" << std::endl;}
     void setn(int _n) {};      
-    GenDistrVector<Scalar>&  getBlock(int iblock) { cerr << "GenDistrVector::getBlock not implemented" << endl; 
+    GenDistrVector<Scalar>&  getBlock(int iblock) { std::cerr << "GenDistrVector::getBlock not implemented" << std::endl; 
                                                     return *(new GenDistrVector<Scalar>()); }
 
     void negate();
@@ -146,7 +147,7 @@ class GenDistrVector {
        return x;
     }
 
-   void scaleBlock(int k, Scalar s) { cerr << "Error : GenDistrVector::scaleBlock not implemented " << endl; } 
+   void scaleBlock(int k, Scalar s) { std::cerr << "Error : GenDistrVector::scaleBlock not implemented " << std::endl; } 
 
    typedef const DistrInfo &InfoType;
    const DistrInfo &info() const { return *inf; }

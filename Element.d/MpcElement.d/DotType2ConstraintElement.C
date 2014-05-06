@@ -1,6 +1,7 @@
 #ifdef USE_EIGEN3
 #include <Element.d/MpcElement.d/DotType2ConstraintElement.h>
 #include <Corotational.d/GeomState.h>
+#include <iostream>
 
 const DofSet DotType2ConstraintElement::NODALDOFS[2] = { DofSet::XYZdisp | DofSet::XYZrot, DofSet::XYZdisp };
 
@@ -50,7 +51,7 @@ void
 DotType2ConstraintElement::buildFrame(CoordSet& cs)
 {
   if(!C0) {
-    cerr << " *** ERROR: element frame is not defined for DotType2 constraint function element\n";
+    std::cerr << " *** ERROR: element frame is not defined for DotType2 constraint function element\n";
     exit(-1);
   }
 

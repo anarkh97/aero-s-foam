@@ -1,10 +1,7 @@
 #ifndef _FVECTOR_H_
 #define _FVECTOR_H_
 
-#ifdef USE_IOSTREAM
 #include <iostream>
-using namespace std;
-#endif
 
 //------------------------------------------------------------------------------
 #include <Math.d/Expr.h>
@@ -107,17 +104,15 @@ public:
     return res;
   }
 
- void setNewData(Scalar *d) { if(locAlloc && v) delete [] v; v=d; };
+  void setNewData(Scalar *d) { if(locAlloc && v) delete [] v; v=d; };
 
-#ifdef USE_IOSTREAM
   void print(char *msg = "") const {
-    cerr.flush();
-    if (msg) cerr << msg << endl;
+    std::cerr.flush();
+    if (msg) std::cerr << msg << std::endl;
     for (int i=0; i<len; ++i) 
-      cerr << i << ": "<< v[i] << endl; 
-    cerr.flush();
+      std::cerr << i << ": "<< v[i] << std::endl; 
+    std::cerr.flush();
   }
-#endif
 
 };
 
@@ -654,18 +649,16 @@ public:
     locAlloc = true;
   }
 
-#ifdef USE_IOSTREAM
   void print(char *msg = "") { 
-    if (msg) cerr << msg << endl;
+    if (msg) std::cerr << msg << std::endl;
     for (int i=0; i<len; ++i) {
-      cerr << i << ": ";
+      std::cerr << i << ": ";
       for (int j=0; j<dim; ++j) 
-	cerr << v[i][j] << " ";
-      cerr << endl; 
-      cerr.flush();
+	std::cerr << v[i][j] << " ";
+      std::cerr << std::endl; 
+      std::cerr.flush();
     }
   }
-#endif
 
 };
 

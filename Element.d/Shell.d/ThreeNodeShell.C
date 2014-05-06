@@ -899,11 +899,11 @@ ThreeNodeShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weigh
 {
 #ifdef USE_EIGEN3
    if(strInd != 6) {
-     cerr << " ... Error: strInd must be 6 in TwoNodeTruss::getVonMisesDisplacementSensitivity\n";
+     std::cerr << " ... Error: strInd must be 6 in TwoNodeTruss::getVonMisesDisplacementSensitivity\n";
      exit(-1);
    }
    if(dStdThick.size() !=3) {
-     cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
+     std::cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
      exit(-1);
    }
   weight = 1;
@@ -937,7 +937,7 @@ ThreeNodeShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weigh
   // Jacobian evaluation
   Eigen::Matrix<double,3,1> dStressdThic;
   Eigen::Matrix<double,7,3> stress;
-  if(verboseFlag) cout << "senMethod is " << senMethod << endl;
+  if(verboseFlag) std::cout << "senMethod is " << senMethod << std::endl;
  
   if(avgnum == 0 || avgnum == 1) { // NODALFULL or ELEMENTAL
     if(senMethod == 0) { // analytic
@@ -966,7 +966,7 @@ ThreeNodeShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weigh
       Eigen::Matrix<double,1,1> qp, qm;
       double h(1e-6);
       Eigen::Matrix<double,3,1> S = foo(q,0);
-//      cout << "displacement = " << q.transpose() << endl;
+//      std::cout << "displacement = " << q.transpose() << std::endl;
       qp = q;             qm = q;
       qp[0] += h;         qm[0] -= h;
 //        if(q[i] == 0) { qp[i] = h;   qm[i] = -h; }
@@ -976,9 +976,9 @@ ThreeNodeShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weigh
       Eigen::Matrix<double,3,1> fd = (Sp - Sm)/(2*h);
 //        if(i==2) {
 //          Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " "); 
-//          cout << Sp.transpose().format(HeavyFmt) << endl;
-//          cout << Sm.transpose().format(HeavyFmt) << endl;
-//          cout << fd.transpose().format(HeavyFmt) << endl;
+//          std::cout << Sp.transpose().format(HeavyFmt) << std::endl;
+//          std::cout << Sm.transpose().format(HeavyFmt) << std::endl;
+//          std::cout << fd.transpose().format(HeavyFmt) << std::endl;
 //        }
       for(int j=0; j<3; ++j) {
         dStressdThic(j,0) = fd[j];
@@ -988,7 +988,7 @@ ThreeNodeShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weigh
     }
   } else dStdThick.zero(); // NODALPARTIAL or GAUSS or any others
 #else
-  cerr << " ... Error! ThreeNodeShell::getVonMisesThicknessSensitivity needs Eigen library\n";
+  std::cerr << " ... Error! ThreeNodeShell::getVonMisesThicknessSensitivity needs Eigen library\n";
   exit(-1);
 #endif
 }
@@ -999,15 +999,15 @@ ThreeNodeShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, V
 {
 #ifdef USE_EIGEN3
    if(strInd != 6) {
-     cerr << " ... Error: strInd must be 6 in TwoNodeTruss::getVonMisesDisplacementSensitivity\n";
+     std::cerr << " ... Error: strInd must be 6 in TwoNodeTruss::getVonMisesDisplacementSensitivity\n";
      exit(-1);
    }
    if(dStdDisp.numRow() != 3 || dStdDisp.numCol() !=18) {
-     cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
+     std::cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
      exit(-1);
    }
    if(ndTemps != 0) {
-     cerr << " ... Error: thermal stress should not be passed in sensitivity computation\n";
+     std::cerr << " ... Error: thermal stress should not be passed in sensitivity computation\n";
      exit(-1);
    }
   weight = 1;
@@ -1038,7 +1038,7 @@ ThreeNodeShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, V
   // Jacobian evaluation
   Eigen::Matrix<double,3,18> dStressdDisp;
   Eigen::Matrix<double,7,3> stress;
-  if(verboseFlag) cout << "senMethod is " << senMethod << endl;
+  if(verboseFlag) std::cout << "senMethod is " << senMethod << std::endl;
  
   if(avgnum == 0 || avgnum == 1) { // NODALFULL or ELEMENTAL
     if(senMethod == 0) { // analytic
@@ -1067,7 +1067,7 @@ ThreeNodeShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, V
       Eigen::Matrix<double,18,1> qp, qm;
       double h(1e-6);
       Eigen::Matrix<double,3,1> S = foo(q,0);
-//      cout << "displacement = " << q.transpose() << endl;
+//      std::cout << "displacement = " << q.transpose() << std::endl;
       for(int i=0; i<18; ++i) {
         qp = q;             qm = q;
         qp[i] += h;         qm[i] -= h;
@@ -1078,9 +1078,9 @@ ThreeNodeShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, V
         Eigen::Matrix<double,3,1> fd = (Sp - Sm)/(2*h);
 //        if(i==2) {
 //          Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " "); 
-//          cout << Sp.transpose().format(HeavyFmt) << endl;
-//          cout << Sm.transpose().format(HeavyFmt) << endl;
-//          cout << fd.transpose().format(HeavyFmt) << endl;
+//          std::cout << Sp.transpose().format(HeavyFmt) << std::endl;
+//          std::cout << Sm.transpose().format(HeavyFmt) << std::endl;
+//          std::cout << fd.transpose().format(HeavyFmt) << std::endl;
 //        }
         for(int j=0; j<3; ++j) {
           dStressdDisp(j,i) = fd[j];
@@ -1091,7 +1091,7 @@ ThreeNodeShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, V
     }
   } else dStdDisp.zero(); // NODALPARTIAL or GAUSS or any others
 #else
-  cerr << " ... Error! ThreeNodeShell::getVonMisesDisplacementSensitivity needs Eigen library.\n";
+  std::cerr << " ... Error! ThreeNodeShell::getVonMisesDisplacementSensitivity needs Eigen library.\n";
   exit(-1);
 #endif
 }

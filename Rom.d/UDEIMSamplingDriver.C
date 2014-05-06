@@ -30,6 +30,7 @@
 #include <numeric>
 #include <iostream>
 #include <iomanip>
+#include <fstream>
 
 namespace Rom {
 
@@ -87,7 +88,7 @@ UDEIMSamplingDriver::computeErrorBound(std::vector<int> &umaskIndices){
   VecBasis aForceSnapshots;
   readInBasis(aForceSnapshots, BasisId::STATE, BasisId::SNAPSHOTS,0);
 
-  ifstream uForceFile;
+  std::ifstream uForceFile;
   FileNameInfo fileInfo;
   std::string fileName = BasisFileId(fileInfo, BasisId::VELOCITY, BasisId::SNAPSHOTS);
   uForceFile.open(fileName.c_str());
@@ -218,7 +219,7 @@ UDEIMSamplingDriver::writeUnassembledForceSnap(VecBasis &unassembledForceBasis)
   Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > unassembledMap(unassembledForceBasis.data(),unassembledForceBasis.size(),unassembledForceBasis.numVectors());
 
   //output unassembled force snapshots for use in error bound computation
-  ofstream snpFile;
+  std::ofstream snpFile;
   FileNameInfo fileInfo;
   std::string snpFileName = BasisFileId(fileInfo, BasisId::FORCE, BasisId::SNAPSHOTS);
   snpFileName.erase(snpFileName.end()-3,snpFileName.end());
@@ -235,7 +236,7 @@ UDEIMSamplingDriver::writeUnassembledForceSnap(VecBasis &unassembledForceBasis)
 
   OrthoForceSnap(unassembledForceBasis,SVs); //orthogonalize unassembled vectors
   //output orthogonalized force snapshots for use in UDEIM basis
-  ofstream svdFile;
+  std::ofstream svdFile;
   std::string svdFileName = BasisFileId(fileInfo, BasisId::FORCE, BasisId::SNAPSHOTS);
   svdFile.open(svdFileName.c_str());
 
@@ -273,7 +274,7 @@ UDEIMSamplingDriver::assembleBasisVectors(VecBasis &assembledForceBasis, VecBasi
 
 void
 UDEIMSamplingDriver::readUnassembledForceSnap(VecBasis &unassembledForceBasis, std::vector<double> &SVs){
-  ifstream svdFile;
+  std::ifstream svdFile;
   FileNameInfo fileInfo;
   std::string svdFileName = BasisFileId(fileInfo, BasisId::FORCE, BasisId::SNAPSHOTS);
   svdFile.open(svdFileName.c_str());

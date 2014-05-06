@@ -109,7 +109,6 @@ Rbm::Rbm(DofSetArray *_dsa, ConstrainedDSA *_c_dsa)
     allRbm[0][j] = 1.;
   }
 
-  //ADDED FOR SLOSHING PROBLEM, EC, 20070723
   if (domain->solInfo().sloshing)  {
     Vector v1(numUncon,0.0);
     grbm = new Vector[ngrbm];
@@ -282,7 +281,7 @@ Rbm::computeRbms(CoordSet& cs, double *centroid, int *cornerNodes,
   for(j=0; j<6; ++j)
     if(rows[j] > -1) c_rows[ncol++] = rows[j];
   int nrow = dsa->size() - c_dsa->size();  // number of constrained dofs
-  if(ncol == 0) cerr << " *** WARNING: found no active dimensions in Rbm::computeRbms(...) \n";
+  if(ncol == 0) std::cerr << " *** WARNING: found no active dimensions in Rbm::computeRbms(...) \n";
   
   // intialize R and Z
   R.setNewSize(c_dsa->size(), ncol, 0.0);
@@ -616,7 +615,6 @@ Rbm::computeRbms(CoordSet& cs)
 // ... MATRIX-MATRIX MULTIPLY [GRBM] = [R][V]:
 
    FullM result = Rstar%Vstar;   // result is Rstar
-   //cerr << "result = \n"; result.print();
 
 // ... CONFORM RIGID BODY MODES WITH RESPECT TO K MATRIX
 

@@ -639,17 +639,17 @@ Domain::constructHzem(bool printFlag)
 {
   Rbm *rbm = new Rbm(dsa, c_dsa);
   if(printFlag)
-    cerr << " ... GRBM algorithm detected " << rbm->numRBM() << " rigid body or zero energy modes ...\n";
+    std::cerr << " ... GRBM algorithm detected " << rbm->numRBM() << " rigid body or zero energy modes ...\n";
   return rbm;
 }
 
-// Function to construct zero energy modes, ADDED FOR SLOSHING PROBLEM, EC, 20070723
+// Function to construct zero energy modes
 Rbm *
 Domain::constructSlzem(bool printFlag)
 {
   Rbm *rbm = new Rbm(dsa, c_dsa);
   if(printFlag)
-    cerr << " ... GRBM algorithm detected " << rbm->numRBM() << " rigid body or zero energy modes ...\n";
+    std::cerr << " ... GRBM algorithm detected " << rbm->numRBM() << " rigid body or zero energy modes ...\n";
   return rbm;
 }
 
@@ -671,7 +671,7 @@ Domain::constructRbm(bool printFlag)
   else 
     rbm = new Rbm(dsa, c_dsa, nodes, sinfo.tolsvd, renumb);
   if(printFlag)
-    cerr << " ... GRBM algorithm detected " << rbm->numRBM() << " rigid body or zero energy modes ...\n";
+    std::cerr << " ... GRBM algorithm detected " << rbm->numRBM() << " rigid body or zero energy modes ...\n";
   return rbm;
 }
 
@@ -867,8 +867,8 @@ void Domain::writeTopFileElementSets(ControlInfo *cinfo, int * nodeTable, int* n
  int inode, iele;
  int nEls = packedEset.last();
 
- list<int> phantoms;
- list<int> constraints;
+ std::list<int> phantoms;
+ std::list<int> constraints;
 
  for(iele=0; iele<nEls; ++iele) {
    if(!packedEset[iele]->isPhantomElement() && !packedEset[iele]->isConstraintElement()) {
@@ -893,7 +893,7 @@ void Domain::writeTopFileElementSets(ControlInfo *cinfo, int * nodeTable, int* n
      }
  }
 
- //std::cerr << " ... " << phantoms.size() << " phantoms " << constraints.size() << " constraints elements. " << endl;
+ //std::cerr << " ... " << phantoms.size() << " phantoms " << constraints.size() << " constraints elements. " << std::endl;
 
  //TG output dimasses in a separate element set if there are any
  // as of now (7/5/06) a dimass will be represented by a bar element in xpost between the node the
@@ -919,7 +919,7 @@ void Domain::writeTopFileElementSets(ControlInfo *cinfo, int * nodeTable, int* n
 	   }
 	 else
 	   {
-	     cout << " Warning : virtual dimass" << endl;
+	     std::cout << " Warning : virtual dimass" << std::endl;
              curMass = curMass->next;
 	   }
        }
@@ -986,7 +986,7 @@ void Domain::writeTopFileElementSets(ControlInfo *cinfo, int * nodeTable, int* n
      int eletype;
      if(nVertices == 3) eletype = 104;
      else if(nVertices == 4) eletype = 2;
-     else { cerr << "don't know xpost eletype for surface " << SurfEntities[iSurf]->GetId() << " element " << iele << " nVertices = " << nVertices << endl; continue; }
+     else { std::cerr << "don't know xpost eletype for surface " << SurfEntities[iSurf]->GetId() << " element " << iele << " nVertices = " << nVertices << std::endl; continue; }
      int eleID = (SurfEntities[iSurf]->GetIsShellFace() && tdenforceFlag()) ? iele/2+1 : iele+1;
      fprintf(cinfo->checkfileptr,"%6d  %4d ",eleID,eletype);
      for(inode=0; inode<nVertices; ++inode) {
@@ -1260,10 +1260,10 @@ Domain::makeTopFile(int topFlag)
    }
 
    int n;
-   map<int, Attrib> &attrib = geoSource->getAttributes();
+   std::map<int, Attrib> &attrib = geoSource->getAttributes();
    int na = geoSource->getNumAttributes(); // this is actually the number of elements !!
    SPropContainer &sProps = geoSource->getStructProps();
-   for(map<int, StructProp>::iterator it = sProps.begin(); it != sProps.end(); ++it) {
+   for(std::map<int, StructProp>::iterator it = sProps.begin(); it != sProps.end(); ++it) {
        n = it->first;
        bool first = true; // PJSA to deal with case of empty EleSet
        for(i=0; i<na; ++i) {
@@ -1424,12 +1424,12 @@ Domain::setsizeSfemStress(int fileNumber)
    Connectivity *elemToNode = new Connectivity(domain->getEset());
    int numele = geoSource->getNumAttributes();  // number of elements; another option domain->numElements();
    for(int iele=0; iele<numele; ++iele)   {
-//     cerr << "number of nodes in this element  = " << elemToNode->num(iele) << endl;
+//     std::cerr << "number of nodes in this element  = " << elemToNode->num(iele) << std::endl;
      sizeSfemStress = sizeSfemStress + elemToNode->num(iele); // add number of nodes for each element
    }
   }
   else {
-   cerr << "avgnum = " << avgnum << " not implemented in Domain::setsizeSfemStress()" << endl;
+   std::cerr << "avgnum = " << avgnum << " not implemented in Domain::setsizeSfemStress()" << std::endl;
    sizeSfemStress = 0;
   }
 }
@@ -1441,9 +1441,8 @@ Domain::getSfemStress(int fileNumber, double* dummystress)
   int avgnum = oinfo[fileNumber].averageFlg;
   if(avgnum == 1)  return stress->data();
   else if(avgnum == 0) return stressAllElems->data();
-  else {cerr << "avgnum = " << avgnum << " not implemented in Domain::getSfemStress()" << endl; return 0;}
+  else {std::cerr << "avgnum = " << avgnum << " not implemented in Domain::getSfemStress()" << std::endl; return 0;}
 }
-
 
 void
 Domain::updateSfemStress(double* str, int fileNumber)
@@ -1451,8 +1450,8 @@ Domain::updateSfemStress(double* str, int fileNumber)
   OutputInfo *oinfo = geoSource->getOutputInfo();
   int avgnum = oinfo[fileNumber].averageFlg;
   if(avgnum == 1)  for (int i=0;i<stress->size();++i) (*stress)[i] = str[i];
-  else if(avgnum == 0) for (int i=0;i<stressAllElems->size();++i) (*stressAllElems) = str[i]; // YYY DG
-  else {cerr << "avgnum = " << avgnum << " not implemented in Domain::updateSfemStress()" << endl;}
+  else if(avgnum == 0) for (int i=0;i<stressAllElems->size();++i) (*stressAllElems) = str[i];
+  else {std::cerr << "avgnum = " << avgnum << " not implemented in Domain::updateSfemStress()" << std::endl;}
 }
 
 void
@@ -2925,15 +2924,15 @@ Domain::makePreSensitivities(AllSensitivities<double> &allSens, double *bcx)
      double weight(0);
      int altitude_direction = 2;
      GenVector<double> weightDerivative(numele);  
-     map<int, Group> &group = geoSource->group;
-     map<int, AttributeToElement> &atoe = geoSource->atoe;
+     std::map<int, Group> &group = geoSource->group;
+     std::map<int, AttributeToElement> &atoe = geoSource->atoe;
      if(senInfo[sindex].numParam != group.size()) {
-       cerr << " *** ERROR: number of parameters is not equal to the size of group \n"; 
+       std::cerr << " *** ERROR: number of parameters is not equal to the size of group \n"; 
        exit(-1);
      }
      allSens.weightWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, 1>(senInfo[sindex].numParam);
      allSens.weightWRTthick->setZero();
-     map<int, Attrib> &attributes = geoSource->getAttributes();
+     std::map<int, Attrib> &attributes = geoSource->getAttributes();
      for(int iele = 0; iele < numele; ++iele) {
        StructProp *prop = packedEset[iele]->getProperty();
        if(prop == 0) continue; // phantom element
@@ -2953,7 +2952,7 @@ Domain::makePreSensitivities(AllSensitivities<double> &allSens, double *bcx)
      if(verboseFlag) {
        filePrint(stderr," *** WEIGHT : %e\n", weight);
        filePrint(stderr,"printing weight derivative\n");
-       cout << *allSens.weightWRTthick << endl;
+       std::cout << *allSens.weightWRTthick << std::endl;
      }
      allSens.weight = weight;
 
@@ -2978,10 +2977,10 @@ Domain::makePostSensitivities(AllSensitivities<double> &allSens, GenVector<doubl
    {
      // ... COMPUTE SENSITIVITY OF STIFFNESS MATRIX WRT THICKNESS
      allSens.stiffnessWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[senInfo[sindex].numParam];
-     map<int, Group> &group = geoSource->group;
-     map<int, AttributeToElement> &atoe = geoSource->atoe;
+     std::map<int, Group> &group = geoSource->group;
+     std::map<int, AttributeToElement> &atoe = geoSource->atoe;
      if(senInfo[sindex].numParam != group.size()) {
-       cerr << " *** ERROR: number of parameters is not equal to the size of group \n"; 
+       std::cerr << " *** ERROR: number of parameters is not equal to the size of group \n"; 
        exit(-1);
      }
      for(int g=0; g<group.size(); ++g) {
@@ -3026,10 +3025,10 @@ Domain::makePostSensitivities(AllSensitivities<double> &allSens, GenVector<doubl
    case SensitivityInfo::LinearStaticWRTthickness:
    {
      allSens.linearstaticWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[senInfo[sindex].numParam];
-     map<int, Group> &group = geoSource->group;
-     map<int, AttributeToElement> &atoe = geoSource->atoe;
+     std::map<int, Group> &group = geoSource->group;
+     std::map<int, AttributeToElement> &atoe = geoSource->atoe;
      if(senInfo[sindex].numParam != group.size()) {
-       cerr << " *** ERROR: number of parameters is not equal to the size of group \n";
+       std::cerr << " *** ERROR: number of parameters is not equal to the size of group \n";
        exit(-1);
      }
      for(int g=0; g<group.size(); ++g) {
@@ -3039,17 +3038,17 @@ Domain::makePostSensitivities(AllSensitivities<double> &allSens, GenVector<doubl
      for(int iparam = 0; iparam < senInfo[sindex].numParam; ++iparam) {
        Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > disp(sol.data(),numUncon(),1);
        *allSens.linearstaticWRTthick[iparam] = (*allSens.stiffnessWRTthick[iparam]) * disp;
-       if(verboseFlag) cerr << "printing linearstaticWRTthick[" << iparam << "]\n" << *allSens.linearstaticWRTthick[iparam] << endl;
+       if(verboseFlag) std::cerr << "printing linearstaticWRTthick[" << iparam << "]\n" << *allSens.linearstaticWRTthick[iparam] << std::endl;
      }
      break;
    } 
    case SensitivityInfo::StressVMWRTthickness: 
    {
      // ... COMPUTE DERIVATIVE OF VON MISES STRESS WITH RESPECT TO THICKNESS
-     map<int, Group> &group = geoSource->group;
-     map<int, AttributeToElement> &atoe = geoSource->atoe;
+     std::map<int, Group> &group = geoSource->group;
+     std::map<int, AttributeToElement> &atoe = geoSource->atoe;
      if(senInfo[sindex].numParam != group.size()) {
-       cerr << " *** ERROR: number of parameters is not equal to the size of group \n"; 
+       std::cerr << " *** ERROR: number of parameters is not equal to the size of group \n"; 
        exit(-1);
      }
      allSens.vonMisesWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numNodes(), senInfo[sindex].numParam);
@@ -3176,15 +3175,15 @@ Domain::makePreSensitivities(AllSensitivities<DComplex> &allSens, DComplex *bcx)
      double weight(0);
      int altitude_direction = 2;
      GenVector<DComplex> weightDerivative(numele);  
-     map<int, Group> &group = geoSource->group;
-     map<int, AttributeToElement> &atoe = geoSource->atoe;
+     std::map<int, Group> &group = geoSource->group;
+     std::map<int, AttributeToElement> &atoe = geoSource->atoe;
      if(senInfo[sindex].numParam != group.size()) {
-       cerr << " *** ERROR: number of parameters is not equal to the size of group \n"; 
+       std::cerr << " *** ERROR: number of parameters is not equal to the size of group \n"; 
        exit(-1);
      }
      allSens.weightWRTthick = new Eigen::Matrix<DComplex, Eigen::Dynamic, 1>(senInfo[sindex].numParam);
      allSens.weightWRTthick->setZero();
-     map<int, Attrib> &attributes = geoSource->getAttributes();
+     std::map<int, Attrib> &attributes = geoSource->getAttributes();
      for(int iele = 0; iele < numele; ++iele) {
        StructProp *prop = packedEset[iele]->getProperty();
        if(prop == 0) continue; // phantom element
@@ -3204,7 +3203,7 @@ Domain::makePreSensitivities(AllSensitivities<DComplex> &allSens, DComplex *bcx)
      if(verboseFlag) {
        filePrint(stderr," *** WEIGHT : %e\n", weight);
        filePrint(stderr,"printing weight derivative\n");
-       cout << *allSens.weightWRTthick << endl;
+       std::cout << *allSens.weightWRTthick << std::endl;
      }
      break;
    }

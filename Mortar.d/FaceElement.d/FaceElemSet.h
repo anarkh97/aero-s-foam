@@ -11,13 +11,10 @@
 #define _FACEELEMSET_H_
 
 // STL
+#include <utility>
 #include <map>
-#include <list>
-using std::map;
-using std::list;
-using std::pair;
-typedef pair<int, pair<double, double> >  locoord;
-//         elem id      xi1     xi2
+typedef std::pair<int, std::pair<double, double> > locoord;
+//                elem id        xi1     xi2
 
 // FEM headers
 #include <Utils.d/BlockAlloc.h>
@@ -56,7 +53,7 @@ class FaceElemSet {
 
     void deleteElems()  { if(elem){ delete [] elem; elem = 0; } emax = 0; nPhantoms = 0; }
 
-    map<int,locoord> computeNodeLocalCoords(int*, int);
+    std::map<int,locoord> computeNodeLocalCoords(int*, int);
 
 
 

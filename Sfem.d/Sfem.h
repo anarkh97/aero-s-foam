@@ -3,7 +3,7 @@
 
 #include <iostream>
 #include <fstream>
-#include <Element.d/Element.h> // YYY DG Actually this file is not needed, but if I remove this, then gives compilation error in ifstream
+
 class Sfem  
 {
 protected:
@@ -40,7 +40,7 @@ public:
   double* getxi() {return xi;}
   double* getpsi() {return psi;}
   double* getPsiSqr() {return psisqr;}
-  ifstream readfile;
+  std::ifstream readfile;
   bool Gauss;              
   bool isreduced;
   int* getnonzindex() {return nonzindex;}

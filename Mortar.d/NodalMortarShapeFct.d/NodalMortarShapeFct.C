@@ -343,37 +343,37 @@ NodalMortarShapeFct::print(int* SlaveLlToGlNodeMap, int* MasterLlToGlNodeMap)
      fprintf(stderr,"-> linked slave nodes: \n");
      for(int i=0; i<int(LinkedSlaveNodes.size()); i++) {
        node = (SlaveLlToGlNodeMap) ? SlaveLlToGlNodeMap[LinkedSlaveNodes[i]] : LinkedSlaveNodes[i];
-       cerr << node << ' ';
+       std::cerr << node << ' ';
      }
-     cerr << endl;
+     std::cerr << std::endl;
    }
    if(!LinkedMasterNodes.empty()) {
      fprintf(stderr,"-> linked master nodes: \n");
      for(int i=0; i<int(LinkedMasterNodes.size()); i++) {
        node = (MasterLlToGlNodeMap) ? MasterLlToGlNodeMap[LinkedMasterNodes[i]] : LinkedMasterNodes[i];
-       cerr << node << ' ';
+       std::cerr << node << ' ';
      }
-     cerr << endl;
+     std::cerr << std::endl;
    }
    if(!SlaveMPCCoeffs.empty()) {
      fprintf(stderr,"-> slave mpc coeffs: \n");
      double sum = 0.0;
      for(int i=0; i<int(LinkedSlaveNodes.size()); i++) {
        node = (SlaveLlToGlNodeMap) ? SlaveLlToGlNodeMap[LinkedSlaveNodes[i]] : LinkedSlaveNodes[i];
-       cerr <<" slave node "<< node <<", coeff = "<<SlaveMPCCoeffs[i]<<endl;
+       std::cerr << " slave node " << node << ", coeff = " << SlaveMPCCoeffs[i] << std::endl;
        sum += SlaveMPCCoeffs[i];
      }
-     cerr <<" sum slave coeffs = "<< sum << endl;
+     std::cerr <<" sum slave coeffs = "<< sum << std::endl;
    }
    if(!MasterMPCCoeffs.empty()) {
      fprintf(stderr,"-> master mpc coeffs: \n");
      double sum = 0.0;
      for(int i=0; i<int(LinkedMasterNodes.size()); i++) {
        node = (MasterLlToGlNodeMap) ? MasterLlToGlNodeMap[LinkedMasterNodes[i]] : LinkedMasterNodes[i];
-       cerr <<" master node "<< node <<", coeff = "<<MasterMPCCoeffs[i]<<endl;
+       std::cerr << " master node " << node << ", coeff = " << MasterMPCCoeffs[i] << std::endl;
        sum += MasterMPCCoeffs[i];
      }    
-     cerr <<" sum master coeffs = "<< sum << endl;
+     std::cerr << " sum master coeffs = "<< sum << std::endl;
    }
    fprintf(stderr,"---------------------------------------\n");
 }

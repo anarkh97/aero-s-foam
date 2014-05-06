@@ -1,8 +1,9 @@
 #include <Timers.d/GetTime.h>
 #include <Utils.d/MyComplex.h>
-#include <cstdio>
 #include <Utils.d/print_debug.h>
 #include <Sfem.d/Sfem.h>
+#include <cstdio>
+#include <iostream>
 extern Sfem* sfem;
 
 template <class Scalar, class AnyVector, class AnyOperator, 
@@ -11,7 +12,6 @@ int
 BasePCG<Scalar,AnyVector,AnyOperator,AnyProjector,AnyPreconditioner>
 ::doSolve(AnyVector& f, AnyVector& sol)
 {
- cerr << "in BasePCG::doSolve, maxitr = " << maxitr << ", tolpcg = " << tolpcg << ", proj = " << proj << endl;
  double t1 = getTime();
  res1.zero();
  res2.zero();
@@ -74,13 +74,13 @@ BasePCG<Scalar,AnyVector,AnyOperator,AnyProjector,AnyPreconditioner>
 
 /*   if(ScalarTypes::Real(soldiff) <= 0.000001 && reduce == true) { // YYY DG we want soldiff <= delta^2 to "achieve" the error norm <= delta
      sol.computeBlockNorms(); 
-     cerr << "BlockNorms of sol is  ";
+     std::cerr << "BlockNorms of sol is  ";
      sol.printBlockNorms(); 
      sfem->computeNnzBlocks(sol.getBlockNorms()); // Compute the Non-zero blocks 
-     cerr << "Initial BlockDetails of sol is  ";
+     std::cerr << "Initial BlockDetails of sol is  ";
      sol.printBlockDetails();
      sol.setNnzBlocks(sfem->getNnzBlocks()); // set a binary index set 
-     cerr << "Final BlockDetails of sol is  ";
+     std::cerr << "Final BlockDetails of sol is  ";
      sol.printBlockDetails();
      res1.setNnzBlocks(sfem->getNnzBlocks());
      z1.setNnzBlocks(sfem->getNnzBlocks());
@@ -92,16 +92,16 @@ BasePCG<Scalar,AnyVector,AnyOperator,AnyProjector,AnyPreconditioner>
      sfem->setreduced();
    }
 */
-   cerr << " ... Iteration #  " << niter << "\t Two norm = "  << sqrt(r1tr1) << "\t Rel. residual = "  << ScalarTypes::norm(sqrt(r1tr1/r0tr0)) << endl;
+   std::cerr << " ... Iteration #  " << niter << "\t Two norm = "  << sqrt(r1tr1) << "\t Rel. residual = "  << ScalarTypes::norm(sqrt(r1tr1/r0tr0)) << std::endl;
    if( ScalarTypes::norm(r1tr1) <= ScalarTypes::norm(r0tr0*tolpcg*tolpcg) || niter >= maxitr )  {
       Scalar  twonr = sqrt(r1tr1);
 //      Scalar itwonr = sqrt(r0tr0);
       filePrint(stderr," ... Total # Iterations = %13d %14.5f s\n",niter,
                      (getTime() - t1)/1000.0);
-      cerr << " ...     Final Two norm = " << twonr << endl;
-      cerr <<" ...     Final residual = " << r1tr1 << endl;
+      std::cerr << " ...     Final Two norm = " << twonr << std::endl;
+      std::cerr <<" ...     Final residual = " << r1tr1 << std::endl;
       if(niter >= maxitr && ScalarTypes::norm(r1tr1) >= ScalarTypes::norm(r0tr0*tolpcg*tolpcg))
-        cerr << " ... Achieved a rel. residual of " << ScalarTypes::norm(sqrt(r1tr1/r0tr0)) << " in " << niter << " iter." << endl;
+        std::cerr << " ... Achieved a rel. residual of " << ScalarTypes::norm(sqrt(r1tr1/r0tr0)) << " in " << niter << " iter." << std::endl;
       finalNorm     = r1tr1;
       numIterations = niter;
       return ( ScalarTypes::norm(r1tr1) <= ScalarTypes::norm(r0tr0*tolpcg*tolpcg) ) ? 0 : -1;

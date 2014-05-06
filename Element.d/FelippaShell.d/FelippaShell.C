@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <stdexcept>
+#include <iostream>
 
 #include <Corotational.d/GeomState.h>
 #include <Corotational.d/Shell3Corotator.h>
@@ -14,6 +15,7 @@
 #include <Element.d/NonLinearity.d/ExpMat.h>
 #include <Element.d/NonLinearity.d/MaterialWrapper.h>
 #include <Element.d/Function.d/SpaceDerivatives.h>
+#include <Element.d/State.h>
 #include <Hetero.d/InterpPoint.h>
 #include <Material.d/IsotropicLinearElasticJ2PlasticPlaneStressMaterial.h>
 #include <Math.d/FullSquareMatrix.h>
@@ -1070,8 +1072,6 @@ FelippaShell::markDofs(DofSetArray &dsa)
   dsa.mark(nn, 3, DofSet::XYZdisp | DofSet::XYZrot);
 }
 
-#include <Element.d/State.h>
-
 void
 FelippaShell::
 computeDisp(CoordSet&, State &state, const InterpPoint &ip,
@@ -1319,7 +1319,7 @@ void
 FelippaShell::getStiffnessThicknessSensitivity(CoordSet &cs, Vector &elDisp, FullSquareMatrix &dStiffdThick, int flg, int senMethod)
 {
    if(dStiffdThick.dim() != 18) {
-     cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
+     std::cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
      exit(-1);
    }
 
@@ -1453,11 +1453,11 @@ FelippaShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
                                                  int senMethod, double *ndTemps, int avgnum, double ylayer, double zlayer)
 {
    if(strInd != 6) {
-     cerr << " ... Error: strInd must be 6 in TwoNodeTruss::getVonMisesDisplacementSensitivity\n";
+     std::cerr << " ... Error: strInd must be 6 in TwoNodeTruss::getVonMisesDisplacementSensitivity\n";
      exit(-1);
    }
    if(dStdDisp.numRow() != 3 || dStdDisp.numCol() !=18) {
-     cerr << " ... Error: dimenstion of sensitivity matrix is wrong\n";
+     std::cerr << " ... Error: dimenstion of sensitivity matrix is wrong\n";
      exit(-1);
    }
   weight = 1;
@@ -1489,7 +1489,7 @@ FelippaShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
   // Jacobian evaluation
   Eigen::Matrix<double,3,18> dStressdDisp;
   Eigen::Matrix<double,7,3> stress;
-  if(verboseFlag) cout << "senMethod is " << senMethod << endl;
+  if(verboseFlag) std::cout << "senMethod is " << senMethod << std::endl;
  
   if(avgnum == 0 || avgnum == 1) { // NODALFULL or ELEMENTAL
     if(senMethod == 0) { // analytic
@@ -1515,25 +1515,25 @@ FelippaShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
       Eigen::Matrix<double,18,1> qp, qm;
       double h(1e-6);
       Eigen::Matrix<double,3,1> S = foo(q,0);
-//      cout << "displacement = " << q.transpose() << endl;
+//      cout << "displacement = " << q.transpose() << std::endl;
       for(int i=0; i<18; ++i) {
         qp = q;             qm = q;
         if(q[i] == 0) { qp[i] = h;   qm[i] = -h; }
         else { qp[i] = q[i]*(1 + h);   qm[i] = q[i]*(1 - h); }
 //        if(i==2) {
-//          cout << qp[i] << "     " << qm[i] << endl;
+//          cout << qp[i] << "     " << qm[i] << std::endl;
 //          qp[i] = 1;        
 //          qm[i] = -1;
 //        }
-//        cout << q.transpose() << endl;
+//        cout << q.transpose() << std::endl;
         Eigen::Matrix<double,3,1> Sp = foo(qp, 0) - S;
         Eigen::Matrix<double,3,1> Sm = foo(qm, 0) - S;
         Eigen::Matrix<double,3,1> fd = (Sp - Sm)/(2*(qp[i]-q[i]));
 //        if(i==2) {
 //          Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " "); 
-//          cout << Sp.transpose().format(HeavyFmt) << endl;
-//          cout << Sm.transpose().format(HeavyFmt) << endl;
-//          cout << fd.transpose().format(HeavyFmt) << endl;
+//          cout << Sp.transpose().format(HeavyFmt) << std::endl;
+//          cout << Sm.transpose().format(HeavyFmt) << std::endl;
+//          cout << fd.transpose().format(HeavyFmt) << std::endl;
 //        }
         for(int j=0; j<3; ++j) {
           dStressdDisp(j,i) = fd[j];
@@ -1551,7 +1551,7 @@ FelippaShell::getVonMisesDisplacementSensitivity(GenFullM<DComplex> &dStdDisp, C
                                                  CoordSet &cs, ComplexVector &elDisp, int strInd, int surface,
                                                  int senMethod, double *, int avgnum, double ylayer, double zlayer)
 {
-  cerr << " ... Error: FelippaShell::getVonMisesDisplacementSensitivity is not implemented\n";  
+  std::cerr << " ... Error: FelippaShell::getVonMisesDisplacementSensitivity is not implemented\n";  
   exit(-1);
 }
 

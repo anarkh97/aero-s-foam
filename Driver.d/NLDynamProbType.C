@@ -312,9 +312,10 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
 
         if(converged == 1)
           break;
-        else if(converged == -1 && !failSafe)
-          filePrint(stderr," ... Warning, Solution diverging\n");
-
+        else if(converged == -1) {
+          if(!failSafe) filePrint(stderr," ... Warning, Solution diverging\n");
+          break;
+        }
       } // end of Newton iteration loop
 
       if(converged == 0 && !failSafe && domain->solInfo().getNLInfo().stepUpdateK != std::numeric_limits<int>::max()) {

@@ -47,6 +47,9 @@ GenPCGSolver<Scalar, AnyVector, AnyOperator>
   if(_maxVecStorage)
 //    this->proj = new KrylovProjector<Scalar,AnyVector>(_A->dim(),_maxVecStorage); 
     this->proj = new KrylovProjector<Scalar,AnyVector>(_A->neqs(),_maxVecStorage); 
+
+  this->printNumber = 1;
+  this->verbose = 1;
 }
 
 

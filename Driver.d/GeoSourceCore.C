@@ -97,7 +97,7 @@ GeoSource::GeoSource(int iniSize) : oinfo(emptyInfo, iniSize), nodes(iniSize*16)
   numTextDirichlet = 0;
   numTextNeuman = 0;
   numDirichlet = 0;
-  numDirichletFluid = 0; //ADDED FOR HEV PROBLEM, EC, 20070820
+  numDirichletFluid = 0;
   numNeuman = 0;
   numNeumanModal = 0;
   numIDis = 0;
@@ -181,7 +181,7 @@ void GeoSource::cleanUp()
 {
   elemSet.deleteElems();
   nElem = 0;
-  nElemFluid = 0; //ADDED FOR HEV PROBLEM, EC, 20070820
+  nElemFluid = 0;
 }
 //----------------------------------------------------------------------
 
@@ -1004,14 +1004,12 @@ void GeoSource::setUpData()
 
   // Set up element attributes
   SolverInfo &sinfo = domain->solInfo();
-/*
-  if((na == 0) && (sinfo.probType != SolverInfo::Top) && (sinfo.probType != SolverInfo::Decomp)) {
+/*if((na == 0) && (sinfo.probType != SolverInfo::Top) && (sinfo.probType != SolverInfo::Decomp)) {
     filePrint(stderr," **************************************\n");
     filePrint(stderr," *** ERROR: ATTRIBUTES not defined  ***\n");
     filePrint(stderr," **************************************\n");
     exit(-1);
-  }
-*/
+  }*/
 
   // check for elements with no attribute, and add dummy properties in certain cases
   bool *hasAttr = new bool[nMaxEle];
@@ -1022,7 +1020,7 @@ void GeoSource::setUpData()
       hasAttr[attrib_i.nele] = true;
   }
   int dattr;
-  bool hasAddedDummy = false;
+  bool hasAddedDummy = false, hasMultiplier = false;
   for(int i = 0; i < nMaxEle; ++i) {
     if(elemSet[i] && !hasAttr[i]) {
       if (!hasAddedDummy) {
@@ -1091,13 +1089,15 @@ void GeoSource::setUpData()
   global_average_E = 0.0;
   global_average_nu = 0.0;
   global_average_rhof = 0.0;
+  int solverClass = sinfo.classifySolver();
+  bool printOne = true, printTwo = true;
   for(std::map<int,Attrib>::iterator it = attrib.begin(); it != attrib.end(); ++it) {
     Attrib &attrib_i = it->second;
     Element *ele = elemSet[ attrib_i.nele ];
 
     // Check if element exists
-    if (ele == 0) {
-       filePrint(stderr, " *** WARNING: Attribute was found for non existent element %d\n", attrib_i.nele+1);
+    if(ele == 0) {
+      filePrint(stderr, " *** WARNING: Attribute was found for non existent element %d\n", attrib_i.nele+1);
       continue;
     }
     if(attrib_i.attr < -1) { // phantom elements
@@ -1122,6 +1122,25 @@ void GeoSource::setUpData()
           } else {
             global_average_rhof += prop->rho;
             fluid_element_count++;
+          }
+        }
+
+        // check constraint method
+        if(ele->isMpcElement() && sinfo.probType != SolverInfo::Top && sinfo.probType != SolverInfo::Decomp) {
+          if(printOne && sinfo.newmarkBeta == 0 && (prop->lagrangeMult == true || prop->penalty == 0)) {
+            // for explicit dynamics, the penalty constraint method with non-zero penalty parameter must be used
+            // with the exception of tied/contact surfaces using "tdenforce on". In the latter case no elements
+            // are created so this error message will not be encountered.
+            filePrint(stderr, "\x1B[31m *** WARNING: Constraint method is not \n"
+                              "     supported for explicit dynamics.  \x1B[0m\n");
+            printOne = false;
+          }
+          else if(printTwo && sinfo.newmarkBeta != 0 && prop->lagrangeMult == true && prop->penalty == 0 && solverClass == 0) {
+            // for statics, impe, eigen and implicit dynamics, certain solvers cannot be used with the multipliers
+            // constraint method. This check could/should be more specific by considering inequality constraints.
+            filePrint(stderr, "\x1B[31m *** WARNING: Equation solver unsuited \n"
+                              "     for multipliers constraint method.\x1B[0m\n");
+            printTwo = false;
           }
         }
       }
@@ -1342,7 +1361,7 @@ void GeoSource::setUpData()
 
     if (oinfo[iOut].groupNumber > 0)  {
       if (nodeGroup.find(oinfo[iOut].groupNumber) == nodeGroup.end())
-        filePrint(stderr, " ~~~ AS.WRN: Requested group output id not found: %d\n", oinfo[iOut].groupNumber);
+        filePrint(stderr, " *** WARNING: Requested group output id not found: %d\n", oinfo[iOut].groupNumber);
     }
   }
 }
@@ -1371,7 +1390,7 @@ CoordSet& GeoSource::GetNodes() { return nodes; }
 int GeoSource::getElems(Elemset &packedEset, int nElems, int *elemList)
 {
   SolverInfo &sinfo = domain->solInfo();
-  //ADDED FOR HEV PROBLEM, EC, 20070820
+
   if(sinfo.HEV) { packedEsetFluid = new Elemset(); nElemFluid = 0; }
 
   int iEle, numele;
@@ -1425,7 +1444,6 @@ int GeoSource::getElems(Elemset &packedEset, int nElems, int *elemList)
   // set number of real elements
   packedEset.setEmax(nElem);
 
-  //ADDED FOR HEV PROBLEM, EC, 20070820
   if(sinfo.HEV) {
     packedEsetFluid->setEmax(nElemFluid);
   }

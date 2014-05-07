@@ -93,8 +93,8 @@ struct SolverInfo {
    int hzemFlag; // Zero energy mode (for thermal Problems),
                  // Equivalent to grbm for structures
    int hzemFilterFlag;
-   int slzemFlag;// Flag for zero energy mode, ADDED FOR SLOSHING PROBLEMS, EC, 20070723
-   int slzemFilterFlag; // Flag for zero energy mode filter, ADDED FOR SLOSHING PROBLEMS, EC, 20070723
+   int slzemFlag; // Flag for zero energy mode
+   int slzemFilterFlag; // Flag for zero energy mode filter
 
    double mppFactor;  // modal amplification factor for mpp command
 
@@ -195,9 +195,9 @@ struct SolverInfo {
    const char* qmatrixname;
    const char* rmatrixname;
 
-   // Sloshing problem flag, ADDED FOR SLOSHING PROBLEM, EC, 20070723
+   // Sloshing problem flag
    int sloshing;
-   // Hydroelastic vibration problem flag, ADDED FOR HEV PROBLEM, EC, 20070820
+   // Hydroelastic vibration problem flag
    int HEV;
  
    const char *which;   /* for ARPACK: specifies "which" of the eigenvalues to compute, where:
@@ -567,7 +567,6 @@ struct SolverInfo {
                   nEig = 1;
                   maxitEig = 0;
 
-                  //ADDED FOR SLOSHING PROBLEM, EC, 20070723
                   sloshing = 0;
                   HEV = 0;
                   
@@ -951,6 +950,8 @@ struct SolverInfo {
        return modal;
      }
    }
+
+   int classifySolver();
 };
 
 #endif

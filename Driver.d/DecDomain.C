@@ -1490,7 +1490,7 @@ void GenDecDomain<Scalar>::getStressStrain(GenDistrVector<Scalar> &u, int fileNu
     // each subdomain computes its stress vector
     if(Findex != 16)
       execParal(numSub, this, &GenDecDomain<Scalar>::computeSubdStress,
-                stress, weight, &u, fileNumber, Findex); // YYY DG Does it print ? Probably not
+                stress, weight, &u, fileNumber, Findex);
   }
 
 
@@ -1512,7 +1512,7 @@ void GenDecDomain<Scalar>::getStressStrain(GenDistrVector<Scalar> &u, int fileNu
                                      globalStress, globalWeight, numNodes);
       }
       else {
-        subDomain[iSub]->computeContactPressure(globalStress, globalWeight); // PJSA
+        subDomain[iSub]->computeContactPressure(globalStress, globalWeight);
       }
     }
     for(i = 0; i < numNodes; ++i)  {
@@ -1739,7 +1739,7 @@ GenDecDomain<Scalar>::getElementPrincipalStress(DistrGeomState *gs, Corotator **
                                                 int fileNumber, int strIndex, double time,
                                                 DistrGeomState *refState)
 {
-  // PJSA 3-23-05 Non-linear version of getElementPrincipalStress
+  // Non-linear version of getElementPrincipalStress
   // set stress VS. strain for element subroutines
   int i, j;
   int strInd;

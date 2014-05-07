@@ -427,8 +427,8 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
     probDesc->staticOutput(geomState, double(iter), force, totalRes, refState);
 #endif
 
-    // If converged, break out of loop
-    if(converged == 1) break; // don't test for divergence
+    // If converged or diverged, break out of loop
+    if(converged) break;
   }
 
   // return with the number of iterations newton took to converge/diverge

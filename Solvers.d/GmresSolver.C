@@ -92,7 +92,7 @@ GmresSolver<Scalar, AnyVector, AnyOperator, LeftPreconditioner, RightPreconditio
       x = x0 - w;
     }
 
-    if(!stop && verbose && rank == 0)  std::cerr << "restarting GMRES\n";
+    if(!stop && verbose && rank == 0) std::cerr << "restarting GMRES\n";
   }
   if(rightprec) (rightprec->*applyRight)(x, x);
 }

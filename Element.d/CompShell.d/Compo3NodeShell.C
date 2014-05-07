@@ -506,7 +506,7 @@ Compo3NodeShell::massMatrix(CoordSet &cs, double *mel, int cmflg)
   // check if the density is negative or zero
   if(prop->rho <= 0.0 && (type == 0 || type == 1) && quietFlag == 0) {
     fprintf(stderr," *** WARNING: Composite shell element # %d has zero or negative density.\n"
-                   "              Use command line parameter -q to suppress this warning.\n", getGlNum()+1);
+                   "              Use command-line option -q to suppress this warning.\n", getGlNum()+1);
   }
 
   _FORTRAN(compms)(x, y, z, h, prop->rho, (double *)mel,

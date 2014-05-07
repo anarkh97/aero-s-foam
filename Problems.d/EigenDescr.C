@@ -65,7 +65,6 @@ SingleDomainEigen::preProcess()
  domain->makeAllDOFs();
  times->makeDOFs += getTime();
 
- //ADDED FOR HEV PROBLEM, EC, 20070820
  if (domain->solInfo().HEV)  {
    domain->makeAllDOFsFluid();
  }

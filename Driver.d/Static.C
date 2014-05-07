@@ -1622,7 +1622,6 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
       if(printFlag == 2) {
         if(iele == 0)
           geoSource->outputElemStress(fileNumber, (double *) 0, 0, offset, time); // print time
-//        geoSource->outputElemStress(fileNumber, stressAllElems[count], 1, offset); // print stresses YYY DG
         count=count+NodesPerElement;
       }
     }

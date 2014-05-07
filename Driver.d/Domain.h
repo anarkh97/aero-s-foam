@@ -287,6 +287,7 @@ class Domain : public HData {
      double Wdmp;
      double pWela;
      double pWkin;
+     double pWdis;
      Vector *previousExtForce;
      Vector *previousAeroForce;
      Vector *previousDisp;
@@ -475,7 +476,7 @@ class Domain : public HData {
      double getDissipatedEnergy(GeomState *geomState, Corotator **allCorot);
      void computeEnergies(GeomState *geomState, Vector &force, double time, Vector *aeroForce, double *vel,
                           Corotator **allCorot, SparseMatrix *M, SparseMatrix *C, double &Wela, double &Wkin,
-                          double &error); // Nonlinear statics and dynamics
+                          double &Wdis, double &error); // Nonlinear statics and dynamics
      void computeEnergies(Vector &disp, Vector &force, double time, Vector *aeroForce, Vector *vel,
                           SparseMatrix *K, SparseMatrix *M, SparseMatrix *C, double &Wela, double &Wkin,
                           double &error); // Linear dynamics

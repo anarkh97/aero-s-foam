@@ -29,6 +29,8 @@ public:
 
         void getGravityForce(CoordSet&,double *gravity, Vector&, int gravflg,
 	                     GeomState *gs);
+        void getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravityAcceleration,
+                                                    Vector& gravityForceSensitivity, int gravflg, GeomState *geomState);
 
         void getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
                          Vector &elDisp, int strInd, int surface=0,
@@ -51,9 +53,10 @@ public:
         int  numNodes();
         int* nodes(int * = 0);
 	Corotator *getCorotator(CoordSet &, double *,int,int);
-	double getMass(CoordSet &);
-        double weight(CoordSet&, double *, int);
-        double weightDerivativeWRTthickness(CoordSet&, double *, int, int=1);
+        double getMass(CoordSet &);
+        double getMassSensitivityWRTthickness(CoordSet &);
+        double weight(CoordSet&, double *);
+        double weightDerivativeWRTthickness(CoordSet&, double *, int=1);
 
         void computeDisp(CoordSet&, State &, const InterpPoint &,
                          double*, GeomState *gs=0);

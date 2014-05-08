@@ -228,6 +228,14 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
    // all the different dynamic schemes.
 
    probDesc->preProcess();
+   if(domain->solInfo().sensitivity) {
+     probDesc->preProcessSA();
+     if(!domain->runSAwAnalysis) {
+       AllSensitivities<double> *allSens = probDesc->getAllSensitivities();
+       domain->sensitivityPostProcessing(*allSens);
+       return;
+     }
+   }
 
    postProcessor = probDesc->getPostProcessor();
 
@@ -248,17 +256,30 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
    // Set up initial conditions
    curState = new SysState<VecType>( *d_n, *v_n, *a_n, *v_p);
    probDesc->getInitState( *curState );
+   if(domain->solInfo().sensitivity) {
+     d_nSen = new VecType( probDesc->solVecInfo() );
+     v_nSen = new VecType( probDesc->solVecInfo() );
+     a_nSen = new VecType( probDesc->solVecInfo() );
+     v_pSen = new VecType( probDesc->solVecInfo() );
+     *d_nSen = *v_nSen = *a_nSen = *v_pSen = 0.0;
+     curSenState = new SysState<VecType>( *d_nSen, *v_nSen, *a_nSen, *v_pSen);
+     map<int, Group> &group = geoSource->group;
+//     allSens.aeroVonMisesWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(domain->numNodes(), group.size());
+//     allSens.aeroVonMisesWRTthick->setZero();
+   }
 
    // The aeroPreProcess is done later now, so that the correct
    // time-step is passed to the fluid in the explicit case
    // However, if we are doing a ping-pong, first we run aeroPreProcess and return 
    if(aeroAlg == 1 || aeroAlg == 8) {
-     probDesc->aeroPreProcess( *d_n, *v_n, *a_n, *v_p );
+     probDesc->aeroPreProcess( *d_n, *v_n, *a_n, *v_p ); // [S] sent initial displacements ...
      return;
    }
 
    aeroForce = (aeroAlg >= 0 || probDesc->getThermoeFlag() >= 0) ? new VecType(probDesc->solVecInfo()) : 0;
    if(aeroForce) aeroForce->zero();
+   aeroForceSen = (domain->solInfo().sensitivity) ? new VecType(probDesc->solVecInfo()) : 0;
+   if(aeroForceSen) aeroForceSen->zero();
 
    // Build time independent forces i.e. gravity force, pressure force
    constForce = new VecType( probDesc->solVecInfo() );
@@ -349,7 +370,8 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
        
      // Quasi-Static
      case 1:
-       if(aeroAlg >= 0) probDesc->aeroPreProcess( *d_n, *v_n, *a_n, *v_p );
+       if(aeroAlg >= 0) probDesc->aeroPreProcess( *d_n, *v_n, *a_n, *v_p ); // [S] sent initial displacements ...
+       if(verboseFlag) filePrint(stderr,"norm of d_n is %e\n",d_n->norm());
        if(probDesc->getThermoeFlag() >= 0) probDesc->thermoePreProcess(*d_n, *v_n, *v_p);
        if(probDesc->getAeroheatFlag() >= 0) probDesc->aeroHeatPreProcess(*d_n, *v_n, *v_p);
        if(probDesc->getThermohFlag() >= 0) probDesc->thermohPreProcess(*d_n, *v_n, *v_p);
@@ -358,6 +380,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
        
        // Defining Working Arrays   
        workVec = new NewmarkWorkVec<VecType,ProblemDescriptor>(-1,probDesc);
+       if(domain->solInfo().sensitivity) { workSenVec = new NewmarkWorkVec<VecType,ProblemDescriptor>(-1,probDesc); }
 
        // Build Necessary Operators (only K!)
        dynOps = probDesc->buildOps(0,0,1); 
@@ -365,8 +388,36 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
        probDesc->getConstForce( *constForce );
        
        // Quasi-Static Loop
-       quasistaticLoop( *curState, *constForce, *dynOps, *workVec, dt, tmax, aeroAlg);     
+       quasistaticLoop( *curState, *constForce, *dynOps, *workVec, dt, tmax, aeroAlg);   
+
+       // Aeroelastic Sensitivity Quasi-Static 
+       if(domain->solInfo().sensitivity) { 
+         probDesc->postProcessSA(dynOps,*d_n);
+         AllSensitivities<double> *allSens = probDesc->getAllSensitivities();
+         map<int, Group> &group = geoSource->group;
+         allSens->dispWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[group.size()];
+         probDesc->sendNumParam(group.size());  
+         for(int iparam=0; iparam< group.size(); ++iparam) {
+           allSens->dispWRTthick[iparam] = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(domain->numUncon(),1);
+           rhsSen = new VecType( probDesc->solVecInfo() );
+           rhsSen->copy(allSens->linearstaticWRTthick[iparam]->data());
+           (*rhsSen) *= -1; 
+           aeroForceSen->zero();
+           aeroSensitivityQuasistaticLoop( *curSenState, *rhsSen, *dynOps, *workSenVec, dt, tmax, aeroAlg);
+           *allSens->dispWRTthick[iparam] = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> >(d_nSen->data(),domain->numUncon(),1);
+           allSens->vonMisesWRTthick->col(iparam) += *allSens->vonMisesWRTdisp * (*allSens->dispWRTthick[iparam]);
+           Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
+//           cerr << "print *allSens->vonMisesWRTdisp\n" << (*allSens->vonMisesWRTdisp).format(HeavyFmt) << endl;
+//           cerr << "print (*allSens->dispWRTthick[iparam])\n" << (*allSens->dispWRTthick[iparam]).adjoint().format(HeavyFmt) << endl;
+//           cerr << "print vonMisesWRTthick (in steady aeroelastic analysis)\n" << allSens->vonMisesWRTthick->col(iparam).adjoint().format(HeavyFmt) << endl;
+         }  
+         domain->sensitivityPostProcessing(*allSens); 
+       } 
+
+       break;
    }
+
+
    timeLoop += getTime();
    probDesc->printTimers(dynOps, timeLoop);
    
@@ -379,6 +430,16 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
    delete a_n;
    delete constForce;
    delete v_p;
+   if(domain->solInfo().sensitivity) {
+     delete curSenState;
+     delete workSenVec;
+
+     delete d_nSen;
+     delete v_nSen;
+     delete a_nSen;
+     delete v_pSen;
+   }
+
 }
 
 // -----------------------------------------------------------------------------//
@@ -393,12 +454,15 @@ template< class DynOps,        class VecType,
 void
 DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 ::quasistaticLoop(SysState<VecType>& curState, VecType& constForce,
-                  DynOps& dynOps, 
-		  NewmarkWorkVec<VecType,ProblemDescriptor>& workVec,
+                  DynOps& dynOps, NewmarkWorkVec<VecType,ProblemDescriptor>& workVec,
                   double dt, double tmax, int aeroFlg)
 { 
    filePrint(stderr, " ... Quasistatic loop               ... \n");
    if (aeroFlg == 10)  steadyMax = 1;
+   else if(steadyMax == 1) {
+     filePrint(stderr, " ... Error! Maximum number of iterations must be greater than 1\n");
+     exit(-1);
+   }
    
    // get initial displacements
    VecType &d_n = curState.getDisp();
@@ -440,7 +504,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
     if (probDesc->getFilterFlag() == 2) probDesc->project( d_n );
 
     // ... compute external force
-    probDesc->computeExtForce2( curState, ext_f, constForce, tIndex, (double)tIndex*delta, aeroForce);
+    probDesc->computeExtForce2( curState, ext_f, constForce, tIndex, (double)tIndex*delta, aeroForce); // [E] Received fluid load ...
 
     // ... build force reference norm 
     if (tIndex==initIndex+1) {
@@ -476,15 +540,19 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
           break;
         }
       }
-      else
+      else {
         iSteady = probDesc->cmdCom(iSteady);
+      }
     }
 
     // ... stop quasi-transient simulation if converged
     if(iSteady) {
-      filePrint(stderr," --------------------------------------\n");
+      Eigen::Map<Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> > dispEigen(d_n.data(),1,d_n.size());
+      Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
+//      cerr << "print disp\n" << dispEigen.format(HeavyFmt) << endl;
+      filePrint(stderr," ------------------------------------------------------\n");
       filePrint(stderr," ... Quasistatic Analysis Converged After %d Steps ...\n",tIndex);
-      filePrint(stderr," --------------------------------------\n");
+      filePrint(stderr," ------------------------------------------------------\n");
       probDesc->processLastOutput();
       postProcessor->dynamOutput( tIndex, (double)tIndex*delta, dynOps, ext_f, aeroForce, curState );
       break; 
@@ -512,10 +580,159 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
   }
 
   if (!iSteady && aeroAlg != 10) {
-    filePrint(stderr," --------------------------------------\n");
+    filePrint(stderr," -----------------------------------------------------------\n");
     filePrint(stderr," ... Quasistatic Analysis Did Not Converge After %d Steps ...\n",tIndex);
-    filePrint(stderr," --------------------------------------\n");
+    filePrint(stderr," -----------------------------------------------------------\n");
   }
+
+  // ... output CPU time spent in quasi-static loop
+  totalTime += getTime();
+#ifdef PRINT_TIMERS
+  filePrint(stderr," ... Total Loop Time = %.2e s   ...\n",totalTime/1000.0);
+#endif
+
+}
+
+// -----------------------------------------------------------------------------//
+//
+// ... Aeroelastic sensitivity Quasi-Static Time Loop
+//
+// -----------------------------------------------------------------------------
+
+template< class DynOps,        class VecType, 
+          class PostProcessor, class ProblemDescriptor,
+          class Scalar>
+void
+DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
+::aeroSensitivityQuasistaticLoop(SysState<VecType>& curState, VecType& constForce,
+                                 DynOps& dynOps, NewmarkWorkVec<VecType,ProblemDescriptor>& workVec,
+                                 double dt, double tmax, int aeroFlg)
+{ 
+   filePrint(stderr, " ... Aeroelastic Sensitivity Quasistatic loop ... \n");
+   if (aeroFlg == 10)  steadyMax = 1;
+   else if(steadyMax == 1) {
+     filePrint(stderr, " ... Error! Maximum number of iterations must be greater than 1\n");
+     exit(-1);
+   }
+ 
+   // get initial displacements
+   VecType &d_nSen = curState.getDisp();
+   
+   // Initialize some vectors 
+   VecType  &d_n_pSen = workVec.get_d_n_p();
+   VecType    &rhsSen = workVec.get_rhs();
+   VecType  &ext_fSen = workVec.get_ext_f();
+
+   // Initialize some parameters
+   // Get initial Time
+   int tIndex;
+   int initIndex;
+   double initialTime = 0.0;
+
+   probDesc->getInitialTime(initIndex, initialTime);
+   double initExtForceNorm = probDesc->getInitialForceNorm();
+   tIndex = initIndex;
+
+   int iSteady  = 0;
+
+   double forceSenRef;
+
+   double relaxFac = maxVel;
+   
+   // Output state of model
+
+//   postProcessor->dynamOutput( tIndex, initialTime, dynOps, ext_f, aeroForce, curState );
+
+   //-----------------------------------------------------------------------
+   // ... BEGIN MAIN TIME-LOOP
+   //-----------------------------------------------------------------------
+
+   double totalTime = -getTime();
+
+  for (tIndex = tIndex+1; tIndex <= steadyMax; tIndex++) {
+
+    // ... call projector for RBMs in case of rbmfilter level 2
+    if (probDesc->getFilterFlag() == 2) probDesc->project( d_nSen );
+
+    // ... compute external force
+//    probDesc->computeExtForce2( curState, ext_fSen, constForce, tIndex, (double)tIndex*delta, aeroForce);
+    ext_fSen = constForce;
+    ext_fSen += *aeroForceSen;
+
+    // ... build force reference norm 
+    if (tIndex==initIndex+1) {
+      if (initExtForceNorm == 0.0)
+        forceSenRef=ext_fSen.norm();
+      else 
+        forceSenRef = initExtForceNorm;
+      if(verboseFlag) filePrint(stderr, " ... Initial Force: %8.2e ...\n", forceSenRef);
+    }
+
+    // ... build internal force 
+    probDesc->getInternalForce(d_nSen, rhsSen, (double)tIndex*delta, tIndex);
+
+    // ... check for convergence
+    double relres = 0.0;
+    if (forceSenRef != 0.0)  relres = norm(rhsSen-ext_fSen)/forceSenRef;
+    else {
+      relres = norm(rhsSen-ext_fSen);
+      filePrint(stdout, " ... WARNING: Reference External Force is zero, Relative residual is absolute error norm ...\n");
+    }
+
+    if(relres <= steadyTol && delta == 0 && tIndex != 1) {
+      // ... stop quasi-transient simulation if converged
+      iSteady = 1;
+      probDesc->cmdCom(iSteady);
+      filePrint(stderr," ---------------------------------------------------------------------------\n");
+      filePrint(stderr," ... Aeroelastic Sensitivity Quasistatic Analysis Converged After %d Steps ...\n",tIndex);
+      filePrint(stderr," ---------------------------------------------------------------------------\n");
+      break; 
+    } else {
+      probDesc->cmdCom(iSteady);
+      // ... save load vector
+      rhsSen=ext_fSen;
+
+      // ... solve System for current load
+      dynOps.dynMat->reSolve( rhsSen );
+
+      // ... compute displacement increment;
+      d_n_pSen.linC(rhsSen, -1.0, d_nSen);
+
+      // ... apply relaxation factor
+      d_n_pSen *= relaxFac;
+
+      // ... update solution
+      d_nSen   += d_n_pSen;
+
+      probDesc->sendDisplacements(d_nSen, curState.getVeloc(), curState.getAccel(), curState.getPrevVeloc()); 
+    }
+
+    if(aeroAlg >= 0 || probDesc->getAeroheatFlag() >= 0) {
+      filePrint(stderr," ... Pseudo-Step = %d  Rel. Res. = %10.4e ...\n",tIndex, relres);
+  
+      probDesc->getAeroelasticForceSensitivity(tIndex, (double)tIndex*delta, aeroForceSen); // [E] Received fluid load sensitivity...
+      // command communication with fluid
+      if(tIndex == steadyMax && !iSteady) { 
+//        probDesc->processLastOutput();
+        if(aeroFlg != 10) {
+//          postProcessor->dynamOutput( tIndex, (double)tIndex*delta, dynOps, ext_fSen, aeroForceSen, curState );
+          probDesc->cmdCom(1);
+          break;
+        }
+      }
+    }
+
+//    else if (tIndex == steadyMax)
+//      probDesc->processLastOutput();
+  }
+
+  if (!iSteady && aeroAlg != 10) {
+    filePrint(stderr," ------------------------------------------------------------------------\n");
+    filePrint(stderr," ... Aeroelastic Sensitivity Analysis Did Not Converge After %d Steps ...\n",tIndex);
+    filePrint(stderr," ------------------------------------------------------------------------\n");
+  }
+//  probDesc->processLastOutput();
+//  postProcessor->dynamOutput( tIndex, (double)tIndex*delta, dynOps, ext_fSen, aeroForceSen, curState );
 
   // ... output CPU time spent in quasi-static loop
   totalTime += getTime();

@@ -104,18 +104,36 @@ double LEIsoParamTri::getMass(CoordSet &cs) {
  return area*prop->eh*prop->rho; 
 }
 
-double LEIsoParamTri::weight(CoordSet& cs, double *gravityAcceleration, int altitude_direction)
+double LEIsoParamTri::getMassSensitivityWRTthickness(CoordSet &cs) {
+ IsoParamUtils2dTri ipu(order);
+ int ordersq = ipu.getordersq();
+ double *xyz=(double*)alloca(sizeof(double)*3*ordersq);
+ cs.getCoordinates(nn,ordersq,xyz,xyz+ordersq,xyz+2*ordersq);
+
+ double area(0);
+ AreaFunction2d f(&area);
+ int gorder = 7*7;
+ if (order<=3) gorder = 13;
+ ipu.areaInt2d(xyz, f, gorder);
+
+ return area*prop->rho; 
+}
+
+double LEIsoParamTri::weight(CoordSet& cs, double *gravityAcceleration)
 {
   if (prop == NULL) return 0.0;
 
   double _mass = getMass(cs);
-  return _mass*gravityAcceleration[altitude_direction];
+  double gravAccNorm = sqrt(gravityAcceleration[0]*gravityAcceleration[0] + 
+                            gravityAcceleration[1]*gravityAcceleration[1] +
+                            gravityAcceleration[2]*gravityAcceleration[2]);
+  return _mass*gravAccNorm;
 }
 
-double LEIsoParamTri::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int altitude_direction, int senMethod)
+double LEIsoParamTri::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int senMethod)
 {
  if(senMethod == 0) {
-   double _weight = weight(cs, gravityAcceleration, altitude_direction);
+   double _weight = weight(cs, gravityAcceleration);
    return _weight/prop->eh;
  } else {
    fprintf(stderr," ... Error: LEIsoParamTri::weightDerivativeWRTthickness for automatic differentiation and finite difference is not implemented\n");

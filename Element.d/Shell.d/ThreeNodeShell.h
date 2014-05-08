@@ -23,12 +23,16 @@ public:
         void renum(EleRenumMap&);
 
         FullSquareMatrix stiffness(CoordSet&, double *d, int flg=1);
+        void getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix &dStiffdThick, int flg, int senMethod);
         FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg=1);
-	double           getMass(CoordSet& cs);
-        double weight(CoordSet&, double *, int);
-        double weightDerivativeWRTthickness(CoordSet&, double *, int, int=1);
+        double getMass(CoordSet& cs);
+        double getMassSensitivityWRTthickness(CoordSet& cs);
+        double weight(CoordSet&, double *);
+        double weightDerivativeWRTthickness(CoordSet&, double *, int=1);
         void   getGravityForce(CoordSet&,double *gravity, Vector&, int gravflg,
                                          GeomState *gs);
+        void getGravityForceSensitivityWRTthickness(CoordSet&,double *gravity, Vector&, int gravflg,
+                                                    GeomState *gs);
         void   getVonMises(Vector& stress, Vector& weight,
                            CoordSet &cs, Vector& elDisp, int strInd,int surface=0,
                            double *ndTemps=0,double ylayer=0.0, double zlayer=0.0, int avgnum=0);
@@ -36,6 +40,8 @@ public:
                                              int senMethod, double *, int avgnum, double ylayer, double zlayer);
         void getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
                                                 int senMethod, double *ndTemps, int avgnum, double ylayer, double zlayer);
+        void getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+                                                   int senMethod, double *ndTemps, int avgnum, double ylayer, double zlayer);
         void             getAllStress(FullM& stress, Vector& weight,
                          CoordSet &cs, Vector& elDisp, int strInd,int surface=0,
                                  double *ndTemps=0);

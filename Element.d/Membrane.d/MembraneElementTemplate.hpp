@@ -1,8 +1,10 @@
 #ifndef _MEMBRANEELEMENTTEMPLATE_HPP_
 #define _MEMBRANEELEMENTTEMPLATE_HPP_
 
+#include <Element.d/Shell.d/ShellElementSemiTemplate.hpp>
+
 template<typename doublereal>
-class MembraneElementTemplate
+class MembraneElementTemplate: public ShellElementSemiTemplate<doublereal> 
 {
   public:
      MembraneElementTemplate() {}
@@ -12,7 +14,9 @@ class MembraneElementTemplate
                   doublereal e, doublereal nu, doublereal *_h,
                   doublereal *_v, doublereal *_stress,
                   bool strainFlg);
-
+     void trimem(int flag, doublereal *_xl, doublereal *_yl, doublereal *_zl,
+                 doublereal e, doublereal nu, doublereal *_h, doublereal *_rk); 
+/*
   protected:
      void rotation(doublereal *_v1o, doublereal *_v2o, doublereal *_v3o,
                    doublereal *_v1n, doublereal *_v2n, doublereal *_v3n,
@@ -30,6 +34,7 @@ class MembraneElementTemplate
                  doublereal &t,   doublereal &sv);
 
      void compj2(doublereal sx, doublereal sy, doublereal sxy, doublereal &svm);
+*/
 };
  
 #endif

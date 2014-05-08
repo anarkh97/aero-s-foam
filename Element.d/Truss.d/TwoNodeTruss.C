@@ -379,8 +379,8 @@ TwoNodeTruss::getThermalForce(CoordSet &cs, Vector &ndTemps,
 
 void
 TwoNodeTruss::getVonMises(Vector& stress, Vector& weight, CoordSet& cs,
-			  Vector& elDisp, int strInd, int surface, 
-			  double *ndTemps, double ylayer, double zlayer, int avgnum)
+                          Vector& elDisp, int strInd, int surface, 
+                          double *ndTemps, double ylayer, double zlayer, int avgnum)
 {
 #ifndef SALINAS 
    weight = 1.0;
@@ -502,7 +502,8 @@ TwoNodeTruss::getVonMises(Vector& stress, Vector& weight, CoordSet& cs,
              fth1 = coefficient*(ndTemps[0]-Tref);
              fth2 = coefficient*(ndTemps[1]-Tref);
            }
-   
+          cerr << "fth1 is " << fth1 << endl; 
+          cerr << "preload is " << preload << endl; 
           stress[0] = abs(-f + fth1);
           stress[1] = abs( f - fth1);      
 
@@ -534,6 +535,99 @@ TwoNodeTruss::getVonMises(Vector& stress, Vector& weight, CoordSet& cs,
 #endif
 }
 
+void      
+TwoNodeTruss::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+                                                    int senMethod, double *ndTemps, int avgnum, double ylayer, double zlayer)
+{ 
+   if(strInd != 6) {
+     cerr << " ... Error: strInd must be 6 in TwoNodeTruss::getVonMisesNodalCoordinateSensitivity\n";
+     exit(-1);
+   }
+   if(dStdx.numRow() != 6 || dStdx.numCol() != 2) {
+     cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
+     exit(-1);
+   }
+   weight = 1.0;
+
+   Node &nd1 = cs.getNode( nn[0] );
+   Node &nd2 = cs.getNode( nn[1] );
+
+   double dx = nd2.x - nd1.x;
+   double dy = nd2.y - nd1.y;
+   double dz = nd2.z - nd1.z;
+
+   double lengthsquare = dx*dx + dy*dy + dz*dz;
+   double length = sqrt(dx*dx + dy*dy + dz*dz);
+
+   // Compute the change in length of the element
+   double dq = dx*(elDisp[3]-elDisp[0])
+             + dy*(elDisp[4]-elDisp[1])
+             + dz*(elDisp[5]-elDisp[2]);
+
+    switch (avgnum) {
+
+      case 0:
+      case 1:
+      { 
+        if (strInd == 6) {
+          double AE = prop->A*prop->E;
+          dStdx[0][0] = -AE/lengthsquare*(elDisp[3]-elDisp[0]) + 2*AE/(lengthsquare*lengthsquare)*dx*dq;
+          dStdx[1][0] = -AE/lengthsquare*(elDisp[4]-elDisp[1]) + 2*AE/(lengthsquare*lengthsquare)*dy*dq;
+          dStdx[2][0] = -AE/lengthsquare*(elDisp[5]-elDisp[2]) + 2*AE/(lengthsquare*lengthsquare)*dz*dq;
+          dStdx[3][0] = AE/lengthsquare*(elDisp[3]-elDisp[0]) - 2*AE/(lengthsquare*lengthsquare)*dx*dq;
+          dStdx[4][0] = AE/lengthsquare*(elDisp[4]-elDisp[1]) - 2*AE/(lengthsquare*lengthsquare)*dy*dq;
+          dStdx[5][0] = AE/lengthsquare*(elDisp[5]-elDisp[2]) - 2*AE/(lengthsquare*lengthsquare)*dz*dq;
+          dStdx[0][1] = -dStdx[0][0];
+          dStdx[1][1] = -dStdx[1][0];
+          dStdx[2][1] = -dStdx[2][0];
+          dStdx[3][1] = -dStdx[3][0];
+          dStdx[4][1] = -dStdx[4][0];
+          dStdx[5][1] = -dStdx[5][0];
+          
+          // scale dx, dy, and dz by the length
+          dx /= length;
+          dy /= length;
+          dz /= length;
+
+          // Compute the change in length of the element
+          dq = dx*(elDisp[3]-elDisp[0])
+             + dy*(elDisp[4]-elDisp[1])
+             + dz*(elDisp[5]-elDisp[2]);
+
+          // Compute axial strain
+          double exx = dq/length;
+          // Compute von Mises stress resultant
+          double f = prop->A*prop->E*exx;
+          f += preload;
+
+          // Compute thermal force
+          double coefficient = prop->E*prop->A*prop->W;
+          double Tref = prop->Ta;
+           double fth1(0);
+           double fth2(0);
+           if(ndTemps) {
+             fth1 = coefficient*(ndTemps[0]-Tref);
+             fth2 = coefficient*(ndTemps[1]-Tref);
+           }
+   
+          if(-f+fth1<0) dStdx *= -1; 
+
+        } 
+        break;
+      }
+
+      case 2:
+      {
+        weight = 0.0;
+        dStdx.zero();
+        break;
+      }
+
+      default:
+        cerr << "avgnum = " << avgnum << " is not a valid number\n";
+    }
+}
+
 void
 TwoNodeTruss::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
                                                  int senMethod, double *ndTemps, int avgnum, double ylayer, double zlayer)
@@ -542,8 +636,8 @@ TwoNodeTruss::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
      std::cerr << " ... Error: strInd must be 6 in TwoNodeTruss::getVonMisesDisplacementSensitivity\n";
      exit(-1);
    }
-   if(dStdDisp.numRow() != 2 || dStdDisp.numCol() !=6) {
-     std::cerr << " ... Error: dimenstion of sensitivity matrix is wrong\n";
+   if(dStdDisp.numRow() != 6 || dStdDisp.numCol() != 2) {
+     std::cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
      exit(-1);
    }
    weight = 1.0;
@@ -605,11 +699,15 @@ TwoNodeTruss::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
         double f2s2 = elForce[1]/stress[1];
    
         if(senMethod == 0 ||senMethod == 1) { // analytic
+          if(senMethod == 1) {
+            cerr << " ... Warning: automatic differentiation sensitivity of von Mises stress sensitivity wrt displacement is not implemented yet\n";
+            cerr << " ...          instead, analytic sensitivity will be applied\n"; 
+          }
           // replace automatic differentiation routine with analytic one
-          dStdDisp[0][0] =  f1s1*dx;   dStdDisp[0][1] =  f1s1*dy;   dStdDisp[0][2] =  f1s1*dz;   
-          dStdDisp[0][3] = -f1s1*dx;   dStdDisp[0][4] = -f1s1*dy;   dStdDisp[0][5] = -f1s1*dz; 
-          dStdDisp[1][0] = -f2s2*dx;   dStdDisp[1][1] = -f2s2*dy;   dStdDisp[1][2] = -f2s2*dz;   
-          dStdDisp[1][3] =  f2s2*dx;   dStdDisp[1][4] =  f2s2*dy;   dStdDisp[1][5] =  f2s2*dz; 
+          dStdDisp[0][0] =  f1s1*dx;   dStdDisp[1][0] =  f1s1*dy;   dStdDisp[2][0] =  f1s1*dz;   
+          dStdDisp[3][0] = -f1s1*dx;   dStdDisp[4][0] = -f1s1*dy;   dStdDisp[5][0] = -f1s1*dz; 
+          dStdDisp[0][1] = -f2s2*dx;   dStdDisp[1][1] = -f2s2*dy;   dStdDisp[2][1] = -f2s2*dz;   
+          dStdDisp[3][1] =  f2s2*dx;   dStdDisp[4][1] =  f2s2*dy;   dStdDisp[5][1] =  f2s2*dz; 
          
           dStdDisp *= (prop->A*prop->E/length);
           if(verboseFlag) {
@@ -631,7 +729,7 @@ TwoNodeTruss::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
              getVonMises(sm, dummyweight, cs, dispm, strInd, surface, ndTemps, ylayer, zlayer, avgnum);
              Vector fd = (1.0/(2.0*h))*(sp - sm);
              for(int j=0; j<2; ++j) {
-               dStdDisp[j][i] = fd[j];
+               dStdDisp[i][j] = fd[j];
              }
            }
            if(verboseFlag) {

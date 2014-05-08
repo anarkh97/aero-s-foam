@@ -337,6 +337,48 @@ Domain::buildAeroelasticForce(Vector& aero_f, PrevFrc& prevFrc, int tIndex, doub
 }
 
 void
+Domain::buildAeroelasticForceSensitivity(Vector& aero_fSen, PrevFrc& prevFrc, int tIndex, double t, double gamma, double alphaf, GeomState* geomState)
+{
+  // ... COMPUTE AEROELASTIC FORCE 
+  getTimers().receiveFluidTime -= getTime();
+
+  // ... Temporary variable for inter(extra)polated force
+  double *tmpFmem = new double[numUncon()];
+  StackVector tmpF(tmpFmem, numUncon());
+  tmpF.zero();
+
+  int iscollocated;
+  double tFluid = flExchanger->getFluidLoadSensitivity(tmpF, tIndex, t,
+                                                       alphaf, iscollocated, geomState);
+
+  if(sinfo.aeroFlag == 20) {
+    if(prevFrc.lastTIndex >= 0)
+      aero_fSen.linC(0.5,tmpF,0.5,prevFrc.lastFluidLoad);
+    else
+      aero_fSen = tmpF;
+  }
+  else {
+    if(iscollocated == 0) {
+      if(prevFrc.lastTIndex >= 0) {
+        tmpF *= (1/gamma);
+        tmpF.linAdd(((gamma-1.0)/gamma), prevFrc.lastFluidLoad);
+      }
+    }
+
+    double alpha = (prevFrc.lastTIndex < 0) ? 1.0 : 1.0-alphaf;
+    aero_fSen.linC(alpha, tmpF, (1.0-alpha), prevFrc.lastFluidLoad);
+  }
+  prevFrc.lastFluidLoad = tmpF;
+  prevFrc.lastFluidTime = tFluid;
+  prevFrc.lastTIndex = tIndex;
+
+  //fprintf(stderr,"... alpha = %e, gamma = %e, isCollocated = %d ...\n", alpha, gamma, iscollocated);
+
+  delete [] tmpFmem;
+  getTimers().receiveFluidTime += getTime();
+}
+
+void
 Domain::buildAeroheatFlux(Vector &f, Vector &prev_f, int tIndex, double t)
 {
   // ... ADD FLUID FLUX
@@ -478,6 +520,7 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
     
     OutputInfo *oinfo = geoSource->getOutputInfo();
     if(sinfo.isNonLin() && (oinfo[i].isStressOrStrain() || oinfo[i].isRotation())) continue; // see Domain::postProcessing in NLStatic.C
+    if(oinfo[i].sentype) continue;
     
     //CD: ad and get will be used in  addVariationOfShape_StructOpt and getOrAddDofForPrint which were 
     //    added to "clean" dynamOutput 
@@ -847,6 +890,7 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
 
   if (glDisp) delete [] glDisp;
   if (locDisp) delete [] locDisp;
+  firstOutput = false;
 }
 
 //----------------------------------------------------------------------------------------------
@@ -1016,6 +1060,139 @@ Domain::aeroPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
     }
   }
 }
+
+void
+Domain::sendDisplacements(Vector& d_n, Vector& v_n, Vector& a_n,
+                          Vector& v_p, double *bcx, double *vcx)
+{
+  if(sinfo.aeroFlag >= 0) {
+    Vector d_n_aero(d_n);
+    State curState(c_dsa, dsa, bcx, vcx, d_n_aero, v_n, a_n, v_p);
+    flExchanger->sendDisplacements(curState);
+  }
+}
+
+void
+Domain::aeroSensitivityPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
+                                  Vector& v_p, double *bcx, double *vcx)
+{
+  if(sinfo.aeroFlag >= 0) {
+
+    filePrint(stderr," --- aeroSensitivityPreProcess 1\n");
+    int numOutInfo = geoSource->getNumOutInfo();
+    OutputInfo *oinfo = geoSource->getOutputInfo();
+
+    int flag = 0;
+
+    // Check if aero forces are requested for output
+    int iInfo;
+    for(iInfo = 0; iInfo < numOutInfo; ++iInfo) {
+      if(oinfo[iInfo].type == OutputInfo::AeroForce) { 
+        flag = 1;
+        break;
+      }
+    }
+
+    OutputInfo *oinfo_aero = (flag) ? oinfo+iInfo : NULL;
+    if(aeroEmbeddedSurfaceId.size()!=0) {
+      int iSurf = -1;
+      for(int i=0; i<nSurfEntity; i++)
+        if(aeroEmbeddedSurfaceId.find(SurfEntities[i]->ID())!=aeroEmbeddedSurfaceId.end()) {
+          iSurf = i; 
+          break; //only allows one Surface.
+        }
+      if(iSurf<0) {
+        fprintf(stderr,"ERROR: Embedded wet surface not found! Aborting...\n");
+        exit(-1);
+      }
+      flExchanger = new FlExchanger(nodes, packedEset, SurfEntities[iSurf], c_dsa, oinfo_aero); //packedEset is not used, but flExchanger needs
+                                                                                                // to have a reference of it at construction.
+    } else {
+      filePrint(stderr," --- aeroSensitivityPreProcess 2\n");
+      flExchanger = new FlExchanger(nodes, packedEset, c_dsa, oinfo_aero);
+    }
+
+    char *matchFile = geoSource->getMatchFileName();
+    if(matchFile == 0)
+      matchFile = (char*) "MATCHER";
+
+    if(aeroEmbeddedSurfaceId.size()!=0) 
+      flExchanger->matchup();
+    else
+      flExchanger->read(0, matchFile);
+
+    //KW: send the embedded wet surface to fluid 
+    if(aeroEmbeddedSurfaceId.size()!=0) {
+      flExchanger->sendEmbeddedWetSurface();
+      if(verboseFlag) fprintf(stderr," ... [E] Sent embedded wet surface ...\n");
+    }
+
+    filePrint(stderr," --- aeroSensitivityPreProcess 3\n");
+    //XML New step of negotiation with fluid code
+    flExchanger->negotiate();
+    filePrint(stderr," --- aeroSensitivityPreProcess 4\n");
+
+    int restartinc = (solInfo().nRestart >= 0) ? (solInfo().nRestart) : 0;
+
+    Vector d_n_aero(d_n);
+
+    // Send u + IDISP6 to fluid code.
+    // IDISP6 is used to compute pre-stress effects.
+    if(sinfo.gepsFlg == 1) {
+      // If we are in the first time step, and we initialized with
+      // IDISP6, do not send IDISP6
+      if(numIDis == 0 && sinfo.zeroInitialDisp != 1) {
+        fprintf(stderr," ... DO NOT SEND IDISP6             ...\n");
+      } else {
+        fprintf(stderr," ... SENDING IDISP6                 ...\n");
+        int i;
+        for(i = 0; i < numIDis6; ++i) {
+          int dof = c_dsa->locate(iDis6[i].nnum, 1 << iDis6[i].dofnum);
+          if(dof >= 0)
+            d_n_aero[dof] += iDis6[i].val;
+        }
+      }
+    }
+    
+    filePrint(stderr," --- aeroSensitivityPreProcess 5\n");
+    State curState(c_dsa, dsa, bcx, vcx, d_n_aero, v_n, a_n, v_p);
+
+    if(sinfo.aeroFlag == 8) {
+      flExchanger->sendParam(sinfo.aeroFlag, sinfo.getTimeStep(), sinfo.mppFactor,
+                             restartinc, sinfo.isCollocated, sinfo.alphas);
+      flExchanger->sendModeFreq(modeData.frequencies, modeData.numModes);
+      if(verboseFlag) fprintf(stderr," ... [E] Sent parameters and mode frequencies ...\n");
+      flExchanger->sendModeShapes(modeData.numModes, modeData.numNodes,
+                   modeData.modes, curState, sinfo.mppFactor);
+      if(verboseFlag) fprintf(stderr," ... [E] Sent mode shapes ...\n");
+    }
+    else {
+//      double aero_tmax = sinfo.tmax;
+//      if(sinfo.newmarkBeta == 0) aero_tmax += sinfo.getTimeStep();
+//      flExchanger->sendParam(sinfo.aeroFlag, sinfo.getTimeStep(), aero_tmax, restartinc,
+//                             sinfo.isCollocated, sinfo.alphas);
+//      if(verboseFlag) fprintf(stderr," ... [E] Sent parameters ...\n");
+
+      if(sinfo.aeroFlag == 5 || sinfo.aeroFlag == 4) {
+        flExchanger->initRcvParity(1);
+        flExchanger->initSndParity(1);
+      } else {
+        flExchanger->initRcvParity(-1);
+        flExchanger->initSndParity(-1);
+      }
+
+      filePrint(stderr," --- aeroSensitivityPreProcess 6\n");
+      flExchanger->sendDisplacements(curState);
+      filePrint(stderr," --- aeroSensitivityPreProcess 7\n");
+      if(verboseFlag) fprintf(stderr," ... [E] Sent initial displacements ...\n");
+
+      if(sinfo.aeroFlag == 1) { // Ping pong only
+        fprintf(stderr, "Ping Pong Only requested. Structure code exiting\n");
+      }
+    }
+  }
+}
+
 
 void
 Domain::thermoePreProcess()

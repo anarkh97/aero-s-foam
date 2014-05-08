@@ -141,23 +141,31 @@ struct AllSensitivities
 {
 #ifdef USE_EIGEN3
   double weight; // total weight of the structure 
-  Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *weightWRTthick;                 // derivatives of weight wrto thickness
-  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *vonMisesWRTthick;  // derivatives of von Mises stress wrt thickness
-  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *vonMisesWRTdisp;   // derivatives of von Mises stress wrt displacement
-  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **stiffnessWRTthick;  // derivatives of stiffness wrt thickness 
-//  GenSparseMatrix<Scalar> *stiffnessWRTthick;                               // derivatives of stiffness wrt thickness
-  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *stressWeight;      // weight used to average stress sensitivity
+  Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *weightWRTthick;                     // derivatives of weight wrt thickness
+  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *vonMisesWRTthick;      // derivatives of von Mises stress wrt thickness
+  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *vonMisesWRTdisp;       // derivatives of von Mises stress wrt displacement
+  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *vonMisesWRTcoord;      // derivatives of von Mises stress wrt nodal coordinate
+  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **stiffnessWRTthick;    // derivatives of stiffness wrt thickness 
+  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **dKucdthick;    // derivatives of stiffness wrt thickness 
+  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *stressWeight;          // weight used to average stress sensitivity
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **linearstaticWRTthick; // derivative of linear static structural formulation wrt thickness
+  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **dispWRTthick;         // derivative of displacement wrt thickness
   // Constructor
-  AllSensitivities() { weight = 0; weightWRTthick = 0; vonMisesWRTthick = 0; vonMisesWRTdisp = 0; stressWeight = 0; stiffnessWRTthick = 0;  linearstaticWRTthick = 0; }
+  AllSensitivities() { weight = 0;                weightWRTthick = 0;
+                       vonMisesWRTthick = 0;      dKucdthick = 0;            vonMisesWRTcoord = 0; 
+                       vonMisesWRTdisp = 0;       stressWeight = 0;          stiffnessWRTthick = 0;   
+                       linearstaticWRTthick = 0;  dispWRTthick = 0; }
 
   void zero() {
     if(weightWRTthick) weightWRTthick->setZero();
     if(vonMisesWRTthick) vonMisesWRTthick->setZero();
     if(vonMisesWRTdisp) vonMisesWRTdisp->setZero();
+    if(vonMisesWRTcoord) vonMisesWRTcoord->setZero();
     if(stressWeight) stressWeight->setZero();
     if(stiffnessWRTthick) stiffnessWRTthick[0]->setZero();
+    if(dKucdthick) dKucdthick[0]->setZero();
     if(linearstaticWRTthick) linearstaticWRTthick[0]->setZero();
+    if(dispWRTthick) dispWRTthick[0]->setZero();
   }
 #endif
 };
@@ -563,10 +571,29 @@ class Domain : public HData {
      void assignRandMat();
      void retrieveElemset();
 
+     void computeWeightWRTthicknessSensitivity(int, AllSensitivities<double> &allSens);
+     void computeStiffnessWRTthicknessSensitivity(int, AllSensitivities<double> &allSens);
      void makePreSensitivities(AllSensitivities<double> &allSens, double *);
      void makePreSensitivities(AllSensitivities<DComplex> &allSens, DComplex *);
-     void makePostSensitivities(AllSensitivities<double> &allSens, GenVector<double> &sol, double *);
-     void makePostSensitivities(AllSensitivities<DComplex> &allSens, GenVector<DComplex> &sol, DComplex *);
+
+     void subtractGravityForceSensitivity(int, AllSensitivities<double> &allSens);
+     void computeDisplacementWRTthicknessSensitivity(int, GenSolver<double> *, 
+                                                     GenSparseMatrix<double> *, GenSparseMatrix<double> *,
+                                                     AllSensitivities<double> &);
+     void computeLinearStaticWRTthicknessSensitivity(int, AllSensitivities<double> &allSens,
+                                                     GenVector<double> &sol);
+     void computeStressVMWRTthicknessSensitivity(int, GenSolver<double> *,
+                                                 AllSensitivities<double> &allSens,
+                                                 GenVector<double> &sol, double *bcx,
+                                                 bool isDynam = false);
+     void computeStressVMWRTdisplacementSensitivity(int, AllSensitivities<double> &allSens,
+                                                    GenVector<double> &sol, double *bcx);
+     void computeStressVMWRTnodalCoordinateSensitivity(int, AllSensitivities<double> &allSens,
+                                                       GenVector<double> &sol, double *bcx);
+     void makePostSensitivities(GenSolver<double> *, GenSparseMatrix<double> *, GenSparseMatrix<double> *,
+                                AllSensitivities<double> &allSens, GenVector<double> &sol, double *, bool isDynam = false);
+     void makePostSensitivities(GenSolver<DComplex> *, GenSparseMatrix<DComplex> *, GenSparseMatrix<DComplex> *, 
+                                AllSensitivities<DComplex> &allSens, GenVector<DComplex> &sol, DComplex *, bool isDynam = false);
 
      /** Abstract method to assemble any type of operator
       *
@@ -582,7 +609,9 @@ class Domain : public HData {
        void buildPreSensitivities(AllSensitivities<Scalar> &ops, Scalar *);
 
      template<class Scalar>
-       void buildPostSensitivities(AllSensitivities<Scalar> &ops, GenVector<Scalar> &sol, Scalar *);
+       void buildPostSensitivities(GenSolver<Scalar> *sysSolver, 
+                                   GenSparseMatrix<Scalar> *, GenSparseMatrix<Scalar> *,
+                                   AllSensitivities<Scalar> &ops, GenVector<Scalar> &sol, Scalar *, bool isDynam = false);
 
      template<class Scalar>
        void buildOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef, double Ccoef,
@@ -666,6 +695,9 @@ class Domain : public HData {
        void addGravityForce(GenVector<Scalar>& force);
 
      template<class Scalar>
+       void addGravityForceSensitivity(GenVector<Scalar>& forceSen);
+
+     template<class Scalar>
        void addPressureForce(GenVector<Scalar>& force, int which = 2, double time = 0.0);
 
      template<class Scalar>
@@ -734,10 +766,6 @@ class Domain : public HData {
      void resProcessing(Vector &, int index=0, double t=0);
 
 #ifdef USE_EIGEN3
-     // sensitivity pre-processing function
-     template<class Scalar>
-     void sensitivityPreProcessing(AllSensitivities<Scalar> &allSens);
-
      // sensitivity post-processing function
      template<class Scalar>
      void sensitivityPostProcessing(AllSensitivities<Scalar> &allSens);
@@ -769,6 +797,8 @@ class Domain : public HData {
        { std::cerr << " *** WARNING: Domain::getTrussHeatFlux(Complex) is not implemented \n"; }
      template <class Scalar>
        void computeConstantForce(GenVector<Scalar>& constantForce, GenSparseMatrix<Scalar>* kuc = 0);
+     template <class Scalar>
+       void addConstantForceSensitivity(GenVector<Scalar>& constantForce, GenSparseMatrix<Scalar>* kuc = 0);
      template <class Scalar> 
        void computeExtForce4(GenVector<Scalar>& force, const GenVector<Scalar>& constantForce, double t,
                              GenSparseMatrix<Scalar> *kuc = 0, ControlInterface *userSupFunc = 0,
@@ -803,6 +833,7 @@ class Domain : public HData {
      void aeroheatSend(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, double* bcx, double* vcx, GeomState* geomState = 0);
      void thermohSend(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, double* bcx, double* vcx, GeomState* geomState = 0);
      void buildAeroelasticForce(Vector &f, PrevFrc& prevFrc, int tIndex, double t, double gamma, double alphaf, GeomState* geomState = 0);
+     void buildAeroelasticForceSensitivity(Vector &fSen, PrevFrc& prevFrc, int tIndex, double t, double gamma, double alphaf, GeomState* geomState = 0);
      void buildAeroheatFlux(Vector &f, Vector &prev_f, int tIndex, double t);
      void thermoeComm();
      void dynamOutput(int, double, double*, DynamMat&, Vector&, Vector &, Vector&, Vector&, Vector&, Vector &, double*, double* = 0);
@@ -910,7 +941,7 @@ class Domain : public HData {
                             FullSquareMatrix *kelArray = 0, bool factorize=true);
      template<class Scalar>
        void getSolverAndKuc(AllOps<Scalar> &allOps, FullSquareMatrix *kelArray, bool factorize=true);
-
+     
      void make_constrainedDSA();
      void make_constrainedDSA(int *bc);
      void make_constrainedDSA(int fake);
@@ -1037,6 +1068,8 @@ class Domain : public HData {
      void getCompositeData(int iInfo,double time);
 
      void aeroPreProcess(Vector&, Vector&, Vector&, Vector &,double*,double*);
+     void aeroSensitivityPreProcess(Vector&, Vector&, Vector&, Vector &,double*,double*);
+     void sendDisplacements(Vector&, Vector&, Vector&, Vector&, double*, double *);
      void thermoePreProcess();
 
      void aeroHeatPreProcess(Vector&, Vector&, Vector&, double *bcx );
@@ -1186,10 +1219,12 @@ class Domain : public HData {
      void transformVector(Vector &vec, int iele);
      void transformNeumVector(Vector &vec, int iele);
      void transformVector(ComplexVector &vec, int iele);
+     void transformElementSensitivityInv(GenFullM<double> *vec, int iele);
      void transformVectorInv(Vector &vec, int iele);
      void transformVectorInv(ComplexVector &vec, int iele);
      void transformVector(double *data, int inode, bool hasRot);
      void transformVector(complex<double> *data, int inode, bool hasRot);
+     void transformElementSensitivityInv(double *data, int inode, int numNodes, bool hasRot);
      void transformVectorInv(double *data, int inode, bool hasRot);
      void transformVectorInv(complex<double> *data, int inode, bool hasRot);
      void transformStressStrain(FullM &mat, int iele);

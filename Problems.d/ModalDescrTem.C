@@ -106,6 +106,15 @@ void ModalDescr<Scalar>::getConstForce(Vector &constF){
 //------------------------------------------------------------------------------
 
 template <class Scalar>
+void ModalDescr<Scalar>::addConstForceSensitivity(Vector &constF){
+
+  filePrint(stderr," ... ModalDescr<Scalar>::addConstForceSensitivity is not implemented\n"); 
+  exit(-1); 
+}
+
+//------------------------------------------------------------------------------
+
+template <class Scalar>
 void ModalDescr<Scalar>::getSteadyStateParam(int &flag, int &min, int &max, double &tol){
 
   flag = domain->solInfo().steadyFlag;
@@ -271,6 +280,34 @@ int ModalDescr<Scalar>::aeroPreProcess(Vector& d_n, Vector& v_n,
 
   domain->aeroPreProcess(fullDsp, fullVel, fullAcc, fullPrevVel, bcx, vcx);
 
+  return domain->solInfo().aeroFlag;
+}
+
+//------------------------------------------------------------------------------
+
+template <class Scalar>
+int ModalDescr<Scalar>::aeroSensitivityPreProcess(Vector& d_n, Vector& v_n,
+  Vector& a_n, Vector& v_p){
+/*PRE: arguements are in modal space
+ POST: call domain aeroSensitivityPreProcess with the expanded state vectors
+*/
+  expand(d_n, fullDsp);
+  expand(v_n, fullVel);
+  expand(a_n, fullAcc);
+  expand(v_p, fullPrevVel);
+
+  domain->aeroSensitivityPreProcess(fullDsp, fullVel, fullAcc, fullPrevVel, bcx, vcx);
+
+  return domain->solInfo().aeroFlag;
+}
+
+//------------------------------------------------------------------------------
+
+template <class Scalar>
+int ModalDescr<Scalar>::sendDisplacements(Vector& d_n, Vector& v_n,
+                                          Vector& a_n, Vector& v_p)
+{
+  domain->sendDisplacements(d_n, v_n, a_n, v_p, bcx, vcx);
   return domain->solInfo().aeroFlag;
 }
 

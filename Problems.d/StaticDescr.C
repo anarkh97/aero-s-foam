@@ -219,7 +219,14 @@ template<class T, class VectorType, class SolverType>
 void
 SingleDomainStatic<T, VectorType, SolverType>::postProcessSA(GenVector<T> &sol)
 {
- domain->buildPostSensitivities<T>(allSens, sol, bcx);
+/* if(allOps.K) {
+   cerr << "print allOps.K\n";
+   allOps.K->print();
+ } else {
+   cerr << "allOps.K is not defined\n";
+ }*/
+
+ domain->buildPostSensitivities<T>(allOps.sysSolver, allOps.K, allOps.spm, allSens, sol, bcx);
 }
 
 template<class T, class VectorType, class SolverType>
@@ -426,7 +433,7 @@ SingleDomainStatic<T, VectorType, SolverType>::getFreqSweepRHS(VectorType *rhs, 
       (*vec)[i] = double(k)*(double(k-1)*(*u[k-1])[i] + 2.0*omega*(*u[k])[i]);
     allOps.M->mult(vec->data(), rhs->data());
 
-    if(allOps.C_deriv) {
+    if(allOps, allOps.C_deriv) {
       for(int j=0; j<=k-1; ++j) {
         if(allOps.C_deriv[k-j-1]) {
           double ckj = DCombination(k,j);

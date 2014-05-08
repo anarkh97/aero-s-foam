@@ -22,6 +22,8 @@
 #include <Mortar.d/FaceElement.d/SurfaceEntity.h>
 #endif
 
+extern int verboseFlag;
+
 template<class Scalar>
 void GeoSource::distributeBCs(GenSubDomain<Scalar> *&tmpSub, int *cl2LocNodeMap,
                                 int *gl2ClusNodeMap)  
@@ -613,10 +615,13 @@ GeoSource::outputEigenScalars(int fileNum, Eigen::Matrix<Scalar, Eigen::Dynamic,
   int w = oinfo[fileNum].width;
   int p = oinfo[fileNum].precision;
 
-  Eigen::IOFormat CleanFmt(w,0," ", "\n", " ", " ");
+  Eigen::IOFormat CleanFmt(Eigen::FullPrecision,0," ", "\n", " ", " ");
   if(oinfo[fileNum].isFirst) {
     std::ofstream fileout(oinfo[fileNum].filename, std::ios::out);
-    fileout << "\t" << time << "\n";
+    if(verboseFlag) std::cerr << oinfo[fileNum].filename << std::endl;
+    if(verboseFlag) std::cerr << time << std::endl;
+    if(verboseFlag) std::cerr << (*output) << std::endl;
+    fileout << "\t" << time << std::endl;
     fileout << (*output).format(CleanFmt) << std::endl;
     fileout.close();
     oinfo[fileNum].isFirst = false;
@@ -635,7 +640,7 @@ GeoSource::outputEigenVectors(int fileNum, Eigen::Matrix<Scalar, Eigen::Dynamic,
   int w = oinfo[fileNum].width;
   int p = oinfo[fileNum].precision;
   
-  Eigen::IOFormat CleanFmt(w,0," ", "\n", " ", " ");
+  Eigen::IOFormat CleanFmt(Eigen::FullPrecision,0,", ", "\n", " ", " ");
   if(oinfo[fileNum].isFirst) {
     std::ofstream fileout(oinfo[fileNum].filename, std::ios::out);
     fileout << "\t" << time << "\n";

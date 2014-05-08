@@ -389,7 +389,10 @@ class Element {
                                            double *coefs, CoordSet &cs, double theta);
 
         virtual FullSquareMatrix stiffness(CoordSet& cs,double *k,int flg=1);
-        virtual void getStiffnessThicknessSensitivity(CoordSet& cs,Vector&,FullSquareMatrix &dStiffdThick, int flg=1, int senMethod=0) { dStiffdThick.zero(); }
+        virtual void getStiffnessThicknessSensitivity(CoordSet& cs,FullSquareMatrix &dStiffdThick, int flg=1, int senMethod=0) { dStiffdThick.zero(); }
+        virtual void getStiffnessNodalCoordinateSensitivity(CoordSet& cs,FullSquareMatrix *&dStiffdx, int flg=1, int senMethod=0) { 
+          for(int i=0; i<numNodes()*3; ++i) dStiffdx[i].zero(); 
+        }
         virtual FullSquareMatrix massMatrix(CoordSet& cs,double *m,int cmflg=1);
         virtual FullSquareMatrix imStiffness(CoordSet& cs,double *k,int flg=1);
         FullSquareMatrix massMatrix(CoordSet& cs, double* m, double mratio);
@@ -399,12 +402,16 @@ class Element {
         virtual FullSquareMatrix dampingMatrix(CoordSet& cs,double *m,int cmflg=1);
 
         virtual double getMass(CoordSet&) { return 0; }
-        virtual double weight(CoordSet&, double *, int) { return 0; }
-        virtual double weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int altitude_direction, int senMethod=1) { return 0; }
+        virtual double getMassSensitivityWRTthickness(CoordSet&) { return 0; }
+        virtual double weight(CoordSet&, double *) { return 0; }
+        virtual double weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int senMethod=1) { return 0; }
         virtual double getDCmass(CoordSet &,Vector &, double&) { return 0; }
 
         virtual void   getGravityForce(CoordSet&,double *gravity,Vector &force,
                                        int gravflg, GeomState *gs=0);
+
+        virtual void   getGravityForceSensitivityWRTthickness(CoordSet&,double *gravity,Vector &force,
+                                                              int gravflg, GeomState *gs=0);
 
         virtual void   getThermalForce(CoordSet& cs,Vector &ndT,Vector &force,
                                        int glflag, GeomState *gs=0);
@@ -450,6 +457,12 @@ class Element {
                                                         int senMethod = 1, double * = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0) {
           weight = DComplex(1,0);
           dStdDisp.zero();
+        }
+
+        virtual void getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+                                                           int senMethod = 1, double * = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0) {
+          weight = 1;
+          dStdx.zero();
         }
 
         virtual void   getAllStress(FullM &stress, Vector &weight, CoordSet &cs,

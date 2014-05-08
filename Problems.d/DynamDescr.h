@@ -23,6 +23,7 @@ template <typename T> class SysState;
 class Domain;
 class ControlLawInfo;
 template <typename Scalar> class GenSolver;
+template <typename Scalar> struct AllSensitivities;
 class Rbm;
 
 // Single Domain Dynamic Post Processor Class
@@ -84,6 +85,7 @@ class SingleDomainDynamic
     SparseMatrix *kuc, *muc, *cuc;
     ControlInterface *userSupFunc;
     ControlLawInfo *claw;
+    AllSensitivities<double> *allSens;
 
     // members for nonlinear eigen problem
     FullSquareMatrix *kelArray, *melArray;
@@ -144,16 +146,21 @@ class SingleDomainDynamic
     void getInitialTime(int &tIndex, double &initialTime); 
     double getInitialForceNorm(); 
     void getConstForce(Vector &gravityForce);
+    void addConstForceSensitivity(Vector &gravityForceSen);
     void getSteadyStateParam(int &steadyFlag, int &steadyMin, int &steadMax,
                              double &steadyTol); 
 
     void getContactForce(Vector &d_n, Vector &dinc, Vector &ctc_f, double d_n_p, double dt, double dt_old);
     void computeExtForce2(SysState<Vector> &, Vector &, Vector &, int t_index,
                          double t, Vector * aero_f=0, double gamma=0.5, double alphaf=0.5, double *pt_dt=0);
+    void getAeroelasticForceSensitivity(int t_index, double t, Vector * aero_f=0, double gamma=0.5, double alphaf=0.5);
     void preProcess();
+    void preProcessSA();
+    void postProcessSA(DynamMat *dMat, Vector &sol);
     void processLastOutput();
     DynamMat * buildOps(double coeM, double coeC, double coeK);
     GenSolver<double> *getSolver();
+    AllSensitivities<double> *getAllSensitivities() { return allSens; }
     SDDynamPostProcessor *getPostProcessor();
     void printTimers(DynamMat *, double);
     //void getPrescContrib(SparseMatrix *M12, SparseMatrix *C12, Vector& vnc,
@@ -181,6 +188,9 @@ class SingleDomainDynamic
     // Aeroelastic problems related subroutines
     void computeTimeInfo();
     int aeroPreProcess(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p);
+    int aeroSensitivityPreProcess(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p);
+    int sendDisplacements(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p);
+    void sendNumParam(int numParam);
     int cmdCom(int cmdFlag);
     int getAeroAlg();
     void aeroSend(double time, Vector& d, Vector& v, Vector& a, Vector& v_p);

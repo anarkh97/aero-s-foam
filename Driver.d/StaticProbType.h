@@ -6,6 +6,7 @@
 #include <Sfem.d/SfemInpc.h>
 #include <Sfem.d/MultInteg.h>
 
+template<class Scalar> struct AllSensitivities;
 
 template <class Scalar,
           class OpSolver,

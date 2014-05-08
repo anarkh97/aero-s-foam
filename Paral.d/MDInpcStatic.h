@@ -12,6 +12,7 @@ template <class Scalar> class GenDistrVector;
 class DistrGeomState;
 class DistrInfo;
 template <class Scalar> class AllOps;
+template <class Scalar> struct AllSensitivities;
 
 template <class Scalar> 
 class GenMultiDomainInpcPostProcessor 
@@ -89,6 +90,7 @@ class GenMultiDomainInpcStatic
     void assignRandMat() {decDomain->assignRandMat(); }     
     void retrieveElemset() {decDomain->retrieveElemset();}
     void project(DistrBlockVector<Scalar> &) {cerr << "project(DistrBlockVector) not implemented" << endl;}
+    AllSensitivities<Scalar> *getAllSensitivities() { cerr << "GenMultiDomainInpcStatic::getAllSensitivities() not implemented" << endl; return 0; }
   private:
     void subGetRHS(int isub, GenDistrVector<Scalar>& rhs, GenSubDOp<Scalar> *Kuc);
 };

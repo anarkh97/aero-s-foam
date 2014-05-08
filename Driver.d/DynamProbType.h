@@ -9,7 +9,7 @@ class Structopt;
 class DistrInfo;
 class SingleInfo;
 template <typename T> class SysState;
-
+struct Group;
 
 template <class VecType,
           class ProblemDescriptor> 
@@ -100,6 +100,9 @@ private:
      void     quasistaticLoop(SysState<VecType>&, VecType&, DynOps& dynOps, 
 			                        NewmarkWorkVec<VecType,ProblemDescriptor> &workVec,
                               double, double, int =0);
+     void aeroSensitivityQuasistaticLoop(SysState<VecType>&, VecType&, DynOps& dynOps, 
+			                                   NewmarkWorkVec<VecType,ProblemDescriptor> &workVec,
+                                         double, double, int =0);
 
      int checkSteadyState(double time, double step, double criteria=-1.0);
 
@@ -125,10 +128,20 @@ private:
      VecType * aeroForce;
      
      SysState<VecType> * curState; 
-     
+
+     VecType * d_nSen;
+     VecType * v_nSen;
+     VecType * a_nSen;
+     VecType * v_pSen;
+     VecType * rhsSen;
+     VecType * aeroForceSen;
+
+     SysState<VecType> * curSenState;    
+ 
      DynOps * dynOps; 
 
      NewmarkWorkVec<VecType,ProblemDescriptor> * workVec;
+     NewmarkWorkVec<VecType,ProblemDescriptor> * workSenVec;
 };
 
 #ifdef _TEMPLATE_FIX_

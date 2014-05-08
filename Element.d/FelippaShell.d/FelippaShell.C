@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <stdexcept>
+#include <iomanip>
 #include <iostream>
 
 #include <Corotational.d/GeomState.h>
@@ -11,6 +12,7 @@
 #include <Element.d/FelippaShell.d/FelippaShell.h>
 #include <Element.d/FelippaShell.d/ShellElementStressWRTThicknessSensitivity.h>
 #include <Element.d/FelippaShell.d/ShellElementStressWRTDisplacementSensitivity.h>
+#include <Element.d/FelippaShell.d/ShellElementStressWRTNodalCoordinateSensitivity.h>
 #include <Element.d/FelippaShell.d/FelippaShellStiffnessWRTThicknessSensitivity.h>
 #include <Element.d/NonLinearity.d/ExpMat.h>
 #include <Element.d/NonLinearity.d/MaterialWrapper.h>
@@ -118,6 +120,24 @@ FelippaShell::getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
   stress[0] = elStress[0][strInd-offset];
   stress[1] = elStress[1][strInd-offset];
   stress[2] = elStress[2][strInd-offset];
+/*
+//  if(verboseFlag) {
+    cerr << "glNum + 1 is" << glNum + 1 << endl;
+    cerr << "maxstr is " << maxstr << endl;
+    cerr << "prop->nu is " << prop->nu << endl;
+    cerr << "disp = \n"; 
+    for(int i=0; i<elDisp.size(); ++i) cerr << elDisp[i] << "  ";
+    cerr << endl;
+    cerr << "x = " << x[0] << "  " << x[1] << "  " << x[2] << endl;
+    cerr << "y = " << y[0] << "  " << y[1] << "  " << y[2] << endl;
+    cerr << "z = " << z[0] << "  " << z[1] << "  " << z[2] << endl;
+    cerr << "type = " << type << endl;
+    cerr << "strainFlg = " << strainFlg << endl;
+    cerr << "surface = " << surface << endl;
+    cerr << "strInd is " << strInd << endl;
+    cerr << "offset is " << offset << endl; */
+//    cerr << "print element Stress\n" << std::setprecision(20) << elStress[0][strInd-offset] << "  " << elStress[1][strInd-offset] << "  " << elStress[2][strInd-offset] << endl;
+//  } 
 }
 
 void
@@ -305,6 +325,135 @@ FelippaShell::getGravityForce(CoordSet& cs, double *gravityAcceleration,
   gravityForce[17] = mz[2];
 }
 
+void
+FelippaShell::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravityAcceleration, 
+                                                     Vector& gravityForceSensitivity, int gravflg, GeomState *geomState)
+{
+  if (prop == NULL) {
+    gravityForceSensitivity.zero();
+    return;
+  }
+
+  double x[3] = { cs[nn[0]]->x, cs[nn[1]]->x, cs[nn[2]]->x };
+  double y[3] = { cs[nn[0]]->y, cs[nn[1]]->y, cs[nn[2]]->y };
+  double z[3] = { cs[nn[0]]->z, cs[nn[1]]->z, cs[nn[2]]->z };
+  double grvforSen[3];
+  bool grvflg = true, masflg = false;
+  double totmas = 0;
+
+  andesmsWRTthic(glNum+1, x, y, z, gravityAcceleration, grvforSen, grvflg, totmas, masflg);
+
+  // scale gravity force by number of nodes
+  grvforSen[0] /= 3.0;
+  grvforSen[1] /= 3.0;
+  grvforSen[2] /= 3.0;
+
+  double mx[3],my[3],mz[3];
+  int i;
+  for(i=0; i<3; ++i) {
+    mx[i]=0.0;
+    my[i]=0.0;
+    mz[i]=0.0;
+  }
+
+  // Lumped
+  if(gravflg == false) {
+
+  }
+  // Consistent or lumped with fixed end moments.  Compute treating shell as 3 beams.
+  else {
+    //Node &nd1 = cs.getNode(nn[0]);
+    //Node &nd2 = cs.getNode(nn[1]);
+    //Node &nd3 = cs.getNode(nn[2]);
+
+    double T1[3],T2[3],T3[3];
+    // Vector 1 from Node 1->2
+    T1[0] = x[1] - x[0];
+    T1[1] = y[1] - y[0];
+    T1[2] = z[1] - z[0];
+    normalize( T1 );
+    // Vector 2 from Node 1->3
+    T2[0] = x[2] - x[0];
+    T2[1] = y[2] - y[0];
+    T2[2] = z[2] - z[0];
+    normalize( T2 );
+    // Local Z-axis as cross between V1 and V2
+    crossprod( T1, T2, T3 );
+    normalize( T3);
+
+    int beam, beamnode[3][2];
+    beamnode[0][0] = 0;
+    beamnode[0][1] = 1;
+    beamnode[1][0] = 0;
+    beamnode[1][1] = 2;
+    beamnode[2][0] = 1;
+    beamnode[2][1] = 2;
+
+    for(beam=0; beam<3; ++beam) {
+      double length, dx, dy, dz, localg[3];
+      int n1, n2;
+      n1 = beamnode[beam][0];
+      n2 = beamnode[beam][1];
+      dx = x[n2] - x[n1];
+      dy = y[n2] - y[n1];
+      dz = z[n2] - z[n1];
+      length = sqrt(dx*dx + dy*dy + dz*dz);
+      // Local X-axis from Node 1->2
+      T1[0] = x[n2] - x[n1];
+      T1[1] = y[n2] - y[n1];
+      T1[2] = z[n2] - z[n1];
+      normalize( T1 );
+      // Local Y-axis as cross between Z and X
+      crossprod( T3, T1, T2 );
+      normalize( T2);
+
+      for(i=0; i<3; ++i)
+        localg[i] = 0.0;
+      for(i=0; i<3; ++i) {
+        localg[0] += T1[i]*grvforSen[i];
+        localg[1] += T2[i]*grvforSen[i];
+        localg[2] += T3[i]*grvforSen[i];
+      }
+      double lmy,lmz;
+      if (gravflg == 2) { // consistent
+        lmy = -localg[2]*length/12.0;
+        lmz = localg[1]*length/12.0;
+      }
+      else { // lumped with fixed-end moments
+        lmy = -localg[2]*length/16.0;
+        lmz = localg[1]*length/16.0;
+      }
+      mx[n1] += ((T2[0]*lmy) + (T3[0]*lmz));
+      my[n1] += ((T2[1]*lmy) + (T3[1]*lmz));
+      mz[n1] += ((T2[2]*lmy) + (T3[2]*lmz));
+      mx[n2] -= ((T2[0]*lmy) + (T3[0]*lmz));
+      my[n2] -= ((T2[1]*lmy) + (T3[1]*lmz));
+      mz[n2] -= ((T2[2]*lmy) + (T3[2]*lmz));
+    }
+  }
+
+  // set gravity force
+  gravityForceSensitivity[0]  = grvforSen[0];
+  gravityForceSensitivity[1]  = grvforSen[1];
+  gravityForceSensitivity[2]  = grvforSen[2];
+  gravityForceSensitivity[3]  = mx[0];
+  gravityForceSensitivity[4]  = my[0];
+  gravityForceSensitivity[5]  = mz[0];
+  gravityForceSensitivity[6]  = grvforSen[0];
+  gravityForceSensitivity[7]  = grvforSen[1];
+  gravityForceSensitivity[8]  = grvforSen[2];
+  gravityForceSensitivity[9]  = mx[1];
+  gravityForceSensitivity[10] = my[1];
+  gravityForceSensitivity[11] = mz[1];
+  gravityForceSensitivity[12] = grvforSen[0];
+  gravityForceSensitivity[13] = grvforSen[1];
+  gravityForceSensitivity[14] = grvforSen[2];
+  gravityForceSensitivity[15] = mx[2];
+  gravityForceSensitivity[16] = my[2];
+  gravityForceSensitivity[17] = mz[2];
+}
+
+
 double
 FelippaShell::getMass(CoordSet &cs)
 { 
@@ -325,18 +474,39 @@ FelippaShell::getMass(CoordSet &cs)
 }
 
 double
-FelippaShell::weight(CoordSet& cs, double *gravityAcceleration, int altitude_direction)
+FelippaShell::getMassSensitivityWRTthickness(CoordSet &cs)
+{ 
+  if(prop == NULL) return 0.0;
+
+  double x[3] = { cs[nn[0]]->x, cs[nn[1]]->x, cs[nn[2]]->x };
+  double y[3] = { cs[nn[0]]->y, cs[nn[1]]->y, cs[nn[2]]->y };
+  double z[3] = { cs[nn[0]]->z, cs[nn[1]]->z, cs[nn[2]]->z };
+  double ElementMassMatrix[18][18];
+  double *gravityAcceleration = NULL, *grvfor = NULL;
+  bool grvflg = false, masflg = true;
+  double totmasSen = 0.0;
+
+  andesmsWRTthic(glNum+1, x, y, z, gravityAcceleration, grvfor, grvflg, totmasSen, masflg);
+
+  return totmasSen;
+}
+
+double
+FelippaShell::weight(CoordSet& cs, double *gravityAcceleration)
 {
   if (prop == NULL) {
     return 0.0;
   }
 
   double _mass = getMass(cs);
-  return _mass*gravityAcceleration[altitude_direction];
+  double gravAccNorm = sqrt(gravityAcceleration[0]*gravityAcceleration[0] + 
+                            gravityAcceleration[1]*gravityAcceleration[1] +
+                            gravityAcceleration[2]*gravityAcceleration[2]);
+  return _mass*gravAccNorm;
 }
 
 double
-FelippaShell::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int altitude_direction, int senMethod)
+FelippaShell::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int senMethod)
 {
  if (prop == NULL) return 0.0;
 
@@ -389,8 +559,11 @@ FelippaShell::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAccelera
   }
   double area = rlr * .5 * sqrt(twicearea2);
   double sumrho = nmat->GetSumDensity();
+  double gravAccNorm = sqrt(gravityAcceleration[0]*gravityAcceleration[0] + 
+                            gravityAcceleration[1]*gravityAcceleration[1] +
+                            gravityAcceleration[2]*gravityAcceleration[2]);
  
-  double sensitivity = area*sumrho*gravityAcceleration[altitude_direction];
+  double sensitivity = area*sumrho*gravAccNorm;
 
 /*
   // finite difference for isotropic material
@@ -399,7 +572,7 @@ FelippaShell::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAccelera
   double Mp = getMass(cs);
   gpmat->setThickness(prop->eh-dh);
   double Mm = getMass(cs);
-  double FDsen = (Mp-Mm)*gravityAcceleration[altitude_direction]/(2*dh);
+  double FDsen = (Mp-Mm)*gravAccNorm/(2*dh);
   fprintf(stderr, "Finite Difference is %7.3e\n", FDsen);
   fprintf(stderr, "sensitivity is %7.3e\n", sensitivity);
   if(abs(FDsen-sensitivity) > 1e-5) {
@@ -421,7 +594,7 @@ FelippaShell::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAccelera
   for(int i=0; i<nlayer; ++i) layerThickness[i] -= (2*dh);
   gpmat->resetLayerThickness(layerThickness);  gpmat->resetAreaDensity();
   double Mm = getMass(cs);
-  double FDsen = (Mp-Mm)*gravityAcceleration[altitude_direction]/(2*dh);
+  double FDsen = (Mp-Mm)*gravAccNorm/(2*dh);
   fprintf(stderr, "Finite Difference is %7.3e\n", FDsen);
   fprintf(stderr, "sensitivity is %7.3e\n", sensitivity);
   if(abs(FDsen-sensitivity) > 1e-5) {
@@ -1316,7 +1489,69 @@ FelippaShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
 
 #ifdef USE_EIGEN3
 void 
-FelippaShell::getStiffnessThicknessSensitivity(CoordSet &cs, Vector &elDisp, FullSquareMatrix &dStiffdThick, int flg, int senMethod)
+FelippaShell::getStiffnessNodalCoordinateSensitivity(CoordSet &cs, FullSquareMatrix *&dStiffdx, int flg, int senMethod)
+{
+/*
+     if(dStiffdx[0].dim() != 18) {
+     cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
+     exit(-1);
+   }
+
+  // scalar parameters
+  Eigen::Array<double,4,1> dconst;
+
+  Node &nd1 = cs.getNode(nn[0]);
+  Node &nd2 = cs.getNode(nn[1]);
+  Node &nd3 = cs.getNode(nn[2]);
+
+  dconst[0] = nmat->GetShellThickness();
+  dconst[1] = prop->E; // E
+  dconst[2] = prop->nu;   // nu
+  dconst[3] = prop->rho;  // rho
+  // integer parameters
+  Eigen::Array<int,0,1> iconst;
+  // inputs
+  Eigen::Matrix<double,9,1> q;
+  q << nd1.x, nd1.y, nd1.z, nd2.x, nd2.y, nd2.z, nd3.x, nd3.y, nd3.z;
+
+  Eigen::Matrix<double,18,18> *dStiffnessdx = new Eigen::Matrix<double,18,18>[9];
+  if(senMethod == 0) { // analytic
+    cerr << " ... Warning: analytic stiffness sensitivity wrt nodal coordinate is not implemented yet\n";
+    cerr << " ...          instead, automatic differentiation will be applied\n";
+    senMethod = 1;
+  }
+
+  if(senMethod == 1) { // automatic differentiation
+    Simo::FirstPartialSpaceDerivatives<double, FelippaShellStiffnessWRTNodalCoordinateSensitivity> dSdx(dconst,iconst); 
+    Eigen::Array<Eigen::Matrix<double,18,18>,1,1> dStifdx = dSdx(q, 0);
+    if(verboseFlag) std::cerr << "dStifdThick(AD) =\n" << dStifdx[0] << std::endl;
+    dStiffnessdx = dStifdx[0];
+  }
+
+  if(senMethod == 2) { // finite difference
+    FelippaShellStiffnessWRTNodalCoordinateSensitivity<double> foo(dconst,iconst);
+    Eigen::Matrix<double,9,1> qp, qm;
+    double h(1e-6);
+    for(int i=0; i<9; ++i) {
+      qp[0] = q[0] + h;   qm[0] = q[0] - h;
+      Eigen::Matrix<double,18,18> Sp = foo(qp, 0);
+      Eigen::Matrix<double,18,18> Sm = foo(qm, 0);
+      dStiffnessdx[i] = (Sp-Sm)/(2*h);
+    }
+    Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
+    if(verboseFlag) std::cerr << "Sp =\n" << Sp.format(HeavyFmt) << std::endl;
+    if(verboseFlag) std::cerr << "Sm =\n" << Sm.format(HeavyFmt) << std::endl;
+    if(verboseFlag) std::cerr << "dStiffnessdx(FD) =\n" << dStiffnessdx[0].format(HeavyFmt) << std::endl;
+  }
+
+  dStiffdx.copy(dStiffnessdx.data());
+*/
+}
+#endif
+
+#ifdef USE_EIGEN3
+void 
+FelippaShell::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix &dStiffdThick, int flg, int senMethod)
 {
    if(dStiffdThick.dim() != 18) {
      std::cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
@@ -1324,7 +1559,7 @@ FelippaShell::getStiffnessThicknessSensitivity(CoordSet &cs, Vector &elDisp, Ful
    }
 
   // scalar parameters
-  Eigen::Array<double,30,1> dconst;
+  Eigen::Array<double,12,1> dconst;
 
   Node &nd1 = cs.getNode(nn[0]);
   Node &nd2 = cs.getNode(nn[1]);
@@ -1333,10 +1568,9 @@ FelippaShell::getStiffnessThicknessSensitivity(CoordSet &cs, Vector &elDisp, Ful
   dconst[0] = nd1.x; dconst[1] = nd2.x; dconst[2] = nd3.x; // x coordinates
   dconst[3] = nd1.y; dconst[4] = nd2.y; dconst[5] = nd3.y; // y coordinates
   dconst[6] = nd1.z; dconst[7] = nd2.z; dconst[8] = nd3.z; // z coordinates
-  dconst.segment<18>(9) = Eigen::Map<Eigen::Matrix<double,18,1> >(elDisp.data()).segment(0,18); // displacements 
-  dconst[27] = prop->E; // E
-  dconst[28] = prop->nu;   // nu
-  dconst[29] = prop->rho;  // rho
+  dconst[9] = prop->E; // E
+  dconst[10] = prop->nu;   // nu
+  dconst[11] = prop->rho;  // rho
   // integer parameters
   Eigen::Array<int,0,1> iconst;
   // inputs
@@ -1351,9 +1585,7 @@ FelippaShell::getStiffnessThicknessSensitivity(CoordSet &cs, Vector &elDisp, Ful
     x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
     x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
 
-    double *fint = NULL;
-
-    andesstfWRTthick(glNum+1, dStiffnessdThick.data(), fint, prop->nu, x, y, z, elDisp.data(), type, flg);
+    andesstfWRTthick(glNum+1, dStiffnessdThick.data(), prop->nu, x, y, z, type, flg);
     if(verboseFlag) std::cerr << "dStiffnessdThick(analytic) =\n" << dStiffnessdThick << std::endl;
   }
 
@@ -1372,7 +1604,10 @@ FelippaShell::getStiffnessThicknessSensitivity(CoordSet &cs, Vector &elDisp, Ful
     Eigen::Matrix<double,18,18> Sp = foo(qp, 0);
     Eigen::Matrix<double,18,18> Sm = foo(qm, 0);
     dStiffnessdThick = (Sp-Sm)/(2*h);
-    if(verboseFlag) std::cerr << "dStiffnessdThick(FD) =\n" << dStiffnessdThick << std::endl;
+    Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
+    if(verboseFlag) std::cerr << "Sp =\n" << Sp.format(HeavyFmt) << std::endl;
+    if(verboseFlag) std::cerr << "Sm =\n" << Sm.format(HeavyFmt) << std::endl;
+    if(verboseFlag) std::cerr << "dStiffnessdThick(FD) =\n" << dStiffnessdThick.format(HeavyFmt) << std::endl;
   }
 
   dStiffdThick.copy(dStiffnessdThick.data());
@@ -1398,6 +1633,13 @@ FelippaShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight,
   dconst[27] = prop->E; // E
   dconst[28] = prop->nu;   // nu
   dconst[29] = prop->rho;  // rho
+
+  if(verboseFlag) {
+    cerr << "print displacement =\n";
+    for(int i=0; i<18; ++i) cerr << elDisp[i] << "  ";
+    cerr << endl;
+  }
+
   // integer parameters
   Eigen::Array<int,1,1> iconst;
   iconst[0] = surface; // surface
@@ -1412,10 +1654,16 @@ FelippaShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight,
     Eigen::Vector3d dStressdThick;
     dStressdThick.setZero();
     Eigen::Matrix<double,7,3> stress;
-    andesvmsWRTthic(0, 7, prop->nu, globalx.data(), globaly.data(), globalz.data(), elDisp.data(),
-                    stress.data(), dStressdThick.data(), 0, 0, surface);   
+    andesvmsWRTthic(1, 7, prop->nu, globalx.data(), globaly.data(), globalz.data(), elDisp.data(),
+                    stress.data(), dStressdThick.data(), 0, 0, surface);  
+
+//    cerr << "stress[0] is " << std::setprecision(15) << stress(6,0) << endl;
+//    cerr << "stress[1] is " << std::setprecision(15) << stress(6,1) << endl;
+//    cerr << "stress[2] is " << std::setprecision(15) << stress(6,2) << endl;
+ 
     dStdThick.copy(dStressdThick.data());
     if(verboseFlag) std::cerr << "dStressdThick(analytic) =\n" << dStressdThick << std::endl;
+//    std::cerr << "dStressdThick(analytic) =\n" << dStressdThick << std::endl;
   }
 
   if(senMethod == 1) { // automatic differentiation
@@ -1430,14 +1678,107 @@ FelippaShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight,
     ShellElementStressWRTThicknessSensitivity<double> foo(dconst,iconst);
     Eigen::Matrix<double,1,1> qp, qm;
     double h(1e-6);
-    qp[0] = q[0] + h;   qm[0] = q[0] - h;
+    qp[0] = q[0] + h;   cerr << "qp[0] = " << qp[0] << endl;
+    qm[0] = q[0] - h;   cerr << "qm[0] = " << qm[0] << endl;
+    Eigen::Matrix<double,3,1> S = foo(q,0);
     Eigen::Matrix<double,3,1> Sp = foo(qp, 0);
     Eigen::Matrix<double,3,1> Sm = foo(qm, 0);
     Eigen::Vector3d dStressdThick = (Sp - Sm)/(2*h);
-    if(verboseFlag) std::cerr << "dStressdThick(FD) =\n" << dStressdThick << std::endl;
+    Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
+    cerr << "S =\n" << S.format(HeavyFmt) << endl;
+    cerr << "Sp =\n" << Sp.format(HeavyFmt) << endl;
+    cerr << "Sm =\n" << Sm.format(HeavyFmt) << endl;
+//    if(verboseFlag) std::cerr << "dStressdThick(FD) =\n" << dStressdThick << std::endl;
+    if(verboseFlag) std::cerr << "dStressdThick(FD) =\n" << dStressdThick.format(HeavyFmt) << std::endl;
     dStdThick.copy(dStressdThick.data());
   }
+}
 
+void 
+FelippaShell::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+                                                    int senMethod, double *, int avgnum, double ylayer, double zlayer)
+{
+  weight = 1;
+  // scalar parameters
+  Eigen::Array<double,22,1> dconst;
+
+  Node &nd1 = cs.getNode(nn[0]);
+  Node &nd2 = cs.getNode(nn[1]);
+  Node &nd3 = cs.getNode(nn[2]);
+
+  dconst.segment<18>(0) = Eigen::Map<Eigen::Matrix<double,18,1> >(elDisp.data()).segment(0,18); // displacements
+  dconst[18] = prop->E; // E
+  dconst[19] = prop->nu;   // nu
+  dconst[20] = prop->rho;  // rho
+  dconst[21] = prop->eh;   // thickness
+
+  if(verboseFlag) {
+    cerr << "print displacement =\n";
+    for(int i=0; i<18; ++i) cerr << elDisp[i] << "  ";
+    cerr << endl;
+  }
+
+  // integer parameters
+  Eigen::Array<int,1,1> iconst;
+  iconst[0] = surface; // surface
+  // inputs
+  Eigen::Matrix<double,9,1> q;
+  q << nd1.x, nd1.y, nd1.z, nd2.x, nd2.y, nd2.z, nd3.x, nd3.y, nd3.z;
+  Eigen::Array<double,3,1> globalx;
+  globalx << nd1.x, nd2.x, nd3.x; 
+  Eigen::Array<double,3,1> globaly;
+  globaly << nd1.y, nd2.y, nd3.y;
+  Eigen::Array<double,3,1> globalz;
+  globalz << nd1.z, nd2.z, nd3.z;
+
+  if(senMethod == 0) { // analytic
+/*    Eigen::Matrix<double,3,9> dStressdx;
+    dStressdx.setZero();
+    Eigen::Matrix<double,7,3> stress;
+    andesvmsWRTcoord(1, 7, prop->nu, globalx.data(), globaly.data(), globalz.data(), elDisp.data(),
+                     stress.data(), dStressdx.data(), 0, 0, surface);  
+
+//    cerr << "stress[0] is " << std::setprecision(15) << stress(6,0) << endl;
+//    cerr << "stress[1] is " << std::setprecision(15) << stress(6,1) << endl;
+//    cerr << "stress[2] is " << std::setprecision(15) << stress(6,2) << endl;
+ 
+    dStdx.copy(dStressdx.data());
+    if(verboseFlag) std::cerr << "dStressdx(analytic) =\n" << dStressdx << std::endl;
+//    std::cerr << "dStressdx(analytic) =\n" << dStressdx << std::endl;
+*/
+    cerr << " ... Warning: analytic von Mises stress sensitivity wrt nodal coordinate is not implemented yet\n";
+    cerr << " ...          instead, automatic differentiation will be applied\n";
+    senMethod = 1;
+  }
+
+  if(senMethod == 1) { // automatic differentiation
+    Eigen::Matrix<double,3,9> dStressdx;
+    Simo::Jacobian<double,ShellElementStressWRTNodalCoordinateSensitivity> dSdx(dconst,iconst);
+    dStressdx = dSdx(q, 0);
+    if(verboseFlag) std::cerr << "dStressdx(AD) =\n" << dStressdx << std::endl;
+    dStdx.copy(dStressdx.data());
+  }
+
+  if(senMethod == 2) { // finite difference
+    ShellElementStressWRTNodalCoordinateSensitivity<double> foo(dconst,iconst);
+    Eigen::Matrix<double,9,1> qp, qm;
+    double h(1e-6);
+    Eigen::Matrix<double,3,1> S = foo(q,0);
+    Eigen::Matrix<double,3,9> dStressdx;
+    for(int i=0; i<9; ++i) {
+      qp = qm = q;      qp[i] = q[i] + h;     qm[i] = q[i] - h;   
+      Eigen::Matrix<double,3,1> Sp = foo(qp, 0);
+      Eigen::Matrix<double,3,1> Sm = foo(qm, 0);
+      dStressdx.col(i) = (Sp - Sm)/(2*h);
+    }
+    Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
+//    cerr << "S =\n" << S.format(HeavyFmt) << endl;
+//    cerr << "Sp =\n" << Sp.format(HeavyFmt) << endl;
+//    cerr << "Sm =\n" << Sm.format(HeavyFmt) << endl;
+//    if(verboseFlag) std::cerr << "dStressdx(FD) =\n" << dStressdx << std::endl;
+    if(verboseFlag) std::cerr << "dStressdx(FD) =\n" << dStressdx.format(HeavyFmt) << std::endl;
+    dStdx.copy(dStressdx.data());  
+  }
 }
 
 void 
@@ -1456,7 +1797,7 @@ FelippaShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
      std::cerr << " ... Error: strInd must be 6 in TwoNodeTruss::getVonMisesDisplacementSensitivity\n";
      exit(-1);
    }
-   if(dStdDisp.numRow() != 3 || dStdDisp.numCol() !=18) {
+   if(dStdDisp.numRow() != 18 || dStdDisp.numCol() != 3) {
      std::cerr << " ... Error: dimenstion of sensitivity matrix is wrong\n";
      exit(-1);
    }
@@ -1494,7 +1835,7 @@ FelippaShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
   if(avgnum == 0 || avgnum == 1) { // NODALFULL or ELEMENTAL
     if(senMethod == 0) { // analytic
       dStressdDisp.setZero();
-      andesvmsWRTdisp(0, 7, prop->nu, globalx.data(), globaly.data(), globalz.data(), q.data(),
+      andesvmsWRTdisp(1, 7, prop->nu, globalx.data(), globaly.data(), globalz.data(), q.data(),
                       stress.data(), dStressdDisp.data(), 0, 0, surface);   
       dStdDisp.copy(dStressdDisp.data());
       if(verboseFlag) std::cerr << "dStressdDisp(analytic) =\n" << dStressdDisp << std::endl;

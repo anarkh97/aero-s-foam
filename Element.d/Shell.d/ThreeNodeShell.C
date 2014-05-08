@@ -11,6 +11,8 @@
 #include <Element.d/Shell.d/ShellElementSemiTemplate.cpp>
 #include <Element.d/Shell.d/ThreeNodeShellStressWRTDisplacementSensitivity.h>
 #include <Element.d/Shell.d/ThreeNodeShellStressWRTThicknessSensitivity.h>
+#include <Element.d/Shell.d/ThreeNodeShellStiffnessWRTThicknessSensitivity.h>
+#include <Element.d/Shell.d/ThreeNodeShellStressWRTNodalCoordinateSensitivity.h>
 #include <Element.d/State.h>
 #include <Element.d/Function.d/SpaceDerivatives.h>
 #include <Hetero.d/InterpPoint.h>
@@ -228,20 +230,54 @@ ThreeNodeShell::getMass(CoordSet& cs)
 }
 
 double
-ThreeNodeShell::weight(CoordSet& cs, double *gravityAcceleration, int altitude_direction)
+ThreeNodeShell::getMassSensitivityWRTthickness(CoordSet& cs)
+{
+        if (prop == NULL) return 0.0;
+
+        Node &nd1 = cs.getNode(nn[0]);
+        Node &nd2 = cs.getNode(nn[1]);
+        Node &nd3 = cs.getNode(nn[2]);
+
+        double r1[3], r2[3], r3[3], v1[3], v2[3], v3[3];
+
+        r1[0] = nd1.x; r1[1] = nd1.y; r1[2] = nd1.z;
+        r2[0] = nd2.x; r2[1] = nd2.y; r2[2] = nd2.z;
+        r3[0] = nd3.x; r3[1] = nd3.y; r3[2] = nd3.z;
+
+        v1[0] = r3[0] - r1[0];
+        v1[1] = r3[1] - r1[1];
+        v1[2] = r3[2] - r1[2];
+
+        v2[0] = r2[0] - r1[0];
+        v2[1] = r2[1] - r1[1];
+        v2[2] = r2[2] - r1[2];
+
+        crossprod(v1, v2, v3);
+
+        double area = 0.5*sqrt(v3[0]*v3[0] + v3[1]*v3[1] + v3[2]*v3[2]);
+        double massWRTthic = area*prop->rho;
+
+        return massWRTthic;
+}
+
+double
+ThreeNodeShell::weight(CoordSet& cs, double *gravityAcceleration)
 {         
   if(prop) {
     double _mass = getMass(cs);
-    return _mass*gravityAcceleration[altitude_direction];
+    double gravAccNorm = sqrt(gravityAcceleration[0]*gravityAcceleration[0] + 
+                              gravityAcceleration[1]*gravityAcceleration[1] +
+                              gravityAcceleration[2]*gravityAcceleration[2]);
+    return _mass*gravAccNorm;
   } else return 0;
 }   
 
 double
-ThreeNodeShell::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int altitude_direction, int senMethod)
+ThreeNodeShell::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int senMethod)
 {
   if(prop) {
     if(senMethod == 0) { 
-      double _weight = weight(cs, gravityAcceleration, altitude_direction);
+      double _weight = weight(cs, gravityAcceleration);
       double eh = prop->eh;
       return _weight/eh;
     } else {
@@ -370,6 +406,126 @@ ThreeNodeShell::getGravityForce(CoordSet& cs, double *gravityAcceleration,
         gravityForce[17] = mz[2];
 }
 
+void
+ThreeNodeShell::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravityAcceleration, 
+                                                       Vector& gravityForceSensitivity, int gravflg, GeomState *geomState)
+{
+        double mass = getMass(cs);
+        double massPerNodePerThick = mass/(3.0*prop->eh);
+
+        double fx = massPerNodePerThick*gravityAcceleration[0];
+        double fy = massPerNodePerThick*gravityAcceleration[1];
+        double fz = massPerNodePerThick*gravityAcceleration[2];
+        double mx[3],my[3],mz[3];
+        int i;   
+        for(i = 0; i < 3; ++i) {
+          mx[i] = 0.0;
+          my[i] = 0.0;
+          mz[i] = 0.0;
+        }
+
+        // Lumped with no fixed-end moments
+        if (gravflg == 0) {
+
+        }
+        // Consistent or lumped with fixed end moments.  Compute treating shell as 3 beams.
+        else {
+
+          Node &nd1 = cs.getNode(nn[0]);
+          Node &nd2 = cs.getNode(nn[1]);
+          Node &nd3 = cs.getNode(nn[2]);
+          double x[3], y[3], z[3];
+          x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+          x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+          x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
+
+          double T1[3],T2[3],T3[3];
+          // Vector 1 from Node 1->2
+          T1[0] = x[1] - x[0];
+          T1[1] = y[1] - y[0];
+          T1[2] = z[1] - z[0];
+          normalize( T1 );
+          // Vector 2 from Node 1->3
+          T2[0] = x[2] - x[0];
+          T2[1] = y[2] - y[0];
+          T2[2] = z[2] - z[0];
+          normalize( T2 );
+          // Local Z-axis as cross between V1 and V2
+          crossprod( T1, T2, T3 );
+          normalize( T3);
+
+          int beam, beamnode[3][2];
+          beamnode[0][0] = 0;
+          beamnode[0][1] = 1;
+          beamnode[1][0] = 0;
+          beamnode[1][1] = 2;
+          beamnode[2][0] = 1;
+          beamnode[2][1] = 2;
+
+          for(beam=0; beam<3; ++beam) {
+            double length, dx, dy, dz, localg[3];
+            int n1, n2;
+            n1 = beamnode[beam][0];
+            n2 = beamnode[beam][1];
+            dx = x[n2] - x[n1];
+            dy = y[n2] - y[n1];
+            dz = z[n2] - z[n1];
+            length = sqrt(dx*dx + dy*dy + dz*dz);
+            // Local X-axis from Node 1->2
+            T1[0] = x[n2] - x[n1];
+            T1[1] = y[n2] - y[n1];
+            T1[2] = z[n2] - z[n1];
+            normalize( T1 );
+            // Local Y-axis as cross between Z and X
+            crossprod( T3, T1, T2 );
+            normalize( T2);
+
+            for(i = 0; i < 3; ++i)
+              localg[i] = 0.0;
+            for(i = 0; i < 3; ++i) {
+              localg[0] += T1[i]*gravityAcceleration[i];
+              localg[1] += T2[i]*gravityAcceleration[i];
+              localg[2] += T3[i]*gravityAcceleration[i];
+            }
+            double lmy,lmz;
+            if (gravflg == 2) { // consistent
+              lmy = -massPerNodePerThick*localg[2]*length/12.0;
+              lmz = massPerNodePerThick*localg[1]*length/12.0;
+            }
+            else { // lumped with fixed-end moments
+              lmy = -massPerNodePerThick*localg[2]*length/16.0;
+              lmz = massPerNodePerThick*localg[1]*length/16.0;
+            }
+            mx[n1] += ((T2[0]*lmy) + (T3[0]*lmz));
+            my[n1] += ((T2[1]*lmy) + (T3[1]*lmz));
+            mz[n1] += ((T2[2]*lmy) + (T3[2]*lmz));
+            mx[n2] -= ((T2[0]*lmy) + (T3[0]*lmz));
+            my[n2] -= ((T2[1]*lmy) + (T3[1]*lmz));
+            mz[n2] -= ((T2[2]*lmy) + (T3[2]*lmz));
+          }
+        }
+        
+        gravityForceSensitivity[0]  = fx;
+        gravityForceSensitivity[1]  = fy;
+        gravityForceSensitivity[2]  = fz;
+        gravityForceSensitivity[3]  = mx[0];
+        gravityForceSensitivity[4]  = my[0];
+        gravityForceSensitivity[5]  = mz[0];
+        gravityForceSensitivity[6]  = fx;
+        gravityForceSensitivity[7]  = fy;
+        gravityForceSensitivity[8]  = fz;
+        gravityForceSensitivity[9]  = mx[1];
+        gravityForceSensitivity[10] = my[1];
+        gravityForceSensitivity[11] = mz[1];
+        gravityForceSensitivity[12] = fx;
+        gravityForceSensitivity[13] = fy;
+        gravityForceSensitivity[14] = fz;
+        gravityForceSensitivity[15] = mx[2];
+        gravityForceSensitivity[16] = my[2];
+        gravityForceSensitivity[17] = mz[2];
+}
+
+
 FullSquareMatrix
 ThreeNodeShell::massMatrix(CoordSet &cs, double *mel, int cmflg)
 {
@@ -411,34 +567,102 @@ ThreeNodeShell::stiffness(CoordSet &cs, double *d, int flg)
         // Check for phantom element, which has no stiffness
         if (prop == NULL) {
            FullSquareMatrix ret(18,d);
-	   ret.zero();
+           ret.zero();
            return ret;
         }
 
-	Node &nd1 = cs.getNode(nn[0]);
-	Node &nd2 = cs.getNode(nn[1]);
-	Node &nd3 = cs.getNode(nn[2]);
+        Node &nd1 = cs.getNode(nn[0]);
+        Node &nd2 = cs.getNode(nn[1]);
+        Node &nd3 = cs.getNode(nn[2]);
 
-	double x[3], y[3], z[3], h[3];
+        double x[3], y[3], z[3], h[3];
 
-	x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
-	x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
-	x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
+        x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+        x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+        x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
 
-	h[0] = h[1] = h[2] = prop->eh;
+        h[0] = h[1] = h[2] = prop->eh;
 
         // Check for a zero thickness
-	if(h[0] <= 0.0) {
+        if(h[0] <= 0.0) {
           fprintf(stderr," *** ERROR: Shell element # %d has zero or negative thickness. Exiting...\n", getGlNum()+1);
           exit(-1);
         }
 
+
+#ifdef USE_EIGEN3
+        tria3d(flg, x, y, z, prop->E, prop->nu, h, d);
+#else
         _FORTRAN(tria3d)(flg, x, y, z, prop->E, prop->nu, h, (double *)d);
+#endif
 
         FullSquareMatrix ret(18,d);
        
         return ret;
 }
+
+#ifdef USE_EIGEN3
+void 
+ThreeNodeShell::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix &dStiffdThick, int flg, int senMethod)
+{
+  if(dStiffdThick.dim() != 18) {
+     cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
+     exit(-1); 
+  }
+
+  // scalar parameters
+  Eigen::Array<double,11,1> dconst;
+
+  Node &nd1 = cs.getNode(nn[0]);
+  Node &nd2 = cs.getNode(nn[1]);
+  Node &nd3 = cs.getNode(nn[2]);
+
+  dconst[0] = nd1.x; dconst[1] = nd2.x; dconst[2] = nd3.x; // x coordinates
+  dconst[3] = nd1.y; dconst[4] = nd2.y; dconst[5] = nd3.y; // y coordinates
+  dconst[6] = nd1.z; dconst[7] = nd2.z; dconst[8] = nd3.z; // z coordinates
+  dconst[9] = prop->E; // E
+  dconst[10] = prop->nu;   // nu
+  // integer parameters
+  Eigen::Array<int,1,1> iconst;
+  iconst[0] = flg; 
+  // inputs
+  Eigen::Matrix<double,1,1> q;
+  q[0] = prop->eh;   // value of thickness at which jacobian is to be evaluated
+
+  Eigen::Matrix<double,18,18> dStiffnessdThick;
+  if(senMethod == 0) { // analytic
+    double x[3], y[3], z[3], h[3];
+    x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+    x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+    x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
+    h[0] = h[1] = h[2] = prop->eh;
+   
+    tria3dthickness(flg, x, y, z, prop->E, prop->nu, h, dStiffnessdThick.data());
+    if(verboseFlag) std::cerr << "dStiffnessdThick(analytic) =\n" << dStiffnessdThick << std::endl;
+  }
+
+  if(senMethod == 1) { // automatic differentiation
+    Simo::FirstPartialSpaceDerivatives<double, ThreeNodeShellStiffnessWRTThicknessSensitivity> dSdh(dconst,iconst); 
+    Eigen::Array<Eigen::Matrix<double,18,18>,1,1> dStifdThick = dSdh(q, 0);
+    dStiffnessdThick = dStifdThick[0];
+    if(verboseFlag) std::cerr << "dStiffnessdThick(AD) =\n" << dStiffnessdThick << std::endl;
+  }
+
+  if(senMethod == 2) { // finite difference
+    ThreeNodeShellStiffnessWRTThicknessSensitivity<double> foo(dconst,iconst);
+    Eigen::Matrix<double,1,1> qp, qm;
+    double h(1e-6);
+    qp[0] = q[0] + h;   qm[0] = q[0] - h;
+    Eigen::Matrix<double,18,18> Sp = foo(qp, 0);
+    Eigen::Matrix<double,18,18> Sm = foo(qm, 0);
+    dStiffnessdThick = (Sp-Sm)/(2*h);
+    if(verboseFlag) std::cerr << "dStiffnessdThick(FD) =\n" << dStiffnessdThick << std::endl;
+  }
+
+  dStiffdThick.copy(dStiffnessdThick.data());
+
+}
+#endif
 
 int
 ThreeNodeShell::numNodes()
@@ -899,7 +1123,7 @@ ThreeNodeShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weigh
 {
 #ifdef USE_EIGEN3
    if(strInd != 6) {
-     std::cerr << " ... Error: strInd must be 6 in TwoNodeTruss::getVonMisesDisplacementSensitivity\n";
+     std::cerr << " ... Error: strInd must be 6 in ThreeNodeShell::getVonMisesThicknessSensitivity\n";
      exit(-1);
    }
    if(dStdThick.size() !=3) {
@@ -999,10 +1223,10 @@ ThreeNodeShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, V
 {
 #ifdef USE_EIGEN3
    if(strInd != 6) {
-     std::cerr << " ... Error: strInd must be 6 in TwoNodeTruss::getVonMisesDisplacementSensitivity\n";
+     std::cerr << " ... Error: strInd must be 6 in ThreeNodeShell::getVonMisesDisplacementSensitivity\n";
      exit(-1);
    }
-   if(dStdDisp.numRow() != 3 || dStdDisp.numCol() !=18) {
+   if(dStdDisp.numRow() != 18 || dStdDisp.numCol() != 3) {
      std::cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
      exit(-1);
    }
@@ -1092,6 +1316,100 @@ ThreeNodeShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, V
   } else dStdDisp.zero(); // NODALPARTIAL or GAUSS or any others
 #else
   std::cerr << " ... Error! ThreeNodeShell::getVonMisesDisplacementSensitivity needs Eigen library.\n";
+  exit(-1);
+#endif
+}
+
+void 
+ThreeNodeShell::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+                                                      int senMethod, double *ndTemps, int avgnum, double ylayer, double zlayer)
+{
+#ifdef USE_EIGEN3
+   if(strInd != 6) {
+     cerr << " ... Error: strInd must be 6 in ThreeNodeShell::getVonMisesNodalCoordinateSensitivity\n";
+     exit(-1);
+   }
+   if(dStdx.numRow() != 9 || dStdx.numCol() != 3) {
+     cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
+     exit(-1);
+   }
+   if(ndTemps != 0) {
+     cerr << " ... Error: thermal stress should not be passed in sensitivity computation\n";
+     exit(-1);
+   }
+  weight = 1;
+  // scalar parameters
+  Eigen::Array<double,21,1> dconst;
+
+  Node &nd1 = cs.getNode(nn[0]);
+  Node &nd2 = cs.getNode(nn[1]);
+  Node &nd3 = cs.getNode(nn[2]);
+
+  dconst.segment<18>(0) = Eigen::Map<Eigen::Matrix<double,18,1> >(elDisp.data()).segment(0,18); // displacements
+  dconst[18] = prop->E;     // E
+  dconst[19] = prop->nu;   // nu
+  dconst[20] = prop->eh;   // thickness
+   
+  // integer parameters
+  Eigen::Array<int,1,1> iconst;
+  iconst[0] = surface; // surface
+  // inputs
+  Eigen::Matrix<double,9,1> q;
+  q << nd1.x, nd1.y, nd1.z, nd2.x, nd2.y, nd2.z, nd3.x, nd3.y, nd3.z;
+  Eigen::Array<double,3,1> globalx;
+  globalx << nd1.x, nd2.x, nd3.x;
+  Eigen::Array<double,3,1> globaly;
+  globaly << nd1.y, nd2.y, nd3.y;
+  Eigen::Array<double,3,1> globalz;
+  globalz << nd1.z, nd2.z, nd3.z;
+
+  // Jacobian evaluation
+  Eigen::Matrix<double,3,9> dStressdx;
+  Eigen::Matrix<double,7,3> stress;
+  if(verboseFlag) cout << "senMethod is " << senMethod << endl;
+ 
+  if(avgnum == 0 || avgnum == 1) { // NODALFULL or ELEMENTAL
+    if(senMethod == 0) { // analytic
+      cerr << " ... Warning: analytic von Mises stress sensitivity wrt nodal coordinate is not implemented yet\n";
+      cerr << " ...          instead, automatic differentiation will be applied\n";
+      senMethod = 1;
+    }
+
+    if(senMethod == 1) { // automatic differentiation
+      Simo::Jacobian<double,ThreeNodeShellStressWRTNodalCoordinateSensitivity> dSdx(dconst,iconst);
+      dStressdx = dSdx(q, 0);
+      dStdx.copy(dStressdx.data());
+      if(verboseFlag) std::cerr << "dStressdx(AD) =\n" << dStressdx << std::endl;
+    }
+ 
+
+    if(senMethod == 2) { // finite difference
+      // finite difference
+      dStressdx.setZero();
+      ThreeNodeShellStressWRTNodalCoordinateSensitivity<double> foo(dconst,iconst);
+      Eigen::Matrix<double,9,1> qp, qm;
+      double h(1e-6);
+      Eigen::Matrix<double,3,1> S = foo(q,0);
+//      cout << "displacement = " << q.transpose() << endl;
+      for(int i=0; i<9; ++i) {
+        qp = q;             qm = q;
+        qp[i] += h;         qm[i] -= h;
+//        if(q[i] == 0) { qp[i] = h;   qm[i] = -h; }
+//        else { qp[i] = q[i]*(1 + h);   qm[i] = q[i]*(1 - h); }
+        Eigen::Matrix<double,3,1> Sp = foo(qp, 0);
+        Eigen::Matrix<double,3,1> Sm = foo(qm, 0);
+        dStressdx.col(i) = (Sp - Sm)/(2*h);
+      }
+      Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " "); 
+//      cout << Sp.transpose().format(HeavyFmt) << endl;
+//      cout << Sm.transpose().format(HeavyFmt) << endl;
+//      cout << S.transpose().format(HeavyFmt) << endl;
+      dStdx.copy(dStressdx.data());
+      if(verboseFlag) std::cerr << "dStressdx(FD) =\n" << dStressdx.format(HeavyFmt) << std::endl;
+    }
+  } else dStdx.zero(); // NODALPARTIAL or GAUSS or any others
+#else
+  cerr << " ... Error! ThreeNodeShell::getVonMisesNodalCoordinateSensitivity needs Eigen library.\n";
   exit(-1);
 #endif
 }

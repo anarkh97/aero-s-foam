@@ -401,6 +401,12 @@ Compo3NodeShell::getGravityForce(CoordSet& cs, double *gravityAcceleration,
   gravityForce[17] = mz[2];
 }
 
+void 
+Compo3NodeShell::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravityAcceleration,
+                                                        Vector& gravityForceSensitivity, int gravflg, GeomState *geomState)
+{
+}
+ 
 double
 Compo3NodeShell::getMass(CoordSet &cs)
 { 
@@ -434,18 +440,53 @@ Compo3NodeShell::getMass(CoordSet &cs)
 }
 
 double
-Compo3NodeShell::weight(CoordSet& cs, double *gravityAcceleration, int altitude_direction)
+Compo3NodeShell::getMassSensitivityWRTthickness(CoordSet &cs)
+{ 
+  if(prop == NULL) return 0.0;
+
+  Node &nd1 = cs.getNode(nn[0]);
+  Node &nd2 = cs.getNode(nn[1]);
+  Node &nd3 = cs.getNode(nn[2]);
+
+  double x[3], y[3], z[3], h[3], ElementMassMatrix[18][18];
+  double *gravityAcceleration=NULL, *grvfor=NULL;
+
+  x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+  x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+  x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
+
+  h[0] = h[1] = h[2] = prop->eh;
+
+  int grvflg = 0, masflg = 1;
+
+  double totmas = 0.0;
+  double sumrho = 0.0;
+  double area = 0.0;
+
+  _FORTRAN(compms)(x, y, z, h, prop->rho, (double *)ElementMassMatrix,
+                   18,numLayers, 1, 1, (int *)idlay, layData, cFrame,
+                   1, type, 1, 1, gravityAcceleration, grvfor, grvflg,
+                   totmas, sumrho, area, masflg);
+
+  return totmas/prop->eh;
+}
+
+double
+Compo3NodeShell::weight(CoordSet& cs, double *gravityAcceleration)
 {
   if (prop == NULL) {
     return 0.0;
   }
 
   double _mass = getMass(cs);
-  return _mass*gravityAcceleration[altitude_direction];
+  double gravAccNorm = sqrt(gravityAcceleration[0]*gravityAcceleration[0] + 
+                            gravityAcceleration[1]*gravityAcceleration[1] +
+                            gravityAcceleration[2]*gravityAcceleration[2]);
+  return _mass*gravAccNorm;
 }
 
 double
-Compo3NodeShell::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int altitude_direction, int senMethod)
+Compo3NodeShell::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int senMethod)
 {
  if (prop == NULL) return 0.0;
 
@@ -468,7 +509,10 @@ Compo3NodeShell::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAccel
                    1, type, 1, 1, gravityAcceleration, grvfor, grvflg,
                    totmas, sumrho, area, masflg);
 
-  return area*sumrho*gravityAcceleration[altitude_direction];
+  double gravAccNorm = sqrt(gravityAcceleration[0]*gravityAcceleration[0] + 
+                            gravityAcceleration[1]*gravityAcceleration[1] +
+                            gravityAcceleration[2]*gravityAcceleration[2]);
+  return area*sumrho*gravAccNorm;
  } else {
     fprintf(stderr," ... Error: Compo3NodeShell::weightDerivativeWRTthickness for automatic differentiation and finite difference is not implemented\n");
     exit(-1);

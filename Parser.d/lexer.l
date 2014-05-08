@@ -979,13 +979,19 @@ TRAIL [a-zA-Z]*
 
 "ovmstdis"|"OVMSTDIS"              { yylval.ival = OutputInfo::VMstDisp; return SENSITIVITYID; }
 
+"ovmstcoo"|"OVMSTCOO"              { yylval.ival = OutputInfo::VMstCoord; return SENSITIVITYID; }
+
 "ostifthi"|"OSTIFTHI"              { yylval.ival = OutputInfo::StifThic; return SENSITIVITYID; }
+
+"odispthi"|"ODISPTHI"              { yylval.ival = OutputInfo::DispThic; return SENSITIVITYID; }
 
 "weigthic"|"WEIGTHIC"              { yylval.ival = SensitivityInfo::WeightWRTthickness;       return SENSITIVITYTYPE; }
 
 "vmstthic"|"VMSTTHIC"              { yylval.ival = SensitivityInfo::StressVMWRTthickness;     return SENSITIVITYTYPE; }
 
 "vmstdisp"|"VMSTDISP"              { yylval.ival = SensitivityInfo::StressVMWRTdisplacement;  return SENSITIVITYTYPE; }
+
+"vmstcoord"|"VMSTCOORD"            { yylval.ival = SensitivityInfo::StressVMWRTcoordinate;    return SENSITIVITYTYPE; }
 
 "stffthic"|"STFFTHIC"              { yylval.ival = SensitivityInfo::StiffnessWRTthickness;    return SENSITIVITYTYPE; }
 

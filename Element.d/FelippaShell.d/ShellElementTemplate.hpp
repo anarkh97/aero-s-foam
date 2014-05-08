@@ -29,9 +29,20 @@ class ShellElementTemplate : public Membrane<doublereal>, public Bending<doubler
              doublereal *xlp, doublereal *ylp, doublereal *zlp, doublereal &area);
 
     void
+    andescrdWRTcoord(int elm, doublereal *x, doublereal *y, doublereal *z, doublereal *rot,
+                     doublereal *xlp, doublereal *ylp, doublereal *zlp, doublereal &area,
+                     doublereal *_dxpdx, doublereal *_dypdx, doublereal *_dzpdx,
+                     doublereal *_dxlpdx, doublereal *_dylpdx, doublereal *_dzlpdx, doublereal *_dareadx);
+
+    void
     andesms(int elm, doublereal *x, doublereal *y, doublereal *z,
             doublereal *emass, doublereal *gamma, doublereal *grvfor,
             bool grvflg, doublereal &totmas, bool masflg);
+
+    void
+    andesmsWRTthic(int elm, doublereal *x, doublereal *y, doublereal *z,
+                   doublereal *gamma, doublereal *grvforSen, bool grvflg,
+                   doublereal &totmasSen, bool masflg);
 
     void
     andesstf(int elm, doublereal *estiff, doublereal *fint, doublereal nu,
@@ -39,8 +50,8 @@ class ShellElementTemplate : public Membrane<doublereal>, public Bending<doubler
              int ctyp, int flag);
 
     void 
-    andesstfWRTthick(int elm, doublereal *_destiffdthick, doublereal *_fint, doublereal nu,
-                     doublereal *x, doublereal *y, doublereal *z, doublereal *_v,
+    andesstfWRTthick(int elm, doublereal *_destiffdthick, doublereal nu,
+                     doublereal *x, doublereal *y, doublereal *z,
                      int ctyp, int flag);
 
 
@@ -48,6 +59,11 @@ class ShellElementTemplate : public Membrane<doublereal>, public Bending<doubler
     andesvms(int elm, int maxstr, doublereal nu, doublereal *globalx,
              doublereal *globaly, doublereal *globalz, doublereal *globalu,
              doublereal *stress, int ctyp, int strainflg, int surface);
+
+    void
+    andesvmsWRTcoord(int elm, int maxstr, doublereal nu, doublereal *globalx,
+                     doublereal *globaly, doublereal *globalz, doublereal *globalu,
+                     doublereal *stress, doublereal *_dstressdx, int ctyp, int strainflg, int surface);
 
     void
     andesvmsWRTdisp(int elm, int maxstr, doublereal nu, doublereal *globalx,

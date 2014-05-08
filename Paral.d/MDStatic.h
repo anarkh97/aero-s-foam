@@ -7,6 +7,7 @@ class StaticTimers;
 template <class Scalar> class GenDistrVector;
 class DistrGeomState;
 class DistrInfo;
+template <class Scalar> struct AllSensitivities;
 
 template <class Scalar> 
 class GenMultiDomainPostProcessor 
@@ -79,6 +80,7 @@ class GenMultiDomainStatic
     GenMultiDomainPostProcessor<Scalar> *getPostProcessor();
     StaticTimers *getStaticTimers() { return times; }
     void project(GenDistrVector<Scalar> &);
+    AllSensitivities<Scalar> *getAllSensitivities() { cerr << "GenMultiDomainStatic::getAllSensitivities() not implemented" << endl; return 0; }
  private:
     void eigmode_projector_prep();
     void subGetRHS(int isub, GenDistrVector<Scalar>& rhs);

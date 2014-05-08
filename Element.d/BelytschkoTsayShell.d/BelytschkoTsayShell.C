@@ -348,20 +348,56 @@ BelytschkoTsayShell::getMass(CoordSet& cs)
 }
 
 double
-BelytschkoTsayShell::weight(CoordSet& cs, double *gravityAcceleration, int altitude_direction)
+BelytschkoTsayShell::getMassSensitivityWRTthickness(CoordSet& cs)
+{
+  if (prop == NULL) return 0.0;
+
+  Node &nd1 = cs.getNode(nn[0]);
+  Node &nd2 = cs.getNode(nn[1]);
+  Node &nd3 = cs.getNode(nn[2]);
+  Node &nd4 = cs.getNode(nn[3]);
+
+  Vector r1(3), r2(3), r3(3), r4(3);
+
+  r1[0] = nd1.x; r1[1] = nd1.y; r1[2] = 0.0;
+  r2[0] = nd2.x; r2[1] = nd2.y; r2[2] = 0.0;
+  r3[0] = nd3.x; r3[1] = nd3.y; r3[2] = 0.0;
+  r4[0] = nd4.x; r4[1] = nd4.y; r4[2] = 0.0;
+
+  Vector v1(3), v2(3), v3(3), v4(3), v5(3);
+
+  v1 = r2 - r1;
+  v2 = r3 - r1;
+  v3 = r4 - r1;
+
+  v4 = v1.cross(v2);
+  v5 = v2.cross(v3);
+
+  double area = 0.5*(v4.magnitude() + v5.magnitude());
+  double rho = expmat->ematpro[2];
+  double massWRTthic = area*rho;
+
+  return massWRTthic;
+}
+
+double
+BelytschkoTsayShell::weight(CoordSet& cs, double *gravityAcceleration)
 {
   if(prop) {
     double _mass = getMass(cs);
-    return _mass*gravityAcceleration[altitude_direction];
+    double gravAccNorm = sqrt(gravityAcceleration[0]*gravityAcceleration[0] + 
+                              gravityAcceleration[1]*gravityAcceleration[1] +
+                              gravityAcceleration[2]*gravityAcceleration[2]);
+    return _mass*gravAccNorm;
   } else return 0;
 }   
 
 double
-BelytschkoTsayShell::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int altitude_direction, int senMethod)
+BelytschkoTsayShell::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int senMethod)
 {   
   if(prop) {
    if(senMethod == 0) {
-    double _weight = weight(cs, gravityAcceleration, altitude_direction);
+    double _weight = weight(cs, gravityAcceleration);
     double eh = expmat->ematpro[19];
     return _weight/eh;
    } else {
@@ -386,6 +422,24 @@ BelytschkoTsayShell::getGravityForce(CoordSet& cs, double *gravityAcceleration,
     gravityForce[nndof*i+0] = fx;
     gravityForce[nndof*i+1] = fy;
     gravityForce[nndof*i+2] = fz;
+  }
+}
+
+void
+BelytschkoTsayShell::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravityAcceleration, 
+                                                            Vector& gravityForceSensitivity, int gravflg, GeomState *geomState)
+{
+  gravityForceSensitivity.zero();
+
+  double massPerNodePerThick = 0.25*getMass(cs)/prop->eh;
+  double fx = massPerNodePerThick*gravityAcceleration[0];
+  double fy = massPerNodePerThick*gravityAcceleration[1];
+  double fz = massPerNodePerThick*gravityAcceleration[2];
+
+  for(int i = 0; i < nnode; ++i) {
+    gravityForceSensitivity[nndof*i+0] = fx;
+    gravityForceSensitivity[nndof*i+1] = fy;
+    gravityForceSensitivity[nndof*i+2] = fz;
   }
 }
 

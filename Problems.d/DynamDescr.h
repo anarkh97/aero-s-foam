@@ -186,6 +186,7 @@ class SingleDomainDynamic
     int aeroPreProcess(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p);
     int aeroSensitivityPreProcess(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p);
     int sendDisplacements(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p);
+    void sendNumParam(int numParam);
     int cmdCom(int cmdFlag);
     int getAeroAlg();
     void aeroSend(double time, Vector& d, Vector& v, Vector& a, Vector& v_p);

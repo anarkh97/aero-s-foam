@@ -145,6 +145,7 @@ struct AllSensitivities
   Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *weightWRTthick;                     // derivatives of weight wrt thickness
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *vonMisesWRTthick;      // derivatives of von Mises stress wrt thickness
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *vonMisesWRTdisp;       // derivatives of von Mises stress wrt displacement
+  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *vonMisesWRTcoord;      // derivatives of von Mises stress wrt nodal coordinate
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **stiffnessWRTthick;    // derivatives of stiffness wrt thickness 
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **dKucdthick;    // derivatives of stiffness wrt thickness 
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *stressWeight;          // weight used to average stress sensitivity
@@ -152,7 +153,7 @@ struct AllSensitivities
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **dispWRTthick;         // derivative of displacement wrt thickness
   // Constructor
   AllSensitivities() { weight = 0;                weightWRTthick = 0;
-                       vonMisesWRTthick = 0;      dKucdthick = 0; 
+                       vonMisesWRTthick = 0;      dKucdthick = 0;            vonMisesWRTcoord = 0; 
                        vonMisesWRTdisp = 0;       stressWeight = 0;          stiffnessWRTthick = 0;   
                        linearstaticWRTthick = 0;  dispWRTthick = 0; }
 
@@ -160,6 +161,7 @@ struct AllSensitivities
     if(weightWRTthick) weightWRTthick->setZero();
     if(vonMisesWRTthick) vonMisesWRTthick->setZero();
     if(vonMisesWRTdisp) vonMisesWRTdisp->setZero();
+    if(vonMisesWRTcoord) vonMisesWRTcoord->setZero();
     if(stressWeight) stressWeight->setZero();
     if(stiffnessWRTthick) stiffnessWRTthick[0]->setZero();
     if(dKucdthick) dKucdthick[0]->setZero();
@@ -565,13 +567,16 @@ class Domain : public HData {
                                                      GenVector<double> &sol);
      void computeStressVMWRTthicknessSensitivity(int, GenSolver<double> *,
                                                  AllSensitivities<double> &allSens,
-                                                 GenVector<double> &sol, double *bcx);
+                                                 GenVector<double> &sol, double *bcx,
+                                                 bool isDynam = false);
      void computeStressVMWRTdisplacementSensitivity(int, AllSensitivities<double> &allSens,
                                                     GenVector<double> &sol, double *bcx);
+     void computeStressVMWRTnodalCoordinateSensitivity(int, AllSensitivities<double> &allSens,
+                                                       GenVector<double> &sol, double *bcx);
      void makePostSensitivities(GenSolver<double> *, GenSparseMatrix<double> *, GenSparseMatrix<double> *,
-                                AllSensitivities<double> &allSens, GenVector<double> &sol, double *);
+                                AllSensitivities<double> &allSens, GenVector<double> &sol, double *, bool isDynam = false);
      void makePostSensitivities(GenSolver<DComplex> *, GenSparseMatrix<DComplex> *, GenSparseMatrix<DComplex> *, 
-                                AllSensitivities<DComplex> &allSens, GenVector<DComplex> &sol, DComplex *);
+                                AllSensitivities<DComplex> &allSens, GenVector<DComplex> &sol, DComplex *, bool isDynam = false);
 
      /** Abstract method to assemble any type of operator
       *
@@ -589,7 +594,7 @@ class Domain : public HData {
      template<class Scalar>
        void buildPostSensitivities(GenSolver<Scalar> *sysSolver, 
                                    GenSparseMatrix<Scalar> *, GenSparseMatrix<Scalar> *,
-                                   AllSensitivities<Scalar> &ops, GenVector<Scalar> &sol, Scalar *);
+                                   AllSensitivities<Scalar> &ops, GenVector<Scalar> &sol, Scalar *, bool isDynam = false);
 
      template<class Scalar>
        void buildOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef, double Ccoef,

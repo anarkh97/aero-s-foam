@@ -1,5 +1,6 @@
 #include 	<Element.d/Beam.d/TimoshenkoBeam.h>
 #include  <Element.d/Beam.d/TimoshenkoBeamStressWRTDisplacementSensitivity.h>
+#include  <Element.d/Beam.d/TimoshenkoBeamStressWRTNodalCoordinateSensitivity.h>
 #include  <Element.d/Function.d/SpaceDerivatives.h>
 #include	<Math.d/FullSquareMatrix.h>
 #include        <Corotational.d/BeamCorotator.h>
@@ -782,8 +783,8 @@ TimoshenkoBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, V
     cerr << " ... Error: strInd must be 6 in TwoNodeTruss::getVonMisesDisplacementSensitivity\n";
     exit(-1);
   }
-  if(dStdDisp.numRow() != 2 || dStdDisp.numCol() !=12) {
-    cerr << " ... Error: dimenstion of sensitivity matrix is wrong\n";
+  if(dStdDisp.numRow() != 12 || dStdDisp.numCol() != 2) {
+    cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
     exit(-1);
   }
   weight = 1;
@@ -876,12 +877,102 @@ TimoshenkoBeam::getVonMisesDisplacementSensitivity(GenFullM<DComplex> &dStdDisp,
                                                    CoordSet &cs, ComplexVector &elDisp, int strInd, int surface,
                                                    int senMethod, double *, int avgnum, double ylayer, double zlayer)
 {
-  weight = DComplex(1,0);
-  //NOTE:: for complex numbers, getVonMisesDisplacementSensitivity is not properly implemented
-  Eigen::Matrix<DComplex,3,18> dStressdThick;
-  dStressdThick.setZero();
+    cerr << "TimoshenkoBeam::getVonMisesDisplacementSensitivity is not implemented\n";
+    exit(-1);  
+}
+#endif
 
-  dStdDisp.copy(dStressdThick.data());
+#ifdef USE_EIGEN3
+void
+TimoshenkoBeam::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+                                                      int senMethod, double *ndTemps, int avgnum, double ylayer, double zlayer)
+{
+  if(strInd != 6) {
+    cerr << " ... Error: strInd must be 6 in TwoNodeTruss::getVonMisesNodalCoordinateSensitivity\n";
+    exit(-1);
+  }
+  if(dStdx.numRow() != 6 || dStdx.numCol() != 2) {
+    cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
+    exit(-1);
+  }
+  weight = 1;
+  // scalar parameters
+  Eigen::Array<double,34,1> dconst;
+  Node &nd1 = cs.getNode(nn[0]);
+  Node &nd2 = cs.getNode(nn[1]);
+
+  double x[2], y[2], z[2];
+
+  x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+  x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+
+  dconst.segment<12>(0) = Eigen::Map<Eigen::Matrix<double,12,1> >(elDisp.data()).segment(0,12); // displacements
+  dconst[12] = prop->A;
+  dconst[13] = prop->E;
+  for(int i=0; i<3; ++i) {
+    for(int j=0; j<3; ++j) {
+      dconst[14+3*i+j] = (*elemframe)[i][j]; 
+    }
+  }    
+  dconst[23] = prop->Ixx;
+  dconst[24] = prop->Iyy;
+  dconst[25] = prop->Izz;
+  dconst[26] = prop->alphaY;
+  dconst[27] = prop->alphaZ;
+  dconst[28] = prop->c;
+  dconst[29] = prop->nu;
+  dconst[30] = prop->W;
+  dconst[31] = prop->Ta;
+  if(ndTemps) {
+    dconst[32] = ndTemps[0];
+    dconst[33] = ndTemps[1];
+  } else {
+    dconst[32] = 0.0;
+    dconst[33] = 0.0;
+  }
+
+  // integer parameters
+  Eigen::Array<int,1,1> iconst;
+  iconst[0] = avgnum; 
+
+  // input
+  Eigen::Matrix<double,6,1> q;
+  q << nd1.x, nd1.y, nd1.z, nd2.x, nd2.y, nd2.z;
+
+  //Jacobian evaluation
+  Eigen::Matrix<double,2,6> dStressdx;
+  Eigen::Matrix<double,7,3> stress;
+  if(verboseFlag) cout << " ... senMethod is " << senMethod << endl;
+
+  if(avgnum == 1 || avgnum == 0) { // ELEMENTAL or NODALFULL
+    if(senMethod == 0) { // analytic
+      cerr << " ... Warning: analytic von Mises stress sensitivity wrt nodal coordinate is not implemented yet\n";
+      cerr << " ...          instead, automatic differentiation will be applied\n";
+      senMethod = 1;
+    }
+
+    if(senMethod == 1) { // automatic differentiation
+      Simo::Jacobian<double,TimoshenkoBeamStressWRTNodalCoordinateSensitivity> dSdx(dconst,iconst);
+      dStressdx = dSdx(q, 0);
+      dStdx.copy(dStressdx.data());
+      if(verboseFlag) std::cerr << " ... dStressdx(AD) = \n" << dStressdx << std::endl;
+    }
+
+    if(senMethod == 2) { // finite difference
+      TimoshenkoBeamStressWRTNodalCoordinateSensitivity<double> foo(dconst,iconst);
+      double h = 1.0e-6;
+      for(int j=0; j<6; ++j) {
+        Eigen::Matrix<double,6,1> q_plus(q);
+        Eigen::Matrix<double,6,1> q_minus(q);
+        q_plus[j] += h;  q_minus[j] -= h;
+        Eigen::Matrix<double,2,1> S_plus = foo(q_plus,0);   
+        Eigen::Matrix<double,2,1> S_minus = foo(q_minus,0);
+        dStressdx.col(j) = (S_plus-S_minus)/(2*h);
+      }
+      dStdx.copy(dStressdx.data());
+      if(verboseFlag) std::cerr << " ... dStressdx(FD) = \n" << dStressdx << std::endl;
+    }
+  } else dStdx.zero(); // NODALPARTIAL or GAUSS or any others
 }
 #endif
 

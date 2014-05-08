@@ -60,6 +60,9 @@ public:
 
         void getVonMisesDisplacementSensitivity(GenFullM<DComplex> &dStdDisp, ComplexVector &weight, CoordSet &cs, ComplexVector &elDisp,
                                                 int strInd, int surface, int senMethod = 1, double *ndTemps = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0);
+        void getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+                                                   int senMethod=1, double *ndTemps=0, int avgnum=1, double ylayer=0, double zlayer=0);
+
 
 #endif
 

@@ -217,6 +217,7 @@ private:
     int aeroPreProcess(DistrVector &, DistrVector &, DistrVector &, DistrVector &); 
     int aeroSensitivityPreProcess(DistrVector &, DistrVector &, DistrVector &, DistrVector &); 
     int sendDisplacements(DistrVector &, DistrVector &, DistrVector &, DistrVector &); 
+    void sendNumParam(int numParam) {}
     int cmdCom(int cmdFlag);
     int getAeroAlg();
     void aeroSend(double time, DistrVector& d, DistrVector& v, DistrVector& a, DistrVector& v_p);

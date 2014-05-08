@@ -640,7 +640,7 @@ GeoSource::outputEigenVectors(int fileNum, Eigen::Matrix<Scalar, Eigen::Dynamic,
   int w = oinfo[fileNum].width;
   int p = oinfo[fileNum].precision;
   
-  Eigen::IOFormat CleanFmt(Eigen::FullPrecision,0," ", "\n", " ", " ");
+  Eigen::IOFormat CleanFmt(Eigen::FullPrecision,0,", ", "\n", " ", " ");
   if(oinfo[fileNum].isFirst) {
     ofstream fileout(oinfo[fileNum].filename, ios::out);
     fileout << "\t" << time << "\n";

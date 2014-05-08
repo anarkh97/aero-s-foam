@@ -363,7 +363,6 @@ Domain::buildAeroelasticForceSensitivity(Vector& aero_fSen, PrevFrc& prevFrc, in
   int iscollocated;
   double tFluid = flExchanger->getFluidLoadSensitivity(tmpF, tIndex, t,
                                                        alphaf, iscollocated, geomState);
-  filePrint(stderr," ... [E] Received fluid load sensitivity...\n");
 
   if(sinfo.aeroFlag == 20) {
     if(prevFrc.lastTIndex >= 0)

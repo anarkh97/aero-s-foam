@@ -120,6 +120,7 @@ class FlExchanger {
       void flipSndParity() { if(sndParity >= 0) sndParity = 1-sndParity; }
       void flipRcvParity() { if(rcvParity >= 0) rcvParity = 1-rcvParity; }
 
+      void sendNumParam(int);
       int cmdCom(int);
       int cmdComHeat(int);
 };
@@ -130,6 +131,7 @@ class FlExchanger {
 #define FLTOSTHEAT 5000
 #define STTOFLHEAT 6000
 #define STTOSTHEAT 7000
+#define STNUMPAFL 7500
 #define STCMDMSG 8000
 #define FLCMDMSG 9000
 #define OPTPARMSG 8100

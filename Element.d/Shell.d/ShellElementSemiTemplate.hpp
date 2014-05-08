@@ -3,9 +3,6 @@
 
 #include <Element.d/FelippaShell.d/ShellMaterial.hpp>
 
-// Note: the following needs to be defined for full compatability with the implementation of elements 8 and 20
-//#define COMPATABILITY_MODE
-
 template<typename doublereal>
 class ShellElementSemiTemplate 
 {
@@ -17,6 +14,9 @@ class ShellElementSemiTemplate
     
     void tria3d(bool flag, doublereal *_xl, doublereal *_yl, doublereal *_zl,
                 doublereal e, doublereal nu, doublereal *_h, doublereal *_rk);
+
+    void tria3dthickness(bool flag, doublereal *_xl, doublereal *_yl, doublereal *_zl,
+                         doublereal e, doublereal nu, doublereal *_h, doublereal *_drkdthick);
 
     void vms8WRTdisp(doublereal *_xl,doublereal *_yl, doublereal *_zl,
                      doublereal e, doublereal nu, doublereal *_h,

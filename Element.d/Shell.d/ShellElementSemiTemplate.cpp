@@ -2379,5 +2379,147 @@ ShellElementSemiTemplate<doublereal>
       }
 }
 
+template<typename doublereal>
+void
+ShellElementSemiTemplate<doublereal>
+::tria3dthickness(bool flag, doublereal *_xl, doublereal *_yl, doublereal *_zl,
+                  doublereal e, doublereal nu, doublereal *_h, doublereal *_drkdh)
+{
+        Eigen::Map<Eigen::Matrix<doublereal,18,18,Eigen::RowMajor> > drkdh(_drkdh);
+        Eigen::Map<Eigen::Matrix<doublereal,3,1> > xl(_xl), yl(_yl), zl(_zl), h(_h);
+        Eigen::Matrix<doublereal,3,1> xp, yp, zp, xlp, ylp, zlp, v1n, v2n, v3n;
+        Eigen::Matrix<doublereal,3,3> db, dm, r1;
+        Eigen::Matrix<doublereal,18,18> drkmdh, drkbdh;
+        doublereal cb,x21,y21,z21,x32,y32,z32,x13,y13,z13;
+        doublereal rlr,rlb,bpr,area,ylr,zlr;
+        doublereal ycg,xcg,zcg,xlcg,ylcg,zlcg,esp;
+        const doublereal f(1.0);
+        const doublereal clr(0);
+        const doublereal cqr(1.0);
+        const doublereal alpha(1.5);
+        Eigen::Matrix<int,9,1> lb,le;
+        int i,j;
+        char status[10];
+        lb << 2,3,4,8,9,10,14,15,16;
+        le << 0,1,6,7,12,13,5,11,17;
+        v1n << 1.0,0.0,0.0;
+        v2n << 0.0,1.0,0.0;
+        v3n << 0.0,0.0,1.0;
+
+// flag = 0 do NOT perform transform from local to global
+// flag = 1 perform transformation from local to global
+
+// set thickness
+        esp = h[0];
+
+// bending elastic matrix
+        cb      = e*esp*esp/4.0/(1.0-(nu*nu));
+        db(0,0) =    cb;
+        db(0,1) = nu*cb;
+        db(0,2) = 0.0;
+        db(1,0) = db(0,1);
+        db(1,1) = cb;
+        db(1,2) = 0.0;
+        db(2,0) = 0.0;
+        db(2,1) = 0.0;
+        db(2,2) = ((1.0-nu)/2.0)*cb;
+
+// membrane elastic matrix
+        cb=e/(1.0-(nu*nu));
+        dm(0,0) =    cb;
+        dm(0,1) = nu*cb;
+        dm(0,2) = 0.0;
+        dm(1,0) = dm(0,1);
+        dm(1,1) = cb;
+        dm(1,2) = 0.0;
+        dm(2,0) = 0.0;
+        dm(2,1) = 0.0;
+        dm(2,2) = ((1.0-nu)/2.0)*cb;
+
+// dimension variables
+        x21 = xl[1] - xl[0];
+        y21 = yl[1] - yl[0];
+        z21 = zl[1] - zl[0];
+        x32 = xl[2] - xl[1];
+        y32 = yl[2] - yl[1];
+        z32 = zl[2] - zl[1];
+        x13 = xl[0] - xl[2];
+        y13 = yl[0] - yl[2];
+        z13 = zl[0] - zl[2];
+// triangle in space : we compute the length of one side and the distance of the
+// opposing node to that side to compute the area
+        rlr = sqrt( x21*x21 + y21*y21 + z21*z21 );
+        rlb = sqrt( x32*x32 + y32*y32 + z32*z32 );
+        bpr = sqrt((x21 * x32 + y21 * y32 + z21 *z32 )*(x21 * x32 + y21 * y32 + z21 *z32 ))/rlr;
+        area= rlr*(sqrt(rlb*rlb-bpr*bpr))/2.0;
+// direction cosines of the local system . X' is directed parallel 
+// to the 2-1 side
+// Z' is the external normal (counterclockwise). Y' computed as Z' x X'
+        xp[0] = x21/rlr;
+        xp[1] = y21/rlr;
+        xp[2] = z21/rlr;
+// Z'
+        zp[0] = y21 * z32 - z21 * y32;
+        zp[1] = z21 * x32 - x21 * z32;
+        zp[2] = x21 * y32 - y21 * x32;
+        zlr   = sqrt( zp[0]*zp[0] + zp[1]*zp[1]+ zp[2]*zp[2] );
+        zp[0] = zp[0]/zlr;
+        zp[1] = zp[1]/zlr;
+        zp[2] = zp[2]/zlr;
+// Y'
+        yp[0] = zp[1] * xp[2] - zp[2] * xp[1];
+        yp[1] = zp[2] * xp[0] - zp[0] * xp[2];
+        yp[2] = zp[0] * xp[1] - zp[1] * xp[0];
+        ylr   = sqrt( yp[0]*yp[0] + yp[1]*yp[1] + yp[2]*yp[2] );
+        yp[0] = yp[0]/ylr;
+        yp[1] = yp[1]/ylr;
+        yp[2] = yp[2]/ylr;
+// compute center of gravity
+        xcg = (xl[0] + xl[1] + xl[2])/3.0;
+        ycg = (yl[0] + yl[1] + yl[2])/3.0;
+        zcg = (zl[0] + zl[1] + zl[2])/3.0;
+// compute local coordinates 
+        for (i=0; i<3; ++i) {
+          xlcg   = xl[i] - xcg;
+          ylcg   = yl[i] - ycg;
+          zlcg   = zl[i] - zcg;
+          xlp(i) = xp[0] * xlcg + xp[1] * ylcg + xp[2] * zlcg;
+          ylp(i) = yp[0] * xlcg + yp[1] * ylcg + yp[2] * zlcg;
+          zlp(i) = zp[0] * xlcg + zp[1] * ylcg + zp[2] * zlcg;
+        }
+
+// zero stiffness matrices
+        drkdh.setZero();
+        drkmdh.setZero();
+        drkbdh.setZero();
+
+// form local basic bending stiffness
+        
+        basico(xlp.data(),ylp.data(),db.data(),1.0,clr,cqr,lb.data(),drkbdh.data(),18,status);
+
+// form local basic membrane stiffness
+        sm3mb(xlp.data(),ylp.data(),dm.data(),alpha,1.0,le.data(),drkmdh.data(),18,status);
+
+// form local higher order bending stiffness
+        smcbh(xlp.data(),ylp.data(),db.data(),1.0,lb.data(),drkbdh.data(),18,status);
+
+// form local higher order membrane stiffness
+        sm3mhe(xlp.data(),ylp.data(),dm.data(),0.32,le.data(),drkmdh.data(),18,status);
+
+// add bending stiffness and membrane stiffness
+        drkdh = drkbdh + drkmdh;
+
+// rotate stiffness matrix from local coordinate system to global
+// coordinate system in the case of linear FEM. In the case of
+// nonlinear FEM with corotational method, do not perform this 
+// transformation as the corotational routines expect a stiffness
+// matrix in local coordinates.
+      if(flag) {
+//     compute local to global rotation matrix
+        rotation(xp.data(),yp.data(),zp.data(),v1n.data(),v2n.data(),v3n.data(),r1.data());
+        trirotation(drkdh.data(),r1.data());
+      }
+}
+
 #endif
 #endif

@@ -2,10 +2,12 @@
 #define _TETRAHEDRAL_H_
 
 #include <Element.d/Element.h>
+#include <Element.d/Tetra.d/TetraElementTemplate.hpp>
 class TetCorotator;
 class NLMaterial;
 
-class Tetrahedral: public Element {
+class Tetrahedral: public Element,
+                   public TetraElementTemplate<double> {
 
 	int nn[4];
         double *nodeTemperatures;
@@ -34,6 +36,10 @@ public:
                                 (Vector &stress, Vector &weight, CoordSet &cs,
                                  Vector &elDisp, int strInd, int surface=0,
                                  double *ndTemps=0, double ylayer=0.0, double zlayer=0.0, int avgnum=0);
+
+        void getVonMisesNodalCoordinateSensitivity
+                                (GenFullM<double> &dStdx, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+                                 int senMethod=1, double* ndTemps=0, int avgnum=1, double ylayer=0, double zlayer=0);
 
         void             getAllStress
                                 (FullM &stress, Vector &weight, CoordSet &cs,

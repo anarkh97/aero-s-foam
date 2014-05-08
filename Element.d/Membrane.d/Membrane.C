@@ -368,7 +368,7 @@ Membrane::getMass(CoordSet& cs)
         Node &nd2 = cs.getNode(nn[1]);
         Node &nd3 = cs.getNode(nn[2]);
 
-	double r1[3], r2[3], r3[3], v1[3], v2[3], v3[3];
+        double r1[3], r2[3], r3[3], v1[3], v2[3], v3[3];
 
         r1[0] = nd1.x; r1[1] = nd1.y; r1[2] = nd1.z;
         r2[0] = nd2.x; r2[1] = nd2.y; r2[2] = nd2.z;
@@ -386,7 +386,7 @@ Membrane::getMass(CoordSet& cs)
         v3[1] = -v1[0]*v2[2] + v2[0]*v1[2];
         v3[2] =  v1[0]*v2[1] - v2[0]*v1[1];
 
-	double area = 0.5*sqrt(v3[0]*v3[0] + v3[1]*v3[1] + v3[2]*v3[2]);
+        double area = 0.5*sqrt(v3[0]*v3[0] + v3[1]*v3[1] + v3[2]*v3[2]);
         double mass = area*prop->rho*prop->eh;
 
         return mass;
@@ -394,25 +394,61 @@ Membrane::getMass(CoordSet& cs)
 }
 
 double
-Membrane::weight(CoordSet& cs, double *gravityAcceleration, int altitude_direction)
+Membrane::getMassSensitivityWRTthickness(CoordSet& cs)
+{
+        if (prop == NULL) return 0.0;
+
+        Node &nd1 = cs.getNode(nn[0]);
+        Node &nd2 = cs.getNode(nn[1]);
+        Node &nd3 = cs.getNode(nn[2]);
+
+        double r1[3], r2[3], r3[3], v1[3], v2[3], v3[3];
+
+        r1[0] = nd1.x; r1[1] = nd1.y; r1[2] = nd1.z;
+        r2[0] = nd2.x; r2[1] = nd2.y; r2[2] = nd2.z;
+        r3[0] = nd3.x; r3[1] = nd3.y; r3[2] = nd3.z;
+
+        v1[0] = r3[0] - r1[0];
+        v1[1] = r3[1] - r1[1];
+        v1[2] = r3[2] - r1[2];
+
+        v2[0] = r2[0] - r1[0];
+        v2[1] = r2[1] - r1[1];
+        v2[2] = r2[2] - r1[2];
+
+        v3[0] =  v1[1]*v2[2] - v2[1]*v1[2];
+        v3[1] = -v1[0]*v2[2] + v2[0]*v1[2];
+        v3[2] =  v1[0]*v2[1] - v2[0]*v1[1];
+
+        double area = 0.5*sqrt(v3[0]*v3[0] + v3[1]*v3[1] + v3[2]*v3[2]);
+        double massWRTthic = area*prop->rho;
+
+        return massWRTthic;
+}
+
+double
+Membrane::weight(CoordSet& cs, double *gravityAcceleration)
 {
   if (prop == NULL) {
     return 0.0;
   }
 
   double _mass = getMass(cs);
-  return _mass*gravityAcceleration[altitude_direction];
+  double gravAccNorm = sqrt(gravityAcceleration[0]*gravityAcceleration[0] + 
+                            gravityAcceleration[1]*gravityAcceleration[1] +
+                            gravityAcceleration[2]*gravityAcceleration[2]);
+  return _mass*gravAccNorm;
 }
 
 double
-Membrane::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int altitude_direction, int senMethod)
+Membrane::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int senMethod)
 {
   if (prop == NULL) {
     return 0.0;
   }
 
   if(senMethod == 0) {
-    double _weight = weight(cs, gravityAcceleration, altitude_direction);
+    double _weight = weight(cs, gravityAcceleration);
     double thick = prop->eh;
     return _weight/thick;
   } else {

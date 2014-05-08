@@ -1026,13 +1026,13 @@ template<class Scalar>
 void
 Domain::buildPostSensitivities(GenSolver<Scalar> *sysSolver, 
                                GenSparseMatrix<Scalar> *K, GenSparseMatrix<Scalar> *spm,
-                               AllSensitivities<Scalar> &allSens, GenVector<Scalar> &sol, Scalar *bcx)
+                               AllSensitivities<Scalar> &allSens, GenVector<Scalar> &sol, Scalar *bcx, bool isDynam)
 {
   switch(sinfo.type) {
     default:
       fprintf(stderr," *** WARNING: Solver not Specified  ***\n");
     case 0:
-      makePostSensitivities(sysSolver, K, spm, allSens, sol, bcx);
+      makePostSensitivities(sysSolver, K, spm, allSens, sol, bcx, isDynam);
       break;
   }
 }
@@ -1327,7 +1327,6 @@ template<class Scalar>
 void
 Domain::getSolverAndKuc(AllOps<Scalar> &allOps, FullSquareMatrix *kelArray, bool factorize)
 {
- cerr << " ... ... ... Domain::getSolverAndKuc\n";
  // PJSA 10-5-04: new version, this one can pass all sys matricies back via allOps
  // not just K and Kuc. This is required for frequency sweep analysis
 
@@ -1629,7 +1628,7 @@ Domain::addGravityForce(GenVector<Scalar> &force)
 
     // transform vector from basic to DOF_FRM coordinates
     transformVector(elementGravityForce, iele);
-    cerr << "norm of elementGravityForce is " << elementGravityForce.norm() << endl;
+    if(verboseFlag) cerr << "norm of elementGravityForce is " << elementGravityForce.norm() << endl;
 
     for(int idof = 0; idof < allDOFs->num(iele); ++idof) {
       int cn = c_dsa->getRCN((*allDOFs)[iele][idof]);
@@ -2127,11 +2126,6 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc)
       case(BCond::Forces) : case(BCond::Flux) : case(BCond::Convection) : case(BCond::Hneu) : {
         double loadFactor = domain->getLoadFactor(nbc[i].loadsetid);
         ScalarTypes::addScalar(force[dof], loadFactor*nbc[i].val);
-        cerr << "nbc[i].nnum = " << nbc[i].nnum << endl;
-        cerr << "nbc[i].dofnum = " << nbc[i].dofnum << endl;
-        cerr << "nbc[i].val = " << nbc[i].val << endl;
-        cerr << "loadFactor = " << loadFactor << endl;
-        cerr << "dof = " << dof << endl;
       } break;
       default : 
        ScalarTypes::addScalar(force[dof], nbc[i].val);
@@ -2269,7 +2263,6 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc)
         else ScalarTypes::initScalar(Vc[dof2], cdbcMRHS[i].reval, cdbcMRHS[i].imval);
       }
     }
-    cerr << "norm of Vc is " << Vc.norm() << endl;
 
     kuc->multSubtract(Vc, force);
   }
@@ -3427,6 +3420,7 @@ void Domain::sensitivityPostProcessing(AllSensitivities<Scalar> &allSens) {
     }
     if(oinfo[i].type == OutputInfo::VMstThic) geoSource->outputEigenVectors(i, allSens.vonMisesWRTthick);
     if(oinfo[i].type == OutputInfo::VMstDisp) geoSource->outputEigenVectors(i, allSens.vonMisesWRTdisp);
+    if(oinfo[i].type == OutputInfo::VMstCoord) geoSource->outputEigenVectors(i, allSens.vonMisesWRTcoord);
     if(oinfo[i].type == OutputInfo::DispThic) {
       if(verboseFlag) filePrint(stderr," ... output displacement wrt thickness sensitivity\n");
       for(int g = 0; g < geoSource->group.size(); ++g) {

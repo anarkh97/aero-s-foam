@@ -88,6 +88,7 @@ public:
   int aeroPreProcess(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p);
   int aeroSensitivityPreProcess(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p);
   int sendDisplacements(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p);
+  void sendNumParam(int numParam){ flExchanger->sendNumParam(numParam); }
   int cmdCom(int cmdFlag){ return flExchanger->cmdCom(cmdFlag); }
  
   void a5TimeLoopCheck(int& parity, double& t, double dt);

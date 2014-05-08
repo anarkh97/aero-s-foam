@@ -386,25 +386,50 @@ Triangle3::getMass(CoordSet& cs)
 }
 
 double
-Triangle3::weight(CoordSet& cs, double *gravityAcceleration, int altitude_direction)
+Triangle3::getMassSensitivityWRTthickness(CoordSet& cs)
+{
+        Node &nd1 = cs.getNode(nn[0]);
+        Node &nd2 = cs.getNode(nn[1]);
+        Node &nd3 = cs.getNode(nn[2]);
+
+        double x[3], y[3];
+
+        x[0] = nd1.x; y[0] = nd1.y;
+        x[1] = nd2.x; y[1] = nd2.y;
+        x[2] = nd3.x; y[2] = nd3.y;
+
+	double area = 0.5*((x[1]*y[2]-x[2]*y[1])+
+                           (x[2]*y[0]-x[0]*y[2])+
+                           (x[0]*y[1]-x[1]*y[0]));
+
+	double density = prop->rho;
+	double massWRTthic = area*density;
+  return massWRTthic;
+}
+
+double
+Triangle3::weight(CoordSet& cs, double *gravityAcceleration)
 {
   if (prop == NULL) {
     return 0.0;
   }
 
   double _mass = getMass(cs);
-  return _mass*gravityAcceleration[altitude_direction];
+  double gravAccNorm = sqrt(gravityAcceleration[0]*gravityAcceleration[0] + 
+                            gravityAcceleration[1]*gravityAcceleration[1] +
+                            gravityAcceleration[2]*gravityAcceleration[2]);
+  return _mass*gravAccNorm;
 }
 
 double
-Triangle3::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int altitude_direction, int senMethod)
+Triangle3::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int senMethod)
 {
   if (prop == NULL) {
     return 0.0;
   }
   
   if(senMethod == 0) {
-    double _weight = weight(cs, gravityAcceleration, altitude_direction);
+    double _weight = weight(cs, gravityAcceleration);
     double thick = prop->eh;
     return _weight/thick;
   } else {

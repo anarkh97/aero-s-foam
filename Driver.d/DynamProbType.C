@@ -399,7 +399,8 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
          probDesc->postProcessSA(dynOps,*d_n);
          AllSensitivities<double> *allSens = probDesc->getAllSensitivities();
          map<int, Group> &group = geoSource->group;
-         allSens->dispWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[group.size()]; 
+         allSens->dispWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[group.size()];
+         probDesc->sendNumParam(group.size());  
          for(int iparam=0; iparam< group.size(); ++iparam) {
            allSens->dispWRTthick[iparam] = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(domain->numUncon(),1);
            rhsSen = new VecType( probDesc->solVecInfo() );
@@ -409,6 +410,10 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
            aeroSensitivityQuasistaticLoop( *curSenState, *rhsSen, *dynOps, *workSenVec, dt, tmax, aeroAlg);
            *allSens->dispWRTthick[iparam] = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> >(d_nSen->data(),domain->numUncon(),1);
            allSens->vonMisesWRTthick->col(iparam) += *allSens->vonMisesWRTdisp * (*allSens->dispWRTthick[iparam]);
+           Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
+//           cerr << "print *allSens->vonMisesWRTdisp\n" << (*allSens->vonMisesWRTdisp).format(HeavyFmt) << endl;
+//           cerr << "print (*allSens->dispWRTthick[iparam])\n" << (*allSens->dispWRTthick[iparam]).adjoint().format(HeavyFmt) << endl;
+//           cerr << "print vonMisesWRTthick (in steady aeroelastic analysis)\n" << allSens->vonMisesWRTthick->col(iparam).adjoint().format(HeavyFmt) << endl;
          }  
          domain->sensitivityPostProcessing(*allSens); 
        } 
@@ -548,6 +553,9 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
     // ... stop quasi-transient simulation if converged
     if(iSteady) {
+      Eigen::Map<Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> > dispEigen(d_n.data(),1,d_n.size());
+      Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
+//      cerr << "print disp\n" << dispEigen.format(HeavyFmt) << endl;
       filePrint(stderr," ------------------------------------------------------\n");
       filePrint(stderr," ... Quasistatic Analysis Converged After %d Steps ...\n",tIndex);
       filePrint(stderr," ------------------------------------------------------\n");

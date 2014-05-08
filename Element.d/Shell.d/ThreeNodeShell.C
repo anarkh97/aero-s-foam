@@ -12,6 +12,7 @@
 #include <Element.d/Shell.d/ThreeNodeShellStressWRTDisplacementSensitivity.h>
 #include <Element.d/Shell.d/ThreeNodeShellStressWRTThicknessSensitivity.h>
 #include <Element.d/Shell.d/ThreeNodeShellStiffnessWRTThicknessSensitivity.h>
+#include <Element.d/Shell.d/ThreeNodeShellStressWRTNodalCoordinateSensitivity.h>
 #include <Element.d/State.h>
 #include <Element.d/Function.d/SpaceDerivatives.h>
 #include <Hetero.d/InterpPoint.h>
@@ -229,20 +230,54 @@ ThreeNodeShell::getMass(CoordSet& cs)
 }
 
 double
-ThreeNodeShell::weight(CoordSet& cs, double *gravityAcceleration, int altitude_direction)
+ThreeNodeShell::getMassSensitivityWRTthickness(CoordSet& cs)
+{
+        if (prop == NULL) return 0.0;
+
+        Node &nd1 = cs.getNode(nn[0]);
+        Node &nd2 = cs.getNode(nn[1]);
+        Node &nd3 = cs.getNode(nn[2]);
+
+        double r1[3], r2[3], r3[3], v1[3], v2[3], v3[3];
+
+        r1[0] = nd1.x; r1[1] = nd1.y; r1[2] = nd1.z;
+        r2[0] = nd2.x; r2[1] = nd2.y; r2[2] = nd2.z;
+        r3[0] = nd3.x; r3[1] = nd3.y; r3[2] = nd3.z;
+
+        v1[0] = r3[0] - r1[0];
+        v1[1] = r3[1] - r1[1];
+        v1[2] = r3[2] - r1[2];
+
+        v2[0] = r2[0] - r1[0];
+        v2[1] = r2[1] - r1[1];
+        v2[2] = r2[2] - r1[2];
+
+        crossprod(v1, v2, v3);
+
+        double area = 0.5*sqrt(v3[0]*v3[0] + v3[1]*v3[1] + v3[2]*v3[2]);
+        double massWRTthic = area*prop->rho;
+
+        return massWRTthic;
+}
+
+double
+ThreeNodeShell::weight(CoordSet& cs, double *gravityAcceleration)
 {         
   if(prop) {
     double _mass = getMass(cs);
-    return _mass*gravityAcceleration[altitude_direction];
+    double gravAccNorm = sqrt(gravityAcceleration[0]*gravityAcceleration[0] + 
+                              gravityAcceleration[1]*gravityAcceleration[1] +
+                              gravityAcceleration[2]*gravityAcceleration[2]);
+    return _mass*gravAccNorm;
   } else return 0;
 }   
 
 double
-ThreeNodeShell::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int altitude_direction, int senMethod)
+ThreeNodeShell::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int senMethod)
 {
   if(prop) {
     if(senMethod == 0) { 
-      double _weight = weight(cs, gravityAcceleration, altitude_direction);
+      double _weight = weight(cs, gravityAcceleration);
       double eh = prop->eh;
       return _weight/eh;
     } else {
@@ -598,27 +633,25 @@ ThreeNodeShell::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix 
   q[0] = prop->eh;   // value of thickness at which jacobian is to be evaluated
 
   Eigen::Matrix<double,18,18> dStiffnessdThick;
-//  if(senMethod == 0) { // analytic
-/*
+  if(senMethod == 0) { // analytic
     double x[3], y[3], z[3], h[3];
     x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
     x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
     x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
     h[0] = h[1] = h[2] = prop->eh;
    
-    andesstfWRTthick(glNum+1, dStiffnessdThick.data(), prop->nu, x, y, z, type, flg);
+    tria3dthickness(flg, x, y, z, prop->E, prop->nu, h, dStiffnessdThick.data());
     if(verboseFlag) std::cerr << "dStiffnessdThick(analytic) =\n" << dStiffnessdThick << std::endl;
-*/
-//  }
+  }
 
-//  if(senMethod == 1) { // automatic differentiation
+  if(senMethod == 1) { // automatic differentiation
     Simo::FirstPartialSpaceDerivatives<double, ThreeNodeShellStiffnessWRTThicknessSensitivity> dSdh(dconst,iconst); 
     Eigen::Array<Eigen::Matrix<double,18,18>,1,1> dStifdThick = dSdh(q, 0);
-    if(verboseFlag) std::cerr << "dStifdThick(AD) =\n" << dStifdThick[0] << std::endl;
     dStiffnessdThick = dStifdThick[0];
-//  }
+    if(verboseFlag) std::cerr << "dStiffnessdThick(AD) =\n" << dStiffnessdThick << std::endl;
+  }
 
-/*  if(senMethod == 2) { // finite difference
+  if(senMethod == 2) { // finite difference
     ThreeNodeShellStiffnessWRTThicknessSensitivity<double> foo(dconst,iconst);
     Eigen::Matrix<double,1,1> qp, qm;
     double h(1e-6);
@@ -628,7 +661,7 @@ ThreeNodeShell::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix 
     dStiffnessdThick = (Sp-Sm)/(2*h);
     if(verboseFlag) std::cerr << "dStiffnessdThick(FD) =\n" << dStiffnessdThick << std::endl;
   }
-*/
+
   dStiffdThick.copy(dStiffnessdThick.data());
 
 }
@@ -1193,10 +1226,10 @@ ThreeNodeShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, V
 {
 #ifdef USE_EIGEN3
    if(strInd != 6) {
-     cerr << " ... Error: strInd must be 6 in TwoNodeTruss::getVonMisesDisplacementSensitivity\n";
+     cerr << " ... Error: strInd must be 6 in ThreeNodeShell::getVonMisesDisplacementSensitivity\n";
      exit(-1);
    }
-   if(dStdDisp.numRow() != 3 || dStdDisp.numCol() !=18) {
+   if(dStdDisp.numRow() != 18 || dStdDisp.numCol() != 3) {
      cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
      exit(-1);
    }
@@ -1286,6 +1319,100 @@ ThreeNodeShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, V
   } else dStdDisp.zero(); // NODALPARTIAL or GAUSS or any others
 #else
   cerr << " ... Error! ThreeNodeShell::getVonMisesDisplacementSensitivity needs Eigen library.\n";
+  exit(-1);
+#endif
+}
+
+void 
+ThreeNodeShell::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+                                                      int senMethod, double *ndTemps, int avgnum, double ylayer, double zlayer)
+{
+#ifdef USE_EIGEN3
+   if(strInd != 6) {
+     cerr << " ... Error: strInd must be 6 in ThreeNodeShell::getVonMisesNodalCoordinateSensitivity\n";
+     exit(-1);
+   }
+   if(dStdx.numRow() != 9 || dStdx.numCol() != 3) {
+     cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
+     exit(-1);
+   }
+   if(ndTemps != 0) {
+     cerr << " ... Error: thermal stress should not be passed in sensitivity computation\n";
+     exit(-1);
+   }
+  weight = 1;
+  // scalar parameters
+  Eigen::Array<double,21,1> dconst;
+
+  Node &nd1 = cs.getNode(nn[0]);
+  Node &nd2 = cs.getNode(nn[1]);
+  Node &nd3 = cs.getNode(nn[2]);
+
+  dconst.segment<18>(0) = Eigen::Map<Eigen::Matrix<double,18,1> >(elDisp.data()).segment(0,18); // displacements
+  dconst[18] = prop->E;     // E
+  dconst[19] = prop->nu;   // nu
+  dconst[20] = prop->eh;   // thickness
+   
+  // integer parameters
+  Eigen::Array<int,1,1> iconst;
+  iconst[0] = surface; // surface
+  // inputs
+  Eigen::Matrix<double,9,1> q;
+  q << nd1.x, nd1.y, nd1.z, nd2.x, nd2.y, nd2.z, nd3.x, nd3.y, nd3.z;
+  Eigen::Array<double,3,1> globalx;
+  globalx << nd1.x, nd2.x, nd3.x;
+  Eigen::Array<double,3,1> globaly;
+  globaly << nd1.y, nd2.y, nd3.y;
+  Eigen::Array<double,3,1> globalz;
+  globalz << nd1.z, nd2.z, nd3.z;
+
+  // Jacobian evaluation
+  Eigen::Matrix<double,3,9> dStressdx;
+  Eigen::Matrix<double,7,3> stress;
+  if(verboseFlag) cout << "senMethod is " << senMethod << endl;
+ 
+  if(avgnum == 0 || avgnum == 1) { // NODALFULL or ELEMENTAL
+    if(senMethod == 0) { // analytic
+      cerr << " ... Warning: analytic von Mises stress sensitivity wrt nodal coordinate is not implemented yet\n";
+      cerr << " ...          instead, automatic differentiation will be applied\n";
+      senMethod = 1;
+    }
+
+    if(senMethod == 1) { // automatic differentiation
+      Simo::Jacobian<double,ThreeNodeShellStressWRTNodalCoordinateSensitivity> dSdx(dconst,iconst);
+      dStressdx = dSdx(q, 0);
+      dStdx.copy(dStressdx.data());
+      if(verboseFlag) std::cerr << "dStressdx(AD) =\n" << dStressdx << std::endl;
+    }
+ 
+
+    if(senMethod == 2) { // finite difference
+      // finite difference
+      dStressdx.setZero();
+      ThreeNodeShellStressWRTNodalCoordinateSensitivity<double> foo(dconst,iconst);
+      Eigen::Matrix<double,9,1> qp, qm;
+      double h(1e-6);
+      Eigen::Matrix<double,3,1> S = foo(q,0);
+//      cout << "displacement = " << q.transpose() << endl;
+      for(int i=0; i<9; ++i) {
+        qp = q;             qm = q;
+        qp[i] += h;         qm[i] -= h;
+//        if(q[i] == 0) { qp[i] = h;   qm[i] = -h; }
+//        else { qp[i] = q[i]*(1 + h);   qm[i] = q[i]*(1 - h); }
+        Eigen::Matrix<double,3,1> Sp = foo(qp, 0);
+        Eigen::Matrix<double,3,1> Sm = foo(qm, 0);
+        dStressdx.col(i) = (Sp - Sm)/(2*h);
+      }
+      Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " "); 
+//      cout << Sp.transpose().format(HeavyFmt) << endl;
+//      cout << Sm.transpose().format(HeavyFmt) << endl;
+//      cout << S.transpose().format(HeavyFmt) << endl;
+      dStdx.copy(dStressdx.data());
+      if(verboseFlag) std::cerr << "dStressdx(FD) =\n" << dStressdx.format(HeavyFmt) << std::endl;
+    }
+  } else dStdx.zero(); // NODALPARTIAL or GAUSS or any others
+#else
+  cerr << " ... Error! ThreeNodeShell::getVonMisesNodalCoordinateSensitivity needs Eigen library.\n";
   exit(-1);
 #endif
 }

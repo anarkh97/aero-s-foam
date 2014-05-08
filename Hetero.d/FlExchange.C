@@ -1109,6 +1109,26 @@ FlExchanger::printreceiving()
   fprintf(stderr," ::::::: nbrReceivingFromMe = %d\n",nbrReceivingFromMe);
 }
 
+void
+FlExchanger::sendNumParam(int numParam)
+{
+  int returnFlag = 0;
+  int FldNd = 0;
+
+  int tag;
+  
+  int thisNode = structCom->myID();
+
+  double buffer[1];
+  buffer[0] = (double) numParam;
+  int msglen = 1;
+
+  if(thisNode == 0) {
+    tag = STNUMPAFL;
+    fluidCom->sendTo(FldNd, tag, buffer, msglen);
+  }
+}
+
 int
 FlExchanger::cmdCom( int commandFlag )
 {

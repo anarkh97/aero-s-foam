@@ -331,25 +331,60 @@ ShearPanel::getMass(CoordSet& cs)
 }
 
 double
-ShearPanel::weight(CoordSet& cs, double *gravityAcceleration, int altitude_direction)
+ShearPanel::getMassSensitivityWRTthickness(CoordSet& cs)
+{
+        Node &nd1 = cs.getNode(nn[0]);
+        Node &nd2 = cs.getNode(nn[1]);
+        Node &nd3 = cs.getNode(nn[2]);
+        Node &nd4 = cs.getNode(nn[3]);
+
+        double x[4], y[4], z[4];
+
+        x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+        x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+        x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
+        x[3] = nd4.x; y[3] = nd4.y; z[3] = nd4.z;
+
+        double *gravityAcceleration = 0;
+        double *grvfor = 0;
+        double totmas = 0.0;
+
+        int grvflg = 0, masflg = 1;
+
+        const int numgauss = 2;
+        double volume;
+        double *mel= (double *) dbg_alloca(sizeof(double)*12*12);
+
+       _FORTRAN(shearmass)(x,y,z,prop->eh, prop->rho, numgauss, (double*)mel,
+                           numDofs(), volume, gravityAcceleration,
+                           grvfor, grvflg, totmas, masflg);
+
+        return totmas/prop->eh;
+}
+
+double
+ShearPanel::weight(CoordSet& cs, double *gravityAcceleration)
 {
   if (prop == NULL) {
     return 0.0;
   }
 
   double _mass = getMass(cs);
-  return _mass*gravityAcceleration[altitude_direction];
+  double gravAccNorm = sqrt(gravityAcceleration[0]*gravityAcceleration[0] + 
+                            gravityAcceleration[1]*gravityAcceleration[1] +
+                            gravityAcceleration[2]*gravityAcceleration[2]);
+  return _mass*gravAccNorm;
 }
 
 double
-ShearPanel::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int altitude_direction, int senMethod)
+ShearPanel::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int senMethod)
 {
   if (prop == NULL) {
     return 0.0;
   }
 
   if(senMethod == 0) {
-    double _weight = weight(cs, gravityAcceleration, altitude_direction);
+    double _weight = weight(cs, gravityAcceleration);
     double thick = prop->eh;
     return _weight/thick;
   } else {

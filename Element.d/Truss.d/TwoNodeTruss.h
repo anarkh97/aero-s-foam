@@ -27,6 +27,8 @@ public:
         void getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, 
                                                 Vector &elDisp, int strInd, int surface,
                                                 int senMethod, double *ndTemps, int avgnum, double ylayer, double zlayer);
+        void getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+                                                   int senMethod, double *ndTemps, int avgnum, double ylayer, double zlayer);
         void markDofs(DofSetArray &);
         int* dofs(DofSetArray &, int *p=0);
         int numDofs();

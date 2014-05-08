@@ -3,6 +3,9 @@
 #include <cmath>
 
 #include <Element.d/Tetra.d/Tetrahedral.h>
+#include <Element.d/Tetra.d/TetraElementTemplate.cpp>
+#include <Element.d/Tetra.d/TetraElementStressWRTNodalCoordinateSensitivity.h>
+#include <Element.d/Function.d/SpaceDerivatives.h>
 #include <Utils.d/dofset.h>
 #include <Utils.d/linkfc.h>
 #include <Utils.d/pstress.h>
@@ -17,6 +20,9 @@
                             //    that deals with ansitropic constitutive matrix
 #define CHECK_JACOBIAN      //HB: force check nullity & constant sign of jacobian over el.
 //#define TETRA4_DEBUG
+
+extern int verboseFlag;
+
 extern "C"      {
 
 void	_FORTRAN(mstf23)(double*, double*, double*, double&, double&, double*, 
@@ -95,38 +101,38 @@ Tetrahedral::renum(EleRenumMap& table)
 void
 Tetrahedral::getVonMises(Vector& stress,Vector& weight,CoordSet &cs,
                          Vector& elDisp, int strInd, int surface , double* ndTemps,
-			 double ylayer, double zlayer, int avgnum)
+                         double ylayer, double zlayer, int avgnum)
 {
-        if(cCoefs){
-          getVonMisesAniso(stress, weight, cs,
-			   elDisp, strInd, surface, ndTemps,
-			   ylayer, zlayer, avgnum);
-	  return;		 
-        }
- 	weight = 1.0;
+  if(cCoefs) {
+    getVonMisesAniso(stress, weight, cs,
+                     elDisp, strInd, surface, ndTemps,
+                     ylayer, zlayer, avgnum);
+    return;		 
+  }
+  weight = 1.0;
 
-	Node &nd1 = cs.getNode(nn[0]);
-	Node &nd2 = cs.getNode(nn[1]);
-	Node &nd3 = cs.getNode(nn[2]);
-	Node &nd4 = cs.getNode(nn[3]);
+  Node &nd1 = cs.getNode(nn[0]);
+  Node &nd2 = cs.getNode(nn[1]);
+  Node &nd3 = cs.getNode(nn[2]);
+  Node &nd4 = cs.getNode(nn[3]);
 
-  	double x[4], y[4], z[4]; 
+  double x[4], y[4], z[4]; 
 
-  	x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
-  	x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
-  	x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
-  	x[3] = nd4.x; y[3] = nd4.y; z[3] = nd4.z;
+  x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+  x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+  x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
+  x[3] = nd4.x; y[3] = nd4.y; z[3] = nd4.z;
 
-        // Flags sands23 to calculate Von Mises stress.
+  // Flags sands23 to calculate Von Mises stress.
         int vmflg = 0;
         if(strInd == 6) vmflg  = 1;
-	int strainFlg = 0;
-	if(strInd == 13) strainFlg = 1;
+        int strainFlg = 0;
+        if(strInd == 13) strainFlg = 1;
 
         int maxgus = 4; // maximum gauss points 
         int maxstr = 7; 
         int elm    = 1;
-	int outerr = 6;
+        int outerr = 6;
 
         double elStress[4][7];
         double elStrain[4][7];
@@ -138,11 +144,17 @@ Tetrahedral::getVonMises(Vector& stress,Vector& weight,CoordSet &cs,
         double E     = prop->E;  // Young's modulus
         double nu    = prop->nu; // Poisson's ratio
 
+#ifdef USE_EIGEN3
+        sands23(elm, x, y, z, E, nu, elDisp.data(),
+                (double*)elStress, (double*)elStrain, maxgus, maxstr,
+                one, outerr, vmflg, strainFlg);
+#else
         _FORTRAN(sands23)(elm, x, y, z, E, nu, elDisp.data(), 
           (double*)elStress, (double*)elStrain, maxgus, maxstr,
           one, outerr, vmflg, strainFlg); 
+#endif
 
-	if(strInd < 7) {
+        if(strInd < 7) {
           double thermalStress[4] = {0.0,0.0,0.0,0.0};
           if(strInd == 0 || strInd == 1 || strInd == 2) {
             double coef = (E*alpha)/(1.0 - 2.0*nu);
@@ -155,18 +167,107 @@ Tetrahedral::getVonMises(Vector& stress,Vector& weight,CoordSet &cs,
           stress[1] = elStress[1][strInd] - thermalStress[1];
           stress[2] = elStress[2][strInd] - thermalStress[2];
           stress[3] = elStress[3][strInd] - thermalStress[3];
-	} else if(strInd < 14) {
+        } else if(strInd < 14) {
           stress[0] = elStrain[0][strInd-7];
           stress[1] = elStrain[1][strInd-7];
           stress[2] = elStrain[2][strInd-7];
           stress[3] = elStrain[3][strInd-7];
-	}
+        }
         else {
           stress[0] = 0;
           stress[1] = 0;
           stress[2] = 0;
           stress[3] = 0;
         } 
+}
+
+void
+Tetrahedral::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+                                                   int senMethod, double* ndTemps, int avgnum, double ylayer, double zlayer)
+{
+#ifdef USE_EIGEN3
+   if(strInd != 6) {
+     cerr << " ... Error: strInd must be 6 in Tetrahedral::getVonMisesNodalCoordinateSensitivity\n";
+     exit(-1);
+   }
+   if(dStdx.numRow() != 12 || dStdx.numCol() != 4) {
+     cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
+     exit(-1);
+   }
+   if(ndTemps != 0) {
+     cerr << " ... Error: thermal stress should not be passed in sensitivity computation\n";
+     exit(-1);
+   }
+/*  if(cCoefs) {
+    getVonMisesAniso(stress, weight, cs,
+                     elDisp, strInd, surface, ndTemps,
+                     ylayer, zlayer, avgnum);
+    return;		 
+  }*/
+  weight = 1.0;
+
+  Node &nd1 = cs.getNode(nn[0]);
+  Node &nd2 = cs.getNode(nn[1]);
+  Node &nd3 = cs.getNode(nn[2]);
+  Node &nd4 = cs.getNode(nn[3]);
+
+  Eigen::Array<double,14,1> dconst;
+  dconst.segment<12>(0) = Eigen::Map<Eigen::Matrix<double,12,1> >(elDisp.data()).segment(0,12); // displacements
+  dconst[12] = prop->E;
+  dconst[13] = prop->nu;
+
+  // integer parameters
+  Eigen::Array<int,1,1> iconst;
+  iconst[0] = surface;
+ 
+  // inputs
+  Eigen::Matrix<double,12,1> q;
+  q << nd1.x, nd1.y, nd1.z, nd2.x, nd2.y, nd2.z, nd3.x, nd3.y, nd3.z, nd4.x, nd4.y, nd4.z;
+/*  Eigen::Array<double,4,1> globalx;
+  globalx << nd1.x, nd2.x, nd3.x, nd4.x;
+  Eigen::Array<double,4,1> globaly;
+  globaly << nd1.y, nd2.y, nd3.y, nd4.y;
+  Eigen::Array<double,4,1> globalz;
+  globalz << nd1.z, nd2.z, nd3.z, nd4.z;
+
+  int maxgus = 4; // maximum gauss points 
+  int maxstr = 7; 
+  int elm    = 1;
+  int outerr = 6;
+*/
+  Eigen::Matrix<double,4,12> dStressdx;
+  if(senMethod == 0) { // analytic
+    cerr << " ... Warning: analytic von Mises stress sensitivity wrt nodal coordinate is not implemented yet\n";
+    cerr << " ...          instead, automatic differentiation will be applied\n";
+    senMethod == 1;
+  }
+
+  if(senMethod == 1) {
+    Simo::Jacobian<double,TetraElementStressWRTNodalCoordinateSensitivity> dSdx(dconst,iconst);
+    dStressdx = dSdx(q, 0);
+    dStdx.copy(dStressdx.data()); 
+    if(verboseFlag) std::cerr << "dStressdx(AD) =\n" << dStressdx << std::endl;
+  }
+
+  if(senMethod == 2) {
+    TetraElementStressWRTNodalCoordinateSensitivity<double> foo(dconst,iconst);
+    Eigen::Matrix<double,12,1> qp, qm;
+    double h(1e-6);
+    Eigen::Matrix<double,4,1> S = foo(q,0);
+    for(int i=0; i<12; ++i) {
+      qp = qm = q;      qp[i] = q[i] + h;     qm[i] = q[i] - h;
+      Eigen::Matrix<double,4,1> Sp = foo(qp, 0);
+      Eigen::Matrix<double,4,1> Sm = foo(qm, 0);
+      dStressdx.col(i) = (Sp - Sm)/(2*h);
+    }
+    Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
+    if(verboseFlag) std::cerr << "dStressdx(FD) =\n" << dStressdx.format(HeavyFmt) << std::endl;
+    dStdx.copy(dStressdx.data());  
+  }
+#else
+  cerr << " ... Error! Tetrahedral::getVonMisesNodalCoordinateSensitivity needs Eigen library.\n";
+  exit(-1);
+#endif
 }
 
 void

@@ -176,7 +176,7 @@ SuperElement::stiffness(CoordSet &cs, double *karray, int flg)
 void 
 SuperElement::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix &dStiffdThick, int flg, int senMethod)
 {
-  if(dStiffdThick.dim() !=24) { // 24 is specific to FelippaShellX2
+  if(dStiffdThick.dim() != numDofs()) {
      cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
      exit(-1);
   }
@@ -209,19 +209,27 @@ SuperElement::getMass(CoordSet &cs)
   return ret;
 }
 
-double
-SuperElement::weight(CoordSet& cs, double *gravityAcceleration, int altitude_direction)
+double 
+SuperElement::getMassSensitivityWRTthickness(CoordSet &cs)
 {
   double ret = 0.0;
-  for(int i = 0; i < nSubElems; ++i) ret += subElems[i]->weight(cs,gravityAcceleration, altitude_direction);
+  for(int i = 0; i < nSubElems; ++i) ret += subElems[i]->getMassSensitivityWRTthickness(cs);
+  return ret;
+}
+
+double
+SuperElement::weight(CoordSet& cs, double *gravityAcceleration)
+{
+  double ret = 0.0;
+  for(int i = 0; i < nSubElems; ++i) ret += subElems[i]->weight(cs,gravityAcceleration);
   return ret;
 }
 
 double 
-SuperElement::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int altitude_direction, int senMethod)
+SuperElement::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int senMethod)
 {
   double ret = 0.0;
-  for(int i = 0; i < nSubElems; ++i) ret += subElems[i]->weightDerivativeWRTthickness(cs,gravityAcceleration, altitude_direction, senMethod);
+  for(int i = 0; i < nSubElems; ++i) ret += subElems[i]->weightDerivativeWRTthickness(cs,gravityAcceleration, senMethod);
   return ret;
 }
 
@@ -232,16 +240,14 @@ SuperElement::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight,
   for(int i = 0; i < nSubElems; ++i) {
     Vector subVonMisesThicknessSensitivity(subElems[i]->numNodes(),0.0); 
     Vector subWeight(subElems[i]->numNodes(),0.0);
-    Vector subElDisp(subElems[i]->numDofs(),0.0);
-    for(int j = 0; j < subElems[i]->numDofs(); ++j) {
-      subElDisp[j] = elDisp[subElemDofs[i][j]];
-    }
-    subElems[i]->getVonMisesThicknessSensitivity(subVonMisesThicknessSensitivity, subWeight, cs, subElDisp, strInd, surface, 
+    Vector *subElDisp = 0;
+    subElDisp = new Vector(elDisp, subElems[i]->numDofs(), subElemDofs[i]);
+    subElems[i]->getVonMisesThicknessSensitivity(subVonMisesThicknessSensitivity, subWeight, cs, *subElDisp, strInd, surface, 
                                                  senMethod, 0, avgnum, ylayer, zlayer); 
     weight.add(subWeight, subElemNodes[i]);
     dStdThick.add(subVonMisesThicknessSensitivity, subElemNodes[i]);
+    delete subElDisp;
   }
-  for(int i = 0; i < dStdThick.size(); ++i) dStdThick[i] /= weight[i]; 
 
 }
 
@@ -249,28 +255,46 @@ void
 SuperElement::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
                                                  int senMethod, double *ndTemps, int avgnum, double ylayer, double zlayer)
 {
+  dStdDisp.zero();
   for(int i = 0; i < nSubElems; ++i) {
-    GenFullM<double> subVonMisesDisplacementSensitivity(subElems[i]->numNodes(),subElems[i]->numDofs(),0.0);        
+    GenFullM<double> subVonMisesDisplacementSensitivity(subElems[i]->numDofs(),subElems[i]->numNodes(),0.0);        
     Vector subWeight(subElems[i]->numNodes(),0.0);
-    Vector subElDisp(subElems[i]->numDofs(),0.0);
-    for(int j = 0; j < subElems[i]->numDofs(); ++j) {
-      subElDisp[j] = elDisp[subElemDofs[i][j]];
-    }
-    subElems[i]->getVonMisesDisplacementSensitivity(subVonMisesDisplacementSensitivity, subWeight, cs, subElDisp, strInd, surface, 
+    Vector *subElDisp = 0;
+    subElDisp = new Vector(elDisp, subElems[i]->numDofs(), subElemDofs[i]);
+    subElems[i]->getVonMisesDisplacementSensitivity(subVonMisesDisplacementSensitivity, subWeight, cs, *subElDisp, strInd, surface, 
                                                     senMethod, 0, avgnum, ylayer, zlayer);
     weight.add(subWeight, subElemNodes[i]);
     for(int j = 0; j < subElems[i]->numDofs(); ++j) {
       for(int k = 0; k < subElems[i]->numNodes(); ++k) {
-        dStdDisp[subElemNodes[i][k]][subElemDofs[i][j]] = subVonMisesDisplacementSensitivity[k][j];
+        dStdDisp[subElemDofs[i][j]][subElemNodes[i][k]] += subVonMisesDisplacementSensitivity[j][k];
       }
     }
-  }
-  for(int i = 0; i < dStdDisp.numRow(); ++i) {
-    for(int j = 0; j < dStdDisp.numCol(); ++j) {
-      dStdDisp[i][j] /= weight[i]; 
-    }
+
+    delete subElDisp;
   }
  
+}
+
+void 
+SuperElement::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+                                                    int senMethod, double *, int avgnum, double ylayer, double zlayer)
+{
+  dStdx.zero();
+  for(int i = 0; i < nSubElems; ++i) {
+    GenFullM<double> subVonMisesCoordinateSensitivity(3*subElems[i]->numNodes(),subElems[i]->numNodes(),0.0);        
+    Vector subWeight(subElems[i]->numNodes(),0.0);
+    Vector *subElDisp = 0;
+    subElDisp = new Vector(elDisp, subElems[i]->numDofs(), subElemDofs[i]);
+    subElems[i]->getVonMisesNodalCoordinateSensitivity(subVonMisesCoordinateSensitivity, subWeight, cs, *subElDisp, strInd, surface, 
+                                                       senMethod, 0, avgnum, ylayer, zlayer);
+    weight.add(subWeight, subElemNodes[i]);
+    for(int j = 0; j < subElems[i]->numNodes(); ++j) 
+      for(int k = 0; k < subElems[i]->numNodes(); ++k) 
+        for(int xyz = 0; xyz < 3; ++xyz) 
+          dStdx[3*subElemNodes[i][j]+xyz][subElemNodes[i][k]] += subVonMisesCoordinateSensitivity[3*j+xyz][k];
+    
+    delete subElDisp;
+  }
 }
 
 void
@@ -385,6 +409,7 @@ SuperElement::getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
     if(subNodeTemp) delete [] subNodeTemp;
     delete subElementDisp;
   }
+
 }
 
 void 

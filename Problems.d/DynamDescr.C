@@ -727,7 +727,7 @@ SingleDomainDynamic::preProcessSA()
 void
 SingleDomainDynamic::postProcessSA(DynamMat *dMat, Vector &sol)
 {
-  domain->buildPostSensitivities<double>(dMat->dynMat, dMat->K, dMat->K, *allSens, sol, bcx);
+  domain->buildPostSensitivities<double>(dMat->dynMat, dMat->K, dMat->K, *allSens, sol, bcx, true);
 }
 
 void
@@ -1351,6 +1351,12 @@ SingleDomainDynamic::aeroSend(double time, Vector& d, Vector& v, Vector& a, Vect
 {
   // XXXX need to compute bcx properly for USDD so appropriate prescribed displacements are sent to fluid
   domain->aeroSend(d, v, a, v_p, bcx, vcx);
+}
+
+void 
+SingleDomainDynamic::sendNumParam(int numParam)
+{
+  flExchanger->sendNumParam(numParam);
 }
 
 int 

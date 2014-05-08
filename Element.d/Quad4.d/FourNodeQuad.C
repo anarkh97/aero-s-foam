@@ -290,25 +290,58 @@ FourNodeQuad::getMass(CoordSet& cs)
 }
 
 double
-FourNodeQuad::weight(CoordSet& cs, double *gravityAcceleration, int altitude_direction)
+FourNodeQuad::getMassSensitivityWRTthickness(CoordSet& cs)
+{
+        Node &nd1 = cs.getNode(nn[0]);
+        Node &nd2 = cs.getNode(nn[1]);
+        Node &nd3 = cs.getNode(nn[2]);
+        Node &nd4 = cs.getNode(nn[3]);
+
+        Vector r1(3), r2(3), r3(3), r4(3);
+
+        r1[0] = nd1.x; r1[1] = nd1.y; r1[2] = 0.0;
+        r2[0] = nd2.x; r2[1] = nd2.y; r2[2] = 0.0;
+        r3[0] = nd3.x; r3[1] = nd3.y; r3[2] = 0.0;
+        r4[0] = nd4.x; r4[1] = nd4.y; r4[2] = 0.0;
+
+        Vector v1(3), v2(3), v3(3), v4(3), v5(3);
+
+        v1 = r2 - r1;
+        v2 = r3 - r1;
+        v3 = r4 - r1;
+
+        v4 = v1.cross(v2);
+        v5 = v2.cross(v3);
+
+        double area = 0.5*(v4.magnitude() + v5.magnitude());
+        double massWRTthic = area*prop->rho;
+
+        return massWRTthic;
+}
+
+double
+FourNodeQuad::weight(CoordSet& cs, double *gravityAcceleration)
 {
   if (prop == NULL) {
     return 0.0;
   }
 
   double _mass = getMass(cs);
-  return _mass*gravityAcceleration[altitude_direction];
+  double gravAccNorm = sqrt(gravityAcceleration[0]*gravityAcceleration[0] + 
+                            gravityAcceleration[1]*gravityAcceleration[1] +
+                            gravityAcceleration[2]*gravityAcceleration[2]);
+  return _mass*gravAccNorm;
 }
 
 double
-FourNodeQuad::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int altitude_direction, int senMethod)
+FourNodeQuad::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int senMethod)
 {
   if (prop == NULL) {
     return 0.0;
   }
  
   if (senMethod == 0) {
-    double _weight = weight(cs, gravityAcceleration, altitude_direction);
+    double _weight = weight(cs, gravityAcceleration);
     double thick = prop->eh;
     return _weight/thick;
   } else {

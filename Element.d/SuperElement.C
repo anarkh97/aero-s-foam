@@ -178,7 +178,7 @@ void
 SuperElement::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix &dStiffdThick, int flg, int senMethod)
 {
   if(dStiffdThick.dim() != numDofs()) {
-     cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
+     std::cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
      exit(-1);
   }
   dStiffdThick.zero();

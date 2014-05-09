@@ -106,15 +106,15 @@ Membrane::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector 
 {
 #ifdef USE_EIGEN3
    if(strInd != 6) {
-     cerr << " ... Error: strInd must be 6 in TwoNodeTruss::getVonMisesDisplacementSensitivity\n";
+     std::cerr << " ... Error: strInd must be 6 in TwoNodeTruss::getVonMisesDisplacementSensitivity\n";
      exit(-1);
    }
    if(dStdDisp.numRow() != 3 || dStdDisp.numCol() !=18) {
-     cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
+     std::cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
      exit(-1);
    }
    if(ndTemps != 0) {
-     cerr << " ... Error: thermal stress should not be passed in sensitivity computation\n";
+     std::cerr << " ... Error: thermal stress should not be passed in sensitivity computation\n";
      exit(-1);
    }
   weight = 1;
@@ -145,7 +145,7 @@ Membrane::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector 
   // Jacobian evaluation
   Eigen::Matrix<double,3,18> dStressdDisp;
   Eigen::Matrix<double,7,3> stress;
-  if(verboseFlag) cout << "senMethod is " << senMethod << endl;
+  if(verboseFlag) std::cerr << "senMethod is " << senMethod << std::endl;
  
   if(avgnum == 0 || avgnum == 1) { // NODALFULL or ELEMENTAL
     if(senMethod == 0) { // analytic
@@ -199,7 +199,7 @@ Membrane::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector 
     }
   } else dStdDisp.zero(); // NODALPARTIAL or GAUSS or any others
 #else
-  cerr << " ... Error! Membrane::getVonMisesDisplacementSensitivity needs Eigen library.\n";
+  std::cerr << " ... Error! Membrane::getVonMisesDisplacementSensitivity needs Eigen library.\n";
   exit(-1);
 #endif
 }
@@ -210,11 +210,11 @@ Membrane::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight, Coo
 {
 #ifdef USE_EIGEN3
    if(strInd != 6) {
-     cerr << " ... Error: strInd must be 6 in TwoNodeTruss::getVonMisesThicknessSensitivity\n";
+     std::cerr << " ... Error: strInd must be 6 in TwoNodeTruss::getVonMisesThicknessSensitivity\n";
      exit(-1);
    }
    if(dStdThick.size() !=3) {
-     cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
+     std::cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
      exit(-1);
    }
   weight = 1;
@@ -248,7 +248,7 @@ Membrane::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight, Coo
   // Jacobian evaluation
   Eigen::Matrix<double,3,1> dStressdThic;
   Eigen::Matrix<double,7,3> stress;
-  if(verboseFlag) cout << "senMethod is " << senMethod << endl;
+  if(verboseFlag) std::cerr << "senMethod is " << senMethod << std::endl;
  
   if(avgnum == 0 || avgnum == 1) { // NODALFULL or ELEMENTAL
     if(senMethod == 0) { // analytic
@@ -300,7 +300,7 @@ Membrane::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight, Coo
     }
   } else dStdThick.zero(); // NODALPARTIAL or GAUSS or any others
 #else
-  cerr << " ... Error! Membrane::getVonMisesThicknessSensitivity needs Eigen library\n";
+  std::cerr << " ... Error! Membrane::getVonMisesThicknessSensitivity needs Eigen library\n";
   exit(-1);
 #endif
 }
@@ -685,7 +685,7 @@ Membrane::stiffness(CoordSet &cs, double *d, int flg)
 
         FullSquareMatrix ret(18,d);
 
-        //cerr << "here in Membrane::stiffness\n"; ret.print();
+        //std::cerr << "here in Membrane::stiffness\n"; ret.print();
 
         return ret;
 }
@@ -695,7 +695,7 @@ Membrane::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix &dStif
 {
 #ifdef USE_EIGEN3
   if(dStiffdThick.dim() != 18) {
-     cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
+     std::cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
      exit(-1); 
   }
 

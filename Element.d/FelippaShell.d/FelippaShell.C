@@ -122,21 +122,21 @@ FelippaShell::getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
   stress[2] = elStress[2][strInd-offset];
 /*
 //  if(verboseFlag) {
-    cerr << "glNum + 1 is" << glNum + 1 << endl;
-    cerr << "maxstr is " << maxstr << endl;
-    cerr << "prop->nu is " << prop->nu << endl;
-    cerr << "disp = \n"; 
-    for(int i=0; i<elDisp.size(); ++i) cerr << elDisp[i] << "  ";
-    cerr << endl;
-    cerr << "x = " << x[0] << "  " << x[1] << "  " << x[2] << endl;
-    cerr << "y = " << y[0] << "  " << y[1] << "  " << y[2] << endl;
-    cerr << "z = " << z[0] << "  " << z[1] << "  " << z[2] << endl;
-    cerr << "type = " << type << endl;
-    cerr << "strainFlg = " << strainFlg << endl;
-    cerr << "surface = " << surface << endl;
-    cerr << "strInd is " << strInd << endl;
-    cerr << "offset is " << offset << endl; */
-//    cerr << "print element Stress\n" << std::setprecision(20) << elStress[0][strInd-offset] << "  " << elStress[1][strInd-offset] << "  " << elStress[2][strInd-offset] << endl;
+    std::cerr << "glNum + 1 is" << glNum + 1 << std::endl;
+    std::cerr << "maxstr is " << maxstr << std::endl;
+    std::cerr << "prop->nu is " << prop->nu << std::endl;
+    std::cerr << "disp = \n"; 
+    for(int i=0; i<elDisp.size(); ++i) std::cerr << elDisp[i] << "  ";
+    std::cerr << std::endl;
+    std::cerr << "x = " << x[0] << "  " << x[1] << "  " << x[2] << std::endl;
+    std::cerr << "y = " << y[0] << "  " << y[1] << "  " << y[2] << std::endl;
+    std::cerr << "z = " << z[0] << "  " << z[1] << "  " << z[2] << std::endl;
+    std::cerr << "type = " << type << std::endl;
+    std::cerr << "strainFlg = " << strainFlg << std::endl;
+    std::cerr << "surface = " << surface << std::endl;
+    std::cerr << "strInd is " << strInd << std::endl;
+    std::cerr << "offset is " << offset << std::endl; */
+//    std::cerr << "print element Stress\n" << std::setprecision(20) << elStress[0][strInd-offset] << "  " << elStress[1][strInd-offset] << "  " << elStress[2][strInd-offset] << std::endl;
 //  } 
 }
 
@@ -1493,7 +1493,7 @@ FelippaShell::getStiffnessNodalCoordinateSensitivity(CoordSet &cs, FullSquareMat
 {
 /*
      if(dStiffdx[0].dim() != 18) {
-     cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
+     std::cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
      exit(-1);
    }
 
@@ -1516,8 +1516,8 @@ FelippaShell::getStiffnessNodalCoordinateSensitivity(CoordSet &cs, FullSquareMat
 
   Eigen::Matrix<double,18,18> *dStiffnessdx = new Eigen::Matrix<double,18,18>[9];
   if(senMethod == 0) { // analytic
-    cerr << " ... Warning: analytic stiffness sensitivity wrt nodal coordinate is not implemented yet\n";
-    cerr << " ...          instead, automatic differentiation will be applied\n";
+    std::cerr << " ... Warning: analytic stiffness sensitivity wrt nodal coordinate is not implemented yet\n";
+    std::cerr << " ...          instead, automatic differentiation will be applied\n";
     senMethod = 1;
   }
 
@@ -1635,9 +1635,9 @@ FelippaShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight,
   dconst[29] = prop->rho;  // rho
 
   if(verboseFlag) {
-    cerr << "print displacement =\n";
-    for(int i=0; i<18; ++i) cerr << elDisp[i] << "  ";
-    cerr << endl;
+    std::cerr << "print displacement =\n";
+    for(int i=0; i<18; ++i) std::cerr << elDisp[i] << "  ";
+    std::cerr << std::endl;
   }
 
   // integer parameters
@@ -1657,9 +1657,9 @@ FelippaShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight,
     andesvmsWRTthic(1, 7, prop->nu, globalx.data(), globaly.data(), globalz.data(), elDisp.data(),
                     stress.data(), dStressdThick.data(), 0, 0, surface);  
 
-//    cerr << "stress[0] is " << std::setprecision(15) << stress(6,0) << endl;
-//    cerr << "stress[1] is " << std::setprecision(15) << stress(6,1) << endl;
-//    cerr << "stress[2] is " << std::setprecision(15) << stress(6,2) << endl;
+//    std::cerr << "stress[0] is " << std::setprecision(15) << stress(6,0) << std::endl;
+//    std::cerr << "stress[1] is " << std::setprecision(15) << stress(6,1) << std::endl;
+//    std::cerr << "stress[2] is " << std::setprecision(15) << stress(6,2) << std::endl;
  
     dStdThick.copy(dStressdThick.data());
     if(verboseFlag) std::cerr << "dStressdThick(analytic) =\n" << dStressdThick << std::endl;
@@ -1678,16 +1678,16 @@ FelippaShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight,
     ShellElementStressWRTThicknessSensitivity<double> foo(dconst,iconst);
     Eigen::Matrix<double,1,1> qp, qm;
     double h(1e-6);
-    qp[0] = q[0] + h;   cerr << "qp[0] = " << qp[0] << endl;
-    qm[0] = q[0] - h;   cerr << "qm[0] = " << qm[0] << endl;
+    qp[0] = q[0] + h;   std::cerr << "qp[0] = " << qp[0] << std::endl;
+    qm[0] = q[0] - h;   std::cerr << "qm[0] = " << qm[0] << std::endl;
     Eigen::Matrix<double,3,1> S = foo(q,0);
     Eigen::Matrix<double,3,1> Sp = foo(qp, 0);
     Eigen::Matrix<double,3,1> Sm = foo(qm, 0);
     Eigen::Vector3d dStressdThick = (Sp - Sm)/(2*h);
     Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
-    cerr << "S =\n" << S.format(HeavyFmt) << endl;
-    cerr << "Sp =\n" << Sp.format(HeavyFmt) << endl;
-    cerr << "Sm =\n" << Sm.format(HeavyFmt) << endl;
+    std::cerr << "S =\n" << S.format(HeavyFmt) << std::endl;
+    std::cerr << "Sp =\n" << Sp.format(HeavyFmt) << std::endl;
+    std::cerr << "Sm =\n" << Sm.format(HeavyFmt) << std::endl;
 //    if(verboseFlag) std::cerr << "dStressdThick(FD) =\n" << dStressdThick << std::endl;
     if(verboseFlag) std::cerr << "dStressdThick(FD) =\n" << dStressdThick.format(HeavyFmt) << std::endl;
     dStdThick.copy(dStressdThick.data());
@@ -1713,9 +1713,9 @@ FelippaShell::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vec
   dconst[21] = prop->eh;   // thickness
 
   if(verboseFlag) {
-    cerr << "print displacement =\n";
-    for(int i=0; i<18; ++i) cerr << elDisp[i] << "  ";
-    cerr << endl;
+    std::cerr << "print displacement =\n";
+    for(int i=0; i<18; ++i) std::cerr << elDisp[i] << "  ";
+    std::cerr << std::endl;
   }
 
   // integer parameters
@@ -1738,16 +1738,16 @@ FelippaShell::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vec
     andesvmsWRTcoord(1, 7, prop->nu, globalx.data(), globaly.data(), globalz.data(), elDisp.data(),
                      stress.data(), dStressdx.data(), 0, 0, surface);  
 
-//    cerr << "stress[0] is " << std::setprecision(15) << stress(6,0) << endl;
-//    cerr << "stress[1] is " << std::setprecision(15) << stress(6,1) << endl;
-//    cerr << "stress[2] is " << std::setprecision(15) << stress(6,2) << endl;
+//    std::cerr << "stress[0] is " << std::setprecision(15) << stress(6,0) << std::endl;
+//    std::cerr << "stress[1] is " << std::setprecision(15) << stress(6,1) << std::endl;
+//    std::cerr << "stress[2] is " << std::setprecision(15) << stress(6,2) << std::endl;
  
     dStdx.copy(dStressdx.data());
     if(verboseFlag) std::cerr << "dStressdx(analytic) =\n" << dStressdx << std::endl;
 //    std::cerr << "dStressdx(analytic) =\n" << dStressdx << std::endl;
 */
-    cerr << " ... Warning: analytic von Mises stress sensitivity wrt nodal coordinate is not implemented yet\n";
-    cerr << " ...          instead, automatic differentiation will be applied\n";
+    std::cerr << " ... Warning: analytic von Mises stress sensitivity wrt nodal coordinate is not implemented yet\n";
+    std::cerr << " ...          instead, automatic differentiation will be applied\n";
     senMethod = 1;
   }
 
@@ -1772,9 +1772,9 @@ FelippaShell::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vec
       dStressdx.col(i) = (Sp - Sm)/(2*h);
     }
     Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
-//    cerr << "S =\n" << S.format(HeavyFmt) << endl;
-//    cerr << "Sp =\n" << Sp.format(HeavyFmt) << endl;
-//    cerr << "Sm =\n" << Sm.format(HeavyFmt) << endl;
+//    std::cerr << "S =\n" << S.format(HeavyFmt) << std::endl;
+//    std::cerr << "Sp =\n" << Sp.format(HeavyFmt) << std::endl;
+//    std::cerr << "Sm =\n" << Sm.format(HeavyFmt) << std::endl;
 //    if(verboseFlag) std::cerr << "dStressdx(FD) =\n" << dStressdx << std::endl;
     if(verboseFlag) std::cerr << "dStressdx(FD) =\n" << dStressdx.format(HeavyFmt) << std::endl;
     dStdx.copy(dStressdx.data());  

@@ -187,15 +187,15 @@ Tetrahedral::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vect
 {
 #ifdef USE_EIGEN3
    if(strInd != 6) {
-     cerr << " ... Error: strInd must be 6 in Tetrahedral::getVonMisesNodalCoordinateSensitivity\n";
+     std::cerr << " ... Error: strInd must be 6 in Tetrahedral::getVonMisesNodalCoordinateSensitivity\n";
      exit(-1);
    }
    if(dStdx.numRow() != 12 || dStdx.numCol() != 4) {
-     cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
+     std::cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
      exit(-1);
    }
    if(ndTemps != 0) {
-     cerr << " ... Error: thermal stress should not be passed in sensitivity computation\n";
+     std::cerr << " ... Error: thermal stress should not be passed in sensitivity computation\n";
      exit(-1);
    }
 /*  if(cCoefs) {
@@ -237,8 +237,8 @@ Tetrahedral::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vect
 */
   Eigen::Matrix<double,4,12> dStressdx;
   if(senMethod == 0) { // analytic
-    cerr << " ... Warning: analytic von Mises stress sensitivity wrt nodal coordinate is not implemented yet\n";
-    cerr << " ...          instead, automatic differentiation will be applied\n";
+    std::cerr << " ... Warning: analytic von Mises stress sensitivity wrt nodal coordinate is not implemented yet\n";
+    std::cerr << " ...          instead, automatic differentiation will be applied\n";
     senMethod == 1;
   }
 
@@ -265,7 +265,7 @@ Tetrahedral::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vect
     dStdx.copy(dStressdx.data());  
   }
 #else
-  cerr << " ... Error! Tetrahedral::getVonMisesNodalCoordinateSensitivity needs Eigen library.\n";
+  std::cerr << " ... Error! Tetrahedral::getVonMisesNodalCoordinateSensitivity needs Eigen library.\n";
   exit(-1);
 #endif
 }
@@ -630,7 +630,7 @@ Tetrahedral::stiffness(CoordSet &cs, double *d, int flg)
      for(int i = 0; i < 4; ++i)
        fprintf(stderr, " %d",nn[i]+1);
      fprintf(stderr, "\n");
-//   cerr << 0.0 << "," << 0.0 << "," << 0.0 << "  "
+//   std::cerr << 0.0 << "," << 0.0 << "," << 0.0 << "  "
 //   	  << X[1]-X[0] << "," << Y[1]-Y[0] << "," << Z[1]-Z[0] << "  "
 //   	  << X[2]-X[0] << "," << Y[2]-Y[0] << "," << Z[2]-Z[0] << "  "
 //   	  << X[3]-X[0] << "," << Y[3]-Y[0] << "," << Z[3]-Z[0] << endl;
@@ -663,7 +663,7 @@ Tetrahedral::stiffness(CoordSet &cs,double *d, int flg)
   double C[6][6];
   if(cCoefs) {  //anisotropic/orthotropic material
     // transform local constitutive matrix to global frame
-    //cerr<<" *** DEBUG: in Tetrahedral::stiffness, anisotropic/orthotropic material\n";
+    //std::cerr<<" *** DEBUG: in Tetrahedral::stiffness, anisotropic/orthotropic material\n";
     rotateConstitutiveMatrix(cCoefs, cFrame, C);
   } else  // isotropic material
     _FORTRAN(brkcmt)(prop->E, prop->nu, (double*)C);
@@ -795,7 +795,7 @@ Tetrahedral::getVonMisesAniso(Vector &stress, Vector &weight, CoordSet &cs,
   if(cCoefs) { // anisotropic/orthotropic material
     // transform local constitutive matrix to global frame
 #ifdef TETRA4_DEBUG 
-    cerr<<" *** DEBUG: Tetrahedral::getVonMisesAniso, anisotropic/orthotropic material\n";
+    std::cerr<<" *** DEBUG: Tetrahedral::getVonMisesAniso, anisotropic/orthotropic material\n";
 #endif
     rotateConstitutiveMatrix(cCoefs, cFrame, C);
   } else  // isotropic material
@@ -878,7 +878,7 @@ Tetrahedral::getAllStressAniso(FullM &stress, Vector &weight, CoordSet &cs,
   if(cCoefs) { // anisotropic/orthotropic material
     // transform local constitutive matrix to global frame
 #ifdef TETRA4_DEBUG 
-    cerr<<" *** DEBUG: Tetrahedral::getAllStressAniso, anisotropic/orthotropic material\n";
+    std::cerr<<" *** DEBUG: Tetrahedral::getAllStressAniso, anisotropic/orthotropic material\n";
 #endif
     rotateConstitutiveMatrix(cCoefs, cFrame, C);
   } else  // isotropic material

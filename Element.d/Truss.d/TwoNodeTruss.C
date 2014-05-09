@@ -502,8 +502,6 @@ TwoNodeTruss::getVonMises(Vector& stress, Vector& weight, CoordSet& cs,
              fth1 = coefficient*(ndTemps[0]-Tref);
              fth2 = coefficient*(ndTemps[1]-Tref);
            }
-          cerr << "fth1 is " << fth1 << endl; 
-          cerr << "preload is " << preload << endl; 
           stress[0] = abs(-f + fth1);
           stress[1] = abs( f - fth1);      
 
@@ -540,11 +538,11 @@ TwoNodeTruss::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vec
                                                     int senMethod, double *ndTemps, int avgnum, double ylayer, double zlayer)
 { 
    if(strInd != 6) {
-     cerr << " ... Error: strInd must be 6 in TwoNodeTruss::getVonMisesNodalCoordinateSensitivity\n";
+     std::cerr << " ... Error: strInd must be 6 in TwoNodeTruss::getVonMisesNodalCoordinateSensitivity\n";
      exit(-1);
    }
    if(dStdx.numRow() != 6 || dStdx.numCol() != 2) {
-     cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
+     std::cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
      exit(-1);
    }
    weight = 1.0;
@@ -624,7 +622,7 @@ TwoNodeTruss::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vec
       }
 
       default:
-        cerr << "avgnum = " << avgnum << " is not a valid number\n";
+        std::cerr << "avgnum = " << avgnum << " is not a valid number\n";
     }
 }
 
@@ -700,8 +698,8 @@ TwoNodeTruss::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
    
         if(senMethod == 0 ||senMethod == 1) { // analytic
           if(senMethod == 1) {
-            cerr << " ... Warning: automatic differentiation sensitivity of von Mises stress sensitivity wrt displacement is not implemented yet\n";
-            cerr << " ...          instead, analytic sensitivity will be applied\n"; 
+            std::cerr << " ... Warning: automatic differentiation sensitivity of von Mises stress sensitivity wrt displacement is not implemented yet\n";
+            std::cerr << " ...          instead, analytic sensitivity will be applied\n"; 
           }
           // replace automatic differentiation routine with analytic one
           dStdDisp[0][0] =  f1s1*dx;   dStdDisp[1][0] =  f1s1*dy;   dStdDisp[2][0] =  f1s1*dz;   

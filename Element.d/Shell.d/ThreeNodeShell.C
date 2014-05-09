@@ -606,7 +606,7 @@ void
 ThreeNodeShell::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix &dStiffdThick, int flg, int senMethod)
 {
   if(dStiffdThick.dim() != 18) {
-     cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
+     std::cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
      exit(-1); 
   }
 
@@ -1326,15 +1326,15 @@ ThreeNodeShell::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, V
 {
 #ifdef USE_EIGEN3
    if(strInd != 6) {
-     cerr << " ... Error: strInd must be 6 in ThreeNodeShell::getVonMisesNodalCoordinateSensitivity\n";
+     std::cerr << " ... Error: strInd must be 6 in ThreeNodeShell::getVonMisesNodalCoordinateSensitivity\n";
      exit(-1);
    }
    if(dStdx.numRow() != 9 || dStdx.numCol() != 3) {
-     cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
+     std::cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
      exit(-1);
    }
    if(ndTemps != 0) {
-     cerr << " ... Error: thermal stress should not be passed in sensitivity computation\n";
+     std::cerr << " ... Error: thermal stress should not be passed in sensitivity computation\n";
      exit(-1);
    }
   weight = 1;
@@ -1366,12 +1366,12 @@ ThreeNodeShell::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, V
   // Jacobian evaluation
   Eigen::Matrix<double,3,9> dStressdx;
   Eigen::Matrix<double,7,3> stress;
-  if(verboseFlag) cout << "senMethod is " << senMethod << endl;
+  if(verboseFlag) std::cerr << "senMethod is " << senMethod << std::endl;
  
   if(avgnum == 0 || avgnum == 1) { // NODALFULL or ELEMENTAL
     if(senMethod == 0) { // analytic
-      cerr << " ... Warning: analytic von Mises stress sensitivity wrt nodal coordinate is not implemented yet\n";
-      cerr << " ...          instead, automatic differentiation will be applied\n";
+      std::cerr << " ... Warning: analytic von Mises stress sensitivity wrt nodal coordinate is not implemented yet\n";
+      std::cerr << " ...          instead, automatic differentiation will be applied\n";
       senMethod = 1;
     }
 
@@ -1409,7 +1409,7 @@ ThreeNodeShell::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, V
     }
   } else dStdx.zero(); // NODALPARTIAL or GAUSS or any others
 #else
-  cerr << " ... Error! ThreeNodeShell::getVonMisesNodalCoordinateSensitivity needs Eigen library.\n";
+  std::cerr << " ... Error! ThreeNodeShell::getVonMisesNodalCoordinateSensitivity needs Eigen library.\n";
   exit(-1);
 #endif
 }

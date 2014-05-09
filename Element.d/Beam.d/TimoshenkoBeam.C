@@ -877,7 +877,7 @@ TimoshenkoBeam::getVonMisesDisplacementSensitivity(GenFullM<DComplex> &dStdDisp,
                                                    CoordSet &cs, ComplexVector &elDisp, int strInd, int surface,
                                                    int senMethod, double *, int avgnum, double ylayer, double zlayer)
 {
-    cerr << "TimoshenkoBeam::getVonMisesDisplacementSensitivity is not implemented\n";
+    std::cerr << "TimoshenkoBeam::getVonMisesDisplacementSensitivity is not implemented\n";
     exit(-1);  
 }
 #endif
@@ -888,11 +888,11 @@ TimoshenkoBeam::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, V
                                                       int senMethod, double *ndTemps, int avgnum, double ylayer, double zlayer)
 {
   if(strInd != 6) {
-    cerr << " ... Error: strInd must be 6 in TwoNodeTruss::getVonMisesNodalCoordinateSensitivity\n";
+    std::cerr << " ... Error: strInd must be 6 in TwoNodeTruss::getVonMisesNodalCoordinateSensitivity\n";
     exit(-1);
   }
   if(dStdx.numRow() != 6 || dStdx.numCol() != 2) {
-    cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
+    std::cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
     exit(-1);
   }
   weight = 1;
@@ -942,12 +942,12 @@ TimoshenkoBeam::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, V
   //Jacobian evaluation
   Eigen::Matrix<double,2,6> dStressdx;
   Eigen::Matrix<double,7,3> stress;
-  if(verboseFlag) cout << " ... senMethod is " << senMethod << endl;
+  if(verboseFlag) std::cerr << " ... senMethod is " << senMethod << std::endl;
 
   if(avgnum == 1 || avgnum == 0) { // ELEMENTAL or NODALFULL
     if(senMethod == 0) { // analytic
-      cerr << " ... Warning: analytic von Mises stress sensitivity wrt nodal coordinate is not implemented yet\n";
-      cerr << " ...          instead, automatic differentiation will be applied\n";
+      std::cerr << " ... Warning: analytic von Mises stress sensitivity wrt nodal coordinate is not implemented yet\n";
+      std::cerr << " ...          instead, automatic differentiation will be applied\n";
       senMethod = 1;
     }
 

@@ -1587,23 +1587,23 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
         packedEset[iele]->getVonMises(*elstress, *elweight, nodes,
                                       *elDisp, stressIndex, surface,
                                       elemNodeTemps.data(), ylayer, zlayer, avgnum);
-/*        cerr << "print elstress\n";
-        for(int i=0; i<elstress->size(); ++i) cerr << (*elstress)[i] << "  ";
-        cerr << endl;
-        cerr << "print elweight\n";
-        for(int i=0; i<elweight->size(); ++i) cerr << (*elweight)[i] << "  ";
-        cerr << endl;
-        cerr << "print elDisp\n";
-        for(int i=0; i<maxNumDOFs; ++i) cerr << (*elDisp)[i] << "  ";
-        cerr << endl;
-        cerr << "stressIndex = " << stressIndex << endl;
-        cerr << "surface = " << surface << endl;
-        cerr << "print elemNodeTemps\n";
-        for(int i=0; i<maxNumNodes; ++i) cerr << elemNodeTemps[i] << "  ";
-        cerr << endl;
-        cerr << "ylayer = " << ylayer << endl;
-        cerr << "zlayer = " << zlayer << endl;
-        cerr << "avgnum = " << avgnum << endl;  */
+/*        std::cerr << "print elstress\n";
+        for(int i=0; i<elstress->size(); ++i) std::cerr << (*elstress)[i] << "  ";
+        std::cerr << std::endl;
+        std::cerr << "print elweight\n";
+        for(int i=0; i<elweight->size(); ++i) std::cerr << (*elweight)[i] << "  ";
+        std::cerr << std::endl;
+        std::cerr << "print elDisp\n";
+        for(int i=0; i<maxNumDOFs; ++i) std::cerr << (*elDisp)[i] << "  ";
+        std::cerr << std::endl;
+        std::cerr << "stressIndex = " << stressIndex << std::endl;
+        std::cerr << "surface = " << surface << std::endl;
+        std::cerr << "print elemNodeTemps\n";
+        for(int i=0; i<maxNumNodes; ++i) std::cerr << elemNodeTemps[i] << "  ";
+        std::cerr << std::endl;
+        std::cerr << "ylayer = " << ylayer << std::endl;
+        std::cerr << "zlayer = " << zlayer << std::endl;
+        std::cerr << "avgnum = " << avgnum << std::endl;  */
       }
 
       if(avgnum != 0) {
@@ -1670,9 +1670,9 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
   }
   delete [] nodeNumbers;
   if(verboseFlag) {
-    cerr << "print stress\n";
-    for(int i=0; i<numNodes; ++i) cerr << std::setprecision(15) << (*stress)[i] << "  ";
-    cerr << endl;
+    std::cerr << "print stress\n";
+    for(int i=0; i<numNodes; ++i) std::cerr << std::setprecision(15) << (*stress)[i] << "  ";
+    std::cerr << std::endl;
   }
 }
 
@@ -3026,8 +3026,6 @@ Domain::computeWeightWRTthicknessSensitivity(int sindex, AllSensitivities<double
        std::cout << *allSens.weightWRTthick << std::endl;
      }
      allSens.weight = weight;
-   default :
-     break;
 #endif
 }
 
@@ -3038,7 +3036,7 @@ Domain::computeStiffnessWRTthicknessSensitivity(int sindex, AllSensitivities<dou
      // ... COMPUTE SENSITIVITY OF STIFFNESS MATRIX WRT THICKNESS
      allSens.stiffnessWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[senInfo[sindex].numParam];
      allSens.dKucdthick = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[senInfo[sindex].numParam];
-     map<int, Group> &group = geoSource->group;
+     std::map<int, Group> &group = geoSource->group;
      std::map<int, AttributeToElement> &atoe = geoSource->atoe;
      if(senInfo[sindex].numParam != group.size()) {
        std::cerr << " *** ERROR: number of parameters is not equal to the size of group \n"; 
@@ -3082,8 +3080,8 @@ Domain::computeStiffnessWRTthicknessSensitivity(int sindex, AllSensitivities<dou
      }
 
      Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
-     if(verboseFlag) cerr << "print stiffnessWRTthick\n" << (*allSens.stiffnessWRTthick[0]).format(HeavyFmt) << endl;
-     if(verboseFlag) cerr << "print dKucdthick\n" << (*allSens.dKucdthick[0]).format(HeavyFmt) << endl;
+     if(verboseFlag) std::cerr << "print stiffnessWRTthick\n" << (*allSens.stiffnessWRTthick[0]).format(HeavyFmt) << std::endl;
+     if(verboseFlag) std::cerr << "print dKucdthick\n" << (*allSens.dKucdthick[0]).format(HeavyFmt) << std::endl;
 #endif
 }
 
@@ -3130,14 +3128,14 @@ Domain::computeLinearStaticWRTthicknessSensitivity(int sindex,
      for(int iparam = 0; iparam < senInfo[sindex].numParam; ++iparam) {
        Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > disp(sol.data(),numUncon(),1);
        Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
-//       if(verboseFlag) cerr << "print disp\n" << disp.format(HeavyFmt) << endl;
+//       if(verboseFlag) std::cerr << "print disp\n" << disp.format(HeavyFmt) << std::endl;
        if(allSens.stiffnessWRTthick) {
          *allSens.linearstaticWRTthick[iparam] = (*allSens.stiffnessWRTthick[iparam]) * disp;
        } else {
-         cerr << "ERROR! stiffnessWRTthick is not defined yet\n";
+         std::cerr << "ERROR! stiffnessWRTthick is not defined yet\n";
          exit(-1);
        }
-//       cerr << "print displacement\n" << disp << endl;
+//       std::cerr << "print displacement\n" << disp << std::endl;
        if(numDirichlet) {
          Eigen::Matrix<double, Eigen::Dynamic, 1> Vc(numDirichlet);
          Vc.setZero();
@@ -3161,10 +3159,10 @@ Domain::subtractGravityForceSensitivity(int sindex, AllSensitivities<double> &al
 #ifdef USE_EIGEN3
      Vector elementGravityForceSen(maxNumDOFs);
      int gravflg;
-     map<int, Group> &group = geoSource->group;
-     map<int, AttributeToElement> &atoe = geoSource->atoe;
+     std::map<int, Group> &group = geoSource->group;
+     std::map<int, AttributeToElement> &atoe = geoSource->atoe;
      if(senInfo[sindex].numParam != group.size()) {
-       cerr << " *** ERROR: number of parameters is not equal to the size of group \n"; 
+       std::cerr << " *** ERROR: number of parameters is not equal to the size of group \n"; 
        exit(-1);
      }
      for(int iparam = 0; iparam < senInfo[sindex].numParam; ++iparam) {
@@ -3180,7 +3178,7 @@ Domain::subtractGravityForceSensitivity(int sindex, AllSensitivities<double> &al
  
          // transform vector from basic to DOF_FRM coordinates
          transformVector(elementGravityForceSen, iele);
-//         cerr << "norm of elementGravityForceSen is " << elementGravityForceSen.norm() << endl;
+//         std::cerr << "norm of elementGravityForceSen is " << elementGravityForceSen.norm() << std::endl;
   
          for(int idof = 0; idof < allDOFs->num(iele); ++idof) {
            int cn = c_dsa->getRCN((*allDOFs)[iele][idof]);
@@ -3190,7 +3188,7 @@ Domain::subtractGravityForceSensitivity(int sindex, AllSensitivities<double> &al
          }      
        }
       }
-      if(verboseFlag) cerr << "printing linearstaticWRTthick[" << iparam << "]\n" << *allSens.linearstaticWRTthick[iparam] << endl;
+      if(verboseFlag) std::cerr << "printing linearstaticWRTthick[" << iparam << "]\n" << *allSens.linearstaticWRTthick[iparam] << std::endl;
      }
 #endif
 }
@@ -3203,10 +3201,10 @@ Domain::computeDisplacementWRTthicknessSensitivity(int sindex,
                                                    AllSensitivities<double> &allSens)
 {
 #ifdef USE_EIGEN3
-     map<int, Group> &group = geoSource->group;
-     map<int, AttributeToElement> &atoe = geoSource->atoe;
+     std::map<int, Group> &group = geoSource->group;
+     std::map<int, AttributeToElement> &atoe = geoSource->atoe;
      if(senInfo[sindex].numParam != group.size()) {
-       cerr << " *** ERROR: number of parameters is not equal to the size of group \n";
+       std::cerr << " *** ERROR: number of parameters is not equal to the size of group \n";
        exit(-1);
      }
      allSens.dispWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[group.size()];
@@ -3215,18 +3213,18 @@ Domain::computeDisplacementWRTthicknessSensitivity(int sindex,
        Vector rhs(allSens.linearstaticWRTthick[iparam]->data(), numUncon()), sol(numUncon(),0.0);
        rhs *= -1;
        if(verboseFlag) {
-         cerr << "print rhs\n";
-         for(int i=0; i<numUncon(); ++i) cerr << rhs[i] << "  ";
-         cerr << endl;
+         std::cerr << "print rhs\n";
+         for(int i=0; i<numUncon(); ++i) std::cerr << rhs[i] << "  ";
+         std::cerr << std::endl;
        }
        sysSolver->solve(rhs,sol);
        Vector res(numUncon(),0.0), resBlk(numUncon(),0.0);
        K->mult(sol,res);
        res.linAdd(-1.0,rhs);
-       cerr << "norm of absolute residual is " << res.norm() << endl;
-       cerr << "norm of relative residual is " << res.norm()/rhs.norm() << endl;
+       std::cerr << "norm of absolute residual is " << res.norm() << std::endl;
+       std::cerr << "norm of relative residual is " << res.norm()/rhs.norm() << std::endl;
        *allSens.dispWRTthick[iparam] = Eigen::Map<Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> >(sol.data(),numUncon(),1);
-       if(verboseFlag) cerr << "printing dispWRTthick[iparam]\n" << *allSens.dispWRTthick[iparam] << endl;
+       if(verboseFlag) std::cerr << "printing dispWRTthick[iparam]\n" << *allSens.dispWRTthick[iparam] << std::endl;
      }
 #endif
 }
@@ -3296,7 +3294,7 @@ Domain::computeStressVMWRTthicknessSensitivity(int sindex,
       if(!isDynam) allSens.vonMisesWRTthick->col(iparam) += *allSens.vonMisesWRTdisp * (*allSens.dispWRTthick[iparam]);
       if(verboseFlag) {
         Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
-        cerr << "print vonMisesWRTthick\n" << (allSens.vonMisesWRTthick->col(iparam)).format(HeavyFmt) << endl;
+        std::cerr << "print vonMisesWRTthick\n" << (allSens.vonMisesWRTthick->col(iparam)).format(HeavyFmt) << std::endl;
       }
      }
 #endif
@@ -3315,9 +3313,9 @@ Domain::computeStressVMWRTdisplacementSensitivity(int sindex,
      allSens.stressWeight->setZero();
      if(elDisp == 0) elDisp = new Vector(maxNumDOFs,0.0);
      int avgnum = 1; //TODO: It is hardcoded to be 1, which corresponds to NODALFULL. It needs to be fixed.
-/*     cerr << "printing displacement\n";
-     for(int i=0; i<sol.size(); ++i) cerr << sol[i] << "  ";
-     cerr << endl;  */
+/*     std::cerr << "printing displacement\n";
+     for(int i=0; i<sol.size(); ++i) std::cerr << sol[i] << "  ";
+     std::cerr << std::endl;  */
      for(int iele = 0; iele < numele; iele++) { 
        int NodesPerElement = elemToNode->num(iele);
        int DofsPerElement = packedEset[iele]->numDofs();
@@ -3333,12 +3331,12 @@ Domain::computeStressVMWRTdisplacementSensitivity(int sindex,
          else
            (*elDisp)[k] = bcx[(*allDOFs)[iele][k]];
        }
-//       cerr << "print elDisp\n";
-//       for(int i=0; i<maxNumDOFs; ++i) cerr << (*elDisp)[i] << "  ";
-//       cerr << endl; 
+//       std::cerr << "print elDisp\n";
+//       for(int i=0; i<maxNumDOFs; ++i) std::cerr << (*elDisp)[i] << "  ";
+//       std::cerr << std::endl; 
        transformVectorInv(*elDisp, iele);        
        packedEset[iele]->getVonMisesDisplacementSensitivity(dStressdDisp, weight, nodes, *elDisp, 6, surface, senInfo[sindex].method, 0);
-//       cerr << "print dStressdDisp\n";
+//       std::cerr << "print dStressdDisp\n";
 //       dStressdDisp.print();
 //       transformElementSensitivityInv(&dStressdDisp,iele); //TODO: watch out index of dStressdDisp when implementing
        if(avgnum != 0) {
@@ -3370,9 +3368,7 @@ Domain::computeStressVMWRTdisplacementSensitivity(int sindex,
          for(int dof = 0; dof < numUncon(); ++dof) 
            (*allSens.vonMisesWRTdisp)(inode,dof) /= (*allSens.stressWeight)(inode,0);
      }
-     if(verboseFlag) cerr << "print vonMisesWRTdisp\n" << (*allSens.vonMisesWRTdisp) << endl;
-   default:
-     break;
+     if(verboseFlag) std::cerr << "print vonMisesWRTdisp\n" << (*allSens.vonMisesWRTdisp) << std::endl;
 #endif
 }
 
@@ -3389,7 +3385,7 @@ Domain::computeStressVMWRTnodalCoordinateSensitivity(int sindex,
      allSens.stressWeight->setZero();
      if(elDisp == 0) elDisp = new Vector(maxNumDOFs,0.0);
      int avgnum = 1; //TODO: It is hardcoded to be 1, which corresponds to NODALFULL. It needs to be fixed.
-/*     cerr << "printing displacement\n";
+/*     std::cerr << "printing displacement\n";
      for(int i=0; i<sol.size(); ++i) std::cerr << sol[i] << "  ";
      std::cerr << std::endl;  */
      for(int iele = 0; iele < numele; iele++) { 
@@ -3407,12 +3403,12 @@ Domain::computeStressVMWRTnodalCoordinateSensitivity(int sindex,
          else
            (*elDisp)[k] = bcx[(*allDOFs)[iele][k]];
        }
-//       cerr << "print elDisp\n";
-//       for(int i=0; i<maxNumDOFs; ++i) cerr << (*elDisp)[i] << "  ";
-//       cerr << endl; 
+//       std::cerr << "print elDisp\n";
+//       for(int i=0; i<maxNumDOFs; ++i) std::cerr << (*elDisp)[i] << "  ";
+//       std::cerr << std::endl; 
        transformVectorInv(*elDisp, iele); 
        packedEset[iele]->getVonMisesNodalCoordinateSensitivity(dStressdCoord, weight, nodes, *elDisp, 6, surface, senInfo[sindex].method, 0);
-//       cerr << "print dStressdCoord\n";
+//       std::cerr << "print dStressdCoord\n";
 //       dStressdCoord.print();
 //       transformElementSensitivityInv(&dStressdCoord,iele); //TODO: watch out index of dStressdCoord when implementing
        if(avgnum != 0) {
@@ -3434,8 +3430,6 @@ Domain::computeStressVMWRTnodalCoordinateSensitivity(int sindex,
            }
          }
        }
-   default:
-     break;
      } 
   
      for(int inode = 0; inode < numNodes(); ++inode)  {
@@ -3446,7 +3440,7 @@ Domain::computeStressVMWRTnodalCoordinateSensitivity(int sindex,
          for(int jnode = 0; jnode < 3*numNodes(); ++jnode) 
            (*allSens.vonMisesWRTcoord)(inode,jnode) /= (*allSens.stressWeight)(inode,0);
      }
-     if(verboseFlag) cerr << "print vonMisesWRTcoord\n" << (*allSens.vonMisesWRTcoord) << endl;
+     if(verboseFlag) std::cerr << "print vonMisesWRTcoord\n" << (*allSens.vonMisesWRTcoord) << std::endl;
 #endif
 }
 
@@ -3486,8 +3480,6 @@ Domain::makePostSensitivities(GenSolver<double> *sysSolver,
      computeStressVMWRTnodalCoordinateSensitivity(sindex,allSens,sol,bcx);
      break;
    } 
-   default:
-     break;
   }
  }
 #endif

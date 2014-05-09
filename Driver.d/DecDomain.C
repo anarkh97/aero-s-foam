@@ -1490,7 +1490,7 @@ void GenDecDomain<Scalar>::getStressStrain(GenDistrVector<Scalar> &u, int fileNu
     // each subdomain computes its stress vector
     if(Findex != 16)
       execParal(numSub, this, &GenDecDomain<Scalar>::computeSubdStress,
-                stress, weight, &u, fileNumber, Findex); // YYY DG Does it print ? Probably not
+                stress, weight, &u, fileNumber, Findex);
   }
 
 
@@ -1512,7 +1512,7 @@ void GenDecDomain<Scalar>::getStressStrain(GenDistrVector<Scalar> &u, int fileNu
                                      globalStress, globalWeight, numNodes);
       }
       else {
-        subDomain[iSub]->computeContactPressure(globalStress, globalWeight); // PJSA
+        subDomain[iSub]->computeContactPressure(globalStress, globalWeight);
       }
     }
     for(i = 0; i < numNodes; ++i)  {
@@ -1739,7 +1739,7 @@ GenDecDomain<Scalar>::getElementPrincipalStress(DistrGeomState *gs, Corotator **
                                                 int fileNumber, int strIndex, double time,
                                                 DistrGeomState *refState)
 {
-  // PJSA 3-23-05 Non-linear version of getElementPrincipalStress
+  // Non-linear version of getElementPrincipalStress
   // set stress VS. strain for element subroutines
   int i, j;
   int strInd;
@@ -3970,18 +3970,19 @@ void GenDecDomain<Scalar>::getEnergies(DistrGeomState *geomState, GenDistrVector
                                        SysState<GenDistrVector<Scalar> > *distState, GenMDDynamMat<Scalar> *dynOps,
                                        GenDistrVector<Scalar> *aeroF)
 {
-  double Wext = 0.0, Waero = 0.0, Wdmp = 0.0, Wela = 0.0, Wkin = 0.0, error = 0.0;
-  double *subW = new double[6*numSub];
+  double Wext = 0.0, Waero = 0.0, Wdmp = 0.0, Wela = 0.0, Wkin = 0.0, Wdis = 0.0, error = 0.0;
+  double *subW = new double[7*numSub];
   execParal8R(numSub, this, &GenDecDomain<Scalar>::subGetEnergies, geomState, extF, allCorot, time,
               distState, dynOps, aeroF, subW);
 
   for(int i=0; i<numSub; ++i) {
-    Wext  += subW[6*i  ];
-    Waero += subW[6*i+1];
-    Wdmp  += subW[6*i+2];
-    Wela  += subW[6*i+3];
-    Wkin  += subW[6*i+4];
-    error += subW[6*i+5];
+    Wext  += subW[7*i  ];
+    Waero += subW[7*i+1];
+    Wdmp  += subW[7*i+2];
+    Wela  += subW[7*i+3];
+    Wkin  += subW[7*i+4];
+    Wdis  += subW[7*i+5];
+    error += subW[7*i+6];
   }
   delete [] subW;
 #ifdef DISTRIBUTED
@@ -3990,11 +3991,12 @@ void GenDecDomain<Scalar>::getEnergies(DistrGeomState *geomState, GenDistrVector
   communicator->reduce(1, &Wdmp);
   communicator->reduce(1, &Wela);
   communicator->reduce(1, &Wkin);
+  communicator->reduce(1, &Wdis);
   communicator->reduce(1, &error);
 
   if(myCPU == 0)
 #endif
-  geoSource->outputEnergies(fileNumber, time, Wext, Waero, Wela, Wkin, Wdmp, error);
+  geoSource->outputEnergies(fileNumber, time, Wext, Waero, Wela, Wkin, Wdmp+Wdis, error);
 }
 
 template<>
@@ -4037,10 +4039,10 @@ inline void GenDecDomain<double>::subGetEnergies(int iSub, DistrGeomState *geomS
   GenSparseMatrix<double> *subM = (dynOps && dynOps->M) ? (*dynOps->M)[iSub] : NULL;
   GenSparseMatrix<double> *subC = (dynOps && dynOps->C) ? (*dynOps->C)[iSub] : NULL;
   subDomain[iSub]->computeEnergies((*geomState)[iSub], subExtF, time, subAeroF, subVel, allCorot[iSub], subM, subC,
-                                   subW[6*iSub+3], subW[6*iSub+4], subW[6*iSub+5]);
-  subW[6*iSub+0] = subDomain[iSub]->getWext();
-  subW[6*iSub+1] = subDomain[iSub]->getWaero();
-  subW[6*iSub+2] = subDomain[iSub]->getWdmp();
+                                   subW[7*iSub+3], subW[7*iSub+4], subW[7*iSub+5], subW[7*iSub+6]);
+  subW[7*iSub+0] = subDomain[iSub]->getWext();
+  subW[7*iSub+1] = subDomain[iSub]->getWaero();
+  subW[7*iSub+2] = subDomain[iSub]->getWdmp();
   if(subAeroF) delete subAeroF;
 }
 
@@ -4049,7 +4051,7 @@ inline void GenDecDomain<complex<double> >::subGetEnergies(int iSub, DistrGeomSt
                                                                 Corotator ***, double, SysState<GenDistrVector<complex<double> > > *,
                                                                 GenMDDynamMat<complex<double> > *, GenDistrVector<complex<double> > *, double *subW)
 {
-  for(int i=0; i<6; ++i) subW[6*iSub+i] = 0;
+  for(int i=0; i<7; ++i) subW[7*iSub+i] = 0;
 }
 
 template<class Scalar>

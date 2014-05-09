@@ -363,8 +363,6 @@ TRAIL [a-zA-Z]*
 
 "GCR"|"gcr"                        { yylval.ival = 2; return ITERTYPE; }
 
-"CGAL"|"cgal"                      { yylval.ival = 3; return ITERTYPE; }
-
 "BCG"|"bcg"                        { yylval.ival = 4; return ITERTYPE; }
 
 "CR"|"cr"                          { yylval.ival = 5; return ITERTYPE; }

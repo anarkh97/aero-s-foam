@@ -223,25 +223,25 @@ class GeoSource {
   int numTextDirichlet;
   BCond *textDBC;
   int numDirichlet;           // number of dirichlet bc
-  int numDirichletFluid;           // number of dirichlet bc in fluid, ADDED FOR HEV PROBLEM, EC, 20070820
-  BCond *dbc;   // set of those dirichlet bc
-  BCond *dbcFluid;   // set of those dirichlet bc in fluid, ADDED FOR HEV PROBLEM, EC, 20070820
+  int numDirichletFluid;      // number of dirichlet bc in fluid
+  BCond *dbc;                 // set of those dirichlet bc
+  BCond *dbcFluid;            // set of those dirichlet bc in fluid
 
   int numTextNeuman;
   BCond *textNBC;
   int numNeuman;              // number of Neuman bc
-  BCond *nbc;   // set of Neuman bc
+  BCond *nbc;                 // set of Neuman bc
   int numNeumanModal;
   BCond *nbcModal;
 
-  int numIDis;                // number of Initial displacements
-  BCond *iDis;  // set of those initial displacements
+  int numIDis;                // number of initial displacements
+  BCond *iDis;                // set of those initial displacements
 
   int numIDisModal;
   BCond *iDisModal;
 
-  int numIDis6;               // number of Initial displacements (6 column)
-  BCond *iDis6; // set of those intitial displacements
+  int numIDis6;               // number of initial displacements (6 column)
+  BCond *iDis6;               // set of those intitial displacements
 
   // PITA
   std::map<int, std::pair<int, int> > timeSliceOutputFiles;
@@ -253,7 +253,7 @@ class GeoSource {
   int numTSPitaIVel6;  // # of initial seed initial velocity conditions
 
   int numIVel;                // number of initial velocities
-  BCond *iVel;  // set of those initial velocities
+  BCond *iVel;                // set of those initial velocities
   int numIVelModal;
   BCond *iVelModal;
 
@@ -369,7 +369,7 @@ public:
   // Parser support Functions - Boundary Conditions
   int  setDirichlet(int, BCond *);
   void convertHEVDirToHelmDir(); // added to use HEFRS and Helmholtz per Charbel's request
-  int  setDirichletFluid(int, BCond *); //ADDED FOR HEV PROBLEM, EC, 20070820
+  int  setDirichletFluid(int, BCond *);
   int  setNeuman(int, BCond *);
   int  setNeumanModal(int, BCond *);
   int  setIDis(int, BCond *);
@@ -409,10 +409,11 @@ public:
   int  setUsdfLocation(int, BCond *);
 
   void transformCoords();
+  void checkInputs();
   void setUpData();
   void setUpData(CoordSet &, Domain *, int);
 
-  Elemset* getPackedEsetFluid() { return packedEsetFluid; }  //ADDED FOR HEV PROBLEM, EC, 20070820
+  Elemset* getPackedEsetFluid() { return packedEsetFluid; }
 
   // PITA: Access to initial seed conditions
   int getNumPitaIDis6() const  { return numPitaIDis6; }     // # of initial seed initial displacement conditions
@@ -439,7 +440,7 @@ public:
   char *getMatchFileName()  { return matchName; }
   int  numElem() { return nElem; }
   int  numMpcElem() { return nMpcElem; }
-  int  numElemFluid() { return nElemFluid; }   //ADDED FOR HEV PROBLEM, EC 20070820
+  int  numElemFluid() { return nElemFluid; }
   int  numNode() { return numNodes; }
   void setNumNodes(int n) { numNodes = n; }
   int  totalNumNodes() { return numNodes + numInternalNodes; }
@@ -476,9 +477,9 @@ public:
   std::map<int, int> &getMortarAttributes() { return mortar_attrib; }
   int getNumAttributes() { return na; }
 
-  int getNumDirichlet()  { return numDirichlet; }
-  int getNumDirichletFluid()  { return numDirichletFluid; } //ADDED FOR HEV PROBLEM, EC, 20070820
-  int getNumNeuman()  { return numNeuman; }
+  int getNumDirichlet() { return numDirichlet; }
+  int getNumDirichletFluid() { return numDirichletFluid; }
+  int getNumNeuman() { return numNeuman; }
   int getNumNeumanModal() { return numNeumanModal; }
   int getNumIDisModal() { return numIDisModal; }
   int getDirichletBC(BCond *&);

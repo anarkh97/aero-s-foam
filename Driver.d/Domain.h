@@ -203,7 +203,7 @@ class Domain : public HData {
      MatrixTimers *matrixTimers;// timers to time factoring and assembly
      Solver *solver;            // this domains solver
      int numnodes;		// number of nodes
-     int numnodesFluid;		// number of nodes for fluid, ADDED FOR HEV PROBLEM, EC, 20070820
+     int numnodesFluid;		// number of nodes for fluid
      CoordSet &nodes;   	// All the nodes
      int numele;		// number of elements
      Elemset packedEset;	// The set of compressed elements
@@ -212,10 +212,10 @@ class Domain : public HData {
  
      // BC related data members
      int numDirichlet;		// number of dirichlet bc
-     int numDirichletFluid;	// number of dirichlet bc in fluid, ADDED FOR HEV PROBLEM, 20070820
+     int numDirichletFluid;	// number of dirichlet bc in fluid
      int numDispDirichlet;      // number of displacement dirichlet bc
      BCond* dbc;		// set of those dirichlet bc
-     BCond* dbcFluid;		// set of those dirichlet bc in fluid, ADDED FOR HEV PROBLEM, EC, 20070820
+     BCond* dbcFluid;		// set of those dirichlet bc in fluid
      int numLMPC; 		// total number of Linear Multi-Point Constraints (both real & complex)
      ResizeArray<LMPCons *> lmpc;  // set of LMPCs
      int numFSI; 		// total number of Fluid-Structure interaction Constraints
@@ -237,29 +237,28 @@ class Domain : public HData {
      BCond *iVelModal;
 
      DofSetArray *dsa;		// Dof set array
-     DofSetArray *dsaFluid;	// Dof set array for fluid, ADDED FOR HEV PROBLEM, EC 20070820
+     DofSetArray *dsaFluid;	// Dof set array for fluid
      ConstrainedDSA *c_dsa;	// Constrained dof set array
-     ConstrainedDSA *c_dsaFluid;// Constrained dof set array for fluid, ADDED FOR HEV PROBLEM, EC 20070820
+     ConstrainedDSA *c_dsaFluid;// Constrained dof set array for fluid
      ConstrainedDSA *MpcDSA;
      ConstrainedDSA *g_dsa;
      Connectivity *allDOFs;     // all dof arrays for each node
      Connectivity *allDOFsFluid;     // all dof arrays for each node
      int maxNumDOFs; 		// maximum number of dofs an element has
-     int maxNumDOFsFluid; 	// maximum number of dofs a fluid element has, ADDED FOR HEV PROBLEM, EC, 20070820
+     int maxNumDOFsFluid; 	// maximum number of dofs a fluid element has
      int maxNumNodes;           // maximum number of nodes an element has
-     int maxNumNodesFluid;           // maximum number of nodes a fluid element has, ADDED FOR HEV PRBLEM, EC, 20070820
+     int maxNumNodesFluid;      // maximum number of nodes a fluid element has
      Connectivity *elemToNode, *nodeToElem, *nodeToNode, *fsiToNode, *nodeToFsi, *nodeToNodeDirect;
      Connectivity *elemToNodeFluid, *nodeToElemFluid, *nodeToNodeFluid;
-                                // ADDED FOR HEV PROBLEM, EC, 20070820
      Connectivity *nodeToNode_sommer; // for higher order sommerfeld
      SolverInfo sinfo;		// solver information structure
      ControlLawInfo *claw;      // contains user defined routine information
      DMassData *firstDiMass;	// Discrete Mass
-     int nDimass;               // number of DMASS // TG: for sower
+     int nDimass;               // number of DMASS
      double *gravityAcceleration;   // (gx,gy,gz)
-     double gravitySloshing;    // g, added for sloshing problem, EC, 20070724
+     double gravitySloshing;    // g, added for sloshing problem
      compStruct renumb;         // renumbered nodes per structural component
-     compStruct renumbFluid;    // renumbered nodes per fluid component, ADDED FOR HEV PROBLEM, 20070820
+     compStruct renumbFluid;    // renumbered nodes per fluid component
      compStruct renumb_nompc;
      std::map<std::pair<int,int>,double> loadfactor;
      std::map<std::pair<int,int>,int> loadfactor_mftt;
@@ -295,6 +294,7 @@ class Domain : public HData {
      double Wdmp;
      double pWela;
      double pWkin;
+     double pWdis;
      Vector *previousExtForce;
      Vector *previousAeroForce;
      Vector *previousDisp;
@@ -303,7 +303,6 @@ class Domain : public HData {
      Vector *heatflux;
      Vector *elheatflux;
 
-     //ADDED FOR SLOSHING PROBLEM, EC, 20070723
      Vector *fluidDispSlosh;
      Vector *elFluidDispSlosh;
      Vector *elPotSlosh;
@@ -346,11 +345,11 @@ class Domain : public HData {
 
      int* glWetNodeMap;
 
-     int*  umap_add;            // mapping for coupling matrix assembly, ADDED FOR HEV PROBLEM, EC, 20070820
-     int*  umap;                // mapping for coupling matrix, ADDED FOR HEV PROBLEM, EC, 20070820
-     int** pmap;                // mapping for coupling matrix, ADDED FOR HEV PROBLEM, EC, 20070820
-     int   nuNonZero;            // ADDED FOR HEV PROBLEM, EC, 20070820
-     int*  npNonZero;            // ADDED FOR HEV PROBLEM, EC, 20070820
+     int*  umap_add;            // mapping for coupling matrix assembly
+     int*  umap;                // mapping for coupling matrix
+     int** pmap;                // mapping for coupling matrix
+     int   nuNonZero;
+     int*  npNonZero;
      double ** C_condensed;
 
      // functions for controlling printing to screen
@@ -363,7 +362,7 @@ class Domain : public HData {
      void make_bc(int *bc, double *bcx);
      void make_bc(int *bc, DComplex *bcxC);
      void makeAllDOFs();
-     void makeAllDOFsFluid();  //ADDED FOR HEV PROBLEM, EC, 20070820
+     void makeAllDOFsFluid();
 
      void createKelArray(FullSquareMatrix *& kel);
      void createKelArray(FullSquareMatrix *& kel,FullSquareMatrix *& mel);
@@ -483,7 +482,7 @@ class Domain : public HData {
      double getDissipatedEnergy(GeomState *geomState, Corotator **allCorot);
      void computeEnergies(GeomState *geomState, Vector &force, double time, Vector *aeroForce, double *vel,
                           Corotator **allCorot, SparseMatrix *M, SparseMatrix *C, double &Wela, double &Wkin,
-                          double &error); // Nonlinear statics and dynamics
+                          double &Wdis, double &error); // Nonlinear statics and dynamics
      void computeEnergies(Vector &disp, Vector &force, double time, Vector *aeroForce, Vector *vel,
                           SparseMatrix *K, SparseMatrix *M, SparseMatrix *C, double &Wela, double &Wkin,
                           double &error); // Linear dynamics
@@ -887,10 +886,8 @@ class Domain : public HData {
                                 FullSquareMatrix *kelArray=0);
      void getElemKtimesU(int iele, int numEleDOFs, Vector &dsp, double *elForce,
                    FullSquareMatrix *kelArray, double *karray);
-     //ADDED FOR SLOSHING PROBLEM, EC, 20070723
      void getSloshDispAll(Vector &tsol, double *bcx, int fileNumber, double time);
      void getSloshDispAll(ComplexVector &tsol, complex<double> *bcx, int fileNumber, double time) { std::cerr << "getSloshDispAll(complex) not implemented\n"; }
-     //ADDED FOR SLOSHING PROBLEM, EC, 20070723
      void getSloshDisp(Vector &tsol, double *bcx, int fileNumber, int hgIndex, double time);
      void getSloshDisp(ComplexVector &tsol, complex<double> *bcx, int fileNumber, int hgIndex, double time) { std::cerr << "getSloshDisp(complex) not implemented\n"; }
      double getStrainEnergy(Vector &sol, double *bcx, SparseMatrix *gStiff=0,
@@ -922,12 +919,12 @@ class Domain : public HData {
      Connectivity *prepDirectMPC();
      // renumbering functions
      Renumber  getRenumbering();
-     Renumber* getRenumberingFluid(); //ADDED FOR HEV PROBLEM, EC, 20070820
+     Renumber* getRenumberingFluid();
 
      void makeNodeToNode_sommer();
 
      // Eigen solver
-     void eigenOutput(Vector& eigenValues, VectorSet& eigenVectors, double* bcx = 0, int convEig = 0); // modified for SLOSHING PROBLEM, EC, 20070723
+     void eigenOutput(Vector& eigenValues, VectorSet& eigenVectors, double* bcx = 0, int convEig = 0);
 #ifdef USE_EIGEN3 
      void eigenQROutput(Eigen::MatrixXd& Xmatrix, Eigen::MatrixXd& Qmatrix, Eigen::MatrixXd& Rmatrix);
 #endif
@@ -955,7 +952,6 @@ class Domain : public HData {
      }
 
      // returns the number of unconstrained Fluid dof
-     //ADDED FOR HEV PROBLEM, EC, 20070820
      int numUnconFluid() {
        return c_dsaFluid ? c_dsaFluid->size() : dsaFluid->size();
      }
@@ -964,7 +960,7 @@ class Domain : public HData {
 
      // returns the number of dirichlet bc
      int  nDirichlet() { return numDirichlet; }
-     int  nDirichletFluid() { return numDirichletFluid; } //ADDED FOR HEV PROBLEM, EC, 20070820
+     int  nDirichletFluid() { return numDirichletFluid; }
      int  nDispDirichlet() { return numDispDirichlet; }
      void setNumDispDirichlet(int n) { numDispDirichlet = n; }
 
@@ -1206,7 +1202,7 @@ class Domain : public HData {
      void computeCoupledScaleFactors();
      void getInterestingDofs(DofSet &ret, int glNode);
 
-     double** getCMatrix(); //ADDED FOR HEV PROBLEM, EC, 20070820
+     double** getCMatrix();
      void multC(const Vector&, Vector&);
      void trMultC(const Vector&, Vector&);
 

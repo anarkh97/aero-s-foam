@@ -1464,9 +1464,9 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
       getElementForces(*geomState, allCorot, iInfo, AZM, time);
       break;
     case OutputInfo::Energies: {
-      double Wkin, Wela, error;
-      computeEnergies(geomState, force, time, &aeroForce, velocity, allCorot, M, C, Wela, Wkin, error);
-      geoSource->outputEnergies(iInfo, time, Wext, Waero, Wela, Wkin, Wdmp, error);
+      double Wkin, Wela, Wdis, error;
+      computeEnergies(geomState, force, time, &aeroForce, velocity, allCorot, M, C, Wela, Wkin, Wdis, error);
+      geoSource->outputEnergies(iInfo, time, Wext, Waero, Wela, Wkin, Wdmp+Wdis, error);
     } break;
     case OutputInfo::DissipatedEnergy: {
       double D = getDissipatedEnergy(geomState, allCorot);
@@ -2561,7 +2561,7 @@ Domain::getElementDisp(int iele, GeomState& geomState, Vector& disp)
 void
 Domain::computeEnergies(GeomState *geomState, Vector &force, double t, Vector *aeroForce, double *velocity,
                         Corotator **allCorot, SparseMatrix *M, SparseMatrix *C, double &Wela, double &Wkin,
-                        double &error)
+                        double &Wdis, double &error)
 {
   // Build displacement vector
   Vector disp(numUncon(), 0.0);
@@ -2614,12 +2614,14 @@ Domain::computeEnergies(GeomState *geomState, Vector &force, double t, Vector *a
       Wkin = 0.5 * (vel * tmpVec);
     }
     Wela = getStrainEnergy(geomState, allCorot);
+    Wdis = getDissipatedEnergy(geomState, allCorot);
 
-    // XXX consider sign of Wdmp in this equation:
-    error = (time == sinfo.initialTime) ? 0.0 : (Wela+Wkin+Wdmp-Wext)-(pWela+pWkin+pWdmp-pWext);
+    // XXX consider sign of Wdmp+Wdis in this equation:
+    error = (time == sinfo.initialTime) ? 0.0 : (Wela+Wkin+Wdmp+Wdis-Wext)-(pWela+pWkin+pWdmp+pWdis-pWext);
 
     pWela = Wela;
     pWkin = Wkin;
+    pWdis = Wdis;
   }
   else { // nonlinear statics
     Wext  = (lambda*force + folForce) * disp;
@@ -2627,6 +2629,7 @@ Domain::computeEnergies(GeomState *geomState, Vector &force, double t, Vector *a
     Wdmp  = 0;
     Wkin  = 0;
     Wela  = getStrainEnergy(geomState, allCorot);
+    Wdis  = getDissipatedEnergy(geomState, allCorot);
     error = 0;
   }
 }

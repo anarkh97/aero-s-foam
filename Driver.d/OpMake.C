@@ -706,7 +706,6 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
    }
  }
 
- //ADDED FOR HEV PROBLEM, EC, 20070820
  if((sinfo.HEV) && (probType() == SolverInfo::Modal)) {
    Mff = new GenBLKSparseMatrix<double>(nodeToNodeFluid, dsaFluid, c_dsaFluid, sinfo.trbm, sinfo.sparse_renum, 0);
    Mff->zeroAll();
@@ -1572,6 +1571,8 @@ Domain::makeDynamicOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mco
 
       GenPCGSolver<Scalar,GenVector<Scalar>, GenSparseMatrix<Scalar> >
         *pcgSolver = constructPCGSolver<Scalar>(spm, rbm);
+      pcgSolver->verbose = verboseFlag;
+      pcgSolver->printNumber = sinfo.fetiInfo.printNumber;
       systemSolver = pcgSolver;
       break;
     }
@@ -1579,6 +1580,8 @@ Domain::makeDynamicOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mco
       filePrint(stderr," ... Bi-CG Solver is Selected       ...\n");
       GenBCGSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar>, GenSolver<Scalar> >
         *bcgSolver = new GenBCGSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar>, GenSolver<Scalar> >(sinfo.maxit, sinfo.tol, spm, allOps.prec);
+      bcgSolver->verbose = verboseFlag;
+      bcgSolver->printNumber = sinfo.fetiInfo.printNumber;
       systemSolver = bcgSolver;
       break;
     }
@@ -1586,6 +1589,8 @@ Domain::makeDynamicOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mco
       filePrint(stderr," ... CR Solver is Selected          ...\n");
       GenCRSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar>, GenSolver<Scalar> >
         *crSolver = new GenCRSolver<Scalar, GenVector<Scalar>, GenSparseMatrix<Scalar>, GenSolver<Scalar> >(sinfo.maxit, sinfo.tol, spm, allOps.prec);
+      crSolver->verbose = verboseFlag;
+      crSolver->printNumber = sinfo.fetiInfo.printNumber;
       systemSolver = crSolver;
       break;
     }
@@ -1600,6 +1605,11 @@ Domain::makeDynamicOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mco
       systemSolver = gmresSolver;
       break;
     }
+    case 2 : {
+      // Currently, GCR is only available as a solver in FETI-DP. 
+      filePrint(stderr," *** ERROR: GCR Solve is not available, exiting...\n");
+      exit(-1);
+    } break;
   }
 }
 

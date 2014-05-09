@@ -548,13 +548,14 @@ int main(int argc, char** argv)
  if(verboseFlag) filePrint(stderr," ... Parsed Input File In %8.2e sec and %8.2e Mb ...\n",
 	                   (getTime() - t1)/1000.0, times.memoryParse/oneMegaByte);
 
- // Check if Input file had any errors
+ // Check if input file had any errors
  if(error) {
    filePrint(stderr," ****************************************************\n");
    filePrint(stderr," *** ERROR: Input file contained errors. Aborting ***\n");
    filePrint(stderr," ****************************************************\n");
    exit(error);
  }
+
  if(decInit != 0 && decInit->skip==false) { // dec initializers in parser !
    if(numThreads == 1) // command line option prevail !!!
      numThreads = decInit->nthreads;
@@ -574,7 +575,7 @@ int main(int argc, char** argv)
      estFlag = true;
      useFull = true;
    }
-   if(!nosa) nosa = decInit->nosa; // PJSA
+   if(!nosa) nosa = decInit->nosa;
    if(topFlag < 0) {
      callDec=true;
      if(geoSource->getCheckFileInfo()->decPtr == 0 && decInit->file !=0)

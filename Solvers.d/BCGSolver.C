@@ -29,7 +29,8 @@ GenBCGSolver<Scalar, AnyVector, AnyOperator, AnyPreconditioner>::solve(AnyVector
   }
 
   for (int i = 1; i <= maxiter; i++) {
-    fprintf(stderr," ... Iteration #%d\tTwo norm = %1.7e\tRelative residual = %1.7e\n",i,r.sqNorm(),resid);
+    if(verbose && printNumber > 0 && ((i-1)%printNumber == 0))
+      fprintf(stderr," ... Iteration #%d\tTwo norm = %1.7e\tRelative residual = %1.7e\n",i-1,r.sqNorm(),resid);
     if(P) P->apply(r, z); else z=r; // z = M^{1}*r
     if(P) P->apply(rtilde, ztilde); else ztilde = rtilde; // ztilde = M^{-T}*rtilde (ASSUMING here that preconditioner is symmetric)
     rho_1 = z*rtilde;
@@ -62,5 +63,4 @@ GenBCGSolver<Scalar, AnyVector, AnyOperator, AnyPreconditioner>::solve(AnyVector
   solveTime += getTime();
   return;
 }
-
 

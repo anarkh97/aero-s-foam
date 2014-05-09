@@ -56,8 +56,6 @@ public:
   void reSolve(int nRHS, Scalar **RHS);  
   void reSolve(int nRHS, AnyVector *RHS);
 
-  //double getSolutionTime() { return solveTime; }
-  //double getMemoryUsed()         { return memUsed;   }  
   long size() { return 0; }
   int neqs(); 
 

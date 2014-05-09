@@ -1,7 +1,17 @@
-ADD_LIBRARY(Util Connectivity.C dofset.C BlockAlloc.C
-        DistHelper.C MFTT.C
-        BinaryOutputFile.C
-        CompositeInfo.C pstress.C
-        b2Rotation.C list.C
-        BinaryResultFile.C
-        NodeSpaceArray.C MathUtils.C dbg_alloca.C Conwep.d/BlastLoading.C )
+ADD_LIBRARY(Util
+Connectivity.C
+dofset.C
+BlockAlloc.C
+DistHelper.C
+MFTT.C
+BinaryOutputFile.C
+CompositeInfo.C
+pstress.C
+b2Rotation.C
+list.C
+BinaryResultFile.C
+NodeSpaceArray.C
+MathUtils.C
+dbg_alloca.C
+SolverInfo.C
+Conwep.d/BlastLoading.C)

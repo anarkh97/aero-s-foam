@@ -17,7 +17,8 @@ GenCRSolver<Scalar, AnyVector, AnyOperator, AnyPreconditioner>::solve(AnyVector 
  sol.zero();
 
  double r0r0 = r.squareNorm();
-
+ if(verbose && printNumber > 0)
+   fprintf(stderr," ... Iteration #%d\tTwo norm = %1.7e\t  Rel. residual  %1.7e \n",0,r0r0,1.0);
  if(r0r0 == 0.0) {
    solveTime += getTime();
    return;
@@ -56,8 +57,9 @@ GenCRSolver<Scalar, AnyVector, AnyOperator, AnyPreconditioner>::solve(AnyVector 
    // CHECK CONVERGENCE
    double r2 = r.squareNorm();
 
-   fprintf(stderr," ... Iteration #%d\tTwo norm = %1.7e\t  Rel. residual  %1.7e \n",niter,r2,sqrt(r2/r0r0));
-   if( r2 <= r0r0*tolerance*tolerance || niter >= maxiter )  {
+   if(verbose && printNumber > 0 && (niter%printNumber == 0))
+     fprintf(stderr," ... Iteration #%d\tTwo norm = %1.7e\t  Rel. residual  %1.7e \n",niter,r2,sqrt(r2/r0r0));
+   if( r2 <= r0r0*tolerance*tolerance || niter >= maxiter ) {
       fprintf(stderr,"\n ... Total # Iterations = %d",niter);
       fprintf(stderr,"\n ...     Final Two norm = %1.7e\n",r2);
       solveTime += getTime();
@@ -83,5 +85,4 @@ GenCRSolver<Scalar, AnyVector, AnyOperator, AnyPreconditioner>::solve(AnyVector 
    ++niter;
  }
 }
-
 

@@ -32,6 +32,8 @@ class BasePCG {
     int numIterations;
 
   public:
+    int printNumber, verbose;
+
     BasePCG(int _maxitr, double _tolpcg,
           AnyOperator *AA, AnyPreconditioner *_prec = 0, AnyProjector *_proj = 0)
           : res1(*new AnyVector(AA->dim())), 
@@ -43,7 +45,6 @@ class BasePCG {
     BasePCG() { };
     ~BasePCG() { if(A) delete A; if(proj) delete proj; if(prec) delete prec;};
     AnyOperator * getOperator() { return A; }
-//    int neqs() { return A->dim(); }
     int neqs() { return A->neqs(); }
     int doSolve(AnyVector& rhs, AnyVector& sol);
 };

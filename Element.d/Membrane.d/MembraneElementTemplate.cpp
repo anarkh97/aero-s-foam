@@ -319,7 +319,7 @@ MembraneElementTemplate<doublereal>
         Eigen::Matrix<int,9,1> le, ptr;
 
         int i,j;
-        char* status = " ";
+        std::string status = " ";
         le << 0,1,6,7,12,13,5,11,17;
         ptr << 0,1,5,6,7,11,12,13,17;
         v1n << 1.0,0.0,0.0;

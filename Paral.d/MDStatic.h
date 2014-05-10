@@ -80,7 +80,7 @@ class GenMultiDomainStatic
     GenMultiDomainPostProcessor<Scalar> *getPostProcessor();
     StaticTimers *getStaticTimers() { return times; }
     void project(GenDistrVector<Scalar> &);
-    AllSensitivities<Scalar> *getAllSensitivities() { cerr << "GenMultiDomainStatic::getAllSensitivities() not implemented" << endl; return 0; }
+    AllSensitivities<Scalar> *getAllSensitivities() { std::cerr << "GenMultiDomainStatic::getAllSensitivities() not implemented" << std::endl; return 0; }
  private:
     void eigmode_projector_prep();
     void subGetRHS(int isub, GenDistrVector<Scalar>& rhs);

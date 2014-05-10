@@ -144,15 +144,9 @@ Tetrahedral::getVonMises(Vector& stress,Vector& weight,CoordSet &cs,
         double E     = prop->E;  // Young's modulus
         double nu    = prop->nu; // Poisson's ratio
 
-#ifdef USE_EIGEN3
-        sands23(elm, x, y, z, E, nu, elDisp.data(),
-                (double*)elStress, (double*)elStrain, maxgus, maxstr,
-                one, outerr, vmflg, strainFlg);
-#else
         _FORTRAN(sands23)(elm, x, y, z, E, nu, elDisp.data(), 
           (double*)elStress, (double*)elStrain, maxgus, maxstr,
           one, outerr, vmflg, strainFlg); 
-#endif
 
         if(strInd < 7) {
           double thermalStress[4] = {0.0,0.0,0.0,0.0};

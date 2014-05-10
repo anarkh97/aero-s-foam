@@ -593,19 +593,11 @@ TimoshenkoBeam::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
    double elStress[2][7];
    double elForce[3][2]={{0.0,0.0},{0.0,0.0},{0.0,0.0}};
 
-#ifdef USE_EIGEN3
-   sands7(elm,prop->A,prop->E,(double*)*elemframe,
-          prop->Ixx,prop->Iyy,prop->Izz,prop->alphaY,
-          prop->alphaZ,prop->c,prop->nu,x,y,z,elDisp.data(),
-          (double*)elStress,numel,maxgus,maxstr,maxsze,
-          prop->W, prop->Ta, ndTemps);
-#else
   _FORTRAN(sands7)(elm,prop->A,prop->E,(double*)*elemframe,
                    prop->Ixx,prop->Iyy,prop->Izz,prop->alphaY,
                    prop->alphaZ,prop->c,prop->nu,x,y,z,elDisp.data(),
                    (double*)elStress,numel,maxgus,maxstr,maxsze,
                    prop->W, prop->Ta, ndTemps);
-#endif
 
    // elForce[0] -> Axial Force (x-direction)
    // elForce[1] -> Moment around the y-axis (My)

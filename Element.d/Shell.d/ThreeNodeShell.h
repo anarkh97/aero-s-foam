@@ -1,14 +1,14 @@
 #ifndef _THREENODESHELL_H_
 #define _THREENODESHELL_H_
 
-#include  <Element.d/Element.h>
-#include	<Element.d/Shell.d/ShellElementSemiTemplate.hpp>
-#include        <Driver.d/MultiFront.h>
+#include <Element.d/Element.h>
+#include <Element.d/Shell.d/ShellElementSemiTemplate.hpp>
+#include <Driver.d/MultiFront.h>
 class GeomState;
 class Shell3Corotator;
 
-class ThreeNodeShell : virtual public Element,
-                       public ShellElementSemiTemplate<double> {
+class ThreeNodeShell : public Element, public ShellElementSemiTemplate<double>
+{
 protected:
 	int nn[3];
 	double w;

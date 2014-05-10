@@ -9,7 +9,8 @@ class MembraneElementTemplate: public ShellElementSemiTemplate<doublereal>
   public:
      MembraneElementTemplate() {}
     ~MembraneElementTemplate() {}
-  
+
+#ifdef USE_EIGEN3
      void sands19(doublereal *_xl, doublereal *_yl, doublereal *_zl,
                   doublereal e, doublereal nu, doublereal *_h,
                   doublereal *_v, doublereal *_stress,
@@ -35,6 +36,7 @@ class MembraneElementTemplate: public ShellElementSemiTemplate<doublereal>
 
      void compj2(doublereal sx, doublereal sy, doublereal sxy, doublereal &svm);
 */
+#endif
 };
  
 #endif

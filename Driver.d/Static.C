@@ -1587,23 +1587,6 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
         packedEset[iele]->getVonMises(*elstress, *elweight, nodes,
                                       *elDisp, stressIndex, surface,
                                       elemNodeTemps.data(), ylayer, zlayer, avgnum);
-/*        std::cerr << "print elstress\n";
-        for(int i=0; i<elstress->size(); ++i) std::cerr << (*elstress)[i] << "  ";
-        std::cerr << std::endl;
-        std::cerr << "print elweight\n";
-        for(int i=0; i<elweight->size(); ++i) std::cerr << (*elweight)[i] << "  ";
-        std::cerr << std::endl;
-        std::cerr << "print elDisp\n";
-        for(int i=0; i<maxNumDOFs; ++i) std::cerr << (*elDisp)[i] << "  ";
-        std::cerr << std::endl;
-        std::cerr << "stressIndex = " << stressIndex << std::endl;
-        std::cerr << "surface = " << surface << std::endl;
-        std::cerr << "print elemNodeTemps\n";
-        for(int i=0; i<maxNumNodes; ++i) std::cerr << elemNodeTemps[i] << "  ";
-        std::cerr << std::endl;
-        std::cerr << "ylayer = " << ylayer << std::endl;
-        std::cerr << "zlayer = " << zlayer << std::endl;
-        std::cerr << "avgnum = " << avgnum << std::endl;  */
       }
 
       if(avgnum != 0) {
@@ -1654,7 +1637,7 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
      for(k = 0; k < numNodes; ++k)  {
        if((*weight)[k] == 0.0)
          (*stress)[k] = 0.0;
-       else 
+       else
          (*stress)[k] /= (*weight)[k];
      }
     }
@@ -1668,11 +1651,6 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
 
   }
   delete [] nodeNumbers;
-  if(verboseFlag) {
-    std::cerr << "print stress\n";
-    for(int i=0; i<numNodes; ++i) std::cerr << std::setprecision(15) << (*stress)[i] << "  ";
-    std::cerr << std::endl;
-  }
 }
 
 void

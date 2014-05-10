@@ -74,9 +74,7 @@ template<typename Scalar, typename SolverClass>
 void
 GenEiSparseMatrix<Scalar,SolverClass>::print()
 {
-  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> Meig = M;
-  Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
-  std::cerr << Meig.format(HeavyFmt) << std::endl;
+  std::cerr << M << std::endl;
 }
 
 template<typename Scalar, typename SolverClass>

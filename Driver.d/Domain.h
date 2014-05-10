@@ -938,7 +938,7 @@ class Domain : public HData {
                             FullSquareMatrix *kelArray = 0, bool factorize=true);
      template<class Scalar>
        void getSolverAndKuc(AllOps<Scalar> &allOps, FullSquareMatrix *kelArray, bool factorize=true);
-     
+
      void make_constrainedDSA();
      void make_constrainedDSA(int *bc);
      void make_constrainedDSA(int fake);

@@ -228,6 +228,8 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
    // all the different dynamic schemes.
 
    probDesc->preProcess();
+
+#ifdef USE_EIGEN3
    if(domain->solInfo().sensitivity) {
      probDesc->preProcessSA();
      if(!domain->runSAwAnalysis) {
@@ -236,6 +238,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
        return;
      }
    }
+#endif
 
    postProcessor = probDesc->getPostProcessor();
 
@@ -256,6 +259,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
    // Set up initial conditions
    curState = new SysState<VecType>( *d_n, *v_n, *a_n, *v_p);
    probDesc->getInitState( *curState );
+#ifdef USE_EIGEN3
    if(domain->solInfo().sensitivity) {
      d_nSen = new VecType( probDesc->solVecInfo() );
      v_nSen = new VecType( probDesc->solVecInfo() );
@@ -263,10 +267,11 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
      v_pSen = new VecType( probDesc->solVecInfo() );
      *d_nSen = *v_nSen = *a_nSen = *v_pSen = 0.0;
      curSenState = new SysState<VecType>( *d_nSen, *v_nSen, *a_nSen, *v_pSen);
-     map<int, Group> &group = geoSource->group;
+     std::map<int, Group> &group = geoSource->group;
 //     allSens.aeroVonMisesWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(domain->numNodes(), group.size());
 //     allSens.aeroVonMisesWRTthick->setZero();
    }
+#endif
 
    // The aeroPreProcess is done later now, so that the correct
    // time-step is passed to the fluid in the explicit case
@@ -371,7 +376,6 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
      // Quasi-Static
      case 1:
        if(aeroAlg >= 0) probDesc->aeroPreProcess( *d_n, *v_n, *a_n, *v_p ); // [S] sent initial displacements ...
-       if(verboseFlag) filePrint(stderr,"norm of d_n is %e\n",d_n->norm());
        if(probDesc->getThermoeFlag() >= 0) probDesc->thermoePreProcess(*d_n, *v_n, *v_p);
        if(probDesc->getAeroheatFlag() >= 0) probDesc->aeroHeatPreProcess(*d_n, *v_n, *v_p);
        if(probDesc->getThermohFlag() >= 0) probDesc->thermohPreProcess(*d_n, *v_n, *v_p);
@@ -391,10 +395,11 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
        quasistaticLoop( *curState, *constForce, *dynOps, *workVec, dt, tmax, aeroAlg);   
 
        // Aeroelastic Sensitivity Quasi-Static 
+#ifdef USE_EIGEN3
        if(domain->solInfo().sensitivity) { 
          probDesc->postProcessSA(dynOps,*d_n);
          AllSensitivities<double> *allSens = probDesc->getAllSensitivities();
-         map<int, Group> &group = geoSource->group;
+         std::map<int, Group> &group = geoSource->group;
          allSens->dispWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[group.size()];
          probDesc->sendNumParam(group.size());  
          for(int iparam=0; iparam< group.size(); ++iparam) {
@@ -406,18 +411,16 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
            aeroSensitivityQuasistaticLoop( *curSenState, *rhsSen, *dynOps, *workSenVec, dt, tmax, aeroAlg);
            *allSens->dispWRTthick[iparam] = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> >(d_nSen->data(),domain->numUncon(),1);
            allSens->vonMisesWRTthick->col(iparam) += *allSens->vonMisesWRTdisp * (*allSens->dispWRTthick[iparam]);
-           Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
+//           Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
 //           cerr << "print *allSens->vonMisesWRTdisp\n" << (*allSens->vonMisesWRTdisp).format(HeavyFmt) << endl;
 //           cerr << "print (*allSens->dispWRTthick[iparam])\n" << (*allSens->dispWRTthick[iparam]).adjoint().format(HeavyFmt) << endl;
 //           cerr << "print vonMisesWRTthick (in steady aeroelastic analysis)\n" << allSens->vonMisesWRTthick->col(iparam).adjoint().format(HeavyFmt) << endl;
          }  
          domain->sensitivityPostProcessing(*allSens); 
        } 
-
+#endif
        break;
    }
-
-
    timeLoop += getTime();
    probDesc->printTimers(dynOps, timeLoop);
    
@@ -430,6 +433,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
    delete a_n;
    delete constForce;
    delete v_p;
+
    if(domain->solInfo().sensitivity) {
      delete curSenState;
      delete workSenVec;
@@ -547,9 +551,6 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
     // ... stop quasi-transient simulation if converged
     if(iSteady) {
-      Eigen::Map<Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> > dispEigen(d_n.data(),1,d_n.size());
-      Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
-//      cerr << "print disp\n" << dispEigen.format(HeavyFmt) << endl;
       filePrint(stderr," ------------------------------------------------------\n");
       filePrint(stderr," ... Quasistatic Analysis Converged After %d Steps ...\n",tIndex);
       filePrint(stderr," ------------------------------------------------------\n");

@@ -1313,7 +1313,6 @@ Domain::getSolverAndKuc(GenSolver<Scalar> *&solver, GenSparseMatrix<Scalar> *&ku
 
  // ... Build stiffness matrix K and Kuc
  buildOps<Scalar>(allOps, 1.0, 0.0, 0.0, rbm, kelArray, factorize);
- allOps.K->print();
 
  // ... Return with solver and Kuc
  solver = allOps.sysSolver;
@@ -1330,7 +1329,10 @@ Domain::getSolverAndKuc(AllOps<Scalar> &allOps, FullSquareMatrix *kelArray, bool
  // ... Call necessary Operator's constructors
  allOps.Kuc = constructCuCSparse<Scalar>();
  allOps.Kcc = constructCCSparse<Scalar>();
- allOps.K = constructEiSparseMatrix<Scalar, Eigen::SimplicialLLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >(c_dsa, nodeToNode, false);
+#ifdef USE_EIGEN3
+ if(sinfo.sensitivity)
+   allOps.K = constructEiSparseMatrix<Scalar, Eigen::SimplicialLLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >(c_dsa, nodeToNode, false);
+#endif
 
  Rbm *rbm = 0;
  // ... Construct geometric rigid body modes if necessary
@@ -1351,7 +1353,6 @@ Domain::getSolverAndKuc(AllOps<Scalar> &allOps, FullSquareMatrix *kelArray, bool
  // for freqency sweep: need M, Muc, C, Cuc
  bool isDamped = (sinfo.alphaDamp != 0.0) || (sinfo.betaDamp != 0.0) || packedEset.hasDamping();
  if((sinfo.doFreqSweep && (sinfo.getSweepParams()->nFreqSweepRHS > 1 || isDamped)) || sinfo.getSweepParams()->isAdaptSweep) {
-   std::cerr << ".a.fda.... in UH\n";
    //---- UH ----
    if(sinfo.getSweepParams()->freqSweepMethod == SweepParams::PadeLanczos ||
       sinfo.getSweepParams()->freqSweepMethod == SweepParams::GalProjection ||
@@ -1634,7 +1635,6 @@ Domain::addGravityForce(GenVector<Scalar> &force)
 
     // transform vector from basic to DOF_FRM coordinates
     transformVector(elementGravityForce, iele);
-    if(verboseFlag) std::cerr << "norm of elementGravityForce is " << elementGravityForce.norm() << std::endl;
 
     for(int idof = 0; idof < allDOFs->num(iele); ++idof) {
       int cn = c_dsa->getRCN((*allDOFs)[iele][idof]);
@@ -1733,7 +1733,6 @@ Domain::addPressureForce(GenVector<Scalar> &force, int which, double time)
       // Compute element pressure force
       elementPressureForce.zero();
       packedEset[iele]->computePressureForce(nodes, elementPressureForce, (GeomState *) 0, cflg, time);
-      std::cerr << "norm of pressure force is " << elementPressureForce.norm() << std::endl;
       pbc->val = p0;
 
       // Transform vector from basic to DOF_FRM coordinates
@@ -1768,7 +1767,6 @@ Domain::addPressureForce(GenVector<Scalar> &force, int which, double time)
     // Compute structural element distributed Neumann force
     elementPressureForce.zero();
     neum[iele]->neumVector(nodes, elementPressureForce, 0, (GeomState*) 0, time);
-    std::cerr << "norm of pressure force is " << elementPressureForce.norm() << std::endl;
     pbc->val = p0;
 
     // transform vector from basic to DOF_FRM coordinates
@@ -1897,7 +1895,6 @@ Domain::addMpcRhs(GenVector<Scalar> &force, double t)
 
     // Otherwise, compute element force due to mpc rhs
     packedEset[iele]->computePressureForce(nodes, elementForce, (GeomState *) 0, 0, t);
-    std::cerr << "norm of Mpc element force is " << elementForce.norm() << std::endl;
 
     // Assemble element pressure forces into domain force vector
     for(int idof = 0; idof < allDOFs->num(iele); ++idof) {
@@ -2165,7 +2162,6 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc)
   }
 
   if (implicitFlag) {
-    std::cerr << "implicitFlag is on\n";
     int i, iele;
     double *direction = getWaveDirection();
     ComplexVector elementNeumanScatterForce(this->maxNumDOFs,0.0);
@@ -2217,32 +2213,19 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc)
   }
 
   // ... ADD GRAVITY FORCES
-  if(gravityFlag()) {
-    if(verboseFlag) std::cerr << "gravityFlag is on\n";
-    addGravityForce<Scalar>(force);
-  }
+  if(gravityFlag()) addGravityForce<Scalar>(force);
 
   // ... ADD THERMAL FORCES
-  if(thermalFlag() && !sinfo.isNonLin()) {
-    if(verboseFlag) std::cerr << "thermalFlag is on\n";
-    addThermalForce<Scalar>(force);
-  }
+  if(thermalFlag() && !sinfo.isNonLin()) addThermalForce<Scalar>(force);
 
   // ... ADD PRESSURE LOAD
-  if(!sinfo.isNonLin()) {
-    if(verboseFlag) std::cerr << "pressureFlag is on\n";
-    addPressureForce<Scalar>(force);
-  }
+  if(!sinfo.isNonLin()) addPressureForce<Scalar>(force);
 
   // ... ADD LMPC RHS
-  if(!sinfo.isNonLin()) { 
-    if(verboseFlag) std::cerr << "LMPC RHS is added\n";
-    addMpcRhs<Scalar>(force);
-  }
+  if(!sinfo.isNonLin()) addMpcRhs<Scalar>(force);
 
   // scale RHS force for coupled domains
   if(sinfo.isCoupled) {
-    if(verboseFlag) std::cerr << "coupled RHS force is added\n";
     int cdofs[6];  DofSet structdofs = DofSet::XYZdisp | DofSet::XYZrot;
     for(i=0; i<numnodes; ++i) {
       c_dsa->number(i, structdofs, cdofs);
@@ -2256,7 +2239,6 @@ Domain::buildRHSForce(GenVector<Scalar> &force, GenSparseMatrix<Scalar> *kuc)
   // ARE TAKEN CARE OF USING THE GEOMSTATE CLASS, NOT BY
   // MODIFYING THE RHS VECTOR
   if(kuc && !sinfo.isNonLin()) {
-    if(verboseFlag) std::cerr << "non-homogeneous forces is added to rhs\n";
     GenVector<Scalar> Vc(numDirichlet+numComplexDirichlet, 0.0);
 
     // CONSTRUCT NON-HOMONGENOUS DIRICHLET BC VECTOR (PRESCRIBED)
@@ -3449,6 +3431,7 @@ void Domain::sensitivityPostProcessing(AllSensitivities<Scalar> &allSens) {
   firstOutput = false;
 }
 #endif
+
 //-------------------------------------------------------------------------------------
 // Templated Post-processing for direct solver statics, frequency response, helmholtz and eigen
 template<class Scalar>

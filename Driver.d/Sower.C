@@ -1,11 +1,14 @@
 #include <Driver.d/Sower.h>
+#include <Driver.d/GeoSource.h>
 #include <Utils.d/BinFileHandler.h>
-#include <algorithm> // PJSA: for sgi intel
+#include <algorithm>
 
 #ifdef SOWER_SURFS
 #include <Utils.d/resize_array.h>
 #include <Mortar.d/FaceElement.d/SurfaceEntity.h>
 #endif
+
+extern GeoSource * geoSource;
 
 //#define SOWER_DEBUG
 //#define SOWER_DEBUG_SURFS

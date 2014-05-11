@@ -3,7 +3,6 @@
 #include <unistd.h>
 #include <Paral.d/SubDOp.h>
 #include <Driver.d/SysState.h>
-
 #include <Problems.d/DynamProbTraits.h>
 
 //-------------------------------------------------------------------------------------------

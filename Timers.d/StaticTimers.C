@@ -15,6 +15,7 @@
 extern long totMemSparse;
 extern long totMemSky;
 extern long totMemSpooles;
+extern long totMemMumps;
 
 const char* yesno[] = {" no","yes"};
 // problem Type solved

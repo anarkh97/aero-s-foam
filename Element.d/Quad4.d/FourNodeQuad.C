@@ -1,13 +1,14 @@
-#include	<Element.d/Quad4.d/FourNodeQuad.h>
-#include  <Element.d/Quad4.d/FourNodeQuadStressWRTDisplacementSensitivity.h>
-#include  <Element.d/Function.d/SpaceDerivatives.h>
+#include 	<Element.d/Quad4.d/FourNodeQuad.h>
+#include 	<Element.d/Quad4.d/FourNodeQuadStressWRTDisplacementSensitivity.h>
+#include 	<Element.d/Function.d/SpaceDerivatives.h>
 #include        <Math.d/Vector.h>
-#include	<Math.d/FullSquareMatrix.h>
-#include        <Utils.d/dofset.h>
-#include        <Element.d/State.h>
-#include        <Utils.d/linkfc.h>
-#include        <Utils.d/pstress.h>
-#include        <Hetero.d/InterpPoint.h>
+#include 	<Math.d/FullSquareMatrix.h>
+#include 	<Math.d/matrix.h>
+#include 	<Utils.d/dofset.h>
+#include 	<Element.d/State.h>
+#include 	<Utils.d/linkfc.h>
+#include 	<Utils.d/pstress.h>
+#include 	<Hetero.d/InterpPoint.h>
 
 extern int verboseFlag;
 extern "C"      {

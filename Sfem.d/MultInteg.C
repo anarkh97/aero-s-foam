@@ -1,4 +1,5 @@
 #include <Sfem.d/MultInteg.h>
+#include <Utils.d/DistHelper.h>
 #include <iostream>
 #include <fstream>
 

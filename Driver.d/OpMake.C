@@ -1,3 +1,5 @@
+#ifndef _OPMAKE_C_
+#define _OPMAKE_C_
 #include <typeinfo>
 #include <Utils.d/dbg_alloca.h>
 #include <Math.d/Skyline.d/SkyMatrix.h>
@@ -36,6 +38,7 @@
 #include <Rom.d/GalerkinProjectionSolver.h>
 #include <Rom.d/EiGalerkinProjectionSolver.h>
 #include <Control.d/ControlInterface.h>
+#include <Driver.d/SubDomain.h>
 
 extern Sfem* sfem;
 extern int verboseFlag;
@@ -43,44 +46,6 @@ extern int verboseFlag;
 #include <Comm.d/Communicator.h>
 extern Communicator *structCom;
 #endif
-
-/** abstract method of operator assembly */
-template<class Scalar, class OpList>
-void
-Domain::assembleSparseOps(OpList &ops) {
-  int size = sizeof(Scalar)*maxNumDOFs*maxNumDOFs;
-  Scalar *karray = (Scalar *) dbg_alloca(size);
-  Scalar *marray = (Scalar *) dbg_alloca(size);
-  for(int iele=0; iele < numele; ++iele) {
-    // Skip all irrelevant elements
-    if(packedEset[iele]->isSommerElement()) continue;
-
-    if(ops.needStiff()) {
-      GenFullSquareMatrix<Scalar> kel = packedEset[iele]->stiffness(nodes, karray);
-      ops.addStiffness((*allDOFs)[iele], kel);
-    }
-    if(ops.needMass()) {
-      GenFullSquareMatrix<Scalar> kel = packedEset[iele]->massMatrix(nodes, karray);
-      ops.addMass((*allDOFs)[iele], kel);
-    }
-  }
-
-  if(ops.needMass()) {
-    // Add discrete mass contribution to the Mass Matrix
-    // Three matrices need to be changed. Mass matrix itself,
-    // Damping Matrix and K tilda.
-    Scalar m;
-    DMassData *current = firstDiMass;
-    while(current != 0) {
-      int dof = dsa->locate(current->node, (1 << current->dof));
-      int jdof = (current->jdof > -1) ?// PJSA 10-9-06 for off-diagonal mass terms eg. products of inertia I21, I31, I32
-         dsa->locate(current->node, (1 << current->jdof)) : dof;
-
-      ops.addMass(dof, jdof, current->diMass);
-      current = current->next;
-    }
-  }
-}
 
 template<class Scalar>
 void
@@ -1312,7 +1277,7 @@ Domain::getSolverAndKuc(GenSolver<Scalar> *&solver, GenSparseMatrix<Scalar> *&ku
  }
 
  // ... Build stiffness matrix K and Kuc
- buildOps<Scalar>(allOps, 1.0, 0.0, 0.0, rbm, kelArray, factorize);
+ buildOps<Scalar>(allOps, 1.0, 0.0, 0.0, rbm, kelArray, (FullSquareMatrix*) NULL, (FullSquareMatrix*) NULL, factorize);
 
  // ... Return with solver and Kuc
  solver = allOps.sysSolver;
@@ -1509,15 +1474,9 @@ Domain::makeStaticOpsAndSolver(AllOps<Scalar> &allOps, double Kcoef, double Mcoe
       systemSolver = (Rom::GenEiSparseGalerkinProjectionSolver<Scalar>*) spm;
       break;
     case 14:
-#ifdef USE_EIGEN_CHOLMOD
-      spm = constructGoldfarb<Scalar,Eigen::CholmodDecomposition<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >(c_dsa);
-      makeSparseOps<Scalar>(allOps, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray, celArray);
-      systemSolver  = (GenEiSparseMatrix<Scalar, Eigen::CholmodDecomposition<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >*) spm;
-#else
       spm = constructGoldfarb<Scalar,Eigen::SimplicialLLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >(c_dsa);
       makeSparseOps<Scalar>(allOps, Kcoef, Mcoef, Ccoef, spm, kelArray, melArray, celArray);
       systemSolver  = (GenEiSparseMatrix<Scalar, Eigen::SimplicialLLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >*) spm;
-#endif
       break;
 #endif
   }
@@ -3398,10 +3357,9 @@ int Domain::processOutput(OutputInfo::Type &type, GenVector<Scalar> &d_n, Scalar
 }
 
 //-------------------------------------------------------------------------------------
-#ifdef USE_EIGEN3
 template <class Scalar>
 void Domain::sensitivityPostProcessing(AllSensitivities<Scalar> &allSens) {
-
+#ifdef USE_EIGEN3
   OutputInfo *oinfo = geoSource->getOutputInfo();
   int numOutInfo = geoSource->getNumOutInfo();
   if(firstOutput) geoSource->openOutputFiles();
@@ -3429,8 +3387,8 @@ void Domain::sensitivityPostProcessing(AllSensitivities<Scalar> &allSens) {
     }
   }
   firstOutput = false;
-}
 #endif
+}
 
 //-------------------------------------------------------------------------------------
 // Templated Post-processing for direct solver statics, frequency response, helmholtz and eigen
@@ -3677,7 +3635,7 @@ Domain::computeConstantForce(GenVector<Scalar>& cnst_f, GenSparseMatrix<Scalar>*
   // note #1: when USDD is present this is term is not constant (see computeExtForce)
   // note #2  for nonlinear this term is not constant (see getStiffAndForce/getInternalForce) 
   if(numDirichlet && !(claw && claw->numUserDisp) && !sinfo.isNonLin() && kuc) {
-    Vector Vc(numDirichlet, 0.0);
+    GenVector<Scalar> Vc(numDirichlet, 0.0);
     // construct the non-homogeneous dirichlet bc vector
     for(int i = 0; i < numDirichlet; ++i) {
       int dof = dsa->locate(dbc[i].nnum, (1 << dbc[i].dofnum));
@@ -3743,7 +3701,7 @@ Domain::computeExtForce(GenVector<Scalar>& f, double t, GenSparseMatrix<Scalar>*
   // note #2: for nonlinear the contribution due to Kuc is follower (see getStiffAndForce/getInternalForce)
   // note #3: for linear and nonlinear dynamics the contribution due to Cuc and Muc is now included
   if(numDirichlet && (claw && claw->numUserDisp)) {
-    Vector Vc(numDirichlet, 0.0);
+    GenVector<Scalar> Vc(numDirichlet, 0.0);
     // construct the non-homogeneous dirichlet bc vector
     for(int i = 0; i < numDirichlet; ++i) {
       int dof = dsa->locate(dbc[i].nnum, (1 << dbc[i].dofnum));
@@ -3824,3 +3782,4 @@ Domain::computeExtForce4(GenVector<Scalar>& f, const GenVector<Scalar>& constant
   // ADD CONSTANT FORCE
   f += constantForce;
 }
+#endif

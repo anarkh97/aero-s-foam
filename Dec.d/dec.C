@@ -2,10 +2,12 @@
 #include <cstdio>
 
 #include <Driver.d/Domain.h>
+#include <Driver.d/GeoSource.h>
 #include <Timers.d/GetTime.h>
 #include "dec.h"
 
 #include <Utils.d/Memory.h>
+#include <Utils.d/DistHelper.h>
 
 extern bool estFlag;
 extern bool weightOutFlag;

@@ -33,6 +33,7 @@ const char *SEND_LIST_KW = "SNDF";
 
 extern Communicator *structCom, *fluidCom, *heatStructCom;
 extern int verboseFlag;
+extern GeoSource *geoSource;
 
 FlExchanger::FlExchanger(CoordSet& _cs, Elemset& _eset, SurfaceEntity *_surf, DofSetArray *_dsa, 
                          OutputInfo *_oinfo) : cs(_cs), surface(_surf), eset(_eset)

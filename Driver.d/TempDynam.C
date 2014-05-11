@@ -15,6 +15,8 @@
 
 #include <Driver.d/GeoSource.h>
 
+extern int verboseFlag;
+
 void
 Domain::getHeatFlux(Vector &tsol, double *bcx, int fileNumber, int hgIndex,
                     double time)

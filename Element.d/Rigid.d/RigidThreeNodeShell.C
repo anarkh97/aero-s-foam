@@ -4,6 +4,9 @@
 #include <Element.d/State.h>
 #include <Corotational.d/utilities.h>
 #include <Hetero.d/InterpPoint.h>
+#include <Math.d/FullSquareMatrix.h>
+#include <Math.d/Vector.h>
+#include <Utils.d/dbg_alloca.h>
 
 extern "C"      {
 void _FORTRAN(mass8)(double* ,double* ,double* ,double* , double& ,

@@ -4,6 +4,8 @@
 #include <Utils.d/ModeData.h>
 #include <Driver.d/GeoSource.h>
 #include <Driver.d/SysState.h>
+#include <Utils.d/DistHelper.h>
+#include <Math.d/DBSparseMatrix.h>
 
 extern ModeData modeData;
 

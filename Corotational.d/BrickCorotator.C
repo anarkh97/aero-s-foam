@@ -2,6 +2,7 @@
 #include <Utils.d/linkfc.h>
 #include <Utils.d/pstress.h>
 #include <Math.d/FullSquareMatrix.h>
+#include <Math.d/matrix.h>
 #include <Element.d/Element.h>
 #include <Corotational.d/BrickCorotator.h>
 #include <Corotational.d/GeomState.h>

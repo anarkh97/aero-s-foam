@@ -17,6 +17,7 @@
 
 #include "BasisFileStream.h"
 #include "VecBasisFile.h"
+#include "BasisOps.h"
 
 #include <Utils.d/DistHelper.h>
 

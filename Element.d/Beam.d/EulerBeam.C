@@ -3,6 +3,7 @@
 #include <Element.d/Beam.d/EulerBeamStressWRTDisplacementSensitivity.h>
 #include <Element.d/Function.d/SpaceDerivatives.h>
 #include <Math.d/FullSquareMatrix.h>
+#include <Math.d/matrix.h>
 #include <Utils.d/dofset.h>
 #include <Utils.d/linkfc.h>
 #include <cmath>

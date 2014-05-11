@@ -1,18 +1,19 @@
 #include 	<Element.d/Beam.d/TimoshenkoBeam.h>
-#include  <Element.d/Beam.d/TimoshenkoBeamStressWRTDisplacementSensitivity.h>
-#include  <Element.d/Beam.d/TimoshenkoBeamStressWRTNodalCoordinateSensitivity.h>
-#include  <Element.d/Function.d/SpaceDerivatives.h>
-#include	<Math.d/FullSquareMatrix.h>
-#include        <Corotational.d/BeamCorotator.h>
-#include        <Corotational.d/GeomState.h>
-#include        <Corotational.d/utilities.h>
+#include 	<Element.d/Beam.d/TimoshenkoBeamStressWRTDisplacementSensitivity.h>
+#include 	<Element.d/Beam.d/TimoshenkoBeamStressWRTNodalCoordinateSensitivity.h>
+#include 	<Element.d/Function.d/SpaceDerivatives.h>
+#include 	<Math.d/FullSquareMatrix.h>
+#include	<Math.d/matrix.h>
+#include 	<Corotational.d/BeamCorotator.h>
+#include 	<Corotational.d/GeomState.h>
+#include 	<Corotational.d/utilities.h>
 #include 	<Utils.d/dofset.h>
 #include 	<Utils.d/linkfc.h>
 
-#include	<cstdio>
-#include	<cstddef>
+#include 	<cstdio>
+#include 	<cstddef>
 #include 	<cmath>
-#include        <cstring>
+#include 	<cstring>
 
 extern int verboseFlag;
 extern "C"      {

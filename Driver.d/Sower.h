@@ -18,6 +18,7 @@ extern std::string connectivity_;
 #include <Utils.d/BinFileHandler.h>
 #include <Utils.d/Connectivity.h>
 #include <Element.d/Element.h>
+#include <Element.d/ElemAccess.h>
 #include <Element.d/Sommerfeld.d/LineSommerBC.h>
 #include <Element.d/Sommerfeld.d/Line2SommerBC.h>
 #include <Element.d/Sommerfeld.d/TriangleSommerBC.h>
@@ -472,8 +473,6 @@ std::cerr << "Sower.h, readData, ElemsetIO" << std::endl;
       return(new Elemset(size));
     }
 };
-
-#include <Driver.d/StructProp.h>
 
 class AttribIO
 {

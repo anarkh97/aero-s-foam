@@ -9,16 +9,21 @@
 
 #include <Math.d/FullMatrix.h>
 #include <Math.d/SparseMatrix.h>
+#include <Math.d/BLKSparseMatrix.h>
 #include <Math.d/DBSparseMatrix.h>
 #include <Math.d/EiSparseMatrix.h>
 #include <Math.d/CuCSparse.h>
+#include <Math.d/DiagMatrix.h>
 #include <Math.d/Skyline.d/SkyMatrix.h>
 
 #include <Utils.d/dofset.h>
 #include <Solvers.d/Solver.h>
+#include <Solvers.d/Spooles.h>
+#include <Solvers.d/Mumps.h>
 #include <Element.d/State.h>
 #include <Timers.d/StaticTimers.h>
 #include <Timers.d/GetTime.h>
+#include <Corotational.d/Corotator.h>
 #include <Corotational.d/GeomState.h>
 
 #include <Control.d/ControlInterface.h>
@@ -27,6 +32,7 @@
 
 #include <Utils.d/linkfc.h>
 #include <Driver.d/GeoSource.h>
+#include <Driver.d/ControlLawInfo.h>
 
 #include <Hetero.d/FlExchange.h>
 #include <Driver.d/SysState.h>

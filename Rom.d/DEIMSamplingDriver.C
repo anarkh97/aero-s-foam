@@ -9,6 +9,7 @@
 #include "BasisFileStream.h"
 #include "FileNameInfo.h"
 #include "SimpleBuffer.h"
+#include "BasisOps.h"
 
 #include "RenumberingUtils.h"
 #include "MeshDesc.h"
@@ -19,6 +20,7 @@
 #include <Driver.d/Domain.h>
 #include <Driver.d/SysState.h>
 #include <Driver.d/GeoSource.h>
+#include <Math.d/DBSparseMatrix.h>
 #include <Utils.d/dofset.h>
 #include <Utils.d/DistHelper.h>
 

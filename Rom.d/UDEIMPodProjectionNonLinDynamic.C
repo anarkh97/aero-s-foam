@@ -10,6 +10,7 @@
 #include "VecNodeDof6Conversion.h"
  
 #include "VecBasisFile.h"
+#include "PodProjectionSolver.h"
 
 #include <utility>
 

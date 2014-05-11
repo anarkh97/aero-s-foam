@@ -19,8 +19,12 @@
 #include <Math.d/FullMatrix.h>
 #include <Solvers.d/Rbm.h>
 #include <Driver.d/GeoSource.h>
+#include <Driver.d/ControlLawInfo.h>
 #include <Element.d/State.h>
 #include <Driver.d/SysState.h>
+#include <Rom.d/PodProjectionSolver.h>
+#include <Hetero.d/FlExchange.h>
+#include <Utils.d/DistHelper.h>
 
 #include <cstddef>
 

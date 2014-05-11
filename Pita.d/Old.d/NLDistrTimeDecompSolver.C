@@ -4,10 +4,12 @@
 #include <Utils.d/Connectivity.h>
 #include <Comm.d/Communicator.h>
 #include <Driver.d/GeoSource.h>
+#include <Driver.d/Domain.h>
 
 extern Communicator * structCom;
 extern int verboseFlag;
 extern GeoSource * geoSource;
+extern Domain * domain;
 
 namespace Pita { namespace Old {
 

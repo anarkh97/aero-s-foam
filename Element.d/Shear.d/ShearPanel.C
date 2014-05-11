@@ -5,6 +5,7 @@
 #include <Utils.d/dbg_alloca.h>
 #include <Math.d/Vector.h>
 #include <Math.d/FullSquareMatrix.h>
+#include <Math.d/matrix.h>
 #include <Utils.d/dofset.h>
 #include <Element.d/State.h>
 #include <Utils.d/linkfc.h>

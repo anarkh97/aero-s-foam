@@ -8,14 +8,16 @@
 #include <Element.d/Element.h>
 #include <HelmAxi.d/AxiHElem.h>
 #include <Solvers.d/Rbm.h>
+#include <Solvers.d/Solver.h>
 #include <Utils.d/Connectivity.h>
 #include <Utils.d/Memory.h>
 #include <Utils.d/pstress.h>
 #include <Timers.d/GetTime.h>
 #include <Mortar.d/FaceElement.d/FaceElement.h>
 #include <Mortar.d/FaceElement.d/SurfaceEntity.h>
-
 #include <Driver.d/GeoSource.h>
+#include <Utils.d/DistHelper.h>
+
 #include <list>
 
 // const double defaultTemp = -10000000;

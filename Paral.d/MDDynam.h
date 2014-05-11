@@ -1,11 +1,6 @@
 #ifndef _MD_DYNAM_DESCR_H_
 #define _MD_DYNAM_DESCR_H_
 
-#include <cstdlib>
-#ifdef DISTRIBUTED
-#include <Utils.d/DistHelper.h>
-#endif
-
 template <class Scalar> class GenVector;
 typedef GenVector<double> Vector;
 template <class Scalar> class GenSparseMatrix;
@@ -191,14 +186,12 @@ private:
                           double gamma=0.5, double alphaf=0.5);
     void getGravityForce(DistrVector &);
     void getUnamplifiedExtForce(DistrVector &, int);
-    void getAeroelasticForceSensitivity(int t_index, double t, DistrVector * aero_f=0, double gamma=0.5, double alphaf=0.5) {
-      filePrint(stderr," ... MultiDomainDynam::getAeroelasticForceSensitivity\n");  exit(-1);
-    }
+    void getAeroelasticForceSensitivity(int t_index, double t, DistrVector * aero_f=0, double gamma=0.5, double alphaf=0.5);
 
     void getRHS(DistrVector &);
     void preProcess();
-    void preProcessSA() {  filePrint(stderr," ... MultiDomainDynam::preProcessSA is not implemented\n");  exit(-1);  }
-    void postProcessSA(MDDynamMat *, DistrVector &sol) {  filePrint(stderr," ... MultiDomainDynam::postProcessSA is not implemented\n");  exit(-1);  }
+    void preProcessSA();
+    void postProcessSA(MDDynamMat *, DistrVector &sol);
     void processLastOutput();
     void printTimers(MDDynamMat *, double);
 

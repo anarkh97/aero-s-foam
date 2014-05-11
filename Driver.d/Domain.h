@@ -594,12 +594,6 @@ class Domain : public HData {
      void makePostSensitivities(GenSolver<DComplex> *, GenSparseMatrix<DComplex> *, GenSparseMatrix<DComplex> *, 
                                 AllSensitivities<DComplex> &allSens, GenVector<DComplex> &sol, DComplex *, bool isDynam = false);
 
-     /** Abstract method to assemble any type of operator
-      *
-      * the OpList takes care of distributing the contribution to the various components.
-      */
-     template<class Scalar, class OpList>
-     void assembleSparseOps(OpList &ops);
 /** ... General build functions to replace the specialized build
   * ... functions and allow us to reuse the code in each problem
   * ... type (i.e. use makeSparseOps in statics, dynamics, eigen, etc.)
@@ -764,11 +758,9 @@ class Domain : public HData {
 
      void resProcessing(Vector &, int index=0, double t=0);
 
-#ifdef USE_EIGEN3
      // sensitivity post-processing function
      template<class Scalar>
      void sensitivityPostProcessing(AllSensitivities<Scalar> &allSens);
-#endif
 
      // Nonlinear post processing function
      void postProcessing(GeomState *geomState, Vector &force, Vector &aeroForce, double time = 0.0,
@@ -1255,9 +1247,5 @@ class Domain : public HData {
                                                         // from both elements and DIMASS. Used for nonlinear explicit ROM only
 #endif
 };
-
-#ifdef _TEMPLATE_FIX_
-  #include <Driver.d/OpMake.C>
-#endif
 
 #endif

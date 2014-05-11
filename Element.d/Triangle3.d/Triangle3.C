@@ -2,6 +2,7 @@
 #include <Element.d/Triangle3.d/Triangle3StressWRTDisplacementSensitivity.h>
 #include <Element.d/Function.d/SpaceDerivatives.h>
 #include <Math.d/FullSquareMatrix.h>
+#include <Math.d/matrix.h>
 #include <Math.d/Vector.h>
 #include <Utils.d/dofset.h>
 #include <Utils.d/pstress.h>

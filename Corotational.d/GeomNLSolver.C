@@ -4,6 +4,8 @@
 #include <Corotational.d/Corotator.h>
 #include <Corotational.d/GeomState.h>
 #include <Corotational.d/GeomNLSolver.h>
+#include <Math.d/CuCSparse.h>
+#include <Solvers.d/Solver.h>
 #include <Utils.d/Connectivity.h>
 #include <Utils.d/dofset.h>
 

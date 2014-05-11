@@ -8,6 +8,9 @@
 
 #include <Driver.d/Domain.h>
 #include <Driver.d/GeoSource.h>
+#include <Math.d/DBSparseMatrix.h>
+#include <Math.d/EiSparseMatrix.h>
+#include <Math.d/DiagMatrix.h>
 #include <Utils.d/dofset.h>
 #include <Utils.d/DistHelper.h>
 
@@ -15,6 +18,7 @@
 #include <algorithm>
 
 extern GeoSource *geoSource;
+extern int verboseFlag;
 
 namespace Rom {
 

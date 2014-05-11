@@ -2,6 +2,7 @@
 #define _SLOSHQUADGAL_H_
 
 #include <Element.d/Element.h>
+#include <cstdio>
 
 class SloshQuadGal: public Element {
 

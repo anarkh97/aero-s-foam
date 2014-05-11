@@ -1,5 +1,9 @@
 #include <Driver.d/SysState.h>
+#include <Driver.d/Domain.h>
+#include <Corotational.d/utilities.h>
 #include "PodProjectionNonLinDynamic.h"
+
+extern GeoSource * geoSource;
 
 namespace Rom {
 

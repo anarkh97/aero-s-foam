@@ -8,6 +8,7 @@
 #include <string>
 #include <Parser.d/AuxDefs.h>
 #include <Driver.d/Domain.h>
+#include <Driver.d/GeoSource.h>
 #include "parser.hpp"
 int line_num = 1;
 

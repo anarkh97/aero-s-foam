@@ -1,9 +1,11 @@
+#include <cassert>
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
 #include <limits>
 
 #include <Element.d/Element.h>
+#include <Math.d/matrix.h>
 #include <Utils.d/pstress.h>
 
 void
@@ -170,8 +172,8 @@ void
 Element::getThermalForce(CoordSet&, Vector &, Vector &force, int glflag,
                          GeomState *)
 {
-  if(!isConstraintElement() && !isSpring())
-   // fprintf(stderr," *** WARNING: Thermal force not implemented for element type %d\n", elementType);
+  //if(!isConstraintElement() && !isSpring())
+  //  fprintf(stderr," *** WARNING: Thermal force not implemented for element type %d\n", elementType);
   force.zero();
 }
 
@@ -226,7 +228,6 @@ Element::getIntrnForce(Vector &elForce, CoordSet&, double *, int,double *)
   elForce.zero();
 }
 
-
 void
 Element::computePressureForce(CoordSet&, Vector& elPressureForce,
                               GeomState *, int cflg, double time)
@@ -253,7 +254,14 @@ Element::addFaces(PolygonSet *)
 void
 Element::setMaterial(NLMaterial *)
 {
-  fprintf(stderr, "WARNING: Trying to use Material on unsupported element!\n");
+  fprintf(stderr, " *** WARNING: Trying to use Material on unsupported element!\n");
+}
+
+Corotator *
+Element::getCorotator(CoordSet &, double *, int, int)
+{
+  fprintf(stderr, " *** WARNING: Corotator not implemented for element %d\n", glNum+1);
+  return 0;
 }
 
 void
@@ -301,6 +309,18 @@ FullSquareMatrix Element::massMatrix(CoordSet&, double* mel, int cmflg)
   result.setSize(numDofs());
   result.zero();
   return result;
+}
+
+FullSquareMatrixC
+Element::stiffness(CoordSet&, complex<double> *d)
+{ 
+  return FullSquareMatrixC();
+}
+
+FullSquareMatrixC
+Element::massMatrix(CoordSet&, complex<double> *d)
+{
+  return FullSquareMatrixC();
 }
 
 FullSquareMatrix
@@ -443,3 +463,55 @@ Element::computeStabilityTimeStep(FullSquareMatrix &K, FullSquareMatrix &M, Coor
   }
 }
 
+void
+Element::getStiffnessThicknessSensitivity(CoordSet&, FullSquareMatrix &dStiffdThick, int, int)
+{
+  dStiffdThick.zero();
+}
+
+void
+Element::getStiffnessNodalCoordinateSensitivity(CoordSet&, FullSquareMatrix *&dStiffdx, int, int)
+{
+  for(int i=0; i<numNodes()*3; ++i) dStiffdx[i].zero();
+}
+
+void
+Element::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight, CoordSet&, Vector&,
+                                         int, int, int, double *, int, double, double)
+{
+  weight = 1;
+  dStdThick.zero();
+}
+
+void
+Element::getVonMisesThicknessSensitivity(ComplexVector &dStdThick, ComplexVector &weight, CoordSet&,
+                                         ComplexVector&, int, int, int, double *, int, double, double)
+{
+  weight = DComplex(1,0);
+  dStdThick.zero();
+}
+
+void
+Element::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet&,
+                                            Vector&, int, int, int, double *, int, double, double)
+{
+  weight = 1;
+  dStdDisp.zero();
+}
+
+void
+Element::getVonMisesDisplacementSensitivity(GenFullM<DComplex> &dStdDisp, ComplexVector &weight,
+                                            CoordSet&, ComplexVector&, int, int, int, double *,
+                                            int, double, double)
+{
+  weight = DComplex(1,0);
+  dStdDisp.zero();
+}
+
+void
+Element::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vector &weight, CoordSet&, Vector&,
+                                               int, int, int, double *, int, double, double)
+{
+  weight = 1;
+  dStdx.zero();
+}

@@ -12,6 +12,7 @@
 #include <Element.d/Function.d/SpaceDerivatives.h>
 #include <Math.d/FullSquareMatrix.h>
 #include <Math.d/Vector.h>
+#include <Math.d/matrix.h>
 #include <Corotational.d/Shell3Corotator.h>
 
 extern int verboseFlag;

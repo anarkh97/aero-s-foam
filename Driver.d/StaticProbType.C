@@ -1,5 +1,7 @@
 #include <Timers.d/StaticTimers.h>
+#include <Utils.d/DistHelper.h>
 #include <cassert>
+
 template < class Scalar,
            class OpSolver, 
            class VecType, 

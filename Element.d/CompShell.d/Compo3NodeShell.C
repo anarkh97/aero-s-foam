@@ -9,6 +9,7 @@
 #include <Corotational.d/utilities.h>
 #include <Corotational.d/GeomState.h>
 #include <Math.d/FullSquareMatrix.h>
+#include <Math.d/matrix.h>
 #include <Utils.d/dofset.h>
 #include <Utils.d/linkfc.h>
 #include <Utils.d/pstress.h>

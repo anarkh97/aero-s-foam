@@ -2,11 +2,6 @@
 #ifndef _BLASTLOADING_H_
 #define _BLASTLOADING_H_
 
-#if defined(USE_EIGEN3) && defined(USE_EIGEN3_AUTODIFF)
-#include <Eigen/Core>
-#include <unsupported/Eigen/AutoDiff>
-#endif
-
 class BlastLoading {
     public:
         struct BlastData {
@@ -80,16 +75,6 @@ class BlastLoading {
             const double CurrentElementGaussPointNormalVector[3],
             double CurrentTime,
             const BlastLoading::BlastData& P);
-#if defined(USE_EIGEN3) && defined(USE_EIGEN3_AUTODIFF)
-        template<typename DerivativeType>
-        static double ComputeGaussPointPressure(const double CurrentElementGaussPointCoordinates[3],
-            const double CurrentElementGaussPointNormalVector[3],
-            Eigen::AutoDiffScalar<DerivativeType> CurrentTime,
-            const BlastLoading::BlastData& P) { 
-              return ComputeGaussPointPressure(CurrentElementGaussPointCoordinates, CurrentElementGaussPointNormalVector,
-                                               CurrentTime.value(), P);
-        }
-#endif
         static BlastData InputFileData;
         static bool WarnedZeroDist;
         static bool WarnedDecayExp;

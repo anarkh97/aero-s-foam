@@ -14,4 +14,5 @@ NodeSpaceArray.C
 MathUtils.C
 dbg_alloca.C
 SolverInfo.C
+GlobalToLocalMap.C
 Conwep.d/BlastLoading.C)

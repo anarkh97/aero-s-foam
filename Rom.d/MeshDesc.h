@@ -4,7 +4,7 @@
 #include "RenumberingUtils.h"
 
 #include <Element.d/Element.h>
-#include <Driver.d/StructProp.h>
+#include <Driver.d/Attrib.h>
 
 #include <vector>
 #include <map>

@@ -24,8 +24,10 @@
 #include <Element.d/Sommerfeld.d/Quad9PressureBC.h>
 #include <Element.d/Sommerfeld.d/Quad12PressureBC.h>
 #include <Element.d/Sommerfeld.d/Triangle10PressureBC.h>
-
+#include <Utils.d/DistHelper.h>
 #include <Driver.d/Domain.h>
+#include <Driver.d/GeoSource.h>
+#include <Math.d/DBSparseMatrix.h>
 
 double HData::coupledScaling = 1.0, HData::cscale_factor = 1.0, HData::cscale_factor2 = 1.0;
 

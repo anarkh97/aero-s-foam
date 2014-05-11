@@ -10,8 +10,10 @@
 #include <Math.d/CuCSparse.h>
 #include <Math.d/NBSparseMatrix.h>
 #include <Math.d/DBSparseMatrix.h>
+#include <Math.d/DiagMatrix.h>
 #include <Math.d/EiSparseMatrix.h>
 #include <Math.d/BLKSparseMatrix.h>
+#include <Solvers.d/Spooles.h>
 #include <Timers.d/GetTime.h>
 #include <Control.d/ControlInterface.h>
 #include <Threads.d/PHelper.h>

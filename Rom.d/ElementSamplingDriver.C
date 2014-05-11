@@ -16,10 +16,13 @@
 #include <Driver.d/Domain.h>
 #include <Driver.d/SysState.h>
 #include <Math.d/Vector.h>
+#include <Math.d/DBSparseMatrix.h>
+#include <Math.d/DiagMatrix.h>
 #include <Timers.d/StaticTimers.h>
 #include <Utils.d/Connectivity.h>
 #include <Element.d/Element.h>
 #include <Utils.d/Conwep.d/BlastLoading.h>
+#include <Corotational.d/Corotator.h>
 
 #include <cstddef>
 #include <algorithm>

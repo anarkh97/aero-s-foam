@@ -11,6 +11,7 @@
 #include <iostream>
 #include <Element.d/Brick32.d/Brick32.h>
 #include <Math.d/FullSquareMatrix.h>
+#include <Math.d/matrix.h>
 #include <Utils.d/dofset.h>
 #include <Utils.d/linkfc.h>
 #include <Utils.d/pstress.h>

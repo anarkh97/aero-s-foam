@@ -2,13 +2,16 @@
 #include <Math.d/SparseMatrix.h>
 #include <Solvers.d/Solver.h>
 #include <Driver.d/Domain.h>
+#include <Driver.d/GeoSource.h>
 #include <Hetero.d/FlExchange.h>
 #include <Driver.d/Dynam.h>
 
 #include <Math.d/FullMatrix.h>
 #include <Math.d/SparseMatrix.h>
+#include <Math.d/BLKSparseMatrix.h>
 #include <Math.d/DBSparseMatrix.h>
 #include <Math.d/CuCSparse.h>
+#include <Math.d/DiagMatrix.h>
 #include <Utils.d/dofset.h>
 #include <Element.d/State.h>
 #include <Solvers.d/Rbm.h>

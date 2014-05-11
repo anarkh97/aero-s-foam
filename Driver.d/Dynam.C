@@ -13,15 +13,19 @@
 #include <fcntl.h>
 
 #include <Math.d/DBSparseMatrix.h>
+#include <Math.d/CuCSparse.h>
 #include <Driver.d/Dynam.h>
 #include <Driver.d/Domain.h>
 #include <Hetero.d/FlExchange.h>
 #include <Utils.d/ModeData.h>
 #include <Element.d/State.h>
 #include <Driver.d/GeoSource.h>
+#include <Driver.d/ControlLawInfo.h>
 #include <Mortar.d/MortarDriver.d/MortarHandler.h>
+#include <Utils.d/DistHelper.h>
 
 extern ModeData modeData; 
+extern int verboseFlag;
 
 void
 Domain::initDispVeloc(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, const char* ext)

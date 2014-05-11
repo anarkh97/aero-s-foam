@@ -3,8 +3,8 @@
 #include <cmath>
 #include <list>
 
+#include <Driver.d/Domain.h>
 #include <Driver.d/Dynam.h>
-
 #include <Utils.d/SolverInfo.h>
 #include <Math.d/FullSquareMatrix.h>
 #include <Math.d/Vector.h>

@@ -1,11 +1,12 @@
 #include <cstdio>
 #include <cstdlib>
 #include <sstream>
-#include <Utils.d/BlockAlloc.h>
 #include <Driver.d/GeoSource.h>
+#include <Driver.d/ControlLawInfo.h>
 #include <Driver.d/Domain.h>
-#include <Driver.d/SubDomain.h>
 #include <Driver.d/Mpc.h>
+#include <Element.d/Helm.d/HelmElement.h>
+#include <Element.d/ElemAccess.h>
 #include <Utils.d/BinFileHandler.h>
 #include <Utils.d/Connectivity.h>
 #include <Comm.d/Communicator.h>
@@ -42,6 +43,7 @@ extern ModeData modeData;
 extern bool estFlag;
 extern bool weightOutFlag;
 extern bool trivialFlag;
+extern int verboseFlag;
 #ifndef SALINAS
 extern Sfem *sfem;
 #endif
@@ -4653,43 +4655,19 @@ void GeoSource::setSampleElemsAndDOFs(int node, int dof){
   elemDofPairVec_.push_back(std::make_pair(node,dof));
 }
 
-ControlLawInfo::ControlLawInfo()
+#ifdef SOWER_SURFS 
+void GeoSource::readDistributedSurfs(int subNum)
 {
-  fileName = routineName = 0;
-  numSensor = numActuator = numUserDisp = numUserForce = 0;
-  sensor = 0; actuator = 0; userDisp = 0; userForce = 0;
+  Sower sower;
+  BinFileHandler *f = sower.openBinaryFile(subNum);
+  //filePrint(stderr," ... Read surfaces data\n");
+  for(int isurf=0; isurf<domain->getNumSurfs(); isurf++) {
+    //filePrint(stderr," ... Read data of surface %d\n",isurf);
+    int* dummy= 0;
+    SurfaceEntity* surf = sower.read<SurfaceIO>(*f, isurf, dummy, true);
+    if(dummy) { delete [] dummy; dummy= 0; } // not used
+    domain->AddSurfaceEntity(surf,isurf);
+  }
 }
-
-ControlLawInfo::~ControlLawInfo()
-{
-  if(sensor) delete [] sensor;
-/*
-  if(actuator) delete [] actuator;
-  if(userDisp) delete [] userDisp;
-  if(userForce) delete [] userForce;
-*/
-}
-
-void ControlLawInfo::print()
-{
-  fprintf(stderr, " Number of Sensors: %d\n", numSensor);
-  fprintf(stderr, " Number of Actuators: %d\n", numActuator);
-  fprintf(stderr, " Number of UserForces: %d\n", numUserForce);
-  fprintf(stderr, " Number of UserDisps: %d\n", numUserDisp);
-  fprintf(stderr, " filename: %s\n", fileName);
-  fprintf(stderr, " routine: %s\n", routineName);
-
-  for (int j = 0; j < numUserDisp; j++)
-    fprintf(stderr, " usdd[%d][%d] = %f\n", userDisp[j].nnum, userDisp[j].dofnum, userDisp[j].val);
-}
-
-void ControlLawInfo::makeGlobalClaw(ControlLawInfo *subClaw)
-{
-  //only the numbers are augmented for sower input
-  numSensor += subClaw->numSensor;
-  numActuator += subClaw->numActuator;
-  numUserForce += subClaw->numUserForce;
-  numUserDisp += subClaw->numUserDisp;
-}
-
+#endif
 

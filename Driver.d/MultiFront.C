@@ -12,10 +12,11 @@
 #define drand48 rand
 #endif
 
-#include <vector> 
+#include <vector>
+#include <algorithm>
 #include "MultiFront.h"
 #include <Dec.d/Decomp.d/Decomp.h>
-#include "Utils.d/dofset.h"                                                 
+#include <Utils.d/dofset.h>
 
 extern bool nosa;
 extern int verboseFlag;

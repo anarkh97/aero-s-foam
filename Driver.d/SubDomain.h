@@ -2,12 +2,15 @@
 #define _SUB_DOMAIN_H_
 
 #include <Driver.d/Domain.h>
+#include <Driver.d/GeoSource.h>
+#include <Driver.d/ControlLawInfo.h>
 #include <Feti.d/DistrVector.h>
 #include <Corotational.d/Corotator.h>
 #include <Math.d/DistVector.h>
 #include <Utils.d/MyComplex.h>
 #include <Math.d/FsiSparse.h>
 #include <Driver.d/SComm.h>
+#include <Solvers.d/Rbm.h>
 #include <Utils.d/GlobalToLocalMap.h>
 #include <Utils.d/MathUtils.h>
 #include <vector>

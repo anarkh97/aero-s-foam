@@ -11,6 +11,7 @@
 #include <Corotational.d/utilities.h>
 #include <Element.d/FelippaShell.d/FelippaShell.h>
 #include <Element.d/FelippaShell.d/ShellElementStressWRTThicknessSensitivity.h>
+#include <Element.d/FelippaShell.d/ShellElementGravityForceWRTThicknessSensitivity.h>
 #include <Element.d/FelippaShell.d/ShellElementStressWRTDisplacementSensitivity.h>
 #include <Element.d/FelippaShell.d/ShellElementStressWRTNodalCoordinateSensitivity.h>
 #include <Element.d/FelippaShell.d/FelippaShellStiffnessWRTThicknessSensitivity.h>
@@ -212,125 +213,16 @@ FelippaShell::getGravityForce(CoordSet& cs, double *gravityAcceleration,
   bool grvflg = true, masflg = false;
   double totmas = 0;
 
-  andesms(glNum+1, x, y, z, (double *)ElementMassMatrix, gravityAcceleration,
-          grvfor, grvflg, totmas, masflg);
-
-  // scale gravity force by number of nodes
-  grvfor[0] /= 3.0;
-  grvfor[1] /= 3.0;
-  grvfor[2] /= 3.0;
-
-  double mx[3],my[3],mz[3];
-  int i;
-  for(i=0; i<3; ++i) {
-    mx[i]=0.0;
-    my[i]=0.0;
-    mz[i]=0.0;
-  }
-
-  // Lumped
-  if(gravflg == false) {
-
-  }
-  // Consistent or lumped with fixed end moments.  Compute treating shell as 3 beams.
-  else {
-    //Node &nd1 = cs.getNode(nn[0]);
-    //Node &nd2 = cs.getNode(nn[1]);
-    //Node &nd3 = cs.getNode(nn[2]);
-
-    double T1[3],T2[3],T3[3];
-    // Vector 1 from Node 1->2
-    T1[0] = x[1] - x[0];
-    T1[1] = y[1] - y[0];
-    T1[2] = z[1] - z[0];
-    normalize( T1 );
-    // Vector 2 from Node 1->3
-    T2[0] = x[2] - x[0];
-    T2[1] = y[2] - y[0];
-    T2[2] = z[2] - z[0];
-    normalize( T2 );
-    // Local Z-axis as cross between V1 and V2
-    crossprod( T1, T2, T3 );
-    normalize( T3);
-
-    int beam, beamnode[3][2];
-    beamnode[0][0] = 0;
-    beamnode[0][1] = 1;
-    beamnode[1][0] = 0;
-    beamnode[1][1] = 2;
-    beamnode[2][0] = 1;
-    beamnode[2][1] = 2;
-
-    for(beam=0; beam<3; ++beam) {
-      double length, dx, dy, dz, localg[3];
-      int n1, n2;
-      n1 = beamnode[beam][0];
-      n2 = beamnode[beam][1];
-      dx = x[n2] - x[n1];
-      dy = y[n2] - y[n1];
-      dz = z[n2] - z[n1];
-      length = sqrt(dx*dx + dy*dy + dz*dz);
-      // Local X-axis from Node 1->2
-      T1[0] = x[n2] - x[n1];
-      T1[1] = y[n2] - y[n1];
-      T1[2] = z[n2] - z[n1];
-      normalize( T1 );
-      // Local Y-axis as cross between Z and X
-      crossprod( T3, T1, T2 );
-      normalize( T2);
-
-      for(i=0; i<3; ++i)
-        localg[i] = 0.0;
-      for(i=0; i<3; ++i) {
-        localg[0] += T1[i]*grvfor[i];
-        localg[1] += T2[i]*grvfor[i];
-        localg[2] += T3[i]*grvfor[i];
-      }
-      double lmy,lmz;
-      if (gravflg == 2) { // consistent
-        lmy = -localg[2]*length/12.0;
-        lmz = localg[1]*length/12.0;
-      }
-      else { // lumped with fixed-end moments
-        lmy = -localg[2]*length/16.0;
-        lmz = localg[1]*length/16.0;
-      }
-      mx[n1] += ((T2[0]*lmy) + (T3[0]*lmz));
-      my[n1] += ((T2[1]*lmy) + (T3[1]*lmz));
-      mz[n1] += ((T2[2]*lmy) + (T3[2]*lmz));
-      mx[n2] -= ((T2[0]*lmy) + (T3[0]*lmz));
-      my[n2] -= ((T2[1]*lmy) + (T3[1]*lmz));
-      mz[n2] -= ((T2[2]*lmy) + (T3[2]*lmz));
-    }
-  }
-
-  // set gravity force
-  gravityForce[0]  = grvfor[0];
-  gravityForce[1]  = grvfor[1];
-  gravityForce[2]  = grvfor[2];
-  gravityForce[3]  = mx[0];
-  gravityForce[4]  = my[0];
-  gravityForce[5]  = mz[0];
-  gravityForce[6]  = grvfor[0];
-  gravityForce[7]  = grvfor[1];
-  gravityForce[8]  = grvfor[2];
-  gravityForce[9]  = mx[1];
-  gravityForce[10] = my[1];
-  gravityForce[11] = mz[1];
-  gravityForce[12] = grvfor[0];
-  gravityForce[13] = grvfor[1];
-  gravityForce[14] = grvfor[2];
-  gravityForce[15] = mx[2];
-  gravityForce[16] = my[2];
-  gravityForce[17] = mz[2];
+  andesgf(glNum+1, x, y, z, gravityForce.data(), (double *)ElementMassMatrix, gravityAcceleration,
+          grvfor, grvflg, totmas, masflg, gravflg);
 }
 
 void
-FelippaShell::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravityAcceleration, 
-                                                     Vector& gravityForceSensitivity, int gravflg, GeomState *geomState)
+FelippaShell::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravityAcceleration, int senMethod, 
+                                                     Vector& dGfdthick, int gravflg, GeomState *geomState)
 {
   if (prop == NULL) {
-    gravityForceSensitivity.zero();
+    dGfdthick.zero();
     return;
   }
 
@@ -341,116 +233,144 @@ FelippaShell::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravi
   bool grvflg = true, masflg = false;
   double totmas = 0;
 
-  andesmsWRTthic(glNum+1, x, y, z, gravityAcceleration, grvforSen, grvflg, totmas, masflg);
 
-  // scale gravity force by number of nodes
-  grvforSen[0] /= 3.0;
-  grvforSen[1] /= 3.0;
-  grvforSen[2] /= 3.0;
+  if(senMethod == 0) { // analytic
+    andesmsWRTthic(glNum+1, x, y, z, gravityAcceleration, grvforSen, grvflg, totmas, masflg);
 
-  double mx[3],my[3],mz[3];
-  int i;
-  for(i=0; i<3; ++i) {
-    mx[i]=0.0;
-    my[i]=0.0;
-    mz[i]=0.0;
-  }
+    // scale gravity force by number of nodes
+    grvforSen[0] /= 3.0;
+    grvforSen[1] /= 3.0;
+    grvforSen[2] /= 3.0;
 
-  // Lumped
-  if(gravflg == false) {
-
-  }
-  // Consistent or lumped with fixed end moments.  Compute treating shell as 3 beams.
-  else {
-    //Node &nd1 = cs.getNode(nn[0]);
-    //Node &nd2 = cs.getNode(nn[1]);
-    //Node &nd3 = cs.getNode(nn[2]);
-
-    double T1[3],T2[3],T3[3];
-    // Vector 1 from Node 1->2
-    T1[0] = x[1] - x[0];
-    T1[1] = y[1] - y[0];
-    T1[2] = z[1] - z[0];
-    normalize( T1 );
-    // Vector 2 from Node 1->3
-    T2[0] = x[2] - x[0];
-    T2[1] = y[2] - y[0];
-    T2[2] = z[2] - z[0];
-    normalize( T2 );
-    // Local Z-axis as cross between V1 and V2
-    crossprod( T1, T2, T3 );
-    normalize( T3);
-
-    int beam, beamnode[3][2];
-    beamnode[0][0] = 0;
-    beamnode[0][1] = 1;
-    beamnode[1][0] = 0;
-    beamnode[1][1] = 2;
-    beamnode[2][0] = 1;
-    beamnode[2][1] = 2;
-
-    for(beam=0; beam<3; ++beam) {
-      double length, dx, dy, dz, localg[3];
-      int n1, n2;
-      n1 = beamnode[beam][0];
-      n2 = beamnode[beam][1];
-      dx = x[n2] - x[n1];
-      dy = y[n2] - y[n1];
-      dz = z[n2] - z[n1];
-      length = sqrt(dx*dx + dy*dy + dz*dz);
-      // Local X-axis from Node 1->2
-      T1[0] = x[n2] - x[n1];
-      T1[1] = y[n2] - y[n1];
-      T1[2] = z[n2] - z[n1];
-      normalize( T1 );
-      // Local Y-axis as cross between Z and X
-      crossprod( T3, T1, T2 );
-      normalize( T2);
-
-      for(i=0; i<3; ++i)
-        localg[i] = 0.0;
-      for(i=0; i<3; ++i) {
-        localg[0] += T1[i]*grvforSen[i];
-        localg[1] += T2[i]*grvforSen[i];
-        localg[2] += T3[i]*grvforSen[i];
-      }
-      double lmy,lmz;
-      if (gravflg == 2) { // consistent
-        lmy = -localg[2]*length/12.0;
-        lmz = localg[1]*length/12.0;
-      }
-      else { // lumped with fixed-end moments
-        lmy = -localg[2]*length/16.0;
-        lmz = localg[1]*length/16.0;
-      }
-      mx[n1] += ((T2[0]*lmy) + (T3[0]*lmz));
-      my[n1] += ((T2[1]*lmy) + (T3[1]*lmz));
-      mz[n1] += ((T2[2]*lmy) + (T3[2]*lmz));
-      mx[n2] -= ((T2[0]*lmy) + (T3[0]*lmz));
-      my[n2] -= ((T2[1]*lmy) + (T3[1]*lmz));
-      mz[n2] -= ((T2[2]*lmy) + (T3[2]*lmz));
+    double mx[3],my[3],mz[3];
+    int i;
+    for(i=0; i<3; ++i) {
+      mx[i]=0.0;
+      my[i]=0.0;
+      mz[i]=0.0;
     }
-  }
 
-  // set gravity force
-  gravityForceSensitivity[0]  = grvforSen[0];
-  gravityForceSensitivity[1]  = grvforSen[1];
-  gravityForceSensitivity[2]  = grvforSen[2];
-  gravityForceSensitivity[3]  = mx[0];
-  gravityForceSensitivity[4]  = my[0];
-  gravityForceSensitivity[5]  = mz[0];
-  gravityForceSensitivity[6]  = grvforSen[0];
-  gravityForceSensitivity[7]  = grvforSen[1];
-  gravityForceSensitivity[8]  = grvforSen[2];
-  gravityForceSensitivity[9]  = mx[1];
-  gravityForceSensitivity[10] = my[1];
-  gravityForceSensitivity[11] = mz[1];
-  gravityForceSensitivity[12] = grvforSen[0];
-  gravityForceSensitivity[13] = grvforSen[1];
-  gravityForceSensitivity[14] = grvforSen[2];
-  gravityForceSensitivity[15] = mx[2];
-  gravityForceSensitivity[16] = my[2];
-  gravityForceSensitivity[17] = mz[2];
+    // Lumped
+    if(gravflg == false) {}
+    // Consistent or lumped with fixed end moments.  Compute treating shell as 3 beams.
+    else {
+      //Node &nd1 = cs.getNode(nn[0]);
+      //Node &nd2 = cs.getNode(nn[1]);
+      //Node &nd3 = cs.getNode(nn[2]);
+
+      double T1[3],T2[3],T3[3];
+      // Vector 1 from Node 1->2
+      T1[0] = x[1] - x[0];
+      T1[1] = y[1] - y[0];
+      T1[2] = z[1] - z[0];
+      normalize( T1 );
+      // Vector 2 from Node 1->3
+      T2[0] = x[2] - x[0];
+      T2[1] = y[2] - y[0];
+      T2[2] = z[2] - z[0];
+      normalize( T2 );
+      // Local Z-axis as cross between V1 and V2
+      crossprod( T1, T2, T3 );
+      normalize( T3);
+
+      int beam, beamnode[3][2];
+      beamnode[0][0] = 0;
+      beamnode[0][1] = 1;
+      beamnode[1][0] = 0;
+      beamnode[1][1] = 2;
+      beamnode[2][0] = 1;
+      beamnode[2][1] = 2;
+
+      for(beam=0; beam<3; ++beam) {
+        double length, dx, dy, dz, localg[3];
+        int n1, n2;
+        n1 = beamnode[beam][0];
+        n2 = beamnode[beam][1];
+        dx = x[n2] - x[n1];
+        dy = y[n2] - y[n1];
+        dz = z[n2] - z[n1];
+        length = sqrt(dx*dx + dy*dy + dz*dz);
+        // Local X-axis from Node 1->2
+        T1[0] = x[n2] - x[n1];
+        T1[1] = y[n2] - y[n1];
+        T1[2] = z[n2] - z[n1];
+        normalize( T1 );
+        // Local Y-axis as cross between Z and X
+        crossprod( T3, T1, T2 );
+        normalize( T2);
+
+        for(i=0; i<3; ++i)
+          localg[i] = 0.0;
+        for(i=0; i<3; ++i) {
+          localg[0] += T1[i]*grvforSen[i];
+          localg[1] += T2[i]*grvforSen[i];
+          localg[2] += T3[i]*grvforSen[i];
+        }
+        double lmy,lmz;
+          if (gravflg == 2) { // consistent
+          lmy = -localg[2]*length/12.0;
+          lmz = localg[1]*length/12.0;
+        }
+        else { // lumped with fixed-end moments
+          lmy = -localg[2]*length/16.0;
+          lmz = localg[1]*length/16.0;
+        }
+        mx[n1] += ((T2[0]*lmy) + (T3[0]*lmz));
+        my[n1] += ((T2[1]*lmy) + (T3[1]*lmz));
+        mz[n1] += ((T2[2]*lmy) + (T3[2]*lmz));
+        mx[n2] -= ((T2[0]*lmy) + (T3[0]*lmz));
+        my[n2] -= ((T2[1]*lmy) + (T3[1]*lmz));
+        mz[n2] -= ((T2[2]*lmy) + (T3[2]*lmz));
+      }
+    }
+
+    // set gravity force
+    dGfdthick[0]  = grvforSen[0];
+    dGfdthick[1]  = grvforSen[1];
+    dGfdthick[2]  = grvforSen[2];
+    dGfdthick[3]  = mx[0];
+    dGfdthick[4]  = my[0];
+    dGfdthick[5]  = mz[0];
+    dGfdthick[6]  = grvforSen[0];
+    dGfdthick[7]  = grvforSen[1];
+    dGfdthick[8]  = grvforSen[2];
+    dGfdthick[9]  = mx[1];
+    dGfdthick[10] = my[1];
+    dGfdthick[11] = mz[1];
+    dGfdthick[12] = grvforSen[0];
+    dGfdthick[13] = grvforSen[1];
+    dGfdthick[14] = grvforSen[2];
+    dGfdthick[15] = mx[2];
+    dGfdthick[16] = my[2];
+    dGfdthick[17] = mz[2];
+    Eigen::Map<Eigen::Matrix<double,18,1> > dGravForcedThick(dGfdthick.data());
+    if(verboseFlag) std::cerr << "dGravityForcedThick(analytic) =\n" << dGravForcedThick << std::endl;
+  } // senMethod == 0
+
+  if(senMethod == 1) { // automatic differentiation
+    Eigen::Array<double,15,1> dconst;
+    dconst.segment<3>(0) = Eigen::Map<Eigen::Matrix<double,3,1> >(gravityAcceleration).segment(0,3);
+    dconst[3] = x[0];    dconst[4] = x[1];    dconst[5] = x[2];
+    dconst[6] = y[0];    dconst[7] = y[1];    dconst[8] = y[2];
+    dconst[9] = z[0];    dconst[10] = z[1];   dconst[11] = z[2];
+    dconst[12] = prop->E; // E
+    dconst[13] = prop->nu;   // nu
+    dconst[14] = prop->rho;  // rho
+    Eigen::Array<int,1,1> iconst;
+    iconst[0] = gravflg;
+    Eigen::Matrix<double,1,1> q;
+    q[0] = nmat->GetShellThickness();
+
+    Eigen::Matrix<double,18,1> dGravityForcedThick;
+    Simo::Jacobian<double,ShellElementGravityForceWRTThicknessSensitivity> dGdh(dconst,iconst);
+    dGravityForcedThick = dGdh(q, 0);
+    if(verboseFlag) std::cerr << "dGravityForcedThick(AD) =\n" << dGravityForcedThick << std::endl;
+    dGfdthick.copy(dGravityForcedThick.data());
+  } // senMethod == 1
+
+  if(senMethod == 2) { // finite difference
+
+  }
 }
 
 

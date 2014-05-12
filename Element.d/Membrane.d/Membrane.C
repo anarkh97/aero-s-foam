@@ -534,7 +534,7 @@ Membrane::getGravityForce(CoordSet& cs, double *gravityAcceleration,
 }
 
 void
-Membrane::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravityAcceleration,
+Membrane::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravityAcceleration, int senMethod,
                                                  Vector& gravityForceSensitivity, int gravflg, GeomState *geomState)
 {
         double mass = getMass(cs);

@@ -407,7 +407,7 @@ ThreeNodeShell::getGravityForce(CoordSet& cs, double *gravityAcceleration,
 }
 
 void
-ThreeNodeShell::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravityAcceleration, 
+ThreeNodeShell::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravityAcceleration, int senMethod, 
                                                        Vector& gravityForceSensitivity, int gravflg, GeomState *geomState)
 {
         double mass = getMass(cs);

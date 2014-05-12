@@ -35,6 +35,11 @@ class ShellElementTemplate : public Membrane<doublereal>, public Bending<doubler
                      doublereal *_dxlpdx, doublereal *_dylpdx, doublereal *_dzlpdx, doublereal *_dareadx);
 
     void
+    andesgf(int elm, doublereal *x, doublereal *y, doublereal *z, doublereal *_gravityForce,
+            doublereal *emass, doublereal *gamma, doublereal *grvfor,
+            bool grvflg, doublereal &totmas, bool masflg, int gravflg);
+
+    void
     andesms(int elm, doublereal *x, doublereal *y, doublereal *z,
             doublereal *emass, doublereal *gamma, doublereal *grvfor,
             bool grvflg, doublereal &totmas, bool masflg);

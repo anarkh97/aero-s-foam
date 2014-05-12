@@ -3173,7 +3173,7 @@ Domain::subtractGravityForceSensitivity(int sindex, AllSensitivities<double> &al
            gravflg = 2;
          else gravflg = geoSource->fixedEndM;
          elementGravityForceSen.zero();
-         packedEset[iele]->getGravityForceSensitivityWRTthickness(nodes, gravityAcceleration, elementGravityForceSen, gravflg);
+         packedEset[iele]->getGravityForceSensitivityWRTthickness(nodes, gravityAcceleration, senInfo[sindex].method, elementGravityForceSen, gravflg);
  
          // transform vector from basic to DOF_FRM coordinates
          transformVector(elementGravityForceSen, iele);

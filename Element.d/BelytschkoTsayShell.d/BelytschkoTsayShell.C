@@ -426,7 +426,7 @@ BelytschkoTsayShell::getGravityForce(CoordSet& cs, double *gravityAcceleration,
 }
 
 void
-BelytschkoTsayShell::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravityAcceleration, 
+BelytschkoTsayShell::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravityAcceleration, int senMethod,
                                                             Vector& gravityForceSensitivity, int gravflg, GeomState *geomState)
 {
   gravityForceSensitivity.zero();

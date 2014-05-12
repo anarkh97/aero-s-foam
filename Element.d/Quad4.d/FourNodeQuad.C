@@ -420,7 +420,7 @@ FourNodeQuad::getGravityForce(CoordSet& cs,double *gravityAcceleration,
 }
 
 void
-FourNodeQuad::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravityAcceleration,
+FourNodeQuad::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravityAcceleration, int senMethod,
                                                      Vector& gravityForceSensitivity, int gravflg, GeomState *geomState)
 {
 

@@ -527,7 +527,7 @@ ShearPanel::getGravityForce(CoordSet& cs,double *gravityAcceleration,
 }
 
 void
-ShearPanel::getGravityForceSensitivityWRTthickness(CoordSet& cs,double *gravityAcceleration, 
+ShearPanel::getGravityForceSensitivityWRTthickness(CoordSet& cs,double *gravityAcceleration, int senMethod,
                                                    Vector& gravityForceSensitivity, int gravflg, GeomState *geomState)
 {
       // Lumped

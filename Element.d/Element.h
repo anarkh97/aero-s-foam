@@ -410,7 +410,7 @@ class Element {
         virtual void   getGravityForce(CoordSet&,double *gravity,Vector &force,
                                        int gravflg, GeomState *gs=0);
 
-        virtual void   getGravityForceSensitivityWRTthickness(CoordSet&,double *gravity,Vector &force,
+        virtual void   getGravityForceSensitivityWRTthickness(CoordSet&,double *gravity, int senMethod, Vector &force,
                                                               int gravflg, GeomState *gs=0);
 
         virtual void   getThermalForce(CoordSet& cs,Vector &ndT,Vector &force,

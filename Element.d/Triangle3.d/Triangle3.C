@@ -457,7 +457,7 @@ Triangle3::getGravityForce(CoordSet& cs,double *gravityAcceleration,
 }
 
 void
-Triangle3::getGravityForceSensitivityWRTthickness(CoordSet& cs,double *gravityAcceleration,
+Triangle3::getGravityForceSensitivityWRTthickness(CoordSet& cs,double *gravityAcceleration, int senMethod,
                                                   Vector& gravityForceSensitivity, int gravflg, GeomState *geomState)
 {
   double massPerNode = getMass(cs)/3.0;

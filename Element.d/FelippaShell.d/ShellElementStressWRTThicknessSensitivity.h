@@ -72,39 +72,5 @@ class ShellElementStressWRTThicknessSensitivity : public VectorValuedFunction<1,
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
-/*
-#include <Element.d/Function.d/SpaceDerivatives.h>
-inline void ComputeShellElementStressWRTThicknessSensitivity()
-{
-  // example function demonstrating how to compute the sensitivities
-
-  // scalar parameters
-  Eigen::Array<double,30,1> dconst;
-  dconst[0] = 0; dconst[1] = 0.1; dconst[2] = 0.0; // x coordinates
-  dconst[3] = 0; dconst[4] = 0;   dconst[5] = 0.1; // y coordinates
-  dconst[6] = 0; dconst[7] = 0;   dconst[8] = 0;   // z coordinates
-  dconst.segment<18>(9) = Eigen::Array<double,18,1>::Random()*1e-6; // some small displacements
-  dconst[27] = 200e9; // E
-  dconst[28] = 0.3;   // nu
-  dconst[29] = 7850;  // rho
-  // integer parameters
-  Eigen::Array<int,1,1> iconst;
-  iconst[0] = 1; // upper surface
-  // inputs
-  Eigen::Matrix<double,1,1> q;
-  q[0] = 1e-2; // value of thickness at which jacobian is to be evaluated
-
-  // function evaluation
-  ShellElementStressWRTThicknessSensitivity<double> foo(dconst,iconst);
-  Eigen::Matrix<double,3,1> S = foo(q, 0);
-  std::cerr << "S = " << S.transpose() << std::endl;
-
-  // Jacobian evaluation
-  Simo::Jacobian<double,ShellElementStressWRTThicknessSensitivity> dSdh(dconst,iconst);
-  Eigen::Matrix<double,3,1> J = dSdh(q, 0);
-  std::cerr << "J = " << J.transpose() << std::endl;
-};
-*/
-
 #endif
 #endif

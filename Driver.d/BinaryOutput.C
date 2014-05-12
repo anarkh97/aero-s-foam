@@ -1,5 +1,5 @@
 #include <Driver.d/GeoSource.h>
-
+#include <Driver.d/Domain.h>
 #include <Utils.d/BinaryOutputFile.h>
 
 #include <fstream>
@@ -8,6 +8,8 @@
 #include <cstddef>
 #include <stdexcept>
 #include <cassert>
+
+extern Domain * domain;
 
 // Private functions
 

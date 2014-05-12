@@ -1,6 +1,7 @@
 #include <cmath>
 
 #include <Math.d/FullSquareMatrix.h>
+#include <Math.d/matrix.h>
 #include <Element.d/Element.h>
 #include <Corotational.d/BarCorotator.h>
 #include <Corotational.d/GeomState.h>

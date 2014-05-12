@@ -1,13 +1,14 @@
-#include	<Element.d/Quad4.d/FourNodeQuad.h>
-#include  <Element.d/Quad4.d/FourNodeQuadStressWRTDisplacementSensitivity.h>
-#include  <Element.d/Function.d/SpaceDerivatives.h>
+#include 	<Element.d/Quad4.d/FourNodeQuad.h>
+#include 	<Element.d/Quad4.d/FourNodeQuadStressWRTDisplacementSensitivity.h>
+#include 	<Element.d/Function.d/SpaceDerivatives.h>
 #include        <Math.d/Vector.h>
-#include	<Math.d/FullSquareMatrix.h>
-#include        <Utils.d/dofset.h>
-#include        <Element.d/State.h>
-#include        <Utils.d/linkfc.h>
-#include        <Utils.d/pstress.h>
-#include        <Hetero.d/InterpPoint.h>
+#include 	<Math.d/FullSquareMatrix.h>
+#include 	<Math.d/matrix.h>
+#include 	<Utils.d/dofset.h>
+#include 	<Element.d/State.h>
+#include 	<Utils.d/linkfc.h>
+#include 	<Utils.d/pstress.h>
+#include 	<Hetero.d/InterpPoint.h>
 
 extern int verboseFlag;
 extern "C"      {
@@ -103,11 +104,7 @@ FourNodeQuad::getVonMises(Vector& stress,Vector& weight,CoordSet &cs,
         x[2] = nd3.x; y[2] = nd3.y;
         x[3] = nd4.x; y[3] = nd4.y;
 
-#ifdef USE_EIGEN3
-       getcmt(prop->A, prop->E, prop->nu, c);
-#else
        _FORTRAN(getcmt)(prop->A, prop->E, prop->nu, c);
-#endif
 
        int maxgus = 4;
        int maxstr = 7;
@@ -132,15 +129,9 @@ FourNodeQuad::getVonMises(Vector& stress,Vector& weight,CoordSet &cs,
        //char ESCM[7] = "DIRECT"; // ... DIRECT STRESS VALUE CALCULATION
        char ESCM[7] = "EXTRAP";   // ... STRESS EXTRAPOLATION FROM GAUSS POINTS
 
-#ifdef USE_EIGEN3
-      sands2(ESCM,x,y,c,elDisp.data(),(double*)elStress,
-             (double*)elStrain, maxgus,maxstr,elm,numel,
-             vmflg,strainFlg,tc,Tref,ndTemps);
-#else
       _FORTRAN(sands2)(ESCM,x,y,c,elDisp.data(),(double*)elStress,
                        (double*)elStrain, maxgus,maxstr,elm,numel,
                        vmflg,strainFlg,tc,Tref,ndTemps); 
-#endif
 
 // if strInd <= 6, you are retrieving a stress value:
 // if strInd >  6, you are retrieving a strain value:

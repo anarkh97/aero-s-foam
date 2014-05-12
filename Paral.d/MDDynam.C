@@ -18,6 +18,7 @@
 #include <Utils.d/SolverInfo.h>
 #include <Feti.d/Feti.h>
 #include <Utils.d/ModeData.h>
+#include <Utils.d/DistHelper.h>
 
 extern ModeData modeData;
 
@@ -1681,3 +1682,23 @@ MultiDomainDynam::subGetUnamplifiedExtForce(int isub, DistrVector &f, int loadca
   sd->computeUnamplifiedExtForce(subf, loadcaseid);
 }
 
+void
+MultiDomainDynam::getAeroelasticForceSensitivity(int, double, DistrVector*, double, double)
+{
+  filePrint(stderr," ... MultiDomainDynam::getAeroelasticForceSensitivity is not implemented\n");
+  exit(-1);
+}
+
+void
+MultiDomainDynam::preProcessSA()
+{
+  filePrint(stderr," ... MultiDomainDynam::preProcessSA is not implemented\n");
+  exit(-1);
+}
+
+void
+MultiDomainDynam::postProcessSA(MDDynamMat*, DistrVector&)
+{
+  filePrint(stderr," ... MultiDomainDynam::postProcessSA is not implemented\n");
+  exit(-1);
+}

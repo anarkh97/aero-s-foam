@@ -1,5 +1,7 @@
 #include <Timers.d/StaticTimers.h>
+#include <Utils.d/DistHelper.h>
 #include <cassert>
+
 template < class Scalar,
            class OpSolver, 
            class VecType, 
@@ -12,6 +14,7 @@ StaticSolver< Scalar, OpSolver, VecType,
   ::solve()
 {
  probDesc->preProcess();
+#ifdef USE_EIGEN3
  if(domain->solInfo().sensitivity) { 
    probDesc->preProcessSA();
    if(!domain->runSAwAnalysis) {
@@ -20,6 +23,7 @@ StaticSolver< Scalar, OpSolver, VecType,
      return;
    }
  }
+#endif
 
  rhs = new VecType(probDesc->solVecInfo());
  sol = new VecType(probDesc->solVecInfo());
@@ -724,11 +728,13 @@ filePrint(stderr,"Projection  time: %e\n",xtime);
    postProcessor->staticOutput(*sol, *rhs);
  }
 
+#ifdef USE_EIGEN3
  if(domain->solInfo().sensitivity) { 
    probDesc->postProcessSA(*sol);
    AllSensitivities<Scalar> *allSens = probDesc->getAllSensitivities();
    domain->sensitivityPostProcessing(*allSens);
  }
+#endif
 
  geoSource->closeOutputFiles(); 
 }

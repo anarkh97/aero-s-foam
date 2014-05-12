@@ -1,10 +1,12 @@
 #include "FileNameInfo.h"
 
 #include <Driver.d/GeoSource.h>
+#include <Driver.d/Domain.h>
 
 #include <sstream>
 
 extern GeoSource *geoSource;
+extern Domain *domain;
 
 namespace Rom {
 

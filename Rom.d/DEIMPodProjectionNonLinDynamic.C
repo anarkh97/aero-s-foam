@@ -8,8 +8,9 @@
 #include "BasisFileStream.h"
 #include "NodeDof6Buffer.h"
 #include "VecNodeDof6Conversion.h"
- 
+  
 #include "VecBasisFile.h"
+#include "PodProjectionSolver.h"
 
 #include <utility>
 

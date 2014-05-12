@@ -2,6 +2,7 @@
 #define _DIAGMATRIX_H_
 
 #include <Utils.d/dofset.h>
+#include <Solvers.d/Solver.h>
 #include <Math.d/SparseMatrix.h>
 
 template<class Scalar>

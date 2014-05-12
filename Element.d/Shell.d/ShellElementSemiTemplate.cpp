@@ -1594,7 +1594,7 @@ c
         const doublereal alpha(1.5);
         Eigen::Matrix<int,9,1> lb,le;
         int i,j;
-        char status[10];
+        std::string status;
         lb << 2,3,4,8,9,10,14,15,16;
         le << 0,1,6,7,12,13,5,11,17;
         v1n << 1.0,0.0,0.0;
@@ -1720,7 +1720,7 @@ template<typename doublereal>
 void
 ShellElementSemiTemplate<doublereal>
 ::basico(doublereal *_x, doublereal *_y, doublereal *_db, doublereal f, 
-         doublereal clr, doublereal cqr, int *_ls, doublereal *_sm, int m, char *status)
+         doublereal clr, doublereal cqr, int *_ls, doublereal *_sm, int m, std::string &status)
 {
       Eigen::Map<Eigen::Matrix<doublereal,3,1> > x(_x), y(_y);
       Eigen::Map<Eigen::Matrix<doublereal,3,3> > db(_db);
@@ -1867,7 +1867,7 @@ template<typename doublereal>
 void
 ShellElementSemiTemplate<doublereal>
 ::sm3mb(doublereal *_x, doublereal *_y, doublereal *_dm, 
-        doublereal alpha, doublereal f, int *_ls, doublereal *_sm, int m, char *status)
+        doublereal alpha, doublereal f, int *_ls, doublereal *_sm, int m, std::string &status)
 {
       Eigen::Map<Eigen::Matrix<doublereal,3,1> > x(_x), y(_y);
       Eigen::Map<Eigen::Matrix<doublereal,3,3> > dm(_dm);
@@ -1961,7 +1961,7 @@ template<typename doublereal>
 void
 ShellElementSemiTemplate<doublereal>
 ::smcbh(doublereal *_x, doublereal *_y, doublereal *_db, 
-        doublereal f, int *_ls, doublereal *_sm, int m, char *status)
+        doublereal f, int *_ls, doublereal *_sm, int m, std::string &status)
 {
       Eigen::Map<Eigen::Matrix<doublereal,3,1> > x(_x), y(_y);
       Eigen::Map<Eigen::Matrix<int,9,1> > ls(_ls);
@@ -2126,7 +2126,7 @@ ShellElementSemiTemplate<doublereal>
 template<typename doublereal>
 void
 ShellElementSemiTemplate<doublereal>
-::sm3mhe(doublereal *_x, doublereal *_y, doublereal *_dm, doublereal f, int *_ls, doublereal *_sm, int m, char *status)
+::sm3mhe(doublereal *_x, doublereal *_y, doublereal *_dm, doublereal f, int *_ls, doublereal *_sm, int m, std::string &status)
 {
       Eigen::Map<Eigen::Matrix<doublereal,3,1> > x(_x), y(_y);
       Eigen::Map<Eigen::Matrix<int,9,1> > ls(_ls);
@@ -2399,7 +2399,7 @@ ShellElementSemiTemplate<doublereal>
         const doublereal alpha(1.5);
         Eigen::Matrix<int,9,1> lb,le;
         int i,j;
-        char status[10];
+        std::string status;
         lb << 2,3,4,8,9,10,14,15,16;
         le << 0,1,6,7,12,13,5,11,17;
         v1n << 1.0,0.0,0.0;

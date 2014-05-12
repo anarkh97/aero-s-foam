@@ -1,4 +1,5 @@
 #include <Driver.d/Domain.h>
+#include <Driver.d/GeoSource.h>
 
 /* Domain methods solely used for PITA method */
 

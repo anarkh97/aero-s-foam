@@ -1,7 +1,7 @@
 #ifndef ROM_MESHOUTPUT_H
 #define ROM_MESHOUTPUT_H
 
-#include <Driver.d/StructProp.h>
+#include <Driver.d/Attrib.h>
 #include <Driver.d/EFrameData.h>
 #include <Element.d/Element.h>
 

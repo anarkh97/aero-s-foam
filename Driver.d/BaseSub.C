@@ -7,6 +7,7 @@
 #include <Driver.d/SubDomain.h>
 #include <Driver.d/CornerMaker.h>
 #include <Utils.d/GlobalToLocalMap.h>
+#include <Element.d/Helm.d/HelmElement.h>
 #include <algorithm>
 #include <iostream>
 

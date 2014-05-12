@@ -1080,7 +1080,7 @@ GenBLKSparseMatrix<Scalar>::print()
          numUncon, xlnz[numUncon]);
  int i;
  for(i=0; i<xlnz[numUncon]-1; ++i)
-   std::cerr << lnz[i] << "  "; //endl;
+   std::cerr << lnz[i] << "  ";
  std::cerr << std::endl;
 
  fprintf(stdout,"============\n"); fflush(stdout);

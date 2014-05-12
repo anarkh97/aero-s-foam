@@ -4,6 +4,7 @@
 #include <iostream>
 #include <Utils.d/dbg_alloca.h>
 #include <Element.d/Sommerfeld.d/SommerElement.h>
+#include <Element.d/Helm.d/HelmElement.h>
 #include <Driver.d/Domain.h>
 #include <Corotational.d/GeomState.h>
 

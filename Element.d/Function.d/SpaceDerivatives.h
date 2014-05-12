@@ -46,13 +46,17 @@ struct assign_coherent_impl<Eigen::Matrix<Scalar, A_Rows, A_Cols, A_Options, A_M
   static void run(const A& a, B& b) { b = Eigen::Map<B>(const_cast<Scalar*>(a.data()),a.rows(),a.cols()); }
 };
 
-template<typename Scalar, int A_Rows, int A_Cols, int A_Options, int A_MaxRows, int A_MaxCols,
-                          int B_Rows, int B_Cols, int B_Options, int B_MaxRows, int B_MaxCols>
-struct assign_coherent_impl<Eigen::Matrix<Scalar, A_Rows, A_Cols, A_Options, A_MaxRows, A_MaxCols>,
-                            Eigen::Array<Eigen::Matrix<Scalar, B_Rows, B_Cols, B_Options, B_MaxRows, B_MaxCols>, 1, 1, 0, 1, 1> > {
-  typedef Eigen::Matrix<Scalar, A_Rows, A_Cols, A_Options, A_MaxRows, A_MaxCols> A;
-  typedef Eigen::Array<Eigen::Matrix<Scalar, B_Rows, B_Cols, B_Options, B_MaxRows, B_MaxCols>, 1, 1, 0, 1, 1> B;
-  static void run(const A& a, B& b) { assign_coherent(a, b[0]); }
+template<typename Scalar, int A_Cols, int A_Options, int A_MaxRows, int A_MaxCols,
+                          int B_Rows, int B_Cols, int B_Options, int B_MaxRows, int B_MaxCols,
+                          int C_Options, int C_MaxRows, int C_MaxCols>
+struct assign_coherent_impl<Eigen::Matrix<Scalar, B_Rows*B_Cols, A_Cols, A_Options, A_MaxRows, A_MaxCols>,
+                            Eigen::Array<Eigen::Matrix<Scalar, B_Rows, B_Cols, B_Options, B_MaxRows, B_MaxCols>, 1, A_Cols, C_Options, C_MaxRows, C_MaxCols> > { 
+  typedef Eigen::Matrix<Scalar, B_Rows*B_Cols, A_Cols, A_Options, A_MaxRows, A_MaxCols> A;
+  typedef Eigen::Array<Eigen::Matrix<Scalar, B_Rows, B_Cols, B_Options, B_MaxRows, B_MaxCols>, 1, A_Cols, C_Options, C_MaxRows, C_MaxCols> B;
+  static void run(const A& a, B& b) {
+    for(int i=0; i<A_Cols; ++i) assign_coherent<Eigen::Matrix<Scalar, B_Rows*B_Cols,1>,
+                                                Eigen::Matrix<Scalar, B_Rows, B_Cols, B_Options, B_MaxRows, B_MaxCols> >(a.col(i), b[i]);
+  }
 };
 
 // wrapper "Functor" to support automatic and numerical differentiation of spatio-temporal

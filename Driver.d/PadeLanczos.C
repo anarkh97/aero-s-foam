@@ -7,12 +7,11 @@
 #include <cstdlib>
 #include <sys/time.h>
 #include <Timers.d/GetTime.h>
+#include <Utils.d/DistHelper.h>
 
-       #include <sys/types.h>
-       #include <sys/stat.h>
-       #include <fcntl.h>
-
-
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 template < class Scalar,
            class OpSolver,

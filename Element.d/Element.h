@@ -1,7 +1,7 @@
 #ifndef	_ELEMENT_H_
 #define	_ELEMENT_H_
 
-#include <Math.d/matrix.h>
+#include <Math.d/ComplexD.h>
 #include <Utils.d/BlockAlloc.h>
 #include <Utils.d/dofset.h>
 #include <Utils.d/GlobalToLocalMap.h>
@@ -12,14 +12,6 @@
 #include <cstddef>
 #include <complex>
 #include <set>
-#include <map>
-
-
-// this is a fix to get around apparent template bug in solaris compiler
-inline double abs(complex<double> a)
-{
-  return sqrt(a.real()*a.real() + a.imag()*a.imag());
-}
 
 class Corotator;
 class State;
@@ -33,13 +25,17 @@ typedef GenVector<double> Vector;
 typedef GenVector<DComplex> ComplexVector;
 template <class Scalar> class GenFullM;
 typedef GenFullM<double> FullM;
-typedef GlobalToLocalMap  EleRenumMap;
+typedef GenFullM<DComplex> FullMC;
+template <class Scalar> class GenFullSquareMatrix;
+typedef GenFullSquareMatrix<double> FullSquareMatrix;
+typedef GenFullSquareMatrix<DComplex> FullSquareMatrixC;
+typedef GlobalToLocalMap EleRenumMap;
 
 // Boundary Condition Structure
 struct BCond {
   int nnum;   // node number
   int dofnum; // dof number (0-6)
-  double val;    // value of bc
+  double val; // value of bc
   enum BCType { Forces=0, Flux, Convection, Radiation, Hneu, Atdneu, Usdf, Actuators,
          Displacements, Temperatures, Hdir, Atddir, Usdd, Pdir, Hefrs,
          Idisplacements, Idisp6, Itemperatures, Ivelocities, Iaccelerations,
@@ -122,7 +118,7 @@ class StructProp {
 	double  eh;	// Element thickness
 	double  C1;	// Non-uniform torsion constant
 	double b;       // shear-s contribution ratio
-	double xo;      // Plastic parameter    -January 2002 - JMP
+	double xo;      // Plastic parameter
         double phase;
         double c1;      // 1st parameter of an elementary prescribed motion function
 	};
@@ -144,7 +140,7 @@ class StructProp {
 	double alphaY;  // Shear deflection constant associated to Iyy
 	double sigmax;
 	double sigE;    // Elastic limit
-	double ft;      // Tensile strength     -October 2001 - JMP
+	double ft;      // Tensile strength
         double eps;     // Radiation: Emissivity of the body (for a black body, eps=1)
         double amplitude;
 	};
@@ -152,7 +148,7 @@ class StructProp {
 	double k;       // Heat conduction coefficient
 	double alphaZ;  // Shear deflection constant associated to Izz
 	double v2;      // Fracture Energy
-	double fc;      // Compressive strength -October 2001 - JMP
+	double fc;      // Compressive strength
         double Ep;      // Hardening modulus
         double offset;
 	};
@@ -224,7 +220,7 @@ class StructProp {
         bool isReal;
 
 	/** the W and E coefficient might encode integer values when they're negative
-	 * (see manual for this). Heavily templated Sower needs a temporary storage that's adressable.
+	 * (see manual for this). Heavily templated Sower needs a temporary storage that's addressable.
 	 * For some reason it wont let us do that any other way than this. I'm hoping to improve this. TG
 	 */
 	int __SOWER_TMP;
@@ -243,10 +239,12 @@ class StructProp {
 
 };
 
+typedef std::map<int, StructProp, std::less<int>, block_allocator<std::pair<const int, StructProp> > > SPropContainer;
+
 // ****************************************************************
-// *
-// *     class Node: Keeps the coordinates of a node
-// *
+// *                                                              *
+// *     class Node: Keeps the coordinates of a node              *
+// *                                                              *
 // ****************************************************************
 
 class Node {
@@ -277,7 +275,6 @@ class Node {
 // *       from the user at any time a node is read in rather     *
 // *       then keeping it from 1 and then subtracting 1 here     *
 // *       and there....                                          *
-// *       functions for this class are in Element.d/Elemset.C   *
 // ****************************************************************
 
 class CoordSet {
@@ -312,18 +309,16 @@ public:
 };
 
 
-// DEC
 struct PrioInfo {
   int priority; // the level of priority (undefined in isReady == 0)
   bool isReady; // whether this element is ready to be inserted
 };
 
 class MultiFront;
-// END DEC
 
-
-/** \brief Abstract Element class
- *
+/****************************************************************
+ *                 Abstract Element class                       *
+ *                                                              *
  * Class Element defines functions for finite elements.         *
  * Each element has a structural property and a pressure        *
  * associated with it. Each element defines it's own dofs, sets *
@@ -389,15 +384,13 @@ class Element {
                                            double *coefs, CoordSet &cs, double theta);
 
         virtual FullSquareMatrix stiffness(CoordSet& cs,double *k,int flg=1);
-        virtual void getStiffnessThicknessSensitivity(CoordSet& cs,FullSquareMatrix &dStiffdThick, int flg=1, int senMethod=0) { dStiffdThick.zero(); }
-        virtual void getStiffnessNodalCoordinateSensitivity(CoordSet& cs,FullSquareMatrix *&dStiffdx, int flg=1, int senMethod=0) { 
-          for(int i=0; i<numNodes()*3; ++i) dStiffdx[i].zero(); 
-        }
+        virtual void getStiffnessThicknessSensitivity(CoordSet& cs,FullSquareMatrix &dStiffdThick, int flg=1, int senMethod=0);
+        virtual void getStiffnessNodalCoordinateSensitivity(CoordSet& cs,FullSquareMatrix *&dStiffdx, int flg=1, int senMethod=0);
         virtual FullSquareMatrix massMatrix(CoordSet& cs,double *m,int cmflg=1);
         virtual FullSquareMatrix imStiffness(CoordSet& cs,double *k,int flg=1);
         FullSquareMatrix massMatrix(CoordSet& cs, double* m, double mratio);
-        virtual FullSquareMatrixC stiffness(CoordSet&, complex<double> *d) {return FullSquareMatrixC();};
-        virtual FullSquareMatrixC massMatrix(CoordSet&, complex<double> *d) {return FullSquareMatrixC();};
+        virtual FullSquareMatrixC stiffness(CoordSet&, complex<double> *d);
+        virtual FullSquareMatrixC massMatrix(CoordSet&, complex<double> *d);
 
         virtual FullSquareMatrix dampingMatrix(CoordSet& cs,double *m,int cmflg=1);
 
@@ -424,46 +417,31 @@ class Element {
         // this can't be templated, c++ doesn't allow virtual member functions to be templated
         virtual void   getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
                                    Vector &elDisp, int strInd, int surface=0,
-                                   double *ndTemps=0, double ylayer=0.0, double zlayer=0.0, int avgnum = 1); //CBM
+                                   double *ndTemps=0, double ylayer=0.0, double zlayer=0.0, int avgnum = 1);
 
         virtual void   getVonMises(ComplexVector &stress, Vector &weight, CoordSet &cs,
                                    ComplexVector &elDisp, int strInd, int surface=0,
-                                   double *ndTemps=0, double ylayer=0.0, double zlayer=0.0, int avgnum = 1); //CBM
+                                   double *ndTemps=0, double ylayer=0.0, double zlayer=0.0, int avgnum = 1);
 
         virtual void   getVonMisesInt(CoordSet &,Vector &,double &,double &, int,
                                       double &,double &, double* dT=0 );
 
         virtual void getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
-                                              int senMethod = 1, double * = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0) {
-          weight = 1;
-          dStdThick.zero(); 
-        }
+                                              int senMethod = 1, double * = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0);
 
         virtual void getVonMisesThicknessSensitivity(ComplexVector &dStdThick, ComplexVector &weight, CoordSet &cs, ComplexVector &elDisp, int strInd, int surface,
-                                              int senMethod = 1, double * = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0) {
-          weight = DComplex(1,0);
-          dStdThick.zero();
-        }
+                                              int senMethod = 1, double * = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0);
 
         virtual void getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, 
                                                         CoordSet &cs, Vector &elDisp, int strInd, int surface,
-                                                        int senMethod = 1, double * = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0) {
-          weight = 1;
-          dStdDisp.zero();  
-        }
+                                                        int senMethod = 1, double * = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0);
 
         virtual void getVonMisesDisplacementSensitivity(GenFullM<DComplex> &dStdDisp, ComplexVector &weight, 
                                                         CoordSet &cs, ComplexVector &elDisp, int strInd, int surface,
-                                                        int senMethod = 1, double * = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0) {
-          weight = DComplex(1,0);
-          dStdDisp.zero();
-        }
+                                                        int senMethod = 1, double * = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0);
 
         virtual void getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
-                                                           int senMethod = 1, double * = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0) {
-          weight = 1;
-          dStdx.zero();
-        }
+                                                           int senMethod = 1, double * = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0);
 
         virtual void   getAllStress(FullM &stress, Vector &weight, CoordSet &cs,
                                     Vector &elDisp, int strInd, int surface=0,
@@ -486,7 +464,7 @@ class Element {
                                          Vector& elPotSlosh);
 
         virtual void   computeDisp(CoordSet&, State&, const InterpPoint &,
-                                   double*, GeomState *gs=0)  {}
+                                   double*, GeomState *gs=0) {}
 
         virtual void   getFlLoad(CoordSet &, const InterpPoint &,
                                  double *, double *, GeomState *gs=0) {}
@@ -503,8 +481,7 @@ class Element {
 	virtual int*   nodes(int * = 0) = 0;
         virtual int*   allNodes(int *x = 0) { return nodes(x); }
 
-        virtual Corotator *getCorotator(CoordSet &, double *, int = 2, int = 2)
-        { printf("WARNING: Corotator not implemented for element %d\n", glNum+1); return 0; }
+        virtual Corotator *getCorotator(CoordSet &, double *, int = 2, int = 2);
 
 	virtual int  getTopNumber();
         virtual int  numTopNodes() { return numNodes() - numInternalNodes(); }   // this is the number of nodes printed in the top file
@@ -625,7 +602,6 @@ class Element {
 // *****************************************************************
 // *                        WARNING                                *
 // *       The same remark as for node is valid for elements       *
-// *       The functions for this class are in Element.d/Elemset.C *
 // *****************************************************************
 
 class Elemset
@@ -661,109 +637,12 @@ class Elemset
     void setWeights();
 };
 
-class EsetGeomAccessor {
-  public:
-    static int getNum(/*const*/ Elemset &eSet, int elNum)
-     { return eSet[elNum] ? eSet[elNum]->numNodes() : 0; }
-    static int getSize(const Elemset &eSet)
-     { return eSet.last(); }
-    static int *getData(/*const*/ Elemset &eSet, int elNum, int *nd)
-     { return eSet[elNum] ? eSet[elNum]->allNodes(nd) : 0; }
-};
-
-class EsetDataAccessor {
- public:
-  static int getNum(/*const*/ Elemset &eSet, int elNum)
-    { return 1; }
-    static int getSize(const Elemset &eSet)
-     { return eSet.last(); }
-    static int *getData(/*const*/ Elemset &eSet, int elNum, int *nd)
-     {
-       if(eSet[elNum])
-	 {
-	   if(nd) { nd[0] = elNum; return nd;}
-	   else { std ::cerr << "(EE) error : unefficient use of EsetPressureAccessor" << std::endl; return 0;}
-	 }
-       else
-	 {
-	   return 0;
-	 }
-     }
-};
-
-#include <Driver.d/EFrameData.h>
-
-class  EFrameDataAccessor{
- public:
-    static int getNum(/*const*/ std::pair<int,ResizeArray<EFrameData>* > &, int )
-     { return 1; }
-    static int getSize(const std::pair<int,ResizeArray<EFrameData>* > &o)
-     { return o.first; }
-    static int *getData(/*const*/ std::pair<int,ResizeArray<EFrameData>* > &o, int i, int *nd)
-     {
-       if(i>=o.first)
-	 std::cout << "EFrameDataAccessor corruption" << std::endl;
-       if(nd) { nd[0] = ((*(o.second))[i]).elnum; return nd; }
-       else return &(*o.second)[i].elnum;
-     }
-};
-
-#include <Driver.d/DMassData.h>
-
-class DimassAccessor{
- public:
-  static int getNum(/*const*/ std::vector<DMassData*> &, int )
-    { return 1; }
-  static int getSize(const  std::vector<DMassData*> &o)
-    { return o.size(); }
-  static int *getData(/*const*/  std::vector<DMassData*> &o, int i, int *nd)
-    {
-      if(nd != 0)
-	{
-	  nd[0] = (*(o[i])).node; return nd;
-	}
-      else
-	return &(*(o[i])).node;
-    }
-};
-
-class BCDataAccessor {
-  public:
-    static int getNum(/*const*/ std::pair<int,BCond *> &, int )
-     { return 1; }
-    static int getSize(const std::pair<int,BCond *> &o)
-     { return o.first; }
-    static int *getData(/*const*/ std::pair<int,BCond *> &o, int i, int *nd)
-     {
-       if(i>=o.first)
-	 std::cout << "BCDataAccessor" << std::endl;
-       if(nd) { nd[0] = o.second[i].nnum; return nd; }
-       else return &o.second[i].nnum;
-     }
-};
-
-class ComplexBCDataAccessor {
-  public:
-    static int getNum(/*const*/ std::pair<int,ComplexBCond *> &, int )
-     { return 1; }
-    static int getSize(const std::pair<int,ComplexBCond *> &o)
-     { return o.first; }
-    static int *getData(/*const*/ std::pair<int,ComplexBCond *> &o, int i, int *nd)
-     {
-       if(i>=o.first)
-         std::cout << "ComplexBCDataAccessor" << std::endl;
-       if(nd) { nd[0] = o.second[i].nnum; return nd; }
-       else return &o.second[i].nnum;
-     }
-};
-
 class ElementFactory
 {
- public:
-  ElementFactory() {}
-  virtual ~ElementFactory() {}
-  virtual Element* elemadd(int num, int type, int nnodes, int *nodes,
-			   BlockAlloc& ba);
+  public:
+    ElementFactory() {}
+    virtual ~ElementFactory() {}
+    virtual Element* elemadd(int num, int type, int nnodes, int *nodes, BlockAlloc& ba);
 };
 
 #endif

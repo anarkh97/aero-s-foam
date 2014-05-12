@@ -121,24 +121,6 @@ FelippaShell::getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
   stress[0] = elStress[0][strInd-offset];
   stress[1] = elStress[1][strInd-offset];
   stress[2] = elStress[2][strInd-offset];
-/*
-//  if(verboseFlag) {
-    std::cerr << "glNum + 1 is" << glNum + 1 << std::endl;
-    std::cerr << "maxstr is " << maxstr << std::endl;
-    std::cerr << "prop->nu is " << prop->nu << std::endl;
-    std::cerr << "disp = \n"; 
-    for(int i=0; i<elDisp.size(); ++i) std::cerr << elDisp[i] << "  ";
-    std::cerr << std::endl;
-    std::cerr << "x = " << x[0] << "  " << x[1] << "  " << x[2] << std::endl;
-    std::cerr << "y = " << y[0] << "  " << y[1] << "  " << y[2] << std::endl;
-    std::cerr << "z = " << z[0] << "  " << z[1] << "  " << z[2] << std::endl;
-    std::cerr << "type = " << type << std::endl;
-    std::cerr << "strainFlg = " << strainFlg << std::endl;
-    std::cerr << "surface = " << surface << std::endl;
-    std::cerr << "strInd is " << strInd << std::endl;
-    std::cerr << "offset is " << offset << std::endl; */
-//    std::cerr << "print element Stress\n" << std::setprecision(20) << elStress[0][strInd-offset] << "  " << elStress[1][strInd-offset] << "  " << elStress[2][strInd-offset] << std::endl;
-//  } 
 }
 
 void
@@ -372,7 +354,6 @@ FelippaShell::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravi
 
   }
 }
-
 
 double
 FelippaShell::getMass(CoordSet &cs)

@@ -1,3 +1,5 @@
+#ifndef _GEOSOURCE_C_
+#define _GEOSOURCE_C_
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
@@ -171,23 +173,6 @@ GeoSource::distributeOutputNodesX(GenSubDomain<Scalar> *tmpSub, Connectivity *no
 
 #ifndef SALINAS
 #include <Driver.d/Sower.h>
-
-#ifdef SOWER_SURFS 
-template<class Scalar>
-void GeoSource::readDistributedSurfs(int subNum)
-{
-  Sower sower;
-  BinFileHandler *f = sower.openBinaryFile(subNum);
-  //filePrint(stderr," ... Read surfaces data\n");
-  for(int isurf=0; isurf<domain->getNumSurfs(); isurf++) {
-    //filePrint(stderr," ... Read data of surface %d\n",isurf);
-    int* dummy= 0;
-    SurfaceEntity* surf = sower.template read<SurfaceIO>(*f, isurf, dummy, true);
-    if(dummy) { delete [] dummy; dummy= 0; } // not used
-    domain->AddSurfaceEntity(surf,isurf);
-  }
-}
-#endif
 
 template<class Scalar>
 GenSubDomain<Scalar> *
@@ -1130,3 +1115,4 @@ void GeoSource::outputNodeVectors4(int fileNum, double (*xyz)[bound],
 
   fflush(oinfo[fileNum].filptr);
 }
+#endif

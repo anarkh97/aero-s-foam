@@ -2,6 +2,7 @@
 #define _HEVIBQUADGAL_H_
 
 #include <Element.d/Element.h>
+#include <cstdio>
 
 class HEVibQuadGal: public Element {
 

@@ -9,8 +9,10 @@
 #include "VecBasisFile.h"
 
 #include "BasisOps.h"
+#include "PodProjectionSolver.h"
 
 #include <Driver.d/Domain.h>
+#include <Driver.d/Dynam.h>
 #include <Driver.d/SysState.h>
 #include <Utils.d/DistHelper.h>
 

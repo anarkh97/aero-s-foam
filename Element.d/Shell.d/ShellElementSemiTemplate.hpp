@@ -2,10 +2,12 @@
 #define _SHELLELEMENTSEMITEMPLATE_HPP_
 
 #include <Element.d/FelippaShell.d/ShellMaterial.hpp>
+#include <string>
 
 template<typename doublereal>
 class ShellElementSemiTemplate 
 {
+#ifdef USE_EIGEN3
   public:
     void sands8(doublereal *_xl,doublereal *_yl, doublereal *_zl,
          doublereal e, doublereal nu, doublereal *_h,
@@ -55,17 +57,18 @@ class ShellElementSemiTemplate
     void equiv(doublereal ex, doublereal ey, doublereal ez, doublereal exy, doublereal &eq);
 
     void basico(doublereal *_x, doublereal *_y, doublereal *_db, doublereal f,
-                doublereal clr, doublereal cqr, int *_ls, doublereal *_sm, int m, char *status);
+                doublereal clr, doublereal cqr, int *_ls, doublereal *_sm, int m, std::string &status);
 
     void sm3mb(doublereal *_x, doublereal *_y, doublereal *_dm,
-               doublereal alpha, doublereal f, int *_ls, doublereal *_sm, int m, char *status);
+               doublereal alpha, doublereal f, int *_ls, doublereal *_sm, int m, std::string &status);
 
     void smcbh(doublereal *_x, doublereal *_y, doublereal *_db,
-               doublereal f, int *_ls, doublereal *_sm, int m, char *status);
+               doublereal f, int *_ls, doublereal *_sm, int m, std::string &status);
   
-    void sm3mhe(doublereal *_x, doublereal *_y, doublereal *_dm, doublereal f, int *_ls, doublereal *_sm, int m, char *status);
+    void sm3mhe(doublereal *_x, doublereal *_y, doublereal *_dm, doublereal f, int *_ls, doublereal *_sm, int m, std::string &status);
 
     void trirotation(doublereal *_sm, doublereal *_r1); 
+#endif
 };
 
 #endif

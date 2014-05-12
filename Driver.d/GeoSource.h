@@ -1,6 +1,7 @@
 #ifndef _GEO_SOURCE_H_
 #define _GEO_SOURCE_H_
 
+#include <cassert>
 #include <cstring>
 #include <iostream>
 #include <list>
@@ -10,7 +11,15 @@
 #include <Element.d/Element.h>
 #include <Utils.d/OutputInfo.h>
 #include <Math.d/DistVector.h>
-#include <Driver.d/StructProp.h>
+#include <Driver.d/Attrib.h>
+#include <Driver.d/EFrameData.h>
+#include <Driver.d/OffsetData.h>
+#include <Control.d/ControlInfo.h>
+
+#ifdef USE_EIGEN3
+#include <Eigen/Core>
+#endif
+
 using namespace NewVec;
 #define PI 3.14159265358979
 
@@ -29,13 +38,12 @@ class CoordSet;
 class OutputInfo;
 class LayMat;
 class Attrib;
-class EFrameData;
-class NFrameData;
 class CoefData;
 class LayInfo;
 struct Group;
 struct AttributeToElement;
 class DistrGeomState;
+class ControlLawInfo;
 
 enum {SXX=0,SYY=1,SZZ=2,SXY= 3,SYZ= 4,SXZ= 5,VON=6,
       EXX=7,EYY=8,EZZ=9,EXY=10,EYZ=11,EXZ=12,STRAINVON=13,
@@ -59,31 +67,6 @@ struct MatchData
   int elemNum;
   double xi, eta;  // natural coordinates
   bool operator < (const MatchData &v) const { return glPos < v.glPos; }
-};
-
-#include <Driver.d/Access.h> // TG OffsetData definition moved inside here because of TEMPLATE_FIX
-
-// Control Law Information class, see Control.d/control.C
-// to implement user defined control forces, user defined forces or
-// user defined displacements
-
-struct ControlLawInfo
-{
-  char *fileName;
-  char *routineName;
-  int numSensor;        // number of sensors
-  BCond *sensor;
-  int numActuator;      // number of actuators
-  BCond *actuator;
-  int numUserDisp;      // number of user defined displacements
-  BCond *userDisp;
-  int numUserForce;     // number of user defined forces
-  BCond *userForce;
-
-  ControlLawInfo();
-  ~ControlLawInfo();
-  void print();
-  void makeGlobalClaw(ControlLawInfo *subClaw);
 };
 
 typedef NLMaterial *(*MatLoader)(int n, double *params);
@@ -586,8 +569,7 @@ public:
 
   void writeDistributedInputFiles(int nCluster, Domain*);
 #ifdef SOWER_SURFS
-  template<class Scalar>
-    void readDistributedSurfs(int subNum);
+  void readDistributedSurfs(int subNum);
 #endif
   template<class Scalar>
     GenSubDomain<Scalar> * readDistributedInputFiles(int localSubNum, int subNum);
@@ -734,12 +716,5 @@ struct AttributeToElement
 {
   std::vector<int> elems;
 };
-
-#ifdef _TEMPLATE_FIX_
- #include <Driver.d/GeoSource.C>
- #ifdef DISTRIBUTED
-  #include <Driver.d/BinaryOutputInclude.C>
- #endif
-#endif
 
 #endif

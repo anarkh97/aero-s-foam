@@ -251,6 +251,12 @@ MpcElement::stiffness(CoordSet& c0, double* karray, int)
   return ret;
 }
 
+void
+MpcElement::getGravityForce(CoordSet&, double*, Vector& f, int, GeomState*)
+{
+  f.zero();
+}
+
 Corotator*
 MpcElement::getCorotator(CoordSet&, double*, int, int)
 {

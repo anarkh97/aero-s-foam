@@ -19,6 +19,7 @@ using std::list;
 #include <Mortar.d/FaceElement.d/FaceElemSet.h>
 
 #include <Utils.d/dofset.h>
+#include <Utils.d/DistHelper.h>
 #include <Driver.d/Domain.h>
 #include <Element.d/Element.h>
 #include <Utils.d/ModeData.h>
@@ -32,7 +33,7 @@ using std::list;
 #include <Element.d/Rigid.d/RigidFourNodeShell.h>
 #include <Element.d/Rigid.d/RigidSolid6Dof.h>
 
-#include<Sfem.d/Sfem.h>
+#include <Sfem.d/Sfem.h>
 
 extern int verboseFlag;
 extern Sfem *sfem;

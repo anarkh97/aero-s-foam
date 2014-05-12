@@ -1,3 +1,5 @@
+#include <Utils.d/DistHelper.h>
+
 template < class Scalar,
            class OpSolver,
            class VecType,

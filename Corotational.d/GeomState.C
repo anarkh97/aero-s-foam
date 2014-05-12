@@ -4,7 +4,7 @@
 #include <Element.d/Function.d/utilities.hpp>
 #include <Utils.d/dofset.h>
 #include <Element.d/Element.h>
-#include <Driver.d/GeoSource.h>
+#include <Driver.d/ControlLawInfo.h>
 
 //#define COMPUTE_GLOBAL_ROTATION
 extern Domain *domain;

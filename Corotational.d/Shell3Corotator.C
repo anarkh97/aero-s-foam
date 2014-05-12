@@ -8,6 +8,7 @@
 #include <Corotational.d/utilities.h>
 #include <Element.d/Element.h>
 #include <Math.d/FullSquareMatrix.h>
+#include <Math.d/matrix.h>
 #include <Utils.d/linkfc.h>
 
 // Define FORTRAN routines as external functions

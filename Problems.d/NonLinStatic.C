@@ -7,9 +7,11 @@
 #include <Corotational.d/Corotator.h>
 #include <Corotational.d/GeomState.h>
 #include <Corotational.d/TemperatureState.h>
+#include <Corotational.d/utilities.h>
 #include <Solvers.d/Solver.h>
 #include <Timers.d/StaticTimers.h>
 #include <Math.d/FullSquareMatrix.h>
+#include <Math.d/SparseMatrix.h>
 #include <Timers.d/GetTime.h>
 
 extern int verboseFlag;

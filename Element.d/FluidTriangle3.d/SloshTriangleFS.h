@@ -2,6 +2,7 @@
 #define _SLOSHTRIANGLEFS_H_
 
 #include <Element.d/Element.h>
+#include <cstdio>
 
 class SloshTriangleFS: public Element {
 

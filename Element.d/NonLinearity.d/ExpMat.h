@@ -4,6 +4,8 @@
 #include <Element.d/NonLinearity.d/NLMaterial.h>
 
 #include <cstddef>
+#include <iostream>
+#include <iterator>
 
 class ExpMat : public NLMaterial
 {

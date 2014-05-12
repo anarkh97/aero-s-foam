@@ -18,6 +18,10 @@
  int numColumns = 3;
  double amplitude = 1.0;
  int PitaTS = 1;         //CD: Pita
+ extern std::string clusterData_;
+ extern std::string subdomains_;
+ extern std::string decomposition_;
+ extern std::string connectivity_;
 %}
 
 %union

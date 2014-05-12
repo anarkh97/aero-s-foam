@@ -2,6 +2,7 @@
 #include <Corotational.d/SuperCorotator.h>
 #include <Utils.d/dbg_alloca.h>
 #include <Driver.d/Mpc.h>
+#include <Math.d/matrix.h>
 #include <iostream>
 
 SuperElement::SuperElement(bool _localFlag)

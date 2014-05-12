@@ -1,4 +1,5 @@
 #include "LumpedPodProjectionNonLinDynamic.h"
+#include "PodProjectionSolver.h"
 
 #include <Driver.d/Domain.h>
 #include <Driver.d/GeoSource.h>

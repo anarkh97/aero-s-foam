@@ -3,6 +3,7 @@
 #include <Element.d/Beam.d/EulerBeamStressWRTDisplacementSensitivity.h>
 #include <Element.d/Function.d/SpaceDerivatives.h>
 #include <Math.d/FullSquareMatrix.h>
+#include <Math.d/matrix.h>
 #include <Utils.d/dofset.h>
 #include <Utils.d/linkfc.h>
 #include <cmath>
@@ -983,18 +984,10 @@ EulerBeam::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
    double elStress[2][7];
    double elForce[3][2]={{0.0,0.0},{0.0,0.0},{0.0,0.0}};
 
-#ifdef USE_EIGEN3
-   sands6(prop->A, prop->E, elm, (double*)elStress, maxsze, maxgus,
-         maxstr, (double*)*elemframe, prop->Ixx, prop->Iyy,
-         prop->Izz, prop->nu,x,y,z,elDisp.data(), prop->W, prop->Ta, 
-         ndTemps);
-
-#else
   _FORTRAN(sands6)(prop->A, prop->E, elm, (double*)elStress, maxsze, maxgus,
                    maxstr, (double*)*elemframe, prop->Ixx, prop->Iyy,
                    prop->Izz, prop->nu,x,y,z,elDisp.data(), prop->W, prop->Ta, 
                    ndTemps); 
-#endif
 
    // elForce[0] -> Axial Force (x-direction)
    // elForce[1] -> Moment around the y-axis (My)

@@ -47,7 +47,7 @@ class MpcElement : public Element, public Corotator, public LMPCons
 
     FullSquareMatrix stiffness(CoordSet&, double*, int = 1);
 
-    void getGravityForce(CoordSet&, double*, Vector& f, int, GeomState* = 0) { f.zero(); }
+    void getGravityForce(CoordSet&, double*, Vector& f, int, GeomState* = 0);
 
     bool isMpcElement() { return true; }
 

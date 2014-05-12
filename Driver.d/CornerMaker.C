@@ -1,6 +1,7 @@
 #include <Utils.d/dbg_alloca.h>
 #include <Driver.d/Domain.h>
 #include <Driver.d/CornerMaker.h>
+#include <Driver.d/SubDomain.h>
 
 #if defined(WINDOWS) || defined(MACOSX)
  #include <cfloat>

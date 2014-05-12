@@ -12,6 +12,7 @@
 #include <Corotational.d/Corotator.h>
 #include <Corotational.d/utilities.h>
 #include <Driver.d/Domain.h>
+#include <Driver.d/SubDomain.h>
 #include <Utils.d/dofset.h>
 #include <Utils.d/pstress.h>
 #include <Corotational.d/GeomState.h>

@@ -2,6 +2,8 @@
 #define _TWENTY_BRICK_H_
 
 #include <Element.d/Element.h>
+#include <cstdio>
+
 class Corotator;
 class NLMaterial;
 

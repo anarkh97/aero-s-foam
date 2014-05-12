@@ -6,6 +6,7 @@
 #include <Element.d/Function.d/TimeDerivatives.h>
 #include <iostream>
 #include <Element.d/Function.d/SacadoReverseJacobian.h>
+#include <Math.d/FullSquareMatrix.h>
 #include <unsupported/Eigen/NumericalDiff>
 
 template<template <typename S> class ConstraintFunctionTemplate>

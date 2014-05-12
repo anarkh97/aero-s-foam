@@ -1,4 +1,5 @@
 #include <Corotational.d/SuperCorotator.h>
+#include <Math.d/matrix.h>
 
 SuperCorotator::SuperCorotator(SuperElement *_superElem)
 {

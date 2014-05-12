@@ -7,6 +7,7 @@ class FSCommunicator;
 class ElemSet;
 class CoordSet;
 class DofSetArray;
+class BaseSub;
 template <class Type> class FSCommPattern;
 
 class CornerMaker 

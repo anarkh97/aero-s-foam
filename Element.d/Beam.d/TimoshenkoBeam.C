@@ -1,18 +1,19 @@
 #include 	<Element.d/Beam.d/TimoshenkoBeam.h>
-#include  <Element.d/Beam.d/TimoshenkoBeamStressWRTDisplacementSensitivity.h>
-#include  <Element.d/Beam.d/TimoshenkoBeamStressWRTNodalCoordinateSensitivity.h>
-#include  <Element.d/Function.d/SpaceDerivatives.h>
-#include	<Math.d/FullSquareMatrix.h>
-#include        <Corotational.d/BeamCorotator.h>
-#include        <Corotational.d/GeomState.h>
-#include        <Corotational.d/utilities.h>
+#include 	<Element.d/Beam.d/TimoshenkoBeamStressWRTDisplacementSensitivity.h>
+#include 	<Element.d/Beam.d/TimoshenkoBeamStressWRTNodalCoordinateSensitivity.h>
+#include 	<Element.d/Function.d/SpaceDerivatives.h>
+#include 	<Math.d/FullSquareMatrix.h>
+#include	<Math.d/matrix.h>
+#include 	<Corotational.d/BeamCorotator.h>
+#include 	<Corotational.d/GeomState.h>
+#include 	<Corotational.d/utilities.h>
 #include 	<Utils.d/dofset.h>
 #include 	<Utils.d/linkfc.h>
 
-#include	<cstdio>
-#include	<cstddef>
+#include 	<cstdio>
+#include 	<cstddef>
 #include 	<cmath>
-#include        <cstring>
+#include 	<cstring>
 
 extern int verboseFlag;
 extern "C"      {
@@ -593,19 +594,11 @@ TimoshenkoBeam::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
    double elStress[2][7];
    double elForce[3][2]={{0.0,0.0},{0.0,0.0},{0.0,0.0}};
 
-#ifdef USE_EIGEN3
-   sands7(elm,prop->A,prop->E,(double*)*elemframe,
-          prop->Ixx,prop->Iyy,prop->Izz,prop->alphaY,
-          prop->alphaZ,prop->c,prop->nu,x,y,z,elDisp.data(),
-          (double*)elStress,numel,maxgus,maxstr,maxsze,
-          prop->W, prop->Ta, ndTemps);
-#else
   _FORTRAN(sands7)(elm,prop->A,prop->E,(double*)*elemframe,
                    prop->Ixx,prop->Iyy,prop->Izz,prop->alphaY,
                    prop->alphaZ,prop->c,prop->nu,x,y,z,elDisp.data(),
                    (double*)elStress,numel,maxgus,maxstr,maxsze,
                    prop->W, prop->Ta, ndTemps);
-#endif
 
    // elForce[0] -> Axial Force (x-direction)
    // elForce[1] -> Moment around the y-axis (My)

@@ -1,9 +1,14 @@
 #include "PitaNonLinDynam.h"
 
 #include <Comm.d/Communicator.h>
+#include <Corotational.d/Corotator.h>
 #include <Driver.d/Domain.h>
+#include <Driver.d/GeoSource.h>
+#include <Math.d/SparseMatrix.h>
+#include <Math.d/DBSparseMatrix.h>
 #include <Timers.d/StaticTimers.h>
 #include <Utils.d/dofset.h>
+#include <Utils.d/DistHelper.h>
 
 #include <sstream>
 

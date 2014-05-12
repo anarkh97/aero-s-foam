@@ -4,6 +4,9 @@
 #include <Comm.d/Communicator.h>
 #include <Threads.d/Paral.h>
 #include <Driver.d/Domain.h>
+#ifdef DISTRIBUTED
+#include <Driver.d/Communicator.h>
+#endif
 #include <iostream>
 
 extern double getTime();

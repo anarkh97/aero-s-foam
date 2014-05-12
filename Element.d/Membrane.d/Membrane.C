@@ -12,6 +12,7 @@
 #include <Element.d/Function.d/SpaceDerivatives.h>
 #include <Math.d/FullSquareMatrix.h>
 #include <Math.d/Vector.h>
+#include <Math.d/matrix.h>
 #include <Corotational.d/Shell3Corotator.h>
 
 extern int verboseFlag;
@@ -80,12 +81,8 @@ Membrane::getVonMises(Vector& stress,Vector& weight,CoordSet &cs, Vector& elDisp
 	int strainFlg;
 	if(strInd > 6) strainFlg = 1; 
 
-#ifdef USE_EIGEN3
-       sands19(x,y,z,prop->E,prop->nu,h,elDisp.data(),(double*)elStress, strainFlg);
-#else
        _FORTRAN(sands19)(x,y,z,prop->E,prop->nu,h,elDisp.data(),(double*)elStress,
                          msize,maxstr,maxgus,elm,strainFlg);
-#endif
 
 	if(strInd < 7) {
           stress[0] = elStress[0][strInd];
@@ -677,15 +674,9 @@ Membrane::stiffness(CoordSet &cs, double *d, int flg)
           fprintf(stderr,"ERROR: Zero shell thickness (ThreeNodeShell.C) %d %d %d\n",
                 nn[0], nn[1], nn[2]);
 
-#ifdef USE_EIGEN3
-        trimem(flg, x, y, z, prop->E, prop->nu, h, d);
-#else
         _FORTRAN(trimem)(flg, x, y, z, prop->E, prop->nu, h, (double *)d);
-#endif
 
         FullSquareMatrix ret(18,d);
-
-        //std::cerr << "here in Membrane::stiffness\n"; ret.print();
 
         return ret;
 }

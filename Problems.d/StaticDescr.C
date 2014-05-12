@@ -2,7 +2,7 @@
 #include <iostream>
 #include <cstdio>
 #include <cmath>
-// #include <Problems.d/StaticDescr.h>
+
 #include <Timers.d/StaticTimers.h>
 #include <Timers.d/GetTime.h>
 #include <Corotational.d/GeomState.h>
@@ -10,6 +10,9 @@
 
 #include <Math.d/FullMatrix.h>
 #include <Sfem.d/Sfem.h>
+#include <Utils.d/DistHelper.h>
+#include <Driver.d/GeoSource.h>
+#include <Utils.d/MathUtils.h>
 
 #ifdef DISTRIBUTED
 #include <Comm.d/Communicator.h>

@@ -1,6 +1,7 @@
 #include <Corotational.d/MatNLCorotator.h>
 #include <Element.d/NLElement.h>
 #include <Corotational.d/GeomState.h>
+#include <Math.d/Vector.h>
 
 MatNLCorotator::MatNLCorotator(MatNLElement *_ele, bool _own)
   : ele(_ele), own(_own)

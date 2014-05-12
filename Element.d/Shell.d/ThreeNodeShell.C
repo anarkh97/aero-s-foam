@@ -18,6 +18,7 @@
 #include <Hetero.d/InterpPoint.h>
 #include <Math.d/FullSquareMatrix.h>
 #include <Math.d/Vector.h>
+#include <Math.d/matrix.h>
 #include <Utils.d/Conwep.d/BlastLoading.h>
 #include <Utils.d/dbg_alloca.h>
 #include <Utils.d/dofset.h>
@@ -112,15 +113,9 @@ ThreeNodeShell::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
 	int strainFlg = 0;
 	if( strInd > 6) strainFlg = 1;
 
-#ifdef USE_EIGEN3
-       sands8(x,y,z,prop->E,prop->nu,h,elDisp.data(),
-              (double*)elStress,
-              strainFlg,surface,thermalStrain);
-#else
        _FORTRAN(sands8)(x,y,z,prop->E,prop->nu,h,elDisp.data(),
                       (double*)elStress,
                       strainFlg, maxsze,maxstr,maxgus,elm,surface,thermalStrain);
-#endif
 
         if(strInd < 7) {
           stress[0] = elStress[0][strInd];
@@ -525,7 +520,6 @@ ThreeNodeShell::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gra
         gravityForceSensitivity[17] = mz[2];
 }
 
-
 FullSquareMatrix
 ThreeNodeShell::massMatrix(CoordSet &cs, double *mel, int cmflg)
 {
@@ -589,22 +583,17 @@ ThreeNodeShell::stiffness(CoordSet &cs, double *d, int flg)
           exit(-1);
         }
 
-
-#ifdef USE_EIGEN3
-        tria3d(flg, x, y, z, prop->E, prop->nu, h, d);
-#else
         _FORTRAN(tria3d)(flg, x, y, z, prop->E, prop->nu, h, (double *)d);
-#endif
 
         FullSquareMatrix ret(18,d);
        
         return ret;
 }
 
-#ifdef USE_EIGEN3
 void 
 ThreeNodeShell::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix &dStiffdThick, int flg, int senMethod)
 {
+#ifdef USE_EIGEN3
   if(dStiffdThick.dim() != 18) {
      std::cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
      exit(-1); 
@@ -660,9 +649,8 @@ ThreeNodeShell::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix 
   }
 
   dStiffdThick.copy(dStiffnessdThick.data());
-
-}
 #endif
+}
 
 int
 ThreeNodeShell::numNodes()

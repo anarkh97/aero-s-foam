@@ -2,6 +2,7 @@
 #define _HEVIBTETRA_H_
 
 #include <Element.d/Element.h>
+#include <cstdio>
 
 class HEVibTetra: public Element {
 

@@ -3,6 +3,7 @@
 #include <cmath>
 
 #include <Driver.d/Domain.h>
+#include <Driver.d/GeoSource.h>
 #include <Solvers.d/Rbm.h>
 #include <Utils.d/linkfc.h>
 #include <Math.d/matrix.h>

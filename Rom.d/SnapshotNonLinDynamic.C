@@ -8,7 +8,7 @@
 #include "BasisFileStream.h"
 
 #include <Driver.d/Domain.h>
-
+#include <Driver.d/GeoSource.h>
 #include <Utils.d/dofset.h>
 #include <Corotational.d/utilities.h>
 #include <Element.d/Function.d/utilities.hpp>

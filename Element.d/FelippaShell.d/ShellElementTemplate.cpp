@@ -161,7 +161,6 @@ ShellElementTemplate<doublereal,Membrane,Bending>
   Eigen::Map<Eigen::Matrix<doublereal,3,3> > eframe(_eframe);
 
   dareadx.setZero();
-  deframedx.setZero();
   dxlpdx.setZero();   dxpdx.setZero();
   dylpdx.setZero();   dypdx.setZero();
   dzlpdx.setZero();   dzpdx.setZero();

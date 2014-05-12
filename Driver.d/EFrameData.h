@@ -1,6 +1,8 @@
 #ifndef _EFRAME_DATA_H_
 #define _EFRAME_DATA_H_
 
+#include <Element.d/Element.h>
+
 // Element Frame Data structure
 struct EFrameData {
     int elnum;

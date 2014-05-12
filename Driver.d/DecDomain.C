@@ -16,6 +16,7 @@
 #include <Feti.d/Feti.h>
 #include <Driver.d/Mpc.h>
 #include <Solvers.d/DiagParallelSolver.h>
+#include <Solvers.d/GmresSolver.h>
 #include <Paral.d/MDDynam.h>
 #include <Paral.d/GenMS.h>
 #include <Mortar.d/MortarDriver.d/MortarHandler.h>
@@ -523,7 +524,7 @@ GenDecDomain<Scalar>::makeSubDomains()
       subDomain[iSub] = geoSource->template readDistributedInputFiles<Scalar>(iSub, localSubToGl[iSub]);  
     }
 #ifdef SOWER_SURFS
-    geoSource->template readDistributedSurfs<Scalar>(localSubToGl[0]); //pass dummy sub number
+    geoSource->readDistributedSurfs(localSubToGl[0]); //pass dummy sub number
 #endif
   }
   else {

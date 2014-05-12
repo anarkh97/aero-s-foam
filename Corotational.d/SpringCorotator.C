@@ -2,6 +2,7 @@
 #include <cmath>
 
 #include <Math.d/FullSquareMatrix.h>
+#include <Math.d/matrix.h>
 #include <Utils.d/linkfc.h>
 #include <Element.d/Element.h>
 #include <Corotational.d/SpringCorotator.h>

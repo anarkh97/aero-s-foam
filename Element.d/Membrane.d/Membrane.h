@@ -2,12 +2,9 @@
 #define _MEMBRANE_H_
 
 #include <Element.d/Element.h>
-#include <Element.d/Membrane.d/MembraneElementTemplate.cpp>
+#include <Element.d/Membrane.d/MembraneElementTemplate.hpp>
 
-class Membrane : public Element
-#ifdef USE_EIGEN3
-                 , public MembraneElementTemplate<double> 
-#endif
+class Membrane : public Element, public MembraneElementTemplate<double> 
 {
 
         int nn[3];

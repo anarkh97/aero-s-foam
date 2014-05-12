@@ -627,14 +627,18 @@ ThreeNodeShell::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix 
     h[0] = h[1] = h[2] = prop->eh;
    
     tria3dthickness(flg, x, y, z, prop->E, prop->nu, h, dStiffnessdThick.data());
+#ifdef SENSITIVITY_DEBUG
     if(verboseFlag) std::cerr << "dStiffnessdThick(analytic) =\n" << dStiffnessdThick << std::endl;
+#endif
   }
 
   if(senMethod == 1) { // automatic differentiation
     Simo::FirstPartialSpaceDerivatives<double, ThreeNodeShellStiffnessWRTThicknessSensitivity> dSdh(dconst,iconst); 
     Eigen::Array<Eigen::Matrix<double,18,18>,1,1> dStifdThick = dSdh(q, 0);
     dStiffnessdThick = dStifdThick[0];
+#ifdef SENSITIVITY_DEBUG
     if(verboseFlag) std::cerr << "dStiffnessdThick(AD) =\n" << dStiffnessdThick << std::endl;
+#endif
   }
 
   if(senMethod == 2) { // finite difference
@@ -645,7 +649,9 @@ ThreeNodeShell::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix 
     Eigen::Matrix<double,18,18> Sp = foo(qp, 0);
     Eigen::Matrix<double,18,18> Sm = foo(qm, 0);
     dStiffnessdThick = (Sp-Sm)/(2*h);
+#ifdef SENSITIVITY_DEBUG
     if(verboseFlag) std::cerr << "dStiffnessdThick(FD) =\n" << dStiffnessdThick << std::endl;
+#endif
   }
 
   dStiffdThick.copy(dStiffnessdThick.data());
@@ -1149,7 +1155,9 @@ ThreeNodeShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weigh
   // Jacobian evaluation
   Eigen::Matrix<double,3,1> dStressdThic;
   Eigen::Matrix<double,7,3> stress;
-  if(verboseFlag) std::cout << "senMethod is " << senMethod << std::endl;
+#ifdef SENSITIVITY_DEBUG
+  if(verboseFlag) std::cerr << "senMethod is " << senMethod << std::endl;
+#endif
  
   if(avgnum == 0 || avgnum == 1) { // NODALFULL or ELEMENTAL
     if(senMethod == 0) { // analytic
@@ -1160,14 +1168,18 @@ ThreeNodeShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weigh
                   prop->E, prop->nu, h, elDisp.data(), 
                   dStressdThic.data(), 0, surface, 0);   
       dStdThick.copy(dStressdThic.data());
+#ifdef SENSITIVITY_DEBUG
       if(verboseFlag) std::cerr << "dStressdThic(analytic) =\n" << dStressdThic << std::endl;
+#endif
     }
 
     if(senMethod == 1) { // automatic differentiation
       Simo::Jacobian<double,ThreeNodeShellStressWRTThicknessSensitivity> dSdu(dconst,iconst);
       dStressdThic = dSdu(q, 0);
       dStdThick.copy(dStressdThic.data());
+#ifdef SENSITIVITY_DEBUG
       if(verboseFlag) std::cerr << "dStressdThic(AD) =\n" << dStressdThic << std::endl;
+#endif
     }
  
 
@@ -1196,7 +1208,9 @@ ThreeNodeShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weigh
         dStressdThic(j,0) = fd[j];
       }
       dStdThick.copy(dStressdThic.data());
+#ifdef SENSITIVITY_DEBUG
       if(verboseFlag) std::cerr << "dStressdThic(FD) =\n" << dStressdThic << std::endl;
+#endif
     }
   } else dStdThick.zero(); // NODALPARTIAL or GAUSS or any others
 #else
@@ -1250,7 +1264,9 @@ ThreeNodeShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, V
   // Jacobian evaluation
   Eigen::Matrix<double,3,18> dStressdDisp;
   Eigen::Matrix<double,7,3> stress;
-  if(verboseFlag) std::cout << "senMethod is " << senMethod << std::endl;
+#ifdef SENSITIVITY_DEBUG
+  if(verboseFlag) std::cerr << "senMethod is " << senMethod << std::endl;
+#endif
  
   if(avgnum == 0 || avgnum == 1) { // NODALFULL or ELEMENTAL
     if(senMethod == 0) { // analytic
@@ -1261,14 +1277,18 @@ ThreeNodeShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, V
                   prop->E, prop->nu, h, q.data(), 
                   dStressdDisp.data(), 0, surface, 0);   
       dStdDisp.copy(dStressdDisp.data());
+#ifdef SENSITIVITY_DEBUG
       if(verboseFlag) std::cerr << "dStressdDisp(analytic) =\n" << dStressdDisp << std::endl;
+#endif
     }
 
     if(senMethod == 1) { // automatic differentiation
       Simo::Jacobian<double,ThreeNodeShellStressWRTDisplacementSensitivity> dSdu(dconst,iconst);
       dStressdDisp = dSdu(q, 0);
       dStdDisp.copy(dStressdDisp.data());
+#ifdef SENSITIVITY_DEBUG
       if(verboseFlag) std::cerr << "dStressdDisp(AD) =\n" << dStressdDisp << std::endl;
+#endif
     }
  
 
@@ -1299,7 +1319,9 @@ ThreeNodeShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, V
         }
       }
       dStdDisp.copy(dStressdDisp.data());
+#ifdef SENSITIVITY_DEBUG
       if(verboseFlag) std::cerr << "dStressdDisp(FD) =\n" << dStressdDisp << std::endl;
+#endif
     }
   } else dStdDisp.zero(); // NODALPARTIAL or GAUSS or any others
 #else
@@ -1354,7 +1376,9 @@ ThreeNodeShell::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, V
   // Jacobian evaluation
   Eigen::Matrix<double,3,9> dStressdx;
   Eigen::Matrix<double,7,3> stress;
+#ifdef SENSITIVITY_DEBUG
   if(verboseFlag) std::cerr << "senMethod is " << senMethod << std::endl;
+#endif
  
   if(avgnum == 0 || avgnum == 1) { // NODALFULL or ELEMENTAL
     if(senMethod == 0) { // analytic
@@ -1367,7 +1391,9 @@ ThreeNodeShell::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, V
       Simo::Jacobian<double,ThreeNodeShellStressWRTNodalCoordinateSensitivity> dSdx(dconst,iconst);
       dStressdx = dSdx(q, 0);
       dStdx.copy(dStressdx.data());
+#ifdef SENSITIVITY_DEBUG
       if(verboseFlag) std::cerr << "dStressdx(AD) =\n" << dStressdx << std::endl;
+#endif
     }
  
 
@@ -1393,7 +1419,9 @@ ThreeNodeShell::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, V
 //      cout << Sm.transpose().format(HeavyFmt) << endl;
 //      cout << S.transpose().format(HeavyFmt) << endl;
       dStdx.copy(dStressdx.data());
+#ifdef SENSITIVITY_DEBUG
       if(verboseFlag) std::cerr << "dStressdx(FD) =\n" << dStressdx.format(HeavyFmt) << std::endl;
+#endif
     }
   } else dStdx.zero(); // NODALPARTIAL or GAUSS or any others
 #else

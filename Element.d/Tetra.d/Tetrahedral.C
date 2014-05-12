@@ -239,8 +239,10 @@ Tetrahedral::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vect
   if(senMethod == 1) {
     Simo::Jacobian<double,TetraElementStressWRTNodalCoordinateSensitivity> dSdx(dconst,iconst);
     dStressdx = dSdx(q, 0);
-    dStdx.copy(dStressdx.data()); 
+    dStdx.copy(dStressdx.data());
+#ifdef SENSITIVITY_DEBUG 
     if(verboseFlag) std::cerr << "dStressdx(AD) =\n" << dStressdx << std::endl;
+#endif
   }
 
   if(senMethod == 2) {
@@ -255,7 +257,9 @@ Tetrahedral::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vect
       dStressdx.col(i) = (Sp - Sm)/(2*h);
     }
     Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
+#ifdef SENSITIVITY_DEBUG
     if(verboseFlag) std::cerr << "dStressdx(FD) =\n" << dStressdx.format(HeavyFmt) << std::endl;
+#endif
     dStdx.copy(dStressdx.data());  
   }
 #else

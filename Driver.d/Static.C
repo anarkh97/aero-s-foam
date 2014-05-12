@@ -3057,10 +3057,11 @@ Domain::computeStiffnessWRTthicknessSensitivity(int sindex, AllSensitivities<dou
          }
        }
      }
-
+#ifdef SENSITIVITY_DEBUG
      Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
      if(verboseFlag) std::cerr << "print stiffnessWRTthick\n" << (*allSens.stiffnessWRTthick[0]).format(HeavyFmt) << std::endl;
      if(verboseFlag) std::cerr << "print dKucdthick\n" << (*allSens.dKucdthick[0]).format(HeavyFmt) << std::endl;
+#endif
 #endif
 }
 
@@ -3114,7 +3115,6 @@ Domain::computeLinearStaticWRTthicknessSensitivity(int sindex,
          std::cerr << "ERROR! stiffnessWRTthick is not defined yet\n";
          exit(-1);
        }
-//       std::cerr << "print displacement\n" << disp << std::endl;
        if(numDirichlet) {
          Eigen::Matrix<double, Eigen::Dynamic, 1> Vc(numDirichlet);
          Vc.setZero();
@@ -3167,7 +3167,9 @@ Domain::subtractGravityForceSensitivity(int sindex, AllSensitivities<double> &al
          }      
        }
       }
+#ifdef SENSITIVITY_DEBUG
       if(verboseFlag) std::cerr << "printing linearstaticWRTthick[" << iparam << "]\n" << *allSens.linearstaticWRTthick[iparam] << std::endl;
+#endif
      }
 #endif
 }
@@ -3191,19 +3193,23 @@ Domain::computeDisplacementWRTthicknessSensitivity(int sindex,
        allSens.dispWRTthick[iparam] = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numUncon(),1);
        Vector rhs(allSens.linearstaticWRTthick[iparam]->data(), numUncon()), sol(numUncon(),0.0);
        rhs *= -1;
+#ifdef SENSITIVITY_DEBUG
        if(verboseFlag) {
          std::cerr << "print rhs\n";
          for(int i=0; i<numUncon(); ++i) std::cerr << rhs[i] << "  ";
          std::cerr << std::endl;
        }
+#endif
        sysSolver->solve(rhs,sol);
        Vector res(numUncon(),0.0), resBlk(numUncon(),0.0);
        K->mult(sol,res);
        res.linAdd(-1.0,rhs);
+       *allSens.dispWRTthick[iparam] = Eigen::Map<Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> >(sol.data(),numUncon(),1);
+#ifdef SENSITIVITY_DEBUG
        std::cerr << "norm of absolute residual is " << res.norm() << std::endl;
        std::cerr << "norm of relative residual is " << res.norm()/rhs.norm() << std::endl;
-       *allSens.dispWRTthick[iparam] = Eigen::Map<Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> >(sol.data(),numUncon(),1);
        if(verboseFlag) std::cerr << "printing dispWRTthick[iparam]\n" << *allSens.dispWRTthick[iparam] << std::endl;
+#endif
      }
 #endif
 }
@@ -3271,10 +3277,12 @@ Domain::computeStressVMWRTthicknessSensitivity(int sindex,
        }
       }
       if(!isDynam) allSens.vonMisesWRTthick->col(iparam) += *allSens.vonMisesWRTdisp * (*allSens.dispWRTthick[iparam]);
+#ifdef SENSITIVITY_DEBUG
       if(verboseFlag) {
         Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
         std::cerr << "print vonMisesWRTthick\n" << (allSens.vonMisesWRTthick->col(iparam)).format(HeavyFmt) << std::endl;
       }
+#endif
      }
 #endif
 }
@@ -3347,7 +3355,9 @@ Domain::computeStressVMWRTdisplacementSensitivity(int sindex,
          for(int dof = 0; dof < numUncon(); ++dof) 
            (*allSens.vonMisesWRTdisp)(inode,dof) /= (*allSens.stressWeight)(inode,0);
      }
+#ifdef SENSITIVITY_DEBUG
      if(verboseFlag) std::cerr << "print vonMisesWRTdisp\n" << (*allSens.vonMisesWRTdisp) << std::endl;
+#endif
 #endif
 }
 
@@ -3419,7 +3429,9 @@ Domain::computeStressVMWRTnodalCoordinateSensitivity(int sindex,
          for(int jnode = 0; jnode < 3*numNodes(); ++jnode) 
            (*allSens.vonMisesWRTcoord)(inode,jnode) /= (*allSens.stressWeight)(inode,0);
      }
+#ifdef SENSITIVITY_DEBUG
      if(verboseFlag) std::cerr << "print vonMisesWRTcoord\n" << (*allSens.vonMisesWRTcoord) << std::endl;
+#endif
 #endif
 }
 

@@ -1,6 +1,10 @@
 #ifndef _DOMAIN_H_
 #define _DOMAIN_H_
 
+//#ifndef SENSITIVITY_DEBUG
+//#define SENSITIVITY_DEBUG
+//#endif
+
 #include <iostream>
 #include <cassert>
 #include <set>

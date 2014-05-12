@@ -170,7 +170,9 @@ ShearPanel::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vecto
 
   // Jacobian evaluation
   Eigen::Matrix<double,4,12> dStressdDisp;
-  if(verboseFlag) std::cout << "senMethod is " << senMethod << std::endl;
+#ifdef SENSITIVITY_DEBUG
+  if(verboseFlag) std::cerr << "senMethod is " << senMethod << std::endl;
+#endif
  
   if(avgnum == 0 || avgnum == 1) { // NODALFULL or ELEMENTAL
     if(senMethod == 0) { // analytic
@@ -178,14 +180,18 @@ ShearPanel::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vecto
       vmssWRTdisp(globalx.data(), globaly.data(), globalz.data(), elDisp.data(),
                   dconst[13], prop->E, dStressdDisp.data(), vmssig);   
       dStdDisp.copy(dStressdDisp.data());
+#ifdef SENSITIVITY_DEBUG
       if(verboseFlag) std::cerr << "dStressdDisp(analytic) =\n" << dStressdDisp << std::endl;
+#endif
     }
 
     if(senMethod == 1) { // automatic differentiation
       Simo::Jacobian<double,ShearPanelStressWRTDisplacementSensitivity> dSdu(dconst,iconst);
       dStressdDisp = dSdu(q, 0);
       dStdDisp.copy(dStressdDisp.data());
+#ifdef SENSITIVITY_DEBUG
       if(verboseFlag) std::cerr << "dStressdDisp(AD) =\n" << dStressdDisp << std::endl;
+#endif
     }
 
     if(senMethod == 2) { // finite difference
@@ -195,7 +201,6 @@ ShearPanel::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vecto
       Eigen::Matrix<double,12,1> qp, qm;
       double h(1e-5);
       Eigen::Matrix<double,4,1> S = foo(q,0);
-      std::cout << "displacement = " << q.transpose() << std::endl;
       for(int i=0; i<12; ++i) {
         qp = q;             qm = q;
         if(q[i] == 0) { qp[i] = h;   qm[i] = -h; }
@@ -203,18 +208,14 @@ ShearPanel::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vecto
         Eigen::Matrix<double,4,1> Sp = foo(qp, 0);
         Eigen::Matrix<double,4,1> Sm = foo(qm, 0);
         Eigen::Matrix<double,4,1> fd = (Sp - Sm)/(2*(qp[i]-q[i]));
-//        if(i==2) {
-//          Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " "); 
-//          std::cout << Sp.transpose().format(HeavyFmt) << std::endl;
-//          std::cout << Sm.transpose().format(HeavyFmt) << std::endl;
-//          std::cout << fd.transpose().format(HeavyFmt) << std::endl;
-//        }
         for(int j=0; j<4; ++j) {
           dStressdDisp(j,i) = fd[j];
         }
       }
       dStdDisp.copy(dStressdDisp.data());
+#ifdef SENSITIVITY_DEBUG
       if(verboseFlag) std::cerr << "dStressdDisp(FD) =\n" << dStressdDisp << std::endl;
+#endif
     }
 
   } else dStdDisp.zero(); // NODALPARTIAL or GAUSS or any others

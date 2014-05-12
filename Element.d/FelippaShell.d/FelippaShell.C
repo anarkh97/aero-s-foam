@@ -332,6 +332,7 @@ FelippaShell::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravi
   } // senMethod == 0
 
   if(senMethod == 1) { // automatic differentiation
+#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER < 1200 || __INTEL_COMPILER > 1210)
     Eigen::Array<double,15,1> dconst;
     dconst.segment<3>(0) = Eigen::Map<Eigen::Matrix<double,3,1> >(gravityAcceleration).segment(0,3);
     dconst[3] = x[0];    dconst[4] = x[1];    dconst[5] = x[2];
@@ -352,6 +353,10 @@ FelippaShell::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravi
     if(verboseFlag) std::cerr << "dGravityForcedThick(AD) =\n" << dGravityForcedThick << std::endl;
 #endif
     dGfdthick.copy(dGravityForcedThick.data());
+#else
+    std::cerr << "automatic differentiation must avoid intel12 compiler\n";
+    exit(-1);
+#endif
   } // senMethod == 1
 
   if(senMethod == 2) { // finite difference
@@ -1501,12 +1506,17 @@ FelippaShell::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix &d
   }
 
   if(senMethod == 1) { // automatic differentiation
+#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER < 1200 || __INTEL_COMPILER > 1210)
     Simo::FirstPartialSpaceDerivatives<double, FelippaShellStiffnessWRTThicknessSensitivity> dSdh(dconst,iconst); 
     Eigen::Array<Eigen::Matrix<double,18,18>,1,1> dStifdThick = dSdh(q, 0);
 #ifdef SENSITIVITY_DEBUG
     if(verboseFlag) std::cerr << "dStifdThick(AD) =\n" << dStifdThick[0] << std::endl;
 #endif
     dStiffnessdThick = dStifdThick[0];
+#else
+    std::cerr << "automatic differentiation must avoid intel12 compiler\n";
+    exit(-1);
+#endif
   }
 
   if(senMethod == 2) { // finite difference
@@ -1581,6 +1591,7 @@ FelippaShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight,
   }
 
   if(senMethod == 1) { // automatic differentiation
+#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER < 1200 || __INTEL_COMPILER > 1210)
     Eigen::Vector3d dStressdThick;
     Simo::Jacobian<double,ShellElementStressWRTThicknessSensitivity> dSdh(dconst,iconst);
     dStressdThick = dSdh(q, 0);
@@ -1588,6 +1599,10 @@ FelippaShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight,
     if(verboseFlag) std::cerr << "dStressdThick(AD) =\n" << dStressdThick << std::endl;
 #endif
     dStdThick.copy(dStressdThick.data());
+#else
+    std::cerr << "automatic differentiation must avoid intel12 compiler\n";
+    exit(-1);
+#endif
   }
 
   if(senMethod == 2) { // finite difference
@@ -1671,6 +1686,7 @@ FelippaShell::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vec
   }
 
   if(senMethod == 1) { // automatic differentiation
+#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER < 1200 || __INTEL_COMPILER > 1210)
     Eigen::Matrix<double,3,9> dStressdx;
     Simo::Jacobian<double,ShellElementStressWRTNodalCoordinateSensitivity> dSdx(dconst,iconst);
     dStressdx = dSdx(q, 0);
@@ -1678,6 +1694,10 @@ FelippaShell::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vec
     if(verboseFlag) std::cerr << "dStressdx(AD) =\n" << dStressdx << std::endl;
 #endif
     dStdx.copy(dStressdx.data());
+#else
+    std::cerr << "automatic differentiation must avoid intel12 compiler\n";
+    exit(-1);
+#endif
   }
 
   if(senMethod == 2) { // finite difference
@@ -1768,11 +1788,16 @@ FelippaShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
     }
 
     if(senMethod == 1) { // automatic differentiation
+#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER < 1200 || __INTEL_COMPILER > 1210)
       Simo::Jacobian<double,ShellElementStressWRTDisplacementSensitivity> dSdu(dconst,iconst);
       dStressdDisp = dSdu(q, 0);
       dStdDisp.copy(dStressdDisp.data());
 #ifdef SENSITIVITY_DEBUG
       if(verboseFlag) std::cerr << "dStressdDisp(AD) =\n" << dStressdDisp << std::endl;
+#endif
+#else
+    std::cerr << "automatic differentiation must avoid intel12 compiler\n";
+    exit(-1);
 #endif
     }
  

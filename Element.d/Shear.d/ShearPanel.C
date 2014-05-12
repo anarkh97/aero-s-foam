@@ -186,11 +186,16 @@ ShearPanel::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vecto
     }
 
     if(senMethod == 1) { // automatic differentiation
+#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER < 1200 || __INTEL_COMPILER > 1210)
       Simo::Jacobian<double,ShearPanelStressWRTDisplacementSensitivity> dSdu(dconst,iconst);
       dStressdDisp = dSdu(q, 0);
       dStdDisp.copy(dStressdDisp.data());
 #ifdef SENSITIVITY_DEBUG
       if(verboseFlag) std::cerr << "dStressdDisp(AD) =\n" << dStressdDisp << std::endl;
+#endif
+#else
+    std::cerr << "automatic differentiation must avoid intel12 compiler\n";
+    exit(-1);
 #endif
     }
 

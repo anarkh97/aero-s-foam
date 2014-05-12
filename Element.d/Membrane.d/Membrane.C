@@ -160,11 +160,16 @@ Membrane::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector 
     }
 
     if(senMethod == 1) { // automatic differentiation
+#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER < 1200 || __INTEL_COMPILER > 1210)
       Simo::Jacobian<double,MembraneStressWRTDisplacementSensitivity> dSdu(dconst,iconst);
       dStressdDisp = dSdu(q, 0);
       dStdDisp.copy(dStressdDisp.data());
 #ifdef SENSITIVITY_DEBUG
       if(verboseFlag) std::cerr << "dStressdDisp(AD) =\n" << dStressdDisp << std::endl;
+#endif
+#else
+    std::cerr << "automatic differentiation must avoid intel12 compiler\n";
+    exit(-1);
 #endif
     }
  
@@ -259,11 +264,16 @@ Membrane::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight, Coo
     }
 
     if(senMethod == 1) { // automatic differentiation
+#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER < 1200 || __INTEL_COMPILER > 1210)
       Simo::Jacobian<double,MembraneStressWRTThicknessSensitivity> dSdu(dconst,iconst);
       dStressdThic = dSdu(q, 0);
       dStdThick.copy(dStressdThic.data());
 #ifdef SENSITIVITY_DEBUG
       if(verboseFlag) std::cerr << "dStressdThic(AD) =\n" << dStressdThic << std::endl;
+#endif
+#else
+    std::cerr << "automatic differentiation must avoid intel12 compiler\n";
+    exit(-1);
 #endif
     }
  
@@ -719,12 +729,17 @@ Membrane::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix &dStif
   }
 
   if(senMethod == 1) { // automatic differentiation
+#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER < 1200 || __INTEL_COMPILER > 1210)
     Simo::FirstPartialSpaceDerivatives<double, MembraneStiffnessWRTThicknessSensitivity> dSdh(dconst,iconst); 
     Eigen::Array<Eigen::Matrix<double,18,18>,1,1> dStifdThick = dSdh(q, 0);
 #ifdef SENSITIVITY_DEBUG
     if(verboseFlag) std::cerr << "dStifdThick(AD) =\n" << dStifdThick[0] << std::endl;
 #endif
     dStiffnessdThick = dStifdThick[0];
+#else
+    std::cerr << "automatic differentiation must avoid intel12 compiler\n";
+    exit(-1);
+#endif
   }
 
   if(senMethod == 2) { // finite difference

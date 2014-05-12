@@ -633,11 +633,16 @@ ThreeNodeShell::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix 
   }
 
   if(senMethod == 1) { // automatic differentiation
+#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER < 1200 || __INTEL_COMPILER > 1210)
     Simo::FirstPartialSpaceDerivatives<double, ThreeNodeShellStiffnessWRTThicknessSensitivity> dSdh(dconst,iconst); 
     Eigen::Array<Eigen::Matrix<double,18,18>,1,1> dStifdThick = dSdh(q, 0);
     dStiffnessdThick = dStifdThick[0];
 #ifdef SENSITIVITY_DEBUG
     if(verboseFlag) std::cerr << "dStiffnessdThick(AD) =\n" << dStiffnessdThick << std::endl;
+#endif
+#else
+    std::cerr << "automatic differentiation must avoid intel12 compiler\n";
+    exit(-1);
 #endif
   }
 
@@ -1174,11 +1179,16 @@ ThreeNodeShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weigh
     }
 
     if(senMethod == 1) { // automatic differentiation
+#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER < 1200 || __INTEL_COMPILER > 1210)
       Simo::Jacobian<double,ThreeNodeShellStressWRTThicknessSensitivity> dSdu(dconst,iconst);
       dStressdThic = dSdu(q, 0);
       dStdThick.copy(dStressdThic.data());
 #ifdef SENSITIVITY_DEBUG
       if(verboseFlag) std::cerr << "dStressdThic(AD) =\n" << dStressdThic << std::endl;
+#endif
+#else
+    std::cerr << "automatic differentiation must avoid intel12 compiler\n";
+    exit(-1);
 #endif
     }
  
@@ -1283,11 +1293,16 @@ ThreeNodeShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, V
     }
 
     if(senMethod == 1) { // automatic differentiation
+#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER < 1200 || __INTEL_COMPILER > 1210)
       Simo::Jacobian<double,ThreeNodeShellStressWRTDisplacementSensitivity> dSdu(dconst,iconst);
       dStressdDisp = dSdu(q, 0);
       dStdDisp.copy(dStressdDisp.data());
 #ifdef SENSITIVITY_DEBUG
       if(verboseFlag) std::cerr << "dStressdDisp(AD) =\n" << dStressdDisp << std::endl;
+#endif
+#else
+    std::cerr << "automatic differentiation must avoid intel12 compiler\n";
+    exit(-1);
 #endif
     }
  
@@ -1388,11 +1403,16 @@ ThreeNodeShell::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, V
     }
 
     if(senMethod == 1) { // automatic differentiation
+#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER < 1200 || __INTEL_COMPILER > 1210)
       Simo::Jacobian<double,ThreeNodeShellStressWRTNodalCoordinateSensitivity> dSdx(dconst,iconst);
       dStressdx = dSdx(q, 0);
       dStdx.copy(dStressdx.data());
 #ifdef SENSITIVITY_DEBUG
       if(verboseFlag) std::cerr << "dStressdx(AD) =\n" << dStressdx << std::endl;
+#endif
+#else
+    std::cerr << "automatic differentiation must avoid intel12 compiler\n";
+    exit(-1);
 #endif
     }
  

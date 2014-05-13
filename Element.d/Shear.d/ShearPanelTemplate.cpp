@@ -51,6 +51,9 @@ C       vmssig    Vommises stress
 C       vmseps    Vommises strain
 C
 */
+      using std::abs;
+      using std::sqrt;
+
       Eigen::Map<Eigen::Matrix<doublereal,6,4> > stress(_stress), strain(_strain);
       Eigen::Map<Eigen::Matrix<doublereal,4,1> > xg(_xg), yg(_yg), zg(_zg);
       Eigen::Map<Eigen::Matrix<doublereal,12,1> > v(_v);
@@ -94,7 +97,7 @@ C     COMPUTE LOCAL COORDINATE SYSTEM
 C  (works best if element is plane)
 C
 C      Y                             
-C     /|\                            
+C     /|\
 C      |  3            2             
 C      |  /------------|             
 C      | /             |             

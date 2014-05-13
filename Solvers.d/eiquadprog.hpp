@@ -603,7 +603,7 @@ inline void delete_constraint(MatrixXd& R, MatrixXd& J, VectorXi& A, VectorXd& u
     cc = R(j,j);
     ss = R(j + 1,j);
     h = distance(cc, ss);
-    if (/*abs(h) < std::numeric_limits<double>::epsilon()*/ h == 0)
+    if (/*std::abs(h) < std::numeric_limits<double>::epsilon()*/ h == 0)
       continue;
     cc = cc / h;
     ss = ss / h;

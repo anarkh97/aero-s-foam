@@ -442,8 +442,8 @@ TwoNodeTruss::getVonMises(Vector& stress, Vector& weight, CoordSet& cs,
               stress[0] = -elForce[0]/prop->A;
               stress[1] =  elForce[1]/prop->A;
            } else {
-              stress[0] = abs(elForce[0]);
-              stress[1] = abs(elForce[1]);
+              stress[0] = std::abs(elForce[0]);
+              stress[1] = std::abs(elForce[1]);
            }
         }
         else if (strInd == 7) {
@@ -506,8 +506,8 @@ TwoNodeTruss::getVonMises(Vector& stress, Vector& weight, CoordSet& cs,
              fth1 = coefficient*(ndTemps[0]-Tref);
              fth2 = coefficient*(ndTemps[1]-Tref);
            }
-          stress[0] = abs(-f + fth1);
-          stress[1] = abs( f - fth1);      
+          stress[0] = std::abs(-f + fth1);
+          stress[1] = std::abs( f - fth1);      
 
         } else if (strInd > 6 && strInd < 13) {
            double tmpStr[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
@@ -698,8 +698,8 @@ TwoNodeTruss::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
         double elForce[2]={0.0,0.0};
         elForce[0] = -f + fth1;
         elForce[1] =  f - fth2;
-        stress[0] = abs(elForce[0]);
-        stress[1] = abs(elForce[1]);
+        stress[0] = std::abs(elForce[0]);
+        stress[1] = std::abs(elForce[1]);
         double f1s1 = elForce[0]/stress[0];
         double f2s2 = elForce[1]/stress[1];
    

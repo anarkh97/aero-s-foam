@@ -185,7 +185,7 @@ QROrtho::inputValueIs(const DynamStateBasis & iv) {
   int numericalRank = 1;
   {
     const int diagTermStride = stateSize + 1;
-    const double diagTermTol = abs(data_[0]) * std::sqrt(energyTol_);
+    const double diagTermTol = std::abs(data_[0]) * std::sqrt(energyTol_);
     
     const double * diagTermAddr = data_.array() + diagTermStride;
     while (numericalRank < stateCount && abs(*diagTermAddr) > diagTermTol) {

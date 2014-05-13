@@ -1361,10 +1361,10 @@ FetiSolver::singleCoarseSolve(DistrVector &f, DistrVector &u)
    }
 
    // Check for stagnation
-   if(abs(z2-lastz2) < 1.0e-6*lastz2) {
+   if(std::abs(z2-lastz2) < 1.0e-6*lastz2) {
      times.setStagnate(numSystems);
      filePrint(stderr,"STAGNATION: Relative Primal Error Reached = "
-                      "%e %e %e %e\n",sqrt(z2/pseudoFNormSq), abs(z2-lastz2),
+                      "%e %e %e %e\n",sqrt(z2/pseudoFNormSq), std::abs(z2-lastz2),
                       z2, lastz2);
      break;
    }

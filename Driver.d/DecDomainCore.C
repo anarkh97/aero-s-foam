@@ -11,6 +11,7 @@ template<>
 double
 GenDecDomain<double>::computeStabilityTimeStep(GenMDDynamMat<double>& dMat)
 {
+  using std::abs;
   double eigmax;
   double relTol    = domain->solInfo().stable_tol; // stable_tol default is 1.0e-3
   double preeigmax = 0.0;

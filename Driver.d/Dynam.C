@@ -1229,8 +1229,8 @@ Domain::thermoePreProcess()
 double
 Domain::computeStabilityTimeStep(DynamMat& dMat)
 {
-      if(outFile) 
-        fprintf(stderr, " ... Checking Newmark Stability     ...\n");
+      using std::abs;
+      using std::sqrt;
 
       double eigmax;
       double relTol    = sinfo.stable_tol; // stable_tol default is 1.0e-3
@@ -1281,8 +1281,8 @@ Domain::computeStabilityTimeStep(DynamMat& dMat)
 
 double Domain::computeStabilityTimeStepROM(GenFullSquareMatrix<double>& K_red)
 {
-      if(outFile) 
-        fprintf(stderr, " ... Checking Newmark Stability     ...\n");
+      using std::abs;
+      using std::sqrt;
 
       double eigmax;
       double relTol    = sinfo.stable_tol; // stable_tol default is 1.0e-3

@@ -97,7 +97,7 @@ C     COMPUTE LOCAL COORDINATE SYSTEM
 C  (works best if element is plane)
 C
 C      Y                             
-C     /|\                            
+C     /|\
 C      |  3            2             
 C      |  /------------|             
 C      | /             |             

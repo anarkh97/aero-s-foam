@@ -414,6 +414,7 @@ Element::computeStabilityTimeStep(FullSquareMatrix &K, FullSquareMatrix &M, Coor
   if(prop && prop->rho != 0) {
 
       using std::sqrt;
+      using std::abs;
       double eigmax;
       double relTol    = stable_tol; // stable_tol default is 1.0e-3
       double preeigmax = 0.0;

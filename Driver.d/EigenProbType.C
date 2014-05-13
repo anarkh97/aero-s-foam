@@ -797,10 +797,10 @@ SubSpaceSolver< EigOps, VecType, VecSet,
    }
    else  {
      for (i = this->nrmod; i < this->totalEig; ++i) {
-       double err = abs(((*subOld)[i] - (*subVal)[i])/(*subVal)[i]);
+       double err = std::abs(((*subOld)[i] - (*subVal)[i])/(*subVal)[i]);
        if(err > tolEig) hasCon = 0;
        if(err > maxErr) maxErr = err;
-       //if ( abs(((*subOld)[i] - (*subVal)[i])/(*subVal)[i]) > tolEig) hasCon = 0;
+       //if ( std::abs(((*subOld)[i] - (*subVal)[i])/(*subVal)[i]) > tolEig) hasCon = 0;
        (*subOld)[i] = (*subVal)[i];
      }
    }

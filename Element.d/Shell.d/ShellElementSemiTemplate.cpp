@@ -42,7 +42,7 @@ C
 *                      TRIROT
 *                      MEMBRA
 *                      MOMEN
-*			  TRANSFORMATION
+*                      TRANSFORMATION
 *                      VONMISES
 *-------------------------------------------------------------------*/
 
@@ -1036,6 +1036,7 @@ ShellElementSemiTemplate<doublereal>
       vmsWRTthic = dvmsdStress * (tMat * (dstressdsr * ((dCtdh * dc + Ct * ddcdh) * (dispToStrain * (R * v)))));
 
 }
+
 template<typename doublereal>
 void
 ShellElementSemiTemplate<doublereal>
@@ -1261,6 +1262,8 @@ ShellElementSemiTemplate<doublereal>
          doublereal rnx, doublereal rny, doublereal rnxy,
          doublereal &t,  doublereal &sv, int surface)
 {
+      using std::abs;
+      using std::sqrt;
 //.... LOCAL VARIABLES
 // st = von mises stress in top surface
 // sm = von mises stress in median surface
@@ -1324,8 +1327,8 @@ void
 ShellElementSemiTemplate<doublereal>
 ::compj2(doublereal sx, doublereal sy, doublereal sxy, doublereal &svm)
 {
-
 // ... SUBROUTINE TO CALCULATE J2
+      using std::sqrt;
       doublereal sz,s0,dsx,dsy,dsz,j2;
 
 // ... SET sz = 0 TO REMIND USER OF THIS ASSUMPTION
@@ -1352,6 +1355,7 @@ void
 ShellElementSemiTemplate<doublereal>
 ::momen(doublereal *_x, doublereal *_y, int *_lb, doublereal *_l)
 {
+      using std::sqrt;
       Eigen::Map<Eigen::Matrix<doublereal,3,1> > x(_x), y(_y);
       Eigen::Map<Eigen::Matrix<int,9,1> > lb(_lb);
       Eigen::Map<Eigen::Matrix<doublereal,18,3> > l(_l);
@@ -1528,12 +1532,12 @@ ShellElementSemiTemplate<doublereal>
         }
 }
 
-
 template<typename doublereal>
 void
 ShellElementSemiTemplate<doublereal>
 ::equiv(doublereal ex, doublereal ey, doublereal ez, doublereal exy, doublereal &eq)
 {
+        using std::sqrt;
 // ... LOCAL VARIABLES
         doublereal e0,dex,dey,dez;
         
@@ -1587,6 +1591,8 @@ c
 *                      ROTATION
 *                      TRIROT
 *-------------------------------------------------------------------*/
+
+        using std::sqrt;
 
         Eigen::Map<Eigen::Matrix<doublereal,18,18,Eigen::RowMajor> > rk(_rk);
         Eigen::Map<Eigen::Matrix<doublereal,3,1> > xl(_xl), yl(_yl), zl(_zl), h(_h);
@@ -1730,6 +1736,8 @@ ShellElementSemiTemplate<doublereal>
 ::basico(doublereal *_x, doublereal *_y, doublereal *_db, doublereal f, 
          doublereal clr, doublereal cqr, int *_ls, doublereal *_sm, int m, std::string &status)
 {
+      using std::sqrt;
+
       Eigen::Map<Eigen::Matrix<doublereal,3,1> > x(_x), y(_y);
       Eigen::Map<Eigen::Matrix<doublereal,3,3> > db(_db);
       Eigen::Map<Eigen::Matrix<doublereal,Eigen::Dynamic,Eigen::Dynamic> > sm(_sm,m,m);
@@ -1971,6 +1979,8 @@ ShellElementSemiTemplate<doublereal>
 ::smcbh(doublereal *_x, doublereal *_y, doublereal *_db, 
         doublereal f, int *_ls, doublereal *_sm, int m, std::string &status)
 {
+      using std::sqrt;
+
       Eigen::Map<Eigen::Matrix<doublereal,3,1> > x(_x), y(_y);
       Eigen::Map<Eigen::Matrix<int,9,1> > ls(_ls);
       Eigen::Map<Eigen::Matrix<doublereal,3,3> > db(_db);
@@ -2393,6 +2403,8 @@ ShellElementSemiTemplate<doublereal>
 ::tria3dthickness(bool flag, doublereal *_xl, doublereal *_yl, doublereal *_zl,
                   doublereal e, doublereal nu, doublereal *_h, doublereal *_drkdh)
 {
+        using std::sqrt;
+
         Eigen::Map<Eigen::Matrix<doublereal,18,18,Eigen::RowMajor> > drkdh(_drkdh);
         Eigen::Map<Eigen::Matrix<doublereal,3,1> > xl(_xl), yl(_yl), zl(_zl), h(_h);
         Eigen::Matrix<doublereal,3,1> xp, yp, zp, xlp, ylp, zlp, v1n, v2n, v3n;

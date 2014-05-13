@@ -37,13 +37,16 @@ MembraneElementTemplate<doublereal>
 *                      VONMISES
 *-------------------------------------------------------------------*/
 
+        using std::abs;
+        using std::sqrt;
+
 //.... REAL ARRAYS
 
         Eigen::Map<Eigen::Matrix<doublereal,3,1> > xl(_xl), yl(_yl), zl(_zl), h(_h);
         Eigen::Map<Eigen::Matrix<doublereal,7,3> > stress(_stress);
         Eigen::Map<Eigen::Matrix<doublereal,18,1> > v(_v);
 
-//.... DECALRE ALL LOCAL VARIABLES
+//.... DECLARE ALL LOCAL VARIABLES
 
         int nd,i,j;
         Eigen::Matrix<int,9,1> le; 
@@ -307,6 +310,8 @@ MembraneElementTemplate<doublereal>
 ::trimem(int flag, doublereal *_xl, doublereal *_yl, doublereal *_zl,
          doublereal e, doublereal nu, doublereal *_h, doublereal *_rk) 
 {
+        using std::sqrt;
+
         Eigen::Map<Eigen::Matrix<doublereal,18,18> > rk(_rk);
         Eigen::Map<Eigen::Matrix<doublereal,3,1> > xl(_xl), yl(_yl), zl(_zl), h(_h);
 
@@ -419,7 +424,6 @@ MembraneElementTemplate<doublereal>
 
 //.... cleaning stiffness matrix
         rk.setZero();
-      using std::max;
 
 //.... forming local basic stiffness for membrane
 

@@ -4246,7 +4246,7 @@ GenSubDomain<Scalar>::computeContactPressure(Scalar *globStress, Scalar *globWei
       for(int j = 0; j < mpc[locMpcNb]->nterms; ++j) {
         int node = mpc[locMpcNb]->terms[j].nnum;
         int glNode = (domain->outFlag) ? domain->nodeTable[glNums[node]]-1 : glNums[node];
-        globStress[glNode] += abs(localLambda[scomm->mapT(SComm::mpc,i)]);
+        globStress[glNode] += std::abs(localLambda[scomm->mapT(SComm::mpc,i)]);
         globWeight[glNode] += 1.0;
       }
     }
@@ -4262,7 +4262,7 @@ GenSubDomain<Scalar>::computeLocalContactPressure(Scalar *stress, Scalar *weight
     if(mpc[locMpcNb]->type == 1) { // inequality constraint
       for(int j = 0; j < mpc[locMpcNb]->nterms; ++j) {
         int node = mpc[locMpcNb]->terms[j].nnum;
-        stress[node] += abs(localLambda[scomm->mapT(SComm::mpc,i)]);
+        stress[node] += std::abs(localLambda[scomm->mapT(SComm::mpc,i)]);
         weight[node] += 1.0;
       }
     }

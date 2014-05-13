@@ -274,7 +274,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
 
    probDesc->updateStates(u0, *u);
 
-   if( abs(lambda) >= probDesc->getMaxLambda() ) break;
+   if( std::abs(lambda) >= probDesc->getMaxLambda() ) break;
 
    //...DETERMINE CONTROL PARAMETER BASED ON # OF ITERATIONS IN EXTENDED NEWTON
    nu = 1.0;

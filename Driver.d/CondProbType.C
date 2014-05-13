@@ -4,6 +4,7 @@ template < class ConditionOps, class PostProcessor, class ProblemDescriptor >
 void
 CondSolver < ConditionOps, PostProcessor, ProblemDescriptor >::solve()
 {
+ using std::abs;
  int i,j;
  fprintf(stderr, " ... Computing the Condition Number ...\n");
 

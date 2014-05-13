@@ -658,7 +658,7 @@ GenFSFullMatrix<Scalar>::symLuFactor(int *perm, double tol, Scalar *origDiag, in
    }
 #endif
    // Detect singularity
-   if( ScalarTypes::norm((*this)[i][i]) <= (abs(tol)*ScalarTypes::norm(origDiag[perm[i]])) ) {
+   if( ScalarTypes::norm((*this)[i][i]) <= (std::abs(tol)*ScalarTypes::norm(origDiag[perm[i]])) ) {
      nzem++;
      if(sing != 0) sing[i] = 1;  // PJSA
 // For Debugging

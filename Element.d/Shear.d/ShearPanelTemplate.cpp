@@ -51,6 +51,9 @@ C       vmssig    Vommises stress
 C       vmseps    Vommises strain
 C
 */
+      using std::abs;
+      using std::sqrt;
+
       Eigen::Map<Eigen::Matrix<doublereal,6,4> > stress(_stress), strain(_strain);
       Eigen::Map<Eigen::Matrix<doublereal,4,1> > xg(_xg), yg(_yg), zg(_zg);
       Eigen::Map<Eigen::Matrix<doublereal,12,1> > v(_v);
@@ -407,6 +410,9 @@ C       stress    (6x4) corner node stresses arranged
 C                  (sigxx, sigyy, sigzz, tauxy, tauyz, tauxz)
 C       vmssig    Vommises stress
 */
+      using std::abs;
+      using std::sqrt;
+
       Eigen::Map<Eigen::Matrix<doublereal,4,12> > vmsWRTdisp(_vmsWRTdisp);
       Eigen::Map<Eigen::Matrix<doublereal,4,1> > xg(_xg), yg(_yg), zg(_zg);
       Eigen::Map<Eigen::Matrix<doublereal,12,1> > v(_v);

@@ -19,6 +19,7 @@ MembraneElementTemplate<doublereal>
           doublereal *_v, doublereal *_stress, 
           bool strainFlg)
 {
+        using std::abs;
 
 /*********************************************************************
 *

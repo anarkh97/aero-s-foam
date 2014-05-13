@@ -47,6 +47,8 @@ C
 *-------------------------------------------------------------------*/
 
 // t = thickness of triangle
+       using std::abs;
+       using std::sqrt;
 
        Eigen::Map<Eigen::Matrix<doublereal,3,1> > xl(_xl), yl(_yl), zl(_zl), h(_h);
        Eigen::Map<Eigen::Matrix<doublereal,18,1> > v(_v);
@@ -414,6 +416,8 @@ C
 *-------------------------------------------------------------------*/
 
 // t = thickness of triangle
+       using std::abs;
+       using std::sqrt;
 
        if(thrmStr != 0.0) {
          std::cerr << " ... Error: thermal stress should not be passed in sensitivity computation\n";
@@ -717,6 +721,8 @@ ShellElementSemiTemplate<doublereal>
               bool strainFlg, int surface, doublereal thrmStr)
 {
 // t = thickness of triangle
+       using std::sqrt;
+       using std::abs;
 
        if(thrmStr != 0.0) {
          std::cerr << " ... Error: thermal stress should not be passed in sensitivity computation\n";
@@ -1259,6 +1265,8 @@ ShellElementSemiTemplate<doublereal>
 // st = von mises stress in top surface
 // sm = von mises stress in median surface
 // sb = von mises stress in bottom surface
+      using std::abs;
+      using std::sqrt;
 
       doublereal sx,sy,sxy,st,sb,sm,t2,sq3;
       doublereal rnxt,rnyt,rnxyt,rmxt,rmyt,rmxyt;

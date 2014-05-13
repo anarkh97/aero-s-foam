@@ -383,7 +383,10 @@ TwoNodeTruss::getVonMises(Vector& stress, Vector& weight, CoordSet& cs,
                           Vector& elDisp, int strInd, int surface, 
                           double *ndTemps, double ylayer, double zlayer, int avgnum)
 {
-#ifndef SALINAS 
+#ifndef SALINAS
+   using std::abs;
+   using std::sqrt;
+ 
    weight = 1.0;
 
    Node &nd1 = cs.getNode( nn[0] );
@@ -631,6 +634,9 @@ void
 TwoNodeTruss::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
                                                  int senMethod, double *ndTemps, int avgnum, double ylayer, double zlayer)
 {
+   using std::sqrt;
+   using std::abs;
+
    if(strInd != 6) {
      std::cerr << " ... Error: strInd must be 6 in TwoNodeTruss::getVonMisesDisplacementSensitivity\n";
      exit(-1);

@@ -74,7 +74,11 @@ class ShellMaterialType0 : public ShellMaterial<doublereal>
                                                          doublereal *, int);
     void setThickness(doublereal _thick) { thick = _thick; }
     doublereal GetShellThickness() { return thick; }
-    doublereal GetAreaDensity() { return rho*thick; }
+    doublereal GetAreaDensity() { 
+//      std::cerr << "rho is " << rho << std::endl;
+//      std::cerr << "thick is " << thick << std::endl;
+      return rho*thick; 
+    }
     doublereal GetSumDensity() { return rho; }
     void GetLocalConstitutiveResponse(doublereal *Upsilon, doublereal *sigma, doublereal z,
                                       doublereal *eframe, int gp);

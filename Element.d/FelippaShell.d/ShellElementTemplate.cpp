@@ -289,6 +289,135 @@ ShellElementTemplate<doublereal,Membrane,Bending>
     zlp = lp.col(2); 
 }
 
+template<typename doublereal, template<typename> class Membrane, template<typename> class Bending>
+void
+ShellElementTemplate<doublereal,Membrane,Bending>
+::andesgf(int elm, doublereal *_x, doublereal *_y, doublereal *_z, doublereal *_gravityForce,
+          doublereal *emass, doublereal *gamma, doublereal *grvfor,
+          bool grvflg, doublereal &totmas, bool masflg, int gravflg)
+{
+  andesms(elm, _x, _y, _z, emass, gamma, grvfor, grvflg, totmas, masflg);
+  
+  Eigen::Map<Eigen::Matrix<doublereal,3,1> > x(_x), y(_y), z(_z);
+  Eigen::Map<Eigen::Matrix<doublereal,18,1> > gravityForce(_gravityForce);
+  grvfor[0] /= 3.0;
+  grvfor[1] /= 3.0;
+  grvfor[2] /= 3.0;
+
+  doublereal mx[3],my[3],mz[3];
+  int i;
+  for(i=0; i<3; ++i) {
+    mx[i]=0.0;
+    my[i]=0.0;
+    mz[i]=0.0;
+  }
+
+  // Lumped
+  if(gravflg == false) {
+
+  } 
+  // Consistent or lumped with fixed end moments.  Compute treating shell as 3 beams.
+  else {
+    //Node &nd1 = cs.getNode(nn[0]);
+    //Node &nd2 = cs.getNode(nn[1]);
+    //Node &nd3 = cs.getNode(nn[2]);
+
+    Eigen::Matrix<doublereal,3,1> T1,T2,T3;
+    // Vector 1 from Node 1->2
+    T1[0] = x[1] - x[0];
+    T1[1] = y[1] - y[0];
+    T1[2] = z[1] - z[0];
+    T1.normalize();
+//    doublereal T1norm = sqrt(T1[0]*T1[0]+T1[1]*T1[1]+T1[2]*T1[2]);
+//    T1[0] = T1[0]/T1norm;  T1[1] = T1[1]/T1norm;  T1[2] = T1[2]/T1norm;
+    // Vector 2 from Node 1->3
+    T2[0] = x[2] - x[0];
+    T2[1] = y[2] - y[0];
+    T2[2] = z[2] - z[0];
+    T2.normalize();
+//    doublereal T2norm = sqrt(T2[0]*T2[0]+T2[1]*T2[1]+T2[2]*T2[2]);
+//    T2[0] = T2[0]/T2norm;  T2[1] = T2[1]/T2norm;  T2[2] = T2[2]/T2norm;
+    // Local Z-axis as cross between V1 and V2
+    T3 = T1.cross(T2);
+    T3.normalize();
+//    doublereal T3norm = sqrt(T3[0]*T3[0]+T3[1]*T3[1]+T3[2]*T3[2]);
+//    T3[0] = T3[0]/T3norm;  T3[1] = T3[1]/T3norm;  T3[2] = T3[2]/T3norm;
+
+    int beam, beamnode[3][2];
+    beamnode[0][0] = 0;
+    beamnode[0][1] = 1;
+    beamnode[1][0] = 0;
+    beamnode[1][1] = 2;
+    beamnode[2][0] = 1;
+    beamnode[2][1] = 2;
+
+    for(beam=0; beam<3; ++beam) {
+      doublereal length, dx, dy, dz, localg[3];
+      int n1, n2;
+      n1 = beamnode[beam][0];
+      n2 = beamnode[beam][1];
+      dx = x[n2] - x[n1];
+      dy = y[n2] - y[n1];
+      dz = z[n2] - z[n1];
+      length = sqrt(dx*dx + dy*dy + dz*dz);
+      // Local X-axis from Node 1->2
+      T1[0] = x[n2] - x[n1];
+      T1[1] = y[n2] - y[n1];
+      T1[2] = z[n2] - z[n1];
+      T1.normalize();
+//      T1norm = sqrt(T1[0]*T1[0]+T1[1]*T1[1]+T1[2]*T1[2]);
+//      T1[0] = T1[0]/T1norm;  T1[1] = T1[1]/T1norm;  T1[2] = T1[2]/T1norm;
+      // Local Y-axis as cross between Z and X
+      T2 = T3.cross(T1); 
+      T2.normalize();
+//      T2norm = sqrt(T2[0]*T2[0]+T2[1]*T2[1]+T2[2]*T2[2]);
+//      T2[0] = T2[0]/T2norm;  T2[1] = T2[1]/T2norm;  T2[2] = T2[2]/T2norm;
+
+      for(i=0; i<3; ++i)
+        localg[i] = 0.0;
+      for(i=0; i<3; ++i) {
+        localg[0] += T1[i]*grvfor[i];
+        localg[1] += T2[i]*grvfor[i];
+        localg[2] += T3[i]*grvfor[i];
+      }
+      doublereal lmy,lmz;
+      if (gravflg == 2) { // consistent
+        lmy = -localg[2]*length/12.0;
+        lmz = localg[1]*length/12.0;
+      }
+      else { // lumped with fixed-end moments
+        lmy = -localg[2]*length/16.0;
+        lmz = localg[1]*length/16.0;
+      }
+      mx[n1] += ((T2[0]*lmy) + (T3[0]*lmz));
+      my[n1] += ((T2[1]*lmy) + (T3[1]*lmz));
+      mz[n1] += ((T2[2]*lmy) + (T3[2]*lmz));
+      mx[n2] -= ((T2[0]*lmy) + (T3[0]*lmz));
+      my[n2] -= ((T2[1]*lmy) + (T3[1]*lmz));
+      mz[n2] -= ((T2[2]*lmy) + (T3[2]*lmz));
+    }
+  }
+
+  // set gravity force
+  gravityForce[0]  = grvfor[0];
+  gravityForce[1]  = grvfor[1];
+  gravityForce[2]  = grvfor[2];
+  gravityForce[3]  = mx[0];
+  gravityForce[4]  = my[0];
+  gravityForce[5]  = mz[0];
+  gravityForce[6]  = grvfor[0];
+  gravityForce[7]  = grvfor[1];
+  gravityForce[8]  = grvfor[2];
+  gravityForce[9]  = mx[1];
+  gravityForce[10] = my[1];
+  gravityForce[11] = mz[1];
+  gravityForce[12] = grvfor[0];
+  gravityForce[13] = grvfor[1];
+  gravityForce[14] = grvfor[2];
+  gravityForce[15] = mx[2];
+  gravityForce[16] = my[2];
+  gravityForce[17] = mz[2];
+}
 
 template<typename doublereal, template<typename> class Membrane, template<typename> class Bending>
 void

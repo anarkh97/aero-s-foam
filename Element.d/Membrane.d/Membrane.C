@@ -142,7 +142,9 @@ Membrane::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector 
   // Jacobian evaluation
   Eigen::Matrix<double,3,18> dStressdDisp;
   Eigen::Matrix<double,7,3> stress;
+#ifdef SENSITIVITY_DEBUG
   if(verboseFlag) std::cerr << "senMethod is " << senMethod << std::endl;
+#endif
  
   if(avgnum == 0 || avgnum == 1) { // NODALFULL or ELEMENTAL
     if(senMethod == 0) { // analytic
@@ -158,41 +160,40 @@ Membrane::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector 
     }
 
     if(senMethod == 1) { // automatic differentiation
+#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER < 1200 || __INTEL_COMPILER > 1210)
       Simo::Jacobian<double,MembraneStressWRTDisplacementSensitivity> dSdu(dconst,iconst);
       dStressdDisp = dSdu(q, 0);
       dStdDisp.copy(dStressdDisp.data());
+#ifdef SENSITIVITY_DEBUG
       if(verboseFlag) std::cerr << "dStressdDisp(AD) =\n" << dStressdDisp << std::endl;
+#endif
+#else
+    std::cerr << "automatic differentiation must avoid intel12 compiler\n";
+    exit(-1);
+#endif
     }
  
 
     if(senMethod == 2) { // finite difference
-      // finite difference
       dStressdDisp.setZero();
       MembraneStressWRTDisplacementSensitivity<double> foo(dconst,iconst);
       Eigen::Matrix<double,18,1> qp, qm;
       double h(1e-6);
       Eigen::Matrix<double,3,1> S = foo(q,0);
-//      cout << "displacement = " << q.transpose() << endl;
       for(int i=0; i<18; ++i) {
         qp = q;             qm = q;
         qp[i] += h;         qm[i] -= h;
-//        if(q[i] == 0) { qp[i] = h;   qm[i] = -h; }
-//        else { qp[i] = q[i]*(1 + h);   qm[i] = q[i]*(1 - h); }
         Eigen::Matrix<double,3,1> Sp = foo(qp, 0);
         Eigen::Matrix<double,3,1> Sm = foo(qm, 0);
         Eigen::Matrix<double,3,1> fd = (Sp - Sm)/(2*h);
-//        if(i==2) {
-//          Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " "); 
-//          cout << Sp.transpose().format(HeavyFmt) << endl;
-//          cout << Sm.transpose().format(HeavyFmt) << endl;
-//          cout << fd.transpose().format(HeavyFmt) << endl;
-//        }
         for(int j=0; j<3; ++j) {
           dStressdDisp(j,i) = fd[j];
         }
       }
       dStdDisp.copy(dStressdDisp.data());
+#ifdef SENSITIVITY_DEBUG
       if(verboseFlag) std::cerr << "dStressdDisp(FD) =\n" << dStressdDisp << std::endl;
+#endif
     }
   } else dStdDisp.zero(); // NODALPARTIAL or GAUSS or any others
 #else
@@ -245,7 +246,9 @@ Membrane::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight, Coo
   // Jacobian evaluation
   Eigen::Matrix<double,3,1> dStressdThic;
   Eigen::Matrix<double,7,3> stress;
+#ifdef SENSITIVITY_DEBUG
   if(verboseFlag) std::cerr << "senMethod is " << senMethod << std::endl;
+#endif
  
   if(avgnum == 0 || avgnum == 1) { // NODALFULL or ELEMENTAL
     if(senMethod == 0) { // analytic
@@ -261,10 +264,17 @@ Membrane::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight, Coo
     }
 
     if(senMethod == 1) { // automatic differentiation
+#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER < 1200 || __INTEL_COMPILER > 1210)
       Simo::Jacobian<double,MembraneStressWRTThicknessSensitivity> dSdu(dconst,iconst);
       dStressdThic = dSdu(q, 0);
       dStdThick.copy(dStressdThic.data());
+#ifdef SENSITIVITY_DEBUG
       if(verboseFlag) std::cerr << "dStressdThic(AD) =\n" << dStressdThic << std::endl;
+#endif
+#else
+    std::cerr << "automatic differentiation must avoid intel12 compiler\n";
+    exit(-1);
+#endif
     }
  
 
@@ -275,7 +285,6 @@ Membrane::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight, Coo
       Eigen::Matrix<double,1,1> qp, qm;
       double h(1e-6);
       Eigen::Matrix<double,3,1> S = foo(q,0);
-//      cout << "displacement = " << q.transpose() << endl;
       qp = q;             qm = q;
       qp[0] += h;         qm[0] -= h;
 //        if(q[i] == 0) { qp[i] = h;   qm[i] = -h; }
@@ -283,17 +292,13 @@ Membrane::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight, Coo
       Eigen::Matrix<double,3,1> Sp = foo(qp, 0);
       Eigen::Matrix<double,3,1> Sm = foo(qm, 0);
       Eigen::Matrix<double,3,1> fd = (Sp - Sm)/(2*h);
-//        if(i==2) {
-//          Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " "); 
-//          cout << Sp.transpose().format(HeavyFmt) << endl;
-//          cout << Sm.transpose().format(HeavyFmt) << endl;
-//          cout << fd.transpose().format(HeavyFmt) << endl;
-//        }
       for(int j=0; j<3; ++j) {
         dStressdThic(j,0) = fd[j];
       }
       dStdThick.copy(dStressdThic.data());
+#ifdef SENSITIVITY_DEBUG
       if(verboseFlag) std::cerr << "dStressdThic(FD) =\n" << dStressdThic << std::endl;
+#endif
     }
   } else dStdThick.zero(); // NODALPARTIAL or GAUSS or any others
 #else
@@ -531,7 +536,7 @@ Membrane::getGravityForce(CoordSet& cs, double *gravityAcceleration,
 }
 
 void
-Membrane::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravityAcceleration,
+Membrane::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravityAcceleration, int senMethod,
                                                  Vector& gravityForceSensitivity, int gravflg, GeomState *geomState)
 {
         double mass = getMass(cs);
@@ -724,10 +729,17 @@ Membrane::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix &dStif
   }
 
   if(senMethod == 1) { // automatic differentiation
+#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER < 1200 || __INTEL_COMPILER > 1210)
     Simo::FirstPartialSpaceDerivatives<double, MembraneStiffnessWRTThicknessSensitivity> dSdh(dconst,iconst); 
     Eigen::Array<Eigen::Matrix<double,18,18>,1,1> dStifdThick = dSdh(q, 0);
+#ifdef SENSITIVITY_DEBUG
     if(verboseFlag) std::cerr << "dStifdThick(AD) =\n" << dStifdThick[0] << std::endl;
+#endif
     dStiffnessdThick = dStifdThick[0];
+#else
+    std::cerr << "automatic differentiation must avoid intel12 compiler\n";
+    exit(-1);
+#endif
   }
 
   if(senMethod == 2) { // finite difference
@@ -738,7 +750,9 @@ Membrane::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix &dStif
     Eigen::Matrix<double,18,18> Sp = foo(qp, 0);
     Eigen::Matrix<double,18,18> Sm = foo(qm, 0);
     dStiffnessdThick = (Sp-Sm)/(2*h);
+#ifdef SENSITIVITY_DEBUG
     if(verboseFlag) std::cerr << "dStiffnessdThick(FD) =\n" << dStiffnessdThick << std::endl;
+#endif
   }
 
   dStiffdThick.copy(dStiffnessdThick.data());

@@ -458,7 +458,7 @@ Triangle3::getGravityForce(CoordSet& cs,double *gravityAcceleration,
 }
 
 void
-Triangle3::getGravityForceSensitivityWRTthickness(CoordSet& cs,double *gravityAcceleration,
+Triangle3::getGravityForceSensitivityWRTthickness(CoordSet& cs,double *gravityAcceleration, int senMethod,
                                                   Vector& gravityForceSensitivity, int gravflg, GeomState *geomState)
 {
   double massPerNode = getMass(cs)/3.0;
@@ -678,10 +678,17 @@ Triangle3::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector
 
   if(avgnum == 1 || avgnum == 0) { // ELEMENTAL or NODALFULL
     if(senMethod == 1) { // via automatic differentiation
+#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER < 1200 || __INTEL_COMPILER > 1210)
       Simo::Jacobian<double,Triangle3StressWRTDisplacementSensitivity> dSdu(dconst,iconst);
       dStressdDisp = dSdu(q, 0);
       dStdDisp.copy(dStressdDisp.data());
+#ifdef SENSITIVITY_DEBUG
       if(verboseFlag) std::cerr << " ... dStressdDisp(AD) = \n" << dStressdDisp << std::endl;
+#endif
+#else
+    std::cerr << "automatic differentiation must avoid intel12 compiler\n";
+    exit(-1);
+#endif
     }
  
     if(senMethod == 0) { // analytic
@@ -690,7 +697,9 @@ Triangle3::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector
                   dStressdDisp.data(), 
                   prop->E, prop->nu); 
       dStdDisp.copy(dStressdDisp.data());
+#ifdef SENSITIVITY_DEBUG
       if(verboseFlag) std::cerr << " ... dStressdDisp(analytic) = \n" << dStressdDisp << std::endl;
+#endif
     }
 
     if(senMethod == 2) { // via finite difference
@@ -708,7 +717,9 @@ Triangle3::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector
         dStressdDisp(2,j) = dS[2];
       }
       dStdDisp.copy(dStressdDisp.data());
+#ifdef SENSITIVITY_DEBUG
       if(verboseFlag) std::cerr << " ... dStressdDisp(FD) = \n" << dStressdDisp << std::endl;
+#endif
     }
   } else dStdDisp.zero(); // NODALPARTIAL or GAUSS or any others
 #else

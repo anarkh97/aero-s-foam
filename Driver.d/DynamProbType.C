@@ -410,10 +410,12 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
            aeroSensitivityQuasistaticLoop( *curSenState, *rhsSen, *dynOps, *workSenVec, dt, tmax, aeroAlg);
            *allSens->dispWRTthick[iparam] = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> >(d_nSen->data(),domain->numUncon(),1);
            allSens->vonMisesWRTthick->col(iparam) += *allSens->vonMisesWRTdisp * (*allSens->dispWRTthick[iparam]);
+// #ifdef SENSITIVITY_DEBUG
 //           Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
 //           cerr << "print *allSens->vonMisesWRTdisp\n" << (*allSens->vonMisesWRTdisp).format(HeavyFmt) << endl;
 //           cerr << "print (*allSens->dispWRTthick[iparam])\n" << (*allSens->dispWRTthick[iparam]).adjoint().format(HeavyFmt) << endl;
 //           cerr << "print vonMisesWRTthick (in steady aeroelastic analysis)\n" << allSens->vonMisesWRTthick->col(iparam).adjoint().format(HeavyFmt) << endl;
+// #endif
          }  
          domain->sensitivityPostProcessing(*allSens); 
        } 

@@ -709,10 +709,12 @@ TwoNodeTruss::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
           dStdDisp[3][1] =  f2s2*dx;   dStdDisp[4][1] =  f2s2*dy;   dStdDisp[5][1] =  f2s2*dz; 
          
           dStdDisp *= (prop->A*prop->E/length);
+#ifdef SENSITIVITY_DEBUG
           if(verboseFlag) {
             std::cerr << " ... dStressdDisp(analytic) = \n" << std::endl;
             dStdDisp.print();
           }
+#endif
         }
 
         if(senMethod == 2) { // finite difference
@@ -731,10 +733,12 @@ TwoNodeTruss::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
                dStdDisp[i][j] = fd[j];
              }
            }
+#ifdef SENSITIVITY_DEBUG
            if(verboseFlag) {
              std::cerr << " ... dStressdDisp(FD) = \n" << std::endl;
              dStdDisp.print();
            }
+#endif
         }
         break;
       }

@@ -237,10 +237,17 @@ Tetrahedral::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vect
   }
 
   if(senMethod == 1) {
+#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER < 1200 || __INTEL_COMPILER > 1210)
     Simo::Jacobian<double,TetraElementStressWRTNodalCoordinateSensitivity> dSdx(dconst,iconst);
     dStressdx = dSdx(q, 0);
-    dStdx.copy(dStressdx.data()); 
+    dStdx.copy(dStressdx.data());
+#ifdef SENSITIVITY_DEBUG 
     if(verboseFlag) std::cerr << "dStressdx(AD) =\n" << dStressdx << std::endl;
+#endif
+#else
+    std::cerr << "automatic differentiation must avoid intel12 compiler\n";
+    exit(-1);
+#endif
   }
 
   if(senMethod == 2) {
@@ -255,7 +262,9 @@ Tetrahedral::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vect
       dStressdx.col(i) = (Sp - Sm)/(2*h);
     }
     Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
+#ifdef SENSITIVITY_DEBUG
     if(verboseFlag) std::cerr << "dStressdx(FD) =\n" << dStressdx.format(HeavyFmt) << std::endl;
+#endif
     dStdx.copy(dStressdx.data());  
   }
 #else

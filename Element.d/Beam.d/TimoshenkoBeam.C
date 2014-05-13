@@ -834,7 +834,9 @@ TimoshenkoBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, V
       Simo::Jacobian<double,TimoshenkoBeamStressWRTDisplacementSensitivity> dSdu(dconst,iconst);
       dStressdDisp = dSdu(q, 0);
       dStdDisp.copy(dStressdDisp.data());
+#ifdef SENSITIVITY_DEBUG
       if(verboseFlag) std::cerr << " ... dStressdDisp(AD) = \n" << dStressdDisp << std::endl;
+#endif
     }
  
     if(senMethod == 0) { // analytic
@@ -843,7 +845,9 @@ TimoshenkoBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, V
       vms7WRTdisp(1, prop->A, prop->E, eframe.data(), prop->Ixx, prop->Iyy, prop->Izz, prop->alphaY, prop->alphaZ, prop->c,
                     prop->nu, x, y, z, q.data(), dStressdDisp.data(), prop->W, prop->Ta, ndTemps);
       dStdDisp.copy(dStressdDisp.data());
+#ifdef SENSITIVITY_DEBUG
       if(verboseFlag) std::cerr << " ... dStressdDisp(analytic) = \n" << dStressdDisp << std::endl;
+#endif
     }
 
     if(senMethod == 2) { // via finite difference
@@ -860,7 +864,9 @@ TimoshenkoBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, V
         dStressdDisp(1,j) = dS[1];
       }
       dStdDisp.copy(dStressdDisp.data());
+#ifdef SENSITIVITY_DEBUG
       if(verboseFlag) std::cerr << " ... dStressdDisp(FD) = \n" << dStressdDisp << std::endl;
+#endif
     }
   } else dStdDisp.zero(); // NODALPARTIAL or GAUSS or any others
 }
@@ -935,7 +941,9 @@ TimoshenkoBeam::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, V
   //Jacobian evaluation
   Eigen::Matrix<double,2,6> dStressdx;
   Eigen::Matrix<double,7,3> stress;
+#ifdef SENSITIVITY_DEBUG
   if(verboseFlag) std::cerr << " ... senMethod is " << senMethod << std::endl;
+#endif
 
   if(avgnum == 1 || avgnum == 0) { // ELEMENTAL or NODALFULL
     if(senMethod == 0) { // analytic
@@ -948,7 +956,9 @@ TimoshenkoBeam::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, V
       Simo::Jacobian<double,TimoshenkoBeamStressWRTNodalCoordinateSensitivity> dSdx(dconst,iconst);
       dStressdx = dSdx(q, 0);
       dStdx.copy(dStressdx.data());
+#ifdef SENSITIVITY_DEBUG
       if(verboseFlag) std::cerr << " ... dStressdx(AD) = \n" << dStressdx << std::endl;
+#endif
     }
 
     if(senMethod == 2) { // finite difference
@@ -963,7 +973,9 @@ TimoshenkoBeam::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, V
         dStressdx.col(j) = (S_plus-S_minus)/(2*h);
       }
       dStdx.copy(dStressdx.data());
+#ifdef SENSITIVITY_DEBUG
       if(verboseFlag) std::cerr << " ... dStressdx(FD) = \n" << dStressdx << std::endl;
+#endif
     }
   } else dStdx.zero(); // NODALPARTIAL or GAUSS or any others
 }

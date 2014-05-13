@@ -411,7 +411,7 @@ FourNodeQuad::getGravityForce(CoordSet& cs,double *gravityAcceleration,
 }
 
 void
-FourNodeQuad::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravityAcceleration,
+FourNodeQuad::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravityAcceleration, int senMethod,
                                                      Vector& gravityForceSensitivity, int gravflg, GeomState *geomState)
 {
 
@@ -734,14 +734,23 @@ FourNodeQuad::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
   //Jacobian evaluation
   Eigen::Matrix<double,4,8> dStressdDisp;
   Eigen::Matrix<double,7,3> stress;
-  if(verboseFlag) std::cout << " ... senMethod is " << senMethod << std::endl;
+#ifdef SENSITIVITY_DEBUG
+  if(verboseFlag) std::cerr << " ... senMethod is " << senMethod << std::endl;
+#endif
 
   if(avgnum == 1 || avgnum == 0) { // ELEMENTAL or NODALFULL
     if(senMethod == 1) { // via automatic differentiation
+#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER < 1200 || __INTEL_COMPILER > 1210)
       Simo::Jacobian<double,FourNodeQuadStressWRTDisplacementSensitivity> dSdu(dconst,iconst);
       dStressdDisp = dSdu(q, 0);
       dStdDisp.copy(dStressdDisp.data());
+#ifdef SENSITIVITY_DEBUG
       if(verboseFlag) std::cerr << " ... dStressdDisp(AD) = \n" << dStressdDisp << std::endl;
+#endif
+#else
+    std::cerr << "automatic differentiation must avoid intel12 compiler\n";
+    exit(-1);
+#endif
     }
  
     if(senMethod == 0) { // analytic
@@ -763,7 +772,9 @@ FourNodeQuad::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
                   maxgus, maxstr, elm, numel, vmflg, 
                   strainFlg, tc, prop->Ta, ndtemps.data());
       dStdDisp.copy(dStressdDisp.data());
+#ifdef SENSITIVITY_DEBUG
       if(verboseFlag) std::cerr << " ... dStressdDisp(analytic) =\n" << dStressdDisp << std::endl;
+#endif
     }
 
     if(senMethod == 2) { // via finite difference
@@ -782,7 +793,9 @@ FourNodeQuad::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
         dStressdDisp(3,j) = dS[3];
       }
       dStdDisp.copy(dStressdDisp.data());
+#ifdef SENSITIVITY_DEBUG
       if(verboseFlag) std::cerr << " ... dStressdDisp(FD) =\n" << dStressdDisp << std::endl;
+#endif 
     }
   } else dStdDisp.zero(); // NODALPARTIAL or GAUSS or any others
 #else

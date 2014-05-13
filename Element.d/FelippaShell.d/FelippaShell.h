@@ -35,8 +35,8 @@ public:
         void getGravityForce(CoordSet&,double *gravity, Vector&, int gravflg,
 	                     GeomState *gs);
 
-        void getGravityForceSensitivityWRTthickness(CoordSet&,double *gravity, Vector&, int gravflg,
- 	                     GeomState *gs = 0);
+        void getGravityForceSensitivityWRTthickness(CoordSet&,double *gravity, int senMethod, 
+                                                    Vector&, int gravflg, GeomState *gs = 0);
 
         void getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
                          Vector &elDisp, int strInd, int surface = 0,

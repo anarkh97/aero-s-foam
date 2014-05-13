@@ -312,13 +312,13 @@ SuperElement::getGravityForce(CoordSet &cs, double *gravityAcceleration, Vector 
 }
 
 void
-SuperElement::getGravityForceSensitivityWRTthickness(CoordSet &cs, double *gravityAcceleration,
+SuperElement::getGravityForceSensitivityWRTthickness(CoordSet &cs, double *gravityAcceleration, int senMethod,
                                                      Vector &gravityForceSen, int gravflg, GeomState *geomState)
 {
   gravityForceSen.zero();
   for(int i = 0; i < nSubElems; ++i) {
     Vector subGravityForceSen(subElems[i]->numDofs());
-    subElems[i]->getGravityForceSensitivityWRTthickness(cs, gravityAcceleration, subGravityForceSen, gravflg, geomState);
+    subElems[i]->getGravityForceSensitivityWRTthickness(cs, gravityAcceleration, senMethod, subGravityForceSen, gravflg, geomState);
     gravityForceSen.add(subGravityForceSen, subElemDofs[i]);
   }
 }

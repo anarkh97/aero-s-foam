@@ -1646,7 +1646,7 @@ Domain::addGravityForceSensitivity(GenVector<Scalar> &forceSen)
                                          // 0: lumped without fixed-end moments
 
     elementGravityForceSen.zero();
-    packedEset[iele]->getGravityForceSensitivityWRTthickness(nodes, gravityAcceleration, elementGravityForceSen, gravflg);
+    packedEset[iele]->getGravityForceSensitivityWRTthickness(nodes, gravityAcceleration, 0, elementGravityForceSen, gravflg);
 
     // transform vector from basic to DOF_FRM coordinates
     transformVector(elementGravityForceSen, iele);

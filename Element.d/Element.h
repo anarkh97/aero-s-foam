@@ -1,6 +1,10 @@
 #ifndef	_ELEMENT_H_
 #define	_ELEMENT_H_
 
+//#ifndef SENSITIVITY_DEBUG
+//#define SENSITIVITY_DEBUG
+//#endif
+
 #include <Math.d/ComplexD.h>
 #include <Utils.d/BlockAlloc.h>
 #include <Utils.d/dofset.h>
@@ -403,7 +407,7 @@ class Element {
         virtual void   getGravityForce(CoordSet&,double *gravity,Vector &force,
                                        int gravflg, GeomState *gs=0);
 
-        virtual void   getGravityForceSensitivityWRTthickness(CoordSet&,double *gravity,Vector &force,
+        virtual void   getGravityForceSensitivityWRTthickness(CoordSet&,double *gravity, int senMethod, Vector &force,
                                                               int gravflg, GeomState *gs=0);
 
         virtual void   getThermalForce(CoordSet& cs,Vector &ndT,Vector &force,

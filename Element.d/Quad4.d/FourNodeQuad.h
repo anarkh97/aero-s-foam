@@ -26,7 +26,7 @@ class FourNodeQuad: virtual public Element,
 
         void             getGravityForce(CoordSet&,double *gravity, Vector& f, int gravflg,
 	                                 GeomState *gs);
-        void getGravityForceSensitivityWRTthickness(CoordSet&,double *gravity, Vector& f, int gravflg,
+        void getGravityForceSensitivityWRTthickness(CoordSet&,double *gravity, int senMethod, Vector& f, int gravflg,
                                                     GeomState *gs);
         void             getVonMises (Vector &stress, Vector &weight,
                                       CoordSet &cs, Vector &elDisp, 

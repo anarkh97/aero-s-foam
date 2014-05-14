@@ -651,7 +651,7 @@ int main(int argc, char** argv)
    if(topFlag < 0) {
      domain->SetUpSurfaces(&(geoSource->GetNodes()));
      if(!callSower) {
-       domain->ProcessSurfaceBCs();
+       domain->ProcessSurfaceBCs(topFlag);
        domain->SetMortarPairing();
        if(!domain->tdenforceFlag()) {
          if(domain->solInfo().isNonLin()) { // for nonlinear statics and dynamics just process the tied surfaces here
@@ -684,7 +684,7 @@ int main(int argc, char** argv)
      domain->printLMPC();
 #endif
    }
-   else domain->ProcessSurfaceBCs();
+   else domain->ProcessSurfaceBCs(topFlag);
 #ifdef SOWER_SURFS
  }
 #endif

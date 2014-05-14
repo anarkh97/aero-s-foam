@@ -3394,7 +3394,7 @@ int Domain::glToPackElem(int e)
 }
 
 void
-Domain::ProcessSurfaceBCs()
+Domain::ProcessSurfaceBCs(int topFlag)
 {
   BCond *surface_dbc;
   int numSurfaceDirichletBC = geoSource->getSurfaceDirichletBC(surface_dbc);
@@ -3454,6 +3454,8 @@ Domain::ProcessSurfaceBCs()
       }
     }
   }
+
+  if(topFlag >= 0) return;
 
   PressureBCond *surface_pres;
   int numSurfacePressure = geoSource->getSurfacePressure(surface_pres);

@@ -434,6 +434,10 @@ IF(CREATE_DSO)
                          PREFIX "")
 endif(CREATE_DSO)
 
+IF(SENSITIVITY_DEBUG EQUAL 1)
+   add_definitions(-DSENSITIVITY_DEBUG)
+endif(SENSITIVITY_DEBUG EQUAL 1)
+
 IF(NOT CREATE_DSO)
   add_executable(femexecutable  main.C HgIdentity.C)
 

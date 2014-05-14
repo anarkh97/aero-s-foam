@@ -1,10 +1,6 @@
 #ifndef	_ELEMENT_H_
 #define	_ELEMENT_H_
 
-//#ifndef SENSITIVITY_DEBUG
-//#define SENSITIVITY_DEBUG
-//#endif
-
 #include <Math.d/ComplexD.h>
 #include <Utils.d/BlockAlloc.h>
 #include <Utils.d/dofset.h>

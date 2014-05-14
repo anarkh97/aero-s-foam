@@ -317,7 +317,7 @@ Rbm::computeRbms(CoordSet& cs, double *centroid, int *cornerNodes,
         for(k=0; k<ncol; ++k) 
           if(cn > -1) {
             Z[cn][k] = rbm[j][c_rows[k]];
-            if(abs(Z[cn][k]) > cgmax) cgmax = abs(Z[cn][k]);
+            if(std::abs(Z[cn][k]) > cgmax) cgmax = std::abs(Z[cn][k]);
           }
       }
     }
@@ -594,7 +594,7 @@ Rbm::computeRbms(CoordSet& cs)
             int k;
             for(k=0; k<ncol; ++k) {
               Z[cn-offset][k] = Rstar[position[j]][k];
-              if(abs(Z[cn-offset][k]) > cgmax) cgmax = abs(Z[cn-offset][k]);
+              if(std::abs(Z[cn-offset][k]) > cgmax) cgmax = std::abs(Z[cn-offset][k]);
             }
           }
         }
@@ -890,7 +890,7 @@ Rbm::computeRbms(CoordSet& cs, int numMPC, ResizeArray<LMPCons *> &mpc)
            if(cn >= 0) {
              for(k=0; k<ncol; ++k) { 
                Z[cn][k] = Rstar[position[j]][k];
-               if(abs(Z[cn][k]) > cgmax) cgmax = abs(Z[cn][k]);
+               if(std::abs(Z[cn][k]) > cgmax) cgmax = std::abs(Z[cn][k]);
              }
            }
          }
@@ -907,7 +907,7 @@ Rbm::computeRbms(CoordSet& cs, int numMPC, ResizeArray<LMPCons *> &mpc)
          if(dof >= 0) {
            for(k=0; k<ncol; ++k) {
              Z[numBC[0]+i][k] += Rstar[dof][k]*mpc[i]->terms[j].coef.r_value;
-             if(abs(Z[numBC[0]+i][k]) > cgmax) cgmax = abs(Z[numBC[0]+i][k]);
+             if(std::abs(Z[numBC[0]+i][k]) > cgmax) cgmax = std::abs(Z[numBC[0]+i][k]);
            }
          }
        }
@@ -1039,7 +1039,7 @@ Rbm::singularValueDecomposition(FullM &A, FullM &Umat, int ncol, int nrow,
    rank = 0;
    double tolerance = max_value*tolgrb;
    for(i=0; i<mindim; ++i) 
-     if(abs(w[i]) > tolerance) rank++;
+     if(std::abs(w[i]) > tolerance) rank++;
 
    ngrbm = ncol - rank;
 }
@@ -1262,7 +1262,7 @@ Rbm::reBuildGeometricRbms(GeomState *gs)
             int k;
             for(k=0; k<ncol; ++k) {
               Z[cn-offset][k] = Rstar[position[j]][k];
-              if(abs(Z[cn-offset][k]) > cgmax) cgmax = abs(Z[cn-offset][k]);
+              if(std::abs(Z[cn-offset][k]) > cgmax) cgmax = std::abs(Z[cn-offset][k]);
             }
           }
         }

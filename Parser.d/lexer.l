@@ -733,6 +733,8 @@ TRAIL [a-zA-Z]*
 
 "arcl"[a-zA-Z]*|"ARCL"[a-zA-Z]*    { return ARCLENGTH; }
 
+"newt"[a-zA-Z]*|"NEWT"[a-zA-Z]*|"Newt"[a-zA-Z]* { return NEWTON; }
+
 "dlam"[a-zA-Z]*|"DLAM"[a-zA-Z]*    { return DLAMBDA; }
 
 "lfac"[a-zA-Z]*|"LFAC"[a-zA-Z]*    { return LFACTOR; }
@@ -740,6 +742,14 @@ TRAIL [a-zA-Z]*
 "unsy"[a-zA-Z]*|"UNSY"[a-zA-Z]*    { return UNSYMMETRIC; }
 
 "rebuild"|"REBUILD"                { return REBUILD; }
+
+"back"[a-zA-Z]*|"BACK"[a-zA-Z]*    { yylval.ival = 1; return ALPROC; }
+
+"bise"[a-zA-Z]*|"BISE"[a-zA-Z]*    { yylval.ival = 2; return ALPROC; }
+
+"regu"[a-zA-Z]*|"REGU"[a-zA-Z]*    { yylval.ival = 3; return ALPROC; }
+
+"seca"[a-zA-Z]*|"SECA"[a-zA-Z]*    { yylval.ival = 4; return ALPROC; }
 
 "tang"[a-zA-Z]*|"TANG"[a-zA-Z]*    { return TANGENT; }
 
@@ -816,7 +826,7 @@ TRAIL [a-zA-Z]*
 
 "stif"[a-zA-Z]*|"STIF"[a-zA-Z]*    { yylval.ival = 1; return SCALINGTYPE; }
 
-"topological" { yylval.ival = 2; return SCALINGTYPE; }
+"topological"                      { yylval.ival = 2; return SCALINGTYPE; }
 
 "sloan"|"SLOAN"                    { yylval.ival = 1; return RENUMBERID; }
 

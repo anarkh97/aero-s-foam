@@ -332,7 +332,7 @@ FelippaShell::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravi
   } // senMethod == 0
 
   if(senMethod == 1) { // automatic differentiation
-#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER < 1200 || __INTEL_COMPILER > 1210)
+#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER >= 1300)
     Eigen::Array<double,15,1> dconst;
     dconst.segment<3>(0) = Eigen::Map<Eigen::Matrix<double,3,1> >(gravityAcceleration).segment(0,3);
     dconst[3] = x[0];    dconst[4] = x[1];    dconst[5] = x[2];
@@ -945,7 +945,6 @@ void
 FelippaShell::getInternalForce(GeomState *refState, GeomState &geomState, CoordSet &cs,
                                FullSquareMatrix &, double *f, double dt, double t)
 {
-
  // Get Nodes original coordinates (C0 configuration)
  Node &node1 = cs.getNode( n1 );
  Node &node2 = cs.getNode( n2 );
@@ -995,7 +994,7 @@ FelippaShell::getInternalForce(GeomState *refState, GeomState &geomState, CoordS
    if(numStates() > 0) {
      double *state = geomState.getElemState(getGlNum()) + subNum*numStates();
      gpmat->GetState( state+0 );
-     nmat->GetState ( state+gpmat->GetNumStates() );
+     nmat->GetState ( state+gpmat->GetNumStates() ); 
    }
  }
 
@@ -1506,7 +1505,7 @@ FelippaShell::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix &d
   }
 
   if(senMethod == 1) { // automatic differentiation
-#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER < 1200 || __INTEL_COMPILER > 1210)
+#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER >= 1300)
     Simo::FirstPartialSpaceDerivatives<double, FelippaShellStiffnessWRTThicknessSensitivity> dSdh(dconst,iconst); 
     Eigen::Array<Eigen::Matrix<double,18,18>,1,1> dStifdThick = dSdh(q, 0);
 #ifdef SENSITIVITY_DEBUG
@@ -1591,7 +1590,7 @@ FelippaShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight,
   }
 
   if(senMethod == 1) { // automatic differentiation
-#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER < 1200 || __INTEL_COMPILER > 1210)
+#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER >= 1300)
     Eigen::Vector3d dStressdThick;
     Simo::Jacobian<double,ShellElementStressWRTThicknessSensitivity> dSdh(dconst,iconst);
     dStressdThick = dSdh(q, 0);
@@ -1686,7 +1685,7 @@ FelippaShell::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vec
   }
 
   if(senMethod == 1) { // automatic differentiation
-#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER < 1200 || __INTEL_COMPILER > 1210)
+#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER >= 1300)
     Eigen::Matrix<double,3,9> dStressdx;
     Simo::Jacobian<double,ShellElementStressWRTNodalCoordinateSensitivity> dSdx(dconst,iconst);
     dStressdx = dSdx(q, 0);
@@ -1788,7 +1787,7 @@ FelippaShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
     }
 
     if(senMethod == 1) { // automatic differentiation
-#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER < 1200 || __INTEL_COMPILER > 1210)
+#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER >= 1300)
       Simo::Jacobian<double,ShellElementStressWRTDisplacementSensitivity> dSdu(dconst,iconst);
       dStressdDisp = dSdu(q, 0);
       dStdDisp.copy(dStressdDisp.data());

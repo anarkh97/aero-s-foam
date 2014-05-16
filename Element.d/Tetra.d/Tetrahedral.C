@@ -237,7 +237,7 @@ Tetrahedral::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vect
   }
 
   if(senMethod == 1) {
-#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER < 1200 || __INTEL_COMPILER > 1210)
+#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER >= 1300)
     Simo::Jacobian<double,TetraElementStressWRTNodalCoordinateSensitivity> dSdx(dconst,iconst);
     dStressdx = dSdx(q, 0);
     dStdx.copy(dStressdx.data());

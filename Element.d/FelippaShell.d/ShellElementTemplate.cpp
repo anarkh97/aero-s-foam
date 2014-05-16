@@ -430,7 +430,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
   // "Parametrized variational principles in dynamics applied
   //  to the optimization of dynamic models of plates",
   // F. J. Brito Castro, C. Militello, C. A. Felippa
-  // Computational Mechanics 20 (1997) 285±294
+  // Computational Mechanics 20 (1997) 285-294
   // Notes: this is the LMM (lumped mass matrix) which I think is formed by row lumping of the BCMM
   // TODO: implement BCMM (boundary consistent mass matrix)
   //       and CMM (consistent mass matrix)
@@ -605,14 +605,16 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 
     rhoh = gpmat->GetAreaDensity();
     mass0 = rhoh * area / 3.;
-    //mass1 = rhoh * area * ix / 1260.;
-    //mass2 = rhoh * area * iy / 1260.;
-    //mass3 = rhoh * area * iz / 1260.;
+#ifdef COMPATIBILITY_MODE
+    mass1 = rhoh * area * ix / 1260.;
+    mass2 = rhoh * area * iy / 1260.;
+    mass3 = rhoh * area * iz / 1260.;
+#else
     alpha = area / 8.;
     mass1 = mass0 * alpha;
     mass2 = mass0 * alpha;
     mass3 = mass0 * alpha;
-
+#endif
 //     ------------------------------------- 
 //     ASSEMBLY OF THE ELEMENTAL MASS MATRIX 
 //     ------------------------------------- 
@@ -886,9 +888,9 @@ ShellElementTemplate<doublereal,Membrane,Bending>
                2, 3, 4, 8, 9, 10, 14, 15, 16; // B indices
     Eigen::PermutationMatrix<18,18,int> P(indices);
 
-//  .....ROTATE THE NODAL DISPLACEMENTS TO THE LOCAL 
-//       FRAME SYSTEM (LOCAL TO THE SHELL ELEMENT) 
-//       AND APPLY PERMUTATION to {M,B} ordering
+// .....ROTATE THE NODAL DISPLACEMENTS TO THE LOCAL 
+//      FRAME SYSTEM (LOCAL TO THE SHELL ELEMENT) 
+//      AND APPLY PERMUTATION to {M,B} ordering
 
     if(flag == 1) {
 
@@ -977,11 +979,11 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 
         if(_fint) {
 
-// ..... FORM THE INTERNAL FORCE FOR BENDING
+// .....FORM THE INTERNAL FORCE FOR BENDING
 
             Fb.noalias() += (area*weight[i])*Bb.transpose()*M;
 
-// ..... FORM THE INTERNAL FORCE FOR MEMBRANE
+// .....FORM THE INTERNAL FORCE FOR MEMBRANE
 
             Fm.noalias() += (area*weight[i])*Bm.transpose()*N;
 
@@ -1315,7 +1317,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
     doublereal zeta[3][3] = { { 1.,0.,0. }, { 0.,1.,0. }, { 0.,0.,1. } }; // triangular coordinates of nodes
     for(i = 0; i < 3; ++i) {
 
-#ifdef COMPATABILITY_MODE
+#ifdef COMPATIBILITY_MODE
 // .....ELEMENTAL CURVATURE COMPUTATION
 
         chi = (1/area)*Lb.transpose()*vd.tail(9);
@@ -1375,43 +1377,45 @@ ShellElementTemplate<doublereal,Membrane,Bending>
           default :  
           case 0 : {
 
-#ifdef COMPATABILITY_MODE
+#ifdef COMPATIBILITY_MODE
+            if(ctyp < 4) {
+
 // .....COMPUTE THE GENERALIZED STRESSES [Sigma = {N,M}] WHICH ARE
 // .....FORCE AND MOMENT PER UNIT LENGTH
 
-            if(i == 0 || ctyp == 4)
-                nmat->GetConstitutiveResponse(Upsilon.data(), Sigma.data(), NULL, eframe.data(), i);
+                if(i == 0)
+                    nmat->GetConstitutiveResponse(Upsilon.data(), Sigma.data(), NULL, eframe.data(), i);
 
-            if (surface == 1) {
+                if (surface == 1) {
 
 // .....ESTIMATE THE LOCAL STRESSES ON THE UPPER SURFACE
 
-                sigma = N/thick + 6*M/(thick*thick); 
+                    sigma = N/thick + 6*M/(thick*thick); 
 
-            }
+                }
 
-            else if (surface == 2) {
+                else if (surface == 2) {
 
 // .....ESTIMATE THE LOCAL STRESSES ON THE MEDIAN SURFACE
 
-                sigma = N/thick;
+                    sigma = N/thick;
 
-            }
+                }
 
-            else if (surface == 3) {
+                else if (surface == 3) {
 
 // .....ESTIMATE THE LOCAL STRESSES ON THE LOWER SURFACE
 
-                sigma = N/thick - 6*M/(thick*thick);
+                    sigma = N/thick - 6*M/(thick*thick);
 
+                }
             }
-#else
+            else
+#endif
 
 // .....COMPUTE THE LOCAL STRESSES ON THE SPECIFIED SURFACE
 
             nmat->GetLocalConstitutiveResponse(Upsilon.data(), sigma.data(), z, eframe.data(), i);
-
-#endif
 
 // .....CALCULATE VON MISES EQUIVALENT STRESS
 
@@ -1594,7 +1598,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
     doublereal zeta[3][3] = { { 1.,0.,0. }, { 0.,1.,0. }, { 0.,0.,1. } }; // triangular coordinates of nodes
     for(i = 0; i < 3; ++i) {
 
-#ifdef COMPATABILITY_MODE
+#ifdef COMPATIBILITY_MODE
 // .....ELEMENTAL CURVATURE COMPUTATION
 
         chi = (1/area)*Lb.transpose()*vd.tail(9);
@@ -1654,43 +1658,45 @@ ShellElementTemplate<doublereal,Membrane,Bending>
           default :  
           case 0 : {
 
-#ifdef COMPATABILITY_MODE
+#ifdef COMPATIBILITY_MODE
+            if(ctyp < 4) {
+
 // .....COMPUTE THE GENERALIZED STRESSES [Sigma = {N,M}] WHICH ARE
 // .....FORCE AND MOMENT PER UNIT LENGTH
 
-            if(i == 0 || ctyp == 4)
-                nmat->GetConstitutiveResponse(Upsilon.data(), Sigma.data(), NULL, eframe.data(), i);
+                if(i == 0)
+                    nmat->GetConstitutiveResponse(Upsilon.data(), Sigma.data(), NULL, eframe.data(), i);
 
-            if (surface == 1) {
+                if (surface == 1) {
 
 // .....ESTIMATE THE LOCAL STRESSES ON THE UPPER SURFACE
 
-                sigma = N/thick + 6*M/(thick*thick); 
+                    sigma = N/thick + 6*M/(thick*thick); 
 
-            }
+                }
 
-            else if (surface == 2) {
+                else if (surface == 2) {
 
 // .....ESTIMATE THE LOCAL STRESSES ON THE MEDIAN SURFACE
 
-                sigma = N/thick;
+                    sigma = N/thick;
 
-            }
+                }
 
-            else if (surface == 3) {
+                else if (surface == 3) {
 
 // .....ESTIMATE THE LOCAL STRESSES ON THE LOWER SURFACE
 
-                sigma = N/thick - 6*M/(thick*thick);
+                    sigma = N/thick - 6*M/(thick*thick);
 
+                }
             }
-#else
+            else
+#endif
 
 // .....COMPUTE THE LOCAL STRESSES ON THE SPECIFIED SURFACE
 
             nmat->GetLocalConstitutiveResponse(Upsilon.data(), sigma.data(), z, eframe.data(), i);
-
-#endif
 
 // .....CALCULATE VON MISES EQUIVALENT STRESS
 
@@ -1881,7 +1887,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
     doublereal zeta[3][3] = { { 1.,0.,0. }, { 0.,1.,0. }, { 0.,0.,1. } }; // triangular coordinates of nodes
     for(i = 0; i < 3; ++i) {
 
-#ifdef COMPATABILITY_MODE
+#ifdef COMPATIBILITY_MODE
 // .....ELEMENTAL CURVATURE COMPUTATION
 
         chi = (1./area)*Lb.transpose()*vd.tail(9);
@@ -1929,43 +1935,50 @@ ShellElementTemplate<doublereal,Membrane,Bending>
           default :  
           case 0 : {
 
-#ifdef COMPATABILITY_MODE
+#ifdef COMPATIBILITY_MODE
+            if(ctyp < 4) {
+
 // .....COMPUTE THE GENERALIZED STRESSES [Sigma = {N,M}] WHICH ARE
 // .....FORCE AND MOMENT PER UNIT LENGTH
-            if(i == 0 || ctyp == 4)
-                nmat->GetConstitutiveResponse(Upsilon.data(), Sigma.data(), NULL, eframe.data(), i);
-                nmat->GetConstitutiveResponseSensitivityWRTdisp(dUpsilondu.data(), dSigmadu.data(), NULL, eframe.data(), i);
 
-            if (surface == 1) {
+                if(i == 0)
+                    nmat->GetConstitutiveResponse(Upsilon.data(), Sigma.data(), NULL, eframe.data(), i);
+                    nmat->GetConstitutiveResponseSensitivityWRTdisp(dUpsilondu.data(), dSigmadu.data(), NULL, eframe.data(), i);
+
+                if (surface == 1) {
 
 // .....ESTIMATE THE LOCAL STRESSES ON THE UPPER SURFACE
 
-                sigma = N/thick + 6*M/(thick*thick); 
-                dsigmadu = 1./thick*dSigmadu.topRows(3) + 6./(thick*thick)*dSigmadu.bottomRows(3);
-            }
+                    sigma = N/thick + 6*M/(thick*thick); 
+                    dsigmadu = 1./thick*dSigmadu.topRows(3) + 6./(thick*thick)*dSigmadu.bottomRows(3);
+                }
 
-            else if (surface == 2) {
+                else if (surface == 2) {
 
 // .....ESTIMATE THE LOCAL STRESSES ON THE MEDIAN SURFACE
 
-                sigma = N/thick;
-                dsigmadu = 1./thick*dSigmadu.topRows(3);
-            }
+                    sigma = N/thick;
+                    dsigmadu = 1./thick*dSigmadu.topRows(3);
+                }
 
-            else if (surface == 3) {
+                else if (surface == 3) {
 
 // .....ESTIMATE THE LOCAL STRESSES ON THE LOWER SURFACE
 
-                sigma = N/thick - 6*M/(thick*thick);
-                dsigmadu = 1./thick*dSigmadu.topRows(3) - 6./(thick*thick)*dSigmadu.bottomRows(3);
+                    sigma = N/thick - 6*M/(thick*thick);
+                    dsigmadu = 1./thick*dSigmadu.topRows(3) - 6./(thick*thick)*dSigmadu.bottomRows(3);
+                }
             }
-#else
+            else {
+#endif
 
 // .....COMPUTE THE LOCAL STRESSES ON THE SPECIFIED SURFACE
 
             nmat->GetLocalConstitutiveResponse(Upsilon.data(), sigma.data(), z, eframe.data(), i);
             nmat->GetLocalConstitutiveResponseSensitivityWRTdisp(dUpsilondu.data(), dsigmadu.data(), z, eframe.data(), i);
 
+#ifdef COMPATIBILITY_MODE
+            }
 #endif
 
 // .....CALCULATE VON MISES EQUIVALENT STRESS
@@ -2177,7 +2190,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
     doublereal zeta[3][3] = { { 1.,0.,0. }, { 0.,1.,0. }, { 0.,0.,1. } }; // triangular coordinates of nodes
     for(i = 0; i < 3; ++i) {
 
-#ifdef COMPATABILITY_MODE
+#ifdef COMPATIBILITY_MODE
 // .....ELEMENTAL CURVATURE COMPUTATION
 
         chi = (1./area)*Lb.transpose()*vd.tail(9);
@@ -2212,45 +2225,52 @@ ShellElementTemplate<doublereal,Membrane,Bending>
           default :  
           case 0 : {
 
-#ifdef COMPATABILITY_MODE
+#ifdef COMPATIBILITY_MODE
+            if(ctyp < 4) {
+
 // .....COMPUTE THE GENERALIZED STRESSES [Sigma = {N,M}] WHICH ARE
 // .....FORCE AND MOMENT PER UNIT LENGTH
-            if(i == 0 || ctyp == 4)
-                nmat->GetConstitutiveResponse(Upsilon.data(), Sigma.data(), NULL, eframe.data(), i);
-                nmat->GetConstitutiveResponseSensitivityWRTthickness(Upsilon.data(), dSigmadh.data(), NULL, eframe.data(), i);
 
-            if (surface == 1) {
+                if(i == 0)
+                    nmat->GetConstitutiveResponse(Upsilon.data(), Sigma.data(), NULL, eframe.data(), i);
+                    nmat->GetConstitutiveResponseSensitivityWRTthickness(Upsilon.data(), dSigmadh.data(), NULL, eframe.data(), i);
+
+                if (surface == 1) {
 
 // .....ESTIMATE THE LOCAL STRESSES ON THE UPPER SURFACE
 
-                sigma = N/thick + 6*M/(thick*thick); 
-                dsigmadh = 1./thick*dSigmadh.head(3) + 6./(thick*thick)*dSigmadh.tail(3)
-                         - N/(thick*thick) - 12*M/(thick*thick*thick);
-            }
+                    sigma = N/thick + 6*M/(thick*thick); 
+                    dsigmadh = 1./thick*dSigmadh.head(3) + 6./(thick*thick)*dSigmadh.tail(3)
+                             - N/(thick*thick) - 12*M/(thick*thick*thick);
+                }
 
-            else if (surface == 2) {
+                else if (surface == 2) {
 
 // .....ESTIMATE THE LOCAL STRESSES ON THE MEDIAN SURFACE
 
-                sigma = N/thick;
-                dsigmadh = 1./thick*dSigmadh.head(3) 
-                         - N/(thick*thick);
-            }
+                    sigma = N/thick;
+                    dsigmadh = 1./thick*dSigmadh.head(3) 
+                             - N/(thick*thick);
+                }
 
-            else if (surface == 3) {
+                else if (surface == 3) {
 
 // .....ESTIMATE THE LOCAL STRESSES ON THE LOWER SURFACE
 
-                sigma = N/thick - 6*M/(thick*thick);
-                dsigmadh = 1./thick*dSigmadh.head(3) - 6./(thick*thick)*dSigmadh.tail(3)
-                         - N/(thick*thick) + 12*M/(thick*thick*thick);
+                    sigma = N/thick - 6*M/(thick*thick);
+                    dsigmadh = 1./thick*dSigmadh.head(3) - 6./(thick*thick)*dSigmadh.tail(3)
+                             - N/(thick*thick) + 12*M/(thick*thick*thick);
+                }
             }
-#else
+            else {
+#endif
 // .....COMPUTE THE LOCAL STRESSES ON THE SPECIFIED SURFACE
 
             nmat->GetLocalConstitutiveResponse(Upsilon.data(), sigma.data(), z, eframe.data(), i);
             nmat->GetLocalConstitutiveResponseSensitivityWRTthick(Upsilon.data(), dsigmadh.data(), dzdh, eframe.data(), i);
 
+#ifdef COMPATIBILITY_MODE
+            }
 #endif
 
 // .....CALCULATE VON MISES EQUIVALENT STRESS
@@ -2441,10 +2461,6 @@ ShellElementTemplate<doublereal,Membrane,Bending>
            3*sxy/vms*dsigmadh.template block<1,1>(2,0);
 }
 
-
-
-
-
 template<typename doublereal, template<typename> class Membrane, template<typename> class Bending>
 void
 ShellElementTemplate<doublereal,Membrane,Bending>
@@ -2594,26 +2610,17 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 //     -----------------                                                
 //                                                                      
 //     elm      <input>   Finite Element Number                         
-//     maxstr   <input>   Maximum Number of Stresses                    
-//     nu       <input>   Poisson's Ratio (for an Isotropic Element)    
-//     globalX  <input>   X- Nodal Coordinates                          
-//     globalY  <input>   Y- Nodal Coordinates                          
-//     globalZ  <input>   Z- Nodal Coordinates                          
-//     globalU  <input>   Global Displacements at the Nodal Joints      
-//     stress   <output>  Stresses (Von Mises Stress) of the Element    
-//     ctyp     <input>   Type of Constitutive Law (0, 1, 2, or 3)      
+//     state    <input>   Material States                   
+//     X        <input>   X- Nodal Coordinates                          
+//     Y        <input>   Y- Nodal Coordinates                          
+//     Z        <input>   Z- Nodal Coordinates                          
+//     _v       <input>   Global Displacements at the Nodal Joints      
 //                                                                      
 // ==================================================================== 
-// Author   = Francois M. Hemez                                         
-// Date     = June 10th, 1995                                           
-// Version  = 2.0                                                       
-// Modified = K. H. Pierson                                             
-// Date     = April 11, 1997                                            
-// Reason   = Added stress calculations for sigmaxx, sigmayy, sigmaxy   
-//            and von mises stress at top, median and bottom surfaces   
-//            Also added strain calculations for epsilonxx, epsilonyy,  
-//            epsilonzz, epsilonxy and an equivalent strain at top,     
-//            median and bottom surfaces.                               
+// Author   = Philip J. S. Avery                                       
+// Date     = September 13, 2011        
+// Version  = 1.0                                                        
+// Comment  =   
 // ==================================================================== 
 
 //     ---------------------------------- 
@@ -2679,7 +2686,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
     doublereal eta[3][3] = { { 1.,0.,0. }, { 0.,1.,0. }, { 0.,0.,1. } }; // triangular coordinates of nodes
     for(i = 0; i < 3; ++i) {
 
-#ifdef COMPATABILITY_MODE
+#ifdef COMPATIBILITY_MODE
 // .....ELEMENTAL CURVATURE COMPUTATION
 
         chi = (1/area)*Lb.transpose()*vd.tail(9);

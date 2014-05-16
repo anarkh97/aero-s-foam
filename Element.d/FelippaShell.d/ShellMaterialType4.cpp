@@ -5,6 +5,7 @@
 #include <Eigen/Core>
 #include <Element.d/FelippaShell.d/ShellMaterial.hpp>
 #include <iostream>
+#include <vector>
 
 template<typename doublereal, typename localmaterial>
 void
@@ -148,7 +149,6 @@ ShellMaterialType4<doublereal,localmaterial>
     sigma[2] = _sigma[1]; // xy
 }
 
-#include <vector>
 template<typename doublereal, typename localmaterial>
 void
 ShellMaterialType4<doublereal,localmaterial>

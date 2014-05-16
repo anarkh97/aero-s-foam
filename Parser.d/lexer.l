@@ -86,6 +86,12 @@ TRAIL [a-zA-Z]*
 
 "READMODE"[a-zA-Z]*|"readmode"[a-zA-Z]* { return READMODE; }
 
+"READSHAPESEN"[a-zA-Z]*|"readshapesen"[a-zA-Z]* { return READSHAPESEN; }
+
+"NUMTHICKNESSGROUP"|"numthicknessgroup" { return NUMTHICKNESSGROUP; }
+
+"NUMSHAPEVARIABLE"|"numshapevariable"   { return NUMSHAPEVARIABLE; }
+
 "USE_MASS_NORMALIZED_BASIS"|"use_mass_normalized_basis" { return USEMASSNORMALIZEDBASIS; }
 
 "PRES"[a-zA-Z]*|"pres"[a-zA-Z]*    { return PRESSURE; }
@@ -198,7 +204,7 @@ TRAIL [a-zA-Z]*
 
 "idisp6pita"|"IDISP6PITA"          { return PITADISP6; }
 
-"ivel6pita"|"IVEL6PITA"            { return PITAVEL6; }         
+"ivel6pita"|"IVEL6PITA"            { return PITAVEL6; }        
 
 "IDISP"[a-zA-Z]*|"idisp"[a-zA-Z]*  { return IDIS;  }
 
@@ -980,25 +986,29 @@ TRAIL [a-zA-Z]*
 
 "ovmstdis"|"OVMSTDIS"              { yylval.ival = OutputInfo::VMstDisp; return SENSITIVITYID; }
 
-"ovmstcoo"|"OVMSTCOO"              { yylval.ival = OutputInfo::VMstCoord; return SENSITIVITYID; }
+"ovmstsha"|"OVMSTSHA"              { yylval.ival = OutputInfo::VMstShap; return SENSITIVITYID; }
 
 "ostifthi"|"OSTIFTHI"              { yylval.ival = OutputInfo::StifThic; return SENSITIVITYID; }
 
 "odispthi"|"ODISPTHI"              { yylval.ival = OutputInfo::DispThic; return SENSITIVITYID; }
 
+"olstasha"|"OLSTASHA"              { yylval.ival = OutputInfo::LstaShap; return SENSITIVITYID; }
+
 "weigthic"|"WEIGTHIC"              { yylval.ival = SensitivityInfo::WeightWRTthickness;       return SENSITIVITYTYPE; }
 
 "vmstthic"|"VMSTTHIC"              { yylval.ival = SensitivityInfo::StressVMWRTthickness;     return SENSITIVITYTYPE; }
 
-"gforthic"|"GFORTHIC"              { yylval.ival = SensitivityInfo::GravityWRTthickness;     return SENSITIVITYTYPE; }
+"gforthic"|"GFORTHIC"              { yylval.ival = SensitivityInfo::GravityWRTthickness;      return SENSITIVITYTYPE; }
 
 "vmstdisp"|"VMSTDISP"              { yylval.ival = SensitivityInfo::StressVMWRTdisplacement;  return SENSITIVITYTYPE; }
 
-"vmstcoord"|"VMSTCOORD"            { yylval.ival = SensitivityInfo::StressVMWRTcoordinate;    return SENSITIVITYTYPE; }
+"vmstshap"|"VMSTSHAP"              { yylval.ival = SensitivityInfo::StressVMWRTshape;         return SENSITIVITYTYPE; }
 
 "stffthic"|"STFFTHIC"              { yylval.ival = SensitivityInfo::StiffnessWRTthickness;    return SENSITIVITYTYPE; }
 
 "lstathic"|"LSTATHIC"              { yylval.ival = SensitivityInfo::LinearStaticWRTthickness; return SENSITIVITYTYPE; }
+
+"lstashap"|"LSTASHAP"              { yylval.ival = SensitivityInfo::LinearStaticWRTshape;      return SENSITIVITYTYPE; }
 
 "analytic"|"ANALYTIC"                                 { yylval.ival = SensitivityInfo::Analytic;                 return SENSITIVITYMETHOD; }
 

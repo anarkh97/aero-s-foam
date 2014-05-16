@@ -47,7 +47,7 @@ ModeData modeData;
 
 Domain::Domain(Domain &d, int nele, int *eles, int nnodes, int *nnums)
   : nodes(*new CoordSet(nnodes)), lmpc(0), fsi(0), ymtt(0), ctett(0), sdetaft(0),
-    SurfEntities(0), MortarConds(0)
+    SurfEntities(0), MortarConds(0), numThicknessGroups(0), numShapeVars(0)
 {
  initialize();
 
@@ -1776,6 +1776,69 @@ Domain::readInModes(char* modeFileName)
          filePrint(stderr, " *** ERROR: Check input for mode data (numstrings = %d) in file %s ... exiting\n", numsubstring, modeFileName);
          exit(0);
      }
+   }
+ }
+}
+
+void
+Domain::readInShapeDerivatives(char* shapeDerFileName)
+{
+ filePrint(stderr," ... Read in Shape Derivatives from file: %s ...\n",shapeDerFileName);
+
+ // Open file containing mode shapes and frequencies.
+ FILE *f;
+ if((f=fopen(shapeDerFileName,"r"))==(FILE *) 0 ){
+   filePrint(stderr," *** ERROR: Cannot open %s, exiting...",shapeDerFileName);
+   exit(0);
+ }
+ fflush(f);
+
+ char str[80];
+ // Read in number of shape variables and number of nodes
+ fscanf(f,"%s%s%s%s%s%s",str,str,str,str,str,str);
+ int count = fscanf(f, "%d\n%d", &shapeSenData.numNodes, &shapeSenData.numVars);
+
+ typedef double (*T3)[3];
+ shapeSenData.index = new int[shapeSenData.numVars];
+ shapeSenData.sensitivities = new T3[shapeSenData.numVars];
+ shapeSenData.nodes         = new int[shapeSenData.numNodes*2]; //NOTE: assumes that global node number does not exceed twice of number of nodes
+
+ // Read shape sensitivities
+ int iSen, iNode, numsubstring;
+ char input[500], *substring;
+ double tmpinput[7];
+
+ //int jj;
+ for(iSen=0; iSen<shapeSenData.numVars; ++iSen) {
+   shapeSenData.sensitivities[iSen] = new double[shapeSenData.numNodes][3];
+
+   count = fscanf(f,"%d\n",&shapeSenData.index[iSen]);
+
+   //int nodeNum;
+   for(iNode=0; iNode<shapeSenData.numNodes; ++iNode) {
+
+     char *c = fgets(input, 500, f);
+     substring = strtok(input, " ");
+     numsubstring = 0;
+     do {
+       tmpinput[numsubstring] = strtod(substring, NULL);
+       if (strncmp(substring, "\n", 1) == 0)
+         break;
+       substring = strtok(NULL, " ");
+       ++numsubstring;
+
+     } while (substring != NULL);
+
+     if(numsubstring != 4) {
+       filePrint(stderr, " *** ERROR: Check input for shape sensitivity data (numstrings = %d) in file %s ... must be 4 ... exiting\n", numsubstring, shapeDerFileName);
+       exit(-1);
+     } 
+ 
+     int cnode = (int) tmpinput[0] - 1;
+     shapeSenData.nodes[cnode] = iNode;
+     shapeSenData.sensitivities[iSen][iNode][0] = tmpinput[1];
+     shapeSenData.sensitivities[iSen][iNode][1] = tmpinput[2];
+     shapeSenData.sensitivities[iSen][iNode][2] = tmpinput[3];
    }
  }
 }

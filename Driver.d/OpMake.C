@@ -3366,23 +3366,37 @@ void Domain::sensitivityPostProcessing(AllSensitivities<Scalar> &allSens) {
   for(int i = 0; i < numOutInfo; ++i)  {
     if(oinfo[i].sentype == 0) continue;
     if(oinfo[i].type == OutputInfo::WeigThic) {
+#ifdef SENSITIVITY_DEBUG
       if(verboseFlag) filePrint(stderr," ... output weight wrt thickness sensitivity\n");
       if(verboseFlag) std::cerr << (*allSens.weightWRTthick);
+#endif
       geoSource->outputEigenScalars(i, allSens.weightWRTthick, allSens.weight);
     }
     if(oinfo[i].type == OutputInfo::StifThic) {
+#ifdef SENSITIVITY_DEBUG
       if(verboseFlag) filePrint(stderr," ... output stiffness wrt thickness sensitivity\n");
+#endif
       for(int g = 0; g < geoSource->group.size(); ++g) {
         geoSource->outputEigenVectors(i, allSens.stiffnessWRTthick[g], double(g+1));
       }
     }
     if(oinfo[i].type == OutputInfo::VMstThic) geoSource->outputEigenVectors(i, allSens.vonMisesWRTthick);
     if(oinfo[i].type == OutputInfo::VMstDisp) geoSource->outputEigenVectors(i, allSens.vonMisesWRTdisp);
-    if(oinfo[i].type == OutputInfo::VMstCoord) geoSource->outputEigenVectors(i, allSens.vonMisesWRTcoord);
+    if(oinfo[i].type == OutputInfo::VMstShap) geoSource->outputEigenVectors(i, allSens.vonMisesWRTshape);
     if(oinfo[i].type == OutputInfo::DispThic) {
+#ifdef SENSITIVITY_DEBUG
       if(verboseFlag) filePrint(stderr," ... output displacement wrt thickness sensitivity\n");
+#endif
       for(int g = 0; g < geoSource->group.size(); ++g) {
         geoSource->outputEigenVectors(i, allSens.dispWRTthick[g], double(g+1));
+      }
+    }
+    if(oinfo[i].type == OutputInfo::LstaShap) {
+#ifdef SENSITIVITY_DEBUG
+      if(verboseFlag) filePrint(stderr," ... output linear static governing equation wrt shape variable sensitivity\n");
+#endif
+      for(int s = 0; s < numShapeVars; ++s) {
+        geoSource->outputEigenVectors(i, allSens.stiffnessWRTshape[s], double(s+1));
       }
     }
   }

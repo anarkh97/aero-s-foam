@@ -1,10 +1,6 @@
 #ifndef	_ELEMENT_H_
 #define	_ELEMENT_H_
 
-//#ifndef SENSITIVITY_DEBUG
-//#define SENSITIVITY_DEBUG
-//#endif
-
 #include <Math.d/ComplexD.h>
 #include <Utils.d/BlockAlloc.h>
 #include <Utils.d/dofset.h>
@@ -389,7 +385,7 @@ class Element {
 
         virtual FullSquareMatrix stiffness(CoordSet& cs,double *k,int flg=1);
         virtual void getStiffnessThicknessSensitivity(CoordSet& cs,FullSquareMatrix &dStiffdThick, int flg=1, int senMethod=0);
-        virtual void getStiffnessNodalCoordinateSensitivity(CoordSet& cs,FullSquareMatrix *&dStiffdx, int flg=1, int senMethod=0);
+        virtual void getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs, int senMethod=0);
         virtual FullSquareMatrix massMatrix(CoordSet& cs,double *m,int cmflg=1);
         virtual FullSquareMatrix imStiffness(CoordSet& cs,double *k,int flg=1);
         FullSquareMatrix massMatrix(CoordSet& cs, double* m, double mratio);

@@ -1,9 +1,9 @@
 #ifndef _DOMAIN_H_
 #define _DOMAIN_H_
 
-//#ifndef SENSITIVITY_DEBUG
-//#define SENSITIVITY_DEBUG
-//#endif
+#ifndef SENSITIVITY_DEBUG
+#define SENSITIVITY_DEBUG
+#endif
 
 #include <iostream>
 #include <cassert>
@@ -20,6 +20,7 @@
 #include <Parser.d/AuxDefs.h>
 #include <Sfem.d/Sfem.h>
 #include <Utils.d/OutputInfo.h>
+#include <Utils.d/ShapeSensitivityData.h>
 #include <Mortar.d/MortarDriver.d/MortarHandler.h>
 
 class MortarHandler;
@@ -144,30 +145,34 @@ template<class Scalar>
 struct AllSensitivities
 {
 #ifdef USE_EIGEN3
-  double weight; // total weight of the structure 
+  double weight;           // total weight of the structure
   Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *weightWRTthick;                     // derivatives of weight wrt thickness
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *vonMisesWRTthick;      // derivatives of von Mises stress wrt thickness
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *vonMisesWRTdisp;       // derivatives of von Mises stress wrt displacement
-  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *vonMisesWRTcoord;      // derivatives of von Mises stress wrt nodal coordinate
+  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *vonMisesWRTshape;      // derivatives of von Mises stress wrt shape varibales
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **stiffnessWRTthick;    // derivatives of stiffness wrt thickness 
-  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **dKucdthick;    // derivatives of stiffness wrt thickness 
+  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **stiffnessWRTshape;    // derivatives of stiffness wrt shape variables 
+  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **dKucdthick;           // derivatives of constrained stiffness wrt thickness 
+  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **dKucdshape;           // derivatives of constrained stiffness wrt shape variables 
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *stressWeight;          // weight used to average stress sensitivity
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **linearstaticWRTthick; // derivative of linear static structural formulation wrt thickness
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **dispWRTthick;         // derivative of displacement wrt thickness
   // Constructor
-  AllSensitivities() { weight = 0;                weightWRTthick = 0;
-                       vonMisesWRTthick = 0;      dKucdthick = 0;            vonMisesWRTcoord = 0; 
-                       vonMisesWRTdisp = 0;       stressWeight = 0;          stiffnessWRTthick = 0;   
-                       linearstaticWRTthick = 0;  dispWRTthick = 0; }
+  AllSensitivities() { weight = 0;                
+                       weightWRTthick = 0;        vonMisesWRTthick = 0;      dKucdthick = 0;            vonMisesWRTshape = 0; 
+                       vonMisesWRTdisp = 0;       stressWeight = 0;          stiffnessWRTthick = 0;     dKucdshape = 0; 
+                       linearstaticWRTthick = 0;  dispWRTthick = 0;          stiffnessWRTshape = 0; }
 
   void zero() {
     if(weightWRTthick) weightWRTthick->setZero();
     if(vonMisesWRTthick) vonMisesWRTthick->setZero();
     if(vonMisesWRTdisp) vonMisesWRTdisp->setZero();
-    if(vonMisesWRTcoord) vonMisesWRTcoord->setZero();
+    if(vonMisesWRTshape) vonMisesWRTshape->setZero();
     if(stressWeight) stressWeight->setZero();
     if(stiffnessWRTthick) stiffnessWRTthick[0]->setZero();
+    if(stiffnessWRTshape) stiffnessWRTshape[0]->setZero();
     if(dKucdthick) dKucdthick[0]->setZero();
+    if(dKucdshape) dKucdshape[0]->setZero();
     if(linearstaticWRTthick) linearstaticWRTthick[0]->setZero();
     if(dispWRTthick) dispWRTthick[0]->setZero();
   }
@@ -258,6 +263,7 @@ class Domain : public HData {
      SolverInfo sinfo;		// solver information structure
      ControlLawInfo *claw;      // contains user defined routine information
      DMassData *firstDiMass;	// Discrete Mass
+     ShapeSensitivityData shapeSenData;
      int nDimass;               // number of DMASS
      double *gravityAcceleration;   // (gx,gy,gz)
      double gravitySloshing;    // g, added for sloshing problem
@@ -316,6 +322,9 @@ class Domain : public HData {
     bool sowering;
     bool output_match_in_top;
 
+    int numThicknessGroups;  // number of thickness groups
+    int numShapeVars;        // number of shape variables
+
     void writeTopFileElementSets(ControlInfo *cinfo, int * nodeTable, int* nodeNumber, int topFlag);
 
     Elemset elems_copy; // Needed for SFEM
@@ -361,12 +370,15 @@ class Domain : public HData {
      void setSilent()  { outFile = 0;      }
      void setOutputMatchInTop(bool b) {output_match_in_top = b;};
      void readInModes(char* modesFileName);
+     void readInShapeDerivatives(char* shapeDerFileName);
      void setSowering(bool b) { sowering = b;}
      bool getSowering() { return sowering;}
      void make_bc(int *bc, double *bcx);
      void make_bc(int *bc, DComplex *bcxC);
      void makeAllDOFs();
      void makeAllDOFsFluid();
+     void setNumThicknessGroups(int _numT) { numThicknessGroups = _numT; }
+     void setNumShapeVars(int _numS) { numShapeVars = _numS; }
 
      void createKelArray(FullSquareMatrix *& kel);
      void createKelArray(FullSquareMatrix *& kel,FullSquareMatrix *& mel);
@@ -561,6 +573,8 @@ class Domain : public HData {
      void printCTETT();
      void computeTDProps();
 
+     ShapeSensitivityData getShapeSensitivityData() { return shapeSenData; }
+
      virtual void setUpData();
      SolverInfo  &solInfo() { return sinfo; }
      MatrixTimers &getTimers() { return *matrixTimers; }
@@ -576,6 +590,7 @@ class Domain : public HData {
 
      void computeWeightWRTthicknessSensitivity(int, AllSensitivities<double> &allSens);
      void computeStiffnessWRTthicknessSensitivity(int, AllSensitivities<double> &allSens);
+     void computeStiffnessWRTShapeVariableSensitivity(int, AllSensitivities<double> &allSens);
      void makePreSensitivities(AllSensitivities<double> &allSens, double *);
      void makePreSensitivities(AllSensitivities<DComplex> &allSens, DComplex *);
 
@@ -591,8 +606,8 @@ class Domain : public HData {
                                                  bool isDynam = false);
      void computeStressVMWRTdisplacementSensitivity(int, AllSensitivities<double> &allSens,
                                                     GenVector<double> &sol, double *bcx);
-     void computeStressVMWRTnodalCoordinateSensitivity(int, AllSensitivities<double> &allSens,
-                                                       GenVector<double> &sol, double *bcx);
+     void computeStressVMWRTShapeVariableSensitivity(int, AllSensitivities<double> &allSens,
+                                                     GenVector<double> &sol, double *bcx);
      void makePostSensitivities(GenSolver<double> *, GenSparseMatrix<double> *, GenSparseMatrix<double> *,
                                 AllSensitivities<double> &allSens, GenVector<double> &sol, double *, bool isDynam = false);
      void makePostSensitivities(GenSolver<DComplex> *, GenSparseMatrix<DComplex> *, GenSparseMatrix<DComplex> *, 

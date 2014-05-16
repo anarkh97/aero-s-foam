@@ -15,6 +15,7 @@
 #include <Element.d/FelippaShell.d/ShellElementStressWRTDisplacementSensitivity.h>
 #include <Element.d/FelippaShell.d/ShellElementStressWRTNodalCoordinateSensitivity.h>
 #include <Element.d/FelippaShell.d/FelippaShellStiffnessWRTThicknessSensitivity.h>
+#include <Element.d/FelippaShell.d/ShellElementStiffnessWRTNodalCoordinateSensitivity.h>
 #include <Element.d/NonLinearity.d/ExpMat.h>
 #include <Element.d/NonLinearity.d/MaterialWrapper.h>
 #include <Element.d/Function.d/SpaceDerivatives.h>
@@ -1399,10 +1400,9 @@ FelippaShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
 
 #ifdef USE_EIGEN3
 void 
-FelippaShell::getStiffnessNodalCoordinateSensitivity(CoordSet &cs, FullSquareMatrix *&dStiffdx, int flg, int senMethod)
+FelippaShell::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs, int senMethod)
 {
-/*
-     if(dStiffdx[0].dim() != 18) {
+   if(dStiffdx[0].dim() != 18) {
      std::cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
      exit(-1);
    }
@@ -1414,17 +1414,17 @@ FelippaShell::getStiffnessNodalCoordinateSensitivity(CoordSet &cs, FullSquareMat
   Node &nd2 = cs.getNode(nn[1]);
   Node &nd3 = cs.getNode(nn[2]);
 
-  dconst[0] = nmat->GetShellThickness();
-  dconst[1] = prop->E; // E
-  dconst[2] = prop->nu;   // nu
-  dconst[3] = prop->rho;  // rho
+  dconst[0] = prop->E;    // E
+  dconst[1] = prop->nu;   // nu
+  dconst[2] = prop->rho;  // rho
+  dconst[3] = nmat->GetShellThickness();
   // integer parameters
   Eigen::Array<int,0,1> iconst;
   // inputs
   Eigen::Matrix<double,9,1> q;
   q << nd1.x, nd1.y, nd1.z, nd2.x, nd2.y, nd2.z, nd3.x, nd3.y, nd3.z;
 
-  Eigen::Matrix<double,18,18> *dStiffnessdx = new Eigen::Matrix<double,18,18>[9];
+  Eigen::Array<Eigen::Matrix<double,18,18>,1,9> dStiffnessdx;
   if(senMethod == 0) { // analytic
     std::cerr << " ... Warning: analytic stiffness sensitivity wrt nodal coordinate is not implemented yet\n";
     std::cerr << " ...          instead, automatic differentiation will be applied\n";
@@ -1432,34 +1432,34 @@ FelippaShell::getStiffnessNodalCoordinateSensitivity(CoordSet &cs, FullSquareMat
   }
 
   if(senMethod == 1) { // automatic differentiation
-    Simo::FirstPartialSpaceDerivatives<double, FelippaShellStiffnessWRTNodalCoordinateSensitivity> dSdx(dconst,iconst); 
-    Eigen::Array<Eigen::Matrix<double,18,18>,1,1> dStifdx = dSdx(q, 0);
+    Simo::FirstPartialSpaceDerivatives<double, ShellElementStiffnessWRTNodalCoordinateSensitivity> dKdx(dconst,iconst); 
+    dStiffnessdx = dKdx(q, 0);
 #ifdef SENSITIVITY_DEBUG
-    if(verboseFlag) std::cerr << "dStifdThick(AD) =\n" << dStifdx[0] << std::endl;
+    std::cerr << "dStifdThick(AD) =\n";
+    if(verboseFlag) for(int i=0; i<9; ++i) std::cerr << "dStifdThick_" << i << "\n" << dStiffnessdx[i] << std::endl;
 #endif
-    dStiffnessdx = dStifdx[0];
   }
 
   if(senMethod == 2) { // finite difference
-    FelippaShellStiffnessWRTNodalCoordinateSensitivity<double> foo(dconst,iconst);
+    ShellElementStiffnessWRTNodalCoordinateSensitivity<double> foo(dconst,iconst);
     Eigen::Matrix<double,9,1> qp, qm;
     double h(1e-6);
     for(int i=0; i<9; ++i) {
-      qp[0] = q[0] + h;   qm[0] = q[0] - h;
-      Eigen::Matrix<double,18,18> Sp = foo(qp, 0);
-      Eigen::Matrix<double,18,18> Sm = foo(qm, 0);
-      dStiffnessdx[i] = (Sp-Sm)/(2*h);
+      qp = qm = q;
+      qp[i] = q[i] + h;   qm[i] = q[i] - h;
+      Eigen::Matrix<double,18,18> Kp = foo(qp, 0);
+      Eigen::Matrix<double,18,18> Km = foo(qm, 0);
+      dStiffnessdx[i] = (Kp-Km)/(2*h);
     }
     Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
 #ifdef SENSITIVITY_DEBUG
-    if(verboseFlag) std::cerr << "Sp =\n" << Sp.format(HeavyFmt) << std::endl;
-    if(verboseFlag) std::cerr << "Sm =\n" << Sm.format(HeavyFmt) << std::endl;
+    if(verboseFlag) std::cerr << "Kp =\n" << Kp.format(HeavyFmt) << std::endl;
+    if(verboseFlag) std::cerr << "Km =\n" << Km.format(HeavyFmt) << std::endl;
     if(verboseFlag) std::cerr << "dStiffnessdx(FD) =\n" << dStiffnessdx[0].format(HeavyFmt) << std::endl;
 #endif
   }
 
-  dStiffdx.copy(dStiffnessdx.data());
-*/
+  for(int i=0; i<9; ++i) dStiffdx[i].copy(dStiffnessdx[i].data());
 }
 #endif
 

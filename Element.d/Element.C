@@ -471,7 +471,7 @@ Element::getStiffnessThicknessSensitivity(CoordSet&, FullSquareMatrix &dStiffdTh
 }
 
 void
-Element::getStiffnessNodalCoordinateSensitivity(CoordSet&, FullSquareMatrix *&dStiffdx, int, int)
+Element::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs, int)
 {
   for(int i=0; i<numNodes()*3; ++i) dStiffdx[i].zero();
 }

@@ -331,6 +331,7 @@ struct SolverInfo {
    const char * readInModes;
    const char * SVDoutput;
    const char * reducedMeshFile;
+   const char * readInShapeSen;
    std::vector<BlastLoading::BlastData> conwepConfigurations;
    std::vector<std::string> statePodRomFile;
    std::vector<std::string> velocPodRomFile;
@@ -349,6 +350,7 @@ struct SolverInfo {
    bool jacobvectPodRom;
    bool readmodeCalled;
    bool modalCalled;
+   bool readShapeSen; 
    bool activatePodRom;
    bool snapshotsPodRom;
    bool checkPodRom;
@@ -613,6 +615,7 @@ struct SolverInfo {
                   numSnap            = 1;
 		  readInROBorModes   = "";
                   readInModes        = "";
+                  readInShapeSen     = "";
 		  SVDoutput          = "pod.rob";
 		  reducedMeshFile    = "";
                   isvPodRomFile      = "";
@@ -629,6 +632,7 @@ struct SolverInfo {
 		  jacobvectPodRom    = false;
 		  readmodeCalled     = false;
 		  modalCalled        = false;
+		  readShapeSen       = false;
                   activatePodRom     = false;
                   snapshotsPodRom    = false;
                   checkPodRom        = false;

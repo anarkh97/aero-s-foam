@@ -28,7 +28,7 @@ public:
         FullSquareMatrix stiffness(CoordSet& cs, double *d, int flg=1);
 #ifdef USE_EIGEN3
         void getStiffnessThicknessSensitivity(CoordSet& cs, FullSquareMatrix &dStiffdThick, int flg=1, int senMethod=0);
-        void getStiffnessNodalCoordinateSensitivity(CoordSet& cs, FullSquareMatrix *&dStiffdx, int flg=1, int senMethod=0);
+        void getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs, int senMethod=0);
 #endif
         FullSquareMatrix massMatrix(CoordSet& cs,double *mel,int cmflg=1);
 

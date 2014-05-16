@@ -603,6 +603,10 @@ int main(int argc, char** argv)
    }
  }
 
+ if(domain->solInfo().readShapeSen) {
+   domain->readInShapeDerivatives(const_cast<char*>(domain->solInfo().readInShapeSen));
+ }
+
 #define MAX_CODES 4
 #define FLUID_ID 0
 #define STRUC_ID 1

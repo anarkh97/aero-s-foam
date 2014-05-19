@@ -162,6 +162,18 @@ MpcElement::renum(int* table)
       nn[i] = table[nn[i]];
   for(int i = 0; i < nterms; ++i)
     terms[i].nnum = table[terms[i].nnum];
+
+  std::map<int,std::vector<int> > rotation_indices_renum;
+  for(std::map<int,std::vector<int> >::iterator it = rotation_indices.begin(); it != rotation_indices.end(); ++it) {
+    rotation_indices_renum[table[it->first]] = it->second;
+  }
+  rotation_indices = rotation_indices_renum;
+
+  std::map<int,std::vector<double> > rotation_coefs_renum;
+  for(std::map<int,std::vector<double> >::iterator it = rotation_coefs.begin(); it != rotation_coefs.end(); ++it) {
+    rotation_coefs_renum[table[it->first]] = it->second;
+  }
+  rotation_coefs = rotation_coefs_renum;
 }
 
 void
@@ -172,6 +184,18 @@ MpcElement::renum(EleRenumMap& table)
       nn[i] = table[nn[i]];
   for(int i = 0; i < nterms; ++i)
     terms[i].nnum = table[terms[i].nnum];
+
+  std::map<int,std::vector<int> > rotation_indices_renum;
+  for(std::map<int,std::vector<int> >::iterator it = rotation_indices.begin(); it != rotation_indices.end(); ++it) {
+    rotation_indices_renum[table[it->first]] = it->second;
+  }
+  rotation_indices = rotation_indices_renum;
+
+  std::map<int,std::vector<double> > rotation_coefs_renum;
+  for(std::map<int,std::vector<double> >::iterator it = rotation_coefs.begin(); it != rotation_coefs.end(); ++it) {
+    rotation_coefs_renum[table[it->first]] = it->second;
+  }
+  rotation_coefs = rotation_coefs_renum;
 }
 
 int*

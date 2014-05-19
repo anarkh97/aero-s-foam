@@ -1,10 +1,6 @@
 #ifndef _DOMAIN_H_
 #define _DOMAIN_H_
 
-#ifndef SENSITIVITY_DEBUG
-#define SENSITIVITY_DEBUG
-#endif
-
 #include <iostream>
 #include <cassert>
 #include <set>
@@ -156,25 +152,27 @@ struct AllSensitivities
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **dKucdshape;           // derivatives of constrained stiffness wrt shape variables 
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *stressWeight;          // weight used to average stress sensitivity
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **linearstaticWRTthick; // derivative of linear static structural formulation wrt thickness
+  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **linearstaticWRTshape; // derivative of linear static structural formulation wrt shape variables
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **dispWRTthick;         // derivative of displacement wrt thickness
   // Constructor
   AllSensitivities() { weight = 0;                
                        weightWRTthick = 0;        vonMisesWRTthick = 0;      dKucdthick = 0;            vonMisesWRTshape = 0; 
                        vonMisesWRTdisp = 0;       stressWeight = 0;          stiffnessWRTthick = 0;     dKucdshape = 0; 
-                       linearstaticWRTthick = 0;  dispWRTthick = 0;          stiffnessWRTshape = 0; }
+                       linearstaticWRTthick = 0;  linearstaticWRTshape = 0;  dispWRTthick = 0;          stiffnessWRTshape = 0; }
 
-  void zero() {
+  void zero(int numShapeVars=0, int numThicknessGroups=0) {
     if(weightWRTthick) weightWRTthick->setZero();
     if(vonMisesWRTthick) vonMisesWRTthick->setZero();
     if(vonMisesWRTdisp) vonMisesWRTdisp->setZero();
     if(vonMisesWRTshape) vonMisesWRTshape->setZero();
     if(stressWeight) stressWeight->setZero();
-    if(stiffnessWRTthick) stiffnessWRTthick[0]->setZero();
-    if(stiffnessWRTshape) stiffnessWRTshape[0]->setZero();
-    if(dKucdthick) dKucdthick[0]->setZero();
-    if(dKucdshape) dKucdshape[0]->setZero();
-    if(linearstaticWRTthick) linearstaticWRTthick[0]->setZero();
-    if(dispWRTthick) dispWRTthick[0]->setZero();
+    if(stiffnessWRTthick) for(int i=0; i<numThicknessGroups; ++i) stiffnessWRTthick[i]->setZero();
+    if(stiffnessWRTshape) for(int i=0; i<numShapeVars; ++i) stiffnessWRTshape[i]->setZero();
+    if(dKucdthick) for(int i=0; i<numThicknessGroups; ++i) dKucdthick[i]->setZero();
+    if(dKucdshape) for(int i=0; i<numShapeVars; ++i) dKucdshape[i]->setZero();
+    if(linearstaticWRTthick) for(int i=0; i<numThicknessGroups; ++i) linearstaticWRTthick[i]->setZero();
+    if(linearstaticWRTshape) for(int i=0; i<numShapeVars; ++i) linearstaticWRTshape[i]->setZero();
+    if(dispWRTthick) for(int i=0; i<numThicknessGroups; ++i) dispWRTthick[i]->setZero();
   }
 #endif
 };
@@ -594,12 +592,15 @@ class Domain : public HData {
      void makePreSensitivities(AllSensitivities<double> &allSens, double *);
      void makePreSensitivities(AllSensitivities<DComplex> &allSens, DComplex *);
 
-     void subtractGravityForceSensitivity(int, AllSensitivities<double> &allSens);
+     void subtractGravityForceSensitivityWRTthickness(int, AllSensitivities<double> &allSens);
+     void subtractGravityForceSensitivityWRTShapeVariable(int, AllSensitivities<double> &allSens);
      void computeDisplacementWRTthicknessSensitivity(int, GenSolver<double> *, 
                                                      GenSparseMatrix<double> *, GenSparseMatrix<double> *,
                                                      AllSensitivities<double> &);
      void computeLinearStaticWRTthicknessSensitivity(int, AllSensitivities<double> &allSens,
                                                      GenVector<double> &sol);
+     void computeLinearStaticWRTShapeVariableSensitivity(int, AllSensitivities<double> &allSens,
+                                                         GenVector<double> &sol);
      void computeStressVMWRTthicknessSensitivity(int, GenSolver<double> *,
                                                  AllSensitivities<double> &allSens,
                                                  GenVector<double> &sol, double *bcx,

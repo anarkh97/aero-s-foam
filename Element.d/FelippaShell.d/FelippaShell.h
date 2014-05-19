@@ -38,6 +38,9 @@ public:
         void getGravityForceSensitivityWRTthickness(CoordSet&,double *gravity, int senMethod, 
                                                     Vector&, int gravflg, GeomState *gs = 0);
 
+        void getGravityForceSensitivityWRTNodalCoordinate(CoordSet& cs, double *gravityAcceleration, int senMethod,
+                                                          GenFullM<double> &dGfdx, int gravflg, GeomState *gs = 0);
+
         void getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
                          Vector &elDisp, int strInd, int surface = 0,
                          double *ndTemps = 0, double ylayer = 0, double zlayer = 0,

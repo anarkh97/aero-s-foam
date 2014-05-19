@@ -12,6 +12,7 @@
 #include <Element.d/FelippaShell.d/FelippaShell.h>
 #include <Element.d/FelippaShell.d/ShellElementStressWRTThicknessSensitivity.h>
 #include <Element.d/FelippaShell.d/ShellElementGravityForceWRTThicknessSensitivity.h>
+#include <Element.d/FelippaShell.d/ShellElementGravityForceWRTNodalCoordinateSensitivity.h>
 #include <Element.d/FelippaShell.d/ShellElementStressWRTDisplacementSensitivity.h>
 #include <Element.d/FelippaShell.d/ShellElementStressWRTNodalCoordinateSensitivity.h>
 #include <Element.d/FelippaShell.d/FelippaShellStiffnessWRTThicknessSensitivity.h>
@@ -198,6 +199,62 @@ FelippaShell::getGravityForce(CoordSet& cs, double *gravityAcceleration,
 
   andesgf(glNum+1, x, y, z, gravityForce.data(), (double *)ElementMassMatrix, gravityAcceleration,
           grvfor, grvflg, totmas, masflg, gravflg);
+}
+
+void
+FelippaShell::getGravityForceSensitivityWRTNodalCoordinate(CoordSet& cs, double *gravityAcceleration, int senMethod,
+                                                           GenFullM<double> &dGfdx, int gravflg, GeomState *geomState)
+{
+  if (prop == NULL) {
+    dGfdx.zero();
+    return;
+  }
+
+  double x[3] = { cs[nn[0]]->x, cs[nn[1]]->x, cs[nn[2]]->x };
+  double y[3] = { cs[nn[0]]->y, cs[nn[1]]->y, cs[nn[2]]->y };
+  double z[3] = { cs[nn[0]]->z, cs[nn[1]]->z, cs[nn[2]]->z };
+  Eigen::Array<double,7,1> dconst;
+  dconst.segment<3>(0) = Eigen::Map<Eigen::Matrix<double,3,1> >(gravityAcceleration).segment(0,3);
+  dconst[3] = prop->E;    // E
+  dconst[4] = prop->nu;   // nu
+  dconst[5] = prop->rho;  // rho
+  dconst[6] = nmat->GetShellThickness();   // h
+  Eigen::Array<int,1,1> iconst;
+  iconst[0] = gravflg;
+
+  Eigen::Matrix<double,9,1> q;
+  q << x[0], y[0], z[0], x[1], y[1], z[1], x[2], y[2], z[2];
+  Eigen::Matrix<double,18,9> dGravityForcedx;
+  if(senMethod == 1) { // automatic differentiation
+#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER < 1200 || __INTEL_COMPILER > 1210)
+    Simo::Jacobian<double,ShellElementGravityForceWRTNodalCoordinateSensitivity> dGdx(dconst,iconst);
+    dGravityForcedx = dGdx(q, 0);
+#ifdef SENSITIVITY_DEBUG
+    if(verboseFlag) std::cerr << "dGravityForcedx(AD) =\n" << dGravityForcedx << std::endl;
+#endif
+#else
+    std::cerr << "automatic differentiation must avoid intel12 compiler\n";
+    exit(-1);
+#endif
+  } // senMethod == 1
+
+  if(senMethod == 2) { // finite difference
+    double h(1e-6);
+    for(int i=0; i<9; ++i) {
+      ShellElementGravityForceWRTNodalCoordinateSensitivity<double> foo(dconst,iconst);
+      Eigen::Matrix<double,9,1> qp, qm;
+      qp = qm = q;
+      qp[i] = q[i] + h;   qm[i] = q[i] - h;
+      Eigen::Matrix<double,18,1> Gfp = foo(qp, 0);
+      Eigen::Matrix<double,18,1> Gfm = foo(qm, 0);
+      dGravityForcedx.col(i) = (Gfp-Gfm)/(2*h);
+    }
+#ifdef SENSITIVITY_DEBUG
+    Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
+    if(verboseFlag) std::cerr << "dGravityForcedx(FD) =\n" << dGravityForcedx.format(HeavyFmt) << std::endl;
+#endif
+  }
+  dGfdx.copy(dGravityForcedx.data());
 }
 
 void
@@ -1450,13 +1507,13 @@ FelippaShell::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx
       Eigen::Matrix<double,18,18> Kp = foo(qp, 0);
       Eigen::Matrix<double,18,18> Km = foo(qm, 0);
       dStiffnessdx[i] = (Kp-Km)/(2*h);
-    }
-    Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
 #ifdef SENSITIVITY_DEBUG
-    if(verboseFlag) std::cerr << "Kp =\n" << Kp.format(HeavyFmt) << std::endl;
-    if(verboseFlag) std::cerr << "Km =\n" << Km.format(HeavyFmt) << std::endl;
-    if(verboseFlag) std::cerr << "dStiffnessdx(FD) =\n" << dStiffnessdx[0].format(HeavyFmt) << std::endl;
+      Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
+      if(verboseFlag) std::cerr << "Kp =\n" << Kp.format(HeavyFmt) << std::endl;
+      if(verboseFlag) std::cerr << "Km =\n" << Km.format(HeavyFmt) << std::endl;
+      if(verboseFlag) std::cerr << "dStiffnessdx(FD) =\n" << dStiffnessdx[0].format(HeavyFmt) << std::endl;
 #endif
+    }
   }
 
   for(int i=0; i<9; ++i) dStiffdx[i].copy(dStiffnessdx[i].data());

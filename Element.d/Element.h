@@ -400,11 +400,14 @@ class Element {
         virtual double weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int senMethod=1) { return 0; }
         virtual double getDCmass(CoordSet &,Vector &, double&) { return 0; }
 
-        virtual void   getGravityForce(CoordSet&,double *gravity,Vector &force,
-                                       int gravflg, GeomState *gs=0);
+        virtual void getGravityForce(CoordSet&,double *gravity,Vector &force,
+                                     int gravflg, GeomState *gs=0);
 
-        virtual void   getGravityForceSensitivityWRTthickness(CoordSet&,double *gravity, int senMethod, Vector &force,
-                                                              int gravflg, GeomState *gs=0);
+        virtual void getGravityForceSensitivityWRTthickness(CoordSet&,double *gravity, int senMethod, Vector &force,
+                                                            int gravflg, GeomState *gs=0);
+
+        virtual void getGravityForceSensitivityWRTNodalCoordinate(CoordSet& cs, double *gravityAcceleration, int senMethod,
+                                                                  GenFullM<double> &dGfdx, int gravflg, GeomState *geomState = 0);
 
         virtual void   getThermalForce(CoordSet& cs,Vector &ndT,Vector &force,
                                        int glflag, GeomState *gs=0);

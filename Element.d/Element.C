@@ -169,6 +169,15 @@ Element::getGravityForceSensitivityWRTthickness(CoordSet&, double *, int senMeth
 }
 
 void
+Element::getGravityForceSensitivityWRTNodalCoordinate(CoordSet& cs, double *gravityAcceleration, int senMethod,
+                                                      GenFullM<double> &dGfdx, int gravflg, GeomState *geomState)
+{
+  if(!isConstraintElement() && !isSpring())
+    fprintf(stderr," *** WARNING: Gravity force Sensitivity not implemented for element (%6d), type %3d\n", getGlNum()+1, elementType);
+  dGfdx.zero();
+}
+
+void
 Element::getThermalForce(CoordSet&, Vector &, Vector &force, int glflag,
                          GeomState *)
 {

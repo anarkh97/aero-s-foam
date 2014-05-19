@@ -3084,7 +3084,7 @@ Domain::computeStiffnessWRTShapeVariableSensitivity(int sindex, AllSensitivities
        int DofsPerElement = packedEset[iele]->numDofs();
        int nnodes = packedEset[iele]->numNodes();
        FullSquareMatrix *dStiffnessdCoord = new FullSquareMatrix[3*nnodes];
-       for(int i=0; i<3*nnodes; ++i) { dStiffnessdCoord[i] = FullSquareMatrix(DofsPerElement); dStiffnessdCoord[i].zero(); }
+       for(int i=0; i<3*nnodes; ++i) { dStiffnessdCoord[i].setSize(DofsPerElement); dStiffnessdCoord[i].zero(); }
        packedEset[iele]->getStiffnessNodalCoordinateSensitivity(dStiffnessdCoord, nodes, senInfo[sindex].method);
 //       dStiffnessdCoord = packedEset[iele]->stiffness(nodes, dStiffnessdCoord.data());
        // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
@@ -3166,7 +3166,7 @@ Domain::computeLinearStaticWRTthicknessSensitivity(int sindex,
 // COMMENTED THE BLOCK BELOW FOR DEBUG PURPOSE
      for(int iparam = 0; iparam < numThicknessGroups; ++iparam) {
        Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > disp(sol.data(),numUncon(),1);
-       Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
+//       Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
 //       if(verboseFlag) std::cerr << "print disp\n" << disp.format(HeavyFmt) << std::endl;
        if(allSens.stiffnessWRTthick) {
          *allSens.linearstaticWRTthick[iparam] = (*allSens.stiffnessWRTthick[iparam]) * disp;
@@ -3186,13 +3186,55 @@ Domain::computeLinearStaticWRTthicknessSensitivity(int sindex,
          *allSens.linearstaticWRTthick[iparam] += (*allSens.dKucdthick[iparam]) * Vc;
        }
      }
-     subtractGravityForceSensitivity(sindex,allSens);
+     subtractGravityForceSensitivityWRTthickness(sindex,allSens);
 
 #endif
 }
 
+void
+Domain::computeLinearStaticWRTShapeVariableSensitivity(int sindex,
+                                                       AllSensitivities<double> &allSens,
+                                                       GenVector<double> &sol)
+{
+#ifdef USE_EIGEN3
+     allSens.linearstaticWRTshape = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[numShapeVars];
+     if(numShapeVars != shapeSenData.numVars) {
+       std::cerr << " *** ERROR: number of shape variables is not equal to the one in Shape Derivative file\n";
+       exit(-1);
+     }
+     for(int s=0; s<numShapeVars; ++s) {
+       allSens.linearstaticWRTshape[s] = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numUncon(),1);
+       allSens.linearstaticWRTshape[s]->setZero();   // this line and next line are for DEBUG purpose
+     }
+// COMMENTED THE BLOCK BELOW FOR DEBUG PURPOSE
+     for(int ishape = 0; ishape < numShapeVars; ++ishape) {
+       Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > disp(sol.data(),numUncon(),1);
+//       Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
+//       if(verboseFlag) std::cerr << "print disp\n" << disp.format(HeavyFmt) << std::endl;
+       if(allSens.stiffnessWRTshape) {
+         *allSens.linearstaticWRTshape[ishape] = (*allSens.stiffnessWRTshape[ishape]) * disp;
+       } else {
+         std::cerr << "ERROR! stiffnessWRTshape is not defined yet\n";
+         exit(-1);
+       }
+       if(numDirichlet) {
+         Eigen::Matrix<double, Eigen::Dynamic, 1> Vc(numDirichlet);
+         Vc.setZero();
+         for(int i = 0; i < numDirichlet; ++i) {
+           int dof = dsa->locate(dbc[i].nnum, (1 << dbc[i].dofnum));
+           if(dof < 0) continue;
+           int dof2 = c_dsa->invRCN(dof);
+           if(dof2 >= 0) Vc[dof2] = dbc[i].val;
+         }
+         *allSens.linearstaticWRTshape[ishape] += (*allSens.dKucdshape[ishape]) * Vc;
+       }
+     }
+     subtractGravityForceSensitivityWRTShapeVariable(sindex,allSens);
+#endif
+}
+
 void 
-Domain::subtractGravityForceSensitivity(int sindex, AllSensitivities<double> &allSens)
+Domain::subtractGravityForceSensitivityWRTthickness(int sindex, AllSensitivities<double> &allSens)
 {
 #ifdef USE_EIGEN3
      Vector elementGravityForceSen(maxNumDOFs);
@@ -3228,6 +3270,51 @@ Domain::subtractGravityForceSensitivity(int sindex, AllSensitivities<double> &al
       }
 #ifdef SENSITIVITY_DEBUG
       if(verboseFlag) std::cerr << "printing linearstaticWRTthick[" << iparam << "]\n" << *allSens.linearstaticWRTthick[iparam] << std::endl;
+#endif
+     }
+#endif
+}
+
+void 
+Domain::subtractGravityForceSensitivityWRTShapeVariable(int sindex, AllSensitivities<double> &allSens)
+{
+#ifdef USE_EIGEN3
+     int gravflg;
+     if(numShapeVars != shapeSenData.numVars) {
+       std::cerr << " *** ERROR: number of shape variables is not equal to the one in Shape Derivative file\n"; 
+       exit(-1);
+     }
+     for(int iele = 0; iele < numele; ++iele) {
+       int DofsPerElement = packedEset[iele]->numDofs();
+       int NodesPerElement = elemToNode->num(iele);
+       GenFullM<double> elementGravityForceSen(3*NodesPerElement,DofsPerElement,double(0.0));
+       if(packedEset[iele]->getProperty() == 0) continue; // phantom element
+       if(geoSource->consistentQFlag() && !(sinfo.isDynam() && packedEset[iele]->getMassType() == 0))
+         gravflg = 2;
+       else gravflg = geoSource->fixedEndM;
+       elementGravityForceSen.zero();
+       packedEset[iele]->getGravityForceSensitivityWRTNodalCoordinate(nodes, gravityAcceleration, senInfo[sindex].method, elementGravityForceSen, gravflg);
+
+       // transform vector from basic to DOF_FRM coordinates
+//       transformVector(elementGravityForceSen, iele); //TODO->commented out for now, but if nodes does not use basic coordinate frame, then shouldn't comment this out
+//       std::cerr << "norm of elementGravityForceSen is " << elementGravityForceSen.norm() << std::endl;
+  
+       for(int idof = 0; idof < allDOFs->num(iele); ++idof) {
+         int cn = c_dsa->getRCN((*allDOFs)[iele][idof]);
+         if(cn >= 0) {
+           for(int k = 0; k < NodesPerElement; ++k) {
+             int node1 = (outFlag) ? nodeTable[(*elemToNode)[iele][k]]-1 : (*elemToNode)[iele][k];
+             int inode = shapeSenData.nodes[node1];
+             for(int xyz = 0; xyz < 3; ++xyz) {
+               for(int ishap = 0; ishap < numShapeVars; ++ishap) {
+                 (*allSens.linearstaticWRTshape[ishap])(cn,0) -= elementGravityForceSen[3*k+xyz][idof]*shapeSenData.sensitivities[ishap][inode][xyz];
+               }
+             }
+           } 
+         } 
+       }      
+#ifdef SENSITIVITY_DEBUG
+       if(verboseFlag) for(int ishap=0; ishap<numShapeVars; ++ishap) std::cerr << "printing linearstaticWRTshape[" << ishap << "]\n" << *allSens.linearstaticWRTshape[ishap] << std::endl;
 #endif
      }
 #endif
@@ -3519,6 +3606,7 @@ Domain::makePostSensitivities(GenSolver<double> *sysSolver,
    case SensitivityInfo::LinearStaticWRTshape:
    {
      if(!allSens.stiffnessWRTshape) computeStiffnessWRTShapeVariableSensitivity(sindex,allSens);
+     if(!allSens.linearstaticWRTshape) computeLinearStaticWRTShapeVariableSensitivity(sindex,allSens,sol);
      break;
    } 
    case SensitivityInfo::StressVMWRTthickness: 

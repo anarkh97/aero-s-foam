@@ -391,7 +391,7 @@ SuperElement::getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
     Vector *subElementDisp = 0;
     if(superCorotator) {
       double *subd = superCorotator->getPreviouslyExtractedSubDeformations(i);
-      // if available, use the element displacemented from the corotator instead of elDisp (for non-linear)
+      // if available, use the element displacement from the corotator instead of elDisp (for non-linear)
       if(subd) subElementDisp = new StackVector(subd, subElems[i]->numDofs());
     }
     if(!subElementDisp) subElementDisp = new Vector(elDisp, subElems[i]->numDofs(), subElemDofs[i]);
@@ -427,7 +427,7 @@ SuperElement::getAllStress(FullM &stress, Vector &weight, CoordSet &cs,
     Vector *subElementDisp = 0;
     if(superCorotator) {
       double *subd = superCorotator->getPreviouslyExtractedSubDeformations(i);
-      // if available, use the element displacemented from the corotator instead of elDisp (for non-linear)
+      // if available, use the element displacement from the corotator instead of elDisp (for non-linear)
       if(subd) subElementDisp = new StackVector(subd, subElems[i]->numDofs());
     }
     if(!subElementDisp) subElementDisp = new Vector(elDisp, subElems[i]->numDofs(), subElemDofs[i]);

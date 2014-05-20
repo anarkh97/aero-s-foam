@@ -825,7 +825,7 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
               geoSource->outputNodeScalars(i, &plot_data[oinfo[i].nodeNumber], 1, time);
             delete [] plot_data;
           }
-          else fprintf(stderr, " *** AS.WRN: output %d is not supported \n", i);
+          else fprintf(stderr, " *** WARNING: output %d is not supported \n", i);
         } break;
         case OutputInfo::Reactions: {
           Vector fc(numDirichlet);
@@ -888,7 +888,7 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
         
       }
       if (success == 0)
-        fprintf(stderr, " *** AS.WRN: output %d is not supported \n", i);
+        fprintf(stderr, " *** WARNING: output %d is not supported \n", i);
     }
   }
 

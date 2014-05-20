@@ -1755,8 +1755,8 @@ Domain::getStressStrain(GeomState &geomState, Corotator **allCorot,
   int p = oinfo[fileNumber].precision;
 
   // ... WRITE CURRENT TIME VALUE
-  //if(oinfo[fileNumber].nodeNumber == -1)
-   // fprintf(oinfo[fileNumber].filptr,"  % *.*E\n",w,p,time);
+  if(avgnum == 0 || avgnum == -1)
+    fprintf(oinfo[fileNumber].filptr,"  % *.*E\n",w,p,time);
 
   // ... ALLOCATE VECTORS STRESS AND WEIGHT AND INITIALIZE TO ZERO
   if(stress == 0)
@@ -1950,7 +1950,7 @@ Domain::getPrincipalStress(GeomState &geomState, Corotator **allCorot,
   weight->zero();
 
   // ... WRITE CURRENT TIME VALUE
-  if(n == -1) {
+  if(avgnum == 0) {
     fprintf(oinfo[fileNumber].filptr,"  % *.*E\n",w,p,time);
   }
 
@@ -1995,8 +1995,9 @@ Domain::getPrincipalStress(GeomState &geomState, Corotator **allCorot,
 // ... PRINT NON-AVERAGED STRESS VALUES IF REQUESTED
 //     THIS WRITES THE CHOSEN PRINCIPAL STRESS FOR EACH ELEMENT
     if(avgnum == 0) {
-      geoSource->outputNodeScalars(fileNumber, (*p_elstress)[0]+(5+strDir), 1);
-      //fprintf(oinfo[fileNumber].filptr," % *.*E\n", w,p,(*p_elstress)[0][5+strDir]);
+      for(k=0; k<NodesPerElement; ++k)
+         fprintf(oinfo[fileNumber].filptr," % *.*E",w,p,(*p_elstress)[k][5+strDir]);
+       fprintf(oinfo[fileNumber].filptr,"\n");
     }
   }
 
@@ -2050,7 +2051,6 @@ Domain::getPrincipalStress(GeomState &geomState, Corotator **allCorot,
         }
         pstress(svec,pvec);
         globalPVec[l] = pvec[strDir-1];
-        //fprintf(oinfo[fileNumber].filptr," % *.*E\n",w,p,pvec[strDir-1]);
       }
       geoSource->outputNodeScalars(fileNumber, globalPVec, numNodesOut, time);
     }

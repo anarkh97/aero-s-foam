@@ -3535,7 +3535,7 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
           break;
       }
       if (success == 0)
-        fprintf(stderr, " *** AS.WRN: output %d is not supported \n", i);
+        fprintf(stderr, " *** WARNING: output %d is not supported \n", i);
     }
     if(globVal)
       { delete [] globVal; globVal = 0; }

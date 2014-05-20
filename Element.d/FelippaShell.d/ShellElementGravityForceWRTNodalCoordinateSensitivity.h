@@ -38,7 +38,7 @@ class ShellElementGravityForceWRTNodalCoordinateSensitivity : public VectorValue
       Scalar x[3] = { q[0], q[3], q[6] };
       Scalar y[3] = { q[1], q[4], q[7] };
       Scalar z[3] = { q[2], q[5], q[8] };
-      ele.setnmat(new ShellMaterialType0<Scalar>(E, h, nu, rho));
+      ele.setgpmat(new ShellMaterialType0<Scalar>(E, h, nu, rho));
 
       Scalar ElementMassMatrix[18][18];
       Eigen::Matrix<Scalar,18,1> gravityForce;

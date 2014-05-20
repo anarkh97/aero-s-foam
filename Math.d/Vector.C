@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <cmath>
 #include <Math.d/mathUtility.h>
+#include <iomanip>
 
 #include <algorithm>
 
@@ -526,7 +527,7 @@ void
 GenVector<Scalar>::print(const char *msg, const char* msg2)
 {
  if(msg) std::cerr << msg << " ";
- for(int i=0; i<len; ++i) std::cerr << d[i] << " ";
+ for(int i=0; i<len; ++i) std::cerr << std::setprecision(10) << d[i] << " ";
  std::cerr << std::endl;
 }
 

@@ -37,7 +37,7 @@ class ShellElementGravityForceWRTThicknessSensitivity : public VectorValuedFunct
       // inputs:
       // q[0] = shell thickness
 
-      ele.setnmat(new ShellMaterialType0<Scalar>(E, q[0], nu, rho));
+      ele.setgpmat(new ShellMaterialType0<Scalar>(E, q[0], nu, rho));
 
       Eigen::Matrix<Scalar,18,18> ElementMassMatrix;
       Eigen::Matrix<Scalar,18,1> gravityForce;

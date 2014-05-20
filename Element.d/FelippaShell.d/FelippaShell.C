@@ -1509,8 +1509,6 @@ FelippaShell::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx
       dStiffnessdx[i] = (Kp-Km)/(2*h);
 #ifdef SENSITIVITY_DEBUG
       Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
-      if(verboseFlag) std::cerr << "Kp =\n" << Kp.format(HeavyFmt) << std::endl;
-      if(verboseFlag) std::cerr << "Km =\n" << Km.format(HeavyFmt) << std::endl;
       if(verboseFlag) std::cerr << "dStiffnessdx(FD) =\n" << dStiffnessdx[0].format(HeavyFmt) << std::endl;
 #endif
     }

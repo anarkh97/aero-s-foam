@@ -3284,6 +3284,9 @@ Domain::subtractGravityForceSensitivityWRTShapeVariable(int sindex, AllSensitivi
        std::cerr << " *** ERROR: number of shape variables is not equal to the one in Shape Derivative file\n"; 
        exit(-1);
      }
+
+//     for(int ishap=0; ishap<numShapeVars; ++ishap) allSens.linearstaticWRTshape[ishap]->setZero();
+
      for(int iele = 0; iele < numele; ++iele) {
        int DofsPerElement = packedEset[iele]->numDofs();
        int NodesPerElement = elemToNode->num(iele);

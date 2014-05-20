@@ -1580,6 +1580,7 @@ Domain::addGravityForce(GenVector<Scalar> &force)
 {
   // ... ADD ELEMENT MASS CONTRIBUTION ...
   Vector elementGravityForce(maxNumDOFs);
+  GenVector<Scalar> gravityForce(force.size(),0.0);
   int gravflg;
   for(int iele = 0; iele < numele; ++iele) {
     if(packedEset[iele]->getProperty() == 0) continue; // phantom element
@@ -1597,10 +1598,14 @@ Domain::addGravityForce(GenVector<Scalar> &force)
 
     for(int idof = 0; idof < allDOFs->num(iele); ++idof) {
       int cn = c_dsa->getRCN((*allDOFs)[iele][idof]);
-      if(cn >= 0)
+      if(cn >= 0) {
         force[cn] += elementGravityForce[idof];
+        gravityForce[cn] += elementGravityForce[idof];
+      }
     }
   }
+  std::cerr << "print gravity force\n";
+  gravityForce.print();
 
   // ... ADD DISCRETE MASS TO GRAVITY FORCE ...
   DMassData *current = firstDiMass;

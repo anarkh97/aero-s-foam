@@ -1226,7 +1226,6 @@ GeomState::transform(Vector &f, const std::vector<int> &weightedNodes, int type,
 void
 GeomState::get_tot_displacement(Vector &totVec, bool rescaled)
 {
-  //cerr << "here in GeomState::get_tot_displacement\n";
   double x0, y0, z0, vec[3];
 
   // Loop over all of the nodes

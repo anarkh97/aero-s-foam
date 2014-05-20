@@ -1905,6 +1905,10 @@ Domain::getPrincipalStress(Vector &sol, double *bcx, int fileNumber,
   // lower  surface = 3
 
   int j,k;
+  // ... OUTPUT FILE field width
+  int w = oinfo[fileNumber].width;
+  // ... OUTPUT FILE precision
+  int p = oinfo[fileNumber].precision;
   // ... OUTPUT NODE NUMBER
   int n = oinfo[fileNumber].nodeNumber;
 
@@ -1930,6 +1934,11 @@ Domain::getPrincipalStress(Vector &sol, double *bcx, int fileNumber,
   // zero the vectors
   p_stress->zero();
   weight->zero();
+
+  // ... WRITE CURRENT TIME VALUE
+  if(avgnum == 0) {
+    fprintf(oinfo[fileNumber].filptr,"  % *.*E\n",w,p,time);
+  }
 
   for(iele=0; iele<numele; ++iele) {
 
@@ -1982,8 +1991,10 @@ Domain::getPrincipalStress(Vector &sol, double *bcx, int fileNumber,
 // ... PRINT NON-AVERAGED STRESS VALUES IF REQUESTED
 //     THIS WRITES THE CHOSEN PRINCIPAL STRESS FOR EACH ELEMENT
     if(avgnum == 0) {
-      geoSource->outputNodeScalars(fileNumber, (*p_elstress)[0]+(5+strDir), 1);
-
+      //geoSource->outputNodeScalars(fileNumber, (*p_elstress)[0]+(5+strDir), 1);
+      for(k=0; k<NodesPerElement; ++k)
+         fprintf(oinfo[fileNumber].filptr," % *.*E",w,p,(*p_elstress)[k][5+strDir]);
+       fprintf(oinfo[fileNumber].filptr,"\n");
     }
   }
 

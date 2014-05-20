@@ -633,7 +633,7 @@ ThreeNodeShell::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix 
   }
 
   if(senMethod == 1) { // automatic differentiation
-#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER < 1200 || __INTEL_COMPILER > 1210)
+#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER >= 1300)
     Simo::FirstPartialSpaceDerivatives<double, ThreeNodeShellStiffnessWRTThicknessSensitivity> dSdh(dconst,iconst); 
     Eigen::Array<Eigen::Matrix<double,18,18>,1,1> dStifdThick = dSdh(q, 0);
     dStiffnessdThick = dStifdThick[0];
@@ -1179,7 +1179,7 @@ ThreeNodeShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weigh
     }
 
     if(senMethod == 1) { // automatic differentiation
-#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER < 1200 || __INTEL_COMPILER > 1210)
+#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER >= 1300)
       Simo::Jacobian<double,ThreeNodeShellStressWRTThicknessSensitivity> dSdu(dconst,iconst);
       dStressdThic = dSdu(q, 0);
       dStdThick.copy(dStressdThic.data());
@@ -1293,7 +1293,7 @@ ThreeNodeShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, V
     }
 
     if(senMethod == 1) { // automatic differentiation
-#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER < 1200 || __INTEL_COMPILER > 1210)
+#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER >= 1300)
       Simo::Jacobian<double,ThreeNodeShellStressWRTDisplacementSensitivity> dSdu(dconst,iconst);
       dStressdDisp = dSdu(q, 0);
       dStdDisp.copy(dStressdDisp.data());
@@ -1403,7 +1403,7 @@ ThreeNodeShell::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, V
     }
 
     if(senMethod == 1) { // automatic differentiation
-#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER < 1200 || __INTEL_COMPILER > 1210)
+#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER >= 1300)
       Simo::Jacobian<double,ThreeNodeShellStressWRTNodalCoordinateSensitivity> dSdx(dconst,iconst);
       dStressdx = dSdx(q, 0);
       dStdx.copy(dStressdx.data());

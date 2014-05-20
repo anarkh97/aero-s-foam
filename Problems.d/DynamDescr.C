@@ -957,10 +957,13 @@ SingleDomainDynamic::getInternalForce(Vector& d, Vector& f, double t, int tIndex
     Vector residual(domain->numUncon(),0.0);
     Vector fele(domain->maxNumDOF());
     if(reactions) reactions->zero();
-    // NOTE: for explicit nonlinear dynamics, geomState and refState are the same object
+    // NOTE #1: for explicit nonlinear dynamics, geomState and refState are the same object
+    // NOTE #2: by convention, the internal variables associated with a nonlinear constitutive relation are not updated
+    //          when getStiffAndForce is called, so we have to call updateStates.
     if(domain->solInfo().stable && domain->solInfo().isNonLin() && tIndex%domain->solInfo().stable_freq == 0) {
       domain->getStiffAndForce(*geomState, fele, allCorot, kelArray, residual, 1.0, t, geomState,
                                reactions, melArray);
+      domain->updateStates(geomState, *geomState, allCorot);
     }
     else {
       domain->getInternalForce(*geomState, fele, allCorot, kelArray, residual, 1.0, t, geomState,

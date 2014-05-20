@@ -1090,10 +1090,13 @@ MultiDomainDynam::subGetInternalForce(int isub, DistrVector &f, double &t, int &
   StackVector *subReactions = NULL;
   if(reactions) { subReactions = new StackVector(reactions->subData(isub), reactions->subLen(isub)); subReactions->zero(); }
   
-  // NOTE: for explicit nonlinear dynamics, geomState and refState are the same object
+  // NOTE #1: for explicit nonlinear dynamics, geomState and refState are the same object
+  // NOTE #2: by convention, the internal variables associated with a nonlinear constitutive relation are not updated
+  //          when getStiffAndForce is called, so we have to call updateStates.
   if(domain->solInfo().stable && domain->solInfo().isNonLin() && tIndex%domain->solInfo().stable_freq == 0) {
     sd->getStiffAndForce(*(*geomState)[isub], eIF, allCorot[isub], kelArray[isub], residual, 1.0, t, (*geomState)[isub],
                          subReactions, melArray[isub]);
+    sd->updateStates((*geomState)[isub], *(*geomState)[isub], allCorot[isub]);
   }
   else {
     sd->getInternalForce(*(*geomState)[isub], eIF, allCorot[isub], kelArray[isub], residual, 1.0, t, (*geomState)[isub],

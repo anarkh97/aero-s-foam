@@ -3,8 +3,11 @@
 
 #include <Element.d/FelippaShell.d/ShellMaterial.hpp>
 
-// Note: the following needs to be defined for full compatability with the implementation of elements 8 and 20
-#define COMPATABILITY_MODE
+// Note: The following needs to be defined for full compatability with the implementation of elements 8 and 20.
+//       The recommended setting is undefined. In this case the stress output is more accurate, although a little
+//       more costly, and the augmented mass matrix is used by default resulting in a larger critical time-step
+//       for explicit dynamics.
+//#define COMPATIBILITY_MODE
 
 template<typename doublereal, template<typename> class Membrane, template<typename> class Bending>
 class ShellElementTemplate : public Membrane<doublereal>, public Bending<doublereal>

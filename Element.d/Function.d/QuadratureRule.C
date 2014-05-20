@@ -1,4 +1,4 @@
-#include<iostream>
+#include <iostream>
 
 template<typename T>
 void
@@ -636,6 +636,6 @@ void
 TriangleQuadratureRule<T,VecType>::getAbscissaAndWeight(int i, VecType& xi, T& weight)
 {
   T zeta;
-  getGaussPtOnTriangle(n, i, xi[0], xi[1], zeta, weight);
+  getGaussPtOnTriangle(n, i+1, xi[0], xi[1], zeta, weight);
 }
 

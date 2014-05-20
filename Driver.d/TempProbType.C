@@ -89,13 +89,13 @@ TempSolver<
   double gamma;
   probDesc->getTempNeum(gamma);
   if(gamma == 0)
-    filePrint(stderr, " ... Explicit Forward Euler Method  ..."
+    filePrint(stderr, " ... Explicit Forward Euler Method  ...\n"
                       " ... i.e. α = 0                     ...\n");
   else if(gamma == 0.5)
-    filePrint(stderr, " ... Implicit Midpoint Rule         ..."
+    filePrint(stderr, " ... Implicit Midpoint Rule         ...\n"
                       " ... i.e. α = ½                     ...\n");
   else if(gamma == 1.0)
-    filePrint(stderr, " ... Implicit Backward Euler Method ..."
+    filePrint(stderr, " ... Implicit Backward Euler Method ...\n"
                       " ... i.e. α = 1                     ...\n");
   else
     filePrint(stderr, " ... Imp. Generalized Midpoint Rule ...\n"

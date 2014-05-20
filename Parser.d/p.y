@@ -64,7 +64,7 @@
 
 %expect 6
 
-%token ACTUATORS AERO AEROH AEROTYPE AMAT ANALYSIS ARCLENGTH ATTRIBUTES ANGULAROUTTYPE
+%token ACTUATORS AERO AEROH AEROTYPE ALPROC AMAT ANALYSIS ARCLENGTH ATTRIBUTES ANGULAROUTTYPE
 %token AUGMENT AUGMENTTYPE AVERAGED ATDARB ACOU ATDDNB ATDROB ARPACK ATDDIR ATDNEU
 %token AXIHDIR AXIHNEU AXINUMMODES AXINUMSLICES AXIHSOMMER AXIMPC AUXCOARSESOLVER ACMECNTL ADDEDMASS AEROEMBED AUGMENTED
 %token BLOCKDIAG BOFFSET BUCKLE BGTL BMPC BINARYINPUT BINARYOUTPUT BLOCKSIZE
@@ -87,7 +87,7 @@
 %token LAYC LAYN LAYD LAYO LAYMAT LFACTOR LMPC LOAD LOADCASE LOBPCG LOCALSOLVER LINESEARCH LUMPED
 %token MASS MATERIALS MATLAB MAXITR MAXORTHO MAXVEC MODAL MPCPRECNO MPCPRECNOID MPCTYPE MPCTYPEID MPCSCALING MPCELEMENT MPCBLOCKID 
 %token MPCBLK_OVERLAP MFTT MRHS MPCCHECK MUMPSICNTL MUMPSCNTL MECH MODDAMP MODEFILTER MOMENTTYPE MPROJECT MAXIMUM
-%token NDTYPE NEIGPA NEWMARK NewLine NL NLMAT NLPREC NOCOARSE NODETOKEN NONINPC
+%token NDTYPE NEIGPA NEWMARK NewLine NEWTON NL NLMAT NLPREC NOCOARSE NODETOKEN NONINPC
 %token NSBSPV NLTOL NUMCGM NOSECONDARY NFRAMES
 %token OPTIMIZATION OUTPUT OUTPUT6 OUTPUTFRAME
 %token QSTATIC QLOAD
@@ -130,7 +130,7 @@
 %type <frame>    Frame
 %type <nframe>   NodalFrame
 %type <fval>     Float DblConstant
-%type <ival>     AEROTYPE Attributes AUGMENTTYPE AVERAGED 
+%type <ival>     AEROTYPE ALPROC AlProc Attributes AUGMENTTYPE AVERAGED 
 %type <ival>     COLLOCATEDTYPE CORNERTYPE COMPLEXOUTTYPE TDENFORC CSTYPE ANGULAROUTTYPE ROTVECOUTTYPE
 %type <ival>     ELEMENTARYFUNCTIONTYPE FETIPREC FETI2TYPE FRAMETYPE
 %type <ival>     GTGSOLVER Integer IntConstant ITERTYPE LoadCase
@@ -3987,10 +3987,14 @@ DEMInfo:
           domain->solInfo().setProbType(SolverInfo::DisEnrM);
         }
         ;
+AlProc:
+        ALPROC
+        { $$ = $1; }
+        | Integer
+        { $$ = $1; }
 NLInfo:
         NL NewLine
-        { 
-          if(domain->solInfo().probType == SolverInfo::Static || domain->solInfo().probType == SolverInfo::None)
+        { if(domain->solInfo().probType == SolverInfo::Static || domain->solInfo().probType == SolverInfo::None)
             domain->solInfo().probType = SolverInfo::NonLinStatic;
           else if(domain->solInfo().probType == SolverInfo::Dynamic)
             domain->solInfo().probType = SolverInfo::NonLinDynam;
@@ -3999,20 +4003,17 @@ NLInfo:
             domain->solInfo().probType = SolverInfo::NonLinDynam;
           }
           domain->solInfo().fetiInfo.type = FetiInfo::nonlinear;
-          domain->solInfo().getNLInfo().setDefaults(); // just in case PIECEWISE is used under statics
-        }
+          domain->solInfo().getNLInfo().setDefaults(); /* just in case PIECEWISE is used under statics */ }
+        | NLInfo NEWTON NewLine
+        {}
         | NLInfo ARCLENGTH NewLine
-        { 
-          if(domain->solInfo().probType == SolverInfo::NonLinStatic)
-            domain->solInfo().probType = SolverInfo::ArcLength;
-        }
+        { if(domain->solInfo().probType == SolverInfo::NonLinStatic)
+            domain->solInfo().probType = SolverInfo::ArcLength; }
         | NLInfo NLMAT NewLine
-        { 
-          if(domain->solInfo().probType == SolverInfo::NonLinStatic)
+        { if(domain->solInfo().probType == SolverInfo::NonLinStatic)
             domain->solInfo().probType = SolverInfo::MatNonLinStatic;
           else if(domain->solInfo().probType == SolverInfo::NonLinDynam)
-            domain->solInfo().probType = SolverInfo::MatNonLinDynam;
-        }
+            domain->solInfo().probType = SolverInfo::MatNonLinDynam; }
         | NLInfo LINEARELASTIC NewLine
         { domain->solInfo().getNLInfo().linearelastic = true; }
         | NLInfo MAXITR Integer NewLine
@@ -4045,24 +4046,24 @@ NLInfo:
         { domain->solInfo().getNLInfo().unsymmetric = true; }
         | NLInfo LFACTOR Float NewLine
         { domain->solInfo().getNLInfo().lfactor = $3; }
-        | NLInfo LINESEARCH Integer NewLine
+        | NLInfo LINESEARCH AlProc NewLine
         { domain->solInfo().getNLInfo().linesearch.type = $3; }
-        | NLInfo LINESEARCH Integer Integer NewLine
+        | NLInfo LINESEARCH AlProc Integer NewLine
         { domain->solInfo().getNLInfo().linesearch.type = $3; 
           domain->solInfo().getNLInfo().linesearch.maxit = $4; }
-        | NLInfo LINESEARCH Integer Integer Float NewLine
+        | NLInfo LINESEARCH AlProc Integer Float NewLine
         { domain->solInfo().getNLInfo().linesearch.type = $3;
           domain->solInfo().getNLInfo().linesearch.maxit = $4;
           // note: currently we use either c1 or c2, but never both
           domain->solInfo().getNLInfo().linesearch.c1 = $5;
           domain->solInfo().getNLInfo().linesearch.c2 = $5; }
-        | NLInfo LINESEARCH Integer Integer Float Float NewLine
+        | NLInfo LINESEARCH AlProc Integer Float Float NewLine
         { domain->solInfo().getNLInfo().linesearch.type = $3;
           domain->solInfo().getNLInfo().linesearch.maxit = $4;
           domain->solInfo().getNLInfo().linesearch.c1 = $5; 
           domain->solInfo().getNLInfo().linesearch.c2 = $5;
           domain->solInfo().getNLInfo().linesearch.tau = $6; }
-        | NLInfo LINESEARCH Integer Integer Float Float Integer NewLine
+        | NLInfo LINESEARCH AlProc Integer Float Float Integer NewLine
         { domain->solInfo().getNLInfo().linesearch.type = $3;
           domain->solInfo().getNLInfo().linesearch.maxit = $4;
           domain->solInfo().getNLInfo().linesearch.c1 = $5; 

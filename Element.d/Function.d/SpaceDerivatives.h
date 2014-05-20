@@ -43,7 +43,7 @@ struct assign_coherent_impl<Eigen::Matrix<Scalar, A_Rows, A_Cols, A_Options, A_M
                             Eigen::Matrix<Scalar, B_Rows, B_Cols, B_Options, B_MaxRows, B_MaxCols> > {
   typedef Eigen::Matrix<Scalar, A_Rows, A_Cols, A_Options, A_MaxRows, A_MaxCols> A;
   typedef Eigen::Matrix<Scalar, B_Rows, B_Cols, B_Options, B_MaxRows, B_MaxCols> B;
-  static void run(const A& a, B& b) { b = Eigen::Map<B>(const_cast<Scalar*>(a.data()),a.rows(),a.cols()); }
+  static void run(const A& a, B& b) { b = Eigen::Map<B>(const_cast<Scalar*>(a.data())); }
 };
 
 template<typename Scalar, int A_Cols, int A_Options, int A_MaxRows, int A_MaxCols,

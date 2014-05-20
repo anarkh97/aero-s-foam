@@ -581,7 +581,7 @@ class Domain : public HData {
      void setGravitySloshing(double gg);
 
      virtual int glToPackElem(int e);
-     void ProcessSurfaceBCs();
+     void ProcessSurfaceBCs(int topFlag);
      void setNewProperties(int s);
      void assignRandMat();
      void retrieveElemset();

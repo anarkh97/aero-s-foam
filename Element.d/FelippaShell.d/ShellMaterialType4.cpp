@@ -141,14 +141,13 @@ ShellMaterialType4<doublereal,localmaterial>
     F[7] = 0.0;              // zy
     F[8] = 1.0 - nu/(1-nu)*(epsilon[0]+epsilon[1]); // zz
 
-    mat[nlayer*nd+ilayer]->ComputeElastoPlasticConstitutiveResponse(F, &_sigma, NULL, false);
+    mat[nlayer*nd+ilayer]->ComputeElastoPlasticConstitutiveResponse(F, &_sigma, NULL, true);
 
     sigma[0] = _sigma[0]; // xx
     sigma[1] = _sigma[4]; // yy
     sigma[2] = _sigma[1]; // xy
 }
 
-#include <vector>
 template<typename doublereal, typename localmaterial>
 void
 ShellMaterialType4<doublereal,localmaterial>

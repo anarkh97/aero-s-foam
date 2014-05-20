@@ -160,7 +160,7 @@ Membrane::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector 
     }
 
     if(senMethod == 1) { // automatic differentiation
-#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER < 1200 || __INTEL_COMPILER > 1210)
+#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER >= 1300)
       Simo::Jacobian<double,MembraneStressWRTDisplacementSensitivity> dSdu(dconst,iconst);
       dStressdDisp = dSdu(q, 0);
       dStdDisp.copy(dStressdDisp.data());
@@ -264,7 +264,7 @@ Membrane::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight, Coo
     }
 
     if(senMethod == 1) { // automatic differentiation
-#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER < 1200 || __INTEL_COMPILER > 1210)
+#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER >= 1300)
       Simo::Jacobian<double,MembraneStressWRTThicknessSensitivity> dSdu(dconst,iconst);
       dStressdThic = dSdu(q, 0);
       dStdThick.copy(dStressdThic.data());
@@ -729,7 +729,7 @@ Membrane::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix &dStif
   }
 
   if(senMethod == 1) { // automatic differentiation
-#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER < 1200 || __INTEL_COMPILER > 1210)
+#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER >= 1300)
     Simo::FirstPartialSpaceDerivatives<double, MembraneStiffnessWRTThicknessSensitivity> dSdh(dconst,iconst); 
     Eigen::Array<Eigen::Matrix<double,18,18>,1,1> dStifdThick = dSdh(q, 0);
 #ifdef SENSITIVITY_DEBUG

@@ -9,4 +9,5 @@ jacobi.f pade.f zpade.f
 BinaryOutput.C
 DomainPita.C
 GeoSourceInstance.C OpMakeInstance.C
-ControlLawInfo.C BinaryOutputInstance.C)
+ControlLawInfo.C BinaryOutputInstance.C
+EFrameData.C)

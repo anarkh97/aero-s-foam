@@ -1204,6 +1204,7 @@ class Domain : public HData {
      virtual void densProjectStiffness(GenFullSquareMatrix<double>& kel, int num) { /* do nothing */ }
      virtual void densProjectStiffnessC(GenFullSquareMatrix<DComplex>& kel, int num) { /* do nothing */ }
      void transformMatrix(GenFullSquareMatrix<double>& kel, int num);
+     void transformMatrixInv(GenFullSquareMatrix<double>& kel, int num);
      void transformVector(Vector &vec, int iele);
      void transformNeumVector(Vector &vec, int iele);
      void transformVector(ComplexVector &vec, int iele);
@@ -1217,8 +1218,10 @@ class Domain : public HData {
      void transformVectorInv(complex<double> *data, int inode, bool hasRot);
      void transformStressStrain(FullM &mat, int iele);
      void transformStressStrain(FullMC &mat, int iele);
-     void transformMatrix(double *data, int inode);
-     void transformMatrix(complex<double> *data, int inode);
+     void transformMatrix(double *data, int inode, bool sym = true);
+     void transformMatrix(complex<double> *data, int inode, bool sym = true);
+     void transformMatrixInv(double *data, int inode, bool sym = true);
+     void transformMatrixInv(complex<double> *data, int inode, bool sym = true);
 
      int getMaxNumNodes() { return maxNumNodes; }
 

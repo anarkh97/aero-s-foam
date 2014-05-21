@@ -120,6 +120,9 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
       // Transform element stiffness and force to solve for the increment in the total rotation vector
       transformElemStiffAndForce(geomState, elementForce.data(), kel[iele], iele, true);
     }
+
+    // Transform internal force vector to nodal frame
+    transformVector(elementForce, iele); 
     if(matrixTimers) matrixTimers->formTime += getTime();
 
     // Assemble element force into residual vector
@@ -177,6 +180,9 @@ Domain::getFollowerForce(GeomState &geomState, Vector& elementForce,
       transformElemStiffAndForce(geomState, elementForce.data(), elementStiff, iele, compute_tangents);
 
     if(compute_tangents) kel[iele] += elementStiff;
+
+    // Transform internal force vector to nodal frame
+    transformVector(elementForce, iele);
 
     // Assemble element force into residual vector
     for(int iDof = 0; iDof < elemDofCount; ++iDof) {
@@ -321,6 +327,7 @@ Domain::getElemFollowerForce(int iele, GeomState &geomState, double *_f, int buf
     MFTTData *mftt = domain->getMFTT(nbc[i].loadsetid);
     double loadFactor = (mftt && sinfo.isDynam()) ? mftt->getVal(std::max(time,0.0)) : domain->getLoadFactor(nbc[i].loadsetid);
     m0[nbc[i].dofnum-3] = lambda*loadFactor*nbc[i].val;
+    transformVectorInv(m0, nbc[i].nnum, false);
 
     switch(nbc[i].mtype) {
       case BCond::Axial : // axial (constant) moment: m = m0
@@ -386,6 +393,7 @@ Domain::getElemFollowerForce(int iele, GeomState &geomState, double *_f, int buf
     MFTTData *mftt = domain->getMFTT(nbc[i].loadsetid);
     double loadFactor = (mftt && sinfo.isDynam()) ? mftt->getVal(std::max(time,0.0)) : domain->getLoadFactor(nbc[i].loadsetid);
     f0[nbc[i].dofnum] = lambda*loadFactor*nbc[i].val;
+    transformVectorInv(f0, nbc[i].nnum, false);
 
     mat_mult_vec(geomState[nbc[i].nnum].R, f0, f, 0); // f = R*f0
 
@@ -891,6 +899,9 @@ Domain::createKelArray(FullSquareMatrix *&kArray, FullSquareMatrix *&mArray)
    }
  }
 
+ if(sinfo.isNonLin() && !domain->solInfo().basicDofCoords) {
+   for(iele=0; iele<numele; ++iele) transformMatrix(mArray[iele], iele);
+ }
 }
 
 // used in nonlinear dynamics
@@ -954,6 +965,13 @@ Domain::createKelArray(FullSquareMatrix *&kArray, FullSquareMatrix *&mArray, Ful
              mArray[iele][i][j] = 0.0;
              cArray[iele][i][j] = 0.0;
          }
+   }
+ }
+
+ if(sinfo.isNonLin() && !domain->solInfo().basicDofCoords) {
+   for(iele=0; iele<numele; ++iele) {
+     transformMatrix(mArray[iele], iele);
+     transformMatrix(cArray[iele], iele);
    }
  }
 }
@@ -1047,6 +1065,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
         data[nodeI][0] = (nodes[iNode] && iNode<geomState->numNodes()) ? (*geomState)[iNode].x-nodes[iNode]->x : 0;
         data[nodeI][1] = (nodes[iNode] && iNode<geomState->numNodes()) ? (*geomState)[iNode].y-nodes[iNode]->y : 0;
         data[nodeI][2] = (nodes[iNode] && iNode<geomState->numNodes()) ? (*geomState)[iNode].z-nodes[iNode]->z : 0;
+        if(oinfo[iInfo].oframe == OutputInfo::Local) transformVector(data[nodeI], iNode, false);
       }
       geoSource->outputNodeVectors(iInfo, data, nPrintNodes, time);
       delete [] data;
@@ -1074,6 +1093,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
           data[nodeI][2] = (*geomState)[iNode].z - nodes[iNode]->z;
           tran_rvec((*geomState)[iNode].R, (*geomState)[iNode].theta, oinfo[iInfo].rescaling,
                     oinfo[iInfo].rotvecouttype, &data[nodeI][3]);
+          if(oinfo[iInfo].oframe == OutputInfo::Local) transformVector(data[nodeI], iNode, true);
         }
         else {
           std::fill_n(&data[nodeI][0], 6, 0.0);
@@ -1098,6 +1118,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
           data[nodeI][6] = (*geomState)[iNode].R[2][0];
           data[nodeI][7] = (*geomState)[iNode].R[2][1];
           data[nodeI][8] = (*geomState)[iNode].R[2][2];
+          if(oinfo[iInfo].oframe == OutputInfo::Local) transformMatrix(data[nodeI], iNode, false);
         }
         else {
           std::fill_n(&data[nodeI][0], 9, 0.0);
@@ -1113,7 +1134,14 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
         int iNode = first_node+i;
         if(outFlag) { if(nodes[iNode] == 0) continue; nodeI = ++realNode; } else nodeI = i;
         if (iNode < geomState->numNodes() && nodes[iNode]) {
-          mat_to_quat((*geomState)[iNode].R, data[nodeI]);
+          if(oinfo[iInfo].oframe == OutputInfo::Local) {
+            double R[3][3] = { { (*geomState)[iNode].R[0][0], (*geomState)[iNode].R[0][1], (*geomState)[iNode].R[0][2] },
+                               { (*geomState)[iNode].R[1][0], (*geomState)[iNode].R[1][1], (*geomState)[iNode].R[1][2] },
+                               { (*geomState)[iNode].R[2][0], (*geomState)[iNode].R[2][1], (*geomState)[iNode].R[2][2] } };
+            transformMatrix(&(R[0][0]), iNode, false); 
+            mat_to_quat(R, data[nodeI]);
+          }
+          else mat_to_quat((*geomState)[iNode].R, data[nodeI]);
         }
         else {
           std::fill_n(&data[nodeI][0], 4, 0.0);
@@ -1130,6 +1158,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
         if(outFlag) { if(nodes[iNode] == 0) continue; nodeI = ++realNode; } else nodeI = i;
         if (iNode < geomState->numNodes() && nodes[iNode]) {
           for(int j=0; j<3; ++j) data[nodeI][j] = (*geomState)[iNode].v[j];
+          if(oinfo[iInfo].oframe == OutputInfo::Local) transformVector(data[nodeI], iNode, false);
         }
         else {
           std::fill_n(&data[nodeI][0], 3, 0.0);
@@ -1159,6 +1188,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
           for(int j=0; j<3; ++j) data[nodeI][j] = (*geomState)[iNode].v[j];
           tran_veloc((*geomState)[iNode].R, (*geomState)[iNode].theta, &(*geomState)[iNode].v[3], angularintype,
                      oinfo[iInfo].angularouttype, rescalein, oinfo[iInfo].rescaling, &data[nodeI][3]);
+          if(oinfo[iInfo].oframe == OutputInfo::Local) transformVector(data[nodeI], iNode, true);
         }
         else {
           std::fill_n(&data[nodeI][0], 6, 0.0);
@@ -1175,6 +1205,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
         if(outFlag) { if(nodes[iNode] == 0) continue; nodeI = ++realNode; } else nodeI = i;
         if (iNode < geomState->numNodes() && nodes[iNode]) {
           for(int j=0; j<3; ++j) data[nodeI][j] = (*geomState)[iNode].a[j];
+          if(oinfo[iInfo].oframe == OutputInfo::Local) transformVector(data[nodeI], iNode, false);
         }
         else {
           std::fill_n(&data[nodeI][0], 3, 0.0);
@@ -1193,6 +1224,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
           for(int j=0; j<3; ++j) data[nodeI][j] = (*geomState)[iNode].a[j];
           tran_accel((*geomState)[iNode].R, (*geomState)[iNode].theta, &(*geomState)[iNode].v[3], &(*geomState)[iNode].a[3],
                      angularintype, oinfo[iInfo].angularouttype, rescalein, oinfo[iInfo].rescaling, &data[nodeI][3]);
+          if(oinfo[iInfo].oframe == OutputInfo::Local) transformVector(data[nodeI], iNode, true);
         }
         else {
           std::fill_n(&data[nodeI][0], 6, 0.0);
@@ -1207,7 +1239,21 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
       for (i = 0, realNode = -1; i < nNodes; ++i) {
         int iNode = first_node+i;
         if(outFlag) { if(nodes[iNode] == 0) continue; nodeI = ++realNode; } else nodeI = i;
-        data[nodeI] = (nodes[iNode] && iNode < geomState->numNodes()) ? (*geomState)[iNode].x - nodes[iNode]->x : 0;
+        if(nodes[iNode] && iNode < geomState->numNodes()) {
+          if(oinfo[iInfo].oframe == OutputInfo::Local) {
+            double d[3] = { (*geomState)[iNode].x - nodes[iNode]->x,
+                            (*geomState)[iNode].y - nodes[iNode]->y,
+                            (*geomState)[iNode].z - nodes[iNode]->z };
+            transformVector(d, iNode, false);
+            data[nodeI] = d[0];
+          }
+          else {
+            data[nodeI] = (*geomState)[iNode].x - nodes[iNode]->x;
+          }
+        }
+        else {
+          data[nodeI] = 0;
+        }
       }
       geoSource->outputNodeScalars(iInfo, data, nPrintNodes, time);
       delete [] data;
@@ -1218,7 +1264,21 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
       for (i = 0, realNode = -1; i < nNodes; ++i) {
         int iNode = first_node+i;
         if(outFlag) { if(nodes[iNode] == 0) continue; nodeI = ++realNode; } else nodeI = i;
-        data[nodeI] = (nodes[iNode] && iNode < geomState->numNodes()) ? (*geomState)[iNode].y - nodes[iNode]->y : 0;
+if(nodes[iNode] && iNode < geomState->numNodes()) {
+          if(oinfo[iInfo].oframe == OutputInfo::Local) {
+            double d[3] = { (*geomState)[iNode].x - nodes[iNode]->x,
+                            (*geomState)[iNode].y - nodes[iNode]->y,
+                            (*geomState)[iNode].z - nodes[iNode]->z };
+            transformVector(d, iNode, false);
+            data[nodeI] = d[1];
+          }
+          else {
+            data[nodeI] = (*geomState)[iNode].y - nodes[iNode]->y;
+          }
+        }
+        else {
+          data[nodeI] = 0;
+        }
       }
       geoSource->outputNodeScalars(iInfo, data, nPrintNodes, time);
       delete [] data;
@@ -1229,7 +1289,21 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
       for (i = 0, realNode = -1; i < nNodes; ++i) {
         int iNode = first_node+i;
         if(outFlag) { if(nodes[iNode] == 0) continue; nodeI = ++realNode; } else nodeI = i;
-        data[nodeI] = (nodes[iNode] && iNode < geomState->numNodes()) ? (*geomState)[iNode].z - nodes[iNode]->z : 0;
+        if(nodes[iNode] && iNode < geomState->numNodes()) {
+          if(oinfo[iInfo].oframe == OutputInfo::Local) {
+            double d[3] = { (*geomState)[iNode].x - nodes[iNode]->x,
+                            (*geomState)[iNode].y - nodes[iNode]->y,
+                            (*geomState)[iNode].z - nodes[iNode]->z };
+            transformVector(d, iNode, false);
+            data[nodeI] = d[2];
+          }
+          else {
+            data[nodeI] = (*geomState)[iNode].z - nodes[iNode]->z;
+          }
+        }
+        else {
+          data[nodeI] = 0;
+        }
       }
       geoSource->outputNodeScalars(iInfo, data, nPrintNodes, time);
       delete [] data;
@@ -1244,6 +1318,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
           double rot[3];
           tran_rvec((*geomState)[iNode].R, (*geomState)[iNode].theta, oinfo[iInfo].rescaling,
                     oinfo[iInfo].rotvecouttype, rot);
+          if(oinfo[iInfo].oframe == OutputInfo::Local) transformVector(rot, iNode, false);
           data[nodeI] = rot[0];
         }
         else {
@@ -1263,6 +1338,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
           double rot[3];
           tran_rvec((*geomState)[iNode].R, (*geomState)[iNode].theta, oinfo[iInfo].rescaling,
                     oinfo[iInfo].rotvecouttype, rot);
+          if(oinfo[iInfo].oframe == OutputInfo::Local) transformVector(rot, iNode, false);
           data[nodeI] = rot[1];
         }
         else {
@@ -1282,6 +1358,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
           double rot[3];
           tran_rvec((*geomState)[iNode].R, (*geomState)[iNode].theta, oinfo[iInfo].rescaling,
                     oinfo[iInfo].rotvecouttype, rot);
+          if(oinfo[iInfo].oframe == OutputInfo::Local) transformVector(rot, iNode, false);
           data[nodeI] = rot[2];
         }
         else {
@@ -1545,6 +1622,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
           int cdof = (dof >= 0) ? c_dsa->invRCN(dof) : -1;
           rxyz[nodeI][k] = (cdof >= 0) ? (*reactions)[cdof] : 0;     // constrained
         }
+        if(oinfo[iInfo].oframe == OutputInfo::Global) transformVectorInv(rxyz[nodeI], first_node+iNode, false);
       }
       geoSource->outputNodeVectors(iInfo, rxyz, nPrintNodes, time);
       delete [] rxyz;
@@ -1561,6 +1639,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
           int cdof = (dof >= 0) ? c_dsa->invRCN(dof) : -1;
           rxyz[nodeI][k] = (cdof >= 0) ? (*reactions)[cdof] : 0;     // constrained
         }
+        if(oinfo[iInfo].oframe == OutputInfo::Global) transformVectorInv(rxyz[nodeI], first_node+iNode, true);
       }
       geoSource->outputNodeVectors6(iInfo, rxyz, nPrintNodes, time);
       delete [] rxyz;
@@ -1746,6 +1825,8 @@ Domain::getStressStrain(GeomState &geomState, Corotator **allCorot,
   // median surface = 2
   // lower  surface = 3
 
+  OutputInfo::FrameType oframe = oinfo[fileNumber].oframe;
+
   int k;
 
   // ... OUTPUT FILE field width
@@ -1773,7 +1854,7 @@ Domain::getStressStrain(GeomState &geomState, Corotator **allCorot,
     elDisp = new Vector(maxNumDOFs,0.0);
 
   int iele;
-  if((elstress == 0)||(elweight == 0)) {
+  if((elstress == 0) || (elweight == 0) || (p_elstress == 0 && oframe == OutputInfo::Local)) {
     int NodesPerElement, maxNodesPerElement=0;
     for(iele=0; iele<numele; ++iele) {
       NodesPerElement = elemToNode->num(iele);
@@ -1784,6 +1865,7 @@ Domain::getStressStrain(GeomState &geomState, Corotator **allCorot,
     }
     if(elstress == 0) elstress = new Vector(maxNodesPerElement, 0.0);
     if(elweight == 0) elweight = new Vector(maxNodesPerElement, 0.0);
+    if(p_elstress == 0 && oframe == OutputInfo::Local) p_elstress = new FullM(maxNodesPerElement,9);
   }
 
 
@@ -1822,43 +1904,71 @@ Domain::getStressStrain(GeomState &geomState, Corotator **allCorot,
      }
    delete [] nodeNumbers;
 
-//----------------------------------------------------------------------------
+    // ... CALCULATE STRESS/STRAIN VALUE FOR EACH NODE OF THE ELEMENT
+    if(oframe == OutputInfo::Local && ((stressIndex >= 0 && stressIndex <= 5) || (stressIndex >= 7 && stressIndex <= 12))
+       && (flag == 1 || flag == 2)) { // transform non-invariant stresses/strains from basic frame to DOF_FRM
 
-     if (flag == 1) {
-// USE LINEAR STRESS ROUTINE
-// ... CALCULATE STRESS/STRAIN VALUE FOR EACH NODE OF THE ELEMENT
-     packedEset[iele]->getVonMises(*elstress, *elweight, nodes,
-                                   *elDisp, stressIndex, surface,
-				   elemNodeTemps.data(), ylayer,
-                                   zlayer, avgnum);
+      // First, calculate stress/strain tensor for each node of the element
+      p_elstress->zero();
+      int strInd = (stressIndex >= 0 && stressIndex <= 5) ? 0 : 1;
+      if (flag == 1) {
+        // USE LINEAR STRESS ROUTINE
+        packedEset[iele]->getAllStress(*p_elstress, *elweight, nodes,
+                                       *elDisp, strInd, surface,
+                                       elemNodeTemps.data());
+      }
+      else {
+        // USE NON-LINEAR STRESS ROUTINE
+        allCorot[iele]->getNLAllStress(*p_elstress, *elweight, geomState,
+                                       nodes, strInd);
+      }
 
-     } else if (flag == 2) {
-// USE NON-LINEAR STRESS ROUTINE
-     allCorot[iele]->getNLVonMises(*elstress, *elweight, geomState,
-                                   refState, nodes, stressIndex, surface,
-                                   elemNodeTemps.data(), ylayer, zlayer,
-                                   avgnum);
+      // Second, transform stress/strain tensor to nodal frame coordinates
+      transformStressStrain(*p_elstress, iele);
 
-     } else {
-// NO STRESS RECOVERY
-     }
+      // Third, extract the requested stress/strain value from the stress/strain tensor
+      for (iNode = 0; iNode < NodesPerElement; ++iNode) {
+        if(strInd == 0)
+          (*elstress)[iNode] = (*p_elstress)[iNode][stressIndex];
+        else
+          (*elstress)[iNode] = (*p_elstress)[iNode][stressIndex-7];
+      }
+    }
+    else {
+      if (flag == 1) {
+        // USE LINEAR STRESS ROUTINE
+        packedEset[iele]->getVonMises(*elstress, *elweight, nodes,
+                                      *elDisp, stressIndex, surface,
+                                      elemNodeTemps.data(), ylayer,
+                                      zlayer, avgnum);
 
-// ... PRINT NON-AVERAGED STRESS VALUES IF REQUESTED
-     if(avgnum == 0 || avgnum == -1) {
-       int numPoints = (avgnum == -1) ? allCorot[iele]->getNumGaussPoints() : NodesPerElement;
-       for(k=0; k<numPoints; ++k)
-         fprintf(oinfo[fileNumber].filptr," % *.*E",w,p,(*elstress)[k]);
-       fprintf(oinfo[fileNumber].filptr,"\n");
-     }
-// ... ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
-     else {
-       for(k=0; k<NodesPerElement; ++k) {
-         (*stress)[(*elemToNode)[iele][k]] += (*elstress)[k];
-         (*weight)[(*elemToNode)[iele][k]] += (*elweight)[k];
-       }
-     }
+      } else if (flag == 2) {
+        // USE NON-LINEAR STRESS ROUTINE
+        allCorot[iele]->getNLVonMises(*elstress, *elweight, geomState,
+                                      refState, nodes, stressIndex, surface,
+                                      elemNodeTemps.data(), ylayer, zlayer,
+                                      avgnum);
+
+      } else {
+        // NO STRESS RECOVERY
+      }
+    }
+
+    // ... PRINT NON-AVERAGED STRESS VALUES IF REQUESTED
+    if(avgnum == 0 || avgnum == -1) {
+      int numPoints = (avgnum == -1) ? allCorot[iele]->getNumGaussPoints() : NodesPerElement;
+      for(k=0; k<numPoints; ++k)
+        fprintf(oinfo[fileNumber].filptr," % *.*E",w,p,(*elstress)[k]);
+      fprintf(oinfo[fileNumber].filptr,"\n");
+    }
+    // ... ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
+    else {
+      for(k=0; k<NodesPerElement; ++k) {
+        (*stress)[(*elemToNode)[iele][k]] += (*elstress)[k];
+        (*weight)[(*elemToNode)[iele][k]] += (*elweight)[k];
+      }
+    }
   }
-
 
 // ... AVERAGE STRESS/STRAIN VALUE AT EACH NODE BY THE NUMBER OF
 // ... ELEMENTS ATTACHED TO EACH NODE IF REQUESTED.
@@ -2566,7 +2676,9 @@ Domain::computeEnergies(GeomState *geomState, Vector &force, double t, Vector *a
 {
   // Build displacement vector
   Vector disp(numUncon(), 0.0);
-  for(int i = 0; i < geomState->numNodes(); ++i) { // XXX consider gaps, internal nodes, etc.
+  geomState->get_tot_displacement(disp, false);
+/*
+  for(int i = 0; i < geomState->numNodes(); ++i) {
     int xloc = c_dsa->locate(i, DofSet::Xdisp);
     if(xloc >= 0)
       disp[xloc] = ((*geomState)[i].x - nodes[i]->x);
@@ -2576,18 +2688,17 @@ Domain::computeEnergies(GeomState *geomState, Vector &force, double t, Vector *a
     int zloc = c_dsa->locate(i, DofSet::Zdisp);
     if(zloc >= 0)
       disp[zloc] = ((*geomState)[i].z - nodes[i]->z);
-    double rot[3];
-    mat_to_vec((*geomState)[i].R,rot);
     int xrot = c_dsa->locate(i, DofSet::Xrot);
     if(xrot >= 0)
-      disp[xrot] = rot[0];
+      disp[xrot] = (*geomState)[i].theta[0];
     int yrot = c_dsa->locate(i, DofSet::Yrot);
     if(yrot >= 0)
-      disp[yrot] = rot[1];
+      disp[yrot] = (*geomState)[i].theta[1];
     int zrot = c_dsa->locate(i, DofSet::Zrot);
     if(zrot >= 0)
-      disp[zrot]  = rot[2];
+      disp[zrot] = (*geomState)[i].theta[2];
   }
+*/
 
   double lambda, time;
   if(sinfo.isDynam()) { time = t; lambda = 1.0; }

@@ -2548,16 +2548,17 @@ GenSubDomain<Scalar>::reBuildKbb(FullSquareMatrix *kel)
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::mergeDisp(Scalar (*xyz)[11], GeomState* u)//DOfSet::max_known_nonL_dof
+GenSubDomain<Scalar>::mergeDisp(Scalar (*xyz)[11], GeomState* u, Scalar (*xyz_loc)[11]) //DOfSet::max_known_nonL_dof
 {
  // Loop over all nodes, Subtract the initial configuration from the
  // Current configuration to get the displacement
+ bool IsTemperatureState = (dynamic_cast<TemperatureState*>(u) != NULL);
  int i, nodeI;
  for(i = 0; i < numnodes; ++i) {
-   if(!nodes[i] || i >= u->numNodes()) continue; // XXX
+   if(!nodes[i] || i >= u->numNodes()) continue;
    nodeI = (domain->outFlag) ? domain->nodeTable[glNums[i]]-1 : glNums[i];
 
-   if(dynamic_cast<TemperatureState*>(u)) { xyz[nodeI][0] = (*u)[i].x; continue; }
+   if(IsTemperatureState) { xyz[nodeI][0] = (*u)[i].x; continue; }
    xyz[nodeI][0] = ((*u)[i].x - nodes[i]->x);
    xyz[nodeI][1] = ((*u)[i].y - nodes[i]->y);
    xyz[nodeI][2] = ((*u)[i].z - nodes[i]->z);
@@ -2566,19 +2567,25 @@ GenSubDomain<Scalar>::mergeDisp(Scalar (*xyz)[11], GeomState* u)//DOfSet::max_kn
    xyz[nodeI][3] = rot[0];
    xyz[nodeI][4] = rot[1];
    xyz[nodeI][5] = rot[2];
+
+   if(xyz_loc) {
+     for(int j=0; j<6; ++j) xyz_loc[nodeI][j] = xyz[nodeI][j];
+     transformVector(xyz_loc[nodeI], i, true);
+   }
  }
 }
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::mergeDistributedNLDisp(Scalar (*xyz)[11], GeomState* u)//DofSet::max_known_nonL_dof
+GenSubDomain<Scalar>::mergeDistributedNLDisp(Scalar (*xyz)[11], GeomState* u, Scalar (*xyz_loc)[11]) //DofSet::max_known_nonL_dof
 {
  // Loop over all nodes, Subtract the initial configuration from the
  // Current configuration to get the displacement
+ bool IsTemperatureState = (dynamic_cast<TemperatureState*>(u) != NULL);
  int i;
  for(i = 0; i < numnodes; ++i) {
    if(!nodes[i]) continue;
-   if(dynamic_cast<TemperatureState*>(u)) { xyz[i][0] = (*u)[i].x; continue; }
+   if(IsTemperatureState) { xyz[i][0] = (*u)[i].x; continue; }
    xyz[i][0] = ((*u)[i].x - nodes[i]->x);
    xyz[i][1] = ((*u)[i].y - nodes[i]->y);
    xyz[i][2] = ((*u)[i].z - nodes[i]->z);
@@ -2587,6 +2594,11 @@ GenSubDomain<Scalar>::mergeDistributedNLDisp(Scalar (*xyz)[11], GeomState* u)//D
    xyz[i][3] = rot[0];
    xyz[i][4] = rot[1];
    xyz[i][5] = rot[2];
+
+   if(xyz_loc) {
+     for(int j=0; j<6; ++j) xyz_loc[i][j] = xyz[i][j];
+     transformVector(xyz_loc[i], i, true);
+   }
  }
 }
 

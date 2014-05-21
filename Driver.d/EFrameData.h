@@ -17,6 +17,8 @@ struct NFrameData {
     double origin[3];
     enum FrameType { Rectangular=0, Cylindrical, Spherical } type;
     NFrameData *next;
+    void transformVector(double *data, bool hasRot);
+    void transformVectorInv(double *data, bool hasRot);
 };
 
 #endif

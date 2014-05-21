@@ -2,9 +2,11 @@
 #include <Math.d/FullSquareMatrix.h>
 #include <Utils.d/dofset.h>
 #include <Corotational.d/utilities.h>
+#include <Driver.d/GeoSource.h>
 #include <Driver.d/Domain.h>
 
 extern Domain * domain;
+extern GeoSource * geoSource;
 
 MpcElement::MpcElement(int _nNodes, DofSet nodalDofs, int* _nn)
  : nNodes(_nNodes), LMPCons(0, 0.0)
@@ -390,7 +392,12 @@ MpcElement::update(GeomState* refState, GeomState& c1, CoordSet& c0, double t)
   for(it = rotation_coefs.begin(); it != rotation_coefs.end(); ++it) {
     int nodeNumber = it->first;
     std::vector<double> v(3);
-    mat_to_vec(c1[nodeNumber].R, &v[0]);
+    v[0] = c1[nodeNumber].theta[0];
+    v[1] = c1[nodeNumber].theta[1];
+    v[2] = c1[nodeNumber].theta[2];
+    if(c0[nodeNumber]->cd != 0) {
+      geoSource->getNFrames()[c0[nodeNumber]->cd].transformVector(&v[0], false); // transform from basic frame to DOF_FRM
+    }
     theta[nodeNumber] = v;
     double rotvar[3][3];
     pseudorot_var(&v[0], rotvar);
@@ -402,16 +409,43 @@ MpcElement::update(GeomState* refState, GeomState& c1, CoordSet& c0, double t)
     double u;
     switch(terms[i].dofnum) {
       case 0 : 
-        u = c1[terms[i].nnum].x-c0[terms[i].nnum]->x; 
-        rhs.r_value -= terms[i].coef.r_value*u;
+        if(c0[terms[i].nnum]->cd == 0) {
+          u = c1[terms[i].nnum].x-c0[terms[i].nnum]->x; 
+          rhs.r_value -= terms[i].coef.r_value*u;
+        }
+        else {
+          double u[3] = { c1[terms[i].nnum].x-c0[terms[i].nnum]->x,
+                          c1[terms[i].nnum].y-c0[terms[i].nnum]->y,
+                          c1[terms[i].nnum].z-c0[terms[i].nnum]->z };
+          geoSource->getNFrames()[c0[terms[i].nnum]->cd].transformVector(u, false);
+          rhs.r_value -= terms[i].coef.r_value*u[0];
+        }
         break;
       case 1 : 
-        u = c1[terms[i].nnum].y-c0[terms[i].nnum]->y;
-        rhs.r_value -= terms[i].coef.r_value*u;
+        if(c0[terms[i].nnum]->cd == 0) {
+          u = c1[terms[i].nnum].y-c0[terms[i].nnum]->y;
+          rhs.r_value -= terms[i].coef.r_value*u;
+        }
+        else {
+          double u[3] = { c1[terms[i].nnum].x-c0[terms[i].nnum]->x,
+                          c1[terms[i].nnum].y-c0[terms[i].nnum]->y,
+                          c1[terms[i].nnum].z-c0[terms[i].nnum]->z };
+          geoSource->getNFrames()[c0[terms[i].nnum]->cd].transformVector(u, false);
+          rhs.r_value -= terms[i].coef.r_value*u[1];
+        }
         break;
       case 2 : 
-        u = c1[terms[i].nnum].z-c0[terms[i].nnum]->z;
-        rhs.r_value -= terms[i].coef.r_value*u;
+        if(c0[terms[i].nnum]->cd == 0) {
+          u = c1[terms[i].nnum].z-c0[terms[i].nnum]->z;
+          rhs.r_value -= terms[i].coef.r_value*u;
+        }
+        else {
+          double u[3] = { c1[terms[i].nnum].x-c0[terms[i].nnum]->x,
+                          c1[terms[i].nnum].y-c0[terms[i].nnum]->y,
+                          c1[terms[i].nnum].z-c0[terms[i].nnum]->z };
+          geoSource->getNFrames()[c0[terms[i].nnum]->cd].transformVector(u, false);
+          rhs.r_value -= terms[i].coef.r_value*u[2];
+        }
         break;
       case 3 : case 4 : case 5 : {
         u = theta[terms[i].nnum][terms[i].dofnum-3];
@@ -423,7 +457,7 @@ MpcElement::update(GeomState* refState, GeomState& c1, CoordSet& c0, double t)
 }
 
 void 
-MpcElement::getHessian(GeomState*, GeomState& c1, CoordSet&, FullSquareMatrix& _H, double t) 
+MpcElement::getHessian(GeomState*, GeomState& c1, CoordSet& c0, FullSquareMatrix& _H, double t) 
 {
 #ifdef USE_EIGEN3
   if(getSource() == mpc::ContactSurfaces && H.size() > 0) {
@@ -442,7 +476,12 @@ MpcElement::getHessian(GeomState*, GeomState& c1, CoordSet&, FullSquareMatrix& _
     for(it = rotation_coefs.begin(); it != rotation_coefs.end(); ++it) {
       int nodeNumber = it->first;
       std::vector<int> dofs = rotation_indices[nodeNumber];
-      mat_to_vec(c1[nodeNumber].R, v);
+      v[0] = c1[nodeNumber].theta[0];
+      v[1] = c1[nodeNumber].theta[1];
+      v[2] = c1[nodeNumber].theta[2];
+      if(c0[nodeNumber]->cd != 0) {
+        geoSource->getNFrames()[c0[nodeNumber]->cd].transformVector(&v[0], false); // transform from basic frame to DOF_FRM
+      }
       pseudorot_2var(v, &it->second[0], scndvar);
       for(int i = 0; i < 3; ++i)
         for(int j = 0; j < 3; ++j)
@@ -461,6 +500,7 @@ double
 MpcElement::getAccelerationConstraintRhs(GeomState* refState, GeomState& gState, CoordSet& cs, double t)
 {
   // compute rhs = -(G(q)*qdot)_q * qdot assuming other terms are zero. Overload function if this assumption is not correct
+  // XXX consider nodal frames
   FullSquareMatrix H(nterms);
   getHessian(refState, gState, cs, H, t);
   Vector v(nterms);

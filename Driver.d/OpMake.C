@@ -187,7 +187,7 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
        if(melArray) mel.copy(melArray[iele]);
        else mel = packedEset[iele]->massMatrix(nodes, marray, mratio);
        this->densProjectStiffness(mel, iele);
-       this->transformMatrix(mel, iele);
+       if(!sinfo.isNonLin()) this->transformMatrix(mel, iele);
      }
      if(sinfo.isCoupled) { 
        if(isStructureElement(iele)) mel *= cscale_factor2;

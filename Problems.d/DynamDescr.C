@@ -188,6 +188,7 @@ SingleDomainDynamic::SingleDomainDynamic(Domain *d)
 
   flExchanger = domain->getFileExchanger();
   reactions = 0;
+  firstSts = true;
 }
 
 SingleDomainDynamic::~SingleDomainDynamic()
@@ -432,6 +433,8 @@ SingleDomainDynamic::computeStabilityTimeStep(double& dt, DynamMat& dMat)
      filePrint(stderr," Specified time step is selected\n");
    filePrint(stderr," **************************************\n");
  }
+ if(getAeroAlg() < 0 && !firstSts) filePrint(stderr, " ⌈\x1B[33m Time Integration Loop In Progress: \x1B[0m⌉\n");
+ firstSts = false;
 
  domain->solInfo().setTimeStep(dt);
 }

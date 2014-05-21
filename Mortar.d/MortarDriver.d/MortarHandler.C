@@ -3026,6 +3026,10 @@ MortarHandler::compute_td_contact_force(double dt_old, double dt, Vector &f)
       std::cerr << contact_obj->Error_Message(i) << std::endl;
     exit(error);
   }
+  // transform to DOF_FRM 
+  if(!domain->solInfo().basicDofCoords) {
+    for(int i=0; i<nACMENodes; ++i) domain->transformVector(&force[3*i], node_global_ids[2*i+1]-1, false);
+  }
   // assemble contact force
   for(int i=0; i<3*nACMENodes; ++i) if(dofmap[i] > -1) f[dofmap[i]] += force[i];
   delete [] force;
@@ -3064,9 +3068,16 @@ MortarHandler::compute_td_contact_force(double dt_old, double dt, DistrVector &f
       std::cerr << contact_obj->Error_Message(i) << std::endl;
     exit(error);
   }
+
+  // transform to DOF_FRM 
+  if(!domain->solInfo().basicDofCoords) {
+    for(int i=0; i<nACMENodes; ++i) domain->transformVector(&force[3*i], node_global_ids[2*i+1]-1, false);
+  }
+
 #ifdef DISTRIBUTED
   if(DIST_ACME == 1) {
     if(structCom->myID() != 0) {
+      delete [] force;
       nACMENodes = PtrMasterEntity->GetnVertices() + PtrSlaveEntity->GetnVertices();
       force = new double[nACMENodes*3];
     }

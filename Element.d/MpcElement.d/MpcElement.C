@@ -2,11 +2,10 @@
 #include <Math.d/FullSquareMatrix.h>
 #include <Utils.d/dofset.h>
 #include <Corotational.d/utilities.h>
-#include <Driver.d/GeoSource.h>
 #include <Driver.d/Domain.h>
+#include <Driver.d/EFrameData.h>
 
 extern Domain * domain;
-extern GeoSource * geoSource;
 
 MpcElement::MpcElement(int _nNodes, DofSet nodalDofs, int* _nn)
  : nNodes(_nNodes), LMPCons(0, 0.0)
@@ -105,14 +104,6 @@ MpcElement::MpcElement(LMPCons *mpc, bool nlflag)
           it->second[j] = nterms-1;
         }
     }
-/*
-    for(std::map<int,std::vector<double> >::iterator it = rotation_coefs.begin(); it != rotation_coefs.end(); ++it) {
-      std::cerr << "node = " << it->first 
-                << ", rotation_coefs = " << it->second[0] << " " << it->second[1] << " " << it->second[2] 
-                << ", rotation_indices = " << rotation_indices[it->first][0] << " " << rotation_indices[it->first][1] << " "
-                << rotation_indices[it->first][2] << std::endl;
-    }
-*/
   }
 }
 
@@ -253,11 +244,9 @@ MpcElement::stiffness(CoordSet& c0, double* karray, int)
   if(prop->lagrangeMult || prop->penalty != 0) {
     double lambda = 0;
     if(prop->penalty != 0 && (type == 1 && -rhs.r_value <= -lambda/prop->penalty)) {
-/*
-      if(prop->lagrangeMult) {
-        ret[nterms][nterms] = -1/prop->penalty;
-      }
-*/
+      //if(prop->lagrangeMult) {
+      //  ret[nterms][nterms] = -1/prop->penalty;
+      //}
     }
     else {
       if(prop->penalty != 0) lambda += prop->penalty*(-rhs.r_value);
@@ -302,7 +291,7 @@ MpcElement::getStiffAndForce(GeomState* refState, GeomState& c1, CoordSet& c0, F
   for(int i = 0; i < numDofs(); ++i) f[i] = 0.0;
   if(getSource() != mpc::ContactSurfaces)
     update(refState, c1, c0, t); // update rhs and coefficients to the value and gradient the constraint function, respectively 
-  if(t == 0 /*domain->solInfo().initialTime*/ && delt > 0 && type == 0 && prop->penalty == 0)
+  if(t == 0 && delt > 0 && type == 0 && prop->penalty == 0)
     rhs.r_value = this->getAccelerationConstraintRhs(refState, c1, c0, t); // for dynamics we compute initial acceleration at t=0 for equality constraints
 
   // general augmented lagrangian implementation from RT Rockafellar "Lagrange multipliers and optimality" Siam Review 1993, eq 6.7
@@ -314,12 +303,10 @@ MpcElement::getStiffAndForce(GeomState* refState, GeomState& c1, CoordSet& c0, F
   if(prop->lagrangeMult || prop->penalty != 0) {
     double lambda = (prop->lagrangeMult) ? c1[nn[nNodes]].x : 0; // y is the lagrange multiplier (if used)
     if(prop->penalty != 0 && (type == 1 && -rhs.r_value <= -lambda/prop->penalty)) { //
-/* no
-      if(prop->lagrangeMult) {
-        Ktan[nterms][nterms] = -1/prop->penalty;
-        f[nterms] = -lambda/prop->penalty;
-      }
-*/
+      //if(prop->lagrangeMult) {
+      //  Ktan[nterms][nterms] = -1/prop->penalty;
+      //  f[nterms] = -lambda/prop->penalty;
+      //}
     }
     else {
       if(prop->penalty != 0) lambda += prop->penalty*(-rhs.r_value);
@@ -347,7 +334,7 @@ MpcElement::getInternalForce(GeomState *refState, GeomState& c1, CoordSet& c0, F
   for(int i = 0; i < numDofs(); ++i) f[i] = 0.0;
   if(getSource() != mpc::ContactSurfaces)
     update(refState, c1, c0, t); // update rhs and coefficients to the value and gradient the constraint function, respectively 
-  if(t == 0 /*domain->solInfo().initialTime*/ && delt > 0 && type == 0 && prop->penalty == 0)
+  if(t == 0 && delt > 0 && type == 0 && prop->penalty == 0)
     rhs.r_value = this->getAccelerationConstraintRhs(refState, c1, c0, t); // for dynamics we compute initial acceleration at t=0 for equality constraints
 
   // general augmented lagrangian implementation from RT Rockafellar "Lagrange multipliers and optimality" Siam Review 1993, eq 6.7
@@ -360,17 +347,15 @@ MpcElement::getInternalForce(GeomState *refState, GeomState& c1, CoordSet& c0, F
     double lambda = (prop->lagrangeMult) ? c1[nn[nNodes]].x : 0; // y is the lagrange multiplier (if used)
     if(prop->penalty != 0 && (type == 1 && -rhs.r_value <= -lambda/prop->penalty)) { // note: if -rhs == -lambda/penalty
                                                                                      // then the derivative is indeterminate
-/* no
-      if(prop->lagrangeMult) {
-        f[nterms] = -lambda/prop->penalty;
-      }
-*/
+      //if(prop->lagrangeMult) {
+      //  f[nterms] = -lambda/prop->penalty;
+      //}
     }
     else {
       if(prop->penalty != 0) lambda += prop->penalty*(-rhs.r_value);
       for(int i = 0; i < nterms; ++i) {
-        if(!(type == 1 && prop->lagrangeMult && prop->penalty == 0)) f[i] = lambda*terms[i].coef.r_value; // for inequalities we solve for lambda^{k} at every SQP iteration
-                                                   // but for equalities we solve for the increment (lambda^{k}-lambda^{k-1})
+        if(!(type == 1 && prop->lagrangeMult && prop->penalty == 0)) f[i] = lambda*terms[i].coef.r_value; // for inequalities we solve for lambda^{k}
+                                                   // at every SQP iteration but for equalities we solve for the increment (lambda^{k}-lambda^{k-1})
 
       }
       if(prop->lagrangeMult && prop->penalty == 0) f[nterms] = -rhs.r_value;
@@ -395,9 +380,7 @@ MpcElement::update(GeomState* refState, GeomState& c1, CoordSet& c0, double t)
     v[0] = c1[nodeNumber].theta[0];
     v[1] = c1[nodeNumber].theta[1];
     v[2] = c1[nodeNumber].theta[2];
-    if(c0[nodeNumber]->cd != 0) {
-      geoSource->getNFrames()[c0[nodeNumber]->cd].transformVector(&v[0], false); // transform from basic frame to DOF_FRM
-    }
+    if(NFrameData *cd = c0.dofFrame(nodeNumber)) cd->transformVector3(&v[0]); // transform from basic frame to DOF_FRM
     theta[nodeNumber] = v;
     double rotvar[3][3];
     pseudorot_var(&v[0], rotvar);
@@ -407,9 +390,10 @@ MpcElement::update(GeomState* refState, GeomState& c1, CoordSet& c0, double t)
 
   for(int i = 0; i < nterms; ++i) {
     double u;
+    NFrameData *cd = c0.dofFrame(terms[i].nnum);
     switch(terms[i].dofnum) {
       case 0 : 
-        if(c0[terms[i].nnum]->cd == 0) {
+        if(!cd) {
           u = c1[terms[i].nnum].x-c0[terms[i].nnum]->x; 
           rhs.r_value -= terms[i].coef.r_value*u;
         }
@@ -417,12 +401,12 @@ MpcElement::update(GeomState* refState, GeomState& c1, CoordSet& c0, double t)
           double u[3] = { c1[terms[i].nnum].x-c0[terms[i].nnum]->x,
                           c1[terms[i].nnum].y-c0[terms[i].nnum]->y,
                           c1[terms[i].nnum].z-c0[terms[i].nnum]->z };
-          geoSource->getNFrames()[c0[terms[i].nnum]->cd].transformVector(u, false);
+          cd->transformVector3(u);
           rhs.r_value -= terms[i].coef.r_value*u[0];
         }
         break;
       case 1 : 
-        if(c0[terms[i].nnum]->cd == 0) {
+        if(!cd) {
           u = c1[terms[i].nnum].y-c0[terms[i].nnum]->y;
           rhs.r_value -= terms[i].coef.r_value*u;
         }
@@ -430,12 +414,12 @@ MpcElement::update(GeomState* refState, GeomState& c1, CoordSet& c0, double t)
           double u[3] = { c1[terms[i].nnum].x-c0[terms[i].nnum]->x,
                           c1[terms[i].nnum].y-c0[terms[i].nnum]->y,
                           c1[terms[i].nnum].z-c0[terms[i].nnum]->z };
-          geoSource->getNFrames()[c0[terms[i].nnum]->cd].transformVector(u, false);
+          cd->transformVector3(u);
           rhs.r_value -= terms[i].coef.r_value*u[1];
         }
         break;
       case 2 : 
-        if(c0[terms[i].nnum]->cd == 0) {
+        if(!cd) {
           u = c1[terms[i].nnum].z-c0[terms[i].nnum]->z;
           rhs.r_value -= terms[i].coef.r_value*u;
         }
@@ -443,7 +427,7 @@ MpcElement::update(GeomState* refState, GeomState& c1, CoordSet& c0, double t)
           double u[3] = { c1[terms[i].nnum].x-c0[terms[i].nnum]->x,
                           c1[terms[i].nnum].y-c0[terms[i].nnum]->y,
                           c1[terms[i].nnum].z-c0[terms[i].nnum]->z };
-          geoSource->getNFrames()[c0[terms[i].nnum]->cd].transformVector(u, false);
+          cd->transformVector3(u);
           rhs.r_value -= terms[i].coef.r_value*u[2];
         }
         break;
@@ -479,9 +463,7 @@ MpcElement::getHessian(GeomState*, GeomState& c1, CoordSet& c0, FullSquareMatrix
       v[0] = c1[nodeNumber].theta[0];
       v[1] = c1[nodeNumber].theta[1];
       v[2] = c1[nodeNumber].theta[2];
-      if(c0[nodeNumber]->cd != 0) {
-        geoSource->getNFrames()[c0[nodeNumber]->cd].transformVector(&v[0], false); // transform from basic frame to DOF_FRM
-      }
+      if(NFrameData *cd = c0.dofFrame(nodeNumber)) cd->transformVector3(&v[0]); // transform from basic frame to DOF_FRM
       pseudorot_2var(v, &it->second[0], scndvar);
       for(int i = 0; i < 3; ++i)
         for(int j = 0; j < 3; ++j)
@@ -578,8 +560,14 @@ MpcElement::computePressureForce(CoordSet&, Vector& f, GeomState*, int, double)
 }
 
 void
-MpcElement::getNLVonMises(Vector& stress, Vector& weight,
-                          GeomState &, CoordSet &, int)
+MpcElement::getNLVonMises(Vector& stress, Vector& weight, GeomState&, CoordSet&, int)
+{
+  stress.zero();
+  weight.zero();
+}
+
+void
+MpcElement::getNLAllStress(FullM& stress, Vector& weight, GeomState&, CoordSet&, int)
 {
   stress.zero();
   weight.zero();

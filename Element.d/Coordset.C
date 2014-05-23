@@ -1,6 +1,9 @@
 #include <cstdio>
 #include <cstdlib>
+#include <Driver.d/GeoSource.h>
 #include <Element.d/Element.h>
+
+extern GeoSource * geoSource;
 
 typedef Node *NodeP;
 
@@ -133,4 +136,14 @@ int CoordSet::nnz()
   for(int i = 0; i < nmax; ++i)
     if(nodes[i] != 0) ret++;
   return ret;
+}
+
+NFrameData*
+CoordSet::dofFrame(int i)
+{
+  // get a pointer to the degree-of-freedom frame for the specified i^th node
+  // if one is defined and it differs from the basic frame.
+  int cd;
+  if(nodes[i] && (cd = nodes[i]->cd) > 0) return &(geoSource->getNFrames()[cd]);
+  else return NULL;
 }

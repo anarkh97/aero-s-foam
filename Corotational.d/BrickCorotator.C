@@ -513,7 +513,7 @@ BrickCorotator::getNLVonMises(Vector& stress,Vector& weight,
 }
 
 void
-BrickCorotator::getNLAllStress(FullM& stress,Vector& weight,
+BrickCorotator::getNLAllStress(FullM& stress, Vector& weight,
                                GeomState &geomState, CoordSet &cs,
                                int strInd)
 {

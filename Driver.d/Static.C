@@ -1767,7 +1767,7 @@ Domain::getStressStrain(ComplexVector &sol, DComplex *bcx, int fileNumber,
       transformVectorInv(*elDisp, iele);
 
       // transform non-invariant stresses/strains from basic frame to DOF_FRM
-      if(oframe == OutputInfo::Local && ((stressIndex >=0 && stressIndex <=5) || (stressIndex >= 7 && stressIndex <= 12))) {
+      if(oframe == OutputInfo::Local && ((stressIndex >= 0 && stressIndex <= 5) || (stressIndex >= 7 && stressIndex <= 12))) {
 
         // first, calculate stress/strain tensor for each node of the element
         p_elstress->zero();
@@ -2576,11 +2576,10 @@ Domain::transformMatrix(FullSquareMatrix &kel, int iele)
   // transform element matrix from basic to DOF_FRM coordinates 
   if(domain->solInfo().basicDofCoords) return;
 
-  LMPCons *lmpcons;
-  if((lmpcons = dynamic_cast<LMPCons*>(packedEset[iele])) &&
-     (lmpcons->getSource() == mpc::Lmpc || lmpcons->getSource() == mpc::NodalContact ||
-      lmpcons->getSource() == mpc::TiedSurfaces || lmpcons->getSource() == mpc::ContactSurfaces)) {
-    return;
+  if(packedEset[iele]->isMpcElement()) {
+    LMPCons *lmpcons = dynamic_cast<LMPCons*>(packedEset[iele]);
+    if(lmpcons->getSource() == mpc::Lmpc || lmpcons->getSource() == mpc::NodalContact ||
+       lmpcons->getSource() == mpc::TiedSurfaces) return;
   }
 
   // TODO: check for thermal/acoustic 
@@ -2643,11 +2642,10 @@ Domain::transformMatrixInv(FullSquareMatrix &kel, int iele)
   // transform element matrix from DOF_FRM to basic coordinates 
   if(domain->solInfo().basicDofCoords) return;
 
-  LMPCons *lmpcons;
-  if((lmpcons = dynamic_cast<LMPCons*>(packedEset[iele])) &&
-     (lmpcons->getSource() == mpc::Lmpc || lmpcons->getSource() == mpc::NodalContact ||
-      lmpcons->getSource() == mpc::TiedSurfaces || lmpcons->getSource() == mpc::ContactSurfaces)) {
-    return;
+  if(packedEset[iele]->isMpcElement()) {
+    LMPCons *lmpcons = dynamic_cast<LMPCons*>(packedEset[iele]); 
+    if(lmpcons->getSource() == mpc::Lmpc || lmpcons->getSource() == mpc::NodalContact ||
+       lmpcons->getSource() == mpc::TiedSurfaces) return;
   }
 
   // TODO: check for thermal/acoustic 
@@ -2709,12 +2707,13 @@ Domain::transformVector(Vector &vec, int iele)
 {
   // transform element vector from basic to DOF_FRM coordinates
   if(domain->solInfo().basicDofCoords) return;
-  LMPCons *lmpcons;
-  if((lmpcons = dynamic_cast<LMPCons*>(packedEset[iele])) &&
-     (lmpcons->getSource() == mpc::Lmpc || lmpcons->getSource() == mpc::NodalContact ||
-      lmpcons->getSource() == mpc::TiedSurfaces || lmpcons->getSource() == mpc::ContactSurfaces)) {
-    return;
+
+  if(packedEset[iele]->isMpcElement()) {
+    LMPCons *lmpcons = dynamic_cast<LMPCons*>(packedEset[iele]); 
+    if(lmpcons->getSource() == mpc::Lmpc || lmpcons->getSource() == mpc::NodalContact ||
+       lmpcons->getSource() == mpc::TiedSurfaces) return;
   }
+
   int numNodes = packedEset[iele]->numNodes()-packedEset[iele]->numInternalNodes();
   int *nn = packedEset[iele]->nodes();
   if(packedEset[iele]->hasRot()) {
@@ -2781,12 +2780,13 @@ Domain::transformVectorInv(Vector &vec, int iele)
 {
   // transform element vector from DOF_FRM to basic coordinates
   if(domain->solInfo().basicDofCoords) return;
-  LMPCons *lmpcons;
-  if((lmpcons = dynamic_cast<LMPCons*>(packedEset[iele])) &&
-     (lmpcons->getSource() == mpc::Lmpc || lmpcons->getSource() == mpc::NodalContact ||
-      lmpcons->getSource() == mpc::TiedSurfaces || lmpcons->getSource() == mpc::ContactSurfaces)) {
-    return;
+
+  if(packedEset[iele]->isMpcElement()) {
+    LMPCons *lmpcons = dynamic_cast<LMPCons*>(packedEset[iele]); 
+    if(lmpcons->getSource() == mpc::Lmpc || lmpcons->getSource() == mpc::NodalContact ||
+       lmpcons->getSource() == mpc::TiedSurfaces) return;
   }
+
   int numNodes = packedEset[iele]->numNodes()-packedEset[iele]->numInternalNodes();
   int *nn = packedEset[iele]->nodes();
   if(packedEset[iele]->hasRot()) {
@@ -2822,54 +2822,40 @@ void
 Domain::transformVector(double *data, int inode, bool hasRot)
 {
   // transform node vector from basic to DOF_FRM coordinates
-  if(inode >= numnodes || nodes[inode] == NULL) return;
-  int cd = nodes[inode]->cd;
-  if(cd == 0) return;
-#ifdef USE_EIGEN3
-  NFrameData *nfd = geoSource->getNFrames();
-
-  Eigen::Matrix3d T;
-  T << nfd[cd].frame[0][0], nfd[cd].frame[0][1], nfd[cd].frame[0][2],
-       nfd[cd].frame[1][0], nfd[cd].frame[1][1], nfd[cd].frame[1][2],
-       nfd[cd].frame[2][0], nfd[cd].frame[2][1], nfd[cd].frame[2][2];
-
-  if(hasRot) {
-    Eigen::Map<Eigen::Matrix<double,6,1> > v(data);
-    v.head<3>() = (T*v.head<3>()).eval();
-    v.tail<3>() = (T*v.tail<3>()).eval();
+  if(NFrameData *cd = nodes.dofFrame(inode)) {
+    if(hasRot) cd->transformVector6(data);
+    else cd->transformVector3(data);
   }
-  else {
-    Eigen::Map<Eigen::Vector3d> v(data);
-    v = (T*v).eval();
-  }
-#endif
 }
 
 void
 Domain::transformVector(complex<double> *data, int inode, bool hasRot)
 {
   // transform node vector from basic to DOF_FRM coordinates
-  if(inode >= numnodes || nodes[inode] == NULL) return;
-  int cd = nodes[inode]->cd;
-  if(cd == 0) return;
-
-  NFrameData *nfd = geoSource->getNFrames();
-#ifdef USE_EIGEN3
-  Eigen::Matrix3d T;
-  T << nfd[cd].frame[0][0], nfd[cd].frame[0][1], nfd[cd].frame[0][2],
-       nfd[cd].frame[1][0], nfd[cd].frame[1][1], nfd[cd].frame[1][2],
-       nfd[cd].frame[2][0], nfd[cd].frame[2][1], nfd[cd].frame[2][2];
-
-  if(hasRot) {
-    Eigen::Map<Eigen::Matrix<complex<double>,6,1> > v(data);
-    v.head<3>() = (T*v.head<3>()).eval();
-    v.tail<3>() = (T*v.tail<3>()).eval();
+  if(NFrameData *cd = nodes.dofFrame(inode)) {
+    if(hasRot) cd->transformVector6(data);
+    else cd->transformVector3(data);
   }
-  else {
-    Eigen::Map<Eigen::Vector3cd> v(data);
-    v = (T*v).eval();
+}
+
+void
+Domain::transformVectorInv(double *data, int inode, bool hasRot)
+{
+  // transform node vector from DOF_FRM to basic coordinates
+  if(NFrameData *cd = nodes.dofFrame(inode)) {
+    if(hasRot) cd->invTransformVector6(data);
+    else cd->invTransformVector3(data);
   }
-#endif
+}
+
+void
+Domain::transformVectorInv(complex<double> *data, int inode, bool hasRot)
+{
+  // transform node vector from DOF_FRM to basic coordinates
+  if(NFrameData *cd = nodes.dofFrame(inode)) {
+    if(hasRot) cd->invTransformVector6(data);
+    else cd->invTransformVector3(data);
+  }
 }
 
 void 
@@ -2911,60 +2897,6 @@ Domain::transformElementSensitivityInv(double *data, int inode, int numNodes, bo
 }
 
 void
-Domain::transformVectorInv(double *data, int inode, bool hasRot)
-{
-  // transform node vector from DOF_FRM to basic coordinates
-  if(inode >= numnodes || nodes[inode] == NULL) return;
-  int cd = nodes[inode]->cd;
-  if(cd == 0) return;
-
-  NFrameData *nfd = geoSource->getNFrames();
-#ifdef USE_EIGEN3
-  Eigen::Matrix3d T;
-  T << nfd[cd].frame[0][0], nfd[cd].frame[0][1], nfd[cd].frame[0][2],
-       nfd[cd].frame[1][0], nfd[cd].frame[1][1], nfd[cd].frame[1][2],
-       nfd[cd].frame[2][0], nfd[cd].frame[2][1], nfd[cd].frame[2][2];
-
-  if(hasRot) {
-    Eigen::Map<Eigen::Matrix<double,6,1> > v(data);
-    v.head<3>() = (T.transpose()*v.head<3>()).eval();
-    v.tail<3>() = (T.transpose()*v.tail<3>()).eval();
-  }
-  else {
-    Eigen::Map<Eigen::Vector3d> v(data);
-    v = (T.transpose()*v).eval();
-  }
-#endif
-}
-
-void
-Domain::transformVectorInv(complex<double> *data, int inode, bool hasRot)
-{
-  // transform node vector from DOF_FRM to basic coordinates
-  if(inode >= numnodes || nodes[inode] == NULL) return;
-  int cd = nodes[inode]->cd;
-  if(cd == 0) return;
-
-  NFrameData *nfd = geoSource->getNFrames();
-#ifdef USE_EIGEN3
-  Eigen::Matrix3d T;
-  T << nfd[cd].frame[0][0], nfd[cd].frame[0][1], nfd[cd].frame[0][2],
-       nfd[cd].frame[1][0], nfd[cd].frame[1][1], nfd[cd].frame[1][2],
-       nfd[cd].frame[2][0], nfd[cd].frame[2][1], nfd[cd].frame[2][2];
-
-  if(hasRot) {
-    Eigen::Map<Eigen::Matrix<complex<double>,6,1> > v(data);
-    v.head<3>() = (T.transpose()*v.head<3>()).eval();
-    v.tail<3>() = (T.transpose()*v.tail<3>()).eval();
-  }
-  else {
-    Eigen::Map<Eigen::Vector3cd> v(data);
-    v = (T.transpose()*v).eval();
-  }
-#endif
-}
-
-void
 Domain::transformStressStrain(FullM &mat, int iele)
 {
   // transform element stress or strain tensors from basic to DOF_FRM coordinates
@@ -2992,196 +2924,40 @@ void
 Domain::transformMatrix(double *data, int inode, bool sym)
 {
   // transform node 3x3 matrix from basic to DOF_FRM coordinates
-  if(inode >= numnodes || nodes[inode] == NULL) return;
-  int cd = nodes[inode]->cd;
-  if(cd == 0) return;
-#ifdef USE_EIGEN3
-  NFrameData *nfd = geoSource->getNFrames();
-
-  Eigen::Matrix3d T;
-  T << nfd[cd].frame[0][0], nfd[cd].frame[0][1], nfd[cd].frame[0][2],
-       nfd[cd].frame[1][0], nfd[cd].frame[1][1], nfd[cd].frame[1][2],
-       nfd[cd].frame[2][0], nfd[cd].frame[2][1], nfd[cd].frame[2][2];
-
-  Eigen::Matrix3d M;
-  if(sym) { // note: data = { sxx, syy, szz, sxy, syz, sxz }
-    M << data[0], data[3], data[5],
-         data[3], data[1], data[4],
-         data[5], data[4], data[2];
+  if(NFrameData *cd = nodes.dofFrame(inode)) {
+    if(sym) cd->transformSymMatrix3(data);
+    else cd->transformMatrix3(data);
   }
-  else {
-    M << data[0], data[1], data[2],
-         data[3], data[4], data[5],
-         data[6], data[7], data[8];
-  }
-  M = (T*M*T.transpose()).eval();
-  if(sym) {
-    data[0] = M(0,0);
-    data[1] = M(1,1);
-    data[2] = M(2,2);
-    data[3] = M(0,1);
-    data[4] = M(1,2);
-    data[5] = M(0,2);
-  }
-  else {
-    data[0] = M(0,0);
-    data[1] = M(0,1);
-    data[2] = M(0,2);
-    data[3] = M(1,0);
-    data[4] = M(1,1);
-    data[5] = M(1,2);
-    data[6] = M(2,0);
-    data[7] = M(2,1);
-    data[8] = M(2,2);
-  }
-#endif
 }
 
 void
 Domain::transformMatrix(complex<double> *data, int inode, bool sym)
 {
   // transform node 3x3 matrix from basic to DOF_FRM coordinates
-  if(inode >= numnodes || nodes[inode] == NULL) return;
-  int cd = nodes[inode]->cd;
-  if(cd == 0) return;
-#ifdef USE_EIGEN3
-  NFrameData *nfd = geoSource->getNFrames();
-
-  Eigen::Matrix3d T;
-  T << nfd[cd].frame[0][0], nfd[cd].frame[0][1], nfd[cd].frame[0][2],
-       nfd[cd].frame[1][0], nfd[cd].frame[1][1], nfd[cd].frame[1][2],
-       nfd[cd].frame[2][0], nfd[cd].frame[2][1], nfd[cd].frame[2][2];
-
-  Eigen::Matrix3cd M;
-  if(sym) { // note: data = { sxx, syy, szz, sxy, syz, sxz }
-    M << data[0], data[3], data[5],
-         data[3], data[1], data[4],
-         data[5], data[4], data[2];
+  if(NFrameData *cd = nodes.dofFrame(inode)) {
+    if(sym) cd->transformSymMatrix3(data);
+    else cd->transformMatrix3(data);
   }
-  else {
-    M << data[0], data[1], data[2],
-         data[3], data[4], data[5],
-         data[6], data[7], data[8];
-  }
-  M = (T*M*T.transpose()).eval();
-  if(sym) {
-    data[0] = M(0,0);
-    data[1] = M(1,1);
-    data[2] = M(2,2);
-    data[3] = M(0,1);
-    data[4] = M(1,2);
-    data[5] = M(0,2);
-  }
-  else {
-    data[0] = M(0,0);
-    data[1] = M(0,1);
-    data[2] = M(0,2);
-    data[3] = M(1,0);
-    data[4] = M(1,1);
-    data[5] = M(1,2);
-    data[6] = M(2,0);
-    data[7] = M(2,1);
-    data[8] = M(2,2);
-  }
-#endif
 }
 
 void
 Domain::transformMatrixInv(double *data, int inode, bool sym)
 {
   // transform node 3x3 matrix from DOF_FRM to basic coordinates
-  if(inode >= numnodes || nodes[inode] == NULL) return;
-  int cd = nodes[inode]->cd;
-  if(cd == 0) return;
-#ifdef USE_EIGEN3
-  NFrameData *nfd = geoSource->getNFrames();
-
-  Eigen::Matrix3d T;
-  T << nfd[cd].frame[0][0], nfd[cd].frame[0][1], nfd[cd].frame[0][2],
-       nfd[cd].frame[1][0], nfd[cd].frame[1][1], nfd[cd].frame[1][2],
-       nfd[cd].frame[2][0], nfd[cd].frame[2][1], nfd[cd].frame[2][2];
-
-  Eigen::Matrix3d M;
-  if(sym) { // note: data = { sxx, syy, szz, sxy, syz, sxz }
-    M << data[0], data[3], data[5],
-         data[3], data[1], data[4],
-         data[5], data[4], data[2];
+  if(NFrameData *cd = nodes.dofFrame(inode)) {
+    if(sym) cd->invTransformSymMatrix3(data);
+    else cd->invTransformMatrix3(data);
   }
-  else {
-    M << data[0], data[1], data[2],
-         data[3], data[4], data[5],
-         data[6], data[7], data[8];
-  }
-  M = (T.transpose()*M*T).eval();
-  if(sym) {
-    data[0] = M(0,0);
-    data[1] = M(1,1);
-    data[2] = M(2,2);
-    data[3] = M(0,1);
-    data[4] = M(1,2);
-    data[5] = M(0,2);
-  }
-  else {
-    data[0] = M(0,0);
-    data[1] = M(0,1);
-    data[2] = M(0,2);
-    data[3] = M(1,0);
-    data[4] = M(1,1);
-    data[5] = M(1,2);
-    data[6] = M(2,0);
-    data[7] = M(2,1);
-    data[8] = M(2,2);
-  }
-#endif
 }
 
 void
 Domain::transformMatrixInv(complex<double> *data, int inode, bool sym)
 {
   // transform node 3x3 matrix from DOF_FRM to basic coordinates
-  if(inode >= numnodes || nodes[inode] == NULL) return;
-  int cd = nodes[inode]->cd;
-  if(cd == 0) return;
-#ifdef USE_EIGEN3
-  NFrameData *nfd = geoSource->getNFrames();
-
-  Eigen::Matrix3d T;
-  T << nfd[cd].frame[0][0], nfd[cd].frame[0][1], nfd[cd].frame[0][2],
-       nfd[cd].frame[1][0], nfd[cd].frame[1][1], nfd[cd].frame[1][2],
-       nfd[cd].frame[2][0], nfd[cd].frame[2][1], nfd[cd].frame[2][2];
-
-  Eigen::Matrix3cd M;
-  if(sym) { // note: data = { sxx, syy, szz, sxy, syz, sxz }
-    M << data[0], data[3], data[5],
-         data[3], data[1], data[4],
-         data[5], data[4], data[2];
+  if(NFrameData *cd = nodes.dofFrame(inode)) {
+    if(sym) cd->invTransformSymMatrix3(data);
+    else cd->invTransformMatrix3(data);
   }
-  else {
-    M << data[0], data[1], data[2],
-         data[3], data[4], data[5],
-         data[6], data[7], data[8];
-  }
-  M = (T.transpose()*M*T).eval();
-  if(sym) {
-    data[0] = M(0,0);
-    data[1] = M(1,1);
-    data[2] = M(2,2);
-    data[3] = M(0,1);
-    data[4] = M(1,2);
-    data[5] = M(0,2);
-  }
-  else {
-    data[0] = M(0,0);
-    data[1] = M(0,1);
-    data[2] = M(0,2);
-    data[3] = M(1,0);
-    data[4] = M(1,1);
-    data[5] = M(1,2);
-    data[6] = M(2,0);
-    data[7] = M(2,1);
-    data[8] = M(2,2);
-  }
-#endif
 }
 
 void

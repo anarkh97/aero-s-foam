@@ -10,4 +10,4 @@ BinaryOutput.C
 DomainPita.C
 GeoSourceInstance.C OpMakeInstance.C
 ControlLawInfo.C BinaryOutputInstance.C
-EFrameData.C)
+EFrameDataInstance.C)

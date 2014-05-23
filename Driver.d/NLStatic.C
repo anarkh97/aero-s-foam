@@ -1868,7 +1868,6 @@ Domain::getStressStrain(GeomState &geomState, Corotator **allCorot,
     if(p_elstress == 0 && oframe == OutputInfo::Local) p_elstress = new FullM(maxNodesPerElement,9);
   }
 
-
   int flag;
   for(iele = 0; iele < numElements(); ++iele) {
     if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isMpcElement()) continue;

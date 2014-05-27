@@ -726,7 +726,7 @@ const char* sensitivityTypeMessage[] = {
 const char* solverTypeMessage[] = {
 " ... Skyline Solver is Selected     ... \n",
 " ... Sparse Solver is Selected      ... \n",
-" ... BlockSky Solver is Selected    ...\n",
+" ... BlockSky Solver is Selected    ... \n",
 " ... SimplicalLLT Solver is Selected... \n",
 " ... SimplicalLDLT Solver is Selec'd... \n",
 " ... Cholmod Solver is Selected     ... \n",

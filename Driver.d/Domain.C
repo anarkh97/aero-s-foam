@@ -2132,7 +2132,6 @@ Domain::getCompositeData(int iInfo,double time) {
 
        double x,y,z;
 
-
        x = MidPoint[iele][0] + cFrame[0]*cP1[0] +  cFrame[3]*cP1[1] + cFrame[6]*cP1[2] - CPoint[lay][n1][0];
        y = MidPoint[iele][1] + cFrame[1]*cP1[0] +  cFrame[4]*cP1[1] + cFrame[7]*cP1[2] - CPoint[lay][n1][1];
        z = MidPoint[iele][2] + cFrame[2]*cP1[0] +  cFrame[5]*cP1[1] + cFrame[8]*cP1[2] - CPoint[lay][n1][2];

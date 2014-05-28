@@ -540,7 +540,7 @@ MultiDomainDynam::getContactForce(DistrVector &d_n, DistrVector &dinc, DistrVect
       d_n_p = d_n + dinc;
       execParal2R(decDomain->getNumSub(), this, &MultiDomainDynam::subExplicitUpdate, d_n_p, predictedState);
     }
-    
+ 
     // update the prescribed displacements to their correct value at the time of the predictor
     if(claw && userSupFunc && claw->numUserDisp) {
       double *userDefineDisp = new double[claw->numUserDisp];

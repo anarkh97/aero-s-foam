@@ -101,6 +101,9 @@ Domain::getInternalForce(GeomState &geomState, Vector& elementForce,
       // Transform element stiffness and force to solve for the increment in the total rotation vector
       transformElemStiffAndForce(geomState, elementForce.data(), kel[iele], iele, false);
     }
+
+    // Transform internal force vector to nodal frame (note: the stiffness matrix is transformed prior to assembly in Domain::makeSparseOps)
+    transformVector(elementForce, iele);
     if(matrixTimers) matrixTimers->formTime += getTime();
 
     // Assemble element internal force into residual force vector
@@ -325,6 +328,7 @@ Domain::getFictitiousForce(GeomState &geomState, Vector &elementForce, FullSquar
     if(matrixTimers) matrixTimers->formTime -= getTime();
     elementForce.zero();
     getElemFictitiousForce(iele, geomState, elementForce.data(), kel[iele], time, refState, mel[iele], compute_tangents, cel);
+    transformVector(elementForce, iele);
     if(matrixTimers) matrixTimers->formTime += getTime();
 
     // Assemble element force into residual force vector
@@ -417,6 +421,12 @@ Domain::getElemFictitiousForce(int iele, GeomState &geomState, double *_fel, Ful
         // note #3: This function is currently not used for explicit dynamics (celArray is NULL). This means that for explicit dynamics
         //          (a) damping moments are always "follower" type, and (b) the contribution of the damping to the tangent stiffness is not included
         Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> > cel(&celArray[iele][0][0],numDofs,numDofs);
+        FullSquareMatrix cel_basic;
+        if(!domain->solInfo().basicDofCoords) {
+          cel_basic.copy(celArray[iele]);
+          transformMatrixInv(cel_basic, iele);
+          new (&cel) Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> >(&cel_basic[0][0],numDofs,numDofs);
+        }
         Eigen::Vector3d Psi,F;
         Eigen::Matrix3d Fx,RFx;
         Eigen::Matrix<double,6,1> inc_displacement;
@@ -495,6 +505,9 @@ Domain::getElemFictitiousForce(int iele, GeomState &geomState, double *_fel, Ful
     Eigen::Matrix3d J = Eigen::Matrix3d::Zero(); 
     J(idof-3,jdof-3) = current->diMass;
     if(idof != jdof) J(jdof-3,idof-3) = current->diMass;
+    if(!domain->solInfo().basicDofCoords) {
+      transformMatrixInv(J.data(), current->node, false);
+    }
 
     Eigen::Vector3d f;
     Eigen::Matrix3d K;

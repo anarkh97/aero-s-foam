@@ -57,7 +57,7 @@ protected:
 private:
   // Snapshot collection 
   void saveMidTime(double t);
-  void saveDelta(double dt);
+  void saveDelta(double delta);
   void saveStateSnapshot(const GeomState &state);
   void saveInternalStateSnapshot(const GeomState &state);
   void saveVelocitySnapshot(const GeomState &state, const Vector &veloc);

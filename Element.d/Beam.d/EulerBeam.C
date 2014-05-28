@@ -1031,12 +1031,12 @@ EulerBeam::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
         
           // Axial Stress
         
-           double IY = prop->Iyy;
+          double IY = prop->Iyy;
           double IZ = prop->Izz;
           double cA = prop->A;
               
           stress[0] = elForce[0][0]/cA - elForce[2][0]*Y/IZ + elForce[1][0]*Z/IY;
-            stress[1] = elForce[0][1]/cA - elForce[2][1]*Y/IZ + elForce[1][1]*Z/IY;
+          stress[1] = elForce[0][1]/cA - elForce[2][1]*Y/IZ + elForce[1][1]*Z/IY;
         
         } else if (strInd == 6) {
 

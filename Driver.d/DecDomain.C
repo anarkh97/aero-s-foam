@@ -1997,17 +1997,18 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, GenDistrVector<S
 
   if(domain->outFlag && domain->nodeTable == 0) domain->makeNodeTable(domain->outFlag);
   int numNodes = (domain->outFlag) ? domain->exactNumNodes : geoSource->numNode();
-  Scalar (*xyz)[11] = new Scalar[numNodes][11];
+  Scalar (*glMergedDis)[11] = new Scalar[numNodes][11];
+  Scalar (*locMergedDis)[11] = (domain->solInfo().basicDofCoords) ? 0 : new Scalar[numNodes][11];
   Scalar *globVal = 0;  // for output
 
   int i,j,iSub;
   for(i = 0; i < numNodes; ++i)
     for (j = 0 ; j < 11 ; j++)
-    xyz[i][j] = 0.0;
+    glMergedDis[i][j] = 0.0;
 
   int isub;
   for(isub = 0; isub < numSub; ++isub)
-    subDomain[isub]->mergeDisp(xyz,(*geomState)[isub]);
+    subDomain[isub]->mergeDisp(glMergedDis, (*geomState)[isub], locMergedDis);
 
   // intialize and merge aeroelastic forces from subdomains into global array
   Scalar (*mergedAeroF)[6] = 0;
@@ -2021,17 +2022,22 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, GenDistrVector<S
 
   // for nonlinear dynamics: initialize and merge velocities and accelerations from subdomains into global array
   GenDistrVector<Scalar> *v_n = 0, *a_n = 0;
-  Scalar (*mergedVel)[11] = 0, (*mergedAcc)[11] = 0;
+  Scalar (*glMergedVel)[11] = 0, (*glMergedAcc)[11] = 0;
+  Scalar (*locMergedVel)[11] = 0, (*locMergedAcc)[11] = 0;
   if(distState) {
     v_n = &distState->getVeloc();
     a_n = &distState->getAccel();
-    mergedVel = new Scalar[numNodes][11];
-    mergedAcc = new Scalar[numNodes][11];
+    glMergedVel = new Scalar[numNodes][11];
+    glMergedAcc = new Scalar[numNodes][11];
+    if(!domain->solInfo().basicDofCoords) {
+      locMergedVel = new Scalar[numNodes][11];
+      locMergedAcc = new Scalar[numNodes][11];
+    }
     for(i = 0; i < numNodes; ++i)
-      for(j=0; j<11; ++j) mergedVel[i][j] = mergedAcc[i][j] = 0.0;
+      for(j=0; j<11; ++j) glMergedVel[i][j] = glMergedAcc[i][j] = 0.0;
     for(iSub = 0; iSub < numSub; ++iSub) {
-      subDomain[iSub]->mergeAllVeloc(mergedVel, v_n->subData(iSub));
-      subDomain[iSub]->mergeAllAccel(mergedAcc, a_n->subData(iSub));
+      subDomain[iSub]->mergeAllVeloc(glMergedVel, v_n->subData(iSub), locMergedVel);
+      subDomain[iSub]->mergeAllAccel(glMergedAcc, a_n->subData(iSub), locMergedAcc);
     }
   }
 
@@ -2052,6 +2058,11 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, GenDistrVector<S
   int inode;
   for(i = 0; i < numOutInfo; i++) {
    if(oinfo[i].interval != 0 && step % oinfo[i].interval == 0) {
+
+    Scalar (*xyz)[11] = (oinfo[i].oframe == OutputInfo::Global || domain->solInfo().basicDofCoords) ? glMergedDis : locMergedDis;
+    Scalar (*mergedVel)[11] = (oinfo[i].oframe == OutputInfo::Global || domain->solInfo().basicDofCoords) ? glMergedVel : locMergedVel;
+    Scalar (*mergedAcc)[11] = (oinfo[i].oframe == OutputInfo::Global || domain->solInfo().basicDofCoords) ? glMergedAcc : locMergedAcc;
+
     switch(oinfo[i].type) {
      case OutputInfo::FreqRespModes:
      case OutputInfo::Displacement:
@@ -2300,9 +2311,12 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, GenDistrVector<S
  }
  if(globVal) delete [] globVal;
  if(aeroF) delete [] mergedAeroF;
- if(xyz) delete [] xyz;
- if(mergedVel) delete [] mergedVel;
- if(mergedAcc) delete [] mergedAcc;
+ if(glMergedDis) delete [] glMergedDis;
+ if(locMergedDis) delete [] locMergedDis;
+ if(glMergedVel) delete [] glMergedVel;
+ if(glMergedAcc) delete [] glMergedAcc;
+ if(locMergedVel) delete [] locMergedVel;
+ if(locMergedAcc) delete [] locMergedAcc;
  if(mergedReactions) delete [] mergedReactions;
 }
 

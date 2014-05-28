@@ -59,6 +59,12 @@ Corotator::getNLAllStress(FullM&, Vector&, GeomState&, CoordSet&, int)
   std::cerr << " *** WARNING: Corotator::getNLAllStress(FullM&, Vector&, GeomState&, CoordSet&, int) is not implemented\n";
 }
 
+void
+Corotator::getNLAllStress(FullMC&, Vector&, GeomState&, CoordSet&, int)
+{
+  std::cerr << " *** WARNING: Corotator::getNLAllStress(FullMC&, Vector&, GeomState&, CoordSet&, int) is not implemented\n";
+}
+
 double
 Corotator::getElementEnergy(GeomState&, CoordSet&)
 {

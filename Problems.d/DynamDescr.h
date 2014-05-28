@@ -106,6 +106,7 @@ class SingleDomainDynamic
 
     FlExchanger *flExchanger;
     Vector *reactions;
+    bool firstSts;
 
  protected:
     // extract gets an acceleration, velocity and disp vector according to the claw sensors

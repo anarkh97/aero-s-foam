@@ -684,7 +684,6 @@ this->communicator->sync();
   if(masterAccs_loc) delete masterAccs_loc;
 }
 
-
 template<class Scalar>
 void
 GenDistrDomain<Scalar>::getPrimal(DistSVec<Scalar, 11> &disps, DistSVec<Scalar, 11> &masterDisps, 
@@ -1357,17 +1356,25 @@ GenDistrDomain<Scalar>::postProcessing(DistrGeomState *geomState, GenDistrVector
   int iSub;
 
   // initialize and merge displacements from subdomains into cpu array
-  DistSVec<Scalar, 11> disps(*this->nodeInfo);
-  DistSVec<Scalar, 11> masterDisps(masterInfo);
-  disps = 0;
+  DistSVec<Scalar, 11> disps_glo(*this->nodeInfo);
+  DistSVec<Scalar, 11> masterDisps_glo(masterInfo);
+  disps_glo = 0;
+  DistSVec<Scalar, 11> *disps_loc = 0, *masterDisps_loc = 0;
+  if(!domain->solInfo().basicDofCoords) {
+    disps_loc = new DistSVec<Scalar, 11>(*this->nodeInfo);
+    masterDisps_loc = new DistSVec<Scalar, 11>(masterInfo);
+  }
   for(iSub = 0; iSub < this->numSub; ++iSub) {
-    Scalar (*xyz)[11] = (Scalar (*)[11]) disps.subData(iSub);//DofSet::max_known_nonL_dof
-    this->subDomain[iSub]->mergeDistributedNLDisp(xyz, (*geomState)[iSub]);
+    Scalar (*xyz)[11] = (Scalar (*)[11]) disps_glo.subData(iSub);//DofSet::max_known_nonL_dof
+    Scalar (*xyz_loc)[11] = (disps_loc) ? (Scalar (*)[11]) disps_loc->subData(iSub) : 0;
+    this->subDomain[iSub]->mergeDistributedNLDisp(xyz, (*geomState)[iSub], xyz_loc);
   }
   if((domain->solInfo().isCoupled && domain->solInfo().isMatching) || domain->GetnContactSurfacePairs()) {
-    unify(disps); // make sure master has solution for all dofs before reducing
+    unify(disps_glo); // make sure master has solution for all dofs before reducing
+    if(disps_loc) unify(*disps_loc);
   }
-  disps.reduce(masterDisps, masterFlag, numFlags);
+  disps_glo.reduce(masterDisps_glo, masterFlag, numFlags);
+  if(disps_loc) disps_loc->reduce(*masterDisps_loc, masterFlag, numFlags);
   // initialize and merge aeroelastic forces
   DistSVec<Scalar, 6> aerof(*this->nodeInfo);
   DistSVec<Scalar, 6> masterAeroF(masterInfo);
@@ -1382,23 +1389,38 @@ GenDistrDomain<Scalar>::postProcessing(DistrGeomState *geomState, GenDistrVector
     aerof.reduce(masterAeroF, masterFlag, numFlags);
   }
   // initialize and merge velocities & accelerations
-  DistSVec<Scalar, 11> vels(*this->nodeInfo), accs(*this->nodeInfo);
-  DistSVec<Scalar, 11> masterVels(masterInfo), masterAccs(masterInfo);
+  DistSVec<Scalar, 11> vels_glo(*this->nodeInfo), accs_glo(*this->nodeInfo);
+  DistSVec<Scalar, 11> masterVels_glo(masterInfo), masterAccs_glo(masterInfo);
+  DistSVec<Scalar, 11> *vels_loc = 0, *masterVels_loc = 0, *accs_loc = 0, *masterAccs_loc = 0;
+  if(!domain->solInfo().basicDofCoords) {
+    vels_loc = new DistSVec<Scalar, 11>(*this->nodeInfo);
+    masterVels_loc = new DistSVec<Scalar, 11>(masterInfo);
+    accs_loc = new DistSVec<Scalar, 11>(*this->nodeInfo);
+    masterAccs_loc = new DistSVec<Scalar, 11>(masterInfo);
+  }
   if(distState) {
     GenDistrVector<Scalar> *v_n = &distState->getVeloc();
     GenDistrVector<Scalar> *a_n = &distState->getAccel();
-    vels = 0; accs = 0;
+    vels_glo = 0; accs_glo = 0;
     for(iSub = 0; iSub < this->numSub; ++iSub) {
-      Scalar (*mergedVel)[11] = (Scalar (*)[11]) vels.subData(iSub);
-      Scalar (*mergedAcc)[11] = (Scalar (*)[11]) accs.subData(iSub);
+      Scalar (*mergedVel)[11] = (Scalar (*)[11]) vels_glo.subData(iSub);
+      Scalar (*mergedAcc)[11] = (Scalar (*)[11]) accs_glo.subData(iSub);
       double *vcx = this->subDomain[iSub]->getVcx();
-      Scalar *vcx_scalar = (Scalar *) dbg_alloca(this->subDomain[iSub]->numdof()*sizeof(Scalar));
-      for(int i=0; i<this->subDomain[iSub]->numdof(); ++i) vcx_scalar[i] = vcx[i];
-      this->subDomain[iSub]->template mergeDistributedDisp<Scalar>(mergedVel, v_n->subData(iSub), vcx_scalar);
-      this->subDomain[iSub]->template mergeDistributedDisp<Scalar>(mergedAcc, a_n->subData(iSub));
+      double *acx = this->subDomain[iSub]->getAcx();
+      Scalar *vcx_scalar = new Scalar[this->subDomain[iSub]->numdof()];
+      Scalar *acx_scalar = new Scalar[this->subDomain[iSub]->numdof()];
+      Scalar (*mergedVel_loc)[11] = (vels_loc) ? (Scalar (*)[11]) vels_loc->subData(iSub) : 0;
+      Scalar (*mergedAcc_loc)[11] = (accs_loc) ? (Scalar (*)[11]) accs_loc->subData(iSub) : 0;
+      for(int i=0; i<this->subDomain[iSub]->numdof(); ++i) { vcx_scalar[i] = vcx[i]; acx_scalar[i] = acx[i]; }
+      this->subDomain[iSub]->template mergeDistributedDisp<Scalar>(mergedVel, v_n->subData(iSub), vcx_scalar, mergedVel_loc);
+      this->subDomain[iSub]->template mergeDistributedDisp<Scalar>(mergedAcc, a_n->subData(iSub), acx_scalar, mergedAcc_loc);
+      delete [] vcx_scalar;
+      delete [] acx_scalar;
     }
-    vels.reduce(masterVels, masterFlag, numFlags);
-    accs.reduce(masterAccs, masterFlag, numFlags);
+    vels_glo.reduce(masterVels_glo, masterFlag, numFlags);
+    accs_glo.reduce(masterAccs_glo, masterFlag, numFlags);
+    if(vels_loc) vels_loc->reduce(*masterVels_loc, masterFlag, numFlags);
+    if(accs_loc) accs_loc->reduce(*masterAccs_loc, masterFlag, numFlags);
   }
   // initialize and merge reaction forces
   DistSVec<Scalar, 11> reacts(*this->nodeInfo);
@@ -1485,10 +1507,24 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
     if(oinfo[iOut].interval == 0 || x % oinfo[iOut].interval != 0)
       continue;
 
+    // set primal output states to either global or local
+    DistSVec<Scalar, 11> &disps = (oinfo[iOut].oframe == OutputInfo::Global || domain->solInfo().basicDofCoords)
+                                  ? disps_glo : *disps_loc;
+    DistSVec<Scalar, 11> &masterDisps = (oinfo[iOut].oframe == OutputInfo::Global || domain->solInfo().basicDofCoords)
+                                  ? masterDisps_glo : *masterDisps_loc;
+    DistSVec<Scalar, 11> &vels = (oinfo[iOut].oframe == OutputInfo::Global || domain->solInfo().basicDofCoords)
+                                  ? vels_glo : *vels_loc;
+    DistSVec<Scalar, 11> &masterVels = (oinfo[iOut].oframe == OutputInfo::Global || domain->solInfo().basicDofCoords)
+                                  ? masterVels_glo : *masterVels_loc;
+    DistSVec<Scalar, 11> &accs = (oinfo[iOut].oframe == OutputInfo::Global || domain->solInfo().basicDofCoords)
+                                  ? accs_glo : *accs_loc;
+    DistSVec<Scalar, 11> &masterAccs = (oinfo[iOut].oframe == OutputInfo::Global || domain->solInfo().basicDofCoords)
+                                  ? masterAccs_glo : *masterAccs_loc;
+
     // update number of results
     numRes[iOut]++;
     switch(oinfo[iOut].type)  {
-      
+
       case OutputInfo::FreqRespModes:
       case OutputInfo::Displacement:
         getPrimal(disps, masterDisps, time, x, iOut, 3, 0);
@@ -1816,6 +1852,11 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
 }
 this->communicator->sync();
 #endif
+  if(disps_loc) delete disps_loc;
+  if(masterDisps_loc) delete masterDisps_loc;
+  if(masterVels_loc) delete masterVels_loc;
+  if(accs_loc) delete accs_loc;
+  if(masterAccs_loc) delete masterAccs_loc;
 }
 
 template<class Scalar>

@@ -2359,7 +2359,7 @@ GenSubDomain<Scalar>::computeStressStrain(int fileNumber,
         transformVectorInv(*elDisp, iele);
 
         // transform non-invariant stresses/strains from basic frame to DOF_FRM
-        if(oframe == OutputInfo::Local && ((stressIndex >=0 && stressIndex <=5) || (stressIndex >= 7 && stressIndex <= 12))) {
+        if(oframe == OutputInfo::Local && ((stressIndex >= 0 && stressIndex <= 5) || (stressIndex >= 7 && stressIndex <= 12))) {
 
           // FIRST, CALCULATE STRESS/STRAIN TENSOR FOR EACH NODE OF THE ELEMENT
           p_elstress->zero();
@@ -2425,18 +2425,9 @@ GenSubDomain<Scalar>::computeStressStrain(GeomState *gs, Corotator **allCorot,
                                           int fileNumber, int stressIndex, Scalar *glStress, Scalar *glWeight,
                                           GeomState *refState)
 {
-
   OutputInfo *oinfo = geoSource->getOutputInfo();
 
   if(elemToNode==0) elemToNode = new Connectivity(&packedEset);
-
-  int k;
-  int surface = oinfo[fileNumber].surface;
-  int iele;
-  int *nodeNumbers = new int[maxNumNodes];
-  GenVector<Scalar> *elstress = new GenVector<Scalar>(maxNumNodes);
-  GenVector<double> *elweight = new GenVector<double>(maxNumNodes);
-  GenVector<Scalar> *elDisp = new GenVector<Scalar>(maxNumDOFs);
 
   // avgnum = 2 --> do not include stress/strain of bar/beam element in averaging
   int avgnum = oinfo[fileNumber].averageFlg;
@@ -2444,10 +2435,22 @@ GenSubDomain<Scalar>::computeStressStrain(GeomState *gs, Corotator **allCorot,
   // ylayer and zlayer are needed when calculating the axial stress/strain in a beam element
   double ylayer = oinfo[fileNumber].ylayer;
   double zlayer = oinfo[fileNumber].zlayer;
+  OutputInfo::FrameType oframe = oinfo[fileNumber].oframe;
 
+  int *nodeNumbers = new int[maxNumNodes];
   Vector elemNodeTemps(maxNumNodes);
   elemNodeTemps.zero();
   double *nodalTemperatures = getNodalTemperatures();
+
+  int k;
+  int surface = oinfo[fileNumber].surface;
+
+  int iele;
+  GenVector<Scalar> *elstress = new GenVector<Scalar>(maxNumNodes);
+  GenVector<double> *elweight = new GenVector<double>(maxNumNodes);
+  GenVector<Scalar> *elDisp = new GenVector<Scalar>(maxNumDOFs);
+  GenFullM<Scalar> *p_elstress = 0;
+  if(oframe == OutputInfo::Local) p_elstress = new GenFullM<Scalar>(maxNumNodes,9);
 
   int flag;
 
@@ -2482,22 +2485,52 @@ GenSubDomain<Scalar>::computeStressStrain(GeomState *gs, Corotator **allCorot,
       }
     }
 
-    if(flag == 1) {
-      // USE LINEAR STRESS ROUTINE
-      packedEset[iele]->getVonMises(*elstress, *elweight, nodes,
-                                    *elDisp, stressIndex, surface,
-                                     elemNodeTemps.data(), ylayer, zlayer, avgnum);
-    }
-    else if(flag == 2) {
-      // USE NON-LINEAR STRESS ROUTINE
-      allCorot[iele]->getNLVonMises(*elstress, *elweight, *gs, refState,
-                                    nodes, stressIndex, surface,
-                                    elemNodeTemps.data(), ylayer, zlayer, avgnum);
+    if(oframe == OutputInfo::Local && ((stressIndex >= 0 && stressIndex <= 5) || (stressIndex >= 7 && stressIndex <= 12))
+       && (flag == 1 || flag == 2)) { // transform non-invariant stresses/strains from basic frame to DOF_FRM
+
+      // First, calculate stress/strain tensor for each node of the element
+      p_elstress->zero();
+      int strInd = (stressIndex >= 0 && stressIndex <= 5) ? 0 : 1;
+      if (flag == 1) {
+        // USE LINEAR STRESS ROUTINE
+        packedEset[iele]->getAllStress(*p_elstress, *elweight, nodes,
+                                       *elDisp, strInd, surface,
+                                       elemNodeTemps.data());
+      }
+      else {
+        // USE NON-LINEAR STRESS ROUTINE
+        allCorot[iele]->getNLAllStress(*p_elstress, *elweight, *gs,
+                                       nodes, strInd);
+      }
+
+      // Second, transform stress/strain tensor to nodal frame coordinates
+      transformStressStrain(*p_elstress, iele);
+
+      // Third, extract the requested stress/strain value from the stress/strain tensor
+      for (iNode = 0; iNode < NodesPerElement; ++iNode) {
+        if(strInd == 0)
+          (*elstress)[iNode] = (*p_elstress)[iNode][stressIndex];
+        else
+          (*elstress)[iNode] = (*p_elstress)[iNode][stressIndex-7];
+      }
     }
     else {
-      // NO STRESS RECOVERY
+      if(flag == 1) {
+        // USE LINEAR STRESS ROUTINE
+        packedEset[iele]->getVonMises(*elstress, *elweight, nodes,
+                                      *elDisp, stressIndex, surface,
+                                       elemNodeTemps.data(), ylayer, zlayer, avgnum);
+      }
+      else if(flag == 2) {
+        // USE NON-LINEAR STRESS ROUTINE
+        allCorot[iele]->getNLVonMises(*elstress, *elweight, *gs, refState,
+                                      nodes, stressIndex, surface,
+                                      elemNodeTemps.data(), ylayer, zlayer, avgnum);
+      }
+      else {
+        // NO STRESS RECOVERY
+      }
     }
-
 
     if(glWeight)  {
       for(k = 0; k < NodesPerElement; ++k) {
@@ -2519,6 +2552,7 @@ GenSubDomain<Scalar>::computeStressStrain(GeomState *gs, Corotator **allCorot,
   delete elweight;
   delete elDisp;
   delete [] nodeNumbers;
+  if(p_elstress) delete p_elstress;
 }
 
 template<class Scalar>
@@ -2548,16 +2582,17 @@ GenSubDomain<Scalar>::reBuildKbb(FullSquareMatrix *kel)
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::mergeDisp(Scalar (*xyz)[11], GeomState* u)//DOfSet::max_known_nonL_dof
+GenSubDomain<Scalar>::mergeDisp(Scalar (*xyz)[11], GeomState* u, Scalar (*xyz_loc)[11]) //DOfSet::max_known_nonL_dof
 {
  // Loop over all nodes, Subtract the initial configuration from the
  // Current configuration to get the displacement
+ bool IsTemperatureState = (dynamic_cast<TemperatureState*>(u) != NULL);
  int i, nodeI;
  for(i = 0; i < numnodes; ++i) {
-   if(!nodes[i] || i >= u->numNodes()) continue; // XXX
+   if(!nodes[i] || i >= u->numNodes()) continue;
    nodeI = (domain->outFlag) ? domain->nodeTable[glNums[i]]-1 : glNums[i];
 
-   if(dynamic_cast<TemperatureState*>(u)) { xyz[nodeI][0] = (*u)[i].x; continue; }
+   if(IsTemperatureState) { xyz[nodeI][0] = (*u)[i].x; continue; }
    xyz[nodeI][0] = ((*u)[i].x - nodes[i]->x);
    xyz[nodeI][1] = ((*u)[i].y - nodes[i]->y);
    xyz[nodeI][2] = ((*u)[i].z - nodes[i]->z);
@@ -2566,19 +2601,25 @@ GenSubDomain<Scalar>::mergeDisp(Scalar (*xyz)[11], GeomState* u)//DOfSet::max_kn
    xyz[nodeI][3] = rot[0];
    xyz[nodeI][4] = rot[1];
    xyz[nodeI][5] = rot[2];
+
+   if(xyz_loc) {
+     for(int j=0; j<6; ++j) xyz_loc[nodeI][j] = xyz[nodeI][j];
+     transformVector(xyz_loc[nodeI], i, true);
+   }
  }
 }
 
 template<class Scalar>
 void
-GenSubDomain<Scalar>::mergeDistributedNLDisp(Scalar (*xyz)[11], GeomState* u)//DofSet::max_known_nonL_dof
+GenSubDomain<Scalar>::mergeDistributedNLDisp(Scalar (*xyz)[11], GeomState* u, Scalar (*xyz_loc)[11]) //DofSet::max_known_nonL_dof
 {
  // Loop over all nodes, Subtract the initial configuration from the
  // Current configuration to get the displacement
+ bool IsTemperatureState = (dynamic_cast<TemperatureState*>(u) != NULL);
  int i;
  for(i = 0; i < numnodes; ++i) {
    if(!nodes[i]) continue;
-   if(dynamic_cast<TemperatureState*>(u)) { xyz[i][0] = (*u)[i].x; continue; }
+   if(IsTemperatureState) { xyz[i][0] = (*u)[i].x; continue; }
    xyz[i][0] = ((*u)[i].x - nodes[i]->x);
    xyz[i][1] = ((*u)[i].y - nodes[i]->y);
    xyz[i][2] = ((*u)[i].z - nodes[i]->z);
@@ -2587,6 +2628,11 @@ GenSubDomain<Scalar>::mergeDistributedNLDisp(Scalar (*xyz)[11], GeomState* u)//D
    xyz[i][3] = rot[0];
    xyz[i][4] = rot[1];
    xyz[i][5] = rot[2];
+
+   if(xyz_loc) {
+     for(int j=0; j<6; ++j) xyz_loc[i][j] = xyz[i][j];
+     transformVector(xyz_loc[i], i, true);
+   }
  }
 }
 

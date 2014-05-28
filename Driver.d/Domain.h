@@ -143,6 +143,7 @@ struct AllSensitivities
 #ifdef USE_EIGEN3
   double weight;           // total weight of the structure
   Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *weightWRTthick;                     // derivatives of weight wrt thickness
+  Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *weightWRTshape;                     // derivatives of weight wrt shape variables
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *vonMisesWRTthick;      // derivatives of von Mises stress wrt thickness
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *vonMisesWRTdisp;       // derivatives of von Mises stress wrt displacement
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *vonMisesWRTshape;      // derivatives of von Mises stress wrt shape varibales
@@ -155,13 +156,14 @@ struct AllSensitivities
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **linearstaticWRTshape; // derivative of linear static structural formulation wrt shape variables
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **dispWRTthick;         // derivative of displacement wrt thickness
   // Constructor
-  AllSensitivities() { weight = 0;                
+  AllSensitivities() { weight = 0;                weightWRTshape = 0;
                        weightWRTthick = 0;        vonMisesWRTthick = 0;      dKucdthick = 0;            vonMisesWRTshape = 0; 
                        vonMisesWRTdisp = 0;       stressWeight = 0;          stiffnessWRTthick = 0;     dKucdshape = 0; 
                        linearstaticWRTthick = 0;  linearstaticWRTshape = 0;  dispWRTthick = 0;          stiffnessWRTshape = 0; }
 
   void zero(int numShapeVars=0, int numThicknessGroups=0) {
     if(weightWRTthick) weightWRTthick->setZero();
+    if(weightWRTshape) weightWRTshape->setZero();
     if(vonMisesWRTthick) vonMisesWRTthick->setZero();
     if(vonMisesWRTdisp) vonMisesWRTdisp->setZero();
     if(vonMisesWRTshape) vonMisesWRTshape->setZero();
@@ -537,6 +539,8 @@ class Domain : public HData {
      Connectivity * makeLmpcToNode_primal();
      void makeFsiToNode();
      Connectivity *getFsiToNode() { return fsiToNode; }
+     int getNumThicknessGroups() { return numThicknessGroups; }
+     int getNumShapeVars() { return numShapeVars; }
      int getNumFSI() { return numFSI; }
      void setNumFSI(int n) { numFSI = n; }
      ResizeArray<LMPCons *> &getFSI() { return fsi; }
@@ -587,6 +591,7 @@ class Domain : public HData {
      void retrieveElemset();
 
      void computeWeightWRTthicknessSensitivity(int, AllSensitivities<double> &allSens);
+     void computeWeightWRTShapeVariableSensitivity(int, AllSensitivities<double> &allSens);
      void computeStiffnessWRTthicknessSensitivity(int, AllSensitivities<double> &allSens);
      void computeStiffnessWRTShapeVariableSensitivity(int, AllSensitivities<double> &allSens);
      void makePreSensitivities(AllSensitivities<double> &allSens, double *);

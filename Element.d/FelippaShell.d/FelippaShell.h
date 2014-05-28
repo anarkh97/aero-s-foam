@@ -89,6 +89,7 @@ public:
         double getMassSensitivityWRTthickness(CoordSet &);
         double weight(CoordSet&, double *);
         double weightDerivativeWRTthickness(CoordSet&, double *, int senMethod = 1);
+        void weightDerivativeWRTNodalCoordinate(Vector &dwdx, CoordSet&, double *, int senMethod = 1);
 
         void computeDisp(CoordSet&, State &, const InterpPoint &,
                          double*, GeomState *gs=0);

@@ -2979,6 +2979,47 @@ Domain::transformMatrix(complex<double> *data, int inode)
 }
 
 void
+Domain::computeWeightWRTShapeVariableSensitivity(int sindex, AllSensitivities<double> &allSens)
+{
+#ifdef USE_EIGEN3
+     // ... COMPUTE TOTAL STRUCTURAL WEIGHT AND DERIVATIVE WRT SHAPE VARIABLES
+     double weight(0);
+     allSens.weightWRTshape = new Eigen::Matrix<double, Eigen::Dynamic, 1>(numShapeVars);
+     allSens.weightWRTshape->setZero();
+     std::map<int, Attrib> &attributes = geoSource->getAttributes();
+     for(int iele = 0; iele < numele; ++iele) {
+       int nnodes = packedEset[iele]->numNodes();
+       Vector weightDerivative(3*nnodes);
+       StructProp *prop = packedEset[iele]->getProperty();
+       if(prop == 0) continue; // phantom element
+
+       weight += packedEset[iele]->weight(nodes, gravityAcceleration);
+       packedEset[iele]->weightDerivativeWRTNodalCoordinate(weightDerivative, nodes, gravityAcceleration, senInfo[sindex].method);
+       for(int ishap=0; ishap<numShapeVars; ++ishap) {
+         for(int i=0; i<nnodes; ++i) {
+           int node2 = (outFlag) ? nodeTable[(*elemToNode)[iele][i]]-1 : (*elemToNode)[iele][i];
+           int inode = shapeSenData.nodes[node2];
+           for(int xyz=0; xyz<3; ++xyz) {
+             (*allSens.weightWRTshape)[ishap] += weightDerivative[3*i+xyz] * shapeSenData.sensitivities[ishap][inode][xyz];
+           }
+         }
+       }
+     }
+
+#ifdef SENSITIVITY_DEBUG
+     if(verboseFlag) {
+       double mass = computeStructureMass();
+       filePrint(stderr," *** MASS : %e\n", mass);
+       filePrint(stderr," *** WEIGHT : %e\n", weight);
+       filePrint(stderr,"printing weight derivative wrt shape variables\n");
+       std::cout << *allSens.weightWRTshape << std::endl;
+     }
+#endif
+     allSens.weight = weight;
+#endif
+}
+
+void
 Domain::computeWeightWRTthicknessSensitivity(int sindex, AllSensitivities<double> &allSens)
 {
 #ifdef USE_EIGEN3
@@ -3010,11 +3051,15 @@ Domain::computeWeightWRTthicknessSensitivity(int sindex, AllSensitivities<double
        }
      }
 
+#ifdef SENSITIVITY_DEBUG
      if(verboseFlag) {
+       double mass = computeStructureMass();
+       filePrint(stderr," *** MASS : %e\n", mass);
        filePrint(stderr," *** WEIGHT : %e\n", weight);
-       filePrint(stderr,"printing weight derivative\n");
+       filePrint(stderr,"printing weight derivative wrt thickness\n");
        std::cout << *allSens.weightWRTthick << std::endl;
      }
+#endif
      allSens.weight = weight;
 #endif
 }
@@ -3150,6 +3195,10 @@ Domain::makePreSensitivities(AllSensitivities<double> &allSens, double *bcx)
    {
      computeStiffnessWRTthicknessSensitivity(sindex, allSens);
      break;
+   }
+   case SensitivityInfo::WeightWRTshape:
+   {
+     computeWeightWRTShapeVariableSensitivity(sindex, allSens);
    }
   }
  }
@@ -3615,12 +3664,6 @@ Domain::makePostSensitivities(GenSolver<double> *sysSolver,
    {
      if(!allSens.stiffnessWRTthick) computeStiffnessWRTthicknessSensitivity(sindex, allSens);
      computeLinearStaticWRTthicknessSensitivity(sindex,allSens,sol);
-     break;
-   } 
-   case SensitivityInfo::LinearStaticWRTshape:
-   {
-     if(!allSens.stiffnessWRTshape) computeStiffnessWRTShapeVariableSensitivity(sindex,allSens);
-     if(!allSens.linearstaticWRTshape) computeLinearStaticWRTShapeVariableSensitivity(sindex,allSens,sol);
      break;
    } 
    case SensitivityInfo::StressVMWRTthickness: 

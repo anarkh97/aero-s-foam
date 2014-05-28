@@ -15,6 +15,7 @@
 #include <Element.d/FelippaShell.d/ShellElementGravityForceWRTNodalCoordinateSensitivity.h>
 #include <Element.d/FelippaShell.d/ShellElementStressWRTDisplacementSensitivity.h>
 #include <Element.d/FelippaShell.d/ShellElementStressWRTNodalCoordinateSensitivity.h>
+#include <Element.d/FelippaShell.d/ShellElementMassWRTNodalCoordinateSensitivity.h>
 #include <Element.d/FelippaShell.d/FelippaShellStiffnessWRTThicknessSensitivity.h>
 #include <Element.d/FelippaShell.d/ShellElementStiffnessWRTNodalCoordinateSensitivity.h>
 #include <Element.d/NonLinearity.d/ExpMat.h>
@@ -225,6 +226,7 @@ FelippaShell::getGravityForceSensitivityWRTNodalCoordinate(CoordSet& cs, double 
   Eigen::Matrix<double,9,1> q;
   q << x[0], y[0], z[0], x[1], y[1], z[1], x[2], y[2], z[2];
   Eigen::Matrix<double,18,9> dGravityForcedx;
+
   if(senMethod == 1) { // automatic differentiation
 #if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER < 1200 || __INTEL_COMPILER > 1210)
     Simo::Jacobian<double,ShellElementGravityForceWRTNodalCoordinateSensitivity> dGdx(dconst,iconst);
@@ -577,6 +579,77 @@ FelippaShell::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAccelera
   fprintf(stderr," ... Error: FelippaShell::weightDerivativeWRTthickness for automatic differentiation and finite difference is not implemented\n");
   exit(-1);
  }
+}
+ 
+void
+FelippaShell::weightDerivativeWRTNodalCoordinate(Vector &dwdx, CoordSet& cs, double *gravityAcceleration, int senMethod)
+{
+#ifdef USE_EIGEN3
+ if (prop == NULL) return;
+
+ double x[3] = { cs[nn[0]]->x, cs[nn[1]]->x, cs[nn[2]]->x };
+ double y[3] = { cs[nn[0]]->y, cs[nn[1]]->y, cs[nn[2]]->y };
+ double z[3] = { cs[nn[0]]->z, cs[nn[1]]->z, cs[nn[2]]->z };
+
+ Eigen::Matrix<double,4,1> dconst;
+ Eigen::Matrix<double,9,1> q;
+ Eigen::Matrix<int,0,1> iconst;
+
+ q << cs[nn[0]]->x, cs[nn[0]]->y, cs[nn[0]]->z, cs[nn[1]]->x, cs[nn[1]]->y, cs[nn[1]]->z, cs[nn[2]]->x, cs[nn[2]]->y, cs[nn[2]]->z;
+
+ dconst[0] = prop->E;
+ dconst[1] = prop->nu;
+ dconst[2] = prop->rho;
+ dconst[3] = prop->eh; 
+
+ Eigen::Matrix<double,1,9> dWeightdx;
+ if(senMethod == 0) {
+    std::cerr << " ... Warning: analytic sensitivity wrt nodal coordinate is not implemented yet\n";
+    std::cerr << " ...          instead, automatic differentiation will be applied\n";
+    senMethod = 1;
+ }
+
+ if(senMethod == 1) { // automatic differentiation
+    Simo::Jacobian<double, ShellElementMassWRTNodalCoordinateSensitivity> dWdx(dconst,iconst); 
+    dWeightdx = dWdx(q, 0);
+    double gravAccNorm = sqrt(gravityAcceleration[0]*gravityAcceleration[0] + 
+                              gravityAcceleration[1]*gravityAcceleration[1] +
+                              gravityAcceleration[2]*gravityAcceleration[2]);
+    dWeightdx *= gravAccNorm;
+#ifdef SENSITIVITY_DEBUG
+    Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
+    if(verboseFlag) {
+      std::cerr << "dWeightdx(AD) = \n"  << dWeightdx.format(HeavyFmt) << std::endl;
+    }
+#endif
+ }
+
+ if(senMethod == 2) { // finite difference
+    ShellElementMassWRTNodalCoordinateSensitivity<double> foo(dconst,iconst);
+    Eigen::Matrix<double,9,1> qp, qm;
+    double h(1e-6);
+    for(int i=0; i<9; ++i) {
+      qp = qm = q;
+      qp[i] = q[i] + h;   qm[i] = q[i] - h;
+      Eigen::Matrix<double,1,1> Mp = foo(qp, 0);
+      Eigen::Matrix<double,1,1> Mm = foo(qm, 0);
+      dWeightdx.col(i) = (Mp-Mm)/(2*h);
+    }
+    double gravAccNorm = sqrt(gravityAcceleration[0]*gravityAcceleration[0] + 
+                              gravityAcceleration[1]*gravityAcceleration[1] +
+                              gravityAcceleration[2]*gravityAcceleration[2]);
+    dWeightdx *= gravAccNorm;
+#ifdef SENSITIVITY_DEBUG
+    Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
+    if(verboseFlag) {
+      std::cerr << "dWeightdx(FD) =\n";
+      std::cerr << "dWeightdx(FD) =\n" << dWeightdx.format(HeavyFmt) << std::endl;
+    }
+#endif
+ }
+
+ dwdx.copy(dWeightdx.data());
+#endif 
 } 
 
 FullSquareMatrix
@@ -1454,13 +1527,15 @@ FelippaShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
      }
 }
 
-#ifdef USE_EIGEN3
 void 
 FelippaShell::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs, int senMethod)
 {
-   if(dStiffdx[0].dim() != 18) {
-     std::cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
-     exit(-1);
+#ifdef USE_EIGEN3
+   for(int i=0; i<9; ++i) {
+     if(dStiffdx[i].dim() != 18) {
+       std::cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
+       exit(-1);
+     }
    }
 
   // scalar parameters
@@ -1491,8 +1566,11 @@ FelippaShell::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx
     Simo::FirstPartialSpaceDerivatives<double, ShellElementStiffnessWRTNodalCoordinateSensitivity> dKdx(dconst,iconst); 
     dStiffnessdx = dKdx(q, 0);
 #ifdef SENSITIVITY_DEBUG
-    std::cerr << "dStifdThick(AD) =\n";
-    if(verboseFlag) for(int i=0; i<9; ++i) std::cerr << "dStifdThick_" << i << "\n" << dStiffnessdx[i] << std::endl;
+    Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
+    if(verboseFlag) {
+      std::cerr << "dStiffnessdx(AD) =\n";
+      for(int i=0; i<9; ++i) std::cerr << "dStiffnessdx_" << i << "\n" << dStiffnessdx[i].format(HeavyFmt) << std::endl;
+    }
 #endif
   }
 
@@ -1508,19 +1586,22 @@ FelippaShell::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx
       dStiffnessdx[i] = (Kp-Km)/(2*h);
 #ifdef SENSITIVITY_DEBUG
       Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
-      if(verboseFlag) std::cerr << "dStiffnessdx(FD) =\n" << dStiffnessdx[0].format(HeavyFmt) << std::endl;
+      if(verboseFlag) {
+        std::cerr << "dStiffnessdx(FD) =\n";
+        std::cerr << "dStiffnessdx_" << i << "\n" << dStiffnessdx[i].format(HeavyFmt) << std::endl;
+      }
 #endif
     }
   }
 
   for(int i=0; i<9; ++i) dStiffdx[i].copy(dStiffnessdx[i].data());
-}
 #endif
+}
 
-#ifdef USE_EIGEN3
 void 
 FelippaShell::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix &dStiffdThick, int flg, int senMethod)
 {
+#ifdef USE_EIGEN3
    if(dStiffdThick.dim() != 18) {
      std::cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
      exit(-1);
@@ -1590,6 +1671,7 @@ FelippaShell::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix &d
   }
 
   dStiffdThick.copy(dStiffnessdThick.data());
+#endif
 }
 
 
@@ -1892,5 +1974,4 @@ FelippaShell::getVonMisesDisplacementSensitivity(GenFullM<DComplex> &dStdDisp, C
   exit(-1);
 }
 
-#endif
 #endif

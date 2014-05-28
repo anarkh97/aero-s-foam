@@ -8,6 +8,13 @@ class BeamElementTemplate
     BeamElementTemplate() {}
     ~BeamElementTemplate() {}
 
+    void gForce(doublereal massPerNode, doublereal *x, doublereal *y, doublereal *z, doublereal *gravityAcceleration,
+                doublereal *_eframe, doublereal *gravityForce, int gravflg);
+
+    void modmstif7(doublereal *_estif, doublereal A, doublereal E,
+                   doublereal *_eframe, doublereal Ix, doublereal Iy, doublereal Iz, doublereal alphay,
+                   doublereal alphaz, doublereal C1, doublereal nu, doublereal *_x , doublereal *_y, doublereal *_z, int flag);
+
     void sands6(doublereal area, doublereal e, int elm, 
                 doublereal *_stress, int maxsze, int maxgus, int maxstr,
                 doublereal *_eframe,
@@ -45,6 +52,11 @@ class BeamElementTemplate
     void wrongGeometricPropertyError();
     void rotationMatrixError();
     void missingRotationMatrix();
+    void error100();
+    void error200();
+    void error300();
+    void error400();
+    
 };
 
 #endif

@@ -2882,6 +2882,5 @@ ShellElementTemplate<doublereal,Membrane,Bending>
     }
 }
 
-
 #endif
 #endif

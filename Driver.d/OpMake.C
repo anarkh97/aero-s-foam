@@ -1604,8 +1604,6 @@ Domain::addGravityForce(GenVector<Scalar> &force)
       }
     }
   }
-  std::cerr << "print gravity force\n";
-  gravityForce.print();
 
   // ... ADD DISCRETE MASS TO GRAVITY FORCE ...
   DMassData *current = firstDiMass;
@@ -3377,33 +3375,16 @@ void Domain::sensitivityPostProcessing(AllSensitivities<Scalar> &allSens) {
 #endif
       geoSource->outputEigenScalars(i, allSens.weightWRTthick, allSens.weight);
     }
-    if(oinfo[i].type == OutputInfo::StifThic) {
+    if(oinfo[i].type == OutputInfo::WeigShap) {
 #ifdef SENSITIVITY_DEBUG
-      if(verboseFlag) filePrint(stderr," ... output stiffness wrt thickness sensitivity\n");
+      if(verboseFlag) filePrint(stderr," ... output weight wrt shape sensitivity\n");
+      if(verboseFlag) std::cerr << (*allSens.weightWRTshape);
 #endif
-      for(int g = 0; g < geoSource->group.size(); ++g) {
-        geoSource->outputEigenVectors(i, allSens.stiffnessWRTthick[g], double(g+1));
-      }
+      geoSource->outputEigenScalars(i, allSens.weightWRTshape, allSens.weight);
     }
     if(oinfo[i].type == OutputInfo::VMstThic) geoSource->outputEigenVectors(i, allSens.vonMisesWRTthick);
     if(oinfo[i].type == OutputInfo::VMstDisp) geoSource->outputEigenVectors(i, allSens.vonMisesWRTdisp);
     if(oinfo[i].type == OutputInfo::VMstShap) geoSource->outputEigenVectors(i, allSens.vonMisesWRTshape);
-    if(oinfo[i].type == OutputInfo::DispThic) {
-#ifdef SENSITIVITY_DEBUG
-      if(verboseFlag) filePrint(stderr," ... output displacement wrt thickness sensitivity\n");
-#endif
-      for(int g = 0; g < geoSource->group.size(); ++g) {
-        geoSource->outputEigenVectors(i, allSens.dispWRTthick[g], double(g+1));
-      }
-    }
-    if(oinfo[i].type == OutputInfo::LstaShap) {
-#ifdef SENSITIVITY_DEBUG
-      if(verboseFlag) filePrint(stderr," ... output linear static governing equation wrt shape variable sensitivity\n");
-#endif
-      for(int s = 0; s < numShapeVars; ++s) {
-        geoSource->outputEigenVectors(i, allSens.stiffnessWRTshape[s], double(s+1));
-      }
-    }
   }
   firstOutput = false;
 #endif

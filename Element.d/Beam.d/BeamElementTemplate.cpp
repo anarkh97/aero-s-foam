@@ -10,6 +10,464 @@
 
 template<typename doublereal>
 void
+BeamElementTemplate<doublereal>
+::gForce(doublereal massPerNode, doublereal *x, doublereal *y, doublereal *z, doublereal *gravityAcceleration, 
+         doublereal *_eframe, doublereal *gravityForce, int gravflg)
+{
+  using std::sqrt;  
+
+  Eigen::Map<Eigen::Matrix<doublereal,3,3> > eframe(_eframe);
+
+  doublereal dx = x[1] - x[0];
+  doublereal dy = y[1] - y[0];
+  doublereal dz = z[1] - z[0];   
+
+  doublereal length = sqrt(dx*dx + dy*dy + dz*dz);
+  doublereal t0n[3][3];
+
+  for(int i=0; i<3; ++i) {
+    for(int j=0; j<3; ++j) {
+      t0n[i][j] = eframe(j,i) ;
+    }
+  }
+
+  int i;
+  doublereal localg[3];
+
+  for(i=0; i<3; ++i)
+    localg[i] = 0.0;
+
+  for(i=0; i<3; ++i) {
+    localg[0] += t0n[0][i]*gravityAcceleration[i];
+    localg[1] += t0n[1][i]*gravityAcceleration[i];
+    localg[2] += t0n[2][i]*gravityAcceleration[i];
+  }
+  doublereal localf[3], localm[3];
+  doublereal globalf[3], globalm[3];
+  localf[0] =  massPerNode*localg[0];
+  localf[1] =  massPerNode*localg[1];
+  localf[2] =  massPerNode*localg[2];
+  if(gravflg == 2) { // consistent
+    localm[0] =  0.0;
+    localm[1] = -massPerNode*localg[2]*length/6.0;
+    localm[2] =  massPerNode*localg[1]*length/6.0;
+  } 
+  else if(gravflg == 1) { // lumped with fixed-end moments
+    localm[0] =  0.0;
+    localm[1] = -massPerNode*localg[2]*length/8.0;
+    localm[2] =  massPerNode*localg[1]*length/8.0;
+  } 
+  else {
+    localm[0] = localm[1] = localm[2] = 0.0; // lumped without fixed-end moments
+  }
+
+  for(i=0; i<3; ++i) {
+    globalf[i] = (t0n[0][i]*localf[0]) + (t0n[1][i]*localf[1]) + (t0n[2][i]*localf[2]);
+    globalm[i] = (t0n[1][i]*localm[1]) + (t0n[2][i]*localm[2]);
+  }
+
+	gravityForce[0]  =  globalf[0];
+	gravityForce[1]  =  globalf[1];
+	gravityForce[2]  =  globalf[2];
+	gravityForce[3]  =  globalm[0];
+	gravityForce[4]  =  globalm[1];
+	gravityForce[5]  =  globalm[2];
+	gravityForce[6]  =  globalf[0];
+	gravityForce[7]  =  globalf[1];
+	gravityForce[8]  =  globalf[2];
+	gravityForce[9]  = -globalm[0];
+	gravityForce[10] = -globalm[1];
+	gravityForce[11] = -globalm[2];
+
+}
+
+template<typename doublereal>
+void
+BeamElementTemplate<doublereal>
+::modmstif7(doublereal *_estif, doublereal A, doublereal E,
+            doublereal *_eframe, doublereal Ix, doublereal Iy, doublereal Iz, doublereal alphay,
+            doublereal alphaz, doublereal C1, doublereal nu, doublereal *_x , doublereal *_y, doublereal *_z,
+            int flag)
+{
+      using std::sqrt;
+      using std::exp;
+
+      Eigen::Map<Eigen::Matrix<doublereal,9,1> > eframe(_eframe);
+      Eigen::Map<Eigen::Matrix<doublereal,12,12> > estif(_estif);
+      Eigen::Map<Eigen::Matrix<doublereal,2,1> > x(_x), y(_y), z(_z);
+      
+//.....LOCAL VARIABLES
+
+      int   i , j , k , l;
+      Eigen::Matrix<doublereal,12,12> Le;
+      Eigen::Matrix<doublereal,12,12> locke;
+      Eigen::Matrix<doublereal,9,1> T;
+      doublereal zero, half, JJ , dx , dy , dz , length , G , one , two;
+      doublereal c11 , c22 , c33 , c12 , c13 , c23 , eps;
+      doublereal b , gammay , gammaz , twelve , six , xKe;
+      doublereal four , bendy , bendz , bendCy , bendCz;
+      doublereal s11 , s22 , s33 , s26 , s35;
+      doublereal s44 , s55 , s66 , s17 , s28 , s39 , s59 , s68;
+      doublereal s77 , s88 , s99 , s212 , s311 , s410 , s511;
+      doublereal s612 , s812 , s911 , s1010 , s1111 , s1212;
+      bool   ortho , specialcasey , specialcasez;
+
+//     ----
+//     DATA
+//     ----
+
+      zero = 0.0;
+      half = 0.5;
+      one = 1.0;
+      two = 2.0;
+      four = 4.0;
+      six = 6.0;
+      twelve = 12.0;
+
+//.....ZERO-MACHINE FOR FRAME ORTHONORMALITY CHECK
+
+      eps = 1.0e-10;
+
+//     -----
+//     LOGIC
+//     -----
+
+//.....CLEAR THE OUTPUT STIFFNESS MATRIX
+      estif.setZero();
+
+//.....CLEAR THE LOCAL ARRAYS
+      T.setZero();
+      locke.setZero();
+      Le.setZero();
+
+//.....COMPUTE THE LENGTH OF THE BEAM ELEMENT
+
+      dx     = x[1] - x[0];
+      dy     = y[1] - y[0];
+      dz     = z[1] - z[0];
+      length = sqrt( dx*dx + dy*dy + dz*dz );
+
+      if ( length == zero ) error100();
+
+//.....CHECK IF MATERIAL PROPERTIES ARE POSITIVE OR ZERO
+
+      if (      E <= zero )   error200(); 
+      if (      A < zero )    error200();
+      if (     nu < -1 )      error200(); 
+      if (     Ix < zero )    error200(); 
+      if (     Iy < zero )    error200(); 
+      if (     Iz < zero )    error200(); 
+      if ( alphay < zero )    error200(); 
+      if ( alphaz < zero )    error200(); 
+      if (     C1 < zero )    error200(); 
+
+//.....EXTRACT THE ROTATION MATRIX FROM [EFRAME]
+//.....       [ x_X y_X z_X ]
+//..... [T] = [ x_Y y_Y z_Y ]
+//.....       [ x_Z y_Z z_Z ]
+
+      T = eframe;
+
+//.....CHECK ORTHOGONALITY OF ROTATION MATRIX [T]
+
+      c11 = T[0]*T[0] + T[1]*T[1] + T[2]*T[2];
+      c22 = T[3]*T[3] + T[4]*T[4] + T[5]*T[5];
+      c33 = T[6]*T[6] + T[7]*T[7] + T[8]*T[8];
+      c12 = T[0]*T[3] + T[1]*T[4] + T[2]*T[5];
+      c13 = T[0]*T[6] + T[1]*T[7] + T[2]*T[8];
+      c23 = T[3]*T[6] + T[4]*T[7] + T[5]*T[8];
+
+//.....ASSEMBLE THE TRANFORMATION MATRIX
+//.....
+//.....        [ [T]  0   0   0  ]
+//.....        [  0  [T]  0   0  ]
+//..... [Le] = [  0   0  [T]  0  ]
+//.....        [  0   0   0  [T] ]
+
+      for(k=0; k<4; ++k)
+         for(j=0; j<3; ++j)
+            for(i=0; i<3; ++i)
+               Le(3*k+i,3*k+j) = T[3*j+i];
+
+//.....INITIALIZE THE VARIABLE [JJ] FOR AN ARBITRARY CROSS SECTION
+
+      JJ = Ix;
+
+//.....INITIALIZE THE TRANSVERSE SHEAR MODULUS FOR ISOTROPIC MATERIAL
+
+      G = E/(two*(one+nu));
+
+//.....INITIALIZE THE ENTRIES OF THE LOCAL STIFFNESS MATRIX
+
+      s11   = zero;
+      s22   = zero;
+      s33   = zero;
+      s26   = zero;
+      s35   = zero;
+      s44   = zero;
+      s55   = zero;
+      s66   = zero;
+      s17   = zero;
+      s28   = zero;
+      s39   = zero;
+      s59   = zero;
+      s68   = zero;
+      s77   = zero;
+      s88   = zero;
+      s99   = zero;
+      s212  = zero;
+      s311  = zero;
+      s410  = zero;
+      s511  = zero;
+      s612  = zero;
+      s812  = zero;
+      s911  = zero;
+      s1010 = zero;
+      s1111 = zero;
+      s1212 = zero;
+
+//.....INITIALIZE LOGICALS FOR PARTICULAR CASES
+
+      specialcasey = false;
+      specialcasez = false;
+
+//.....INITIALIZE IF [ALPHA_Y] IS ZERO
+
+      if ( alphay == zero ) {
+         s33          =  twelve*E*Iy/(length*length*length);
+         s35          =    -six*E*Iy/(length*length);
+         s55          =    four*E*Iy/length;
+         s39          = -twelve*E*Iy/(length*length*length);
+         s59          =     six*E*Iy/(length*length);
+         s99          =  twelve*E*Iy/(length*length*length);
+         s311         =    -six*E*Iy/(length*length);
+         s511         =     two*E*Iy/length;
+         s911         =     six*E*Iy/(length*length);
+         s1111        =    four*E*Iy/length;
+         specialcasey = true;
+      }
+
+//.....INITIALIZE IF [ALPHA_Z] IS ZERO
+
+      if ( alphaz == zero ) {
+         s22          =  twelve*E*Iz/(length*length*length);
+         s26          =     six*E*Iz/(length*length);
+         s66          =    four*E*Iz/length;
+         s28          = -twelve*E*Iz/(length*length*length);
+         s68          =    -six*E*Iz/(length*length);
+         s88          =  twelve*E*Iz/(length*length*length);
+         s212         =     six*E*Iz/(length*length);
+         s612         =     two*E*Iz/length;
+         s812         =    -six*E*Iz/(length*length);
+         s1212        =    four*E*Iz/length;
+         specialcasez = true;
+      }
+
+//.....INITIALIZE IF [ALPHA_Y] IS NONZERO BUT [A] IS ZERO
+
+      if ( (alphay != zero) && (A == zero) ) {
+         s55          =  E*Iy/length;
+         s511         = -E*Iy/length;
+         s1111        =  E*Iy/length;
+         specialcasey = true;
+      }
+
+//.....INITIALIZE IF [ALPHA_Z] IS NONZERO BUT [A] IS ZERO
+
+      if ( (alphaz != zero) && (A == zero) ) {
+         s66          =  E*Iz/length;
+         s612         = -E*Iz/length;
+         s1212        =  E*Iz/length;
+         specialcasez = true;
+      }
+
+//.....INITIALIZE IF [I_Y] IS ZERO
+
+      if ( Iy == zero ) 
+         specialcasey = true;
+
+//.....INITIALIZE IF [I_Z] IS ZERO
+
+      if ( Iz == zero ) 
+         specialcasez = true;
+
+//.....INITIALIZE THE STIFFNESS ENTRIES IN ALL OTHER CASES
+
+      s11 =  E*A/length;
+      s17 = -E*A/length;
+      s77 =  E*A/length;
+
+      if ( JJ == zero ) {
+         s44   = zero;
+         s410  = zero;
+         s1010 = zero;
+      } else {
+         if ( C1 == zero ) {
+            s44   =  G*JJ/length;
+            s410  = -G*JJ/length;
+            s1010 =  G*JJ/length;
+         } else {
+            b     =  half*length*sqrt(G*JJ/C1);
+            doublereal tanhb = (1.-exp(-2*b))/(1.+exp(-2*b));
+            s44   =  (G*JJ)/(length*(one-(tanhb/b)));
+            s410  = -(G*JJ)/(length*(one-(tanhb/b)));
+            s1010 =  (G*JJ)/(length*(one-(tanhb/b)));
+         }
+      }
+
+      if ( !specialcasey ) {
+         gammay = (G*A*length*length)/(twelve*E*Iy);
+         bendy  = (alphay+four*gammay)/(twelve*gammay*(alphay+gammay));
+         bendCy = (-alphay+two*gammay)/(twelve*gammay*(alphay+gammay));
+         s33    =  G*A/(length*(alphay+gammay));
+         s35    = -G*A/(two*(alphay+gammay));
+         s55    =  bendy*G*A*length;
+         s39    = -G*A/(length*(alphay+gammay));
+         s59    =  G*A/(two*(alphay+gammay));
+         s99    =  G*A/(length*(alphay+gammay));
+         s311   = -G*A/(two*(alphay+gammay));
+         s511   =  bendCy*G*A*length;
+         s911   =  G*A/(two*(alphay+gammay));
+         s1111  =  bendy*G*A*length;
+      }
+
+      if ( !specialcasez ) {
+         gammaz = (G*A*length*length)/(twelve*E*Iz);
+         bendz  = (alphaz+four*gammaz)/(twelve*gammaz*(alphaz+gammaz));
+         bendCz = (-alphaz+two*gammaz)/(twelve*gammaz*(alphaz+gammaz));
+         s22    =  G*A/(length*(alphaz+gammaz));
+         s26    =  G*A/(two*(alphaz+gammaz));
+         s66    =  bendz*G*A*length;
+         s28    = -G*A/(length*(alphaz+gammaz));
+         s68    = -G*A/(two*(alphaz+gammaz));
+         s88    =  G*A/(length*(alphaz+gammaz));
+         s212   =  G*A/(two*(alphaz+gammaz));
+         s612   =  bendCz*G*A*length;
+         s812   = -G*A/(two*(alphaz+gammaz));
+         s1212  =  bendz*G*A*length;
+      }
+
+//.....INITIALIZE THE LOCAL STIFFNESS MATRIX
+
+      locke( 0, 0) = s11;
+      locke( 1, 1) = s22;
+      locke( 2, 2) = s33;
+      locke( 1, 5) = s26;
+      locke( 2, 4) = s35;
+      locke( 3, 3) = s44;
+      locke( 4, 4) = s55;
+      locke( 5, 5) = s66;
+      locke( 0, 6) = s17;
+      locke( 1, 7) = s28;
+      locke( 2, 8) = s39;
+      locke( 4, 8) = s59;
+      locke( 5, 7) = s68;
+      locke( 6, 6) = s77;
+      locke( 7, 7) = s88;
+      locke( 8, 8) = s99;
+      locke( 1,11) = s212;
+      locke( 2,10) = s311;
+      locke( 3, 9) = s410;
+      locke( 4,10) = s511;
+      locke( 5,11) = s612;
+      locke( 7,11) = s812;
+      locke( 8,10) = s911;
+      locke( 9, 9) = s1010;
+      locke(10,10) = s1111;
+      locke(11,11) = s1212;
+
+      for(j=0; j<11; ++j)
+         for(i=(j+1); i<12; ++i) 
+            locke(i,j) = locke(j,i);
+
+//.....ASSEMBLE THE OUTPUT ELEMENTAL STIFFNESS MATRIX
+//.....
+//..... [ESTIF] = [Le] * [LOCKE] * [Le]^T
+//.....
+
+// if flag equals 1, return the transformed element stiffness matrix
+// else, return the local element stiffness matrix
+
+      if(flag == 1) {
+        for(l=0; l<12; ++l) {
+           for(k=0; k<12; ++k) {
+              xKe = locke(k,l);
+              for(j=0; j<12; ++j)
+                 for(i=0; i<12; ++i)
+                    estif(i,j) = estif(i,j) + Le(i,k)*xKe*Le(j,l);
+           }
+        }
+      } else {
+        for(i=0; i<12; ++i)
+          for(j=0; j<12; ++j)
+             estif(i,j) = locke(i,j);
+      }
+}
+
+
+template<typename doublereal>
+void
+BeamElementTemplate<doublereal> 
+::error100()
+{ 
+   using std::cerr;
+   using std::endl;
+
+   cerr << "*** FATAL ERROR in Routine MSTIF7 ***" << endl;
+   cerr << "*** The Timoschenko Beam Element  ***" << endl;
+   cerr << "*** Has Zero Length!              ***" << endl;
+   cerr << "*** ... All Treatments Terminated ***" << endl;
+   exit(-1);
+}
+
+template<typename doublereal>
+void
+BeamElementTemplate<doublereal> 
+::error200()
+{ 
+   using std::cerr;
+   using std::endl;
+
+   cerr << "*** FATAL ERROR in Routine MSTIF7      ***" << endl;
+   cerr << "*** A Material or Geometrical Property ***" << endl;
+   cerr << "*** is Not Positive: Check Input Data  ***" << endl;
+   cerr << "*** ... All Treatments Terminated      ***" << endl;
+   exit(-1);
+}
+
+template<typename doublereal>
+void
+BeamElementTemplate<doublereal> 
+::error300()
+{ 
+   using std::cerr;
+   using std::endl;
+
+   cerr << "*** FATAL ERROR in Routine MSTIF7      ***" << endl;
+   cerr << "*** The Rotation Matrix Computed For a ***" << endl;
+   cerr << "*** Timoshenko Beam is Not Orthogonal! ***" << endl;
+   cerr << "*** ... All Treatments Terminated      ***" << endl;
+   exit(-1);
+}
+
+template<typename doublereal>
+void
+BeamElementTemplate<doublereal> 
+::error400()
+{ 
+   using std::cerr;
+   using std::endl;
+
+   cerr << "*** FATAL ERROR in Routine MSTIF7    ***" << endl;
+   cerr << "*** There is No Rotation Matrix      ***" << endl;
+   cerr << "*** Available For a Timoshenko Beam  ***" << endl;
+   cerr << "*** With Non-Symmetric Cross-section ***" << endl;
+   cerr << "*** ... All Treatments Terminated    ***" << endl;
+   exit(-1);
+}
+
+template<typename doublereal>
+void
 BeamElementTemplate<doublereal> 
 ::sands7(int elm, doublereal A, doublereal E, 
 	       doublereal *_eframe, doublereal Ix, doublereal Iy, doublereal Iz, 
@@ -18,6 +476,9 @@ BeamElementTemplate<doublereal>
 	       doublereal *_stress, int numel, int maxgus, int maxstr, 
 	       int msize, doublereal alpha, doublereal tref, doublereal *_temp)
 {
+    using std::sqrt; 
+    using std::exp; 
+
     /* Initialized data */
 
     doublereal zero = 0.;
@@ -371,6 +832,8 @@ void
 BeamElementTemplate<doublereal>
 ::transform(doublereal *_l, doublereal *_g, doublereal *_str)
 {
+    using std::sqrt;
+
     Eigen::Map<Eigen::Matrix<doublereal,9,1> > l(_l);
     Eigen::Map<Eigen::Matrix<doublereal,9,1> > g(_g);
 
@@ -518,6 +981,9 @@ BeamElementTemplate<doublereal>
 	            doublereal *_vmsWRTdisp, 
 	            doublereal alpha, doublereal tref, doublereal *_temp)
 {
+    using std::sqrt;
+    using std::exp;
+
     /* Initialized data */
 
     const doublereal zero = 0.;
@@ -953,6 +1419,7 @@ BeamElementTemplate<doublereal>
 *
 *********************************************************************/
 
+        using std::sqrt;
         doublereal eiy,eiz,length2,length3,tstress;
 
 //.... LOCAL VARIABLES
@@ -1167,6 +1634,7 @@ BeamElementTemplate<doublereal>
 *
 ********************************************************************/
 
+        using std::sqrt;
         doublereal eiy,eiz,length2,length3,tstress;
 
 //.... LOCAL VARIABLES

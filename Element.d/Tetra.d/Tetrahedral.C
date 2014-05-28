@@ -369,6 +369,16 @@ Tetrahedral::getAllStress(FullM& stress,Vector& weight,CoordSet &cs,
 }
 
 double
+Tetrahedral::weight(CoordSet& cs, double *gravityAcceleration)
+{
+  double _mass = getMass(cs);
+  double gravAccNorm = sqrt(gravityAcceleration[0]*gravityAcceleration[0] +
+                            gravityAcceleration[1]*gravityAcceleration[1] +
+                            gravityAcceleration[2]*gravityAcceleration[2]);
+  return _mass*gravAccNorm;
+}
+
+double
 Tetrahedral::getMass(CoordSet& cs)
 {
 

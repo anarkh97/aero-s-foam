@@ -30,9 +30,14 @@ public:
         FullSquareMatrix stiffness(CoordSet& cs, double *kel, int flg = 1);
         FullSquareMatrix massMatrix(CoordSet& cs, double *mel, int cmflg=1);
 
+        void getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs, int senMethod);
         double getMass(CoordSet& cs);
-        double weight(CoordSet& cs, double *gravityAcceleration, int altitude_direction);
+        void getMassSensitivityWRTNodalCoordinate(CoordSet &cs, Vector &dMassdx);
+        double weight(CoordSet& cs, double *gravityAcceleration);
+        void weightDerivativeWRTNodalCoordinate(Vector &dwdx, CoordSet& cs, double *gravityAcceleration, int senMethod);
         void getGravityForce(CoordSet&,double *gravity, Vector&, int gravflg, GeomState *gs);
+        void getGravityForceSensitivityWRTNodalCoordinate(CoordSet& cs, double *gravityAcceleration, int senMethod,
+                                                          GenFullM<double> &dGfdx, int gravflg, GeomState *geomState=0);
         void getIntrnForce(Vector& elForce,CoordSet& cs,
                            double *elDisp,int forceIndex, double *ndTemps);
 
@@ -62,8 +67,6 @@ public:
                                                 int strInd, int surface, int senMethod = 1, double *ndTemps = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0);
         void getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
                                                    int senMethod=1, double *ndTemps=0, int avgnum=1, double ylayer=0, double zlayer=0);
-
-
 #endif
 
         int getMassType() { return 0; } // lumped only

@@ -30,6 +30,12 @@ Element::getVonMisesInt(CoordSet &,Vector &,double &,double &, int,
   assert(0);
 }
 
+void 
+Element::weightDerivativeWRTNodalCoordinate(Vector& dwdx, CoordSet& cs, double *gravityAcceleration, int senMethod) 
+{ 
+  dwdx.zero(); 
+}
+
 void
 Element::getVonMises(Vector &stress, Vector &weight,
 		     CoordSet &, Vector &, int, int, double*,

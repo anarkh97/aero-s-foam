@@ -1,6 +1,8 @@
 #include 	<Element.d/Beam.d/TimoshenkoBeam.h>
 #include 	<Element.d/Beam.d/TimoshenkoBeamStressWRTDisplacementSensitivity.h>
 #include 	<Element.d/Beam.d/TimoshenkoBeamStressWRTNodalCoordinateSensitivity.h>
+#include 	<Element.d/Beam.d/TimoshenkoBeamGravityForceWRTNodalCoordinateSensitivity.h>
+#include 	<Element.d/Beam.d/TimoshenkoBeamStiffnessWRTNodalCoordinateSensitivity.h>
 #include 	<Element.d/Function.d/SpaceDerivatives.h>
 #include 	<Math.d/FullSquareMatrix.h>
 #include	<Math.d/matrix.h>
@@ -204,11 +206,127 @@ TimoshenkoBeam::getMass(CoordSet& cs)
 	return mass;
 }
 
+void
+TimoshenkoBeam::getMassSensitivityWRTNodalCoordinate(CoordSet &cs, Vector &dMassdx)
+{
+        using std::sqrt;
+
+        if(dMassdx.size() != 6) {
+          std::cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
+          exit(-1);
+        }
+
+        Node &nd1 = cs.getNode( nn[0] );
+        Node &nd2 = cs.getNode( nn[1] );
+
+        double x[2], y[2], z[2];
+
+        x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+        x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+
+        double dx = x[1] - x[0];
+        double dy = y[1] - y[0];
+        double dz = z[1] - z[0];
+
+        double length = sqrt( dx*dx + dy*dy + dz*dz );
+        double prefix = prop->A*prop->rho/length;
+        dMassdx[0] = -prefix*dx;
+        dMassdx[1] = prefix*dx;
+        dMassdx[2] = -prefix*dy;
+        dMassdx[3] = prefix*dy;
+        dMassdx[4] = -prefix*dz;
+        dMassdx[5] = prefix*dz;
+}
+
+void
+TimoshenkoBeam::weightDerivativeWRTNodalCoordinate(Vector &dwdx, CoordSet& cs, double *gravityAcceleration, int senMethod)
+{
+  if(dwdx.size() != 6) {
+     std::cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
+     exit(-1);
+  }
+  Vector dMassdx(6);
+  getMassSensitivityWRTNodalCoordinate(cs, dMassdx);
+  double gravAccNorm = sqrt(gravityAcceleration[0]*gravityAcceleration[0] +
+                            gravityAcceleration[1]*gravityAcceleration[1] +
+                            gravityAcceleration[2]*gravityAcceleration[2]);
+  dwdx = gravAccNorm*dMassdx;
+}
+
 double
-TimoshenkoBeam::weight(CoordSet& cs, double *gravityAcceleration, int altitude_direction)
+TimoshenkoBeam::weight(CoordSet& cs, double *gravityAcceleration)
 {
   double _mass = getMass(cs);
-  return _mass*gravityAcceleration[altitude_direction];
+  double gravAccNorm = sqrt(gravityAcceleration[0]*gravityAcceleration[0] + 
+                            gravityAcceleration[1]*gravityAcceleration[1] +
+                            gravityAcceleration[2]*gravityAcceleration[2]);
+  return _mass*gravAccNorm;
+}
+
+void
+TimoshenkoBeam::getGravityForceSensitivityWRTNodalCoordinate(CoordSet& cs, double *gravityAcceleration, int senMethod,
+                                                             GenFullM<double> &dGfdx, int gravflg, GeomState *geomState)
+{
+#ifdef USE_EIGEN3
+  double massPerNode = 0.5*getMass(cs);
+  if (prop == NULL) {
+    dGfdx.zero();
+    return;
+  }
+
+  double x[2] = { cs[nn[0]]->x, cs[nn[1]]->x };
+  double y[2] = { cs[nn[0]]->y, cs[nn[1]]->y };
+  double z[2] = { cs[nn[0]]->z, cs[nn[1]]->z };
+  Eigen::Array<double,13,1> dconst;
+  dconst.segment<3>(0) = Eigen::Map<Eigen::Matrix<double,3,1> >(gravityAcceleration).segment(0,3);
+  for(int i=0; i<3; ++i)
+    for(int j=0; j<3; ++j)
+      dconst[3+3*i+j] = (*elemframe)[i][j];
+  dconst[12] = massPerNode;
+  Eigen::Array<int,1,1> iconst;
+  iconst[0] = gravflg;
+
+  Eigen::Matrix<double,6,1> q;
+  q << x[0], y[0], z[0], x[1], y[1], z[1];
+  Eigen::Matrix<double,12,6> dGravityForcedx;
+
+  if(senMethod == 0) {
+    std::cerr << " ... Warning: analytic sensitivity wrt nodal coordinate is not implemented yet\n";
+    std::cerr << " ...          instead, automatic differentiation will be applied\n";
+    senMethod = 1;
+  }
+
+  if(senMethod == 1) { // automatic differentiation
+#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER < 1200 || __INTEL_COMPILER > 1210)
+    Simo::Jacobian<double,TimoshenkoBeamGravityForceWRTNodalCoordinateSensitivity> dGdx(dconst,iconst);
+    dGravityForcedx = dGdx(q, 0);
+#ifdef SENSITIVITY_DEBUG
+    if(verboseFlag) std::cerr << "dGravityForcedx(AD) =\n" << dGravityForcedx << std::endl;
+#endif
+#else
+    std::cerr << "automatic differentiation must avoid intel12 compiler\n";
+    exit(-1);
+#endif
+  } // senMethod == 1
+
+  if(senMethod == 2) { // finite difference
+    double h(1e-6);
+    for(int i=0; i<6; ++i) {
+      TimoshenkoBeamGravityForceWRTNodalCoordinateSensitivity<double> foo(dconst,iconst);
+      Eigen::Matrix<double,6,1> qp, qm;
+      qp = qm = q;
+      qp[i] = q[i] + h;   qm[i] = q[i] - h;
+      Eigen::Matrix<double,12,1> Gfp = foo(qp, 0);
+      Eigen::Matrix<double,12,1> Gfm = foo(qm, 0);
+      dGravityForcedx.col(i) = (Gfp-Gfm)/(2*h);
+    }
+#ifdef SENSITIVITY_DEBUG
+    Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
+    if(verboseFlag) std::cerr << "dGravityForcedx(FD) =\n" << dGravityForcedx.format(HeavyFmt) << std::endl;
+#endif
+  }
+  dGfdx.copy(dGravityForcedx.data());
+#endif
 }
 
 void
@@ -218,40 +336,39 @@ TimoshenkoBeam::getGravityForce(CoordSet& cs,double *gravityAcceleration,
         double massPerNode = 0.5*getMass(cs);
 	
         double t0n[3][3] = {{0.0,0.0,0.0},{0.0,0.0,0.0},{0.0,0.0,0.0}};
-	double length;
+        double length;
 	  
-	if (geomState) {
+        if (geomState) {
           
-	   updTransMatrix(cs, geomState, t0n, length);
+           updTransMatrix(cs, geomState, t0n, length);
 		 
         }  else  {
 	  
            Node &nd1 = cs.getNode(nn[0]);
-	   Node &nd2 = cs.getNode(nn[1]);
+           Node &nd2 = cs.getNode(nn[1]);
 	  
-	   double x[2], y[2], z[2];
+           double x[2], y[2], z[2];
 	     
-	   x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
-     	   x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
-	   
-	   double dx = x[1] - x[0];
-	   double dy = y[1] - y[0];
-	   double dz = z[1] - z[0];
+           x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+           x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+
+           double dx = x[1] - x[0];
+           double dy = y[1] - y[0];
+           double dz = z[1] - z[0];
 	     
-	   length = std::sqrt(dx*dx + dy*dy + dz*dz);
+           length = std::sqrt(dx*dx + dy*dy + dz*dz);
 	     
            for(int i=0; i<3; ++i) {   
               for(int j=0; j<3; ++j) {
                   t0n[i][j] = (*elemframe)[i][j] ;
-            
-	      }
+              }
            }
         }         
 	  
         // Consistent
 	 
         int i;
-	double localg[3];
+        double localg[3];
 
         for(i=0; i<3; ++i)
           localg[i] = 0.0;
@@ -329,6 +446,92 @@ TimoshenkoBeam::massMatrix(CoordSet &cs,double *mel,int cmflg)
         return ret;
 }
 
+void 
+TimoshenkoBeam::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs, int senMethod)
+{
+#ifdef USE_EIGEN3
+        for(int i=0; i<6; ++i) {
+          if(dStiffdx[i].dim() != 12) {
+            std::cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
+            exit(-1);
+          } else dStiffdx[i].zero();
+        }
+
+        // Check for phantom element, which has no stiffness
+        if(prop == NULL) return; 
+
+        Node &nd1 = cs.getNode(nn[0]);
+        Node &nd2 = cs.getNode(nn[1]);
+
+        Eigen::Array<double,18,1> dconst;
+        Eigen::Array<int,0,1> iconst;
+        Eigen::Array<double,6,1> q;
+        
+        for(int i=0; i<3; ++i) {
+          for(int j=0; j<3; ++j) {
+             dconst[3*i+j] = (*elemframe)[i][j]; 
+          }
+        }    
+        dconst[9] = prop->E;
+        dconst[10] = prop->A;
+        dconst[11] = prop->Ixx;
+        dconst[12] = prop->Iyy;
+        dconst[13] = prop->Izz;
+        dconst[14] = prop->alphaY;
+        dconst[15] = prop->alphaZ;
+        dconst[16] = prop->C1;
+        dconst[17] = prop->nu;
+
+        double x[2], y[2], z[2];
+
+        x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+        x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+
+        q << nd1.x, nd1.y, nd1.z, nd2.x, nd2.y, nd2.z;
+
+        Eigen::Array<Eigen::Matrix<double,12,12>,1,6> dStiffnessdx;
+        if(senMethod == 0) { // analytic
+          std::cerr << " ... Warning: analytic stiffness sensitivity wrt nodal coordinate is not implemented yet\n";
+          std::cerr << " ...          instead, automatic differentiation will be applied\n";
+          senMethod = 1;
+        }
+
+        if(senMethod == 1) { // automatic differentiation
+          Simo::FirstPartialSpaceDerivatives<double, TimoshenkoBeamStiffnessWRTNodalCoordinateSensitivity> dKdx(dconst,iconst);
+          dStiffnessdx = dKdx(q, 0);
+#ifdef SENSITIVITY_DEBUG
+          Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
+          if(verboseFlag) {
+            std::cerr << "dStiffnessdx(AD) =\n";
+            for(int i=0; i<6; ++i) std::cerr << "dStiffnessdx_" << i << "\n" << dStiffnessdx[i].format(HeavyFmt) << std::endl;
+          }
+#endif
+        }
+
+        if(senMethod == 2) { // finite difference
+          TimoshenkoBeamStiffnessWRTNodalCoordinateSensitivity<double> foo(dconst,iconst);
+          Eigen::Matrix<double,6,1> qp, qm;
+          double h(1e-6);
+          for(int i=0; i<6; ++i) {
+            qp = qm = q;
+            qp[i] = q[i] + h;   qm[i] = q[i] - h;
+            Eigen::Matrix<double,12,12> Kp = foo(qp, 0);
+            Eigen::Matrix<double,12,12> Km = foo(qm, 0);
+            dStiffnessdx[i] = (Kp-Km)/(2*h);
+#ifdef SENSITIVITY_DEBUG
+            Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
+            if(verboseFlag) {
+              std::cerr << "dStiffnessdx(FD) =\n";
+              std::cerr << "dStiffnessdx_" << i << "\n" << dStiffnessdx[i].format(HeavyFmt) << std::endl;
+            }
+#endif
+          }
+        }
+
+        for(int i=0; i<6; ++i) dStiffdx[i].copy(dStiffnessdx[i].data());
+#endif
+}
+
 FullSquareMatrix
 TimoshenkoBeam::stiffness(CoordSet &cs, double *d, int flg)
 {
@@ -342,9 +545,9 @@ TimoshenkoBeam::stiffness(CoordSet &cs, double *d, int flg)
         Node &nd1 = cs.getNode(nn[0]);
         Node &nd2 = cs.getNode(nn[1]);
 
-	double x[2], y[2], z[2];
+        double x[2], y[2], z[2];
 
-	x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+        x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
         x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
 
 // 	EFrame is stored in following order. 
@@ -359,22 +562,22 @@ TimoshenkoBeam::stiffness(CoordSet &cs, double *d, int flg)
           std::fprintf(stderr,"ERROR: Timoshenko beam has zero length. nodes %d %d\n",
                  nn[0]+1,nn[1]+1);
 
-      // Check for the frame
-      if(elemframe == 0)  {
-        std::fprintf(stderr," ****************************************************\n");
-        fprintf(stderr," *** ERROR: Timoshenko beam lacks a frame"
-                       " (Nodes %d %d)\n",nn[0]+1,nn[1]+1);
-        std::fprintf(stderr," ****************************************************\n");
-        exit(-1);
-      }
+        // Check for the frame
+        if(elemframe == 0)  {
+          std::fprintf(stderr," ****************************************************\n");
+          fprintf(stderr," *** ERROR: Timoshenko beam lacks a frame"
+                         " (Nodes %d %d)\n",nn[0]+1,nn[1]+1);
+          std::fprintf(stderr," ****************************************************\n");
+          exit(-1);
+        }
 
-	_FORTRAN(modmstif7)((double *)d, prop->A, prop->E,
-			     (double *) *elemframe,
-                             prop->Ixx, prop->Iyy, prop->Izz,
-                             prop->alphaY, prop->alphaZ, prop->C1, 
-			     prop->nu, x, y, z, flg);
+        _FORTRAN(modmstif7)((double *)d, prop->A, prop->E,
+                            (double *) *elemframe,
+                            prop->Ixx, prop->Iyy, prop->Izz,
+                            prop->alphaY, prop->alphaZ, prop->C1, 
+                            prop->nu, x, y, z, flg);
 
-	FullSquareMatrix ret(12,d);
+       	FullSquareMatrix ret(12,d);
 
         return ret;
 }

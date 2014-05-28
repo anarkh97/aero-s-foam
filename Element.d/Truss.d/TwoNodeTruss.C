@@ -4,6 +4,8 @@
 #include <iostream>
 
 #include <Element.d/Truss.d/TwoNodeTruss.h>
+#include <Element.d/Truss.d/TwoNodeTrussStiffnessWRTNodalCoordinateSensitivity.h>
+#include <Element.d/Function.d/SpaceDerivatives.h>
 #include <Corotational.d/BarCorotator.h>
 #include <Corotational.d/GeomState.h>
 #include <Math.d/FullSquareMatrix.h>
@@ -63,6 +65,8 @@ void
 TwoNodeTruss::getIntrnForce(Vector& elForce, CoordSet& cs,
 			    double *elDisp, int forceIndex, double *ndTemps)
 {
+        using std::sqrt; 
+
         // ... BARS ONLY CARRY AXIAL FORCES
         if(forceIndex > 0) {
           elForce[0] = 0.0;
@@ -116,6 +120,8 @@ TwoNodeTruss::getIntrnForce(Vector& elForce, CoordSet& cs,
 double
 TwoNodeTruss::getMass(CoordSet& cs)
 {
+        using std::sqrt;
+
         Node &nd1 = cs.getNode( nn[0] );
         Node &nd2 = cs.getNode( nn[1] );
 
@@ -134,11 +140,141 @@ TwoNodeTruss::getMass(CoordSet& cs)
         return mass;
 }
 
+void
+TwoNodeTruss::getMassSensitivityWRTNodalCoordinate(CoordSet &cs, Vector &dMassdx)
+{
+        using std::sqrt;
+
+        if(dMassdx.size() != 6) {
+          std::cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
+          exit(-1);
+        }
+
+        Node &nd1 = cs.getNode( nn[0] );
+        Node &nd2 = cs.getNode( nn[1] );
+
+        double x[2], y[2], z[2];
+
+        x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+        x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+
+        double dx = x[1] - x[0];
+        double dy = y[1] - y[0];
+        double dz = z[1] - z[0];
+
+        double length = sqrt( dx*dx + dy*dy + dz*dz );
+        double prefix = prop->A*prop->rho/length;
+        dMassdx[0] = -prefix*dx;
+        dMassdx[1] = prefix*dx;
+        dMassdx[2] = -prefix*dy;
+        dMassdx[3] = prefix*dy;
+        dMassdx[4] = -prefix*dz;
+        dMassdx[5] = prefix*dz;        
+}
+
+void
+TwoNodeTruss::getLengthSensitivityWRTNodalCoordinate(CoordSet &cs, Vector &dLengthdx)
+{
+        using std::sqrt;
+
+        if(dLengthdx.size() != 6) {
+          std::cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
+          exit(-1);
+        }
+
+        Node &nd1 = cs.getNode( nn[0] );
+        Node &nd2 = cs.getNode( nn[1] );
+
+        double x[2], y[2], z[2];
+
+        x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+        x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+
+        double dx = x[1] - x[0];
+        double dy = y[1] - y[0];
+        double dz = z[1] - z[0];
+
+        double length = sqrt( dx*dx + dy*dy + dz*dz );
+        dLengthdx[0] = -dx/length;
+        dLengthdx[1] = dx/length;
+        dLengthdx[2] = -dy/length;
+        dLengthdx[3] = dy/length;
+        dLengthdx[4] = -dz/length;
+        dLengthdx[5] = dz/length;        
+}
+
 double
-TwoNodeTruss::weight(CoordSet& cs, double *gravityAcceleration, int altitude_direction)
+TwoNodeTruss::weight(CoordSet& cs, double *gravityAcceleration)
 {
   double _mass = getMass(cs);
-  return _mass*gravityAcceleration[altitude_direction];
+  double gravAccNorm = sqrt(gravityAcceleration[0]*gravityAcceleration[0] + 
+                            gravityAcceleration[1]*gravityAcceleration[1] +
+                            gravityAcceleration[2]*gravityAcceleration[2]);
+  return _mass*gravAccNorm;
+}
+
+void
+TwoNodeTruss::weightDerivativeWRTNodalCoordinate(Vector &dwdx, CoordSet& cs, double *gravityAcceleration, int senMethod)
+{
+  if(dwdx.size() != 6) {
+     std::cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
+     exit(-1);
+  }
+  Vector dMassdx(6);
+  getMassSensitivityWRTNodalCoordinate(cs, dMassdx);
+  double gravAccNorm = sqrt(gravityAcceleration[0]*gravityAcceleration[0] +
+                            gravityAcceleration[1]*gravityAcceleration[1] +
+                            gravityAcceleration[2]*gravityAcceleration[2]);
+  dwdx = gravAccNorm*dMassdx;
+}
+
+void
+TwoNodeTruss::getGravityForceSensitivityWRTNodalCoordinate(CoordSet& cs, double *gravityAcceleration, int senMethod,
+                                                           GenFullM<double> &dGfdx, int gravflg, GeomState *geomState)
+{
+       Vector dMassdx(6);
+       getMassSensitivityWRTNodalCoordinate(cs, dMassdx);
+       dGfdx[0][0] = 0.5*gravityAcceleration[0]*dMassdx[0];
+       dGfdx[0][1] = 0.5*gravityAcceleration[1]*dMassdx[0];
+       dGfdx[0][2] = 0.5*gravityAcceleration[2]*dMassdx[0];
+       dGfdx[0][3] = dGfdx[0][0]; 
+       dGfdx[0][4] = dGfdx[1][0];
+       dGfdx[0][5] = dGfdx[2][0];
+
+       dGfdx[1][0] = 0.5*gravityAcceleration[0]*dMassdx[1];
+       dGfdx[1][1] = 0.5*gravityAcceleration[1]*dMassdx[1];
+       dGfdx[1][2] = 0.5*gravityAcceleration[2]*dMassdx[1];
+       dGfdx[1][3] = dGfdx[0][1]; 
+       dGfdx[1][4] = dGfdx[1][1];
+       dGfdx[1][5] = dGfdx[2][1];
+      
+       dGfdx[2][0] = 0.5*gravityAcceleration[0]*dMassdx[2];
+       dGfdx[2][1] = 0.5*gravityAcceleration[1]*dMassdx[2];
+       dGfdx[2][2] = 0.5*gravityAcceleration[2]*dMassdx[2];
+       dGfdx[2][3] = dGfdx[0][2]; 
+       dGfdx[2][4] = dGfdx[1][2];
+       dGfdx[2][5] = dGfdx[2][2];
+      
+       dGfdx[3][0] = 0.5*gravityAcceleration[0]*dMassdx[3];
+       dGfdx[3][1] = 0.5*gravityAcceleration[1]*dMassdx[3];
+       dGfdx[3][2] = 0.5*gravityAcceleration[2]*dMassdx[3];
+       dGfdx[3][3] = dGfdx[0][3]; 
+       dGfdx[3][4] = dGfdx[1][3];
+       dGfdx[3][5] = dGfdx[2][3];
+
+       dGfdx[4][0] = 0.5*gravityAcceleration[0]*dMassdx[4];
+       dGfdx[4][1] = 0.5*gravityAcceleration[1]*dMassdx[4];
+       dGfdx[4][2] = 0.5*gravityAcceleration[2]*dMassdx[4];
+       dGfdx[4][3] = dGfdx[0][4]; 
+       dGfdx[4][4] = dGfdx[1][4];
+       dGfdx[4][5] = dGfdx[2][4];
+
+       dGfdx[5][0] = 0.5*gravityAcceleration[0]*dMassdx[5];
+       dGfdx[5][1] = 0.5*gravityAcceleration[1]*dMassdx[5];
+       dGfdx[5][2] = 0.5*gravityAcceleration[2]*dMassdx[5];
+       dGfdx[5][3] = dGfdx[0][5]; 
+       dGfdx[5][4] = dGfdx[1][5];
+       dGfdx[5][5] = dGfdx[2][5];
 }
 
 void
@@ -192,9 +328,71 @@ TwoNodeTruss::massMatrix(CoordSet &cs, double *mel, int cmflg)
         return elementMassMatrix;
 }
 
+void 
+TwoNodeTruss::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs, int senMethod)
+{
+#ifdef USE_EIGEN3
+        Node &nd1 = cs.getNode( nn[0] );
+        Node &nd2 = cs.getNode( nn[1] );
+
+        Eigen::Array<double,3,1> dconst;
+        Eigen::Array<int,0,1> iconst;
+        Eigen::Matrix<double,6,1> q;
+
+        dconst[0] = prop->E;
+        dconst[1] = prop->A;
+        dconst[2] = preload;
+
+        q << nd1.x, nd1.y, nd1.z, nd2.x, nd2.y, nd2.z;
+        
+        Eigen::Array<Eigen::Matrix<double,6,6>,1,6> dStiffnessdx; 
+        if(senMethod == 0) { // analytic
+          std::cerr << " ... Warning: analytic stiffness sensitivity wrt nodal coordinate is not implemented yet\n";
+          std::cerr << " ...          instead, automatic differentiation will be applied\n";
+          senMethod = 1;
+        }
+  
+        if(senMethod == 1) { // automatic differentiation
+          Simo::FirstPartialSpaceDerivatives<double, TwoNodeTrussStiffnessWRTNodalCoordinateSensitivity> dKdx(dconst,iconst); 
+          dStiffnessdx = dKdx(q, 0);
+#ifdef SENSITIVITY_DEBUG
+          Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
+          if(verboseFlag) {
+            std::cerr << "dStiffnessdx(AD) =\n";
+            for(int i=0; i<6; ++i) std::cerr << "dStiffnessdx_" << i << "\n" << dStiffnessdx[i].format(HeavyFmt) << std::endl;
+          }
+#endif
+        }
+
+        if(senMethod == 2) { // finite difference
+          TwoNodeTrussStiffnessWRTNodalCoordinateSensitivity<double> foo(dconst,iconst);
+          Eigen::Matrix<double,6,1> qp, qm;
+          double h(1e-6);
+          for(int i=0; i<6; ++i) {
+            qp = qm = q;
+            qp[i] = q[i] + h;   qm[i] = q[i] - h;
+            Eigen::Matrix<double,6,6> Kp = foo(qp, 0);
+            Eigen::Matrix<double,6,6> Km = foo(qm, 0);
+            dStiffnessdx[i] = (Kp-Km)/(2*h);
+#ifdef SENSITIVITY_DEBUG
+            Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
+            if(verboseFlag) {
+              std::cerr << "dStiffnessdx(FD) =\n";
+              std::cerr << "dStiffnessdx_" << i << "\n" << dStiffnessdx[i].format(HeavyFmt) << std::endl;
+            }
+#endif
+          }
+        }
+        
+        for(int i=0; i<6; ++i) dStiffdx[i].copy(dStiffnessdx[i].data());
+#endif
+}
+
 FullSquareMatrix
 TwoNodeTruss::stiffness(CoordSet &cs, double *k, int flg)
 {
+        using std::sqrt;
+
         Node &nd1 = cs.getNode( nn[0] );
         Node &nd2 = cs.getNode( nn[1] );
 
@@ -203,11 +401,11 @@ TwoNodeTruss::stiffness(CoordSet &cs, double *k, int flg)
         x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
         x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
 
-	double dx = x[1] - x[0];
-	double dy = y[1] - y[0];
-	double dz = z[1] - z[0];
+        double dx = x[1] - x[0];
+        double dy = y[1] - y[0];
+        double dz = z[1] - z[0];
 
-	double length = sqrt( dx*dx + dy*dy + dz*dz );
+        double length = sqrt( dx*dx + dy*dy + dz*dz );
 
         if(length == 0.0) {
           fprintf(stderr,"ERROR: truss has zero length %d %d\n",nn[0],nn[1]);
@@ -221,7 +419,7 @@ TwoNodeTruss::stiffness(CoordSet &cs, double *k, int flg)
         c1[1] = dy/length;
         c1[2] = dz/length;
 
-	FullSquareMatrix ret(6,k);
+        FullSquareMatrix ret(6,k);
 
         // Check for negative or zero area and zero modulus
         if(prop->A <= 0.0)
@@ -233,7 +431,7 @@ TwoNodeTruss::stiffness(CoordSet &cs, double *k, int flg)
 
 //        fprintf(stderr,"element K = %g \n", elementK);
 
-	int i,j;
+        int i,j;
         for(i=0; i < 3; ++i)
           for(j=0; j < 3; ++j) {
              ret[i][j]     = elementK*c1[i]*c1[j];
@@ -316,7 +514,7 @@ TwoNodeTruss::getThermalForce(CoordSet &cs, Vector &ndTemps,
 // Computes the thermal-mechanical coupling force C*theta
 // See cupb3d.f of RCFEM. C is 6x2 matrix
 // A = cross section, W= dilatation coeff
-
+    using std::sqrt;
 
     double x[2], y[2], z[2], elC[6][2];
     double dx,dy,dz,length;
@@ -541,6 +739,7 @@ void
 TwoNodeTruss::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
                                                     int senMethod, double *ndTemps, int avgnum, double ylayer, double zlayer)
 { 
+   using std::sqrt;
    if(strInd != 6) {
      std::cerr << " ... Error: strInd must be 6 in TwoNodeTruss::getVonMisesNodalCoordinateSensitivity\n";
      exit(-1);

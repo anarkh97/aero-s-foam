@@ -385,7 +385,7 @@ class Element {
 
         virtual FullSquareMatrix stiffness(CoordSet& cs,double *k,int flg=1);
         virtual void getStiffnessThicknessSensitivity(CoordSet& cs,FullSquareMatrix &dStiffdThick, int flg=1, int senMethod=0);
-        virtual void getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs, int senMethod=0);
+        virtual void getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs, int senMethod=1);
         virtual FullSquareMatrix massMatrix(CoordSet& cs,double *m,int cmflg=1);
         virtual FullSquareMatrix imStiffness(CoordSet& cs,double *k,int flg=1);
         FullSquareMatrix massMatrix(CoordSet& cs, double* m, double mratio);
@@ -398,6 +398,7 @@ class Element {
         virtual double getMassSensitivityWRTthickness(CoordSet&) { return 0; }
         virtual double weight(CoordSet&, double *) { return 0; }
         virtual double weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int senMethod=1) { return 0; }
+        virtual void weightDerivativeWRTNodalCoordinate(Vector& dwdx, CoordSet& cs, double *gravityAcceleration, int senMethod=1);
         virtual double getDCmass(CoordSet &,Vector &, double&) { return 0; }
 
         virtual void getGravityForce(CoordSet&,double *gravity,Vector &force,

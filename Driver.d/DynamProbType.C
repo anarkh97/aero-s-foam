@@ -266,9 +266,6 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
      v_pSen = new VecType( probDesc->solVecInfo() );
      *d_nSen = *v_nSen = *a_nSen = *v_pSen = 0.0;
      curSenState = new SysState<VecType>( *d_nSen, *v_nSen, *a_nSen, *v_pSen);
-     std::map<int, Group> &group = geoSource->group;
-//     allSens.aeroVonMisesWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(domain->numNodes(), group.size());
-//     allSens.aeroVonMisesWRTthick->setZero();
    }
 #endif
 
@@ -395,13 +392,14 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
        // Aeroelastic Sensitivity Quasi-Static 
 #ifdef USE_EIGEN3
+       int numThicknessGroups = domain->getNumThicknessGroups();
+       int numShapeVars = domain->getNumShapeVars();
        if(domain->solInfo().sensitivity) { 
          probDesc->postProcessSA(dynOps,*d_n);
          AllSensitivities<double> *allSens = probDesc->getAllSensitivities();
-         std::map<int, Group> &group = geoSource->group;
-         allSens->dispWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[group.size()];
-         probDesc->sendNumParam(group.size());  
-         for(int iparam=0; iparam< group.size(); ++iparam) {
+         allSens->dispWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[numThicknessGroups];
+         probDesc->sendNumParam(numThicknessGroups);  
+         for(int iparam=0; iparam< numThicknessGroups; ++iparam) {
            allSens->dispWRTthick[iparam] = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(domain->numUncon(),1);
            rhsSen = new VecType( probDesc->solVecInfo() );
            rhsSen->copy(allSens->linearstaticWRTthick[iparam]->data());

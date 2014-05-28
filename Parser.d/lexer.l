@@ -990,6 +990,8 @@ TRAIL [a-zA-Z]*
 
 "oweigthi"|"OWEIGTHI"              { yylval.ival = OutputInfo::WeigThic; return SENSITIVITYID; }
 
+"oweigsha"|"OWEIGSHA"              { yylval.ival = OutputInfo::WeigShap; return SENSITIVITYID; }
+
 "ovmstthi"|"OVMSTTHI"              { yylval.ival = OutputInfo::VMstThic; return SENSITIVITYID; }
 
 "ogravthi"|"OGRAVTHI"              { yylval.ival = OutputInfo::GravThic; return SENSITIVITYID; }
@@ -998,13 +1000,9 @@ TRAIL [a-zA-Z]*
 
 "ovmstsha"|"OVMSTSHA"              { yylval.ival = OutputInfo::VMstShap; return SENSITIVITYID; }
 
-"ostifthi"|"OSTIFTHI"              { yylval.ival = OutputInfo::StifThic; return SENSITIVITYID; }
-
-"odispthi"|"ODISPTHI"              { yylval.ival = OutputInfo::DispThic; return SENSITIVITYID; }
-
-"olstasha"|"OLSTASHA"              { yylval.ival = OutputInfo::LstaShap; return SENSITIVITYID; }
-
 "weigthic"|"WEIGTHIC"              { yylval.ival = SensitivityInfo::WeightWRTthickness;       return SENSITIVITYTYPE; }
+
+"weigshap"|"WEIGSHAP"              { yylval.ival = SensitivityInfo::WeightWRTshape;           return SENSITIVITYTYPE; }
 
 "vmstthic"|"VMSTTHIC"              { yylval.ival = SensitivityInfo::StressVMWRTthickness;     return SENSITIVITYTYPE; }
 

@@ -175,6 +175,24 @@ SuperElement::stiffness(CoordSet &cs, double *karray, int flg)
   return ret;
 }
 
+void
+SuperElement::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs, int senMethod)
+{
+  for(int i=0; i<3*numNodes(); ++i) {
+    if(dStiffdx[i].dim() != numDofs()) { std::cerr << " ... Error: dimension of sensitivity matrix is wrong\n";   exit(-1); }
+  }
+
+  for(int i = 0; i < nSubElems; ++i) {
+    FullSquareMatrix *subdStiffdx = new FullSquareMatrix[3*subElems[i]->numNodes()];
+    for(int j=0; j<3*subElems[i]->numNodes(); ++j) { subdStiffdx[j].setSize(subElems[i]->numDofs());  subdStiffdx[j].zero(); }
+    subElems[i]->getStiffnessNodalCoordinateSensitivity(subdStiffdx, cs, senMethod);
+    for(int j=0; j<3*subElems[i]->numNodes(); ++j) { 
+      dStiffdx[j].add(subdStiffdx[j], subElemDofs[i]); 
+    }
+    delete [] subdStiffdx; 
+  }
+}
+
 void 
 SuperElement::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix &dStiffdThick, int flg, int senMethod)
 {
@@ -278,6 +296,19 @@ SuperElement::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
 }
 
 void 
+SuperElement::weightDerivativeWRTNodalCoordinate(Vector &dwdx, CoordSet& cs, double *gravityAcceleration, int senMethod)
+{
+  dwdx.zero();
+  for(int i = 0; i < nSubElems; ++i) {
+    Vector subDwDx(3*subElems[i]->numNodes(),0.0);
+    subElems[i]->weightDerivativeWRTNodalCoordinate(subDwDx, cs, gravityAcceleration, senMethod);
+    for(int j=0; j<subElems[i]->numNodes(); ++j)
+      for(int xyz = 0; xyz<3; ++xyz)
+        dwdx[3*subElemNodes[i][j]+xyz] += subDwDx[3*j+xyz];
+  }
+}
+
+void 
 SuperElement::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
                                                     int senMethod, double *, int avgnum, double ylayer, double zlayer)
 {
@@ -308,6 +339,24 @@ SuperElement::getGravityForce(CoordSet &cs, double *gravityAcceleration, Vector 
     Vector subGravityForce(subElems[i]->numDofs());
     subElems[i]->getGravityForce(cs, gravityAcceleration, subGravityForce, gravflg, geomState);
     gravityForce.add(subGravityForce, subElemDofs[i]);
+  }
+}
+
+void
+SuperElement::getGravityForceSensitivityWRTNodalCoordinate(CoordSet& cs, double *gravityAcceleration, int senMethod,
+                                                           GenFullM<double> &dGfdx, int gravflg, GeomState *geomState)
+{
+  dGfdx.zero();
+  for(int i = 0; i < nSubElems; ++i) {
+    GenFullM<double> subGravityForceSen(3*subElems[i]->numNodes(),subElems[i]->numDofs(),0.0);
+    subElems[i]->getGravityForceSensitivityWRTNodalCoordinate(cs, gravityAcceleration, senMethod, subGravityForceSen, gravflg, geomState);
+    for(int j = 0; j < subElems[i]->numDofs(); ++j) {
+      for(int k = 0; k < subElems[i]->numNodes(); ++k) {
+        for(int xyz = 0; xyz < 3; ++xyz) {
+          dGfdx[3*subElemNodes[i][k]+xyz][subElemDofs[i][j]] += subGravityForceSen[3*k+xyz][j];
+        }
+      }
+    }
   }
 }
 

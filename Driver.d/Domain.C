@@ -1783,7 +1783,7 @@ Domain::readInModes(char* modeFileName)
 void
 Domain::readInShapeDerivatives(char* shapeDerFileName)
 {
- filePrint(stderr," ... Read in Shape Derivatives from file: %s ...\n",shapeDerFileName);
+ filePrint(stderr," ... Read in Shape Derivatives      ...\n ... file: %s    ...\n",shapeDerFileName);
 
  // Open file containing mode shapes and frequencies.
  FILE *f;

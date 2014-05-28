@@ -557,12 +557,12 @@ class GenSubDomain : public BaseSub
   void mergeStress(Scalar *stress, Scalar *weight,
                    Scalar *globStress, Scalar *globWeight, int glNumNodes);
   void mergeElemStress(Scalar *loc, Scalar *glob, Connectivity *);
-  void mergeDisp(Scalar (*xyz)[11], GeomState* locGS);
+  void mergeDisp(Scalar (*xyz)[11], GeomState* locGS, Scalar (*xyz_loc)[11] = NULL);
   void mergeAllDisp(Scalar (*xyz)[11], Scalar *d, Scalar (*xyz_loc)[11] = NULL);
   void mergeAllVeloc(Scalar (*xyz)[11], Scalar *v, Scalar (*xyz_loc)[11] = NULL);
   void mergeAllAccel(Scalar (*xyz)[11], Scalar *a, Scalar (*xyz_loc)[11] = NULL);
   void forceContinuity(Scalar *locdisp, Scalar (*xyz)[11]);
-  void mergeDistributedNLDisp(Scalar (*xyz)[11], GeomState* u);
+  void mergeDistributedNLDisp(Scalar (*xyz)[11], GeomState* u, Scalar (*xyz_loc)[11] = NULL);
   void mergeForces(Scalar (*mergedF)[6], Scalar *subF);
   void mergeReactions(Scalar (*mergedF)[11], Scalar *subF);
   void mergeDistributedForces(Scalar (*mergedF)[6], Scalar *subF);

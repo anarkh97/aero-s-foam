@@ -50,7 +50,7 @@ protected:
 private:
   // Snapshot collection 
   void saveMidTime(double t) { impl_->lastMidTimeIs(t); }
-  void saveDelta(double dt) { impl_->lastDeltaIs(dt); }
+  void saveDelta(double delta) { impl_->lastDeltaIs(delta); }
   void saveStateSnapshot(const DistrGeomState &state) { impl_->stateSnapshotAdd(state); }
   void saveVelocSnapshot(DistrGeomState &state, const DistrVector &veloc);
   void saveAccelSnapshot(DistrGeomState &state, const DistrVector &accel);

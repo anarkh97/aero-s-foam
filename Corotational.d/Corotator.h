@@ -9,6 +9,7 @@ template <class Scalar> class GenFullSquareMatrix;
 typedef GenFullSquareMatrix<double> FullSquareMatrix;
 template <class Scalar> class GenFullM;
 typedef GenFullM<double> FullM;
+typedef GenFullM<DComplex> FullMC;
 template <class Scalar> class GenVector;
 typedef GenVector<double> Vector;
 typedef GenVector<DComplex> ComplexVector;
@@ -49,6 +50,8 @@ class Corotator {
                                GeomState &, CoordSet &, int);
 
     virtual void getNLAllStress(FullM&, Vector&,
+                                GeomState &, CoordSet &, int);
+    virtual void getNLAllStress(FullMC&, Vector&,
                                 GeomState &, CoordSet &, int);
 
     virtual double getElementEnergy(GeomState &, CoordSet &);

@@ -20,6 +20,7 @@ class InterpPoint;
 class NLMaterial;
 class LMPCons;
 class GeomState;
+class NFrameData;
 template <class Scalar> class GenVector;
 typedef GenVector<double> Vector;
 typedef GenVector<DComplex> ComplexVector;
@@ -306,6 +307,7 @@ public:
         Node *& operator[] (int i);
 
         int nnz();
+        NFrameData * dofFrame(int i);
 };
 
 

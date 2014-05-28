@@ -114,7 +114,7 @@ long spnnls(AnyMatrix &A, long mda, long m, long
 
 //  INITIALIZE THE ARRAYS INDEX AND X.
     x.setZero();
-    index.setLinSpaced(n,0,n); // index[i] = i
+    index.setLinSpaced(n,0,n-1); // index[i] = i
 
     iz2 = n-1;
     iz1 = 0;
@@ -144,7 +144,7 @@ long spnnls(AnyMatrix &A, long mda, long m, long
         }
     
 //      COMPUTE THE NORM^2 OF THE RESIDUAL VECTOR.
-        sm = b.segment(npp1-1,m-npp1-1).squaredNorm();
+        sm = b.segment(npp1-1,m-(npp1-1)).squaredNorm();
         rnorm = sqrt(sm);
     
         if(prtflg) {

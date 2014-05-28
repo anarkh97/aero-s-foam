@@ -73,8 +73,8 @@ class MpcElement : public Element, public Corotator, public LMPCons
     void extractDeformations(GeomState &geomState, CoordSet &cs, double *vld,
                              int &nlflag) { nlflag = 2; }
 
-    void getNLVonMises(Vector&, Vector& weight,
-                       GeomState &, CoordSet &, int);
+    void getNLVonMises(Vector&, Vector&, GeomState&, CoordSet&, int);
+    void getNLAllStress(FullM&, Vector&, GeomState&, CoordSet&, int);
 
     void initMultipliers(GeomState& c1);
     void updateMultipliers(GeomState& c1);

@@ -28,7 +28,7 @@ struct DistrSnapshotNonLinDynamicDetail : private DistrSnapshotNonLinDynamic {
   public:
     // Overriden
     virtual void lastMidTimeIs(double t);
-    virtual void lastDeltaIs(double dt);
+    virtual void lastDeltaIs(double delta);
     virtual void stateSnapshotAdd(const DistrGeomState &);
     virtual void velocSnapshotAdd(const DistrVector &);
     virtual void accelSnapshotAdd(const DistrVector &);
@@ -100,12 +100,16 @@ DistrSnapshotNonLinDynamicDetail::RawImpl::postProcess() {
 
 void
 DistrSnapshotNonLinDynamicDetail::RawImpl::lastMidTimeIs(double t) {
+  // t = t_n + dt*(1 - alphaf)
   timeStamp_ = t;
 }
 
 void
-DistrSnapshotNonLinDynamicDetail::RawImpl::lastDeltaIs(double dt) {
-  timeStamp_ += dt;
+DistrSnapshotNonLinDynamicDetail::RawImpl::lastDeltaIs(double delta) {
+  // delta = dt/2
+  // timeStamp_ = t_{n+1} = t_n + dt = t_n + dt*(1 - alphaf) + dt*alphaf 
+  //            = timeStamp_ + 2*delta*alphaf
+  timeStamp_ += 2*delta*::domain->solInfo().newmarkAlphaF;
 }
 
 void

@@ -958,11 +958,11 @@ NonLinDynamic::preProcess(double Kcoef, double Mcoef, double Ccoef)
                           melArray, celArray, factorWhenBuilding()); // don't use Rbm's to factor in dynamics
 
  if(useRbmFilter == 1)
-    filePrint(stderr," ... RBM filter Level 1 Requested    ...\n");
+   filePrint(stderr," ... RBM filter Level 1 Requested   ...\n");
  if(useRbmFilter == 2)
-    filePrint(stderr," ... RBM filter Level 2 Requested    ...\n");
+   filePrint(stderr," ... RBM filter Level 2 Requested   ...\n");
  if(useHzemFilter)
-    filePrint(stderr," ... HZEM filter Requested    ...\n");
+   filePrint(stderr," ... HZEM filter Requested          ...\n");
 
  if(useRbmFilter || useHzemFilter)
    projector_prep(rigidBodyModes, allOps.M);

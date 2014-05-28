@@ -904,7 +904,7 @@ SingleDomainDynamic::buildOps(double coeM, double coeC, double coeK)
  int useHzemFilter = domain->solInfo().hzemFilterFlag;
  int useHzem   = domain->solInfo().hzemFlag;
 
- if (useGrbm || useRbmFilter) 
+ if(useGrbm || useRbmFilter) 
    rigidBodyModes = domain->constructRbm();
  else if(useHzem || useHzemFilter)
    rigidBodyModes = domain->constructHzem();
@@ -915,11 +915,11 @@ SingleDomainDynamic::buildOps(double coeM, double coeC, double coeK)
    domain->buildOps(allOps, coeK, coeM, coeC, 0, kelArray, melArray);
 
  if(useRbmFilter == 1)
-    filePrint(stderr," ... RBM filter Level 1 Requested    ...\n");
+   filePrint(stderr," ... RBM filter Level 1 Requested   ...\n");
  if(useRbmFilter == 2)
-    filePrint(stderr," ... RBM filter Level 2 Requested    ...\n");
+   filePrint(stderr," ... RBM filter Level 2 Requested   ...\n");
  if(useHzemFilter)
-    filePrint(stderr," ... HZEM filter Requested    ...\n");
+   filePrint(stderr," ... HZEM filter Requested          ...\n");
 
  if(useRbmFilter || useHzemFilter)
    projector_prep(rigidBodyModes, allOps.M);
@@ -927,7 +927,7 @@ SingleDomainDynamic::buildOps(double coeM, double coeC, double coeK)
  // Modal decomposition preprocessing
  int decompFlag = domain->solInfo().modeDecompFlag;
  if(decompFlag) {
-   filePrint(stderr," ... Modal decomposition requested ...\n");
+   filePrint(stderr," ... Modal decomposition requested  ...\n");
    modeDecompPreProcess(allOps.M);
  }
 

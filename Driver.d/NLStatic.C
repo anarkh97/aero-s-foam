@@ -1264,7 +1264,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
       for (i = 0, realNode = -1; i < nNodes; ++i) {
         int iNode = first_node+i;
         if(outFlag) { if(nodes[iNode] == 0) continue; nodeI = ++realNode; } else nodeI = i;
-if(nodes[iNode] && iNode < geomState->numNodes()) {
+        if(nodes[iNode] && iNode < geomState->numNodes()) {
           if(oinfo[iInfo].oframe == OutputInfo::Local) {
             double d[3] = { (*geomState)[iNode].x - nodes[iNode]->x,
                             (*geomState)[iNode].y - nodes[iNode]->y,
@@ -1555,8 +1555,20 @@ if(nodes[iNode] && iNode < geomState->numNodes()) {
       double *data = new double[nPrintNodes];
       for (int iNode = 0, realNode = -1; iNode < nNodes; ++iNode)  {
         if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
-        int xloc  = c_dsa->locate(first_node+iNode, DofSet::Xdisp);
-        data[nodeI]  = (xloc >= 0) ? aeroForce[xloc] : 0.0;
+        if(oinfo[iInfo].oframe == OutputInfo::Local) {
+          int xloc  = c_dsa->locate(first_node+iNode, DofSet::Xdisp);
+          data[nodeI]  = (xloc >= 0) ? aeroForce[xloc] : 0.0;
+        }
+        else {
+          int xloc  = c_dsa->locate(first_node+iNode, DofSet::Xdisp);
+          int yloc  = c_dsa->locate(first_node+iNode, DofSet::Ydisp);
+          int zloc  = c_dsa->locate(first_node+iNode, DofSet::Zdisp);
+          double f[3] = { (xloc >= 0) ? aeroForce[xloc] : 0.0,
+                          (yloc >= 0) ? aeroForce[yloc] : 0.0,
+                          (zloc >= 0) ? aeroForce[zloc] : 0.0 };
+          transformVectorInv(f, first_node+iNode, false);
+          data[nodeI] = f[0];
+        }
       }
       geoSource->outputNodeScalars(iInfo, data, nPrintNodes, time);
       delete [] data;
@@ -1565,8 +1577,20 @@ if(nodes[iNode] && iNode < geomState->numNodes()) {
       double *data = new double[nPrintNodes];
       for (int iNode = 0, realNode = -1; iNode < nNodes; ++iNode)  {
         if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
-        int yloc  = c_dsa->locate(first_node+iNode, DofSet::Ydisp);
-        data[nodeI]  = (yloc >= 0) ? aeroForce[yloc] : 0.0;
+        if(oinfo[iInfo].oframe == OutputInfo::Local) {
+          int yloc  = c_dsa->locate(first_node+iNode, DofSet::Ydisp);
+          data[nodeI]  = (yloc >= 0) ? aeroForce[yloc] : 0.0;
+        }
+        else {
+          int xloc  = c_dsa->locate(first_node+iNode, DofSet::Xdisp);
+          int yloc  = c_dsa->locate(first_node+iNode, DofSet::Ydisp);
+          int zloc  = c_dsa->locate(first_node+iNode, DofSet::Zdisp);
+          double f[3] = { (xloc >= 0) ? aeroForce[xloc] : 0.0,
+                          (yloc >= 0) ? aeroForce[yloc] : 0.0,
+                          (zloc >= 0) ? aeroForce[zloc] : 0.0 };
+          transformVectorInv(f, first_node+iNode, false);
+          data[nodeI] = f[1];
+        }
       }
       geoSource->outputNodeScalars(iInfo, data, nPrintNodes, time);
       delete [] data;
@@ -1575,8 +1599,20 @@ if(nodes[iNode] && iNode < geomState->numNodes()) {
       double *data = new double[nPrintNodes];
       for (int iNode = 0, realNode = -1; iNode < nNodes; ++iNode)  {
         if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
-        int zloc  = c_dsa->locate(first_node+iNode, DofSet::Zdisp);
-        data[nodeI] = (zloc >= 0) ? aeroForce[zloc] : 0.0;
+        if(oinfo[iInfo].oframe == OutputInfo::Local) {
+          int zloc  = c_dsa->locate(first_node+iNode, DofSet::Zdisp);
+          data[nodeI] = (zloc >= 0) ? aeroForce[zloc] : 0.0;
+        }
+        else {
+          int xloc  = c_dsa->locate(first_node+iNode, DofSet::Xdisp);
+          int yloc  = c_dsa->locate(first_node+iNode, DofSet::Ydisp);
+          int zloc  = c_dsa->locate(first_node+iNode, DofSet::Zdisp);
+          double f[3] = { (xloc >= 0) ? aeroForce[xloc] : 0.0,
+                          (yloc >= 0) ? aeroForce[yloc] : 0.0,
+                          (zloc >= 0) ? aeroForce[zloc] : 0.0 };
+          transformVectorInv(f, first_node+iNode, false);
+          data[nodeI] = f[2];
+        }
       }
       geoSource->outputNodeScalars(iInfo, data, nPrintNodes, time);
       delete [] data;
@@ -1585,8 +1621,20 @@ if(nodes[iNode] && iNode < geomState->numNodes()) {
       double *data = new double[nPrintNodes];
       for (int iNode = 0, realNode = -1; iNode < nNodes; ++iNode)  {
         if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
-        int xrot  = c_dsa->locate(first_node+iNode, DofSet::Xrot);
-        data[nodeI] = (xrot >= 0) ? aeroForce[xrot] : 0.0;
+        if(oinfo[iInfo].oframe == OutputInfo::Local) {
+          int xrot  = c_dsa->locate(first_node+iNode, DofSet::Xrot);
+          data[nodeI] = (xrot >= 0) ? aeroForce[xrot] : 0.0;
+        }
+        else {
+          int xrot  = c_dsa->locate(first_node+iNode, DofSet::Xrot);
+          int yrot  = c_dsa->locate(first_node+iNode, DofSet::Yrot);
+          int zrot  = c_dsa->locate(first_node+iNode, DofSet::Zrot);
+          double m[3] = { (xrot >= 0) ? aeroForce[xrot] : 0.0,
+                          (yrot >= 0) ? aeroForce[yrot] : 0.0,
+                          (zrot >= 0) ? aeroForce[zrot] : 0.0 };
+          transformVectorInv(m, first_node+iNode, false);
+          data[nodeI] = m[0];
+        }
       }
       geoSource->outputNodeScalars(iInfo, data, nPrintNodes, time);
       delete [] data;
@@ -1595,8 +1643,20 @@ if(nodes[iNode] && iNode < geomState->numNodes()) {
       double *data = new double[nPrintNodes];
       for (int iNode = 0, realNode = -1; iNode < nNodes; ++iNode)  {
         if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
-        int yrot  = c_dsa->locate(first_node+iNode, DofSet::Yrot);
-        data[nodeI] = (yrot >= 0) ? aeroForce[yrot] : 0.0;
+        if(oinfo[iInfo].oframe == OutputInfo::Local) {
+          int yrot  = c_dsa->locate(first_node+iNode, DofSet::Yrot);
+          data[nodeI] = (yrot >= 0) ? aeroForce[yrot] : 0.0;
+        }
+        else {
+          int xrot  = c_dsa->locate(first_node+iNode, DofSet::Xrot);
+          int yrot  = c_dsa->locate(first_node+iNode, DofSet::Yrot);
+          int zrot  = c_dsa->locate(first_node+iNode, DofSet::Zrot);
+          double m[3] = { (xrot >= 0) ? aeroForce[xrot] : 0.0,
+                          (yrot >= 0) ? aeroForce[yrot] : 0.0,
+                          (zrot >= 0) ? aeroForce[zrot] : 0.0 };
+          transformVectorInv(m, first_node+iNode, false);
+          data[nodeI] = m[1];
+        }
       }
       geoSource->outputNodeScalars(iInfo, data, nPrintNodes, time);
       delete [] data;
@@ -1605,8 +1665,20 @@ if(nodes[iNode] && iNode < geomState->numNodes()) {
       double *data = new double[nPrintNodes];
       for (int iNode = 0, realNode = -1; iNode < nNodes; ++iNode)  {
         if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
-        int zrot  = c_dsa->locate(first_node+iNode, DofSet::Zrot);
-        data[nodeI] = (zrot >= 0) ? aeroForce[zrot] : 0.0;
+        if(oinfo[iInfo].oframe == OutputInfo::Local) {
+          int zrot  = c_dsa->locate(first_node+iNode, DofSet::Zrot);
+          data[nodeI] = (zrot >= 0) ? aeroForce[zrot] : 0.0;
+        }
+        else {
+          int xrot  = c_dsa->locate(first_node+iNode, DofSet::Xrot);
+          int yrot  = c_dsa->locate(first_node+iNode, DofSet::Yrot);
+          int zrot  = c_dsa->locate(first_node+iNode, DofSet::Zrot);
+          double m[3] = { (xrot >= 0) ? aeroForce[xrot] : 0.0,
+                          (yrot >= 0) ? aeroForce[yrot] : 0.0,
+                          (zrot >= 0) ? aeroForce[zrot] : 0.0 };
+          transformVectorInv(m, first_node+iNode, false);
+          data[nodeI] = m[2];
+        }
       }
       geoSource->outputNodeScalars(iInfo, data, nPrintNodes, time);
       delete [] data;

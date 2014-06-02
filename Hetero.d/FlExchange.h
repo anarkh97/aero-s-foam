@@ -8,6 +8,7 @@ class CoordSet;
 class State;
 class GeomState;
 class SurfaceEntity;
+class FaceElement;
 
 // This is an inerpolation point. The element elemNum uses x and y to
 // compute the interpolated displacements/velocities
@@ -124,6 +125,10 @@ class FlExchanger {
       void sendNumParam(int);
       int cmdCom(int);
       int cmdComHeat(int);
+
+   private:
+      void transformVector(double *localF, Element *ele);
+      void transformVector(double *localF, FaceElement *ele);
 };
 
 #define FLTOSTMT 1000

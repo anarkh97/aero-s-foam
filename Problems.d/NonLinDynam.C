@@ -1108,61 +1108,15 @@ NonLinDynamic::dynamCommToFluid(GeomState* geomState, GeomState* bkGeomState,
     }
 
     // Make d_n_aero from geomState
+    Vector d_n(domain->numUncon(), 0.0);
+    geomState->get_tot_displacement(d_n);
+
     ConstrainedDSA *c_dsa = domain->getCDSA();
     DofSetArray *dsa = domain->getDSA();
 
-    // Note that d_n and a_n are vectors being allocated and de-allocated at
-    // each time-step being executed.
-
-    Vector d_n( domain->numUncon(), 0.0 );
-    Vector d_n2( domain->numUncon(), 0.0 );
-
-    CoordSet &nodes = domain->getNodes();
-    int numNodes = nodes.size();
-
-    for(int i=0; i<geoSource->numNode(); ++i) {
-
-      int xloc  = c_dsa->locate(i, DofSet::Xdisp );
-      int xloc1 =   dsa->locate(i, DofSet::Xdisp );
-
-      if(xloc >= 0)
-        d_n[xloc]  = ( (*geomState)[i].x - nodes[i]->x);
-      else if (xloc1 >= 0)
-        bcx[xloc1] = ( (*geomState)[i].x - nodes[i]->x);
-
-      int yloc  = c_dsa->locate(i, DofSet::Ydisp );
-      int yloc1 =   dsa->locate(i, DofSet::Ydisp );
-
-      if(yloc >= 0)
-        d_n[yloc]  = ( (*geomState)[i].y - nodes[i]->y);
-      else if (yloc1 >= 0)
-        bcx[yloc1] = ( (*geomState)[i].y - nodes[i]->y);
-
-      int zloc  = c_dsa->locate(i, DofSet::Zdisp);
-      int zloc1 =   dsa->locate(i, DofSet::Zdisp);
-
-      if(zloc >= 0)
-        d_n[zloc]  = ( (*geomState)[i].z - nodes[i]->z);
-      else if (zloc1 >= 0)
-        bcx[zloc1] = ( (*geomState)[i].z - nodes[i]->z);
-    }
-
-    if(!parity && aeroAlg==5){ 
-      for(int i=0; i<geoSource->numNode(); ++i) {
-
-        int xloc  = c_dsa->locate(i, DofSet::Xdisp );
-        if(xloc >= 0)
-          d_n2[xloc]  = ( (*bkGeomState)[i].x - nodes[i]->x);
-
-        int yloc  = c_dsa->locate(i, DofSet::Ydisp );
-        if(yloc >= 0)
-          d_n2[yloc]  = ( (*bkGeomState)[i].y - nodes[i]->y);
-
-        int zloc  = c_dsa->locate(i, DofSet::Zdisp);
-        if(zloc >= 0)
-          d_n2[zloc]  = ( (*bkGeomState)[i].z - nodes[i]->z);
-      }
-
+    if(!parity && aeroAlg==5) { 
+      Vector d_n2(domain->numUncon(), 0.0);
+      bkGeomState->get_tot_displacement(d_n2);
       d_n.linC(0.5,d_n,0.5,d_n2);
       velocity.linC(0.5,velocity,0.5,bkVelocity);
       vp.linC(0.5,vp,0.5,bkVp);
@@ -1188,7 +1142,6 @@ NonLinDynamic::dynamCommToFluid(GeomState* geomState, GeomState* bkGeomState,
     // each time-step being executed.
 
     Vector d_n( domain->numUncon(), 0.0 );
-    Vector d_n2( domain->numUncon(), 0.0 );
 
     CoordSet &nodes = domain->getNodes();
 

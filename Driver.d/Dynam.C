@@ -334,8 +334,6 @@ Domain::buildAeroelasticForce(Vector& aero_f, PrevFrc& prevFrc, int tIndex, doub
   prevFrc.lastFluidTime = tFluid;
   prevFrc.lastTIndex = tIndex;
 
-  //fprintf(stderr,"... alpha = %e, gamma = %e, isCollocated = %d ...\n", alpha, gamma, iscollocated);
-
   delete [] tmpFmem;
   getTimers().receiveFluidTime += getTime();
 }
@@ -376,8 +374,6 @@ Domain::buildAeroelasticForceSensitivity(Vector& aero_fSen, PrevFrc& prevFrc, in
   prevFrc.lastFluidTime = tFluid;
   prevFrc.lastTIndex = tIndex;
 
-  //fprintf(stderr,"... alpha = %e, gamma = %e, isCollocated = %d ...\n", alpha, gamma, iscollocated);
-
   delete [] tmpFmem;
   getTimers().receiveFluidTime += getTime();
 }
@@ -394,10 +390,6 @@ Domain::buildAeroheatFlux(Vector &f, Vector &prev_f, int tIndex, double t)
 
   double sflux = 0;
   double bfl ;
-
-/*  linAdd is in Maths.d/Vector.C , f.linAdd(a,g,b,h) 
-    means f = f+a*g+b*h 
-    f.linAdd(a,g)= f+a*g  */
 
   tmpF.zero();
   flExchanger->getFluidFlux(tmpF, t, bfl);

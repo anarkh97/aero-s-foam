@@ -9,7 +9,7 @@
 
 #include <Element.d/Shell.d/ThreeNodeShell.h>
 #include <Comm.d/Communicator.h>
-
+#include <Driver.d/Domain.h>
 #include <Driver.d/GeoSource.h>
 
 #include <Corotational.d/GeomState.h>
@@ -34,6 +34,7 @@ const char *SEND_LIST_KW = "SNDF";
 extern Communicator *structCom, *fluidCom, *heatStructCom;
 extern int verboseFlag;
 extern GeoSource *geoSource;
+extern Domain *domain;
 
 FlExchanger::FlExchanger(CoordSet& _cs, Elemset& _eset, SurfaceEntity *_surf, DofSetArray *_dsa, 
                          OutputInfo *_oinfo) : cs(_cs), surface(_surf), eset(_eset)
@@ -82,10 +83,12 @@ FlExchanger::getFluidLoad(Vector& force, int tIndex, double time,
           thisElement = eset[sndTable[origin][j].elemNum];
           thisElement->getFlLoad(cs, sndTable[origin][j], buffer+3*j, localF, geomState);
           nDof = thisElement->numDofs();
+          transformVector(localF, thisElement);
         } else {
           thisFaceElem = (*feset)[sndTable[origin][j].elemNum];
           thisFaceElem->getFlLoad(sndTable[origin][j], buffer+3*j, localF);
           nDof = thisFaceElem->numDofs();
+          transformVector(localF, thisFaceElem);
         }
         int *dof = sndTable[origin][j].dofs;
         for(iDof=0; iDof<nDof; ++iDof)
@@ -172,8 +175,6 @@ FlExchanger::getFluidLoadSensitivity(Vector& forceSen, int tIndex, double time,
  return (time+alphaf*dt);
 }
 
-
-extern int mflag;
 
 void
 FlExchanger::sendDisplacements(State& state, int tag, GeomState* geomState)
@@ -1260,4 +1261,30 @@ FlExchanger::negotiate()
   delete [] index;
   delete [] buffer;
   buffer = new double[6*totSize];
+}
+
+void
+FlExchanger::transformVector(double *localF, Element *ele)
+{
+  if(!domain->solInfo().basicDofCoords) {
+    int *nn = ele->nodes();
+    for(int k=0; k<ele->numNodes(); ++k)
+      if(NFrameData *cd = cs.dofFrame(nn[k])) {
+        if(ele->hasRot()) cd->transformVector6(localF+6*k);
+        else cd->transformVector3(localF+3*k);
+      }
+    delete [] nn;
+  }
+}
+
+void
+FlExchanger::transformVector(double *localF, FaceElement *ele)
+{
+  if(!domain->solInfo().basicDofCoords) {
+    for(int k=0; k<ele->nNodes(); ++k) {
+      int glNode = (surface->IsRenumbered()) ? surface->GetPtrLlToGlNodeMap()[ele->GetNode(k)] : ele->GetNode(k);
+      if(NFrameData *cd = cs.dofFrame(glNode))
+        cd->transformVector3(localF+3*k);
+    }
+  }
 }

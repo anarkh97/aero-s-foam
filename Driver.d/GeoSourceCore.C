@@ -1038,8 +1038,10 @@ void GeoSource::setUpData()
   delete [] hasAttr;
 
   // add properties for mortar conditions
+  bool printOne = true, printTwo = true;
   for(int i=0; i<domain->GetnMortarConds(); ++i) {
-    ConstraintOptions *copt = domain->GetMortarCond(i)->GetConstraintOptions();
+    MortarHandler* CurrentMortarCond = domain->GetMortarCond(i);
+    ConstraintOptions *copt = CurrentMortarCond->GetConstraintOptions();
     if(copt) {
       int a = maxattrib + 1;
       StructProp p;
@@ -1056,6 +1058,24 @@ void GeoSource::setUpData()
         hasAddedDummy = true;
       }
       setMortarAttrib(domain->GetMortarCond(i)->GetId(), dattr);
+    }
+    // check constraint method for tied/contact surfaces in cases where mpc elements are not initially generated
+    // i.e. nonlinear contactsurfaces with "tdenforce off", and linear/nonlinear tied/contactsurfaces with "tdenforce on".
+    if(sinfo.probType != SolverInfo::Top && sinfo.probType != SolverInfo::Decomp) {
+      bool lagrangeMult = (copt) ? copt->lagrangeMult : sinfo.lagrangeMult;
+      double penalty = (copt) ? copt->penalty : sinfo.penalty;
+      if(printOne && !domain->tdenforceFlag() && CurrentMortarCond->GetInteractionType() == MortarHandler::CTC &&
+         sinfo.isNonLin() && sinfo.newmarkBeta == 0 && (sinfo.mpcDirect || lagrangeMult == true || penalty == 0)) {
+        filePrint(stderr, "\x1B[31m *** WARNING: Constraint method is not \n"
+                          "     supported for explicit dynamics.  \x1B[0m\n");
+        printOne = false;
+      }
+      else if(printOne && domain->tdenforceFlag() && (sinfo.mpcDirect || (lagrangeMult == false && penalty == 0) ||
+         (lagrangeMult == true && penalty != 0))) {
+        filePrint(stderr, "\x1B[31m *** WARNING: Constraint method is not \n"
+                          "     supported for explicit dynamics.  \x1B[0m\n");
+        printOne = false;
+      }
     }
   }
 
@@ -1092,7 +1112,6 @@ void GeoSource::setUpData()
   global_average_nu = 0.0;
   global_average_rhof = 0.0;
   int solverClass = sinfo.classifySolver();
-  bool printOne = true, printTwo = true;
   for(std::map<int,Attrib>::iterator it = attrib.begin(); it != attrib.end(); ++it) {
     Attrib &attrib_i = it->second;
     Element *ele = elemSet[ attrib_i.nele ];

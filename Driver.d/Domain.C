@@ -2210,8 +2210,7 @@ void Domain::getNormal2D(int node1, int node2, double &nx, double &ny) {
 void Domain::computeTDProps()
 {
   if((numYMTT > 0) || (numCTETT > 0)) {
-    // PJDS: used to calculate temperature dependent material properties
-    //double defaultTemp = -10000000.0;
+    // used to calculate temperature dependent material properties
 
     // compute maximum number of nodes per element
     // note this is also done in Domain::makeAllDOFs()

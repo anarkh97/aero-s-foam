@@ -2694,20 +2694,27 @@ TiedSurfaces:
           $$->SetTDEnfParams($8, $9);
           domain->AddMortarCond($$);
         }
-        | TiedSurfaces Integer Integer Integer Integer Float Float Integer Float Float NewLine
-        {
-          $$ = new MortarHandler($3, $4, $6, $7);
-          $$->SetMortarType($5);
-          $$->SetTDEnfParams($8, $9);
-          $$->SetFrictionCoef($10);
-          $$->SetInteractionType(MortarHandler::TIED);
-          domain->AddMortarCond($$);
-        }
         | TiedSurfaces Integer Integer Integer ConstraintOptionsData NewLine
         {
           $$ = new MortarHandler($3, $4);
           $$->SetInteractionType(MortarHandler::TIED);
           $$->SetConstraintOptions($5);
+          domain->AddMortarCond($$);
+        }
+        | TiedSurfaces Integer Integer Integer Integer ConstraintOptionsData NewLine
+        {
+          $$ = new MortarHandler($3, $4);
+          $$->SetInteractionType(MortarHandler::TIED);
+          $$->SetMortarType($5);
+          $$->SetConstraintOptions($6);
+          domain->AddMortarCond($$);
+        }
+        | TiedSurfaces Integer Integer Integer Integer Float ConstraintOptionsData NewLine
+        {
+          $$ = new MortarHandler($3, $4, $6);
+          $$->SetInteractionType(MortarHandler::TIED);
+          $$->SetMortarType($5);
+          $$->SetConstraintOptions($7);
           domain->AddMortarCond($$);
         }
         | TiedSurfaces Integer Integer Integer Integer Float Float ConstraintOptionsData NewLine
@@ -2716,6 +2723,15 @@ TiedSurfaces:
           $$->SetInteractionType(MortarHandler::TIED);
           $$->SetMortarType($5);
           $$->SetConstraintOptions($8);
+          domain->AddMortarCond($$);
+        }
+        | TiedSurfaces Integer Integer Integer Integer Float Float Integer Float ConstraintOptionsData NewLine
+        {
+          $$ = new MortarHandler($3, $4, $6, $7);
+          $$->SetInteractionType(MortarHandler::TIED);
+          $$->SetMortarType($5);
+          $$->SetTDEnfParams($8, $9);
+          $$->SetConstraintOptions($10);
           domain->AddMortarCond($$);
         }
         ;
@@ -2839,12 +2855,67 @@ ContactSurfaces:
           $$->SetConstraintOptions($5);
           domain->AddMortarCond($$);
         }
+        | ContactSurfaces Integer Integer Integer Integer ConstraintOptionsData NewLine
+        {
+          $$ = new MortarHandler($3, $4);
+          $$->SetInteractionType(MortarHandler::CTC);
+          $$->SetMortarType($5);
+          $$->SetConstraintOptions($6);
+          domain->AddMortarCond($$);
+        }
+        | ContactSurfaces Integer Integer Integer Integer Float ConstraintOptionsData NewLine
+        {
+          $$ = new MortarHandler($3, $4, $6);
+          $$->SetInteractionType(MortarHandler::CTC);
+          $$->SetMortarType($5);
+          $$->SetConstraintOptions($7);
+          domain->AddMortarCond($$);
+        }
         | ContactSurfaces Integer Integer Integer Integer Float Float ConstraintOptionsData NewLine
         {
           $$ = new MortarHandler($3, $4, $6, $7);
           $$->SetInteractionType(MortarHandler::CTC);
           $$->SetMortarType($5); 
           $$->SetConstraintOptions($8);
+          domain->AddMortarCond($$);
+        }
+        | ContactSurfaces Integer Integer Integer Integer Float Float Integer Float ConstraintOptionsData NewLine
+        { /* this one is for frictionless */
+          $$ = new MortarHandler($3, $4, $6, $7);
+          $$->SetInteractionType(MortarHandler::CTC);
+          $$->SetTDEnfParams($8, $9);
+          $$->SetMortarType($5);
+          $$->SetConstraintOptions($10);
+          domain->AddMortarCond($$);
+        }
+        | ContactSurfaces Integer Integer Integer Integer Float Float Integer Float Float ConstraintOptionsData NewLine
+        { /* this one is for constant friction */
+          $$ = new MortarHandler($3, $4, $6, $7);
+          $$->SetInteractionType(MortarHandler::CTC);
+          $$->SetTDEnfParams($8, $9);
+          $$->SetFrictionCoef($10);
+          $$->SetMortarType($5);
+          $$->SetConstraintOptions($11);
+          domain->AddMortarCond($$);
+        }
+        | ContactSurfaces Integer Integer Integer Integer Float Float Integer Float Float Float Float ConstraintOptionsData NewLine
+        { /* this one is for velocity dependent friction */
+          $$ = new MortarHandler($3, $4, $6, $7);
+          $$->SetInteractionType(MortarHandler::CTC);
+          $$->SetTDEnfParams($8, $9);
+          $$->SetFrictionCoef($10, $11, $12);
+          $$->SetMortarType($5);
+          $$->SetConstraintOptions($13);
+          domain->AddMortarCond($$);
+        }
+        | ContactSurfaces Integer Integer Integer Integer Float Float Integer Float Float Float Float Float ConstraintOptionsData NewLine
+        { /* this one is for pressure dependent friction */
+          $$ = new MortarHandler($3, $4, $6, $7);
+          $$->SetInteractionType(MortarHandler::CTC);
+          $$->SetTDEnfParams($8, $9);
+          $$->SetFrictionCoef($10, $11, $12, $13);
+          $$->SetMortarType($5);
+          $$->SetConstraintOptions($14);
           domain->AddMortarCond($$);
         }
         ;

@@ -31,19 +31,6 @@ class SingleDomainPostProcessor {
     SolverType *solver;
     GenSparseMatrix<T> *kuc, *kcc;
   public:
-/*
-    SingleDomainPostProcessor<T, VectorType, SolverType>(Domain *d, T *_bcx)
-      { domain = d; bcx = _bcx; }
-
-    SingleDomainPostProcessor<T, VectorType, SolverType>(Domain *d, T *_bcx, 
-                                                         StaticTimers *_times)
-      { domain = d; bcx = _bcx; times = _times; }
-
-    SingleDomainPostProcessor<T, VectorType, SolverType>(Domain *d, T *_bcx, 
-                                                         StaticTimers *_times,
-                                                         SolverType *_solver)
-      { domain = d; bcx = _bcx; times = _times; solver = _solver; }
-*/
     SingleDomainPostProcessor(Domain *_domain, T *_bcx, 
                              StaticTimers *_times = NULL, SolverType *_solver = NULL,
                               GenSparseMatrix<T> *_kuc = NULL, GenSparseMatrix<T> *_kcc = NULL)
@@ -59,7 +46,7 @@ class SingleDomainPostProcessor {
                      { domain->getStressStrain(sol,bcx,fileNumber,stressIndex,time,printFlag); }
     void setsizeSfemStress(int fileNumber) { domain->setsizeSfemStress(fileNumber); }
     int getsizeSfemStress() { return domain->getsizeSfemStress(); }
-    T* getSfemStress(int fileNumber) { T* ds = 0; return domain->getSfemStress(fileNumber, ds); } // Actually it scould be T* ds, ok for the time being
+    T* getSfemStress(int fileNumber) { T* ds = 0; return domain->getSfemStress(fileNumber, ds); }
     void updateSfemStress(T* str, int fileNumber) { domain->updateSfemStress(str, fileNumber); }
 
     void setSolver(SolverType *s) { solver = s; }
@@ -84,7 +71,7 @@ class SingleDomainStatic
     Corotator **allCorot;
     GeomState *geomState;
 
-    FSFullMatrix  *X;    // pre-calculated projector
+    FSFullMatrix *X;     // pre-calculated projector
     double *Rmem;        // global rigid body modes (numdof X 6)
     int numR;            // number of rigid body modes
 

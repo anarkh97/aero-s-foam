@@ -23,7 +23,7 @@ extern Sfem *sfem;
 typedef FSFullMatrix FullMatrix;
 template <class Scalar> class GenVector;
 typedef GenVector<DComplex> ComplexVector;
-//#define DEBUG_RBM_FILTER
+
 template<class T, class VectorType, class SolverType>
 void
 SingleDomainStatic<T, VectorType, SolverType>::projector_prep(Rbm *rbms)
@@ -33,14 +33,16 @@ SingleDomainStatic<T, VectorType, SolverType>::projector_prep(Rbm *rbms)
 
  // KHP: store this pointer to the RBMs to use in the actual
  //      projection step 
- int useProjector=domain->solInfo().filterFlags;
+ int useProjector = domain->solInfo().filterFlags;
  if(useProjector) {
    filePrint(stderr," ... Building the RBM Projector     ...\n");
+   filePrint(stderr," ... Number of RBMs = %-4d          ...\n",numR);
  }
 
  int useHzemFilter = domain->solInfo().hzemFilterFlag;
  if(useHzemFilter) {
    filePrint(stderr," ... Building the HZEM Projector    ...\n");
+   filePrint(stderr," ... Number of HZEMs = %-4d         ...\n",numR);
  }
  int ndof = solVecInfo();
  Rmem = new double[numR*ndof];
@@ -52,6 +54,7 @@ SingleDomainStatic<T, VectorType, SolverType>::projector_prep(Rbm *rbms)
  int useSlzemFilter = domain->solInfo().slzemFilterFlag;
  if(useSlzemFilter) {
    filePrint(stderr," ... Building the SLZEM Projector    ...\n");
+   filePrint(stderr," ... Number of SLZEMs = %-4d         ...\n",numR);
  }
 
  if (useSlzemFilter) {
@@ -60,38 +63,15 @@ SingleDomainStatic<T, VectorType, SolverType>::projector_prep(Rbm *rbms)
 
  StackFSFullMatrix Rt(numR, ndof, Rmem);
 
-/*
- int i,j;
- for(i=0; i<numR; ++i) {
-   double sum = 0.0;
-   for(j=0; j<ndof; ++j)
-     sum +=  Rt[i][j]*Rt[i][j];
-   sum = sqrt(sum);
-   for(j=0; j<ndof; ++j)
-     Rt[i][j] *= (1.0/sum);
- }
-*/
  FullMatrix R = Rt.transpose();
-#ifdef DEBUG_RBM_FILTER
- R.print("R","R");
-#endif
 
  FullMatrix RtR(numR,numR);
  Rt.mult(R,RtR);
-#ifdef DEBUG_RBM_FILTER
- RtR.print("RtIR","RtIR");
-#endif
 
  FullMatrix RtRinverse = RtR.invert();
-#ifdef DEBUG_RBM_FILTER
- RtRinverse.print("RtRinverse");
-#endif
 
  X = new FullMatrix(ndof,numR);
  R.mult(RtRinverse,(*X));
-#ifdef DEBUG_RBM_FILTER
- X->print("RRtRinverse");
-#endif
 }
 
 inline void applyMult(FSFullMatrix &M, GenVector<double> &x, GenVector<double> &y)
@@ -122,10 +102,6 @@ SingleDomainStatic<T, VectorType, SolverType>::project(VectorType &f)
 
  // y = Rt*f
  y.zero(); applyMult(Rt,f,y);
-
-#ifdef DEBUG_RBM_FILTER
- y.print("Y");
-#endif
 
  // z = X*y
  z.zero(); applyMult(*X,y,z);
@@ -293,30 +269,30 @@ SingleDomainStatic<T, VectorType, SolverType>::preProcess()
  kcc = allOps.Kcc;
 
  Rbm *rigidBodyModes = 0;
- int useProjector=domain->solInfo().filterFlags;
+ int useProjector = domain->solInfo().filterFlags;
  if(useProjector) {
-   std::cout << " ... RBMfilter Requested            ..." << std::endl;
+   std::cout << " ... RBM Filter Requested           ..." << std::endl;
    rigidBodyModes = domain->constructRbm();
    projector_prep(rigidBodyModes);
  }
  
  int useHzemFilter = domain->solInfo().hzemFilterFlag;
  if(useHzemFilter) {
-   std::cout << " ... HZEMfilter Requested           ..." << std::endl;
+   std::cout << " ... HZEM Filter Requested          ..." << std::endl;
    rigidBodyModes = domain->constructHzem();
    projector_prep(rigidBodyModes);
  }
 
  int useSlzemFilter = domain->solInfo().slzemFilterFlag;
  if(useSlzemFilter) {
-   std::cout << " ... SLZEMfilter Requested           ..." << std::endl;
+   std::cout << " ... SLZEM Filter Requested         ..." << std::endl;
    rigidBodyModes = domain->constructSlzem();
    projector_prep(rigidBodyModes);
  }
 
  int useModeFilter = domain->solInfo().modeFilterFlag;
  if(useModeFilter) {
-   std::cout << " ... MODEfilter requested          ..." << std::endl;
+   std::cout << " ... MODE Filter requested          ..." << std::endl;
    eigmode_projector_prep();
  }
 

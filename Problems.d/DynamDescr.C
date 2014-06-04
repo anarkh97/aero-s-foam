@@ -225,7 +225,7 @@ SingleDomainDynamic::projector_prep(Rbm *rbms, SparseMatrix *M)
 
  filePrint(stderr," ... Building the RBM/HZEM Projector...\n");
 
- filePrint(stderr," ... Number of RBM/HZEM(s) = %3d    ...\n",numR);
+ filePrint(stderr," ... Number of RBM/HZEM(s) = %-4d   ...\n",numR);
 
  // KHP: store this pointer to the RBMs to use in the actual
  //      projection step within the time loop.
@@ -914,10 +914,8 @@ SingleDomainDynamic::buildOps(double coeM, double coeC, double coeK)
  else
    domain->buildOps(allOps, coeK, coeM, coeC, 0, kelArray, melArray);
 
- if(useRbmFilter == 1)
-   filePrint(stderr," ... RBM filter Level 1 Requested   ...\n");
- if(useRbmFilter == 2)
-   filePrint(stderr," ... RBM filter Level 2 Requested   ...\n");
+ if(useRbmFilter)
+   filePrint(stderr," ... RBM filter Level %d Requested   ...\n", useRbmFilter);
  if(useHzemFilter)
    filePrint(stderr," ... HZEM filter Requested          ...\n");
 

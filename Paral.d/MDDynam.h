@@ -15,11 +15,14 @@ template <class Scalar> class GenDecDomain;
 typedef GenDecDomain<double> DecDomain;
 template <class Scalar> class GenDistrVector;
 typedef GenDistrVector<double> DistrVector;
+template <class Scalar> class GenDistrVectorSet;
+typedef GenDistrVectorSet<double> DistrVectorSet;
 template <typename Scalar> class GenFullSquareMatrix;
 template <class Scalar> class GenSubDOp;
 typedef GenSubDOp<double> SubDOp;
 class Domain;
 class Rbm;
+template <class Scalar> class MultiDomainRbm;
 
 template <typename T> class SysState;
 template <typename T> class GenParallelSolver;
@@ -152,6 +155,9 @@ private:
     // reaction forces
     DistrVector *reactions;
 
+    // rbm projector
+    GenDistrVectorSet<double> *R, *X;
+
   public:
     MultiDomainDynam(Domain *d);
     virtual ~MultiDomainDynam();
@@ -238,6 +244,7 @@ private:
     int getAeroheatFlag();
    
   private:
+    void projector_prep(MultiDomainRbm<double> *R, GenSubDOp<double> *M);
     void subGetInternalForce(int isub, DistrVector &res, double &t, int &tIndex);
     void subGetKtimesU(int isub, DistrVector &d, DistrVector &f);
     void makeSubCorotators(int isub);

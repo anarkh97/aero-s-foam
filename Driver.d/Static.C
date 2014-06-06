@@ -78,7 +78,7 @@ Domain::initNodalTemperatures()
       temprcvd[i] = defaultTemp;
 
     for(i = 0; i < numDirichlet; ++i)
-      if((1 << dbc[i].dofnum) == DofSet::Temp) {
+      if((1 << dbc[i].dofnum) == DofSet::Temp && dbc[i].nnum < numnodes) {
         temprcvd[dbc[i].nnum] = dbc[i].val;
       }
   }

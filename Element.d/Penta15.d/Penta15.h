@@ -1,82 +1,59 @@
-// ---------------------------------------------------------------------
-// HB - 01-15-06
-// ---------------------------------------------------------------------
-// 15 nodes wedge element
-// Serendipity finite element basis
-// Iso-parametric formulation
-// ---------------------------------------------------------------------
 #ifndef _PENTA15_H_
 #define _PENTA15_H_
 
 #include <Element.d/Element.h>
-class Corotator;
-class NLMaterial;
 
-class Penta15: public Element {
+class Penta15: public Element
+{
+    int nn[15];
+    double *cCoefs;
+    double *cFrame;
+    NLMaterial *mat;
 
-	int nn[15];
-        double *C; 
+  public:
+    Penta15(int*);
 
-        Corotator* penta15Corotator; 
+    Element *clone();
 
-        double  *cCoefs;  
-        double  *cFrame; 
-        NLMaterial *mat;
+    void renum(int *);
+    void renum(EleRenumMap&);
 
-public:
-	Penta15(int*);
+    FullSquareMatrix stiffness(CoordSet&, double *kel, int flg=1);
+    FullSquareMatrix massMatrix(CoordSet&,double *mel, int cmflg=1);
+    double getMass(CoordSet& cs);
 
-        Element *clone();
+    void getGravityForce(CoordSet&, double *gravity, Vector&, int gravflg, GeomState *gs);
+    void getThermalForce(CoordSet &cs, Vector &ndTemps, Vector &force, int glflag, GeomState *gs=0);
 
-	void renum(int *);
-        void renum(EleRenumMap&);
+    void getVonMises(Vector &stress, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd,
+                     int surface=0, double *ndTemps=0, double ylayer=0.0, double zlayer=0.0, int avgnum=0);
 
-	FullSquareMatrix stiffness(CoordSet& cs, double *d, int flg=1);
-        FullSquareMatrix massMatrix(CoordSet& cs, double *mel, int cmflg=1);
-	double           getMass(CoordSet& cs);
+    void getAllStress(FullM &stress, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd,
+                      int surface=0, double *ndTemps=0);
 
-	void		 getGravityForce(CoordSet&,double *gravity, Vector&, int gravflg,
-	                                 GeomState *gs);
+    void markDofs(DofSetArray &);
+    int* dofs(DofSetArray &, int *p=0);
+    int numDofs();
 
-        void             getVonMises(Vector &stress, Vector &weight, 
-                                     CoordSet &cs, Vector &elDisp, 
-                                     int strInd, int surface=0,
-                                     double *ndTemps=0,
-				     double ylayer=0.0, double zlayer=0.0, int avgnum=0);
+    int numNodes();
+    int* nodes(int * = 0);
 
-        void             getAllStress(FullM &stress, Vector &weight,
-                                  CoordSet &cs, Vector &elDisp,
-                                  int strInd, int surface=0,
-                                  double *ndTemps=0);
+    int getTopNumber();
+    int numTopNodes();
 
+    PrioInfo examine(int sub, MultiFront *);
 
-	void             markDofs(DofSetArray &);
-        int*             dofs(DofSetArray &, int *p=0);
-        int              numDofs();
+    void setCompositeData(int _type, int nlays, double *lData, double *coefs, double *frame)
+      { cCoefs = coefs; cFrame = frame; }
 
-        int              numNodes();
-        int*             nodes(int * = 0);
-	int getTopNumber();
-        int numTopNodes();
-        Corotator *getCorotator(CoordSet &cs, double *kel, int , int );
+    double* setCompositeData2(int, int, double*, double*, CoordSet&, double)
+      { fprintf(stderr," *** WARNING: Attempting to define composite attributes\n"
+               "              for Penta15 el.\n"); return (double *) 0;
+      }
 
-       void getThermalForce(CoordSet &cs, Vector &ndTemps,
-                            Vector &elementThermalForce, int glflag, 
-			    GeomState *geomState);
-
-       PrioInfo examine(int sub, MultiFront *); // dec
-
-        void setCompositeData(int _type, int nlays, double *lData,
-                              double *coefs, double *frame) 
-          { cCoefs = coefs; cFrame = frame; } 
-
-        double* setCompositeData2(int, int, double*, double*, CoordSet&, double)
-        { fprintf(stderr," *** WARNING: Attempting to define composite attributes\n"
-                 "              for Penta15 el.\n"); return (double *) 0;
-        }
-
-        void setMaterial(NLMaterial *);
-        int numStates();
+    void setMaterial(NLMaterial *);
+    int numStates();
+    Corotator *getCorotator(CoordSet &cs, double *kel, int=2, int=2);
 };
-#endif
 
+#endif

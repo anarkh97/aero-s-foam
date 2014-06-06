@@ -1513,6 +1513,10 @@ TempDirichletBC:
         | TempDirichletBC Integer Float NewLine
         { $$ = $1; BCond bc; bc.nnum = $2-1; bc.dofnum = 6;
           bc.val = $3; bc.type = BCond::Temperatures; $$->add(bc); }
+        | TempDirichletBC Integer THRU Integer Float NewLine
+        { for(int i=$2; i<=$4; ++i) { BCond bc; bc.setData(i-1, 6, $5, BCond::Temperatures); $$->add(bc); } }
+        | TempDirichletBC Integer THRU Integer STEP Integer Float NewLine
+        { for(int i=$2; i<=$4; i+=$6) { BCond bc; bc.setData(i-1, 6, $7, BCond::Temperatures); $$->add(bc); } }
         | TempDirichletBC SURF Integer Float NewLine
         { BCond *surf_bc = new BCond[1];
           surf_bc[0].nnum = $3-1;

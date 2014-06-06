@@ -451,7 +451,7 @@ ConstrainedDSA::ConstrainedDSA(DofSetArray &dsa, int nbc, BCond *bcd)
 
 //new constructor for the updating taking in account both bound cond :Dirichlet and measured dof
 
-ConstrainedDSA::ConstrainedDSA(DofSetArray &dsa,DofSetArray &c_dsa, int nbc, BCond *bcd, int info)
+ConstrainedDSA::ConstrainedDSA(DofSetArray &dsa, DofSetArray &c_dsa, int nbc, BCond *bcd, int info)
 {
   int i, inode;
   numnodes = dsa.numnodes;
@@ -745,13 +745,13 @@ ConstrainedDSA::ConstrainedDSA(DofSetArray &dsa, BCond *bcond, int nbc,
   for(i = 0; i < nbc; ++i)
   {
     int flag = (1 << bcond[i].dofnum);
-    dofs[bcond[i].nnum].unmark(flag);
+    if(bcond[i].nnum < numnodes) dofs[bcond[i].nnum].unmark(flag);
   }
 
   for(i = 0; i < ncbc; ++i)
   {
     int flag = (1 << cbcond[i].dofnum);
-    dofs[cbcond[i].nnum].unmark(flag);
+    if(cbcond[i].nnum < numnodes) dofs[cbcond[i].nnum].unmark(flag);
   }
 
   for(inode = 0; inode < numnodes; ++inode)

@@ -408,15 +408,14 @@ class Element {
         virtual void   getGravityForceSensitivityWRTthickness(CoordSet&,double *gravity, int senMethod, Vector &force,
                                                               int gravflg, GeomState *gs=0);
 
-        virtual void   getThermalForce(CoordSet& cs,Vector &ndT,Vector &force,
+        virtual void   getThermalForce(CoordSet& cs, Vector &ndT, Vector &force,
                                        int glflag, GeomState *gs=0);
-        virtual void   getThermalForceAdj(CoordSet& cs,Vector &ndT,Vector &force,
+        virtual void   getThermalForceAdj(CoordSet& cs, Vector &ndT, Vector &force,
                                           int glflag);
 
         virtual void   getIntrnForce(Vector &elForce, CoordSet& cs,
                                      double *elDisp, int Index, double *ndTemps);
 
-        // this can't be templated, c++ doesn't allow virtual member functions to be templated
         virtual void   getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
                                    Vector &elDisp, int strInd, int surface=0,
                                    double *ndTemps=0, double ylayer=0.0, double zlayer=0.0, int avgnum = 1);

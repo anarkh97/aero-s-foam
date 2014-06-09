@@ -12,6 +12,7 @@
 #include <cstddef>
 #include <complex>
 #include <set>
+#include <map>
 
 class Corotator;
 class State;

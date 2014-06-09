@@ -388,16 +388,16 @@ BrickCorotator::getInternalForce(GeomState &geomState, CoordSet &cs,
 
 double
 BrickCorotator::computeStrainGrad(GeomState &geomState, CoordSet &cs, 
-                double dedU[24][6], int pt1, int pt2, int pt3)  {
-
+                                  double dedU[24][6], int pt1, int pt2, int pt3)
+{
   int i, j;
-  double dOmega;  //det of jacobian
+  double dOmega;
   int numLinGaussPts = 2;
   double nGrad[8][3];
 
   // reformat cs to accomodate fortran routine
   double xNodes[8], yNodes[8], zNodes[8];
-  for (i = 0; i < 8; i++)  {
+  for (i = 0; i < 8; i++) {
     xNodes[i] = cs[nodeNum[i]]->x;
     yNodes[i] = cs[nodeNum[i]]->y;
     zNodes[i] = cs[nodeNum[i]]->z;
@@ -406,7 +406,7 @@ BrickCorotator::computeStrainGrad(GeomState &geomState, CoordSet &cs,
   // get gauss point
   double xi, eta, mu, wt;
   _FORTRAN(hxgaus)(numLinGaussPts, pt1, numLinGaussPts, pt2,
-                         numLinGaussPts, pt3, xi,  eta, mu, wt);
+                   numLinGaussPts, pt3, xi, eta, mu, wt);
 
   //compute shape functions
   double shapeFunc[8], shapeGradX[8], shapeGradY[8], shapeGradZ[8];
@@ -414,7 +414,7 @@ BrickCorotator::computeStrainGrad(GeomState &geomState, CoordSet &cs,
   _FORTRAN(h8shpe)(xi, eta, mu, xNodes, yNodes, zNodes, 
                    shapeFunc, shapeGradX, shapeGradY, shapeGradZ, dOmega);
 
-   for (i = 0; i < 8; ++i)  {
+   for (i = 0; i < 8; ++i) {
      nGrad[i][0] = shapeGradX[i];
      nGrad[i][1] = shapeGradY[i];
      nGrad[i][2] = shapeGradZ[i];

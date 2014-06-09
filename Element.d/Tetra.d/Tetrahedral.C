@@ -439,8 +439,8 @@ Tetrahedral::getThermalForce(CoordSet &cs, Vector &ndTemps,
     _FORTRAN(brkcmt)(prop->E, prop->nu, (double*)C);
  
   if(geomState && tetCorotator) { // GEOMETRIC NONLINEAR ANALYSIS WITH DEFAULT MATERIAL
-    // F = E*alpha/(1-2*nu) : de/dq_i  SUM(xi_j)*dT_j  * 0.25*Vol
-    double coef = 0.5*alpha*prop->E*(1.-2.*prop->nu);
+    // F = E*alpha/(1-2*nu) : de/dq_i  SUM(xi_j)*dT_j * 0.25*Vol
+    double coef = alpha*prop->E/(1.-2.*prop->nu);
     double nGrad[4][3];
     double dedU[12][6];
     double dOmega = tetCorotator->computeShapeGrad(cs, nGrad)/24.0;
@@ -486,7 +486,7 @@ Tetrahedral::getThermalForce(CoordSet &cs, Vector &ndTemps,
     }
   }
   else {
-    fprintf(stderr," *** ERROR: Tetrahedral::getThermalForce not implemented. Abort.\n");
+    fprintf(stderr," *** ERROR: Tetrahedral::getThermalForce not supported for material nonlinear analysis. Abort.\n");
     exit(-1);
   }
 }

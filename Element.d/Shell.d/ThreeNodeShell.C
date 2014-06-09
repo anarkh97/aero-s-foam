@@ -1046,7 +1046,7 @@ ThreeNodeShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
 
 }
 
-/*/ dec
+/* dec
 int
 ThreeNodeShell::facelist(PolygonSet &pgs, int *flist)
 {
@@ -1058,56 +1058,41 @@ ThreeNodeShell::facelist(PolygonSet &pgs, int *flist)
  return 3 ;
 }
 
-
-
 // end dec */
-
 
 //------------------------------------------------------------------------
 
 void
 ThreeNodeShell::getThermalForce(CoordSet& cs, Vector& ndTemps,
-				Vector &elThermalForce,int glflag, 
-				GeomState *geomState)
+				Vector &elThermalForce, int glflag, 
+				GeomState *)
 {
-   int i;
-   
+   if(prop == NULL) {
+     elThermalForce.zero();
+     return;
+   }
+
    double Tref = prop->Ta;
    
    double x[3], y[3], z[3];
    
-   //get nodal temperatures and relate to reference temperature
-   double meant = 0.0 ; //determine the average nodal temperature
-   for (i=0;i<3;i++)
-      meant += ndTemps[i]/3;
-      meant -= Tref;
+   // get nodal temperatures and relate to reference temperature
+   double meant = 0.0; // determine the average nodal temperature
+   for(int i=0; i<3; i++)
+     meant += ndTemps[i]/3;
 
-     if (geomState) {
+   meant -= Tref;
 
-       // Get Nodes current coordinates
-       NodeState &ns1 = (*geomState)[nn[0]];
-       NodeState &ns2 = (*geomState)[nn[1]];
-       NodeState &ns3 = (*geomState)[nn[2]];   
-       
-       x[0] = ns1.x; y[0] = ns1.y; z[0] = ns1.z;
-       x[1] = ns2.x; y[1] = ns2.y; z[1] = ns2.z;
-       x[2] = ns3.x; y[2] = ns3.y; z[2] = ns3.z;
-       
-     } else {
-             
-       // Compute Node's coordinates
-       Node &nd1 = cs.getNode(nn[0]);
-       Node &nd2 = cs.getNode(nn[1]);
-       Node &nd3 = cs.getNode(nn[2]);
+   // Compute Node's coordinates
+   Node &nd1 = cs.getNode(nn[0]);
+   Node &nd2 = cs.getNode(nn[1]);
+   Node &nd3 = cs.getNode(nn[2]);
       
-       x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
-       x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
-       x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;      
-    
-     }
-  
+   x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+   x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+   x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;      
    
-      double alpha = 1.5;
+   double alpha = 1.5;
      
    //Call FORTRAN routine to determine elemental thermal force vector from
    //membrane effects -- returned in global coordinates if glflag = 0

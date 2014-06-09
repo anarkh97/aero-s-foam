@@ -472,82 +472,78 @@ EulerBeam::computePressureForce(CoordSet& cs, Vector& elPressureForce,
 }
 
 void
-EulerBeam::getThermalForce(CoordSet &cs, Vector &ndTemps,
-                           Vector &elementThermalForce, int glflag, GeomState *geomState)
+EulerBeam::getThermalForce(CoordSet &cs, Vector &ndTemps, Vector &elementThermalForce,
+                           int glflag, GeomState *geomState)
 {
-// Called from Dynam.C
-// Computes the thermal-mechanical coupling force C*theta
-// A = cross section, W= dilatation coeff
+  // Computes the thermal-mechanical coupling force C*theta
+  // A = cross section, W = dilatation coeff
+  if (prop == NULL) {
+    elementThermalForce.zero();
+    return;
+  }
 
-    double localThF[12];
-    int i, j;
+  double localThF[12];
+  int i, j;
 
-    double Tref  = prop->Ta;
-    double coeff = prop->E*prop->W*prop->A;
-    double length;
+  double Tref  = prop->Ta;
+  double coeff = prop->E*prop->W*prop->A;
+  double length;
 
-    // Local Thermal Forces : There are only axial forces (see notes)
-    // indices 0-5 --> node1, 6-11 -->node2
+  // Local Thermal Forces : There are only axial forces (see notes)
+  // indices 0-5 --> node1, 6-11 -->node2
 
-    double deltaT1 = ndTemps[0]-Tref;
-    double deltaT2 = ndTemps[1]-Tref;
+  double deltaT1 = ndTemps[0]-Tref;
+  double deltaT2 = ndTemps[1]-Tref;
 
-    //fprintf(stderr," deltaT1 = %f\n", deltaT1);
-    //fprintf(stderr," deltaT2 = %f\n", deltaT2);
+  for(i=0; i<12; i++) localThF[i] = 0.;
 
-    for(i=0; i<12; i++) {localThF[i] = 0. ;}
+  localThF[0] = -coeff * (0.5 * deltaT1 + 0.5 * deltaT2);
+  localThF[6] =  coeff * (0.5 * deltaT1 + 0.5 * deltaT2);
 
-    localThF[0] = -coeff * (0.5 * deltaT1 + 0.5 * deltaT2);
-    localThF[6] =  coeff * (0.5 * deltaT1 + 0.5 * deltaT2);
+  // Compute Global Thermal Forces: From local to global -->
+  //                                transpose(Transform. Matrix)
 
-    // Compute Global Thermal Forces:: From local to global -->
-    //                                transpose(Transform. Matrix)
+  double t0n[3][3] = {{0., 0., 0.}, {0., 0., 0.}, {0., 0., 0.}};
 
-   double t0n[3][3] = {{0., 0., 0.}, {0., 0., 0.}, {0., 0., 0.}};
-
-   if (geomState) {
-//   fprintf(stderr," *** UPDATING EFRAMES for Non-Linear [T forces]\n");
+  if(geomState) {
     updTransMatrix(cs, geomState, t0n, length);
-   }  else  {
-//    fprintf(stderr," *** USING initial FRAME\n");
+  }
+  else {
     for(i=0; i<3; ++i) {   
-     for(j=0; j<3; ++j) {
-      t0n[i][j] = (*elemframe)[i][j] ;
-     }
+      for(j=0; j<3; ++j) {
+        t0n[i][j] = (*elemframe)[i][j] ;
+      }
     }
-   }
+  }
 
-//Node 1:
-    for(i=0; i<3; ++i) {
-     elementThermalForce[i] = 0.;
-     for(j=0; j<3; ++j) {
+  //Node 1:
+  for(i=0; i<3; ++i) {
+    elementThermalForce[i] = 0.;
+    for(j=0; j<3; ++j) {
       elementThermalForce[i] += t0n[j][i]*localThF[j];
-//       fprintf(stderr,"Thermal Frame = %f\n", t0n[j][i]);
-     }
     }
-    for(i=0; i<3; ++i) {
-     elementThermalForce[i+3] = 0.;
-     for(j=0; j<3; ++j) {
+  }
+  for(i=0; i<3; ++i) {
+    elementThermalForce[i+3] = 0.;
+    for(j=0; j<3; ++j) {
       elementThermalForce[i+3] += t0n[j][i]*localThF[j+3];
-     }
     }
-//Node 2:
-    for(i=0; i<3; ++i) {
-     elementThermalForce[i+6] = 0.;
-     for(j=0; j<3; ++j) {
-      elementThermalForce[i+6] += t0n[j][i]*localThF[j+6];
-     }
-    }
- 
-    for(i=0; i<3; ++i) {
-     elementThermalForce[i+9] = 0.;
-     for(j=0; j<3; ++j) {
-      elementThermalForce[i+9] += t0n[j][i]*localThF[j+9];
-     }
-    }                                
+  }
 
-//     ndTemps.print();
-//     elementThermalForce.print("Element Thermal Force");
+  //Node 2:
+  for(i=0; i<3; ++i) {
+    elementThermalForce[i+6] = 0.;
+    for(j=0; j<3; ++j) {
+      elementThermalForce[i+6] += t0n[j][i]*localThF[j+6];
+    }
+  }
+ 
+  for(i=0; i<3; ++i) {
+    elementThermalForce[i+9] = 0.;
+    for(j=0; j<3; ++j) {
+      elementThermalForce[i+9] += t0n[j][i]*localThF[j+9];
+    }
+  }                                
 }
 
 void

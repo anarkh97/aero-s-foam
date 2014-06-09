@@ -394,7 +394,7 @@ EightNodeBrick::getThermalForce(CoordSet &cs, Vector &ndTemps,
   double Shape[8], DShape[8][3], m[3];
   double wx,wy,wz,w,J; 
   if(geomState && brickCorotator) { // GEOMETRIC NONLINEAR ANALYSIS WITH DEFAULT MATERIAL
-    double coef = prop->E*(1.-2.*prop->nu);
+    double coef = prop->E/(1.-2.*prop->nu);
     double dedU[24][6];
     for(int i=1; i<=numgauss; i++) {
       _FORTRAN(lgauss)(numgauss,i,&m[0],&wx);
@@ -407,7 +407,7 @@ EightNodeBrick::getThermalForce(CoordSet &cs, Vector &ndTemps,
           w = fabs(J)*wx*wy*wz;
           double theta = 0.0;
           for(int inode=0; inode<nnodes; inode++) theta += Shape[inode]*(ndTemps[inode] - Tref);
-          theta *= coef*J*w;
+          theta *= coef*alpha*w;
 
           for(int l=0; l<ndofs; l++)
             elementThermalForce[l] += theta*(dedU[l][0]+dedU[l][1]+dedU[l][2]);
@@ -441,7 +441,7 @@ EightNodeBrick::getThermalForce(CoordSet &cs, Vector &ndTemps,
     }
   }
   else {
-    fprintf(stderr," *** ERROR: EightNodeBrick::getThermalForce not implemented. Abort.\n");
+    fprintf(stderr," *** ERROR: EightNodeBrick::getThermalForce not supported for material nonlinear analysis. Abort.\n");
     exit(-1);
   }
 }

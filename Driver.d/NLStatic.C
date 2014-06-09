@@ -255,7 +255,7 @@ Domain::getElemFollowerForce(int iele, GeomState &geomState, double *_f, int buf
 
     // Compute element thermal force in the local coordinates
     elementForce.zero();
-    packedEset[iele]->getThermalForce(nodes, elementTemp, elementForce, 1);
+    packedEset[iele]->getThermalForce(nodes, elementTemp, elementForce, 1, &geomState);
 
     if(corotator) {
       // Include the "load stiffness matrix" in kel

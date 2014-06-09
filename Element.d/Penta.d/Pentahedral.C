@@ -349,7 +349,7 @@ Pentahedral::getThermalForce(CoordSet &cs, Vector &ndTemps,
   // get material props & constitutive matrix
   double &Tref  = prop->Ta;
   double &alpha = prop->W;
-  double coef   = prop->E*(1.-2.*prop->nu);
+  double coef   = prop->E/(1.-2.*prop->nu);
   double C[6][6];
   if(cCoefs) { // anisotropic material
     // transform local constitutive matrix to global frame
@@ -424,7 +424,7 @@ Pentahedral::getThermalForce(CoordSet &cs, Vector &ndTemps,
     }
   }
   else {
-    fprintf(stderr," *** ERROR: Pentahedral::getThermalForce not implemented. Abort.\n");
+    fprintf(stderr," *** ERROR: Pentahedral::getThermalForce not supported for material nonlinear analysis. Abort.\n");
     exit(-1);
   }
 }

@@ -385,7 +385,7 @@ Brick32::getThermalForce(CoordSet &cs, Vector &ndTemps,
   // element frame
 
   if(geomState) { // NONLINEAR ANALYSIS
-    fprintf(stderr," *** ERROR: Brick32::getThermalForce is not implemented. Abort.\n");
+    fprintf(stderr," *** ERROR: Brick32::getThermalForce not supported for nonlinear analysis. Abort.\n");
     exit(-1);
   }
   else { // LINEAR ANALYSIS

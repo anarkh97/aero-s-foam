@@ -533,7 +533,7 @@ TetCorotator::extractDeformations(GeomState &geomState, CoordSet &cs,
 
 void
 TetCorotator::extractRigidBodyMotion(GeomState &geomState, CoordSet &cs,
-               double *vlr)
+                                     double *vlr)
 {
 }
 

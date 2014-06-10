@@ -54,12 +54,6 @@ class BarFCorotator : public Corotator {
      void extractRigidBodyMotion(GeomState &geomState, CoordSet &cs,
                                  double *vlr);
 
-     void getNLVonMises(Vector&, Vector& weight,
-                        GeomState &, CoordSet &, int);
-
-     void getNLAllStress(FullM&, Vector&,
-                         GeomState &, CoordSet &, int);
-
      double getElementEnergy(GeomState &gs, CoordSet &cs);
 
      double getDamage() { return damage; }

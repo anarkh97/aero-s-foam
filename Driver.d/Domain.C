@@ -136,7 +136,7 @@ Domain::makeAllDOFs() // build the dof connectivity
  // compute maximum number of nodes per element
  for(iele=0; iele < numele; ++iele) {
    int numNodesPerElement = packedEset[iele]->numNodes();
-   maxNumNodes = myMax(maxNumNodes, numNodesPerElement);
+   maxNumNodes = std::max(maxNumNodes, numNodesPerElement);
  }
 }
 
@@ -166,7 +166,7 @@ Domain::makeAllDOFsFluid()
  // compute maximum number of nodes per element
  for(iele=0; iele < numele; ++iele) {
    int numNodesPerElement = (*(geoSource->getPackedEsetFluid()))[iele]->numNodes();
-   maxNumNodesFluid = myMax(maxNumNodesFluid, numNodesPerElement);
+   maxNumNodesFluid = std::max(maxNumNodesFluid, numNodesPerElement);
  }
 }
 
@@ -1867,7 +1867,7 @@ Domain::getCompositeData(int iInfo,double time) {
       int maxLayer=0;
       for(iele=0; iele<numele; ++iele) {
         MidPoint[iele] = packedEset[iele]->getMidPoint(nodes);
-        maxLayer = myMax(maxLayer,packedEset[iele]->getCompositeLayer());
+        maxLayer = std::max(maxLayer,packedEset[iele]->getCompositeLayer());
       }
 
       CPoint = new double**[maxLayer];
@@ -1920,8 +1920,8 @@ Domain::getCompositeData(int iInfo,double time) {
        double E2  = layData[1];
        double Phi = layData[8];
 
-       double length1 = crossScale * E1 / myMax(E1,E2) / 2.0;
-       double length2 = crossScale * E2 / myMax(E1,E2) / 2.0;
+       double length1 = crossScale * E1 / std::max(E1,E2) / 2.0;
+       double length2 = crossScale * E2 / std::max(E1,E2) / 2.0;
 
        // .... Adjust Phi
 
@@ -2030,8 +2030,8 @@ Domain::getCompositeData(int iInfo,double time) {
        double E2  = layData[1];
        double Phi = layData[8];
 
-       double length1 = crossScale * E1 / myMax(E1,E2) / 2.0;
-       double length2 = crossScale * E2 / myMax(E1,E2) / 2.0;
+       double length1 = crossScale * E1 / std::max(E1,E2) / 2.0;
+       double length2 = crossScale * E2 / std::max(E1,E2) / 2.0;
 
        // .... Adjust Phi
 
@@ -2218,7 +2218,7 @@ void Domain::computeTDProps()
     int iele;
     for(iele=0; iele < numele; ++iele) {
       int numNodesPerElement = packedEset[iele]->numNodes();
-      maxNumNodes = myMax(maxNumNodes, numNodesPerElement);
+      maxNumNodes = std::max(maxNumNodes, numNodesPerElement);
     }
 
     int i;
@@ -2261,7 +2261,6 @@ void Domain::computeTDProps()
             avTemp += elemNodeTemps[iNode];
           }
           avTemp /= NodesPerElement;
-          // if(avTemp > 0) std::cerr << "element = " << iele << ", avTemp = " << avTemp << std::endl;
 
           StructProp *newProp = new StructProp(*packedEset[iele]->getProperty());
           // compute E using interp table
@@ -2280,7 +2279,6 @@ void Domain::computeTDProps()
       }
     }
     delete [] nodeNumbers;
-    //delete [] nodalTemperatures;
   }
 }
 

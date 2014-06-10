@@ -387,28 +387,9 @@ SpringCorotator::formInternalForce(double t[3][3], double p, double *f)
 
 void
 SpringCorotator::extractRigidBodyMotion(GeomState &geomState,CoordSet &cs,
-               double *vlr)
+                                        double *vlr)
 {
 }
-
-void
-SpringCorotator::getNLVonMises(Vector& stress,Vector& weight,
-                               GeomState &geomState, CoordSet &cs,
-                               int strInd)
-{
- stress.zero();
- weight.zero();
-}
-
-void
-SpringCorotator::getNLAllStress(FullM& stress,Vector& weight,
-                                GeomState &geomState, CoordSet &cs,
-                                int strInd)
-{
- stress.zero();
- weight.zero();
-}
-
 
 double
 SpringCorotator::getElementEnergy(GeomState &geomState, CoordSet &cs)

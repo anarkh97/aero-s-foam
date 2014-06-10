@@ -83,6 +83,16 @@ class Corotator {
                                int avgnum = 0, int measure = -1)
       { getNLVonMises(stress, weight, curState, c0, strIndex); }
 
+    virtual void getNLAllStress(FullM &stress, Vector &weight, GeomState &curState,
+                                GeomState *refState, CoordSet &c0, int strInd, int surface=0,
+                                double *ndTemps = 0, int measure = -1)
+      { getNLAllStress(stress, weight, curState, c0, strInd); }
+
+    virtual void getNLAllStress(FullMC &stress, Vector &weight, GeomState &curState,
+                                GeomState *refState, CoordSet &c0, int strInd, int surface=0,
+                                double *ndTemps = 0, int measure = -1)
+      { getNLAllStress(stress, weight, curState, c0, strInd); }
+
     virtual void updateStates(GeomState *refState, GeomState &curState, CoordSet &C0) {}
 
     virtual void getResidualCorrection(GeomState &gs, double *r) {}

@@ -37,6 +37,10 @@ class MatNLCorotator : public Corotator {
                         double *ndTemps = 0, double ylayer = 0,
                         double zlayer = 0, int avgnum = 0, int measure = -1);
 
+     void getNLAllStress(FullM &stress, Vector &weight, GeomState &curState, 
+                         GeomState *refState, CoordSet &c0, int strInd, int surface=0,
+                         double *ndTemps = 0, int measure = -1);
+
      void updateStates(GeomState *refState, GeomState &curState, CoordSet &C0);
 
      double getElementEnergy(GeomState &, CoordSet &);

@@ -38,12 +38,6 @@ class SpringCorotator : public Corotator {
      void extractRigidBodyMotion(GeomState &geomState, CoordSet &cs,
                                  double *vlr);
 
-     void getNLVonMises(Vector&, Vector& weight,
-                        GeomState &, CoordSet &, int);
-
-     void getNLAllStress(FullM&, Vector&,
-                         GeomState &, CoordSet &, int);
-
      void formTransformationTensor(double x0[2][3], double t[3][3]);
 
      void formInternalForce(double t[3][3], double p, double *f);

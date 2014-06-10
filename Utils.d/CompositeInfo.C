@@ -63,16 +63,16 @@ LayInfo::add(int ln, double *v, int m)
    double (*newData)[12] = new double[newMaxLayer][12];
    for(i=0; i < numLayers; ++i) 
      for(j=0; j < 12; ++j)
-        newData[i][j] = data[i][j];
-  delete [] data;
-  data     = newData;
-  maxLayer = newMaxLayer;
+       newData[i][j] = data[i][j];
+   delete [] data;
+   data     = newData;
+   maxLayer = newMaxLayer;
  }
  if(ln >= numLayers) numLayers = ln+1;
  for(i=0; i < 12; ++i)
    data[ln][i] = v[i];
 
- matids[ln] = m;  // PJSA
+ matids[ln] = m;
 }
 
 //------------------------------------------------------------
@@ -131,5 +131,4 @@ LayInfo::getLayerMaterialId(int k)
 {
   return matids[k];
 }
-
 

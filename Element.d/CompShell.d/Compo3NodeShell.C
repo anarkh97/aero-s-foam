@@ -130,9 +130,9 @@ Compo3NodeShell::getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
   double* thermalStrain1  =  (double*) alloca(sizeof(double)*numLayers);
   double* thermalStrain2  =  (double*) alloca(sizeof(double)*numLayers); 
 
-  if(ndTemps) {
-    int numLayCoeff = 12;
-    if (type != 0){
+  if(ndTemps && type != 1) {
+    if (type == 2 || type == 3) {
+      int numLayCoeff = 12;
       for (i=0; i<numLayers; ++i) {
         double dt = (ndTemps[0]+ndTemps[1]+ndTemps[2])/3 - layData[numLayCoeff*i + 11]; 
         thermalStrain1[i] = layData[numLayCoeff*i + 9]*dt;
@@ -205,9 +205,9 @@ Compo3NodeShell::getAllStress(FullM &stress, Vector &weight, CoordSet &cs,
   double* thermalStrain1  =  (double*) alloca(sizeof(double)*numLayers);
   double* thermalStrain2  =  (double*) alloca(sizeof(double)*numLayers);
 
-  if(ndTemps) {
-    int numLayCoeff = 12;
-    if (type != 0){
+  if(ndTemps && type != 1) {
+    if (type == 2 || type == 3) {
+      int numLayCoeff = 12;
       for (i=0; i<numLayers; ++i) {
         double dt = (ndTemps[0]+ndTemps[1]+ndTemps[2])/3 - layData[numLayCoeff*i + 11];
         thermalStrain1[i] = layData[numLayCoeff*i + 9]*dt;
@@ -311,9 +311,6 @@ Compo3NodeShell::getGravityForce(CoordSet& cs, double *gravityAcceleration,
   }
   // Consistent or lumped with fixed end moments.  Compute treating shell as 3 beams.
   else {
-    //Node &nd1 = cs.getNode(nn[0]);
-    //Node &nd2 = cs.getNode(nn[1]);
-    //Node &nd3 = cs.getNode(nn[2]);
 
     double T1[3],T2[3],T3[3];
     // Vector 1 from Node 1->2
@@ -1008,59 +1005,66 @@ Compo3NodeShell::getThermalForce(CoordSet& cs, Vector& ndTemps,
 				Vector &elThermalForce, int glflag, 
 				GeomState *)
 {  
-   //check to see that the coefficent of thermal expansions will exist 
-   if(prop == NULL || type == 1) {
-     elThermalForce.zero();
-     return;
-   }
+  //check to see that the coefficent of thermal expansions will exist 
+  if(prop == NULL || type == 1) {
+    if(type == 1 && quietFlag == 0) {
+      fprintf(stderr," *** WARNING: Thermal forces are not computed for composite shell element if" 
+                     "              the constitutive matrix is inputted using the COEF sub-command.\n"
+                     "              Use command-line option -q to suppress this warning.\n");
+    }
+    elThermalForce.zero();
+    return;
+  }
 
-   int numlay = 1;
-   if(type != 0) numlay = numLayers;
+  int numlay = 1;
+  if(type != 0) numlay = numLayers;
    
-   int i,j;
-   double x[3],y[3],z[3];
+  int i,j;
+  double x[3],y[3],z[3];
 
-   //get nodal temperatures and relate to reference temperature
+  //get nodal temperatures and relate to reference temperature
    
-   double meant = 0.0 ; //determine the average nodal temperature
+  double meant = 0.0; //determine the average nodal temperature
    
-   for(i=0; i<3; i++) meant += ndTemps[i]/3;
+  for(i=0; i<3; i++) meant += ndTemps[i]/3;
 
-   double* thk   = (double*) alloca(sizeof(double)*numlay);
-   double* emk1  = (double*) alloca(sizeof(double)*numlay);
-   double* emk2  = (double*) alloca(sizeof(double)*numlay);
-   double* nuk   = (double*) alloca(sizeof(double)*numlay);
-   double* ctek1 = (double*) alloca(sizeof(double)*numlay);
-   double* ctek2 = (double*) alloca(sizeof(double)*numlay);
-   double* phik  = (double*) alloca(sizeof(double)*numlay);
-   double* tak   = (double*) alloca(sizeof(double)*numlay);
+  double* thk   = (double*) alloca(sizeof(double)*numlay);
+  double* emk1  = (double*) alloca(sizeof(double)*numlay);
+  double* emk2  = (double*) alloca(sizeof(double)*numlay);
+  double* nuk   = (double*) alloca(sizeof(double)*numlay);
+  double* ctek1 = (double*) alloca(sizeof(double)*numlay);
+  double* ctek2 = (double*) alloca(sizeof(double)*numlay);
+  double* phik  = (double*) alloca(sizeof(double)*numlay);
+  double* tak   = (double*) alloca(sizeof(double)*numlay);
 
-   //create a vector which contains the thicknesses, Young's modulus, 
-   //Poisson's ratio and the coefficent of thermal expansion of each layer 
-   //the sign convention here for zvector is opposite that of the reference 
-   int numLayCoeff = 12;
-   if (type != 0) {
-     for(i=0; i<numLayers; ++i) {
-       emk1[i]  = layData[numLayCoeff*i    ];
-       emk2[i]  = layData[numLayCoeff*i + 1];
-       nuk[i]   = layData[numLayCoeff*i + 2];
-       thk[i]   = layData[numLayCoeff*i + 7];
-       ctek1[i] = layData[numLayCoeff*i + 9];
-       ctek2[i] = layData[numLayCoeff*i +10];
-       phik[i]  = layData[numLayCoeff*i + 8];
-       tak[i]   = layData[numLayCoeff*i +11];
-     }
-   }  
-   else {
-     //isotropic material
-     thk[0] = prop->eh;
-     emk1[0] = prop->E;
-     emk2[0] = prop->E;
-     nuk[0] = prop->nu;
-     ctek1[0] = prop->W;
-     ctek2[0] = prop->W;
-     phik[0] = 0.0;
-     tak[0] = prop->Ta;
+  //create a vector which contains the thicknesses, Young's modulus, 
+  //Poisson's ratio and the coefficent of thermal expansion of each layer 
+  //the sign convention here for zvector is opposite that of the reference 
+  //Note: the reference temperature is the same for each layer.
+  int numLayCoeff = 12;
+  if (type != 0) {
+    for(i=0; i<numLayers; ++i) {
+      emk1[i]  = layData[numLayCoeff*i    ];
+      emk2[i]  = layData[numLayCoeff*i + 1];
+      nuk[i]   = layData[numLayCoeff*i + 2];
+      thk[i]   = layData[numLayCoeff*i + 7];
+      ctek1[i] = layData[numLayCoeff*i + 9];
+      ctek2[i] = layData[numLayCoeff*i +10];
+      phik[i]  = layData[numLayCoeff*i + 8];
+      //tak[i] = layData[numLayCoeff*i +11];
+      tak[i]   = prop->Ta;
+    }
+  }  
+  else {
+    //isotropic material
+    thk[0] = prop->eh;
+    emk1[0] = prop->E;
+    emk2[0] = prop->E;
+    nuk[0] = prop->nu;
+    ctek1[0] = prop->W;
+    ctek2[0] = prop->W;
+    phik[0] = 0.0;
+    tak[0] = prop->Ta;
   }
  
   // Compute Node's coordinates

@@ -18,7 +18,7 @@ class SuperCorotator : public Corotator
   virtual ~SuperCorotator();
   
   void setSubCorotator(int i, Corotator *subCorotator)
-     {  subElemCorotators[i] = subCorotator; }
+     { subElemCorotators[i] = subCorotator; }
   double* getPreviouslyExtractedSubDeformations(int i) { return (sub_vld) ? sub_vld[i] : 0; }
   double* getPreviouslyExtractedSubRigidBodyMotion(int i) { return (sub_vlr) ? sub_vlr[i] : 0; }
 

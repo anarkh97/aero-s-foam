@@ -2238,13 +2238,11 @@ GenSubDomain<Scalar>::computeElementForce(int fileNumber, Scalar *u, int forceIn
     }
 
     if(packedEset[iele]->getProperty()) {
-      if(domain->solInfo().thermalLoadFlag || (domain->solInfo().thermoeFlag >= 0)) {
-        for(int iNode=0; iNode<NodesPerElement; ++iNode) {
-          if(nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
-            elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
-          else
-            elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
-        }
+      for(int iNode=0; iNode<NodesPerElement; ++iNode) {
+        if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
+          elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
+        else
+          elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
       }
     }
 
@@ -2345,13 +2343,11 @@ GenSubDomain<Scalar>::computeStressStrain(int fileNumber,
 
       int iNode;
       if(packedEset[iele]->getProperty()) {
-        if(domain->solInfo().thermalLoadFlag || (domain->solInfo().thermoeFlag >= 0)) {
-          for(iNode=0; iNode<NodesPerElement; ++iNode) {
-            if(nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
-              elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
-            else
-              elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
-          }
+        for(iNode=0; iNode<NodesPerElement; ++iNode) {
+          if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
+            elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
+          else
+            elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
         }
 
         // transform displacements from DOF_FRM to basic coordinates
@@ -2362,7 +2358,7 @@ GenSubDomain<Scalar>::computeStressStrain(int fileNumber,
 
           // FIRST, CALCULATE STRESS/STRAIN TENSOR FOR EACH NODE OF THE ELEMENT
           p_elstress->zero();
-          int strInd = (stressIndex >=0 && stressIndex <=5) ? 0 : 1;
+          int strInd = (stressIndex >= 0 && stressIndex <= 5) ? 0 : 1;
           packedEset[iele]->getAllStress(*p_elstress, *elweight, nodes,
                                          *elDisp, strInd, surface,
                                          elemNodeTemps.data());
@@ -2380,10 +2376,9 @@ GenSubDomain<Scalar>::computeStressStrain(int fileNumber,
 
         }
         else {
-
           packedEset[iele]->getVonMises(*elstress, *elweight, nodes,
                                         *elDisp, stressIndex, surface,
-                                        elemNodeTemps.data(),ylayer,zlayer,avgnum);
+                                        elemNodeTemps.data(), ylayer, zlayer, avgnum);
         }
       }
     }
@@ -2474,13 +2469,11 @@ GenSubDomain<Scalar>::computeStressStrain(GeomState *gs, Corotator **allCorot,
 
     int iNode;
     if(packedEset[iele]->getProperty()) {
-      if(domain->solInfo().thermalLoadFlag || (domain->solInfo().thermoeFlag >= 0)) {
-        for(iNode=0; iNode<NodesPerElement; ++iNode) {
-          if(nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
-            elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
-          else
-            elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
-        }
+      for(iNode=0; iNode<NodesPerElement; ++iNode) {
+        if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
+          elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
+        else
+          elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
       }
     }
 
@@ -2499,7 +2492,8 @@ GenSubDomain<Scalar>::computeStressStrain(GeomState *gs, Corotator **allCorot,
       else {
         // USE NON-LINEAR STRESS ROUTINE
         allCorot[iele]->getNLAllStress(*p_elstress, *elweight, *gs,
-                                       nodes, strInd);
+                                       refState, nodes, strInd, surface,
+                                       elemNodeTemps.data());
       }
 
       // Second, transform stress/strain tensor to nodal frame coordinates
@@ -2518,7 +2512,7 @@ GenSubDomain<Scalar>::computeStressStrain(GeomState *gs, Corotator **allCorot,
         // USE LINEAR STRESS ROUTINE
         packedEset[iele]->getVonMises(*elstress, *elweight, nodes,
                                       *elDisp, stressIndex, surface,
-                                       elemNodeTemps.data(), ylayer, zlayer, avgnum);
+                                      elemNodeTemps.data(), ylayer, zlayer, avgnum);
       }
       else if(flag == 2) {
         // USE NON-LINEAR STRESS ROUTINE
@@ -2528,6 +2522,8 @@ GenSubDomain<Scalar>::computeStressStrain(GeomState *gs, Corotator **allCorot,
       }
       else {
         // NO STRESS RECOVERY
+        elstress->zero();
+        elweight->zero();
       }
     }
 

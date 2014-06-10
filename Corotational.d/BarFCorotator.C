@@ -648,24 +648,6 @@ BarFCorotator::extractRigidBodyMotion(GeomState &geomState, CoordSet &cs,
 {
 }
 
-void
-BarFCorotator::getNLVonMises(Vector &stress, Vector &weight,
-                             GeomState &geomState, CoordSet &cs,
-                             int strInd)
-{
- stress.zero();
- weight.zero();
-}
-
-void
-BarFCorotator::getNLAllStress(FullM &stress, Vector &weight,
-                              GeomState &geomState, CoordSet &cs,
-                              int strInd)
-{
- stress.zero();
- weight.zero();
-}
- 
 double
 BarFCorotator::getElementEnergy(GeomState &geomState, CoordSet &cs)
 {

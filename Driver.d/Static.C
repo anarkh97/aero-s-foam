@@ -1488,7 +1488,7 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
   // Either get the nodal temperatures from the input file or
   // from the thermal model
   if(sinfo.thermalLoadFlag) nodalTemperatures = getNodalTemperatures();
-  if(sinfo.thermoeFlag >=0) nodalTemperatures = temprcvd;
+  if(sinfo.thermoeFlag >= 0) nodalTemperatures = temprcvd;
 
   if(printFlag != 2) {
     // ... ALLOCATE VECTORS STRESS AND WEIGHT AND INITIALIZE TO ZERO
@@ -1499,7 +1499,7 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
     else if(stressAllElems == 0) stressAllElems = new Vector(sizeSfemStress,0.0);
     if(elDisp == 0) elDisp = new Vector(maxNumDOFs,0.0);
 
-    if((elstress == 0)||(elweight == 0)||(p_elstress == 0 && oframe == OutputInfo::Local)) {
+    if((elstress == 0) || (elweight == 0) || (p_elstress == 0 && oframe == OutputInfo::Local)) {
       int NodesPerElement, maxNodesPerElement=0;
       for(iele=0; iele<numele; ++iele) {
         NodesPerElement = elemToNode->num(iele);
@@ -1515,7 +1515,7 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
       stress->zero();
       weight->zero();
     }
-    else if (printFlag == 1) stressAllElems->zero();
+    else if(printFlag == 1) stressAllElems->zero();
   }
 
   int count = 0;
@@ -1539,7 +1539,7 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
       elweight->zero();
 
       // DETERMINE ELEMENT DISPLACEMENT VECTOR
-      for (k=0; k < allDOFs->num(iele); ++k) {
+      for (k = 0; k < allDOFs->num(iele); ++k) {
         int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
         if (cn >= 0)
           (*elDisp)[k] = sol[cn];
@@ -1548,13 +1548,12 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
       }
 
       int iNode;
-      if (sinfo.thermalLoadFlag || (sinfo.thermoeFlag>=0))
-        for (iNode = 0; iNode < NodesPerElement; ++iNode) {
-          if (nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
-            elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
-          else
-            elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
-        }
+      for (iNode = 0; iNode < NodesPerElement; ++iNode) {
+        if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
+          elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
+        else
+          elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
+      }
 
       // transform displacements from DOF_FRM to basic coordinates
       transformVectorInv(*elDisp, iele);
@@ -1686,7 +1685,7 @@ Domain::getStressStrain(ComplexVector &sol, DComplex *bcx, int fileNumber,
   // Either get the nodal temperatures from the input file or
   // from the thermal model
   if(sinfo.thermalLoadFlag) nodalTemperatures = getNodalTemperatures();
-  if(sinfo.thermoeFlag >=0) nodalTemperatures = temprcvd;
+  if(sinfo.thermoeFlag >= 0) nodalTemperatures = temprcvd;
 
   ComplexVector *stress = 0;
   ComplexVector *stressAllElems = 0;
@@ -1753,13 +1752,12 @@ Domain::getStressStrain(ComplexVector &sol, DComplex *bcx, int fileNumber,
       }
 
       int iNode;
-      if (sinfo.thermalLoadFlag || (sinfo.thermoeFlag>=0))
-        for (iNode = 0; iNode < NodesPerElement; ++iNode) {
-          if (nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
-            elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
-          else
-            elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
-        }
+      for (iNode = 0; iNode < NodesPerElement; ++iNode) {
+        if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
+          elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
+        else
+          elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
+      }
 
       // transform displacements from DOF_FRM to basic coordinates
       transformVectorInv(*elDisp, iele);
@@ -1809,7 +1807,6 @@ Domain::getStressStrain(ComplexVector &sol, DComplex *bcx, int fileNumber,
     if(avgnum == 0) {
       int offset[2];
       offset[0] = 0;
-      //offset[1] = NodesPerElement;
       offset[1] = packedEset[iele]->numTopNodes(); //HB 06-25-05: avoid the internal nodes for MpcElement
 
       if(printFlag == 0) {
@@ -1958,13 +1955,12 @@ Domain::getPrincipalStress(Vector &sol, double *bcx, int fileNumber,
     }
 
     int iNode;
-    if(sinfo.thermalLoadFlag)
-      for(iNode=0; iNode<NodesPerElement; ++iNode) {
-        if(nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
-          elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
-        else
-          elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
-      }
+    for(iNode=0; iNode<NodesPerElement; ++iNode) {
+      if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
+        elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
+      else
+        elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
+    }
 
     // transform displacements from DOF_FRM to basic coordinates
     transformVectorInv(*elDisp, iele);
@@ -2110,10 +2106,10 @@ Domain::getElementForces(Vector &sol, double *bcx, int fileNumber,
 
     // ... CALCULATE INTERNAL FORCE VALUE FOR EACH ELEMENT
     // ... taking into account the new temperature in case of thermal coupling
-    if((sinfo.thermalLoadFlag || (sinfo.thermoeFlag>=0)) && packedEset[iele]->getProperty()) {
+    if(packedEset[iele]->getProperty()) {
       int iNode;
       for(iNode=0; iNode<NodesPerElement; ++iNode) {
-        if(nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
+        if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
           elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
         else
           elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
@@ -2157,10 +2153,10 @@ Domain::getElementForces(Vector &sol, double *bcx, int fileNumber,
 
   }
 
-   // ... PRINT THE ELEMENT FORCES TO A FILE
-   geoSource->outputElemVectors(fileNumber, forces.data(), numele, time);
+  // ... PRINT THE ELEMENT FORCES TO A FILE
+  geoSource->outputElemVectors(fileNumber, forces.data(), numele, time);
 
-   delete [] nodeNumbers;
+  delete [] nodeNumbers;
 }
 
 #ifdef STRUCTOPT

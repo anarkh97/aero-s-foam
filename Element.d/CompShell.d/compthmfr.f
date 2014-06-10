@@ -460,7 +460,7 @@ c
 c
 C
   800 continue
-      write(*,*) "*** FATAL ERROR in Routine COMPCST    ***"
+      write(*,*) "*** FATAL ERROR in Routine COMPTHMFR  ***"
       write(*,*) "*** The Angle From the Local [x]      ***"
       write(*,*) "*** Axis of the Triangular Coordinate ***"
       write(*,*) "*** System to the Reference Direction ***"

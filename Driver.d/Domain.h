@@ -376,7 +376,8 @@ class Domain : public HData {
                           int fileNumber, int stressIndex, double time, 
                           GeomState *refState = NULL);
      void getPrincipalStress(GeomState &geomState, Corotator **allCorot,
-                          int fileNumber, int stressIndex, double time);
+                             int fileNumber, int stressIndex, double time,
+                             GeomState *refState = NULL);
      void updateStates(GeomState *refState, GeomState& geomState, Corotator **allCorot);
      void updateWeightedElemStatesOnly(const std::map<int, double> &weights, GeomState *refState,
                                        GeomState &geomState, Corotator **corotators);

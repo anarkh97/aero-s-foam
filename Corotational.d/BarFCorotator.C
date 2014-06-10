@@ -81,8 +81,8 @@ BarFCorotator::BarFCorotator(int _n1, int _n2, double _e,
  }
 }
 
-void BarFCorotator::AssignMicroScaleProp(double ef, 
-double h, double d, int np, int Nf, double lambda_g)
+void BarFCorotator::AssignMicroScaleProp(double ef, double h, double d, int np,
+                                         int Nf, double lambda_g)
 /*******************************************************************
  *
  * Purpose :
@@ -519,7 +519,6 @@ BarFCorotator::formGeometricStiffness(GeomState &geomState, CoordSet &cs,
  // Declare local variables
  int    i, j;
  double xn[2][3],t[3];
- double em,a0;
  
  // Get current Node State
  NodeState &ns1 = geomState[n1];

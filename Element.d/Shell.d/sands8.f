@@ -1,10 +1,10 @@
        subroutine sands8(xl,yl,zl,e,nu,h,v,stress,
-     &            strainFlg, maxsze,maxstr,maxgus,elm,surface,thrmStr)
+     &            strainFlg,maxsze,maxstr,maxgus,elm,surface,thrmStr)
 C-----------------------------------------------------------------
 C This subroutine evaluates the von mises stress at the centroid
 C of the triangle. it computes the values at the top and bottom
 C and picks the maximum as output
-C for the spacial 18 d.o.f tree node triangle obtained as
+C for the spatial 18 d.o.f three node triangle obtained as
 C a combination of the aqr bending triangle plus the membrane
 C with driling d.o.f. developed by Felippa et al.
 C
@@ -222,10 +222,6 @@ c      off by a factor of -1/sqrt(area)
           rnxy = rnxy + rmem(j,3)*dll(j)
 290    continue
 C
-C      Subtract off thermal strain portions
-       rnx = rnx - thrmStr
-       rny = rny - thrmStr
-C
 C      COMPUTE VON MISES STRAIN RESULTANT
 C
         if(strainFlg .eq. 1) then
@@ -296,6 +292,11 @@ C ... COMPUTE STRAINS AT TOP SURFACE
 
           return
         endif
+C
+C     subtract off thermal strain portions
+C     pjsa 6/11/2014: this should be not affect the return values when strainFlg.eq.1
+      rnx = rnx - thrmStr
+      rny = rny - thrmStr
 C
 C     compute centroidal stress resultants
 C

@@ -9,15 +9,14 @@
 #include <Corotational.d/utilities.h>
 
 extern "C" {
-  void  _FORTRAN(vmelmv)(double*,int &,int &, int &, int &, int &);
-  void  _FORTRAN(strainvm)(double*,int &, int &, int &, int &);
-
-  void  _FORTRAN(lgauss)(int &, int &, double *, double *); //HB
+  void  _FORTRAN(vmelmv)(double*, int &, int &, int &, int &, int &);
+  void  _FORTRAN(strainvm)(double*, int &, int &, int &, int &);
+  void  _FORTRAN(lgauss)(int &, int &, double *, double *);
 };
 
 extern double Penta6ShapeFct(double Shape[6], double DShape[6][3], double m[3], double X[6], double Y[6], double Z[6]);
 
-PentaCorotator::PentaCorotator(int nodeNumbers[6], double _em, double _nu, CoordSet& cs)
+PentaCorotator::PentaCorotator(int nodeNumbers[6], double _em, double _nu, CoordSet& cs, double _Tref, double _alpha)
 {
  nodeNum[0] = nodeNumbers[0];
  nodeNum[1] = nodeNumbers[1];
@@ -26,14 +25,14 @@ PentaCorotator::PentaCorotator(int nodeNumbers[6], double _em, double _nu, Coord
  nodeNum[4] = nodeNumbers[4];
  nodeNum[5] = nodeNumbers[5];
 
- em = _em;	// Elastic modulus
- nu = _nu;	// Poisson's ratio 
-
+ em = _em;	 // Elastic modulus
+ nu = _nu;	 // Poisson's ratio 
+ Tref = _Tref;   // Ambient temperature
+ alpha = _alpha; // Thermal expansion coefficient
 }
 
-// FullSquareMatrix class is in Math.d/FullSquareMatrix
 // geomState -> contains the updated nodal coordinates
-// coordSet  -> contains the original nodal coordinates
+// cs        -> contains the original nodal coordinates
 void
 PentaCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs, 
                                  FullSquareMatrix &K, double *f, double dt, double t)
@@ -45,13 +44,13 @@ PentaCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
                           {2./3.,1./6.,1./6.,1./6.},
                           {1./6.,2./3.,1./6.,1./6.}};
   
-  //initialize forces and stiffness matrix
-  for (i = 0; i < 18; i++)  f[i] = 0;
+  // initialize forces and stiffness matrix
+  for (i = 0; i < 18; i++) f[i] = 0;
   K.zero();  
 
-  // reformat cs to accomodate shape function routine
+  // reformat cs to accommodate shape function routine
   double X[6], Y[6], Z[6];
-  for (i = 0; i < 6; i++)  {
+  for (i = 0; i < 6; i++) {
     X[i] = cs[nodeNum[i]]->x;
     Y[i] = cs[nodeNum[i]]->y;
     Z[i] = cs[nodeNum[i]]->z;
@@ -62,9 +61,9 @@ PentaCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
   int ngpz = 2; // number of (linear) Gauss pts in the (local) z direction
   int ngpxy= 3; // numbder of (triangular) integration pts (in the local x-y plane)
   double m[3], Shape[6], nGrad[6][3];
-  double dOmega;//det of jacobian
+  double dOmega; // det of jacobian
                                                                                                                 
-  for(int iz=1;iz<=ngpz;iz++){         // z Gauss pts
+  for(int iz=1; iz<=ngpz; iz++) { // z Gauss pts
     // get z position & weight of the Gauss pt
     _FORTRAN(lgauss)(ngpz,iz,&m[2],&wz);
     for(int ixy=0; ixy<ngpxy; ixy++) { // triangle Gauss pts
@@ -217,12 +216,12 @@ PentaCorotator::getInternalForce(GeomState &geomState, CoordSet &cs,
                           {2./3.,1./6.,1./6.,1./6.},
                           {1./6.,2./3.,1./6.,1./6.}};
   
-  //initialize forces
-  for (i = 0; i < 18; i++)  f[i] = 0;
+  // initialize forces
+  for (i = 0; i < 18; i++) f[i] = 0;
 
-  // reformat cs to accomodate shape function routine
+  // reformat cs to accommodate shape function routine
   double X[6], Y[6], Z[6];
-  for (i = 0; i < 6; i++)  {
+  for (i = 0; i < 6; i++) {
     X[i] = cs[nodeNum[i]]->x;
     Y[i] = cs[nodeNum[i]]->y;
     Z[i] = cs[nodeNum[i]]->z;
@@ -233,13 +232,13 @@ PentaCorotator::getInternalForce(GeomState &geomState, CoordSet &cs,
   int ngpz = 2; // number of (linear) Gauss pts in the (local) z direction
   int ngpxy= 3; // numbder of (triangular) integration pts (in the local x-y plane)
   double m[3], Shape[6], nGrad[6][3];
-  double dOmega;//det of jacobian
+  double dOmega; // det of jacobian
                                                                                                                 
-  for(int iz=1;iz<=ngpz;iz++){         // z Gauss pts
+  for(int iz=1; iz<=ngpz; iz++) { // z Gauss pts
     // get z position & weight of the Gauss pt
     _FORTRAN(lgauss)(ngpz,iz,&m[2],&wz);
     for(int ixy=0; ixy<ngpxy; ixy++) { // triangle Gauss pts
-      // get x, y  position & weight of the Gauss pt
+      // get x, y position & weight of the Gauss pt
       m[0] = TriGPt3[ixy][0]; m[1] = TriGPt3[ixy][1]; wxy = TriGPt3[ixy][3];
       dOmega = Penta6ShapeFct(Shape, nGrad, m, X, Y, Z);
 
@@ -339,12 +338,12 @@ PentaCorotator::computeStrainGrad(GeomState &geomState, CoordSet &cs,
                 double dedU[18][6], double m[3])  
 {
   int i, j;
-  double dOmega = 0.0;  //det of jacobian (not used here)
+  double dOmega = 0.0; // det of jacobian (not used here)
   double nGrad[6][3];
 
-  // reformat cs to accomodate shape function routine
+  // reformat cs to accommodate shape function routine
   double X[6], Y[6], Z[6];
-  for (i = 0; i < 6; i++)  {
+  for (i = 0; i < 6; i++) {
     X[i] = cs[nodeNum[i]]->x;
     Y[i] = cs[nodeNum[i]]->y;
     Z[i] = cs[nodeNum[i]]->z;
@@ -396,9 +395,9 @@ PentaCorotator::computeStrainGrad(GeomState &geomState, CoordSet &cs,
 //-------------------------------------------------------------------------------
 
 void
-PentaCorotator::getNLVonMises(Vector& stress,Vector& weight,
-                              GeomState &geomState, CoordSet &cs,
-                              int strInd)
+PentaCorotator::getNLVonMises(Vector& stress, Vector& weight, GeomState &geomState,
+                              GeomState *, CoordSet& cs, int strInd, int,
+                              double *ndTemps, double, double, int, int)
 {
   weight = 1.0;
 
@@ -409,15 +408,16 @@ PentaCorotator::getNLVonMises(Vector& stress,Vector& weight,
   double elStress[6][7];
   double elStrain[6][7];
 
-// Compute NL Stress/Strain
-  computePiolaStress(geomState, cs, elStress, elStrain);
-// Compute VonMises
+  // Compute NL Stress/Strain
+  computePiolaStress(geomState, cs, ndTemps, elStress, elStrain);
+
+  // Compute Von Mises
   if(strInd == 6)
     _FORTRAN(vmelmv)((double*)elStress,nno,maxstr,elm,elm,nno);
   if(strInd == 13)
     _FORTRAN(strainvm)((double*)elStrain,nno,maxstr,elm,nno);
 
-// Store all Stress or all Strain as defined by strInd
+  // Store Stress or Strain as defined by strInd
   if(strInd < 7) {
     stress[0] = elStress[0][strInd];
     stress[1] = elStress[1][strInd];
@@ -436,9 +436,9 @@ PentaCorotator::getNLVonMises(Vector& stress,Vector& weight,
 }
 
 void
-PentaCorotator::getNLAllStress(FullM& stress,Vector& weight,
-                               GeomState &geomState, CoordSet &cs,
-                               int strInd)
+PentaCorotator::getNLAllStress(FullM &stress, Vector &weight, GeomState &geomState,
+                               GeomState *, CoordSet &cs, int strInd, int,
+                               double *ndTemps, int)
 {
   weight = 1.0;
 
@@ -447,10 +447,10 @@ PentaCorotator::getNLAllStress(FullM& stress,Vector& weight,
   double elStress[6][7];
   double elStrain[6][7];
 
-// Compute NL Stress/Strain
-  computePiolaStress(geomState, cs, elStress, elStrain);
+  // Compute NL Stress/Strain
+  computePiolaStress(geomState, cs, ndTemps, elStress, elStrain);
 
-// Store all Stress or all Strain as defined by strInd
+  // Store all Stress or all Strain as defined by strInd
   if(strInd == 0) {
     for (i=0; i<6; ++i) {
       for (j=0; j<6; ++j) {
@@ -464,30 +464,8 @@ PentaCorotator::getNLAllStress(FullM& stress,Vector& weight,
       }
     }
   }
-/* 
-// Get Element Principals
-  double svec[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
-  double pvec[3] = {0.0,0.0,0.0};
-  for (j=0; j<6; ++j) {
-    for (i=0; i<6; ++i) {
-      svec[j] += stress[i][j];
-    }
-    svec[j] /= 6;
-  }
-// Convert Engineering to Tensor Strains
-  if(strInd != 0) {
-    svec[3] /= 2;
-    svec[4] /= 2;
-    svec[5] /= 2;
-  }
-  pstress(svec,pvec);
-  for (i=0; i<6; ++i) {
-    for (j=0; j<3; ++j) {
-       stress[i][j+6] = pvec[j];
-    }
-  }
-*/
-// PJSA 10/08/2010 Get Element Principals without averaging
+
+  // PJSA Get Element Principals without averaging
   double svec[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
   double pvec[3] = {0.0,0.0,0.0};
   for (i=0; i<6; ++i) {
@@ -508,7 +486,7 @@ PentaCorotator::getNLAllStress(FullM& stress,Vector& weight,
 }
 
 void
-PentaCorotator::computePiolaStress(GeomState &geomState, CoordSet &cs,
+PentaCorotator::computePiolaStress(GeomState &geomState, CoordSet &cs, double *ndTemps,
                                     double stress[6][7], double strain[6][7])
 {
   int i,j,n;
@@ -519,7 +497,7 @@ PentaCorotator::computePiolaStress(GeomState &geomState, CoordSet &cs,
   double s[6] = { 0.0, 0.0, 1.0, 0.0, 0.0, 1.0};
   double z[6] = {-1.0,-1.0,-1.0, 1.0, 1.0, 1.0};
 
-  // reformat cs to accomodate shape function routine
+  // reformat cs to accommodate shape function routine
   double X[6], Y[6], Z[6];
   for (i = 0; i < 6; i++)  {
     X[i] = cs[nodeNum[i]]->x;
@@ -527,8 +505,8 @@ PentaCorotator::computePiolaStress(GeomState &geomState, CoordSet &cs,
     Z[i] = cs[nodeNum[i]]->z;
   }
 
-  for (n = 0; n < 6; n++)  { // loop over nodes
-    //compute shape functions
+  for (n = 0; n < 6; n++) { // loop over nodes
+    // compute shape functions
     double m[3], Shape[6];
     double dOmega;  //det of jacobian
     m[0] = r[n]; m[1] = s[n]; m[2] = z[n];
@@ -569,9 +547,24 @@ PentaCorotator::computePiolaStress(GeomState &geomState, CoordSet &cs,
     double e_12 = (F[0][0]*F[0][1]+F[1][0]*F[1][1]+F[2][0]*F[2][1]);
     double e_13 = (F[0][0]*F[0][2]+F[1][0]*F[1][2]+F[2][0]*F[2][2]);
     double e_23 = (F[0][1]*F[0][2]+F[1][1]*F[1][2]+F[2][1]*F[2][2]);
+
+    // Reorder strain
+    strain[n][0] = e_11;
+    strain[n][1] = e_22;
+    strain[n][2] = e_33;
+    strain[n][3] = e_12;
+    strain[n][4] = e_23;
+    strain[n][5] = e_13;
+
+
+    // Subtract thermal strain
+    e_11 -= alpha*(ndTemps[n]-Tref);
+    e_22 -= alpha*(ndTemps[n]-Tref);
+    e_33 -= alpha*(ndTemps[n]-Tref);
+
     double sigma[6];
   
-    double E2=em*nu/((1+nu)*(1-2*nu));
+    double E2 = em*nu/((1+nu)*(1-2*nu));
     double G2 = em/(2*(1+nu));
     double E1 = E2+em/(1+nu);
     sigma[0] = E1*e_11+E2*(e_22+e_33);
@@ -581,40 +574,34 @@ PentaCorotator::computePiolaStress(GeomState &geomState, CoordSet &cs,
     sigma[4] = G2*e_23;
     sigma[5] = G2*e_13;
     
-    // Reorder
+    // Reorder stress
     stress[n][0] = sigma[0];
     stress[n][1] = sigma[1];
     stress[n][2] = sigma[2];
     stress[n][3] = sigma[3];
     stress[n][4] = sigma[4];
     stress[n][5] = sigma[5];
-    strain[n][0] = e_11;
-    strain[n][1] = e_22;
-    strain[n][2] = e_33;
-    strain[n][3] = e_12;
-    strain[n][4] = e_23;
-    strain[n][5] = e_13;
   }
 }
 
 void
 PentaCorotator::extractDeformations(GeomState &geomState, CoordSet &cs, 
-                                  double *vld, int &nlflag)
+                                    double *vld, int &nlflag)
 {
  // Set Flag to Use Non-Linear Routines for Stress
-    nlflag = 2;
+ nlflag = 2;
 }
 
 void
 PentaCorotator::extractRigidBodyMotion(GeomState &geomState, CoordSet &cs,
-               double *vlr)
+                                       double *vlr)
 {
 }
 
 double
 PentaCorotator::getElementEnergy(GeomState &geomState, CoordSet &cs) 
 {
-// Computes Internal Energy of Element in Given State
+  // Computes Internal Energy of Element in Given State
 
   int i,j;
 
@@ -623,12 +610,12 @@ PentaCorotator::getElementEnergy(GeomState &geomState, CoordSet &cs)
                           {2./3.,1./6.,1./6.,1./6.},
                           {1./6.,2./3.,1./6.,1./6.}};
 
-  //initialize energy to zero
+  // initialize energy to zero
   double Energy = 0;
 
-  // reformat cs to accomodate shape function routine
+  // reformat cs to accommodate shape function routine
   double X[6], Y[6], Z[6];
-  for (i = 0; i < 6; i++)  {
+  for (i = 0; i < 6; i++) {
     X[i] = cs[nodeNum[i]]->x;
     Y[i] = cs[nodeNum[i]]->y;
     Z[i] = cs[nodeNum[i]]->z;
@@ -641,7 +628,7 @@ PentaCorotator::getElementEnergy(GeomState &geomState, CoordSet &cs)
   double m[3], Shape[6], nGrad[6][3];
   double dOmega;//det of jacobian
                                                                                                                 
-  for(int iz=1;iz<=ngpz;iz++){         // z Gauss pts
+  for(int iz=1; iz<=ngpz; iz++) { // z Gauss pts
     // get z position & weight of the Gauss pt
     _FORTRAN(lgauss)(ngpz,iz,&m[2],&wz);
     for(int ixy=0; ixy<ngpxy; ixy++) { // triangle Gauss pts

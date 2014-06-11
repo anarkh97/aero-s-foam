@@ -6,38 +6,43 @@
 class BrickCorotator : public Corotator {
      int nodeNum[8];
      double em;                 // elastic modulus
-     double nu;                 // initial cross-sectional area
+     double nu;                 // Poisson's ratio
+     double Tref;               // ambient temperature
+     double alpha;              // thermal expansion coefficient
    public:
 
      // Constructor
-     BrickCorotator(int nn[4], double, double, CoordSet &);
+     BrickCorotator(int nn[4], double, double, CoordSet &, double, double);
      double * getOriginalStiffness() { return (double*) 0; }
 
      void     getStiffAndForce(GeomState &gs, CoordSet &cs, 
-                             FullSquareMatrix &elk, double *f, double dt, double t);
+                               FullSquareMatrix &elk, double *f, double dt, double t);
 
      void     getInternalForce(GeomState &gs, CoordSet &cs,
-                             FullSquareMatrix &elk, double *f, double dt, double t);
+                               FullSquareMatrix &elk, double *f, double dt, double t);
 
      void     extractDeformations(GeomState &geomState, CoordSet &cs, double *vld,
-                              int &nlflag);
+                                  int &nlflag);
 
      void     extractRigidBodyMotion(GeomState &geomState, CoordSet &cs,
-                                 double *vlr);
+                                     double *vlr);
 
-     void     getNLVonMises(Vector&, Vector& weight,
-                        GeomState &, CoordSet &, int);
+     void     getNLVonMises(Vector& stress, Vector& weight, GeomState &curState,
+                            GeomState *refState, CoordSet& c0, int strIndex, int surface = 0,
+                            double *ndTemps = 0, double ylayer = 0, double zlayer = 0,
+                            int avgnum = 0, int measure = -1);
 
-     void     getNLAllStress(FullM&, Vector&,
-                         GeomState &, CoordSet &, int);
+     void     getNLAllStress(FullM &stress, Vector &weight, GeomState &curState,
+                             GeomState *refState, CoordSet &c0, int strInd, int surface = 0,
+                             double *ndTemps = 0, int measure = -1);
 
      double   computeShapeGrad(GeomState &nodes, double nGrad[8][3]);
 
      double   computeStrainGrad(GeomState &geomState, CoordSet &, double dedU[24][6],
-                              int, int, int);
+                                int, int, int);
 
-     void     computePiolaStress(GeomState &, CoordSet &cs,
-                              double  stress[8][7], double strain[8][7]);
+     void     computePiolaStress(GeomState &, CoordSet &cs, double *ndTemps,
+                                 double stress[8][7], double strain[8][7]);
 
      double   getElementEnergy(GeomState &gs, CoordSet &cs);
 

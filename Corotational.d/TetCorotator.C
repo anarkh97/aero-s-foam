@@ -9,12 +9,12 @@
 #include <Corotational.d/utilities.h>
 
 extern "C" {
-  void  _FORTRAN(vmelmv)(double*,int &,int &, int &, int &, int &);
-  void  _FORTRAN(strainvm)(double*,int &, int &, int &, int &);
+  void  _FORTRAN(vmelmv)(double*, int &, int &, int &, int &, int &);
+  void  _FORTRAN(strainvm)(double*, int &, int &, int &, int &);
 };
 
 TetCorotator::TetCorotator(int nodeNumbers[4], double _em, double _nu, 
-                           CoordSet& cs)
+                           CoordSet& cs, double _Tref, double _alpha)
 {
  nodeNum[0] = nodeNumbers[0];
  nodeNum[1] = nodeNumbers[1];
@@ -23,11 +23,12 @@ TetCorotator::TetCorotator(int nodeNumbers[4], double _em, double _nu,
 
  em    = _em;        // Elastic modulus
  nu    = _nu;        // Poisson's ratio
+ Tref = _Tref;   // Ambient temperature
+ alpha = _alpha; // Thermal expansion coefficient
 }
 
-// FullSquareMatrix class is in Math.d/FullSquareMatrix
 // geomState -> contains the updated nodal coordinates
-// coordSet  -> contains the original nodal coordinates
+// cs        -> contains the original nodal coordinates
 void
 TetCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs, 
                                FullSquareMatrix &K, double *f, double dt, double t)
@@ -257,8 +258,8 @@ TetCorotator::getInternalForce(GeomState &geomState, CoordSet &cs,
 
 void
 TetCorotator::computeStrainGrad(GeomState &geomState, double nGrad[4][3], 
-              double dedU[12][6])  {
-
+                                double dedU[12][6])
+{
   double F[3][3];
 
   int i, j;
@@ -294,9 +295,9 @@ TetCorotator::computeStrainGrad(GeomState &geomState, double nGrad[4][3],
 //----------------------------------------------------------------------------------- 
 
 void
-TetCorotator::getNLVonMises(Vector& stress,Vector& weight,
-                            GeomState &geomState, CoordSet &cs,
-                            int strInd)
+TetCorotator::getNLVonMises(Vector& stress, Vector& weight, GeomState &geomState,
+                            GeomState *, CoordSet& cs, int strInd, int,
+                            double *ndTemps, double, double, int, int)
 {
   weight = 1.0;
 
@@ -307,15 +308,16 @@ TetCorotator::getNLVonMises(Vector& stress,Vector& weight,
   double elStress[4][7];
   double elStrain[4][7];
 
-// Compute NL Stress/Strain
-  computePiolaStress(geomState, cs, elStress, elStrain);
-// Compute VonMises
+  // Compute NL Stress/Strain
+  computePiolaStress(geomState, cs, ndTemps, elStress, elStrain);
+
+  // Compute Von Mises
   if(strInd == 6)
     _FORTRAN(vmelmv)((double*)elStress,nno,maxstr,elm,elm,nno);
   if(strInd == 13)
     _FORTRAN(strainvm)((double*)elStrain,nno,maxstr,elm,nno);
 
-// Store all Stress or all Strain as defined by strInd
+  // Store Stress or Strain as defined by strInd
   if(strInd < 7) {
     stress[0] = elStress[0][strInd];
     stress[1] = elStress[1][strInd];
@@ -330,9 +332,9 @@ TetCorotator::getNLVonMises(Vector& stress,Vector& weight,
 }
 
 void
-TetCorotator::getNLAllStress(FullM& stress, Vector& weight,
-                             GeomState &geomState, CoordSet &cs,
-                             int strInd)
+TetCorotator::getNLAllStress(FullM &stress, Vector &weight, GeomState &geomState,
+                             GeomState *, CoordSet &cs, int strInd, int,
+                             double *ndTemps, int)
 {
   weight = 1.0;
 
@@ -341,10 +343,10 @@ TetCorotator::getNLAllStress(FullM& stress, Vector& weight,
   double elStress[4][7];
   double elStrain[4][7];
 
-// Compute NL Stress/Strain
-  computePiolaStress(geomState, cs, elStress, elStrain);
+  // Compute NL Stress/Strain
+  computePiolaStress(geomState, cs, ndTemps, elStress, elStrain);
 
-// Store all Stress or all Strain as defined by strInd
+  // Store all Stress or all Strain as defined by strInd
   if(strInd == 0) {
     for (i=0; i<4; ++i) {
       for (j=0; j<6; ++j) {
@@ -358,30 +360,8 @@ TetCorotator::getNLAllStress(FullM& stress, Vector& weight,
       }
     }
   }
-/* 
-// Get Element Principals
-  double svec[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
-  double pvec[3] = {0.0,0.0,0.0};
-  for (j=0; j<6; ++j) {
-    for (i=0; i<4; ++i) {
-      svec[j] += stress[i][j];
-    }
-    svec[j] /= 4;
-  }
-// Convert Engineering to Tensor Strains
-  if(strInd != 0) {
-    svec[3] /= 2;
-    svec[4] /= 2;
-    svec[5] /= 2;
-  }
-  pstress(svec,pvec);
-  for (i=0; i<4; ++i) {
-    for (j=0; j<3; ++j) {
-       stress[i][j+6] = pvec[j];
-    }
-  }
-*/
-// PJSA 10/08/2010 Get Element Principals without averaging
+
+  // Get Element Principals without averaging
   double svec[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
   double pvec[3] = {0.0,0.0,0.0};
   for (i=0; i<4; ++i) {
@@ -402,8 +382,8 @@ TetCorotator::getNLAllStress(FullM& stress, Vector& weight,
 }
 
 void
-TetCorotator::computePiolaStress(GeomState &geomState, CoordSet &cs, 
-                                   double stress[4][7], double strain[4][7])
+TetCorotator::computePiolaStress(GeomState &geomState, CoordSet &cs, double *ndTemps,
+                                 double stress[4][7], double strain[4][7])
 {
   int i,j;
   double nGrad[4][3];
@@ -439,32 +419,42 @@ TetCorotator::computePiolaStress(GeomState &geomState, CoordSet &cs,
   double e_13 = (F[0][0]*F[0][2]+F[1][0]*F[1][2]+F[2][0]*F[2][2]);
   double e_23 = (F[0][1]*F[0][2]+F[1][1]*F[1][2]+F[2][1]*F[2][2]);
 
-  double E = em;
-  double E2=E*nu/((1+nu)*(1-2*nu));
-  double G2 = E/(2*(1+nu));
-  double E1 = E2+E/(1+nu);
-  double sigma[6];
-  sigma[0] = E1*e_11+E2*(e_22+e_33);
-  sigma[1] = E1*e_22+E2*(e_11+e_33);
-  sigma[2] = E1*e_33+E2*(e_11+e_22);
-  sigma[3] = G2*e_12;
-  sigma[4] = G2*e_23;
-  sigma[5] = G2*e_13;
-
-  // Reorder
+  // Reorder strain
   for(i=0; i<4; ++i) {
-    stress[i][0] = sigma[0];
-    stress[i][1] = sigma[1];
-    stress[i][2] = sigma[2];
-    stress[i][3] = sigma[3];
-    stress[i][4] = sigma[4];
-    stress[i][5] = sigma[5];
     strain[i][0] = e_11;
     strain[i][1] = e_22;
     strain[i][2] = e_33;
     strain[i][3] = e_12;
     strain[i][4] = e_23;
     strain[i][5] = e_13;
+  }
+
+  double E = em;
+  double E2 = E*nu/((1+nu)*(1-2*nu));
+  double G2 = E/(2*(1+nu));
+  double E1 = E2+E/(1+nu);
+  double sigma[6];
+
+  for(i=0; i<4; ++i) {
+    // Subtract thermal strain
+    double e_11_m = e_11 - alpha*(ndTemps[i]-Tref);
+    double e_22_m = e_22 - alpha*(ndTemps[i]-Tref);
+    double e_33_m = e_33 - alpha*(ndTemps[i]-Tref);
+
+    sigma[0] = E1*e_11_m+E2*(e_22_m+e_33_m);
+    sigma[1] = E1*e_22_m+E2*(e_11_m+e_33_m);
+    sigma[2] = E1*e_33_m+E2*(e_11_m+e_22_m);
+    sigma[3] = G2*e_12;
+    sigma[4] = G2*e_23;
+    sigma[5] = G2*e_13;
+
+    // Reorder stress
+    stress[i][0] = sigma[0];
+    stress[i][1] = sigma[1];
+    stress[i][2] = sigma[2];
+    stress[i][3] = sigma[3];
+    stress[i][4] = sigma[4];
+    stress[i][5] = sigma[5];
   }
 }
 

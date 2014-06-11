@@ -10,16 +10,16 @@
 
 extern "C" {
   void _FORTRAN(hxgaus)(int &, int &, int &, int &, int &, int &,
-                        double &,  double &, double &, double &);
+                        double &, double &, double &, double &);
   void _FORTRAN(h8shpe)(double &, double &, double &, double *, double *, 
 			double *, double *, double *, double *, double *, 
 			double &);
-  void  _FORTRAN(vmelmv)(double*,int &,int &, int &, int &, int &);
-  void  _FORTRAN(strainvm)(double*,int &, int &, int &, int &);
+  void  _FORTRAN(vmelmv)(double*, int &, int &, int &, int &, int &);
+  void  _FORTRAN(strainvm)(double*, int &, int &, int &, int &);
 };
 
 BrickCorotator::BrickCorotator(int nodeNumbers[8], double _em, double _nu, 
-                               CoordSet& cs)
+                               CoordSet& cs, double _Tref, double _alpha)
 {
  nodeNum[0] = nodeNumbers[0];
  nodeNum[1] = nodeNumbers[1];
@@ -30,12 +30,14 @@ BrickCorotator::BrickCorotator(int nodeNumbers[8], double _em, double _nu,
  nodeNum[6] = nodeNumbers[6];
  nodeNum[7] = nodeNumbers[7];
 
- em = _em;	// Elastic modulus
- nu = _nu;	// Original Cross-sectional area
+ em = _em;	 // Elastic modulus
+ nu = _nu;	 // Poisson's ratio
+ Tref = _Tref;   // Ambient temperature
+ alpha = _alpha; // Thermal expansion coefficient
 }
 
 // geomState -> contains the updated nodal coordinates
-// coordSet  -> contains the original nodal coordinates
+// cs        -> contains the original nodal coordinates
 void
 BrickCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs, 
                                  FullSquareMatrix &K, double *f, double dt, double t)
@@ -44,34 +46,34 @@ BrickCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
   int numLinGaussPts = 2;
   double nGrad[8][3];
   
-  //initialize forces and stiffness matrix
-  for (i = 0; i < 24; i++)  {
+  // initialize forces and stiffness matrix
+  for (i = 0; i < 24; i++) {
     f[i] = 0;
     for (j = 0; j < 24; j++)
       K[i][j] = 0;
   }
 
-  // reformat cs to accomodate fortran routine
+  // reformat cs to accommodate fortran routine
   double xNodes[8], yNodes[8], zNodes[8];
-  for (i = 0; i < 8; i++)  {
+  for (i = 0; i < 8; i++) {
     xNodes[i] = cs[nodeNum[i]]->x;
     yNodes[i] = cs[nodeNum[i]]->y;
     zNodes[i] = cs[nodeNum[i]]->z;
   }
 
-  int fortran = 1;  // fortran routines start from index 1
+  int fortran = 1; // fortran routines start from index 1
   int pt1, pt2, pt3;
-  for (pt1 = 0 + fortran; pt1 < 2 + fortran; pt1++)  {
-    for (pt2 = 0 + fortran; pt2 < 2 + fortran; pt2++)  {
-      for (pt3 = 0 + fortran; pt3 < 2 + fortran; pt3++)  {
+  for (pt1 = 0 + fortran; pt1 < 2 + fortran; pt1++) {
+    for (pt2 = 0 + fortran; pt2 < 2 + fortran; pt2++) {
+      for (pt3 = 0 + fortran; pt3 < 2 + fortran; pt3++) {
         // get gauss point
         double xi, eta, mu, wt;
         _FORTRAN(hxgaus)(numLinGaussPts, pt1, numLinGaussPts, pt2, 
 	 		 numLinGaussPts, pt3, xi,  eta, mu, wt);
 
-        //compute shape functions
+        // compute shape functions
         double shapeFunc[8], shapeGradX[8], shapeGradY[8], shapeGradZ[8];
-        double dOmega;  //det of jacobian
+        double dOmega; // det of jacobian
       
         _FORTRAN(h8shpe)(xi, eta, mu, xNodes, yNodes, zNodes,
                          shapeFunc, shapeGradX, shapeGradY, shapeGradZ, dOmega);
@@ -236,13 +238,13 @@ BrickCorotator::getInternalForce(GeomState &geomState, CoordSet &cs,
   double nGrad[8][3];
   
   //initialize forces 
-  for (i = 0; i < 24; i++)  {
+  for (i = 0; i < 24; i++) {
     f[i] = 0;
   }
 
-  // reformat cs to accomodate fortran routine
+  // reformat cs to accommodate fortran routine
   double xNodes[8], yNodes[8], zNodes[8];
-  for (i = 0; i < 8; i++)  {
+  for (i = 0; i < 8; i++) {
     xNodes[i] = cs[nodeNum[i]]->x;
     yNodes[i] = cs[nodeNum[i]]->y;
     zNodes[i] = cs[nodeNum[i]]->z;
@@ -250,17 +252,17 @@ BrickCorotator::getInternalForce(GeomState &geomState, CoordSet &cs,
 
   int fortran = 1;  // fortran routines start from index 1
   int pt1, pt2, pt3;
-  for (pt1 = 0 + fortran; pt1 < 2 + fortran; pt1++)  {
-    for (pt2 = 0 + fortran; pt2 < 2 + fortran; pt2++)  {
-      for (pt3 = 0 + fortran; pt3 < 2 + fortran; pt3++)  {
+  for (pt1 = 0 + fortran; pt1 < 2 + fortran; pt1++) {
+    for (pt2 = 0 + fortran; pt2 < 2 + fortran; pt2++) {
+      for (pt3 = 0 + fortran; pt3 < 2 + fortran; pt3++) {
         // get gauss point
         double xi, eta, mu, wt;
         _FORTRAN(hxgaus)(numLinGaussPts, pt1, numLinGaussPts, pt2, 
 	 		 numLinGaussPts, pt3, xi,  eta, mu, wt);
 
-        //compute shape functions
+        // compute shape functions
         double shapeFunc[8], shapeGradX[8], shapeGradY[8], shapeGradZ[8];
-        double dOmega;  //det of jacobian
+        double dOmega; // det of jacobian
       
         _FORTRAN(h8shpe)(xi, eta, mu, xNodes, yNodes, zNodes,
                          shapeFunc, shapeGradX, shapeGradY, shapeGradZ, dOmega);
@@ -383,7 +385,7 @@ BrickCorotator::computeStrainGrad(GeomState &geomState, CoordSet &cs,
   int numLinGaussPts = 2;
   double nGrad[8][3];
 
-  // reformat cs to accomodate fortran routine
+  // reformat cs to accommodate fortran routine
   double xNodes[8], yNodes[8], zNodes[8];
   for (i = 0; i < 8; i++) {
     xNodes[i] = cs[nodeNum[i]]->x;
@@ -396,7 +398,7 @@ BrickCorotator::computeStrainGrad(GeomState &geomState, CoordSet &cs,
   _FORTRAN(hxgaus)(numLinGaussPts, pt1, numLinGaussPts, pt2,
                    numLinGaussPts, pt3, xi, eta, mu, wt);
 
-  //compute shape functions
+  // compute shape functions
   double shapeFunc[8], shapeGradX[8], shapeGradY[8], shapeGradZ[8];
 
   _FORTRAN(h8shpe)(xi, eta, mu, xNodes, yNodes, zNodes, 
@@ -457,9 +459,9 @@ BrickCorotator::computeStrainGrad(GeomState &geomState, CoordSet &cs,
 //-------------------------------------------------------------------------------
 
 void
-BrickCorotator::getNLVonMises(Vector& stress, Vector& weight,
-                              GeomState &geomState, CoordSet &cs,
-                              int strInd)
+BrickCorotator::getNLVonMises(Vector& stress, Vector& weight, GeomState &geomState,
+                              GeomState *, CoordSet& cs, int strInd, int,
+                              double *ndTemps, double, double, int, int)
 {
   weight = 1.0;
 
@@ -470,15 +472,16 @@ BrickCorotator::getNLVonMises(Vector& stress, Vector& weight,
   double elStress[8][7];
   double elStrain[8][7];
 
-// Compute NL Stress/Strain
-  computePiolaStress(geomState, cs, elStress, elStrain);
-// Compute VonMises
+  // Compute NL Stress/Strain
+  computePiolaStress(geomState, cs, ndTemps, elStress, elStrain);
+
+  // Compute Von Mises
   if(strInd == 6)
     _FORTRAN(vmelmv)((double*)elStress,nno,maxstr,elm,elm,nno);
   if(strInd == 13)
     _FORTRAN(strainvm)((double*)elStrain,nno,maxstr,elm,nno);
 
-// Store all Stress or all Strain as defined by strInd
+  // Store Stress or Strain as defined by strInd
   if(strInd < 7) {
     stress[0] = elStress[0][strInd];
     stress[1] = elStress[1][strInd];
@@ -501,9 +504,9 @@ BrickCorotator::getNLVonMises(Vector& stress, Vector& weight,
 }
 
 void
-BrickCorotator::getNLAllStress(FullM& stress, Vector& weight,
-                               GeomState &geomState, CoordSet &cs,
-                               int strInd)
+BrickCorotator::getNLAllStress(FullM &stress, Vector &weight, GeomState &geomState,
+                               GeomState *, CoordSet &cs, int strInd, int,
+                               double *ndTemps, int)
 {
   weight = 1.0;
 
@@ -513,7 +516,7 @@ BrickCorotator::getNLAllStress(FullM& stress, Vector& weight,
   double elStrain[8][7];
 
   // Compute NL Stress/Strain
-  computePiolaStress(geomState, cs, elStress, elStrain);
+  computePiolaStress(geomState, cs, ndTemps, elStress, elStrain);
 
   // Store all Stress or all Strain as defined by strInd
   if(strInd == 0) {
@@ -551,33 +554,33 @@ BrickCorotator::getNLAllStress(FullM& stress, Vector& weight,
 }
 
 void
-BrickCorotator::computePiolaStress(GeomState &geomState, CoordSet &cs,
+BrickCorotator::computePiolaStress(GeomState &geomState, CoordSet &cs, double *ndTemps,
                                    double stress[8][7], double strain[8][7])
 {
   int i,j,n;
   double nGrad[8][3];
   
-  double xinod[8]  = {-1.0, 1.0, 1.0, -1.0, -1.0, 1.0, 1.0, -1.0};
+  double xinod[8] = {-1.0, 1.0, 1.0, -1.0, -1.0, 1.0, 1.0, -1.0};
   double etanod[8] = {-1.0, -1.0, 1.0, 1.0, -1.0, -1.0, 1.0, 1.0};
   double munod[8] = {-1.0, -1.0, -1.0, -1.0, 1.0, 1.0, 1.0, 1.0};
-  double xi,eta,mu;;
+  double xi,eta,mu;
 
-  // reformat cs to accomodate fortran routine
+  // reformat cs to accommodate fortran routine
   double xNodes[8], yNodes[8], zNodes[8];
-  for (i = 0; i < 8; i++)  {
+  for (i = 0; i < 8; i++) {
     xNodes[i] = cs[nodeNum[i]]->x;
     yNodes[i] = cs[nodeNum[i]]->y;
     zNodes[i] = cs[nodeNum[i]]->z;
   }
 
-  for (n = 0; n < 8; n++)  {
+  for (n = 0; n < 8; n++) {
     xi  = xinod[n];
     eta = etanod[n];
     mu  = munod[n];
 
-    //compute shape functions
+    // compute shape functions
     double shapeFunc[8], shapeGradX[8], shapeGradY[8], shapeGradZ[8];
-    double dOmega;  //det of jacobian
+    double dOmega; // det of jacobian
       
     _FORTRAN(h8shpe)(xi, eta, mu, xNodes, yNodes, zNodes,
                      shapeFunc, shapeGradX, shapeGradY, shapeGradZ, dOmega);
@@ -629,9 +632,23 @@ BrickCorotator::computePiolaStress(GeomState &geomState, CoordSet &cs,
     double e_12 = (F[0][0]*F[0][1]+F[1][0]*F[1][1]+F[2][0]*F[2][1]);
     double e_13 = (F[0][0]*F[0][2]+F[1][0]*F[1][2]+F[2][0]*F[2][2]);
     double e_23 = (F[0][1]*F[0][2]+F[1][1]*F[1][2]+F[2][1]*F[2][2]);
+
+    // Reorder strain
+    strain[n][0] = e_11;
+    strain[n][1] = e_22;
+    strain[n][2] = e_33;
+    strain[n][3] = e_12;
+    strain[n][4] = e_23;
+    strain[n][5] = e_13;
+
+    // Subtract thermal strain
+    e_11 -= alpha*(ndTemps[n]-Tref);
+    e_22 -= alpha*(ndTemps[n]-Tref);
+    e_33 -= alpha*(ndTemps[n]-Tref);
+
     double sigma[6];
   
-    double E2=em*nu/((1+nu)*(1-2*nu));
+    double E2 = em*nu/((1+nu)*(1-2*nu));
     double G2 = em/(2*(1+nu));
     double E1 = E2+em/(1+nu);
     sigma[0] = E1*e_11+E2*(e_22+e_33);
@@ -641,19 +658,13 @@ BrickCorotator::computePiolaStress(GeomState &geomState, CoordSet &cs,
     sigma[4] = G2*e_23;
     sigma[5] = G2*e_13;
     
-    // Reorder
+    // Reorder stress
     stress[n][0] = sigma[0];
     stress[n][1] = sigma[1];
     stress[n][2] = sigma[2];
     stress[n][3] = sigma[3];
     stress[n][4] = sigma[4];
     stress[n][5] = sigma[5];
-    strain[n][0] = e_11;
-    strain[n][1] = e_22;
-    strain[n][2] = e_33;
-    strain[n][3] = e_12;
-    strain[n][4] = e_23;
-    strain[n][5] = e_13;
   }
 }
 
@@ -682,19 +693,19 @@ BrickCorotator::getElementEnergy(GeomState &geomState, CoordSet &cs)
   // initialize energy to zero
   double Energy = 0;
 
-  // reformat cs to accomodate fortran routines
+  // reformat cs to accommodate fortran routines
   double xNodes[8], yNodes[8], zNodes[8];
-  for (i = 0; i < 8; i++)  {
+  for (i = 0; i < 8; i++) {
     xNodes[i] = cs[nodeNum[i]]->x;
     yNodes[i] = cs[nodeNum[i]]->y;
     zNodes[i] = cs[nodeNum[i]]->z;
   }
 
-  int fortran = 1;  // fortran routines start from index 1
+  int fortran = 1; // fortran routines start from index 1
   int pt1, pt2, pt3;
-  for (pt1 = 0 + fortran; pt1 < 2 + fortran; pt1++)  {
-    for (pt2 = 0 + fortran; pt2 < 2 + fortran; pt2++)  {
-      for (pt3 = 0 + fortran; pt3 < 2 + fortran; pt3++)  {
+  for (pt1 = 0 + fortran; pt1 < 2 + fortran; pt1++) {
+    for (pt2 = 0 + fortran; pt2 < 2 + fortran; pt2++) {
+      for (pt3 = 0 + fortran; pt3 < 2 + fortran; pt3++) {
         // get gauss point
         double xi, eta, mu, wt;
         _FORTRAN(hxgaus)(numLinGaussPts, pt1, numLinGaussPts, pt2,
@@ -702,7 +713,7 @@ BrickCorotator::getElementEnergy(GeomState &geomState, CoordSet &cs)
 
         //compute shape functions
         double shapeFunc[8], shapeGradX[8], shapeGradY[8], shapeGradZ[8];
-        double dOmega;  //det of jacobian
+        double dOmega; // det of jacobian
 
         _FORTRAN(h8shpe)(xi, eta, mu, xNodes, yNodes, zNodes,
                        shapeFunc, shapeGradX, shapeGradY, shapeGradZ, dOmega);

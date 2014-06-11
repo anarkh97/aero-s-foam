@@ -766,7 +766,7 @@ Pentahedral::getCorotator(CoordSet &cs, double *kel, int, int)
 #endif
   }
   else if(!cCoefs) {
-    pentaCorotator = new PentaCorotator(nn, prop->E, prop->nu, cs);
+    pentaCorotator = new PentaCorotator(nn, prop->E, prop->nu, cs, prop->Ta, prop->W);
     return pentaCorotator;
   }
   printf("WARNING: Corotator not implemented for element %d\n", glNum+1); return 0;

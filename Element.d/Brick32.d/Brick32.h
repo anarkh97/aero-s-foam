@@ -12,6 +12,7 @@ class Brick32: public Element
 
   public:
     Brick32(int*);
+    ~Brick32();
 
     Element *clone();
 

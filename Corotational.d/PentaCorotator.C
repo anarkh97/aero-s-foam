@@ -26,7 +26,7 @@ PentaCorotator::PentaCorotator(int nodeNumbers[6], double _em, double _nu, Coord
  nodeNum[5] = nodeNumbers[5];
 
  em = _em;	 // Elastic modulus
- nu = _nu;	 // Poisson's ratio 
+ nu = _nu;	 // Poisson's ratio
  Tref = _Tref;   // Ambient temperature
  alpha = _alpha; // Thermal expansion coefficient
 }
@@ -202,7 +202,6 @@ PentaCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
   for(i = 0; i < 18; ++i)
     for(j = 0; j <= i; ++j)
       K[i][j] = K[j][i];
-
 }
 
 void
@@ -465,7 +464,7 @@ PentaCorotator::getNLAllStress(FullM &stress, Vector &weight, GeomState &geomSta
     }
   }
 
-  // PJSA Get Element Principals without averaging
+  // Get Element Principals without averaging
   double svec[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
   double pvec[3] = {0.0,0.0,0.0};
   for (i=0; i<6; ++i) {
@@ -487,19 +486,19 @@ PentaCorotator::getNLAllStress(FullM &stress, Vector &weight, GeomState &geomSta
 
 void
 PentaCorotator::computePiolaStress(GeomState &geomState, CoordSet &cs, double *ndTemps,
-                                    double stress[6][7], double strain[6][7])
+                                   double stress[6][7], double strain[6][7])
 {
   int i,j,n;
   double nGrad[6][3];
 
-  // coordinates of the nodes in the reference element  
+  // coordinates of the nodes in the reference element
   double r[6] = { 0.0, 1.0, 0.0, 0.0, 1.0, 0.0};
   double s[6] = { 0.0, 0.0, 1.0, 0.0, 0.0, 1.0};
   double z[6] = {-1.0,-1.0,-1.0, 1.0, 1.0, 1.0};
 
   // reformat cs to accommodate shape function routine
   double X[6], Y[6], Z[6];
-  for (i = 0; i < 6; i++)  {
+  for (i = 0; i < 6; i++) {
     X[i] = cs[nodeNum[i]]->x;
     Y[i] = cs[nodeNum[i]]->y;
     Z[i] = cs[nodeNum[i]]->z;
@@ -556,7 +555,6 @@ PentaCorotator::computePiolaStress(GeomState &geomState, CoordSet &cs, double *n
     strain[n][4] = e_23;
     strain[n][5] = e_13;
 
-
     // Subtract thermal strain
     e_11 -= alpha*(ndTemps[n]-Tref);
     e_22 -= alpha*(ndTemps[n]-Tref);
@@ -588,8 +586,8 @@ void
 PentaCorotator::extractDeformations(GeomState &geomState, CoordSet &cs, 
                                     double *vld, int &nlflag)
 {
- // Set Flag to Use Non-Linear Routines for Stress
- nlflag = 2;
+  // Set Flag to Use Non-Linear Routines for Stress
+  nlflag = 2;
 }
 
 void
@@ -602,7 +600,6 @@ double
 PentaCorotator::getElementEnergy(GeomState &geomState, CoordSet &cs) 
 {
   // Computes Internal Energy of Element in Given State
-
   int i,j;
 
   // hard coded order 2 triangle quadrature rule: {r,s,t(=1-r-s),w}

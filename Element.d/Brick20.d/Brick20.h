@@ -12,6 +12,7 @@ class Brick20: public Element
 
   public:
     Brick20(int*);
+    ~Brick20();
 
     Element *clone();
 

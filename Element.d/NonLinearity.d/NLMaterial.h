@@ -66,6 +66,15 @@ class NLMaterial
      virtual void print(std::ostream &out) const {
        throw std::range_error("material law does not implement print function");
      }
+
+     virtual NLMaterial * clone() const {
+       std::cerr << "material law does not implement clone function\n";
+       return 0;
+     }
+
+     virtual void setTangentMaterial(double C[6][6]) {
+       std::cerr << "material law does not implement setTangentMaterial function\n";
+     }
 };
 
 #endif

@@ -532,7 +532,7 @@ BrickCorotator::getNLAllStress(FullM &stress, Vector &weight, GeomState &geomSta
       }
     }
   }
- 
+
   // Get Element Principals without averaging
   double svec[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
   double pvec[3] = {0.0,0.0,0.0};

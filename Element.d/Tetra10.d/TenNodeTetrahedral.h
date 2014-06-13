@@ -14,6 +14,7 @@ class TenNodeTetrahedral: public Element
 
   public:
     TenNodeTetrahedral(int*);
+    ~TenNodeTetrahedral();
 
     Element *clone();
 

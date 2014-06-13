@@ -15,6 +15,7 @@ class Pentahedral: public Element
 
   public:
     Pentahedral(int*);
+    ~Pentahedral();
 
     Element *clone();
 

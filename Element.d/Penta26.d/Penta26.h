@@ -12,6 +12,7 @@ class Penta26: public Element
 
   public:
     Penta26(int*);
+    ~Penta26();
 
     Element *clone();
 

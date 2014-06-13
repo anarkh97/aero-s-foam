@@ -158,7 +158,7 @@ GaussIntgElement::getStiffAndForce(Node *nodes, double *disp,
     //material->getStress(&s, e, 0);        
     //material->getStressAndTangentMaterial(&s, &D, e, 0);
         
-    material->integrate(&s, &D,  e, e,0, 0, 0);
+    material->integrate(&s, &D, e, e, 0, 0, 0);
 
     temp0 = s || B;
     temp0 = (weight*jac)*temp0;

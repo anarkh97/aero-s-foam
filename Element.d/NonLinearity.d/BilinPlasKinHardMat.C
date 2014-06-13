@@ -80,7 +80,6 @@ ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor *_tm, Tensor &_en, Tens
 
   // theta == 0 corresponds to Kinematic hardening and theta == 1 to isotropic 
   // hardening. Note: this is now a member variable with default value 0
-  //double theta = 0.0;
 
   if(statenp == 0) {
 
@@ -144,7 +143,6 @@ ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor *_tm, Tensor &_en, Tens
       //fprintf(stderr, "je suis dans la yield surface\n");
 
       for (int i=0; i<13; ++i) {
-        //fprintf(stderr, "staten[%d]=%e\n", i, staten[i]);
         statenp[i] = staten[i] ;
       }
 
@@ -154,7 +152,9 @@ ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor *_tm, Tensor &_en, Tens
       stress = tm || temp;
     }
     else {
+
       //fprintf(stderr, "je suis en dehors de la yield surface\n");
+
       int i,j,k,l;
 
       double plastmult = trialyieldnp/(2*mu+(2./3)*Hprime); 
@@ -194,7 +194,6 @@ ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor &_en, Tensor  &_enp,
 
   // theta == 0 corresponds to Kinematic hardening and theta == 1 to isotropic 
   // hardening. Note: this is now a member variable with default value 0
-  //double theta = 0.0;
 
   if(statenp == 0) {
 
@@ -259,7 +258,6 @@ ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor &_en, Tensor  &_enp,
       //fprintf(stderr, "je suis dans la yield surface\n");
 
       for (int i=0; i<13; ++i) {
-        //fprintf(stderr, "staten[%d]=%e\n", i, staten[i]);
         statenp[i] = staten[i] ;
       }
 
@@ -269,7 +267,9 @@ ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor &_en, Tensor  &_enp,
       stress = tm || temp;
     }
     else {
+
       //fprintf(stderr, "je suis en dehors de la yield surface\n");
+
       int i,j,k,l;
 
       double plastmult = trialyieldnp/(2*mu+(2./3)*Hprime); 

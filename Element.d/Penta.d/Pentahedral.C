@@ -8,7 +8,7 @@
 #include <Utils.d/pstress.h>
 #include <Math.d/FullSquareMatrix.h>
 #include <Corotational.d/PentaCorotator.h>
-#include <Element.d/NonLinearity.d/NLMaterial.h>
+#include <Element.d/NonLinearity.d/ElaLinIsoMat.h>
 #include <Element.d/NonLinearity.d/NLPentahedral.h>
 #include <Corotational.d/MatNLCorotator.h>
 
@@ -48,6 +48,11 @@ Pentahedral::Pentahedral(int* nodenums)
   cFrame = 0;
   cCoefs = 0;
   mat = 0;
+}
+
+Pentahedral::~Pentahedral()
+{
+  if(cCoefs && mat) delete mat;
 }
 
 Element *
@@ -744,7 +749,17 @@ Pentahedral::getAllStressAniso(FullM &stress, Vector &weight, CoordSet &cs,
 void
 Pentahedral::setMaterial(NLMaterial *_mat)
 {
-  mat = _mat;
+  if(cCoefs) { // anisotropic material
+    double C[6][6];
+    mat = _mat->clone();
+    // transform local constitutive matrix to global frame
+    rotateConstitutiveMatrix(cCoefs, cFrame, C);
+    if(mat) mat->setTangentMaterial(C);
+    Eigen::Map<Eigen::Matrix<double,6,6,Eigen::RowMajor> > _C(&C[0][0]);
+  }
+  else {
+    mat = _mat;
+  }
 }
 
 int
@@ -757,6 +772,11 @@ Pentahedral::numStates()
 Corotator *
 Pentahedral::getCorotator(CoordSet &cs, double *kel, int, int)
 {
+  if(cCoefs && !mat) {
+    double C[6][6];
+    rotateConstitutiveMatrix(cCoefs, cFrame, C);
+    mat = new StVenantKirchhoffMat(prop->rho, C);
+  }
   if(mat) {
 #ifdef USE_EIGEN3
     MatNLElement *ele = new NLPentahedral6(nn);

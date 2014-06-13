@@ -17,6 +17,7 @@ class Tetrahedral: public Element,
 
   public:
     Tetrahedral(int*);
+    ~Tetrahedral();
 
     Element *clone();
 

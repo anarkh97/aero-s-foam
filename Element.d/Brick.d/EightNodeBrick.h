@@ -16,6 +16,7 @@ class EightNodeBrick: virtual public Element
 
   public:
     EightNodeBrick(int*);
+    ~EightNodeBrick();
 
     Element *clone();
 

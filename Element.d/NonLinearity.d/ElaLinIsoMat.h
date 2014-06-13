@@ -3,19 +3,23 @@
 #include <Math.d/Vector.h>
 #include <Math.d/matrix.h>
 #include <Element.d/Element.h>
+#include <Element.d/NonLinearity.d/NLMaterial.h>
 #include <Utils.d/NodeSpaceArray.h>
 
 class StructProp;
 
-//Declaration of the material properties
+// This material and those derived from it can now be either isotropic or anisotropic
 class ElaLinIsoMat : public NLMaterial
 {
   protected:
     double rho, E, nu;
+    Tensor_d0s4_Ss12s34 *m_tm;
 
   public:
     ElaLinIsoMat(StructProp *p);
     ElaLinIsoMat(double _rho, double _E, double _nu);
+    ElaLinIsoMat(double _rho, double C[6][6]);
+    ~ElaLinIsoMat();
 
     int getNumStates() { return 0; }
 
@@ -44,8 +48,12 @@ class ElaLinIsoMat : public NLMaterial
     double getStrainEnergyDensity(Tensor &enp, double *statenp);
 
     void print(std::ostream &out) const {
-      out << "Linear " << rho << " " << E << " " << nu;
+      out << "Linear "; if(!m_tm) out << rho << " " << E << " " << nu;
     }
+
+    NLMaterial * clone() const;
+
+    void setTangentMaterial(double C[6][6]);
 };
 
 // same equation as ElaLinIsoMat but with different Green-Lagrange strain evaluator
@@ -55,11 +63,13 @@ class StVenantKirchhoffMat : public ElaLinIsoMat
   public:
     StVenantKirchhoffMat(StructProp *p) : ElaLinIsoMat(p) {}
     StVenantKirchhoffMat(double rho, double E, double nu) : ElaLinIsoMat(rho, E, nu) {}
+    StVenantKirchhoffMat(double rho, double C[6][6]) : ElaLinIsoMat(rho, C) {}
 
     StrainEvaluator * getStrainEvaluator();
     void print(std::ostream &out) const {
-      out << "StVenantKirchhoff " << rho << " " << E << " " << nu;
+      out << "StVenantKirchhoff "; if(!m_tm) out << rho << " " << E << " " << nu;
     }
+    NLMaterial * clone() const;
 };
 
 class HenckyMat : public ElaLinIsoMat
@@ -67,11 +77,13 @@ class HenckyMat : public ElaLinIsoMat
   public:
     HenckyMat(StructProp *p) : ElaLinIsoMat(p) {}
     HenckyMat(double rho, double E, double nu) : ElaLinIsoMat(rho, E, nu) {}
+    HenckyMat(double rho, double C[6][6]) : ElaLinIsoMat(rho, C) {}
 
     StrainEvaluator * getStrainEvaluator();
     void print(std::ostream &out) const {
-      out << "HenckyElastic " << rho << " " << E << " " << nu;
+      out << "HenckyElastic "; if(!m_tm) out << rho << " " << E << " " << nu;
     }
+    NLMaterial * clone() const;
 };
 
 

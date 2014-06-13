@@ -12,7 +12,6 @@
 #include <Utils.d/linkfc.h>
 #include <Utils.d/pstress.h>
 #include <Math.d/FullSquareMatrix.h>
-#include <Element.d/NonLinearity.d/NLMaterial.h>
 #include <Element.d/NonLinearity.d/ElaLinIsoMat.h>
 #include <Element.d/NonLinearity.d/NLPentahedral.h>
 #include <Corotational.d/MatNLCorotator.h>
@@ -54,6 +53,11 @@ Penta15::Penta15(int* nodenums)
   cFrame = 0;
   cCoefs = 0;
   mat = 0;
+}
+
+Penta15::~Penta15()
+{
+  if(cCoefs && mat) delete mat;
 }
 
 Element *
@@ -513,7 +517,17 @@ Penta15::markDofs(DofSetArray &dsa)
 void
 Penta15::setMaterial(NLMaterial *_mat)
 {
-  mat = _mat;
+  if(cCoefs) { // anisotropic material
+    double C[6][6];
+    mat = _mat->clone();
+    // transform local constitutive matrix to global frame
+    rotateConstitutiveMatrix(cCoefs, cFrame, C);
+    if(mat) mat->setTangentMaterial(C);
+    Eigen::Map<Eigen::Matrix<double,6,6,Eigen::RowMajor> > _C(&C[0][0]);
+  }
+  else {
+    mat = _mat;
+  }
 }
 
 int
@@ -527,8 +541,16 @@ Corotator *
 Penta15::getCorotator(CoordSet &cs, double *kel, int, int)
 {
 #ifdef USE_EIGEN3
-  if(!mat && !cCoefs)
-    mat = new StVenantKirchhoffMat(prop->rho, prop->E, prop->nu);
+  if(!mat) {
+    if(cCoefs) {
+      double C[6][6];
+      rotateConstitutiveMatrix(cCoefs, cFrame, C);
+      mat = new StVenantKirchhoffMat(prop->rho, C);
+    }
+    else {
+      mat = new StVenantKirchhoffMat(prop->rho, prop->E, prop->nu);
+    }
+  }
   if(mat) {
     MatNLElement *ele = new NLPentahedral15(nn);
     ele->setMaterial(mat);

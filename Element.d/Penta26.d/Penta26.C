@@ -12,6 +12,7 @@
 #include <Utils.d/linkfc.h>
 #include <Utils.d/pstress.h>
 #include <Math.d/FullSquareMatrix.h>
+#include <Corotational.d/Penta26Corotator.h>
 #include <Element.d/NonLinearity.d/ElaLinIsoMat.h>
 #include <Element.d/NonLinearity.d/NLPentahedral.h>
 #include <Corotational.d/MatNLCorotator.h>
@@ -29,6 +30,7 @@ void computeStressAndEngStrain3DSolid(double Stress[6], double Strain[6], double
 double computeStress3DSolid(double Stress[6],double Strain[6], double C[6][6]);
 double computeVonMisesStress(double Stress[6]);
 double computeVonMisesStrain(double Strain[6]);
+void Penta26ShapeFct(double Shape[26], double m[3]);
 
 extern bool useFull;
 
@@ -66,6 +68,8 @@ Penta26::Penta26(int* nodenums)
 {
   for(int i=0; i<26; i++)
     nn[i] = nodenums[i];
+
+  penta26Corotator = 0;
 
   cFrame = 0;
   cCoefs = 0;
@@ -369,17 +373,28 @@ Penta26::getThermalForce(CoordSet &cs, Vector &ndTemps,
   // N[inode] is the shape fct at node inode
   // M is the position in the real frame, m its associated position in the reference
   // element frame
+  // NUMERICAL INTEGRATION BY GAUSS PTS
+  int ngauss = 18;
+  double Shape[26];
+  double w, J;
 
-  if(geomState) { // NONLINEAR ANALYSIS
-    fprintf(stderr," *** ERROR: Penta26::getThermalForce not supported for nonlinear analysis. Abort.\n");
-    exit(-1);
+  if(geomState && penta26Corotator) { // GEOMETRIC NONLINEAR ANALYSIS WITH DEFAULT MATERIAL
+    double coef = prop->E/(1.-2.*prop->nu);
+    double dedU[78][6];
+    for(int i=0; i<ngauss; i++) {
+      J = penta26Corotator->computeStrainGrad(*geomState, cs, dedU, gauss3d9[i]);
+      Penta26ShapeFct(Shape, gauss3d9[i]);
+      w = fabs(J)*weight3d9[i];
+      double theta = 0.0;
+      for(int inode=0; inode<nnodes; inode++) theta += Shape[inode]*(ndTemps[inode] - Tref);
+      theta *= coef*alpha*w;
+
+      for(int l=0; l<ndofs; l++)
+        elementThermalForce[l] += theta*(dedU[l][0]+dedU[l][1]+dedU[l][2]);
+    }
   }
-  else { // LINEAR ANALYSIS
-    // integration: loop over Gauss pts
-    int ngauss = 18;
-    double Shape[26], DShape[26][3];
-    double w, J;
-
+  else if(!geomState) { // LINEAR ANALYSIS
+    double DShape[26][3];
     for(int i = 0; i < ngauss; i++) {
       // compute shape fcts & their derivatives at the Gauss pt
       J = Penta26ShapeFct(Shape, DShape, gauss3d9[i], X, Y, Z);
@@ -397,6 +412,10 @@ Penta26::getThermalForce(CoordSet &cs, Vector &ndTemps,
         elementThermalForce[3*inode+2] += w*(DShape[inode][0]*thermalStress[5] + DShape[inode][1]*thermalStress[4] + DShape[inode][2]*thermalStress[2]);
       }
     }
+  }
+  else {
+    fprintf(stderr," *** ERROR: Penta26::getThermalForce not supported for material nonlinear analysis. Abort.\n");
+    exit(-1);
   }
 }
 
@@ -562,23 +581,22 @@ Penta26::numStates()
 Corotator *
 Penta26::getCorotator(CoordSet &cs, double *kel, int, int)
 {
-#ifdef USE_EIGEN3
-  if(!mat) {
-    if(cCoefs) {
-      double C[6][6];
-      rotateConstitutiveMatrix(cCoefs, cFrame, C);
-      mat = new StVenantKirchhoffMat(prop->rho, C);
-    }
-    else {
-      mat = new StVenantKirchhoffMat(prop->rho, prop->E, prop->nu);
-    }
+  if(cCoefs && !mat) {
+    double C[6][6];
+    rotateConstitutiveMatrix(cCoefs, cFrame, C);
+    mat = new StVenantKirchhoffMat(prop->rho, C);
   }
   if(mat) {
+#ifdef USE_EIGEN3
     MatNLElement *ele = new NLPentahedral26(nn);
     ele->setMaterial(mat);
     ele->setGlNum(glNum);
     return new MatNLCorotator(ele);
-  }
 #endif
+  }
+  else {
+    penta26Corotator = new Penta26Corotator(nn, prop->E, prop->nu, cs, prop->Ta, prop->W);
+    return penta26Corotator;
+  }
   printf("WARNING: Corotator not implemented for element %d\n", glNum+1); return 0;
 }

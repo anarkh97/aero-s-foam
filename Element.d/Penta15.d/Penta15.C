@@ -12,6 +12,7 @@
 #include <Utils.d/linkfc.h>
 #include <Utils.d/pstress.h>
 #include <Math.d/FullSquareMatrix.h>
+#include <Corotational.d/Penta15Corotator.h>
 #include <Element.d/NonLinearity.d/ElaLinIsoMat.h>
 #include <Element.d/NonLinearity.d/NLPentahedral.h>
 #include <Corotational.d/MatNLCorotator.h>
@@ -29,6 +30,7 @@ void computeStressAndEngStrain3DSolid(double Stress[6], double Strain[6], double
 double computeStress3DSolid(double Stress[6],double Strain[6], double C[6][6]);
 double computeVonMisesStress(double Stress[6]);
 double computeVonMisesStrain(double Strain[6]);
+void Penta15ShapeFct(double Shape[15], double m[3]);
 
 extern bool useFull;
 
@@ -49,6 +51,8 @@ Penta15::Penta15(int* nodenums)
 {
   for(int i=0; i<15; i++)
     nn[i] = nodenums[i];
+
+  penta15Corotator = 0;
 
   cFrame = 0;
   cCoefs = 0;
@@ -344,17 +348,28 @@ Penta15::getThermalForce(CoordSet &cs, Vector &ndTemps,
   // N[inode] is the shape fct at node inode
   // M is the position in the real frame, m its associated position in the reference
   // element frame
+  // NUMERICAL INTEGRATION BY GAUSS PTS
+  int ngauss = 9;
+  double Shape[15];
+  double w, J;
 
-  if(geomState) { // NONLINEAR ANALYSIS
-    fprintf(stderr," *** ERROR: Penta15::getThermalForce not supported for nonlinear analysis. Abort.\n");
-    exit(-1);
+  if(geomState && penta15Corotator) { // GEOMETRIC NONLINEAR ANALYSIS WITH DEFAULT MATERIAL
+    double coef = prop->E/(1.-2.*prop->nu);
+    double dedU[45][6];
+    for(int i=0; i<ngauss; i++) {
+      J = penta15Corotator->computeStrainGrad(*geomState, cs, dedU, gauss3d8[i]);
+      Penta15ShapeFct(Shape, gauss3d8[i]);
+      w = fabs(J)*weight3d8[i];
+      double theta = 0.0;
+      for(int inode=0; inode<nnodes; inode++) theta += Shape[inode]*(ndTemps[inode] - Tref);
+      theta *= coef*alpha*w;
+
+      for(int l=0; l<ndofs; l++)
+        elementThermalForce[l] += theta*(dedU[l][0]+dedU[l][1]+dedU[l][2]);
+    }
   }
-  else { // LINEAR ANALYSIS
-    // integration: loop over Gauss pts
-    int ngauss = 9;
-    double Shape[15], DShape[15][3];
-    double w, J;
-
+  else if(!geomState) { // LINEAR ANALYSIS
+    double DShape[15][3];
     for(int i = 0; i < ngauss; i++) {
       // compute shape fcts & their derivatives at the Gauss pt
       J = Penta15ShapeFct(Shape, DShape, gauss3d8[i], X, Y, Z);
@@ -372,6 +387,10 @@ Penta15::getThermalForce(CoordSet &cs, Vector &ndTemps,
         elementThermalForce[3*inode+2] += w*(DShape[inode][0]*thermalStress[5] + DShape[inode][1]*thermalStress[4] + DShape[inode][2]*thermalStress[2]);
       }
     }
+  }
+  else {
+    fprintf(stderr," *** ERROR: Penta15::getThermalForce not supported for material nonlinear analysis. Abort.\n");
+    exit(-1);
   }
 }
 
@@ -540,23 +559,22 @@ Penta15::numStates()
 Corotator *
 Penta15::getCorotator(CoordSet &cs, double *kel, int, int)
 {
-#ifdef USE_EIGEN3
-  if(!mat) {
-    if(cCoefs) {
-      double C[6][6];
-      rotateConstitutiveMatrix(cCoefs, cFrame, C);
-      mat = new StVenantKirchhoffMat(prop->rho, C);
-    }
-    else {
-      mat = new StVenantKirchhoffMat(prop->rho, prop->E, prop->nu);
-    }
+  if(cCoefs && !mat) {
+    double C[6][6];
+    rotateConstitutiveMatrix(cCoefs, cFrame, C);
+    mat = new StVenantKirchhoffMat(prop->rho, C);
   }
   if(mat) {
+#ifdef USE_EIGEN3
     MatNLElement *ele = new NLPentahedral15(nn);
     ele->setMaterial(mat);
     ele->setGlNum(glNum);
     return new MatNLCorotator(ele);
-  }
 #endif
+  }
+  else {
+    penta15Corotator = new Penta15Corotator(nn, prop->E, prop->nu, cs, prop->Ta, prop->W);
+    return penta15Corotator;
+  }
   printf("WARNING: Corotator not implemented for element %d\n", glNum+1); return 0;
 }

@@ -1,10 +1,10 @@
-#ifndef _BRICK_COROTATOR_H_
-#define _BRICK_COROTATOR_H_
+#ifndef _BRICK20_COROTATOR_H_
+#define _BRICK20_COROTATOR_H_
 
 #include <Corotational.d/Corotator.h>
 
-class BrickCorotator : public Corotator {
-     int nodeNum[8];
+class Brick20Corotator : public Corotator {
+     int nodeNum[20];
      double em;                 // elastic modulus
      double nu;                 // Poisson's ratio
      double Tref;               // ambient temperature
@@ -12,7 +12,7 @@ class BrickCorotator : public Corotator {
    public:
 
      // Constructor
-     BrickCorotator(int nn[8], double, double, CoordSet &, double, double);
+     Brick20Corotator(int nn[20], double, double, CoordSet &, double, double);
      double * getOriginalStiffness() { return (double*) 0; }
 
      void     getStiffAndForce(GeomState &gs, CoordSet &cs, 
@@ -36,13 +36,13 @@ class BrickCorotator : public Corotator {
                              GeomState *refState, CoordSet &c0, int strInd, int surface = 0,
                              double *ndTemps = 0, int measure = -1);
 
-     double   computeShapeGrad(GeomState &nodes, double nGrad[8][3]);
+     double   computeShapeGrad(GeomState &nodes, double nGrad[20][3]);
 
-     double   computeStrainGrad(GeomState &geomState, CoordSet &, double dedU[24][6],
+     double   computeStrainGrad(GeomState &geomState, CoordSet &, double dedU[60][6],
                                 int, int, int);
 
      void     computePiolaStress(GeomState &, CoordSet &cs, double *ndTemps,
-                                 double stress[8][7], double strain[8][7]);
+                                 double stress[20][7], double strain[20][7]);
 
      double   getElementEnergy(GeomState &gs, CoordSet &cs);
 

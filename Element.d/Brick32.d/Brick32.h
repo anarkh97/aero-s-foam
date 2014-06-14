@@ -3,11 +3,14 @@
 
 #include <Element.d/Element.h>
 
+class Brick32Corotator;
+
 class Brick32: public Element
 {
     int nn[32];
     double *cCoefs;
     double *cFrame;
+    Brick32Corotator *brick32Corotator;
     NLMaterial *mat;
 
   public:
@@ -31,7 +34,6 @@ class Brick32: public Element
 
     void getAllStress(FullM &stress, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd,
                       int surface=0, double *ndTemps=0);
-    void getVonMisesInt(CoordSet &, Vector &, double &, double &, int, double &, double &);
 
     void markDofs(DofSetArray &);
     int* dofs(DofSetArray &, int *p=0);

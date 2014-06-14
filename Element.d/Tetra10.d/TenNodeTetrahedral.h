@@ -3,13 +3,14 @@
 
 #include <Element.d/Element.h>
 
-class NLMaterial;
+class Tet10Corotator;
 
 class TenNodeTetrahedral: public Element
 {
     int nn[10];
     double *cCoefs;
     double *cFrame;
+    Tet10Corotator *tet10Corotator;
     NLMaterial *mat;
 
   public:

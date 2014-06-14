@@ -3,11 +3,14 @@
 
 #include <Element.d/Element.h>
 
+class Penta26Corotator;
+
 class Penta26: public Element
 {
     int nn[26];
     double *cCoefs;
     double *cFrame;
+    Penta26Corotator *penta26Corotator;
     NLMaterial *mat;
 
   public:
@@ -20,7 +23,7 @@ class Penta26: public Element
     void renum(EleRenumMap&);
 
     FullSquareMatrix stiffness(CoordSet&, double *kel, int flg=1);
-    FullSquareMatrix massMatrix(CoordSet&,double *mel, int cmflg=1);
+    FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg=1);
     double getMass(CoordSet& cs);
 
     void getGravityForce(CoordSet&, double *gravity, Vector&, int gravflg, GeomState *gs);

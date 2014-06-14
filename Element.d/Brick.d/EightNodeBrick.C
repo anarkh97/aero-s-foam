@@ -398,6 +398,7 @@ EightNodeBrick::getThermalForce(CoordSet &cs, Vector &ndTemps,
   const int numgauss = 2;
   double Shape[8], DShape[8][3], m[3];
   double wx,wy,wz,w,J; 
+
   if(geomState && brickCorotator) { // GEOMETRIC NONLINEAR ANALYSIS WITH DEFAULT MATERIAL
     double coef = prop->E/(1.-2.*prop->nu);
     double dedU[24][6];

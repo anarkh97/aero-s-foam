@@ -9,32 +9,32 @@
 #include <Corotational.d/utilities.h>
 
 extern "C" {
-  void  _FORTRAN(vmelmv)(double*, int &, int &, int &, int &, int &);
-  void  _FORTRAN(strainvm)(double*, int &, int &, int &, int &);
-  void  _FORTRAN(lgauss)(int &, int &, double *, double *);
+  void _FORTRAN(vmelmv)(double*, int &, int &, int &, int &, int &);
+  void _FORTRAN(strainvm)(double*, int &, int &, int &, int &);
+  void _FORTRAN(lgauss)(int &, int &, double *, double *);
 };
 
 extern double Penta6ShapeFct(double Shape[6], double DShape[6][3], double m[3], double X[6], double Y[6], double Z[6]);
 
 PentaCorotator::PentaCorotator(int nodeNumbers[6], double _em, double _nu, CoordSet& cs, double _Tref, double _alpha)
 {
- nodeNum[0] = nodeNumbers[0];
- nodeNum[1] = nodeNumbers[1];
- nodeNum[2] = nodeNumbers[2];
- nodeNum[3] = nodeNumbers[3];
- nodeNum[4] = nodeNumbers[4];
- nodeNum[5] = nodeNumbers[5];
+  nodeNum[0] = nodeNumbers[0];
+  nodeNum[1] = nodeNumbers[1];
+  nodeNum[2] = nodeNumbers[2];
+  nodeNum[3] = nodeNumbers[3];
+  nodeNum[4] = nodeNumbers[4];
+  nodeNum[5] = nodeNumbers[5];
 
- em = _em;	 // Elastic modulus
- nu = _nu;	 // Poisson's ratio
- Tref = _Tref;   // Ambient temperature
- alpha = _alpha; // Thermal expansion coefficient
+  em = _em;       // Elastic modulus
+  nu = _nu;       // Poisson's ratio
+  Tref = _Tref;   // Ambient temperature
+  alpha = _alpha; // Thermal expansion coefficient
 }
 
 // geomState -> contains the updated nodal coordinates
 // cs        -> contains the original nodal coordinates
 void
-PentaCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs, 
+PentaCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
                                  FullSquareMatrix &K, double *f, double dt, double t)
 {
   int i,j,k;
@@ -43,10 +43,10 @@ PentaCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
   double TriGPt3[3][4] = {{1./6.,1./6.,1./6.,1./6.},
                           {2./3.,1./6.,1./6.,1./6.},
                           {1./6.,2./3.,1./6.,1./6.}};
-  
+
   // initialize forces and stiffness matrix
   for (i = 0; i < 18; i++) f[i] = 0;
-  K.zero();  
+  K.zero();
 
   // reformat cs to accommodate shape function routine
   double X[6], Y[6], Z[6];
@@ -62,7 +62,7 @@ PentaCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
   int ngpxy= 3; // numbder of (triangular) integration pts (in the local x-y plane)
   double m[3], Shape[6], nGrad[6][3];
   double dOmega; // det of jacobian
-                                                                                                                
+
   for(int iz=1; iz<=ngpz; iz++) { // z Gauss pts
     // get z position & weight of the Gauss pt
     _FORTRAN(lgauss)(ngpz,iz,&m[2],&wz);
@@ -79,30 +79,31 @@ PentaCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
 
       // now get F_ij = dPhi_i/dX_j = x^k_i dN_k/dX_j
       double F[3][3];
+
       for(j = 0; j < 3; ++j)
-    	F[0][j] = geomState[nodeNum[0]].x * nGrad[0][j]
+        F[0][j] = geomState[nodeNum[0]].x * nGrad[0][j]
                 + geomState[nodeNum[1]].x * nGrad[1][j]
-            	+ geomState[nodeNum[2]].x * nGrad[2][j]
-            	+ geomState[nodeNum[3]].x * nGrad[3][j]
-	    	+ geomState[nodeNum[4]].x * nGrad[4][j]
-  	    	+ geomState[nodeNum[5]].x * nGrad[5][j];
-	
+                + geomState[nodeNum[2]].x * nGrad[2][j]
+                + geomState[nodeNum[3]].x * nGrad[3][j]
+                + geomState[nodeNum[4]].x * nGrad[4][j]
+                + geomState[nodeNum[5]].x * nGrad[5][j];
+
       for(j = 0; j < 3; ++j)
-    	F[1][j] = geomState[nodeNum[0]].y * nGrad[0][j]
-            	+ geomState[nodeNum[1]].y * nGrad[1][j]
-            	+ geomState[nodeNum[2]].y * nGrad[2][j]
-            	+ geomState[nodeNum[3]].y * nGrad[3][j]
-	    	+ geomState[nodeNum[4]].y * nGrad[4][j]
-  	    	+ geomState[nodeNum[5]].y * nGrad[5][j];
-	
+        F[1][j] = geomState[nodeNum[0]].y * nGrad[0][j]
+                + geomState[nodeNum[1]].y * nGrad[1][j]
+                + geomState[nodeNum[2]].y * nGrad[2][j]
+                + geomState[nodeNum[3]].y * nGrad[3][j]
+                + geomState[nodeNum[4]].y * nGrad[4][j]
+                + geomState[nodeNum[5]].y * nGrad[5][j];
+
       for(j = 0; j < 3; ++j)
-    	F[2][j] = geomState[nodeNum[0]].z * nGrad[0][j]
-            	+ geomState[nodeNum[1]].z * nGrad[1][j]
-            	+ geomState[nodeNum[2]].z * nGrad[2][j]
-            	+ geomState[nodeNum[3]].z * nGrad[3][j]
-	    	+ geomState[nodeNum[4]].z * nGrad[4][j]
-  	    	+ geomState[nodeNum[5]].z * nGrad[5][j];
-   
+        F[2][j] = geomState[nodeNum[0]].z * nGrad[0][j]
+                + geomState[nodeNum[1]].z * nGrad[1][j]
+                + geomState[nodeNum[2]].z * nGrad[2][j]
+                + geomState[nodeNum[3]].z * nGrad[3][j]
+                + geomState[nodeNum[4]].z * nGrad[4][j]
+                + geomState[nodeNum[5]].z * nGrad[5][j];
+
       // compute e_ij = 0.5*(F_ki Fkj - delta_ij)
       // here these are off by factor of 2
       double e_11 = (F[0][0]*F[0][0]+F[1][0]*F[1][0]+F[2][0]*F[2][0]-1.0);
@@ -113,7 +114,7 @@ PentaCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
       double e_23 = (F[0][1]*F[0][2]+F[1][1]*F[1][2]+F[2][1]*F[2][2]);
 
       double sigma[6];
-  
+
       double E2 = em*nu/((1+nu)*(1-2*nu));
       double E1 = E2+em/(1+nu);
       // no factor of 1/2 on G2 due to using tensor strain
@@ -134,45 +135,45 @@ PentaCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
       double dedU[18][6];
       for(i = 0; i < 6; ++i)
         for(j = 0; j < 3; ++j) {
-     	  dedU[3*i+j][0] = 2*nGrad[i][0]*F[j][0];
+          dedU[3*i+j][0] = 2*nGrad[i][0]*F[j][0];
           dedU[3*i+j][1] = 2*nGrad[i][1]*F[j][1];
-      	  dedU[3*i+j][2] = 2*nGrad[i][2]*F[j][2];
-      	  dedU[3*i+j][3] = (nGrad[i][0]*F[j][1]+nGrad[i][1]*F[j][0]);
-      	  dedU[3*i+j][4] = (nGrad[i][0]*F[j][2]+nGrad[i][2]*F[j][0]);
-      	  dedU[3*i+j][5] = (nGrad[i][1]*F[j][2]+nGrad[i][2]*F[j][1]);
-    	}
+          dedU[3*i+j][2] = 2*nGrad[i][2]*F[j][2];
+          dedU[3*i+j][3] = (nGrad[i][0]*F[j][1]+nGrad[i][1]*F[j][0]);
+          dedU[3*i+j][4] = (nGrad[i][0]*F[j][2]+nGrad[i][2]*F[j][0]);
+          dedU[3*i+j][5] = (nGrad[i][1]*F[j][2]+nGrad[i][2]*F[j][1]);
+        }
       // all dedU terms are here off by a factor of 2
 
       // Get the force:
       for(i = 0; i < 18; ++i)
-    	f[i] += dOmega*( dedU[i][0]*sigma[0] + 
-                         dedU[i][1]*sigma[1] + 
-                         dedU[i][2]*sigma[2] + 
-                         dedU[i][3]*sigma[3] + 
-           	         dedU[i][4]*sigma[4] + 
+        f[i] += dOmega*( dedU[i][0]*sigma[0] +
+                         dedU[i][1]*sigma[1] +
+                         dedU[i][2]*sigma[2] +
+                         dedU[i][3]*sigma[3] +
+                         dedU[i][4]*sigma[4] +
                          dedU[i][5]*sigma[5]);
       // normal terms of f are
       // (1/4)*(2*2) = 1 => right level
       // shear terms of f are
       // (1/4)*(2*4)*(1/2 for off-diag mult) = 1 => right level
-				
+
       // now get ds_ij/dUl
       double dsdU[18][6];
       for(i = 0; i < 18; ++i) {
-    	dsdU[i][0] = E1*dedU[i][0]+E2*(dedU[i][1]+dedU[i][2]);
-    	dsdU[i][1] = E1*dedU[i][1]+E2*(dedU[i][0]+dedU[i][2]);
-    	dsdU[i][2] = E1*dedU[i][2]+E2*(dedU[i][0]+dedU[i][1]);
-    	dsdU[i][3] = 2*G2*dedU[i][3];
-    	dsdU[i][4] = 2*G2*dedU[i][4];
-    	dsdU[i][5] = 2*G2*dedU[i][5];
+        dsdU[i][0] = E1*dedU[i][0]+E2*(dedU[i][1]+dedU[i][2]);
+        dsdU[i][1] = E1*dedU[i][1]+E2*(dedU[i][0]+dedU[i][2]);
+        dsdU[i][2] = E1*dedU[i][2]+E2*(dedU[i][0]+dedU[i][1]);
+        dsdU[i][3] = 2*G2*dedU[i][3];
+        dsdU[i][4] = 2*G2*dedU[i][4];
+        dsdU[i][5] = 2*G2*dedU[i][5];
       }
       // normal terms are here off by a factor of 2
       // shear terms are here off by a factor of 2*2 = 4
-  	
+
       // multiply modified dsdU by dedU. Only do the symmetric part
       for(i = 0; i < 18; ++i)
-     	for(j = 0; j <= i; ++j)
-      	  K[j][i] += dOmega*(dsdU[i][0]*dedU[j][0] +
+        for(j = 0; j <= i; ++j)
+          K[j][i] += dOmega*(dsdU[i][0]*dedU[j][0] +
                              dsdU[i][1]*dedU[j][1] +
                              dsdU[i][2]*dedU[j][2] +
                              dsdU[i][3]*dedU[j][3] +
@@ -196,16 +197,16 @@ PentaCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
       // normal terms are (1/4)*2*2 = 1 => right level
       // shear terms are  (1/4)*4*2*(1/2 for off-diag mult) = 1 => right level
     }
-  }	
-  	
-  // Symmetrize 
+  }
+
+  // Symmetrize
   for(i = 0; i < 18; ++i)
     for(j = 0; j <= i; ++j)
       K[i][j] = K[j][i];
 }
 
 void
-PentaCorotator::getInternalForce(GeomState &geomState, CoordSet &cs, 
+PentaCorotator::getInternalForce(GeomState &geomState, CoordSet &cs,
                                  FullSquareMatrix &, double *f, double dt, double t)
 {
   int i,j,k;
@@ -214,7 +215,7 @@ PentaCorotator::getInternalForce(GeomState &geomState, CoordSet &cs,
   double TriGPt3[3][4] = {{1./6.,1./6.,1./6.,1./6.},
                           {2./3.,1./6.,1./6.,1./6.},
                           {1./6.,2./3.,1./6.,1./6.}};
-  
+
   // initialize forces
   for (i = 0; i < 18; i++) f[i] = 0;
 
@@ -232,7 +233,7 @@ PentaCorotator::getInternalForce(GeomState &geomState, CoordSet &cs,
   int ngpxy= 3; // numbder of (triangular) integration pts (in the local x-y plane)
   double m[3], Shape[6], nGrad[6][3];
   double dOmega; // det of jacobian
-                                                                                                                
+
   for(int iz=1; iz<=ngpz; iz++) { // z Gauss pts
     // get z position & weight of the Gauss pt
     _FORTRAN(lgauss)(ngpz,iz,&m[2],&wz);
@@ -250,29 +251,29 @@ PentaCorotator::getInternalForce(GeomState &geomState, CoordSet &cs,
       // now get F_ij = dPhi_i/dX_j = x^k_i dN_k/dX_j
       double F[3][3];
       for(j = 0; j < 3; ++j)
-    	F[0][j] = geomState[nodeNum[0]].x * nGrad[0][j]
+        F[0][j] = geomState[nodeNum[0]].x * nGrad[0][j]
                 + geomState[nodeNum[1]].x * nGrad[1][j]
-            	+ geomState[nodeNum[2]].x * nGrad[2][j]
-            	+ geomState[nodeNum[3]].x * nGrad[3][j]
-	    	+ geomState[nodeNum[4]].x * nGrad[4][j]
-  	    	+ geomState[nodeNum[5]].x * nGrad[5][j];
-	
+                + geomState[nodeNum[2]].x * nGrad[2][j]
+                + geomState[nodeNum[3]].x * nGrad[3][j]
+                + geomState[nodeNum[4]].x * nGrad[4][j]
+                + geomState[nodeNum[5]].x * nGrad[5][j];
+
       for(j = 0; j < 3; ++j)
-    	F[1][j] = geomState[nodeNum[0]].y * nGrad[0][j]
-            	+ geomState[nodeNum[1]].y * nGrad[1][j]
-            	+ geomState[nodeNum[2]].y * nGrad[2][j]
-            	+ geomState[nodeNum[3]].y * nGrad[3][j]
-	    	+ geomState[nodeNum[4]].y * nGrad[4][j]
-  	    	+ geomState[nodeNum[5]].y * nGrad[5][j];
-	
+        F[1][j] = geomState[nodeNum[0]].y * nGrad[0][j]
+                + geomState[nodeNum[1]].y * nGrad[1][j]
+                + geomState[nodeNum[2]].y * nGrad[2][j]
+                + geomState[nodeNum[3]].y * nGrad[3][j]
+                + geomState[nodeNum[4]].y * nGrad[4][j]
+                + geomState[nodeNum[5]].y * nGrad[5][j];
+
       for(j = 0; j < 3; ++j)
-    	F[2][j] = geomState[nodeNum[0]].z * nGrad[0][j]
-            	+ geomState[nodeNum[1]].z * nGrad[1][j]
-            	+ geomState[nodeNum[2]].z * nGrad[2][j]
-            	+ geomState[nodeNum[3]].z * nGrad[3][j]
-	    	+ geomState[nodeNum[4]].z * nGrad[4][j]
-  	    	+ geomState[nodeNum[5]].z * nGrad[5][j];
-   
+        F[2][j] = geomState[nodeNum[0]].z * nGrad[0][j]
+                + geomState[nodeNum[1]].z * nGrad[1][j]
+                + geomState[nodeNum[2]].z * nGrad[2][j]
+                + geomState[nodeNum[3]].z * nGrad[3][j]
+                + geomState[nodeNum[4]].z * nGrad[4][j]
+                + geomState[nodeNum[5]].z * nGrad[5][j];
+
       // compute e_ij = 0.5*(F_ki Fkj - delta_ij)
       // here these are off by factor of 2
       double e_11 = (F[0][0]*F[0][0]+F[1][0]*F[1][0]+F[2][0]*F[2][0]-1.0);
@@ -283,7 +284,7 @@ PentaCorotator::getInternalForce(GeomState &geomState, CoordSet &cs,
       double e_23 = (F[0][1]*F[0][2]+F[1][1]*F[1][2]+F[2][1]*F[2][2]);
 
       double sigma[6];
-  
+
       double E2 = em*nu/((1+nu)*(1-2*nu));
       double E1 = E2+em/(1+nu);
       // no factor of 1/2 on G2 due to using tensor strain
@@ -304,40 +305,40 @@ PentaCorotator::getInternalForce(GeomState &geomState, CoordSet &cs,
       double dedU[18][6];
       for(i = 0; i < 6; ++i)
         for(j = 0; j < 3; ++j) {
-     	  dedU[3*i+j][0] = 2*nGrad[i][0]*F[j][0];
+          dedU[3*i+j][0] = 2*nGrad[i][0]*F[j][0];
           dedU[3*i+j][1] = 2*nGrad[i][1]*F[j][1];
-      	  dedU[3*i+j][2] = 2*nGrad[i][2]*F[j][2];
-      	  dedU[3*i+j][3] = (nGrad[i][0]*F[j][1]+nGrad[i][1]*F[j][0]);
-      	  dedU[3*i+j][4] = (nGrad[i][0]*F[j][2]+nGrad[i][2]*F[j][0]);
-      	  dedU[3*i+j][5] = (nGrad[i][1]*F[j][2]+nGrad[i][2]*F[j][1]);
-    	}
+          dedU[3*i+j][2] = 2*nGrad[i][2]*F[j][2];
+          dedU[3*i+j][3] = (nGrad[i][0]*F[j][1]+nGrad[i][1]*F[j][0]);
+          dedU[3*i+j][4] = (nGrad[i][0]*F[j][2]+nGrad[i][2]*F[j][0]);
+          dedU[3*i+j][5] = (nGrad[i][1]*F[j][2]+nGrad[i][2]*F[j][1]);
+        }
       // all dedU terms are here off by a factor of 2
 
       // Get the force:
       for(i = 0; i < 18; ++i)
-    	f[i] += dOmega*( dedU[i][0]*sigma[0] + 
-                         dedU[i][1]*sigma[1] + 
-                         dedU[i][2]*sigma[2] + 
-                         dedU[i][3]*sigma[3] + 
-           	         dedU[i][4]*sigma[4] + 
+        f[i] += dOmega*( dedU[i][0]*sigma[0] +
+                         dedU[i][1]*sigma[1] +
+                         dedU[i][2]*sigma[2] +
+                         dedU[i][3]*sigma[3] +
+                         dedU[i][4]*sigma[4] +
                          dedU[i][5]*sigma[5]);
       // normal terms of f are
       // (1/4)*(2*2) = 1 => right level
       // shear terms of f are
       // (1/4)*(2*4)*(1/2 for off-diag mult) = 1 => right level
     }
-  }	
+  }
 
 }
 
 //-------------------------------------------------------------------------------
 
 double
-PentaCorotator::computeStrainGrad(GeomState &geomState, CoordSet &cs, 
-                double dedU[18][6], double m[3])  
+PentaCorotator::computeStrainGrad(GeomState &geomState, CoordSet &cs,
+                                  double dedU[18][6], double m[3])
 {
   int i, j;
-  double dOmega = 0.0; // det of jacobian (not used here)
+  double dOmega; // det of jacobian
   double nGrad[6][3];
 
   // reformat cs to accommodate shape function routine
@@ -350,33 +351,34 @@ PentaCorotator::computeStrainGrad(GeomState &geomState, CoordSet &cs,
 
   // compute shape function & derivative
   double Shape[6];
-  Penta6ShapeFct(Shape, nGrad, m, X, Y, Z);
+  dOmega = Penta6ShapeFct(Shape, nGrad, m, X, Y, Z);
 
   // now get F_ij = dPhi_i/dX_j = x^k_i dN_k/dX_j
   double F[3][3];
-  for(j = 0; j < 3; ++j)
+
+  for (j = 0; j < 3; ++j)
     F[0][j] = geomState[nodeNum[0]].x * nGrad[0][j]
-  	    + geomState[nodeNum[1]].x * nGrad[1][j]
-  	    + geomState[nodeNum[2]].x * nGrad[2][j]
-  	    + geomState[nodeNum[3]].x * nGrad[3][j]
-    	    + geomState[nodeNum[4]].x * nGrad[4][j]
-    	    + geomState[nodeNum[5]].x * nGrad[5][j];
+            + geomState[nodeNum[1]].x * nGrad[1][j]
+            + geomState[nodeNum[2]].x * nGrad[2][j]
+            + geomState[nodeNum[3]].x * nGrad[3][j]
+            + geomState[nodeNum[4]].x * nGrad[4][j]
+            + geomState[nodeNum[5]].x * nGrad[5][j];
 
-  for(j = 0; j < 3; ++j)
+  for (j = 0; j < 3; ++j)
     F[1][j] = geomState[nodeNum[0]].y * nGrad[0][j]
-  	    + geomState[nodeNum[1]].y * nGrad[1][j]
-  	    + geomState[nodeNum[2]].y * nGrad[2][j]
-  	    + geomState[nodeNum[3]].y * nGrad[3][j]
-    	    + geomState[nodeNum[4]].y * nGrad[4][j]
-    	    + geomState[nodeNum[5]].y * nGrad[5][j];
+            + geomState[nodeNum[1]].y * nGrad[1][j]
+            + geomState[nodeNum[2]].y * nGrad[2][j]
+            + geomState[nodeNum[3]].y * nGrad[3][j]
+            + geomState[nodeNum[4]].y * nGrad[4][j]
+            + geomState[nodeNum[5]].y * nGrad[5][j];
 
-  for(j = 0; j < 3; ++j)
+  for (j = 0; j < 3; ++j)
     F[2][j] = geomState[nodeNum[0]].z * nGrad[0][j]
-  	    + geomState[nodeNum[1]].z * nGrad[1][j]
-  	    + geomState[nodeNum[2]].z * nGrad[2][j]
-  	    + geomState[nodeNum[3]].z * nGrad[3][j]
-    	    + geomState[nodeNum[4]].z * nGrad[4][j]
-    	    + geomState[nodeNum[5]].z * nGrad[5][j];
+            + geomState[nodeNum[1]].z * nGrad[1][j]
+            + geomState[nodeNum[2]].z * nGrad[2][j]
+            + geomState[nodeNum[3]].z * nGrad[3][j]
+            + geomState[nodeNum[4]].z * nGrad[4][j]
+            + geomState[nodeNum[5]].z * nGrad[5][j];
 
   for (i = 0; i < 6; ++i)
     for (j = 0; j < 3; ++j) {
@@ -387,7 +389,7 @@ PentaCorotator::computeStrainGrad(GeomState &geomState, CoordSet &cs,
       dedU[3*i+j][4] = 0.5*(nGrad[i][0]*F[j][2]+nGrad[i][2]*F[j][0]);
       dedU[3*i+j][5] = 0.5*(nGrad[i][1]*F[j][2]+nGrad[i][2]*F[j][1]);
     }
- 
+
   return dOmega;
 }
 
@@ -513,31 +515,31 @@ PentaCorotator::computePiolaStress(GeomState &geomState, CoordSet &cs, double *n
 
     // now get F_ij = dPhi_i/dX_j = x^k_i dN_k/dX_j
     double F[3][3];
-  
+
     for(j = 0; j < 3; ++j)
       F[0][j] = geomState[nodeNum[0]].x * nGrad[0][j]
-  	      + geomState[nodeNum[1]].x * nGrad[1][j]
-    	      + geomState[nodeNum[2]].x * nGrad[2][j]
-  	      + geomState[nodeNum[3]].x * nGrad[3][j]
-    	      + geomState[nodeNum[4]].x * nGrad[4][j]
-    	      + geomState[nodeNum[5]].x * nGrad[5][j];
+              + geomState[nodeNum[1]].x * nGrad[1][j]
+              + geomState[nodeNum[2]].x * nGrad[2][j]
+              + geomState[nodeNum[3]].x * nGrad[3][j]
+              + geomState[nodeNum[4]].x * nGrad[4][j]
+              + geomState[nodeNum[5]].x * nGrad[5][j];
 
     for(j = 0; j < 3; ++j)
       F[1][j] = geomState[nodeNum[0]].y * nGrad[0][j]
-  	      + geomState[nodeNum[1]].y * nGrad[1][j]
-  	      + geomState[nodeNum[2]].y * nGrad[2][j]
-  	      + geomState[nodeNum[3]].y * nGrad[3][j]
-    	      + geomState[nodeNum[4]].y * nGrad[4][j]
-    	      + geomState[nodeNum[5]].y * nGrad[5][j];
+              + geomState[nodeNum[1]].y * nGrad[1][j]
+              + geomState[nodeNum[2]].y * nGrad[2][j]
+              + geomState[nodeNum[3]].y * nGrad[3][j]
+              + geomState[nodeNum[4]].y * nGrad[4][j]
+              + geomState[nodeNum[5]].y * nGrad[5][j];
 
     for(j = 0; j < 3; ++j)
       F[2][j] = geomState[nodeNum[0]].z * nGrad[0][j]
-  	      + geomState[nodeNum[1]].z * nGrad[1][j]
-  	      + geomState[nodeNum[2]].z * nGrad[2][j]
-  	      + geomState[nodeNum[3]].z * nGrad[3][j]
-    	      + geomState[nodeNum[4]].z * nGrad[4][j]
-    	      + geomState[nodeNum[5]].z * nGrad[5][j];
-  	
+              + geomState[nodeNum[1]].z * nGrad[1][j]
+              + geomState[nodeNum[2]].z * nGrad[2][j]
+              + geomState[nodeNum[3]].z * nGrad[3][j]
+              + geomState[nodeNum[4]].z * nGrad[4][j]
+              + geomState[nodeNum[5]].z * nGrad[5][j];
+
     // compute e_ij = 0.5*(F_ki Fkj - delta_ij)
     double e_11 = 0.5*(F[0][0]*F[0][0]+F[1][0]*F[1][0]+F[2][0]*F[2][0]-1.0);
     double e_22 = 0.5*(F[0][1]*F[0][1]+F[1][1]*F[1][1]+F[2][1]*F[2][1]-1.0);
@@ -561,7 +563,7 @@ PentaCorotator::computePiolaStress(GeomState &geomState, CoordSet &cs, double *n
     e_33 -= alpha*(ndTemps[n]-Tref);
 
     double sigma[6];
-  
+
     double E2 = em*nu/((1+nu)*(1-2*nu));
     double G2 = em/(2*(1+nu));
     double E1 = E2+em/(1+nu);
@@ -571,7 +573,7 @@ PentaCorotator::computePiolaStress(GeomState &geomState, CoordSet &cs, double *n
     sigma[3] = G2*e_12;
     sigma[4] = G2*e_23;
     sigma[5] = G2*e_13;
-    
+
     // Reorder stress
     stress[n][0] = sigma[0];
     stress[n][1] = sigma[1];
@@ -583,7 +585,7 @@ PentaCorotator::computePiolaStress(GeomState &geomState, CoordSet &cs, double *n
 }
 
 void
-PentaCorotator::extractDeformations(GeomState &geomState, CoordSet &cs, 
+PentaCorotator::extractDeformations(GeomState &geomState, CoordSet &cs,
                                     double *vld, int &nlflag)
 {
   // Set Flag to Use Non-Linear Routines for Stress
@@ -597,7 +599,7 @@ PentaCorotator::extractRigidBodyMotion(GeomState &geomState, CoordSet &cs,
 }
 
 double
-PentaCorotator::getElementEnergy(GeomState &geomState, CoordSet &cs) 
+PentaCorotator::getElementEnergy(GeomState &geomState, CoordSet &cs)
 {
   // Computes Internal Energy of Element in Given State
   int i,j;
@@ -623,8 +625,8 @@ PentaCorotator::getElementEnergy(GeomState &geomState, CoordSet &cs)
   int ngpz = 2; // number of (linear) Gauss pts in the (local) z direction
   int ngpxy= 3; // numbder of (triangular) integration pts (in the local x-y plane)
   double m[3], Shape[6], nGrad[6][3];
-  double dOmega;//det of jacobian
-                                                                                                                
+  double dOmega; // det of jacobian
+
   for(int iz=1; iz<=ngpz; iz++) { // z Gauss pts
     // get z position & weight of the Gauss pt
     _FORTRAN(lgauss)(ngpz,iz,&m[2],&wz);
@@ -639,29 +641,29 @@ PentaCorotator::getElementEnergy(GeomState &geomState, CoordSet &cs)
       // now get F_ij = dPhi_i/dX_j = x^k_i dN_k/dX_j
       double F[3][3];
       for(j = 0; j < 3; ++j)
-    	F[0][j] = geomState[nodeNum[0]].x * nGrad[0][j]
+        F[0][j] = geomState[nodeNum[0]].x * nGrad[0][j]
                 + geomState[nodeNum[1]].x * nGrad[1][j]
-            	+ geomState[nodeNum[2]].x * nGrad[2][j]
-            	+ geomState[nodeNum[3]].x * nGrad[3][j]
-	    	+ geomState[nodeNum[4]].x * nGrad[4][j]
-  	    	+ geomState[nodeNum[5]].x * nGrad[5][j];
-	
+                + geomState[nodeNum[2]].x * nGrad[2][j]
+                + geomState[nodeNum[3]].x * nGrad[3][j]
+                + geomState[nodeNum[4]].x * nGrad[4][j]
+                + geomState[nodeNum[5]].x * nGrad[5][j];
+
       for(j = 0; j < 3; ++j)
-    	F[1][j] = geomState[nodeNum[0]].y * nGrad[0][j]
-            	+ geomState[nodeNum[1]].y * nGrad[1][j]
-            	+ geomState[nodeNum[2]].y * nGrad[2][j]
-            	+ geomState[nodeNum[3]].y * nGrad[3][j]
-	    	+ geomState[nodeNum[4]].y * nGrad[4][j]
-  	    	+ geomState[nodeNum[5]].y * nGrad[5][j];
-	
+        F[1][j] = geomState[nodeNum[0]].y * nGrad[0][j]
+                + geomState[nodeNum[1]].y * nGrad[1][j]
+                + geomState[nodeNum[2]].y * nGrad[2][j]
+                + geomState[nodeNum[3]].y * nGrad[3][j]
+                + geomState[nodeNum[4]].y * nGrad[4][j]
+                + geomState[nodeNum[5]].y * nGrad[5][j];
+
       for(j = 0; j < 3; ++j)
-    	F[2][j] = geomState[nodeNum[0]].z * nGrad[0][j]
-            	+ geomState[nodeNum[1]].z * nGrad[1][j]
-            	+ geomState[nodeNum[2]].z * nGrad[2][j]
-            	+ geomState[nodeNum[3]].z * nGrad[3][j]
-	    	+ geomState[nodeNum[4]].z * nGrad[4][j]
-  	    	+ geomState[nodeNum[5]].z * nGrad[5][j];
-   
+        F[2][j] = geomState[nodeNum[0]].z * nGrad[0][j]
+                + geomState[nodeNum[1]].z * nGrad[1][j]
+                + geomState[nodeNum[2]].z * nGrad[2][j]
+                + geomState[nodeNum[3]].z * nGrad[3][j]
+                + geomState[nodeNum[4]].z * nGrad[4][j]
+                + geomState[nodeNum[5]].z * nGrad[5][j];
+
       // compute e_ij = 0.5*(F_ki Fkj - delta_ij)
       double e_11 = 0.5*(F[0][0]*F[0][0]+F[1][0]*F[1][0]+F[2][0]*F[2][0]-1.0);
       double e_22 = 0.5*(F[0][1]*F[0][1]+F[1][1]*F[1][1]+F[2][1]*F[2][1]-1.0);
@@ -670,7 +672,7 @@ PentaCorotator::getElementEnergy(GeomState &geomState, CoordSet &cs)
       double e_12 = (F[0][0]*F[0][1]+F[1][0]*F[1][1]+F[2][0]*F[2][1]);
       double e_13 = (F[0][0]*F[0][2]+F[1][0]*F[1][2]+F[2][0]*F[2][2]);
       double e_23 = (F[0][1]*F[0][2]+F[1][1]*F[1][2]+F[2][1]*F[2][2]);
- 
+
       double E2 = em*nu/((1+nu)*(1-2*nu));
       double G2 = em/(2*(1+nu));
       double E1 = E2+em/(1+nu);
@@ -680,7 +682,6 @@ PentaCorotator::getElementEnergy(GeomState &geomState, CoordSet &cs)
       double s_12 = G2*e_12;
       double s_13 = G2*e_13;
       double s_23 = G2*e_23;
-                                                                                                                
 
       Energy += dOmega*((e_11*s_11) +
                         (e_22*s_22) +

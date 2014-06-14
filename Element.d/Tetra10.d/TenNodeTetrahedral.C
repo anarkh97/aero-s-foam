@@ -7,6 +7,7 @@
 #include <Utils.d/linkfc.h>
 #include <Utils.d/pstress.h>
 #include <Math.d/FullSquareMatrix.h>
+#include <Corotational.d/Tet10Corotator.h>
 #include <Element.d/NonLinearity.d/ElaLinIsoMat.h>
 #include <Element.d/NonLinearity.d/NLTetrahedral.h>
 #include <Corotational.d/MatNLCorotator.h>
@@ -48,6 +49,8 @@ TenNodeTetrahedral::TenNodeTetrahedral(int* nodenums)
   nn[7] = nodenums[7];
   nn[8] = nodenums[8];
   nn[9] = nodenums[9];
+
+  tet10Corotator = 0;
 
   cFrame = 0;
   cCoefs = 0;
@@ -340,36 +343,47 @@ TenNodeTetrahedral::getThermalForce(CoordSet &cs, Vector &ndTemps,
     rotateConstitutiveMatrix(cCoefs, cFrame, C);
   } else // isotropic material
     _FORTRAN(brkcmt)(prop->E, prop->nu, (double*)C);
- 
-  if(geomState) { // NONLINEAR ANALYSIS
-    fprintf(stderr," *** ERROR: TenNodeTetrahedral::getThermalForce not supported for nonlinear analysis. Abort.\n");
-    exit(-1);
-  }
-  else { // LINEAR ANALYSIS
-    // NUMERICAL INTEGRATION BY GAUSS PTS
-    // integration: loop over Gauss pts
-    // reuse the 15 pts integration rule (order 5) -> reuse arrays vp1 & dp
-    const int numgauss = 15;     // use 15 pts integration rule (order 5)
-    extern double dp[15][10][3]; // arrays vp1 & dp contain the values of the Tet10 shape fct & their
-    extern double vp1[15][10];   // derivatives w.r.t reference coordinate system at the 15 integration pts
-    const double weight[15] = {1.975308731198311E-02, 1.198951396316977E-02,
-                               1.198951396316977E-02, 1.198951396316977E-02,
-                               1.198951396316977E-02, 1.151136787104540E-02,
-                               1.151136787104540E-02, 1.151136787104540E-02,
-                               1.151136787104540E-02, 8.818342350423336E-03,
-                               8.818342350423336E-03, 8.818342350423336E-03,
-                               8.818342350423336E-03, 8.818342350423336E-03,
-                               8.818342350423336E-03};
-    double DShape[10][3];
-    double w, J;
-    int jSign = 0;
 
+  // Integate over the element: F = Int[Bt.ThermaStress]
+  // with ThermalStress = C.ThermalStrain, with ThermalStrain = alpha.theta.[1, 1, 1, 0, 0, 0]'
+  // where theta = T(M)-Tref = Sum[inode][N[inode]*(ndTemps[inode] - Tref)]
+  // N[inode] is the shape fct at node inode
+  // M is the position in the real frame, m its associated position in the reference
+  // element frame
+  // NUMERICAL INTEGRATION BY GAUSS PTS
+  const int numgauss = 15;
+  extern double dp[15][10][3]; // arrays vp1 & dp contain the values of the Tet10 shape fct & their
+  extern double vp1[15][10];   // derivatives w.r.t reference coordinate system at the 15 integration pts
+  const double weight[15] = {1.975308731198311E-02, 1.198951396316977E-02,
+                             1.198951396316977E-02, 1.198951396316977E-02,
+                             1.198951396316977E-02, 1.151136787104540E-02,
+                             1.151136787104540E-02, 1.151136787104540E-02,
+                             1.151136787104540E-02, 8.818342350423336E-03,
+                             8.818342350423336E-03, 8.818342350423336E-03,
+                             8.818342350423336E-03, 8.818342350423336E-03,
+                             8.818342350423336E-03};
+  extern double gauss3d5[15][3];
+  double w, J;
+ 
+  if(geomState && tet10Corotator) { // GEOMETRIC NONLINEAR ANALYSIS WITH DEFAULT MATERIAL
+    double coef = prop->E/(1.-2.*prop->nu);
+    double dedU[30][6];
+    for(int i=0; i<numgauss; i++) {
+      J = tet10Corotator->computeStrainGrad(*geomState, cs, dedU, gauss3d5[i]);
+      w = fabs(J)*weight[i];
+      double theta = 0.0;
+      for(int inode=0; inode<nnodes; inode++) theta += vp1[i][inode]*(ndTemps[inode] - Tref);
+      theta *= coef*alpha*w;
+
+      for(int l=0; l<ndofs; l++)
+        elementThermalForce[l] += theta*(dedU[l][0]+dedU[l][1]+dedU[l][2]);
+    }
+  }
+  else if(!geomState) { // LINEAR ANALYSIS
+    double DShape[10][3];
     for(int i=0; i<numgauss; i++) {
       J = computeTet10DShapeFct(dp[i],X,Y,Z,DShape);
       double* Shape = &vp1[i][0];
-#ifdef CHECK_JACOBIAN
-      checkJacobian(&J, &jSign, getGlNum()+1, "TenNodeTetrahedral::getThermalForce");
-#endif
       w = fabs(J)*weight[i];
       // compute thermal stresses
       double eT = 0.0;
@@ -384,6 +398,10 @@ TenNodeTetrahedral::getThermalForce(CoordSet &cs, Vector &ndTemps,
         elementThermalForce[3*inode+2] += w*(DShape[inode][0]*thermalStress[5] + DShape[inode][1]*thermalStress[4] + DShape[inode][2]*thermalStress[2]);
       }
     }
+  }
+  else {
+    fprintf(stderr," *** ERROR: TenNodeTetrahedral::getThermalForce not supported for material nonlinear analysis. Abort.\n");
+    exit(-1);
   }
 }
 
@@ -757,23 +775,22 @@ TenNodeTetrahedral::numStates()
 Corotator *
 TenNodeTetrahedral::getCorotator(CoordSet &cs, double *kel, int, int)
 {
-#ifdef USE_EIGEN3
-  if(!mat) {
-    if(cCoefs) {
-      double C[6][6];
-      rotateConstitutiveMatrix(cCoefs, cFrame, C);
-      mat = new StVenantKirchhoffMat(prop->rho, C);
-    }
-    else {
-      mat = new StVenantKirchhoffMat(prop->rho, prop->E, prop->nu);
-    }
+  if(cCoefs && !mat) {
+    double C[6][6];
+    rotateConstitutiveMatrix(cCoefs, cFrame, C);
+    mat = new StVenantKirchhoffMat(prop->rho, C);
   }
   if(mat) {
+#ifdef USE_EIGEN3
     MatNLElement *ele = new NLTetrahedral10(nn);
     ele->setMaterial(mat);
     ele->setGlNum(glNum);
     return new MatNLCorotator(ele);
-  }
 #endif
+  }
+  else {
+    tet10Corotator = new Tet10Corotator(nn, prop->E, prop->nu, cs, prop->Ta, prop->W);
+    return tet10Corotator;
+  }
   printf("WARNING: Corotator not implemented for element %d\n", glNum+1); return 0;
 }

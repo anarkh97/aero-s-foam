@@ -676,8 +676,8 @@ MultiDomainDynam::computeExtForce2(SysState<DistrVector> &distState,
   if(domain->solInfo().thermoeFlag >= 0 && tIndex >= 0) {
     distFlExchanger->getStrucTemp(nodalTemps->data());
     if(verboseFlag) filePrint(stderr, " ... [E] Received temperatures     ...\n");
+    if(geomState) geomState->setNodalTemperatures(*nodalTemps);
   }
-
 
   // add f(t) to cnst_f
   double dt = domain->solInfo().getTimeStep();
@@ -1530,8 +1530,8 @@ MultiDomainDynam::thermoePreProcess(DistrVector&, DistrVector&, DistrVector&)
 
     distFlExchanger->getStrucTemp(nodalTemps->data()) ;
     if(verboseFlag) filePrint(stderr, " ... [E] Received initial temperatures ...\n");
+    if(geomState) geomState->setNodalTemperatures(*nodalTemps);
   }
-
 }
 
 void

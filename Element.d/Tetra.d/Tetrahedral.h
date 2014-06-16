@@ -4,15 +4,12 @@
 #include <Element.d/Element.h>
 #include <Element.d/Tetra.d/TetraElementTemplate.hpp>
 
-class TetCorotator;
-
 class Tetrahedral: public Element,
                    public TetraElementTemplate<double>
 {
     int nn[4];
     double *cCoefs;
     double *cFrame;
-    TetCorotator *tetCorotator;
     NLMaterial *mat;
 
   public:

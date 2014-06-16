@@ -1,15 +1,11 @@
 #ifndef _NLMATERIAL_H_
 #define _NLMATERIAL_H_
-#include <Math.d/Vector.h>
-#include <Math.d/matrix.h>
-#include <Element.d/Element.h>
-#include <Utils.d/NodeSpaceArray.h>
 
 #include <stdexcept>
 #include <iostream>
 
-//Declaration of the material properties
 class StrainEvaluator;
+class Tensor;
 template <typename Tensor> class GenStrainEvaluator;
 template <int n> class TwoDTensorTypes;
 
@@ -26,17 +22,17 @@ class NLMaterial
 
      virtual void getElasticity(Tensor *tm) = 0;
 
-     virtual void getStress(Tensor *stress, Tensor &strain, double *state) = 0;
+     virtual void getStress(Tensor *stress, Tensor &strain, double *state, double temp) = 0;
 
-     virtual void getStressAndTangentMaterial(Tensor *stress, Tensor *tm, Tensor &strain, double *state) = 0;
+     virtual void getStressAndTangentMaterial(Tensor *stress, Tensor *tm, Tensor &strain, double *state, double temp) = 0;
 
-     virtual void updateStates(Tensor en, Tensor enp, double *state) = 0;
+     virtual void updateStates(Tensor& en, Tensor& enp, double *state, double temp) = 0;
 
      virtual void integrate(Tensor *stress, Tensor *tm, Tensor &en, Tensor &enp,
-                            double *staten, double *statenp, double dt = 0.0) = 0;
+                            double *staten, double *statenp, double temp) = 0;
 
      virtual void integrate(Tensor *stress, Tensor &en, Tensor &enp,
-                            double *staten, double *statenp, double dt = 0.0) = 0;
+                            double *staten, double *statenp, double temp) = 0;
 
      virtual void initStates(double *) = 0;
 
@@ -52,7 +48,7 @@ class NLMaterial
 
      virtual bool getPlasticStrain(double *statenp, Tensor *plasticstrain) { return false; }
 
-     virtual double getStrainEnergyDensity(Tensor &enp, double *statenp) {
+     virtual double getStrainEnergyDensity(Tensor &enp, double *statenp, double temp) {
        std::cerr << "material law does not implement getStrainEnergyDensity function\n";
        return 0;
      }

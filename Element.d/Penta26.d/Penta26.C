@@ -69,8 +69,6 @@ Penta26::Penta26(int* nodenums)
   for(int i=0; i<26; i++)
     nn[i] = nodenums[i];
 
-  penta26Corotator = 0;
-
   cFrame = 0;
   cCoefs = 0;
   mat = 0;
@@ -351,11 +349,14 @@ Penta26::getThermalForce(CoordSet &cs, Vector &ndTemps,
   const int nnodes = 26;
   const int ndofs = 78;
 
+  // initialize nodal thermal forces
+  for(int i=0; i<ndofs; i++) elementThermalForce[i] = 0.0;
+
   double X[26], Y[26], Z[26];
   cs.getCoordinates(nn, nnodes, X, Y, Z);
 
-  // initialize nodal thermal forces
-  for(int i=0; i<ndofs; i++) elementThermalForce[i] = 0.0;
+  // for nonlinear analyses, the thermal load for this element is now computed in getStiffAndForce
+  if(geomState) return;
 
   // get material props & constitutive matrix
   double &Tref  = prop->Ta;
@@ -375,47 +376,25 @@ Penta26::getThermalForce(CoordSet &cs, Vector &ndTemps,
   // element frame
   // NUMERICAL INTEGRATION BY GAUSS PTS
   int ngauss = 18;
-  double Shape[26];
+  double Shape[26], DShape[26][3];
   double w, J;
 
-  if(geomState && penta26Corotator) { // GEOMETRIC NONLINEAR ANALYSIS WITH DEFAULT MATERIAL
-    double coef = prop->E/(1.-2.*prop->nu);
-    double dedU[78][6];
-    for(int i=0; i<ngauss; i++) {
-      J = penta26Corotator->computeStrainGrad(*geomState, cs, dedU, gauss3d9[i]);
-      Penta26ShapeFct(Shape, gauss3d9[i]);
-      w = fabs(J)*weight3d9[i];
-      double theta = 0.0;
-      for(int inode=0; inode<nnodes; inode++) theta += Shape[inode]*(ndTemps[inode] - Tref);
-      theta *= coef*alpha*w;
-
-      for(int l=0; l<ndofs; l++)
-        elementThermalForce[l] += theta*(dedU[l][0]+dedU[l][1]+dedU[l][2]);
+  for(int i = 0; i < ngauss; i++) {
+    // compute shape fcts & their derivatives at the Gauss pt
+    J = Penta26ShapeFct(Shape, DShape, gauss3d9[i], X, Y, Z);
+    w = weight3d9[i]*fabs(J);
+    // compute thermal stresses
+    double eT = 0.0;
+    for(int inode=0; inode<nnodes; inode++) eT += alpha*Shape[inode]*(ndTemps[inode] - Tref);
+    double thermalStrain[6] = {eT,eT,eT,0.0,0.0,0.0};
+    double thermalStress[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
+    computeStress3DSolid(thermalStress, thermalStrain, C); // thermalStress <- C.thermalStrain
+    // sum contribution
+    for(int inode=0; inode<nnodes; inode++) {
+      elementThermalForce[3*inode  ] += w*(DShape[inode][0]*thermalStress[0] + DShape[inode][1]*thermalStress[3] + DShape[inode][2]*thermalStress[5]);
+      elementThermalForce[3*inode+1] += w*(DShape[inode][0]*thermalStress[3] + DShape[inode][1]*thermalStress[1] + DShape[inode][2]*thermalStress[4]);
+      elementThermalForce[3*inode+2] += w*(DShape[inode][0]*thermalStress[5] + DShape[inode][1]*thermalStress[4] + DShape[inode][2]*thermalStress[2]);
     }
-  }
-  else if(!geomState) { // LINEAR ANALYSIS
-    double DShape[26][3];
-    for(int i = 0; i < ngauss; i++) {
-      // compute shape fcts & their derivatives at the Gauss pt
-      J = Penta26ShapeFct(Shape, DShape, gauss3d9[i], X, Y, Z);
-      w = weight3d9[i]*fabs(J);
-      // compute thermal stresses
-      double eT = 0.0;
-      for(int inode=0; inode<nnodes; inode++) eT += alpha*Shape[inode]*(ndTemps[inode] - Tref);
-      double thermalStrain[6] = {eT,eT,eT,0.0,0.0,0.0};
-      double thermalStress[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
-      computeStress3DSolid(thermalStress, thermalStrain, C); // thermalStress <- C.thermalStrain
-      // sum contribution
-      for(int inode=0; inode<nnodes; inode++) {
-        elementThermalForce[3*inode  ] += w*(DShape[inode][0]*thermalStress[0] + DShape[inode][1]*thermalStress[3] + DShape[inode][2]*thermalStress[5]);
-        elementThermalForce[3*inode+1] += w*(DShape[inode][0]*thermalStress[3] + DShape[inode][1]*thermalStress[1] + DShape[inode][2]*thermalStress[4]);
-        elementThermalForce[3*inode+2] += w*(DShape[inode][0]*thermalStress[5] + DShape[inode][1]*thermalStress[4] + DShape[inode][2]*thermalStress[2]);
-      }
-    }
-  }
-  else {
-    fprintf(stderr," *** ERROR: Penta26::getThermalForce not supported for material nonlinear analysis. Abort.\n");
-    exit(-1);
   }
 }
 
@@ -584,19 +563,19 @@ Penta26::getCorotator(CoordSet &cs, double *kel, int, int)
   if(cCoefs && !mat) {
     double C[6][6];
     rotateConstitutiveMatrix(cCoefs, cFrame, C);
-    mat = new StVenantKirchhoffMat(prop->rho, C);
+    mat = new StVenantKirchhoffMat(prop->rho, C, prop->Ta, prop->W);
   }
   if(mat) {
 #ifdef USE_EIGEN3
     MatNLElement *ele = new NLPentahedral26(nn);
     ele->setMaterial(mat);
     ele->setGlNum(glNum);
+    ele->setProp(prop);
     return new MatNLCorotator(ele);
 #endif
   }
   else {
-    penta26Corotator = new Penta26Corotator(nn, prop->E, prop->nu, cs, prop->Ta, prop->W);
-    return penta26Corotator;
+    return new Penta26Corotator(nn, prop->E, prop->nu, cs, prop->Ta, prop->W);
   }
   printf("WARNING: Corotator not implemented for element %d\n", glNum+1); return 0;
 }

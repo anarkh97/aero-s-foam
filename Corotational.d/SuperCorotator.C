@@ -223,8 +223,9 @@ SuperCorotator::extractDeformations(GeomState &geomState, CoordSet &cs, double *
 }
 
 void 
-SuperCorotator::getNLVonMises(Vector &stress, Vector &weight, GeomState &geomState,
-                              CoordSet &cs, int strInd)
+SuperCorotator::getNLVonMises(Vector &stress, Vector &weight, GeomState &geomState, GeomState *refState,
+                              CoordSet &cs, int strInd, int surface, double ylayer, double zlayer,
+                              int avgnum, int measure)
 {
   int i;
   stress.zero();
@@ -236,7 +237,8 @@ SuperCorotator::getNLVonMises(Vector &stress, Vector &weight, GeomState &geomSta
     subStress.zero();
     Vector subWeight(nnodes);
     subWeight.zero();
-    subElemCorotators[i]->getNLVonMises(subStress, subWeight, geomState, cs, strInd);
+    subElemCorotators[i]->getNLVonMises(subStress, subWeight, geomState, refState, cs, strInd, surface,
+                                        ylayer, zlayer, avgnum, measure);
     int *subElemNodes = superElem->getSubElemNodes(i);
     stress.add(subStress, subElemNodes);
     weight.add(subWeight, subElemNodes);
@@ -244,8 +246,8 @@ SuperCorotator::getNLVonMises(Vector &stress, Vector &weight, GeomState &geomSta
 }
 
 void 
-SuperCorotator::getNLAllStress(FullM &stress, Vector &weight, GeomState &geomState, 
-                               CoordSet &cs, int strInd) 
+SuperCorotator::getNLAllStress(FullM &stress, Vector &weight, GeomState &geomState, GeomState *refState,
+                               CoordSet &cs, int strInd, int surface, int measure) 
 {
   int i;
   stress.zero();
@@ -257,7 +259,8 @@ SuperCorotator::getNLAllStress(FullM &stress, Vector &weight, GeomState &geomSta
     subStress.zero();
     Vector subWeight(nnodes);
     subWeight.zero();
-    subElemCorotators[i]->getNLAllStress(subStress, subWeight, geomState, cs, strInd);
+    subElemCorotators[i]->getNLAllStress(subStress, subWeight, geomState, refState, cs, strInd, surface,
+                                         measure);
     int *subElemNodes = superElem->getSubElemNodes(i);
     stress.addrows(subStress, subElemNodes);
     weight.add(subWeight, subElemNodes);

@@ -3,14 +3,11 @@
 
 #include <Element.d/Element.h>
 
-class Brick32Corotator;
-
 class Brick32: public Element
 {
     int nn[32];
     double *cCoefs;
     double *cFrame;
-    Brick32Corotator *brick32Corotator;
     NLMaterial *mat;
 
   public:

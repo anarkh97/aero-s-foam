@@ -29,18 +29,17 @@ class TetCorotator : public Corotator {
 
      void   getNLVonMises(Vector& stress, Vector& weight, GeomState &curState,
                           GeomState *refState, CoordSet& c0, int strIndex, int surface = 0,
-                          double *ndTemps = 0, double ylayer = 0, double zlayer = 0,
-                          int avgnum = 0, int measure = -1);
+                          double ylayer = 0, double zlayer = 0, int avgnum = 0, int measure = -1);
 
      void   getNLAllStress(FullM &stress, Vector &weight, GeomState &curState,
                            GeomState *refState, CoordSet &c0, int strInd, int surface = 0,
-                           double *ndTemps = 0, int measure = -1);
+                           int measure = -1);
 
      double computeShapeGrad(CoordSet &nodes, double nGrad[4][3]);
  
      void   computeStrainGrad(GeomState &, double nGrad[4][3], double dedU[12][6]);
 
-     void   computePiolaStress(GeomState &, CoordSet &cs, double *ndTemps,
+     void   computePiolaStress(GeomState &, CoordSet &cs,
                                double stress[4][7], double strain[4][7]);
 
      double getElementEnergy(GeomState &gs, CoordSet &cs);

@@ -28,7 +28,7 @@ NonLinStatic::NonLinStatic(Domain *d)
   reactions = 0;
 
   if(domain->GetnContactSurfacePairs())
-     domain->InitializeStaticContactSearch(MortarHandler::CTC);
+    domain->InitializeStaticContactSearch(MortarHandler::CTC);
 }
 
 NonLinStatic::~NonLinStatic()
@@ -218,9 +218,10 @@ NonLinStatic::createGeomState()
 
  GeomState *geomState;
  if(domain->solInfo().soltyp == 2) 
-   geomState = (GeomState *) new TemperatureState( *domain->getDSA(),*domain->getCDSA(),domain->getNodes());
+   geomState = (GeomState *) new TemperatureState(*domain->getDSA(), *domain->getCDSA(), domain->getNodes());
  else
-   geomState = new GeomState( *domain->getDSA(), *domain->getCDSA(), domain->getNodes(), &domain->getElementSet()); 
+   geomState = new GeomState(*domain->getDSA(), *domain->getCDSA(), domain->getNodes(), &domain->getElementSet(),
+                             domain->getNodalTemperatures()); 
 
  times->timeGeom += getTime();
 

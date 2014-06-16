@@ -42,27 +42,27 @@ Corotator::extractDeformations(GeomState&, CoordSet&, DComplex*, int&)
 }
 
 void
-Corotator::getNLVonMises(Vector&, Vector&, GeomState&, CoordSet&, int)
+Corotator::getNLVonMises(Vector&, Vector&, GeomState&, GeomState*, CoordSet&, int, int, double, double, int, int)
 {
-  std::cerr << " *** WARNING: Corotator::getNLVonMises(Vector&, Vector&, GeomState&, CoordSet&, int) is not implemented\n";
+  std::cerr << " *** WARNING: Corotator::getNLVonMises(Vector&, Vector&, GeomState&, GeomState*, CoordSet&, int, ...) is not implemented\n";
 }
 
 void
-Corotator::getNLVonMises(ComplexVector&, Vector&, GeomState&, CoordSet&, int)
+Corotator::getNLVonMises(ComplexVector&, Vector&, GeomState&, GeomState*, CoordSet&, int, int, double, double, int, int)
 {
-  std::cerr << " *** WARNING: Corotator::getNLVonMises(ComplexVector&, Vector&, GeomState&, CoordSet&, int) is not implemented\n";
+  std::cerr << " *** WARNING: Corotator::getNLVonMises(ComplexVector&, Vector&, GeomState&, GeomState*, CoordSet&, int, ...) is not implemented\n";
 }
 
 void
-Corotator::getNLAllStress(FullM&, Vector&, GeomState&, CoordSet&, int)
+Corotator::getNLAllStress(FullM&, Vector&, GeomState&, GeomState*, CoordSet&, int, int, int)
 {
-  std::cerr << " *** WARNING: Corotator::getNLAllStress(FullM&, Vector&, GeomState&, CoordSet&, int) is not implemented\n";
+  std::cerr << " *** WARNING: Corotator::getNLAllStress(FullM&, Vector&, GeomState&, GeomState*, CoordSet&, int, ...) is not implemented\n";
 }
 
 void
-Corotator::getNLAllStress(FullMC&, Vector&, GeomState&, CoordSet&, int)
+Corotator::getNLAllStress(FullMC&, Vector&, GeomState&, GeomState*, CoordSet&, int, int, int)
 {
-  std::cerr << " *** WARNING: Corotator::getNLAllStress(FullMC&, Vector&, GeomState&, CoordSet&, int) is not implemented\n";
+  std::cerr << " *** WARNING: Corotator::getNLAllStress(FullMC&, Vector&, GeomState&, GeomState*, CoordSet&, int, ...) is not implemented\n";
 }
 
 double

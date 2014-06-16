@@ -38,6 +38,7 @@ class DistrGeomState {
      void setVelocity(DistrVector &, int SO3param = 0);
      void setAcceleration(DistrVector &);
      void setVelocityAndAcceleration(DistrVector &, DistrVector &);
+     void setNodalTemperatures(DistrVector &);
 
 // The following functions are necessary to implement NL dynamics and
 // the arclength method
@@ -75,6 +76,7 @@ class DistrGeomState {
      void subSetVelocity(int isub, DistrVector &v, int SO3param);
      void subSetAcceleration(int isub, DistrVector &a);
      void subSetVelocityAndAcceleration(int isub, DistrVector &v, DistrVector &a);
+     void subSetNodalTemperatures(int isub, DistrVector &temps);
      void makeSubGeomStates(int isub, DecDomain *domain);
      void subCopyConstructor(int isub, const DistrGeomState &g2);
      void subPushForward(int isub, DistrVector &f);

@@ -697,6 +697,7 @@ SingleDomainDynamic::computeExtForce2(SysState<Vector> &state, Vector &ext_f,
   // THERMOE update nodal temperatures
   if(domain->solInfo().thermoeFlag >= 0 && tIndex >= 0) {
     domain->thermoeComm();
+    if(geomState) geomState->setNodalTemperatures(domain->getNodalTemperatures());
   }
 
   // add f(t) to cnst_f
@@ -802,7 +803,8 @@ SingleDomainDynamic::preProcess()
     domain->computeGeometricPreStress(allCorot, geomState, kelArray, times, geomKelArray, melArray, melFlag);
   }
   else if(domain->tdenforceFlag())
-    geomState = new GeomState(*domain->getDSA(), *domain->getCDSA(), domain->getNodes(), &domain->getElementSet());
+    geomState = new GeomState(*domain->getDSA(), *domain->getCDSA(), domain->getNodes(), &domain->getElementSet(),
+                              domain->getNodalTemperatures());
 
   if(domain->solInfo().isNonLin() || domain->tdenforceFlag()) {
     // for nonlinear explicit we only need to initialize geomState with the constant constrained displacements (DISP).
@@ -1078,6 +1080,7 @@ void
 SingleDomainDynamic::thermoePreProcess(Vector&, Vector&, Vector&)
 {
   domain->thermoePreProcess();
+  if(geomState) geomState->setNodalTemperatures(domain->getNodalTemperatures());
 }
 
 void

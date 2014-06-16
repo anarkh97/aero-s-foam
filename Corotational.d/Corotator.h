@@ -44,15 +44,21 @@ class Corotator {
 
     virtual void getGlobalDisp(GeomState&, CoordSet&, Vector&) {}
 
-    virtual void getNLVonMises(Vector&, Vector& weight,
-                               GeomState &, CoordSet &, int);
-    virtual void getNLVonMises(ComplexVector&, Vector& weight,
-                               GeomState &, CoordSet &, int);
+    virtual void getNLVonMises(Vector& stress, Vector& weight, GeomState &curState,
+                               GeomState *refState, CoordSet& c0, int strIndex, int surface = 0,
+                               double ylayer = 0, double zlayer = 0, int avgnum = 0, int measure = -1);
 
-    virtual void getNLAllStress(FullM&, Vector&,
-                                GeomState &, CoordSet &, int);
-    virtual void getNLAllStress(FullMC&, Vector&,
-                                GeomState &, CoordSet &, int);
+    virtual void getNLVonMises(ComplexVector& stress, Vector& weight, GeomState &curState,
+                               GeomState *refState, CoordSet& c0, int strIndex, int surface = 0,
+                               double ylayer = 0, double zlayer = 0, int avgnum = 0, int measure = -1);
+
+    virtual void getNLAllStress(FullM &stress, Vector &weight, GeomState &curState,
+                                GeomState *refState, CoordSet &c0, int strInd, int surface = 0,
+                                int measure = -1);
+
+    virtual void getNLAllStress(FullMC &stress, Vector &weight, GeomState &curState,
+                                GeomState *refState, CoordSet &c0, int strInd, int surface = 0,
+                                int measure = -1);
 
     virtual double getElementEnergy(GeomState &, CoordSet &);
     virtual double getDissipatedEnergy(GeomState &, CoordSet &) { return 0.0; }
@@ -70,28 +76,6 @@ class Corotator {
     virtual void getInternalForce(GeomState *refState, GeomState &curState, CoordSet &c0,
                                   FullSquareMatrix &tmp, double *f, double dt, double t) 
       { getInternalForce(curState, c0, tmp, f, dt, t); }
-
-    virtual void getNLVonMises(Vector& stress, Vector& weight, GeomState &curState,
-                               GeomState *refState, CoordSet& c0, int strIndex, int surface = 0,
-                               double *ndTemps = 0, double ylayer = 0, double zlayer = 0,
-                               int avgnum = 0, int measure = -1)
-      { getNLVonMises(stress, weight, curState, c0, strIndex); }
-
-    virtual void getNLVonMises(ComplexVector& stress, Vector& weight, GeomState &curState,
-                               GeomState *refState, CoordSet& c0, int strIndex, int surface = 0,
-                               double *ndTemps = 0, double ylayer = 0, double zlayer = 0,
-                               int avgnum = 0, int measure = -1)
-      { getNLVonMises(stress, weight, curState, c0, strIndex); }
-
-    virtual void getNLAllStress(FullM &stress, Vector &weight, GeomState &curState,
-                                GeomState *refState, CoordSet &c0, int strInd, int surface = 0,
-                                double *ndTemps = 0, int measure = -1)
-      { getNLAllStress(stress, weight, curState, c0, strInd); }
-
-    virtual void getNLAllStress(FullMC &stress, Vector &weight, GeomState &curState,
-                                GeomState *refState, CoordSet &c0, int strInd, int surface = 0,
-                                double *ndTemps = 0, int measure = -1)
-      { getNLAllStress(stress, weight, curState, c0, strInd); }
 
     virtual void updateStates(GeomState *refState, GeomState &curState, CoordSet &C0) {}
 

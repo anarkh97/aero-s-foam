@@ -43,8 +43,6 @@ Pentahedral::Pentahedral(int* nodenums)
   nn[4] = nodenums[4];
   nn[5] = nodenums[5];
 
-  pentaCorotator = 0;
-
   cFrame = 0;
   cCoefs = 0;
   mat = 0;
@@ -344,12 +342,15 @@ Pentahedral::getThermalForce(CoordSet &cs, Vector &ndTemps,
   const int nnodes = 6;
   const int ndofs = 18;
 
+  // initialize nodal thermal forces
+  for(int i=0; i<ndofs; i++) elementThermalForce[i] = 0.0;
+
+  // for nonlinear analyses, the thermal load for this element is now computed in getStiffAndForce
+  if(geomState) return;
+
   // extract nodes coordinates
   double X[6], Y[6], Z[6];
   cs.getCoordinates(nn, nnodes, X, Y, Z);
-
-  // initialize nodal thermal forces
-  for(int i=0; i<ndofs; i++) elementThermalForce[i] = 0.0;
 
   // get material props & constitutive matrix
   double &Tref  = prop->Ta;
@@ -378,59 +379,29 @@ Pentahedral::getThermalForce(CoordSet &cs, Vector &ndTemps,
                           {2./3.,1./6.,1./6.,1./6.},
                           {1./6.,2./3.,1./6.,1./6.}};
 
-  if(geomState && pentaCorotator) { // GEOMETRIC NONLINEAR ANALYSIS WITH DEFAULT MATERIAL
-    double dedU[18][6];
-    // integration: loop over Gauss pts
-    for(int iz=1; iz<=ngpz; iz++) { // z Gauss pts
-      // get z position & weight of the Gauss pt
-      _FORTRAN(lgauss)(ngpz,iz,&m[2],&wz);
-      for(int ixy=0; ixy<ngpxy; ixy++) { // triangle Gauss pts
-        // get x, y  position & weight of the Gauss pt
-        m[0] = TriGPt3[ixy][0]; m[1] = TriGPt3[ixy][1]; wxy = TriGPt3[ixy][3];
-        // compute shape fcts & their derivatives at the Gauss pt
-        J = Penta6ShapeFct(Shape, DShape, m, X, Y, Z);
-        w = wxy*wz*fabs(J);
-        // compute strain gradient (total Lagrangian formulation)
-        pentaCorotator->computeStrainGrad(*geomState, cs, dedU, m);
-        // compute theta
-        double theta = 0.0;
-        for(int inode=0; inode<nnodes; inode++) theta += Shape[inode]*(ndTemps[inode] - Tref);
-        // sum contribution
-        theta *= coef*alpha*w;
-        for(int i = 0; i < ndofs; ++i)
-          elementThermalForce[i] += theta*(dedU[i][0]+dedU[i][1]+dedU[i][2]);
+  // integration: loop over Gauss pts
+  for(int iz=1; iz<=ngpz; iz++) { // z Gauss pts
+    // get z position & weight of the Gauss pt
+    _FORTRAN(lgauss)(ngpz,iz,&m[2],&wz);
+    for(int ixy=0; ixy<ngpxy; ixy++) { // triangle Gauss pts
+      // get x, y  position & weight of the Gauss pt
+      m[0] = TriGPt3[ixy][0]; m[1] = TriGPt3[ixy][1]; wxy = TriGPt3[ixy][3];
+      // compute shape fcts & their derivatives at the Gauss pt
+      J = Penta6ShapeFct(Shape, DShape, m, X, Y, Z);
+      w = wxy*wz*fabs(J);
+      // compute thermal stresses
+      double eT = 0.0;
+      for(int inode=0; inode<nnodes; inode++) eT += alpha*Shape[inode]*(ndTemps[inode] - Tref);
+      double thermalStrain[6] = {eT,eT,eT,0.0,0.0,0.0};
+      double thermalStress[6] = {0.0,0.0,0.0,0.0,0.0,0.0}; 
+      computeStress3DSolid(thermalStress, thermalStrain, C); // thermalStress <- C.thermalStrain
+      // sum contribution
+      for(int inode=0; inode<nnodes; inode++) {
+        elementThermalForce[3*inode  ] += w*(DShape[inode][0]*thermalStress[0] + DShape[inode][1]*thermalStress[3] + DShape[inode][2]*thermalStress[5]);
+        elementThermalForce[3*inode+1] += w*(DShape[inode][0]*thermalStress[3] + DShape[inode][1]*thermalStress[1] + DShape[inode][2]*thermalStress[4]);
+        elementThermalForce[3*inode+2] += w*(DShape[inode][0]*thermalStress[5] + DShape[inode][1]*thermalStress[4] + DShape[inode][2]*thermalStress[2]);
       }
     }
-  }
-  else if(!geomState) { // LINEAR ANALYSIS
-    // integration: loop over Gauss pts
-    for(int iz=1; iz<=ngpz; iz++) { // z Gauss pts
-      // get z position & weight of the Gauss pt
-      _FORTRAN(lgauss)(ngpz,iz,&m[2],&wz);
-      for(int ixy=0; ixy<ngpxy; ixy++) { // triangle Gauss pts
-        // get x, y  position & weight of the Gauss pt
-        m[0] = TriGPt3[ixy][0]; m[1] = TriGPt3[ixy][1]; wxy = TriGPt3[ixy][3];
-        // compute shape fcts & their derivatives at the Gauss pt
-        J = Penta6ShapeFct(Shape, DShape, m, X, Y, Z);
-        w = wxy*wz*fabs(J);
-        // compute thermal stresses
-        double eT = 0.0;
-        for(int inode=0; inode<nnodes; inode++) eT += alpha*Shape[inode]*(ndTemps[inode] - Tref);
-        double thermalStrain[6] = {eT,eT,eT,0.0,0.0,0.0};
-        double thermalStress[6] = {0.0,0.0,0.0,0.0,0.0,0.0}; 
-        computeStress3DSolid(thermalStress, thermalStrain, C); // thermalStress <- C.thermalStrain
-       // sum contribution
-        for(int inode=0; inode<nnodes; inode++) {
-          elementThermalForce[3*inode  ] += w*(DShape[inode][0]*thermalStress[0] + DShape[inode][1]*thermalStress[3] + DShape[inode][2]*thermalStress[5]);
-          elementThermalForce[3*inode+1] += w*(DShape[inode][0]*thermalStress[3] + DShape[inode][1]*thermalStress[1] + DShape[inode][2]*thermalStress[4]);
-          elementThermalForce[3*inode+2] += w*(DShape[inode][0]*thermalStress[5] + DShape[inode][1]*thermalStress[4] + DShape[inode][2]*thermalStress[2]);
-        }
-      }
-    }
-  }
-  else {
-    fprintf(stderr," *** ERROR: Pentahedral::getThermalForce not supported for material nonlinear analysis. Abort.\n");
-    exit(-1);
   }
 }
 
@@ -775,19 +746,19 @@ Pentahedral::getCorotator(CoordSet &cs, double *kel, int, int)
   if(cCoefs && !mat) {
     double C[6][6];
     rotateConstitutiveMatrix(cCoefs, cFrame, C);
-    mat = new StVenantKirchhoffMat(prop->rho, C);
+    mat = new StVenantKirchhoffMat(prop->rho, C, prop->Ta, prop->W);
   }
   if(mat) {
 #ifdef USE_EIGEN3
     MatNLElement *ele = new NLPentahedral6(nn);
     ele->setMaterial(mat);
     ele->setGlNum(glNum);
+    ele->setProp(prop);
     return new MatNLCorotator(ele);
 #endif
   }
-  else if(!cCoefs) {
-    pentaCorotator = new PentaCorotator(nn, prop->E, prop->nu, cs, prop->Ta, prop->W);
-    return pentaCorotator;
+  else {
+    return new PentaCorotator(nn, prop->E, prop->nu, cs, prop->Ta, prop->W);
   }
   printf("WARNING: Corotator not implemented for element %d\n", glNum+1); return 0;
 }

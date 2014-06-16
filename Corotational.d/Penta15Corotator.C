@@ -49,6 +49,10 @@ Penta15Corotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
     Z[i] = cs[nodeNum[i]]->z;
   }
 
+  // get the nodal temperatures
+  Vector ndTemps(15);
+  geomState.get_temperature(15, nodeNum, ndTemps, Tref);
+
   // integration: loop over Gauss pts
   double Shape[15], nGrad[15][3];
   double dOmega; // det of jacobian
@@ -126,6 +130,13 @@ Penta15Corotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
     double e_12 = (F[0][0]*F[0][1]+F[1][0]*F[1][1]+F[2][0]*F[2][1]);
     double e_13 = (F[0][0]*F[0][2]+F[1][0]*F[1][2]+F[2][0]*F[2][2]);
     double e_23 = (F[0][1]*F[0][2]+F[1][1]*F[1][2]+F[2][1]*F[2][2]);
+
+    // Subtract thermal strain (off by factor of 2)
+    double theta = 0.0;
+    for(j = 0; j < 15; j++) theta += Shape[j]*(ndTemps[j] - Tref);
+    e_11 -= 2*alpha*theta;
+    e_22 -= 2*alpha*theta;
+    e_33 -= 2*alpha*theta;
 
     double sigma[6];
 
@@ -235,6 +246,10 @@ Penta15Corotator::getInternalForce(GeomState &geomState, CoordSet &cs,
     Z[i] = cs[nodeNum[i]]->z;
   }
 
+  // get the nodal temperatures
+  Vector ndTemps(15);
+  geomState.get_temperature(15, nodeNum, ndTemps, Tref);
+
   // integration: loop over Gauss pts
   double Shape[15], nGrad[15][3];
   double dOmega; // det of jacobian
@@ -311,6 +326,13 @@ Penta15Corotator::getInternalForce(GeomState &geomState, CoordSet &cs,
     double e_12 = (F[0][0]*F[0][1]+F[1][0]*F[1][1]+F[2][0]*F[2][1]);
     double e_13 = (F[0][0]*F[0][2]+F[1][0]*F[1][2]+F[2][0]*F[2][2]);
     double e_23 = (F[0][1]*F[0][2]+F[1][1]*F[1][2]+F[2][1]*F[2][2]);
+
+    // Subtract thermal strain (off by factor of 2)
+    double theta = 0.0;
+    for(j = 0; j < 15; j++) theta += Shape[j]*(ndTemps[j] - Tref);
+    e_11 -= 2*alpha*theta;
+    e_22 -= 2*alpha*theta;
+    e_33 -= 2*alpha*theta;
 
     double sigma[6];
 
@@ -453,7 +475,7 @@ Penta15Corotator::computeStrainGrad(GeomState &geomState, CoordSet &cs,
 void
 Penta15Corotator::getNLVonMises(Vector& stress, Vector& weight, GeomState &geomState,
                                 GeomState *, CoordSet& cs, int strInd, int,
-                                double *ndTemps, double, double, int, int)
+                                double, double, int, int)
 {
   weight = 1.0;
 
@@ -465,7 +487,7 @@ Penta15Corotator::getNLVonMises(Vector& stress, Vector& weight, GeomState &geomS
   double elStrain[15][7];
 
   // Compute NL Stress/Strain
-  computePiolaStress(geomState, cs, ndTemps, elStress, elStrain);
+  computePiolaStress(geomState, cs, elStress, elStrain);
 
   // Compute Von Mises
   if(strInd == 6)
@@ -486,8 +508,7 @@ Penta15Corotator::getNLVonMises(Vector& stress, Vector& weight, GeomState &geomS
 
 void
 Penta15Corotator::getNLAllStress(FullM &stress, Vector &weight, GeomState &geomState,
-                                 GeomState *, CoordSet &cs, int strInd, int,
-                                 double *ndTemps, int)
+                                 GeomState *, CoordSet &cs, int strInd, int, int)
 {
   weight = 1.0;
 
@@ -497,7 +518,7 @@ Penta15Corotator::getNLAllStress(FullM &stress, Vector &weight, GeomState &geomS
   double elStrain[15][7];
 
   // Compute NL Stress/Strain
-  computePiolaStress(geomState, cs, ndTemps, elStress, elStrain);
+  computePiolaStress(geomState, cs, elStress, elStrain);
 
   // Store all Stress or all Strain as defined by strInd
   if(strInd == 0) {
@@ -535,7 +556,7 @@ Penta15Corotator::getNLAllStress(FullM &stress, Vector &weight, GeomState &geomS
 }
 
 void
-Penta15Corotator::computePiolaStress(GeomState &geomState, CoordSet &cs, double *ndTemps,
+Penta15Corotator::computePiolaStress(GeomState &geomState, CoordSet &cs,
                                      double stress[15][7], double strain[15][7])
 {
   int i,j,n;
@@ -556,6 +577,10 @@ Penta15Corotator::computePiolaStress(GeomState &geomState, CoordSet &cs, double 
     Y[i] = cs[nodeNum[i]]->y;
     Z[i] = cs[nodeNum[i]]->z;
   }
+
+  // get the nodal temperatures
+  Vector ndTemps(15);
+  geomState.get_temperature(15, nodeNum, ndTemps, Tref);
 
   for (n = 0; n < 15; n++) { // loop over nodes
 
@@ -691,6 +716,10 @@ Penta15Corotator::getElementEnergy(GeomState &geomState, CoordSet &cs)
     Z[i] = cs[nodeNum[i]]->z;
   }
 
+  // get the nodal temperatures
+  Vector ndTemps(15);
+  geomState.get_temperature(15, nodeNum, ndTemps, Tref);
+
   // integration: loop over Gauss pts
   double Shape[15], nGrad[15][3];
   double dOmega; // det of jacobian
@@ -764,6 +793,13 @@ Penta15Corotator::getElementEnergy(GeomState &geomState, CoordSet &cs)
     double e_12 = (F[0][0]*F[0][1]+F[1][0]*F[1][1]+F[2][0]*F[2][1]);
     double e_13 = (F[0][0]*F[0][2]+F[1][0]*F[1][2]+F[2][0]*F[2][2]);
     double e_23 = (F[0][1]*F[0][2]+F[1][1]*F[1][2]+F[2][1]*F[2][2]);
+
+    // Subtract thermal strain
+    double theta = 0.0;
+    for(j = 0; j < 15; j++) theta += Shape[j]*(ndTemps[j] - Tref);
+    e_11 -= alpha*theta;
+    e_22 -= alpha*theta;
+    e_33 -= alpha*theta;
 
     double E2 = em*nu/((1+nu)*(1-2*nu));
     double G2 = em/(2*(1+nu));

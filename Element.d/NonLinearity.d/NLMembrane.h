@@ -93,9 +93,9 @@ class NLMembrane : public GenGaussIntgElement<TwoDTensorTypes<9> >
     int numDofs() { return 9; }
     void renum(int *);
     void renum(EleRenumMap&);
-    void   markDofs(DofSetArray &);
-    int*   dofs(DofSetArray &, int *p=0);
-    int*   nodes(int * = 0);
+    void markDofs(DofSetArray &);
+    int* dofs(DofSetArray &, int *p=0);
+    int* nodes(int * = 0);
     void updateStates(Node *nodes, double *states, double *un, double *unp) {}
     void setMaterial(NLMaterial *);
     int numInternalNodes();
@@ -121,7 +121,7 @@ class NLMembrane : public GenGaussIntgElement<TwoDTensorTypes<9> >
     void getAllStress(FullM &stress, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd,
                       int surface=0, double *ndTemps=0);
 
-    void computeDisp(CoordSet&cs, State &state, const InterpPoint &, double*res, GeomState *gs);
+    void computeDisp(CoordSet &cs, State &state, const InterpPoint &, double *res, GeomState *gs);
     void getFlLoad(CoordSet &, const InterpPoint &,  double *flF, double *resF, GeomState *gs=0);
 
     PrioInfo examine(int sub, MultiFront *mf);

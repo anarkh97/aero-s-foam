@@ -718,6 +718,7 @@ MDNLDynamic::getExternalForce(DistrVector& f, DistrVector& constantForce,
   if(domain->solInfo().thermoeFlag >= 0 && tIndex >= 0) {
     distFlExchanger->getStrucTemp(nodalTemps->data());
     if(verboseFlag) filePrint(stderr, " ... [E] Received temperatures      ...\n");
+    geomState->setNodalTemperatures(*nodalTemps);
   }
 
   double beta, gamma, alphaf, alpham;

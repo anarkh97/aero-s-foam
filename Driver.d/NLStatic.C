@@ -1838,9 +1838,9 @@ Domain::computeGeometricPreStress(Corotator **&allCorot, GeomState *&geomState,
 
    times->timeGeom -= getTime();
    if(domain->solInfo().soltyp == 2)
-     geomState =  new TemperatureState( *getDSA(), *getCDSA(), getNodes() );
+     geomState =  new TemperatureState(*getDSA(), *getCDSA(), getNodes());
    else 
-     geomState = new GeomState( *getDSA(), *getCDSA(), getNodes(), &getElementSet() );
+     geomState = new GeomState(*getDSA(), *getCDSA(), getNodes(), &getElementSet(), getNodalTemperatures());
    times->timeGeom += getTime();
 #ifdef PRINT_NLTIMERS
    fprintf(stderr," ... Build GeomState %29.5f s\n", times->timeGeom/1000.0);
@@ -1962,13 +1962,15 @@ Domain::getStressStrain(GeomState &geomState, Corotator **allCorot,
                                         elDisp->data(), flag);
 
     // get element's nodal temperatures
-    elemNodeTemps.zero();
-    if(nodalTemperatures) packedEset[iele]->nodes(nodeNumbers);
-    for(int iNode = 0; iNode < NodesPerElement; ++iNode) {
-      if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
-        elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
-      else
-        elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
+    if(flag == 1) {
+      elemNodeTemps.zero();
+      if(nodalTemperatures) packedEset[iele]->nodes(nodeNumbers);
+      for(int iNode = 0; iNode < NodesPerElement; ++iNode) {
+        if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
+          elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
+        else
+          elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
+      }
     }
 
     // ... CALCULATE STRESS/STRAIN VALUE FOR EACH NODE OF THE ELEMENT
@@ -1986,9 +1988,9 @@ Domain::getStressStrain(GeomState &geomState, Corotator **allCorot,
       }
       else {
         // USE NON-LINEAR STRESS ROUTINE
+        // note: in this case the element nodal temperatures are extracted from geomState inside the function
         allCorot[iele]->getNLAllStress(*p_elstress, *elweight, geomState,
-                                       refState, nodes, strInd, surface,
-                                       elemNodeTemps.data());
+                                       refState, nodes, strInd, surface);
       }
 
       // Second, transform stress/strain tensor to nodal frame coordinates
@@ -2010,12 +2012,13 @@ Domain::getStressStrain(GeomState &geomState, Corotator **allCorot,
                                       elemNodeTemps.data(), ylayer,
                                       zlayer, avgnum);
 
-      } else if (flag == 2) {
+      }
+      else if (flag == 2) {
         // USE NON-LINEAR STRESS ROUTINE
+        // note: in this case the element nodal temperatures are extracted from geomState inside the function
         allCorot[iele]->getNLVonMises(*elstress, *elweight, geomState,
                                       refState, nodes, stressIndex, surface,
-                                      elemNodeTemps.data(), ylayer, zlayer,
-                                      avgnum);
+                                      ylayer, zlayer, avgnum);
 
       } else {
         // NO STRESS RECOVERY
@@ -2156,33 +2159,34 @@ Domain::getPrincipalStress(GeomState &geomState, Corotator **allCorot,
     allCorot[iele]->extractDeformations(geomState, nodes,
                                         elDisp->data(), flag);
 
-    // get element's nodal temperatures
-    elemNodeTemps.zero();
-    if(nodalTemperatures) packedEset[iele]->nodes(nodeNumbers);
-    for(int iNode = 0; iNode < packedEset[iele]->numNodes(); ++iNode) {
-      if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
-        elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
-      else
-        elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
-    }
-
     if (flag == 1) {
-// USE LINEAR STRESS ROUTINE
-// ... CALCULATE STRESS/STRAIN VALUE FOR EACH NODE OF THE ELEMENT
+      // get element's nodal temperatures
+      elemNodeTemps.zero();
+      if(nodalTemperatures) packedEset[iele]->nodes(nodeNumbers);
+      for(int iNode = 0; iNode < packedEset[iele]->numNodes(); ++iNode) {
+        if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
+          elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
+        else
+          elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
+      }
+
+      // USE LINEAR STRESS ROUTINE
+      // ... CALCULATE STRESS/STRAIN VALUE FOR EACH NODE OF THE ELEMENT
       packedEset[iele]->getAllStress(*p_elstress, *elweight, nodes,
                                      *elDisp, strInd, surface,
                                      elemNodeTemps.data());
-
-    } else if (flag == 2) {
-// USE NON-LINEAR STRESS ROUTINE
+    }
+    else if (flag == 2) {
+      // USE NON-LINEAR STRESS ROUTINE
+      // note: in this case the element nodal temperatures are extracted from geomState inside the function
       allCorot[iele]->getNLAllStress(*p_elstress, *elweight, geomState,
-                                     refState, nodes, strInd, surface,
-                                     elemNodeTemps.data());
-    } else {
-// NO STRESS RECOVERY
+                                     refState, nodes, strInd, surface);
+    }
+    else {
+      // NO STRESS RECOVERY
     }
 
-// ... ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
+    // ... ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
 
     int NodesPerElement = elemToNode->num(iele);
 
@@ -2193,8 +2197,8 @@ Domain::getPrincipalStress(GeomState &geomState, Corotator **allCorot,
       (*weight)[(*elemToNode)[iele][k]] += (*elweight)[k];
     }
 
-// ... PRINT NON-AVERAGED STRESS VALUES IF REQUESTED
-//     THIS WRITES THE CHOSEN PRINCIPAL STRESS FOR EACH ELEMENT
+    // ... PRINT NON-AVERAGED STRESS VALUES IF REQUESTED
+    //     THIS WRITES THE CHOSEN PRINCIPAL STRESS FOR EACH ELEMENT
     if(avgnum == 0) {
       for(k=0; k<NodesPerElement; ++k)
          fprintf(oinfo[fileNumber].filptr," % *.*E",w,p,(*p_elstress)[k][5+strDir]);
@@ -2202,8 +2206,8 @@ Domain::getPrincipalStress(GeomState &geomState, Corotator **allCorot,
     }
   }
 
-// ... AVERAGE STRESS/STRAIN VALUE AT EACH NODE BY THE NUMBER OF
-// ... ELEMENTS ATTACHED TO EACH NODE IF REQUESTED.
+  // ... AVERAGE STRESS/STRAIN VALUE AT EACH NODE BY THE NUMBER OF
+  // ... ELEMENTS ATTACHED TO EACH NODE IF REQUESTED.
 
   if(avgnum == 1 || avgnum == 2) {
 
@@ -2231,7 +2235,7 @@ Domain::getPrincipalStress(GeomState &geomState, Corotator **allCorot,
       }
     }
 
-// ... CALCULATE PRINCIPALS AT EACH NODE
+    // ... CALCULATE PRINCIPALS AT EACH NODE
 
     double svec[6], pvec[3];
     if(n == -1) {
@@ -2244,7 +2248,7 @@ Domain::getPrincipalStress(GeomState &geomState, Corotator **allCorot,
         for (j=0; j<6; ++j) {
           svec[j] = (*p_stress)[k][j];
         }
-// Convert Engineering to Tensor Strains
+        // Convert Engineering to Tensor Strains
         if(strInd != 0) {
           svec[3] /= 2;
           svec[4] /= 2;
@@ -2259,7 +2263,7 @@ Domain::getPrincipalStress(GeomState &geomState, Corotator **allCorot,
       for (j=0; j<6; ++j) {
         svec[j] = (*p_stress)[n][j];
       }
-// Convert Engineering to Tensor Strains
+      // Convert Engineering to Tensor Strains
       if(strInd != 0) {
         svec[3] /= 2;
         svec[4] /= 2;

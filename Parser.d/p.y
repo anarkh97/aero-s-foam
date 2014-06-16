@@ -4272,35 +4272,50 @@ MatSpec:
            geoSource->addMaterial($2-1,
              new LogStrainPlasKinHardMat($4, $5, $6, $7, $8, $9) );
          }
+        | MatSpec Integer LINEARELASTIC Float Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new ElaLinIsoMat($4, $5, $6, $7, $8));
+         }
 	| MatSpec Integer LINEARELASTIC Float Float Float NewLine
 	 { 
            geoSource->addMaterial($2-1, 
-             new ElaLinIsoMat($4, $5, $6));
+             new ElaLinIsoMat($4, $5, $6, 0, 0));
 	 }
         | MatSpec Integer LINEARELASTIC Float NewLine
          {
            geoSource->addMaterial($2-1,
-             new ElaLinIsoMat($4, 0, 0));
+             new ElaLinIsoMat($4, 0, 0, 0, 0));
+         }
+        | MatSpec Integer STVENANTKIRCHHOFF Float Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new StVenantKirchhoffMat($4, $5, $6, $7, $8));
          }
         | MatSpec Integer STVENANTKIRCHHOFF Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
-             new StVenantKirchhoffMat($4, $5, $6));
+             new StVenantKirchhoffMat($4, $5, $6, 0, 0));
          }
         | MatSpec Integer STVENANTKIRCHHOFF Float NewLine
          {
            geoSource->addMaterial($2-1,
-             new StVenantKirchhoffMat($4, 0, 0));
+             new StVenantKirchhoffMat($4, 0, 0, 0, 0));
+         }
+        | MatSpec Integer HENCKY Float Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new HenckyMat($4, $5, $6, $7, $8));
          }
         | MatSpec Integer HENCKY Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
-             new HenckyMat($4, $5, $6));
+             new HenckyMat($4, $5, $6, 0, 0));
          }
         | MatSpec Integer HENCKY Float NewLine
          {
            geoSource->addMaterial($2-1,
-             new HenckyMat($4, 0, 0));
+             new HenckyMat($4, 0, 0, 0, 0));
          }
         | MatSpec Integer LINPLSTRESS Float Float Float Float NewLine
          {

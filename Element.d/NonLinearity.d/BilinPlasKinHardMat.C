@@ -1,5 +1,6 @@
-#include <Element.d/NonLinearity.d/NLMaterial.h>
+#include <Element.d/Element.h>
 #include <Element.d/NonLinearity.d/StrainEvaluator.h>
+#include <Utils.d/NodeSpaceArray.h>
 
 #include <cstdio>
 #include <cstdlib>
@@ -19,7 +20,7 @@ ElasPlasKinHardMat<e>::ElasPlasKinHardMat(StructProp *p)
 
 template<int e>
 void
-ElasPlasKinHardMat<e>::getStress(Tensor *stress, Tensor &strain, double *state)
+ElasPlasKinHardMat<e>::getStress(Tensor *stress, Tensor &strain, double *state, double temp)
 {
   std::cerr << "WARNING: ElasPlasKinHardMat<e>::getStress is not implemented\n";
 }
@@ -57,14 +58,14 @@ ElasPlasKinHardMat<e>::getTangentMaterial(Tensor *tm, Tensor &strain, double *st
 
 template<int e>
 void 
-ElasPlasKinHardMat<e>::getStressAndTangentMaterial(Tensor *stess, Tensor *tm, Tensor &strain, double *state)
+ElasPlasKinHardMat<e>::getStressAndTangentMaterial(Tensor *stess, Tensor *tm, Tensor &strain, double *state, double temp)
 {
   std::cerr << "WARNING: ElasPlasKinHardMat<e>::getStressAndTangentMaterial is not implemented\n";
 }
 
 template<int e>
 void 
-ElasPlasKinHardMat<e>::updateStates(Tensor en, Tensor enp, double *state)
+ElasPlasKinHardMat<e>::updateStates(Tensor &en, Tensor &enp, double *state, double temp)
 {
   std::cerr << "WARNING: ElasPlasKinHardMat<e>::updateStates is not implemented\n";
 }
@@ -72,7 +73,7 @@ ElasPlasKinHardMat<e>::updateStates(Tensor en, Tensor enp, double *state)
 template<int e>
 void
 ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor *_tm, Tensor &_en, Tensor  &_enp,
-                               double *staten, double *statenp, double)
+                                 double *staten, double *statenp, double temp)
 {
   //////////////////////////////////////////////////////////////////////////////
   /// Simo and Hughes - Computational Inelasticity - Springer -1998- (p:124) ///
@@ -106,7 +107,7 @@ ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor *_tm, Tensor &_en, Tens
     (*stress) = (*tm)||enp;
   }
   else {
-    //state: from 0 to 5, plastic strain ; from 6 to 11, center of the yield surface; 12 equivalent plastic strain
+    //state: from 0 to 5, plastic strain; from 6 to 11, center of the yield surface; 12 equivalent plastic strain
 
     Tensor_d0s4_Ss12s34 &tm = static_cast<Tensor_d0s4_Ss12s34 &>(*_tm); 
     Tensor_d0s2_Ss12 & enp = static_cast<Tensor_d0s2_Ss12 &>(_enp);
@@ -186,7 +187,7 @@ ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor *_tm, Tensor &_en, Tens
 template<int e>
 void
 ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor &_en, Tensor  &_enp,
-                               double *staten, double *statenp, double)
+                               double *staten, double *statenp, double temp)
 {
   //////////////////////////////////////////////////////////////////////////////
   /// Simo and Hughes - Computational Inelasticity - Springer -1998- (p:124) ///
@@ -340,7 +341,7 @@ ElasPlasKinHardMat<e>::getPlasticStrain(double *statenp, Tensor *_plasticstrain)
 
 template<int e>
 double
-ElasPlasKinHardMat<e>::getStrainEnergyDensity(Tensor &_enp, double *statenp)
+ElasPlasKinHardMat<e>::getStrainEnergyDensity(Tensor &_enp, double *statenp, double temp)
 {
   Tensor_d0s2_Ss12 &enp = static_cast<Tensor_d0s2_Ss12 &>(_enp);
   Tensor_d0s2_Ss12 eplastnp;

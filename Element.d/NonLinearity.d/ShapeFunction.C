@@ -145,3 +145,10 @@ ShapeFunction::getGradU(Tensor *_gradU, double *jac, Node *nodes, double xi[3], 
 
   jacobian.getDeterminant(*jac);
 }
+
+double
+ShapeFunction::interpolateScalar(double *_q, double _xi[3])
+{
+  std::cerr << "Error: ShapeFunction::interpolateScalar is not implemented\n";
+  return 0;
+}

@@ -3,14 +3,11 @@
 
 #include <Element.d/Element.h>
 
-class Penta26Corotator;
-
 class Penta26: public Element
 {
     int nn[26];
     double *cCoefs;
     double *cFrame;
-    Penta26Corotator *penta26Corotator;
     NLMaterial *mat;
 
   public:

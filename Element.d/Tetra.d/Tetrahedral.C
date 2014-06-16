@@ -49,8 +49,6 @@ Tetrahedral::Tetrahedral(int* nodenums)
   nn[2] = nodenums[2];
   nn[3] = nodenums[3];
 
-  tetCorotator = 0;
-
   cFrame = 0;
   cCoefs = 0;
   mat = 0;
@@ -427,11 +425,14 @@ Tetrahedral::getThermalForce(CoordSet &cs, Vector &ndTemps,
   const int nnodes = 4;
   const int ndofs = 12;
 
-  double X[4], Y[4], Z[4];
-  cs.getCoordinates(nn, nnodes, X, Y, Z);
-
   // initialize nodal thermal forces
   for(int i=0; i<ndofs; i++) elementThermalForce[i] = 0.0;
+
+  // for nonlinear analyses, the thermal load for this element is now computed in getStiffAndForce
+  if(geomState) return;
+
+  double X[4], Y[4], Z[4];
+  cs.getCoordinates(nn, nnodes, X, Y, Z);
 
   // get material props & constitutive matrix
   double &Tref  = prop->Ta;
@@ -443,56 +444,35 @@ Tetrahedral::getThermalForce(CoordSet &cs, Vector &ndTemps,
   } else // isotropic material
     _FORTRAN(brkcmt)(prop->E, prop->nu, (double*)C);
  
-  if(geomState && tetCorotator) { // GEOMETRIC NONLINEAR ANALYSIS WITH DEFAULT MATERIAL
-    // F = E*alpha/(1-2*nu) : de/dq_i  SUM(xi_j)*dT_j * 0.25*Vol
-    double coef = alpha*prop->E/(1.-2.*prop->nu);
-    double nGrad[4][3];
-    double dedU[12][6];
-    double dOmega = tetCorotator->computeShapeGrad(cs, nGrad)/24.0;
-    tetCorotator->computeStrainGrad(*geomState, nGrad, dedU);
+  // NUMERICAL INTEGRATION BY GAUSS PTS
+  // integration: loop over Gauss pts
+  // hard coded order 1 tetrahedral quadrature rule: {r,s,t,u(=1-r-s-t),w}
+  int ngp = 1;
+  double TetGPt1[1][5] = {{1./4.,1./4.,1./4.,1./4.,1./6.}};
+  double m[3], Shape[4], DShape[4][3];
+  double w, J;
+  int jSign = 0;
 
-    double deltaT = 0.0;
-    for(int i = 0; i < nnodes; i++)
-      deltaT += ndTemps[i]-Tref;
-
-    for(int i = 0; i < ndofs; ++i)
-      elementThermalForce[i] = dOmega*coef*(dedU[i][0]+dedU[i][1]+dedU[i][2])*deltaT;
-  }
-  else if(!geomState) { // LINEAR ANALYSIS
-    // NUMERICAL INTEGRATION BY GAUSS PTS
-    // integration: loop over Gauss pts
-    // hard coded order 1 tetrahedral quadrature rule: {r,s,t,u(=1-r-s-t),w}
-    int ngp = 1;
-    double TetGPt1[1][5] = {{1./4.,1./4.,1./4.,1./4.,1./6.}};
-    double m[3], Shape[4], DShape[4][3];
-    double w, J;
-    int jSign = 0;
-
-    for(int igp=0; igp<ngp; igp++) {
-      // get x, y, z position & weight of the integration pt
-      m[0] = TetGPt1[igp][0]; m[1] = TetGPt1[igp][1]; m[2] = TetGPt1[igp][2]; w = TetGPt1[igp][4];
-      J = Tetra4ShapeFct(Shape, DShape, m, X, Y, Z);
+  for(int igp=0; igp<ngp; igp++) {
+    // get x, y, z position & weight of the integration pt
+    m[0] = TetGPt1[igp][0]; m[1] = TetGPt1[igp][1]; m[2] = TetGPt1[igp][2]; w = TetGPt1[igp][4];
+    J = Tetra4ShapeFct(Shape, DShape, m, X, Y, Z);
 #ifdef CHECK_JACOBIAN
-      checkJacobian(&J, &jSign, getGlNum()+1, "Tetrahedral::getThermalForce");
+    checkJacobian(&J, &jSign, getGlNum()+1, "Tetrahedral::getThermalForce");
 #endif
-      w *= fabs(J);
-      // compute thermal stresses
-      double eT = 0.0;
-      for(int inode=0; inode<nnodes; inode++) eT += alpha*Shape[inode]*(ndTemps[inode] - Tref);
-      double thermalStrain[6] = {eT,eT,eT,0.0,0.0,0.0};
-      double thermalStress[6] = {0.0,0.0,0.0,0.0,0.0,0.0}; 
-      computeStress3DSolid(thermalStress, thermalStrain, C); // thermalStress <- C.thermalStrain
-      // sum contribution
-      for(int inode=0; inode<nnodes; inode++) {
-        elementThermalForce[3*inode  ] += w*(DShape[inode][0]*thermalStress[0] + DShape[inode][1]*thermalStress[3] + DShape[inode][2]*thermalStress[5]);
-        elementThermalForce[3*inode+1] += w*(DShape[inode][0]*thermalStress[3] + DShape[inode][1]*thermalStress[1] + DShape[inode][2]*thermalStress[4]);
-        elementThermalForce[3*inode+2] += w*(DShape[inode][0]*thermalStress[5] + DShape[inode][1]*thermalStress[4] + DShape[inode][2]*thermalStress[2]);
-      }
+    w *= fabs(J);
+    // compute thermal stresses
+    double eT = 0.0;
+    for(int inode=0; inode<nnodes; inode++) eT += alpha*Shape[inode]*(ndTemps[inode] - Tref);
+    double thermalStrain[6] = {eT,eT,eT,0.0,0.0,0.0};
+    double thermalStress[6] = {0.0,0.0,0.0,0.0,0.0,0.0}; 
+    computeStress3DSolid(thermalStress, thermalStrain, C); // thermalStress <- C.thermalStrain
+    // sum contribution
+    for(int inode=0; inode<nnodes; inode++) {
+      elementThermalForce[3*inode  ] += w*(DShape[inode][0]*thermalStress[0] + DShape[inode][1]*thermalStress[3] + DShape[inode][2]*thermalStress[5]);
+      elementThermalForce[3*inode+1] += w*(DShape[inode][0]*thermalStress[3] + DShape[inode][1]*thermalStress[1] + DShape[inode][2]*thermalStress[4]);
+      elementThermalForce[3*inode+2] += w*(DShape[inode][0]*thermalStress[5] + DShape[inode][1]*thermalStress[4] + DShape[inode][2]*thermalStress[2]);
     }
-  }
-  else {
-    fprintf(stderr," *** ERROR: Tetrahedral::getThermalForce not supported for material nonlinear analysis. Abort.\n");
-    exit(-1);
   }
 }
 
@@ -823,19 +803,19 @@ Tetrahedral::getCorotator(CoordSet &cs, double *kel, int, int)
   if(cCoefs && !mat) {
     double C[6][6];
     rotateConstitutiveMatrix(cCoefs, cFrame, C);
-    mat = new StVenantKirchhoffMat(prop->rho, C);
+    mat = new StVenantKirchhoffMat(prop->rho, C, prop->Ta, prop->W);
   }
   if(mat) {
 #ifdef USE_EIGEN3
     MatNLElement *ele = new NLTetrahedral4(nn);
     ele->setMaterial(mat);
     ele->setGlNum(glNum);
+    ele->setProp(prop);
     return new MatNLCorotator(ele);
 #endif
   }
   else {
-    tetCorotator = new TetCorotator(nn, prop->E, prop->nu, cs, prop->Ta, prop->W);
-    return tetCorotator;
+    return new TetCorotator(nn, prop->E, prop->nu, cs, prop->Ta, prop->W);
   }
   printf("WARNING: Corotator not implemented for element %d\n", glNum+1); return 0;
 }

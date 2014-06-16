@@ -29,19 +29,18 @@ class PentaCorotator : public Corotator {
 
      void getNLVonMises(Vector& stress, Vector& weight, GeomState &curState,
                         GeomState *refState, CoordSet& c0, int strIndex, int surface = 0,
-                        double *ndTemps = 0, double ylayer = 0, double zlayer = 0,
-                        int avgnum = 0, int measure = -1);
+                        double ylayer = 0, double zlayer = 0, int avgnum = 0, int measure = -1);
 
      void getNLAllStress(FullM &stress, Vector &weight, GeomState &curState,
                          GeomState *refState, CoordSet &c0, int strInd, int surface = 0,
-                         double *ndTemps = 0, int measure = -1);
+                         int measure = -1);
 
      double computeShapeGrad(GeomState &nodes, double nGrad[6][3]);
 
      double computeStrainGrad(GeomState &geomState, CoordSet &, double dedU[18][6],
                               double m[3]);
 
-     void computePiolaStress(GeomState &, CoordSet &cs, double *ndTemps,
+     void computePiolaStress(GeomState &, CoordSet &cs,
                               double stress[6][7], double strain[6][7]);
 
      double getElementEnergy(GeomState &gs, CoordSet &cs);

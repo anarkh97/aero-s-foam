@@ -16,30 +16,8 @@ extern "C" {
 
 extern double Tetra10ShapeFct(double Shape[10], double DShape[10][3], double m[3], double X[10], double Y[10], double Z[10]);
 
-double weight3d5[15] = { 1.975308731198311E-02, 1.198951396316977E-02,
-                         1.198951396316977E-02, 1.198951396316977E-02,
-                         1.198951396316977E-02, 1.151136787104540E-02,
-                         1.151136787104540E-02, 1.151136787104540E-02,
-                         1.151136787104540E-02, 8.818342350423336E-03,
-                         8.818342350423336E-03, 8.818342350423336E-03,
-                         8.818342350423336E-03, 8.818342350423336E-03,
-                         8.818342350423336E-03 };
-
-double gauss3d5[15][3] = { {0.250000000000000000000, 0.250000000000000000000, 0.250000000000000000000},
-                           {0.724086765841830901630, 0.091971078052723032789, 0.091971078052723032789},
-                           {0.091971078052723032789, 0.724086765841830901630, 0.091971078052723032789},
-                           {0.091971078052723032789, 0.091971078052723032789, 0.724086765841830901630},
-                           {0.091971078052723032789, 0.091971078052723032789, 0.091971078052723032789},
-                           {0.040619116511110274837, 0.319793627829629908390, 0.319793627829629908390},
-                           {0.319793627829629908390, 0.040619116511110274837, 0.319793627829629908390},
-                           {0.319793627829629908390, 0.319793627829629908390, 0.040619116511110274837},
-                           {0.319793627829629908390, 0.319793627829629908390, 0.319793627829629908390},
-                           {0.443649167310370844260, 0.443649167310370844260, 0.056350832689629155741},
-                           {0.443649167310370844260, 0.056350832689629155741, 0.443649167310370844260},
-                           {0.443649167310370844260, 0.056350832689629155741, 0.056350832689629155741},
-                           {0.056350832689629155741, 0.443649167310370844260, 0.443649167310370844260},
-                           {0.056350832689629155741, 0.443649167310370844260, 0.056350832689629155741},
-                           {0.056350832689629155741, 0.056350832689629155741, 0.443649167310370844260} };
+extern double weight3d5[15];
+extern double gauss3d5[15][3];
 
 Tet10Corotator::Tet10Corotator(int nodeNumbers[10], double _em, double _nu, CoordSet& cs, double _Tref, double _alpha)
 {
@@ -72,6 +50,10 @@ Tet10Corotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
     Z[i] = cs[nodeNum[i]]->z;
   }
 
+  // get the nodal temperatures
+  Vector ndTemps(10);
+  geomState.get_temperature(10, nodeNum, ndTemps, Tref);
+
   // integration: loop over Gauss pts
   double Shape[10], nGrad[10][3];
   double dOmega; // det of jacobian
@@ -91,40 +73,40 @@ Tet10Corotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
     double F[3][3];
 
     for(j = 0; j < 3; ++j)
-      F[0][j] = geomState[nodeNum[ 0]].x * nGrad[ 0][j]
-              + geomState[nodeNum[ 1]].x * nGrad[ 1][j]
-              + geomState[nodeNum[ 2]].x * nGrad[ 2][j]
-              + geomState[nodeNum[ 3]].x * nGrad[ 3][j]
-              + geomState[nodeNum[ 4]].x * nGrad[ 4][j]
-              + geomState[nodeNum[ 5]].x * nGrad[ 5][j]
-              + geomState[nodeNum[ 6]].x * nGrad[ 6][j]
-              + geomState[nodeNum[ 7]].x * nGrad[ 7][j]
-              + geomState[nodeNum[ 8]].x * nGrad[ 8][j]
-              + geomState[nodeNum[ 9]].x * nGrad[ 9][j];
+      F[0][j] = geomState[nodeNum[0]].x * nGrad[0][j]
+              + geomState[nodeNum[1]].x * nGrad[1][j]
+              + geomState[nodeNum[2]].x * nGrad[2][j]
+              + geomState[nodeNum[3]].x * nGrad[3][j]
+              + geomState[nodeNum[4]].x * nGrad[4][j]
+              + geomState[nodeNum[5]].x * nGrad[5][j]
+              + geomState[nodeNum[6]].x * nGrad[6][j]
+              + geomState[nodeNum[7]].x * nGrad[7][j]
+              + geomState[nodeNum[8]].x * nGrad[8][j]
+              + geomState[nodeNum[9]].x * nGrad[9][j];
 
     for(j = 0; j < 3; ++j)
-      F[1][j] = geomState[nodeNum[ 0]].y * nGrad[ 0][j]
-              + geomState[nodeNum[ 1]].y * nGrad[ 1][j]
-              + geomState[nodeNum[ 2]].y * nGrad[ 2][j]
-              + geomState[nodeNum[ 3]].y * nGrad[ 3][j]
-              + geomState[nodeNum[ 4]].y * nGrad[ 4][j]
-              + geomState[nodeNum[ 5]].y * nGrad[ 5][j]
-              + geomState[nodeNum[ 6]].y * nGrad[ 6][j]
-              + geomState[nodeNum[ 7]].y * nGrad[ 7][j]
-              + geomState[nodeNum[ 8]].y * nGrad[ 8][j]
-              + geomState[nodeNum[ 9]].y * nGrad[ 9][j];
+      F[1][j] = geomState[nodeNum[0]].y * nGrad[0][j]
+              + geomState[nodeNum[1]].y * nGrad[1][j]
+              + geomState[nodeNum[2]].y * nGrad[2][j]
+              + geomState[nodeNum[3]].y * nGrad[3][j]
+              + geomState[nodeNum[4]].y * nGrad[4][j]
+              + geomState[nodeNum[5]].y * nGrad[5][j]
+              + geomState[nodeNum[6]].y * nGrad[6][j]
+              + geomState[nodeNum[7]].y * nGrad[7][j]
+              + geomState[nodeNum[8]].y * nGrad[8][j]
+              + geomState[nodeNum[9]].y * nGrad[9][j];
 
     for(j = 0; j < 3; ++j)
-      F[2][j] = geomState[nodeNum[ 0]].z * nGrad[ 0][j]
-              + geomState[nodeNum[ 1]].z * nGrad[ 1][j]
-              + geomState[nodeNum[ 2]].z * nGrad[ 2][j]
-              + geomState[nodeNum[ 3]].z * nGrad[ 3][j]
-              + geomState[nodeNum[ 4]].z * nGrad[ 4][j]
-              + geomState[nodeNum[ 5]].z * nGrad[ 5][j]
-              + geomState[nodeNum[ 6]].z * nGrad[ 6][j]
-              + geomState[nodeNum[ 7]].z * nGrad[ 7][j]
-              + geomState[nodeNum[ 8]].z * nGrad[ 8][j]
-              + geomState[nodeNum[ 9]].z * nGrad[ 9][j];
+      F[2][j] = geomState[nodeNum[0]].z * nGrad[0][j]
+              + geomState[nodeNum[1]].z * nGrad[1][j]
+              + geomState[nodeNum[2]].z * nGrad[2][j]
+              + geomState[nodeNum[3]].z * nGrad[3][j]
+              + geomState[nodeNum[4]].z * nGrad[4][j]
+              + geomState[nodeNum[5]].z * nGrad[5][j]
+              + geomState[nodeNum[6]].z * nGrad[6][j]
+              + geomState[nodeNum[7]].z * nGrad[7][j]
+              + geomState[nodeNum[8]].z * nGrad[8][j]
+              + geomState[nodeNum[9]].z * nGrad[9][j];
 
     // compute e_ij = 0.5*(F_ki Fkj - delta_ij)
     // here these are off by factor of 2
@@ -134,6 +116,13 @@ Tet10Corotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
     double e_12 = (F[0][0]*F[0][1]+F[1][0]*F[1][1]+F[2][0]*F[2][1]);
     double e_13 = (F[0][0]*F[0][2]+F[1][0]*F[1][2]+F[2][0]*F[2][2]);
     double e_23 = (F[0][1]*F[0][2]+F[1][1]*F[1][2]+F[2][1]*F[2][2]);
+
+    // Subtract thermal strain (off by factor of 2)
+    double theta = 0.0;
+    for(j = 0; j < 10; j++) theta += Shape[j]*(ndTemps[j] - Tref);
+    e_11 -= 2*alpha*theta;
+    e_22 -= 2*alpha*theta;
+    e_33 -= 2*alpha*theta;
 
     double sigma[6];
 
@@ -243,6 +232,10 @@ Tet10Corotator::getInternalForce(GeomState &geomState, CoordSet &cs,
     Z[i] = cs[nodeNum[i]]->z;
   }
 
+  // get the nodal temperatures
+  Vector ndTemps(10);
+  geomState.get_temperature(10, nodeNum, ndTemps, Tref);
+
   // integration: loop over Gauss pts
   double Shape[10], nGrad[10][3];
   double dOmega; // det of jacobian
@@ -261,40 +254,40 @@ Tet10Corotator::getInternalForce(GeomState &geomState, CoordSet &cs,
     // now get F_ij = dPhi_i/dX_j = x^k_i dN_k/dX_j
     double F[3][3];
     for(j = 0; j < 3; ++j)
-      F[0][j] = geomState[nodeNum[ 0]].x * nGrad[ 0][j]
-              + geomState[nodeNum[ 1]].x * nGrad[ 1][j]
-              + geomState[nodeNum[ 2]].x * nGrad[ 2][j]
-              + geomState[nodeNum[ 3]].x * nGrad[ 3][j]
-              + geomState[nodeNum[ 4]].x * nGrad[ 4][j]
-              + geomState[nodeNum[ 5]].x * nGrad[ 5][j]
-              + geomState[nodeNum[ 6]].x * nGrad[ 6][j]
-              + geomState[nodeNum[ 7]].x * nGrad[ 7][j]
-              + geomState[nodeNum[ 8]].x * nGrad[ 8][j]
-              + geomState[nodeNum[ 9]].x * nGrad[ 9][j];
+      F[0][j] = geomState[nodeNum[0]].x * nGrad[0][j]
+              + geomState[nodeNum[1]].x * nGrad[1][j]
+              + geomState[nodeNum[2]].x * nGrad[2][j]
+              + geomState[nodeNum[3]].x * nGrad[3][j]
+              + geomState[nodeNum[4]].x * nGrad[4][j]
+              + geomState[nodeNum[5]].x * nGrad[5][j]
+              + geomState[nodeNum[6]].x * nGrad[6][j]
+              + geomState[nodeNum[7]].x * nGrad[7][j]
+              + geomState[nodeNum[8]].x * nGrad[8][j]
+              + geomState[nodeNum[9]].x * nGrad[9][j];
 
     for(j = 0; j < 3; ++j)
-      F[1][j] = geomState[nodeNum[ 0]].y * nGrad[ 0][j]
-              + geomState[nodeNum[ 1]].y * nGrad[ 1][j]
-              + geomState[nodeNum[ 2]].y * nGrad[ 2][j]
-              + geomState[nodeNum[ 3]].y * nGrad[ 3][j]
-              + geomState[nodeNum[ 4]].y * nGrad[ 4][j]
-              + geomState[nodeNum[ 5]].y * nGrad[ 5][j]
-              + geomState[nodeNum[ 6]].y * nGrad[ 6][j]
-              + geomState[nodeNum[ 7]].y * nGrad[ 7][j]
-              + geomState[nodeNum[ 8]].y * nGrad[ 8][j]
-              + geomState[nodeNum[ 9]].y * nGrad[ 9][j];
+      F[1][j] = geomState[nodeNum[0]].y * nGrad[0][j]
+              + geomState[nodeNum[1]].y * nGrad[1][j]
+              + geomState[nodeNum[2]].y * nGrad[2][j]
+              + geomState[nodeNum[3]].y * nGrad[3][j]
+              + geomState[nodeNum[4]].y * nGrad[4][j]
+              + geomState[nodeNum[5]].y * nGrad[5][j]
+              + geomState[nodeNum[6]].y * nGrad[6][j]
+              + geomState[nodeNum[7]].y * nGrad[7][j]
+              + geomState[nodeNum[8]].y * nGrad[8][j]
+              + geomState[nodeNum[9]].y * nGrad[9][j];
 
     for(j = 0; j < 3; ++j)
-      F[2][j] = geomState[nodeNum[ 0]].z * nGrad[ 0][j]
-              + geomState[nodeNum[ 1]].z * nGrad[ 1][j]
-              + geomState[nodeNum[ 2]].z * nGrad[ 2][j]
-              + geomState[nodeNum[ 3]].z * nGrad[ 3][j]
-              + geomState[nodeNum[ 4]].z * nGrad[ 4][j]
-              + geomState[nodeNum[ 5]].z * nGrad[ 5][j]
-              + geomState[nodeNum[ 6]].z * nGrad[ 6][j]
-              + geomState[nodeNum[ 7]].z * nGrad[ 7][j]
-              + geomState[nodeNum[ 8]].z * nGrad[ 8][j]
-              + geomState[nodeNum[ 9]].z * nGrad[ 9][j];
+      F[2][j] = geomState[nodeNum[0]].z * nGrad[0][j]
+              + geomState[nodeNum[1]].z * nGrad[1][j]
+              + geomState[nodeNum[2]].z * nGrad[2][j]
+              + geomState[nodeNum[3]].z * nGrad[3][j]
+              + geomState[nodeNum[4]].z * nGrad[4][j]
+              + geomState[nodeNum[5]].z * nGrad[5][j]
+              + geomState[nodeNum[6]].z * nGrad[6][j]
+              + geomState[nodeNum[7]].z * nGrad[7][j]
+              + geomState[nodeNum[8]].z * nGrad[8][j]
+              + geomState[nodeNum[9]].z * nGrad[9][j];
 
     // compute e_ij = 0.5*(F_ki Fkj - delta_ij)
     // here these are off by factor of 2
@@ -304,6 +297,13 @@ Tet10Corotator::getInternalForce(GeomState &geomState, CoordSet &cs,
     double e_12 = (F[0][0]*F[0][1]+F[1][0]*F[1][1]+F[2][0]*F[2][1]);
     double e_13 = (F[0][0]*F[0][2]+F[1][0]*F[1][2]+F[2][0]*F[2][2]);
     double e_23 = (F[0][1]*F[0][2]+F[1][1]*F[1][2]+F[2][1]*F[2][2]);
+
+    // Subtract thermal strain (off by factor of 2)
+    double theta = 0.0;
+    for(j = 0; j < 10; j++) theta += Shape[j]*(ndTemps[j] - Tref);
+    e_11 -= 2*alpha*theta;
+    e_22 -= 2*alpha*theta;
+    e_33 -= 2*alpha*theta;
 
     double sigma[6];
 
@@ -378,40 +378,40 @@ Tet10Corotator::computeStrainGrad(GeomState &geomState, CoordSet &cs,
   double F[3][3];
 
   for (j = 0; j < 3; ++j)
-    F[0][j] = geomState[nodeNum[ 0]].x * nGrad[ 0][j]
-            + geomState[nodeNum[ 1]].x * nGrad[ 1][j]
-            + geomState[nodeNum[ 2]].x * nGrad[ 2][j]
-            + geomState[nodeNum[ 3]].x * nGrad[ 3][j]
-            + geomState[nodeNum[ 4]].x * nGrad[ 4][j]
-            + geomState[nodeNum[ 5]].x * nGrad[ 5][j]
-            + geomState[nodeNum[ 6]].x * nGrad[ 6][j]
-            + geomState[nodeNum[ 7]].x * nGrad[ 7][j]
-            + geomState[nodeNum[ 8]].x * nGrad[ 8][j]
-            + geomState[nodeNum[ 9]].x * nGrad[ 9][j];
+    F[0][j] = geomState[nodeNum[0]].x * nGrad[0][j]
+            + geomState[nodeNum[1]].x * nGrad[1][j]
+            + geomState[nodeNum[2]].x * nGrad[2][j]
+            + geomState[nodeNum[3]].x * nGrad[3][j]
+            + geomState[nodeNum[4]].x * nGrad[4][j]
+            + geomState[nodeNum[5]].x * nGrad[5][j]
+            + geomState[nodeNum[6]].x * nGrad[6][j]
+            + geomState[nodeNum[7]].x * nGrad[7][j]
+            + geomState[nodeNum[8]].x * nGrad[8][j]
+            + geomState[nodeNum[9]].x * nGrad[9][j];
 
   for (j = 0; j < 3; ++j)
-    F[1][j] = geomState[nodeNum[ 0]].y * nGrad[ 0][j]
-            + geomState[nodeNum[ 1]].y * nGrad[ 1][j]
-            + geomState[nodeNum[ 2]].y * nGrad[ 2][j]
-            + geomState[nodeNum[ 3]].y * nGrad[ 3][j]
-            + geomState[nodeNum[ 4]].y * nGrad[ 4][j]
-            + geomState[nodeNum[ 5]].y * nGrad[ 5][j]
-            + geomState[nodeNum[ 6]].y * nGrad[ 6][j]
-            + geomState[nodeNum[ 7]].y * nGrad[ 7][j]
-            + geomState[nodeNum[ 8]].y * nGrad[ 8][j]
-            + geomState[nodeNum[ 9]].y * nGrad[ 9][j];
+    F[1][j] = geomState[nodeNum[0]].y * nGrad[0][j]
+            + geomState[nodeNum[1]].y * nGrad[1][j]
+            + geomState[nodeNum[2]].y * nGrad[2][j]
+            + geomState[nodeNum[3]].y * nGrad[3][j]
+            + geomState[nodeNum[4]].y * nGrad[4][j]
+            + geomState[nodeNum[5]].y * nGrad[5][j]
+            + geomState[nodeNum[6]].y * nGrad[6][j]
+            + geomState[nodeNum[7]].y * nGrad[7][j]
+            + geomState[nodeNum[8]].y * nGrad[8][j]
+            + geomState[nodeNum[9]].y * nGrad[9][j];
 
   for (j = 0; j < 3; ++j)
-    F[2][j] = geomState[nodeNum[ 0]].z * nGrad[ 0][j]
-            + geomState[nodeNum[ 1]].z * nGrad[ 1][j]
-            + geomState[nodeNum[ 2]].z * nGrad[ 2][j]
-            + geomState[nodeNum[ 3]].z * nGrad[ 3][j]
-            + geomState[nodeNum[ 4]].z * nGrad[ 4][j]
-            + geomState[nodeNum[ 5]].z * nGrad[ 5][j]
-            + geomState[nodeNum[ 6]].z * nGrad[ 6][j]
-            + geomState[nodeNum[ 7]].z * nGrad[ 7][j]
-            + geomState[nodeNum[ 8]].z * nGrad[ 8][j]
-            + geomState[nodeNum[ 9]].z * nGrad[ 9][j];
+    F[2][j] = geomState[nodeNum[0]].z * nGrad[0][j]
+            + geomState[nodeNum[1]].z * nGrad[1][j]
+            + geomState[nodeNum[2]].z * nGrad[2][j]
+            + geomState[nodeNum[3]].z * nGrad[3][j]
+            + geomState[nodeNum[4]].z * nGrad[4][j]
+            + geomState[nodeNum[5]].z * nGrad[5][j]
+            + geomState[nodeNum[6]].z * nGrad[6][j]
+            + geomState[nodeNum[7]].z * nGrad[7][j]
+            + geomState[nodeNum[8]].z * nGrad[8][j]
+            + geomState[nodeNum[9]].z * nGrad[9][j];
 
   for (i = 0; i < 10; ++i)
     for (j = 0; j < 3; ++j) {
@@ -431,7 +431,7 @@ Tet10Corotator::computeStrainGrad(GeomState &geomState, CoordSet &cs,
 void
 Tet10Corotator::getNLVonMises(Vector& stress, Vector& weight, GeomState &geomState,
                               GeomState *, CoordSet& cs, int strInd, int,
-                              double *ndTemps, double, double, int, int)
+                              double, double, int, int)
 {
   weight = 1.0;
 
@@ -443,7 +443,7 @@ Tet10Corotator::getNLVonMises(Vector& stress, Vector& weight, GeomState &geomSta
   double elStrain[10][7];
 
   // Compute NL Stress/Strain
-  computePiolaStress(geomState, cs, ndTemps, elStress, elStrain);
+  computePiolaStress(geomState, cs, elStress, elStrain);
 
   // Compute Von Mises
   if(strInd == 6)
@@ -464,8 +464,7 @@ Tet10Corotator::getNLVonMises(Vector& stress, Vector& weight, GeomState &geomSta
 
 void
 Tet10Corotator::getNLAllStress(FullM &stress, Vector &weight, GeomState &geomState,
-                               GeomState *, CoordSet &cs, int strInd, int,
-                               double *ndTemps, int)
+                               GeomState *, CoordSet &cs, int strInd, int, int)
 {
   weight = 1.0;
 
@@ -475,7 +474,7 @@ Tet10Corotator::getNLAllStress(FullM &stress, Vector &weight, GeomState &geomSta
   double elStrain[10][7];
 
   // Compute NL Stress/Strain
-  computePiolaStress(geomState, cs, ndTemps, elStress, elStrain);
+  computePiolaStress(geomState, cs, elStress, elStrain);
 
   // Store all Stress or all Strain as defined by strInd
   if(strInd == 0) {
@@ -513,7 +512,7 @@ Tet10Corotator::getNLAllStress(FullM &stress, Vector &weight, GeomState &geomSta
 }
 
 void
-Tet10Corotator::computePiolaStress(GeomState &geomState, CoordSet &cs, double *ndTemps,
+Tet10Corotator::computePiolaStress(GeomState &geomState, CoordSet &cs,
                                    double stress[10][7], double strain[10][7])
 {
   int i,j,n;
@@ -533,6 +532,10 @@ Tet10Corotator::computePiolaStress(GeomState &geomState, CoordSet &cs, double *n
     Z[i] = cs[nodeNum[i]]->z;
   }
 
+  // get the nodal temperatures
+  Vector ndTemps(10);
+  geomState.get_temperature(10, nodeNum, ndTemps, Tref);
+
   for (n = 0; n < 10; n++) { // loop over nodes
 
     // compute shape functions
@@ -542,40 +545,40 @@ Tet10Corotator::computePiolaStress(GeomState &geomState, CoordSet &cs, double *n
     double F[3][3];
 
     for(j = 0; j < 3; ++j)
-      F[0][j] = geomState[nodeNum[ 0]].x * nGrad[ 0][j]
-              + geomState[nodeNum[ 1]].x * nGrad[ 1][j]
-              + geomState[nodeNum[ 2]].x * nGrad[ 2][j]
-              + geomState[nodeNum[ 3]].x * nGrad[ 3][j]
-              + geomState[nodeNum[ 4]].x * nGrad[ 4][j]
-              + geomState[nodeNum[ 5]].x * nGrad[ 5][j]
-              + geomState[nodeNum[ 6]].x * nGrad[ 6][j]
-              + geomState[nodeNum[ 7]].x * nGrad[ 7][j]
-              + geomState[nodeNum[ 8]].x * nGrad[ 8][j]
-              + geomState[nodeNum[ 9]].x * nGrad[ 9][j];
+      F[0][j] = geomState[nodeNum[0]].x * nGrad[0][j]
+              + geomState[nodeNum[1]].x * nGrad[1][j]
+              + geomState[nodeNum[2]].x * nGrad[2][j]
+              + geomState[nodeNum[3]].x * nGrad[3][j]
+              + geomState[nodeNum[4]].x * nGrad[4][j]
+              + geomState[nodeNum[5]].x * nGrad[5][j]
+              + geomState[nodeNum[6]].x * nGrad[6][j]
+              + geomState[nodeNum[7]].x * nGrad[7][j]
+              + geomState[nodeNum[8]].x * nGrad[8][j]
+              + geomState[nodeNum[9]].x * nGrad[9][j];
 
     for(j = 0; j < 3; ++j)
-      F[1][j] = geomState[nodeNum[ 0]].y * nGrad[ 0][j]
-              + geomState[nodeNum[ 1]].y * nGrad[ 1][j]
-              + geomState[nodeNum[ 2]].y * nGrad[ 2][j]
-              + geomState[nodeNum[ 3]].y * nGrad[ 3][j]
-              + geomState[nodeNum[ 4]].y * nGrad[ 4][j]
-              + geomState[nodeNum[ 5]].y * nGrad[ 5][j]
-              + geomState[nodeNum[ 6]].y * nGrad[ 6][j]
-              + geomState[nodeNum[ 7]].y * nGrad[ 7][j]
-              + geomState[nodeNum[ 8]].y * nGrad[ 8][j]
-              + geomState[nodeNum[ 9]].y * nGrad[ 9][j];
+      F[1][j] = geomState[nodeNum[0]].y * nGrad[0][j]
+              + geomState[nodeNum[1]].y * nGrad[1][j]
+              + geomState[nodeNum[2]].y * nGrad[2][j]
+              + geomState[nodeNum[3]].y * nGrad[3][j]
+              + geomState[nodeNum[4]].y * nGrad[4][j]
+              + geomState[nodeNum[5]].y * nGrad[5][j]
+              + geomState[nodeNum[6]].y * nGrad[6][j]
+              + geomState[nodeNum[7]].y * nGrad[7][j]
+              + geomState[nodeNum[8]].y * nGrad[8][j]
+              + geomState[nodeNum[9]].y * nGrad[9][j];
 
     for(j = 0; j < 3; ++j)
-      F[2][j] = geomState[nodeNum[ 0]].z * nGrad[ 0][j]
-              + geomState[nodeNum[ 1]].z * nGrad[ 1][j]
-              + geomState[nodeNum[ 2]].z * nGrad[ 2][j]
-              + geomState[nodeNum[ 3]].z * nGrad[ 3][j]
-              + geomState[nodeNum[ 4]].z * nGrad[ 4][j]
-              + geomState[nodeNum[ 5]].z * nGrad[ 5][j]
-              + geomState[nodeNum[ 6]].z * nGrad[ 6][j]
-              + geomState[nodeNum[ 7]].z * nGrad[ 7][j]
-              + geomState[nodeNum[ 8]].z * nGrad[ 8][j]
-              + geomState[nodeNum[ 9]].z * nGrad[ 9][j];
+      F[2][j] = geomState[nodeNum[0]].z * nGrad[0][j]
+              + geomState[nodeNum[1]].z * nGrad[1][j]
+              + geomState[nodeNum[2]].z * nGrad[2][j]
+              + geomState[nodeNum[3]].z * nGrad[3][j]
+              + geomState[nodeNum[4]].z * nGrad[4][j]
+              + geomState[nodeNum[5]].z * nGrad[5][j]
+              + geomState[nodeNum[6]].z * nGrad[6][j]
+              + geomState[nodeNum[7]].z * nGrad[7][j]
+              + geomState[nodeNum[8]].z * nGrad[8][j]
+              + geomState[nodeNum[9]].z * nGrad[9][j];
 
     // compute e_ij = 0.5*(F_ki Fkj - delta_ij)
     double e_11 = 0.5*(F[0][0]*F[0][0]+F[1][0]*F[1][0]+F[2][0]*F[2][0]-1.0);
@@ -652,6 +655,10 @@ Tet10Corotator::getElementEnergy(GeomState &geomState, CoordSet &cs)
     Z[i] = cs[nodeNum[i]]->z;
   }
 
+  // get the nodal temperatures
+  Vector ndTemps(10);
+  geomState.get_temperature(10, nodeNum, ndTemps, Tref);
+
   // integration: loop over Gauss pts
   double Shape[10], nGrad[10][3];
   double dOmega; // det of jacobian
@@ -667,40 +674,40 @@ Tet10Corotator::getElementEnergy(GeomState &geomState, CoordSet &cs)
     // now get F_ij = dPhi_i/dX_j = x^k_i dN_k/dX_j
     double F[3][3];
     for(j = 0; j < 3; ++j)
-      F[0][j] = geomState[nodeNum[ 0]].x * nGrad[ 0][j]
-              + geomState[nodeNum[ 1]].x * nGrad[ 1][j]
-              + geomState[nodeNum[ 2]].x * nGrad[ 2][j]
-              + geomState[nodeNum[ 3]].x * nGrad[ 3][j]
-              + geomState[nodeNum[ 4]].x * nGrad[ 4][j]
-              + geomState[nodeNum[ 5]].x * nGrad[ 5][j]
-              + geomState[nodeNum[ 6]].x * nGrad[ 6][j]
-              + geomState[nodeNum[ 7]].x * nGrad[ 7][j]
-              + geomState[nodeNum[ 8]].x * nGrad[ 8][j]
-              + geomState[nodeNum[ 9]].x * nGrad[ 9][j];
+      F[0][j] = geomState[nodeNum[0]].x * nGrad[0][j]
+              + geomState[nodeNum[1]].x * nGrad[1][j]
+              + geomState[nodeNum[2]].x * nGrad[2][j]
+              + geomState[nodeNum[3]].x * nGrad[3][j]
+              + geomState[nodeNum[4]].x * nGrad[4][j]
+              + geomState[nodeNum[5]].x * nGrad[5][j]
+              + geomState[nodeNum[6]].x * nGrad[6][j]
+              + geomState[nodeNum[7]].x * nGrad[7][j]
+              + geomState[nodeNum[8]].x * nGrad[8][j]
+              + geomState[nodeNum[9]].x * nGrad[9][j];
 
     for(j = 0; j < 3; ++j)
-      F[1][j] = geomState[nodeNum[ 0]].y * nGrad[ 0][j]
-              + geomState[nodeNum[ 1]].y * nGrad[ 1][j]
-              + geomState[nodeNum[ 2]].y * nGrad[ 2][j]
-              + geomState[nodeNum[ 3]].y * nGrad[ 3][j]
-              + geomState[nodeNum[ 4]].y * nGrad[ 4][j]
-              + geomState[nodeNum[ 5]].y * nGrad[ 5][j]
-              + geomState[nodeNum[ 6]].y * nGrad[ 6][j]
-              + geomState[nodeNum[ 7]].y * nGrad[ 7][j]
-              + geomState[nodeNum[ 8]].y * nGrad[ 8][j]
-              + geomState[nodeNum[ 9]].y * nGrad[ 9][j];
+      F[1][j] = geomState[nodeNum[0]].y * nGrad[0][j]
+              + geomState[nodeNum[1]].y * nGrad[1][j]
+              + geomState[nodeNum[2]].y * nGrad[2][j]
+              + geomState[nodeNum[3]].y * nGrad[3][j]
+              + geomState[nodeNum[4]].y * nGrad[4][j]
+              + geomState[nodeNum[5]].y * nGrad[5][j]
+              + geomState[nodeNum[6]].y * nGrad[6][j]
+              + geomState[nodeNum[7]].y * nGrad[7][j]
+              + geomState[nodeNum[8]].y * nGrad[8][j]
+              + geomState[nodeNum[9]].y * nGrad[9][j];
 
     for(j = 0; j < 3; ++j)
-      F[2][j] = geomState[nodeNum[ 0]].z * nGrad[ 0][j]
-              + geomState[nodeNum[ 1]].z * nGrad[ 1][j]
-              + geomState[nodeNum[ 2]].z * nGrad[ 2][j]
-              + geomState[nodeNum[ 3]].z * nGrad[ 3][j]
-              + geomState[nodeNum[ 4]].z * nGrad[ 4][j]
-              + geomState[nodeNum[ 5]].z * nGrad[ 5][j]
-              + geomState[nodeNum[ 6]].z * nGrad[ 6][j]
-              + geomState[nodeNum[ 7]].z * nGrad[ 7][j]
-              + geomState[nodeNum[ 8]].z * nGrad[ 8][j]
-              + geomState[nodeNum[ 9]].z * nGrad[ 9][j];
+      F[2][j] = geomState[nodeNum[0]].z * nGrad[0][j]
+              + geomState[nodeNum[1]].z * nGrad[1][j]
+              + geomState[nodeNum[2]].z * nGrad[2][j]
+              + geomState[nodeNum[3]].z * nGrad[3][j]
+              + geomState[nodeNum[4]].z * nGrad[4][j]
+              + geomState[nodeNum[5]].z * nGrad[5][j]
+              + geomState[nodeNum[6]].z * nGrad[6][j]
+              + geomState[nodeNum[7]].z * nGrad[7][j]
+              + geomState[nodeNum[8]].z * nGrad[8][j]
+              + geomState[nodeNum[9]].z * nGrad[9][j];
 
     // compute e_ij = 0.5*(F_ki Fkj - delta_ij)
     double e_11 = 0.5*(F[0][0]*F[0][0]+F[1][0]*F[1][0]+F[2][0]*F[2][0]-1.0);
@@ -710,6 +717,13 @@ Tet10Corotator::getElementEnergy(GeomState &geomState, CoordSet &cs)
     double e_12 = (F[0][0]*F[0][1]+F[1][0]*F[1][1]+F[2][0]*F[2][1]);
     double e_13 = (F[0][0]*F[0][2]+F[1][0]*F[1][2]+F[2][0]*F[2][2]);
     double e_23 = (F[0][1]*F[0][2]+F[1][1]*F[1][2]+F[2][1]*F[2][2]);
+
+    // Subtract thermal strain
+    double theta = 0.0;
+    for(j = 0; j < 10; j++) theta += Shape[j]*(ndTemps[j] - Tref);
+    e_11 -= alpha*theta;
+    e_22 -= alpha*theta;
+    e_33 -= alpha*theta;
 
     double E2 = em*nu/((1+nu)*(1-2*nu));
     double G2 = em/(2*(1+nu));

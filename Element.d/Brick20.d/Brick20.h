@@ -3,14 +3,11 @@
 
 #include <Element.d/Element.h>
 
-class Brick20Corotator;
-
 class Brick20: public Element
 {
     int nn[20];
     double *cCoefs;
     double *cFrame;
-    Brick20Corotator *brick20Corotator;
     NLMaterial *mat;
 
   public:

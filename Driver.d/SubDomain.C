@@ -2468,7 +2468,7 @@ GenSubDomain<Scalar>::computeStressStrain(GeomState *gs, Corotator **allCorot,
     packedEset[iele]->nodes(nodeNumbers);
 
     int iNode;
-    if(packedEset[iele]->getProperty()) {
+    if(flag == 1 && packedEset[iele]->getProperty()) {
       for(iNode=0; iNode<NodesPerElement; ++iNode) {
         if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
           elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
@@ -2491,9 +2491,9 @@ GenSubDomain<Scalar>::computeStressStrain(GeomState *gs, Corotator **allCorot,
       }
       else {
         // USE NON-LINEAR STRESS ROUTINE
+        // note: in this case the element nodal temperatures are extracted from geomState inside the function
         allCorot[iele]->getNLAllStress(*p_elstress, *elweight, *gs,
-                                       refState, nodes, strInd, surface,
-                                       elemNodeTemps.data());
+                                       refState, nodes, strInd, surface);
       }
 
       // Second, transform stress/strain tensor to nodal frame coordinates
@@ -2516,9 +2516,9 @@ GenSubDomain<Scalar>::computeStressStrain(GeomState *gs, Corotator **allCorot,
       }
       else if(flag == 2) {
         // USE NON-LINEAR STRESS ROUTINE
+        // note: in this case the element nodal temperatures are extracted from geomState inside the function
         allCorot[iele]->getNLVonMises(*elstress, *elweight, *gs, refState,
-                                      nodes, stressIndex, surface,
-                                      elemNodeTemps.data(), ylayer, zlayer, avgnum);
+                                      nodes, stressIndex, surface, ylayer, zlayer, avgnum);
       }
       else {
         // NO STRESS RECOVERY

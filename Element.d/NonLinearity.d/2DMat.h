@@ -1,13 +1,10 @@
 #ifndef _2DMAT_H_
 #define _2DMAT_H_
-#include <Math.d/Vector.h>
-#include <Math.d/matrix.h>
-#include <Element.d/Element.h>
-#include <Utils.d/NodeSpaceArray.h>
+
+#include <Element.d/NonLinearity.d/NLMaterial.h>
 
 class StructProp;
 
-//Declaration of the material properties
 class ElaLinIsoMat2D : public NLMaterial
 {
    protected:
@@ -19,21 +16,21 @@ class ElaLinIsoMat2D : public NLMaterial
 
      int getNumStates() { return 0; }
 
-     void getStress(Tensor *stress, Tensor &strain, double*);
+     void getStress(Tensor *stress, Tensor &strain, double*, double temp);
 
      void getTangentMaterial(Tensor *tm, Tensor &strain, double*);
 
      void getElasticity(Tensor *tm) {};
 
-     void updateStates(Tensor en, Tensor enp, double *state) {};
+     void updateStates(Tensor &en, Tensor &enp, double *state, double temp) {};
 
-     void getStressAndTangentMaterial(Tensor *stress, Tensor *tm, Tensor &strain, double*);
+     void getStressAndTangentMaterial(Tensor *stress, Tensor *tm, Tensor &strain, double*, double temp);
      
      void integrate(Tensor *stress, Tensor *tm, Tensor &en, Tensor &enp,
-                    double *staten, double *statenp, double);
+                    double *staten, double *statenp, double temp);
 
      void integrate(Tensor *stress, Tensor &en, Tensor &enp,
-                    double *staten, double *statenp, double);
+                    double *staten, double *statenp, double temp);
 
      void initStates(double *) {};
 

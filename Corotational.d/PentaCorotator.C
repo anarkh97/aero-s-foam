@@ -56,6 +56,10 @@ PentaCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
     Z[i] = cs[nodeNum[i]]->z;
   }
 
+  // get the nodal temperatures
+  Vector ndTemps(6);
+  geomState.get_temperature(6, nodeNum, ndTemps, Tref);
+
   // integration: loop over Gauss pts
   double wxy,wz;
   int ngpz = 2; // number of (linear) Gauss pts in the (local) z direction
@@ -112,6 +116,13 @@ PentaCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
       double e_12 = (F[0][0]*F[0][1]+F[1][0]*F[1][1]+F[2][0]*F[2][1]);
       double e_13 = (F[0][0]*F[0][2]+F[1][0]*F[1][2]+F[2][0]*F[2][2]);
       double e_23 = (F[0][1]*F[0][2]+F[1][1]*F[1][2]+F[2][1]*F[2][2]);
+
+      // Subtract thermal strain (off by factor of 2)
+      double theta = 0.0;
+      for(j = 0; j < 6; j++) theta += Shape[j]*(ndTemps[j] - Tref);
+      e_11 -= 2*alpha*theta;
+      e_22 -= 2*alpha*theta;
+      e_33 -= 2*alpha*theta;
 
       double sigma[6];
 
@@ -227,6 +238,10 @@ PentaCorotator::getInternalForce(GeomState &geomState, CoordSet &cs,
     Z[i] = cs[nodeNum[i]]->z;
   }
 
+  // get the nodal temperatures
+  Vector ndTemps(6);
+  geomState.get_temperature(6, nodeNum, ndTemps, Tref);
+
   // integration: loop over Gauss pts
   double wxy,wz;
   int ngpz = 2; // number of (linear) Gauss pts in the (local) z direction
@@ -282,6 +297,13 @@ PentaCorotator::getInternalForce(GeomState &geomState, CoordSet &cs,
       double e_12 = (F[0][0]*F[0][1]+F[1][0]*F[1][1]+F[2][0]*F[2][1]);
       double e_13 = (F[0][0]*F[0][2]+F[1][0]*F[1][2]+F[2][0]*F[2][2]);
       double e_23 = (F[0][1]*F[0][2]+F[1][1]*F[1][2]+F[2][1]*F[2][2]);
+
+      // Subtract thermal strain (off by factor of 2)
+      double theta = 0.0;
+      for(j = 0; j < 6; j++) theta += Shape[j]*(ndTemps[j] - Tref);
+      e_11 -= 2*alpha*theta;
+      e_22 -= 2*alpha*theta;
+      e_33 -= 2*alpha*theta;
 
       double sigma[6];
 
@@ -398,7 +420,7 @@ PentaCorotator::computeStrainGrad(GeomState &geomState, CoordSet &cs,
 void
 PentaCorotator::getNLVonMises(Vector& stress, Vector& weight, GeomState &geomState,
                               GeomState *, CoordSet& cs, int strInd, int,
-                              double *ndTemps, double, double, int, int)
+                              double, double, int, int)
 {
   weight = 1.0;
 
@@ -410,7 +432,7 @@ PentaCorotator::getNLVonMises(Vector& stress, Vector& weight, GeomState &geomSta
   double elStrain[6][7];
 
   // Compute NL Stress/Strain
-  computePiolaStress(geomState, cs, ndTemps, elStress, elStrain);
+  computePiolaStress(geomState, cs, elStress, elStrain);
 
   // Compute Von Mises
   if(strInd == 6)
@@ -438,8 +460,7 @@ PentaCorotator::getNLVonMises(Vector& stress, Vector& weight, GeomState &geomSta
 
 void
 PentaCorotator::getNLAllStress(FullM &stress, Vector &weight, GeomState &geomState,
-                               GeomState *, CoordSet &cs, int strInd, int,
-                               double *ndTemps, int)
+                               GeomState *, CoordSet &cs, int strInd, int, int)
 {
   weight = 1.0;
 
@@ -449,7 +470,7 @@ PentaCorotator::getNLAllStress(FullM &stress, Vector &weight, GeomState &geomSta
   double elStrain[6][7];
 
   // Compute NL Stress/Strain
-  computePiolaStress(geomState, cs, ndTemps, elStress, elStrain);
+  computePiolaStress(geomState, cs, elStress, elStrain);
 
   // Store all Stress or all Strain as defined by strInd
   if(strInd == 0) {
@@ -487,7 +508,7 @@ PentaCorotator::getNLAllStress(FullM &stress, Vector &weight, GeomState &geomSta
 }
 
 void
-PentaCorotator::computePiolaStress(GeomState &geomState, CoordSet &cs, double *ndTemps,
+PentaCorotator::computePiolaStress(GeomState &geomState, CoordSet &cs,
                                    double stress[6][7], double strain[6][7])
 {
   int i,j,n;
@@ -505,6 +526,10 @@ PentaCorotator::computePiolaStress(GeomState &geomState, CoordSet &cs, double *n
     Y[i] = cs[nodeNum[i]]->y;
     Z[i] = cs[nodeNum[i]]->z;
   }
+
+  // get the nodal temperatures
+  Vector ndTemps(6);
+  geomState.get_temperature(6, nodeNum, ndTemps, Tref);
 
   for (n = 0; n < 6; n++) { // loop over nodes
     // compute shape functions
@@ -620,6 +645,10 @@ PentaCorotator::getElementEnergy(GeomState &geomState, CoordSet &cs)
     Z[i] = cs[nodeNum[i]]->z;
   }
 
+  // get the nodal temperatures
+  Vector ndTemps(6);
+  geomState.get_temperature(6, nodeNum, ndTemps, Tref);
+
   // integration: loop over Gauss pts
   double wxy,wz;
   int ngpz = 2; // number of (linear) Gauss pts in the (local) z direction
@@ -672,6 +701,13 @@ PentaCorotator::getElementEnergy(GeomState &geomState, CoordSet &cs)
       double e_12 = (F[0][0]*F[0][1]+F[1][0]*F[1][1]+F[2][0]*F[2][1]);
       double e_13 = (F[0][0]*F[0][2]+F[1][0]*F[1][2]+F[2][0]*F[2][2]);
       double e_23 = (F[0][1]*F[0][2]+F[1][1]*F[1][2]+F[2][1]*F[2][2]);
+
+      // Subtract thermal strain
+      double theta = 0.0;
+      for(j = 0; j < 6; j++) theta += Shape[j]*(ndTemps[j] - Tref);
+      e_11 -= alpha*theta;
+      e_22 -= alpha*theta;
+      e_33 -= alpha*theta;
 
       double E2 = em*nu/((1+nu)*(1-2*nu));
       double G2 = em/(2*(1+nu));

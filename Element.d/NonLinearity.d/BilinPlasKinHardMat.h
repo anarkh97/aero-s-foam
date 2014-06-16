@@ -1,14 +1,10 @@
 #ifndef _BILINPLASKINHARDMAT_H_
 #define _BILINPLASKINHARDMAT_H_
-#include <Math.d/Vector.h>
-#include <Math.d/matrix.h>
-#include <Element.d/Element.h>
-#include <Utils.d/NodeSpaceArray.h>
-#include <Element.d/NonLinearity.d/StrainEvaluator.h>
+
+#include <Element.d/NonLinearity.d/NLMaterial.h>
 
 class StructProp;
 
-//Declaration of the material properties
 template<int e>
 class ElasPlasKinHardMat : public NLMaterial
 {
@@ -23,23 +19,25 @@ class ElasPlasKinHardMat : public NLMaterial
     ElasPlasKinHardMat(double _rho, double _E, double _nu, double _Ep, double _sigE, double _theta = 0)
        {rho = _rho; E = _E; nu = _nu; Ep = _Ep; sigE = _sigE; theta = _theta; }
 
-    void getStress(Tensor *stress, Tensor &strain, double *);
+    void getStress(Tensor *stress, Tensor &strain, double *, double temp);
 
     void getTangentMaterial(Tensor *tm, Tensor &strain, double *);
 
-    void getStressAndTangentMaterial(Tensor *stress, Tensor *tm, Tensor &strain, double *);
+    void getStressAndTangentMaterial(Tensor *stress, Tensor *tm, Tensor &strain, double *, double temp);
 
     void getElasticity(Tensor *tm);
 
-    void updateStates(Tensor en, Tensor enp, double *state);
+    void updateStates(Tensor &en, Tensor &enp, double *state, double temp);
 
-    int getNumStates() { return 13; } // the internal variables are : the plastic strain (6 doubles), the center of the yield surface in sigma space (6 doubles) and the equivalent plastic strain (1 double)
+    int getNumStates() { return 13; } // the internal variables are : the plastic strain (6 doubles),
+                                      // the center of the yield surface in sigma space (6 doubles),
+                                      // and the equivalent plastic strain (1 double)
 
     void integrate(Tensor *stress, Tensor *tm, Tensor &en, Tensor &enp,
-                   double *staten, double *statenp, double);
+                   double *staten, double *statenp, double temp);
 
     void integrate(Tensor *stress, Tensor &en, Tensor &enp,
-                   double *staten, double *statenp, double);
+                   double *staten, double *statenp, double temp);
 
     void initStates(double *);
 
@@ -53,7 +51,7 @@ class ElasPlasKinHardMat : public NLMaterial
 
     bool getPlasticStrain(double *statenp, Tensor *plasticstrain);
 
-    double getStrainEnergyDensity(Tensor &enp, double *statenp);
+    double getStrainEnergyDensity(Tensor &enp, double *statenp, double temp = 0.0);
 
     double getDissipatedEnergy(double *statenp);
 

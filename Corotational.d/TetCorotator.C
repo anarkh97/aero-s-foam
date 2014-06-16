@@ -13,30 +13,34 @@ extern "C" {
   void  _FORTRAN(strainvm)(double*, int &, int &, int &, int &);
 };
 
-TetCorotator::TetCorotator(int nodeNumbers[4], double _em, double _nu, 
+TetCorotator::TetCorotator(int nodeNumbers[4], double _em, double _nu,
                            CoordSet& cs, double _Tref, double _alpha)
 {
- nodeNum[0] = nodeNumbers[0];
- nodeNum[1] = nodeNumbers[1];
- nodeNum[2] = nodeNumbers[2];
- nodeNum[3] = nodeNumbers[3];
+  nodeNum[0] = nodeNumbers[0];
+  nodeNum[1] = nodeNumbers[1];
+  nodeNum[2] = nodeNumbers[2];
+  nodeNum[3] = nodeNumbers[3];
 
- em    = _em;        // Elastic modulus
- nu    = _nu;        // Poisson's ratio
- Tref = _Tref;   // Ambient temperature
- alpha = _alpha; // Thermal expansion coefficient
+  em    = _em;    // Elastic modulus
+  nu    = _nu;    // Poisson's ratio
+  Tref  = _Tref;  // Ambient temperature
+  alpha = _alpha; // Thermal expansion coefficient
 }
 
 // geomState -> contains the updated nodal coordinates
 // cs        -> contains the original nodal coordinates
 void
-TetCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs, 
+TetCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
                                FullSquareMatrix &K, double *f, double dt, double t)
 {
   int i,j,k;
   double nGrad[4][3];
+
+  // get the nodal temperatures
+  Vector ndTemps(4);
+  geomState.get_temperature(4, nodeNum, ndTemps, Tref);
   
-  // compute dN_i/dX_j, also obtain dOmega 
+  // compute dN_i/dX_j, also obtain dOmega
   double dOmega;
 
   // dOmega is here off by a factor of 1/4
@@ -71,6 +75,13 @@ TetCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
   double e_12 = (F[0][0]*F[0][1]+F[1][0]*F[1][1]+F[2][0]*F[2][1]);
   double e_13 = (F[0][0]*F[0][2]+F[1][0]*F[1][2]+F[2][0]*F[2][2]);
   double e_23 = (F[0][1]*F[0][2]+F[1][1]*F[1][2]+F[2][1]*F[2][2]);
+
+  // Subtract thermal strain (off by factor of 2)
+  double theta = (ndTemps[0]+ndTemps[1]+ndTemps[2]+ndTemps[3])/4 - Tref;
+  e_11 -= 2*alpha*theta;
+  e_22 -= 2*alpha*theta;
+  e_33 -= 2*alpha*theta;
+
   double sigma[6];
 
   double E  = em;
@@ -133,12 +144,12 @@ TetCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
   // multiply modified dsdU by dedU. Only do the symmetric part
   for(i = 0; i < 12; ++i)
     for(j = 0; j <= i; ++j)
-      K[j][i] =   dsdU[i][0]*dedU[j][0] + 
-                  dsdU[i][1]*dedU[j][1] +
-                  dsdU[i][2]*dedU[j][2] +
-                  dsdU[i][3]*dedU[j][3] +
-                  dsdU[i][4]*dedU[j][4] +
-                  dsdU[i][5]*dedU[j][5];
+      K[j][i] = dsdU[i][0]*dedU[j][0] + 
+                dsdU[i][1]*dedU[j][1] +
+                dsdU[i][2]*dedU[j][2] +
+                dsdU[i][3]*dedU[j][3] +
+                dsdU[i][4]*dedU[j][4] +
+                dsdU[i][5]*dedU[j][5];
   // normal terms are here off by a factor of 2*2=4
   // shear terms are here off by a factor of 4*2 = 8
   //                        *(1/2 for off-diag mult) = 4
@@ -162,15 +173,18 @@ TetCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
     for(j = 0; j <= i; ++j)
       K[i][j] = (K[j][i] *= dOmega);
 // all terms are 1/4*4 = 1 => right level
-
 }
 
 void
-TetCorotator::getInternalForce(GeomState &geomState, CoordSet &cs, 
+TetCorotator::getInternalForce(GeomState &geomState, CoordSet &cs,
                                FullSquareMatrix &, double *f, double dt, double t)
 {
   int i,j,k;
   double nGrad[4][3];
+
+  // get the nodal temperatures
+  Vector ndTemps(4);
+  geomState.get_temperature(4, nodeNum, ndTemps, Tref);
   
   // compute dN_i/dX_j, also obtain dOmega 
   double dOmega;
@@ -207,6 +221,13 @@ TetCorotator::getInternalForce(GeomState &geomState, CoordSet &cs,
   double e_12 = (F[0][0]*F[0][1]+F[1][0]*F[1][1]+F[2][0]*F[2][1]);
   double e_13 = (F[0][0]*F[0][2]+F[1][0]*F[1][2]+F[2][0]*F[2][2]);
   double e_23 = (F[0][1]*F[0][2]+F[1][1]*F[1][2]+F[2][1]*F[2][2]);
+
+  // Subtract thermal strain (off by factor of 2)
+  double theta = (ndTemps[0]+ndTemps[1]+ndTemps[2]+ndTemps[3])/4 - Tref;
+  e_11 -= 2*alpha*theta;
+  e_22 -= 2*alpha*theta;
+  e_33 -= 2*alpha*theta;
+
   double sigma[6];
 
   double E  = em;
@@ -297,7 +318,7 @@ TetCorotator::computeStrainGrad(GeomState &geomState, double nGrad[4][3],
 void
 TetCorotator::getNLVonMises(Vector& stress, Vector& weight, GeomState &geomState,
                             GeomState *, CoordSet& cs, int strInd, int,
-                            double *ndTemps, double, double, int, int)
+                            double, double, int, int)
 {
   weight = 1.0;
 
@@ -309,7 +330,7 @@ TetCorotator::getNLVonMises(Vector& stress, Vector& weight, GeomState &geomState
   double elStrain[4][7];
 
   // Compute NL Stress/Strain
-  computePiolaStress(geomState, cs, ndTemps, elStress, elStrain);
+  computePiolaStress(geomState, cs, elStress, elStrain);
 
   // Compute Von Mises
   if(strInd == 6)
@@ -333,8 +354,7 @@ TetCorotator::getNLVonMises(Vector& stress, Vector& weight, GeomState &geomState
 
 void
 TetCorotator::getNLAllStress(FullM &stress, Vector &weight, GeomState &geomState,
-                             GeomState *, CoordSet &cs, int strInd, int,
-                             double *ndTemps, int)
+                             GeomState *, CoordSet &cs, int strInd, int, int)
 {
   weight = 1.0;
 
@@ -344,7 +364,7 @@ TetCorotator::getNLAllStress(FullM &stress, Vector &weight, GeomState &geomState
   double elStrain[4][7];
 
   // Compute NL Stress/Strain
-  computePiolaStress(geomState, cs, ndTemps, elStress, elStrain);
+  computePiolaStress(geomState, cs, elStress, elStrain);
 
   // Store all Stress or all Strain as defined by strInd
   if(strInd == 0) {
@@ -382,11 +402,15 @@ TetCorotator::getNLAllStress(FullM &stress, Vector &weight, GeomState &geomState
 }
 
 void
-TetCorotator::computePiolaStress(GeomState &geomState, CoordSet &cs, double *ndTemps,
+TetCorotator::computePiolaStress(GeomState &geomState, CoordSet &cs,
                                  double stress[4][7], double strain[4][7])
 {
   int i,j;
   double nGrad[4][3];
+
+  // get the nodal temperatures
+  Vector ndTemps(4);
+  geomState.get_temperature(4, nodeNum, ndTemps, Tref);
   
   double dOmega = computeShapeGrad(cs, nGrad)/6;
  
@@ -510,7 +534,6 @@ double TetCorotator::computeShapeGrad(CoordSet &nodes, double nGrad[4][3])
   nGrad[0][2] = -( nGrad[1][2] + nGrad[2][2] + nGrad[3][2] );
 
   return dOmega;
-
 }
 
 void
@@ -534,6 +557,10 @@ TetCorotator::getElementEnergy(GeomState &geomState, CoordSet &cs)
 
   int j;
   double nGrad[4][3];
+
+  // get the nodal temperatures
+  Vector ndTemps(4);
+  geomState.get_temperature(4, nodeNum, ndTemps, Tref);
  
   // compute dN_i/dX_j, also obtain dOmega
   double dOmega;
@@ -567,6 +594,12 @@ TetCorotator::getElementEnergy(GeomState &geomState, CoordSet &cs)
   double e_12 = (F[0][0]*F[0][1]+F[1][0]*F[1][1]+F[2][0]*F[2][1]);
   double e_13 = (F[0][0]*F[0][2]+F[1][0]*F[1][2]+F[2][0]*F[2][2]);
   double e_23 = (F[0][1]*F[0][2]+F[1][1]*F[1][2]+F[2][1]*F[2][2]);
+
+  // Subtract thermal strain
+  double theta = (ndTemps[0]+ndTemps[1]+ndTemps[2]+ndTemps[3])/4 - Tref;
+  e_11 -= alpha*theta;
+  e_22 -= alpha*theta;
+  e_33 -= alpha*theta;
 
   double E2 = em*nu/((1+nu)*(1-2*nu));
   double G2 = em/(2*(1+nu));

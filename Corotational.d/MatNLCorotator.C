@@ -55,7 +55,10 @@ MatNLCorotator::getStiffAndForce(GeomState *refState, GeomState &curState, Coord
   }
   double *statenp = curState.getElemState(ele->getGlNum());
 
-  ele->integrate(nodes, dispn, staten, dispnp, statenp, elk, f, dt);
+  Vector elemNodeTemps(ele->numNodes());
+  curState.get_temperature(ele->numNodes(), nn, elemNodeTemps, ele->getProperty()->Ta);
+
+  ele->integrate(nodes, dispn, staten, dispnp, statenp, elk, f, dt, elemNodeTemps.data());
   for(int i = 0; i < ele->numDofs(); ++i) f[i] = -f[i];
 
   delete [] nn;
@@ -104,7 +107,10 @@ MatNLCorotator::getInternalForce(GeomState *refState, GeomState &curState, Coord
   }
   double *statenp = curState.getElemState(ele->getGlNum());
 
-  ele->integrate(nodes, dispn, staten, dispnp, statenp, f, dt);
+  Vector elemNodeTemps(ele->numNodes());
+  curState.get_temperature(ele->numNodes(), nn, elemNodeTemps, ele->getProperty()->Ta);
+
+  ele->integrate(nodes, dispn, staten, dispnp, statenp, f, dt, elemNodeTemps.data());
   for(int i = 0; i < ele->numDofs(); ++i) f[i] = -f[i];
 
   delete [] nn;
@@ -131,8 +137,8 @@ MatNLCorotator::extractDeformations(GeomState &curState, CoordSet &C0, double *u
 void
 MatNLCorotator::getNLVonMises(Vector& stress, Vector& weight, GeomState &curState,
                               GeomState *refState, CoordSet &C0, int strIndex, 
-                              int surface, double *ndTemps, double ylayer, 
-                              double zlayer, int avgnum, int measure)
+                              int surface, double ylayer, double zlayer, int avgnum,
+                              int measure)
 {
   int *nn = new int[ele->numNodes()];
   ele->nodes(nn);
@@ -162,14 +168,16 @@ MatNLCorotator::getNLVonMises(Vector& stress, Vector& weight, GeomState &curStat
     dispnp[3*i+2] = curState[nn[i]].z-nodes[i].z;
   }
   double *statenp = curState.getElemState(ele->getGlNum());
-  
+
   int indexMap[6] = { 0, 4, 8, 1, 5, 2 };
   int numPoints = (avgnum == -1) ? ele->getNumGaussPoints() : ele->numNodes();
   switch(strIndex) {
     case 0 : case 1 : case 2 : case 3 : case 4 : case 5 : { // SXX=0,SYY=1,SZZ=2,SXY=3,SYZ=4,SXZ=5
       double (*result)[9] = new double[numPoints][9];
       double *statenp_tmp = new double[ele->numStates()];
-      ele->getStressTens(nodes, dispn, staten, dispnp, statenp_tmp, result, avgnum);
+      Vector elemNodeTemps(ele->numNodes());
+      curState.get_temperature(ele->numNodes(), nn, elemNodeTemps, ele->getProperty()->Ta);
+      ele->getStressTens(nodes, dispn, staten, dispnp, statenp_tmp, result, avgnum, elemNodeTemps.data());
       for(int i = 0; i < numPoints; ++i) {
         stress[i] = result[i][indexMap[strIndex]];
       }
@@ -179,7 +187,9 @@ MatNLCorotator::getNLVonMises(Vector& stress, Vector& weight, GeomState &curStat
     case 6 : { // VON
       double *result = new double[numPoints];
       double *statenp_tmp = new double[ele->numStates()];
-      ele->getVonMisesStress(nodes, dispn, staten, dispnp, statenp_tmp, result, avgnum);
+      Vector elemNodeTemps(ele->numNodes());
+      curState.get_temperature(ele->numNodes(), nn, elemNodeTemps, ele->getProperty()->Ta);
+      ele->getVonMisesStress(nodes, dispn, staten, dispnp, statenp_tmp, result, avgnum, elemNodeTemps.data());
       for(int i = 0; i < numPoints; ++i) {
         stress[i] = result[i];
       }
@@ -245,7 +255,7 @@ MatNLCorotator::getNLVonMises(Vector& stress, Vector& weight, GeomState &curStat
 void
 MatNLCorotator::getNLAllStress(FullM &stress, Vector &weight, GeomState &curState, 
                                GeomState *refState, CoordSet &C0, int strInd, int surface,
-                               double *ndTemps, int measure)
+                               int measure)
 {
   int *nn = new int[ele->numNodes()];
   ele->nodes(nn);
@@ -282,7 +292,9 @@ MatNLCorotator::getNLAllStress(FullM &stress, Vector &weight, GeomState &curStat
   // Store all Stress or all Strain as defined by strInd
   if(strInd == 0) {
     double *statenp_tmp = new double[ele->numStates()];
-    ele->getStressTens(nodes, dispn, staten, dispnp, statenp_tmp, result, 0);
+    Vector elemNodeTemps(ele->numNodes());
+    curState.get_temperature(ele->numNodes(), nn, elemNodeTemps, ele->getProperty()->Ta);
+    ele->getStressTens(nodes, dispn, staten, dispnp, statenp_tmp, result, 0, elemNodeTemps.data());
     delete [] statenp_tmp;
     for(int i = 0; i < ele->numNodes(); ++i) {
       for(int j = 0; j < 6; ++j) {
@@ -350,8 +362,11 @@ MatNLCorotator::updateStates(GeomState *refState, GeomState &curState, CoordSet 
     dispnp[3*i+2] = curState[nn[i]].z-nodes[i].z;
   }
   double *state = curState.getElemState(ele->getGlNum());
+
+  Vector elemNodeTemps(ele->numNodes());
+  curState.get_temperature(ele->numNodes(), nn, elemNodeTemps, ele->getProperty()->Ta);
   
-  ele->updateStates(nodes, state, dispn, dispnp);
+  ele->updateStates(nodes, state, dispn, dispnp, elemNodeTemps.data());
 
   delete [] nn;
   delete [] nodes;
@@ -376,7 +391,10 @@ MatNLCorotator::getElementEnergy(GeomState &curState, CoordSet &C0)
 
   double *state = curState.getElemState(ele->getGlNum());
 
-  double W = ele->getStrainEnergy(nodes, dispnp, state);
+  Vector elemNodeTemps(ele->numNodes());
+  curState.get_temperature(ele->numNodes(), nn, elemNodeTemps, ele->getProperty()->Ta);
+
+  double W = ele->getStrainEnergy(nodes, dispnp, state, elemNodeTemps.data());
 
   delete [] nn;
   delete [] nodes;

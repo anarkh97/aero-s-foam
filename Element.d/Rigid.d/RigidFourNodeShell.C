@@ -1,6 +1,17 @@
 #ifdef USE_EIGEN3
 #include <Element.d/Rigid.d/RigidFourNodeShell.h>
 #include <Element.d/Rigid.d/RigidBeam.h>
+#include <Corotational.d/GeomState.h>
+#include <Math.d/FullSquareMatrix.h>
+#include <Math.d/Vector.h>
+#include <Utils.d/dbg_alloca.h>
+#include <Utils.d/linkfc.h>
+
+extern "C" {
+  void _FORTRAN(elemaslbt)(int&, double*, double*, double*, double*);
+  void _FORTRAN(elefbc3dbrkshl2)(int&, int&, double*, double*, double*, double*);
+}
+
 
 RigidFourNodeShell::RigidFourNodeShell(int *_nn)
  : SuperElement(true)
@@ -15,15 +26,6 @@ RigidFourNodeShell::RigidFourNodeShell(int *_nn)
     subElems[i] = new RigidBeam(indices);
   }
   pbc = 0;
-}
-
-#include <Utils.d/dbg_alloca.h>
-#include <Corotational.d/GeomState.h>
-#include <Element.d/NonLinearity.d/ExpMat.h>
-
-extern "C" {
-  void _FORTRAN(elemaslbt)(int&, double*, double*, double*, double*);
-  void _FORTRAN(elefbc3dbrkshl2)(int&, int&, double*, double*, double*, double*);
 }
 
 double

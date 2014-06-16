@@ -61,6 +61,10 @@ BrickCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
     zNodes[i] = cs[nodeNum[i]]->z;
   }
 
+  // get the nodal temperatures
+  Vector ndTemps(8);
+  geomState.get_temperature(8, nodeNum, ndTemps, Tref);
+
   int fortran = 1; // fortran routines start from index 1
   int pt1, pt2, pt3;
   for (pt1 = 0 + fortran; pt1 < numLinGaussPts + fortran; pt1++) {
@@ -135,6 +139,13 @@ BrickCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
         double e_12 = (F[0][0]*F[0][1]+F[1][0]*F[1][1]+F[2][0]*F[2][1]);
         double e_13 = (F[0][0]*F[0][2]+F[1][0]*F[1][2]+F[2][0]*F[2][2]);
         double e_23 = (F[0][1]*F[0][2]+F[1][1]*F[1][2]+F[2][1]*F[2][2]);
+
+        // Subtract thermal strain (off by factor of 2)
+        double theta = 0.0;
+        for(j = 0; j < 8; j++) theta += shapeFunc[j]*(ndTemps[j] - Tref);
+        e_11 -= 2*alpha*theta;
+        e_22 -= 2*alpha*theta;
+        e_33 -= 2*alpha*theta;
 
         double sigma[6];
 
@@ -250,6 +261,10 @@ BrickCorotator::getInternalForce(GeomState &geomState, CoordSet &cs,
     zNodes[i] = cs[nodeNum[i]]->z;
   }
 
+  // get the nodal temperatures
+  Vector ndTemps(8);
+  geomState.get_temperature(8, nodeNum, ndTemps, Tref);
+
   int fortran = 1; // fortran routines start from index 1
   int pt1, pt2, pt3;
   for (pt1 = 0 + fortran; pt1 < numLinGaussPts + fortran; pt1++) {
@@ -325,6 +340,13 @@ BrickCorotator::getInternalForce(GeomState &geomState, CoordSet &cs,
         double e_13 = (F[0][0]*F[0][2]+F[1][0]*F[1][2]+F[2][0]*F[2][2]);
         double e_23 = (F[0][1]*F[0][2]+F[1][1]*F[1][2]+F[2][1]*F[2][2]);
 
+        // Subtract thermal strain (off by factor of 2)
+        double theta = 0.0;
+        for(j = 0; j < 8; j++) theta += shapeFunc[j]*(ndTemps[j] - Tref);
+        e_11 -= 2*alpha*theta;
+        e_22 -= 2*alpha*theta;
+        e_33 -= 2*alpha*theta;
+
         double sigma[6];
 
         double E2 = em*nu/((1+nu)*(1-2*nu));
@@ -341,9 +363,9 @@ BrickCorotator::getInternalForce(GeomState &geomState, CoordSet &cs,
         sigma[5] = 2*G2*e_23;
 
         // Compute de_ij/dUl for the symmetric part
-        // First we get df_ij/dUl in a very compact form.
-        // df_ij/dUl=dN_p/dX_j delta_iq; with p = int(l/3)+1 and l-1=q-1 mod(3)
-        // this means that df_ij/dUl is already contained in dN_k/dX_j
+        // First we get dF_ij/dUl in a very compact form.
+        // dF_ij/dUl = dN_p/dX_j delta_iq; with p = int(l/3)+1 and l-1=q-1 mod(3)
+        // this means that dF_ij/dUl is already contained in dN_k/dX_j
         double dedU[24][6];
         for(i = 0; i < 8; ++i)
           for(j = 0; j < 3; ++j) {
@@ -461,7 +483,7 @@ BrickCorotator::computeStrainGrad(GeomState &geomState, CoordSet &cs,
 void
 BrickCorotator::getNLVonMises(Vector& stress, Vector& weight, GeomState &geomState,
                               GeomState *, CoordSet& cs, int strInd, int,
-                              double *ndTemps, double, double, int, int)
+                              double, double, int, int)
 {
   weight = 1.0;
 
@@ -473,7 +495,7 @@ BrickCorotator::getNLVonMises(Vector& stress, Vector& weight, GeomState &geomSta
   double elStrain[8][7];
 
   // Compute NL Stress/Strain
-  computePiolaStress(geomState, cs, ndTemps, elStress, elStrain);
+  computePiolaStress(geomState, cs, elStress, elStrain);
 
   // Compute Von Mises
   if(strInd == 6)
@@ -505,8 +527,7 @@ BrickCorotator::getNLVonMises(Vector& stress, Vector& weight, GeomState &geomSta
 
 void
 BrickCorotator::getNLAllStress(FullM &stress, Vector &weight, GeomState &geomState,
-                               GeomState *, CoordSet &cs, int strInd, int,
-                               double *ndTemps, int)
+                               GeomState *, CoordSet &cs, int strInd, int, int)
 {
   weight = 1.0;
 
@@ -516,7 +537,7 @@ BrickCorotator::getNLAllStress(FullM &stress, Vector &weight, GeomState &geomSta
   double elStrain[8][7];
 
   // Compute NL Stress/Strain
-  computePiolaStress(geomState, cs, ndTemps, elStress, elStrain);
+  computePiolaStress(geomState, cs, elStress, elStrain);
 
   // Store all Stress or all Strain as defined by strInd
   if(strInd == 0) {
@@ -554,7 +575,7 @@ BrickCorotator::getNLAllStress(FullM &stress, Vector &weight, GeomState &geomSta
 }
 
 void
-BrickCorotator::computePiolaStress(GeomState &geomState, CoordSet &cs, double *ndTemps,
+BrickCorotator::computePiolaStress(GeomState &geomState, CoordSet &cs,
                                    double stress[8][7], double strain[8][7])
 {
   int i,j,n;
@@ -572,6 +593,10 @@ BrickCorotator::computePiolaStress(GeomState &geomState, CoordSet &cs, double *n
     yNodes[i] = cs[nodeNum[i]]->y;
     zNodes[i] = cs[nodeNum[i]]->z;
   }
+
+  // get the nodal temperatures
+  Vector ndTemps(8);
+  geomState.get_temperature(8, nodeNum, ndTemps, Tref);
 
   for (n = 0; n < 8; n++) {
     xi  = xinod[n];
@@ -701,6 +726,10 @@ BrickCorotator::getElementEnergy(GeomState &geomState, CoordSet &cs)
     zNodes[i] = cs[nodeNum[i]]->z;
   }
 
+  // get the nodal temperatures
+  Vector ndTemps(8);
+  geomState.get_temperature(8, nodeNum, ndTemps, Tref);
+
   int fortran = 1; // fortran routines start from index 1
   int pt1, pt2, pt3;
   for (pt1 = 0 + fortran; pt1 < numLinGaussPts + fortran; pt1++) {
@@ -768,6 +797,13 @@ BrickCorotator::getElementEnergy(GeomState &geomState, CoordSet &cs)
         double e_12 = (F[0][0]*F[0][1]+F[1][0]*F[1][1]+F[2][0]*F[2][1]);
         double e_13 = (F[0][0]*F[0][2]+F[1][0]*F[1][2]+F[2][0]*F[2][2]);
         double e_23 = (F[0][1]*F[0][2]+F[1][1]*F[1][2]+F[2][1]*F[2][2]);
+
+        // Subtract thermal strain
+        double theta = 0.0;
+        for(j = 0; j < 8; j++) theta += shapeFunc[j]*(ndTemps[j] - Tref);
+        e_11 -= alpha*theta;
+        e_22 -= alpha*theta;
+        e_33 -= alpha*theta;
 
         double E2 = em*nu/((1+nu)*(1-2*nu));
         double G2 = em/(2*(1+nu));

@@ -29,19 +29,18 @@ class BrickCorotator : public Corotator {
 
      void     getNLVonMises(Vector& stress, Vector& weight, GeomState &curState,
                             GeomState *refState, CoordSet& c0, int strIndex, int surface = 0,
-                            double *ndTemps = 0, double ylayer = 0, double zlayer = 0,
-                            int avgnum = 0, int measure = -1);
+                            double ylayer = 0, double zlayer = 0, int avgnum = 0, int measure = -1);
 
      void     getNLAllStress(FullM &stress, Vector &weight, GeomState &curState,
                              GeomState *refState, CoordSet &c0, int strInd, int surface = 0,
-                             double *ndTemps = 0, int measure = -1);
+                             int measure = -1);
 
      double   computeShapeGrad(GeomState &nodes, double nGrad[8][3]);
 
      double   computeStrainGrad(GeomState &geomState, CoordSet &, double dedU[24][6],
                                 int, int, int);
 
-     void     computePiolaStress(GeomState &, CoordSet &cs, double *ndTemps,
+     void     computePiolaStress(GeomState &, CoordSet &cs,
                                  double stress[8][7], double strain[8][7]);
 
      double   getElementEnergy(GeomState &gs, CoordSet &cs);

@@ -66,8 +66,6 @@ Brick32::Brick32(int* nodenums)
   for(int i=0; i<32; i++)
     nn[i] = nodenums[i];
 
-  brick32Corotator = 0;
-
   cFrame = 0;
   cCoefs = 0;
   mat = 0;
@@ -368,11 +366,14 @@ Brick32::getThermalForce(CoordSet &cs, Vector &ndTemps,
   const int nnodes = 32;
   const int ndofs = 96;
 
-  double X[32], Y[32], Z[32];
-  cs.getCoordinates(nn, nnodes, X, Y, Z);
-
   // initialize nodal thermal forces
   for(int i=0; i<ndofs; i++) elementThermalForce[i] = 0.0;
+
+  // for nonlinear analyses, the thermal load for this element is now computed in getStiffAndForce
+  if(geomState) return;
+
+  double X[32], Y[32], Z[32];
+  cs.getCoordinates(nn, nnodes, X, Y, Z);
 
   // get material props & constitutive matrix
   double &Tref  = prop->Ta;
@@ -394,56 +395,28 @@ Brick32::getThermalForce(CoordSet &cs, Vector &ndTemps,
   double Shape[32], DShape[32][3], m[3];
   double wx,wy,wz,w,J;
 
-  if(geomState && brick32Corotator) { // GEOMETRIC NONLINEAR ANALYSIS WITH DEFAULT MATERIAL
-    double coef = prop->E/(1.-2.*prop->nu);
-    double dedU[96][6];
-    for(int i=1; i<=numgauss; i++) {
-      _FORTRAN(lgauss)(numgauss,i,&m[0],&wx);
-      for(int j=1; j<=numgauss; j++) {
-        _FORTRAN(lgauss)(numgauss,j,&m[1],&wy);
-        for(int k=1; k<=numgauss; k++) {
-          _FORTRAN(lgauss)(numgauss,k,&m[2],&wz);
-          brick32Corotator->computeStrainGrad(*geomState, cs, dedU, i, j, k);
-          J = Hexa32ShapeFct(Shape, DShape, m, X, Y, Z);
-          w = fabs(J)*wx*wy*wz;
-          double theta = 0.0;
-          for(int inode=0; inode<nnodes; inode++) theta += Shape[inode]*(ndTemps[inode] - Tref);
-          theta *= coef*alpha*w;
-
-          for(int l=0; l<ndofs; l++)
-            elementThermalForce[l] += theta*(dedU[l][0]+dedU[l][1]+dedU[l][2]);
+  for(int i=1; i<=numgauss; i++) {
+    _FORTRAN(lgauss)(numgauss,i,&m[0],&wx);
+    for(int j=1; j<=numgauss; j++) {
+      _FORTRAN(lgauss)(numgauss,j,&m[1],&wy);
+      for(int k=1; k<=numgauss; k++) {
+        _FORTRAN(lgauss)(numgauss,k,&m[2],&wz);
+        J = Hexa32ShapeFct(Shape, DShape, m, X, Y, Z);
+        w = fabs(J)*wx*wy*wz;
+        // compute thermal stresses
+        double eT = 0.0;
+        for(int inode=0; inode<nnodes; inode++) eT += alpha*Shape[inode]*(ndTemps[inode] - Tref);
+        double thermalStrain[6] = {eT,eT,eT,0.0,0.0,0.0};
+        double thermalStress[6] = {0.0,0.0,0.0,0.0,0.0,0.0}; 
+        computeStress3DSolid(thermalStress, thermalStrain, C); // thermalStress <- C.thermalStrain
+        // sum contribution
+        for(int inode=0; inode<nnodes; inode++) {
+          elementThermalForce[3*inode  ] += w*(DShape[inode][0]*thermalStress[0] + DShape[inode][1]*thermalStress[3] + DShape[inode][2]*thermalStress[5]);
+          elementThermalForce[3*inode+1] += w*(DShape[inode][0]*thermalStress[3] + DShape[inode][1]*thermalStress[1] + DShape[inode][2]*thermalStress[4]);
+          elementThermalForce[3*inode+2] += w*(DShape[inode][0]*thermalStress[5] + DShape[inode][1]*thermalStress[4] + DShape[inode][2]*thermalStress[2]);
         }
       }
     }
-  }
-  else if(!geomState) { // LINEAR ANALYSIS
-    for(int i=1; i<=numgauss; i++) {
-      _FORTRAN(lgauss)(numgauss,i,&m[0],&wx);
-      for(int j=1; j<=numgauss; j++) {
-        _FORTRAN(lgauss)(numgauss,j,&m[1],&wy);
-        for(int k=1; k<=numgauss; k++) {
-          _FORTRAN(lgauss)(numgauss,k,&m[2],&wz);
-          J = Hexa32ShapeFct(Shape, DShape, m, X, Y, Z);
-          w = fabs(J)*wx*wy*wz;
-          // compute thermal stresses
-          double eT = 0.0;
-          for(int inode=0; inode<nnodes; inode++) eT += alpha*Shape[inode]*(ndTemps[inode] - Tref);
-          double thermalStrain[6] = {eT,eT,eT,0.0,0.0,0.0};
-          double thermalStress[6] = {0.0,0.0,0.0,0.0,0.0,0.0}; 
-          computeStress3DSolid(thermalStress, thermalStrain, C); // thermalStress <- C.thermalStrain
-          // sum contribution
-          for(int inode=0; inode<nnodes; inode++) {
-            elementThermalForce[3*inode  ] += w*(DShape[inode][0]*thermalStress[0] + DShape[inode][1]*thermalStress[3] + DShape[inode][2]*thermalStress[5]);
-            elementThermalForce[3*inode+1] += w*(DShape[inode][0]*thermalStress[3] + DShape[inode][1]*thermalStress[1] + DShape[inode][2]*thermalStress[4]);
-            elementThermalForce[3*inode+2] += w*(DShape[inode][0]*thermalStress[5] + DShape[inode][1]*thermalStress[4] + DShape[inode][2]*thermalStress[2]);
-          }
-        }
-      }
-    }
-  }
-  else {
-    fprintf(stderr," *** ERROR: Brick32::getThermalForce not supported for material nonlinear analysis. Abort.\n");
-    exit(-1);
   }
 }
 
@@ -630,19 +603,19 @@ Brick32::getCorotator(CoordSet &cs, double *kel, int, int)
   if(cCoefs && !mat) {
     double C[6][6];
     rotateConstitutiveMatrix(cCoefs, cFrame, C);
-    mat = new StVenantKirchhoffMat(prop->rho, C);
+    mat = new StVenantKirchhoffMat(prop->rho, C, prop->Ta, prop->W);
   }
   if(mat) {
 #ifdef USE_EIGEN3
     MatNLElement *ele = new NLHexahedral32(nn);
     ele->setMaterial(mat);
     ele->setGlNum(glNum);
+    ele->setProp(prop);
     return new MatNLCorotator(ele);
 #endif
   }
   else {
-    brick32Corotator = new Brick32Corotator(nn, prop->E, prop->nu, cs, prop->Ta, prop->W);
-    return brick32Corotator;
+    return new Brick32Corotator(nn, prop->E, prop->nu, cs, prop->Ta, prop->W);
   }
   printf("WARNING: Corotator not implemented for element %d\n", glNum+1); return 0;
 }

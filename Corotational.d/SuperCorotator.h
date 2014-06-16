@@ -32,8 +32,10 @@ class SuperCorotator : public Corotator
   void formGeometricStiffness(GeomState &geomState, CoordSet &cs, FullSquareMatrix &k, double *f);
   double* getOriginalStiffness();
   void extractDeformations(GeomState &geomState, CoordSet &cs, double *vld, int &nlflag);
-  void getNLVonMises(Vector &stress, Vector &weight, GeomState &geomState, CoordSet &cs, int strInd);
-  void getNLAllStress(FullM &stress, Vector &weight, GeomState &geomState, CoordSet &cs, int strInd);
+  void getNLVonMises(Vector& stress, Vector& weight, GeomState &curState, GeomState *refState, CoordSet& c0, int strIndex,
+                     int surface = 0, double ylayer = 0, double zlayer = 0, int avgnum = 0, int measure = -1);
+  void getNLAllStress(FullM &stress, Vector &weight, GeomState &curState, GeomState *refState, CoordSet &c0, int strInd,
+                      int surface = 0, int measure = -1);
   double getElementEnergy(GeomState &geomState, CoordSet &cs);
   double getDissipatedEnergy(GeomState &geomState, CoordSet &cs);
   void extractRigidBodyMotion(GeomState &geomState, CoordSet &cs, double *vlr);

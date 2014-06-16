@@ -9,8 +9,9 @@
 
 //#define COMPUTE_GLOBAL_ROTATION
 extern Domain *domain;
+extern const double defaultTemp;
 
-GeomState::GeomState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet &cs, Elemset *elems)
+GeomState::GeomState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet &cs, Elemset *elems, double *ndTemps)
  : X0(&cs)
 /****************************************************************
  *
@@ -132,6 +133,7 @@ GeomState::GeomState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet &cs, Elemset 
   }
 
   numnodesFixed = numnodes;
+  setNodalTemperatures(ndTemps);
 }
 
 CoordSet emptyCoord;
@@ -442,7 +444,7 @@ GeomState::GeomState(const GeomState &g2) : X0(g2.X0), emap(g2.emap), multiplier
   for(int i = 0; i < numelems; ++i)
     es[i] = g2.es[i];
  
-  // Initialize Global Rotation Matrix & CG position // HB
+  // Initialize Global Rotation Matrix & CG position
   refCG[0] = g2.refCG[0];
   refCG[1] = g2.refCG[1];
   refCG[2] = g2.refCG[2];
@@ -456,32 +458,35 @@ GeomState::GeomState(const GeomState &g2) : X0(g2.X0), emap(g2.emap), multiplier
 void
 NodeState::operator=(const NodeState &node)
 {
- // Set x, y, and z coordinate values
- this->x = node.x;
- this->y = node.y;
- this->z = node.z;
+  // Assign x, y, and z coordinate values
+  x = node.x;
+  y = node.y;
+  z = node.z;
 
- // Set rotation tensor
- this->R[0][0] = node.R[0][0];
- this->R[0][1] = node.R[0][1];
- this->R[0][2] = node.R[0][2];
- this->R[1][0] = node.R[1][0];
- this->R[1][1] = node.R[1][1];
- this->R[1][2] = node.R[1][2];
- this->R[2][0] = node.R[2][0];
- this->R[2][1] = node.R[2][1];
- this->R[2][2] = node.R[2][2];
+  // Assign rotation tensor
+  R[0][0] = node.R[0][0];
+  R[0][1] = node.R[0][1];
+  R[0][2] = node.R[0][2];
+  R[1][0] = node.R[1][0];
+  R[1][1] = node.R[1][1];
+  R[1][2] = node.R[1][2];
+  R[2][0] = node.R[2][0];
+  R[2][1] = node.R[2][1];
+  R[2][2] = node.R[2][2];
 
- // Set rotation vector
- this->theta[0] = node.theta[0];
- this->theta[1] = node.theta[1];
- this->theta[2] = node.theta[2];
+  // Assign rotation vector
+  theta[0] = node.theta[0];
+  theta[1] = node.theta[1];
+  theta[2] = node.theta[2];
 
- // Copy the velocity and acceleration vectors
- for(int i = 0; i < 6; ++i) {
-   this->v[i] = node.v[i];
-   this->a[i] = node.a[i];
- }
+  // Assign velocity and acceleration vectors
+  for(int i = 0; i < 6; ++i) {
+    v[i] = node.v[i];
+    a[i] = node.a[i];
+  }
+
+  // Assign temperature
+  temp = node.temp;
 }
 
 void
@@ -1369,10 +1374,18 @@ GeomState::get_tot_displacement(Vector &totVec, bool rescaled)
 }
 
 void
+GeomState::get_temperature(int numNodes, int* nodes, Vector &ndTemps, double Ta)
+{
+  for(int i=0; i<numNodes; ++i) {
+    ndTemps[i] = (ns[nodes[i]].temp == defaultTemp) ? Ta : ns[nodes[i]].temp;
+  }
+}
+
+void
 GeomState::zeroRotDofs(Vector& vec)
 {
   for(int inode = 0; inode < numnodes; ++inode) {
-  // Set rotational displacements equal to zero.
+    // Set rotational displacements equal to zero.
     if(loc[inode][3] >= 0) vec[loc[inode][3]] = 0.0;
     if(loc[inode][4] >= 0) vec[loc[inode][4]] = 0.0;
     if(loc[inode][5] >= 0) vec[loc[inode][5]] = 0.0;
@@ -1824,6 +1837,15 @@ GeomState::setRotations(double *rotations)
    ns[i].R[2][0] = rotations[9*i+6];
    ns[i].R[2][1] = rotations[9*i+7];
    ns[i].R[2][2] = rotations[9*i+8];
+ }
+}
+
+void
+GeomState::setNodalTemperatures(double *ndTemps)
+{
+ int i;
+ for(i=0; i<numnodes; ++i) {
+   ns[i].temp = (ndTemps) ? ndTemps[i] : defaultTemp;
  }
 }
 

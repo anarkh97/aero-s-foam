@@ -30,6 +30,25 @@ AutoShapeFunction<ShapeFunctionTemplate,NumberOfNodes>::getLocalDerivatives(Tens
 #endif
 }
 
+template<template <typename S> class ShapeFunctionTemplate, int NumberOfNodes>
+double
+AutoShapeFunction<ShapeFunctionTemplate,NumberOfNodes>::interpolateScalar(double *_q, double _xi[3])
+{
+#ifdef USE_EIGEN3
+  Eigen::Matrix<double,3,1> xi;
+  ShapeFunctionTemplate<double> N(Eigen::Array<double,0,1>::Zero(), Eigen::Array<int,0,1>::Zero());
+  Eigen::Map<Eigen::Matrix<double,NumberOfNodes,1> > q(_q);
+
+  xi << _xi[0], _xi[1], _xi[2];
+  return N(xi, 0.).dot(q);
+#else
+  std::cerr << " *** ERROR: Implementation of AutoShapeFunction::interpolate in file" << std::endl
+            << "            Element.d/NonLinearity.d/SolidElementTemplate.C requires AERO-S configured with Eigen library. Exiting...\n";
+  exit(-1);
+  return 0;
+#endif
+}
+
 template<template <typename S> class ShapeFunctionTemplate, int NumberOfNodes, int NumIntgPts>
 SolidElementTemplate<ShapeFunctionTemplate,NumberOfNodes,NumIntgPts>::SolidElementTemplate(int *nd) 
  : material(0)

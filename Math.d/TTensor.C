@@ -3,7 +3,6 @@ template <>
 void
 SymTensor<SymTensor<double,2>,2>::dblContractInto(const Tensor &b, Tensor *res) const
 {
-  // TO BE CONTINUED
   SymTensor<double,2> &resStress = dynamic_cast<SymTensor<double,2> &>(*res);
   if(&resStress != 0) {
     const SymTensor<double,2> &bb = dynamic_cast<const SymTensor<double,2> &>(b);

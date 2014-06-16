@@ -68,6 +68,7 @@ class TriMembraneShapeFunct : public GenShapeFunction< TwoDTensorTypes<9> >
                         Node *nodes, double xi[3], Vector &disp);
     void getGradU(Grad2D &gradU,
                   Node *nodes, double xi[3], Vector &disp);
+    double interpolateScalar(double *_q, double _xi[3]);
 };
 
 class NLMembrane : public GenGaussIntgElement<TwoDTensorTypes<9> >
@@ -97,8 +98,8 @@ class NLMembrane : public GenGaussIntgElement<TwoDTensorTypes<9> >
     int* dofs(DofSetArray &, int *p=0);
     int* nodes(int * = 0);
     void updateStates(Node *nodes, double *states, double *un, double *unp) {}
+    void setProp(StructProp *p, bool _myProp = false);
     void setMaterial(NLMaterial *);
-    int numInternalNodes();
     void setPressure(PressureBCond *_pbc) { pbc = _pbc; }
     PressureBCond* getPressure() { return pbc; }
     void computePressureForce(CoordSet &cs, Vector& elPressureForce,

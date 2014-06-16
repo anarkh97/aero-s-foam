@@ -383,7 +383,7 @@ void
 GenGaussIntgElement<TensorType>::integrate(Node *nodes, double *dispn,  double *staten,
                                            double *dispnp, double *statenp,
                                            FullSquareMatrix &kTan,
-                                           double *force, double, double *temp)
+                                           double *force, double, double *temps)
 {
   int ndofs = numDofs();
   GenShapeFunction<TensorType> *shapeF = getShapeFunction();
@@ -429,7 +429,7 @@ GenGaussIntgElement<TensorType>::integrate(Node *nodes, double *dispn,  double *
 
   for(i = 0; i < ngp; i++) {
 
-    double point[3], weight, jacn, jacnp;
+    double point[3], weight, jacn, jacnp, tempnp;
     StackVector dispVecn(dispn,ndofs);
     StackVector dispVecnp(dispnp,ndofs); 
 
@@ -451,8 +451,11 @@ GenGaussIntgElement<TensorType>::integrate(Node *nodes, double *dispn,  double *
     //material->getStress(&s, e, 0);       
     //material->getStressAndTangentMaterial(&s, &D, enp, 0);
 
+    // compute temperature at integration point
+    tempnp = (temps) ? shapeF->interpolateScalar(temps, point) : 0;
+
     material->integrate(&s, &Dnp, en, enp,
-                        staten + nstatepgp*i,statenp + nstatepgp*i , 0);
+                        staten + nstatepgp*i, statenp + nstatepgp*i, tempnp);
 
     for(int j=0; j<preload.size(); ++j) s[j] += preload[j]; // note: for membrane element preload should have units of
                                                             // force per unit length (ie. prestress multiplied by thickness)
@@ -482,7 +485,7 @@ template <class TensorType>
 void 
 GenGaussIntgElement<TensorType>::integrate(Node *nodes, double *dispn,  double *staten,
                                            double *dispnp, double *statenp,
-                                           double *force, double, double *temp)
+                                           double *force, double, double *temps)
 {
   int ndofs = numDofs();
   GenShapeFunction<TensorType> *shapeF = getShapeFunction();
@@ -519,7 +522,7 @@ GenGaussIntgElement<TensorType>::integrate(Node *nodes, double *dispn,  double *
 
   for(i = 0; i < ngp; i++) {
 
-    double point[3], weight, jacn, jacnp;
+    double point[3], weight, jacn, jacnp, tempnp;
     StackVector dispVecn(dispn,ndofs);
     StackVector dispVecnp(dispnp,ndofs); 
 
@@ -541,8 +544,11 @@ GenGaussIntgElement<TensorType>::integrate(Node *nodes, double *dispn,  double *
     //material->getStress(&s, e, 0);       
     //material->getStressAndTangentMaterial(&s, &D, enp, 0);
 
+    // compute temperature at integration point
+    tempnp = (temps) ? shapeF->interpolateScalar(temps, point) : 0;
+
     material->integrate(&s, en, enp,
-                        staten + nstatepgp*i,statenp + nstatepgp*i , 0);
+                        staten + nstatepgp*i,statenp + nstatepgp*i, tempnp);
 
     for(int j=0; j<preload.size(); ++j) s[j] += preload[j]; // note: for membrane element preload should have units of
                                                             // force per unit length (ie. prestress multiplied by thickness)
@@ -624,7 +630,7 @@ GenGaussIntgElement<TensorType>::getStressTens(Node *nodes, double *dispn, doubl
 
   for(i = 0; i < ngp; i++) {
 
-    double point[3], weight, jacn, jacnp;
+    double point[3], weight, jacn, jacnp, tempnp;
     StackVector dispVecn(dispn,ndofs);
     StackVector dispVecnp(dispnp,ndofs); 
 
@@ -646,8 +652,11 @@ GenGaussIntgElement<TensorType>::getStressTens(Node *nodes, double *dispn, doubl
     //material->getStress(&s, e, 0);       
     //material->getStressAndTangentMaterial(&s, &D, enp, 0);
 
+    // compute temperature at integration point
+    tempnp = (temps) ? shapeF->interpolateScalar(temps, point) : 0;
+
     material->integrate(&s, &Dnp, en, enp,
-                        staten + nstatepgp*i, statenp + nstatepgp*i, 0);
+                        staten + nstatepgp*i, statenp + nstatepgp*i, tempnp);
 
     for(int j=0; j<preload.size(); ++j) s[j] += preload[j]; // note: for membrane element preload should have units of
                                                             // force per unit length (ie. prestress multiplied by thickness)

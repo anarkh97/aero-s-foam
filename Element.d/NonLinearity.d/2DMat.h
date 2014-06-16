@@ -8,11 +8,11 @@ class StructProp;
 class ElaLinIsoMat2D : public NLMaterial
 {
    protected:
-     double rho, E, nu, t;
+     double rho, E, nu, t, Tref, alpha;
 
    public:
      ElaLinIsoMat2D(StructProp *p);
-     ElaLinIsoMat2D(double _rho, double _E, double _nu, double _t);
+     ElaLinIsoMat2D(double _rho, double _E, double _nu, double _t, double _Tref, double _alpha);
 
      int getNumStates() { return 0; }
 
@@ -45,7 +45,7 @@ class StVenantKirchhoffMat2D : public ElaLinIsoMat2D
 {
   public:
     StVenantKirchhoffMat2D(StructProp *p) : ElaLinIsoMat2D(p) {}
-    StVenantKirchhoffMat2D(double rho, double E, double nu, double t) : ElaLinIsoMat2D(rho, E, nu, t) {}
+    StVenantKirchhoffMat2D(double rho, double E, double nu, double t, double Tref, double alpha) : ElaLinIsoMat2D(rho, E, nu, t, Tref, alpha) {}
 
     GenStrainEvaluator<TwoDTensorTypes<9> > * getGenStrainEvaluator();
 };

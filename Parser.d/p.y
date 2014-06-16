@@ -4252,6 +4252,11 @@ MatSpec:
            geoSource->addMaterial($2-1,
              new BilinPlasKinHardMat($4, $5, $6, $7, $8, $9) );
          }
+        | MatSpec Integer BILINEARPLASTIC Float Float Float Float Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new BilinPlasKinHardMat($4, $5, $6, $7, $8, $9, $10, $11) );
+         }
         | MatSpec Integer FINITESTRAINPLASTIC Float Float Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
@@ -4262,6 +4267,11 @@ MatSpec:
            geoSource->addMaterial($2-1,
              new FiniteStrainPlasKinHardMat($4, $5, $6, $7, $8, $9) );
          }
+        | MatSpec Integer FINITESTRAINPLASTIC Float Float Float Float Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new FiniteStrainPlasKinHardMat($4, $5, $6, $7, $8, $9, $10, $11) );
+         }
         | MatSpec Integer LOGSTRAINPLASTIC Float Float Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
@@ -4271,6 +4281,11 @@ MatSpec:
          {
            geoSource->addMaterial($2-1,
              new LogStrainPlasKinHardMat($4, $5, $6, $7, $8, $9) );
+         }
+        | MatSpec Integer LOGSTRAINPLASTIC Float Float Float Float Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new LogStrainPlasKinHardMat($4, $5, $6, $7, $8, $9, $10, $11) );
          }
         | MatSpec Integer LINEARELASTIC Float Float Float Float Float NewLine
          {
@@ -4320,12 +4335,22 @@ MatSpec:
         | MatSpec Integer LINPLSTRESS Float Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
-             new ElaLinIsoMat2D($4, $5, $6, $7));
+             new ElaLinIsoMat2D($4, $5, $6, $7, 0, 0));
+         }
+        | MatSpec Integer LINPLSTRESS Float Float Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new ElaLinIsoMat2D($4, $5, $6, $7, $8, $9));
          }
         | MatSpec Integer SVKPLSTRESS Float Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
-             new StVenantKirchhoffMat2D($4, $5, $6, $7));
+             new StVenantKirchhoffMat2D($4, $5, $6, $7, 0, 0));
+         }
+        | MatSpec Integer SVKPLSTRESS Float Float Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new StVenantKirchhoffMat2D($4, $5, $6, $7, $8, $9));
          }
         | MatSpec Integer ISOTROPICLINEARELASTIC Float Float Float NewLine
           {

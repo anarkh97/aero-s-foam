@@ -80,10 +80,10 @@ ElaLinIsoMat::getStress(Tensor *_stress, Tensor &_strain, double*, double temp)
     for(int i=0; i<6; ++i) strain[i] -= (temp-Tref)*alphas[i];
   }
   else {
-    double eth = (temp-Tref)*alpha;
-    strain[0] -= eth;
-    strain[3] -= eth;
-    strain[5] -= eth;
+    double e0 = (temp-Tref)*alpha;
+    strain[0] -= e0;
+    strain[3] -= e0;
+    strain[5] -= e0;
   }
 
   (*stress) = tm||strain;
@@ -143,10 +143,10 @@ ElaLinIsoMat::getStressAndTangentMaterial(Tensor *_stress, Tensor *_tm, Tensor &
     (*tm)[5][3] = lambdadivnu*nu;
 
     // subtract thermal strain
-    double eth = (temp-Tref)*alpha;
-    strain[0] -= eth;
-    strain[3] -= eth;
-    strain[5] -= eth;
+    double e0 = (temp-Tref)*alpha;
+    strain[0] -= e0;
+    strain[3] -= e0;
+    strain[5] -= e0;
   }
 
   (*stress) =(*tm)||strain;
@@ -184,10 +184,10 @@ ElaLinIsoMat::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Tensor &_enp,
     (*tm)[5][3] = lambdadivnu*nu;
 
     // subtract thermal strain
-    double eth = (temp-Tref)*alpha;
-    enp[0] -= eth;
-    enp[3] -= eth;
-    enp[5] -= eth;
+    double e0 = (temp-Tref)*alpha;
+    enp[0] -= e0;
+    enp[3] -= e0;
+    enp[5] -= e0;
   }
 
   (*stress) = (*tm)||enp;
@@ -226,10 +226,10 @@ ElaLinIsoMat::integrate(Tensor *_stress, Tensor &, Tensor &_enp,
     (*tm)[5][3] = lambdadivnu*nu;
 
     // subtract thermal strain
-    double eth = (temp-Tref)*alpha;
-    enp[0] -= eth;
-    enp[3] -= eth;
-    enp[5] -= eth;
+    double e0 = (temp-Tref)*alpha;
+    enp[0] -= e0;
+    enp[3] -= e0;
+    enp[5] -= e0;
 
     (*stress) = (*tm)||enp;
 
@@ -256,10 +256,10 @@ ElaLinIsoMat::getStrainEnergyDensity(Tensor &_enp, double *, double temp)
     double mu = E/(2*(1+nu));
 
     // subtract thermal strain
-    double eth = (temp-Tref)*alpha;
-    enp[0] -= eth;
-    enp[3] -= eth;
-    enp[5] -= eth;
+    double e0 = (temp-Tref)*alpha;
+    enp[0] -= e0;
+    enp[3] -= e0;
+    enp[5] -= e0;
 
     double I1 = enp.getTrace();
     return lambda/2*I1*I1 + mu*enp.innerProduct();

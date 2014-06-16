@@ -1,12 +1,5 @@
-// E[1][1] = E[2][2] = Young/(1-nu*nu)
-// E[[1][2]= nu*E[1][1];
-// E[3][3]=1/2*E/(1+nu)
-// E[1][3]=E[2][3] = 0
-#include <cstdio>
-#include <cstdlib>
-#include <cmath>
-#include <Element.d/NonLinearity.d/NLMembrane.h>
 #include <Element.d/NonLinearity.d/2DMat.h>
+#include <Element.d/NonLinearity.d/NLMembrane.h>
 #include <Math.d/TTensor.h>
 
 ElaLinIsoMat2D::ElaLinIsoMat2D(StructProp *p)
@@ -15,11 +8,14 @@ ElaLinIsoMat2D::ElaLinIsoMat2D(StructProp *p)
   nu = p->nu;
   t = p->eh;
   rho = p->rho;
+  Tref = p->Ta;
+  alpha = p->W;
 }
 
-ElaLinIsoMat2D::ElaLinIsoMat2D(double _rho, double _E, double _nu, double _t)
+ElaLinIsoMat2D::ElaLinIsoMat2D(double _rho, double _E, double _nu, double _t,
+                               double _Tref, double _alpha)
 {
-  rho = _rho; nu = _nu; E = _E; t = _t;
+  rho = _rho; nu = _nu; E = _E; t = _t; Tref = _Tref; alpha = _alpha;
 }
 
 void
@@ -28,6 +24,11 @@ ElaLinIsoMat2D::getStress(Tensor *_stress, Tensor &_strain, double*, double temp
   SymTensor<SymTensor<double,2>,2> tm;
   SymTensor<double,2> & strain = static_cast<SymTensor<double,2> &>(_strain);
   SymTensor<double,2> * stress = static_cast<SymTensor<double,2> *>(_stress);
+
+  double e0 = alpha*(temp-Tref);
+  strain[0] -= e0;
+  strain[1] -= e0;
+
   getTangentMaterial(&tm, _strain, 0);
   (*stress) = tm||strain;
 }
@@ -55,6 +56,10 @@ ElaLinIsoMat2D::getStressAndTangentMaterial(Tensor *_stress, Tensor *_tm, Tensor
   SymTensor<double,2> * stress = static_cast<SymTensor<double,2> *>(_stress);
   SymTensor<SymTensor<double,2>,2> * tm = static_cast<SymTensor<SymTensor<double,2>,2> *>(_tm);
 
+  double e0 = alpha*(temp-Tref);
+  strain[0] -= e0;
+  strain[1] -= e0;
+
   double E11 = t*E/(1-nu*nu);
   double E12 = nu*E11;
   double E33 = t*E/(1+nu);
@@ -70,11 +75,15 @@ ElaLinIsoMat2D::getStressAndTangentMaterial(Tensor *_stress, Tensor *_tm, Tensor
 
 void 
 ElaLinIsoMat2D::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Tensor &_enp,
-                          double *staten, double *statenp, double)
+                          double *staten, double *statenp, double temp)
 {
   SymTensor<double,2> & enp = static_cast<SymTensor<double,2> &>(_enp);
   SymTensor<double,2> * stress = static_cast<SymTensor<double,2> *>(_stress);
   SymTensor<SymTensor<double,2>,2> * tm = static_cast<SymTensor<SymTensor<double,2>,2> *>(_tm);
+
+  double e0 = alpha*(temp-Tref);
+  enp[0] -= e0;
+  enp[1] -= e0;
 
   double E11 = t*E/(1-nu*nu);
   double E12 = nu*E11;
@@ -91,11 +100,15 @@ ElaLinIsoMat2D::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Tensor &_enp,
 
 void
 ElaLinIsoMat2D::integrate(Tensor *_stress, Tensor &, Tensor &_enp,
-                          double *staten, double *statenp, double)
+                          double *staten, double *statenp, double temp)
 {
   SymTensor<double,2> & enp = static_cast<SymTensor<double,2> &>(_enp);
   SymTensor<double,2> * stress = static_cast<SymTensor<double,2> *>(_stress);
   SymTensor<SymTensor<double,2>,2> * tm = new SymTensor<SymTensor<double,2>,2>();
+
+  double e0 = alpha*(temp-Tref);
+  enp[0] -= e0;
+  enp[1] -= e0;
 
   double E11 = t*E/(1-nu*nu);
   double E12 = nu*E11;
@@ -111,7 +124,6 @@ ElaLinIsoMat2D::integrate(Tensor *_stress, Tensor &, Tensor &_enp,
 
   delete tm;
 }
-
 
 extern LinearStrain2D<9> linStrain2D;
 

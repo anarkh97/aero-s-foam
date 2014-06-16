@@ -18,10 +18,12 @@ SuperElement::~SuperElement()
   if(eset) delete eset;
   if(dsa) delete dsa;
   if(css) delete css;
+
   if(subElems) {
     for(int i = 0; i < nSubElems; ++i) delete subElems[i];
     delete [] subElems;
   }
+
   if(subElemDofs) {
     for(int i = 0; i < nSubElems; ++i) delete [] subElemDofs[i];
     delete [] subElemDofs;

@@ -13,11 +13,14 @@ class ElasPlasKinHardMat : public NLMaterial
     // theta is hardening parameter which specifies and arbitrary combination of isotropic and kinematic hardening (beta for DYNA3D Material type 3)
     // theta = 0 (default) is purely kinematic hardening, while theta = 1 is purely isotropic hardening
     double rho, E, nu, Ep, sigE, theta;
+    // alpha is the thermal expansion coefficient and Tref is the reference temperature
+    double alpha, Tref;
 
   public:
     ElasPlasKinHardMat(StructProp *p);
-    ElasPlasKinHardMat(double _rho, double _E, double _nu, double _Ep, double _sigE, double _theta = 0)
-       {rho = _rho; E = _E; nu = _nu; Ep = _Ep; sigE = _sigE; theta = _theta; }
+    ElasPlasKinHardMat(double _rho, double _E, double _nu, double _Ep, double _sigE, double _theta = 0,
+                       double _Tref = 0, double _alpha = 0)
+       { rho = _rho; E = _E; nu = _nu; Ep = _Ep; sigE = _sigE; theta = _theta; Tref = _Tref; alpha = _alpha; }
 
     void getStress(Tensor *stress, Tensor &strain, double *, double temp);
 

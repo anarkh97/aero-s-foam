@@ -7,6 +7,7 @@
 #include <Utils.d/linkfc.h>
 #include <Utils.d/pstress.h>
 #include <Math.d/FullSquareMatrix.h>
+#include <Math.d/matrix.h>
 #include <Corotational.d/Brick20Corotator.h>
 #include <Element.d/NonLinearity.d/ElaLinIsoMat.h>
 #include <Element.d/NonLinearity.d/NLHexahedral.h>
@@ -684,7 +685,6 @@ Brick20::setMaterial(NLMaterial *_mat)
     // transform local constitutive matrix to global frame
     rotateConstitutiveMatrix(cCoefs, cFrame, C);
     if(mat) mat->setTangentMaterial(C);
-    Eigen::Map<Eigen::Matrix<double,6,6,Eigen::RowMajor> > _C(&C[0][0]);
   }
   else {
     mat = _mat;

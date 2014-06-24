@@ -142,7 +142,7 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
 
   // XXX consider adding the element fictitious forces inside the loop
   if(sinfo.isDynam() && mel && !solInfo().getNLInfo().linearelastic)
-    getFictitiousForce(geomState, elementForce, kel, residual, time, refState, reactions, mel, compute_tangents, cel);
+    getFictitiousForce(geomState, elementForce, kel, residual, time, refState, reactions, mel, compute_tangents, corotators, cel);
 
   if(!solInfo().getNLInfo().unsymmetric && solInfo().newmarkBeta != 0) {
     if(matrixTimers) matrixTimers->formTime -= getTime(); 
@@ -2753,6 +2753,9 @@ Domain::getElementDisp(int iele, GeomState& geomState, Vector& disp)
               case 6 : case 7 : case 8 : // temperature and lagrange multipliers
                 disp[l++] = geomState[nn[i]].x;
                 break;
+              default :
+                disp[l++] = 0;
+                break;
             }
             break;
           }
@@ -2771,28 +2774,6 @@ Domain::computeEnergies(GeomState *geomState, Vector &force, double t, Vector *a
   // Build displacement vector
   Vector disp(numUncon(), 0.0);
   geomState->get_tot_displacement(disp, false);
-/*
-  for(int i = 0; i < geomState->numNodes(); ++i) {
-    int xloc = c_dsa->locate(i, DofSet::Xdisp);
-    if(xloc >= 0)
-      disp[xloc] = ((*geomState)[i].x - nodes[i]->x);
-    int yloc = c_dsa->locate(i, DofSet::Ydisp);
-    if(yloc >= 0)
-      disp[yloc] = ((*geomState)[i].y - nodes[i]->y);
-    int zloc = c_dsa->locate(i, DofSet::Zdisp);
-    if(zloc >= 0)
-      disp[zloc] = ((*geomState)[i].z - nodes[i]->z);
-    int xrot = c_dsa->locate(i, DofSet::Xrot);
-    if(xrot >= 0)
-      disp[xrot] = (*geomState)[i].theta[0];
-    int yrot = c_dsa->locate(i, DofSet::Yrot);
-    if(yrot >= 0)
-      disp[yrot] = (*geomState)[i].theta[1];
-    int zrot = c_dsa->locate(i, DofSet::Zrot);
-    if(zrot >= 0)
-      disp[zrot] = (*geomState)[i].theta[2];
-  }
-*/
 
   double lambda, time;
   if(sinfo.isDynam()) { time = t; lambda = 1.0; }

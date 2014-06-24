@@ -353,3 +353,38 @@ SuperCorotator::getError()
     err = std::max(err,subElemCorotators[i]->getError());
   return err;
 }
+
+bool
+SuperCorotator::useDefaultInertialStiffAndForce()
+{
+  int i;
+  for(i=0; i<nSubElems; ++i) {
+    if(!subElemCorotators[i]->useDefaultInertialStiffAndForce()) return false;
+  }
+  return true;
+}
+
+void
+SuperCorotator::getInertialStiffAndForce(GeomState *refState, GeomState &curState, CoordSet &c0,
+                                         FullSquareMatrix &elK, double *f, double dt, double t,
+                                         double beta, double gamma, double alphaf, double alpham)
+{
+  int i, j;
+  elK.zero();
+  for(i=0; i<elK.dim(); ++i) f[i] = 0.0;
+
+  for(i=0; i<nSubElems; ++i) {
+    int ndofs = superElem->getSubElemNumDofs(i);
+    FullSquareMatrix subK(ndofs);
+    subK.zero();
+    double *subf = new double[ndofs];
+    for(j=0; j<ndofs; ++j) subf[j] = 0.0;
+    int *subElemDofs = superElem->getSubElemDofs(i);
+    subElemCorotators[i]->getInertialStiffAndForce(refState, curState, c0, subK, subf, dt, t, 
+                                                   beta, gamma, alphaf, alpham);
+    elK.add(subK, subElemDofs);
+    for(j=0; j<ndofs; ++j) f[subElemDofs[j]] += subf[j];
+    delete [] subf;
+  }
+}
+

@@ -1021,17 +1021,28 @@ void GeoSource::setUpData()
     if(attrib_i.nele < nMaxEle)
       hasAttr[attrib_i.nele] = true;
   }
-  int dattr;
-  bool hasAddedDummy = false, hasMultiplier = false;
+  int dattr, dattr2;
+  bool hasAddedDummy = false, hasAddedDummy2 = false, hasMultiplier = false;
   for(int i = 0; i < nMaxEle; ++i) {
     if(elemSet[i] && !hasAttr[i]) {
-      if (!hasAddedDummy) {
-        dattr = maxattrib + 1;
+      if(!elemSet[i]->isRigidElement() && !hasAddedDummy) {
+        dattr = ++maxattrib;
         addMat(dattr, StructProp());
         hasAddedDummy = true;
       }
+      else if(elemSet[i]->isRigidElement() && !hasAddedDummy2) {
+        // for rigid elements the default density needs to be changed to zero
+        dattr2 = ++maxattrib;
+        StructProp p;
+        p.rho = 0.0;
+        addMat(dattr2, p);
+        hasAddedDummy2 = true;
+      }
       if(sinfo.probType == SolverInfo::Top || sinfo.probType == SolverInfo::Decomp || elemSet[i]->isConstraintElement()
-         || elemSet[i]->isSloshingElement()) setAttrib(i,dattr);
+         || elemSet[i]->isSloshingElement()) {
+        if(!elemSet[i]->isRigidElement()) setAttrib(i, dattr);
+        else setAttrib(i, dattr2);
+      }
       else filePrint(stderr, " *** WARNING: Element %d has no attribute defined\n", i+1);
     }
   }

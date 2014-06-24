@@ -120,6 +120,7 @@ Convection.d/QuadConvec.C
 Convection.d/trianarea.f
 Convection.d/TriangleConvec.C
 CtcVirtualElt.d/CtcVirtualElt.C
+DiscreteMass.d/DiscreteMass6Dof.C
 FelippaShell.d/EffMembraneTriangleInstance.cpp
 FelippaShell.d/AndesBendingTriangleInstance.cpp
 FelippaShell.d/ShellElementInstance.cpp
@@ -141,6 +142,7 @@ Function.d/ExternalForce.d/FollowerMomentForceFunction.C
 Function.d/ExternalForce.d/FollowerForceFunction.C
 Function.d/InertialForce.d/InertialType1ForceFunction.C
 Function.d/InertialForce.d/InertialType2ForceFunction.C
+Function.d/InertialForce.d/Inertial6DofForceFunction.C
 Helm.d/GaussRule.C
 Helm.d/GaussRules.C
 Helm.d/genTetra10.C

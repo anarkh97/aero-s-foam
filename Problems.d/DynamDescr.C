@@ -973,8 +973,10 @@ SingleDomainDynamic::getInternalForce(Vector& d, Vector& f, double t, int tIndex
                                reactions, melArray);
     }
     f.linC(-1.0,residual); // f = -residual
+/* XXX now this is done in a separate function, SingleDomainDynamic::pull_back
     if(!domain->solInfo().galerkinPodRom && !domain->solInfo().getNLInfo().linearelastic)
       geomState->pull_back(f); // f = R^T*f
+*/
   }
   else {
     f.zero();
@@ -983,6 +985,27 @@ SingleDomainDynamic::getInternalForce(Vector& d, Vector& f, double t, int tIndex
 
   if(domain->solInfo().filterFlags || domain->solInfo().hzemFilterFlag)
     trProject(f);
+}
+
+void
+SingleDomainDynamic::pull_back(Vector& f)
+{
+  if(domain->solInfo().isNonLin() && !domain->solInfo().galerkinPodRom && !domain->solInfo().getNLInfo().linearelastic) {
+    // Transform both moments and forces to convected frame: f = [R^T  I ]*f
+    //                                                           [ I  R^T]
+    geomState->pull_back(f); 
+  }
+}
+
+void
+SingleDomainDynamic::push_forward(Vector &a)
+{
+  if(domain->solInfo().isNonLin() && !domain->solInfo().galerkinPodRom && !domain->solInfo().getNLInfo().linearelastic) {
+    // Transform 2nd time-derivative of displacement to spatial frame: a = [R I]*a
+    //                                                                     [I I]
+    // Note: the angular accelerations are deliberately not transformed.
+    geomState->push_forward(a); // XXX
+  }
 }
 
 void
@@ -1378,3 +1401,4 @@ SingleDomainDynamic::getThermohFlag()
 {
   return domain->solInfo().thermohFlag;
 }
+

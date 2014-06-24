@@ -171,7 +171,9 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
       if(verboseFlag) filePrint(stderr," ... Computing initial acceleration ...\n");
       probDesc->formRHSinitializer(external_force, velocity_n, elementInternalForce, *geomState, acceleration, refState);
       probDesc->reBuild(*geomState, 0, delta, time);
+      geomState->pull_back(acceleration);
       probDesc->getSolver()->reSolve(acceleration);
+      geomState->push_forward(acceleration);
       geomState->setAcceleration(acceleration);
     }
   }

@@ -45,6 +45,11 @@ class SuperCorotator : public Corotator
   void initMultipliers(GeomState& c1);
   void updateMultipliers(GeomState& c1);
   double getError();
+
+  bool useDefaultInertialStiffAndForce();
+  void getInertialStiffAndForce(GeomState *refState, GeomState& c1, CoordSet& c0,
+                                FullSquareMatrix &elK, double *f, double dt, double t,
+                                double beta, double gamma, double alphaf, double alpham);
 };
 
 #endif

@@ -330,6 +330,8 @@ Domain::addDMass(int n, int d, double mass, int jdof)
  firstDiMass->diMass = mass;
  firstDiMass->jdof   = jdof;
 
+ if(jdof >= 0 && d != jdof) sinfo.inertiaLumping = 2;
+
  nDimass++;
 
  return 0;

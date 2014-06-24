@@ -48,6 +48,8 @@ class DistrGeomState {
      void get_inc_displacement(DistrVector &inc_Vec, DistrGeomState &ss, bool zeroRot);
      void push_forward(DistrVector &f);
      void pull_back(DistrVector &f);
+     void push_forward_trans(DistrVector &f);
+     void pull_back_trans(DistrVector &f);
      void transform(DistrVector &f, int, bool unscaled = false);
      void get_tot_displacement(DistrVector &totVec, bool rescaled = true);
      void interp(double, DistrGeomState &, DistrGeomState &);

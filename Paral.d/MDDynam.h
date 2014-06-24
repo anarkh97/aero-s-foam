@@ -213,6 +213,8 @@ private:
     virtual void computeStabilityTimeStep(double&, MDDynamMat&);
 
     void updateState(double dt_n_h, DistrVector& v_n_h, DistrVector& d_n);
+    void pull_back(DistrVector& f);
+    void push_forward(DistrVector& a);
 
     // Mode Decomposition parameters and subroutines
     int getModeDecompFlag();

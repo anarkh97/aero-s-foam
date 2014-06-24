@@ -1134,8 +1134,9 @@ GeomState::get_inc_displacement(Vector &incVec, GeomState &ss, bool zeroRot)
 }
 
 void
-GeomState::push_forward(Vector &f)
+GeomState::push_forward(Vector &v)
 {
+  // Transform convected quatities (translational only) to spatial frame: v = R*v
   int inode;
   for(inode=0; inode<numnodes; ++inode) {
 
@@ -1143,9 +1144,9 @@ GeomState::push_forward(Vector &f)
 
     if(loc[inode][3] >= 0 || loc[inode][4] >= 0 || loc[inode][5] >= 0) {
       double vec[3], result[3];
-      vec[0] = ( loc[inode][3] >= 0 ) ? f[loc[inode][3]] : 0;
-      vec[1] = ( loc[inode][4] >= 0 ) ? f[loc[inode][4]] : 0;
-      vec[2] = ( loc[inode][5] >= 0 ) ? f[loc[inode][5]] : 0;
+      vec[0] = ( loc[inode][0] >= 0 ) ? v[loc[inode][0]] : 0;
+      vec[1] = ( loc[inode][1] >= 0 ) ? v[loc[inode][1]] : 0;
+      vec[2] = ( loc[inode][2] >= 0 ) ? v[loc[inode][2]] : 0;
 
       NFrameData *cd = X0->dofFrame(inode);
       if(cd) cd->invTransformVector3(vec);
@@ -1154,37 +1155,45 @@ GeomState::push_forward(Vector &f)
 
       if(cd) cd->transformVector3(result);
 
-      if( loc[inode][3] >= 0 ) f[loc[inode][3]] = result[0];
-      if( loc[inode][4] >= 0 ) f[loc[inode][4]] = result[1];
-      if( loc[inode][5] >= 0 ) f[loc[inode][5]] = result[2];
+      if( loc[inode][0] >= 0 ) v[loc[inode][0]] = result[0];
+      if( loc[inode][1] >= 0 ) v[loc[inode][1]] = result[1];
+      if( loc[inode][2] >= 0 ) v[loc[inode][2]] = result[2];
     }
   }
 }
 
 void
-GeomState::pull_back(Vector &f)
+GeomState::pull_back(Vector &v)
 {
-  int inode, cd;
+  // Transform spatial quatities (both translational and rotational) to convected frame: v = R^T*v
+  int inode;
   for(inode=0; inode<numnodes; ++inode) {
 
     if(flag[inode] == -1) continue;
 
     if(loc[inode][3] >= 0 || loc[inode][4] >= 0 || loc[inode][5] >= 0) {
-      double vec[3], result[3];
-      vec[0] = ( loc[inode][3] >= 0 ) ? f[loc[inode][3]] : 0;
-      vec[1] = ( loc[inode][4] >= 0 ) ? f[loc[inode][4]] : 0;
-      vec[2] = ( loc[inode][5] >= 0 ) ? f[loc[inode][5]] : 0;
+      double vec[6], result[6];
+      vec[0] = ( loc[inode][0] >= 0 ) ? v[loc[inode][0]] : 0;
+      vec[1] = ( loc[inode][1] >= 0 ) ? v[loc[inode][1]] : 0;
+      vec[2] = ( loc[inode][2] >= 0 ) ? v[loc[inode][2]] : 0;
+      vec[3] = ( loc[inode][3] >= 0 ) ? v[loc[inode][3]] : 0;
+      vec[4] = ( loc[inode][4] >= 0 ) ? v[loc[inode][4]] : 0;
+      vec[5] = ( loc[inode][5] >= 0 ) ? v[loc[inode][5]] : 0;
 
       NFrameData *cd = X0->dofFrame(inode);
-      if(cd) cd->invTransformVector3(vec);
+      if(cd) cd->invTransformVector6(vec);
 
       mat_mult_vec( ns[inode].R, vec, result, 1 ); // result = R^T*vec
+      mat_mult_vec( ns[inode].R, vec+3, result+3, 1 );
 
-      if(cd) cd->transformVector3(result);
+      if(cd) cd->transformVector6(result);
 
-      if( loc[inode][3] >= 0 ) f[loc[inode][3]] = result[0];
-      if( loc[inode][4] >= 0 ) f[loc[inode][4]] = result[1];
-      if( loc[inode][5] >= 0 ) f[loc[inode][5]] = result[2];
+      if( loc[inode][0] >= 0 ) v[loc[inode][0]] = result[0];
+      if( loc[inode][1] >= 0 ) v[loc[inode][1]] = result[1];
+      if( loc[inode][2] >= 0 ) v[loc[inode][2]] = result[2];
+      if( loc[inode][3] >= 0 ) v[loc[inode][3]] = result[3];
+      if( loc[inode][4] >= 0 ) v[loc[inode][4]] = result[4];
+      if( loc[inode][5] >= 0 ) v[loc[inode][5]] = result[5];
     }
   }
 }
@@ -1214,7 +1223,7 @@ GeomState::transform(Vector &f, int type, bool unscaled) const
         PsiI << ns[inode].theta[0], ns[inode].theta[1], ns[inode].theta[2];
       }
       else {
-        mat_to_vec(R, PsiI);
+        mat_to_vec<double>(R, PsiI);
       }
       Eigen::Matrix3d T;
       tangential_transf(PsiI, T);
@@ -1305,7 +1314,7 @@ GeomState::transform(Vector &f, const std::vector<int> &weightedNodes, int type,
         PsiI << ns[inode].theta[0], ns[inode].theta[1], ns[inode].theta[2];
       }
       else {
-        mat_to_vec(R, PsiI);
+        mat_to_vec<double>(R, PsiI);
       }
       Eigen::Matrix3d T;
       tangential_transf(PsiI, T);

@@ -6,8 +6,13 @@ RigidTwoNodeTruss::RigidTwoNodeTruss(int* _nn)
 {
 }
 
+RigidTwoNodeTrussWithMass::RigidTwoNodeTrussWithMass(int* _nn)
+  : ConstantDistanceConstraint(_nn)
+{
+}
+
 double
-RigidTwoNodeTruss::getMass(CoordSet& cs)
+RigidTwoNodeTrussWithMass::getMass(CoordSet& cs)
 {
   if(prop == NULL || prop->rho == 0 || prop->A == 0)
     return 0;
@@ -31,8 +36,8 @@ RigidTwoNodeTruss::getMass(CoordSet& cs)
 }
 
 void
-RigidTwoNodeTruss::getGravityForce(CoordSet& cs, double *gravityAcceleration, Vector &gravityForce,
-                                   int gravflg, GeomState *geomState)
+RigidTwoNodeTrussWithMass::getGravityForce(CoordSet& cs, double *gravityAcceleration, Vector &gravityForce,
+                                           int gravflg, GeomState *geomState)
 {
   if(prop == NULL || prop->rho == 0 || prop->A == 0) {
     gravityForce.zero();
@@ -54,7 +59,7 @@ RigidTwoNodeTruss::getGravityForce(CoordSet& cs, double *gravityAcceleration, Ve
 }
 
 FullSquareMatrix
-RigidTwoNodeTruss::massMatrix(CoordSet &cs, double *mel, int cmflg)
+RigidTwoNodeTrussWithMass::massMatrix(CoordSet &cs, double *mel, int cmflg)
 {
   FullSquareMatrix elementMassMatrix(6, mel);
   elementMassMatrix.zero();
@@ -78,11 +83,12 @@ RigidTwoNodeTruss::massMatrix(CoordSet &cs, double *mel, int cmflg)
       elementMassMatrix[i][j] = outDiagMass;
       elementMassMatrix[j][i] = outDiagMass;
     }
-    } else {
-      // Lumped mass matrix
-      const double massPerNode = 0.5 * mass;
-      for (int i = 0; i < 6; ++i) {
-        elementMassMatrix[i][i] = massPerNode;
+  }
+  else {
+    // Lumped mass matrix
+    const double massPerNode = 0.5 * mass;
+    for (int i = 0; i < 6; ++i) {
+      elementMassMatrix[i][i] = massPerNode;
     }
   }
 

@@ -397,7 +397,13 @@ struct SolverInfo {
    std::list<int> loadcases;
    bool basicDofCoords; // if this is true then all of the nodes use the basic coordinate frame 0 for DOF_FRM
    bool basicPosCoords; // if this is true then all of the nodes use the basic coordinate frame 0 for POS_FRM
-   int inertiaLumping; // 0: no lumping, 1: diagonal lumping, 2: block-diagonal 3x3 lumping
+   int inertiaLumping; // 1: diagonal lumping (default), 2: block-diagonal 6x6 lumping
+                       // note #1: this flag is automatically set to 2 when a product of inertia is defined using DIMASS
+                       //          or when a discrete mass element (type 131) is defined.
+                       // note #2: for diagonal lumping, consistent mass matrices are diagonally lumped and
+                       //          off-diagonal entries of lumped mass matrices which are block-diagonal are dropped.
+                       // note #3: for block-diagonal lumping, consistent mass matrices are still diagonally lumped
+                       //          but lumped mass matrices which are block-diagonal remain so.
    bool printMatLab;
    const char * printMatLabFile;
 

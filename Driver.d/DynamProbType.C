@@ -1228,7 +1228,9 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
       domain->getTimers().formRhs += getTime();
       handleForce(*probDesc, fint);
 
+      if(domain->solInfo().isNonLin()) probDesc->pull_back(a_n);
       dynOps.dynMat->reSolve(a_n);
+      if(domain->solInfo().isNonLin()) probDesc->push_forward(a_n);
 
       if(domain->tdenforceFlag()) { // Contact corrector step
         tmp1.linC(dt_n_h, v_n_h, dt_n_h*dt_n_h, a_n); // predicted displacement d^{n+2} = d^{n+1} + dt^{n+1/2}*(v^{n+1/2} + dt^{n+1/2}*a^{n+1})

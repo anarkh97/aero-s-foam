@@ -58,6 +58,8 @@ public:
 
   void computeStabilityTimeStep(double &dt, ModalOps &){ /* leave blank */ }
   void updateState(double, Vector &, Vector &){ /* leave blank */ }
+  void push_forward(Vector &){ /* leave blank */ }
+  void pull_back(Vector &){ /* leave blank */ }
   void getQuasiStaticParameters(double &maxVel, double &delta);
   int getFilterFlag() { return domain->solInfo().filterFlags; }
   void project(Vector &v) { /* leave blank */ }

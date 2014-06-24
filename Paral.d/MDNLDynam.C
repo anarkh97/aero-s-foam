@@ -115,7 +115,6 @@ MDNLDynamic::formRHSinitializer(DistrVector &fext, DistrVector &velocity, DistrV
     C->mult(velocity, *localTemp);
     rhs.linC(rhs, -1.0, *localTemp);
   }
-  geomState.pull_back(rhs); // rhs = R^T*rhs
 }
 
 double

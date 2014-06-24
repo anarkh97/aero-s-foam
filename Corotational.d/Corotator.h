@@ -89,6 +89,12 @@ class Corotator {
     // CURRENTLY ONLY SUPPORTED FOR MATERIAL NONLINEAR
     virtual int getNumGaussPoints() { return 0; }
 
+    // FOR NONLINEAR DYANMICS WITH FINITE ROTATIONS
+    virtual bool useDefaultInertialStiffAndForce() { return true; }
+    virtual void getInertialStiffAndForce(GeomState *refState, GeomState& c1, CoordSet& c0,
+                                          FullSquareMatrix &elK, double *f, double dt, double t,
+                                          double beta, double gamma, double alphaf, double alpham) {}
+
     virtual ~Corotator() {/*TODO*/}
 };
 

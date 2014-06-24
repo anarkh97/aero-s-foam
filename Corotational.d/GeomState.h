@@ -116,6 +116,7 @@ class GeomState {
      virtual void get_temperature(int numNodes, int* nodes, Vector &ndTemps, double Ta);
      virtual void push_forward(Vector &f);
      virtual void pull_back(Vector &f);
+
      virtual void transform(Vector &f, int flag, bool unscaled = false) const;
      virtual void transform(Vector &f, const std::vector<int> &, int flag, bool unscaled = false) const;
      void zeroRotDofs(Vector &vec);

@@ -11,6 +11,16 @@ class RigidTwoNodeTruss : public ConstantDistanceConstraint
     bool isRigidElement() { return true; }
     bool isSafe() { return false; }
     PrioInfo examine(int sub, MultiFront*);
+};
+
+class RigidTwoNodeTrussWithMass : public ConstantDistanceConstraint
+{
+  public:
+    RigidTwoNodeTrussWithMass(int*);
+    int getTopNumber() { return 101; }
+    bool isRigidElement() { return true; }
+    bool isSafe() { return false; }
+    PrioInfo examine(int sub, MultiFront*);
 
     int getMassType() { return 2; } // both consistent and lumped
     FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg=1);

@@ -5,7 +5,7 @@
 #include <Element.d/Function.d/SpaceDerivatives.h>
 #include <Element.d/Function.d/utilities.hpp>
 
-// Compute the inertial moment for a rigid body with 3 rotational degrees of freedom.
+// Compute the inertial moment for a rigid body with 3 rotational degrees of freedom,
 // according to the classical Euler's equation for the rigid body and the generalized-alpha 
 // method applied to the total rotation vector and it's first and second
 // time-derivatives.
@@ -16,7 +16,7 @@ template<typename Scalar>
 class InertialType2ForceFunction : public VectorValuedFunction<3,3,Scalar,23,0,double>
 {
   public:
-    Eigen::Matrix<double,3,3> J;            // inertial tensor and damping matrix
+    Eigen::Matrix<double,3,3> J;            // inertia tensor
     Eigen::Matrix<double,3,1> A_n, V_n;     // first and second time-derivatives of the total rotation vector at start of current time-step
     Eigen::Matrix<double,3,1> Psi_n;        // total rotation vector at start of current time-step
     double beta, gamma, alphaf, alpham, dt; // time integration scheme parameters

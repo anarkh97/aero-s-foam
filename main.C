@@ -764,15 +764,15 @@ int main(int argc, char** argv)
 #else
  bool parallel_proc = (threadManager->numThr() > 1);
 #endif
- // 3. choose lumped mass (also pressure and gravity) and diagonal "solver" for explicit dynamics 
+ // 3. choose lumped mass (also pressure and gravity) and diagonal or block-diagonal "solver" for explicit dynamics 
  if(domain->solInfo().newmarkBeta == 0 || (domain->solInfo().svdPodRom && geoSource->getMRatio() == 0)) {
-   if(domain->solInfo().inertiaLumping == 2) {
+   if(domain->solInfo().inertiaLumping == 2) { // block-diagonal lumping
      domain->solInfo().subtype = 1;
      domain->solInfo().getFetiInfo().solvertype = FetiInfo::sparse;
-     if(parallel_proc || domain_decomp) domain->solInfo().type = 2;
+     if(parallel_proc || domain_decomp) domain->solInfo().type = 2; // XXX type 3 could be upgraded to work for this case,
+                                                                    //     rather than using feti
    }
    else {
-     domain->solInfo().inertiaLumping = 1; // diagonal lumping
      domain->solInfo().subtype = 10;
      domain->solInfo().getFetiInfo().solvertype = FetiInfo::diagonal;
      if(parallel_proc || domain_decomp) domain->solInfo().type = 3;

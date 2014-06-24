@@ -450,7 +450,7 @@ void mat_to_quat(const Eigen::Matrix<Scalar,3,3> &rten, Eigen::Matrix<Scalar,4,1
 
 //#define USE_MATRIX_LOGARITHM
 template<typename Scalar>
-void mat_to_vec(const Eigen::Matrix<Scalar,3,3> &rten, Eigen::Matrix<Scalar,3,1> &rvec)
+void mat_to_vec(const Eigen::Matrix<Scalar,3,3> &rten, Eigen::Ref<Eigen::Matrix<Scalar,3,1> > rvec)
 /*****************************************************************
  *  Compute the rotation vector from a rotation tensor
  *

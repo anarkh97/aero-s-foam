@@ -869,12 +869,14 @@ void Domain::writeTopFileElementSets(ControlInfo *cinfo, int * nodeTable, int* n
 
  std::list<int> phantoms;
  std::list<int> constraints;
+ std::list<int> dimasses;
 
  for(iele=0; iele<nEls; ++iele) {
    if(!packedEset[iele]->isPhantomElement() && !packedEset[iele]->isConstraintElement()) {
      int numNodesPerElement = packedEset[iele]->numTopNodes();
-     if(numNodesPerElement <= 1) continue;
      int eletype = packedEset[iele]->getTopNumber();
+     if(eletype == 506) { dimasses.push_back(iele); continue; }
+     if(numNodesPerElement <= 1) continue;
      int eid = (topFlag == 1 || topFlag == 7) ? iele+1 : packedEset[iele]->getGlNum()+1; // only renumber for -T and -M
      fprintf(cinfo->checkfileptr,"%6d  %4d ",eid,eletype);
      packedEset[iele]->nodes(nodeNumber);
@@ -884,46 +886,53 @@ void Domain::writeTopFileElementSets(ControlInfo *cinfo, int * nodeTable, int* n
 	 fprintf(cinfo->checkfileptr,"%6d ",nodeTable[nodeNumber[inode]]);
      fprintf(cinfo->checkfileptr,"\n");
    }
-   else
-     {
-       if(packedEset[iele]->isPhantomElement())
-	 phantoms.push_back(iele); //TG create a list of phantom elements, shouldn't be too big
-       else
-	 constraints.push_back(iele);
-     }
+   else {
+     if(packedEset[iele]->isPhantomElement())
+       phantoms.push_back(iele); //TG create a list of phantom elements
+     else
+       constraints.push_back(iele);
+   }
  }
-
- //std::cerr << " ... " << phantoms.size() << " phantoms " << constraints.size() << " constraints elements. " << std::endl;
 
  //TG output dimasses in a separate element set if there are any
  // as of now (7/5/06) a dimass will be represented by a bar element in xpost between the node the
  // dimass is attached to and itself.
- if(nDimass > 0)
-   {
-     fprintf(stderr, " ... Putting %d Dimasses as bars in a separate ElemSet\n", nDimass);
-     DMassData* curMass = firstDiMass;
-     fprintf(cinfo->checkfileptr,"Elements %s_dimass using %s\n",
-	     cinfo->elemSetName, cinfo->nodeSetName);
-     int iele = 0;
-     int eletype = 506; //101; // BAR element //TG now 506 to detect dimasses in Xpost
-     while(curMass != NULL)
-       {
-	 int node = curMass->node;
-	 if(node < numnodes && nodes[node] != 0)
-	   {
-	     fprintf(cinfo->checkfileptr,"%6d  %4d ",iele+1,eletype);
+ if(nDimass > 0 || dimasses.size() > 0) {
+   fprintf(stderr, " ... Putting %d Dimasses as bars in a separate ElemSet\n", nDimass+int(dimasses.size()));
+   fprintf(cinfo->checkfileptr,"Elements %s_dimass using %s\n",
+           cinfo->elemSetName, cinfo->nodeSetName);
+   int iele = 0;
+   int eletype = 506; // TG now 506 to detect dimasses in Xpost
+   DMassData* curMass = firstDiMass;
+   while(curMass != NULL) {
+     int node = curMass->node;
+     if(node < numnodes && nodes[node] != 0) {
+       fprintf(cinfo->checkfileptr,"%6d  %4d ",iele+1,eletype);
 
-	     fprintf(cinfo->checkfileptr,"%6d %6d\n",nodeTable[node], nodeTable[node]);
-	     curMass = curMass->next;
-	     iele ++;
-	   }
-	 else
-	   {
-	     std::cout << " Warning : virtual dimass" << std::endl;
-             curMass = curMass->next;
-	   }
-       }
+       fprintf(cinfo->checkfileptr,"%6d %6d\n",nodeTable[node], nodeTable[node]);
+       curMass = curMass->next;
+       iele++;
+     }
+     else {
+       std::cout << " Warning : virtual dimass" << std::endl;
+       curMass = curMass->next;
+     }
    }
+   int m_dimasses = dimasses.size();
+   for(int i=0; i<m_dimasses; ++i) {
+     int jele = dimasses.front();
+     dimasses.pop_front();
+
+     // same as main element writing in loop above for non dimass elements
+     int eletype = packedEset[jele]->getTopNumber();
+     fprintf(cinfo->checkfileptr,"%6d  %4d ",iele+1,eletype);
+     packedEset[jele]->nodes(nodeNumber);
+     for(inode=0; inode<2; ++inode)
+       fprintf(cinfo->checkfileptr,"%6d ",nodeTable[nodeNumber[0]]);
+     fprintf(cinfo->checkfileptr,"\n");
+     iele++;
+   }
+ }
 
  // output phantom elements in a separate elementset if there are any
  if (phantoms.size() > 0) {
@@ -934,20 +943,19 @@ void Domain::writeTopFileElementSets(ControlInfo *cinfo, int * nodeTable, int* n
        iele = phantoms.front();
        phantoms.pop_front();
 
-       //** same as main element writing in loop above for non phantom elements
+       // same as main element writing in loop above for non phantom elements
        int numNodesPerElement = packedEset[iele]->numTopNodes();
        if(numNodesPerElement <= 1) continue;
        int eletype = packedEset[iele]->getTopNumber();
        fprintf(cinfo->checkfileptr,"%6d  %4d ",iele+1,eletype);
        packedEset[iele]->nodes(nodeNumber);
        for(inode=0; inode<numNodesPerElement; ++inode)
-	 // Avoid to print nodes that are internally created
+	 // Avoid printing nodes that are internally created
 	 if(nodeNumber[inode] < numnodes && nodes[nodeNumber[inode]] != 0)
 	   fprintf(cinfo->checkfileptr,"%6d ",nodeTable[nodeNumber[inode]]);
        fprintf(cinfo->checkfileptr,"\n");
-       //**
      }
-   }
+ }
 
  // output constraint elements in a separate elementset if there are any
  if (constraints.size() > 0) {
@@ -958,18 +966,17 @@ void Domain::writeTopFileElementSets(ControlInfo *cinfo, int * nodeTable, int* n
        iele = constraints.front();
        constraints.pop_front();
 
-       //** same as main element writing in loop above for non constraints elements
+       // same as main element writing in loop above for non constraints elements
        int numNodesPerElement = packedEset[iele]->numTopNodes();
        if(numNodesPerElement <= 1) continue;
        int eletype = packedEset[iele]->getTopNumber();
        fprintf(cinfo->checkfileptr,"%6d  %4d ",iele+1,eletype);
        packedEset[iele]->nodes(nodeNumber);
        for(inode=0; inode<numNodesPerElement; ++inode)
-	 // Avoid to print nodes that are internally created
+	 // Avoid printing nodes that are internally created
 	 if(nodeNumber[inode] < numnodes && nodes[nodeNumber[inode]] != 0)
 	   fprintf(cinfo->checkfileptr,"%6d ",nodeTable[nodeNumber[inode]]);
        fprintf(cinfo->checkfileptr,"\n");
-       //**
      }
    }
 

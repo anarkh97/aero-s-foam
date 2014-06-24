@@ -105,7 +105,7 @@ DiscreteMass6Dof::massMatrix(CoordSet &cs, double *mdata, int cmflg)
          prop->cz,  0,        -prop->cx,
         -prop->cy,  prop->cx,  0;
 
-  Eigen::Map<Eigen::Matrix<double,6,6,Eigen::RowMajor>> M(mdata);
+  Eigen::Map<Eigen::Matrix<double,6,6,Eigen::RowMajor> > M(mdata);
   M << m*Eigen::Matrix3d::Identity(), -m*C,
        -m*C.transpose(),              J - m*C*C;
 
@@ -276,8 +276,8 @@ DiscreteMass6Dof::getInertialStiffAndForce(GeomState *refState, GeomState& c1, C
   if(beta == 0 || t == 0) {
     Eigen::Map<Eigen::Vector3d> Omega(&c1[nn[0]].v[3]);
 
-    f.template head<3>() = m*R*Omega.cross(Omega.cross(c));
-    f.template tail<3>() = R*Omega.cross(J0*Omega);
+    f.head<3>() = m*R*Omega.cross(Omega.cross(c));
+    f.tail<3>() = R*Omega.cross(J0*Omega);
 
     K.setZero();
 
@@ -340,8 +340,8 @@ DiscreteMass6Dof::getInertialStiffAndForce(GeomState *refState, GeomState& c1, C
   Eigen::Matrix3d D = dPsidq(Eigen::Vector3d::Zero(), 0.);
 
   // compute inertial forces and moments, minus M*a
-  f.template head<3>() = m*(-R*(c.cross(Alpha) - Omega.cross(Omega.cross(c))) + c.cross(Alpha));
-  f.template tail<3>() = R*(-m*(R.transpose()*uddot).cross(c) + J0*Alpha + Omega.cross(J0*Omega)) + m*C.transpose()*uddot - J0*Alpha;
+  f.head<3>() = m*(-R*(c.cross(Alpha) - Omega.cross(Omega.cross(c))) + c.cross(Alpha));
+  f.tail<3>() = R*(-m*(R.transpose()*uddot).cross(c) + J0*Alpha + Omega.cross(J0*Omega)) + m*C.transpose()*uddot - J0*Alpha;
 
   // compute the jacobian of the inertial forces and moments, minus s2*M
   K.topLeftCorner<3,3>()     = Eigen::Matrix3d::Zero();

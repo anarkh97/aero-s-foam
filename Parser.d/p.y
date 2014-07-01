@@ -733,6 +733,14 @@ Cframes:
 CoefInfo:
 	COEF Integer NewLine CoefList
 	{ geoSource->addCoefInfo($2-1,$4); }
+        | COEF Integer Float Float Float Float Float Float NewLine CoefList
+        { $10.c[6][0] = $3;
+          $10.c[6][1] = $4;
+          $10.c[6][2] = $5;
+          $10.c[6][3] = $6;
+          $10.c[6][4] = $7;
+          $10.c[6][5] = $8;
+          geoSource->addCoefInfo($2-1,$10); }
 	;
 CoefList:
 	Integer Integer Float NewLine

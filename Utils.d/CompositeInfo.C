@@ -3,33 +3,18 @@
 #include <iostream>
 using namespace std;
 
-//------------------------------------------------------------------
-/*
-CoefData::CoefData(double *data)  {
-
-  for (int i = 0; i < 6; i++)
-    for (int j = 0; j < 6; j++)
-      c[i][j] = data[6*i + j];
+void CoefData::setCoef(double data[36])
+{
+ for(int i = 0; i < 6; i++)
+   for(int j = 0; j < 6; j++)
+     c[i][j] = data[6*i + j];
 }
-*/
-//----------------------------------------------------------------
-
-void CoefData::setCoef(double data[36])  {
-
-  for (int i = 0; i < 6; i++)
-    for (int j = 0; j < 6; j++)
-      c[i][j] = data[6*i + j];
-
-}
-
-//---------------------------------------------------------------------
 
 void
 CoefData::zero()
 {
- int i,j;
- for(i=0; i < 6; i++)
-   for(j=0; j < 6; j++)
+ for(int i = 0; i < 6; i++)
+   for(int j = 0; j < 6; j++)
      c[i][j] = 0.0;
 }
 

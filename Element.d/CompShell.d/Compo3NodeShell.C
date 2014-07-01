@@ -1022,7 +1022,7 @@ Compo3NodeShell::getThermalForce(CoordSet& cs, Vector& ndTemps,
   //check to see that the coefficent of thermal expansions will exist 
   if(prop == NULL || type == 1) {
     if(type == 1 && quietFlag == 0) {
-      fprintf(stderr," *** WARNING: Thermal forces are not computed for composite shell element if" 
+      fprintf(stderr," *** WARNING: Thermal forces are not computed for composite shell element if\n" 
                      "              the constitutive matrix is inputted using the COEF sub-command.\n"
                      "              Use command-line option -q to suppress this warning.\n");
     }

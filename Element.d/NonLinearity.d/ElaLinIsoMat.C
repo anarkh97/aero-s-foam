@@ -42,8 +42,7 @@ ElaLinIsoMat::ElaLinIsoMat(double _rho, double C[6][6], double _Tref, double _al
   rho = _rho;
   Tref = _Tref;
   setTangentMaterial(C);
-  int index_map[6] = { 0,3,5,1,4,2 };
-  for(int i=0; i<6; ++i) alphas[i] = _alphas[index_map[i]];
+  setThermalExpansionCoef(_alphas);
 }
 
 ElaLinIsoMat::~ElaLinIsoMat()
@@ -65,6 +64,13 @@ ElaLinIsoMat::setTangentMaterial(double C[6][6])
   for(int i=0; i<6; ++i)
     for(int j=0; j<6; ++j)
       (*m_tm)[i][j] = C[index_map[i]][index_map[j]];
+}
+
+void
+ElaLinIsoMat::setThermalExpansionCoef(double _alphas[6])
+{
+  int index_map[6] = { 0,3,5,1,4,2 };
+  for(int i=0; i<6; ++i) alphas[i] = _alphas[index_map[i]];
 }
 
 void

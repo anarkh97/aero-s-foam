@@ -71,6 +71,9 @@ class NLMaterial
      virtual void setTangentMaterial(double C[6][6]) {
        std::cerr << "material law does not implement setTangentMaterial function\n";
      }
+     virtual void setThermalExpansionCoef(double alpha[6]) {
+       std::cerr << "material law does not implement setThermalExpansionCoef function\n";
+     }
 };
 
 #endif

@@ -58,6 +58,8 @@ class ElaLinIsoMat : public NLMaterial
     NLMaterial * clone() const;
 
     void setTangentMaterial(double C[6][6]);
+
+    void setThermalExpansionCoef(double alphas[6]);
 };
 
 // same equation as ElaLinIsoMat but with different Green-Lagrange strain evaluator

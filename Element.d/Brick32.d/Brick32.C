@@ -17,6 +17,7 @@
 #include <Corotational.d/Brick32Corotator.h>
 #include <Element.d/NonLinearity.d/ElaLinIsoMat.h>
 #include <Element.d/NonLinearity.d/NLHexahedral.h>
+#include <Element.d/Utils.d/SolidElemUtils.h>
 #include <Corotational.d/MatNLCorotator.h>
 
 #define CHECK_JACOBIAN // force check nullity & constant sign of jacobian over el.
@@ -27,16 +28,8 @@ void _FORTRAN(brkcmt)(double&, double&, double*);
 void _FORTRAN(lgauss)(const int&, int&, double*, double*);
 }
 
-void rotateConstitutiveMatrix(double *Cin, double *T33, double Cout[6][6]);
 double Hexa32ShapeFct(double Shape[32], double DShape[32][3], double m[3], double X[32], double Y[32], double Z[32]);
 double computeHexa32DShapeFct(double dShape[32][3], double X[32], double Y[32], double Z[32], double (*DShape)[3] = 0);
-void addBtCBtoK3DSolid(FullSquareMatrix &K, double (*DShape)[3], double C[6][6], double alpha, int nnodes, int* ls);
-void addNtDNtoM3DSolid(FullSquareMatrix &M, double* Shape, double alpha, int nnodes, int* ls, double (*D)[3] = 0);
-int checkJacobian(double *J, int *jSign, int elId, const char* mssg= 0, double atol = 0.0, bool stop=true, FILE* file=stderr);
-void computeStressAndEngStrain3DSolid(double Stress[6], double Strain[6], double C[6][6], double (*DShape)[3], double* U, int nnodes, int* ls=0);
-double computeStress3DSolid(double Stress[6],double Strain[6], double C[6][6]);
-double computeVonMisesStress(double Stress[6]);
-double computeVonMisesStrain(double Strain[6]);
 
 extern bool useFull;
 
@@ -116,13 +109,19 @@ Brick32::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
   double elStress[32][7];
   double elStrain[32][7];
 
-  // get constitutive matrix
-  double C[6][6];
+  // get constitutive matrix and coefficients of thermal expansion
+  double C[6][6], alpha[6];
   if(cCoefs) { // anisotropic material
     // transform local constitutive matrix to global frame
     rotateConstitutiveMatrix(cCoefs, cFrame, C);
-  } else // isotropic material
+    // transform local coefficients of thermal expansion to global frame
+    if(ndTemps) rotateVector(cCoefs+36, cFrame, alpha);
+  }
+  else { // isotropic material
     _FORTRAN(brkcmt)(prop->E, prop->nu, (double*)C);
+    alpha[0] = alpha[1] = alpha[2] = prop->W;
+    alpha[3] = alpha[4] = alpha[5] = 0;
+  }
  
   // Loop over nodes -> compute nodal strains & stresses
   double nodeRefCoord[32][3] = {{-1.   ,-1.,-1.},{ 1.   ,-1.,-1.},{ 1., 1.   ,-1.},{-1., 1.   ,-1.},
@@ -142,10 +141,9 @@ Brick32::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
     computeStressAndEngStrain3DSolid(elStress[inode], elStrain[inode], C, DShape, elDisp.data(), nnodes);
 
     if(ndTemps) {
-      double &Tref  = prop->Ta;
-      double &alpha = prop->W;
-      double eT     = alpha*(ndTemps[inode]-Tref);
-      double thermalStrain[6] = {eT,eT,eT,0.0,0.0,0.0};
+      double &Tref = prop->Ta;
+      double thermalStrain[6];
+      for(int i=0; i<6; ++i) thermalStrain[i] = alpha[i]*(ndTemps[inode]-Tref);
       double thermalStress[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
       computeStress3DSolid(thermalStress, thermalStrain, C);
       elStress[inode][0] -= thermalStress[0];
@@ -201,13 +199,19 @@ Brick32::getAllStress(FullM& stress, Vector& weight, CoordSet &cs,
   double elStress[32][7];
   double elStrain[32][7];
 
-  // get constitutive matrix
-  double C[6][6];
+  // get constitutive matrix and coefficients of thermal expansion
+  double C[6][6], alpha[6];
   if(cCoefs) { // anisotropic material
     // transform local constitutive matrix to global frame
     rotateConstitutiveMatrix(cCoefs, cFrame, C);
-  } else  // isotropic material
+    // transform local coefficients of thermal expansion to global frame
+    if(ndTemps) rotateVector(cCoefs+36, cFrame, alpha);
+  }
+  else { // isotropic material
     _FORTRAN(brkcmt)(prop->E, prop->nu, (double*)C);
+    alpha[0] = alpha[1] = alpha[2] = prop->W;
+    alpha[3] = alpha[4] = alpha[5] = 0;
+  }
 
   // Loop over nodes -> compute nodal strains & stresses
   double nodeRefCoord[32][3] = {{-1.   ,-1.,-1.},{ 1.   ,-1.,-1.},{ 1., 1.   ,-1.},{-1., 1.   ,-1.},
@@ -227,10 +231,9 @@ Brick32::getAllStress(FullM& stress, Vector& weight, CoordSet &cs,
     computeStressAndEngStrain3DSolid(elStress[inode], elStrain[inode], C, DShape, elDisp.data(), nnodes);
 
     if(ndTemps) {
-      double &Tref  = prop->Ta;
-      double &alpha = prop->W;
-      double eT     = alpha*(ndTemps[inode]-Tref);
-      double thermalStrain[6] = {eT,eT,eT,0.0,0.0,0.0};
+      double Tref = prop->Ta;
+      double thermalStrain[6];
+      for(int i=0; i<6; ++i) thermalStrain[i] = alpha[i]*(ndTemps[inode]-Tref);
       double thermalStress[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
       computeStress3DSolid(thermalStress, thermalStrain, C);
       elStress[inode][0] -= thermalStress[0];
@@ -377,14 +380,20 @@ Brick32::getThermalForce(CoordSet &cs, Vector &ndTemps,
   cs.getCoordinates(nn, nnodes, X, Y, Z);
 
   // get material props & constitutive matrix
-  double &Tref  = prop->Ta;
-  double &alpha = prop->W;
+  double &Tref = prop->Ta;
+  double alpha[6];
   double C[6][6];
   if(cCoefs) { // anisotropic material
     // transform local constitutive matrix to global frame
     rotateConstitutiveMatrix(cCoefs, cFrame, C);
-  } else // isotropic material
+    // transform local coefficients of thermal expansion to global frame
+    rotateVector(cCoefs+36, cFrame, alpha);
+  }
+  else { // isotropic material
     _FORTRAN(brkcmt)(prop->E, prop->nu, (double*)C);
+    alpha[0] = alpha[1] = alpha[2] = prop->W;
+    alpha[3] = alpha[4] = alpha[5] = 0;
+  }
 
   // Integate over the element: F = Int[Bt.ThermaStress]
   // with ThermalStress = C.ThermalStrain, with ThermalStrain = alpha.theta.[1, 1, 1, 0, 0, 0]'
@@ -406,8 +415,9 @@ Brick32::getThermalForce(CoordSet &cs, Vector &ndTemps,
         w = fabs(J)*wx*wy*wz;
         // compute thermal stresses
         double eT = 0.0;
-        for(int inode=0; inode<nnodes; inode++) eT += alpha*Shape[inode]*(ndTemps[inode] - Tref);
-        double thermalStrain[6] = {eT,eT,eT,0.0,0.0,0.0};
+        for(int inode=0; inode<nnodes; inode++) eT += Shape[inode]*(ndTemps[inode] - Tref);
+        double thermalStrain[6];
+        for(int l=0; l<6; ++l) thermalStrain[l] = alpha[l]*eT;
         double thermalStress[6] = {0.0,0.0,0.0,0.0,0.0,0.0}; 
         computeStress3DSolid(thermalStress, thermalStrain, C); // thermalStress <- C.thermalStrain
         // sum contribution
@@ -579,11 +589,16 @@ void
 Brick32::setMaterial(NLMaterial *_mat)
 {
   if(cCoefs) { // anisotropic material
-    double C[6][6];
     mat = _mat->clone();
-    // transform local constitutive matrix to global frame
-    rotateConstitutiveMatrix(cCoefs, cFrame, C);
-    if(mat) mat->setTangentMaterial(C);
+    if(mat) {
+      double C[6][6], alpha[6];
+      // transform local constitutive matrix to global frame
+      rotateConstitutiveMatrix(cCoefs, cFrame, C);
+      mat->setTangentMaterial(C);
+      // transform local coefficients of thermal expansion to global frame
+      rotateVector(cCoefs+36, cFrame, alpha);
+      mat->setThermalExpansionCoef(alpha);
+    }
   }
   else {
     mat = _mat;
@@ -601,9 +616,10 @@ Corotator *
 Brick32::getCorotator(CoordSet &cs, double *kel, int, int)
 {
   if(cCoefs && !mat) {
-    double C[6][6];
+    double C[6][6], alpha[6];
     rotateConstitutiveMatrix(cCoefs, cFrame, C);
-    mat = new StVenantKirchhoffMat(prop->rho, C, prop->Ta, prop->W);
+    rotateVector(cCoefs+36, cFrame, alpha);
+    mat = new StVenantKirchhoffMat(prop->rho, C, prop->Ta, alpha);
   }
   if(mat) {
 #ifdef USE_EIGEN3

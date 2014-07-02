@@ -8,6 +8,8 @@
 #include <Driver.d/ControlLawInfo.h>
 
 //#define COMPUTE_GLOBAL_ROTATION
+//#define NEW_PULL_BACK
+
 extern Domain *domain;
 extern const double defaultTemp;
 
@@ -1136,7 +1138,9 @@ GeomState::get_inc_displacement(Vector &incVec, GeomState &ss, bool zeroRot)
 void
 GeomState::push_forward(Vector &v)
 {
+#ifdef NEW_PULL_BACK
   // Transform convected quatities (translational only) to spatial frame: v = R*v
+  // This new version is required for correct treatment of discrete masses with offsets.
   int inode;
   for(inode=0; inode<numnodes; ++inode) {
 
@@ -1160,12 +1164,15 @@ GeomState::push_forward(Vector &v)
       if( loc[inode][2] >= 0 ) v[loc[inode][2]] = result[2];
     }
   }
+#endif
 }
 
 void
 GeomState::pull_back(Vector &v)
 {
+#ifdef NEW_PULL_BACK
   // Transform spatial quatities (both translational and rotational) to convected frame: v = R^T*v
+  // This new version is required for correct treatment of discrete masses with offsets.
   int inode;
   for(inode=0; inode<numnodes; ++inode) {
 
@@ -1196,6 +1203,32 @@ GeomState::pull_back(Vector &v)
       if( loc[inode][5] >= 0 ) v[loc[inode][5]] = result[5];
     }
   }
+#else
+  // Transform spatial quatities (rotational only) to convected frame: v = R^T*v
+  int inode;
+  for(inode=0; inode<numnodes; ++inode) {
+
+    if(flag[inode] == -1) continue;
+
+    if(loc[inode][3] >= 0 || loc[inode][4] >= 0 || loc[inode][5] >= 0) {
+      double vec[3], result[3];
+      vec[0] = ( loc[inode][3] >= 0 ) ? v[loc[inode][3]] : 0;
+      vec[1] = ( loc[inode][4] >= 0 ) ? v[loc[inode][4]] : 0;
+      vec[2] = ( loc[inode][5] >= 0 ) ? v[loc[inode][5]] : 0;
+
+      NFrameData *cd = X0->dofFrame(inode);
+      if(cd) cd->invTransformVector3(vec);
+
+      mat_mult_vec( ns[inode].R, vec, result, 1 ); // result = R^T*vec
+
+      if(cd) cd->transformVector6(result);
+
+      if( loc[inode][3] >= 0 ) v[loc[inode][3]] = result[0];
+      if( loc[inode][4] >= 0 ) v[loc[inode][4]] = result[1];
+      if( loc[inode][5] >= 0 ) v[loc[inode][5]] = result[2];
+    }
+  }
+#endif
 }
 
 void

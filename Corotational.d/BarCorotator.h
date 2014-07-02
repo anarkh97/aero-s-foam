@@ -19,12 +19,12 @@ class BarCorotator : public Corotator {
      void   getInternalForce(GeomState &geomState, CoordSet &cs, 
                                   FullSquareMatrix &elK, double *f, double dt, double t);
      void   getExternalForce(GeomState &geomState, CoordSet &cs, double *f);
-     
+
      void   formInternalForce(double t[3], double p, double *f);
-     
+
      void   getDExternalForceDu(GeomState &geomState, CoordSet &cs, 
     				     FullSquareMatrix &elK, double *locF);
-     
+
      void   formTangentStiffness(double t[3], double p, double ld, double l0, 
                                  double kt[6][6]);
 
@@ -45,7 +45,7 @@ class BarCorotator : public Corotator {
 
      double getElementEnergy(GeomState &gs, CoordSet &cs);
      void   getLocalDisp(GeomState& , CoordSet &, Vector&);	
-     void   getGlobalDisp(GeomState& , CoordSet &, Vector&);	
+     void   getGlobalDisp(GeomState& , CoordSet &, Vector&);
 
 };
 

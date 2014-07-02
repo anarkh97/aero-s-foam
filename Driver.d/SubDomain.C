@@ -1153,7 +1153,6 @@ template<class Scalar>
 void
 GenSubDomain<Scalar>::assembleInterfInvert(Scalar *subvec, FSCommPattern<Scalar> *pat)
 {
-  if(numMPC) std::cerr << "ERROR: GenSubDomain<Scalar>::assembleInterfInvert(...) not implemented for MPCs \n";
   for(int i = 0; i < numUncon(); ++i) subvec[i] = 1.0/subvec[i];
   for(int i = 0; i < scomm->numNeighb; ++i) {
     FSSubRecInfo<Scalar> rInfo = pat->recData(scomm->subNums[i], subNumber);
@@ -5516,13 +5515,13 @@ GenSubDomain<Scalar>::locateMpcDofs()
     for(int k = 0; k < mpc[i]->nterms; ++k) {
       (mpc[i]->terms)[k].dof = dsa->locate((mpc[i]->terms)[k].nnum, (1 << (mpc[i]->terms)[k].dofnum));
       (mpc[i]->terms)[k].cdof = c_dsa->locate((mpc[i]->terms)[k].nnum, (1 << (mpc[i]->terms)[k].dofnum));
-      (mpc[i]->terms)[k].ccdof = cc_dsa->locate((mpc[i]->terms)[k].nnum, (1 << (mpc[i]->terms)[k].dofnum));
+      if(cc_dsa) (mpc[i]->terms)[k].ccdof = cc_dsa->locate((mpc[i]->terms)[k].nnum, (1 << (mpc[i]->terms)[k].dofnum));
     }
   for(int i = 0; i < numMPC_primal; ++i)
     for(int k = 0; k < mpc_primal[i]->nterms; ++k) {
       (mpc_primal[i]->terms)[k].dof = dsa->locate((mpc_primal[i]->terms)[k].nnum, (1 << (mpc_primal[i]->terms)[k].dofnum));
       (mpc_primal[i]->terms)[k].cdof = c_dsa->locate((mpc_primal[i]->terms)[k].nnum, (1 << (mpc_primal[i]->terms)[k].dofnum));
-      (mpc_primal[i]->terms)[k].ccdof = cc_dsa->locate((mpc_primal[i]->terms)[k].nnum, (1 << (mpc_primal[i]->terms)[k].dofnum));
+      if(cc_dsa) (mpc_primal[i]->terms)[k].ccdof = cc_dsa->locate((mpc_primal[i]->terms)[k].nnum, (1 << (mpc_primal[i]->terms)[k].dofnum));
     }
 }
 
@@ -6402,11 +6401,11 @@ GenSubDomain<Scalar>::bmpcQualify(std::vector<LMPCons *> *bmpcs, int *pstatus, i
   for(int i=0; i<bmpcs->size(); ++i) {
     LMPCons *bmpc = (*bmpcs)[i];
     if(bmpc->psub == subNumber) {
-      int ccdof = cc_dsa->locate(globalToLocal((bmpc->terms)[0].nnum), (1 << (bmpc->terms)[0].dofnum));
+      int ccdof = getCCDSA()->locate(globalToLocal((bmpc->terms)[0].nnum), (1 << (bmpc->terms)[0].dofnum));
       pstatus[i] = (ccdof > -1) ? 1 : 0;
     }
     if(bmpc->nsub == subNumber) {
-      int ccdof = cc_dsa->locate(globalToLocal((bmpc->terms)[0].nnum), (1 << (bmpc->terms)[0].dofnum));
+      int ccdof = getCCDSA()->locate(globalToLocal((bmpc->terms)[0].nnum), (1 << (bmpc->terms)[0].dofnum));
       nstatus[i] = (ccdof > -1) ? 1 : 0;
     }
   }

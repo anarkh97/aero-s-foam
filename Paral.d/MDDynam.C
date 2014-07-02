@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <iostream>
 #include <Driver.d/Domain.h>
 #include <Paral.d/MDDynam.h>
@@ -279,6 +280,8 @@ MultiDomainDynam::~MultiDomainDynam()
   }
   delete decDomain;
   if(reactions) delete reactions;
+  if(R) delete R;
+  if(X) delete X;
 }
 
 MDDynamMat *
@@ -295,8 +298,54 @@ MultiDomainDynam::buildOps(double coeM, double coeC, double coeK)
     domain->MakeNodalMass(dynMat->M, decDomain->getAllSubDomains());
   }
 
+  int useRbmFilter = domain->solInfo().filterFlags;
+  if(useRbmFilter) {
+    filePrint(stderr," ... RBM Filter Level %d Requested   ...\n", useRbmFilter);
+    MultiDomainRbm<double> *rigidBodyModes = decDomain->constructRbm();
+    projector_prep(rigidBodyModes, dynMat->M);
+    delete rigidBodyModes;
+  }
+
   times->getFetiSolverTime += getTime();
   return dynMat;
+}
+
+void
+MultiDomainDynam::projector_prep(MultiDomainRbm<double> *rbms, GenSubDOp<double> *M)
+{
+  int numR = rbms->numRBM();
+
+  if(numR == 0) return;
+
+  filePrint(stderr," ... Building the RBM Projector     ...\n");
+
+  filePrint(stderr," ... Number of RBMs = %-4d          ...\n",numR);
+
+  R = new GenDistrVectorSet<double>(numR, decDomain->solVecInfo());
+  rbms->getRBMs(*R);
+
+  GenDistrVectorSet<double> MR(numR, decDomain->solVecInfo());
+  for(int i=0; i<numR; ++i) {
+    M->mult((*R)[i], MR[i]);
+  }
+
+  FSFullMatrix RtMR(numR,numR);
+  for(int i=0; i<numR; ++i)
+    for(int j=i; j<numR; ++j)
+      RtMR[i][j] = RtMR[j][i] = (*R)[i]*MR[j];
+
+  FSFullMatrix RtMRinverse(numR, numR);
+  RtMRinverse = RtMR.invert();
+
+  double *y = (double *) dbg_alloca(numR*sizeof(double));
+  double *x = (double *) dbg_alloca(numR*sizeof(double));
+
+  X = new GenDistrVectorSet<double>(numR, decDomain->solVecInfo());
+  for(int i=0; i<MR.size()/numR; ++i) {
+    for(int j=0; j<numR; ++j) y[j] = MR[j].data()[i];      
+    RtMRinverse.mult(y, x);
+    for(int j=0; j<numR; ++j) (*X)[j].data()[i] = x[j];
+  }
 }
 
 MultiDomainDynam::MultiDomainDynam(Domain *d)
@@ -318,6 +367,8 @@ MultiDomainDynam::MultiDomainDynam(Domain *d)
   geomState = 0;
   dynMat = 0;
   reactions = 0;
+  R = 0;
+  X = 0;
 }
 
 const DistrInfo &
@@ -466,7 +517,6 @@ MultiDomainDynam::getTimeIntegration()
   return domain->solInfo().timeIntegration;
 }
 
-#include <algorithm>
 int
 MultiDomainDynam::getFilterFlag()
 {
@@ -896,15 +946,37 @@ MultiDomainDynam::printTimers(MDDynamMat *dynOps, double timeLoop)
 }
 
 void
-MultiDomainDynam::trProject(DistrVector &)
+MultiDomainDynam::trProject(DistrVector &f)
 {
-  filePrint(stderr, "Paral.d/MDDynam.C: trProject not implemented here\n");
+ int numR = (R) ? R->numVec() : 0;
+ if(numR == 0) return;
+
+ double *y = (double *) dbg_alloca(numR*sizeof(double));
+
+ // y = Rt*f
+ for(int i=0; i<numR; ++i)
+   y[i] = (*R)[i]*f;
+
+ // f = f - X*y
+ for(int i=0; i<f.size(); ++i)
+   for(int j=0; j<numR; ++j) f.data()[i] -= (*X)[j].data()[i]*y[j];
 }
 
 void
-MultiDomainDynam::project(DistrVector &)
+MultiDomainDynam::project(DistrVector &v)
 {
-  filePrint(stderr, "Paral.d/MDDynam.C: project not implemented here\n");
+ int numR = (R) ? R->numVec() : 0;
+ if(numR == 0) return;
+
+ double *y = (double *) dbg_alloca(numR*sizeof(double));
+
+ // y = Xt*v
+ for(int i=0; i<numR; ++i)
+   y[i] = (*X)[i]*v;
+
+ // v = v - R*y
+ for(int i=0; i<v.size(); ++i)
+   for(int j=0; j<numR; ++j) v.data()[i] -= (*R)[j].data()[i]*y[j];
 }
 
 void

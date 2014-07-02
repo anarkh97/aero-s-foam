@@ -99,7 +99,7 @@ class BelytschkoTsayShell : virtual public Element, public Corotator
                               GeomState* gs = 0, int cflg = 0, double t = 0);
               
     void getThermalForce(CoordSet& cs, Vector& ndTemps, Vector &elThermalForce, 
-                     int glfag, GeomState* gs = 0);
+                         int glfag, GeomState* gs = 0);
                                         
     bool isShell() { return true; }
 

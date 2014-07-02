@@ -1,82 +1,59 @@
-// ---------------------------------------------------------------------
-// HB - 05-22-05
-// ---------------------------------------------------------------------
-// 32 nodes brick element
-// Serendipity finite element basis
-// Iso-parametric formulation
-// ---------------------------------------------------------------------
 #ifndef _BRICK32_H_
 #define _BRICK32_H_
 
 #include <Element.d/Element.h>
-class Corotator;
-class NLMaterial;
 
-class Brick32: public Element {
+class Brick32: public Element
+{
+    int nn[32];
+    double *cCoefs;
+    double *cFrame;
+    NLMaterial *mat;
 
-	int nn[32];
-        double *C; 
+  public:
+    Brick32(int*);
 
-        Corotator* brick32Corotator; 
+    Element *clone();
 
-        double  *cCoefs;  
-        double  *cFrame; 
-        NLMaterial *mat;
+    void renum(int *);
+    void renum(EleRenumMap&);
 
-public:
-	Brick32(int*);
+    FullSquareMatrix stiffness(CoordSet&, double *kel, int flg=1);
+    FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg=1);
+    double getMass(CoordSet& cs);
 
-        Element *clone();
+    void getGravityForce(CoordSet&, double *gravity, Vector&, int gravflg, GeomState *gs);
+    void getThermalForce(CoordSet &cs, Vector &ndTemps, Vector &force, int glflag, GeomState *gs=0);
 
-	void renum(int *);
-        void renum(EleRenumMap&);
+    void getVonMises(Vector &stress, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd,
+                     int surface=0, double *ndTemps=0, double ylayer=0.0, double zlayer=0.0, int avgnum=0);
 
-	FullSquareMatrix stiffness(CoordSet& cs, double *d, int flg=1);
-        FullSquareMatrix massMatrix(CoordSet& cs, double *mel, int cmflg=1);
-	double           getMass(CoordSet& cs);
+    void getAllStress(FullM &stress, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd,
+                      int surface=0, double *ndTemps=0);
+    void getVonMisesInt(CoordSet &, Vector &, double &, double &, int, double &, double &);
 
-	void		 getGravityForce(CoordSet&,double *gravity, Vector&, int gravflg,
-	                                 GeomState *gs);
+    void markDofs(DofSetArray &);
+    int* dofs(DofSetArray &, int *p=0);
+    int numDofs();
 
-        void             getVonMises(Vector &stress, Vector &weight, 
-                                     CoordSet &cs, Vector &elDisp, 
-                                     int strInd, int surface=0,
-                                     double *ndTemps=0,
-				     double ylayer=0.0, double zlayer=0.0, int avgnum=0);
+    int numNodes();
+    int* nodes(int * = 0);
 
-        void             getAllStress(FullM &stress, Vector &weight,
-                                  CoordSet &cs, Vector &elDisp,
-                                  int strInd, int surface=0,
-                                  double *ndTemps=0);
+    int getTopNumber();
 
+    PrioInfo examine(int sub, MultiFront *);
 
-	void             markDofs(DofSetArray &);
-        int*             dofs(DofSetArray &, int *p=0);
-        int              numDofs();
+    void setCompositeData(int _type, int nlays, double *lData, double *coefs, double *frame)
+      { cCoefs = coefs; cFrame = frame; }
 
-        int              numNodes();
-        int*             nodes(int * = 0);
-	int getTopNumber();
-        int numTopNodes();
+    double* setCompositeData2(int, int, double*, double*, CoordSet&, double)
+      { fprintf(stderr," *** WARNING: Attempting to define composite attributes\n"
+                "              for Hexa32 el.\n"); return (double *) 0;
+      }
 
-       void getThermalForce(CoordSet &cs, Vector &ndTemps,
-                            Vector &elementThermalForce, int glflag, 
-			    GeomState *geomState);
-
-       PrioInfo examine(int sub, MultiFront *); // dec
-
-        void setCompositeData(int _type, int nlays, double *lData,
-                              double *coefs, double *frame) 
-          { cCoefs = coefs; cFrame = frame; } 
-
-        double* setCompositeData2(int, int, double*, double*, CoordSet&, double)
-        { fprintf(stderr," *** WARNING: Attempting to define composite attributes\n"
-                 "              for Hexahedral el.\n"); return (double *) 0;
-        }
-
-        void setMaterial(NLMaterial *);
-        int numStates();
-        Corotator *getCorotator(CoordSet &cs, double *kel, int, int);
+    void setMaterial(NLMaterial *);
+    int numStates();
+    Corotator *getCorotator(CoordSet &cs, double *kel, int=2, int=2);
 };
-#endif
 
+#endif

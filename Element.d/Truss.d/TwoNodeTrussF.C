@@ -272,87 +272,73 @@ TwoNodeTrussF::markDofs( DofSetArray &dsa )
 Corotator *
 TwoNodeTrussF::getCorotator(CoordSet &cs, double *kel, int, int)
 {
- myCorot = new BarFCorotator(nn[0], nn[1], prop->E, prop->lambda, prop->A, 
-			prop->F_op, prop->F_h, prop->F_d, prop->F_Uc,
-			prop->F_Uf, prop->F_np, prop->F_Nf, prop->F_dlambda, 
-			prop->Seed, preload, cs);
- return myCorot;
+  myCorot = new BarFCorotator(nn[0], nn[1], prop->E, prop->lambda, prop->A, 
+                              prop->F_op, prop->F_h, prop->F_d, prop->F_Uc,
+                              prop->F_Uf, prop->F_np, prop->F_Nf, prop->F_dlambda, 
+                              prop->Seed, preload, cs);
+  return myCorot;
 }
 
 
 int
 TwoNodeTrussF::getTopNumber()
 {
-  return 101;//1;
+  return 101;
 }
 
 void
-TwoNodeTrussF::getThermalForce(CoordSet &cs, Vector &ndTemps,
-                              Vector &elementThermalForce, int glflag, GeomState *geomState)
+TwoNodeTrussF::getThermalForce(CoordSet &cs, Vector &ndTemps, Vector &elementThermalForce,
+                               int glflag, GeomState *)
 {
-// Called from Dynam.C
-// Computes the thermal-mechanical coupling force C*theta
-// See cupb3d.f of RCFEM. C is 6x2 matrix
-// A = cross section, W= dilatation coeff
+  // Computes the thermal-mechanical coupling force C*theta
+  // A = cross section, W= dilatation coeff
 
+  double x[2], y[2], z[2], elC[6][2];
+  double dx,dy,dz,length;
+  int i, j;
+ 
+  Node &nd1 = cs.getNode(nn[0]);
+  Node &nd2 = cs.getNode(nn[1]);
 
-    double x[2], y[2], z[2], elC[6][2];
-    double dx,dy,dz,length;
-    int i, j;
-    
-    if (geomState) {
+  x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+  x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;	
 
-       // Update the transformation matrix for nonlinear
-         
-        NodeState &nd1 = (*geomState)[nn[0]];
-	NodeState &nd2 = (*geomState)[nn[1]];
+  dx = x[1] - x[0];
+  dy = y[1] - y[0];
+  dz = z[1] - z[0];
 
-        x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
-        x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;	
-	
-    } 
-     
-    else {
-    
-        Node &nd1 = cs.getNode(nn[0]);
-        Node &nd2 = cs.getNode(nn[1]);
-	
-        x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
-        x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;	
-     
-     }
-     
-    dx = x[1] - x[0];
-    dy = y[1] - y[0];
-    dz = z[1] - z[0];
+  length = sqrt( dx*dx + dy*dy + dz*dz ); 
 
-    length = sqrt( dx*dx + dy*dy + dz*dz ); 
-     
-    double Tref  = prop->Ta;
-    double coeff = prop->E*prop->W*prop->A/(2*length);
+  if(glflag == 1) { // compute force in local frame
+    dx = length;
+    dy = 0;
+    dz = 0;
+  }
 
-//  Coupling matrix:
+  double Tref  = prop->Ta;
+  double coeff = prop->E*prop->W*prop->A/(2*length);
 
-    elC[0][0] = -coeff*dx;
-    elC[0][1] = -coeff*dx;
-    elC[1][0] = -coeff*dy;
-    elC[1][1] = -coeff*dy;
-    elC[2][0] = -coeff*dz;
-    elC[2][1] = -coeff*dz;
+  //  Coupling matrix:
 
-    elC[3][0] = coeff*dx;
-    elC[3][1] = coeff*dx;
-    elC[4][0] = coeff*dy;
-    elC[4][1] = coeff*dy;
-    elC[5][0] = coeff*dz;
-    elC[5][1] = coeff*dz;
+  elC[0][0] = -coeff*dx;
+  elC[0][1] = -coeff*dx;
+  elC[1][0] = -coeff*dy;
+  elC[1][1] = -coeff*dy;
+  elC[2][0] = -coeff*dz;
+  elC[2][1] = -coeff*dz;
 
-    for(i=0; i<6; ++i) {
-      elementThermalForce[i] = 0.0;
-        for(j=0; j<2; ++j)
-          elementThermalForce[i] += elC[i][j]*(ndTemps[j]-Tref);
-    }
-//     elementThermalForce.print("Thermal Forces");
+  elC[3][0] = coeff*dx;
+  elC[3][1] = coeff*dx;
+  elC[4][0] = coeff*dy;
+  elC[4][1] = coeff*dy;
+  elC[5][0] = coeff*dz;
+  elC[5][1] = coeff*dz;
+
+  for(i=0; i<6; ++i) {
+    elementThermalForce[i] = 0.0;
+      for(j=0; j<2; ++j)
+        elementThermalForce[i] += elC[i][j]*(ndTemps[j]-Tref);
+  }
 }
 
 

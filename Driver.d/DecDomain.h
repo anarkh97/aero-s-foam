@@ -23,6 +23,7 @@ class SubCornerHandler;
 class Rbm;
 template <class Scalar> class GenFullSquareMatrix;
 typedef GenFullSquareMatrix<double> FullSquareMatrix;
+template <class Scalar> class MultiDomainRbm;
 
 template<class Scalar>
 class GenDecDomain 
@@ -96,6 +97,7 @@ class GenDecDomain
   Connectivity * getElemToSub() { return elemToSub; }
   Connectivity * getElemToNode() { return elemToNode; }
   Connectivity * getNodeToSub() { return nodeToSub; }
+  Connectivity * getGroupToSub() { return grToSub; }
   int *getGlSubToLocal() { return glSubToLocal; }
   GenFetiSolver<Scalar> *getFetiSolver(GenDomainGroupTask<Scalar> &);
   void buildOps(GenMDDynamMat<Scalar>&, double, double, double, Rbm **rbm = 0, FullSquareMatrix **kelArray = 0,
@@ -106,7 +108,9 @@ class GenDecDomain
   int getNumSub() { return numSub; }
   int getGlobalNumSub() { return globalNumSub; }
   int getNumCPU() { return numCPU; }
+  Connectivity *getCpuToSub() { return cpuToSub; }
   Connectivity *getMpcToSub() { return mpcToSub_dual; }
+  Connectivity *getMpcToSub_primal() { return mpcToSub_primal; }
   virtual void preProcess();
   virtual void postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<Scalar> &f, double eigV = 0.0,
                               GenDistrVector<Scalar> *aeroF = 0, int x = 0, GenMDDynamMat<Scalar> *dynOps = 0,
@@ -148,6 +152,7 @@ class GenDecDomain
   GenAssembler<Scalar> * getSolVecAssembler();
   void exchangeInterfaceGeomState(DistrGeomState *geomState);
   void assembleNodalInertiaTensors(FullSquareMatrix **melArray);
+  FSCommunicator * getCommunicator() { return communicator; }
 
  protected:
   void makeSubDomains();
@@ -204,6 +209,7 @@ class GenDecDomain
                    double time, SysState<GenDistrVector<Scalar> > *distState, GenMDDynamMat<Scalar> *dynOps,
                    GenDistrVector<Scalar> *aeroF);
   void getDissipatedEnergy(DistrGeomState *geomState, Corotator ***allCorot, int fileNumber, double time);
+  MultiDomainRbm<Scalar>* constructRbm(bool printFlag = true);
  private:
   void getElementStressStrain(GenDistrVector<Scalar>&, int, int, double, int printFlag=0);
   void getElementAttr(int, int, double);

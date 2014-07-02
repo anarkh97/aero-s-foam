@@ -56,12 +56,11 @@ computeHexa32DShapeFct(double dShape[32][3], double X[32], double Y[32], double 
   /* -------> DETERMINANT OF THE JACOBIAN MATRIX <--- */
                                                                                                                              
   double J = xd1*a11 + yd1*a21 + zd1*a31 ;
-  if ( J == 0.0 ) {
+  if(J == 0.0) {
     fprintf(stderr," *** WARNING: NULL JACOBIAN IN computeHexa32DShapeFct.C ROUTINE.\n");
   }
-  if ( J < 0.0 ) {
+  if(J < 0.0) {
     fprintf(stderr," *** WARNING: NEGATIVE JACOBIAN IN computeHexa32DShapeFct.C ROUTINE.\n");
-    //J *= -1.; // BAD !!! BUT WORKS !!!
   }
   double cdet = 1.0 / J ;
                                                                                                                              

@@ -542,13 +542,17 @@ PodProjectionNonLinDynamic::PodProjectionNonLinDynamic(Domain *d) :
   jacImpl_(NULL),
   podPostPro(NULL),
   d0_Big(NULL),
-  v0_Big(NULL)
+  v0_Big(NULL),
+  geomState_Big(NULL),
+  refState_Big(NULL)
 {}
 
 PodProjectionNonLinDynamic::~PodProjectionNonLinDynamic() {
   if(podPostPro) delete podPostPro;
   if(d0_Big) delete d0_Big;
   if(v0_Big) delete v0_Big;
+  if(geomState_Big) delete geomState_Big;
+  if(refState_Big) delete refState_Big;
 }
 
 void

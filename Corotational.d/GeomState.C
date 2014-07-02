@@ -542,7 +542,7 @@ GeomState::update(const Vector &v, int SO3param)
 
        if(cd) cd->invTransformVector3(dtheta);
 
-       if(domain->solInfo().getNLInfo().linearelastic || SO3param == 3) {
+       if(domain->solInfo().getNLInfo().linearelastic || SO3param == 2) {
          // Additive update of total rotation vector
          for(int j=0; j<3; ++j) ns[i].theta[j] += dtheta[j];
          vec_to_mat( ns[i].theta, ns[i].R );

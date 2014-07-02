@@ -180,7 +180,6 @@ Rbm::Rbm(DofSetArray *_dsa, ConstrainedDSA *_c_dsa, CoordSet &cs,
  Amat = new FullM(6,6,0.0);
 
  computeRbms(cs);
- //filePrint(stderr, " ... Number of Geometric RBMs = %3d ...\n", numRBM());
 }
 
 // PJSA: 4-26-05: Direct Sky/Sparse or Eigen solver with LMPCs
@@ -237,7 +236,6 @@ Rbm::Rbm(DofSetArray *_dsa, ConstrainedDSA *_c_dsa, CoordSet &cs,
  Amat = new FullM(6*comp->numComp,6*comp->numComp,0.0);
 
  computeRbms(cs, numMPC, mpc);
- //filePrint(stderr, " ... Number of Geometric RBMs = %3d ...\n", numRBM());
 }
 
 // new constructor to be called by SubDomain::makeZstarAndR()
@@ -254,7 +252,6 @@ Rbm::Rbm(DofSetArray *_dsa, ConstrainedDSA *_c_dsa, CoordSet &cs,
  tolgrb = _tolgrb;
 
  computeRbms(cs, centroid, cornerNodes, numCRN, numCRNdof, cornerDofs, numMPC, mpc); 
- //filePrint(stderr, " ... Number of Geometric RBMs = %3d ...\n", numRBM());
 }
 
 void
@@ -296,7 +293,7 @@ Rbm::computeRbms(CoordSet& cs, double *centroid, int *cornerNodes,
     double x = (nd.x - centroid[0]); 
     double y = (nd.y - centroid[1]); 
     double z = (nd.z - centroid[2]); 
-    double rbm[6][6] = { // for small rotation
+    double rbm[6][6] = {
            { 1.0, 0.0, 0.0, 0.0,   z,  -y },
            { 0.0, 1.0, 0.0,  -z, 0.0,   x },
            { 0.0, 0.0, 1.0,   y,  -x, 0.0 },
@@ -304,7 +301,21 @@ Rbm::computeRbms(CoordSet& cs, double *centroid, int *cornerNodes,
            { 0.0, 0.0, 0.0, 0.0, 1.0, 0.0 },
            { 0.0, 0.0, 0.0, 0.0, 0.0, 1.0 },
     }; 
-    // XXX transform in case of node with DOF_FRM
+    if(nd.cd != 0) {
+#ifdef USE_EIGEN3
+       Eigen::Map<Eigen::Matrix<double,6,6,Eigen::RowMajor> > Ri(&rbm[0][0]);
+
+       // transform Ri from basic to DOF_FRM coordinates
+       NFrameData *nfd = geoSource->getNFrames();
+       Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor> > T(&nfd[nd.cd].frame[0][0]);;
+
+       Ri.topLeftCorner<3,3>() = T;
+       Ri.topRightCorner<3,3>() = (T*Ri.topRightCorner<3,3>()).eval();
+       Ri.bottomRightCorner<3,3>() = T;
+#else
+       std::cerr << "USE_EIGEN3 is not defined here in Rbm::computeRbms\n";
+#endif
+    }
 
     for(j=0; j<6; ++j) {
       int c_dof = c_dsa->locate(i,dofs[j]);
@@ -323,7 +334,6 @@ Rbm::computeRbms(CoordSet& cs, double *centroid, int *cornerNodes,
     }
   }
 
-  // PJSA: 11-13-02
   // now add MPC constraints to Zmpc
   if(numMPC > 0) {
     Zmpc = new FullM(numMPC, ncol);
@@ -354,7 +364,7 @@ Rbm::computeRbms(CoordSet& cs, double *centroid, int *cornerNodes,
 
   if(nrow == 0) { // no dirichlet boundary conditions
     Zstar = new FullM(0, ncol);  
-    ngrbm = ncol; // PJSA
+    ngrbm = ncol;
   }
   else { // do a SVD on Z to form Zstar:
     int rank = 0;
@@ -662,7 +672,7 @@ Rbm::computeRbms(CoordSet& cs)
  if(debug) {
    fprintf(stderr, "%d components rigid body modes were found.\n",nComponents);
    print();
-  }
+ }
 
  for(i = 0; i < addModes; ++i)
    grbm[ngrbm+i][(*cornerModes)[2][i]] = 1.0;

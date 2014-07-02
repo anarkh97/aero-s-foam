@@ -606,13 +606,13 @@ GeoSource::outputEigenScalars(int fileNum, Eigen::Matrix<Scalar, Eigen::Dynamic,
     if(verboseFlag) std::cerr << oinfo[fileNum].filename << std::endl;
     if(verboseFlag) std::cerr << time << std::endl;
     if(verboseFlag) std::cerr << (*output) << std::endl;
-    fileout << "\t" << time << std::endl;
+    fileout << "\t" << std::setprecision(p) << time << std::endl;
     fileout << (*output).format(CleanFmt) << std::endl;
     fileout.close();
     oinfo[fileNum].isFirst = false;
   } else {
     std::ofstream fileout(oinfo[fileNum].filename, std::ios::app);
-    fileout << "\t" << time << "\n";
+    fileout << "\t" << std::setprecision(p) << time << "\n";
     fileout << (*output).format(CleanFmt) << std::endl;
     fileout.close();
   }

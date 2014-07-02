@@ -30,8 +30,12 @@ class BarFCorotator : public Corotator {
 
      void   getStiffAndForce(GeomState &gs, CoordSet &cs, 
                              FullSquareMatrix &elk, double *f, double dt, double t);
+     void   getExternalForce(GeomState &geomState, CoordSet &cs, double *f);
 
      void   formInternalForce(double t[3], double p, double *f);
+
+     void   getDExternalForceDu(GeomState &geomState, CoordSet &cs, 
+    				     FullSquareMatrix &elK, double *locF);
 
      void   AssignMicroScaleProp(double ef, double h, double d, 
 			int np, int Nf, double lambda_g);
@@ -40,9 +44,6 @@ class BarFCorotator : public Corotator {
 			double lambda_g);
 
      double RndNorm(double mean, double stdev);
-
-     void   formTangentStiffness(double t[3], double p, double ld, 
-                                 double kt[6][6]);
 
      void   formGeometricStiffness(GeomState &gs, CoordSet &cs, 
                                    FullSquareMatrix &elk, double *f);

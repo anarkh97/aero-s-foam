@@ -1005,17 +1005,17 @@ Compo3NodeShell::getMidPoint(CoordSet &cs)
 
 void
 Compo3NodeShell::getThermalForce(CoordSet& cs, Vector& ndTemps,
-				Vector &elThermalForce,int glflag, 
-				GeomState *gs)
+				Vector &elThermalForce, int glflag, 
+				GeomState *)
 {  
    //check to see that the coefficent of thermal expansions will exist 
-   if(type == 1)  {
+   if(prop == NULL || type == 1) {
      elThermalForce.zero();
      return;
    }
 
    int numlay = 1;
-   if (type != 0) numlay = numLayers;
+   if(type != 0) numlay = numLayers;
    
    int i,j;
    double x[3],y[3],z[3];
@@ -1024,44 +1024,44 @@ Compo3NodeShell::getThermalForce(CoordSet& cs, Vector& ndTemps,
    
    double meant = 0.0 ; //determine the average nodal temperature
    
-   for (i=0;i<3;i++) meant += ndTemps[i]/3;
+   for(i=0; i<3; i++) meant += ndTemps[i]/3;
 
-   double* thk  = (double*) alloca(sizeof(double)*numlay);
+   double* thk   = (double*) alloca(sizeof(double)*numlay);
    double* emk1  = (double*) alloca(sizeof(double)*numlay);
    double* emk2  = (double*) alloca(sizeof(double)*numlay);
-   double* nuk  = (double*) alloca(sizeof(double)*numlay);
+   double* nuk   = (double*) alloca(sizeof(double)*numlay);
    double* ctek1 = (double*) alloca(sizeof(double)*numlay);
    double* ctek2 = (double*) alloca(sizeof(double)*numlay);
-   double* phik =   (double*) alloca(sizeof(double)*numlay);
-   double* tak  =  (double*) alloca(sizeof(double)*numlay);
-       
-      //create a vector which contains the thicknesses, Young's modulus, 
-      //Poisson's ratio and the coefficent of thermal expansion of each layer 
-      //the sign convention here for zvector is opposite that of the reference 
-    int numLayCoeff = 12;
-    if (type != 0){   
-       for (i=0;i<numLayers;++i){
-	   emk1[i]  = layData[numLayCoeff*i    ];
-	   emk2[i]  = layData[numLayCoeff*i + 1];
-	   nuk[i]   = layData[numLayCoeff*i + 2];
-           thk[i]   = layData[numLayCoeff*i + 7];
-	   ctek1[i] = layData[numLayCoeff*i + 9];
-	   ctek2[i] = layData[numLayCoeff*i + 10];
-	   phik[i]   = layData[numLayCoeff*i + 8];
-	   tak[i]   =  layData[numLayCoeff*i + 11];
-          }
-	}  
-    else{
-       //isotropic material
-	thk[0] = prop->eh;
-        emk1[0] = prop->E;
-	emk2[0] = prop->E;
-	nuk[0] = prop->nu;
-	ctek1[0] = prop->W;
-	ctek2[0] = prop->W;
-	phik[0] = 0.0;
-	tak[0] = prop->Ta;
-       }
+   double* phik  = (double*) alloca(sizeof(double)*numlay);
+   double* tak   = (double*) alloca(sizeof(double)*numlay);
+
+   //create a vector which contains the thicknesses, Young's modulus, 
+   //Poisson's ratio and the coefficent of thermal expansion of each layer 
+   //the sign convention here for zvector is opposite that of the reference 
+   int numLayCoeff = 12;
+   if (type != 0) {
+     for(i=0; i<numLayers; ++i) {
+       emk1[i]  = layData[numLayCoeff*i    ];
+       emk2[i]  = layData[numLayCoeff*i + 1];
+       nuk[i]   = layData[numLayCoeff*i + 2];
+       thk[i]   = layData[numLayCoeff*i + 7];
+       ctek1[i] = layData[numLayCoeff*i + 9];
+       ctek2[i] = layData[numLayCoeff*i +10];
+       phik[i]  = layData[numLayCoeff*i + 8];
+       tak[i]   = layData[numLayCoeff*i +11];
+     }
+   }  
+   else {
+     //isotropic material
+     thk[0] = prop->eh;
+     emk1[0] = prop->E;
+     emk2[0] = prop->E;
+     nuk[0] = prop->nu;
+     ctek1[0] = prop->W;
+     ctek2[0] = prop->W;
+     phik[0] = 0.0;
+     tak[0] = prop->Ta;
+  }
  
   // Compute Node's coordinates
   Node &nd1 = cs.getNode(nn[0]);
@@ -1072,11 +1072,10 @@ Compo3NodeShell::getThermalForce(CoordSet& cs, Vector& ndTemps,
   x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
   x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
    
-   
-  //Now compute the elemental load vectors 
+  // Now compute the elemental load vectors 
  
   elThermalForce.zero();
      
-  _FORTRAN(compthmfr)(x, y, z, meant, ctek1, ctek2, emk1, emk2, nuk, thk, phik,tak, 
-                      numlay,cFrame,(double *)elThermalForce.data(), 1, glflag);
+  _FORTRAN(compthmfr)(x, y, z, meant, ctek1, ctek2, emk1, emk2, nuk, thk, phik, tak, 
+                      numlay, cFrame, (double *)elThermalForce.data(), 1, glflag);
 }

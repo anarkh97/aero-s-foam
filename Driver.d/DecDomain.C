@@ -21,6 +21,7 @@
 #include <Paral.d/GenMS.h>
 #include <Mortar.d/MortarDriver.d/MortarHandler.h>
 #include <Paral.d/DomainGroupTask.h>
+#include <Solvers.d/MultiDomainRbm.h>
 #ifdef USE_MPI
 #include <Comm.d/Communicator.h>
 extern Communicator *structCom;
@@ -407,7 +408,8 @@ GenDecDomain<Scalar>::preProcessMPCs()
 #endif
   }
 #endif
-  if(domain->solInfo().fetiInfo.bmpc) addBMPCs();
+  if(domain->solInfo().fetiInfo.bmpc || (domain->solInfo().type != 2 && 
+    (domain->solInfo().filterFlags || domain->solInfo().rbmflg))) addBMPCs();
   if(domain->getNumLMPC() > 0) {
     if(verboseFlag) filePrint(stderr, " ... Applying the MPCs              ...\n");
     // check for mpcs involving bad nodes and constrained DOFs
@@ -4189,3 +4191,14 @@ GenDecDomain<Scalar>::collectInterfaceNodalInertiaTensors(int isub, FSCommPatter
 {
   subDomain[isub]->collectInterfaceNodalInertiaTensors(pat);
 }
+
+template<class Scalar>
+MultiDomainRbm<Scalar> *
+GenDecDomain<Scalar>::constructRbm(bool printFlag)
+{
+  MultiDomainRbm<Scalar> *rbm = new MultiDomainRbm<Scalar>(this, domain->solInfo().tolsvd);
+  if(printFlag)
+    filePrint(stderr, " ... GRBM algorithm detected %d rigid body or zero energy modes ...\n", rbm->numRBM());
+  return rbm;
+}
+

@@ -705,70 +705,75 @@ TimoshenkoBeam::computePressureForce(CoordSet& cs, Vector& elPressureForce,
 }
  
 void
-TimoshenkoBeam::getThermalForce(CoordSet &cs, Vector &ndTemps, 
-                                Vector &elementThermalForce, int glflag, GeomState *geomState)
+TimoshenkoBeam::getThermalForce(CoordSet &cs, Vector &ndTemps, Vector &elementThermalForce,
+                                int glflag, GeomState *geomState)
 {
-    double localThF[12];
-    int i,j;
-    
-    double Tref  = prop->Ta;
-    double coeff = prop->E*prop->W*prop->A;
-    double length;
-    
-    
-    // Local Thermal Forces : There are only axial forces (see notes)
-    // indices 0-5 -->node1, 6-11 -->node2
-    
-    double deltaT1 = ndTemps[0]-Tref;
-    double deltaT2 = ndTemps[1]-Tref;
-    
-    for(i=0; i<12; i++) {localThF[i] = 0. ;}
-    
-    localThF[0] = -coeff * (0.5 * deltaT1 + 0.5 * deltaT2);
-    localThF[6] =  coeff * (0.5 * deltaT1 + 0.5 * deltaT2);
-    
-    // Compute Global Thermal Forces: From local to global -->
-    //                                transpose(Transform. Matrix)
-    
-    double t0n[3][3] = {{0., 0., 0.,}, {0., 0., 0.}, {0., 0., 0.}};
-    
-    if (geomState) {
+  if (prop == NULL) {
+    elementThermalForce.zero();
+    return;
+  }
 
-     updTransMatrix(cs, geomState, t0n, length);
+  double localThF[12];
+  int i,j;
+    
+  double Tref  = prop->Ta;
+  double coeff = prop->E*prop->W*prop->A;
+  double length;
+ 
+  // Local Thermal Forces : There are only axial forces (see notes)
+  // indices 0-5 -->node1, 6-11 -->node2
+    
+  double deltaT1 = ndTemps[0]-Tref;
+  double deltaT2 = ndTemps[1]-Tref;
+    
+  for(i=0; i<12; i++) localThF[i] = 0.;
+    
+  localThF[0] = -coeff * (0.5 * deltaT1 + 0.5 * deltaT2);
+  localThF[6] =  coeff * (0.5 * deltaT1 + 0.5 * deltaT2);
+    
+  // Compute Global Thermal Forces: From local to global -->
+  //                                transpose(Transform. Matrix)
+    
+  double t0n[3][3] = {{0., 0., 0.,}, {0., 0., 0.}, {0., 0., 0.}};
+    
+  if (geomState) {
 
-    } else  {
-     for(i=0; i<3; ++i) {   
+    updTransMatrix(cs, geomState, t0n, length);
+
+  }
+  else {
+    for(i=0; i<3; ++i) {   
       for(j=0; j<3; ++j) {
-       t0n[i][j] = (*elemframe)[i][j] ;
+        t0n[i][j] = (*elemframe)[i][j];
       }
-     }
     }
+  }
 
-    for(i=0; i<3; ++i) {
-     elementThermalForce[i] = 0.;
-     for(j=0; j<3; ++j) {
+  for(i=0; i<3; ++i) {
+    elementThermalForce[i] = 0.;
+    for(j=0; j<3; ++j) {
       elementThermalForce[i] += t0n[j][i]*localThF[j];
-     }
     }
-    for(i=0; i<3; ++i) {
-     elementThermalForce[i+3] = 0.;
-     for(j=0; j<3; ++j) {
+  }
+  for(i=0; i<3; ++i) {
+    elementThermalForce[i+3] = 0.;
+    for(j=0; j<3; ++j) {
       elementThermalForce[i+3] += t0n[j][i]*localThF[j+3];
-     }
     }
+  }
 
-    for(i=0; i<3; ++i) {
-     elementThermalForce[i+6] = 0.;
-     for(j=0; j<3; ++j) {
+  for(i=0; i<3; ++i) {
+    elementThermalForce[i+6] = 0.;
+    for(j=0; j<3; ++j) {
       elementThermalForce[i+6] += t0n[j][i]*localThF[j+6];
-     }
     }
-    for(i=0; i<3; ++i) {
-     elementThermalForce[i+9] = 0.;
-     for(j=0; j<3; ++j) {
+  }
+  for(i=0; i<3; ++i) {
+    elementThermalForce[i+9] = 0.;
+    for(j=0; j<3; ++j) {
       elementThermalForce[i+9] += t0n[j][i]*localThF[j+9];
-     }
-    }                                
+    }
+  }                                
 }
 
 void

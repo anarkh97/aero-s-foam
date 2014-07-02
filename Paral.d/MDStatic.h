@@ -23,8 +23,7 @@ class GenMultiDomainPostProcessor
        { decDomain = d; solver = s; times = _times; }
     void staticOutput(GenDistrVector<Scalar> &, GenDistrVector<Scalar> &, bool printTimers = true, int ndflag=0);
     void staticOutput(DistrGeomState *u, double lambda = 1.0);
-    void getStressStrain(GenDistrVector<Scalar> &, int fileNumber,
-                   int stressIndex, double time, int pflag);
+    void getStressStrain(GenDistrVector<Scalar> &, int fileNumber, int stressIndex, double time, int pflag);
     void setsizeSfemStress(int fileNumber);
     int getsizeSfemStress();
     Scalar* getSfemStress(int fileNumber);
@@ -43,16 +42,11 @@ class GenMultiDomainStatic
     GenParallelSolver<Scalar> *solver;
     StaticTimers *times;
     GenMDDynamMat<Scalar> allOps;
-//    SubDOp *K;
-//    SubDOp *M;
-//    SubDOp **C_deriv;
-    int numR;
-    GenDistrVector<Scalar> **Rmem;
-    GenFSFullMatrix<Scalar> *RtRinverse;
+    GenDistrVectorSet<Scalar> *R, *X;
  public:
-    GenMultiDomainStatic() : decDomain(0), solver(0), times(0) {}
+    GenMultiDomainStatic() : decDomain(0), solver(0), times(0), R(0), X(0) {}
     explicit GenMultiDomainStatic(Domain *d);
-    ~GenMultiDomainStatic() { delete decDomain; delete times; }  // solver deleted in StaticSolver
+    ~GenMultiDomainStatic();
 
     DistrInfo &solVecInfo();
     DistrInfo &solVecInfo(int i);
@@ -80,9 +74,10 @@ class GenMultiDomainStatic
     GenMultiDomainPostProcessor<Scalar> *getPostProcessor();
     StaticTimers *getStaticTimers() { return times; }
     void project(GenDistrVector<Scalar> &);
-    AllSensitivities<Scalar> *getAllSensitivities() { std::cerr << "GenMultiDomainStatic::getAllSensitivities() not implemented" << std::endl; return 0; }
+    AllSensitivities<Scalar> *getAllSensitivities();
  private:
     void eigmode_projector_prep();
+    void projector_prep(MultiDomainRbm<Scalar> *rbms);
     void subGetRHS(int isub, GenDistrVector<Scalar>& rhs);
     void makeSubdomainStaticLoadGalPr(int iSub, GenDistrVector<Scalar> &f, GenDistrVector<Scalar> &tmp, double *o);
     void subPade(int iSub, GenDistrVector<Scalar> *sol, GenDistrVector<Scalar> **u, double *h, double x);

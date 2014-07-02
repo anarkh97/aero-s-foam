@@ -143,12 +143,11 @@ GenSubDomain<Scalar>::makeG()
           int cDof = (m->terms)[k].cdof;
           if(cDof > -1) {
             for(int iRbm = 0; iRbm < numGroupRBM; ++iRbm)
-              (*G[i])[j][iRbm] += Rstar[cDof][iRbm]*(m->terms)[k].coef; // NEW G (switched sign)
+              (*G[i])[j][iRbm] += Rstar[cDof][iRbm]*(m->terms)[k].coef;
           }
         }
       }
     }
-    //std::cerr << "sub = " << subNumber << ", i = " << i << ", , neighb = " << scomm->neighbT(SComm::mpc,i) << ", G[i] = \n"; G[i]->print();
   }
 }
 
@@ -179,8 +178,7 @@ GenSubDomain<Scalar>::makeTrbmG(Scalar *rbms, int nrbm, int size)
       nrbms_local++;
     }
   }
-  //if(nrbms_local)
-  //  std::cerr << "sub = " << subNumber << " has " << nrbms_local << " rbms, offset = " << first << std::endl;
+
   numGroupRBM = nrbms_local; // TODO this isn't general since global trbms may not be grouped like grbms
   groupRBMoffset = first;    // TODO this isn't general
 
@@ -225,9 +223,6 @@ GenSubDomain<Scalar>::makeTrbmG(Scalar *rbms, int nrbm, int size)
     }
   }
   delete [] localr;
-
-  //for(int i = 0; i < scomm->numT(SComm::mpc); ++i)
-  //  std::cerr << "sub = " << subNumber << ", i = " << i << ", neighb = " << scomm->neighbT(SComm::mpc,i) << ", G[i] = \n"; G[i]->print();
 }
 
 template<class Scalar>
@@ -402,6 +397,7 @@ GenSubDomain<Scalar>::buildGlobalRBMs(GenFullM<Scalar> &Xmatrix, Connectivity *c
     GenFullM<Scalar> groupX(Xmatrix, numGroupRBM, groupRBMoffset, numGlobalRBMs, 0); 
     Rstar_g = Rstar * groupX;
 
+    if(!cornerToSub) return;
     double *sharedUse = new double[Rstar.numRow()];
     for(i=0; i<Rstar.numRow(); ++i) sharedUse[i] = 1.0;
     // if i is a shared dof set sharedUse[i] = 0.0

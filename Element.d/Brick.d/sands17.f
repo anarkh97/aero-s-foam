@@ -89,13 +89,6 @@ C.... ENGINEERING STRESS COMPUTATION
 C
          stress(elm,1,n) = c(1,1)*epsxx + c(1,2)*epsyy + c(1,3)*epszz
      $             + c(1,4)*gamxy + c(1,5)*gamyz + c(1,6)*gamxz
-C      if(stress(elm,1,n) .gt. 10) then
-C      write(*,*) 'n =',n,'epsxx=',epsxx,'sxx=',stress(elm,1,n)
-C      write(*,*) ' espyy=',epsyy,'epszz=',epszz,'gamxy=',gamxy
-C      write(*,*) ' gamyz=',gamyz,'gamxz=',gamxz
-C      write(*,*) 'c(1,1)=',c(1,1),'c(1,2)=',c(1,2),'c(1,3)=',c(1,3)
-C      write(*,*) 'c(1,4)=',c(1,4),'c(1,5)=',c(1,5),'c(1,6)=',c(1,6)
-C      endif
          stress(elm,2,n) = c(2,1)*epsxx + c(2,2)*epsyy + c(2,3)*epszz
      $             + c(2,4)*gamxy + c(2,5)*gamyz + c(2,6)*gamxz
          stress(elm,3,n) = c(3,1)*epsxx + c(3,2)*epsyy + c(3,3)*epszz

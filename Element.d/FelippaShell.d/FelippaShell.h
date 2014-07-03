@@ -60,7 +60,6 @@ public:
 
         void getStiffnessThicknessSensitivity(GenFullM<double> &dStiffdThick, CoordSet &cs, 
                                                int senMethod, double *, double ylayer = 0, double zlayer = 0);
-
 #endif
 
         void getAllStress(FullM &stress, Vector &weight, CoordSet &cs,
@@ -96,6 +95,7 @@ public:
         PressureBCond* getPressure() { return pbc; }
         void computePressureForce(CoordSet&, Vector& elPressureForce,
                                   GeomState *gs = 0, int cflg = 0, double t = 0);
+        void getThermalForce(CoordSet&, Vector&, Vector &, int, GeomState * = 0);
 
         // Nonlinear
         Corotator* getCorotator(CoordSet&, double*, int, int);

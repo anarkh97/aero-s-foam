@@ -20,14 +20,15 @@ template
 void
 ShellElementTemplate<double,EffMembraneTriangle,AndesBendingTriangle>
 ::andesstf(int elm, double *estiff, double *fint, double nu,
-           double *x, double *y, double *z, double *v, int ctyp, int flag);
+           double *x, double *y, double *z, double *v, int ctyp, int flag,
+           double *ndtemps);
 
 template
 void
 ShellElementTemplate<double,EffMembraneTriangle,AndesBendingTriangle>
 ::andesvms(int elm, int maxstr, double nu, double *globalx,
            double *globaly, double *globalz, double *v, double *stress,
-           int ctyp, int strainflg, int surface);
+           int ctyp, int strainflg, int surface, double *ndtemps);
 
 template
 double

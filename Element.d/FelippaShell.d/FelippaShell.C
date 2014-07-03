@@ -65,7 +65,7 @@ FelippaShell::renum(EleRenumMap& table)
 void
 FelippaShell::getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
                           Vector &elDisp, int strInd, int surface,
-                          double *, double ylayer, double zlayer,
+                          double *ndTemps, double ylayer, double zlayer,
                           int avgnum)
 
 {
@@ -116,7 +116,7 @@ FelippaShell::getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
 
   andesvms(glNum+1, maxstr, prop->nu,
            x, y, z, (double*)disp, (double*)elStress,
-           type, strainFlg, surface);
+           type, strainFlg, surface, ndTemps);
 
   stress[0] = elStress[0][strInd-offset];
   stress[1] = elStress[1][strInd-offset];
@@ -126,7 +126,7 @@ FelippaShell::getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
 void
 FelippaShell::getAllStress(FullM &stress, Vector &weight, CoordSet &cs,
                            Vector &elDisp, int strInd, int surface,
-                           double *)
+                           double *ndTemps)
 {
   weight = 1.0;
 
@@ -148,7 +148,7 @@ FelippaShell::getAllStress(FullM &stress, Vector &weight, CoordSet &cs,
 
   andesvms(glNum+1, maxstr, prop->nu,
            x, y, z, (double*)disp, (double*)elStress,
-           type, strInd, surface);
+           type, strInd, surface, ndTemps);
 
   // Store all Stress or all Strain as defined by strInd
   int i,j;
@@ -550,7 +550,7 @@ FelippaShell::setProp(StructProp *p, bool myProp)
   Element::setProp(p, myProp);
   type = 0;
   if(p) {
-    nmat = gpmat = new ShellMaterialType0<double>(p->E, p->eh, p->nu, p->rho);
+    nmat = gpmat = new ShellMaterialType0<double>(p->E, p->eh, p->nu, p->rho, p->Ta, p->W);
   }
   else nmat = gpmat = 0; // phantom
 }
@@ -566,15 +566,15 @@ FelippaShell::setCompositeData(int _type, int nlays, double *lData,
   switch(type) {
 
     case 1 :
-      nmat = gpmat = new ShellMaterialType1<double>(coefs, frame, prop->rho, prop->eh);
+      nmat = gpmat = new ShellMaterialType1<double>(coefs, frame, prop->rho, prop->eh, prop->Ta);
       break;
 
     case 2 :
-      nmat = gpmat = new ShellMaterialTypes2And3<double>(nlays, lData, false, frame);
+      nmat = gpmat = new ShellMaterialTypes2And3<double>(nlays, lData, false, frame, prop->Ta);
       break;
 
     case 3 :
-      nmat = gpmat = new ShellMaterialTypes2And3<double>(nlays, lData, true, frame);
+      nmat = gpmat = new ShellMaterialTypes2And3<double>(nlays, lData, true, frame, prop->Ta);
       break;
 
     default :
@@ -655,15 +655,15 @@ FelippaShell::setCompositeData2(int _type, int nlays, double *lData,
   switch(type) {
 
     case 1 :
-      nmat = gpmat = new ShellMaterialType1<double>(coefs, cFrame, prop->rho, prop->eh);
+      nmat = gpmat = new ShellMaterialType1<double>(coefs, cFrame, prop->rho, prop->eh, prop->Ta);
       break;
 
     case 2 :
-      nmat = gpmat = new ShellMaterialTypes2And3<double>(nlays, lData, false, cFrame);
+      nmat = gpmat = new ShellMaterialTypes2And3<double>(nlays, lData, false, cFrame, prop->Ta);
       break;
 
     case 3 :
-      nmat = gpmat = new ShellMaterialTypes2And3<double>(nlays, lData, true, cFrame);
+      nmat = gpmat = new ShellMaterialTypes2And3<double>(nlays, lData, true, cFrame, prop->Ta);
       break;
 
     default :
@@ -696,8 +696,10 @@ FelippaShell::setMaterial(NLMaterial *_mat)
     IsotropicLinearElasticJ2PlasticPlaneStressMaterial *localMaterial = new IsotropicLinearElasticJ2PlasticPlaneStressMaterial(lambda, mu, sigmaY, K, H, tol);
     type = 4;
     if(gpmat) delete gpmat;
-    gpmat = new ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(prop->eh, prop->nu, prop->rho, localMaterial, 5, 3);
-    nmat = new ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(prop->eh, prop->nu, prop->rho, localMaterial, 3, 3);
+    gpmat = new ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(prop->eh, prop->nu, prop->rho, localMaterial, 5, 3,
+                                                                                              prop->Ta, prop->W);
+    nmat = new ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(prop->eh, prop->nu, prop->rho, localMaterial, 3, 3,
+                                                                                             prop->Ta, prop->W);
     delete localMaterial;
   }
   else { // new parser
@@ -706,8 +708,10 @@ FelippaShell::setMaterial(NLMaterial *_mat)
     if(mat) {
       type = 4;
       if(gpmat) delete gpmat;
-      gpmat = new ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(prop->eh, prop->nu, prop->rho, mat->getMaterial(), 5, 3);
-      nmat = new ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(prop->eh, prop->nu, prop->rho, mat->getMaterial(), 3, 3);
+      gpmat = new ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(prop->eh, prop->nu, prop->rho, mat->getMaterial(), 5, 3,
+                                                                                                prop->Ta, prop->W);
+      nmat = new ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(prop->eh, prop->nu, prop->rho, mat->getMaterial(), 3, 3,
+                                                                                               prop->Ta, prop->W);
     }
     else {
       throw std::runtime_error("Unsupported material type\n");
@@ -1394,6 +1398,32 @@ FelippaShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
         elPressureForce[17] = 0;
 
      }
+}
+
+void
+FelippaShell::getThermalForce(CoordSet& cs, Vector& ndTemps, Vector &elThermalForce, int glflag, GeomState *)
+{
+  // force is returned in global coordinates if glflag = 0
+  if(prop == NULL) {
+    elThermalForce.zero();
+    return;
+  }
+
+  Node &nd1 = cs.getNode(nn[0]);
+  Node &nd2 = cs.getNode(nn[1]);
+  Node &nd3 = cs.getNode(nn[2]);
+
+  double x[3], y[3], z[3];
+
+  x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+  x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+  x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
+
+  double disp[18]; for(int i=0; i<18; ++i) disp[i] = 0;
+
+  int flg = (glflag == 0) ? 1 : 0;
+  andesstf(glNum+1, (double *)NULL, elThermalForce.data(), prop->nu, x, y, z, disp, type, flg, ndTemps.data());
+  elThermalForce *= -1;
 }
 
 #ifdef USE_EIGEN3

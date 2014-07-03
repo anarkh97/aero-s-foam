@@ -15,6 +15,7 @@ class Compo3NodeShell : public Element {
         double  *cCoefs;
         double  *cFrame;
         PressureBCond *pbc;
+        static bool Wzero_density, Wthermal_force;
 
 public:
 	Compo3NodeShell(int*);
@@ -67,7 +68,7 @@ public:
         PressureBCond* getPressure() { return pbc; }
         void computePressureForce(CoordSet&, Vector& elPressureForce,
                                   GeomState *gs = 0, int cflg = 0, double t = 0);
-        void getThermalForce(CoordSet& , Vector& ,Vector &, int glflag, 
+        void getThermalForce(CoordSet&, Vector&, Vector&, int glflag, 
 	                     GeomState *gs=0);
 
         virtual int getCompositeLayer() { return numLayers;  }

@@ -1,4 +1,4 @@
-       #ifndef _SHELLMATERIAL_HPP_
+#ifndef _SHELLMATERIAL_HPP_
 #define _SHELLMATERIAL_HPP_
 
 #ifdef USE_EIGEN3
@@ -12,9 +12,11 @@ class ShellMaterial
   public:
     virtual ~ShellMaterial() {}
     virtual void GetConstitutiveResponse(doublereal *Upsilon, doublereal *Sigma, doublereal *D,
-                                         doublereal *eframe, int gp) = 0; // Upsilon is the generalized "strains" {e,chi}
+                                         doublereal *eframe, int gp, doublereal temp = 0) = 0; 
+                                                                          // Upsilon is the generalized "strains" {e,chi}
                                                                           // Sigma is the generalized "stress" {N,M}
                                                                           // D is the tangent constitutive matrix { Dm, Dmb; Dbm, Db }
+                                                                          // temp is the temperature
     virtual void GetConstitutiveResponseSensitivityWRTthickness(doublereal *Upsilon, doublereal *Sigma, doublereal *dDdthick,
                                                                 doublereal *eframe, int gp) { 
       std::cerr << "GetConstitutiveResponseSensitivityWRTthickness is not defined\n"; }
@@ -31,8 +33,9 @@ class ShellMaterial
     virtual doublereal GetShellThickness() = 0;
     virtual doublereal GetAreaDensity() = 0; // mass per unit area
     virtual doublereal GetSumDensity() { return 0; }
+    virtual doublereal GetAmbientTemperature() = 0;
     virtual void GetLocalConstitutiveResponse(doublereal *Upsilon, doublereal *sigma, doublereal z,
-                                              doublereal *eframe, int gp)
+                                              doublereal *eframe, int gp, doublereal temp = 0)
       { std::cerr << "GetLocalConstitutiveResponse is not defined\n"; }
     virtual void GetLocalConstitutiveResponseSensitivityWRTdisp(doublereal *dUpsilondu, doublereal *dsigmadu, doublereal z,
                                                                 doublereal *eframe, int gp)
@@ -60,12 +63,15 @@ class ShellMaterialType0 : public ShellMaterial<doublereal>
 {
     doublereal E, thick, nu;
     doublereal rho; // volume density
+    doublereal Ta;  // ambient temperature
+    doublereal w;   // coefficient of thermal expansion
   public:
-    ShellMaterialType0(doublereal _E, doublereal _thick, doublereal _nu, doublereal _rho) 
-      : E(_E), thick(_thick), nu(_nu), rho(_rho) {}
+    ShellMaterialType0(doublereal _E, doublereal _thick, doublereal _nu, doublereal _rho,
+                       doublereal _Ta = 0., doublereal _w = 0.) 
+      : E(_E), thick(_thick), nu(_nu), rho(_rho), Ta(_Ta), w(_w) {}
 
     void GetConstitutiveResponse(doublereal *Upsilon, doublereal *Sigma, doublereal *D,
-                                 doublereal *eframe, int gp);
+                                 doublereal *eframe, int gp, doublereal temp = 0);
     void GetConstitutiveResponseSensitivityWRTthickness(doublereal *Upsilon, doublereal *Sigma, doublereal *dDdthick,
                                                         doublereal *eframe, int gp);
     void GetConstitutiveResponseSensitivityWRTdisp(doublereal *dUpsilondu, doublereal *dSigmadu, doublereal *D,
@@ -75,13 +81,12 @@ class ShellMaterialType0 : public ShellMaterial<doublereal>
     void setThickness(doublereal _thick) { thick = _thick; }
     doublereal GetShellThickness() { return thick; }
     doublereal GetAreaDensity() { 
-//      std::cerr << "rho is " << rho << std::endl;
-//      std::cerr << "thick is " << thick << std::endl;
       return rho*thick; 
     }
     doublereal GetSumDensity() { return rho; }
+    doublereal GetAmbientTemperature() { return Ta; }
     void GetLocalConstitutiveResponse(doublereal *Upsilon, doublereal *sigma, doublereal z,
-                                      doublereal *eframe, int gp);
+                                      doublereal *eframe, int gp, doublereal temp = 0);
     void GetLocalConstitutiveResponseSensitivityWRTdisp(doublereal *dUpsilondu, doublereal *dsigmadu, doublereal z,
                                                         doublereal *eframe, int gp);
 };
@@ -96,18 +101,22 @@ class ShellMaterialType1 : public ShellMaterial<doublereal>
     doublereal *aframe;
     doublereal rhoh;
     doublereal thick;
+    doublereal Ta; // ambient temperature
+    Eigen::Map<Eigen::Matrix<doublereal,6,1> > Alpha; // coefficients of thermal expansion
   public:
-    ShellMaterialType1(doublereal *_coef, doublereal *_aframe, doublereal _rhoh, doublereal _thick = 0.)
-      : coef(_coef), aframe(_aframe), rhoh(_rhoh), thick(_thick) {}
+    ShellMaterialType1(doublereal *_coef, doublereal *_aframe, doublereal _rhoh, doublereal _thick = 0.,
+                       doublereal _Ta = 0.)
+      : coef(_coef), aframe(_aframe), rhoh(_rhoh), thick(_thick), Ta(_Ta), Alpha(_coef+36) {}
 
     void GetConstitutiveResponse(doublereal *Upsilon, doublereal *Sigma, doublereal *D,
-                                 doublereal *eframe, int gp);
+                                 doublereal *eframe, int gp, doublereal temp = 0);
     void GetConstitutiveResponseSensitivityWRTdisp(doublereal *dUpsilondu, doublereal *dSigmadu, doublereal *D,
                                                    doublereal *eframe, int gp);
     void setThickness(doublereal _thick) { thick = _thick; }
     doublereal GetShellThickness();
     doublereal GetAreaDensity() { return rhoh; }
     doublereal GetSumDensity() { return rhoh/thick; } 
+    doublereal GetAmbientTemperature() { return Ta; }
 };
 
 //     ---------------------------------------------- 
@@ -123,12 +132,13 @@ class ShellMaterialTypes2And3 : public ShellMaterial<doublereal>
     doublereal thick;
     doublereal rhoh;
     doublereal rho;
+    doublereal Ta;
 
   public:
-    ShellMaterialTypes2And3(int _nlayer, doublereal *_mtlayer, bool _couple, doublereal *_aframe);
+    ShellMaterialTypes2And3(int _nlayer, doublereal *_mtlayer, bool _couple, doublereal *_aframe, doublereal _Ta = 0.);
 
     void GetConstitutiveResponse(doublereal *Upsilon, doublereal *Sigma, doublereal *D,
-                                 doublereal *eframe, int gp);
+                                 doublereal *eframe, int gp, doublereal temp = 0);
     void GetConstitutiveResponseSensitivityWRTdisp(doublereal *dUpsilondu, doublereal *dSigmadu, doublereal *D,
                                                    doublereal *eframe, int gp);
     void setThickness(doublereal _thick) { thick = _thick; }
@@ -138,8 +148,9 @@ class ShellMaterialTypes2And3 : public ShellMaterial<doublereal>
     doublereal GetShellThickness() { return thick; }
     doublereal GetAreaDensity() { return rhoh; }
     doublereal GetSumDensity() { return rho; }
+    doublereal GetAmbientTemperature() { return Ta; }
     void GetLocalConstitutiveResponse(doublereal *Upsilon, doublereal *sigma, doublereal z,
-                                      doublereal *eframe, int gp);
+                                      doublereal *eframe, int gp, doublereal temp = 0);
 };
 
 //     ------------------------------------------------ 
@@ -153,9 +164,12 @@ class ShellMaterialType4 : public ShellMaterial<doublereal>
     localmaterial **mat;
     int nlayer; // number of material points through the thickness of the shell
     int maxgus; // number of material points over the area of the shell, per layer
+    doublereal Ta; // ambient temperature
+    doublereal w;  // coefficient of thermal expansion
   public:
-    ShellMaterialType4(doublereal _thick, doublereal _nu, doublereal _rho, localmaterial *_mat, int _nlayer, int _maxgus)
-      : thick(_thick), nu(_nu), rho(_rho), nlayer(_nlayer), maxgus(_maxgus) {
+    ShellMaterialType4(doublereal _thick, doublereal _nu, doublereal _rho, localmaterial *_mat, int _nlayer, int _maxgus,
+                       doublereal _Ta = 0., doublereal _w = 0.)
+      : thick(_thick), nu(_nu), rho(_rho), nlayer(_nlayer), maxgus(_maxgus), Ta(_Ta), w(_w) {
       mat = new localmaterial * [_nlayer*_maxgus];
       for (int i = 0; i < _nlayer*_maxgus; ++i) mat[i] = _mat->Clone();
     }
@@ -165,13 +179,14 @@ class ShellMaterialType4 : public ShellMaterial<doublereal>
     }
 
     void GetConstitutiveResponse(doublereal *Upsilon, doublereal *Sigma, doublereal *D,
-                                 doublereal *eframe, int gp);
+                                 doublereal *eframe, int gp, doublereal temp = 0);
     void setThickness(doublereal _thick) { thick = _thick; }
     doublereal GetShellThickness() { return thick; }
     doublereal GetAreaDensity() { return rho*thick; }
     doublereal GetSumDensity() { return rho; }
+    doublereal GetAmbientTemperature() { return Ta; }
     void GetLocalConstitutiveResponse(doublereal *Upsilon, doublereal *sigma, doublereal z,
-                                      doublereal *eframe, int gp);
+                                      doublereal *eframe, int gp, doublereal temp = 0);
     int GetNumStates() { return nlayer*maxgus*7; } // TODO 7 should be provided by the localmaterial
     void SetState(doublereal *state);
     void GetState(doublereal *state);

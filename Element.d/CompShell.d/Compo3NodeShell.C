@@ -51,6 +51,9 @@ void _FORTRAN(compthmfr)(double*, double*, double*, double&, double*, double*,
 
 extern int quietFlag;
 
+bool Compo3NodeShell::Wzero_density = true;
+bool Compo3NodeShell::Wthermal_force = true;
+
 Compo3NodeShell::Compo3NodeShell(int* nodenums)
 {
   nn[0] = nodenums[0];
@@ -558,9 +561,10 @@ Compo3NodeShell::massMatrix(CoordSet &cs, double *mel, int cmflg)
   double area = 0;
 
   // check if the density is negative or zero
-  if(prop->rho <= 0.0 && (type == 0 || type == 1) && quietFlag == 0) {
+  if(prop->rho <= 0.0 && (type == 0 || type == 1) && quietFlag == 0 && Wzero_density) {
     fprintf(stderr," *** WARNING: Composite shell element # %d has zero or negative density.\n"
                    "              Use command-line option -q to suppress this warning.\n", getGlNum()+1);
+    Wzero_density = false;
   }
 
   _FORTRAN(compms)(x, y, z, h, prop->rho, (double *)mel,
@@ -1021,10 +1025,12 @@ Compo3NodeShell::getThermalForce(CoordSet& cs, Vector& ndTemps,
 {  
   //check to see that the coefficent of thermal expansions will exist 
   if(prop == NULL || type == 1) {
-    if(type == 1 && quietFlag == 0) {
+    if(type == 1 && quietFlag == 0 && Wthermal_force) {
       fprintf(stderr," *** WARNING: Thermal forces are not computed for composite shell element if\n" 
                      "              the constitutive matrix is inputted using the COEF sub-command.\n"
+                     "              Element type 20 (2020) should be changed to type 15 (1515).\n"
                      "              Use command-line option -q to suppress this warning.\n");
+      Wthermal_force = false;
     }
     elThermalForce.zero();
     return;
@@ -1065,7 +1071,6 @@ Compo3NodeShell::getThermalForce(CoordSet& cs, Vector& ndTemps,
       ctek1[i] = layData[numLayCoeff*i + 9];
       ctek2[i] = layData[numLayCoeff*i +10];
       phik[i]  = layData[numLayCoeff*i + 8];
-      //tak[i] = layData[numLayCoeff*i +11];
       tak[i]   = prop->Ta;
     }
   }  
@@ -1091,6 +1096,7 @@ Compo3NodeShell::getThermalForce(CoordSet& cs, Vector& ndTemps,
   x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
 
   // Now compute the elemental load vectors 
+  // Note: Unlike element 15, this element assumes that the shear thermal expansion coefficient w12 is zero.
  
   elThermalForce.zero();
 

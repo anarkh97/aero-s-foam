@@ -8,8 +8,8 @@ inline void Tmumps_c(DMUMPS_STRUC_C &id) { dmumps_c(&id); }
 inline void Tmumps_c(ZMUMPS_STRUC_C &id) { zmumps_c(&id); }
 #endif
 
-#include <Driver.d/Domain.h>
-extern Domain * domain;
+#include <Utils.d/SolverInfo.h>
+extern SolverInfo &solInfo;
 extern long totMemMumps;
 
 #define	USE_COMM_WORLD	-987654 
@@ -39,7 +39,7 @@ GenMumpsSolver<Scalar>::GenMumpsSolver(Connectivity *nToN, EqNumberer *_dsa, int
 
 template<class Scalar>
 GenMumpsSolver<Scalar>::GenMumpsSolver(Connectivity *nToN, DofSetArray *_dsa, ConstrainedDSA *c_dsa, FSCommunicator *_mpicomm)
- : SparseData(_dsa,c_dsa,nToN,0,1,domain->solInfo().unsym())
+ : SparseData(_dsa,c_dsa,nToN,0,1,solInfo.unsym())
 {
 #ifndef USE_MUMPS
   std::cerr << " *** ERROR: Solver requires AERO-S configured with the MUMPS library. Exiting...\n";
@@ -57,7 +57,7 @@ GenMumpsSolver<Scalar>::GenMumpsSolver(Connectivity *nToN, DofSetArray *_dsa, Co
 template<class Scalar>
 GenMumpsSolver<Scalar>::GenMumpsSolver(Connectivity *nToN, DofSetArray *_dsa, ConstrainedDSA *c_dsa, int nsub,
                                        GenSubDomain<Scalar> **sd, FSCommunicator *_mpicomm)
- : SparseData(_dsa,c_dsa,nToN,0,1,domain->solInfo().unsym()), MultiDomainSolver<Scalar>(numUncon, nsub, sd, _mpicomm)
+ : SparseData(_dsa,c_dsa,nToN,0,1,solInfo.unsym()), MultiDomainSolver<Scalar>(numUncon, nsub, sd, _mpicomm)
 {
 #ifndef USE_MUMPS
   std::cerr << " *** ERROR: Solver requires AERO-S configured with the MUMPS library. Exiting...\n";
@@ -79,8 +79,8 @@ GenMumpsSolver<Scalar>::init()
 {
 #ifdef USE_MUMPS
   mumpsId.id.par = 1; // 1: working host model
-  mumpsId.id.sym = domain->solInfo().pivot ? 2 : 1; // 2: general symmetric, 1: symmetric positive definite, 0: unsymmetric 
-  if(domain->solInfo().unsym()) mumpsId.id.sym = 0;
+  mumpsId.id.sym = solInfo.pivot ? 2 : 1; // 2: general symmetric, 1: symmetric positive definite, 0: unsymmetric 
+  if(solInfo.unsym()) mumpsId.id.sym = 0;
 #ifdef USE_MPI
   if(mpicomm) mumpsId.id.comm_fortran = MPI_Comm_c2f(mpicomm->getComm());
   else mumpsId.id.comm_fortran = MPI_Comm_c2f(MPI_COMM_SELF);
@@ -92,15 +92,15 @@ GenMumpsSolver<Scalar>::init()
   host = (mpicomm) ? (mpicomm->cpuNum() == 0) : true;
 
   // Set control parameters CNTL and ICNTL
-  std::map<int,double>::iterator CntlIter = domain->solInfo().mumps_cntl.begin();
-  while(CntlIter != domain->solInfo().mumps_cntl.end()) {
+  std::map<int,double>::iterator CntlIter = solInfo.mumps_cntl.begin();
+  while(CntlIter != solInfo.mumps_cntl.end()) {
     int CntlNum         = CntlIter->first;
     double CntlPar      = CntlIter->second;
     mumpsId.id.CNTL(CntlNum) = CntlPar;
     CntlIter ++;
   }
-  std::map<int,int>::iterator IcntlIter = domain->solInfo().mumps_icntl.begin();
-  while(IcntlIter != domain->solInfo().mumps_icntl.end()) {
+  std::map<int,int>::iterator IcntlIter = solInfo.mumps_icntl.begin();
+  while(IcntlIter != solInfo.mumps_icntl.end()) {
     int IcntlNum        = IcntlIter->first;
     int IcntlPar        = IcntlIter->second;
     mumpsId.id.ICNTL(IcntlNum) = IcntlPar;
@@ -125,7 +125,7 @@ GenMumpsSolver<Scalar>::init()
     std::cerr << "user defined ICNTL(21) not supported, setting to 0\n";
     mumpsId.id.ICNTL(21) = 0; // 0: centralized solution
   }
-  if(domain->solInfo().pivot) { // matrix is not assumed to be positive definite, may be singularities 
+  if(solInfo.pivot) { // matrix is not assumed to be positive definite, may be singularities 
     mumpsId.id.ICNTL(24) = 1; // 1: enable null pivot row detection
     mumpsId.id.ICNTL(13) = 1; // 1: ScaLAPACK will not be used for the root frontal matrix (recommended for null pivot row detection)
   }
@@ -156,7 +156,7 @@ GenMumpsSolver<Scalar>::add(FullSquareMatrix &kel, int *dofs)
     if(unconstrNum[dofs[i]] == -1) continue;   // Skip constrained dofs
     for(j = 0; j < kndof; ++j) {               // Loop over columns.
       if(unconstrNum[dofs[j]] == -1) continue; // Skip constrained dofs
-      if(!domain->solInfo().unsym() && unconstrNum[dofs[j]] < unconstrNum[dofs[i]]) continue;
+      if(!solInfo.unsym() && unconstrNum[dofs[j]] < unconstrNum[dofs[i]]) continue;
       mstart = xunonz[unconstrNum[dofs[j]]];
       mstop  = xunonz[unconstrNum[dofs[j]]+1];
       for(m = mstart; m < mstop; ++m) {

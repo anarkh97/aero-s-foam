@@ -422,7 +422,7 @@ Domain_opt::getElementForces(Vector &sol, double *bcx, int fileNumber,
     int NodesPerElement, maxNodesPerElement=0;
     for(iele=0; iele<numele; ++iele) {
       NodesPerElement = elemToNode->num(iele);
-      maxNodesPerElement = myMax(maxNodesPerElement, NodesPerElement);
+      maxNodesPerElement = std::max(maxNodesPerElement, NodesPerElement);
     }
     elstress = new Vector(maxNodesPerElement, 0.0);
   }

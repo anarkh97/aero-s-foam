@@ -51,7 +51,7 @@ double DistrBlockVector<Scalar>::sqNorm()
 template<class Scalar>
 Scalar DistrBlockVector<Scalar>::operator * (DistrBlockVector<Scalar> &x)
 {
- if(this->size() != x.size())   cerr << "Dimensions don't match in * operation " << endl;
+ if(this->size() != x.size()) std::cerr << "Dimensions don't match in * operation " << std::endl;
  Scalar temp=0;
  for(int i=0; i<inf.nblocks; ++i) if(inf.nnzblkindex[i]==1) temp=temp+(*(v[i]))*(x.getBlock(i));
  return temp;
@@ -61,7 +61,7 @@ Scalar DistrBlockVector<Scalar>::operator * (DistrBlockVector<Scalar> &x)
 template<class Scalar>
 DistrBlockVector<Scalar>&  DistrBlockVector<Scalar>::operator=(DistrBlockVector<Scalar> &x)
 {
- if(this->size() != x.size())   cerr << "Dimensions don't match in = operation " << endl;
+ if(this->size() != x.size()) std::cerr << "Dimensions don't match in = operation " << std::endl;
  for(int i=0; i<inf.nblocks; ++i) if(inf.nnzblkindex[i]==1) *(v[i])= *(x.getv()[i]);
  return *this;
 }
@@ -86,7 +86,7 @@ DistrBlockVector<Scalar>&  DistrBlockVector<Scalar>::operator*=(Scalar c)
 template<class Scalar>
 DistrBlockVector<Scalar>&  DistrBlockVector<Scalar>::operator+=(DistrBlockVector<Scalar> &x)
 {
- if(size() != x.size())   cerr << "Dimensions don't match in +=" << endl;
+ if(size() != x.size()) std::cerr << "Dimensions don't match in +=" << std::endl;
  for(int i=0; i<inf.nblocks; ++i) if(inf.nnzblkindex[i]==1) *(v[i]) += x.getBlock(i);
  return *this;
 }
@@ -95,7 +95,7 @@ DistrBlockVector<Scalar>&  DistrBlockVector<Scalar>::operator+=(DistrBlockVector
 template<class Scalar>
 DistrBlockVector<Scalar>&  DistrBlockVector<Scalar>::operator-=(DistrBlockVector<Scalar> &x)
 {
- if(size() != x.size())   cerr << "Dimensions don't match in -=" << endl;
+ if(size() != x.size()) std::cerr << "Dimensions don't match in -=" << std::endl;
  for(int i=0; i<inf.nblocks; ++i) if(inf.nnzblkindex[i]==1) *(v[i]) -= x.getBlock(i);
  return *this;
 }
@@ -104,7 +104,7 @@ DistrBlockVector<Scalar>&  DistrBlockVector<Scalar>::operator-=(DistrBlockVector
 template<class Scalar>
 DistrBlockVector<Scalar>&  DistrBlockVector<Scalar>::linAdd(DistrBlockVector<Scalar> &x)
 {
- if(size() != x.size())   cerr << "Dimensions don't match in linAdd" << endl;
+ if(size() != x.size()) std::cerr << "Dimensions don't match in linAdd" << std::endl;
  for(int i=0; i<inf.nblocks; ++i) if(inf.nnzblkindex[i]==1) v[i]->linAdd(x.getBlock(i));
  return *this;
 }
@@ -113,7 +113,7 @@ DistrBlockVector<Scalar>&  DistrBlockVector<Scalar>::linAdd(DistrBlockVector<Sca
 template<class Scalar>
 DistrBlockVector<Scalar>&  DistrBlockVector<Scalar>::linAdd(Scalar c, DistrBlockVector<Scalar> &x)
 {
- if(size() != x.size())   cerr << "Dimensions don't match in linAdd" << endl;
+ if(size() != x.size()) std::cerr << "Dimensions don't match in linAdd" << std::endl;
  for(int i=0; i<inf.nblocks; ++i) if(inf.nnzblkindex[i]==1) v[i]->linAdd(c,x.getBlock(i));
  return *this;
 }
@@ -122,7 +122,7 @@ DistrBlockVector<Scalar>&  DistrBlockVector<Scalar>::linAdd(Scalar c, DistrBlock
 template<class Scalar>
 DistrBlockVector<Scalar>&  DistrBlockVector<Scalar>::linAdd(Scalar c1, DistrBlockVector<Scalar> &x, Scalar c2, DistrBlockVector<Scalar> &y)
 {
- if(x.size() != y.size())   cerr << "Dimensions don't match in linAdd" << endl;
+ if(x.size() != y.size()) std::cerr << "Dimensions don't match in linAdd" << std::endl;
  for(int i=0; i<inf.nblocks; ++i) if(inf.nnzblkindex[i]==1) v[i]->linAdd(c1,x.getBlock(i),c2,y.getBlock(i)); 
  return *this;
 }
@@ -131,7 +131,7 @@ DistrBlockVector<Scalar>&  DistrBlockVector<Scalar>::linAdd(Scalar c1, DistrBloc
 template<class Scalar>
 DistrBlockVector<Scalar>&  DistrBlockVector<Scalar>::linC(DistrBlockVector<Scalar> &x, Scalar c)
 {
- if(size() != x.size())   cerr << "Dimensions don't match in linC" << endl;
+ if(size() != x.size()) std::cerr << "Dimensions don't match in linC" << std::endl;
  for(int i=0; i<inf.nblocks; ++i) if(inf.nnzblkindex[i]==1) v[i]->linC(c,x.getBlock(i));
  return *this;
 }
@@ -140,7 +140,7 @@ DistrBlockVector<Scalar>&  DistrBlockVector<Scalar>::linC(DistrBlockVector<Scala
 template<class Scalar>
 DistrBlockVector<Scalar>&  DistrBlockVector<Scalar>::linC(DistrBlockVector<Scalar> &x, Scalar c, DistrBlockVector<Scalar> &y)
 {
- if(x.size() != y.size())   cerr << "Dimensions don't match in linC" << endl;
+ if(x.size() != y.size()) std::cerr << "Dimensions don't match in linC" << std::endl;
  for(int i=0; i<inf.nblocks; ++i) if(inf.nnzblkindex[i]==1) v[i]->linC(x.getBlock(i),c,y.getBlock(i)); 
  return *this;
 }
@@ -149,7 +149,7 @@ DistrBlockVector<Scalar>&  DistrBlockVector<Scalar>::linC(DistrBlockVector<Scala
 template<class Scalar>
 DistrBlockVector<Scalar>&  DistrBlockVector<Scalar>::linC(Scalar c1, DistrBlockVector<Scalar> &x, Scalar c2, DistrBlockVector<Scalar> &y)
 {
- if(x.size() != y.size())   cerr << "Dimensions don't match in linC" << endl;
+ if(x.size() != y.size()) std::cerr << "Dimensions don't match in linC" << std::endl;
  for(int i=0; i<inf.nblocks; ++i) if(inf.nnzblkindex[i]==1) v[i]->linC(c1,x.getBlock(i),c2,y.getBlock(i)); 
  return *this;
 }
@@ -158,7 +158,7 @@ DistrBlockVector<Scalar>&  DistrBlockVector<Scalar>::linC(Scalar c1, DistrBlockV
 template<class Scalar>
 DistrBlockVector<Scalar>&  DistrBlockVector<Scalar>::swap(DistrBlockVector<Scalar> &x)
 {
- if(size() != x.size())   cerr << "Dimensions don't match in swap" << endl;
+ if(size() != x.size()) std::cerr << "Dimensions don't match in swap" << std::endl;
  for(int i=0; i<inf.nblocks; ++i) if(inf.nnzblkindex[i]==1) v[i]->swap(x.getBlock(i));
  return *this;
 }
@@ -212,21 +212,21 @@ void DistrBlockVector<Scalar>::computeRealz(int ii, Scalar c, DistrBlockVector<S
 template<class Scalar>
 void DistrBlockVector<Scalar>::print()
 {
-  for(int i=0; i<inf.nblocks; ++i) {cerr << "Block number = " << i << endl; v[i]->print();}
+  for(int i=0; i<inf.nblocks; ++i) { std::cerr << "Block number = " << i << std::endl; v[i]->print();}
 }
 
 
 template<class Scalar>
 void DistrBlockVector<Scalar>::printNonZeroTerms()
 {
-  cerr << "DistrBlockVector<Scalar>::printNonZeroTerms() not implemented" << endl;
+  std::cerr << "DistrBlockVector<Scalar>::printNonZeroTerms() not implemented" << std::endl;
 }
 
 
 template<class Scalar>
 void DistrBlockVector<Scalar>::printAll()
 {
-  cerr << "DistrBlockVector<Scalar>::printAll() not implemented" << endl;
+  std::cerr << "DistrBlockVector<Scalar>::printAll() not implemented" << std::endl;
 }
 
 
@@ -240,18 +240,18 @@ void DistrBlockVector<Scalar>::computeBlockNorms()
 template<class Scalar>
 void DistrBlockVector<Scalar>::printBlockNorms()
 {
- cerr << "DistrBlockVector::printBlockNorms() called" << endl;
- cerr << "blocknorms are = ";
- for(int i=0; i<inf.nblocks; ++i) cerr << "  " << blocknorms[i];
- cerr << endl;
+ std::cerr << "DistrBlockVector::printBlockNorms() called" << std::endl;
+ std::cerr << "blocknorms are = ";
+ for(int i=0; i<inf.nblocks; ++i) std::cerr << "  " << blocknorms[i];
+ std::cerr << std::endl;
 }
 
 template<class Scalar>
 void DistrBlockVector<Scalar>::printBlockDetails()   
 {
- cerr << "inf.nblocks = "; 
- for (int i=0; i<inf.nblocks; ++i) cerr << inf.nnzblkindex[i] << " "; 
- cerr << endl;
+ std::cerr << "inf.nblocks = "; 
+ for (int i=0; i<inf.nblocks; ++i) std::cerr << inf.nnzblkindex[i] << " "; 
+ std::cerr << std::endl;
 } 
 
 
@@ -402,7 +402,7 @@ int DistrSfemBlockMatrix<Scalar>::numNodes()
 template<class Scalar>
 GenFullM<Scalar>* DistrSfemBlockMatrix<Scalar>::getDiagMatrix(int i)
 {
- cerr << " DistrSfemBlockMatrix<Scalar>::getDiagMatrix(int i) is not implemented \n";
+ std::cerr << " DistrSfemBlockMatrix<Scalar>::getDiagMatrix(int i) is not implemented \n";
 }
 
 template<class Scalar>

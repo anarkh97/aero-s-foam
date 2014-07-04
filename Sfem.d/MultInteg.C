@@ -1,7 +1,11 @@
 #include <Sfem.d/MultInteg.h>
+#include <Driver.d/GeoSource.h>
 #include <Utils.d/DistHelper.h>
+#include <Utils.d/SolverInfo.h>
 #include <iostream>
-#include <fstream>
+
+extern SolverInfo &solInfo;
+extern GeoSource *geoSource;
 
 template <class Scalar, class VecType, class PostProcessor, class ProblemDescriptor>
 void MultInteg<Scalar, VecType, PostProcessor, ProblemDescriptor>::assignxw()
@@ -247,7 +251,7 @@ void MultInteg<Scalar, VecType, PostProcessor, ProblemDescriptor>::genten(int cn
             delete urealz;
             urealz=0;
            }
-          else cerr << "ndtype = " << ndflag_cur << " not supported by this routine" << endl;
+          else std::cerr << "ndtype = " << ndflag_cur << " not supported by this routine" << std::endl;
         }
      }
   }
@@ -292,12 +296,12 @@ void MultInteg<Scalar, VecType, PostProcessor, ProblemDescriptor>::computeStress
    if(meth_int==1) simulcomp(param_int);
    else if(meth_int==2) kroneckercomp(param_int);
    else if(meth_int==3) integsmol(param_int);
-   else cerr << "Invalid Integration method" << endl;
+   else std::cerr << "Invalid Integration method" << std::endl;
   }
 
  }
  else compdf();
-// cerr << "Number of integration nodes = " << integnodes << endl;
+// std::cerr << "Number of integration nodes = " << integnodes << std::endl;
 // delete [] x; // YYY DG, should delete, but wrong syntax
 // delete [] w;
 // delete [] m;
@@ -315,9 +319,9 @@ void MultInteg<Scalar, VecType, PostProcessor, ProblemDescriptor>::integsmol(int
   int lowlim;
   if (d>=q-d+1) lowlim = d;
   else lowlim = q-d+1;
-/*  cerr << "d = " << d << endl;
-  cerr << "qmd = " << qmd << endl;
-  cerr << "lowlim = " << lowlim << endl;*/
+/*  std::cerr << "d = " << d << std::endl;
+  std::cerr << "qmd = " << qmd << std::endl;
+  std::cerr << "lowlim = " << lowlim << std::endl;*/
   int uplim=q;
 
   if(ndflag_cur==1) //  mean
@@ -331,7 +335,7 @@ void MultInteg<Scalar, VecType, PostProcessor, ProblemDescriptor>::integsmol(int
     for (int i=0;i<2*size_res;i++)  res[i]=0;
    }
   else
-   cerr << "ndtype = " << ndflag_cur << " not supported currently" << endl;
+   std::cerr << "ndtype = " << ndflag_cur << " not supported currently" << std::endl;
 
   double weight;
   int d1, ilim, ilvl, icur,count,jtemp;
@@ -428,7 +432,7 @@ void MultInteg<Scalar, VecType, PostProcessor, ProblemDescriptor>::simulcomp(int
     for (int i=0;i<2*size_res;i++)  res[i]=0;
    }
   else {
-   cerr << "ndtype = " << ndflag_cur << " not supported currently" << endl;
+   std::cerr << "ndtype = " << ndflag_cur << " not supported currently" << std::endl;
    return;
   }
 
@@ -445,7 +449,7 @@ void MultInteg<Scalar, VecType, PostProcessor, ProblemDescriptor>::simulcomp(int
       urealz->computeRealz(ii,psi[ii],(*mysol));
     }
     postProcessor_cur->getStressStrain(urealz[0],fileNumber_cur,stressIndex_cur,time,printflag);
-//    cerr.flush();
+//    std::cerr.flush();
 
     res_cur = postProcessor_cur->getSfemStress(fileNumber_cur);
      if(ndflag_cur==1) { // mean
@@ -456,7 +460,7 @@ void MultInteg<Scalar, VecType, PostProcessor, ProblemDescriptor>::simulcomp(int
        for (int ii=0;ii<size_res;ii++) res[ii]=res[ii]+pow(res_cur[ii],2);
        for (int ii=0;ii<size_res;ii++) res[ii+size_res]=res[ii+size_res] + res_cur[ii];
       }
-     else cerr << "ndtype = " << ndflag_cur << " not supported by this routine" << endl;
+     else std::cerr << "ndtype = " << ndflag_cur << " not supported by this routine" << std::endl;
 
   } // end of nsample_output loop
 
@@ -466,7 +470,7 @@ void MultInteg<Scalar, VecType, PostProcessor, ProblemDescriptor>::simulcomp(int
 
   if(ndflag_cur==1)  for (int i=0;i<size_res;i++)  res[i] = res[i]/Scalar(nsample_integ);
   else if(ndflag_cur==2)  for (int i=0;i<2*size_res;i++)  res[i] = res[i]/Scalar(nsample_integ);
-  else cerr << "ndtype = " << ndflag_cur << " not supported currently" << endl;
+  else std::cerr << "ndtype = " << ndflag_cur << " not supported currently" << std::endl;
 
   // compute std-dev
   if(ndflag_cur==2)   for (int ii=0;ii<size_res;ii++) res[ii] = ScalarTypes::sqrt(abs(res[ii]-pow(res[size_res+ii],2)));
@@ -495,7 +499,7 @@ void MultInteg<Scalar, VecType, PostProcessor, ProblemDescriptor>::kroneckercomp
     for (int i=0;i<2*size_res;i++)  res[i]=0;
    }
   else
-   cerr << "ndtype = " << ndflag_cur << " not supported currently" << endl;
+   std::cerr << "ndtype = " << ndflag_cur << " not supported currently" << std::endl;
 
   int* trgf = new int[d];
   for (int i=0;i<d;i++) trgf[i]=quadorder; // Define the 1-D rule
@@ -554,7 +558,7 @@ void MultInteg<Scalar, VecType, PostProcessor, ProblemDescriptor>::directcomp()
 
    postProcessor_cur->getStressStrain(mysol[0],fileNumber_cur,stressIndex_cur,time,printflag); // print result 
   }
-  else  cerr << "ndtype = " << ndflag_cur << " not supported currently" << endl;
+  else std::cerr << "ndtype = " << ndflag_cur << " not supported currently" << std::endl;
 
 }
 

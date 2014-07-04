@@ -10,7 +10,6 @@
 #include <Timers.d/StaticTimers.h>
 #include <Timers.d/GetTime.h>
 #include <Math.d/Vector.h>
-#include <Math.d/mathUtility.h>
 #include <Utils.d/DistHelper.h>
 #include <Paral.d/MDStatic.h>
 #ifdef DISTRIBUTED

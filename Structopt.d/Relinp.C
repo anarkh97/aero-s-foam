@@ -12,8 +12,6 @@
 
 #include <Structopt.d/Structopt_sd.h>
 
-#include <Math.d/mathUtility.h>
-
 //------------------------------------------------------------------------------
       
 void Optpro::addFailureCriteria( int num, funcall & func, 

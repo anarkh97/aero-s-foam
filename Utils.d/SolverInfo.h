@@ -20,6 +20,8 @@
  #include <limits>
 #endif
 
+const double defaultTemp = -10000000.0;
+
 struct AdaptiveSweepParams {
 public:
      int maxP,minRHS,maxRHS,deltaRHS,numS;

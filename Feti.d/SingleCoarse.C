@@ -12,7 +12,6 @@
 #include <Math.d/Skyline.d/BlockSky.h>
 #include <Math.d/matrix.h>
 #include <Math.d/SymFullMatrix.h>
-#include <Math.d/mathUtility.h>
 #include <Math.d/IntFullM.h>
 #include <Utils.d/DistHelper.h>
 #include <Utils.d/linkfc.h>

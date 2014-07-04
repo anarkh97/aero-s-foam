@@ -1,13 +1,4 @@
-#include <Utils.d/linkfc.h>
-#include <cmath>
-#include <cstdlib>
-#include <cstdio>
-#include <iostream>
-#include <Driver.d/GeoSource.h>
-#include <list>
 #include <Sfem.d/cijk.h>
-
-extern GeoSource *geoSource;
 
 template<class Scalar, class VecType>
 void SfemInpc<Scalar, VecType>::computeMean(VecType* psi_u, VecType* mean_u)

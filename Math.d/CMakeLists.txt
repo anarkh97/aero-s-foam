@@ -2,7 +2,6 @@ ADD_LIBRARY(Math spsmvp.f
        sptmv.f cspsmvp.f cdspsmvp.f
        IntFullM.C
        SparseData.C
-       mathUtility.C
        matrixFull.C BigMatrixCore.C BLKSparseMatrixCore.C 
        CuCSparseCore.C DBSparseMatrixCore.C 
        FullRectMatrix.C NBSparseMatrixCore.C TTensor.C

@@ -1,7 +1,6 @@
 #include <alloca.h>
 #include <Threads.d/Paral.h>
 #include <Threads.d/PHelper.h>
-#include <Math.d/mathUtility.h>
 #include <Driver.d/Domain.h>
 #include <Math.d/SparseMatrix.h>
 #include <Solvers.d/Solver.h>
@@ -145,9 +144,8 @@ template<class Scalar>
 void
 GenMultiDomainInpcStatic<Scalar>::rebuildSolver()
 {
-  cerr << "GenMultiDomainInpcStatic<Scalar>::rebuildSolver() is not implemented \n";
+  std::cerr << "GenMultiDomainInpcStatic<Scalar>::rebuildSolver() is not implemented \n";
 }
-
 
 template<class Scalar>
 void
@@ -180,7 +178,7 @@ GenMultiDomainInpcPostProcessor<Scalar>::staticOutput(DistrBlockVector<Scalar> &
  if(ndflag == 3) x++;
 // if(ndflag == 0) decDomain->postProcessing(sol.getBlock(0), force.getBlock(0));
 // if(ndflag == 0) decDomain->postProcessing(sol.getBlock(0), force.getBlock(0), 0.0, 0, 0, 0, 0);
-// else cerr << "XXXX\n";
+// else std::cerr << "XXXX\n";
  stopTimerMemory(times->output, times->memoryOutput);
 
 /*
@@ -288,6 +286,6 @@ template<class Scalar>
 void
 GenMultiDomainInpcStatic<Scalar>::setIWaveDir(int _i)
 {
-  cerr << "GenMultiDomainInpcStatic<Scalar>::setIWaveDir(...) is not implemented \n";
+  std::cerr << "GenMultiDomainInpcStatic<Scalar>::setIWaveDir(...) is not implemented \n";
 }
 

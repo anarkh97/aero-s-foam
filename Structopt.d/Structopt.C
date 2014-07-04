@@ -1,6 +1,6 @@
 #include <Structopt.d/Structopt.h>
-#include <Math.d/mathUtility.h>
 #include <Element.d/Element.h>
+#include <algorithm>
 
 //------------------------------------------------------------------------------
 
@@ -1386,7 +1386,7 @@ int Structopt::procSetvar(double time, double step ) {
       // design change by non-shape variation
 
       double one = 1.0;
-      maxdsgvel = myMax(one,maxdsgvel);
+      maxdsgvel = std::max(one,maxdsgvel);
 
       int maxdsg = ( delvar * maxdsgvel ) / ( limitdsgvel * step );
       int maxaer = ( delvar * maxaervel ) / ( limitaervel * step );
@@ -1401,14 +1401,14 @@ int Structopt::procSetvar(double time, double step ) {
       fprintf(optout,"    maxaervel: %15.5e\n",maxaervel);
       fprintf(optout,"    maxaer   : %d\n\n"  ,maxaer);
       
-      maxstep=myMax(maxstep,maxdsg);
-      maxstep=myMax(maxstep,maxaer);
-      maxstep=myMax(maxstep,minstep);
+      maxstep=std::max(maxstep,maxdsg);
+      maxstep=std::max(maxstep,maxaer);
+      maxstep=std::max(maxstep,minstep);
     }
     
     if (maxstep == 0) return 1;
     
-    maxstep=myMin(steplimit,maxstep);
+    maxstep=std::min(steplimit,maxstep);
 
     //    fprintf(stderr,"\n ... Transition in %d steps\n",maxstep);
     fprintf(optout,"\n ... Transition in %d steps\n",maxstep);

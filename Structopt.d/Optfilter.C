@@ -4,8 +4,6 @@
 #include <boost/scoped_array.hpp>
 #include <cstdio>
 
-#include <Math.d/mathUtility.h>
-
 #include <Structopt.d/Optfilter.h>
 #include <Structopt.d/Structopt_sd.h>
 

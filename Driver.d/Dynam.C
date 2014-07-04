@@ -1,5 +1,6 @@
 #include <Utils.d/dbg_alloca.h>
 #include <cstdio>
+#include <algorithm>
 
 #ifndef TFLOP
 #ifndef WINDOWS 
@@ -501,8 +502,8 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
 {
   // Print out the displacement info
   if(outFlag && !nodeTable) makeNodeTable(outFlag);
-  int numNodes = geoSource->numNode();  // PJSA 8-26-04 don't want to print displacements for internal nodes
-  int numNodeLim = myMax(numNodes,numnodes);
+  int numNodes = geoSource->numNode();  // don't print displacements for internal nodes
+  int numNodeLim = std::max(numNodes,numnodes);
   double (*glDisp)[11] = new double[numNodeLim][11];
   double (*locDisp)[11] = (domain->solInfo().basicDofCoords) ? 0 : new double[numNodeLim][11];
   for (int i = 0; i < numNodeLim; ++i)

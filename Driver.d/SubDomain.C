@@ -1,5 +1,6 @@
 #include <typeinfo>
 #include <cstdio>
+#include <algorithm>
 #ifdef SUN10
 #include <typeinfo.h>
 #endif 
@@ -3211,7 +3212,7 @@ GenSubDomain<Scalar>::makeQ()
      break;
    case FetiInfo::Gs:
    {
-     nGrbm = myMin(rigidBodyModes->numRBM(), solInfo().getFetiInfo().nGs);
+     nGrbm = std::min(rigidBodyModes->numRBM(), solInfo().getFetiInfo().nGs);
      int iLen = scomm->lenT(SComm::std);
      interfaceRBMs = new Scalar[nGrbm*iLen];
      rbms = new Scalar[nGrbm*iLen];
@@ -3912,7 +3913,7 @@ GenSubDomain<Scalar>::getMpcError()
       if(mpc[i]->type == 0) {
         ret += ScalarTypes::sqNorm(mpc[i]->rhs);
       }
-      else if(mpc[i]->type == 1) ret += ScalarTypes::sqNorm(MIN(0.0, mpc[i]->rhs));
+      else if(mpc[i]->type == 1 && ScalarTypes::lessThan(mpc[i]->rhs, 0.)) ret += ScalarTypes::sqNorm(mpc[i]->rhs);
     }
   }
   return ret;

@@ -1,14 +1,6 @@
 #include <Sfem.d/Sfem.h>
-#include <Utils.d/linkfc.h>
-#include <cmath>
-#include <cstdlib>
-#include <cstdio>
-#include <map>
-#include <Driver.d/GeoSource.h>
 #include <Sfem.d/cijk.h>
-#include <Utils.d/Memory.h>
-
-extern GeoSource *geoSource;
+#include <cmath>
 
 void Sfem::setOrder(int _output_order) 
 {

@@ -161,7 +161,7 @@ Domain::computeStructureMass(bool printFlag)
   int iele, i;
   for(iele=0; iele < numele; ++iele) {
     int numNodesPerElement = packedEset[iele]->numNodes();
-    maxNumNodes = myMax(maxNumNodes, numNodesPerElement);
+    maxNumNodes = std::max(maxNumNodes, numNodesPerElement);
   }
 
   // allocate one array to store node numbers
@@ -206,7 +206,7 @@ Domain::computeStructureMass(bool printFlag)
   if(geoSource->numElemFluid() > 0) {
     for(iele=0; iele < geoSource->numElemFluid(); ++iele) {
       int numNodesPerElement = (*(geoSource->getPackedEsetFluid()))[iele]->numNodes();
-      maxNumNodes = myMax(maxNumNodes, numNodesPerElement);
+      maxNumNodes = std::max(maxNumNodes, numNodesPerElement);
     }
 
     nodeNumbers = new int[maxNumNodes];
@@ -492,7 +492,7 @@ Domain::computeFluidMass()
   int iele, i;
   for(iele=0; iele < geoSource->numElemFluid(); ++iele) {
     int numNodesPerElement = (*(geoSource->getPackedEsetFluid()))[iele]->numNodes();
-    maxNumNodes = myMax(maxNumNodes, numNodesPerElement);
+    maxNumNodes = std::max(maxNumNodes, numNodesPerElement);
   }
 
   // allocate one array to store node numbers
@@ -1132,7 +1132,7 @@ Domain::makeTopFile(int topFlag)
  int nEls = packedEset.last(); //HB: to avoid calling packedEset.last() at each loop
  for(iele=0; iele<nEls; ++iele) {
    int numNodesPerElement = packedEset[iele]->numNodes();
-   maxNumNodes = myMax(numNodesPerElement, maxNumNodes);
+   maxNumNodes = std::max(numNodesPerElement, maxNumNodes);
  }
  // allocate integer array to store node numbers
  int *nodeNumber = new int[maxNumNodes];
@@ -1510,7 +1510,7 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
       int NodesPerElement, maxNodesPerElement=0;
       for(iele=0; iele<numele; ++iele) {
         NodesPerElement = elemToNode->num(iele);
-        maxNodesPerElement = myMax(maxNodesPerElement, NodesPerElement);
+        maxNodesPerElement = std::max(maxNodesPerElement, NodesPerElement);
       }
       if(elstress == 0) elstress = new Vector(maxNodesPerElement, 0.0);
       if(elweight == 0) elweight = new Vector(maxNodesPerElement, 0.0);
@@ -1714,7 +1714,7 @@ Domain::getStressStrain(ComplexVector &sol, DComplex *bcx, int fileNumber,
       int NodesPerElement, maxNodesPerElement=0;
       for(iele=0; iele<numele; ++iele) {
         NodesPerElement = elemToNode->num(iele);
-        maxNodesPerElement = myMax(maxNodesPerElement, NodesPerElement);
+        maxNodesPerElement = std::max(maxNodesPerElement, NodesPerElement);
       }
       if(elstress == 0) elstress = new ComplexVector(maxNodesPerElement, 0.0);
       if(elweight == 0) elweight = new Vector(maxNodesPerElement, 0.0);
@@ -1926,7 +1926,7 @@ Domain::getPrincipalStress(Vector &sol, double *bcx, int fileNumber,
     int NodesPerElement, maxNodesPerElement=0;
     for(iele=0; iele<numele; ++iele) {
       NodesPerElement = elemToNode->num(iele);
-      maxNodesPerElement = myMax(maxNodesPerElement, NodesPerElement);
+      maxNodesPerElement = std::max(maxNodesPerElement, NodesPerElement);
     }
     if(p_elstress == 0) p_elstress = new FullM(maxNodesPerElement,9);
     if(elweight == 0) elweight = new Vector(maxNodesPerElement, 0.0);
@@ -2088,7 +2088,7 @@ Domain::getElementForces(Vector &sol, double *bcx, int fileNumber,
     int NodesPerElement, maxNodesPerElement=0;
     for(iele=0; iele<numele; ++iele) {
       NodesPerElement = elemToNode->num(iele);
-      maxNodesPerElement = myMax(maxNodesPerElement, NodesPerElement);
+      maxNodesPerElement = std::max(maxNodesPerElement, NodesPerElement);
     }
     elstress = new Vector(maxNodesPerElement, 0.0);
   }

@@ -1,11 +1,11 @@
 #include <cstdio>
+#include <algorithm>
 #include <Driver.d/DecDomain.h>
 #include <Feti.d/Feti.h>
 #include <Paral.d/MDDynam.h>
 #include <Utils.d/BlockAlloc.h>
 #include <Paral.d/DomainGroupTask.h>
 #include <Paral.d/Assembler.h>
-
 
 template<>
 double
@@ -76,7 +76,7 @@ GenDecDomain<DComplex>::buildFFP(GenDistrVector<DComplex> &u, FILE *fffp, bool d
 {
  if(direction && domain->numFFPDirections == 0) {
    int i,j;
-   int nsint = MAX(2, domain->nffp);
+   int nsint = std::max(2, domain->nffp);
    // Dimension of the problem
    int dim= domain->scatter[0]->dim();
    DComplex ffpCoef;

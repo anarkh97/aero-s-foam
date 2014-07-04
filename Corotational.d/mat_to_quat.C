@@ -1,6 +1,5 @@
 #include <cmath>
 #include <Corotational.d/utilities.h>
-#include <Math.d/mathUtility.h>
 #include <iostream>
 #include <Utils.d/linkfc.h>
 

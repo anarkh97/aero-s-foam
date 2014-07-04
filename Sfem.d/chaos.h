@@ -6,6 +6,9 @@
 /*                    Written by George Saad                                 */
 /*****************************************************************************/
 
+template <class Scalar> class GenVector;
+template <class Scalar> class GenFullM;
+
 int nterm(int x, int y);        /* function to determine the number of terms corresponding to each specific order */
 
 class Chaos {

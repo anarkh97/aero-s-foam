@@ -10,8 +10,6 @@
 
 #include <Structopt.d/Structopt_sd.h>
 
-#include <Math.d/mathUtility.h>
-
 #define RAND_UNIFORME static_cast<double>(random())/RAND_MAX
 
 //------------------------------------------------------------------------------

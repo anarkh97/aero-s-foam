@@ -211,6 +211,7 @@ class StructProp {
         double constraint_hess_eps;
         enum PropType { Undefined=0, Fluid, Fabric, Thermal, Constraint } type;
         double k1, k2, k3;
+        bool ymttFlag, ctettFlag;
 
 	// Fabric Material Options
 	int F_op; // Fabric Material Option
@@ -247,7 +248,8 @@ class StructProp {
                        zmin = 0.0; zmax = 0.0;
                        lagrangeMult = true; penalty = 0.0; initialPenalty = 0.0;
                        B = 1.0; C = 0.0; relop = 0; type = Undefined; funtype = 0;
-                       k1 = 0; k2 = 0; k3 = 0; constraint_hess = 1; constraint_hess_eps = 0.0; } 
+                       k1 = 0; k2 = 0; k3 = 0; constraint_hess = 1; constraint_hess_eps = 0.0;
+                       ymttFlag = 0; ctettFlag = 0; } 
 
 };
 
@@ -383,7 +385,7 @@ class Element {
         virtual std::vector<double> getPreLoad() { return std::vector<double>(0); }
 
         virtual void setGlNum(int gn, int sn=0) { glNum = gn; subNum = sn; }
-        int getGlNum()  { return glNum; }
+        int getGlNum() { return glNum; }
 
         // By default, an element has no frame
         virtual void setFrame(EFrame *) {}
@@ -523,7 +525,7 @@ class Element {
 
 	// from DEC
 	// TOP/DOMDEC Element Functions
-	virtual int facelist(PolygonSet &, int * = 0) {return 0; }
+	virtual int facelist(PolygonSet &, int * = 0) { return 0; }
 
 	// DEC : Routines for the decomposer
 	// isStart indicates if an element is suitable to

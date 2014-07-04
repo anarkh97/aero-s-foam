@@ -1319,7 +1319,6 @@ Domain::setUpData()
 */
 
   stopTimerMemory(matrixTimers->setUpDataTime, matrixTimers->memorySetUp);
-
 }
 
 #ifndef OUTPUTMESSAGE
@@ -2244,9 +2243,7 @@ void Domain::computeTDProps()
     elemNodeTemps.zero();
     double *nodalTemperatures = getNodalTemperatures();
     for(iele = 0; iele < numele; ++iele) {
-      // note: packedEset[iele]->numNodes() > 2 is temp fix to avoid springs
-      // this means that until fixed, beams can't have temp-dependent material props
-      if((packedEset[iele]->numNodes() > 2) && !packedEset[iele]->isPhantomElement()) {
+      if((packedEset[iele]->numNodes() > 1) && !packedEset[iele]->isSpring() && !packedEset[iele]->isPhantomElement()) {
         if((packedEset[iele]->getProperty()->E < 0) ||
            (packedEset[iele]->getProperty()->W < 0)) { // iele has temp-dependent E or W
           int NodesPerElement = packedEset[iele]->numNodes();
@@ -2256,7 +2253,7 @@ void Domain::computeTDProps()
           double avTemp = 0.0;
           int iNode;
           for(iNode = 0; iNode < NodesPerElement; ++iNode) {
-            if(nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
+            if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
               elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
             else
               elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
@@ -2266,20 +2263,24 @@ void Domain::computeTDProps()
 
           StructProp *newProp = new StructProp(*packedEset[iele]->getProperty());
           // compute E using interp table
-          if(packedEset[iele]->getProperty()->E < 0) {
+          if(packedEset[iele]->getProperty()->E < 0 || packedEset[iele]->getProperty()->ymttFlag) {
             int id = (int) -packedEset[iele]->getProperty()->E;
             newProp->E = ymtt[ymttmap[id]]->getValAlt(avTemp);
+            newProp->ymttFlag = true;
           }
 
           // compute coeff of thermal expansion using interp table
-          if(packedEset[iele]->getProperty()->W < 0) {
+          if(packedEset[iele]->getProperty()->W < 0 || packedEset[iele]->getProperty()->ctettFlag) {
             int id  = (int) -packedEset[iele]->getProperty()->W;
             newProp->W = ctett[ctettmap[id]]->getValAlt(avTemp);
+            newProp->ctettFlag = true;
           }
           packedEset[iele]->setProp(newProp);
         }
       }
     }
+    delete [] ymttmap;
+    delete [] ctettmap;
     delete [] nodeNumbers;
   }
 }

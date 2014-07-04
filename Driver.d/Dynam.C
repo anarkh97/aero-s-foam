@@ -442,6 +442,8 @@ Domain::thermoeComm()
 {
   flExchanger->getStrucTemp(temprcvd);
   if(verboseFlag) filePrint(stderr, " ... [E] Received temperatures      ...\n");
+
+  computeTDProps();
 }
 
 void

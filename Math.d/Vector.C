@@ -1,8 +1,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
-#include <Math.d/mathUtility.h>
-
 #include <algorithm>
 
 template<class Scalar>

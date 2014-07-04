@@ -8,7 +8,6 @@
 #include <Utils.d/dofset.h>
 #include <Corotational.d/GeomState.h>
 #include <Math.d/FullSquareMatrix.h>
-#include <Math.d/mathUtility.h>
 #include <Math.d/matrix.h>
 #include <Timers.d/StaticTimers.h>
 #include <Timers.d/GetTime.h>

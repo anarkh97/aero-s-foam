@@ -18,7 +18,6 @@
 #include <Math.d/Skyline.d/DistSky.h>
 #include <Math.d/matrix.h>
 #include <Math.d/SymFullMatrix.h>
-#include <Math.d/mathUtility.h>
 #include <Math.d/BLKSparseMatrix.h>
 #include <Math.d/BigMatrix.h>
 #include <Math.d/VectorSet.h>

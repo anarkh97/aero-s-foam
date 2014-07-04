@@ -166,11 +166,9 @@ extern std::map<int,double> fieldWeightList;
 
 #include <Element.d/BelytschkoTsayShell.d/BelytschkoTsayShell.h>
 
-#include <Driver.d/Domain.h>
-
 #include <numeric>
 
-extern Domain *domain;
+extern SolverInfo &solInfo;
 extern std::auto_ptr<ElementFactory> elemFact;
 
 struct weight_add {
@@ -697,7 +695,7 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
      case 131:
        ele = new (ba) DiscreteMass6Dof(n);
        ele->setCategory(Element::Structural);
-       domain->solInfo().inertiaLumping = 2;
+       solInfo.inertiaLumping = 2;
        break;
      case 132:
        ele = new (ba) RigidBeam(n);

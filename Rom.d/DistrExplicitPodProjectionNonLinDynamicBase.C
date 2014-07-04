@@ -18,6 +18,7 @@
 
 #include <Driver.d/DecDomain.h>
 #include <Feti.d/DistrVector.h>
+#include <Timers.d/StaticTimers.h>
 #include <Utils.d/DistHelper.h>
 
 #include <algorithm>

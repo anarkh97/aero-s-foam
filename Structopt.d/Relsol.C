@@ -16,7 +16,6 @@
 
 #include <Structopt.d/Structopt_sd.h>
 
-#include <Math.d/mathUtility.h>
 #include <Timers.d/GetTime.h>
 
 #include <Driver.d/Domain.h>

@@ -8,6 +8,8 @@
 #include <limits>
 #include <cstddef>
 
+template <class T> inline double delta(T a, T b) { return (a==b) ? 1.0 : 0.0; }
+
 template<int e>
 ElasPlasKinHardMat<e>::ElasPlasKinHardMat(StructProp *p)
 {

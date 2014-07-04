@@ -8,11 +8,10 @@
  *****************************************************************************/
 
 #include <cstdio>
+#include <algorithm>
 #include <iostream>
 #include <Utils.d/linkfc.h>
-// #include <Math.d/FullMatrix.h>
 #include <Math.d/Vector.h>
-#include <Math.d/mathUtility.h>
 
 extern "C" {
 
@@ -646,14 +645,14 @@ GenFSFullMatrix<Scalar>::symLuFactor(int *perm, double tol, Scalar *origDiag, in
    //if(perm[i] != i) {
    if(maxIndex != i) {
      //fprintf(stderr, "Permuting\n");
-     mymySwap(perm[i], perm[maxIndex]);
+     std::swap(perm[i], perm[maxIndex]);
      for(k = 0; k < i; ++k)
-       mySwap((*this)[i][k], (*this)[maxIndex][k]);
-     mySwap( (*this)[i][i], (*this)[maxIndex][maxIndex]);
+       std::swap((*this)[i][k], (*this)[maxIndex][k]);
+     std::swap( (*this)[i][i], (*this)[maxIndex][maxIndex]);
      for(k = i+1; k < maxIndex; ++k) 
-       mySwap((*this) [k][i], (*this)[maxIndex][k]);
+       std::swap((*this) [k][i], (*this)[maxIndex][k]);
      for(k = maxIndex+1; k < nrow; ++k)
-       mySwap((*this)[k][i], (*this)[k][maxIndex]);
+       std::swap((*this)[k][i], (*this)[k][maxIndex]);
 
    }
 #endif

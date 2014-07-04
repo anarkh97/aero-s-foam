@@ -13,8 +13,6 @@
 
 #include <Structopt.d/MMAgc.d/mma.h>
 
-#include <Math.d/mathUtility.h>
-
 #include <Utils.d/linkfc.h>
 #include <Utils.d/DistHelper.h>
 

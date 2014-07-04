@@ -1,25 +1,15 @@
 #ifndef _SFEMNONINPC_H
 #define _SFEMNONINPC_H
 
-//#include <Element.d/Element.h>
-#include <cstdio>
-#include <cstdlib>
-#include <alloca.h>
-#include <vector>
-#include <Math.d/Vector.h>
-#include <Utils.d/MyComplex.h>
 #include <Sfem.d/Sfem.h>
-#include <Driver.d/Domain.h>
-#include<Math.d/matrix.h>
 
-extern Domain *domain;
 extern Sfem *sfem;
 
 template <class Scalar, class VecType>
 class SfemNonInpc : public Sfem {
   int n;
  public:
-  SfemNonInpc() {  P=sfem->getP(); L= sfem->getL(); ndim=sfem->getndim();output_order = sfem->getoutput_order();makealpha();};
+  SfemNonInpc() { P=sfem->getP(); L=sfem->getL(); ndim=sfem->getndim(); output_order=sfem->getoutput_order(); makealpha();};
   ~SfemNonInpc() {};
   void setn(int n1) {n=n1;};
   void update_Psi_u(VecType* u, VecType* psi_u); 
@@ -30,10 +20,6 @@ class SfemNonInpc : public Sfem {
   void computePdf(int seed, VecType* psi_u, VecType *realz_u);
 //  Scalar  computePdf(int seed, int dofno);
 };
-
-
-
-
 
 #ifdef _TEMPLATE_FIX_
 #include <Sfem.d/SfemNonInpc.C>

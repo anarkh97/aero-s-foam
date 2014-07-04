@@ -10,15 +10,16 @@
 #include <Timers.d/StaticTimers.h>
 #include <Timers.d/GetTime.h>
 #include <Math.d/Vector.h>
-#include <Math.d/mathUtility.h>
 #include <Utils.d/DistHelper.h>
 #include <Paral.d/MDStatic.h>
 #include <Paral.d/MDDynam.h>
+#include <Paral.d/MDOp.h>
 #ifdef DISTRIBUTED
 #include <Dist.d/DistDom.h>
 #endif
 #include <Hetero.d/DistFlExchange.h>
 #include <Utils.d/ModeData.h>
+#include <Control.d/ControlInterface.h>
 
 extern ModeData modeData;
 

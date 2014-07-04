@@ -4,6 +4,7 @@
 #include <iomanip>
 #include <limits>
 #include <stdexcept>
+#include <algorithm>
 
 #include <Driver.d/SubDomain.h>
 #include <Feti.d/Feti.h>
@@ -17,18 +18,14 @@
 #include <Math.d/Skyline.d/DistBlockSky.h>
 #include <Math.d/matrix.h>
 #include <Math.d/DistBLKSparse.h>
-#include <Math.d/mathUtility.h>
+#include <Math.d/EiSparseMatrix.h>
+#include <Solvers.d/Spooles.h>
 #include <Utils.d/linkfc.h>
 #include <Feti.d/CCtSolver.d/GlobalCCt.h>
 #include <Feti.d/CCtSolver.d/BlockCCt.h>
 #include <Feti.d/CCtSolver.d/SuperBlockCCt.h>
 #include <Feti.d/CCtSolver.d/SubBlockCCt.h>
 #include <Driver.d/Mpc.h>
-
-#ifdef TFLOP 
-#include <Math.d/mathUtility.h>
-#endif
-
 #include <Math.d/BLKSparseMatrix.h>
 #include <Solvers.d/Rbm.h>
 #include <Timers.d/GetTime.h>
@@ -2178,8 +2175,8 @@ void
 GenFetiDPSolver<Scalar>::singularValueDecomposition(FullM &A, FullM &U, int ncol, int nrow, int &rank, double tol, FullM *V)
 {
   int info = 0;
-  int mindim = myMin(nrow,ncol);
-  int maxdim = myMax(nrow,ncol);
+  int mindim = std::min(nrow,ncol);
+  int maxdim = std::max(nrow,ncol);
   double max_value = A.maxAbs();
 #ifdef FILERING
   for(int i=0; i<A.numCol()*A.numRow(); i++) //HB
@@ -2731,7 +2728,7 @@ GenFetiDPSolver<Scalar>::project(GenDistrVector<Scalar> &z, GenDistrVector<Scala
       double resnorm = (eflag && ngrbms) ? res.norm() : 0;
       if(this->fetiInfo->contactPrintFlag && this->myCPU == 0) std::cerr << "dual planing: iteration = " << i << ", residual = " << resnorm << std::endl;
       if(/*resnorm <= this->fetiInfo->dual_proj_tol ||*/ !status_change) break;
-      else if(i == MAX(1,this->fetiInfo->dual_plan_maxit)) {
+      else if(i == std::max(1,this->fetiInfo->dual_plan_maxit)) {
         if(this->myCPU == 0) std::cerr << "warning: dual planing did not converge after " << i << " iterations. Error = " << resnorm << std::endl;
         // note: if we break the loop here then y will not be feasible wrt the equality constraints (i.e. G^T*y != e)
         // if we don't break here then y will not be feasible wrt the inequality constraints
@@ -2793,7 +2790,7 @@ GenFetiDPSolver<Scalar>::tProject(GenDistrVector<Scalar> &r, GenDistrVector<Scal
       double resnorm = (ngrbms) ? res.norm() : 0;
       if(this->fetiInfo->contactPrintFlag && this->myCPU == 0) std::cerr << "primal planing: iteration " << i << ", residual = " << resnorm << std::endl;
       if(/*resnorm <= this->fetiInfo->primal_proj_tol ||*/ !status_change) break;
-      else if(i == MAX(1,this->fetiInfo->primal_plan_maxit)) {
+      else if(i == std::max(1,this->fetiInfo->primal_plan_maxit)) {
         if(this->myCPU == 0) std::cerr << "warning: primal planing did not converge after " << i << " iterations. " << std::endl;
         break;
       }

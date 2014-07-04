@@ -12,8 +12,8 @@
 #include <Solvers.d/Rbm.h>
 #include <Timers.d/GetTime.h>
 
-#include<Driver.d/Domain.h>
-extern Domain *domain;
+#include <Utils.d/SolverInfo.h>
+extern SolverInfo &solInfo;
 
 #ifdef DISTRIBUTED
 #include <Comm.d/Communicator.h>
@@ -1252,8 +1252,8 @@ GenBLKSparseMatrix<Scalar>::allocateMemory()
   int i,j,k,iflag;
 
   // maxsup = maximum number of columns in each supernode (parameter)
-  int maxsup = domain->solInfo().sparse_maxsup;  // default is 100, but may need larger maxsup for big subdomains
-                                                 // set using sparse_maxsup parameter in fem input file
+  int maxsup = solInfo.sparse_maxsup;  // default is 100, but may need larger maxsup for big subdomains
+                                       // set using sparse_maxsup parameter in fem input file
 
   adj = new int[nnza];
 
@@ -1321,7 +1321,7 @@ GenBLKSparseMatrix<Scalar>::allocateMemory()
   // Rank deficiency information
   // defblk = size of last block to perform full pivoting on
   if(ngrbm > 0)
-    defblk = min(numUncon-1,domain->solInfo().sparse_defblk); // note: sparse_defblk default is 30
+    defblk = min(numUncon-1,solInfo.sparse_defblk); // note: sparse_defblk default is 30
   else
     defblk = 0;
 

@@ -3,7 +3,7 @@
 #include <Math.d/FullSquareMatrix.h>
 #include <Comm.d/Communicator.h>
 #include <Threads.d/Paral.h>
-#include <Driver.d/Domain.h>
+#include <Utils.d/SolverInfo.h>
 #ifdef DISTRIBUTED
 #include <Driver.d/Communicator.h>
 #endif
@@ -11,7 +11,7 @@
 
 extern double getTime();
 
-extern Domain *domain;
+extern SolverInfo &solInfo;
 extern long totMemSpooles;
 
 #define DEBUG_SPOOLES 0  // 1 = print debug stats for factorization, 2 = print for solve also
@@ -467,14 +467,14 @@ GenSpoolesSolver<Scalar>::allFactor(bool fctIsParal)
 // spooles_maxzeros - maximum number of zeros allowed in a supernode/front
 // spooles_maxsize - maximum number of internal columns in supernode/front
 
-  int seed = domain->solInfo().spooles_seed;  // default is 532196
-  int maxdomainsize = int(neq/domain->solInfo().spooles_maxdomainsize+0.5);  // default is neq/24
-  int maxsize = domain->solInfo().spooles_maxsize;  // default is 64
-  int maxzeros = int(neq*domain->solInfo().spooles_maxzeros+0.5);  // default is 0.04*neq
+  int seed = solInfo.spooles_seed;  // default is 532196
+  int maxdomainsize = int(neq/solInfo.spooles_maxdomainsize+0.5);  // default is neq/24
+  int maxsize = solInfo.spooles_maxsize;  // default is 64
+  int maxzeros = int(neq*solInfo.spooles_maxzeros+0.5);  // default is 0.04*neq
 
   //tt0=getTime();
 
-  switch(domain->solInfo().spooles_renum) {
+  switch(solInfo.spooles_renum) {
     default:
     case 0: // best of nested dissection and multisection ordering 
       frontETree = orderViaBestOfNDandMS(graph, maxdomainsize, maxzeros, maxsize, seed, msglvl, msgfile); break;
@@ -544,7 +544,7 @@ GenSpoolesSolver<Scalar>::allFactor(bool fctIsParal)
   DVfill(22, cpus, 0.0);
   IVfill(7, stats, 0);
 
-  double tau = domain->solInfo().spooles_tau; // default is 100.0
+  double tau = solInfo.spooles_tau; // default is 100.0
   int error = 0;
   //double t0 = getTime();
   Chv *rootchv = NULL;
@@ -749,7 +749,7 @@ GenSpoolesSolver<Scalar>::zeroAll()
 
   for(int i = 0; i < nNonZero; ++i)
     unonz[i] = 0.0;
-  pivotingflag = (domain->solInfo().pivot) ? SPOOLES_PIVOTING : SPOOLES_NO_PIVOTING;
+  pivotingflag = (solInfo.pivot) ? SPOOLES_PIVOTING : SPOOLES_NO_PIVOTING;
 #endif
 }
 
@@ -800,11 +800,11 @@ GenSpoolesSolver<Scalar>::init()
   frontETree = 0;
   cumopsDV = 0; 
   graph = 0;
-  pivotingflag = (domain->solInfo().pivot) ? SPOOLES_PIVOTING : SPOOLES_NO_PIVOTING;
+  pivotingflag = (solInfo.pivot) ? SPOOLES_PIVOTING : SPOOLES_NO_PIVOTING;
 #endif
   scale = 0;
-  isScaled = domain->solInfo().spooles_scale;
-  msglvl = domain->solInfo().spooles_msglvl;
+  isScaled = solInfo.spooles_scale;
+  msglvl = solInfo.spooles_msglvl;
   msgfile = (msglvl > 0) ? fopen("spooles_msgfile","w") : NULL;
   _size = 0;
 }

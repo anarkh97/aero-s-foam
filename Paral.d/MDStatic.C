@@ -1,7 +1,6 @@
 #include <Utils.d/dbg_alloca.h>
 #include <Threads.d/Paral.h>
 #include <Threads.d/PHelper.h>
-#include <Math.d/mathUtility.h>
 #include <Driver.d/Domain.h>
 #include <Math.d/SparseMatrix.h>
 #include <Solvers.d/Solver.h>

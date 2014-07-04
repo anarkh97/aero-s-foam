@@ -1,17 +1,18 @@
-#include <Driver.d/Domain.h>
 #include <Driver.d/EFrameData.h>
+#include <Driver.d/Mpc.h>
 #include <Corotational.d/GeomState.h>
 #include <Corotational.d/utilities.h>
 #include <Element.d/Function.d/utilities.hpp>
 #include <Utils.d/dofset.h>
 #include <Element.d/Element.h>
 #include <Driver.d/ControlLawInfo.h>
+#include <Utils.d/SolverInfo.h>
+#include <Math.d/Vector.h>
 
 //#define COMPUTE_GLOBAL_ROTATION
 //#define NEW_PULL_BACK
 
-extern Domain *domain;
-extern const double defaultTemp;
+extern SolverInfo &solInfo;
 
 GeomState::GeomState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet &cs, Elemset *elems, double *ndTemps)
  : X0(&cs)
@@ -549,7 +550,7 @@ GeomState::update(const Vector &v, int SO3param)
 
        if(cd) cd->invTransformVector3(dtheta);
 
-       if(domain->solInfo().getNLInfo().linearelastic || SO3param == 2) {
+       if(solInfo.getNLInfo().linearelastic || SO3param == 2) {
          // Additive update of total rotation vector
          for(int j=0; j<3; ++j) ns[i].theta[j] += dtheta[j];
          vec_to_mat( ns[i].theta, ns[i].R );
@@ -619,7 +620,7 @@ GeomState::update(const Vector &v, const std::vector<int> &weightedNodes, int SO
 
        if(cd) cd->invTransformVector3(dtheta);
 
-       if(domain->solInfo().getNLInfo().linearelastic || SO3param == 2) {
+       if(solInfo.getNLInfo().linearelastic || SO3param == 2) {
          // Additive update of total rotation vector
          for(int j=0; j<3; ++j) ns[i].theta[j] += dtheta[j];
          vec_to_mat( ns[i].theta, ns[i].R );
@@ -755,7 +756,7 @@ GeomState::setVelocity(const Vector &v, int SO3param)
     if(cd) cd->invTransformVector6(ns[i].v);
 #ifdef USE_EIGEN3
     if(SO3param == 2 && (loc[i][3] >= 0 || loc[i][4] >= 0 || loc[i][5] >= 0)
-       && !domain->solInfo().getNLInfo().linearelastic) {
+       && !solInfo.getNLInfo().linearelastic) {
       // conversion to convected angular velocity
       Eigen::Vector3d PsiI, PsiIdot, Omega;
       Eigen::Matrix3d R, T;
@@ -814,7 +815,7 @@ GeomState::setAcceleration(const Vector &a, int SO3param)
     if(cd) cd->invTransformVector6(ns[i].a);
 #ifdef USE_EIGEN3
     if(SO3param == 2 && (loc[i][3] >= 0 || loc[i][4] >= 0 || loc[i][5] >= 0)
-       && !domain->solInfo().getNLInfo().linearelastic) {
+       && !solInfo.getNLInfo().linearelastic) {
       // conversion from second time derivative of total rotation vector to convected angular acceleration
       Eigen::Vector3d PsiI, PsiIdot, PsiIddot, Omega, Alpha;
       Eigen::Matrix3d R, T, Tdot;
@@ -935,7 +936,7 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
     // Update angular velocities and accelerations
     if(loc[i][3] >= 0 || loc[i][4] >= 0 || loc[i][5] >= 0) {
       double dtheta[3], dR[3][3];
-      if(domain->solInfo().getNLInfo().linearelastic) {
+      if(solInfo.getNLInfo().linearelastic) {
         for(int j=0; j<3; ++j) dtheta[j] = ns[i].theta[j] - ss[i].theta[j];
       }
       else {
@@ -976,7 +977,7 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
   double result[3][3], result2[3][3], rotVec[3];
   for(int i = 0; i < numnodes; ++i) {
     if(flag[i] == -1 || (loc[i][3] < 0 && loc[i][4] < 0 && loc[i][5] < 0)) continue;
-    if(domain->solInfo().getNLInfo().linearelastic) {
+    if(solInfo.getNLInfo().linearelastic) {
       for(int j = 0; j < 3; ++j) 
         ss.ns[i].theta[j] = ns[i].theta[j] = tcoef*(ns[i].theta[j] - alphaf*ss.ns[i].theta[j]);
       vec_to_mat(ns[i].theta, ns[i].R);
@@ -1117,7 +1118,7 @@ GeomState::get_inc_displacement(Vector &incVec, GeomState &ss, bool zeroRot)
       }
       else {
         double vec[3];
-        if(domain->solInfo().getNLInfo().linearelastic) {
+        if(solInfo.getNLInfo().linearelastic) {
           for(int j=0; j<3; ++j) vec[j] = ns[inode].theta[j] - ss[inode].theta[j];
         }
         else {

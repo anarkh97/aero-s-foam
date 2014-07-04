@@ -65,8 +65,8 @@ template <class AnyVector> class Preconditioner;
 template <class Scalar, class AnyVector, class AnyOperator> class GenPCGSolver;
 template <class Scalar> class GenSpoolesSolver;
 typedef GenSpoolesSolver<double> SpoolesSolver;
-template <class Scalar> class GenMumpsSolver; 	//Axel
-typedef GenMumpsSolver<double> MumpsSolver;   	//Axel
+template <class Scalar> class GenMumpsSolver;
+typedef GenMumpsSolver<double> MumpsSolver;
 class GeomState;
 class DistrGeomState;
 class IntFullM;
@@ -91,8 +91,6 @@ template <typename Scalar> class GenEiSparseGalerkinProjectionSolver;
 class SurfaceEntity;
 
 extern Sfem *sfem;
-
-const double defaultTemp = -10000000.0;
 
 // ... Structure used to store problem Operators buildSkyOps
 // ... i.e. Only a Solver is needed for a static problem

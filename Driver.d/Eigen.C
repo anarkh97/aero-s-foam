@@ -3,13 +3,13 @@
 #include <Utils.d/dbg_alloca.h>
 #include <cmath>
 #include <fstream>
+#include <algorithm>
 
 #include <Utils.d/dofset.h>
 #include <Driver.d/Domain.h>
 #include <Utils.d/Connectivity.h>
 #include <Element.d/Element.h>
 #include <Math.d/VectorSet.h>
-#include <Math.d/mathUtility.h>
 #include <Utils.d/resize_array.h>
 #include <Utils.d/BinFileHandler.h>
 
@@ -42,7 +42,7 @@ Domain::getSloshDisp(Vector &sloshPotSol, double *bcx, int fileNumber, int hgInd
     int NodesPerElement, maxNodesPerElement=0;
     for(iele=0; iele<numele; ++iele) {
       NodesPerElement = elemToNode->num(iele);
-      maxNodesPerElement = myMax(maxNodesPerElement, NodesPerElement);
+      maxNodesPerElement = std::max(maxNodesPerElement, NodesPerElement);
     }
     elFluidDispSlosh = new Vector(maxNodesPerElement, 0.0);
   }
@@ -116,7 +116,7 @@ Domain::getSloshDispAll(Vector &sloshPotSol, double *bcx, int fileNumber, double
     int NodesPerElement, maxNodesPerElement=0;
     for(iele=0; iele<numele; ++iele) {
       NodesPerElement = elemToNode->num(iele);
-      maxNodesPerElement = myMax(maxNodesPerElement, NodesPerElement);
+      maxNodesPerElement = std::max(maxNodesPerElement, NodesPerElement);
     }
     elFluidDispSloshAll = new Vector(maxNodesPerElement*3, 0.0);
   }

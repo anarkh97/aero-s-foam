@@ -5,6 +5,7 @@
 #include <Paral.d/MDOp.h>
 #include <Paral.d/MDDynam.h>
 #include <Paral.d/Assembler.h>
+#include <iostream>
 
 template <class Scalar> class GenFetiSolver;
 class StaticTimers;
@@ -65,32 +66,32 @@ class GenMultiDomainInpcStatic
 
     DistrBlockInfo &solVecInfo();
     DistrBlockInfo &solVecInfo(int i);
-    void getRHS(DistrBlockVector<Scalar> &) {cerr << "GenMultiDomainInpcStatic::getRHS not implemented" << endl;}
+    void getRHS(DistrBlockVector<Scalar> &) {std::cerr << "GenMultiDomainInpcStatic::getRHS not implemented" << std::endl;}
     void getRHSinpc(DistrBlockVector<Scalar>  &);
-    void preProcessSA() {cerr << "GenMultiDomainInpcStatic::preProcessSA not implemented" << endl; }
-    void postProcessSA(DistrBlockVector<Scalar> &) {cerr << "GenMultiDomainInpcStatic::postProcessSA not implemented" << endl; }
+    void preProcessSA() {std::cerr << "GenMultiDomainInpcStatic::preProcessSA not implemented" << std::endl; }
+    void postProcessSA(DistrBlockVector<Scalar> &) {std::cerr << "GenMultiDomainInpcStatic::postProcessSA not implemented" << std::endl; }
     void preProcess();
     void rebuildSolver();
-    void scaleDisp(DistrBlockVector<Scalar> &) {cerr << "scaleDisp(DistrBlockVector not implemented" << endl;}
-    void scaleInvDisp(DistrBlockVector<Scalar> &) {cerr << "scaleInvDisp(DistrBlockVector not implemented" << endl;}
-    void scaleDisp(DistrBlockVector<Scalar> &, double alpha) {cerr << "scaleDisp(DistrBlockVector not implemented" << endl;}
-    void forceContinuity(DistrBlockVector<Scalar> &) {cerr << "forceContinuity(DistrBlockVector not implemented" << endl;}
-    void forceAssemble(DistrBlockVector<Scalar> &) {cerr << "forceAssemble(DistrBlockVector not implemented" << endl;}
+    void scaleDisp(DistrBlockVector<Scalar> &) {std::cerr << "scaleDisp(DistrBlockVector not implemented" << std::endl;}
+    void scaleInvDisp(DistrBlockVector<Scalar> &) {std::cerr << "scaleInvDisp(DistrBlockVector not implemented" << std::endl;}
+    void scaleDisp(DistrBlockVector<Scalar> &, double alpha) {std::cerr << "scaleDisp(DistrBlockVector not implemented" << std::endl;}
+    void forceContinuity(DistrBlockVector<Scalar> &) {std::cerr << "forceContinuity(DistrBlockVector not implemented" << std::endl;}
+    void forceAssemble(DistrBlockVector<Scalar> &) {std::cerr << "forceAssemble(DistrBlockVector not implemented" << std::endl;}
     void clean();
     void setIWaveDir(int _i); // FETI-H
     void getFreqSweepRHS(DistrBlockVector<Scalar> *rhs, DistrBlockVector<Scalar> **sol_prev, int iRHS)
-           {cerr << "getFreqSweepRHS(DistrBlockVector) not implemented" << endl; }	
-    void getRHS(DistrBlockVector<Scalar> &,double,double) {cerr << "GenMultiDomainInpcStatic::getRHS not implemented" << endl;}
+           {std::cerr << "getFreqSweepRHS(DistrBlockVector) not implemented" << std::endl; }	
+    void getRHS(DistrBlockVector<Scalar> &,double,double) {std::cerr << "GenMultiDomainInpcStatic::getRHS not implemented" << std::endl;}
     void pade(DistrBlockVector<Scalar> *sol, DistrBlockVector<Scalar> **sol_prev, double *h, double x)
-           {cerr << "pade(DistrBlockVector) not implemented" << endl; }
+           {std::cerr << "pade(DistrBlockVector) not implemented" << std::endl; }
     GenSolver<Scalar> *getSolver();
     AllOps<Scalar> *getAllOps() { return &allOps; }
     GenMultiDomainInpcPostProcessor<Scalar> *getPostProcessor();
     StaticTimers *getStaticTimers() { return times; }
     void assignRandMat() {decDomain->assignRandMat(); }     
     void retrieveElemset() {decDomain->retrieveElemset();}
-    void project(DistrBlockVector<Scalar> &) {cerr << "project(DistrBlockVector) not implemented" << endl;}
-    AllSensitivities<Scalar> *getAllSensitivities() { cerr << "GenMultiDomainInpcStatic::getAllSensitivities() not implemented" << endl; return 0; }
+    void project(DistrBlockVector<Scalar> &) {std::cerr << "project(DistrBlockVector) not implemented" << std::endl;}
+    AllSensitivities<Scalar> *getAllSensitivities() { std::cerr << "GenMultiDomainInpcStatic::getAllSensitivities() not implemented" << std::endl; return 0; }
   private:
     void subGetRHS(int isub, GenDistrVector<Scalar>& rhs, GenSubDOp<Scalar> *Kuc);
 };

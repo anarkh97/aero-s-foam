@@ -1,12 +1,11 @@
 #ifndef DISTR_SFEM_BLOCK_MATRIX_H_
 #define DISTR_SFEM_BLOCK_MATRIX_H_
 
-#include<Utils.d/MyComplex.h>
-#include<Math.d/matrix.h>
-#include<Feti.d/Feti.h>
-#include<Paral.d/SubDOp.h>
-
-//#include<Feti.d/DistrVector.h>
+#include <Utils.d/MyComplex.h>
+#include <Math.d/matrix.h>
+#include <Feti.d/Feti.h>
+#include <Paral.d/SubDOp.h>
+#include <iostream>
 
 struct DistrBlockInfo {
   DistrInfo *blockinfo;
@@ -72,7 +71,7 @@ class DistrBlockVector {
     void computeSqrt();
     void computeRealz(int ii, Scalar c, DistrBlockVector<Scalar> &);
 
-    Scalar *data() const  { cerr << "Warning :: DistrBlockVector::data() not implemented"; return 0;  } 
+    Scalar *data() const  { std::cerr << "Warning :: DistrBlockVector::data() not implemented"; return 0;  } 
     void print();
     void printNonZeroTerms();
     void printAll();
@@ -105,14 +104,14 @@ class DistrSfemBlockMatrix {
     void mult(DistrBlockVector<Scalar> &u, DistrBlockVector<Scalar> &ku);
     DistrBlockInfo &dim(); 
     int neqs() {return n*P;} //  in some cases like dim()
-    Scalar diag(int i) {Scalar r =0.0; cerr <<"DistrSfemBlockMatrix::diag not implemented" << endl; return r;}
+    Scalar diag(int i) {Scalar r =0.0; std::cerr <<"DistrSfemBlockMatrix::diag not implemented" << std::endl; return r;}
     int* getFirstDof();
     int numNodes();
     GenFullM<Scalar>* getDiagMatrix(int i);
     void setMeanSolver(GenFetiSolver<Scalar> *prc);
     GenFetiSolver<Scalar>* getMeanSolver();
     Scalar* getBlockScalarMultipliers();
-    int getBlockSize() {cerr << "DistrSfemBlockMatrix::getBlockSize() not implemented" << endl; return 0;}
+    int getBlockSize() {std::cerr << "DistrSfemBlockMatrix::getBlockSize() not implemented" << std::endl; return 0;}
 };
 
 #ifdef _TEMPLATE_FIX_

@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <cstdlib>
+#include <algorithm>
 #include <Utils.d/dbg_alloca.h>
 
 // New include files for Restart file
@@ -17,7 +18,6 @@
 #include <Utils.d/pstress.h>
 #include <Corotational.d/GeomState.h>
 #include <Math.d/FullSquareMatrix.h>
-#include <Math.d/mathUtility.h>
 #include <Math.d/matrix.h>
 #include <Control.d/ControlInterface.h>
 #include <Timers.d/StaticTimers.h>
@@ -1932,7 +1932,7 @@ Domain::getStressStrain(GeomState &geomState, Corotator **allCorot,
       NodesPerElement = elemToNode->num(iele);
       maxNodesPerElement = std::max(maxNodesPerElement, NodesPerElement);
       if(avgnum == -1) {
-        maxNodesPerElement = myMax(maxNodesPerElement, allCorot[iele]->getNumGaussPoints());
+        maxNodesPerElement = std::max(maxNodesPerElement, allCorot[iele]->getNumGaussPoints());
       }
     }
     if(elstress == 0) elstress = new Vector(maxNodesPerElement, 0.0);
@@ -2310,7 +2310,7 @@ Domain::getElementForces(GeomState &geomState, Corotator **allCorot,
     int NodesPerElement, maxNodesPerElement=0;
     for(iele=0; iele<numele; ++iele) {
       NodesPerElement = elemToNode->num(iele);
-      maxNodesPerElement = myMax(maxNodesPerElement, NodesPerElement);
+      maxNodesPerElement = std::max(maxNodesPerElement, NodesPerElement);
     }
     elstress = new Vector(maxNodesPerElement, 0.0);
   }

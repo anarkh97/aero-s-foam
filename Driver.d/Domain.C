@@ -1,6 +1,7 @@
 #include <iostream>
 #include <sstream>
 #include <ctime>
+#include <algorithm>
 #include <Utils.d/dbg_alloca.h>
 
 #include <map>
@@ -23,7 +24,6 @@ using std::list;
 #include <Driver.d/Domain.h>
 #include <Element.d/Element.h>
 #include <Utils.d/ModeData.h>
-#include <Math.d/mathUtility.h>
 #include <Driver.d/GeoSource.h>
 #include <Feti.d/DistrVector.h>
 #include <Corotational.d/DistrGeomState.h>
@@ -1901,7 +1901,7 @@ Domain::getCompositeData(int iInfo,double time) {
          dy = MidPoint[iele][1]-MidPoint[jele][1];
          dz = MidPoint[iele][2]-MidPoint[jele][2];
 	 dd = sqrt(dx*dx+dy*dy+dz*dz);
-	 minDist = myMin(minDist,dd);
+	 minDist = std::min(minDist,dd);
       }
     }
 

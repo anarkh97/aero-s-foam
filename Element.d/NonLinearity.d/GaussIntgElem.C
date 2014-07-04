@@ -5,7 +5,6 @@
 #include <Element.d/NonLinearity.d/GaussIntgElem.h>
 #include <Element.d/NonLinearity.d/StrainEvaluator.h>
 #include <Math.d/FullSquareMatrix.h>
-#include <Math.d/mathUtility.h>
 #ifdef USE_EIGEN3
 #include <Eigen/Dense>
 #endif

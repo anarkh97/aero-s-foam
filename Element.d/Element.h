@@ -211,7 +211,7 @@ class StructProp {
         double constraint_hess_eps;
         enum PropType { Undefined=0, Fluid, Fabric, Thermal, Constraint } type;
         double k1, k2, k3;
-        bool ymttFlag, ctettFlag;
+        int ymtt_id, ctett_id;
 
 	// Fabric Material Options
 	int F_op; // Fabric Material Option
@@ -249,7 +249,7 @@ class StructProp {
                        lagrangeMult = true; penalty = 0.0; initialPenalty = 0.0;
                        B = 1.0; C = 0.0; relop = 0; type = Undefined; funtype = 0;
                        k1 = 0; k2 = 0; k3 = 0; constraint_hess = 1; constraint_hess_eps = 0.0;
-                       ymttFlag = 0; ctettFlag = 0; } 
+                       ymtt_id = 0; ctett_id = 0; } 
 
 };
 

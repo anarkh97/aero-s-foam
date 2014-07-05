@@ -982,6 +982,8 @@ FlExchanger::sendStrucTemp(Vector &tempsent)
    }
 
    heatStructCom->sendTo(zero, tag, buff, pos);
+
+   heatStructCom->waitForAllReq();
 }
 
 void

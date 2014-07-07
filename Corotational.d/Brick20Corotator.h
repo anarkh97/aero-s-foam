@@ -3,16 +3,20 @@
 
 #include <Corotational.d/Corotator.h>
 
+class MFTTData;
+
 class Brick20Corotator : public Corotator {
      int nodeNum[20];
      double em;                 // elastic modulus
      double nu;                 // Poisson's ratio
      double Tref;               // ambient temperature
      double alpha;              // thermal expansion coefficient
+     MFTTData *ymtt;
+     MFTTData *ctett;
    public:
 
      // Constructor
-     Brick20Corotator(int nn[20], double, double, CoordSet &, double, double);
+     Brick20Corotator(int nn[20], double, double, CoordSet &, double, double, MFTTData *, MFTTData *);
      double * getOriginalStiffness() { return (double*) 0; }
 
      void     getStiffAndForce(GeomState &gs, CoordSet &cs, 

@@ -1211,6 +1211,8 @@ Domain::thermoePreProcess()
  
     flExchanger->getStrucTemp(temprcvd) ;
     if(verboseFlag) filePrint(stderr," ... [E] Received initial temperatures ...\n");
+
+    computeTDProps();
   }
 }
 

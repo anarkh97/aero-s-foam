@@ -3,16 +3,20 @@
 
 #include <Corotational.d/Corotator.h>
 
+class MFTTData;
+
 class Tet10Corotator : public Corotator {
      int nodeNum[10];
      double em;                 // elastic modulus
      double nu;                 // Poisson's ratio
      double Tref;               // ambient temperature
      double alpha;              // thermal expansion coefficient
+     MFTTData *ymtt;
+     MFTTData *ctett;
    public:
 
      // Constructor
-     Tet10Corotator(int nn[10], double, double, CoordSet &, double, double);
+     Tet10Corotator(int nn[10], double, double, CoordSet &, double, double, MFTTData *, MFTTData *);
      double * getOriginalStiffness() { return (double*) 0; }
 
      void   getStiffAndForce(GeomState &gs, CoordSet &cs, 

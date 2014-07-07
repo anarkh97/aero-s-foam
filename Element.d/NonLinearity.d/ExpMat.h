@@ -26,7 +26,7 @@ class ExpMat : public NLMaterial
     void getStress(Tensor *stress, Tensor &strain, double*, double)
       { std::cerr << "ExpMat::getStress is not implemented\n"; }
 
-    void getTangentMaterial(Tensor *tm, Tensor &strain, double*)
+    void getTangentMaterial(Tensor *tm, Tensor &strain, double*, double)
       { std::cerr << "ExpMat::getTangentMaterial is not implemented\n"; }
 
     void getElasticity(Tensor *tm)

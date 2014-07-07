@@ -15,6 +15,8 @@ ElaLinIsoMat::ElaLinIsoMat(StructProp *p)
   alphas[0] = alphas[3] = alphas[5] = alpha = p->W;
   alphas[1] = alphas[2] = alphas[4] = 0;
   m_tm = 0;
+  ymtt = p->ymtt;
+  ctett = p->ctett;
 }
 
 ElaLinIsoMat::ElaLinIsoMat(double _rho, double _E, double _nu, double _Tref, double _alpha)
@@ -26,15 +28,8 @@ ElaLinIsoMat::ElaLinIsoMat(double _rho, double _E, double _nu, double _Tref, dou
   alphas[0] = alphas[3] = alphas[5] = alpha = _alpha;
   alphas[1] = alphas[2] = alphas[4] = 0;
   m_tm = 0;
-}
-
-ElaLinIsoMat::ElaLinIsoMat(double _rho, double C[6][6], double _Tref, double _alpha)
-{
-  rho = _rho;
-  Tref = _Tref;
-  setTangentMaterial(C);
-  alphas[0] = alphas[3] = alphas[5] = alpha = _alpha;
-  alphas[1] = alphas[2] = alphas[4] = 0;
+  ymtt = NULL;
+  ctett = NULL;
 }
 
 ElaLinIsoMat::ElaLinIsoMat(double _rho, double C[6][6], double _Tref, double _alphas[6])
@@ -43,6 +38,8 @@ ElaLinIsoMat::ElaLinIsoMat(double _rho, double C[6][6], double _Tref, double _al
   Tref = _Tref;
   setTangentMaterial(C);
   setThermalExpansionCoef(_alphas);
+  ymtt = NULL;
+  ctett = NULL;
 }
 
 ElaLinIsoMat::~ElaLinIsoMat()
@@ -74,18 +71,19 @@ ElaLinIsoMat::setThermalExpansionCoef(double _alphas[6])
 }
 
 void
-ElaLinIsoMat::getStress(Tensor *_stress, Tensor &_strain, double*, double temp)
+ElaLinIsoMat::getStress(Tensor *_stress, Tensor &_strain, double* state, double temp)
 {
   Tensor_d0s4_Ss12s34 tm;
   Tensor_d0s2_Ss12 & strain = static_cast<Tensor_d0s2_Ss12 &>(_strain);
   Tensor_d0s2_Ss12 * stress = static_cast<Tensor_d0s2_Ss12 *>(_stress);
-  getTangentMaterial(&tm, _strain, 0);
+  getTangentMaterial(&tm, _strain, state, temp);
 
   // subtract thermal strain
   if(m_tm) {
     for(int i=0; i<6; ++i) strain[i] -= (temp-Tref)*alphas[i];
   }
   else {
+    double alpha = (ctett) ? ctett->getValAlt(temp) : ElaLinIsoMat::alpha;
     double e0 = (temp-Tref)*alpha;
     strain[0] -= e0;
     strain[3] -= e0;
@@ -96,11 +94,12 @@ ElaLinIsoMat::getStress(Tensor *_stress, Tensor &_strain, double*, double temp)
 }
 
 void 
-ElaLinIsoMat::getTangentMaterial(Tensor *_tm, Tensor &, double*)
+ElaLinIsoMat::getTangentMaterial(Tensor *_tm, Tensor &, double*, double temp)
 {
   Tensor_d0s4_Ss12s34 * tm = static_cast<Tensor_d0s4_Ss12s34 *>(_tm);
   if(m_tm) *tm = *m_tm;
   else {
+    double E = (ymtt) ? ymtt->getValAlt(temp) : ElaLinIsoMat::E;
     double lambda = E*nu/((1.+nu)*(1.-2.*nu));
     double lambdadivnu = (nu != 0) ? lambda/nu : E;
 
@@ -132,6 +131,7 @@ ElaLinIsoMat::getStressAndTangentMaterial(Tensor *_stress, Tensor *_tm, Tensor &
     for(int i=0; i<6; ++i) strain[i] -= (temp-Tref)*alphas[i];
   }
   else {
+    double E = (ymtt) ? ymtt->getValAlt(temp) : ElaLinIsoMat::E;
     double lambda = E*nu/((1.+nu)*(1.-2.*nu));
     double lambdadivnu = (nu != 0) ? lambda/nu : E;
 
@@ -149,6 +149,7 @@ ElaLinIsoMat::getStressAndTangentMaterial(Tensor *_stress, Tensor *_tm, Tensor &
     (*tm)[5][3] = lambdadivnu*nu;
 
     // subtract thermal strain
+    double alpha = (ctett) ? ctett->getValAlt(temp) : ElaLinIsoMat::alpha;
     double e0 = (temp-Tref)*alpha;
     strain[0] -= e0;
     strain[3] -= e0;
@@ -173,6 +174,7 @@ ElaLinIsoMat::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Tensor &_enp,
     for(int i=0; i<6; ++i) enp[i] -= (temp-Tref)*alphas[i];
   }
   else {
+    double E = (ymtt) ? ymtt->getValAlt(temp) : ElaLinIsoMat::E;
     double lambda = E*nu/((1.+nu)*(1.-2.*nu));
     double lambdadivnu = (nu != 0) ? lambda/nu : E;
 
@@ -190,6 +192,7 @@ ElaLinIsoMat::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Tensor &_enp,
     (*tm)[5][3] = lambdadivnu*nu;
 
     // subtract thermal strain
+    double alpha = (ctett) ? ctett->getValAlt(temp) : ElaLinIsoMat::alpha;
     double e0 = (temp-Tref)*alpha;
     enp[0] -= e0;
     enp[3] -= e0;
@@ -213,6 +216,7 @@ ElaLinIsoMat::integrate(Tensor *_stress, Tensor &, Tensor &_enp,
     (*stress) = (*m_tm)||enp;
   }
   else {
+    double E = (ymtt) ? ymtt->getValAlt(temp) : ElaLinIsoMat::E;
     double lambda = E*nu/((1.+nu)*(1.-2.*nu));
     double lambdadivnu = (nu != 0) ? lambda/nu : E;
 
@@ -232,6 +236,7 @@ ElaLinIsoMat::integrate(Tensor *_stress, Tensor &, Tensor &_enp,
     (*tm)[5][3] = lambdadivnu*nu;
 
     // subtract thermal strain
+    double alpha = (ctett) ? ctett->getValAlt(temp) : ElaLinIsoMat::alpha;
     double e0 = (temp-Tref)*alpha;
     enp[0] -= e0;
     enp[3] -= e0;
@@ -258,10 +263,12 @@ ElaLinIsoMat::getStrainEnergyDensity(Tensor &_enp, double *, double temp)
            + 2.0*(enp[1]*stress[1] + enp[2]*stress[2] + enp[4]*stress[4]));
   }
   else {
+    double E = (ymtt) ? ymtt->getValAlt(temp) : ElaLinIsoMat::E;
     double lambda = E*nu/((1+nu)*(1-2*nu));
     double mu = E/(2*(1+nu));
 
     // subtract thermal strain
+    double alpha = (ctett) ? ctett->getValAlt(temp) : ElaLinIsoMat::alpha;
     double e0 = (temp-Tref)*alpha;
     enp[0] -= e0;
     enp[3] -= e0;

@@ -155,7 +155,7 @@ MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::getStress(T
 
 template<typename Material>
 void 
-MaterialWrapper<Material>::getTangentMaterial(Tensor *_tm, Tensor &_strain, double*)
+MaterialWrapper<Material>::getTangentMaterial(Tensor *_tm, Tensor &_strain, double*, double temp)
 {
   Tensor_d0s4 *tm = static_cast<Tensor_d0s4 *>(_tm);
   Tensor_d0s2 &strain = static_cast<Tensor_d0s2 &>(_strain);
@@ -180,7 +180,7 @@ MaterialWrapper<Material>::getTangentMaterial(Tensor *_tm, Tensor &_strain, doub
 
 template<>
 inline void
-MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::getTangentMaterial(Tensor *_tm, Tensor &_strain, double* state)
+MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::getTangentMaterial(Tensor *_tm, Tensor &_strain, double* state, double temp)
 {
   // clone material for thread-safety reasons
   IsotropicLinearElasticJ2PlasticMaterial *clone = mat->Clone();
@@ -221,7 +221,7 @@ MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::getTangentMaterial(Ten
 
 template<>
 inline void
-MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::getTangentMaterial(Tensor *_tm, Tensor &_strain, double* state)
+MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::getTangentMaterial(Tensor *_tm, Tensor &_strain, double* state, double temp)
 {
   std::cerr << "ERROR: MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::getTangentMaterial is not implemented\n";
 }

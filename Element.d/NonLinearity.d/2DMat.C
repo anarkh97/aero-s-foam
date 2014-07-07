@@ -19,7 +19,7 @@ ElaLinIsoMat2D::ElaLinIsoMat2D(double _rho, double _E, double _nu, double _t,
 }
 
 void
-ElaLinIsoMat2D::getStress(Tensor *_stress, Tensor &_strain, double*, double temp)
+ElaLinIsoMat2D::getStress(Tensor *_stress, Tensor &_strain, double* state, double temp)
 {
   SymTensor<SymTensor<double,2>,2> tm;
   SymTensor<double,2> & strain = static_cast<SymTensor<double,2> &>(_strain);
@@ -29,12 +29,12 @@ ElaLinIsoMat2D::getStress(Tensor *_stress, Tensor &_strain, double*, double temp
   strain[0] -= e0;
   strain[1] -= e0;
 
-  getTangentMaterial(&tm, _strain, 0);
+  getTangentMaterial(&tm, _strain, state, temp);
   (*stress) = tm||strain;
 }
 
 void 
-ElaLinIsoMat2D::getTangentMaterial(Tensor *_tm, Tensor &, double*)
+ElaLinIsoMat2D::getTangentMaterial(Tensor *_tm, Tensor &, double*, double temp)
 {
   SymTensor<SymTensor<double,2>,2> * tm = static_cast<SymTensor<SymTensor<double,2>,2>  *>(_tm);
 

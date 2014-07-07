@@ -1,6 +1,7 @@
 #include <cmath>
 #include <Utils.d/linkfc.h>
 #include <Utils.d/pstress.h>
+#include <Utils.d/MFTT.h>
 #include <Math.d/FullSquareMatrix.h>
 #include <Math.d/matrix.h>
 #include <Element.d/Element.h>
@@ -18,7 +19,8 @@ extern double Penta26ShapeFct(double Shape[26], double DShape[26][3], double m[3
 extern double weight3d9[18];
 extern double gauss3d9[18][3]; 
 
-Penta26Corotator::Penta26Corotator(int nodeNumbers[26], double _em, double _nu, CoordSet& cs, double _Tref, double _alpha)
+Penta26Corotator::Penta26Corotator(int nodeNumbers[26], double _em, double _nu, CoordSet& cs, double _Tref, double _alpha,
+                                   MFTTData *_ymtt, MFTTData *_ctett)
 {
   for(int i = 0; i < 26; ++i)
     nodeNum[i] = nodeNumbers[i];
@@ -27,6 +29,8 @@ Penta26Corotator::Penta26Corotator(int nodeNumbers[26], double _em, double _nu, 
   nu = _nu;       // Poisson's ratio
   Tref = _Tref;   // Ambient temperature
   alpha = _alpha; // Thermal expansion coefficient
+  ymtt = _ymtt;
+  ctett = _ctett;
 }
 
 // geomState -> contains the updated nodal coordinates
@@ -167,12 +171,13 @@ Penta26Corotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
     // Subtract thermal strain (off by factor of 2)
     double theta = 0.0;
     for(j = 0; j < 26; j++) theta += Shape[j]*(ndTemps[j] - Tref);
+    double alpha = (ctett) ? ctett->getValAlt(theta) : Penta26Corotator::alpha;
     e_11 -= 2*alpha*theta;
     e_22 -= 2*alpha*theta;
     e_33 -= 2*alpha*theta;
 
     double sigma[6];
-
+    double em = (ymtt) ? ymtt->getValAlt(theta) : Penta26Corotator::em;
     double E2 = em*nu/((1+nu)*(1-2*nu));
     double E1 = E2+em/(1+nu);
     // no factor of 1/2 on G2 due to using tensor strain
@@ -396,12 +401,13 @@ Penta26Corotator::getInternalForce(GeomState &geomState, CoordSet &cs,
     // Subtract thermal strain (off by factor of 2)
     double theta = 0.0;
     for(j = 0; j < 26; j++) theta += Shape[j]*(ndTemps[j] - Tref);
+    double alpha = (ctett) ? ctett->getValAlt(theta) : Penta26Corotator::alpha;
     e_11 -= 2*alpha*theta;
     e_22 -= 2*alpha*theta;
     e_33 -= 2*alpha*theta;
 
     double sigma[6];
-
+    double em = (ymtt) ? ymtt->getValAlt(theta) : Penta26Corotator::em;
     double E2 = em*nu/((1+nu)*(1-2*nu));
     double E1 = E2+em/(1+nu);
     // no factor of 1/2 on G2 due to using tensor strain
@@ -795,12 +801,13 @@ Penta26Corotator::computePiolaStress(GeomState &geomState, CoordSet &cs,
     strain[n][5] = e_13;
 
     // Subtract thermal strain
+    double alpha = (ctett) ? ctett->getValAlt(ndTemps[n]) : Penta26Corotator::alpha;
     e_11 -= alpha*(ndTemps[n]-Tref);
     e_22 -= alpha*(ndTemps[n]-Tref);
     e_33 -= alpha*(ndTemps[n]-Tref);
 
     double sigma[6];
-
+    double em = (ymtt) ? ymtt->getValAlt(ndTemps[n]) : Penta26Corotator::em;
     double E2 = em*nu/((1+nu)*(1-2*nu));
     double G2 = em/(2*(1+nu));
     double E1 = E2+em/(1+nu);
@@ -966,10 +973,12 @@ Penta26Corotator::getElementEnergy(GeomState &geomState, CoordSet &cs)
     // Subtract thermal strain
     double theta = 0.0;
     for(j = 0; j < 26; j++) theta += Shape[j]*(ndTemps[j] - Tref);
+    double alpha = (ctett) ? ctett->getValAlt(theta) : Penta26Corotator::alpha;
     e_11 -= alpha*theta;
     e_22 -= alpha*theta;
     e_33 -= alpha*theta;
 
+    double em = (ymtt) ? ymtt->getValAlt(theta) : Penta26Corotator::em;
     double E2 = em*nu/((1+nu)*(1-2*nu));
     double G2 = em/(2*(1+nu));
     double E1 = E2+em/(1+nu);

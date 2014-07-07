@@ -18,7 +18,7 @@ class ElaLinIsoMat2D : public NLMaterial
 
      void getStress(Tensor *stress, Tensor &strain, double*, double temp);
 
-     void getTangentMaterial(Tensor *tm, Tensor &strain, double*);
+     void getTangentMaterial(Tensor *tm, Tensor &strain, double*, double temp);
 
      void getElasticity(Tensor *tm) {};
 

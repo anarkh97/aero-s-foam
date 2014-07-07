@@ -55,7 +55,7 @@ ElasPlasKinHardMat<e>::getElasticity(Tensor *_tm)
 
 template<int e>
 void 
-ElasPlasKinHardMat<e>::getTangentMaterial(Tensor *tm, Tensor &strain, double *state)
+ElasPlasKinHardMat<e>::getTangentMaterial(Tensor *tm, Tensor &strain, double *state, double temp)
 {
   std::cerr << "WARNING: ElasPlasKinHardMat<e>::getTangentMaterial is not implemented\n";
 }

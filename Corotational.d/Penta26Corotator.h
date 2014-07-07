@@ -3,16 +3,20 @@
 
 #include <Corotational.d/Corotator.h>
 
+class MFTTData;
+
 class Penta26Corotator : public Corotator {
      int nodeNum[26];
      double em;                 // elastic modulus
      double nu;                 // Poisson's ratio
      double Tref;               // ambient temperature
      double alpha;              // thermal expansion coefficient
+     MFTTData *ymtt;
+     MFTTData *ctett;
    public:
 
      // Constructor
-     Penta26Corotator(int nn[26], double, double, CoordSet &, double, double);
+     Penta26Corotator(int nn[26], double, double, CoordSet &, double, double, MFTTData *, MFTTData *);
      double * getOriginalStiffness() { return (double*) 0; }
 
      void   getStiffAndForce(GeomState &gs, CoordSet &cs, 

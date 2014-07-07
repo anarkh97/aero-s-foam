@@ -815,6 +815,7 @@ Tetrahedral::getCorotator(CoordSet &cs, double *kel, int, int)
   }
   if(mat) {
 #ifdef USE_EIGEN3
+    mat->setTDProps(prop->ymtt, prop->ctett);
     MatNLElement *ele = new NLTetrahedral4(nn);
     ele->setMaterial(mat);
     ele->setGlNum(glNum);
@@ -823,7 +824,7 @@ Tetrahedral::getCorotator(CoordSet &cs, double *kel, int, int)
 #endif
   }
   else {
-    return new TetCorotator(nn, prop->E, prop->nu, cs, prop->Ta, prop->W);
+    return new TetCorotator(nn, prop->E, prop->nu, cs, prop->Ta, prop->W, prop->ymtt, prop->ctett);
   }
   printf("WARNING: Corotator not implemented for element %d\n", glNum+1); return 0;
 }

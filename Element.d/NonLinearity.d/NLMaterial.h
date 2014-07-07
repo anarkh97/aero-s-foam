@@ -8,6 +8,7 @@ class StrainEvaluator;
 class Tensor;
 template <typename Tensor> class GenStrainEvaluator;
 template <int n> class TwoDTensorTypes;
+class MFTTData;
 
 class NLMaterial
 {
@@ -18,7 +19,7 @@ class NLMaterial
 
      virtual int getNumStates() = 0;  
 
-     virtual void getTangentMaterial(Tensor *tm, Tensor &strain, double *state) = 0;
+     virtual void getTangentMaterial(Tensor *tm, Tensor &strain, double *state, double temp) = 0;
 
      virtual void getElasticity(Tensor *tm) = 0;
 
@@ -71,9 +72,12 @@ class NLMaterial
      virtual void setTangentMaterial(double C[6][6]) {
        std::cerr << "material law does not implement setTangentMaterial function\n";
      }
+
      virtual void setThermalExpansionCoef(double alpha[6]) {
        std::cerr << "material law does not implement setThermalExpansionCoef function\n";
      }
+
+     virtual void setTDProps(MFTTData *ymtt, MFTTData *ctett) {};
 };
 
 #endif

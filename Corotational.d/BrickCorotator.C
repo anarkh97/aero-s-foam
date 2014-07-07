@@ -1,6 +1,7 @@
 #include <cmath>
 #include <Utils.d/linkfc.h>
 #include <Utils.d/pstress.h>
+#include <Utils.d/MFTT.h>
 #include <Math.d/FullSquareMatrix.h>
 #include <Math.d/matrix.h>
 #include <Element.d/Element.h>
@@ -19,7 +20,8 @@ extern "C" {
 };
 
 BrickCorotator::BrickCorotator(int nodeNumbers[8], double _em, double _nu,
-                               CoordSet& cs, double _Tref, double _alpha)
+                               CoordSet& cs, double _Tref, double _alpha,
+                               MFTTData *_ymtt, MFTTData *_ctett)
 {
   nodeNum[0] = nodeNumbers[0];
   nodeNum[1] = nodeNumbers[1];
@@ -34,6 +36,8 @@ BrickCorotator::BrickCorotator(int nodeNumbers[8], double _em, double _nu,
   nu = _nu;       // Poisson's ratio
   Tref = _Tref;   // Ambient temperature
   alpha = _alpha; // Thermal expansion coefficient
+  ymtt = _ymtt; 
+  ctett = _ctett;
 }
 
 // geomState -> contains the updated nodal coordinates
@@ -143,12 +147,13 @@ BrickCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
         // Subtract thermal strain (off by factor of 2)
         double theta = 0.0;
         for(j = 0; j < 8; j++) theta += shapeFunc[j]*(ndTemps[j] - Tref);
+        double alpha = (ctett) ? ctett->getValAlt(theta) : BrickCorotator::alpha;
         e_11 -= 2*alpha*theta;
         e_22 -= 2*alpha*theta;
         e_33 -= 2*alpha*theta;
 
         double sigma[6];
-
+        double em = (ymtt) ? ymtt->getValAlt(theta) : BrickCorotator::em;
         double E2 = em*nu/((1+nu)*(1-2*nu));
         double E1 = E2+em/(1+nu);
         // no factor of 1/2 on G2 due to using tensor strain
@@ -343,12 +348,13 @@ BrickCorotator::getInternalForce(GeomState &geomState, CoordSet &cs,
         // Subtract thermal strain (off by factor of 2)
         double theta = 0.0;
         for(j = 0; j < 8; j++) theta += shapeFunc[j]*(ndTemps[j] - Tref);
+        double alpha = (ctett) ? ctett->getValAlt(theta) : BrickCorotator::alpha;
         e_11 -= 2*alpha*theta;
         e_22 -= 2*alpha*theta;
         e_33 -= 2*alpha*theta;
 
         double sigma[6];
-
+        double em = (ymtt) ? ymtt->getValAlt(theta) : BrickCorotator::em;
         double E2 = em*nu/((1+nu)*(1-2*nu));
         double E1 = E2+em/(1+nu);
         // no factor of 1/2 on G2 due to using tensor strain
@@ -667,12 +673,13 @@ BrickCorotator::computePiolaStress(GeomState &geomState, CoordSet &cs,
     strain[n][5] = e_13;
 
     // Subtract thermal strain
+    double alpha = (ctett) ? ctett->getValAlt(ndTemps[n]) : BrickCorotator::alpha;
     e_11 -= alpha*(ndTemps[n]-Tref);
     e_22 -= alpha*(ndTemps[n]-Tref);
     e_33 -= alpha*(ndTemps[n]-Tref);
 
     double sigma[6];
-
+    double em = (ymtt) ? ymtt->getValAlt(ndTemps[n]) : BrickCorotator::em;
     double E2 = em*nu/((1+nu)*(1-2*nu));
     double G2 = em/(2*(1+nu));
     double E1 = E2+em/(1+nu);
@@ -801,10 +808,12 @@ BrickCorotator::getElementEnergy(GeomState &geomState, CoordSet &cs)
         // Subtract thermal strain
         double theta = 0.0;
         for(j = 0; j < 8; j++) theta += shapeFunc[j]*(ndTemps[j] - Tref);
+        double alpha = (ctett) ? ctett->getValAlt(theta) : BrickCorotator::alpha;
         e_11 -= alpha*theta;
         e_22 -= alpha*theta;
         e_33 -= alpha*theta;
 
+        double em = (ymtt) ? ymtt->getValAlt(theta) : BrickCorotator::em;
         double E2 = em*nu/((1+nu)*(1-2*nu));
         double G2 = em/(2*(1+nu));
         double E1 = E2+em/(1+nu);

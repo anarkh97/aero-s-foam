@@ -5,6 +5,7 @@
 
 class StructProp;
 class Tensor_d0s4_Ss12s34;
+class MFTTData;
 
 // This material and those derived from it can now be either isotropic or anisotropic
 class ElaLinIsoMat : public NLMaterial
@@ -17,11 +18,12 @@ class ElaLinIsoMat : public NLMaterial
     double alphas[6];
     // reference temperature
     double Tref;
+    // temperature dependent material properties
+    MFTTData *ymtt, *ctett;
 
   public:
     ElaLinIsoMat(StructProp *p);
     ElaLinIsoMat(double _rho, double _E, double _nu, double _Tref, double _alpha);
-    ElaLinIsoMat(double _rho, double C[6][6], double _Tref, double _alpha);
     ElaLinIsoMat(double _rho, double C[6][6], double _Tref, double _alphas[6]);
     ~ElaLinIsoMat();
 
@@ -29,7 +31,7 @@ class ElaLinIsoMat : public NLMaterial
 
     void getStress(Tensor *stress, Tensor &strain, double*, double temp);
 
-    void getTangentMaterial(Tensor *tm, Tensor &strain, double*);
+    void getTangentMaterial(Tensor *tm, Tensor &strain, double*, double temp);
 
     void getElasticity(Tensor *tm) {};
 
@@ -60,6 +62,8 @@ class ElaLinIsoMat : public NLMaterial
     void setTangentMaterial(double C[6][6]);
 
     void setThermalExpansionCoef(double alphas[6]);
+
+    void setTDProps(MFTTData *_ymtt, MFTTData *_ctett) { ymtt = _ymtt, ctett = _ctett; }
 };
 
 // same equation as ElaLinIsoMat but with different Green-Lagrange strain evaluator
@@ -69,7 +73,6 @@ class StVenantKirchhoffMat : public ElaLinIsoMat
   public:
     StVenantKirchhoffMat(StructProp *p) : ElaLinIsoMat(p) {}
     StVenantKirchhoffMat(double rho, double E, double nu, double Tref, double alpha) : ElaLinIsoMat(rho, E, nu, Tref, alpha) {}
-    StVenantKirchhoffMat(double rho, double C[6][6], double Tref, double alpha) : ElaLinIsoMat(rho, C, Tref, alpha) {}
     StVenantKirchhoffMat(double rho, double C[6][6], double Tref, double alphas[6]) : ElaLinIsoMat(rho, C, Tref, alphas) {}
 
     StrainEvaluator * getStrainEvaluator();
@@ -84,7 +87,6 @@ class HenckyMat : public ElaLinIsoMat
   public:
     HenckyMat(StructProp *p) : ElaLinIsoMat(p) {}
     HenckyMat(double rho, double E, double nu, double Tref, double alpha) : ElaLinIsoMat(rho, E, nu, Tref, alpha) {}
-    HenckyMat(double rho, double C[6][6], double Tref, double alpha) : ElaLinIsoMat(rho, C, Tref, alpha) {}
     HenckyMat(double rho, double C[6][6], double Tref, double alphas[6]) : ElaLinIsoMat(rho, C, Tref, alphas) {}
 
     StrainEvaluator * getStrainEvaluator();

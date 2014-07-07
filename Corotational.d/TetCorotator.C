@@ -1,6 +1,7 @@
 #include <cmath>
 #include <Utils.d/linkfc.h>
 #include <Utils.d/pstress.h>
+#include <Utils.d/MFTT.h>
 #include <Math.d/FullSquareMatrix.h>
 #include <Math.d/matrix.h>
 #include <Element.d/Element.h>
@@ -14,7 +15,8 @@ extern "C" {
 };
 
 TetCorotator::TetCorotator(int nodeNumbers[4], double _em, double _nu,
-                           CoordSet& cs, double _Tref, double _alpha)
+                           CoordSet& cs, double _Tref, double _alpha,
+                           MFTTData *_ymtt, MFTTData *_ctett)
 {
   nodeNum[0] = nodeNumbers[0];
   nodeNum[1] = nodeNumbers[1];
@@ -25,6 +27,8 @@ TetCorotator::TetCorotator(int nodeNumbers[4], double _em, double _nu,
   nu    = _nu;    // Poisson's ratio
   Tref  = _Tref;  // Ambient temperature
   alpha = _alpha; // Thermal expansion coefficient
+  ymtt = _ymtt;
+  ctett = _ctett;
 }
 
 // geomState -> contains the updated nodal coordinates
@@ -78,12 +82,13 @@ TetCorotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
 
   // Subtract thermal strain (off by factor of 2)
   double theta = (ndTemps[0]+ndTemps[1]+ndTemps[2]+ndTemps[3])/4 - Tref;
+  double alpha = (ctett) ? ctett->getValAlt(theta) : TetCorotator::alpha;
   e_11 -= 2*alpha*theta;
   e_22 -= 2*alpha*theta;
   e_33 -= 2*alpha*theta;
 
   double sigma[6];
-
+  double em = (ymtt) ? ymtt->getValAlt(theta) : TetCorotator::em;
   double E  = em;
   double E2 = E*nu/((1+nu)*(1-2*nu));
   double E1 = E2+E/(1+nu);
@@ -224,12 +229,13 @@ TetCorotator::getInternalForce(GeomState &geomState, CoordSet &cs,
 
   // Subtract thermal strain (off by factor of 2)
   double theta = (ndTemps[0]+ndTemps[1]+ndTemps[2]+ndTemps[3])/4 - Tref;
+  double alpha = (ctett) ? ctett->getValAlt(theta) : TetCorotator::alpha;
   e_11 -= 2*alpha*theta;
   e_22 -= 2*alpha*theta;
   e_33 -= 2*alpha*theta;
 
   double sigma[6];
-
+  double em = (ymtt) ? ymtt->getValAlt(theta) : TetCorotator::em;
   double E  = em;
   double E2 = E*nu/((1+nu)*(1-2*nu));
   double E1 = E2+E/(1+nu);
@@ -453,17 +459,18 @@ TetCorotator::computePiolaStress(GeomState &geomState, CoordSet &cs,
     strain[i][5] = e_13;
   }
 
-  double E = em;
-  double E2 = E*nu/((1+nu)*(1-2*nu));
-  double G2 = E/(2*(1+nu));
-  double E1 = E2+E/(1+nu);
-  double sigma[6];
-
   for(i=0; i<4; ++i) {
     // Subtract thermal strain
+    double alpha = (ctett) ? ctett->getValAlt(ndTemps[i]) : TetCorotator::alpha;
     double e_11_m = e_11 - alpha*(ndTemps[i]-Tref);
     double e_22_m = e_22 - alpha*(ndTemps[i]-Tref);
     double e_33_m = e_33 - alpha*(ndTemps[i]-Tref);
+
+    double sigma[6];
+    double em = (ymtt) ? ymtt->getValAlt(ndTemps[i]) : TetCorotator::em;
+    double E2 = em*nu/((1+nu)*(1-2*nu));
+    double G2 = em/(2*(1+nu));
+    double E1 = E2+em/(1+nu);
 
     sigma[0] = E1*e_11_m+E2*(e_22_m+e_33_m);
     sigma[1] = E1*e_22_m+E2*(e_11_m+e_33_m);
@@ -597,10 +604,12 @@ TetCorotator::getElementEnergy(GeomState &geomState, CoordSet &cs)
 
   // Subtract thermal strain
   double theta = (ndTemps[0]+ndTemps[1]+ndTemps[2]+ndTemps[3])/4 - Tref;
+  double alpha = (ctett) ? ctett->getValAlt(theta) : TetCorotator::alpha;
   e_11 -= alpha*theta;
   e_22 -= alpha*theta;
   e_33 -= alpha*theta;
 
+  double em = (ymtt) ? ymtt->getValAlt(theta) : TetCorotator::em;
   double E2 = em*nu/((1+nu)*(1-2*nu));
   double G2 = em/(2*(1+nu));
   double E1 = E2+em/(1+nu);

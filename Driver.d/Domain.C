@@ -2246,20 +2246,21 @@ void Domain::computeTDProps()
       if((packedEset[iele]->numNodes() > 1) && !packedEset[iele]->isSpring() && !packedEset[iele]->isPhantomElement()) {
 
         if(packedEset[iele]->getProperty()->E < 0) {
-          packedEset[iele]->getProperty()->ymtt_id = (int) -packedEset[iele]->getProperty()->E;
+          int id = (int) -packedEset[iele]->getProperty()->E;
+          packedEset[iele]->getProperty()->ymtt = ymtt[ymttmap[id]];
         }
         if(packedEset[iele]->getProperty()->W < 0) {
-          packedEset[iele]->getProperty()->ctett_id = (int) -packedEset[iele]->getProperty()->W;
+          int id = (int) -packedEset[iele]->getProperty()->W;
+          packedEset[iele]->getProperty()->ctett = ctett[ctettmap[id]];
         }
 
-        if((packedEset[iele]->getProperty()->ymtt_id != 0) ||
-           (packedEset[iele]->getProperty()->ctett_id != 0)) { // iele has temp-dependent E or W
+        if((packedEset[iele]->getProperty()->ymtt) || (packedEset[iele]->getProperty()->ctett)) { // iele has temp-dependent E or W
           int NodesPerElement = packedEset[iele]->numNodes();
           packedEset[iele]->nodes(nodeNumbers);
 
           // compute average temperature in element
           double avTemp = 0.0;
-          int iNode, id;
+          int iNode;
           for(iNode = 0; iNode < NodesPerElement; ++iNode) {
             if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
               elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
@@ -2271,13 +2272,13 @@ void Domain::computeTDProps()
 
           StructProp *newProp = new StructProp(*packedEset[iele]->getProperty());
           // compute E using interp table
-          if((id = packedEset[iele]->getProperty()->ymtt_id) != 0) {
-            newProp->E = ymtt[ymttmap[id]]->getValAlt(avTemp);
+          if(packedEset[iele]->getProperty()->ymtt) {
+            newProp->E = packedEset[iele]->getProperty()->ymtt->getValAlt(avTemp);
           }
 
           // compute coeff of thermal expansion using interp table
-          if((id = packedEset[iele]->getProperty()->ctett_id) != 0) {
-            newProp->W = ctett[ctettmap[id]]->getValAlt(avTemp);
+          if(packedEset[iele]->getProperty()->ctett) {
+            newProp->W = packedEset[iele]->getProperty()->ctett->getValAlt(avTemp);
           }
           packedEset[iele]->setProp(newProp);
         }

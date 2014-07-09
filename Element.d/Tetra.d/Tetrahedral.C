@@ -200,7 +200,7 @@ Tetrahedral::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vect
   if(senMethod == 0) { // analytic
     std::cerr << " ... Warning: analytic von Mises stress sensitivity wrt nodal coordinate is not implemented yet\n";
     std::cerr << " ...          instead, automatic differentiation will be applied\n";
-    senMethod == 1;
+    senMethod = 1;
   }
 
   if(senMethod == 1) {

@@ -395,7 +395,7 @@ SingleDomainStatic<T, VectorType, SolverType>::getFreqSweepRHS(VectorType *rhs, 
       (*vec)[i] = double(k)*(double(k-1)*(*u[k-1])[i] + 2.0*omega*(*u[k])[i]);
     allOps.M->mult(vec->data(), rhs->data());
 
-    if(allOps, allOps.C_deriv) {
+    if(allOps.C_deriv) {
       for(int j=0; j<=k-1; ++j) {
         if(allOps.C_deriv[k-j-1]) {
           double ckj = DCombination(k,j);

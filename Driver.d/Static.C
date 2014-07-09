@@ -3076,6 +3076,8 @@ Domain::makePreSensitivities(AllSensitivities<double> &allSens, double *bcx)
      computeStiffnessWRTthicknessSensitivity(sindex, allSens);
      break;
    }
+   default:
+     break;
   }
  }
 #endif
@@ -3437,6 +3439,8 @@ Domain::makePostSensitivities(GenSolver<double> *sysSolver,
      computeStressVMWRTnodalCoordinateSensitivity(sindex,allSens,sol,bcx);
      break;
    } 
+   default:
+     break;
   }
  }
 #endif

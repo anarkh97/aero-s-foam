@@ -36,10 +36,13 @@ void GeoSource::outputEigenVectors<complex<double> >(int, Eigen::Matrix<complex<
 
 #define GEOSOURCE_INSTANTIATION_HELPER(dim) \
 template void GeoSource::outputNodeVectors<dim>(int, double (*)[dim], int, double);\
-template void GeoSource::outputNodeVectors<dim>(int, DComplex (*)[dim], int, double);\
+template void GeoSource::outputNodeVectors<dim>(int, DComplex (*)[dim], int, double);
+#define GEOSOURCE_INSTANTIATION_HELPER6(dim) \
 template void GeoSource::outputNodeVectors6<dim>(int, double (*)[dim], int, double);\
-template void GeoSource::outputNodeVectors6<dim>(int, DComplex (*)[dim], int, double);\
-template void GeoSource::outputNodeVectors9<dim>(int, double (*)[dim], int, double);\
+template void GeoSource::outputNodeVectors6<dim>(int, DComplex (*)[dim], int, double);
+#define GEOSOURCE_INSTANTIATION_HELPER9(dim) \
+template void GeoSource::outputNodeVectors9<dim>(int, double (*)[dim], int, double);
+#define GEOSOURCE_INSTANTIATION_HELPER4(dim) \
 template void GeoSource::outputNodeVectors4<dim>(int, double (*)[dim], int, double);
 
 GEOSOURCE_INSTANTIATION_HELPER(3);
@@ -47,3 +50,15 @@ GEOSOURCE_INSTANTIATION_HELPER(4);
 GEOSOURCE_INSTANTIATION_HELPER(6);
 GEOSOURCE_INSTANTIATION_HELPER(9);
 GEOSOURCE_INSTANTIATION_HELPER(11);
+
+GEOSOURCE_INSTANTIATION_HELPER4(4);
+GEOSOURCE_INSTANTIATION_HELPER4(6);
+GEOSOURCE_INSTANTIATION_HELPER4(9);
+GEOSOURCE_INSTANTIATION_HELPER4(11);
+
+GEOSOURCE_INSTANTIATION_HELPER6(6);
+GEOSOURCE_INSTANTIATION_HELPER6(9);
+GEOSOURCE_INSTANTIATION_HELPER6(11);
+
+GEOSOURCE_INSTANTIATION_HELPER9(9);
+GEOSOURCE_INSTANTIATION_HELPER9(11);

@@ -1529,7 +1529,7 @@ TRAIL [a-zA-Z]*
        for(il = 0; yytext[il] != 'd' && yytext[il] != 'D';) ++il;
        yytext[il] = 'e'; yylval.fval = atof(yytext) ; return DblConstant ; }
 
-"*" { while(yyinput() != '\n') ; line_num++; }
+"*" { while(yyinput() != '\n') {}; line_num++; }
 
 
 

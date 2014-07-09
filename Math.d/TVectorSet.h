@@ -28,7 +28,7 @@ public:
 
   void resize(int);
 
-  void print(char *msg = "") {
+  void print(const char *msg = "") {
     if (msg) std::cerr << msg << std::endl;
 
     for (int i=0; i<numVec; ++i) {

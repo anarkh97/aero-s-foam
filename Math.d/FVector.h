@@ -106,7 +106,7 @@ public:
 
   void setNewData(Scalar *d) { if(locAlloc && v) delete [] v; v=d; };
 
-  void print(char *msg = "") const {
+  void print(const char *msg = "") const {
     std::cerr.flush();
     if (msg) std::cerr << msg << std::endl;
     for (int i=0; i<len; ++i) 
@@ -649,7 +649,7 @@ public:
     locAlloc = true;
   }
 
-  void print(char *msg = "") { 
+  void print(const char *msg = "") { 
     if (msg) std::cerr << msg << std::endl;
     for (int i=0; i<len; ++i) {
       std::cerr << i << ": ";

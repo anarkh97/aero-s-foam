@@ -178,7 +178,8 @@ IF(UNIX)
      IF(EIGEN3_FOUND)
        MESSAGE("-- A library with EIGEN3 API found.")
        include_directories(${EIGEN3_INCLUDE_DIR})
-       add_definitions(-DUSE_EIGEN3 -DUSE_EIGEN3_AUTODIFF -DEIGEN_QUATERNIONBASE_PLUGIN=<Element.d/MpcElement.d/QuaternionBasePlugin.h>)
+       add_definitions(-DUSE_EIGEN3 -DUSE_EIGEN3_AUTODIFF -DEIGEN_QUATERNIONBASE_PLUGIN=<Element.d/MpcElement.d/QuaternionBasePlugin.h>
+                       -DEIGEN_DONT_PARALLELIZE)
        set(CMAKE_MODULE_PATH "${EIGEN3_INCLUDE_DIR}/cmake" ${CMAKE_MODULE_PATH})
        IF(NOT WITH_EIGEN3_EXTRA EQUAL 0)
          find_package(Cholmod)
@@ -311,21 +312,6 @@ IF(UNIX)
       endif(SCALAPACK_FOUND)
     endif(NOT MPI_FOUND)
    ENDIF(NOT WITH_MUMPS EQUAL 0)
-
-#stxxl
-    IF(NOT WITH_STXXL EQUAL 0)
-      FIND_LIBRARY(STXXL_LIBRARY NAMES stxxl
-                   PATHS /usr/lib /usr/local/lib)
-      FIND_PATH(STXXL_INCLUDE_PATH stxxl.h
-                PATHS /usr/include usr/local/include)
-      if(STXXL_LIBRARY AND STXXL_INCLUDE_PATH)
-        MESSAGE("-- A library with STXXL API found.")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -include stxxl/bits/defines.h")
-        add_definitions(-DUSE_STXXL -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE)
-        SET(INC_DIR ${INC_DIR} ${STXXL_INCLUDE_PATH})
-        SET(EXTRALIBRARIES ${EXTRALIBRARIES} ${STXXL_LIBRARY})
-      ENDIF(STXXL_LIBRARY AND STXXL_INCLUDE_PATH)
-    ENDIF(NOT WITH_STXXL EQUAL 0)
 
     FIND_PACKAGE(Boost 1.35)
     if(Boost_FOUND)

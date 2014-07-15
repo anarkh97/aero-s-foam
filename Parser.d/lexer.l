@@ -1493,14 +1493,15 @@ TRAIL [a-zA-Z]*
 "TOLOPT"|"TolOpt"|"tolopt" 		  { return TOLER; } /* deprecated */
 "TOLERA"|"Tolera"|"tolera"                { return TOLER; }
 
-"LOCTOL"|"LocTol"|"loctol"		  { return LOCALTOLERANCE; }
-
-"GLOERR"|"GloErr"|"gloerr"                { return GLOBALERROR; }
-
 "NUMSKP"|"NumSkp"|"numskp"		  { return SKIP; }
 "SAMFRQ"|"SamFrq"|"samfrq"                { return SKIP; }
 
-"OUT_OF"[a-zA-Z_]*|"Out_Of"[a-zA-Z_]*|"out_of"[a-zA-Z_]* { return OUTOFCORE; }
+"SOLVER"|"Solver"|"solver"                { return SOLVER; }
+
+"lh"|"LH"                                 { yylval.ival = 0; return SPNNLSSOLVERTYPE; }
+"nncgp"|"NNCGP"                           { yylval.ival = 1; return SPNNLSSOLVERTYPE; }
+
+"MAXSZE"|"MaxSze"|"maxsze"                { return MAXSIZE; }
 
 "REFSUBSTRACT"|"refsubstract"|"RefSubstract" { return REFSUBSTRACT; } 
 

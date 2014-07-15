@@ -376,8 +376,9 @@ struct SolverInfo {
    int  forcePodSize;
    int  normalize;
    bool substractRefPodRom;
-   bool localTol;
-   bool globalErr;
+   bool useScalingSpnnls;
+   int  solverTypeSpnnls; // 0: Lawson & Hanson, 1: Conjugate Gradient Pursuit
+   double maxSizeSpnnls;
    bool reduceFollower;
    int  skipPodRom;
    int  skipOffSet;
@@ -391,8 +392,6 @@ struct SolverInfo {
    int  orthogPodRom;
    int  numRODFile;
    double tolPodRom;
-   bool oocPodRom; // if this is true and aero-s is compiled with stxxl, then out-of-core spnnls solver will be used
-                   // by the single domain element lumping driver
    bool useMassNormalizedBasis;
    bool useMassOrthogonalProjection;
    bool ConwepOnOff;
@@ -596,7 +595,6 @@ struct SolverInfo {
                   iacc_switch = true;
                   zeroRot = false;
 
-
                   dist_acme = 0;
                   allproc_acme = true;
                   ffi_debug = false;
@@ -662,8 +660,9 @@ struct SolverInfo {
                   forcePodSize	     = 0;
 		  normalize          = 1;
                   substractRefPodRom = false;
-                  localTol	     = false;
-                  globalErr          = false;
+                  useScalingSpnnls   = true;
+                  maxSizeSpnnls      = 1.0;
+                  solverTypeSpnnls   = 0;
                   reduceFollower     = false;
                   skipPodRom         = 1;
                   skipOffSet         = 0;
@@ -677,7 +676,6 @@ struct SolverInfo {
 		  orthogPodRom       = 1;
                   numRODFile         = 0;
                   tolPodRom          = 1.0e-6;
-                  oocPodRom          = true;
                   useMassNormalizedBasis = true;
                   useMassOrthogonalProjection = false;
                   ConwepOnOff        = false;
@@ -686,7 +684,7 @@ struct SolverInfo {
                   inertiaLumping     = 0;
                   printMatLab        = false;
                   printMatLabFile    = "";
-                 }
+                }
 
    void setDirectMPC(int mode) { mpcDirect = mode; }
    // Whether we are doing direct elimination for MPCs

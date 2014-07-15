@@ -1,4 +1,5 @@
 #include "SparseNonNegativeLeastSquaresSolver.h"
+#include <Timers.d/GetTime.h>
 #include <Utils.d/linkfc.h>
 
 #include <stdexcept>
@@ -70,6 +71,7 @@ SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::solve() {
     return;
   }
 
+  double t0 = getTime();
   switch(solverType_) {
     default :
     case 0 : { // Lawson & Hanson
@@ -106,6 +108,8 @@ SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::solve() {
 #endif
     }
   }
+  double t = (getTime() - t0)/1000.0;
+  fprintf(stderr, " ... Solve Time = %13.6f s   ...\n",t);
 }
 
 } // end namespace Rom

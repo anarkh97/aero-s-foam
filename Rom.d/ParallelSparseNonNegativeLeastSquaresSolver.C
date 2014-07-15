@@ -1,4 +1,5 @@
 #include "ParallelSparseNonNegativeLeastSquaresSolver.h"
+#include <Timers.d/GetTime.h>
 #include <Utils.d/DistHelper.h>
 
 #include <stdexcept>
@@ -44,6 +45,7 @@ ParallelSparseNonNegativeLeastSquaresSolver::solve() {
     return;
   }
 
+  double t0 = getTime();
   switch(solverType_) {
     default :
     case 1 : { // Non-negative Conjugate Gradient Pursuit
@@ -65,6 +67,8 @@ ParallelSparseNonNegativeLeastSquaresSolver::solve() {
 #endif
     }
   }
+  double t = (getTime() - t0)/1000.0;
+  filePrint(stderr, " ... Solve Time = %13.6f s   ...\n",t);
 }
 
 } // end namespace Rom

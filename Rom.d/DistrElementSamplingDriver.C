@@ -453,9 +453,6 @@ DistrElementSamplingDriver::computeSolution(Vector *solutions, double relativeTo
     StackVector trainingTarget(solver_->rhsBuffer(), solver_->equationCount());
     double glTargMagnitude = trainingTarget.norm();
     double oneNorm = 0;
-#if defined(_OPENMP)
-  #pragma omp parallel for schedule(static,1)
-#endif
     for(int i = 0; i < solver_->subdomainCount(); ++i) {
       oneNorm += std::accumulate(solver_->subdomainSolver(i)->solutionBuffer(),
                                  solver_->subdomainSolver(i)->solutionBuffer() + solver_->subdomainSolver(i)->unknownCount(), 0.0);

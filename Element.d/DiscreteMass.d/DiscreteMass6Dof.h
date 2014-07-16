@@ -34,6 +34,7 @@ class DiscreteMass6Dof : public Element, public Corotator
     FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg=1);
     double getMass(CoordSet&);
     void getGravityForce(CoordSet&, double *g, Vector &f, int gravflg, GeomState *gs=0);
+    void computePressureForce(CoordSet&, Vector& elPressureForce, GeomState *, int, double);
 
     // nonlinear functions
     Corotator* getCorotator(CoordSet&, double*, int, int) { return this; }

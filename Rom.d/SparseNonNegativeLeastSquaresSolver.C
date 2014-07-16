@@ -4,6 +4,7 @@
 
 #include <stdexcept>
 #include <cstdio>
+#include <iostream>
 
 extern "C" {
   // Approximately solve the sparse non-negative least-squares problem
@@ -17,8 +18,8 @@ extern "C" {
   // Info: mode: 1 => success, 2 => bad dim, 3 => too many iter
   void _FORTRAN(spnnls)(double *a, const long int *mda, const long int *m, const long int *n,
                         double *b, double *x, const double *reltol, double *rnorm, double *w,
-                        double *zz, double *zz2, long int *index, long int *mode, bool *prtflg,
-                        bool *sclflg, const double *maxsze);
+                        double *zz, double *zz2, long int *index, long int *mode, long int *prtflg,
+                        long int *sclflg, const double *maxsze);
 }
 
 #ifdef USE_EIGEN3
@@ -78,13 +79,14 @@ SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::solve() {
       fprintf(stderr, " ... Using Lawson & Hanson Solver   ...\n");
       SimpleBuffer<Scalar> workspace(equationCount());
       SimpleBuffer<Scalar> workspace2(unknownCount());
-      SimpleBuffer<long> index(unknownCount());
-      long info;
+      SimpleBuffer<long int> index(unknownCount());
+      long int info;
+      long int prtflg = (verboseFlag_) ? 1 : 0;
+      long int scaflg = (scalingFlag_) ? 1 : 0;
 
       _FORTRAN(spnnls)(matrixBuffer_.data(), &equationCount_, &equationCount_, &unknownCount_, rhsBuffer_.array(),
                        solutionBuffer_.array(), &relativeTolerance_, &errorMagnitude_, dualSolutionBuffer_.array(),
-                       workspace.array(), workspace2.array(), index.array(), &info, &verboseFlag_, &scalingFlag_,
-                       &maxSizeRatio_);
+                       workspace.array(), workspace2.array(), index.array(), &info, &prtflg, &scaflg, &maxSizeRatio_);
 
       if (info == 2) {
         throw std::logic_error("Illegal problem size");

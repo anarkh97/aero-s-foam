@@ -68,8 +68,8 @@ public:
 
 private:
 
-  long equationCount_;
-  long unknownCount_;
+  long int equationCount_;
+  long int unknownCount_;
 
   double relativeTolerance_;
   MatrixBufferType matrixBuffer_;

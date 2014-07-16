@@ -67,7 +67,7 @@ C     ------------------------------------------------------------------
       double precision ABSTOL,RELTOL,MAXSZE
       double precision ONE, SM, SS, T, TEMP, TWO, UNORM, UP, WMAX
       double precision ZERO, ZTEST
-      logical PRTFLG, SCAFLG
+      integer(kind=C_LONG) PRTFLG, SCAFLG
       parameter(FACTOR = 0.01d0)
       parameter(TWO = 2.0d0, ONE = 1.0d0, ZERO = 0.0d0)
 C     ------------------------------------------------------------------
@@ -93,7 +93,7 @@ C
       NPP1=1
 C                    INIT ZZ2 = tr(A^T * A)^{-1}
       DO 25 I = 1,N
-         IF(SCAFLG) THEN
+         IF(SCAFLG.NE.0) THEN
             ZZ2(I) = ZERO
             DO 26 L = 1,M
                ZZ2(I) = ZZ2(I) + A(L,I)**2
@@ -118,7 +118,7 @@ C                     COMPUTE THE NORM^2 OF THE RESIDUAL VECTOR.
   35     SM=SM+B(I)**2
       RNORM = sqrt(SM)
 C         
-      IF(PRTFLG) THEN
+      IF(PRTFLG.NE.0) THEN
         write (*,500) 'Iteration = ', ITER,
      +                'Active set size = ', NSETP,
      +                'Residual norm = ', RNORM,
@@ -273,6 +273,7 @@ C        MODIFY A AND B AND THE INDEX ARRAYS TO MOVE COEFFICIENT I
 C        FROM SET P TO SET Z.   
 C   
       I=INDEX(JJ)   
+C     write(*,*) 'removing index ',(I-1),'ZZ(JJ)=',ZZ(JJ)
   260 continue
       X(I)=ZERO 
 C   

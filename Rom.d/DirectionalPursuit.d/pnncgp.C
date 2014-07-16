@@ -63,13 +63,14 @@ pnncgp(const Eigen::Array<Eigen::MatrixXd,Eigen::Dynamic,1> &A, const Eigen::Ref
   double bnorm = b.norm();
   double abstol = reltol*bnorm;
 
-  Array<VectorXd,Dynamic,1> x(nsub), y(nsub), g(nsub), h(nsub), g_(nsub), S(nsub);
+  Array<VectorXd,Dynamic,1> x_(nsub), y(nsub), g(nsub), h(nsub), g_(nsub), S(nsub), t(nsub);
   for(int i=0; i<nsub; ++i) {
-    x[i] = y[i] = VectorXd::Zero(A[i].cols());
+    x_[i] = y[i] = VectorXd::Zero(maxlocvec[i]);
     g_[i].resize(maxlocvec[i]);
     S[i].resize(A[i].cols());
     if(scaling) for(int j=0; j<A[i].cols(); ++j) S[i][j] = 1/A[i].col(j).norm();
     else S[i].setOnes();
+    t[i].resize(maxlocvec[i]);
   }
   VectorXd r(m), DtGDinv(maxvec), z(maxvec), a(maxvec);
   r = b;
@@ -84,7 +85,7 @@ pnncgp(const Eigen::Array<Eigen::MatrixXd,Eigen::Dynamic,1> &A, const Eigen::Ref
   Matrix<double,Dynamic,Dynamic,ColMajor> BD(m,maxvec);
   MatrixXd z_loc(maxvec,nsub), c_loc(m,nsub);
   long int k = 0; // k is the dimension of the (global) set of selected indices
-  std::vector<long int> l(nsub); // l[s] is the dimension of the subset of selected indices local to a subdomain.
+  std::vector<long int> l(nsub); // l[i] is the dimension of the subset of selected indices local to a subdomain.
   std::list<std::pair<int,long_int> > gindices; // global indices
   std::vector<std::vector<long int> > indices(nsub); // local indices
 
@@ -100,7 +101,7 @@ pnncgp(const Eigen::Array<Eigen::MatrixXd,Eigen::Dynamic,1> &A, const Eigen::Ref
       std::cout.unsetf(std::ios::uppercase);
     }
 
-    if(rnorm <= abstol || k == maxvec || iter >= maxit) break; // XXX check other termination conditions
+    if(rnorm <= abstol || k == maxvec || iter >= maxit) break;
 
     Array<long int,Dynamic,1> jk(nsub); ArrayXd gmax(nsub);
 #if defined(_OPENMP)
@@ -108,12 +109,11 @@ pnncgp(const Eigen::Array<Eigen::MatrixXd,Eigen::Dynamic,1> &A, const Eigen::Ref
 #endif
     for(int i=0; i<nsub; ++i) {
       g[i] = S[i].asDiagonal()*(A[i].transpose()*r);
-      h[i] = g[i]; for(long int j=0; j<l[i]; ++j) h[i][indices[i][j]] = std::numeric_limits<double>::min(); // make sure the index has not already been selected?
-      gmax[i] = h[i].maxCoeff(&jk[i]); // note it is not maxAbs, this is different to CGP/OMP
+      h[i] = g[i]; for(long int j=0; j<l[i]; ++j) h[i][indices[i][j]] = std::numeric_limits<double>::min(); // make sure the index has not already been selected
+      gmax[i] = h[i].maxCoeff(&jk[i]);
     }
     int ik; // subdomain which has the max coeff.
     s.val = gmax.maxCoeff(&ik);
-    // XXX if s.val <= 0 then terminate
     s.rank = myrank;
     p.index = jk[ik];
     p.sub = ik;
@@ -164,34 +164,48 @@ pnncgp(const Eigen::Array<Eigen::MatrixXd,Eigen::Dynamic,1> &A, const Eigen::Ref
 #endif
     for(int i=0; i<nsub; ++i) {
       Block<MatrixXd,Dynamic,1,true> d = D[i].col(k);
-      y[i] = x[i]; for(long int j=0; j<l[i]; ++j) y[i][indices[i][j]] += a[k]*d[j];
+      y[i].head(l[i]) = x_[i].head(l[i]) + a[k]*d.head(l[i]);
       GD[i].col(k).head(l[i]) = B[i].leftCols(l[i]).transpose()*c;
     }
     k++;
 
     while(true) {
       iter++;
-      Array<long int,Dynamic,1> jk(nsub); ArrayXd ymin(nsub);
+      ArrayXd ymin(nsub);
 #if defined(_OPENMP)
   #pragma omp parallel for schedule(static,1)
 #endif
       for(int i=0; i<nsub; ++i) {
-        ymin[i] = y[i].minCoeff(&jk[i]);
+        ymin[i] = y[i].head(l[i]).minCoeff();
       }
-      int ik; // subdomain which has the min coeff.
-      s.val = ymin.minCoeff(&ik);
-      s.rank = myrank;
+      double minCoeff = ymin.minCoeff();
 #ifdef USE_MPI
-      MPI_Allreduce(MPI_IN_PLACE, &s, 1, MPI_DOUBLE_INT, MPI_MINLOC, mpicomm);
+      MPI_Allreduce(MPI_IN_PLACE, &minCoeff, 1, MPI_DOUBLE, MPI_MIN, mpicomm);
 #endif
-      if(s.val < 0) { // XXX here we could/should take more than one if they have the same value
-        if(s.rank == myrank) {
-          std::vector<long int>::iterator pos = std::find(indices[ik].begin(), indices[ik].end(), jk[ik]);
-          indices[ik].erase(pos);
-          //std::cout << "removing index " << jk[ik] << " from subdomain " << ik << " on process with rank " << myrank << std::endl;
+      if(minCoeff < 0) {
+        // compute maximum feasible step length (alpha) and corresponding index in active set jk[i] for each subdomain
+        ArrayXd alpha(nsub); Array<long int,Dynamic,1> jk(nsub);
+#if defined(_OPENMP)
+  #pragma omp parallel for schedule(static,1)
+#endif
+        for(int i=0; i<nsub; ++i) {
+          for(long int j=0; j<l[i]; ++j) t[i][j] = (y[i][j] >= 0) ? std::numeric_limits<double>::max() : -x_[i][j]/(y[i][j]-x_[i][j]);
+          alpha[i] = t[i].head(l[i]).minCoeff(&jk[i]);
         }
-        p.index = jk[ik];
-        p.sub = ik;
+
+        int ik; // subdomain which has the maximum feasible step length.
+        s.val = alpha.minCoeff(&ik);
+        s.rank = myrank;
+#ifdef USE_MPI
+        MPI_Allreduce(MPI_IN_PLACE, &s, 1, MPI_DOUBLE_INT, MPI_MINLOC, mpicomm);
+#endif
+        if(s.rank == myrank) {
+          p.index = indices[ik][jk[ik]];
+          p.sub = ik;
+          std::vector<long int>::iterator pos = indices[ik].begin() + jk[ik];
+          indices[ik].erase(pos);
+          //std::cout << "removing index " << p.index << " from subdomain " << ik << " on process with rank " << myrank << std::endl;
+        }
 #ifdef USE_MPI
         MPI_Bcast(&p, 1, MPI_LONG_INT, s.rank, mpicomm);
 #endif
@@ -206,10 +220,10 @@ pnncgp(const Eigen::Array<Eigen::MatrixXd,Eigen::Dynamic,1> &A, const Eigen::Ref
   #pragma omp parallel for schedule(static,1)
 #endif
         for(int i=0; i<nsub; ++i) {
+          y[i].head(l[i]).setZero();
           l[i] = 0; for(std::list<std::pair<int,long_int> >::iterator it = gindices.begin(); it != fol; ++it) { if(it->first == myrank && it->second.sub == i) l[i]++; }
           D[i].bottomRightCorner(maxlocvec[i]-l[i],maxvec-k).setZero(); // XXX this is a larger block than necessary
-          z_loc.col(i).head(l[i]) = D[i].topLeftCorner(l[i],k)*a.head(k);
-          y[i].setZero(); for(long int j=0; j<l[i]; ++j) y[i][indices[i][j]] += z_loc.col(i)[j];
+          y[i].head(l[i]) = D[i].topLeftCorner(l[i],k)*a.head(k);
         }
         r = b - BD.leftCols(k)*a.head(k); // XXX this could be parallelized, rowwise
         for(std::list<std::pair<int,long_int> >::iterator it = fol; it != gindices.end(); ++it) {
@@ -255,22 +269,25 @@ pnncgp(const Eigen::Array<Eigen::MatrixXd,Eigen::Dynamic,1> &A, const Eigen::Ref
 #endif
           for(int i=0; i<nsub; ++i) {
             Block<MatrixXd,Dynamic,1,true> d = D[i].col(k);
-            for(long int j=0; j<l[i]; ++j) y[i][indices[i][j]] += a[k]*d[j];
+            y[i].head(l[i]) += a[k]*d.head(l[i]);
             GD[i].col(k).head(l[i]) = B[i].leftCols(l[i]).transpose()*c;
           }
           k++;
         }
       }
       else {
-        x = y;
+        x_ = y;
         break;
       }
     }
 
     rnorm = r.norm();
   }
-  if(scaling) {
-    for(int i=0; i<nsub; ++i) x[i] = (S[i].asDiagonal()*x[i]).eval();
+
+  Array<VectorXd,Dynamic,1> x(nsub);
+  for(int i=0; i<nsub; ++i) {
+    x[i] = VectorXd::Zero(A[i].cols());
+    for(long int j=0; j<l[i]; ++j) x[i][indices[i][j]] = S[i][indices[i][j]]*x_[i][j];
   }
   return x;
 }

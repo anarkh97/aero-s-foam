@@ -27,9 +27,8 @@ nncgp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::
   double bnorm = b.norm();
   double abstol = reltol*bnorm;
 
-  VectorXd x(A.cols()), y(A.cols()), r(A.rows()), g(A.cols()), h(A.cols()), DtGDinv(maxvec), z(maxvec), g_(maxvec), a(maxvec), S(A.cols());
-  x.setZero();
-  y.setZero();
+  VectorXd x_(maxvec), y(maxvec), r(A.rows()), g(A.cols()), h(A.cols()), DtGDinv(maxvec), g_(maxvec), a(maxvec), S(A.cols()), t(maxvec);
+  x_.setZero();
   r = b;
   rnorm = bnorm;
   MatrixXd B(A.rows(),maxvec), D(maxvec,maxvec), GD(maxvec,maxvec);
@@ -53,12 +52,12 @@ nncgp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::
       std::cout.unsetf(std::ios::uppercase);
     }
 
-    if(rnorm <= abstol || k == maxvec || iter >= maxit) break; // XXX check other termination conditions
+    if(rnorm <= abstol || k == maxvec || iter >= maxit) break;
 
-    g = S.asDiagonal()*(A.transpose()*r);
+    g = S.asDiagonal()*(A.transpose()*r); // gradient
     long int i;
-    h = g; for(long int j=0; j<k; ++j) h[indices[j]] = std::numeric_limits<double>::min(); // make sure the index has not already been selected?
-    double gi = h.maxCoeff(&i); // note it is not maxAbs, this is different to CGP/OMP
+    h = g; for(long int j=0; j<k; ++j) h[indices[j]] = std::numeric_limits<double>::min(); // make sure the index has not already been selected
+    double gi = h.maxCoeff(&i);
     if(gi <= 0) break;
     B.col(k) = S[i]*A.col(i);
     indices.push_back(i);
@@ -67,30 +66,31 @@ nncgp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::
 
     for(long int j=0; j<k+1; ++j) g_[j] = g[indices[j]];
     Block<MatrixXd,Dynamic,1,true> d = D.col(k), c = BD.col(k);
-    d.head(k+1) = g_.head(k+1) - D.topLeftCorner(k+1,k)*DtGDinv.head(k).asDiagonal()*(GD.topLeftCorner(k+1,k).transpose()*g_.head(k+1));
+    d.head(k+1) = g_.head(k+1) - D.topLeftCorner(k+1,k)*DtGDinv.head(k).asDiagonal()*(GD.topLeftCorner(k+1,k).transpose()*g_.head(k+1)); // direction
 
     c = B.leftCols(k+1)*d.head(k+1);
     GD.col(k).head(k+1) = B.leftCols(k+1).transpose()*c;
     DtGDinv[k] = 1/c.squaredNorm();
-    a[k] = r.dot(c)*DtGDinv[k];
-    y = x; for(long int j=0; j<k+1; ++j) y[indices[j]] += a[k]*d[j];
-    r -= a[k]*c;
+    a[k] = r.dot(c)*DtGDinv[k]; // step length
+    y.head(k+1) = x_.head(k+1) + a[k]*d.head(k+1); // candidate solution
+    r -= a[k]*c; // residual
     k++;
     while(true) {
       iter++;
-      long int j;
-      double yj;
-      if((yj = y.minCoeff(&j)) < 0) { // XXX here we could/should take more than one if they have the same value
-        std::vector<long int>::iterator pos = std::find(indices.begin(), indices.end(), j);
+      if(y.head(k).minCoeff() < 0) {
+        // compute maximum feasible step length (alpha) and corresponding index in active set (i)
+        for(long int j=0; j<k; ++j) t[j] = (y[j] >= 0) ? std::numeric_limits<double>::max() : -x_[j]/(y[j]-x_[j]);
+        double alpha = t.head(k).minCoeff(&i);
+        //std::cerr << " removing index " << indices[i] << std::endl;
+        std::vector<long int>::iterator pos = indices.begin()+i;
         std::vector<long int>::iterator fol = indices.erase(pos);
-        //std::cout << "removing index " << j << std::endl;
 
         // note: it is necessary to re-G-orthogonalize the basis D now, project the solution y onto the new basis and compute the corresponding residual r.
         // this is done here by starting from the column of D corresponding to fol (because the ones before this are already G-orthogonal)
         // and then following the same procedure that is used above to construct the original basis.
+        y.head(k).setZero();
         k = std::distance(indices.begin(), fol);
-        VectorXd zz = D.topLeftCorner(k,k).triangularView<Upper>()*a.head(k);
-        y.setZero(); for(long int j=0; j<k; ++j) y[indices[j]] += zz[j];
+        y.head(k) = D.topLeftCorner(k,k).triangularView<Upper>()*a.head(k);
         r = b - BD.leftCols(k)*a.head(k);
         for(std::vector<long int>::iterator it = fol; it != indices.end(); ++it) {
           B.col(k) = S[*it]*A.col(*it);
@@ -102,20 +102,23 @@ nncgp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::
           GD.col(k).head(k+1) = B.leftCols(k+1).transpose()*c;
           DtGDinv[k] = 1/c.squaredNorm();
           a[k] = r.dot(c)*DtGDinv[k];
-          for(long int j=0; j<k+1; ++j) y[indices[j]] += a[k]*d[j];
+          y.head(k+1) += a[k]*d.head(k+1);
           r -= a[k]*c;
           k++;
         }
       }
       else {
-        x = y;
+        x_ = y;
         break;
       }
     }
 
     rnorm = r.norm();
   }
-  return S.asDiagonal()*x;
+
+  VectorXd x = VectorXd::Zero(A.cols());
+  for(long int j=0; j<k; ++j) x[indices[j]] = S[indices[j]]*x_[j];
+  return x;
 }
 
 #endif

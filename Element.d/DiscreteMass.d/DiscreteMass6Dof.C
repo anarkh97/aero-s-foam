@@ -142,6 +142,12 @@ DiscreteMass6Dof::getGravityForce(CoordSet&, double *g, Vector &_f, int, GeomSta
 }
 
 void
+DiscreteMass6Dof::computePressureForce(CoordSet&, Vector& elPressureForce, GeomState *, int, double)
+{
+  elPressureForce.zero();
+}
+
+void
 DiscreteMass6Dof::getStiffAndForce(GeomState& curState, CoordSet& c0, FullSquareMatrix& K,
                                    double* f, double dt, double t)
 {

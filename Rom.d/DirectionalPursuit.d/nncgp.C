@@ -116,6 +116,8 @@ nncgp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::
     rnorm = r.norm();
   }
 
+  if(verbose) std::cout.flush();
+
   VectorXd x = VectorXd::Zero(A.cols());
   for(long int j=0; j<k; ++j) x[indices[j]] = S[indices[j]]*x_[j];
   return x;

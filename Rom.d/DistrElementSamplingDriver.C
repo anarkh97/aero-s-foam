@@ -42,6 +42,7 @@ void readAndProjectSnapshots(BasisId::Type type, const DistrInfo &vectorSize, Di
                              DistrVecNodeDof6Conversion &converter, DistrVecBasis &podBasis,
                              std::vector<int> &snapshotCounts, std::vector<double> &timeStamps, DistrVecBasis *&config)
 {
+  //double t1 = getTime();
   const int snapshotCount = snapSize(type, snapshotCounts);
   filePrint(stderr, " ... Reading in and Projecting %d %s Snapshots ...\n", snapshotCount, toString(type).c_str());
 
@@ -86,6 +87,7 @@ void readAndProjectSnapshots(BasisId::Type type, const DistrInfo &vectorSize, Di
   }
 
   assert(timeStamps.size() == snapshotCount);
+  //filePrint(stderr, "time for readAndProjectSnapshots = %f\n", (getTime()-t1)/1000.0);
 }
 
 // Member functions

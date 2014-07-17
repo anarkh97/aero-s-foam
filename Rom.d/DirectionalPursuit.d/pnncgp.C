@@ -110,7 +110,7 @@ pnncgp(const Eigen::Array<Eigen::MatrixXd,Eigen::Dynamic,1> &A, const Eigen::Ref
     for(int i=0; i<nsub; ++i) {
       g[i] = S[i].asDiagonal()*(A[i].transpose()*r);
       h[i] = g[i]; for(long int j=0; j<l[i]; ++j) h[i][indices[i][j]] = std::numeric_limits<double>::min(); // make sure the index has not already been selected
-      gmax[i] = h[i].maxCoeff(&jk[i]);
+      gmax[i] = (A[i].cols() > 0) ? h[i].maxCoeff(&jk[i]) : std::numeric_limits<double>::min();
     }
     int ik; // subdomain which has the max coeff.
     s.val = gmax.maxCoeff(&ik);
@@ -176,7 +176,7 @@ pnncgp(const Eigen::Array<Eigen::MatrixXd,Eigen::Dynamic,1> &A, const Eigen::Ref
   #pragma omp parallel for schedule(static,1)
 #endif
       for(int i=0; i<nsub; ++i) {
-        ymin[i] = y[i].head(l[i]).minCoeff();
+        ymin[i] = (l[i] > 0) ? y[i].head(l[i]).minCoeff() : std::numeric_limits<double>::max();
       }
       double minCoeff = ymin.minCoeff();
 #ifdef USE_MPI
@@ -190,7 +190,7 @@ pnncgp(const Eigen::Array<Eigen::MatrixXd,Eigen::Dynamic,1> &A, const Eigen::Ref
 #endif
         for(int i=0; i<nsub; ++i) {
           for(long int j=0; j<l[i]; ++j) t[i][j] = (y[i][j] >= 0) ? std::numeric_limits<double>::max() : -x_[i][j]/(y[i][j]-x_[i][j]);
-          alpha[i] = t[i].head(l[i]).minCoeff(&jk[i]);
+          alpha[i] = (l[i] > 0) ? t[i].head(l[i]).minCoeff(&jk[i]) : std::numeric_limits<double>::max();
         }
 
         int ik; // subdomain which has the maximum feasible step length.
@@ -283,6 +283,8 @@ pnncgp(const Eigen::Array<Eigen::MatrixXd,Eigen::Dynamic,1> &A, const Eigen::Ref
 
     rnorm = r.norm();
   }
+
+  if(myrank == 0 && verbose) std::cout.flush();
 
   Array<VectorXd,Dynamic,1> x(nsub);
   for(int i=0; i<nsub; ++i) {

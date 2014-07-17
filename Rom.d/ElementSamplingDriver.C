@@ -164,6 +164,7 @@ void readAndProjectSnapshots(BasisId::Type type, const int vectorSize, VecBasis 
                              std::vector<int> &snapshotCounts, std::vector<double> &timeStamps, VecBasis &config,
                              SparseMatrix *M)
 {
+  //double t1 = getTime();
   const int snapshotCount = snapSize(type, snapshotCounts);
   filePrint(stderr, " ... Reading in and Projecting %d %s Snapshots ...\n", snapshotCount, toString(type).c_str());
 
@@ -214,6 +215,7 @@ void readAndProjectSnapshots(BasisId::Type type, const int vectorSize, VecBasis 
   }
   
   assert(timeStamps.size() == snapshotCount);
+  //fprintf(stderr, "time for readAndProjectSnapshots = %f\n", (getTime()-t1)/1000.0);
 }
 
 // Member functions

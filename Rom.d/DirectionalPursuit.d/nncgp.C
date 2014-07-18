@@ -88,6 +88,7 @@ nncgp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::
         // note: it is necessary to re-G-orthogonalize the basis D now, project the solution y onto the new basis and compute the corresponding residual r.
         // this is done here by starting from the column of D corresponding to fol (because the ones before this are already G-orthogonal)
         // and then following the same procedure that is used above to construct the original basis.
+        x_[k] = 0;
         y.head(k).setZero();
         k = std::distance(indices.begin(), fol);
         y.head(k) = D.topLeftCorner(k,k).triangularView<Upper>()*a.head(k);
@@ -108,7 +109,7 @@ nncgp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::
         }
       }
       else {
-        x_ = y;
+        x_.head(k) = y.head(k);
         break;
       }
     }

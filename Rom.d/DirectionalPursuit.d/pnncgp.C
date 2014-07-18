@@ -65,7 +65,8 @@ pnncgp(const Eigen::Array<Eigen::MatrixXd,Eigen::Dynamic,1> &A, const Eigen::Ref
 
   Array<VectorXd,Dynamic,1> x_(nsub), y(nsub), g(nsub), h(nsub), g_(nsub), S(nsub), t(nsub);
   for(int i=0; i<nsub; ++i) {
-    x_[i] = y[i] = VectorXd::Zero(maxlocvec[i]);
+    x_[i] = VectorXd::Zero(maxlocvec[i]);
+    y[i].resize(maxlocvec[i]);
     g_[i].resize(maxlocvec[i]);
     S[i].resize(A[i].cols());
     if(scaling) for(int j=0; j<A[i].cols(); ++j) S[i][j] = 1/A[i].col(j).norm();
@@ -204,6 +205,7 @@ pnncgp(const Eigen::Array<Eigen::MatrixXd,Eigen::Dynamic,1> &A, const Eigen::Ref
           p.sub = ik;
           std::vector<long int>::iterator pos = indices[ik].begin() + jk[ik];
           indices[ik].erase(pos);
+          x_[ik][l[ik]] = 0;
           //std::cout << "removing index " << p.index << " from subdomain " << ik << " on process with rank " << myrank << std::endl;
         }
 #ifdef USE_MPI
@@ -276,7 +278,12 @@ pnncgp(const Eigen::Array<Eigen::MatrixXd,Eigen::Dynamic,1> &A, const Eigen::Ref
         }
       }
       else {
-        x_ = y;
+#if defined(_OPENMP)
+  #pragma omp parallel for schedule(static,1)
+#endif
+        for(int i=0; i<nsub; ++i) {
+          x_[i].head(l[i]) = y[i].head(l[i]);
+        }
         break;
       }
     }

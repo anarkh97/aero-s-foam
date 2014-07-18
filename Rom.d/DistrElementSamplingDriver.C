@@ -42,7 +42,9 @@ void readAndProjectSnapshots(BasisId::Type type, const DistrInfo &vectorSize, Di
                              DistrVecNodeDof6Conversion &converter, DistrVecBasis &podBasis,
                              std::vector<int> &snapshotCounts, std::vector<double> &timeStamps, DistrVecBasis *&config)
 {
-  //double t1 = getTime();
+#ifdef PRINT_ESTIMERS
+  double t1 = getTime();
+#endif
   const int snapshotCount = snapSize(type, snapshotCounts);
   filePrint(stderr, " ... Reading in and Projecting %d %s Snapshots ...\n", snapshotCount, toString(type).c_str());
 
@@ -74,20 +76,22 @@ void readAndProjectSnapshots(BasisId::Type type, const DistrInfo &vectorSize, Di
         timeStamps.push_back(in.currentStateHeaderValue());
         skipCounter = 1;
         ++count;
-        filePrint(stderr, "\r ... timeStamp = %7.2e, %4.2f%% complete ...", in.currentStateHeaderValue(), double(count)/snapshotCounts[i]*100);
+        filePrint(stderr, "\r ... timeStamp = %8.2e, %3d%% done ...", in.currentStateHeaderValue(), (count*100)/snapshotCounts[i]);
       }
       else {
         ++skipCounter;
       }
       in.currentStateIndexInc();
     }
+    filePrint(stderr, "\r ... timeStamp = %8.2e, %3d%% done...\n", in.currentStateHeaderValue(), 100);
 
-    filePrint(stderr,"\n");
     offset += snapshotCounts[i];
   }
 
   assert(timeStamps.size() == snapshotCount);
-  //filePrint(stderr, "time for readAndProjectSnapshots = %f\n", (getTime()-t1)/1000.0);
+#ifdef PRINT_ESTIMERS
+  filePrint(stderr, "time for readAndProjectSnapshots = %f\n", (getTime()-t1)/1000.0);
+#endif
 }
 
 // Member functions
@@ -195,6 +199,9 @@ DistrElementSamplingDriver::solve()
   int myID = (structCom) ? structCom->myID() : 0;
   solver_ = new ParallelSparseNonNegativeLeastSquaresSolver(decDomain->getNumSub(), subSolvers);
   solver_->problemSizeIs(podVectorCount*snapshotCount, domain->numElements());
+#ifdef PRINT_ESTIMERS
+  double t2 = getTime();
+#endif
   StackVector glTrainingTarget(solver_->rhsBuffer(), solver_->equationCount());
   glTrainingTarget.zero();
 #if defined(_OPENMP)
@@ -254,6 +261,9 @@ DistrElementSamplingDriver::solve()
 
   if(structCom) 
     structCom->globalSum(glTrainingTarget.size(), glTrainingTarget.data()); 
+#ifdef PRINT_ESTIMERS
+  filePrint(stderr, "time for assembleTrainingData = %f\n", (getTime()-t2)/1000.0);
+#endif
 
   computeSolution(solutions, domain->solInfo().tolPodRom);
 

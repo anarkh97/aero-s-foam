@@ -164,7 +164,9 @@ void readAndProjectSnapshots(BasisId::Type type, const int vectorSize, VecBasis 
                              std::vector<int> &snapshotCounts, std::vector<double> &timeStamps, VecBasis &config,
                              SparseMatrix *M)
 {
-  //double t1 = getTime();
+#ifdef PRINT_ESTIMERS
+  double t1 = getTime();
+#endif
   const int snapshotCount = snapSize(type, snapshotCounts);
   filePrint(stderr, " ... Reading in and Projecting %d %s Snapshots ...\n", snapshotCount, toString(type).c_str());
 
@@ -185,14 +187,15 @@ void readAndProjectSnapshots(BasisId::Type type, const int vectorSize, VecBasis 
     filePrint(stderr, " ... Processing File: %s ...\n", fileName.c_str());
     BasisInputStream in(fileName, vecDofConversion);
 
+    double s0 = -getTime(), s1 = -51, s2 = 0;
     int count = 0;
     int skipCounter = skipFactor - skipOffSet;
+    std::pair<double, double *> data;
     while(count < snapshotCounts[i]) {
-      std::pair<double, double *> data;
-      data.second = snapshot.data();
-      in >> data;
-      assert(in);
       if(skipCounter == skipFactor) {
+        data.second = snapshot.data();
+        in >> data;
+        assert(in);
         if(domain->solInfo().useMassOrthogonalProjection) {
           M->mult(snapshot, Msnapshot);
           expand(podBasis, reduce(podBasis, Msnapshot, podComponents), config[offset+count]);
@@ -203,19 +206,26 @@ void readAndProjectSnapshots(BasisId::Type type, const int vectorSize, VecBasis 
         timeStamps.push_back(data.first);
         skipCounter = 1;
         ++count;
-        filePrint(stderr, "\r ... timeStamp = %7.2e, %4.2f%% complete ...", data.first, double(count)/snapshotCounts[i]*100);
-      } 
+        if((s2-s1 > 50)) { // only print to the screen every 50 milliseconds, otherwise it's too slow...
+          s1 = s2;
+          filePrint(stderr, "\r ... timeStamp = %8.2e, %3d%% done ...", data.first, (count*100)/snapshotCounts[i]);
+        }
+        s2 = s0+getTime();
+      }
       else {
+        in.file().currentStateIndexInc();
         ++skipCounter;
       }
     }
 
-    filePrint(stderr,"\n");
+    filePrint(stderr, "\r ... timeStamp = %8.2e, %3d%% done...\n", data.first, 100);
     offset += snapshotCounts[i];
   }
   
   assert(timeStamps.size() == snapshotCount);
-  //fprintf(stderr, "time for readAndProjectSnapshots = %f\n", (getTime()-t1)/1000.0);
+#ifdef PRINT_ESTIMERS
+  fprintf(stderr, "time for readAndProjectSnapshots = %f\n", (getTime()-t1)/1000.0);
+#endif
 }
 
 // Member functions
@@ -365,8 +375,14 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::solve() {
   preProcess();
   
   // Training target (solver_.rhsBuffer) is the sum of elementary contributions
+#ifdef PRINT_ESTIMERS
+  double t2 = getTime();
+#endif
   for(int i=0; i<solver_.equationCount(); ++i) solver_.rhsBuffer()[i] = 0.0;
   assembleTrainingData(podBasis_, podBasis_.vectorCount(), displac_, veloc_, accel_);
+#ifdef PRINT_ESTIMERS
+  fprintf(stderr, "time for assembleTrainingData = %f\n", (getTime()-t2)/1000.0);
+#endif
 
   Vector solution;
   computeSolution(solution, domain_->solInfo().tolPodRom);

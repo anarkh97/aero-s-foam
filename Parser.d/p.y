@@ -624,13 +624,17 @@ BinarySpec:
             decomposition_ = prefix + ".dec";
             connectivity_ = prefix + ".con";
             subdomains_ = prefix + ".sub";
-            //fprintf(stderr, "clusterData_ = %s\n", clusterData_.c_str());
-            //fprintf(stderr, "decomposition_ = %s\n", decomposition_.c_str());
-            //fprintf(stderr, "connectivity_ = %s\n", connectivity_.c_str());
-            //fprintf(stderr, "subdomains_ = %s\n", subdomains_.c_str());
           }
         | BinarySpec BINARYOUTPUT SWITCH NewLine 
           { geoSource->binaryOutput = bool($3); }
+        | BinarySpec BINARYOUTPUT SWITCH FNAME NewLine
+          { geoSource->binaryOutput = bool($3);
+            int len = strlen($4);
+            char *file = new char[len+5];
+            strcpy(file, $4);
+            strcat(file,".con");
+            geoSource->setGlob(file);
+          }
         | BinarySpec GEOMETRY FNAME NewLine
           { geoSource->setGeo($3); }
         | BinarySpec DECOMPOSITION FNAME NewLine

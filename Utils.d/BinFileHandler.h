@@ -180,7 +180,7 @@ BinFileHandler::BinFileHandler(const char *name, const char *flag, double ver) :
 #ifdef WINDOWS
     fileid = open(name, O_WRONLY | O_CREAT | O_TRUNC , 0644);
 #else
-   fileid = open(name, O_WRONLY | O_CREAT | O_TRUNC | O_SYNC, 0644);
+    fileid = open(name, O_WRONLY | O_CREAT | O_TRUNC | O_SYNC, 0644);
 #endif
     if (fileid == -1) ierr = 1;
   }

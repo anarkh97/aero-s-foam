@@ -20,6 +20,7 @@ class GenDistrDomain : virtual public GenDecDomain<Scalar>
     FSCommPattern<Scalar> *nodePat;
     int x;
     DistVec<Scalar> *masterStress;
+    Connectivity *clusToCpu;
   public:
     GenDistrDomain(Domain *d);
     virtual ~GenDistrDomain();

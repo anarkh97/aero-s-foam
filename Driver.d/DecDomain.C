@@ -510,6 +510,8 @@ GenDecDomain<Scalar>::makeSubToSubEtc()
       mt.memoryElemToSub += memoryUsed();
       if(domain->numSSN() > 0) domain->checkSommerTypeBC(domain, elemToNode, domain->nodeToElem); // flip normals if necessary
     }
+
+    if(geoSource->getGlob()) geoSource->computeClusterInfo(localSubToGl[0], subToNode);
   }
 }
 

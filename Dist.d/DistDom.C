@@ -244,7 +244,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
 
     Connectivity *subToClus = geoSource->getSubToClus();
     int clusterId = (*subToClus)[this->localSubToGl[0]][0];
-    bool firstCpuInCluster = (clusToCpu) ? (*clusToCpu)[clusterId][0] : 0;
+    int firstCpuInCluster = (clusToCpu) ? (*clusToCpu)[clusterId][0] : 0;
     for(int iInfo = 0; iInfo < numOutInfo; iInfo++) {
       if(oinfo[iInfo].type == OutputInfo::Farfield || 
          oinfo[iInfo].type == OutputInfo::Energies ||
@@ -1463,7 +1463,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
 
     Connectivity *subToClus = geoSource->getSubToClus();
     int clusterId = (*subToClus)[this->localSubToGl[0]][0];
-    bool firstCpuInCluster = (clusToCpu) ? (*clusToCpu)[clusterId][0] : 0;
+    int firstCpuInCluster = (clusToCpu) ? (*clusToCpu)[clusterId][0] : 0;
     for(int iInfo = 0; iInfo < numOutInfo; iInfo++) {
       if(oinfo[iInfo].type == OutputInfo::Farfield || oinfo[iInfo].type == OutputInfo::AeroForce
          || oinfo[iInfo].type == OutputInfo::Energies || oinfo[iInfo].type == OutputInfo::DissipatedEnergy) {

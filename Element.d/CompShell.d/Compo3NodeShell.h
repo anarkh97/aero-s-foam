@@ -100,8 +100,11 @@ public:
                            FullSquareMatrix & gradkarray, int flg=1);
 #endif
 	
-      // Routines for the decomposer
+        // Routines for the decomposer
         PrioInfo examine(int sub, MultiFront *);
+        int nDecFaces() { return 1; }
+        int getDecFace(int iFace, int *fn) {
+          for(int i=0; i<3; i++) fn[i] = nn[i]; return 3; }
 
 	bool hasRot() { return true; }
 

@@ -246,10 +246,9 @@ MeshDesc::init(Domain *domain, GeoSource *geoSource, const MeshRenumbering &ren)
    TODO configuration-dependent nodal forces and moments still should be outputted here, though
   reduce(ren.nodeRenumbering(), domain->getNBC(), domain->getNBC() + domain->nNeumann(), std::back_inserter(neumannBConds_));
 */
-
   // Element pressures
   reduce(ren.elemRenumbering(), geoSource->getElementPressure().begin(), geoSource->getElementPressure().end(),
-          std::inserter(elemPressures_, elemPressures_.end()));
+         std::inserter(elemPressures_, elemPressures_.end()));
 
 /* Now the initial conditions are outputted in the reduced coordinates, see ElementSamplingDriver::postProcess
   // Initial conditions

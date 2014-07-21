@@ -391,6 +391,7 @@ class Domain : public HData {
                            GeomState *refState = NULL, Vector *reactions = NULL,
                            FullSquareMatrix *mel = NULL, FullSquareMatrix *cel = NULL);
      void makeElementAdjacencyLists();
+     std::vector<AdjacencyLists>& getElementAdjacencyLists() { return elemAdj; }
      std::vector<int>& getFollowedElemList() { return followedElemList; }
      void getFollowerForce(GeomState &u, Vector &elementInternalForce,
                            Corotator **allCorot, FullSquareMatrix *kel,
@@ -1146,6 +1147,7 @@ class Domain : public HData {
      int GetnMortarLMPCs();
      MortarHandler* GetMortarCond(int i) { return MortarConds[i]; }
      ResizeArray<SurfaceEntity*>* viewSurfEntities() { return(&SurfEntities); }
+     SurfaceEntity* GetSurfaceEntity(int i) { return SurfEntities[i]; }
      void setNumSurfs(int nSurfs) { nSurfEntity = nSurfs; }
      int getNumSurfs() { return(nSurfEntity); }
      int getMaxContactSurfElems() { return maxContactSurfElems; }

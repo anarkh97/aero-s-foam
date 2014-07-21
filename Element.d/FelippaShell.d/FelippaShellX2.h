@@ -20,7 +20,9 @@ class FelippaShellX2 : public SuperElement
 
     // Routines for the decomposer
     PrioInfo examine(int sub, MultiFront *);
-
+    int nDecFaces() { return 1; }
+    int getDecFace(int iFace, int *fn) {
+      for(int i=0; i<4; i++) fn[i] = nn[i]; return 4; }
 };
 
 #endif

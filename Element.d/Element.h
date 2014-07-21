@@ -72,8 +72,9 @@ struct PressureBCond {
   MFTTData *mftt;
   BlastLoading::BlastData *conwep;
   double loadfactor;
+  int face;
   void setData(int _elnum, double _val, int _loadsetid, bool _conwepswitch, MFTTData *_mftt = NULL, BlastLoading::BlastData *_conwep = NULL) 
-   { elnum = _elnum; val = _val; loadsetid = _loadsetid; conwepswitch = _conwepswitch; mftt = _mftt; conwep = _conwep; loadfactor = 1; }
+   { elnum = _elnum; val = _val; loadsetid = _loadsetid; conwepswitch = _conwepswitch; mftt = _mftt; conwep = _conwep; loadfactor = 1; face = -1; }
 };
 
 struct NumExc {

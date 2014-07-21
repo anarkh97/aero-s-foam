@@ -978,7 +978,29 @@ void GeoSource::setUpData()
       pbc.mftt = domain->getMFTT(pbc.loadsetid);
       pbc.conwep = conwep;
       pbc.loadfactor = domain->getLoadFactor(pbc.loadsetid);
-      elemSet[elemNum]->setPressure(&pbc);
+      if(pbc.face == -1)
+        elemSet[elemNum]->setPressure(&pbc);
+      else {
+        int *nodes = new int[elemSet[elemNum]->numNodes()];
+        int nNodes = elemSet[elemNum]->getDecFace(pbc.face, nodes);
+        if(nNodes > 0) {
+          int type;
+          switch(nNodes) {
+            case 3 : type = 15; break;
+            case 4 : type = 16; break;
+            case 6 : type = 17; break;
+            case 8 : type = 18; break;
+            case 9 : type = 19; break;
+            case 10 : type = 21; break; 
+            case 12 : type = 20; break;
+          }
+          domain->addNeumElem(-1, type, pbc.val, nNodes, nodes, &pbc);
+          domain->neum[domain->numNeum-1]->setAdjElementIndex(elemNum);
+          delete [] nodes;
+        }
+        else
+          filePrint(stderr, " *** WARNING: Pressure was found for unsupported element %d\n", elemNum+1);
+      }
     }
     else
       filePrint(stderr, " *** WARNING: Pressure was found for non-existent element %d\n", elemNum+1);

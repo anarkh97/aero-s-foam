@@ -205,7 +205,7 @@ pnncgp(const Eigen::Array<Eigen::MatrixXd,Eigen::Dynamic,1> &A, const Eigen::Ref
           p.sub = ik;
           std::vector<long int>::iterator pos = indices[ik].begin() + jk[ik];
           indices[ik].erase(pos);
-          x_[ik][l[ik]] = 0;
+          x_[ik][l[ik]-1] = 0;
           //std::cout << "removing index " << p.index << " from subdomain " << ik << " on process with rank " << myrank << std::endl;
         }
 #ifdef USE_MPI
@@ -214,9 +214,9 @@ pnncgp(const Eigen::Array<Eigen::MatrixXd,Eigen::Dynamic,1> &A, const Eigen::Ref
         std::list<std::pair<int,long_int> >::iterator pos = std::find(gindices.begin(), gindices.end(), std::pair<int,long_int>(s.rank,p));
         std::list<std::pair<int,long_int> >::iterator fol = gindices.erase(pos);
 
-        // note: it is necessary to re-G-orthogonalize the basis D now, project the solution y onto the new basis and compute the corresponding residual r.
-        // this is done here by starting from the column of D corresponding to fol (because the ones before this are already G-orthogonal)
-        // and then following the same procedure that is used above to construct the original basis.
+        // Note: it is necessary to re-G-orthogonalize the basis D now, project the solution y onto the new basis and compute the corresponding residual r.
+        // This is done here by starting from the column of D pointed to by fol (because the ones before this are already G-orthogonal), and then
+        // following what is the essentially same procedure that is used above to construct the original basis, with a few optimizations when possible.
         k = std::distance(gindices.begin(), fol);
 #if defined(_OPENMP)
   #pragma omp parallel for schedule(static,1)
@@ -228,10 +228,17 @@ pnncgp(const Eigen::Array<Eigen::MatrixXd,Eigen::Dynamic,1> &A, const Eigen::Ref
           y[i].head(l[i]) = D[i].topLeftCorner(l[i],k)*a.head(k);
         }
         r = b - BD.leftCols(k)*a.head(k); // XXX this could be parallelized, rowwise
+#if defined(_OPENMP)
+  #pragma omp parallel for schedule(static,1)
+#endif
+        for(int i=0; i<nsub; ++i) {
+          g_[i].head(l[i]) = B[i].leftCols(l[i]).transpose()*r;
+        }
         for(std::list<std::pair<int,long_int> >::iterator it = fol; it != gindices.end(); ++it) {
           if(it->first == myrank) {
             int i = it->second.sub;
             B[i].col(l[i]) = S[i][it->second.index]*A[i].col(it->second.index);
+            g_[i][l[i]] = B[i].col(l[i]).transpose()*r;
             // update GD due to extra column added to B (note: B.col(i)*D.row(i).head(k) = 0, so BD does not need to be updated)
             GD[i].row(l[i]).head(k) = B[i].col(l[i]).transpose()*BD.leftCols(k);
             l[i]++;
@@ -241,7 +248,6 @@ pnncgp(const Eigen::Array<Eigen::MatrixXd,Eigen::Dynamic,1> &A, const Eigen::Ref
   #pragma omp parallel for schedule(static,1)
 #endif
           for(int i=0; i<nsub; ++i) {
-            g_[i].head(l[i]) = B[i].leftCols(l[i]).transpose()*r;
             z_loc.col(i).head(k) = GD[i].topLeftCorner(l[i],k).transpose()*g_[i].head(l[i]);
           }
           z.head(k) = z_loc.topRows(k).rowwise().sum();
@@ -273,6 +279,7 @@ pnncgp(const Eigen::Array<Eigen::MatrixXd,Eigen::Dynamic,1> &A, const Eigen::Ref
             Block<MatrixXd,Dynamic,1,true> d = D[i].col(k);
             y[i].head(l[i]) += a[k]*d.head(l[i]);
             GD[i].col(k).head(l[i]) = B[i].leftCols(l[i]).transpose()*c;
+            g_[i].head(l[i]) -= a[k]*GD[i].col(k).head(l[i]);
           }
           k++;
         }

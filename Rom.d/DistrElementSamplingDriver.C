@@ -83,7 +83,7 @@ void readAndProjectSnapshots(BasisId::Type type, const DistrInfo &vectorSize, Di
       }
       in.currentStateIndexInc();
     }
-    filePrint(stderr, "\r ... timeStamp = %8.2e, %3d%% done...\n", in.currentStateHeaderValue(), 100);
+    filePrint(stderr, "\r ... timeStamp = %8.2e, %3d%% done... \n", in.currentStateHeaderValue(), 100);
 
     offset += snapshotCounts[i];
   }

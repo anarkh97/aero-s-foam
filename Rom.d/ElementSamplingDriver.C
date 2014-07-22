@@ -218,7 +218,7 @@ void readAndProjectSnapshots(BasisId::Type type, const int vectorSize, VecBasis 
       }
     }
 
-    filePrint(stderr, "\r ... timeStamp = %8.2e, %3d%% done...\n", data.first, 100);
+    filePrint(stderr, "\r ... timeStamp = %8.2e, %3d%% done... \n", data.first, 100);
     offset += snapshotCounts[i];
   }
   

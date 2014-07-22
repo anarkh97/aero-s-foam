@@ -22,7 +22,8 @@ nncgp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::
 {
   using namespace Eigen;
 
-  const long int maxvec = std::min(b.rows(), (long int)(maxsze*A.cols()));
+  const long int m = b.rows();
+  const long int maxvec = std::min(m, (long int)(maxsze*A.cols()));
   const long int maxit = 3*A.cols();
   double bnorm = b.norm();
   double abstol = reltol*bnorm;
@@ -66,7 +67,7 @@ nncgp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::
 
     for(long int j=0; j<k+1; ++j) g_[j] = g[indices[j]];
     Block<MatrixXd,Dynamic,1,true> d = D.col(k), c = BD.col(k);
-    d.head(k+1) = g_.head(k+1) - D.topLeftCorner(k+1,k)*DtGDinv.head(k).asDiagonal()*(GD.topLeftCorner(k+1,k).transpose()*g_.head(k+1)); // direction
+    d.head(k+1) = g_.head(k+1) - D.topLeftCorner(k+1,k).triangularView<Upper>()*(DtGDinv.head(k).asDiagonal()*(GD.topLeftCorner(k+1,k).transpose()*g_.head(k+1))); // direction
 
     c = B.leftCols(k+1)*d.head(k+1);
     GD.col(k).head(k+1) = B.leftCols(k+1).transpose()*c;
@@ -81,24 +82,26 @@ nncgp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::
         // compute maximum feasible step length (alpha) and corresponding index in active set (i)
         for(long int j=0; j<k; ++j) t[j] = (y[j] >= 0) ? std::numeric_limits<double>::max() : -x_[j]/(y[j]-x_[j]);
         double alpha = t.head(k).minCoeff(&i);
-        //std::cerr << " removing index " << indices[i] << std::endl;
+        //std::cout << " removing index " << indices[i] << std::endl;
         std::vector<long int>::iterator pos = indices.begin()+i;
         std::vector<long int>::iterator fol = indices.erase(pos);
 
-        // note: it is necessary to re-G-orthogonalize the basis D now, project the solution y onto the new basis and compute the corresponding residual r.
-        // this is done here by starting from the column of D corresponding to fol (because the ones before this are already G-orthogonal)
-        // and then following the same procedure that is used above to construct the original basis.
-        x_[k] = 0;
+        // Note: it is necessary to re-G-orthogonalize the basis D now, project the solution y onto the new basis and compute the corresponding residual r.
+        // This is done here by starting from the column of D pointed to by fol (because the ones before this are already G-orthogonal), and then
+        // following what is the essentially same procedure that is used above to construct the original basis, with a few optimizations when possible.
+        x_[k-1] = 0;
         y.head(k).setZero();
-        k = std::distance(indices.begin(), fol);
+        long int k0 = k = std::distance(indices.begin(), fol);
         y.head(k) = D.topLeftCorner(k,k).triangularView<Upper>()*a.head(k);
         r = b - BD.leftCols(k)*a.head(k);
+        g_.head(k) = B.leftCols(k).transpose()*r;
         for(std::vector<long int>::iterator it = fol; it != indices.end(); ++it) {
           B.col(k) = S[*it]*A.col(*it);
-          g_.head(k+1) = B.leftCols(k+1).transpose()*r;
-          GD.row(k).head(k) = B.col(k).transpose()*BD.leftCols(k);
+          g_[k] = B.col(k).transpose()*r;
+          GD.row(k).head(k0) = GD.row(k+1).head(k0);
+          GD.row(k).segment(k0,k-k0) = B.col(k).transpose()*BD.block(0,k0,m,k-k0);
           Block<MatrixXd,Dynamic,1,true> d = D.col(k), c = BD.col(k); 
-          d.head(k+1) = g_.head(k+1) - D.topLeftCorner(k+1,k)*DtGDinv.head(k).asDiagonal()*(GD.topLeftCorner(k+1,k).transpose()*g_.head(k+1));
+          d.head(k+1) = g_.head(k+1) - D.topLeftCorner(k+1,k).triangularView<Upper>()*(DtGDinv.head(k).asDiagonal()*(GD.topLeftCorner(k+1,k).transpose()*g_.head(k+1)));
           c = B.leftCols(k+1)*d.head(k+1);
           GD.col(k).head(k+1) = B.leftCols(k+1).transpose()*c;
           DtGDinv[k] = 1/c.squaredNorm();
@@ -106,6 +109,7 @@ nncgp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::
           y.head(k+1) += a[k]*d.head(k+1);
           r -= a[k]*c;
           k++;
+          g_.head(k) -= a[k-1]*GD.col(k-1).head(k);
         }
       }
       else {

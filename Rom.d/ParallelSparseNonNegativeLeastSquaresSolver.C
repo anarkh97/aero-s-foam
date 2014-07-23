@@ -3,12 +3,13 @@
 #include <Utils.d/DistHelper.h>
 
 #include <stdexcept>
+#include <vector>
 
 #ifdef USE_EIGEN3
 #include <Eigen/Core>
 
 Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1>
-pnncgp(const Eigen::Array<Eigen::MatrixXd,Eigen::Dynamic,1> &A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm, const long int n,
+pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm, const long int n,
        double maxsze, double reltol, bool verbose, bool scaling);
 #endif
 
@@ -51,15 +52,16 @@ ParallelSparseNonNegativeLeastSquaresSolver::solve() {
     case 1 : { // Non-negative Conjugate Gradient Pursuit
 #ifdef USE_EIGEN3
       filePrint(stderr, " ... Using Parallel NNCGP Solver    ...\n");
-      Eigen::Array<Eigen::MatrixXd,Eigen::Dynamic,1> A(nsub_);
+      std::vector<Eigen::Map<Eigen::MatrixXd> > A(nsub_, Eigen::Map<Eigen::MatrixXd>(NULL,0,0));
       Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1> x(nsub_);
       Eigen::Map<Eigen::VectorXd> b(rhsBuffer_.array(),equationCount_);
       for(int i=0; i<nsub_; ++i) {
-        A[i] = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::ColMajor> >(&*sd_[i]->matrixBuffer(),sd_[i]->equationCount(),sd_[i]->unknownCount());
+        new (&A[i]) Eigen::Map<Eigen::MatrixXd>(&*sd_[i]->matrixBuffer(),sd_[i]->equationCount(),sd_[i]->unknownCount());
       }
       x = pnncgp(A, b, errorMagnitude_, unknownCount_, maxSizeRatio_, relativeTolerance_, verboseFlag_, scalingFlag_);
       for(int i=0; i<nsub_; ++i) {
         Eigen::Map<Eigen::VectorXd>(const_cast<double*>(sd_[i]->solutionBuffer()),sd_[i]->unknownCount()) = x[i];
+        A[i].~Map<Eigen::MatrixXd>();
       }
 #else
       std::cerr << "USE_EIGEN3 is not defined here in ParallelSparseNonNegativeLeastSquaresSolver::solve\n";

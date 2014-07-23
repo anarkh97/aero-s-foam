@@ -38,7 +38,7 @@ namespace std {
 // 2. Lawson, C. L., & Hanson, R. J. (1974). Solving least squares problems (Vol. 161). Englewood Cliffs, NJ: Prentice-hall.
 
 Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1>
-pnncgp(const Eigen::Array<Eigen::MatrixXd,Eigen::Dynamic,1> &A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm, const long int n,
+pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm, const long int n,
        double maxsze, double reltol, bool verbose, bool scaling)
 {
   // each A[i] is the columnwise block of the global A matrix assigned to a subdomain on this mpi process
@@ -55,7 +55,7 @@ pnncgp(const Eigen::Array<Eigen::MatrixXd,Eigen::Dynamic,1> &A, const Eigen::Ref
   struct double_int s;
   struct long_int p;
 
-  const int nsub = A.rows(); // number of subdomains assigned to this mpi process
+  const int nsub = A.size(); // number of subdomains assigned to this mpi process
   const long int m = b.rows();
   const long int maxvec = std::min(m, (long int)(maxsze*n));
   const long int maxit = 3*n;
@@ -90,6 +90,9 @@ pnncgp(const Eigen::Array<Eigen::MatrixXd,Eigen::Dynamic,1> &A, const Eigen::Ref
   std::list<std::pair<int,long_int> > gindices; // global indices
   std::vector<std::vector<long int> > indices(nsub); // local indices
 
+  Array<long int,Dynamic,1> jk(nsub);
+  ArrayXd gmax(nsub), ymin(nsub), alpha(nsub);
+
   int iter = 0; // number of iterations
   while(true) {
 
@@ -104,7 +107,6 @@ pnncgp(const Eigen::Array<Eigen::MatrixXd,Eigen::Dynamic,1> &A, const Eigen::Ref
 
     if(rnorm <= abstol || k == maxvec || iter >= maxit) break;
 
-    Array<long int,Dynamic,1> jk(nsub); ArrayXd gmax(nsub);
 #if defined(_OPENMP)
   #pragma omp parallel for schedule(static,1)
 #endif
@@ -172,7 +174,6 @@ pnncgp(const Eigen::Array<Eigen::MatrixXd,Eigen::Dynamic,1> &A, const Eigen::Ref
 
     while(true) {
       iter++;
-      ArrayXd ymin(nsub);
 #if defined(_OPENMP)
   #pragma omp parallel for schedule(static,1)
 #endif
@@ -185,7 +186,6 @@ pnncgp(const Eigen::Array<Eigen::MatrixXd,Eigen::Dynamic,1> &A, const Eigen::Ref
 #endif
       if(minCoeff < 0) {
         // compute maximum feasible step length (alpha) and corresponding index in active set jk[i] for each subdomain
-        ArrayXd alpha(nsub); Array<long int,Dynamic,1> jk(nsub);
 #if defined(_OPENMP)
   #pragma omp parallel for schedule(static,1)
 #endif

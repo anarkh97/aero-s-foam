@@ -190,9 +190,4 @@ class WrapSkyMat : public GenSkyMatrix<Scalar>
 typedef GenSkyMatrix<double> SkyMatrix;
 typedef GenSkyMatrix<DComplex> SkyMatrixC;
 
-#ifdef _TEMPLATE_FIX_
-#include <Math.d/Skyline.d/SkyMatrix.C>
-#endif
-
-
 #endif

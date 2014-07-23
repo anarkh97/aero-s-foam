@@ -35,7 +35,7 @@
 #include <Element.d/MpcElement.d/MpcElement.h>
 #include <Utils.d/MFTT.h>
 #include <Utils.d/MathUtils.h>
-
+#include <Utils.d/DistHelper.h>
 #include <Rom.d/GalerkinProjectionSolver.h>
 #include <Rom.d/EiGalerkinProjectionSolver.h>
 #include <Control.d/ControlInterface.h>

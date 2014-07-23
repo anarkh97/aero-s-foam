@@ -12,7 +12,7 @@
 #include <Hetero.d/FlExchange.h>
 #include <Corotational.d/GeomState.h>
 #include <Element.d/State.h>
-
+#include <Utils.d/DistHelper.h>
 #include <Driver.d/GeoSource.h>
 
 extern int verboseFlag;

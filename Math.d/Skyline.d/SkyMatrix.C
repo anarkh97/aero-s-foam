@@ -3,8 +3,9 @@
 
 #include <cstdio>
 #include <iostream>
-#include <Utils.d/dbg_alloca.h>
 
+#include <Math.d/Skyline.d/SkyMatrix.h>
+#include <Utils.d/dbg_alloca.h>
 #include <Utils.d/linkfc.h>
 #include <Utils.d/DistHelper.h>
 #include <Utils.d/Connectivity.h>
@@ -622,15 +623,6 @@ GenSkyMatrix<Scalar>::parallelFactor()
   delete [] w;
 }
 
-
-template<>
-void
-GenSkyMatrix<double>::Factor(Rbm *rigid);
-
-template<>
-void
-GenSkyMatrix<DComplex>::Factor(Rbm *rigid);
-
 template<class Scalar>
 void
 GenSkyMatrix<Scalar>::solve(GenVector<Scalar> &rhs, GenVector<Scalar> &solution)
@@ -987,14 +979,6 @@ GenSkyMatrix<Scalar>::getRBMs(VectorSet& rigidBodyModes)
   rbm->getRBMs(rigidBodyModes);
 }
 
-template<>
-double
-GenSkyMatrix<double>::diag(int dof) const;
-
-template<>
-DComplex
-GenSkyMatrix<DComplex>::diag(int dof) const;
-
 template<class Scalar>
 Scalar &
 GenSkyMatrix<Scalar>::diag(int dof)
@@ -1063,25 +1047,9 @@ GenSkyMatrix<Scalar>::addData(int nData, int* dofi, int* dofj, Scalar* d)
     // HB & PJSA: to be checked for CCt
     //if((ri = dofi) == -1 ) return;  // Skip constrained dofs
     //if((rj = dofj) == -1 ) return;  // Skip constrained dofs
-    if(!skip)                                                                                                                      skyA[dlp[rj] - rj + ri - 1] += d[i];
+    if(!skip) skyA[dlp[rj] - rj + ri - 1] += d[i];
   }
 }*/
-template<>
-void
-GenSkyMatrix<DComplex>::addImaginary(FullSquareMatrix &ks, int *dofs);
-
-template<>
-void
-GenSkyMatrix<double>::addImaginary(FullSquareMatrix &ks, int *dofs);
-
-template<>
-void
-GenSkyMatrix<DComplex>::add(FullSquareMatrixC &kel, int *dofs);
-
-template<>
-void
-GenSkyMatrix<double>::add(FullSquareMatrixC &kel, int *dofs);
-
 
 template<class Scalar>
 void
@@ -1245,22 +1213,5 @@ GenSkyMatrix<Scalar>::rmsBandwidth()
   rmsBandwith = sqrt(rmsBandwith/numUncon);
   return rmsBandwith;
 }
-
-template<>
-void
-GenSkyMatrix<double>::printMatlab(int subNum);
-
-template<>
-void
-GenSkyMatrix<DComplex>::printMatlab(int subNum);
-
-template<>
-void
-GenSkyMatrix<double>::printMatlab(char *fileName);
-
-template<>
-void
-GenSkyMatrix<DComplex>::printMatlab(char *fileName);
-
 
 #endif

@@ -20,6 +20,7 @@
 #include <Timers.d/StaticTimers.h>
 #include <Timers.d/GetTime.h>
 #include <Corotational.d/GeomState.h>
+#include <Utils.d/DistHelper.h>
 
 int
 SingleDomainEigen::solVecSize()

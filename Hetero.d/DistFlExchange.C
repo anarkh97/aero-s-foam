@@ -1,6 +1,5 @@
 #include <Utils.d/dbg_alloca.h>
 #include <Utils.d/Connectivity.h>
-#include <Math.d/SparseMatrix.h>
 #include <Hetero.d/FlExchange.h>
 #include <Hetero.d/DistFlExchange.h>
 #include <Hetero.d/FilteredFile.h>
@@ -9,14 +8,12 @@
 #include <Element.d/State.h>
 #include <Driver.d/GeoSource.h>
 #include <Driver.d/SubDomain.h>
-
+#include <Utils.d/DistHelper.h>
 #include <Element.d/Shell.d/ThreeNodeShell.h>
 #include <Feti.d/DistrVector.h>
 #include <Comm.d/Communicator.h>
 #include <Driver.d/SysState.h>
-
 #include <Corotational.d/DistrGeomState.h>
-
 #include <Mortar.d/FaceElement.d/SurfaceEntity.h>
 #include <Mortar.d/FaceElement.d/FaceElement.h>
 

@@ -29,7 +29,7 @@
 #include <Control.d/ControlInterface.h>
 #include <Solvers.d/Rbm.h>
 #include <Utils.d/BinFileHandler.h>
-
+#include <Utils.d/DistHelper.h>
 #include <Utils.d/linkfc.h>
 #include <Driver.d/GeoSource.h>
 #include <Driver.d/ControlLawInfo.h>

@@ -98,8 +98,4 @@ class GenBlockSky : public GenSolver<Scalar>, public GenSparseMatrix<Scalar>
 
 typedef GenBlockSky<double> BlockSky;
 
-#ifdef _TEMPLATE_FIX_
-#include <Math.d/Skyline.d/BlockSky.C>
-#endif
-
 #endif

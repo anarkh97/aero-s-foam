@@ -137,8 +137,4 @@ class WrapSpooles : public GenSpoolesSolver<Scalar>
 typedef GenSpoolesSolver<double> SpoolesSolver;
 typedef GenSpoolesSolver<DComplex> ComplexSpoolesSolver;
 
-#ifdef _TEMPLATE_FIX_
-#include <Solvers.d/Spooles.C>
-#endif
-
 #endif

@@ -7,6 +7,7 @@
 #include <Feti.d/DistrVector.h>
 #include <Paral.d/SubDOp.h>
 #include <Math.d/FullSquareMatrix.h>
+#include <Utils.d/DistHelper.h>
 
 #include <cassert>
 

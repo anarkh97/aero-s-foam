@@ -51,9 +51,4 @@ class GenNBSparseMatrix : public GenSparseMatrix<Scalar>
 typedef GenNBSparseMatrix<double> NBSparseMatrix;
 typedef GenNBSparseMatrix<DComplex> NBComplexSparseMatrix;
 
-#ifdef _TEMPLATE_FIX_
-#include <Math.d/NBSparseMatrix.C>
-#endif
-
-
 #endif

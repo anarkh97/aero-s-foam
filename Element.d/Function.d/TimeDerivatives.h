@@ -96,7 +96,7 @@ class FirstPartialTimeDerivative
     operator() (const Eigen::Matrix<Scalar,InputNumberOfRows,InputNumberOfColumns>& q, Scalar t) {
 
       typename FunctionTemplate<Scalar>::ReturnType ret;
-
+#ifndef AEROS_NO_AD
       TemporalView<Scalar, FunctionTemplate> f(sconst, iconst, q);
       Eigen::AutoDiffJacobian<TemporalView<Scalar,FunctionTemplate> > dfdt(f);
       Eigen::Matrix<Scalar,FunctionTemplate<Scalar>::NumberOfValues,1> fdot;
@@ -106,7 +106,10 @@ class FirstPartialTimeDerivative
       assign_coherent(t, _t);
       dfdt(_t, &y, &fdot);
       assign_coherent(fdot, ret);
-
+#else
+      std::cerr << "Error: AEROS_NO_AD is defined in FirstPartialTimeDerivative::operator()\n";
+      exit(-1);
+#endif
       return ret;
     }
 
@@ -144,7 +147,7 @@ class FirstPartialTimeDerivative<_Scalar, FunctionTemplate, 1>
     operator() (const Eigen::Matrix<Scalar,InputNumberOfRows,InputNumberOfColumns>& q, Scalar t) {
 
       typename FunctionTemplate<Scalar>::ReturnType ret;
-
+#ifndef AEROS_NO_AD
       TemporalView<Scalar, FunctionTemplate> f(sconst, iconst, q);
       SacadoReverseJacobian<TemporalView<Scalar,FunctionTemplate> > dfdt(f);
       Eigen::Matrix<Scalar,FunctionTemplate<Scalar>::NumberOfValues,1> fdot;
@@ -153,7 +156,10 @@ class FirstPartialTimeDerivative<_Scalar, FunctionTemplate, 1>
       assign_coherent(t, _t);
       dfdt(_t, fdot);
       assign_coherent(fdot, ret);
-
+#else
+      std::cerr << "Error: AEROS_NO_AD is defined in FirstPartialTimeDerivative::operator()\n";
+      exit(-1);
+#endif
       return ret;
     }
 

@@ -202,6 +202,7 @@ GeoSource::~GeoSource()
   // claw is deleted by domain
   for(int iInfo = 0; iInfo < numOutInfo; ++iInfo) {
     if(oinfo[iInfo].filptr) fclose(oinfo[iInfo].filptr);
+    if(oinfo[iInfo].binfilptr) delete oinfo[iInfo].binfilptr;
   }
   if(surface_dbc) delete [] surface_dbc;
   if(surface_nbc) delete [] surface_nbc;
@@ -978,7 +979,29 @@ void GeoSource::setUpData()
       pbc.mftt = domain->getMFTT(pbc.loadsetid);
       pbc.conwep = conwep;
       pbc.loadfactor = domain->getLoadFactor(pbc.loadsetid);
-      elemSet[elemNum]->setPressure(&pbc);
+      if(pbc.face == -1)
+        elemSet[elemNum]->setPressure(&pbc);
+      else {
+        int *nodes = new int[elemSet[elemNum]->numNodes()];
+        int nNodes = elemSet[elemNum]->getDecFace(pbc.face, nodes);
+        if(nNodes > 0) {
+          int type;
+          switch(nNodes) {
+            case 3 : type = 15; break;
+            case 4 : type = 16; break;
+            case 6 : type = 17; break;
+            case 8 : type = 18; break;
+            case 9 : type = 19; break;
+            case 10 : type = 21; break; 
+            case 12 : type = 20; break;
+          }
+          domain->addNeumElem(-1, type, pbc.val, nNodes, nodes, &pbc);
+          domain->neum[domain->numNeum-1]->setAdjElementIndex(elemNum);
+          delete [] nodes;
+        }
+        else
+          filePrint(stderr, " *** WARNING: Pressure was found for unsupported element %d\n", elemNum+1);
+      }
     }
     else
       filePrint(stderr, " *** WARNING: Pressure was found for non-existent element %d\n", elemNum+1);
@@ -2409,20 +2432,27 @@ void GeoSource::getTextDecomp(bool sowering)
   stopTimerMemory(mt.readDecomp, mt.memoryDecomp);
 #ifdef DISTRIBUTED
   if(!binaryInput) {
-    int* ptr = new int[numSub+1];
-    int* target = new int[numSub];
-    ptr[0] = 0;
-    for(int i=0;i<numSub; i++){
-       ptr[i+1] = ptr[i]+1;
-       target[i] = 0;
+    if(conName) {
+      BinFileHandler connectivityFile(conName, "rb");
+      clusToSub = new Connectivity(connectivityFile, true);
+      subToClus = clusToSub->reverse();
+      numClusters = clusToSub->csize();
     }
-    subToClus = new Connectivity(numSub,ptr,target);
-    numClusters = 1;
-    clusToSub = subToClus->reverse();
-    numClusNodes = nGlobNodes;
-    numClusElems = nElem; //HB: not sure this is be always correct (i.e. phantoms els ...)
+    else {
+      int* ptr = new int[numSub+1];
+      int* target = new int[numSub];
+      ptr[0] = 0;
+      for(int i=0;i<numSub; i++){
+        ptr[i+1] = ptr[i]+1;
+        target[i] = 0;
+      }
+      subToClus = new Connectivity(numSub,ptr,target);
+      numClusters = 1;
+      clusToSub = subToClus->reverse();
+      numClusNodes = nGlobNodes;
+      numClusElems = nElem; //HB: not sure this is be always correct (i.e. phantoms els ...)
+    }
   }
-  //setNumNodalOutput();// -JFD
 #endif
 }
 
@@ -4169,9 +4199,7 @@ GeoSource::simpleDecomposition(int numSubdomains, bool estFlag, bool weightOutFl
 void
 GeoSource::modifyDecomposition(int maxEleCopy)
 {
- //std::cerr << "here in GeoSource::modifyDecomposition, maxEleCopy = " << maxEleCopy << std::endl;
  int maxEle = elemSet.last();
- //std::cerr << "maxEle = " << maxEle << std::endl;
 
  optDec = new Decomposition;
  optDec->nsub = optDecCopy->nsub;
@@ -4180,12 +4208,10 @@ GeoSource::modifyDecomposition(int maxEleCopy)
 
  int div = (maxEle-maxEleCopy) / optDec->nsub;
  int rem = (maxEle-maxEleCopy) % optDec->nsub;
- //std::cerr << "div = " << div << ", rem = " << rem << std::endl;
 
  optDec->pele[0] = 0;
  for(int i=0; i<optDec->nsub; i++)
    optDec->pele[i+1] = optDec->pele[i] + (optDecCopy->pele[i+1]-optDecCopy->pele[i]) + ((i < rem) ? div+1 : div);
- //std::cerr << "pele = "; for(int i=0; i<optDec->nsub+1; ++i) std::cerr << optDec->pele[i] << " "; std::cerr << std::endl;
 
  int k=0, l=maxEleCopy;
  for(int i=0; i<optDec->nsub; i++) {
@@ -4196,7 +4222,6 @@ GeoSource::modifyDecomposition(int maxEleCopy)
      optDec->eln[k++] = l++;
    }
  }
- //std::cerr << "eln = "; for(int i=0; i<maxEle; ++i) std::cerr << optDec->eln[i] << " "; std::cerr << std::endl;
 
  if(verboseFlag)
    filePrint(stderr, " ... %d Elements Have Been Arranged in %d Subdomains ...\n",
@@ -4460,23 +4485,29 @@ GeoSource::getDecomposition()
     for(i=0; i<=numSub; i++) cx[i] = optDec->pele[i];
     for(i=0; i<nElem; i++) connect[i] = optDec->eln[i];
     subToElem = new Connectivity(numSub,cx,connect);
-    subToElem->renumberTargets(glToPckElems);  // PJSA: required if gaps in element numbering
-
+    subToElem->renumberTargets(glToPckElems);  // required if gaps in element numbering
 #ifdef DISTRIBUTED
-    int* ptr = new int[numSub+1];
-    int* target = new int[numSub];
-    ptr[0] = 0;
-    for(int i=0;i<numSub; i++){
-       ptr[i+1] = ptr[i]+1;
-       target[i] = 0;
+    if(conName) {
+      BinFileHandler connectivityFile(conName, "rb");
+      clusToSub = new Connectivity(connectivityFile, true);
+      subToClus = clusToSub->reverse();
+      numClusters = clusToSub->csize();
     }
-    subToClus = new Connectivity(numSub,ptr,target);
-    numClusters = 1;
-    clusToSub = subToClus->reverse();
-    numClusNodes = nGlobNodes;
-    numClusElems = nElem; //HB: not sure this is be always correct (i.e. phantoms els ...)
+    else {
+      int* ptr = new int[numSub+1];
+      int* target = new int[numSub];
+      ptr[0] = 0;
+      for(int i=0;i<numSub; i++){
+        ptr[i+1] = ptr[i]+1;
+        target[i] = 0;
+      }
+      subToClus = new Connectivity(numSub,ptr,target);
+      numClusters = 1;
+      clusToSub = subToClus->reverse();
+      numClusNodes = nGlobNodes;
+      numClusElems = nElem; //HB: not sure this is be always correct (i.e. phantoms els ...)
+    }
 #endif
-
   }
   if(matchName != NULL && !unsortedSubToElem) unsortedSubToElem = subToElem->copy();
   return subToElem;
@@ -4560,10 +4591,11 @@ void GeoSource::readGlobalBinaryData()
 }
 #endif
 
-void GeoSource::computeClusterInfo(int glSub)
+void GeoSource::computeClusterInfo(int glSub, Connectivity *_subToNode)
 {
   int clusNum = (*subToClus)[glSub][0];
-  Connectivity *clusToNode = clusToSub->transcon(subToNode);
+  Connectivity *clusToNode = (_subToNode) ? clusToSub->transcon(_subToNode)
+                                          : clusToSub->transcon(subToNode);
   numClusNodes = clusToNode->num(clusNum);
   delete clusToNode;
   Connectivity *clusToElem = clusToSub->transcon(subToElem);

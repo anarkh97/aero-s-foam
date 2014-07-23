@@ -1,3 +1,4 @@
+#include <Solvers.d/Spooles.h>
 #include <Utils.d/Connectivity.h>
 #include <Utils.d/dofset.h>
 #include <Math.d/FullSquareMatrix.h>
@@ -20,7 +21,6 @@ extern long totMemSpooles;
 /*************************************************************************************/
 /*************************************************************************************/
 #ifdef USE_SPOOLES
-
 extern "C" {
 #include <MT/spoolesMT.h>
 }
@@ -46,7 +46,7 @@ inline void InpMtx_inputRealOrComplexEntry(InpMtx *inpmtx, int row, int col, DCo
 { InpMtx_inputComplexEntry(inpmtx, row, col, value.real(), value.imag()); }
 
 inline void DenseMtx_realOrComplexEntries(DenseMtx *mtx, double *entries, int neq)
-{ 
+{
   double *temp = DenseMtx_entries(mtx);
   for(int i=0; i<neq; ++i) entries[i] = temp[i];
 }
@@ -64,7 +64,7 @@ inline void DenseMtx_realOrComplexEntries(DenseMtx *mtx, DComplex *entries, int 
     DComplex p(re, im);
     entries[i] = p;
   }
-}   
+}
 
 template<class Scalar>
 class SpoolesType {
@@ -90,9 +90,9 @@ GenSpoolesSolver<Scalar>::GenSpoolesSolver(Connectivity *nToN, EqNumberer *_dsa,
 {
   // constructor for feti-dp coarse problem
   init();
-  neq = numUncon; 
+  neq = numUncon;
   //int nNodes = nToN->csize();
-  nNonZero = xunonz[numUncon]-1; 
+  nNonZero = xunonz[numUncon]-1;
 
   unonz = new Scalar[xunonz[numUncon]];
   for(int i = 0; i < nNonZero; ++i)
@@ -111,7 +111,7 @@ GenSpoolesSolver<Scalar>::GenSpoolesSolver(Connectivity *nToN, EqNumberer *_dsa,
 
 template<class Scalar>
 GenSpoolesSolver<Scalar>::GenSpoolesSolver(Connectivity *nToN, DofSetArray *_dsa,
-                                           ConstrainedDSA *c_dsa) 
+                                           ConstrainedDSA *c_dsa)
  : SparseData(_dsa,c_dsa,nToN)
 {
   init();
@@ -120,7 +120,7 @@ GenSpoolesSolver<Scalar>::GenSpoolesSolver(Connectivity *nToN, DofSetArray *_dsa
   unconstrNum = c_dsa->getUnconstrNum();
 
   //int nNodes = nToN->csize();
-  nNonZero = xunonz[numUncon]-1; 
+  nNonZero = xunonz[numUncon]-1;
 
   unonz = new Scalar[xunonz[numUncon]];
   for(int i = 0; i < nNonZero; ++i)
@@ -147,11 +147,11 @@ GenSpoolesSolver<Scalar>::add(FullSquareMatrix &kel, int *dofs)
     if(unconstrNum[dofs[i]] == -1) continue;   // Skip constrained dofs
     for(j = 0; j < kndof; ++j) {               // Loop over columns.
       if(unconstrNum[dofs[j]] == -1) continue; // Skip constrained dofs
-      if(unconstrNum[dofs[j]] < unconstrNum[dofs[i]]) continue; 
+      if(unconstrNum[dofs[j]] < unconstrNum[dofs[i]]) continue;
       mstart = xunonz[unconstrNum[dofs[j]]];
       mstop  = xunonz[unconstrNum[dofs[j]]+1];
       for(m=mstart; m<mstop; ++m) {
-        // if(rowu[m-1] > unconstrNum[dofs[j]]+1) 
+        // if(rowu[m-1] > unconstrNum[dofs[j]]+1)
         //   fprintf(stderr, "Bigger: %d %d\n", rowu[m-1]-1, unconstrNum[dofs[j]]);
         if(rowu[m-1] == (unconstrNum[dofs[i]] + 1)) {
           unonz[m-1] += kel[i][j];
@@ -172,7 +172,7 @@ GenSpoolesSolver<Scalar>::addBoeing(int nlines, const int *Kai, const int *Kaj,
 
   for(i = 0; i < nlines; ++i) {
     if(map[i] == -1) continue;
-    if(unconstrNum[map[i]] == -1) continue; 
+    if(unconstrNum[map[i]] == -1) continue;
     for(j = Kai[i]; j < Kai[i+1]; ++j) {
       if(unconstrNum[map[Kaj[j-1]-1]] == -1) continue;
       if(unconstrNum[map[Kaj[j-1]-1]] < unconstrNum[map[i]]) continue;
@@ -209,7 +209,7 @@ GenSpoolesSolver<Scalar>::add(int dofi, int dofj, Scalar d)
   }
   // upper part
   mstart = xunonz[colj];
-  mstop  = xunonz[colj+1]; 
+  mstop  = xunonz[colj+1];
   for(m=mstart; m<mstop; ++m) {
     if(rowu[m-1] == (rowi+1)) {
       unonz[m-1] += d;
@@ -276,8 +276,8 @@ GenSpoolesSolver<Scalar>::add(GenFullM<Scalar> &knd, int fi, int fj)
 {
   // XXX this needs to work for a rectangular matrix also
   int i, j, m, mstart, mstop, ri, rj;
-  //int kndof = knd.dim();                           // Dimension of element stiff.
-  for(i = 0; i < knd.numRow(); ++i ) {             // Loop over rows.
+  //int kndof = knd.dim();                         // Dimension of element stiff.
+  for(i = 0; i < knd.numRow(); ++i) {              // Loop over rows.
     if((ri =unconstrNum[fi+i]) == -1) continue;    // Skip constrained dofs
     for(j = 0; j < knd.numCol(); ++j) {            // Loop over columns.
       if((rj = unconstrNum[fj+j]) == -1) continue; // Skip constrained dofs
@@ -285,7 +285,7 @@ GenSpoolesSolver<Scalar>::add(GenFullM<Scalar> &knd, int fi, int fj)
       mstart = xunonz[rj];
       mstop  = xunonz[rj+1];
       for(m=mstart; m<mstop; ++m) {
-        if(rowu[m-1] == (ri + 1) ) {
+        if(rowu[m-1] == (ri + 1)) {
           unonz[m-1] += knd[i][j];
           break;
         }
@@ -410,7 +410,7 @@ GenSpoolesSolver<Scalar>::factor()
     allFactor(true);
 #else
   numThreads = 1;
-  allFactor(false); 
+  allFactor(false);
 #endif
 }
 
@@ -462,7 +462,7 @@ GenSpoolesSolver<Scalar>::allFactor(bool fctIsParal)
 // spooles_tau - upper bound on the magnitude of the largest element in L or U
 // spooles_seed - random number seed used for ordering
 // spooles_msglvl - message output level
-// spooles_maxdomainsize - maximum subgraph size used by Spooles orderings. used to control the incomplete nested dissection 
+// spooles_maxdomainsize - maximum subgraph size used by Spooles orderings. used to control the incomplete nested dissection
 //     process. Any subgraph whose weight is less than maxdomainsize is not split further
 // spooles_maxzeros - maximum number of zeros allowed in a supernode/front
 // spooles_maxsize - maximum number of internal columns in supernode/front
@@ -476,7 +476,7 @@ GenSpoolesSolver<Scalar>::allFactor(bool fctIsParal)
 
   switch(solInfo.spooles_renum) {
     default:
-    case 0: // best of nested dissection and multisection ordering 
+    case 0: // best of nested dissection and multisection ordering
       frontETree = orderViaBestOfNDandMS(graph, maxdomainsize, maxzeros, maxsize, seed, msglvl, msgfile); break;
     case 1: // multiple minimum degree
       frontETree = orderViaMMD(graph, seed, msglvl, msgfile); break;
@@ -661,12 +661,12 @@ GenSpoolesSolver<Scalar>::solve(Scalar *_rhs, Scalar *solution)
 #ifdef THREADS_SOLVE
   SolveMap *solvemap = SolveMap_new();
   SolveMap_ddMap(solvemap,SPOOLES_SYMMETRIC,FrontMtx_upperBlockIVL(frontMtx),
-                 FrontMtx_lowerBlockIVL(frontMtx), numThreads, ownersIV, 
+                 FrontMtx_lowerBlockIVL(frontMtx), numThreads, ownersIV,
                  FrontMtx_frontTree(frontMtx), numThreads/2, 0, 0);
   FrontMtx_MT_solve(frontMtx, mtxX, mtxB, mtxManager, solvemap, cpus, msglvl, msgfile);
 #else
   // FrontMtx_writeToFile(frontMtx,"frontMtx2");
-  FrontMtx_solve(frontMtx, mtxX, mtxB, mtxManager, cpus, msglvl, msgfile); 
+  FrontMtx_solve(frontMtx, mtxX, mtxB, mtxManager, cpus, msglvl, msgfile);
 #endif
 
 /*
@@ -701,7 +701,7 @@ for(i=0;i<neq;i++) solution[i] = 0;
 template<class Scalar>
 double
 GenSpoolesSolver<Scalar>::getMemoryUsed(void)
-{ 
+{
   return 0;
 }
 
@@ -723,8 +723,8 @@ GenSpoolesSolver<Scalar>::print()
 
 template<class Scalar>
 long
-GenSpoolesSolver<Scalar>::size() 
-{ 
+GenSpoolesSolver<Scalar>::size()
+{
   return _size;
 }
 
@@ -739,7 +739,7 @@ GenSpoolesSolver<Scalar>::unify(FSCommunicator *communicator)
 
 template<class Scalar>
 void
-GenSpoolesSolver<Scalar>::zeroAll() 
+GenSpoolesSolver<Scalar>::zeroAll()
 {
 #ifdef USE_SPOOLES
   cleanUp();
@@ -798,7 +798,7 @@ GenSpoolesSolver<Scalar>::init()
   mtxX = 0;
   symbfacIVL = 0;
   frontETree = 0;
-  cumopsDV = 0; 
+  cumopsDV = 0;
   graph = 0;
   pivotingflag = (solInfo.pivot) ? SPOOLES_PIVOTING : SPOOLES_NO_PIVOTING;
 #endif
@@ -809,12 +809,3 @@ GenSpoolesSolver<Scalar>::init()
   _size = 0;
 }
 
-template<>
-void
-GenSpoolesSolver<complex<double> >
-   ::addImaginary(FullSquareMatrix &kel, int *dofs);
-
-template<>
-void
-GenSpoolesSolver<double>
-   ::addImaginary(FullSquareMatrix &kel, int *dofs);

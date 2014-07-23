@@ -1,4 +1,4 @@
-#include<Solvers.d/Mumps.h>
+#include <Solvers.d/Mumps.C>
 
 template<>
 void
@@ -242,6 +242,79 @@ GenMumpsSolver<double>::copyFromMumpsRHS(GenVector<double> *d, double *m, int le
   }
   delete [] m;
 }
-
 #endif
+
+#define MUMPS_INSTANTIATION_HELPER(Scalar) \
+template \
+GenMumpsSolver<Scalar>::GenMumpsSolver(Connectivity*, EqNumberer*, int*, FSCommunicator*); \
+template \
+GenMumpsSolver<Scalar>::GenMumpsSolver(Connectivity*, DofSetArray*, ConstrainedDSA*, FSCommunicator*); \
+template \
+GenMumpsSolver<Scalar>::GenMumpsSolver(Connectivity*, DofSetArray*, ConstrainedDSA*, int, \
+                                       GenSubDomain<Scalar>**, FSCommunicator*); \
+template \
+void \
+GenMumpsSolver<Scalar>::init(); \
+template \
+void \
+GenMumpsSolver<Scalar>::zeroAll(); \
+template \
+void \
+GenMumpsSolver<Scalar>::add(FullSquareMatrix&, int*); \
+template \
+void \
+GenMumpsSolver<Scalar>::add(GenAssembledFullM<Scalar>&, int*); \
+template \
+void \
+GenMumpsSolver<Scalar>::add(GenFullM<Scalar>&, int, int); \
+template \
+Scalar \
+GenMumpsSolver<Scalar>::diag(int) const; \
+template \
+Scalar & \
+GenMumpsSolver<Scalar>::diag(int); \
+template \
+void \
+GenMumpsSolver<Scalar>::addDiscreteMass(int, Scalar); \
+template \
+void \
+GenMumpsSolver<Scalar>::unify(FSCommunicator*); \
+template \
+void \
+GenMumpsSolver<Scalar>::factor(); \
+template \
+void \
+GenMumpsSolver<Scalar>::getRBMs(VectorSet&); \
+template \
+int* \
+GenMumpsSolver<Scalar>::getPivnull_list(); \
+template \
+void \
+GenMumpsSolver<Scalar>::solve(Scalar*, Scalar*); \
+template \
+void \
+GenMumpsSolver<Scalar>::reSolve(int, Scalar*); \
+template \
+void \
+GenMumpsSolver<Scalar>::reSolve(int, Scalar**); \
+template \
+void \
+GenMumpsSolver<Scalar>::reSolve(int, GenVector<Scalar>*); \
+template \
+void \
+GenMumpsSolver<Scalar>::getNullSpace(Scalar*); \
+template \
+void \
+GenMumpsSolver<Scalar>::print(); \
+template \
+long int \
+GenMumpsSolver<Scalar>::size(); \
+template \
+void \
+GenMumpsSolver<Scalar>::printStatistics(); \
+template \
+GenMumpsSolver<Scalar>::~GenMumpsSolver();
+
+MUMPS_INSTANTIATION_HELPER(double);
+MUMPS_INSTANTIATION_HELPER(complex<double>);
 

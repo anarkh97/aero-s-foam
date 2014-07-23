@@ -82,8 +82,4 @@ class GenCuCSparse : public SparseData, public GenSparseMatrix<Scalar> {
 typedef GenCuCSparse<double> CuCSparse;
 typedef GenCuCSparse<DComplex> CuCComplexSparse;
 
-#ifdef _TEMPLATE_FIX_
-#include <Math.d/CuCSparse.C>
-#endif
-
 #endif

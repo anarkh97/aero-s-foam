@@ -8,6 +8,7 @@
 // 3. add an output message in Driver.d/Header.h
 // 
 
+#include <Utils.d/BinFileHandler.h>
 #include <cstdio>
 
 struct OutputInfo {
@@ -51,6 +52,7 @@ struct OutputInfo {
    int   interval;
    char* filename;
    FILE* filptr;
+   BinFileHandler *binfilptr;
    int   averageFlg;
    int   surface;
    int   width;
@@ -89,6 +91,7 @@ struct OutputInfo {
      precision = 4;
      interval = 0;
      filptr = 0;
+     binfilptr = 0;
      filename = 0;
      averageFlg = 1;
      surface = 2;
@@ -250,6 +253,7 @@ struct OutputInfo {
  void copyParam(const OutputInfo& oI) {
     *this = oI;  
     filptr = 0;
+    binfilptr = 0;
  }
   
 };

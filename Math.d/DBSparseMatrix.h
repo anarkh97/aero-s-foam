@@ -69,8 +69,4 @@ class GenDBSparseMatrix : public SparseData, public GenSparseMatrix<Scalar> {
 typedef GenDBSparseMatrix<double> DBSparseMatrix;
 typedef GenDBSparseMatrix<DComplex> DBComplexSparseMatrix;
 
-#ifdef _TEMPLATE_FIX_
-#include <Math.d/DBSparseMatrix.C>
-#endif
-
 #endif

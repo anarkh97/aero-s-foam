@@ -38,6 +38,7 @@ GenDistrDomain<Scalar>::initialize()
   nodePat = 0;
   masterStress = 0;
   elemOffsets = 0;
+  clusToCpu = 0;
 }
 
 template<class Scalar>
@@ -55,6 +56,7 @@ GenDistrDomain<Scalar>::~GenDistrDomain()
   if(masterStress) { delete masterStress; masterStress = 0;} 
   if(nodePat) { delete nodePat; nodePat = 0; }
   if(elemOffsets) { delete [] elemOffsets; elemOffsets = 0; }
+  if(clusToCpu) { delete clusToCpu; clusToCpu = 0; }
 }
 
 template<class Scalar>
@@ -240,6 +242,9 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
   if((x == domain->solInfo().initialTimeIndex) || (outLimit > 0 && x%outLimit == 0)) {
 #ifdef DISTRIBUTED
 
+    Connectivity *subToClus = geoSource->getSubToClus();
+    int clusterId = (*subToClus)[this->localSubToGl[0]][0];
+    int firstCpuInCluster = (clusToCpu) ? (*clusToCpu)[clusterId][0] : 0;
     for(int iInfo = 0; iInfo < numOutInfo; iInfo++) {
       if(oinfo[iInfo].type == OutputInfo::Farfield || 
          oinfo[iInfo].type == OutputInfo::Energies ||
@@ -250,7 +255,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
         continue;
       }
       else if(oinfo[iInfo].nodeNumber == -1 && this->firstOutput) {
-        if(this->communicator->cpuNum() == 0) geoSource->createBinaryOutputFile(iInfo,this->localSubToGl[0],x);
+        if(this->communicator->cpuNum() == firstCpuInCluster) geoSource->createBinaryOutputFile(iInfo,this->localSubToGl[0],x);
         else geoSource->computeAndCacheHeaderLength(iInfo);
       }
     }
@@ -1323,6 +1328,11 @@ GenDistrDomain<Scalar>::createOutputOffsets()
   if(clNodeOffsets) { for(int i=0; i<numClusters; i++) delete [] clNodeOffsets[i]; delete [] clNodeOffsets; }
   if(clElemNodeOffsets) { for(int i=0; i<numClusters; i++) delete [] clElemNodeOffsets[i]; delete [] clElemNodeOffsets; }
   if(clElemOffsets) { for(int i=0; i<numClusters; i++) delete [] clElemOffsets[i]; delete [] clElemOffsets; }
+
+  // create clusToCpu connectivity, used to decide which process should initially open each output file
+  Connectivity *subToCpu = this->cpuToSub->reverse();
+  clusToCpu = clusToSub->transcon(subToCpu);
+  delete subToCpu;
 }
 
 // ---------------------------------------------------------------
@@ -1451,6 +1461,9 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
   if((x == 0) || (outLimit > 0 && x%outLimit == 0)) {
 #ifdef DISTRIBUTED
 
+    Connectivity *subToClus = geoSource->getSubToClus();
+    int clusterId = (*subToClus)[this->localSubToGl[0]][0];
+    int firstCpuInCluster = (clusToCpu) ? (*clusToCpu)[clusterId][0] : 0;
     for(int iInfo = 0; iInfo < numOutInfo; iInfo++) {
       if(oinfo[iInfo].type == OutputInfo::Farfield || oinfo[iInfo].type == OutputInfo::AeroForce
          || oinfo[iInfo].type == OutputInfo::Energies || oinfo[iInfo].type == OutputInfo::DissipatedEnergy) {
@@ -1459,7 +1472,7 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
         continue;
       }
       else if(oinfo[iInfo].nodeNumber == -1 && this->firstOutput) {
-        if(this->communicator->cpuNum() == 0) geoSource->createBinaryOutputFile(iInfo,this->localSubToGl[0],x);
+        if(this->communicator->cpuNum() == firstCpuInCluster) geoSource->createBinaryOutputFile(iInfo,this->localSubToGl[0],x);
         else geoSource->computeAndCacheHeaderLength(iInfo);
       }
     }

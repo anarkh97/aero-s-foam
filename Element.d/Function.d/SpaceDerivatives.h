@@ -148,7 +148,7 @@ class FirstPartialSpaceDerivatives
     operator() (const Eigen::Matrix<Scalar,InputNumberOfRows,InputNumberOfColumns>& q, Scalar t) {
 
       typename FunctionTemplate<Scalar>::JacobianType ret;
-
+#ifndef AEROS_NO_AD
       SpatialView<Scalar, FunctionTemplate> f(sconst, iconst, t);
       Eigen::AutoDiffJacobian<SpatialView<Scalar, FunctionTemplate> > dfdq(f);
       Eigen::Matrix<Scalar,FunctionTemplate<Scalar>::NumberOfValues,
@@ -159,7 +159,10 @@ class FirstPartialSpaceDerivatives
       assign_coherent(q, _q);
       dfdq(_q, &y, &J);
       assign_coherent(J, ret);
-
+#else
+      std::cerr << "Error: AEROS_NO_AD is defined in FirstPartialSpaceDerivatives::operator()\n";
+      exit(-1);
+#endif
       return ret;
     }
 
@@ -197,7 +200,7 @@ class FirstPartialSpaceDerivatives<_Scalar, FunctionTemplate, 1>
     operator() (const Eigen::Matrix<Scalar,InputNumberOfRows,InputNumberOfColumns>& q, Scalar t) {
 
       typename FunctionTemplate<Scalar>::JacobianType ret;
-
+#ifndef AEROS_NO_AD
       SpatialView<Scalar, FunctionTemplate> f(sconst, iconst, t);
       SacadoReverseJacobian<SpatialView<Scalar, FunctionTemplate> > dfdq(f);
       Eigen::Matrix<Scalar,FunctionTemplate<Scalar>::NumberOfValues,
@@ -207,7 +210,10 @@ class FirstPartialSpaceDerivatives<_Scalar, FunctionTemplate, 1>
       assign_coherent(q, _q);
       dfdq(_q, J);
       assign_coherent(J, ret);
-
+#else
+      std::cerr << "Error: AEROS_NO_AD is defined in FirstPartialSpaceDerivatives::operator()\n";
+      exit(-1);
+#endif
       return ret;
     }
 
@@ -336,17 +342,17 @@ class Hessian : public MatrixValuedFunction<FunctionTemplate<Scalar>::NumberOfGe
                   FunctionTemplate<Scalar>::NumberOfGeneralizedCoordinates>
     operator() (const Eigen::Matrix<Scalar,FunctionTemplate<Scalar>::NumberOfGeneralizedCoordinates,1>& q, Scalar t)
     {
-#ifdef USE_SACADO
-      SpatialView<Scalar, FunctionTemplate> V(sconst, iconst, static_cast<Scalar>(t));
-      SacadoHessian<SpatialView<Scalar, FunctionTemplate> > d2Vdq2(V);
       Eigen::Matrix<Scalar,FunctionTemplate<Scalar>::NumberOfGeneralizedCoordinates,
                     FunctionTemplate<Scalar>::NumberOfGeneralizedCoordinates> H;
+#ifndef AEROS_NO_AD
+      SpatialView<Scalar, FunctionTemplate> V(sconst, iconst, static_cast<Scalar>(t));
+      SacadoHessian<SpatialView<Scalar, FunctionTemplate> > d2Vdq2(V);
       d2Vdq2(q, H);
-      return H;
 #else
-      std::cerr << "error: USE_SACADO is not defined in Hessian::operator()\n";
+      std::cerr << "Error: AEROS_NO_AD is defined in Hessian::operator()\n";
       exit(-1);
 #endif
+      return H;
     }
 
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW

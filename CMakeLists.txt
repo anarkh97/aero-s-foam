@@ -178,7 +178,7 @@ IF(UNIX)
      IF(EIGEN3_FOUND)
        MESSAGE("-- A library with EIGEN3 API found.")
        include_directories(${EIGEN3_INCLUDE_DIR})
-       add_definitions(-DUSE_EIGEN3 -DUSE_EIGEN3_AUTODIFF -DEIGEN_QUATERNIONBASE_PLUGIN=<Element.d/MpcElement.d/QuaternionBasePlugin.h>
+       add_definitions(-DUSE_EIGEN3 -DEIGEN_QUATERNIONBASE_PLUGIN=<Element.d/MpcElement.d/QuaternionBasePlugin.h>
                        -DEIGEN_DONT_PARALLELIZE)
        set(CMAKE_MODULE_PATH "${EIGEN3_INCLUDE_DIR}/cmake" ${CMAKE_MODULE_PATH})
        IF(NOT WITH_EIGEN3_EXTRA EQUAL 0)
@@ -210,7 +210,7 @@ IF(UNIX)
      ENDIF(EIGEN3_FOUND)
    ENDIF(NOT WITH_EIGEN3 EQUAL 0)
 
-#sacado
+# sacado
     IF(NOT WITH_SACADO EQUAL 0)
       FIND_PATH(SACADO_INCLUDE_PATH NAMES Sacado.hpp )
       IF(SACADO_INCLUDE_PATH)
@@ -354,6 +354,14 @@ ENDIF (MERCURIAL_EXECUTABLE)
 
 add_definitions(-D_TEMPLATE_FIX_ -DF_NEEDS_UNDSC -DSOWER_SURFS -DMAP_MIN_MEMORY)
 
+IF(SENSITIVITY_DEBUG EQUAL 1)
+   add_definitions(-DSENSITIVITY_DEBUG)
+endif(SENSITIVITY_DEBUG EQUAL 1)
+
+IF(AEROS_NO_AD EQUAL 1)
+   add_definitions(-DAEROS_NO_AD)
+endif(AEROS_NO_AD EQUAL 1)
+
 INCLUDE_DIRECTORIES( ${INC_DIR} )
 
 add_subdirectory(Element.d)
@@ -419,10 +427,6 @@ IF(CREATE_DSO)
                          LINK_SEARCH_END_STATIC 1
                          PREFIX "")
 endif(CREATE_DSO)
-
-IF(SENSITIVITY_DEBUG EQUAL 1)
-   add_definitions(-DSENSITIVITY_DEBUG)
-endif(SENSITIVITY_DEBUG EQUAL 1)
 
 IF(NOT CREATE_DSO)
   add_executable(femexecutable  main.C HgIdentity.C)

@@ -10,10 +10,8 @@
 
 #include <Solvers.d/Solver.h>
 #include <Math.d/SparseMatrix.h>
-#include <Math.d/VectorSet.h>
 #include <Solvers.d/MultiDomainSolver.h>
-#include <Feti.d/DistrVectorSet.h>
-#include <complex>
+#include <Utils.d/MyComplex.h>
 
 class EqNumberer;
 class ConstrainedDSA;
@@ -93,8 +91,7 @@ class GenMumpsSolver : public GenSolver<Scalar>, public GenSparseMatrix<Scalar>,
    int neqs() { return neq; }
    long size();
    int numRBM() { return nrbm; }
-   void getRBMs(VectorSet& rbms) { Scalar *nsp = new Scalar[nrbm*neq]; getNullSpace(nsp); 
-                                   for(int i=0; i<nrbm; ++i) for(int j=0; j<neq; ++j) rbms[i][j] = ScalarTypes::Real(nsp[i*neq+j]); delete [] nsp; }
+   void getRBMs(VectorSet& rbms);
    int* getPivnull_list();
 
    void print();
@@ -152,9 +149,5 @@ class WrapMumps : public GenMumpsSolver<Scalar>
 
 typedef GenMumpsSolver<double> MumpsSolver;
 typedef GenMumpsSolver<DComplex> ComplexMumpsSolver;
-
-#ifdef _TEMPLATE_FIX_
-#include <Solvers.d/Mumps.C>
-#endif
 
 #endif

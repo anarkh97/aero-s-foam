@@ -64,16 +64,18 @@ public:
     }
 #endif
 #else
-    std::cerr << "warning: USE_SACADO is not defined\n";
+    std::cerr << "Error: USE_SACADO is not defined in SacadoReverseJacobian::operator()\n";
+    exit(-1);
 #endif
     return 0;
   }
 };
 
-#ifdef USE_SACADO
 template<typename Functor> class SacadoHessian : public Functor
 {
+#ifdef USE_SACADO
   typedef Sacado::Rad::ADvar<Sacado::Fad::SFad<typename Functor::Scalar,Functor::InputType::SizeAtCompileTime> > ActiveScalar;
+#endif
 public:
 
   SacadoHessian() : Functor() {}
@@ -91,14 +93,15 @@ public:
   typedef typename Functor::InputType InputType;
   typedef typename Functor::JacobianType ValueType;
   typedef typename Functor::HessianType JacobianType;
-
+#ifdef USE_SACADO
   typedef Eigen::Matrix<ActiveScalar, InputType::SizeAtCompileTime, 1> ActiveInput;
   typedef Eigen::Matrix<ActiveScalar, 1, Functor::ValueType::SizeAtCompileTime> ActiveValue;
+#endif
 
   template<typename T>
   int operator() (const Eigen::Matrix<T,InputType::SizeAtCompileTime,1>& x, Eigen::Matrix<T,InputType::SizeAtCompileTime,InputType::SizeAtCompileTime>& hes) const
   {
-
+#ifdef USE_SACADO
     ActiveInput ax = x.template cast<ActiveScalar>();
     ActiveValue av;
 
@@ -115,12 +118,14 @@ public:
     }
 
     Sacado::Rad::ADvar< Sacado::Fad::SFad<Scalar,InputType::SizeAtCompileTime> >::aval_reset();
-
+#else
+    std::cerr << "Error: USE_SACADO is not defined in SacadoHessian::operator()\n";
+    exit(-1);
+#endif
     return 0;
   }
 
 };
-#endif
 
 #endif
 #endif

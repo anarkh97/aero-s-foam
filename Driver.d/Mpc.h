@@ -48,8 +48,11 @@ class LMPCTerm
 
   template <class Scalar>
    Scalar val() {
-     if(isComplex)
-       return (Scalar) coef.c_value;
+     if(isComplex) {
+       Scalar s;
+       ScalarTypes::copy(s, coef.c_value);
+       return s;
+     }
      else
        return coef.r_value;
    }

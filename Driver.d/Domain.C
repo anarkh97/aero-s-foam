@@ -3489,7 +3489,9 @@ Domain::ProcessSurfaceBCs(int topFlag)
                case 12: type = 20; break;
                case 10: type = 21; break;
              }
-             addNeumElem(-1, type, surface_pres[i].val, nVertices, nodes, new PressureBCond(surface_pres[i]));
+             PressureBCond *pbc = new PressureBCond(surface_pres[i]);
+             pbc->elnum = -1;
+             addNeumElem(-1, type, surface_pres[i].val, nVertices, nodes, pbc);
              delete [] nodes;
           }
           else {

@@ -75,7 +75,7 @@
 %token DAMPING DblConstant DEM DIMASS DISP DIRECT DLAMBDA DP DYNAM DETER DECOMPOSE DECOMPFILE DMPC DEBUGCNTL DEBUGICNTL
 %token CONSTRAINTS MULTIPLIERS PENALTY
 %token ELLUMP EIGEN EFRAMES ELSCATTERER END ELHSOMMERFELD ETEMP EXPLICIT EXTFOL EPSILON ELEMENTARYFUNCTIONTYPE
-%token FABMAT FACOUSTICS FETI FETI2TYPE FETIPREC FFP FFPDIR FITALG FNAME FLUX FORCE FRONTAL FETIH FIELDWEIGHTLIST FILTEREIG FLUID
+%token FABMAT FACE FACOUSTICS FETI FETI2TYPE FETIPREC FFP FFPDIR FITALG FNAME FLUX FORCE FRONTAL FETIH FIELDWEIGHTLIST FILTEREIG FLUID
 %token FREQSWEEP FREQSWEEP1 FREQSWEEP2 FREQSWEEPA FSGL FSINTERFACE FSISCALING FSIELEMENT NOLOCALFSISPLITING FSICORNER FFIDEBUG FAILSAFE FRAMETYPE
 %token GEPS GLOBALTOL GRAVITY GRBM GTGSOLVER GLOBALCRBMTOL GROUP GROUPTYPE GOLDFARBTOL GOLDFARBCHECK
 %token HDIRICHLET HEAT HFETI HNEUMAN HSOMMERFELD HFTT
@@ -624,13 +624,17 @@ BinarySpec:
             decomposition_ = prefix + ".dec";
             connectivity_ = prefix + ".con";
             subdomains_ = prefix + ".sub";
-            //fprintf(stderr, "clusterData_ = %s\n", clusterData_.c_str());
-            //fprintf(stderr, "decomposition_ = %s\n", decomposition_.c_str());
-            //fprintf(stderr, "connectivity_ = %s\n", connectivity_.c_str());
-            //fprintf(stderr, "subdomains_ = %s\n", subdomains_.c_str());
           }
         | BinarySpec BINARYOUTPUT SWITCH NewLine 
           { geoSource->binaryOutput = bool($3); }
+        | BinarySpec BINARYOUTPUT SWITCH FNAME NewLine
+          { geoSource->binaryOutput = bool($3);
+            int len = strlen($4);
+            char *file = new char[len+5];
+            strcpy(file, $4);
+            strcat(file,".con");
+            geoSource->setGlob(file);
+          }
         | BinarySpec GEOMETRY FNAME NewLine
           { geoSource->setGeo($3); }
         | BinarySpec DECOMPOSITION FNAME NewLine
@@ -3224,6 +3228,31 @@ Pressure:
           pbc[0].setData($3-1, $4, $$, $5);
           geoSource->addSurfacePressure(1, pbc);
           if(geoSource->getNumSurfacePressure() > 1) delete [] pbc; }
+        /* New option to set element pressure using "FACE" keyword */
+        | Pressure Integer FACE Integer Float NewLine
+        { PressureBCond pbc;
+          pbc.setData($2-1, $5, $$, true);
+          pbc.face = $4-1;
+          geoSource->setElementPressure(pbc); }
+        | Pressure Integer Integer FACE Integer Float NewLine
+        { for(int i = $2; i < ($3+1); ++i) {
+            PressureBCond pbc;
+            pbc.setData(i-1, $6, $$, true);
+            pbc.face = $5-1;
+            geoSource->setElementPressure(pbc);
+          } }
+        | Pressure Integer FACE Integer Float SWITCH NewLine
+        { PressureBCond pbc;
+          pbc.setData($2-1, $5, $$, $6);
+          pbc.face = $4-1;
+          geoSource->setElementPressure(pbc); }
+        | Pressure Integer Integer FACE Integer Float SWITCH NewLine
+        { for(int i = $2; i < ($3+1); ++i) {
+            PressureBCond pbc;
+            pbc.setData(i-1, $6, $$, $7);
+            pbc.face = $5-1;
+            geoSource->setElementPressure(pbc);
+          } }
 	;
 Lumped:
 	LUMPED NewLine

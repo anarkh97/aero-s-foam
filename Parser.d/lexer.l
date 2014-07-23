@@ -90,6 +90,8 @@ TRAIL [a-zA-Z]*
 
 "PRES"[a-zA-Z]*|"pres"[a-zA-Z]*    { return PRESSURE; }
 
+"FACE"|"face"                       { return FACE; }
+
 "CONW"[a-zA-Z]*|"conw"[a-zA-Z]*    { return CONWEP; }
 
 "CONSTANT"|"constant"              { return CONSTANT; }

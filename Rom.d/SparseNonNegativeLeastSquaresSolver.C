@@ -28,6 +28,10 @@ extern "C" {
 Eigen::VectorXd
 nncgp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm,
       double maxsze, double reltol, bool verbose, bool scaling);
+
+Eigen::VectorXd
+gpfp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm,
+      double maxsze, double reltol, bool verbose, bool scaling);
 #endif
 
 namespace Rom {
@@ -108,7 +112,21 @@ SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::solve() {
       std::cerr << "USE_EIGEN3 is not defined here in SparseNonNegativeLeastSquaresSolver::solve\n";
       exit(-1);
 #endif
+    } break;
+ 
+    case 2 : { // Gradient Polytope Faces Pursuit Pursuit
+#ifdef USE_EIGEN3
+      fprintf(stderr, " ... Using GPFP Solver             ...\n");
+      Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::ColMajor> > A(matrixBuffer_.data(),equationCount_,unknownCount_);
+      Eigen::Map<Eigen::VectorXd> x(solutionBuffer_.array(),unknownCount_);
+      Eigen::Map<Eigen::VectorXd> b(rhsBuffer_.array(),equationCount_);
+      x = gpfp(A, b, errorMagnitude_, maxSizeRatio_, relativeTolerance_, verboseFlag_, scalingFlag_);
+#else
+      std::cerr << "USE_EIGEN3 is not defined here in SparseNonNegativeLeastSquaresSolver::solve\n";
+      exit(-1);
+#endif
     }
+
   }
   double t = (getTime() - t0)/1000.0;
   fprintf(stderr, " ... Solve Time = %13.6f s   ...\n",t);

@@ -4,6 +4,7 @@
 
 #include <stdexcept>
 #include <vector>
+#include <iostream>
 
 #ifdef USE_EIGEN3
 #include <Eigen/Core>

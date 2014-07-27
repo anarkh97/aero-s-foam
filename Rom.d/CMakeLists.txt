@@ -57,4 +57,5 @@ ADD_LIBRARY( Rom
   EiGalerkinProjectionSolverInstance.C
   DirectionalPursuit.d/nncgp.C
   DirectionalPursuit.d/pnncgp.C
+  PolytopeFacesPursuit.d/gpfp.C
 )

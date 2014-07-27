@@ -41,11 +41,13 @@ nncgp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::
   if(scaling) for(int i=0; i<A.cols(); ++i) S[i] = 1/A.col(i).norm();
   else S.setOnes();
 
-  int iter = 0; // number of iterations
+  int iter   = 0; // number of iterations
+  int downIt = 0; // number of downdates
   while(true) {
 
     if(verbose) {
       std::cout << "Iteration = " << std::setw(9) << iter << "    "
+                << "Downdate  = " << std::setw(9) << downIt << "   "
                 << "Active set size = " << std::setw(9) << k << "    "
                 << "Residual norm = " << std::setw(13) << std::scientific << std::uppercase << rnorm << "    "
                 << "Target = " << std::setw(13) << std::scientific << std::uppercase << abstol << std::endl;
@@ -78,7 +80,8 @@ nncgp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::
     k++;
     while(true) {
       iter++;
-      if(y.head(k).minCoeff() < 0) {
+      if(y.head(k).minCoeff() < 0) { 
+        downIt++;
         // compute maximum feasible step length (alpha) and corresponding index in active set (i)
         for(long int j=0; j<k; ++j) t[j] = (y[j] >= 0) ? std::numeric_limits<double>::max() : -x_[j]/(y[j]-x_[j]);
         double alpha = t.head(k).minCoeff(&i);

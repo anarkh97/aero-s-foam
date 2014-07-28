@@ -1022,7 +1022,9 @@ void GeoSource::setUpData()
     if(ele == 0) {
       filePrint(stderr, " *** WARNING: Frame was found for non-existent element %d \n", efd[iFrame].elnum+1);
     }
-    else ele->setFrame(&(efd[iFrame].frame));
+    else { 
+      ele->setFrame(&(efd[iFrame].frame));
+    }
   }
   for (int i = 0; i < nMaxEle; ++i)
     if(elemSet[i]) elemSet[i]->buildFrame(nodes);
@@ -1820,8 +1822,9 @@ void GeoSource::applyAuxData(int *cl2LocElem, int *cl2LocNode,
     int locElemNum =  cl2LocElem[ efd[iFrame].elnum ];
 
     // check if eframe is in this subdomain
-    if(locElemNum >= 0)
+    if(locElemNum >= 0) 
       elemSet[locElemNum]->setFrame(&(efd[iFrame].frame));
+    
   }
 }
 

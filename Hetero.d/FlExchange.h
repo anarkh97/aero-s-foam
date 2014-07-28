@@ -123,6 +123,7 @@ class FlExchanger {
       void flipRcvParity() { if(rcvParity >= 0) rcvParity = 1-rcvParity; }
 
       void sendNumParam(int);
+      void sendRelativeResidual(double);
       int cmdCom(int);
       int cmdComHeat(int);
 
@@ -138,6 +139,7 @@ class FlExchanger {
 #define STTOFLHEAT 6000
 #define STTOSTHEAT 7000
 #define STNUMPAFL 7500
+#define STRELRESFL 7600
 #define STCMDMSG 8000
 #define FLCMDMSG 9000
 #define OPTPARMSG 8100

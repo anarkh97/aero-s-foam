@@ -59,6 +59,7 @@ TimoshenkoBeam::clone()
   TimoshenkoBeam *result = new TimoshenkoBeam(nn);
 
   if (elemframe) {
+    std::cerr << "in TimoshenkoBeam::clone\n";
     result->elemframe = new EFrame[1];
     result->myElemFrame = true;
     std::memcpy(result->elemframe, elemframe, sizeof(elemframe[0]));
@@ -90,7 +91,6 @@ void
 TimoshenkoBeam::buildFrame(CoordSet& cs)
 {
   // store initial orientation of beam
-
   Node &nd1 = cs.getNode(nn[0]);
   Node &nd2 = cs.getNode(nn[1]);
 
@@ -108,9 +108,28 @@ TimoshenkoBeam::buildFrame(CoordSet& cs)
   iniOr[1] = iniOr[1]/len;
   iniOr[2] = iniOr[2]/len;
 
+  oeframe[0][0] = 1;
+  oeframe[0][1] = 0;
+  oeframe[0][2] = 0;
+  oeframe[1][0] = 0;
+  oeframe[1][1] = 1;
+  oeframe[1][2] = 0;
+  oeframe[2][0] = 0;
+  oeframe[2][1] = 0;
+  oeframe[2][2] = 1;
+
   if(nn[2] < 0) {  // PJSA 4-8-05 copied from EulerBeam 
                    // only 2nd axis from EFRAMES is actually used (to define local xy plane)
     if(elemframe != 0) {
+      oeframe[0][0] = (*elemframe)[0][0];
+      oeframe[0][1] = (*elemframe)[0][1];
+      oeframe[0][2] = (*elemframe)[0][2];
+      oeframe[1][0] = (*elemframe)[1][0];
+      oeframe[1][1] = (*elemframe)[1][1];
+      oeframe[1][2] = (*elemframe)[1][2];
+      oeframe[2][0] = (*elemframe)[2][0];
+      oeframe[2][1] = (*elemframe)[2][1];
+      oeframe[2][2] = (*elemframe)[2][2];
       EFrame &theFrame = *elemframe;
       theFrame[0][0] = nd2.x-nd1.x;
       theFrame[0][1] = nd2.y-nd1.y;
@@ -231,10 +250,10 @@ TimoshenkoBeam::getMassSensitivityWRTNodalCoordinate(CoordSet &cs, Vector &dMass
         double length = sqrt( dx*dx + dy*dy + dz*dz );
         double prefix = prop->A*prop->rho/length;
         dMassdx[0] = -prefix*dx;
-        dMassdx[1] = prefix*dx;
-        dMassdx[2] = -prefix*dy;
-        dMassdx[3] = prefix*dy;
-        dMassdx[4] = -prefix*dz;
+        dMassdx[1] = -prefix*dy;
+        dMassdx[2] = -prefix*dz;
+        dMassdx[3] = prefix*dx;
+        dMassdx[4] = prefix*dy;
         dMassdx[5] = prefix*dz;
 }
 
@@ -277,12 +296,19 @@ TimoshenkoBeam::getGravityForceSensitivityWRTNodalCoordinate(CoordSet& cs, doubl
   double x[2] = { cs[nn[0]]->x, cs[nn[1]]->x };
   double y[2] = { cs[nn[0]]->y, cs[nn[1]]->y };
   double z[2] = { cs[nn[0]]->z, cs[nn[1]]->z };
-  Eigen::Array<double,13,1> dconst;
+  Eigen::Array<double,14,1> dconst;
   dconst.segment<3>(0) = Eigen::Map<Eigen::Matrix<double,3,1> >(gravityAcceleration).segment(0,3);
-  for(int i=0; i<3; ++i)
-    for(int j=0; j<3; ++j)
-      dconst[3+3*i+j] = (*elemframe)[i][j];
-  dconst[12] = massPerNode;
+  dconst[3] = prop->rho;
+  dconst[4] = prop->A;
+  dconst[5] = (oeframe)[0][0];
+  dconst[6] = (oeframe)[0][1];
+  dconst[7] = (oeframe)[0][2];
+  dconst[8] = (oeframe)[1][0];
+  dconst[9] = (oeframe)[1][1];
+  dconst[10] = (oeframe)[1][2];
+  dconst[11] = (oeframe)[2][0];
+  dconst[12] = (oeframe)[2][1];
+  dconst[13] = (oeframe)[2][2];
   Eigen::Array<int,1,1> iconst;
   iconst[0] = gravflg;
 
@@ -467,20 +493,24 @@ TimoshenkoBeam::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiff
         Eigen::Array<int,0,1> iconst;
         Eigen::Array<double,6,1> q;
         
-        for(int i=0; i<3; ++i) {
-          for(int j=0; j<3; ++j) {
-             dconst[3*i+j] = (*elemframe)[i][j]; 
-          }
-        }    
-        dconst[9] = prop->E;
-        dconst[10] = prop->A;
-        dconst[11] = prop->Ixx;
-        dconst[12] = prop->Iyy;
-        dconst[13] = prop->Izz;
-        dconst[14] = prop->alphaY;
-        dconst[15] = prop->alphaZ;
-        dconst[16] = prop->C1;
-        dconst[17] = prop->nu;
+        dconst[0] = prop->E;
+        dconst[1] = prop->A;
+        dconst[2] = prop->Ixx;
+        dconst[3] = prop->Iyy;
+        dconst[4] = prop->Izz;
+        dconst[5] = prop->alphaY;
+        dconst[6] = prop->alphaZ;
+        dconst[7] = prop->C1;
+        dconst[8] = prop->nu;
+        dconst[9] = oeframe[0][0];
+        dconst[10] = (oeframe)[0][1];
+        dconst[11] = (oeframe)[0][2];
+        dconst[12] = (oeframe)[1][0];
+        dconst[13] = (oeframe)[1][1];
+        dconst[14] = (oeframe)[1][2];
+        dconst[15] = (oeframe)[2][0];
+        dconst[16] = (oeframe)[2][1];
+        dconst[17] = (oeframe)[2][2];
 
         double x[2], y[2], z[2];
 
@@ -512,6 +542,11 @@ TimoshenkoBeam::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiff
           TimoshenkoBeamStiffnessWRTNodalCoordinateSensitivity<double> foo(dconst,iconst);
           Eigen::Matrix<double,6,1> qp, qm;
           double h(1e-6);
+#ifdef SENSITIVITY_DEBUG
+          Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
+          Eigen::Matrix<double,12,12> K = foo(q,0);
+          std::cerr << " stiffness matrix ... \n" << K.format(HeavyFmt) << std::endl;
+#endif
           for(int i=0; i<6; ++i) {
             qp = qm = q;
             qp[i] = q[i] + h;   qm[i] = q[i] - h;
@@ -553,7 +588,7 @@ TimoshenkoBeam::stiffness(CoordSet &cs, double *d, int flg)
 // 	EFrame is stored in following order. 
 //			X_x, X_y, X_z, 
 //			Y_x, Y_y, Y_z,
-//                      Z_x, Z_y, Z_z
+//      Z_x, Z_y, Z_z
 
         if(prop->A == 0.0)
           std::fprintf(stderr,"ERROR: Timoshenko beam has zero area. nodes %d %d\n",
@@ -570,7 +605,6 @@ TimoshenkoBeam::stiffness(CoordSet &cs, double *d, int flg)
           std::fprintf(stderr," ****************************************************\n");
           exit(-1);
         }
-
         _FORTRAN(modmstif7)((double *)d, prop->A, prop->E,
                             (double *) *elemframe,
                             prop->Ixx, prop->Iyy, prop->Izz,
@@ -897,6 +931,9 @@ TimoshenkoBeam::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
           // von Mises stress resultant
           stress[0] = elStress[0][6]; 
           stress[1] = elStress[1][6]; 
+#ifdef SENSITIVITY_DEBUG
+          if(verboseFlag) std::cerr << "von mises stress is " << stress[0] << " " << stress[1] << std::endl;
+#endif
 
         } else if (strInd < 6) {
           // Axial Stress
@@ -1034,6 +1071,7 @@ TimoshenkoBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, V
 
   //Jacobian evaluation
   Eigen::Matrix<double,2,12> dStressdDisp;
+  dStressdDisp.setZero();
   Eigen::Matrix<double,7,3> stress;
   if(verboseFlag) std::cout << " ... senMethod is " << senMethod << std::endl;
 
@@ -1041,7 +1079,6 @@ TimoshenkoBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, V
     if(senMethod == 1) { // via automatic differentiation
       Simo::Jacobian<double,TimoshenkoBeamStressWRTDisplacementSensitivity> dSdu(dconst,iconst);
       dStressdDisp = dSdu(q, 0);
-      dStdDisp.copy(dStressdDisp.data());
 #ifdef SENSITIVITY_DEBUG
       if(verboseFlag) std::cerr << " ... dStressdDisp(AD) = \n" << dStressdDisp << std::endl;
 #endif
@@ -1052,7 +1089,6 @@ TimoshenkoBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, V
       Eigen::Matrix<double,9,1> eframe = Eigen::Map<Eigen::Matrix<double,28,1> >(dconst.data()).segment(8,9); // extract eframe
       vms7WRTdisp(1, prop->A, prop->E, eframe.data(), prop->Ixx, prop->Iyy, prop->Izz, prop->alphaY, prop->alphaZ, prop->c,
                     prop->nu, x, y, z, q.data(), dStressdDisp.data(), prop->W, prop->Ta, ndTemps);
-      dStdDisp.copy(dStressdDisp.data());
 #ifdef SENSITIVITY_DEBUG
       if(verboseFlag) std::cerr << " ... dStressdDisp(analytic) = \n" << dStressdDisp << std::endl;
 #endif
@@ -1071,12 +1107,12 @@ TimoshenkoBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, V
         dStressdDisp(0,j) = dS[0];
         dStressdDisp(1,j) = dS[1];
       }
-      dStdDisp.copy(dStressdDisp.data());
 #ifdef SENSITIVITY_DEBUG
       if(verboseFlag) std::cerr << " ... dStressdDisp(FD) = \n" << dStressdDisp << std::endl;
 #endif
     }
-  } else dStdDisp.zero(); // NODALPARTIAL or GAUSS or any others
+  } 
+  dStdDisp.copy(dStressdDisp.data());
 }
 
 void
@@ -1118,7 +1154,7 @@ TimoshenkoBeam::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, V
   dconst[13] = prop->E;
   for(int i=0; i<3; ++i) {
     for(int j=0; j<3; ++j) {
-      dconst[14+3*i+j] = (*elemframe)[i][j]; 
+      dconst[14+3*i+j] = oeframe[i][j]; 
     }
   }    
   dconst[23] = prop->Ixx;
@@ -1264,4 +1300,3 @@ TimoshenkoBeam::updTransMatrix(CoordSet& cs, GeomState *geomState, double t0n[3]
     crossprod( t0n[0], t0n[1], t0n[2]);
     normalize( t0n[2] );
 }
-

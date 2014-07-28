@@ -427,6 +427,10 @@ ShellMaterialType0<doublereal>
 }
 
 template
+double* 
+ShellMaterialType0<double>::GetCoefOfConstitutiveLaw();
+
+template
 void
 ShellMaterialType0<double>
 ::GetConstitutiveResponse(double *Upsilon, double *Sigma, double *D, double *, int, double);

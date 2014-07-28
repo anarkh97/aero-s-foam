@@ -1361,6 +1361,13 @@ Domain::getSolverAndKuc(AllOps<Scalar> &allOps, FullSquareMatrix *kelArray, bool
 
  // ... Build stiffness matrix K and Kuc, etc...
  buildOps<Scalar>(allOps, 1.0, 0.0, 0.0, rbm, kelArray, (FullSquareMatrix *) NULL, (FullSquareMatrix *) NULL, factorize);
+
+#ifdef SENSITIVITY_DEBUG
+ if(verboseFlag) {
+   filePrint(stderr,"print stiffness matrix\n");
+   allOps.K->print();
+ }
+#endif
 }
 
 template<class Scalar>
@@ -1605,6 +1612,10 @@ Domain::addGravityForce(GenVector<Scalar> &force)
       }
     }
   }
+#ifdef SENSITIVITY_DEBUG
+  if(verboseFlag) gravityForce.print("print gravity Force\n");
+#endif
+
 
   // ... ADD DISCRETE MASS TO GRAVITY FORCE ...
   DMassData *current = firstDiMass;

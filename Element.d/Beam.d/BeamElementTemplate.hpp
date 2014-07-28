@@ -8,8 +8,8 @@ class BeamElementTemplate
     BeamElementTemplate() {}
     ~BeamElementTemplate() {}
 
-    void gForce(doublereal massPerNode, doublereal *x, doublereal *y, doublereal *z, doublereal *gravityAcceleration,
-                doublereal *_eframe, doublereal *gravityForce, int gravflg);
+    void gForce(doublereal *x, doublereal *y, doublereal *z, doublereal *gravityAcceleration,
+                doublereal *_eframe, doublereal rho, doublereal A, doublereal *gravityForce, int gravflg);
 
     void modmstif7(doublereal *_estif, doublereal A, doublereal E,
                    doublereal *_eframe, doublereal Ix, doublereal Iy, doublereal Iz, doublereal alphay,
@@ -45,7 +45,8 @@ class BeamElementTemplate
 
 
     void transform(doublereal *_l, doublereal *_g, doublereal *_str);
-
+    void buildFrameInTemplate(doublereal *, doublereal *, doublereal *, doublereal *);
+    doublereal getMassInTemplate(doublereal *x, doublereal *y, doublereal *z, doublereal rho, doublereal A);
   private:
     void frame6(doublereal *frame, doublereal *u, doublereal *v, doublereal *w);
     void zeroLengthError();

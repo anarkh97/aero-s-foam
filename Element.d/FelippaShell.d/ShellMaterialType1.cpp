@@ -1,3 +1,6 @@
+#ifndef _SHELLMATERIALTYPE1_CPP_
+#define _SHELLMATERIALTYPE1_CPP_
+
 #ifdef USE_EIGEN3
 #include <cmath>
 #include <stdexcept>
@@ -256,6 +259,10 @@ ShellMaterialType1<doublereal>::GetShellThickness()
 }
 
 template
+double* 
+ShellMaterialType1<double>::GetCoefOfConstitutiveLaw();
+
+template
 void
 ShellMaterialType1<double>::GetConstitutiveResponse(double *Upsilon, double *Sigma, double *D,
                                                     double *eframe, int gp, double temp);
@@ -268,4 +275,6 @@ template
 void
 ShellMaterialType1<double>::GetConstitutiveResponseSensitivityWRTdisp(double *_dUpsilondu, double *_dSigmadu, double *_D,
                                                                       double *eframe, int gp);
+#endif
+
 #endif

@@ -153,11 +153,13 @@ struct AllSensitivities
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **linearstaticWRTthick; // derivative of linear static structural formulation wrt thickness
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **linearstaticWRTshape; // derivative of linear static structural formulation wrt shape variables
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **dispWRTthick;         // derivative of displacement wrt thickness
+  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **dispWRTshape;         // derivative of displacement wrt shape variables
   // Constructor
   AllSensitivities() { weight = 0;                weightWRTshape = 0;
                        weightWRTthick = 0;        vonMisesWRTthick = 0;      dKucdthick = 0;            vonMisesWRTshape = 0; 
                        vonMisesWRTdisp = 0;       stressWeight = 0;          stiffnessWRTthick = 0;     dKucdshape = 0; 
-                       linearstaticWRTthick = 0;  linearstaticWRTshape = 0;  dispWRTthick = 0;          stiffnessWRTshape = 0; }
+                       linearstaticWRTthick = 0;  linearstaticWRTshape = 0;  dispWRTthick = 0;          dispWRTshape = 0;
+                       stiffnessWRTshape = 0; }
 
   void zero(int numShapeVars=0, int numThicknessGroups=0) {
     if(weightWRTthick) weightWRTthick->setZero();
@@ -173,6 +175,7 @@ struct AllSensitivities
     if(linearstaticWRTthick) for(int i=0; i<numThicknessGroups; ++i) linearstaticWRTthick[i]->setZero();
     if(linearstaticWRTshape) for(int i=0; i<numShapeVars; ++i) linearstaticWRTshape[i]->setZero();
     if(dispWRTthick) for(int i=0; i<numThicknessGroups; ++i) dispWRTthick[i]->setZero();
+    if(dispWRTshape) for(int i=0; i<numShapeGroups; ++i) dispWRTshape[i]->setZero();
   }
 #endif
 };
@@ -599,6 +602,9 @@ class Domain : public HData {
 
      void subtractGravityForceSensitivityWRTthickness(int, AllSensitivities<double> &allSens);
      void subtractGravityForceSensitivityWRTShapeVariable(int, AllSensitivities<double> &allSens);
+     void computeDisplacementWRTShapeVariableSensitivity(int, GenSolver<double> *, 
+                                                         GenSparseMatrix<double> *, GenSparseMatrix<double> *,
+                                                         AllSensitivities<double> &);
      void computeDisplacementWRTthicknessSensitivity(int, GenSolver<double> *, 
                                                      GenSparseMatrix<double> *, GenSparseMatrix<double> *,
                                                      AllSensitivities<double> &);
@@ -613,7 +619,8 @@ class Domain : public HData {
      void computeStressVMWRTdisplacementSensitivity(int, AllSensitivities<double> &allSens,
                                                     GenVector<double> &sol, double *bcx);
      void computeStressVMWRTShapeVariableSensitivity(int, AllSensitivities<double> &allSens,
-                                                     GenVector<double> &sol, double *bcx);
+                                                     GenVector<double> &sol, double *bcx,
+                                                     bool isDynam = false);
      void makePostSensitivities(GenSolver<double> *, GenSparseMatrix<double> *, GenSparseMatrix<double> *,
                                 AllSensitivities<double> &allSens, GenVector<double> &sol, double *, bool isDynam = false);
      void makePostSensitivities(GenSolver<DComplex> *, GenSparseMatrix<DComplex> *, GenSparseMatrix<DComplex> *, 

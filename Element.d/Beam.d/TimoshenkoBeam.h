@@ -9,6 +9,7 @@ class GeomState;
 class TimoshenkoBeam : public Element,
                        public BeamElementTemplate<double> {
         EFrame *elemframe;
+        double oeframe[3][3];
         bool myElemFrame;
         int nn[3];
         double* iniOr;	

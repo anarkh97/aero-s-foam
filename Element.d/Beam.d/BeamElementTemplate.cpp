@@ -9,12 +9,29 @@
 #include <Eigen/Geometry>
 
 template<typename doublereal>
+doublereal
+BeamElementTemplate<doublereal>
+::getMassInTemplate(doublereal *x, doublereal *y, doublereal *z, doublereal rho, doublereal A) 
+{
+   using std::sqrt;
+
+   doublereal dx = x[1] - x[0];
+   doublereal dy = y[1] - y[0];
+   doublereal dz = z[1] - z[0];
+
+   doublereal length = sqrt(dx*dx + dy*dy + dz*dz);
+
+   return length*rho*A;
+}
+
+template<typename doublereal>
 void
 BeamElementTemplate<doublereal>
-::gForce(doublereal massPerNode, doublereal *x, doublereal *y, doublereal *z, doublereal *gravityAcceleration, 
-         doublereal *_eframe, doublereal *gravityForce, int gravflg)
+::gForce(doublereal *x, doublereal *y, doublereal *z, doublereal *gravityAcceleration, 
+         doublereal *_eframe, doublereal rho, doublereal A, doublereal *gravityForce, int gravflg)
 {
   using std::sqrt;  
+  doublereal massPerNode = 0.5*getMassInTemplate(x,y,z,rho,A);
 
   Eigen::Map<Eigen::Matrix<doublereal,3,3> > eframe(_eframe);
 
@@ -820,11 +837,12 @@ BeamElementTemplate<doublereal>
     doublereal stress_1dyz = stress(1,1) - stress(2,1);
     doublereal stress_1dxz = stress(0,1) - stress(2,1);
 
-    stress(6,0) = sqrt( 0.5*(stress_0dxy*stress_0dxy + stress_0dyz*stress_0dyz + stress_0dxz*stress_0dxz) +
-                          3*(stress(3,0)*stress(3,0) + stress(4,0)*stress(4,0) + stress(5,0)*stress(5,0)) );
-    stress(6,1) = sqrt( 0.5*(stress_1dxy*stress_1dxy + stress_1dyz*stress_1dyz + stress_1dxz*stress_1dxz) +
-                          3*(stress(3,1)*stress(3,1) + stress(4,1)*stress(4,1) + stress(5,1)*stress(5,1)) );
-
+    stress(6,0) =  sqrt(0.5*(stress_0dxy*stress_0dxy + stress_0dyz*stress_0dyz + stress_0dxz*stress_0dxz) +
+                          3*(stress(3,0)*stress(3,0) + stress(4,0)*stress(4,0) + stress(5,0)*stress(5,0)))+
+                                                                                                   1.0e-10;
+    stress(6,1) =  sqrt(0.5*(stress_1dxy*stress_1dxy + stress_1dyz*stress_1dyz + stress_1dxz*stress_1dxz) +
+                          3*(stress(3,1)*stress(3,1) + stress(4,1)*stress(4,1) + stress(5,1)*stress(5,1)))+
+                                                                                                   1.0e-10;
 }
 
 template<typename doublereal>
@@ -1824,6 +1842,33 @@ BeamElementTemplate<doublereal>
         dvmsdStress(1,11) = (3.*stress(5,1))/stress(6,1);
 
         dvmsWRTdisp = dvmsdStress * ke * tran;
+}
+
+template<typename doublereal>
+void
+BeamElementTemplate<doublereal>
+::buildFrameInTemplate(doublereal *_x, doublereal *_y, doublereal *_z, doublereal *_eframe)
+{
+  Eigen::Map<Eigen::Matrix<doublereal,9,1> > eframe(_eframe);
+  Eigen::Map<Eigen::Matrix<doublereal,2,1> > x(_x), y(_y), z(_z);
+
+  Eigen::Matrix<doublereal,3,1> frame1, frame2, frame3;
+  frame2[0] = eframe[3];   frame2[1] = eframe[4];   frame2[2] = eframe[5];
+  frame3[0] = eframe[6];   frame3[1] = eframe[7];   frame3[2] = eframe[8];
+
+  frame1[0] = x[1]-x[0];
+  frame1[1] = y[1]-y[0];
+  frame1[2] = z[1]-z[0];
+  frame1.normalize();
+  frame3 = frame1.cross(frame2);
+  frame3.normalize();
+  frame2 = frame3.cross(frame1);
+  frame2.normalize();
+ 
+  eframe[0] = frame1[0];  eframe[1] = frame1[1];  eframe[2] = frame1[2];
+  eframe[3] = frame2[0];  eframe[4] = frame2[1];  eframe[5] = frame2[2];
+  eframe[6] = frame3[0];  eframe[7] = frame3[1];  eframe[8] = frame3[2];
+
 }
 
 #endif

@@ -39,6 +39,7 @@ class TimoshenkoBeamStressWRTDisplacementSensitivity : public VectorValuedFuncti
       Ta = sconst[25];
       ndTemps[0] = sconst[26];
       ndTemps[1] = sconst[27];
+
     }
 
     Eigen::Matrix<Scalar,2,1> operator() (const Eigen::Matrix<Scalar,12,1>& q, Scalar)
@@ -47,7 +48,6 @@ class TimoshenkoBeamStressWRTDisplacementSensitivity : public VectorValuedFuncti
       // q = Global Displacements at the Nodal Joints
 
       Eigen::Matrix<Scalar,12,1> globalu = q;
-
       Eigen::Array<Scalar,7,2> elStress;
       int numel = 1;
       int elm = 1;

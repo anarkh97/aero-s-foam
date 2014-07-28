@@ -124,6 +124,8 @@ FelippaShell::getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
   stress[0] = elStress[0][strInd-offset];
   stress[1] = elStress[1][strInd-offset];
   stress[2] = elStress[2][strInd-offset];
+
+  if(verboseFlag) std::cerr << "von mises stress is " << stress[0] << " " << stress[1] << " " << stress[2] << std::endl;
 }
 
 void
@@ -214,18 +216,32 @@ FelippaShell::getGravityForceSensitivityWRTNodalCoordinate(CoordSet& cs, double 
   double x[3] = { cs[nn[0]]->x, cs[nn[1]]->x, cs[nn[2]]->x };
   double y[3] = { cs[nn[0]]->y, cs[nn[1]]->y, cs[nn[2]]->y };
   double z[3] = { cs[nn[0]]->z, cs[nn[1]]->z, cs[nn[2]]->z };
-  Eigen::Array<double,7,1> dconst;
+  Eigen::Array<double,52,1> dconst;
+  dconst.setZero();
   dconst.segment<3>(0) = Eigen::Map<Eigen::Matrix<double,3,1> >(gravityAcceleration).segment(0,3);
   dconst[3] = prop->E;    // E
   dconst[4] = prop->nu;   // nu
   dconst[5] = prop->rho;  // rho
   dconst[6] = nmat->GetShellThickness();   // h
-  Eigen::Array<int,1,1> iconst;
+  double *coefs;
+  if(type == 1) {
+    dconst.segment<9>(7) = Eigen::Map<Eigen::Matrix<double,9,1> >(cFrame).segment(0,9);
+    coefs = nmat->GetCoefOfConstitutiveLaw(); 
+    dconst.segment<36>(16) = Eigen::Map<Eigen::Matrix<double,36,1> >(coefs).segment(0,36); 
+  } 
+  Eigen::Array<int,2,1> iconst;
   iconst[0] = gravflg;
+  iconst[1] = type;
 
   Eigen::Matrix<double,9,1> q;
   q << x[0], y[0], z[0], x[1], y[1], z[1], x[2], y[2], z[2];
   Eigen::Matrix<double,18,9> dGravityForcedx;
+  Eigen::Matrix<double,18,9> ddGravityForcedx;
+
+  if(senMethod == 0) { 
+    senMethod = 1;
+    std::cerr << "switching to automatic differentiation from analytic\n";
+  }
 
   if(senMethod == 1) { // automatic differentiation
 #if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER < 1200 || __INTEL_COMPILER > 1210)
@@ -249,11 +265,12 @@ FelippaShell::getGravityForceSensitivityWRTNodalCoordinate(CoordSet& cs, double 
       qp[i] = q[i] + h;   qm[i] = q[i] - h;
       Eigen::Matrix<double,18,1> Gfp = foo(qp, 0);
       Eigen::Matrix<double,18,1> Gfm = foo(qm, 0);
-      dGravityForcedx.col(i) = (Gfp-Gfm)/(2*h);
+      ddGravityForcedx.col(i) = (Gfp-Gfm)/(2*h);
     }
+
 #ifdef SENSITIVITY_DEBUG
     Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
-    if(verboseFlag) std::cerr << "dGravityForcedx(FD) =\n" << dGravityForcedx.format(HeavyFmt) << std::endl;
+    if(verboseFlag) std::cerr << "dGravityForcedx(FD) =\n" << ddGravityForcedx.format(HeavyFmt) << std::endl;
 #endif
   }
   dGfdx.copy(dGravityForcedx.data());
@@ -274,7 +291,6 @@ FelippaShell::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravi
   double grvforSen[3];
   bool grvflg = true, masflg = false;
   double totmas = 0;
-
 
   if(senMethod == 0) { // analytic
     andesmsWRTthic(glNum+1, x, y, z, gravityAcceleration, grvforSen, grvflg, totmas, masflg);
@@ -393,7 +409,8 @@ FelippaShell::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravi
 
   if(senMethod == 1) { // automatic differentiation
 #if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER >= 1300)
-    Eigen::Array<double,15,1> dconst;
+    Eigen::Array<double,60,1> dconst;
+    dconst.setZero();
     dconst.segment<3>(0) = Eigen::Map<Eigen::Matrix<double,3,1> >(gravityAcceleration).segment(0,3);
     dconst[3] = x[0];    dconst[4] = x[1];    dconst[5] = x[2];
     dconst[6] = y[0];    dconst[7] = y[1];    dconst[8] = y[2];
@@ -401,8 +418,15 @@ FelippaShell::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravi
     dconst[12] = prop->E; // E
     dconst[13] = prop->nu;   // nu
     dconst[14] = prop->rho;  // rho
-    Eigen::Array<int,1,1> iconst;
+    double* coefs;
+    if(type == 1) {
+      dconst.segment<9>(15) = Eigen::Map<Eigen::Matrix<double,9,1> >(cFrame).segment(0,9);
+      coefs = nmat->GetCoefOfConstitutiveLaw(); 
+      dconst.segment<36>(24) = Eigen::Map<Eigen::Matrix<double,36,1> >(coefs).segment(0,36); 
+    }
+    Eigen::Array<int,2,1> iconst;
     iconst[0] = gravflg;
+    iconst[1] = type;
     Eigen::Matrix<double,1,1> q;
     q[0] = nmat->GetShellThickness();
 
@@ -420,7 +444,7 @@ FelippaShell::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravi
   } // senMethod == 1
 
   if(senMethod == 2) { // finite difference
-
+    std::cerr << " ... Error: finite difference for FelippaShell::getGravityForceSensitivityWRTthickness is not implemented, yet!\n";  exit(-1);
   }
 }
 
@@ -591,16 +615,24 @@ FelippaShell::weightDerivativeWRTNodalCoordinate(Vector &dwdx, CoordSet& cs, dou
  double y[3] = { cs[nn[0]]->y, cs[nn[1]]->y, cs[nn[2]]->y };
  double z[3] = { cs[nn[0]]->z, cs[nn[1]]->z, cs[nn[2]]->z };
 
- Eigen::Matrix<double,4,1> dconst;
+ Eigen::Matrix<double,49,1> dconst;
+ dconst.setZero();
  Eigen::Matrix<double,9,1> q;
- Eigen::Matrix<int,0,1> iconst;
+ Eigen::Matrix<int,1,1> iconst;
+ iconst[0] = type;
 
  q << cs[nn[0]]->x, cs[nn[0]]->y, cs[nn[0]]->z, cs[nn[1]]->x, cs[nn[1]]->y, cs[nn[1]]->z, cs[nn[2]]->x, cs[nn[2]]->y, cs[nn[2]]->z;
 
  dconst[0] = prop->E;
  dconst[1] = prop->nu;
  dconst[2] = prop->rho;
- dconst[3] = prop->eh; 
+ dconst[3] = nmat->GetShellThickness();
+ double* coefs; 
+ if(type == 1) {
+   dconst.segment<9>(4) = Eigen::Map<Eigen::Matrix<double,9,1> >(cFrame).segment(0,9);
+   coefs = nmat->GetCoefOfConstitutiveLaw(); 
+   dconst.segment<36>(13) = Eigen::Map<Eigen::Matrix<double,36,1> >(coefs).segment(0,36); 
+ } 
 
  Eigen::Matrix<double,1,9> dWeightdx;
  if(senMethod == 0) {
@@ -1569,7 +1601,8 @@ FelippaShell::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx
    }
 
   // scalar parameters
-  Eigen::Array<double,4,1> dconst;
+  Eigen::Array<double,49,1> dconst;
+  dconst.setZero();
 
   Node &nd1 = cs.getNode(nn[0]);
   Node &nd2 = cs.getNode(nn[1]);
@@ -1579,8 +1612,15 @@ FelippaShell::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx
   dconst[1] = prop->nu;   // nu
   dconst[2] = prop->rho;  // rho
   dconst[3] = nmat->GetShellThickness();
+  double* coefs;
+  if(type == 1) {
+    dconst.segment<9>(4) = Eigen::Map<Eigen::Matrix<double,9,1> >(cFrame).segment(0,9);
+    coefs = nmat->GetCoefOfConstitutiveLaw(); 
+    dconst.segment<36>(13) = Eigen::Map<Eigen::Matrix<double,36,1> >(coefs).segment(0,36); 
+  } 
   // integer parameters
-  Eigen::Array<int,0,1> iconst;
+  Eigen::Array<int,1,1> iconst;
+  iconst[0] = type;
   // inputs
   Eigen::Matrix<double,9,1> q;
   q << nd1.x, nd1.y, nd1.z, nd2.x, nd2.y, nd2.z, nd3.x, nd3.y, nd3.z;
@@ -1638,7 +1678,8 @@ FelippaShell::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix &d
    }
 
   // scalar parameters
-  Eigen::Array<double,12,1> dconst;
+  Eigen::Array<double,57,1> dconst;
+  dconst.setZero();
 
   Node &nd1 = cs.getNode(nn[0]);
   Node &nd2 = cs.getNode(nn[1]);
@@ -1650,8 +1691,15 @@ FelippaShell::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix &d
   dconst[9] = prop->E; // E
   dconst[10] = prop->nu;   // nu
   dconst[11] = prop->rho;  // rho
+  double* coefs;
+  if(type == 1) {
+    dconst.segment<9>(12) = Eigen::Map<Eigen::Matrix<double,9,1> >(cFrame).segment(0,9);
+    coefs = nmat->GetCoefOfConstitutiveLaw(); 
+    dconst.segment<36>(21) = Eigen::Map<Eigen::Matrix<double,36,1> >(coefs).segment(0,36); 
+  } 
   // integer parameters
-  Eigen::Array<int,0,1> iconst;
+  Eigen::Array<int,1,1> iconst;
+  iconst[0] = type;
   // inputs
   Eigen::Matrix<double,1,1> q;
   q[0] = nmat->GetShellThickness(); //prop->eh;   // value of thickness at which jacobian is to be evaluated
@@ -1711,7 +1759,8 @@ FelippaShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight,
 {
   weight = 1;
   // scalar parameters
-  Eigen::Array<double,30,1> dconst;
+  Eigen::Array<double,75,1> dconst;
+  dconst.setZero();
 
   Node &nd1 = cs.getNode(nn[0]);
   Node &nd2 = cs.getNode(nn[1]);
@@ -1724,6 +1773,12 @@ FelippaShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight,
   dconst[27] = prop->E; // E
   dconst[28] = prop->nu;   // nu
   dconst[29] = prop->rho;  // rho
+  double* coefs;
+  if(type == 1) {
+    dconst.segment<9>(30) = Eigen::Map<Eigen::Matrix<double,9,1> >(cFrame).segment(0,9);
+    coefs = nmat->GetCoefOfConstitutiveLaw(); 
+    dconst.segment<36>(39) = Eigen::Map<Eigen::Matrix<double,36,1> >(coefs).segment(0,36); 
+  } 
 
 #ifdef SENSITIVITY_DEBUG
   if(verboseFlag) {
@@ -1734,8 +1789,9 @@ FelippaShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight,
 #endif
 
   // integer parameters
-  Eigen::Array<int,1,1> iconst;
+  Eigen::Array<int,2,1> iconst;
   iconst[0] = surface; // surface
+  iconst[1] = type;    // type
   // inputs
   Eigen::Matrix<double,1,1> q;
   q[0] = nmat->GetShellThickness(); //prop->eh;   // value of thickness at which jacobian is to be evaluated
@@ -1798,7 +1854,8 @@ FelippaShell::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vec
 {
   weight = 1;
   // scalar parameters
-  Eigen::Array<double,22,1> dconst;
+  Eigen::Array<double,67,1> dconst;
+  dconst.setZero();
 
   Node &nd1 = cs.getNode(nn[0]);
   Node &nd2 = cs.getNode(nn[1]);
@@ -1808,7 +1865,13 @@ FelippaShell::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vec
   dconst[18] = prop->E; // E
   dconst[19] = prop->nu;   // nu
   dconst[20] = prop->rho;  // rho
-  dconst[21] = prop->eh;   // thickness
+  dconst[21] = nmat->GetShellThickness();   // thickness
+  double* coefs;
+  if(type == 1) {
+    dconst.segment<9>(22) = Eigen::Map<Eigen::Matrix<double,9,1> >(cFrame).segment(0,9);
+    coefs = nmat->GetCoefOfConstitutiveLaw(); 
+    dconst.segment<36>(31) = Eigen::Map<Eigen::Matrix<double,36,1> >(coefs).segment(0,36); 
+  } 
 
 #ifdef SENSITIVITY_DEBUG
   if(verboseFlag) {
@@ -1819,8 +1882,9 @@ FelippaShell::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vec
 #endif
 
   // integer parameters
-  Eigen::Array<int,1,1> iconst;
+  Eigen::Array<int,2,1> iconst;
   iconst[0] = surface; // surface
+  iconst[1] = type;
   // inputs
   Eigen::Matrix<double,9,1> q;
   q << nd1.x, nd1.y, nd1.z, nd2.x, nd2.y, nd2.z, nd3.x, nd3.y, nd3.z;
@@ -1878,11 +1942,8 @@ FelippaShell::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vec
       Eigen::Matrix<double,3,1> Sm = foo(qm, 0);
       dStressdx.col(i) = (Sp - Sm)/(2*h);
     }
-    Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
 #ifdef SENSITIVITY_DEBUG
-//    std::cerr << "S =\n" << S.format(HeavyFmt) << std::endl;
-//    std::cerr << "Sp =\n" << Sp.format(HeavyFmt) << std::endl;
-//    std::cerr << "Sm =\n" << Sm.format(HeavyFmt) << std::endl;
+    Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
     if(verboseFlag) std::cerr << "dStressdx(FD) =\n" << dStressdx.format(HeavyFmt) << std::endl;
 #endif
     dStdx.copy(dStressdx.data());  
@@ -1911,7 +1972,8 @@ FelippaShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
    }
   weight = 1;
   // scalar parameters
-  Eigen::Array<double,13,1> dconst;
+  Eigen::Array<double,58,1> dconst;
+  dconst.setZero();
 
   Node &nd1 = cs.getNode(nn[0]);
   Node &nd2 = cs.getNode(nn[1]);
@@ -1923,15 +1985,22 @@ FelippaShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
   dconst[9] = prop->E;     // E
   dconst[10] = prop->nu;   // nu
   dconst[11] = prop->rho;  // rho
-  dconst[12] = prop->eh;   // thickness
+  dconst[12] = nmat->GetShellThickness();  // thickness
+  double* coefs;
+  if(type == 1) {
+    dconst.segment<9>(13) = Eigen::Map<Eigen::Matrix<double,9,1> >(cFrame).segment(0,9);
+    coefs = nmat->GetCoefOfConstitutiveLaw(); 
+    dconst.segment<36>(22) = Eigen::Map<Eigen::Matrix<double,36,1> >(coefs).segment(0,36); 
+  } 
 
   Eigen::Array<double,3,1> globalx = dconst.segment<3>(0).cast<double>();
   Eigen::Array<double,3,1> globaly = dconst.segment<3>(3).cast<double>();
   Eigen::Array<double,3,1> globalz = dconst.segment<3>(6).cast<double>();
    
   // integer parameters
-  Eigen::Array<int,1,1> iconst;
+  Eigen::Array<int,2,1> iconst;
   iconst[0] = surface; // surface
+  iconst[1] = type;
   // inputs
   Eigen::Matrix<double,18,1> q = Eigen::Map<Eigen::Matrix<double,18,1> >(elDisp.data()).segment(0,18); //displacements
 
@@ -1946,7 +2015,7 @@ FelippaShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
     if(senMethod == 0) { // analytic
       dStressdDisp.setZero();
       andesvmsWRTdisp(1, 7, prop->nu, globalx.data(), globaly.data(), globalz.data(), q.data(),
-                      stress.data(), dStressdDisp.data(), 0, 0, surface);   
+                      stress.data(), dStressdDisp.data(), 0, 0, surface);  
       dStdDisp.copy(dStressdDisp.data());
 #ifdef SENSITIVITY_DEBUG
       if(verboseFlag) std::cerr << "dStressdDisp(analytic) =\n" << dStressdDisp << std::endl;

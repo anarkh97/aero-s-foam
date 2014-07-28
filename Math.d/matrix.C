@@ -621,7 +621,7 @@ GenFullM<Scalar>::print(const char *msg, const char *msg2,FILE *f)
  int i,j;
  for(i = 0 ; i < nrow ; ++i) {
    for(j=0; j < ncolumn ; ++j) {
-     fprintf(f,"%s(%d,%d) = % e;",msg2,i+1,j+1,(*this)[i][j]);
+     fprintf(f,"%s(%d,%d) = %16.11e;",msg2,i+1,j+1,(*this)[i][j]);
      fprintf(f,"\n") ;
    }
  }

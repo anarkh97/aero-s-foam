@@ -74,7 +74,7 @@ template<typename Scalar, typename SolverClass>
 void
 GenEiSparseMatrix<Scalar,SolverClass>::print()
 {
-  std::cerr << M << std::endl;
+  std::cerr << std::setprecision(15) << M << std::endl;
 }
 
 template<typename Scalar, typename SolverClass>

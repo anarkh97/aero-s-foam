@@ -12,24 +12,30 @@ class TimoshenkoBeamStiffnessWRTNodalCoordinateSensitivity : public MatrixValued
 {
   public:
     BeamElementTemplate<Scalar> ele;
-    Scalar A, E, Ixx, Iyy, Izz, alphaY, alphaZ, c1, nu; // material properties
     Eigen::Array<Scalar,9,1> elemframe;
+    Scalar A, E, Ixx, Iyy, Izz, alphaY, alphaZ, c1, nu; // material properties
 
   public:
     TimoshenkoBeamStiffnessWRTNodalCoordinateSensitivity(const Eigen::Array<double,18,1>& sconst, const Eigen::Array<int,0,1>& iconst)
     {
-      for(int i=0; i<9; ++i) {
-          elemframe[i] = sconst[i];
-      }
-      E = sconst[9];
-      A = sconst[10];
-      Ixx = sconst[11];
-      Iyy = sconst[12];
-      Izz = sconst[13];
-      alphaY = sconst[14];
-      alphaZ = sconst[15];
-      c1 = sconst[16];
-      nu = sconst[17];
+      E = sconst[0];
+      A = sconst[1];
+      Ixx = sconst[2];
+      Iyy = sconst[3];
+      Izz = sconst[4];
+      alphaY = sconst[5];
+      alphaZ = sconst[6];
+      c1 = sconst[7];
+      nu = sconst[8];
+      elemframe[0] = sconst[9];
+      elemframe[1] = sconst[10];
+      elemframe[2] = sconst[11];
+      elemframe[3] = sconst[12];
+      elemframe[4] = sconst[13];
+      elemframe[5] = sconst[14];
+      elemframe[6] = sconst[15];
+      elemframe[7] = sconst[16];
+      elemframe[8] = sconst[17];
     }
 
     Eigen::Matrix<Scalar,12,12> operator() (const Eigen::Matrix<Scalar,6,1>& q, Scalar)
@@ -41,8 +47,25 @@ class TimoshenkoBeamStiffnessWRTNodalCoordinateSensitivity : public MatrixValued
       globalx << q[0], q[3];
       globaly << q[1], q[4];
       globalz << q[2], q[5];
-
+/*
+      std::cerr << "Area = " << A << std::endl;
+      std::cerr << "E = " << E << std::endl;
+      std::cerr << "elemframe = " << elemframe[0] << " " << elemframe[1] << " " << elemframe[2] << std::endl;
+      std::cerr << "            " << elemframe[3] << " " << elemframe[4] << " " << elemframe[5] << std::endl;
+      std::cerr << "            " << elemframe[6] << " " << elemframe[7] << " " << elemframe[8] << std::endl;
+      std::cerr << "Ixx = " << Ixx << std::endl;
+      std::cerr << "Iyy = " << Iyy << std::endl;
+      std::cerr << "Izz = " << Izz << std::endl;
+      std::cerr << "alphaY = " << alphaY << std::endl;
+      std::cerr << "alphaZ = " << alphaZ << std::endl;
+      std::cerr << "C1 = " << c1 << std::endl;
+      std::cerr << "nu = " << nu << std::endl;
+      std::cerr << "x = " << globalx[0] << " " << globalx[1]  << std::endl;
+      std::cerr << "y = " << globaly[0] << " " << globaly[1]  << std::endl;
+      std::cerr << "z = " << globalz[0] << " " << globalz[1]  << std::endl;
+*/
       Eigen::Matrix<Scalar,12,12> estiff;
+      ele.buildFrameInTemplate(globalx.data(), globaly.data(), globalz.data(), elemframe.data());
       ele.modmstif7(estiff.data(), A, E, elemframe.data(),
                     Ixx, Iyy, Izz, alphaY, alphaZ, c1,   
                     nu, globalx.data(), globaly.data(), globalz.data(), 1);

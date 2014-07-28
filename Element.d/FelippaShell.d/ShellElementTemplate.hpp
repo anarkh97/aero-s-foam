@@ -7,7 +7,7 @@
 //       The recommended setting is undefined. In this case the stress output is more accurate, although a little
 //       more costly, and the augmented mass matrix is used by default resulting in a larger critical time-step
 //       for explicit dynamics.
-//#define COMPATIBILITY_MODE
+#define COMPATIBILITY_MODE
 
 template<typename doublereal, template<typename> class Membrane, template<typename> class Bending>
 class ShellElementTemplate : public Membrane<doublereal>, public Bending<doublereal>
@@ -26,6 +26,10 @@ class ShellElementTemplate : public Membrane<doublereal>, public Bending<doubler
 
     void setnmat(ShellMaterial<doublereal> *_mat) { nmat = _mat; }
     void setgpmat(ShellMaterial<doublereal> *_mat) { gpmat = _mat; }
+    void setgpnmat(ShellMaterial<doublereal> *_mat) { 
+      if(gpmat) delete gpmat;
+      nmat = gpmat = _mat; 
+    }
 
     void
     andescrd(int elm, doublereal *x, doublereal *y, doublereal *z, doublereal *rot,

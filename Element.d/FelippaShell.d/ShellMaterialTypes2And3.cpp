@@ -633,6 +633,10 @@ ShellMaterialTypes2And3<doublereal>
 }
 
 template
+double* 
+ShellMaterialTypes2And3<double>::GetCoefOfConstitutiveLaw();
+
+template
 ShellMaterialTypes2And3<double>::ShellMaterialTypes2And3(
   int nlayer, double *mtlayer, bool couple, double *aframe, double);
 

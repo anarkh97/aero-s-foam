@@ -55,6 +55,7 @@ class TimoshenkoBeamStressWRTNodalCoordinateSensitivity : public VectorValuedFun
       int maxgus = 2;
       int maxstr = 7;
       int maxsze = 1;
+      ele.buildFrameInTemplate(globalx.data(), globaly.data(), globalz.data(), elemframe.data());
       ele.sands7(elm,A,E,elemframe.data(),
                  Ixx,Iyy,Izz,alphaY,
                  alphaZ,c,nu,globalx.data(),globaly.data(),globalz.data(),globalu.data(),

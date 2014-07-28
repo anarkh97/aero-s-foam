@@ -450,7 +450,7 @@ void mat_to_quat(const Eigen::Matrix<Scalar,3,3> &rten, Eigen::Matrix<Scalar,4,1
 
 //#define USE_MATRIX_LOGARITHM
 template<typename Scalar>
-void mat_to_vec(const Eigen::Matrix<Scalar,3,3> &rten, Eigen::Matrix<Scalar,3,1> &rvec)
+void mat_to_vec(const Eigen::Matrix<Scalar,3,3> &rten, Eigen::Ref<Eigen::Matrix<Scalar,3,1> > rvec)
 /*****************************************************************
  *  Compute the rotation vector from a rotation tensor
  *
@@ -934,7 +934,7 @@ directional_deriv5(const Eigen::Matrix<Scalar,3,1> &Psi, const Eigen::Matrix<Sca
 
 template<typename Scalar>
 void
-directional_deriv6(const Eigen::Matrix<Scalar,3,1> &Psi, const Eigen::Matrix<Scalar,3,1> &V, Eigen::Matrix<Scalar,3,3> C6)
+directional_deriv6(const Eigen::Matrix<Scalar,3,1> &Psi, const Eigen::Matrix<Scalar,3,1> &V, Eigen::Matrix<Scalar,3,3> &C6)
 {
   Scalar psi2 = Psi.squaredNorm();
   Eigen::Matrix<Scalar,3,3> Psiskew;
@@ -965,8 +965,6 @@ directional_deriv6(const Eigen::Matrix<Scalar,3,1> &Psi, const Eigen::Matrix<Sca
   }
   C6 = a1*V*Psi.transpose() + a2*Psi.dot(V)*(Psi*Psi.transpose())
        + a3*(Psi.dot(V)*Eigen::Matrix<Scalar,3,3>::Identity() + Psi*V.transpose()) + 0.5*Vskew;
-
-  return C6;
 }
 
 template<typename Scalar>

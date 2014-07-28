@@ -18,14 +18,6 @@ class PhantomCorotator : public Corotator {
     void extractDeformations(GeomState &geomState, CoordSet &cs,
                              DComplex *vld, int &nlflag);
 
-    void getNLVonMises(Vector&, Vector& weight,
-                       GeomState &, CoordSet &, int);
-    void getNLVonMises(ComplexVector&, Vector& weight,
-                       GeomState &, CoordSet &, int);
-
-    void getNLAllStress(FullM&, Vector&,
-                        GeomState &, CoordSet &, int);
-
     double getElementEnergy(GeomState &, CoordSet &);
  
     void extractRigidBodyMotion(GeomState &geomState, CoordSet &cs,

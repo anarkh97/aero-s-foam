@@ -103,6 +103,8 @@ SolverInfo::classifySolver()
           return 0;
         case FetiInfo::feti2 :
           return 0;
+        case FetiInfo::feti3 :
+          return 0;
         case FetiInfo::fetidp :
           return 2;
       }

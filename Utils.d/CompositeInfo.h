@@ -6,14 +6,14 @@
 // Coefficient Data class for composites
 class CoefData {
     public:
-      double c[6][6];
+      // the first 6 rows of c store the constitutive matrix
+      // the 7th row of c stores the coefficients of thermal expansion
+      double c[7][6];
     public:
-      //CoefData() {};
-      //CoefData(double *d);
       void zero();
       void setCoef(int,int,double);
       void setCoef(double d[36]);
-      double *values () { return (double *)c; }
+      double *values() { return (double *)c; }
 };
 
 

@@ -1,18 +1,18 @@
 #include <Utils.d/dbg_alloca.h>
 #include <cstdio>
 #include <iostream>
+#include <algorithm>
 
 #include <Driver.d/Domain.h>
 #include <Solvers.d/Solver.h>
 #include <Math.d/SparseMatrix.h>
 #include <Math.d/Skyline.d/SkyMatrix.h>
-#include <Math.d/mathUtility.h>
 #include <Utils.d/linkfc.h>
 #include <Driver.d/Dynam.h>
 #include <Hetero.d/FlExchange.h>
 #include <Corotational.d/GeomState.h>
 #include <Element.d/State.h>
-
+#include <Utils.d/DistHelper.h>
 #include <Driver.d/GeoSource.h>
 
 extern int verboseFlag;
@@ -47,7 +47,7 @@ Domain::getHeatFlux(Vector &tsol, double *bcx, int fileNumber, int hgIndex,
     int NodesPerElement, maxNodesPerElement=0;
     for(iele=0; iele<numele; ++iele) {
       NodesPerElement = elemToNode->num(iele);
-      maxNodesPerElement = myMax(maxNodesPerElement, NodesPerElement);
+      maxNodesPerElement = std::max(maxNodesPerElement, NodesPerElement);
     }
     elheatflux = new Vector(maxNodesPerElement, 0.0);
   }

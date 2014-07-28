@@ -1189,28 +1189,6 @@ Shell3Corotator::extractRigidBodyMotion(GeomState &geomState, CoordSet &cs,
 
 //---------------------------------------------------------------------------
 
-void
-Shell3Corotator::getNLVonMises(Vector& stress,Vector& weight,
-                               GeomState &geomState, CoordSet &cs,
-                               int strInd)
-{
- stress.zero();
- weight.zero();
-}
-
-//---------------------------------------------------------------------------
-
-void
-Shell3Corotator::getNLAllStress(FullM& stress,Vector& weight,
-                                GeomState &geomState, CoordSet &cs,
-                                int strInd)
-{
- stress.zero();
- weight.zero();
-}
-
-//---------------------------------------------------------------------------
-
 double
 Shell3Corotator::getElementEnergy(GeomState &geomState, CoordSet &cs)
 {

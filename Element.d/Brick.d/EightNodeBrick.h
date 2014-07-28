@@ -3,19 +3,17 @@
 
 #include <Element.d/Element.h>
 
-class BrickCorotator;
-
 class EightNodeBrick: virtual public Element
 {
   protected:
     int nn[8];
     double *cCoefs;
     double *cFrame;
-    BrickCorotator *brickCorotator;
     NLMaterial *mat;
 
   public:
     EightNodeBrick(int*);
+    ~EightNodeBrick();
 
     Element *clone();
 

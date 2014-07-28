@@ -5,8 +5,8 @@
 
 template<typename doublereal>
 ShellMaterialTypes2And3<doublereal>::ShellMaterialTypes2And3(
-  int _nlayer, doublereal *_mtlayer, bool _couple, doublereal *_aframe)
-  : nlayer(_nlayer), mtlayer(_mtlayer,12,_nlayer), couple(_couple), aframe(_aframe)
+  int _nlayer, doublereal *_mtlayer, bool _couple, doublereal *_aframe, doublereal _Ta)
+  : nlayer(_nlayer), mtlayer(_mtlayer,12,_nlayer), couple(_couple), aframe(_aframe), Ta(_Ta)
 {
 // .....COMPUTE THE THICKNESS FOR TYPE-2 AND TYPE-3 CONSTITUTIVE LAWS 
 // .....IT IS ASSUMED CONSTANT AND EQUAL TO THE SUM OF EACH LAYER'S THICKNESS 
@@ -36,7 +36,7 @@ ShellMaterialTypes2And3<doublereal>::ShellMaterialTypes2And3(
 template<typename doublereal>
 void
 ShellMaterialTypes2And3<doublereal>::GetConstitutiveResponse(doublereal *_Upsilon, doublereal *_Sigma, doublereal *_D,
-                                                             doublereal *eframe, int gp)
+                                                             doublereal *eframe, int gp, doublereal temp)
 {
     // Initialized data 
     doublereal one = 1.;
@@ -56,6 +56,10 @@ ShellMaterialTypes2And3<doublereal>::GetConstitutiveResponse(doublereal *_Upsilo
         Dm = D.topLeftCorner(3,3),     Dmb = D.topRightCorner(3,3),
         Dbm = D.bottomLeftCorner(3,3), Db = D.bottomRightCorner(3,3);
     Eigen::Matrix<doublereal,3,3> C, invT;
+    Eigen::Matrix<doublereal,3,1> alpha, epsilonT;
+    Eigen::Matrix<doublereal,6,1> SigmaT = Eigen::Matrix<doublereal,6,1>::Zero();
+    Eigen::VectorBlock< Eigen::Matrix<doublereal,6,1> >
+      N = SigmaT.head(3), M = SigmaT.tail(3);
 
 // ==================================================================== 
 //                                                                      
@@ -188,6 +192,9 @@ ShellMaterialTypes2And3<doublereal>::GetConstitutiveResponse(doublereal *_Upsilo
         mu1    = mtlayer(4, ilayer);
         mu2    = mtlayer(5, ilayer);
         thetaf = mtlayer(8, ilayer);
+        alpha[0] = mtlayer(9,  ilayer);
+        alpha[1] = mtlayer(10, ilayer);
+        alpha[2] = mtlayer(11, ilayer);
 
 // .....CALCULATE THE COMPLIANCE MATRIX [S] WHICH RELATES THE STRESSES 
 // .....[s1], [s2] AND [s12] TO THE STRAINS [e1], [e2] AND [e12] IN 
@@ -295,11 +302,21 @@ ShellMaterialTypes2And3<doublereal>::GetConstitutiveResponse(doublereal *_Upsilo
             Dmb += C * (zsup * zsup - zinf * zinf) * .5;
         }
 
+// .....ASSEMBLE THE GENERALIZED "THERMAL STRESSES"
+
+        if(temp != Ta) {
+
+           epsilonT = (temp-Ta)*invT*alpha;
+           N += C * epsilonT * (zsup - zinf);
+
+           if(couple) M += C.transpose() * epsilonT * (zsup * zsup - zinf * zinf) * .5;
+        }
+
     }
 
 // .....COMPUTE THE GENERALIZED "STRESSES"
 
-    Sigma = D*Upsilon; // this could alternatively be formed by integrating the stresses through the thickness
+    Sigma = D*Upsilon - SigmaT;
 
     if(_D == NULL) delete [] data;
 }
@@ -472,7 +489,7 @@ template<typename doublereal>
 void
 ShellMaterialTypes2And3<doublereal>
 ::GetLocalConstitutiveResponse(doublereal *_Upsilon, doublereal *_sigma, doublereal z,
-                               doublereal *eframe, int)
+                               doublereal *eframe, int, doublereal temp)
 {
     // Initialized data 
     doublereal one = 1.;
@@ -489,6 +506,7 @@ ShellMaterialTypes2And3<doublereal>
     Eigen::Matrix<doublereal,3,3> C; // plane stress elasticity stiffness matrix
     Eigen::Map<Eigen::Matrix<doublereal,6,1> > Upsilon(_Upsilon);
     Eigen::Map<Eigen::Matrix<doublereal,3,1> > sigma(_sigma);
+    Eigen::Matrix<doublereal,3,1> alpha; // coefficients of thermal expansion
 
     // Some convenient definitions 
     Eigen::VectorBlock< Eigen::Map< Eigen::Matrix<doublereal,6,1> > >
@@ -536,6 +554,9 @@ ShellMaterialTypes2And3<doublereal>
       mu1    = mtlayer(4, ilayer);
       mu2    = mtlayer(5, ilayer);
       thetaf = mtlayer(8, ilayer);
+      alpha[0] = mtlayer(9,  ilayer);
+      alpha[1] = mtlayer(10, ilayer);
+      alpha[2] = mtlayer(11, ilayer);
 
 // .....CALCULATE THE COMPLIANCE MATRIX [S] WHICH RELATES THE STRESSES 
 // .....[s1], [s2] AND [s12] TO THE STRAINS [e1], [e2] AND [e12] IN 
@@ -606,22 +627,22 @@ ShellMaterialTypes2And3<doublereal>
       invT = this->andesinvt(eframe, aframe, thetaf);
       C = invT * C * invT.transpose();
 
-      sigma = C*epsilon;
+      sigma = C*(epsilon - (temp-Ta)*invT*alpha);
       break;
     }
 }
 
 template
 ShellMaterialTypes2And3<double>::ShellMaterialTypes2And3(
-  int nlayer, double *mtlayer, bool couple, double *aframe);
+  int nlayer, double *mtlayer, bool couple, double *aframe, double);
 
 template
 void
 ShellMaterialTypes2And3<double>::GetConstitutiveResponse(double *Upsilon, double *Sigma, double *D,
-                                                         double *eframe, int gp);
+                                                         double *eframe, int gp, double temp);
 
 template
 void
 ShellMaterialTypes2And3<double>
-::GetLocalConstitutiveResponse(double *Upsilon, double *sigma, double z, double *eframe, int);
+::GetLocalConstitutiveResponse(double *Upsilon, double *sigma, double z, double *eframe, int, double temp);
 #endif

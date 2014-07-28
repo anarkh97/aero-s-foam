@@ -4,7 +4,6 @@
 
 #include <fstream>
 #include <iostream>
-#include <memory>
 #include <cstddef>
 #include <stdexcept>
 #include <cassert>
@@ -13,7 +12,8 @@ extern Domain * domain;
 
 // Private functions
 
-void GeoSource::getOutputFileName(char *result, int fileId, int clusterId, int iter) {
+void GeoSource::getOutputFileName(char *result, int fileId, int clusterId, int iter)
+{
   const char *suffix = computeClusterSuffix(clusterId + 1, clusToSub->csize());
   if (outLimit > -1) {
     sprintf(result, "%s%d_%s", oinfo[fileId].filename, iter/outLimit, suffix);
@@ -25,7 +25,8 @@ void GeoSource::getOutputFileName(char *result, int fileId, int clusterId, int i
 
 inline
 int
-GeoSource::getHeaderNameBytes(int fileId) const {
+GeoSource::getHeaderNameBytes(int fileId) const
+{
   return headLen[fileId] * sizeof(char);
 }
 
@@ -34,7 +35,8 @@ GeoSource::openBinaryOutputFile(int fileId, int clusterId, int iter, const char 
 {
   char outfileName[128];
   getOutputFileName(outfileName, fileId, clusterId, iter);
-  return new BinFileHandler(outfileName, flag);
+  if(!oinfo[fileId].binfilptr) oinfo[fileId].binfilptr = new BinFileHandler(outfileName, flag);
+  return oinfo[fileId].binfilptr;
 }
 
 void GeoSource::outputHeader(BinFileHandler &file, int dim, int fileId)
@@ -55,10 +57,11 @@ void GeoSource::outputHeader(BinFileHandler &file, int dim, int fileId)
 
 void 
 GeoSource::writeArrayToBinFile(const double *data, int dataSize, int subId, int inDataOffset, int fileId, 
-                               int iterRank, int resultRank, double timeStamp, int inStateDataCount, int clusterItemCount) {
+                               int iterRank, int resultRank, double timeStamp, int inStateDataCount, int clusterItemCount)
+{
   const int clusterId = (*subToClus)[subId][0];
   const char *appendFlag = "ws+";
-  std::auto_ptr<BinFileHandler> binFile(openBinaryOutputFile(fileId, clusterId, iterRank, appendFlag));
+  BinFileHandler *binFile = openBinaryOutputFile(fileId, clusterId, iterRank, appendFlag);
   
   const int firstSubInCluster = (*clusToSub)[clusterId][0];
   const bool doSerialPart = (firstSubInCluster == subId);
@@ -72,14 +75,14 @@ GeoSource::writeArrayToBinFile(const double *data, int dataSize, int subId, int 
 
 void GeoSource::createBinaryOutputFile(int fileId, int glSub, int iter)
 {
-   if(!oinfo[fileId].PodRomfile) {
+ if(!oinfo[fileId].PodRomfile) {
   // Open file for first time and write header
   if(oinfo[fileId].interval != 0) {
     if (binaryOutput) {
       // Determine which cluster subdomain is in
       const int clusterId = (*subToClus)[glSub][0];
       const char *truncateFlag = "w";
-      std::auto_ptr<BinFileHandler> binFile(openBinaryOutputFile(fileId, clusterId, iter, truncateFlag));
+      BinFileHandler *binFile = openBinaryOutputFile(fileId, clusterId, iter, truncateFlag);
 
       // Write header information
       outputHeader(*binFile, oinfo[fileId].dim, fileId);
@@ -102,7 +105,7 @@ void GeoSource::outputRange(int fileId, int *globalIndex, int nData, int glSub, 
    if (binaryOutput) {
     const int clusterId = (*subToClus)[glSub][0];
     const char *appendFlag = "ws+";
-    std::auto_ptr<BinFileHandler> file(openBinaryOutputFile(fileId, clusterId, iter, appendFlag));
+    BinFileHandler *file = openBinaryOutputFile(fileId, clusterId, iter, appendFlag);
 
     const int dataType = oinfo[fileId].dataType;
     if (dataType != 1 && dataType != 2) {

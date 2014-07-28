@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <cstdlib>
+#include <algorithm>
 #include <Utils.d/dbg_alloca.h>
 
 #include <Driver.d/Domain.h>
@@ -9,7 +10,6 @@
 #include <Math.d/SparseMatrix.h>
 #include <Math.d/DBSparseMatrix.h>
 #include <Math.d/NBSparseMatrix.h>
-#include <Math.d/mathUtility.h>
 #include <Math.d/Skyline.d/SkyMatrix.h>
 #include <Math.d/Vector.h>
 #include <Math.d/VectorSet.h>
@@ -20,6 +20,7 @@
 #include <Timers.d/StaticTimers.h>
 #include <Timers.d/GetTime.h>
 #include <Corotational.d/GeomState.h>
+#include <Utils.d/DistHelper.h>
 
 int
 SingleDomainEigen::solVecSize()
@@ -216,7 +217,7 @@ SingleDomainEigen::getSubSpaceInfo(int& subspacesize, int& maxIter,
  int numIter1 = domain->solInfo().maxitEig;
  int numIter2 = 10*subspacesize;
 
- maxIter = myMax(numIter1, numIter2);
+ maxIter = std::max(numIter1, numIter2);
 
  if (numIter1 > 0) maxIter = numIter1;
 
@@ -266,6 +267,13 @@ SingleDomainEigen::printTimers(Solver *solver)
  double solveTime  = solver->getSolutionTime();
 
  times->printStaticTimers(solveTime, memoryUsed, domain);
+
+  if(domain->solInfo().doEigSweep && domain->solInfo().massFlag) {
+    double mass = domain->computeStructureMass();
+    filePrint(stderr," --------------------------------------\n");
+    filePrint(stderr," ... Structure mass = %e  ...\n",mass);
+    filePrint(stderr," --------------------------------------\n");
+  }
 }
 
 void

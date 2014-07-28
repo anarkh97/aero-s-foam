@@ -1,18 +1,19 @@
+#include <Solvers.d/Mumps.h>
 #include <Driver.d/Communicator.h>
+#include <Utils.d/SolverInfo.h>
+#include <Math.d/VectorSet.h>
 #include <iostream>
 #include <map>
 
 #ifdef USE_MUMPS
-
 inline void Tmumps_c(DMUMPS_STRUC_C &id) { dmumps_c(&id); }
 inline void Tmumps_c(ZMUMPS_STRUC_C &id) { zmumps_c(&id); }
 #endif
 
-#include <Driver.d/Domain.h>
-extern Domain * domain;
+extern SolverInfo &solInfo;
 extern long totMemMumps;
 
-#define	USE_COMM_WORLD	-987654 
+#define	USE_COMM_WORLD	-987654
 // MUMPS coded in Fortran -> watch out for index to match documentation
 #define ICNTL(I) 	icntl[(I)-1]
 #define CNTL(I)        	cntl[(I)-1]
@@ -30,7 +31,7 @@ GenMumpsSolver<Scalar>::GenMumpsSolver(Connectivity *nToN, EqNumberer *_dsa, int
   exit(-1);
 #endif
   neq = numUncon;
-  nNonZero = xunonz[numUncon]-1; 
+  nNonZero = xunonz[numUncon]-1;
   unonz = new Scalar[nNonZero];
   for(int i = 0; i < nNonZero; ++i) unonz[i] = 0.0;
   mpicomm = _mpicomm;
@@ -39,14 +40,14 @@ GenMumpsSolver<Scalar>::GenMumpsSolver(Connectivity *nToN, EqNumberer *_dsa, int
 
 template<class Scalar>
 GenMumpsSolver<Scalar>::GenMumpsSolver(Connectivity *nToN, DofSetArray *_dsa, ConstrainedDSA *c_dsa, FSCommunicator *_mpicomm)
- : SparseData(_dsa,c_dsa,nToN,0,1,domain->solInfo().unsym())
+ : SparseData(_dsa,c_dsa,nToN,0,1,solInfo.unsym())
 {
 #ifndef USE_MUMPS
   std::cerr << " *** ERROR: Solver requires AERO-S configured with the MUMPS library. Exiting...\n";
   exit(-1);
 #endif
   neq = numUncon;
-  myMem = 0; 
+  myMem = 0;
   nNonZero = xunonz[numUncon]-1;
   unonz	= new Scalar[nNonZero];
   for(int i = 0; i < nNonZero; ++i) unonz[i] = 0.0;
@@ -57,7 +58,7 @@ GenMumpsSolver<Scalar>::GenMumpsSolver(Connectivity *nToN, DofSetArray *_dsa, Co
 template<class Scalar>
 GenMumpsSolver<Scalar>::GenMumpsSolver(Connectivity *nToN, DofSetArray *_dsa, ConstrainedDSA *c_dsa, int nsub,
                                        GenSubDomain<Scalar> **sd, FSCommunicator *_mpicomm)
- : SparseData(_dsa,c_dsa,nToN,0,1,domain->solInfo().unsym()), MultiDomainSolver<Scalar>(numUncon, nsub, sd, _mpicomm)
+ : SparseData(_dsa,c_dsa,nToN,0,1,solInfo.unsym()), MultiDomainSolver<Scalar>(numUncon, nsub, sd, _mpicomm)
 {
 #ifndef USE_MUMPS
   std::cerr << " *** ERROR: Solver requires AERO-S configured with the MUMPS library. Exiting...\n";
@@ -79,8 +80,8 @@ GenMumpsSolver<Scalar>::init()
 {
 #ifdef USE_MUMPS
   mumpsId.id.par = 1; // 1: working host model
-  mumpsId.id.sym = domain->solInfo().pivot ? 2 : 1; // 2: general symmetric, 1: symmetric positive definite, 0: unsymmetric 
-  if(domain->solInfo().unsym()) mumpsId.id.sym = 0;
+  mumpsId.id.sym = solInfo.pivot ? 2 : 1; // 2: general symmetric, 1: symmetric positive definite, 0: unsymmetric
+  if(solInfo.unsym()) mumpsId.id.sym = 0;
 #ifdef USE_MPI
   if(mpicomm) mumpsId.id.comm_fortran = MPI_Comm_c2f(mpicomm->getComm());
   else mumpsId.id.comm_fortran = MPI_Comm_c2f(MPI_COMM_SELF);
@@ -92,15 +93,15 @@ GenMumpsSolver<Scalar>::init()
   host = (mpicomm) ? (mpicomm->cpuNum() == 0) : true;
 
   // Set control parameters CNTL and ICNTL
-  std::map<int,double>::iterator CntlIter = domain->solInfo().mumps_cntl.begin();
-  while(CntlIter != domain->solInfo().mumps_cntl.end()) {
+  std::map<int,double>::iterator CntlIter = solInfo.mumps_cntl.begin();
+  while(CntlIter != solInfo.mumps_cntl.end()) {
     int CntlNum         = CntlIter->first;
     double CntlPar      = CntlIter->second;
     mumpsId.id.CNTL(CntlNum) = CntlPar;
     CntlIter ++;
   }
-  std::map<int,int>::iterator IcntlIter = domain->solInfo().mumps_icntl.begin();
-  while(IcntlIter != domain->solInfo().mumps_icntl.end()) {
+  std::map<int,int>::iterator IcntlIter = solInfo.mumps_icntl.begin();
+  while(IcntlIter != solInfo.mumps_icntl.end()) {
     int IcntlNum        = IcntlIter->first;
     int IcntlPar        = IcntlIter->second;
     mumpsId.id.ICNTL(IcntlNum) = IcntlPar;
@@ -119,13 +120,13 @@ GenMumpsSolver<Scalar>::init()
   // NOTE: centralized dense right-hand-side and solution (ICNTL(20) = 0 with ICNTL(21) = 0) is the only option supported
   if(mumpsId.id.ICNTL(20) != 0) {
     std::cerr << "user defined ICNTL(20) not supported, setting to 0\n";
-    mumpsId.id.ICNTL(20) = 0; // 0: dense RHS 
+    mumpsId.id.ICNTL(20) = 0; // 0: dense RHS
   }
   if(mumpsId.id.ICNTL(21) != 0) {
     std::cerr << "user defined ICNTL(21) not supported, setting to 0\n";
     mumpsId.id.ICNTL(21) = 0; // 0: centralized solution
   }
-  if(domain->solInfo().pivot) { // matrix is not assumed to be positive definite, may be singularities 
+  if(solInfo.pivot) { // matrix is not assumed to be positive definite, may be singularities
     mumpsId.id.ICNTL(24) = 1; // 1: enable null pivot row detection
     mumpsId.id.ICNTL(13) = 1; // 1: ScaLAPACK will not be used for the root frontal matrix (recommended for null pivot row detection)
   }
@@ -156,7 +157,7 @@ GenMumpsSolver<Scalar>::add(FullSquareMatrix &kel, int *dofs)
     if(unconstrNum[dofs[i]] == -1) continue;   // Skip constrained dofs
     for(j = 0; j < kndof; ++j) {               // Loop over columns.
       if(unconstrNum[dofs[j]] == -1) continue; // Skip constrained dofs
-      if(!domain->solInfo().unsym() && unconstrNum[dofs[j]] < unconstrNum[dofs[i]]) continue;
+      if(!solInfo.unsym() && unconstrNum[dofs[j]] < unconstrNum[dofs[i]]) continue;
       mstart = xunonz[unconstrNum[dofs[j]]];
       mstop  = xunonz[unconstrNum[dofs[j]]+1];
       for(m = mstart; m < mstop; ++m) {
@@ -197,7 +198,7 @@ void
 GenMumpsSolver<Scalar>::add(GenFullM<Scalar> &kel, int fi, int fj)
 {
   int i, j, m, mstart, mstop;
-  for(i = 0; i < kel.numRow(); ++i ) {      // Loop over rows.
+  for(i = 0; i < kel.numRow(); ++i) {      // Loop over rows.
     if(unconstrNum[fi+i] == -1) continue;   // Skip constrained dofs
     for(j = 0; j < kel.numCol(); ++j) {     // Loop over columns.
       if(unconstrNum[fj+j] == -1) continue; // Skip constrained dofs
@@ -205,7 +206,7 @@ GenMumpsSolver<Scalar>::add(GenFullM<Scalar> &kel, int fi, int fj)
       mstart = xunonz[unconstrNum[fj+j]];
       mstop  = xunonz[unconstrNum[fj+j]+1];
       for(m = mstart; m < mstop; ++m) {
-        if(rowu[m-1] == (unconstrNum[fi+i] + 1) ) {
+        if(rowu[m-1] == (unconstrNum[fi+i] + 1)) {
           unonz[m-1] += kel[i][j];
           break;
         }
@@ -257,7 +258,7 @@ GenMumpsSolver<Scalar>::addDiscreteMass(int dof, Scalar dmass)
 {
   if(dof < 0) return;
   int cdof;
-  if(unconstrNum) cdof = unconstrNum[dof]; 
+  if(unconstrNum) cdof = unconstrNum[dof];
   else cdof = dof;
   if(cdof < 0) return;
 
@@ -306,12 +307,12 @@ GenMumpsSolver<Scalar>::factor()
   while(true) {
     Tmumps_c(mumpsId.id);
 
-    if(mumpsId.id.INFOG(1) == -8 || mumpsId.id.INFOG(1)  == -9) { 
-       if(host) std::cerr << " ... increasing MUMPS workspace     ...\n"; 
-       mumpsId.id.ICNTL(14) *= 2; 
+    if(mumpsId.id.INFOG(1) == -8 || mumpsId.id.INFOG(1)  == -9) {
+       if(host) std::cerr << " ... increasing MUMPS workspace     ...\n";
+       mumpsId.id.ICNTL(14) *= 2;
        mumpsId.id.job = 2; // recall factorization
     }
-    else if(mumpsId.id.INFOG(1) < 0) { 
+    else if(mumpsId.id.INFOG(1) < 0) {
       if(host) std::cerr << " *** ERROR: MUMPS factorization returned error code. Exiting...\n";
       exit(-1);
     }
@@ -319,12 +320,24 @@ GenMumpsSolver<Scalar>::factor()
   }
 
   nrbm = mumpsId.id.INFOG(28); // number of zero pivots detected
-  if(this->print_nullity && host && nrbm > 0) 
+  if(this->print_nullity && host && nrbm > 0)
     std::cerr << " ... Matrix is singular: size = " << neq << ", rank = " << neq-nrbm << ", nullity = " << nrbm << " ...\n";
 
-  totMemMumps += mumpsId.id.INFOG(19)*1024; // INFOG(19) is the size in millions of bytes of all mumps internal data 
+  totMemMumps += mumpsId.id.INFOG(19)*1024; // INFOG(19) is the size in millions of bytes of all mumps internal data
                                             // allocated during factorization: sum over all processors
 #endif
+}
+
+template<class Scalar>
+void
+GenMumpsSolver<Scalar>::getRBMs(VectorSet& rbms)
+{
+  Scalar *nsp = new Scalar[nrbm*neq];
+  getNullSpace(nsp);
+  for(int i=0; i<nrbm; ++i)
+    for(int j=0; j<neq; ++j)
+      rbms[i][j] = ScalarTypes::Real(nsp[i*neq+j]);
+  delete [] nsp;
 }
 
 template<class Scalar>
@@ -336,7 +349,7 @@ GenMumpsSolver<Scalar>::getPivnull_list()
 #else
   return NULL;
 #endif
-} 
+}
 
 template<class Scalar>
 void
@@ -370,7 +383,7 @@ GenMumpsSolver<Scalar>::reSolve(int nRHS, Scalar *rhs)
   if(host) {
     copyToMumpsRHS(mumpsId.id.rhs, rhs, numUncon*nRHS); // mumpsId.id.rhs = copy of rhs;
     mumpsId.id.nrhs = nRHS;
-    mumpsId.id.lrhs = numUncon; // leading dimension 
+    mumpsId.id.lrhs = numUncon; // leading dimension
   }
   mumpsId.id.job = 3; // 3: solve
   Tmumps_c(mumpsId.id);
@@ -393,7 +406,7 @@ GenMumpsSolver<Scalar>::reSolve(int nRHS, Scalar **rhs)
   if(host) {
     copyToMumpsRHS(mumpsId.id.rhs, rhs, numUncon, nRHS); // mumpsId.id.rhs = copy of rhs;
     mumpsId.id.nrhs = nRHS;
-    mumpsId.id.lrhs = numUncon; // leading dimension 
+    mumpsId.id.lrhs = numUncon; // leading dimension
   }
   mumpsId.id.job = 3; // 3: solve
   Tmumps_c(mumpsId.id);
@@ -416,7 +429,7 @@ GenMumpsSolver<Scalar>::reSolve(int nRHS, GenVector<Scalar> *rhs)
   if(host) {
     copyToMumpsRHS(mumpsId.id.rhs, rhs, numUncon, nRHS); // mumpsId.id.rhs = copy of rhs;
     mumpsId.id.nrhs = nRHS;
-    mumpsId.id.lrhs = numUncon; // leading dimension 
+    mumpsId.id.lrhs = numUncon; // leading dimension
   }
   mumpsId.id.job = 3; // 3: solve
   Tmumps_c(mumpsId.id);
@@ -512,34 +525,3 @@ GenMumpsSolver<Scalar>::~GenMumpsSolver()
   if(mpicomm) mpicomm->sync();
 }
 
-template<>
-void GenMumpsSolver<complex<double> >::addImaginary(FullSquareMatrix &kel, int *dofs);
-
-template<>
-void GenMumpsSolver<double>::addImaginary(FullSquareMatrix &kel, int *dofs);
-
-#ifdef USE_MUMPS
-template<>
-void
-GenMumpsSolver<DComplex>::copyToMumpsRHS(mumps_double_complex *&m, DComplex *d, int len);
-
-template<>
-void
-GenMumpsSolver<DComplex>::copyFromMumpsRHS(DComplex *d, mumps_double_complex *m, int len);
-
-template<>
-void
-GenMumpsSolver<double>::copyToMumpsRHS(double *&m, double *d, int len);
-
-template<>
-void
-GenMumpsSolver<double>::copyFromMumpsRHS(double *d, double *m, int len);
-
-template<>
-void
-GenMumpsSolver<DComplex>::copyToMumpsLHS(mumps_double_complex *&m, DComplex *&d, int len);
-
-template<>
-void
-GenMumpsSolver<double>::copyToMumpsLHS(double *&m, double *&d, int len);
-#endif

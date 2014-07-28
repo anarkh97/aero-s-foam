@@ -1,4 +1,5 @@
 #include <Driver.d/Communicator.h>
+#include <Driver.d/SubDomain.h>
 
 template<class Scalar>
 void

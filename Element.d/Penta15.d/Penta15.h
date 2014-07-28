@@ -12,6 +12,7 @@ class Penta15: public Element
 
   public:
     Penta15(int*);
+    ~Penta15();
 
     Element *clone();
 
@@ -19,7 +20,7 @@ class Penta15: public Element
     void renum(EleRenumMap&);
 
     FullSquareMatrix stiffness(CoordSet&, double *kel, int flg=1);
-    FullSquareMatrix massMatrix(CoordSet&,double *mel, int cmflg=1);
+    FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg=1);
     double getMass(CoordSet& cs);
 
     void getGravityForce(CoordSet&, double *gravity, Vector&, int gravflg, GeomState *gs);
@@ -48,7 +49,7 @@ class Penta15: public Element
 
     double* setCompositeData2(int, int, double*, double*, CoordSet&, double)
       { fprintf(stderr," *** WARNING: Attempting to define composite attributes\n"
-               "              for Penta15 el.\n"); return (double *) 0;
+                "              for Penta15 el.\n"); return (double *) 0;
       }
 
     void setMaterial(NLMaterial *);

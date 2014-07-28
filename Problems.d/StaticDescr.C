@@ -173,13 +173,7 @@ SingleDomainStatic<T, VectorType, SolverType>::getRHSinpc(VectorType &rhs)
  startTimerMemory(times->formRhs, times->memoryRhs);
  rhs.zero();
  for (int i=0; i<(*allOps.rhs_inpc).size(); ++i) rhs[i] = (*allOps.rhs_inpc)[i]; 
- // print forces   
-/* char forcefile[20];
- FILE *fileforce;
- fileforce=fopen("forcefile","w");
- for (int j=0;j<rhs.size();j++) fprintf(fileforce,"%g\n",rhs[j]);
- fclose(fileforce);
-*/
+
  int useProjector=domain->solInfo().filterFlags;
  if(useProjector)
    project(rhs);
@@ -198,13 +192,6 @@ template<class T, class VectorType, class SolverType>
 void
 SingleDomainStatic<T, VectorType, SolverType>::postProcessSA(GenVector<T> &sol)
 {
-/* if(allOps.K) {
-   cerr << "print allOps.K\n";
-   allOps.K->print();
- } else {
-   cerr << "allOps.K is not defined\n";
- }*/
-
  domain->buildPostSensitivities<T>(allOps.sysSolver, allOps.K, allOps.spm, allSens, sol, bcx);
 }
 
@@ -212,7 +199,6 @@ template<class T, class VectorType, class SolverType>
 void
 SingleDomainStatic<T, VectorType, SolverType>::preProcess()
 {
-// filePrint(stderr," ... SingleDomainStatic<T, VectorType, SolverType>::preProcess() called         ...\n");
  // Allocate space for the Static Timers
  times = new StaticTimers;
 
@@ -228,7 +214,6 @@ SingleDomainStatic<T, VectorType, SolverType>::preProcess()
  bcx     = new T[numdof];
 
  // Make boundary conditions info
- //if(domain->solInfo().isAcousticHelm()) { // PJSA 1-15-08
  if(domain->getImplicitFlag() || domain->nCDirichlet()) {
    if(domain->getImplicitFlag()) bcxC = new DComplex[numdof * domain->getNumWaveDirections()];
    else bcxC = new DComplex[numdof];
@@ -254,8 +239,6 @@ SingleDomainStatic<T, VectorType, SolverType>::preProcess()
  allCorot  = 0;
 
  if(domain->numInitDisp6() > 0 && domain->solInfo().gepsFlg == 1) {
-   //filePrint(stderr," ... Static Problem with Initial Displacement %d\n",
-   //          domain->numInitDisp6());
    FullSquareMatrix *geomKelArray=0, *dummy=0;
    domain->computeGeometricPreStress(allCorot, geomState, kelArray, times,
                                      geomKelArray, dummy);
@@ -412,7 +395,7 @@ SingleDomainStatic<T, VectorType, SolverType>::getFreqSweepRHS(VectorType *rhs, 
       (*vec)[i] = double(k)*(double(k-1)*(*u[k-1])[i] + 2.0*omega*(*u[k])[i]);
     allOps.M->mult(vec->data(), rhs->data());
 
-    if(allOps, allOps.C_deriv) {
+    if(allOps.C_deriv) {
       for(int j=0; j<=k-1; ++j) {
         if(allOps.C_deriv[k-j-1]) {
           double ckj = DCombination(k,j);

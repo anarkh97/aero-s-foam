@@ -20,6 +20,8 @@
  #include <limits>
 #endif
 
+const double defaultTemp = -10000000.0;
+
 struct AdaptiveSweepParams {
 public:
      int maxP,minRHS,maxRHS,deltaRHS,numS;
@@ -376,8 +378,9 @@ struct SolverInfo {
    int  forcePodSize;
    int  normalize;
    bool substractRefPodRom;
-   bool localTol;
-   bool globalErr;
+   bool useScalingSpnnls;
+   int  solverTypeSpnnls; // 0: Lawson & Hanson, 1: Conjugate Gradient Pursuit
+   double maxSizeSpnnls;
    bool reduceFollower;
    int  skipPodRom;
    int  skipOffSet;
@@ -391,15 +394,19 @@ struct SolverInfo {
    int  orthogPodRom;
    int  numRODFile;
    double tolPodRom;
-   bool oocPodRom; // if this is true and aero-s is compiled with stxxl, then out-of-core spnnls solver will be used
-                   // by the single domain element lumping driver
    bool useMassNormalizedBasis;
    bool useMassOrthogonalProjection;
    bool ConwepOnOff;
    std::list<int> loadcases;
    bool basicDofCoords; // if this is true then all of the nodes use the basic coordinate frame 0 for DOF_FRM
    bool basicPosCoords; // if this is true then all of the nodes use the basic coordinate frame 0 for POS_FRM
-   int inertiaLumping; // 0: no lumping, 1: diagonal lumping, 2: block-diagonal 3x3 lumping
+   int inertiaLumping; // 1: diagonal lumping (default), 2: block-diagonal 6x6 lumping
+                       // note #1: this flag is automatically set to 2 when a product of inertia is defined using DIMASS
+                       //          or when a discrete mass element (type 131) is defined.
+                       // note #2: for diagonal lumping, consistent mass matrices are diagonally lumped and
+                       //          off-diagonal entries of lumped mass matrices which are block-diagonal are dropped.
+                       // note #3: for block-diagonal lumping, consistent mass matrices are still diagonally lumped
+                       //          but lumped mass matrices which are block-diagonal remain so.
    bool printMatLab;
    const char * printMatLabFile;
 
@@ -590,7 +597,6 @@ struct SolverInfo {
                   iacc_switch = true;
                   zeroRot = false;
 
-
                   dist_acme = 0;
                   allproc_acme = true;
                   ffi_debug = false;
@@ -658,8 +664,9 @@ struct SolverInfo {
                   forcePodSize	     = 0;
 		  normalize          = 1;
                   substractRefPodRom = false;
-                  localTol	     = false;
-                  globalErr          = false;
+                  useScalingSpnnls   = true;
+                  maxSizeSpnnls      = 1.0;
+                  solverTypeSpnnls   = 0;
                   reduceFollower     = false;
                   skipPodRom         = 1;
                   skipOffSet         = 0;
@@ -673,7 +680,6 @@ struct SolverInfo {
 		  orthogPodRom       = 1;
                   numRODFile         = 0;
                   tolPodRom          = 1.0e-6;
-                  oocPodRom          = true;
                   useMassNormalizedBasis = true;
                   useMassOrthogonalProjection = false;
                   ConwepOnOff        = false;
@@ -682,7 +688,7 @@ struct SolverInfo {
                   inertiaLumping     = 0;
                   printMatLab        = false;
                   printMatLabFile    = "";
-                 }
+                }
 
    void setDirectMPC(int mode) { mpcDirect = mode; }
    // Whether we are doing direct elimination for MPCs

@@ -65,8 +65,6 @@ public:
         int getDecFace(int iFace, int *fn) {
           for(int i=0;i<3;i++) fn[i] = nn[i]; return 3; }
 
-
-
         void setPressure(PressureBCond *_pbc) { pbc = _pbc; }
         PressureBCond* getPressure() { return pbc; }
 	void computePressureForce(CoordSet&, Vector& elPressureForce,

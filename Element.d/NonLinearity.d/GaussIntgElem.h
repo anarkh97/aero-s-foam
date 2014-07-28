@@ -26,23 +26,16 @@ class GaussIntgElement : public MatNLElement
     void getStiffAndForce(Node *nodes, double *disp,
                           double *state, FullSquareMatrix &kTan,
                           double *force);
-    FullSquareMatrix  stiffness(CoordSet& cs, double *k, int flg=1);
+    FullSquareMatrix stiffness(CoordSet& cs, double *k, int flg=1);
     FullSquareMatrix massMatrix(CoordSet& cs, double *m, int flg=1);
-    void updateStates(Node *node, double *state, double *un, double *unp);
-    template <class MatrixType, class MaterialType>
-      void integrate(const MaterialType &,
-                     Node *nodes, double *dispn, double *staten,
-                     double *dispnp, double *statenp,
-                     MatrixType &kTan, double *force, double dt=0.0);
+    void updateStates(Node *node, double *state, double *un, double *unp, double *temps);
     void integrate(Node *nodes, double *dispn, double *staten,
                    double *dispnp, double *statenp,
-                   FullSquareMatrix &kTan, double *force, double dt=0.0);
-    template <class MaterialType>
-      void integrate(const MaterialType &,
-                     Node *nodes, double *dispn, double *staten,
-                     double *dispnp, double *statenp, double *force, double dt=0.0);
+                   FullSquareMatrix &kTan, double *force, double dt,
+                   double *temps);
     void integrate(Node *nodes, double *dispn, double *staten,
-                   double *dispnp, double *statenp, double *force, double dt=0.0);
+                   double *dispnp, double *statenp, double *force, double dt,
+                   double *temps);
     int numStates() {
       int nGP = getNumGaussPoints();
       NLMaterial *mat = getMaterial();
@@ -54,13 +47,15 @@ class GaussIntgElement : public MatNLElement
     void getStrainTens(Node *nodes, double *dispnp, double (*result)[9], int avgnum);
     void getVonMisesStrain(Node *nodes, double *dispnp, double *result, int avgnum);
     void getStressTens(Node *nodes, double *dispn, double *staten,
-                       double *dispnp, double *statenp, double (*result)[9], int avgnum);
+                       double *dispnp, double *statenp, double (*result)[9], int avgnum,
+                       double *temps);
     void getVonMisesStress(Node *nodes, double *dispn, double *staten,
-                           double *dispnp, double *statenp, double *result, int avgnum);
+                           double *dispnp, double *statenp, double *result, int avgnum,
+                           double *temps);
     void getEquivPlasticStrain(double *statenp, double *result, int avgnum);
     void getBackStressTens(double *statenp, double (*result)[9], int avgnum);
     void getPlasticStrainTens(double *statenp, double (*result)[9], int avgnum);
-    double getStrainEnergy(Node *nodes, double *dispnp, double *state);
+    double getStrainEnergy(Node *nodes, double *dispnp, double *state, double *temps);
     double getDissipatedEnergy(Node *nodes, double *state);
 };
 
@@ -81,23 +76,13 @@ class GenGaussIntgElement : public MatNLElement
                           double *force);
     FullSquareMatrix  stiffness(CoordSet& cs, double *k, int flg=1);
     FullSquareMatrix massMatrix(CoordSet& cs, double *m, int flg=1);
-    void updateStates(Node *node, double *state, double *un, double *unp);
-    template <class MatrixType, class MaterialType>
-      void integrate(const MaterialType &,
-                     Node *nodes, double *dispn, double *staten,
-                     double *dispnp, double *statenp,
-                     MatrixType &kTan, double *force, double dt=0.0);
+    void updateStates(Node *node, double *state, double *un, double *unp, double *temps);
     void integrate(Node *nodes, double *dispn, double *staten,
                    double *dispnp, double *statenp,
-                   FullSquareMatrix &kTan, double *force, double dt=0.0);
-    template <class MaterialType>
-      void integrate(const MaterialType &,
-                     Node *nodes, double *dispn, double *staten,
-                     double *dispnp, double *statenp,
-                     double *force, double dt=0.0);
+                   FullSquareMatrix &kTan, double *force, double dt, double *temps);
     void integrate(Node *nodes, double *dispn, double *staten,
                    double *dispnp, double *statenp,
-                   double *force, double dt=0.0);
+                   double *force, double dt, double *temps);
     int numStates() {
       int ngp = getNumGaussPoints();
       NLMaterial *mat = getMaterial();
@@ -106,7 +91,8 @@ class GenGaussIntgElement : public MatNLElement
     }
     void initStates(double *);
     void getStressTens(Node *nodes, double *dispn, double *staten,
-                       double *dispnp, double *statenp, double (*result)[9], int avgnum);
+                       double *dispnp, double *statenp, double (*result)[9], int avgnum,
+                       double *temps);
 };
 
 template <class TensorTypes>
@@ -357,7 +343,7 @@ GenGaussIntgElement<TensorType>::getStiffAndForce(Node *nodes, double *disp,
 
 template <class TensorType>
 void
-GenGaussIntgElement<TensorType>::updateStates(Node *nodes, double *state, double *un, double *unp){}
+GenGaussIntgElement<TensorType>::updateStates(Node *nodes, double *state, double *un, double *unp, double *temps) {}
 /*
 void
 GaussIntgElement::updateStates(Node *nodes, double *state, double *un,double *unp)
@@ -397,7 +383,7 @@ void
 GenGaussIntgElement<TensorType>::integrate(Node *nodes, double *dispn,  double *staten,
                                            double *dispnp, double *statenp,
                                            FullSquareMatrix &kTan,
-                                           double *force, double)
+                                           double *force, double, double *temps)
 {
   int ndofs = numDofs();
   GenShapeFunction<TensorType> *shapeF = getShapeFunction();
@@ -443,7 +429,7 @@ GenGaussIntgElement<TensorType>::integrate(Node *nodes, double *dispn,  double *
 
   for(i = 0; i < ngp; i++) {
 
-    double point[3], weight, jacn, jacnp;
+    double point[3], weight, jacn, jacnp, tempnp;
     StackVector dispVecn(dispn,ndofs);
     StackVector dispVecnp(dispnp,ndofs); 
 
@@ -465,8 +451,11 @@ GenGaussIntgElement<TensorType>::integrate(Node *nodes, double *dispn,  double *
     //material->getStress(&s, e, 0);       
     //material->getStressAndTangentMaterial(&s, &D, enp, 0);
 
+    // compute temperature at integration point
+    tempnp = (temps) ? shapeF->interpolateScalar(temps, point) : 0;
+
     material->integrate(&s, &Dnp, en, enp,
-                        staten + nstatepgp*i,statenp + nstatepgp*i , 0);
+                        staten + nstatepgp*i, statenp + nstatepgp*i, tempnp);
 
     for(int j=0; j<preload.size(); ++j) s[j] += preload[j]; // note: for membrane element preload should have units of
                                                             // force per unit length (ie. prestress multiplied by thickness)
@@ -496,7 +485,7 @@ template <class TensorType>
 void 
 GenGaussIntgElement<TensorType>::integrate(Node *nodes, double *dispn,  double *staten,
                                            double *dispnp, double *statenp,
-                                           double *force, double)
+                                           double *force, double, double *temps)
 {
   int ndofs = numDofs();
   GenShapeFunction<TensorType> *shapeF = getShapeFunction();
@@ -533,7 +522,7 @@ GenGaussIntgElement<TensorType>::integrate(Node *nodes, double *dispn,  double *
 
   for(i = 0; i < ngp; i++) {
 
-    double point[3], weight, jacn, jacnp;
+    double point[3], weight, jacn, jacnp, tempnp;
     StackVector dispVecn(dispn,ndofs);
     StackVector dispVecnp(dispnp,ndofs); 
 
@@ -555,8 +544,11 @@ GenGaussIntgElement<TensorType>::integrate(Node *nodes, double *dispn,  double *
     //material->getStress(&s, e, 0);       
     //material->getStressAndTangentMaterial(&s, &D, enp, 0);
 
+    // compute temperature at integration point
+    tempnp = (temps) ? shapeF->interpolateScalar(temps, point) : 0;
+
     material->integrate(&s, en, enp,
-                        staten + nstatepgp*i,statenp + nstatepgp*i , 0);
+                        staten + nstatepgp*i,statenp + nstatepgp*i, tempnp);
 
     for(int j=0; j<preload.size(); ++j) s[j] += preload[j]; // note: for membrane element preload should have units of
                                                             // force per unit length (ie. prestress multiplied by thickness)
@@ -596,7 +588,8 @@ copyTens(Stress2D *stens, double *svec)
 template <class TensorType>
 void
 GenGaussIntgElement<TensorType>::getStressTens(Node *nodes, double *dispn, double *staten,
-                                               double *dispnp, double *statenp, double (*result)[9], int avgnum)
+                                               double *dispnp, double *statenp, double (*result)[9],
+                                               int avgnum, double *temps)
 {
   int ndofs = numDofs();
   GenShapeFunction<TensorType> *shapeF = getShapeFunction();
@@ -637,7 +630,7 @@ GenGaussIntgElement<TensorType>::getStressTens(Node *nodes, double *dispn, doubl
 
   for(i = 0; i < ngp; i++) {
 
-    double point[3], weight, jacn, jacnp;
+    double point[3], weight, jacn, jacnp, tempnp;
     StackVector dispVecn(dispn,ndofs);
     StackVector dispVecnp(dispnp,ndofs); 
 
@@ -659,8 +652,11 @@ GenGaussIntgElement<TensorType>::getStressTens(Node *nodes, double *dispn, doubl
     //material->getStress(&s, e, 0);       
     //material->getStressAndTangentMaterial(&s, &D, enp, 0);
 
+    // compute temperature at integration point
+    tempnp = (temps) ? shapeF->interpolateScalar(temps, point) : 0;
+
     material->integrate(&s, &Dnp, en, enp,
-                        staten + nstatepgp*i, statenp + nstatepgp*i, 0);
+                        staten + nstatepgp*i, statenp + nstatepgp*i, tempnp);
 
     for(int j=0; j<preload.size(); ++j) s[j] += preload[j]; // note: for membrane element preload should have units of
                                                             // force per unit length (ie. prestress multiplied by thickness)

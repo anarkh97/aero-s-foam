@@ -887,7 +887,8 @@ PodProjectionNonLinDynamic::formRHSinitializer(Vector &fext, Vector &velocity, V
 ModalGeomState*
 PodProjectionNonLinDynamic::createGeomState()
 {
-  geomState_Big = new GeomState( *domain->getDSA(), *domain->getCDSA(), domain->getNodes(), &domain->getElementSet() );
+  geomState_Big = new GeomState(*domain->getDSA(), *domain->getCDSA(), domain->getNodes(), &domain->getElementSet(),
+                                domain->getNodalTemperatures());
 
   return new ModalGeomState(solVecInfo());
 }

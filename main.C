@@ -106,6 +106,7 @@ std::auto_ptr<ElementFactory> elemFact(new ElementFactory());
 std::auto_ptr<GenSubDomainFactory<double> >   subDomainFactory(new GenSubDomainFactory<double>());
 std::auto_ptr<GenSubDomainFactory<DComplex> > subDomainFactoryC(new GenSubDomainFactory<DComplex>());;
 #endif
+SolverInfo &solInfo = domain->solInfo();
 
 Sfem *sfem = new Sfem();
 
@@ -377,7 +378,7 @@ int main(int argc, char** argv)
 		int res=fscanf(weightFile,"%d",&k);
 		if(res == 0 || res == EOF)
 		  {
-		    cerr << "*** WEIGHT FILE CORRUPTED AT LINE " << i << " bad object ID." <<endl;
+		    std::cerr << "*** WEIGHT FILE CORRUPTED AT LINE " << i << " bad object ID." << std::endl;
 		    exit(1);
 		  }
 		fgetpos(weightFile, &position);
@@ -385,14 +386,14 @@ int main(int argc, char** argv)
 		  ;
 		if(c=='\n')
 		  {
-		    cerr << "*** WEIGHT FILE CORRUPTED AT LINE " << i << " : no weight specified !" << endl;
+		    std::cerr << "*** WEIGHT FILE CORRUPTED AT LINE " << i << " : no weight specified !" << std::endl;
 		    exit(1);
 		  }
 		fsetpos(weightFile, &position);
 		res=fscanf(weightFile,"%lf",&w);
 		if(res == 0 || res == EOF)
 		   {
-		     cerr << "*** WEIGHT FILE CORRUPTED AT LINE " << i << " : no weight specified !" << endl;
+		     std::cerr << "*** WEIGHT FILE CORRUPTED AT LINE " << i << " : no weight specified !" << std::endl;
 		     exit(1);
 		   }
 		weightList[k]=w;
@@ -768,15 +769,15 @@ int main(int argc, char** argv)
 #else
  bool parallel_proc = (threadManager->numThr() > 1);
 #endif
- // 3. choose lumped mass (also pressure and gravity) and diagonal "solver" for explicit dynamics 
+ // 3. choose lumped mass (also pressure and gravity) and diagonal or block-diagonal "solver" for explicit dynamics 
  if(domain->solInfo().newmarkBeta == 0 || (domain->solInfo().svdPodRom && geoSource->getMRatio() == 0)) {
-   if(domain->solInfo().inertiaLumping == 2) {
+   if(domain->solInfo().inertiaLumping == 2) { // block-diagonal lumping
      domain->solInfo().subtype = 1;
      domain->solInfo().getFetiInfo().solvertype = FetiInfo::sparse;
-     if(parallel_proc || domain_decomp) domain->solInfo().type = 2;
+     if(parallel_proc || domain_decomp) domain->solInfo().type = 2; // XXX type 3 could be upgraded to work for this case,
+                                                                    //     rather than using feti
    }
    else {
-     domain->solInfo().inertiaLumping = 1; // diagonal lumping
      domain->solInfo().subtype = 10;
      domain->solInfo().getFetiInfo().solvertype = FetiInfo::diagonal;
      if(parallel_proc || domain_decomp) domain->solInfo().type = 3;
@@ -913,7 +914,7 @@ int main(int argc, char** argv)
      case SolverInfo::Static: {
        if(geoSource->isShifted()) filePrint(stderr, " ... Frequency Response Analysis ");
        if(domain->isComplex()) {
-         if(domain->solInfo().inpc) cerr << "inpc not implemented for complex domain \n";
+         if(domain->solInfo().inpc) std::cerr << "inpc not implemented for complex domain \n";
          if(geoSource->isShifted()) filePrint(stderr, "in Complex Domain ...\n");
 #ifdef STRUCTOPT
 	 // quick-fix, for debugging SOpt

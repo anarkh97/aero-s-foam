@@ -7,9 +7,11 @@
 #include <Utils.d/linkfc.h>
 #include <Utils.d/pstress.h>
 #include <Math.d/FullSquareMatrix.h>
-#include <Element.d/NonLinearity.d/NLMaterial.h>
+#include <Math.d/matrix.h>
+#include <Corotational.d/Brick20Corotator.h>
 #include <Element.d/NonLinearity.d/ElaLinIsoMat.h>
 #include <Element.d/NonLinearity.d/NLHexahedral.h>
+#include <Element.d/Utils.d/SolidElemUtils.h>
 #include <Corotational.d/MatNLCorotator.h>
 
 #define CHECK_JACOBIAN // force check nullity & constant sign of jacobian over el.
@@ -31,14 +33,7 @@ void _FORTRAN(br20vmint)(double*, double*, double*, double*, double*,
 void _FORTRAN(lgauss)(const int&, int&, double*, double*);
 }
 
-void rotateConstitutiveMatrix(double *Cin, double *T33, double Cout[6][6]);
 double Hexa20ShapeFct(double Shape[20], double DShape[20][3], double m[3], double X[20], double Y[20], double Z[20]);
-void addNtDNtoM3DSolid(FullSquareMatrix &M, double* Shape, double alpha, int nnodes, int* ls, double (*D)[3] = 0);
-int checkJacobian(double *J, int *jSign, int elId, const char* mssg= 0, double atol = 0.0, bool stop=true, FILE* file=stderr);
-void computeStressAndEngStrain3DSolid(double Stress[6], double Strain[6], double C[6][6], double (*DShape)[3], double* U, int nnodes, int* ls=0);
-double computeStress3DSolid(double Stress[6],double Strain[6], double C[6][6]);
-double computeVonMisesStress(double Stress[6]);
-double computeVonMisesStrain(double Strain[6]);
 
 extern bool useFull;
 
@@ -71,6 +66,11 @@ Brick20::Brick20(int* nodenums)
   cFrame = 0;
   cCoefs = 0;
   mat = 0;
+}
+
+Brick20::~Brick20()
+{
+  if(cCoefs && mat) delete mat;
 }
 
 Element *
@@ -326,21 +326,30 @@ Brick20::getThermalForce(CoordSet &cs, Vector &ndTemps,
   const int nnodes = 20;
   const int ndofs = 60;
 
-  double X[20], Y[20], Z[20];
-  cs.getCoordinates(nn, nnodes, X, Y, Z);
-
   // initialize nodal thermal forces
   for(int i=0; i<ndofs; i++) elementThermalForce[i] = 0.0;
 
+  // for nonlinear analyses, the thermal load for this element is now computed in getStiffAndForce
+  if(geomState) return;
+
+  double X[20], Y[20], Z[20];
+  cs.getCoordinates(nn, nnodes, X, Y, Z);
+
   // get material props & constitutive matrix
-  double &Tref  = prop->Ta;
-  double &alpha = prop->W ;
+  double &Tref = prop->Ta;
+  double alpha[6];
   double C[6][6];
   if(cCoefs) { // anisotropic material
     // transform local constitutive matrix to global frame
     rotateConstitutiveMatrix(cCoefs, cFrame, C);
-  } else // isotropic material
+    // transform local coefficients of thermal expansion to global frame
+    rotateVector(cCoefs+36, cFrame, alpha);
+  }
+  else { // isotropic material
     _FORTRAN(brkcmt)(prop->E, prop->nu, (double*)C);
+    alpha[0] = alpha[1] = alpha[2] = prop->W;
+    alpha[3] = alpha[4] = alpha[5] = 0;
+  }
 
   // Integate over the element: F = Int[Bt.ThermaStress]
   // with ThermalStress = C.ThermalStrain, with ThermalStrain = alpha.theta.[1, 1, 1, 0, 0, 0]'
@@ -348,38 +357,31 @@ Brick20::getThermalForce(CoordSet &cs, Vector &ndTemps,
   // N[inode] is the shape fct at node inode
   // M is the position in the real frame, m its associated position in the reference
   // element frame
+  // NUMERICAL INTEGRATION BY GAUSS PTS
+  const int numgauss = 3;
+  double Shape[20], DShape[20][3], m[3];
+  double wx,wy,wz,w,J;
 
-  if(geomState) { // NONLINEAR ANALYSIS
-    fprintf(stderr," *** ERROR: Brick20::getThermalForce not supported for nonlinear analysis. Abort.\n");
-    exit(-1);
-  }
-  else { // LINEAR ANALYSIS
-    // NUMERICAL INTEGRATION BY GAUSS PTS
-    // integration: loop over Gauss pts
-    const int numgauss = 2;
-    double Shape[20], DShape[20][3], m[3];
-    double wx,wy,wz,w,J;
-
-    for(int i=1; i<=numgauss; i++) {
-      _FORTRAN(lgauss)(numgauss,i,&m[0],&wx);
-      for(int j=1; j<=numgauss; j++) {
-        _FORTRAN(lgauss)(numgauss,j,&m[1],&wy);
-        for(int k=1; k<=numgauss; k++) {
-          _FORTRAN(lgauss)(numgauss,k,&m[2],&wz);
-          J = Hexa20ShapeFct(Shape, DShape, m, X, Y, Z);
-          w = fabs(J)*wx*wy*wz;
-          // compute thermal stresses
-          double eT = 0.0;
-          for(int inode=0; inode<nnodes; inode++) eT += alpha*Shape[inode]*(ndTemps[inode] - Tref);
-          double thermalStrain[6] = {eT,eT,eT,0.0,0.0,0.0};
-          double thermalStress[6] = {0.0,0.0,0.0,0.0,0.0,0.0}; 
-          computeStress3DSolid(thermalStress, thermalStrain, C); // thermalStress <- C.thermalStrain
-          // sum contribution
-          for(int inode=0; inode<nnodes; inode++) {
-            elementThermalForce[3*inode  ] += w*(DShape[inode][0]*thermalStress[0] + DShape[inode][1]*thermalStress[3] + DShape[inode][2]*thermalStress[5]);
-            elementThermalForce[3*inode+1] += w*(DShape[inode][0]*thermalStress[3] + DShape[inode][1]*thermalStress[1] + DShape[inode][2]*thermalStress[4]);
-            elementThermalForce[3*inode+2] += w*(DShape[inode][0]*thermalStress[5] + DShape[inode][1]*thermalStress[4] + DShape[inode][2]*thermalStress[2]);
-          }
+  for(int i=1; i<=numgauss; i++) {
+    _FORTRAN(lgauss)(numgauss,i,&m[0],&wx);
+    for(int j=1; j<=numgauss; j++) {
+      _FORTRAN(lgauss)(numgauss,j,&m[1],&wy);
+      for(int k=1; k<=numgauss; k++) {
+        _FORTRAN(lgauss)(numgauss,k,&m[2],&wz);
+        J = Hexa20ShapeFct(Shape, DShape, m, X, Y, Z);
+        w = fabs(J)*wx*wy*wz;
+        // compute thermal stresses
+        double eT = 0.0;
+        for(int inode=0; inode<nnodes; inode++) eT += Shape[inode]*(ndTemps[inode] - Tref);
+        double thermalStrain[6];
+        for(int l=0; l<6; ++l) thermalStrain[l] = alpha[l]*eT;
+        double thermalStress[6] = {0.0,0.0,0.0,0.0,0.0,0.0}; 
+        computeStress3DSolid(thermalStress, thermalStrain, C); // thermalStress <- C.thermalStrain
+        // sum contribution
+        for(int inode=0; inode<nnodes; inode++) {
+          elementThermalForce[3*inode  ] += w*(DShape[inode][0]*thermalStress[0] + DShape[inode][1]*thermalStress[3] + DShape[inode][2]*thermalStress[5]);
+          elementThermalForce[3*inode+1] += w*(DShape[inode][0]*thermalStress[3] + DShape[inode][1]*thermalStress[1] + DShape[inode][2]*thermalStress[4]);
+          elementThermalForce[3*inode+2] += w*(DShape[inode][0]*thermalStress[5] + DShape[inode][1]*thermalStress[4] + DShape[inode][2]*thermalStress[2]);
         }
       }
     }
@@ -535,11 +537,13 @@ Brick20::getVonMisesAniso(Vector &stress, Vector &weight, CoordSet &cs,
   double elStress[20][7];
   double elStrain[20][7];
  
-  // get constitutive matrix
-  double C[6][6];
+  // get constitutive matrix and coefficients of thermal expansion
+  double C[6][6], alpha[6];
   // transform local constitutive matrix to global frame
   rotateConstitutiveMatrix(cCoefs, cFrame, C);
- 
+  // transform local coefficients of thermal expansion to global frame
+  if(ndTemps) rotateVector(cCoefs+36, cFrame, alpha);
+
   // Loop over nodes -> compute nodal strains & stresses
   double nodeRefCoord[20][3] = {{-1.0,-1.0,-1.0},{1.0,-1.0,-1.0},{ 1.0,1.0,-1.0},{-1.0,1.0,-1.0},
                                 {-1.0,-1.0, 1.0},{1.0,-1.0, 1.0},{ 1.0,1.0, 1.0},{-1.0,1.0, 1.0},
@@ -555,10 +559,9 @@ Brick20::getVonMisesAniso(Vector &stress, Vector &weight, CoordSet &cs,
     computeStressAndEngStrain3DSolid(elStress[inode], elStrain[inode], C, DShape, elDisp.data(), nnodes);
 
     if(ndTemps) {
-      double &Tref  = prop->Ta;
-      double &alpha = prop->W;
-      double eT     = alpha*(ndTemps[inode]-Tref);
-      double thermalStrain[6] = {eT,eT,eT,0.0,0.0,0.0};
+      double Tref = prop->Ta;
+      double thermalStrain[6];
+      for(int i=0; i<6; ++i) thermalStrain[i] = alpha[i]*(ndTemps[inode]-Tref);
       double thermalStress[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
       computeStress3DSolid(thermalStress, thermalStrain, C);
       elStress[inode][0] -= thermalStress[0];
@@ -613,12 +616,14 @@ Brick20::getAllStressAniso(FullM &stress, Vector &weight, CoordSet &cs,
 
   double elStress[20][6];
   double elStrain[20][6];
- 
-  // get constitutive matrix
-  double C[6][6];
+
+  // get constitutive matrix and coefficients of thermal expansion
+  double C[6][6], alpha[6];
   // transform local constitutive matrix to global frame
   rotateConstitutiveMatrix(cCoefs, cFrame, C);
- 
+  // transform local coefficients of thermal expansion to global frame
+  if(ndTemps) rotateVector(cCoefs+36, cFrame, alpha);
+
   // Loop over nodes -> compute nodal strains & stresses
   double nodeRefCoord[20][3] = {{-1.0,-1.0,-1.0},{1.0,-1.0,-1.0},{ 1.0,1.0,-1.0},{-1.0,1.0,-1.0},
                                 {-1.0,-1.0, 1.0},{1.0,-1.0, 1.0},{ 1.0,1.0, 1.0},{-1.0,1.0, 1.0},
@@ -634,10 +639,9 @@ Brick20::getAllStressAniso(FullM &stress, Vector &weight, CoordSet &cs,
     computeStressAndEngStrain3DSolid(elStress[inode], elStrain[inode], C, DShape, elDisp.data(), nnodes);
 
     if(ndTemps) {
-      double &Tref  = prop->Ta;
-      double &alpha = prop->W;
-      double eT     = alpha*(ndTemps[inode]-Tref);
-      double thermalStrain[6] = {eT,eT,eT,0.0,0.0,0.0};
+      double &Tref = prop->Ta;
+      double thermalStrain[6];
+      for(int i=0; i<6; ++i) thermalStrain[i] = alpha[i]*(ndTemps[inode]-Tref);
       double thermalStress[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
       computeStress3DSolid(thermalStress, thermalStrain, C);
       elStress[inode][0] -= thermalStress[0];
@@ -678,7 +682,21 @@ Brick20::getAllStressAniso(FullM &stress, Vector &weight, CoordSet &cs,
 void
 Brick20::setMaterial(NLMaterial *_mat)
 {
-  mat = _mat;
+  if(cCoefs) { // anisotropic material
+    mat = _mat->clone();
+    if(mat) {
+      double C[6][6], alpha[6];
+      // transform local constitutive matrix to global frame
+      rotateConstitutiveMatrix(cCoefs, cFrame, C);
+      mat->setTangentMaterial(C);
+      // transform local coefficients of thermal expansion to global frame
+      rotateVector(cCoefs+36, cFrame, alpha);
+      mat->setThermalExpansionCoef(alpha);
+    }
+  }
+  else {
+    mat = _mat;
+  }
 }
 
 int
@@ -691,15 +709,24 @@ Brick20::numStates()
 Corotator *
 Brick20::getCorotator(CoordSet &cs, double *kel, int, int)
 {
-#ifdef USE_EIGEN3
-  if(!mat && !cCoefs)
-    mat = new StVenantKirchhoffMat(prop->rho, prop->E, prop->nu);
+  if(cCoefs && !mat) {
+    double C[6][6], alpha[6];
+    rotateConstitutiveMatrix(cCoefs, cFrame, C);
+    rotateVector(cCoefs+36, cFrame, alpha);
+    mat = new StVenantKirchhoffMat(prop->rho, C, prop->Ta, alpha);
+  }
   if(mat) {
+#ifdef USE_EIGEN3
+    mat->setTDProps(prop->ymtt, prop->ctett);
     MatNLElement *ele = new NLHexahedral20(nn);
     ele->setMaterial(mat);
     ele->setGlNum(glNum);
+    ele->setProp(prop);
     return new MatNLCorotator(ele);
-  }
 #endif
+  }
+  else {
+    return new Brick20Corotator(nn, prop->E, prop->nu, cs, prop->Ta, prop->W, prop->ymtt, prop->ctett);
+  }
   printf("WARNING: Corotator not implemented for element %d\n", glNum+1); return 0;
 }

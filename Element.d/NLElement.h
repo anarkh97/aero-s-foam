@@ -17,13 +17,13 @@ class MatNLElement : public Element {
      virtual void integrate(Node *nodes, double *dispn, double *staten,
                             double *dispnp, double *statenp,
                             FullSquareMatrix &kTan,
-                            double *force, double dt=0.0) {
+                            double *force, double dt, double *temps) {
        int nst = numStates();
        int i;
        for(i = 0; i < nst; ++i)
          statenp[i] = staten[i];
-         updateStates(nodes, dispn, dispnp, statenp);
-         getStiffAndForce(nodes, dispnp, statenp, kTan, force);
+       updateStates(nodes, dispn, dispnp, statenp, temps);
+       getStiffAndForce(nodes, dispnp, statenp, kTan, force);
      }
      virtual void getInternalForce(Node *nodes, double *disp,
                                    double *state, double *force) {
@@ -32,16 +32,16 @@ class MatNLElement : public Element {
      }
      virtual void integrate(Node *nodes, double *dispn, double *staten,
                             double *dispnp, double *statenp,
-                            double *force, double dt=0.0) {
+                            double *force, double dt, double *temps) {
        int nst = numStates();
        int i;
        for(i = 0; i < nst; ++i)
          statenp[i] = staten[i];
-         updateStates(nodes, dispn, dispnp, statenp);
-         getInternalForce(nodes, dispnp, statenp, force);
+       updateStates(nodes, dispn, dispnp, statenp, temps);
+       getInternalForce(nodes, dispnp, statenp, force);
      }
 
-     virtual void updateStates(Node *nodes, double *un, double *unp, double *statenp) {
+     virtual void updateStates(Node *nodes, double *un, double *unp, double *statenp, double *temps) {
        fprintf(stderr, "MatNLElement::updateStates is being called on an element "
                "for which it is not defined\n");
      }
@@ -54,12 +54,14 @@ class MatNLElement : public Element {
                "for which it is not defined\n");
      }
      virtual void getStressTens(Node *nodes, double *dispn, double *staten,
-                                double *dispnp, double *statenp, double (*result)[9], int avgnum) {
+                                double *dispnp, double *statenp, double (*result)[9], int avgnum,
+                                double *temps) {
        fprintf(stderr, "MatNLElement::getStressTens is being called on an element "
                "for which it is not defined\n");
      }
      virtual void getVonMisesStress(Node *nodes, double *dispn, double *staten,
-                                    double *dispnp, double *statenp, double *result, int avgnum) {
+                                    double *dispnp, double *statenp, double *result, int avgnum,
+                                    double *temps) {
        fprintf(stderr, "MatNLElement::getVonMisesStress is being called on an element "
                "for which it is not defined\n");
      }
@@ -76,7 +78,7 @@ class MatNLElement : public Element {
                "for which it is not defined\n");
      }
 
-     virtual double getStrainEnergy(Node *nodes, double *dispnp, double *state) {
+     virtual double getStrainEnergy(Node *nodes, double *dispnp, double *state, double *temps) {
        fprintf(stderr, "MatNLElement::getStrainEnergy is being called on an element "
                "for which it is not defined\n");
        return 0.0;

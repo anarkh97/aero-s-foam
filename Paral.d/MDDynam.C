@@ -676,8 +676,8 @@ MultiDomainDynam::computeExtForce2(SysState<DistrVector> &distState,
   if(domain->solInfo().thermoeFlag >= 0 && tIndex >= 0) {
     distFlExchanger->getStrucTemp(nodalTemps->data());
     if(verboseFlag) filePrint(stderr, " ... [E] Received temperatures     ...\n");
+    if(geomState) geomState->setNodalTemperatures(*nodalTemps);
   }
-
 
   // add f(t) to cnst_f
   double dt = domain->solInfo().getTimeStep();
@@ -1089,7 +1089,9 @@ MultiDomainDynam::getInternalForce(DistrVector &d, DistrVector &f, double t, int
 {
   if(domain->solInfo().isNonLin()) {
     execParal3R(decDomain->getNumSub(), this, &MultiDomainDynam::subGetInternalForce, f, t, tIndex);
+/* XXX now this is done in a separate function, MultiDomainDynam::pull_back
     if(!domain->solInfo().galerkinPodRom && !domain->solInfo().getNLInfo().linearelastic) geomState->pull_back(f);
+*/
   }
   else {
     f.zero();
@@ -1098,6 +1100,27 @@ MultiDomainDynam::getInternalForce(DistrVector &d, DistrVector &f, double t, int
 
   if(domain->solInfo().filterFlags || domain->solInfo().hzemFilterFlag)
     trProject(f);
+}
+
+void
+MultiDomainDynam::pull_back(DistrVector& f)
+{
+  if(domain->solInfo().isNonLin() && !domain->solInfo().galerkinPodRom && !domain->solInfo().getNLInfo().linearelastic) {
+    // Transform both moments and forces to convected frame: f = [R^T  I ]*f
+    //                                                           [ I  R^T]
+    geomState->pull_back(f);
+  }
+}
+
+void
+MultiDomainDynam::push_forward(DistrVector &a)
+{
+  if(domain->solInfo().isNonLin() && !domain->solInfo().galerkinPodRom && !domain->solInfo().getNLInfo().linearelastic) {
+    // Transform 2nd time-derivative of displacement to spatial frame: a = [R I]*a
+    //                                                                     [I I]
+    // Note: the angular accelerations are deliberately not transformed.
+    geomState->push_forward(a);
+  }
 }
 
 void
@@ -1530,8 +1553,8 @@ MultiDomainDynam::thermoePreProcess(DistrVector&, DistrVector&, DistrVector&)
 
     distFlExchanger->getStrucTemp(nodalTemps->data()) ;
     if(verboseFlag) filePrint(stderr, " ... [E] Received initial temperatures ...\n");
+    if(geomState) geomState->setNodalTemperatures(*nodalTemps);
   }
-
 }
 
 void

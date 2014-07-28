@@ -96,6 +96,8 @@ TRAIL [a-zA-Z]*
 
 "PRES"[a-zA-Z]*|"pres"[a-zA-Z]*    { return PRESSURE; }
 
+"FACE"|"face"                       { return FACE; }
+
 "CONW"[a-zA-Z]*|"conw"[a-zA-Z]*    { return CONWEP; }
 
 "CONSTANT"|"constant"              { return CONSTANT; }
@@ -1501,14 +1503,16 @@ TRAIL [a-zA-Z]*
 "TOLOPT"|"TolOpt"|"tolopt" 		  { return TOLER; } /* deprecated */
 "TOLERA"|"Tolera"|"tolera"                { return TOLER; }
 
-"LOCTOL"|"LocTol"|"loctol"		  { return LOCALTOLERANCE; }
-
-"GLOERR"|"GloErr"|"gloerr"                { return GLOBALERROR; }
-
 "NUMSKP"|"NumSkp"|"numskp"		  { return SKIP; }
 "SAMFRQ"|"SamFrq"|"samfrq"                { return SKIP; }
 
-"OUT_OF"[a-zA-Z_]*|"Out_Of"[a-zA-Z_]*|"out_of"[a-zA-Z_]* { return OUTOFCORE; }
+"SOLVER"|"Solver"|"solver"                { return SOLVER; }
+
+"lh"|"LH"                                 { yylval.ival = 0; return SPNNLSSOLVERTYPE; }
+"nncgp"|"NNCGP"                           { yylval.ival = 1; return SPNNLSSOLVERTYPE; }
+"gpfp"|"GPFP" 				  { yylval.ival = 2; return SPNNLSSOLVERTYPE; }
+
+"MAXSZE"|"MaxSze"|"maxsze"                { return MAXSIZE; }
 
 "REFSUBSTRACT"|"refsubstract"|"RefSubstract" { return REFSUBSTRACT; } 
 
@@ -1537,7 +1541,7 @@ TRAIL [a-zA-Z]*
        for(il = 0; yytext[il] != 'd' && yytext[il] != 'D';) ++il;
        yytext[il] = 'e'; yylval.fval = atof(yytext) ; return DblConstant ; }
 
-"*" { while(yyinput() != '\n') ; line_num++; }
+"*" { while(yyinput() != '\n') {}; line_num++; }
 
 
 

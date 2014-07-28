@@ -63,7 +63,6 @@ public:
 
         void getStiffnessThicknessSensitivity(GenFullM<double> &dStiffdThick, CoordSet &cs, 
                                                int senMethod, double *, double ylayer = 0, double zlayer = 0);
-
 #endif
 
         void getAllStress(FullM &stress, Vector &weight, CoordSet &cs,
@@ -100,6 +99,7 @@ public:
         PressureBCond* getPressure() { return pbc; }
         void computePressureForce(CoordSet&, Vector& elPressureForce,
                                   GeomState *gs = 0, int cflg = 0, double t = 0);
+        void getThermalForce(CoordSet&, Vector&, Vector &, int, GeomState * = 0);
 
         // Nonlinear
         Corotator* getCorotator(CoordSet&, double*, int, int);
@@ -113,6 +113,9 @@ public:
 
         // Routines for the decomposer
         PrioInfo examine(int sub, MultiFront *);
+        int nDecFaces() { return 1; }
+        int getDecFace(int iFace, int *fn) {
+          for(int i=0; i<3; i++) fn[i] = nn[i]; return 3; }
 
 	bool hasRot() { return true; }
 

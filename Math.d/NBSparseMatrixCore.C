@@ -1,5 +1,5 @@
 #include <cstdio>
-#include <Math.d/NBSparseMatrix.h>
+#include <Math.d/NBSparseMatrix.C>
 
 template<>
 void
@@ -37,7 +37,6 @@ GenNBSparseMatrix<DComplex>::addImaginary(FullSquareMatrix &kel, int *dofs)
   }
 }
 
-
 template<>
 void
 GenNBSparseMatrix<double>
@@ -45,7 +44,6 @@ GenNBSparseMatrix<double>
 {
   fprintf(stderr, "GenNBSparseMatrix<double> cannot addImaginary\n");
 }
-
 
 template<>
 void
@@ -90,3 +88,37 @@ GenNBSparseMatrix<double>
 {
   fprintf(stderr, "GenNBSparseMatrix<double> cannot add FullSquareMatrixC\n");
 }
+
+#define NBSPARSE_INSTANTIATION_HELPER(Scalar) \
+template \
+GenFullM<Scalar> * \
+GenNBSparseMatrix<Scalar>::getDiagMatrix(int); \
+template \
+void \
+GenNBSparseMatrix<Scalar>::zeroAll(); \
+template \
+void \
+GenNBSparseMatrix<Scalar>::add(FullSquareMatrix&, int*); \
+template \
+GenNBSparseMatrix<Scalar>::GenNBSparseMatrix(Connectivity*, ConstrainedDSA*); \
+template \
+GenNBSparseMatrix<Scalar>::~GenNBSparseMatrix(); \
+template \
+void \
+GenNBSparseMatrix<Scalar>::mult(const Scalar*, Scalar*); \
+template \
+void \
+GenNBSparseMatrix<Scalar>::multAdd(const Scalar*, Scalar*); \
+template \
+void \
+GenNBSparseMatrix<Scalar>::mult(const GenVector<Scalar>&, GenVector<Scalar>&); \
+template \
+Scalar \
+GenNBSparseMatrix<Scalar>::diag(int dof) const; \
+template \
+Scalar & \
+GenNBSparseMatrix<Scalar>::diag(int dof);
+
+NBSPARSE_INSTANTIATION_HELPER(double);
+NBSPARSE_INSTANTIATION_HELPER(complex<double>);
+

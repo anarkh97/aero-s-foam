@@ -164,6 +164,9 @@ void readAndProjectSnapshots(BasisId::Type type, const int vectorSize, VecBasis 
                              std::vector<int> &snapshotCounts, std::vector<double> &timeStamps, VecBasis &config,
                              SparseMatrix *M)
 {
+#ifdef PRINT_ESTIMERS
+  double t1 = getTime();
+#endif
   const int snapshotCount = snapSize(type, snapshotCounts);
   filePrint(stderr, " ... Reading in and Projecting %d %s Snapshots ...\n", snapshotCount, toString(type).c_str());
 
@@ -184,14 +187,15 @@ void readAndProjectSnapshots(BasisId::Type type, const int vectorSize, VecBasis 
     filePrint(stderr, " ... Processing File: %s ...\n", fileName.c_str());
     BasisInputStream in(fileName, vecDofConversion);
 
+    double s0 = -getTime(), s1 = -51, s2 = 0;
     int count = 0;
     int skipCounter = skipFactor - skipOffSet;
+    std::pair<double, double *> data;
     while(count < snapshotCounts[i]) {
-      std::pair<double, double *> data;
-      data.second = snapshot.data();
-      in >> data;
-      assert(in);
       if(skipCounter == skipFactor) {
+        data.second = snapshot.data();
+        in >> data;
+        assert(in);
         if(domain->solInfo().useMassOrthogonalProjection) {
           M->mult(snapshot, Msnapshot);
           expand(podBasis, reduce(podBasis, Msnapshot, podComponents), config[offset+count]);
@@ -202,18 +206,26 @@ void readAndProjectSnapshots(BasisId::Type type, const int vectorSize, VecBasis 
         timeStamps.push_back(data.first);
         skipCounter = 1;
         ++count;
-        filePrint(stderr, "\r ... timeStamp = %7.2e, %4.2f%% complete ...", data.first, double(count)/snapshotCounts[i]*100);
-      } 
+        if((s2-s1 > 50)) { // only print to the screen every 50 milliseconds, otherwise it's too slow...
+          s1 = s2;
+          filePrint(stderr, "\r ... timeStamp = %8.2e, %3d%% done ...", data.first, (count*100)/snapshotCounts[i]);
+        }
+        s2 = s0+getTime();
+      }
       else {
+        in.file().currentStateIndexInc();
         ++skipCounter;
       }
     }
 
-    filePrint(stderr,"\n");
+    filePrint(stderr, "\r ... timeStamp = %8.2e, %3d%% done... \n", data.first, 100);
     offset += snapshotCounts[i];
   }
   
   assert(timeStamps.size() == snapshotCount);
+#ifdef PRINT_ESTIMERS
+  fprintf(stderr, "time for readAndProjectSnapshots = %f\n", (getTime()-t1)/1000.0);
+#endif
 }
 
 // Member functions
@@ -357,101 +369,20 @@ ElementSamplingDriver<MatrixBufferType,SizeType>
 }
 
 template<typename MatrixBufferType, typename SizeType>
-template<typename VecBasisType>
-void
-ElementSamplingDriver<MatrixBufferType,SizeType>
-::assembleWeightedTrainingData(const VecBasisType &podBasis, const int podVectorCount, const VecBasisType &displac,
-                               const VecBasisType *veloc, const VecBasisType *accel, const Vector &weights)
-{
-  std::vector<double>::iterator timeStampFirst = timeStamps_.begin();
-  typename MatrixBufferType::iterator elemContributions = solver_.matrixBuffer();
-  double *trainingTarget = solver_.rhsBuffer();
-
-  // Temporary buffers shared by all iterations
-  Vector elemTarget(podVectorCount);
-  SimpleBuffer<double> elementForce(domain_->maxNumDOF());
-
-  BlastLoading::BlastData *conwep;
-  if(domain_->solInfo().conwepConfigurations.empty()) conwep = (domain_->solInfo().ConwepOnOff) ? &BlastLoading::InputFileData : NULL;
-  else if(domain_->solInfo().conwepConfigurations.size() < domain_->solInfo().statePodRomFile.size()) {
-    filePrint(stderr, " *** ERROR: Must provide one Conwep configuration per state snapshot file\n");
-    exit(-1);
-  }
-  domain_->makeElementAdjacencyLists();
-
-  for (int iElem = 0; iElem != elementCount(); ++iElem) {
-    if(weights[iElem] == 0) continue;
-    filePrint(stderr,"\r %4.2f%% complete", double(iElem)/double(elementCount())*100.);
-
-    std::vector<double>::iterator timeStampIt = timeStampFirst;
-    int *nodes = domain_->getElementSet()[iElem]->nodes();
-    int iSnap = 0;
-    for(int i = 0; i < snapshotCounts_.size(); i++) {
-      if(!domain_->solInfo().conwepConfigurations.empty()) {
-        conwep = &domain_->solInfo().conwepConfigurations[i];
-      }
-      for (int jSnap = 0; jSnap != snapshotCounts_[i]; ++iSnap, ++jSnap) {
-        geomState_->explicitUpdate(domain_->getNodes(), domain_->getElementSet()[iElem]->numNodes(),
-            nodes, displac[iSnap]); // just set the state at the nodes of element iElem
-        if(veloc) geomState_->setVelocity(domain_->getElementSet()[iElem]->numNodes(), nodes,
-            (*veloc)[iSnap], 2); // just set the velocity at the nodes of element iElem
-        if(accel) geomState_->setAcceleration(domain_->getElementSet()[iElem]->numNodes(), nodes,
-            (*accel)[iSnap], 2); // just set the acceleration at the nodes of element iElem
-        // Evaluate and store element contribution at training configuration
-        domain_->getElemInternalForce(*geomState_, *timeStampIt, geomState_, *(corotators_[iElem]), elementForce.array(), kelArray_[iElem]);
-        if(domain_->solInfo().reduceFollower)
-          domain_->getElemFollowerForce(iElem, *geomState_, elementForce.array(), elementForce.size(), (corotators_[iElem]),
-                                        kelArray_[iElem], 1.0, *timeStampIt, false, conwep);
-        if(domain_->getElementSet()[iElem]->hasRot()) {
-          domain_->transformElemStiffAndForce(*geomState_, elementForce.array(), kelArray_[iElem], iElem, false);
-          domain_->getElemFictitiousForce(iElem, *geomState_, elementForce.array(), kelArray_[iElem],
-              *timeStampIt, geomState_, melArray_[iElem], false);
-        }
-
-        elemTarget.zero();
-        const int dofCount = kelArray_[iElem].dim();
-        for (int iDof = 0; iDof != dofCount; ++iDof) {
-          const int vecLoc = domain_->getCDSA()->getRCN((*domain_->getAllDOFs())[iElem][iDof]);
-          if (vecLoc >= 0) {
-            const double dofForce = elementForce[iDof];
-            for (int iPod = 0; iPod != podVectorCount; ++iPod) {
-              const double contrib = dofForce * podBasis[iPod][vecLoc];
-              elemTarget[iPod] += contrib;
-            }
-          }
-        }
-        for(int iPod = 0; iPod != podVectorCount; ++iPod) {
-          *elemContributions = elemTarget[iPod];
-          elemContributions++;
-          trainingTarget[podVectorCount * iSnap + iPod] += weights[iElem]*elemTarget[iPod];
-        }
-        timeStampIt++;
-      }
-      // reset the element internal states for the next group of snapshots, assuming for now that each group of snapshots
-      // was generated by an independent simulation rather than a restart. For a restart it would be approprate to not
-      // reset the internal states. This could be controlled by a user defined switch.
-      int numStates = geomState_->getNumElemStates(domain_->getElementSet()[iElem]->getGlNum());
-      if(numStates > 0) {
-        double *states = geomState_->getElemState(domain_->getElementSet()[iElem]->getGlNum());
-        for (int j = 0; j < numStates; ++j) states[j] = 0;
-        domain_->getElementSet()[iElem]->initStates(states);
-      }
-    }
-
-    delete [] nodes;
-  }
-  filePrint(stderr,"\r %4.2f%% complete\n", 100.);
-}
-
-template<typename MatrixBufferType, typename SizeType>
 void
 ElementSamplingDriver<MatrixBufferType,SizeType>::solve() {
 
   preProcess();
   
   // Training target (solver_.rhsBuffer) is the sum of elementary contributions
+#ifdef PRINT_ESTIMERS
+  double t2 = getTime();
+#endif
   for(int i=0; i<solver_.equationCount(); ++i) solver_.rhsBuffer()[i] = 0.0;
   assembleTrainingData(podBasis_, podBasis_.vectorCount(), displac_, veloc_, accel_);
+#ifdef PRINT_ESTIMERS
+  fprintf(stderr, "time for assembleTrainingData = %f\n", (getTime()-t2)/1000.0);
+#endif
 
   Vector solution;
   computeSolution(solution, domain_->solInfo().tolPodRom);
@@ -465,6 +396,9 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::computeSolution(Vector &soluti
 
   solver_.relativeToleranceIs(relativeTolerance);
   solver_.verboseFlagIs(verboseFlag);
+  solver_.scalingFlagIs(domain->solInfo().useScalingSpnnls);
+  solver_.solverTypeIs(domain->solInfo().solverTypeSpnnls);
+  solver_.maxSizeRatioIs(domain->solInfo().maxSizeSpnnls);
   solver_.solve();
 
   if(verboseFlag) {
@@ -733,11 +667,5 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::buildDomainCdsa() {
 } // end namespace Rom
 
 Rom::DriverInterface *elementSamplingDriverNew(Domain *d) {
-#ifdef USE_STXXL
-  if(d->solInfo().oocPodRom)
-    // external vector of double's with 16 blocks per page, the cache with 32 pages, and 8 MB blocks (i.e. total cache is 4GB)
-    return new Rom::ElementSamplingDriver<stxxl::VECTOR_GENERATOR<double,16,32,8388608,stxxl::RC,stxxl::random>::result,stxxl::uint64>(d);
-  else
-#endif
   return new Rom::ElementSamplingDriver<std::vector<double>,size_t>(d);
 }

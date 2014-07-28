@@ -66,8 +66,8 @@ template <class AnyVector> class Preconditioner;
 template <class Scalar, class AnyVector, class AnyOperator> class GenPCGSolver;
 template <class Scalar> class GenSpoolesSolver;
 typedef GenSpoolesSolver<double> SpoolesSolver;
-template <class Scalar> class GenMumpsSolver; 	//Axel
-typedef GenMumpsSolver<double> MumpsSolver;   	//Axel
+template <class Scalar> class GenMumpsSolver;
+typedef GenMumpsSolver<double> MumpsSolver;
 class GeomState;
 class DistrGeomState;
 class IntFullM;
@@ -92,8 +92,6 @@ template <typename Scalar> class GenEiSparseGalerkinProjectionSolver;
 class SurfaceEntity;
 
 extern Sfem *sfem;
-
-const double defaultTemp = -10000000.0;
 
 // ... Structure used to store problem Operators buildSkyOps
 // ... i.e. Only a Solver is needed for a static problem
@@ -392,7 +390,8 @@ class Domain : public HData {
                           int fileNumber, int stressIndex, double time, 
                           GeomState *refState = NULL);
      void getPrincipalStress(GeomState &geomState, Corotator **allCorot,
-                          int fileNumber, int stressIndex, double time);
+                             int fileNumber, int stressIndex, double time,
+                             GeomState *refState = NULL);
      void updateStates(GeomState *refState, GeomState& geomState, Corotator **allCorot);
      void updateWeightedElemStatesOnly(const std::map<int, double> &weights, GeomState *refState,
                                        GeomState &geomState, Corotator **corotators);
@@ -408,6 +407,7 @@ class Domain : public HData {
                            GeomState *refState = NULL, Vector *reactions = NULL,
                            FullSquareMatrix *mel = NULL, FullSquareMatrix *cel = NULL);
      void makeElementAdjacencyLists();
+     std::vector<AdjacencyLists>& getElementAdjacencyLists() { return elemAdj; }
      std::vector<int>& getFollowedElemList() { return followedElemList; }
      void getFollowerForce(GeomState &u, Vector &elementInternalForce,
                            Corotator **allCorot, FullSquareMatrix *kel,
@@ -418,11 +418,11 @@ class Domain : public HData {
                                double loadFactor, double time, bool compute_tangents,
                                BlastLoading::BlastData *conwep);
      void getFictitiousForce(GeomState &geomState, Vector &elementForce, FullSquareMatrix *kel, Vector &residual,
-                                double time, GeomState *refState, Vector *reactions,
-                                FullSquareMatrix *mel, bool compute_tangents, FullSquareMatrix *cel = NULL);
+                             double time, GeomState *refState, Vector *reactions,
+                             FullSquareMatrix *mel, bool compute_tangents, Corotator **, FullSquareMatrix *cel = NULL);
      void getElemFictitiousForce(int iele, GeomState &geomState, double *f, FullSquareMatrix &kel,
                                  double time, GeomState *refState, FullSquareMatrix &mel, bool compute_tangents,
-                                 FullSquareMatrix *celArray = NULL);
+                                 Corotator *elemCorot = NULL, FullSquareMatrix *celArray = NULL);
 #ifdef USE_EIGEN3
      void getNodeFictitiousForce(int inode, GeomState &geomState, double time, GeomState *refState, Eigen::Matrix3d &M,
                                 Eigen::Vector3d &f, Eigen::Matrix3d &K, bool compute_tangents);
@@ -1172,6 +1172,7 @@ class Domain : public HData {
      int GetnMortarLMPCs();
      MortarHandler* GetMortarCond(int i) { return MortarConds[i]; }
      ResizeArray<SurfaceEntity*>* viewSurfEntities() { return(&SurfEntities); }
+     SurfaceEntity* GetSurfaceEntity(int i) { return SurfEntities[i]; }
      void setNumSurfs(int nSurfs) { nSurfEntity = nSurfs; }
      int getNumSurfs() { return(nSurfEntity); }
      int getMaxContactSurfElems() { return maxContactSurfElems; }

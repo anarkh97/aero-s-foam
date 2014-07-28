@@ -13,10 +13,11 @@ ADD_LIBRARY(Corotational  Corotator.C
        GeomNLSolver.C orthonorm3.C 
        DistrGeomState.C normalize.C tran_force.C
        tran_stiff.C SpringCorotator.C 
-       TetCorotator.C 
-       BrickCorotator.C 
+       TetCorotator.C Tet10Corotator.C
+       BrickCorotator.C Brick20Corotator.C Brick32Corotator.C
        SuperCorotator.C 
-       PentaCorotator.C BarFCorotator.C
+       PentaCorotator.C Penta15Corotator.C Penta26Corotator.C
+       BarFCorotator.C
        QuadThermalCorotator.C TriangleThermalCorotator.C
        PhantomCorotator.C
        MatNLCorotator.C inc_rotvector.C

@@ -125,10 +125,10 @@ DistrSvdOrthogonalization::reset() {
 
   int info;
   _FORTRAN(descinit)(matrixDesc_, &vectorSize_, &vectorCount_, &blockSize_, &blockSize_,
-                     &context_, &INT_ZERO, &INT_ZERO, &localMatrixLeadDim_, &info);
+                     &INT_ZERO, &INT_ZERO, &context_, &localMatrixLeadDim_, &info);
   assert(info == 0);
   _FORTRAN(descinit)(basisDesc_, &vectorSize_, &singularValueCount_, &blockSize_, &blockSize_,
-                     &context_, &INT_ZERO, &INT_ZERO, &localMatrixLeadDim_, &info);
+                     &INT_ZERO, &INT_ZERO, &context_, &localMatrixLeadDim_, &info);
   assert(info == 0);
 #endif /* USE_SCALAPACK */
 }

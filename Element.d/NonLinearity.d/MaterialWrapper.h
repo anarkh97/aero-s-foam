@@ -33,21 +33,21 @@ class MaterialWrapper : public NLMaterial
 
     int getNumStates();
 
-    void getStress(Tensor *stress, Tensor &strain, double*);
+    void getStress(Tensor *stress, Tensor &strain, double*, double temp);
 
-    void getTangentMaterial(Tensor *tm, Tensor &strain, double*);
+    void getTangentMaterial(Tensor *tm, Tensor &strain, double*, double temp);
 
     void getElasticity(Tensor *tm) {}
 
-    void updateStates(Tensor en, Tensor enp, double *state) {}
+    void updateStates(Tensor &en, Tensor &enp, double *state, double temp) {}
 
-    void getStressAndTangentMaterial(Tensor *stress, Tensor *tm, Tensor &strain, double*);
+    void getStressAndTangentMaterial(Tensor *stress, Tensor *tm, Tensor &strain, double*, double temp);
      
     void integrate(Tensor *stress, Tensor *tm, Tensor &en, Tensor &enp,
-                   double *staten, double *statenp, double);
+                   double *staten, double *statenp, double temp);
 
     void integrate(Tensor *stress, Tensor &en, Tensor &enp,
-                   double *staten, double *statenp, double);
+                   double *staten, double *statenp, double temp);
 
     void initStates(double *);
 
@@ -57,7 +57,7 @@ class MaterialWrapper : public NLMaterial
 
     double getEquivPlasticStrain(double *statenp);
 
-    double getStrainEnergyDensity(Tensor &enp, double *statenp);
+    double getStrainEnergyDensity(Tensor &enp, double *statenp, double temp);
 
     double getPosdefifyTol() { return posdefifyTol; }
 

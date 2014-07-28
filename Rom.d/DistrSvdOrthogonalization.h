@@ -72,7 +72,7 @@ public:
   Scalar singularValue(int rank) const;
   const Scalar *singularValueBuffer() const;
 
-  // Ctor and dtor
+  // Cosntructor and destructor
   DistrSvdOrthogonalization(Communicator *comm, int rowCpus, int colCpus);
   ~DistrSvdOrthogonalization();
 

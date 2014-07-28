@@ -10,15 +10,16 @@
 #include <Timers.d/StaticTimers.h>
 #include <Timers.d/GetTime.h>
 #include <Math.d/Vector.h>
-#include <Math.d/mathUtility.h>
 #include <Utils.d/DistHelper.h>
 #include <Paral.d/MDStatic.h>
 #include <Paral.d/MDDynam.h>
+#include <Paral.d/MDOp.h>
 #ifdef DISTRIBUTED
 #include <Dist.d/DistDom.h>
 #endif
 #include <Hetero.d/DistFlExchange.h>
 #include <Utils.d/ModeData.h>
+#include <Control.d/ControlInterface.h>
 
 extern ModeData modeData;
 
@@ -115,7 +116,6 @@ MDNLDynamic::formRHSinitializer(DistrVector &fext, DistrVector &velocity, DistrV
     C->mult(velocity, *localTemp);
     rhs.linC(rhs, -1.0, *localTemp);
   }
-  geomState.pull_back(rhs); // rhs = R^T*rhs
 }
 
 double
@@ -718,6 +718,7 @@ MDNLDynamic::getExternalForce(DistrVector& f, DistrVector& constantForce,
   if(domain->solInfo().thermoeFlag >= 0 && tIndex >= 0) {
     distFlExchanger->getStrucTemp(nodalTemps->data());
     if(verboseFlag) filePrint(stderr, " ... [E] Received temperatures      ...\n");
+    geomState->setNodalTemperatures(*nodalTemps);
   }
 
   double beta, gamma, alphaf, alpham;

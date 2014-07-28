@@ -142,6 +142,7 @@ extern std::map<int,double> fieldWeightList;
 #include <Element.d/Joint.d/PinInSlotJointSpringCombo.h>
 #include <Element.d/Force.d/FollowerMomentElement.h>
 #include <Element.d/Force.d/FollowerForceElement.h>
+#include <Element.d/DiscreteMass.d/DiscreteMass6Dof.h>
 #endif
 
 #include <Element.d/Brick32.d/Brick32.h> 
@@ -165,11 +166,9 @@ extern std::map<int,double> fieldWeightList;
 
 #include <Element.d/BelytschkoTsayShell.d/BelytschkoTsayShell.h>
 
-#include <Driver.d/Domain.h>
-
 #include <numeric>
 
-extern Domain *domain;
+extern SolverInfo &solInfo;
 extern std::auto_ptr<ElementFactory> elemFact;
 
 struct weight_add {
@@ -437,11 +436,11 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        break;
 #ifdef USE_EIGEN3
      case 65:
-       ele = new (ba) RigidTwoNodeTruss(n);
+       ele = new (ba) RigidTwoNodeTrussWithMass(n);
        ele->setCategory(Element::Structural);
        break;
      case 66:
-       ele = new (ba) RigidBeam(n);
+       ele = new (ba) RigidBeamWithMass(n);
        ele->setCategory(Element::Structural);
        break;
      case 67:
@@ -616,7 +615,7 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        break;
 #ifdef USE_EIGEN3
      case 106:
-       ele = new (ba) RigidBeam(n,1);
+       ele = new (ba) RigidBeamWithMass(n,1);
        ele->setCategory(Element::Structural);
        break;
 #endif
@@ -691,6 +690,19 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        break;
      case 127:
        ele = new (ba) PinInSlotJoint(n);
+       ele->setCategory(Element::Structural);
+       break;
+     case 131:
+       ele = new (ba) DiscreteMass6Dof(n);
+       ele->setCategory(Element::Structural);
+       solInfo.inertiaLumping = 2;
+       break;
+     case 132:
+       ele = new (ba) RigidBeam(n);
+       ele->setCategory(Element::Structural);
+       break;
+     case 133:
+       ele = new (ba) RigidBeam(n,1);
        ele->setCategory(Element::Structural);
        break;
      case 134:

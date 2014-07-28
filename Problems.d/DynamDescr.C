@@ -29,7 +29,7 @@
 #include <Control.d/ControlInterface.h>
 #include <Solvers.d/Rbm.h>
 #include <Utils.d/BinFileHandler.h>
-
+#include <Utils.d/DistHelper.h>
 #include <Utils.d/linkfc.h>
 #include <Driver.d/GeoSource.h>
 #include <Driver.d/ControlLawInfo.h>
@@ -697,6 +697,7 @@ SingleDomainDynamic::computeExtForce2(SysState<Vector> &state, Vector &ext_f,
   // THERMOE update nodal temperatures
   if(domain->solInfo().thermoeFlag >= 0 && tIndex >= 0) {
     domain->thermoeComm();
+    if(geomState) geomState->setNodalTemperatures(domain->getNodalTemperatures());
   }
 
   // add f(t) to cnst_f
@@ -802,7 +803,8 @@ SingleDomainDynamic::preProcess()
     domain->computeGeometricPreStress(allCorot, geomState, kelArray, times, geomKelArray, melArray, melFlag);
   }
   else if(domain->tdenforceFlag())
-    geomState = new GeomState(*domain->getDSA(), *domain->getCDSA(), domain->getNodes(), &domain->getElementSet());
+    geomState = new GeomState(*domain->getDSA(), *domain->getCDSA(), domain->getNodes(), &domain->getElementSet(),
+                              domain->getNodalTemperatures());
 
   if(domain->solInfo().isNonLin() || domain->tdenforceFlag()) {
     // for nonlinear explicit we only need to initialize geomState with the constant constrained displacements (DISP).
@@ -837,7 +839,7 @@ SingleDomainDynamic::buildOps(double coeM, double coeC, double coeK)
  DynamMat *dMat = new DynamMat(true);
 
  domain->getTimers().constructTime -= getTime();
- allOps.K   = domain->constructDBSparseMatrix<double>();
+ allOps.K = domain->constructDBSparseMatrix<double>();
  if(geoSource->getMRatio() != 0) {
 #ifdef USE_EIGEN3
    if(domain->solInfo().svdPodRom) allOps.M = domain->constructEiSparseMatrix<double,Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> >();
@@ -971,8 +973,10 @@ SingleDomainDynamic::getInternalForce(Vector& d, Vector& f, double t, int tIndex
                                reactions, melArray);
     }
     f.linC(-1.0,residual); // f = -residual
+/* XXX now this is done in a separate function, SingleDomainDynamic::pull_back
     if(!domain->solInfo().galerkinPodRom && !domain->solInfo().getNLInfo().linearelastic)
       geomState->pull_back(f); // f = R^T*f
+*/
   }
   else {
     f.zero();
@@ -981,6 +985,27 @@ SingleDomainDynamic::getInternalForce(Vector& d, Vector& f, double t, int tIndex
 
   if(domain->solInfo().filterFlags || domain->solInfo().hzemFilterFlag)
     trProject(f);
+}
+
+void
+SingleDomainDynamic::pull_back(Vector& f)
+{
+  if(domain->solInfo().isNonLin() && !domain->solInfo().galerkinPodRom && !domain->solInfo().getNLInfo().linearelastic) {
+    // Transform both moments and forces to convected frame: f = [R^T  I ]*f
+    //                                                           [ I  R^T]
+    geomState->pull_back(f); 
+  }
+}
+
+void
+SingleDomainDynamic::push_forward(Vector &a)
+{
+  if(domain->solInfo().isNonLin() && !domain->solInfo().galerkinPodRom && !domain->solInfo().getNLInfo().linearelastic) {
+    // Transform 2nd time-derivative of displacement to spatial frame: a = [R I]*a
+    //                                                                     [I I]
+    // Note: the angular accelerations are deliberately not transformed.
+    geomState->push_forward(a); // XXX
+  }
 }
 
 void
@@ -1078,6 +1103,7 @@ void
 SingleDomainDynamic::thermoePreProcess(Vector&, Vector&, Vector&)
 {
   domain->thermoePreProcess();
+  if(geomState) geomState->setNodalTemperatures(domain->getNodalTemperatures());
 }
 
 void
@@ -1375,3 +1401,4 @@ SingleDomainDynamic::getThermohFlag()
 {
   return domain->solInfo().thermohFlag;
 }
+

@@ -2,9 +2,6 @@
 #define ROM_SPARSENONNEGATIVELEASTSQUARESSOLVER_H
 
 #include "SimpleBuffer.h"
-#ifdef USE_STXXL
-#include <stxxl/vector>
-#endif
 
 namespace Rom {
 
@@ -19,11 +16,21 @@ public:
   
   void problemSizeIs(long eqnCount, long unkCount);
 
+  // Options
   double relativeTolerance() const { return relativeTolerance_; }
   void relativeToleranceIs(double relTol) { relativeTolerance_ = relTol; }
 
   bool verboseFlag() const { return verboseFlag_; }
   void verboseFlagIs(bool verFlg) { verboseFlag_ = verFlg; }
+
+  bool scalingFlag() const { return scalingFlag_; }
+  void scalingFlagIs(bool scaFlg) { scalingFlag_ = scaFlg; }
+
+  int solverType() const { return solverType_; }
+  void solverTypeIs(int solTyp) { solverType_ = solTyp; }
+
+  double maxSizeRatio() const { return maxSizeRatio_; }
+  void maxSizeRatioIs(double maxSze) { maxSizeRatio_ = maxSze; }
 
   // Buffers: Internal column-major ordering, zero-based indexing
   // Matrix buffer: [equationCount by unknownCount]
@@ -61,9 +68,8 @@ public:
 
 private:
 
-  long equationCount_;
-  long unknownCount_;
-  long matrixLeadDim_;
+  long int equationCount_;
+  long int unknownCount_;
 
   double relativeTolerance_;
   MatrixBufferType matrixBuffer_;
@@ -74,6 +80,9 @@ private:
 
   double errorMagnitude_;
   bool verboseFlag_;
+  bool scalingFlag_;
+  int solverType_;
+  double maxSizeRatio_;
 
   // Disallow copy & assignment
   SparseNonNegativeLeastSquaresSolver(const SparseNonNegativeLeastSquaresSolver &);
@@ -90,7 +99,7 @@ SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::matrixBuffer() c
 template<typename MatrixBufferType, typename SizeType>
 typename MatrixBufferType::const_iterator
 SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::matrixColBuffer(int col) const {
-  return matrixBuffer() + (col * matrixLeadDim_);
+  return matrixBuffer() + (col * equationCount_);
 }
 
 template<typename MatrixBufferType, typename SizeType>
@@ -108,7 +117,7 @@ SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::matrixBuffer() {
 template<typename MatrixBufferType, typename SizeType>
 typename MatrixBufferType::iterator
 SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::matrixColBuffer(int col) {
-  return matrixBuffer() + (col * matrixLeadDim_);
+  return matrixBuffer() + (col * equationCount_);
 }
 
 template<typename MatrixBufferType, typename SizeType>

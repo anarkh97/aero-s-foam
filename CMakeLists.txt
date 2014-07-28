@@ -185,7 +185,8 @@ IF(UNIX)
      IF(EIGEN3_FOUND)
        MESSAGE("-- A library with EIGEN3 API found.")
        include_directories(${EIGEN3_INCLUDE_DIR})
-       add_definitions(-DUSE_EIGEN3 -DUSE_EIGEN3_AUTODIFF -DEIGEN_QUATERNIONBASE_PLUGIN=<Element.d/MpcElement.d/QuaternionBasePlugin.h>)
+       add_definitions(-DUSE_EIGEN3 -DEIGEN_QUATERNIONBASE_PLUGIN=<Element.d/MpcElement.d/QuaternionBasePlugin.h>
+                       -DEIGEN_DONT_PARALLELIZE)
        set(CMAKE_MODULE_PATH "${EIGEN3_INCLUDE_DIR}/cmake" ${CMAKE_MODULE_PATH})
        IF(NOT WITH_EIGEN3_EXTRA EQUAL 0)
          find_package(Cholmod)
@@ -216,7 +217,7 @@ IF(UNIX)
      ENDIF(EIGEN3_FOUND)
    ENDIF(NOT WITH_EIGEN3 EQUAL 0)
 
-#sacado
+# sacado
     IF(NOT WITH_SACADO EQUAL 0)
       FIND_PATH(SACADO_INCLUDE_PATH NAMES Sacado.hpp )
       IF(SACADO_INCLUDE_PATH)
@@ -319,21 +320,6 @@ IF(UNIX)
     endif(NOT MPI_FOUND)
    ENDIF(NOT WITH_MUMPS EQUAL 0)
 
-#stxxl
-    IF(NOT WITH_STXXL EQUAL 0)
-      FIND_LIBRARY(STXXL_LIBRARY NAMES stxxl
-                   PATHS /usr/lib /usr/local/lib)
-      FIND_PATH(STXXL_INCLUDE_PATH stxxl.h
-                PATHS /usr/include usr/local/include)
-      if(STXXL_LIBRARY AND STXXL_INCLUDE_PATH)
-        MESSAGE("-- A library with STXXL API found.")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -include stxxl/bits/defines.h")
-        add_definitions(-DUSE_STXXL -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE)
-        SET(INC_DIR ${INC_DIR} ${STXXL_INCLUDE_PATH})
-        SET(EXTRALIBRARIES ${EXTRALIBRARIES} ${STXXL_LIBRARY})
-      ENDIF(STXXL_LIBRARY AND STXXL_INCLUDE_PATH)
-    ENDIF(NOT WITH_STXXL EQUAL 0)
-
     FIND_PACKAGE(Boost 1.35)
     if(Boost_FOUND)
       add_definitions(-DUSE_BOOST)
@@ -374,6 +360,14 @@ ELSE (MERCURIAL_EXECUTABLE)
 ENDIF (MERCURIAL_EXECUTABLE)
 
 add_definitions(-D_TEMPLATE_FIX_ -DF_NEEDS_UNDSC -DSOWER_SURFS -DMAP_MIN_MEMORY)
+
+IF(SENSITIVITY_DEBUG EQUAL 1)
+   add_definitions(-DSENSITIVITY_DEBUG)
+endif(SENSITIVITY_DEBUG EQUAL 1)
+
+IF(AEROS_NO_AD EQUAL 1)
+   add_definitions(-DAEROS_NO_AD)
+endif(AEROS_NO_AD EQUAL 1)
 
 INCLUDE_DIRECTORIES( ${INC_DIR} )
 
@@ -441,7 +435,6 @@ IF(CREATE_DSO)
                          PREFIX "")
 endif(CREATE_DSO)
 
-
 IF(NOT CREATE_DSO)
   add_executable(femexecutable  main.C HgIdentity.C)
 
@@ -485,7 +478,7 @@ set_target_properties(errorcodec6
 target_link_libraries(errorcodec6 Rom Util)
 
 IF(NOT CMAKE_BUILD_TYPE)
-  SET(CMAKE_BUILD_TYPE Release CACHE STRING 
+  SET(CMAKE_BUILD_TYPE Debug CACHE STRING 
       "Choose the type of build, options are: None(CMAKE_CXX_FLAGS or CMAKE_C_FLAGS used) Debug Release RelWithDebInfo MinSizeRel."
       FORCE)
 ENDIF(NOT CMAKE_BUILD_TYPE)

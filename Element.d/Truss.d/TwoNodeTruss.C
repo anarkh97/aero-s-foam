@@ -429,8 +429,6 @@ TwoNodeTruss::stiffness(CoordSet &cs, double *k, int flg)
 
         double elementK = prop->E*prop->A/length;
 
-//        fprintf(stderr,"element K = %g \n", elementK);
-
         int i,j;
         for(i=0; i < 3; ++i)
           for(j=0; j < 3; ++j) {
@@ -441,7 +439,6 @@ TwoNodeTruss::stiffness(CoordSet &cs, double *k, int flg)
           }
 
         if (preload != 0.0)  {
-//        fprintf(stderr," ... Adding Preload for Truss ...\n");
           for(i=0; i < 3; ++i) {
              ret[i][i]     += preload/length;
              ret[i+3][i+3] += preload/length;
@@ -449,8 +446,6 @@ TwoNodeTruss::stiffness(CoordSet &cs, double *k, int flg)
              ret[i][i+3]   = -ret[i][i];
           }
         }
-//        fprintf(stderr," ... Element Stiffness Matrix for Truss ...\n");
-//        ret.print();
         return ret;
 }
 
@@ -556,11 +551,10 @@ TwoNodeTruss::getThermalForce(CoordSet &cs, Vector &ndTemps, Vector &elementTher
 
   for(i=0; i<6; ++i) {
     elementThermalForce[i] = 0.0;
-      for(j=0; j<2; ++j)
-        elementThermalForce[i] += elC[i][j]*(ndTemps[j]-Tref);
+    for(j=0; j<2; ++j)
+      elementThermalForce[i] += elC[i][j]*(ndTemps[j]-Tref);
   }
 }
-
 
 void
 TwoNodeTruss::getVonMises(Vector& stress, Vector& weight, CoordSet& cs,
@@ -596,7 +590,7 @@ TwoNodeTruss::getVonMises(Vector& stress, Vector& weight, CoordSet& cs,
    double exx = dq/length;
 
 
-    switch (avgnum) {
+   switch (avgnum) {
 
       case 0:
       {
@@ -619,7 +613,7 @@ TwoNodeTruss::getVonMises(Vector& stress, Vector& weight, CoordSet& cs,
            }
 
            // compute stresses 
-	         double elForce[2]={0.0,0.0};
+           double elForce[2]={0.0,0.0};
            elForce[0] = -f + fth1;
            elForce[1] =  f - fth2;
            if(strInd == 0) {    
@@ -677,13 +671,13 @@ TwoNodeTruss::getVonMises(Vector& stress, Vector& weight, CoordSet& cs,
            stress[0] = tmpStr1[strInd];
            stress[1] = tmpStr2[strInd];
         } else if (strInd == 6) {
-          // Compute von Mises stress resultant
-          double f = prop->A*prop->E*exx;
-          f += preload;
+           // Compute von Mises stress resultant
+           double f = prop->A*prop->E*exx;
+           f += preload;
 
-          // Compute thermal force
-          double coefficient = prop->E*prop->A*prop->W;
-          double Tref = prop->Ta;
+           // Compute thermal force
+           double coefficient = prop->E*prop->A*prop->W;
+           double Tref = prop->Ta;
            double fth1(0);
            double fth2(0);
            if(ndTemps) {
@@ -751,7 +745,7 @@ TwoNodeTruss::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vec
              + dy*(elDisp[4]-elDisp[1])
              + dz*(elDisp[5]-elDisp[2]);
 
-    switch (avgnum) {
+   switch (avgnum) {
 
       case 0:
       case 1:
@@ -790,12 +784,12 @@ TwoNodeTruss::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vec
           // Compute thermal force
           double coefficient = prop->E*prop->A*prop->W;
           double Tref = prop->Ta;
-           double fth1(0);
-           double fth2(0);
-           if(ndTemps) {
+          double fth1(0);
+          double fth2(0);
+          if(ndTemps) {
              fth1 = coefficient*(ndTemps[0]-Tref);
              fth2 = coefficient*(ndTemps[1]-Tref);
-           }
+          }
    
           if(-f+fth1<0) dStdx *= -1; 
 
@@ -854,7 +848,7 @@ TwoNodeTruss::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
    // Compute axial strain
    double exx = dq/length;
 
-    switch (avgnum) {
+   switch (avgnum) {
 
       case 0:
       case 1:

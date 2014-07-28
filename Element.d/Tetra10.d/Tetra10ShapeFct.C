@@ -126,8 +126,6 @@ Tetra10ShapeFct(double Shape[10], double dShape[10][3], double m[3])
   dShape[7][0] = -4.*t  ; dShape[7][1] = -4.*t  ; dShape[7][2] =  4.*(u-t); // PJSA 6/8/2014
   dShape[8][0] =  4.*t  ; dShape[8][1] =  0.0   ; dShape[8][2] =  4.*r  ;
   dShape[9][0] =  0.0   ; dShape[9][1] =  4.*t  ; dShape[9][2] =  4.*s  ;
-
-  // -------> DERIVATIVE OF THE SHAPE FCTS W.R.T GLOBAL COORDINATE SYSTEM
 }
 
 // HB (06-19-05): shape fct & derivatives for the 10 nodes tetrahedral element (Iso-parametric formulation)

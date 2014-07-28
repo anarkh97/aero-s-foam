@@ -20,6 +20,7 @@ class ForceFunctionElement : public BoundaryElement
     void getInternalForce(GeomState*, GeomState&, CoordSet&, FullSquareMatrix&, double*, double, double);
     void computePressureForce(CoordSet&, Vector& elPressureForce,
                               GeomState *gs = 0, int cflg = 0, double t = 0.0);
+  private:
     void getJacobian(GeomState *refState, GeomState &c1, CoordSet& c0, FullM& B, double t);
 
   protected:

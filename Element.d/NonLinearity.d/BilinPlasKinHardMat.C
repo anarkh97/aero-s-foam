@@ -1,11 +1,14 @@
-#include <Element.d/NonLinearity.d/NLMaterial.h>
+#include <Element.d/Element.h>
 #include <Element.d/NonLinearity.d/StrainEvaluator.h>
+#include <Utils.d/NodeSpaceArray.h>
 
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
 #include <limits>
 #include <cstddef>
+
+template <class T> inline double delta(T a, T b) { return (a==b) ? 1.0 : 0.0; }
 
 template<int e>
 ElasPlasKinHardMat<e>::ElasPlasKinHardMat(StructProp *p)
@@ -15,11 +18,13 @@ ElasPlasKinHardMat<e>::ElasPlasKinHardMat(StructProp *p)
   Ep = p->Ep;         // Tangent modulus from the strain-stress curve
   sigE = p->sigE;     // Yield equivalent stress
   theta = 0;
+  Tref = p->Ta;
+  alpha = p->W;
 }
 
 template<int e>
 void
-ElasPlasKinHardMat<e>::getStress(Tensor *stress, Tensor &strain, double *state)
+ElasPlasKinHardMat<e>::getStress(Tensor *stress, Tensor &strain, double *state, double temp)
 {
   std::cerr << "WARNING: ElasPlasKinHardMat<e>::getStress is not implemented\n";
 }
@@ -50,21 +55,21 @@ ElasPlasKinHardMat<e>::getElasticity(Tensor *_tm)
 
 template<int e>
 void 
-ElasPlasKinHardMat<e>::getTangentMaterial(Tensor *tm, Tensor &strain, double *state)
+ElasPlasKinHardMat<e>::getTangentMaterial(Tensor *tm, Tensor &strain, double *state, double temp)
 {
   std::cerr << "WARNING: ElasPlasKinHardMat<e>::getTangentMaterial is not implemented\n";
 }
 
 template<int e>
 void 
-ElasPlasKinHardMat<e>::getStressAndTangentMaterial(Tensor *stess, Tensor *tm, Tensor &strain, double *state)
+ElasPlasKinHardMat<e>::getStressAndTangentMaterial(Tensor *stess, Tensor *tm, Tensor &strain, double *state, double temp)
 {
   std::cerr << "WARNING: ElasPlasKinHardMat<e>::getStressAndTangentMaterial is not implemented\n";
 }
 
 template<int e>
 void 
-ElasPlasKinHardMat<e>::updateStates(Tensor en, Tensor enp, double *state)
+ElasPlasKinHardMat<e>::updateStates(Tensor &en, Tensor &enp, double *state, double temp)
 {
   std::cerr << "WARNING: ElasPlasKinHardMat<e>::updateStates is not implemented\n";
 }
@@ -72,7 +77,7 @@ ElasPlasKinHardMat<e>::updateStates(Tensor en, Tensor enp, double *state)
 template<int e>
 void
 ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor *_tm, Tensor &_en, Tensor  &_enp,
-                               double *staten, double *statenp, double)
+                                 double *staten, double *statenp, double temp)
 {
   //////////////////////////////////////////////////////////////////////////////
   /// Simo and Hughes - Computational Inelasticity - Springer -1998- (p:124) ///
@@ -80,38 +85,39 @@ ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor *_tm, Tensor &_en, Tens
 
   // theta == 0 corresponds to Kinematic hardening and theta == 1 to isotropic 
   // hardening. Note: this is now a member variable with default value 0
-  //double theta = 0.0;
+
+  Tensor_d0s4_Ss12s34 &tm = static_cast<Tensor_d0s4_Ss12s34 &>(*_tm);
+  Tensor_d0s2_Ss12 &enp = static_cast<Tensor_d0s2_Ss12 &>(_enp);
+  Tensor_d0s2_Ss12 &stress = static_cast<Tensor_d0s2_Ss12 &>(*_stress);
+
+  // subtract thermal strain
+  double e0 = (temp-Tref)*alpha;
+  enp[0] -= e0;
+  enp[3] -= e0;
+  enp[5] -= e0;
 
   if(statenp == 0) {
 
     double lambda = E*nu/((1.+nu)*(1.-2.*nu));
     double lambdadivnu = (nu != 0) ? lambda/nu : E;
 
-    Tensor_d0s4_Ss12s34 *tm = static_cast<Tensor_d0s4_Ss12s34 *>(_tm); 
-    Tensor_d0s2_Ss12 & enp = static_cast<Tensor_d0s2_Ss12 &>(_enp);
-    Tensor_d0s2_Ss12 * stress = static_cast<Tensor_d0s2_Ss12 *>(_stress); 
+    tm[0][0] = lambdadivnu*(1-nu);
+    tm[1][1] = lambdadivnu*(1-2*nu)/2;
+    tm[2][2] = lambdadivnu*(1-2*nu)/2;
+    tm[3][3] = lambdadivnu*(1-nu);
+    tm[4][4] = lambdadivnu*(1-2*nu)/2;
+    tm[5][5] = lambdadivnu*(1-nu);
+    tm[0][3] = lambdadivnu*nu;
+    tm[3][0] = lambdadivnu*nu;
+    tm[0][5] = lambdadivnu*nu;
+    tm[5][0] = lambdadivnu*nu;
+    tm[3][5] = lambdadivnu*nu;
+    tm[5][3] = lambdadivnu*nu;
 
-    (*tm)[0][0] = lambdadivnu*(1-nu);
-    (*tm)[1][1] = lambdadivnu*(1-2*nu)/2;
-    (*tm)[2][2] = lambdadivnu*(1-2*nu)/2;
-    (*tm)[3][3] = lambdadivnu*(1-nu);
-    (*tm)[4][4] = lambdadivnu*(1-2*nu)/2;
-    (*tm)[5][5] = lambdadivnu*(1-nu);
-    (*tm)[0][3] = lambdadivnu*nu;
-    (*tm)[3][0] = lambdadivnu*nu;
-    (*tm)[0][5] = lambdadivnu*nu;
-    (*tm)[5][0] = lambdadivnu*nu;
-    (*tm)[3][5] = lambdadivnu*nu;
-    (*tm)[5][3] = lambdadivnu*nu;
-
-    (*stress) = (*tm)||enp;
+    stress = tm||enp;
   }
   else {
-    //state: from 0 to 5, plastic strain ; from 6 to 11, center of the yield surface; 12 equivalent plastic strain
-
-    Tensor_d0s4_Ss12s34 &tm = static_cast<Tensor_d0s4_Ss12s34 &>(*_tm); 
-    Tensor_d0s2_Ss12 & enp = static_cast<Tensor_d0s2_Ss12 &>(_enp);
-    Tensor_d0s2_Ss12 & stress = static_cast<Tensor_d0s2_Ss12 &>(*_stress); 
+    //state: from 0 to 5, plastic strain; from 6 to 11, center of the yield surface; 12 equivalent plastic strain
 
     double lambda = E*nu/((1.+nu)*(1.-2.*nu));
     double mu = E/(2*(1+nu));
@@ -144,7 +150,6 @@ ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor *_tm, Tensor &_en, Tens
       //fprintf(stderr, "je suis dans la yield surface\n");
 
       for (int i=0; i<13; ++i) {
-        //fprintf(stderr, "staten[%d]=%e\n", i, staten[i]);
         statenp[i] = staten[i] ;
       }
 
@@ -154,7 +159,9 @@ ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor *_tm, Tensor &_en, Tens
       stress = tm || temp;
     }
     else {
+
       //fprintf(stderr, "je suis en dehors de la yield surface\n");
+
       int i,j,k,l;
 
       double plastmult = trialyieldnp/(2*mu+(2./3)*Hprime); 
@@ -186,7 +193,7 @@ ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor *_tm, Tensor &_en, Tens
 template<int e>
 void
 ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor &_en, Tensor  &_enp,
-                               double *staten, double *statenp, double)
+                                 double *staten, double *statenp, double temp)
 {
   //////////////////////////////////////////////////////////////////////////////
   /// Simo and Hughes - Computational Inelasticity - Springer -1998- (p:124) ///
@@ -194,39 +201,40 @@ ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor &_en, Tensor  &_enp,
 
   // theta == 0 corresponds to Kinematic hardening and theta == 1 to isotropic 
   // hardening. Note: this is now a member variable with default value 0
-  //double theta = 0.0;
+
+  Tensor_d0s2_Ss12 &enp = static_cast<Tensor_d0s2_Ss12 &>(_enp);
+  Tensor_d0s2_Ss12 &stress = static_cast<Tensor_d0s2_Ss12 &>(*_stress);
+
+  // subtract thermal strain
+  double e0 = (temp-Tref)*alpha;
+  enp[0] -= e0;
+  enp[3] -= e0;
+  enp[5] -= e0;
 
   if(statenp == 0) {
 
     double lambda = E*nu/((1.+nu)*(1.-2.*nu));
     double lambdadivnu = (nu != 0) ? lambda/nu : E;
 
-    Tensor_d0s4_Ss12s34 *tm = new Tensor_d0s4_Ss12s34(); 
-    Tensor_d0s2_Ss12 & enp = static_cast<Tensor_d0s2_Ss12 &>(_enp);
-    Tensor_d0s2_Ss12 * stress = static_cast<Tensor_d0s2_Ss12 *>(_stress); 
+    Tensor_d0s4_Ss12s34 tm; 
 
-    (*tm)[0][0] = lambdadivnu*(1-nu);
-    (*tm)[1][1] = lambdadivnu*(1-2*nu)/2;
-    (*tm)[2][2] = lambdadivnu*(1-2*nu)/2;
-    (*tm)[3][3] = lambdadivnu*(1-nu);
-    (*tm)[4][4] = lambdadivnu*(1-2*nu)/2;
-    (*tm)[5][5] = lambdadivnu*(1-nu);
-    (*tm)[0][3] = lambdadivnu*nu;
-    (*tm)[3][0] = lambdadivnu*nu;
-    (*tm)[0][5] = lambdadivnu*nu;
-    (*tm)[5][0] = lambdadivnu*nu;
-    (*tm)[3][5] = lambdadivnu*nu;
-    (*tm)[5][3] = lambdadivnu*nu;
+    tm[0][0] = lambdadivnu*(1-nu);
+    tm[1][1] = lambdadivnu*(1-2*nu)/2;
+    tm[2][2] = lambdadivnu*(1-2*nu)/2;
+    tm[3][3] = lambdadivnu*(1-nu);
+    tm[4][4] = lambdadivnu*(1-2*nu)/2;
+    tm[5][5] = lambdadivnu*(1-nu);
+    tm[0][3] = lambdadivnu*nu;
+    tm[3][0] = lambdadivnu*nu;
+    tm[0][5] = lambdadivnu*nu;
+    tm[5][0] = lambdadivnu*nu;
+    tm[3][5] = lambdadivnu*nu;
+    tm[5][3] = lambdadivnu*nu;
 
-    (*stress) = (*tm)||enp;
-    delete tm;
+    stress = tm||enp;
   }
   else {
     //state: from 0 to 5, plastic strain; from 6 to 11, center of the yield surface; 12 equivalent plastic strain
-
-    Tensor_d0s4_Ss12s34 tm; 
-    Tensor_d0s2_Ss12 & enp = static_cast<Tensor_d0s2_Ss12 &>(_enp);
-    Tensor_d0s2_Ss12 & stress = static_cast<Tensor_d0s2_Ss12 &>(*_stress); 
 
     double lambda = E*nu/((1.+nu)*(1.-2.*nu));
     double mu = E/(2*(1+nu));
@@ -259,17 +267,19 @@ ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor &_en, Tensor  &_enp,
       //fprintf(stderr, "je suis dans la yield surface\n");
 
       for (int i=0; i<13; ++i) {
-        //fprintf(stderr, "staten[%d]=%e\n", i, staten[i]);
         statenp[i] = staten[i] ;
       }
 
+      Tensor_d0s4_Ss12s34 tm;
       getElasticity(&tm);
 
       temp = (enp - eplastn);
       stress = tm || temp;
     }
     else {
+
       //fprintf(stderr, "je suis en dehors de la yield surface\n");
+
       int i,j,k,l;
 
       double plastmult = trialyieldnp/(2*mu+(2./3)*Hprime); 
@@ -340,7 +350,7 @@ ElasPlasKinHardMat<e>::getPlasticStrain(double *statenp, Tensor *_plasticstrain)
 
 template<int e>
 double
-ElasPlasKinHardMat<e>::getStrainEnergyDensity(Tensor &_enp, double *statenp)
+ElasPlasKinHardMat<e>::getStrainEnergyDensity(Tensor &_enp, double *statenp, double temp)
 {
   Tensor_d0s2_Ss12 &enp = static_cast<Tensor_d0s2_Ss12 &>(_enp);
   Tensor_d0s2_Ss12 eplastnp;

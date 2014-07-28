@@ -3,18 +3,16 @@
 
 #include <Element.d/Element.h>
 
-class PentaCorotator;
-
 class Pentahedral: public Element
 {
     int nn[6];
     double *cCoefs;
     double *cFrame;
-    PentaCorotator* pentaCorotator;
     NLMaterial *mat;
 
   public:
     Pentahedral(int*);
+    ~Pentahedral();
 
     Element *clone();
 

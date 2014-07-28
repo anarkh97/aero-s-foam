@@ -20,8 +20,9 @@ class NodeState {
                                         // note: by convention angular velocities and accelerations are
                                         //       convected, except in the case of implicit ROM in which 
                                         //       case they are time derivatives of the rotation vector
-    double theta[3];                    // Rotation vector
-    double R[3][3];                     // Rotation Tensor
+    double theta[3];                    // rotation vector
+    double R[3][3];                     // rotation tensor
+    double temp;                        // temperature
     void operator=(const NodeState &);
     double diff(const Node &un, int dof);
     NodeState() { for(int i = 0; i < 6; ++i) v[i] = a[i] = 0;
@@ -58,7 +59,7 @@ class GeomState {
      GeomState(CoordSet &cs);
 
      // Constructor
-     GeomState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet &cs, Elemset *elems = 0);
+     GeomState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet &cs, Elemset *elems = 0, double *ndTemps = 0);
 
      // Copy Constructor
      GeomState(const GeomState &);
@@ -86,6 +87,7 @@ class GeomState {
 
      void setPositions(double *positions);
      void setRotations(double *rotations);
+     void setNodalTemperatures(double *ndTemps);
      void setElemStates(double *elemStates);
 
      void extract(double *p);
@@ -111,8 +113,10 @@ class GeomState {
                                        bool zeroRot);
      virtual void get_inc_displacement(Vector &inc_Vec, GeomState &ss, bool zeroRot);
      virtual void get_tot_displacement(Vector &totVec, bool rescaled = true);
+     virtual void get_temperature(int numNodes, int* nodes, Vector &ndTemps, double Ta);
      virtual void push_forward(Vector &f);
      virtual void pull_back(Vector &f);
+
      virtual void transform(Vector &f, int flag, bool unscaled = false) const;
      virtual void transform(Vector &f, const std::vector<int> &, int flag, bool unscaled = false) const;
      void zeroRotDofs(Vector &vec);

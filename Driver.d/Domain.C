@@ -1,6 +1,7 @@
 #include <iostream>
 #include <sstream>
 #include <ctime>
+#include <algorithm>
 #include <Utils.d/dbg_alloca.h>
 
 #include <map>
@@ -23,7 +24,6 @@ using std::list;
 #include <Driver.d/Domain.h>
 #include <Element.d/Element.h>
 #include <Utils.d/ModeData.h>
-#include <Math.d/mathUtility.h>
 #include <Driver.d/GeoSource.h>
 #include <Feti.d/DistrVector.h>
 #include <Corotational.d/DistrGeomState.h>
@@ -136,7 +136,7 @@ Domain::makeAllDOFs() // build the dof connectivity
  // compute maximum number of nodes per element
  for(iele=0; iele < numele; ++iele) {
    int numNodesPerElement = packedEset[iele]->numNodes();
-   maxNumNodes = myMax(maxNumNodes, numNodesPerElement);
+   maxNumNodes = std::max(maxNumNodes, numNodesPerElement);
  }
 }
 
@@ -166,7 +166,7 @@ Domain::makeAllDOFsFluid()
  // compute maximum number of nodes per element
  for(iele=0; iele < numele; ++iele) {
    int numNodesPerElement = (*(geoSource->getPackedEsetFluid()))[iele]->numNodes();
-   maxNumNodesFluid = myMax(maxNumNodesFluid, numNodesPerElement);
+   maxNumNodesFluid = std::max(maxNumNodesFluid, numNodesPerElement);
  }
 }
 
@@ -329,6 +329,8 @@ Domain::addDMass(int n, int d, double mass, int jdof)
  firstDiMass->dof    = d;
  firstDiMass->diMass = mass;
  firstDiMass->jdof   = jdof;
+
+ if(jdof >= 0 && d != jdof) sinfo.inertiaLumping = 2;
 
  nDimass++;
 
@@ -1317,7 +1319,6 @@ Domain::setUpData()
 */
 
   stopTimerMemory(matrixTimers->setUpDataTime, matrixTimers->memorySetUp);
-
 }
 
 #ifndef OUTPUTMESSAGE
@@ -1930,7 +1931,7 @@ Domain::getCompositeData(int iInfo,double time) {
       int maxLayer=0;
       for(iele=0; iele<numele; ++iele) {
         MidPoint[iele] = packedEset[iele]->getMidPoint(nodes);
-        maxLayer = myMax(maxLayer,packedEset[iele]->getCompositeLayer());
+        maxLayer = std::max(maxLayer,packedEset[iele]->getCompositeLayer());
       }
 
       CPoint = new double**[maxLayer];
@@ -1962,7 +1963,7 @@ Domain::getCompositeData(int iInfo,double time) {
          dy = MidPoint[iele][1]-MidPoint[jele][1];
          dz = MidPoint[iele][2]-MidPoint[jele][2];
 	 dd = sqrt(dx*dx+dy*dy+dz*dz);
-	 minDist = myMin(minDist,dd);
+	 minDist = std::min(minDist,dd);
       }
     }
 
@@ -1983,8 +1984,8 @@ Domain::getCompositeData(int iInfo,double time) {
        double E2  = layData[1];
        double Phi = layData[8];
 
-       double length1 = crossScale * E1 / myMax(E1,E2) / 2.0;
-       double length2 = crossScale * E2 / myMax(E1,E2) / 2.0;
+       double length1 = crossScale * E1 / std::max(E1,E2) / 2.0;
+       double length2 = crossScale * E2 / std::max(E1,E2) / 2.0;
 
        // .... Adjust Phi
 
@@ -2093,8 +2094,8 @@ Domain::getCompositeData(int iInfo,double time) {
        double E2  = layData[1];
        double Phi = layData[8];
 
-       double length1 = crossScale * E1 / myMax(E1,E2) / 2.0;
-       double length2 = crossScale * E2 / myMax(E1,E2) / 2.0;
+       double length1 = crossScale * E1 / std::max(E1,E2) / 2.0;
+       double length2 = crossScale * E2 / std::max(E1,E2) / 2.0;
 
        // .... Adjust Phi
 
@@ -2281,7 +2282,7 @@ void Domain::computeTDProps()
     int iele;
     for(iele=0; iele < numele; ++iele) {
       int numNodesPerElement = packedEset[iele]->numNodes();
-      maxNumNodes = myMax(maxNumNodes, numNodesPerElement);
+      maxNumNodes = std::max(maxNumNodes, numNodesPerElement);
     }
 
     int i;
@@ -2305,11 +2306,18 @@ void Domain::computeTDProps()
     elemNodeTemps.zero();
     double *nodalTemperatures = getNodalTemperatures();
     for(iele = 0; iele < numele; ++iele) {
-      // note: packedEset[iele]->numNodes() > 2 is temp fix to avoid springs
-      // this means that until fixed, beams can't have temp-dependent material props
-      if((packedEset[iele]->numNodes() > 2) && !packedEset[iele]->isPhantomElement()) {
-        if((packedEset[iele]->getProperty()->E < 0) ||
-           (packedEset[iele]->getProperty()->W < 0)) { // iele has temp-dependent E or W
+      if((packedEset[iele]->numNodes() > 1) && !packedEset[iele]->isSpring() && !packedEset[iele]->isPhantomElement()) {
+
+        if(packedEset[iele]->getProperty()->E < 0) {
+          int id = (int) -packedEset[iele]->getProperty()->E;
+          packedEset[iele]->getProperty()->ymtt = ymtt[ymttmap[id]];
+        }
+        if(packedEset[iele]->getProperty()->W < 0) {
+          int id = (int) -packedEset[iele]->getProperty()->W;
+          packedEset[iele]->getProperty()->ctett = ctett[ctettmap[id]];
+        }
+
+        if((packedEset[iele]->getProperty()->ymtt) || (packedEset[iele]->getProperty()->ctett)) { // iele has temp-dependent E or W
           int NodesPerElement = packedEset[iele]->numNodes();
           packedEset[iele]->nodes(nodeNumbers);
 
@@ -2317,33 +2325,31 @@ void Domain::computeTDProps()
           double avTemp = 0.0;
           int iNode;
           for(iNode = 0; iNode < NodesPerElement; ++iNode) {
-            if(nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
+            if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
               elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
             else
               elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
             avTemp += elemNodeTemps[iNode];
           }
           avTemp /= NodesPerElement;
-          // if(avTemp > 0) std::cerr << "element = " << iele << ", avTemp = " << avTemp << std::endl;
 
           StructProp *newProp = new StructProp(*packedEset[iele]->getProperty());
           // compute E using interp table
-          if(packedEset[iele]->getProperty()->E < 0) {
-            int id = (int) -packedEset[iele]->getProperty()->E;
-            newProp->E = ymtt[ymttmap[id]]->getValAlt(avTemp);
+          if(packedEset[iele]->getProperty()->ymtt) {
+            newProp->E = packedEset[iele]->getProperty()->ymtt->getValAlt(avTemp);
           }
 
           // compute coeff of thermal expansion using interp table
-          if(packedEset[iele]->getProperty()->W < 0) {
-            int id  = (int) -packedEset[iele]->getProperty()->W;
-            newProp->W = ctett[ctettmap[id]]->getValAlt(avTemp);
+          if(packedEset[iele]->getProperty()->ctett) {
+            newProp->W = packedEset[iele]->getProperty()->ctett->getValAlt(avTemp);
           }
           packedEset[iele]->setProp(newProp);
         }
       }
     }
+    delete [] ymttmap;
+    delete [] ctettmap;
     delete [] nodeNumbers;
-    //delete [] nodalTemperatures;
   }
 }
 
@@ -3546,7 +3552,9 @@ Domain::ProcessSurfaceBCs(int topFlag)
                case 12: type = 20; break;
                case 10: type = 21; break;
              }
-             addNeumElem(-1, type, surface_pres[i].val, nVertices, nodes, new PressureBCond(surface_pres[i]));
+             PressureBCond *pbc = new PressureBCond(surface_pres[i]);
+             pbc->elnum = -1;
+             addNeumElem(-1, type, surface_pres[i].val, nVertices, nodes, pbc);
              delete [] nodes;
           }
           else {

@@ -1,5 +1,5 @@
         subroutine sands6(area,e,elm,stress,maxsze,maxgus,maxstr,eframe,
-     &                    ix,iy,iz,nu,x,y,z,ug, alpha, tref, Temp)
+     &                    ix,iy,iz,nu,x,y,z,ug,alpha,tref,Temp)
 *********************************************************************
 *	THIS SUBROUTINE WILL COMPUTE THE INTERNAL FORCES FOR THE    *
 * EULER-BERNOULLI BEAM ELEMENT AND STORE THEM IN THE STRESS ARRAY   *
@@ -188,13 +188,10 @@ C
 
 C
 C.... COMPUTE THERMAL STRESS
-C.... BE CAREFUL!!!!! put tref to 0 in INPUT file if you don't want 
-C.... this term to be included
 
        do i=1,2
         tl(i) = temp(i) - tref
        enddo
-C        print*,"Beam T1 T2 ", temp(1), temp(2)
 
        tstress = e*alpha*area*(tl(1)+tl(2))/2.
 C

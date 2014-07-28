@@ -18,7 +18,7 @@ class SuperCorotator : public Corotator
   virtual ~SuperCorotator();
   
   void setSubCorotator(int i, Corotator *subCorotator)
-     {  subElemCorotators[i] = subCorotator; }
+     { subElemCorotators[i] = subCorotator; }
   double* getPreviouslyExtractedSubDeformations(int i) { return (sub_vld) ? sub_vld[i] : 0; }
   double* getPreviouslyExtractedSubRigidBodyMotion(int i) { return (sub_vlr) ? sub_vlr[i] : 0; }
 
@@ -32,8 +32,10 @@ class SuperCorotator : public Corotator
   void formGeometricStiffness(GeomState &geomState, CoordSet &cs, FullSquareMatrix &k, double *f);
   double* getOriginalStiffness();
   void extractDeformations(GeomState &geomState, CoordSet &cs, double *vld, int &nlflag);
-  void getNLVonMises(Vector &stress, Vector &weight, GeomState &geomState, CoordSet &cs, int strInd);
-  void getNLAllStress(FullM &stress, Vector &weight, GeomState &geomState, CoordSet &cs, int strInd);
+  void getNLVonMises(Vector& stress, Vector& weight, GeomState &curState, GeomState *refState, CoordSet& c0, int strIndex,
+                     int surface = 0, double ylayer = 0, double zlayer = 0, int avgnum = 0, int measure = -1);
+  void getNLAllStress(FullM &stress, Vector &weight, GeomState &curState, GeomState *refState, CoordSet &c0, int strInd,
+                      int surface = 0, int measure = -1);
   double getElementEnergy(GeomState &geomState, CoordSet &cs);
   double getDissipatedEnergy(GeomState &geomState, CoordSet &cs);
   void extractRigidBodyMotion(GeomState &geomState, CoordSet &cs, double *vlr);
@@ -43,6 +45,11 @@ class SuperCorotator : public Corotator
   void initMultipliers(GeomState& c1);
   void updateMultipliers(GeomState& c1);
   double getError();
+
+  bool useDefaultInertialStiffAndForce();
+  void getInertialStiffAndForce(GeomState *refState, GeomState& c1, CoordSet& c0,
+                                FullSquareMatrix &elK, double *f, double dt, double t,
+                                double beta, double gamma, double alphaf, double alpham);
 };
 
 #endif

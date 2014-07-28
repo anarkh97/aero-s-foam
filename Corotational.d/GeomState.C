@@ -1,16 +1,20 @@
-#include <Driver.d/Domain.h>
 #include <Driver.d/EFrameData.h>
+#include <Driver.d/Mpc.h>
 #include <Corotational.d/GeomState.h>
 #include <Corotational.d/utilities.h>
 #include <Element.d/Function.d/utilities.hpp>
 #include <Utils.d/dofset.h>
 #include <Element.d/Element.h>
 #include <Driver.d/ControlLawInfo.h>
+#include <Utils.d/SolverInfo.h>
+#include <Math.d/Vector.h>
 
 //#define COMPUTE_GLOBAL_ROTATION
-extern Domain *domain;
+//#define NEW_PULL_BACK
 
-GeomState::GeomState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet &cs, Elemset *elems)
+extern SolverInfo &solInfo;
+
+GeomState::GeomState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet &cs, Elemset *elems, double *ndTemps)
  : X0(&cs)
 /****************************************************************
  *
@@ -132,6 +136,7 @@ GeomState::GeomState(DofSetArray &dsa, DofSetArray &cdsa, CoordSet &cs, Elemset 
   }
 
   numnodesFixed = numnodes;
+  setNodalTemperatures(ndTemps);
 }
 
 CoordSet emptyCoord;
@@ -442,7 +447,7 @@ GeomState::GeomState(const GeomState &g2) : X0(g2.X0), emap(g2.emap), multiplier
   for(int i = 0; i < numelems; ++i)
     es[i] = g2.es[i];
  
-  // Initialize Global Rotation Matrix & CG position // HB
+  // Initialize Global Rotation Matrix & CG position
   refCG[0] = g2.refCG[0];
   refCG[1] = g2.refCG[1];
   refCG[2] = g2.refCG[2];
@@ -456,32 +461,35 @@ GeomState::GeomState(const GeomState &g2) : X0(g2.X0), emap(g2.emap), multiplier
 void
 NodeState::operator=(const NodeState &node)
 {
- // Set x, y, and z coordinate values
- this->x = node.x;
- this->y = node.y;
- this->z = node.z;
+  // Assign x, y, and z coordinate values
+  x = node.x;
+  y = node.y;
+  z = node.z;
 
- // Set rotation tensor
- this->R[0][0] = node.R[0][0];
- this->R[0][1] = node.R[0][1];
- this->R[0][2] = node.R[0][2];
- this->R[1][0] = node.R[1][0];
- this->R[1][1] = node.R[1][1];
- this->R[1][2] = node.R[1][2];
- this->R[2][0] = node.R[2][0];
- this->R[2][1] = node.R[2][1];
- this->R[2][2] = node.R[2][2];
+  // Assign rotation tensor
+  R[0][0] = node.R[0][0];
+  R[0][1] = node.R[0][1];
+  R[0][2] = node.R[0][2];
+  R[1][0] = node.R[1][0];
+  R[1][1] = node.R[1][1];
+  R[1][2] = node.R[1][2];
+  R[2][0] = node.R[2][0];
+  R[2][1] = node.R[2][1];
+  R[2][2] = node.R[2][2];
 
- // Set rotation vector
- this->theta[0] = node.theta[0];
- this->theta[1] = node.theta[1];
- this->theta[2] = node.theta[2];
+  // Assign rotation vector
+  theta[0] = node.theta[0];
+  theta[1] = node.theta[1];
+  theta[2] = node.theta[2];
 
- // Copy the velocity and acceleration vectors
- for(int i = 0; i < 6; ++i) {
-   this->v[i] = node.v[i];
-   this->a[i] = node.a[i];
- }
+  // Assign velocity and acceleration vectors
+  for(int i = 0; i < 6; ++i) {
+    v[i] = node.v[i];
+    a[i] = node.a[i];
+  }
+
+  // Assign temperature
+  temp = node.temp;
 }
 
 void
@@ -542,7 +550,7 @@ GeomState::update(const Vector &v, int SO3param)
 
        if(cd) cd->invTransformVector3(dtheta);
 
-       if(domain->solInfo().getNLInfo().linearelastic || SO3param == 2) {
+       if(solInfo.getNLInfo().linearelastic || SO3param == 2) {
          // Additive update of total rotation vector
          for(int j=0; j<3; ++j) ns[i].theta[j] += dtheta[j];
          vec_to_mat( ns[i].theta, ns[i].R );
@@ -612,7 +620,7 @@ GeomState::update(const Vector &v, const std::vector<int> &weightedNodes, int SO
 
        if(cd) cd->invTransformVector3(dtheta);
 
-       if(domain->solInfo().getNLInfo().linearelastic || SO3param == 2) {
+       if(solInfo.getNLInfo().linearelastic || SO3param == 2) {
          // Additive update of total rotation vector
          for(int j=0; j<3; ++j) ns[i].theta[j] += dtheta[j];
          vec_to_mat( ns[i].theta, ns[i].R );
@@ -748,7 +756,7 @@ GeomState::setVelocity(const Vector &v, int SO3param)
     if(cd) cd->invTransformVector6(ns[i].v);
 #ifdef USE_EIGEN3
     if(SO3param == 2 && (loc[i][3] >= 0 || loc[i][4] >= 0 || loc[i][5] >= 0)
-       && !domain->solInfo().getNLInfo().linearelastic) {
+       && !solInfo.getNLInfo().linearelastic) {
       // conversion to convected angular velocity
       Eigen::Vector3d PsiI, PsiIdot, Omega;
       Eigen::Matrix3d R, T;
@@ -807,7 +815,7 @@ GeomState::setAcceleration(const Vector &a, int SO3param)
     if(cd) cd->invTransformVector6(ns[i].a);
 #ifdef USE_EIGEN3
     if(SO3param == 2 && (loc[i][3] >= 0 || loc[i][4] >= 0 || loc[i][5] >= 0)
-       && !domain->solInfo().getNLInfo().linearelastic) {
+       && !solInfo.getNLInfo().linearelastic) {
       // conversion from second time derivative of total rotation vector to convected angular acceleration
       Eigen::Vector3d PsiI, PsiIdot, PsiIddot, Omega, Alpha;
       Eigen::Matrix3d R, T, Tdot;
@@ -928,7 +936,7 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
     // Update angular velocities and accelerations
     if(loc[i][3] >= 0 || loc[i][4] >= 0 || loc[i][5] >= 0) {
       double dtheta[3], dR[3][3];
-      if(domain->solInfo().getNLInfo().linearelastic) {
+      if(solInfo.getNLInfo().linearelastic) {
         for(int j=0; j<3; ++j) dtheta[j] = ns[i].theta[j] - ss[i].theta[j];
       }
       else {
@@ -969,7 +977,7 @@ GeomState::midpoint_step_update(Vector &vel_n, Vector &acc_n, double delta, Geom
   double result[3][3], result2[3][3], rotVec[3];
   for(int i = 0; i < numnodes; ++i) {
     if(flag[i] == -1 || (loc[i][3] < 0 && loc[i][4] < 0 && loc[i][5] < 0)) continue;
-    if(domain->solInfo().getNLInfo().linearelastic) {
+    if(solInfo.getNLInfo().linearelastic) {
       for(int j = 0; j < 3; ++j) 
         ss.ns[i].theta[j] = ns[i].theta[j] = tcoef*(ns[i].theta[j] - alphaf*ss.ns[i].theta[j]);
       vec_to_mat(ns[i].theta, ns[i].R);
@@ -1110,7 +1118,7 @@ GeomState::get_inc_displacement(Vector &incVec, GeomState &ss, bool zeroRot)
       }
       else {
         double vec[3];
-        if(domain->solInfo().getNLInfo().linearelastic) {
+        if(solInfo.getNLInfo().linearelastic) {
           for(int j=0; j<3; ++j) vec[j] = ns[inode].theta[j] - ss[inode].theta[j];
         }
         else {
@@ -1129,8 +1137,11 @@ GeomState::get_inc_displacement(Vector &incVec, GeomState &ss, bool zeroRot)
 }
 
 void
-GeomState::push_forward(Vector &f)
+GeomState::push_forward(Vector &v)
 {
+#ifdef NEW_PULL_BACK
+  // Transform convected quatities (translational only) to spatial frame: v = R*v
+  // This new version is required for correct treatment of discrete masses with offsets.
   int inode;
   for(inode=0; inode<numnodes; ++inode) {
 
@@ -1138,9 +1149,9 @@ GeomState::push_forward(Vector &f)
 
     if(loc[inode][3] >= 0 || loc[inode][4] >= 0 || loc[inode][5] >= 0) {
       double vec[3], result[3];
-      vec[0] = ( loc[inode][3] >= 0 ) ? f[loc[inode][3]] : 0;
-      vec[1] = ( loc[inode][4] >= 0 ) ? f[loc[inode][4]] : 0;
-      vec[2] = ( loc[inode][5] >= 0 ) ? f[loc[inode][5]] : 0;
+      vec[0] = ( loc[inode][0] >= 0 ) ? v[loc[inode][0]] : 0;
+      vec[1] = ( loc[inode][1] >= 0 ) ? v[loc[inode][1]] : 0;
+      vec[2] = ( loc[inode][2] >= 0 ) ? v[loc[inode][2]] : 0;
 
       NFrameData *cd = X0->dofFrame(inode);
       if(cd) cd->invTransformVector3(vec);
@@ -1149,39 +1160,76 @@ GeomState::push_forward(Vector &f)
 
       if(cd) cd->transformVector3(result);
 
-      if( loc[inode][3] >= 0 ) f[loc[inode][3]] = result[0];
-      if( loc[inode][4] >= 0 ) f[loc[inode][4]] = result[1];
-      if( loc[inode][5] >= 0 ) f[loc[inode][5]] = result[2];
+      if( loc[inode][0] >= 0 ) v[loc[inode][0]] = result[0];
+      if( loc[inode][1] >= 0 ) v[loc[inode][1]] = result[1];
+      if( loc[inode][2] >= 0 ) v[loc[inode][2]] = result[2];
     }
   }
+#endif
 }
 
 void
-GeomState::pull_back(Vector &f)
+GeomState::pull_back(Vector &v)
 {
-  int inode, cd;
+#ifdef NEW_PULL_BACK
+  // Transform spatial quatities (both translational and rotational) to convected frame: v = R^T*v
+  // This new version is required for correct treatment of discrete masses with offsets.
+  int inode;
+  for(inode=0; inode<numnodes; ++inode) {
+
+    if(flag[inode] == -1) continue;
+
+    if(loc[inode][3] >= 0 || loc[inode][4] >= 0 || loc[inode][5] >= 0) {
+      double vec[6], result[6];
+      vec[0] = ( loc[inode][0] >= 0 ) ? v[loc[inode][0]] : 0;
+      vec[1] = ( loc[inode][1] >= 0 ) ? v[loc[inode][1]] : 0;
+      vec[2] = ( loc[inode][2] >= 0 ) ? v[loc[inode][2]] : 0;
+      vec[3] = ( loc[inode][3] >= 0 ) ? v[loc[inode][3]] : 0;
+      vec[4] = ( loc[inode][4] >= 0 ) ? v[loc[inode][4]] : 0;
+      vec[5] = ( loc[inode][5] >= 0 ) ? v[loc[inode][5]] : 0;
+
+      NFrameData *cd = X0->dofFrame(inode);
+      if(cd) cd->invTransformVector6(vec);
+
+      mat_mult_vec( ns[inode].R, vec, result, 1 ); // result = R^T*vec
+      mat_mult_vec( ns[inode].R, vec+3, result+3, 1 );
+
+      if(cd) cd->transformVector6(result);
+
+      if( loc[inode][0] >= 0 ) v[loc[inode][0]] = result[0];
+      if( loc[inode][1] >= 0 ) v[loc[inode][1]] = result[1];
+      if( loc[inode][2] >= 0 ) v[loc[inode][2]] = result[2];
+      if( loc[inode][3] >= 0 ) v[loc[inode][3]] = result[3];
+      if( loc[inode][4] >= 0 ) v[loc[inode][4]] = result[4];
+      if( loc[inode][5] >= 0 ) v[loc[inode][5]] = result[5];
+    }
+  }
+#else
+  // Transform spatial quatities (rotational only) to convected frame: v = R^T*v
+  int inode;
   for(inode=0; inode<numnodes; ++inode) {
 
     if(flag[inode] == -1) continue;
 
     if(loc[inode][3] >= 0 || loc[inode][4] >= 0 || loc[inode][5] >= 0) {
       double vec[3], result[3];
-      vec[0] = ( loc[inode][3] >= 0 ) ? f[loc[inode][3]] : 0;
-      vec[1] = ( loc[inode][4] >= 0 ) ? f[loc[inode][4]] : 0;
-      vec[2] = ( loc[inode][5] >= 0 ) ? f[loc[inode][5]] : 0;
+      vec[0] = ( loc[inode][3] >= 0 ) ? v[loc[inode][3]] : 0;
+      vec[1] = ( loc[inode][4] >= 0 ) ? v[loc[inode][4]] : 0;
+      vec[2] = ( loc[inode][5] >= 0 ) ? v[loc[inode][5]] : 0;
 
       NFrameData *cd = X0->dofFrame(inode);
       if(cd) cd->invTransformVector3(vec);
 
       mat_mult_vec( ns[inode].R, vec, result, 1 ); // result = R^T*vec
 
-      if(cd) cd->transformVector3(result);
+      if(cd) cd->transformVector6(result);
 
-      if( loc[inode][3] >= 0 ) f[loc[inode][3]] = result[0];
-      if( loc[inode][4] >= 0 ) f[loc[inode][4]] = result[1];
-      if( loc[inode][5] >= 0 ) f[loc[inode][5]] = result[2];
+      if( loc[inode][3] >= 0 ) v[loc[inode][3]] = result[0];
+      if( loc[inode][4] >= 0 ) v[loc[inode][4]] = result[1];
+      if( loc[inode][5] >= 0 ) v[loc[inode][5]] = result[2];
     }
   }
+#endif
 }
 
 void
@@ -1209,7 +1257,7 @@ GeomState::transform(Vector &f, int type, bool unscaled) const
         PsiI << ns[inode].theta[0], ns[inode].theta[1], ns[inode].theta[2];
       }
       else {
-        mat_to_vec(R, PsiI);
+        mat_to_vec<double>(R, PsiI);
       }
       Eigen::Matrix3d T;
       tangential_transf(PsiI, T);
@@ -1300,7 +1348,7 @@ GeomState::transform(Vector &f, const std::vector<int> &weightedNodes, int type,
         PsiI << ns[inode].theta[0], ns[inode].theta[1], ns[inode].theta[2];
       }
       else {
-        mat_to_vec(R, PsiI);
+        mat_to_vec<double>(R, PsiI);
       }
       Eigen::Matrix3d T;
       tangential_transf(PsiI, T);
@@ -1369,10 +1417,18 @@ GeomState::get_tot_displacement(Vector &totVec, bool rescaled)
 }
 
 void
+GeomState::get_temperature(int numNodes, int* nodes, Vector &ndTemps, double Ta)
+{
+  for(int i=0; i<numNodes; ++i) {
+    ndTemps[i] = (ns[nodes[i]].temp == defaultTemp) ? Ta : ns[nodes[i]].temp;
+  }
+}
+
+void
 GeomState::zeroRotDofs(Vector& vec)
 {
   for(int inode = 0; inode < numnodes; ++inode) {
-  // Set rotational displacements equal to zero.
+    // Set rotational displacements equal to zero.
     if(loc[inode][3] >= 0) vec[loc[inode][3]] = 0.0;
     if(loc[inode][4] >= 0) vec[loc[inode][4]] = 0.0;
     if(loc[inode][5] >= 0) vec[loc[inode][5]] = 0.0;
@@ -1824,6 +1880,15 @@ GeomState::setRotations(double *rotations)
    ns[i].R[2][0] = rotations[9*i+6];
    ns[i].R[2][1] = rotations[9*i+7];
    ns[i].R[2][2] = rotations[9*i+8];
+ }
+}
+
+void
+GeomState::setNodalTemperatures(double *ndTemps)
+{
+ int i;
+ for(i=0; i<numnodes; ++i) {
+   ns[i].temp = (ndTemps) ? ndTemps[i] : defaultTemp;
  }
 }
 

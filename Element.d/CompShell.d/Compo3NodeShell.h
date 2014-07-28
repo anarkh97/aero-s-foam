@@ -15,6 +15,7 @@ class Compo3NodeShell : public Element {
         double  *cCoefs;
         double  *cFrame;
         PressureBCond *pbc;
+        static bool Wzero_density, Wthermal_force;
 
 public:
 	Compo3NodeShell(int*);
@@ -67,7 +68,7 @@ public:
         PressureBCond* getPressure() { return pbc; }
         void computePressureForce(CoordSet&, Vector& elPressureForce,
                                   GeomState *gs = 0, int cflg = 0, double t = 0);
-        void getThermalForce(CoordSet& , Vector& ,Vector &, int glflag, 
+        void getThermalForce(CoordSet&, Vector&, Vector&, int glflag, 
 	                     GeomState *gs=0);
 
         virtual int getCompositeLayer() { return numLayers;  }
@@ -99,8 +100,11 @@ public:
                            FullSquareMatrix & gradkarray, int flg=1);
 #endif
 	
-      // Routines for the decomposer
+        // Routines for the decomposer
         PrioInfo examine(int sub, MultiFront *);
+        int nDecFaces() { return 1; }
+        int getDecFace(int iFace, int *fn) {
+          for(int i=0; i<3; i++) fn[i] = nn[i]; return 3; }
 
 	bool hasRot() { return true; }
 

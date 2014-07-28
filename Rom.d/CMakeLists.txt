@@ -31,6 +31,7 @@ ADD_LIBRARY( Rom
   DEIMPodProjectionNonLinDynamic.C
   UDEIMPodProjectionNonLinDynamic.C
   SparseNonNegativeLeastSquaresSolverInstance.C
+  ParallelSparseNonNegativeLeastSquaresSolver.C
   NodalRestrictionMapping.C
   MappedNodeDof6Buffer.C
   MeshOutput.C
@@ -48,10 +49,13 @@ ADD_LIBRARY( Rom
   VecNodeDof6Conversion.C
   VecNodeDof6Map.C
   DofSetUtils.C
-  LawsonHanson.d/diff.cpp
-  LawsonHanson.d/g1.cpp
-  LawsonHanson.d/h12.cpp
-  LawsonHanson.d/spnnls.cpp
+  LawsonHanson.d/diff.f
+  LawsonHanson.d/g1.f
+  LawsonHanson.d/h12.f
+  LawsonHanson.d/spnnls.f
   SDDynamPodPostProcessor.C
   EiGalerkinProjectionSolverInstance.C
+  DirectionalPursuit.d/nncgp.C
+  DirectionalPursuit.d/pnncgp.C
+  PolytopeFacesPursuit.d/gpfp.C
 )

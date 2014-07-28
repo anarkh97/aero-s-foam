@@ -32,7 +32,7 @@ void _FORTRAN(compvms)(const int&, const int&, const int&, const int&,
                        const int&, double*, int*, double*, 
                        double*, const int&, int*, const int&,
                        const int&, const int&, const int&, const int&,
-                       const int&, const int&,const int&);
+                       const int&, const int&, const int&, double&, double&);
 
 void _FORTRAN(compst)(const double&, const int&, double*, double*,
                       const int&, const double&, double*, double*, 
@@ -44,12 +44,15 @@ void _FORTRAN(compst)(const double&, const int&, double*, double*,
 void _FORTRAN(intes3)(const int&, const double&, const double&,
                       const int&, double*, double*);
 
-void _FORTRAN(compthmfr)(double*, double*,  double*, double&, double*, double*,
-                         double*, double*,  double*, double*, double*, double*, int&, 
+void _FORTRAN(compthmfr)(double*, double*, double*, double&, double*, double*,
+                         double*, double*, double*, double*, double*, double*, int&, 
 			 double*, double *, const int&, int&);
 }
 
 extern int quietFlag;
+
+bool Compo3NodeShell::Wzero_density = true;
+bool Compo3NodeShell::Wthermal_force = true;
 
 Compo3NodeShell::Compo3NodeShell(int* nodenums)
 {
@@ -57,6 +60,9 @@ Compo3NodeShell::Compo3NodeShell(int* nodenums)
   nn[1] = nodenums[1];
   nn[2] = nodenums[2];
   pbc = 0;
+  type = 0;
+  cFrame = 0;
+  numLayers = 0;
 }
 
 Element *
@@ -126,35 +132,36 @@ Compo3NodeShell::getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
 
   double* disp = elDisp.data();
 
-/* TODO
-  double* thermalStrain1  =  (double*) alloca(sizeof(double)*numLayers);
-  double* thermalStrain2  =  (double*) alloca(sizeof(double)*numLayers); 
+  int cfrm = (cFrame) ? 1 : 0;
 
-  if(ndTemps) {
-    int numLayCoeff = 12;
-    if (type != 0){
-      for (i=0; i<numLayers; ++i) {
-        double dt = (ndTemps[0]+ndTemps[1]+ndTemps[2])/3 - layData[numLayCoeff*i + 11]; 
-        thermalStrain1[i] = layData[numLayCoeff*i + 9]*dt;
-        thermalStrain2[i] = layData[numLayCoeff*i + 10]*dt;
+  double thermalStrain1 = 0.0;
+  double thermalStrain2 = 0.0; 
+  if(ndTemps && type != 1) {
+    if(type == 2 || type == 3) {
+      // Compute the average thermal strain. Note that various approximations
+      // are made in compvms so this additional approximation is not entirely
+      // inappropriate IMHO. If accurate stress computation is required, use
+      // element 15 instead of element 20.
+      int numLayCoeff = 12;
+      for(i=0; i<numLayers; ++i) {
+        double dt = (ndTemps[0]+ndTemps[1]+ndTemps[2])/3 - prop->Ta; 
+        thermalStrain1 += layData[numLayCoeff*i + 9]*dt;
+        thermalStrain2 += layData[numLayCoeff*i + 10]*dt;
       }
+      thermalStrain1 /= numLayers;
+      thermalStrain2 /= numLayers;
     }
-    else {
-      //isotropic material
+    else { // isotropic material
       double dt = (ndTemps[0]+ndTemps[1]+ndTemps[2])/3 - prop->Ta;
-      thermalStrain1[0] = thermalStrain2[0] = (prop->W)*dt;
+      thermalStrain1 = thermalStrain2 = (prop->W)*dt;
     }
   }
-  else {
-    for(int i=0; i<numLayers; ++i) thermalStrain1[0] = thermalStrain2[0] = 0;
-  }
-*/
 
   _FORTRAN(compvms)(1, 1, 1, maxstr, maxgus, prop->E, prop->nu, h,
                     x, y, z, disp, (double*)elStress, (double*)laysigm,
                     1, numLayers, 1, (double*)cCoefs, (int*)idlay,
-                    layData, cFrame, 0, laysgid, 1, type, 1, 1, numLayers,
-                    1, strainFlg, surface);
+                    layData, cFrame, 0, laysgid, 1, type, 1, cfrm, numLayers,
+                    1, strainFlg, surface, thermalStrain1, thermalStrain2);
 
   if(strInd < 7) {
     stress[0] = elStress[0][strInd];
@@ -201,34 +208,36 @@ Compo3NodeShell::getAllStress(FullM &stress, Vector &weight, CoordSet &cs,
 
   double* disp = elDisp.data();
 
-/* TODO
-  double* thermalStrain1  =  (double*) alloca(sizeof(double)*numLayers);
-  double* thermalStrain2  =  (double*) alloca(sizeof(double)*numLayers);
+  int cfrm = (cFrame) ? 1 : 0;
 
-  if(ndTemps) {
-    int numLayCoeff = 12;
-    if (type != 0){
-      for (i=0; i<numLayers; ++i) {
-        double dt = (ndTemps[0]+ndTemps[1]+ndTemps[2])/3 - layData[numLayCoeff*i + 11];
-        thermalStrain1[i] = layData[numLayCoeff*i + 9]*dt;
-        thermalStrain2[i] = layData[numLayCoeff*i + 10]*dt;
+  double thermalStrain1 = 0.0;
+  double thermalStrain2 = 0.0;
+  if(ndTemps && type != 1) {
+    if(type == 2 || type == 3) { 
+      // Compute the average thermal strain. Note that various approximations
+      // are made in compvms so this additional approximation is not entirely
+      // inappropriate IMHO. If accurate stress computation is required, use
+      // element 15 instead of element 20.
+      int numLayCoeff = 12;
+      for(i=0; i<numLayers; ++i) {
+        double dt = (ndTemps[0]+ndTemps[1]+ndTemps[2])/3 - prop->Ta;                   
+        thermalStrain1 += layData[numLayCoeff*i + 9]*dt;
+        thermalStrain2 += layData[numLayCoeff*i + 10]*dt;
       }
+      thermalStrain1 /= numLayers;
+      thermalStrain2 /= numLayers;
     }
-    else {
-      //isotropic material
+    else { // isotropic material
       double dt = (ndTemps[0]+ndTemps[1]+ndTemps[2])/3 - prop->Ta;
-      thermalStrain1[0] = thermalStrain2[0] = (prop->W)*dt;
+      thermalStrain1 = thermalStrain2 = (prop->W)*dt;
     }
   }
-  else {
-    for(int i=0; i<numLayers; ++i) thermalStrain1[0] = thermalStrain2[0] = 0;
-  }
-*/
+
   _FORTRAN(compvms)(1, 1, 1, maxstr, maxgus, prop->E, prop->nu, h,
                     x, y, z, disp, (double*)elStress, (double*)laysigm,
                     1, numLayers, 1, (double*)cCoefs, (int*)idlay, layData,
-                    cFrame, 0, laysgid, 1, type, 1, 1, numLayers,
-                    1, strInd, surface);
+                    cFrame, 0, laysgid, 1, type, 1, cfrm, numLayers,
+                    1, strInd, surface, thermalStrain1, thermalStrain2);
 
   // Store all Stress or all Strain as defined by strInd
   int j;
@@ -281,6 +290,7 @@ Compo3NodeShell::getGravityForce(CoordSet& cs, double *gravityAcceleration,
 
   h[0] = h[1] = h[2] = prop->eh;
 
+  int cfrm = (cFrame) ? 1 : 0;
   int grvflg = 1, masflg = 0;
 
   double totmas = 0;
@@ -289,7 +299,7 @@ Compo3NodeShell::getGravityForce(CoordSet& cs, double *gravityAcceleration,
 
   _FORTRAN(compms)(x, y, z, h, prop->rho, (double *)ElementMassMatrix,
                    18,numLayers, 1, 1, (int *)idlay, layData, cFrame,
-                   1, type, 1, 1, gravityAcceleration, grvfor, grvflg,
+                   1, type, 1, cfrm, gravityAcceleration, grvfor, grvflg,
                    totmas, sumrho, area, masflg);
 
   // scale gravity force by number of nodes
@@ -311,9 +321,6 @@ Compo3NodeShell::getGravityForce(CoordSet& cs, double *gravityAcceleration,
   }
   // Consistent or lumped with fixed end moments.  Compute treating shell as 3 beams.
   else {
-    //Node &nd1 = cs.getNode(nn[0]);
-    //Node &nd2 = cs.getNode(nn[1]);
-    //Node &nd3 = cs.getNode(nn[2]);
 
     double T1[3],T2[3],T3[3];
     // Vector 1 from Node 1->2
@@ -426,6 +433,7 @@ Compo3NodeShell::getMass(CoordSet &cs)
 
   h[0] = h[1] = h[2] = prop->eh;
 
+  int cfrm = (cFrame) ? 1 : 0;
   int grvflg = 0, masflg = 1;
 
   double totmas = 0.0;
@@ -434,7 +442,7 @@ Compo3NodeShell::getMass(CoordSet &cs)
 
   _FORTRAN(compms)(x, y, z, h, prop->rho, (double *)ElementMassMatrix,
                    18,numLayers, 1, 1, (int *)idlay, layData, cFrame,
-                   1, type, 1, 1, gravityAcceleration, grvfor, grvflg,
+                   1, type, 1, cfrm, gravityAcceleration, grvfor, grvflg,
                    totmas, sumrho, area, masflg);
 
   return totmas;
@@ -458,6 +466,7 @@ Compo3NodeShell::getMassSensitivityWRTthickness(CoordSet &cs)
 
   h[0] = h[1] = h[2] = prop->eh;
 
+  int cfrm = (cFrame) ? 1 : 0;
   int grvflg = 0, masflg = 1;
 
   double totmas = 0.0;
@@ -466,7 +475,7 @@ Compo3NodeShell::getMassSensitivityWRTthickness(CoordSet &cs)
 
   _FORTRAN(compms)(x, y, z, h, prop->rho, (double *)ElementMassMatrix,
                    18,numLayers, 1, 1, (int *)idlay, layData, cFrame,
-                   1, type, 1, 1, gravityAcceleration, grvfor, grvflg,
+                   1, type, 1, cfrm, gravityAcceleration, grvfor, grvflg,
                    totmas, sumrho, area, masflg);
 
   return totmas/prop->eh;
@@ -499,6 +508,8 @@ Compo3NodeShell::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAccel
   double *grvfor=NULL;
 
   h[0] = h[1] = h[2] = prop->eh;
+
+  int cfrm = (cFrame) ? 1 : 0;
   int grvflg = 0, masflg = 1;
 
   double area = 0;
@@ -507,7 +518,7 @@ Compo3NodeShell::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAccel
 
   _FORTRAN(compms)(x, y, z, h, prop->rho, (double *)ElementMassMatrix,
                    18,numLayers, 1, 1, (int *)idlay, layData, cFrame,
-                   1, type, 1, 1, gravityAcceleration, grvfor, grvflg,
+                   1, type, 1, cfrm, gravityAcceleration, grvfor, grvflg,
                    totmas, sumrho, area, masflg);
 
   double gravAccNorm = sqrt(gravityAcceleration[0]*gravityAcceleration[0] + 
@@ -543,20 +554,22 @@ Compo3NodeShell::massMatrix(CoordSet &cs, double *mel, int cmflg)
 
   h[0] = h[1] = h[2] = prop->eh;
 
+  int cfrm = (cFrame) ? 1 : 0;
   int grvflg = 0, masflg = 0;
   double totmas = 0;
   double sumrho = 0;
   double area = 0;
 
   // check if the density is negative or zero
-  if(prop->rho <= 0.0 && (type == 0 || type == 1) && quietFlag == 0) {
+  if(prop->rho <= 0.0 && (type == 0 || type == 1) && quietFlag == 0 && Wzero_density) {
     fprintf(stderr," *** WARNING: Composite shell element # %d has zero or negative density.\n"
                    "              Use command-line option -q to suppress this warning.\n", getGlNum()+1);
+    Wzero_density = false;
   }
 
   _FORTRAN(compms)(x, y, z, h, prop->rho, (double *)mel,
                    18,numLayers, 1, 1, (int *)idlay, layData, cFrame,
-                   1, type, 1, 1, gravityAcceleration, grvfor, grvflg,
+                   1, type, 1, cfrm, gravityAcceleration, grvfor, grvflg,
                    totmas, sumrho, area, masflg);
 
   FullSquareMatrix ret(18,mel);
@@ -684,10 +697,12 @@ Compo3NodeShell::stiffness(CoordSet &cs, double *d, int flg)
     exit(-1);
   }
 
+  int cfrm = (cFrame) ? 1 : 0;
+
   _FORTRAN(compst)(prop->E, 1, h, (double *)d, 18,
                    prop->nu, x, y, z, 1, numLayers, 1, (double*) cCoefs,
                    (int *)idlay,
-                   layData, cFrame, 1, type, 1, 1, flg);
+                   layData, cFrame, 1, type, 1, cfrm, flg);
 
   FullSquareMatrix ret(18,d);
 
@@ -1008,59 +1023,67 @@ Compo3NodeShell::getThermalForce(CoordSet& cs, Vector& ndTemps,
 				Vector &elThermalForce, int glflag, 
 				GeomState *)
 {  
-   //check to see that the coefficent of thermal expansions will exist 
-   if(prop == NULL || type == 1) {
-     elThermalForce.zero();
-     return;
-   }
+  //check to see that the coefficent of thermal expansions will exist 
+  if(prop == NULL || type == 1) {
+    if(type == 1 && quietFlag == 0 && Wthermal_force) {
+      fprintf(stderr," *** WARNING: Thermal forces are not computed for composite shell element if\n" 
+                     "              the constitutive matrix is inputted using the COEF sub-command.\n"
+                     "              Element type 20 (2020) should be changed to type 15 (1515).\n"
+                     "              Use command-line option -q to suppress this warning.\n");
+      Wthermal_force = false;
+    }
+    elThermalForce.zero();
+    return;
+  }
 
-   int numlay = 1;
-   if(type != 0) numlay = numLayers;
+  int numlay = 1;
+  if(type != 0) numlay = numLayers;
    
-   int i,j;
-   double x[3],y[3],z[3];
+  int i,j;
+  double x[3],y[3],z[3];
 
-   //get nodal temperatures and relate to reference temperature
+  //get nodal temperatures and relate to reference temperature
    
-   double meant = 0.0 ; //determine the average nodal temperature
+  double meant = 0.0; //determine the average nodal temperature
    
-   for(i=0; i<3; i++) meant += ndTemps[i]/3;
+  for(i=0; i<3; i++) meant += ndTemps[i]/3;
 
-   double* thk   = (double*) alloca(sizeof(double)*numlay);
-   double* emk1  = (double*) alloca(sizeof(double)*numlay);
-   double* emk2  = (double*) alloca(sizeof(double)*numlay);
-   double* nuk   = (double*) alloca(sizeof(double)*numlay);
-   double* ctek1 = (double*) alloca(sizeof(double)*numlay);
-   double* ctek2 = (double*) alloca(sizeof(double)*numlay);
-   double* phik  = (double*) alloca(sizeof(double)*numlay);
-   double* tak   = (double*) alloca(sizeof(double)*numlay);
+  double* thk   = (double*) alloca(sizeof(double)*numlay);
+  double* emk1  = (double*) alloca(sizeof(double)*numlay);
+  double* emk2  = (double*) alloca(sizeof(double)*numlay);
+  double* nuk   = (double*) alloca(sizeof(double)*numlay);
+  double* ctek1 = (double*) alloca(sizeof(double)*numlay);
+  double* ctek2 = (double*) alloca(sizeof(double)*numlay);
+  double* phik  = (double*) alloca(sizeof(double)*numlay);
+  double* tak   = (double*) alloca(sizeof(double)*numlay);
 
-   //create a vector which contains the thicknesses, Young's modulus, 
-   //Poisson's ratio and the coefficent of thermal expansion of each layer 
-   //the sign convention here for zvector is opposite that of the reference 
-   int numLayCoeff = 12;
-   if (type != 0) {
-     for(i=0; i<numLayers; ++i) {
-       emk1[i]  = layData[numLayCoeff*i    ];
-       emk2[i]  = layData[numLayCoeff*i + 1];
-       nuk[i]   = layData[numLayCoeff*i + 2];
-       thk[i]   = layData[numLayCoeff*i + 7];
-       ctek1[i] = layData[numLayCoeff*i + 9];
-       ctek2[i] = layData[numLayCoeff*i +10];
-       phik[i]  = layData[numLayCoeff*i + 8];
-       tak[i]   = layData[numLayCoeff*i +11];
-     }
-   }  
-   else {
-     //isotropic material
-     thk[0] = prop->eh;
-     emk1[0] = prop->E;
-     emk2[0] = prop->E;
-     nuk[0] = prop->nu;
-     ctek1[0] = prop->W;
-     ctek2[0] = prop->W;
-     phik[0] = 0.0;
-     tak[0] = prop->Ta;
+  //create a vector which contains the thicknesses, Young's modulus, 
+  //Poisson's ratio and the coefficent of thermal expansion of each layer 
+  //the sign convention here for zvector is opposite that of the reference 
+  //Note: the reference temperature is the same for each layer.
+  int numLayCoeff = 12;
+  if (type != 0) {
+    for(i=0; i<numLayers; ++i) {
+      emk1[i]  = layData[numLayCoeff*i    ];
+      emk2[i]  = layData[numLayCoeff*i + 1];
+      nuk[i]   = layData[numLayCoeff*i + 2];
+      thk[i]   = layData[numLayCoeff*i + 7];
+      ctek1[i] = layData[numLayCoeff*i + 9];
+      ctek2[i] = layData[numLayCoeff*i +10];
+      phik[i]  = layData[numLayCoeff*i + 8];
+      tak[i]   = prop->Ta;
+    }
+  }  
+  else {
+    //isotropic material
+    thk[0] = prop->eh;
+    emk1[0] = prop->E;
+    emk2[0] = prop->E;
+    nuk[0] = prop->nu;
+    ctek1[0] = prop->W;
+    ctek2[0] = prop->W;
+    phik[0] = 0.0;
+    tak[0] = prop->Ta;
   }
  
   // Compute Node's coordinates
@@ -1071,11 +1094,14 @@ Compo3NodeShell::getThermalForce(CoordSet& cs, Vector& ndTemps,
   x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
   x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
   x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
-   
+
   // Now compute the elemental load vectors 
+  // Note: Unlike element 15, this element assumes that the shear thermal expansion coefficient w12 is zero.
  
   elThermalForce.zero();
+
+  int cfrm = (cFrame) ? 1 : 0;
      
   _FORTRAN(compthmfr)(x, y, z, meant, ctek1, ctek2, emk1, emk2, nuk, thk, phik, tak, 
-                      numlay, cFrame, (double *)elThermalForce.data(), 1, glflag);
+                      numlay, cFrame, (double *)elThermalForce.data(), cfrm, glflag);
 }

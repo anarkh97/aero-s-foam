@@ -1,3 +1,4 @@
+#include <Math.d/Skyline.d/BlockSky.h>
 #include <Utils.d/DistHelper.h>
 #include <Utils.d/linkfc.h>
 #include <Utils.d/Connectivity.h>
@@ -766,11 +767,6 @@ GenBlockSky<Scalar>::add(GenAssembledFullM<complex<double> > &kel, int *dofs)
  }
 }
 
-template<>
-void
-GenBlockSky<double>::add(GenAssembledFullM<complex<double> > &kel, int *dofs);
-
-
 template<class Scalar>
 void
 GenBlockSky<Scalar>::add(FullM &knd, int fRow, int fCol)
@@ -908,16 +904,12 @@ GenBlockSky<Scalar>::reSolve(int numRHS, Scalar **rhs)
 
 }
 
-#ifdef DISTRIBUTED
-#include <Comm.d/Communicator.h>
-#endif
-
 template<class Scalar>
 void
 GenBlockSky<Scalar>::print(FILE *f)
 {
  for(int i =0; i < blTop[nBlocks]; ++i)
-   fprintf(f, "K[%d] = %e\n",i, skyA[i]);
+   fprintf(f, "K[%d] = %e\n",i, ScalarTypes::Real(skyA[i]));
 }
 
 template<class Scalar>

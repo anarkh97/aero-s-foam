@@ -55,8 +55,6 @@ class FaceElemSet {
 
     std::map<int,locoord> computeNodeLocalCoords(int*, int);
 
-
-
 #ifdef SOWER_SURFS
     void WriteSower(BinFileHandler& file, int* ndMap=0);
 #endif

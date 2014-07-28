@@ -3,14 +3,13 @@
 #include <Utils.d/NodeSpaceArray.h>
 #include <Element.d/NonLinearity.d/NLMaterial.h>
 
-#include <cstddef>
 #include <iostream>
 #include <iterator>
 
 class ExpMat : public NLMaterial
 {
   public:
-    int optctv; // constiutive law (1 for hypoelastic, 3 for elasto viscoplastic, 5 for j2 explicit)
+    int optctv; // constitutive law (1 for hypoelastic, 3 for elasto viscoplastic, 5 for j2 explicit)
     double ematpro[20]; // Young's modulus, Poisson's ratio, mass density, etc.
 
     ExpMat(int _optctv, double e1, double e2, double e3, double e4, double e5, double e6,
@@ -24,18 +23,18 @@ class ExpMat : public NLMaterial
 
     int getNumStates() { return 0; }
 
-    void getStress(Tensor *stress, Tensor &strain, double*)
+    void getStress(Tensor *stress, Tensor &strain, double*, double)
       { std::cerr << "ExpMat::getStress is not implemented\n"; }
 
-    void getTangentMaterial(Tensor *tm, Tensor &strain, double*)
+    void getTangentMaterial(Tensor *tm, Tensor &strain, double*, double)
       { std::cerr << "ExpMat::getTangentMaterial is not implemented\n"; }
 
     void getElasticity(Tensor *tm)
       { std::cerr << "ExpMat::getElasticity is not implemented\n"; }
 
-    void updateStates(Tensor en, Tensor enp, double *state) {}
+    void updateStates(Tensor &en, Tensor &enp, double *state, double) {}
 
-    void getStressAndTangentMaterial(Tensor *stress, Tensor *tm, Tensor &strain, double*)
+    void getStressAndTangentMaterial(Tensor *stress, Tensor *tm, Tensor &strain, double*, double)
       { std::cerr << "ExpMat::getStressAndTangentMaterial is not implemented\n"; }
      
     void integrate(Tensor *stress, Tensor *tm, Tensor &en, Tensor &enp,

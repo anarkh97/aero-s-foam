@@ -1,9 +1,11 @@
 #include <limits>
+#include <iostream>
 #include <Timers.d/GetTime.h>
 extern int verboseFlag;
 extern int totalNewtonIter;
 extern int debugFlag;
 extern GeoSource * geoSource;
+extern SolverInfo &solInfo;
 
 /****************************************************************
  *
@@ -47,9 +49,9 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
   // Compute time integration values: dt, totalTime, maxStep
   probDesc->computeTimeInfo();
   probDesc->getNewmarkParameters(beta, gamma, alphaf, alpham);
-  bool failSafe = domain->solInfo().getNLInfo().failsafe;
+  bool failSafe = solInfo.getNLInfo().failsafe;
 
-  if(domain->solInfo().order == 1) {
+  if(solInfo.order == 1) {
     if(gamma == 0.5)
       filePrint(stderr, " ... Implicit Midpoint Rule         ...\n"
                         " ... i.e. α = ½                     ...\n");
@@ -132,7 +134,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
 
   GeomType *stepState = probDesc->copyGeomState(geomState);
   stateIncr = StateUpdate::initInc(geomState, &residual);
-  refState = (domain->solInfo().soltyp == 2) ? 0 : StateUpdate::initRef(geomState);
+  refState = (solInfo.soltyp == 2) ? 0 : StateUpdate::initRef(geomState);
 
   if(aeroAlg == 5 || failSafe) {
     bkRefState = StateUpdate::initRef(geomState);
@@ -159,8 +161,8 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
   probDesc->getExternalForce(external_force, constantForce, -1, time, geomState, elementInternalForce, aeroForce, delta);
 
   // Solve for initial acceleration: a^0 = M^{-1}(fext^0 - fint^0 - C*v^0)
-  if(domain->solInfo().iacc_switch && geoSource->getCheckFileInfo()->lastRestartFile == 0) {
-    if(domain->solInfo().order == 1) {
+  if(solInfo.iacc_switch && geoSource->getCheckFileInfo()->lastRestartFile == 0) {
+    if(solInfo.order == 1) {
       if(verboseFlag) filePrint(stderr," ... Computing initial first time derivative of temperature ...\n");
       probDesc->formRHSinitializer(external_force, velocity_n, elementInternalForce, *geomState, velocity_n);
       probDesc->reBuild(*geomState, 0, delta, time);
@@ -171,7 +173,9 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
       if(verboseFlag) filePrint(stderr," ... Computing initial acceleration ...\n");
       probDesc->formRHSinitializer(external_force, velocity_n, elementInternalForce, *geomState, acceleration, refState);
       probDesc->reBuild(*geomState, 0, delta, time);
+      geomState->pull_back(acceleration);
       probDesc->getSolver()->reSolve(acceleration);
+      geomState->push_forward(acceleration);
       geomState->setAcceleration(acceleration);
     }
   }
@@ -186,8 +190,8 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
   double s0 = -getTime(), s1 = -51, s2 = 0;
   double midtime;
   char ch[4] = { '|', '/', '-', '\\' };
-  bool useTolInc = (domain->solInfo().getNLInfo().tolInc != std::numeric_limits<double>::infinity() 
-                 || domain->solInfo().getNLInfo().absTolInc != std::numeric_limits<double>::infinity());
+  bool useTolInc = (solInfo.getNLInfo().tolInc != std::numeric_limits<double>::infinity() 
+                 || solInfo.getNLInfo().absTolInc != std::numeric_limits<double>::infinity());
   double dt = dt0;
   bool failed = false;
   int numConverged = 0;
@@ -202,7 +206,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
   for( ; time+dt0/q <= tmax || failed; s2 = s0+getTime()) {
 
     dt = dt0/q;
-    domain->solInfo().setTimeStep(dt);
+    solInfo.setTimeStep(dt);
     delta = dt/2;
 
     if(aeroAlg < 0 && (s2-s1 > 50)) {
@@ -236,11 +240,11 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
     bool feasible;
 
     // Initialize states
-    if(domain->solInfo().soltyp != 2) StateUpdate::copyState(geomState, refState);
+    if(solInfo.soltyp != 2) StateUpdate::copyState(geomState, refState);
     probDesc->initializeParameters(geomState);
 
     // Constraint enforcement iteration loop
-    for(int i = 0; i < domain->solInfo().num_penalty_its; ++i) {
+    for(int i = 0; i < solInfo.num_penalty_its; ++i) {
 
       StateUpdate::zeroInc(stateIncr);
 
@@ -256,14 +260,14 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
                                  acceleration, midtime);
 
           // Compute incremental displacements
-          StateUpdate::get_inc_displacement(probDesc, geomState, inc_displac, stepState, domain->solInfo().zeroRot);
+          StateUpdate::get_inc_displacement(probDesc, geomState, inc_displac, stepState, solInfo.zeroRot);
 
           // Form rhs = delta^2*residual - M(inc_displac - delta*velocity_n)
           StateUpdate::formRHScorrector(probDesc, inc_displac, velocity_n,
                                         acceleration, residual, rhs, geomState, delta);
 
           // in this case of "constraints direct" we can't compute the residual norm until after the solver is rebuilt
-          if(domain->solInfo().mpcDirect) probDesc->reBuild(*geomState, iter, delta, midtime);
+          if(solInfo.mpcDirect) probDesc->reBuild(*geomState, iter, delta, midtime);
 
           // Compute and store the residual norm
           resN = probDesc->getResidualNorm(rhs, *geomState, delta);
@@ -277,7 +281,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
             if(probDesc->linesearch().type != 0) rhsCopy = rhs;
 
             // Assemble global tangent stiffness
-            if(!domain->solInfo().mpcDirect) probDesc->reBuild(*geomState, iter, delta, midtime);
+            if(!solInfo.mpcDirect) probDesc->reBuild(*geomState, iter, delta, midtime);
 
             residual = rhs;
             totalNewtonIter++;
@@ -291,7 +295,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
               // Optional adjustment of the step length
               StateUpdate::linesearch(probDesc, refState, geomState, stateIncr, rhsCopy, elementInternalForce,
                                       totalRes, midtime, external_force, rhs, velocity_n, acceleration,
-                                      inc_displac, delta, domain->solInfo().zeroRot, residual);
+                                      inc_displac, delta, solInfo.zeroRot, residual);
             }
             StateUpdate::updateIncr(stateIncr, rhs);  // stateIncr = rhs
 
@@ -305,7 +309,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
           }
         }
         catch(std::runtime_error& e) {
-          if(!failSafe || debugFlag) cerr << "exception: " << e.what() << endl;
+          if(!failSafe || debugFlag) std::cerr << "exception: " << e.what() << std::endl;
           converged = 0;
           break;
         }
@@ -318,13 +322,13 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
         }
       } // end of Newton iteration loop
 
-      if(converged == 0 && !failSafe && domain->solInfo().getNLInfo().stepUpdateK != std::numeric_limits<int>::max()) {
+      if(converged == 0 && !failSafe && solInfo.getNLInfo().stepUpdateK != std::numeric_limits<int>::max()) {
         filePrint(stderr,"\r *** WARNING: at time %f Newton solver did not reach convergence after %d iterations"
                          " (residual: initial = %9.3e, final = %9.3e, target = %9.3e)\n", 
                          midtime, maxit, initialRes, resN, probDesc->getTolerance());
       }
 
-      if((failed = (failSafe && converged != 1 && resN > domain->solInfo().getNLInfo().failsafe_tol))) {
+      if((failed = (failSafe && converged != 1 && resN > solInfo.getNLInfo().failsafe_tol))) {
         // if a Newton solve fails to converge, terminate constraint enforcement iterations
         break;
       }
@@ -351,8 +355,8 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
     StateUpdate::midpointIntegrate(probDesc, velocity_n, delta,
                                    stepState, geomState, stateIncr, residual,
                                    elementInternalForce, totalRes, acceleration,
-                                   domain->solInfo().zeroRot);
-    if(domain->solInfo().soltyp != 2) {
+                                   solInfo.zeroRot);
+    if(solInfo.soltyp != 2) {
       probDesc->updateStates(refState, *geomState); // update internal states to _{n+1}
       StateUpdate::copyState(geomState, refState);
     }

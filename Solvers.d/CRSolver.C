@@ -60,8 +60,8 @@ GenCRSolver<Scalar, AnyVector, AnyOperator, AnyPreconditioner>::solve(AnyVector 
    if(verbose && printNumber > 0 && (niter%printNumber == 0))
      fprintf(stderr," ... Iteration #%d\tTwo norm = %1.7e\t  Rel. residual  %1.7e \n",niter,r2,sqrt(r2/r0r0));
    if( r2 <= r0r0*tolerance*tolerance || niter >= maxiter ) {
-      fprintf(stderr,"\n ... Total # Iterations = %d",niter);
-      fprintf(stderr,"\n ...     Final Two norm = %1.7e\n",r2);
+      if(verbose) fprintf(stderr,"\n ... Total # Iterations = %d",niter);
+      if(verbose) fprintf(stderr,"\n ...     Final Two norm = %1.7e\n",r2);
       solveTime += getTime();
       return;
    }

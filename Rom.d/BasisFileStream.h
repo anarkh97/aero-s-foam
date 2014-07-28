@@ -20,6 +20,7 @@ public:
   int size() const { return file_.stateCount(); }
   int vectorSize() const { return converter_.vectorSize(); }
   int dofSetNodeCount() const { return converter_.dofSetNodeCount(); }
+  BasisBinaryInputFile& file() { return file_; }
 
   // Check the readiness of the stream
   int currentVectorRank() const { return file_.currentStateIndex(); }

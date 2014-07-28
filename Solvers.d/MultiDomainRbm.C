@@ -1,4 +1,5 @@
 #include <Driver.d/DecDomain.h>
+#include <algorithm>
 
 template<class Scalar>
 MultiDomainRbm<Scalar>::MultiDomainRbm(GenDecDomain<Scalar> *_decDomain, double _tolgrb)
@@ -416,8 +417,8 @@ void
 MultiDomainRbm<Scalar>::singularValueDecomposition(FullM &A, FullM &U, int ncol, int nrow, int &rank, double tol, FullM *V)
 {
   int info = 0;
-  int mindim = myMin(nrow,ncol);
-  int maxdim = myMax(nrow,ncol);
+  int mindim = std::min(nrow,ncol);
+  int maxdim = std::max(nrow,ncol);
   double max_value = A.maxAbs();
 #ifdef FILERING
   for(int i=0; i<A.numCol()*A.numRow(); i++) //HB

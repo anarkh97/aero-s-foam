@@ -10,12 +10,12 @@ inline void init(DComplex &d) { d = DComplex(0.0,0.0); }
 inline void init(double &d) { d = 0.0; }
 
 template<class Scalar>
-GenCuCSparse<Scalar>::~GenCuCSparse() 
+GenCuCSparse<Scalar>::~GenCuCSparse()
 {
  if(Kuc && myKuc) { delete [] Kuc; Kuc=0; }
 }
 
-template<class Scalar> 
+template<class Scalar>
 void
 GenCuCSparse<Scalar>::clean_up()
 {
@@ -25,7 +25,7 @@ GenCuCSparse<Scalar>::clean_up()
  }
 }
 
-template<class Scalar> 
+template<class Scalar>
 void
 GenCuCSparse<Scalar>::zeroAll()
 {
@@ -35,7 +35,7 @@ GenCuCSparse<Scalar>::zeroAll()
  }
 }
 
-template<class Scalar> 
+template<class Scalar>
 void
 GenCuCSparse<Scalar>::negate()
 {
@@ -44,7 +44,7 @@ GenCuCSparse<Scalar>::negate()
    Kuc[i] = -Kuc[i];
 }
 
-template<class Scalar> 
+template<class Scalar>
 void
 GenCuCSparse<Scalar>::print()
 {
@@ -58,7 +58,7 @@ GenCuCSparse<Scalar>::print()
  }
 }
 
-template<class Scalar> 
+template<class Scalar>
 GenCuCSparse<Scalar>::GenCuCSparse(Connectivity *con, DofSetArray *dsa, int *bc) :
 SparseData(con,dsa,bc)
 {
@@ -71,7 +71,7 @@ SparseData(con,dsa,bc)
  myKuc = 1;
 }
 
-template<class Scalar> 
+template<class Scalar>
 GenCuCSparse<Scalar>::GenCuCSparse(Connectivity *con, DofSetArray *dsa, DofSetArray *c_dsa) :
 SparseData(con,dsa,c_dsa)
 {
@@ -79,15 +79,15 @@ SparseData(con,dsa,c_dsa)
  if(numConstrained>0) {
    Kuc = new Scalar[xunonz[numConstrained]];
    zeroAll();
- } 
+ }
  else {
    Kuc=0;
  }
  myKuc = 1;
 }
 
-template<class Scalar> 
-GenCuCSparse<Scalar>::GenCuCSparse(Connectivity *con, DofSetArray *dsa, 
+template<class Scalar>
+GenCuCSparse<Scalar>::GenCuCSparse(Connectivity *con, DofSetArray *dsa,
                                    int *glBoundMap, int *glInternalMap)
 : SparseData(con,dsa,glBoundMap,glInternalMap)
 {
@@ -96,11 +96,11 @@ GenCuCSparse<Scalar>::GenCuCSparse(Connectivity *con, DofSetArray *dsa,
 
  // Initialize it to zero
  zeroAll();
- 
+
  myKuc = 1;
 }
 
-template<class Scalar> 
+template<class Scalar>
 GenCuCSparse<Scalar>::GenCuCSparse(LMPCons **mpc, int numMPC, DofSetArray *c_dsa) :
   SparseData(mpc, numMPC, c_dsa)
 {
@@ -116,7 +116,7 @@ GenCuCSparse<Scalar>::GenCuCSparse(LMPCons **mpc, int numMPC, DofSetArray *c_dsa
   myKuc = 1;
 }
 
-template<class Scalar> 
+template<class Scalar>
 GenCuCSparse<Scalar>::GenCuCSparse(int numInterface, int *allBoundDofs,
                                    int numModes, Scalar *modes, int ldm)
  : SparseData(numInterface, allBoundDofs, numModes, ldm)
@@ -138,7 +138,7 @@ GenCuCSparse<Scalar>::GenCuCSparse(int numInterface, int *allBoundDofs,
  myKuc = 1;
 }
 
-template<class Scalar> 
+template<class Scalar>
 GenCuCSparse<Scalar>::GenCuCSparse(int num, int _neq, int *xyzCount,
                                    int *xyzList, Scalar *xyzCoefs)
  : SparseData(num, xyzCount, xyzList)
@@ -148,38 +148,37 @@ GenCuCSparse<Scalar>::GenCuCSparse(int num, int _neq, int *xyzCount,
  myKuc = 1;
 }
 
-template<class Scalar> 
-void 
-GenCuCSparse<Scalar>::doWeighting(Scalar *weight) 
+template<class Scalar>
+void
+GenCuCSparse<Scalar>::doWeighting(Scalar *weight)
 {
-  for(int i=0; i<xunonz[numConstrained]; ++i) 
+  for(int i=0; i<xunonz[numConstrained]; ++i)
     Kuc[i] *= weight[rowu[i]];
 }
 
-template<class Scalar> 
-void 
+template<class Scalar>
+void
 GenCuCSparse<Scalar>::doWeighting(int *weight)
 {
-  for(int i=0; i<xunonz[numConstrained]; ++i) 
+  for(int i=0; i<xunonz[numConstrained]; ++i)
     Kuc[i] *= Scalar(weight[rowu[i]]);
 }
 
-
-template<class Scalar> 
+template<class Scalar>
 double
 GenCuCSparse<Scalar>::getMemoryUsed()
 {
  return 8*xunonz[numConstrained]/(1024.0*1024.0);
 }
 
-template<class Scalar> 
+template<class Scalar>
 void
 GenCuCSparse<Scalar>::multSubtract(const GenVector<Scalar> &rhs, GenVector<Scalar> &result)
 {
- multSubtract(rhs.data(),result.data() );
+ multSubtract(rhs.data(),result.data());
 }
 
-template<class Scalar> 
+template<class Scalar>
 void
 GenCuCSparse<Scalar>::multSubtract(const Scalar *rhs, Scalar *result)
 {
@@ -197,14 +196,14 @@ GenCuCSparse<Scalar>::multSubtract(const Scalar *rhs, Scalar *result)
  }
 }
 
-template<class Scalar> 
+template<class Scalar>
 void
 GenCuCSparse<Scalar>::mult(const GenVector<Scalar> &rhs, GenVector<Scalar> &result)
 {
- mult(rhs.data(),result.data() );
+ mult(rhs.data(),result.data());
 }
 
-template<class Scalar> 
+template<class Scalar>
 void
 GenCuCSparse<Scalar>::mult(const Scalar *rhs, Scalar *result)
 {
@@ -219,7 +218,7 @@ GenCuCSparse<Scalar>::mult(const Scalar *rhs, Scalar *result)
  }
 }
 
-template<class Scalar> 
+template<class Scalar>
 void
 GenCuCSparse<Scalar>::transposeMult(const Scalar *rhs, Scalar *result)
 {
@@ -244,7 +243,7 @@ GenCuCSparse<Scalar>::transposeMult(const Scalar *rhs, Scalar *result)
  }
 }
 
-template<class Scalar> 
+template<class Scalar>
 void
 GenCuCSparse<Scalar>::add(FullSquareMatrix &kel, int *dofs)
 {
@@ -264,7 +263,7 @@ GenCuCSparse<Scalar>::add(FullSquareMatrix &kel, int *dofs)
  }
 }
 
-template<class Scalar> 
+template<class Scalar>
 void
 GenCuCSparse<Scalar>::multIdentity(Scalar **result)
 {
@@ -277,7 +276,7 @@ GenCuCSparse<Scalar>::multIdentity(Scalar **result)
  }
 }
 
-template<class Scalar> 
+template<class Scalar>
 void
 GenCuCSparse<Scalar>::multIdentity(Scalar *result)
 {
@@ -292,7 +291,7 @@ GenCuCSparse<Scalar>::multIdentity(Scalar *result)
 
 template<class Scalar>
 void
-GenCuCSparse<Scalar>::multIdentity(Scalar **result, int start, int stop) 
+GenCuCSparse<Scalar>::multIdentity(Scalar **result, int start, int stop)
 {
  int dof,m;
  stop = (stop<0) ? numConstrained : stop;
@@ -311,8 +310,7 @@ GenCuCSparse<Scalar>::multIdentity(Scalar **result, int start, int stop)
  }
 }
 
-
-template<class Scalar> 
+template<class Scalar>
 void
 GenCuCSparse<Scalar>::multSub(const Scalar *rhs, Scalar *result)
 {
@@ -326,7 +324,7 @@ GenCuCSparse<Scalar>::multSub(const Scalar *rhs, Scalar *result)
   }
 }
 
-template<class Scalar> 
+template<class Scalar>
 void
 GenCuCSparse<Scalar>::transposeMultSubtract(const Scalar *rhs, Scalar *result)
 {
@@ -337,14 +335,14 @@ GenCuCSparse<Scalar>::transposeMultSubtract(const Scalar *rhs, Scalar *result)
     int mstop  = xunonz[i+1];
     int m;
     for(m=mstart; m<mstop; ++m) {
-      if(rowu[m] < 0) 
+      if(rowu[m] < 0)
         std::cerr << "**Error in GenCuCSparse<Scalar>::transposeMultSubtract \n";
       result[rowu[m]] -= Kuc[m]*rhs[i];
     }
   }
 }
 
-template<class Scalar> 
+template<class Scalar>
 void
 GenCuCSparse<Scalar>::transposeMultSubtractClaw(const Scalar *rhs, Scalar *result, int numUserDisp, int *clawdofs)  {
 
@@ -355,13 +353,13 @@ GenCuCSparse<Scalar>::transposeMultSubtractClaw(const Scalar *rhs, Scalar *resul
     int mstart = xunonz[ci];
     int mstop  = xunonz[ci+1];
     int m;
-    
+
     for(m=mstart; m<mstop; ++m)
       result[rowu[m]] -= Kuc[m]*rhs[i];
   }
 }
 
-template<class Scalar> 
+template<class Scalar>
 void
 GenCuCSparse<Scalar>::multSub(int nRHS, Scalar **rhs, Scalar **result)
 {
@@ -396,7 +394,7 @@ GenCuCSparse<Scalar>::multSub(int nRHS, Scalar **rhs, Scalar **result)
 
 }
 
-template<class Scalar> 
+template<class Scalar>
 void
 GenCuCSparse<Scalar>::multAdd(const Scalar *rhs, Scalar *result)
 {
@@ -411,7 +409,7 @@ GenCuCSparse<Scalar>::multAdd(const Scalar *rhs, Scalar *result)
   }
 }
 
-template<class Scalar> 
+template<class Scalar>
 void
 GenCuCSparse<Scalar>::transposeMultAdd(const Scalar *rhs, Scalar *result)
 {
@@ -426,7 +424,7 @@ GenCuCSparse<Scalar>::transposeMultAdd(const Scalar *rhs, Scalar *result)
   }
 }
 
-template<class Scalar> 
+template<class Scalar>
 void
 GenCuCSparse<Scalar>::addBoeing(int nl, const int *Kai, const int *Kaj,
                                 const double *nz, int *map, Scalar multiplier)
@@ -466,8 +464,7 @@ GenCuCSparse<Scalar>::addBoeing(int nl, const int *Kai, const int *Kaj,
  }
 }
 
-
-template<class Scalar> 
+template<class Scalar>
 long
 GenCuCSparse<Scalar>::size()
 {
@@ -508,7 +505,7 @@ GenCuCSparse<Scalar>::add(int dofi, int dofj, Scalar s)
     break;
   }
  }
-  
+
  // add K[j][i]
  for(m=xunonz[constrndNum[dofi]]; m<xunonz[constrndNum[dofi]+1]; ++m) {
   if(rowu[m] == colj) {
@@ -517,8 +514,6 @@ GenCuCSparse<Scalar>::add(int dofi, int dofj, Scalar s)
   }
  }
 }
-
-
 
 template<class Scalar>
 void
@@ -534,24 +529,6 @@ GenCuCSparse<Scalar>::multSubAdd(Scalar *rhs, Scalar *result)
      result[i] += Kuc[m]*rhs[rowu[m]];
  }
 }
-
-
-template<>
-void
-GenCuCSparse<complex<double> >::add(FullSquareMatrixC &kel, int *dofs);
-
-template<>
-void
-GenCuCSparse<double>::add(FullSquareMatrixC &kel, int *dofs);
-
-template<>
-void
-GenCuCSparse<complex<double> >::addImaginary(FullSquareMatrix &kel, int *dofs);
-
-template<>
-void
-GenCuCSparse<double>::addImaginary(FullSquareMatrix &kel, int *dofs);
-
 
 // PJSA: I think there is a bug in multAdd and transposeMult
 // but i don't want to mess with them so I am writing my own versions to test & use
@@ -611,7 +588,6 @@ GenCuCSparse<Scalar>::transposeMultSubNew(const Scalar *rhs, Scalar *result)
  }
 }
 
-//HB 12/15/04
 // y <- alpha.A.x + beta.y
 template<class Scalar>
 void
@@ -619,7 +595,7 @@ GenCuCSparse<Scalar>::mult(const Scalar *rhs, Scalar *result, Scalar alpha, Scal
 {
  int i, m, mstart, mstop;
  if(beta!=1.0)
-   for(i=0; i<numUncon; ++i) 
+   for(i=0; i<numUncon; ++i)
      result[i] = beta*result[i];
 
  if(alpha!=0.0)
@@ -632,7 +608,6 @@ GenCuCSparse<Scalar>::mult(const Scalar *rhs, Scalar *result, Scalar alpha, Scal
    }
 }
 
-//HB 12/15/04
 // y <- alpha.A^t.x + beta.y
 template<class Scalar>
 void
@@ -640,7 +615,7 @@ GenCuCSparse<Scalar>::trMult(const Scalar *rhs, Scalar *result, Scalar alpha, Sc
 {
  int i, m, mstart, mstop;
  if(beta!=1.0)
-   for(i=0; i<numConstrained; ++i) 
+   for(i=0; i<numConstrained; ++i)
      result[i] = beta*result[i];
 
  if(alpha!=0.0)

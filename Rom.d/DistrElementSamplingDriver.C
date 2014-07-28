@@ -42,6 +42,9 @@ void readAndProjectSnapshots(BasisId::Type type, const DistrInfo &vectorSize, Di
                              DistrVecNodeDof6Conversion &converter, DistrVecBasis &podBasis,
                              std::vector<int> &snapshotCounts, std::vector<double> &timeStamps, DistrVecBasis *&config)
 {
+#ifdef PRINT_ESTIMERS
+  double t1 = getTime();
+#endif
   const int snapshotCount = snapSize(type, snapshotCounts);
   filePrint(stderr, " ... Reading in and Projecting %d %s Snapshots ...\n", snapshotCount, toString(type).c_str());
 
@@ -73,19 +76,22 @@ void readAndProjectSnapshots(BasisId::Type type, const DistrInfo &vectorSize, Di
         timeStamps.push_back(in.currentStateHeaderValue());
         skipCounter = 1;
         ++count;
-        filePrint(stderr, "\r ... timeStamp = %7.2e, %4.2f%% complete ...", in.currentStateHeaderValue(), double(count)/snapshotCounts[i]*100);
+        filePrint(stderr, "\r ... timeStamp = %8.2e, %3d%% done ...", in.currentStateHeaderValue(), (count*100)/snapshotCounts[i]);
       }
       else {
         ++skipCounter;
       }
       in.currentStateIndexInc();
     }
+    filePrint(stderr, "\r ... timeStamp = %8.2e, %3d%% done... \n", in.currentStateHeaderValue(), 100);
 
-    filePrint(stderr,"\n");
     offset += snapshotCounts[i];
   }
 
   assert(timeStamps.size() == snapshotCount);
+#ifdef PRINT_ESTIMERS
+  filePrint(stderr, "time for readAndProjectSnapshots = %f\n", (getTime()-t1)/1000.0);
+#endif
 }
 
 // Member functions
@@ -98,7 +104,8 @@ DistrElementSamplingDriver::vectorSize() const
 
 DistrElementSamplingDriver::DistrElementSamplingDriver(Domain *domain, Communicator *comm) :
   MultiDomainDynam(domain),
-  comm_(comm)
+  comm_(comm),
+  solver_(NULL)
 {}
 
 void
@@ -118,7 +125,6 @@ DistrElementSamplingDriver::solve()
                                      std::min(domain->solInfo().maxSizePodRom, podBasisFile.stateCount()) :
                                      podBasisFile.stateCount();
 
-  filePrint(stderr, " ... Proj. Subspace Dimension = %-3d ...\n", projectionSubspaceSize);
   podBasis.dimensionIs(projectionSubspaceSize, vectorSize());
 
   DistrVecNodeDof6Conversion converter(decDomain->getAllSubDomains(), decDomain->getAllSubDomains() + decDomain->getNumSub());
@@ -187,18 +193,23 @@ DistrElementSamplingDriver::solve()
   structCom->globalSum(1,&glNumSubs);
  
   SubElementSamplingDriver **subDrivers = new SubElementSamplingDriver * [decDomain->getNumSub()];
+  SparseNonNegativeLeastSquaresSolver<std::vector<double>,size_t> **subSolvers = new SparseNonNegativeLeastSquaresSolver<std::vector<double>,size_t> * [decDomain->getNumSub()];
   Vector *solutions = new Vector[decDomain->getNumSub()];
-  double *targetMagnitudes = new double[decDomain->getNumSub()];
   int numCPUs = (structCom) ? structCom->numCPUs() : 1;
   int myID = (structCom) ? structCom->myID() : 0;
-  bool verboseFlag = (myID == 0); // output to the screen only for subdomains assigned to mpi process with rank 0
-  double glTargMagnitude = 0;
-  Vector glTrainingTarget(podVectorCount*snapshotCount, 0.0);
+  solver_ = new ParallelSparseNonNegativeLeastSquaresSolver(decDomain->getNumSub(), subSolvers);
+  solver_->problemSizeIs(podVectorCount*snapshotCount, domain->numElements());
+#ifdef PRINT_ESTIMERS
+  double t2 = getTime();
+#endif
+  StackVector glTrainingTarget(solver_->rhsBuffer(), solver_->equationCount());
+  glTrainingTarget.zero();
 #if defined(_OPENMP)
   #pragma omp parallel for schedule(static,1)
 #endif
   for(int i = 0; i < decDomain->getNumSub(); ++i) {
     subDrivers[i] = new SubElementSamplingDriver(decDomain->getAllSubDomains()[i]);
+    subSolvers[i] = &subDrivers[i]->solver();
 
     std::vector<StackVector> subPodBasis(podVectorCount);
     for(int j = 0; j < podVectorCount; ++j) {
@@ -234,98 +245,28 @@ DistrElementSamplingDriver::solve()
 
     for(int j=0; j<subDrivers[i]->solver().equationCount(); ++j) subDrivers[i]->solver().rhsBuffer()[j] = 0.0;
     subDrivers[i]->assembleTrainingData(subPodBasis, podVectorCount, subDisplac, subVeloc, subAccel);
-    if(!domain->solInfo().globalErr) subDrivers[i]->clean();
+    subDrivers[i]->clean();
     if(subVeloc) delete subVeloc;
     if(subAccel) delete subAccel;
 
     StackVector trainingTarget(subDrivers[i]->solver().rhsBuffer(), podVectorCount*snapshotCount);
-    targetMagnitudes[i] = trainingTarget.norm();
 #if defined(_OPENMP)
     #pragma omp critical
 #endif
     glTrainingTarget += trainingTarget;
   }
-  if(!domain->solInfo().globalErr) {
-    delete displac;
-    if(veloc) delete veloc;
-    if(accel) delete accel;
-  }
+  delete displac;
+  if(veloc) delete veloc;
+  if(accel) delete accel;
 
   if(structCom) 
     structCom->globalSum(glTrainingTarget.size(), glTrainingTarget.data()); 
-  glTargMagnitude = glTrainingTarget.norm();
-  //if(structCom->myID() == 0) std::cerr << "glTargMagnitude = " << glTargMagnitude << std::endl;
-
-  Vector glAx(podVectorCount*snapshotCount, 0.0);
-
-#if defined(_OPENMP)
-  #pragma omp parallel for schedule(static,1)
+#ifdef PRINT_ESTIMERS
+  filePrint(stderr, "time for assembleTrainingData = %f\n", (getTime()-t2)/1000.0);
 #endif
-  for(int i = 0; i < decDomain->getNumSub(); ++i) {
-    double relativeTolerance = (domain->solInfo().localTol) 
-                               ? domain->solInfo().tolPodRom*glTargMagnitude/(glNumSubs*targetMagnitudes[i])
-                               : domain->solInfo().tolPodRom;
-    if(verboseFlag) filePrint(stderr, " ... Training Tolerance for SubDomain %d is %f ...\n",
-                              decDomain->getSubDomain(i)->subNum()+1, relativeTolerance);
-    subDrivers[i]->computeSolution(solutions[i], relativeTolerance, verboseFlag);
 
-    if(domain->solInfo().globalErr) {
-      std::vector<StackVector> subPodBasis(podVectorCount);
-      for(int j = 0; j < podVectorCount; ++j) {
-        subPodBasis[j].setData(podBasis[j].subData(i), podBasis[j].subLen(i));
-      }
+  computeSolution(solutions, domain->solInfo().tolPodRom);
 
-      std::vector<StackVector> subDisplac(snapshotCount);
-      for(int j = 0; j < snapshotCount; ++j) {
-        subDisplac[j].setData((*displac)[j].subData(i), (*displac)[j].subLen(i));
-      }
-
-      subDrivers[i]->timeStampsIs(timeStamps);
-      subDrivers[i]->snapshotCountsIs(snapshotCounts);
-
-      std::vector<StackVector> *subVeloc = 0;
-      if(veloc) {
-        subVeloc = new std::vector<StackVector>(snapshotCount);
-        for(int j = 0; j < snapshotCount; ++j) {
-          (*subVeloc)[j].setData((*veloc)[j].subData(i), (*veloc)[j].subLen(i));
-        }
-      }
-
-      std::vector<StackVector> *subAccel = 0;
-      if(accel) {
-        subAccel = new std::vector<StackVector>(snapshotCount);
-        for(int j = 0; j < snapshotCount; ++j) {
-          (*subAccel)[j].setData((*accel)[j].subData(i), (*accel)[j].subLen(i));
-        }
-      }
-
-      StackVector Ax(subDrivers[i]->solver().rhsBuffer(), podVectorCount*snapshotCount);
-      Ax.zero();
-      subDrivers[i]->assembleWeightedTrainingData(subPodBasis, podVectorCount, subDisplac, subVeloc, subAccel, solutions[i]);
-      if(verboseFlag) std::cerr << " ... Norm of training solution (A*x) for subdomain " << decDomain->getSubDomain(i)->subNum()+1 
-                                << " is " << Ax.norm() << " ...\n";
-      subDrivers[i]->clean();
-      if(subVeloc) delete subVeloc;
-      if(subAccel) delete subAccel;
-
-#if defined(_OPENMP)
-      #pragma omp critical
-#endif
-      glAx += Ax;
-    }
-  }
-  if(domain->solInfo().globalErr) {
-    if(structCom)
-      structCom->globalSum(glAx.size(), glAx.data());
-    glAx -= glTrainingTarget;
-    if(structCom->myID() == 0) std::cerr << " ... Global relative residual = " << glAx.norm()/glTargMagnitude << " ...\n";
-
-    delete displac;
-    if(veloc) delete veloc;
-    if(accel) delete accel;
-  }
-  delete [] targetMagnitudes;
-  
   std::vector<double> lweights; 
   std::vector<int> lelemIds;
   for(int i = 0; i < decDomain->getNumSub(); i++) {
@@ -333,6 +274,7 @@ DistrElementSamplingDriver::solve()
     delete subDrivers[i];
   }
   delete [] solutions;
+  delete [] subSolvers;
   delete [] subDrivers;
   
   std::vector<double> gweights(domain->numElements());
@@ -501,6 +443,50 @@ DistrElementSamplingDriver::solve()
       }
     }
 #endif
+  }
+}
+
+void
+DistrElementSamplingDriver::computeSolution(Vector *solutions, double relativeTolerance, bool verboseFlag)
+{
+  solver_->relativeToleranceIs(relativeTolerance);
+  solver_->verboseFlagIs(verboseFlag);
+  solver_->scalingFlagIs(domain->solInfo().useScalingSpnnls);
+  solver_->solverTypeIs(domain->solInfo().solverTypeSpnnls);
+  solver_->maxSizeRatioIs(domain->solInfo().maxSizeSpnnls);
+  solver_->solve();
+
+  if(verboseFlag) {
+/*  std::cout << "Primal solution:";
+    for (int elemRank = 0; elemRank != elementCount(); ++elemRank) {
+      std::cout << " " << solver_.solutionEntry(elemRank);
+    }
+    std::cout << "\n"; */
+    StackVector trainingTarget(solver_->rhsBuffer(), solver_->equationCount());
+    double glTargMagnitude = trainingTarget.norm();
+    double oneNorm = 0;
+    for(int i = 0; i < solver_->subdomainCount(); ++i) {
+      oneNorm += std::accumulate(solver_->subdomainSolver(i)->solutionBuffer(),
+                                 solver_->subdomainSolver(i)->solutionBuffer() + solver_->subdomainSolver(i)->unknownCount(), 0.0);
+    }
+#ifdef USE_MPI
+    oneNorm = structCom->globalSum(oneNorm);
+#endif
+    if(!structCom || structCom->myID() == 0) {
+      std::cout << "Error magnitude / Absolute tolerance = " << solver_->errorMagnitude() << " / " << solver_->relativeTolerance() * glTargMagnitude << "\n";
+      std::cout << "1-norm of primal solution = " << oneNorm << "\n";
+      std::cout.flush();
+    }
+  }
+
+#if defined(_OPENMP)
+  #pragma omp parallel for schedule(static,1)
+#endif
+  // Read solution
+  for(int i = 0; i < solver_->subdomainCount(); ++i) {
+    solutions[i].initialize(solver_->subdomainSolver(i)->unknownCount());
+    std::copy(solver_->subdomainSolver(i)->solutionBuffer(), solver_->subdomainSolver(i)->solutionBuffer() + solver_->subdomainSolver(i)->unknownCount(),
+              solutions[i].data());
   }
 }
 

@@ -6,7 +6,7 @@
 template<typename doublereal>
 void
 ShellMaterialType1<doublereal>::GetConstitutiveResponse(doublereal *_Upsilon, doublereal *_Sigma, doublereal *_D,
-                                                        doublereal *eframe, int gp)
+                                                        doublereal *eframe, int gp, doublereal temp)
 {
   // Initialized data 
   doublereal zero = 0.;
@@ -168,7 +168,7 @@ ShellMaterialType1<doublereal>::GetConstitutiveResponse(doublereal *_Upsilon, do
 
 // .....COMPUTE THE GENERALIZED "STRESSES"
 
-    Sigma = D*Upsilon;
+    Sigma = D*(Upsilon - (temp-Ta)*Alpha);
 
     if(_D == NULL) delete [] data;
 }
@@ -258,7 +258,7 @@ ShellMaterialType1<doublereal>::GetShellThickness()
 template
 void
 ShellMaterialType1<double>::GetConstitutiveResponse(double *Upsilon, double *Sigma, double *D,
-                                                    double *eframe, int gp);
+                                                    double *eframe, int gp, double temp);
 
 template
 double 

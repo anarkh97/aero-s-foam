@@ -9,9 +9,8 @@
 
 #include <Element.d/Shell.d/ThreeNodeShell.h>
 #include <Comm.d/Communicator.h>
-#include <Driver.d/Domain.h>
 #include <Driver.d/GeoSource.h>
-
+#include <Utils.d/SolverInfo.h>
 #include <Corotational.d/GeomState.h>
 
 #include <Mortar.d/FaceElement.d/SurfaceEntity.h>
@@ -34,7 +33,7 @@ const char *SEND_LIST_KW = "SNDF";
 extern Communicator *structCom, *fluidCom, *heatStructCom;
 extern int verboseFlag;
 extern GeoSource *geoSource;
-extern Domain *domain;
+extern SolverInfo &solInfo;
 
 FlExchanger::FlExchanger(CoordSet& _cs, Elemset& _eset, SurfaceEntity *_surf, DofSetArray *_dsa, 
                          OutputInfo *_oinfo) : cs(_cs), surface(_surf), eset(_eset)
@@ -983,6 +982,8 @@ FlExchanger::sendStrucTemp(Vector &tempsent)
    }
 
    heatStructCom->sendTo(zero, tag, buff, pos);
+
+   heatStructCom->waitForAllReq();
 }
 
 void
@@ -1266,7 +1267,7 @@ FlExchanger::negotiate()
 void
 FlExchanger::transformVector(double *localF, Element *ele)
 {
-  if(!domain->solInfo().basicDofCoords) {
+  if(!solInfo.basicDofCoords) {
     int *nn = ele->nodes();
     for(int k=0; k<ele->numNodes(); ++k)
       if(NFrameData *cd = cs.dofFrame(nn[k])) {
@@ -1280,7 +1281,7 @@ FlExchanger::transformVector(double *localF, Element *ele)
 void
 FlExchanger::transformVector(double *localF, FaceElement *ele)
 {
-  if(!domain->solInfo().basicDofCoords) {
+  if(!solInfo.basicDofCoords) {
     for(int k=0; k<ele->nNodes(); ++k) {
       int glNode = (surface->IsRenumbered()) ? surface->GetPtrLlToGlNodeMap()[ele->GetNode(k)] : ele->GetNode(k);
       if(NFrameData *cd = cs.dofFrame(glNode))

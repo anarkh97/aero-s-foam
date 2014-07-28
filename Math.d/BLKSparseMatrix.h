@@ -164,8 +164,4 @@ class WrapSparseMat : public GenBLKSparseMatrix<Scalar>
 typedef GenBLKSparseMatrix<double> BLKSparseMatrix;
 typedef GenBLKSparseMatrix<DComplex> BLKSparseMatrixC;
 
-#ifdef _TEMPLATE_FIX_
-#include <Math.d/BLKSparseMatrix.C>
-#endif
-
 #endif

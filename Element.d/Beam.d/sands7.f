@@ -520,9 +520,7 @@ C
       call dgemv('N',12,12,1.0d00,locke,12,Ue,1,0.0d00,Fe,1)
 C
 C.... COMPUTE THERMAL STRESS
-C.... BE CAREFUL!!!! put tref to 0 in INPUT file if you don't want
-C.... this term to be included
-
+C
       do i=1,2
          tl(i) = temp(i) - tref
       enddo

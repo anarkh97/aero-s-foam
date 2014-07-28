@@ -171,8 +171,8 @@ c
 c
       if (globflag .eq. 0) then
 c transform to global coordinates	
-c	first create the transformation matrix which rot,
-c	next carry out this multipication node by node which has 
+c	first create the transformation matrix (rot),
+c	next carry out this multiplication node by node which has 
 c       forces [flx fly mz] 
         call rotation(xp,yp,zp,v1n,v2n,v3n,rot)
         do 40, i =1,3

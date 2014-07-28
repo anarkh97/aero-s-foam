@@ -9,7 +9,8 @@ C=====================================================================C
      $                    ncmpfr    , cmpco    , idlay     , mtlay    ,
      $                    cmpfr     , maxgly   , laysgid   , iatt     ,
      $                    ctyp      , catt     , cfrm      , nfely    ,
-     $                    msize     , strainFlg, surface             )
+     $                    msize     , strainFlg, surface   , thrmStr1 ,
+     $                    thrmStr2                                    )
 C=====================================================================C
 C                                                                     C
 C     -----------------                                               C
@@ -77,6 +78,7 @@ C
       real*8     str(6),xp(3),yp(3),zp(3)
       real*8     xg(3),yg(3),zg(3)
       real*8     laysigm(nfely,maxstr,maxgly)
+      real*8     thrmStr1, thrmStr2
 C
 C.....SET THE MAXIMUM NUMBER OF LAYERS OF THE ELEMENT
 C
@@ -401,8 +403,9 @@ C.....GET THE ROTATION MATRIX
 C.....GET THE DEGREE OF FREEDOM POINTERS
 C
       call compcrd2( elm  , ctyp , globalX , globalY , globalZ ,
-     $              rot  , x    , y       , z       , rowb    ,
-     $              colb , rowm , colm ,xp,yp,zp              )
+     $               rot  , x    , y       , z       , rowb    ,
+     $               colb , rowm , colm    , xp      , yp      ,
+     $               zp                                        )
 C
 C.....GET THE ELEMENT LEVEL FRAME
 C
@@ -771,6 +774,12 @@ C
 
           return
         end if
+C
+C     Subtract off thermal strain portions
+      elestr(1) = elestr(1) - thrmStr1
+      elestr(2) = elestr(2) - thrmStr2
+C
+C
 C     ----------------------------------------------
 C     STEP 6
 C     COMPUTE THE ELEMENTAL MOMENT AND FORCE
@@ -1134,7 +1143,6 @@ C.....ONE OF THE [maxgly] GAUSS POINTS
 C
       do 7501 i=1,maxgly
          laysigm(layerpos,7,i) = vonmises
-         write(*,*) vonmises
  7501 continue
 C
 C.....END OF LOOP ON THE LAYERS OF THE COMPOSITE SHELL ELEMENT

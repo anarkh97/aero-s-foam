@@ -4,9 +4,10 @@
 class SubCornerHandler;
 class Connectivity;
 class FSCommunicator;
-class ElemSet;
+class Elemset;
 class CoordSet;
 class DofSetArray;
+class ConstrainedDSA;
 class BaseSub;
 template <class Type> class FSCommPattern;
 

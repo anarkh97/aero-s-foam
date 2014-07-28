@@ -982,7 +982,7 @@ EulerBeam::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
 
   _FORTRAN(sands6)(prop->A, prop->E, elm, (double*)elStress, maxsze, maxgus,
                    maxstr, (double*)*elemframe, prop->Ixx, prop->Iyy,
-                   prop->Izz, prop->nu,x,y,z,elDisp.data(), prop->W, prop->Ta, 
+                   prop->Izz, prop->nu, x, y, z, elDisp.data(), prop->W, prop->Ta, 
                    ndTemps); 
 
    // elForce[0] -> Axial Force (x-direction)
@@ -1017,7 +1017,6 @@ EulerBeam::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
    } else if (zlayer > 0.0) {
       Z =  zlayer*prop->zmax;
    }
-        
 
    switch (avgnum) {
     
@@ -1059,7 +1058,7 @@ EulerBeam::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
           localThS = alpha * (0.5 * dT1 + 0.5 * dT2);
         
           stress[0] = elForce[0][0]/EA - elForce[2][0]*Y/EIZ + elForce[1][0]*Z/EIY + localThS;
-            stress[1] = elForce[0][1]/EA - elForce[2][1]*Y/EIZ + elForce[1][1]*Z/EIY + localThS;
+          stress[1] = elForce[0][1]/EA - elForce[2][1]*Y/EIZ + elForce[1][1]*Z/EIY + localThS;
          
         } else {
           stress[0] = 0.0;

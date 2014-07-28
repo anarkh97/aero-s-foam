@@ -22,6 +22,7 @@
 #include <Mortar.d/MortarDriver.d/MortarHandler.h>
 #include <Paral.d/DomainGroupTask.h>
 #include <Solvers.d/MultiDomainRbm.h>
+#include <Driver.d/SysState.h>
 #ifdef USE_MPI
 #include <Comm.d/Communicator.h>
 extern Communicator *structCom;
@@ -509,6 +510,8 @@ GenDecDomain<Scalar>::makeSubToSubEtc()
       mt.memoryElemToSub += memoryUsed();
       if(domain->numSSN() > 0) domain->checkSommerTypeBC(domain, elemToNode, domain->nodeToElem); // flip normals if necessary
     }
+
+    if(geoSource->getGlob()) geoSource->computeClusterInfo(localSubToGl[0], subToNode);
   }
 }
 
@@ -3584,7 +3587,7 @@ GenDecDomain<Scalar>::buildOps(GenMDDynamMat<Scalar> &res, double coeM, double c
  GenDomainGroupTask<Scalar> dgt(numSub, subDomain, coeM, coeC, coeK, rbms, kelArray,
                                 domain->solInfo().alphaDamp, domain->solInfo().betaDamp,
                                 domain->numSommer, domain->solInfo().getFetiInfo().solvertype,
-                                communicator, melArray, celArray);
+                                communicator, melArray, celArray, domain->getElementSet().hasDamping());
 
  if(domain->solInfo().type == 0) {
    switch(domain->solInfo().subtype) {

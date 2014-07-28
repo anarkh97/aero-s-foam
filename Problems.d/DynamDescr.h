@@ -135,7 +135,7 @@ class SingleDomainDynamic
     int getTimeIntegration();
     int getFilterFlag();
     
-    Domain *getDomain() {return domain;} 
+    Domain *getDomain() {return domain;}
 
     void getTimes(double &dt, double &t);
     void getNewMarkParameters(double &beta, double &gamma,
@@ -164,8 +164,6 @@ class SingleDomainDynamic
     AllSensitivities<double> *getAllSensitivities() { return allSens; }
     SDDynamPostProcessor *getPostProcessor();
     void printTimers(DynamMat *, double);
-    //void getPrescContrib(SparseMatrix *M12, SparseMatrix *C12, Vector& vnc,
-    //                     Vector& anc, Vector& result, double tm, double tf);
     double betaDamp() const;
     double alphaDamp() const; 
     void setDamping( double betaDamp, double alphaDamp );
@@ -176,7 +174,10 @@ class SingleDomainDynamic
 
     // Central Difference only related subroutines
     void computeStabilityTimeStep(double& dt, DynamMat& dMat);
+
     void updateState(double dt_n_h, Vector& v_n_h, Vector& d_n);
+    void pull_back(Vector& f);
+    void push_forward(Vector& a);
 
     // Mode Decomposition parameters and subroutines
     int getModeDecompFlag();
@@ -184,7 +185,8 @@ class SingleDomainDynamic
     void modeDecomp(double t, int tIndex, Vector& d_n);
 
     void getInternalForce(Vector&, Vector&, double t, int tIndex);
-    void getUnassembledNonLinearInternalForce(Vector &, Vector &, std::map<int, std::pair<int,int> > &, FullSquareMatrix *kelCopy, double t, int tIndex);
+    void getUnassembledNonLinearInternalForce(Vector &, Vector &, std::map<int, std::pair<int,int> > &,
+                                              FullSquareMatrix *kelCopy, double t, int tIndex);
 
     // Aeroelastic problems related subroutines
     void computeTimeInfo();

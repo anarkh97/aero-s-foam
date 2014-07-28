@@ -1253,7 +1253,19 @@ RigidTwoNodeTruss::examine(int sub, MultiFront *mf)
 }
 
 PrioInfo
+RigidTwoNodeTrussWithMass::examine(int sub, MultiFront *mf)
+{
+  return examineBar2(sub, mf, nn);
+}
+
+PrioInfo
 RigidBeam::examine(int sub, MultiFront *mf)
+{
+  return examineBeam2(sub, mf, nn);
+}
+
+PrioInfo
+RigidBeamWithMass::examine(int sub, MultiFront *mf)
 {
   return examineBeam2(sub, mf, nn);
 }

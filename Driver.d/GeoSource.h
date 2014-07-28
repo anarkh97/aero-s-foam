@@ -311,6 +311,7 @@ public:
   void setMatch(char *file) { matchName = file; }
   void setCpuMap(char *file) { mapName = file; }
   void setGlob(char *file) { conName = file; }
+  char *getGlob() { return conName; }
   void setExitAfterDec(bool exit);
   void setNumLocSub(int);
   void setMatchArrays(int);
@@ -557,7 +558,7 @@ public:
   void createBinaryOutputFile(int, int, int iter = 0);
   void computeAndCacheHeaderLength(int);
   void outputHeader(int);
-  void outputRange(int, int *, int, int, int , int iter = 0);//CBM
+  void outputRange(int, int *, int, int, int , int iter = 0);
 
 private:
   int getHeaderDescriptionAndLength(char *, int);
@@ -565,7 +566,7 @@ private:
 
 public:
   void readGlobalBinaryData();
-  void computeClusterInfo(int glSub);
+  void computeClusterInfo(int glSub, Connectivity *subToNode = NULL);
 
   void writeDistributedInputFiles(int nCluster, Domain*);
 #ifdef SOWER_SURFS
@@ -605,7 +606,7 @@ public:
   void setShift(double w2) { isShift = true; shiftV = w2; }
   void setImpe(double f) { isShift = true; shiftV = 4.0*PI*PI*f*f; }
   void setOmega(double w) { isShift = true; shiftV = w*w; }
-  void resetShift(double w2) { isShift = false; shiftV = w2; } //CBM--exp
+  void resetShift(double w2) { isShift = false; shiftV = w2; }
   double shiftVal() { return shiftV; }
   double freq() { return sqrt(shiftV)/(2.0*PI); }
   double omega() { return sqrt(shiftV); }

@@ -10,6 +10,8 @@
 #include <Material.d/KorkolisKyriakidesPlaneStressMaterial.h>
 #include <Material.d/KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding.h>
 #include <Material.d/KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2.h>
+#include <Math.d/FullSquareMatrix.h>
+#include <Math.d/Vector.h>
 #include <Utils.d/Conwep.d/BlastLoading.h>
 #include <iostream>
 

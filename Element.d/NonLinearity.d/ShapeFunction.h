@@ -22,6 +22,7 @@ class ShapeFunction
      virtual void getGradU(Tensor *gradU, Node *nodes, double xi[3], Vector &disp);
      virtual void getGradU(Tensor *gradU, double *jac, Node *nodes, double xi[3], Vector &disp);
      virtual void getJacobianDeterminant(double *jac, Node *nodes, double xi[3]);
+     virtual double interpolateScalar(double *_q, double _xi[3]);
 };
 
 template <class TensorTypes>
@@ -34,6 +35,7 @@ class GenShapeFunction
                                  Node *nodes, double xi[3], Vector &disp) = 0;
      virtual void getGradU(typename TensorTypes::GradUTensor &gradU,
                            Node *nodes, double xi[3], Vector &disp) = 0;
+     virtual double interpolateScalar(double *_q, double _xi[3]) = 0;
 };
 
 #endif

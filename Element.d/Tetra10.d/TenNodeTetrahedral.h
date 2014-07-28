@@ -3,8 +3,6 @@
 
 #include <Element.d/Element.h>
 
-class NLMaterial;
-
 class TenNodeTetrahedral: public Element
 {
     int nn[10];
@@ -14,6 +12,7 @@ class TenNodeTetrahedral: public Element
 
   public:
     TenNodeTetrahedral(int*);
+    ~TenNodeTetrahedral();
 
     Element *clone();
 

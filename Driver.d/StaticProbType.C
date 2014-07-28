@@ -1,6 +1,7 @@
 #include <Timers.d/StaticTimers.h>
 #include <Utils.d/DistHelper.h>
 #include <cassert>
+#include <iostream>
 
 template < class Scalar,
            class OpSolver, 
@@ -513,16 +514,16 @@ xtime -= getTime();
              *sol = *sol_prev[1];
              double prevSolSqNorm, solSqNorm = sol->sqNorm();
              double relError = 0.0;
-             //cerr << "  i = 0, sol->sqNorm() = " << sol->sqNorm() << endl;
+             //std::cerr << "  i = 0, sol->sqNorm() = " << sol->sqNorm() << std::endl;
              for(int i=1; i<nRHS; ++i) {
                prevSolSqNorm = solSqNorm;
                sol->linAdd(1.0/DFactorial(i)*pow(deltaw,i), *sol_prev[i+1]);
                solSqNorm = sol->sqNorm();
                relError = fabs((solSqNorm-prevSolSqNorm)/prevSolSqNorm);
-               //cerr << "  i = " << i << ", solSqNorm = " << solSqNorm
+               //std::cerr << "  i = " << i << ", solSqNorm = " << solSqNorm
                //     << ", factor = " << 1.0/double(DFactorial(i))*pow(deltaw,i) 
                //     << ", sol_prev[i+1]->sqNorm() = " << sol_prev[i+1]->sqNorm() 
-               //     << ", relError = " << relError << endl;
+               //     << ", relError = " << relError << std::endl;
                if(relError < _IsConverged) break;
              }
            } break;
@@ -643,7 +644,7 @@ filePrint(stderr,"Projection  time: %e\n",xtime);
 
    psi_u->zero();
    for(int i=0; i<domain->solInfo().nsample; ++i) {
-     cout << endl << "Realization number  " << i+1 << endl;
+     std::cout << std::endl << "Realization number  " << i+1 << std::endl;
      if(i>0) {
        sfem->genXiPsi(i); // seed=i 
        probDesc->assignRandMat();

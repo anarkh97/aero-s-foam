@@ -33,9 +33,10 @@ DistrGeomState::makeSubGeomStates(int isub, DecDomain *domain)
 {
  SubDomain *sd = domain->getSubDomain(isub);
  if(sd->solInfo().soltyp == 2)
-   gs[isub] = new TemperatureState( *sd->getDSA(), *sd->getCDSA(), sd->getNodes() );
+   gs[isub] = new TemperatureState(*sd->getDSA(), *sd->getCDSA(), sd->getNodes());
  else
-   gs[isub] = new GeomState( *sd->getDSA(), *sd->getCDSA(), sd->getNodes(), &sd->getElementSet() );
+   gs[isub] = new GeomState(*sd->getDSA(), *sd->getCDSA(), sd->getNodes(), &sd->getElementSet(),
+                            sd->getNodalTemperatures());
 }
 
 DistrGeomState::DistrGeomState(const DistrGeomState &g2)
@@ -101,6 +102,12 @@ DistrGeomState::subSetVelocityAndAcceleration(int isub, DistrVector &v, DistrVec
   StackVector vsub(v.subData(isub), v.subLen(isub));
   StackVector asub(a.subData(isub), a.subLen(isub));
   gs[isub]->setVelocityAndAcceleration(vsub, asub);
+}
+
+void
+DistrGeomState::subSetNodalTemperatures(int isub, DistrVector &temps)
+{
+  gs[isub]->setNodalTemperatures(temps.subData(isub));
 }
 
 void
@@ -245,6 +252,12 @@ void
 DistrGeomState::setVelocityAndAcceleration(DistrVector &v, DistrVector &a)
 {
   execParal2R(numSub, this, &DistrGeomState::subSetVelocityAndAcceleration, v, a);
+}
+
+void
+DistrGeomState::setNodalTemperatures(DistrVector &temps)
+{
+  execParal1R(numSub, this, &DistrGeomState::subSetNodalTemperatures, temps);
 }
 
 DistrGeomState &

@@ -1,6 +1,7 @@
 #ifndef _OPMAKE_C_
 #define _OPMAKE_C_
 #include <typeinfo>
+#include <algorithm>
 #include <Utils.d/dbg_alloca.h>
 #include <Math.d/Skyline.d/SkyMatrix.h>
 #include <Math.d/SparseMatrix.h>
@@ -34,7 +35,7 @@
 #include <Element.d/MpcElement.d/MpcElement.h>
 #include <Utils.d/MFTT.h>
 #include <Utils.d/MathUtils.h>
-
+#include <Utils.d/DistHelper.h>
 #include <Rom.d/GalerkinProjectionSolver.h>
 #include <Rom.d/EiGalerkinProjectionSolver.h>
 #include <Control.d/ControlInterface.h>
@@ -3414,7 +3415,7 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
     filePrint(stderr," ... Postprocessing                 ...\n");
 
   // organize displacements
-  int numNodeLim = myMax(numNodes,numnodes); 
+  int numNodeLim = std::max(numNodes,numnodes); 
     
   Scalar (*xyz)[11] = new Scalar[numNodeLim][11];
   Scalar (*xyz_loc)[11] = (domain->solInfo().basicDofCoords) ? 0 : new Scalar[numNodeLim][11];

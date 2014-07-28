@@ -161,7 +161,7 @@ Domain::computeStructureMass(bool printFlag)
   int iele, i;
   for(iele=0; iele < numele; ++iele) {
     int numNodesPerElement = packedEset[iele]->numNodes();
-    maxNumNodes = myMax(maxNumNodes, numNodesPerElement);
+    maxNumNodes = std::max(maxNumNodes, numNodesPerElement);
   }
 
   // allocate one array to store node numbers
@@ -206,7 +206,7 @@ Domain::computeStructureMass(bool printFlag)
   if(geoSource->numElemFluid() > 0) {
     for(iele=0; iele < geoSource->numElemFluid(); ++iele) {
       int numNodesPerElement = (*(geoSource->getPackedEsetFluid()))[iele]->numNodes();
-      maxNumNodes = myMax(maxNumNodes, numNodesPerElement);
+      maxNumNodes = std::max(maxNumNodes, numNodesPerElement);
     }
 
     nodeNumbers = new int[maxNumNodes];
@@ -492,7 +492,7 @@ Domain::computeFluidMass()
   int iele, i;
   for(iele=0; iele < geoSource->numElemFluid(); ++iele) {
     int numNodesPerElement = (*(geoSource->getPackedEsetFluid()))[iele]->numNodes();
-    maxNumNodes = myMax(maxNumNodes, numNodesPerElement);
+    maxNumNodes = std::max(maxNumNodes, numNodesPerElement);
   }
 
   // allocate one array to store node numbers
@@ -869,12 +869,14 @@ void Domain::writeTopFileElementSets(ControlInfo *cinfo, int * nodeTable, int* n
 
  std::list<int> phantoms;
  std::list<int> constraints;
+ std::list<int> dimasses;
 
  for(iele=0; iele<nEls; ++iele) {
    if(!packedEset[iele]->isPhantomElement() && !packedEset[iele]->isConstraintElement()) {
      int numNodesPerElement = packedEset[iele]->numTopNodes();
-     if(numNodesPerElement <= 1) continue;
      int eletype = packedEset[iele]->getTopNumber();
+     if(eletype == 506) { dimasses.push_back(iele); continue; }
+     if(numNodesPerElement <= 1) continue;
      int eid = (topFlag == 1 || topFlag == 7) ? iele+1 : packedEset[iele]->getGlNum()+1; // only renumber for -T and -M
      fprintf(cinfo->checkfileptr,"%6d  %4d ",eid,eletype);
      packedEset[iele]->nodes(nodeNumber);
@@ -884,46 +886,53 @@ void Domain::writeTopFileElementSets(ControlInfo *cinfo, int * nodeTable, int* n
 	 fprintf(cinfo->checkfileptr,"%6d ",nodeTable[nodeNumber[inode]]);
      fprintf(cinfo->checkfileptr,"\n");
    }
-   else
-     {
-       if(packedEset[iele]->isPhantomElement())
-	 phantoms.push_back(iele); //TG create a list of phantom elements, shouldn't be too big
-       else
-	 constraints.push_back(iele);
-     }
+   else {
+     if(packedEset[iele]->isPhantomElement())
+       phantoms.push_back(iele); //TG create a list of phantom elements
+     else
+       constraints.push_back(iele);
+   }
  }
-
- //std::cerr << " ... " << phantoms.size() << " phantoms " << constraints.size() << " constraints elements. " << std::endl;
 
  //TG output dimasses in a separate element set if there are any
  // as of now (7/5/06) a dimass will be represented by a bar element in xpost between the node the
  // dimass is attached to and itself.
- if(nDimass > 0)
-   {
-     fprintf(stderr, " ... Putting %d Dimasses as bars in a separate ElemSet\n", nDimass);
-     DMassData* curMass = firstDiMass;
-     fprintf(cinfo->checkfileptr,"Elements %s_dimass using %s\n",
-	     cinfo->elemSetName, cinfo->nodeSetName);
-     int iele = 0;
-     int eletype = 506; //101; // BAR element //TG now 506 to detect dimasses in Xpost
-     while(curMass != NULL)
-       {
-	 int node = curMass->node;
-	 if(node < numnodes && nodes[node] != 0)
-	   {
-	     fprintf(cinfo->checkfileptr,"%6d  %4d ",iele+1,eletype);
+ if(nDimass > 0 || dimasses.size() > 0) {
+   fprintf(stderr, " ... Putting %d Dimasses as bars in a separate ElemSet\n", nDimass+int(dimasses.size()));
+   fprintf(cinfo->checkfileptr,"Elements %s_dimass using %s\n",
+           cinfo->elemSetName, cinfo->nodeSetName);
+   int iele = 0;
+   int eletype = 506; // TG now 506 to detect dimasses in Xpost
+   DMassData* curMass = firstDiMass;
+   while(curMass != NULL) {
+     int node = curMass->node;
+     if(node < numnodes && nodes[node] != 0) {
+       fprintf(cinfo->checkfileptr,"%6d  %4d ",iele+1,eletype);
 
-	     fprintf(cinfo->checkfileptr,"%6d %6d\n",nodeTable[node], nodeTable[node]);
-	     curMass = curMass->next;
-	     iele ++;
-	   }
-	 else
-	   {
-	     std::cout << " Warning : virtual dimass" << std::endl;
-             curMass = curMass->next;
-	   }
-       }
+       fprintf(cinfo->checkfileptr,"%6d %6d\n",nodeTable[node], nodeTable[node]);
+       curMass = curMass->next;
+       iele++;
+     }
+     else {
+       std::cout << " Warning : virtual dimass" << std::endl;
+       curMass = curMass->next;
+     }
    }
+   int m_dimasses = dimasses.size();
+   for(int i=0; i<m_dimasses; ++i) {
+     int jele = dimasses.front();
+     dimasses.pop_front();
+
+     // same as main element writing in loop above for non dimass elements
+     int eletype = packedEset[jele]->getTopNumber();
+     fprintf(cinfo->checkfileptr,"%6d  %4d ",iele+1,eletype);
+     packedEset[jele]->nodes(nodeNumber);
+     for(inode=0; inode<2; ++inode)
+       fprintf(cinfo->checkfileptr,"%6d ",nodeTable[nodeNumber[0]]);
+     fprintf(cinfo->checkfileptr,"\n");
+     iele++;
+   }
+ }
 
  // output phantom elements in a separate elementset if there are any
  if (phantoms.size() > 0) {
@@ -934,20 +943,19 @@ void Domain::writeTopFileElementSets(ControlInfo *cinfo, int * nodeTable, int* n
        iele = phantoms.front();
        phantoms.pop_front();
 
-       //** same as main element writing in loop above for non phantom elements
+       // same as main element writing in loop above for non phantom elements
        int numNodesPerElement = packedEset[iele]->numTopNodes();
        if(numNodesPerElement <= 1) continue;
        int eletype = packedEset[iele]->getTopNumber();
        fprintf(cinfo->checkfileptr,"%6d  %4d ",iele+1,eletype);
        packedEset[iele]->nodes(nodeNumber);
        for(inode=0; inode<numNodesPerElement; ++inode)
-	 // Avoid to print nodes that are internally created
+	 // Avoid printing nodes that are internally created
 	 if(nodeNumber[inode] < numnodes && nodes[nodeNumber[inode]] != 0)
 	   fprintf(cinfo->checkfileptr,"%6d ",nodeTable[nodeNumber[inode]]);
        fprintf(cinfo->checkfileptr,"\n");
-       //**
      }
-   }
+ }
 
  // output constraint elements in a separate elementset if there are any
  if (constraints.size() > 0) {
@@ -958,18 +966,17 @@ void Domain::writeTopFileElementSets(ControlInfo *cinfo, int * nodeTable, int* n
        iele = constraints.front();
        constraints.pop_front();
 
-       //** same as main element writing in loop above for non constraints elements
+       // same as main element writing in loop above for non constraints elements
        int numNodesPerElement = packedEset[iele]->numTopNodes();
        if(numNodesPerElement <= 1) continue;
        int eletype = packedEset[iele]->getTopNumber();
        fprintf(cinfo->checkfileptr,"%6d  %4d ",iele+1,eletype);
        packedEset[iele]->nodes(nodeNumber);
        for(inode=0; inode<numNodesPerElement; ++inode)
-	 // Avoid to print nodes that are internally created
+	 // Avoid printing nodes that are internally created
 	 if(nodeNumber[inode] < numnodes && nodes[nodeNumber[inode]] != 0)
 	   fprintf(cinfo->checkfileptr,"%6d ",nodeTable[nodeNumber[inode]]);
        fprintf(cinfo->checkfileptr,"\n");
-       //**
      }
    }
 
@@ -1125,7 +1132,7 @@ Domain::makeTopFile(int topFlag)
  int nEls = packedEset.last(); //HB: to avoid calling packedEset.last() at each loop
  for(iele=0; iele<nEls; ++iele) {
    int numNodesPerElement = packedEset[iele]->numNodes();
-   maxNumNodes = myMax(numNodesPerElement, maxNumNodes);
+   maxNumNodes = std::max(numNodesPerElement, maxNumNodes);
  }
  // allocate integer array to store node numbers
  int *nodeNumber = new int[maxNumNodes];
@@ -1488,7 +1495,7 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
   // Either get the nodal temperatures from the input file or
   // from the thermal model
   if(sinfo.thermalLoadFlag) nodalTemperatures = getNodalTemperatures();
-  if(sinfo.thermoeFlag >=0) nodalTemperatures = temprcvd;
+  if(sinfo.thermoeFlag >= 0) nodalTemperatures = temprcvd;
 
   if(printFlag != 2) {
     // ... ALLOCATE VECTORS STRESS AND WEIGHT AND INITIALIZE TO ZERO
@@ -1499,11 +1506,11 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
     else if(stressAllElems == 0) stressAllElems = new Vector(sizeSfemStress,0.0);
     if(elDisp == 0) elDisp = new Vector(maxNumDOFs,0.0);
 
-    if((elstress == 0)||(elweight == 0)||(p_elstress == 0 && oframe == OutputInfo::Local)) {
+    if((elstress == 0) || (elweight == 0) || (p_elstress == 0 && oframe == OutputInfo::Local)) {
       int NodesPerElement, maxNodesPerElement=0;
       for(iele=0; iele<numele; ++iele) {
         NodesPerElement = elemToNode->num(iele);
-        maxNodesPerElement = myMax(maxNodesPerElement, NodesPerElement);
+        maxNodesPerElement = std::max(maxNodesPerElement, NodesPerElement);
       }
       if(elstress == 0) elstress = new Vector(maxNodesPerElement, 0.0);
       if(elweight == 0) elweight = new Vector(maxNodesPerElement, 0.0);
@@ -1515,7 +1522,7 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
       stress->zero();
       weight->zero();
     }
-    else if (printFlag == 1) stressAllElems->zero();
+    else if(printFlag == 1) stressAllElems->zero();
   }
 
   int count = 0;
@@ -1539,7 +1546,7 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
       elweight->zero();
 
       // DETERMINE ELEMENT DISPLACEMENT VECTOR
-      for (k=0; k < allDOFs->num(iele); ++k) {
+      for (k = 0; k < allDOFs->num(iele); ++k) {
         int cn = c_dsa->getRCN((*allDOFs)[iele][k]);
         if (cn >= 0)
           (*elDisp)[k] = sol[cn];
@@ -1548,13 +1555,12 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
       }
 
       int iNode;
-      if (sinfo.thermalLoadFlag || (sinfo.thermoeFlag>=0))
-        for (iNode = 0; iNode < NodesPerElement; ++iNode) {
-          if (nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
-            elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
-          else
-            elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
-        }
+      for (iNode = 0; iNode < NodesPerElement; ++iNode) {
+        if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
+          elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
+        else
+          elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
+      }
 
       // transform displacements from DOF_FRM to basic coordinates
       transformVectorInv(*elDisp, iele);
@@ -1686,7 +1692,7 @@ Domain::getStressStrain(ComplexVector &sol, DComplex *bcx, int fileNumber,
   // Either get the nodal temperatures from the input file or
   // from the thermal model
   if(sinfo.thermalLoadFlag) nodalTemperatures = getNodalTemperatures();
-  if(sinfo.thermoeFlag >=0) nodalTemperatures = temprcvd;
+  if(sinfo.thermoeFlag >= 0) nodalTemperatures = temprcvd;
 
   ComplexVector *stress = 0;
   ComplexVector *stressAllElems = 0;
@@ -1708,7 +1714,7 @@ Domain::getStressStrain(ComplexVector &sol, DComplex *bcx, int fileNumber,
       int NodesPerElement, maxNodesPerElement=0;
       for(iele=0; iele<numele; ++iele) {
         NodesPerElement = elemToNode->num(iele);
-        maxNodesPerElement = myMax(maxNodesPerElement, NodesPerElement);
+        maxNodesPerElement = std::max(maxNodesPerElement, NodesPerElement);
       }
       if(elstress == 0) elstress = new ComplexVector(maxNodesPerElement, 0.0);
       if(elweight == 0) elweight = new Vector(maxNodesPerElement, 0.0);
@@ -1753,13 +1759,12 @@ Domain::getStressStrain(ComplexVector &sol, DComplex *bcx, int fileNumber,
       }
 
       int iNode;
-      if (sinfo.thermalLoadFlag || (sinfo.thermoeFlag>=0))
-        for (iNode = 0; iNode < NodesPerElement; ++iNode) {
-          if (nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
-            elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
-          else
-            elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
-        }
+      for (iNode = 0; iNode < NodesPerElement; ++iNode) {
+        if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
+          elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
+        else
+          elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
+      }
 
       // transform displacements from DOF_FRM to basic coordinates
       transformVectorInv(*elDisp, iele);
@@ -1809,7 +1814,6 @@ Domain::getStressStrain(ComplexVector &sol, DComplex *bcx, int fileNumber,
     if(avgnum == 0) {
       int offset[2];
       offset[0] = 0;
-      //offset[1] = NodesPerElement;
       offset[1] = packedEset[iele]->numTopNodes(); //HB 06-25-05: avoid the internal nodes for MpcElement
 
       if(printFlag == 0) {
@@ -1922,7 +1926,7 @@ Domain::getPrincipalStress(Vector &sol, double *bcx, int fileNumber,
     int NodesPerElement, maxNodesPerElement=0;
     for(iele=0; iele<numele; ++iele) {
       NodesPerElement = elemToNode->num(iele);
-      maxNodesPerElement = myMax(maxNodesPerElement, NodesPerElement);
+      maxNodesPerElement = std::max(maxNodesPerElement, NodesPerElement);
     }
     if(p_elstress == 0) p_elstress = new FullM(maxNodesPerElement,9);
     if(elweight == 0) elweight = new Vector(maxNodesPerElement, 0.0);
@@ -1958,13 +1962,12 @@ Domain::getPrincipalStress(Vector &sol, double *bcx, int fileNumber,
     }
 
     int iNode;
-    if(sinfo.thermalLoadFlag)
-      for(iNode=0; iNode<NodesPerElement; ++iNode) {
-        if(nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
-          elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
-        else
-          elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
-      }
+    for(iNode=0; iNode<NodesPerElement; ++iNode) {
+      if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
+        elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
+      else
+        elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
+    }
 
     // transform displacements from DOF_FRM to basic coordinates
     transformVectorInv(*elDisp, iele);
@@ -2085,7 +2088,7 @@ Domain::getElementForces(Vector &sol, double *bcx, int fileNumber,
     int NodesPerElement, maxNodesPerElement=0;
     for(iele=0; iele<numele; ++iele) {
       NodesPerElement = elemToNode->num(iele);
-      maxNodesPerElement = myMax(maxNodesPerElement, NodesPerElement);
+      maxNodesPerElement = std::max(maxNodesPerElement, NodesPerElement);
     }
     elstress = new Vector(maxNodesPerElement, 0.0);
   }
@@ -2110,10 +2113,10 @@ Domain::getElementForces(Vector &sol, double *bcx, int fileNumber,
 
     // ... CALCULATE INTERNAL FORCE VALUE FOR EACH ELEMENT
     // ... taking into account the new temperature in case of thermal coupling
-    if((sinfo.thermalLoadFlag || (sinfo.thermoeFlag>=0)) && packedEset[iele]->getProperty()) {
+    if(packedEset[iele]->getProperty()) {
       int iNode;
       for(iNode=0; iNode<NodesPerElement; ++iNode) {
-        if(nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
+        if(!nodalTemperatures || nodalTemperatures[nodeNumbers[iNode]] == defaultTemp)
           elemNodeTemps[iNode] = packedEset[iele]->getProperty()->Ta;
         else
           elemNodeTemps[iNode] = nodalTemperatures[nodeNumbers[iNode]];
@@ -2157,10 +2160,10 @@ Domain::getElementForces(Vector &sol, double *bcx, int fileNumber,
 
   }
 
-   // ... PRINT THE ELEMENT FORCES TO A FILE
-   geoSource->outputElemVectors(fileNumber, forces.data(), numele, time);
+  // ... PRINT THE ELEMENT FORCES TO A FILE
+  geoSource->outputElemVectors(fileNumber, forces.data(), numele, time);
 
-   delete [] nodeNumbers;
+  delete [] nodeNumbers;
 }
 
 #ifdef STRUCTOPT
@@ -3635,6 +3638,8 @@ Domain::makePostSensitivities(GenSolver<double> *sysSolver,
      computeStressVMWRTShapeVariableSensitivity(sindex,allSens,sol,bcx);
      break;
    }
+   default:
+     break;
   }
  }
 #endif

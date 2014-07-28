@@ -32,14 +32,14 @@
 
 extern int verboseFlag;
 extern "C"      {
-void _FORTRAN(tria3d)(int&, double* ,double* ,double* ,double& , double& ,
-                      double* ,double*);
-void _FORTRAN(mass8)(double* ,double* ,double* ,double* , double& ,
-                     double* ,const int&, double* ,double*,const int&,
-                     double&,const int&);
-void _FORTRAN(sands8)(double*,double*,double*,double&,double&,double*,
-                      double*,double*, const int&, const int&, const int&, 
-                      const int&, const int&,const int&, double&);
+void _FORTRAN(tria3d)(int&, double*, double*, double*, double&, double&,
+                      double*, double*);
+void _FORTRAN(mass8)(double*, double*, double*, double*, double&,
+                     double*, const int&, double*, double*, const int&,
+                     double&, const int&);
+void _FORTRAN(sands8)(double*, double*, double*, double&, double&, double*,
+                      double*, double*, const int&, const int&, const int&, 
+                      const int&, const int&, const int&, double&);
 void _FORTRAN(trithmfr)(double*, double*, double*, const double&, const double&, const double&,
                         const double&, const double&, const double&, double*, const int&);
 }
@@ -95,7 +95,7 @@ ThreeNodeShell::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
         // Thickness
         h[0] = h[1] = h[2] = prop->eh;
 	
-	//determine average nodal temperature difference relative to ambient
+	// determine average nodal temperature difference relative to ambient
         double thermalStrain = 0.0;
         if(ndTemps) {
 	  double dt = (ndTemps[0]+ndTemps[1]+ndTemps[2])/3 - prop->Ta;
@@ -111,11 +111,11 @@ ThreeNodeShell::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
 
 	// SET STRAIN FLAG IF USER WANTS STRAIN OUTPUT
 	int strainFlg = 0;
-	if( strInd > 6) strainFlg = 1;
+	if(strInd > 6) strainFlg = 1;
 
        _FORTRAN(sands8)(x,y,z,prop->E,prop->nu,h,elDisp.data(),
-                      (double*)elStress,
-                      strainFlg, maxsze,maxstr,maxgus,elm,surface,thermalStrain);
+                        (double*)elStress,
+                        strainFlg,maxsze,maxstr,maxgus,elm,surface,thermalStrain);
 
         if(strInd < 7) {
           stress[0] = elStress[0][strInd];
@@ -148,9 +148,9 @@ ThreeNodeShell::getAllStress(FullM& stress,Vector& weight,CoordSet &cs,
         // Thickness
         h[0] = h[1] = h[2] = prop->eh;
 	
-	//determine average nodal temperature difference relative to ambient
+	// determine average nodal temperature difference relative to ambient
 	double dt = 0.0;
-	if(ndTemps) // PJSA
+	if(ndTemps)
           dt = (ndTemps[0]+ndTemps[1]+ndTemps[2])/3 - prop->Ta;
         double thermalStrain = (prop->W)*dt;
 
@@ -162,8 +162,8 @@ ThreeNodeShell::getAllStress(FullM& stress,Vector& weight,CoordSet &cs,
         double elStress[3][7];
 
        _FORTRAN(sands8)(x,y,z,prop->E,prop->nu,h,elDisp.data(),
-                      (double*)elStress,
-                      strInd, maxsze,maxstr,maxgus,elm,surface,thermalStrain);
+                        (double*)elStress,
+                        strInd,maxsze,maxstr,maxgus,elm,surface,thermalStrain);
 
 // Store all Stress or all Strain as defined by strInd
         int i,j;

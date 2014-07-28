@@ -467,7 +467,7 @@ MpcElement::getHessian(GeomState*, GeomState& c1, CoordSet& c0, FullSquareMatrix
       pseudorot_2var(v, &it->second[0], scndvar);
       for(int i = 0; i < 3; ++i)
         for(int j = 0; j < 3; ++j)
-          _H[dofs[i]][dofs[j]] = scndvar[i][j];
+          _H[dofs[i]][dofs[j]] = 0.5*(scndvar[i][j]+scndvar[j][i]);
     }
   }
 }

@@ -9,7 +9,6 @@
 #include <Structopt.d/Structopt_sd.h>
 #include <Structopt.d/Relsol.h>
 
-#include <Math.d/mathUtility.h>
 #include <Element.d/Element.h>
 #include <Timers.d/GetTime.h>
 

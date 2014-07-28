@@ -634,24 +634,6 @@ BarCorotator::extractRigidBodyMotion(GeomState &geomState, CoordSet &cs,
 {
 }
 
-void
-BarCorotator::getNLVonMises(Vector& stress,Vector& weight,
-                            GeomState &geomState, CoordSet &cs,
-                            int strInd)
-{
- stress.zero();
- weight.zero();
-}
-
-void
-BarCorotator::getNLAllStress(FullM& stress,Vector& weight,
-                             GeomState &geomState, CoordSet &cs,
-                             int strInd)
-{
- stress.zero();
- weight.zero();
-}
- 
 double
 BarCorotator::getElementEnergy(GeomState &geomState, CoordSet &cs)
 {

@@ -72,8 +72,9 @@ struct PressureBCond {
   MFTTData *mftt;
   BlastLoading::BlastData *conwep;
   double loadfactor;
+  int face;
   void setData(int _elnum, double _val, int _loadsetid, bool _conwepswitch, MFTTData *_mftt = NULL, BlastLoading::BlastData *_conwep = NULL) 
-   { elnum = _elnum; val = _val; loadsetid = _loadsetid; conwepswitch = _conwepswitch; mftt = _mftt; conwep = _conwep; loadfactor = 1; }
+   { elnum = _elnum; val = _val; loadsetid = _loadsetid; conwepswitch = _conwepswitch; mftt = _mftt; conwep = _conwep; loadfactor = 1; face = -1; }
 };
 
 struct NumExc {
@@ -100,11 +101,13 @@ class StructProp {
     union {
         double  A;      // Cross-sectional area
         double kx;
+        double cx;      // x-component of discrete mass offset
         };
     union {
 	double	E;      // Elastic modulus
 	double d0;      // Initial stiffness of nonlin element
         double ky;
+        double cy;      // y-component of discrete mass offset
 	};
     union {
 	double	nu; 	// Poisson's ratio
@@ -112,6 +115,7 @@ class StructProp {
         double kz;
         double lambda;  // damage control
         double omega;
+        double cz;      // z-component of discrete mass offset
 	};
      union {
 	double  rho; 	// Mass density per unit volume
@@ -158,6 +162,7 @@ class StructProp {
         double Q;	// Specific heat coeffiecient
         double Mx;      // global x-component of applied moment
         double Fx;      // global x-component of applied force
+        double F0;      // magnitude of an applied force
         };
      union {
 	double W;	// Thermal expansion coefficient
@@ -174,9 +179,18 @@ class StructProp {
         double Tr;      // Temperature of the enclosure receiving the radiation
         };
         double sigma;   // Stefan's constant (5.6704e-8 in SI)
+      union {
 	double ymin;    // minimum height (< 0) for cross section of beam (local y-direction)
+        double Ixy;     // product of inertia
+        };
+      union {
 	double ymax;    // maximum height (> 0) for cross section of beam (local y-direction)
+        double Iyz;     // product of inertia
+        };
+      union {
 	double zmin;    // minimum height (< 0) for cross section of beam (local z-direction)
+        double Ixz;     // product of inertia
+        };
 	double zmax;	// maximum height (> 0) for cross section of beam (local z-direction)
 
         double betaDamp; // Rayleigh stiffness damping coefficient
@@ -198,6 +212,7 @@ class StructProp {
         double constraint_hess_eps;
         enum PropType { Undefined=0, Fluid, Fabric, Thermal, Constraint } type;
         double k1, k2, k3;
+        MFTTData *ymtt, *ctett;
 
 	// Fabric Material Options
 	int F_op; // Fabric Material Option
@@ -216,10 +231,7 @@ class StructProp {
 	int F_Nf; // Number of Fibrils in a Yarn
 	int Seed; // Seed for Random Number Generator
 
-
         PMLProps fp;
-
-        bool isReal;
 
 	/** the W and E coefficient might encode integer values when they're negative
 	 * (see manual for this). Heavily templated Sower needs a temporary storage that's addressable.
@@ -234,10 +246,11 @@ class StructProp {
                        soundSpeed = 1.0; alphaDamp = 0.0; betaDamp = 0.0;
                        etaDamp = 0.0; etaDampTable = -1;
                        ymin = 0.0; ymax = 0.0;
-                       zmin = 0.0; zmax = 0.0; isReal = false;
+                       zmin = 0.0; zmax = 0.0;
                        lagrangeMult = true; penalty = 0.0; initialPenalty = 0.0;
                        B = 1.0; C = 0.0; relop = 0; type = Undefined; funtype = 0;
-                       k1 = 0; k2 = 0; k3 = 0; constraint_hess = 1; constraint_hess_eps = 0.0; } 
+                       k1 = 0; k2 = 0; k3 = 0; constraint_hess = 1; constraint_hess_eps = 0.0;
+                       ymtt = NULL; ctett = NULL; } 
 
 };
 
@@ -373,7 +386,7 @@ class Element {
         virtual std::vector<double> getPreLoad() { return std::vector<double>(0); }
 
         virtual void setGlNum(int gn, int sn=0) { glNum = gn; subNum = sn; }
-        int getGlNum()  { return glNum; }
+        int getGlNum() { return glNum; }
 
         // By default, an element has no frame
         virtual void setFrame(EFrame *) {}
@@ -517,7 +530,7 @@ class Element {
 
 	// from DEC
 	// TOP/DOMDEC Element Functions
-	virtual int facelist(PolygonSet &, int * = 0) {return 0; }
+	virtual int facelist(PolygonSet &, int * = 0) { return 0; }
 
 	// DEC : Routines for the decomposer
 	// isStart indicates if an element is suitable to

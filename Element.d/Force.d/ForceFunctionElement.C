@@ -176,7 +176,7 @@ ForceFunctionElement<VectorValuedFunctionTemplate>::getStiffAndForce(GeomState *
 
   // prepare the function inputs
   const int N = VectorValuedFunctionTemplate<double>::NumberOfGeneralizedCoordinates;
-  Eigen::Matrix<double,N,1> q; // = Eigen::Matrix<double,N,1>::Zero();
+  Eigen::Matrix<double,N,1> q;
   getInputs(q, c0, &c1, refState);
 
   // evaluate the function and store values terms

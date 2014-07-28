@@ -5,7 +5,7 @@
 #include <Element.d/Function.d/SpaceDerivatives.h>
 #include <Element.d/Function.d/utilities.hpp>
 
-// Compute the inertial moment for a rigid body with 3 rotational degrees of freedom.
+// Compute the inertial moment for a rigid body with 3 rotational degrees of freedom,
 // according to the classical Euler's equation for the rigid body and the extended Newmark 
 // method (based on ALGO_1 from reference below)
 // Ref: UNCONDITIONALLY STABLE ALGORITHMS FOR RIGID BODY DYNAMICS THAT EXACTLY PRESERVE ENERGY
@@ -18,7 +18,7 @@ template<typename Scalar>
 class InertialType1ForceFunction : public VectorValuedFunction<3,3,Scalar,38,0,double>
 {
   public:
-    Eigen::Matrix<double,3,3> J;            // inertial tensor and damping matrix
+    Eigen::Matrix<double,3,3> J;            // inertia tensor
     Eigen::Matrix<double,3,1> A_n, V_n;     // angular velocity and acceleration vectors
                                             // note: according to current convention, A_n and V_n store the
                                             // "convected" angular velocities and accelerations
@@ -70,7 +70,7 @@ class InertialType1ForceFunction : public VectorValuedFunction<3,3,Scalar,38,0,d
 
       // convected description of the angular momentum balance equation (see Simo & Wong eq. 29)
       // premultiplied by transformation to fixed reference frame
-      // note: Even though T(0) = I we still multiply by T.transpose() so that the Jacobian will correctly evaluated
+      // note: Even though T(0) = I, we still multiply by T.transpose() so that the Jacobian will be correctly evaluated
       //       when this function is automatically or numerically differentiated
       return T.transpose()*Rref*(J*A + V.cross(J*V));
     }

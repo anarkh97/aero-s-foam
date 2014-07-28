@@ -3,14 +3,20 @@
 
 #include <Corotational.d/Corotator.h>
 
+class MFTTData;
+
 class PentaCorotator : public Corotator {
      int nodeNum[6];
      double em;                 // elastic modulus
-     double nu;                 // initial cross-sectional area
+     double nu;                 // Poisson's ratio
+     double Tref;               // ambient temperature
+     double alpha;              // thermal expansion coefficient
+     MFTTData *ymtt;
+     MFTTData *ctett;
    public:
 
      // Constructor
-     PentaCorotator(int nn[6], double, double, CoordSet &);
+     PentaCorotator(int nn[6], double, double, CoordSet &, double, double, MFTTData *, MFTTData *);
      double * getOriginalStiffness() { return (double*) 0; }
 
      void   getStiffAndForce(GeomState &gs, CoordSet &cs, 
@@ -25,11 +31,13 @@ class PentaCorotator : public Corotator {
      void extractRigidBodyMotion(GeomState &geomState, CoordSet &cs,
                                  double *vlr);
 
-     void getNLVonMises(Vector&, Vector& weight,
-                        GeomState &, CoordSet &, int);
+     void getNLVonMises(Vector& stress, Vector& weight, GeomState &curState,
+                        GeomState *refState, CoordSet& c0, int strIndex, int surface = 0,
+                        double ylayer = 0, double zlayer = 0, int avgnum = 0, int measure = -1);
 
-     void getNLAllStress(FullM&, Vector&,
-                         GeomState &, CoordSet &, int);
+     void getNLAllStress(FullM &stress, Vector &weight, GeomState &curState,
+                         GeomState *refState, CoordSet &c0, int strInd, int surface = 0,
+                         int measure = -1);
 
      double computeShapeGrad(GeomState &nodes, double nGrad[6][3]);
 
@@ -37,7 +45,7 @@ class PentaCorotator : public Corotator {
                               double m[3]);
 
      void computePiolaStress(GeomState &, CoordSet &cs,
-                              double  stress[6][7], double strain[6][7]);
+                              double stress[6][7], double strain[6][7]);
 
      double getElementEnergy(GeomState &gs, CoordSet &cs);
 

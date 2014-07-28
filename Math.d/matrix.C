@@ -544,7 +544,6 @@ GenFullM<Scalar>::factor()
  }
 }
 
-#include <Math.d/mathUtility.h>
 template<class Scalar>
 void
 GenFullM<Scalar>::Factor(double tol, bool print_ndef)

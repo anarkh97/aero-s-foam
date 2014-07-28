@@ -5,7 +5,6 @@
 #include <Element.d/NonLinearity.d/GaussIntgElem.h>
 #include <Element.d/NonLinearity.d/StrainEvaluator.h>
 #include <Math.d/FullSquareMatrix.h>
-#include <Math.d/mathUtility.h>
 #ifdef USE_EIGEN3
 #include <Eigen/Dense>
 #endif
@@ -19,7 +18,7 @@ GaussIntgElement::stiffness(CoordSet& cs, double *k, int)
   Node *nodes = (Node *) dbg_alloca(numNodes()*sizeof(Node));
   int nnd = numNodes();
   int *ndn = (int *)dbg_alloca(nnd*sizeof(int)); 
-  this->nodes(ndn); // PJSA 
+  this->nodes(ndn);
   for(i = 0; i < nnd; ++i)
     nodes[i] = *cs[ndn[i]];
   int ndofs = numDofs();
@@ -158,7 +157,7 @@ GaussIntgElement::getStiffAndForce(Node *nodes, double *disp,
     //material->getStress(&s, e, 0);        
     //material->getStressAndTangentMaterial(&s, &D, e, 0);
         
-    material->integrate(&s, &D,  e, e,0, 0, 0);
+    material->integrate(&s, &D, e, e, 0, 0, 0);
 
     temp0 = s || B;
     temp0 = (weight*jac)*temp0;
@@ -300,8 +299,8 @@ GaussIntgElement::getStiffAndForce(Node *nodes, double *disp,
 void 
 GaussIntgElement::integrate(Node *nodes, double *dispn, double *staten,
                             double *dispnp, double *statenp,
-                            FullSquareMatrix &kTan,
-                            double *force, double)
+                            FullSquareMatrix &kTan, double *force,
+                            double dt, double *temps)
 {
   int ndofs = numDofs();
   ShapeFunction *shapeF = getShapeFunction();
@@ -346,7 +345,7 @@ GaussIntgElement::integrate(Node *nodes, double *dispn, double *staten,
   
   for(i = 0; i < ngp; i++) {
 
-    double point[3], weight, jacn, jacnp;
+    double point[3], weight, jacn, jacnp, tempnp;
     //StackVector dispVecn(dispn, ndofs);
     StackVector dispVecnp(dispnp, ndofs); 
  
@@ -358,8 +357,11 @@ GaussIntgElement::integrate(Node *nodes, double *dispn, double *staten,
     //strainEvaluator->getE(en, gradUn);
     strainEvaluator->getEBandDB(enp, Bnp, DBnp, gradUnp, dgradUdqknp, temp4);
 
+    // compute temperature at integration point
+    tempnp = (temps) ? shapeF->interpolateScalar(temps, point) : 0;
+
     material->integrate(&s, &Dnp, en, enp,
-                        staten + nstatepgp*i, statenp + nstatepgp*i, 0);
+                        staten + nstatepgp*i, statenp + nstatepgp*i, tempnp);
 
     temp0 = s || Bnp;
     temp0 = (weight*jacnp)*temp0;
@@ -409,7 +411,7 @@ GaussIntgElement::integrate(Node *nodes, double *dispn, double *staten,
 void 
 GaussIntgElement::integrate(Node *nodes, double *dispn, double *staten,
                             double *dispnp, double *statenp,
-                            double *force, double)
+                            double *force, double dt, double *temps)
 {
   int ndofs = numDofs();
   ShapeFunction *shapeF = getShapeFunction();
@@ -445,7 +447,7 @@ GaussIntgElement::integrate(Node *nodes, double *dispn, double *staten,
   
   for(i = 0; i < ngp; i++) {
 
-    double point[3], weight, jacn, jacnp;
+    double point[3], weight, jacn, jacnp, tempnp;
     //StackVector dispVecn(dispn, ndofs);
     StackVector dispVecnp(dispnp, ndofs); 
  
@@ -457,8 +459,11 @@ GaussIntgElement::integrate(Node *nodes, double *dispn, double *staten,
     //strainEvaluator->getE(en, gradUn);
     strainEvaluator->getEandB(enp, Bnp, gradUnp, dgradUdqknp, temp2);
 
+    // compute temperature at integration point
+    tempnp = (temps) ? shapeF->interpolateScalar(temps, point) : 0;
+
     material->integrate(&s, en, enp,
-                        staten + nstatepgp*i, statenp + nstatepgp*i, 0);
+                        staten + nstatepgp*i, statenp + nstatepgp*i, tempnp);
 
     temp0 = s || Bnp;
     temp0 = (weight*jacnp)*temp0;
@@ -490,7 +495,7 @@ GaussIntgElement::initStates(double *st)
 }
 
 void
-GaussIntgElement::updateStates(Node *nodes, double *state, double *dispn, double *dispnp)
+GaussIntgElement::updateStates(Node *nodes, double *state, double *dispn, double *dispnp, double *temps)
 {
   int ndofs = numDofs();
   ShapeFunction *shapeF = getShapeFunction();
@@ -514,7 +519,7 @@ GaussIntgElement::updateStates(Node *nodes, double *state, double *dispn, double
 
   for(int i = 0; i < getNumGaussPoints(); i++) {
 
-    double point[3], weight, jacn, jacnp;
+    double point[3], weight, jacn, jacnp, tempnp;
     //StackVector dispVecn(dispn, ndofs);
     StackVector dispVecnp(dispnp, ndofs);
 
@@ -523,15 +528,19 @@ GaussIntgElement::updateStates(Node *nodes, double *state, double *dispn, double
     //shapeF->getGradU(&gradUn, nodes, point, dispVecn);
     shapeF->getGradU(&gradUnp, nodes, point, dispVecnp);
     //strainEvaluator->getE(en, gradUn);
-    strainEvaluator->getE(enp, gradUnp);  
+    strainEvaluator->getE(enp, gradUnp);
 
     //material->updateStates(en, enp, state + nstatepgp*i);
-    //material->getStress(&s, e, 0);       
+    //material->getStress(&s, e, 0);
     //material->getStressAndTangentMaterial(&s, &D, enp, 0);
+
+    // compute temperature at integration point
+    tempnp = (temps) ? shapeF->interpolateScalar(temps, point) : 0;
+
     double *state_copy = new double[nstatepgp];
     for(int j = 0; j < nstatepgp; ++j) state_copy[j] = state[nstatepgp*i+j];
     material->integrate(&s, &Dnp, en, enp,
-                        state_copy, state + nstatepgp*i, 0);
+                        state_copy, state + nstatepgp*i, tempnp);
     delete [] state_copy;
   }
 
@@ -667,7 +676,8 @@ GaussIntgElement::getVonMisesStrain(Node *nodes, double *dispnp, double *result,
 
 void
 GaussIntgElement::getStressTens(Node *nodes, double *dispn, double *staten,
-                                double *dispnp, double *statenp, double (*result)[9], int avgnum)
+                                double *dispnp, double *statenp, double (*result)[9],
+                                int avgnum, double *temps)
 {
   // stress tensor at element nodes for post processing
 
@@ -699,7 +709,7 @@ GaussIntgElement::getStressTens(Node *nodes, double *dispn, double *staten,
       shapeF->getGradU(&gradUnp, nodes, point, dispVecnp);
       strainEvaluator->getE(enp, gradUnp);
 
-      material->getStress(&s, enp, statenp);
+      material->getStress(&s, enp, statenp, (temps ? temps[i] : 0));
       copyTens(&s, result[i]);
     }
   }
@@ -712,7 +722,7 @@ GaussIntgElement::getStressTens(Node *nodes, double *dispn, double *staten,
 
     for(int i = 0; i < getNumGaussPoints(); i++) {
 
-      double point[3], weight, jacn, jacnp;
+      double point[3], weight, jacn, jacnp, tempnp;
       //StackVector dispVecn(dispn, ndofs);
       StackVector dispVecnp(dispnp, ndofs);
 
@@ -723,8 +733,11 @@ GaussIntgElement::getStressTens(Node *nodes, double *dispn, double *staten,
       //strainEvaluator->getE(en, gradUn);
       strainEvaluator->getE(enp, gradUnp);
 
+      // compute temperature at integration point
+      tempnp = (temps) ? shapeF->interpolateScalar(temps, point) : 0;
+
       material->integrate(&s, &Dnp, en, enp,
-                          staten + nstatepgp*i, statenp + nstatepgp*i, 0);
+                          staten + nstatepgp*i, statenp + nstatepgp*i, tempnp);
 
       if(avgnum == -1) copyTens(&s, result[i]);
       else copyTens(&s, gpstress[i]);
@@ -757,7 +770,8 @@ GaussIntgElement::getStressTens(Node *nodes, double *dispn, double *staten,
 
 void
 GaussIntgElement::getVonMisesStress(Node *nodes, double *dispn, double *staten,
-                                    double *dispnp, double *statenp, double *result, int avgnum)
+                                    double *dispnp, double *statenp, double *result,
+                                    int avgnum, double *temps)
 {
   // von mises stress at element nodes for post processing
 
@@ -803,7 +817,7 @@ GaussIntgElement::getVonMisesStress(Node *nodes, double *dispn, double *staten,
       shapeF->getGradU(&gradUnp, nodes, point, dispVecnp);
       strainEvaluator->getE(enp, gradUnp);
 
-      material->getStress(&s, enp, statenp);
+      material->getStress(&s, enp, statenp, (temps ? temps[i] : 0));
 #ifdef USE_EIGEN3
       Eigen::Matrix3d M;
       copyTens(&s,M);
@@ -824,7 +838,7 @@ GaussIntgElement::getVonMisesStress(Node *nodes, double *dispn, double *staten,
 
     for(int i = 0; i < getNumGaussPoints(); i++) {
 
-      double point[3], weight, jacn, jacnp;
+      double point[3], weight, jacn, jacnp, tempnp;
       StackVector dispVecn(dispn, ndofs);
       StackVector dispVecnp(dispnp, ndofs);
 
@@ -834,6 +848,9 @@ GaussIntgElement::getVonMisesStress(Node *nodes, double *dispn, double *staten,
       shapeF->getGlobalGrads(&gradUnp, &dgradUdqknp, &jacnp, nodes, point, dispVecnp);
       strainEvaluator->getEBandDB(en, Bn, DBn, gradUn, dgradUdqkn, temp);
       strainEvaluator->getEBandDB(enp, Bnp, DBnp, gradUnp, dgradUdqknp, temp);
+
+      // compute temperature at integration point
+      tempnp = (temps) ? shapeF->interpolateScalar(temps, point) : 0;
 
       material->integrate(&s, &Dnp, en, enp,
                           staten + nstatepgp*i, statenp + nstatepgp*i, 0);
@@ -1022,7 +1039,7 @@ GaussIntgElement::getPlasticStrainTens(double *statenp, double (*result)[9], int
 }
 
 double
-GaussIntgElement::getStrainEnergy(Node *nodes, double *dispnp, double *state)
+GaussIntgElement::getStrainEnergy(Node *nodes, double *dispnp, double *state, double *temps)
 {
   int ndofs = numDofs();
   ShapeFunction *shapeF = getShapeFunction();
@@ -1048,7 +1065,7 @@ GaussIntgElement::getStrainEnergy(Node *nodes, double *dispnp, double *state)
 
     StackVector dispVecnp(dispnp, ndofs);
 
-    double point[3], weight, jac;
+    double point[3], weight, jac, tempnp;
 
     getGaussPointAndWeight(i, point, weight);
 
@@ -1056,7 +1073,10 @@ GaussIntgElement::getStrainEnergy(Node *nodes, double *dispnp, double *state)
 
     strainEvaluator->getE(enp, gradUnp);
 
-    W += (weight * fabs(jac))*material->getStrainEnergyDensity(enp, state + i*material->getNumStates());
+    // compute temperature at integration point
+    tempnp = (temps) ? shapeF->interpolateScalar(temps, point) : 0;
+
+    W += (weight * fabs(jac))*material->getStrainEnergyDensity(enp, state + i*material->getNumStates(), tempnp);
   }
 
   return W;

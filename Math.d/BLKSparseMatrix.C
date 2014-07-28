@@ -3,6 +3,7 @@
 #include <iostream>
 #include <stdexcept>
 
+#include <Math.d/BLKSparseMatrix.h>
 #include <Utils.d/Memory.h>
 #include <Utils.d/linkfc.h>
 #include <Element.d/Element.h>
@@ -11,13 +12,12 @@
 #include <Math.d/BLKSparseMatrix.h>
 #include <Solvers.d/Rbm.h>
 #include <Timers.d/GetTime.h>
-
-#include<Driver.d/Domain.h>
-extern Domain *domain;
-
+#include <Utils.d/SolverInfo.h>
 #ifdef DISTRIBUTED
 #include <Comm.d/Communicator.h>
 #endif
+
+extern SolverInfo &solInfo;
 
 #define MIN_MEMORY
 
@@ -36,11 +36,11 @@ void _FORTRAN(sfinit)(int& n,   int& nnza,  int* xadj,  int* adj,   int* perm,
                       int* iwork, int& iflag);
 
 void _FORTRAN(symfct)(int& n, int& nnza, int* xadj, int* adj, int* perm,
-                      int* invp, int* colcnt, int& nsuper, int* xsuper, 
-                      int* snode, int& nofsub, int* xlindx, int* lindx, 
+                      int* invp, int* colcnt, int& nsuper, int* xsuper,
+                      int* snode, int& nofsub, int* xlindx, int* lindx,
                       int* xlnz, int& iwsize, int* iwork, int& iflag);
 
-void _FORTRAN(bfinit)(int& nsuper, int* xsuper, int* snode, int* xlindx, 
+void _FORTRAN(bfinit)(int& nsuper, int* xsuper, int* snode, int* xlindx,
                       int* lindx, int& tmpsiz, int& rwsize);
 
 void _FORTRAN(blkldl)(int& nsuper, int* xsuper, int *pnode, int* xlindx,
@@ -119,7 +119,7 @@ void _FORTRAN(blkslv4)(int &nsuper, int* xsuper, int* xlindx, int *lindx,
                       double *s1, double *s2, double *s3, double *s4,
                       double *t1, double *t2, double *t3, double *t4);
 
-void _FORTRAN(zeromat)(int &numUncon, int &nsuper, int *xsuper, 
+void _FORTRAN(zeromat)(int &numUncon, int &nsuper, int *xsuper,
                        int *xlnz, double *lnz, int *invsuper);
 
 void _FORTRAN(zzeromat)(int &numUncon, int &nsuper, int *xsuper,
@@ -138,8 +138,8 @@ void _FORTRAN(zblkns)(int &nsuper, int *xsuper, int *xlindx, int *lindx,
 /*
 // Not Used
 void _FORTRAN(addmat)(int &numUncon, int *rowidx, double *values, int *perm,
-                      int *invp, int &nsuper, int *xsuper, int *xlindx, 
-                      int *lindx , int *xlnz, double *lnz, int *offset, 
+                      int *invp, int &nsuper, int *xsuper, int *xlindx,
+                      int *lindx , int *xlnz, double *lnz, int *offset,
                       int *invsuper);
 
 void _FORTRAN(addone)(int &rowidx, int &colidx, double &value,
@@ -176,7 +176,7 @@ inline void Tblkldl(int& a, int* b, int *c, int* d,
                     int *n, int* o, int& p, double *q,
                     int& r, int* s, int& t, double *u, int& v)
 {
-_FORTRAN(blkldl)(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v); 
+_FORTRAN(blkldl)(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v);
 }
 
 inline void Tblkldl(int& a, int* b, int *c, int* d,
@@ -268,7 +268,7 @@ _FORTRAN(blkslv4)(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o1,o2,o3,o4,p1,p2,p3,p4,q1,q2,q3,q
 
 
 
-inline void Tzeromat(int &a, int &b, int *c, 
+inline void Tzeromat(int &a, int &b, int *c,
                      int *d, double *e, int *f)
 {
 _FORTRAN(zeromat)(a,b,c,d,e,f);
@@ -335,8 +335,8 @@ GenBLKSparseMatrix<Scalar>::init()
   myRbm   = false;
 }
 
-template<class Scalar> 
-GenBLKSparseMatrix<Scalar>::GenBLKSparseMatrix(Connectivity *cn, DofSetArray *_dsa, 
+template<class Scalar>
+GenBLKSparseMatrix<Scalar>::GenBLKSparseMatrix(Connectivity *cn, DofSetArray *_dsa,
                                                DofSetArray *c_dsa, double _tol,
                                                int _spRenum, Rbm *_rbm) :
  SparseData(_dsa,c_dsa,cn,1)
@@ -348,11 +348,11 @@ GenBLKSparseMatrix<Scalar>::GenBLKSparseMatrix(Connectivity *cn, DofSetArray *_d
 
   // Geometric RBM
   if(rbm) ngrbm  = rbm->numRBM();
-  
+
   allocateMemory();
 }
 
-template<class Scalar> 
+template<class Scalar>
 void
 GenBLKSparseMatrix<Scalar>::factor()
 {
@@ -363,7 +363,7 @@ GenBLKSparseMatrix<Scalar>::factor()
 
   if(iwork==0) iwork = new int[7*numUncon+3];
 
-  int iflag; // Error flag 
+  int iflag; // Error flag
 
 //       ***************************************************
 //       Numerical input into data structure for sparse LDL'
@@ -393,7 +393,7 @@ GenBLKSparseMatrix<Scalar>::factor()
 
 
   _FORTRAN(bfinit)(nsuper, xsuper, snode, xlindx,
-                   lindx,    tmpsiz, rwsize );
+                   lindx,    tmpsiz, rwsize);
 
   // TESTING:
   tmpsiz = tmpsiz * 2;
@@ -423,7 +423,7 @@ GenBLKSparseMatrix<Scalar>::factor()
   // perform full pivoting on last 10x10 block of sparse matrix
   // def = integer array, dimension numUncon, it identifies
   //       the columns of the matrix that are linearly dependent.
-  int* deftemp = new int[numUncon]; 
+  int* deftemp = new int[numUncon];
 
   iprow = 0;
   ipcol = 0;
@@ -435,15 +435,15 @@ GenBLKSparseMatrix<Scalar>::factor()
     lbdef = ngrbm;
   }
   Tblkldl(nsuper, xsuper, snode, xlindx, lindx,
-          xlnz, lnz, defblk, lbdef, numrbm, lbdef, 
-          deftemp, tol, iprow,  ipcol, tmpsiz, 
+          xlnz, lnz, defblk, lbdef, numrbm, lbdef,
+          deftemp, tol, iprow,  ipcol, tmpsiz,
           tmpvec, iwsiz, iwork, rwsize, rwork, iflag);
   if(iflag != 0)
     //fprintf(stderr, "Error during sparse factor %d\n",iflag);
     throw std::runtime_error("Error during sparse factor");
 
   if(numrbm != lbdef) {
-    //fprintf(stderr,"Num rbm = %d last block (size %d) %d tol %e\n",numrbm, defblk, lbdef, tol); 
+    //fprintf(stderr,"Num rbm = %d last block (size %d) %d tol %e\n",numrbm, defblk, lbdef, tol);
     if(defblk>0) numrbm = lbdef;
   }
 
@@ -459,9 +459,9 @@ GenBLKSparseMatrix<Scalar>::factor()
 
   if(this->print_nullity && numrbm > 0)
      std::cerr << " ... Matrix is singular: size = " << numUncon << ", rank = " << numUncon-numrbm << ", nullity = " << numrbm << " ...\n";
-  
-  delete [] rwork;  
-  delete [] tmpvec; 
+
+  delete [] rwork;
+  delete [] tmpvec;
   delete [] deftemp;
 
   computeRBMs();
@@ -510,7 +510,7 @@ GenBLKSparseMatrix<Scalar>::getNullSpace(Scalar *ns)
   }
 }
 
-template<class Scalar> 
+template<class Scalar>
 double
 GenBLKSparseMatrix<Scalar>::getMemoryUsed()
 {
@@ -518,7 +518,7 @@ GenBLKSparseMatrix<Scalar>::getMemoryUsed()
  return 0.0;
 }
 
-template<class Scalar> 
+template<class Scalar>
 void
 GenBLKSparseMatrix<Scalar>::solve(Scalar *rhs, Scalar *solution)
 {
@@ -539,9 +539,9 @@ GenBLKSparseMatrix<Scalar>::solve(Scalar *rhs, Scalar *solution)
 //       Work:       temp[numUncon]
 //       --------------------------------------------------------------
 
- Tblkslv(nsuper, xsuper, xlindx, lindx, xlnz, 
-         lnz, defblk, numrbm, lbdef, def, 
-         iprow,  ipcol, perm, invp, rhs, 
+ Tblkslv(nsuper, xsuper, xlindx, lindx, xlnz,
+         lnz, defblk, numrbm, lbdef, def,
+         iprow,  ipcol, perm, invp, rhs,
          solution, temp);
 
  delete [] temp;
@@ -549,15 +549,15 @@ GenBLKSparseMatrix<Scalar>::solve(Scalar *rhs, Scalar *solution)
  solveTime += getTime();
 }
 
-template<class Scalar> 
+template<class Scalar>
 void
-GenBLKSparseMatrix<Scalar>::solve(GenVector<Scalar> &rhs, GenVector<Scalar> &solution )
+GenBLKSparseMatrix<Scalar>::solve(GenVector<Scalar> &rhs, GenVector<Scalar> &solution)
 {
  solve(rhs.data(), solution.data());
 }
 
-template<class Scalar> 
-void 
+template<class Scalar>
+void
 GenBLKSparseMatrix<Scalar>::reSolve(Scalar *rhs)
 {
  if(numUncon==0) return;
@@ -567,7 +567,7 @@ GenBLKSparseMatrix<Scalar>::reSolve(Scalar *rhs)
  Scalar *temp     = new Scalar[numUncon+1];
  Scalar *solution = new Scalar[numUncon];
 
- Tblkslv(nsuper, xsuper, xlindx, lindx, xlnz, lnz, defblk, numrbm, lbdef, def, 
+ Tblkslv(nsuper, xsuper, xlindx, lindx, xlnz, lnz, defblk, numrbm, lbdef, def,
          iprow, ipcol, perm, invp, rhs, solution, temp);
 
  for(int i=0; i < numUncon; i++) rhs[i] = solution[i];
@@ -578,20 +578,20 @@ GenBLKSparseMatrix<Scalar>::reSolve(Scalar *rhs)
  solveTime += getTime();
 }
 
-template<class Scalar> 
+template<class Scalar>
 void
 GenBLKSparseMatrix<Scalar>::reSolve(GenVector<Scalar> &rhs)
 {
  reSolve(rhs.data());
 }
 
-template<class Scalar> 
+template<class Scalar>
 void
 GenBLKSparseMatrix<Scalar>::reSolve(int nRHS, Scalar **RHS)
 {
 #ifdef MIN_MEMORY
- for(int n=0; n<nRHS; ++n) {  
-   reSolve(RHS[n]); 
+ for(int n=0; n<nRHS; ++n) {
+   reSolve(RHS[n]);
 }
 #else
  if(numUncon==0) return;
@@ -615,7 +615,7 @@ GenBLKSparseMatrix<Scalar>::reSolve(int nRHS, Scalar **RHS)
 }
 
 /*
-template<> 
+template<>
 void
 GenBLKSparseMatrix<double>::reSolve(int nRHS, double **RHS)
 {
@@ -705,7 +705,7 @@ GenBLKSparseMatrix<DComplex>::reSolve(int nRHS, DComplex **RHS) {
          _FORTRAN(zblkslv)(nsuper, xsuper, xlindx, lindx, xlnz,
                    lnz, defblk, numrbm, lbdef,  def,
                    iprow,  ipcol,   perm,  invp,  RHS[i],
-                   s1,   t1); 
+                   s1,   t1);
          for (j=0; j<numUncon; j++)
             RHS[i][j] = s1[j];
        }
@@ -720,7 +720,7 @@ GenBLKSparseMatrix<DComplex>::reSolve(int nRHS, DComplex **RHS) {
 }
 */
 
-template<class Scalar> 
+template<class Scalar>
 void
 GenBLKSparseMatrix<Scalar>::reSolve(int nRHS, GenVector<Scalar> *RHS)
 {
@@ -747,18 +747,18 @@ GenBLKSparseMatrix<Scalar>::reSolve(int nRHS, GenVector<Scalar> *RHS)
 #endif
 }
 
-template<class Scalar> 
+template<class Scalar>
 void
 GenBLKSparseMatrix<Scalar>::zeroAll()
 {
   numrbm=0;
   if(numUncon > 0) {
     for(int i=0; i < xlnz[numUncon]; ++i)
-      ScalarTypes::initScalar(lnz[i], 0.0, 0.0); 
+      ScalarTypes::initScalar(lnz[i], 0.0, 0.0);
   }
 }
 
-template<class Scalar> 
+template<class Scalar>
 void
 GenBLKSparseMatrix<Scalar>::clean_up()
 {
@@ -768,7 +768,7 @@ GenBLKSparseMatrix<Scalar>::clean_up()
  }
 }
 
-template<class Scalar> 
+template<class Scalar>
 void
 GenBLKSparseMatrix<Scalar>::unify(FSCommunicator *communicator)
 {
@@ -777,7 +777,7 @@ GenBLKSparseMatrix<Scalar>::unify(FSCommunicator *communicator)
 #endif
 }
 
-template<class Scalar> 
+template<class Scalar>
 void
 GenBLKSparseMatrix<Scalar>::add(FullSquareMatrix &kel, int *dofs)
 {
@@ -785,23 +785,23 @@ GenBLKSparseMatrix<Scalar>::add(FullSquareMatrix &kel, int *dofs)
 
  int i, j, k, rowi, colj, offset, p1, position, csuper, fstcol, lxbeg, lxend;
 
- int kndof = kel.dim();                         
- for(i = 0; i < kndof; ++i ) {
-   if((rowi = unconstrNum[dofs[i]]) == -1 ) continue;
+ int kndof = kel.dim();
+ for(i = 0; i < kndof; ++i) {
+   if((rowi = unconstrNum[dofs[i]]) == -1) continue;
    p1     = invp[rowi] - 1;
-   position = xlnz[p1+1]; 
+   position = xlnz[p1+1];
    csuper = invsuper[p1] - 1;
    fstcol = xsuper[csuper] - 1;
    lxbeg  = xlindx[csuper]-1;
    lxend  = xlindx[csuper+1]-1;
-   for(j = 0; j < kndof; ++j ) {            
-     if((colj = unconstrNum[dofs[j]]) == -1 ) continue;
+   for(j = 0; j < kndof; ++j) {
+     if((colj = unconstrNum[dofs[j]]) == -1) continue;
      int irow   = invp[colj] - 1;
-     if(irow >= fstcol ) {
+     if(irow >= fstcol) {
        offset = lxend - lxbeg;
        for(k=lxbeg; k<lxend; ++k) {
          offset -= 1;
-         if(lindx[k]-1 == irow) { 
+         if(lindx[k]-1 == irow) {
            lnz[position - 2 - offset] += kel[i][j];
            break;
          }
@@ -810,8 +810,8 @@ GenBLKSparseMatrix<Scalar>::add(FullSquareMatrix &kel, int *dofs)
    }
  }
 }
-   
-template<class Scalar> 
+
+template<class Scalar>
 void
 GenBLKSparseMatrix<Scalar>::add(GenAssembledFullM<Scalar> &kel, int *dofs)
 {
@@ -849,7 +849,7 @@ GenBLKSparseMatrix<Scalar>::add(GenAssembledFullM<Scalar> &kel, int *dofs)
 // precision array instead of the temporary unonz Scalar precision
 // array.
 
-template<class Scalar> 
+template<class Scalar>
 void
 GenBLKSparseMatrix<Scalar>::add(FullM &knd, int fRow, int fCol)
 {
@@ -861,7 +861,7 @@ GenBLKSparseMatrix<Scalar>::add(FullM &knd, int fRow, int fCol)
   for(iRow = 0; iRow < nrow; ++iRow) {
     int rowi = fRow + iRow;
     p1     = invp[rowi] - 1;
-    position = xlnz[p1+1]; 
+    position = xlnz[p1+1];
     csuper = invsuper[p1] - 1;
     fstcol = xsuper[csuper] - 1;
     lxbeg  = xlindx[csuper]-1;
@@ -873,7 +873,7 @@ GenBLKSparseMatrix<Scalar>::add(FullM &knd, int fRow, int fCol)
         offset = lxend - lxbeg;
         for(k=lxbeg; k<lxend; ++k) {
           offset -= 1;
-          if(lindx[k]-1 == irow) { 
+          if(lindx[k]-1 == irow) {
             lnz[ position - 2 - offset] += knd[iRow][iCol];
             break;
           }
@@ -893,7 +893,7 @@ GenBLKSparseMatrix<Scalar>::add(Scalar *_lnz)
 }
 
 // Assembly from a Boeing Sparse data structure in fortran
-template<class Scalar> 
+template<class Scalar>
 void
 GenBLKSparseMatrix<Scalar>::addBoeing(int nl, const int *Kai, const int *Kaj,
                                       const double *nz, int *map, Scalar multiplier)
@@ -950,7 +950,7 @@ GenBLKSparseMatrix<Scalar>::addBoeing(int nl, const int *Kai, const int *Kaj,
      lxbeg    = xlindx[csuper]-1;
      lxend    = xlindx[csuper+1]-1;
      int irow   = invp[rowj] - 1;
-     if(irow >= fstcol ) {
+     if(irow >= fstcol) {
        offset = lxend - lxbeg;
        for(k=lxbeg; k<lxend; ++k) {
          offset -= 1;
@@ -1032,7 +1032,7 @@ GenBLKSparseMatrix<Scalar>::getone(int dofi, int dofj)
    if((rowi = unconstrNum[dofi]) == -1 || (colj = unconstrNum[dofj]) == -1) return 0.0;
  }
  else { rowi = dofi; colj = dofj; }
-   
+
  p1      = invp[rowi] - 1;
  position = xlnz[p1+1];
  csuper = invsuper[p1] - 1;
@@ -1068,11 +1068,11 @@ GenBLKSparseMatrix<Scalar>::getone(int dofi, int dofj)
      }
    }
  }
- return 0.0;  
+ return 0.0;
 }
 
 
-template<class Scalar> 
+template<class Scalar>
 void
 GenBLKSparseMatrix<Scalar>::print()
 {
@@ -1086,7 +1086,7 @@ GenBLKSparseMatrix<Scalar>::print()
  fprintf(stdout,"============\n"); fflush(stdout);
 }
 
-template<class Scalar> 
+template<class Scalar>
 void
 GenBLKSparseMatrix<Scalar>::printAll()
 {
@@ -1095,7 +1095,7 @@ GenBLKSparseMatrix<Scalar>::printAll()
   fprintf(stderr, " numConstrained = %d\n",numConstrained);
 }
 
-template<class Scalar> 
+template<class Scalar>
 Scalar
 GenBLKSparseMatrix<Scalar>::diag(int dof) const
 {
@@ -1112,7 +1112,7 @@ GenBLKSparseMatrix<Scalar>::diag(int dof) const
    offset = lxend - lxbeg;
    for(k=lxbeg; k<lxend; ++k) {
       offset -= 1;
-      if(lindx[k]-1 == irow) 
+      if(lindx[k]-1 == irow)
             return lnz[ position - 2 - offset];
    }
  }
@@ -1143,7 +1143,7 @@ GenBLKSparseMatrix<Scalar>::diag(int dof)
  throw "Diagonal does not exist";
 }
 
-template<class Scalar> 
+template<class Scalar>
 void
 GenBLKSparseMatrix<Scalar>::addDiscreteMass(int dof, Scalar mass)
 {
@@ -1173,15 +1173,15 @@ GenBLKSparseMatrix<Scalar>::addDiscreteMass(int dof, Scalar mass)
  }
 }
 
-template<class Scalar> 
+template<class Scalar>
 void
 GenBLKSparseMatrix<Scalar>::getRBMs(double *rigidBodyModes)
 {
-  // computeRBMs();   
+  // computeRBMs();
   if(rbm) rbm->getRBMs(rigidBodyModes);
 }
 
-template<class Scalar> 
+template<class Scalar>
 void
 GenBLKSparseMatrix<Scalar>::getRBMs(Vector *rigidBodyModes)
 {
@@ -1189,7 +1189,7 @@ GenBLKSparseMatrix<Scalar>::getRBMs(Vector *rigidBodyModes)
   if(rbm) rbm->getRBMs(rigidBodyModes);
 }
 
-template<class Scalar> 
+template<class Scalar>
 void
 GenBLKSparseMatrix<Scalar>::getRBMs(VectorSet &rigidBodyModes)
 {
@@ -1200,8 +1200,8 @@ GenBLKSparseMatrix<Scalar>::getRBMs(VectorSet &rigidBodyModes)
 
 // Constructor Kii, FETI Subdomain preconditioner solver
 
-template<class Scalar> 
-GenBLKSparseMatrix<Scalar>::GenBLKSparseMatrix(Connectivity *cn, DofSetArray *_dsa, 
+template<class Scalar>
+GenBLKSparseMatrix<Scalar>::GenBLKSparseMatrix(Connectivity *cn, DofSetArray *_dsa,
                                                int *glInternalMap, double _tol, int _spRenum, Rbm *_rbm) :
   SparseData(_dsa, glInternalMap, cn, 1)
 {
@@ -1224,7 +1224,7 @@ GenBLKSparseMatrix<Scalar>::GenBLKSparseMatrix(Connectivity *cn, EqNumberer *_ds
   allocateMemory();
 }
 
-template<class Scalar> 
+template<class Scalar>
 void
 GenBLKSparseMatrix<Scalar>::allocateMemory()
 {
@@ -1252,8 +1252,8 @@ GenBLKSparseMatrix<Scalar>::allocateMemory()
   int i,j,k,iflag;
 
   // maxsup = maximum number of columns in each supernode (parameter)
-  int maxsup = domain->solInfo().sparse_maxsup;  // default is 100, but may need larger maxsup for big subdomains
-                                                 // set using sparse_maxsup parameter in fem input file
+  int maxsup = solInfo.sparse_maxsup;  // default is 100, but may need larger maxsup for big subdomains
+                                       // set using sparse_maxsup parameter in fem input file
 
   adj = new int[nnza];
 
@@ -1294,7 +1294,7 @@ GenBLKSparseMatrix<Scalar>::allocateMemory()
 // -------------------------------------------------------
 
   // iwsiz = 4 * numUncon;  // iwsiz should be the dimension of iwork (not changed)
-#ifdef USE_METIS  
+#ifdef USE_METIS
   if(spRenum == 1) {
     int metis_options[8];
     for(i = 0; i < 8; i++) metis_options[i] = 0;
@@ -1321,7 +1321,7 @@ GenBLKSparseMatrix<Scalar>::allocateMemory()
   // Rank deficiency information
   // defblk = size of last block to perform full pivoting on
   if(ngrbm > 0)
-    defblk = min(numUncon-1,domain->solInfo().sparse_defblk); // note: sparse_defblk default is 30
+    defblk = min(numUncon-1,solInfo.sparse_defblk); // note: sparse_defblk default is 30
   else
     defblk = 0;
 
@@ -1408,11 +1408,11 @@ GenBLKSparseMatrix<Scalar>::allocateMemory()
   t1 += getTime();
 }
 
-template<class Scalar> 
+template<class Scalar>
 int
-GenBLKSparseMatrix<Scalar>::numRBM() 
-{  
-  //return (rbm) ? rbm->numRBM() : numrbm; 
+GenBLKSparseMatrix<Scalar>::numRBM()
+{
+  //return (rbm) ? rbm->numRBM() : numrbm;
   return numrbm; // return the total number of zems (both geometric and otherwise) same as SkyMatrix
 }
 
@@ -1442,14 +1442,4 @@ GenBLKSparseMatrix<Scalar>::reSolve(GenFullM<Scalar> *mat)
 
  solveTime += getTime();
 }
-
-template<>
-void
-GenBLKSparseMatrix<complex<double> >
-   ::addImaginary(FullSquareMatrix &kel, int *dofs);
-
-template<>
-void
-GenBLKSparseMatrix<double>
-   ::addImaginary(FullSquareMatrix &kel, int *dofs);
 

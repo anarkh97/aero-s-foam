@@ -8,7 +8,6 @@
 #include <fcntl.h>
 
 #include <Threads.d/Paral.h>
-#include <Math.d/mathUtility.h>
 #include <Timers.d/Timing.h>
 #include <Timers.d/DistTimer.h>
 #include <Timers.d/GetTime.h>

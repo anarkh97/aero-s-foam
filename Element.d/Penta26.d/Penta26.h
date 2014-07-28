@@ -12,6 +12,7 @@ class Penta26: public Element
 
   public:
     Penta26(int*);
+    ~Penta26();
 
     Element *clone();
 
@@ -19,7 +20,7 @@ class Penta26: public Element
     void renum(EleRenumMap&);
 
     FullSquareMatrix stiffness(CoordSet&, double *kel, int flg=1);
-    FullSquareMatrix massMatrix(CoordSet&,double *mel, int cmflg=1);
+    FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg=1);
     double getMass(CoordSet& cs);
 
     void getGravityForce(CoordSet&, double *gravity, Vector&, int gravflg, GeomState *gs);

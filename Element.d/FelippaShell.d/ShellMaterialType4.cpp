@@ -10,7 +10,7 @@ template<typename doublereal, typename localmaterial>
 void
 ShellMaterialType4<doublereal,localmaterial>
 ::GetConstitutiveResponse(doublereal *_Upsilon, doublereal *_Sigma, doublereal *_D,
-                          doublereal*, int point)
+                          doublereal*, int point, doublereal temp)
 {
   // Local variables 
   int ilayer;
@@ -109,7 +109,7 @@ template<typename doublereal, typename localmaterial>
 void
 ShellMaterialType4<doublereal,localmaterial>
 ::GetLocalConstitutiveResponse(doublereal *_Upsilon, doublereal *sigma, doublereal z,
-                               doublereal*, int nd)
+                               doublereal*, int nd, doublereal temp)
 {
     // Local variables 
     int ilayer;
@@ -329,12 +329,12 @@ ShellMaterialType4<doublereal,localmaterial>
 template
 void
 ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
-::GetConstitutiveResponse(double *Upsilon, double *Sigma, double *D, double *, int gp);
+::GetConstitutiveResponse(double *Upsilon, double *Sigma, double *D, double *, int gp, double temp);
 
 template
 void
 ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
-::GetLocalConstitutiveResponse(double *Upsilon, double *sigma, double z, double *, int nd);
+::GetLocalConstitutiveResponse(double *Upsilon, double *sigma, double z, double *, int nd, double temp);
 
 template
 void

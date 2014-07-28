@@ -1,4 +1,5 @@
 #include <cstdlib>
+#include <algorithm>
 #include <sys/types.h>
 
 #if defined(sgi) &&  !defined(_OPENMP)
@@ -20,7 +21,6 @@
 #include <fcntl.h>
 
 #include <Threads.d/Paral.h>
-#include <Math.d/mathUtility.h>
 #include <Utils.d/DistHelper.h>
 #include <Timers.d/DistTimer.h>
 #include <Timers.d/GetTime.h>
@@ -330,13 +330,13 @@ ThreadManager::memUsage()
 
  int i;
  for(i = 0; i < numThreads-1; ++i) {
-    minMem = myMin( minMem, curSizes[i]);
-    maxMem = myMax( maxMem, curSizes[i]);
+    minMem = std::min( minMem, curSizes[i]);
+    maxMem = std::max( maxMem, curSizes[i]);
     totSizes += curSizes[i];
  }
 
- minMem = myMin( minMem, currentSizes );
- maxMem = myMax( maxMem, currentSizes );
+ minMem = std::min( minMem, currentSizes );
+ maxMem = std::max( maxMem, currentSizes );
 
  totSizes += currentSizes;
 

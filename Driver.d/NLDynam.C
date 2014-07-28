@@ -8,7 +8,6 @@
 #include <Utils.d/dofset.h>
 #include <Corotational.d/GeomState.h>
 #include <Math.d/FullSquareMatrix.h>
-#include <Math.d/mathUtility.h>
 #include <Math.d/matrix.h>
 #include <Timers.d/StaticTimers.h>
 #include <Timers.d/GetTime.h>
@@ -122,7 +121,7 @@ Domain::getInternalForce(GeomState &geomState, Vector& elementForce,
   }
 
   if(sinfo.isDynam() && mel && !solInfo().getNLInfo().linearelastic)
-    getFictitiousForce(geomState, elementForce, kel, residual, time, refState, reactions, mel, false, cel);
+    getFictitiousForce(geomState, elementForce, kel, residual, time, refState, reactions, mel, false, corotators, cel);
 }
 
 void
@@ -321,13 +320,13 @@ Domain::getUnassembledNonLinearInternalForce(GeomState &geomState, Vector& eleme
 void
 Domain::getFictitiousForce(GeomState &geomState, Vector &elementForce, FullSquareMatrix *kel, Vector &residual,
                            double time, GeomState *refState, Vector *reactions, FullSquareMatrix *mel,
-                           bool compute_tangents, FullSquareMatrix *cel)
+                           bool compute_tangents, Corotator **corotators, FullSquareMatrix *cel)
 {
   for(int iele = 0; iele < numele; ++iele) {
 
     if(matrixTimers) matrixTimers->formTime -= getTime();
     elementForce.zero();
-    getElemFictitiousForce(iele, geomState, elementForce.data(), kel[iele], time, refState, mel[iele], compute_tangents, cel);
+    getElemFictitiousForce(iele, geomState, elementForce.data(), kel[iele], time, refState, mel[iele], compute_tangents, corotators[iele], cel);
     transformVector(elementForce, iele);
     if(matrixTimers) matrixTimers->formTime += getTime();
 
@@ -377,7 +376,7 @@ Domain::getUnassembledFictitiousForce(GeomState &geomState, Vector &elementForce
 void
 Domain::getElemFictitiousForce(int iele, GeomState &geomState, double *_fel, FullSquareMatrix &_kel,
                                double time, GeomState *refState, FullSquareMatrix &_mel,
-                               bool compute_tangents, FullSquareMatrix *celArray)
+                               bool compute_tangents, Corotator *elemCorot, FullSquareMatrix *celArray)
 {
 #ifdef USE_EIGEN3
   // add the correction to the residual and tangent stiffness due to the inertial effects of 
@@ -390,7 +389,17 @@ Domain::getElemFictitiousForce(int iele, GeomState &geomState, double *_fel, Ful
          &alpham = sinfo.newmarkAlphaM,
           dt = domain->solInfo().getTimeStep();
 
-  if(packedEset[iele]->hasRot()) {
+  if(elemCorot && !elemCorot->useDefaultInertialStiffAndForce()) {
+
+    // XXX consider nodal frames here
+    int numDofs = packedEset[iele]->numDofs();
+    FullSquareMatrix _kel2(numDofs);
+
+    elemCorot->getInertialStiffAndForce(refState, geomState, nodes, _kel2, _fel, dt, time,
+                                        beta, gamma, alphaf, alpham);
+    _kel += _kel2;
+  }
+  else if(packedEset[iele]->hasRot()) {
     int numDofs = packedEset[iele]->numDofs();
     int numNodes = packedEset[iele]->numNodes() - packedEset[iele]->numInternalNodes();
     int dofsPerNode = (numDofs-packedEset[iele]->getNumMPCs())/numNodes;
@@ -613,7 +622,7 @@ Domain::getNodeFictitiousForce(int inode, GeomState &geomState, double time, Geo
         }
         else {
           Eigen::Matrix3d dR = R_n.transpose()*R;
-          mat_to_vec(dR, incd);
+          mat_to_vec<double>(dR, incd);
         }
         // compute the convected angular velocity at t^{n+1-alphaf} for HFM, or first time-derivative of total rotation vector at t^{n+1-alphaf} for ROM
         V = gamma/(dt*beta)*incd + (1-(1-alphaf)*gamma/beta)*V_n + dt*(1-alphaf)*(2*beta-gamma)/(2*beta)*A_n;

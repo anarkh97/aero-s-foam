@@ -9,7 +9,7 @@
 template<typename doublereal>
 void
 ShellMaterialType0<doublereal>::GetConstitutiveResponse(doublereal *_Upsilon, doublereal *_Sigma, doublereal *_D,
-                                                        doublereal *, int)
+                                                        doublereal *, int, doublereal temp)
 {
   // Initialized data 
   doublereal zero = 0.;
@@ -22,6 +22,7 @@ ShellMaterialType0<doublereal>::GetConstitutiveResponse(doublereal *_Upsilon, do
   Eigen::Block< Eigen::Map<Eigen::Matrix<doublereal,6,6> > >
     Dm = D.topLeftCorner(3,3),     Dmb = D.topRightCorner(3,3),
     Dbm = D.bottomLeftCorner(3,3), Db = D.bottomRightCorner(3,3);
+  Eigen::Matrix<doublereal,6,1> Alpha; Alpha << w, w, 0, 0, 0, 0;
 
 // ==================================================================== 
 //                                                                      
@@ -178,7 +179,7 @@ ShellMaterialType0<doublereal>::GetConstitutiveResponse(doublereal *_Upsilon, do
 
 // .....COMPUTE THE GENERALIZED "STRESSES"
 
-    Sigma = D*Upsilon;
+    Sigma = D*(Upsilon - (temp-Ta)*Alpha);
 
     if(_D == NULL) delete [] data;
 }
@@ -330,13 +331,14 @@ template<typename doublereal>
 void
 ShellMaterialType0<doublereal>
 ::GetLocalConstitutiveResponse(doublereal *_Upsilon, doublereal *_sigma, doublereal z,
-                               doublereal *, int)
+                               doublereal *, int, doublereal temp)
 {
     // Local variables
     Eigen::Matrix<doublereal,3,1> epsilon;
     Eigen::Matrix<doublereal,3,3> C;
     Eigen::Map<Eigen::Matrix<doublereal,6,1> > Upsilon(_Upsilon);
     Eigen::Map<Eigen::Matrix<doublereal,3,1> > sigma(_sigma);
+    Eigen::Matrix<doublereal,3,1> alpha; alpha << w, w, 0.;
 
     // Some convenient definitions 
     Eigen::VectorBlock< Eigen::Map< Eigen::Matrix<doublereal,6,1> > >
@@ -355,7 +357,7 @@ ShellMaterialType0<doublereal>
 
 // .....COMPUTE THE LOCAL STRESSES [sigma] = {sigmaxx,sigmayy,sigmaxy} ON THE SPECIFIED SURFACE
 
-    sigma = C*epsilon;
+    sigma = C*(epsilon - (temp-Ta)*alpha);
 }
 
 template<typename doublereal>
@@ -427,11 +429,11 @@ ShellMaterialType0<doublereal>
 template
 void
 ShellMaterialType0<double>
-::GetConstitutiveResponse(double *Upsilon, double *Sigma, double *D, double *, int);
+::GetConstitutiveResponse(double *Upsilon, double *Sigma, double *D, double *, int, double);
 
 template
 void
 ShellMaterialType0<double>
-::GetLocalConstitutiveResponse(double *Upsilon, double *sigma, double z, double *, int);
+::GetLocalConstitutiveResponse(double *Upsilon, double *sigma, double z, double *, int, double);
 #endif
 #endif

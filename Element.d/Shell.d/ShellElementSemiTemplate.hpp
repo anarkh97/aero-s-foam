@@ -1,7 +1,6 @@
 #ifndef _SHELLELEMENTSEMITEMPLATE_HPP_
 #define _SHELLELEMENTSEMITEMPLATE_HPP_
 
-#include <Element.d/FelippaShell.d/ShellMaterial.hpp>
 #include <string>
 
 template<typename doublereal>

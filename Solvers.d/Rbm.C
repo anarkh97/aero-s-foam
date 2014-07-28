@@ -1,6 +1,7 @@
 #include <Utils.d/dbg_alloca.h>
 #include <cstdio>
 #include <cmath>
+#include <algorithm>
 
 #include <Driver.d/Domain.h>
 #include <Driver.d/GeoSource.h>
@@ -9,7 +10,6 @@
 #include <Math.d/matrix.h>
 #include <Math.d/Vector.h>
 #include <Math.d/VectorSet.h>
-#include <Math.d/mathUtility.h>
 #include <Math.d/IntFullM.h>
 
 extern "C"      {
@@ -1017,8 +1017,8 @@ Rbm::singularValueDecomposition(FullM &A, FullM &Umat, int ncol, int nrow,
 {
    int i;
    int info = 0;
-   int mindim = myMin(nrow,ncol);
-   int maxdim = myMax(nrow,ncol);
+   int mindim = std::min(nrow,ncol);
+   int maxdim = std::max(nrow,ncol);
    double *w    = (double*) dbg_alloca(sizeof(double)* maxdim);
    double *e    = (double*) dbg_alloca(sizeof(double)* maxdim);
    double *work = (double*) dbg_alloca(sizeof(double)* maxdim);

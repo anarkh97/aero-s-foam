@@ -3,7 +3,6 @@
 #include <cstdio>
 #include <Structopt.d/Optcrit.h>
 #include <Structopt.d/Structopt_sd.h>
-#include <Math.d/mathUtility.h>
 
 class Domain;
 

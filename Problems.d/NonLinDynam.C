@@ -581,9 +581,10 @@ GeomState*
 NonLinDynamic::createGeomState()
 {
   if(domain->solInfo().soltyp == 2)
-    return new TemperatureState( *domain->getDSA(), *domain->getCDSA(), domain->getNodes() );
+    return new TemperatureState(*domain->getDSA(), *domain->getCDSA(), domain->getNodes());
   else
-    return new GeomState( *domain->getDSA(), *domain->getCDSA(), domain->getNodes(), &domain->getElementSet() );
+    return new GeomState(*domain->getDSA(), *domain->getCDSA(), domain->getNodes(), &domain->getElementSet(),
+                         domain->getNodalTemperatures());
 }
 
 GeomState*
@@ -729,8 +730,10 @@ NonLinDynamic::getExternalForce(Vector& rhs, Vector& constantForce, int tIndex, 
   }
 
   // update THERMOE 
-  if(domain->solInfo().thermoeFlag >= 0 && tIndex >= 0)
+  if(domain->solInfo().thermoeFlag >= 0 && tIndex >= 0) {
     domain->thermoeComm();
+    geomState->setNodalTemperatures(domain->getNodalTemperatures());
+  }
 
   // add f(t) to constantForce (not including follower forces)
   double beta, gamma, alphaf, alpham;
@@ -775,7 +778,6 @@ NonLinDynamic::formRHSinitializer(Vector &fext, Vector &velocity, Vector &elemen
     C->mult(velocity, localTemp);
     rhs.linC(rhs, -1.0, localTemp);
   }
-  if(!domain->solInfo().galerkinPodRom) geomState.pull_back(rhs); // f = R^T*f
 }
 
 void

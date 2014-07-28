@@ -20,7 +20,6 @@ MFTTData::MFTTData(int _id)
  id = _id;
 }
 
-
 void
 MFTTData::add(double t, double v)
 {
@@ -47,7 +46,7 @@ MFTTData::add(double t, double v)
 double
 MFTTData::getVal(double t)
 {
-// PJSA: this version returns zero if t is out of bounds
+ // This function returns zero if t < t_min or t > t_max
  
  // np = total number of points
  if (np) {
@@ -78,7 +77,9 @@ MFTTData::getVal(double t)
 double
 MFTTData::getValAlt(double t)
 {
-// PJSA: this version returns the min or max value if t is out of bounds
+ // This function returns the value corresponding to t_min if t < t_min,
+ // and the value corresponding to t_max if t > t_max
+
  // np = total number of points
 
  if (np) {
@@ -108,13 +109,13 @@ MFTTData::getValAlt(double t)
    return 0.0;
 }
 
-
 void 
 MFTTData::getValAndSlopeAlt(double t, double *v, double *s)
 {
-// PJSA: this version returns the min or max value if t is out of bounds
- // np = total number of points
+ // This function returns the value and slope corresponding to t_min if t < t_min,
+ // and the value and slope corresponding to t_max if t > t_max
 
+ // np = total number of points
 
  if (np) {
    curp = np/2; // starting point of search

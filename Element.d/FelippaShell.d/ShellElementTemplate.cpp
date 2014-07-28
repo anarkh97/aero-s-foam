@@ -769,7 +769,7 @@ void
 ShellElementTemplate<doublereal,Membrane,Bending>
 ::andesstf(int elm, doublereal *_estiff, doublereal *_fint, doublereal nu,
            doublereal *x, doublereal *y, doublereal *z, doublereal *_v,
-           int ctyp, int flag)
+           int ctyp, int flag, doublereal *ndtemps)
 {
   // Initialized data 
   bool debug = false;
@@ -783,6 +783,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
   int i, j;
   doublereal xlp[3], ylp[3], zlp[3];
   doublereal area;
+  doublereal temp;
 
   Eigen::Matrix<doublereal,9,3> Lb, Lm;
   Eigen::Matrix<doublereal,3,9> Bb, Bm;
@@ -920,6 +921,14 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 
     Lm = Membrane<doublereal>::L(xlp, ylp, alpha);
 
+#ifdef COMPATIBILITY_MODE
+    // if ndtemps (nodal temperatures) is not null, then the mean temperature is used at each gauss point.
+    temp = (ndtemps) ? doublereal((ndtemps[0]+ndtemps[1]+ndtemps[2])/3) : gpmat->GetAmbientTemperature();
+#else
+    // if ndtemps (nodal temperatures) is not null, then the temperature at each gauss point is interpolated.
+    if(!ndtemps) temp = gpmat->GetAmbientTemperature();
+#endif
+
     if(_estiff) K.setZero();
     if(_fint) F.setZero();
     doublereal zeta[3][3] = { { 0.,.5,.5 }, { .5,0.,.5 }, { .5,.5,0. } }; // triangular coordinates of gauss integration points
@@ -928,6 +937,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 
 // .....FORM HIGHER ORDER INTEGRATED CURVATURE-TO-DISPLACEMENT MATRIX
 //      AND THE ELEMENT CURVATURE VECTOR 
+
         Bb = 1/area*Lb.transpose() + Bending<doublereal>::Bd(xlp, ylp, betab, zeta[i]);
         chi = Bb*vd.tail(9);
 
@@ -940,9 +950,15 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 // .....GET THE TANGENT CONSTITUTIVE MATRIX [D = {Dm,Dmb;Dbm,Db}] 
 //      AND THE GENERALIZED STRESSES [Sigma = {N,M}]
 
+#ifdef COMPATIBILITY_MODE
         if(i == 0 || ctyp == 4) {
+#else
+        if(i == 0 || ctyp == 4 || ndtemps) {
+          if(ndtemps) 
+            temp = zeta[i][0]*ndtemps[0] + zeta[i][1]*ndtemps[1] + zeta[i][2]*ndtemps[2];
+#endif
           doublereal *_D = (_estiff) ? D->data() : NULL;
-          gpmat->GetConstitutiveResponse(Upsilon.data(), Sigma.data(), _D, eframe.data(), i);
+          gpmat->GetConstitutiveResponse(Upsilon.data(), Sigma.data(), _D, eframe.data(), i, temp);
         }
 
         if(_estiff) {
@@ -1195,7 +1211,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 ::andesvms(int elm, int maxstr, doublereal nu, 
            doublereal *X, doublereal *Y, doublereal *Z,
            doublereal *_v, doublereal *_stress,
-           int ctyp, int strainflg, int surface)
+           int ctyp, int strainflg, int surface, doublereal *ndtemps)
 {
   // Initialized data 
   doublereal clr = 0;
@@ -1210,6 +1226,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
   doublereal area, thick;
   doublereal str[6];
   doublereal z, epszz;
+  doublereal temp;
 
   Eigen::Matrix<doublereal,9,3> Lb, Lm;
   Eigen::Matrix<doublereal,3,9> Bb, Bm;
@@ -1337,6 +1354,9 @@ ShellElementTemplate<doublereal,Membrane,Bending>
         e = Bm*vd.head(9);
 #endif
 
+// .....NODAL TEMPERATURE
+       temp = (ndtemps) ? ndtemps[i] : nmat->GetAmbientTemperature();
+
 //     -------------------------------------------------
 //     STEP 7
 //     COMPUTE THE STRESS OR STRAIN OR HISTORY VARIABLES
@@ -1384,7 +1404,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 // .....FORCE AND MOMENT PER UNIT LENGTH
 
                 if(i == 0)
-                    nmat->GetConstitutiveResponse(Upsilon.data(), Sigma.data(), NULL, eframe.data(), i);
+                    nmat->GetConstitutiveResponse(Upsilon.data(), Sigma.data(), NULL, eframe.data(), i, temp);
 
                 if (surface == 1) {
 
@@ -1415,7 +1435,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 
 // .....COMPUTE THE LOCAL STRESSES ON THE SPECIFIED SURFACE
 
-            nmat->GetLocalConstitutiveResponse(Upsilon.data(), sigma.data(), z, eframe.data(), i);
+            nmat->GetLocalConstitutiveResponse(Upsilon.data(), sigma.data(), z, eframe.data(), i, temp);
 
 // .....CALCULATE VON MISES EQUIVALENT STRESS
 
@@ -1439,7 +1459,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 
 // .....COMPUTE THE EQUIVALENT PLASTIC STRAIN FOR ELASTO-PLASTIC MATERIALS
             if(ctyp == 4) {
-              nmat->GetLocalConstitutiveResponse(Upsilon.data(), sigma.data(), z, eframe.data(), i);
+              nmat->GetLocalConstitutiveResponse(Upsilon.data(), sigma.data(), z, eframe.data(), i, temp);
               stress(0, i) = nmat->GetLocalEquivalentPlasticStrain(i, z);
             }
             else {
@@ -1452,7 +1472,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 
 // .....COMPUTE THE BACKSTRESS FOR ELASTO-PLASTIC MATERIALS
             if(ctyp == 4) {
-              nmat->GetLocalConstitutiveResponse(Upsilon.data(), sigma.data(), z, eframe.data(), i);
+              nmat->GetLocalConstitutiveResponse(Upsilon.data(), sigma.data(), z, eframe.data(), i, temp);
               std::vector<doublereal> sigma = nmat->GetLocalBackStress(i, z);
 
 // .....ROTATE LOCAL STRESSES TO GLOBAL
@@ -1479,7 +1499,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 
 // .....COMPUTE THE PLASTIC STRAIN TENSOR FOR ELASTO-PLASTIC MATERIALS
             if(ctyp == 4) {
-              nmat->GetLocalConstitutiveResponse(Upsilon.data(), sigma.data(), z, eframe.data(), i);
+              nmat->GetLocalConstitutiveResponse(Upsilon.data(), sigma.data(), z, eframe.data(), i, temp);
               std::vector<doublereal> epsilon = nmat->GetLocalPlasticStrain(i, z);
 
 // .....ROTATE LOCAL STRAINS TO GLOBAL AND CONVERT SHEAR STRAINS TO ENGINEERING SHEAR STRAINS

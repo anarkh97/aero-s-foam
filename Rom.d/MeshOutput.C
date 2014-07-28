@@ -27,8 +27,10 @@ operator<<(std::ostream &out, const BCond &source) {
 
 std::ostream &
 operator<<(std::ostream &out, const PressureBCond &source) {
-  out << source.elnum   + 1 << " "
-      << source.val;
+  out << source.elnum + 1 << " ";
+  if(source.face > -1) out << "face " << source.face + 1 << " ";
+  out << source.val;
+  if(!source.conwepswitch) out << " off";
   return out;
 }
 

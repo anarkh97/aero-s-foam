@@ -3,22 +3,27 @@
 #define _FELIPPASHELLSTIFFNESSWRTTHICKNESSSENSITIVITY_H_
 
 #include <Element.d/Function.d/Function.h>
+//#include <Element.d/FelippaShell.d/ShellMaterial.cpp>
 #include <Element.d/FelippaShell.d/ShellMaterialType0.cpp>
+#include <Element.d/FelippaShell.d/ShellMaterialType1.cpp>
 #include <Element.d/FelippaShell.d/EffMembraneTriangleTemplate.cpp>
 #include <Element.d/FelippaShell.d/AndesBendingTriangleTemplate.cpp>
 #include <Element.d/FelippaShell.d/ShellElementTemplate.cpp>
 
 template<typename Scalar>
-class FelippaShellStiffnessWRTThicknessSensitivity : public MatrixValuedFunction<1,18,18,Scalar,12,0,double>
+class FelippaShellStiffnessWRTThicknessSensitivity : public MatrixValuedFunction<1,18,18,Scalar,57,1,double>
 {
   public:
     ShellElementTemplate<Scalar,EffMembraneTriangle,AndesBendingTriangle> ele;
     Eigen::Array<Scalar,3,1> globalx, globaly, globalz; // nodal coordinates
     Eigen::Array<Scalar,18,1> globalu;                  // nodal displacements
     Scalar E, nu, rho; // material properties
+    Eigen::Array<Scalar,9,1> cframe;   // composite frame
+    Eigen::Array<Scalar,36,1> coefs;
+    int type;
 
   public:
-    FelippaShellStiffnessWRTThicknessSensitivity(const Eigen::Array<double,12,1>& sconst, const Eigen::Array<int,0,1>& iconst)
+    FelippaShellStiffnessWRTThicknessSensitivity(const Eigen::Array<double,57,1>& sconst, const Eigen::Array<int,1,1>& iconst)
     {
       globalx = sconst.segment<3>(0).cast<Scalar>();
       globaly = sconst.segment<3>(3).cast<Scalar>();
@@ -27,6 +32,12 @@ class FelippaShellStiffnessWRTThicknessSensitivity : public MatrixValuedFunction
       nu = sconst[10];
       rho = sconst[11];
       globalu.setZero();
+      type = iconst[0];
+      cframe.setZero();   coefs.setZero();
+      if(type == 1) {
+        cframe = sconst.segment<9>(12).cast<Scalar>();
+        coefs = sconst.segment<36>(21).cast<Scalar>();
+      }
     }
 
     Eigen::Matrix<Scalar,18,18> operator() (const Eigen::Matrix<Scalar,1,1>& h, Scalar)
@@ -35,6 +46,11 @@ class FelippaShellStiffnessWRTThicknessSensitivity : public MatrixValuedFunction
       // h = thickness
 
       ele.setgpmat(new ShellMaterialType0<Scalar>(E, h[0], nu, rho));
+      if(type == 1) { 
+        ele.setgpnmat(new ShellMaterialType1<Scalar>(coefs.data(), cframe.data(), rho, h[0])); 
+      }
+      else if(type == 2 || type == 3) { std::cerr << " ... Error: ShellElementStiffnessWRTNodalCoordinateSensitivity is not defined for this case\n"; exit(-1); }
+      else if(type > 4)  { std::cerr << " ... Error: wrong material type\n"; exit(-1); }
 
       // elm      <input>   Finite Element Number                           not actually used
       // nu       <input>   Poisson's Ratio (for an Isotropic Element)

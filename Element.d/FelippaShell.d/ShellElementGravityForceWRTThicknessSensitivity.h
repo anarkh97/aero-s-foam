@@ -3,7 +3,9 @@
 #define _SHELLELEMENTGRAVITYFORCEWRTTHICKNESSSENSITIVITY_H_
 
 #include <Element.d/Function.d/Function.h>
+//#include <Element.d/FelippaShell.d/ShellMaterial.cpp>
 #include <Element.d/FelippaShell.d/ShellMaterialType0.cpp>
+#include <Element.d/FelippaShell.d/ShellMaterialType1.cpp>
 #include <Element.d/FelippaShell.d/EffMembraneTriangleTemplate.cpp>
 #include <Element.d/FelippaShell.d/AndesBendingTriangleTemplate.cpp>
 #include <Element.d/FelippaShell.d/ShellElementTemplate.cpp>
@@ -11,16 +13,19 @@
 // class template to facilitate computation of the sensitivities of the nodal von mises stress w.r.t the shell thickness
 
 template<typename Scalar>
-class ShellElementGravityForceWRTThicknessSensitivity : public VectorValuedFunction<1,18,Scalar,15,1,double>
+class ShellElementGravityForceWRTThicknessSensitivity : public VectorValuedFunction<1,18,Scalar,60,2,double>
 {
   public:
     ShellElementTemplate<Scalar,EffMembraneTriangle,AndesBendingTriangle> ele;
     Eigen::Matrix<Scalar,3,1> gravityAcceleration, globalx, globaly, globalz;
     Scalar E, nu, rho; // material properties
     int gravflg;
+    Eigen::Array<Scalar,9,1> cframe;   // composite frame
+    Eigen::Array<Scalar,36,1> coefs;
+    int type;
 
   public:
-    ShellElementGravityForceWRTThicknessSensitivity(const Eigen::Array<double,15,1>& sconst, const Eigen::Array<int,1,1>& iconst)
+    ShellElementGravityForceWRTThicknessSensitivity(const Eigen::Array<double,60,1>& sconst, const Eigen::Array<int,2,1>& iconst)
     {
       gravityAcceleration = sconst.segment<3>(0).cast<Scalar>();
       globalx = sconst.segment<3>(3).cast<Scalar>();
@@ -30,6 +35,12 @@ class ShellElementGravityForceWRTThicknessSensitivity : public VectorValuedFunct
       nu = sconst[13];
       rho = sconst[14];
       gravflg = iconst[0];
+      type = iconst[1];
+      cframe.setZero();   coefs.setZero();
+      if(type == 1) {
+        cframe = sconst.segment<9>(15).cast<Scalar>();
+        coefs = sconst.segment<36>(24).cast<Scalar>();
+      }
     }
 
     Eigen::Matrix<Scalar,18,1> operator() (const Eigen::Matrix<Scalar,1,1>& q, Scalar)
@@ -38,6 +49,11 @@ class ShellElementGravityForceWRTThicknessSensitivity : public VectorValuedFunct
       // q[0] = shell thickness
 
       ele.setgpmat(new ShellMaterialType0<Scalar>(E, q[0], nu, rho));
+      if(type == 1) { 
+        ele.setgpnmat(new ShellMaterialType1<Scalar>(coefs.data(), cframe.data(), rho, q[0])); 
+      }
+      else if(type == 2 || type == 3) { std::cerr << " ... Error: ShellElementStiffnessWRTNodalCoordinateSensitivity is not defined for this case\n"; exit(-1); }
+      else if(type > 4)  { std::cerr << " ... Error: wrong material type\n"; exit(-1); }
 
       Eigen::Matrix<Scalar,18,18> ElementMassMatrix;
       Eigen::Matrix<Scalar,18,1> gravityForce;

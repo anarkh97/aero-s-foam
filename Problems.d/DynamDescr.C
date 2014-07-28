@@ -834,7 +834,8 @@ SingleDomainDynamic::buildOps(double coeM, double coeC, double coeK)
  DynamMat *dMat = new DynamMat(true);
 
  domain->getTimers().constructTime -= getTime();
- allOps.K   = domain->constructDBSparseMatrix<double>();
+// allOps.K   = domain->constructDBSparseMatrix<double>();
+ allOps.K   = domain->constructEiSparseMatrix<double,Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> >();
  if(geoSource->getMRatio() != 0) {
 #ifdef USE_EIGEN3
    if(domain->solInfo().svdPodRom) allOps.M = domain->constructEiSparseMatrix<double,Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> >();
@@ -927,6 +928,12 @@ SingleDomainDynamic::buildOps(double coeM, double coeC, double coeK)
    filePrint(stderr," ... Modal decomposition requested ...\n");
    modeDecompPreProcess(allOps.M);
  }
+#ifdef SENSITIVITY_DEBUG
+ if(verboseFlag) {
+   std::cerr << "print stiffness matrix\n";
+   allOps.K->print();
+ }
+#endif
 
  dMat->K         = allOps.K;
  dMat->M         = allOps.M;
@@ -1343,6 +1350,12 @@ void
 SingleDomainDynamic::sendNumParam(int numParam)
 {
   flExchanger->sendNumParam(numParam);
+}
+
+void 
+SingleDomainDynamic::sendRelativeResidual(double relres)
+{
+  flExchanger->sendRelativeResidual(relres);
 }
 
 int 

@@ -559,16 +559,18 @@ C
       stress_1dyz = stress(elm,2,2) - stress(elm,3,2)
       stress_1dxz = stress(elm,1,2) - stress(elm,3,2)
 C
-      stress(elm,7,1) = dsqrt( 0.5d00*(stress_0dxy*stress_0dxy + 
+      stress(elm,7,1) =  dsqrt(0.5d00*(stress_0dxy*stress_0dxy + 
      +      stress_0dyz*stress_0dyz + stress_0dxz*stress_0dxz) + 
      +                 3.0d00*(stress(elm,4,1)*stress(elm,4,1) + 
      +                         stress(elm,5,1)*stress(elm,5,1) + 
-     +                         stress(elm,6,1)*stress(elm,6,1)) )
-      stress(elm,7,2) = dsqrt( 0.5d00*(stress_1dxy*stress_1dxy + 
+     +                       stress(elm,6,1)*stress(elm,6,1))) +
+     +                                                 1.0e-10
+      stress(elm,7,2) =  dsqrt(0.5d00*(stress_1dxy*stress_1dxy + 
      +      stress_1dyz*stress_1dyz + stress_1dxz*stress_1dxz) + 
      +                 3.0d00*(stress(elm,4,2)*stress(elm,4,2) + 
      +                         stress(elm,5,2)*stress(elm,5,2) + 
-     +                         stress(elm,6,2)*stress(elm,6,2)) )
+     +                       stress(elm,6,2)*stress(elm,6,2))) +
+     +                                                 1.0e-10
 C
 C     ------
 C     RETURN

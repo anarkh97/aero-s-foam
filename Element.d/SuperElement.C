@@ -186,11 +186,12 @@ SuperElement::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx
     FullSquareMatrix *subdStiffdx = new FullSquareMatrix[3*subElems[i]->numNodes()];
     for(int j=0; j<3*subElems[i]->numNodes(); ++j) { subdStiffdx[j].setSize(subElems[i]->numDofs());  subdStiffdx[j].zero(); }
     subElems[i]->getStiffnessNodalCoordinateSensitivity(subdStiffdx, cs, senMethod);
-    for(int j=0; j<3*subElems[i]->numNodes(); ++j) { 
-      dStiffdx[j].add(subdStiffdx[j], subElemDofs[i]); 
-    }
+    for(int j=0; j<subElems[i]->numNodes(); ++j) 
+      for(int xyz=0; xyz<3; ++xyz) 
+        dStiffdx[3*subElemNodes[i][j]+xyz].add(subdStiffdx[3*j+xyz], subElemDofs[i]); 
     delete [] subdStiffdx; 
   }
+
 }
 
 void 

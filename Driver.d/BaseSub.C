@@ -1214,8 +1214,15 @@ void BaseSub::applyAuxData()
     int locElemNum =  cl2LocElemMap[ efd[iFrame].elnum ];
 
     // check if eframe is in this subdomain
-    if (locElemNum >= 0) 
+    if (locElemNum >= 0) {
       packedEset[locElemNum]->setFrame(&(efd[iFrame].frame));
+      for(int k=0; k<3; ++k) {
+        std::cerr << "\nprint eframe^^";
+        for(int l=0; l<3; ++l)
+          std::cerr << " " << efd[iFrame].frame[k][l];
+      }
+      std::cerr << std::endl;  
+    }
   }
 
   // create cluster to local node map for node renumbering

@@ -1132,6 +1132,26 @@ FlExchanger::sendNumParam(int numParam)
   }
 }
 
+void
+FlExchanger::sendRelativeResidual(double relres)
+{
+  int returnFlag = 0;
+  int FldNd = 0;
+
+  int tag;
+  
+  int thisNode = structCom->myID();
+
+  double buffer[1];
+  buffer[0] = relres;
+  int msglen = 1;
+
+  if(thisNode == 0) {
+    tag = STRELRESFL;
+    fluidCom->sendTo(FldNd, tag, buffer, msglen);
+  }
+}
+
 int
 FlExchanger::cmdCom( int commandFlag )
 {

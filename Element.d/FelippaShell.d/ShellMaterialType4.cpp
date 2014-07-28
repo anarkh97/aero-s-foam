@@ -327,6 +327,10 @@ ShellMaterialType4<doublereal,localmaterial>
 
 #include <Material.d/IsotropicLinearElasticJ2PlasticPlaneStressMaterial.h>
 template
+double* 
+ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::GetCoefOfConstitutiveLaw();
+
+template
 void
 ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
 ::GetConstitutiveResponse(double *Upsilon, double *Sigma, double *D, double *, int gp);

@@ -302,7 +302,7 @@ GenFullSquareMatrix<Scalar>::print(const char *msg, const char *msg2)
    for(i=0; i<size; ++i) {
      for(j=0; j<size; ++j)
        //fprintf(stderr,"%s(%d,%d)=%3.2e, ",msg2,i+1,j+1,(*this)[i][j]);
-       fprintf(stderr,"%3.2e,",(*this)[i][j]);
+       fprintf(stderr,"%20.16e,",(*this)[i][j]);
      fprintf(stderr,"\n");
    }
  }

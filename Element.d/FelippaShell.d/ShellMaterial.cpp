@@ -1,3 +1,6 @@
+#ifndef _SHELLMATERIAL_CPP_
+#define _SHELLMATERIAL_CPP_
+
 #ifdef USE_EIGEN3
 #include <cmath>
 #include <stdexcept>
@@ -13,7 +16,7 @@ ShellMaterial<doublereal>::andesinvt(doublereal *_eframe, doublereal *_aframe, d
   Eigen::Matrix<doublereal,3,1> r; r << 1, 1, 2;
 
   // Builtin functions 
-  using std::atan;
+//  using std::atan;
   using std::cos;
   using std::sin;
 
@@ -87,7 +90,10 @@ ShellMaterial<doublereal>::andesinvt(doublereal *_eframe, doublereal *_aframe, d
                 thetad = pi;
             }
         } else {
-            thetad = atan(proj2 / proj1);
+//            doublereal dummy = proj2 / proj1;
+//            thetad = (0.5*std::complex<doublereal>(0.0,1.0)).real();
+//            thetad = atan(proj2 / proj1);
+            thetad = 0.0;
         }
     }
 
@@ -167,4 +173,6 @@ ShellMaterial<doublereal>::andesinvt(doublereal *_eframe, doublereal *_aframe, d
 template
 Eigen::Matrix<double,3,3>
 ShellMaterial<double>::andesinvt(double *_eframe, double *_aframe, double thetaf);
+#endif
+
 #endif

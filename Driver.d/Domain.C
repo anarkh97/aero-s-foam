@@ -1796,7 +1796,8 @@ Domain::readInShapeDerivatives(char* shapeDerFileName)
  char str[80];
  // Read in number of shape variables and number of nodes
  fscanf(f,"%s%s%s%s%s%s",str,str,str,str,str,str);
- int count = fscanf(f, "%d\n%d", &shapeSenData.numNodes, &shapeSenData.numVars);
+ int count = fscanf(f, "%d\n", &shapeSenData.numNodes);
+ shapeSenData.numVars = getNumShapeVars();
 
  typedef double (*T3)[3];
  shapeSenData.index = new int[shapeSenData.numVars];
@@ -3570,6 +3571,12 @@ Domain::ProcessSurfaceBCs(int topFlag)
       if(int(surface_cfe[i].val) == efd.elnum) {
         ef = &efd.frame;
         for(int k=0; k<3; ++k) for(int l=0; l<3; ++l) frame_data[3*k+l] = efd.frame[k][l];
+        for(int k=0; k<3; ++k) {
+          std::cerr << "\nprint eframe==";
+          for(int l=0; l<3; ++l)
+            std::cerr << " " << efd.frame[k][l];
+        }
+        std::cerr << std::endl;  
         break;
       }
     }

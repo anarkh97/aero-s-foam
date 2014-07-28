@@ -3,7 +3,9 @@
 #define _SHELLELEMENTSTRESSWRTDISPLACEMENTSENSITIVITY_H_
 
 #include <Element.d/Function.d/Function.h>
+//#include <Element.d/FelippaShell.d/ShellMaterial.cpp>
 #include <Element.d/FelippaShell.d/ShellMaterialType0.cpp>
+#include <Element.d/FelippaShell.d/ShellMaterialType1.cpp>
 #include <Element.d/FelippaShell.d/EffMembraneTriangleTemplate.cpp>
 #include <Element.d/FelippaShell.d/AndesBendingTriangleTemplate.cpp>
 #include <Element.d/FelippaShell.d/ShellElementTemplate.cpp>
@@ -11,16 +13,19 @@
 // class template to facilitate computation of the sensitivities of the nodal von mises stress w.r.t the nodal displacements
 
 template<typename Scalar>
-class ShellElementStressWRTDisplacementSensitivity : public VectorValuedFunction<18,3,Scalar,13,1,double>
+class ShellElementStressWRTDisplacementSensitivity : public VectorValuedFunction<18,3,Scalar,58,2,double>
 {
   public:
     ShellElementTemplate<Scalar,EffMembraneTriangle,AndesBendingTriangle> ele;
     Eigen::Array<Scalar,3,1> globalx, globaly, globalz; // nodal coordinates
     Scalar E, nu, rho, h; // material properties
+    Eigen::Array<Scalar,9,1> cframe;   // composite frame
+    Eigen::Array<Scalar,36,1> coefs;
+    int type;
     int surface; // thru-thickness location at which stresses are to be evaluated
 
   public:
-    ShellElementStressWRTDisplacementSensitivity(const Eigen::Array<double,13,1>& sconst, const Eigen::Array<int,1,1>& iconst)
+    ShellElementStressWRTDisplacementSensitivity(const Eigen::Array<double,58,1>& sconst, const Eigen::Array<int,2,1>& iconst)
     {
       globalx = sconst.segment<3>(0).cast<Scalar>();
       globaly = sconst.segment<3>(3).cast<Scalar>();
@@ -30,6 +35,12 @@ class ShellElementStressWRTDisplacementSensitivity : public VectorValuedFunction
       rho = sconst[11];
       h = sconst[12];
       surface = iconst[0];
+      type = iconst[1];
+      cframe.setZero();   coefs.setZero();
+      if(type == 1) {
+        cframe = sconst.segment<9>(13).cast<Scalar>();
+        coefs = sconst.segment<36>(22).cast<Scalar>();
+      }
     }
 
     Eigen::Matrix<Scalar,3,1> operator() (const Eigen::Matrix<Scalar,18,1>& q, Scalar)
@@ -38,6 +49,11 @@ class ShellElementStressWRTDisplacementSensitivity : public VectorValuedFunction
       // q = Global Displacements at the Nodal Joints
 
       ele.setnmat(new ShellMaterialType0<Scalar>(E, h, nu, rho));
+      if(type == 1) { 
+        ele.setgpnmat(new ShellMaterialType1<Scalar>(coefs.data(), cframe.data(), rho, h)); 
+      }
+      else if(type == 2 || type == 3) { std::cerr << " ... Error: ShellElementStiffnessWRTNodalCoordinateSensitivity is not defined for this case\n"; exit(-1); }
+      else if(type > 4)  { std::cerr << " ... Error: wrong material type\n"; exit(-1); }
       Eigen::Matrix<Scalar,18,1> globalu = q;
 
       // elm      <input>   Finite Element Number                           not actually used
@@ -51,7 +67,7 @@ class ShellElementStressWRTDisplacementSensitivity : public VectorValuedFunction
       // flag     <input>   0: stress, 1: strain, >= 2: internal variables
       // surface  <input>   1: upper, 2: median, 3: lower
       Eigen::Array<Scalar,7,3> stress;
-      ele.andesvms(0, 7, nu, globalx.data(), globaly.data(), globalz.data(), globalu.data(),
+      ele.andesvms(1, 7, nu, globalx.data(), globaly.data(), globalz.data(), globalu.data(),
                    stress.data(), 0, 0, surface);
 
       // return value:

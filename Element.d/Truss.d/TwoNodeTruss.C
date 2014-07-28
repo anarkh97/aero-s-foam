@@ -5,6 +5,7 @@
 
 #include <Element.d/Truss.d/TwoNodeTruss.h>
 #include <Element.d/Truss.d/TwoNodeTrussStiffnessWRTNodalCoordinateSensitivity.h>
+#include <Element.d/Truss.d/TwoNodeTrussStressWRTNodalCoordinateSensitivity.h>
 #include <Element.d/Function.d/SpaceDerivatives.h>
 #include <Corotational.d/BarCorotator.h>
 #include <Corotational.d/GeomState.h>
@@ -165,11 +166,11 @@ TwoNodeTruss::getMassSensitivityWRTNodalCoordinate(CoordSet &cs, Vector &dMassdx
         double length = sqrt( dx*dx + dy*dy + dz*dz );
         double prefix = prop->A*prop->rho/length;
         dMassdx[0] = -prefix*dx;
-        dMassdx[1] = prefix*dx;
-        dMassdx[2] = -prefix*dy;
-        dMassdx[3] = prefix*dy;
-        dMassdx[4] = -prefix*dz;
-        dMassdx[5] = prefix*dz;        
+        dMassdx[1] = -prefix*dy;
+        dMassdx[2] = -prefix*dz;
+        dMassdx[3] = prefix*dx;
+        dMassdx[4] = prefix*dy;
+        dMassdx[5] = prefix*dz;       
 }
 
 void
@@ -196,10 +197,10 @@ TwoNodeTruss::getLengthSensitivityWRTNodalCoordinate(CoordSet &cs, Vector &dLeng
 
         double length = sqrt( dx*dx + dy*dy + dz*dz );
         dLengthdx[0] = -dx/length;
-        dLengthdx[1] = dx/length;
-        dLengthdx[2] = -dy/length;
-        dLengthdx[3] = dy/length;
-        dLengthdx[4] = -dz/length;
+        dLengthdx[1] = -dy/length;
+        dLengthdx[2] = -dz/length;
+        dLengthdx[3] = dx/length;
+        dLengthdx[4] = dy/length;
         dLengthdx[5] = dz/length;        
 }
 
@@ -238,43 +239,45 @@ TwoNodeTruss::getGravityForceSensitivityWRTNodalCoordinate(CoordSet& cs, double 
        dGfdx[0][1] = 0.5*gravityAcceleration[1]*dMassdx[0];
        dGfdx[0][2] = 0.5*gravityAcceleration[2]*dMassdx[0];
        dGfdx[0][3] = dGfdx[0][0]; 
-       dGfdx[0][4] = dGfdx[1][0];
-       dGfdx[0][5] = dGfdx[2][0];
+       dGfdx[0][4] = dGfdx[0][1];
+       dGfdx[0][5] = dGfdx[0][2];
 
        dGfdx[1][0] = 0.5*gravityAcceleration[0]*dMassdx[1];
        dGfdx[1][1] = 0.5*gravityAcceleration[1]*dMassdx[1];
        dGfdx[1][2] = 0.5*gravityAcceleration[2]*dMassdx[1];
-       dGfdx[1][3] = dGfdx[0][1]; 
+       dGfdx[1][3] = dGfdx[1][0]; 
        dGfdx[1][4] = dGfdx[1][1];
-       dGfdx[1][5] = dGfdx[2][1];
+       dGfdx[1][5] = dGfdx[1][2];
       
        dGfdx[2][0] = 0.5*gravityAcceleration[0]*dMassdx[2];
        dGfdx[2][1] = 0.5*gravityAcceleration[1]*dMassdx[2];
        dGfdx[2][2] = 0.5*gravityAcceleration[2]*dMassdx[2];
-       dGfdx[2][3] = dGfdx[0][2]; 
-       dGfdx[2][4] = dGfdx[1][2];
+       dGfdx[2][3] = dGfdx[2][0]; 
+       dGfdx[2][4] = dGfdx[2][1];
        dGfdx[2][5] = dGfdx[2][2];
       
        dGfdx[3][0] = 0.5*gravityAcceleration[0]*dMassdx[3];
        dGfdx[3][1] = 0.5*gravityAcceleration[1]*dMassdx[3];
        dGfdx[3][2] = 0.5*gravityAcceleration[2]*dMassdx[3];
-       dGfdx[3][3] = dGfdx[0][3]; 
-       dGfdx[3][4] = dGfdx[1][3];
-       dGfdx[3][5] = dGfdx[2][3];
+       dGfdx[3][3] = dGfdx[3][0]; 
+       dGfdx[3][4] = dGfdx[3][1];
+       dGfdx[3][5] = dGfdx[3][2];
 
        dGfdx[4][0] = 0.5*gravityAcceleration[0]*dMassdx[4];
        dGfdx[4][1] = 0.5*gravityAcceleration[1]*dMassdx[4];
        dGfdx[4][2] = 0.5*gravityAcceleration[2]*dMassdx[4];
-       dGfdx[4][3] = dGfdx[0][4]; 
-       dGfdx[4][4] = dGfdx[1][4];
-       dGfdx[4][5] = dGfdx[2][4];
+       dGfdx[4][3] = dGfdx[4][0]; 
+       dGfdx[4][4] = dGfdx[4][1];
+       dGfdx[4][5] = dGfdx[4][2];
 
        dGfdx[5][0] = 0.5*gravityAcceleration[0]*dMassdx[5];
        dGfdx[5][1] = 0.5*gravityAcceleration[1]*dMassdx[5];
        dGfdx[5][2] = 0.5*gravityAcceleration[2]*dMassdx[5];
-       dGfdx[5][3] = dGfdx[0][5]; 
-       dGfdx[5][4] = dGfdx[1][5];
-       dGfdx[5][5] = dGfdx[2][5];
+       dGfdx[5][3] = dGfdx[5][0]; 
+       dGfdx[5][4] = dGfdx[5][1];
+       dGfdx[5][5] = dGfdx[5][2];
+
+//       dGfdx.print("print dGravitydx(analytic) = \n");
 }
 
 void
@@ -360,7 +363,7 @@ TwoNodeTruss::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx
           if(verboseFlag) {
             std::cerr << "dStiffnessdx(AD) =\n";
             for(int i=0; i<6; ++i) std::cerr << "dStiffnessdx_" << i << "\n" << dStiffnessdx[i].format(HeavyFmt) << std::endl;
-          }
+          } 
 #endif
         }
 
@@ -379,7 +382,7 @@ TwoNodeTruss::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx
             if(verboseFlag) {
               std::cerr << "dStiffnessdx(FD) =\n";
               std::cerr << "dStiffnessdx_" << i << "\n" << dStiffnessdx[i].format(HeavyFmt) << std::endl;
-            }
+            } 
 #endif
           }
         }
@@ -706,7 +709,6 @@ TwoNodeTruss::getVonMises(Vector& stress, Vector& weight, CoordSet& cs,
            }
           stress[0] = std::abs(-f + fth1);
           stress[1] = std::abs( f - fth1);      
-
         } else if (strInd > 6 && strInd < 13) {
            double tmpStr[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
            tmpStr[0] = exx;
@@ -732,6 +734,8 @@ TwoNodeTruss::getVonMises(Vector& stress, Vector& weight, CoordSet& cs,
       default:
         std::cerr << "avgnum = " << avgnum << " is not a valid number\n";
     }
+
+    if(verboseFlag) std::cerr << "von mises is " << stress[0] << " " << stress[1] << std::endl;
 #endif
 }
 
@@ -740,6 +744,27 @@ TwoNodeTruss::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vec
                                                     int senMethod, double *ndTemps, int avgnum, double ylayer, double zlayer)
 { 
    using std::sqrt;
+
+   weight = 1;
+
+   // scalar parameters
+   Eigen::Array<double,11,1> dconst;
+
+   Node &nd1 = cs.getNode(nn[0]);
+   Node &nd2 = cs.getNode(nn[1]);
+
+   dconst[0] = prop->E;  // E
+   dconst[1] = prop->A;  // A
+   dconst[2] = prop->W;  // W
+   dconst[3] = prop->Ta; // Ta
+   dconst[4] = preload;
+   dconst[5] = elDisp[0];
+   dconst[6] = elDisp[1];
+   dconst[7] = elDisp[2];
+   dconst[8] = elDisp[3];
+   dconst[9] = elDisp[4];
+   dconst[10] = elDisp[5];
+
    if(strInd != 6) {
      std::cerr << " ... Error: strInd must be 6 in TwoNodeTruss::getVonMisesNodalCoordinateSensitivity\n";
      exit(-1);
@@ -750,40 +775,51 @@ TwoNodeTruss::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vec
    }
    weight = 1.0;
 
-   Node &nd1 = cs.getNode( nn[0] );
-   Node &nd2 = cs.getNode( nn[1] );
 
-   double dx = nd2.x - nd1.x;
-   double dy = nd2.y - nd1.y;
-   double dz = nd2.z - nd1.z;
+#ifdef SENSITIVITY_DEBUG
+  if(verboseFlag) {
+    std::cerr << "print displacement =\n";
+    for(int i=0; i<18; ++i) std::cerr << elDisp[i] << "  ";
+    std::cerr << std::endl;
+  }
+#endif
 
-   double lengthsquare = dx*dx + dy*dy + dz*dz;
-   double length = sqrt(dx*dx + dy*dy + dz*dz);
+  // integer parameters
+  Eigen::Array<int,0,1> iconst;
+  // inputs
+  Eigen::Matrix<double,6,1> q;
+  q << nd1.x, nd1.y, nd1.z, nd2.x, nd2.y, nd2.z;
 
-   // Compute the change in length of the element
-   double dq = dx*(elDisp[3]-elDisp[0])
-             + dy*(elDisp[4]-elDisp[1])
-             + dz*(elDisp[5]-elDisp[2]);
+  if(senMethod == 0) { // analytic
+    double dx = nd2.x - nd1.x;
+    double dy = nd2.y - nd1.y;
+    double dz = nd2.z - nd1.z;
+ 
+    double lengthsquare = dx*dx + dy*dy + dz*dz;
+    double length = sqrt(dx*dx + dy*dy + dz*dz);
 
+    // Compute the change in length of the element
+    double dq = dx*(elDisp[3]-elDisp[0])
+              + dy*(elDisp[4]-elDisp[1])
+              + dz*(elDisp[5]-elDisp[2]);
     switch (avgnum) {
 
-      case 0:
       case 1:
       { 
         if (strInd == 6) {
           double AE = prop->A*prop->E;
-          dStdx[0][0] = -AE/lengthsquare*(elDisp[3]-elDisp[0]) + 2*AE/(lengthsquare*lengthsquare)*dx*dq;
-          dStdx[1][0] = -AE/lengthsquare*(elDisp[4]-elDisp[1]) + 2*AE/(lengthsquare*lengthsquare)*dy*dq;
-          dStdx[2][0] = -AE/lengthsquare*(elDisp[5]-elDisp[2]) + 2*AE/(lengthsquare*lengthsquare)*dz*dq;
-          dStdx[3][0] = AE/lengthsquare*(elDisp[3]-elDisp[0]) - 2*AE/(lengthsquare*lengthsquare)*dx*dq;
-          dStdx[4][0] = AE/lengthsquare*(elDisp[4]-elDisp[1]) - 2*AE/(lengthsquare*lengthsquare)*dy*dq;
-          dStdx[5][0] = AE/lengthsquare*(elDisp[5]-elDisp[2]) - 2*AE/(lengthsquare*lengthsquare)*dz*dq;
-          dStdx[0][1] = -dStdx[0][0];
-          dStdx[1][1] = -dStdx[1][0];
-          dStdx[2][1] = -dStdx[2][0];
-          dStdx[3][1] = -dStdx[3][0];
-          dStdx[4][1] = -dStdx[4][0];
-          dStdx[5][1] = -dStdx[5][0];
+          dStdx[0][0] = AE/lengthsquare*(elDisp[3]-elDisp[0]) - 2*AE/(lengthsquare*lengthsquare)*dx*dq;
+          dStdx[1][0] = AE/lengthsquare*(elDisp[4]-elDisp[1]) - 2*AE/(lengthsquare*lengthsquare)*dy*dq;
+          dStdx[2][0] = AE/lengthsquare*(elDisp[5]-elDisp[2]) - 2*AE/(lengthsquare*lengthsquare)*dz*dq;
+          dStdx[3][0] = -AE/lengthsquare*(elDisp[3]-elDisp[0]) + 2*AE/(lengthsquare*lengthsquare)*dx*dq;
+          dStdx[4][0] = -AE/lengthsquare*(elDisp[4]-elDisp[1]) + 2*AE/(lengthsquare*lengthsquare)*dy*dq;
+          dStdx[5][0] = -AE/lengthsquare*(elDisp[5]-elDisp[2]) + 2*AE/(lengthsquare*lengthsquare)*dz*dq;
+          dStdx[0][1] = dStdx[0][0];
+          dStdx[1][1] = dStdx[1][0];
+          dStdx[2][1] = dStdx[2][0];
+          dStdx[3][1] = dStdx[3][0];
+          dStdx[4][1] = dStdx[4][0];
+          dStdx[5][1] = dStdx[5][0];
           
           // scale dx, dy, and dz by the length
           dx /= length;
@@ -827,6 +863,49 @@ TwoNodeTruss::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vec
       default:
         std::cerr << "avgnum = " << avgnum << " is not a valid number\n";
     }
+    if(verboseFlag) {
+      std::cerr << "dStressdx(analytic) = \n" << std::endl;
+      dStdx.print();
+    }
+  }
+
+  if(senMethod == 1) { // automatic differentiation
+#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER >= 1300)
+    Eigen::Matrix<double,2,6> dStressdx;
+    Simo::Jacobian<double,TwoNodeTrussStressWRTNodalCoordinateSensitivity> dSdx(dconst,iconst);
+    dStressdx = dSdx(q, 0);
+#ifdef SENSITIVITY_DEBUG
+    if(verboseFlag) std::cerr << "dStressdx(AD) =\n" << dStressdx << std::endl;
+#endif
+    dStdx.copy(dStressdx.data());
+#else
+    std::cerr << "automatic differentiation must avoid intel12 compiler\n";
+    exit(-1);
+#endif
+  }
+
+  if(senMethod == 2) { // finite difference
+    TwoNodeTrussStressWRTNodalCoordinateSensitivity<double> foo(dconst,iconst);
+    Eigen::Matrix<double,6,1> qp, qm;
+    double h(1e-6);
+    Eigen::Matrix<double,2,1> S = foo(q,0);
+    Eigen::Matrix<double,2,6> dStressdx;
+    for(int i=0; i<6; ++i) {
+      qp = qm = q;      qp[i] = q[i] + h;     qm[i] = q[i] - h;   
+      Eigen::Matrix<double,2,1> Sp = foo(qp, 0);
+      Eigen::Matrix<double,2,1> Sm = foo(qm, 0);
+      dStressdx.col(i) = (Sp - Sm)/(2*h);
+    }
+    Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
+#ifdef SENSITIVITY_DEBUG
+    if(verboseFlag) std::cerr << "dStressdx(FD) =\n" << dStressdx.format(HeavyFmt) << std::endl;
+#endif
+    dStdx.copy(dStressdx.data());  
+  }
+
+
+
+
 }
 
 void
@@ -903,10 +982,14 @@ TwoNodeTruss::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
         double f2s2 = elForce[1]/stress[1];
    
         if(senMethod == 0 ||senMethod == 1) { // analytic
+#ifdef SENSITIVITY_DEBUG
           if(senMethod == 1) {
-            std::cerr << " ... Warning: automatic differentiation sensitivity of von Mises stress sensitivity wrt displacement is not implemented yet\n";
-            std::cerr << " ...          instead, analytic sensitivity will be applied\n"; 
+            if(verboseFlag) {
+              std::cerr << " ... Warning: automatic differentiation sensitivity of von Mises stress sensitivity wrt displacement is not implemented yet\n";
+              std::cerr << " ...          instead, analytic sensitivity will be applied\n"; 
+            }
           }
+#endif
           // replace automatic differentiation routine with analytic one
           dStdDisp[0][0] =  f1s1*dx;   dStdDisp[1][0] =  f1s1*dy;   dStdDisp[2][0] =  f1s1*dz;   
           dStdDisp[3][0] = -f1s1*dx;   dStdDisp[4][0] = -f1s1*dy;   dStdDisp[5][0] = -f1s1*dz; 

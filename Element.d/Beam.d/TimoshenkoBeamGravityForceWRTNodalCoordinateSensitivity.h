@@ -8,21 +8,30 @@
 // class template to facilitate computation of the sensitivities of gravity force w.r.t the nodal displacements
 
 template<typename Scalar>
-class TimoshenkoBeamGravityForceWRTNodalCoordinateSensitivity : public VectorValuedFunction<6,12,Scalar,13,1,double>
+class TimoshenkoBeamGravityForceWRTNodalCoordinateSensitivity : public VectorValuedFunction<6,12,Scalar,14,1,double>
 {
   public:
     BeamElementTemplate<Scalar> ele;
-    Scalar massPerNode; // material properties
-    Eigen::Array<Scalar,9,1> elemframe;
+    Scalar rho, A; // material properties
     Eigen::Array<Scalar,3,1> gravityAcceleration;
+    Eigen::Array<Scalar,9,1> elemframe;
     int gravflg;
 
   public:
-    TimoshenkoBeamGravityForceWRTNodalCoordinateSensitivity(const Eigen::Array<double,13,1>& sconst, const Eigen::Array<int,1,1>& iconst)
+    TimoshenkoBeamGravityForceWRTNodalCoordinateSensitivity(const Eigen::Array<double,14,1>& sconst, const Eigen::Array<int,1,1>& iconst)
     {
       for(int i=0; i<3; ++i) gravityAcceleration[i] = sconst[i];
-      for(int i=0; i<9; ++i) elemframe[i] = sconst[3+i];
-      massPerNode = sconst[12];
+      rho = sconst[3];
+      A = sconst[4];
+      elemframe[0] = sconst[5];
+      elemframe[1] = sconst[6];
+      elemframe[2] = sconst[7];
+      elemframe[3] = sconst[8];
+      elemframe[4] = sconst[9];
+      elemframe[5] = sconst[10];
+      elemframe[6] = sconst[11];
+      elemframe[7] = sconst[12];
+      elemframe[8] = sconst[13];
 
       gravflg = iconst[0];
     }
@@ -38,8 +47,9 @@ class TimoshenkoBeamGravityForceWRTNodalCoordinateSensitivity : public VectorVal
       globalz << q[2], q[5];
 
       Eigen::Matrix<Scalar,12,1> gravityForce;
-      ele.gForce(massPerNode, globalx.data(), globaly.data(), globalz.data(),
-                 gravityAcceleration.data(), elemframe.data(), gravityForce.data(), gravflg);
+      ele.buildFrameInTemplate(globalx.data(), globaly.data(), globalz.data(), elemframe.data());
+      ele.gForce(globalx.data(), globaly.data(), globalz.data(),
+                 gravityAcceleration.data(), elemframe.data(), rho, A, gravityForce.data(), gravflg);
 
       return gravityForce; 
     }

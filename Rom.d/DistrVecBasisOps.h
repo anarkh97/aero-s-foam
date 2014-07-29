@@ -152,12 +152,12 @@ renormalized_basis(const GenSubDOp<Scalar> &metric, const GenVecBasis<Scalar, Ge
 
 // Calculates the reduced stiffness matrix  K_red = Phi^T * K * Phi with Phi as the mass-normalized basis
 template <typename Scalar>
-void calculateReducedStiffness(const GenSubDOp<Scalar> &K, const GenVecBasis<Scalar, GenDistrVector> &basis, GenFullSquareMatrix<Scalar> &K_reduced){
+void calculateReducedStiffness(const GenSubDOp<Scalar> &K, const GenVecBasis<Scalar, GenDistrVector> &basis, GenFullSquareMatrix<Scalar> &K_reduced) {
   filePrint(stderr," ... Calculating reduced stiffness matrix ...\n");
-  //K^T * Phi
-  DistrVecBasis product;  //used as a buffer for intermediate steps
+  // K^T * Phi
+  DistrVecBasis product; // used as a buffer for intermediate steps
   transposeMult(K, basis, product);
-  //calculate transpose of product multiplied with basis  (K^T * Phi)^T * Phi = Phi^T * K * Phi
+  // calculate transpose of product multiplied with basis  (K^T * Phi)^T * Phi = Phi^T * K * Phi
   const int vecCount = product.vectorCount();
 
   GenFullSquareMatrix<Scalar> normalMatrix(vecCount);
@@ -176,7 +176,7 @@ MGSVectors(const GenVecBasis<Scalar, GenDistrVector> &basis) {
 
   int numVectors = basis.numVec();
 
-   for (int i = 0; i < numVectors; i++) {
+  for (int i = 0; i < numVectors; i++) {
     filePrint(stderr,"\r %5.2f%% complete", double(i)/double(numVectors)*100.);
 
     GenDistrVector<Scalar> v(basis.vectorInfo(),basis[i].data(),false);

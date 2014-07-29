@@ -90,7 +90,7 @@ Jacobian<double,Inertial6DofForceFunction>
     K.bottomRightCorner<3,3>() = -0.5*Fx + m*E*uddotx + Rref*(s2*J0 + s1*(Omegax*J0 - Px))*D;
   }
   else {
-    std::cerr << "whoops\n";
+    std::cerr << "Error: Jacobian<double,Inertial6DofForceFunction>::operator() is not implemented for Δψ != 0\n";
     //Eigen::Matrix3d T, C2;
     //tangential_transf(q, T);
     //directional_deriv2(q, F, C2);

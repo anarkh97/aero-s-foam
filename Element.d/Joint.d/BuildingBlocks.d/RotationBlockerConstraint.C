@@ -1,6 +1,5 @@
 #ifdef USE_EIGEN3
 #include <Element.d/Joint.d/BuildingBlocks.d/RotationBlockerConstraint.h>
-#include <Element.d/MpcElement.d/DotType1ConstraintElement.h>
 
 RotationBlockerConstraint::RotationBlockerConstraint(int* _nn, int _axis1, int _axis2)
  : DotType1ConstraintElement(_nn, _axis1, _axis2)

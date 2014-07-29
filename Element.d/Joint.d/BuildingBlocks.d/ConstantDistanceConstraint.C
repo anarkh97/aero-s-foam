@@ -1,6 +1,5 @@
 #ifdef USE_EIGEN3
 #include <Element.d/Joint.d/BuildingBlocks.d/ConstantDistanceConstraint.h>
-#include <Element.d/MpcElement.d/DistanceConstraintElement.h>
 
 ConstantDistanceConstraint::ConstantDistanceConstraint(int* _nn)
  : DistanceConstraintElement(_nn, 0.0, 0)

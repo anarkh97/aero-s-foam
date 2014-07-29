@@ -80,7 +80,7 @@ nncgp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::
     k++;
     while(true) {
       iter++;
-      if(y.head(k).minCoeff() < 0) { 
+      if(y.head(k).minCoeff() < 0) {
         downIt++;
         // compute maximum feasible step length (alpha) and corresponding index in active set (i)
         for(long int j=0; j<k; ++j) t[j] = (y[j] >= 0) ? std::numeric_limits<double>::max() : -x_[j]/(y[j]-x_[j]);

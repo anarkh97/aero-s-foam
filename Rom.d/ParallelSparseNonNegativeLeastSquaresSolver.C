@@ -12,6 +12,10 @@
 Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1>
 pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm, const long int n,
        double maxsze, double reltol, bool verbose, bool scaling);
+
+Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1>
+pgpfp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm, const long int n,
+       double maxsze, double reltol, bool verbose, bool scaling);
 #endif
 
 namespace Rom {
@@ -60,6 +64,26 @@ ParallelSparseNonNegativeLeastSquaresSolver::solve() {
         new (&A[i]) Eigen::Map<Eigen::MatrixXd>(&*sd_[i]->matrixBuffer(),sd_[i]->equationCount(),sd_[i]->unknownCount());
       }
       x = pnncgp(A, b, errorMagnitude_, unknownCount_, maxSizeRatio_, relativeTolerance_, verboseFlag_, scalingFlag_);
+      for(int i=0; i<nsub_; ++i) {
+        Eigen::Map<Eigen::VectorXd>(const_cast<double*>(sd_[i]->solutionBuffer()),sd_[i]->unknownCount()) = x[i];
+        A[i].~Map<Eigen::MatrixXd>();
+      }
+#else
+      std::cerr << "USE_EIGEN3 is not defined here in ParallelSparseNonNegativeLeastSquaresSolver::solve\n";
+      exit(-1);
+#endif
+    } break;
+
+     case 2 : { // Polytope Faces Pursuit
+#ifdef USE_EIGEN3
+      filePrint(stderr, " ... Using Parallel GPFP Solver    ...\n");
+      std::vector<Eigen::Map<Eigen::MatrixXd> > A(nsub_, Eigen::Map<Eigen::MatrixXd>(NULL,0,0));
+      Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1> x(nsub_);
+      Eigen::Map<Eigen::VectorXd> b(rhsBuffer_.array(),equationCount_);
+      for(int i=0; i<nsub_; ++i) {
+        new (&A[i]) Eigen::Map<Eigen::MatrixXd>(&*sd_[i]->matrixBuffer(),sd_[i]->equationCount(),sd_[i]->unknownCount());
+      }
+      x = pgpfp(A, b, errorMagnitude_, unknownCount_, maxSizeRatio_, relativeTolerance_, verboseFlag_, scalingFlag_);
       for(int i=0; i<nsub_; ++i) {
         Eigen::Map<Eigen::VectorXd>(const_cast<double*>(sd_[i]->solutionBuffer()),sd_[i]->unknownCount()) = x[i];
         A[i].~Map<Eigen::MatrixXd>();

@@ -175,7 +175,7 @@ struct AllSensitivities
     if(linearstaticWRTthick) for(int i=0; i<numThicknessGroups; ++i) linearstaticWRTthick[i]->setZero();
     if(linearstaticWRTshape) for(int i=0; i<numShapeVars; ++i) linearstaticWRTshape[i]->setZero();
     if(dispWRTthick) for(int i=0; i<numThicknessGroups; ++i) dispWRTthick[i]->setZero();
-    if(dispWRTshape) for(int i=0; i<numShapeGroups; ++i) dispWRTshape[i]->setZero();
+    if(dispWRTshape) for(int i=0; i<numShapeVars; ++i) dispWRTshape[i]->setZero();
   }
 #endif
 };

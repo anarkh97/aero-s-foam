@@ -79,8 +79,8 @@ pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const
   a.setZero();
   Array<MatrixXd,Dynamic,1> B(nsub), D(nsub), GD(nsub);
   for(int i=0; i<nsub; ++i) {
-    B[i] = MatrixXd::Zero(m,maxlocvec[i]);
-    D[i] = MatrixXd::Zero(maxlocvec[i],maxvec);
+    B[i]  = MatrixXd::Zero(m,maxlocvec[i]);
+    D[i]  = MatrixXd::Zero(maxlocvec[i],maxvec);
     GD[i] = MatrixXd::Zero(maxlocvec[i],maxvec);
   }
   Matrix<double,Dynamic,Dynamic,ColMajor> BD(m,maxvec);
@@ -93,11 +93,13 @@ pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const
   Array<long int,Dynamic,1> jk(nsub);
   ArrayXd gmax(nsub), ymin(nsub), alpha(nsub);
 
-  int iter = 0; // number of iterations
+  long int iter   = 0; // number of iterations
+  long int downIt = 0;
   while(true) {
 
     if(myrank == 0 && verbose) {
       std::cout << "Iteration = " << std::setw(9) << iter << "    "
+                << "Downdate = " << std::setw(9) << downIt << "   "
                 << "Active set size = " << std::setw(9) << k << "    "
                 << "Residual norm = " << std::setw(13) << std::scientific << std::uppercase << rnorm << "    "
                 << "Target = " << std::setw(13) << std::scientific << std::uppercase << abstol << std::endl;
@@ -116,10 +118,10 @@ pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const
       gmax[i] = (A[i].cols() > 0) ? h[i].maxCoeff(&jk[i]) : std::numeric_limits<double>::min();
     }
     int ik; // subdomain which has the max coeff.
-    s.val = gmax.maxCoeff(&ik);
-    s.rank = myrank;
+    s.val   = gmax.maxCoeff(&ik);
+    s.rank  = myrank;
     p.index = jk[ik];
-    p.sub = ik;
+    p.sub   = ik;
 #ifdef USE_MPI
     MPI_Allreduce(MPI_IN_PLACE, &s, 1, MPI_DOUBLE_INT, MPI_MAXLOC, mpicomm);
     MPI_Bcast(&p, 1, MPI_LONG_INT, s.rank, mpicomm);
@@ -185,6 +187,7 @@ pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const
       MPI_Allreduce(MPI_IN_PLACE, &minCoeff, 1, MPI_DOUBLE, MPI_MIN, mpicomm);
 #endif
       if(minCoeff < 0) {
+      downIt++;
         // compute maximum feasible step length (alpha) and corresponding index in active set jk[i] for each subdomain
 #if defined(_OPENMP)
   #pragma omp parallel for schedule(static,1)

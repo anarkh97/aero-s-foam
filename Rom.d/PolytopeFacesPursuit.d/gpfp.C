@@ -60,7 +60,7 @@ gpfp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
   
   // allocation
   VectorXd direction(maxvec);    // vector to contain conjugate direction at step k
-  VectorXd gradient(maxvec);     // vector to contain A*r^(k)
+  VectorXd gradient(maxvec);     // vector to contain A^T*r^(k)
   VectorXd y(maxvec);            // vector to contain solution
   VectorXd r(m);                 // residual
   VectorXd c(m);                 // vertex estimate
@@ -75,6 +75,8 @@ gpfp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
   MatrixXd B(m,maxvec);          // storage for selected columns of [A,-A]
   MatrixXd D(maxvec,maxvec);     // storage for conjugate directions
   MatrixXd GD(maxvec,maxvec);    // storage for D^T*G (see blumensath)
+
+  MatrixXd BD(m,maxvec); // Contrainer used to iteratives update last row of GD
 
   std::vector<long int> dualSet; // container for indices of dual set of [A,-A]
   std::vector<int>      setKey;  // container for archiving which set an element belongs to
@@ -95,6 +97,7 @@ gpfp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
   B.setZero(); 
   D.setZero(); 
   GD.setZero();
+  BD.setZero();
 
   long int k      = 0;          // number of selected elements
   long int iter   = 0;          // number of iterations
@@ -109,7 +112,7 @@ gpfp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
     // Output Iteration info
     if(verbose) {
       std::cout << "Iteration = " << std::setw(9) << iter << "    "
-                << "Downdate  = " << std::setw(9) << downIt << "   "
+                << "Downdate = " << std::setw(9) << downIt << "   "
                 << "Active set size = " << std::setw(9) << k << "    "
                 << "Residual norm = " << std::setw(13) << std::scientific << std::uppercase << rnorm << "    "
                 << "Target = " << std::setw(13) << std::scientific << std::uppercase << abstol << std::endl;
@@ -138,9 +141,9 @@ gpfp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
       double den = g2(col);
       if(num >= 0.) {
         g1(col) = num/(1.0-den);
-        g2(col) = 0.;
+        g2(col) = std::numeric_limits<double>::min();
       } else {
-        g1(col) = 0.;
+        g1(col) = std::numeric_limits<double>::min();
         g2(col) = (-1.0)*num/(1.0+den);
       }
     }
@@ -182,11 +185,14 @@ gpfp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
     gradient.head(numRowCol) = B.leftCols(numRowCol).transpose()*r;
 
     // update container for D^T*G, recall that it is upper triangular by construction
-    GD.col(curRowCol).head(numRowCol-1) = D.topLeftCorner(curRowCol,curRowCol).triangularView<Upper>().transpose()*B.leftCols(numRowCol-1).transpose()*B.col(curRowCol);
+    GD.col(curRowCol).head(numRowCol-1) = BD.leftCols(numRowCol-1).transpose()*B.col(curRowCol);
  
     // now update the direction vector with one gigantic line....
     direction.head(numRowCol) = gradient.head(numRowCol) - 
           D.topLeftCorner(numRowCol,curRowCol).triangularView<Upper>()*(DtGDinv.head(curRowCol).asDiagonal()*(GD.topLeftCorner(curRowCol,numRowCol)*gradient.head(numRowCol)));
+
+    // update the product B*D
+    BD.col(curRowCol) = B.leftCols(numRowCol)*direction.head(numRowCol);
  
     // update solution vector
     update  = B.leftCols(numRowCol)*direction.head(numRowCol);
@@ -227,8 +233,8 @@ gpfp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
       k--;
 
       // rebuild residual and vertex estimate
-      r = b - B.leftCols(krestart)*(D.topLeftCorner(krestart,krestart)*alpha.head(krestart));
-      c = B.leftCols(krestart)*D.topLeftCorner(krestart,krestart)*lambda.head(krestart).asDiagonal()*alpha.head(krestart);
+      r = b - BD.leftCols(krestart)*alpha.head(krestart);
+      c = BD.leftCols(krestart)*lambda.head(krestart).asDiagonal()*alpha.head(krestart);
 
       //re A-orthogonalize search directions starting from krestart
       //all previous direction are already A-orthogonal
@@ -244,12 +250,15 @@ gpfp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
         gradient.head(numRowCol) = B.leftCols(numRowCol).transpose()*r;
       
         // update container for D^T*G, recall that it is upper triangular by construction
-        GD.col(curRowCol).head(numRowCol-1) = D.topLeftCorner(curRowCol,curRowCol).triangularView<Upper>().transpose()*B.leftCols(numRowCol-1).transpose()*B.col(curRowCol);
+        GD.col(curRowCol).head(numRowCol-1) = BD.leftCols(numRowCol-1).transpose()*B.col(curRowCol);
       
         // now update the direction vector with one gigantic line....
         direction.head(numRowCol) = gradient.head(numRowCol) -
                       D.topLeftCorner(numRowCol,curRowCol).triangularView<Upper>()*(DtGDinv.head(curRowCol).asDiagonal()*(GD.topLeftCorner(curRowCol,numRowCol)*gradient.head(numRowCol)));
        
+        // update the produce B*D
+        BD.col(curRowCol) = B.leftCols(numRowCol)*direction.head(numRowCol);
+
         // update solution vector
         update  = B.leftCols(numRowCol)*direction.head(numRowCol);
         DtGDinv(curRowCol) = 1.0/(update.squaredNorm());
@@ -268,9 +277,9 @@ gpfp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
         // update direction container 
         D.col(curRowCol).head(numRowCol) = direction.head(numRowCol);
   
-       }//end re A-orthogonlization
+      }//end re A-orthogonlization
     
-       // re-compute the current solution vector
+        // re-compute the current solution vector
        y.setZero(); 
        y.head(k) +=  D.topLeftCorner(k,k)*alpha.head(k);
 

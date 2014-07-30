@@ -2971,6 +2971,7 @@ Domain::computeWeightWRTShapeVariableSensitivity(int sindex, AllSensitivities<do
      allSens.weightWRTshape->setZero();
      std::map<int, Attrib> &attributes = geoSource->getAttributes();
      for(int iele = 0; iele < numele; ++iele) {
+       if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isConstraintElement()) continue;
        int nnodes = packedEset[iele]->numNodes();
        Vector weightDerivative(3*nnodes);
        StructProp *prop = packedEset[iele]->getProperty();
@@ -3019,6 +3020,7 @@ Domain::computeWeightWRTthicknessSensitivity(int sindex, AllSensitivities<double
      allSens.weightWRTthick->setZero();
      std::map<int, Attrib> &attributes = geoSource->getAttributes();
      for(int iele = 0; iele < numele; ++iele) {
+       if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isConstraintElement()) continue;
        StructProp *prop = packedEset[iele]->getProperty();
        if(prop == 0) continue; // phantom element
 
@@ -3070,6 +3072,7 @@ Domain::computeStiffnessWRTthicknessSensitivity(int sindex, AllSensitivities<dou
        for(int aindex = 0; aindex < group[iparam].attributes.size(); ++aindex) {
          for(int eindex =0; eindex < atoe[group[iparam].attributes[aindex]].elems.size(); ++eindex) {
            int iele = atoe[group[iparam].attributes[aindex]].elems[eindex];
+           if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isConstraintElement()) continue;
            int DofsPerElement = packedEset[iele]->numDofs();
            FullSquareMatrix dStiffnessdThick(DofsPerElement);
            packedEset[iele]->getStiffnessThicknessSensitivity(nodes, dStiffnessdThick,1,senInfo[sindex].method);
@@ -3119,6 +3122,7 @@ Domain::computeStiffnessWRTShapeVariableSensitivity(int sindex, AllSensitivities
      } 
 
      for(int iele = 0; iele < numele; iele++) { 
+       if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isConstraintElement()) continue;
        int DofsPerElement = packedEset[iele]->numDofs();
        int nnodes = packedEset[iele]->numNodes();
        FullSquareMatrix *dStiffnessdCoord = new FullSquareMatrix[3*nnodes];
@@ -3294,6 +3298,7 @@ Domain::subtractGravityForceSensitivityWRTthickness(int sindex, AllSensitivities
       for(int aindex = 0; aindex < group[iparam].attributes.size(); ++aindex) {  
        for(int eindex = 0; eindex < atoe[group[iparam].attributes[aindex]].elems.size(); ++eindex) {
          int iele = atoe[group[iparam].attributes[aindex]].elems[eindex];
+         if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isConstraintElement()) continue;
          if(packedEset[iele]->getProperty() == 0) continue; // phantom element
          if(geoSource->consistentQFlag() && !(sinfo.isDynam() && packedEset[iele]->getMassType() == 0))
            gravflg = 2;
@@ -3332,6 +3337,7 @@ Domain::subtractGravityForceSensitivityWRTShapeVariable(int sindex, AllSensitivi
 //     for(int ishap=0; ishap<numShapeVars; ++ishap) allSens.linearstaticWRTshape[ishap]->setZero();
 
      for(int iele = 0; iele < numele; ++iele) {
+       if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isConstraintElement()) continue;
        int DofsPerElement = packedEset[iele]->numDofs();
        int NodesPerElement = elemToNode->num(iele);
        GenFullM<double> elementGravityForceSen(3*NodesPerElement,DofsPerElement,double(0.0));
@@ -3470,6 +3476,7 @@ Domain::computeStressVMWRTthicknessSensitivity(int sindex,
       for(int aindex = 0; aindex < group[iparam].attributes.size(); ++aindex) {  
        for(int eindex = 0; eindex < atoe[group[iparam].attributes[aindex]].elems.size(); ++eindex) {
          int iele = atoe[group[iparam].attributes[aindex]].elems[eindex];
+         if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isConstraintElement()) continue;
          int NodesPerElement = elemToNode->num(iele);
          GenVector<double> dStressdThick(NodesPerElement);
          GenVector<double> weight(NodesPerElement,0.0);
@@ -3535,6 +3542,7 @@ Domain::computeStressVMWRTdisplacementSensitivity(int sindex,
      if(elDisp == 0) elDisp = new Vector(maxNumDOFs,0.0);
      int avgnum = 1; //TODO: It is hardcoded to be 1, which corresponds to NODALFULL. It needs to be fixed.
      for(int iele = 0; iele < numele; iele++) { 
+       if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isConstraintElement()) continue;
        int NodesPerElement = elemToNode->num(iele);
        int DofsPerElement = packedEset[iele]->numDofs();
        GenFullM<double> dStressdDisp(DofsPerElement,NodesPerElement,double(0.0));
@@ -3597,6 +3605,7 @@ Domain::computeStressVMWRTShapeVariableSensitivity(int sindex,
      if(elDisp == 0) elDisp = new Vector(maxNumDOFs,0.0);
      int avgnum = 1; //TODO: It is hardcoded to be 1, which corresponds to NODALFULL. It needs to be fixed.
      for(int iele = 0; iele < numele; iele++) { 
+       if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isConstraintElement()) continue;
        int NodesPerElement = elemToNode->num(iele);
        int DofsPerElement = packedEset[iele]->numDofs();
        GenFullM<double> dStressdCoord(3*NodesPerElement,NodesPerElement,double(0.0));

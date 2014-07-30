@@ -654,12 +654,12 @@ EigenSolver< EigOps, VecType, VecSet,
    Eigen::MatrixXd Qupdated = Eigen::MatrixXd(Q).block(0,0,probDesc->solVecInfo(),totalEig);
 
    Eigen::MatrixXd Reigen = (Qupdated.transpose()*Xeigen).block(0,0,totalEig,totalEig);
-
+/*
    Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0);
    std::cerr << Reigen.format(HeavyFmt) << std::endl;
    std::cerr << Xeigen.rows() << "x" << Xeigen.cols() << std::endl;
    std::cerr << Reigen.rows() << "x" << Reigen.cols() << std::endl;
-
+*/
    // ... Output results
    this->postProcessor->eigenQROutput(Xeigen,Qupdated,Reigen);
 #else

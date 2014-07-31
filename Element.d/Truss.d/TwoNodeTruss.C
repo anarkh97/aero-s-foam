@@ -723,10 +723,10 @@ void
 TwoNodeTruss::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
                                                     int senMethod, double *ndTemps, int avgnum, double ylayer, double zlayer)
 { 
+#ifdef USE_EIGEN3
    using std::sqrt;
 
    weight = 1;
-
    // scalar parameters
    Eigen::Array<double,11,1> dconst;
 
@@ -882,10 +882,7 @@ TwoNodeTruss::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vec
 #endif
     dStdx.copy(dStressdx.data());  
   }
-
-
-
-
+#endif
 }
 
 void

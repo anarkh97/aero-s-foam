@@ -25,10 +25,8 @@ struct long_int {
   int sub;
 };
 
-namespace std {
-  bool operator== (const long_int& lhs, const long_int& rhs)
-  { return lhs.index==rhs.index && lhs.sub==rhs.sub; }
-};
+bool operator== (const long_int& lhs, const long_int& rhs)
+{ return lhs.index==rhs.index && lhs.sub==rhs.sub; }
 
 // Parallel implementation of Non-negative Conjugate Gradient Pursuit either MPI, OpenMP or both.
 // This is a non-negative constrained variant of Conjugate Gradient Pursuit, and generates identical iterates to

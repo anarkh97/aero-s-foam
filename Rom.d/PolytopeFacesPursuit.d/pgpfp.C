@@ -25,9 +25,7 @@ struct long_int {
   int sub;
 };
 
-namespace std {
-  bool operator== (const long_int& lhs, const long_int& rhs);
-};
+bool operator== (const long_int& lhs, const long_int& rhs);
 
 // AUTHOR: Todd Chapman, Stanford University 2014
 // This function solves the Compressed Sensing problem

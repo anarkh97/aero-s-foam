@@ -76,7 +76,7 @@ ParallelSparseNonNegativeLeastSquaresSolver::solve() {
 
      case 2 : { // Polytope Faces Pursuit
 #ifdef USE_EIGEN3
-      filePrint(stderr, " ... Using Parallel GPFP Solver    ...\n");
+      filePrint(stderr, " ... Using Parallel GPFP Solver     ...\n");
       std::vector<Eigen::Map<Eigen::MatrixXd> > A(nsub_, Eigen::Map<Eigen::MatrixXd>(NULL,0,0));
       Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1> x(nsub_);
       Eigen::Map<Eigen::VectorXd> b(rhsBuffer_.array(),equationCount_);

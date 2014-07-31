@@ -28,8 +28,8 @@
 // and   s_i = x_i < 0 for i = N+1:2*N
 //
 // The solution framework is known as Basis Pursuit and the algorithm is called Gradient Polytope 
-// Faces Pursuit. This is a paraticular implementation of PFP which uses the Conjugate Gradient method to 
-// solve a system of equations at each iteration who's dimensionality changes from one iteration to the 
+// Faces Pursuit. This is a particular implementation of PFP which uses the Conjugate Gradient method to 
+// solve a system of equations at each iteration whose dimensionality changes from one iteration to the 
 // next, thus only matrix vector products are required and the scheme is easily parallelizable.
 // This algorithm produces identical residuals to that of the standard Polytope Faces Pursuit
 //
@@ -37,7 +37,7 @@
 // 1. Plumbley, M & Gretsistas, I. "Gradient Polytope Faces Pursuit for Large Sparse Recovery Problems" ICASSP
 // 2. Blumensath, T & Davies, M. "Gradient Pursuits" IEEE
 //
-// AURGUMENTS:
+// ARGUMENTS:
 // A       = where A*x= b
 // b       = target vector 
 // rnorm   = residual norm 

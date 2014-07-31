@@ -116,7 +116,7 @@ SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::solve() {
  
     case 2 : { // Gradient Polytope Faces Pursuit Pursuit
 #ifdef USE_EIGEN3
-      fprintf(stderr, " ... Using GPFP Solver             ...\n");
+      fprintf(stderr, " ... Using GPFP Solver              ...\n");
       Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::ColMajor> > A(matrixBuffer_.data(),equationCount_,unknownCount_);
       Eigen::Map<Eigen::VectorXd> x(solutionBuffer_.array(),unknownCount_);
       Eigen::Map<Eigen::VectorXd> b(rhsBuffer_.array(),equationCount_);

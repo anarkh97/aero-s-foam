@@ -258,7 +258,7 @@ pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const
 
           z.head(k) = (DtGDinv.head(k).asDiagonal()*z.head(k)).eval();
 #if defined(_OPENMP)
-  #pragma omp parallel for schedule(static,1)
+#pragma omp parallel for schedule(static,1)
 #endif
           for(int i=0; i<nsub; ++i) {
             Block<MatrixXd,Dynamic,1,true> d = D[i].col(k);

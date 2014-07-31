@@ -249,7 +249,7 @@ pgpfp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const 
 
     // add column to B and update GD, setkey and local dualSet
     if(s.rank == myrank) {
-      B[ik].col(l[ik]) = S[ik][jk[ik]]*Set*A[ik].col(jk[ik]);
+      B[ik].col(l[ik]) = S[ik][jk[ik]]*double(Set)*A[ik].col(jk[ik]);
       GD[ik].row(l[ik]).head(k) = B[ik].col(l[ik]).transpose()*BD.leftCols(k);
       dualSet[ik].push_back(jk[ik]);
       setKey[ik].push_back(Set);
@@ -306,27 +306,24 @@ pgpfp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const 
         ymin[i] = (l[i] > 0) ? y[i].head(l[i]).minCoeff(&jk[i]) : std::numeric_limits<double>::max();
       }
       int ik;
-      double minCoeff = ymin.minCoeff(&ik);
+      s.val  = ymin.minCoeff(&ik);
+      s.rank = myrank;
 #ifdef USE_MPI
-      MPI_Allreduce(MPI_IN_PLACE, &minCoeff, 1, MPI_DOUBLE, MPI_MIN, mpicomm);
+      MPI_Allreduce(MPI_IN_PLACE, &s, 1, MPI_DOUBLE_INT, MPI_MINLOC, mpicomm);
 #endif
 
-      if(minCoeff < 0) {
+      if(s.val < 0) {
         downIt++;
-        s.val   = minCoeff; 
-        s.rank  = myrank;
-#ifdef USE_MPI
-        MPI_Allreduce(MPI_IN_PLACE, &s, 1, MPI_DOUBLE_INT, MPI_MINLOC, mpicomm);
-#endif
+
         if(s.rank == myrank) {
           p.index = dualSet[ik][jk[ik]];
           p.sub = ik;
           std::vector<long int>::iterator pos1 = dualSet[ik].begin() + jk[ik];
-          std::vector<int>::iterator pos2      = setKey[ik].begin()  + jk[ik];
+          std::vector<int>::iterator      pos2 = setKey[ik].begin()  + jk[ik];
           dualSet[ik].erase(pos1);
           setKey[ik].erase(pos2);
           y[ik][l[ik]-1] = 0;
-          //std::cout << "removing index " << p.index << " from subdomain " << ik << " on process with rank " << myrank << std::endl;
+//          std::cout << "removing index " << p.index << " from subdomain " << ik << " on process with rank " << myrank << std::endl;
         }
  
 #ifdef USE_MPI
@@ -357,6 +354,9 @@ pgpfp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const 
         for(int i=0; i<nsub; ++i) {
           g1[i].head(l[i]) = B[i].leftCols(l[i]).transpose()*r;
         }
+ 
+        double num = 0.;
+        double den = 0.;
         for(std::list<std::pair<int,long_int> >::iterator it = fol; it != gdualSet.end(); ++it) {
           if(it->first == myrank) {
             int i = it->second.sub;
@@ -365,13 +365,22 @@ pgpfp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const 
               if(it->second.index == dualSet[i][slot])
                 break;
             }
-            B[i].col(l[i]) = S[i][it->second.index]*double(setKey[i][slot])*A[i].col(it->second.index);// TODO wtf do i do heere?
-            lambda[k] = (1.0-B[i].col(l[i]).dot(c))/(B[i].col(l[i]).dot(r));
-            g1[i][l[i]] = B[i].col(l[i]).transpose()*r;
+            B[i].col(l[i]) = S[i][it->second.index]*double(setKey[i][slot])*A[i].col(it->second.index);
+            g1[i][l[i]] = B[i].col(l[i]).dot(r);
+            den = g1[i][l[i]];
+            num = B[i].col(l[i]).dot(c);
             // update GD due to extra column added to B (note: B.col(i)*D.row(i).head(k) = 0, so BD does not need to be updated)
             GD[i].row(l[i]).head(k) = B[i].col(l[i]).transpose()*BD.leftCols(k);
             l[i]++;
           }
+
+#ifdef USE_MPI
+          MPI_Bcast(&num, 1, MPI_DOUBLE, it->first, mpicomm);
+          MPI_Bcast(&den, 1, MPI_DOUBLE, it->first, mpicomm);
+#endif
+
+          lambda[k] = (1.0-num)/den; 
+//           std::cout << "num = " << num << " den = " << den << " rank = " << myrank << " lambda = " << lambda.head(k).transpose() << std::endl;
 
 #if defined(_OPENMP)
   #pragma omp parallel for schedule(static,1)
@@ -395,7 +404,7 @@ pgpfp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const 
           }
           Block<MatrixXd,Dynamic,1,true> w = BD.col(k) = w_loc.rowwise().sum();
 #ifdef USE_MPI
-          MPI_Allreduce(MPI_IN_PLACE, c.data(), m, MPI_DOUBLE, MPI_SUM, mpicomm);
+          MPI_Allreduce(MPI_IN_PLACE, w.data(), m, MPI_DOUBLE, MPI_SUM, mpicomm);
 #endif
 
           DtGDinv[k] = 1/w.squaredNorm();

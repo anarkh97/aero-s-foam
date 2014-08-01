@@ -142,6 +142,19 @@ struct AllSensitivities
   double weight;           // total weight of the structure
   Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *weightWRTthick;                     // derivatives of weight wrt thickness
   Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *weightWRTshape;                     // derivatives of weight wrt shape variables
+  GenSparseMatrix<Scalar> *vonMisesWRTthickSparse;                                    // derivatives of von Mises stress wrt thickness
+  GenSparseMatrix<Scalar> *vonMisesWRTdispSparse;       // derivatives of von Mises stress wrt displacement
+  GenSparseMatrix<Scalar> *vonMisesWRTshapeSparse;      // derivatives of von Mises stress wrt shape varibales
+  GenSparseMatrix<Scalar> **stiffnessWRTthickSparse;    // derivatives of stiffness wrt thickness 
+  GenSparseMatrix<Scalar> **stiffnessWRTshapeSparse;    // derivatives of stiffness wrt shape variables 
+  GenSparseMatrix<Scalar> **dKucdthickSparse;           // derivatives of constrained stiffness wrt thickness 
+  GenSparseMatrix<Scalar> **dKucdshapeSparse;           // derivatives of constrained stiffness wrt shape variables 
+  GenSparseMatrix<Scalar> *stressWeightSparse;          // weight used to average stress sensitivity
+  GenSparseMatrix<Scalar> **linearstaticWRTthickSparse; // derivative of linear static structural formulation wrt thickness
+  GenSparseMatrix<Scalar> **linearstaticWRTshapeSparse; // derivative of linear static structural formulation wrt shape variables
+  GenSparseMatrix<Scalar> **dispWRTthickSparse;         // derivative of displacement wrt thickness
+  GenSparseMatrix<Scalar> **dispWRTshapeSparse;         // derivative of displacement wrt shape variables
+
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *vonMisesWRTthick;      // derivatives of von Mises stress wrt thickness
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *vonMisesWRTdisp;       // derivatives of von Mises stress wrt displacement
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *vonMisesWRTshape;      // derivatives of von Mises stress wrt shape varibales
@@ -155,27 +168,31 @@ struct AllSensitivities
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **dispWRTthick;         // derivative of displacement wrt thickness
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **dispWRTshape;         // derivative of displacement wrt shape variables
   // Constructor
-  AllSensitivities() { weight = 0;                weightWRTshape = 0;
-                       weightWRTthick = 0;        vonMisesWRTthick = 0;      dKucdthick = 0;            vonMisesWRTshape = 0; 
+  AllSensitivities() { weight = 0;                weightWRTshape = 0;        weightWRTthick = 0;        
+                       vonMisesWRTthickSparse = 0;      dKucdthickSparse = 0;            vonMisesWRTshapeSparse = 0; 
+                       vonMisesWRTdispSparse = 0;       stressWeightSparse = 0;          stiffnessWRTthickSparse = 0;     dKucdshapeSparse = 0; 
+                       linearstaticWRTthickSparse = 0;  linearstaticWRTshapeSparse = 0;  dispWRTthickSparse = 0;          dispWRTshapeSparse = 0;
+                       stiffnessWRTshapeSparse = 0; 
+                       vonMisesWRTthick = 0;      dKucdthick = 0;            vonMisesWRTshape = 0; 
                        vonMisesWRTdisp = 0;       stressWeight = 0;          stiffnessWRTthick = 0;     dKucdshape = 0; 
                        linearstaticWRTthick = 0;  linearstaticWRTshape = 0;  dispWRTthick = 0;          dispWRTshape = 0;
                        stiffnessWRTshape = 0; }
 
   void zero(int numShapeVars=0, int numThicknessGroups=0) {
-    if(weightWRTthick) weightWRTthick->setZero();
+    if(weightWRTthick) weightWRTthick->setZero();      
     if(weightWRTshape) weightWRTshape->setZero();
-    if(vonMisesWRTthick) vonMisesWRTthick->setZero();
-    if(vonMisesWRTdisp) vonMisesWRTdisp->setZero();
-    if(vonMisesWRTshape) vonMisesWRTshape->setZero();
-    if(stressWeight) stressWeight->setZero();
-    if(stiffnessWRTthick) for(int i=0; i<numThicknessGroups; ++i) stiffnessWRTthick[i]->setZero();
-    if(stiffnessWRTshape) for(int i=0; i<numShapeVars; ++i) stiffnessWRTshape[i]->setZero();
-    if(dKucdthick) for(int i=0; i<numThicknessGroups; ++i) dKucdthick[i]->setZero();
-    if(dKucdshape) for(int i=0; i<numShapeVars; ++i) dKucdshape[i]->setZero();
-    if(linearstaticWRTthick) for(int i=0; i<numThicknessGroups; ++i) linearstaticWRTthick[i]->setZero();
-    if(linearstaticWRTshape) for(int i=0; i<numShapeVars; ++i) linearstaticWRTshape[i]->setZero();
-    if(dispWRTthick) for(int i=0; i<numThicknessGroups; ++i) dispWRTthick[i]->setZero();
-    if(dispWRTshape) for(int i=0; i<numShapeVars; ++i) dispWRTshape[i]->setZero();
+    if(vonMisesWRTthick) vonMisesWRTthick->setZero();   vonMisesWRTthickSparse->zeroAll();
+    if(vonMisesWRTdisp) vonMisesWRTdisp->setZero();     vonMisesWRTdispSparse->zeroAll();
+    if(vonMisesWRTshape) vonMisesWRTshape->setZero();   vonMisesWRTshapeSparse->zeroAll();
+    if(stressWeight) stressWeight->setZero();           stressWeightSparse->zeroAll();
+    if(stiffnessWRTthick) for(int i=0; i<numThicknessGroups; ++i) { stiffnessWRTthick[i]->setZero(); stiffnessWRTthickSparse[i]->zeroAll();  }
+    if(stiffnessWRTshape) for(int i=0; i<numShapeVars; ++i) { stiffnessWRTshape[i]->setZero();       stiffnessWRTshapeSparse[i]->zeroAll();   }
+    if(dKucdthick) for(int i=0; i<numThicknessGroups; ++i) { dKucdthick[i]->setZero();               dKucdthickSparse[i]->zeroAll();   }
+    if(dKucdshape) for(int i=0; i<numShapeVars; ++i) { dKucdshape[i]->setZero();                     dKucdshapeSparse[i]->zeroAll();  }
+    if(linearstaticWRTthick) for(int i=0; i<numThicknessGroups; ++i) { linearstaticWRTthick[i]->setZero();  linearstaticWRTthickSparse[i]->zeroAll();  }
+    if(linearstaticWRTshape) for(int i=0; i<numShapeVars; ++i) { linearstaticWRTshape[i]->setZero(); linearstaticWRTshapeSparse[i]->zeroAll();   }
+    if(dispWRTthick) for(int i=0; i<numThicknessGroups; ++i) { dispWRTthick[i]->setZero();           dispWRTthickSparse[i]->zeroAll();  }
+    if(dispWRTshape) for(int i=0; i<numShapeVars; ++i) { dispWRTshape[i]->setZero();                 dispWRTshapeSparse[i]->zeroAll();  }
   }
 #endif
 };

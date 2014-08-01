@@ -17,6 +17,10 @@
 #include <Mortar.d/FaceElement.d/SurfaceEntity.h>
 #include <Driver.d/GeoSource.h>
 #include <Utils.d/DistHelper.h>
+#ifdef USE_EIGEN3
+#include <Math.d/EiSparseMatrix.h>
+#endif
+#include <Math.d/CuCSparse.h>
 
 #include <list>
 
@@ -3112,13 +3116,17 @@ Domain::computeStiffnessWRTShapeVariableSensitivity(int sindex, AllSensitivities
 {
 #ifdef USE_EIGEN3
      // ... COMPUTE SENSITIVITY OF STIFFNESS MATRIX WRT NODAL COORDINATES
-     allSens.stiffnessWRTshape = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[numShapeVars];
+//     allSens.stiffnessWRTshape = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[numShapeVars];
+     allSens.stiffnessWRTshapeSparse = new GenSparseMatrix<double>*[numShapeVars];
      allSens.dKucdshape = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[numShapeVars];
+     allSens.dKucdshapeSparse = new GenSparseMatrix<double>*[numShapeVars]; 
      for(int g=0; g<numShapeVars; ++g) {
-       allSens.stiffnessWRTshape[g] = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numUncon(),numUncon()); 
-       allSens.stiffnessWRTshape[g]->setZero();
+//       allSens.stiffnessWRTshape[g] = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numUncon(),numUncon()); 
+//       allSens.stiffnessWRTshape[g]->setZero();
+       allSens.stiffnessWRTshapeSparse[g] = constructEiSparseMatrix<double, Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> >(c_dsa, nodeToNode, false);
        allSens.dKucdshape[g] = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(numUncon(),numDirichlet); 
        allSens.dKucdshape[g]->setZero();
+       allSens.dKucdshapeSparse[g] = constructCuCSparse<double>(); 
      } 
 
      for(int iele = 0; iele < numele; iele++) { 
@@ -3143,8 +3151,8 @@ Domain::computeStiffnessWRTShapeVariableSensitivity(int sindex, AllSensitivities
              int dofj = unconstrNum[dofs[j]];
              if(dofs[j] < 0 || dofj < 0) continue;  // Skip undefined/constrained dofs
              for(int xyz = 0; xyz < 3; ++xyz) 
-               for(int isen = 0; isen < numShapeVars; ++isen) { 
-                 (*allSens.stiffnessWRTshape[isen])(dofk, dofj) += dStiffnessdCoord[3*i+xyz][k][j]*shapeSenData.sensitivities[isen][inode][xyz]; 
+               for(int isen = 0; isen < numShapeVars; ++isen) {
+                 dynamic_cast<GenEiSparseMatrix<double, Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> > *>(allSens.stiffnessWRTshapeSparse[isen])->add(dofk,dofj,dStiffnessdCoord[3*i+xyz][k][j]*shapeSenData.sensitivities[isen][inode][xyz]);
                }
            }
            for(int j = 0; j < DofsPerElement; ++j) {
@@ -3161,7 +3169,10 @@ Domain::computeStiffnessWRTShapeVariableSensitivity(int sindex, AllSensitivities
      }
 #ifdef SENSITIVITY_DEBUG
      Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
-     if(verboseFlag) std::cerr << "print stiffnessWRTshape wrt first shape variable\n" << (*allSens.stiffnessWRTshape[0]) << std::endl;
+     if(verboseFlag) {
+       std::cerr << "print stiffnessWRTshape wrt first shape variable\n";
+       (*allSens.stiffnessWRTshapeSparse[0]).print();
+     }
      if(verboseFlag) std::cerr << "print dKucdshape wrt first shape variable\n" << (*allSens.dKucdshape[0]) << std::endl;
 #endif
 #endif
@@ -3260,8 +3271,9 @@ Domain::computeLinearStaticWRTShapeVariableSensitivity(int sindex,
        Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > disp(sol.data(),numUncon(),1);
 //       Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
 //       if(verboseFlag) std::cerr << "print disp\n" << disp.format(HeavyFmt) << std::endl;
-       if(allSens.stiffnessWRTshape) {
-         *allSens.linearstaticWRTshape[ishape] = (*allSens.stiffnessWRTshape[ishape]) * disp;
+       if(allSens.stiffnessWRTshapeSparse) {
+         Eigen::MappedSparseMatrix<double, Eigen::ColMajor, int> M = dynamic_cast<GenEiSparseMatrix<double, Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> > *>(allSens.stiffnessWRTshapeSparse[ishape])->getEigenSparse();
+         *allSens.linearstaticWRTshape[ishape] = M * disp;
        } else {
          std::cerr << "ERROR! stiffnessWRTshape is not defined yet\n";
          exit(-1);
@@ -3696,7 +3708,7 @@ Domain::makePostSensitivities(GenSolver<double> *sysSolver,
    case SensitivityInfo::StressVMWRTshape:
    {
      if(!allSens.vonMisesWRTdisp) computeStressVMWRTdisplacementSensitivity(sindex,allSens,sol,bcx);
-     if(!allSens.stiffnessWRTshape) computeStiffnessWRTShapeVariableSensitivity(sindex, allSens); 
+     if(!allSens.stiffnessWRTshapeSparse) computeStiffnessWRTShapeVariableSensitivity(sindex, allSens); 
      if(!allSens.linearstaticWRTshape) computeLinearStaticWRTShapeVariableSensitivity(sindex,allSens,sol);
      if(!isDynam) if(!allSens.dispWRTshape) computeDisplacementWRTShapeVariableSensitivity(sindex, sysSolver, K, spm, allSens);
      computeStressVMWRTShapeVariableSensitivity(sindex,allSens,sol,bcx,isDynam);

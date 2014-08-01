@@ -2583,8 +2583,8 @@ Domain::transformMatrix(FullSquareMatrix &kel, int iele)
 
   if(packedEset[iele]->isMpcElement()) {
     LMPCons *lmpcons = dynamic_cast<LMPCons*>(packedEset[iele]);
-    if(lmpcons->getSource() == mpc::Lmpc || lmpcons->getSource() == mpc::NodalContact ||
-       lmpcons->getSource() == mpc::TiedSurfaces) return;
+    if(lmpcons && (lmpcons->getSource() == mpc::Lmpc || lmpcons->getSource() == mpc::NodalContact ||
+       lmpcons->getSource() == mpc::TiedSurfaces)) return;
   }
 
   // TODO: check for thermal/acoustic 
@@ -2649,8 +2649,8 @@ Domain::transformMatrixInv(FullSquareMatrix &kel, int iele)
 
   if(packedEset[iele]->isMpcElement()) {
     LMPCons *lmpcons = dynamic_cast<LMPCons*>(packedEset[iele]); 
-    if(lmpcons->getSource() == mpc::Lmpc || lmpcons->getSource() == mpc::NodalContact ||
-       lmpcons->getSource() == mpc::TiedSurfaces) return;
+    if(lmpcons && (lmpcons->getSource() == mpc::Lmpc || lmpcons->getSource() == mpc::NodalContact ||
+       lmpcons->getSource() == mpc::TiedSurfaces)) return;
   }
 
   // TODO: check for thermal/acoustic 
@@ -2715,8 +2715,8 @@ Domain::transformVector(Vector &vec, int iele)
 
   if(packedEset[iele]->isMpcElement()) {
     LMPCons *lmpcons = dynamic_cast<LMPCons*>(packedEset[iele]); 
-    if(lmpcons->getSource() == mpc::Lmpc || lmpcons->getSource() == mpc::NodalContact ||
-       lmpcons->getSource() == mpc::TiedSurfaces) return;
+    if(lmpcons && (lmpcons->getSource() == mpc::Lmpc || lmpcons->getSource() == mpc::NodalContact ||
+       lmpcons->getSource() == mpc::TiedSurfaces)) return;
   }
 
   int numNodes = packedEset[iele]->numNodes()-packedEset[iele]->numInternalNodes();
@@ -2788,8 +2788,8 @@ Domain::transformVectorInv(Vector &vec, int iele)
 
   if(packedEset[iele]->isMpcElement()) {
     LMPCons *lmpcons = dynamic_cast<LMPCons*>(packedEset[iele]); 
-    if(lmpcons->getSource() == mpc::Lmpc || lmpcons->getSource() == mpc::NodalContact ||
-       lmpcons->getSource() == mpc::TiedSurfaces) return;
+    if(lmpcons && (lmpcons->getSource() == mpc::Lmpc || lmpcons->getSource() == mpc::NodalContact ||
+       lmpcons->getSource() == mpc::TiedSurfaces)) return;
   }
 
   int numNodes = packedEset[iele]->numNodes()-packedEset[iele]->numInternalNodes();

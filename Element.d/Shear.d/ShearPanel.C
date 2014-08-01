@@ -186,7 +186,7 @@ ShearPanel::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vecto
     }
 
     if(senMethod == 1) { // automatic differentiation
-#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER >= 1300)
+#ifndef AEROS_NO_AD
       Simo::Jacobian<double,ShearPanelStressWRTDisplacementSensitivity> dSdu(dconst,iconst);
       dStressdDisp = dSdu(q, 0);
       dStdDisp.copy(dStressdDisp.data());
@@ -194,8 +194,7 @@ ShearPanel::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vecto
       if(verboseFlag) std::cerr << "dStressdDisp(AD) =\n" << dStressdDisp << std::endl;
 #endif
 #else
-    std::cerr << "automatic differentiation must avoid intel12 compiler\n";
-    exit(-1);
+    std::cerr << " ... Error: AEROS_NO_AD is defined in ShearPanel::getVonMisesDisplacementSensitivity\n";    exit(-1);
 #endif
     }
 

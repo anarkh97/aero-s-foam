@@ -1796,8 +1796,8 @@ Domain::readInShapeDerivatives(char* shapeDerFileName)
 
  char str[80];
  // Read in number of shape variables and number of nodes
- fscanf(f,"%s%s%s%s%s%s",str,str,str,str,str,str);
- int count = fscanf(f, "%d\n", &shapeSenData.numNodes);
+ int count = fscanf(f,"%s%s%s%s%s%s",str,str,str,str,str,str);
+ count = fscanf(f, "%d\n", &shapeSenData.numNodes);
  shapeSenData.numVars = getNumShapeVars();
 
  typedef double (*T3)[3];

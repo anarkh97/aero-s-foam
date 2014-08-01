@@ -125,7 +125,9 @@ FelippaShell::getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
   stress[1] = elStress[1][strInd-offset];
   stress[2] = elStress[2][strInd-offset];
 
+#ifdef SENSITIVITY_DEBUG
   if(verboseFlag) std::cerr << "von mises stress is " << stress[0] << " " << stress[1] << " " << stress[2] << std::endl;
+#endif
 }
 
 void
@@ -244,15 +246,14 @@ FelippaShell::getGravityForceSensitivityWRTNodalCoordinate(CoordSet& cs, double 
   }
 
   if(senMethod == 1) { // automatic differentiation
-#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER < 1200 || __INTEL_COMPILER > 1210)
+#ifndef AEROS_NO_AD
     Simo::Jacobian<double,ShellElementGravityForceWRTNodalCoordinateSensitivity> dGdx(dconst,iconst);
     dGravityForcedx = dGdx(q, 0);
 #ifdef SENSITIVITY_DEBUG
     if(verboseFlag) std::cerr << "dGravityForcedx(AD) =\n" << dGravityForcedx << std::endl;
 #endif
 #else
-    std::cerr << "automatic differentiation must avoid intel12 compiler\n";
-    exit(-1);
+  std::cerr << " ... Error: AEROS_NO_AD is defined in FelippaShell::getGravityForceSensitivityWRTNodalCoordinate\n";  exit(-1);
 #endif
   } // senMethod == 1
 
@@ -408,7 +409,7 @@ FelippaShell::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravi
   } // senMethod == 0
 
   if(senMethod == 1) { // automatic differentiation
-#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER >= 1300)
+#ifndef AEROS_NO_AD
     Eigen::Array<double,60,1> dconst;
     dconst.setZero();
     dconst.segment<3>(0) = Eigen::Map<Eigen::Matrix<double,3,1> >(gravityAcceleration).segment(0,3);
@@ -438,8 +439,7 @@ FelippaShell::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravi
 #endif
     dGfdthick.copy(dGravityForcedThick.data());
 #else
-    std::cerr << "automatic differentiation must avoid intel12 compiler\n";
-    exit(-1);
+  std::cerr << " ... Error: AEROS_NO_AD is defined in FelippaShell::getGravityForceSensitivityWRTthickness\n"; exit(-1);
 #endif
   } // senMethod == 1
 
@@ -642,6 +642,7 @@ FelippaShell::weightDerivativeWRTNodalCoordinate(Vector &dwdx, CoordSet& cs, dou
  }
 
  if(senMethod == 1) { // automatic differentiation
+#ifndef AEROS_NO_AD
     Simo::Jacobian<double, ShellElementMassWRTNodalCoordinateSensitivity> dWdx(dconst,iconst); 
     dWeightdx = dWdx(q, 0);
     double gravAccNorm = sqrt(gravityAcceleration[0]*gravityAcceleration[0] + 
@@ -653,6 +654,9 @@ FelippaShell::weightDerivativeWRTNodalCoordinate(Vector &dwdx, CoordSet& cs, dou
     if(verboseFlag) {
       std::cerr << "dWeightdx(AD) = \n"  << dWeightdx.format(HeavyFmt) << std::endl;
     }
+#endif
+#else
+ std::cerr << " ... Error: AEROS_NO_AD is defined in FelippaShell::weightDerivativeWRTNodalCoordinate\n"; exit(-1);
 #endif
  }
 
@@ -729,7 +733,7 @@ FelippaShell::setCompositeData(int _type, int nlays, double *lData,
   switch(type) {
 
     case 1 :
-      nmat = gpmat = new ShellMaterialType1<double>(coefs, frame, prop->rho, prop->eh, prop->Ta);
+      nmat = gpmat = new ShellMaterialType1<double>(coefs, frame, prop->rho, prop->eh, prop->Ta, prop->W);
       break;
 
     case 2 :
@@ -818,7 +822,7 @@ FelippaShell::setCompositeData2(int _type, int nlays, double *lData,
   switch(type) {
 
     case 1 :
-      nmat = gpmat = new ShellMaterialType1<double>(coefs, cFrame, prop->rho, prop->eh, prop->Ta);
+      nmat = gpmat = new ShellMaterialType1<double>(coefs, cFrame, prop->rho, prop->eh, prop->Ta, prop->W);
       break;
 
     case 2 :
@@ -1633,6 +1637,7 @@ FelippaShell::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx
   }
 
   if(senMethod == 1) { // automatic differentiation
+#ifndef AEROS_NO_AD
     Simo::FirstPartialSpaceDerivatives<double, ShellElementStiffnessWRTNodalCoordinateSensitivity> dKdx(dconst,iconst); 
     dStiffnessdx = dKdx(q, 0);
 #ifdef SENSITIVITY_DEBUG
@@ -1641,6 +1646,9 @@ FelippaShell::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx
       std::cerr << "dStiffnessdx(AD) =\n";
       for(int i=0; i<9; ++i) std::cerr << "dStiffnessdx_" << i << "\n" << dStiffnessdx[i].format(HeavyFmt) << std::endl;
     }
+#endif
+#else
+  std::cerr << " ... Error: AEROS_NO_AD is defined in FelippaShell::getStiffnessNodalCoordinateSensitivity\n";  exit(-1);
 #endif
   }
 
@@ -1719,7 +1727,7 @@ FelippaShell::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix &d
   }
 
   if(senMethod == 1) { // automatic differentiation
-#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER >= 1300)
+#ifndef AEROS_NO_AD
     Simo::FirstPartialSpaceDerivatives<double, FelippaShellStiffnessWRTThicknessSensitivity> dSdh(dconst,iconst); 
     Eigen::Array<Eigen::Matrix<double,18,18>,1,1> dStifdThick = dSdh(q, 0);
 #ifdef SENSITIVITY_DEBUG
@@ -1727,8 +1735,7 @@ FelippaShell::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix &d
 #endif
     dStiffnessdThick = dStifdThick[0];
 #else
-    std::cerr << "automatic differentiation must avoid intel12 compiler\n";
-    exit(-1);
+  std::cerr << " ... Error: AEROS_NO_AD is defined in FelippaShell::getStiffnessThicknessSensitivity\n";  exit(-1);
 #endif
   }
 
@@ -1813,7 +1820,7 @@ FelippaShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight,
   }
 
   if(senMethod == 1) { // automatic differentiation
-#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER >= 1300)
+#ifndef AEROS_NO_AD
     Eigen::Vector3d dStressdThick;
     Simo::Jacobian<double,ShellElementStressWRTThicknessSensitivity> dSdh(dconst,iconst);
     dStressdThick = dSdh(q, 0);
@@ -1822,8 +1829,7 @@ FelippaShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight,
 #endif
     dStdThick.copy(dStressdThick.data());
 #else
-    std::cerr << "automatic differentiation must avoid intel12 compiler\n";
-    exit(-1);
+  std::cerr << " ... Error: AEROS_NO_AD is defined in FelippaShell::getVonMisesThicknessSensitivity\n";   exit(-1);
 #endif
   }
 
@@ -1854,7 +1860,7 @@ FelippaShell::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vec
 {
   weight = 1;
   // scalar parameters
-  Eigen::Array<double,67,1> dconst;
+  Eigen::Array<double,69,1> dconst;
   dconst.setZero();
 
   Node &nd1 = cs.getNode(nn[0]);
@@ -1872,6 +1878,8 @@ FelippaShell::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vec
     coefs = nmat->GetCoefOfConstitutiveLaw(); 
     dconst.segment<36>(31) = Eigen::Map<Eigen::Matrix<double,36,1> >(coefs).segment(0,36); 
   } 
+  dconst[67] = prop->Ta;
+  dconst[68] = prop->W;
 
 #ifdef SENSITIVITY_DEBUG
   if(verboseFlag) {
@@ -1916,7 +1924,7 @@ FelippaShell::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vec
   }
 
   if(senMethod == 1) { // automatic differentiation
-#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER >= 1300)
+#ifndef AEROS_NO_AD
     Eigen::Matrix<double,3,9> dStressdx;
     Simo::Jacobian<double,ShellElementStressWRTNodalCoordinateSensitivity> dSdx(dconst,iconst);
     dStressdx = dSdx(q, 0);
@@ -1925,8 +1933,7 @@ FelippaShell::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vec
 #endif
     dStdx.copy(dStressdx.data());
 #else
-    std::cerr << "automatic differentiation must avoid intel12 compiler\n";
-    exit(-1);
+    std::cerr << " ... Error: AEROS_NO_AD is defined in FelippaShell::getVonMisesNodalCoordinateSensitivity\n";   exit(-1);
 #endif
   }
 
@@ -2023,7 +2030,7 @@ FelippaShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
     }
 
     if(senMethod == 1) { // automatic differentiation
-#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER >= 1300)
+#ifndef AEROS_NO_AD
       Simo::Jacobian<double,ShellElementStressWRTDisplacementSensitivity> dSdu(dconst,iconst);
       dStressdDisp = dSdu(q, 0);
       dStdDisp.copy(dStressdDisp.data());
@@ -2031,12 +2038,10 @@ FelippaShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
       if(verboseFlag) std::cerr << "dStressdDisp(AD) =\n" << dStressdDisp << std::endl;
 #endif
 #else
-    std::cerr << "automatic differentiation must avoid intel12 compiler\n";
-    exit(-1);
+    std::cerr << " Error: AEROS_NO_AD is defined in FelippaShell::getVonMisesDisplacementSensitivity\n";  exit(-1);
 #endif
     }
  
-
     if(senMethod == 2) { // finite difference
       // finite difference
       dStressdDisp.setZero();

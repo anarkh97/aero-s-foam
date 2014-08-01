@@ -160,7 +160,7 @@ Membrane::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector 
     }
 
     if(senMethod == 1) { // automatic differentiation
-#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER >= 1300)
+#ifndef AEROS_NO_AD
       Simo::Jacobian<double,MembraneStressWRTDisplacementSensitivity> dSdu(dconst,iconst);
       dStressdDisp = dSdu(q, 0);
       dStdDisp.copy(dStressdDisp.data());
@@ -168,8 +168,7 @@ Membrane::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector 
       if(verboseFlag) std::cerr << "dStressdDisp(AD) =\n" << dStressdDisp << std::endl;
 #endif
 #else
-    std::cerr << "automatic differentiation must avoid intel12 compiler\n";
-    exit(-1);
+    std::cerr << " ... Error: AEROS_NO_AD is defined in Membrane::getVonMisesDisplacementSensitivity\n";    exit(-1);
 #endif
     }
  
@@ -264,7 +263,7 @@ Membrane::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight, Coo
     }
 
     if(senMethod == 1) { // automatic differentiation
-#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER >= 1300)
+#ifndef AEROS_NO_AD 
       Simo::Jacobian<double,MembraneStressWRTThicknessSensitivity> dSdu(dconst,iconst);
       dStressdThic = dSdu(q, 0);
       dStdThick.copy(dStressdThic.data());
@@ -272,8 +271,7 @@ Membrane::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight, Coo
       if(verboseFlag) std::cerr << "dStressdThic(AD) =\n" << dStressdThic << std::endl;
 #endif
 #else
-    std::cerr << "automatic differentiation must avoid intel12 compiler\n";
-    exit(-1);
+    std::cerr << " ... Error: AEROS_NO_AD is defined in Membrane::getVonMisesThicknessSensitivity\n";    exit(-1);
 #endif
     }
  
@@ -729,7 +727,7 @@ Membrane::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix &dStif
   }
 
   if(senMethod == 1) { // automatic differentiation
-#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER >= 1300)
+#ifndef AEROS_NO_AD 
     Simo::FirstPartialSpaceDerivatives<double, MembraneStiffnessWRTThicknessSensitivity> dSdh(dconst,iconst); 
     Eigen::Array<Eigen::Matrix<double,18,18>,1,1> dStifdThick = dSdh(q, 0);
 #ifdef SENSITIVITY_DEBUG
@@ -737,8 +735,7 @@ Membrane::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix &dStif
 #endif
     dStiffnessdThick = dStifdThick[0];
 #else
-    std::cerr << "automatic differentiation must avoid intel12 compiler\n";
-    exit(-1);
+    std::cerr << " ... Error: AEROS_NO_AD is defined in Membrane::getStiffnessThicknessSensitivity\n";    exit(-1);
 #endif
   }
 

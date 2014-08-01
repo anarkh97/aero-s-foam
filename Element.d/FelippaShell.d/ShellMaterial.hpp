@@ -113,11 +113,12 @@ class ShellMaterialType1 : public ShellMaterial<doublereal>
     doublereal rhoh;
     doublereal thick;
     doublereal Ta; // ambient temperature
+    doublereal w;
     Eigen::Map<Eigen::Matrix<doublereal,6,1> > Alpha; // coefficients of thermal expansion
   public:
     ShellMaterialType1(doublereal *_coef, doublereal *_aframe, doublereal _rhoh, doublereal _thick = 0.,
-                       doublereal _Ta = 0.)
-      : coef(_coef), aframe(_aframe), rhoh(_rhoh), thick(_thick), Ta(_Ta), Alpha(_coef+36) {}
+                       doublereal _Ta = 0., doublereal _w = 0.)
+      : coef(_coef), aframe(_aframe), rhoh(_rhoh), thick(_thick), Ta(_Ta), w(_w), Alpha(_coef+36) {}
 
     void GetConstitutiveResponse(doublereal *Upsilon, doublereal *Sigma, doublereal *D,
                                  doublereal *eframe, int gp, doublereal temp = 0);

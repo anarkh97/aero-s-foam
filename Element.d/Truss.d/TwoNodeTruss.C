@@ -356,6 +356,7 @@ TwoNodeTruss::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx
         }
   
         if(senMethod == 1) { // automatic differentiation
+#ifndef AEROS_NO_AD
           Simo::FirstPartialSpaceDerivatives<double, TwoNodeTrussStiffnessWRTNodalCoordinateSensitivity> dKdx(dconst,iconst); 
           dStiffnessdx = dKdx(q, 0);
 #ifdef SENSITIVITY_DEBUG
@@ -364,6 +365,9 @@ TwoNodeTruss::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx
             std::cerr << "dStiffnessdx(AD) =\n";
             for(int i=0; i<6; ++i) std::cerr << "dStiffnessdx_" << i << "\n" << dStiffnessdx[i].format(HeavyFmt) << std::endl;
           } 
+#endif
+#else
+          std::cerr << " ... Error: AEROS_NO_AD is defined in TwoNodeTruss::getStiffnessNodalCoordinateSensitivity\n"; exit(-1);
 #endif
         }
 
@@ -723,10 +727,10 @@ void
 TwoNodeTruss::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
                                                     int senMethod, double *ndTemps, int avgnum, double ylayer, double zlayer)
 { 
+#ifdef USE_EIGEN3
    using std::sqrt;
 
    weight = 1;
-
    // scalar parameters
    Eigen::Array<double,11,1> dconst;
 
@@ -850,7 +854,7 @@ TwoNodeTruss::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vec
   }
 
   if(senMethod == 1) { // automatic differentiation
-#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER >= 1300)
+#ifndef AEROS_NO_AD
     Eigen::Matrix<double,2,6> dStressdx;
     Simo::Jacobian<double,TwoNodeTrussStressWRTNodalCoordinateSensitivity> dSdx(dconst,iconst);
     dStressdx = dSdx(q, 0);
@@ -859,8 +863,7 @@ TwoNodeTruss::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vec
 #endif
     dStdx.copy(dStressdx.data());
 #else
-    std::cerr << "automatic differentiation must avoid intel12 compiler\n";
-    exit(-1);
+    std::cerr << " ... Error: AEROS_NO_AD is defined in TwoNodeTruss::getVonMisesNodalCoordinateSensitivity\n"; exit(-1);
 #endif
   }
 
@@ -882,10 +885,7 @@ TwoNodeTruss::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vec
 #endif
     dStdx.copy(dStressdx.data());  
   }
-
-
-
-
+#endif
 }
 
 void

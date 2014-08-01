@@ -839,8 +839,8 @@ SingleDomainDynamic::buildOps(double coeM, double coeC, double coeK)
  DynamMat *dMat = new DynamMat(true);
 
  domain->getTimers().constructTime -= getTime();
-// allOps.K   = domain->constructDBSparseMatrix<double>();
- allOps.K   = domain->constructEiSparseMatrix<double,Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> >();
+ allOps.K   = domain->constructDBSparseMatrix<double>();
+ //allOps.K   = domain->constructEiSparseMatrix<double,Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> >();
  if(geoSource->getMRatio() != 0) {
 #ifdef USE_EIGEN3
    if(domain->solInfo().svdPodRom) allOps.M = domain->constructEiSparseMatrix<double,Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> >();

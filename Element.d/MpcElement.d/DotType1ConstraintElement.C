@@ -49,7 +49,7 @@ void
 DotType1ConstraintElement::buildFrame(CoordSet& cs)
 {
   if(!C0) {
-    std::cerr << " *** ERROR: element frame is not defined for DotType1 constraint function element\n";
+    std::cerr << " *** ERROR: A reference frame needs to be specified using EFRAMES for element " << glNum+1 << ". Exiting...\n";
     exit(-1);
   }
 

@@ -170,8 +170,10 @@ ShellMaterialType1<doublereal>::GetConstitutiveResponse(doublereal *_Upsilon, do
     Dmb = invT * coef.topRightCorner(3,3) * invT.transpose();
 
 // .....COMPUTE THE GENERALIZED "STRESSES"
-
+//
+    Alpha << w, w, 0, 0, 0, 0;
     Sigma = D*(Upsilon - (temp-Ta)*Alpha);
+
 
     if(_D == NULL) delete [] data;
 }

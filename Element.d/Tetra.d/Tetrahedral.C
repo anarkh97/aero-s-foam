@@ -204,7 +204,7 @@ Tetrahedral::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vect
   }
 
   if(senMethod == 1) {
-#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER >= 1300)
+#ifndef AEROS_NO_AD 
     Simo::Jacobian<double,TetraElementStressWRTNodalCoordinateSensitivity> dSdx(dconst,iconst);
     dStressdx = dSdx(q, 0);
     dStdx.copy(dStressdx.data());
@@ -212,8 +212,7 @@ Tetrahedral::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vect
     if(verboseFlag) std::cerr << "dStressdx(AD) =\n" << dStressdx << std::endl;
 #endif
 #else
-    std::cerr << "automatic differentiation must avoid intel12 compiler\n";
-    exit(-1);
+    std::cerr << " ... Error: AEROS_NO_AD is defined in Tetrahedral::getVonMisesNodalCoordinateSensitivity\n";    exit(-1);
 #endif
   }
 

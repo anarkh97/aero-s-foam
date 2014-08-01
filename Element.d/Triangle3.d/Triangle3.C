@@ -674,8 +674,9 @@ Triangle3::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector
 
   //Jacobian evaluation
   Eigen::Matrix<double,3,6> dStressdDisp;
+#ifdef SENSITIVITY_DEBUG
   if(verboseFlag) std::cout << " ... senMethod is " << senMethod << std::endl;
-
+#endif
   if(avgnum == 1 || avgnum == 0) { // ELEMENTAL or NODALFULL
     if(senMethod == 1) { // via automatic differentiation
 #ifndef AEROS_NO_AD 

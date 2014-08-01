@@ -1076,7 +1076,9 @@ TimoshenkoBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, V
   Eigen::Matrix<double,2,12> dStressdDisp;
   dStressdDisp.setZero();
   Eigen::Matrix<double,7,3> stress;
+#ifdef SENSITIVITY_DEBUG
   if(verboseFlag) std::cout << " ... senMethod is " << senMethod << std::endl;
+#endif
 
   if(avgnum == 1 || avgnum == 0) { // ELEMENTAL or NODALFULL
     if(senMethod == 1) { // via automatic differentiation

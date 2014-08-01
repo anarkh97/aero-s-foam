@@ -125,7 +125,9 @@ FelippaShell::getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
   stress[1] = elStress[1][strInd-offset];
   stress[2] = elStress[2][strInd-offset];
 
+#ifdef SENSITIVITY_DEBUG
   if(verboseFlag) std::cerr << "von mises stress is " << stress[0] << " " << stress[1] << " " << stress[2] << std::endl;
+#endif
 }
 
 void

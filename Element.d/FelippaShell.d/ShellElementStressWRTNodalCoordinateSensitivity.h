@@ -11,19 +11,19 @@
 #include <Element.d/FelippaShell.d/ShellElementTemplate.cpp>
 
 template<typename Scalar>
-class ShellElementStressWRTNodalCoordinateSensitivity : public VectorValuedFunction<9,3,Scalar,67,2,double>
+class ShellElementStressWRTNodalCoordinateSensitivity : public VectorValuedFunction<9,3,Scalar,69,2,double>
 {
   public:
     ShellElementTemplate<Scalar,EffMembraneTriangle,AndesBendingTriangle> ele;
     Eigen::Array<Scalar,18,1> globalu; // element displacements
-    Scalar E, nu, rho, h; // material properties
+    Scalar E, nu, rho, h, Ta, W; // material properties
     int surface; // thru-thickness location at which stresses are to be evaluated
     Eigen::Array<Scalar,9,1> cframe;   // composite frame
     Eigen::Array<Scalar,36,1> coefs;
     int type;
 
   public:
-    ShellElementStressWRTNodalCoordinateSensitivity(const Eigen::Array<double,67,1>& sconst, const Eigen::Array<int,2,1>& iconst)
+    ShellElementStressWRTNodalCoordinateSensitivity(const Eigen::Array<double,69,1>& sconst, const Eigen::Array<int,2,1>& iconst)
     {
       globalu = sconst.segment<18>(0).cast<Scalar>();
       E = sconst[18];
@@ -36,16 +36,19 @@ class ShellElementStressWRTNodalCoordinateSensitivity : public VectorValuedFunct
         cframe = sconst.segment<9>(22).cast<Scalar>();
         coefs = sconst.segment<36>(31).cast<Scalar>(); 
       }
+      Ta = sconst[67];
+      W = sconst[68];
     }
+    
 
     Eigen::Matrix<Scalar,3,1> operator() (const Eigen::Matrix<Scalar,9,1>& q, Scalar)
     {
       // inputs:
       // q = Global Displacements at the Nodal Joints
 
-      ele.setnmat(new ShellMaterialType0<Scalar>(E, h, nu, rho));
+      ele.setgpnmat(new ShellMaterialType0<Scalar>(E, h, nu, rho, Ta, W));
       if(type == 1) { 
-        ele.setgpnmat(new ShellMaterialType1<Scalar>(coefs.data(), cframe.data(), rho, h)); 
+        ele.setgpnmat(new ShellMaterialType1<Scalar>(coefs.data(), cframe.data(), rho, h, Ta)); 
       }
       else if(type == 2 || type == 3) { std::cerr << " ... Error: ShellElementStiffnessWRTNodalCoordinateSensitivity is not defined for this case\n"; exit(-1); }
       else if(type > 4)  { std::cerr << " ... Error: wrong material type\n"; exit(-1); }
@@ -74,6 +77,7 @@ class ShellElementStressWRTNodalCoordinateSensitivity : public VectorValuedFunct
       // von mises stresses at nodes
       Eigen::Matrix<Scalar,3,1> v;
       v << stress(6,0), stress(6,1), stress(6,2);
+      std::cerr << stress(6,0) << " " << stress(6,1) << " " << stress(6,2) << std::endl;
 
       return v; 
     }

@@ -256,7 +256,6 @@ FelippaShell::getGravityForceSensitivityWRTNodalCoordinate(CoordSet& cs, double 
   } // senMethod == 1
 
   if(senMethod == 2) { // finite difference
-#ifndef AEROS_NO_AD
     double h(1e-6);
     for(int i=0; i<9; ++i) {
       ShellElementGravityForceWRTNodalCoordinateSensitivity<double> foo(dconst,iconst);
@@ -271,9 +270,6 @@ FelippaShell::getGravityForceSensitivityWRTNodalCoordinate(CoordSet& cs, double 
 #ifdef SENSITIVITY_DEBUG
     Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
     if(verboseFlag) std::cerr << "dGravityForcedx(FD) =\n" << ddGravityForcedx.format(HeavyFmt) << std::endl;
-#endif
-#else
-  std::cerr << " ... Error: AEROS_NO_AD is defined in FelippaShell::getGravityForceSensitivityWRTNodalCoordinate\n";  exit(-1);
 #endif
   }
   dGfdx.copy(dGravityForcedx.data());
@@ -658,12 +654,11 @@ FelippaShell::weightDerivativeWRTNodalCoordinate(Vector &dwdx, CoordSet& cs, dou
     }
 #endif
 #else
- std::cerr << " ... Error: AEROS_NO_AD is defined in FelippaShell::weightDerivativeWRTNodalCoordinate\n"; exit(-1)
+ std::cerr << " ... Error: AEROS_NO_AD is defined in FelippaShell::weightDerivativeWRTNodalCoordinate\n"; exit(-1);
 #endif
  }
 
  if(senMethod == 2) { // finite difference
-#ifndef AEROS_NO_AD
     ShellElementMassWRTNodalCoordinateSensitivity<double> foo(dconst,iconst);
     Eigen::Matrix<double,9,1> qp, qm;
     double h(1e-6);
@@ -684,9 +679,6 @@ FelippaShell::weightDerivativeWRTNodalCoordinate(Vector &dwdx, CoordSet& cs, dou
       std::cerr << "dWeightdx(FD) =\n";
       std::cerr << "dWeightdx(FD) =\n" << dWeightdx.format(HeavyFmt) << std::endl;
     }
-#endif
-#else
- std::cerr << " ... Error: AEROS_NO_AD is defined in FelippaShell::weightDerivativeWRTNodalCoordinate\n"; exit(-1)
 #endif
  }
 
@@ -724,8 +716,6 @@ FelippaShell::setProp(StructProp *p, bool myProp)
   type = 0;
   if(p) {
     nmat = gpmat = new ShellMaterialType0<double>(p->E, p->eh, p->nu, p->rho, p->Ta, p->W);
-    std::cerr << "p->Ta is " << p->Ta << std::endl; 
-    std::cerr << "p->W is " << p->W << std::endl; 
   }
   else nmat = gpmat = 0; // phantom
 }
@@ -741,7 +731,7 @@ FelippaShell::setCompositeData(int _type, int nlays, double *lData,
   switch(type) {
 
     case 1 :
-      nmat = gpmat = new ShellMaterialType1<double>(coefs, frame, prop->rho, prop->eh, prop->Ta);
+      nmat = gpmat = new ShellMaterialType1<double>(coefs, frame, prop->rho, prop->eh, prop->Ta, prop->W);
       break;
 
     case 2 :
@@ -830,7 +820,7 @@ FelippaShell::setCompositeData2(int _type, int nlays, double *lData,
   switch(type) {
 
     case 1 :
-      nmat = gpmat = new ShellMaterialType1<double>(coefs, cFrame, prop->rho, prop->eh, prop->Ta);
+      nmat = gpmat = new ShellMaterialType1<double>(coefs, cFrame, prop->rho, prop->eh, prop->Ta, prop->W);
       break;
 
     case 2 :
@@ -1661,7 +1651,6 @@ FelippaShell::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx
   }
 
   if(senMethod == 2) { // finite difference
-#ifndef AEROS_NO_AD
     ShellElementStiffnessWRTNodalCoordinateSensitivity<double> foo(dconst,iconst);
     Eigen::Matrix<double,9,1> qp, qm;
     double h(1e-6);
@@ -1679,9 +1668,6 @@ FelippaShell::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx
       }
 #endif
     }
-#else
-  std::cerr << " ... Error: AEROS_NO_AD is defined in FelippaShell::getStiffnessNodalCoordinateSensitivity\n";  exit(-1);
-#endif
   }
 
   for(int i=0; i<9; ++i) dStiffdx[i].copy(dStiffnessdx[i].data());
@@ -1752,7 +1738,6 @@ FelippaShell::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix &d
   }
 
   if(senMethod == 2) { // finite difference
-#ifndef AEROS_NO_AD
     FelippaShellStiffnessWRTThicknessSensitivity<double> foo(dconst,iconst);
     Eigen::Matrix<double,1,1> qp, qm;
     double h(1e-6);
@@ -1765,9 +1750,6 @@ FelippaShell::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix &d
     if(verboseFlag) std::cerr << "Sp =\n" << Sp.format(HeavyFmt) << std::endl;
     if(verboseFlag) std::cerr << "Sm =\n" << Sm.format(HeavyFmt) << std::endl;
     if(verboseFlag) std::cerr << "dStiffnessdThick(FD) =\n" << dStiffnessdThick.format(HeavyFmt) << std::endl;
-#endif
-#else
-  std::cerr << " ... Error: AEROS_NO_AD is defined in FelippaShell::getStiffnessThicknessSensitivity\n";  exit(-1);
 #endif
   }
 
@@ -1850,7 +1832,6 @@ FelippaShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight,
   }
 
   if(senMethod == 2) { // finite difference
-#ifndef AEROS_NO_AD
     ShellElementStressWRTThicknessSensitivity<double> foo(dconst,iconst);
     Eigen::Matrix<double,1,1> qp, qm;
     double h(1e-6);
@@ -1868,9 +1849,6 @@ FelippaShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight,
     if(verboseFlag) std::cerr << "dStressdThick(FD) =\n" << dStressdThick.format(HeavyFmt) << std::endl;
 #endif
     dStdThick.copy(dStressdThick.data());
-#else
-  std::cerr << " ... Error: AEROS_NO_AD is defined in FelippaShell::getVonMisesThicknessSensitivity\n";   exit(-1);
-#endif
   }
 }
 
@@ -1900,7 +1878,6 @@ FelippaShell::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vec
   } 
   dconst[67] = prop->Ta;
   dconst[68] = prop->W;
-  for(int i=0; i<69; ++i) std::cerr << "dconst[i] = " << dconst[i] << std::endl;
 
 #ifdef SENSITIVITY_DEBUG
   if(verboseFlag) {
@@ -1959,7 +1936,6 @@ FelippaShell::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vec
   }
 
   if(senMethod == 2) { // finite difference
-#ifndef AEROS_NO_AD
     ShellElementStressWRTNodalCoordinateSensitivity<double> foo(dconst,iconst);
     Eigen::Matrix<double,9,1> qp, qm;
     double h(1e-6);
@@ -1976,9 +1952,6 @@ FelippaShell::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vec
     if(verboseFlag) std::cerr << "dStressdx(FD) =\n" << dStressdx.format(HeavyFmt) << std::endl;
 #endif
     dStdx.copy(dStressdx.data());  
-#else
-    std::cerr << " ... Error: AEROS_NO_AD is defined in FelippaShell::getVonMisesNodalCoordinateSensitivity\n";   exit(-1);
-#endif
   }
 }
 
@@ -2068,7 +2041,6 @@ FelippaShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
     }
  
     if(senMethod == 2) { // finite difference
-#ifndef AEROS_NO_AD
       // finite difference
       dStressdDisp.setZero();
       ShellElementStressWRTDisplacementSensitivity<double> foo(dconst,iconst);
@@ -2089,9 +2061,6 @@ FelippaShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
       dStdDisp.copy(dStressdDisp.data());
 #ifdef SENSITIVITY_DEBUG
       if(verboseFlag) std::cerr << "dStressdDisp(FD) =\n" << dStressdDisp << std::endl;
-#endif
-#else
-    std::cerr << " Error: AEROS_NO_AD is defined in FelippaShell::getVonMisesDisplacementSensitivity\n";  exit(-1);
 #endif
     }
   } else dStdDisp.zero(); // NODALPARTIAL or GAUSS or any others

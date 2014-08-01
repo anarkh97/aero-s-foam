@@ -372,7 +372,6 @@ TwoNodeTruss::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx
         }
 
         if(senMethod == 2) { // finite difference
-#ifndef AEROS_NO_AD
           TwoNodeTrussStiffnessWRTNodalCoordinateSensitivity<double> foo(dconst,iconst);
           Eigen::Matrix<double,6,1> qp, qm;
           double h(1e-6);
@@ -390,9 +389,6 @@ TwoNodeTruss::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx
             } 
 #endif
           }
-#else
-          std::cerr << " ... Error: AEROS_NO_AD is defined in TwoNodeTruss::getStiffnessNodalCoordinateSensitivity\n"; exit(-1);
-#endif
         }
         
         for(int i=0; i<6; ++i) dStiffdx[i].copy(dStiffnessdx[i].data());
@@ -872,7 +868,6 @@ TwoNodeTruss::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vec
   }
 
   if(senMethod == 2) { // finite difference
-#ifndef AEROS_NO_AD
     TwoNodeTrussStressWRTNodalCoordinateSensitivity<double> foo(dconst,iconst);
     Eigen::Matrix<double,6,1> qp, qm;
     double h(1e-6);
@@ -889,9 +884,6 @@ TwoNodeTruss::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vec
     if(verboseFlag) std::cerr << "dStressdx(FD) =\n" << dStressdx.format(HeavyFmt) << std::endl;
 #endif
     dStdx.copy(dStressdx.data());  
-#else
-    std::cerr << " ... Error: AEROS_NO_AD is defined in TwoNodeTruss::getVonMisesNodalCoordinateSensitivity\n"; exit(-1);
-#endif
   }
 #endif
 }

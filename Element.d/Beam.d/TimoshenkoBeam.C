@@ -323,15 +323,14 @@ TimoshenkoBeam::getGravityForceSensitivityWRTNodalCoordinate(CoordSet& cs, doubl
   }
 
   if(senMethod == 1) { // automatic differentiation
-#if (!defined(__INTEL_COMPILER) || __INTEL_COMPILER < 1200 || __INTEL_COMPILER > 1210)
+#ifndef AEROS_NO_AD 
     Simo::Jacobian<double,TimoshenkoBeamGravityForceWRTNodalCoordinateSensitivity> dGdx(dconst,iconst);
     dGravityForcedx = dGdx(q, 0);
 #ifdef SENSITIVITY_DEBUG
     if(verboseFlag) std::cerr << "dGravityForcedx(AD) =\n" << dGravityForcedx << std::endl;
 #endif
 #else
-    std::cerr << "automatic differentiation must avoid intel12 compiler\n";
-    exit(-1);
+    std::cerr << " ... Error: AEROS_NO_AD is defined in TimoshenkoBeam::getGravityForceSensitivityWRTNodalCoordinate\n";    exit(-1);
 #endif
   } // senMethod == 1
 
@@ -527,6 +526,7 @@ TimoshenkoBeam::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiff
         }
 
         if(senMethod == 1) { // automatic differentiation
+#ifndef AEROS_NO_AD
           Simo::FirstPartialSpaceDerivatives<double, TimoshenkoBeamStiffnessWRTNodalCoordinateSensitivity> dKdx(dconst,iconst);
           dStiffnessdx = dKdx(q, 0);
 #ifdef SENSITIVITY_DEBUG
@@ -535,6 +535,9 @@ TimoshenkoBeam::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiff
             std::cerr << "dStiffnessdx(AD) =\n";
             for(int i=0; i<6; ++i) std::cerr << "dStiffnessdx_" << i << "\n" << dStiffnessdx[i].format(HeavyFmt) << std::endl;
           }
+#endif
+#else
+          std::cerr << " ... Error: AEROS_NO_AD is defined in TimoshenkoBeam::getStiffnessNodalCoordinateSensitivity\n";  exit(-1);
 #endif
         }
 
@@ -1077,10 +1080,14 @@ TimoshenkoBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, V
 
   if(avgnum == 1 || avgnum == 0) { // ELEMENTAL or NODALFULL
     if(senMethod == 1) { // via automatic differentiation
+#ifndef AEROS_NO_AD
       Simo::Jacobian<double,TimoshenkoBeamStressWRTDisplacementSensitivity> dSdu(dconst,iconst);
       dStressdDisp = dSdu(q, 0);
 #ifdef SENSITIVITY_DEBUG
       if(verboseFlag) std::cerr << " ... dStressdDisp(AD) = \n" << dStressdDisp << std::endl;
+#endif
+#else
+      std::cerr << " ... Error: AEROS_NO_AD is defined in TimoshenkoBeam::getVonMisesDisplacementSensitivity\n";  exit(-1);
 #endif
     }
  
@@ -1197,11 +1204,15 @@ TimoshenkoBeam::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, V
     }
 
     if(senMethod == 1) { // automatic differentiation
+#ifndef AEROS_NO_AD
       Simo::Jacobian<double,TimoshenkoBeamStressWRTNodalCoordinateSensitivity> dSdx(dconst,iconst);
       dStressdx = dSdx(q, 0);
       dStdx.copy(dStressdx.data());
 #ifdef SENSITIVITY_DEBUG
       if(verboseFlag) std::cerr << " ... dStressdx(AD) = \n" << dStressdx << std::endl;
+#endif
+#else
+      std::cerr << " ... Error: AEROS_NO_AD is defined in TimoshenkoBeam::getVonMisesNodalCoordinateSensitivity\n"; exit(-1);
 #endif
     }
 

@@ -48,7 +48,7 @@ class ShellElementStressWRTNodalCoordinateSensitivity : public VectorValuedFunct
 
       ele.setgpnmat(new ShellMaterialType0<Scalar>(E, h, nu, rho, Ta, W));
       if(type == 1) { 
-        ele.setgpnmat(new ShellMaterialType1<Scalar>(coefs.data(), cframe.data(), rho, h, Ta)); 
+        ele.setgpnmat(new ShellMaterialType1<Scalar>(coefs.data(), cframe.data(), rho, h, Ta, W)); 
       }
       else if(type == 2 || type == 3) { std::cerr << " ... Error: ShellElementStiffnessWRTNodalCoordinateSensitivity is not defined for this case\n"; exit(-1); }
       else if(type > 4)  { std::cerr << " ... Error: wrong material type\n"; exit(-1); }
@@ -77,7 +77,6 @@ class ShellElementStressWRTNodalCoordinateSensitivity : public VectorValuedFunct
       // von mises stresses at nodes
       Eigen::Matrix<Scalar,3,1> v;
       v << stress(6,0), stress(6,1), stress(6,2);
-      std::cerr << stress(6,0) << " " << stress(6,1) << " " << stress(6,2) << std::endl;
 
       return v; 
     }

@@ -1274,7 +1274,6 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 // ==================================================================== 
 
     thick = nmat->GetShellThickness();
-    std::cerr << "thick = " << thick << std::endl;
 
 //     ---------------------------------- 
 //     STEP 1                             
@@ -1310,15 +1309,6 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 
     // TODO would be better to store vd and v and 6x3 matrices instead of 18x1 vector
     // then this would simply be a matrix matrix product
-    std::cerr << v[0] << " " << v[1] << " " << v[2] << std::endl;
-    std::cerr << v[3] << " " << v[4] << " " << v[5] << std::endl;
-    std::cerr << v[6] << " " << v[7] << " " << v[8] << std::endl;
-    std::cerr << v[9] << " " << v[10] << " " << v[11] << std::endl;
-    std::cerr << v[12] << " " << v[13] << " " << v[14] << std::endl;
-    std::cerr << v[15] << " " << v[16] << " " << v[17] << std::endl;
-    std::cerr << eframe(0,0) << " " << eframe(0,1) << " " << eframe(0,2) << std::endl;
-    std::cerr << eframe(1,0) << " " << eframe(1,1) << " " << eframe(1,2) << std::endl;
-    std::cerr << eframe(2,0) << " " << eframe(2,1) << " " << eframe(2,2) << std::endl;
     for(i = 0; i < 18; i += 3)
         vd.segment(i,3) = eframe.transpose()*v.segment(i,3);
 
@@ -1408,7 +1398,6 @@ ShellElementTemplate<doublereal,Membrane,Bending>
           case 0 : {
 
 #ifdef COMPATIBILITY_MODE
-            std::cerr << "in compatibility Mode\n";
             if(ctyp < 4) {
 
 // .....COMPUTE THE GENERALIZED STRESSES [Sigma = {N,M}] WHICH ARE
@@ -1440,9 +1429,6 @@ ShellElementTemplate<doublereal,Membrane,Bending>
                     sigma = N/thick - 6*M/(thick*thick);
 
                 }
-                std::cerr << "sigma[0] = " << sigma[0] << std::endl;
-                std::cerr << "sigma[1] = " << sigma[1] << std::endl;
-                std::cerr << "sigma[2] = " << sigma[2] << std::endl;
             }
             else
 #endif

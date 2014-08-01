@@ -719,7 +719,9 @@ TwoNodeTruss::getVonMises(Vector& stress, Vector& weight, CoordSet& cs,
         std::cerr << "avgnum = " << avgnum << " is not a valid number\n";
     }
 
+#ifdef SENSITIVITY_DEBUG
     if(verboseFlag) std::cerr << "von mises is " << stress[0] << " " << stress[1] << std::endl;
+#endif
 #endif
 }
 

@@ -97,7 +97,7 @@ pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const
 
     if(myrank == 0 && verbose) {
       std::cout << "Iteration = " << std::setw(9) << iter << "    "
-                << "Downdate = " << std::setw(9) << downIt << "   "
+                << "Downdate = " << std::setw(9) << downIt << "    "
                 << "Active set size = " << std::setw(9) << k << "    "
                 << "Residual norm = " << std::setw(13) << std::scientific << std::uppercase << rnorm << "    "
                 << "Target = " << std::setw(13) << std::scientific << std::uppercase << abstol << std::endl;
@@ -185,8 +185,8 @@ pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const
       MPI_Allreduce(MPI_IN_PLACE, &minCoeff, 1, MPI_DOUBLE, MPI_MIN, mpicomm);
 #endif
       if(minCoeff < 0) {
-      downIt++;
-        // compute maximum feasible step length (alpha) and corresponding index in active set jk[i] for each subdomain
+        downIt++;
+        // compute maximum feasible step length in the direction (y-x_) and corresponding index in active set jk[i] for each subdomain
 #if defined(_OPENMP)
   #pragma omp parallel for schedule(static,1)
 #endif
@@ -204,14 +204,25 @@ pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const
         if(s.rank == myrank) {
           p.index = indices[ik][jk[ik]];
           p.sub = ik;
-          std::vector<long int>::iterator pos = indices[ik].begin() + jk[ik];
-          indices[ik].erase(pos);
-          x_[ik][l[ik]-1] = 0;
+          indices[ik].erase(indices[ik].begin() + jk[ik]); // remove index jk[ik] from the local active set of ik-th subdomain
+          for(int j=jk[ik]; j<l[ik]-1; ++j) { x_[ik][j] = x_[ik][j+1]; y[ik][j] = y[ik][j+1]; } // erase jk[ik]-th element from x_[ik] and y[ik]
+          x_[ik][l[ik]-1] = 0; y[ik][l[ik]] = 0;
+          l[ik]--;
           //std::cout << "removing index " << p.index << " from subdomain " << ik << " on process with rank " << myrank << std::endl;
         }
+
+#if defined(_OPENMP)
+  #pragma omp parallel for schedule(static,1)
+#endif
+        // update x_ (note: this is used only when there are two or more consecutive downdate iterations)
+        for(int i=0; i<nsub; ++i) {
+          x_[i].head(l[i]) += s.val*(y[i].head(l[i])-x_[i].head(l[i]));
+        }
+
 #ifdef USE_MPI
         MPI_Bcast(&p, 1, MPI_LONG_INT, s.rank, mpicomm);
 #endif
+        // remove index from the global active set
         std::list<std::pair<int,long_int> >::iterator pos = std::find(gindices.begin(), gindices.end(), std::pair<int,long_int>(s.rank,p));
         std::list<std::pair<int,long_int> >::iterator fol = gindices.erase(pos);
 
@@ -228,7 +239,7 @@ pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const
           D[i].bottomRightCorner(maxlocvec[i]-l[i],maxvec-k).setZero(); // XXX this is a larger block than necessary
           y[i].head(l[i]) = D[i].topLeftCorner(l[i],k)*a.head(k);
         }
-        r = b - BD.leftCols(k)*a.head(k); // XXX this could be parallelized, rowwise
+        r = b - BD.leftCols(k)*a.head(k);
 #if defined(_OPENMP)
   #pragma omp parallel for schedule(static,1)
 #endif

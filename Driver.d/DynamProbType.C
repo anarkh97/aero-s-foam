@@ -409,7 +409,9 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
              *d_nSen = 0.0;
              aeroSensitivityQuasistaticLoop( *curSenState, *rhsSen, *dynOps, *workSenVec, dt, tmax, aeroAlg);
              *allSens->dispWRTshape[ishap] = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> >(d_nSen->data(),domain->numUncon(),1);
+#ifdef SENSITIVITY_DEBUG
              if(verboseFlag) std::cerr << "printing dispWRTshape[" << ishap << "]\n" << *allSens->dispWRTshape[ishap] << std::endl;
+#endif
              allSens->vonMisesWRTshape->col(ishap) += *allSens->vonMisesWRTdisp * (*allSens->dispWRTshape[ishap]);
              delete rhsSen;
 // #ifdef SENSITIVITY_DEBUG

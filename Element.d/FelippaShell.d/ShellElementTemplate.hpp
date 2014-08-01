@@ -7,7 +7,7 @@
 //       The recommended setting is undefined. In this case the stress output is more accurate, although a little
 //       more costly, and the augmented mass matrix is used by default resulting in a larger critical time-step
 //       for explicit dynamics.
-#define COMPATIBILITY_MODE
+//#define COMPATIBILITY_MODE
 
 template<typename doublereal, template<typename> class Membrane, template<typename> class Bending>
 class ShellElementTemplate : public Membrane<doublereal>, public Bending<doublereal>

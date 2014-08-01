@@ -59,7 +59,7 @@ C     ------------------------------------------------------------------
       USE ISO_C_BINDING
       IMPLICIT NONE
       integer(kind=C_LONG) I, II, IP, ITER, ITMAX, IZ, IZ1, IZ2, IZMAX,
-     +                     J, JJ, JZ, L
+     +                     J, JJ, JZ, L, DDATE
       integer(kind=C_LONG) M, MDA, MODE, N, NPP1, NSETP, RTNKEY, SPMAX
       integer(kind=C_LONG) INDEX(*)  
       double precision A(MDA,*), B(*), W(*), X(*), ZZ(*), ZZ2(*) 
@@ -79,6 +79,7 @@ C     ------------------------------------------------------------------
       ITER=0
       ITMAX=3*N 
       SPMAX=MIN(M,INT(MAXSZE*N,C_LONG))
+      DDATE=0
 C   
 C                    INITIALIZE THE ARRAYS INDEX() AND X(). 
 C   
@@ -120,11 +121,12 @@ C                     COMPUTE THE NORM^2 OF THE RESIDUAL VECTOR.
 C         
       IF(PRTFLG.NE.0) THEN
         write (*,500) 'Iteration = ', ITER,
+     +                'Downdate = ', DDATE,
      +                'Active set size = ', NSETP,
      +                'Residual norm = ', RNORM,
      +                'Target = ', ABSTOL 
       ENDIF
-  500 FORMAT (A, I9, 4X, A, I9, 4X, A, ES13.6, 4X, A, ES13.6) 
+  500 FORMAT (A, I9, 4X, A, I9, 4X, A, I9, 4X, A, ES13.6, 4X, A, ES13.6)
 C
 C                  QUIT IF ALL COEFFICIENTS ARE ALREADY IN THE SOLUTION.
 C                        OR IF M COLS OF A HAVE BEEN TRIANGULARIZED.    
@@ -260,6 +262,7 @@ C          IF ALL NEW CONSTRAINED COEFFS ARE FEASIBLE THEN ALPHA WILL
 C          STILL = 2.    IF SO EXIT FROM SECONDARY LOOP TO MAIN LOOP.   
 C   
       IF (ALPHA.EQ.TWO) GO TO 330   
+      DDATE = DDATE+1
 C   
 C          OTHERWISE USE ALPHA WHICH WILL BE BETWEEN 0. AND 1. TO   
 C          INTERPOLATE BETWEEN THE OLD X AND THE NEW ZZ.    

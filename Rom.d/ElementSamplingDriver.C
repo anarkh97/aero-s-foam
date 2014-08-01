@@ -399,7 +399,12 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::computeSolution(Vector &soluti
   solver_.scalingFlagIs(domain->solInfo().useScalingSpnnls);
   solver_.solverTypeIs(domain->solInfo().solverTypeSpnnls);
   solver_.maxSizeRatioIs(domain->solInfo().maxSizeSpnnls);
-  solver_.solve();
+  try {
+    solver_.solve();
+  }
+  catch(std::runtime_error& e) {
+    std::cerr << "exception: " << e.what() << std::endl;
+  }
 
   if(verboseFlag) {
     std::cout << "Primal solution:";

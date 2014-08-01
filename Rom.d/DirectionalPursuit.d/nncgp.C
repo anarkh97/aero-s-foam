@@ -47,7 +47,7 @@ nncgp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::
 
     if(verbose) {
       std::cout << "Iteration = " << std::setw(9) << iter << "    "
-                << "Downdate  = " << std::setw(9) << downIt << "   "
+                << "Downdate = " << std::setw(9) << downIt << "    "
                 << "Active set size = " << std::setw(9) << k << "    "
                 << "Residual norm = " << std::setw(13) << std::scientific << std::uppercase << rnorm << "    "
                 << "Target = " << std::setw(13) << std::scientific << std::uppercase << abstol << std::endl;
@@ -82,27 +82,31 @@ nncgp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::
       iter++;
       if(y.head(k).minCoeff() < 0) {
         downIt++;
-        // compute maximum feasible step length (alpha) and corresponding index in active set (i)
+        // compute maximum feasible step length in the direction (y-x_) and corresponding index in the active set, i
         for(long int j=0; j<k; ++j) t[j] = (y[j] >= 0) ? std::numeric_limits<double>::max() : -x_[j]/(y[j]-x_[j]);
         double alpha = t.head(k).minCoeff(&i);
-        //std::cout << " removing index " << indices[i] << std::endl;
-        std::vector<long int>::iterator pos = indices.begin()+i;
-        std::vector<long int>::iterator fol = indices.erase(pos);
 
-        // Note: it is necessary to re-G-orthogonalize the basis D now, project the solution y onto the new basis and compute the corresponding residual r.
+        // remove index i from the active set
+        std::vector<long int>::iterator fol = indices.erase(indices.begin()+i);
+
+        // update x_ (note: this is used only when there are two or more consecutive downdate iterations)
+        for(int j=0; j<i; ++j) x_[j] += alpha*(y[j]-x_[j]);
+        for(int j=i; j<k-1; ++j) x_[j] = x_[j+1] + alpha*(y[j+1]-x_[j+1]);
+        x_[k-1] = 0;
+
+        // Note: it is necessary to re-G-orthogonalize the basis D now, project the solution x_ onto the new basis and compute the corresponding residual r.
         // This is done here by starting from the column of D pointed to by fol (because the ones before this are already G-orthogonal), and then
         // following what is the essentially same procedure that is used above to construct the original basis, with a few optimizations when possible.
-        x_[k-1] = 0;
-        y.head(k).setZero();
-        long int k0 = k = std::distance(indices.begin(), fol);
+        y.segment(i,k-i).setZero();
+        k = i;
         y.head(k) = D.topLeftCorner(k,k).triangularView<Upper>()*a.head(k);
         r = b - BD.leftCols(k)*a.head(k);
         g_.head(k) = B.leftCols(k).transpose()*r;
         for(std::vector<long int>::iterator it = fol; it != indices.end(); ++it) {
           B.col(k) = S[*it]*A.col(*it);
           g_[k] = B.col(k).transpose()*r;
-          GD.row(k).head(k0) = GD.row(k+1).head(k0);
-          GD.row(k).segment(k0,k-k0) = B.col(k).transpose()*BD.block(0,k0,m,k-k0);
+          GD.row(k).head(i) = GD.row(k+1).head(i);
+          GD.row(k).segment(i,k-i) = B.col(k).transpose()*BD.block(0,i,m,k-i);
           Block<MatrixXd,Dynamic,1,true> d = D.col(k), c = BD.col(k); 
           d.head(k+1) = g_.head(k+1) - D.topLeftCorner(k+1,k).triangularView<Upper>()*(DtGDinv.head(k).asDiagonal()*(GD.topLeftCorner(k+1,k).transpose()*g_.head(k+1)));
           c = B.leftCols(k+1)*d.head(k+1);

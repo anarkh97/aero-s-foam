@@ -196,6 +196,7 @@ struct SolverInfo {
    const char* xmatrixname;
    const char* qmatrixname;
    const char* rmatrixname;
+   const char* eigenvaluename;
 
    // Sloshing problem flag
    int sloshing;
@@ -524,6 +525,7 @@ struct SolverInfo {
                   goldfarb_check = false;
                   explicitK = false;
                   qrfactorization = false;
+                  eigenvaluename = "";
                   xmatrixname = "";
                   qmatrixname = "";
                   rmatrixname = "";

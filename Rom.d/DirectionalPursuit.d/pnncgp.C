@@ -116,12 +116,16 @@ pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const
       gmax[i] = (A[i].cols() > 0) ? h[i].maxCoeff(&jk[i]) : std::numeric_limits<double>::min();
     }
     int ik; // subdomain which has the max coeff.
-    s.val   = gmax.maxCoeff(&ik);
+    s.val   = (nsub > 0) ? gmax.maxCoeff(&ik) : std::numeric_limits<double>::min();
     s.rank  = myrank;
-    p.index = jk[ik];
-    p.sub   = ik;
 #ifdef USE_MPI
     MPI_Allreduce(MPI_IN_PLACE, &s, 1, MPI_DOUBLE_INT, MPI_MAXLOC, mpicomm);
+#endif
+    if(s.rank == myrank) {
+      p.index = jk[ik];
+      p.sub   = ik;
+    }
+#ifdef USE_MPI
     MPI_Bcast(&p, 1, MPI_LONG_INT, s.rank, mpicomm);
 #endif
     if(s.val <= 0) break;
@@ -180,7 +184,7 @@ pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const
       for(int i=0; i<nsub; ++i) {
         ymin[i] = (l[i] > 0) ? y[i].head(l[i]).minCoeff() : std::numeric_limits<double>::max();
       }
-      double minCoeff = ymin.minCoeff();
+      double minCoeff = (nsub > 0) ? ymin.minCoeff() : std::numeric_limits<double>::max();
 #ifdef USE_MPI
       MPI_Allreduce(MPI_IN_PLACE, &minCoeff, 1, MPI_DOUBLE, MPI_MIN, mpicomm);
 #endif
@@ -196,7 +200,7 @@ pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const
         }
 
         int ik; // subdomain which has the maximum feasible step length.
-        s.val = alpha.minCoeff(&ik);
+        s.val = (nsub > 0) ? alpha.minCoeff(&ik) : std::numeric_limits<double>::max();
         s.rank = myrank;
 #ifdef USE_MPI
         MPI_Allreduce(MPI_IN_PLACE, &s, 1, MPI_DOUBLE_INT, MPI_MINLOC, mpicomm);
@@ -269,7 +273,7 @@ pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const
 
           z.head(k) = (DtGDinv.head(k).asDiagonal()*z.head(k)).eval();
 #if defined(_OPENMP)
-#pragma omp parallel for schedule(static,1)
+  #pragma omp parallel for schedule(static,1)
 #endif
           for(int i=0; i<nsub; ++i) {
             Block<MatrixXd,Dynamic,1,true> d = D[i].col(k);

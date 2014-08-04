@@ -1687,7 +1687,7 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
       if(!reactions) break;
       double (*rxyz)[3] = new double[nPrintNodes][3];
       DofSet dofs[3] = { DofSet::Xdisp, DofSet::Ydisp, DofSet::Zdisp };
-      for(int iNode = 0, realNodes = -1; iNode < nNodes; ++iNode) {
+      for(int iNode = 0, realNode = -1; iNode < nNodes; ++iNode) {
         if(outFlag) { if(nodes[first_node+iNode] == 0) continue; nodeI = ++realNode; } else nodeI = iNode;
         for(int k = 0; k < 3; ++k) {
           int dof =   dsa->locate(first_node+iNode, dofs[k].list());

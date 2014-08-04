@@ -168,11 +168,11 @@ GeoSource::writeNodeScalarToFile(double *data, int numData, int glSub, int offse
       // the first subdomain writes zeros for all unasigned nodes
       // TODO for "binaryinput on", Domain->nodeToElem is NULL this fix doesn't work: we need to precompute a list
       // of unassigned nodes, somehow, without using nodeToElem.
-      if(group == -1 && domain->outFlag == 0 && domain->getNodeToElem() != NULL) {
+      if(group == -1 && domain->getNodeToElem() != NULL) {
         int counter = 0;
-        for(int i=0; i<numNodes /*nodes.size()*/; ++i) { // note: nodes.size() is not available when using "binaryinput on"
-          if(domain->getNodeToElem()->num(i) == 0) {
-            int glNode = i;
+        for(int i=0; i<numNodes; ++i) {
+          if(domain->getNodeToElem()->num(i) == 0 && (!domain->outFlag || domain->nodeTable[i] > 0)) {
+            int glNode = (domain->outFlag) ? domain->nodeTable[i]-1 : i;
             if(glNode-glNode_prev != 1) { // need to seek in file for correct position to write next node
               long relativeOffset = long(glNode-glNode_prev-1)*(numComponents*(2+oinfo[fileNumber].width) + 1);
               outfile.seekp(relativeOffset, std::ios_base::cur);

@@ -121,7 +121,7 @@ Domain::printStatistics(bool domain_decomp)
   //         not attached to any elements or LMPC elements.
   if(!nodeTable) {
     exactNumNodes = 0;
-    for(int i=0; i<numnodes; ++i) {
+    for(int i=0; i<nodes.size(); ++i) {
       if(nodes[i] != 0) exactNumNodes++;
     }
   }
@@ -1018,12 +1018,12 @@ void
 Domain::makeNodeTable(int topFlag)
 {
  long m4 = - memoryUsed();
- nodeTable = new int[numnodes];
+ nodeTable = new int[nodes.size()];
  m4 += memoryUsed();
  //fprintf(stderr," ... Node Table %14.3f Mb\n",m4/(1024.0*1024.0));
 
  int inode;
- for(inode=0; inode<numnodes; ++inode)
+ for(inode=0; inode<nodes.size(); ++inode)
    nodeTable[inode] = -1;
 
  // if topFlag = 0, output a topdomdec file with all nodes
@@ -1041,7 +1041,7 @@ Domain::makeNodeTable(int topFlag)
  // and without gaps (nodes renumbered sequentially)
 
  exactNumNodes = 0;
- for(inode=0; inode<numnodes; ++inode) {
+ for(inode=0; inode<nodes.size(); ++inode) {
    if(nodes[inode] == 0) continue;
    exactNumNodes += 1;
    nodeTable[inode] = ((topFlag == 1) || (topFlag == 7)) ? exactNumNodes : inode+1;
@@ -1117,7 +1117,7 @@ Domain::makeTopFile(int topFlag)
  // ... WRITE NODE COORDINATES
  fprintf(cinfo->checkfileptr,"Nodes %s\n",cinfo->nodeSetName);
  int exactNumNodes = 0;
- for(inode=0; inode<numnodes; ++inode) {
+ for(inode=0; inode<nodes.size(); ++inode) {
    if(nodes[inode] == 0) continue;
    Node &nd = nodes.getNode(inode);
    exactNumNodes += 1;

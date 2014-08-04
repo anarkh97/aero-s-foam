@@ -1924,10 +1924,10 @@ int Domain::mergeDistributedDisp(Scalar (*xyz)[11], Scalar *u, Scalar *bcx, Scal
   // PJSA 9-22-06 u is already scaled
   int inode, nodeI;
   int realNode = -1;
-  for (inode = 0; inode < numnodes; ++inode){
 
-    if(nodeToElem)
-      if(nodeToElem->num(inode) <= 0) continue;
+  for(inode = 0; inode < numnodes; ++inode) {
+
+    if(nodes[inode] == 0) continue;
     realNode++;
     nodeI = (outFlag) ? realNode : inode;
 
@@ -2034,7 +2034,6 @@ int Domain::mergeDistributedDisp(Scalar (*xyz)[11], Scalar *u, Scalar *bcx, Scal
 
   return ++realNode;
 }
-
 
 template<class Scalar>
 void Domain::forceDistributedContinuity(Scalar *u, Scalar (*xyz)[11])//DofSet::max_known_nonL_dof
@@ -3486,8 +3485,8 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
           computeReactionForce(fc, sol, kuc, kcc);
           Scalar (*rxyz)[3] = new Scalar[numNodeLim][3];
           DofSet dofs[3] = { DofSet::Xdisp, DofSet::Ydisp, DofSet::Zdisp };
-          for(int inode = 0, realNode = -1; inode < numnodes; ++inode) {
-            if(nodeToElem && nodeToElem->num(inode) <= 0) continue;
+          for(int inode = 0, realNode = -1; inode < nodes.size(); ++inode) {
+            if(nodes[inode] == 0) continue;
             realNode++;
             int nodeI = (outFlag) ? realNode : inode;
             for(int k = 0; k < 3; ++k) {
@@ -3508,8 +3507,8 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
           Scalar (*rxyz)[6] = new Scalar[numNodeLim][6];
           DofSet dofs[6] = { DofSet::Xdisp, DofSet::Ydisp, DofSet::Zdisp,
                              DofSet::Xrot, DofSet::Yrot, DofSet::Zrot };
-          for(int inode = 0, realNode = -1; inode < numnodes; ++inode) {
-            if(nodeToElem && nodeToElem->num(inode) <= 0) continue;
+          for(int inode = 0, realNode = -1; inode < nodes.size(); ++inode) {
+            if(nodes[inode] == 0) continue;
             realNode++;
             int nodeI = (outFlag) ? realNode : inode;
             for(int k = 0; k < 6; ++k) {
@@ -3529,8 +3528,8 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
           computeReactionForce(fc, sol, kuc, kcc);
           Scalar *rxyz = new Scalar[numNodeLim];
           DofSet dofs[1] = { DofSet::Temp };
-          for(int inode = 0, realNode = -1; inode < numnodes; ++inode) {
-            if(nodeToElem && nodeToElem->num(inode) <= 0) continue;
+          for(int inode = 0, realNode = -1; inode < nodes.size(); ++inode) {
+            if(nodes[inode] == 0) continue;
             realNode++;
             int nodeI = (outFlag) ? realNode : inode;
             for(int k = 0; k < 1; ++k) {

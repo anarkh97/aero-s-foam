@@ -2116,9 +2116,9 @@ void GeoSource::outputNodeScalars(int fileNum, double *data,
     std::list<int>::iterator it = nodeGroup[group].begin();
 
     while (it != nodeGroup[group].end() )  {
-      int inode = *it;
-      filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E % *.*E\n", inode+1, w,p,
-                nodes[inode]->x, w,p, nodes[inode]->y, w,p, nodes[inode]->z, w,p, data[inode]);
+      int inode = (domain->outFlag == 1) ? domain->nodeTable[*it]-1 : *it;
+      filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E % *.*E\n", *it+1, w,p,
+                nodes[*it]->x, w,p, nodes[*it]->y, w,p, nodes[*it]->z, w,p, data[inode]);
       it++;
     }
 
@@ -2156,9 +2156,9 @@ void GeoSource::outputNodeScalars(int fileNum, DComplex *data, int outputSize, d
         std::list<int>::iterator it = nodeGroup[group].begin();
 
         while (it != nodeGroup[group].end() )  {
-          int inode = *it;
-          filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E % *.*E % *.*E\n", inode+1, w, p,
-                    nodes[inode]->x, w,p, nodes[inode]->y, w,p, nodes[inode]->z,
+          int inode = (domain->outFlag == 1) ? domain->nodeTable[*it]-1 : *it;
+          filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E % *.*E % *.*E\n", *it+1, w, p,
+                    nodes[*it]->x, w,p, nodes[*it]->y, w,p, nodes[*it]->z,
                     w,p, data[inode].real(), w, p, data[inode].imag());
           it++;
         }
@@ -2192,9 +2192,9 @@ void GeoSource::outputNodeScalars(int fileNum, DComplex *data, int outputSize, d
         std::list<int>::iterator it = nodeGroup[group].begin();
 
         while (it != nodeGroup[group].end() )  {
-          int inode = *it;
-          filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E % *.*E % *.*E\n", inode+1, w, p,
-                    nodes[inode]->x, w,p, nodes[inode]->y, w,p, nodes[inode]->z,
+          int inode = (domain->outFlag == 1) ? domain->nodeTable[*it]-1 : *it;
+          filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E % *.*E % *.*E\n", *it+1, w, p,
+                    nodes[*it]->x, w,p, nodes[*it]->y, w,p, nodes[*it]->z,
                     w, p, std::abs(data[inode]), w, p, arg(data[inode]));
           it++;
         }

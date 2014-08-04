@@ -201,7 +201,7 @@ GeoSource::writeNodeScalarToFile(double *data, int numData, int glSub, int offse
         std::list<int>::iterator it = nodeGroup[group].begin();
         int grNode = 0;
         while(it != nodeGroup[group].end()) {
-          int inode = *it;
+          int inode = (domain->outFlag) ? domain->nodeTable[*it]-1 : *it;
           if(inode == glNode) break;
           it++; grNode++;
         }

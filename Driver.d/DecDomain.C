@@ -1225,7 +1225,7 @@ GenDecDomain<Scalar>::getPrimalVector(int fileNumber, Scalar (*xyz)[11], int num
       geoSource->outputNodeVectors6(fileNumber, xyz, numNodes, time);
     }
     else  {
-      inode = oinfo.nodeNumber;
+      inode = (domain->outFlag == 1) ? domain->nodeTable[oinfo.nodeNumber]-1 : oinfo.nodeNumber;
       geoSource->outputNodeVectors6(fileNumber, xyz+inode, 1, time);
     }
   }
@@ -1234,7 +1234,7 @@ GenDecDomain<Scalar>::getPrimalVector(int fileNumber, Scalar (*xyz)[11], int num
       geoSource->outputNodeVectors(fileNumber, xyz, numNodes, time);
     }
     else  {
-      inode = oinfo.nodeNumber;
+      inode = (domain->outFlag == 1) ? domain->nodeTable[oinfo.nodeNumber]-1 : oinfo.nodeNumber;
       geoSource->outputNodeVectors(fileNumber, xyz+inode, 1, time);
     }
   }
@@ -1255,7 +1255,7 @@ GenDecDomain<Scalar>::getPrimalScalar(int fileNumber, Scalar (*xyz)[11], int num
     geoSource->outputNodeScalars(fileNumber, xyz_dof, numNodes, time);
   }
   else {
-    inode = oinfo.nodeNumber;
+    inode = (domain->outFlag == 1) ? domain->nodeTable[oinfo.nodeNumber]-1 : oinfo.nodeNumber;
     geoSource->outputNodeScalars(fileNumber, xyz[inode]+dof, 1, time);
   }
 } 
@@ -1274,7 +1274,7 @@ GenDecDomain<Scalar>::getAeroForceScalar(int fileNumber, Scalar (*mergedAeroF)[6
       geoSource->outputNodeScalars(fileNumber, mergedAeroF[inode]+dof, 1);
   }
   else {
-    inode = oinfo.nodeNumber;
+    inode = (domain->outFlag == 1) ? domain->nodeTable[oinfo.nodeNumber]-1 : oinfo.nodeNumber;
     geoSource->outputNodeScalars(fileNumber, mergedAeroF[inode]+dof, 1, time);
   }
 }

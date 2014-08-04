@@ -3110,11 +3110,12 @@ int Domain::processDispTypeOutputs(OutputInfo &oinfo, Scalar (*glDisp)[11], int 
     case OutputInfo::EigenPair:  {
       if (success == 0)
         tag = freq;
-      if (oinfo.nodeNumber == -1) { // all nodes
+      if (oinfo.nodeNumber == -1) { // all nodes, or select group
         geoSource->outputNodeVectors(i, glDisp, numNodes, tag);
       }
-      else {   // one node
-        geoSource->outputNodeVectors(i, &(glDisp[oinfo.nodeNumber]), 1, tag);
+      else { // one node
+        int inode = (outFlag == 1) ? nodeTable[oinfo.nodeNumber]-1 : oinfo.nodeNumber;
+        geoSource->outputNodeVectors(i, &(glDisp[inode]), 1, tag);
       }
       success = 1;
     }
@@ -3125,11 +3126,12 @@ int Domain::processDispTypeOutputs(OutputInfo &oinfo, Scalar (*glDisp)[11], int 
     case OutputInfo::EigenPair6:  {
      if (success == 0)
         tag = freq;
-      if (oinfo.nodeNumber == -1) { // all nodes
+      if (oinfo.nodeNumber == -1) { // all nodes, or select group
         geoSource->outputNodeVectors6(i, glDisp, numNodes, tag);
       }
-      else {
-        geoSource->outputNodeVectors6(i, &(glDisp[oinfo.nodeNumber]), 1, tag);
+      else { // one node
+        int inode = (outFlag == 1) ? nodeTable[oinfo.nodeNumber]-1 : oinfo.nodeNumber;
+        geoSource->outputNodeVectors6(i, &(glDisp[inode]), 1, tag);
       }
       success = 1;
     }
@@ -3190,8 +3192,10 @@ int Domain::processDispTypeOutputs(OutputInfo &oinfo, Scalar (*glDisp)[11], int 
         }
         if (oinfo.nodeNumber == -1)
           geoSource->outputNodeScalars(i, globVal, numNodes, time);
-        else
-          geoSource->outputNodeScalars(i, &(globVal[oinfo.nodeNumber]), 1, time);
+        else {
+          int inode = (outFlag == 1) ? nodeTable[oinfo.nodeNumber]-1 : oinfo.nodeNumber;
+          geoSource->outputNodeScalars(i, &(globVal[inode]), 1, time);
+        }
         break;
       case OutputInfo::Temperature:
         if (dof==-1) { dof = 6; tag = time; }
@@ -3216,8 +3220,10 @@ int Domain::processDispTypeOutputs(OutputInfo &oinfo, Scalar (*glDisp)[11], int 
         }
         if(oinfo.nodeNumber == -1)
           geoSource->outputNodeScalars(i, globVal, numNodes, tag);
-        else
-          geoSource->outputNodeScalars(i, &(globVal[oinfo.nodeNumber]), 1, tag);
+        else {
+          int inode = (outFlag == 1) ? nodeTable[oinfo.nodeNumber]-1 : oinfo.nodeNumber;
+          geoSource->outputNodeScalars(i, &(globVal[inode]), 1, tag);
+        }
         break;
       default:
         break;

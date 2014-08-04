@@ -663,10 +663,10 @@ GeoSource::outputNodeVectors(int fileNum, double (*glv)[bound], int outputSize, 
 
     while (it != nodeGroup[group].end() )  {
 
-      int inode = *it;
+      int inode = (domain->outFlag == 1) ? domain->nodeTable[*it]-1 : *it;
 
       filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
-                inode+1, w, p, nodes[inode]->x, w, p, nodes[inode]->y, w, p, nodes[inode]->z,
+                *it+1, w, p, nodes[*it]->x, w, p, nodes[*it]->y, w, p, nodes[*it]->z,
                 w, p, glv[inode][0], w, p, glv[inode][1], w, p, glv[inode][2]);
       it++;
     }
@@ -710,9 +710,9 @@ GeoSource::outputNodeVectors(int fileNum, DComplex (*glv)[bound], int outputSize
 
         while (it != nodeGroup[group].end() )  {
 
-         int inode = *it;
+         int inode = (domain->outFlag == 1) ? domain->nodeTable[*it]-1 : *it;
          filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E  % *.*E % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E \n",
-              inode+1, w, p, nodes[inode]->x, w, p, nodes[inode]->y, w, p, nodes[inode]->z,
+              *it+1, w, p, nodes[*it]->x, w, p, nodes[*it]->y, w, p, nodes[*it]->z,
               w,p,glv[inode][0].real(), w,p,glv[inode][0].imag(), w,p,glv[inode][1].real(),
               w,p,glv[inode][1].imag(), w,p,glv[inode][2].real(), w,p,glv[inode][2].imag());
           it++;
@@ -757,9 +757,9 @@ GeoSource::outputNodeVectors(int fileNum, DComplex (*glv)[bound], int outputSize
 
         while (it != nodeGroup[group].end() )  {
 
-          int inode = *it;
+          int inode = (domain->outFlag == 1) ? domain->nodeTable[*it]-1 : *it;
           fprintf(oinfo[fileNum].filptr, " %d % *.*E % *.*E  % *.*E % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E \n",
-              inode+1, w, p, nodes[inode]->x, w, p, nodes[inode]->y, w, p, nodes[inode]->z, w,p,
+              *it+1, w, p, nodes[*it]->x, w, p, nodes[*it]->y, w, p, nodes[*it]->z, w,p,
               std::abs(glv[inode][0]), w,p,std::abs(glv[inode][1]), w,p,std::abs(glv[inode][2]),
               w,p,arg(glv[inode][0]), w,p,arg(glv[inode][1]), w,p,arg(glv[inode][2]));
           it++;
@@ -837,9 +837,9 @@ void GeoSource::outputNodeVectors6(int fileNum, double (*xyz)[bound],
 
     while (it != nodeGroup[group].end() )  {
 
-      int inode = *it;
+      int inode = (domain->outFlag == 1) ? domain->nodeTable[*it]-1 : *it;
       filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
-                inode+1, w, p, nodes[inode]->x, w, p, nodes[inode]->y, w, p, nodes[inode]->z,
+                *it+1, w, p, nodes[*it]->x, w, p, nodes[*it]->y, w, p, nodes[*it]->z,
                 w, p, xyz[inode][0], w, p, xyz[inode][1], w, p, xyz[inode][2],
                 w, p, xyz[inode][3], w, p, xyz[inode][4], w, p, xyz[inode][5]);
       it++;
@@ -886,10 +886,10 @@ void GeoSource::outputNodeVectors6(int fileNum, DComplex (*xyz)[bound],
         std::list<int>::iterator it = nodeGroup[group].begin();
 
         while (it != nodeGroup[group].end() )  {
-          int inode = *it;
+          int inode = (domain->outFlag == 1) ? domain->nodeTable[*it]-1 : *it;
           filePrint(oinfo[fileNum].filptr,
             " %d % *.*E % *.*E  % *.*E % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E\n",
-            inode+1, w, p, nodes[inode]->x, w, p, nodes[inode]->y, w, p, nodes[inode]->z,
+            *it+1, w, p, nodes[*it]->x, w, p, nodes[*it]->y, w, p, nodes[*it]->z,
             w, p, xyz[inode][0].real(), w, p, xyz[inode][1].real(), w, p, xyz[inode][2].real(),
             w, p, xyz[inode][3].real(), w, p, xyz[inode][4].real(), w, p, xyz[inode][5].real(),
             w, p, xyz[inode][0].imag(), w, p, xyz[inode][1].imag(), w, p, xyz[inode][2].imag(),
@@ -945,10 +945,10 @@ void GeoSource::outputNodeVectors6(int fileNum, DComplex (*xyz)[bound],
         std::list<int>::iterator it = nodeGroup[group].begin();
 
         while (it != nodeGroup[group].end() )  {
-          int inode = *it;
+          int inode = (domain->outFlag == 1) ? domain->nodeTable[*it]-1 : *it;
           filePrint(oinfo[fileNum].filptr,
             " %d % *.*E % *.*E  % *.*E % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E  % *.*E % *.*E\n",
-                  inode+1, w, p, nodes[inode]->x, w, p, nodes[inode]->y, w, p, nodes[inode]->z,
+                  *it+1, w, p, nodes[*it]->x, w, p, nodes[*it]->y, w, p, nodes[*it]->z,
                   w, p, std::abs(xyz[inode][0]), w, p, std::abs(xyz[inode][1]),
                   w, p, std::abs(xyz[inode][2]), w, p, std::abs(xyz[inode][3]),
                   w, p, std::abs(xyz[inode][4]), w, p, std::abs(xyz[inode][5]),
@@ -1043,9 +1043,9 @@ void GeoSource::outputNodeVectors9(int fileNum, double (*xyz)[bound],
 
     while (it != nodeGroup[group].end() )  {
 
-      int inode = *it;
+      int inode = (domain->outFlag == 1) ? domain->nodeTable[*it]-1 : *it;
       filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
-                inode+1, w, p, nodes[inode]->x, w, p, nodes[inode]->y, w, p, nodes[inode]->z,
+                *it+1, w, p, nodes[*it]->x, w, p, nodes[*it]->y, w, p, nodes[*it]->z,
                 w, p, xyz[inode][0], w, p, xyz[inode][1], w, p, xyz[inode][2],
                 w, p, xyz[inode][3], w, p, xyz[inode][4], w, p, xyz[inode][5],
                 w, p, xyz[inode][6], w, p, xyz[inode][7], w, p, xyz[inode][8]);
@@ -1094,9 +1094,9 @@ void GeoSource::outputNodeVectors4(int fileNum, double (*xyz)[bound],
 
     while (it != nodeGroup[group].end() )  {
 
-      int inode = *it;
+      int inode = (domain->outFlag == 1) ? domain->nodeTable[*it]-1 : *it;
       filePrint(oinfo[fileNum].filptr, " %d % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E % *.*E\n",
-                inode+1, w, p, nodes[inode]->x, w, p, nodes[inode]->y, w, p, nodes[inode]->z,
+                *it+1, w, p, nodes[*it]->x, w, p, nodes[*it]->y, w, p, nodes[*it]->z,
                 w, p, xyz[inode][0], w, p, xyz[inode][1], w, p, xyz[inode][2],
                 w, p, xyz[inode][3]);
       it++;

@@ -482,7 +482,7 @@ double
 MpcElement::getAccelerationConstraintRhs(GeomState* refState, GeomState& gState, CoordSet& cs, double t)
 {
   // compute rhs = -(G(q)*qdot)_q * qdot assuming other terms are zero. Overload function if this assumption is not correct
-  // XXX consider nodal frames
+  // XXX consider nodal frames (careful though, this function is used by both LMPCs and constraint function elements)
   FullSquareMatrix H(nterms);
   getHessian(refState, gState, cs, H, t);
   Vector v(nterms);
@@ -506,7 +506,6 @@ MpcElement::getAccelerationConstraintRhs(GeomState* refState, GeomState& gState,
 
   return -(v*Hv);
 }
-
 
 void
 MpcElement::getResidualCorrection(GeomState& c1, double* r)

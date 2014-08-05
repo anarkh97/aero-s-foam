@@ -18,6 +18,8 @@ class DotType2ConstraintElement : public ConstraintFunctionElement<Simo::DotType
     void buildFrame(CoordSet&);
     static const DofSet NODALDOFS[2];
     void setConstantTerm(double _d0) { d0 = _d0; }
+    double getVelocityConstraintRhs(GeomState*, GeomState&, CoordSet&, double);
+    double getAccelerationConstraintRhs(GeomState*, GeomState&, CoordSet&, double);
 
   protected:
     void getConstants(CoordSet& cs, Eigen::Array<double,7,1>& sconst, Eigen::Array<int,0,1>&, GeomState *gs = NULL);

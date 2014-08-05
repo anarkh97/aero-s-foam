@@ -8,13 +8,11 @@ Eigen::Matrix<double,3,3>
 Jacobian<double,InertialType2ForceFunction>
 ::operator() (const Eigen::Matrix<double,3,1>& q, double t)
 {
-  Eigen::Matrix3d J, T, Tdot, C1a, C1b, C2, C4, C5, Omegax, Px;
-  Eigen::Vector3d A_n, V_n, Psi_n, inc_displacement, A, V, Omega, P, F;
+  Eigen::Matrix3d T, Tdot, C1a, C1b, C2, C4, C5;
+  Eigen::Vector3d inc_displacement, A, V, Omega, P, F;
 
-  J = Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor> >(const_cast<double*>(sconst.data())+0);
-  A_n = Eigen::Map<Eigen::Matrix<double,3,1> >(const_cast<double*>(sconst.data())+9);
-  V_n = Eigen::Map<Eigen::Matrix<double,3,1> >(const_cast<double*>(sconst.data())+12);
-  Psi_n = Eigen::Map<Eigen::Matrix<double,3,1> >(const_cast<double*>(sconst.data())+15);
+  Eigen::Map<const Eigen::Matrix<double,3,3,Eigen::RowMajor> > J(sconst.data()+0);
+  Eigen::Map<const Eigen::Vector3d> A_n(sconst.data()+9), V_n(sconst.data()+12), Psi_n(sconst.data()+15);
   const double &beta   = sconst[18];
   const double &gamma  = sconst[19];
   const double &alphaf = sconst[20];
@@ -31,13 +29,7 @@ Jacobian<double,InertialType2ForceFunction>
   tangential_transf(q, T);
   tangential_transf_dot(q, V, Tdot);
   Omega = T*V;
-  Omegax <<         0, -Omega[2],  Omega[1],
-             Omega[2],         0, -Omega[0],
-            -Omega[1],  Omega[0],         0;
   P = J*Omega;
-  Px <<     0, -P[2],  P[1],
-         P[2],     0, -P[0],
-        -P[1],  P[0],     0;
   F = J*(T*A + Tdot*V) + Omega.cross(P);
   directional_deriv1(q, A, C1a);
   directional_deriv1(q, V, C1b);
@@ -45,7 +37,7 @@ Jacobian<double,InertialType2ForceFunction>
   directional_deriv4(q, V, C4);
   directional_deriv5(q, V, C5);
 
-  return C2 + T.transpose()*(J*(C1a+s2*T + C5+s1*C4) + (Omegax*J - Px)*(C1b+s1*T));
+  return C2 + T.transpose()*(J*(C1a+s2*T + C5+s1*C4) + (skew(Omega)*J - skew(P))*(C1b+s1*T));
 }
 
 } // namespace Simo

@@ -55,4 +55,17 @@ AngleType1ConstraintElement::buildFrame(CoordSet& cs)
 
   ConstraintFunctionElement<Simo::AngleType1ConstraintFunction>::buildFrame(cs);
 }
+
+double
+AngleType1ConstraintElement::getVelocityConstraintRhs(GeomState*, GeomState&, CoordSet&, double)
+{
+  return 0.;
+}
+
+double
+AngleType1ConstraintElement::getAccelerationConstraintRhs(GeomState* refState, GeomState& gState, CoordSet& cs, double t)
+{
+  return MpcElement::getAccelerationConstraintRhs(refState, gState, cs, t);
+}
+
 #endif

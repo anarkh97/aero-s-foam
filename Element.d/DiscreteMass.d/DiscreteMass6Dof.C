@@ -291,7 +291,7 @@ DiscreteMass6Dof::getInertialStiffAndForce(GeomState *refState, GeomState& c1, C
   }
 
   Eigen::Vector3d u, u_n, F, G, P, Q;
-  Eigen::Matrix3d E, Fx, Gx, Omegax, uddotx, Px, Qx;
+  Eigen::Matrix3d E;
   Eigen::Matrix<double,6,1> a, v, inc_displacement;
 
   Eigen::Map<Eigen::Matrix<double,6,1> > a_n((*refState)[nn[0]].a), v_n((*refState)[nn[0]].v);
@@ -316,24 +316,6 @@ DiscreteMass6Dof::getInertialStiffAndForce(GeomState *refState, GeomState& c1, C
   G = R*(C*Alpha + Omega.cross(C*Omega));
   P = J0*Omega;
   Q = C*Omega;
-  Fx <<     0, -F[2],  F[1],
-         F[2],     0, -F[0],
-        -F[1],  F[0],     0;
-  Gx <<     0, -G[2],  G[1],
-         G[2],     0, -G[0],
-        -G[1],  G[0],     0;
-  Omegax <<         0, -Omega[2],  Omega[1],
-             Omega[2],         0, -Omega[0],
-            -Omega[1],  Omega[0],         0;
-  uddotx <<         0, -uddot[2],  uddot[1],
-             uddot[2],         0, -uddot[0],
-            -uddot[1],  uddot[0],         0;
-  Px <<     0, -P[2],  P[1],
-         P[2],     0, -P[0],
-        -P[1],  P[0],     0;
-  Qx <<     0, -Q[2],  Q[1],
-         Q[2],     0, -Q[0],
-        -Q[1],  Q[0],     0;
 
   Eigen::Array<double,18,1> sconst;
   sconst << (*refState)[nn[0]].R[0][0], (*refState)[nn[0]].R[0][1], (*refState)[nn[0]].R[0][2],
@@ -351,9 +333,9 @@ DiscreteMass6Dof::getInertialStiffAndForce(GeomState *refState, GeomState& c1, C
 
   // compute the jacobian of the inertial forces and moments, minus s2*M
   K.topLeftCorner<3,3>()     = Eigen::Matrix3d::Zero();
-  K.topRightCorner<3,3>()    = m*(Gx - R*(s2*C + s1*(Omegax*C - Qx))*D + s2*C);
+  K.topRightCorner<3,3>()    = m*(skew(G) - R*(s2*C + s1*(skew(Omega)*C - skew(Q)))*D + s2*C);
   K.bottomLeftCorner<3,3>()  = s2*m*(E + C.transpose());
-  K.bottomRightCorner<3,3>() = -0.5*Fx + m*E*uddotx + R*(s2*J0 + s1*(Omegax*J0 - Px))*D - s2*J0;
+  K.bottomRightCorner<3,3>() = -0.5*skew(F) + m*E*skew(uddot) + R*(s2*J0 + s1*(skew(Omega)*J0 - skew(P)))*D - s2*J0;
 }
 
 void

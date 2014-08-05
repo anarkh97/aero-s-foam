@@ -10,18 +10,14 @@ Eigen::Matrix<double,6,6>
 Jacobian<double,Inertial6DofForceFunction>
 ::operator() (const Eigen::Matrix<double,6,1>& q, double t)
 {
-  Eigen::Vector3d c, u_n, F, G, P, Q;
-  Eigen::Matrix3d J, J0, C, E, R_n, Rref, Fx, Gx, Omegax, uddotx, Px, Qx;
-  Eigen::Matrix<double,6,1> j, a_n, v_n, a, v, inc_displacement;
+  Eigen::Vector3d F, G, P, Q;
+  Eigen::Matrix3d J, J0, C, E;
+  Eigen::Matrix<double,6,1> a, v, inc_displacement;
 
   const double &m = sconst[0];
-  j = Eigen::Map<Eigen::Matrix<double,6,1> >(const_cast<double*>(sconst.data())+1);
-  c = Eigen::Map<Eigen::Matrix<double,3,1> >(const_cast<double*>(sconst.data())+7);
-  a_n = Eigen::Map<Eigen::Matrix<double,6,1> >(const_cast<double*>(sconst.data())+10);
-  v_n = Eigen::Map<Eigen::Matrix<double,6,1> >(const_cast<double*>(sconst.data())+16);
-  u_n = Eigen::Map<Eigen::Matrix<double,3,1> >(const_cast<double*>(sconst.data())+22);
-  R_n = Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor> >(const_cast<double*>(sconst.data())+25);
-  Rref = Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor> >(const_cast<double*>(sconst.data())+34);
+  Eigen::Map<const Eigen::Matrix<double,6,1> > j(sconst.data()+1), a_n(sconst.data()+10), v_n(sconst.data()+16);
+  Eigen::Map<const Eigen::Vector3d> c(sconst.data()+7), u_n(sconst.data()+22);
+  Eigen::Map<const Eigen::Matrix<double,3,3,Eigen::RowMajor> > R_n(sconst.data()+25), Rref(sconst.data()+34);
   const double &beta   = sconst[43];
   const double &gamma  = sconst[44];
   const double &alphaf = sconst[45];
@@ -59,24 +55,6 @@ Jacobian<double,Inertial6DofForceFunction>
   G = Rref*(C*Alpha + Omega.cross(C*Omega));
   P = J0*Omega;
   Q = C*Omega;
-  Fx <<     0, -F[2],  F[1],
-         F[2],     0, -F[0],
-        -F[1],  F[0],     0;
-  Gx <<     0, -G[2],  G[1],
-         G[2],     0, -G[0],
-        -G[1],  G[0],     0;
-  Omegax <<         0, -Omega[2],  Omega[1],
-             Omega[2],         0, -Omega[0],
-            -Omega[1],  Omega[0],         0;
-  uddotx <<         0, -uddot[2],  uddot[1],
-             uddot[2],         0, -uddot[0],
-            -uddot[1],  uddot[0],         0;
-  Px <<     0, -P[2],  P[1],
-         P[2],     0, -P[0],
-        -P[1],  P[0],     0;
-  Qx <<     0, -Q[2],  Q[1],
-         Q[2],     0, -Q[0],
-        -Q[1],  Q[0],     0;
 
   Eigen::Array<double,18,1> sconst2 = sconst.segment<18>(25);
   Jacobian<double,IncrementalRotationVector> dPsidq(sconst2, Eigen::Array<int,0,1>::Zero());
@@ -85,16 +63,12 @@ Jacobian<double,Inertial6DofForceFunction>
   Eigen::Matrix<double,6,6> K;
   if( (q.tail<3>().array() == 0).all() ) {
     K.topLeftCorner<3,3>()     = s2*m*Eigen::Matrix3d::Identity();
-    K.topRightCorner<3,3>()    = -m*(-Gx + Rref*(s2*C + s1*(Omegax*C - Qx))*D);
+    K.topRightCorner<3,3>()    = -m*(-skew(G) + Rref*(s2*C + s1*(skew(Omega)*C - skew(Q)))*D);
     K.bottomLeftCorner<3,3>()  = s2*m*E;
-    K.bottomRightCorner<3,3>() = -0.5*Fx + m*E*uddotx + Rref*(s2*J0 + s1*(Omegax*J0 - Px))*D;
+    K.bottomRightCorner<3,3>() = -0.5*skew(F) + m*E*skew(uddot) + Rref*(s2*J0 + s1*(skew(Omega)*J0 - skew(P)))*D;
   }
   else {
     std::cerr << "Error: Jacobian<double,Inertial6DofForceFunction>::operator() is not implemented for Δψ != 0\n";
-    //Eigen::Matrix3d T, C2;
-    //tangential_transf(q, T);
-    //directional_deriv2(q, F, C2);
-    //return C2 + T.transpose()*Rref*(s2*J + s1*(Vx*J - Px))*dPsidq(q, t);
   }
 
   return K;

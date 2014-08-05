@@ -8,6 +8,8 @@ class DistanceConstraintElement : public ConstraintFunctionElement<Simo::Distanc
 {
   public:
     DistanceConstraintElement(int* _nn, double f0, int type = 0); 
+    double getVelocityConstraintRhs(GeomState*, GeomState&, CoordSet&, double);
+    double getAccelerationConstraintRhs(GeomState*, GeomState&, CoordSet&, double);
 
   protected:
     double f0;

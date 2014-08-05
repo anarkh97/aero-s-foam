@@ -166,7 +166,6 @@ Shell3Corotator::getStiffAndForce(GeomState &geomState, CoordSet &cs,
 
  // For a zero deformation, stiffGeo1 and stiffGeo2 are zero matrics.
 
- //formGeometricStiffness(xl0,xln,pmat,gmat,f,stiffGeo1,stiffGeo2,fe);
  // build correct geometric stiffness matrix
 
  formCorrectGeometricStiffness(rotvarCopy,xln,pmat,gmat,f,
@@ -230,7 +229,7 @@ Shell3Corotator::getInternalForce(GeomState &geomState, CoordSet &cs,
  _FORTRAN(dgemv)('N',18,18,1.0,(double *)origK,18,vld,1,0.0,locF,1);
 
  // Compute gradients of the nodal deformational pseudorotations
- // Correct element stiffness and internal force
+ // Correct element internal force
 
  double rotvar[3][3][3];
 
@@ -284,7 +283,6 @@ Shell3Corotator::getExternalForce(GeomState &geomState, CoordSet &cs, double *f)
  double xl0[3][3], xln[3][3], t0[3][3], t0n[3][3], vld[18], locF[18];
 
  extractDefDisp(node1,node2,node3, ns1,ns2,ns3, xl0,xln, t0,t0n, vld );
- 
  
  //compute H
  double rotvar[3][3][3];
@@ -379,7 +377,6 @@ Shell3Corotator::formGeometricStiffness(GeomState &geomState, CoordSet &cs,
  // For a zero deformation, stiffGeo1 and stiffGeo2 are zero matrics.
  //
 
- //formGeometricStiffness(xl0,xln,pmat,gmat,f,stiffGeo1,stiffGeo2,fe);
  formCorrectGeometricStiffness(rotvar,xln,pmat,gmat,f,stiffGeo1,stiffGeo2,fe,t0n);
 
  int j;
@@ -541,83 +538,8 @@ Shell3Corotator::getGlobalDisp(GeomState& geomState, CoordSet &cs, Vector& disp)
 	
 //-----------------------------------------------------------------------
 
-void
-Shell3Corotator::formGeometricStiffness(double [3][3], 
-                            double [3][3], double pmat[18][18], 
-                            double gmat[3][18], double f[18], 
-                            double stiffGeo1[18][18], 
-                            double stiffGeo2[18][18],double fe[18])
-/****************************************************************
- *
- *  Purpose:
- *     Form geometric stiffness in local coordinate system for
- *     a corotational element based on current material stiffness
- *     and internal force.
- *
- *  Input:
- *
- *     xl0    : local coordinates of undeformed shadow element
- *              xl0[i][j] is local coordinate component j of node i
- *              element is assumed best fit in xy-plane. i.e.
- *              z coordinate is zero for 3-node element.
- *     xln    : local coordinates of deformed element
- *     pmat   : nonlinear projector matrix for current configuration
- *     pmatold: nonlinear projector matrix, not corrected for pseudovectors
- *     fint   : internal force
- *
- *  Output:
- *     stiffGeo1  : geometric stiffness, rotation contribution
- *     stiffGeo2  : geometric stiffness, equilibrium contribution
- *
- *  Coded by: Bjorn Haugen; Adjusted for C++ by Teymour Manzouri
- *****************************************************************/
-{
-   int i, j, k;
-   double fspin[18][3], fproj[18][3];
-
-   //fprintf(stderr,"\nWATCH: incorrect geometric stiffness routines called\n");
-
-// Fspin with both axial and moment contributions
-   spinAxialAndMoment( f, fspin );
-
-// Geometric stiffness contribution Kgeo1 = -Fspin*Gmat
-
-   for( i=0; i<18; ++i ) {
-      for( j=0; j<18; ++j ) {
-         stiffGeo1[i][j] = -( fspin[i][0]*gmat[0][j]
-                             +fspin[i][1]*gmat[1][j]
-                             +fspin[i][2]*gmat[2][j] );
-      }
-   }
-
-// Geometric stiffness contribution Kgeo2 = -Gmat'*Fspin'*Pmat
-// where Fspin does not contain any moment contributions
-
-// Fspin with only axial contributions
-   spinAxial( f, fspin );
-
-// Compute Fproj' = Fspin'*Pmat
-
-   for( i=0; i<3; ++i ) {
-      for( j=0; j<18; ++j ) {
-         fproj[j][i] = 0.0;
-         for( k=0; k<18; ++k )
-            fproj[j][i] += fspin[k][i]*pmat[k][j];
-      }
-   }
-
-   for( i=0; i<18; ++i )
-      for( j=0; j<18; ++j )
-         stiffGeo2[i][j] = -( gmat[0][i]*fproj[j][0]
-			     +gmat[1][i]*fproj[j][1]
-                             +gmat[2][i]*fproj[j][2] );
-
-}
-
-//---------------------------------------------------------------------------
-
 void 
-Shell3Corotator::spinAxialAndMoment ( double f[], double fnm[][3])
+Shell3Corotator::spinAxialAndMoment(double f[], double fnm[][3])
 /****************************************************************
  *
  *  Purpose:
@@ -672,7 +594,6 @@ Shell3Corotator::formRotationGradientMatrix(double x[3][3], double y[3][3],
 /***********************************************************************
  *
  *   Compute rotation gradient matrix for a 3 node element
- *   routine gmat_3node in c programs
  *
  *   Input:
  *     fitalg : == 1 x axis along side 1-2, both for t0 and t0n
@@ -759,7 +680,7 @@ Shell3Corotator::formRotationGradientMatrix(double x[3][3], double y[3][3],
       }
    }
 
-   else {                            // ********* fitalg == 1 == default ***
+   else {                            // ********* fitalg == default ***
       i = 2;
       j = p[i+1];
       k = p[i+2];
@@ -770,42 +691,6 @@ Shell3Corotator::formRotationGradientMatrix(double x[3][3], double y[3][3],
       gmat[2][kk   ] = -gmat[2][jj   ];
       gmat[2][kk +1] = -gmat[2][jj +1];
    }
-
-/*
-   int i,j;
-
-// Initialize all entries in gmat to zero
-   for( i=0; i<3; i++ )
-     for( j=0; j<18; j++ )
-       gmat[i][j] = 0.0;
-
-// Compute the area of the triangle
-   double area2 = (x[1][0]*y[2][0] - x[2][0]*y[1][0]);
-
-   gmat[0][2]   = x[2][1]/area2;
-   gmat[0][8]   = x[0][2]/area2;
-   gmat[0][14]  = x[1][0]/area2;
-
-   gmat[1][2]   = y[2][1]/area2;
-   gmat[1][8]   = y[0][2]/area2;
-   gmat[1][14]  = y[1][0]/area2;
-
-   double len1 = xln[0][0]*xln[0][0]+xln[0][1]*xln[0][1];
-   double len2 = xln[1][0]*xln[1][0]+xln[1][1]*xln[1][1];
-   double len3 = xln[2][0]*xln[2][0]+xln[2][1]*xln[2][1];
-
-   double coef1 = (xln[0][1] - xln[0][0])/(3.0*len1);
-   double coef2 = (xln[1][1] - xln[1][0])/(3.0*len2);
-   double coef3 = (xln[2][1] - xln[2][0])/(3.0*len3);
-
-   gmat[2][0]  = coef1;
-   gmat[2][1]  = coef1;
-   gmat[2][6]  = coef2;
-   gmat[2][7]  = coef2;
-   gmat[2][12] = coef3;
-   gmat[2][13] = coef3;
-
-*/
 
 }
 
@@ -867,7 +752,7 @@ Shell3Corotator::gradDefDisp(double [][3], double xln[][3],
 /***********************************************************************
  *
  *   Compute the gradients of the deformational displacement
- *   vector with respect to the visibel dofs for an element
+ *   vector with respect to the visible dofs for an element
  *   Nonlinear version
  *
  *   routine pmat_nonlin.c in c programs

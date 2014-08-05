@@ -57,4 +57,17 @@ DotType2ConstraintElement::buildFrame(CoordSet& cs)
 
   ConstraintFunctionElement<Simo::DotType2ConstraintFunction>::buildFrame(cs);
 }
+
+double
+DotType2ConstraintElement::getVelocityConstraintRhs(GeomState*, GeomState&, CoordSet&, double)
+{
+  return 0.;
+}
+
+double
+DotType2ConstraintElement::getAccelerationConstraintRhs(GeomState* refState, GeomState& gState, CoordSet& cs, double t)
+{
+  return MpcElement::getAccelerationConstraintRhs(refState, gState, cs, t);
+}
+
 #endif

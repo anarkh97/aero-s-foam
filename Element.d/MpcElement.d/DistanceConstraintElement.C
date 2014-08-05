@@ -13,4 +13,17 @@ DistanceConstraintElement::getConstants(CoordSet& cs, Eigen::Array<double,4,1>& 
   sconst << cs[nn[1]]->x - cs[nn[0]]->x, cs[nn[1]]->y - cs[nn[0]]->y, cs[nn[1]]->z - cs[nn[0]]->z,
             f0;
 }
+
+double
+DistanceConstraintElement::getVelocityConstraintRhs(GeomState*, GeomState&, CoordSet&, double)
+{
+  return 0.;
+}
+
+double
+DistanceConstraintElement::getAccelerationConstraintRhs(GeomState* refState, GeomState& gState, CoordSet& cs, double t)
+{
+  return MpcElement::getAccelerationConstraintRhs(refState, gState, cs, t);
+}
+
 #endif

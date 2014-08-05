@@ -2,6 +2,7 @@
 #define _INCREMENTALROTATIONVECTOR_H_
 
 #include <Element.d/Function.d/Function.h>
+#include <Element.d/Function.d/SpaceDerivatives.h>
 #include <Element.d/Function.d/utilities.hpp>
 
 namespace Simo {
@@ -35,6 +36,11 @@ class IncrementalRotationVector : public VectorValuedFunction<3,3,Scalar,18,0,do
   public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
+
+template<>
+Eigen::Matrix<double,3,3>
+Jacobian<double,IncrementalRotationVector>
+::operator() (const Eigen::Matrix<double,3,1>& q, double);
 
 } // namespace Simo
 

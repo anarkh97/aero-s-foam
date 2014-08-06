@@ -148,7 +148,6 @@ IF(UNIX)
     SET(ARPACK_parpack_LIBRARY "ARPACK_parpack_LIBRARY-NOTFOUND")
    ENDIF(NOT WITH_ARPACK EQUAL 0)
 
-
 # spooles
    IF(NOT WITH_SPOOLES EQUAL 0)
     FIND_PATH(SPOOLES_INCLUDE_PATH FrontMtx.h
@@ -172,12 +171,6 @@ IF(UNIX)
       SET(INC_DIR ${INC_DIR} ${SPOOLES_INCLUDE_PATH})
     ENDIF(SPOOLES_FOUND)
    ENDIF(NOT WITH_SPOOLES EQUAL 0)
-
-
-   IF(SENSITIVITY_DEBUG EQUAL 1)
-     add_definitions(-DSENSITIVITY_DEBUG)
-   ENDIF(SENSITIVITY_DEBUG EQUAL 1)
-
 
 # eigen
    IF(NOT WITH_EIGEN3 EQUAL 0)
@@ -478,7 +471,7 @@ set_target_properties(errorcodec6
 target_link_libraries(errorcodec6 Rom Util)
 
 IF(NOT CMAKE_BUILD_TYPE)
-  SET(CMAKE_BUILD_TYPE Debug CACHE STRING 
+  SET(CMAKE_BUILD_TYPE Release CACHE STRING 
       "Choose the type of build, options are: None(CMAKE_CXX_FLAGS or CMAKE_C_FLAGS used) Debug Release RelWithDebInfo MinSizeRel."
       FORCE)
 ENDIF(NOT CMAKE_BUILD_TYPE)

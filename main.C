@@ -1135,76 +1135,9 @@ int main(int argc, char** argv)
      fprintf(stderr," ... Structural reliability: %d    ...\n",
 	     dynamic_cast<Domain_opt*>(domain)->getReliabilityFlag());
    }
-   /*
-   else if (domain->solInfo().aeroFlag > 0) {
-     fprintf(stderr," ... Multiphysics structural: %d   ...\n",
-	     domain->solInfo().aeroFlag);
-   }
-   else if (domain->solInfo().eigenEmFlag > 0) {
-     fprintf(stderr," ... MP Structural eigenvalue: %d  ...\n",
-	     domain->solInfo().eigenEmFlag);
-   }
-   else if (domain->solInfo().podBasEmFlag > 0) {
-     fprintf(stderr," ... MP Structural POD Decomp: %d  ...\n",
-	     domain->solInfo().podBasEmFlag);
-   }
-   else if (domain->solInfo().elecstrcFlag > 0) {
-     fprintf(stderr," ... Multiphysics Electrostatic: %d...\n",
-	     domain->solInfo().elecstrcFlag );
-   }
-   else if (domain->solInfo().optelecstrcFlag > 0) {
-     fprintf(stderr," ... MP Electrostatic optimiz: %d  ...\n",
-	     domain->solInfo().optelecstrcFlag);
-   }
-   else if (domain->solInfo().eigenEmFlag > 0) {
-     fprintf(stderr," ... MP Structural eigenvalue: %d  ...\n",
-	     domain->solInfo().eigenEmFlag);
-   }
-   else if (domain->solInfo().eigelecstrcFlag > 0) {
-     fprintf(stderr," ... MP Electrostatic eigenval: %d ...\n",
-	     domain->solInfo().eigelecstrcFlag);
-   }
-   else if (domain->solInfo().podelecstrcFlag > 0) {
-     fprintf(stderr," ... MP Electrostatic POD Dec: %d  ...\n",
-	     domain->solInfo().podelecstrcFlag);
-   }
-   else if (domain->solInfo().meshmotFlag > 0) {
-     fprintf(stderr," ... Multiphysics Mesh-motion: %d  ...\n",
-	     domain->solInfo().meshmotFlag );
-   }
-   else if (domain->solInfo().optmeshmotFlag > 0) {
-     fprintf(stderr," ... MP Mesh-motion optimiz: %d    ...\n",
-	     domain->solInfo().optmeshmotFlag);
-   }
-   else if (domain->solInfo().eigmeshmotFlag > 0) {
-     fprintf(stderr," ... MP Mesh-motion eigenvalue: %d ...\n",
-	     domain->solInfo().eigmeshmotFlag);
-   }
-   else if (domain->solInfo().podmeshmotFlag > 0) {
-     fprintf(stderr," ... MP Mesh-motion POD Decomp: %d ...\n",
-	     domain->solInfo().podmeshmotFlag);
-   }
-   else if (domain->solInfo().thermoeFlag > 0) {
-     fprintf(stderr," ... MP Thermoelastic: %d ...\n",
-	     domain->solInfo().thermoeFlag);
-   }
-   */
 
    if ( dynamic_cast<Domain_opt*>(domain)->getStructoptFlag()        > 0 ||
-	dynamic_cast<Domain_opt*>(domain)->getReliabilityFlag()      > 0 /*||
-	domain->solInfo().aeroFlag        > 0 ||
-	domain->solInfo().eigenEmFlag     > 0 ||
-	domain->solInfo().podBasEmFlag    > 0 ||
-	domain->solInfo().elecstrcFlag    > 0 ||
-	domain->solInfo().optelecstrcFlag > 0 ||
-	domain->solInfo().eigelecstrcFlag > 0 ||
-	domain->solInfo().podelecstrcFlag > 0 ||
-	domain->solInfo().meshmotFlag     > 0 ||
-	domain->solInfo().optmeshmotFlag  > 0 ||
-	domain->solInfo().eigelecstrcFlag > 0 ||
-	domain->solInfo().eigmeshmotFlag  > 0 ||
-	domain->solInfo().podmeshmotFlag  > 0 ||
-	domain->solInfo().thermoeFlag    == 2 */ )
+	dynamic_cast<Domain_opt*>(domain)->getReliabilityFlag()      > 0 )
      {
        dynamic_cast<Domain_opt*>(domain)->copyNodes();	//copy nodes; always needed
        if (dynamic_cast<Domain_opt*>(domain)->getStructoptFlag() > 0 )
@@ -1220,7 +1153,7 @@ int main(int argc, char** argv)
 #endif
    switch(domain->probType()) {
      case SolverInfo::DisEnrM: {
-        filePrint(stderr, " ... DEM Problem ...\n");
+        filePrint(stderr, " ... DEM Problem                    ...\n");
         DEM dem;
         dem.run(domain,geoSource);
         break;
@@ -1252,7 +1185,7 @@ int main(int argc, char** argv)
      case SolverInfo::Dynamic:
        {
         if(domain->solInfo().modal) {
-          fprintf(stderr," ... Modal Method  ...\n");
+          fprintf(stderr," ... Modal Method                   ...\n");
           ModalDescr<double> * modalProb = new ModalDescr<double>(domain);
           DynamicSolver<ModalOps, Vector, ModalDescr<double>, ModalDescr<double>, double>
           modalSolver(modalProb);
@@ -1264,10 +1197,10 @@ int main(int argc, char** argv)
              SingleDomainDynamic dynamProb(domain);
              Pita::LinearDriver::Ptr driver;
              if (!domain->solInfo().pitaTimeReversible) {
-                 filePrint(stderr," ... Linear PITA ...\n");
+                 filePrint(stderr," ... Linear PITA                    ...\n");
                  driver = linearPitaDriverNew(&dynamProb);
              } else {
-                 filePrint(stderr," ... Time-reversible linear PITA ...\n");
+                 filePrint(stderr," ... Time-reversible linear PITA    ...\n");
                  driver = linearReversiblePitaDriverNew(&dynamProb);
              }
              driver->solve();
@@ -1347,12 +1280,11 @@ int main(int argc, char** argv)
              Pita::NlDriver::Ptr pitaDriver = nlReversiblePitaDriverNew(&pitaProblem);
              pitaDriver->solve();
            } else {
-             filePrint(stderr, " ... Nonlinear PITA ...\n");
+             filePrint(stderr, " ... Nonlinear PITA                 ...\n");
              Pita::Old::PitaNonLinDynamic pitaProblem(domain);
              Pita::Old::NLDistrTimeDecompSolver pitaSolver(&pitaProblem);
              pitaSolver.solve();
            }
-           filePrint(stderr, "End NlPita\n");
 #else
            filePrint(stderr," ... PITA requires distributed version ...\n");
 #endif

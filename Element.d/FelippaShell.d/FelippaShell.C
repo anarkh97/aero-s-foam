@@ -1961,7 +1961,7 @@ void
 FelippaShell::getVonMisesThicknessSensitivity(ComplexVector &dStdThick, ComplexVector &weight, CoordSet &cs, ComplexVector &elDisp, int strInd, int surface,
                                               int senMethod, double *, int avgnum, double ylayer, double zlayer)
 {
-  std::cerr << " ... Error: FelippaShel::getVonMisesThicknessSensitivity is not implemented for ComplexVector\n";
+  std::cerr << " ... Error: FelippaShell::getVonMisesThicknessSensitivity is not implemented for ComplexVector\n";
   exit(-1);
 }
 

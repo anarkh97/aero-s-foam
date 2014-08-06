@@ -949,7 +949,7 @@ SingleDomainDynamic::buildOps(double coeM, double coeC, double coeK)
  dMat->Kcc       = allOps.Kcc;
  dMat->dynMat    = allOps.sysSolver;
  if(dMat->Msolver) {
-   if(verboseFlag) filePrint(stderr," ... Factoring mass matrix for iacc...\n");
+   if(verboseFlag) filePrint(stderr," ... Factoring mass matrix for iacc ...\n");
    domain->getTimers().factor -= getTime();
    dMat->Msolver->factor();
    domain->getTimers().factor += getTime();

@@ -418,7 +418,7 @@ void MultInteg<Scalar, VecType, PostProcessor, ProblemDescriptor>::integsmol(int
 template <class Scalar, class VecType, class PostProcessor, class ProblemDescriptor >
 void MultInteg<Scalar, VecType, PostProcessor, ProblemDescriptor>::simulcomp(int nsample_integ)
 {
-  filePrint(stderr,"Integration by simulation\n");
+  //filePrint(stderr,"Integration by simulation\n");
   int printflag = 1; // means don't print
 //  int nsample_integ = 5; //sfem->getnsamp_out(); // YYY take this data from oinfo, at least for stress and strain
   if(ndflag_cur==1) //  mean

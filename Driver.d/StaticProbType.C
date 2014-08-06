@@ -58,10 +58,7 @@ StaticSolver< Scalar, OpSolver, VecType,
         // Make sure you are to the right...
    }
 
-
-
-
- int padeN = domain->solInfo().getSweepParams()->padeN;  // 1 for 1-point pade or taylor, 2 for 2-point pade, etc
+   int padeN = domain->solInfo().getSweepParams()->padeN;  // 1 for 1-point pade or taylor, 2 for 2-point pade, etc
    filePrint(stderr, " ... Frequency Sweep Analysis       ... \n");
    filePrint(stderr, " ... Number of coarse freqencies = %3d     ... \n", domain->coarse_frequencies->size());
    if(padeN > 1)
@@ -649,7 +646,7 @@ filePrint(stderr,"Projection  time: %e\n",xtime);
        sfem->genXiPsi(i); // seed=i 
        probDesc->assignRandMat();
        probDesc->rebuildSolver(); 
-       //solver = probDesc->getSolver();
+       postProcessor->setSolver(allOps->sysSolver);
      }
      allOps->sysSolver->solve(*rhs,*sol);
      sfem_noninpc->update_Psi_u(sol,psi_u);

@@ -1015,27 +1015,21 @@ Domain::buildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Ccoe
  if(geoSource->isShifted() || Mcoef != 0 || Ccoef != 0) rbm = 0; // PJSA: don't pass
                                                                  // geometric rbms to
                                                                  // solver in this case
-// RT: 032010 based on Phil's input
-// if(!sinfo.inpc) {
-//   if (allOps.sysSolver) delete allOps.sysSolver;
-//   allOps.sysSolver = 0;
-// }
-
  allOps.spm = 0;
  SfemBlockMatrix<Scalar> *sfbm = 0;
  int L = 1;
  int ndim = 0;
- if(sinfo.inpc||sinfo.noninpc) {
-   L =  sfem->getL();
+ if(sinfo.inpc || sinfo.noninpc) {
+   L = sfem->getL();
    int n = domain->numUncon();
    int P = sfem->getP();
    ndim = sfem->getndim();
    int output_order = sfem->getoutput_order();
-   if(sinfo.inpc)  sfbm = new SfemBlockMatrix<Scalar>(L,n,P,ndim,output_order);
+   if(sinfo.inpc) sfbm = new SfemBlockMatrix<Scalar>(L,n,P,ndim,output_order);
  }
 
  for(int i=0; i<ndim+1; ++i) {
-   if(sinfo.inpc)  domain->setNewProperties(i);
+   if(sinfo.inpc) domain->setNewProperties(i);
    if(sinfo.noninpc && i>0) break;
    switch(sinfo.type) {
     default:
@@ -1073,7 +1067,7 @@ Domain::buildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Ccoe
    switch(sinfo.iterType) {
      default:
      case 0 : {
-       filePrint(stderr," ... CG Solver is Selected           ...\n");
+       filePrint(stderr," ... CG Solver is Selected          ...\n");
        allOps.sysSolver = new GenPCGSolver<Scalar, GenVector<Scalar>, SfemBlockMatrix<Scalar> >(sfbm, sinfo.precond, sinfo.maxit,
                                                                                                 sinfo.tol, sinfo.maxvecsize);
        break;
@@ -1318,7 +1312,7 @@ Domain::getSolverAndKuc(AllOps<Scalar> &allOps, FullSquareMatrix *kelArray, bool
 
  // for freqency sweep: need M, Muc, C, Cuc
  bool isDamped = (sinfo.alphaDamp != 0.0) || (sinfo.betaDamp != 0.0) || packedEset.hasDamping();
- if((sinfo.doFreqSweep && (sinfo.getSweepParams()->nFreqSweepRHS > 1 || isDamped)) || sinfo.getSweepParams()->isAdaptSweep) {
+ if(sinfo.doFreqSweep && (sinfo.getSweepParams()->nFreqSweepRHS > 1 || isDamped || sinfo.getSweepParams()->isAdaptSweep)) {
    //---- UH ----
    if(sinfo.getSweepParams()->freqSweepMethod == SweepParams::PadeLanczos ||
       sinfo.getSweepParams()->freqSweepMethod == SweepParams::GalProjection ||
@@ -3427,7 +3421,7 @@ void Domain::postProcessing(GenVector<Scalar> &sol, Scalar *bcx, GenVector<Scala
   int numOutInfo = geoSource->getNumOutInfo();
   OutputInfo *oinfo = geoSource->getOutputInfo();
 
-  if(numOutInfo && (firstOutput || domain->solInfo().loadcases.size() > 0) && ndflag==0)
+  if(numOutInfo && (firstOutput || domain->solInfo().loadcases.size() > 0) && ndflag<=1)
     filePrint(stderr," ... Postprocessing                 ...\n");
 
   // organize displacements

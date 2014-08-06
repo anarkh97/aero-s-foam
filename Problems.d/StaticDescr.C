@@ -167,7 +167,7 @@ template<class T, class VectorType, class SolverType>
 void
 SingleDomainStatic<T, VectorType, SolverType>::getRHSinpc(VectorType &rhs)
 {
- filePrint(stderr," ... Building the Force   (inpc)          ...\n");
+ filePrint(stderr," ... Building the Force   (inpc)    ...\n");
 
  // ... BUILD THE RHS FORCE (external + gravity + nonhomogeneous)
  startTimerMemory(times->formRhs, times->memoryRhs);
@@ -332,7 +332,7 @@ SingleDomainPostProcessor<T, VectorType, SolverType>::staticOutput(VectorType &s
  stopTimerMemory(times->output, times->memoryOutput);
 
  long memoryUsed = 0;
- double solveTime  = 0.0;
+ double solveTime = 0.0;
 
  memoryUsed = solver->size();
  solveTime  = solver->getSolutionTime();
@@ -340,7 +340,7 @@ SingleDomainPostProcessor<T, VectorType, SolverType>::staticOutput(VectorType &s
    times->printStaticTimers(solveTime, memoryUsed, domain);
  }
 
- filePrint(stderr," --------------------------------------\n");
+ if(ndflag <= 1) filePrint(stderr," --------------------------------------\n");
 }
 
 template<class T, class VectorType, class SolverType>

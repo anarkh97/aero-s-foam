@@ -433,15 +433,16 @@ LinearProjectionNetwork::buildProjection() {
   while (cs.state.vectorSize() != 0) {
     IterStateId iterState(INITIAL, cs.sliceId);
     int inBufferRank = iterNumbering->index(iterState);
-    assert(inBufferRank >= 0);
-    double * inBufferAddrBegin = stateBuffer.array() + (inBufferRank * stateSize);
-    if (metric_) {
-      mult(metric_.ptr(), cs.state, inBufferAddrBegin);
-    } else {
-      bufferStateCopy(cs.state, inBufferAddrBegin);
+    if(inBufferRank >= 0) {
+      double * inBufferAddrBegin = stateBuffer.array() + (inBufferRank * stateSize);
+      if (metric_) {
+        mult(metric_.ptr(), cs.state, inBufferAddrBegin);
+      } else {
+        bufferStateCopy(cs.state, inBufferAddrBegin);
+      }
+      StateId id(iteration, iterState);
+      localState_.insert(std::make_pair(id, cs.state));
     }
-    StateId id(iteration, iterState);
-    localState_.insert(std::make_pair(id, cs.state));
     collector_->firstInitialStateDel();
     cs = collector_->firstInitialState();
   }
@@ -451,11 +452,12 @@ LinearProjectionNetwork::buildProjection() {
   while (cs.state.vectorSize() != 0) {
     IterStateId iterState(FINAL, cs.sliceId);
     int inBufferRank = iterNumbering->index(iterState);
-    assert(inBufferRank >= 0);
-    double * inBufferAddrBegin = stateBuffer.array() + (inBufferRank * stateSize);
-    bufferStateCopy(cs.state, inBufferAddrBegin);
-    StateId id(iteration, iterState);
-    localState_.insert(std::make_pair(id, cs.state));
+    if(inBufferRank >= 0) {
+      double * inBufferAddrBegin = stateBuffer.array() + (inBufferRank * stateSize);
+      bufferStateCopy(cs.state, inBufferAddrBegin);
+      StateId id(iteration, iterState);
+      localState_.insert(std::make_pair(id, cs.state));
+    }
     collector_->firstFinalStateDel();
     cs = collector_->firstFinalState();
   }

@@ -59,7 +59,7 @@ nncgp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::
 
     g = S.asDiagonal()*(A.transpose()*r); // gradient
     long int i;
-    h = g; for(long int j=0; j<k; ++j) h[indices[j]] = std::numeric_limits<double>::min(); // make sure the index has not already been selected
+    h = g; for(long int j=0; j<k; ++j) h[indices[j]] = -std::numeric_limits<double>::max(); // make sure the index has not already been selected
     double gi = h.maxCoeff(&i);
     if(gi <= 0) break;
     B.col(k) = S[i]*A.col(i);

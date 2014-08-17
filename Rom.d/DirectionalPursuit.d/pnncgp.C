@@ -112,11 +112,11 @@ pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const
 #endif
     for(int i=0; i<nsub; ++i) {
       g[i] = S[i].asDiagonal()*(A[i].transpose()*r);
-      h[i] = g[i]; for(long int j=0; j<l[i]; ++j) h[i][indices[i][j]] = std::numeric_limits<double>::min(); // make sure the index has not already been selected
-      gmax[i] = (A[i].cols() > 0) ? h[i].maxCoeff(&jk[i]) : std::numeric_limits<double>::min();
+      h[i] = g[i]; for(long int j=0; j<l[i]; ++j) h[i][indices[i][j]] = -std::numeric_limits<double>::max(); // make sure the index has not already been selected
+      gmax[i] = (A[i].cols() > 0) ? h[i].maxCoeff(&jk[i]) : -std::numeric_limits<double>::max();
     }
     int ik; // subdomain which has the max coeff.
-    s.val   = (nsub > 0) ? gmax.maxCoeff(&ik) : std::numeric_limits<double>::min();
+    s.val   = (nsub > 0) ? gmax.maxCoeff(&ik) : -std::numeric_limits<double>::max();
     s.rank  = myrank;
 #ifdef USE_MPI
     MPI_Allreduce(MPI_IN_PLACE, &s, 1, MPI_DOUBLE_INT, MPI_MAXLOC, mpicomm);

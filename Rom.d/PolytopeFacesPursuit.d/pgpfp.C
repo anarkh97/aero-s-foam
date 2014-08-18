@@ -114,19 +114,23 @@ pgpfp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const 
         double den = g2[i][col];
         if(num >= 0. && den != 1.0) {
           g1[i][col] = num/(1.0-den);
-          g2[i][col] = -std::numeric_limits<double>::max();
+          if(!positive)
+            g2[i][col] = -std::numeric_limits<double>::max();
         } else if (num < 0. && den != -1.0) {
           g1[i][col] = -std::numeric_limits<double>::max();
-          g2[i][col] = (-1.0)*num/(1.0+den);
+          if(!positive)
+            g2[i][col] = (-1.0)*num/(1.0+den);
         } else {
           g1[i][col] = -std::numeric_limits<double>::max();
-          g2[i][col] = -std::numeric_limits<double>::max();
+          if(!positive)
+            g2[i][col] = -std::numeric_limits<double>::max();
         }
       }
       // make sure that element has not already been selected
       for(long int j=0; j<l[i]; ++j){
         g1[i][indices[i][j]] = -std::numeric_limits<double>::max();
-        g2[i][indices[i][j]] = -std::numeric_limits<double>::max();
+        if(!positive)
+          g2[i][indices[i][j]] = -std::numeric_limits<double>::max();
       }
 
       bool whichSet = 1;
@@ -135,7 +139,9 @@ pgpfp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const 
 
       double lam  = 0.0;
       double lam1 = g1[i].maxCoeff(&position1);
-      double lam2 = g2[i].maxCoeff(&position2);
+      double lam2 = 0.;
+      if(!positive)
+        lam2 = g2[i].maxCoeff(&position2);
 
       if(A[i].cols() > 0){
         if (lam1 > lam2 || positive){
@@ -188,7 +194,7 @@ pgpfp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const 
   #pragma omp parallel for schedule(static,1)
 #endif
     for(int i=0; i<nsub; ++i) {
-      for(long int j=0; j<l[i]; ++j) g_[i][j] = g[i][indices[i][j]];
+      for(long int j=0; j<l[i]; ++j) g_[i][j] = double(setKey[i][j])*g[i][indices[i][j]];
       z_loc.col(i).head(k) = GD[i].topLeftCorner(l[i],k).transpose()*g_[i].head(l[i]);
     }
     z.head(k) = z_loc.topRows(k).rowwise().sum();

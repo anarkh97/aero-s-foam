@@ -56,7 +56,7 @@ gpfp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
   double bnorm = b.norm();
   double abstol = reltol*bnorm;
 
-  VectorXd x_(maxvec), y(maxvec), r(A.rows()), vertex(A.rows()), g1(A.cols()), g2(A.cols()), g3(A.cols()), h(A.cols()), DtGDinv(maxvec), g_(maxvec), lambda(maxvec), a(maxvec), S(A.cols()), t(maxvec);
+  VectorXd x_(maxvec), y(maxvec), r(A.rows()), vertex(A.rows()), g1(A.cols()), g2(A.cols()), h(A.cols()), DtGDinv(maxvec), g_(maxvec), lambda(maxvec), a(maxvec), S(A.cols()), t(maxvec);
   x_.setZero();
   y.setZero();
   vertex.setZero();
@@ -101,36 +101,38 @@ gpfp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
 
     //zero out elements that are already selected
     h = g1;
-    g3 = g2;
 
-    double stopCrit = 0.;
     for(long int col = 0; col != A.cols(); col++){
       double num = h(col);
       double den = g2(col);
-      if(num >= 0. && den != 1.0) {
-        if(num > stopCrit) stopCrit = num;
+      if((num >= 0. && den != 1.0)) {
         h(col)  = num/(1.0-den);
-        g3(col) = -std::numeric_limits<double>::max();
+        if(!positive)
+          g2(col) = -std::numeric_limits<double>::max();
       } else if(num < 0. && den != -1.0) {
-        if((-1.0)*num > stopCrit) stopCrit = (-1.0)*num;
         h(col)  = -std::numeric_limits<double>::max();
-        g3(col) = (-1.0)*num/(1.0+den);
+        if(!positive)
+          g2(col) = (-1.0)*num/(1.0+den);
       } else {
         h(col)  = -std::numeric_limits<double>::max();
-        g3(col) = -std::numeric_limits<double>::max();
+        if(!positive)
+          g2(col) = -std::numeric_limits<double>::max();
       }
     }
 
     for(long int j=0; j<k; ++j){
       h(indices[j])  = -std::numeric_limits<double>::max();
-      g3(indices[j]) = -std::numeric_limits<double>::max();
+      if(!positive)
+        g2(indices[j]) = -std::numeric_limits<double>::max();
     }
 
     double lam  = 0.0;
     double lam1 = h.maxCoeff(&position1);
-    double lam2 = g3.maxCoeff(&position2);
+    double lam2 = 0.;
+    if(!positive)
+      lam2 = g2.maxCoeff(&position2);
 
-    if (lam1 > lam2 || positive){
+    if ((lam1 > lam2) || positive){
       lam = lam1;
       position = position1;
     } else {
@@ -138,8 +140,6 @@ gpfp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
       position = position2;
       Set = -1;
     }
-
-    g1 *= Set;
 
     // add step length for vertex estimate update to array
     lambda[k] = 1./lam;
@@ -153,7 +153,7 @@ gpfp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
     // update GD due to extra column added to B (note: B.col(i)*D.row(i).head(k) = 0, so BD does not need to be updated)
     GD.row(k).head(k) = B.col(k).transpose()*BD.leftCols(k);
 
-    for(long int j=0; j<k+1; ++j) g_[j] = g1[indices[j]];
+    for(long int j=0; j<k+1; ++j) g_[j] = double(setKey[j])*g1[indices[j]];
     Block<MatrixXd,Dynamic,1,true> d = D.col(k), c = BD.col(k);
     d.head(k+1) = g_.head(k+1) - D.topLeftCorner(k+1,k).triangularView<Upper>()*(DtGDinv.head(k).asDiagonal()*(GD.topLeftCorner(k+1,k).transpose()*g_.head(k+1))); // direction
 
@@ -175,6 +175,8 @@ gpfp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
         // remove index i from the active set
         std::vector<long int>::iterator fol = indices.erase(indices.begin()+i);
         setKey.erase(setKey.begin()+i);
+
+        x_[k-1] = 0;
 
         // Note: it is necessary to re-G-orthogonalize the basis D now, project the solution x_ onto the new basis and compute the corresponding residual r.
         // This is done here by starting from the column of D pointed to by fol (because the ones before this are already G-orthogonal), and then

@@ -15,7 +15,7 @@ pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const
 
 Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1>
 pgpfp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm, const long int n,
-       double maxsze, double reltol, bool verbose, bool scaling);
+       double maxsze, double reltol, bool verbose, bool scaling, bool positive);
 #endif
 
 namespace Rom {
@@ -28,6 +28,7 @@ ParallelSparseNonNegativeLeastSquaresSolver::ParallelSparseNonNegativeLeastSquar
   errorMagnitude_(),
   verboseFlag_(true),
   scalingFlag_(true),
+  positivity_(true),
   solverType_(0),
   maxSizeRatio_(1.0),
   nsub_(nsub),
@@ -83,7 +84,7 @@ ParallelSparseNonNegativeLeastSquaresSolver::solve() {
       for(int i=0; i<nsub_; ++i) {
         new (&A[i]) Eigen::Map<Eigen::MatrixXd>(&*sd_[i]->matrixBuffer(),sd_[i]->equationCount(),sd_[i]->unknownCount());
       }
-      x = pgpfp(A, b, errorMagnitude_, unknownCount_, maxSizeRatio_, relativeTolerance_, verboseFlag_, scalingFlag_);
+      x = pgpfp(A, b, errorMagnitude_, unknownCount_, maxSizeRatio_, relativeTolerance_, verboseFlag_, scalingFlag_, positivity_);
       for(int i=0; i<nsub_; ++i) {
         Eigen::Map<Eigen::VectorXd>(const_cast<double*>(sd_[i]->solutionBuffer()),sd_[i]->unknownCount()) = x[i];
         A[i].~Map<Eigen::MatrixXd>();

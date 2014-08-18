@@ -31,7 +31,7 @@ nncgp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::
 
 Eigen::VectorXd
 gpfp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm,
-      double maxsze, double reltol, bool verbose, bool scaling);
+      double maxsze, double reltol, bool verbose, bool scaling, bool positive);
 #endif
 
 namespace Rom {
@@ -48,6 +48,7 @@ SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::SparseNonNegativ
   errorMagnitude_(),
   verboseFlag_(true),
   scalingFlag_(true),
+  positivity_(true),
   solverType_(0),
   maxSizeRatio_(1.0)
 {}
@@ -120,7 +121,7 @@ SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::solve() {
       Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::ColMajor> > A(matrixBuffer_.data(),equationCount_,unknownCount_);
       Eigen::Map<Eigen::VectorXd> x(solutionBuffer_.array(),unknownCount_);
       Eigen::Map<Eigen::VectorXd> b(rhsBuffer_.array(),equationCount_);
-      x = gpfp(A, b, errorMagnitude_, maxSizeRatio_, relativeTolerance_, verboseFlag_, scalingFlag_);
+      x = gpfp(A, b, errorMagnitude_, maxSizeRatio_, relativeTolerance_, verboseFlag_, scalingFlag_, positivity_);
 #else
       std::cerr << "USE_EIGEN3 is not defined here in SparseNonNegativeLeastSquaresSolver::solve\n";
       exit(-1);

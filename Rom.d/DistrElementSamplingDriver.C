@@ -452,6 +452,7 @@ DistrElementSamplingDriver::computeSolution(Vector *solutions, double relativeTo
   solver_->relativeToleranceIs(relativeTolerance);
   solver_->verboseFlagIs(verboseFlag);
   solver_->scalingFlagIs(domain->solInfo().useScalingSpnnls);
+  solver_->scalingFlagIs(domain->solInfo().positiveElements);
   solver_->solverTypeIs(domain->solInfo().solverTypeSpnnls);
   solver_->maxSizeRatioIs(domain->solInfo().maxSizeSpnnls);
   solver_->solve();

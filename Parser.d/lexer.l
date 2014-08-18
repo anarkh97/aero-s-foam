@@ -177,6 +177,8 @@ TRAIL [a-zA-Z]*
 "THETA"|"theta"                    { return THETA; }
 
 "HRC"|"hrc"			   { return HRC; }
+ 
+"POSITIVE"|"positive"		   { return POSELEM; }
 
 "REDFOL"|"redfol"                  { return REDFOL; }
 

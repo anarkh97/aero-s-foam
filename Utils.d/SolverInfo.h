@@ -379,6 +379,7 @@ struct SolverInfo {
    int  normalize;
    bool substractRefPodRom;
    bool useScalingSpnnls;
+   bool positiveElements;
    int  solverTypeSpnnls; // 0: Lawson & Hanson, 1: Conjugate Gradient Pursuit
    double maxSizeSpnnls;
    bool reduceFollower;
@@ -665,6 +666,7 @@ struct SolverInfo {
 		  normalize          = 1;
                   substractRefPodRom = false;
                   useScalingSpnnls   = true;
+		  positiveElements   = true;
                   maxSizeSpnnls      = 1.0;
                   solverTypeSpnnls   = 0;
                   reduceFollower     = false;

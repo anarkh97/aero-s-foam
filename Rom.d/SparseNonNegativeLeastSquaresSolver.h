@@ -26,7 +26,7 @@ public:
   bool scalingFlag() const { return scalingFlag_; }
   void scalingFlagIs(bool scaFlg) { scalingFlag_ = scaFlg; }
 
-  bool positivityFlag() const { return positivityFlag_; }
+  bool positivityFlag() const { return positivity_; }
   void positivityIs(bool posFlg) { positivity_ = posFlg; }
 
   int solverType() const { return solverType_; }

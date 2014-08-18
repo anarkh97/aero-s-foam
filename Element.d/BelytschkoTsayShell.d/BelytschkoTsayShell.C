@@ -125,6 +125,7 @@ BelytschkoTsayShell::BelytschkoTsayShell(int* nodenums)
 
   expmat = 0;
   myMat = false;
+  pbc = 0;
 }
 
 BelytschkoTsayShell::~BelytschkoTsayShell()

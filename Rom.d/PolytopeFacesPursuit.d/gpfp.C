@@ -179,6 +179,7 @@ gpfp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
         // Note: it is necessary to re-G-orthogonalize the basis D now, project the solution x_ onto the new basis and compute the corresponding residual r.
         // This is done here by starting from the column of D pointed to by fol (because the ones before this are already G-orthogonal), and then
         // following what is the essentially same procedure that is used above to construct the original basis, with a few optimizations when possible.
+        x_[k-1] = 0;
         y.segment(i,k-i).setZero();
         k = i;
         y.head(k) = D.topLeftCorner(k,k).triangularView<Upper>()*a.head(k);

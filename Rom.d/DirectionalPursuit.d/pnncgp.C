@@ -28,7 +28,7 @@ struct long_int {
 bool operator== (const long_int& lhs, const long_int& rhs)
 { return lhs.index==rhs.index && lhs.sub==rhs.sub; }
 
-// Parallel implementation of Non-negative Conjugate Gradient Pursuit either MPI, OpenMP or both.
+// Parallel implementation of Non-negative Conjugate Gradient Pursuit using either MPI, OpenMP or both.
 // This is a non-negative constrained variant of Conjugate Gradient Pursuit, and generates identical iterates to
 // Lawson & Hanson's NNLS (non-negative least squares) algorithm.
 // References:
@@ -37,7 +37,7 @@ bool operator== (const long_int& lhs, const long_int& rhs)
 
 Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1>
 pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm, const long int n,
-       double maxsze, double reltol, bool verbose, bool scaling)
+       double maxsze, double maxite, double reltol, bool verbose, bool scaling)
 {
   // each A[i] is the columnwise block of the global A matrix assigned to a subdomain on this mpi process
   // each x[i] of the return value x is the corresponding row-wise block of the global solution vector
@@ -56,7 +56,7 @@ pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const
   const int nsub = A.size(); // number of subdomains assigned to this mpi process
   const long int m = b.rows();
   const long int maxvec = std::min(m, (long int)(maxsze*n));
-  const long int maxit = 3*n;
+  const long int maxit = maxite*n;
   std::vector<long int> maxlocvec(nsub); for(int i=0; i<nsub; ++i) maxlocvec[i] = std::min(A[i].cols(),maxvec);
   double bnorm = b.norm();
   double abstol = reltol*bnorm;
@@ -86,6 +86,7 @@ pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const
   long int k = 0; // k is the dimension of the (global) set of selected indices
   std::vector<long int> l(nsub); // l[i] is the dimension of the subset of selected indices local to a subdomain.
   std::list<std::pair<int,long_int> > gindices; // global indices
+  std::list<std::pair<int,long_int> > nld_indices;
   std::vector<std::vector<long int> > indices(nsub); // local indices
 
   Array<long int,Dynamic,1> jk(nsub);
@@ -105,19 +106,23 @@ pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const
       std::cout.unsetf(std::ios::uppercase);
     }
 
-    if(rnorm <= abstol || k == maxvec || iter >= maxit) break;
+    if(rnorm <= abstol || k+nld_indices.size() == maxvec || iter >= maxit) break;
 
 #if defined(_OPENMP)
   #pragma omp parallel for schedule(static,1)
 #endif
     for(int i=0; i<nsub; ++i) {
       g[i] = S[i].asDiagonal()*(A[i].transpose()*r);
-      h[i] = g[i]; for(long int j=0; j<l[i]; ++j) h[i][indices[i][j]] = -std::numeric_limits<double>::max(); // make sure the index has not already been selected
+      // make sure the index has not already been selected
+      h[i] = g[i]; for(long int j=0; j<l[i]; ++j) h[i][indices[i][j]] = -std::numeric_limits<double>::max();
+      // also make sure near linear dependent indices are not selected
+      for(std::list<std::pair<int,long_int> >::iterator it = nld_indices.begin(); it != nld_indices.end(); ++it)
+        if(it->first == myrank && it->second.sub == i) h[i][it->second.index] = -std::numeric_limits<double>::max();
       gmax[i] = (A[i].cols() > 0) ? h[i].maxCoeff(&jk[i]) : -std::numeric_limits<double>::max();
     }
     int ik; // subdomain which has the max coeff.
-    s.val   = (nsub > 0) ? gmax.maxCoeff(&ik) : -std::numeric_limits<double>::max();
-    s.rank  = myrank;
+    s.val  = (nsub > 0) ? gmax.maxCoeff(&ik) : -std::numeric_limits<double>::max();
+    s.rank = myrank;
 #ifdef USE_MPI
     MPI_Allreduce(MPI_IN_PLACE, &s, 1, MPI_DOUBLE_INT, MPI_MAXLOC, mpicomm);
 #endif
@@ -165,6 +170,15 @@ pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const
 #endif
     DtGDinv[k] = 1/c.squaredNorm();
     a[k] = r.dot(c)*DtGDinv[k];
+    if(a[k] < 0) { // check for near linear dependence
+      nld_indices.push_back(std::pair<int,long_int>(s.rank,p));
+      gindices.pop_back();
+      if(s.rank == myrank) {
+        indices[ik].pop_back();
+        l[ik]--;
+      }
+      continue;
+    } else nld_indices.clear();
     r -= a[k]*c;
 #if defined(_OPENMP)
   #pragma omp parallel for schedule(static,1)

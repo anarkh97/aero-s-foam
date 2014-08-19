@@ -18,13 +18,13 @@
 
 Eigen::VectorXd
 nncgp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm,
-      double maxsze, double reltol, bool verbose, bool scaling)
+      double maxsze, double maxite, double reltol, bool verbose, bool scaling)
 {
   using namespace Eigen;
 
   const long int m = b.rows();
   const long int maxvec = std::min(m, (long int)(maxsze*A.cols()));
-  const long int maxit = 3*A.cols();
+  const long int maxit = maxite*A.cols();
   double bnorm = b.norm();
   double abstol = reltol*bnorm;
 
@@ -37,6 +37,7 @@ nncgp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::
   B.setZero(); D.setZero(); BD.setZero(); GD.setZero();
   long int k = 0;
   std::vector<long int> indices;
+  std::vector<long int> nld_indices;
 
   if(scaling) for(int i=0; i<A.cols(); ++i) S[i] = 1/A.col(i).norm();
   else S.setOnes();
@@ -55,11 +56,12 @@ nncgp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::
       std::cout.unsetf(std::ios::uppercase);
     }
 
-    if(rnorm <= abstol || k == maxvec || iter >= maxit) break;
+    if(rnorm <= abstol || k+nld_indices.size() == maxvec || iter >= maxit) break;
 
     g = S.asDiagonal()*(A.transpose()*r); // gradient
     long int i;
     h = g; for(long int j=0; j<k; ++j) h[indices[j]] = -std::numeric_limits<double>::max(); // make sure the index has not already been selected
+    for(long int j=0; j<nld_indices.size(); ++j) h[nld_indices[j]] = -std::numeric_limits<double>::max(); // also make sure near linear dependent indices are not selected
     double gi = h.maxCoeff(&i);
     if(gi <= 0) break;
     B.col(k) = S[i]*A.col(i);
@@ -75,6 +77,7 @@ nncgp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::
     GD.col(k).head(k+1) = B.leftCols(k+1).transpose()*c;
     DtGDinv[k] = 1/c.squaredNorm();
     a[k] = r.dot(c)*DtGDinv[k]; // step length
+    if(a[k] < 0) { nld_indices.push_back(i); indices.pop_back(); continue; } else nld_indices.clear(); // check for near linear dependence
     y.head(k+1) = x_.head(k+1) + a[k]*d.head(k+1); // candidate solution
     r -= a[k]*c; // residual
     k++;

@@ -13,7 +13,7 @@ public:
   // Problem size
   long equationCount() const { return equationCount_; }
   long unknownCount() const { return unknownCount_; }
-  
+
   void problemSizeIs(long eqnCount, long unkCount);
 
   // Options
@@ -34,6 +34,9 @@ public:
 
   double maxSizeRatio() const { return maxSizeRatio_; }
   void maxSizeRatioIs(double maxSze) { maxSizeRatio_ = maxSze; }
+
+  double maxIterRatio() const { return maxIterRatio_; }
+  void maxIterRatioIs(double maxIte) { maxIterRatio_ = maxIte; }
 
   // Buffers: Internal column-major ordering, zero-based indexing
   // Matrix buffer: [equationCount by unknownCount]
@@ -87,6 +90,7 @@ private:
   bool positivity_;
   int solverType_;
   double maxSizeRatio_;
+  double maxIterRatio_;
 
   // Disallow copy & assignment
   SparseNonNegativeLeastSquaresSolver(const SparseNonNegativeLeastSquaresSolver &);

@@ -54,7 +54,7 @@ C             NSETP <= MIN(M,MAXSZE*N)
 C   
 C     ------------------------------------------------------------------
       SUBROUTINE SPNNLS (A,MDA,M,N,B,X,RELTOL,RNORM,W,ZZ,ZZ2,INDEX,MODE,
-     +                   PRTFLG,SCAFLG,MAXSZE)
+     +                   PRTFLG,SCAFLG,MAXSZE,MAXITE)
 C     ------------------------------------------------------------------
       USE ISO_C_BINDING
       IMPLICIT NONE
@@ -64,7 +64,7 @@ C     ------------------------------------------------------------------
       integer(kind=C_LONG) INDEX(*)  
       double precision A(MDA,*), B(*), W(*), X(*), ZZ(*), ZZ2(*) 
       double precision ALPHA, ASAVE, CC, DIFF, DUMMY, FACTOR, RNORM
-      double precision ABSTOL,RELTOL,MAXSZE
+      double precision ABSTOL,RELTOL,MAXSZE,MAXITE
       double precision ONE, SM, SS, T, TEMP, TWO, UNORM, UP, WMAX
       double precision ZERO, ZTEST
       integer(kind=C_LONG) PRTFLG, SCAFLG
@@ -77,7 +77,7 @@ C     ------------------------------------------------------------------
          RETURN
       endif
       ITER=0
-      ITMAX=3*N 
+      ITMAX=INT(MAXITE*N) 
       SPMAX=MIN(M,INT(MAXSZE*N,C_LONG))
       DDATE=0
 C   

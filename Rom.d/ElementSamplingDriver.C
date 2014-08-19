@@ -400,6 +400,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::computeSolution(Vector &soluti
   solver_.positivityIs(domain->solInfo().positiveElements);
   solver_.solverTypeIs(domain->solInfo().solverTypeSpnnls);
   solver_.maxSizeRatioIs(domain->solInfo().maxSizeSpnnls);
+  solver_.maxIterRatioIs(domain->solInfo().maxIterSpnnls);
   try {
     solver_.solve();
   }

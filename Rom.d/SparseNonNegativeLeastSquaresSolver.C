@@ -19,7 +19,7 @@ extern "C" {
   void _FORTRAN(spnnls)(double *a, const long int *mda, const long int *m, const long int *n,
                         double *b, double *x, const double *reltol, double *rnorm, double *w,
                         double *zz, double *zz2, long int *index, long int *mode, long int *prtflg,
-                        long int *sclflg, const double *maxsze);
+                        long int *sclflg, const double *maxsze, const double *maxite);
 }
 
 #ifdef USE_EIGEN3
@@ -27,11 +27,11 @@ extern "C" {
 
 Eigen::VectorXd
 nncgp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm,
-      double maxsze, double reltol, bool verbose, bool scaling);
+      double maxsze, double maxite, double reltol, bool verbose, bool scaling);
 
 Eigen::VectorXd
 gpfp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm,
-      double maxsze, double reltol, bool verbose, bool scaling, bool positive);
+      double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool positive);
 #endif
 
 namespace Rom {
@@ -50,7 +50,8 @@ SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::SparseNonNegativ
   scalingFlag_(true),
   positivity_(true),
   solverType_(0),
-  maxSizeRatio_(1.0)
+  maxSizeRatio_(1.0),
+  maxIterRatio_(3.0)
 {}
 
 template<typename MatrixBufferType, typename SizeType>
@@ -91,7 +92,7 @@ SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::solve() {
 
       _FORTRAN(spnnls)(matrixBuffer_.data(), &equationCount_, &equationCount_, &unknownCount_, rhsBuffer_.array(),
                        solutionBuffer_.array(), &relativeTolerance_, &errorMagnitude_, dualSolutionBuffer_.array(),
-                       workspace.array(), workspace2.array(), index.array(), &info, &prtflg, &scaflg, &maxSizeRatio_);
+                       workspace.array(), workspace2.array(), index.array(), &info, &prtflg, &scaflg, &maxSizeRatio_, &maxIterRatio_);
 
       if (info == 2) {
         throw std::logic_error("Illegal problem size");
@@ -108,7 +109,7 @@ SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::solve() {
       Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::ColMajor> > A(matrixBuffer_.data(),equationCount_,unknownCount_);
       Eigen::Map<Eigen::VectorXd> x(solutionBuffer_.array(),unknownCount_);
       Eigen::Map<Eigen::VectorXd> b(rhsBuffer_.array(),equationCount_);
-      x = nncgp(A, b, errorMagnitude_, maxSizeRatio_, relativeTolerance_, verboseFlag_, scalingFlag_);
+      x = nncgp(A, b, errorMagnitude_, maxSizeRatio_, maxIterRatio_, relativeTolerance_, verboseFlag_, scalingFlag_);
 #else
       std::cerr << "USE_EIGEN3 is not defined here in SparseNonNegativeLeastSquaresSolver::solve\n";
       exit(-1);
@@ -121,7 +122,7 @@ SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::solve() {
       Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::ColMajor> > A(matrixBuffer_.data(),equationCount_,unknownCount_);
       Eigen::Map<Eigen::VectorXd> x(solutionBuffer_.array(),unknownCount_);
       Eigen::Map<Eigen::VectorXd> b(rhsBuffer_.array(),equationCount_);
-      x = gpfp(A, b, errorMagnitude_, maxSizeRatio_, relativeTolerance_, verboseFlag_, scalingFlag_, positivity_);
+      x = gpfp(A, b, errorMagnitude_, maxSizeRatio_, maxIterRatio_, relativeTolerance_, verboseFlag_, scalingFlag_, positivity_);
 #else
       std::cerr << "USE_EIGEN3 is not defined here in SparseNonNegativeLeastSquaresSolver::solve\n";
       exit(-1);

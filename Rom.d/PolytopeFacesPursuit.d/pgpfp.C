@@ -29,7 +29,7 @@ bool operator== (const long_int& lhs, const long_int& rhs);
 
 Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1>
 pgpfp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm, const long int n,
-       double maxsze, double reltol, bool verbose, bool scaling, bool positive)
+      double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool positive)
 {
   // each A[i] is the columnwise block of the global A matrix assigned to a subdomain on this mpi process
   // each x[i] of the return value x is the corresponding row-wise block of the global solution vector
@@ -48,7 +48,7 @@ pgpfp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const 
   const int nsub = A.size(); // number of subdomains assigned to this mpi process
   const long int m = b.rows();
   const long int maxvec = std::min(m, (long int)(maxsze*n));
-  const long int maxit = 15*n;
+  const long int maxit = maxite*n;
   std::vector<long int> maxlocvec(nsub); for(int i=0; i<nsub; ++i) maxlocvec[i] = std::min(A[i].cols(),maxvec);
   double bnorm = b.norm();
   double abstol = reltol*bnorm;
@@ -56,6 +56,7 @@ pgpfp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const 
   Array<VectorXd,Dynamic,1> y(nsub), g(nsub), g1(nsub), g2(nsub), g_(nsub), S(nsub);
   for(int i=0; i<nsub; ++i) {
     y[i] = VectorXd::Zero(maxlocvec[i]);
+    g1[i].resize(A[i].cols());
     g_[i].resize(maxlocvec[i]);
     S[i].resize(A[i].cols());
     if(scaling) for(int j=0; j<A[i].cols(); ++j) S[i][j] = 1/A[i].col(j).norm();
@@ -78,11 +79,13 @@ pgpfp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const 
   long int k = 0; // k is the dimension of the (global) set of selected indices
   std::vector<long int> l(nsub); // l[i] is the dimension of the subset of selected indices local to a subdomain.
   std::list<std::pair<int,long_int> > gindices; // global indices
+  std::list<std::pair<int,long_int> > nld_indices;
   std::vector<std::vector<long int> > indices(nsub); // local indices
   std::vector<std::vector<int> > setKey(nsub);
 
   Array<long int,Dynamic,1> jk(nsub);
-  ArrayXd lamMax(nsub), setMax(nsub), ymin(nsub);
+  Array<int,Dynamic,1> setMax(nsub);
+  Array<double,Dynamic,1> lamMax(nsub), ymin(nsub);
 
   long int iter   = 0; // number of iterations
   long int downIt = 0;
@@ -98,7 +101,7 @@ pgpfp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const 
       std::cout.unsetf(std::ios::uppercase);
     }
 
-    if(rnorm <= abstol || k == maxvec || iter >= maxit) break;
+    if(rnorm <= abstol || k+nld_indices.size() == maxvec || iter >= maxit) break;
 
 #if defined(_OPENMP)
   #pragma omp parallel for schedule(static,1)
@@ -107,12 +110,10 @@ pgpfp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const 
       g[i]  = S[i].asDiagonal()*(A[i].transpose()*r);
       g2[i] = S[i].asDiagonal()*(A[i].transpose()*vertex);
 
-      g1[i] = g[i];
-      // compute maximum step length for this subdomain
-      for(long int col = 0; col != A[i].cols(); col++){
-        double num = g1[i][col];
+      for(long int col = 0; col != A[i].cols(); col++) {
+        double num = g[i][col];
         double den = g2[i][col];
-        if(num >= 0. && den != 1.0) {
+        if(num > 0. && den != 1.0) {
           g1[i][col] = num/(1.0-den);
           if(!positive)
             g2[i][col] = -std::numeric_limits<double>::max();
@@ -127,24 +128,30 @@ pgpfp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const 
         }
       }
       // make sure that element has not already been selected
-      for(long int j=0; j<l[i]; ++j){
+      for(long int j=0; j<l[i]; ++j) {
         g1[i][indices[i][j]] = -std::numeric_limits<double>::max();
         if(!positive)
           g2[i][indices[i][j]] = -std::numeric_limits<double>::max();
       }
+      // also make sure near linear dependent indices are not selected
+      for(std::list<std::pair<int,long_int> >::iterator it = nld_indices.begin(); it != nld_indices.end(); ++it) {
+        if(it->first == myrank && it->second.sub == i) {
+          g1[i][it->second.index] = -std::numeric_limits<double>::max();
+          if(!positive)
+            g2[i][it->second.index] = -std::numeric_limits<double>::max();
+        }
+      }
 
-      bool whichSet = 1;
+      int whichSet = 1;
       long int position1 = 0;
       long int position2 = 0;
 
       double lam  = 0.0;
       double lam1 = g1[i].maxCoeff(&position1);
-      double lam2 = 0.;
-      if(!positive)
-        lam2 = g2[i].maxCoeff(&position2);
+      double lam2 = (!positive) ? g2[i].maxCoeff(&position2) : 0;
 
-      if(A[i].cols() > 0){
-        if (lam1 > lam2 || positive){
+      if(A[i].cols() > 0) {
+        if(lam1 > lam2 || positive) {
           lam = lam1;
           jk[i] = position1;
         } else {
@@ -161,8 +168,8 @@ pgpfp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const 
     }
     int ik; // subdomain which has the max coeff.
     int Set; // correct sign of selected set
-    s.val   = (nsub > 0) ? lamMax.maxCoeff(&ik) : -std::numeric_limits<double>::max();
-    s.rank  = myrank;
+    s.val  = (nsub > 0) ? lamMax.maxCoeff(&ik) : -std::numeric_limits<double>::max();
+    s.rank = myrank;
 #ifdef USE_MPI
     MPI_Allreduce(MPI_IN_PLACE, &s, 1, MPI_DOUBLE_INT, MPI_MAXLOC, mpicomm);
 #endif
@@ -175,8 +182,6 @@ pgpfp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const 
     MPI_Bcast(&p, 1, MPI_LONG_INT, s.rank, mpicomm);
     MPI_Bcast(&Set, 1, MPI_INT, s.rank, mpicomm);
 #endif
-  
-     
     lambda[k] = 1.0/s.val;
 
     if(s.rank == myrank) {
@@ -216,6 +221,16 @@ pgpfp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const 
 #endif
     DtGDinv[k] = 1/c.squaredNorm();
     a[k] = r.dot(c)*DtGDinv[k];
+    if(a[k] < 0) { // check for near linear dependence
+      nld_indices.push_back(std::pair<int,long_int>(s.rank,p));
+      gindices.pop_back();
+      if(s.rank == myrank) {
+        indices[ik].pop_back();
+        setKey[ik].pop_back();
+        l[ik]--;
+      }
+      continue;
+    } else nld_indices.clear();
     r -= a[k]*c;
     vertex += lambda[k]*a[k]*c;
 #if defined(_OPENMP)
@@ -242,7 +257,6 @@ pgpfp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const 
 #ifdef USE_MPI
       MPI_Allreduce(MPI_IN_PLACE, &s, 1, MPI_DOUBLE_INT, MPI_MINLOC, mpicomm);
 #endif
-
       if(s.val < 0.) {
         downIt++;
 
@@ -251,8 +265,7 @@ pgpfp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const 
           p.sub = ik;
           indices[ik].erase(indices[ik].begin() + jk[ik]); // remove index jk[ik] from the local active set of ik-th subdomain
           setKey[ik].erase(setKey[ik].begin() + jk[ik]);
-          for(int j=jk[ik]; j<l[ik]-1; ++j) { y[ik][j] = y[ik][j+1]; } // erase jk[ik]-th element from x_[ik] and y[ik]
-          y[ik][l[ik]] = 0;
+          y[ik][l[ik]-1] = 0;
           l[ik]--;
           //std::cout << "removing index " << p.index << " from subdomain " << ik << " on process with rank " << myrank << std::endl;
         }
@@ -285,32 +298,22 @@ pgpfp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const 
         for(int i=0; i<nsub; ++i) {
           g_[i].head(l[i]) = B[i].leftCols(l[i]).transpose()*r;
         }
-
         for(std::list<std::pair<int,long_int> >::iterator it = fol; it != gindices.end(); ++it) {
-          double num = 0.;
-          double den = 0.;
           if(it->first == myrank) {
             int i = it->second.sub;
-            int slot;
-            for(slot = 0; slot != indices[i].size(); slot++){
-              if(it->second.index == indices[i][slot])
-                break;
-            }
+            int slot = std::distance(indices[i].begin(), std::find(indices[i].begin(), indices[i].end(), it->second.index));
             B[i].col(l[i]) = double(setKey[i][slot])*S[i][it->second.index]*A[i].col(it->second.index);
-            num = B[i].col(l[i]).transpose()*r;
-            den = B[i].col(l[i]).dot(vertex);
+            double num = B[i].col(l[i]).transpose()*r;
+            double den = B[i].col(l[i]).dot(vertex);
             g_[i][l[i]] = num;
+            lambda[k] = (1.0-den)/num;
             // update GD due to extra column added to B (note: B.col(i)*D.row(i).head(k) = 0, so BD does not need to be updated)
             GD[i].row(l[i]).head(k) = B[i].col(l[i]).transpose()*BD.leftCols(k);
             l[i]++;
           }
-
 #ifdef USE_MPI
-          MPI_Bcast(&num, 1, MPI_DOUBLE, it->first, mpicomm);
-          MPI_Bcast(&den, 1, MPI_DOUBLE, it->first, mpicomm);
+          MPI_Bcast(&lambda[k], 1, MPI_DOUBLE, it->first, mpicomm);
 #endif
-
-          lambda[k] = (1.0-den)/num;
 
 #if defined(_OPENMP)
   #pragma omp parallel for schedule(static,1)
@@ -366,7 +369,7 @@ pgpfp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const 
   Array<VectorXd,Dynamic,1> x(nsub);
   for(int i=0; i<nsub; ++i) {
     x[i] = VectorXd::Zero(A[i].cols());
-    for(long int j=0; j<l[i]; ++j) x[i][indices[i][j]] += S[i][indices[i][j]]*double(setKey[i][j])*y[i][j];
+    for(long int j=0; j<l[i]; ++j) x[i][indices[i][j]] = S[i][indices[i][j]]*double(setKey[i][j])*y[i][j];
   }
   return x;
 }

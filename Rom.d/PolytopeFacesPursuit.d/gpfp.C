@@ -46,13 +46,13 @@
 
 Eigen::VectorXd
 gpfp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm,
-      double maxsze, double reltol, bool verbose, bool scaling, bool positive)
+     double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool positive)
 {
   using namespace Eigen;
 
   const long int m = b.rows();
   const long int maxvec = std::min(m, (long int)(maxsze*A.cols()));
-  const long int maxit = 100*A.cols();
+  const long int maxit = maxite*A.cols();
   double bnorm = b.norm();
   double abstol = reltol*bnorm;
 
@@ -68,6 +68,7 @@ gpfp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
   long int k = 0;
   std::vector<long int> indices;
   std::vector<int>      setKey;
+  std::vector<long int> nld_indices;
 
   if(scaling) for(int i=0; i<A.cols(); ++i) S[i] = 1/A.col(i).norm();
   else S.setOnes();
@@ -86,7 +87,7 @@ gpfp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
       std::cout.unsetf(std::ios::uppercase);
     }
 
-    if(rnorm <= abstol || k == maxvec || iter >= maxit) break;
+    if(rnorm <= abstol || k+nld_indices.size() == maxvec || iter >= maxit) break;
 
     g1.setZero();
     g2.setZero();
@@ -99,31 +100,34 @@ gpfp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
     g1 = S.asDiagonal()*(A.transpose()*r);
     g2 = S.asDiagonal()*(A.transpose()*vertex);
 
-    //zero out elements that are already selected
-    h = g1;
-
-    for(long int col = 0; col != A.cols(); col++){
-      double num = h(col);
+    for(long int col = 0; col != A.cols(); col++) {
+      double num = g1(col);
       double den = g2(col);
-      if((num >= 0. && den != 1.0)) {
-        h(col)  = num/(1.0-den);
+      if(num > 0. && den != 1.0) {
+        h(col) = num/(1.0-den);
         if(!positive)
           g2(col) = -std::numeric_limits<double>::max();
       } else if(num < 0. && den != -1.0) {
-        h(col)  = -std::numeric_limits<double>::max();
+        h(col) = -std::numeric_limits<double>::max();
         if(!positive)
           g2(col) = (-1.0)*num/(1.0+den);
       } else {
-        h(col)  = -std::numeric_limits<double>::max();
+        h(col) = -std::numeric_limits<double>::max();
         if(!positive)
           g2(col) = -std::numeric_limits<double>::max();
       }
     }
-
-    for(long int j=0; j<k; ++j){
-      h(indices[j])  = -std::numeric_limits<double>::max();
+    // make sure the index has not already been selected
+    for(long int j=0; j<k; ++j) {
+      h(indices[j]) = -std::numeric_limits<double>::max();
       if(!positive)
         g2(indices[j]) = -std::numeric_limits<double>::max();
+    }
+    // also make sure near linear dependent indices are not selected
+    for(long int j=0; j<nld_indices.size(); ++j) {
+      h[nld_indices[j]] = -std::numeric_limits<double>::max();
+      if(!positive)
+        g2[nld_indices[j]] = -std::numeric_limits<double>::max();
     }
 
     double lam  = 0.0;
@@ -132,7 +136,7 @@ gpfp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
     if(!positive)
       lam2 = g2.maxCoeff(&position2);
 
-    if ((lam1 > lam2) || positive){
+    if ((lam1 > lam2) || positive) {
       lam = lam1;
       position = position1;
     } else {
@@ -161,9 +165,10 @@ gpfp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
     GD.col(k).head(k+1) = B.leftCols(k+1).transpose()*c;
     DtGDinv[k] = 1./c.squaredNorm();
     a[k] = r.dot(c)*DtGDinv[k]; // step length
+    if(a[k] < 0) { nld_indices.push_back(position); indices.pop_back(); setKey.pop_back(); continue; } else nld_indices.clear(); // check for near linear dependence
     y.head(k+1) = x_.head(k+1) + a[k]*d.head(k+1); // candidate solution
     r -= a[k]*c; // residual
-    vertex += lambda[k]*a[k]*c;    
+    vertex += lambda[k]*a[k]*c;
     k++;
     while(true) {
       iter++;
@@ -173,6 +178,7 @@ gpfp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
       if(minCoeff < 0.) {
         downIt++;
         // remove index i from the active set
+        //std::cout << "removing index " << indices[i] << std::endl;
         std::vector<long int>::iterator fol = indices.erase(indices.begin()+i);
         setKey.erase(setKey.begin()+i);
 
@@ -218,9 +224,9 @@ gpfp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
   if(verbose) std::cout.flush();
 
   VectorXd x = VectorXd::Zero(A.cols());
-  long int element  = 0;
+  long int element = 0;
   for(std::vector<int>::iterator it = setKey.begin(); it != setKey.end(); it++) {
-    x[indices[element]] +=  S[indices[element]]*double(*it)*y[element];
+    x[indices[element]] = S[indices[element]]*double(*it)*y[element];
     element++;
   }
   return x;

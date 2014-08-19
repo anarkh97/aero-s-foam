@@ -38,6 +38,9 @@ public:
   double maxSizeRatio() const { return maxSizeRatio_; }
   void maxSizeRatioIs(double maxSze) { maxSizeRatio_ = maxSze; }
 
+  double maxIterRatio() const { return maxIterRatio_; }
+  void maxIterRatioIs(double maxIte) { maxIterRatio_ = maxIte; }
+
   // Rhs buffer: [equationCount]
   const double * rhsBuffer() const { return rhsBuffer_.array(); }
   double * rhsBuffer() { return rhsBuffer_.array(); }
@@ -65,6 +68,7 @@ private:
   bool positivity_;
   int solverType_;
   double maxSizeRatio_;
+  double maxIterRatio_;
 
   int nsub_;
   SparseNonNegativeLeastSquaresSolver<std::vector<double>,size_t> **sd_;

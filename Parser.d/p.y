@@ -4690,6 +4690,8 @@ SamplingOption:
   { domain->solInfo().solverTypeSpnnls = $2; }
   | MAXSIZE Float
   { domain->solInfo().maxSizeSpnnls = $2; }
+  | MAXITR Float
+  { domain->solInfo().maxIterSpnnls = $2; }
   | FORCEROB FNAME
   { domain->solInfo().forcePodRomFile = $2; }
   | FORCEROB FNAME Integer

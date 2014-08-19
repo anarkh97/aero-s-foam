@@ -158,7 +158,6 @@ pgpfp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const 
 
       lamMax[i] = lam;
       setMax[i] = whichSet;
-      g[i] *= whichSet;
     }
     int ik; // subdomain which has the max coeff.
     int Set; // correct sign of selected set
@@ -287,9 +286,9 @@ pgpfp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const 
           g_[i].head(l[i]) = B[i].leftCols(l[i]).transpose()*r;
         }
 
-        double num = 0.;
-        double den = 0.;
         for(std::list<std::pair<int,long_int> >::iterator it = fol; it != gindices.end(); ++it) {
+          double num = 0.;
+          double den = 0.;
           if(it->first == myrank) {
             int i = it->second.sub;
             int slot;
@@ -298,9 +297,9 @@ pgpfp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const 
                 break;
             }
             B[i].col(l[i]) = double(setKey[i][slot])*S[i][it->second.index]*A[i].col(it->second.index);
-            g_[i][l[i]] = B[i].col(l[i]).transpose()*r;
-            num = g_[i][l[i]];
+            num = B[i].col(l[i]).transpose()*r;
             den = B[i].col(l[i]).dot(vertex);
+            g_[i][l[i]] = num;
             // update GD due to extra column added to B (note: B.col(i)*D.row(i).head(k) = 0, so BD does not need to be updated)
             GD[i].row(l[i]).head(k) = B[i].col(l[i]).transpose()*BD.leftCols(k);
             l[i]++;

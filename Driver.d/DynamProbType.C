@@ -488,54 +488,54 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
                   DynOps& dynOps, NewmarkWorkVec<VecType,ProblemDescriptor>& workVec,
                   double dt, double tmax, int aeroFlg)
 { 
-   filePrint(stderr, " ... Quasistatic loop               ... \n");
-   if (aeroFlg == 10)  steadyMax = 1;
-   else if(steadyMax == 1) {
-     filePrint(stderr, " ... Error! Maximum number of iterations must be greater than 1\n");
-     exit(-1);
-   }
+  filePrint(stderr, " ... Quasistatic loop               ... \n");
+  if (aeroFlg == 10) steadyMax = 1;
+  else if(steadyMax == 1) {
+    filePrint(stderr, " ... Error! Maximum number of iterations must be greater than 1\n");
+    exit(-1);
+  }
    
-   // get initial displacements
-   VecType &d_n = curState.getDisp();
+  // get initial displacements
+  VecType &d_n = curState.getDisp();
    
-   // Initialize some vectors 
-   VecType  &d_n_p = workVec.get_d_n_p();
-   VecType    &rhs = workVec.get_rhs();
-   VecType  &ext_f = workVec.get_ext_f();
+  // Initialize some vectors 
+  VecType  &d_inc = workVec.get_d_n_p();
+  VecType    &rhs = workVec.get_rhs();
+  VecType  &ext_f = workVec.get_ext_f();
 
-   // Initialize some parameters
-   // Get initial Time
-   int tIndex;
-   int initIndex;
-   double initialTime = 0.0;
+  // Initialize some parameters
+  // Get initial Time
+  int tIndex;
+  int initIndex;
+  double initialTime = 0.0;
 
-   probDesc->getInitialTime(initIndex, initialTime);
-   double initExtForceNorm = probDesc->getInitialForceNorm();
-   tIndex = initIndex;
+  probDesc->getInitialTime(initIndex, initialTime);
+  double initExtForceNorm = probDesc->getInitialForceNorm();
+  tIndex = initIndex;
 
-   int iSteady  = 0;
+  int iSteady  = 0;
 
-   double forceRef;
+  double forceRef;
 
-   double relaxFac = maxVel;
+  double relaxFac = maxVel;
    
-   // Output state of model
+  // Output state of model
 
-   postProcessor->dynamOutput( tIndex, initialTime, dynOps, ext_f, aeroForce, curState );
+  postProcessor->dynamOutput( tIndex, initialTime, dynOps, ext_f, aeroForce, curState );
 
-   //-----------------------------------------------------------------------
-   // ... BEGIN MAIN TIME-LOOP
-   //-----------------------------------------------------------------------
+  //-----------------------------------------------------------------------
+  // ... BEGIN MAIN TIME-LOOP
+  //-----------------------------------------------------------------------
 
-   double totalTime = -getTime();
+  double totalTime = -getTime();
 
   for (tIndex = tIndex+1; tIndex <= steadyMax; tIndex++) {
 
     // ... call projector for RBMs in case of rbmfilter level 2
     if (probDesc->getFilterFlag() == 2) probDesc->project( d_n );
 
-    // ... compute external force
-    probDesc->computeExtForce2( curState, ext_f, constForce, tIndex, (double)tIndex*delta, aeroForce); // [E] Received fluid load ...
+    // ... compute external force (and receive fluid load)
+    probDesc->computeExtForce2( curState, ext_f, constForce, tIndex, (double)tIndex*delta, aeroForce);
 
     // ... build force reference norm 
     if (tIndex==initIndex+1) {
@@ -543,15 +543,15 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
         forceRef=ext_f.norm();
       else 
         forceRef = initExtForceNorm;
-      if(verboseFlag) filePrint(stderr, " ... Initial Force: %8.2e ...\n", forceRef);
+      if(verboseFlag) filePrint(stderr, " ... Initial Force: %8.2e        ...\n", forceRef);
     }
 
     // ... build internal force 
-    probDesc->getInternalForce(d_n, rhs, (double)tIndex*delta, tIndex);
+    getInternalForce(dynOps, d_n, rhs, (double)tIndex*delta, tIndex);
 
     // ... check for convergence
     double relres = 0.0;
-    if (forceRef != 0.0)  relres = norm(rhs-ext_f)/forceRef;
+    if (forceRef != 0.0) relres = norm(rhs-ext_f)/forceRef;
     else {
       relres = norm(rhs-ext_f);
       filePrint(stdout, " ... WARNING: Reference External Force is zero, Relative residual is absolute error norm ...\n");
@@ -563,11 +563,11 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
       filePrint(stderr," ... Pseudo-Step = %d  Rel. Res. = %10.4e ...\n",tIndex, relres);
   
       // command communication with fluid
-      if(tIndex == steadyMax && !iSteady) { 
+      if(tIndex == steadyMax && !iSteady) {
         probDesc->processLastOutput();
         if(aeroFlg != 10) {
           postProcessor->dynamOutput( tIndex, (double)tIndex*delta, dynOps, ext_f, aeroForce, curState );
-          probDesc->cmdCom(1); 
+          probDesc->cmdCom(1);
           break;
         }
       }
@@ -579,7 +579,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
     // ... stop quasi-transient simulation if converged
     if(iSteady) {
       filePrint(stderr," ------------------------------------------------------\n");
-      filePrint(stderr," ... Quasistatic Analysis Converged After %d Steps ...\n",tIndex);
+      filePrint(stderr," ... Quasistatic Analysis Converged After %3d Steps ...\n",tIndex);
       filePrint(stderr," ------------------------------------------------------\n");
       probDesc->processLastOutput();
       postProcessor->dynamOutput( tIndex, (double)tIndex*delta, dynOps, ext_f, aeroForce, curState );
@@ -589,28 +589,37 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
       probDesc->processLastOutput();
 
     // ... save load vector
-    rhs=ext_f;
+    rhs = ext_f;
 
-    // ... solve System for current load
-    dynOps.dynMat->reSolve( rhs );
+    if(domain->solInfo().isNonLin()) {
 
-    // ... compute displacement increment;
-    d_n_p.linC(rhs, -1.0, d_n);
+      // ... solve nonlinear system for current load
+      //     and compute displacement increment
+      probDesc->reSolve(&dynOps, rhs, tIndex, d_inc); // XXX consider delta != 0
 
-    // ... apply relaxation factor
-    d_n_p *= relaxFac;
+      // ... update solution
+      probDesc->updateState(relaxFac, d_inc, d_n);
+    }
+    else {
 
-    // ... update solution
-    d_n   += d_n_p;
+      // ... solve linear system for current load
+      dynOps.dynMat->reSolve( rhs );
+
+      // ... compute displacement increment
+      d_inc.linC(rhs, -1.0, d_n);
+
+      // ... update solution, applying relaxation factor
+      d_n += relaxFac*d_inc;
+    }
 
     // ... output current solution and send displacements to fluid
     postProcessor->dynamOutput( tIndex, (double)tIndex*delta, dynOps, ext_f, aeroForce, curState );
   }
 
   if (!iSteady && aeroAlg != 10) {
-    filePrint(stderr," -----------------------------------------------------------\n");
-    filePrint(stderr," ... Quasistatic Analysis Did Not Converge After %d Steps ...\n",tIndex);
-    filePrint(stderr," -----------------------------------------------------------\n");
+    filePrint(stderr," -------------------------------------------------------------\n");
+    filePrint(stderr," ... Quasistatic Analysis Did Not Converge After %3d Steps ...\n",tIndex);
+    filePrint(stderr," -------------------------------------------------------------\n");
   }
 
   // ... output CPU time spent in quasi-static loop
@@ -618,7 +627,6 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 #ifdef PRINT_TIMERS
   filePrint(stderr," ... Total Loop Time = %.2e s   ...\n",totalTime/1000.0);
 #endif
-
 }
 
 // -----------------------------------------------------------------------------//
@@ -693,7 +701,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
         forceSenRef=ext_fSen.norm();
 //      else 
 //        forceSenRef = initExtForceNorm;
-      if(verboseFlag) filePrint(stderr, " ... Initial Force: %8.2e ...\n", forceSenRef);
+      if(verboseFlag) filePrint(stderr, " ... Initial Force: %8.2e        ...\n", forceSenRef);
     }
 
     // ... build internal force 
@@ -766,7 +774,6 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 #ifdef PRINT_TIMERS
   filePrint(stderr," ... Total Loop Time = %.2e s   ...\n",totalTime/1000.0);
 #endif
-
 }
 
 // -----------------------------------------------------------------------------//

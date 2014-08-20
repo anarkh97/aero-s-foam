@@ -14,7 +14,7 @@ template < class OpSolver,
 void
 NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, StateUpdate >::solve()
 {
- // Set up nonlinear Problem 
+ // Set up nonlinear problem 
  probDesc->preProcess();
 
  // Get solver
@@ -78,8 +78,8 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
 
      // call newton iteration with load step lambda
      converged = newton(force, residual, totalRes,
-                        elementInternalForce, solver, 
-                        refState, geomState, numIter, lambda, step);
+                        elementInternalForce, probDesc, solver,
+                        refState, geomState, stateIncr, numIter, lambda, step);
 
      // update lagrange multipliers and/or penalty parameters 
      probDesc->updateParameters(geomState);
@@ -194,8 +194,8 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
 
  int numIter = 0;
  int step    = 1;
- newton(force, residual, elementInternalForce, totRes, solver, u0,
-        u, numIter, lambda, step);
+ newton(force, residual, totRes, elementInternalForce, probDesc, solver, u0,
+        u, stateIncr, numIter, lambda, step);
 
  // ... Declare Vector dU
  VecType dU(probDesc->solVecInfo());
@@ -297,15 +297,13 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
  // ... CALL NEWTON FOR FINAL SOLUTION
  *u0 = *u;
  step++;
- newton(force, residual, totRes, elementInternalForce, solver, u0, u, numIter, lambda, step);
+ newton(force, residual, totRes, elementInternalForce, probDesc, solver, u0, u, stateIncr, numIter, lambda, step);
 
  probDesc->updateStates(u0, *u);
 
  // CALL POST PROCESSING OF DISPLACEMENTS
  probDesc->staticOutput(u, lambda, force, totRes, u0);
- 
 }
-
 
 template < class OpSolver,
            class VecType,
@@ -314,13 +312,13 @@ template < class OpSolver,
            class GeomType,
 	   class StateUpdate>
 int
-NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, StateUpdate  >
-::newton( VecType& force, VecType& residual, VecType &totalRes,
-          VecType& elementInternalForce, 
-          OpSolver* solver, typename StateUpdate::RefState *refState,
-	  GeomType* geomState,
-	  int &numIter, double lambda, 
-          int step )
+NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, StateUpdate >
+::newton(VecType& force, VecType& residual, VecType &totalRes,
+         VecType& elementInternalForce, ProblemDescriptor *probDesc,
+         OpSolver* solver, typename StateUpdate::RefState *refState,
+         GeomType* geomState, typename StateUpdate::StateIncr *stateIncr,
+         int &numIter, double lambda, 
+         int step)
 {
   // Accumulate time spent in solving and geomstate update for one step
   double timeSolve   = 0.0;

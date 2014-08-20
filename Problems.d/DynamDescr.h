@@ -175,6 +175,7 @@ class SingleDomainDynamic
     // Central Difference only related subroutines
     void computeStabilityTimeStep(double& dt, DynamMat& dMat);
 
+    void reSolve(DynamMat *dMat, Vector &force, int step, Vector &dinc);
     void updateState(double dt_n_h, Vector& v_n_h, Vector& d_n);
     void pull_back(Vector& f);
     void push_forward(Vector& a);

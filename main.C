@@ -999,7 +999,7 @@ int main(int argc, char** argv)
        }
      } break;
      case SolverInfo::NonLinDynam: {
-       if(domain->solInfo().newmarkBeta == 0) { // explicit
+       if(domain->solInfo().newmarkBeta == 0 || domain->solInfo().timeIntegration == 1) { // explicit or quasi-static
          if (!domain->solInfo().activatePodRom) {
            if(domain->solInfo().soltyp == 2) {
              MultiDomainTemp tempProb(domain);
@@ -1290,7 +1290,7 @@ int main(int argc, char** argv)
 #endif
          }
          else {
-           if(domain->solInfo().newmarkBeta == 0) { // explicit
+           if(domain->solInfo().newmarkBeta == 0 || domain->solInfo().timeIntegration == 1) { // explicit or quasi-static
              if(domain->solInfo().soltyp == 2) {
                SingleDomainTemp tempProb(domain);
                TempSolver<DynamMat, Vector, SDTempDynamPostProcessor,

@@ -91,17 +91,17 @@ private:
      
      void explicitNewmarkLoop(SysState<VecType>&,VecType&,
                               DynOps& dynOps, 
-			                        NewmarkWorkVec<VecType,ProblemDescriptor> &workVec,
+                              NewmarkWorkVec<VecType,ProblemDescriptor> &workVec,
                               double, double);
      void implicitNewmarkLoop(SysState<VecType>&,VecType&,
                               DynOps& dynOps, 
-			                        NewmarkWorkVec<VecType,ProblemDescriptor> &workVec,
+                                                NewmarkWorkVec<VecType,ProblemDescriptor> &workVec,
                               double, double);
      void     quasistaticLoop(SysState<VecType>&, VecType&, DynOps& dynOps, 
-			                        NewmarkWorkVec<VecType,ProblemDescriptor> &workVec,
+                              NewmarkWorkVec<VecType,ProblemDescriptor> &workVec,
                               double, double, int =0);
      void aeroSensitivityQuasistaticLoop(SysState<VecType>&, VecType&, DynOps& dynOps, 
-			                                   NewmarkWorkVec<VecType,ProblemDescriptor> &workVec,
+                                         NewmarkWorkVec<VecType,ProblemDescriptor> &workVec,
                                          double, double, int =0);
 
      int checkSteadyState(double time, double step, double criteria=-1.0);

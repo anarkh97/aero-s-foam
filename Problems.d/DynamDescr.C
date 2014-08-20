@@ -619,14 +619,40 @@ SingleDomainDynamic::getContactForce(Vector &d_n, Vector &dinc, Vector &ctc_f, d
   times->tdenforceTime += getTime();
 }
 
+#include <Problems.d/NonLinStatic.h>
+#include <Driver.d/NLStaticProbType.h>
+void
+SingleDomainDynamic::reSolve(DynamMat *dMat, Vector &force, int step, Vector &dinc)
+{
+  NonLinStatic nlstatic(domain);
+  Vector residual(nlstatic.solVecInfo()),
+         totalRes(nlstatic.solVecInfo()),
+         stateIncr(nlstatic.solVecInfo()),
+         elementInternalForce(nlstatic.elemVecInfo());
+  GeomState tmpState(*geomState);
+  int numIter = 0;
+
+  nlstatic.preProcess();
+  residual.zero();
+  totalRes.zero();
+  elementInternalForce.zero();
+
+  NLStaticSolver<Solver,Vector,SingleDomainPostProcessor<double,Vector,Solver>,NonLinStatic,GeomState>
+  ::newton(force, residual, totalRes, elementInternalForce, &nlstatic, dMat->dynMat, geomState, &tmpState,
+           &stateIncr, numIter, 1.0, step);
+
+  tmpState.get_inc_displacement(dinc, *geomState, false);
+}
+
 void
 SingleDomainDynamic::updateState(double dt_n_h, Vector &v_n_h, Vector &d_n)
 {
   if(domain->solInfo().isNonLin()) {
     Vector dinc(solVecInfo()); dinc = dt_n_h*v_n_h;
-    geomState->update(dinc, 1);
-    geomState->setVelocity(v_n_h);
+    geomState->update(dinc, (domain->solInfo().newmarkBeta == 0) ? 1 : 0);
+    if(domain->solInfo().timeIntegration != 1) geomState->setVelocity(v_n_h);
     geomState->get_tot_displacement(d_n, false);
+    // XXX consider internal states for quasi-static
   }
 }
 
@@ -970,7 +996,7 @@ SingleDomainDynamic::getInternalForce(Vector& d, Vector& f, double t, int tIndex
     // NOTE #1: for explicit nonlinear dynamics, geomState and refState are the same object
     // NOTE #2: by convention, the internal variables associated with a nonlinear constitutive relation are not updated
     //          when getStiffAndForce is called, so we have to call updateStates.
-    if(domain->solInfo().stable && domain->solInfo().isNonLin() && tIndex%domain->solInfo().stable_freq == 0) {
+    if(domain->solInfo().newmarkBeta == 0 && domain->solInfo().stable && domain->solInfo().isNonLin() && tIndex%domain->solInfo().stable_freq == 0) {
       domain->getStiffAndForce(*geomState, fele, allCorot, kelArray, residual, 1.0, t, geomState,
                                reactions, melArray);
       domain->updateStates(geomState, *geomState, allCorot);
@@ -980,10 +1006,6 @@ SingleDomainDynamic::getInternalForce(Vector& d, Vector& f, double t, int tIndex
                                reactions, melArray);
     }
     f.linC(-1.0,residual); // f = -residual
-/* XXX now this is done in a separate function, SingleDomainDynamic::pull_back
-    if(!domain->solInfo().galerkinPodRom && !domain->solInfo().getNLInfo().linearelastic)
-      geomState->pull_back(f); // f = R^T*f
-*/
   }
   else {
     f.zero();
@@ -1011,7 +1033,7 @@ SingleDomainDynamic::push_forward(Vector &a)
     // Transform 2nd time-derivative of displacement to spatial frame: a = [R I]*a
     //                                                                     [I I]
     // Note: the angular accelerations are deliberately not transformed.
-    geomState->push_forward(a); // XXX
+    geomState->push_forward(a);
   }
 }
 

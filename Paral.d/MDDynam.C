@@ -623,14 +623,40 @@ MultiDomainDynam::getContactForce(DistrVector &d_n, DistrVector &dinc, DistrVect
   times->tdenforceTime += getTime();
 }
 
+#include <Paral.d/MDNLStatic.h>
+#include <Driver.d/NLStaticProbType.h>
+void
+MultiDomainDynam::reSolve(MDDynamMat *dMat, DistrVector &force, int step, DistrVector &dinc)
+{
+/*MDNLStatic nlstatic(domain);
+  DistrVector residual(nlstatic.solVecInfo()), 
+              totalRes(nlstatic.solVecInfo()), 
+              stateIncr(nlstatic.solVecInfo()),
+              elementInternalForce(nlstatic.elemVecInfo());
+  DistrGeomState tmpState(*geomState);
+  int numIter = 0;
+
+  nlstatic.preProcess();
+  residual.zero();
+  totalRes.zero();
+  elementInternalForce.zero();
+
+  NLStaticSolver<ParallelSolver,DistrVector,MultiDomainPostProcessor,MDNLStatic,DistrGeomState>
+  ::newton(force, residual, totalRes, elementInternalForce, &nlstatic, dMat->dynMat, geomState, &tmpState,
+           &stateIncr, numIter, 1.0, step);
+
+  tmpState.get_inc_displacement(dinc, *geomState, false);*/
+  filePrint(stderr," ... MultiDomainDynam::reSolve is not implemented\n");
+}
+
 void
 MultiDomainDynam::updateState(double dt_n_h, DistrVector& v_n_h, DistrVector& d_n)
 {
   if(domain->solInfo().isNonLin()) {
     DistrVector dinc(solVecInfo());
     dinc = dt_n_h*v_n_h;
-    geomState->update(dinc, 1);
-    geomState->setVelocity(v_n_h);
+    geomState->update(dinc, (domain->solInfo().newmarkBeta == 0) ? 1 : 0);
+    if(domain->solInfo().timeIntegration != 1) geomState->setVelocity(v_n_h);
     geomState->get_tot_displacement(d_n, false);
   }
 }
@@ -807,7 +833,7 @@ MultiDomainDynam::getConstForce(DistrVector& v)
 void
 MultiDomainDynam::addConstForceSensitivity(DistrVector& v)
 {
-  filePrint(stderr," ... MultiDomainDynam::addConstForceSensitivity is not implemented \n");
+  filePrint(stderr," ... MultiDomainDynam::addConstForceSensitivity is not implemented\n");
 }
 
 void
@@ -1089,9 +1115,6 @@ MultiDomainDynam::getInternalForce(DistrVector &d, DistrVector &f, double t, int
 {
   if(domain->solInfo().isNonLin()) {
     execParal3R(decDomain->getNumSub(), this, &MultiDomainDynam::subGetInternalForce, f, t, tIndex);
-/* XXX now this is done in a separate function, MultiDomainDynam::pull_back
-    if(!domain->solInfo().galerkinPodRom && !domain->solInfo().getNLInfo().linearelastic) geomState->pull_back(f);
-*/
   }
   else {
     f.zero();
@@ -1188,7 +1211,7 @@ MultiDomainDynam::subGetInternalForce(int isub, DistrVector &f, double &t, int &
   // NOTE #1: for explicit nonlinear dynamics, geomState and refState are the same object
   // NOTE #2: by convention, the internal variables associated with a nonlinear constitutive relation are not updated
   //          when getStiffAndForce is called, so we have to call updateStates.
-  if(domain->solInfo().stable && domain->solInfo().isNonLin() && tIndex%domain->solInfo().stable_freq == 0) {
+  if(domain->solInfo().newmarkBeta == 0 && domain->solInfo().stable && domain->solInfo().isNonLin() && tIndex%domain->solInfo().stable_freq == 0) {
     sd->getStiffAndForce(*(*geomState)[isub], eIF, allCorot[isub], kelArray[isub], residual, 1.0, t, (*geomState)[isub],
                          subReactions, melArray[isub]);
     sd->updateStates((*geomState)[isub], *(*geomState)[isub], allCorot[isub]);

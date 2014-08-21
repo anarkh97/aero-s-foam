@@ -487,7 +487,7 @@ void GeoSource::addMpcElements(int numLMPC, ResizeArray<LMPCons *> &lmpc)
   int nEle = elemSet.last();
   if(numLMPC) {
     for(int i = 0; i < numLMPC; ++i) {
-      elemSet.mpcelemadd(nEle, lmpc[i], domain->solInfo().isNonLin());
+      elemSet.mpcelemadd(nEle, lmpc[i], (domain->solInfo().isNonLin() || domain->solInfo().gepsFlg == 1));
       // if constraint options have been set and they are different from the defaults
       // then create a StructProp and set attribute for this mpc element
       if((lmpc[i]->lagrangeMult != -1) && 

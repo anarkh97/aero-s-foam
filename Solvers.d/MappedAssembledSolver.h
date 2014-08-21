@@ -15,7 +15,10 @@
 #include <Math.d/FullSquareMatrix.h>
 #include <Math.d/matrix.h>
 #include <Math.d/Vector.h>
+#include <Math.d/VectorSet.h>
 #include <Utils.d/dofset.h>
+
+typedef GenVectorSet<double> VectorSet;
 
 struct DOFMap {
   int ndofs;
@@ -200,7 +203,13 @@ class MappedAssembledSolver : public BaseSolver, public Map
      return sqrt(v1.sqNorm()+v2.sqNorm());
    }
 
+   void getRBMs(double *rbms) {
+     std::cerr << "MappedAssembledSolver:: getRBMs(double *) is not implemented\n";
+   }
 
+   void getRBMs(Vector *rbms);
+
+   void getRBMs(VectorSet &rbms);
 };
 
 template<class BaseSolver, class Scalar, class Map>
@@ -220,6 +229,43 @@ void MappedAssembledSolver<BaseSolver, Scalar, Map>::reSolve(Scalar *s)
     s[i] = Map::eqMaps[i].rhs; // PJSA extension for non-zero lmpc rhs
     for(int j = 0; j < Map::eqMaps[i].ndofs; ++j)
       s[i] += s2[Map::eqMaps[i].dofs[j]]*Map::eqMaps[i].coefs[j];
+  }
+}
+
+template<class BaseSolver, class Scalar, class Map>
+void MappedAssembledSolver<BaseSolver, Scalar, Map>::getRBMs(Vector *rbms)
+{
+  Vector *rbms2 = new Vector[BaseSolver::numRBM()];
+  for(int iRBM = 0; iRBM < BaseSolver::numRBM(); ++iRBM) {
+    rbms2[iRBM].initialize(BaseSolver::neqs());
+    rbms2[iRBM].zero();
+  }
+  BaseSolver::getRBMs(rbms2);
+  for(int iRBM = 0; iRBM < BaseSolver::numRBM(); ++iRBM) {
+    const Vector &s = rbms[iRBM];
+    const Vector &s2 = rbms2[iRBM];
+    for(int i = 0; i < Map::numMappedEqs; ++i) {
+      s[i] = Map::eqMaps[i].rhs; // PJSA extension for non-zero lmpc rhs
+      for(int j = 0; j < Map::eqMaps[i].ndofs; ++j)
+        s[i] += s2[Map::eqMaps[i].dofs[j]]*Map::eqMaps[i].coefs[j];
+    }
+  }
+  delete [] rbms2;
+}
+
+template<class BaseSolver, class Scalar, class Map>
+void MappedAssembledSolver<BaseSolver, Scalar, Map>::getRBMs(VectorSet &rbms)
+{
+  VectorSet rbms2(BaseSolver::numRBM(), BaseSolver::neqs(), 0.0);
+  BaseSolver::getRBMs(rbms2);
+  for(int iRBM = 0; iRBM < BaseSolver::numRBM(); ++iRBM) {
+    const Vector &s = rbms[iRBM];
+    const Vector &s2 = rbms2[iRBM];
+    for(int i = 0; i < Map::numMappedEqs; ++i) {
+      s[i] = Map::eqMaps[i].rhs; // PJSA extension for non-zero lmpc rhs
+      for(int j = 0; j < Map::eqMaps[i].ndofs; ++j)
+        s[i] += s2[Map::eqMaps[i].dofs[j]]*Map::eqMaps[i].coefs[j];
+    }
   }
 }
 

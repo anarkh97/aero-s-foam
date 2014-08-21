@@ -330,6 +330,18 @@ GenMumpsSolver<Scalar>::factor()
 
 template<class Scalar>
 void
+GenMumpsSolver<Scalar>::getRBMs(Vector *rbms)
+{
+  Scalar *nsp = new Scalar[nrbm*neq];
+  getNullSpace(nsp);
+  for(int i=0; i<nrbm; ++i)
+    for(int j=0; j<neq; ++j)
+      rbms[i][j] = ScalarTypes::Real(nsp[i*neq+j]);
+  delete [] nsp;
+}
+
+template<class Scalar>
+void
 GenMumpsSolver<Scalar>::getRBMs(VectorSet& rbms)
 {
   Scalar *nsp = new Scalar[nrbm*neq];

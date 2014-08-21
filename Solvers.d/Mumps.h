@@ -91,6 +91,7 @@ class GenMumpsSolver : public GenSolver<Scalar>, public GenSparseMatrix<Scalar>,
    int neqs() { return neq; }
    long size();
    int numRBM() { return nrbm; }
+   void getRBMs(Vector *rbms);
    void getRBMs(VectorSet& rbms);
    int* getPivnull_list();
 

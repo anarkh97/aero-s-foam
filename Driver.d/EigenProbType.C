@@ -1159,11 +1159,14 @@ SymArpackSolver< EigOps, VecType, VecSet,
         }
       } else
       sprintf(which,"%s",solInfo.which); // specifies which of the Ritz values of
-                                              // OP to compute (see Arpack manual)
-     // ... adjust subSpaceSize
-     if(subSpaceSize < this->totalEig) subSpaceSize = std::min(2*(this->totalEig-this->nrmod),this->totalEig-this->nrmod+8)+this->nrmod; // PJSA
-     if (subSpaceSize > this->probDesc->solVecSize())
-       subSpaceSize = this->probDesc->solVecSize();
+                                         // OP to compute (see Arpack manual)
+      // ... adjust subSpaceSize
+      if(subSpaceSize <= this->totalEig) {
+        subSpaceSize = std::min(2*(this->totalEig-this->nrmod),this->totalEig-this->nrmod+8)+this->nrmod;
+      }
+      if(subSpaceSize-this->nrmod > this->probDesc->solVecSize()) {
+        subSpaceSize = this->probDesc->solVecSize()+this->nrmod;
+      }
     }
 
     // ... Declaration and Initialization of Vector sets Q and Z
@@ -1178,10 +1181,10 @@ SymArpackSolver< EigOps, VecType, VecSet,
 
     // ... Check if nsub (# of flexible modes) is less than zero
     if(nsub < 0) {
-      filePrint(stderr," *** ERROR in routine SymArpackSolver::solve()    ***\n");
-      filePrint(stderr," *** subspaceSize =  %d                           ***\n", subSpaceSize);
-      filePrint(stderr," *** while # of Rigid Body Modes (this->nrmod) = %d ***\n",this->nrmod);
-      filePrint(stderr," *** subspaceSize must be bigger than this->nrmod   ***\n");
+      filePrint(stderr," *** ERROR in routine SymArpackSolver::solve() ***\n");
+      filePrint(stderr," *** subspaceSize = %3d                        ***\n", subSpaceSize);
+      filePrint(stderr," *** while # of Rigid Body Modes (nrmod) = %3d ***\n", this->nrmod);
+      filePrint(stderr," *** subspaceSize must be bigger than nrmod    ***\n");
       return;
     }
 
@@ -1192,8 +1195,7 @@ SymArpackSolver< EigOps, VecType, VecSet,
     }
 
     // ... Store the rbms in the first this->nrmod vectors of VecSet Z
-    //if (this->nrmod) this->eM->rigidBodyModes->getRBMs(*Z); // PJSA this->eM->dynMat->getRBMs((*Z));
-    if (this->nrmod) this->eM->dynMat->getRBMs((*Z));
+    if(this->nrmod) this->eM->dynMat->getRBMs((*Z));
  
     // ... copy the this->nrmod Z vectors to vector set Q
     for(i=0; i<this->nrmod; ++i) (*Q)[i] = (*Z)[i];
@@ -1221,7 +1223,6 @@ SymArpackSolver< EigOps, VecType, VecSet,
     int nevold = this->nrmod;
     int ncv = nsub;  // number of Lanczos vectors generated at each iteration
     int nloc = this->probDesc->solVecSize();  // dimension of the eigenproblem
-    //filePrint(stderr," nevold = %d, this->totalEig = %d, nev = %d, ncv = %d\n",nevold,this->totalEig,nev,ncv);
     int iparam[11], ipntr[11];
     int ido = 0, info = 0, iram = nevold*nloc;
     int lworkl = ncv * (ncv + 8); // this should be at least ncv^2 + 8*ncv (as explained in ARPACK manual) 
@@ -1236,14 +1237,14 @@ SymArpackSolver< EigOps, VecType, VecSet,
     iparam[0] = 1;    // "exact" shift
     iparam[2] = (solInfo.maxArnItr) ? solInfo.maxArnItr :  nsmax; // maxitr
     iparam[6] = solInfo.arpack_mode;  // Mode = 3 (default) shift-invert mode
-                                                //          => A symmetric & M symmetric positive semi-definite
-                                                // Mode = 4 buckling mode
+                                      //          => A symmetric & M symmetric positive semi-definite
+                                      // Mode = 4 buckling mode
     // note: for buckling mode, the geometric stiffness matrix KG takes the place of M and this can be indefinite.
     // for mode 4: OP = inv(K-sigma*KG)*K. The shift sigma must be non-zero
 
-    for(i=0 ; i <= nloc ; i++) resid[i] = 0.0;
-    for(i=0 ; i < 3*nloc; i++) workd[i] = 0.0;
-    for(i=0 ; i < lworkl; i++) workl[i] = 0.0;
+    for(i=0; i <= nloc ; i++) resid[i] = 0.0;
+    for(i=0; i < 3*nloc; i++) workd[i] = 0.0;
+    for(i=0; i < lworkl; i++) workl[i] = 0.0;
 
     VecType tmp(this->probDesc->solVecInfo()); // temporary vector used in M-orthogonalization
     tmp.zero();

@@ -80,6 +80,7 @@ pgpfp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const 
   std::vector<long int> l(nsub); // l[i] is the dimension of the subset of selected indices local to a subdomain.
   std::list<std::pair<int,long_int> > gindices; // global indices
   std::list<std::pair<int,long_int> > nld_indices;
+  std::vector<int> nld_setKey; 
   std::vector<std::vector<long int> > indices(nsub); // local indices
   std::vector<std::vector<int> > setKey(nsub);
 
@@ -129,16 +130,21 @@ pgpfp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const 
       }
       // make sure that element has not already been selected
       for(long int j=0; j<l[i]; ++j) {
-        g1[i][indices[i][j]] = -std::numeric_limits<double>::max();
-        if(!positive)
+        if(setKey[i][j] == 1) {
+          g1[i][indices[i][j]] = -std::numeric_limits<double>::max();
+        } else if(!positive) {
           g2[i][indices[i][j]] = -std::numeric_limits<double>::max();
+        }
       }
       // also make sure near linear dependent indices are not selected
-      for(std::list<std::pair<int,long_int> >::iterator it = nld_indices.begin(); it != nld_indices.end(); ++it) {
+      std::vector<int>::iterator keyIt = nld_setKey.begin();
+      for(std::list<std::pair<int,long_int> >::iterator it = nld_indices.begin(); it != nld_indices.end(); ++it, ++keyIt) {
         if(it->first == myrank && it->second.sub == i) {
-          g1[i][it->second.index] = -std::numeric_limits<double>::max();
-          if(!positive)
+          if(*keyIt == 1) {
+            g1[i][it->second.index] = -std::numeric_limits<double>::max();
+          } else if(!positive) {
             g2[i][it->second.index] = -std::numeric_limits<double>::max();
+          }
         }
       }
 
@@ -223,6 +229,7 @@ pgpfp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const 
     a[k] = r.dot(c)*DtGDinv[k];
     if(a[k] < 0) { // check for near linear dependence
       nld_indices.push_back(std::pair<int,long_int>(s.rank,p));
+      nld_setKey.push_back(Set);
       gindices.pop_back();
       if(s.rank == myrank) {
         indices[ik].pop_back();
@@ -230,7 +237,7 @@ pgpfp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const 
         l[ik]--;
       }
       continue;
-    } else nld_indices.clear();
+    } else nld_indices.clear(); nld_setKey.clear();
     r -= a[k]*c;
     vertex += lambda[k]*a[k]*c;
 #if defined(_OPENMP)

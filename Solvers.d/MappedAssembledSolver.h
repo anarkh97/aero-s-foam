@@ -156,19 +156,16 @@ class MappedAssembledSolver : public BaseSolver, public Map
     void addImaginary(FullSquareMatrix &mat, int *dofs) {
       FullSquareMatrix m = Map::map(mat, dofs, mappedDofs, dd);
       BaseSolver::addImaginary(m, mappedDofs.data());
-      std::cerr << "MappedAssembledSolver::addImaginary(FullSquareMatrix&, int*) is not implemented\n";
     }
 
     void add(FullSquareMatrixC &mat, int *dofs) {
       FullSquareMatrixC m = Map::map(mat, dofs, mappedDofs, dz);
       BaseSolver::add(m, mappedDofs.data());
-      std::cerr << "MappedAssembledSolver::add(FullSquareMatrixC&, int*) is not implemented\n";
     }
 
     void add(GenFullM<Scalar> &mat, int *dofs) {
       GenFullM<Scalar> m = Map::map(mat, dofs, mappedDofs, dz);
       BaseSolver::add(m, mappedDofs.data());
-      std::cerr << "MappedAssembledSolver::add(GenFullM<Scalar>&, int*) is not implemented\n";
     }
 
     void add(GenFullM<Scalar> &mat, int fi, int fj) {

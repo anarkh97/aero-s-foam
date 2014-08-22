@@ -224,7 +224,7 @@ pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const
           p.sub = ik;
           indices[ik].erase(indices[ik].begin() + jk[ik]); // remove index jk[ik] from the local active set of ik-th subdomain
           for(int j=jk[ik]; j<l[ik]-1; ++j) { x_[ik][j] = x_[ik][j+1]; y[ik][j] = y[ik][j+1]; } // erase jk[ik]-th element from x_[ik] and y[ik]
-          x_[ik][l[ik]-1] = 0; y[ik][l[ik]] = 0;
+          x_[ik][l[ik]-1] = 0; y[ik][l[ik]-1] = 0;
           l[ik]--;
           //std::cout << "removing index " << p.index << " from subdomain " << ik << " on process with rank " << myrank << std::endl;
         }

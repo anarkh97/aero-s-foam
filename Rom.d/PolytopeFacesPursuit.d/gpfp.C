@@ -174,7 +174,7 @@ gpfp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
     DtGDinv[k] = 1./c.squaredNorm();
     a[k] = r.dot(c)*DtGDinv[k]; // step length
     // check for near linear dependence
-    if(a[k] < 0) { nld_indices.push_back(position); nld_setKey.push_back(Set); indices.pop_back(); setKey.pop_back(); continue; } else nld_indices.clear(); nld_setKey.clear();
+    if(a[k] < 0) { nld_indices.push_back(position); nld_setKey.push_back(Set); indices.pop_back(); setKey.pop_back(); continue; } else { nld_indices.clear(); nld_setKey.clear(); }
     y.head(k+1) = x_.head(k+1) + a[k]*d.head(k+1); // candidate solution
     r -= a[k]*c; // residual
     vertex += lambda[k]*a[k]*c;

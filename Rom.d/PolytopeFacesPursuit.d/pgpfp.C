@@ -237,7 +237,7 @@ pgpfp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const 
         l[ik]--;
       }
       continue;
-    } else nld_indices.clear(); nld_setKey.clear();
+    } else { nld_indices.clear(); nld_setKey.clear(); }
     r -= a[k]*c;
     vertex += lambda[k]*a[k]*c;
 #if defined(_OPENMP)

@@ -49,7 +49,7 @@
 
 Eigen::VectorXd
 gpfp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm,
-     double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool positive)
+     long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool positive)
 {
   using namespace Eigen;
 
@@ -65,6 +65,7 @@ gpfp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
   vertex.setZero();
   r = b;
   rnorm = bnorm;
+  info = 1;
   MatrixXd B(A.rows(),maxvec), D(maxvec,maxvec), GD(maxvec,maxvec);
   Matrix<double,Dynamic,Dynamic,ColMajor> BD(A.rows(),maxvec);
   B.setZero(); D.setZero(); BD.setZero(); GD.setZero();
@@ -91,7 +92,8 @@ gpfp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
       std::cout.unsetf(std::ios::uppercase);
     }
 
-    if(rnorm <= abstol || k+nld_indices.size() == maxvec || iter >= maxit) break;
+    if(rnorm <= abstol || k+nld_indices.size() == maxvec) break;
+    if(iter >= maxit) { info = 3; break; }
 
     g1.setZero();
     g2.setZero();

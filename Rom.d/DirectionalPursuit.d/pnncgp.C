@@ -37,7 +37,7 @@ bool operator== (const long_int& lhs, const long_int& rhs)
 
 Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1>
 pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm, const long int n,
-       double maxsze, double maxite, double reltol, bool verbose, bool scaling)
+       long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling)
 {
   // each A[i] is the columnwise block of the global A matrix assigned to a subdomain on this mpi process
   // each x[i] of the return value x is the corresponding row-wise block of the global solution vector
@@ -74,6 +74,7 @@ pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const
   VectorXd r(m), DtGDinv(maxvec), z(maxvec), a(maxvec);
   r = b;
   rnorm = bnorm;
+  info = (n < 0) ? 2 : 1;
   a.setZero();
   Array<MatrixXd,Dynamic,1> B(nsub), D(nsub), GD(nsub);
   for(int i=0; i<nsub; ++i) {
@@ -106,7 +107,8 @@ pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const
       std::cout.unsetf(std::ios::uppercase);
     }
 
-    if(rnorm <= abstol || k+nld_indices.size() == maxvec || iter >= maxit) break;
+    if(rnorm <= abstol || k+nld_indices.size() == maxvec) break;
+    if(iter >= maxit) { info = 3; break; }
 
 #if defined(_OPENMP)
   #pragma omp parallel for schedule(static,1)
@@ -254,7 +256,7 @@ pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const
         for(int i=0; i<nsub; ++i) {
           y[i].head(l[i]).setZero();
           l[i] = 0; for(std::list<std::pair<int,long_int> >::iterator it = gindices.begin(); it != fol; ++it) { if(it->first == myrank && it->second.sub == i) l[i]++; }
-          D[i].bottomRightCorner(maxlocvec[i]-l[i],maxvec-k).setZero(); // XXX this is a larger block than necessary
+          D[i].bottomRightCorner(maxlocvec[i]-l[i],maxvec-k).setZero();
           y[i].head(l[i]) = D[i].topLeftCorner(l[i],k)*a.head(k);
         }
         r = b - BD.leftCols(k)*a.head(k);

@@ -11,11 +11,11 @@
 
 Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1>
 pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm, const long int n,
-       double maxsze, double maxite, double reltol, bool verbose, bool scaling);
+       long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling);
 
 Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1>
 pgpfp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm, const long int n,
-       double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool positive);
+      long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool positive);
 #endif
 
 namespace Rom {
@@ -53,6 +53,7 @@ ParallelSparseNonNegativeLeastSquaresSolver::solve() {
     return;
   }
 
+  long int info;
   double t0 = getTime();
   switch(solverType_) {
     default :
@@ -65,7 +66,7 @@ ParallelSparseNonNegativeLeastSquaresSolver::solve() {
       for(int i=0; i<nsub_; ++i) {
         new (&A[i]) Eigen::Map<Eigen::MatrixXd>(&*sd_[i]->matrixBuffer(),sd_[i]->equationCount(),sd_[i]->unknownCount());
       }
-      x = pnncgp(A, b, errorMagnitude_, unknownCount_, maxSizeRatio_, maxIterRatio_, relativeTolerance_, verboseFlag_, scalingFlag_);
+      x = pnncgp(A, b, errorMagnitude_, unknownCount_, info, maxSizeRatio_, maxIterRatio_, relativeTolerance_, verboseFlag_, scalingFlag_);
       for(int i=0; i<nsub_; ++i) {
         Eigen::Map<Eigen::VectorXd>(const_cast<double*>(sd_[i]->solutionBuffer()),sd_[i]->unknownCount()) = x[i];
         A[i].~Map<Eigen::MatrixXd>();
@@ -85,7 +86,7 @@ ParallelSparseNonNegativeLeastSquaresSolver::solve() {
       for(int i=0; i<nsub_; ++i) {
         new (&A[i]) Eigen::Map<Eigen::MatrixXd>(&*sd_[i]->matrixBuffer(),sd_[i]->equationCount(),sd_[i]->unknownCount());
       }
-      x = pgpfp(A, b, errorMagnitude_, unknownCount_, maxSizeRatio_, maxIterRatio_, relativeTolerance_, verboseFlag_, scalingFlag_, positivity_);
+      x = pgpfp(A, b, errorMagnitude_, unknownCount_, info, maxSizeRatio_, maxIterRatio_, relativeTolerance_, verboseFlag_, scalingFlag_, positivity_);
       for(int i=0; i<nsub_; ++i) {
         Eigen::Map<Eigen::VectorXd>(const_cast<double*>(sd_[i]->solutionBuffer()),sd_[i]->unknownCount()) = x[i];
         A[i].~Map<Eigen::MatrixXd>();
@@ -98,6 +99,14 @@ ParallelSparseNonNegativeLeastSquaresSolver::solve() {
   }
   double t = (getTime() - t0)/1000.0;
   filePrint(stderr, " ... Solve Time = %13.6f s   ...\n",t);
+
+  if (info == 2) {
+    throw std::logic_error("Illegal problem size");
+  }
+
+  if (info == 3) {
+    throw std::runtime_error("Solution did not converge");
+  }
 }
 
 } // end namespace Rom

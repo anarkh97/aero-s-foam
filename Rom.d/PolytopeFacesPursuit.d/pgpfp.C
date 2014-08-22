@@ -29,7 +29,7 @@ bool operator== (const long_int& lhs, const long_int& rhs);
 
 Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1>
 pgpfp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm, const long int n,
-      double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool positive)
+      long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool positive)
 {
   // each A[i] is the columnwise block of the global A matrix assigned to a subdomain on this mpi process
   // each x[i] of the return value x is the corresponding row-wise block of the global solution vector
@@ -66,6 +66,7 @@ pgpfp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const 
   r = b;
   vertex.setZero();
   rnorm = bnorm;
+  info = (n < 0) ? 2 : 1;
   a.setZero();
   lambda.setZero();
   Array<MatrixXd,Dynamic,1> B(nsub), D(nsub), GD(nsub);
@@ -102,7 +103,8 @@ pgpfp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const 
       std::cout.unsetf(std::ios::uppercase);
     }
 
-    if(rnorm <= abstol || k+nld_indices.size() == maxvec || iter >= maxit) break;
+    if(rnorm <= abstol || k+nld_indices.size() == maxvec) break;
+    if(iter >= maxit) { info = 3; break; }
 
 #if defined(_OPENMP)
   #pragma omp parallel for schedule(static,1)

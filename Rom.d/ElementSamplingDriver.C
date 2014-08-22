@@ -405,7 +405,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::computeSolution(Vector &soluti
     solver_.solve();
   }
   catch(std::runtime_error& e) {
-    std::cerr << "exception: " << e.what() << std::endl;
+    std::cerr << " *** WARNING: " << e.what() << std::endl;
   }
 
   if(verboseFlag) {

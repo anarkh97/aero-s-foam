@@ -852,7 +852,7 @@ Domain::constructSkyMatrix(DofSetArray *DSA, Rbm *rbm)
     int nMappedEq = DSA->size();
     return
       new MappedAssembledSolver<WrapSkyMat<Scalar>, Scalar>(baseArg, dsa->size(), baseMap,
-          nMappedEq, eqMap, c_dsa);
+          nMappedEq, eqMap, c_dsa, rbm);
   }
 }
 
@@ -899,7 +899,7 @@ Domain::constructBLKSparseMatrix(DofSetArray *DSA, Rbm *rbm)
       typename WrapSparseMat<Scalar>::CtorData
         baseArg(nodeToNodeDirect, dsa, MpcDSA, sinfo.trbm, sinfo.sparse_renum, rbm);
       int nMappedEq = DSA->size();
-      return new MappedAssembledSolver<WrapSparseMat<Scalar>, Scalar>(baseArg, dsa->size(), baseMap, nMappedEq, eqMap, c_dsa);
+      return new MappedAssembledSolver<WrapSparseMat<Scalar>, Scalar>(baseArg, dsa->size(), baseMap, nMappedEq, eqMap, c_dsa, rbm);
     }
   }
 }

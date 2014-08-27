@@ -133,11 +133,12 @@ class MappedAssembledSolver : public BaseSolver, public Map
     ResizeArray<Scalar> ds;
     GenVector<Scalar> f;
     ConstrainedDSA *cdsa;
+    Rbm *rbm;
 
   public:
     template <class BaseArgs>
-    MappedAssembledSolver(BaseArgs &ba, int nEq, DOFMap *baseMap, int nMappedEq, DOFMap *eqMap, ConstrainedDSA *_cdsa) :
-      BaseSolver(ba), Map(nEq, baseMap, nMappedEq, eqMap), mappedDofs(0), dd(0), dz(0), ds(0), f(nMappedEq), cdsa(_cdsa) {
+    MappedAssembledSolver(BaseArgs &ba, int nEq, DOFMap *baseMap, int nMappedEq, DOFMap *eqMap, ConstrainedDSA *_cdsa, Rbm *_rbm=0) :
+      BaseSolver(ba), Map(nEq, baseMap, nMappedEq, eqMap), mappedDofs(0), dd(0), dz(0), ds(0), f(nMappedEq), cdsa(_cdsa), rbm(_rbm) {
         f.zero();
     }
     ~MappedAssembledSolver() {}
@@ -240,6 +241,10 @@ void MappedAssembledSolver<BaseSolver, Scalar, Map>::reSolve(Scalar *s)
 template<class BaseSolver, class Scalar, class Map>
 void MappedAssembledSolver<BaseSolver, Scalar, Map>::getRBMs(Vector *rbms)
 {
+  if(rbm && rbm->numRBM() == BaseSolver::numRBM()) {
+    rbm->getRBMs(rbms);
+    return;
+  }
   Vector *rbms2 = new Vector[BaseSolver::numRBM()];
   for(int iRBM = 0; iRBM < BaseSolver::numRBM(); ++iRBM) {
     rbms2[iRBM].initialize(BaseSolver::neqs());
@@ -261,6 +266,10 @@ void MappedAssembledSolver<BaseSolver, Scalar, Map>::getRBMs(Vector *rbms)
 template<class BaseSolver, class Scalar, class Map>
 void MappedAssembledSolver<BaseSolver, Scalar, Map>::getRBMs(VectorSet &rbms)
 {
+  if(rbm && rbm->numRBM() == BaseSolver::numRBM()) {
+    rbm->getRBMs(rbms);
+    return;
+  }
   VectorSet rbms2(BaseSolver::numRBM(), BaseSolver::neqs(), 0.0);
   BaseSolver::getRBMs(rbms2);
   for(int iRBM = 0; iRBM < BaseSolver::numRBM(); ++iRBM) {

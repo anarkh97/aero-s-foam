@@ -503,7 +503,7 @@ void GeoSource::addMpcElements(int numLMPC, ResizeArray<LMPCons *> &lmpc)
       nEle++;
       nMpcElem++;
     }
-    //cerr << " ... Converted " << numLMPC << " LMPCs to constraint elements ...\n";
+    //std::cerr << " ... Converted " << numLMPC << " LMPCs to constraint elements ...\n";
   }
   if(!(domain->solInfo().rbmflg == 1 && domain->solInfo().grbm_use_lmpc)) { // still needed for GRBM
     for(int i=0; i<numLMPC; ++i) if(lmpc[i]) delete lmpc[i];

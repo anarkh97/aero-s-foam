@@ -42,10 +42,10 @@
 *               Row indices of nonzero entries in the Cholesky factor,
 *               stored by columns, in a compressed representation.
 *
-*     TMPSIZ    (input) integer
+*     TMPSIZ    (output) integer
 *               Size of work space in TEMP required by BLKLDL.
 *
-*     RWSIZE    (input) integer
+*     RWSIZE    (output) integer
 *               Size of work space in RWORK required by BLKLDL.
 *
 ************************************************************************

@@ -37,7 +37,7 @@ class Rbm
   DofSetArray*   dsa;
   compStruct*   comp;
   IntFullM *cornerModes;
-  ComplexVector *cgrbm;  // complex grbm, temporary fix to aviod templating class
+  ComplexVector *cgrbm;  // complex grbm, temporary fix to avoid templating class
 
   // Nonlinear members to reuse memory instead of reallocating 
   // at each iteration

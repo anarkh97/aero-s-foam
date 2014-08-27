@@ -5,12 +5,12 @@
 
 #include <Math.d/SparseMatrix.h>
 #include <Solvers.d/Solver.h>
+#include <Solvers.d/Rbm.h>
 #include <Utils.d/MyComplex.h>
 #if defined(sgi) && ! defined(_OPENMP)
 #include <ulocks.h>
 #endif
 
-class Rbm;
 template <class Scalar> class GenFullSquareMatrix;
 typedef GenFullSquareMatrix<double> FullSquareMatrix;
 typedef GenFullSquareMatrix<DComplex> FullSquareMatrixC;
@@ -124,7 +124,6 @@ protected:
    void getNullSpace(Scalar *rbm);      // retrieve ZERO ENERGY MODES
 
    int  numRBM() { return nzem; } // retrieve the number of rigid body modes
-   void setRBM(Rbm * rigidBodyModes) { rbm = rigidBodyModes; }
    void getRBMs(double *);         // retrieve the rigid body modes
    void getRBMs(Vector* vs);       // retrieve the rigid body modes
    void getRBMs(VectorSet& vs);    // retrieve the rigid body modes
@@ -180,6 +179,9 @@ class WrapSkyMat : public GenSkyMatrix<Scalar>
         dsa = d;
         trbm = t;
         rbm = r;
+        if(r && r->numComponents() > 1) {
+          std::cerr << " *** WARNING: multi-component GRBM with skyline solver and direct constraint method is not supported\n";
+        }
       }
     };
 

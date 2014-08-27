@@ -51,7 +51,7 @@ GenSkyMatrix<double>::Factor(Rbm *rigid)
      int locNgrbm = rigid->numRBM(n);
 
      // Get number of dof per component
-     int numDofPerComp  = rigid->numDof(n);
+     int numDofPerComp = (numComp > 1) ? rigid->numDof(n) : numUncon;
 
      // Get first dof of the component
      int firstDofOfComp = rigid->firstDof(n);
@@ -101,7 +101,7 @@ GenSkyMatrix<double>::Factor(Rbm *rigid)
      int locNgrbm = rigid->numRBM(n);
 
      // Get number of dof per component
-     int numDofPerComp  = rigid->numDof(n);
+     int numDofPerComp = (numComp > 1) ? rigid->numDof(n) : numUncon;
 
      // Get first dof of the component
      int firstDofOfComp = rigid->firstDof(n);
@@ -140,6 +140,7 @@ GenSkyMatrix<double>::Factor(Rbm *rigid)
 
    if(nTotZem > 0) {
      rbm = new Rbm(allrbms,nzem,numUncon);
+     myRbm = 1;
    }
    delete [] w;
 }

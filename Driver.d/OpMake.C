@@ -848,7 +848,7 @@ Domain::constructSkyMatrix(DofSetArray *DSA, Rbm *rbm)
     // TODO Examine when DSA can be different from c_dsa
     if(MpcDSA && sinfo.isNonLin()) delete MpcDSA;
     MpcDSA = makeMaps(dsa, c_dsa, baseMap, eqMap);
-    typename WrapSkyMat<Scalar>::CtorData baseArg(nodeToNodeDirect, MpcDSA, sinfo.trbm, /*rbm*/ (Rbm*)NULL); // TODO consider rbm issue
+    typename WrapSkyMat<Scalar>::CtorData baseArg(nodeToNodeDirect, MpcDSA, sinfo.trbm, rbm);
     int nMappedEq = DSA->size();
     return
       new MappedAssembledSolver<WrapSkyMat<Scalar>, Scalar>(baseArg, dsa->size(), baseMap,
@@ -897,7 +897,7 @@ Domain::constructBLKSparseMatrix(DofSetArray *DSA, Rbm *rbm)
       if(MpcDSA && sinfo.isNonLin()) delete MpcDSA;
       MpcDSA = makeMaps(dsa, c_dsa, baseMap, eqMap);
       typename WrapSparseMat<Scalar>::CtorData
-        baseArg(nodeToNodeDirect, dsa, MpcDSA, sinfo.trbm, sinfo.sparse_renum, /*rbm*/ (Rbm*)NULL); // TODO consider rbm issue
+        baseArg(nodeToNodeDirect, dsa, MpcDSA, sinfo.trbm, sinfo.sparse_renum, rbm);
       int nMappedEq = DSA->size();
       return new MappedAssembledSolver<WrapSparseMat<Scalar>, Scalar>(baseArg, dsa->size(), baseMap, nMappedEq, eqMap, c_dsa);
     }

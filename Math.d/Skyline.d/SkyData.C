@@ -32,7 +32,7 @@ SkyData::initialize()
    rbm = 0;
    isTRBM = 0;
    TOLERANCE = 1.0E-6;
-   myRbm = 1;
+   myRbm = 0;
 }
 
 SkyData::~SkyData()
@@ -42,7 +42,7 @@ SkyData::~SkyData()
    if(seqid) { delete [] seqid; seqid=0; }
    if(dlp) { delete [] dlp; dlp=0; }
    if(myRCN && rowColNum) { delete [] rowColNum; rowColNum=0; }
-   if(myRbm && rbm) { delete rbm; rbm = 0; }  // WARNING: this seems to cause some problems
+   if(myRbm && rbm) { delete rbm; rbm=0; }
 }
 
 SkyData::SkyData(Connectivity *cn, DofSetArray *c_dsa, double trbm, 
@@ -69,14 +69,12 @@ SkyData::SkyData(Connectivity *cn, DofSetArray *c_dsa, double trbm,
   if(numUncon==0) return;
 
   // Allocate enough space for each of the int arrays in this constructor
-  // dlp = new int[2*numUncon];
   dlp = new int[numUncon];
 
   // Initialize first element of diagonal location pointers to one.
   dlp[0] = 1;
 
   // Build the dof to node (dofToN) table from constrained dsa.
-  //int *dofToN  = dlp + numUncon;
   int *dofToN  = (int *) dbg_alloca(sizeof(int)*numUncon);
 
   for(i = 0; i < numNodes; ++i) {
@@ -97,8 +95,8 @@ SkyData::SkyData(Connectivity *cn, DofSetArray *c_dsa, double trbm,
   // Looping over Equations to find minimum Dof connection.
   for(compNum = 0; compNum < numComp; ++compNum) {
      int firstDof, lastDof;
-     firstDof = rigid ? rigid->firstDof(compNum)   : 0;
-     lastDof  = rigid ? rigid->firstDof(compNum+1) : numUncon;
+     firstDof = (rigid && numComp > 1) ? rigid->firstDof(compNum)   : 0;
+     lastDof  = (rigid && numComp > 1) ? rigid->firstDof(compNum+1) : numUncon;
      int offset = firstDof;
      if(firstDof == 0) firstDof = 1;
      for(n = firstDof; n < lastDof; ++n) {
@@ -121,7 +119,6 @@ SkyData::SkyData(Connectivity *cn, DofSetArray *c_dsa, double trbm,
   int MAXLAC, AVELAC;
 
   // ... ALLOCATE LAST ACTIVE COLUMN (LACOL) VECTOR
-  // lacol = dlp + numUncon;
   lacol = new int[numUncon];
 
   // ... CONSTRUCT LACOL

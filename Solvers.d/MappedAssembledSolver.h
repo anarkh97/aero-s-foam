@@ -16,6 +16,7 @@
 #include <Math.d/matrix.h>
 #include <Math.d/Vector.h>
 #include <Math.d/VectorSet.h>
+#include <Solvers.d/Rbm.h>
 #include <Utils.d/dofset.h>
 
 typedef GenVectorSet<double> VectorSet;
@@ -156,19 +157,16 @@ class MappedAssembledSolver : public BaseSolver, public Map
     void addImaginary(FullSquareMatrix &mat, int *dofs) {
       FullSquareMatrix m = Map::map(mat, dofs, mappedDofs, dd);
       BaseSolver::addImaginary(m, mappedDofs.data());
-      std::cerr << "MappedAssembledSolver::addImaginary(FullSquareMatrix&, int*) is not implemented\n";
     }
 
     void add(FullSquareMatrixC &mat, int *dofs) {
       FullSquareMatrixC m = Map::map(mat, dofs, mappedDofs, dz);
       BaseSolver::add(m, mappedDofs.data());
-      std::cerr << "MappedAssembledSolver::add(FullSquareMatrixC&, int*) is not implemented\n";
     }
 
     void add(GenFullM<Scalar> &mat, int *dofs) {
       GenFullM<Scalar> m = Map::map(mat, dofs, mappedDofs, dz);
       BaseSolver::add(m, mappedDofs.data());
-      std::cerr << "MappedAssembledSolver::add(GenFullM<Scalar>&, int*) is not implemented\n";
     }
 
     void add(GenFullM<Scalar> &mat, int fi, int fj) {
@@ -184,32 +182,39 @@ class MappedAssembledSolver : public BaseSolver, public Map
     } 
 
     void reSolve(Scalar *rhs);
+    void reSolve(GenVector<Scalar> &rhs) { reSolve(rhs.data()); }
+    void reSolve(int nRHS, Scalar **rhs) { for(int i=0; i<nRHS; ++i) reSolve(rhs[i]); }
+    void reSolve(int nRHS, Scalar  *rhs) { for(int i=0; i<nRHS; ++i) reSolve(rhs + i*Map::numMappedEqs); }
+    void reSolve(int nRHS, GenVector<Scalar> *rhs) { for(int i=0; i<nRHS; ++i) reSolve(rhs[i].data()); }
 
     void solve(GenVector<Scalar> &rhs, GenVector<Scalar> &solution) { 
       solution = rhs;
       reSolve(solution.data());
     }
+    void solve(Scalar *rhs, Scalar *solution) {
+      std::cerr << "MappedAssembledSolver::solve(Scalar *, Scalar *) is not implemented\n";
+    }
 
-   double getResidualNorm(const GenVector<Scalar> &v) {
-     GenVector<Scalar> v1(Map::numMappedEqs);
-     GenVector<Scalar> v2(BaseSolver::neqs());
-     v2.zero();
-     for(int i = 0; i < Map::numMappedEqs; ++i) {
-       v1[i] = Map::eqMaps[i].rhs;
-       for(int j = 0; j < Map::eqMaps[i].ndofs; ++j) {
-         v2[Map::eqMaps[i].dofs[j]] += Map::eqMaps[i].coefs[j]*(v[i]-f[i]);
-       }
-     }
-     return sqrt(v1.sqNorm()+v2.sqNorm());
-   }
+    double getResidualNorm(const GenVector<Scalar> &v) {
+      GenVector<Scalar> v1(Map::numMappedEqs);
+      GenVector<Scalar> v2(BaseSolver::neqs());
+      v2.zero();
+      for(int i = 0; i < Map::numMappedEqs; ++i) {
+        v1[i] = Map::eqMaps[i].rhs;
+        for(int j = 0; j < Map::eqMaps[i].ndofs; ++j) {
+          v2[Map::eqMaps[i].dofs[j]] += Map::eqMaps[i].coefs[j]*(v[i]-f[i]);
+        }
+      }
+      return sqrt(v1.sqNorm()+v2.sqNorm());
+    }
 
-   void getRBMs(double *rbms) {
-     std::cerr << "MappedAssembledSolver:: getRBMs(double *) is not implemented\n";
-   }
+    void getRBMs(double *rbms) {
+      std::cerr << "MappedAssembledSolver::getRBMs(double *) is not implemented\n";
+    }
 
-   void getRBMs(Vector *rbms);
+    void getRBMs(Vector *rbms);
 
-   void getRBMs(VectorSet &rbms);
+    void getRBMs(VectorSet &rbms);
 };
 
 template<class BaseSolver, class Scalar, class Map>

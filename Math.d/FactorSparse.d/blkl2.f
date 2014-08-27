@@ -99,10 +99,10 @@
 *               corresponding locations in the updated columns.
 *               (RELIND is gathered from INDMAP).
 *
-*     TMPSIZ    (input) integer
+*     TMPSZE    (input) integer
 *               Size of work array TEMP.
 *
-*     TEMP      (temporary) double precision array, dimension TMPSIZ
+*     TEMP      (temporary) double precision array, dimension TMPSZE
 *               Work space for BLKLDL for accumulating updates.  It
 *               must accommodate all columns of a panel.
 *

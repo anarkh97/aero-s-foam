@@ -712,11 +712,11 @@ Rbm::computeRbms(CoordSet& cs, int numMPC, ResizeArray<LMPCons *> &mpc)
  xyzRot[0][0] = x0/count;
  xyzRot[0][1] = y0/count;
  xyzRot[0][2] = z0/count;
- fprintf(stderr," ... Use global cg as reference pt for the rotations: %3.2e %3.2e %3.2e\n",xyzRot[0][0],xyzRot[0][1],xyzRot[0][2]); 
+ //fprintf(stderr," ... Use global cg as reference pt for the rotations: %3.2e %3.2e %3.2e\n",xyzRot[0][0],xyzRot[0][1],xyzRot[0][2]); 
 #else // use first node as reference pt for the rotations
  Node &nd = cs.getNode(comp->order[comp->xcomp[0]]);
  xyzRot[0][0] = nd.x; xyzRot[0][1] = nd.y; xyzRot[0][2] = nd.z;
- fprintf(stderr," ... Use first node of first component as reference pt for the rotations: %3.2e %3.2e %3.2e\n",xyzRot[0][0],xyzRot[0][1],xyzRot[0][2]); 
+ //fprintf(stderr," ... Use first node of first component as reference pt for the rotations: %3.2e %3.2e %3.2e\n",xyzRot[0][0],xyzRot[0][1],xyzRot[0][2]); 
 #endif
 
  for(n=0; n<comp->numComp; ++n) {

@@ -468,7 +468,7 @@ GenSpoolesSolver<Scalar>::allFactor(bool fctIsParal)
 // spooles_maxsize - maximum number of internal columns in supernode/front
 
   int seed = solInfo.spooles_seed;  // default is 532196
-  int maxdomainsize = int(neq/solInfo.spooles_maxdomainsize+0.5);  // default is neq/24
+  int maxdomainsize = std::max(int(neq/solInfo.spooles_maxdomainsize+0.5),1);  // default is neq/24
   int maxsize = solInfo.spooles_maxsize;  // default is 64
   int maxzeros = int(neq*solInfo.spooles_maxzeros+0.5);  // default is 0.04*neq
 
@@ -611,12 +611,12 @@ GenSpoolesSolver<Scalar>::allFactor(bool fctIsParal)
 
 template<class Scalar>
 void
-GenSpoolesSolver<Scalar>::solve(Scalar *rhs)
+GenSpoolesSolver<Scalar>::reSolve(Scalar *rhs)
 {
   if(numUncon==0) return;
   Scalar *solution = (Scalar *) dbg_alloca(sizeof(Scalar)*numUncon);
   for(int i=0; i < numUncon; i++) solution[i] = 0.0;
-  solve(rhs, solution);
+  GenSpoolesSolver<Scalar>::solve(rhs, solution);
   for(int i=0; i < numUncon; i++)
     rhs[i] = solution[i];
 }

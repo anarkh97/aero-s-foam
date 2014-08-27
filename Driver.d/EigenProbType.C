@@ -103,14 +103,9 @@ EigenSolver< EigOps, VecType, VecSet,
  probDesc->buildEigOps( *eM );
 
  // ... get the number of rigid body modes
- //if (geoSource->shiftVal() != 0.0 || solInfo.rbmflg == 0) nrmod = 0; //CBM, PJSA
- //else nrmod = eM->rigidBodyModes->numRBM(); //PJSA eM->dynMat->numRBM();
  nrmod = eM->dynMat->numRBM();
 
  if(solInfo.test_ulrich) nrmod = 0;
-
- // PJSA: number of rbms is now printed in the matrix factor
- //filePrint(stderr," ... Number of RBM(s)     =   %d     ...\n",this->nrmod);
 
  totalEig = numEig+nrmod;
  // ... this could be an issue for small problems
@@ -184,7 +179,7 @@ LOBPCGSolver< EigOps, VecType, VecSet,
 {
    this->probDesc->getSubSpaceInfo(subSpaceSize, nsmax, tolEig, tolJac, explicitK);
    if (explicitK)
-     filePrint(stderr, " ... Using Explicit Stiffness Matrix\n");
+     filePrint(stderr, " ... Using Explicit Stiffness Matrix...\n");
  
    // ... adjust subSpaceSize
    // subSpaceSize = std::max(subSpaceSize,2*this->totalEig);
@@ -196,7 +191,7 @@ LOBPCGSolver< EigOps, VecType, VecSet,
 
    nsub = subSpaceSize - this->nrmod;  // number of flexible modes
    //int nProbSize = 3*nsub + this->nrmod;
-   filePrint(stderr," ... subSpaceSize = %d (%d)\n",subSpaceSize, nsub);
+   //filePrint(stderr," ... subSpaceSize = %d (%d)\n",subSpaceSize, nsub);
    // ... Declaration and Initialization of Vector sets Q and Z
    Q = new VecSet(subSpaceSize, this->probDesc->solVecInfo());
    Z = new VecSet(subSpaceSize, this->probDesc->solVecInfo());
@@ -215,7 +210,7 @@ SubSpaceSolver< EigOps, VecType, VecSet,
 {
    this->probDesc->getSubSpaceInfo(subSpaceSize, nsmax, tolEig, tolJac, explicitK);
    if (explicitK)
-     filePrint(stderr, " ... Using Explicit Stiffness Matrix\n");
+     filePrint(stderr, " ... Using Explicit Stiffness Matrix...\n");
  
    // ... adjust subSpaceSize
    //subSpaceSize = std::max(subSpaceSize,2*this->totalEig);
@@ -392,7 +387,7 @@ LOBPCGSolver< EigOps, VecType, VecSet,
     this->eM->M->mult((*Z)[j],(*Q)[j]);
     //filePrint(stderr, "zmz(%d) = %e, zkz(%d) = %e\n", j, (*Z)[j]*(*Q)[j], j, (*Z)[j]*(*R)[j]);
     (*R)[j] -= (*subVal)[j] * (*Q)[j];
-    filePrint(stderr, "Initial Norm %d: %e (%e), lam = %e\n", j, (*R)[j].norm()/refNorm, refNorm, (*subVal)[j]);
+    if(verboseFlag) filePrint(stderr, "Initial Norm %d: %e (%e), lam = %e\n", j, (*R)[j].norm()/refNorm, refNorm, (*subVal)[j]);
   }
     
   // do 1st iteration 
@@ -474,7 +469,7 @@ LOBPCGSolver< EigOps, VecType, VecSet,
     this->eM->M->mult((*Z)[j],(*Q)[j]);
     //filePrint(stderr, "zmz(%d) = %e, zkz(%d) = %e\n", j, (*Z)[j]*(*Q)[j], j, (*Z)[j]*(*R)[j]);
     (*R)[j] -= (*subVal)[j] * (*Q)[j];
-    filePrint(stderr, "1st Iter, Norm %d: %e (%e), lam = %e\n", j, (*R)[j].norm()/refNorm, refNorm, (*subVal)[j]);
+    if(verboseFlag) filePrint(stderr, "1st Iter, Norm %d: %e (%e), lam = %e\n", j, (*R)[j].norm()/refNorm, refNorm, (*subVal)[j]);
   }
 /*
   delete [] mu; 
@@ -581,7 +576,7 @@ LOBPCGSolver< EigOps, VecType, VecSet,
       //filePrint(stderr, "zmz(%d) = %e, zkz(%d) = %e\n", j, (*Z)[j]*(*Q)[j], j, (*Z)[j]*(*R)[j]);
       refNorm = (*R)[j].norm();
       (*R)[j] -= (*subVal)[j] * (*Q)[j];
-      filePrint(stderr, "Loop Iter Norm %d: %e (%e), lam = %e\n", j, (*R)[j].norm()/refNorm, refNorm, (*subVal)[j]);
+      if(verboseFlag) filePrint(stderr, "Loop Iter Norm %d: %e (%e), lam = %e\n", j, (*R)[j].norm()/refNorm, refNorm, (*subVal)[j]);
 
       if ((*R)[j].sqNorm()/refNorm > tolEig)  {
 //	filePrint(stderr, "Norm %d: %e (%e)\n", j, (*R)[j].sqNorm()/refNorm, refNorm);
@@ -591,7 +586,7 @@ LOBPCGSolver< EigOps, VecType, VecSet,
     }
 
     if (hasCon) break;
-    filePrint(stderr, "Done iteration %d\n", iter);
+    if(verboseFlag) filePrint(stderr, "Done iteration %d\n", iter);
   } 
   
   // M-orthonormalize Z
@@ -605,7 +600,7 @@ LOBPCGSolver< EigOps, VecType, VecSet,
   }
 
   // save converged eigenvalues and eigenvectors
-  filePrint(stderr, "... Saving eigen solution for %d eigs\n", this->totalEig);
+  filePrint(stderr, "... Saving eigen solution for %d eigs ...\n", this->totalEig);
   for(i = 0; i < this->totalEig; ++i) {
     filePrint(stderr, "%d: %e   (%e)\n", i, (*subVal)[i], (*Z)[i].norm());
     (*this->eigVal)[i] = (*subVal)[i];
@@ -663,7 +658,7 @@ EigenSolver< EigOps, VecType, VecSet,
    // ... Output results
    this->postProcessor->eigenQROutput(Xeigen,Qupdated,Reigen);
 #else
-  filePrint(stderr," ... ERROR: performQR() needs eigen3\n");
+  filePrint(stderr," *** ERROR: performQR() needs eigen3\n");
   exit(-1);
 #endif
 }
@@ -688,7 +683,6 @@ SubSpaceSolver< EigOps, VecType, VecSet,
  // ... Initialize
  initialize();
 
-
  // ... Check if nsub (# of flexible modes) is less than zero
  if(nsub < 0) {
    filePrint(stderr," *** ERROR in routine SubSpaceSolver::solve()    ***\n");
@@ -700,9 +694,9 @@ SubSpaceSolver< EigOps, VecType, VecSet,
 
  // ... Eigenvalues filtering
  bool filterEigen = solInfo.filtereig; // force "filtering" the eigenvalues: set this->eigVal[i] to 0.0
-                                                 // if this->eigVal[i]<0.0 or |this->eigVal[i]|<tol
+                                       // if eigVal[i]<0.0 or |eigVal[i]|<tol
 
- if(filterEigen) filePrint(stderr," ... Eigenvalue ''filtering'' enabled with tol = 1.E-6\n");
+ if(filterEigen) filePrint(stderr," ... Eigenvalue ''filtering'' enabled with tol = 1.E-6 ...\n");
 
  // ... check that subspace is big enough
  if(subSpaceSize < this->nrmod) {
@@ -711,7 +705,6 @@ SubSpaceSolver< EigOps, VecType, VecSet,
  }
 
  // ... Store the rbms in the first this->nrmod vectors of VecSet Z
- //if (this->nrmod) this->eM->rigidBodyModes->getRBMs(*Z); //PJSA this->eM->dynMat->getRBMs((*Z));
  if (this->nrmod) this->eM->dynMat->getRBMs((*Z));
 
  // ... initialize the first set of vectors
@@ -855,10 +848,10 @@ SubSpaceSolver< EigOps, VecType, VecSet,
  if(solInfo.qrfactorization) {
 #ifdef USE_EIGEN3
    if( strcmp(solInfo.xmatrixname, "") == 0 || strcmp(solInfo.qmatrixname, "") == 0 || strcmp(solInfo.rmatrixname,"") == 0) {
-     filePrint(stderr, " ... error, xmatrix, qmatrix and rmatrix keywords must be specified in input file\n");
+     filePrint(stderr, " *** ERROR: xmatrix, qmatrix and rmatrix keywords must be specified in input file\n");
    } else this->performQR();
 #else
-   filePrint(stderr, " ... Error: qrfactorization needs eigen3\n");
+   filePrint(stderr, " *** ERROR: qrfactorization needs eigen3\n");
    exit(-1);
 #endif
  }
@@ -879,7 +872,6 @@ SubSpaceSolver< EigOps, VecType, VecSet,
  // ... Output results
  this->postProcessor->eigenOutput(*this->eigVal,*this->eigVec);
 */
-
 
  delete [] mu; 
  delete [] kappa;
@@ -906,7 +898,7 @@ void
 EigenSolver< EigOps, VecType, VecSet,
              PostProcessor, ProblemDescriptor>
   ::getJacobi(double *kappa, double *mu, FullSquareMatrix &xx,
-               double *eigVal,int nsmax,int subSpaceSize, double tolJac)
+              double *eigVal, int nsmax, int subSpaceSize, double tolJac)
 {
   int i,j;
 
@@ -918,7 +910,7 @@ EigenSolver< EigOps, VecType, VecSet,
       //_FORTRAN(cfjacobi)(kappa,mu,xx[0],eigVal,nsmax,tolJac,subSpaceSize);
       _FORTRAN(dspgv)(1, 'V', 'U', subSpaceSize, kappa, mu, eigVal, xx[0],
                       xx.dim(), work, info);
-      if(info !=0) {
+      if(info !=0 ) {
         //int N = subSpaceSize;
         //cerr << "N = " << N << std::endl;
         //cerr << "AP = "; for(int i=0; i<N*(N+1)/2; ++i) std::cerr << kappa[i] << " "; std::cerr << std::endl;
@@ -1065,11 +1057,11 @@ SymArpackSolver< EigOps, VecType, VecSet,
   this->setUp();
   if (this->origSubSize == 0) return; // just compute and print the rigid body modes
 
-  filePrint(stderr, " ... Implicitly Restarted Arnoldi Method using Arpack\n");
+  filePrint(stderr, " ... Implicitly Restarted Arnoldi Method using Arpack ...\n");
 
   this->probDesc->getSubSpaceInfo(subSpaceSize,nsmax,tolEig,tolJac,explicitK);
   if (explicitK)
-    filePrint(stderr, " ... Using Explicit Stiffness Matrix\n");
+    filePrint(stderr, " ... Using Explicit Stiffness Matrix...\n");
 
   // ... Some declarations
   bool sconv = false;
@@ -1214,9 +1206,9 @@ SymArpackSolver< EigOps, VecType, VecSet,
     double shift = geoSource->shiftVal();
 
     if(printInfo) {
-      if(shift != 0.0 && newShift == 0.0) filePrint(stderr," ... shift = %e\n",shift);
-      if(reortho)     filePrint(stderr," ... Re-orthogonalization enabled (CGS -> ICGS)\n");
-      if(filterEigen) filePrint(stderr," ... Eigenvalue ''filtering'' enabled with tol = 1.E-6\n");
+      if(shift != 0.0 && newShift == 0.0) filePrint(stderr," ... shift = %7.2e                ...\n",shift);
+      if(reortho)     filePrint(stderr," ... Re-orthogonalization enabled (CGS -> ICGS) ...\n");
+      if(filterEigen) filePrint(stderr," ... Eigenvalue ''filtering'' enabled with tol = 1.E-6 ...\n");
     }
 
     // using Arpack
@@ -1235,7 +1227,7 @@ SymArpackSolver< EigOps, VecType, VecSet,
     for(i=0; i<11; ++i) iparam[i] = 0;
     for(i=0; i<11; ++i) ipntr[i]  = 0;
     iparam[0] = 1;    // "exact" shift
-    iparam[2] = (solInfo.maxArnItr) ? solInfo.maxArnItr :  nsmax; // maxitr
+    iparam[2] = (solInfo.maxArnItr) ? solInfo.maxArnItr : nsmax; // maxitr
     iparam[6] = solInfo.arpack_mode;  // Mode = 3 (default) shift-invert mode
                                       //          => A symmetric & M symmetric positive semi-definite
                                       // Mode = 4 buckling mode
@@ -1339,14 +1331,14 @@ SymArpackSolver< EigOps, VecType, VecSet,
     if(info < 0){
       // PJSA: if this happens try increasing nsbspv
       filePrint(stderr," *** WARNING: Arpack error with _saupd, info = %d\n",info);
-      filePrint(stderr," ... %d Arnoldi update iterations taken\n",iparam[2]);
-      filePrint(stderr," ,,, current Arnoldi factorization size? %d\n",iparam[4]);
+      filePrint(stderr," ... %d Arnoldi update iterations taken ...\n",iparam[2]);
+      filePrint(stderr," ,,, current Arnoldi factorization size? %d ...\n",iparam[4]);
     } else if(nmodes > 0){
       //filePrint(stderr,"NLOC = %d, NEV = %d, TOL = %e, NCV = %d, INFO = %d\n", nloc, nmodes, tolEig, ncv, info);
       //filePrint(stderr,"IPARAM(3) = %d, IPARAM(5) = %d, IPARAM(9) = %d, IPARAM(10) = %d, IPARAM(11) = %d\n", iparam[2], iparam[4], iparam[8], iparam[9], iparam[11]);
       if(printInfo){
-        filePrint(stderr," ... Number of Implicit Arnoldi update: %d\n",iparam[2]);
-        filePrint(stderr," ... Number of linear (re-)solve: %d\n",iparam[8]);
+        filePrint(stderr," ... Number of Implicit Arnoldi update: %d ...\n",iparam[2]);
+        filePrint(stderr," ... Number of linear (re-)solve: %d ...\n",iparam[8]);
       }
       int ierr;
       int* select = new int[ncv]; // for howmny = "A", select is used as a workspace for reordering the Ritz values
@@ -1421,8 +1413,6 @@ SymArpackSolver< EigOps, VecType, VecSet,
              TotEigVal.push_back((*this->eigVal)[i]);
           (*this->eigVec)[i] = (*Z)[i];
         }
-        //if (solInfo.doEigSweep) assert(TotEigVal.size() == myTotalEig);
-        //if(filtered) filePrint(stderr," *** WARNING: %d eigen values have been ``filtered'' using atol = %e\n",filtered,1.E-6);
       }
       if(select) { delete [] select; select = 0; }
     }

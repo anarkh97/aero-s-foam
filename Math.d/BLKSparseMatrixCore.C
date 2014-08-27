@@ -183,7 +183,7 @@ template \
 void \
 GenBLKSparseMatrix<Scalar>::getRBMs(VectorSet&); \
 template \
-GenBLKSparseMatrix<Scalar>::GenBLKSparseMatrix(Connectivity*, DofSetArray*, int*, double, int, Rbm*); \
+GenBLKSparseMatrix<Scalar>::GenBLKSparseMatrix(Connectivity*, DofSetArray*, int*, double, int); \
 template \
 GenBLKSparseMatrix<Scalar>::GenBLKSparseMatrix(Connectivity*, EqNumberer*, double, int, int); \
 template \

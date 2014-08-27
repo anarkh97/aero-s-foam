@@ -54,10 +54,10 @@ class GenSpoolesSolver : public GenSolver<Scalar>, public GenSparseMatrix<Scalar
    SubMtxManager *mtxManager;
    IV *ownersIV;
    DenseMtx *mtxB, *mtxX;
-   IVL *symbfacIVL; // PJSA
-   ETree *frontETree; // PJSA
-   DV *cumopsDV; // PJSA
-   Graph *graph; // PJSA
+   IVL *symbfacIVL;
+   ETree *frontETree;
+   DV *cumopsDV;
+   Graph *graph;
 #endif
 
  public:
@@ -90,8 +90,7 @@ class GenSpoolesSolver : public GenSolver<Scalar>, public GenSparseMatrix<Scalar
    void factor();
    void allFactor(bool fctIsParal);
 
-   void solve(Scalar *rhs);
-   void reSolve(Scalar *rhs) { solve(rhs); }
+   void reSolve(Scalar *rhs);
    void solve(Scalar *rhs, Scalar *solution);
    
    void print();

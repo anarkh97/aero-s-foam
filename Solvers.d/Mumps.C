@@ -387,6 +387,28 @@ GenMumpsSolver<Scalar>::solve(Scalar *rhs, Scalar *solution)
 
 template<class Scalar>
 void
+GenMumpsSolver<Scalar>::reSolve(Scalar *rhs)
+{
+  if(numUncon == 0) return;
+  this->solveTime -= getTime();
+#ifdef USE_MUMPS
+  if(host) {
+    copyToMumpsRHS(mumpsId.id.rhs, rhs, numUncon); // mumpsId.id.rhs = copy of rhs;
+    mumpsId.id.nrhs = 1;
+  }
+  mumpsId.id.job = 3; // 3: solve
+  Tmumps_c(mumpsId.id);
+  if(host) copyFromMumpsRHS(rhs, mumpsId.id.rhs, numUncon); // solution = mumpsId.id.rhs;
+#ifdef USE_MPI
+  if(mpicomm) mpicomm->broadcast(numUncon, rhs, 0); // send from host to others
+#endif
+  if(mumpsId.id.ICNTL(11) > 0) printStatistics();
+#endif
+  this->solveTime += getTime();
+}
+
+template<class Scalar>
+void
 GenMumpsSolver<Scalar>::reSolve(int nRHS, Scalar *rhs)
 {
   if(numUncon == 0) return;
@@ -460,7 +482,7 @@ GenMumpsSolver<Scalar>::getNullSpace(Scalar *rbms)
 {
 #ifdef USE_MUMPS
   mumpsId.id.ICNTL(25) = -1;
-  reSolve(nrbm, rbms);
+  GenMumpsSolver<Scalar>::reSolve(nrbm, rbms);
   mumpsId.id.ICNTL(25) = 0;
 #endif
 }

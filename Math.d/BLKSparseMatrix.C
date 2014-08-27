@@ -391,7 +391,6 @@ GenBLKSparseMatrix<Scalar>::factor()
 
   int rwsize;
 
-
   _FORTRAN(bfinit)(nsuper, xsuper, snode, xlindx,
                    lindx,    tmpsiz, rwsize);
 
@@ -471,6 +470,7 @@ template<class Scalar>
 void
 GenBLKSparseMatrix<Scalar>::computeRBMs()
 {
+  //std::cerr << "here in GenBLKSparseMatrix<Scalar>::computeRBMs, ngrbm = " << ngrbm << ", numrbm = " << numrbm << std::endl;
   if((ngrbm != numrbm) && (numrbm > 0)) {
     //filePrint(stderr," ... Computing %d Sparse RBM(s), tolerance = %e\n",numrbm,tol);
 
@@ -1177,7 +1177,6 @@ template<class Scalar>
 void
 GenBLKSparseMatrix<Scalar>::getRBMs(double *rigidBodyModes)
 {
-  // computeRBMs();
   if(rbm) rbm->getRBMs(rigidBodyModes);
 }
 
@@ -1185,7 +1184,6 @@ template<class Scalar>
 void
 GenBLKSparseMatrix<Scalar>::getRBMs(Vector *rigidBodyModes)
 {
-  // computeRBMs();
   if(rbm) rbm->getRBMs(rigidBodyModes);
 }
 
@@ -1193,16 +1191,14 @@ template<class Scalar>
 void
 GenBLKSparseMatrix<Scalar>::getRBMs(VectorSet &rigidBodyModes)
 {
- // computeRBMs();
  if(rbm) rbm->getRBMs(rigidBodyModes);
 }
-
 
 // Constructor Kii, FETI Subdomain preconditioner solver
 
 template<class Scalar>
 GenBLKSparseMatrix<Scalar>::GenBLKSparseMatrix(Connectivity *cn, DofSetArray *_dsa,
-                                               int *glInternalMap, double _tol, int _spRenum, Rbm *_rbm) :
+                                               int *glInternalMap, double _tol, int _spRenum) :
   SparseData(_dsa, glInternalMap, cn, 1)
 {
   init();
@@ -1257,8 +1253,8 @@ GenBLKSparseMatrix<Scalar>::allocateMemory()
 
   adj = new int[nnza];
 
-  for (k=0, j=0; k< numUncon; k++)
-     for (i=xunonz[k]; i <=xunonz[k+1]-1; i++)
+  for (k=0, j=0; k<numUncon; k++)
+     for (i=xunonz[k]; i<=xunonz[k+1]-1; i++)
         if ( rowu[i-1] == k+1 );
         else  {
           adj[j++] = rowu[i-1];
@@ -1266,7 +1262,7 @@ GenBLKSparseMatrix<Scalar>::allocateMemory()
 
   xadj = new int[numUncon + 1];
 
-  for (i=0; i< numUncon+1; i++)
+  for (i=0; i<numUncon+1; i++)
      xadj[i] = xunonz[i] - i ;
 
   delete [] xunonz; xunonz = 0;
@@ -1279,7 +1275,7 @@ GenBLKSparseMatrix<Scalar>::allocateMemory()
 // subroutine).
 // -------------------------------------------
 
-  for (k=0; k< numUncon+1; k++)
+  for (k=0; k<numUncon+1; k++)
      xlindx[k] = xadj[k];
 
   for (k=0; k<nnza; k++)
@@ -1348,7 +1344,7 @@ GenBLKSparseMatrix<Scalar>::allocateMemory()
                    invp,     maxsup,  defblk, colcnt, nnzl,
                    nsub,     nsuper,  xsuper, snode,  iwsiz,
                    iwork,    iflag);
-  // IFLAG =  0: successful symbolic factorization initialization
+  // IFLAG = 0: successful symbolic factorization initialization
   // IFLAG = 1: insufficent work space in IWORK.
   if(iflag == 1) {
     fprintf(stderr," *** ERROR: Insufficient working storage for SFINIT\n");
@@ -1412,7 +1408,6 @@ template<class Scalar>
 int
 GenBLKSparseMatrix<Scalar>::numRBM()
 {
-  //return (rbm) ? rbm->numRBM() : numrbm;
   return numrbm; // return the total number of zems (both geometric and otherwise) same as SkyMatrix
 }
 

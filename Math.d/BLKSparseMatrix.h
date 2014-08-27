@@ -72,10 +72,10 @@ protected:
 
    // Stiffness matrix
    GenBLKSparseMatrix(Connectivity *, DofSetArray *, DofSetArray *,
-                      double tolerance, int spRenum = 0, Rbm *rbm=0);
+                      double tolerance, int spRenum = 0, Rbm *rbm = 0);
    // Kii
    GenBLKSparseMatrix(Connectivity *, DofSetArray *, int *dofmap,
-                      double tolerance, int spRenum = 0, Rbm *rbm=0);
+                      double tolerance, int spRenum = 0);
    // GtG, Kcc
    GenBLKSparseMatrix(Connectivity *, EqNumberer *, double tolerance, int spRenum = 0, int ngrbm = 0);
 

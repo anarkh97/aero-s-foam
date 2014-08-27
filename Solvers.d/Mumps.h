@@ -81,7 +81,7 @@ class GenMumpsSolver : public GenSolver<Scalar>, public GenSparseMatrix<Scalar>,
    void factor();
 
    void solve(Scalar *rhs, Scalar *solution);
-   void reSolve(Scalar *rhs) { reSolve(1, rhs); }
+   void reSolve(Scalar *rhs);
    void reSolve(int nRHS, Scalar *rhs);
    void reSolve(int nRHS, Scalar **rhs);
    void reSolve(int nRHS, GenVector<Scalar> *rhs);

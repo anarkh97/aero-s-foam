@@ -236,7 +236,7 @@ GenSkyMatrix<Scalar>::clean_up()
    delete [] dlp;
    dlp=0;
  }
- if(rbm) { rbm->clean_up(); }
+ if(rbm && myRbm) { rbm->clean_up(); }
  if(scale) { delete [] scale; scale=0; }
 }
 

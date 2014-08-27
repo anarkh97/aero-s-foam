@@ -111,7 +111,7 @@ void \
 GenSpoolesSolver<Scalar>::allFactor(bool); \
 template \
 void \
-GenSpoolesSolver<Scalar>::solve(Scalar*); \
+GenSpoolesSolver<Scalar>::reSolve(Scalar*); \
 template \
 void \
 GenSpoolesSolver<Scalar>::solve(Scalar*, Scalar*); \

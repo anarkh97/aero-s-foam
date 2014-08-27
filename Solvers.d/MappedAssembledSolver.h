@@ -250,7 +250,7 @@ void MappedAssembledSolver<BaseSolver, Scalar, Map>::getRBMs(Vector *rbms)
     const Vector &s = rbms[iRBM];
     const Vector &s2 = rbms2[iRBM];
     for(int i = 0; i < Map::numMappedEqs; ++i) {
-      s[i] = Map::eqMaps[i].rhs; // PJSA extension for non-zero lmpc rhs
+      s[i] = 0;
       for(int j = 0; j < Map::eqMaps[i].ndofs; ++j)
         s[i] += s2[Map::eqMaps[i].dofs[j]]*Map::eqMaps[i].coefs[j];
     }
@@ -267,7 +267,7 @@ void MappedAssembledSolver<BaseSolver, Scalar, Map>::getRBMs(VectorSet &rbms)
     const Vector &s = rbms[iRBM];
     const Vector &s2 = rbms2[iRBM];
     for(int i = 0; i < Map::numMappedEqs; ++i) {
-      s[i] = Map::eqMaps[i].rhs; // PJSA extension for non-zero lmpc rhs
+      s[i] = 0;
       for(int j = 0; j < Map::eqMaps[i].ndofs; ++j)
         s[i] += s2[Map::eqMaps[i].dofs[j]]*Map::eqMaps[i].coefs[j];
     }

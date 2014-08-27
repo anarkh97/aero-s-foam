@@ -36,17 +36,20 @@
 // 2. Blumensath, T & Davies, M. "Gradient Pursuits" IEEE
 //
 // ARGUMENTS:
-// A       = where A*x= b
-// b       = target vector 
-// rnorm   = residual norm 
-// maxsze  = maximum allowable sparsity
-// reltol  = stopping criteria
-// scaling = flag to turn on/off unit normalization of columns of A
+// A        = where A*x= b
+// b        = target vector 
+// rnorm    = residual norm 
+// maxsze   = maximum allowable sparsity
+// maxite   = maximum allowable iterations
+// reltol   = stopping criteria
+// verbose  = verbose flag
+// scaling  = flag to turn on/off unit normalization of columns of A
+// positive = turn positivity constraint on/off
 
 
 Eigen::VectorXd
 gpfp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm,
-     double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool positive)
+     long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool positive)
 {
   using namespace Eigen;
 
@@ -62,6 +65,7 @@ gpfp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
   vertex.setZero();
   r = b;
   rnorm = bnorm;
+  info = 1;
   MatrixXd B(A.rows(),maxvec), D(maxvec,maxvec), GD(maxvec,maxvec);
   Matrix<double,Dynamic,Dynamic,ColMajor> BD(A.rows(),maxvec);
   B.setZero(); D.setZero(); BD.setZero(); GD.setZero();
@@ -69,6 +73,7 @@ gpfp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
   std::vector<long int> indices;
   std::vector<int>      setKey;
   std::vector<long int> nld_indices;
+  std::vector<long int> nld_setKey;
 
   if(scaling) for(int i=0; i<A.cols(); ++i) S[i] = 1/A.col(i).norm();
   else S.setOnes();
@@ -87,7 +92,8 @@ gpfp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
       std::cout.unsetf(std::ios::uppercase);
     }
 
-    if(rnorm <= abstol || k+nld_indices.size() == maxvec || iter >= maxit) break;
+    if(rnorm <= abstol || k+nld_indices.size() == maxvec) break;
+    if(iter >= maxit) { info = 3; break; }
 
     g1.setZero();
     g2.setZero();
@@ -119,14 +125,18 @@ gpfp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
     }
     // make sure the index has not already been selected
     for(long int j=0; j<k; ++j) {
+      if(setKey[j] == 1) {
       h(indices[j]) = -std::numeric_limits<double>::max();
-      if(!positive)
+      } else if(!positive){
         g2(indices[j]) = -std::numeric_limits<double>::max();
+      }
     }
+
     // also make sure near linear dependent indices are not selected
     for(long int j=0; j<nld_indices.size(); ++j) {
-      h[nld_indices[j]] = -std::numeric_limits<double>::max();
-      if(!positive)
+      if(nld_setKey[j] == 1)
+        h[nld_indices[j]] = -std::numeric_limits<double>::max();
+      else if(!positive)
         g2[nld_indices[j]] = -std::numeric_limits<double>::max();
     }
 
@@ -165,7 +175,8 @@ gpfp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
     GD.col(k).head(k+1) = B.leftCols(k+1).transpose()*c;
     DtGDinv[k] = 1./c.squaredNorm();
     a[k] = r.dot(c)*DtGDinv[k]; // step length
-    if(a[k] < 0) { nld_indices.push_back(position); indices.pop_back(); setKey.pop_back(); continue; } else nld_indices.clear(); // check for near linear dependence
+    // check for near linear dependence
+    if(a[k] < 0) { nld_indices.push_back(position); nld_setKey.push_back(Set); indices.pop_back(); setKey.pop_back(); continue; } else { nld_indices.clear(); nld_setKey.clear(); }
     y.head(k+1) = x_.head(k+1) + a[k]*d.head(k+1); // candidate solution
     r -= a[k]*c; // residual
     vertex += lambda[k]*a[k]*c;

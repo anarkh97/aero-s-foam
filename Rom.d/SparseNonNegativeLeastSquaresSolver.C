@@ -27,11 +27,11 @@ extern "C" {
 
 Eigen::VectorXd
 nncgp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm,
-      double maxsze, double maxite, double reltol, bool verbose, bool scaling);
+      long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling);
 
 Eigen::VectorXd
 gpfp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm,
-      double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool positive);
+     long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool positive);
 #endif
 
 namespace Rom {
@@ -78,6 +78,7 @@ SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::solve() {
     return;
   }
 
+  long int info;
   double t0 = getTime();
   switch(solverType_) {
     default :
@@ -86,21 +87,12 @@ SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::solve() {
       SimpleBuffer<Scalar> workspace(equationCount());
       SimpleBuffer<Scalar> workspace2(unknownCount());
       SimpleBuffer<long int> index(unknownCount());
-      long int info;
       long int prtflg = (verboseFlag_) ? 1 : 0;
       long int scaflg = (scalingFlag_) ? 1 : 0;
 
       _FORTRAN(spnnls)(matrixBuffer_.data(), &equationCount_, &equationCount_, &unknownCount_, rhsBuffer_.array(),
                        solutionBuffer_.array(), &relativeTolerance_, &errorMagnitude_, dualSolutionBuffer_.array(),
                        workspace.array(), workspace2.array(), index.array(), &info, &prtflg, &scaflg, &maxSizeRatio_, &maxIterRatio_);
-
-      if (info == 2) {
-        throw std::logic_error("Illegal problem size");
-      }
-
-      if (info == 3) {
-        throw std::runtime_error("Solution did not converge");
-      }
     } break;
 
     case 1 : { // Non-negative Conjugate Gradient Pursuit
@@ -109,7 +101,7 @@ SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::solve() {
       Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::ColMajor> > A(matrixBuffer_.data(),equationCount_,unknownCount_);
       Eigen::Map<Eigen::VectorXd> x(solutionBuffer_.array(),unknownCount_);
       Eigen::Map<Eigen::VectorXd> b(rhsBuffer_.array(),equationCount_);
-      x = nncgp(A, b, errorMagnitude_, maxSizeRatio_, maxIterRatio_, relativeTolerance_, verboseFlag_, scalingFlag_);
+      x = nncgp(A, b, errorMagnitude_, info, maxSizeRatio_, maxIterRatio_, relativeTolerance_, verboseFlag_, scalingFlag_);
 #else
       std::cerr << "USE_EIGEN3 is not defined here in SparseNonNegativeLeastSquaresSolver::solve\n";
       exit(-1);
@@ -122,7 +114,7 @@ SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::solve() {
       Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::ColMajor> > A(matrixBuffer_.data(),equationCount_,unknownCount_);
       Eigen::Map<Eigen::VectorXd> x(solutionBuffer_.array(),unknownCount_);
       Eigen::Map<Eigen::VectorXd> b(rhsBuffer_.array(),equationCount_);
-      x = gpfp(A, b, errorMagnitude_, maxSizeRatio_, maxIterRatio_, relativeTolerance_, verboseFlag_, scalingFlag_, positivity_);
+      x = gpfp(A, b, errorMagnitude_, info, maxSizeRatio_, maxIterRatio_, relativeTolerance_, verboseFlag_, scalingFlag_, positivity_);
 #else
       std::cerr << "USE_EIGEN3 is not defined here in SparseNonNegativeLeastSquaresSolver::solve\n";
       exit(-1);
@@ -132,6 +124,14 @@ SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::solve() {
   }
   double t = (getTime() - t0)/1000.0;
   fprintf(stderr, " ... Solve Time = %13.6f s   ...\n",t);
+
+  if (info == 2) {
+    throw std::logic_error("Illegal problem size");
+  }
+
+  if (info == 3) {
+    throw std::runtime_error("Solution did not converge");
+  }
 }
 
 } // end namespace Rom

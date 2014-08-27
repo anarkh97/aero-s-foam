@@ -456,7 +456,12 @@ DistrElementSamplingDriver::computeSolution(Vector *solutions, double relativeTo
   solver_->solverTypeIs(domain->solInfo().solverTypeSpnnls);
   solver_->maxSizeRatioIs(domain->solInfo().maxSizeSpnnls);
   solver_->maxIterRatioIs(domain->solInfo().maxIterSpnnls);
-  solver_->solve();
+  try {
+    solver_->solve();
+  }
+  catch(std::runtime_error& e) {
+    if(structCom->myID() == 0) std::cerr << " *** WARNING: " << e.what() << std::endl;
+  }
 
   if(verboseFlag) {
 /*  std::cout << "Primal solution:";

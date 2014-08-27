@@ -18,7 +18,7 @@
 
 Eigen::VectorXd
 nncgp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm,
-      double maxsze, double maxite, double reltol, bool verbose, bool scaling)
+      long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling)
 {
   using namespace Eigen;
 
@@ -32,6 +32,7 @@ nncgp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::
   x_.setZero();
   r = b;
   rnorm = bnorm;
+  info = 1;
   MatrixXd B(A.rows(),maxvec), D(maxvec,maxvec), GD(maxvec,maxvec);
   Matrix<double,Dynamic,Dynamic,ColMajor> BD(A.rows(),maxvec);
   B.setZero(); D.setZero(); BD.setZero(); GD.setZero();
@@ -56,7 +57,8 @@ nncgp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::
       std::cout.unsetf(std::ios::uppercase);
     }
 
-    if(rnorm <= abstol || k+nld_indices.size() == maxvec || iter >= maxit) break;
+    if(rnorm <= abstol || k+nld_indices.size() == maxvec) break;
+    if(iter >= maxit) { info = 3; break; }
 
     g = S.asDiagonal()*(A.transpose()*r); // gradient
     long int i;

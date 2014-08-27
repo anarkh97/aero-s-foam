@@ -40,7 +40,7 @@ nncgp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::
   std::vector<long int> indices;
   std::vector<long int> nld_indices;
 
-  if(scaling) for(int i=0; i<A.cols(); ++i) S[i] = 1/A.col(i).norm();
+  if(scaling) for(int i=0; i<A.cols(); ++i) { double s = A.col(i).norm(); S[i] = (s != 0) ? 1/s : 0; }
   else S.setOnes();
 
   int iter   = 0; // number of iterations

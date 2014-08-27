@@ -67,7 +67,7 @@ pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const
     y[i].resize(maxlocvec[i]);
     g_[i].resize(maxlocvec[i]);
     S[i].resize(A[i].cols());
-    if(scaling) for(int j=0; j<A[i].cols(); ++j) S[i][j] = 1/A[i].col(j).norm();
+    if(scaling) for(int j=0; j<A[i].cols(); ++j) { double s = A[i].col(j).norm(); S[i][j] = (s != 0) ? 1/s : 0; }
     else S[i].setOnes();
     t[i].resize(maxlocvec[i]);
   }

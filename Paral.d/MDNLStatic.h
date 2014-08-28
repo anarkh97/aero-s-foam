@@ -38,9 +38,11 @@ class MDNLStatic
     std::map<std::pair<int,int>, double> *mu; // lagrange multipliers for the contact surfaces
     std::vector<double> *lambda; // lagrange multipliers for all the other constraints
 
+    bool myDecDomain;
+
  public:
     // Constructor
-    MDNLStatic(Domain *d);
+    MDNLStatic(Domain *d, DecDomain *dd=0);
     virtual ~MDNLStatic();
 
     DistrInfo& solVecInfo();

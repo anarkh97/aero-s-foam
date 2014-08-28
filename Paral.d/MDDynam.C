@@ -377,6 +377,12 @@ MultiDomainDynam::solVecInfo() const
   return decDomain->solVecInfo();
 }
 
+const DistrInfo &
+MultiDomainDynam::masterSolVecInfo() const
+{
+  return decDomain->masterSolVecInfo();
+}
+
 DistrInfo &
 MultiDomainDynam::bcInfo()
 {
@@ -628,7 +634,7 @@ MultiDomainDynam::getContactForce(DistrVector &d_n, DistrVector &dinc, DistrVect
 void
 MultiDomainDynam::reSolve(MDDynamMat *dMat, DistrVector &force, int step, DistrVector &dinc)
 {
-/*MDNLStatic nlstatic(domain);
+  MDNLStatic nlstatic(domain, decDomain);
   DistrVector residual(nlstatic.solVecInfo()), 
               totalRes(nlstatic.solVecInfo()), 
               stateIncr(nlstatic.solVecInfo()),
@@ -645,8 +651,8 @@ MultiDomainDynam::reSolve(MDDynamMat *dMat, DistrVector &force, int step, DistrV
   ::newton(force, residual, totalRes, elementInternalForce, &nlstatic, dMat->dynMat, geomState, &tmpState,
            &stateIncr, numIter, 1.0, step);
 
-  tmpState.get_inc_displacement(dinc, *geomState, false);*/
-  filePrint(stderr," ... MultiDomainDynam::reSolve is not implemented\n");
+  
+  tmpState.get_inc_displacement(dinc, *geomState, false);
 }
 
 void
@@ -655,10 +661,20 @@ MultiDomainDynam::updateState(double dt_n_h, DistrVector& v_n_h, DistrVector& d_
   if(domain->solInfo().isNonLin()) {
     DistrVector dinc(solVecInfo());
     dinc = dt_n_h*v_n_h;
+    DistrGeomState *refState = (domain->solInfo().timeIntegration == 1 && geomState->getTotalNumElemStates() > 0) ? new DistrGeomState(*geomState) : 0;
     geomState->update(dinc, (domain->solInfo().newmarkBeta == 0) ? 1 : 0);
     if(domain->solInfo().timeIntegration != 1) geomState->setVelocity(v_n_h);
+    else if(refState) { execParal2R(decDomain->getNumSub(), this, &MultiDomainDynam::subUpdateStates, refState, geomState); delete refState; }
     geomState->get_tot_displacement(d_n, false);
   }
+}
+
+void
+MultiDomainDynam::subUpdateStates(int isub, DistrGeomState *refState, DistrGeomState *geomState)
+{
+  SubDomain *sd = decDomain->getSubDomain(isub);
+  GeomState *subRefState = (refState) ? (*refState)[isub] : 0;
+  sd->updateStates(subRefState, *(*geomState)[isub], allCorot[isub]);
 }
 
 void
@@ -1123,6 +1139,8 @@ MultiDomainDynam::getInternalForce(DistrVector &d, DistrVector &f, double t, int
 
   if(domain->solInfo().filterFlags || domain->solInfo().hzemFilterFlag)
     trProject(f);
+
+  if(domain->solInfo().timeIntegration == 1) decDomain->getSolVecAssembler()->assemble(f); // quasistatic only
 }
 
 void
@@ -1218,7 +1236,7 @@ MultiDomainDynam::subGetInternalForce(int isub, DistrVector &f, double &t, int &
   }
   else {
     sd->getInternalForce(*(*geomState)[isub], eIF, allCorot[isub], kelArray[isub], residual, 1.0, t, (*geomState)[isub],
-                         subReactions, melArray[isub]);
+                         subReactions, (melArray) ? melArray[isub] : NULL);
   }
   StackVector subf(f.subData(isub), f.subLen(isub));
   subf.linC(residual,-1.0); // f = -residual

@@ -29,7 +29,7 @@ NewmarkWorkVec<VecType,ProblemDescriptor>::NewmarkWorkVec(int _typ, ProblemDescr
 
      case -1:
        d_n_p  = new VecType( probDesc->solVecInfo() );
-       o_n_p  = new VecType( probDesc->solVecInfo() );
+       o_n_p  = new VecType( probDesc->masterSolVecInfo() );
        ext_f  = new VecType( probDesc->solVecInfo() );
        rhs    = new VecType( probDesc->solVecInfo() );
        break;
@@ -502,6 +502,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
   VecType  &d_inc = workVec.get_d_n_p();
   VecType    &rhs = workVec.get_rhs();
   VecType  &ext_f = workVec.get_ext_f();
+  VecType   &toto = workVec.get_o_n_p();
 
   // Initialize some parameters
   // Get initial Time
@@ -535,7 +536,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
     if (probDesc->getFilterFlag() == 2) probDesc->project( d_n );
 
     // ... compute external force (and receive fluid load)
-    probDesc->computeExtForce2( curState, ext_f, constForce, tIndex, (double)tIndex*delta, aeroForce);
+    probDesc->computeExtForce2( curState, ext_f, constForce, tIndex, (double)tIndex*delta, aeroForce );
 
     // ... build force reference norm 
     if (tIndex==initIndex+1) {
@@ -551,9 +552,10 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
     // ... check for convergence
     double relres = 0.0;
-    if (forceRef != 0.0) relres = norm(rhs-ext_f)/forceRef;
+    toto = rhs-ext_f;
+    if (forceRef != 0.0) relres = toto.norm()/forceRef;
     else {
-      relres = norm(rhs-ext_f);
+      relres = toto.norm();
       filePrint(stdout, " ... WARNING: Reference External Force is zero, Relative residual is absolute error norm ...\n");
     }
 
@@ -709,10 +711,10 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
     // ... check for convergence
     double relres = 0.0;
-    if (forceSenRef != 0.0)  relres = norm(rhsSen-ext_fSen)/forceSenRef;
+    if (forceSenRef != 0.0) relres = norm(rhsSen-ext_fSen)/forceSenRef;
     else {
       relres = norm(rhsSen-ext_fSen);
-      filePrint(stdout, " ... WARNING: Reference External Force is zero, Relative residual is absolute error norm ...\n");
+      filePrint(stderr, " *** WARNING: Reference external force is zero, relative residual is absolute error norm\n");
     }
 
     if(relres <= steadyTol && delta == 0 && tIndex != 1) {

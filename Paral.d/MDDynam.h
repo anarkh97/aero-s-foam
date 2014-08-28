@@ -165,6 +165,7 @@ private:
     MultiDomDynPostProcessor *getPostProcessor();
 
     const DistrInfo &solVecInfo() const;
+    const DistrInfo &masterSolVecInfo() const;
     DistrInfo &bcInfo();
 
     int getTimeIntegration();
@@ -260,6 +261,7 @@ private:
     void subExplicitUpdate(int isub, DistrVector &d, DistrGeomState *geomState);
     void subGetGravityForce(int isub, DistrVector &);
     void subGetUnamplifiedExtForce(int isub, DistrVector &, int);
+    void subUpdateStates(int isub, DistrGeomState *refState, DistrGeomState *geomState);
 };
 
 #endif

@@ -315,6 +315,12 @@ SingleDomainDynamic::solVecInfo()
 }
 
 int
+SingleDomainDynamic::masterSolVecInfo()
+{
+ return domain->numUncon();
+}
+
+int
 SingleDomainDynamic::dbcVecInfo()
 {
  return domain->numdof();
@@ -649,10 +655,11 @@ SingleDomainDynamic::updateState(double dt_n_h, Vector &v_n_h, Vector &d_n)
 {
   if(domain->solInfo().isNonLin()) {
     Vector dinc(solVecInfo()); dinc = dt_n_h*v_n_h;
+    GeomState *refState = (domain->solInfo().timeIntegration == 1 && geomState->getTotalNumElemStates() > 0) ? new GeomState(*geomState) : 0;
     geomState->update(dinc, (domain->solInfo().newmarkBeta == 0) ? 1 : 0);
     if(domain->solInfo().timeIntegration != 1) geomState->setVelocity(v_n_h);
+    else if(refState) { domain->updateStates(refState, *geomState, allCorot); delete refState; }
     geomState->get_tot_displacement(d_n, false);
-    // XXX consider internal states for quasi-static
   }
 }
 

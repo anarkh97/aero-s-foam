@@ -41,6 +41,7 @@ public:
   double getInitialForceNorm();
 
   int solVecInfo() { return numModes; }
+  int masterSolVecInfo() { return numModes; }
   int bcInfo() {return 0;}
 
   void getConstForce(Vector &constF);

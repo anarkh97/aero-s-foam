@@ -63,7 +63,6 @@ DistrInfo::computeOffsets()
     threadLen[iThread] = (iThread < nRemain ? 1 : 0) + npt; // PJSA: for DistVec class in Math.d
   }
   threadOffset[0] = 0;
-  
 }
 
 void

@@ -130,6 +130,7 @@ class SingleDomainDynamic
     void projector_prep(Rbm *R, SparseMatrix *M);
 
     int solVecInfo();
+    int masterSolVecInfo();
     int bcInfo();
     int dbcVecInfo();
     int getTimeIntegration();

@@ -99,15 +99,22 @@ MDNLStatic::deleteSubCorotators(int isub)
  }
 }
 
-MDNLStatic::MDNLStatic(Domain *d)
+MDNLStatic::MDNLStatic(Domain *d, DecDomain *dd)
 {
  domain = d;
 
+ if(!dd) {
 #ifdef DISTRIBUTED
- decDomain = new GenDistrDomain<double>(domain);
+   decDomain = new GenDistrDomain<double>(domain);
 #else
- decDomain = new GenDecDomain<double>(domain);
+   decDomain = new GenDecDomain<double>(domain);
 #endif
+   myDecDomain = true;
+ }
+ else {
+   decDomain = dd;
+   myDecDomain = false;
+ }
  numSystems = 0;
  mu = 0; lambda = 0;
  solver = 0;
@@ -123,7 +130,7 @@ MDNLStatic::~MDNLStatic()
   if(mu) delete [] mu;
   if(lambda) delete [] lambda;
   if(times) delete times;
-  if(decDomain) delete decDomain;
+  if(decDomain && myDecDomain) delete decDomain;
 }
 
 void
@@ -385,7 +392,7 @@ MDNLStatic::preProcess()
 
  // Constructs renumbering, connectivities and dofsets
  times->preProcess -= getTime();
- decDomain->preProcess();
+ if(myDecDomain) decDomain->preProcess();
  times->preProcess += getTime();
 
  // Get number of subdomains

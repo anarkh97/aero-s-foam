@@ -665,7 +665,7 @@ GenDistrVector<Scalar>::initialize()
  if(subV && inf->numDom>0) subV[0] = v;
  Scalar *v2 = v;
  nT = std::min(threadManager->numThr(),inf->numDom); // PJSA: currently the number of threads being larger than
-                                                    // the number of subdomains doesn't work
+                                                     // the number of subdomains doesn't work
  int iThread, md;
 
  thV   = new Scalar *[nT];
@@ -1267,7 +1267,6 @@ GenDistrVector<Scalar>::operator=(const Expr<T,Scalar> &x) {
  ExprVecAssign<T, Scalar> assign(*this,x);
  threadManager->execParal(nT, &assign);
  return *this;
-
 }
 
 template <class Scalar>
@@ -1277,7 +1276,6 @@ GenDistrVector<Scalar>::operator+=(const Expr<T,Scalar> &x) {
  ExprVecIncr<T, Scalar> assign(*this,x);
  threadManager->execParal(nT, &assign);
  return *this;
-
 }
 
 template <class Scalar>
@@ -1287,7 +1285,6 @@ GenDistrVector<Scalar>::operator-=(const Expr<T,Scalar> &x) {
  ExprVecDecr<T, Scalar> assign(*this,x);
  threadManager->execParal(nT, &assign);
  return *this;
-
 }
 
 template<class Scalar>

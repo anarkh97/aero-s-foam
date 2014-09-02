@@ -1,7 +1,6 @@
 Scalar STRAINP1 under NLStatic for nodeset
 189
    0.0000E+00
-   0.0000E+00
   0.0000E+00
   0.0000E+00
   0.0000E+00
@@ -191,7 +190,6 @@ Scalar STRAINP1 under NLStatic for nodeset
   0.0000E+00
   0.0000E+00
   0.0000E+00
-   1.0000E-01
    1.0000E-01
   2.6215E-03
   1.4247E-03
@@ -383,7 +381,6 @@ Scalar STRAINP1 under NLStatic for nodeset
   1.5452E-02
   1.5452E-02
    2.0000E-01
-   2.0000E-01
   5.6624E-03
   3.0966E-03
   5.6624E-03
@@ -573,7 +570,6 @@ Scalar STRAINP1 under NLStatic for nodeset
   3.3163E-02
   3.3163E-02
   3.3163E-02
-   3.0000E-01
    3.0000E-01
   9.4701E-03
   5.2308E-03

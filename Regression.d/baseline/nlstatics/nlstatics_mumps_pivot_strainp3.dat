@@ -1,7 +1,6 @@
 Scalar STRAINP3 under NLStatic for nodeset
 189
    0.0000E+00
-   0.0000E+00
   0.0000E+00
   0.0000E+00
   0.0000E+00
@@ -191,7 +190,6 @@ Scalar STRAINP3 under NLStatic for nodeset
   0.0000E+00
   0.0000E+00
   0.0000E+00
-   1.0000E-01
    1.0000E-01
  -5.0701E-02
  -4.6414E-02
@@ -383,7 +381,6 @@ Scalar STRAINP3 under NLStatic for nodeset
  -5.1505E-02
  -5.1505E-02
    2.0000E-01
-   2.0000E-01
  -1.0797E-01
  -9.8771E-02
  -1.0797E-01
@@ -573,7 +570,6 @@ Scalar STRAINP3 under NLStatic for nodeset
  -1.1054E-01
  -1.1054E-01
  -1.1054E-01
-   3.0000E-01
    3.0000E-01
  -1.7720E-01
  -1.6162E-01

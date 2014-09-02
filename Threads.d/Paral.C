@@ -1,4 +1,5 @@
 #include <cstdlib>
+#include <stdexcept>
 #include <algorithm>
 #include <sys/types.h>
 
@@ -89,7 +90,7 @@ arenaGrow(size_t size, void *)
 
 bool loud = false;
 
-void * operator new(size_t size)
+void * operator new(size_t size) throw(std::bad_alloc)
 {
 #if defined(sgi) && !defined(_OPENMP) && defined(NEWNEW)
 // fprintf(stderr,"allocated %20d bytes  Running Total %14.3f Mb \n",
@@ -154,7 +155,7 @@ ThreadManager::getLocalMem()
 #endif
 }
 
-void operator delete(void *p)
+void operator delete(void *p) throw()
 {
 #if defined(sgi) && !defined(_OPENMP) && defined(NEWNEW)
  pid_t myPid = getpid();

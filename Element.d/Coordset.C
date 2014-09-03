@@ -144,6 +144,6 @@ CoordSet::dofFrame(int i)
   // get a pointer to the degree-of-freedom frame for the specified i^th node
   // if one is defined and it differs from the basic frame.
   int cd;
-  if(nodes[i] && (cd = nodes[i]->cd) > 0) return &(geoSource->getNFrames()[cd]);
+  if(i < nmax && nodes[i] && (cd = nodes[i]->cd) > 0) return &(geoSource->getNFrames()[cd]);
   else return NULL;
 }

@@ -9,8 +9,7 @@
 #include <utility>
 #include <vector>
 
-// AUTHOR: Todd Chapman, Stanford University 2014
-// This function solves the Compressed Sensing problem
+// This function solves the Basis Pursuit problem
 //
 // min ||x||_0 s.t. A*x = b
 //

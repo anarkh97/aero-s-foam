@@ -59,4 +59,5 @@ ADD_LIBRARY( Rom
   DirectionalPursuit.d/pnncgp.C
   PolytopeFacesPursuit.d/pgpfp.C
   PolytopeFacesPursuit.d/gpfp.C
+  LARS.d/lars.C
 )

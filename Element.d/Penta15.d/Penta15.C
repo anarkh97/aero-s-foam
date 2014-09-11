@@ -574,3 +574,39 @@ Penta15::getCorotator(CoordSet &cs, double *kel, int, int)
   }
   printf("WARNING: Corotator not implemented for element %d\n", glNum+1); return 0;
 }
+
+int
+Penta15::getDecFace(int iFace, int *fn)
+{
+  int count;
+  switch(iFace) {
+    case 0: fn[0] = nn[0]; fn[1] = nn[2]; fn[2] = nn[1]; count = 3; break;
+    case 1: fn[0] = nn[3]; fn[1] = nn[4]; fn[2] = nn[5]; count = 3; break;
+    case 2: fn[0] = nn[0]; fn[1] = nn[1]; fn[2] = nn[4]; fn[3] = nn[3]; count = 4; break;
+    case 3: fn[0] = nn[1]; fn[1] = nn[2]; fn[2] = nn[5]; fn[3] = nn[4]; count = 4; break;
+    default:
+    case 4: fn[0] = nn[2]; fn[1] = nn[0]; fn[2] = nn[3]; fn[3] = nn[5]; count = 4; break;
+  }
+  return count;
+}
+
+int
+Penta15::getFace(int iFace, int *fn)
+{
+  int count;
+  switch(iFace) {
+    case 0: fn[0] = nn[0]; fn[1] = nn[2];  fn[2] = nn[1];
+            fn[3] = nn[8]; fn[4] = nn[7];  fn[5] = nn[6]; count = 6; break;
+    case 1: fn[0] = nn[3]; fn[1] = nn[4];  fn[2] = nn[5];
+            fn[3] = nn[9]; fn[4] = nn[10]; fn[5] = nn[11]; count = 6; break;
+    case 2: fn[0] = nn[0]; fn[1] = nn[1];  fn[2] = nn[4];  fn[3] = nn[3];
+            fn[4] = nn[6]; fn[5] = nn[13]; fn[6] = nn[9];  fn[7] = nn[12]; count = 8; break;
+    case 3: fn[0] = nn[1]; fn[1] = nn[2];  fn[2] = nn[5];  fn[3] = nn[4];
+            fn[4] = nn[7]; fn[5] = nn[14]; fn[6] = nn[10]; fn[7] = nn[13]; count = 8; break;
+    default:
+    case 4: fn[0] = nn[2]; fn[1] = nn[0];  fn[2] = nn[3];  fn[3] = nn[5];
+            fn[4] = nn[8]; fn[5] = nn[12]; fn[6] = nn[11]; fn[7] = nn[14]; count = 8; break;
+  }
+  return count;
+}
+

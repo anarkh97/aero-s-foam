@@ -114,8 +114,9 @@ public:
         // Routines for the decomposer
         PrioInfo examine(int sub, MultiFront *);
         int nDecFaces() { return 1; }
-        int getDecFace(int iFace, int *fn) {
-          for(int i=0; i<3; i++) fn[i] = nn[i]; return 3; }
+        int getDecFace(int iFace, int *fn) { for(int i=0; i<3; i++) fn[i] = nn[i]; return 3; }
+
+        int getFace(int iFace, int *fn) { return getDecFace(iFace,fn); }
 
 	bool hasRot() { return true; }
 

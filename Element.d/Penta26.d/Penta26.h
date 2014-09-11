@@ -43,6 +43,10 @@ class Penta26: public Element
     int numTopNodes();
 
     PrioInfo examine(int sub, MultiFront *);
+    int nDecFaces() { return 5; }
+    int getDecFace(int iFace, int *fn);
+
+    int getFace(int iFace, int *fn);
 
     void setCompositeData(int _type, int nlays, double *lData, double *coefs, double *frame)
       { cCoefs = coefs; cFrame = frame; }

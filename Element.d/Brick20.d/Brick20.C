@@ -730,3 +730,40 @@ Brick20::getCorotator(CoordSet &cs, double *kel, int, int)
   }
   printf("WARNING: Corotator not implemented for element %d\n", glNum+1); return 0;
 }
+
+int
+Brick20::getDecFace(int iFace, int *fn)
+{
+  switch(iFace) {
+    case 0: fn[0] = nn[0]; fn[1] = nn[1]; fn[2] = nn[2]; fn[3] = nn[3]; break;
+    case 1: fn[0] = nn[4]; fn[1] = nn[5]; fn[2] = nn[6]; fn[3] = nn[7]; break;
+    case 2: fn[0] = nn[3]; fn[1] = nn[0]; fn[2] = nn[4]; fn[3] = nn[7]; break;
+    case 3: fn[0] = nn[0]; fn[1] = nn[1]; fn[2] = nn[5]; fn[3] = nn[4]; break;
+    case 4: fn[0] = nn[2]; fn[1] = nn[1]; fn[2] = nn[5]; fn[3] = nn[6]; break;
+    default:
+    case 5: fn[0] = nn[3]; fn[1] = nn[2]; fn[2] = nn[6]; fn[3] = nn[7]; break;
+  }
+  return 4;
+}
+
+int
+Brick20::getFace(int iFace, int *fn)
+{
+  // note: all face normals are outward pointing
+  switch(iFace) {
+    case 0: fn[0] = nn[3];  fn[1] = nn[2];  fn[2] = nn[1];  fn[3] = nn[0];
+            fn[4] = nn[11]; fn[5] = nn[10]; fn[6] = nn[9];  fn[7] = nn[8]; break;
+    case 1: fn[0] = nn[4];  fn[1] = nn[5];  fn[2] = nn[6];  fn[3] = nn[7];
+            fn[4] = nn[12]; fn[5] = nn[13]; fn[6] = nn[14]; fn[7] = nn[15]; break;
+    case 2: fn[0] = nn[3];  fn[1] = nn[0];  fn[2] = nn[4];  fn[3] = nn[7];
+            fn[4] = nn[11]; fn[5] = nn[16]; fn[6] = nn[15]; fn[7] = nn[19]; break;
+    case 3: fn[0] = nn[0];  fn[1] = nn[1];  fn[2] = nn[5];  fn[3] = nn[4];
+            fn[4] = nn[8];  fn[5] = nn[17]; fn[6] = nn[12]; fn[7] = nn[16]; break;
+    case 4: fn[0] = nn[6];  fn[1] = nn[5];  fn[2] = nn[1];  fn[3] = nn[2];
+            fn[4] = nn[18]; fn[5] = nn[13]; fn[6] = nn[17]; fn[7] = nn[9]; break;
+    default:
+    case 5: fn[0] = nn[7];  fn[1] = nn[6];  fn[2] = nn[2];  fn[3] = nn[3];
+            fn[4] = nn[19]; fn[5] = nn[14]; fn[6] = nn[18]; fn[7] = nn[10]; break;
+  }
+  return 8;
+}

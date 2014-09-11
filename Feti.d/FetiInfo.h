@@ -264,12 +264,12 @@ FetiInfo::FetiInfo()
                            // if it finds zero, set maxortho = maxit
   primalFlag  = 0;         // default do not output primal residual
   noCoarse    = 0;         // default use coarse problem
-  precno      = dirichlet;    // default use lumped preconditioner
+  precno      = dirichlet; // default use dirichlet preconditioner
   prectype    = nonshifted;// default use nonshifted preconditioner (only the sitffness part) //HB
-  solvertype  = sparse;   // default use sparse subdomain solver
-  gtgSolver   = sparse;   // default use sparse GtG solver for FETI1 and Kcc^* solver for FETI-DP
+  solvertype  = sparse;    // default use sparse subdomain solver
+  gtgSolver   = sparse;    // default use sparse GtG solver for FETI1 and Kcc^* solver for FETI-DP
   auxCoarseSolver = skyline; // use skyline GtG solver for FETI-DPC
-  cctSolver   = sparse;   // default use sparse CCt solver
+  cctSolver   = sparse;    // default use sparse CCt solver
   nonLocalQ   = 0;         // default basic projector
   nQ          = 0;
   scaling     = tscaling;  // default use t scaling
@@ -277,13 +277,13 @@ FetiInfo::FetiInfo()
   mpc_scaling = tscaling;  // default use t scaling
   fsi_scaling = tscaling;
   version     = feti1;     // default use FETI1
-  feti2version= sparseCoarse;  // default use New FETI2
+  feti2version= sparseCoarse; // default use New FETI2
   printNumber = 10;        // default print error at every FETI iteration
   corners    = noEndCorners3; // default clamp all corner dofs
-  augment    = Edges;       // default Kcc augmentation
+  augment    = Edges;      // default Kcc augmentation
   nGs        = 6;
   rbmType    = all;
-  gmresResidual = false;     // to force computing the "primal residual" at each GMRES iteration
+  gmresResidual = false;   // to force computing the "primal residual" at each GMRES iteration
   pickAnyCorner = 1;
 
   // Nonlinear information

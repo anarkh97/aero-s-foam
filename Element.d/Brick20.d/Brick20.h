@@ -42,6 +42,10 @@ class Brick20: public Element
     int getTopNumber();
 
     PrioInfo examine(int sub, MultiFront *);
+    int nDecFaces() { return 6; }
+    int getDecFace(int iFace, int *fn);
+
+    int getFace(int iFace, int *fn);
 
     void setCompositeData(int _type, int nlays, double *lData, double *coefs, double *frame)
       { cCoefs = coefs; cFrame = frame; }

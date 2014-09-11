@@ -770,3 +770,19 @@ Pentahedral::getCorotator(CoordSet &cs, double *kel, int, int)
   }
   printf("WARNING: Corotator not implemented for element %d\n", glNum+1); return 0;
 }
+
+int
+Pentahedral::getDecFace(int iFace, int *fn)
+{
+  int count;
+  switch(iFace) {
+    case 0: fn[0] = nn[0]; fn[1] = nn[2]; fn[2] = nn[1]; count = 3; break;
+    case 1: fn[0] = nn[3]; fn[1] = nn[4]; fn[2] = nn[5]; count = 3; break;
+    case 2: fn[0] = nn[0]; fn[1] = nn[1]; fn[2] = nn[4]; fn[3] = nn[3]; count = 4; break;
+    case 3: fn[0] = nn[1]; fn[1] = nn[2]; fn[2] = nn[5]; fn[3] = nn[4]; count = 4; break;
+    default:
+    case 4: fn[0] = nn[2]; fn[1] = nn[0]; fn[2] = nn[3]; fn[3] = nn[5]; count = 4; break;
+  }
+  return count;
+}
+

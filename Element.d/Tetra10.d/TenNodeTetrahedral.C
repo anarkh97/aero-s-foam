@@ -769,3 +769,33 @@ TenNodeTetrahedral::getCorotator(CoordSet &cs, double *kel, int, int)
   }
   printf("WARNING: Corotator not implemented for element %d\n", glNum+1); return 0;
 }
+
+int
+TenNodeTetrahedral::getDecFace(int iFace, int *fn)
+{
+  switch(iFace) {
+    case 0: fn[0] = nn[0]; fn[1] = nn[2]; fn[2] = nn[1]; break;
+    case 1: fn[0] = nn[0]; fn[1] = nn[1]; fn[2] = nn[3]; break;
+    case 2: fn[0] = nn[0]; fn[1] = nn[3]; fn[2] = nn[2]; break;
+    default:
+    case 3: fn[0] = nn[2]; fn[1] = nn[3]; fn[2] = nn[1]; break;
+  }
+  return 3;
+}
+
+int
+TenNodeTetrahedral::getFace(int iFace, int *fn)
+{
+  switch(iFace) {
+    case 0: fn[0] = nn[0]; fn[1] = nn[2]; fn[2] = nn[1];
+            fn[3] = nn[6]; fn[4] = nn[5]; fn[5] = nn[4]; break;
+    case 1: fn[0] = nn[0]; fn[1] = nn[1]; fn[2] = nn[3];
+            fn[3] = nn[4]; fn[4] = nn[8]; fn[5] = nn[7]; break;
+    case 2: fn[0] = nn[0]; fn[1] = nn[3]; fn[2] = nn[2];
+            fn[3] = nn[7]; fn[4] = nn[9]; fn[5] = nn[6]; break;
+    default:
+    case 3: fn[0] = nn[2]; fn[1] = nn[3]; fn[2] = nn[1];
+            fn[3] = nn[9]; fn[4] = nn[8]; fn[5] = nn[5]; break;
+  }
+  return 6;
+}

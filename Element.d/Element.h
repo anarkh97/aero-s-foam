@@ -553,8 +553,13 @@ class Element {
         virtual int getDecFace(int iFace, int *fn) { return 0; }
 	// END FROM DEC
 
-         // PJSA: this need to be defined for 6 node tri shell & 8 node quad shell
+        // this need to be defined for 6 node tri shell & 8 node quad shell
         virtual bool isRotMidSideNode(int iNode) { return false; }
+
+        // the following function is used for element pressure with the face keyword 
+        // and differs from getDecFace in that (a) midside nodes are not ignored, and
+        // (b) for 3D solid element all face normals are outward pointing.
+        virtual int getFace(int iFace, int *fn);
 
 	virtual bool hasDamping() { return false; }
         bool isFluidElement();

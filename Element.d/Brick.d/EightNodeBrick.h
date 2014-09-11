@@ -47,6 +47,8 @@ class EightNodeBrick: virtual public Element
     int nDecFaces() { return 6; }
     int getDecFace(int iFace, int *fn);
 
+    int getFace(int iFace, int *fn);
+
     void setCompositeData(int _type, int nlays, double *lData, double *coefs, double *frame)
       { cCoefs = coefs; cFrame = frame; }
 

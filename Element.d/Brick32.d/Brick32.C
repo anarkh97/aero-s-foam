@@ -636,3 +636,46 @@ Brick32::getCorotator(CoordSet &cs, double *kel, int, int)
   }
   printf("WARNING: Corotator not implemented for element %d\n", glNum+1); return 0;
 }
+
+int
+Brick32::getDecFace(int iFace, int *fn)
+{
+  switch(iFace) {
+    case 0: fn[0] = nn[0]; fn[1] = nn[1]; fn[2] = nn[2]; fn[3] = nn[3]; break;
+    case 1: fn[0] = nn[4]; fn[1] = nn[5]; fn[2] = nn[6]; fn[3] = nn[7]; break;
+    case 2: fn[0] = nn[3]; fn[1] = nn[0]; fn[2] = nn[4]; fn[3] = nn[7]; break;
+    case 3: fn[0] = nn[0]; fn[1] = nn[1]; fn[2] = nn[5]; fn[3] = nn[4]; break;
+    case 4: fn[0] = nn[2]; fn[1] = nn[1]; fn[2] = nn[5]; fn[3] = nn[6]; break;
+    default:
+    case 5: fn[0] = nn[3]; fn[1] = nn[2]; fn[2] = nn[6]; fn[3] = nn[7]; break;
+  }
+  return 4;
+}
+
+int
+Brick32::getFace(int iFace, int *fn)
+{
+  // note: all face normals are outward pointing
+  switch(iFace) {
+    case 0: fn[0] = nn[3];  fn[1] = nn[2];  fn[2] = nn[1];  fn[3] = nn[0];
+            fn[4] = nn[13]; fn[5] = nn[12]; fn[6] = nn[11]; fn[7] = nn[10];
+            fn[8] = nn[9];  fn[9] = nn[8];  fn[10]= nn[15]; fn[11]= nn[14]; break;
+    case 1: fn[0] = nn[4];  fn[1] = nn[5];  fn[2] = nn[6];  fn[3] = nn[7];
+            fn[4] = nn[16]; fn[5] = nn[17]; fn[6] = nn[18]; fn[7] = nn[19];
+            fn[8] = nn[20]; fn[9] = nn[21]; fn[10]= nn[22]; fn[11]= nn[23]; break;
+    case 2: fn[0] = nn[3];  fn[1] = nn[0];  fn[2] = nn[4];  fn[3] = nn[7];
+            fn[4] = nn[14]; fn[5] = nn[15]; fn[6] = nn[24]; fn[7] = nn[25];
+            fn[8] = nn[23]; fn[9] = nn[22]; fn[10]= nn[31]; fn[11]= nn[30]; break;
+    case 3: fn[0] = nn[0];  fn[1] = nn[1];  fn[2] = nn[5];  fn[3] = nn[4];
+            fn[4] = nn[8];  fn[5] = nn[9];  fn[6] = nn[26]; fn[7] = nn[27];
+            fn[8] = nn[17]; fn[9] = nn[16]; fn[10]= nn[25]; fn[11]= nn[24]; break;
+    case 4: fn[0] = nn[6];  fn[1] = nn[5];  fn[2] = nn[1];  fn[3] = nn[2];
+            fn[4] = nn[19]; fn[5] = nn[18]; fn[6] = nn[27]; fn[7] = nn[26];
+            fn[8] = nn[10]; fn[9] = nn[11]; fn[10]= nn[28]; fn[11]= nn[29]; break;
+    default:
+    case 5: fn[0] = nn[7];  fn[1] = nn[6];  fn[2] = nn[2];  fn[3] = nn[3];
+            fn[4] = nn[21]; fn[5] = nn[20]; fn[6] = nn[29]; fn[7] = nn[28];
+            fn[8] = nn[12]; fn[9] = nn[13]; fn[10]= nn[30]; fn[11]= nn[31]; break;
+  }
+  return 12;
+}

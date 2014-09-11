@@ -983,7 +983,7 @@ void GeoSource::setUpData()
         elemSet[elemNum]->setPressure(&pbc);
       else {
         int *nodes = new int[elemSet[elemNum]->numNodes()];
-        int nNodes = elemSet[elemNum]->getDecFace(pbc.face, nodes);
+        int nNodes = elemSet[elemNum]->getFace(pbc.face, nodes);
         if(nNodes > 0) {
           int type;
           switch(nNodes) {

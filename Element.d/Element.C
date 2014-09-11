@@ -243,6 +243,13 @@ Element::getIntrnForce(Vector &elForce, CoordSet&, double *, int,double *)
   elForce.zero();
 }
 
+int
+Element::getFace(int iFace, int *fn)
+{
+  fprintf(stderr," *** WARNING: getFace not implemented for element type %d\n", elementType);
+  return 0;
+}
+
 void
 Element::computePressureForce(CoordSet&, Vector& elPressureForce,
                               GeomState *, int cflg, double time)

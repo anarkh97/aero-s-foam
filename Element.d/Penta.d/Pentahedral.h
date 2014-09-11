@@ -42,6 +42,10 @@ class Pentahedral: public Element
     int getTopNumber();
 
     PrioInfo examine(int sub, MultiFront *);
+    int nDecFaces() { return 5; }
+    int getDecFace(int iFace, int *fn);
+
+    int getFace(int iFace, int *fn) { return getDecFace(iFace, fn); }
 
     void setCompositeData(int _type, int nlays, double *lData, double *coefs, double *frame)
       { cCoefs = coefs; cFrame = frame; }

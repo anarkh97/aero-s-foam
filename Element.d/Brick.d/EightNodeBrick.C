@@ -780,3 +780,20 @@ EightNodeBrick::getDecFace(int iFace, int *fn)
   }
   return 4;
 }
+
+int
+EightNodeBrick::getFace(int iFace, int *fn)
+{
+  // note: all face normals are outward pointing.
+  switch(iFace) {
+    case 0: fn[0] = nn[3]; fn[1] = nn[2]; fn[2] = nn[1]; fn[3] = nn[0]; break;
+    case 1: fn[0] = nn[4]; fn[1] = nn[5]; fn[2] = nn[6]; fn[3] = nn[7]; break;
+    case 2: fn[0] = nn[3]; fn[1] = nn[0]; fn[2] = nn[4]; fn[3] = nn[7]; break;
+    case 3: fn[0] = nn[0]; fn[1] = nn[1]; fn[2] = nn[5]; fn[3] = nn[4]; break;
+    case 4: fn[0] = nn[6]; fn[1] = nn[5]; fn[2] = nn[1]; fn[3] = nn[2]; break;
+    default:
+    case 5: fn[0] = nn[7]; fn[1] = nn[6]; fn[2] = nn[2]; fn[3] = nn[3]; break;
+  }
+  return 4;
+}
+

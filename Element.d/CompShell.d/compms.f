@@ -143,13 +143,17 @@ C                                                                     C
 C     3. Constitutive Law of Type-2                                   C
 C     - - - - - - - - - - - - - - -                                   C
 C                                                                     C
+C     The density parameter must be initialized in the input file as  C
+C     the non-structural mass density per unit surface of the         C
+C     composite element.                                              C
 C     The mass coefficients are computed by adding together the       C
-C     contributions of each layer of the composite shell:             C
+C     contributions of each layer of the composite shell, and         C
+C     also the non-structural mass.                                   C
 C                                                                     C
-C     [mt] = sum{ [rho_k] * [h_k] } * [A]        /    3.0             C
-C     [m1] = sum{ [rho_k] * [h_k] } * [A] * [Ix] / 1260.0             C
-C     [m2] = sum{ [rho_k] * [h_k] } * [A] * [Iy] / 1260.0             C
-C     [m3] = sum{ [rho_k] * [h_k] } * [A] * [Iz] / 1260.0             C
+C     [mt] = ( nsm + sum{ [rho_k] * [h_k] } ) * [A]        /    3.0   C
+C     [m1] = ( nsm + sum{ [rho_k] * [h_k] } ) * [A] * [Ix] / 1260.0   C
+C     [m2] = ( nsm + sum{ [rho_k] * [h_k] } ) * [A] * [Iy] / 1260.0   C
+C     [m3] = ( nsm + sum{ [rho_k] * [h_k] } ) * [A] * [Iz] / 1260.0   C
 C                                                                     C
 C     where:                                                          C
 C                                                                     C
@@ -157,6 +161,9 @@ C     [rho_k]               density of the layer number [k]           C
 C     [h_k]                 thickness of the layer number [k]         C
 C     [A]                   area of the shell                         C
 C     [Ix], [Iy] and [Iz]   pseudo-moments of inertia of the shell    C
+C                                                                     C
+C     where the non-structural mass density per unit surface [nsm] is C
+C     stored in the same variable as before (type-0), that is, [rho]. C
 C                                                                     C
 C     Quantities [A], [Ix], [Iy] and [Iz] are obtained via            C
 C     numerical integration. Densities (per unit volume) [rho_k] and  C
@@ -418,8 +425,9 @@ C
       if ( (ctyp.eq.2).or.(ctyp.eq.3) ) then
 C
 C.....ACCUMULATE THE PRODUCT DENSITY BY THICKNESS PER LAYER
+C.....ALSO ACCOUNTING FOR NON-STRUCTURAL MASS
 C
-      rhoh = zero
+      rhoh = rho
 C
       do 3001 ilayer=1,nlayer
          rhoh = rhoh + rholayer(ilayer)*hlayer(ilayer)
@@ -427,6 +435,7 @@ C
 
 C
 C.....ACCUMULATE THE DENSITY PER LAYER
+C.....NOT INCLUDING NON-STRUCTURAL MASS
 C
       sumrho = zero
 C

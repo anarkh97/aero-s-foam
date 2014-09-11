@@ -5,8 +5,8 @@
 
 template<typename doublereal>
 ShellMaterialTypes2And3<doublereal>::ShellMaterialTypes2And3(
-  int _nlayer, doublereal *_mtlayer, bool _couple, doublereal *_aframe, doublereal _Ta)
-  : nlayer(_nlayer), mtlayer(_mtlayer,12,_nlayer), couple(_couple), aframe(_aframe), Ta(_Ta)
+  int _nlayer, doublereal *_mtlayer, bool _couple, doublereal *_aframe, doublereal _Ta, doublereal _nsm)
+  : nlayer(_nlayer), mtlayer(_mtlayer,12,_nlayer), couple(_couple), aframe(_aframe), Ta(_Ta), nsm(_nsm)
 {
 // .....COMPUTE THE THICKNESS FOR TYPE-2 AND TYPE-3 CONSTITUTIVE LAWS 
 // .....IT IS ASSUMED CONSTANT AND EQUAL TO THE SUM OF EACH LAYER'S THICKNESS 
@@ -18,18 +18,21 @@ ShellMaterialTypes2And3<doublereal>::ShellMaterialTypes2And3(
     }
 
 // .....COMPUTE THE AREA DENSITY FOR TYPE-2 AND TYPE-3 CONSTITUTIVE LAWS 
+// .....NOTE: NSM IS THE NON-STRUCTURAL MASS DENSITY PER UNIT AREA
 
-    rhoh = 0;
+    rhoh = nsm;
 
     for (int ilayer = 0; ilayer < nlayer; ++ilayer) {
       rhoh += mtlayer(6, ilayer)*mtlayer(7, ilayer);
     }
 
-// .....COMPUTE THE SUM OF DENSITY FOR TYPE-2 AND TYPE-3 CONSTITUTIVE LAWS
+// .....COMPUTE THE SUM OF THE LAYER DENSITIES FOR TYPE-2 AND TYPE-3 CONSTITUTIVE LAWS
+// .....NOTE: NON-STRUCTURAL MASS IS NOT INCLUDED
 
-    rho = 0;
+    sumrho = 0;
+
     for (int ilayer = 0; ilayer < nlayer; ++ilayer) {
-      rho += mtlayer(6, ilayer);
+      sumrho += mtlayer(6, ilayer);
     }
 }
 
@@ -638,7 +641,7 @@ ShellMaterialTypes2And3<double>::GetCoefOfConstitutiveLaw();
 
 template
 ShellMaterialTypes2And3<double>::ShellMaterialTypes2And3(
-  int nlayer, double *mtlayer, bool couple, double *aframe, double);
+  int nlayer, double *mtlayer, bool couple, double *aframe, double, double);
 
 template
 void

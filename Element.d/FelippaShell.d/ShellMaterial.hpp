@@ -144,11 +144,13 @@ class ShellMaterialTypes2And3 : public ShellMaterial<doublereal>
     doublereal *aframe;
     doublereal thick;
     doublereal rhoh;
-    doublereal rho;
+    doublereal sumrho;
     doublereal Ta;
+    doublereal nsm;
 
   public:
-    ShellMaterialTypes2And3(int _nlayer, doublereal *_mtlayer, bool _couple, doublereal *_aframe, doublereal _Ta = 0.);
+    ShellMaterialTypes2And3(int _nlayer, doublereal *_mtlayer, bool _couple, doublereal *_aframe, doublereal _Ta = 0.,
+                            doublereal _nsm = 0.);
 
     void GetConstitutiveResponse(doublereal *Upsilon, doublereal *Sigma, doublereal *D,
                                  doublereal *eframe, int gp, doublereal temp = 0);
@@ -161,11 +163,11 @@ class ShellMaterialTypes2And3 : public ShellMaterial<doublereal>
       return A.data(); 
     }
     void resetLayerThickness(doublereal *layerthickness) { for(int i=0; i<nlayer; ++i) mtlayer(7,i) = layerthickness[i]; }
-    void resetAreaDensity() { rhoh = 0; for(int i=0; i<nlayer; ++i) rhoh += mtlayer(6, i)*mtlayer(7, i); }
+    void resetAreaDensity() { rhoh = nsm; for(int i=0; i<nlayer; ++i) rhoh += mtlayer(6, i)*mtlayer(7, i); }
     void GetLayerThickness(doublereal *layerThickness) { for(int i=0; i<nlayer; ++i) layerThickness[i] = mtlayer(7,i); }
     doublereal GetShellThickness() { return thick; }
     doublereal GetAreaDensity() { return rhoh; }
-    doublereal GetSumDensity() { return rho; }
+    doublereal GetSumDensity() { return sumrho; }
     doublereal GetAmbientTemperature() { return Ta; }
     void GetLocalConstitutiveResponse(doublereal *Upsilon, doublereal *sigma, doublereal z,
                                       doublereal *eframe, int gp, doublereal temp = 0);

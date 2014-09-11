@@ -318,9 +318,6 @@ ShellElementTemplate<doublereal,Membrane,Bending>
   } 
   // Consistent or lumped with fixed end moments.  Compute treating shell as 3 beams.
   else {
-    //Node &nd1 = cs.getNode(nn[0]);
-    //Node &nd2 = cs.getNode(nn[1]);
-    //Node &nd3 = cs.getNode(nn[2]);
 
     Eigen::Matrix<doublereal,3,1> T1,T2,T3;
     // Vector 1 from Node 1->2
@@ -328,20 +325,14 @@ ShellElementTemplate<doublereal,Membrane,Bending>
     T1[1] = y[1] - y[0];
     T1[2] = z[1] - z[0];
     T1.normalize();
-//    doublereal T1norm = sqrt(T1[0]*T1[0]+T1[1]*T1[1]+T1[2]*T1[2]);
-//    T1[0] = T1[0]/T1norm;  T1[1] = T1[1]/T1norm;  T1[2] = T1[2]/T1norm;
     // Vector 2 from Node 1->3
     T2[0] = x[2] - x[0];
     T2[1] = y[2] - y[0];
     T2[2] = z[2] - z[0];
     T2.normalize();
-//    doublereal T2norm = sqrt(T2[0]*T2[0]+T2[1]*T2[1]+T2[2]*T2[2]);
-//    T2[0] = T2[0]/T2norm;  T2[1] = T2[1]/T2norm;  T2[2] = T2[2]/T2norm;
     // Local Z-axis as cross between V1 and V2
     T3 = T1.cross(T2);
     T3.normalize();
-//    doublereal T3norm = sqrt(T3[0]*T3[0]+T3[1]*T3[1]+T3[2]*T3[2]);
-//    T3[0] = T3[0]/T3norm;  T3[1] = T3[1]/T3norm;  T3[2] = T3[2]/T3norm;
 
     int beam, beamnode[3][2];
     beamnode[0][0] = 0;
@@ -365,13 +356,9 @@ ShellElementTemplate<doublereal,Membrane,Bending>
       T1[1] = y[n2] - y[n1];
       T1[2] = z[n2] - z[n1];
       T1.normalize();
-//      T1norm = sqrt(T1[0]*T1[0]+T1[1]*T1[1]+T1[2]*T1[2]);
-//      T1[0] = T1[0]/T1norm;  T1[1] = T1[1]/T1norm;  T1[2] = T1[2]/T1norm;
       // Local Y-axis as cross between Z and X
       T2 = T3.cross(T1); 
       T2.normalize();
-//      T2norm = sqrt(T2[0]*T2[0]+T2[1]*T2[1]+T2[2]*T2[2]);
-//      T2[0] = T2[0]/T2norm;  T2[1] = T2[1]/T2norm;  T2[2] = T2[2]/T2norm;
 
       for(i=0; i<3; ++i)
         localg[i] = 0.0;

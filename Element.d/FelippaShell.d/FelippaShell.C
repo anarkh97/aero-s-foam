@@ -737,11 +737,11 @@ FelippaShell::setCompositeData(int _type, int nlays, double *lData,
       break;
 
     case 2 :
-      nmat = gpmat = new ShellMaterialTypes2And3<double>(nlays, lData, false, frame, prop->Ta);
+      nmat = gpmat = new ShellMaterialTypes2And3<double>(nlays, lData, false, frame, prop->Ta, prop->rho);
       break;
 
     case 3 :
-      nmat = gpmat = new ShellMaterialTypes2And3<double>(nlays, lData, true, frame, prop->Ta);
+      nmat = gpmat = new ShellMaterialTypes2And3<double>(nlays, lData, true, frame, prop->Ta, prop->rho);
       break;
 
     default :
@@ -826,11 +826,11 @@ FelippaShell::setCompositeData2(int _type, int nlays, double *lData,
       break;
 
     case 2 :
-      nmat = gpmat = new ShellMaterialTypes2And3<double>(nlays, lData, false, cFrame, prop->Ta);
+      nmat = gpmat = new ShellMaterialTypes2And3<double>(nlays, lData, false, cFrame, prop->Ta, prop->rho);
       break;
 
     case 3 :
-      nmat = gpmat = new ShellMaterialTypes2And3<double>(nlays, lData, true, cFrame, prop->Ta);
+      nmat = gpmat = new ShellMaterialTypes2And3<double>(nlays, lData, true, cFrame, prop->Ta, prop->rho);
       break;
 
     default :

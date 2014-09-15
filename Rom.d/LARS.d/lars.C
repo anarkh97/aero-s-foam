@@ -41,19 +41,14 @@ lars(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
   std::vector<long int> indices;
   std::vector<long int> nld_indices;
 
-  if(scaling) {
-    for(int i=0; i<A.cols(); ++i) { 
-      VectorXd dummy = A.col(i).array();
-      double s       = dummy.norm(); 
-      S[i]           = (s != 0) ? 1/s : 0; 
-    }
-  } else {
-    S.setOnes();
-  }
+  if(scaling) for(int i=0; i<A.cols(); ++i) { double s = A.col(i).norm(); S[i] = (s != 0) ? 1/s : 0; }
+  else S.setOnes();
+
   double  bnorm = b.norm();
   double abstol = reltol*bnorm;
   rnorm = bnorm;
   double C;
+
   //initialize starting set
   {
     crlt = S.asDiagonal()*(A.transpose()*b);
@@ -65,14 +60,18 @@ lars(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
     }
     sign[0] = sgn(crlt[i]);
     indices.push_back(i);
-    B.col(0)     = S[indices[0]]*(A.col(indices[0]).array());
+    
+    //intitialize cholesky factorization
+    B.col(0)     = sign[0]*S[indices[0]]*(A.col(indices[0]));
     double diagK = B.col(0).squaredNorm();
     double r     = sqrt(diagK);
     R(0,0)       = r;
   }
-
+  
+  //ensure that an element is not selected immediatly after being dropped
   bool     dropId  = false;
   long int blockId = 0; 
+
   long int k       = 0; // current column index <-> Active set size -1
   long int iter    = 0; // number of iterations
   long int downIt  = 0; // number of downdates
@@ -106,62 +105,82 @@ lars(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
     // compute smallest angle at which a new covarient becomes dominant
     update = B.leftCols(k+1)*wA.head(k+1);
     h = S.asDiagonal()*(A.transpose()*update); 
-    minBuffer = (C - crlt.array())/(1.0/oneNwA - h.array());
-    for(std::vector<long int>::iterator it = indices.begin(); it != indices.end(); ++it) minBuffer[*it] = std::numeric_limits<double>::max();
-    for(long int row = 0; row < minBuffer.rows(); ++row) minBuffer[row] = (minBuffer[row] <= 0) ? std::numeric_limits<double>::max() : minBuffer[row];
-    if(dropId) minBuffer[blockId] = std::numeric_limits<double>::max();
-    double gamma1 = minBuffer.minCoeff(&i); 
-
-    long int j;
-    if(!positive) {
-      minBuffer = (C + crlt.array())/(1.0/oneNwA + h.array());
-      for(std::vector<long int>::iterator it = indices.begin(); it != indices.end(); ++it) minBuffer[*it] = std::numeric_limits<double>::max();
+    
+    // loop to ensure linear independence
+    double gamma1;
+    while(true) {
+      minBuffer = (C - crlt.array())/(1.0/oneNwA - h.array());
+      for(std::vector<long int>::iterator it = indices.begin();     it != indices.end();     ++it) minBuffer[*it] = std::numeric_limits<double>::max();
+      for(std::vector<long int>::iterator it = nld_indices.begin(); it != nld_indices.end(); ++it) minBuffer[*it] = std::numeric_limits<double>::max();
       for(long int row = 0; row < minBuffer.rows(); ++row) minBuffer[row] = (minBuffer[row] <= 0) ? std::numeric_limits<double>::max() : minBuffer[row];
       if(dropId) minBuffer[blockId] = std::numeric_limits<double>::max();
-      double gamma2 = minBuffer.minCoeff(&j);
-      if(gamma2 < gamma1){
-        gamma1 = gamma2;
-        i = j;
+      gamma1 = minBuffer.minCoeff(&i); 
+
+      long int j;
+      if(!positive) {
+        minBuffer = (C + crlt.array())/(1.0/oneNwA + h.array());
+        for(std::vector<long int>::iterator it = indices.begin();     it != indices.end();     ++it) minBuffer[*it] = std::numeric_limits<double>::max();
+        for(std::vector<long int>::iterator it = nld_indices.begin(); it != nld_indices.end(); ++it) minBuffer[*it] = std::numeric_limits<double>::max();
+        for(long int row = 0; row < minBuffer.rows(); ++row) minBuffer[row] = (minBuffer[row] <= 0) ? std::numeric_limits<double>::max() : minBuffer[row];
+        if(dropId) minBuffer[blockId] = std::numeric_limits<double>::max();
+        double gamma2 = minBuffer.minCoeff(&j);
+        if(gamma2 < gamma1){
+          gamma1 = gamma2;
+          i = j;
+        }
+      }
+
+      // compute smallest angle at which ylars changes sign
+      t.head(k+1) = -1.0*ylar.head(k+1).array()/(sign.head(k+1).array()*wA.head(k+1).array());
+      for(long int ele = 0; ele < k+1; ++ele) t[ele] = (t[ele] <= 0) ? std::numeric_limits<double>::max() : t[ele];
+      double gamma_tilde = (k > 0) ? t.head(k+1).minCoeff(&j) : std::numeric_limits<double>::max();
+
+      dropId = false; 
+      if(gamma_tilde < gamma1){
+        dropId = true;
+        gamma1 = gamma_tilde;
+        i = j; // drop index if gamma_tilde selected
+
+        // update solutio and estimate
+        ylar.head(k+1) = ylar.head(k+1).array() + gamma1*(sign.head(k+1).array()*wA.head(k+1).array());
+        mu += gamma1*update;
+
+        blockId = indices[i];
+        break; // break from linear dependence loop
+      } else {
+        indices.push_back(i); // add index if gamma1 selected
+       
+        // update solution and estimate
+        ylar.head(k+1) = ylar.head(k+1).array() + gamma1*(sign.head(k+1).array()*wA.head(k+1).array());
+        mu += gamma1*update;  
+  
+        B.col(k+1) = S[indices[k+1]]*(A.col(indices[k+1]).array());
+        double Correlation = B.col(k+1).transpose()*(b-mu);
+        sign[k+1] = sgn(Correlation);
+        B.col(k+1) *= sign[k+1];
+ 
+        //update cholesky factorization R'*R = B'*B where R is upper triangular
+        double diagK   = B.col(k+1).squaredNorm();
+        colK.head(k+1) = B.leftCols(k+1).transpose()*(B.col(k+1));
+        vk.head(k+1)   = R.topLeftCorner(k+1,k+1).triangularView<Upper>().transpose().solve(colK.head(k+1));
+        double r       = sqrt(diagK - vk.head(k+1).squaredNorm());
+
+        Block<MatrixXd,Dynamic,1,true> colR = R.col(k+1);
+        colR.head(k+1) = vk.head(k+1);
+        colR[k+1]      = r;
+
+        //if diagonal element is too small, then column is near linearly dependent
+        if(r <= std::numeric_limits<double>::min()) { 
+          nld_indices.push_back(i); indices.pop_back(); 
+          std::cout << "*** Rejecting selected covariant ***" << std::endl;
+          continue; 
+        } else {
+          nld_indices.clear();
+        }
+        break; // break from linear dependence loop
       }
     }
-
-    // compute smallest angle at which ylars changes sign
-    t.head(k+1) = -1.0*ylar.head(k+1).array()/(sign.head(k).array()*wA.head(k+1).array());
-    for(long int ele = 0; ele < k+1; ++ele) t[ele] = (t[ele] <= 0) ? std::numeric_limits<double>::max() : t[ele];
-    double gamma_tilde = (k > 0) ? t.head(k+1).minCoeff(&j) : std::numeric_limits<double>::max();
-
-    dropId = false; 
-    if(gamma_tilde < gamma1){
-      dropId = true;
-      gamma1 = gamma_tilde;
-      i = j; // drop index if gamma_tilde selected
-      ylar.head(k+1) = ylar.head(k+1).array() + gamma1*(sign.head(k+1).array()*wA.head(k+1).array());
-      mu += gamma1*update;
-      blockId = indices[i];
-    } else {
-      indices.push_back(i); // add index if gamma1 selected
-       
-      ylar.head(k+1) = ylar.head(k+1).array() + gamma1*(sign.head(k+1).array()*wA.head(k+1).array());
-      mu += gamma1*update;  
-
-      B.col(k+1) = S[indices[k+1]]*(A.col(indices[k+1]).array());
-      double Correlation = B.col(k+1).transpose()*(b-mu);
-      sign[k+1] = sgn(Correlation);
-      B.col(k+1) *= sign[k+1];
-
-      //update cholesky factorization R'*R = B'*B where R is upper triangular
-      double diagK   = B.col(k+1).squaredNorm();
-      colK.head(k+1) = B.leftCols(k+1).transpose()*(B.col(k+1));
-      vk.head(k+1)   = R.topLeftCorner(k+1,k+1).triangularView<Upper>().transpose().solve(colK.head(k+1));
-      double r       = sqrt(diagK - vk.head(k+1).squaredNorm());
-
-      Block<MatrixXd,Dynamic,1,true> colR = R.col(k+1);
-      colR.head(k+1) = vk.head(k+1);
-      colR[k+1]      = r;
-
-    }
-  
-    //update solution and estimate
+    // update maximum corellation
     C  -= gamma1/oneNwA;
 
     k++;

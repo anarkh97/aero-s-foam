@@ -155,6 +155,7 @@ BelytschkoTsayShell::setProp(StructProp *p, bool _myProp)
 void
 BelytschkoTsayShell::setMaterial(NLMaterial *m)
 {
+  if(!prop) return; // phantom element
   if(expmat && myMat) delete expmat;
   expmat = dynamic_cast<ExpMat *>(m);
   myMat = false;

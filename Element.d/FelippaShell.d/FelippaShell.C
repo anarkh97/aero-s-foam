@@ -854,6 +854,7 @@ FelippaShell::setCompositeData2(int _type, int nlays, double *lData,
 void
 FelippaShell::setMaterial(NLMaterial *_mat)
 {
+  if(!prop) return; // phantom element
   ExpMat *expmat = dynamic_cast<ExpMat *>(_mat);
   if(expmat && expmat->optctv == 5) { // old (deprecated) parser
     double E = expmat->ematpro[0], nu = expmat->ematpro[1];

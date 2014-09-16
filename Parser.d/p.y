@@ -155,7 +155,7 @@
 %type <dlist>    FloatList
 %type <slist>    StringList
 %type <SurfObj>  FaceSet
-%type <MortarCondObj> MortarCondition TiedSurfaces ContactSurfaces
+%type <MortarCondObj> MortarCondition TiedSurfaces ContactSurfacesInfo
 %type <ival>     MPCTYPEID MPCPRECNOID MPCBLOCKID
 %type <ival>     ISOLVERTYPE RECONSALG
 %type <ival>     PRECTYPEID SWITCH KEYLETTER Pressure
@@ -2834,139 +2834,82 @@ ContactSurfaces:
         // $8 = number of iterations (TD enforcement), $9 = convergence tolerance (TD enforcement), $10 = friction coefficient
         CONTACTSURFACES NewLine
         { }
-        | ContactSurfaces Integer Integer Integer NewLine
+        | CONTACTSURFACES MODE Integer NewLine
+        { domain->solInfo().contactsurface_mode = $3; }
+        | ContactSurfaces ContactSurfacesInfo NewLine
+        { domain->AddMortarCond($2); }
+        | ContactSurfaces ContactSurfacesInfo ConstraintOptionsData NewLine
+        { $2->SetConstraintOptions($3); domain->AddMortarCond($2); }
+        | ContactSurfaces ContactSurfacesInfo ConstraintOptionsData MODE Integer NewLine
+        { $2->SetConstraintOptions($3); $2->SetCtcMode($5); domain->AddMortarCond($2); }
+        | ContactSurfaces ContactSurfacesInfo MODE Integer NewLine
+        { $2->SetCtcMode($4); domain->AddMortarCond($2); }
+        ;
+ContactSurfacesInfo:
+        // $2 = pair id, $3 = master surface, $4 = slave surface, $5 = mortar type, $6 = normal search tolerace, $7 = tangential search tolerance
+        // $8 = number of iterations (TD enforcement), $9 = convergence tolerance (TD enforcement), $10 = friction coefficient
+        Integer Integer Integer
         {
-          $$ = new MortarHandler($3, $4); 
-          $$->SetInteractionType(MortarHandler::CTC); 
-          $$->SetMortarType(MortarHandler::STD); 
-          domain->AddMortarCond($$);
+          $$ = new MortarHandler($2, $3);
+          $$->SetInteractionType(MortarHandler::CTC);
+          $$->SetMortarType(MortarHandler::STD);
+          $$->SetCtcMode(domain->solInfo().contactsurface_mode);
         }
-        | ContactSurfaces Integer Integer Integer Integer NewLine
+        | Integer Integer Integer Integer
         {
-          $$ = new MortarHandler($3, $4); 
-          $$->SetInteractionType(MortarHandler::CTC); 
-          $$->SetMortarType($5); 
-          domain->AddMortarCond($$);
+          $$ = new MortarHandler($2, $3);
+          $$->SetInteractionType(MortarHandler::CTC);
+          $$->SetMortarType($4);
+          $$->SetCtcMode(domain->solInfo().contactsurface_mode);
         }
-        | ContactSurfaces Integer Integer Integer Integer Float NewLine
+        | Integer Integer Integer Integer Float
         {
-          $$ = new MortarHandler($3, $4, $6);
+          $$ = new MortarHandler($2, $3, $5);
           $$->SetInteractionType(MortarHandler::CTC);
-          $$->SetMortarType($5); 
-          domain->AddMortarCond($$);
+          $$->SetMortarType($4);
+          $$->SetCtcMode(domain->solInfo().contactsurface_mode);
         }
-        | ContactSurfaces Integer Integer Integer Integer Float Float NewLine
+        | Integer Integer Integer Integer Float Float
         {
-          $$ = new MortarHandler($3, $4, $6, $7);
+          $$ = new MortarHandler($2, $3, $5, $6);
           $$->SetInteractionType(MortarHandler::CTC);
-          $$->SetMortarType($5); 
-          domain->AddMortarCond($$);
+          $$->SetMortarType($4);
+          $$->SetCtcMode(domain->solInfo().contactsurface_mode);
         }
-        | ContactSurfaces Integer Integer Integer Integer Float Float Integer Float NewLine
-        { /* this one is for frictionless */
-          $$ = new MortarHandler($3, $4, $6, $7);
+        | Integer Integer Integer Integer Float Float Integer Float
+        { /* frictionless */
+          $$ = new MortarHandler($2, $3, $5, $6);
           $$->SetInteractionType(MortarHandler::CTC);
-          $$->SetTDEnfParams($8, $9);
-          $$->SetMortarType($5); 
-          domain->AddMortarCond($$);
+          $$->SetTDEnfParams($7, $8);
+          $$->SetMortarType($4);
+          $$->SetCtcMode(domain->solInfo().contactsurface_mode);
         }
-        | ContactSurfaces Integer Integer Integer Integer Float Float Integer Float Float NewLine
-        { /* this one is for constant friction */
-          $$ = new MortarHandler($3, $4, $6, $7);
+        | Integer Integer Integer Integer Float Float Integer Float Float
+        { /* constant friction */
+          $$ = new MortarHandler($2, $3, $5, $6);
           $$->SetInteractionType(MortarHandler::CTC);
-          $$->SetTDEnfParams($8, $9);
-          $$->SetFrictionCoef($10);
-          $$->SetMortarType($5); 
-          domain->AddMortarCond($$);
+          $$->SetTDEnfParams($7, $8);
+          $$->SetFrictionCoef($9);
+          $$->SetMortarType($4);
+          $$->SetCtcMode(domain->solInfo().contactsurface_mode);
         }
-        | ContactSurfaces Integer Integer Integer Integer Float Float Integer Float Float Float Float NewLine
-        { /* this one is for velocity dependent friction */
-          $$ = new MortarHandler($3, $4, $6, $7);
+        | Integer Integer Integer Integer Float Float Integer Float Float Float Float
+        { /* velocity dependent friction */
+          $$ = new MortarHandler($2, $3, $5, $6);
           $$->SetInteractionType(MortarHandler::CTC);
-          $$->SetTDEnfParams($8, $9);
-          $$->SetFrictionCoef($10, $11, $12);
-          $$->SetMortarType($5); 
-          domain->AddMortarCond($$);
+          $$->SetTDEnfParams($7, $8);
+          $$->SetFrictionCoef($9, $10, $11);
+          $$->SetMortarType($4);
+          $$->SetCtcMode(domain->solInfo().contactsurface_mode);
         }
-        | ContactSurfaces Integer Integer Integer Integer Float Float Integer Float Float Float Float Float NewLine
-        { /* this one is for pressure dependent friction */
-          $$ = new MortarHandler($3, $4, $6, $7);
+        | Integer Integer Integer Integer Float Float Integer Float Float Float Float Float
+        { /* pressure dependent friction */
+          $$ = new MortarHandler($2, $3, $5, $6);
           $$->SetInteractionType(MortarHandler::CTC);
-          $$->SetTDEnfParams($8, $9);
-          $$->SetFrictionCoef($10, $11, $12, $13);
-          $$->SetMortarType($5); 
-          domain->AddMortarCond($$);
-        }
-        | ContactSurfaces Integer Integer Integer ConstraintOptionsData NewLine
-        {
-          $$ = new MortarHandler($3, $4); 
-          $$->SetInteractionType(MortarHandler::CTC); 
-          $$->SetMortarType(MortarHandler::STD); 
-          $$->SetConstraintOptions($5);
-          domain->AddMortarCond($$);
-        }
-        | ContactSurfaces Integer Integer Integer Integer ConstraintOptionsData NewLine
-        {
-          $$ = new MortarHandler($3, $4);
-          $$->SetInteractionType(MortarHandler::CTC);
-          $$->SetMortarType($5);
-          $$->SetConstraintOptions($6);
-          domain->AddMortarCond($$);
-        }
-        | ContactSurfaces Integer Integer Integer Integer Float ConstraintOptionsData NewLine
-        {
-          $$ = new MortarHandler($3, $4, $6);
-          $$->SetInteractionType(MortarHandler::CTC);
-          $$->SetMortarType($5);
-          $$->SetConstraintOptions($7);
-          domain->AddMortarCond($$);
-        }
-        | ContactSurfaces Integer Integer Integer Integer Float Float ConstraintOptionsData NewLine
-        {
-          $$ = new MortarHandler($3, $4, $6, $7);
-          $$->SetInteractionType(MortarHandler::CTC);
-          $$->SetMortarType($5); 
-          $$->SetConstraintOptions($8);
-          domain->AddMortarCond($$);
-        }
-        | ContactSurfaces Integer Integer Integer Integer Float Float Integer Float ConstraintOptionsData NewLine
-        { /* this one is for frictionless */
-          $$ = new MortarHandler($3, $4, $6, $7);
-          $$->SetInteractionType(MortarHandler::CTC);
-          $$->SetTDEnfParams($8, $9);
-          $$->SetMortarType($5);
-          $$->SetConstraintOptions($10);
-          domain->AddMortarCond($$);
-        }
-        | ContactSurfaces Integer Integer Integer Integer Float Float Integer Float Float ConstraintOptionsData NewLine
-        { /* this one is for constant friction */
-          $$ = new MortarHandler($3, $4, $6, $7);
-          $$->SetInteractionType(MortarHandler::CTC);
-          $$->SetTDEnfParams($8, $9);
-          $$->SetFrictionCoef($10);
-          $$->SetMortarType($5);
-          $$->SetConstraintOptions($11);
-          domain->AddMortarCond($$);
-        }
-        | ContactSurfaces Integer Integer Integer Integer Float Float Integer Float Float Float Float ConstraintOptionsData NewLine
-        { /* this one is for velocity dependent friction */
-          $$ = new MortarHandler($3, $4, $6, $7);
-          $$->SetInteractionType(MortarHandler::CTC);
-          $$->SetTDEnfParams($8, $9);
-          $$->SetFrictionCoef($10, $11, $12);
-          $$->SetMortarType($5);
-          $$->SetConstraintOptions($13);
-          domain->AddMortarCond($$);
-        }
-        | ContactSurfaces Integer Integer Integer Integer Float Float Integer Float Float Float Float Float ConstraintOptionsData NewLine
-        { /* this one is for pressure dependent friction */
-          $$ = new MortarHandler($3, $4, $6, $7);
-          $$->SetInteractionType(MortarHandler::CTC);
-          $$->SetTDEnfParams($8, $9);
-          $$->SetFrictionCoef($10, $11, $12, $13);
-          $$->SetMortarType($5);
-          $$->SetConstraintOptions($14);
-          domain->AddMortarCond($$);
+          $$->SetTDEnfParams($7, $8);
+          $$->SetFrictionCoef($9, $10, $11, $12);
+          $$->SetMortarType($4);
+          $$->SetCtcMode(domain->solInfo().contactsurface_mode);
         }
         ;
 AcmeControls:

@@ -152,6 +152,7 @@ class MortarHandler {
         int DIST_ACME; // 0: sequential, 1: parallel with centralized input on host (cpu with id 0), 2: parallel with distributed input by subdomain
                        // NOTE: currently only dist_acme == 0 is supported for Mortar method (statics and implicit dynamics)
         int MortarIntegrationRule;
+        int CtcMode;
         ConstraintOptions *ConstraintOptionsData;
 
         double NormalSearchTol;
@@ -280,6 +281,7 @@ class MortarHandler {
         void SetDistAcme(int _DistAcme);
         void SetMortarScaling(double _MortarScaling);
         void SetMortarIntegrationRule(int _MortarIntegrationRule);
+        void SetCtcMode(int _CtcMode);
 
         void SetConstraintOptions(ConstraintOptions& _ConstraintOptionsData);
 
@@ -293,6 +295,7 @@ class MortarHandler {
 
         double GetNormalTol();
         double GetTangentialTol();
+        int GetCtcMode();
 
         MortarHandler::Mortar_Type GetMortarType();
         MortarHandler::Interaction_Type GetInteractionType();

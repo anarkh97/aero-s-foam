@@ -430,7 +430,7 @@ NodalMortarShapeFct::CreateMortarLMPCons(int lmpcnum, int dof, double rhs,
 }
 
 LMPCons*
-NodalMortarShapeFct::CreateMortarCtcLMPCons(int lmpcnum, int* SlaveLlToGlNodeMap, int* MasterLlToGlNodeMap)
+NodalMortarShapeFct::CreateMortarCtcLMPCons(int lmpcnum, int* SlaveLlToGlNodeMap, int* MasterLlToGlNodeMap, int mode)
 {
   double rhs = MPCRhs;
   LMPCTerm SlaveTerm;
@@ -454,8 +454,14 @@ NodalMortarShapeFct::CreateMortarCtcLMPCons(int lmpcnum, int* SlaveLlToGlNodeMap
         SlaveTerm.coef.r_value = SlaveMPCCoeffs[3*i+idof];
         if(MortarLMPC == NULL) {
           MortarLMPC = new LMPCons(lmpcnum, rhs, &SlaveTerm);
-          MortarLMPC->type = 1; // this is to be phased out
-          MortarLMPC->setType(mpc::Inequality);
+          if(mode == 0) {
+            MortarLMPC->type = 0;
+            MortarLMPC->setType(mpc::Equality);
+          }
+          else {
+            MortarLMPC->type = 1;
+            MortarLMPC->setType(mpc::Inequality);
+          }
           MortarLMPC->setSource(mpc::ContactSurfaces);
         } else
           MortarLMPC->addterm(&SlaveTerm);

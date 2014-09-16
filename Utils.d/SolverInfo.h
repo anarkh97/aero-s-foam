@@ -287,6 +287,7 @@ struct SolverInfo {
 
    bool dbccheck;
    int contact_mode;
+   int contactsurface_mode;
 
    bool noninpc;
    bool inpc;
@@ -556,6 +557,7 @@ struct SolverInfo {
 
                   dbccheck = true;
                   contact_mode = 1;
+                  contactsurface_mode = 1;
 
                   nEig = 0;
                   eigenSolverSubType = 0;

@@ -325,6 +325,7 @@ MortarHandler::Initialize()
 
   MortarScaling = 1.0;
   MortarIntegrationRule = 6;
+  CtcMode = 1;
 
   ConstraintOptionsData = NULL;
 }
@@ -590,6 +591,12 @@ MortarHandler::SetMortarIntegrationRule(int _MortarIntegrationRule)
 }
 
 void
+MortarHandler::SetCtcMode(int _CtcMode)
+{
+  CtcMode = _CtcMode;
+}
+
+void
 MortarHandler::SetConstraintOptions(ConstraintOptions& _ConstraintOptionsData)
 {
   ConstraintOptionsData = new ConstraintOptions(_ConstraintOptionsData);
@@ -639,6 +646,9 @@ MortarHandler::GetIdFirstMortarLMPC() { return gIdFirstLMPC; }
 
 int
 MortarHandler::GetIdLastMortarLMPC() { return gIdLastLMPC; } 
+
+int
+MortarHandler::GetCtcMode() { return CtcMode; }
 
 double
 MortarHandler::GetNormalTol() { return NormalSearchTol; }
@@ -1165,7 +1175,7 @@ MortarHandler::AddMortarLMPCs(ResizeArray<LMPCons*>* LMPCArray, int& numLMPC, in
   if(InteractionType == MortarHandler::CTC) {
     for(int i=0; i<int(NodalMortars.size()); i++) {
       lmpcnum--;
-      LMPCons* MortarLMPC = NodalMortars[i].CreateMortarCtcLMPCons(lmpcnum, SlaveLlToGlNodeMap, MasterLlToGlNodeMap);
+      LMPCons* MortarLMPC = NodalMortars[i].CreateMortarCtcLMPCons(lmpcnum, SlaveLlToGlNodeMap, MasterLlToGlNodeMap, CtcMode);
       if(MortarLMPC) { 
         MortarLMPC->id.first = Id; 
         (*LMPCArray)[numLMPC++] = MortarLMPC; 

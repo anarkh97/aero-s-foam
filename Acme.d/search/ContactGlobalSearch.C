@@ -1599,7 +1599,7 @@ ContactSearch::Global_FaceFaceSearch(SearchType search_type, int num_configs,
                     break;
                   }
 #else
-                  std::cerr << "warning message\n";
+                  std::cerr << " *** WARNING: AEROS_NO_AD is defined\n";
 #endif
                 }
               } break;

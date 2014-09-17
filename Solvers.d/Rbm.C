@@ -164,8 +164,7 @@ Rbm::Rbm(DofSetArray *_dsa, ConstrainedDSA *_c_dsa, CoordSet &cs,
    }
    numBC[n]    = totalbc; 
    compSize[n] = totaldofs; 
-   // allRbm[n]   = new Vector[compSize[n]];
-   allRbm[n] = new Vector[6]; // PJSA 4-26-05
+   allRbm[n] = new Vector[6];
    xyzRot[n]   = new double[3];
    numDofPerComp[n] = totaldofs-totalbc;
    firstDofOfComp[n] = (n > 0) ? firstDofOfComp[n-1]+numDofPerComp[n-1] : 0;
@@ -182,7 +181,7 @@ Rbm::Rbm(DofSetArray *_dsa, ConstrainedDSA *_c_dsa, CoordSet &cs,
  computeRbms(cs);
 }
 
-// PJSA: 4-26-05: Direct Sky/Sparse or Eigen solver with LMPCs
+// Direct Sky/Sparse or Eigen solver with LMPCs
 Rbm::Rbm(DofSetArray *_dsa, ConstrainedDSA *_c_dsa, CoordSet &cs,
          double _tolgrb, compStruct &_comp, int numMPC, 
          ResizeArray<LMPCons *> &mpc, IntFullM *_fm)
@@ -197,7 +196,6 @@ Rbm::Rbm(DofSetArray *_dsa, ConstrainedDSA *_c_dsa, CoordSet &cs,
  tolgrb = _tolgrb;
 
  // ... DECLARATIONS
- //int i, n, inode;
  numUncon = c_dsa->size();
  if(numUncon == 0) {
    ngrbm=0;
@@ -265,7 +263,7 @@ Rbm::computeRbms(CoordSet& cs, double *centroid, int *cornerNodes,
   int rows[6] = {-1, -1, -1, -1, -1, -1};
   int dofs[6] = {DofSet::Xdisp, DofSet::Ydisp, DofSet::Zdisp, DofSet::Xrot, DofSet::Yrot, DofSet::Zrot};
   for(i=0; i<dsa->numNodes(); ++i)
-    for(j=0; j<6; ++j)  // PJSA 2-21-04 (allows for rotational springs with no active translational dofs)
+    for(j=0; j<6; ++j)  // allows for rotational springs with no active translational dofs
       if(rows[j] == -1)
         if(dsa->locate(i, dofs[j]) > -1) rows[j] = j;
   // add required rotations
@@ -387,9 +385,13 @@ Rbm::computeRbms(CoordSet& cs)
   R = *Rmat;
   U.zero();
 
+// ... COUNT THE TOTAL NUMBER OF DIRICHLET BCs
+
+  int n, totNumBC = 0;
+  for(n=0; n<nComponents; ++n) totNumBC += numBC[n];
+
 // ... BEGIN COMPONENT LOOP:
 
- int n;
  for(n=0; n<nComponents; ++n) {
 
    R.zero();
@@ -407,7 +409,7 @@ Rbm::computeRbms(CoordSet& cs)
 
      Node &nd = cs.getNode(inode);
 
-     if(setzero) { // PJSA 5-8-2007 make sure that node0 exists before trying to access its coordinates
+     if(setzero) { // make sure that node0 exists before trying to access its coordinates
        x0 = xyzRot[n][0] = nd.x;
        y0 = xyzRot[n][1] = nd.y;
        z0 = xyzRot[n][2] = nd.z;
@@ -541,10 +543,21 @@ Rbm::computeRbms(CoordSet& cs)
     singularValueDecomposition(A, U, dimA, dimA, max_value, ngrbm, rank);
 
     if(rank == dimA && numBC[n] == 0) {
-      for(i=0; i<ncol; ++i)
-        for(j=0; j<numUncon; ++j)
-          allRbm[n][i][j] = R[j][i];
-        nRbmPerComp[n] = ncol;
+      if(totNumBC == 0) {
+        for(i=0; i<ncol; ++i)
+          for(j=0; j<numUncon; ++j)
+            allRbm[n][i][j] = R[j][i];
+      }
+      else {
+        for(i=0; i<numdofs; ++i) {
+          int cn = c_dsa->getRCN(i);
+          if(cn >= 0) {
+            for(j=0; j<ncol; ++j)
+              allRbm[n][j][cn] = R[i][j];
+          }
+        }
+      }
+      nRbmPerComp[n] = ncol;
       continue;
     }
 
@@ -560,9 +573,20 @@ Rbm::computeRbms(CoordSet& cs)
 // ... FOR A FREE-FREE PROBLEM, RETURN GEOMETRIC RIGID BODY MODES.
 
     if(numBC[n] == 0) {
-      for(i=0; i<rank; ++i)
-        for(j=0; j<numUncon; ++j)
-          allRbm[n][i][j] = Rstar[j][i];
+      if(totNumBC == 0) {
+        for(i=0; i<rank; ++i)
+          for(j=0; j<numUncon; ++j)
+            allRbm[n][i][j] = Rstar[j][i];
+      }
+      else {
+        for(i=0; i<numdofs; ++i) {
+          int cn = c_dsa->getRCN(i);
+          if(cn >= 0) {
+            for(j=0; j<rank; ++j)
+              allRbm[n][j][cn] = Rstar[i][j];
+          }
+        }
+      }
       nRbmPerComp[n] = rank;
       continue;
     }
@@ -631,7 +655,7 @@ Rbm::computeRbms(CoordSet& cs)
 
     for(i=0; i<numdofs; ++i) {
       int cn = c_dsa->getRCN(i);
-      if(cn >= 0 ) {
+      if(cn >= 0) {
         for(j=0; j<ngrbm; ++j)
           allRbm[n][j][cn] = result[i][j];
       }
@@ -1360,7 +1384,6 @@ Rbm::getRBMs(DComplex *rigidBodyModes, int ndof, int *dof, int numGRBM, int offs
 void
 Rbm::getScaledRBMs(double *rigidBodyModes, int ndof, int *dof, double *scaling, int numGRBM, int offset)
 {
- // PJSA 4/1/03
  int i,iDof;
  if(numGRBM < 0) numGRBM = ngrbm;
  for(i=0; i<numGRBM; ++i)

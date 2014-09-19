@@ -396,12 +396,9 @@ GenBLKSparseMatrix<Scalar>::factor()
 
   // TESTING:
   tmpsiz = tmpsiz * 2;
-  //tmpsiz = tmpsiz * 4;
 
   Scalar *tmpvec = new Scalar[tmpsiz];
 
-  //TESTING
-  //rwsize*=2;
   Scalar *rwork  = new Scalar[rwsize];
 
   iwsiz  =  3 * numUncon + 2 * nsuper;
@@ -417,39 +414,33 @@ GenBLKSparseMatrix<Scalar>::factor()
 //       -------------------------------------------------------
 
 
-  // if numrbm > 0, lbdef = number of rbm in last block
+  // if ngrbm > 0, lbdef = number of rbm in last block
 
-  // perform full pivoting on last 10x10 block of sparse matrix
+  // perform full pivoting on last defblk x defblk block of sparse matrix
   // def = integer array, dimension numUncon, it identifies
   //       the columns of the matrix that are linearly dependent.
   int* deftemp = new int[numUncon];
 
   iprow = 0;
   ipcol = 0;
-  lbdef = 0;
+  int asdef = 0;
   if(defblk > 0) {
     iprow = new int[defblk]; // contains row pivoting sequence for last block.
     ipcol = new int[defblk]; // contains col pivoting sequence for last block.
-    //lbdef = rbm->numRBM();
-    lbdef = ngrbm;
+    asdef = ngrbm; // assumed deficiency of the last block.
   }
   Tblkldl(nsuper, xsuper, snode, xlindx, lindx,
-          xlnz, lnz, defblk, lbdef, numrbm, lbdef,
-          deftemp, tol, iprow,  ipcol, tmpsiz,
+          xlnz, lnz, defblk, asdef, numrbm, lbdef,
+          deftemp, tol, iprow, ipcol, tmpsiz,
           tmpvec, iwsiz, iwork, rwsize, rwork, iflag);
-  if(iflag != 0)
-    //fprintf(stderr, "Error during sparse factor %d\n",iflag);
-    throw std::runtime_error("Error during sparse factor");
-
-  if(numrbm != lbdef) {
-    //fprintf(stderr,"Num rbm = %d last block (size %d) %d tol %e\n",numrbm, defblk, lbdef, tol);
-    if(defblk>0) numrbm = lbdef;
-  }
 
   // IFLAG =  0: successful factorization.
   // IFLAG = 31: insufficient work space in tmpvec.
   // IFLAG = 32: insufficient work space in iwork.
   // IFLAG = 33: insufficient work space in rwork.
+  if(iflag != 0)
+    throw std::runtime_error("Error during sparse factor");
+
   if(def) delete [] def; def = 0;
   if(numrbm > 0) {
     def = new int[numrbm];
@@ -470,7 +461,6 @@ template<class Scalar>
 void
 GenBLKSparseMatrix<Scalar>::computeRBMs()
 {
-  //std::cerr << "here in GenBLKSparseMatrix<Scalar>::computeRBMs, ngrbm = " << ngrbm << ", numrbm = " << numrbm << std::endl;
   if((ngrbm != numrbm) && (numrbm > 0)) {
     //filePrint(stderr," ... Computing %d Sparse RBM(s), tolerance = %e\n",numrbm,tol);
 
@@ -1316,8 +1306,21 @@ GenBLKSparseMatrix<Scalar>::allocateMemory()
 
   // Rank deficiency information
   // defblk = size of last block to perform full pivoting on
-  if(ngrbm > 0)
-    defblk = min(numUncon-1,solInfo.sparse_defblk); // note: sparse_defblk default is 30
+  if(ngrbm > 0) {
+    defblk = min(numUncon-1,solInfo.sparse_defblk); // note: sparse_defblk default is 10
+    // restore original numbering in defblk
+    // note: perm maps from new index to original index and invp maps from original index to new index
+    for(int i = numUncon-defblk; i < numUncon; ++i) {
+      int p = i;
+      int q = invp[i]-1;
+      int j = perm[p]-1;
+      // swap positions of equations i and j
+      invp[i] = p+1;
+      invp[j] = q+1;
+      perm[p] = i+1;
+      perm[q] = j+1;
+    }
+  }
   else
     defblk = 0;
 
@@ -1339,11 +1342,12 @@ GenBLKSparseMatrix<Scalar>::allocateMemory()
 //       Work:       IWORK(7*N+3) ... the max required any subroutine.
 //       -------------------------------------------------------------
 
-
   _FORTRAN(sfinit)(numUncon, nnza,    xadj,   adj,    perm,
                    invp,     maxsup,  defblk, colcnt, nnzl,
                    nsub,     nsuper,  xsuper, snode,  iwsiz,
                    iwork,    iflag);
+  // warning: if defblk outputted by sfinit is less that the input value
+  //          then the grbm method can fail.
   // IFLAG = 0: successful symbolic factorization initialization
   // IFLAG = 1: insufficent work space in IWORK.
   if(iflag == 1) {

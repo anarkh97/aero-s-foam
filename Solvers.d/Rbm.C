@@ -744,10 +744,7 @@ Rbm::computeRbms(CoordSet& cs, int numMPC, ResizeArray<LMPCons *> &mpc)
 #endif
 
  for(n=0; n<comp->numComp; ++n) {
-   Node &nd = cs.getNode(comp->order[comp->xcomp[n]]);
-   x0 = nd.x;
-   y0 = nd.y;
-   z0 = nd.z;
+
    // ... CALCULATE R MATRIX CONTAINING GEOMETRIC RBM
    for(i = comp->xcomp[n]; i<comp->xcomp[n+1]; ++i) {
      inode = comp->order[i];
@@ -872,7 +869,7 @@ Rbm::computeRbms(CoordSet& cs, int numMPC, ResizeArray<LMPCons *> &mpc)
    for(j = 0; j < dimA; ++j)
      A[i][j] *= diagA[i]*diagA[j];
   
- double max_value = A.maxAbs();  // max() finds maximum value of matrix A
+ double max_value = A.maxAbs();
  if(debug) A.print("--- A = Rt*R matrix ---");
 
  // ... PERFORM SVD ON R^t*R 
@@ -954,10 +951,10 @@ Rbm::computeRbms(CoordSet& cs, int numMPC, ResizeArray<LMPCons *> &mpc)
    singularValueDecomposition(Z, U, ncol, nrow, cgmax, ngrbm, rank);
 
    // ... CONSTRUCT NECESSARY VECTORS FOR Vstar:
-   FullM Vstar(U,ngrbm,rank,ncol,0);  // i think Vstar = Q transpose
+   FullM Vstar(U,ngrbm,rank,ncol,0);
 
    // ... MATRIX-MATRIX MULTIPLY [GRBM] = [R][V]:
-   FullM result = Rstar%Vstar;   // result is Rstar
+   FullM result = Rstar%Vstar;
 
    // ... CONFORM RIGID BODY MODES WITH RESPECT TO K MATRIX
    for(i=0; i<numdofs; ++i) {

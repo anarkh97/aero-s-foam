@@ -27,7 +27,7 @@ C                with unrolling depth = 4 and returning eventual
 C                ZERO ENERGY MODES.
 C     
 C
-C     MEMORY SCHEME and KSTOP BUISNESS
+C     MEMORY SCHEME and KSTOP BUSINESS
 C     --------------------------------
 C              kstop = 4*((neq-10)/4)
 C              if(kstop.lt.4) kstop = 4

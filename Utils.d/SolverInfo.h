@@ -513,7 +513,7 @@ struct SolverInfo {
 
                   sparse_renum = 0;
                   sparse_maxsup = 100;
-                  sparse_defblk = 30;
+                  sparse_defblk = 10;
                   pivot = false;
                   spooles_scale = 0;
                   spooles_tau = 100.;

@@ -1603,9 +1603,60 @@ Domain::getRenumbering()
  for(i=0; i<numnodes; ++i)
    order[i] = -1;
 
+ // note: order maps from new index to original index and renumb.renum maps from original index to new index
  for(i=0; i<numnodes; ++i)
    if(renumb.renum[i] >= 0)
      order[renumb.renum[i]] = i;
+
+ if(domain->solInfo().rbmflg == 1 && renumb.numComp > 1 && sinfo.type == 0 && sinfo.subtype == 1) {
+   filePrint(stderr, "\x1B[31m *** WARNING: GRBM with sparse solver is not \n"
+                          "     supported for multi-component models.  \x1B[0m\n");
+ }
+
+ if(renumb_nompc.order && renumb_nompc.numComp > 1 && sinfo.type == 0 && (sinfo.subtype == 0 || sinfo.subtype == 1)) {
+   // altering the ordering for skyline or sparse with LMPCs due to requirements of GRBM
+   DofSetArray *dsa = new DofSetArray(numnodes, packedEset, renumb.renum);
+   ConstrainedDSA *c_dsa = new ConstrainedDSA(*dsa, numDirichlet, dbc);
+   int p = numnodes-1;
+   int min_defblk = 0;
+   for(int n=renumb_nompc.numComp-1; n>=0; --n) {
+     int count = 0;
+     bool check = true;
+     for(int i=renumb_nompc.xcomp[n+1]-1; i>=renumb_nompc.xcomp[n]; --i) {
+       int inode = renumb_nompc.order[i];
+       int q = renumb.renum[inode];
+       int jnode = order[p];
+       // swap positions of inode and jnode
+       renumb.renum[inode] = p;
+       renumb.renum[jnode] = q;
+       order[p] = inode;
+       order[q] = jnode;
+       p--;
+       count += c_dsa->weight(inode);
+#ifdef USE_EIGEN3
+       if(dsa->weight(inode) == 6) check = false;
+       if(count > sinfo.sparse_defblk) {
+         if(!check) break;
+         else {
+           // check for co-linearity XXX this could/should be done even for case with no LMPCs
+           Eigen::Matrix<double,3,Eigen::Dynamic> M(3,renumb_nompc.xcomp[n+1]-i);
+           for(int j=renumb_nompc.xcomp[n+1]-1; j>=i; --j) {
+             int jnode = renumb_nompc.order[j];
+             M.col(renumb_nompc.xcomp[n+1]-1-j) << nodes[jnode]->x, nodes[jnode]->y, nodes[jnode]->z;
+           }
+           int rank = M.colPivHouseholderQr().rank();
+           if(rank > 1) break;
+         }
+       }
+#else
+       if(count > sinfo.sparse_defblk) break;
+#endif
+     }
+     min_defblk += count;
+   }
+   delete c_dsa; delete dsa;
+   sinfo.sparse_defblk = std::max(sinfo.sparse_defblk, min_defblk);
+ }
 
  //if(sinfo.renum > 0 && verboseFlag && renumb.numComp > 1)
  //  filePrint(stdout," ... Number of components =%2d	...\n",renumb.numComp);

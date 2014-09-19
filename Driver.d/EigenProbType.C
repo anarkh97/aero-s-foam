@@ -747,13 +747,12 @@ SubSpaceSolver< EigOps, VecType, VecSet,
  VecSet *residual = new VecSet(1, this->probDesc->solVecInfo());
  for(iter=0; iter<nsmax; ++iter) {
 
-   //filePrint(stderr,"Subspace Iteration %d (Max %d) %e %e\n", iter+1, nsmax, tolEig, tolJac);
+   if(verboseFlag) filePrint(stderr,"Subspace Iteration %d (Max %d) %e %e\n", iter+1, nsmax, tolEig, tolJac);
 
    for(i = this->nrmod; i<subSpaceSize; ++i)
      (*Q)[i] = (*Z)[i];
 
    this->eM->dynMat->reSolve(nsub,(*Z)+this->nrmod);
-
    this->ortho((*Q), (*Z), nsub, this->nrmod);
 
    if (explicitK)  {

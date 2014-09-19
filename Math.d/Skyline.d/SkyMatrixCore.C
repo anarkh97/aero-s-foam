@@ -1,5 +1,8 @@
 #include <cstdio>
 #include <Math.d/Skyline.d/SkyMatrix.C>
+#include <Utils.d/SolverInfo.h>
+
+extern SolverInfo &solInfo;
 
 template<>
 void
@@ -9,12 +12,11 @@ GenSkyMatrix<double>::Factor(Rbm *rigid)
    //         neqs(), size(), size() / neqs());
 
    int i,j;
-   //double *w = (double *) dbg_alloca(7*numUncon*sizeof(double));
    double *w = new double[7*numUncon];
 
    double *dummyZEM = w + numUncon;
-   double *w1 = dummyZEM +numUncon;
-   double *w2 = w1 +      numUncon;
+   double *w1 = dummyZEM + numUncon;
+   double *w2 = w1 + numUncon;
 
    double *rhs = 0;
 
@@ -36,9 +38,9 @@ GenSkyMatrix<double>::Factor(Rbm *rigid)
 
    // ... ALLOCATE MEMORY FOR S1 AND S2
    // int sizeS = (numUncon - kstop)*(numUncon - kstop);
-
-   double *s1 =  (double *) dbg_alloca(400*sizeof(double));
-   double *s2 =  (double *) dbg_alloca(400*sizeof(double));
+   int defblk = solInfo.sparse_defblk;
+   double *s1 = (double *) dbg_alloca((defblk+4)*(defblk+4)*sizeof(double));
+   double *s2 = (double *) dbg_alloca((defblk+4)*(defblk+4)*sizeof(double));
 
    // ... LOOP OVER COMPONENTS
    int n;
@@ -56,14 +58,9 @@ GenSkyMatrix<double>::Factor(Rbm *rigid)
      // Get first dof of the component
      int firstDofOfComp = rigid->firstDof(n);
 
-     int kstop = 4*((numDofPerComp - 10)/4);
+     int kstop = 4*((numDofPerComp - defblk)/4);
      if(kstop < 0) kstop = 0;
-/*
-     if(kstop < 4) {
-       kstop = 4;
-       print(stderr);
-     }
-*/
+
      int k;
      if(firstDofOfComp != 0)
        for(k = 0; k < numDofPerComp; ++k)
@@ -73,8 +70,6 @@ GenSkyMatrix<double>::Factor(Rbm *rigid)
       w+firstDofOfComp,w1+firstDofOfComp,w2+firstDofOfComp,
       pivot+firstDofOfComp,TOLERANCE,numDofPerComp,flag,nops,nzem,
       dummyZEM,kstop,NULL,NULL,locNgrbm,seqid+firstDofOfComp);
-
-     //if(nzem != 0) fprintf(stderr,"Found %d mechanisms\n",nzem);
 
      nTotZem += nzem;
      nZemPerComp[n] = nzem;
@@ -106,7 +101,7 @@ GenSkyMatrix<double>::Factor(Rbm *rigid)
      // Get first dof of the component
      int firstDofOfComp = rigid->firstDof(n);
 
-     int kstop = 4*((numDofPerComp - 10)/4);
+     int kstop = 4*((numDofPerComp - defblk)/4);
      if(kstop < 0) kstop = 0;
 
      // ... UPDATE nzem

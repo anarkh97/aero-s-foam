@@ -18,9 +18,9 @@ template <class EigOps,
           class PostProcessor,
           class ProblemDescriptor>
 class EigenSolver {
-                                                                                                                      
+
   protected:
-                                                                                                                      
+
     int numEig;
     int nrmod;
     int totalEig;
@@ -29,29 +29,29 @@ class EigenSolver {
     Vector  *eigVal;
     VecSet  *eigVec;
     EigOps  *eM;
-                                                                                                                      
+
     PostProcessor     *postProcessor;
-                                                                                                                      
+
     ProblemDescriptor *probDesc;
-                                                                                                                      
+
   public:
-                                                                                                                      
+
     EigenSolver()                      { probDesc=0; postProcessor = 0; eigVal = 0; eigVec = 0; eM = 0; }
     EigenSolver(ProblemDescriptor *p)  { probDesc=p; postProcessor = 0; eigVal = 0; eigVec = 0; eM = 0; }
-                                                                                                                      
+
 //    static EigenSolver * buildEigenSolver(ProblemDescriptor *p);
-                                                                                                                     
+
     Vector  * getpeigval() { return eigVal ; }
     VecSet  & getpeigvec() { return *eigVec; }
     EigOps  & geteM()      { return *eM ;    }
 
     void getJacobi(double *kappa, double * mu, FullSquareMatrix &xx,
-                  double *eigVal, int nsmax, int subSpaceSize, double tolJac);
+                   double *eigVal, int nsmax, int subSpaceSize, double tolJac);
     void ortho(VecType *v1, VecType *vr, int nsub, int nrbm);
     void ortho(VecSet& v1, VecSet& vr, int nsub, int nrbm);
     void setUp();
 //    void cleanup();
-                                                                                                                      
+
     virtual void initialize()=0;
     virtual void solve()=0;
     void performQR();
@@ -72,21 +72,21 @@ class SubSpaceSolver: public EigenSolver <EigOps,
     int subSpaceSize;
     int nsmax;
     int nsub;
-                                                                                                                      
+
     double tolEig;
     double tolJac;
     bool explicitK;
-                                                                                                                      
+
     VecSet *Q;
     VecSet *Z;
-                                                                                                                      
+
     Vector *subVal;
     Vector *subOld;
-                                                                                                                      
+
   public:
     SubSpaceSolver()                      {this->probDesc=0; Q = 0; Z = 0; subVal = 0; subOld = 0;}
     SubSpaceSolver(ProblemDescriptor *p)  {this->probDesc=p; Q = 0; Z = 0; subVal = 0; subOld = 0;}
-                                                                                                                      
+
     void initialize();
     void solve();
 
@@ -118,7 +118,7 @@ class SymArpackSolver : public EigenSolver <EigOps,
   public:
     SymArpackSolver()                      {this->probDesc=0; Q = 0; Z = 0; }
     SymArpackSolver(ProblemDescriptor *p)  {this->probDesc=p; Q = 0; Z = 0; }
-                                                                                                                      
+
     void initialize() {};
     void solve();
     void rebuildSolver(double frequency);
@@ -152,7 +152,7 @@ class LOBPCGSolver: public EigenSolver <EigOps,
   public:
     LOBPCGSolver()                      {this->probDesc=0; Q = 0; Z = 0; subVal = 0; }
     LOBPCGSolver(ProblemDescriptor *p)  {this->probDesc=p; Q = 0; Z = 0; subVal = 0; }
-                                                                                                                      
+
     void initialize();
     void solve();
 };
@@ -163,96 +163,3 @@ class LOBPCGSolver: public EigenSolver <EigOps,
 #endif
 
 #endif
-
-/*
-template <class EigOps, 
-          class VecType, 
-          class VecSet, 
-          class PostProcessor, 
-          class ProblemDescriptor>
-class EigenSolver {
-
-   protected:
-
-     int numEig;
-     int nrmod;
-     int totalEig;
-
-     Vector  *eigVal;     
-     VecSet  *eigVec;        
-     EigOps  *eM; 
-
-     PostProcessor     *postProcessor;
-
-     ProblemDescriptor *probDesc;
-
-   public:
-
-     EigenSolver()                      { probDesc=0; postProcessor = 0; eigVal = 0; eigVec = 0; eM = 0; }
-     EigenSolver(ProblemDescriptor *p)  { probDesc=p; postProcessor = 0; eigVal = 0; eigVec = 0; eM = 0; }
-
-     static EigenSolver * buildEigenSolver(ProblemDescriptor *p);
-
-     Vector  * getpeigval() { return eigVal ; }
-     VecSet  & getpeigvec() { return *eigVec; }     
-     EigOps  & geteM()      { return *eM ;    }
-     
-     void solve();
-
-     void getJacobi(double *kappa, double * mu, FullSquareMatrix &xx,
-                    double *eigVal,int nsmax,int subSpaceSize, double tolJac);
-     void ortho(VecType *v1, VecType *vr, int nsub, int nrbm);
-     void ortho(VecSet& v1, VecSet& vr, int nsub, int nrbm);
-     
-     virtual void initialize()=0;
-     virtual void initializeLOBPCG()=0;
-     virtual void subsolve()=0;
-     virtual void subsolveLOBPCG()=0;
-     virtual void cleanup()=0;
-
-#ifdef USE_ARPACK
-     virtual void solveArpack()=0; //HB
-#endif
-};
-
-template <class EigOps, 
-          class VecType, 
-          class VecSet, 
-          class PostProcessor, 
-          class ProblemDescriptor>
-class SubSpaceSolver : public EigenSolver <EigOps, 
-                                           VecType, 
-                                           VecSet, 
-                                           PostProcessor, 
-                                           ProblemDescriptor>
-{
-     int subSpaceSize;
-     int nsmax;
-     int nsub;
-
-     double tolEig;
-     double tolJac;
-     bool explicitK;
-
-     VecSet *Q;
-     VecSet *Z;
-
-     Vector *subVal;
-     Vector *subOld;
- 
-   public:
-
-     SubSpaceSolver()                      {this->probDesc=0; Q = 0; Z = 0; subVal = 0; subOld = 0;}
-     SubSpaceSolver(ProblemDescriptor *p)  {this->probDesc=p; Q = 0; Z = 0; subVal = 0; subOld = 0;}
-   
-     void initialize();
-     void initializeLOBPCG();
-     void subsolve();
-     void subsolveLOBPCG();
-     void cleanup();
-
-#ifdef USE_ARPACK
-     void solveArpack(); //HB
-#endif
-};
-*/

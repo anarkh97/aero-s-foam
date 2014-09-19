@@ -723,6 +723,9 @@ void GeoSource::makeDirectMPCs(int &numLMPC, ResizeArray<LMPCons *> &lmpc)
     numLMPC = j;
     delete dofToLMPC;
     renumb.clearMemory();
+    if(domain->probType() == SolverInfo::Modal) {
+      for(int i = 0; i < numLMPC; ++i) lmpc[i]->rhs.r_value = 0;
+    }
   }
 }
 

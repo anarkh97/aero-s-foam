@@ -759,30 +759,8 @@ Domain::preProcessing()
  }
  matrixTimers->makeConnectivity += getTime();
 
- // ... RENUMBER IF NECESSARY AND ASKED FOR
+ // ... RENUMBER IF NECESSARY AND/OR ASKED FOR
  matrixTimers->renumbering -= getTime();
-
-/*
- // Check if we are renumbering or not
- if(sinfo.renum || sinfo.sparse_renum)
-   filePrint(stderr," ... Renumbering as Specified       ...\n");
- else {
-   if(sinfo.subtype != 1 && sinfo.subtype != 8 && sinfo.subtype != 9) // sparse and spooles are always renumbered internally
-     filePrint(stderr," *** WARNING: Renumbering Turned Off ***\n");
- }
-
- // Check if we are using a Solver that does not require renumbering
- if(sinfo.renum && (sinfo.subtype == 3 || sinfo.subtype == 4)) {
-   filePrint(stderr," *** WARNING: Renumbering is NOT necessary \n");
-   filePrint(stderr,"     for the selected solver; continuing \n");
-   filePrint(stderr,"     with renumbering OFF! ***\n");
-
-   // Turn off renumbering (GRBM needs renumbering due to components!)
-   sinfo.renum = 1;
- }
-*/
-
- // Perform renumbering if necessary
  Renumber rnum = getRenumbering();
  Renumber* rnumFluid = 0;
  if(sinfo.HEV) rnumFluid = getRenumberingFluid();

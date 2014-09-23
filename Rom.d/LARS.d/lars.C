@@ -135,7 +135,6 @@ lars(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
       for(long int ele = 0; ele < k+1; ++ele) t[ele] = (t[ele] <= 0) ? std::numeric_limits<double>::max() : t[ele];
       double gamma_tilde = (k > 0) ? t.head(k+1).minCoeff(&j) : std::numeric_limits<double>::max();
 
-      dropId = false; 
       if(gamma_tilde < gamma1){
         dropId = true;
         gamma1 = gamma_tilde;
@@ -179,6 +178,7 @@ lars(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
         }
         break; // break from linear dependence loop
       }
+      dropId = false;
     }
     // update maximum corellation
     C  -= gamma1/oneNwA;

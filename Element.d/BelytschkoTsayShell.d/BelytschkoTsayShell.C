@@ -167,7 +167,7 @@ BelytschkoTsayShell::setMaterial(NLMaterial *m)
       switch(expmat->optctv) {
       case 5 :
         mat[i] = new IsotropicLinearElasticJ2PlasticPlaneStressMaterial(lambda, mu, expmat->ematpro[3], expmat->ematpro[4], expmat->ematpro[5], 
-                                                                        expmat->ematpro[6]);
+                                                                        expmat->ematpro[6], expmat->ematpro[7]);
         break;
       case 6 :
         mat[i] = new KorkolisKyriakidesPlaneStressMaterial(lambda, mu, expmat->ematpro[3], expmat->ematpro[4], expmat->ematpro[5],
@@ -191,7 +191,7 @@ void
 BelytschkoTsayShell::setPressure(PressureBCond *_pbc)
 {
   pbc = _pbc;
-  opttrc = 0;
+  if(pbc) opttrc = 0;
 }
 
 PressureBCond*
@@ -606,6 +606,22 @@ BelytschkoTsayShell::getStiffAndForce(GeomState& geomState, CoordSet& cs, FullSq
       double f[3] = { efint[iloc+0], efint[iloc+1], efint[iloc+2] };
       mat_mult_vec(geomState[nn[i]].R, f, efint+iloc, 0);
     }
+
+    // ---------------------------------------------------------------
+    // element deletion
+    // ------------------
+    if(expmat->optctv != 1) {
+      bool failed = true;
+      for(int igaus = 0; igaus < mgaus[2]; ++igaus) {
+        if(mat[igaus]->GetMaterialEquivalentPlasticStrain() < mat[igaus]->GetEquivalentPlasticStrainAtFailure()) { failed = false; break; }
+      }
+      if(failed) {
+        std::cerr << "Deleting element " << getGlNum()+1 << std::endl;
+        setProp((StructProp*)NULL);
+        setPressure((PressureBCond*)NULL); // XXX consider
+        for(int i=0; i<nnode*nndof; ++i) efint[i] = 0;
+      }
+    }
   }
 }
 
@@ -949,20 +965,25 @@ BelytschkoTsayShell::Elefintbt1(double delt, double *_ecord, double *_edisp, dou
     // ------------------------
     if(expmat->optctv != 1) {
       vector<double> F(9), CauchyStress(9);
-      // get Fnp1 from strnvoitloc, i.e. evoit3[6*igaus+0]
-      // note: voight rule in xfem code: [xx,yy,zz,yz,xz,xy]
-      F[0] = 1+evoit3[6*igaus+0]; // xx
-      F[1] = 0.5*evoit3[6*igaus+5]; // xy
-      F[2] = 0.5*evoit3[6*igaus+4]; // xz
-      F[3] = 0.5*evoit3[6*igaus+5]; // yx
-      F[4] = 1+evoit3[6*igaus+1]; // yy
-      F[5] = 0.5*evoit3[6*igaus+3]; // yz
-      F[6] = 0.5*evoit3[6*igaus+4]; // zx
-      F[7] = 0.5*evoit3[6*igaus+3]; // zy
-      F[8] = 1+evoit3[6*igaus+2]; // zz
-      if(!mat[igaus]->ComputeElastoPlasticConstitutiveResponse(F, &CauchyStress)) {
-        std::cerr << " *** ERROR: ComputeElastoPlasticConstitutiveResponse failed\n";
-        exit(-1);
+      if(mat[igaus]->GetMaterialEquivalentPlasticStrain() < mat[igaus]->GetEquivalentPlasticStrainAtFailure()) {
+        // get Fnp1 from strnvoitloc, i.e. evoit3[6*igaus+0]
+        // note: voight rule in xfem code: [xx,yy,zz,yz,xz,xy]
+        F[0] = 1+evoit3[6*igaus+0]; // xx
+        F[1] = 0.5*evoit3[6*igaus+5]; // xy
+        F[2] = 0.5*evoit3[6*igaus+4]; // xz
+        F[3] = 0.5*evoit3[6*igaus+5]; // yx
+        F[4] = 1+evoit3[6*igaus+1]; // yy
+        F[5] = 0.5*evoit3[6*igaus+3]; // yz
+        F[6] = 0.5*evoit3[6*igaus+4]; // zx
+        F[7] = 0.5*evoit3[6*igaus+3]; // zy
+        F[8] = 1+evoit3[6*igaus+2]; // zz
+        if(!mat[igaus]->ComputeElastoPlasticConstitutiveResponse(F, &CauchyStress)) {
+          std::cerr << " *** ERROR: ComputeElastoPlasticConstitutiveResponse failed\n";
+          exit(-1);
+        }
+      }
+      else {
+        for(int i=0; i<9; ++i) CauchyStress[i] = 0;
       }
       // copy CauchyStress into sigvoitloc, i.e. evoit2[6*igaus+0]
       evoit2[6*igaus+0] = CauchyStress[0]; // xx

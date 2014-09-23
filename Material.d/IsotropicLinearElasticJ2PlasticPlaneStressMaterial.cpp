@@ -39,7 +39,8 @@
 IsotropicLinearElasticJ2PlasticPlaneStressMaterial::
 IsotropicLinearElasticJ2PlasticPlaneStressMaterial(double iLambda, double iMu, 
 						   double iSigmaY, double iK,
-						   double iH, double iTol)
+						   double iH, double iTol,
+						   double iequivEPSplasticF)
 {
   // Youngs modulus
   E = iMu*(3.*iLambda + 2.*iMu)/(iLambda + iMu);
@@ -52,6 +53,7 @@ IsotropicLinearElasticJ2PlasticPlaneStressMaterial(double iLambda, double iMu,
   K = iK;
   H = iH;
   Tol = (iTol > 0) ? iTol : 1.0e-6;
+  equivEPSplasticF = iequivEPSplasticF;
   
   // Zero initial plastic strain and backstress
   EPSplastic.clear();
@@ -76,7 +78,8 @@ IsotropicLinearElasticJ2PlasticPlaneStressMaterial::~IsotropicLinearElasticJ2Pla
 // Copy constructor
 IsotropicLinearElasticJ2PlasticPlaneStressMaterial::
 IsotropicLinearElasticJ2PlasticPlaneStressMaterial(const IsotropicLinearElasticJ2PlasticPlaneStressMaterial &Mat)
-  :E(Mat.E), nu(Mat.nu), SigmaY(Mat.SigmaY), K(Mat.K), H(Mat.H), Tol(Mat.Tol), t00(Mat.t00), t01(Mat.t01), t22(Mat.t22)
+  :E(Mat.E), nu(Mat.nu), SigmaY(Mat.SigmaY), K(Mat.K), H(Mat.H), Tol(Mat.Tol), t00(Mat.t00), t01(Mat.t01), t22(Mat.t22),
+   equivEPSplasticF(Mat.equivEPSplasticF)
 {
   EPSplastic.clear();
   BackStress.clear();
@@ -159,6 +162,11 @@ GetShearModulus() const
 double IsotropicLinearElasticJ2PlasticPlaneStressMaterial::
 GetDissipatedEnergy() const
 { return (SigmaY +0.5*K*equivEPSplastic)*equivEPSplastic; }
+
+// Return equivalent plastic strain at failure
+double IsotropicLinearElasticJ2PlasticPlaneStressMaterial::
+GetEquivalentPlasticStrainAtFailure() const
+{ return equivEPSplasticF; }
 
 // Set the plastic strain in the material
 void IsotropicLinearElasticJ2PlasticPlaneStressMaterial::

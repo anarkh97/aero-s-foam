@@ -2,6 +2,7 @@
 #define ELASTOPLASTICPLANESTRESSMATERIAL
 
 #include <vector>
+#include <limits>
 
 class ElastoPlasticPlaneStressMaterial
 {
@@ -29,6 +30,9 @@ class ElastoPlasticPlaneStressMaterial
 
   //! Returns dissipated energy in material
   virtual double GetDissipatedEnergy() const = 0;
+
+  //! Returns the equivalent plastic strain at failure
+  virtual double GetEquivalentPlasticStrainAtFailure() const { return std::numeric_limits<double>::max(); }
 
   //! Set the plastic strain in the material
   virtual void SetMaterialPlasticStrain(const std::vector<double> &EPSplastic) = 0;

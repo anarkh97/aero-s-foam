@@ -437,6 +437,7 @@ SuperElement::getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
   stress.zero();
   weight.zero();
   for(int i = 0; i < nSubElems; ++i) {
+    if(subElems[i]->isPhantomElement()) continue;
     Vector subElementStress(subElems[i]->numNodes());
     Vector subElementWeight(subElems[i]->numNodes());
 
@@ -473,6 +474,7 @@ SuperElement::getAllStress(FullM &stress, Vector &weight, CoordSet &cs,
   stress.zero();
   weight.zero();
   for(int i = 0; i < nSubElems; ++i) {
+    if(subElems[i]->isPhantomElement()) continue;
     FullM subElementStress(subElems[i]->numNodes(), 9);
     Vector subElementWeight(subElems[i]->numNodes());
 
@@ -615,10 +617,12 @@ SuperElement::computePressureForce(CoordSet &cs, Vector &elPressureForce,
 
   elPressureForce.zero();
   for(int i = 0; i < nSubElems; ++i) {
-    Vector subElementPressureForce(subElems[i]->numDofs(), sub_extf[i], false);
-    subElementPressureForce.zero();
-    subElems[i]->computePressureForce(cs, subElementPressureForce, gs, cflg, t);
-    elPressureForce.add(subElementPressureForce, subElemDofs[i]);
+    if(subElems[i]->getPressure()) {
+      Vector subElementPressureForce(subElems[i]->numDofs(), sub_extf[i], false);
+      subElementPressureForce.zero();
+      subElems[i]->computePressureForce(cs, subElementPressureForce, gs, cflg, t);
+      elPressureForce.add(subElementPressureForce, subElemDofs[i]);
+    }
   }
 /*
   // experimental: adjust for four node shell

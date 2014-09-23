@@ -4403,19 +4403,25 @@ MatSpec:
           }
         | MatSpec Integer ISOTROPICLINEARELASTICJ2PLASTICPLANESTRESS Float Float Float Float Float Float NewLine
           {
-            double params[8] = { $4, $5, $6, $7, $8, $9, 1.0e-6, -std::numeric_limits<double>::infinity() };
+            double params[9] = { $4, $5, $6, $7, $8, $9, 1.0e-6, std::numeric_limits<double>::max(), -std::numeric_limits<double>::infinity() };
             geoSource->addMaterial($2-1,
               new MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(params));
           }
         | MatSpec Integer ISOTROPICLINEARELASTICJ2PLASTICPLANESTRESS Float Float Float Float Float Float Float NewLine
           {
-            double params[8] = { $4, $5, $6, $7, $8, $9, $10, -std::numeric_limits<double>::infinity() };
+            double params[9] = { $4, $5, $6, $7, $8, $9, $10, std::numeric_limits<double>::max(), -std::numeric_limits<double>::infinity() };
             geoSource->addMaterial($2-1,
               new MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(params));
           }
         | MatSpec Integer ISOTROPICLINEARELASTICJ2PLASTICPLANESTRESS Float Float Float Float Float Float Float Float NewLine
           {
-            double params[8] = { $4, $5, $6, $7, $8, $9, $10, $11 };
+            double params[9] = { $4, $5, $6, $7, $8, $9, $10, $11, -std::numeric_limits<double>::infinity() };
+            geoSource->addMaterial($2-1,
+              new MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(params));
+          }
+        | MatSpec Integer ISOTROPICLINEARELASTICJ2PLASTICPLANESTRESS Float Float Float Float Float Float Float Float Float NewLine
+          {
+            double params[9] = { $4, $5, $6, $7, $8, $9, $10, $11, $12 };
             geoSource->addMaterial($2-1,
               new MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(params));
           }
@@ -4448,6 +4454,11 @@ MatSpec:
          {
            geoSource->addMaterial($2-1,
              new ExpMat($3, $4, $5, $6, $7, $8, $9, $10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+         }
+        | MatSpec Integer OPTCTV Float Float Float Float Float Float Float Float NewLine
+         {
+           geoSource->addMaterial($2-1,
+             new ExpMat($3, $4, $5, $6, $7, $8, $9, $10, $11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
          }
 	| MatSpec READ FNAME FNAME NewLine
 	 {

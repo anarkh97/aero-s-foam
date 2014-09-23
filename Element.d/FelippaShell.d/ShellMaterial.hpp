@@ -54,6 +54,7 @@ class ShellMaterial
     virtual std::vector<doublereal> GetLocalBackStress(int nd, doublereal z) { return std::vector<doublereal>(); }
     virtual doublereal GetLocalEquivalentPlasticStrain(int nd, doublereal z) { return 0; }
     virtual doublereal GetDissipatedEnergy(int gp) { return 0; }
+    virtual bool CheckFailure() { return false; } // used to initiate element deletion
 
   protected:
     Eigen::Matrix<doublereal,3,3>
@@ -220,6 +221,7 @@ class ShellMaterialType4 : public ShellMaterial<doublereal>
     std::vector<doublereal> GetLocalBackStress(int nd, doublereal z);
     doublereal GetLocalEquivalentPlasticStrain(int nd, doublereal z);
     doublereal GetDissipatedEnergy(int gp);
+    bool CheckFailure();
 };
 #endif
 

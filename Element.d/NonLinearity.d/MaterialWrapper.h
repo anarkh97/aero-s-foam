@@ -117,11 +117,12 @@ MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::MaterialWra
   double K      = params[4];
   double H      = params[5];
   double Tol    = params[6];
+  double epsF   = params[7];
   
   lambda = E*nu/((1.+nu)*(1.-2.*nu));
   mu     = E/(2.*(1.+nu));
-  mat = new IsotropicLinearElasticJ2PlasticPlaneStressMaterial(lambda,mu,sigmaY,K,H,Tol);
-  posdefifyTol = params[7];
+  mat = new IsotropicLinearElasticJ2PlasticPlaneStressMaterial(lambda,mu,sigmaY,K,H,Tol,epsF);
+  posdefifyTol = params[8];
 }
 
 template<>

@@ -2,6 +2,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <limits>
 #include <stdexcept>
 #include <iomanip>
 #include <iostream>
@@ -861,7 +862,8 @@ FelippaShell::setMaterial(NLMaterial *_mat)
     double lambda = E*nu/((1+nu)*(1-2*nu)), mu = E/(2*(1+nu));
     double sigmaY = expmat->ematpro[3], K = expmat->ematpro[4], H = expmat->ematpro[5];
     double tol = expmat->ematpro[6];
-    IsotropicLinearElasticJ2PlasticPlaneStressMaterial *localMaterial = new IsotropicLinearElasticJ2PlasticPlaneStressMaterial(lambda, mu, sigmaY, K, H, tol);
+    double epsF = expmat->ematpro[7];
+    IsotropicLinearElasticJ2PlasticPlaneStressMaterial *localMaterial = new IsotropicLinearElasticJ2PlasticPlaneStressMaterial(lambda, mu, sigmaY, K, H, tol, epsF);
     type = 4;
     if(gpmat) delete gpmat;
     gpmat = new ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(prop->eh, prop->nu, prop->rho, localMaterial, 5, 3,
@@ -1203,6 +1205,19 @@ FelippaShell::getInternalForce(GeomState *refState, GeomState &geomState, CoordS
  // transform internal force vector from local to global coordinates
 
  tran_force(f, t0n, 3);
+
+ // element deletion
+
+ if(type == 4) {
+   if(gpmat->CheckFailure()) {
+     std::cerr << "Deleting element " << getGlNum()+1 << std::endl;
+     setProp((StructProp*)NULL);
+     setPressure((PressureBCond*)NULL); // XXX consider
+     for(int i=0; i<18; ++i)
+       for(int j=0; j<18; ++j)
+         origK[i][j] = 0;
+   }
+ }
 }
 
 void

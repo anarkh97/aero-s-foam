@@ -36,6 +36,7 @@
 #include <iostream>
 #include <vector>
 #include <cmath>
+#include <limits>
 
 //! \brief Class for computing the constitutive response of a 
 //! isotropic linear elastic and J2 plastic material under a plane stress.
@@ -229,9 +230,11 @@ class IsotropicLinearElasticJ2PlasticPlaneStressMaterial : public ElastoPlasticP
   //! \param iSigmaY Yield stress in 1D
   //! \param iK Isotropic hardening modulus
   //! \param iH Kinematic hardening modulus
+  //! \param iequivEPSplasticF Equivalent plastic strain at failure
   IsotropicLinearElasticJ2PlasticPlaneStressMaterial(double iLambda, double iMu,
 						     double iSigmaY, double iK = 0.,
-						     double iH = 0., double iTol = 1.0e-6);
+						     double iH = 0., double iTol = 1.0e-6,
+						     double iequivEPSplasticF = std::numeric_limits<double>::max());
   
   //! Destructor
   ~IsotropicLinearElasticJ2PlasticPlaneStressMaterial();
@@ -280,6 +283,9 @@ class IsotropicLinearElasticJ2PlasticPlaneStressMaterial : public ElastoPlasticP
 
   //! Returns dissipated energy in material
   double GetDissipatedEnergy() const;
+
+  //! Returns the equivalent plastic strain at failure
+  double GetEquivalentPlasticStrainAtFailure() const;
 
   //! Set the plastic strain in the material
   void SetMaterialPlasticStrain(const std::vector<double> &EPSplastic);
@@ -346,6 +352,9 @@ class IsotropicLinearElasticJ2PlasticPlaneStressMaterial : public ElastoPlasticP
 
   //! Tolerance for convergence of nonlinear solve
   double Tol;
+
+  //! Equivalent plastic strain at failure
+  double equivEPSplasticF;
 
   //! Plastic strain 
   std::vector<double> EPSplastic;

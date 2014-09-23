@@ -1,5 +1,6 @@
 #ifdef USE_EIGEN3
 #include <Eigen/Core>
+#include <Timers.d/GetTime.h>
 #include <algorithm>
 #include <iomanip>
 #include <ios>
@@ -15,7 +16,7 @@ template <typename T> int sgn(T val) {
 
 Eigen::VectorXd
 lars(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm,
-      long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool positive)
+      long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool positive, double &dtime)
 {
   using namespace Eigen;
   
@@ -44,6 +45,7 @@ lars(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
   if(scaling) for(int i=0; i<A.cols(); ++i) { double s = A.col(i).norm(); S[i] = (s != 0) ? 1/s : 0; }
   else S.setOnes();
 
+  dtime = 0;
   double  bnorm = b.norm();
   double abstol = reltol*bnorm;
   rnorm = bnorm;
@@ -191,6 +193,7 @@ lars(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
     k++;
     iter++;
     if(dropId) {// if gamma_tilde is selected, remove that index and downdate Cholesky factorization
+      dtime -= getTime();
       downIt++;
 
       long int leftSide = k;
@@ -223,11 +226,13 @@ lars(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
       ylar[k] = 0;
       sign[k] = 0; 
       k--;
+      dtime += getTime();
     }
 
     rnorm = residual.norm();
   }
 
+  dtime /= 1000.0;
   if(verbose) std::cout.flush();
 
   VectorXd x = VectorXd::Zero(A.cols());

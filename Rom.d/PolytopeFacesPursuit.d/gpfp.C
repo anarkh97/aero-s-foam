@@ -1,5 +1,6 @@
 #ifdef USE_EIGEN3
 #include <Eigen/Core>
+#include <Timers.d/GetTime.h>
 #include <algorithm>
 #include <iomanip>
 #include <ios>
@@ -48,7 +49,7 @@
 
 Eigen::VectorXd
 gpfp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm,
-     long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool positive)
+     long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool positive, double &dtime)
 {
   using namespace Eigen;
 
@@ -77,6 +78,7 @@ gpfp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
   if(scaling) for(int i=0; i<A.cols(); ++i) S[i] = 1/A.col(i).norm();
   else S.setOnes();
 
+  dtime = 0;
   int iter   = 0; // number of iterations
   int downIt = 0; // number of downdates
   while(true) {
@@ -186,6 +188,7 @@ gpfp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
       // find location of minimum coefficient and check for positivity
       double minCoeff = y.head(k).minCoeff(&i); 
       if(minCoeff < 0.) {
+        dtime -= getTime();
         downIt++;
         // remove index i from the active set
         //std::cout << "removing index " << indices[i] << std::endl;
@@ -221,6 +224,7 @@ gpfp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
           k++;
           g_.head(k) -= a[k-1]*GD.col(k-1).head(k);
         }
+        dtime += getTime();
       }
       else {
         x_.head(k) = y.head(k);
@@ -231,6 +235,7 @@ gpfp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
     rnorm = r.norm();
   }
 
+  dtime /= 1000.0;
   if(verbose) std::cout.flush();
 
   VectorXd x = VectorXd::Zero(A.cols());

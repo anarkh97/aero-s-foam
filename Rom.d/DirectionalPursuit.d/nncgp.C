@@ -1,5 +1,6 @@
 #ifdef USE_EIGEN3
 #include <Eigen/Core>
+#include <Timers.d/GetTime.h>
 #include <algorithm>
 #include <iomanip>
 #include <ios>
@@ -18,7 +19,7 @@
 
 Eigen::VectorXd
 nncgp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm,
-      long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling)
+      long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, double &dtime)
 {
   using namespace Eigen;
 
@@ -43,6 +44,7 @@ nncgp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::
   if(scaling) for(int i=0; i<A.cols(); ++i) { double s = A.col(i).norm(); S[i] = (s != 0) ? 1/s : 0; }
   else S.setOnes();
 
+  dtime      = 0; // time spent in downdates
   int iter   = 0; // number of iterations
   int downIt = 0; // number of downdates
   while(true) {
@@ -86,6 +88,7 @@ nncgp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::
     while(true) {
       iter++;
       if(y.head(k).minCoeff() < 0) {
+        dtime -= getTime();  
         downIt++;
         // compute maximum feasible step length in the direction (y-x_) and corresponding index in the active set, i
         for(long int j=0; j<k; ++j) t[j] = (y[j] >= 0) ? std::numeric_limits<double>::max() : -x_[j]/(y[j]-x_[j]);
@@ -123,6 +126,7 @@ nncgp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::
           k++;
           g_.head(k) -= a[k-1]*GD.col(k-1).head(k);
         }
+        dtime += getTime();
       }
       else {
         x_.head(k) = y.head(k);
@@ -133,6 +137,7 @@ nncgp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::
     rnorm = r.norm();
   }
 
+  dtime /= 1000.0;
   if(verbose) std::cout.flush();
 
   VectorXd x = VectorXd::Zero(A.cols());

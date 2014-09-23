@@ -55,7 +55,7 @@ C             NSETP <= MIN(M,MAXSZE*N)
 C   
 C     ------------------------------------------------------------------
       SUBROUTINE SPNNLS (A,MDA,M,N,B,X,RELTOL,RNORM,W,ZZ,ZZ2,INDEX,MODE,
-     +                   PRTFLG,SCAFLG,MAXSZE,MAXITE)
+     +                   PRTFLG,SCAFLG,MAXSZE,MAXITE,DTIME)
 C     ------------------------------------------------------------------
       USE ISO_C_BINDING
       IMPLICIT NONE
@@ -65,7 +65,7 @@ C     ------------------------------------------------------------------
       integer(kind=C_LONG) INDEX(*)  
       double precision A(MDA,*), B(*), W(*), X(*), ZZ(*), ZZ2(*) 
       double precision ALPHA, ASAVE, CC, DIFF, DUMMY, FACTOR, RNORM
-      double precision ABSTOL,RELTOL,MAXSZE,MAXITE
+      double precision ABSTOL,RELTOL,MAXSZE,MAXITE,T1,T2,DTIME
       double precision ONE, SM, SS, T, TEMP, TWO, UNORM, UP, WMAX
       double precision ZERO, ZTEST
       integer(kind=C_LONG) PRTFLG, SCAFLG
@@ -263,6 +263,7 @@ C          IF ALL NEW CONSTRAINED COEFFS ARE FEASIBLE THEN ALPHA WILL
 C          STILL = 2.    IF SO EXIT FROM SECONDARY LOOP TO MAIN LOOP.   
 C   
       IF (ALPHA.EQ.TWO) GO TO 330   
+      call cpu_time(T1)
       DDATE = DDATE+1
 C   
 C          OTHERWISE USE ALPHA WHICH WILL BE BETWEEN 0. AND 1. TO   
@@ -330,6 +331,8 @@ C
       RTNKEY = 2
       GO TO 400 
   320 CONTINUE  
+      call cpu_time(T2)
+      DTIME = DTIME + T2 - T1
       GO TO 210 
 C                      ******  END OF SECONDARY LOOP  ******
 C   

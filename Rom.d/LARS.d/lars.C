@@ -104,16 +104,20 @@ lars(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
 
     // compute smallest angle at which a new covarient becomes dominant
     update = B.leftCols(k+1)*wA.head(k+1);
-    h = S.asDiagonal()*(A.transpose()*update); 
+    h      = S.asDiagonal()*(A.transpose()*update); 
     
-    // loop to ensure linear independence
     double gamma1;
-    while(true) {
+    while(true) { // loop to ensure linear independence
       minBuffer = (C - crlt.array())/(1.0/oneNwA - h.array());
-      for(std::vector<long int>::iterator it = indices.begin();     it != indices.end();     ++it) minBuffer[*it] = std::numeric_limits<double>::max();
+      // zero out inactive set
+      for(std::vector<long int>::iterator it = indices.begin();     it != indices.end();     ++it) minBuffer[*it] = std::numeric_limits<double>::max(); 
+      // zero out linearly dependent members
       for(std::vector<long int>::iterator it = nld_indices.begin(); it != nld_indices.end(); ++it) minBuffer[*it] = std::numeric_limits<double>::max();
+      // zero out non-positive members
       for(long int row = 0; row < minBuffer.rows(); ++row) minBuffer[row] = (minBuffer[row] <= 0) ? std::numeric_limits<double>::max() : minBuffer[row];
+      // zero out previously rejected member
       if(dropId) minBuffer[blockId] = std::numeric_limits<double>::max();
+      // compute step length
       gamma1 = minBuffer.minCoeff(&i); 
 
       long int j;
@@ -133,6 +137,7 @@ lars(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
       // compute smallest angle at which ylars changes sign
       t.head(k+1) = -1.0*ylar.head(k+1).array()/(sign.head(k+1).array()*wA.head(k+1).array());
       for(long int ele = 0; ele < k+1; ++ele) t[ele] = (t[ele] <= 0) ? std::numeric_limits<double>::max() : t[ele];
+      if(dropId) t[blockId] = std::numeric_limits<double>::max();
       double gamma_tilde = (k > 0) ? t.head(k+1).minCoeff(&j) : std::numeric_limits<double>::max();
 
       if(gamma_tilde < gamma1){
@@ -176,9 +181,9 @@ lars(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
         } else {
           nld_indices.clear();
         }
+        dropId = false;
         break; // break from linear dependence loop
       }
-      dropId = false;
     }
     // update maximum corellation
     C  -= gamma1/oneNwA;

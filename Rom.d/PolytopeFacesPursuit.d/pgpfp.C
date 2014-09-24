@@ -1,5 +1,6 @@
 #ifdef USE_EIGEN3
 #include <Eigen/Core>
+#include <Timers.d/GetTime.h>
 #include <algorithm>
 #include <iomanip>
 #include <ios>
@@ -29,7 +30,7 @@ bool operator== (const long_int& lhs, const long_int& rhs);
 
 Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1>
 pgpfp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm, const long int n,
-      long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool positive)
+      long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool positive, double &dtime)
 {
   // each A[i] is the columnwise block of the global A matrix assigned to a subdomain on this mpi process
   // each x[i] of the return value x is the corresponding row-wise block of the global solution vector
@@ -267,6 +268,7 @@ pgpfp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const 
       MPI_Allreduce(MPI_IN_PLACE, &s, 1, MPI_DOUBLE_INT, MPI_MINLOC, mpicomm);
 #endif
       if(s.val < 0.) {
+        dtime -= getTime();
         downIt++;
 
         if(s.rank == myrank) {
@@ -364,6 +366,7 @@ pgpfp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const 
           }
           k++;
         }
+        dtime += getTime();
       }
       else {
         break;
@@ -373,6 +376,7 @@ pgpfp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const 
     rnorm = r.norm();
   }
 
+  dtime /= 1000.0;
   if(myrank == 0 && verbose) std::cout.flush();
 
   Array<VectorXd,Dynamic,1> x(nsub);

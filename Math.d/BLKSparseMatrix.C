@@ -332,6 +332,7 @@ GenBLKSparseMatrix<Scalar>::init()
   invsuper= 0;
   lnz     = 0;
   iwork   = 0;
+  lbdef   = 0;
   myRbm   = false;
 }
 
@@ -742,6 +743,7 @@ void
 GenBLKSparseMatrix<Scalar>::zeroAll()
 {
   numrbm=0;
+  lbdef=0;
   if(numUncon > 0) {
     for(int i=0; i < xlnz[numUncon]; ++i)
       ScalarTypes::initScalar(lnz[i], 0.0, 0.0);

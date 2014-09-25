@@ -305,7 +305,7 @@ SingleDomainDynamic::project(Vector &v)
 int
 SingleDomainDynamic::getFilterFlag()
 {
- return std::max(domain->solInfo().hzemFilterFlag, domain->solInfo().filterFlags);
+ return (domain->solInfo().isNonLin()) ? 0 : std::max(domain->solInfo().hzemFilterFlag, domain->solInfo().filterFlags);
 }
 
 int
@@ -755,8 +755,8 @@ SingleDomainDynamic::computeExtForce2(SysState<Vector> &state, Vector &ext_f,
   if(domain->solInfo().aeroheatFlag >= 0 && tIndex >= 0) 
     domain->buildAeroheatFlux(ext_f, prevFrc->lastFluidLoad, tIndex, t);
 
-  // KHP: apply projector here
-  if(domain->solInfo().filterFlags || domain->solInfo().hzemFilterFlag)
+  // apply projector here for linear analyses only
+  if((domain->solInfo().filterFlags || domain->solInfo().hzemFilterFlag) && !domain->solInfo().isNonLin())
     trProject(ext_f); 
 
   if(tIndex == 1)
@@ -935,9 +935,9 @@ SingleDomainDynamic::buildOps(double coeM, double coeC, double coeK)
 
  Rbm *rigidBodyModes = 0;
 
- int useRbmFilter = domain->solInfo().filterFlags;
+ int useRbmFilter = domain->solInfo().filterFlags && !domain->solInfo().isNonLin();
  int useGrbm = domain->solInfo().rbmflg; 
- int useHzemFilter = domain->solInfo().hzemFilterFlag;
+ int useHzemFilter = domain->solInfo().hzemFilterFlag && !domain->solInfo().isNonLin();
  int useHzem   = domain->solInfo().hzemFlag;
 
  if(useGrbm || useRbmFilter) 
@@ -1018,9 +1018,6 @@ SingleDomainDynamic::getInternalForce(Vector& d, Vector& f, double t, int tIndex
     f.zero();
     domain->getKtimesU(d, bcx, f, 1.0, kelArray);  // note: although passed as an argument, the bcx contribution is not computed in this function
   }
-
-  if(domain->solInfo().filterFlags || domain->solInfo().hzemFilterFlag)
-    trProject(f);
 }
 
 void

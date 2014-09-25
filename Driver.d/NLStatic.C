@@ -2608,7 +2608,7 @@ Domain::transformElemStiffAndForce(const GeomState &geomState, double *elementFo
       tangential_transf(Psi, T);
 
       Eigen::Vector3d V = G.segment<3>(6*k+3);
-      G.segment<3>(6*k+3) = (sinfo.newmarkBeta == 0) ? Jn[nodes[k]]*(T.transpose()*Jn[nodes[k]]*T).inverse()*T*V : T*V;
+      G.segment<3>(6*k+3) = (sinfo.newmarkBeta == 0) ? (Jn[nodes[k]]*(T.transpose()*Jn[nodes[k]]*T).inverse()*T*V).eval() : (T*V).eval();
  
       if(compute_tangents) {
         Eigen::Matrix3d C1;
@@ -2653,7 +2653,7 @@ Domain::transformNodalMoment(const GeomState &geomState, double _G[],
   tangential_transf(Psi, T);
 
   Eigen::Vector3d V = G;
-  G = (sinfo.newmarkBeta == 0) ? Jn[inode]*(T.transpose()*Jn[inode]*T).inverse()*T*V : T*V;
+  G = (sinfo.newmarkBeta == 0) ? (Jn[inode]*(T.transpose()*Jn[inode]*T).inverse()*T*V).eval() : (T*V).eval();
   if(compute_tangents) {
     Eigen::Matrix3d C1;
     directional_deriv1(Psi, V, C1);

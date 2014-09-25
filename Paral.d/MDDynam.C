@@ -298,7 +298,7 @@ MultiDomainDynam::buildOps(double coeM, double coeC, double coeK)
     domain->MakeNodalMass(dynMat->M, decDomain->getAllSubDomains());
   }
 
-  int useRbmFilter = domain->solInfo().filterFlags;
+  int useRbmFilter = (domain->solInfo().isNonLin()) ? 0 : domain->solInfo().filterFlags;
   if(useRbmFilter) {
     filePrint(stderr," ... RBM Filter Level %d Requested   ...\n", useRbmFilter);
     MultiDomainRbm<double> *rigidBodyModes = decDomain->constructRbm();
@@ -526,7 +526,7 @@ MultiDomainDynam::getTimeIntegration()
 int
 MultiDomainDynam::getFilterFlag()
 {
-  return std::max(domain->solInfo().hzemFilterFlag, domain->solInfo().filterFlags);
+  return (domain->solInfo().isNonLin()) ? 0 : std::max(domain->solInfo().hzemFilterFlag, domain->solInfo().filterFlags);
 }
 
 int*
@@ -827,8 +827,8 @@ MultiDomainDynam::computeExtForce2(SysState<DistrVector> &distState,
     *prevFrc = *aeroForce;
   }
 
-  // KHP: apply projector here
-  if(domain->solInfo().filterFlags || domain->solInfo().hzemFilterFlag)
+  // apply projector here for linear analyses only
+  if((domain->solInfo().filterFlags || domain->solInfo().hzemFilterFlag) && !domain->solInfo().isNonLin())
     trProject(f);
 
   if(tIndex == 1)
@@ -1136,9 +1136,6 @@ MultiDomainDynam::getInternalForce(DistrVector &d, DistrVector &f, double t, int
     f.zero();
     execParal2R(decDomain->getNumSub(), this, &MultiDomainDynam::subGetKtimesU, d, f);
   }
-
-  if(domain->solInfo().filterFlags || domain->solInfo().hzemFilterFlag)
-    trProject(f);
 
   if(domain->solInfo().timeIntegration == 1) decDomain->getSolVecAssembler()->assemble(f); // quasistatic only
 }

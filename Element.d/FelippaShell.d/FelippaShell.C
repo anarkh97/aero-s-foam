@@ -1986,7 +1986,7 @@ FelippaShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
                                                  int senMethod, double *ndTemps, int avgnum, double ylayer, double zlayer)
 {
    if(strInd != 6) {
-     std::cerr << " ... Error: strInd must be 6 in TwoNodeTruss::getVonMisesDisplacementSensitivity\n";
+     std::cerr << " ... Error: strInd must be 6 in FelippaShell::getVonMisesDisplacementSensitivity\n";
      exit(-1);
    }
    if(dStdDisp.numRow() != 18 || dStdDisp.numCol() != 3) {

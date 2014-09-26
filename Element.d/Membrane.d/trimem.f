@@ -1,7 +1,7 @@
         subroutine trimem(flag, xl,yl,zl,e,nu,h,rk)
 C
-C THIS SUBROUTINE EVALUATES THE STIFFNES MATRIX 
-C FOR THE SPACIAL 9 D.O.F TREE NODE TRIANGLE MEMBRANE   
+C THIS SUBROUTINE EVALUATES THE STIFFNESS MATRIX 
+C FOR THE SPATIAL 9 D.O.F THREE NODE TRIANGLE MEMBRANE   
 C
 C.... DECLARE ALL GLOBAL VARAIBALES
 C
@@ -13,7 +13,7 @@ C.... REAL ARRAYS
 C
         real*8 xl(3),yl(3),zl(3),h(3),sm(9,9),rk(18,18)
 C
-C.... DECALRE ALL LOCAL VARIABLES
+C.... DECLARE ALL LOCAL VARIABLES
 C
         real*8 dm(3,3),r1(3,3)
         real*8 xp(3),yp(3),zp(3),xlp(3),ylp(3),zlp(3)

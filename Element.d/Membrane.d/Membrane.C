@@ -103,7 +103,7 @@ Membrane::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector 
 {
 #ifdef USE_EIGEN3
    if(strInd != 6) {
-     std::cerr << " ... Error: strInd must be 6 in TwoNodeTruss::getVonMisesDisplacementSensitivity\n";
+     std::cerr << " ... Error: strInd must be 6 in Membrane::getVonMisesDisplacementSensitivity\n";
      exit(-1);
    }
    if(dStdDisp.numRow() != 3 || dStdDisp.numCol() !=18) {
@@ -207,7 +207,7 @@ Membrane::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight, Coo
 {
 #ifdef USE_EIGEN3
    if(strInd != 6) {
-     std::cerr << " ... Error: strInd must be 6 in TwoNodeTruss::getVonMisesThicknessSensitivity\n";
+     std::cerr << " ... Error: strInd must be 6 in Membrane::getVonMisesThicknessSensitivity\n";
      exit(-1);
    }
    if(dStdThick.size() !=3) {
@@ -674,7 +674,7 @@ Membrane::stiffness(CoordSet &cs, double *d, int flg)
 	h[0] = h[1] = h[2] = prop->eh;
 
         if(h[0] <= 0.0)
-          fprintf(stderr,"ERROR: Zero shell thickness (ThreeNodeShell.C) %d %d %d\n",
+          fprintf(stderr,"ERROR: Zero shell thickness (Membrane.C) %d %d %d\n",
                 nn[0], nn[1], nn[2]);
 
         _FORTRAN(trimem)(flg, x, y, z, prop->E, prop->nu, h, (double *)d);

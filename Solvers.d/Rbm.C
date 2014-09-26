@@ -497,17 +497,17 @@ Rbm::computeRbms(CoordSet& cs)
        Ri.bottomRightCorner<3,3>() = T;
 
        if(xloc >= 0)
-         for(int j=0; j<6; ++j) R[xloc][6*n+j] = Ri(0,j);
+         for(int j=0; j<6; ++j) R[xloc][j] = Ri(0,j);
        if(yloc >= 0)
-         for(int j=0; j<6; ++j) R[yloc][6*n+j] = Ri(1,j);
+         for(int j=0; j<6; ++j) R[yloc][j] = Ri(1,j);
        if(zloc >= 0)
-         for(int j=0; j<6; ++j) R[zloc][6*n+j] = Ri(2,j);
+         for(int j=0; j<6; ++j) R[zloc][j] = Ri(2,j);
        if(xrot >= 0)
-         for(int j=0; j<6; ++j) R[xrot][6*n+j] = Ri(3,j);
+         for(int j=0; j<6; ++j) R[xrot][j] = Ri(3,j);
        if(yrot >= 0)
-         for(int j=0; j<6; ++j) R[yrot][6*n+j] = Ri(4,j);
+         for(int j=0; j<6; ++j) R[yrot][j] = Ri(4,j);
        if(zrot >= 0)
-         for(int j=0; j<6; ++j) R[zrot][6*n+j] = Ri(5,j);
+         for(int j=0; j<6; ++j) R[zrot][j] = Ri(5,j);
 #else
        std::cerr << "USE_EIGEN3 is not defined here in Rbm::computeRbms\n";
 #endif

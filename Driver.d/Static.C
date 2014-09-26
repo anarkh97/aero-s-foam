@@ -643,7 +643,7 @@ Domain::constructHzem(bool printFlag)
 {
   Rbm *rbm = new Rbm(dsa, c_dsa);
   if(printFlag)
-    std::cerr << " ... GRBM algorithm detected " << rbm->numRBM() << " rigid body or zero energy modes ...\n";
+    std::cerr << " ... HZEM algorithm detected " << rbm->numRBM() << " zero energy modes ...\n";
   return rbm;
 }
 
@@ -653,7 +653,7 @@ Domain::constructSlzem(bool printFlag)
 {
   Rbm *rbm = new Rbm(dsa, c_dsa);
   if(printFlag)
-    std::cerr << " ... GRBM algorithm detected " << rbm->numRBM() << " rigid body or zero energy modes ...\n";
+    std::cerr << " ... SZEM algorithm detected " << rbm->numRBM() << " zero energy modes ...\n";
   return rbm;
 }
 
@@ -675,7 +675,7 @@ Domain::constructRbm(bool printFlag)
   else 
     rbm = new Rbm(dsa, c_dsa, nodes, sinfo.tolsvd, renumb);
   if(printFlag)
-    std::cerr << " ... GRBM algorithm detected " << rbm->numRBM() << " rigid body or zero energy modes ...\n";
+    std::cerr << " ... GRBM algorithm detected " << rbm->numRBM() << " rigid body modes ...\n";
   return rbm;
 }
 

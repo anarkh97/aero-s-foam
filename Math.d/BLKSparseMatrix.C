@@ -448,8 +448,11 @@ GenBLKSparseMatrix<Scalar>::factor()
     for(int i=0; i<numrbm; ++i) def[i] = deftemp[i];
   }
 
-  if(this->print_nullity && numrbm > 0)
-     std::cerr << " ... Matrix is singular: size = " << numUncon << ", rank = " << numUncon-numrbm << ", nullity = " << numrbm << " ...\n";
+  if(this->print_nullity && numrbm > 0) {
+     std::cerr << " ... Matrix is singular: size = " << numUncon << ", rank = " << numUncon-numrbm << ", nullity = " << numrbm;
+     if(rbm) std::cerr << " (" << ngrbm << " grbm/hzem + " << numrbm-ngrbm << " other)";
+     std::cerr << " ...\n";
+  }
 
   delete [] rwork;
   delete [] tmpvec;

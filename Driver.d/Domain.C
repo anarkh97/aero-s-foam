@@ -1584,7 +1584,7 @@ Domain::getRenumbering()
    delete nodeToNodeTemp;
  }
 
- // get number of nodes
+ // get number of nodes (actually, this is the maximum node number when there are gaps in the node numbering)
  numnodes = nodeToNode->csize();
 
  if(solInfo().type == 0 || solInfo().type == 1) makeNodeToNode_sommer(); // single domain solvers
@@ -1604,9 +1604,12 @@ Domain::getRenumbering()
    order[i] = -1;
 
  // note: order maps from new index to original index and renumb.renum maps from original index to new index
+ int nodecount = 0;
  for(i=0; i<numnodes; ++i)
-   if(renumb.renum[i] >= 0)
+   if(renumb.renum[i] >= 0) {
      order[renumb.renum[i]] = i;
+     nodecount++;
+   }
 
  if(domain->solInfo().rbmflg == 1 && renumb.numComp > 1 && sinfo.type == 0 && sinfo.subtype == 1) {
    filePrint(stderr, "\x1B[31m *** WARNING: GRBM with sparse solver is not \n"
@@ -1617,7 +1620,7 @@ Domain::getRenumbering()
    // altering the ordering for skyline or sparse with LMPCs due to requirements of GRBM
    DofSetArray *dsa = new DofSetArray(numnodes, packedEset, renumb.renum);
    ConstrainedDSA *c_dsa = new ConstrainedDSA(*dsa, numDirichlet, dbc);
-   int p = numnodes-1;
+   int p = nodecount-1;
    int min_defblk = 0;
    for(int n=renumb_nompc.numComp-1; n>=0; --n) {
      int count = 0;

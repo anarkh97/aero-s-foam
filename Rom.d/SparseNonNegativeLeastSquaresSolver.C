@@ -83,7 +83,7 @@ SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::solve() {
   }
 
   long int info;
-  double dtime = 0; 
+  double dtime = 0.; 
   double t0 = getTime();
   switch(solverType_) {
     default :

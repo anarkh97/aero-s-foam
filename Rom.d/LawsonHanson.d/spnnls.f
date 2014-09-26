@@ -59,13 +59,15 @@ C     ------------------------------------------------------------------
 C     ------------------------------------------------------------------
       USE ISO_C_BINDING
       IMPLICIT NONE
+      include 'mpif.h'
       integer(kind=C_LONG) I, II, IP, ITER, ITMAX, IZ, IZ1, IZ2, IZMAX,
      +                     J, JJ, JZ, L, DDATE
       integer(kind=C_LONG) M, MDA, MODE, N, NPP1, NSETP, RTNKEY, SPMAX
       integer(kind=C_LONG) INDEX(*)  
       double precision A(MDA,*), B(*), W(*), X(*), ZZ(*), ZZ2(*) 
       double precision ALPHA, ASAVE, CC, DIFF, DUMMY, FACTOR, RNORM
-      double precision ABSTOL,RELTOL,MAXSZE,MAXITE,T1,T2,DTIME
+      double precision ABSTOL,RELTOL,MAXSZE,MAXITE
+      REAL(8)::T1,T2,DTIME
       double precision ONE, SM, SS, T, TEMP, TWO, UNORM, UP, WMAX
       double precision ZERO, ZTEST
       integer(kind=C_LONG) PRTFLG, SCAFLG
@@ -81,6 +83,9 @@ C     ------------------------------------------------------------------
       ITMAX=INT(MAXITE*N) 
       SPMAX=MIN(M,INT(MAXSZE*N,C_LONG))
       DDATE=0
+      DTIME=0.0
+      T1=0.0
+      T2=0.0
 C   
 C                    INITIALIZE THE ARRAYS INDEX() AND X(). 
 C   
@@ -263,7 +268,7 @@ C          IF ALL NEW CONSTRAINED COEFFS ARE FEASIBLE THEN ALPHA WILL
 C          STILL = 2.    IF SO EXIT FROM SECONDARY LOOP TO MAIN LOOP.   
 C   
       IF (ALPHA.EQ.TWO) GO TO 330   
-      call cpu_time(T1)
+      T1 = MPI_Wtime()
       DDATE = DDATE+1
 C   
 C          OTHERWISE USE ALPHA WHICH WILL BE BETWEEN 0. AND 1. TO   
@@ -331,7 +336,8 @@ C
       RTNKEY = 2
       GO TO 400 
   320 CONTINUE  
-      call cpu_time(T2)
+      T2 = MPI_Wtime()
+C      write(*,*) 'cpu time 1 = ',T1,' cpu time 2 = ',T2
       DTIME = DTIME + T2 - T1
       GO TO 210 
 C                      ******  END OF SECONDARY LOOP  ******

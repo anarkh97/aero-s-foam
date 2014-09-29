@@ -369,6 +369,7 @@ Spring.d/outprd.f
 Spring.d/RotnSprlink.C
 Spring.d/TorSpring.C
 Spring.d/TransSprlink.C
+Spring.d/LinSpring.C
 Tetra10.d/dpe25.C
 Tetra10.d/mass25.f
 Tetra10.d/mstf25.f

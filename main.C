@@ -215,6 +215,7 @@ int main(int argc, char** argv)
  weightList[84] = 2.0;
  weightList[85] = 3.0;
  weightList[86] = 4.0;
+ weightList[87] = 4.0;
  weightList[88] = 4.0;  // FourNodeShell
  weightList[90] = 3.0;  // HelmPenta
  weightList[91] = 6.0;  // 3d 32 node serendipity brick

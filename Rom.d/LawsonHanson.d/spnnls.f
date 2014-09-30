@@ -59,7 +59,7 @@ C     ------------------------------------------------------------------
 C     ------------------------------------------------------------------
       USE ISO_C_BINDING
       IMPLICIT NONE
-      include 'mpif.h'
+C     include 'mpif.h'
       integer(kind=C_LONG) I, II, IP, ITER, ITMAX, IZ, IZ1, IZ2, IZMAX,
      +                     J, JJ, JZ, L, DDATE
       integer(kind=C_LONG) M, MDA, MODE, N, NPP1, NSETP, RTNKEY, SPMAX
@@ -268,7 +268,7 @@ C          IF ALL NEW CONSTRAINED COEFFS ARE FEASIBLE THEN ALPHA WILL
 C          STILL = 2.    IF SO EXIT FROM SECONDARY LOOP TO MAIN LOOP.   
 C   
       IF (ALPHA.EQ.TWO) GO TO 330   
-      T1 = MPI_Wtime()
+C     T1 = MPI_Wtime()
       DDATE = DDATE+1
 C   
 C          OTHERWISE USE ALPHA WHICH WILL BE BETWEEN 0. AND 1. TO   
@@ -336,9 +336,9 @@ C
       RTNKEY = 2
       GO TO 400 
   320 CONTINUE  
-      T2 = MPI_Wtime()
-C      write(*,*) 'cpu time 1 = ',T1,' cpu time 2 = ',T2
-      DTIME = DTIME + T2 - T1
+C     T2 = MPI_Wtime()
+C     write(*,*) 'cpu time 1 = ',T1,' cpu time 2 = ',T2
+C     DTIME = DTIME + T2 - T1
       GO TO 210 
 C                      ******  END OF SECONDARY LOOP  ******
 C   

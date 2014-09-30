@@ -1510,6 +1510,20 @@ ShellElementTemplate<doublereal,Membrane,Bending>
             }
           
           } break;
+
+          case 5 : {
+
+// .....COMPUTE THE SCALAR DAMAGE FOR ELASTO-PLASTIC MATERIALS
+            if(ctyp == 4) {
+              nmat->GetLocalConstitutiveResponse(Upsilon.data(), sigma.data(), z, eframe.data(), i, temp);
+              stress(0, i) = nmat->GetLocalEquivalentPlasticStrain(i, z);
+            }
+            else {
+              stress(0, i) = 0;
+            }
+
+          } break;
+
         }
     }
 }

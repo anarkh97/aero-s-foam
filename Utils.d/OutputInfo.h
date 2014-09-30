@@ -224,6 +224,7 @@ struct OutputInfo {
      case DissipatedEnergy:
      case Reactions:
      case Reactions6:
+     case Damage:
        return true; 
        break;
      default:

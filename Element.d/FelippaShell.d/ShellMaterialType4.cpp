@@ -308,6 +308,21 @@ ShellMaterialType4<doublereal,localmaterial>
 template<typename doublereal, typename localmaterial>
 doublereal
 ShellMaterialType4<doublereal,localmaterial>
+::GetLocalDamage(int nd, doublereal z)
+{
+  // return the scalar damage
+  // at node nd, and layer determined by z, as follows:
+  int ilayer;
+  if(z < 0) ilayer = 0;       // lower surface
+  else if(z == 0) ilayer = 1; // median surface
+  else ilayer = 2;            // upper surface
+
+  return (mat[nlayer*nd+ilayer]->GetMaterialEquivalentPlasticStrain() >= mat[nlayer*nd+ilayer]->GetEquivalentPlasticStrainAtFailure()) ? 1 : 0;
+}
+
+template<typename doublereal, typename localmaterial>
+doublereal
+ShellMaterialType4<doublereal,localmaterial>
 ::GetDissipatedEnergy(int point)
 { 
     doublereal D = 0;
@@ -391,6 +406,11 @@ template
 double
 ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
 ::GetLocalEquivalentPlasticStrain(int nd, double z);
+
+template
+double
+ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
+::GetLocalDamage(int nd, double z);
 
 template
 double

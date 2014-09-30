@@ -13,6 +13,7 @@
 #include <Math.d/FullSquareMatrix.h>
 #include <Math.d/Vector.h>
 #include <Utils.d/Conwep.d/BlastLoading.h>
+#include <Utils.d/SolverInfo.h>
 #include <iostream>
 
 #ifdef USE_EIGEN3
@@ -24,6 +25,7 @@ using std::vector;
 #endif
 
 extern int verboseFlag;
+extern SolverInfo &solInfo;
 extern "C" {
   void _FORTRAN(getgqsize)(int&, int&, int*, int*, int*);
   void _FORTRAN(getgq1d)(int&, double*, double*);
@@ -270,7 +272,7 @@ BelytschkoTsayShell::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
         if(expmat->optctv == 1)
           stress[i] = evar1[5*j+1];
         else
-          stress[i] = 0;
+          stress[i] = (mat[j]->GetMaterialEquivalentPlasticStrain() >= mat[j]->GetEquivalentPlasticStrainAtFailure()) ? 1 : 0;
       } break;
       case 18 : { // effective plastic strain for elasto plastic materials
         if(expmat->optctv != 1)
@@ -616,7 +618,9 @@ BelytschkoTsayShell::getStiffAndForce(GeomState& geomState, CoordSet& cs, FullSq
         if(mat[igaus]->GetMaterialEquivalentPlasticStrain() < mat[igaus]->GetEquivalentPlasticStrainAtFailure()) { failed = false; break; }
       }
       if(failed) {
-        std::cerr << "Deleting element " << getGlNum()+1 << std::endl;
+        std::cerr << "\rDeleting element " << std::setw(22) << std::left << getGlNum()+1 << std::endl;
+        (*solInfo.deletedElements) << " " << std::scientific << std::setprecision(3) << time << "         " 
+                                   << std::setw(9) << std::left << getGlNum()+1 << "   Undetermined\n";
         setProp((StructProp*)NULL);
         setPressure((PressureBCond*)NULL); // XXX consider
         for(int i=0; i<nnode*nndof; ++i) efint[i] = 0;

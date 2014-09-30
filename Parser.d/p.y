@@ -4418,12 +4418,16 @@ MatSpec:
             double params[9] = { $4, $5, $6, $7, $8, $9, $10, $11, -std::numeric_limits<double>::infinity() };
             geoSource->addMaterial($2-1,
               new MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(params));
+            domain->solInfo().deletedElements = new std::ofstream("DeletedElements.txt");
+            (*domain->solInfo().deletedElements) << "#  time   Element_no   Cause\n";
           }
         | MatSpec Integer ISOTROPICLINEARELASTICJ2PLASTICPLANESTRESS Float Float Float Float Float Float Float Float Float NewLine
           {
             double params[9] = { $4, $5, $6, $7, $8, $9, $10, $11, $12 };
             geoSource->addMaterial($2-1,
               new MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(params));
+            domain->solInfo().deletedElements = new std::ofstream("DeletedElements.txt");
+            (*domain->solInfo().deletedElements) << "#  time   Element_no   Cause\n";
           }
         | MatSpec Integer OPTCTV Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float NewLine
          {
@@ -4459,6 +4463,8 @@ MatSpec:
          {
            geoSource->addMaterial($2-1,
              new ExpMat($3, $4, $5, $6, $7, $8, $9, $10, $11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+           domain->solInfo().deletedElements = new std::ofstream("DeletedElements.txt");
+           (*domain->solInfo().deletedElements) << "#  time   Element_no   Cause\n";
          }
 	| MatSpec READ FNAME FNAME NewLine
 	 {

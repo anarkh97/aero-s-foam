@@ -2160,6 +2160,9 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, GenDistrVector<S
        else
          filePrint(stderr," *** WARNING: Output case %d not supported \n", i);
      } break;
+     case OutputInfo::Damage:
+       getStressStrain(geomState, allCorot, i, DAMAGE, x, refState);
+       break;
      case OutputInfo::EquivalentPlasticStrain:
        getStressStrain(geomState, allCorot, i, EQPLSTRN, x, refState);
        break;

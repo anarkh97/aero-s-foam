@@ -13,6 +13,7 @@
 #include <list>
 #include <vector>
 #include <limits>
+#include <fstream>
 
 #if defined(WINDOWS) || defined(MACOSX)
  #include <cfloat>
@@ -413,6 +414,8 @@ struct SolverInfo {
    bool printMatLab;
    const char * printMatLabFile;
 
+   std::ofstream *deletedElements;
+
    // Constructor
    SolverInfo() { filterFlags = 0;
                   type = 0;     
@@ -694,6 +697,7 @@ struct SolverInfo {
                   inertiaLumping     = 0;
                   printMatLab        = false;
                   printMatLabFile    = "";
+                  deletedElements    = NULL;
                 }
 
    void setDirectMPC(int mode) { mpcDirect = mode; }

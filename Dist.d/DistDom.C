@@ -1623,6 +1623,9 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
         else
           filePrint(stderr," *** WARNING: Output case %d not supported \n", iOut);
       } break;
+      case OutputInfo::Damage:
+        getStressStrain(geomState, allCorot, time, x, iOut, DAMAGE, refState);
+        break;
       case OutputInfo::EquivalentPlasticStrain:
         getStressStrain(geomState, allCorot, time, x, iOut, EQPLSTRN, refState);
         break;

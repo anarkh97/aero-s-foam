@@ -31,8 +31,10 @@
 #include <Utils.d/dofset.h>
 #include <Utils.d/linkfc.h>
 #include <Utils.d/pstress.h>
+#include <Utils.d/SolverInfo.h>
 
 extern int verboseFlag;
+extern SolverInfo &solInfo;
 
 FelippaShell::FelippaShell(int* nodenums)
 {
@@ -96,6 +98,10 @@ FelippaShell::getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
       strainFlg = 4;
       offset = 25;
     } break;
+   case 17 : {
+      strainFlg = 5;
+      offset = 17;
+    } break;
     default : {
       stress.zero();
       return;
@@ -112,7 +118,7 @@ FelippaShell::getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
   x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
   x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
 
-  int maxstr =  7;
+  int maxstr = 7;
 
   double elStress[3][7];
 
@@ -148,7 +154,7 @@ FelippaShell::getAllStress(FullM &stress, Vector &weight, CoordSet &cs,
   x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
   x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
 
-  int maxstr =  7;
+  int maxstr = 7;
 
   double elStress[3][7];
 
@@ -1210,7 +1216,9 @@ FelippaShell::getInternalForce(GeomState *refState, GeomState &geomState, CoordS
 
  if(type == 4) {
    if(gpmat->CheckFailure()) {
-     std::cerr << "Deleting element " << getGlNum()+1 << std::endl;
+     std::cerr << "\rDeleting element " << std::setw(22) << std::left << getGlNum()+1 << std::endl;
+     (*solInfo.deletedElements) << " " << std::scientific << std::setprecision(3) << time << "         "  
+                                << std::setw(9) << std::left << getGlNum()+1 << "   Undetermined\n";
      setProp((StructProp*)NULL);
      setPressure((PressureBCond*)NULL); // XXX consider
      for(int i=0; i<18; ++i)

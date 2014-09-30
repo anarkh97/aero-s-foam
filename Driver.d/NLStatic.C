@@ -1484,6 +1484,9 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
     case OutputInfo::StrainPR3:
       getPrincipalStress(*geomState,allCorot,iInfo,PSTRAIN3, time);
       break;
+    case OutputInfo::Damage:
+      getStressStrain(*geomState, allCorot,  iInfo, DAMAGE, time, refState);
+      break;
     case OutputInfo::EquivalentPlasticStrain:
       getStressStrain(*geomState, allCorot,  iInfo, EQPLSTRN, time, refState);
       break;

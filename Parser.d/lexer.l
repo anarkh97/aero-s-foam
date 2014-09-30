@@ -1514,6 +1514,7 @@ TRAIL [a-zA-Z]*
 "nncgp"|"NNCGP"                           { yylval.ival = 1; return SPNNLSSOLVERTYPE; }
 "gpfp"|"GPFP" 				  { yylval.ival = 2; return SPNNLSSOLVERTYPE; }
 "lars"|"LARS"				  { yylval.ival = 3; return SPNNLSSOLVERTYPE; }
+"mp"|"MP"				  { yylval.ival = 4; return SPNNLSSOLVERTYPE; }
 
 "MAXSZE"|"MaxSze"|"maxsze"                { return MAXSIZE; }
 

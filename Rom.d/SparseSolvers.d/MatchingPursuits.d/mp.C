@@ -12,6 +12,10 @@
 #include <set>
 
 Eigen::VectorXd
+nncgp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm,
+      long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, double &dtime);
+
+Eigen::VectorXd
 mp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm,
       long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool positive)
 {
@@ -26,8 +30,11 @@ mp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::Vec
   VectorXd crlt(A.cols()), S(A.cols());
   VectorXd residual(A.rows());
  
+  MatrixXd B(A.rows(),maxvec);
+
   // intitialize
   ymp.setZero();  
+  B.setZero();
 
   info = 1;
 
@@ -65,8 +72,10 @@ mp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::Vec
     if(positive){
       for(std::set<long int>::iterator it = nld_indices.begin(); it!= nld_indices.end(); ++it) crlt[*it] = -std::numeric_limits<double>::max(); 
       C = crlt.maxCoeff(&i);
+      B.col(k) = A.col(i);
       if(C <= 0) break;
     } else {
+      for(std::set<long int>::iterator it = nld_indices.begin(); it!= nld_indices.end(); ++it) crlt[*it] = -std::numeric_limits<double>::min();
       crlt.cwiseAbs().maxCoeff(&i);
       C = crlt[i];
     }
@@ -83,6 +92,9 @@ mp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::Vec
     k++;
     iter++;
   }
+
+  double dtime = 0;
+  ymp.head(k) = nncgp(B.leftCols(k), b, rnorm, info, maxsze, maxite, reltol, verbose, scaling, dtime);  
 
   if(verbose) std::cout.flush();
 

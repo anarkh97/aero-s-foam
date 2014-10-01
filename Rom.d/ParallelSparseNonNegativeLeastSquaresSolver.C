@@ -16,6 +16,10 @@ pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const
 Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1>
 pgpfp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm, const long int n,
       long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool positive, double &dtime);
+
+Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1>
+pomp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm, const long int n,
+       long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool project, double &dtime);
 #endif
 
 namespace Rom {
@@ -28,6 +32,7 @@ ParallelSparseNonNegativeLeastSquaresSolver::ParallelSparseNonNegativeLeastSquar
   errorMagnitude_(),
   verboseFlag_(true),
   scalingFlag_(true),
+  projectFlag_(false),
   positivity_(true),
   solverType_(0),
   maxSizeRatio_(1.0),
@@ -88,6 +93,26 @@ ParallelSparseNonNegativeLeastSquaresSolver::solve() {
         new (&A[i]) Eigen::Map<Eigen::MatrixXd>(&*sd_[i]->matrixBuffer(),sd_[i]->equationCount(),sd_[i]->unknownCount());
       }
       x = pgpfp(A, b, errorMagnitude_, unknownCount_, info, maxSizeRatio_, maxIterRatio_, relativeTolerance_, verboseFlag_, scalingFlag_, positivity_, dtime);
+      for(int i=0; i<nsub_; ++i) {
+        Eigen::Map<Eigen::VectorXd>(const_cast<double*>(sd_[i]->solutionBuffer()),sd_[i]->unknownCount()) = x[i];
+        A[i].~Map<Eigen::MatrixXd>();
+      }
+#else
+      std::cerr << "USE_EIGEN3 is not defined here in ParallelSparseNonNegativeLeastSquaresSolver::solve\n";
+      exit(-1);
+#endif
+    } break;
+    
+    case 5 : { // Orthogonal Matching Pursuit with Non-Negative L2 minimization
+#ifdef USE_EIGEN3
+      filePrint(stderr, " ... Using Parallel OMP Solver    ...\n");
+      std::vector<Eigen::Map<Eigen::MatrixXd> > A(nsub_, Eigen::Map<Eigen::MatrixXd>(NULL,0,0));
+      Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1> x(nsub_);
+      Eigen::Map<Eigen::VectorXd> b(rhsBuffer_.array(),equationCount_);
+      for(int i=0; i<nsub_; ++i) {
+        new (&A[i]) Eigen::Map<Eigen::MatrixXd>(&*sd_[i]->matrixBuffer(),sd_[i]->equationCount(),sd_[i]->unknownCount());
+      }
+      x = pomp(A, b, errorMagnitude_, unknownCount_, info, maxSizeRatio_, maxIterRatio_, relativeTolerance_, verboseFlag_, scalingFlag_, projectFlag_, dtime);
       for(int i=0; i<nsub_; ++i) {
         Eigen::Map<Eigen::VectorXd>(const_cast<double*>(sd_[i]->solutionBuffer()),sd_[i]->unknownCount()) = x[i];
         A[i].~Map<Eigen::MatrixXd>();

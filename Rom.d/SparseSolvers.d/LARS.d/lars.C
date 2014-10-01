@@ -15,8 +15,12 @@ template <typename T> int sgn(T val) {
 };
 
 Eigen::VectorXd
+nncgp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm,
+      long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, double &dtime);
+
+Eigen::VectorXd
 lars(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm,
-      long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool positive, double &dtime)
+      long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool project, bool positive, double &dtime)
 {
   using namespace Eigen;
   
@@ -174,7 +178,7 @@ lars(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
         ylar.head(k+1) = ylar.head(k+1).array() + gamma1*(sign.head(k+1).array()*wA.head(k+1).array());
         mu += gamma1*update;  
   
-        B.col(k+1) = S[indices[k+1]]*(A.col(indices[k+1]).array());
+        B.col(k+1) = S[indices[k+1]]*(A.col(indices[k+1]));
         if(positive)
           sign[k+1] = 1; 
         else {
@@ -249,6 +253,19 @@ lars(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
 
     rnorm = residual.norm();
   }
+
+  if(project) {
+    std::cout << "*** PROJECTING SOLUTION ON TO SELECTED BASIS ***" << std::endl;
+    if(positive){
+      ylar.head(k) = nncgp(B.leftCols(k), b, rnorm, info, maxsze, maxite, reltol, verbose, scaling, dtime);
+    } else {
+      ylar.head(k) = R.topLeftCorner(k,k).triangularView<Upper>().transpose().solve(B.leftCols(k).transpose()*b);
+      ylar.head(k) = R.topLeftCorner(k,k).triangularView<Upper>().solve(ylar.head(k));
+    }
+  }
+
+  residual = b - B.leftCols(k)*ylar.head(k);
+  std::cout << "Projected Residual = " << residual.norm() <<  std::endl;
 
   dtime /= 1000.0;
   if(verbose) std::cout.flush();

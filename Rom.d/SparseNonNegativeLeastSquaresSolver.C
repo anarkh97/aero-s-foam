@@ -35,11 +35,15 @@ gpfp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
 
 Eigen::VectorXd
 lars(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm,
-     long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool positive, double &dtime);
+     long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool project, bool positive, double &dtime);
 
 Eigen::VectorXd
 mp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm,
      long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool positive);
+
+Eigen::VectorXd
+omp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm,
+      long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool project, double &dtime);
 #endif
 
 namespace Rom {
@@ -56,6 +60,7 @@ SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::SparseNonNegativ
   errorMagnitude_(),
   verboseFlag_(true),
   scalingFlag_(true),
+  projectFlag_(false),
   positivity_(true),
   solverType_(0),
   maxSizeRatio_(1.0),
@@ -136,12 +141,12 @@ SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::solve() {
       Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::ColMajor> > A(matrixBuffer_.data(),equationCount_,unknownCount_);
       Eigen::Map<Eigen::VectorXd> x(solutionBuffer_.array(),unknownCount_);
       Eigen::Map<Eigen::VectorXd> b(rhsBuffer_.array(),equationCount_);
-      x = lars(A, b, errorMagnitude_, info, maxSizeRatio_, maxIterRatio_, relativeTolerance_, verboseFlag_, scalingFlag_, positivity_, dtime);
+      x = lars(A, b, errorMagnitude_, info, maxSizeRatio_, maxIterRatio_, relativeTolerance_, verboseFlag_, scalingFlag_, projectFlag_, positivity_, dtime);
 #else
       std::cerr << "USE_EIGEN3 is not defined here in SparseNonNegativeLeastSquaresSolver::solve\n";
       exit(-1);
 #endif
-    }
+    } break;
     case 4 : { // Matching Pursuits
 #ifdef USE_EIGEN3
       fprintf(stderr, " ... Using Matching Pursuits Solver              ...\n");
@@ -153,7 +158,19 @@ SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::solve() {
       std::cerr << "USE_EIGEN3 is not defined here in SparseNonNegativeLeastSquaresSolver::solve\n";
       exit(-1);
 #endif
-    }
+    } break;
+    case 5 : { // Orthogonal Matching Pursuits
+#ifdef USE_EIGEN3
+      fprintf(stderr, " ... Using Orthogonal Matching Pursuits Solver              ...\n");
+      Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::ColMajor> > A(matrixBuffer_.data(),equationCount_,unknownCount_);
+      Eigen::Map<Eigen::VectorXd> x(solutionBuffer_.array(),unknownCount_);
+      Eigen::Map<Eigen::VectorXd> b(rhsBuffer_.array(),equationCount_);
+      x = omp(A, b, errorMagnitude_, info, maxSizeRatio_, maxIterRatio_, relativeTolerance_, verboseFlag_, scalingFlag_, projectFlag_, dtime);
+#else
+      std::cerr << "USE_EIGEN3 is not defined here in SparseNonNegativeLeastSquaresSolver::solve\n";
+      exit(-1);
+#endif
+    } break;
 
   }
   double t = (getTime() - t0)/1000.0;

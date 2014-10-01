@@ -26,6 +26,9 @@ public:
   bool scalingFlag() const { return scalingFlag_; }
   void scalingFlagIs(bool scaFlg) { scalingFlag_ = scaFlg; }
 
+  bool projectFlag() const { return projectFlag_; }
+  void projectFlagIs(bool posFlg) { projectFlag_ = posFlg; }
+
   bool positivityFlag() const { return positivity_; }
   void positivityIs(bool posFlg) { positivity_ = posFlg; }
 
@@ -87,6 +90,7 @@ private:
   double errorMagnitude_;
   bool verboseFlag_;
   bool scalingFlag_;
+  bool projectFlag_;
   bool positivity_;
   int solverType_;
   double maxSizeRatio_;

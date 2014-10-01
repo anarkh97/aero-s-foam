@@ -177,6 +177,8 @@ TRAIL [a-zA-Z]*
 "THETA"|"theta"                    { return THETA; }
 
 "HRC"|"hrc"			   { return HRC; }
+
+"PROJECT"|"project"		   { return PROJSOL; }
  
 "POSITIVE"|"positive"		   { return POSELEM; }
 
@@ -1515,6 +1517,7 @@ TRAIL [a-zA-Z]*
 "gpfp"|"GPFP" 				  { yylval.ival = 2; return SPNNLSSOLVERTYPE; }
 "lars"|"LARS"				  { yylval.ival = 3; return SPNNLSSOLVERTYPE; }
 "mp"|"MP"				  { yylval.ival = 4; return SPNNLSSOLVERTYPE; }
+"omp"|"OMP"                                 { yylval.ival = 5; return SPNNLSSOLVERTYPE; }
 
 "MAXSZE"|"MaxSze"|"maxsze"                { return MAXSIZE; }
 

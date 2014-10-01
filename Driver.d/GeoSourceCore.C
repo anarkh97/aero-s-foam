@@ -1529,25 +1529,6 @@ int GeoSource::getElems(Elemset &packedEset, int nElems, int *elemList)
   return nRealElems;
 }
 
-int GeoSource::getNonMpcElems(Elemset &eset)
-{
-  int numele = elemSet.last();
-  int mpccount = 0, elecount = 0;
-  // add non-mpc elements to list
-  for(int iEle = 0; iEle < numele; ++iEle) {
-    Element *ele = elemSet[iEle];
-    if(ele)  {
-      if(ele->isRigidElement() || !ele->isMpcElement()) {
-        eset.elemadd(elecount, ele);
-        elecount++;
-      }
-      else mpccount++;
-    }
-    eset.setEmax(elecount);
-  }
-  return mpccount;
-}
-
 void GeoSource::setElemTypeMap()
 {
   // build elem type to num nodes map

@@ -1201,16 +1201,18 @@ Domain::setUpData()
 {
   startTimerMemory(matrixTimers->setUpDataTime, matrixTimers->memorySetUp);
 
-  Elemset eset_tmp;
-  if(sinfo.type == 0) {
-    if(numLMPC) geoSource->getNonMpcElems(eset_tmp);
-  }
-
   geoSource->setUpData();
+
+  if(!haveNodes) { numnodes = geoSource->getNodes(nodes); haveNodes = true; }
+  else numnodes = geoSource->totalNumNodes();
+  numele = geoSource->getElems(packedEset);
+  numele = packedEset.last();
 
   if(sinfo.type == 0) {
     if(numLMPC && domain->solInfo().rbmflg == 1 && domain->solInfo().grbm_use_lmpc) {
-      Connectivity *elemToNode_tmp = new Connectivity(&eset_tmp);
+      if(elemToNode == 0) elemToNode = new Connectivity(&packedEset);
+      if(nodeToElem == 0) nodeToElem = elemToNode->reverse();
+      Connectivity *elemToNode_tmp = new Connectivity(&packedEset, nodeToElem);
       Connectivity *nodeToElem_tmp = elemToNode_tmp->reverse();
       Connectivity *nodeToNode_tmp = nodeToElem_tmp->transcon(elemToNode_tmp);
       renumb_nompc = nodeToNode_tmp->renumByComponent(0);
@@ -1224,12 +1226,6 @@ Domain::setUpData()
       delete elemToNode_tmp; delete nodeToElem_tmp; delete nodeToNode_tmp;
     }
   }
-
-
-  if(!haveNodes) { numnodes = geoSource->getNodes(nodes); haveNodes = true; }
-  else numnodes = geoSource->totalNumNodes();
-  numele = geoSource->getElems(packedEset);
-  numele = packedEset.last();
 
   // set boundary conditions
   int numBC;
@@ -2253,7 +2249,7 @@ Connectivity *
 Domain::getNodeToNode() {
  if(nodeToNode) return nodeToNode;
  if(elemToNode == 0)
-   elemToNode = new Connectivity(&packedEset) ;
+   elemToNode = new Connectivity(&packedEset);
  if(nodeToElem == 0)
    nodeToElem = elemToNode->reverse();
  nodeToNode = nodeToElem->transcon(elemToNode);

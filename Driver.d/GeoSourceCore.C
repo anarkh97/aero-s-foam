@@ -1125,7 +1125,7 @@ void GeoSource::setUpData()
 // RT : 02/01/2013 changing syntax to AMAT
 //    if(p->soundSpeed == 1.0)
 //      p->soundSpeed = omega()/complex<double>(p->kappaHelm, p->kappaHelmImag);
-    complex<double> ka = omega()/p->soundSpeed;
+    complex<double> ka = (shiftVal() >= 0) ? omega()/p->soundSpeed : sqrt(complex<double>(shiftVal()))/p->soundSpeed;
     p->kappaHelm = real(ka);
     p->kappaHelmImag = imag(ka);
     domain->updateSDETAF(p,omega()+1e-9);

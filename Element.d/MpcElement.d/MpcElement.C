@@ -250,9 +250,12 @@ MpcElement::stiffness(CoordSet& c0, double* karray, int)
     }
     else {
       if(prop->penalty != 0) lambda += prop->penalty*(-rhs.r_value);
-      GeomState c1(c0);
       FullSquareMatrix H(nterms);
-      if(lambda != 0) getHessian(&c1, c1, c0, H, 0); else H.zero();
+      if(lambda != 0) {
+        GeomState c1(c0); // XXX
+        getHessian(&c1, c1, c0, H, 0);
+      }
+      else H.zero();
       for(int i = 0; i < nterms; ++i) {
         for(int j = 0; j < nterms; ++j) {
           ret[i][j] = lambda*H[i][j];

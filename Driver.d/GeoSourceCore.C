@@ -626,7 +626,7 @@ void GeoSource::makeDirectMPCs(int &numLMPC, ResizeArray<LMPCons *> &lmpc)
     for(int i = 0; i < numLMPC; ++i) {
       // First flush the MPC from any zero terms
       lmpc[i]->removeNullTerms();
-      // PJSA Second flush the MPC from any terms which have a boundary condition
+      // Second flush the MPC from any terms which have a boundary condition
       vector<LMPCTerm>::iterator it = lmpc[i]->terms.begin();
       while(it != lmpc[i]->terms.end()) {
         pair<int,int> p(it->nnum, it->dofnum);

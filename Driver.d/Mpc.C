@@ -28,7 +28,6 @@ LMPCTerm::LMPCTerm(const LMPCTerm &t)
   else coef.r_value = t.coef.r_value;
 }
 
-// JLchange 
 LMPCTerm::LMPCTerm(LMPCTerm &t, double weight)
 { 
   isComplex = t.isComplex;

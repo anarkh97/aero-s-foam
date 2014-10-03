@@ -619,16 +619,18 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
          if(ops.Msolver) ops.Msolver->add(dof,jdof,current->diMass);
          if(ops.C) ops.C->add(dof,jdof,alphaDamp*current->diMass);
          double mass = Mcoef*current->diMass;
-         if (isDamped) mass += Ccoef*alphaDamp*current->diMass;
+         if(isDamped) mass += Ccoef*alphaDamp*current->diMass;
+         if(mass != 0) {
          if(mdds_flag) {
 #if defined(_OPENMP)
-           #pragma omp critical
+             #pragma omp critical
 #endif
-           mat->add(domain->getDSA()->locate(subCast->getGlNodes()[current->node], (1 << current->dof)),
-                    domain->getDSA()->locate(subCast->getGlNodes()[current->node], (1 << current->jdof)), mass);
+             mat->add(domain->getDSA()->locate(subCast->getGlNodes()[current->node], (1 << current->dof)),
+                      domain->getDSA()->locate(subCast->getGlNodes()[current->node], (1 << current->jdof)), mass);
+           }
+           else if(mat) mat->add(dof,jdof,mass);
+           if(ops.spp) ops.spp->add(dof,jdof,mass);
          }
-         else if(mat) mat->add(dof,jdof,mass);
-         if(ops.spp) ops.spp->add(dof,jdof,mass);
        }
      }
      else {
@@ -657,15 +659,17 @@ Domain::makeSparseOps(AllOps<Scalar> &ops, double Kcoef, double Mcoef,
          if(ops.Msolver) ops.Msolver->addDiscreteMass(dof, current->diMass);
          if(ops.C) ops.C->addDiscreteMass(dof, alphaDamp*current->diMass);
          double mass = Mcoef*current->diMass;
-         if (isDamped) mass += Ccoef*alphaDamp*current->diMass;
-         if(mdds_flag) {
+         if(isDamped) mass += Ccoef*alphaDamp*current->diMass;
+         if(mass != 0) {
+           if(mdds_flag) {
 #if defined(_OPENMP)
-           #pragma omp critical
+             #pragma omp critical
 #endif
-           mat->addDiscreteMass(domain->getDSA()->locate(subCast->getGlNodes()[current->node], (1 << current->dof)), mass);
+             mat->addDiscreteMass(domain->getDSA()->locate(subCast->getGlNodes()[current->node], (1 << current->dof)), mass);
+           }
+           else if(mat) mat->addDiscreteMass(dof, mass);
+           if(ops.spp) ops.spp->addDiscreteMass(dof, mass);
          }
-         else if(mat) mat->addDiscreteMass(dof, mass);
-         if(ops.spp) ops.spp->addDiscreteMass(dof, mass);
        }
      }
      current = current->next;

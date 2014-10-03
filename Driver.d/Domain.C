@@ -1484,8 +1484,35 @@ Domain::prepDirectMPC()
         int n = ele->getNumMPCs();
         if(n > 0) {
           LMPCons **l = ele->getMPCs();
-          for(int j = 0; j < n; ++j)
+          for(int j = 0; j < n; ++j) {
+            // first check to see if nodal frames are used
+            bool use_nframes = false;
+            if(l[j]->getSource() != mpc::Lmpc && l[j]->getSource() != mpc::NodalContact && l[j]->getSource() != mpc::TiedSurfaces) {
+              for(int k=0; k<l[j]->nterms; ++k) {
+                if(nodes.dofFrame(l[j]->terms[k].nnum)) { use_nframes = true; break; }
+              }
+            }
+            if(use_nframes) {
+              std::vector<LMPCTerm> terms_copy(l[j]->terms);
+              l[j]->terms.clear();
+              l[j]->nterms = 0;
+              for(std::vector<LMPCTerm>::iterator it = terms_copy.begin(); it != terms_copy.end(); ++it) {
+                if(NFrameData *cd = nodes.dofFrame(it->nnum)) {
+                  double c[3] = { 0, 0, 0 };
+                  c[it->dofnum%3] = it->coef.r_value;
+                  cd->transformVector3(c);
+                  for(int m=0; m<3; ++m) {
+                    if(std::abs(c[m]) > std::numeric_limits<double>::epsilon()) {
+                      LMPCTerm t(it->nnum, 3*(it->dofnum/3)+m, c[m]);
+                      l[j]->addterm(&t);
+                    }
+                  }
+                }
+                else l[j]->addterm(&(*it));
+              }
+            }
             lmpc[numLMPC++] = l[j];
+          }
           delete [] l;
         }
       }
@@ -3451,7 +3478,6 @@ Domain::checkLMPCs(Connectivity *nodeToSub)
     }
   }
 }
-
 
 void Domain::computeMatchingWetInterfaceLMPC() {
 

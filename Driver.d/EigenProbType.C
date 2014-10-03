@@ -747,8 +747,6 @@ SubSpaceSolver< EigOps, VecType, VecSet,
  VecSet *residual = new VecSet(1, this->probDesc->solVecInfo());
  for(iter=0; iter<nsmax; ++iter) {
 
-   if(verboseFlag) filePrint(stderr,"Subspace Iteration %d (Max %d) %e %e\n", iter+1, nsmax, tolEig, tolJac);
-
    for(i = this->nrmod; i<subSpaceSize; ++i)
      (*Q)[i] = (*Z)[i];
 
@@ -801,7 +799,7 @@ SubSpaceSolver< EigOps, VecType, VecSet,
      }
    }
 
-   if((solInfo.fetiInfo.numPrint() > 0) && (iter % solInfo.fetiInfo.numPrint() == 0) && verboseFlag) // PJSA
+   if((solInfo.fetiInfo.numPrint() > 0) && (iter % solInfo.fetiInfo.numPrint() == 0) && verboseFlag)
      filePrint(stderr,"Subspace Iteration %d (Max %d): Error = %e (Tol %e)\n", iter+1, nsmax, maxErr, tolEig);
 
    if (hasCon) break;

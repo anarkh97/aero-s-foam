@@ -49,6 +49,8 @@ class NLMaterial
 
      virtual bool getPlasticStrain(double *statenp, Tensor *plasticstrain) { return false; }
 
+     virtual double getDamage(double *statenp) { return 0; }
+
      virtual double getStrainEnergyDensity(Tensor &enp, double *statenp, double temp) {
        std::cerr << "material law does not implement getStrainEnergyDensity function\n";
        return 0;

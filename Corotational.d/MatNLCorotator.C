@@ -4,6 +4,9 @@
 #include <Math.d/matrix.h>
 #include <Math.d/Vector.h>
 #include <Utils.d/pstress.h>
+#include <Utils.d/SolverInfo.h>
+
+extern SolverInfo &solInfo;
 
 MatNLCorotator::MatNLCorotator(MatNLElement *_ele, bool _own)
   : ele(_ele), own(_own)
@@ -20,6 +23,12 @@ void
 MatNLCorotator::getStiffAndForce(GeomState *refState, GeomState &curState, CoordSet &C0,
                                  FullSquareMatrix &elk, double *f, double dt, double t)
 {
+  if(ele->getProperty() == NULL) {
+    for(int i = 0; i < ele->numDofs(); ++i) f[i] = 0;
+    elk.zero();
+    return;
+  }
+
   int *nn = new int[ele->numNodes()];
   ele->nodes(nn);
   Node *nodes = new Node[ele->numNodes()];
@@ -56,7 +65,8 @@ MatNLCorotator::getStiffAndForce(GeomState *refState, GeomState &curState, Coord
   double *statenp = curState.getElemState(ele->getGlNum());
 
   Vector elemNodeTemps(ele->numNodes());
-  curState.get_temperature(ele->numNodes(), nn, elemNodeTemps, ele->getProperty()->Ta);
+  double Ta = (ele->getProperty()) ? ele->getProperty()->Ta : 0;
+  curState.get_temperature(ele->numNodes(), nn, elemNodeTemps, Ta);
 
   ele->integrate(nodes, dispn, staten, dispnp, statenp, elk, f, dt, elemNodeTemps.data());
   for(int i = 0; i < ele->numDofs(); ++i) f[i] = -f[i];
@@ -72,6 +82,11 @@ void
 MatNLCorotator::getInternalForce(GeomState *refState, GeomState &curState, CoordSet &C0,
                                  FullSquareMatrix &, double *f, double dt, double t)
 {
+  if(ele->getProperty() == NULL) { 
+    for(int i = 0; i < ele->numDofs(); ++i) f[i] = 0;
+    return;
+  }
+
   int *nn = new int[ele->numNodes()];
   ele->nodes(nn);
   Node *nodes = new Node[ele->numNodes()];
@@ -108,10 +123,21 @@ MatNLCorotator::getInternalForce(GeomState *refState, GeomState &curState, Coord
   double *statenp = curState.getElemState(ele->getGlNum());
 
   Vector elemNodeTemps(ele->numNodes());
-  curState.get_temperature(ele->numNodes(), nn, elemNodeTemps, ele->getProperty()->Ta);
+  double Ta = (ele->getProperty()) ? ele->getProperty()->Ta : 0;
+  curState.get_temperature(ele->numNodes(), nn, elemNodeTemps, Ta);
 
   ele->integrate(nodes, dispn, staten, dispnp, statenp, f, dt, elemNodeTemps.data());
   for(int i = 0; i < ele->numDofs(); ++i) f[i] = -f[i];
+
+  if(ele->checkFailure(statenp)) {
+    std::cerr << "\rDeleting element " << std::setw(22) << std::left << ele->getGlNum()+1 << std::endl;
+    (*solInfo.deletedElements) << " " << std::scientific << std::setprecision(3) << t << "         "
+                               << std::setw(9) << std::left << ele->getGlNum()+1 << "   Undetermined\n";
+     ele->setProp((StructProp*)NULL);
+/* solid elements currently do not support element pressure
+     ele->setPressure((PressureBCond*)NULL);
+*/
+  }
 
   delete [] nn;
   delete [] nodes;
@@ -176,7 +202,8 @@ MatNLCorotator::getNLVonMises(Vector& stress, Vector& weight, GeomState &curStat
       double (*result)[9] = new double[numPoints][9];
       double *statenp_tmp = new double[ele->numStates()];
       Vector elemNodeTemps(ele->numNodes());
-      curState.get_temperature(ele->numNodes(), nn, elemNodeTemps, ele->getProperty()->Ta);
+      double Ta = (ele->getProperty()) ? ele->getProperty()->Ta : 0; // XXX
+      curState.get_temperature(ele->numNodes(), nn, elemNodeTemps, Ta);
       ele->getStressTens(nodes, dispn, staten, dispnp, statenp_tmp, result, avgnum, elemNodeTemps.data());
       for(int i = 0; i < numPoints; ++i) {
         stress[i] = result[i][indexMap[strIndex]];
@@ -188,7 +215,8 @@ MatNLCorotator::getNLVonMises(Vector& stress, Vector& weight, GeomState &curStat
       double *result = new double[numPoints];
       double *statenp_tmp = new double[ele->numStates()];
       Vector elemNodeTemps(ele->numNodes());
-      curState.get_temperature(ele->numNodes(), nn, elemNodeTemps, ele->getProperty()->Ta);
+      double Ta = (ele->getProperty()) ? ele->getProperty()->Ta : 0;
+      curState.get_temperature(ele->numNodes(), nn, elemNodeTemps, Ta);
       ele->getVonMisesStress(nodes, dispn, staten, dispnp, statenp_tmp, result, avgnum, elemNodeTemps.data());
       for(int i = 0; i < numPoints; ++i) {
         stress[i] = result[i];
@@ -215,6 +243,12 @@ MatNLCorotator::getNLVonMises(Vector& stress, Vector& weight, GeomState &curStat
       for(int i = 0; i < numPoints; ++i) {
         stress[i] = result[i];
       }
+      delete [] result;
+    } break;
+    case 17 : { // DAMAGE
+      double *result = new double[numPoints];
+      ele->getDamage(statenp, result, avgnum);
+      for(int i = 0; i < numPoints; ++i) stress[i] = result[i];
       delete [] result;
     } break;
     case 18 : { // EQPLSTRN
@@ -293,7 +327,8 @@ MatNLCorotator::getNLAllStress(FullM &stress, Vector &weight, GeomState &curStat
   if(strInd == 0) {
     double *statenp_tmp = new double[ele->numStates()];
     Vector elemNodeTemps(ele->numNodes());
-    curState.get_temperature(ele->numNodes(), nn, elemNodeTemps, ele->getProperty()->Ta);
+    double Ta = (ele->getProperty()) ? ele->getProperty()->Ta : 0;
+    curState.get_temperature(ele->numNodes(), nn, elemNodeTemps, Ta);
     ele->getStressTens(nodes, dispn, staten, dispnp, statenp_tmp, result, 0, elemNodeTemps.data());
     delete [] statenp_tmp;
     for(int i = 0; i < ele->numNodes(); ++i) {
@@ -364,7 +399,8 @@ MatNLCorotator::updateStates(GeomState *refState, GeomState &curState, CoordSet 
   double *state = curState.getElemState(ele->getGlNum());
 
   Vector elemNodeTemps(ele->numNodes());
-  curState.get_temperature(ele->numNodes(), nn, elemNodeTemps, ele->getProperty()->Ta);
+  double Ta = (ele->getProperty()) ? ele->getProperty()->Ta : 0;
+  curState.get_temperature(ele->numNodes(), nn, elemNodeTemps, Ta);
   
   ele->updateStates(nodes, state, dispn, dispnp, elemNodeTemps.data());
 
@@ -392,7 +428,8 @@ MatNLCorotator::getElementEnergy(GeomState &curState, CoordSet &C0)
   double *state = curState.getElemState(ele->getGlNum());
 
   Vector elemNodeTemps(ele->numNodes());
-  curState.get_temperature(ele->numNodes(), nn, elemNodeTemps, ele->getProperty()->Ta);
+  double Ta = (ele->getProperty()) ? ele->getProperty()->Ta : 0;
+  curState.get_temperature(ele->numNodes(), nn, elemNodeTemps, Ta);
 
   double W = ele->getStrainEnergy(nodes, dispnp, state, elemNodeTemps.data());
 

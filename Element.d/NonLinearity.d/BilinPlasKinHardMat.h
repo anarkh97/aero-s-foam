@@ -57,6 +57,8 @@ class ElasPlasKinHardMat : public NLMaterial
 
     bool getPlasticStrain(double *statenp, Tensor *plasticstrain);
 
+    double getDamage(double *statenp) { return (statenp[12] >= epsF) ? 1 : 0; }
+
     double getStrainEnergyDensity(Tensor &enp, double *statenp, double temp = 0.0);
 
     double getDissipatedEnergy(double *statenp);

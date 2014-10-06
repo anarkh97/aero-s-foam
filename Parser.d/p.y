@@ -4270,6 +4270,17 @@ MatSpec:
            geoSource->addMaterial($2-1,
              new BilinPlasKinHardMat($4, $5, $6, $7, $8, $9, $10, $11) );
          }
+        | MatSpec Integer BILINEARPLASTIC Float Float Float Float Float Float Float Float Float NewLine
+         {
+           if($12 > 0 && $12 < std::numeric_limits<double>::infinity()) {
+             geoSource->addMaterial($2-1, new BilinPlasKinHardMat($4, $5, $6, $7, $8, $9, $10, $11, $12) );
+             domain->solInfo().deletedElements = new std::ofstream("DeletedElements.txt");
+             (*domain->solInfo().deletedElements) << "#  time   Element_no   Cause\n";
+           }
+           else {
+             geoSource->addMaterial($2-1, new BilinPlasKinHardMat($4, $5, $6, $7, $8, $9, $10, $11) );
+           }
+         }
         | MatSpec Integer FINITESTRAINPLASTIC Float Float Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
@@ -4285,6 +4296,17 @@ MatSpec:
            geoSource->addMaterial($2-1,
              new FiniteStrainPlasKinHardMat($4, $5, $6, $7, $8, $9, $10, $11) );
          }
+        | MatSpec Integer FINITESTRAINPLASTIC Float Float Float Float Float Float Float Float Float NewLine
+         {
+           if($12 > 0 && $12 < std::numeric_limits<double>::infinity()) {
+             geoSource->addMaterial($2-1, new FiniteStrainPlasKinHardMat($4, $5, $6, $7, $8, $9, $10, $11, $12) );
+             domain->solInfo().deletedElements = new std::ofstream("DeletedElements.txt");
+             (*domain->solInfo().deletedElements) << "#  time   Element_no   Cause\n";
+           }
+           else {
+             geoSource->addMaterial($2-1, new FiniteStrainPlasKinHardMat($4, $5, $6, $7, $8, $9, $10, $11) );
+           }
+         }
         | MatSpec Integer LOGSTRAINPLASTIC Float Float Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
@@ -4299,6 +4321,17 @@ MatSpec:
          {
            geoSource->addMaterial($2-1,
              new LogStrainPlasKinHardMat($4, $5, $6, $7, $8, $9, $10, $11) );
+         }
+        | MatSpec Integer LOGSTRAINPLASTIC Float Float Float Float Float Float Float Float Float NewLine
+         {
+           if($12 > 0 && $12 < std::numeric_limits<double>::infinity()) {
+             geoSource->addMaterial($2-1, new LogStrainPlasKinHardMat($4, $5, $6, $7, $8, $9, $10, $11, $12) );
+             domain->solInfo().deletedElements = new std::ofstream("DeletedElements.txt");
+             (*domain->solInfo().deletedElements) << "#  time   Element_no   Cause\n";
+           }
+           else {
+             geoSource->addMaterial($2-1, new LogStrainPlasKinHardMat($4, $5, $6, $7, $8, $9, $10, $11) );
+           }
          }
         | MatSpec Integer LINEARELASTIC Float Float Float Float Float NewLine
          {

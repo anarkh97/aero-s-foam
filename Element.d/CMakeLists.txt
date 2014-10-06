@@ -145,6 +145,7 @@ Function.d/InertialForce.d/InertialType2ForceFunction.C
 Function.d/InertialForce.d/Inertial6DofForceFunction.C
 Function.d/Rotation.d/IncrementalRotationVector.C
 Function.d/Shape.d/Tet4LagrangePolynomial.C
+Function.d/Shape.d/Hex8LagrangePolynomial.C
 Helm.d/GaussRule.C
 Helm.d/GaussRules.C
 Helm.d/genTetra10.C

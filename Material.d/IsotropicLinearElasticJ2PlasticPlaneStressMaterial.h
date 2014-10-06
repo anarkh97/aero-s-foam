@@ -234,7 +234,7 @@ class IsotropicLinearElasticJ2PlasticPlaneStressMaterial : public ElastoPlasticP
   IsotropicLinearElasticJ2PlasticPlaneStressMaterial(double iLambda, double iMu,
 						     double iSigmaY, double iK = 0.,
 						     double iH = 0., double iTol = 1.0e-6,
-						     double iequivEPSplasticF = std::numeric_limits<double>::max());
+						     double iequivEPSplasticF = std::numeric_limits<double>::infinity());
   
   //! Destructor
   ~IsotropicLinearElasticJ2PlasticPlaneStressMaterial();

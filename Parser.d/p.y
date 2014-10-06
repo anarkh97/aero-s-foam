@@ -4403,13 +4403,13 @@ MatSpec:
           }
         | MatSpec Integer ISOTROPICLINEARELASTICJ2PLASTICPLANESTRESS Float Float Float Float Float Float NewLine
           {
-            double params[9] = { $4, $5, $6, $7, $8, $9, 1.0e-6, std::numeric_limits<double>::max(), -std::numeric_limits<double>::infinity() };
+            double params[9] = { $4, $5, $6, $7, $8, $9, 1.0e-6, std::numeric_limits<double>::infinity(), -std::numeric_limits<double>::infinity() };
             geoSource->addMaterial($2-1,
               new MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(params));
           }
         | MatSpec Integer ISOTROPICLINEARELASTICJ2PLASTICPLANESTRESS Float Float Float Float Float Float Float NewLine
           {
-            double params[9] = { $4, $5, $6, $7, $8, $9, $10, std::numeric_limits<double>::max(), -std::numeric_limits<double>::infinity() };
+            double params[9] = { $4, $5, $6, $7, $8, $9, $10, std::numeric_limits<double>::infinity(), -std::numeric_limits<double>::infinity() };
             geoSource->addMaterial($2-1,
               new MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(params));
           }
@@ -4418,21 +4418,29 @@ MatSpec:
             double params[9] = { $4, $5, $6, $7, $8, $9, $10, $11, -std::numeric_limits<double>::infinity() };
             geoSource->addMaterial($2-1,
               new MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(params));
-            domain->solInfo().deletedElements = new std::ofstream("DeletedElements.txt");
-            (*domain->solInfo().deletedElements) << "#  time   Element_no   Cause\n";
+            if($11 > 0 && $11 < std::numeric_limits<double>::infinity()) {
+              domain->solInfo().deletedElements = new std::ofstream("DeletedElements.txt");
+              (*domain->solInfo().deletedElements) << "#  time   Element_no   Cause\n";
+            }
           }
         | MatSpec Integer ISOTROPICLINEARELASTICJ2PLASTICPLANESTRESS Float Float Float Float Float Float Float Float Float NewLine
           {
             double params[9] = { $4, $5, $6, $7, $8, $9, $10, $11, $12 };
             geoSource->addMaterial($2-1,
               new MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(params));
-            domain->solInfo().deletedElements = new std::ofstream("DeletedElements.txt");
-            (*domain->solInfo().deletedElements) << "#  time   Element_no   Cause\n";
+            if($11 > 0 && $11 < std::numeric_limits<double>::infinity()) {
+              domain->solInfo().deletedElements = new std::ofstream("DeletedElements.txt");
+              (*domain->solInfo().deletedElements) << "#  time   Element_no   Cause\n";
+            }
           }
         | MatSpec Integer OPTCTV Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
              new ExpMat($3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23));
+           if($11 > 0 && $11 < std::numeric_limits<double>::infinity()) {
+             domain->solInfo().deletedElements = new std::ofstream("DeletedElements.txt");
+             (*domain->solInfo().deletedElements) << "#  time   Element_no   Cause\n";
+           }
          }
         | MatSpec Integer OPTCTV Float Float Float NewLine
          {
@@ -4463,8 +4471,10 @@ MatSpec:
          {
            geoSource->addMaterial($2-1,
              new ExpMat($3, $4, $5, $6, $7, $8, $9, $10, $11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
-           domain->solInfo().deletedElements = new std::ofstream("DeletedElements.txt");
-           (*domain->solInfo().deletedElements) << "#  time   Element_no   Cause\n";
+           if($11 > 0 && $11 < std::numeric_limits<double>::infinity()) {
+             domain->solInfo().deletedElements = new std::ofstream("DeletedElements.txt");
+             (*domain->solInfo().deletedElements) << "#  time   Element_no   Cause\n";
+           }
          }
 	| MatSpec READ FNAME FNAME NewLine
 	 {

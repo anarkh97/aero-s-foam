@@ -54,9 +54,6 @@ ShellMaterialType4<doublereal,localmaterial>
 */
     for (ilayer = 0; ilayer < nlayer; ++ilayer) {
 
-        if(mat[nlayer*point+ilayer]->GetMaterialEquivalentPlasticStrain() >= mat[nlayer*point+ilayer]->GetEquivalentPlasticStrainAtFailure())
-          continue;
-
 // .....[z] COORDINATE AT THE THRU-THICKNESS GAUSS POINT AND STRAINS
 
         z = nodes[ilayer]*thick/2;
@@ -125,11 +122,6 @@ ShellMaterialType4<doublereal,localmaterial>
     if(z < 0) ilayer = 0;       // lower surface
     else if(z == 0) ilayer = 1; // median surface
     else ilayer = 2;            // upper surface
-
-    if(mat[nlayer*nd+ilayer]->GetMaterialEquivalentPlasticStrain() >= mat[nlayer*nd+ilayer]->GetEquivalentPlasticStrainAtFailure()) {
-      sigma[0] = sigma[1] = sigma[2] = 0;
-      return;
-    }
 
 // .....COMPUTE THE LOCAL STRAINS [epsilon] = {epsilonxx,epsilonyy,gammaxy} ON THE SPECIFIED SURFACE
 
@@ -223,9 +215,6 @@ ShellMaterialType4<doublereal,localmaterial>
     doublereal nodes[5] = { -0.906179845938664, -0.538469310105683, 0.000000000000000, 0.538469310105683, 0.906179845938664 };
 
     for (ilayer = 0; ilayer < nlayer; ++ilayer) {
-
-        if(mat[nlayer*point+ilayer]->GetMaterialEquivalentPlasticStrain() >= mat[nlayer*point+ilayer]->GetEquivalentPlasticStrainAtFailure())
-          continue;
 
 // .....[z] COORDINATE AT THE THRU-THICKNESS GAUSS POINT (OR SURFACE) AND STRAINS
 

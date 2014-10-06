@@ -298,6 +298,17 @@ ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1,
     if( int(Cep->size())<9 )
       Cep->resize( 9 );
 
+  // Resize outputs if required
+  if( int(CauchyStress->size())<9 )
+    CauchyStress->resize(9);
+
+  // Check for failure
+  if(equivEPSplastic >= equivEPSplasticF) {
+    if( Cep ) for(int i=0; i<9; i++) (*Cep)[i] = 0;
+    for(int i=0; i<9; i++) (*CauchyStress)[i] = 0;
+    return true;
+  }
+
   // Elastic modulii
   std::vector<double> * Ce = 0;
   if( Cep )
@@ -333,10 +344,6 @@ ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1,
   // Note: I observe a relationship between TOL and the nltol under NONLINEAR
   // looks like TOL should be at least an order of magnitude smaller than nltol
   double TOL = SigmaY*Tol;
-  
-  // Resize outputs if required
-  if( int(CauchyStress->size())<9 )
-    CauchyStress->resize(9);
   
   if( Ftrial<0 /*ORIG: TOL*/ )
     {

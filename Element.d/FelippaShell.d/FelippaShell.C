@@ -868,7 +868,7 @@ FelippaShell::setMaterial(NLMaterial *_mat)
     double lambda = E*nu/((1+nu)*(1-2*nu)), mu = E/(2*(1+nu));
     double sigmaY = expmat->ematpro[3], K = expmat->ematpro[4], H = expmat->ematpro[5];
     double tol = expmat->ematpro[6];
-    double epsF = expmat->ematpro[7];
+    double epsF = (expmat->ematpro[7] <= 0) ? std::numeric_limits<double>::infinity() : expmat->ematpro[7];
     IsotropicLinearElasticJ2PlasticPlaneStressMaterial *localMaterial = new IsotropicLinearElasticJ2PlasticPlaneStressMaterial(lambda, mu, sigmaY, K, H, tol, epsF);
     type = 4;
     if(gpmat) delete gpmat;

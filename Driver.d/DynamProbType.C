@@ -283,7 +283,6 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
    // Build time independent forces i.e. gravity force, pressure force
    constForce = new VecType( probDesc->solVecInfo() );
-   //probDesc->getConstForce( *constForce ); PJSA moved to after buildOps
 
    // Get SteadyState Flag and Parameters
    probDesc->getSteadyStateParam(steadyFlag, steadyMin, steadyMax, steadyTol);
@@ -292,7 +291,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
    algType = probDesc->getTimeIntegration();
    if(aeroAlg == 10 && algType != 1) {
       fprintf(stderr, "WARNING: B0 AERO type only valid for quasi-static.  Running QUASISTATICS for 1 iteration\n");
-      algType = 1;
+      domain->solInfo().timeIntegration = algType = 1;
    }
    
    double timeLoop = -getTime();
@@ -536,7 +535,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
     if (probDesc->getFilterFlag() == 2) probDesc->project( d_n );
 
     // ... compute external force (and receive fluid load)
-    probDesc->computeExtForce2( curState, ext_f, constForce, tIndex, (double)tIndex*delta, aeroForce );
+    probDesc->computeExtForce2( curState, ext_f, constForce, tIndex, (double)tIndex*delta, aeroForce, 1.0, 0.0 );
 
     // ... build force reference norm 
     if (tIndex==initIndex+1) {

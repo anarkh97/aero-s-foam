@@ -9,6 +9,7 @@ class State;
 class GeomState;
 class SurfaceEntity;
 class FaceElement;
+class Connectivity;
 
 // This is an inerpolation point. The element elemNum uses x and y to
 // compute the interpolated displacements/velocities
@@ -71,12 +72,18 @@ class FlExchanger {
      double dt;
      double dtemp;
      Vector *tmpDisp;
+
+     bool wCracking;
+     bool sentInitialCracking;
+     Connectivity *nodeToFaceElem;
+
    public:
      //KW (Jul.27,2010): FS Communication using Face Elements
-     FlExchanger(CoordSet&, Elemset&, SurfaceEntity*, DofSetArray *, OutputInfo *oinfo = 0);
+     FlExchanger(CoordSet&, Elemset&, SurfaceEntity*, DofSetArray *, OutputInfo *oinfo, bool wCracking);
      void matchup(); // like "read" 
 
      FlExchanger(CoordSet&, Elemset&, DofSetArray *, OutputInfo *oinfo = 0);
+     ~FlExchanger();
      void read(int mynode, char *filename);
      void negotiate();
      void thermoread(int &buffLen);
@@ -97,6 +104,7 @@ class FlExchanger {
      
      void sendParam(int alg, double step, double totalTime,
                     int restartinc, int _isCollocated, double alphas[2]);
+     void sendSubcyclingInfo(int sub);
 
      void sendTempParam(int algnum, double step, double totaltime,
                         int rstinc, double alphat[2]);
@@ -104,6 +112,7 @@ class FlExchanger {
      void sendModeFreq(double *modFrq, int numFrq);
      void sendModeShapes(int numFrq, int nNodes, double (**)[6],
                          State &st, double factor = 1.0);
+
      void sendEmbeddedWetSurface();
      void sendEmbeddedWetSurface(int nNodes, double *nodes, int nElems, int *elems);
      void printreceiving();
@@ -121,6 +130,10 @@ class FlExchanger {
       void initRcvParity(int pinit) { rcvParity = pinit; }
       void flipSndParity() { if(sndParity >= 0) sndParity = 1-sndParity; }
       void flipRcvParity() { if(rcvParity >= 0) rcvParity = 1-rcvParity; }
+
+      void sendNoStructure();
+      void sendNewStructure(int numConnUpdated, int numLvlUpdated2, int numNewNodes, int* phantom_nodes_indices,
+                            double *phantom_nodes_xyz0, int *newConn, int *lvlsetElemNum, double *lvlsets, int *new2old);
 
       void sendNumParam(int);
       void sendRelativeResidual(double);

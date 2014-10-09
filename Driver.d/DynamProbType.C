@@ -1083,7 +1083,6 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
   VecType &tmp2 = workVec.get_tmp2();
   VecType v_h_p(probDesc->solVecInfo());
   VecType *fext_p, *fint_p;
-  v_h_p = 0.0;
 
   if(domain->solInfo().check_energy_balance) {
     fext_p = new VecType(probDesc->solVecInfo());
@@ -1100,6 +1099,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
     probDesc->project(d_n);
     probDesc->project(v_n);
   }
+  v_n_h = v_n;
       
   handleDisplacement(*probDesc, d_n);
   handleVelocity(*probDesc, d_n);
@@ -1163,7 +1163,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 #endif
   if(aeroAlg < 0) filePrint(stderr, " ⌈\x1B[33m Time Integration Loop In Progress: \x1B[0m⌉\n");
 
-  for( ; t_n < tmax-0.01*dt_n_h; s2 = s0+getTime()) {
+  for( ; t_n < tmax-0.01*dt_n_h && !domain->solInfo().stop_AeroS; s2 = s0+getTime()) {
 
     // Time update:
     t_n_h = t_n + dt_n_h/2; // t^{n+1/2} = t^n + 1/2*deltat^{n+1/2}
@@ -1238,7 +1238,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
       matrixTimers.updateState += getTime();
 
       // C0: Send predicted displacement at t^{n+1.5} to fluid
-      if(aeroAlg == 20) probDesc->aeroSend(t_n_h+dt_n_h, d_n, v_n_h, a_n, v_h_p);
+      if(aeroAlg == 20 && !domain->solInfo().stop_AeroS) probDesc->aeroSend(t_n_h+dt_n_h, d_n, v_n_h, a_n, v_h_p);
 
       // Compute the external force at t^{n+1}
       if(domain->solInfo().check_energy_balance) *fext_p = fext;

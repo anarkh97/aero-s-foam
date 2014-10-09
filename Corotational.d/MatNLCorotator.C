@@ -129,13 +129,26 @@ MatNLCorotator::getInternalForce(GeomState *refState, GeomState &curState, Coord
   ele->integrate(nodes, dispn, staten, dispnp, statenp, f, dt, elemNodeTemps.data());
   for(int i = 0; i < ele->numDofs(); ++i) f[i] = -f[i];
 
-  if(ele->checkFailure(statenp)) {
+  bool deleteElem = false;
+  if(!solInfo.deleteElements.empty()) {
+    std::set<int>::iterator it;
+#if defined(_OPENMP)
+    #pragma omp critical
+#endif
+    if((it = solInfo.deleteElements.find(ele->getGlNum())) != solInfo.deleteElements.end()) {
+      solInfo.deleteElements.erase(it);
+      deleteElem = true;
+    }
+  }
+  if(deleteElem || ele->checkFailure(statenp)) {
     std::cerr << "\rDeleting element " << std::setw(22) << std::left << ele->getGlNum()+1 << std::endl;
-    (*solInfo.deletedElements) << " " << std::scientific << std::setprecision(3) << t << "         "
-                               << std::setw(9) << std::left << ele->getGlNum()+1 << "   Undetermined\n";
-     ele->setProp((StructProp*)NULL);
+#if defined(_OPENMP)
+    #pragma omp critical
+#endif
+    { solInfo.newDeletedElements.insert(ele->getGlNum()); solInfo.outDeletedElements.push_back(std::pair<double,int>(t,ele->getGlNum())); }
+    ele->setProp((StructProp*)NULL);
 /* solid elements currently do not support element pressure
-     ele->setPressure((PressureBCond*)NULL);
+    ele->setPressure((PressureBCond*)NULL);
 */
   }
 

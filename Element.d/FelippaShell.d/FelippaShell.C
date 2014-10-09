@@ -1214,17 +1214,28 @@ FelippaShell::getInternalForce(GeomState *refState, GeomState &geomState, CoordS
 
  // element deletion
 
- if(type == 4) {
-   if(gpmat->CheckFailure()) {
-     std::cerr << "\rDeleting element " << std::setw(22) << std::left << getGlNum()+1 << std::endl;
-     (*solInfo.deletedElements) << " " << std::scientific << std::setprecision(3) << time << "         "  
-                                << std::setw(9) << std::left << getGlNum()+1 << "   Undetermined\n";
-     setProp((StructProp*)NULL);
-     setPressure((PressureBCond*)NULL); // XXX consider
-     for(int i=0; i<18; ++i)
-       for(int j=0; j<18; ++j)
-         origK[i][j] = 0;
+ bool deleteElem = false;
+ if(!solInfo.deleteElements.empty()) {
+   std::set<int>::iterator it;
+#if defined(_OPENMP)
+   #pragma omp critical
+#endif
+   if((it = solInfo.deleteElements.find(getGlNum())) != solInfo.deleteElements.end()) {
+     solInfo.deleteElements.erase(it);
+     deleteElem = true;
    }
+ }
+ if(deleteElem || (type == 4 && gpmat->CheckFailure())) {
+   std::cerr << "\rDeleting element " << std::setw(22) << std::left << getGlNum()+1 << std::endl;
+#if defined(_OPENMP)
+   #pragma omp critical
+#endif
+   { solInfo.newDeletedElements.insert(getGlNum()); solInfo.outDeletedElements.push_back(std::pair<double,int>(t,getGlNum())); }
+   setProp((StructProp*)NULL);
+   setPressure((PressureBCond*)NULL); // XXX consider
+   for(int i=0; i<18; ++i)
+     for(int j=0; j<18; ++j)
+       origK[i][j] = 0;
  }
 }
 

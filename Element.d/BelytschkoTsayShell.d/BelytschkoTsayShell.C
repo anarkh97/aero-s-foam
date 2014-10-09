@@ -614,19 +614,32 @@ BelytschkoTsayShell::getStiffAndForce(GeomState& geomState, CoordSet& cs, FullSq
     // ---------------------------------------------------------------
     // element deletion
     // ------------------
-    if(expmat->optctv != 1) {
-      bool failed = true;
+    bool deleteElem = false;
+    if(!solInfo.deleteElements.empty()) {
+      std::set<int>::iterator it;
+#if defined(_OPENMP)
+      #pragma omp critical
+#endif
+      if((it = solInfo.deleteElements.find(getGlNum())) != solInfo.deleteElements.end()) {
+        solInfo.deleteElements.erase(it);
+        deleteElem = true;
+      }
+    }
+    if(!deleteElem && expmat->optctv != 1) {
+      deleteElem = true;
       for(int igaus = 0; igaus < mgaus[2]; ++igaus) {
-        if(mat[igaus]->GetMaterialEquivalentPlasticStrain() < mat[igaus]->GetEquivalentPlasticStrainAtFailure()) { failed = false; break; }
+        if(mat[igaus]->GetMaterialEquivalentPlasticStrain() < mat[igaus]->GetEquivalentPlasticStrainAtFailure()) { deleteElem = false; break; }
       }
-      if(failed) {
-        std::cerr << "\rDeleting element " << std::setw(22) << std::left << getGlNum()+1 << std::endl;
-        (*solInfo.deletedElements) << " " << std::scientific << std::setprecision(3) << time << "         " 
-                                   << std::setw(9) << std::left << getGlNum()+1 << "   Undetermined\n";
-        setProp((StructProp*)NULL);
-        setPressure((PressureBCond*)NULL); // XXX consider
-        for(int i=0; i<nnode*nndof; ++i) efint[i] = 0;
-      }
+    }
+    if(deleteElem) {
+      std::cerr << "\rDeleting element " << std::setw(22) << std::left << getGlNum()+1 << std::endl;
+#if defined(_OPENMP)
+      #pragma omp critical
+#endif
+      { solInfo.newDeletedElements.insert(getGlNum()); solInfo.outDeletedElements.push_back(std::pair<double,int>(time,getGlNum())); }
+      setProp((StructProp*)NULL);
+      setPressure((PressureBCond*)NULL); // XXX consider
+      for(int i=0; i<nnode*nndof; ++i) efint[i] = 0;
     }
   }
 }

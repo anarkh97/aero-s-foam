@@ -3143,7 +3143,6 @@ Domain::~Domain()
    packedEset.deleteElem(contactSurfElems[i]);
  if(g_dsa) delete g_dsa;
  if(senInfo) delete [] senInfo;
- if(sinfo.deletedElements) { sinfo.deletedElements->close(); delete sinfo.deletedElements; }
 }
 
 #include <Element.d/Helm.d/HelmElement.h>

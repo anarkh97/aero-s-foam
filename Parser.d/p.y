@@ -72,7 +72,7 @@
 %token CONTROL CORNER CORNERTYPE CURVE CCTTOL CCTSOLVER CRHS COUPLEDSCALE CONTACTSURFACES CMPC CNORM
 %token COMPLEXOUTTYPE CONSTRMAT CASES CONSTRAINEDSURFACES CSFRAMES CSTYPE
 %token CONSTANT CONWEP
-%token DAMPING DblConstant DEM DIMASS DISP DIRECT DLAMBDA DP DYNAM DETER DECOMPOSE DECOMPFILE DMPC DEBUGCNTL DEBUGICNTL
+%token DAMPING DblConstant DELETEELEMENTS DEM DIMASS DISP DIRECT DLAMBDA DP DYNAM DETER DECOMPOSE DECOMPFILE DMPC DEBUGCNTL DEBUGICNTL
 %token CONSTRAINTS MULTIPLIERS PENALTY
 %token ELLUMP EIGEN EFRAMES ELSCATTERER END ELHSOMMERFELD ETEMP EXPLICIT EXTFOL EPSILON ELEMENTARYFUNCTIONTYPE
 %token FABMAT FACE FACOUSTICS FETI FETI2TYPE FETIPREC FFP FFPDIR FITALG FNAME FLUX FORCE FRONTAL FETIH FIELDWEIGHTLIST FILTEREIG FLUID
@@ -216,6 +216,7 @@ Component:
 	| UsddLocations
 	| UsdfLocations
         | DynInfo
+        | DeleteElements
         | Conwep
 	| SloshInfo 
 	| HEVibInfo 
@@ -1054,6 +1055,17 @@ DynInfo:
         | ADDEDMASS Integer NewLine
         { domain->solInfo().addedMass = $2; }
 	;
+DeleteElements:
+        DELETEELEMENTS DeleteElementsList NewLine
+        { }
+        ;
+DeleteElementsList:
+        Integer
+        { domain->solInfo().elementDeletion = true;
+          domain->solInfo().deleteElements.insert($1-1); }
+        | DeleteElementsList Integer
+        { domain->solInfo().deleteElements.insert($2-1); }
+        ;
 SloshInfo:
         SLOSH NewLine
         { domain->solInfo().sloshing = 1; }
@@ -4274,8 +4286,7 @@ MatSpec:
          {
            if($12 > 0 && $12 < std::numeric_limits<double>::infinity()) {
              geoSource->addMaterial($2-1, new BilinPlasKinHardMat($4, $5, $6, $7, $8, $9, $10, $11, $12) );
-             domain->solInfo().deletedElements = new std::ofstream("DeletedElements.txt");
-             (*domain->solInfo().deletedElements) << "#  time   Element_no   Cause\n";
+             domain->solInfo().elementDeletion = true;
            }
            else {
              geoSource->addMaterial($2-1, new BilinPlasKinHardMat($4, $5, $6, $7, $8, $9, $10, $11) );
@@ -4300,8 +4311,7 @@ MatSpec:
          {
            if($12 > 0 && $12 < std::numeric_limits<double>::infinity()) {
              geoSource->addMaterial($2-1, new FiniteStrainPlasKinHardMat($4, $5, $6, $7, $8, $9, $10, $11, $12) );
-             domain->solInfo().deletedElements = new std::ofstream("DeletedElements.txt");
-             (*domain->solInfo().deletedElements) << "#  time   Element_no   Cause\n";
+             domain->solInfo().elementDeletion = true;
            }
            else {
              geoSource->addMaterial($2-1, new FiniteStrainPlasKinHardMat($4, $5, $6, $7, $8, $9, $10, $11) );
@@ -4326,8 +4336,7 @@ MatSpec:
          {
            if($12 > 0 && $12 < std::numeric_limits<double>::infinity()) {
              geoSource->addMaterial($2-1, new LogStrainPlasKinHardMat($4, $5, $6, $7, $8, $9, $10, $11, $12) );
-             domain->solInfo().deletedElements = new std::ofstream("DeletedElements.txt");
-             (*domain->solInfo().deletedElements) << "#  time   Element_no   Cause\n";
+             domain->solInfo().elementDeletion = true;
            }
            else {
              geoSource->addMaterial($2-1, new LogStrainPlasKinHardMat($4, $5, $6, $7, $8, $9, $10, $11) );
@@ -4452,8 +4461,7 @@ MatSpec:
             geoSource->addMaterial($2-1,
               new MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(params));
             if($11 > 0 && $11 < std::numeric_limits<double>::infinity()) {
-              domain->solInfo().deletedElements = new std::ofstream("DeletedElements.txt");
-              (*domain->solInfo().deletedElements) << "#  time   Element_no   Cause\n";
+              domain->solInfo().elementDeletion = true;
             }
           }
         | MatSpec Integer ISOTROPICLINEARELASTICJ2PLASTICPLANESTRESS Float Float Float Float Float Float Float Float Float NewLine
@@ -4462,8 +4470,7 @@ MatSpec:
             geoSource->addMaterial($2-1,
               new MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(params));
             if($11 > 0 && $11 < std::numeric_limits<double>::infinity()) {
-              domain->solInfo().deletedElements = new std::ofstream("DeletedElements.txt");
-              (*domain->solInfo().deletedElements) << "#  time   Element_no   Cause\n";
+              domain->solInfo().elementDeletion = true;
             }
           }
         | MatSpec Integer OPTCTV Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float NewLine
@@ -4471,8 +4478,7 @@ MatSpec:
            geoSource->addMaterial($2-1,
              new ExpMat($3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23));
            if($11 > 0 && $11 < std::numeric_limits<double>::infinity()) {
-             domain->solInfo().deletedElements = new std::ofstream("DeletedElements.txt");
-             (*domain->solInfo().deletedElements) << "#  time   Element_no   Cause\n";
+             domain->solInfo().elementDeletion = true;
            }
          }
         | MatSpec Integer OPTCTV Float Float Float NewLine
@@ -4505,8 +4511,7 @@ MatSpec:
            geoSource->addMaterial($2-1,
              new ExpMat($3, $4, $5, $6, $7, $8, $9, $10, $11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
            if($11 > 0 && $11 < std::numeric_limits<double>::infinity()) {
-             domain->solInfo().deletedElements = new std::ofstream("DeletedElements.txt");
-             (*domain->solInfo().deletedElements) << "#  time   Element_no   Cause\n";
+             domain->solInfo().elementDeletion = true;
            }
          }
 	| MatSpec READ FNAME FNAME NewLine

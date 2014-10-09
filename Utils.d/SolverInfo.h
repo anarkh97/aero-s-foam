@@ -14,6 +14,7 @@
 #include <vector>
 #include <limits>
 #include <fstream>
+#include <set>
 
 #if defined(WINDOWS) || defined(MACOSX)
  #include <cfloat>
@@ -82,6 +83,7 @@ struct SolverInfo {
    float ATDROBalpha;
    float ATDROBbeta;
    int aeroFlag;
+   bool dyna3d_compat;
    int aeroheatFlag;
    int thermoeFlag;
    int thermohFlag;
@@ -144,6 +146,8 @@ struct SolverInfo {
    double initialTime;  // initial time (either 0.0 or from restart)
    double initExtForceNorm;  // initial Force Norm (for restarting qstatics)
    double tmax;         // maximum time
+   double t_AeroF;
+   bool stop_AeroF, stop_AeroS;
 /* these are now private, use getTimeStep and setTimeStep functions to access
    double dt;           // time step value
    double dtemp;        // thermal time step value
@@ -415,7 +419,10 @@ struct SolverInfo {
    bool printMatLab;
    const char * printMatLabFile;
 
-   std::ofstream *deletedElements;
+   bool elementDeletion;
+   std::set<int> newDeletedElements; // list of elements that have been deleted during the current time step
+   std::vector<std::pair<double,int> > outDeletedElements; // used for "elemdele" output
+   std::set<int> deleteElements; // elements to be deleted at t=0 (specified in input file)
 
    // Constructor
    SolverInfo() { filterFlags = 0;
@@ -457,6 +464,9 @@ struct SolverInfo {
                   modifiedWaveEquationCoef = 12.0;
 
                   tmax = 0.0; 
+                  t_AeroF = 0.0;
+                  stop_AeroF = false;
+                  stop_AeroS = false;
                   dt = 0.0;
                   dtemp = 0.0;
 
@@ -480,6 +490,7 @@ struct SolverInfo {
                   ATDROBbeta = 0.0;
 
                   aeroFlag = -1;
+                  dyna3d_compat = false;
                   aeroheatFlag = -1;
                   thermoeFlag = -1;
                   thermohFlag = -1;
@@ -699,7 +710,7 @@ struct SolverInfo {
                   inertiaLumping     = 0;
                   printMatLab        = false;
                   printMatLabFile    = "";
-                  deletedElements    = NULL;
+                  elementDeletion    = false;
                 }
 
    void setDirectMPC(int mode) { mpcDirect = mode; }
@@ -710,7 +721,10 @@ struct SolverInfo {
    void useRbmFilter(int rbmfil) { filterFlags = rbmfil; }
 
    // Set Aeroelastic Algorithm
-   void setAero(int alg) { aeroFlag = alg; }
+   void setAero(int alg)
+    { if(alg == 22) { aeroFlag = 20; dyna3d_compat = true; }
+      else aeroFlag = alg;
+    }
 
    void setAeroHeat(int alg, double alt0 =0, double alt1 =0)
     { aeroheatFlag = alg;

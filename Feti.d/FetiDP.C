@@ -851,7 +851,7 @@ GenFetiDPSolver<Scalar>::makeKcc()
       coarseDomain->setNumNodes(cornerToSub->csize());
 
       // The following loop set the node coordinates... They are needed for the corner maker
-      // note that the coordinates of any nodes which are not represented on this mpi process are not corret (zero)
+      // note that the coordinates of any nodes which are not represented on this mpi process are not correct (zero)
       // however, they shouldn't be needed in any case
       for(int iSub = 0; iSub < this->nsub; ++iSub) {
         int numCorner = this->sd[iSub]->numCorners();
@@ -877,8 +877,10 @@ GenFetiDPSolver<Scalar>::makeKcc()
       decCoarseDomain->buildOps(ops, 0.0, 0.0, 1.0);
       coarseInfo = &(decCoarseDomain->solVecInfo());
       KccParallelSolver = ops.dynMat;
-      paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::makeKccDofsExp, decCoarseDomain->getSubDomain(0)->getCDSA(),
-                 augOffset, this->subToEdge, mpcOffset, decCoarseDomain->getSubDomain(0)->getGlobalToLocalNodeMap());
+      //paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::makeKccDofsExp, decCoarseDomain->getSubDomain(0)->getCDSA(),
+      //           augOffset, this->subToEdge, mpcOffset, decCoarseDomain->getSubDomain(0)->getGlobalToLocalNodeMap());
+      paralApply(this->nsub, this->sd, &GenSubDomain<Scalar>::makeKccDofsExp2, decCoarseDomain->getNumSub(), 
+                 decCoarseDomain->getAllSubDomains()); // PJSA 10/10/2014
    }
    else {
 

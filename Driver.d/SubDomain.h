@@ -588,6 +588,7 @@ class GenSubDomain : public BaseSub
   void makeZstarAndR(double *centroid);  // makes Zstar and R
   void makeKccDofsExp(ConstrainedDSA *cornerEqs, int augOffset,
                       Connectivity *subToEdge, int mpcOffset, GlobalToLocalMap& nodeMap);
+  void makeKccDofsExp2(int nsub, GenSubDomain<Scalar> **sd);
   void makeKccDofs(DofSetArray *cornerEqs, int augOffset, Connectivity *subToEdge, int mpcOffset = 0);
   void assembleKccStar(GenSparseMatrix<Scalar> *KccStar);
   void deleteKcc();

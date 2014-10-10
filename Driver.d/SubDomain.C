@@ -3419,6 +3419,33 @@ GenSubDomain<Scalar>::makeKccDofsExp(ConstrainedDSA *cornerEqs, int augOffset,
 
 template<class Scalar>
 void
+GenSubDomain<Scalar>::makeKccDofsExp2(int nsub, GenSubDomain<Scalar> **sd)
+{
+  int numC = numCoarseDofs();
+  if(cornerEqNums) delete [] cornerEqNums;
+  cornerEqNums = new int[numC];
+
+  // numbers the corner equations 
+  int offset = 0;
+  for(int i=0; i<numCRN; ++i) {
+    int offset2 = 0;
+    for(int j=0; j<nsub; ++j) {
+      GlobalToLocalMap& nodeMap = sd[j]->getGlobalToLocalNodeMap();
+      ConstrainedDSA *cornerEqs = sd[j]->getCDSA();
+      if(nodeMap[glCornerNodes[i]] > -1) {
+         int count = cornerEqs->number(nodeMap[glCornerNodes[i]], cornerDofs[i].list(), cornerEqNums+offset);
+         for(int k=0; k<count; ++k) cornerEqNums[offset+k] += offset2;
+         offset += count;
+      }
+      offset2 += cornerEqs->size();
+    }
+  }
+  //std::cerr << "here in GenSubDomain<Scalar>::makeKccDofsExp, cornerEqNums = ";
+  //for(int i=0; i<numC; ++i) std::cerr << cornerEqNums[i] << " "; std::cerr << std::endl;
+}
+
+template<class Scalar>
+void
 GenSubDomain<Scalar>::makeKccDofs(DofSetArray *cornerEqs, int augOffset,
                                   Connectivity *subToEdge, int mpcOffset)
 {

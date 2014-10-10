@@ -632,7 +632,7 @@ void DGMHelm2d_Eva1_2_LM::init() {
  normal[1] /= l;
  gamma /= cn;
 
- double s = abs(normal[0]*tau[0]+normal[1]*tau[1]);
+ double s = std::abs(normal[0]*tau[0]+normal[1]*tau[1]);
  if (s>0.8) ndofs = 3;
  else ndofs = 4;
 

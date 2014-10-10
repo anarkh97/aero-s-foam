@@ -503,8 +503,8 @@ Tensor_d1s2_full::splContractWith(const Tensor_d0s2 &tens, Tensor *result) const
 void
 Tensor_d1s2_full::splContractInto(const Tensor &b, Tensor *result) const
 {
-  const Tensor_d1s2_full &tens = dynamic_cast<const Tensor_d1s2_full &>(b);
-  if(&tens)
+  const Tensor_d1s2_full *tens = dynamic_cast<const Tensor_d1s2_full *>(&b);
+  if(tens)
   {
     Tensor_d2s2 &t = static_cast<Tensor_d2s2 &>(*result);   
     for (int m = 0; m < size; m++)
@@ -513,7 +513,7 @@ Tensor_d1s2_full::splContractInto(const Tensor &b, Tensor *result) const
           for (int j = 0; j < 3; j++) {
             t[size*m+n][3*i+j] = 0.0;
 	    for (int k = 0; k < 3; k++)
-              t[size*m+n][3*i+j] += v[m][3*i+k]*tens[n][3*k+j];
+              t[size*m+n][3*i+j] += v[m][3*i+k]*(*tens)[n][3*k+j];
           }
   }
   else
@@ -1030,6 +1030,7 @@ Tensor_d2s2::dblContractInto(const Tensor &b, Tensor *result) const
           for (int l = 0; l < 3; l++)
             t[i*size+j] += tens[3*k+l] * v[i*size+j][3*k+l];
       }
+    return;
   }
   catch(std::bad_cast e) {}
 

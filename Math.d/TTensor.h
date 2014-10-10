@@ -91,13 +91,13 @@ SymTensor<SymTensor<double,2>,2>::dblContractInto(const Tensor &b, Tensor *res) 
 template<class S, int n>
 void
 SimpleTensor<SymTensor<S,2>,n>::dblContractInto(const Tensor &b, Tensor *res) const {
-  Tensor_d2s0 &resMat = dynamic_cast<Tensor_d2s0 &>(*res);
-  if(&resMat != 0) {
+  Tensor_d2s0 *resMat = dynamic_cast<Tensor_d2s0 *>(res);
+  if(resMat != 0) {
     const SimpleTensor<SymTensor<S,2>, n> &bb = 
                dynamic_cast<const SimpleTensor<SymTensor<S,2>, n> &>(b);
     for(int i = 0; i < n; ++i)
       for(int j = 0; j < n; ++j) {
-        resMat[i*n+j] = 
+        (*resMat)[i*n+j] = 
           (*this)[i][0]*bb[j][0]+(*this)[i][1]*bb[j][1]+2*(*this)[i][2]*bb[j][2];
       }
   } else {

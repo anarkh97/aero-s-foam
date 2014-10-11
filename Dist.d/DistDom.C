@@ -1466,7 +1466,8 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
     int firstCpuInCluster = (clusToCpu) ? (*clusToCpu)[clusterId][0] : 0;
     for(int iInfo = 0; iInfo < numOutInfo; iInfo++) {
       if(oinfo[iInfo].type == OutputInfo::Farfield || oinfo[iInfo].type == OutputInfo::AeroForce
-         || oinfo[iInfo].type == OutputInfo::Energies || oinfo[iInfo].type == OutputInfo::DissipatedEnergy) {
+         || oinfo[iInfo].type == OutputInfo::Energies || oinfo[iInfo].type == OutputInfo::DissipatedEnergy
+         || oinfo[iInfo].type == OutputInfo::DeletedElements) {
         int oI = iInfo;
         if(this->firstOutput) { geoSource->openOutputFiles(0,&oI,1); }
         continue;
@@ -1481,7 +1482,8 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
 #endif
     for(int iInfo = 0; iInfo < numOutInfo; iInfo++) {
       if(oinfo[iInfo].nodeNumber == -1 && oinfo[iInfo].type != OutputInfo::Farfield && oinfo[iInfo].type != OutputInfo::AeroForce
-         && oinfo[iInfo].type != OutputInfo::Energies && oinfo[iInfo].type != OutputInfo::DissipatedEnergy) {
+         && oinfo[iInfo].type != OutputInfo::Energies && oinfo[iInfo].type != OutputInfo::DissipatedEnergy
+         && oinfo[iInfo].type != OutputInfo::DeletedElements) {
         numRes[iInfo] = 0;
         for(iSub = 0; iSub < this->numSub; iSub++) {
           int glSub = this->localSubToGl[iSub];
@@ -1847,6 +1849,9 @@ for(int iCPU = 0; iCPU < this->communicator->size(); iCPU++) {
         }
         else filePrint(stderr," *** WARNING: Output case %d not supported \n", iOut);
       } break;
+      case OutputInfo::DeletedElements:
+        getDeletedElements(iOut);
+        break;
       case OutputInfo::Statevector:
       case OutputInfo::Velocvector:
       case OutputInfo::Accelvector:
@@ -2180,4 +2185,65 @@ void GenDistrDomain<Scalar>::getElementAttr(int fileNumber,int iAttr, double tim
                                      nodeOffsets[iSub], fileNumber, x, numRes[fileNumber], time, 1, masterFlag[iSub]);
   }
   return;
+}
+
+template<class Scalar>
+void
+GenDistrDomain<Scalar>::getDeletedElements(int iOut)
+{
+  OutputInfo *oinfo = geoSource->getOutputInfo();
+  std::vector<std::pair<double,int> > &localDeletedElements = domain->solInfo().outDeletedElements;
+  std::vector<std::pair<double,int> >::iterator it;
+#ifdef SERIALIZED_OUTPUT
+  for(it = localDeletedElements.begin(); it != localDeletedElements.end(); ++it) {
+    fprintf(oinfo[iOut].filptr, " %12.6e  %9d          Undetermined\n", it->first, it->second+1);
+  }
+#else
+  int localCount = domain->solInfo().outDeletedElements.size();
+  int *recvbuf = new int[this->communicator->size()];
+  this->communicator->gather(&localCount, 1, recvbuf, 1);
+  int globalCount;
+  if(this->communicator->cpuNum() == 0) {
+    globalCount = 0;
+    for(int i=0; i<this->communicator->size(); ++i) globalCount += recvbuf[i];
+  }
+  this->communicator->broadcast(1, &globalCount);
+  if(globalCount > 0) {
+    int *sendbuf2, *recvbuf2, *displs;
+    double *sendbuf3, *recvbuf3;
+    if(localCount > 0) {
+      sendbuf2 = new int[localCount];
+      sendbuf3 = new double[localCount];
+      int i=0;
+      for(it = localDeletedElements.begin(); it != localDeletedElements.end(); ++it, ++i) {
+        sendbuf2[i] = it->second;
+        sendbuf3[i] = it->first;
+      }
+    }
+    if(this->communicator->cpuNum() == 0) {
+      recvbuf2 = new int[globalCount];
+      recvbuf3 = new double[globalCount];
+      displs = new int[this->communicator->size()];
+      displs[0] = 0;
+      for(int i=1; i<this->communicator->size(); ++i) {
+        displs[i] = displs[i-1] + recvbuf[i-1];
+      }
+    }
+    this->communicator->gatherv(sendbuf2, localCount, recvbuf2, recvbuf, displs);
+    this->communicator->gatherv(sendbuf3, localCount, recvbuf3, recvbuf, displs);
+    if(localCount > 0) {
+      delete [] sendbuf2;
+      delete [] sendbuf3;
+    }
+    if(this->communicator->cpuNum() == 0) {
+      for(int i=0; i<globalCount; ++i) {
+        filePrint(oinfo[iOut].filptr, " %12.6e  %9d          Undetermined\n", recvbuf3[i], recvbuf2[i]+1);
+      }
+      delete [] recvbuf2;
+      delete [] recvbuf3;
+      delete [] displs;
+    }
+  }
+#endif
+  domain->solInfo().outDeletedElements.clear();
 }

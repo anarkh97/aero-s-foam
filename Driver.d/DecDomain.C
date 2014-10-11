@@ -2301,6 +2301,12 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, GenDistrVector<S
        }
        else filePrint(stderr," *** WARNING: Output case %d not supported \n", i);
      } break;
+     case OutputInfo::DeletedElements: {
+       for(std::vector<std::pair<double,int> >::iterator it = domain->solInfo().outDeletedElements.begin(); it != domain->solInfo().outDeletedElements.end(); ++it) {
+         filePrint(oinfo[i].filptr, " %12.6e  %9d          Undetermined\n", it->first, it->second+1);
+       }
+       domain->solInfo().outDeletedElements.clear();
+     } break;
      case OutputInfo::Statevector:
      case OutputInfo::Velocvector:
      case OutputInfo::Accelvector:

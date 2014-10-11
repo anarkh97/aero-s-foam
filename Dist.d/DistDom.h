@@ -67,7 +67,7 @@ class GenDistrDomain : virtual public GenDecDomain<Scalar>
     void getElementPrincipalStress(DistrGeomState *gs, Corotator ***allCorot, double time,
                                    int x, int fileNumber, int strIndex, DistrGeomState *refState);
     void unify(DistSVec<Scalar, 11> &vec);
-
+    void getDeletedElements(int iOut);
 };
 
 #ifdef _TEMPLATE_FIX_

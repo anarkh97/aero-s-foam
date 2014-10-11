@@ -208,6 +208,29 @@ FSCommunicator::allGatherv(Type *send_data, int send_count,
 #endif
 }
 
+template <class Type>
+void
+FSCommunicator::gather(Type *send_data, int send_count,
+                       Type *recv_data, int recv_count, int root)
+{
+#ifdef USE_MPI
+  MPI_Gather(send_data, send_count, CommTrace<Type>::MPIType,
+             recv_data, recv_count, CommTrace<Type>::MPIType, root, comm);
+#endif
+}
+
+template <class Type>
+void
+FSCommunicator::gatherv(Type *send_data, int send_count,
+                        Type *recv_data, int recv_counts[], int displacements[], int root)
+{
+#ifdef USE_MPI
+  MPI_Gatherv(send_data, send_count, CommTrace<Type>::MPIType,
+              recv_data, recv_counts, displacements,
+              CommTrace<Type>::MPIType, root, comm);
+#endif
+}
+
 #define _MESSAGE_SIZE 100000
 
 template <class Type>

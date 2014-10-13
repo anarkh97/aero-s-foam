@@ -1804,7 +1804,7 @@ Mode:
         | READMODE FNAME Integer NewLine
         { domain->solInfo().readInROBorModes = $2;
           domain->solInfo().readmodeCalled = true; 
- 	        domain->solInfo().maxSizePodRom = $3; }	
+          domain->solInfo().maxSizePodRom = $3; }	
         | READMODE FNAME FNAME NewLine
         { domain->solInfo().readInROBorModes = $2;
           domain->solInfo().readInModes = $3;

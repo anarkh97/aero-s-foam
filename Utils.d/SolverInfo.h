@@ -420,9 +420,7 @@ struct SolverInfo {
    const char * printMatLabFile;
 
    bool elementDeletion;
-   std::set<int> newDeletedElements; // list of elements that have been deleted during the current time step
-   std::vector<std::pair<double,int> > outDeletedElements; // used for "elemdele" output
-   std::set<int> deleteElements; // elements to be deleted at t=0 (specified in input file)
+   std::map<int,double> deleteElements; // elements to be deleted at specific time or times (specified in input file)
 
    // Constructor
    SolverInfo() { filterFlags = 0;

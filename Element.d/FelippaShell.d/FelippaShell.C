@@ -31,10 +31,8 @@
 #include <Utils.d/dofset.h>
 #include <Utils.d/linkfc.h>
 #include <Utils.d/pstress.h>
-#include <Utils.d/SolverInfo.h>
 
 extern int verboseFlag;
-extern SolverInfo &solInfo;
 
 FelippaShell::FelippaShell(int* nodenums)
 {
@@ -974,6 +972,12 @@ void
 FelippaShell::getStiffAndForce(GeomState *refState, GeomState &geomState, CoordSet &cs,
                                FullSquareMatrix &elK, double *f, double dt, double t)
 {
+ if(prop == NULL) {
+   elK.zero();
+   for(int i=0; i<18; ++i) f[i] = 0;
+   return;
+ }
+
  // Get Nodes original coordinates (C0 configuration)
  Node &node1 = cs.getNode( n1 );
  Node &node2 = cs.getNode( n2 );
@@ -1125,6 +1129,11 @@ void
 FelippaShell::getInternalForce(GeomState *refState, GeomState &geomState, CoordSet &cs,
                                FullSquareMatrix &, double *f, double dt, double t)
 {
+ if(prop == NULL) {
+   for(int i=0; i<18; ++i) f[i] = 0;
+   return;
+ }
+
  // Get Nodes original coordinates (C0 configuration)
  Node &node1 = cs.getNode( n1 );
  Node &node2 = cs.getNode( n2 );
@@ -1211,32 +1220,6 @@ FelippaShell::getInternalForce(GeomState *refState, GeomState &geomState, CoordS
  // transform internal force vector from local to global coordinates
 
  tran_force(f, t0n, 3);
-
- // element deletion
-
- bool deleteElem = false;
- if(!solInfo.deleteElements.empty()) {
-   std::set<int>::iterator it;
-#if defined(_OPENMP)
-   #pragma omp critical
-#endif
-   if((it = solInfo.deleteElements.find(getGlNum())) != solInfo.deleteElements.end()) {
-     solInfo.deleteElements.erase(it);
-     deleteElem = true;
-   }
- }
- if(deleteElem || (type == 4 && gpmat->CheckFailure())) {
-   std::cerr << "\rDeleting element " << std::setw(22) << std::left << getGlNum()+1 << std::endl;
-#if defined(_OPENMP)
-   #pragma omp critical
-#endif
-   { solInfo.newDeletedElements.insert(getGlNum()); solInfo.outDeletedElements.push_back(std::pair<double,int>(t,getGlNum())); }
-   setProp((StructProp*)NULL);
-   setPressure((PressureBCond*)NULL); // XXX consider
-   for(int i=0; i<18; ++i)
-     for(int j=0; j<18; ++j)
-       origK[i][j] = 0;
- }
 }
 
 void
@@ -1283,6 +1266,12 @@ FelippaShell::updateStates(GeomState *refState, GeomState &geomState, CoordSet &
 
     if(!refState) delete [] staten;
   }
+}
+
+bool
+FelippaShell::checkElementDeletion(GeomState &)
+{
+  return (prop && type == 4 && gpmat->CheckFailure());
 }
 
 void

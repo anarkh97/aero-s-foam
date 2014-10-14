@@ -87,6 +87,7 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
   BlastLoading::BlastData *conwep = (domain->solInfo().ConwepOnOff) ? &BlastLoading::InputFileData : NULL;
   bool compute_tangents = !initialTime && !solInfo().getNLInfo().linearelastic;
   if(elemAdj.empty()) makeElementAdjacencyLists();
+  newDeletedElements.clear();
 
   for(int iele = 0; iele < numele; ++iele) {
 
@@ -96,6 +97,10 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
     // Get updated tangent stiffness matrix and element internal force
     if(corotators[iele] && !solInfo().getNLInfo().linearelastic) {
       getElemStiffAndForce(geomState, pseudoTime, refState, *corotators[iele], elementForce.data(), kel[iele]);
+      if(sinfo.newmarkBeta == 0) {
+        corotators[iele]->updateStates(refState, geomState, nodes);
+        handleElementDeletion(iele, geomState, pseudoTime, *corotators[iele], elementForce.data());
+      }
       if(initialTime && packedEset[iele]->isConstraintElement() && packedEset[iele]->hasRot()) {
         // transform constraint jacobian and hessian to solve for the initial convected acceleration
         transformElemStiff(geomState, kel[iele], iele);

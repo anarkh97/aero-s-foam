@@ -129,7 +129,7 @@
 %type <cxbclist> ComplexBCDataList ComplexNeumanBC ComplexDirichletBC 
 %type <frame>    Frame
 %type <nframe>   NodalFrame
-%type <fval>     Float DblConstant
+%type <fval>     Float DblConstant DeleteElementsList
 %type <ival>     AEROTYPE ALPROC AlProc Attributes AUGMENTTYPE AVERAGED 
 %type <ival>     COLLOCATEDTYPE CORNERTYPE COMPLEXOUTTYPE TDENFORC CSTYPE ANGULAROUTTYPE ROTVECOUTTYPE
 %type <ival>     ELEMENTARYFUNCTIONTYPE FETIPREC FETI2TYPE FRAMETYPE
@@ -1056,15 +1056,15 @@ DynInfo:
         { domain->solInfo().addedMass = $2; }
 	;
 DeleteElements:
-        DELETEELEMENTS DeleteElementsList NewLine
-        { }
+        DELETEELEMENTS NewLine DeleteElementsList NewLine
+        { domain->solInfo().elementDeletion = true; }
+        | DeleteElements NewLine DeleteElementsList NewLine
         ;
 DeleteElementsList:
-        Integer
-        { domain->solInfo().elementDeletion = true;
-          domain->solInfo().deleteElements.insert($1-1); }
+        Float Integer
+        { $$ = $1; domain->solInfo().deleteElements.insert(std::pair<int,double>($2-1,$1)); }
         | DeleteElementsList Integer
-        { domain->solInfo().deleteElements.insert($2-1); }
+        { domain->solInfo().deleteElements.insert(std::pair<int,double>($2-1,$1)); }
         ;
 SloshInfo:
         SLOSH NewLine

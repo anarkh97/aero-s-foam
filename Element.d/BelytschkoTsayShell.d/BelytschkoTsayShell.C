@@ -13,7 +13,6 @@
 #include <Math.d/FullSquareMatrix.h>
 #include <Math.d/Vector.h>
 #include <Utils.d/Conwep.d/BlastLoading.h>
-#include <Utils.d/SolverInfo.h>
 #include <iostream>
 #include <limits>
 
@@ -26,7 +25,6 @@ using std::vector;
 #endif
 
 extern int verboseFlag;
-extern SolverInfo &solInfo;
 extern "C" {
   void _FORTRAN(getgqsize)(int&, int&, int*, int*, int*);
   void _FORTRAN(getgq1d)(int&, double*, double*);
@@ -610,38 +608,20 @@ BelytschkoTsayShell::getStiffAndForce(GeomState& geomState, CoordSet& cs, FullSq
       double f[3] = { efint[iloc+0], efint[iloc+1], efint[iloc+2] };
       mat_mult_vec(geomState[nn[i]].R, f, efint+iloc, 0);
     }
+  }
+}
 
-    // ---------------------------------------------------------------
-    // element deletion
-    // ------------------
-    bool deleteElem = false;
-    if(!solInfo.deleteElements.empty()) {
-      std::set<int>::iterator it;
-#if defined(_OPENMP)
-      #pragma omp critical
-#endif
-      if((it = solInfo.deleteElements.find(getGlNum())) != solInfo.deleteElements.end()) {
-        solInfo.deleteElements.erase(it);
-        deleteElem = true;
-      }
-    }
-    if(!deleteElem && expmat->optctv != 1) {
-      deleteElem = true;
-      for(int igaus = 0; igaus < mgaus[2]; ++igaus) {
-        if(mat[igaus]->GetMaterialEquivalentPlasticStrain() < mat[igaus]->GetEquivalentPlasticStrainAtFailure()) { deleteElem = false; break; }
-      }
-    }
-    if(deleteElem) {
-      std::cerr << "\rDeleting element " << std::setw(22) << std::left << getGlNum()+1 << std::endl;
-#if defined(_OPENMP)
-      #pragma omp critical
-#endif
-      { solInfo.newDeletedElements.insert(getGlNum()); solInfo.outDeletedElements.push_back(std::pair<double,int>(time,getGlNum())); }
-      setProp((StructProp*)NULL);
-      setPressure((PressureBCond*)NULL); // XXX consider
-      for(int i=0; i<nnode*nndof; ++i) efint[i] = 0;
+bool BelytschkoTsayShell::checkElementDeletion(GeomState &)
+{
+  bool deleteElem = false;
+  if(prop && expmat->optctv != 1) {
+    deleteElem = true;
+    for(int igaus = 0; igaus < mgaus[2]; ++igaus) {
+      if(mat[igaus]->GetMaterialEquivalentPlasticStrain() < mat[igaus]->GetEquivalentPlasticStrainAtFailure()) { deleteElem = false; break; }
     }
   }
+
+  return deleteElem;
 }
 
 void

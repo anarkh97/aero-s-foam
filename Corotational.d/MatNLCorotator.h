@@ -42,6 +42,8 @@ class MatNLCorotator : public Corotator {
 
      void updateStates(GeomState *refState, GeomState &curState, CoordSet &C0);
 
+     bool checkElementDeletion(GeomState &curState);
+
      double getElementEnergy(GeomState &, CoordSet &);
      double getDissipatedEnergy(GeomState &geomState, CoordSet &cs);
 

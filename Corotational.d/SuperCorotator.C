@@ -313,6 +313,15 @@ SuperCorotator::updateStates(GeomState *refState, GeomState &curState, CoordSet 
     subElemCorotators[i]->updateStates(refState, curState, C0);
 }
 
+bool
+SuperCorotator::checkElementDeletion(GeomState &curState)
+{
+  int i;
+  for(i=0; i<nSubElems; ++i)
+    if(!subElemCorotators[i]->checkElementDeletion(curState)) return false;
+  return true;
+}
+
 void
 SuperCorotator::getResidualCorrection(GeomState &gs, double *r)
 {

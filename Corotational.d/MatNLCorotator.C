@@ -4,9 +4,6 @@
 #include <Math.d/matrix.h>
 #include <Math.d/Vector.h>
 #include <Utils.d/pstress.h>
-#include <Utils.d/SolverInfo.h>
-
-extern SolverInfo &solInfo;
 
 MatNLCorotator::MatNLCorotator(MatNLElement *_ele, bool _own)
   : ele(_ele), own(_own)
@@ -129,34 +126,21 @@ MatNLCorotator::getInternalForce(GeomState *refState, GeomState &curState, Coord
   ele->integrate(nodes, dispn, staten, dispnp, statenp, f, dt, elemNodeTemps.data());
   for(int i = 0; i < ele->numDofs(); ++i) f[i] = -f[i];
 
-  bool deleteElem = false;
-  if(!solInfo.deleteElements.empty()) {
-    std::set<int>::iterator it;
-#if defined(_OPENMP)
-    #pragma omp critical
-#endif
-    if((it = solInfo.deleteElements.find(ele->getGlNum())) != solInfo.deleteElements.end()) {
-      solInfo.deleteElements.erase(it);
-      deleteElem = true;
-    }
-  }
-  if(deleteElem || ele->checkFailure(statenp)) {
-    std::cerr << "\rDeleting element " << std::setw(22) << std::left << ele->getGlNum()+1 << std::endl;
-#if defined(_OPENMP)
-    #pragma omp critical
-#endif
-    { solInfo.newDeletedElements.insert(ele->getGlNum()); solInfo.outDeletedElements.push_back(std::pair<double,int>(t,ele->getGlNum())); }
-    ele->setProp((StructProp*)NULL);
-/* solid elements currently do not support element pressure
-    ele->setPressure((PressureBCond*)NULL);
-*/
-  }
-
   delete [] nn;
   delete [] nodes;
   delete [] dispn;
   if(!refState || refState == &curState) delete [] staten;
   delete [] dispnp;
+}
+
+bool
+MatNLCorotator::checkElementDeletion(GeomState &curState)
+{
+  if(ele->getProperty()) {
+    double *statenp = curState.getElemState(ele->getGlNum());
+    return ele->checkFailure(statenp);
+  }
+  else return false;
 }
 
 void

@@ -266,15 +266,15 @@ Domain::aeroSend(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, double* bcx
   State state(c_dsa, dsa, bcx, vcx, d_n_aero, v_n, a_n, v_p);
 
   if(sinfo.dyna3d_compat) {
-    if(sinfo.elementDeletion && !sinfo.newDeletedElements.empty()) {
+    if(sinfo.elementDeletion && !newDeletedElements.empty()) {
       // XXX note: element deletion FSI is only supported for 4-node quad elements
-      int nEle = sinfo.newDeletedElements.size();
+      int nEle = newDeletedElements.size();
       int *newConn = new int[5*nEle];
       int *lvlsetElemNum = new int[nEle];
       double *lvlsets = new double[4*nEle];
 
       int i; std::set<int>::iterator it;
-      for(it = sinfo.newDeletedElements.begin(), i=0; it != sinfo.newDeletedElements.end(); ++it, ++i) {
+      for(it = newDeletedElements.begin(), i=0; it != newDeletedElements.end(); ++it, ++i) {
         newConn[5*i+0] = lvlsetElemNum[i] = *it;
         for(int j=0; j<elemToNode->num(*it); ++j) {
           newConn[5*i+1+j] = (*elemToNode)[*it][j];
@@ -285,7 +285,7 @@ Domain::aeroSend(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, double* bcx
       delete [] newConn;
       delete [] lvlsetElemNum;
       delete [] lvlsets;
-      sinfo.newDeletedElements.clear();
+      // newDeletedElements is now cleared in getInternalForce
     }
     else flExchanger->sendNoStructure();
   }
@@ -912,10 +912,10 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
           delete [] rxyz;
           } break;
         case OutputInfo::DeletedElements: {
-          for(std::vector<std::pair<double,int> >::iterator it = sinfo.outDeletedElements.begin(); it != sinfo.outDeletedElements.end(); ++it) {
+          for(std::vector<std::pair<double,int> >::iterator it = outDeletedElements.begin(); it != outDeletedElements.end(); ++it) {
             filePrint(oinfo[i].filptr, " %12.6e  %9d          Undetermined\n", it->first, it->second+1);
           }
-          sinfo.outDeletedElements.clear();
+          outDeletedElements.clear();
         } break;
         case OutputInfo::ModeError: // don't print warning message since these are
         case OutputInfo::ModeAlpha: // output in SingleDomainDynamic::modeDecomp

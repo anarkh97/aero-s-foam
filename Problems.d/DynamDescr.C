@@ -579,6 +579,7 @@ SingleDomainDynamic::getContactForce(Vector &d_n, Vector &dinc, Vector &ctc_f, d
   times->tdenforceTime -= getTime();
   ctc_f.zero();
   if(domain->tdenforceFlag()) {
+
     times->updateSurfsTime -= getTime();
     domain->UpdateSurfaces(geomState, 1); // update to current configuration
     times->updateSurfsTime += getTime();
@@ -1006,7 +1007,9 @@ SingleDomainDynamic::getInternalForce(Vector& d, Vector& f, double t, int tIndex
     if(domain->solInfo().newmarkBeta == 0 && domain->solInfo().stable && domain->solInfo().isNonLin() && tIndex%domain->solInfo().stable_freq == 0) {
       domain->getStiffAndForce(*geomState, fele, allCorot, kelArray, residual, 1.0, t, geomState,
                                reactions, melArray);
+/* PJSA 10/12/2014 this is done in getStiffAndForce now because it needs to be done before handleElementDeletion.
       domain->updateStates(geomState, *geomState, allCorot);
+*/
     }
     else {
       domain->getInternalForce(*geomState, fele, allCorot, kelArray, residual, 1.0, t, geomState,

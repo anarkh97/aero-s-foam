@@ -538,6 +538,14 @@ ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1,
               (*Cep)[3*i+j] = A(i,j) - N[i]*N[j]/(1+beta);
 #endif
         }
+
+      // Check for failure
+      if(equivEPSplasticF < std::numeric_limits<double>::infinity() &&
+         equivEPSplastic+sqrt(2./3.)*lambda*ComputeJ2(Xi) >= equivEPSplasticF)
+        {
+          if( Cep ) for(int i=0; i<9; i++) (*Cep)[i] = 0;
+          for(int i=0; i<9; i++) (*CauchyStress)[i] = 0;
+        }
       
       // If requested, update state of material
       if( UpdateFlag==true )

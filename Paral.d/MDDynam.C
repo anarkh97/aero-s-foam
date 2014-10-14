@@ -1229,7 +1229,9 @@ MultiDomainDynam::subGetInternalForce(int isub, DistrVector &f, double &t, int &
   if(domain->solInfo().newmarkBeta == 0 && domain->solInfo().stable && domain->solInfo().isNonLin() && tIndex%domain->solInfo().stable_freq == 0) {
     sd->getStiffAndForce(*(*geomState)[isub], eIF, allCorot[isub], kelArray[isub], residual, 1.0, t, (*geomState)[isub],
                          subReactions, melArray[isub]);
+/* PJSA 10/12/2014 this is done in getStiffAndForce now because it needs to be done before handleElementDeletion.
     sd->updateStates((*geomState)[isub], *(*geomState)[isub], allCorot[isub]);
+*/
   }
   else {
     sd->getInternalForce(*(*geomState)[isub], eIF, allCorot[isub], kelArray[isub], residual, 1.0, t, (*geomState)[isub],

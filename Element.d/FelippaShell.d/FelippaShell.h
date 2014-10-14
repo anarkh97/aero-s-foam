@@ -108,6 +108,7 @@ public:
         void getInternalForce(GeomState *refState, GeomState &geomState, CoordSet &cs,
                                FullSquareMatrix &elK, double *f, double dt, double t);
         void updateStates(GeomState *refState, GeomState &curState, CoordSet &C0);
+        bool checkElementDeletion(GeomState &);
         void initStates(double *);
         double getDissipatedEnergy(GeomState &, CoordSet &);
 

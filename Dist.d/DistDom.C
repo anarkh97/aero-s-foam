@@ -2192,14 +2192,22 @@ void
 GenDistrDomain<Scalar>::getDeletedElements(int iOut)
 {
   OutputInfo *oinfo = geoSource->getOutputInfo();
-  std::vector<std::pair<double,int> > &localDeletedElements = domain->solInfo().outDeletedElements;
-  std::vector<std::pair<double,int> >::iterator it;
 #ifdef SERIALIZED_OUTPUT
-  for(it = localDeletedElements.begin(); it != localDeletedElements.end(); ++it) {
-    fprintf(oinfo[iOut].filptr, " %12.6e  %9d          Undetermined\n", it->first, it->second+1);
+  for(int iSub = 0; iSub < this->numSub; ++iSub) {
+    std::vector<std::pair<double,int> > &deletedElements = this->subDomain[iSub]->getDeletedElements();
+    for(std::vector<std::pair<double,int> >::iterator it = deletedElements.begin(); it != deletedElements.end(); ++it) {
+      filePrint(oinfo[i].filptr, " %12.6e  %9d          Undetermined\n", it->first, it->second+1);
+    }
+    deletedElements.clear();
   }
 #else
-  int localCount = domain->solInfo().outDeletedElements.size();
+  std::vector<std::pair<double,int> > localDeletedElements;
+  for(int iSub = 0; iSub < this->numSub; ++iSub) {
+    std::vector<std::pair<double,int> > &deletedElements = this->subDomain[iSub]->getDeletedElements();
+    localDeletedElements.insert(localDeletedElements.end(), deletedElements.begin(), deletedElements.end());
+    deletedElements.clear();
+  }
+  int localCount = localDeletedElements.size();
   int *recvbuf = new int[this->communicator->size()];
   this->communicator->gather(&localCount, 1, recvbuf, 1);
   int globalCount;
@@ -2215,7 +2223,7 @@ GenDistrDomain<Scalar>::getDeletedElements(int iOut)
       sendbuf2 = new int[localCount];
       sendbuf3 = new double[localCount];
       int i=0;
-      for(it = localDeletedElements.begin(); it != localDeletedElements.end(); ++it, ++i) {
+      for(std::vector<std::pair<double,int> >::iterator it = localDeletedElements.begin(); it != localDeletedElements.end(); ++it, ++i) {
         sendbuf2[i] = it->second;
         sendbuf3[i] = it->first;
       }
@@ -2245,5 +2253,4 @@ GenDistrDomain<Scalar>::getDeletedElements(int iOut)
     }
   }
 #endif
-  domain->solInfo().outDeletedElements.clear();
 }

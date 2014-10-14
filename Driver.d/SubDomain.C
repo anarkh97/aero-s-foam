@@ -3421,10 +3421,9 @@ template<class Scalar>
 void
 GenSubDomain<Scalar>::makeKccDofsExp2(int nsub, GenSubDomain<Scalar> **sd)
 {
-  nCDofs = 0;
-  for(int i=0; i<nsub; ++i) nCDofs += sd[i]->getCDSA()->size();
+  int numC = numCoarseDofs();
   if(cornerEqNums) delete [] cornerEqNums;
-  cornerEqNums = new int[nCDofs];
+  cornerEqNums = new int[numC];
 
   // numbers the corner equations 
   int offset = 0;
@@ -3437,12 +3436,13 @@ GenSubDomain<Scalar>::makeKccDofsExp2(int nsub, GenSubDomain<Scalar> **sd)
          int count = cornerEqs->number(nodeMap[glCornerNodes[i]], cornerDofs[i].list(), cornerEqNums+offset);
          for(int k=0; k<count; ++k) cornerEqNums[offset+k] += offset2;
          offset += count;
+         break;
       }
       offset2 += cornerEqs->size();
     }
   }
   //std::cerr << "here in GenSubDomain<Scalar>::makeKccDofsExp, cornerEqNums = ";
-  //for(int i=0; i<nCDofs; ++i) std::cerr << cornerEqNums[i] << " "; std::cerr << std::endl;
+  //for(int i=0; i<numC; ++i) std::cerr << cornerEqNums[i] << " "; std::cerr << std::endl;
 }
 
 template<class Scalar>

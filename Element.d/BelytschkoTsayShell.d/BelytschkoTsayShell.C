@@ -157,9 +157,8 @@ void
 BelytschkoTsayShell::setMaterial(NLMaterial *m)
 {
   if(!prop) return; // phantom element
-  if(expmat && myMat) delete expmat;
-  expmat = dynamic_cast<ExpMat *>(m);
-  myMat = false;
+  if(ExpMat *expmat2 = dynamic_cast<ExpMat *>(m)) *expmat = *expmat2;
+  else return;
   if(expmat->optctv != 1) {
     double E = expmat->ematpro[0], nu = expmat->ematpro[1];
     double lambda = E*nu/((1+nu)*(1-2*nu)), mu = E/(2*(1+nu));
@@ -186,7 +185,7 @@ BelytschkoTsayShell::setMaterial(NLMaterial *m)
   }
   if(expmat->ematpro[17] == 0) expmat->ematpro[17] = 0.1;
   if(expmat->ematpro[18] == 0) expmat->ematpro[18] = 0.833;
-  if(expmat->ematpro[19] == 0) expmat->ematpro[19] = (prop) ? prop->eh : 0;
+  if(expmat->ematpro[19] == 0) expmat->ematpro[19] = prop->eh;
 }
 
 void

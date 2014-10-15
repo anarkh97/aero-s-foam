@@ -5,6 +5,7 @@
 #include <Element.d/Beam.d/TimoshenkoBeam.h>
 #include <Element.d/Triangle3.d/Triangle3.h>
 #include <Element.d/Membrane.d/Membrane.h>
+#include <Element.d/Membrane.d/FourNodeMembrane.h>
 #include <Element.d/Penta.d/Pentahedral.h>
 #include <Element.d/Tetra.d/Tetrahedral.h>
 #include <Element.d/Tetra10.d/TenNodeTetrahedral.h>
@@ -507,6 +508,12 @@ PrioInfo
 Membrane::examine(int sub, MultiFront *mf)
 {
   return examineTri3(sub, mf, nn);
+}
+
+PrioInfo
+FourNodeMembrane::examine(int sub, MultiFront *mf)
+{
+  return examineQuad4(sub, mf, nn);
 }
 
 PrioInfo 

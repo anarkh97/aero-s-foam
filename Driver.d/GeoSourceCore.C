@@ -1195,7 +1195,7 @@ void GeoSource::setUpData()
                               "     supported for explicit dynamics.  \x1B[0m\n");
             printOne = false;
           }
-          else if(printTwo && sinfo.newmarkBeta != 0 && prop->lagrangeMult == true && prop->penalty == 0 && solverClass == 0) {
+          else if(printTwo && sinfo.newmarkBeta != 0 && sinfo.mpcDirect == 0 && prop->lagrangeMult == true && prop->penalty == 0 && solverClass == 0) {
             // for statics, impe, eigen and implicit dynamics, certain solvers cannot be used with the multipliers
             // constraint method. This check could/should be more specific by considering inequality constraints.
             filePrint(stderr, "\x1B[31m *** WARNING: Equation solver unsuited \n"

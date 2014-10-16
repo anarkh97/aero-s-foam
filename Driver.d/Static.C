@@ -2994,6 +2994,7 @@ Domain::computeWeightWRTthicknessSensitivity(int sindex, AllSensitivities<double
      GenVector<double> weightDerivative(numele);
      std::map<int, Group> &group = geoSource->group;
      std::map<int, AttributeToElement> &atoe = geoSource->atoe;
+
      if(numThicknessGroups != group.size()) {
        std::cerr << " *** ERROR: number of parameters is not equal to the size of group \n"; 
        exit(-1);
@@ -3001,6 +3002,7 @@ Domain::computeWeightWRTthicknessSensitivity(int sindex, AllSensitivities<double
      allSens.weightWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, 1>(numThicknessGroups);
      allSens.weightWRTthick->setZero();
      std::map<int, Attrib> &attributes = geoSource->getAttributes();
+
      for(int iele = 0; iele < numele; ++iele) {
        if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isConstraintElement()) continue;
        StructProp *prop = packedEset[iele]->getProperty();
@@ -3470,7 +3472,7 @@ Domain::computeStressVMWRTthicknessSensitivity(int sindex,
          int NodesPerElement = elemToNode->num(iele);
          GenVector<double> dStressdThick(NodesPerElement);
          GenVector<double> weight(NodesPerElement,0.0);
-         int surface = senInfo[sindex].surface; //TODO: it is hardcoded to be 1, which corresponds to upper.
+         int surface = senInfo[sindex].surface;
          elDisp->zero();       
          // Determine element displacement vector
          for (int k=0; k < allDOFs->num(iele); ++k) {

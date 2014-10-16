@@ -170,7 +170,7 @@ void
 Element::getGravityForceSensitivityWRTthickness(CoordSet&, double *, int senMethod, Vector &forceSen, int, GeomState *)
 {
   if(!isConstraintElement() && !isSpring())
-    fprintf(stderr," *** WARNING: Gravity force Sensitivity not implemented for element (%6d), type %3d\n", getGlNum()+1, elementType);
+    fprintf(stderr," *** WARNING: Gravity force sensitivity not implemented for element (%6d), type %3d\n", getGlNum()+1, elementType);
   forceSen.zero();
 }
 
@@ -179,7 +179,7 @@ Element::getGravityForceSensitivityWRTNodalCoordinate(CoordSet& cs, double *grav
                                                       GenFullM<double> &dGfdx, int gravflg, GeomState *geomState)
 {
   if(!isConstraintElement() && !isSpring())
-    fprintf(stderr," *** WARNING: Gravity force Sensitivity not implemented for element (%6d), type %3d\n", getGlNum()+1, elementType);
+    fprintf(stderr," *** WARNING: Gravity force sensitivity not implemented for element (%6d), type %3d\n", getGlNum()+1, elementType);
   dGfdx.zero();
 }
 
@@ -220,18 +220,18 @@ Element::computeHeatFluxes(Vector &heatflux, CoordSet&, Vector &, int)
 void
 Element::computeSloshDisp(Vector &fluidDispSlosh, CoordSet&, Vector &, int)
 {
-  if (elementType != 302)  {
-      fprintf(stderr," *** WARNING: Fluid Displacements not implemented for element type %d\n", elementType);
-  fluidDispSlosh.zero();
+  if (elementType != 302) {
+    fprintf(stderr," *** WARNING: Fluid Displacements not implemented for element type %d\n", elementType);
+    fluidDispSlosh.zero();
   }
 }
 
 void
 Element::computeSloshDispAll(Vector &fluidDispSlosh, CoordSet&, Vector &)
 {
-  if (elementType != 302)  {
-      fprintf(stderr," *** WARNING: Fluid Displacements not implemented for element type %d\n", elementType);
-  fluidDispSlosh.zero();
+  if (elementType != 302) {
+    fprintf(stderr," *** WARNING: Fluid Displacements not implemented for element type %d\n", elementType);
+    fluidDispSlosh.zero();
   }
 }
 
@@ -357,7 +357,7 @@ Element::dampingMatrix(CoordSet& cs, double *m, int cmflg)
 FullSquareMatrix
 Element::imStiffness(CoordSet& cs, double *m, int cmflg)
 {
-  fprintf(stderr,"  ElementC imStiffness not implmented for this element\n");
+  fprintf(stderr, " *** WARNING: Element imStiffness not implmented for this element\n");
   FullSquareMatrix ret(4,m);
   ret.zero();
   return ret;
@@ -379,7 +379,6 @@ void Element::lumpMatrix(FullSquareMatrix& m)
     const double factor = MM/MD;
     for(int i = 0; i < dim; ++i) {
       m[i][i] *= factor;
-      //cerr << "i = " << i << ", m[i][i] = " << m[i][i] << endl;
       factors.push_back(m[i][i]/MM); // PJSA store this for getGravityForce
       for(int j = 0; j < i; ++j) {
         m[i][j] = m[j][i] = 0.0;

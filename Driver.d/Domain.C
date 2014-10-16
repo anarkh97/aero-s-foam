@@ -47,7 +47,7 @@ ModeData modeData;
 
 Domain::Domain(Domain &d, int nele, int *eles, int nnodes, int *nnums)
   : nodes(*new CoordSet(nnodes)), lmpc(0), fsi(0), ymtt(0), ctett(0), sdetaft(0),
-    SurfEntities(0), MortarConds(0), numThicknessGroups(0), numShapeVars(0)
+    SurfEntities(0), MortarConds(0)
 {
  initialize();
 
@@ -3072,6 +3072,7 @@ Domain::initialize()
  g_dsa = 0;
  numSensitivity = 0; senInfo = 0;
  runSAwAnalysis = false;   
+ numThicknessGroups = 0; numShapeVars = 0;
 }
 
 Domain::~Domain()

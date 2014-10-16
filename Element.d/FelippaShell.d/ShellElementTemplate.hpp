@@ -36,68 +36,73 @@ class ShellElementTemplate : public Membrane<doublereal>, public Bending<doubler
              doublereal *xlp, doublereal *ylp, doublereal *zlp, doublereal &area);
 
     void
-    andescrdWRTcoord(int elm, doublereal *x, doublereal *y, doublereal *z, doublereal *rot,
-                     doublereal *xlp, doublereal *ylp, doublereal *zlp, doublereal &area,
-                     doublereal *_dxpdx, doublereal *_dypdx, doublereal *_dzpdx,
-                     doublereal *_dxlpdx, doublereal *_dylpdx, doublereal *_dzlpdx, doublereal *_dareadx);
+    andesgf(int elm, doublereal *x, doublereal *y, doublereal *z, doublereal *gravityForce,
+            doublereal *gamma, int gravflg, doublereal rhoh);
 
     void
-    andesgf(int elm, doublereal *x, doublereal *y, doublereal *z, doublereal *_gravityForce,
-            doublereal *emass, doublereal *gamma, doublereal *grvfor,
-            bool grvflg, doublereal &totmas, bool masflg, int gravflg);
+    andesgfWRTcoord(int elm, doublereal *x, doublereal *y, doublereal *z,
+                    doublereal *J, doublereal *gamma, int gravflg, doublereal rhoh,
+                    int senMethod, doublereal eps);
 
     void
     andesms(int elm, doublereal *x, doublereal *y, doublereal *z,
             doublereal *emass, doublereal *gamma, doublereal *grvfor,
-            bool grvflg, doublereal &totmas, bool masflg);
+            bool grvflg, doublereal &totmas, bool masflg, doublereal rhoh);
 
     void
-    andesmsWRTthic(int elm, doublereal *x, doublereal *y, doublereal *z,
-                   doublereal *gamma, doublereal *grvforSen, bool grvflg,
-                   doublereal &totmasSen, bool masflg);
+    andesmsWRTcoord(int elm, doublereal *x, doublereal *y, doublereal *z,
+                    doublereal *J, doublereal rhoh, int senMethod, doublereal eps);
 
     void
     andesstf(int elm, doublereal *estiff, doublereal *fint, doublereal nu,
-             doublereal *x, doublereal *y, doublereal *z, doublereal *globalu,
+             doublereal *x, doublereal *y, doublereal *z, doublereal *u,
              int ctyp, int flag, doublereal *ndtemps = 0);
 
     void 
-    andesstfWRTthick(int elm, doublereal *_destiffdthick, doublereal nu,
+    andesstfWRTthick(int elm, doublereal *destiffdthick, doublereal nu,
                      doublereal *x, doublereal *y, doublereal *z,
-                     int ctyp, int flag);
-
-
-    void
-    andesvms(int elm, int maxstr, doublereal nu, doublereal *globalx,
-             doublereal *globaly, doublereal *globalz, doublereal *globalu,
-             doublereal *stress, int ctyp, int strainflg, int surface,
-             doublereal *ndtemps = 0);
+                     int ctyp, int flag, doublereal *ndtemps = 0);
 
     void
-    andesvmsWRTcoord(int elm, int maxstr, doublereal nu, doublereal *globalx,
-                     doublereal *globaly, doublereal *globalz, doublereal *globalu,
-                     doublereal *stress, doublereal *_dstressdx, int ctyp, int strainflg, int surface);
+    andesstfWRTcoord(int elm, doublereal *destiffdx[9], doublereal E,
+                     doublereal nu, doublereal rho, doublereal eh,
+                     doublereal Ta, doublereal W, doublereal *cFrame,
+                     doublereal *x, doublereal *y, doublereal *z,
+                     int ctyp, int flag, int senMethod, doublereal eps,
+                     doublereal *ndtemps = 0);
 
     void
-    andesvmsWRTdisp(int elm, int maxstr, doublereal nu, doublereal *globalx,
-             doublereal *globaly, doublereal *globalz, doublereal *globalu,
-             doublereal *stress, doublereal *_vmsWRTdisp, int ctyp, int strainflg, int surface);
+    andesvms(int elm, int maxstr, doublereal nu, doublereal *x, doublereal *y,
+             doublereal *z, doublereal *u, doublereal *stress, int ctyp,
+             int strainflg, int surface, doublereal *ndtemps = 0);
 
     void
-    andesvmsWRTthic(int elm, int maxstr, doublereal nu, doublereal *globalx,
-                    doublereal *globaly, doublereal *globalz, doublereal *globalu,
-                    doublereal *stress, doublereal *_vmsWRTthic, int ctyp, int strainflg, int surface);
+    andesvmsWRTdisp(int elm, doublereal nu, doublereal *x, doublereal *y,
+                    doublereal *z, doublereal *u, doublereal *vmsWRTdisp,
+                    int ctyp, int surface, doublereal *ndtemps = 0);
+
+    void
+    andesvmsWRTthic(int elm, doublereal nu, doublereal *x, doublereal *y,
+                    doublereal *z, doublereal *u, doublereal *vmsWRTthic,
+                    int ctyp, int surface, doublereal *ndtemps = 0);
+
+    void
+    andesvmsWRTcoord(int elm, doublereal E, doublereal nu, doublereal rho,
+                     doublereal eh, doublereal Ta, doublereal W, doublereal *cFrame,
+                     doublereal *x, doublereal *y, doublereal *z, doublereal *u,
+                     doublereal *vmsWRTcoord, int ctyp, int surface,
+                     int senMethod, doublereal eps, doublereal *ndtemps = 0);
 
     doublereal
     equivstr(doublereal sxx, doublereal syy, doublereal szz, doublereal sxy);
 
     Eigen::Matrix<doublereal,1,18>
     equivstrSensitivityWRTdisp(doublereal vms, doublereal sxx, doublereal syy, doublereal szz, doublereal sxy,
-                               Eigen::Matrix<doublereal,3,18> dsigmadu);
+                               Eigen::Matrix<doublereal,3,18> &dsigmadu);
 
-    Eigen::Matrix<doublereal,1,1>
+    doublereal
     equivstrSensitivityWRTthic(doublereal vms, doublereal sxx, doublereal syy, doublereal szz, doublereal sxy,
-                               Eigen::Matrix<doublereal,3,1> dsigmadh);
+                               Eigen::Matrix<doublereal,3,1> &dsigmadh);
 
     void
     transform(doublereal *lframe, doublereal *gframe, doublereal *str);

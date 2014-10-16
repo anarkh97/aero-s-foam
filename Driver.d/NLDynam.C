@@ -75,7 +75,7 @@ Domain::getInternalForce(GeomState &geomState, Vector& elementForce,
   const double pseudoTime = sinfo.isDynam() ? time : lambda; // mpc needs lambda for nonlinear statics
   BlastLoading::BlastData *conwep = (domain->solInfo().ConwepOnOff) ? &BlastLoading::InputFileData : NULL;
   if(elemAdj.empty()) makeElementAdjacencyLists();
-  newDeletedElements.clear();
+  if(time != domain->solInfo().initialTime) newDeletedElements.clear();
 
   for(int iele = 0; iele < numele; ++iele) {
 

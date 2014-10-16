@@ -670,6 +670,7 @@ SingleDomainDynamic::computeExtForce2(SysState<Vector> &state, Vector &ext_f,
                                       Vector *aero_f, double gamma, double alphaf, double *pt_dt)
 {
   times->formRhs -= getTime();
+  SolverInfo& sinfo = domain->solInfo();
 
   ext_f.zero();
   double *userDefineDisp = 0;
@@ -710,15 +711,15 @@ SingleDomainDynamic::computeExtForce2(SysState<Vector> &state, Vector &ext_f,
 
   // finish update of geomState. note that for nonlinear problems the unconstrained positiion and rotation
   // nodal variables have already been updated in updateDisplacement
-  if(domain->solInfo().isNonLin() || domain->tdenforceFlag()) {
-    if(!domain->solInfo().isNonLin()) {
+  if(sinfo.isNonLin() || domain->tdenforceFlag()) {
+    if(!sinfo.isNonLin()) {
       geomState->explicitUpdate(domain->getNodes(), state.getDisp());
     }
     if(userDefineDisp) geomState->updatePrescribedDisplacement(userDefineDisp, claw, domain->getNodes(),
                                                                userDefineVel, userDefineAcc);
   }
 
-  if(domain->solInfo().isNonLin() && domain->GetnContactSurfacePairs() && !domain->tdenforceFlag()) {
+  if(sinfo.isNonLin() && domain->GetnContactSurfacePairs() && !domain->tdenforceFlag()) {
     domain->UpdateSurfaces(MortarHandler::CTC, geomState);
     domain->PerformStaticContactSearch(MortarHandler::CTC);
     domain->deleteSomeLMPCs(mpc::ContactSurfaces);
@@ -729,16 +730,16 @@ SingleDomainDynamic::computeExtForce2(SysState<Vector> &state, Vector &ext_f,
   }
 
   // THERMOE update nodal temperatures
-  if(domain->solInfo().thermoeFlag >= 0 && tIndex >= 0) {
+  if(sinfo.thermoeFlag >= 0 && tIndex >= 0) {
     domain->thermoeComm();
     if(geomState) geomState->setNodalTemperatures(domain->getNodalTemperatures());
   }
 
   // add f(t) to cnst_f
   // for linear problems also add contribution of non-homogeneous dirichlet (DISP/TEMP/USDD etc)
-  double dt = domain->solInfo().getTimeStep();
-  double alpham = domain->solInfo().newmarkAlphaM;
-  double t0 = domain->solInfo().initialTime;
+  double dt = sinfo.getTimeStep();
+  double alpham = sinfo.newmarkAlphaM;
+  double t0 = sinfo.initialTime;
   double tm = (t == t0) ? t0 : t + dt*(alphaf-alpham);
   domain->computeExtForce4(ext_f, cnst_f, t, kuc, userSupFunc, cuc, tm, muc);
   if(userDefineDisp) delete [] userDefineDisp;
@@ -746,22 +747,22 @@ SingleDomainDynamic::computeExtForce2(SysState<Vector> &state, Vector &ext_f,
   if(userDefineAcc) delete [] userDefineAcc;
 
   // add aeroelastic forces from fluid dynamics code
-  if(domain->solInfo().aeroFlag >= 0 && tIndex >= 0 &&
-     !(geoSource->getCheckFileInfo()->lastRestartFile && domain->solInfo().aeroFlag == 20 && tIndex == domain->solInfo().initialTimeIndex)) {
+  if(sinfo.aeroFlag >= 0 && tIndex >= 0 &&
+     !(geoSource->getCheckFileInfo()->lastRestartFile && sinfo.aeroFlag == 20 && !sinfo.dyna3d_compat && tIndex == sinfo.initialTimeIndex)) {
     domain->buildAeroelasticForce(*aero_f, *prevFrc, tIndex, t, gamma, alphaf);
     ext_f += *aero_f;
   }
 
   // add aerothermal fluxes from fluid dynamics code
-  if(domain->solInfo().aeroheatFlag >= 0 && tIndex >= 0) 
+  if(sinfo.aeroheatFlag >= 0 && tIndex >= 0) 
     domain->buildAeroheatFlux(ext_f, prevFrc->lastFluidLoad, tIndex, t);
 
   // apply projector here for linear analyses only
-  if((domain->solInfo().filterFlags || domain->solInfo().hzemFilterFlag) && !domain->solInfo().isNonLin())
+  if((sinfo.filterFlags || sinfo.hzemFilterFlag) && !sinfo.isNonLin())
     trProject(ext_f); 
 
   if(tIndex == 1)
-    domain->solInfo().initExtForceNorm = ext_f.norm();
+    sinfo.initExtForceNorm = ext_f.norm();
 
   times->formRhs += getTime();
 }

@@ -87,7 +87,7 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
   BlastLoading::BlastData *conwep = (domain->solInfo().ConwepOnOff) ? &BlastLoading::InputFileData : NULL;
   bool compute_tangents = !initialTime && !solInfo().getNLInfo().linearelastic;
   if(elemAdj.empty()) makeElementAdjacencyLists();
-  newDeletedElements.clear();
+  if(time != domain->solInfo().initialTime) newDeletedElements.clear();
 
   for(int iele = 0; iele < numele; ++iele) {
 
@@ -2365,7 +2365,7 @@ Domain::writeRestartFile(double time, int timeIndex, Vector &v_n, Vector &a_n,
 // either test for pointer or frequency > 0
 
  ControlInfo *cinfo = geoSource->getCheckFileInfo();
- if((timeIndex % sinfo.nRestart == 0) || (time >= sinfo.tmax-0.1*domain->solInfo().getTimeStep())) {
+ if((timeIndex % sinfo.nRestart == 0) || (time >= sinfo.tmax-0.1*domain->solInfo().getTimeStep()) || domain->solInfo().stop_AeroS) {
 
    int fn;
    if(strlen(ext) != 0) {

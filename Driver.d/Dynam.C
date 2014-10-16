@@ -141,7 +141,7 @@ Domain::writeRestartFile(double time, int timeIndex, Vector &d_n,
 {
 // either test for pointer or frequency > 0
  ControlInfo *cinfo = geoSource->getCheckFileInfo();
- if(timeIndex % sinfo.nRestart == 0 || time >= sinfo.tmax-0.1*sinfo.getTimeStep()) {
+ if(timeIndex % sinfo.nRestart == 0 || time >= sinfo.tmax-0.1*sinfo.getTimeStep() || domain->solInfo().stop_AeroS) {
    int fn;
    if(strlen(ext) != 0) {
      char *currentRestartFile = new char[strlen(cinfo->currentRestartFile)+strlen(ext)+1];
@@ -364,7 +364,7 @@ Domain::buildAeroelasticForce(Vector& aero_f, PrevFrc& prevFrc, int tIndex, doub
   if(sinfo.aeroFlag == 20 && sinfo.dyna3d_compat) {
     if(sinfo.stop_AeroF) sinfo.stop_AeroS = true;
     double dt = sinfo.getTimeStep();
-    if(tIndex == sinfo.initialTimeIndex) sinfo.t_AeroF = 1.5*dt;
+    if(tIndex == sinfo.initialTimeIndex) sinfo.t_AeroF = sinfo.initialTime + 1.5*dt;
     else sinfo.t_AeroF += dt;
     double maxTime_AeroF = sinfo.tmax-0.5*dt;
     double sendtim;

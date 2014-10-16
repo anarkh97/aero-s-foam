@@ -684,6 +684,7 @@ MultiDomainDynam::computeExtForce2(SysState<DistrVector> &distState,
                                    double gamma, double alphaf)
 {
   times->formRhs -= getTime();
+  SolverInfo& sinfo = domain->solInfo();
 
   // compute USDD prescribed displacements
   double *userDefineDisp = 0;
@@ -706,8 +707,8 @@ MultiDomainDynam::computeExtForce2(SysState<DistrVector> &distState,
 
   // finish update of geomState. note that for nonlinear problems the positiion and rotation nodal variables
   // have already been updated in updateDisplacement
-  if(domain->solInfo().isNonLin() || domain->tdenforceFlag()) {
-    if(!domain->solInfo().isNonLin()) {
+  if(sinfo.isNonLin() || domain->tdenforceFlag()) {
+    if(!sinfo.isNonLin()) {
       execParal2R(decDomain->getNumSub(), this, &MultiDomainDynam::subExplicitUpdate, distState.getDisp(), geomState);
     }
     execParal4R(decDomain->getNumSub(), this, &MultiDomainDynam::subUpdateGeomStateUSDD, userDefineDisp, geomState,
@@ -715,16 +716,16 @@ MultiDomainDynam::computeExtForce2(SysState<DistrVector> &distState,
   }
 
   // update nodal temperatures for thermoe problem
-  if(domain->solInfo().thermoeFlag >= 0 && tIndex >= 0) {
+  if(sinfo.thermoeFlag >= 0 && tIndex >= 0) {
     distFlExchanger->getStrucTemp(nodalTemps->data());
     if(verboseFlag) filePrint(stderr, " ... [E] Received temperatures     ...\n");
     if(geomState) geomState->setNodalTemperatures(*nodalTemps);
   }
 
   // add f(t) to cnst_f
-  double dt = domain->solInfo().getTimeStep();
-  double alpham = domain->solInfo().newmarkAlphaM;
-  double t0 = domain->solInfo().initialTime;
+  double dt = sinfo.getTimeStep();
+  double alpham = sinfo.newmarkAlphaM;
+  double t0 = sinfo.initialTime;
   double tm = (t == t0) ? t0 : t + dt*(alphaf-alpham);
   MultiDomainOp mdop(&MultiDomainOp::computeExtForce,
                      decDomain->getAllSubDomains(), &f, &cnst_f, t, dynMat->Kuc, userSupFunc, dynMat->Cuc, tm, dynMat->Muc);
@@ -769,9 +770,8 @@ MultiDomainDynam::computeExtForce2(SysState<DistrVector> &distState,
   }
 
   // add aeroelastic forces from fluid dynamics code
-  SolverInfo& sinfo = domain->solInfo();
   if(sinfo.aeroFlag >= 0 && tIndex >= 0 &&
-     !(geoSource->getCheckFileInfo()->lastRestartFile && sinfo.aeroFlag == 20 && tIndex == sinfo.initialTimeIndex)) {
+     !(geoSource->getCheckFileInfo()->lastRestartFile && sinfo.aeroFlag == 20 && !sinfo.dyna3d_compat && tIndex == sinfo.initialTimeIndex)) {
 
     aeroForce->zero();
     int iscollocated;
@@ -814,7 +814,7 @@ MultiDomainDynam::computeExtForce2(SysState<DistrVector> &distState,
 
     /*  Compute fluid flux at n+1/2, since we use midpoint rule in thermal */
 
-    int useProjector = domain->solInfo().filterFlags;
+    int useProjector = sinfo.filterFlags;
 
     if(tIndex == 0)
       f += *aeroForce;
@@ -828,11 +828,11 @@ MultiDomainDynam::computeExtForce2(SysState<DistrVector> &distState,
   }
 
   // apply projector here for linear analyses only
-  if((domain->solInfo().filterFlags || domain->solInfo().hzemFilterFlag) && !domain->solInfo().isNonLin())
+  if((sinfo.filterFlags || sinfo.hzemFilterFlag) && !sinfo.isNonLin())
     trProject(f);
 
   if(tIndex == 1)
-    domain->solInfo().initExtForceNorm = f.norm();
+    sinfo.initExtForceNorm = f.norm();
 
   times->formRhs += getTime();
 }

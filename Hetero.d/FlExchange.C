@@ -28,6 +28,36 @@ typedef pair<int, pair<double, double> >  locoord;
 //         elem id      xi1     xi2
 
 
+#if __cplusplus >= 201103L
+using std::is_permutation;
+#else
+#include <iterator>
+template<class ForwardIt1, class ForwardIt2>
+bool is_permutation(ForwardIt1 first, ForwardIt1 last,
+                    ForwardIt2 d_first)
+{ 
+   // skip common prefix
+   std::pair<ForwardIt1, ForwardIt2> eq = std::mismatch(first, last, d_first);
+   first = eq.first;
+   d_first = eq.second;
+   // iterate over the rest, counting how many times each element
+   // from [first, last) appears in [d_first, d_last)
+   if (first != last) {
+       ForwardIt2 d_last = d_first;
+       std::advance(d_last, std::distance(first, last));
+       for (ForwardIt1 i = first; i != last; ++i) {
+            if (i != std::find(first, i, *i)) continue; // already counted this *i
+ 
+            typename std::iterator_traits<ForwardIt1>::difference_type m = std::count(d_first, d_last, *i);
+            if (m==0 || std::count(i, last, *i) != m) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+#endif
+
 const char *RECEIVE_LIST_KW = "RCVF";
 const char *SUBDOMAIN_KW = "SUBD";
 const char *SEND_LIST_KW = "SNDF";
@@ -1350,16 +1380,11 @@ FlExchanger::sendNewStructure(int numConnUpdated, int numLvlUpdated2, int numNew
     for(int j=0; j<nodeToFaceElem->num(n0); j++) { // loop over the face elements connected to this node
       int fj = (*nodeToFaceElem)[n0][j];
       feset[fj]->GetNodes(nodes, fnId);
-#if __cplusplus >= 201103L
-      if(found = std::is_permutation(_newConn+5*i+1, _newConn+5*i+5, nodes)) { // XXX std::is_permutation is defined in c++11 only
-                                                                               // also consider solid element deletion
+      if(found = is_permutation(_newConn+5*i+1, _newConn+5*i+5, nodes)) { // XXX also consider solid element deletion
         lvlsetElemNum[i] = newConn[5*i+0] = fj;
         for(int k=0; k<4; ++k) newConn[5*i+1+k] = nodes[k];
         break;
       }
-#else
-      std::cerr << "ERROR: c++11 standard library is required in FlExchanger::sendNewStructure.\n"; exit(-1);
-#endif
     }
     if(!found) { std::cerr << "ERROR: connectivity of a deleted element does not match any face on the embedded surface.\n"; exit(-1); }
   }

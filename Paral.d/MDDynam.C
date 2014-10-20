@@ -264,6 +264,7 @@ MultiDomainDynam::~MultiDomainDynam()
   int nsub = decDomain->getNumSub(); 
   delete times; 
   if(geomState) delete geomState; 
+  if(refState) delete refState;
   if(kelArray) { for(int i=0; i<nsub; ++i) delete [] kelArray[i]; delete [] kelArray; }
   if(melArray) { for(int i=0; i<nsub; ++i) delete [] melArray[i]; delete [] melArray; }
   if(allCorot) {
@@ -365,6 +366,7 @@ MultiDomainDynam::MultiDomainDynam(Domain *d)
   melArray = 0;
   allCorot = 0;
   geomState = 0;
+  refState = 0;
   dynMat = 0;
   reactions = 0;
   R = 0;
@@ -629,42 +631,14 @@ MultiDomainDynam::getContactForce(DistrVector &d_n, DistrVector &dinc, DistrVect
   times->tdenforceTime += getTime();
 }
 
-#include <Paral.d/MDNLStatic.h>
-#include <Driver.d/NLStaticProbType.h>
-void
-MultiDomainDynam::reSolve(MDDynamMat *dMat, DistrVector &force, int step, DistrVector &dinc)
-{
-  MDNLStatic nlstatic(domain, decDomain);
-  DistrVector residual(nlstatic.solVecInfo()), 
-              totalRes(nlstatic.solVecInfo()), 
-              stateIncr(nlstatic.solVecInfo()),
-              elementInternalForce(nlstatic.elemVecInfo());
-  DistrGeomState tmpState(*geomState);
-  int numIter = 0;
-
-  nlstatic.preProcess();
-  residual.zero();
-  totalRes.zero();
-  elementInternalForce.zero();
-
-  NLStaticSolver<ParallelSolver,DistrVector,MultiDomainPostProcessor,MDNLStatic,DistrGeomState>
-  ::newton(force, residual, totalRes, elementInternalForce, &nlstatic, dMat->dynMat, geomState, &tmpState,
-           &stateIncr, numIter, 1.0, step);
-
-  
-  tmpState.get_inc_displacement(dinc, *geomState, false);
-}
-
 void
 MultiDomainDynam::updateState(double dt_n_h, DistrVector& v_n_h, DistrVector& d_n)
 {
   if(domain->solInfo().isNonLin()) {
     DistrVector dinc(solVecInfo());
     dinc = dt_n_h*v_n_h;
-    DistrGeomState *refState = (domain->solInfo().timeIntegration == 1 && geomState->getTotalNumElemStates() > 0) ? new DistrGeomState(*geomState) : 0;
-    geomState->update(dinc, (domain->solInfo().newmarkBeta == 0) ? 1 : 0);
-    if(domain->solInfo().timeIntegration != 1) geomState->setVelocity(v_n_h);
-    else if(refState) { execParal2R(decDomain->getNumSub(), this, &MultiDomainDynam::subUpdateStates, refState, geomState); delete refState; }
+    geomState->update(dinc, 1);
+    geomState->setVelocity(v_n_h);
     geomState->get_tot_displacement(d_n, false);
   }
 }
@@ -1840,3 +1814,41 @@ MultiDomainDynam::postProcessSA(MDDynamMat*, DistrVector&)
   filePrint(stderr," ... MultiDomainDynam::postProcessSA is not implemented\n");
   exit(-1);
 }
+
+#include <Paral.d/MDNLQStatic.h>
+#include <Driver.d/NLStaticProbType.h>
+void
+MultiDomainDynam::solveAndUpdate(DistrVector &force, DistrVector &dinc, DistrVector &d, double relaxFac)
+{
+  int numElemStates = geomState->getTotalNumElemStates();
+  if(!refState) {
+    // For the first coupling cycle refState is the initial state as defined by either IDISP or restart, if specified.
+    refState = new DistrGeomState(*geomState);
+  }
+  else if(numElemStates == 0) {
+    // In this case dlambda is only used for the first cycle.
+    domain->solInfo().getNLInfo().dlambda = domain->solInfo().getNLInfo().maxLambda = 1.0;
+    for(int i = 0; i < decDomain->getNumSub(); ++i)
+      decDomain->getSubDomain(i)->solInfo().getNLInfo().dlambda = decDomain->getSubDomain(i)->solInfo().getNLInfo().maxLambda = 1.0;
+  }
+
+  MDNLQStatic nlstatic(domain, decDomain, force, refState);
+  NLStaticSolver<ParallelSolver,DistrVector,MultiDomainPostProcessor,MDNLQStatic,DistrGeomState> nlsolver(&nlstatic);
+  nlsolver.solve();
+
+  nlsolver.getGeomState()->get_inc_displacement(dinc, *geomState, false);
+  if(numElemStates == 0) {
+    // In this case refState now stores the solution of the previous non-linear solve, and will be used as the initial
+    // guess for the next coupling cycle's non-linear solve.
+    *refState = *nlsolver.getGeomState();
+  }
+
+  dinc *= relaxFac;
+  geomState->update(dinc);
+  if(numElemStates != 0) {
+    execParal2R(decDomain->getNumSub(), this, &MultiDomainDynam::subUpdateStates, refState, geomState);
+  }
+
+  geomState->get_tot_displacement(d, false);
+}
+

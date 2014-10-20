@@ -791,7 +791,7 @@ GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<S
   // check if there are any output files which need to be processed now
   if(geoSource->noOutput(x) && x != domain->solInfo().initialTimeIndex) return;
 
-  if(verboseFlag && x == 0 && ndflag == 0 && !domain->solInfo().isDynam())
+  if(verboseFlag && x == 0 && ndflag == 0 && !(domain->solInfo().isDynam() || domain->solInfo().timeIntegration == 1))
     filePrint(stderr," ... Postprocessing                 ...\n");
 
   Scalar *globVal = 0;  

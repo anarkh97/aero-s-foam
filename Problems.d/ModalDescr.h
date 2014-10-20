@@ -58,7 +58,6 @@ public:
   ModalOps* buildOps(double kcoef, double ccoef, double mcoef);
 
   void computeStabilityTimeStep(double &dt, ModalOps &){ /* leave blank */ }
-  void reSolve(ModalOps*, Vector &, int, Vector &){ /* leave blank */ }
   void updateState(double, Vector &, Vector &){ /* leave blank */ }
   void push_forward(Vector &){ /* leave blank */ }
   void pull_back(Vector &){ /* leave blank */ }
@@ -106,6 +105,8 @@ public:
 
   void aeroHeatPreProcess(Vector& d_n, Vector& v_n, Vector& v_p) { domain->aeroHeatPreProcess(d_n, v_n, v_p, bcx); }
   int getAeroheatFlag() { return domain->solInfo().aeroheatFlag; }
+
+  void solveAndUpdate(Vector &, Vector &, Vector &, double){ /* leave blank */ }
 };
 
 #ifdef _TEMPLATE_FIX_

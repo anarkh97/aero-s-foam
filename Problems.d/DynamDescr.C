@@ -176,6 +176,7 @@ SingleDomainDynamic::SingleDomainDynamic(Domain *d)
   melArray = 0;
   allCorot = 0;
   geomState = 0; 
+  refState = 0;
   userDefineDisp = 0;
   bcx = 0;
   vcx = 0;
@@ -198,6 +199,7 @@ SingleDomainDynamic::~SingleDomainDynamic()
   if(acx) delete [] acx;
   if(allSens) delete allSens;
   if(geomState) delete geomState;
+  if(refState) delete refState;
   if(times) delete times;
   if(prevFrc) delete prevFrc;
   if(prevFrcBackup) delete prevFrcBackup;
@@ -626,40 +628,13 @@ SingleDomainDynamic::getContactForce(Vector &d_n, Vector &dinc, Vector &ctc_f, d
   times->tdenforceTime += getTime();
 }
 
-#include <Problems.d/NonLinStatic.h>
-#include <Driver.d/NLStaticProbType.h>
-void
-SingleDomainDynamic::reSolve(DynamMat *dMat, Vector &force, int step, Vector &dinc)
-{
-  NonLinStatic nlstatic(domain);
-  Vector residual(nlstatic.solVecInfo()),
-         totalRes(nlstatic.solVecInfo()),
-         stateIncr(nlstatic.solVecInfo()),
-         elementInternalForce(nlstatic.elemVecInfo());
-  GeomState tmpState(*geomState);
-  int numIter = 0;
-
-  nlstatic.preProcess();
-  residual.zero();
-  totalRes.zero();
-  elementInternalForce.zero();
-
-  NLStaticSolver<Solver,Vector,SingleDomainPostProcessor<double,Vector,Solver>,NonLinStatic,GeomState>
-  ::newton(force, residual, totalRes, elementInternalForce, &nlstatic, dMat->dynMat, geomState, &tmpState,
-           &stateIncr, numIter, 1.0, step);
-
-  tmpState.get_inc_displacement(dinc, *geomState, false);
-}
-
 void
 SingleDomainDynamic::updateState(double dt_n_h, Vector &v_n_h, Vector &d_n)
 {
   if(domain->solInfo().isNonLin()) {
     Vector dinc(solVecInfo()); dinc = dt_n_h*v_n_h;
-    GeomState *refState = (domain->solInfo().timeIntegration == 1 && geomState->getTotalNumElemStates() > 0) ? new GeomState(*geomState) : 0;
-    geomState->update(dinc, (domain->solInfo().newmarkBeta == 0) ? 1 : 0);
-    if(domain->solInfo().timeIntegration != 1) geomState->setVelocity(v_n_h);
-    else if(refState) { domain->updateStates(refState, *geomState, allCorot); delete refState; }
+    geomState->update(dinc, 1);
+    geomState->setVelocity(v_n_h);
     geomState->get_tot_displacement(d_n, false);
   }
 }
@@ -1443,5 +1418,40 @@ int
 SingleDomainDynamic::getThermohFlag()
 {
   return domain->solInfo().thermohFlag;
+}
+
+#include <Problems.d/NonLinQStatic.h>
+#include <Driver.d/NLStaticProbType.h>
+void
+SingleDomainDynamic::solveAndUpdate(Vector &force, Vector &dinc, Vector &d, double relaxFac)
+{
+  int numElemStates = geomState->getTotalNumElemStates();
+  if(!refState) {
+    // For the first coupling cycle refState is the initial state as defined by either IDISP or restart, if specified.
+    refState = new GeomState(*geomState);
+  }
+  else if(numElemStates == 0) {
+    // In this case dlambda is only used for the first cycle.
+    domain->solInfo().getNLInfo().dlambda = domain->solInfo().getNLInfo().maxLambda = 1.0;
+  }
+
+  NonLinQStatic nlstatic(domain, force, refState);
+  NLStaticSolver<Solver,Vector,SingleDomainPostProcessor<double,Vector,Solver>,NonLinStatic,GeomState> nlsolver(&nlstatic);
+  nlsolver.solve();
+
+  nlsolver.getGeomState()->get_inc_displacement(dinc, *geomState, false);
+  if(numElemStates == 0) {
+    // In this case refState now stores the solution of the previous non-linear solve, and will be used as the initial
+    // guess for the next coupling cycle's non-linear solve.
+    *refState = *nlsolver.getGeomState();
+  }
+
+  dinc *= relaxFac;
+  geomState->update(dinc);
+  if(numElemStates != 0) {
+    domain->updateStates(refState, *geomState, allCorot);
+  }
+
+  geomState->get_tot_displacement(d, false);
 }
 

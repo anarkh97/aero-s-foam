@@ -954,8 +954,8 @@ struct SolverInfo {
    }
 
    bool isDynam() {
-     return ((probType == Dynamic) || (probType == NonLinDynam)
-             || (probType == TempDynamic) || (probType == MatNonLinDynam) || (probType == PodRomOffline));
+     return ((timeIntegration != Qstatic) && ((probType == Dynamic) || (probType == NonLinDynam)
+             || (probType == TempDynamic) || (probType == MatNonLinDynam) || (probType == PodRomOffline)));
    }
 
    bool isNonLin() {

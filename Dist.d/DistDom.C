@@ -134,7 +134,7 @@ GenDistrDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector
   int iOut_ffp = -1;
   int iOut_kir = -1;
 
-  if(x == domain->solInfo().initialTimeIndex && ndflag == 0 && !domain->solInfo().isDynam())
+  if(x == domain->solInfo().initialTimeIndex && ndflag == 0 && !(domain->solInfo().isDynam() || domain->solInfo().timeIntegration == 1))
     filePrint(stderr," ... Postprocessing                 ...\n");
   if(!masterFlag) initPostPro();
 
@@ -1359,7 +1359,7 @@ GenDistrDomain<Scalar>::postProcessing(DistrGeomState *geomState, GenDistrVector
 
   if(domain->outFlag && domain->nodeTable == 0) domain->makeNodeTable(domain->outFlag);
 
-  if(numOutInfo && x == 0 && !domain->solInfo().isDynam())
+  if(numOutInfo && x == 0 && !(domain->solInfo().isDynam() || domain->solInfo().timeIntegration == 1))
     filePrint(stderr," ... Postprocessing                 ...\n");
   if(!masterFlag) initPostPro();
 

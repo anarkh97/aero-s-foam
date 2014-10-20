@@ -129,7 +129,7 @@ protected:
     GenFullSquareMatrix<double> **kelArray;
     GenFullSquareMatrix<double> **melArray;
     Corotator ***allCorot;
-    DistrGeomState *geomState;
+    DistrGeomState *geomState, *refState;
     MDDynamMat *dynMat;
 
 private:
@@ -213,7 +213,6 @@ private:
     // Central Difference only related subroutines
     virtual void computeStabilityTimeStep(double&, MDDynamMat&);
 
-    void reSolve(MDDynamMat *dMat, DistrVector &force, int step, DistrVector &dinc);
     void updateState(double dt_n_h, DistrVector& v_n_h, DistrVector& d_n);
     void pull_back(DistrVector& f);
     void push_forward(DistrVector& a);
@@ -247,6 +246,9 @@ private:
     // Aeroheat
     void aeroHeatPreProcess(DistrVector&, DistrVector&, DistrVector&);
     int getAeroheatFlag();
+
+    // Non-linear quasi-static
+    void solveAndUpdate(DistrVector &force, DistrVector &dinc, DistrVector &d, double relaxFac);
    
   private:
     void projector_prep(MultiDomainRbm<double> *R, GenSubDOp<double> *M);

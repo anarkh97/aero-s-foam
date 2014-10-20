@@ -594,12 +594,9 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
     if(domain->solInfo().isNonLin()) {
 
-      // ... solve nonlinear system for current load
-      //     and compute displacement increment
-      probDesc->reSolve(&dynOps, rhs, tIndex, d_inc); // XXX consider delta != 0
-
-      // ... update solution
-      probDesc->updateState(relaxFac, d_inc, d_n);
+      // ... solve nonlinear system for current load, compute displacement increment
+      //     and update solution, applying relaxation factor.
+      probDesc->solveAndUpdate(rhs, d_inc, d_n, relaxFac); // XXX consider delta != 0
     }
     else {
 

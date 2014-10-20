@@ -146,7 +146,7 @@ BaseSub::makeCDSA()
     bcx = new double[numdofs];
     make_bc(bc, bcx);
 
-    if(solInfo().isDynam()) { // PJSA: initialize prescribed velocities
+    if(solInfo().isDynam() || solInfo().timeIntegration == 1) { // PJSA: initialize prescribed velocities
       vcx = new double[numdofs];
       acx = new double[numdofs];
       for(int i=0; i<numdofs; ++i) acx[i] = vcx[i] = 0.0;

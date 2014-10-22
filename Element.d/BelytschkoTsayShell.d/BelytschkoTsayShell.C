@@ -752,7 +752,7 @@ BelytschkoTsayShell::writeHistory(int fn)
   if(writeSize != 6*mgqpt[0]*sizeof(double))
     fprintf(stderr," *** ERROR: Inconsistent restart file 5.5\n");
 
-  if(expmat->optctv == 5 || expmat->optctv == 6 || expmat->optctv == 7 || expmat->optctv == 8) {
+  if(expmat && (expmat->optctv == 5 || expmat->optctv == 6 || expmat->optctv == 7 || expmat->optctv == 8)) {
     std::vector<double> PlasticStrain(3);
     std::vector<double> BackStress(3);
     double *state = new double[7*mgaus[2]];
@@ -797,7 +797,7 @@ BelytschkoTsayShell::readHistory(int fn)
   if(readSize != 6*mgqpt[0]*sizeof(double))
     fprintf(stderr," *** ERROR: Inconsistent restart file 5.5\n");
 
-  if(expmat->optctv == 5 || expmat->optctv == 6 || expmat->optctv == 7 || expmat->optctv == 8) {
+  if(expmat && (expmat->optctv == 5 || expmat->optctv == 6 || expmat->optctv == 7 || expmat->optctv == 8)) {
     std::vector<double> PlasticStrain;
     std::vector<double> BackStress;
     double *state = new double[7*mgaus[2]];

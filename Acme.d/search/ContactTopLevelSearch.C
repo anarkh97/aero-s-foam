@@ -611,7 +611,7 @@ ContactSearch::TopLevel_Search( SearchType search_type, Real& dt_old, Real& dt )
     primary_topology->Compute_Element_Geometry( AUGMENTED_POSITION );
   }
   if (do_face_face_search && !do_node_face_search) {
-    primary_topology->Compute_Face_Geometry( AUGMENTED_POSITION, false );
+    primary_topology->Compute_Face_Geometry( AUGMENTED_POSITION, false, true );
   }
   if (do_node_face_search) {
     if (tracking_type==GLOBAL_TRACKING && tracking_step>0) {

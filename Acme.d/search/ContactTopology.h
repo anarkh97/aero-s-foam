@@ -442,7 +442,7 @@ class ContactTopology {
     
 
   void Compute_Element_Geometry( int POSITION );
-  void Compute_Face_Geometry( int POSITION, bool use_proximity );
+  void Compute_Face_Geometry( int POSITION, bool use_proximity, bool loft_shells );
   void Compute_Surface_Geometry( int POSITION, int num_configs, bool use_proximity );
   double Compute_Curvature( const double*, const double*, const double*, 
 			    const double*);

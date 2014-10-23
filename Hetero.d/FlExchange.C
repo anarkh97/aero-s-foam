@@ -28,36 +28,6 @@ typedef pair<int, pair<double, double> >  locoord;
 //         elem id      xi1     xi2
 
 
-#if __cplusplus >= 201103L
-using std::is_permutation;
-#else
-#include <iterator>
-template<class ForwardIt1, class ForwardIt2>
-bool is_permutation(ForwardIt1 first, ForwardIt1 last,
-                    ForwardIt2 d_first)
-{ 
-   // skip common prefix
-   std::pair<ForwardIt1, ForwardIt2> eq = std::mismatch(first, last, d_first);
-   first = eq.first;
-   d_first = eq.second;
-   // iterate over the rest, counting how many times each element
-   // from [first, last) appears in [d_first, d_last)
-   if (first != last) {
-       ForwardIt2 d_last = d_first;
-       std::advance(d_last, std::distance(first, last));
-       for (ForwardIt1 i = first; i != last; ++i) {
-            if (i != std::find(first, i, *i)) continue; // already counted this *i
- 
-            typename std::iterator_traits<ForwardIt1>::difference_type m = std::count(d_first, d_last, *i);
-            if (m==0 || std::count(i, last, *i) != m) {
-                return false;
-            }
-        }
-    }
-    return true;
-}
-#endif
-
 const char *RECEIVE_LIST_KW = "RCVF";
 const char *SUBDOMAIN_KW = "SUBD";
 const char *SEND_LIST_KW = "SNDF";

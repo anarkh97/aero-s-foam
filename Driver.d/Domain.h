@@ -353,6 +353,7 @@ class Domain : public HData {
 
     std::set<int> newDeletedElements; // list of elements that have been deleted during the current time step
     std::vector<std::pair<double,int> > outDeletedElements; // used for "elemdele" output
+    Connectivity **nodeToFaceElem;
 
     FSCommunicator *com;
 
@@ -1171,6 +1172,7 @@ class Domain : public HData {
 
      void SetMortarPairing();
      void SetUpSurfaces(CoordSet* cs = 0);
+     void UpdateSurfaceTopology();
      void UpdateSurfaces(GeomState *, int config_type = 1);
      void UpdateSurfaces(DistrGeomState *geomState, int config_type, SubDomain **sd);
      void MakeNodalMass(SparseMatrix *M, SparseMatrix *Mcc);

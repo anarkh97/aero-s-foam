@@ -68,7 +68,7 @@ extern GeoSource *geoSource;
 extern SolverInfo &solInfo;
 
 FlExchanger::FlExchanger(CoordSet& _cs, Elemset& _eset, SurfaceEntity *_surf, DofSetArray *_dsa, 
-                         OutputInfo *_oinfo, bool _wCracking) : cs(_cs), surface(_surf), eset(_eset)
+                         OutputInfo *_oinfo, bool _wCracking) : cs(_cs), eset(_eset)
 { 
   dsa     = _dsa;
   oinfo   = _oinfo;
@@ -78,10 +78,31 @@ FlExchanger::FlExchanger(CoordSet& _cs, Elemset& _eset, SurfaceEntity *_surf, Do
   sentInitialCracking = false;
 
   if(wCracking) {
-    Connectivity faceElemToNode(surface->GetPtrFaceElemSet());
-    nodeToFaceElem = faceElemToNode.reverse();
+    // The deep copy of the surface entity is required because face elements may be removed from
+    // the surface due to element deletion. However, this class currently requires access to the
+    // original surface topology.
+    surface = new SurfaceEntity(*_surf);
+    faceElemToNode = new Connectivity(surface->GetPtrFaceElemSet());
+    nodeToFaceElem = faceElemToNode->reverse();
   }
-  else nodeToFaceElem = NULL;
+  else {
+    surface = _surf;
+    faceElemToNode = 0;
+    nodeToFaceElem = 0;
+  }
+
+  senderId = 0;
+  nbGaussPoints = 0;
+  GP_Table = 0;
+  nbData = 0;
+  pArray = 0;
+  pressureIndexForElem = 0;
+  idSendTo = 0;
+  nbSendTo = 0;
+  consOrigin = 0;
+  localF = 0;
+  buffer = 0;
+  sndTable = 0;
 }
 
 
@@ -94,14 +115,41 @@ FlExchanger::FlExchanger(CoordSet& _cs, Elemset& _eset, DofSetArray *_dsa,
  useFaceElem = false;
  wCracking = false;
  sentInitialCracking = false;
- nodeToFaceElem = NULL;
+ faceElemToNode = 0;
+ nodeToFaceElem = 0;
+ senderId = 0;
+ nbGaussPoints = 0;
+ GP_Table = 0;
+ nbData = 0;
+ pArray = 0;
+ pressureIndexForElem = 0;
+ idSendTo = 0;
+ nbSendTo = 0;
+ consOrigin = 0;
+ localF = 0;
+ buffer = 0;
+ sndTable = 0;
 }
 
 FlExchanger::~FlExchanger()
 {
+  if(tmpDisp) delete tmpDisp;
+  if(wCracking && surface) delete surface;
+  if(faceElemToNode) delete faceElemToNode;
   if(nodeToFaceElem) delete nodeToFaceElem;
+  if(senderId) delete [] senderId;
+  if(nbGaussPoints) delete [] nbGaussPoints;
+  if(GP_Table) delete [] GP_Table;
+  if(nbData) delete [] nbData;
+  if(pArray) delete [] pArray;
+  if(pressureIndexForElem) delete [] pressureIndexForElem;
+  if(idSendTo) delete [] idSendTo;
+  if(nbSendTo) delete [] nbSendTo;
+  if(consOrigin) delete [] consOrigin;
+  if(localF) delete [] localF;
+  if(buffer) delete [] buffer;
+  if(sndTable) delete [] sndTable;
 }
-
 
 double
 FlExchanger::getFluidLoad(Vector& force, int tIndex, double time,
@@ -422,65 +470,6 @@ void FlExchanger::sendModeFreq(double *modfrq, int nummod)
 
 }
 
-/*
-void FlExchanger::sendModeShapes(CoordinateSet & Coords,
-                         FreedomSet &Frdms,
-                         FixedSet &Presc,
-                           StateSet &State,
-                           ActiveDof &DofList,
-                           int nummod,
-                           int numnod,
-                           double *ModShp)
-{
- int zero = 0;
- int mynode;
- _FORTRAN(getnod)(mynode);
- double veloc[1000];
-
-  int ndf = 6;
-        for (unsigned int mod = 0; mod < nummod; mod++)
-                {
-
-                double* CurrModShp = ModShp + numnod * ndf * mod;
-                State.FillModeShape(CurrModShp,
-                                    Frdms.numdof(),
-                                    Frdms.idm());
-
-
- int i,j;
- for(i=0; i < nbrReceivingFromMe; i++) {
-   buffer[0] = mynode+1; buffer[1] = 6;
-   int pos = 2;
-   for(j=0; j < nbSendTo[i]; ++j) {
-     double vp[3];
-     Element *thisElement = allElements[sndTable[i][j].elemNum];
-     thisElement->Locate(Coords,Frdms,Presc,State, DofList);
-     thisElement->SetVeloc(Frdms,State, DofList,veloc);
-     thisElement->ComputeDisp(  veloc,
-                                sndTable[i][j].xy,
-                                buffer+pos, vp);
-     buffer[pos] += dt*(alpha[0]*buffer[pos+3]+ alpha[1]*vp[0]);
-     buffer[pos+1] += dt*(alpha[0]*buffer[pos+4]+ alpha[1]*vp[1]);
-     buffer[pos+2] += dt*(alpha[0]*buffer[pos+5]+ alpha[1]*vp[2]);
-     pos += 6;
-   }
-   int tag = 1201+mod;
-   int fluidNode  = idSendTo[i];
-   // fprintf(stderr," STRUCT : Ready to send to Node %4d Tag %8d\n",
-   //         fluidNode,tag);
-
-  // XML TO DO
-   _FORTRAN(nsedoc)(zero, tag, buffer, pos, fluidNode, toFluid);
-
-   // fprintf(stderr," STRUCT : Done of sending to Node %4d Tag %8d\n",
-   //         fluidNode,tag);
- }
-}
-  // XML TO DO
- _FORTRAN(nwonsd)();
-}
-*/
-
 //KW: send the embedded wet surface to fluid
 void FlExchanger::sendEmbeddedWetSurface()
 {
@@ -499,9 +488,20 @@ void FlExchanger::sendEmbeddedWetSurface()
   bool    renumbered = surface->IsRenumbered();
 
   int eType;
-  if(feset[0]->GetFaceElemType() == FaceElement::TRIFACEL3) eType = 3;
-  else if(feset[0]->GetFaceElemType() == FaceElement::QUADFACEL4) eType = 4;
-  else { fprintf(stderr,"ERROR: Embedded Wet Surface element type is not supported! Aborting...\n"); exit(-1); }
+  if(wCracking) {
+    // for element deletion, always use quads (convert triangles to degenerate quads)
+    eType = 4;
+  }
+  else {
+    // otherwise, convert triangles to degenerate quads only if there is at least one quad face.
+    eType = 3;
+    for(int i=0; i<nElems; ++i) {
+      if(feset[i]->GetFaceElemType() == FaceElement::QUADFACEL4) {
+        eType = 4;
+        break;
+      }
+    }
+  }
 
   // data preparation
   int    buf[4] = {eType, (int)wCracking, nNodes, nElems};
@@ -517,17 +517,18 @@ void FlExchanger::sendEmbeddedWetSurface()
   if(renumbered) 
     for(int i=0; i<nElems; i++) {
       FaceElement *ele = feset[i];
-      if(ele->GetFaceElemType() != feset[0]->GetFaceElemType()) {
-        fprintf(stderr,"ERROR: Embedded Wet Surface with multiple element types is not supported! Aborting...\n"); exit(-1);
-      }
-      for(int j=0; j<nne; ++j) 
+      for(int j=0; j<ele->nNodes(); ++j) 
         elems[nne*i+j] = ele->GetNode(j);
+      if(ele->GetFaceElemType() == FaceElement::TRIFACEL3 && eType == 4) // degenerate quad
+        elems[nne*i+3] = ele->GetNode(2);
     }
   else
     for(int i=0; i<nElems; i++) {
       FaceElement *ele = feset[i];
-      for(int j=0; j<nne; ++j)
+      for(int j=0; j<ele->nNodes(); ++j)
         elems[nne*i+j] = (*g2l)[ele->GetNode(j)];
+      if(ele->GetFaceElemType() == FaceElement::TRIFACEL3 && eType == 4) // degenerate quad
+        elems[nne*i+3] = (*g2l)[ele->GetNode(2)];
     }
 
   // send the package sizes
@@ -549,7 +550,6 @@ void FlExchanger::sendEmbeddedWetSurface()
 
   delete [] elems;
 }
-
 
 //KW: send the embedded wet surface to fluid
 void FlExchanger::sendEmbeddedWetSurface(int nNodes, double *nodes, int nElems, int *elems)
@@ -758,6 +758,15 @@ void FlExchanger::matchup() //comparable to matcher + read
     }
   }
 
+  delete [] rcvcomid;
+  delete [] rcvcomlen;
+  delete [] rcvEleList;
+  delete [] rcvGaussList;
+  delete [] wetMask;
+  delete [] table;
+  delete [] sndcomid;
+  delete [] sndcomlen;
+  delete [] interpPoints;
 
   //print interpPoints
 /*  for(int i=0; i<nbSendTo[0]; i++) {
@@ -1309,6 +1318,9 @@ FlExchanger::negotiate()
     return;
   }
 
+  if(consOrigin) delete [] consOrigin;
+  if(nbSendTo) delete [] nbSendTo;
+  if(idSendTo) delete [] idSendTo;
   consOrigin = new int[numFl];
   nbSendTo = new int[numFl]; // should be actual number of senders
   idSendTo = new int[numFl]; // should be actual number of senders
@@ -1349,7 +1361,9 @@ FlExchanger::negotiate()
     // To make sure we can reuse the buffers
     fluidCom->waitForAllReq();
   }
+  delete [] flSize;
   delete [] index;
+  delete [] allPt;
   delete [] buffer;
   buffer = new double[6*totSize];
 }
@@ -1365,64 +1379,104 @@ FlExchanger::sendNoStructure()
 }
 
 void
-FlExchanger::sendNewStructure(int numConnUpdated, int numLvlUpdated2, int numNewNodes, int* phantom_nodes_indices,
-                              double *phantom_nodes_xyz0, int *_newConn, int *_lvlsetElemNum, double *lvlsets, int *new2old)
+FlExchanger::sendNewStructure(std::set<int> &newDeletedElements)
 {
-  // Find the surface face elements/nodes corresponding to the deleted elements.
-  FaceElemSet& feset = surface->GetFaceElemSet();
-  int* fnId = surface->GetPtrGlNodeIds();
-  int *newConn = new int[5*numConnUpdated]; // XXX assuming 4-node quad elements
-  int *lvlsetElemNum = new int[numLvlUpdated2];
-  int nodes[4];
-  for(int i=0; i<numConnUpdated; i++) {
-    int n0 = _newConn[5*i+1]; // first node of the deleted element
-    bool found = false;
-    for(int j=0; j<nodeToFaceElem->num(n0); j++) { // loop over the face elements connected to this node
-      int fj = (*nodeToFaceElem)[n0][j];
-      feset[fj]->GetNodes(nodes, fnId);
-      if(found = is_permutation(_newConn+5*i+1, _newConn+5*i+5, nodes)) { // XXX also consider solid element deletion
-        lvlsetElemNum[i] = newConn[5*i+0] = fj;
-        for(int k=0; k<4; ++k) newConn[5*i+1+k] = nodes[k];
-        break;
+  std::set<int> newDeletedFaceElements;
+  int fnodes[12];
+  for(std::set<int>::iterator it = newDeletedElements.begin(); it != newDeletedElements.end(); ++it) {
+    Element *ele = eset[geoSource->glToPackElem(*it)];
+    int *enodes = ele->nodes();
+    std::map<int,int> *GlToLlNodeMap = surface->GetPtrGlToLlNodeMap();
+    for(int iNode=0; iNode < ele->numNodes(); ++iNode) {
+      std::map<int,int>::iterator it2 = GlToLlNodeMap->find(enodes[iNode]);
+      if(it2 == GlToLlNodeMap->end()) continue;
+      int *GlNodeIds = surface->GetPtrGlNodeIds();
+      for(int j=0; j<nodeToFaceElem->num(it2->second); j++) { // loop over the face elements connected to the iNode-th node
+        int k = (*nodeToFaceElem)[it2->second][j];
+        if(newDeletedFaceElements.find(k) != newDeletedFaceElements.end()) continue;
+        FaceElement *faceEl = surface->GetFaceElemSet()[k];
+        if(faceEl && (faceEl->nNodes() <= ele->numNodes())) {
+          faceEl->GetNodes(fnodes, GlNodeIds);
+#if (__cplusplus >= 201103L) || defined(HACK_INTEL_COMPILER_ITS_CPP11)
+          if(std::all_of(fnodes, fnodes+faceEl->nNodes(),
+                         [&](int i){return (std::find(enodes,enodes+ele->numNodes(),i)!=enodes+ele->numNodes());})) {
+            //std::cerr << "face element " << k+1 << " on embedded surface is associated with deleted element " << *it+1 << std::endl;
+            newDeletedFaceElements.insert(k);
+            break;
+          }
+#else
+          std::cerr << " *** ERROR: C++11 support required in FlExchanger::sendNewStructure().\n"; exit(-1);
+#endif
+        }
       }
     }
-    if(!found) { std::cerr << "ERROR: connectivity of a deleted element does not match any face on the embedded surface.\n"; exit(-1); }
+    delete [] enodes;
   }
 
-  // send cracking "stats".
-  int buf[4] = {1, numConnUpdated, numLvlUpdated2, numNewNodes};
-  fluidCom->sendTo(0, 22/*tag*/, buf, 4);
-  fluidCom->waitForAllReq();
+  if(newDeletedFaceElements.empty()) {
+    // in this case, none of the deleted elements are on the wet interface
+    sendNoStructure();
+  }
+  else {
+    int numConnUpdated = newDeletedFaceElements.size();
+    int *newConn = new int[5*numConnUpdated];
+    int numLvlUpdated2 = newDeletedFaceElements.size();
+    int *lvlsetElemNum = new int[numLvlUpdated2];
+    double *lvlsets = new double[4*numLvlUpdated2];
+    int numNewNodes = 0;
+    int* phantom_nodes_indices = NULL;
+    double *phantom_nodes_xyz0 = NULL;
+    int *new2old = NULL;
 
-  // for initial cracking, send phantom nodes.
-  if(!sentInitialCracking) {
-    fluidCom->sendTo(0, 55/*tag*/, phantom_nodes_xyz0, numNewNodes*3);
+    int i; std::set<int>::iterator it;
+    for(it = newDeletedFaceElements.begin(), i=0; it != newDeletedFaceElements.end(); ++it, ++i) {
+      newConn[5*i+0] = lvlsetElemNum[i] = *it;
+      for(int j=0; j<faceElemToNode->num(*it); ++j) {
+        newConn[5*i+1+j] = (*faceElemToNode)[*it][j];
+        lvlsets[4*i+j] = -1;
+      }
+      if(faceElemToNode->num(*it) == 3) { // convert 3-node triangle to degenerate quad
+        newConn[5*i+1+3] = (*faceElemToNode)[*it][2];
+        lvlsets[4*i+3] = -1;
+      }
+    }
+
+    // send cracking "stats".
+    int buf[4] = {1, numConnUpdated, numLvlUpdated2, numNewNodes};
+    fluidCom->sendTo(0, 22/*tag*/, buf, 4);
     fluidCom->waitForAllReq();
-    sentInitialCracking = true;
-  }
 
-  // send the integer package (topology + phi indices + new2old)
-  int pack1[numConnUpdated*5 + numLvlUpdated2 + 2*numNewNodes];
-  for(int i=0; i<numConnUpdated; i++) {
-    pack1[5*i] = newConn[5*i];
-    for(int j=1; j<5; j++)
-      pack1[5*i+j] = newConn[5*i+j];
-  }
-  for(int i=0; i<numLvlUpdated2; i++)
-    pack1[5*numConnUpdated+i] = lvlsetElemNum[i];
-  for(int i=0; i<numNewNodes; i++) {
-    pack1[5*numConnUpdated+numLvlUpdated2+2*i]   = phantom_nodes_indices[i];
-    pack1[5*numConnUpdated+numLvlUpdated2+2*i+1] = new2old[i];
-  }
-  fluidCom->sendTo(0, 33/*tag*/, pack1, numConnUpdated*5+numLvlUpdated2+2*numNewNodes);
-  fluidCom->waitForAllReq();
+    // for initial cracking, send phantom nodes.
+    if(!sentInitialCracking) {
+      fluidCom->sendTo(0, 55/*tag*/, phantom_nodes_xyz0, numNewNodes*3);
+      fluidCom->waitForAllReq();
+      sentInitialCracking = true;
+    }
 
-  // send phi
-  fluidCom->sendTo(0, 44/*tag*/, lvlsets, numLvlUpdated2*4);
-  fluidCom->waitForAllReq();
+    // send the integer package (topology + phi indices + new2old)
+    int pack1[numConnUpdated*5 + numLvlUpdated2 + 2*numNewNodes];
+    for(int i=0; i<numConnUpdated; i++) {
+      pack1[5*i] = newConn[5*i];
+      for(int j=1; j<5; j++)
+        pack1[5*i+j] = newConn[5*i+j];
+    }
+    for(int i=0; i<numLvlUpdated2; i++)
+      pack1[5*numConnUpdated+i] = lvlsetElemNum[i];
+    for(int i=0; i<numNewNodes; i++) {
+      pack1[5*numConnUpdated+numLvlUpdated2+2*i]   = phantom_nodes_indices[i];
+      pack1[5*numConnUpdated+numLvlUpdated2+2*i+1] = new2old[i];
+    }
+    fluidCom->sendTo(0, 33/*tag*/, pack1, numConnUpdated*5+numLvlUpdated2+2*numNewNodes);
+    fluidCom->waitForAllReq();
 
-  delete [] newConn;
-  delete [] lvlsetElemNum;
+    // send phi
+    fluidCom->sendTo(0, 44/*tag*/, lvlsets, numLvlUpdated2*4);
+    fluidCom->waitForAllReq();
+
+    delete [] newConn;
+    delete [] lvlsetElemNum;
+    delete [] lvlsets;
+  }
 }
 
 void

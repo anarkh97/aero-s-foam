@@ -583,6 +583,7 @@ SingleDomainDynamic::getContactForce(Vector &d_n, Vector &dinc, Vector &ctc_f, d
   if(domain->tdenforceFlag()) {
 
     times->updateSurfsTime -= getTime();
+    domain->UpdateSurfaceTopology(); // remove deleted elements
     domain->UpdateSurfaces(geomState, 1); // update to current configuration
     times->updateSurfsTime += getTime();
 

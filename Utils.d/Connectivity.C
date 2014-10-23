@@ -260,6 +260,28 @@ Connectivity::Connectivity(FaceElemSet* els)
   file.read(target, numtarget);
 }*/
 
+Connectivity::Connectivity(const Connectivity &other)
+ : removeable(true), size(other.size), numtarget(other.numtarget)
+{
+  if(other.pointer) {
+    pointer = new int[size];
+    for(int i=0; i<size; ++i) pointer[i] = other.pointer[i];
+  }
+  else pointer = NULL;
+
+  if(other.target) {
+    target = new int[numtarget];
+    for(int i=0; i<numtarget; ++i) target[i] = other.target[i];
+  }
+  else pointer = NULL;
+
+  if(other.weight) {
+    weight = new float[size];
+    for(int i=0; i<size; ++i) weight[i] = other.weight[i];
+  }
+  else weight = NULL;
+}
+
 Connectivity::~Connectivity()
 {
  if(removeable && pointer) { delete [] pointer; pointer = 0; }

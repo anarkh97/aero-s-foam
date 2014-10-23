@@ -1058,7 +1058,7 @@ DynInfo:
 DeleteElements:
         DELETEELEMENTS NewLine DeleteElementsList NewLine
         { domain->solInfo().elementDeletion = true; }
-        | DeleteElements NewLine DeleteElementsList NewLine
+        | DeleteElements DeleteElementsList NewLine
         ;
 DeleteElementsList:
         Float Integer

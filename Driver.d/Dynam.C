@@ -267,25 +267,7 @@ Domain::aeroSend(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, double* bcx
 
   if(sinfo.dyna3d_compat) {
     if(sinfo.elementDeletion && !newDeletedElements.empty()) {
-      // XXX note: element deletion FSI is only supported for 4-node quad elements
-      int nEle = newDeletedElements.size();
-      int *newConn = new int[5*nEle];
-      int *lvlsetElemNum = new int[nEle];
-      double *lvlsets = new double[4*nEle];
-
-      int i; std::set<int>::iterator it;
-      for(it = newDeletedElements.begin(), i=0; it != newDeletedElements.end(); ++it, ++i) {
-        newConn[5*i+0] = lvlsetElemNum[i] = *it;
-        for(int j=0; j<elemToNode->num(*it); ++j) {
-          newConn[5*i+1+j] = (*elemToNode)[*it][j];
-          lvlsets[4*i+j] = -1;
-        }
-      }
-      flExchanger->sendNewStructure(nEle, nEle, 0, (int*)NULL, (double*)NULL, newConn, lvlsetElemNum, lvlsets, (int*)NULL);
-      delete [] newConn;
-      delete [] lvlsetElemNum;
-      delete [] lvlsets;
-      // newDeletedElements is now cleared in getInternalForce
+      flExchanger->sendNewStructure(newDeletedElements);
     }
     else flExchanger->sendNoStructure();
   }

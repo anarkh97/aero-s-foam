@@ -27,6 +27,7 @@ using std::list;
 #include <Driver.d/GeoSource.h>
 #include <Feti.d/DistrVector.h>
 #include <Corotational.d/DistrGeomState.h>
+#include <Hetero.d/FlExchange.h>
 
 #include <Element.d/Rigid.d/RigidBeam.h>
 #include <Element.d/Rigid.d/RigidThreeNodeShell.h>
@@ -2662,6 +2663,59 @@ void Domain::RemoveGap(Vector &g)
   }
 }
 
+void Domain::UpdateSurfaceTopology()
+{
+  if(newDeletedElements.empty()) return;
+
+  if(!nodeToFaceElem) {
+    nodeToFaceElem = new Connectivity * [nSurfEntity];
+    for(int iSurf=0; iSurf<nSurfEntity; ++iSurf) {
+      Connectivity faceElemToNode(SurfEntities[iSurf]->GetPtrFaceElemSet());
+      nodeToFaceElem[iSurf] = faceElemToNode.reverse();
+    }
+  }
+
+  int fnodes[12];
+  for(std::set<int>::iterator it = newDeletedElements.begin(); it != newDeletedElements.end(); ++it) {
+    Element *ele = packedEset[geoSource->glToPackElem(*it)];
+    int *enodes = ele->nodes();
+    for(int iSurf=0; iSurf<nSurfEntity; ++iSurf) {
+      std::map<int,int> *GlToLlNodeMap = SurfEntities[iSurf]->GetPtrGlToLlNodeMap();
+      for(int iNode=0; iNode < ele->numNodes(); ++iNode) {
+        std::map<int,int>::iterator it2 = GlToLlNodeMap->find(enodes[iNode]);
+        if(it2 == GlToLlNodeMap->end()) continue;
+        int *GlNodeIds = SurfEntities[iSurf]->GetPtrGlNodeIds();
+        for(int j=0; j<nodeToFaceElem[iSurf]->num(it2->second); j++) { // loop over the face elements connected to the iNode-th node
+          int k = (*nodeToFaceElem[iSurf])[it2->second][j];
+          FaceElement *faceEl = SurfEntities[iSurf]->GetFaceElemSet()[k];
+          if(faceEl && (faceEl->nNodes() <= ele->numNodes())) {
+            faceEl->GetNodes(fnodes, GlNodeIds);
+#if (__cplusplus >= 201103L) || defined(HACK_INTEL_COMPILER_ITS_CPP11)
+            if(std::all_of(fnodes, fnodes+faceEl->nNodes(),
+                           [&](int i){return (std::find(enodes,enodes+ele->numNodes(),i)!=enodes+ele->numNodes());})) {
+              //std::cerr << "removing face element " << k+1 << " from surface " << SurfEntities[iSurf]->GetId() << std::endl;
+              SurfEntities[iSurf]->RemoveFaceElement(k);
+              break;
+            }
+#else
+            std::cerr << " *** ERROR: C++11 support required in Domain::UpdateSurfaceTopology().\n"; exit(-1); 
+#endif
+          }
+        }
+      }
+    }
+    delete [] enodes;
+  }
+
+  for(int iSurf=0; iSurf<nSurfEntity; ++iSurf) {
+    SurfEntities[iSurf]->Reset(&(geoSource->GetNodes()));
+    delete nodeToFaceElem[iSurf];
+  }
+  delete [] nodeToFaceElem; nodeToFaceElem = 0;
+
+  domain->InitializeDynamicContactSearch(); // XXX check for memory leaks
+}
+
 void Domain::UpdateSurfaces(GeomState *geomState, int config_type) // config_type = 1 for current, 2 for predicted
 {
   for(int iSurf=0; iSurf<nSurfEntity; iSurf++) {
@@ -3066,6 +3120,7 @@ Domain::initialize()
  output_match_in_top = false;
  C_condensed = 0;
  nContactSurfacePairs = 0; maxContactSurfElems = 0;
+ nodeToFaceElem = 0;
  outFlag = 0;
  nodeTable = 0;
  MpcDSA = 0; nodeToNodeDirect = 0;
@@ -3139,6 +3194,7 @@ Domain::~Domain()
  for(int i=0; i<numLMPC; ++i)
    if(lmpc[i]) delete lmpc[i];
  if(nodeTable) delete [] nodeTable;
+ if(flExchanger) delete flExchanger;
  if(MpcDSA) delete MpcDSA; if(nodeToNodeDirect) delete nodeToNodeDirect;
  for(int i=0; i<contactSurfElems.size(); ++i)
    packedEset.deleteElem(contactSurfElems[i]);

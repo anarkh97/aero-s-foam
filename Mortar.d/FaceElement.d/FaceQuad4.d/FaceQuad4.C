@@ -56,6 +56,12 @@ FaceQuad4::FaceQuad4(int* nodenums)
   Nodes[3] = nodenums[3];
 }
 
+FaceElement *
+FaceQuad4::clone()
+{
+  return new FaceQuad4(Nodes);
+}
+
 // -----------------------------------------------------------------------------------------------------
 //                                       SETUP & UPDATE METHODS
 // -----------------------------------------------------------------------------------------------------
@@ -420,10 +426,10 @@ void FaceQuad4::computeDisp(CoordSet&, State &state, const InterpPoint &ip, doub
                             GeomState*, int *fnId) 
 {
   double xyz[4][6];
-  state.getDV(Nodes[0], xyz[0], xyz[0]+3);
-  state.getDV(Nodes[1], xyz[1], xyz[1]+3);
-  state.getDV(Nodes[2], xyz[2], xyz[2]+3);
-  state.getDV(Nodes[3], xyz[3], xyz[3]+3);
+  state.getDV(fnId[Nodes[0]], xyz[0], xyz[0]+3);
+  state.getDV(fnId[Nodes[1]], xyz[1], xyz[1]+3);
+  state.getDV(fnId[Nodes[2]], xyz[2], xyz[2]+3);
+  state.getDV(fnId[Nodes[3]], xyz[3], xyz[3]+3);
 
   double Shape[4];
   GetShapeFctVal(Shape, const_cast<double*>(ip.xy));

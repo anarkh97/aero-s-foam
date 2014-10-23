@@ -40,6 +40,77 @@ SurfaceEntity::SurfaceEntity(int _Id):ElemSet()
    Id = _Id;
 }
 
+SurfaceEntity::SurfaceEntity(const SurfaceEntity &other)
+ : Id(other.Id),
+   ElemSet(other.ElemSet.size()), 
+   nNodes(other.nNodes),
+   nVertices(other.nVertices),
+   LocalNumbering(other.LocalNumbering),
+   nTri3(other.nTri3),
+   nTri6(other.nTri6),
+   nQuad4(other.nQuad4),
+   nQuad8(other.nQuad8),
+   ReverseNormals(other.ReverseNormals),
+   IsShellFace(other.IsShellFace),
+   ShellThickness(other.ShellThickness),
+   PreserveOrdering(other.PreserveOrdering)
+{
+  for(int i=0; i<other.ElemSet.size(); ++i) {
+    if(FaceElement *faceEl = other.ElemSet[i]) ElemSet.elemadd(i, faceEl->clone());
+    else ElemSet.elemadd(i, (FaceElement*)0);
+  }
+
+  NodeCoordMap = (other.NodeCoordMap) ? new std::map<int,Node>(*other.NodeCoordMap) : 0;
+
+  if(other.gNodeIds) {
+    gNodeIds = new int[nNodes];
+    for(int i=0; i<nNodes; ++i) gNodeIds[i] = other.gNodeIds[i];
+  }
+  else gNodeIds = 0;
+
+  LlToGlNodeMap = (other.LlToGlNodeMap) ? gNodeIds : 0;
+  GlToLlNodeMap = (other.GlToLlNodeMap) ? new std::map<int,int>(*other.GlToLlNodeMap) : 0;
+
+  if(other.NodeSet) {
+    int size = other.NodeSet->size();
+    NodeSet = new CoordSet(size);
+    for(int i=0; i<size; ++i) {
+      if(Node *node = (*other.NodeSet)[i]) NodeSet->nodeadd(i, *node);
+    }
+  }
+  else NodeSet = 0;
+
+  if(other.gVertexIds) {
+    gVertexIds = new int[nVertices];
+    for(int i=0; i<nVertices; ++i) gVertexIds[i] = other.gVertexIds[i];
+  }
+  else gVertexIds = 0;
+
+  LlToGlVertexMap = (other.LlToGlVertexMap) ? gVertexIds : 0;
+
+  GlToLlVertexMap = (other.GlToLlVertexMap) ? new std::map<int,int>(*other.GlToLlVertexMap) : 0;
+
+  if(other.LlVertexToLlNodeMap) {
+    LlVertexToLlNodeMap = new int[nVertices];
+    for(int i=0; i<nVertices; ++i) LlVertexToLlNodeMap[i] = other.LlVertexToLlNodeMap[i];
+  }
+  else LlVertexToLlNodeMap = 0;
+
+  ACMEBlocksMap = (other.ACMEBlocksMap) ? new Connectivity(*other.ACMEBlocksMap) : 0;
+
+#ifdef HB_NODALNORMAL
+  if(other.NdNormals) {
+    NdNormals = new double[nNodes][3];
+    for(int i=0; i<nNodes; ++i) {
+      NdNormals[i][0] = other.NdNormals[i][0];
+      NdNormals[i][1] = other.NdNormals[i][1];
+      NdNormals[i][2] = other.NdNormals[i][2];
+    }
+  }
+  else NdNormals = 0;
+#endif
+}
+
 // -----------------------------------------------------------------------------------------------------
 //                                           DESTRUCTORS 
 // -----------------------------------------------------------------------------------------------------
@@ -66,7 +137,7 @@ void
 SurfaceEntity::Initialize()
 {
   Id = -1;
- 
+  NodeCoordMap = 0; 
   LocalNumbering = false;
  
   nNodes         = 0;
@@ -95,7 +166,7 @@ SurfaceEntity::Initialize()
 }
 
 // -----------------------------------------------------------------------------------------------------
-//                                          SETUP & UPDATE  METHODS
+//                                          SETUP & UPDATE METHODS
 // -----------------------------------------------------------------------------------------------------
 void
 SurfaceEntity::SetUpData(CoordSet* cs)
@@ -464,6 +535,19 @@ SurfaceEntity::FillACMEFaceBlocks(int* face_connectivity, std::map<int,int>& Old
   return(offset);
 }
 
+void
+SurfaceEntity::Reset(CoordSet* cs)
+{
+  // this function should be called after elements are removed from ElemSet, e.g. due to element deletion
+  ElemSet.repack();
+  int *GlNodeIds = GetPtrGlNodeIds();
+  std::map<int,int> LlToGlNodeMap;
+  for(int i=0; i<GetnNodes(); ++i) LlToGlNodeMap[i] = GlNodeIds[i];
+  Renumber(LlToGlNodeMap);
+  SetUpData(cs);
+  Renumber();
+}
+
 // -----------------------------------------------------------------------------------------------------
 //                                            SET METHODS
 // -----------------------------------------------------------------------------------------------------
@@ -492,6 +576,12 @@ void
 SurfaceEntity::AddFaceElement(FaceElement* FaceElem)
 {
   ElemSet.elemadd(ElemSet.last(), FaceElem);
+}
+
+void
+SurfaceEntity::RemoveFaceElement(int num)
+{
+  ElemSet.remove(num);
 }
 
 void 

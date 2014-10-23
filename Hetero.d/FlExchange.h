@@ -75,7 +75,7 @@ class FlExchanger {
 
      bool wCracking;
      bool sentInitialCracking;
-     Connectivity *nodeToFaceElem;
+     Connectivity *faceElemToNode, *nodeToFaceElem;
 
    public:
      //KW (Jul.27,2010): FS Communication using Face Elements
@@ -116,24 +116,14 @@ class FlExchanger {
      void sendEmbeddedWetSurface();
      void sendEmbeddedWetSurface(int nNodes, double *nodes, int nElems, int *elems);
      void printreceiving();
-/*
-     void sendModeShapes(CoordinateSet &,
-                         FreedomSet &,
-                         FixedSet &,
-                         StateSet &,
-                         ActiveDof &,
-                         int numModes,
-                         int numNodes,
-                         double *modShp);
-*/
+
       void initSndParity(int pinit) { sndParity = pinit; }
       void initRcvParity(int pinit) { rcvParity = pinit; }
       void flipSndParity() { if(sndParity >= 0) sndParity = 1-sndParity; }
       void flipRcvParity() { if(rcvParity >= 0) rcvParity = 1-rcvParity; }
 
       void sendNoStructure();
-      void sendNewStructure(int numConnUpdated, int numLvlUpdated2, int numNewNodes, int* phantom_nodes_indices,
-                            double *phantom_nodes_xyz0, int *newConn, int *lvlsetElemNum, double *lvlsets, int *new2old);
+      void sendNewStructure(std::set<int> &newDeletedElements);
 
       void sendNumParam(int);
       void sendRelativeResidual(double);

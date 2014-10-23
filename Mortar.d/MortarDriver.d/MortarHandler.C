@@ -1631,6 +1631,7 @@ MortarHandler::build_search(bool tdenforceFlag, int numSub, SubDomain **sd)
   num_nodes_per_block[0] = nACMENodes;
   double* ACMENodesCoord = new double[3*nACMENodes];
 
+  if(node_global_ids) delete [] node_global_ids;
   node_global_ids = new int[2*nACMENodes];
   int* node_exodus_ids = new int[nACMENodes];
 
@@ -1827,6 +1828,7 @@ MortarHandler::build_search(bool tdenforceFlag, int numSub, SubDomain **sd)
   filePrint(stderr,"   * build ACME search object\n");
 #endif
   ContactSearch::ContactErrorCode error;
+  if(search_obj) delete search_obj;
   search_obj = new ContactSearch( dimensionality,
                             num_states,
                             num_analytical_surfs,
@@ -2522,6 +2524,7 @@ MortarHandler::build_td_enforcement()
   bool get_cvars = true;
   bool calc_plot_force = false;
   ContactSearch::ContactErrorCode error;
+  if(contact_obj) delete contact_obj;
   if((ConstraintOptionsData && ConstraintOptionsData->lagrangeMult == 0 && ConstraintOptionsData->penalty != 0) ||
      (ConstraintOptionsData == NULL && domain->solInfo().lagrangeMult == 0 && domain->solInfo().penalty != 0)) {
     contact_obj = new ContactTDEnfPenalty(Enforcement_Data, search_obj, error, get_cvars, calc_plot_force);

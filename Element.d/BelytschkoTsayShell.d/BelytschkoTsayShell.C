@@ -127,6 +127,7 @@ BelytschkoTsayShell::BelytschkoTsayShell(int* nodenums)
   expmat = 0;
   myMat = false;
   pbc = 0;
+  mat = 0;
 }
 
 BelytschkoTsayShell::~BelytschkoTsayShell()
@@ -139,6 +140,10 @@ BelytschkoTsayShell::~BelytschkoTsayShell()
   delete [] evoit2;
   delete [] evoit3;
   if(expmat && myMat) delete expmat;
+  if(mat) {
+    for(int i=0; i<mgaus[2]; ++i) delete mat[i];
+    delete [] mat;
+  }
 }
 
 void
@@ -766,6 +771,7 @@ BelytschkoTsayShell::writeHistory(int fn)
     writeSize = write(fn, state, 7*mgaus[2]*sizeof(double));
     if(writeSize != 7*mgaus[2]*sizeof(double))
       fprintf(stderr," *** ERROR: Inconsistent restart file 5.6\n");
+    delete [] state;
   }
 }
 
@@ -813,6 +819,7 @@ BelytschkoTsayShell::readHistory(int fn)
       mat[i]->SetMaterialBackStress(BackStress);
       mat[i]->SetMaterialEquivalentPlasticStrain(state[l++]);
     }
+    delete [] state;
   }
 }
 

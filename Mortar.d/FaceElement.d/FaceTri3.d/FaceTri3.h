@@ -30,6 +30,7 @@ class FaceTri3: public FaceElement {
         // Constructors
         // ~~~~~~~~~~~~
         FaceTri3(int *);
+        FaceElement* clone();
 
         // Setup & update methods
         // ~~~~~~~~~~~~~~~~~~~~~~

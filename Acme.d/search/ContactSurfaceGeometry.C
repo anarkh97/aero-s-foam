@@ -97,7 +97,7 @@ void ContactTopology::Compute_Element_Geometry( VariableHandle POSITION )
   #endif
 }
 
-void ContactTopology::Compute_Face_Geometry( VariableHandle POSITION, bool check_context )
+void ContactTopology::Compute_Face_Geometry( VariableHandle POSITION, bool check_context, bool loft_shells )
 {
   PRECONDITION( topology_type == PRIMARY );
 
@@ -218,8 +218,7 @@ void ContactTopology::Compute_Face_Geometry( VariableHandle POSITION, bool check
   #endif
 
   // PJSA: Loft the shell nodes to the appropriate location
-  if( Have_Shells() ){
-    //std::cerr << "here in ContactTopology::Compute_Face_Geometry, lofting nodes\n";    
+  if( loft_shells && Have_Shells() ){
     int num_configs = 3;
     #if !defined(CONTACT_NO_MPI) && defined(CONTACT_TIMINGS)
       search->Timer()->Start_Timer( search->shell_loft_geom_time );
@@ -323,7 +322,7 @@ void ContactTopology::Compute_Surface_Geometry( VariableHandle POSITION,
     #endif
   }
 
-  Compute_Face_Geometry( POSITION, check_context );
+  Compute_Face_Geometry( POSITION, check_context, false );
 
   #if !defined(CONTACT_NO_MPI) && defined(CONTACT_TIMINGS)
     search->Timer()->Start_Timer( search->edge_curve_geom_time );

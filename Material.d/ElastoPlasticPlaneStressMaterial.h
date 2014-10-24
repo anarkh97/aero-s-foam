@@ -7,6 +7,7 @@
 class ElastoPlasticPlaneStressMaterial
 {
  public:
+  virtual ~ElastoPlasticPlaneStressMaterial() {};
   
   //! Compute the elastoplastic constitutive response.
   //! Returns true if calculations went well and false otherwise.

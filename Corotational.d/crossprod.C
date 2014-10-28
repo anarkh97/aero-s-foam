@@ -1,3 +1,4 @@
+#ifndef NO_INLINE_COROT_UTILS
 void crossprod(double a[3], double b[3], double c[3])
 /***************************************************************
  *     Compute cross product of a and b and place result in c
@@ -7,6 +8,7 @@ void crossprod(double a[3], double b[3], double c[3])
 	c[1] = -a[0]*b[2] + b[0]*a[2];
 	c[2] =  a[0]*b[1] - b[0]*a[1];
 }
+#endif
 void dcrossprod(double  a[3], double  b[3], double  c[3],
                 double da[3], double db[3], double dc[3])
 /***************************************************************

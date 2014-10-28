@@ -96,43 +96,6 @@ IsotropicLinearElasticJ2PlasticPlaneStressMaterial *
 IsotropicLinearElasticJ2PlasticPlaneStressMaterial::Clone() const
 { return new IsotropicLinearElasticJ2PlasticPlaneStressMaterial(*this); }
 
-// Return plastic strain
-std::vector<double> IsotropicLinearElasticJ2PlasticPlaneStressMaterial::
-GetMaterialPlasticStrain() const
-{
-/* PJSA
-  std::vector<double> EP(9,0.);
-  EP[0] = EPSplastic[0];
-  EP[4] = EPSplastic[1];
-  EP[8] = -(EP[0]+EP[4]);
-  EP[1] = EP[3] = 0.5*EPSplastic[2];
-  EP[2] = EP[5] = EP[6] = EP[7] = 0.;
-  return EP;
-*/
-  return EPSplastic;
-}
-
-// Return equivalent plastic strain
-double IsotropicLinearElasticJ2PlasticPlaneStressMaterial::
-GetMaterialEquivalentPlasticStrain() const
-{ return equivEPSplastic; }
-
-// Return back stress
-std::vector<double> IsotropicLinearElasticJ2PlasticPlaneStressMaterial::
-GetMaterialBackStress() const
-{
-/* PJSA
-  std::vector<double> BS(9,0.);
-  BS[0] = BackStress[0];
-  BS[4] = BackStress[1];
-  BS[8] = 0;
-  BS[1] = BS[3] = BackStress[2];
-  BS[2] = BS[5] = BS[6] = BS[7] = 0.;
-  return BS;
-*/
-  return BackStress;
-}
-
 // Return isotropic hardening modulus
 double IsotropicLinearElasticJ2PlasticPlaneStressMaterial::
 GetIsotropicHardeningModulus() const

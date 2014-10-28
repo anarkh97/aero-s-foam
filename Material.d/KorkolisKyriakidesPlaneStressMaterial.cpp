@@ -88,7 +88,7 @@ KorkolisKyriakidesPlaneStressMaterial::Clone() const
 { return new KorkolisKyriakidesPlaneStressMaterial(*this); }
 
 // Return plastic strain
-std::vector<double> KorkolisKyriakidesPlaneStressMaterial::
+const std::vector<double> & KorkolisKyriakidesPlaneStressMaterial::
 GetMaterialPlasticStrain() const
 {
 /* PJSA
@@ -110,7 +110,7 @@ GetMaterialEquivalentPlasticStrain() const
 
 
 // Return back stress
-std::vector<double> KorkolisKyriakidesPlaneStressMaterial::
+const std::vector<double> & KorkolisKyriakidesPlaneStressMaterial::
 GetMaterialBackStress() const
 {
 /* PJSA

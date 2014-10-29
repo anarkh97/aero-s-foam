@@ -13,7 +13,7 @@
 // class template to facilitate computation of the sensitivities of the nodal von mises stress w.r.t the nodal displacements
 
 template<typename Scalar>
-class ShellElementStressWRTDisplacementSensitivity : public VectorValuedFunction<18,3,Scalar,69,2,double>
+class ShellElementStressWRTDisplacementSensitivity : public VectorValuedFunction<18,3,Scalar,69,3,double>
 {
   public:
     ShellElementTemplate<Scalar,EffMembraneTriangle,AndesBendingTriangle> ele;
@@ -24,9 +24,10 @@ class ShellElementStressWRTDisplacementSensitivity : public VectorValuedFunction
     Eigen::Array<Scalar,3,1> ndtemps;
     int type;
     int surface; // thru-thickness location at which stresses are to be evaluated
+    int sflg;
 
   public:
-    ShellElementStressWRTDisplacementSensitivity(const Eigen::Array<double,69,1>& sconst, const Eigen::Array<int,2,1>& iconst)
+    ShellElementStressWRTDisplacementSensitivity(const Eigen::Array<double,69,1>& sconst, const Eigen::Array<int,3,1>& iconst)
     {
       globalx = sconst.segment<3>(0).cast<Scalar>();
       globaly = sconst.segment<3>(3).cast<Scalar>();
@@ -37,6 +38,7 @@ class ShellElementStressWRTDisplacementSensitivity : public VectorValuedFunction
       h = sconst[12];
       surface = iconst[0];
       type = iconst[1];
+      sflg = iconst[2];
       if(type == 1) {
         cframe = sconst.segment<9>(13).cast<Scalar>();
         coefs = sconst.segment<42>(22).cast<Scalar>();
@@ -49,17 +51,18 @@ class ShellElementStressWRTDisplacementSensitivity : public VectorValuedFunction
     Eigen::Matrix<Scalar,3,1> operator() (const Eigen::Matrix<Scalar,18,1>& q, Scalar)
     {
       // inputs:
-      // q = Global displacements at the nodes
+      // q = generalized displacements at the nodes
 
+      ShellMaterial<Scalar> *nmat;
       switch(type) {
         case 0 :
-          ele.setgpnmat(new ShellMaterialType0<Scalar>(E, h, nu, rho, Ta, W));
+          nmat = new ShellMaterialType0<Scalar>(E, h, nu, rho, Ta, W);
           break;
         case 1 :
-          ele.setgpnmat(new ShellMaterialType1<Scalar>(coefs.data(), cframe.data(), rho, h, Ta));
+          nmat = new ShellMaterialType1<Scalar>(coefs.data(), cframe.data(), rho, h, Ta);
           break;
         default :
-          std::cerr << " *** ERROR: ShellElementStiffnessWRTDisplacementSensitivity is not defined for this case.\n";
+          std::cerr << " *** ERROR: ShellElementStressWRTDisplacementSensitivity is not defined for this case.\n";
           exit(-1);
       }
       Eigen::Matrix<Scalar,18,1> globalu = q;
@@ -76,7 +79,8 @@ class ShellElementStressWRTDisplacementSensitivity : public VectorValuedFunction
       // surface  <input>   1: upper, 2: median, 3: lower
       Eigen::Array<Scalar,7,3> stress;
       ele.andesvms(1, 7, nu, globalx.data(), globaly.data(), globalz.data(), globalu.data(),
-                   stress.data(), 0, 0, surface, ndtemps.data());
+                   stress.data(), type, nmat, 0, surface, sflg, ndtemps.data());
+      delete nmat;
 
       // return value:
       // von mises stresses at nodes

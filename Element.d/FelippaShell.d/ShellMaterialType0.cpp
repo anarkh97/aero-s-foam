@@ -159,6 +159,7 @@ ShellMaterialType0<doublereal>::GetConstitutiveResponse(doublereal *_Upsilon, do
     Db(2, 2) = E * (thick * thick * thick) / ((one + nu) * 24.);
 
 // .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR PURE MEMBRANE 
+
     Dm(0, 0) = E * thick / (one - nu * nu);
     Dm(0, 1) = nu * E * thick / (one - nu * nu);
     Dm(0, 2) = zero;
@@ -214,6 +215,7 @@ ShellMaterialType0<doublereal>::GetConstitutiveResponseSensitivityWRTdisp(double
     Db(2, 2) = E * (thick * thick * thick) / ((one + nu) * 24.);
 
 // .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR PURE MEMBRANE 
+
     Dm(0, 0) = E * thick / (one - nu * nu);
     Dm(0, 1) = nu * E * thick / (one - nu * nu);
     Dm(0, 2) = zero;
@@ -305,6 +307,7 @@ ShellMaterialType0<doublereal>::GetConstitutiveResponseSensitivityWRTthickness(d
 
 // .....ASSEMBLE THE SENSITIVITY OF THE CONSTITUTIVE MATRIX FOR PURE MEMBRANE 
 // .....WITH RESPECT TO THICKNESS
+
     Dm(0, 0) = E / (one - nu * nu);
     Dm(0, 1) = nu * E / (one - nu * nu);
     Dm(0, 2) = zero;

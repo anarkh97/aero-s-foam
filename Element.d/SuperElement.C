@@ -180,10 +180,6 @@ SuperElement::stiffness(CoordSet &cs, double *karray, int flg)
 void
 SuperElement::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs, int senMethod)
 {
-  for(int i=0; i<3*numNodes(); ++i) {
-    if(dStiffdx[i].dim() != numDofs()) { std::cerr << " ... Error: dimension of sensitivity matrix is wrong\n";   exit(-1); }
-  }
-
   for(int i = 0; i < nSubElems; ++i) {
     FullSquareMatrix *subdStiffdx = new FullSquareMatrix[3*subElems[i]->numNodes()];
     for(int j=0; j<3*subElems[i]->numNodes(); ++j) { subdStiffdx[j].setSize(subElems[i]->numDofs());  subdStiffdx[j].zero(); }
@@ -193,16 +189,11 @@ SuperElement::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx
         dStiffdx[3*subElemNodes[i][j]+xyz].add(subdStiffdx[3*j+xyz], subElemDofs[i]); 
     delete [] subdStiffdx; 
   }
-
 }
 
 void 
 SuperElement::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix &dStiffdThick, int flg, int senMethod)
 {
-  if(dStiffdThick.dim() != numDofs()) {
-     std::cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
-     exit(-1);
-  }
   dStiffdThick.zero();
   for(int i = 0; i < nSubElems; ++i) {
     FullSquareMatrix subdStiffdThick(subElems[i]->numDofs());
@@ -252,7 +243,7 @@ double
 SuperElement::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int senMethod)
 {
   double ret = 0.0;
-  for(int i = 0; i < nSubElems; ++i) ret += subElems[i]->weightDerivativeWRTthickness(cs,gravityAcceleration, senMethod);
+  for(int i = 0; i < nSubElems; ++i) ret += subElems[i]->weightDerivativeWRTthickness(cs,gravityAcceleration,senMethod);
   return ret;
 }
 
@@ -271,7 +262,6 @@ SuperElement::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight,
     dStdThick.add(subVonMisesThicknessSensitivity, subElemNodes[i]);
     delete subElDisp;
   }
-
 }
 
 void
@@ -295,7 +285,6 @@ SuperElement::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
 
     delete subElDisp;
   }
- 
 }
 
 void 

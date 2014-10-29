@@ -8,8 +8,10 @@
 #include <Element.d/FelippaShell.d/AndesBendingTriangle.hpp>
 #include <Element.d/FelippaShell.d/ShellElementTemplate.hpp>
 
+// class template to facilitate computation of the sensitivities of the stiffness matrix w.r.t the nodal coordinates
+
 template<typename Scalar>
-class ShellElementStiffnessWRTNodalCoordinateSensitivity : public MatrixValuedFunction<9,18,18,Scalar,60,1,double>
+class ShellElementStiffnessWRTNodalCoordinateSensitivity : public MatrixValuedFunction<9,18,18,Scalar,60,2,double>
 {
   public:
     ShellElementTemplate<Scalar,EffMembraneTriangle,AndesBendingTriangle> ele;
@@ -19,9 +21,10 @@ class ShellElementStiffnessWRTNodalCoordinateSensitivity : public MatrixValuedFu
     Eigen::Array<Scalar,42,1> coefs;
     Eigen::Array<Scalar,3,1> ndtemps;
     int type;
+    int tflg;
 
   public:
-    ShellElementStiffnessWRTNodalCoordinateSensitivity(const Eigen::Array<double,60,1>& sconst, const Eigen::Array<int,1,1>& iconst)
+    ShellElementStiffnessWRTNodalCoordinateSensitivity(const Eigen::Array<double,60,1>& sconst, const Eigen::Array<int,2,1>& iconst)
     {
       globalu.setZero();
       E = sconst[0];
@@ -29,6 +32,7 @@ class ShellElementStiffnessWRTNodalCoordinateSensitivity : public MatrixValuedFu
       rho = sconst[2];
       h = sconst[3];
       type = iconst[0];
+      tflg = iconst[1];
       if(type == 1) {
         cframe = sconst.segment<9>(4).cast<Scalar>();
         coefs = sconst.segment<42>(13).cast<Scalar>(); 
@@ -47,12 +51,13 @@ class ShellElementStiffnessWRTNodalCoordinateSensitivity : public MatrixValuedFu
       globaly << q[1], q[4], q[7];
       globalz << q[2], q[5], q[8];
 
+      ShellMaterial<Scalar> *gpmat;
       switch(type) {
         case 0 :
-          ele.setgpnmat(new ShellMaterialType0<Scalar>(E, h, nu, rho, Ta, W)); 
+          gpmat = new ShellMaterialType0<Scalar>(E, h, nu, rho, Ta, W); 
           break;
         case 1 :
-          ele.setgpnmat(new ShellMaterialType1<Scalar>(coefs.data(), cframe.data(), rho, h, Ta)); 
+          gpmat = new ShellMaterialType1<Scalar>(coefs.data(), cframe.data(), rho, h, Ta);
           break;
         default :
           std::cerr << " *** ERROR: ShellElementStiffnessWRTNodalCoordinateSensitivity is not defined for this case.\n";
@@ -70,7 +75,9 @@ class ShellElementStiffnessWRTNodalCoordinateSensitivity : public MatrixValuedFu
       int flag = 1;
       Eigen::Matrix<Scalar,18,18> estiff;
       ele.andesstf(0, estiff.data(), (Scalar*)NULL, nu, globalx.data(), globaly.data(), globalz.data(),
-                   globalu.data(), type, flag, ndtemps.data());
+                   globalu.data(), type, gpmat, flag, tflg, ndtemps.data());
+
+      delete gpmat;
 
       // return value:
       // element stiffness matrix

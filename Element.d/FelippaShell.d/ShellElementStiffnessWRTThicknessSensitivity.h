@@ -10,8 +10,10 @@
 #include <Element.d/FelippaShell.d/AndesBendingTriangleTemplate.cpp>
 #include <Element.d/FelippaShell.d/ShellElementTemplate.cpp>
 
+// class template to facilitate computation of the sensitivities of the stiffness matrix w.r.t the shell thickness
+
 template<typename Scalar>
-class ShellElementStiffnessWRTThicknessSensitivity : public MatrixValuedFunction<1,18,18,Scalar,68,2,double>
+class ShellElementStiffnessWRTThicknessSensitivity : public MatrixValuedFunction<1,18,18,Scalar,68,3,double>
 {
   public:
     ShellElementTemplate<Scalar,EffMembraneTriangle,AndesBendingTriangle> ele;
@@ -23,9 +25,10 @@ class ShellElementStiffnessWRTThicknessSensitivity : public MatrixValuedFunction
     Eigen::Array<Scalar,3,1> ndtemps;
     int type;
     int flag;
+    int tflg;
 
   public:
-    ShellElementStiffnessWRTThicknessSensitivity(const Eigen::Array<double,68,1>& sconst, const Eigen::Array<int,2,1>& iconst)
+    ShellElementStiffnessWRTThicknessSensitivity(const Eigen::Array<double,68,1>& sconst, const Eigen::Array<int,3,1>& iconst)
     {
       globalx = sconst.segment<3>(0).cast<Scalar>();
       globaly = sconst.segment<3>(3).cast<Scalar>();
@@ -36,6 +39,7 @@ class ShellElementStiffnessWRTThicknessSensitivity : public MatrixValuedFunction
       globalu.setZero();
       type = iconst[0];
       flag = iconst[1];
+      tflg = iconst[2];
       if(type == 1) {
         cframe = sconst.segment<9>(12).cast<Scalar>();
         coefs = sconst.segment<42>(21).cast<Scalar>();
@@ -49,12 +53,13 @@ class ShellElementStiffnessWRTThicknessSensitivity : public MatrixValuedFunction
     {
       // inputs:
       // h = thickness
+      ShellMaterial<Scalar> *gpmat;
       switch(type) {
         case 0 :
-          ele.setgpnmat(new ShellMaterialType0<Scalar>(E, h[0], nu, rho, Ta, W));
+          gpmat = new ShellMaterialType0<Scalar>(E, h[0], nu, rho, Ta, W);
           break;
         case 1 : 
-          ele.setgpnmat(new ShellMaterialType1<Scalar>(coefs.data(), cframe.data(), rho, h[0], Ta)); 
+          gpmat = new ShellMaterialType1<Scalar>(coefs.data(), cframe.data(), rho, h[0], Ta);
           break;
         default :
           std::cerr << " *** ERROR: ShellElementStiffnessWRTThicknessSensitivity is not defined for this case.\n";
@@ -72,11 +77,11 @@ class ShellElementStiffnessWRTThicknessSensitivity : public MatrixValuedFunction
 
       Eigen::Matrix<Scalar,18,18> estiff;
       ele.andesstf(0, estiff.data(), (Scalar*)NULL, nu, globalx.data(), globaly.data(), globalz.data(), globalu.data(),
-                   type, flag, ndtemps.data());
+                   type, gpmat, flag, tflg, ndtemps.data());
+      delete gpmat;
 
       // return value:
       // element stiffness matrix
-
       return estiff; 
     }
 

@@ -24,10 +24,34 @@ Element::setCompositeData2(int, int, double*, double*, CoordSet&, double)
 }
 
 void
-Element::getVonMisesInt(CoordSet &,Vector &,double &,double &, int,
-			double &,double &, double* dT)
+Element::getVonMisesInt(CoordSet&, Vector&, double&, double&, int,
+			double&, double&, double* dT)
 {
   assert(0);
+}
+
+double
+Element::weight(CoordSet& cs, double *gravityAcceleration)
+{
+  if(prop == NULL || gravityAcceleration == NULL) return 0.0;
+
+  double mass = getMass(cs);
+  double gravAccNorm = sqrt(gravityAcceleration[0]*gravityAcceleration[0] +
+                            gravityAcceleration[1]*gravityAcceleration[1] +
+                            gravityAcceleration[2]*gravityAcceleration[2]);
+  return mass*gravAccNorm;
+}
+
+double
+Element::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int senMethod)
+{
+  if(prop == NULL || gravityAcceleration == NULL) return 0.0;
+
+  double massSensitivity = getMassSensitivityWRTthickness(cs);
+  double gravAccNorm = sqrt(gravityAcceleration[0]*gravityAcceleration[0] +
+                            gravityAcceleration[1]*gravityAcceleration[1] +
+                            gravityAcceleration[2]*gravityAcceleration[2]);
+  return massSensitivity*gravAccNorm;
 }
 
 void 

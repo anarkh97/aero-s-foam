@@ -180,6 +180,7 @@ SuperElement::stiffness(CoordSet &cs, double *karray, int flg)
 void
 SuperElement::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs, int senMethod)
 {
+  for(int i=0; i<3*numNodes(); ++i) dStiffdx[i].zero();
   for(int i = 0; i < nSubElems; ++i) {
     FullSquareMatrix *subdStiffdx = new FullSquareMatrix[3*subElems[i]->numNodes()];
     for(int j=0; j<3*subElems[i]->numNodes(); ++j) { subdStiffdx[j].setSize(subElems[i]->numDofs());  subdStiffdx[j].zero(); }
@@ -251,6 +252,8 @@ void
 SuperElement::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
                                               int senMethod, double *, int avgnum, double ylayer, double zlayer)
 {
+  dStdThick.zero();
+  weight.zero();
   for(int i = 0; i < nSubElems; ++i) {
     Vector subVonMisesThicknessSensitivity(subElems[i]->numNodes(),0.0); 
     Vector subWeight(subElems[i]->numNodes(),0.0);
@@ -269,6 +272,7 @@ SuperElement::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
                                                  int senMethod, double *ndTemps, int avgnum, double ylayer, double zlayer)
 {
   dStdDisp.zero();
+  weight.zero();
   for(int i = 0; i < nSubElems; ++i) {
     GenFullM<double> subVonMisesDisplacementSensitivity(subElems[i]->numDofs(),subElems[i]->numNodes(),0.0);        
     Vector subWeight(subElems[i]->numNodes(),0.0);
@@ -305,6 +309,7 @@ SuperElement::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vec
                                                     int senMethod, double *, int avgnum, double ylayer, double zlayer)
 {
   dStdx.zero();
+  weight.zero();
   for(int i = 0; i < nSubElems; ++i) {
     GenFullM<double> subVonMisesCoordinateSensitivity(3*subElems[i]->numNodes(),subElems[i]->numNodes(),0.0);        
     Vector subWeight(subElems[i]->numNodes(),0.0);

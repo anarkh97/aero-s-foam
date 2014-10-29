@@ -76,7 +76,7 @@ class GenVector {
    GenVector &operator=(const Scalar *data); // v1 = data;
 
    void operator*=(const Scalar c);
-   void operator*(const Scalar c);
+   void operator/=(const Scalar c);
    void operator+=(const GenVector<Scalar> &v2);
    void operator-=(const GenVector<Scalar> &v2);
    void operator/=(const GenVector<Scalar> &v2);

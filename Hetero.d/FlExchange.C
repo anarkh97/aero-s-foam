@@ -60,6 +60,10 @@ FlExchanger::FlExchanger(CoordSet& _cs, Elemset& _eset, SurfaceEntity *_surf, Do
     faceElemToNode = 0;
     nodeToFaceElem = 0;
   }
+  if(surface && surface->GetIsShellFace()) {
+    std::cerr << " *** ERROR: The surface_thickness attribute should not be used on the embedded surface\n";
+    exit(-1);
+  }
 
   senderId = 0;
   nbGaussPoints = 0;

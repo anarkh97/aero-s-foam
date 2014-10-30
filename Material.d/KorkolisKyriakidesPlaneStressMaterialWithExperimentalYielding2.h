@@ -70,13 +70,13 @@ class KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2 : public El
 							const bool UpdateFlag = true);
   
   //! Returns the plastic strain in material (3x1 vector)
-  std::vector<double> GetMaterialPlasticStrain() const;
+  const std::vector<double> & GetMaterialPlasticStrain() const;
   
   //! Returns equivalent plastic strain in material
   double GetMaterialEquivalentPlasticStrain() const;
   
   //! Returns back stress in material (3x1 vector)
-  std::vector<double> GetMaterialBackStress() const;
+  const std::vector<double> & GetMaterialBackStress() const;
 
   //! Returns the bulk modulus of material
   double GetBulkModulus() const;
@@ -195,6 +195,9 @@ class KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2 : public El
 
   //! Plastic strain 
   std::vector<double> EPSplastic;
+
+  //! Back stress
+  std::vector<double> BackStress;
   
   //! Equivalent plastic strain
   double equivEPSplastic;

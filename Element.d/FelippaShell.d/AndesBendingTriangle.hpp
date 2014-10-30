@@ -8,10 +8,10 @@ template<typename doublereal>
 class AndesBendingTriangle
 {
   public:
-    Eigen::Matrix<doublereal,9,3>
+    static Eigen::Matrix<doublereal,9,3>
     L(doublereal x[3], doublereal y[3], doublereal clr, doublereal cqr);
 
-    Eigen::Matrix<doublereal,3,9>
+    static Eigen::Matrix<doublereal,3,9>
     Bd(doublereal x[3], doublereal y[3], doublereal betab, doublereal zeta[3]);
 };
 #endif

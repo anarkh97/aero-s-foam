@@ -37,7 +37,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 //                                                                      
 //     Perform =    This subroutine computes basic quantities needed    
 //     ---------    for the assembly of the basic and higher order      
-//                  composite stiffness matrices.                       
+//                  stiffness matrices.                       
 //                                                                      
 //                                                                      
 //     Inputs/Outputs =                                                 
@@ -139,10 +139,9 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 ::andesgf(int elm, doublereal *_x, doublereal *_y, doublereal *_z, doublereal *_gravityForce,
           doublereal *gamma, int gravflg, doublereal rhoh)
 {
-  doublereal emass[324];
   doublereal grvfor[3];
   doublereal totmas;
-  andesms(elm, _x, _y, _z, emass, gamma, grvfor, true, totmas, false, rhoh);
+  andesms(elm, _x, _y, _z, gamma, grvfor, totmas, rhoh);
   
   Eigen::Map<Eigen::Matrix<doublereal,3,1> > x(_x), y(_y), z(_z);
   Eigen::Map<Eigen::Matrix<doublereal,18,1> > gravityForce(_gravityForce);
@@ -255,19 +254,16 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 template<typename doublereal, template<typename> class Membrane, template<typename> class Bending>
 void
 ShellElementTemplate<doublereal,Membrane,Bending>
-::andesms(int elm, doublereal *x, doublereal *y, doublereal *z, 
-          doublereal *_emass, doublereal *gamma, doublereal *grvfor, 
-          bool grvflg, doublereal &totmas, bool masflg, doublereal rhoh)
+::andesmm(int elm, doublereal *x, doublereal *y, doublereal *z, 
+          doublereal *_emass, doublereal rhoh, int mflg)
 {
   // Reference:
   // "Parametrized variational principles in dynamics applied
   //  to the optimization of dynamic models of plates",
   // F. J. Brito Castro, C. Militello, C. A. Felippa
   // Computational Mechanics 20 (1997) 285-294
-  // Notes: this is the LMM (lumped mass matrix) which I think is formed by row lumping of the BCMM
-  // TODO: implement BCMM (boundary consistent mass matrix)
-  //       and CMM (consistent mass matrix)
-
+  // Notes: this is the LMM (lumped mass matrix) which is formed by row lumping of the BCMM
+  //        either with or without mass augmentation
 
   // Builtin functions 
   using std::sqrt;
@@ -284,7 +280,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 // ==================================================================== 
 //                                                                      
 //     Performs =   This subroutine will form the elemental mass        
-//     ----------   matrix of the 3D 3-node ANDES composite shell.      
+//     ----------   matrix of the 3D 3-node ANDES-EFF shell element.      
 //                  Lumping is assumed here.                            
 //                                                                      
 //                                                                      
@@ -341,12 +337,19 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 //                                                                      
 //     No rotation of local-to-global basis is implemented since the    
 //     mass matrix [M] is formed of 3 by 3 blocks proportional to the   
-//     identity. The lumping factors are equal to:                      
+//     identity. For mflg = 0, the lumping factors are equal to:                      
 //                                                                      
 //     [mt] = [rhoh] * [A]        /    3.0                              
 //     [m1] = [rhoh] * [A] * [Ix] / 1260.0                              
 //     [m2] = [rhoh] * [A] * [Iy] / 1260.0                              
 //     [m3] = [rhoh] * [A] * [Iz] / 1260.0                              
+//
+//     For mflg = 1, the lumping factors are equal to:
+//
+//     [mt] = [rhoh] * [A]       /  3.0                              
+//     [m1] = [rhoh] * [A] * [A] / 24.0                              
+//     [m2] = [rhoh] * [A] * [A] / 24.0                              
+//     [m3] = [rhoh] * [A] * [A] / 24.0 
 //                                                                      
 //     where:                                                           
 //                                                                      
@@ -368,6 +371,137 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 // .....CLEAR THE OUTPUT MASS MATRIX
 
     emass.setZero();
+
+//     -------------------------- 
+//     CHECKS AND INITIALIZATIONS 
+//     -------------------------- 
+
+// .....COMPUTE THE DISTANCE BETWEEN X-, Y- AND Z- NODAL COORDINATES
+
+    x21 = x[1] - x[0];
+    y21 = y[1] - y[0];
+    z21 = z[1] - z[0];
+
+    x32 = x[2] - x[1];
+    y32 = y[2] - y[1];
+    z32 = z[2] - z[1];
+
+    x13 = x[0] - x[2];
+    y13 = y[0] - y[2];
+    z13 = z[0] - z[2];
+
+// .....COMPUTE THE DISTANCE BETWEEN NODES 1-2, 2-3 AND 3-1
+
+    dist[0] = sqrt(x21 * x21 + y21 * y21 + z21 * z21);
+    dist[1] = sqrt(x32 * x32 + y32 * y32 + z32 * z32);
+    dist[2] = sqrt(x13 * x13 + y13 * y13 + z13 * z13);
+
+// .....COMPUTE THE LENGTH OF SIDE 1-2
+
+    rlr = sqrt(x21 * x21 + y21 * y21 + z21 * z21);
+
+// .....CHECK FOR ZERO-SIDE LENGTH
+
+    if (rlr == 0) {
+        throw std::runtime_error(
+          "*** FATAL ERROR in ShellElementTemplate::andesmm ***\n"
+          "*** The Side 1-2 has Zero Length                 ***\n"
+          "*** Check Coordinates and FE Topology            ***\n");
+    }
+
+// .....COMPUTE THE DISTANCE OF THE OPPOSING NODE (3) TO THAT SIDE (1-2)
+
+    rlb = sqrt(x32 * x32 + y32 * y32 + z32 * z32);
+    bpr = abs(x21 * x32 + y21 * y32 + z21 * z32) / rlr;
+
+// .....COMPUTE THE SQUARE OF TWICE THE TRIANGLE'S AREA
+
+    twicearea2 = rlb * rlb - bpr * bpr;
+
+// .....CHECK IF THE TRIANGLE'S AREA IS POSITIVE
+
+    if (twicearea2 <= 0) {
+        throw std::runtime_error(
+          "*** FATAL ERROR in ShellElementTemplate::andesmm ***\n"
+          "*** The Area is Negative or Zero                 ***\n"
+          "*** Check Coordinates and FE Topology            ***\n");
+    }
+
+// .....COMPUTE THE AREA OF THE TRIANGLE
+
+    area = rlr * .5 * sqrt(twicearea2);
+
+// .....COMPUTE THE THREE PSEUDO MOMENTS OF INERTIA
+
+    ix = dist[0] * dist[0] + dist[2] * dist[2];
+    iy = dist[0] * dist[0] + dist[1] * dist[1];
+    iz = dist[1] * dist[1] + dist[2] * dist[2];
+
+// .....FORM THE MASS COEFFICIENTS PER DEGREE OF FREEDOM
+
+    mass0 = rhoh * area / 3.;
+    if(mflg == 0) {
+        mass1 = rhoh * area * ix / 1260.;
+        mass2 = rhoh * area * iy / 1260.;
+        mass3 = rhoh * area * iz / 1260.;
+    }
+    else {
+        alpha = area / 8.;
+        mass1 = mass0 * alpha;
+        mass2 = mass0 * alpha;
+        mass3 = mass0 * alpha;
+    }
+//     ------------------------------------- 
+//     ASSEMBLY OF THE ELEMENTAL MASS MATRIX 
+//     ------------------------------------- 
+
+// .....FORM THE LUMPED ELEMENT MASS MATRIX 
+
+    for (i = 0; i < 3; ++i) {
+        i2 = i + 6;
+        i3 = i + 12;
+        emass(i, i) = mass0;
+        emass(i2, i2) = mass0;
+        emass(i3, i3) = mass0;
+    }
+
+    for (i = 0; i < 3; ++i) {
+        i1 = i + 3;
+        i2 = i + 9;
+        i3 = i + 15;
+        emass(i1, i1) = mass1;
+        emass(i2, i2) = mass2;
+        emass(i3, i3) = mass3;
+    }
+
+}
+
+template<typename doublereal, template<typename> class Membrane, template<typename> class Bending>
+void
+ShellElementTemplate<doublereal,Membrane,Bending>
+::andesms(int elm, doublereal *x, doublereal *y, doublereal *z, 
+          doublereal *gamma, doublereal *grvfor, doublereal &totmas,
+          doublereal rhoh)
+{
+  // Builtin functions 
+  using std::sqrt;
+  using std::abs;
+
+  // Local variables 
+  doublereal twicearea2, x21, x13, y13, z13, x32, y32, z32, y21, z21,
+    rlb, bpr, rlr, area, dist[3], mass0;
+
+// ==================================================================== 
+//                                                                      
+//     Performs =   This subroutine will compute the body force due to        
+//     ----------   gravity and/or the total mass of the element.      
+//                  Lumping is assumed here.                            
+//                                                                      
+// ==================================================================== 
+// Author  = Francois M. Hemez                                          
+// Date    = June 9, 1995                                               
+// Version = 2.0                                                        
+// ==================================================================== 
 
 //     -------------------------- 
 //     CHECKS AND INITIALIZATIONS 
@@ -428,62 +562,21 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 
     area = rlr * .5 * sqrt(twicearea2);
 
-// .....COMPUTE THE THREE PSEUDO MOMENTS OF INERTIA
+// .....FORM THE MASS COEFFICIENT
 
-    ix = dist[0] * dist[0] + dist[2] * dist[2];
-    iy = dist[0] * dist[0] + dist[1] * dist[1];
-    iz = dist[1] * dist[1] + dist[2] * dist[2];
-
-// .....FORM THE MASS COEFFICIENTS PER DEGREE OF FREEDOM
-
-    //rhoh = gpmat->GetAreaDensity();
     mass0 = rhoh * area / 3.;
-#ifdef COMPATIBILITY_MODE
-    mass1 = rhoh * area * ix / 1260.;
-    mass2 = rhoh * area * iy / 1260.;
-    mass3 = rhoh * area * iz / 1260.;
-#else
-    alpha = area / 8.;
-    mass1 = mass0 * alpha;
-    mass2 = mass0 * alpha;
-    mass3 = mass0 * alpha;
-#endif
-//     ------------------------------------- 
-//     ASSEMBLY OF THE ELEMENTAL MASS MATRIX 
-//     ------------------------------------- 
-
-// .....FORM THE LUMPED ELEMENT MASS MATRIX 
-
-    for (i = 0; i < 3; ++i) {
-        i2 = i + 6;
-        i3 = i + 12;
-        emass(i, i) = mass0;
-        emass(i2, i2) = mass0;
-        emass(i3, i3) = mass0;
-    }
-
-    for (i = 0; i < 3; ++i) {
-        i1 = i + 3;
-        i2 = i + 9;
-        i3 = i + 15;
-        emass(i1, i1) = mass1;
-        emass(i2, i2) = mass2;
-        emass(i3, i3) = mass3;
-    }
 
 // ..... COMPUTE THE BODY FORCE DUE TO GRAVITY IF NEEDED
 
-    if (grvflg) {
+    if (gamma) {
         grvfor[0] = mass0 * 3. * gamma[0];
         grvfor[1] = mass0 * 3. * gamma[1];
         grvfor[2] = mass0 * 3. * gamma[2];
     }
 
-// .... ACCUMULATE THE SUBDOMAIN MASS
+// .... COMPUTE THE TOTAL MASS
 
-    if (masflg) {
-        totmas += mass0 * 3.;
-    }
+    totmas = mass0 * 3.;
 
 }
 
@@ -492,7 +585,8 @@ void
 ShellElementTemplate<doublereal,Membrane,Bending>
 ::andesstf(int elm, doublereal *_estiff, doublereal *_fint, doublereal nu,
            doublereal *x, doublereal *y, doublereal *z, doublereal *_v,
-           int ctyp, int flag, doublereal *ndtemps)
+           int ctyp, ShellMaterial<doublereal> *gpmat, int flag,
+           int tflg, doublereal *ndtemps)
 {
   // Initialized data 
   bool debug = false;
@@ -536,7 +630,8 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 // ================================================================== 
 //                                                                    
 //     Perform =    This subroutine will form the element stiffness   
-//     ---------    matrix for the 3D 3-node ANDES-EFF shell element.  
+//     ---------    matrix and/or element internal force vector for   
+//                  the 3D 3-node ANDES-EFF shell element.            
 //                                                                    
 //                                                                    
 //     Inputs/Outputs =                                               
@@ -547,10 +642,14 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 //     X       <input>  nodal coordinates in the X-direction          
 //     Y       <input>  nodal coordinates in the Y-direction          
 //     Z       <input>  nodal coordinates in the Z-direction          
+//     V       <input>  nodal generalized displacements               
 //     CTYP    <input>  composite attribute number                    
 //     FLAG    <input>  int specifying whether to return              
 //                      transformed element stiffness matrix or       
 //                      global element stiffness matrix               
+//     NDTEMPS <input>  nodal temperatures                            
+//     TFLG    <input>  int specifying whether to use constant        
+//                      or linear interpolation for temperature       
 //                                                                    
 //                                                                    
 //     Computations =                                                 
@@ -644,13 +743,14 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 
     Lm = Membrane<doublereal>::L(xlp, ylp, alpha);
 
-#ifdef COMPATIBILITY_MODE
-    // if ndtemps (nodal temperatures) is not null, then the mean temperature is used at each gauss point.
-    temp = (ndtemps) ? doublereal((ndtemps[0]+ndtemps[1]+ndtemps[2])/3) : gpmat->GetAmbientTemperature();
-#else
-    // if ndtemps (nodal temperatures) is not null, then the temperature at each gauss point is interpolated.
-    if(!ndtemps) temp = gpmat->GetAmbientTemperature();
-#endif
+    if(tflg == 0) {
+        // if ndtemps (nodal temperatures) is not null, then the mean temperature is used at each gauss point.
+        temp = (ndtemps) ? doublereal((ndtemps[0]+ndtemps[1]+ndtemps[2])/3) : gpmat->GetAmbientTemperature();
+    }
+    else {
+        // if ndtemps (nodal temperatures) is not null, then the temperature at each gauss point is interpolated.
+        if(!ndtemps) temp = gpmat->GetAmbientTemperature();
+    }
 
     if(_estiff) K.setZero();
     if(_fint) F.setZero();
@@ -673,13 +773,9 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 // .....GET THE TANGENT CONSTITUTIVE MATRIX [D = {Dm,Dmb;Dbm,Db}] 
 //      AND THE GENERALIZED STRESSES [Sigma = {N,M}]
 
-#ifdef COMPATIBILITY_MODE
-        if(i == 0 || ctyp == 4) {
-#else
-        if(i == 0 || ctyp == 4 || ndtemps) {
-          if(ndtemps) 
+        if(i == 0 || ctyp == 4 || (ndtemps && tflg != 0)) {
+          if(ndtemps && tflg != 0) 
             temp = zeta[i][0]*ndtemps[0] + zeta[i][1]*ndtemps[1] + zeta[i][2]*ndtemps[2];
-#endif
           doublereal *_D = (_estiff) ? D->data() : NULL;
           gpmat->GetConstitutiveResponse(Upsilon.data(), Sigma.data(), _D, eframe.data(), i, temp);
         }
@@ -765,10 +861,10 @@ void
 ShellElementTemplate<doublereal,Membrane,Bending>
 ::andesstfWRTthick(int elm, doublereal *_destiffdthick, doublereal nu,
                    doublereal *x, doublereal *y, doublereal *z,
-                   int ctyp, int flag, doublereal *ndtemps)
+                   int ctyp, ShellMaterial<doublereal> *gpmat, int flag,
+                   int tflg, doublereal *ndtemps)
 {
   // Initialized data 
-  bool debug = false;
   doublereal clr = 0;
   doublereal cqr = 1;
   doublereal betab = 1;
@@ -779,13 +875,14 @@ ShellElementTemplate<doublereal,Membrane,Bending>
   int i, j;
   doublereal xlp[3], ylp[3], zlp[3];
   doublereal area;
+  doublereal temp;
 
   Eigen::Matrix<doublereal,9,3> Lb, Lm;
   Eigen::Matrix<doublereal,3,9> Bb, Bm;
 
   Eigen::Map< Eigen::Matrix<doublereal,18,18,Eigen::RowMajor> > dKdthick(_destiffdthick);
   Eigen::Matrix<doublereal,6,1> Upsilon, Sigma;
-  Eigen::Matrix<doublereal,6,6> *D = (_destiffdthick) ? new Eigen::Matrix<doublereal,6,6> : NULL;
+  Eigen::Matrix<doublereal,6,6> D;
   Eigen::Matrix<doublereal,3,3> eframe;
 
   // Some convenient definitions 
@@ -793,14 +890,15 @@ ShellElementTemplate<doublereal,Membrane,Bending>
     Km = dKdthick.template topLeftCorner<9,9>(),     Kmb = dKdthick.template topRightCorner<9,9>(),
     Kbm = dKdthick.template bottomLeftCorner<9,9>(), Kb = dKdthick.template bottomRightCorner<9,9>();
   Eigen::Block< Eigen::Matrix<doublereal,6,6>,3,3 > 
-    Dm = D->template topLeftCorner<3,3>(),     Dmb = D->template topRightCorner<3,3>(),
-    Dbm = D->template bottomLeftCorner<3,3>(), Db = D->template bottomRightCorner<3,3>();
+    Dm = D.template topLeftCorner<3,3>(),     Dmb = D.template topRightCorner<3,3>(),
+    Dbm = D.template bottomLeftCorner<3,3>(), Db = D.template bottomRightCorner<3,3>();
 
 // ================================================================== 
 //                                                                    
 //     Perform =    This subroutine will form the sensitivity of the  
 //     ---------    element stiffness matrix wrt thickness for the 3D 
-//                  3-node ANDES-EFF shell element.                   
+//                  3-node ANDES-EFF shell element in the undeformed
+//                  configuration i.e. zero generalized displacement.                  
 //                                                                    
 //                                                                    
 //     Inputs/Outputs =                                               
@@ -817,6 +915,9 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 //                      transformed element stiffness sensitivity     
 //                      matrix or global element stiffness            
 //                      sensitivity matrix                            
+//     NDTEMPS <input>  nodal temperatures                            
+//     TFLG    <input>  int specifying whether to use constant        
+//                      or linear interpolation for temperature       
 //                                                                    
 //                                                                    
 // ================================================================== 
@@ -851,7 +952,17 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 
     Lm = Membrane<doublereal>::L(xlp, ylp, alpha);
 
-    if(_destiffdthick) dKdthick.setZero();
+    if(tflg == 0) {
+        // if ndtemps (nodal temperatures) is not null, then the mean temperature is used at each gauss point.
+        temp = (ndtemps) ? doublereal((ndtemps[0]+ndtemps[1]+ndtemps[2])/3) : gpmat->GetAmbientTemperature();
+    }
+    else {
+        // if ndtemps (nodal temperatures) is not null, then the temperature at each gauss point is interpolated.
+        if(!ndtemps) temp = gpmat->GetAmbientTemperature();
+    }
+
+    dKdthick.setZero();
+    Upsilon.setZero();
     doublereal zeta[3][3] = { { 0.,.5,.5 }, { .5,0.,.5 }, { .5,.5,0. } }; // triangular coordinates of gauss integration points
     doublereal weight[3] = { 1/3., 1/3., 1/3. };
     for(i = 0; i < 3; ++i) {
@@ -867,69 +978,44 @@ ShellElementTemplate<doublereal,Membrane,Bending>
         Bm = 1/area*Lm.transpose() + Membrane<doublereal>::Bd(xlp, ylp, betam, zeta[i]);
 
 // .....GET THE TANGENT CONSTITUTIVE SENSITIVITY MATRIX [D = {Dm,Dmb;Dbm,Db}] 
-//      AND THE GENERALIZED STRESS SENSITIVITIES [Sigma = {N,M}]
 
         if(i == 0 || ctyp == 4) {
-          doublereal *_D = (_destiffdthick) ? D->data() : NULL;
-          gpmat->GetConstitutiveResponseSensitivityWRTthickness(Upsilon.data(), Sigma.data(), _D, eframe.data(), i);
+          gpmat->GetConstitutiveResponseSensitivityWRTthickness(Upsilon.data(), Sigma.data(), D.data(), eframe.data(), i);
         }
-
-        if(_destiffdthick) {
 
 // .....FORM STIFFNESS SENSITIVITY FOR PURE BENDING
 
-            Kb.noalias() += (area*weight[i])*(Bb.transpose()*Db*Bb);
+        Kb.noalias() += (area*weight[i])*(Bb.transpose()*Db*Bb);
 
 // .....FORM STIFFNESS SENSITIVITY FOR PURE MEMBRANE 
 
-            Km.noalias() += (area*weight[i])*(Bm.transpose()*Dm*Bm);
+        Km.noalias() += (area*weight[i])*(Bm.transpose()*Dm*Bm);
 
-            if(ctyp != 0 && ctyp != 2) {
+        if(ctyp != 0 && ctyp != 2) {
 
 // .....FORM STIFFNESS SENSITIVITY FOR BENDING-MEMBRANE COUPLING
 
-              Kbm.noalias() += (area*weight[i])*(Bb.transpose()*Dbm*Bm);
+            Kbm.noalias() += (area*weight[i])*(Bb.transpose()*Dbm*Bm);
 
 // .....FORM STIFFNESS SENSITIVITY FOR MEMBRANE-BENDING COUPLING
 
-              Kmb.noalias() += (area*weight[i])*(Bm.transpose()*Dmb*Bb);
+            Kmb.noalias() += (area*weight[i])*(Bm.transpose()*Dmb*Bb);
 
-            }
-
-// .....CHECK THE CONSTITUTIVE SENSITIVITY MATRIX (USED FOR DEBUGGING ONLY)
-#ifdef DEBUG_SHELL_ELEMENT_TEMPLATE
-            if(debug && (i == 0 || ctyp == 4)) {
-                std::cerr << "Here are the eigenvalues of the constitutive matrix (element " << elm 
-                          << ", gauss point " << i << ") :\n"
-                          << D->eigenvalues().transpose() << std::endl;
-            }
-#endif
         }
-
     }
 
 // .....APPLY PERMUTATION 
 
-    if(_destiffdthick) dKdthick = P*dKdthick*P.transpose();
+    dKdthick = P*dKdthick*P.transpose();
 
 // .....ROTATE ELEMENT STIFFNESS AND/OR FORCE SENSITIVITIES TO GLOBAL COORDINATES 
 //      (only if flag equals 1)
 
-    if (flag == 1 && _destiffdthick) {
+    if (flag == 1) {
         for(i = 0; i < 18; i += 3)
             for(j = 0; j < 18; j += 3)
                  dKdthick.template block<3,3>(i,j) = eframe*dKdthick.template block<3,3>(i,j)*eframe.transpose();
     }
-
-// .....CHECK THE POSITIVITY OF THE OUTPUT STIFFNESS SENSITIVITY MATRIX 
-// .....(USED FOR DEBUGGING ONLY) 
-#ifdef DEBUG_SHELL_ELEMENT_TEMPLATE
-    if(debug && _destiffdthick) {
-        std::cerr << "Here are the eigenvalues of the sensitivity of stiffness matrix (element " << elm << ") wrt thickness:\n"
-                  << dKdthick.eigenvalues().transpose() << std::endl;
-    }
-#endif
-    if(_destiffdthick) delete D;
 }
 
 template<typename doublereal, template<typename> class Membrane, template<typename> class Bending>
@@ -938,7 +1024,9 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 ::andesvms(int elm, int maxstr, doublereal nu, 
            doublereal *X, doublereal *Y, doublereal *Z,
            doublereal *_v, doublereal *_stress,
-           int ctyp, int strainflg, int surface, doublereal *ndtemps)
+           int ctyp, ShellMaterial<doublereal> *nmat, 
+           int strainflg, int surface, int sflg,
+           doublereal *ndtemps)
 {
   // Initialized data 
   doublereal clr = 0;
@@ -980,12 +1068,12 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 //     elm      <input>   Finite Element Number                         
 //     maxstr   <input>   Maximum Number of Stresses                    
 //     nu       <input>   Poisson's Ratio (for an Isotropic Element)    
-//     globalX  <input>   X- Nodal Coordinates                          
-//     globalY  <input>   Y- Nodal Coordinates                          
-//     globalZ  <input>   Z- Nodal Coordinates                          
-//     globalU  <input>   Global Displacements at the Nodal Joints      
+//     X        <input>   X- Nodal Coordinates                          
+//     Y        <input>   Y- Nodal Coordinates                          
+//     Z        <input>   Z- Nodal Coordinates                          
+//     V        <input>   Nodal Generalized Displacements               
 //     stress   <output>  Stresses (Von Mises Stress) of the Element    
-//     ctyp     <input>   Type of Constitutive Law (0, 1, 2, 3, or 4)      
+//     ctyp     <input>   Type of Constitutive Law (0, 1, 2, 3, or 4)   
 //                                                                      
 // ==================================================================== 
 // Author   = Francois M. Hemez                                         
@@ -1034,8 +1122,6 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 //     FRAME SYSTEM (LOCAL TO THE SHELL ELEMENT)   
 //     ------------------------------------------- 
 
-    // TODO would be better to store vd and v and 6x3 matrices instead of 18x1 vector
-    // then this would simply be a matrix matrix product
     for(i = 0; i < 18; i += 3)
         vd.segment(i,3) = eframe.transpose()*v.segment(i,3);
 
@@ -1061,28 +1147,29 @@ ShellElementTemplate<doublereal,Membrane,Bending>
     doublereal zeta[3][3] = { { 1.,0.,0. }, { 0.,1.,0. }, { 0.,0.,1. } }; // triangular coordinates of nodes
     for(i = 0; i < 3; ++i) {
 
-#ifdef COMPATIBILITY_MODE
+        if(sflg == 0) {
 // .....ELEMENTAL CURVATURE COMPUTATION
 
-        chi = (1/area)*Lb.transpose()*vd.tail(9);
+            chi = (1/area)*Lb.transpose()*vd.tail(9);
 
 // .....ELEMENTAL EXTENSION COMPUTATION
 
-        e = (1/area)*Lm.transpose()*vd.head(9);
-#else
+            e = (1/area)*Lm.transpose()*vd.head(9);
+        }
+        else {
 // .....ELEMENTAL CURVATURE COMPUTATION (including now the higher order contribution)
 
-        Bb = (1/area)*Lb.transpose() + Bending<doublereal>::Bd(xlp, ylp, betab, zeta[i]);
-        chi = Bb*vd.tail(9);
+            Bb = (1/area)*Lb.transpose() + Bending<doublereal>::Bd(xlp, ylp, betab, zeta[i]);
+            chi = Bb*vd.tail(9);
 
 // .....ELEMENTAL EXTENSION COMPUTATION (including now the higher order contribution)
 
-        Bm = (1/area)*Lm.transpose() +  Membrane<doublereal>::Bd(xlp, ylp, betam, zeta[i]);
-        e = Bm*vd.head(9);
-#endif
+            Bm = (1/area)*Lm.transpose() +  Membrane<doublereal>::Bd(xlp, ylp, betam, zeta[i]);
+            e = Bm*vd.head(9);
+        }
 
 // .....NODAL TEMPERATURE
-       temp = (ndtemps) ? ndtemps[i] : nmat->GetAmbientTemperature();
+        temp = (ndtemps) ? ndtemps[i] : nmat->GetAmbientTemperature();
 
 //     -------------------------------------------------
 //     STEP 6
@@ -1124,8 +1211,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
           default :  
           case 0 : {
 
-#ifdef COMPATIBILITY_MODE
-            if(ctyp < 4) {
+            if((sflg == 0) && (ctyp < 4)) {
 
 // .....COMPUTE THE GENERALIZED STRESSES [Sigma = {N,M}] WHICH ARE
 // .....FORCE AND MOMENT PER UNIT LENGTH
@@ -1157,12 +1243,13 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 
                 }
             }
-            else
-#endif
+            else {
 
 // .....COMPUTE THE LOCAL STRESSES ON THE SPECIFIED SURFACE
 
-            nmat->GetLocalConstitutiveResponse(Upsilon.data(), sigma.data(), z, eframe.data(), i, temp);
+                nmat->GetLocalConstitutiveResponse(Upsilon.data(), sigma.data(), z, eframe.data(), i, temp);
+
+            }
 
 // .....CALCULATE VON MISES EQUIVALENT STRESS
 
@@ -1277,7 +1364,8 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 ::andesvmsWRTdisp(int elm, doublereal nu, 
                   doublereal *X, doublereal *Y, doublereal *Z,
                   doublereal *_v, doublereal *_vmsWRTdisp,
-                  int ctyp, int surface, doublereal *ndtemps)
+                  int ctyp, ShellMaterial<doublereal> *nmat,
+                  int surface, int sflg, doublereal *ndtemps)
 {
   // Initialized data 
   doublereal clr = 0;
@@ -1379,8 +1467,6 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 //     FRAME SYSTEM (LOCAL TO THE SHELL ELEMENT)   
 //     ------------------------------------------- 
 
-    // TODO would be better to store vd and v and 6x3 matrices instead of 18x1 vector
-    // then this would simply be a matrix matrix product
     for(i = 0; i < 18; i += 3)
         vd.segment(i,3) = eframe.transpose()*v.segment(i,3);
 
@@ -1407,52 +1493,52 @@ ShellElementTemplate<doublereal,Membrane,Bending>
     doublereal zeta[3][3] = { { 1.,0.,0. }, { 0.,1.,0. }, { 0.,0.,1. } }; // triangular coordinates of nodes
     for(i = 0; i < 3; ++i) {
 
-#ifdef COMPATIBILITY_MODE
+        if(sflg == 0) {
 // .....ELEMENTAL CURVATURE COMPUTATION
 
-        chi = (1./area)*Lb.transpose()*vd.tail(9);
+            chi = (1./area)*Lb.transpose()*vd.tail(9);
 
 // .....ELEMENTAL EXTENSION COMPUTATION
 
-        e = (1./area)*Lm.transpose()*vd.head(9);
+            e = (1./area)*Lm.transpose()*vd.head(9);
 
 // .....COMPUTE SENSITIVITY OF THE GENERALIZED STRAINS
 
-        Eigen::Matrix<doublereal,6,18> LB;
-        LB << (1./area)*Lm.transpose(), Eigen::Matrix<doublereal,3,9>::Zero(),
-              Eigen::Matrix<doublereal,3,9>::Zero(), (1./area)*Lb.transpose();
+            Eigen::Matrix<doublereal,6,18> LB;
+            LB << (1./area)*Lm.transpose(), Eigen::Matrix<doublereal,3,9>::Zero(),
+                  Eigen::Matrix<doublereal,3,9>::Zero(), (1./area)*Lb.transpose();
 
-        dUpsilondu = LB*de_disp_du;
-#else
+            dUpsilondu = LB*de_disp_du;
+        }
+        else {
 // .....ELEMENTAL CURVATURE COMPUTATION (including now the higher order contribution)
 
-        Bb = (1/area)*Lb.transpose() + Bending<doublereal>::Bd(xlp, ylp, betab, zeta[i]);
-        chi = Bb*vd.tail(9);
+            Bb = (1/area)*Lb.transpose() + Bending<doublereal>::Bd(xlp, ylp, betab, zeta[i]);
+            chi = Bb*vd.tail(9);
 
 // .....ELEMENTAL EXTENSION COMPUTATION (including now the higher order contribution)
 
-        Bm = (1/area)*Lm.transpose() +  Membrane<doublereal>::Bd(xlp, ylp, betam, zeta[i]);
-        e = Bm*vd.head(9);
+            Bm = (1/area)*Lm.transpose() +  Membrane<doublereal>::Bd(xlp, ylp, betam, zeta[i]);
+            e = Bm*vd.head(9);
 
 // .....COMPUTE SENSITIVITY OF THE GENERALIZED STRAINS
 
-        Eigen::Matrix<doublereal,6,18> LB;
-        LB << Bm, Eigen::Matrix<doublereal,3,9>::Zero(),
-              Eigen::Matrix<doublereal,3,9>::Zero(), Bb;
+            Eigen::Matrix<doublereal,6,18> LB;
+            LB << Bm, Eigen::Matrix<doublereal,3,9>::Zero(),
+                  Eigen::Matrix<doublereal,3,9>::Zero(), Bb;
 
-        dUpsilondu = LB*de_disp_du; 
-#endif
+            dUpsilondu = LB*de_disp_du; 
+        }
 
 // .....NODAL TEMPERATURE
-       temp = (ndtemps) ? ndtemps[i] : nmat->GetAmbientTemperature();
+        temp = (ndtemps) ? ndtemps[i] : nmat->GetAmbientTemperature();
 
-//      -------------------------------------------------
-//      STEP 6
-//      COMPUTE THE VONMISES STRESS SENSITIVITY
-//      -------------------------------------------------
+//     -------------------------------------------------
+//     STEP 6
+//     COMPUTE THE VONMISES STRESS SENSITIVITY
+//     -------------------------------------------------
 
-#ifdef COMPATIBILITY_MODE
-        if(ctyp < 4) {
+        if((sflg == 0) && (ctyp < 4)) {
 
 // .....COMPUTE THE GENERALIZED STRESSES [Sigma = {N,M}] WHICH ARE
 // .....FORCE AND MOMENT PER UNIT LENGTH, AND THEIR SENSITIVITIES
@@ -1487,22 +1573,18 @@ ShellElementTemplate<doublereal,Membrane,Bending>
             }
         }
         else {
-#endif
 
 // .....COMPUTE THE LOCAL STRESSES AND THEIR SENSITIVITIES ON THE SPECIFIED SURFACE
 
             nmat->GetLocalConstitutiveResponse(Upsilon.data(), sigma.data(), z, eframe.data(), i, temp);
             nmat->GetLocalConstitutiveResponseSensitivityWRTdisp(dUpsilondu.data(), dsigmadu.data(), z, eframe.data(), i);
 
-#ifdef COMPATIBILITY_MODE
         }
-#endif
 
 // .....CALCULATE DERIVATIVE OF VON MISES EQUIVALENT STRESS WRT NODAL DISPLACEMENTS
 
         doublereal vms = equivstr(sigma[0], sigma[1], 0, sigma[2]);
         vmsWRTdisp.template block<1,18>(i,0) = equivstrSensitivityWRTdisp(vms, sigma[0], sigma[1], 0, sigma[2], dsigmadu);
-
     }
 
 }
@@ -1513,7 +1595,8 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 ::andesvmsWRTthic(int elm, doublereal nu, 
                   doublereal *X, doublereal *Y, doublereal *Z,
                   doublereal *_v, doublereal *_vmsWRTthic,
-                  int ctyp, int surface, doublereal *ndtemps)
+                  int ctyp, ShellMaterial<doublereal> *nmat,
+                  int surface, int sflg, doublereal *ndtemps)
 {
   // Initialized data 
   doublereal clr = 0;
@@ -1554,15 +1637,15 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 //     V A R I A B L E S                                                
 //     -----------------                                                
 //                                                                      
-//     elm        <input>   Finite Element Number                         
-//     nu         <input>   Poisson's Ratio (for an Isotropic Element)    
-//     globalX    <input>   X- Nodal Coordinates                          
-//     globalY    <input>   Y- Nodal Coordinates                          
-//     globalZ    <input>   Z- Nodal Coordinates                          
-//     globalU    <input>   Global Displacements at the Nodal Joints      
+//     elm        <input>   Finite Element Number                       
+//     nu         <input>   Poisson's Ratio (for an Isotropic Element)  
+//     X          <input>   X- Nodal Coordinates                        
+//     Y          <input>   Y- Nodal Coordinates                        
+//     Z          <input>   Z- Nodal Coordinates                        
+//     V          <input>   Nodal Generalized Displacements             
 //     vmsWRTthic <output>  Derivative of Von Mises Stress w.r.t        
 //                          thickness                                   
-//     ctyp       <input>   Type of Constitutive Law (0, 1, 2, 3, or 4)      
+//     ctyp       <input>   Type of Constitutive Law (0, 1, 2, 3, or 4) 
 //                                                                      
 // ==================================================================== 
 // Author  = Youngsoo Choi                                              
@@ -1604,8 +1687,6 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 //     FRAME SYSTEM (LOCAL TO THE SHELL ELEMENT)   
 //     ------------------------------------------- 
 
-    // TODO would be better to store vd and v and 6x3 matrices instead of 18x1 vector
-    // then this would simply be a matrix matrix product
     for(i = 0; i < 18; i += 3)
         vd.segment(i,3) = eframe.transpose()*v.segment(i,3);
 
@@ -1631,37 +1712,36 @@ ShellElementTemplate<doublereal,Membrane,Bending>
     doublereal zeta[3][3] = { { 1.,0.,0. }, { 0.,1.,0. }, { 0.,0.,1. } }; // triangular coordinates of nodes
     for(i = 0; i < 3; ++i) {
 
-#ifdef COMPATIBILITY_MODE
+        if(sflg == 0) {
 // .....ELEMENTAL CURVATURE COMPUTATION
 
-        chi = (1./area)*Lb.transpose()*vd.tail(9);
+            chi = (1./area)*Lb.transpose()*vd.tail(9);
 
 // .....ELEMENTAL EXTENSION COMPUTATION
 
-        e = (1./area)*Lm.transpose()*vd.head(9);
-#else
+            e = (1./area)*Lm.transpose()*vd.head(9);
+        }
+        else {
 // .....ELEMENTAL CURVATURE COMPUTATION (including now the higher order contribution)
 
-        Bb = (1./area)*Lb.transpose() + Bending<doublereal>::Bd(xlp, ylp, betab, zeta[i]);
-        chi = Bb*vd.tail(9);
+            Bb = (1./area)*Lb.transpose() + Bending<doublereal>::Bd(xlp, ylp, betab, zeta[i]);
+            chi = Bb*vd.tail(9);
 
 // .....ELEMENTAL EXTENSION COMPUTATION (including now the higher order contribution)
 
-        Bm = (1./area)*Lm.transpose() +  Membrane<doublereal>::Bd(xlp, ylp, betam, zeta[i]);
-        e = Bm*vd.head(9);
-
-#endif
+            Bm = (1./area)*Lm.transpose() +  Membrane<doublereal>::Bd(xlp, ylp, betam, zeta[i]);
+            e = Bm*vd.head(9);
+        }
 
 // .....NODAL TEMPERATURE
-       temp = (ndtemps) ? ndtemps[i] : nmat->GetAmbientTemperature();
+        temp = (ndtemps) ? ndtemps[i] : nmat->GetAmbientTemperature();
 
-//      -------------------------------------------------
-//      STEP 6
-//      COMPUTE THE VON MISES STRESS SENSITIVITY
-//      -------------------------------------------------
+//     -------------------------------------------------
+//     STEP 6
+//     COMPUTE THE VON MISES STRESS SENSITIVITY
+//     -------------------------------------------------
 
-#ifdef COMPATIBILITY_MODE
-        if(ctyp < 4) {
+        if((sflg == 0) && (ctyp < 4)) {
 
 // .....COMPUTE THE GENERALIZED STRESSES [Sigma = {N,M}] WHICH ARE
 // .....FORCE AND MOMENT PER UNIT LENGTH, AND THEIR SENSITIVITIES
@@ -1685,8 +1765,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 // .....ESTIMATE THE LOCAL STRESSES AND THEIR SENSITIVITIES ON THE MEDIAN SURFACE
 
                 sigma = N/thick;
-                dsigmadh = 1./thick*dSigmadh.head(3) 
-                         - N/(thick*thick);
+                dsigmadh = 1./thick*dSigmadh.head(3) - N/(thick*thick);
             }
 
             else if (surface == 3) {
@@ -1699,15 +1778,13 @@ ShellElementTemplate<doublereal,Membrane,Bending>
             }
         }
         else {
-#endif
+
 // .....COMPUTE THE LOCAL STRESSES AND THEIR SENSITIVITIES ON THE SPECIFIED SURFACE
 
             nmat->GetLocalConstitutiveResponse(Upsilon.data(), sigma.data(), z, eframe.data(), i, temp);
             nmat->GetLocalConstitutiveResponseSensitivityWRTthick(Upsilon.data(), dsigmadh.data(), dzdh, eframe.data(), i);
 
-#ifdef COMPATIBILITY_MODE
         }
-#endif
 
 // .....CALCULATE DERIVATIVE OF VON MISES EQUIVALENT STRESS WRT THICKNESS
 
@@ -1749,8 +1826,8 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 template<typename doublereal, template<typename> class Membrane, template<typename> class Bending>
 Eigen::Matrix<doublereal,1,18>
 ShellElementTemplate<doublereal,Membrane,Bending>
-::equivstrSensitivityWRTdisp(doublereal vms, doublereal sxx, doublereal syy, doublereal szz, doublereal sxy,
-                             Eigen::Matrix<doublereal,3,18> &dsigmadu)
+::equivstrSensitivityWRTdisp(doublereal vms, doublereal sxx, doublereal syy, doublereal szz,
+                             doublereal sxy, Eigen::Matrix<doublereal,3,18> &dsigmadu)
 {
     // Builtin functions 
     using std::sqrt;
@@ -1786,8 +1863,8 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 template<typename doublereal, template<typename> class Membrane, template<typename> class Bending>
 doublereal
 ShellElementTemplate<doublereal,Membrane,Bending>
-::equivstrSensitivityWRTthic(doublereal vms, doublereal sxx, doublereal syy, doublereal szz, doublereal sxy,
-                             Eigen::Matrix<doublereal,3,1> &dsigmadh)
+::equivstrSensitivityWRTthic(doublereal vms, doublereal sxx, doublereal syy, doublereal szz,
+                             doublereal sxy, Eigen::Matrix<doublereal,3,1> &dsigmadh)
 {
     // Builtin functions 
     using std::sqrt;
@@ -1937,7 +2014,9 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 template<typename doublereal, template<typename> class Membrane, template<typename> class Bending>
 void
 ShellElementTemplate<doublereal,Membrane,Bending>
-::andesups(int elm, doublereal *state, doublereal *X, doublereal *Y, doublereal *Z, doublereal *_v)
+::andesups(int elm, doublereal *state, doublereal *X, doublereal *Y, doublereal *Z, doublereal *_v,
+           ShellMaterial<doublereal> *gpmat, ShellMaterial<doublereal> *nmat,
+           int sflg)
 {
   // Initialized data 
   doublereal clr = 0;
@@ -2045,25 +2124,26 @@ ShellElementTemplate<doublereal,Membrane,Bending>
     doublereal eta[3][3] = { { 1.,0.,0. }, { 0.,1.,0. }, { 0.,0.,1. } }; // triangular coordinates of nodes
     for(i = 0; i < 3; ++i) {
 
-#ifdef COMPATIBILITY_MODE
+        if(sflg == 0) {
 // .....ELEMENTAL CURVATURE COMPUTATION
 
-        chi = (1/area)*Lb.transpose()*vd.tail(9);
+            chi = (1/area)*Lb.transpose()*vd.tail(9);
 
 // .....ELEMENTAL EXTENSION COMPUTATION
 
-        e = (1/area)*Lm.transpose()*vd.head(9);
-#else
+            e = (1/area)*Lm.transpose()*vd.head(9);
+        }
+        else {
 // .....ELEMENTAL CURVATURE COMPUTATION (including now the higher order contribution)
 
-        Bb = (1/area)*Lb.transpose() + Bending<doublereal>::Bd(xlp, ylp, betab, eta[i]);
-        chi = Bb*vd.tail(9);
+            Bb = (1/area)*Lb.transpose() + Bending<doublereal>::Bd(xlp, ylp, betab, eta[i]);
+            chi = Bb*vd.tail(9);
 
 // .....ELEMENTAL EXTENSION COMPUTATION (including now the higher order contribution)
 
-        Bm = (1/area)*Lm.transpose() +  Membrane<doublereal>::Bd(xlp, ylp, betam, eta[i]);
-        e = Bm*vd.head(9);
-#endif
+            Bm = (1/area)*Lm.transpose() +  Membrane<doublereal>::Bd(xlp, ylp, betam, eta[i]);
+            e = Bm*vd.head(9);
+        }
 
 // .....COMPUTE THE UPDATED MATERIAL STATE AT NODE i
 
@@ -2168,7 +2248,8 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 template<typename doublereal, template<typename> class Membrane, template<typename> class Bending>
 void
 ShellElementTemplate<doublereal,Membrane,Bending>
-::andesden(int elm, doublereal *X, doublereal *Y, doublereal *Z, doublereal &D)
+::andesden(int elm, doublereal *X, doublereal *Y, doublereal *Z,
+           ShellMaterial<doublereal> *gpmat, doublereal &D)
 {
   // Local variables
   int i;
@@ -2217,8 +2298,11 @@ template<typename doublereal, template<typename> class Membrane, template<typena
 void
 ShellElementTemplate<doublereal,Membrane,Bending>
 ::andesgfWRTcoord(int elm, doublereal *x, doublereal *y, doublereal *z, doublereal *_J,
-                  doublereal *gamma, int gravflg, doublereal rhoh, int senMethod, doublereal eps)
+                  doublereal *gamma, int gravflg, doublereal rhoh)
 {
+  const int senMethod = 1;
+  doublereal eps = 1e-6;
+
   Eigen::Array<double,4,1> dconst;
   dconst << gamma[0], gamma[1], gamma[2], rhoh;
 
@@ -2252,8 +2336,11 @@ template<typename doublereal, template<typename> class Membrane, template<typena
 void
 ShellElementTemplate<doublereal,Membrane,Bending>
 ::andesmsWRTcoord(int elm, doublereal *x, doublereal *y, doublereal *z, doublereal *_J,
-                  doublereal rhoh, int senMethod, doublereal eps)
+                  doublereal rhoh)
 {
+  const int senMethod = 1;
+  doublereal eps = 1e-6;
+
   Eigen::Array<double,1,1> dconst;
   dconst << rhoh;
 
@@ -2292,9 +2379,12 @@ void
 ShellElementTemplate<doublereal,Membrane,Bending>
 ::andesstfWRTcoord(int elm, doublereal *_destiffdx[9], doublereal E, doublereal nu, doublereal rho,
                    doublereal eh, doublereal Ta, doublereal W, doublereal *cFrame, doublereal *x,
-                   doublereal *y, doublereal *z, int ctyp, int flag, int senMethod, doublereal eps,
+                   doublereal *y, doublereal *z, int ctyp, doublereal *coefs, int flag, int tflg,
                    doublereal *ndtemps)
 {
+  const int senMethod = 1;
+  doublereal eps = 1e-6;
+
   Eigen::Array<double,60,1> dconst;
   dconst[0] = E;
   dconst[1] = nu;
@@ -2302,7 +2392,6 @@ ShellElementTemplate<doublereal,Membrane,Bending>
   dconst[3] = eh;
   if(ctyp == 1) {
     dconst.segment<9>(4) = Eigen::Map<Eigen::Matrix<double,9,1> >(cFrame);
-    double *coefs = nmat->GetCoefOfConstitutiveLaw();
     dconst.segment<42>(13) = Eigen::Map<Eigen::Matrix<double,42,1> >(coefs);
   }
   dconst[55] = Ta;
@@ -2310,10 +2399,11 @@ ShellElementTemplate<doublereal,Membrane,Bending>
   if(ndtemps)
     dconst.segment<3>(57) = Eigen::Map<Eigen::Matrix<double,3,1> >(ndtemps);
   else
-    dconst.segment<3>(57).setZero();
+    dconst.segment<3>(57).setConstant(Ta);
 
-  Eigen::Array<int,1,1> iconst;
+  Eigen::Array<int,2,1> iconst;
   iconst[0] = ctyp;
+  iconst[1] = tflg;
 
   Eigen::Matrix<double,9,1> q;
   q << x[0], y[0], z[0], x[1], y[1], z[1], x[2], y[2], z[2];
@@ -2345,8 +2435,11 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 ::andesvmsWRTcoord(int elm, doublereal E, doublereal nu, doublereal rho, doublereal eh,
                    doublereal Ta, doublereal W, doublereal *cFrame, doublereal *x,
                    doublereal *y, doublereal *z, doublereal *v, doublereal *_J, int ctyp,
-                   int surface, int senMethod, doublereal eps, doublereal *ndtemps)
+                   doublereal *coefs, int surface, int sflg, doublereal *ndtemps)
 {
+  const int senMethod = 1;
+  doublereal eps = 1e-6;
+
   Eigen::Array<double,78,1> dconst;
   dconst.segment<18>(0) = Eigen::Map<Eigen::Matrix<double,18,1> >(v);
   dconst[18] = E;
@@ -2355,7 +2448,6 @@ ShellElementTemplate<doublereal,Membrane,Bending>
   dconst[21] = eh;
   if(ctyp == 1) {
     dconst.segment<9>(22) = Eigen::Map<Eigen::Matrix<double,9,1> >(cFrame);
-    double *coefs = nmat->GetCoefOfConstitutiveLaw(); 
     dconst.segment<42>(31) = Eigen::Map<Eigen::Matrix<double,42,1> >(coefs); 
   }
   dconst[73] = Ta;
@@ -2363,11 +2455,12 @@ ShellElementTemplate<doublereal,Membrane,Bending>
   if(ndtemps)
     dconst.segment<3>(75) = Eigen::Map<Eigen::Matrix<double,3,1> >(ndtemps);
   else 
-    dconst.segment<3>(75).setZero();
+    dconst.segment<3>(75).setConstant(Ta);
 
-  Eigen::Array<int,2,1> iconst;
+  Eigen::Array<int,3,1> iconst;
   iconst[0] = surface;
   iconst[1] = ctyp;
+  iconst[2] = sflg;
 
   Eigen::Matrix<double,9,1> q;
   q << x[0], y[0], z[0], x[1], y[1], z[1], x[2], y[2], z[2];

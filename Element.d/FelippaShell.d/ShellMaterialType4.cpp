@@ -176,16 +176,20 @@ void
 ShellMaterialType4<doublereal,localmaterial>
 ::GetState(doublereal *state)
 {
-  std::vector<doublereal> PlasticStrain(3);
-  std::vector<doublereal> BackStress(3);
+  //std::vector<doublereal> PlasticStrain(3);
+  //std::vector<doublereal> BackStress(3);
   int l = 0;
   for(int i = 0; i < maxgus; ++i) {
     for(int j = 0; j < nlayer; ++j) {
       // get the internal variables
-      PlasticStrain = mat[nlayer*i+j]->GetMaterialPlasticStrain();
-      for (int k = 0; k < 3; ++k) state[l++] = PlasticStrain[k];
-      BackStress = mat[nlayer*i+j]->GetMaterialBackStress();
-      for (int k = 0; k < 3; ++k) state[l++] = BackStress[k];
+      const std::vector<doublereal> &PlasticStrain = mat[nlayer*i+j]->GetMaterialPlasticStrain();
+      state[l++] = PlasticStrain[0];
+      state[l++] = PlasticStrain[1];
+      state[l++] = PlasticStrain[2];
+      const std::vector<doublereal> &BackStress = mat[nlayer*i+j]->GetMaterialBackStress();
+      state[l++] = BackStress[0];
+      state[l++] = BackStress[1];
+      state[l++] = BackStress[2];
       state[l++] = mat[nlayer*i+j]->GetMaterialEquivalentPlasticStrain();
     }
   }

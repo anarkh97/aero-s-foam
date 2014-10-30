@@ -23,10 +23,7 @@ class ShellMaterial
     virtual void GetConstitutiveResponseSensitivityWRTdisp(doublereal *dUpsilondu, doublereal *dSigmadu, doublereal *D,
                                                            doublereal *eframe, int gp) {
       std::cerr << "GetConstitutiveResponseSensitivityWRTdisp is not defined\n"; }
-    virtual doublereal* GetCoefOfConstitutiveLaw() { 
-      std::cerr << "GetCoefOfConstitutiveLaw() is not defined\n";  
-      return NULL; 
-    }
+    virtual doublereal* GetCoefOfConstitutiveLaw() { return NULL; }
     virtual doublereal GetShellThickness() = 0;
     virtual doublereal GetAreaDensity() = 0; // mass per unit area
     virtual doublereal GetAmbientTemperature() = 0;
@@ -38,7 +35,7 @@ class ShellMaterial
       std::cerr << "GetLocalConstitutiveResponseSensitivityWRTthick is not defined\n"; }
     virtual void GetLocalConstitutiveResponseSensitivityWRTdisp(doublereal *dUpsilondu, doublereal *dsigmadu, doublereal z,
                                                                 doublereal *eframe, int gp) {
-      std::cerr << "GetLocalConstitutiveResponseWRTdisp is not defined\n"; }
+      std::cerr << "GetLocalConstitutiveResponseSensitivityWRTdisp is not defined\n"; }
     virtual int GetNumStates() { return 0; }
     virtual void SetState(doublereal *state) {}
     virtual void GetState(doublereal *state) {}

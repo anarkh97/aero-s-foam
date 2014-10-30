@@ -8,21 +8,24 @@
 #include <Element.d/FelippaShell.d/AndesBendingTriangle.hpp>
 #include <Element.d/FelippaShell.d/ShellElementTemplate.hpp>
 
+// class template to facilitate computation of the sensitivities of the nodal von mises stress w.r.t the nodal coordinates
+
 template<typename Scalar>
-class ShellElementStressWRTNodalCoordinateSensitivity : public VectorValuedFunction<9,3,Scalar,78,2,double>
+class ShellElementStressWRTNodalCoordinateSensitivity : public VectorValuedFunction<9,3,Scalar,78,3,double>
 {
   public:
     ShellElementTemplate<Scalar,EffMembraneTriangle,AndesBendingTriangle> ele;
     Eigen::Array<Scalar,18,1> globalu; // element displacements
     Scalar E, nu, rho, h, Ta, W; // material properties
-    int surface; // thru-thickness location at which stresses are to be evaluated
     Eigen::Array<Scalar,9,1> cframe; // composite frame
     Eigen::Array<Scalar,42,1> coefs;
     Eigen::Array<Scalar,3,1> ndtemps;
+    int surface; // thru-thickness location at which stresses are to be evaluated
     int type;
+    int sflg;
 
   public:
-    ShellElementStressWRTNodalCoordinateSensitivity(const Eigen::Array<double,78,1>& sconst, const Eigen::Array<int,2,1>& iconst)
+    ShellElementStressWRTNodalCoordinateSensitivity(const Eigen::Array<double,78,1>& sconst, const Eigen::Array<int,3,1>& iconst)
     {
       globalu = sconst.segment<18>(0).cast<Scalar>();
       E = sconst[18];
@@ -31,6 +34,7 @@ class ShellElementStressWRTNodalCoordinateSensitivity : public VectorValuedFunct
       h = sconst[21];
       surface = iconst[0];
       type = iconst[1];
+      sflg = iconst[2];
       if(type == 1) {
         cframe = sconst.segment<9>(22).cast<Scalar>();
         coefs = sconst.segment<42>(31).cast<Scalar>(); 
@@ -45,12 +49,13 @@ class ShellElementStressWRTNodalCoordinateSensitivity : public VectorValuedFunct
       // inputs:
       // q = nodal coordinates
 
+      ShellMaterial<Scalar> *nmat;
       switch(type) {
         case 0 :
-          ele.setgpnmat(new ShellMaterialType0<Scalar>(E, h, nu, rho, Ta, W));
+          nmat = new ShellMaterialType0<Scalar>(E, h, nu, rho, Ta, W);
           break;
         case 1 : 
-          ele.setgpnmat(new ShellMaterialType1<Scalar>(coefs.data(), cframe.data(), rho, h, Ta)); 
+          nmat = new ShellMaterialType1<Scalar>(coefs.data(), cframe.data(), rho, h, Ta);
           break;
         default :
           std::cerr << " *** ERROR: ShellElementStressWRTNodalCoordinateSensitivity is not defined for this case.\n";
@@ -75,7 +80,8 @@ class ShellElementStressWRTNodalCoordinateSensitivity : public VectorValuedFunct
       // surface  <input>   1: upper, 2: median, 3: lower
       Eigen::Array<Scalar,7,3> stress;
       ele.andesvms(0, 7, nu, globalx.data(), globaly.data(), globalz.data(), globalu.data(),
-                   stress.data(), 0, 0, surface, ndtemps.data());
+                   stress.data(), type, nmat, 0, surface, sflg, ndtemps.data());
+      delete nmat;
 
       // return value:
       // von mises stresses at nodes

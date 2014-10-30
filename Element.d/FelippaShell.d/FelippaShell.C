@@ -13,7 +13,6 @@
 #include <Element.d/FelippaShell.d/FelippaShell.h>
 #include <Element.d/NonLinearity.d/ExpMat.h>
 #include <Element.d/NonLinearity.d/MaterialWrapper.h>
-#include <Element.d/Function.d/SpaceDerivatives.h>
 #include <Element.d/State.h>
 #include <Hetero.d/InterpPoint.h>
 #include <Material.d/IsotropicLinearElasticJ2PlasticPlaneStressMaterial.h>
@@ -23,6 +22,12 @@
 #include <Utils.d/dofset.h>
 #include <Utils.d/linkfc.h>
 #include <Utils.d/pstress.h>
+
+#include <Element.d/FelippaShell.d/ShellElementTemplate.hpp>
+#include <Element.d/FelippaShell.d/EffMembraneTriangle.hpp>
+#include <Element.d/FelippaShell.d/AndesBendingTriangle.hpp>
+
+typedef ShellElementTemplate<double,EffMembraneTriangle,AndesBendingTriangle> Impl;
 
 extern int verboseFlag;
 
@@ -34,6 +39,14 @@ FelippaShell::FelippaShell(int* nodenums)
   type = 0;
   cFrame = 0;
   pbc = 0;
+  gpmat = 0;
+  nmat = 0;
+}
+
+FelippaShell::~FelippaShell()
+{
+  if(nmat && nmat != gpmat) delete nmat;
+  if(gpmat) delete gpmat;
 }
 
 Element *
@@ -114,9 +127,11 @@ FelippaShell::getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
 
   double* disp = elDisp.data();
 
-  andesvms(glNum+1, maxstr, prop->nu,
-           x, y, z, (double*)disp, (double*)elStress,
-           type, strainFlg, surface, ndTemps);
+  int sflg = 1;
+
+  Impl::andesvms(glNum+1, maxstr, prop->nu, x, y, z, disp,
+                 (double*)elStress, type, nmat, strainFlg,
+                 surface, sflg, ndTemps);
 
   stress[0] = elStress[0][strInd-offset];
   stress[1] = elStress[1][strInd-offset];
@@ -146,9 +161,11 @@ FelippaShell::getAllStress(FullM &stress, Vector &weight, CoordSet &cs,
 
   double* disp = elDisp.data();
 
-  andesvms(glNum+1, maxstr, prop->nu,
-           x, y, z, (double*)disp, (double*)elStress,
-           type, strInd, surface, ndTemps);
+  int sflg = 1;
+
+  Impl::andesvms(glNum+1, maxstr, prop->nu, x, y, z, disp,
+                 (double*)elStress, type, nmat, strInd,
+                 surface, sflg, ndTemps);
 
   // Store all Stress or all Strain as defined by strInd
   int i,j;
@@ -193,50 +210,7 @@ FelippaShell::getGravityForce(CoordSet& cs, double *gravityAcceleration,
 
   double rhoh = gpmat->GetAreaDensity();
 
-  andesgf(glNum+1, x, y, z, gravityForce.data(), gravityAcceleration, gravflg, rhoh);
-}
-
-void
-FelippaShell::getGravityForceSensitivityWRTNodalCoordinate(CoordSet& cs, double *gravityAcceleration, int senMethod,
-                                                           GenFullM<double> &dGfdx, int gravflg, GeomState *geomState)
-{
-  if (prop == NULL) {
-    dGfdx.zero();
-    return;
-  }
-
-  double x[3] = { cs[nn[0]]->x, cs[nn[1]]->x, cs[nn[2]]->x };
-  double y[3] = { cs[nn[0]]->y, cs[nn[1]]->y, cs[nn[2]]->y };
-  double z[3] = { cs[nn[0]]->z, cs[nn[1]]->z, cs[nn[2]]->z };
-
-  double rhoh = gpmat->GetAreaDensity();
-
-  andesgfWRTcoord(glNum+1, x, y, z, dGfdx.data(), gravityAcceleration, gravflg, rhoh, senMethod, 1e-6);
-}
-
-void
-FelippaShell::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravityAcceleration, int senMethod, 
-                                                     Vector& dGfdthick, int gravflg, GeomState *geomState)
-{
-  if (prop == NULL) {
-    dGfdthick.zero();
-    return;
-  }
-
-  double x[3] = { cs[nn[0]]->x, cs[nn[1]]->x, cs[nn[2]]->x };
-  double y[3] = { cs[nn[0]]->y, cs[nn[1]]->y, cs[nn[2]]->y };
-  double z[3] = { cs[nn[0]]->z, cs[nn[1]]->z, cs[nn[2]]->z };
-
-  double rhoh = gpmat->GetAreaDensity();
-
-  // note: For types other than 2 or 3, the contribution of the "non-structural" mass (which is presumably independent of the thickness)
-  //       to the sensitivity cannot be accounted for correctly because it is combined with the "structural" mass in the input file.
-  //       This can be fixed by adding to the input file an option to define the proportion of the total mass which is non-structural. 
-  double nsm = (type == 2 || type == 3) ? prop->rho : 0;
-
-  andesgf(glNum+1, x, y, z, dGfdthick.data(), gravityAcceleration, gravflg, rhoh-nsm);
-
-  dGfdthick /= gpmat->GetShellThickness();
+  Impl::andesgf(glNum+1, x, y, z, gravityForce.data(), gravityAcceleration, gravflg, rhoh);
 }
 
 double
@@ -247,88 +221,13 @@ FelippaShell::getMass(CoordSet &cs)
   double x[3] = { cs[nn[0]]->x, cs[nn[1]]->x, cs[nn[2]]->x };
   double y[3] = { cs[nn[0]]->y, cs[nn[1]]->y, cs[nn[2]]->y };
   double z[3] = { cs[nn[0]]->z, cs[nn[1]]->z, cs[nn[2]]->z };
-  double ElementMassMatrix[18][18];
   double *gravityAcceleration = NULL, *grvfor = NULL;
-  bool grvflg = false, masflg = true;
   double totmas = 0.0;
   double rhoh = gpmat->GetAreaDensity();
 
-  andesms(glNum+1, x, y, z, (double *)ElementMassMatrix, gravityAcceleration,
-          grvfor, grvflg, totmas, masflg, rhoh);
+  Impl::andesms(glNum+1, x, y, z, gravityAcceleration, grvfor, totmas, rhoh);
 
   return totmas;
-}
-
-double
-FelippaShell::getMassSensitivityWRTthickness(CoordSet &cs)
-{ 
-  if(prop == NULL) return 0.0;
-
-  double x[3] = { cs[nn[0]]->x, cs[nn[1]]->x, cs[nn[2]]->x };
-  double y[3] = { cs[nn[0]]->y, cs[nn[1]]->y, cs[nn[2]]->y };
-  double z[3] = { cs[nn[0]]->z, cs[nn[1]]->z, cs[nn[2]]->z };
-  double ElementMassMatrix[18][18];
-  double *gravityAcceleration = NULL, *grvfor = NULL;
-  bool grvflg = false, masflg = true;
-  double totmas = 0.0;
-  double rhoh = gpmat->GetAreaDensity();
-
-  // note: For types other than 2 or 3, the contribution of the "non-structural" mass (which is presumably independent of the thickness)
-  //       to the sensitivity cannot be accounted for correctly because it is combined with the "structural" mass in the input file.
-  //       This can be fixed by adding to the input file an option to define the proportion of the total mass which is non-structural. 
-  double nsm = (type == 2 || type == 3) ? prop->rho : 0;
-
-  andesms(glNum+1, x, y, z, (double *)ElementMassMatrix, gravityAcceleration,
-          grvfor, grvflg, totmas, masflg, rhoh-nsm);
-
-  return totmas/gpmat->GetShellThickness();
-}
-
-double
-FelippaShell::weight(CoordSet& cs, double *gravityAcceleration)
-{
-  if(prop == NULL || gravityAcceleration == NULL) return 0.0;
-
-  double mass = getMass(cs);
-  double gravAccNorm = sqrt(gravityAcceleration[0]*gravityAcceleration[0] + 
-                            gravityAcceleration[1]*gravityAcceleration[1] +
-                            gravityAcceleration[2]*gravityAcceleration[2]);
-  return mass*gravAccNorm;
-}
-
-double
-FelippaShell::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int senMethod)
-{
-  if(prop == NULL || gravityAcceleration == NULL) return 0.0;
-
-  double massSensitivity = getMassSensitivityWRTthickness(cs);
-  double gravAccNorm = sqrt(gravityAcceleration[0]*gravityAcceleration[0] +
-                            gravityAcceleration[1]*gravityAcceleration[1] +
-                            gravityAcceleration[2]*gravityAcceleration[2]);
-  return massSensitivity*gravAccNorm;
-}
- 
-void
-FelippaShell::weightDerivativeWRTNodalCoordinate(Vector &dwdx, CoordSet& cs, double *gravityAcceleration, int senMethod)
-{
-  if(prop == NULL || gravityAcceleration == NULL) {
-    dwdx.zeroAll();
-    return;
-  }
-
-  double x[3] = { cs[nn[0]]->x, cs[nn[1]]->x, cs[nn[2]]->x };
-  double y[3] = { cs[nn[0]]->y, cs[nn[1]]->y, cs[nn[2]]->y };
-  double z[3] = { cs[nn[0]]->z, cs[nn[1]]->z, cs[nn[2]]->z };
-
-  double rhoh = gpmat->GetAreaDensity();
-
-  andesmsWRTcoord(glNum+1, x, y, z, dwdx.data(), rhoh, senMethod, 1e-6);
-
-  double gravAccNorm = sqrt(gravityAcceleration[0]*gravityAcceleration[0] +
-                            gravityAcceleration[1]*gravityAcceleration[1] +
-                            gravityAcceleration[2]*gravityAcceleration[2]);
-
-  dwdx *= gravAccNorm;
 }
 
 FullSquareMatrix
@@ -343,12 +242,10 @@ FelippaShell::massMatrix(CoordSet &cs, double *mel, int cmflg)
   double x[3] = { cs[nn[0]]->x, cs[nn[1]]->x, cs[nn[2]]->x };
   double y[3] = { cs[nn[0]]->y, cs[nn[1]]->y, cs[nn[2]]->y };
   double z[3] = { cs[nn[0]]->z, cs[nn[1]]->z, cs[nn[2]]->z };
-  double *gravityAcceleration = NULL, *grvfor = NULL;
-  bool grvflg = false, masflg = false;
-  double totmas = 0;
   double rhoh = gpmat->GetAreaDensity();
+  int mflg = 1;
 
-  andesms(glNum+1, x, y, z, mel, gravityAcceleration, grvfor, grvflg, totmas, masflg, rhoh);
+  Impl::andesmm(glNum+1, x, y, z, mel, rhoh, mflg);
 
   FullSquareMatrix ret(18,mel);
 
@@ -561,7 +458,7 @@ FelippaShell::stiffness(CoordSet &cs, double *d, int flg)
   double disp[18]; for(int i=0; i<18; ++i) disp[i] = 0;
   double *fint = NULL;
 
-  andesstf(glNum+1, d, fint, prop->nu, x, y, z, disp, type, flg);
+  Impl::andesstf(glNum+1, d, fint, prop->nu, x, y, z, disp, type, gpmat, flg);
 
   FullSquareMatrix ret(18,d);
 
@@ -664,7 +561,7 @@ FelippaShell::getStiffAndForce(GeomState *refState, GeomState &geomState, CoordS
     x[1] = node2.x; y[1] = node2.y; z[1] = node2.z;
     x[2] = node3.x; y[2] = node3.y; z[2] = node3.z;
 
-    andesstf(glNum+1, elK.data(), locF, prop->nu, x, y, z, vld, type, 0);
+    Impl::andesstf(glNum+1, elK.data(), locF, prop->nu, x, y, z, vld, type, gpmat, 0);
 
     if(numStates() > 0) {
       double *state = geomState.getElemState(getGlNum()) + subNum*numStates();
@@ -815,7 +712,7 @@ FelippaShell::getInternalForce(GeomState *refState, GeomState &geomState, CoordS
     x[1] = node2.x; y[1] = node2.y; z[1] = node2.z;
     x[2] = node3.x; y[2] = node3.y; z[2] = node3.z;
 
-    andesstf(glNum+1, (double*)NULL, locF, prop->nu, x, y, z, vld, type, 0);
+    Impl::andesstf(glNum+1, (double*)NULL, locF, prop->nu, x, y, z, vld, type, gpmat, 0);
 
     if(numStates() > 0) {
       double *state = geomState.getElemState(getGlNum()) + subNum*numStates();
@@ -899,7 +796,9 @@ FelippaShell::updateStates(GeomState *refState, GeomState &geomState, CoordSet &
 
     double *statenp = geomState.getElemState(getGlNum()) + subNum*numStates();
 
-    andesups(glNum+1, statenp, x, y, z, vld);
+    int sflg = 1;
+
+    Impl::andesups(glNum+1, statenp, x, y, z, vld, gpmat, nmat, sflg);
 
     if(!refState) delete [] staten;
   }
@@ -940,7 +839,7 @@ FelippaShell::getDissipatedEnergy(GeomState &, CoordSet &cs)
     x[2] = node3.x; y[2] = node3.y; z[2] = node3.z;
 
     double D;
-    andesden(glNum+1, x, y, z, D);
+    Impl::andesden(glNum+1, x, y, z, gpmat, D);
 
     return D;
   }
@@ -1249,12 +1148,126 @@ FelippaShell::getThermalForce(CoordSet& cs, Vector& ndTemps, Vector &elThermalFo
   double disp[18]; for(int i=0; i<18; ++i) disp[i] = 0;
 
   int flg = (glflag == 0) ? 1 : 0;
-  andesstf(glNum+1, (double *)NULL, elThermalForce.data(), prop->nu, x, y, z, disp, type, flg, ndTemps.data());
+  int tflg = 1;
+  Impl::andesstf(glNum+1, (double *)NULL, elThermalForce.data(), prop->nu,
+                 x, y, z, disp, type, gpmat, flg, tflg, ndTemps.data());
   elThermalForce *= -1;
 }
 
+double
+FelippaShell::getMassSensitivityWRTthickness(CoordSet &cs)
+{ 
+  if(prop == NULL) return 0.0;
+
+  double x[3] = { cs[nn[0]]->x, cs[nn[1]]->x, cs[nn[2]]->x };
+  double y[3] = { cs[nn[0]]->y, cs[nn[1]]->y, cs[nn[2]]->y };
+  double z[3] = { cs[nn[0]]->z, cs[nn[1]]->z, cs[nn[2]]->z };
+  double *gravityAcceleration = NULL, *grvfor = NULL;
+  double totmas = 0.0;
+  double rhoh = gpmat->GetAreaDensity();
+
+  // note: For types other than 2 or 3, the contribution of the "non-structural" mass (which is presumably independent of the thickness)
+  //       to the sensitivity cannot be accounted for correctly because it is combined with the "structural" mass in the input file.
+  //       This can be fixed by adding to the input file an option to define the proportion of the total mass which is non-structural. 
+  double nsm = (type == 2 || type == 3) ? prop->rho : 0;
+
+  Impl::andesms(glNum+1, x, y, z, gravityAcceleration, grvfor, totmas, rhoh-nsm);
+
+  return totmas/gpmat->GetShellThickness();
+}
+
+void
+FelippaShell::weightDerivativeWRTNodalCoordinate(Vector &dwdx, CoordSet& cs, double *gravityAcceleration, int)
+{
+  if(prop == NULL || gravityAcceleration == NULL) {
+    dwdx.zeroAll();
+    return;
+  }
+
+  double x[3] = { cs[nn[0]]->x, cs[nn[1]]->x, cs[nn[2]]->x };
+  double y[3] = { cs[nn[0]]->y, cs[nn[1]]->y, cs[nn[2]]->y };
+  double z[3] = { cs[nn[0]]->z, cs[nn[1]]->z, cs[nn[2]]->z };
+
+  double rhoh = gpmat->GetAreaDensity();
+
+  Impl::andesmsWRTcoord(glNum+1, x, y, z, dwdx.data(), rhoh);
+
+  double gravAccNorm = sqrt(gravityAcceleration[0]*gravityAcceleration[0] +
+                            gravityAcceleration[1]*gravityAcceleration[1] +
+                            gravityAcceleration[2]*gravityAcceleration[2]);
+
+  dwdx *= gravAccNorm;
+}
+
+void
+FelippaShell::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravityAcceleration, int, 
+                                                     Vector& dGfdthick, int gravflg, GeomState*)
+{
+  if(prop == NULL) {
+    dGfdthick.zero();
+    return;
+  }
+
+  double x[3] = { cs[nn[0]]->x, cs[nn[1]]->x, cs[nn[2]]->x };
+  double y[3] = { cs[nn[0]]->y, cs[nn[1]]->y, cs[nn[2]]->y };
+  double z[3] = { cs[nn[0]]->z, cs[nn[1]]->z, cs[nn[2]]->z };
+
+  double rhoh = gpmat->GetAreaDensity();
+
+  // note: For types other than 2 or 3, the contribution of the "non-structural" mass (which is presumably independent of the thickness)
+  //       to the sensitivity cannot be accounted for correctly because it is combined with the "structural" mass in the input file.
+  //       This can be fixed by adding to the input file an option to define the proportion of the total mass which is non-structural. 
+  double nsm = (type == 2 || type == 3) ? prop->rho : 0;
+
+  Impl::andesgf(glNum+1, x, y, z, dGfdthick.data(),
+                gravityAcceleration, gravflg, rhoh-nsm);
+
+  dGfdthick /= gpmat->GetShellThickness();
+}
+
+void
+FelippaShell::getGravityForceSensitivityWRTNodalCoordinate(CoordSet& cs, double *gravityAcceleration, int,
+                                                           GenFullM<double> &dGfdx, int gravflg, GeomState*)
+{
+  if(prop == NULL) {
+    dGfdx.zero();
+    return;
+  }
+
+  double x[3] = { cs[nn[0]]->x, cs[nn[1]]->x, cs[nn[2]]->x };
+  double y[3] = { cs[nn[0]]->y, cs[nn[1]]->y, cs[nn[2]]->y };
+  double z[3] = { cs[nn[0]]->z, cs[nn[1]]->z, cs[nn[2]]->z };
+
+  double rhoh = gpmat->GetAreaDensity();
+
+  Impl::andesgfWRTcoord(glNum+1, x, y, z, dGfdx.data(),
+                        gravityAcceleration, gravflg, rhoh);
+}
+
 void 
-FelippaShell::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs, int senMethod)
+FelippaShell::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix &dStiffdThick, int flg, int)
+{
+  if(prop == NULL) {
+    dStiffdThick.zero();
+    return;
+  }
+
+  Node &nd1 = cs.getNode(nn[0]);
+  Node &nd2 = cs.getNode(nn[1]);
+  Node &nd3 = cs.getNode(nn[2]);
+
+  double x[3], y[3], z[3];
+
+  x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
+  x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
+  x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
+
+  Impl::andesstfWRTthick(glNum+1, dStiffdThick.data(), prop->nu,
+                         x, y, z, type, gpmat, flg);
+}
+
+void 
+FelippaShell::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs, int)
 {
   if(prop == NULL) {
     for(int i=0; i<9; ++i) dStiffdx[i].zero();
@@ -1276,34 +1289,16 @@ FelippaShell::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx
 
   int flg = 1;
 
-  andesstfWRTcoord(glNum+1, data, prop->E, prop->nu, prop->rho, prop->eh, prop->Ta, prop->W,
-                   cFrame, x, y, z, type, flg, senMethod, 1e-6);
+  Impl::andesstfWRTcoord(glNum+1, data, prop->E, prop->nu,
+                         prop->rho, prop->eh, prop->Ta, prop->W,
+                         cFrame, x, y, z, type,
+                         gpmat->GetCoefOfConstitutiveLaw(), flg);
 }
 
 void 
-FelippaShell::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix &dStiffdThick, int flg, int senMethod)
-{
-  if(prop == NULL) {
-    dStiffdThick.zero();
-    return;
-  }
-
-  Node &nd1 = cs.getNode(nn[0]);
-  Node &nd2 = cs.getNode(nn[1]);
-  Node &nd3 = cs.getNode(nn[2]);
-
-  double x[3], y[3], z[3];
-
-  x[0] = nd1.x; y[0] = nd1.y; z[0] = nd1.z;
-  x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
-  x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
-
-  andesstfWRTthick(glNum+1, dStiffdThick.data(), prop->nu, x, y, z, type, flg);
-}
-
-void 
-FelippaShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd,
-                                              int surface, int senMethod, double *, int avgnum, double ylayer, double zlayer)
+FelippaShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight, CoordSet &cs,
+                                              Vector &elDisp, int, int surface, int, double *ndTemps,
+                                              int avgnum, double, double)
 {
   weight = 1.0;
 
@@ -1317,12 +1312,17 @@ FelippaShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight,
   x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
   x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
 
-  andesvmsWRTthic(1, prop->nu, x, y, z, elDisp.data(), dStdThick.getData(), type, surface);
+  int sflg = 1;
+
+  Impl::andesvmsWRTthic(glNum+1, prop->nu, x, y, z, elDisp.data(),
+                        dStdThick.getData(), type, nmat, surface,
+                        sflg, ndTemps);
 }
 
 void 
-FelippaShell::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd,
-                                                    int surface, int senMethod, double *, int avgnum, double ylayer, double zlayer)
+FelippaShell::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vector &weight, CoordSet &cs,
+                                                    Vector &elDisp, int, int surface, int, double *ndTemps,
+                                                    int avgnum, double, double)
 {
   weight = 1.0;
 
@@ -1336,20 +1336,19 @@ FelippaShell::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vec
   x[1] = nd2.x; y[1] = nd2.y; z[1] = nd2.z;
   x[2] = nd3.x; y[2] = nd3.y; z[2] = nd3.z;
 
-  andesvmsWRTcoord(1, prop->E, prop->nu, prop->rho, prop->eh, prop->Ta, prop->W, cFrame,
-                   x, y, z, elDisp.data(), dStdx.getData(), type, surface, senMethod, 1e-6);
+  int sflg = 1;
+
+  Impl::andesvmsWRTcoord(glNum+1, prop->E, prop->nu, prop->rho,
+                         prop->eh, prop->Ta, prop->W, cFrame,
+                         x, y, z, elDisp.data(), dStdx.getData(),
+                         type, nmat->GetCoefOfConstitutiveLaw(),
+                         surface, sflg, ndTemps);
 }
 
 void 
-FelippaShell::getVonMisesThicknessSensitivity(ComplexVector &dStdThick, ComplexVector &weight, CoordSet &cs, ComplexVector &elDisp,
-                                              int strInd, int surface, int senMethod, double *, int avgnum, double ylayer, double zlayer)
-{
-  fprintf(stderr," *** WARNING: Complex Von Mises stress sensitivity w.r.t thickness is not implemented for element (%6d), type 15\n", getGlNum()+1);
-}
-
-void 
-FelippaShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd,
-                                                 int surface, int senMethod, double *ndTemps, int avgnum, double ylayer, double zlayer)
+FelippaShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs,
+                                                 Vector &elDisp, int, int surface, int, double *ndTemps,
+                                                 int avgnum, double, double)
 {
   weight = 1.0;
 
@@ -1365,14 +1364,11 @@ FelippaShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
 
   double* disp = elDisp.data();
 
-  andesvmsWRTdisp(1, prop->nu, x, y, z, elDisp.data(), dStdDisp.getData(), type, surface);  
-}
+  int sflg = 1;
 
-void 
-FelippaShell::getVonMisesDisplacementSensitivity(GenFullM<DComplex> &dStdDisp, ComplexVector &weight, CoordSet &cs, ComplexVector &elDisp,
-                                                 int strInd, int surface, int senMethod, double *, int avgnum, double ylayer, double zlayer)
-{
-  fprintf(stderr," *** WARNING: Complex Von Mises stress sensitivity w.r.t displacement is not implemented for element (%6d), type 15\n", getGlNum()+1);
+  Impl::andesvmsWRTdisp(glNum+1, prop->nu, x, y, z, elDisp.data(),
+                        dStdDisp.getData(), type, nmat, surface,
+                        sflg, ndTemps);  
 }
 
 #endif

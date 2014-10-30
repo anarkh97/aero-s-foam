@@ -7,6 +7,8 @@
 #include <Element.d/FelippaShell.d/AndesBendingTriangle.hpp>
 #include <Element.d/FelippaShell.d/ShellElementTemplate.hpp>
 
+// class template to facilitate computation of the sensitivities of the mass w.r.t the nodal coordinates
+
 template<typename Scalar>
 class ShellElementMassWRTNodalCoordinateSensitivity : public ScalarValuedFunction<9,Scalar,1,0,double>
 {
@@ -29,11 +31,9 @@ class ShellElementMassWRTNodalCoordinateSensitivity : public ScalarValuedFunctio
       Scalar globaly[3] = { q[1], q[4], q[7] };
       Scalar globalz[3] = { q[2], q[5], q[8] };
 
-      Scalar ElementMassMatrix[324];
       Scalar mass;
 
-      ele.andesms(1, globalx, globaly, globalz, ElementMassMatrix,
-                  (Scalar*) NULL, (Scalar*) NULL, false, mass, true, rhoh);
+      ele.andesms(1, globalx, globaly, globalz, (Scalar*) NULL, (Scalar*) NULL, mass, rhoh);
  
       return mass;
     }

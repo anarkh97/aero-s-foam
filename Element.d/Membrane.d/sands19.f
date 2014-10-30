@@ -7,7 +7,7 @@
 * AND PICKS THE MAXIMUN AS OUTPUT
 * 
 *-------------------------------------------------------------------*
-*  CALLED BY : MDERIV.F   
+*  CALLED BY : Membrane.C 
 *
 *  SUBROUTINES CALLED:
 *                      ROTATION
@@ -20,7 +20,7 @@ C.... DECLARE ALL GLOBAL VARIABLES
 C
 C.... INTEGER CONSTANTS
 C 
-        integer msize,maxstr,maxgus,elm,strainFlg 
+        integer msize,maxstr,maxgus,elm,strainFlg
 C
 C.... REAL CONSTANTS
 C
@@ -298,7 +298,7 @@ C
       stress(elm,6,2) = str(6)
       stress(elm,6,3) = str(6)
 
-      stress(elm,7,1) = sbf 
+      stress(elm,7,1) = sbf
       stress(elm,7,2) = sbf
       stress(elm,7,3) = sbf
 

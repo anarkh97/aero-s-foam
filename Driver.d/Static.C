@@ -3206,7 +3206,6 @@ Domain::computeLinearStaticWRTthicknessSensitivity(int sindex,
      }
      for(int iparam = 0; iparam < numThicknessGroups; ++iparam) {
        Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > disp(sol.data(),numUncon(),1);
-//       Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
        if(allSens.stiffnessWRTthick) {
          *allSens.linearstaticWRTthick[iparam] = (*allSens.stiffnessWRTthick[iparam]) * disp;
        } else {
@@ -3226,7 +3225,6 @@ Domain::computeLinearStaticWRTthicknessSensitivity(int sindex,
        }
      }
      subtractGravityForceSensitivityWRTthickness(sindex,allSens); //TODO-> must consider other external forces
-
 #endif
 }
 

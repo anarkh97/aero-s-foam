@@ -3,6 +3,7 @@
 
 // Coded by: Kendall H. Pierson
 
+#ifdef NO_INLINE_COROT_UTILS
 // This routine normalizes a 3 dimensional vector
 void normalize(double v[3])
 {
@@ -16,6 +17,7 @@ double magnitude(double v[3])
 {
 	return sqrt( v[0]*v[0] + v[1]*v[1] + v[2]*v[2] );
 }
+#endif
 
 void dnormalize(double v[3],double dv[3])
 { 

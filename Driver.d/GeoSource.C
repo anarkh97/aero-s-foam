@@ -599,13 +599,16 @@ GeoSource::outputEigenScalars(int fileNum, Eigen::Matrix<Scalar, Eigen::Dynamic,
 {
   int w = oinfo[fileNum].width;
   int p = oinfo[fileNum].precision;
+  if(output == NULL) { std::cerr << " *** WARNING: sensitivities are not available for output file " << oinfo[fileNum].filename << std::endl; return; }
 
   Eigen::IOFormat CleanFmt(Eigen::FullPrecision,0," ", "\n", " ", " ");
   if(oinfo[fileNum].isFirst) {
     std::ofstream fileout(oinfo[fileNum].filename, std::ios::out);
+#ifdef SENSITIVITY_DEBUG
     if(verboseFlag) std::cerr << oinfo[fileNum].filename << std::endl;
     if(verboseFlag) std::cerr << time << std::endl;
     if(verboseFlag) std::cerr << (*output) << std::endl;
+#endif
     fileout << "\t" << std::setprecision(p) << time << std::endl;
     fileout << (*output).format(CleanFmt) << std::endl;
     fileout.close();

@@ -37,10 +37,12 @@ int main()
     eframe.segment<3>(6) = (eframe.matrix().segment<3>(0).cross(eframe.matrix().segment<3>(3))).normalized();
     Eigen::Array<double,42,1> coefs = Eigen::Array<double,42,1>::Random()*1e6; // XXX
     Eigen::Array<double,3,1> ndtemps = Eigen::Array<double,3,1>::Random()*100;
-    int surface = i%3;
+    int surface = i%3+1;
     int ctyp = 0;
     int gravflg = i%2;
     int flg = i%2;
+    int sflg = 1;
+    int tflg = 1;
 
     double nsm = (ctyp == 2 || ctyp == 3) ? rho : 0;
 
@@ -50,8 +52,6 @@ int main()
       mat = new ShellMaterialType0<double>(E, eh, nu, rho, Ta, W);
     else if(ctyp == 1)
       mat = new ShellMaterialType1<double>(coefs.data(), eframe.data(), rho, eh, Ta);
-    elem.setnmat(mat);
-    elem.setgpmat(mat);
 
     // #1 test stress wrt thickness sensitivity
     {
@@ -60,8 +60,8 @@ int main()
       dconst << x, y, z, u, E, nu, rho, eframe, coefs, Ta, W, ndtemps;
 
       // integer parameters
-      Eigen::Array<int,2,1> iconst;
-      iconst << surface, ctyp;
+      Eigen::Array<int,3,1> iconst;
+      iconst << surface, ctyp, sflg;
 
       // inputs
       Eigen::Matrix<double,1,1> q;
@@ -74,7 +74,7 @@ int main()
 
       // Jacobian evaluation using hand-coded routine
       Eigen::Matrix<double,3,1> J;
-      elem.andesvmsWRTthic(0, nu, x.data(), y.data(), z.data(), u.data(), J.data(), ctyp, surface, ndtemps.data());
+      elem.andesvmsWRTthic(0, nu, x.data(), y.data(), z.data(), u.data(), J.data(), ctyp, mat, surface, sflg, ndtemps.data());
       if(verbose) std::cerr << "#1 J = " << J.transpose() << std::endl;
 
       // Jacobian evaluation by automatic differentiation
@@ -103,8 +103,8 @@ int main()
       dconst << x, y, z, E, nu, rho, eh, eframe, coefs, Ta, W, ndtemps;
 
       // integer parameters
-      Eigen::Array<int,2,1> iconst;
-      iconst << surface, ctyp;
+      Eigen::Array<int,3,1> iconst;
+      iconst << surface, ctyp, sflg;
 
       // inputs
       Eigen::Matrix<double,18,1> q = u;
@@ -116,7 +116,7 @@ int main()
 
       // Jacobian evaluation using hand-coded routine
       Eigen::Matrix<double,3,18> J;
-      elem.andesvmsWRTdisp(0, nu, x.data(), y.data(), z.data(), u.data(), J.data(), ctyp, surface, ndtemps.data());
+      elem.andesvmsWRTdisp(0, nu, x.data(), y.data(), z.data(), u.data(), J.data(), ctyp, mat, surface, sflg, ndtemps.data());
       if(verbose) std::cerr << "#2 J = " << J.transpose() << std::endl;
 
       // Jacobian evaluation by automatic differentiation
@@ -189,8 +189,8 @@ int main()
       dconst << x, y, z, E, nu, rho, eframe, coefs, Ta, W, ndtemps;
 
       // integer parameters
-      Eigen::Array<int,2,1> iconst;
-      iconst << ctyp, flg;
+      Eigen::Array<int,3,1> iconst;
+      iconst << ctyp, flg, tflg;
 
       // inputs
       Eigen::Matrix<double,1,1> q;
@@ -203,7 +203,7 @@ int main()
 
       // Jacobian evaluation using hand-coded routine
       Eigen::Matrix<double,18,18> J;
-      elem.andesstfWRTthick(0, J.data(), nu, x.data(), y.data(), z.data(), ctyp, flg, ndtemps.data());
+      elem.andesstfWRTthick(0, J.data(), nu, x.data(), y.data(), z.data(), ctyp, mat, flg, tflg, ndtemps.data());
       if(verbose) std::cerr << "#4 J = \n" << J << std::endl;
 
       // Jacobian evaluation by automatic differentiation

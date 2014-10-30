@@ -412,8 +412,8 @@ class Element {
 
         virtual double getMass(CoordSet&) { return 0; }
         virtual double getMassSensitivityWRTthickness(CoordSet&) { return 0; }
-        virtual double weight(CoordSet&, double *) { return 0; }
-        virtual double weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int senMethod=1) { return 0; }
+        virtual double weight(CoordSet&, double *);
+        virtual double weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int senMethod=1);
         virtual void weightDerivativeWRTNodalCoordinate(Vector& dwdx, CoordSet& cs, double *gravityAcceleration, int senMethod=1);
         virtual double getDCmass(CoordSet &,Vector &, double&) { return 0; }
 

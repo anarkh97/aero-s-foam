@@ -21,13 +21,13 @@ class ElastoPlasticPlaneStressMaterial
                                                         const bool UpdateFlag = true) = 0;
   
   //! Returns the plastic strain in material (3x1 vector)
-  virtual std::vector<double> GetMaterialPlasticStrain() const = 0;
+  virtual const std::vector<double> & GetMaterialPlasticStrain() const = 0;
 
   //! Returns equivalent plastic strain in material
   virtual double GetMaterialEquivalentPlasticStrain() const = 0;
 
   //! Returns back stress in material (3x1 vector)
-  virtual std::vector<double> GetMaterialBackStress() const = 0;
+  virtual const std::vector<double> & GetMaterialBackStress() const = 0;
 
   //! Returns dissipated energy in material
   virtual double GetDissipatedEnergy() const = 0;

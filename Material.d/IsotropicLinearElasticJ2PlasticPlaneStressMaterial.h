@@ -258,13 +258,13 @@ class IsotropicLinearElasticJ2PlasticPlaneStressMaterial : public ElastoPlasticP
 						const bool UpdateFlag = true);
   
   //! Returns the plastic strain in material (3x1 vector)
-  std::vector<double> GetMaterialPlasticStrain() const;
+  const std::vector<double> & GetMaterialPlasticStrain() const;
   
   //! Returns equivalent plastic strain in material
   double GetMaterialEquivalentPlasticStrain() const;
   
   //! Returns back stress in material (3x1 vector)
-  std::vector<double> GetMaterialBackStress() const;
+  const std::vector<double> & GetMaterialBackStress() const;
   
   //! Returns the Isotropic hardening modulus
   double GetIsotropicHardeningModulus() const;
@@ -368,5 +368,43 @@ class IsotropicLinearElasticJ2PlasticPlaneStressMaterial : public ElastoPlasticP
   //! Pre-computed tensor coefficients
   double t00, t01, t22;
 };
+
+// Return plastic strain
+inline const std::vector<double>& IsotropicLinearElasticJ2PlasticPlaneStressMaterial::
+GetMaterialPlasticStrain() const
+{
+/* PJSA
+  std::vector<double> EP(9,0.);
+  EP[0] = EPSplastic[0];
+  EP[4] = EPSplastic[1];
+  EP[8] = -(EP[0]+EP[4]);
+  EP[1] = EP[3] = 0.5*EPSplastic[2];
+  EP[2] = EP[5] = EP[6] = EP[7] = 0.;
+  return EP;
+*/
+  return EPSplastic;
+}
+
+// Return equivalent plastic strain
+inline double IsotropicLinearElasticJ2PlasticPlaneStressMaterial::
+GetMaterialEquivalentPlasticStrain() const
+{ return equivEPSplastic; }
+
+// Return back stress
+inline const std::vector<double>& IsotropicLinearElasticJ2PlasticPlaneStressMaterial::
+GetMaterialBackStress() const
+{
+/* PJSA
+  std::vector<double> BS(9,0.);
+  BS[0] = BackStress[0];
+  BS[4] = BackStress[1];
+  BS[8] = 0;
+  BS[1] = BS[3] = BackStress[2];
+  BS[2] = BS[5] = BS[6] = BS[7] = 0.;
+  return BS;
+*/
+  return BackStress;
+}
+
 
 #endif

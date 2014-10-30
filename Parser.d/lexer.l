@@ -1288,6 +1288,8 @@ TRAIL [a-zA-Z]*
 
 "rescal"[a-zA-Z]*|"RESCAL"[a-zA-Z]* { return RESCALING; }
 
+"oeigenvalue"|"OEIGENVALUE"          { return EIGENVALUE; }
+
 "xmatrix"|"XMATRIX"                { return XMATRIX; }
 
 "qmatrix"|"QMATRIX"                { return QMATRIX; }

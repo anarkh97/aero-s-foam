@@ -2325,14 +2325,14 @@ ShellElementTemplate<doublereal,Membrane,Bending>
     case 1: { // automatic differentiation
       Simo::FirstPartialSpaceDerivatives<double,ShellElementStiffnessWRTNodalCoordinateSensitivity> dfdx(dconst,iconst);
       J = dfdx(q, 0);
-      for(int i=0; i<9; ++i) for(int j=0; j<324; ++i) _destiffdx[i][j] = J[i].data()[j];
+      for(int i=0; i<9; ++i) for(int j=0; j<324; ++j) _destiffdx[i][j] = J[i].data()[j];
     } break;
     case 2 : { // finite difference approximation 
       Simo::SpatialView<double,ShellElementStiffnessWRTNodalCoordinateSensitivity> sv(dconst,iconst,0.);
       Eigen::NumericalDiff<Simo::SpatialView<double,ShellElementStiffnessWRTNodalCoordinateSensitivity>,Eigen::Central> nd(sv, eps);
       Eigen::Matrix<double,324,9> jac;
       nd.df(q, jac);
-      for(int i=0; i<9; ++i) for(int j=0; j<324; ++i) _destiffdx[i][j] = jac.col(i)[j];
+      for(int i=0; i<9; ++i) for(int j=0; j<324; ++j) _destiffdx[i][j] = jac.col(i)[j];
     } break;
   }
 }

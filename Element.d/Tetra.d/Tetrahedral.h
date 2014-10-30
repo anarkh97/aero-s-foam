@@ -11,6 +11,7 @@ class Tetrahedral: public Element,
     double *cCoefs;
     double *cFrame;
     NLMaterial *mat;
+    void computeDjDx(double x[4], double y[4], double z[4], double J, double djdx[12]);
 
   public:
     Tetrahedral(int*);
@@ -22,20 +23,33 @@ class Tetrahedral: public Element,
     void renum(EleRenumMap&);
 
     FullSquareMatrix stiffness(CoordSet&, double *kel, int flg=1);
+    FullSquareMatrix computeStiffness(double q[12], double *d);
+    void getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs, int senMethod);
     FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg=1);
-        double weight(CoordSet& cs, double *gravityAcceleration);
+    double weight(CoordSet& cs, double *gravityAcceleration);
+    void weightDerivativeWRTNodalCoordinate(Vector &dwdx, CoordSet& cs, double *gravityAcceleration, int senMethod);
     double getMass(CoordSet& cs);
 
     void getGravityForce(CoordSet&, double *gravity, Vector&, int gravflg, GeomState *gs);
+    void getGravityForceSensitivityWRTNodalCoordinate(CoordSet& cs, double *gravityAcceleration, int senMethod,
+                                                      GenFullM<double> &dGfdx, int gravflg, GeomState *geomState);
     void getThermalForce(CoordSet &cs, Vector &ndTemps, Vector &force, int glflag, GeomState *gs=0);
 
+    void computeVonMises(Vector &stress, Vector &weight, double q[12], Vector &elDisp, int strInd,
+                         int surface=0, double *ndTemps=0, double ylayer=0.0, double zlayer=0.0, int avgnum=0);
     void getVonMises(Vector &stress, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd,
                      int surface=0, double *ndTemps=0, double ylayer=0.0, double zlayer=0.0, int avgnum=0);
+    void computeGravityForce(double q[12],  double *gravityAcceleration,
+                             Vector& gravityForce, int gravflg, GeomState *geomState);
+
 
     void getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vector &weight,
                                                CoordSet &cs, Vector &elDisp, int strInd,
                                                int surface, int senMethod=1, double* ndTemps=0,
                                                int avgnum=1, double ylayer=0, double zlayer=0);
+
+    void getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+                                            int senMethod, double *ndTemps, int avgnum, double ylayer, double zlayer);
 
     void getAllStress(FullM &stress, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd,
                       int surface=0, double *ndTemps=0);

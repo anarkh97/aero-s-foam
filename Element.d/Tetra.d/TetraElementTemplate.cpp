@@ -30,16 +30,15 @@ TetraElementTemplate<doublereal>
       Eigen::Matrix<doublereal,9,1> elas;
       Eigen::Matrix<doublereal,4,1> delta;
       Eigen::Matrix<doublereal,3,3> df;
-      Eigen::Matrix<doublereal,12,4> a2, DP;
+      Eigen::Matrix<doublereal,12,4> a2;
+      Eigen::Matrix<doublereal,4,12> DP;
       Eigen::Matrix<doublereal,4,4> vp1;
       Eigen::Matrix<doublereal,3,3> dfinv;
 
-      DP.transpose() << -1.,-1.,-1.,1.,0.,1.,0.,1.,
-                        -1.,-1.,-1.,1.,0.,1.,0.,1.,   
-                        -1.,-1.,-1.,1.,0.,1.,0.,1.,   
-                        -1.,-1.,-1.,1.,0.,1.,0.,1.,
-                        -1.,-1.,-1.,1.,0.,1.,0.,1.,   
-                        -1.,-1.,-1.,1.,0.,1.,0.,1.;
+      DP << -1.,-1.,-1.,1.,0.,0.,0.,1.,0.,0.,0.,1.,
+            -1.,-1.,-1.,1.,0.,0.,0.,1.,0.,0.,0.,1.,   
+            -1.,-1.,-1.,1.,0.,0.,0.,1.,0.,0.,0.,1.,   
+            -1.,-1.,-1.,1.,0.,0.,0.,1.,0.,0.,0.,1.;
       IJT << 0, 3, 6, 9,  1, 4, 7, 10,  2, 5, 8, 11;
       vp1.setIdentity();
 
@@ -51,9 +50,9 @@ TetraElementTemplate<doublereal>
          for(I = 0; I<ndim; ++I) {
            for(N = 0; N<npo; ++N) {
 
-             df(I,0) += DP(ndim*N+I,L) * X(N,0);
-             df(I,1) += DP(ndim*N+I,L) * Y(N,0);
-             df(I,2) += DP(ndim*N+I,L) * Z(N,0);
+             df(I,0) += DP(L,ndim*N+I) * X(N,0);
+             df(I,1) += DP(L,ndim*N+I) * Y(N,0);
+             df(I,2) += DP(L,ndim*N+I) * Z(N,0);
            }
          }
          if (ndim == 3) {
@@ -77,9 +76,9 @@ TetraElementTemplate<doublereal>
 
            for(I = 0; I<3; ++I) {
              for(J = 0; J<nno; ++J) {
-              a2(3*J+I,L) =  dfinv(I,0) * DP(ndim*J,L)  +
-                             dfinv(I,1) * DP(ndim*J+1,L)  +
-                             dfinv(I,2) * DP(ndim*J+2,L);
+              a2(3*J+I,L) =  dfinv(I,0) * DP(L,ndim*J)  +
+                             dfinv(I,1) * DP(L,ndim*J+1)  +
+                             dfinv(I,2) * DP(L,ndim*J+2);
              }
            }
          }

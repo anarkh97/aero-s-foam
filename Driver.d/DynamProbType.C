@@ -745,7 +745,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
     if(aeroAlg >= 0 || probDesc->getAeroheatFlag() >= 0) {
       filePrint(stderr," ... Pseudo-Step = %d  Rel. Res. = %10.4e ...\n",tIndex, relres);
   
-      probDesc->getAeroelasticForceSensitivity(tIndex, (double)tIndex*delta, aeroForceSen); // [E] Received fluid load sensitivity...
+      probDesc->getAeroelasticForceSensitivity(tIndex, (double)tIndex*delta, aeroForceSen, 1.0, 0.0); // [E] Received fluid load sensitivity...
       // command communication with fluid
       if(tIndex == steadyMax && !iSteady) { 
 //        probDesc->processLastOutput();

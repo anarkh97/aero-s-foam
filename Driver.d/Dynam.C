@@ -1025,7 +1025,7 @@ Domain::aeroPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
 
     if(sinfo.aeroFlag == 8) {
       flExchanger->sendParam(sinfo.aeroFlag, sinfo.getTimeStep(), sinfo.mppFactor,
-                             restartinc, sinfo.isCollocated, sinfo.alphas);
+                             restartinc, sinfo.isCollocated, sinfo.alphas, sinfo.alphasv);
       flExchanger->sendModeFreq(modeData.frequencies, modeData.numModes);
       if(verboseFlag) filePrint(stderr, " ... [E] Sent parameters and mode frequencies ...\n");
       flExchanger->sendModeShapes(modeData.numModes, modeData.numNodes,
@@ -1036,7 +1036,7 @@ Domain::aeroPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
       double aero_tmax = sinfo.tmax;
       if(sinfo.newmarkBeta == 0) aero_tmax += sinfo.getTimeStep();
       flExchanger->sendParam(sinfo.aeroFlag, sinfo.getTimeStep(), aero_tmax, restartinc,
-                             sinfo.isCollocated, sinfo.alphas);
+                             sinfo.isCollocated, sinfo.alphas, sinfo.alphasv);
       if(verboseFlag) filePrint(stderr, " ... [E] Sent parameters            ...\n");
 
       if(sinfo.aeroFlag == 5 || sinfo.aeroFlag == 4) {
@@ -1158,7 +1158,7 @@ Domain::aeroSensitivityPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
 
     if(sinfo.aeroFlag == 8) {
       flExchanger->sendParam(sinfo.aeroFlag, sinfo.getTimeStep(), sinfo.mppFactor,
-                             restartinc, sinfo.isCollocated, sinfo.alphas);
+                             restartinc, sinfo.isCollocated, sinfo.alphas, sinfo.alphasv);
       flExchanger->sendModeFreq(modeData.frequencies, modeData.numModes);
       if(verboseFlag) fprintf(stderr," ... [E] Sent parameters and mode frequencies ...\n");
       flExchanger->sendModeShapes(modeData.numModes, modeData.numNodes,

@@ -67,10 +67,12 @@ class FlExchanger {
      int algnum;
      int isCollocated;
      double alpha[2];
+     double alphasv;
      double alph[2];
      double dt;
      double dtemp;
      Vector *tmpDisp;
+     Vector *tmpVel;
    public:
      //KW (Jul.27,2010): FS Communication using Face Elements
      FlExchanger(CoordSet&, Elemset&, SurfaceEntity*, DofSetArray *, OutputInfo *oinfo = 0);
@@ -96,7 +98,7 @@ class FlExchanger {
      void getHeatSource(double *heatrcvd);
      
      void sendParam(int alg, double step, double totalTime,
-                    int restartinc, int _isCollocated, double alphas[2]);
+                    int restartinc, int _isCollocated, double alphas[2], double alphasv);
 
      void sendTempParam(int algnum, double step, double totaltime,
                         int rstinc, double alphat[2]);

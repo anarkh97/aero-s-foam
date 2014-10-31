@@ -89,6 +89,9 @@ struct SolverInfo {
    double alphas[2];
    double alphat[2];
 
+   // Added by Alex Main.  A predictor on the velocity of the structure
+   double alphasv;
+
    int structoptFlag;
    int thermalLoadFlag; // whether there is a thermal load applied
    int radiationFlag; // whether there are radiation lhs/rhs terms for linear analysis

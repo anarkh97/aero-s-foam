@@ -90,6 +90,13 @@ ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor *_tm, Tensor &_en, Tens
   Tensor_d0s2_Ss12 &enp = static_cast<Tensor_d0s2_Ss12 &>(_enp);
   Tensor_d0s2_Ss12 &stress = static_cast<Tensor_d0s2_Ss12 &>(*_stress);
 
+  // check for failure
+  if(statenp[12] >= epsF) {
+    stress.setZero();
+    tm.setZero();
+    return;
+  }
+
   // subtract thermal strain
   double e0 = (temp-Tref)*alpha;
   enp[0] -= e0;
@@ -204,6 +211,12 @@ ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor &_en, Tensor  &_enp,
 
   Tensor_d0s2_Ss12 &enp = static_cast<Tensor_d0s2_Ss12 &>(_enp);
   Tensor_d0s2_Ss12 &stress = static_cast<Tensor_d0s2_Ss12 &>(*_stress);
+
+  // check for failure
+  if(statenp[12] >= epsF) {
+    stress.setZero();
+    return;
+  }
 
   // subtract thermal strain
   double e0 = (temp-Tref)*alpha;

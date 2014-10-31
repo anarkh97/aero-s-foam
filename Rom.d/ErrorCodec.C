@@ -17,7 +17,7 @@ int main (int argc, char *argv[]) {
     return EXIT_SUCCESS;
   }
 
-  if (argc == 2) {
+  if (!(argc == 3 || 4)) {
     print_syntax();
     return EXIT_FAILURE;
   }
@@ -37,9 +37,15 @@ int main (int argc, char *argv[]) {
   // check to see of both files were successfully opened
   if(truth_file.is_open() && comp_file.is_open()) {
 
-    std::cout << "calculate error up to time: ";
-    std::cin >> tFinal;
-    std::cout << std::endl;
+    if( argc == 3 ) {
+      std::cout << "calculate error up to time: ";
+      std::cin >> tFinal;
+      std::cout << std::endl;
+    } else if (argc == 4) {
+      std::string tFinalString(argv[3]);
+ 
+      tFinal = atof(tFinalString.c_str()); 
+    }
 
     // get header line and length of displacement vector 
     getline(truth_file, header_buffer);

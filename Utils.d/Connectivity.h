@@ -124,6 +124,8 @@ class Connectivity : public BaseConnectivity<Connectivity,DirectAccess<Connectiv
 	Connectivity(BinFileHandler &, bool oldSower = false);
         Connectivity(FaceElemSet*);
 	Connectivity(int ns); //dec
+        Connectivity(Elemset *els, Connectivity *nodeToElem);
+        Connectivity(const Connectivity&);
 	size_t write(BinFileHandler& f);
 	size_t read(FILE* f);
 

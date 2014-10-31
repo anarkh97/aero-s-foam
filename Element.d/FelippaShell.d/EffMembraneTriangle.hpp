@@ -8,10 +8,10 @@ template<typename doublereal>
 class EffMembraneTriangle
 {
   public:
-    Eigen::Matrix<doublereal,9,3>
+    static Eigen::Matrix<doublereal,9,3>
     L(doublereal x[3], doublereal y[3], doublereal alpha);
 
-    Eigen::Matrix<doublereal,3,9>
+    static Eigen::Matrix<doublereal,3,9>
     Bd(doublereal x[3], doublereal y[3], doublereal betam, doublereal zeta[3]);
 };
 #endif

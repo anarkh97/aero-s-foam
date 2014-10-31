@@ -1021,7 +1021,7 @@ TimoshenkoBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, V
                                                    int senMethod, double *ndTemps, int avgnum, double ylayer, double zlayer)
 {
   if(strInd != 6) {
-    std::cerr << " ... Error: strInd must be 6 in TwoNodeTruss::getVonMisesDisplacementSensitivity\n";
+    std::cerr << " ... Error: strInd must be 6 in TimoshenkoBeam::getVonMisesDisplacementSensitivity\n";
     exit(-1);
   }
   if(dStdDisp.numRow() != 12 || dStdDisp.numCol() != 2) {
@@ -1140,7 +1140,7 @@ TimoshenkoBeam::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, V
                                                       int senMethod, double *ndTemps, int avgnum, double ylayer, double zlayer)
 {
   if(strInd != 6) {
-    std::cerr << " ... Error: strInd must be 6 in TwoNodeTruss::getVonMisesNodalCoordinateSensitivity\n";
+    std::cerr << " ... Error: strInd must be 6 in TimoshenkoBeam::getVonMisesNodalCoordinateSensitivity\n";
     exit(-1);
   }
   if(dStdx.numRow() != 6 || dStdx.numCol() != 2) {

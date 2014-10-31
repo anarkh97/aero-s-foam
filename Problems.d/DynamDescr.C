@@ -176,6 +176,7 @@ SingleDomainDynamic::SingleDomainDynamic(Domain *d)
   melArray = 0;
   allCorot = 0;
   geomState = 0; 
+  refState = 0;
   userDefineDisp = 0;
   bcx = 0;
   vcx = 0;
@@ -198,6 +199,7 @@ SingleDomainDynamic::~SingleDomainDynamic()
   if(acx) delete [] acx;
   if(allSens) delete allSens;
   if(geomState) delete geomState;
+  if(refState) delete refState;
   if(times) delete times;
   if(prevFrc) delete prevFrc;
   if(prevFrcBackup) delete prevFrcBackup;
@@ -305,7 +307,7 @@ SingleDomainDynamic::project(Vector &v)
 int
 SingleDomainDynamic::getFilterFlag()
 {
- return std::max(domain->solInfo().hzemFilterFlag, domain->solInfo().filterFlags);
+ return (domain->solInfo().isNonLin()) ? 0 : std::max(domain->solInfo().hzemFilterFlag, domain->solInfo().filterFlags);
 }
 
 int
@@ -579,7 +581,9 @@ SingleDomainDynamic::getContactForce(Vector &d_n, Vector &dinc, Vector &ctc_f, d
   times->tdenforceTime -= getTime();
   ctc_f.zero();
   if(domain->tdenforceFlag()) {
+
     times->updateSurfsTime -= getTime();
+    domain->UpdateSurfaceTopology(); // remove deleted elements
     domain->UpdateSurfaces(geomState, 1); // update to current configuration
     times->updateSurfsTime += getTime();
 
@@ -625,40 +629,13 @@ SingleDomainDynamic::getContactForce(Vector &d_n, Vector &dinc, Vector &ctc_f, d
   times->tdenforceTime += getTime();
 }
 
-#include <Problems.d/NonLinStatic.h>
-#include <Driver.d/NLStaticProbType.h>
-void
-SingleDomainDynamic::reSolve(DynamMat *dMat, Vector &force, int step, Vector &dinc)
-{
-  NonLinStatic nlstatic(domain);
-  Vector residual(nlstatic.solVecInfo()),
-         totalRes(nlstatic.solVecInfo()),
-         stateIncr(nlstatic.solVecInfo()),
-         elementInternalForce(nlstatic.elemVecInfo());
-  GeomState tmpState(*geomState);
-  int numIter = 0;
-
-  nlstatic.preProcess();
-  residual.zero();
-  totalRes.zero();
-  elementInternalForce.zero();
-
-  NLStaticSolver<Solver,Vector,SingleDomainPostProcessor<double,Vector,Solver>,NonLinStatic,GeomState>
-  ::newton(force, residual, totalRes, elementInternalForce, &nlstatic, dMat->dynMat, geomState, &tmpState,
-           &stateIncr, numIter, 1.0, step);
-
-  tmpState.get_inc_displacement(dinc, *geomState, false);
-}
-
 void
 SingleDomainDynamic::updateState(double dt_n_h, Vector &v_n_h, Vector &d_n)
 {
   if(domain->solInfo().isNonLin()) {
     Vector dinc(solVecInfo()); dinc = dt_n_h*v_n_h;
-    GeomState *refState = (domain->solInfo().timeIntegration == 1 && geomState->getTotalNumElemStates() > 0) ? new GeomState(*geomState) : 0;
-    geomState->update(dinc, (domain->solInfo().newmarkBeta == 0) ? 1 : 0);
-    if(domain->solInfo().timeIntegration != 1) geomState->setVelocity(v_n_h);
-    else if(refState) { domain->updateStates(refState, *geomState, allCorot); delete refState; }
+    geomState->update(dinc, 1);
+    geomState->setVelocity(v_n_h);
     geomState->get_tot_displacement(d_n, false);
   }
 }
@@ -669,6 +646,7 @@ SingleDomainDynamic::computeExtForce2(SysState<Vector> &state, Vector &ext_f,
                                       Vector *aero_f, double gamma, double alphaf, double *pt_dt)
 {
   times->formRhs -= getTime();
+  SolverInfo& sinfo = domain->solInfo();
 
   ext_f.zero();
   double *userDefineDisp = 0;
@@ -709,15 +687,15 @@ SingleDomainDynamic::computeExtForce2(SysState<Vector> &state, Vector &ext_f,
 
   // finish update of geomState. note that for nonlinear problems the unconstrained positiion and rotation
   // nodal variables have already been updated in updateDisplacement
-  if(domain->solInfo().isNonLin() || domain->tdenforceFlag()) {
-    if(!domain->solInfo().isNonLin()) {
+  if(sinfo.isNonLin() || domain->tdenforceFlag()) {
+    if(!sinfo.isNonLin()) {
       geomState->explicitUpdate(domain->getNodes(), state.getDisp());
     }
     if(userDefineDisp) geomState->updatePrescribedDisplacement(userDefineDisp, claw, domain->getNodes(),
                                                                userDefineVel, userDefineAcc);
   }
 
-  if(domain->solInfo().isNonLin() && domain->GetnContactSurfacePairs() && !domain->tdenforceFlag()) {
+  if(sinfo.isNonLin() && domain->GetnContactSurfacePairs() && !domain->tdenforceFlag()) {
     domain->UpdateSurfaces(MortarHandler::CTC, geomState);
     domain->PerformStaticContactSearch(MortarHandler::CTC);
     domain->deleteSomeLMPCs(mpc::ContactSurfaces);
@@ -728,16 +706,16 @@ SingleDomainDynamic::computeExtForce2(SysState<Vector> &state, Vector &ext_f,
   }
 
   // THERMOE update nodal temperatures
-  if(domain->solInfo().thermoeFlag >= 0 && tIndex >= 0) {
+  if(sinfo.thermoeFlag >= 0 && tIndex >= 0) {
     domain->thermoeComm();
     if(geomState) geomState->setNodalTemperatures(domain->getNodalTemperatures());
   }
 
   // add f(t) to cnst_f
   // for linear problems also add contribution of non-homogeneous dirichlet (DISP/TEMP/USDD etc)
-  double dt = domain->solInfo().getTimeStep();
-  double alpham = domain->solInfo().newmarkAlphaM;
-  double t0 = domain->solInfo().initialTime;
+  double dt = sinfo.getTimeStep();
+  double alpham = sinfo.newmarkAlphaM;
+  double t0 = sinfo.initialTime;
   double tm = (t == t0) ? t0 : t + dt*(alphaf-alpham);
   domain->computeExtForce4(ext_f, cnst_f, t, kuc, userSupFunc, cuc, tm, muc);
   if(userDefineDisp) delete [] userDefineDisp;
@@ -745,22 +723,22 @@ SingleDomainDynamic::computeExtForce2(SysState<Vector> &state, Vector &ext_f,
   if(userDefineAcc) delete [] userDefineAcc;
 
   // add aeroelastic forces from fluid dynamics code
-  if(domain->solInfo().aeroFlag >= 0 && tIndex >= 0 &&
-     !(geoSource->getCheckFileInfo()->lastRestartFile && domain->solInfo().aeroFlag == 20 && tIndex == domain->solInfo().initialTimeIndex)) {
+  if(sinfo.aeroFlag >= 0 && tIndex >= 0 &&
+     !(geoSource->getCheckFileInfo()->lastRestartFile && sinfo.aeroFlag == 20 && !sinfo.dyna3d_compat && tIndex == sinfo.initialTimeIndex)) {
     domain->buildAeroelasticForce(*aero_f, *prevFrc, tIndex, t, gamma, alphaf);
     ext_f += *aero_f;
   }
 
   // add aerothermal fluxes from fluid dynamics code
-  if(domain->solInfo().aeroheatFlag >= 0 && tIndex >= 0) 
+  if(sinfo.aeroheatFlag >= 0 && tIndex >= 0) 
     domain->buildAeroheatFlux(ext_f, prevFrc->lastFluidLoad, tIndex, t);
 
-  // KHP: apply projector here
-  if(domain->solInfo().filterFlags || domain->solInfo().hzemFilterFlag)
+  // apply projector here for linear analyses only
+  if((sinfo.filterFlags || sinfo.hzemFilterFlag) && !sinfo.isNonLin())
     trProject(ext_f); 
 
   if(tIndex == 1)
-    domain->solInfo().initExtForceNorm = ext_f.norm();
+    sinfo.initExtForceNorm = ext_f.norm();
 
   times->formRhs += getTime();
 }
@@ -935,9 +913,9 @@ SingleDomainDynamic::buildOps(double coeM, double coeC, double coeK)
 
  Rbm *rigidBodyModes = 0;
 
- int useRbmFilter = domain->solInfo().filterFlags;
+ int useRbmFilter = domain->solInfo().filterFlags && !domain->solInfo().isNonLin();
  int useGrbm = domain->solInfo().rbmflg; 
- int useHzemFilter = domain->solInfo().hzemFilterFlag;
+ int useHzemFilter = domain->solInfo().hzemFilterFlag && !domain->solInfo().isNonLin();
  int useHzem   = domain->solInfo().hzemFlag;
 
  if(useGrbm || useRbmFilter) 
@@ -1006,7 +984,9 @@ SingleDomainDynamic::getInternalForce(Vector& d, Vector& f, double t, int tIndex
     if(domain->solInfo().newmarkBeta == 0 && domain->solInfo().stable && domain->solInfo().isNonLin() && tIndex%domain->solInfo().stable_freq == 0) {
       domain->getStiffAndForce(*geomState, fele, allCorot, kelArray, residual, 1.0, t, geomState,
                                reactions, melArray);
+/* PJSA 10/12/2014 this is done in getStiffAndForce now because it needs to be done before handleElementDeletion.
       domain->updateStates(geomState, *geomState, allCorot);
+*/
     }
     else {
       domain->getInternalForce(*geomState, fele, allCorot, kelArray, residual, 1.0, t, geomState,
@@ -1018,9 +998,6 @@ SingleDomainDynamic::getInternalForce(Vector& d, Vector& f, double t, int tIndex
     f.zero();
     domain->getKtimesU(d, bcx, f, 1.0, kelArray);  // note: although passed as an argument, the bcx contribution is not computed in this function
   }
-
-  if(domain->solInfo().filterFlags || domain->solInfo().hzemFilterFlag)
-    trProject(f);
 }
 
 void
@@ -1442,5 +1419,40 @@ int
 SingleDomainDynamic::getThermohFlag()
 {
   return domain->solInfo().thermohFlag;
+}
+
+#include <Problems.d/NonLinQStatic.h>
+#include <Driver.d/NLStaticProbType.h>
+void
+SingleDomainDynamic::solveAndUpdate(Vector &force, Vector &dinc, Vector &d, double relaxFac)
+{
+  int numElemStates = geomState->getTotalNumElemStates();
+  if(!refState) {
+    // For the first coupling cycle refState is the initial state as defined by either IDISP or restart, if specified.
+    refState = new GeomState(*geomState);
+  }
+  else if(numElemStates == 0) {
+    // In this case dlambda is only used for the first cycle.
+    domain->solInfo().getNLInfo().dlambda = domain->solInfo().getNLInfo().maxLambda = 1.0;
+  }
+
+  NonLinQStatic nlstatic(domain, force, refState);
+  NLStaticSolver<Solver,Vector,SingleDomainPostProcessor<double,Vector,Solver>,NonLinStatic,GeomState> nlsolver(&nlstatic);
+  nlsolver.solve();
+
+  nlsolver.getGeomState()->get_inc_displacement(dinc, *geomState, false);
+  if(numElemStates == 0) {
+    // In this case refState now stores the solution of the previous non-linear solve, and will be used as the initial
+    // guess for the next coupling cycle's non-linear solve.
+    *refState = *nlsolver.getGeomState();
+  }
+
+  dinc *= relaxFac;
+  geomState->update(dinc);
+  if(numElemStates != 0) {
+    domain->updateStates(refState, *geomState, allCorot);
+  }
+
+  geomState->get_tot_displacement(d, false);
 }
 

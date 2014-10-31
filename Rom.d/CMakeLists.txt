@@ -49,15 +49,18 @@ ADD_LIBRARY( Rom
   VecNodeDof6Conversion.C
   VecNodeDof6Map.C
   DofSetUtils.C
-  LawsonHanson.d/diff.f
-  LawsonHanson.d/g1.f
-  LawsonHanson.d/h12.f
-  LawsonHanson.d/spnnls.f
+  SparseSolvers.d/LawsonHanson.d/diff.f
+  SparseSolvers.d/LawsonHanson.d/g1.f
+  SparseSolvers.d/LawsonHanson.d/h12.f
+  SparseSolvers.d/LawsonHanson.d/spnnls.f
   SDDynamPodPostProcessor.C
   EiGalerkinProjectionSolverInstance.C
-  DirectionalPursuit.d/nncgp.C
-  DirectionalPursuit.d/pnncgp.C
-  PolytopeFacesPursuit.d/pgpfp.C
-  PolytopeFacesPursuit.d/gpfp.C
-  LARS.d/lars.C
+  SparseSolvers.d/DirectionalPursuit.d/nncgp.C
+  SparseSolvers.d/DirectionalPursuit.d/pnncgp.C
+  SparseSolvers.d/PolytopeFacesPursuit.d/pgpfp.C
+  SparseSolvers.d/PolytopeFacesPursuit.d/gpfp.C
+  SparseSolvers.d/LARS.d/lars.C
+  SparseSolvers.d/MatchingPursuits.d/mp.C
+  SparseSolvers.d/OrthogonalMatchingPursuits.d/omp.C
+  SparseSolvers.d/OrthogonalMatchingPursuits.d/pomp.C
 )

@@ -171,7 +171,6 @@ ShellMaterialType1<doublereal>::GetConstitutiveResponse(doublereal *_Upsilon, do
 
 // .....COMPUTE THE GENERALIZED "STRESSES"
 //
-    Alpha << w, w, 0, 0, 0, 0;
     Sigma = D*(Upsilon - (temp-Ta)*Alpha);
 
 

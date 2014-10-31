@@ -8,7 +8,8 @@ class FourNodeMembrane : public SuperElement
   public:
     FourNodeMembrane(int *nodenums);
 
-    int  getTopNumber();
+    int getTopNumber();
+    PrioInfo examine(int sub, MultiFront *mf);
 };
 
 #endif

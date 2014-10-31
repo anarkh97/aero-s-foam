@@ -42,7 +42,7 @@ class FaceElement {
 	FaceElement():Area(0.0) { }
         
         // for future
-        //virtual FaceElement* clone(); 
+        virtual FaceElement* clone()=0;
 
         // Setup & Update methods
         // ~~~~~~~~~~~~~~~~~~~~~~

@@ -17,6 +17,9 @@
 #include <Utils.d/DistHelper.h>
 #include <Mortar.d/FaceElement.d/FaceElement.h>
 #include <Mortar.d/FaceElement.d/FaceQuad4.d/FaceQuad4.h>
+#include <Utils.d/dofset.h>
+#include <Hetero.d/FlExchange.h>
+#include <Element.d/State.h>
 
 // ACME headers
 #ifdef USE_ACME
@@ -51,6 +54,12 @@ FaceQuad4::FaceQuad4(int* nodenums)
   Nodes[1] = nodenums[1];
   Nodes[2] = nodenums[2];
   Nodes[3] = nodenums[3];
+}
+
+FaceElement *
+FaceQuad4::clone()
+{
+  return new FaceQuad4(Nodes);
 }
 
 // -----------------------------------------------------------------------------------------------------
@@ -398,4 +407,49 @@ void
 FaceQuad4::print()
 {
   printNodes();
+}
+
+// -----------------------------------------------------------------------------------------------------
+//                                            FS COMMUNICATION
+// -----------------------------------------------------------------------------------------------------
+int* FaceQuad4::dofs(DofSetArray &dsa, int *p, int *fnId) 
+{
+  if(p == 0) p = new int[12];
+  dsa.number(fnId[Nodes[0]], DofSet::XYZdisp, p);
+  dsa.number(fnId[Nodes[1]], DofSet::XYZdisp, p+3);
+  dsa.number(fnId[Nodes[2]], DofSet::XYZdisp, p+6);
+  dsa.number(fnId[Nodes[3]], DofSet::XYZdisp, p+9);
+  return p;
+}
+
+void FaceQuad4::computeDisp(CoordSet&, State &state, const InterpPoint &ip, double *res, 
+                            GeomState*, int *fnId) 
+{
+  double xyz[4][6];
+  state.getDV(fnId[Nodes[0]], xyz[0], xyz[0]+3);
+  state.getDV(fnId[Nodes[1]], xyz[1], xyz[1]+3);
+  state.getDV(fnId[Nodes[2]], xyz[2], xyz[2]+3);
+  state.getDV(fnId[Nodes[3]], xyz[3], xyz[3]+3);
+
+  double Shape[4];
+  GetShapeFctVal(Shape, const_cast<double*>(ip.xy));
+
+  for(int j=0; j<6; ++j)
+    res[j] = Shape[0]*xyz[0][j] +
+             Shape[1]*xyz[1][j] +
+             Shape[2]*xyz[2][j] +
+             Shape[3]*xyz[3][j];
+}
+
+void FaceQuad4::getFlLoad(const InterpPoint &ip, double *flF, double *resF) 
+{
+  double Shape[4];
+  GetShapeFctVal(Shape, const_cast<double*>(ip.xy));
+
+  for(int i = 0; i < 3; ++i) {
+    resF[i]   = Shape[0]*flF[i]; 
+    resF[3+i] = Shape[1]*flF[i];
+    resF[6+i] = Shape[2]*flF[i];
+    resF[9+i] = Shape[3]*flF[i];
+  }
 }

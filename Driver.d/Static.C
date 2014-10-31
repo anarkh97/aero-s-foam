@@ -643,7 +643,7 @@ Domain::constructHzem(bool printFlag)
 {
   Rbm *rbm = new Rbm(dsa, c_dsa);
   if(printFlag)
-    std::cerr << " ... GRBM algorithm detected " << rbm->numRBM() << " rigid body or zero energy modes ...\n";
+    std::cerr << " ... HZEM algorithm detected " << rbm->numRBM() << " zero energy modes ...\n";
   return rbm;
 }
 
@@ -653,7 +653,7 @@ Domain::constructSlzem(bool printFlag)
 {
   Rbm *rbm = new Rbm(dsa, c_dsa);
   if(printFlag)
-    std::cerr << " ... GRBM algorithm detected " << rbm->numRBM() << " rigid body or zero energy modes ...\n";
+    std::cerr << " ... SZEM algorithm detected " << rbm->numRBM() << " zero energy modes ...\n";
   return rbm;
 }
 
@@ -675,7 +675,7 @@ Domain::constructRbm(bool printFlag)
   else 
     rbm = new Rbm(dsa, c_dsa, nodes, sinfo.tolsvd, renumb);
   if(printFlag)
-    std::cerr << " ... GRBM algorithm detected " << rbm->numRBM() << " rigid body or zero energy modes ...\n";
+    std::cerr << " ... GRBM algorithm detected " << rbm->numRBM() << " rigid body modes ...\n";
   return rbm;
 }
 
@@ -970,13 +970,12 @@ void Domain::writeTopFileElementSets(ControlInfo *cinfo, int * nodeTable, int* n
            SurfEntities[iSurf]->GetId(), cinfo->nodeSetName);
    FaceElemSet &faceElemSet = SurfEntities[iSurf]->GetFaceElemSet();
    for(iele=0; iele<faceElemSet.last(); ++iele) {
-     if(SurfEntities[iSurf]->GetIsShellFace() && tdenforceFlag() && iele%2==1) continue;
      int nVertices = faceElemSet[iele]->nVertices();
      int eletype;
      if(nVertices == 3) eletype = 104;
      else if(nVertices == 4) eletype = 2;
      else { std::cerr << "don't know xpost eletype for surface " << SurfEntities[iSurf]->GetId() << " element " << iele << " nVertices = " << nVertices << std::endl; continue; }
-     int eleID = (SurfEntities[iSurf]->GetIsShellFace() && tdenforceFlag()) ? iele/2+1 : iele+1;
+     int eleID = iele+1;
      fprintf(cinfo->checkfileptr,"%6d  %4d ",eleID,eletype);
      for(inode=0; inode<nVertices; ++inode) {
        int nodeNumber = faceElemSet[iele]->GetVertex(inode);
@@ -2994,6 +2993,7 @@ Domain::computeWeightWRTthicknessSensitivity(int sindex, AllSensitivities<double
      GenVector<double> weightDerivative(numele);
      std::map<int, Group> &group = geoSource->group;
      std::map<int, AttributeToElement> &atoe = geoSource->atoe;
+
      if(numThicknessGroups != group.size()) {
        std::cerr << " *** ERROR: number of parameters is not equal to the size of group \n"; 
        exit(-1);
@@ -3001,6 +3001,7 @@ Domain::computeWeightWRTthicknessSensitivity(int sindex, AllSensitivities<double
      allSens.weightWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, 1>(numThicknessGroups);
      allSens.weightWRTthick->setZero();
      std::map<int, Attrib> &attributes = geoSource->getAttributes();
+
      for(int iele = 0; iele < numele; ++iele) {
        if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isConstraintElement()) continue;
        StructProp *prop = packedEset[iele]->getProperty();
@@ -3205,7 +3206,6 @@ Domain::computeLinearStaticWRTthicknessSensitivity(int sindex,
      }
      for(int iparam = 0; iparam < numThicknessGroups; ++iparam) {
        Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> > disp(sol.data(),numUncon(),1);
-//       Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
        if(allSens.stiffnessWRTthick) {
          *allSens.linearstaticWRTthick[iparam] = (*allSens.stiffnessWRTthick[iparam]) * disp;
        } else {
@@ -3225,7 +3225,6 @@ Domain::computeLinearStaticWRTthicknessSensitivity(int sindex,
        }
      }
      subtractGravityForceSensitivityWRTthickness(sindex,allSens); //TODO-> must consider other external forces
-
 #endif
 }
 
@@ -3470,7 +3469,7 @@ Domain::computeStressVMWRTthicknessSensitivity(int sindex,
          int NodesPerElement = elemToNode->num(iele);
          GenVector<double> dStressdThick(NodesPerElement);
          GenVector<double> weight(NodesPerElement,0.0);
-         int surface = senInfo[sindex].surface; //TODO: it is hardcoded to be 1, which corresponds to upper.
+         int surface = senInfo[sindex].surface;
          elDisp->zero();       
          // Determine element displacement vector
          for (int k=0; k < allDOFs->num(iele); ++k) {

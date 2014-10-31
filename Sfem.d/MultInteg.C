@@ -407,7 +407,7 @@ void MultInteg<Scalar, VecType, PostProcessor, ProblemDescriptor>::integsmol(int
   
   // compute std-dev
 //  if(ndflag_cur==2)   for (int ii=0;ii<size_res;ii++) (*res)[ii]=ScalarTypes::sqrt((*res)[ii]-pow((*res)[size_res+ii],2));
-  if(ndflag_cur==2)   for (int ii=0;ii<size_res;ii++) res[ii]=ScalarTypes::sqrt(abs(res[ii]-pow(res[size_res+ii],2)));
+  if(ndflag_cur==2)   for (int ii=0;ii<size_res;ii++) res[ii]=ScalarTypes::sqrt(std::abs(res[ii]-pow(res[size_res+ii],2)));
                                           //  abs() is used to avoid numerical error near zero-mean material
   postProcessor_cur->updateSfemStress(res,fileNumber_cur); // using postProcessor_cur
   printflag = 2; // means don't compute, only print
@@ -473,7 +473,7 @@ void MultInteg<Scalar, VecType, PostProcessor, ProblemDescriptor>::simulcomp(int
   else std::cerr << "ndtype = " << ndflag_cur << " not supported currently" << std::endl;
 
   // compute std-dev
-  if(ndflag_cur==2)   for (int ii=0;ii<size_res;ii++) res[ii] = ScalarTypes::sqrt(abs(res[ii]-pow(res[size_res+ii],2)));
+  if(ndflag_cur==2)   for (int ii=0;ii<size_res;ii++) res[ii] = ScalarTypes::sqrt(std::abs(res[ii]-pow(res[size_res+ii],2)));
 
 // YYY delete res_cur
   postProcessor_cur->updateSfemStress(res,fileNumber_cur); // using postProcessor_cur
@@ -520,7 +520,7 @@ void MultInteg<Scalar, VecType, PostProcessor, ProblemDescriptor>::kroneckercomp
   trgf = 0;
 
   // compute std-dev
-  if(ndflag_cur==2)   for (int ii=0;ii<size_res;ii++) res[ii]=ScalarTypes::sqrt(abs(res[ii]-pow(res[size_res+ii],2)));
+  if(ndflag_cur==2)   for (int ii=0;ii<size_res;ii++) res[ii]=ScalarTypes::sqrt(std::abs(res[ii]-pow(res[size_res+ii],2)));
 // YYY delete res_cur
   postProcessor_cur->updateSfemStress(res,fileNumber_cur); // using postProcessor_cur
   printflag = 2;

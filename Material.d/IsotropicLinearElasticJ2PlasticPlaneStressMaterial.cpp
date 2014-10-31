@@ -96,43 +96,6 @@ IsotropicLinearElasticJ2PlasticPlaneStressMaterial *
 IsotropicLinearElasticJ2PlasticPlaneStressMaterial::Clone() const
 { return new IsotropicLinearElasticJ2PlasticPlaneStressMaterial(*this); }
 
-// Return plastic strain
-std::vector<double> IsotropicLinearElasticJ2PlasticPlaneStressMaterial::
-GetMaterialPlasticStrain() const
-{
-/* PJSA
-  std::vector<double> EP(9,0.);
-  EP[0] = EPSplastic[0];
-  EP[4] = EPSplastic[1];
-  EP[8] = -(EP[0]+EP[4]);
-  EP[1] = EP[3] = 0.5*EPSplastic[2];
-  EP[2] = EP[5] = EP[6] = EP[7] = 0.;
-  return EP;
-*/
-  return EPSplastic;
-}
-
-// Return equivalent plastic strain
-double IsotropicLinearElasticJ2PlasticPlaneStressMaterial::
-GetMaterialEquivalentPlasticStrain() const
-{ return equivEPSplastic; }
-
-// Return back stress
-std::vector<double> IsotropicLinearElasticJ2PlasticPlaneStressMaterial::
-GetMaterialBackStress() const
-{
-/* PJSA
-  std::vector<double> BS(9,0.);
-  BS[0] = BackStress[0];
-  BS[4] = BackStress[1];
-  BS[8] = 0;
-  BS[1] = BS[3] = BackStress[2];
-  BS[2] = BS[5] = BS[6] = BS[7] = 0.;
-  return BS;
-*/
-  return BackStress;
-}
-
 // Return isotropic hardening modulus
 double IsotropicLinearElasticJ2PlasticPlaneStressMaterial::
 GetIsotropicHardeningModulus() const
@@ -298,6 +261,17 @@ ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1,
     if( int(Cep->size())<9 )
       Cep->resize( 9 );
 
+  // Resize outputs if required
+  if( int(CauchyStress->size())<9 )
+    CauchyStress->resize(9);
+
+  // Check for failure
+  if(equivEPSplastic >= equivEPSplasticF) {
+    if( Cep ) for(int i=0; i<9; i++) (*Cep)[i] = 0;
+    for(int i=0; i<9; i++) (*CauchyStress)[i] = 0;
+    return true;
+  }
+
   // Elastic modulii
   std::vector<double> * Ce = 0;
   if( Cep )
@@ -333,10 +307,6 @@ ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1,
   // Note: I observe a relationship between TOL and the nltol under NONLINEAR
   // looks like TOL should be at least an order of magnitude smaller than nltol
   double TOL = SigmaY*Tol;
-  
-  // Resize outputs if required
-  if( int(CauchyStress->size())<9 )
-    CauchyStress->resize(9);
   
   if( Ftrial<0 /*ORIG: TOL*/ )
     {
@@ -530,6 +500,14 @@ ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1,
             for(int j=0; j<3; j++)
               (*Cep)[3*i+j] = A(i,j) - N[i]*N[j]/(1+beta);
 #endif
+        }
+
+      // Check for failure
+      if(equivEPSplasticF < std::numeric_limits<double>::infinity() &&
+         equivEPSplastic+sqrt(2./3.)*lambda*ComputeJ2(Xi) >= equivEPSplasticF)
+        {
+          if( Cep ) for(int i=0; i<9; i++) (*Cep)[i] = 0;
+          for(int i=0; i<9; i++) (*CauchyStress)[i] = 0;
         }
       
       // If requested, update state of material

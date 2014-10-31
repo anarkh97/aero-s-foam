@@ -57,8 +57,6 @@ NonLinDynamic::NonLinDynamic(Domain *d) :
   times(NULL),
   userSupFunc(NULL),
   claw(NULL),
-  X(NULL),
-  Rmem(NULL),
   Cuc(NULL),
   Ccc(NULL),
   Muc(NULL),
@@ -110,84 +108,6 @@ NonLinDynamic::clean()
     delete [] allCorot;
     allCorot = 0;
   }
-}
-
-void
-NonLinDynamic::projector_prep(Rbm *rbms, SparseMatrix *M)
-{
- 
- numR = rbms->numRBM();
-
- if (!numR) return;
-
- filePrint(stderr," ... Building the RBM Projector     ...\n");
- //filePrint(stderr," ... Number of RBM(s)     =   %d     ...\n",numR);
-
- int ndof = M->dim();
-
- // KHP: store this pointer to the RBMs to use in the actual
- //      projection step within the time loop.
- Rmem = new double[numR*ndof];
- rbms->getRBMs(Rmem);
- StackFSFullMatrix Rt(numR, ndof, Rmem);
-
- //DEBUG
-#ifdef DEBUG_RBM_FILTER
- FullMatrix R = Rt.transpose();
- R.print("","R");
-#endif
-
- double *MRmem = new double[numR*ndof];
- StackFSFullMatrix MR(numR, ndof, MRmem);
-
- int n;
- for(n=0; n<numR; ++n)
-   M->mult(Rmem+n*ndof, MRmem+n*ndof);
-
- FullMatrix MRt = MR.transpose();
- //MRt.print("MR","MR");
-
- FullMatrix RtMR(numR,numR);
- Rt.mult(MRt,RtMR);
- //DEBUG
- //RtMR.print("RtMR","RtMR");
-
- FullMatrix RtMRinverse = RtMR.invert();
- //DEBUG
- //RtMRinverse.print("RtMRinverse");
-
- X = new FullMatrix(ndof,numR);
- MRt.mult(RtMRinverse,(*X));
- //DEBUG
- //X->print("MRRtMRinverse");
-
-}
-
-void
-NonLinDynamic::trProject(Vector &f)
-{
- if (!numR) return;
-
- int ndof = f.size();
- 
- double *yMem = (double *) dbg_alloca(numR*sizeof(double));
- double *zMem = (double *) dbg_alloca(ndof*sizeof(double));
- StackVector y(ndof,yMem);
- StackVector z(ndof,zMem);
-
- StackFSFullMatrix Rt(numR, ndof, Rmem);
-
- // y = Rt*f
- Rt.mult(f,y);
-
-
- // z = X*y
- (*X).mult(y,z);
-
-
- // f = f - z;
- f.linC(1.0, f, -1.0, z);
-
 }
 
 void
@@ -753,10 +673,6 @@ NonLinDynamic::getExternalForce(Vector& rhs, Vector& constantForce, int tIndex, 
   if(domain->solInfo().aeroheatFlag >= 0 && tIndex >= 0)
     domain->buildAeroheatFlux(rhs, prevFrc->lastFluidLoad, tIndex, t);
 
- //  HAI: apply projector here
- if(domain->solInfo().filterFlags || domain->solInfo().hzemFilterFlag)
-   trProject(rhs);
-
  times->formRhs += getTime();
 }
 
@@ -940,14 +856,12 @@ NonLinDynamic::preProcess(double Kcoef, double Mcoef, double Ccoef)
 
  Rbm *rigidBodyModes = 0;
 
- int useRbmFilter = domain->solInfo().filterFlags;
  int useGrbm = domain->solInfo().rbmflg;
- int useHzemFilter = domain->solInfo().hzemFilterFlag;
  int useHzem   = domain->solInfo().hzemFlag;
 
- if (useGrbm || useRbmFilter)
+ if (useGrbm)
    rigidBodyModes = domain->constructRbm();
- else if(useHzem || useHzemFilter)
+ else if(useHzem)
    rigidBodyModes = domain->constructHzem();
 
  // ... CREATE THE ARRAY OF ELEMENT STIFFNESS MATRICES
@@ -958,16 +872,6 @@ NonLinDynamic::preProcess(double Kcoef, double Mcoef, double Ccoef)
 
  domain->buildOps<double>(allOps, Kcoef, Mcoef, Ccoef, (Rbm *) NULL, kelArray,
                           melArray, celArray, factorWhenBuilding()); // don't use Rbm's to factor in dynamics
-
- if(useRbmFilter == 1)
-   filePrint(stderr," ... RBM filter Level 1 Requested   ...\n");
- if(useRbmFilter == 2)
-   filePrint(stderr," ... RBM filter Level 2 Requested   ...\n");
- if(useHzemFilter)
-   filePrint(stderr," ... HZEM filter Requested          ...\n");
-
- if(useRbmFilter || useHzemFilter)
-   projector_prep(rigidBodyModes, allOps.M);
 
  Kuc    = allOps.Kuc;
  M      = allOps.M;

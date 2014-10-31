@@ -145,6 +145,7 @@ Function.d/InertialForce.d/InertialType2ForceFunction.C
 Function.d/InertialForce.d/Inertial6DofForceFunction.C
 Function.d/Rotation.d/IncrementalRotationVector.C
 Function.d/Shape.d/Tet4LagrangePolynomial.C
+Function.d/Shape.d/Hex8LagrangePolynomial.C
 Helm.d/GaussRule.C
 Helm.d/GaussRules.C
 Helm.d/genTetra10.C
@@ -311,21 +312,6 @@ Shear.d/vec.f
 Shell.d/basico.f
 Shell.d/ConnectedTri.C
 Shell.d/FourNodeShell.C
-#Shell.d/g_basico.f
-#Shell.d/g_dummy.f
-#Shell.d/g_mass8.f
-#Shell.d/g_membra.f
-#Shell.d/g_momen.f
-#Shell.d/g_rotation.f
-#Shell.d/g_sands8.f
-#Shell.d/g_sm3mb.f
-#Shell.d/g_sm3mhe.f
-#Shell.d/g_smcbh.f
-#Shell.d/g_straineq.f
-#Shell.d/g_transform.f
-#Shell.d/g_tria3d.f
-#Shell.d/g_trirotation.f
-#Shell.d/g_vonmis.f
 Shell.d/localXY.f
 Shell.d/mass8.f
 Shell.d/membra.f
@@ -369,6 +355,7 @@ Spring.d/outprd.f
 Spring.d/RotnSprlink.C
 Spring.d/TorSpring.C
 Spring.d/TransSprlink.C
+Spring.d/LinSpring.C
 Tetra10.d/dpe25.C
 Tetra10.d/mass25.f
 Tetra10.d/mstf25.f

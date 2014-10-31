@@ -11,13 +11,16 @@ template < class OpSolver,
            class StateUpdate = IncrUpdater<ProblemDescriptor, VecType, GeomType> >
 class NLStaticSolver {
      ProblemDescriptor *probDesc;
+     GeomType *geomState;
      typename StateUpdate::RefState *refState;
      typename StateUpdate::StateIncr *stateIncr;
    public:
 
      // Constructor
      NLStaticSolver(ProblemDescriptor *PrbD) 
-       { probDesc = PrbD; }
+       { probDesc = PrbD; geomState = NULL; }
+     // Destructor
+     ~NLStaticSolver();
 
      void solve();
      void arclength();
@@ -39,6 +42,7 @@ class NLStaticSolver {
                         VecType& force, VecType& residual, VecType &totRes, VecType& elementInternalForce,
                         VecType& duds, int step=1);
 
+     GeomType *getGeomState() { return geomState; }
 };
 
 #ifdef _TEMPLATE_FIX_

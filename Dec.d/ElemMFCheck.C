@@ -5,6 +5,7 @@
 #include <Element.d/Beam.d/TimoshenkoBeam.h>
 #include <Element.d/Triangle3.d/Triangle3.h>
 #include <Element.d/Membrane.d/Membrane.h>
+#include <Element.d/Membrane.d/FourNodeMembrane.h>
 #include <Element.d/Penta.d/Pentahedral.h>
 #include <Element.d/Tetra.d/Tetrahedral.h>
 #include <Element.d/Tetra10.d/TenNodeTetrahedral.h>
@@ -21,6 +22,7 @@
 #include <Element.d/Shell.d/FourNodeShell.h>
 
 #include <Element.d/Spring.d/TorSpring.h>
+#include <Element.d/Spring.d/LinSpring.h>
 #include <Element.d/Shear.d/ShearPanel.h>
 #include <Element.d/Spring.d/TransSprlink.h>
 #include <Element.d/Spring.d/RotnSprlink.h>
@@ -228,6 +230,21 @@ EulerBeam::examine(int sub, MultiFront *mf)
 
 PrioInfo 
 TorSpring::examine(int sub, MultiFront *mf)
+{
+ int wn1 = mf->weight(sub, nn[0]);
+ int cn1 = mf->weight(nn[0]);
+
+ PrioInfo res;
+ res.isReady = wn1 > 0;
+ if(res.isReady == false) return res;
+ res.priority = -110 + (wn1-cn1-1);
+ // Compiler bug workaround
+ res.isReady = true;
+ return res;
+}
+
+PrioInfo
+LinSpring::examine(int sub, MultiFront *mf)
 {
  int wn1 = mf->weight(sub, nn[0]);
  int cn1 = mf->weight(nn[0]);
@@ -491,6 +508,12 @@ PrioInfo
 Membrane::examine(int sub, MultiFront *mf)
 {
   return examineTri3(sub, mf, nn);
+}
+
+PrioInfo
+FourNodeMembrane::examine(int sub, MultiFront *mf)
+{
+  return examineQuad4(sub, mf, nn);
 }
 
 PrioInfo 

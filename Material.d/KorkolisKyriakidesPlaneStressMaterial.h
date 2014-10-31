@@ -73,13 +73,13 @@ class KorkolisKyriakidesPlaneStressMaterial : public ElastoPlasticPlaneStressMat
 							const bool UpdateFlag = true);
   
   //! Returns the plastic strain in material (3x1 vector)
-  std::vector<double> GetMaterialPlasticStrain() const;
+  const std::vector<double> & GetMaterialPlasticStrain() const;
   
   //! Returns equivalent plastic strain in material
   double GetMaterialEquivalentPlasticStrain() const;
   
   //! Returns back stress in material (3x1 vector)
-  std::vector<double> GetMaterialBackStress() const;
+  const std::vector<double> & GetMaterialBackStress() const;
 
   //! Returns the Isotropic hardening modulus
   double GetIsotropicHardeningModulus() const;

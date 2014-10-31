@@ -54,7 +54,7 @@ class MDNLStatic
     double getScaleFactor();
     double getDeltaLambda0();
     double getMaxLambda();
-    void getRHS(DistrVector &);
+    virtual void getRHS(DistrVector &);
     ParallelSolver *getSolver();
 
     void printTimers();
@@ -68,7 +68,7 @@ class MDNLStatic
 
     int reBuild(int iter, int step, DistrGeomState& geomState);
 
-    DistrGeomState* createGeomState();
+    virtual DistrGeomState* createGeomState();
 
     void updatePrescribedDisplacement(DistrGeomState *geomState, double l=1.0);
 

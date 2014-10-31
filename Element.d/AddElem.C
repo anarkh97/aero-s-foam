@@ -22,6 +22,7 @@
 #include <Element.d/Penta.d/Pentahedral.h>
 #include <Element.d/Membrane.d/Membrane.h>
 #include <Element.d/Membrane.d/FourNodeMembrane.h>
+#include <Element.d/Spring.d/LinSpring.h>
 #include <Element.d/Spring.d/TorSpring.h>
 #include <Element.d/Spring.d/TransSprlink.h>
 #include <Element.d/Spring.d/RotnSprlink.h>
@@ -267,6 +268,10 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        break;
      case 11:
        ele = new (ba) TorSpring(n);
+       ele->setCategory(Element::Structural);
+       break;
+     case 12:
+       ele = new (ba) LinSpring(n);
        ele->setCategory(Element::Structural);
        break;
      case 15: case 1515:

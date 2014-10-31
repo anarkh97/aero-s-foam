@@ -144,7 +144,7 @@ C     Handle Singularities
 C
       IF(ABS(COLVAL(P1)).LT.TOL) THEN
          PIVOT(K)      = 0
-         write(6,*)' mechanism      : k = ',k,' pivot = ',colval(p1)
+C        write(6,*)' mechanism      : k = ',k,' pivot = ',colval(p1)
          NZEM          = NZEM + 1
          SEQID(NZEM)   = K
          COLVAL(P1)    = 0.0
@@ -166,7 +166,7 @@ C     Handle Singularities
 C
       IF(ABS(COLVAL(P2)).LT.TOL) THEN
          PIVOT(K + 1) = 0
-         write(6,*)' mechanism      : k = ',k,' pivot = ',colval(p2)
+C        write(6,*)' mechanism      : k = ',k,' pivot = ',colval(p2)
          NZEM         = NZEM + 1
          SEQID(NZEM)   = K + 1
          COLVAL(P2)   = 0.0
@@ -192,7 +192,7 @@ C     Handle Singularities
 C
       IF(ABS(COLVAL(P3)).LT.TOL) THEN
          PIVOT(K + 2) = 0
-         write(6,*)' mechanism      : k = ',k+2,' pivot = ',colval(p3)
+C        write(6,*)' mechanism      : k = ',k+2,' pivot = ',colval(p3)
          NZEM         = NZEM + 1
          SEQID(NZEM)  = K + 2
          COLVAL(P3)   = 0.0
@@ -211,7 +211,7 @@ C
 C     Handle Singularities
 C
       IF(ABS(COLVAL(P4)).LT.TOL) THEN
-         write(6,*)' mechanism      : k = ',k+3,' pivot = ',colval(p4)
+C        write(6,*)' mechanism      : k = ',k+3,' pivot = ',colval(p4)
          PIVOT(K + 3)  = 0
          NZEM          = NZEM + 1
          SEQID(NZEM)  = K + 3

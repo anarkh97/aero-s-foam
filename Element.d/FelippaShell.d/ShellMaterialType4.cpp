@@ -54,9 +54,6 @@ ShellMaterialType4<doublereal,localmaterial>
 */
     for (ilayer = 0; ilayer < nlayer; ++ilayer) {
 
-        if(mat[nlayer*point+ilayer]->GetMaterialEquivalentPlasticStrain() >= mat[nlayer*point+ilayer]->GetEquivalentPlasticStrainAtFailure())
-          continue;
-
 // .....[z] COORDINATE AT THE THRU-THICKNESS GAUSS POINT AND STRAINS
 
         z = nodes[ilayer]*thick/2;
@@ -126,11 +123,6 @@ ShellMaterialType4<doublereal,localmaterial>
     else if(z == 0) ilayer = 1; // median surface
     else ilayer = 2;            // upper surface
 
-    if(mat[nlayer*nd+ilayer]->GetMaterialEquivalentPlasticStrain() >= mat[nlayer*nd+ilayer]->GetEquivalentPlasticStrainAtFailure()) {
-      sigma[0] = sigma[1] = sigma[2] = 0;
-      return;
-    }
-
 // .....COMPUTE THE LOCAL STRAINS [epsilon] = {epsilonxx,epsilonyy,gammaxy} ON THE SPECIFIED SURFACE
 
     epsilon = e + z * chi;
@@ -184,16 +176,20 @@ void
 ShellMaterialType4<doublereal,localmaterial>
 ::GetState(doublereal *state)
 {
-  std::vector<doublereal> PlasticStrain(3);
-  std::vector<doublereal> BackStress(3);
+  //std::vector<doublereal> PlasticStrain(3);
+  //std::vector<doublereal> BackStress(3);
   int l = 0;
   for(int i = 0; i < maxgus; ++i) {
     for(int j = 0; j < nlayer; ++j) {
       // get the internal variables
-      PlasticStrain = mat[nlayer*i+j]->GetMaterialPlasticStrain();
-      for (int k = 0; k < 3; ++k) state[l++] = PlasticStrain[k];
-      BackStress = mat[nlayer*i+j]->GetMaterialBackStress();
-      for (int k = 0; k < 3; ++k) state[l++] = BackStress[k];
+      const std::vector<doublereal> &PlasticStrain = mat[nlayer*i+j]->GetMaterialPlasticStrain();
+      state[l++] = PlasticStrain[0];
+      state[l++] = PlasticStrain[1];
+      state[l++] = PlasticStrain[2];
+      const std::vector<doublereal> &BackStress = mat[nlayer*i+j]->GetMaterialBackStress();
+      state[l++] = BackStress[0];
+      state[l++] = BackStress[1];
+      state[l++] = BackStress[2];
       state[l++] = mat[nlayer*i+j]->GetMaterialEquivalentPlasticStrain();
     }
   }
@@ -223,9 +219,6 @@ ShellMaterialType4<doublereal,localmaterial>
     doublereal nodes[5] = { -0.906179845938664, -0.538469310105683, 0.000000000000000, 0.538469310105683, 0.906179845938664 };
 
     for (ilayer = 0; ilayer < nlayer; ++ilayer) {
-
-        if(mat[nlayer*point+ilayer]->GetMaterialEquivalentPlasticStrain() >= mat[nlayer*point+ilayer]->GetEquivalentPlasticStrainAtFailure())
-          continue;
 
 // .....[z] COORDINATE AT THE THRU-THICKNESS GAUSS POINT (OR SURFACE) AND STRAINS
 
@@ -308,6 +301,21 @@ ShellMaterialType4<doublereal,localmaterial>
 template<typename doublereal, typename localmaterial>
 doublereal
 ShellMaterialType4<doublereal,localmaterial>
+::GetLocalDamage(int nd, doublereal z)
+{
+  // return the scalar damage
+  // at node nd, and layer determined by z, as follows:
+  int ilayer;
+  if(z < 0) ilayer = 0;       // lower surface
+  else if(z == 0) ilayer = 1; // median surface
+  else ilayer = 2;            // upper surface
+
+  return (mat[nlayer*nd+ilayer]->GetMaterialEquivalentPlasticStrain() >= mat[nlayer*nd+ilayer]->GetEquivalentPlasticStrainAtFailure()) ? 1 : 0;
+}
+
+template<typename doublereal, typename localmaterial>
+doublereal
+ShellMaterialType4<doublereal,localmaterial>
 ::GetDissipatedEnergy(int point)
 { 
     doublereal D = 0;
@@ -349,10 +357,6 @@ ShellMaterialType4<doublereal,localmaterial>
 
 #include <Material.d/IsotropicLinearElasticJ2PlasticPlaneStressMaterial.h>
 template
-double* 
-ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::GetCoefOfConstitutiveLaw();
-
-template
 void
 ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
 ::GetConstitutiveResponse(double *Upsilon, double *Sigma, double *D, double *, int gp, double temp);
@@ -391,6 +395,11 @@ template
 double
 ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
 ::GetLocalEquivalentPlasticStrain(int nd, double z);
+
+template
+double
+ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
+::GetLocalDamage(int nd, double z);
 
 template
 double

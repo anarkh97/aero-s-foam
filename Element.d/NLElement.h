@@ -77,6 +77,10 @@ class MatNLElement : public Element {
        fprintf(stderr, "MatNLElement::getPlasticStrainTens is being called on an element "
                "for which it is not defined\n");
      }
+     virtual void getDamage(double *statenp, double *result, int avgnum) {
+       fprintf(stderr, "MatNLElement::getDamage is being called on an element "
+               "for which it is not defined\n");
+     }
 
      virtual double getStrainEnergy(Node *nodes, double *dispnp, double *state, double *temps) {
        fprintf(stderr, "MatNLElement::getStrainEnergy is being called on an element "
@@ -91,6 +95,8 @@ class MatNLElement : public Element {
      }
 
      virtual int getNumGaussPoints() { return 0; }
+
+     virtual bool checkFailure(double *statenp) { return false; }
 };
 
 #endif

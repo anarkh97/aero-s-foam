@@ -225,6 +225,17 @@ GenVector<Scalar>::operator*=(const Scalar c)
 
 template<class Scalar>
 void
+GenVector<Scalar>::operator/=(const Scalar c)
+{
+ if(c == 1.0) return;
+
+ int i;
+ for(i=0; i< len; ++i)
+    d[i] /= c;
+}
+
+template<class Scalar>
+void
 GenVector<Scalar>::operator+=(const GenVector<Scalar> &v2)
 {
  if(len != v2.len) {

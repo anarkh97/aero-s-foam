@@ -351,6 +351,10 @@ class Domain : public HData {
     std::vector<AdjacencyLists> elemAdj;
     std::vector<int> followedElemList;
 
+    std::set<int> newDeletedElements; // list of elements that have been deleted during the current time step
+    std::vector<std::pair<double,int> > outDeletedElements; // used for "elemdele" output
+    Connectivity **nodeToFaceElem;
+
     FSCommunicator *com;
 
   public:
@@ -527,6 +531,7 @@ class Domain : public HData {
      double getWext() { return Wext; }
      double getWaero() { return Waero; }
      double getWdmp() { return Wdmp; }
+     void handleElementDeletion(int iele, GeomState &geomState, double time, Corotator &elemCorot, double *elemForce);
 
      void getGeometricStiffness(GeomState &u, Vector &elementInternalForce,
         			Corotator **allCorot, FullSquareMatrix *&kel);
@@ -1167,6 +1172,7 @@ class Domain : public HData {
 
      void SetMortarPairing();
      void SetUpSurfaces(CoordSet* cs = 0);
+     void UpdateSurfaceTopology();
      void UpdateSurfaces(GeomState *, int config_type = 1);
      void UpdateSurfaces(DistrGeomState *geomState, int config_type, SubDomain **sd);
      void MakeNodalMass(SparseMatrix *M, SparseMatrix *Mcc);
@@ -1294,6 +1300,7 @@ class Domain : public HData {
      int exactNumNodes;
 
      void assembleNodalInertiaTensors(FullSquareMatrix *mel);
+     std::vector<std::pair<double,int> > & getDeletedElements() { return outDeletedElements; }
 #ifdef USE_EIGEN3
   protected:
      Eigen::Array<Eigen::Matrix3d,Eigen::Dynamic,1> Jn; // array of nodal inertia tensors for each node including contributions

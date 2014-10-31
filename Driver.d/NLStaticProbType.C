@@ -5,6 +5,17 @@ extern int verboseFlag;
 extern int totalNewtonIter;
 extern SolverInfo &solInfo;
 
+template < class OpSolver,
+           class VecType,
+           class PostProcessor,
+           class ProblemDescriptor,
+           class GeomType,
+           class StateUpdate >
+NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, StateUpdate >::~NLStaticSolver()
+{
+  if(geomState) delete geomState;
+}
+
 template < class OpSolver, 
            class VecType, 
 	   class PostProcessor, 
@@ -35,7 +46,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
  probDesc->getRHS(force);
 
  // Initialize geometric state of problem
- GeomType *geomState = probDesc->createGeomState();
+ geomState = probDesc->createGeomState();
  stateIncr = StateUpdate::initInc(geomState, &residual);
  
  refState = (solInfo.soltyp == 2) ? 0 : StateUpdate::initRef(geomState);
@@ -122,7 +133,6 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
    lambda += deltaLambda;
  }
 
- delete geomState;
  if(refState) delete refState;
  if(stateIncr) delete stateIncr;
 

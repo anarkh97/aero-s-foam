@@ -283,7 +283,6 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
    // Build time independent forces i.e. gravity force, pressure force
    constForce = new VecType( probDesc->solVecInfo() );
-   //probDesc->getConstForce( *constForce ); PJSA moved to after buildOps
 
    // Get SteadyState Flag and Parameters
    probDesc->getSteadyStateParam(steadyFlag, steadyMin, steadyMax, steadyTol);
@@ -292,7 +291,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
    algType = probDesc->getTimeIntegration();
    if(aeroAlg == 10 && algType != 1) {
       fprintf(stderr, "WARNING: B0 AERO type only valid for quasi-static.  Running QUASISTATICS for 1 iteration\n");
-      algType = 1;
+      domain->solInfo().timeIntegration = algType = 1;
    }
    
    double timeLoop = -getTime();
@@ -329,7 +328,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
          probDesc->getConstForce( *constForce );
 
          // Check stability time step
-         if(domain->solInfo().stable && aeroAlg < 0) probDesc->computeStabilityTimeStep(dt, *dynOps);
+         if(domain->solInfo().stable && (aeroAlg < 0 || domain->solInfo().dyna3d_compat)) probDesc->computeStabilityTimeStep(dt, *dynOps);
 
          if(aeroAlg == 20) probDesc->aeroPreProcess( *d_n, *v_n, *a_n, *v_n ); // See Eq. 51 of C.Farhat et al. IJNME(2010) Robust and provably ... 
          else
@@ -536,7 +535,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
     if (probDesc->getFilterFlag() == 2) probDesc->project( d_n );
 
     // ... compute external force (and receive fluid load)
-    probDesc->computeExtForce2( curState, ext_f, constForce, tIndex, (double)tIndex*delta, aeroForce );
+    probDesc->computeExtForce2( curState, ext_f, constForce, tIndex, (double)tIndex*delta, aeroForce, 1.0, 0.0 );
 
     // ... build force reference norm 
     if (tIndex==initIndex+1) {
@@ -595,12 +594,9 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
     if(domain->solInfo().isNonLin()) {
 
-      // ... solve nonlinear system for current load
-      //     and compute displacement increment
-      probDesc->reSolve(&dynOps, rhs, tIndex, d_inc); // XXX consider delta != 0
-
-      // ... update solution
-      probDesc->updateState(relaxFac, d_inc, d_n);
+      // ... solve nonlinear system for current load, compute displacement increment
+      //     and update solution, applying relaxation factor.
+      probDesc->solveAndUpdate(rhs, d_inc, d_n, relaxFac); // XXX consider delta != 0
     }
     else {
 
@@ -1084,7 +1080,6 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
   VecType &tmp2 = workVec.get_tmp2();
   VecType v_h_p(probDesc->solVecInfo());
   VecType *fext_p, *fint_p;
-  v_h_p = 0.0;
 
   if(domain->solInfo().check_energy_balance) {
     fext_p = new VecType(probDesc->solVecInfo());
@@ -1101,6 +1096,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
     probDesc->project(d_n);
     probDesc->project(v_n);
   }
+  v_n_h = v_n;
       
   handleDisplacement(*probDesc, d_n);
   handleVelocity(*probDesc, d_n);
@@ -1164,7 +1160,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 #endif
   if(aeroAlg < 0) filePrint(stderr, " ⌈\x1B[33m Time Integration Loop In Progress: \x1B[0m⌉\n");
 
-  for( ; t_n < tmax-0.01*dt_n_h; s2 = s0+getTime()) {
+  for( ; t_n < tmax-0.01*dt_n_h && !domain->solInfo().stop_AeroS; s2 = s0+getTime()) {
 
     // Time update:
     t_n_h = t_n + dt_n_h/2; // t^{n+1/2} = t^n + 1/2*deltat^{n+1/2}
@@ -1239,7 +1235,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
       matrixTimers.updateState += getTime();
 
       // C0: Send predicted displacement at t^{n+1.5} to fluid
-      if(aeroAlg == 20) probDesc->aeroSend(t_n_h+dt_n_h, d_n, v_n_h, a_n, v_h_p);
+      if(aeroAlg == 20 && !domain->solInfo().stop_AeroS) probDesc->aeroSend(t_n_h+dt_n_h, d_n, v_n_h, a_n, v_h_p);
 
       // Compute the external force at t^{n+1}
       if(domain->solInfo().check_energy_balance) *fext_p = fext;
@@ -1349,7 +1345,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
       t_n += dt_n_h; // t^n = t^{n-1} + deltat^{n-1/2}
 
       // Choose a new time step deltat^{n+1/2}
-      if(domain->solInfo().stable && aeroAlg < 0 && domain->solInfo().isNonLin() && n%domain->solInfo().stable_freq == 0) {
+      if(domain->solInfo().stable && (aeroAlg < 0 || domain->solInfo().dyna3d_compat) && domain->solInfo().isNonLin() && n%domain->solInfo().stable_freq == 0) {
         filePrint(stderr,"\n");
         dt_old = dt_n_h;
         probDesc->computeStabilityTimeStep(dt_n_h, dynOps);

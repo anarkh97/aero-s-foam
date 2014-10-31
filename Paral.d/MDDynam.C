@@ -264,6 +264,7 @@ MultiDomainDynam::~MultiDomainDynam()
   int nsub = decDomain->getNumSub(); 
   delete times; 
   if(geomState) delete geomState; 
+  if(refState) delete refState;
   if(kelArray) { for(int i=0; i<nsub; ++i) delete [] kelArray[i]; delete [] kelArray; }
   if(melArray) { for(int i=0; i<nsub; ++i) delete [] melArray[i]; delete [] melArray; }
   if(allCorot) {
@@ -298,7 +299,7 @@ MultiDomainDynam::buildOps(double coeM, double coeC, double coeK)
     domain->MakeNodalMass(dynMat->M, decDomain->getAllSubDomains());
   }
 
-  int useRbmFilter = domain->solInfo().filterFlags;
+  int useRbmFilter = (domain->solInfo().isNonLin()) ? 0 : domain->solInfo().filterFlags;
   if(useRbmFilter) {
     filePrint(stderr," ... RBM Filter Level %d Requested   ...\n", useRbmFilter);
     MultiDomainRbm<double> *rigidBodyModes = decDomain->constructRbm();
@@ -365,6 +366,7 @@ MultiDomainDynam::MultiDomainDynam(Domain *d)
   melArray = 0;
   allCorot = 0;
   geomState = 0;
+  refState = 0;
   dynMat = 0;
   reactions = 0;
   R = 0;
@@ -526,7 +528,7 @@ MultiDomainDynam::getTimeIntegration()
 int
 MultiDomainDynam::getFilterFlag()
 {
-  return std::max(domain->solInfo().hzemFilterFlag, domain->solInfo().filterFlags);
+  return (domain->solInfo().isNonLin()) ? 0 : std::max(domain->solInfo().hzemFilterFlag, domain->solInfo().filterFlags);
 }
 
 int*
@@ -629,42 +631,14 @@ MultiDomainDynam::getContactForce(DistrVector &d_n, DistrVector &dinc, DistrVect
   times->tdenforceTime += getTime();
 }
 
-#include <Paral.d/MDNLStatic.h>
-#include <Driver.d/NLStaticProbType.h>
-void
-MultiDomainDynam::reSolve(MDDynamMat *dMat, DistrVector &force, int step, DistrVector &dinc)
-{
-  MDNLStatic nlstatic(domain, decDomain);
-  DistrVector residual(nlstatic.solVecInfo()), 
-              totalRes(nlstatic.solVecInfo()), 
-              stateIncr(nlstatic.solVecInfo()),
-              elementInternalForce(nlstatic.elemVecInfo());
-  DistrGeomState tmpState(*geomState);
-  int numIter = 0;
-
-  nlstatic.preProcess();
-  residual.zero();
-  totalRes.zero();
-  elementInternalForce.zero();
-
-  NLStaticSolver<ParallelSolver,DistrVector,MultiDomainPostProcessor,MDNLStatic,DistrGeomState>
-  ::newton(force, residual, totalRes, elementInternalForce, &nlstatic, dMat->dynMat, geomState, &tmpState,
-           &stateIncr, numIter, 1.0, step);
-
-  
-  tmpState.get_inc_displacement(dinc, *geomState, false);
-}
-
 void
 MultiDomainDynam::updateState(double dt_n_h, DistrVector& v_n_h, DistrVector& d_n)
 {
   if(domain->solInfo().isNonLin()) {
     DistrVector dinc(solVecInfo());
     dinc = dt_n_h*v_n_h;
-    DistrGeomState *refState = (domain->solInfo().timeIntegration == 1 && geomState->getTotalNumElemStates() > 0) ? new DistrGeomState(*geomState) : 0;
-    geomState->update(dinc, (domain->solInfo().newmarkBeta == 0) ? 1 : 0);
-    if(domain->solInfo().timeIntegration != 1) geomState->setVelocity(v_n_h);
-    else if(refState) { execParal2R(decDomain->getNumSub(), this, &MultiDomainDynam::subUpdateStates, refState, geomState); delete refState; }
+    geomState->update(dinc, 1);
+    geomState->setVelocity(v_n_h);
     geomState->get_tot_displacement(d_n, false);
   }
 }
@@ -684,6 +658,7 @@ MultiDomainDynam::computeExtForce2(SysState<DistrVector> &distState,
                                    double gamma, double alphaf)
 {
   times->formRhs -= getTime();
+  SolverInfo& sinfo = domain->solInfo();
 
   // compute USDD prescribed displacements
   double *userDefineDisp = 0;
@@ -706,8 +681,8 @@ MultiDomainDynam::computeExtForce2(SysState<DistrVector> &distState,
 
   // finish update of geomState. note that for nonlinear problems the positiion and rotation nodal variables
   // have already been updated in updateDisplacement
-  if(domain->solInfo().isNonLin() || domain->tdenforceFlag()) {
-    if(!domain->solInfo().isNonLin()) {
+  if(sinfo.isNonLin() || domain->tdenforceFlag()) {
+    if(!sinfo.isNonLin()) {
       execParal2R(decDomain->getNumSub(), this, &MultiDomainDynam::subExplicitUpdate, distState.getDisp(), geomState);
     }
     execParal4R(decDomain->getNumSub(), this, &MultiDomainDynam::subUpdateGeomStateUSDD, userDefineDisp, geomState,
@@ -715,16 +690,16 @@ MultiDomainDynam::computeExtForce2(SysState<DistrVector> &distState,
   }
 
   // update nodal temperatures for thermoe problem
-  if(domain->solInfo().thermoeFlag >= 0 && tIndex >= 0) {
+  if(sinfo.thermoeFlag >= 0 && tIndex >= 0) {
     distFlExchanger->getStrucTemp(nodalTemps->data());
     if(verboseFlag) filePrint(stderr, " ... [E] Received temperatures     ...\n");
     if(geomState) geomState->setNodalTemperatures(*nodalTemps);
   }
 
   // add f(t) to cnst_f
-  double dt = domain->solInfo().getTimeStep();
-  double alpham = domain->solInfo().newmarkAlphaM;
-  double t0 = domain->solInfo().initialTime;
+  double dt = sinfo.getTimeStep();
+  double alpham = sinfo.newmarkAlphaM;
+  double t0 = sinfo.initialTime;
   double tm = (t == t0) ? t0 : t + dt*(alphaf-alpham);
   MultiDomainOp mdop(&MultiDomainOp::computeExtForce,
                      decDomain->getAllSubDomains(), &f, &cnst_f, t, dynMat->Kuc, userSupFunc, dynMat->Cuc, tm, dynMat->Muc);
@@ -769,9 +744,8 @@ MultiDomainDynam::computeExtForce2(SysState<DistrVector> &distState,
   }
 
   // add aeroelastic forces from fluid dynamics code
-  SolverInfo& sinfo = domain->solInfo();
   if(sinfo.aeroFlag >= 0 && tIndex >= 0 &&
-     !(geoSource->getCheckFileInfo()->lastRestartFile && sinfo.aeroFlag == 20 && tIndex == sinfo.initialTimeIndex)) {
+     !(geoSource->getCheckFileInfo()->lastRestartFile && sinfo.aeroFlag == 20 && !sinfo.dyna3d_compat && tIndex == sinfo.initialTimeIndex)) {
 
     aeroForce->zero();
     int iscollocated;
@@ -814,7 +788,7 @@ MultiDomainDynam::computeExtForce2(SysState<DistrVector> &distState,
 
     /*  Compute fluid flux at n+1/2, since we use midpoint rule in thermal */
 
-    int useProjector = domain->solInfo().filterFlags;
+    int useProjector = sinfo.filterFlags;
 
     if(tIndex == 0)
       f += *aeroForce;
@@ -827,12 +801,12 @@ MultiDomainDynam::computeExtForce2(SysState<DistrVector> &distState,
     *prevFrc = *aeroForce;
   }
 
-  // KHP: apply projector here
-  if(domain->solInfo().filterFlags || domain->solInfo().hzemFilterFlag)
+  // apply projector here for linear analyses only
+  if((sinfo.filterFlags || sinfo.hzemFilterFlag) && !sinfo.isNonLin())
     trProject(f);
 
   if(tIndex == 1)
-    domain->solInfo().initExtForceNorm = f.norm();
+    sinfo.initExtForceNorm = f.norm();
 
   times->formRhs += getTime();
 }
@@ -1137,9 +1111,6 @@ MultiDomainDynam::getInternalForce(DistrVector &d, DistrVector &f, double t, int
     execParal2R(decDomain->getNumSub(), this, &MultiDomainDynam::subGetKtimesU, d, f);
   }
 
-  if(domain->solInfo().filterFlags || domain->solInfo().hzemFilterFlag)
-    trProject(f);
-
   if(domain->solInfo().timeIntegration == 1) decDomain->getSolVecAssembler()->assemble(f); // quasistatic only
 }
 
@@ -1232,7 +1203,9 @@ MultiDomainDynam::subGetInternalForce(int isub, DistrVector &f, double &t, int &
   if(domain->solInfo().newmarkBeta == 0 && domain->solInfo().stable && domain->solInfo().isNonLin() && tIndex%domain->solInfo().stable_freq == 0) {
     sd->getStiffAndForce(*(*geomState)[isub], eIF, allCorot[isub], kelArray[isub], residual, 1.0, t, (*geomState)[isub],
                          subReactions, melArray[isub]);
+/* PJSA 10/12/2014 this is done in getStiffAndForce now because it needs to be done before handleElementDeletion.
     sd->updateStates((*geomState)[isub], *(*geomState)[isub], allCorot[isub]);
+*/
   }
   else {
     sd->getInternalForce(*(*geomState)[isub], eIF, allCorot[isub], kelArray[isub], residual, 1.0, t, (*geomState)[isub],
@@ -1841,3 +1814,41 @@ MultiDomainDynam::postProcessSA(MDDynamMat*, DistrVector&)
   filePrint(stderr," ... MultiDomainDynam::postProcessSA is not implemented\n");
   exit(-1);
 }
+
+#include <Paral.d/MDNLQStatic.h>
+#include <Driver.d/NLStaticProbType.h>
+void
+MultiDomainDynam::solveAndUpdate(DistrVector &force, DistrVector &dinc, DistrVector &d, double relaxFac)
+{
+  int numElemStates = geomState->getTotalNumElemStates();
+  if(!refState) {
+    // For the first coupling cycle refState is the initial state as defined by either IDISP or restart, if specified.
+    refState = new DistrGeomState(*geomState);
+  }
+  else if(numElemStates == 0) {
+    // In this case dlambda is only used for the first cycle.
+    domain->solInfo().getNLInfo().dlambda = domain->solInfo().getNLInfo().maxLambda = 1.0;
+    for(int i = 0; i < decDomain->getNumSub(); ++i)
+      decDomain->getSubDomain(i)->solInfo().getNLInfo().dlambda = decDomain->getSubDomain(i)->solInfo().getNLInfo().maxLambda = 1.0;
+  }
+
+  MDNLQStatic nlstatic(domain, decDomain, force, refState);
+  NLStaticSolver<ParallelSolver,DistrVector,MultiDomainPostProcessor,MDNLQStatic,DistrGeomState> nlsolver(&nlstatic);
+  nlsolver.solve();
+
+  nlsolver.getGeomState()->get_inc_displacement(dinc, *geomState, false);
+  if(numElemStates == 0) {
+    // In this case refState now stores the solution of the previous non-linear solve, and will be used as the initial
+    // guess for the next coupling cycle's non-linear solve.
+    *refState = *nlsolver.getGeomState();
+  }
+
+  dinc *= relaxFac;
+  geomState->update(dinc);
+  if(numElemStates != 0) {
+    execParal2R(decDomain->getNumSub(), this, &MultiDomainDynam::subUpdateStates, refState, geomState);
+  }
+
+  geomState->get_tot_displacement(d, false);
+}
+

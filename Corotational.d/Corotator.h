@@ -79,6 +79,8 @@ class Corotator {
 
     virtual void updateStates(GeomState *refState, GeomState &curState, CoordSet &C0) {}
 
+    virtual bool checkElementDeletion(GeomState &curState) { return false; }
+
     virtual void getResidualCorrection(GeomState &gs, double *r) {}
 
     virtual void initMultipliers(GeomState& c1) {}

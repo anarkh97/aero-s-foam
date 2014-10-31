@@ -418,7 +418,6 @@ public:
   int  getNumGlobNodes()  { return nGlobNodes; }
   void  setNumGlobNodes(int n) { nGlobNodes = n; }
   int  getElems(Elemset &, int = 0, int * = 0);
-  int getNonMpcElems(Elemset &eset);
   int  getNumClusters() { return numClusters; }
   char *getCpuMapFile()  { return mapName; }
   char *getMatchFileName()  { return matchName; }

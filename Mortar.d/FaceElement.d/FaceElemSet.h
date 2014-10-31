@@ -4,7 +4,7 @@
 // WARNING: IT IS CURRENTLY IMPLICITLY ASSUMED THAT NO GAP EXIST IN
 //          THE NUMBERING OF THE FACE ELEMENTS IN THE FaceElemSet,
 //          AND THE NUMBERING START FROM 0 TO N-1 (WHERE N IS THE 
-//          NUMBER OF FACE ELEMENTS REALLY INSTANCIATED), SO THAT
+//          NUMBER OF FACE ELEMENTS REALLY INSTANTIATED), SO THAT
 //          FaceElemSet::nElems() RETURN N.
 // ---------------------------------------------------------------- 
 #ifndef _FACEELEMSET_H_
@@ -18,7 +18,6 @@ typedef std::pair<int, std::pair<double, double> > locoord;
 
 // FEM headers
 #include <Utils.d/BlockAlloc.h>
-//#include <Mortar.d/FaceElement.d/FaceElement.h>
 
 #ifdef SOWER_SURFS
 #include <Utils.d/BinFileHandler.h>
@@ -36,10 +35,10 @@ class FaceElemSet {
     FaceElemSet(int = 256);
     //~FaceElemSet() { ba.~BlockAlloc(); deleteElems(); }
     ~FaceElemSet() { deleteElems(); }
-    int size() { return emax; }
+    int size() const { return emax; }
     int last();
     int numPhantoms()  { return nPhantoms; }
-    FaceElement *operator[] (int i) { return elem[i]; }
+    FaceElement *operator[] (int i) const { return elem[i]; }
     void elemadd(int num, FaceElement *);
     void elemadd(int num, int type, int nnodes, int *nodes);
     void setEmax(int max)  { emax = max; }
@@ -51,7 +50,9 @@ class FaceElemSet {
 
     void Renumber(std::map<int,int>& OldToNewNodeIds);
 
-    void deleteElems()  { if(elem){ delete [] elem; elem = 0; } emax = 0; nPhantoms = 0; }
+    void deleteElems() { if(elem) { delete [] elem; elem = 0; } emax = 0; nPhantoms = 0; }
+    void remove(int num);
+    void repack();
 
     std::map<int,locoord> computeNodeLocalCoords(int*, int);
 

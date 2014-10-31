@@ -159,6 +159,7 @@ ShellMaterialType0<doublereal>::GetConstitutiveResponse(doublereal *_Upsilon, do
     Db(2, 2) = E * (thick * thick * thick) / ((one + nu) * 24.);
 
 // .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR PURE MEMBRANE 
+
     Dm(0, 0) = E * thick / (one - nu * nu);
     Dm(0, 1) = nu * E * thick / (one - nu * nu);
     Dm(0, 2) = zero;
@@ -214,6 +215,7 @@ ShellMaterialType0<doublereal>::GetConstitutiveResponseSensitivityWRTdisp(double
     Db(2, 2) = E * (thick * thick * thick) / ((one + nu) * 24.);
 
 // .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR PURE MEMBRANE 
+
     Dm(0, 0) = E * thick / (one - nu * nu);
     Dm(0, 1) = nu * E * thick / (one - nu * nu);
     Dm(0, 2) = zero;
@@ -232,7 +234,8 @@ ShellMaterialType0<doublereal>::GetConstitutiveResponseSensitivityWRTdisp(double
 
     Dmb = Eigen::Matrix<doublereal,3,3>::Zero();
 
-// .....COMPUTE THE GENERALIZED "STRESSES"
+// .....COMPUTE THE SENSITIVITY OF THE GENERALIZED "STRESSES"
+// .....WITH RESPECT TO DISPLACEMENT
 
     dSigmadu = D*dUpsilondu;
 
@@ -241,8 +244,8 @@ ShellMaterialType0<doublereal>::GetConstitutiveResponseSensitivityWRTdisp(double
 
 template<typename doublereal>
 void
-ShellMaterialType0<doublereal>::GetConstitutiveResponseSensitivityWRTthickness(doublereal *_Upsilon, doublereal *_Sigma, doublereal *_dDdthick,
-                                                                               doublereal *, int)
+ShellMaterialType0<doublereal>::GetConstitutiveResponseSensitivityWRTthickness(doublereal *_Upsilon, doublereal *_dSigmadthick, doublereal *_dDdthick,
+                                                                               doublereal *, int, doublereal temp)
 {
   // Initialized data 
   doublereal zero = 0.;
@@ -250,11 +253,12 @@ ShellMaterialType0<doublereal>::GetConstitutiveResponseSensitivityWRTthickness(d
 
   // Local variables 
   doublereal *data = (_dDdthick == NULL) ? new doublereal[36] : _dDdthick;
-  Eigen::Map<Eigen::Matrix<doublereal,6,1> > Upsilon(_Upsilon), Sigma(_Sigma);
+  Eigen::Map<Eigen::Matrix<doublereal,6,1> > Upsilon(_Upsilon), dSigmadthick(_dSigmadthick);
   Eigen::Map<Eigen::Matrix<doublereal,6,6> > D(data); 
   Eigen::Block< Eigen::Map<Eigen::Matrix<doublereal,6,6> > >
     Dm = D.topLeftCorner(3,3),     Dmb = D.topRightCorner(3,3),
     Dbm = D.bottomLeftCorner(3,3), Db = D.bottomRightCorner(3,3);
+  Eigen::Matrix<doublereal,6,1> Alpha; Alpha << w, w, 0, 0, 0, 0;
 
 // ==================================================================== 
 //                                                                      
@@ -288,7 +292,7 @@ ShellMaterialType0<doublereal>::GetConstitutiveResponseSensitivityWRTthickness(d
 // Version = 1.0                                                        
 // ==================================================================== 
 
-// .....ASSEMBLE THE SENSITIVITY OF CONSTITUTIVE MATRIX FOR PURE BENDING
+// .....ASSEMBLE THE SENSITIVITY OF THE CONSTITUTIVE MATRIX FOR PURE BENDING
 // .....WITH RESPECT TO THICKNESS
 
     Db(0, 0) = E * (thick * thick) / ((one - nu * nu) * 4.);
@@ -301,7 +305,9 @@ ShellMaterialType0<doublereal>::GetConstitutiveResponseSensitivityWRTthickness(d
     Db(2, 1) = zero;
     Db(2, 2) = E * (thick * thick) / ((one + nu) * 8.);
 
-// .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR PURE MEMBRANE 
+// .....ASSEMBLE THE SENSITIVITY OF THE CONSTITUTIVE MATRIX FOR PURE MEMBRANE 
+// .....WITH RESPECT TO THICKNESS
+
     Dm(0, 0) = E / (one - nu * nu);
     Dm(0, 1) = nu * E / (one - nu * nu);
     Dm(0, 2) = zero;
@@ -312,26 +318,28 @@ ShellMaterialType0<doublereal>::GetConstitutiveResponseSensitivityWRTthickness(d
     Dm(2, 1) = zero;
     Dm(2, 2) = E / ((one + nu) * 2.);
 
-// .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR COUPLING BENDING-MEMBRANE
+// .....ASSEMBLE THE SENSITIVITY OF THE CONSTITUTIVE MATRIX FOR COUPLING BENDING-MEMBRANE
+// .....WITH RESPECT TO THICKNESS
 
     Dbm = Eigen::Matrix<doublereal,3,3>::Zero();
 
-// .....ASSEMBLE THE CONSTITUTIVE MATRIX FOR COUPLING MEMBRANE-BENDING
+// .....ASSEMBLE THE SENSITIVITY OF THE CONSTITUTIVE MATRIX FOR COUPLING MEMBRANE-BENDING
+// .....WITH RESPECT TO THICKNESS
 
     Dmb = Eigen::Matrix<doublereal,3,3>::Zero();
 
-// .....COMPUTE THE GENERALIZED "STRESSES"
+// .....COMPUTE THE SENSITIVITY OF THE GENERALIZED "STRESSES"
+// .....WITH RESPECT TO THICKNESS
 
-    Sigma = D*Upsilon;
+    dSigmadthick = D*(Upsilon - (temp-Ta)*Alpha);
 
     if(_dDdthick == NULL) delete [] data;
 }
 
 template<typename doublereal>
 void
-ShellMaterialType0<doublereal>
-::GetLocalConstitutiveResponse(doublereal *_Upsilon, doublereal *_sigma, doublereal z,
-                               doublereal *, int, doublereal temp)
+ShellMaterialType0<doublereal>::GetLocalConstitutiveResponse(doublereal *_Upsilon, doublereal *_sigma, doublereal z,
+                                                             doublereal *, int, doublereal temp)
 {
     // Local variables
     Eigen::Matrix<doublereal,3,1> epsilon;
@@ -362,9 +370,8 @@ ShellMaterialType0<doublereal>
 
 template<typename doublereal>
 void
-ShellMaterialType0<doublereal>
-::GetLocalConstitutiveResponseSensitivityWRTthick(doublereal *_Upsilon, doublereal *_dsigmadh, doublereal dzdh,
-                                                  doublereal *, int)
+ShellMaterialType0<doublereal>::GetLocalConstitutiveResponseSensitivityWRTthick(doublereal *_Upsilon, doublereal *_dsigmadh,
+                                                                                doublereal dzdh, doublereal *, int)
 {
     // Local variables
     Eigen::Matrix<doublereal,3,1> depsilondh;
@@ -376,7 +383,8 @@ ShellMaterialType0<doublereal>
     Eigen::VectorBlock< Eigen::Map< Eigen::Matrix<doublereal,6,1> > >
         e = Upsilon.head(3), chi = Upsilon.tail(3);
 
-// .....COMPUTE THE LOCAL STRAINS [epsilon] = {epsilonxx,epsilonyy,gammaxy} ON THE SPECIFIED SURFACE
+// .....COMPUTE THE SENSITIVITY OF THE LOCAL STRAINS [epsilon] = {epsilonxx,epsilonyy,gammaxy} ON THE SPECIFIED SURFACE
+// .....WITH RESPECT TO THICKNESS
 
     depsilondh = dzdh * chi;
 
@@ -387,7 +395,8 @@ ShellMaterialType0<doublereal>
          v*nu, v,    0,
          0,    0.,   v*(1-nu)/2;
 
-// .....COMPUTE THE LOCAL STRESSES [sigma] = {sigmaxx,sigmayy,sigmaxy} ON THE SPECIFIED SURFACE
+// .....COMPUTE THE SENSITIVITY OF THE LOCAL STRESSES [sigma] = {sigmaxx,sigmayy,sigmaxy} ON THE SPECIFIED SURFACE
+// .....WITH RESPECT TO THICKNESS
 
     dsigmadh = C*depsilondh;
 }
@@ -395,9 +404,8 @@ ShellMaterialType0<doublereal>
 
 template<typename doublereal>
 void
-ShellMaterialType0<doublereal>
-::GetLocalConstitutiveResponseSensitivityWRTdisp(doublereal *_dUpsilondu, doublereal *_dsigmadu, doublereal z,
-                                                 doublereal *, int)
+ShellMaterialType0<doublereal>::GetLocalConstitutiveResponseSensitivityWRTdisp(doublereal *_dUpsilondu, doublereal *_dsigmadu,
+                                                                               doublereal z, doublereal *, int)
 {
     // Local variables
     Eigen::Matrix<doublereal,3,18> depsilondu;
@@ -410,7 +418,8 @@ ShellMaterialType0<doublereal>
     e << dUpsilondu.template block<3,18>(0,0);
     chi << dUpsilondu.template block<3,18>(3,0);
 
-// .....COMPUTE THE LOCAL STRAINS [epsilon] = {epsilonxx,epsilonyy,gammaxy} ON THE SPECIFIED SURFACE
+// .....COMPUTE THE SENSITIVITY OF THE LOCAL STRAINS [epsilon] = {epsilonxx,epsilonyy,gammaxy} ON THE SPECIFIED SURFACE
+// .....WITH RESPECT TO DISPLACEMENT
 
     depsilondu = e + z * chi;
 
@@ -421,14 +430,11 @@ ShellMaterialType0<doublereal>
          v*nu, v,    0,
          0,    0.,   v*(1-nu)/2;
 
-// .....COMPUTE THE LOCAL STRESSES [sigma] = {sigmaxx,sigmayy,sigmaxy} ON THE SPECIFIED SURFACE
+// .....COMPUTE THE SENSITIVITY OF THE LOCAL STRESSES [sigma] = {sigmaxx,sigmayy,sigmaxy} ON THE SPECIFIED SURFACE
+// .....WITH RESPECT TO DISPLACEMENT
 
     dsigmadu = C*depsilondu;
 }
-
-template
-double* 
-ShellMaterialType0<double>::GetCoefOfConstitutiveLaw();
 
 template
 void
@@ -439,5 +445,26 @@ template
 void
 ShellMaterialType0<double>
 ::GetLocalConstitutiveResponse(double *Upsilon, double *sigma, double z, double *, int, double);
+
+template
+void
+ShellMaterialType0<double>
+::GetConstitutiveResponseSensitivityWRTdisp(double *_dUpsilondu, double *_dSigmadu, double *_D, double *, int);
+
+template
+void
+ShellMaterialType0<double>
+::GetConstitutiveResponseSensitivityWRTthickness(double *_Upsilon, double *_Sigma, double *_dDdthick, double *, int, double);
+
+template
+void
+ShellMaterialType0<double>
+::GetLocalConstitutiveResponseSensitivityWRTthick(double *_Upsilon, double *_dsigmadh, double dzdh, double *, int);
+
+template
+void
+ShellMaterialType0<double>
+::GetLocalConstitutiveResponseSensitivityWRTdisp(double *_dUpsilondu, double *_dsigmadu, double z, double *, int);
+
 #endif
 #endif

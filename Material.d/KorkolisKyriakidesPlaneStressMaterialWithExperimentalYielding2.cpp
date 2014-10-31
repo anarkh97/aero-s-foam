@@ -47,8 +47,11 @@ KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2(double iLambda, d
 
   // Zero initial plastic strain and equivalent plastic strain
   EPSplastic.clear();
-  for(int i=0; i<3; i++)
+  BackStress.clear();
+  for(int i=0; i<3; i++) {
     EPSplastic.push_back( 0. );
+    BackStress.push_back( 0. );
+  }
   equivEPSplastic = 0.;
 }
 
@@ -64,8 +67,11 @@ KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2
   : E(Mat.E), nu(Mat.nu), Tol1(Mat.Tol1), Tol2(Mat.Tol2)
 {
   EPSplastic.clear();
-  for(int i=0; i<3; i++)
+  BackStress.clear();
+  for(int i=0; i<3; i++) {
     EPSplastic.push_back( Mat.EPSplastic[i] );
+    BackStress.push_back( Mat.BackStress[i] );
+  }
   equivEPSplastic = Mat.equivEPSplastic;
 }
 
@@ -75,7 +81,7 @@ KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::Clone() const
 { return new KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2(*this); }
 
 // Return plastic strain
-std::vector<double> KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
+const std::vector<double> & KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
 GetMaterialPlasticStrain() const
 {
 /* PJSA
@@ -91,11 +97,10 @@ GetMaterialPlasticStrain() const
 }
 
 // Return back stress
-std::vector<double> KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
+const std::vector<double> & KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2::
 GetMaterialBackStress() const
 {
-  std::vector<double> ret(3, 0.0);
-  return ret;
+  return BackStress;
 }
 
 // Return equivalent plastic strain

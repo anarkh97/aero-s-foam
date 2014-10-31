@@ -25,15 +25,6 @@ ShellMaterialTypes2And3<doublereal>::ShellMaterialTypes2And3(
     for (int ilayer = 0; ilayer < nlayer; ++ilayer) {
       rhoh += mtlayer(6, ilayer)*mtlayer(7, ilayer);
     }
-
-// .....COMPUTE THE SUM OF THE LAYER DENSITIES FOR TYPE-2 AND TYPE-3 CONSTITUTIVE LAWS
-// .....NOTE: NON-STRUCTURAL MASS IS NOT INCLUDED
-
-    sumrho = 0;
-
-    for (int ilayer = 0; ilayer < nlayer; ++ilayer) {
-      sumrho += mtlayer(6, ilayer);
-    }
 }
 
 template<typename doublereal>
@@ -634,10 +625,6 @@ ShellMaterialTypes2And3<doublereal>
       break;
     }
 }
-
-template
-double* 
-ShellMaterialTypes2And3<double>::GetCoefOfConstitutiveLaw();
 
 template
 ShellMaterialTypes2And3<double>::ShellMaterialTypes2And3(

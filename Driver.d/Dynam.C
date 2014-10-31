@@ -141,7 +141,7 @@ Domain::writeRestartFile(double time, int timeIndex, Vector &d_n,
 {
 // either test for pointer or frequency > 0
  ControlInfo *cinfo = geoSource->getCheckFileInfo();
- if(timeIndex % sinfo.nRestart == 0 || time >= sinfo.tmax-0.1*sinfo.getTimeStep()) {
+ if(timeIndex % sinfo.nRestart == 0 || time >= sinfo.tmax-0.1*sinfo.getTimeStep() || domain->solInfo().stop_AeroS) {
    int fn;
    if(strlen(ext) != 0) {
      char *currentRestartFile = new char[strlen(cinfo->currentRestartFile)+strlen(ext)+1];
@@ -265,6 +265,12 @@ Domain::aeroSend(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, double* bcx
 
   State state(c_dsa, dsa, bcx, vcx, d_n_aero, v_n, a_n, v_p);
 
+  if(sinfo.dyna3d_compat) {
+    if(sinfo.elementDeletion && !newDeletedElements.empty()) {
+      flExchanger->sendNewStructure(newDeletedElements);
+    }
+    else flExchanger->sendNoStructure();
+  }
   flExchanger->sendDisplacements(state, -1, geomState);
   if(verboseFlag) filePrint(stderr, " ... [E] Sent displacements         ...\n");
 
@@ -336,6 +342,28 @@ Domain::buildAeroelasticForce(Vector& aero_f, PrevFrc& prevFrc, int tIndex, doub
   prevFrc.lastTIndex = tIndex;
 
   delete [] tmpFmem;
+
+  if(sinfo.aeroFlag == 20 && sinfo.dyna3d_compat) {
+    if(sinfo.stop_AeroF) sinfo.stop_AeroS = true;
+    double dt = sinfo.getTimeStep();
+    if(tIndex == sinfo.initialTimeIndex) sinfo.t_AeroF = sinfo.initialTime + 1.5*dt;
+    else sinfo.t_AeroF += dt;
+    double maxTime_AeroF = sinfo.tmax-0.5*dt;
+    double sendtim;
+    if((sinfo.t_AeroF < (maxTime_AeroF-0.01*dt)) || tIndex == sinfo.initialTimeIndex)
+      sendtim = 1e100;
+    else {
+      sendtim = 0;
+      sinfo.stop_AeroF = true;
+    }
+    int restartinc = std::max(solInfo().nRestart, 0);
+    flExchanger->sendParam(sinfo.aeroFlag, sinfo.getTimeStep(), sendtim, restartinc,
+                           sinfo.isCollocated, sinfo.alphas,  sinfo.alphasv);
+    if(tIndex == 0) // Send the parameter a second time for fluid iteration 1 to 2
+      flExchanger->sendParam(sinfo.aeroFlag, sinfo.getTimeStep(), sendtim, restartinc,
+                             sinfo.isCollocated, sinfo.alphas, sinfo.alphasv);
+  }
+
   getTimers().receiveFluidTime += getTime();
 }
 
@@ -865,6 +893,12 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
           geoSource->outputNodeVectors6(i, rxyz, nNodesOut, time);
           delete [] rxyz;
           } break;
+        case OutputInfo::DeletedElements: {
+          for(std::vector<std::pair<double,int> >::iterator it = outDeletedElements.begin(); it != outDeletedElements.end(); ++it) {
+            filePrint(oinfo[i].filptr, " %12.6e  %9d          Undetermined\n", it->first, it->second+1);
+          }
+          outDeletedElements.clear();
+        } break;
         case OutputInfo::ModeError: // don't print warning message since these are
         case OutputInfo::ModeAlpha: // output in SingleDomainDynamic::modeDecomp
           break;
@@ -975,9 +1009,9 @@ Domain::aeroPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
         filePrint(stderr, " *** ERROR: Embedded wet surface not found! Aborting...\n");
         exit(-1);
       }
-      flExchanger = new FlExchanger(nodes, packedEset, SurfEntities[iSurf], c_dsa, oinfo_aero); //packedEset is not used, but flExchanger needs
-                                                                                                // to have a reference of it at construction.
-    } else {
+      flExchanger = new FlExchanger(nodes, packedEset, SurfEntities[iSurf], c_dsa, oinfo_aero, sinfo.elementDeletion);
+    }
+    else {
       flExchanger = new FlExchanger(nodes, packedEset, c_dsa, oinfo_aero);
     }
 
@@ -987,8 +1021,13 @@ Domain::aeroPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
 
     if(aeroEmbeddedSurfaceId.size()!=0) 
       flExchanger->matchup();
-    else
+    else {
+      if(sinfo.aeroFlag == 20 && sinfo.dyna3d_compat && sinfo.elementDeletion) {
+        filePrint(stderr," *** ERROR: Matcher with element deletion is not supported. Aborting...\n");
+        exit(-1);
+      }
       flExchanger->read(0, matchFile);
+    }
 
     //KW: send the embedded wet surface to fluid 
     if(aeroEmbeddedSurfaceId.size()!=0) {
@@ -1034,8 +1073,9 @@ Domain::aeroPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
     }
     else {
       double aero_tmax = sinfo.tmax;
-      if(sinfo.newmarkBeta == 0) aero_tmax += sinfo.getTimeStep();
-      flExchanger->sendParam(sinfo.aeroFlag, sinfo.getTimeStep(), aero_tmax, restartinc,
+      if(sinfo.newmarkBeta == 0 && !sinfo.dyna3d_compat) aero_tmax += sinfo.getTimeStep();
+      double aero_dt = (sinfo.dyna3d_compat) ? 0 : sinfo.getTimeStep();
+      flExchanger->sendParam(sinfo.aeroFlag, aero_dt, aero_tmax, restartinc,
                              sinfo.isCollocated, sinfo.alphas, sinfo.alphasv);
       if(verboseFlag) filePrint(stderr, " ... [E] Sent parameters            ...\n");
 
@@ -1045,6 +1085,11 @@ Domain::aeroPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
       } else {
         flExchanger->initRcvParity(-1);
         flExchanger->initSndParity(-1);
+      }
+
+      if(sinfo.aeroFlag == 20 && sinfo.dyna3d_compat) {
+        flExchanger->sendSubcyclingInfo(0);
+        flExchanger->sendNoStructure();
       }
 
       if(!(geoSource->getCheckFileInfo()->lastRestartFile && (sinfo.aeroFlag == 20 ||
@@ -1104,9 +1149,9 @@ Domain::aeroSensitivityPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
         fprintf(stderr,"ERROR: Embedded wet surface not found! Aborting...\n");
         exit(-1);
       }
-      flExchanger = new FlExchanger(nodes, packedEset, SurfEntities[iSurf], c_dsa, oinfo_aero); //packedEset is not used, but flExchanger needs
-                                                                                                // to have a reference of it at construction.
-    } else {
+      flExchanger = new FlExchanger(nodes, packedEset, SurfEntities[iSurf], c_dsa, oinfo_aero, false);
+    }
+    else {
       filePrint(stderr," --- aeroSensitivityPreProcess 2\n");
       flExchanger = new FlExchanger(nodes, packedEset, c_dsa, oinfo_aero);
     }
@@ -1205,7 +1250,7 @@ Domain::thermoePreProcess()
     // if sinfo.aeroFlag >= 0, flExchanger has already been initialize before,
     // thus, only when sinfo.aeroFlag < 0 is necessary.
     if(sinfo.aeroFlag < 0)
-      flExchanger = new FlExchanger(nodes, packedEset, c_dsa );
+      flExchanger = new FlExchanger(nodes, packedEset, c_dsa);
 
     flExchanger->thermoread(buffLen);
  

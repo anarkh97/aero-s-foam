@@ -791,7 +791,7 @@ GenDecDomain<Scalar>::postProcessing(GenDistrVector<Scalar> &u, GenDistrVector<S
   // check if there are any output files which need to be processed now
   if(geoSource->noOutput(x) && x != domain->solInfo().initialTimeIndex) return;
 
-  if(verboseFlag && x == 0 && ndflag == 0 && !domain->solInfo().isDynam())
+  if(verboseFlag && x == 0 && ndflag == 0 && !(domain->solInfo().isDynam() || domain->solInfo().timeIntegration == 1))
     filePrint(stderr," ... Postprocessing                 ...\n");
 
   Scalar *globVal = 0;  
@@ -2160,6 +2160,9 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, GenDistrVector<S
        else
          filePrint(stderr," *** WARNING: Output case %d not supported \n", i);
      } break;
+     case OutputInfo::Damage:
+       getStressStrain(geomState, allCorot, i, DAMAGE, x, refState);
+       break;
      case OutputInfo::EquivalentPlasticStrain:
        getStressStrain(geomState, allCorot, i, EQPLSTRN, x, refState);
        break;
@@ -2297,6 +2300,15 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, GenDistrVector<S
          delete [] plot_data;
        }
        else filePrint(stderr," *** WARNING: Output case %d not supported \n", i);
+     } break;
+     case OutputInfo::DeletedElements: {
+       for(int iSub = 0; iSub < numSub; ++iSub) {
+         std::vector<std::pair<double,int> > &deletedElements = subDomain[iSub]->getDeletedElements();
+         for(std::vector<std::pair<double,int> >::iterator it = deletedElements.begin(); it != deletedElements.end(); ++it) {
+           filePrint(oinfo[i].filptr, " %12.6e  %9d          Undetermined\n", it->first, it->second+1);
+         }
+         deletedElements.clear();
+       }
      } break;
      case OutputInfo::Statevector:
      case OutputInfo::Velocvector:

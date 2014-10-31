@@ -1160,7 +1160,7 @@ EulerBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector
                                               int senMethod, double *ndTemps, int avgnum, double ylayer, double zlayer)
 {
   if(strInd != 6) {
-    std::cerr << " ... Error: strInd must be 6 in TwoNodeTruss::getVonMisesDisplacementSensitivity\n";
+    std::cerr << " ... Error: strInd must be 6 in EulerBeam::getVonMisesDisplacementSensitivity\n";
     exit(-1);
   }
   if(dStdDisp.numRow() != 2 || dStdDisp.numCol() !=12) {

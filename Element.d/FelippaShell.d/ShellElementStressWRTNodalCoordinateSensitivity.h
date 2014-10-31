@@ -3,27 +3,29 @@
 #define _SHELLELEMENTSTRESSWRTNODALCOORDINATESENSITIVITY_H_
 
 #include <Element.d/Function.d/Function.h>
-#include <Element.d/FelippaShell.d/ShellMaterial.cpp>
-#include <Element.d/FelippaShell.d/ShellMaterialType0.cpp>
-#include <Element.d/FelippaShell.d/ShellMaterialType1.cpp>
-#include <Element.d/FelippaShell.d/EffMembraneTriangleTemplate.cpp>
-#include <Element.d/FelippaShell.d/AndesBendingTriangleTemplate.cpp>
-#include <Element.d/FelippaShell.d/ShellElementTemplate.cpp>
+#include <Element.d/FelippaShell.d/ShellMaterial.hpp>
+#include <Element.d/FelippaShell.d/EffMembraneTriangle.hpp>
+#include <Element.d/FelippaShell.d/AndesBendingTriangle.hpp>
+#include <Element.d/FelippaShell.d/ShellElementTemplate.hpp>
+
+// class template to facilitate computation of the sensitivities of the nodal von mises stress w.r.t the nodal coordinates
 
 template<typename Scalar>
-class ShellElementStressWRTNodalCoordinateSensitivity : public VectorValuedFunction<9,3,Scalar,69,2,double>
+class ShellElementStressWRTNodalCoordinateSensitivity : public VectorValuedFunction<9,3,Scalar,78,3,double>
 {
   public:
     ShellElementTemplate<Scalar,EffMembraneTriangle,AndesBendingTriangle> ele;
     Eigen::Array<Scalar,18,1> globalu; // element displacements
     Scalar E, nu, rho, h, Ta, W; // material properties
+    Eigen::Array<Scalar,9,1> cframe; // composite frame
+    Eigen::Array<Scalar,42,1> coefs;
+    Eigen::Array<Scalar,3,1> ndtemps;
     int surface; // thru-thickness location at which stresses are to be evaluated
-    Eigen::Array<Scalar,9,1> cframe;   // composite frame
-    Eigen::Array<Scalar,36,1> coefs;
     int type;
+    int sflg;
 
   public:
-    ShellElementStressWRTNodalCoordinateSensitivity(const Eigen::Array<double,69,1>& sconst, const Eigen::Array<int,2,1>& iconst)
+    ShellElementStressWRTNodalCoordinateSensitivity(const Eigen::Array<double,78,1>& sconst, const Eigen::Array<int,3,1>& iconst)
     {
       globalu = sconst.segment<18>(0).cast<Scalar>();
       E = sconst[18];
@@ -32,26 +34,33 @@ class ShellElementStressWRTNodalCoordinateSensitivity : public VectorValuedFunct
       h = sconst[21];
       surface = iconst[0];
       type = iconst[1];
+      sflg = iconst[2];
       if(type == 1) {
         cframe = sconst.segment<9>(22).cast<Scalar>();
-        coefs = sconst.segment<36>(31).cast<Scalar>(); 
+        coefs = sconst.segment<42>(31).cast<Scalar>(); 
       }
-      Ta = sconst[67];
-      W = sconst[68];
+      Ta = sconst[73];
+      W = sconst[74];
+      ndtemps = sconst.segment<3>(75).cast<Scalar>();
     }
     
-
     Eigen::Matrix<Scalar,3,1> operator() (const Eigen::Matrix<Scalar,9,1>& q, Scalar)
     {
       // inputs:
-      // q = Global Displacements at the Nodal Joints
+      // q = nodal coordinates
 
-      ele.setgpnmat(new ShellMaterialType0<Scalar>(E, h, nu, rho, Ta, W));
-      if(type == 1) { 
-        ele.setgpnmat(new ShellMaterialType1<Scalar>(coefs.data(), cframe.data(), rho, h, Ta, W)); 
+      ShellMaterial<Scalar> *nmat;
+      switch(type) {
+        case 0 :
+          nmat = new ShellMaterialType0<Scalar>(E, h, nu, rho, Ta, W);
+          break;
+        case 1 : 
+          nmat = new ShellMaterialType1<Scalar>(coefs.data(), cframe.data(), rho, h, Ta);
+          break;
+        default :
+          std::cerr << " *** ERROR: ShellElementStressWRTNodalCoordinateSensitivity is not defined for this case.\n";
+          exit(-1);
       }
-      else if(type == 2 || type == 3) { std::cerr << " ... Error: ShellElementStiffnessWRTNodalCoordinateSensitivity is not defined for this case\n"; exit(-1); }
-      else if(type > 4)  { std::cerr << " ... Error: wrong material type\n"; exit(-1); }
       Eigen::Array<Scalar,3,1> globalx; 
       Eigen::Array<Scalar,3,1> globaly; 
       Eigen::Array<Scalar,3,1> globalz; 
@@ -71,7 +80,8 @@ class ShellElementStressWRTNodalCoordinateSensitivity : public VectorValuedFunct
       // surface  <input>   1: upper, 2: median, 3: lower
       Eigen::Array<Scalar,7,3> stress;
       ele.andesvms(0, 7, nu, globalx.data(), globaly.data(), globalz.data(), globalu.data(),
-                   stress.data(), 0, 0, surface);
+                   stress.data(), type, nmat, 0, surface, sflg, ndtemps.data());
+      delete nmat;
 
       // return value:
       // von mises stresses at nodes

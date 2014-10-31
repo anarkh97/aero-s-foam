@@ -67,6 +67,7 @@ class SurfaceEntity {
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~
 	SurfaceEntity();
 	SurfaceEntity(int);
+        SurfaceEntity(const SurfaceEntity&);
 
         ~SurfaceEntity();
 	
@@ -99,12 +100,14 @@ class SurfaceEntity {
 #ifdef HB_NODALNORMAL
         double* ComputeNodalNormals(CoordSet& cs); // STILL EXPERIMENTAL ...
 #endif
+        void Reset(CoordSet* cs=0);
 
 	// Set methods
 	// ~~~~~~~~~~~
 	void SetId(int);
 	void AddFaceElement(int, int, int, int*);
 	void AddFaceElement(FaceElement*);
+        void RemoveFaceElement(int num);
         void SetNodeCoordMap(std::map<int,Node> *_map) { NodeCoordMap = _map; };
         void SetPtrNodeSet(CoordSet* ndSet);
         void SetReverseNormals(bool);

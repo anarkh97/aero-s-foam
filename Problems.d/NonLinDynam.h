@@ -96,10 +96,6 @@ class NonLinDynamic : public NLDynamPostProcessor {
     void addCtrl(Vector& externalForce, double *controlForce);
     void addUserForce(Vector & externalForce, double *userForce);
 
-    FSFullMatrix *X;    // pre-calculated projector
-    double *Rmem;        // global rigid body modes (numdof X 6)
-    int numR;            // number of rigid body modes
-
     double resN;
     Vector *reactions;
     bool factor;
@@ -125,9 +121,6 @@ class NonLinDynamic : public NLDynamPostProcessor {
     int  elemVecInfo();
 
     double getTolerance() { return (tolerance*firstRes); }
-
-    void trProject(Vector &f);
-    void projector_prep(Rbm *R, SparseMatrix *M);
 
     void   computeTimeInfo();
 

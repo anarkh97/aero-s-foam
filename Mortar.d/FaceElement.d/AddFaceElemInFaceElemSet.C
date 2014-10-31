@@ -65,5 +65,5 @@ FaceElemSet::elemadd(int num, int etype, int nnodes, int* nodes)
        return;
    }
 
- if(ele) elemadd(num, ele);
+   if(ele) elemadd(num, ele);
 }

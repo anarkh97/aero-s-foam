@@ -13,6 +13,7 @@
 #include <Math.d/FullSquareMatrix.h>
 #include <Math.d/SparseMatrix.h>
 #include <Timers.d/GetTime.h>
+#include <Problems.d/StaticDescr.h>
 
 extern int verboseFlag;
 

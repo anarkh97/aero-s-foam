@@ -2113,7 +2113,6 @@ subroutine rotprojbt2(ecord,edisp,evelo,eaccl, edisp0,evelo0,eaccl0)
      evelo0(1:3,inode)= evelo(1:3,inode)
      eaccl0(1:3,inode)= eaccl(1:3,inode)
 
-
      ! -----------------------------------------------------
      ! get rotation projection matrix
      call getrotpmatbt(inode,ecurn, rotpmat)
@@ -2268,7 +2267,7 @@ end subroutine rotprojbt3
 
 subroutine getrotpmatbt(inode,ecurn, rotpmat)
   !=======================================================================
-  !  getrotpmatbt = compute reotation projection matrix
+  !  getrotpmatbt = compute rotation projection matrix
   !
   !                note:
   !                ----

@@ -75,6 +75,7 @@ Domain::getInternalForce(GeomState &geomState, Vector& elementForce,
   const double pseudoTime = sinfo.isDynam() ? time : lambda; // mpc needs lambda for nonlinear statics
   BlastLoading::BlastData *conwep = (domain->solInfo().ConwepOnOff) ? &BlastLoading::InputFileData : NULL;
   if(elemAdj.empty()) makeElementAdjacencyLists();
+  if(time != domain->solInfo().initialTime) newDeletedElements.clear();
 
   for(int iele = 0; iele < numele; ++iele) {
 
@@ -84,6 +85,7 @@ Domain::getInternalForce(GeomState &geomState, Vector& elementForce,
     // Get updated tangent stiffness matrix and element internal force
     if(corotators[iele] && !solInfo().getNLInfo().linearelastic) {
       getElemInternalForce(geomState, pseudoTime, refState, *corotators[iele], elementForce.data(), kel[iele]);
+      handleElementDeletion(iele, geomState, pseudoTime, *corotators[iele], elementForce.data());
     }
     // Or, get linear elastic element internal force
     else {
@@ -843,3 +845,33 @@ Domain::getKineticEnergy(double* velocity, FullSquareMatrix *mel)
   return T;
 }
 
+void
+Domain::handleElementDeletion(int iele, GeomState &geomState, double time,
+                              Corotator &elemCorot, double *elemForce)
+{
+  if(domain->solInfo().elementDeletion) {
+    bool deleteElem = false;
+    if(!domain->solInfo().deleteElements.empty()) {
+      std::map<int,double>::iterator it;
+#if defined(_OPENMP)
+      #pragma omp critical
+#endif
+      if((it = domain->solInfo().deleteElements.find(packedEset[iele]->getGlNum())) != domain->solInfo().deleteElements.end() && time >= it->second) {
+        domain->solInfo().deleteElements.erase(it);
+        deleteElem = true;
+      }
+    }
+    if(deleteElem || (packedEset[iele]->getProperty() && elemCorot.checkElementDeletion(geomState))) {
+      std::cerr << "\rDeleting element " << std::setw(22) << std::left << packedEset[iele]->getGlNum()+1 << std::endl;
+#if defined(_OPENMP)
+      #pragma omp critical
+#endif
+      { newDeletedElements.insert(packedEset[iele]->getGlNum());
+        outDeletedElements.push_back(std::pair<double,int>(time,packedEset[iele]->getGlNum())); }
+      packedEset[iele]->setProp((StructProp*)NULL);
+      packedEset[iele]->setPressure((PressureBCond*)NULL);
+      elemAdj[iele].surfp.clear();
+      for(int i=0; i<packedEset[iele]->numDofs(); ++i) elemForce[i] = 0;
+    }
+  }
+}

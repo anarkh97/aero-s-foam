@@ -90,7 +90,7 @@ class SingleDomainDynamic
     // members for nonlinear eigen problem
     FullSquareMatrix *kelArray, *melArray;
     Corotator **allCorot;
-    GeomState *geomState;
+    GeomState *geomState, *refState;
     double t0; // initial time
     PrevFrc *prevFrc;
     PrevFrc *prevFrcBackup;
@@ -176,7 +176,6 @@ class SingleDomainDynamic
     // Central Difference only related subroutines
     void computeStabilityTimeStep(double& dt, DynamMat& dMat);
 
-    void reSolve(DynamMat *dMat, Vector &force, int step, Vector &dinc);
     void updateState(double dt_n_h, Vector& v_n_h, Vector& d_n);
     void pull_back(Vector& f);
     void push_forward(Vector& a);
@@ -213,6 +212,8 @@ class SingleDomainDynamic
     void aeroHeatPreProcess(Vector& d_n, Vector& v_n, Vector& v_p);
     int getAeroheatFlag();
 
+    // Non-linear quasi-static
+    void solveAndUpdate(Vector &force, Vector &dinc, Vector &d, double relaxFac);
 };
 
 #endif

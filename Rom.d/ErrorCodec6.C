@@ -17,7 +17,7 @@ int main (int argc, char *argv[]) {
     return EXIT_SUCCESS;
   }
 
-  if (argc == 2) {
+  if (!(argc == 3 || 6)) {
     print_syntax();
     return EXIT_FAILURE;
   }
@@ -40,17 +40,27 @@ int main (int argc, char *argv[]) {
   // check to see of both files were successfully opened
   if(truth_file.is_open() && comp_file.is_open()) {
 
-    std::cout << "calculate error up to time: ";
-    std::cin >> tFinal;
-    std::cout << std::endl;
+    if( argc == 3 ) {
+      std::cout << "calculate error up to time: ";
+      std::cin >> tFinal;
+      std::cout << std::endl;
 
-    std::cout << "node numbers in truthfile? [0=no,1=yes]: "; 
-    std::cin >> truthFlag;
-    std::cout << std::endl;
+      std::cout << "node numbers in truthfile? [0=no,1=yes]: "; 
+      std::cin >> truthFlag;
+      std::cout << std::endl;
 
-    std::cout << "node numbers in comparisonfile? [0=no,1=yes]: ";                                
-    std::cin >> compFlag;
-    std::cout << std::endl;
+      std::cout << "node numbers in comparisonfile? [0=no,1=yes]: ";                                
+      std::cin >> compFlag;
+      std::cout << std::endl;
+    } else if( argc == 6 ) {
+      std::string tFinalString(argv[3]);
+      std::string truthFlagString(argv[4]);
+      std::string compFlagString(argv[5]);
+      
+      tFinal    = atof(tFinalString.c_str());
+      truthFlag = atoi(truthFlagString.c_str());
+      compFlag  = atoi(compFlagString.c_str());
+    }
 
     // get header line and length of displacement vector 
     getline(truth_file, header_buffer);

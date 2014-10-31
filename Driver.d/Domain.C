@@ -27,6 +27,7 @@ using std::list;
 #include <Driver.d/GeoSource.h>
 #include <Feti.d/DistrVector.h>
 #include <Corotational.d/DistrGeomState.h>
+#include <Hetero.d/FlExchange.h>
 
 #include <Element.d/Rigid.d/RigidBeam.h>
 #include <Element.d/Rigid.d/RigidThreeNodeShell.h>
@@ -47,7 +48,7 @@ ModeData modeData;
 
 Domain::Domain(Domain &d, int nele, int *eles, int nnodes, int *nnums)
   : nodes(*new CoordSet(nnodes)), lmpc(0), fsi(0), ymtt(0), ctett(0), sdetaft(0),
-    SurfEntities(0), MortarConds(0), numThicknessGroups(0), numShapeVars(0)
+    SurfEntities(0), MortarConds(0)
 {
  initialize();
 
@@ -1201,16 +1202,18 @@ Domain::setUpData()
 {
   startTimerMemory(matrixTimers->setUpDataTime, matrixTimers->memorySetUp);
 
-  Elemset eset_tmp;
-  if(sinfo.type == 0) {
-    if(numLMPC) geoSource->getNonMpcElems(eset_tmp);
-  }
-
   geoSource->setUpData();
+
+  if(!haveNodes) { numnodes = geoSource->getNodes(nodes); haveNodes = true; }
+  else numnodes = geoSource->totalNumNodes();
+  numele = geoSource->getElems(packedEset);
+  numele = packedEset.last();
 
   if(sinfo.type == 0) {
     if(numLMPC && domain->solInfo().rbmflg == 1 && domain->solInfo().grbm_use_lmpc) {
-      Connectivity *elemToNode_tmp = new Connectivity(&eset_tmp);
+      if(elemToNode == 0) elemToNode = new Connectivity(&packedEset);
+      if(nodeToElem == 0) nodeToElem = elemToNode->reverse();
+      Connectivity *elemToNode_tmp = new Connectivity(&packedEset, nodeToElem);
       Connectivity *nodeToElem_tmp = elemToNode_tmp->reverse();
       Connectivity *nodeToNode_tmp = nodeToElem_tmp->transcon(elemToNode_tmp);
       renumb_nompc = nodeToNode_tmp->renumByComponent(0);
@@ -1224,12 +1227,6 @@ Domain::setUpData()
       delete elemToNode_tmp; delete nodeToElem_tmp; delete nodeToNode_tmp;
     }
   }
-
-
-  if(!haveNodes) { numnodes = geoSource->getNodes(nodes); haveNodes = true; }
-  else numnodes = geoSource->totalNumNodes();
-  numele = geoSource->getElems(packedEset);
-  numele = packedEset.last();
 
   // set boundary conditions
   int numBC;
@@ -1488,8 +1485,35 @@ Domain::prepDirectMPC()
         int n = ele->getNumMPCs();
         if(n > 0) {
           LMPCons **l = ele->getMPCs();
-          for(int j = 0; j < n; ++j)
+          for(int j = 0; j < n; ++j) {
+            // first check to see if nodal frames are used
+            bool use_nframes = false;
+            if(l[j]->getSource() != mpc::Lmpc && l[j]->getSource() != mpc::NodalContact && l[j]->getSource() != mpc::TiedSurfaces) {
+              for(int k=0; k<l[j]->nterms; ++k) {
+                if(nodes.dofFrame(l[j]->terms[k].nnum)) { use_nframes = true; break; }
+              }
+            }
+            if(use_nframes) {
+              std::vector<LMPCTerm> terms_copy(l[j]->terms);
+              l[j]->terms.clear();
+              l[j]->nterms = 0;
+              for(std::vector<LMPCTerm>::iterator it = terms_copy.begin(); it != terms_copy.end(); ++it) {
+                if(NFrameData *cd = nodes.dofFrame(it->nnum)) {
+                  double c[3] = { 0, 0, 0 };
+                  c[it->dofnum%3] = it->coef.r_value;
+                  cd->transformVector3(c);
+                  for(int m=0; m<3; ++m) {
+                    if(std::abs(c[m]) > std::numeric_limits<double>::epsilon()) {
+                      LMPCTerm t(it->nnum, 3*(it->dofnum/3)+m, c[m]);
+                      l[j]->addterm(&t);
+                    }
+                  }
+                }
+                else l[j]->addterm(&(*it));
+              }
+            }
             lmpc[numLMPC++] = l[j];
+          }
           delete [] l;
         }
       }
@@ -1584,7 +1608,7 @@ Domain::getRenumbering()
    delete nodeToNodeTemp;
  }
 
- // get number of nodes
+ // get number of nodes (actually, this is the maximum node number when there are gaps in the node numbering)
  numnodes = nodeToNode->csize();
 
  if(solInfo().type == 0 || solInfo().type == 1) makeNodeToNode_sommer(); // single domain solvers
@@ -1604,9 +1628,12 @@ Domain::getRenumbering()
    order[i] = -1;
 
  // note: order maps from new index to original index and renumb.renum maps from original index to new index
+ int nodecount = 0;
  for(i=0; i<numnodes; ++i)
-   if(renumb.renum[i] >= 0)
+   if(renumb.renum[i] >= 0) {
      order[renumb.renum[i]] = i;
+     nodecount++;
+   }
 
  if(domain->solInfo().rbmflg == 1 && renumb.numComp > 1 && sinfo.type == 0 && sinfo.subtype == 1) {
    filePrint(stderr, "\x1B[31m *** WARNING: GRBM with sparse solver is not \n"
@@ -1617,7 +1644,7 @@ Domain::getRenumbering()
    // altering the ordering for skyline or sparse with LMPCs due to requirements of GRBM
    DofSetArray *dsa = new DofSetArray(numnodes, packedEset, renumb.renum);
    ConstrainedDSA *c_dsa = new ConstrainedDSA(*dsa, numDirichlet, dbc);
-   int p = numnodes-1;
+   int p = nodecount-1;
    int min_defblk = 0;
    for(int n=renumb_nompc.numComp-1; n>=0; --n) {
      int count = 0;
@@ -1835,7 +1862,8 @@ Domain::readInModes(char* modeFileName)
 void
 Domain::readInShapeDerivatives(char* shapeDerFileName)
 {
- filePrint(stderr," ... Read in Shape Derivatives      ...\n ... file: %s    ...\n",shapeDerFileName);
+ filePrint(stderr," ... Read in Shape Derivatives      ...\n"
+                  " ... file: %-24s ...\n",shapeDerFileName);
 
  // Open file containing mode shapes and frequencies.
  FILE *f;
@@ -2250,7 +2278,7 @@ Connectivity *
 Domain::getNodeToNode() {
  if(nodeToNode) return nodeToNode;
  if(elemToNode == 0)
-   elemToNode = new Connectivity(&packedEset) ;
+   elemToNode = new Connectivity(&packedEset);
  if(nodeToElem == 0)
    nodeToElem = elemToNode->reverse();
  nodeToNode = nodeToElem->transcon(elemToNode);
@@ -2634,6 +2662,59 @@ void Domain::RemoveGap(Vector &g)
     MortarHandler* CurrentMortarCond = MortarConds[iMortar];
     CurrentMortarCond->remove_gap(g);
   }
+}
+
+void Domain::UpdateSurfaceTopology()
+{
+  if(newDeletedElements.empty()) return;
+
+  if(!nodeToFaceElem) {
+    nodeToFaceElem = new Connectivity * [nSurfEntity];
+    for(int iSurf=0; iSurf<nSurfEntity; ++iSurf) {
+      Connectivity faceElemToNode(SurfEntities[iSurf]->GetPtrFaceElemSet());
+      nodeToFaceElem[iSurf] = faceElemToNode.reverse();
+    }
+  }
+
+  int fnodes[12];
+  for(std::set<int>::iterator it = newDeletedElements.begin(); it != newDeletedElements.end(); ++it) {
+    Element *ele = packedEset[geoSource->glToPackElem(*it)];
+    int *enodes = ele->nodes();
+    for(int iSurf=0; iSurf<nSurfEntity; ++iSurf) {
+      std::map<int,int> *GlToLlNodeMap = SurfEntities[iSurf]->GetPtrGlToLlNodeMap();
+      for(int iNode=0; iNode < ele->numNodes(); ++iNode) {
+        std::map<int,int>::iterator it2 = GlToLlNodeMap->find(enodes[iNode]);
+        if(it2 == GlToLlNodeMap->end()) continue;
+        int *GlNodeIds = SurfEntities[iSurf]->GetPtrGlNodeIds();
+        for(int j=0; j<nodeToFaceElem[iSurf]->num(it2->second); j++) { // loop over the face elements connected to the iNode-th node
+          int k = (*nodeToFaceElem[iSurf])[it2->second][j];
+          FaceElement *faceEl = SurfEntities[iSurf]->GetFaceElemSet()[k];
+          if(faceEl && (faceEl->nNodes() <= ele->numNodes())) {
+            faceEl->GetNodes(fnodes, GlNodeIds);
+#if (__cplusplus >= 201103L) || defined(HACK_INTEL_COMPILER_ITS_CPP11)
+            if(std::all_of(fnodes, fnodes+faceEl->nNodes(),
+                           [&](int i){return (std::find(enodes,enodes+ele->numNodes(),i)!=enodes+ele->numNodes());})) {
+              //std::cerr << "removing face element " << k+1 << " from surface " << SurfEntities[iSurf]->GetId() << std::endl;
+              SurfEntities[iSurf]->RemoveFaceElement(k);
+              break;
+            }
+#else
+            std::cerr << " *** ERROR: C++11 support required in Domain::UpdateSurfaceTopology().\n"; exit(-1); 
+#endif
+          }
+        }
+      }
+    }
+    delete [] enodes;
+  }
+
+  for(int iSurf=0; iSurf<nSurfEntity; ++iSurf) {
+    SurfEntities[iSurf]->Reset(&(geoSource->GetNodes()));
+    delete nodeToFaceElem[iSurf];
+  }
+  delete [] nodeToFaceElem; nodeToFaceElem = 0;
+
+  domain->InitializeDynamicContactSearch(); // XXX check for memory leaks
 }
 
 void Domain::UpdateSurfaces(GeomState *geomState, int config_type) // config_type = 1 for current, 2 for predicted
@@ -3040,12 +3121,14 @@ Domain::initialize()
  output_match_in_top = false;
  C_condensed = 0;
  nContactSurfacePairs = 0; maxContactSurfElems = 0;
+ nodeToFaceElem = 0;
  outFlag = 0;
  nodeTable = 0;
  MpcDSA = 0; nodeToNodeDirect = 0;
  g_dsa = 0;
  numSensitivity = 0; senInfo = 0;
  runSAwAnalysis = false;   
+ numThicknessGroups = 0; numShapeVars = 0;
 }
 
 Domain::~Domain()
@@ -3112,6 +3195,7 @@ Domain::~Domain()
  for(int i=0; i<numLMPC; ++i)
    if(lmpc[i]) delete lmpc[i];
  if(nodeTable) delete [] nodeTable;
+ if(flExchanger) delete flExchanger;
  if(MpcDSA) delete MpcDSA; if(nodeToNodeDirect) delete nodeToNodeDirect;
  for(int i=0; i<contactSurfElems.size(); ++i)
    packedEset.deleteElem(contactSurfElems[i]);
@@ -3451,7 +3535,6 @@ Domain::checkLMPCs(Connectivity *nodeToSub)
     }
   }
 }
-
 
 void Domain::computeMatchingWetInterfaceLMPC() {
 

@@ -9,6 +9,7 @@ class State;
 class GeomState;
 class SurfaceEntity;
 class FaceElement;
+class Connectivity;
 
 // This is an inerpolation point. The element elemNum uses x and y to
 // compute the interpolated displacements/velocities
@@ -73,12 +74,18 @@ class FlExchanger {
      double dtemp;
      Vector *tmpDisp;
      Vector *tmpVel;
+     
+     bool wCracking;
+     bool sentInitialCracking;
+     Connectivity *faceElemToNode, *nodeToFaceElem;
+
    public:
      //KW (Jul.27,2010): FS Communication using Face Elements
-     FlExchanger(CoordSet&, Elemset&, SurfaceEntity*, DofSetArray *, OutputInfo *oinfo = 0);
+     FlExchanger(CoordSet&, Elemset&, SurfaceEntity*, DofSetArray *, OutputInfo *oinfo, bool wCracking);
      void matchup(); // like "read" 
 
      FlExchanger(CoordSet&, Elemset&, DofSetArray *, OutputInfo *oinfo = 0);
+     ~FlExchanger();
      void read(int mynode, char *filename);
      void negotiate();
      void thermoread(int &buffLen);
@@ -99,6 +106,7 @@ class FlExchanger {
      
      void sendParam(int alg, double step, double totalTime,
                     int restartinc, int _isCollocated, double alphas[2], double alphasv);
+     void sendSubcyclingInfo(int sub);
 
      void sendTempParam(int algnum, double step, double totaltime,
                         int rstinc, double alphat[2]);
@@ -106,23 +114,18 @@ class FlExchanger {
      void sendModeFreq(double *modFrq, int numFrq);
      void sendModeShapes(int numFrq, int nNodes, double (**)[6],
                          State &st, double factor = 1.0);
+
      void sendEmbeddedWetSurface();
      void sendEmbeddedWetSurface(int nNodes, double *nodes, int nElems, int *elems);
      void printreceiving();
-/*
-     void sendModeShapes(CoordinateSet &,
-                         FreedomSet &,
-                         FixedSet &,
-                         StateSet &,
-                         ActiveDof &,
-                         int numModes,
-                         int numNodes,
-                         double *modShp);
-*/
+
       void initSndParity(int pinit) { sndParity = pinit; }
       void initRcvParity(int pinit) { rcvParity = pinit; }
       void flipSndParity() { if(sndParity >= 0) sndParity = 1-sndParity; }
       void flipRcvParity() { if(rcvParity >= 0) rcvParity = 1-rcvParity; }
+
+      void sendNoStructure();
+      void sendNewStructure(std::set<int> &newDeletedElements);
 
       void sendNumParam(int);
       void sendRelativeResidual(double);

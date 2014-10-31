@@ -1038,6 +1038,36 @@ GaussIntgElement::getPlasticStrainTens(double *statenp, double (*result)[9], int
   }
 }
 
+void
+GaussIntgElement::getDamage(double *statenp, double *result, int avgnum)
+{
+  // Obtain the material model
+  NLMaterial *material = getMaterial();
+  if(material->getNumStates() == 0) {
+    int numPoints = (avgnum == -1) ? getNumGaussPoints() : numNodes();
+    for(int i = 0; i < numPoints; ++i) {
+      result[i] = 0;
+    }
+    return;
+  }
+
+  // TODO: replace averaging below with extrapolation using shape functions
+  double average = 0;
+  for(int i = 0; i < getNumGaussPoints(); i++) {
+     double d = material->getDamage(statenp + i*material->getNumStates());
+     if(avgnum == -1) result[i] = d;
+     else average += d;
+  }
+
+  if(avgnum != -1) {
+    average /= getNumGaussPoints();
+
+    for(int i = 0; i <  numNodes(); ++i) {
+      result[i] = average;
+    }
+  }
+}
+
 double
 GaussIntgElement::getStrainEnergy(Node *nodes, double *dispnp, double *state, double *temps)
 {
@@ -1109,4 +1139,14 @@ GaussIntgElement::getDissipatedEnergy(Node *nodes, double *state)
   }
 
   return D;
+}
+
+bool
+GaussIntgElement::checkFailure(double *statenp)
+{
+  NLMaterial *material = getMaterial();
+  for(int i = 0; i < getNumGaussPoints(); i++) {
+    if(material->getDamage(statenp + i*material->getNumStates()) < 1) return false;
+  }
+  return true;
 }

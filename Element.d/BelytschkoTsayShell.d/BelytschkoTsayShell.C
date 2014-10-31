@@ -14,6 +14,7 @@
 #include <Math.d/Vector.h>
 #include <Utils.d/Conwep.d/BlastLoading.h>
 #include <iostream>
+#include <limits>
 
 #ifdef USE_EIGEN3
 #include <Eigen/Core>
@@ -126,6 +127,7 @@ BelytschkoTsayShell::BelytschkoTsayShell(int* nodenums)
   expmat = 0;
   myMat = false;
   pbc = 0;
+  mat = 0;
 }
 
 BelytschkoTsayShell::~BelytschkoTsayShell()
@@ -138,6 +140,10 @@ BelytschkoTsayShell::~BelytschkoTsayShell()
   delete [] evoit2;
   delete [] evoit3;
   if(expmat && myMat) delete expmat;
+  if(mat) {
+    for(int i=0; i<mgaus[2]; ++i) delete mat[i];
+    delete [] mat;
+  }
 }
 
 void
@@ -156,35 +162,35 @@ void
 BelytschkoTsayShell::setMaterial(NLMaterial *m)
 {
   if(!prop) return; // phantom element
-  if(expmat && myMat) delete expmat;
-  expmat = dynamic_cast<ExpMat *>(m);
-  myMat = false;
+  if(ExpMat *expmat2 = dynamic_cast<ExpMat *>(m)) *expmat = *expmat2;
+  else return;
   if(expmat->optctv != 1) {
     double E = expmat->ematpro[0], nu = expmat->ematpro[1];
     double lambda = E*nu/((1+nu)*(1-2*nu)), mu = E/(2*(1+nu));
     mat = new ElastoPlasticPlaneStressMaterial * [mgaus[2]];
     for(int i=0; i<mgaus[2]; ++i) {
       switch(expmat->optctv) {
-      case 5 :
+      case 5 : {
+        double epsF = (expmat->ematpro[7] <= 0) ? std::numeric_limits<double>::infinity() : expmat->ematpro[7];
         mat[i] = new IsotropicLinearElasticJ2PlasticPlaneStressMaterial(lambda, mu, expmat->ematpro[3], expmat->ematpro[4], expmat->ematpro[5], 
-                                                                        expmat->ematpro[6], expmat->ematpro[7]);
-        break;
+                                                                        expmat->ematpro[6], epsF);
+      } break;
       case 6 :
         mat[i] = new KorkolisKyriakidesPlaneStressMaterial(lambda, mu, expmat->ematpro[3], expmat->ematpro[4], expmat->ematpro[5],
-                                                           expmat->ematpro[6], expmat->ematpro[7]);
+                                                           expmat->ematpro[6], expmat->ematpro[6]);
         break;
       case 7 :
-        mat[i] = new KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding(lambda, mu, expmat->ematpro[6], expmat->ematpro[7]);
+        mat[i] = new KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding(lambda, mu, expmat->ematpro[6], expmat->ematpro[6]);
         break;
       case 8 :
-        mat[i] = new KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2(lambda, mu, expmat->ematpro[6], expmat->ematpro[7]);
+        mat[i] = new KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2(lambda, mu, expmat->ematpro[6], expmat->ematpro[6]);
         break;
       }
     }
   }
   if(expmat->ematpro[17] == 0) expmat->ematpro[17] = 0.1;
   if(expmat->ematpro[18] == 0) expmat->ematpro[18] = 0.833;
-  if(expmat->ematpro[19] == 0) expmat->ematpro[19] = (prop) ? prop->eh : 0;
+  if(expmat->ematpro[19] == 0) expmat->ematpro[19] = prop->eh;
 }
 
 void
@@ -270,7 +276,7 @@ BelytschkoTsayShell::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
         if(expmat->optctv == 1)
           stress[i] = evar1[5*j+1];
         else
-          stress[i] = 0;
+          stress[i] = (mat[j]->GetMaterialEquivalentPlasticStrain() >= mat[j]->GetEquivalentPlasticStrainAtFailure()) ? 1 : 0;
       } break;
       case 18 : { // effective plastic strain for elasto plastic materials
         if(expmat->optctv != 1)
@@ -606,23 +612,20 @@ BelytschkoTsayShell::getStiffAndForce(GeomState& geomState, CoordSet& cs, FullSq
       double f[3] = { efint[iloc+0], efint[iloc+1], efint[iloc+2] };
       mat_mult_vec(geomState[nn[i]].R, f, efint+iloc, 0);
     }
+  }
+}
 
-    // ---------------------------------------------------------------
-    // element deletion
-    // ------------------
-    if(expmat->optctv != 1) {
-      bool failed = true;
-      for(int igaus = 0; igaus < mgaus[2]; ++igaus) {
-        if(mat[igaus]->GetMaterialEquivalentPlasticStrain() < mat[igaus]->GetEquivalentPlasticStrainAtFailure()) { failed = false; break; }
-      }
-      if(failed) {
-        std::cerr << "Deleting element " << getGlNum()+1 << std::endl;
-        setProp((StructProp*)NULL);
-        setPressure((PressureBCond*)NULL); // XXX consider
-        for(int i=0; i<nnode*nndof; ++i) efint[i] = 0;
-      }
+bool BelytschkoTsayShell::checkElementDeletion(GeomState &)
+{
+  bool deleteElem = false;
+  if(prop && expmat->optctv != 1) {
+    deleteElem = true;
+    for(int igaus = 0; igaus < mgaus[2]; ++igaus) {
+      if(mat[igaus]->GetMaterialEquivalentPlasticStrain() < mat[igaus]->GetEquivalentPlasticStrainAtFailure()) { deleteElem = false; break; }
     }
   }
+
+  return deleteElem;
 }
 
 void
@@ -754,7 +757,7 @@ BelytschkoTsayShell::writeHistory(int fn)
   if(writeSize != 6*mgqpt[0]*sizeof(double))
     fprintf(stderr," *** ERROR: Inconsistent restart file 5.5\n");
 
-  if(expmat->optctv == 5 || expmat->optctv == 6 || expmat->optctv == 7 || expmat->optctv == 8) {
+  if(expmat && (expmat->optctv == 5 || expmat->optctv == 6 || expmat->optctv == 7 || expmat->optctv == 8)) {
     std::vector<double> PlasticStrain(3);
     std::vector<double> BackStress(3);
     double *state = new double[7*mgaus[2]];
@@ -768,6 +771,7 @@ BelytschkoTsayShell::writeHistory(int fn)
     writeSize = write(fn, state, 7*mgaus[2]*sizeof(double));
     if(writeSize != 7*mgaus[2]*sizeof(double))
       fprintf(stderr," *** ERROR: Inconsistent restart file 5.6\n");
+    delete [] state;
   }
 }
 
@@ -799,7 +803,7 @@ BelytschkoTsayShell::readHistory(int fn)
   if(readSize != 6*mgqpt[0]*sizeof(double))
     fprintf(stderr," *** ERROR: Inconsistent restart file 5.5\n");
 
-  if(expmat->optctv == 5 || expmat->optctv == 6 || expmat->optctv == 7 || expmat->optctv == 8) {
+  if(expmat && (expmat->optctv == 5 || expmat->optctv == 6 || expmat->optctv == 7 || expmat->optctv == 8)) {
     std::vector<double> PlasticStrain;
     std::vector<double> BackStress;
     double *state = new double[7*mgaus[2]];
@@ -815,6 +819,7 @@ BelytschkoTsayShell::readHistory(int fn)
       mat[i]->SetMaterialBackStress(BackStress);
       mat[i]->SetMaterialEquivalentPlasticStrain(state[l++]);
     }
+    delete [] state;
   }
 }
 
@@ -965,25 +970,20 @@ BelytschkoTsayShell::Elefintbt1(double delt, double *_ecord, double *_edisp, dou
     // ------------------------
     if(expmat->optctv != 1) {
       vector<double> F(9), CauchyStress(9);
-      if(mat[igaus]->GetMaterialEquivalentPlasticStrain() < mat[igaus]->GetEquivalentPlasticStrainAtFailure()) {
-        // get Fnp1 from strnvoitloc, i.e. evoit3[6*igaus+0]
-        // note: voight rule in xfem code: [xx,yy,zz,yz,xz,xy]
-        F[0] = 1+evoit3[6*igaus+0]; // xx
-        F[1] = 0.5*evoit3[6*igaus+5]; // xy
-        F[2] = 0.5*evoit3[6*igaus+4]; // xz
-        F[3] = 0.5*evoit3[6*igaus+5]; // yx
-        F[4] = 1+evoit3[6*igaus+1]; // yy
-        F[5] = 0.5*evoit3[6*igaus+3]; // yz
-        F[6] = 0.5*evoit3[6*igaus+4]; // zx
-        F[7] = 0.5*evoit3[6*igaus+3]; // zy
-        F[8] = 1+evoit3[6*igaus+2]; // zz
-        if(!mat[igaus]->ComputeElastoPlasticConstitutiveResponse(F, &CauchyStress)) {
-          std::cerr << " *** ERROR: ComputeElastoPlasticConstitutiveResponse failed\n";
-          exit(-1);
-        }
-      }
-      else {
-        for(int i=0; i<9; ++i) CauchyStress[i] = 0;
+      // get Fnp1 from strnvoitloc, i.e. evoit3[6*igaus+0]
+      // note: voight rule in xfem code: [xx,yy,zz,yz,xz,xy]
+      F[0] = 1+evoit3[6*igaus+0]; // xx
+      F[1] = 0.5*evoit3[6*igaus+5]; // xy
+      F[2] = 0.5*evoit3[6*igaus+4]; // xz
+      F[3] = 0.5*evoit3[6*igaus+5]; // yx
+      F[4] = 1+evoit3[6*igaus+1]; // yy
+      F[5] = 0.5*evoit3[6*igaus+3]; // yz
+      F[6] = 0.5*evoit3[6*igaus+4]; // zx
+      F[7] = 0.5*evoit3[6*igaus+3]; // zy
+      F[8] = 1+evoit3[6*igaus+2]; // zz
+      if(!mat[igaus]->ComputeElastoPlasticConstitutiveResponse(F, &CauchyStress)) {
+        std::cerr << " *** ERROR: ComputeElastoPlasticConstitutiveResponse failed\n";
+        exit(-1);
       }
       // copy CauchyStress into sigvoitloc, i.e. evoit2[6*igaus+0]
       evoit2[6*igaus+0] = CauchyStress[0]; // xx

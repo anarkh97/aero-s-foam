@@ -12,6 +12,10 @@
 #include <Math.d/VectorSet.h>
 #include <Math.d/IntFullM.h>
 
+#ifdef USE_EIGEN3
+#include <Eigen/Core>
+#endif
+
 extern "C"      {
    void _FORTRAN(dsvdc)(double *, int &, int &, int&, double *,
                         double *, double *, int &, double *, int &,
@@ -497,17 +501,17 @@ Rbm::computeRbms(CoordSet& cs)
        Ri.bottomRightCorner<3,3>() = T;
 
        if(xloc >= 0)
-         for(int j=0; j<6; ++j) R[xloc][6*n+j] = Ri(0,j);
+         for(int j=0; j<6; ++j) R[xloc][j] = Ri(0,j);
        if(yloc >= 0)
-         for(int j=0; j<6; ++j) R[yloc][6*n+j] = Ri(1,j);
+         for(int j=0; j<6; ++j) R[yloc][j] = Ri(1,j);
        if(zloc >= 0)
-         for(int j=0; j<6; ++j) R[zloc][6*n+j] = Ri(2,j);
+         for(int j=0; j<6; ++j) R[zloc][j] = Ri(2,j);
        if(xrot >= 0)
-         for(int j=0; j<6; ++j) R[xrot][6*n+j] = Ri(3,j);
+         for(int j=0; j<6; ++j) R[xrot][j] = Ri(3,j);
        if(yrot >= 0)
-         for(int j=0; j<6; ++j) R[yrot][6*n+j] = Ri(4,j);
+         for(int j=0; j<6; ++j) R[yrot][j] = Ri(4,j);
        if(zrot >= 0)
-         for(int j=0; j<6; ++j) R[zrot][6*n+j] = Ri(5,j);
+         for(int j=0; j<6; ++j) R[zrot][j] = Ri(5,j);
 #else
        std::cerr << "USE_EIGEN3 is not defined here in Rbm::computeRbms\n";
 #endif
@@ -827,7 +831,7 @@ Rbm::computeRbms(CoordSet& cs, int numMPC, ResizeArray<LMPCons *> &mpc)
 
        // transform Ri from basic to DOF_FRM coordinates
        NFrameData *nfd = geoSource->getNFrames();
-       Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor> > T(&nfd[nd.cd].frame[0][0]);;
+       Eigen::Map<Eigen::Matrix<double,3,3,Eigen::RowMajor> > T(&nfd[nd.cd].frame[0][0]);
 
        Ri.topLeftCorner<3,3>() = T;
        Ri.topRightCorner<3,3>() = (T*Ri.topRightCorner<3,3>()).eval();
@@ -853,7 +857,17 @@ Rbm::computeRbms(CoordSet& cs, int numMPC, ResizeArray<LMPCons *> &mpc)
  }
 
  //  eliminate redundent rbms for 1D and 2D cases
+#ifdef USE_EIGEN3
+ typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> RowMajorMatrixXd;
+ Eigen::Map<RowMajorMatrixXd> R_(R.data(),R.numRow(),R.numCol()), A_(Amat->data(),R.numCol(),R.numCol());
+ A_.setZero();
+ for(n=0; n<comp->numComp; ++n) {
+   Eigen::Block<Eigen::Map<RowMajorMatrixXd> > Rn = R_.block(0,6*n,R_.rows(),6);
+   A_.block(6*n,6*n,6,6) = Rn.transpose()*Rn;
+ }
+#else
  R.transposeMult(R, *Amat);
+#endif
  FullM &A = *Amat;
  int dimA = A.dim();
  double *diagA = (double *) dbg_alloca(sizeof(double)*dimA);

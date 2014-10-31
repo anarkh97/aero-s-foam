@@ -114,9 +114,9 @@ LeastSquareSolver::orderingIs(Ordering o) {
 
 void
 LeastSquareSolver::updateFactorRank() {
-  double diagMax = abs(transposedMatrix_[0][0]);
+  double diagMax = std::abs(transposedMatrix_[0][0]);
   int fr = 0;
-  while (fr < vectorSize() && abs(transposedMatrix_[fr][fr]) > tolerance() * diagMax) {
+  while (fr < vectorSize() && std::abs(transposedMatrix_[fr][fr]) > tolerance() * diagMax) {
     ++fr;
   }
   setFactorRank(fr);

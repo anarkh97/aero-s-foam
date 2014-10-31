@@ -108,7 +108,7 @@ class GenSolver {
       
     virtual Connectivity *getAllDofs()  
             { fprintf(stderr, " ... This solver has no getAllDofs()\n"); return 0; }
-   virtual void addBoeing(int, const int *, const int *, const double *, int *, Scalar multiplier);
+    virtual void addBoeing(int, const int *, const int *, const double *, int *, Scalar multiplier);
     virtual void addone(Scalar d, int dofi, int dofj);
     virtual Scalar getone(int dofi, int dofj);
     virtual void unify(FSCommunicator *communicator);

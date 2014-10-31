@@ -116,7 +116,6 @@ SingleDomainEigen::buildEigOps( DynamMat &dMat )
  allOps.K = domain->constructDBSparseMatrix<double>();
 
  // construct geometric rigid body modes if necessary
- //Rbm *rigidBodyModes = 0;
  if(domain->solInfo().rbmflg) { 
    //filePrint(stderr, " ... Constructing Geometric RBMs    ... \n");
    dMat.rigidBodyModes = domain->constructRbm();

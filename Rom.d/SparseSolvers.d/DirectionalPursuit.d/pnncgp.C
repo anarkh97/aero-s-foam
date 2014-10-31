@@ -1,5 +1,6 @@
 #ifdef USE_EIGEN3
 #include <Eigen/Core>
+#include <Timers.d/GetTime.h>
 #include <algorithm>
 #include <iomanip>
 #include <ios>
@@ -37,7 +38,7 @@ bool operator== (const long_int& lhs, const long_int& rhs)
 
 Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1>
 pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm, const long int n,
-       long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling)
+       long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, double &dtime)
 {
   // each A[i] is the columnwise block of the global A matrix assigned to a subdomain on this mpi process
   // each x[i] of the return value x is the corresponding row-wise block of the global solution vector
@@ -205,6 +206,7 @@ pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const
       MPI_Allreduce(MPI_IN_PLACE, &minCoeff, 1, MPI_DOUBLE, MPI_MIN, mpicomm);
 #endif
       if(minCoeff < 0) {
+        dtime -= getTime();
         downIt++;
         // compute maximum feasible step length in the direction (y-x_) and corresponding index in active set jk[i] for each subdomain
 #if defined(_OPENMP)
@@ -315,6 +317,7 @@ pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const
           }
           k++;
         }
+        dtime += getTime();
       }
       else {
 #if defined(_OPENMP)
@@ -330,6 +333,7 @@ pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const
     rnorm = r.norm();
   }
 
+  dtime /= 1000.0;
   if(myrank == 0 && verbose) std::cout.flush();
 
   Array<VectorXd,Dynamic,1> x(nsub);

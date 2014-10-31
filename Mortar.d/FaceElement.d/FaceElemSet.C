@@ -141,3 +141,18 @@ std::map<int,locoord> FaceElemSet::computeNodeLocalCoords(int* fnId, int size)
 
   return exy;
 }
+
+void FaceElemSet::remove(int num)
+{
+  elem[num] = 0;
+}
+
+void FaceElemSet::repack()
+{
+  int nEls = last();
+  int count = 0;
+  for(int i = 0; i < nEls; ++i) {
+    if(elem[i] == 0) count++;
+    else if(count > 0) { elem[i-count] = elem[i]; elem[i] = 0; }
+  }
+}

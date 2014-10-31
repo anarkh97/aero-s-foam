@@ -244,7 +244,6 @@ Domain::tempdynamOutput(int tIndex, double *bcx, DynamMat& dMat,
   double time = tIndex*sinfo.getTimeStep();
 
   if (sinfo.nRestart > 0 && !sinfo.modal) {
-    std::cerr << "writing restart file\n";
 #ifndef SALINAS
     writeRestartFile(time, tIndex, d_n, v_n, v_p, sinfo.initExtForceNorm);
 #endif

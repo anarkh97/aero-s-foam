@@ -14,6 +14,7 @@
 #include <Math.d/FullMatrix.h>
 #include <Math.d/FullSquareMatrix.h>
 #include <Math.d/matrix.h>
+#include <Math.d/SparseMatrix.h>
 #include <Math.d/Vector.h>
 #include <Math.d/VectorSet.h>
 #include <Solvers.d/Rbm.h>
@@ -176,6 +177,14 @@ class MappedAssembledSolver : public BaseSolver, public Map
 
     void add(GenAssembledFullM<Scalar> &mat, int *dofs) {
       std::cerr << "MappedAssembledSolver::add(GenAssembledFullM<Scalar>&, int*) is not implemented\n";
+    }
+
+    void addDiscreteMass(int dof, Scalar s) {
+      GenSparseMatrix<Scalar>::addDiscreteMass(dof, s);
+    }
+
+    void add(int dofi, int dofj, Scalar s) {
+      GenSparseMatrix<Scalar>::add(dofi, dofj, s);
     }
 
     void factor() {

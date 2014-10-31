@@ -13,6 +13,8 @@
 #include <list>
 #include <vector>
 #include <limits>
+#include <fstream>
+#include <set>
 
 #if defined(WINDOWS) || defined(MACOSX)
  #include <cfloat>
@@ -81,6 +83,7 @@ struct SolverInfo {
    float ATDROBalpha;
    float ATDROBbeta;
    int aeroFlag;
+   bool dyna3d_compat;
    int aeroheatFlag;
    int thermoeFlag;
    int thermohFlag;
@@ -146,6 +149,8 @@ struct SolverInfo {
    double initialTime;  // initial time (either 0.0 or from restart)
    double initExtForceNorm;  // initial Force Norm (for restarting qstatics)
    double tmax;         // maximum time
+   double t_AeroF;
+   bool stop_AeroF, stop_AeroS;
 /* these are now private, use getTimeStep and setTimeStep functions to access
    double dt;           // time step value
    double dtemp;        // thermal time step value
@@ -383,6 +388,7 @@ struct SolverInfo {
    int  normalize;
    bool substractRefPodRom;
    bool useScalingSpnnls;
+   bool projectSolution;
    bool positiveElements;
    int  solverTypeSpnnls; // 0: Lawson & Hanson, 1: Conjugate Gradient Pursuit
    double maxSizeSpnnls;
@@ -415,6 +421,9 @@ struct SolverInfo {
                        //          but lumped mass matrices which are block-diagonal remain so.
    bool printMatLab;
    const char * printMatLabFile;
+
+   bool elementDeletion;
+   std::map<int,double> deleteElements; // elements to be deleted at specific time or times (specified in input file)
 
    // Constructor
    SolverInfo() { filterFlags = 0;
@@ -456,6 +465,9 @@ struct SolverInfo {
                   modifiedWaveEquationCoef = 12.0;
 
                   tmax = 0.0; 
+                  t_AeroF = 0.0;
+                  stop_AeroF = false;
+                  stop_AeroS = false;
                   dt = 0.0;
                   dtemp = 0.0;
 
@@ -479,6 +491,7 @@ struct SolverInfo {
                   ATDROBbeta = 0.0;
 
                   aeroFlag = -1;
+                  dyna3d_compat = false;
                   aeroheatFlag = -1;
                   thermoeFlag = -1;
                   thermohFlag = -1;
@@ -672,6 +685,7 @@ struct SolverInfo {
 		  normalize          = 1;
                   substractRefPodRom = false;
                   useScalingSpnnls   = true;
+                  projectSolution    = false;
 		  positiveElements   = true;
                   maxSizeSpnnls      = 1.0;
                   maxIterSpnnls   = 3.0;
@@ -697,6 +711,7 @@ struct SolverInfo {
                   inertiaLumping     = 0;
                   printMatLab        = false;
                   printMatLabFile    = "";
+                  elementDeletion    = false;
                 }
 
    void setDirectMPC(int mode) { mpcDirect = mode; }
@@ -707,7 +722,10 @@ struct SolverInfo {
    void useRbmFilter(int rbmfil) { filterFlags = rbmfil; }
 
    // Set Aeroelastic Algorithm
-   void setAero(int alg) { aeroFlag = alg; }
+   void setAero(int alg)
+    { if(alg == 22) { aeroFlag = 20; dyna3d_compat = true; }
+      else aeroFlag = alg;
+    }
 
    void setAeroHeat(int alg, double alt0 =0, double alt1 =0)
     { aeroheatFlag = alg;
@@ -939,8 +957,8 @@ struct SolverInfo {
    }
 
    bool isDynam() {
-     return ((probType == Dynamic) || (probType == NonLinDynam)
-             || (probType == TempDynamic) || (probType == MatNonLinDynam) || (probType == PodRomOffline));
+     return ((timeIntegration != Qstatic) && ((probType == Dynamic) || (probType == NonLinDynam)
+             || (probType == TempDynamic) || (probType == MatNonLinDynam) || (probType == PodRomOffline)));
    }
 
    bool isNonLin() {

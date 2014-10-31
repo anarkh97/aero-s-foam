@@ -332,6 +332,7 @@ GenBLKSparseMatrix<Scalar>::init()
   invsuper= 0;
   lnz     = 0;
   iwork   = 0;
+  lbdef   = 0;
   myRbm   = false;
 }
 
@@ -447,8 +448,11 @@ GenBLKSparseMatrix<Scalar>::factor()
     for(int i=0; i<numrbm; ++i) def[i] = deftemp[i];
   }
 
-  if(this->print_nullity && numrbm > 0)
-     std::cerr << " ... Matrix is singular: size = " << numUncon << ", rank = " << numUncon-numrbm << ", nullity = " << numrbm << " ...\n";
+  if(this->print_nullity && numrbm > 0) {
+     std::cerr << " ... Matrix is singular: size = " << numUncon << ", rank = " << numUncon-numrbm << ", nullity = " << numrbm;
+     if(rbm) std::cerr << " (" << ngrbm << " grbm/hzem + " << numrbm-ngrbm << " other)";
+     std::cerr << " ...\n";
+  }
 
   delete [] rwork;
   delete [] tmpvec;
@@ -742,6 +746,7 @@ void
 GenBLKSparseMatrix<Scalar>::zeroAll()
 {
   numrbm=0;
+  lbdef=0;
   if(numUncon > 0) {
     for(int i=0; i < xlnz[numUncon]; ++i)
       ScalarTypes::initScalar(lnz[i], 0.0, 0.0);

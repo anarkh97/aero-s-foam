@@ -178,6 +178,8 @@ int main(int argc, char** argv)
  weightList[4] = 2.0;   // Triangle3
  weightList[8] = 3.0;   // ThreeNodeShell
  weightList[10] = 2.0;  // ThermQuadGal
+ weightList[11] = 1.0;  // TorSpring
+ weightList[12] = 1.0;  // LinSpring
  weightList[13] = 2.0;  // thermoleastic quad
  weightList[15] = 3.0;  // FelippaShell
  weightList[1515] = 4.0;  // FelippaShellX2
@@ -215,6 +217,7 @@ int main(int argc, char** argv)
  weightList[84] = 2.0;
  weightList[85] = 3.0;
  weightList[86] = 4.0;
+ weightList[87] = 4.0;
  weightList[88] = 4.0;  // FourNodeShell
  weightList[90] = 3.0;  // HelmPenta
  weightList[91] = 6.0;  // 3d 32 node serendipity brick
@@ -585,7 +588,7 @@ int main(int argc, char** argv)
  }
 
  if(domain->solInfo().readmodeCalled) {
-   if((domain->solInfo().modalCalled || domain->solInfo().modal || domain->solInfo().modeDecompFlag)
+   if((domain->solInfo().modalCalled || domain->solInfo().modal || domain->solInfo().modeDecompFlag || domain->solInfo().aeroFlag == 8)
       && (strcmp(domain->solInfo().readInModes,"") == 0)) {
      domain->readInModes(const_cast<char*>(domain->solInfo().readInROBorModes));
    }

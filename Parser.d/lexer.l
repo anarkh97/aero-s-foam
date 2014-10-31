@@ -177,6 +177,8 @@ TRAIL [a-zA-Z]*
 "THETA"|"theta"                    { return THETA; }
 
 "HRC"|"hrc"			   { return HRC; }
+
+"PROJECT"|"project"		   { return PROJSOL; }
  
 "POSITIVE"|"positive"		   { return POSELEM; }
 
@@ -599,6 +601,8 @@ TRAIL [a-zA-Z]*
 
 "STAB"[a-zA-Z]*|"stab"[a-zA-Z]*    { return STABLE; }
 
+"DELE"[a-zA-Z_]*|"dele"[a-zA-Z_]*  { return DELETEELEMENTS; }
+
 "CHEC"[a-zA-Z]*|"chec"[a-zA-Z]*    { return CHECKTOKEN; }
 
 "rbmf"[a-zA-Z]*|"RBMF"[a-zA-Z]*    { return RBMFILTER; }
@@ -970,7 +974,9 @@ TRAIL [a-zA-Z]*
 
 "B0"|"b0"                          { yylval.ival = 10; return AEROTYPE; }
 
-"C0"|"c0"                          { yylval.ival = 20; return AEROTYPE; }
+"C0_legacy"|"c0_legacy"            { yylval.ival = 20; return AEROTYPE; }
+
+"C0"|"c0"                          { yylval.ival = 22; return AEROTYPE; }
 
 "EMBE"[a-zA-Z]*|"embe"[a-zA-z]*    { return AEROEMBED; }
 
@@ -1305,7 +1311,10 @@ TRAIL [a-zA-Z]*
 "gap_cur"|"GAP_CUR"                                  { yylval.ival = 15; return TDENFORC; }
 "gap_old"|"GAP_OLD"                                  { yylval.ival = 16; return TDENFORC; }
 
-"damage"|"DAMAGE"                  { yylval.ival = OutputInfo::Damage; return STRESSID; }
+"elemdele"|"ELEMDELE"              { yylval.ival = OutputInfo::DeletedElements; return STRESSID; }
+
+"damagesc"|"DAMAGESC"              { yylval.ival = OutputInfo::Damage; return STRESSID; }
+
 "eqplstrn"|"EQPLSTRN"|"effpstrn"|"EFFPSTRN"          { yylval.ival = OutputInfo::EquivalentPlasticStrain; return STRESSID; }
 
 "plstrnxx"|"PLSTRNXX"              { yylval.ival = OutputInfo::PlasticStrainXX; return STRESSID; }
@@ -1514,6 +1523,8 @@ TRAIL [a-zA-Z]*
 "nncgp"|"NNCGP"                           { yylval.ival = 1; return SPNNLSSOLVERTYPE; }
 "gpfp"|"GPFP" 				  { yylval.ival = 2; return SPNNLSSOLVERTYPE; }
 "lars"|"LARS"				  { yylval.ival = 3; return SPNNLSSOLVERTYPE; }
+"mp"|"MP"				  { yylval.ival = 4; return SPNNLSSOLVERTYPE; }
+"omp"|"OMP"                                 { yylval.ival = 5; return SPNNLSSOLVERTYPE; }
 
 "MAXSZE"|"MaxSze"|"maxsze"                { return MAXSIZE; }
 

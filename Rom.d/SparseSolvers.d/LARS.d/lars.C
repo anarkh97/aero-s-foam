@@ -15,8 +15,12 @@ template <typename T> int sgn(T val) {
 };
 
 Eigen::VectorXd
+nncgp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm,
+      long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, double &dtime);
+
+Eigen::VectorXd
 lars(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm,
-      long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool positive, double &dtime)
+      long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool project, bool positive, double &dtime)
 {
   using namespace Eigen;
   
@@ -83,6 +87,7 @@ lars(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
       std::cout << "Iteration = " << std::setw(9) << iter << "    "
                 << "Downdate = " << std::setw(9) << downIt << "    "
                 << "Active set size = " << std::setw(9) << k << "    "
+                << "Max Correlation = " << std::setw(13) << std::scientific << std::uppercase << C << "    "
                 << "Residual norm = " << std::setw(13) << std::scientific << std::uppercase << rnorm << "    "
                 << "Target = " << std::setw(13) << std::scientific << std::uppercase << abstol << std::endl;
       std::cout.unsetf(std::ios::scientific);
@@ -95,20 +100,33 @@ lars(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
     residual = b - mu; 
 
     crlt = S.asDiagonal()*(A.transpose()*residual); // correlations
+    {
+      int counter = 0;
+      for(std::vector<long int>::iterator it = indices.begin(); it != indices.end(); ++it, counter++) rhs[counter] = crlt[*it]; // do this to avoid roundoff
+      C = rhs.head(k+1).maxCoeff(); 
+      if(C <= 0) {
+        std::cout << "*** Negative Correlation *** " << std::endl;
+        break;
+      }
+    }
 
-    long int i = 0; // dummy integer for utilities
+    long int i = 0; // dummy integer for stuff
 
     // compute right hand side and solve the symetric system of equations
     wA.head(k+1)  = R.topLeftCorner(k+1,k+1).triangularView<Upper>().transpose().solve(rhs.head(k+1));
     wA.head(k+1)  = R.topLeftCorner(k+1,k+1).triangularView<Upper>().solve(wA.head(k+1));
+    if(!dropId && wA[k] <= 0) {
+       std::cout << " *** Roundoff Error *** " << std::endl;
+       break;
+    }
     double oneNwA = sqrt(rhs.head(k+1).dot(wA.head(k+1)));
-    wA.head(k+1) *= 1.0/oneNwA;
+    wA.head(k+1) *= 1.0/(oneNwA*C);
 
-    // compute smallest angle at which a new covarient becomes dominant
+    // compute smallest angle at which a new covariant becomes dominant
     update = B.leftCols(k+1)*wA.head(k+1);
     h      = S.asDiagonal()*(A.transpose()*update); 
     
-    double gamma1;
+    double gamma1, gamma_tilde;
     while(true) { // loop to ensure linear independence
       minBuffer = (C - crlt.array())/(1.0/oneNwA - h.array());
       // zero out inactive set
@@ -137,10 +155,10 @@ lars(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
       }
 
       // compute smallest angle at which ylars changes sign
+      t.setZero();
       t.head(k+1) = -1.0*ylar.head(k+1).array()/(sign.head(k+1).array()*wA.head(k+1).array());
       for(long int ele = 0; ele < k+1; ++ele) t[ele] = (t[ele] <= 0) ? std::numeric_limits<double>::max() : t[ele];
-      if(dropId) t[blockId] = std::numeric_limits<double>::max();
-      double gamma_tilde = (k > 0) ? t.head(k+1).minCoeff(&j) : std::numeric_limits<double>::max();
+      gamma_tilde = (k > 0) ? t.head(k+1).minCoeff(&j) : std::numeric_limits<double>::max();
 
       if(gamma_tilde < gamma1){
         dropId = true;
@@ -155,14 +173,18 @@ lars(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
         break; // break from linear dependence loop
       } else {
         indices.push_back(i); // add index if gamma1 selected
-       
+             
         // update solution and estimate
         ylar.head(k+1) = ylar.head(k+1).array() + gamma1*(sign.head(k+1).array()*wA.head(k+1).array());
         mu += gamma1*update;  
   
-        B.col(k+1) = S[indices[k+1]]*(A.col(indices[k+1]).array());
-        double Correlation = B.col(k+1).transpose()*(b-mu);
-        sign[k+1] = sgn(Correlation);
+        B.col(k+1) = S[indices[k+1]]*(A.col(indices[k+1]));
+        if(positive)
+          sign[k+1] = 1; 
+        else {
+          double Correlation = B.col(k+1).transpose()*(b-mu);
+          sign[k+1] = sgn(Correlation);
+        }
         B.col(k+1) *= sign[k+1];
  
         //update cholesky factorization R'*R = B'*B where R is upper triangular
@@ -188,7 +210,7 @@ lars(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
       }
     }
     // update maximum corellation
-    C  -= gamma1/oneNwA;
+    //C  -= gamma1/oneNwA;
 
     k++;
     iter++;
@@ -231,6 +253,19 @@ lars(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
 
     rnorm = residual.norm();
   }
+
+  if(project) {
+    std::cout << "*** PROJECTING SOLUTION ON TO SELECTED BASIS ***" << std::endl;
+    if(positive){
+      ylar.head(k) = nncgp(B.leftCols(k), b, rnorm, info, maxsze, maxite, reltol, verbose, scaling, dtime);
+    } else {
+      ylar.head(k) = R.topLeftCorner(k,k).triangularView<Upper>().transpose().solve(B.leftCols(k).transpose()*b);
+      ylar.head(k) = R.topLeftCorner(k,k).triangularView<Upper>().solve(ylar.head(k));
+    }
+  }
+
+  residual = b - B.leftCols(k)*ylar.head(k);
+  std::cout << "Projected Residual = " << residual.norm() <<  std::endl;
 
   dtime /= 1000.0;
   if(verbose) std::cout.flush();

@@ -626,7 +626,7 @@ void GeoSource::makeDirectMPCs(int &numLMPC, ResizeArray<LMPCons *> &lmpc)
     for(int i = 0; i < numLMPC; ++i) {
       // First flush the MPC from any zero terms
       lmpc[i]->removeNullTerms();
-      // PJSA Second flush the MPC from any terms which have a boundary condition
+      // Second flush the MPC from any terms which have a boundary condition
       vector<LMPCTerm>::iterator it = lmpc[i]->terms.begin();
       while(it != lmpc[i]->terms.end()) {
         pair<int,int> p(it->nnum, it->dofnum);
@@ -1125,7 +1125,7 @@ void GeoSource::setUpData()
 // RT : 02/01/2013 changing syntax to AMAT
 //    if(p->soundSpeed == 1.0)
 //      p->soundSpeed = omega()/complex<double>(p->kappaHelm, p->kappaHelmImag);
-    complex<double> ka = omega()/p->soundSpeed;
+    complex<double> ka = (shiftVal() >= 0) ? omega()/p->soundSpeed : sqrt(complex<double>(shiftVal()))/p->soundSpeed;
     p->kappaHelm = real(ka);
     p->kappaHelmImag = imag(ka);
     domain->updateSDETAF(p,omega()+1e-9);
@@ -1195,7 +1195,7 @@ void GeoSource::setUpData()
                               "     supported for explicit dynamics.  \x1B[0m\n");
             printOne = false;
           }
-          else if(printTwo && sinfo.newmarkBeta != 0 && prop->lagrangeMult == true && prop->penalty == 0 && solverClass == 0) {
+          else if(printTwo && sinfo.newmarkBeta != 0 && sinfo.mpcDirect == 0 && prop->lagrangeMult == true && prop->penalty == 0 && solverClass == 0) {
             // for statics, impe, eigen and implicit dynamics, certain solvers cannot be used with the multipliers
             // constraint method. This check could/should be more specific by considering inequality constraints.
             filePrint(stderr, "\x1B[31m *** WARNING: Equation solver unsuited \n"
@@ -1527,25 +1527,6 @@ int GeoSource::getElems(Elemset &packedEset, int nElems, int *elemList)
   }
 
   return nRealElems;
-}
-
-int GeoSource::getNonMpcElems(Elemset &eset)
-{
-  int numele = elemSet.last();
-  int mpccount = 0, elecount = 0;
-  // add non-mpc elements to list
-  for(int iEle = 0; iEle < numele; ++iEle) {
-    Element *ele = elemSet[iEle];
-    if(ele)  {
-      if(ele->isRigidElement() || !ele->isMpcElement()) {
-        eset.elemadd(elecount, ele);
-        elecount++;
-      }
-      else mpccount++;
-    }
-    eset.setEmax(elecount);
-  }
-  return mpccount;
 }
 
 void GeoSource::setElemTypeMap()
@@ -3521,7 +3502,18 @@ void GeoSource::outputHeader(int fileNumber)
 {
   // only one node is requested for output,
   if(oinfo[fileNumber].nodeNumber != -1) {
-    fprintf(oinfo[fileNumber].filptr, "# node %d\n", oinfo[fileNumber].nodeNumber+1);
+    if(domain->isComplex()) {
+      switch(oinfo[fileNumber].complexouttype) {
+        case(OutputInfo::realimag) :
+          fprintf(oinfo[fileNumber].filptr, "# node %d (real and imaginary parts)\n", oinfo[fileNumber].nodeNumber+1);
+          break;
+        case(OutputInfo::modulusphase) :
+          fprintf(oinfo[fileNumber].filptr, "# node %d (complex modulus and phase)\n", oinfo[fileNumber].nodeNumber+1);
+          break;
+      }
+    }
+    else
+      fprintf(oinfo[fileNumber].filptr, "# node %d\n", oinfo[fileNumber].nodeNumber+1);
     return;
   }
 

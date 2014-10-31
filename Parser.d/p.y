@@ -72,7 +72,7 @@
 %token CONTROL CORNER CORNERTYPE CURVE CCTTOL CCTSOLVER CRHS COUPLEDSCALE CONTACTSURFACES CMPC CNORM
 %token COMPLEXOUTTYPE CONSTRMAT CASES CONSTRAINEDSURFACES CSFRAMES CSTYPE
 %token CONSTANT CONWEP
-%token DAMPING DblConstant DEM DIMASS DISP DIRECT DLAMBDA DP DYNAM DETER DECOMPOSE DECOMPFILE DMPC DEBUGCNTL DEBUGICNTL
+%token DAMPING DblConstant DELETEELEMENTS DEM DIMASS DISP DIRECT DLAMBDA DP DYNAM DETER DECOMPOSE DECOMPFILE DMPC DEBUGCNTL DEBUGICNTL
 %token CONSTRAINTS MULTIPLIERS PENALTY
 %token ELLUMP EIGEN EFRAMES ELSCATTERER END ELHSOMMERFELD ETEMP EXPLICIT EXTFOL EPSILON ELEMENTARYFUNCTIONTYPE
 %token FABMAT FACE FACOUSTICS FETI FETI2TYPE FETIPREC FFP FFPDIR FITALG FNAME FLUX FORCE FRONTAL FETIH FIELDWEIGHTLIST FILTEREIG FLUID
@@ -98,7 +98,7 @@
 %token SPOOLESTAU SPOOLESSEED SPOOLESMAXSIZE SPOOLESMAXDOMAINSIZE SPOOLESMAXZEROS SPOOLESMSGLVL SPOOLESSCALE SPOOLESPIVOT SPOOLESRENUM SPARSEMAXSUP SPARSEDEFBLK
 %token STATS STRESSID SUBSPACE SURFACE SAVEMEMCOARSE SPACEDIMENSION SCATTERER STAGTOL SCALED SWITCH STABLE SUBTYPE STEP SOWER SHELLTHICKNESS SURF SPRINGMAT
 %token TANGENT TDENFORCE TEMP TIME TOLEIG TOLFETI TOLJAC TOLPCG TOPFILE TOPOLOGY TRBM THERMOE THERMOH 
-%token TETT TOLCGM TURKEL TIEDSURFACES THETA POSELEM HRC THIRDNODE THERMMAT TDENFORC TESTULRICH THRU TRIVIAL
+%token TETT TOLCGM TURKEL TIEDSURFACES THETA PROJSOL POSELEM HRC THIRDNODE THERMMAT TDENFORC TESTULRICH THRU TRIVIAL
 %token USE USERDEFINEDISP USERDEFINEFORCE UPROJ UNSYMMETRIC USING
 %token VERSION WETCORNERS YMTT 
 %token ZERO BINARY GEOMETRY DECOMPOSITION GLOBAL MATCHER CPUMAP
@@ -129,7 +129,7 @@
 %type <cxbclist> ComplexBCDataList ComplexNeumanBC ComplexDirichletBC 
 %type <frame>    Frame
 %type <nframe>   NodalFrame
-%type <fval>     Float DblConstant
+%type <fval>     Float DblConstant DeleteElementsList
 %type <ival>     AEROTYPE ALPROC AlProc Attributes AUGMENTTYPE AVERAGED 
 %type <ival>     COLLOCATEDTYPE CORNERTYPE COMPLEXOUTTYPE TDENFORC CSTYPE ANGULAROUTTYPE ROTVECOUTTYPE
 %type <ival>     ELEMENTARYFUNCTIONTYPE FETIPREC FETI2TYPE FRAMETYPE
@@ -216,6 +216,7 @@ Component:
 	| UsddLocations
 	| UsdfLocations
         | DynInfo
+        | DeleteElements
         | Conwep
 	| SloshInfo 
 	| HEVibInfo 
@@ -391,45 +392,47 @@ Random:
         { geoSource->setGroupRandomProperty($2-1,$3,$4,$5); }
         ; 
 Impe:
-        IMPE NewLine FREQ Float NewLine
-          { geoSource->setImpe($4); }
-        //| IMPE NewLine SHIFT Float NewLine
-        //  { geoSource->setShift($4); }
-        | IMPE NewLine FREQSWEEP1 Float Float Integer NewLine
-          { domain->solInfo().curSweepParam = 0; domain->setFrequencySet(0); geoSource->setImpe($4); domain->addFrequencies1(2.0*PI*$4, 2.0*PI*$5, $6); }
-        | IMPE NewLine FREQSWEEP2 Float Float Integer NewLine
-          { domain->solInfo().curSweepParam = 0; domain->setFrequencySet(0); geoSource->setImpe($4); domain->addFrequencies2(2.0*PI*$4, 2.0*PI*$5, $6); }
-        | IMPE NewLine FREQSWEEP Float Float Integer Integer NewLine
-          { domain->solInfo().curSweepParam = 0; domain->setFrequencySet(0); geoSource->setImpe($4); domain->addFrequencies(2.0*PI*$4, 2.0*PI*$5, $6, $7); }
-        | IMPE NewLine FREQSWEEPA Float Float Integer RECONSALG Float Integer Integer Integer Integer NewLine
+        IMPE NewLine
+          { domain->setFrequencySet(0); domain->solInfo().curSweepParam = 0; }
+        | IMPE Integer NewLine
+          { domain->setFrequencySet($2); domain->solInfo().curSweepParam = $2; }
+        | IMPE Integer Integer NewLine
+          { domain->setFrequencySet($2); domain->solInfo().curSweepParam = $3; }
+        | Impe FREQ Float NewLine
+          { if(domain->solInfo().curSweepParam == 0) geoSource->setImpe($3); }
+        | Impe FREQSWEEP1 Float Float Integer NewLine
+          { if(domain->solInfo().curSweepParam == 0) geoSource->setImpe($3); domain->addFrequencies1(2.0*PI*$3, 2.0*PI*$4, $5); }
+        | Impe FREQSWEEP2 Float Float Integer NewLine
+          { if(domain->solInfo().curSweepParam == 0) geoSource->setImpe($3); domain->addFrequencies2(2.0*PI*$3, 2.0*PI*$4, $5); }
+        | Impe FREQSWEEP Float Float Integer Integer NewLine
+          { if(domain->solInfo().curSweepParam == 0) geoSource->setImpe($3); domain->addFrequencies(2.0*PI*$3, 2.0*PI*$4, $5, $6); }
+        | Impe FREQSWEEPA Float Float Integer RECONSALG Float Integer Integer Integer Integer NewLine
         {
-          domain->solInfo().curSweepParam = 0;
-          domain->setFrequencySet(0); geoSource->setImpe($4);
-          domain->addFrequencies(2.0*PI*$4, 2.0*PI*$5, 2,$6);
+          if(domain->solInfo().curSweepParam == 0) geoSource->setImpe($3);
+          domain->addFrequencies(2.0*PI*$3, 2.0*PI*$4, 2, $5);
           domain->solInfo().getSweepParams()->isAdaptSweep = true;
-          domain->solInfo().getSweepParams()->adaptSweep.maxP = $9;
-          domain->solInfo().getSweepParams()->adaptSweep.numS = $6;
-          if ($7 == SweepParams::KrylovGalProjection) 
+          domain->solInfo().getSweepParams()->adaptSweep.maxP = $8;
+          domain->solInfo().getSweepParams()->adaptSweep.numS = $5;
+          if ($6 == SweepParams::KrylovGalProjection) 
              domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = false; 
           else 
              domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = true;
-          domain->solInfo().getSweepParams()->adaptSweep.w1 = 2.0*PI*$4;
-          domain->solInfo().getSweepParams()->adaptSweep.w2 = 2.0*PI*$5;
-          domain->solInfo().getSweepParams()->adaptSweep.atol = $8;
-          domain->solInfo().getSweepParams()->adaptSweep.minRHS = $10;
-          domain->solInfo().getSweepParams()->adaptSweep.maxRHS = $11;
-          domain->solInfo().getSweepParams()->adaptSweep.deltaRHS = $12;
-          domain->solInfo().getSweepParams()->nFreqSweepRHS = $11;
+          domain->solInfo().getSweepParams()->adaptSweep.w1 = 2.0*PI*$3;
+          domain->solInfo().getSweepParams()->adaptSweep.w2 = 2.0*PI*$4;
+          domain->solInfo().getSweepParams()->adaptSweep.atol = $7;
+          domain->solInfo().getSweepParams()->adaptSweep.minRHS = $9;
+          domain->solInfo().getSweepParams()->adaptSweep.maxRHS = $10;
+          domain->solInfo().getSweepParams()->adaptSweep.deltaRHS = $11;
+          domain->solInfo().getSweepParams()->nFreqSweepRHS = $10;
         }
-        | IMPE NewLine FREQSWEEPA Float Float Integer RECONSALG NewLine
+        | Impe FREQSWEEPA Float Float Integer RECONSALG NewLine
         {
-          domain->solInfo().curSweepParam = 0;
-          domain->setFrequencySet(0); geoSource->setImpe($4);
-          domain->addFrequencies(2.0*PI*$4, 2.0*PI*$5, 2,$6);
+          if(domain->solInfo().curSweepParam == 0) geoSource->setImpe($3);
+          domain->addFrequencies(2.0*PI*$3, 2.0*PI*$4, 2, $5);
           domain->solInfo().getSweepParams()->isAdaptSweep = true;
           domain->solInfo().getSweepParams()->adaptSweep.maxP = 6;
-          domain->solInfo().getSweepParams()->adaptSweep.numS = $6;
-          if ($5 == SweepParams::KrylovGalProjection) {
+          domain->solInfo().getSweepParams()->adaptSweep.numS = $5;
+          if ($6 == SweepParams::KrylovGalProjection) {
              domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = false; 
              domain->solInfo().getSweepParams()->adaptSweep.atol = 1e-2;
              domain->solInfo().getSweepParams()->adaptSweep.minRHS = 8;
@@ -443,67 +446,11 @@ Impe:
              domain->solInfo().getSweepParams()->adaptSweep.maxRHS = 16;
              domain->solInfo().getSweepParams()->adaptSweep.deltaRHS = 4;
           }
-          domain->solInfo().getSweepParams()->adaptSweep.w1 = 2.0*PI*$4;
-          domain->solInfo().getSweepParams()->adaptSweep.w2 = 2.0*PI*$5;
+          domain->solInfo().getSweepParams()->adaptSweep.w1 = 2.0*PI*$3;
+          domain->solInfo().getSweepParams()->adaptSweep.w2 = 2.0*PI*$4;
           domain->solInfo().getSweepParams()->nFreqSweepRHS = domain->solInfo().getSweepParams()->adaptSweep.maxRHS;
         }
-        | IMPE Integer Integer NewLine FREQ Float NewLine
-          { domain->solInfo().curSweepParam = $3; if ($3 == 0) geoSource->setImpe($6); }
-        //| IMPE NewLine SHIFT Float NewLine
-        //  { geoSource->setShift($4); }
-        | IMPE Integer NewLine FREQSWEEP1 Float Float Integer NewLine
-          { domain->setFrequencySet($2); domain->solInfo().curSweepParam = $2; if ($2 == 0) geoSource->setImpe($5); domain->addFrequencies1(2.0*PI*$5, 2.0*PI*$6, $7); }
-        | IMPE Integer NewLine FREQSWEEP2 Float Float Integer NewLine
-          { domain->setFrequencySet($2); domain->solInfo().curSweepParam = $2; if ($2 == 0) geoSource->setImpe($5); domain->addFrequencies2(2.0*PI*$5, 2.0*PI*$6, $7); }
-        | IMPE Integer NewLine FREQSWEEP Float Float Integer Integer NewLine
-          { domain->setFrequencySet($2); domain->solInfo().curSweepParam = $2; if ($2 == 0) geoSource->setImpe($5); domain->addFrequencies(2.0*PI*$5, 2.0*PI*$6, $7, $8); }
-        | IMPE Integer NewLine FREQSWEEPA Float Float Integer RECONSALG Float Integer Integer Integer Integer NewLine
-        {
-          domain->setFrequencySet($2);  domain->solInfo().curSweepParam = $2;
-          if ($2 == 0) geoSource->setImpe($5);
-          domain->addFrequencies(2.0*PI*$5, 2.0*PI*$6, 2,$7);
-          domain->solInfo().getSweepParams()->isAdaptSweep = true;
-          domain->solInfo().getSweepParams()->adaptSweep.maxP = $10;
-          domain->solInfo().getSweepParams()->adaptSweep.numS = $7;
-          if ($8 == SweepParams::KrylovGalProjection) 
-             domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = false; 
-          else 
-             domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = true;
-          domain->solInfo().getSweepParams()->adaptSweep.w1 = 2.0*PI*$5;
-          domain->solInfo().getSweepParams()->adaptSweep.w2 = 2.0*PI*$6;
-          domain->solInfo().getSweepParams()->adaptSweep.atol = $9;
-          domain->solInfo().getSweepParams()->adaptSweep.minRHS = $11;
-          domain->solInfo().getSweepParams()->adaptSweep.maxRHS = $12;
-          domain->solInfo().getSweepParams()->adaptSweep.deltaRHS = $13;
-          domain->solInfo().getSweepParams()->nFreqSweepRHS = $12;
-        }
-        | IMPE Integer NewLine FREQSWEEPA Float Float Integer RECONSALG NewLine
-        {
-          domain->setFrequencySet($2);  domain->solInfo().curSweepParam = $2;
-          if ($2 == 0) geoSource->setImpe($5);
-          domain->addFrequencies(2.0*PI*$5, 2.0*PI*$6, 2,$7);
-          domain->solInfo().getSweepParams()->isAdaptSweep = true;
-          domain->solInfo().getSweepParams()->adaptSweep.maxP = 6;
-          domain->solInfo().getSweepParams()->adaptSweep.numS = $7;
-          if ($8 == SweepParams::KrylovGalProjection) {
-             domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = false; 
-             domain->solInfo().getSweepParams()->adaptSweep.atol = 1e-2;
-             domain->solInfo().getSweepParams()->adaptSweep.minRHS = 8;
-             domain->solInfo().getSweepParams()->adaptSweep.maxRHS = 48;
-             domain->solInfo().getSweepParams()->adaptSweep.deltaRHS = 4;
-          }
-          else {
-             domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = true;
-             domain->solInfo().getSweepParams()->adaptSweep.atol = 1e-2;
-             domain->solInfo().getSweepParams()->adaptSweep.minRHS = 8;
-             domain->solInfo().getSweepParams()->adaptSweep.maxRHS = 16;
-             domain->solInfo().getSweepParams()->adaptSweep.deltaRHS = 4;
-          }
-          domain->solInfo().getSweepParams()->adaptSweep.w1 = 2.0*PI*$5;
-          domain->solInfo().getSweepParams()->adaptSweep.w2 = 2.0*PI*$6;
-          domain->solInfo().getSweepParams()->nFreqSweepRHS = domain->solInfo().getSweepParams()->adaptSweep.maxRHS;
-        }
-        | IMPE NewLine FreqSweep 
+        | Impe FreqSweep 
         | Impe ReconsInfo
         | Impe DampInfo
         | Impe PadePivotInfo
@@ -522,7 +469,7 @@ PadePolesInfo:
 FreqSweep:  
         /* FREQSWEEP f_0 */
         FREQSWEEP Float NewLine
-        { geoSource->setImpe($2); domain->addCoarseFrequency(2.0*PI*$2); }
+        { if(domain->solInfo().curSweepParam == 0) geoSource->setImpe($2); domain->addCoarseFrequency(2.0*PI*$2); }
         /* f_i num_fine_intervals (i-1 to i) */
         | FreqSweep Float Integer NewLine
         { domain->addFrequencies(2.0*PI*$2, $3); }
@@ -1054,6 +1001,17 @@ DynInfo:
         | ADDEDMASS Integer NewLine
         { domain->solInfo().addedMass = $2; }
 	;
+DeleteElements:
+        DELETEELEMENTS NewLine DeleteElementsList NewLine
+        { domain->solInfo().elementDeletion = true; }
+        | DeleteElements DeleteElementsList NewLine
+        ;
+DeleteElementsList:
+        Float Integer
+        { $$ = $1; domain->solInfo().deleteElements.insert(std::pair<int,double>($2-1,$1)); }
+        | DeleteElementsList Integer
+        { domain->solInfo().deleteElements.insert(std::pair<int,double>($2-1,$1)); }
+        ;
 SloshInfo:
         SLOSH NewLine
         { domain->solInfo().sloshing = 1; }
@@ -1815,7 +1773,7 @@ Mode:
         | READMODE FNAME Integer NewLine
         { domain->solInfo().readInROBorModes = $2;
           domain->solInfo().readmodeCalled = true; 
- 	        domain->solInfo().maxSizePodRom = $3; }	
+          domain->solInfo().maxSizePodRom = $3; }	
         | READMODE FNAME FNAME NewLine
         { domain->solInfo().readInROBorModes = $2;
           domain->solInfo().readInModes = $3;
@@ -4293,6 +4251,16 @@ MatSpec:
            geoSource->addMaterial($2-1,
              new BilinPlasKinHardMat($4, $5, $6, $7, $8, $9, $10, $11) );
          }
+        | MatSpec Integer BILINEARPLASTIC Float Float Float Float Float Float Float Float Float NewLine
+         {
+           if($12 > 0 && $12 < std::numeric_limits<double>::infinity()) {
+             geoSource->addMaterial($2-1, new BilinPlasKinHardMat($4, $5, $6, $7, $8, $9, $10, $11, $12) );
+             domain->solInfo().elementDeletion = true;
+           }
+           else {
+             geoSource->addMaterial($2-1, new BilinPlasKinHardMat($4, $5, $6, $7, $8, $9, $10, $11) );
+           }
+         }
         | MatSpec Integer FINITESTRAINPLASTIC Float Float Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
@@ -4308,6 +4276,16 @@ MatSpec:
            geoSource->addMaterial($2-1,
              new FiniteStrainPlasKinHardMat($4, $5, $6, $7, $8, $9, $10, $11) );
          }
+        | MatSpec Integer FINITESTRAINPLASTIC Float Float Float Float Float Float Float Float Float NewLine
+         {
+           if($12 > 0 && $12 < std::numeric_limits<double>::infinity()) {
+             geoSource->addMaterial($2-1, new FiniteStrainPlasKinHardMat($4, $5, $6, $7, $8, $9, $10, $11, $12) );
+             domain->solInfo().elementDeletion = true;
+           }
+           else {
+             geoSource->addMaterial($2-1, new FiniteStrainPlasKinHardMat($4, $5, $6, $7, $8, $9, $10, $11) );
+           }
+         }
         | MatSpec Integer LOGSTRAINPLASTIC Float Float Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
@@ -4322,6 +4300,16 @@ MatSpec:
          {
            geoSource->addMaterial($2-1,
              new LogStrainPlasKinHardMat($4, $5, $6, $7, $8, $9, $10, $11) );
+         }
+        | MatSpec Integer LOGSTRAINPLASTIC Float Float Float Float Float Float Float Float Float NewLine
+         {
+           if($12 > 0 && $12 < std::numeric_limits<double>::infinity()) {
+             geoSource->addMaterial($2-1, new LogStrainPlasKinHardMat($4, $5, $6, $7, $8, $9, $10, $11, $12) );
+             domain->solInfo().elementDeletion = true;
+           }
+           else {
+             geoSource->addMaterial($2-1, new LogStrainPlasKinHardMat($4, $5, $6, $7, $8, $9, $10, $11) );
+           }
          }
         | MatSpec Integer LINEARELASTIC Float Float Float Float Float NewLine
          {
@@ -4426,13 +4414,13 @@ MatSpec:
           }
         | MatSpec Integer ISOTROPICLINEARELASTICJ2PLASTICPLANESTRESS Float Float Float Float Float Float NewLine
           {
-            double params[9] = { $4, $5, $6, $7, $8, $9, 1.0e-6, std::numeric_limits<double>::max(), -std::numeric_limits<double>::infinity() };
+            double params[9] = { $4, $5, $6, $7, $8, $9, 1.0e-6, std::numeric_limits<double>::infinity(), -std::numeric_limits<double>::infinity() };
             geoSource->addMaterial($2-1,
               new MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(params));
           }
         | MatSpec Integer ISOTROPICLINEARELASTICJ2PLASTICPLANESTRESS Float Float Float Float Float Float Float NewLine
           {
-            double params[9] = { $4, $5, $6, $7, $8, $9, $10, std::numeric_limits<double>::max(), -std::numeric_limits<double>::infinity() };
+            double params[9] = { $4, $5, $6, $7, $8, $9, $10, std::numeric_limits<double>::infinity(), -std::numeric_limits<double>::infinity() };
             geoSource->addMaterial($2-1,
               new MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(params));
           }
@@ -4441,17 +4429,26 @@ MatSpec:
             double params[9] = { $4, $5, $6, $7, $8, $9, $10, $11, -std::numeric_limits<double>::infinity() };
             geoSource->addMaterial($2-1,
               new MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(params));
+            if($11 > 0 && $11 < std::numeric_limits<double>::infinity()) {
+              domain->solInfo().elementDeletion = true;
+            }
           }
         | MatSpec Integer ISOTROPICLINEARELASTICJ2PLASTICPLANESTRESS Float Float Float Float Float Float Float Float Float NewLine
           {
             double params[9] = { $4, $5, $6, $7, $8, $9, $10, $11, $12 };
             geoSource->addMaterial($2-1,
               new MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(params));
+            if($11 > 0 && $11 < std::numeric_limits<double>::infinity()) {
+              domain->solInfo().elementDeletion = true;
+            }
           }
         | MatSpec Integer OPTCTV Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
              new ExpMat($3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23));
+           if($11 > 0 && $11 < std::numeric_limits<double>::infinity()) {
+             domain->solInfo().elementDeletion = true;
+           }
          }
         | MatSpec Integer OPTCTV Float Float Float NewLine
          {
@@ -4482,6 +4479,9 @@ MatSpec:
          {
            geoSource->addMaterial($2-1,
              new ExpMat($3, $4, $5, $6, $7, $8, $9, $10, $11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+           if($11 > 0 && $11 < std::numeric_limits<double>::infinity()) {
+             domain->solInfo().elementDeletion = true;
+           }
          }
 	| MatSpec READ FNAME FNAME NewLine
 	 {
@@ -4661,6 +4661,8 @@ SamplingOption:
     domain->solInfo().PODerrornorm.push_back($4); }
   | SCALING SWITCH
   { domain->solInfo().useScalingSpnnls = bool($2); }
+  | PROJSOL SWITCH
+  { domain->solInfo().projectSolution = bool($2); }
   | POSELEM SWITCH
   { domain->solInfo().positiveElements = bool($2); }
   | SOLVER SPNNLSSOLVERTYPE

@@ -52,4 +52,28 @@ void tran_accel(double R[3][3], double theta[3], double V[3], double A[3],
                 bool rescaleout, double a[3]);
 void tran_rvec(double rten[3][3], double rvec[3], bool rescale, int rotvecouttype,
                double th[3]);
+
+#ifndef NO_INLINE_COROT_UTILS
+#include <cmath>
+inline void normalize(double v[3])
+{
+        double length = sqrt(v[0]*v[0]+v[1]*v[1]+v[2]*v[2]);
+        v[0] /= length;
+        v[1] /= length;
+        v[2] /= length;
+}
+
+inline double magnitude(double v[3])
+{
+        return sqrt( v[0]*v[0] + v[1]*v[1] + v[2]*v[2] );
+}
+
+inline void crossprod(double a[3], double b[3], double c[3])
+{
+        c[0] =  a[1]*b[2] - b[1]*a[2];
+        c[1] = -a[0]*b[2] + b[0]*a[2];
+        c[2] =  a[0]*b[1] - b[0]*a[1];
+}
+#endif
+
 #endif

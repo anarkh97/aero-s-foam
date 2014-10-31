@@ -58,19 +58,19 @@ class SuperElement : public Element
     void setMaterial(NLMaterial *);
 
     FullSquareMatrix massMatrix(CoordSet& cs, double *m, int cmflg=1);
-    void getStiffnessThicknessSensitivity(CoordSet& cs, FullSquareMatrix &dStiffdThick, int flg=1, int senMethod=0);
-    void getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs, int senMethod=1);
+    void getStiffnessThicknessSensitivity(CoordSet& cs, FullSquareMatrix &dStiffdThick, int flg=1);
+    void getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs);
 
     double getMass(CoordSet&);
     double getMassSensitivityWRTthickness(CoordSet&);
     double weight(CoordSet&, double *);
-    double weightDerivativeWRTthickness(CoordSet&, double *, int=1);
-    void weightDerivativeWRTNodalCoordinate(Vector &dwdx, CoordSet& cs, double *gravityAcceleration, int senMethod);
+    double weightDerivativeWRTthickness(CoordSet&, double *);
+    void weightDerivativeWRTNodalCoordinate(Vector &dwdx, CoordSet& cs, double *gravityAcceleration);
     void getGravityForce(CoordSet &cs, double *gravity, Vector &force,
                          int gravflg, GeomState *gs=0);
-    void getGravityForceSensitivityWRTthickness(CoordSet &cs, double *gravity, int, Vector &forceSen,
+    void getGravityForceSensitivityWRTthickness(CoordSet &cs, double *gravity, Vector &forceSen,
                                                 int gravflg, GeomState *gs=0);
-    void getGravityForceSensitivityWRTNodalCoordinate(CoordSet &cs, double *gravity, int, GenFullM<double> &,
+    void getGravityForceSensitivityWRTNodalCoordinate(CoordSet &cs, double *gravity, GenFullM<double> &,
                                                       int gravflg, GeomState *gs=0);
     void getThermalForce(CoordSet &cs, Vector &ndT, Vector &force,
                          int glflag, GeomState *gs=0);
@@ -80,11 +80,11 @@ class SuperElement : public Element
                      Vector &elDisp, int strInd, int surface=0,
                      double *ndTemps=0, double ylayer=0.0, double zlayer=0.0, int avgnum=0);
     void getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
-                                         int senMethod, double *, int avgnum, double ylayer, double zlayer);
+                                         double *, int avgnum, double ylayer, double zlayer);
     void getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
-                                            int senMethod, double *ndTemps, int avgnum, double ylayer, double zlayer);
+                                            double *ndTemps, int avgnum, double ylayer, double zlayer);
     void getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
-                                               int senMethod=1, double * = 0, int avgnum=1, double ylayer=0, double zlayer=0);
+                                               double * = 0, int avgnum=1, double ylayer=0, double zlayer=0);
     void getAllStress(FullM &stress, Vector &weight, CoordSet &cs,
                       Vector &elDisp, int strInd, int surface=0,
                       double *ndTemps=0);

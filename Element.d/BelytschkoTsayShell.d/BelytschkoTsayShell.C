@@ -403,17 +403,12 @@ BelytschkoTsayShell::weight(CoordSet& cs, double *gravityAcceleration)
 }   
 
 double
-BelytschkoTsayShell::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int senMethod)
+BelytschkoTsayShell::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration)
 {   
   if(prop) {
-   if(senMethod == 0) {
     double _weight = weight(cs, gravityAcceleration);
     double eh = expmat->ematpro[19];
     return _weight/eh;
-   } else {
-    fprintf(stderr," ... Error: BelytschkoTsayShell::weightDerivativeWRTthickness for automatic differentiation and finite difference is not implemented\n");
-    exit(-1);
-   }
   } else return 0;
 }
 
@@ -436,7 +431,7 @@ BelytschkoTsayShell::getGravityForce(CoordSet& cs, double *gravityAcceleration,
 }
 
 void
-BelytschkoTsayShell::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravityAcceleration, int senMethod,
+BelytschkoTsayShell::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravityAcceleration,
                                                             Vector& gravityForceSensitivity, int gravflg, GeomState *geomState)
 {
   gravityForceSensitivity.zero();

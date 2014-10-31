@@ -37,14 +37,14 @@ struct OutputInfo {
           EigenSlosh, SloshDispX, SloshDispY, SloshDispZ, SloshDisplacement,
           TDEnforcement, Damage, EquivalentPlasticStrain, 
           TemperatureFirstTimeDerivative, PressureFirstTimeDerivative, PressureSecondTimeDerivative,
-	  HeatReactions, Reactions6, Statevector, Residual, Jacobian, 
-	  RobData, SampleMesh, Accelvector, Forcevector,
+          HeatReactions, Reactions6, Statevector, Residual, Jacobian, 
+          RobData, SampleMesh, Accelvector, Forcevector,
           RotationMatrix, ExternalXForce, ExternalYForce, ExternalZForce,
           ExternalXMom, ExternalYMom, ExternalZMom, Velocvector, InternalStateVar, Quaternion,
           PlasticStrainXX, PlasticStrainYY, PlasticStrainZZ, PlasticStrainXY,
           PlasticStrainYZ, PlasticStrainXZ, BackStressXX, BackStressYY,
           BackStressZZ, BackStressXY, BackStressYZ, BackStressXZ, 
-          WeigThic, WeigShap, VMstThic, VMstDisp, VMstShap, GravThic,  
+          WeigThic, WeigShap, VMstThic, VMstShap,   
           DissipatedEnergy, DeletedElements };
 
    enum Group  { Nodal, Attribute, NodeGroup };

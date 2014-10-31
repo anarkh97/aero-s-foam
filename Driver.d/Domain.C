@@ -74,6 +74,8 @@ Domain::Domain(Domain &d, int nele, int *eles, int nnodes, int *nnums)
 
  if(verboseFlag == 0) setSilent();
  else setVerbose();
+
+ senInfo = new SensitivityInfo[50];  // maximum number of sensitivities are fixed to 50
 }
 
 Domain::Domain(Domain &d, Elemset *_elems, CoordSet *_nodes)
@@ -100,6 +102,7 @@ Domain::Domain(Domain &d, Elemset *_elems, CoordSet *_nodes)
 
  if(verboseFlag == 0) setSilent();
  else setVerbose();
+ senInfo = new SensitivityInfo[50];  // maximum number of sensitivities are fixed to 50
 }
 
 Domain::Domain(int iniSize) : nodes(*(new CoordSet(iniSize*16))), packedEset(iniSize*16), lmpc(0,iniSize),
@@ -111,6 +114,7 @@ Domain::Domain(int iniSize) : nodes(*(new CoordSet(iniSize*16))), packedEset(ini
  else setVerbose();
 
  matrixTimers = new MatrixTimers;
+ senInfo = new SensitivityInfo[50];  // maximum number of sensitivities are fixed to 50
 }
 
 void
@@ -4118,9 +4122,29 @@ void Domain::updateSDETAF(StructProp* p, double omega) {
  }
 }
 
-void Domain::addSensitivity(SensitivityInfo &_senInfo) {
-  senInfo[numSensitivity++] = _senInfo;
-  if(_senInfo.type != SensitivityInfo::WeightWRTthickness) {
+void Domain::buildSensitivityInfo()
+{
+  OutputInfo *oinfo = geoSource->getOutputInfo();
+  int numOutInfo = geoSource->getNumOutInfo();
+  for(int i=0; i<numOutInfo; ++i) {
+    if(oinfo[i].type == OutputInfo::WeigThic) {
+      senInfo[numSensitivity].type = SensitivityInfo::WeightWRTthickness;    addSensitivity(oinfo[i]);
+    } else if (oinfo[i].type == OutputInfo::WeigShap) {
+      senInfo[numSensitivity].type = SensitivityInfo::WeightWRTshape;        addSensitivity(oinfo[i]);
+    } else if (oinfo[i].type == OutputInfo::VMstThic) {
+      senInfo[numSensitivity].type = SensitivityInfo::StressVMWRTthickness;  addSensitivity(oinfo[i]);
+    } else if (oinfo[i].type == OutputInfo::VMstShap) {
+      senInfo[numSensitivity].type = SensitivityInfo::StressVMWRTshape;      addSensitivity(oinfo[i]);
+    }
+    numSensitivity++;
+  }
+}
+
+void Domain::addSensitivity(OutputInfo &oinfo) {
+  solInfo().sensitivity = true;
+  oinfo.sentype = 1;
+  senInfo[numSensitivity].surface = oinfo.surface;
+  if(oinfo.type != OutputInfo::WeigThic && oinfo.type != OutputInfo::WeigShap) {
     runSAwAnalysis = true;
   }
 }

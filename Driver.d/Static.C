@@ -2959,7 +2959,7 @@ Domain::computeWeightWRTShapeVariableSensitivity(int sindex, AllSensitivities<do
        if(prop == 0) continue; // phantom element
 
        weight += packedEset[iele]->weight(nodes, gravityAcceleration);
-       packedEset[iele]->weightDerivativeWRTNodalCoordinate(weightDerivative, nodes, gravityAcceleration, senInfo[sindex].method);
+       packedEset[iele]->weightDerivativeWRTNodalCoordinate(weightDerivative, nodes, gravityAcceleration);
        for(int ishap=0; ishap<numShapeVars; ++ishap) {
          for(int i=0; i<nnodes; ++i) {
            int node2 = (outFlag) ? nodeTable[(*elemToNode)[iele][i]]-1 : (*elemToNode)[iele][i];
@@ -3008,7 +3008,7 @@ Domain::computeWeightWRTthicknessSensitivity(int sindex, AllSensitivities<double
        if(prop == 0) continue; // phantom element
 
        weight += packedEset[iele]->weight(nodes, gravityAcceleration);
-       weightDerivative[iele] = packedEset[iele]->weightDerivativeWRTthickness(nodes, gravityAcceleration, senInfo[sindex].method);
+       weightDerivative[iele] = packedEset[iele]->weightDerivativeWRTthickness(nodes, gravityAcceleration);
      }
 
      for(int iparam = 0; iparam < numThicknessGroups; ++iparam) {
@@ -3051,6 +3051,7 @@ Domain::computeStiffnessWRTthicknessSensitivity(int sindex, AllSensitivities<dou
        allSens.dKucdthick[g]->setZero();
      } 
 
+
      for(int iparam = 0; iparam < numThicknessGroups; ++iparam) {
        for(int aindex = 0; aindex < group[iparam].attributes.size(); ++aindex) {
          for(int eindex =0; eindex < atoe[group[iparam].attributes[aindex]].elems.size(); ++eindex) {
@@ -3058,7 +3059,7 @@ Domain::computeStiffnessWRTthicknessSensitivity(int sindex, AllSensitivities<dou
            if (packedEset[iele]->isPhantomElement() || packedEset[iele]->isConstraintElement()) continue;
            int DofsPerElement = packedEset[iele]->numDofs();
            FullSquareMatrix dStiffnessdThick(DofsPerElement);
-           packedEset[iele]->getStiffnessThicknessSensitivity(nodes, dStiffnessdThick,1,senInfo[sindex].method);
+           packedEset[iele]->getStiffnessThicknessSensitivity(nodes, dStiffnessdThick,1);
 //           dStiffnessdThick = packedEset[iele]->stiffness(nodes, dStiffnessdThick.data());
            // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
            int *dofs = (*allDOFs)[iele];
@@ -3114,7 +3115,7 @@ Domain::computeStiffnessWRTShapeVariableSensitivity(int sindex, AllSensitivities
        int nnodes = packedEset[iele]->numNodes();
        FullSquareMatrix *dStiffnessdCoord = new FullSquareMatrix[3*nnodes];
        for(int i=0; i<3*nnodes; ++i) { dStiffnessdCoord[i].setSize(DofsPerElement); dStiffnessdCoord[i].zero(); }
-       packedEset[iele]->getStiffnessNodalCoordinateSensitivity(dStiffnessdCoord, nodes, senInfo[sindex].method);
+       packedEset[iele]->getStiffnessNodalCoordinateSensitivity(dStiffnessdCoord, nodes);
 //       dStiffnessdCoord = packedEset[iele]->stiffness(nodes, dStiffnessdCoord.data());
        // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
        int *dofs = (*allDOFs)[iele];
@@ -3167,11 +3168,6 @@ Domain::makePreSensitivities(AllSensitivities<double> &allSens, double *bcx)
    case SensitivityInfo::WeightWRTthickness:
    {
      computeWeightWRTthicknessSensitivity(sindex, allSens); 
-     break;
-   }
-   case SensitivityInfo::StiffnessWRTthickness:
-   {
-     computeStiffnessWRTthicknessSensitivity(sindex, allSens);
      break;
    }
    case SensitivityInfo::WeightWRTshape:
@@ -3293,7 +3289,7 @@ Domain::subtractGravityForceSensitivityWRTthickness(int sindex, AllSensitivities
            gravflg = 2;
          else gravflg = geoSource->fixedEndM;
          elementGravityForceSen.zero();
-         packedEset[iele]->getGravityForceSensitivityWRTthickness(nodes, gravityAcceleration, senInfo[sindex].method, elementGravityForceSen, gravflg);
+         packedEset[iele]->getGravityForceSensitivityWRTthickness(nodes, gravityAcceleration, elementGravityForceSen, gravflg);
  
          // transform vector from basic to DOF_FRM coordinates
          transformVector(elementGravityForceSen, iele);
@@ -3335,7 +3331,7 @@ Domain::subtractGravityForceSensitivityWRTShapeVariable(int sindex, AllSensitivi
          gravflg = 2;
        else gravflg = geoSource->fixedEndM;
        elementGravityForceSen.zero();
-       packedEset[iele]->getGravityForceSensitivityWRTNodalCoordinate(nodes, gravityAcceleration, senInfo[sindex].method, elementGravityForceSen, gravflg);
+       packedEset[iele]->getGravityForceSensitivityWRTNodalCoordinate(nodes, gravityAcceleration, elementGravityForceSen, gravflg);
 
        // transform vector from basic to DOF_FRM coordinates
 //       transformVector(elementGravityForceSen, iele); //TODO->commented out for now, but if nodes does not use basic coordinate frame, then shouldn't comment this out
@@ -3480,7 +3476,7 @@ Domain::computeStressVMWRTthicknessSensitivity(int sindex,
              (*elDisp)[k] = bcx[(*allDOFs)[iele][k]];
          }
          transformVectorInv(*elDisp, iele);         
-         packedEset[iele]->getVonMisesThicknessSensitivity(dStressdThick, weight, nodes, *elDisp, 6, surface, senInfo[sindex].method); 
+         packedEset[iele]->getVonMisesThicknessSensitivity(dStressdThick, weight, nodes, *elDisp, 6, surface); 
          if(avgnum != 0) {
            // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
            for(int k = 0; k < NodesPerElement; ++k) {
@@ -3547,7 +3543,7 @@ Domain::computeStressVMWRTdisplacementSensitivity(int sindex,
            (*elDisp)[k] = bcx[(*allDOFs)[iele][k]];
        }
        transformVectorInv(*elDisp, iele);       
-       packedEset[iele]->getVonMisesDisplacementSensitivity(dStressdDisp, weight, nodes, *elDisp, 6, surface, senInfo[sindex].method, 0);
+       packedEset[iele]->getVonMisesDisplacementSensitivity(dStressdDisp, weight, nodes, *elDisp, 6, surface, 0);
 //       transformElementSensitivityInv(&dStressdDisp,iele); //TODO: watch out index of dStressdDisp when implementing
        if(avgnum != 0) {
          // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
@@ -3610,7 +3606,7 @@ Domain::computeStressVMWRTShapeVariableSensitivity(int sindex,
            (*elDisp)[k] = bcx[(*allDOFs)[iele][k]];
        }
        transformVectorInv(*elDisp, iele); 
-       packedEset[iele]->getVonMisesNodalCoordinateSensitivity(dStressdCoord, weight, nodes, *elDisp, 6, surface, senInfo[sindex].method, 0);
+       packedEset[iele]->getVonMisesNodalCoordinateSensitivity(dStressdCoord, weight, nodes, *elDisp, 6, surface, 0);
 //       transformElementSensitivityInv(&dStressdCoord,iele); //TODO: watch out index of dStressdCoord when implementing
        if(avgnum != 0) {
          // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
@@ -3662,12 +3658,6 @@ Domain::makePostSensitivities(GenSolver<double> *sysSolver,
 #ifdef USE_EIGEN3
  for(int sindex=0; sindex < numSensitivity; ++sindex) {
   switch(senInfo[sindex].type) {
-   case SensitivityInfo::LinearStaticWRTthickness:
-   {
-     if(!allSens.stiffnessWRTthick) computeStiffnessWRTthicknessSensitivity(sindex, allSens);
-     computeLinearStaticWRTthicknessSensitivity(sindex,allSens,sol);
-     break;
-   } 
    case SensitivityInfo::StressVMWRTthickness: 
    {
      if(!allSens.vonMisesWRTdisp) computeStressVMWRTdisplacementSensitivity(sindex,allSens,sol,bcx);
@@ -3675,11 +3665,6 @@ Domain::makePostSensitivities(GenSolver<double> *sysSolver,
      if(!allSens.linearstaticWRTthick) computeLinearStaticWRTthicknessSensitivity(sindex,allSens,sol);
      if(!isDynam) if(!allSens.dispWRTthick) computeDisplacementWRTthicknessSensitivity(sindex, sysSolver, K, spm, allSens);
      computeStressVMWRTthicknessSensitivity(sindex,sysSolver,allSens,sol,bcx,isDynam);
-     break;
-   }
-   case SensitivityInfo::StressVMWRTdisplacement:
-   {
-     computeStressVMWRTdisplacementSensitivity(sindex,allSens,sol,bcx);
      break;
    }
    case SensitivityInfo::StressVMWRTshape:

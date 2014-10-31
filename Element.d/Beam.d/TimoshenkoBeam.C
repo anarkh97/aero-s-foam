@@ -258,7 +258,7 @@ TimoshenkoBeam::getMassSensitivityWRTNodalCoordinate(CoordSet &cs, Vector &dMass
 }
 
 void
-TimoshenkoBeam::weightDerivativeWRTNodalCoordinate(Vector &dwdx, CoordSet& cs, double *gravityAcceleration, int senMethod)
+TimoshenkoBeam::weightDerivativeWRTNodalCoordinate(Vector &dwdx, CoordSet& cs, double *gravityAcceleration)
 {
   if(dwdx.size() != 6) {
      std::cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
@@ -283,7 +283,7 @@ TimoshenkoBeam::weight(CoordSet& cs, double *gravityAcceleration)
 }
 
 void
-TimoshenkoBeam::getGravityForceSensitivityWRTNodalCoordinate(CoordSet& cs, double *gravityAcceleration, int senMethod,
+TimoshenkoBeam::getGravityForceSensitivityWRTNodalCoordinate(CoordSet& cs, double *gravityAcceleration, 
                                                              GenFullM<double> &dGfdx, int gravflg, GeomState *geomState)
 {
 #ifdef USE_EIGEN3
@@ -316,13 +316,13 @@ TimoshenkoBeam::getGravityForceSensitivityWRTNodalCoordinate(CoordSet& cs, doubl
   q << x[0], y[0], z[0], x[1], y[1], z[1];
   Eigen::Matrix<double,12,6> dGravityForcedx;
 
-  if(senMethod == 0) {
+/*  if(senMethod == 0) {
     std::cerr << " ... Warning: analytic sensitivity wrt nodal coordinate is not implemented yet\n";
     std::cerr << " ...          instead, automatic differentiation will be applied\n";
     senMethod = 1;
-  }
+  }*/
 
-  if(senMethod == 1) { // automatic differentiation
+//  if(senMethod == 1) { // automatic differentiation
 #ifndef AEROS_NO_AD 
     Simo::Jacobian<double,TimoshenkoBeamGravityForceWRTNodalCoordinateSensitivity> dGdx(dconst,iconst);
     dGravityForcedx = dGdx(q, 0);
@@ -332,8 +332,8 @@ TimoshenkoBeam::getGravityForceSensitivityWRTNodalCoordinate(CoordSet& cs, doubl
 #else
     std::cerr << " ... Error: AEROS_NO_AD is defined in TimoshenkoBeam::getGravityForceSensitivityWRTNodalCoordinate\n";    exit(-1);
 #endif
-  } // senMethod == 1
-
+//  } // senMethod == 1
+/*
   if(senMethod == 2) { // finite difference
     double h(1e-6);
     for(int i=0; i<6; ++i) {
@@ -349,7 +349,7 @@ TimoshenkoBeam::getGravityForceSensitivityWRTNodalCoordinate(CoordSet& cs, doubl
     Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
     if(verboseFlag) std::cerr << "dGravityForcedx(FD) =\n" << dGravityForcedx.format(HeavyFmt) << std::endl;
 #endif
-  }
+  } */
   dGfdx.copy(dGravityForcedx.data());
 #endif
 }
@@ -472,7 +472,7 @@ TimoshenkoBeam::massMatrix(CoordSet &cs,double *mel,int cmflg)
 }
 
 void 
-TimoshenkoBeam::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs, int senMethod)
+TimoshenkoBeam::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs)
 {
 #ifdef USE_EIGEN3
         for(int i=0; i<6; ++i) {
@@ -519,13 +519,13 @@ TimoshenkoBeam::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiff
         q << nd1.x, nd1.y, nd1.z, nd2.x, nd2.y, nd2.z;
 
         Eigen::Array<Eigen::Matrix<double,12,12>,1,6> dStiffnessdx;
-        if(senMethod == 0) { // analytic
+/*        if(senMethod == 0) { // analytic
           std::cerr << " ... Warning: analytic stiffness sensitivity wrt nodal coordinate is not implemented yet\n";
           std::cerr << " ...          instead, automatic differentiation will be applied\n";
           senMethod = 1;
-        }
+        } */
 
-        if(senMethod == 1) { // automatic differentiation
+//        if(senMethod == 1) { // automatic differentiation
 #ifndef AEROS_NO_AD
           Simo::FirstPartialSpaceDerivatives<double, TimoshenkoBeamStiffnessWRTNodalCoordinateSensitivity> dKdx(dconst,iconst);
           dStiffnessdx = dKdx(q, 0);
@@ -539,8 +539,8 @@ TimoshenkoBeam::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiff
 #else
           std::cerr << " ... Error: AEROS_NO_AD is defined in TimoshenkoBeam::getStiffnessNodalCoordinateSensitivity\n";  exit(-1);
 #endif
-        }
-
+//        }
+/*
         if(senMethod == 2) { // finite difference
           TimoshenkoBeamStiffnessWRTNodalCoordinateSensitivity<double> foo(dconst,iconst);
           Eigen::Matrix<double,6,1> qp, qm;
@@ -564,7 +564,7 @@ TimoshenkoBeam::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiff
             }
 #endif
           }
-        }
+        } */
 
         for(int i=0; i<6; ++i) dStiffdx[i].copy(dStiffnessdx[i].data());
 #endif
@@ -1018,7 +1018,7 @@ TimoshenkoBeam::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
 #ifdef USE_EIGEN3
 void
 TimoshenkoBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
-                                                   int senMethod, double *ndTemps, int avgnum, double ylayer, double zlayer)
+                                                   double *ndTemps, int avgnum, double ylayer, double zlayer)
 {
   if(strInd != 6) {
     std::cerr << " ... Error: strInd must be 6 in TimoshenkoBeam::getVonMisesDisplacementSensitivity\n";
@@ -1076,11 +1076,8 @@ TimoshenkoBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, V
   Eigen::Matrix<double,2,12> dStressdDisp;
   dStressdDisp.setZero();
   Eigen::Matrix<double,7,3> stress;
-#ifdef SENSITIVITY_DEBUG
-  if(verboseFlag) std::cout << " ... senMethod is " << senMethod << std::endl;
-#endif
-
   if(avgnum == 1 || avgnum == 0) { // ELEMENTAL or NODALFULL
+/*
     if(senMethod == 1) { // via automatic differentiation
 #ifndef AEROS_NO_AD
       Simo::Jacobian<double,TimoshenkoBeamStressWRTDisplacementSensitivity> dSdu(dconst,iconst);
@@ -1092,8 +1089,8 @@ TimoshenkoBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, V
       std::cerr << " ... Error: AEROS_NO_AD is defined in TimoshenkoBeam::getVonMisesDisplacementSensitivity\n";  exit(-1);
 #endif
     }
- 
-    if(senMethod == 0) { // analytic
+ */
+//    if(senMethod == 0) { // analytic
       dStressdDisp.setZero();
       Eigen::Matrix<double,9,1> eframe = Eigen::Map<Eigen::Matrix<double,28,1> >(dconst.data()).segment(8,9); // extract eframe
       vms7WRTdisp(1, prop->A, prop->E, eframe.data(), prop->Ixx, prop->Iyy, prop->Izz, prop->alphaY, prop->alphaZ, prop->c,
@@ -1101,8 +1098,8 @@ TimoshenkoBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, V
 #ifdef SENSITIVITY_DEBUG
       if(verboseFlag) std::cerr << " ... dStressdDisp(analytic) = \n" << dStressdDisp << std::endl;
 #endif
-    }
-
+//    }
+/*
     if(senMethod == 2) { // via finite difference
       TimoshenkoBeamStressWRTDisplacementSensitivity<double> foo(dconst,iconst);
       double h = 1.0e-6;
@@ -1120,6 +1117,7 @@ TimoshenkoBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, V
       if(verboseFlag) std::cerr << " ... dStressdDisp(FD) = \n" << dStressdDisp << std::endl;
 #endif
     }
+*/
   } 
   dStdDisp.copy(dStressdDisp.data());
 }
@@ -1127,7 +1125,7 @@ TimoshenkoBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, V
 void
 TimoshenkoBeam::getVonMisesDisplacementSensitivity(GenFullM<DComplex> &dStdDisp, ComplexVector &weight,
                                                    CoordSet &cs, ComplexVector &elDisp, int strInd, int surface,
-                                                   int senMethod, double *, int avgnum, double ylayer, double zlayer)
+                                                   double *, int avgnum, double ylayer, double zlayer)
 {
     std::cerr << "TimoshenkoBeam::getVonMisesDisplacementSensitivity is not implemented\n";
     exit(-1);  
@@ -1137,7 +1135,7 @@ TimoshenkoBeam::getVonMisesDisplacementSensitivity(GenFullM<DComplex> &dStdDisp,
 #ifdef USE_EIGEN3
 void
 TimoshenkoBeam::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
-                                                      int senMethod, double *ndTemps, int avgnum, double ylayer, double zlayer)
+                                                      double *ndTemps, int avgnum, double ylayer, double zlayer)
 {
   if(strInd != 6) {
     std::cerr << " ... Error: strInd must be 6 in TimoshenkoBeam::getVonMisesNodalCoordinateSensitivity\n";
@@ -1194,18 +1192,15 @@ TimoshenkoBeam::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, V
   //Jacobian evaluation
   Eigen::Matrix<double,2,6> dStressdx;
   Eigen::Matrix<double,7,3> stress;
-#ifdef SENSITIVITY_DEBUG
-  if(verboseFlag) std::cerr << " ... senMethod is " << senMethod << std::endl;
-#endif
 
   if(avgnum == 1 || avgnum == 0) { // ELEMENTAL or NODALFULL
-    if(senMethod == 0) { // analytic
+/*    if(senMethod == 0) { // analytic
       std::cerr << " ... Warning: analytic von Mises stress sensitivity wrt nodal coordinate is not implemented yet\n";
       std::cerr << " ...          instead, automatic differentiation will be applied\n";
       senMethod = 1;
-    }
+    } */
 
-    if(senMethod == 1) { // automatic differentiation
+//    if(senMethod == 1) { // automatic differentiation
 #ifndef AEROS_NO_AD
       Simo::Jacobian<double,TimoshenkoBeamStressWRTNodalCoordinateSensitivity> dSdx(dconst,iconst);
       dStressdx = dSdx(q, 0);
@@ -1216,9 +1211,9 @@ TimoshenkoBeam::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, V
 #else
       std::cerr << " ... Error: AEROS_NO_AD is defined in TimoshenkoBeam::getVonMisesNodalCoordinateSensitivity\n"; exit(-1);
 #endif
-    }
+//    }
 
-    if(senMethod == 2) { // finite difference
+/*    if(senMethod == 2) { // finite difference
       TimoshenkoBeamStressWRTNodalCoordinateSensitivity<double> foo(dconst,iconst);
       double h = 1.0e-6;
       for(int j=0; j<6; ++j) {
@@ -1233,7 +1228,7 @@ TimoshenkoBeam::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, V
 #ifdef SENSITIVITY_DEBUG
       if(verboseFlag) std::cerr << " ... dStressdx(FD) = \n" << dStressdx << std::endl;
 #endif
-    }
+    } */ 
   } else dStdx.zero(); // NODALPARTIAL or GAUSS or any others
 }
 #endif

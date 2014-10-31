@@ -424,20 +424,15 @@ Triangle3::weight(CoordSet& cs, double *gravityAcceleration)
 }
 
 double
-Triangle3::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int senMethod)
+Triangle3::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration)
 {
   if (prop == NULL) {
     return 0.0;
   }
   
-  if(senMethod == 0) {
-    double _weight = weight(cs, gravityAcceleration);
-    double thick = prop->eh;
-    return _weight/thick;
-  } else {
-    fprintf(stderr," ... Error: Triangle3::weightDerivativeWRTthickness for automatic differentiation and finite difference is not implemented\n");
-    exit(-1);
-  }
+  double _weight = weight(cs, gravityAcceleration);
+  double thick = prop->eh;
+  return _weight/thick;
 }
 
 void
@@ -458,7 +453,7 @@ Triangle3::getGravityForce(CoordSet& cs,double *gravityAcceleration,
 }
 
 void
-Triangle3::getGravityForceSensitivityWRTthickness(CoordSet& cs,double *gravityAcceleration, int senMethod,
+Triangle3::getGravityForceSensitivityWRTthickness(CoordSet& cs,double *gravityAcceleration,
                                                   Vector& gravityForceSensitivity, int gravflg, GeomState *geomState)
 {
   double massPerNode = getMass(cs)/3.0;
@@ -637,7 +632,7 @@ Triangle3::getTopNumber()
 
 void
 Triangle3::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
-                                                           int senMethod, double *ndTemps, int avgnum, double ylayer, double zlayer)
+                                              double *ndTemps, int avgnum, double ylayer, double zlayer)
 { 
 #ifdef USE_EIGEN3
   if(strInd != 6) {
@@ -674,11 +669,8 @@ Triangle3::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector
 
   //Jacobian evaluation
   Eigen::Matrix<double,3,6> dStressdDisp;
-#ifdef SENSITIVITY_DEBUG
-  if(verboseFlag) std::cout << " ... senMethod is " << senMethod << std::endl;
-#endif
   if(avgnum == 1 || avgnum == 0) { // ELEMENTAL or NODALFULL
-    if(senMethod == 1) { // via automatic differentiation
+/*    if(senMethod == 1) { // via automatic differentiation
 #ifndef AEROS_NO_AD 
       Simo::Jacobian<double,Triangle3StressWRTDisplacementSensitivity> dSdu(dconst,iconst);
       dStressdDisp = dSdu(q, 0);
@@ -689,9 +681,8 @@ Triangle3::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector
 #else
     std::cerr << " ... Error: AEROS_NO_AD is defined in Triangle3::getVonMisesDisplacementSensitivity\n";    exit(-1);
 #endif
-    }
+    } */
  
-    if(senMethod == 0) { // analytic
       dStressdDisp.setZero();
       vms4WRTdisp(x, y, q.data(), 
                   dStressdDisp.data(), 
@@ -700,8 +691,8 @@ Triangle3::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector
 #ifdef SENSITIVITY_DEBUG
       if(verboseFlag) std::cerr << " ... dStressdDisp(analytic) = \n" << dStressdDisp << std::endl;
 #endif
-    }
 
+/*
     if(senMethod == 2) { // via finite difference
       Triangle3StressWRTDisplacementSensitivity<double> foo(dconst,iconst);
       double h = 1.0e-6;
@@ -720,7 +711,7 @@ Triangle3::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector
 #ifdef SENSITIVITY_DEBUG
       if(verboseFlag) std::cerr << " ... dStressdDisp(FD) = \n" << dStressdDisp << std::endl;
 #endif
-    }
+    } */
   } else dStdDisp.zero(); // NODALPARTIAL or GAUSS or any others
 #else
   std::cerr << " ... Error! Triangle3::getVonMisesDisplacementSensitivity needs Eigen library\n";

@@ -859,7 +859,7 @@ ThreeNodeShell::getMassSensitivityWRTthickness(CoordSet& cs)
 }
 
 void
-ThreeNodeShell::weightDerivativeWRTNodalCoordinate(Vector &dwdx, CoordSet& cs, double *gravityAcceleration, int)
+ThreeNodeShell::weightDerivativeWRTNodalCoordinate(Vector &dwdx, CoordSet& cs, double *gravityAcceleration)
 {
   if(prop == NULL || gravityAcceleration == NULL) {
     dwdx.zeroAll();
@@ -879,10 +879,11 @@ ThreeNodeShell::weightDerivativeWRTNodalCoordinate(Vector &dwdx, CoordSet& cs, d
                             gravityAcceleration[2]*gravityAcceleration[2]);
 
   dwdx *= gravAccNorm;
+
 }
 
 void
-ThreeNodeShell::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravityAcceleration, int,
+ThreeNodeShell::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravityAcceleration,
                                                        Vector& dGfdthick, int gravflg, GeomState *geomState)
 {
   if(prop == NULL) {
@@ -896,7 +897,7 @@ ThreeNodeShell::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gra
 }
 
 void
-ThreeNodeShell::getGravityForceSensitivityWRTNodalCoordinate(CoordSet& cs, double *gravityAcceleration, int,
+ThreeNodeShell::getGravityForceSensitivityWRTNodalCoordinate(CoordSet& cs, double *gravityAcceleration,
                                                              GenFullM<double> &dGfdx, int gravflg, GeomState*)
 {
   if(prop == NULL) {
@@ -915,7 +916,7 @@ ThreeNodeShell::getGravityForceSensitivityWRTNodalCoordinate(CoordSet& cs, doubl
 }
 
 void
-ThreeNodeShell::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix &dStiffdThick, int flg, int)
+ThreeNodeShell::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix &dStiffdThick, int flg)
 {
   if(prop == NULL) {
     dStiffdThick.zero();
@@ -941,7 +942,7 @@ ThreeNodeShell::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix 
 }
 
 void
-ThreeNodeShell::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs, int)
+ThreeNodeShell::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs)
 {
   if(prop == NULL) {
     for(int i=0; i<9; ++i) dStiffdx[i].zero();
@@ -971,7 +972,7 @@ ThreeNodeShell::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiff
 
 void
 ThreeNodeShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight, CoordSet &cs,
-                                                Vector &elDisp, int, int surface, int, double *ndTemps,
+                                                Vector &elDisp, int, int surface, double *ndTemps,
                                                 int avgnum, double, double)
 {
   weight = 1.0;
@@ -998,7 +999,7 @@ ThreeNodeShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weigh
 
 void
 ThreeNodeShell::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vector &weight, CoordSet &cs,
-                                                      Vector &elDisp, int, int surface, int, double *ndTemps,
+                                                      Vector &elDisp, int, int surface, double *ndTemps,
                                                       int avgnum, double, double)
 {
   weight = 1.0;
@@ -1023,7 +1024,7 @@ ThreeNodeShell::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, V
 
 void
 ThreeNodeShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs,
-                                                   Vector &elDisp, int, int surface, int, double *ndTemps,
+                                                   Vector &elDisp, int, int surface, double *ndTemps,
                                                    int avgnum, double, double)
 {
   weight = 1.0;

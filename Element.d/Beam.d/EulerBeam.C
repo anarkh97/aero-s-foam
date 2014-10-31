@@ -1157,7 +1157,7 @@ EulerBeam::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
 #ifdef USE_EIGEN3
 void
 EulerBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
-                                              int senMethod, double *ndTemps, int avgnum, double ylayer, double zlayer)
+                                              double *ndTemps, int avgnum, double ylayer, double zlayer)
 {
   if(strInd != 6) {
     std::cerr << " ... Error: strInd must be 6 in EulerBeam::getVonMisesDisplacementSensitivity\n";
@@ -1213,12 +1213,9 @@ EulerBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector
   //Jacobian evaluation
   Eigen::Matrix<double,2,12> dStressdDisp;
   Eigen::Matrix<double,7,3> stress;
-#ifdef SENSITIVITY_DEBUG
-  if(verboseFlag) std::cout << " ... senMethod is " << senMethod << std::endl;
-#endif 
 
   if(avgnum == 0 || avgnum == 1) {
-    if(senMethod == 1) { // via automatic differentiation
+/*    if(senMethod == 1) { // via automatic differentiation
 #ifndef AEROS_NO_AD
       Simo::Jacobian<double,EulerBeamStressWRTDisplacementSensitivity> dSdu(dconst,iconst);
       dStressdDisp = dSdu(q, 0);
@@ -1230,8 +1227,8 @@ EulerBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector
       std::cerr << " ... Error: AEROS_NO_AD is defined in EulerBeam::getVonMisesDisplacementSensitivity\n";  exit(-1);
 #endif
     }
-
-    if(senMethod == 0) { // analytic
+*/
+//    if(senMethod == 0) { // analytic
       dStressdDisp.setZero();
       Eigen::Matrix<double,9,1> eframe = Eigen::Map<Eigen::Matrix<double,25,1> >(dconst.data()).segment(8,9); // extract eframe
       vms6WRTdisp(prop->A, prop->E, 1, dStressdDisp.data(), 1, 2, 7,
@@ -1241,8 +1238,8 @@ EulerBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector
 #ifdef SENSITIVITY_DEBUG
       if(verboseFlag) std::cerr << " ... dStressdDisp(analytic) = \n" << dStressdDisp << std::endl;
 #endif
-    }
-
+//    }
+/*
     if(senMethod == 2) { // via finite difference
       EulerBeamStressWRTDisplacementSensitivity<double> foo(dconst,iconst);
       double h = 1.0e-6;
@@ -1260,7 +1257,7 @@ EulerBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector
 #ifdef SENSITIVITY_DEBUG
       if(verboseFlag) std::cerr << " ... dStressdDisp(FD) = \n" << dStressdDisp << std::endl;
 #endif
-    }
+    } */
   } else dStdDisp.zero(); // NODALPARTIAL or GAUSS or any others
 }
 #endif

@@ -15,16 +15,16 @@ public:
 	void renum(int *);
         void renum(EleRenumMap&);
         FullSquareMatrix stiffness(CoordSet&,double *kel, int flg=1);
-        void getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs, int senMethod);
+        void getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs);
         int getMassType() { return 2; } // both consistent and lumped
         FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg=1);
         double getMass(CoordSet&);
         void getMassSensitivityWRTNodalCoordinate(CoordSet &cs, Vector &dMassdx);
         void getLengthSensitivityWRTNodalCoordinate(CoordSet &cs, Vector &dLengthdx);
         double weight(CoordSet& cs, double *gravityAcceleration);
-        void weightDerivativeWRTNodalCoordinate(Vector &dwdx, CoordSet& cs, double *gravityAcceleration, int senMethod);
+        void weightDerivativeWRTNodalCoordinate(Vector &dwdx, CoordSet& cs, double *gravityAcceleration);
         void getGravityForce(CoordSet&, double *g, Vector& f, int gravflg, GeomState *gs);
-        void getGravityForceSensitivityWRTNodalCoordinate(CoordSet& cs, double *gravityAcceleration, int senMethod,
+        void getGravityForceSensitivityWRTNodalCoordinate(CoordSet& cs, double *gravityAcceleration,
                                                           GenFullM<double> &dGfdx, int gravflg, GeomState *geomState=0);
         void getIntrnForce(Vector &elForce, CoordSet& cs,
  	                   double *elDisp, int forceIndex, double *ndTemps=0);
@@ -33,9 +33,9 @@ public:
 	                 double *ndTemps=0,double ylayer=0.0, double zlayer=0.0, int avgnum=1);
         void getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, 
                                                 Vector &elDisp, int strInd, int surface,
-                                                int senMethod, double *ndTemps, int avgnum, double ylayer, double zlayer);
+                                                double *ndTemps, int avgnum, double ylayer, double zlayer);
         void getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
-                                                   int senMethod, double *ndTemps, int avgnum, double ylayer, double zlayer);
+                                                   double *ndTemps, int avgnum, double ylayer, double zlayer);
         void markDofs(DofSetArray &);
         int* dofs(DofSetArray &, int *p=0);
         int numDofs();

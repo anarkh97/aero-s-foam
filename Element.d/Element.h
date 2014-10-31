@@ -400,8 +400,8 @@ class Element {
                                            double *coefs, CoordSet &cs, double theta);
 
         virtual FullSquareMatrix stiffness(CoordSet& cs,double *k,int flg=1);
-        virtual void getStiffnessThicknessSensitivity(CoordSet& cs,FullSquareMatrix &dStiffdThick, int flg=1, int senMethod=0);
-        virtual void getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs, int senMethod=1);
+        virtual void getStiffnessThicknessSensitivity(CoordSet& cs,FullSquareMatrix &dStiffdThick, int flg=1);
+        virtual void getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs);
         virtual FullSquareMatrix massMatrix(CoordSet& cs,double *m,int cmflg=1);
         virtual FullSquareMatrix imStiffness(CoordSet& cs,double *k,int flg=1);
         FullSquareMatrix massMatrix(CoordSet& cs, double* m, double mratio);
@@ -413,17 +413,17 @@ class Element {
         virtual double getMass(CoordSet&) { return 0; }
         virtual double getMassSensitivityWRTthickness(CoordSet&) { return 0; }
         virtual double weight(CoordSet&, double *);
-        virtual double weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int senMethod=1);
-        virtual void weightDerivativeWRTNodalCoordinate(Vector& dwdx, CoordSet& cs, double *gravityAcceleration, int senMethod=1);
+        virtual double weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration);
+        virtual void weightDerivativeWRTNodalCoordinate(Vector& dwdx, CoordSet& cs, double *gravityAcceleration);
         virtual double getDCmass(CoordSet &,Vector &, double&) { return 0; }
 
         virtual void getGravityForce(CoordSet&,double *gravity,Vector &force,
                                      int gravflg, GeomState *gs=0);
 
-        virtual void getGravityForceSensitivityWRTthickness(CoordSet&,double *gravity, int senMethod, Vector &force,
+        virtual void getGravityForceSensitivityWRTthickness(CoordSet&,double *gravity, Vector &force,
                                                             int gravflg, GeomState *gs=0);
 
-        virtual void getGravityForceSensitivityWRTNodalCoordinate(CoordSet& cs, double *gravityAcceleration, int senMethod,
+        virtual void getGravityForceSensitivityWRTNodalCoordinate(CoordSet& cs, double *gravityAcceleration,
                                                                   GenFullM<double> &dGfdx, int gravflg, GeomState *geomState = 0);
 
         virtual void   getThermalForce(CoordSet& cs, Vector &ndT, Vector &force,
@@ -446,21 +446,21 @@ class Element {
                                       double &,double &, double* dT=0 );
 
         virtual void getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
-                                              int senMethod = 1, double * = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0);
+                                              double * = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0);
 
         virtual void getVonMisesThicknessSensitivity(ComplexVector &dStdThick, ComplexVector &weight, CoordSet &cs, ComplexVector &elDisp, int strInd, int surface,
-                                              int senMethod = 1, double * = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0);
+                                              double * = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0);
 
         virtual void getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, 
                                                         CoordSet &cs, Vector &elDisp, int strInd, int surface,
-                                                        int senMethod = 1, double * = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0);
+                                                        double * = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0);
 
         virtual void getVonMisesDisplacementSensitivity(GenFullM<DComplex> &dStdDisp, ComplexVector &weight, 
                                                         CoordSet &cs, ComplexVector &elDisp, int strInd, int surface,
-                                                        int senMethod = 1, double * = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0);
+                                                        double * = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0);
 
         virtual void getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
-                                                           int senMethod = 1, double * = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0);
+                                                           double * = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0);
 
         virtual void   getAllStress(FullM &stress, Vector &weight, CoordSet &cs,
                                     Vector &elDisp, int strInd, int surface=0,

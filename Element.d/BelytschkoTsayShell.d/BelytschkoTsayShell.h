@@ -65,11 +65,11 @@ class BelytschkoTsayShell : virtual public Element, public Corotator
     double getMass(CoordSet& cs);
     double getMassSensitivityWRTthickness(CoordSet& cs);
     double weight(CoordSet&, double *);
-    double weightDerivativeWRTthickness(CoordSet&, double *, int=1);
+    double weightDerivativeWRTthickness(CoordSet&, double *);
     
     void getGravityForce(CoordSet&, double* gravity, Vector&, int gravflg,
                          GeomState *gs);
-    void getGravityForceSensitivityWRTthickness(CoordSet&, double* gravity, int senMethod, Vector&, int gravflg,
+    void getGravityForceSensitivityWRTthickness(CoordSet&, double* gravity, Vector&, int gravflg,
                                                 GeomState *gs);
     void getVonMises(Vector& stress, Vector& weight, CoordSet& cs, 
                      Vector& elDisp,  int strInd, int surface = 0,

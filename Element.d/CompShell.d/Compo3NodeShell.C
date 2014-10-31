@@ -496,11 +496,10 @@ Compo3NodeShell::weight(CoordSet& cs, double *gravityAcceleration)
 }
 
 double
-Compo3NodeShell::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int senMethod)
+Compo3NodeShell::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration)
 {
- if (prop == NULL) return 0.0;
+  if (prop == NULL) return 0.0;
 
- if(senMethod == 0) {
   double x[3] = { cs[nn[0]]->x, cs[nn[1]]->x, cs[nn[2]]->x };
   double y[3] = { cs[nn[0]]->y, cs[nn[1]]->y, cs[nn[2]]->y };
   double z[3] = { cs[nn[0]]->z, cs[nn[1]]->z, cs[nn[2]]->z };
@@ -525,10 +524,6 @@ Compo3NodeShell::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAccel
                             gravityAcceleration[1]*gravityAcceleration[1] +
                             gravityAcceleration[2]*gravityAcceleration[2]);
   return area*sumrho*gravAccNorm;
- } else {
-    fprintf(stderr," ... Error: Compo3NodeShell::weightDerivativeWRTthickness for automatic differentiation and finite difference is not implemented\n");
-    exit(-1);
- }
 }
 
 FullSquareMatrix

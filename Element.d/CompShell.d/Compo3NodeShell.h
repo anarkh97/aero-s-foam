@@ -57,7 +57,7 @@ public:
         double getMass(CoordSet &);
         double getMassSensitivityWRTthickness(CoordSet &);
         double weight(CoordSet&, double *);
-        double weightDerivativeWRTthickness(CoordSet&, double *, int=1);
+        double weightDerivativeWRTthickness(CoordSet&, double *);
 
         void computeDisp(CoordSet&, State &, const InterpPoint &,
                          double*, GeomState *gs=0);

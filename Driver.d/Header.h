@@ -285,8 +285,6 @@ static const char * ele_header[] = {
 "",
 "",
 "",
-"",
-"",
 ""
 };
 

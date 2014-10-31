@@ -63,7 +63,7 @@ public:
                          double ylayer=0.0, double zlayer=0.0, int avgnum=0);
 #ifdef USE_EIGEN3
         void getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
-                                                int senMethod, double *, int avgnum, double ylayer, double zlayer);
+                                                double *, int avgnum, double ylayer, double zlayer);
 #endif
         // Routines for the decomposer
         PrioInfo examine(int sub, MultiFront *);

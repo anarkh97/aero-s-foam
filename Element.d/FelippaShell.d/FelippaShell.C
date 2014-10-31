@@ -1173,11 +1173,13 @@ FelippaShell::getMassSensitivityWRTthickness(CoordSet &cs)
 
   Impl::andesms(glNum+1, x, y, z, gravityAcceleration, grvfor, totmas, rhoh-nsm);
 
+  fprintf(stderr,"thickness = %e, totmas = %e\n", thickness, totmas);
+
   return totmas/gpmat->GetShellThickness();
 }
 
 void
-FelippaShell::weightDerivativeWRTNodalCoordinate(Vector &dwdx, CoordSet& cs, double *gravityAcceleration, int)
+FelippaShell::weightDerivativeWRTNodalCoordinate(Vector &dwdx, CoordSet& cs, double *gravityAcceleration)
 {
   if(prop == NULL || gravityAcceleration == NULL) {
     dwdx.zeroAll();
@@ -1200,7 +1202,7 @@ FelippaShell::weightDerivativeWRTNodalCoordinate(Vector &dwdx, CoordSet& cs, dou
 }
 
 void
-FelippaShell::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravityAcceleration, int, 
+FelippaShell::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravityAcceleration, 
                                                      Vector& dGfdthick, int gravflg, GeomState*)
 {
   if(prop == NULL) {
@@ -1226,7 +1228,7 @@ FelippaShell::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravi
 }
 
 void
-FelippaShell::getGravityForceSensitivityWRTNodalCoordinate(CoordSet& cs, double *gravityAcceleration, int,
+FelippaShell::getGravityForceSensitivityWRTNodalCoordinate(CoordSet& cs, double *gravityAcceleration,
                                                            GenFullM<double> &dGfdx, int gravflg, GeomState*)
 {
   if(prop == NULL) {
@@ -1245,7 +1247,7 @@ FelippaShell::getGravityForceSensitivityWRTNodalCoordinate(CoordSet& cs, double 
 }
 
 void 
-FelippaShell::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix &dStiffdThick, int flg, int)
+FelippaShell::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix &dStiffdThick, int flg)
 {
   if(prop == NULL) {
     dStiffdThick.zero();
@@ -1267,7 +1269,7 @@ FelippaShell::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix &d
 }
 
 void 
-FelippaShell::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs, int)
+FelippaShell::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs)
 {
   if(prop == NULL) {
     for(int i=0; i<9; ++i) dStiffdx[i].zero();
@@ -1297,7 +1299,7 @@ FelippaShell::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx
 
 void 
 FelippaShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight, CoordSet &cs,
-                                              Vector &elDisp, int, int surface, int, double *ndTemps,
+                                              Vector &elDisp, int, int surface, double *ndTemps,
                                               int avgnum, double, double)
 {
   weight = 1.0;
@@ -1321,7 +1323,7 @@ FelippaShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight,
 
 void 
 FelippaShell::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vector &weight, CoordSet &cs,
-                                                    Vector &elDisp, int, int surface, int, double *ndTemps,
+                                                    Vector &elDisp, int strInd, int surface, double *ndTemps,
                                                     int avgnum, double, double)
 {
   weight = 1.0;
@@ -1347,7 +1349,7 @@ FelippaShell::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vec
 
 void 
 FelippaShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs,
-                                                 Vector &elDisp, int, int surface, int, double *ndTemps,
+                                                 Vector &elDisp, int strInd, int surface, double *ndTemps,
                                                  int avgnum, double, double)
 {
   weight = 1.0;

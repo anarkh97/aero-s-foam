@@ -559,6 +559,7 @@ int main(int argc, char** argv)
    filePrint(stderr," ****************************************************\n");
    exit(error);
  }
+ domain->buildSensitivityInfo();
 
  if(decInit != 0 && decInit->skip==false) { // dec initializers in parser !
    if(numThreads == 1) // command line option prevail !!!

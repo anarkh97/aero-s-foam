@@ -214,7 +214,7 @@ Tetrahedral::computeVonMises(Vector& stress, Vector& weight, double q[12],
 
 void
 Tetrahedral::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
-                                                int senMethod, double *ndTemps, int avgnum, double ylayer, double zlayer)
+                                                double *ndTemps, int avgnum, double ylayer, double zlayer)
 {
   if(strInd != 6) {
      std::cerr << " ... Error: strInd must be 6 in Tetrahedral::getVonMisesDisplacementSensitivity\n";
@@ -292,7 +292,7 @@ Tetrahedral::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vect
 
 void
 Tetrahedral::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
-                                                   int senMethod, double* ndTemps, int avgnum, double ylayer, double zlayer)
+                                                   double* ndTemps, int avgnum, double ylayer, double zlayer)
 {
 #ifdef USE_EIGEN3
    if(strInd != 6) {
@@ -491,7 +491,7 @@ Tetrahedral::computeDjDx(double x[4], double y[4], double z[4], double J, double
 }
 
 void
-Tetrahedral::weightDerivativeWRTNodalCoordinate(Vector &dwdx, CoordSet& cs, double *gravityAcceleration, int senMethod)
+Tetrahedral::weightDerivativeWRTNodalCoordinate(Vector &dwdx, CoordSet& cs, double *gravityAcceleration)
 {
   int nnodes = 4;
   double x[4], y[4], z[4];
@@ -552,7 +552,7 @@ Tetrahedral::getMass(CoordSet& cs)
 }
 
 void
-Tetrahedral::getGravityForceSensitivityWRTNodalCoordinate(CoordSet& cs, double *gravityAcceleration, int senMethod,
+Tetrahedral::getGravityForceSensitivityWRTNodalCoordinate(CoordSet& cs, double *gravityAcceleration,
                                                            GenFullM<double> &dGfdx, int gravflg, GeomState *geomState)
 {
   int nnodes = 4;
@@ -893,7 +893,7 @@ Tetrahedral::massMatrix(CoordSet &cs, double *mel, int cmflg)
 }
 
 void
-Tetrahedral::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs, int senMethod)
+Tetrahedral::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs)
 {
 
   for(int i=0; i<12; ++i) { 

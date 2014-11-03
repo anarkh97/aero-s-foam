@@ -2,17 +2,9 @@
 #include <Driver.d/Domain.h>
 #include <Driver.d/GeoSource.h>
 
-#ifdef STRUCTOPT
-#include <Structopt.d/Driver_opt.d/GeoSource_opt.h>
-#endif
-
 #include <map>
 
-#ifdef STRUCTOPT
-GeoSource *geoSource = new GeoSource_opt;
-#else
 GeoSource *geoSource = new GeoSource;
-#endif
 
 std::map<int,double > weightList;    // allows to change the weight of each class of elements dynamically
 std::map<int,double> fieldWeightList;

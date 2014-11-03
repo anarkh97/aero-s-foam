@@ -21,7 +21,6 @@ public:
         double getMass(CoordSet&);
         void getMassNodalCoordinateSensitivity(CoordSet &cs, Vector &dMassdx);
         void getLengthNodalCoordinateSensitivity(CoordSet &cs, Vector &dLengthdx);
-        double weight(CoordSet& cs, double *gravityAcceleration);
         void getWeightNodalCoordinateSensitivity(Vector &dwdx, CoordSet& cs, double *gravityAcceleration);
         void getGravityForce(CoordSet&, double *g, Vector& f, int gravflg, GeomState *gs);
         void getGravityForceNodalCoordinateSensitivity(CoordSet& cs, double *gravityAcceleration,

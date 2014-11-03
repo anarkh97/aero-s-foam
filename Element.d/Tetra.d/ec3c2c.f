@@ -136,8 +136,6 @@ c
            do 2 j = 1, 3*NNO
               stress(elm,i,l) = stress(elm,i,l) +  sigmae(i,j,l)*u(j)
               strain(elm,i,l) = strain(elm,i,l) + straine(i,j,l)*u(j)
-c              write(6,100) i,j,l,sigmae(i,j,l)
-c 100    format(1x,'sigmae(',I3,',',I3,',',I3,')=',E14.7)
  2      continue
 
    10 CONTINUE

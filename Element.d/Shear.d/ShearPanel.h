@@ -20,8 +20,6 @@ public:
         FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg=1);
         double getMass(CoordSet&);
         double getMassThicknessSensitivity(CoordSet&);
-        double weight(CoordSet&, double *);
-        double getWeightThicknessSensitivity(CoordSet&, double *);
 
         void             getGravityForce(CoordSet&,double *gravity, Vector& f, int gravflg,
 	                                 GeomState *geomState);

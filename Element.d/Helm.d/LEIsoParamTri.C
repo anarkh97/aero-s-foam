@@ -104,6 +104,7 @@ double LEIsoParamTri::getMass(CoordSet &cs) {
  return area*prop->eh*prop->rho; 
 }
 
+
 double LEIsoParamTri::getMassThicknessSensitivity(CoordSet &cs) {
  IsoParamUtils2dTri ipu(order);
  int ordersq = ipu.getordersq();
@@ -119,27 +120,6 @@ double LEIsoParamTri::getMassThicknessSensitivity(CoordSet &cs) {
  return area*prop->rho; 
 }
 
-double LEIsoParamTri::weight(CoordSet& cs, double *gravityAcceleration)
-{
-  if (prop == NULL) return 0.0;
-
-  double _mass = getMass(cs);
-  double gravAccNorm = sqrt(gravityAcceleration[0]*gravityAcceleration[0] + 
-                            gravityAcceleration[1]*gravityAcceleration[1] +
-                            gravityAcceleration[2]*gravityAcceleration[2]);
-  return _mass*gravAccNorm;
-}
-
-double LEIsoParamTri::getWeightThicknessSensitivity(CoordSet& cs, double *gravityAcceleration, int senMethod)
-{
- if(senMethod == 0) {
-   double _weight = weight(cs, gravityAcceleration);
-   return _weight/prop->eh;
- } else {
-   fprintf(stderr," ... Error: LEIsoParamTri::weightDerivativeWRTthickness for automatic differentiation and finite difference is not implemented\n");
-   exit(-1);
- }
-}
 
 FullSquareMatrix LEIsoParamTri::massMatrix(CoordSet &cs, double *K, int fl) {
 

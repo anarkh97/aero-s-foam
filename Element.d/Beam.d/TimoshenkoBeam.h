@@ -77,23 +77,6 @@ private:
 
         void updTransMatrix(CoordSet&, GeomState *gs, double t[3][3], double &len);
 
-#ifdef STRUCTOPT
-protected:
-        EFrame *delemframe;
-
-public:	
-        int chkOptInf(CoordSet&);
-        double getGradMass(CoordSet&, CoordSet&);
-        double gradFrame(CoordSet&, CoordSet&);
-        void setdFrame(EFrame *def) { delemframe = def; }
-        void getGradIntrnForce(Vector&, CoordSet&, CoordSet&,
-	                             double*, double*, int , double*);
-        void getGradGravityForce(CoordSet&, CoordSet&, double*, Vector&);
-	      void gradMassMatrix(CoordSet &, CoordSet &, FullSquareMatrix &); 
-	      void gradstiffness (CoordSet&, CoordSet&, FullSquareMatrix &, int=1);
-        void updFrame(CoordSet&);
-#endif
-
 	// Routines for the decomposer
         PrioInfo examine(int sub, MultiFront *);
 	      bool hasRot() { return true; }

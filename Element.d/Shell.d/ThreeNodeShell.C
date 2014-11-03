@@ -845,6 +845,7 @@ ThreeNodeShell::getThermalForce(CoordSet& cs, Vector& ndTemps,
                       glflag);
 }
 
+#ifdef USE_EIGEN3
 #include <Element.d/FelippaShell.d/ShellElementTemplate.hpp>
 #include <Element.d/FelippaShell.d/EffMembraneTriangle.hpp>
 #include <Element.d/FelippaShell.d/AndesBendingTriangle.hpp>
@@ -1050,4 +1051,4 @@ ThreeNodeShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, V
                         ndTemps);
   delete mat;
 }
-
+#endif

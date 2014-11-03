@@ -1215,49 +1215,15 @@ EulerBeam::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector
   Eigen::Matrix<double,7,3> stress;
 
   if(avgnum == 0 || avgnum == 1) {
-/*    if(senMethod == 1) { // via automatic differentiation
-#ifndef AEROS_NO_AD
-      Simo::Jacobian<double,EulerBeamStressWRTDisplacementSensitivity> dSdu(dconst,iconst);
-      dStressdDisp = dSdu(q, 0);
-      dStdDisp.copy(dStressdDisp.data());
+    dStressdDisp.setZero();
+    Eigen::Matrix<double,9,1> eframe = Eigen::Map<Eigen::Matrix<double,25,1> >(dconst.data()).segment(8,9); // extract eframe
+    vms6WRTdisp(prop->A, prop->E, 1, dStressdDisp.data(), 1, 2, 7,
+                eframe.data(), prop->Ixx, prop->Iyy, prop->Izz, prop->nu,
+                x, y, z, q.data(), prop->W, prop->Ta, ndTemps);
+    dStdDisp.copy(dStressdDisp.data());
 #ifdef SENSITIVITY_DEBUG
-      if(verboseFlag) std::cerr << " ... dStressdDisp(AD) = \n" << dStressdDisp << std::endl;
+    if(verboseFlag) std::cerr << " ... dStressdDisp(analytic) = \n" << dStressdDisp << std::endl;
 #endif
-#else
-      std::cerr << " ... Error: AEROS_NO_AD is defined in EulerBeam::getVonMisesDisplacementSensitivity\n";  exit(-1);
-#endif
-    }
-*/
-//    if(senMethod == 0) { // analytic
-      dStressdDisp.setZero();
-      Eigen::Matrix<double,9,1> eframe = Eigen::Map<Eigen::Matrix<double,25,1> >(dconst.data()).segment(8,9); // extract eframe
-      vms6WRTdisp(prop->A, prop->E, 1, dStressdDisp.data(), 1, 2, 7,
-                  eframe.data(), prop->Ixx, prop->Iyy, prop->Izz, prop->nu,
-                  x, y, z, q.data(), prop->W, prop->Ta, ndTemps);
-      dStdDisp.copy(dStressdDisp.data());
-#ifdef SENSITIVITY_DEBUG
-      if(verboseFlag) std::cerr << " ... dStressdDisp(analytic) = \n" << dStressdDisp << std::endl;
-#endif
-//    }
-/*
-    if(senMethod == 2) { // via finite difference
-      EulerBeamStressWRTDisplacementSensitivity<double> foo(dconst,iconst);
-      double h = 1.0e-6;
-      for(int j=0; j<12; ++j) {
-        Eigen::Matrix<double,12,1> q_plus(q);
-        Eigen::Matrix<double,12,1> q_minus(q);
-        q_plus[j] += h;  q_minus[j] -= h;
-        Eigen::Matrix<double,2,1> S_plus = foo(q_plus,0);
-        Eigen::Matrix<double,2,1> S_minus = foo(q_minus,0);
-        Eigen::Matrix<double,2,1> dS = (S_plus-S_minus)/(2*h);
-        dStressdDisp(0,j) = dS[0];
-        dStressdDisp(1,j) = dS[1];
-      }
-      dStdDisp.copy(dStressdDisp.data());
-#ifdef SENSITIVITY_DEBUG
-      if(verboseFlag) std::cerr << " ... dStressdDisp(FD) = \n" << dStressdDisp << std::endl;
-#endif
-    } */
   } else dStdDisp.zero(); // NODALPARTIAL or GAUSS or any others
 }
 #endif

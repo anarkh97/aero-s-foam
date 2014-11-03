@@ -399,6 +399,7 @@ Membrane::getCorotator(CoordSet &cs, double *kel, int fitAlg, int)
  return new Shell3Corotator(nn[0], nn[1], nn[2], myStiff, fitAlg);
 }
 
+#ifdef USE_EIGEN3
 #include <Element.d/FelippaShell.d/ShellElementTemplate.hpp>
 #include <Element.d/FelippaShell.d/EffMembraneTriangle.hpp>
 #include <Element.d/FelippaShell.d/NoBendingTriangle.hpp>
@@ -592,3 +593,4 @@ Membrane::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector 
                         ndTemps);
   delete mat;
 }
+#endif

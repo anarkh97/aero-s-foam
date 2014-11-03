@@ -30,8 +30,6 @@ public:
 
         void getGravityForce(CoordSet&,double *gravity, Vector&, int gravflg,
 	                     GeomState *gs);
-        void getGravityForceThicknessSensitivity(CoordSet& cs, double *gravityAcceleration,
-                                                 Vector& gravityForceSensitivity, int gravflg, GeomState *geomState);
 
         void getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
                          Vector &elDisp, int strInd, int surface=0,
@@ -56,8 +54,6 @@ public:
         Corotator *getCorotator(CoordSet &, double *,int,int);
         double getMass(CoordSet &);
         double getMassThicknessSensitivity(CoordSet &);
-        double weight(CoordSet&, double *);
-        double getWeightThicknessSensitivity(CoordSet&, double *);
 
         void computeDisp(CoordSet&, State &, const InterpPoint &,
                          double*, GeomState *gs=0);
@@ -77,29 +73,6 @@ public:
         virtual double * getCompositeData(int nl) { return layData+(nl*9); }
         virtual double * getCompositeFrame()      { return cFrame;  }
 
-#ifdef STRUCTOPT
-
-protected:   
-	double  *layGrad;
-	
-public:	
-        int chkOptInf(CoordSet&);
-
-        double getGradMass(CoordSet& cs, CoordSet& dcs);
-	
-        void setCompositeGrad( double *gradval ) {layGrad=gradval;}
-
-        void getGradVonMises(Vector &dstress, Vector &weight, 
-	                     CoordSet &cs, CoordSet &dcs, 
-			  Vector &elDisp, Vector &elGrad,
-			  int strInd, int surface);
-
-        void gradMassMatrix(CoordSet &cs,CoordSet &dcs,FullSquareMatrix &dmel);
-
-        void gradstiffness(CoordSet& cs, CoordSet& gradcs, 
-                           FullSquareMatrix & gradkarray, int flg=1);
-#endif
-	
         // Routines for the decomposer
         PrioInfo examine(int sub, MultiFront *);
         int nDecFaces() { return 1; }

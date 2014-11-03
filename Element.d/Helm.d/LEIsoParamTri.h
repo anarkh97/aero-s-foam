@@ -19,8 +19,6 @@ public:
         FullSquareMatrix massMatrix(CoordSet&,double *d, int cmflg=1);
         double getMass(CoordSet&);
         double getMassThicknessSensitivity(CoordSet&);
-        double weight(CoordSet&, double *);
-        double getWeightThicknessSensitivity(CoordSet&, double *, int=1);
 
         Element *clone();
         void renum(int *);

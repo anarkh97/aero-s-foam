@@ -409,12 +409,6 @@ Compo3NodeShell::getGravityForce(CoordSet& cs, double *gravityAcceleration,
   gravityForce[17] = mz[2];
 }
 
-void 
-Compo3NodeShell::getGravityForceThicknessSensitivity(CoordSet& cs, double *gravityAcceleration,
-                                                     Vector& gravityForceSensitivity, int gravflg, GeomState *geomState)
-{
-}
- 
 double
 Compo3NodeShell::getMass(CoordSet &cs)
 { 
@@ -479,51 +473,6 @@ Compo3NodeShell::getMassThicknessSensitivity(CoordSet &cs)
                    totmas, sumrho, area, masflg);
 
   return totmas/prop->eh;
-}
-
-double
-Compo3NodeShell::weight(CoordSet& cs, double *gravityAcceleration)
-{
-  if (prop == NULL) {
-    return 0.0;
-  }
-
-  double _mass = getMass(cs);
-  double gravAccNorm = sqrt(gravityAcceleration[0]*gravityAcceleration[0] + 
-                            gravityAcceleration[1]*gravityAcceleration[1] +
-                            gravityAcceleration[2]*gravityAcceleration[2]);
-  return _mass*gravAccNorm;
-}
-
-double
-Compo3NodeShell::getWeightThicknessSensitivity(CoordSet& cs, double *gravityAcceleration)
-{
-  if (prop == NULL) return 0.0;
-
-  double x[3] = { cs[nn[0]]->x, cs[nn[1]]->x, cs[nn[2]]->x };
-  double y[3] = { cs[nn[0]]->y, cs[nn[1]]->y, cs[nn[2]]->y };
-  double z[3] = { cs[nn[0]]->z, cs[nn[1]]->z, cs[nn[2]]->z };
-  double h[3], ElementMassMatrix[18][18];
-  double *grvfor=NULL;
-
-  h[0] = h[1] = h[2] = prop->eh;
-
-  int cfrm = (cFrame) ? 1 : 0;
-  int grvflg = 0, masflg = 1;
-
-  double area = 0;
-  double totmas = 0;
-  double sumrho = 0;
-
-  _FORTRAN(compms)(x, y, z, h, prop->rho, (double *)ElementMassMatrix,
-                   18,numLayers, 1, 1, (int *)idlay, layData, cFrame,
-                   1, type, 1, cfrm, gravityAcceleration, grvfor, grvflg,
-                   totmas, sumrho, area, masflg);
-
-  double gravAccNorm = sqrt(gravityAcceleration[0]*gravityAcceleration[0] + 
-                            gravityAcceleration[1]*gravityAcceleration[1] +
-                            gravityAcceleration[2]*gravityAcceleration[2]);
-  return area*sumrho*gravAccNorm;
 }
 
 FullSquareMatrix

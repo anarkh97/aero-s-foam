@@ -390,28 +390,6 @@ BelytschkoTsayShell::getMassThicknessSensitivity(CoordSet& cs)
   return massWRTthic;
 }
 
-double
-BelytschkoTsayShell::weight(CoordSet& cs, double *gravityAcceleration)
-{
-  if(prop) {
-    double _mass = getMass(cs);
-    double gravAccNorm = sqrt(gravityAcceleration[0]*gravityAcceleration[0] + 
-                              gravityAcceleration[1]*gravityAcceleration[1] +
-                              gravityAcceleration[2]*gravityAcceleration[2]);
-    return _mass*gravAccNorm;
-  } else return 0;
-}   
-
-double
-BelytschkoTsayShell::getWeightThicknessSensitivity(CoordSet& cs, double *gravityAcceleration)
-{   
-  if(prop) {
-    double _weight = weight(cs, gravityAcceleration);
-    double eh = expmat->ematpro[19];
-    return _weight/eh;
-  } else return 0;
-}
-
 void
 BelytschkoTsayShell::getGravityForce(CoordSet& cs, double *gravityAcceleration, 
                                      Vector& gravityForce, int gravflg, GeomState *geomState)

@@ -48,8 +48,6 @@ C
             DF(I,1) = DF(I,1) + VDPQ1(I,N,L) * X(N)
             DF(I,2) = DF(I,2) + VDPQ1(I,N,L) * Y(N)
             DF(I,3) = DF(I,3) + VDPQ1(I,N,L) * Z(N)
-C            write(*,100) 'i=',i,'n=',n,'l=',l,vdpq1(I,N,L)
-C  100       format(A,I,A,I,A,I,F)
    1     CONTINUE
          IF (NDIMS .EQ. 3) THEN
             DFINV(1,1) = DF(2,2)*DF(3,3)-DF(2,3)*DF(3,2)

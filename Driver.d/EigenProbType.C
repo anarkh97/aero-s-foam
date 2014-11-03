@@ -845,7 +845,7 @@ SubSpaceSolver< EigOps, VecType, VecSet,
 
  if(solInfo.qrfactorization) {
    if( strcmp(solInfo.eigenvaluename, "") != 0) {
-     const char* eigenvaluename = domain->solInfo().eigenvaluename;
+     const char* eigenvaluename = solInfo.eigenvaluename;
      std::ofstream eigenout(eigenvaluename, std::ios::out);
      if(!eigenout) { std::cerr << " ... Error: cannot open file " << eigenvaluename << std::endl;   exit(-1); } 
      std::ostringstream s;

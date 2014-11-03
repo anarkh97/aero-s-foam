@@ -43,6 +43,7 @@ public:
         bool hasRot() { return true; }
         int  getMassType() { return 0; } // lumped only
 
+#ifdef USE_EIGEN3
         // NEW STRUCTOPT 
         double getMassThicknessSensitivity(CoordSet& cs);
         void getWeightNodalCoordinateSensitivity(Vector &dwdx, CoordSet&, double *gravityAcceleration,
@@ -63,5 +64,6 @@ public:
         void getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs,
                                                 Vector &elDisp, int strInd, int surface, int senMethod = 1,
                                                 double *ndTemps = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0);
+#endif
 };
 #endif

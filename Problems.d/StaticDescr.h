@@ -39,9 +39,7 @@ class SingleDomainPostProcessor {
     void staticOutput(VectorType &solution, VectorType &rhs, bool printTimers = true, int ndflag =0);
     void staticOutput(GeomState& gs, double time = 0.0);
     void staticOutput(GeomState *gs, double time = 0.0);
-#ifdef STRUCTOPT
-    void staticOutput(VectorType &solution, VectorType &rhs, double time);
-#endif
+
     void getStressStrain(VectorType &sol, int fileNumber, int stressIndex, double time, int printFlag) 
                      { domain->getStressStrain(sol,bcx,fileNumber,stressIndex,time,printFlag); }
     void setsizeSfemStress(int fileNumber) { domain->setsizeSfemStress(fileNumber); }

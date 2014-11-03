@@ -23,10 +23,8 @@ class Tetrahedral: public Element,
     void renum(EleRenumMap&);
 
     FullSquareMatrix stiffness(CoordSet&, double *kel, int flg=1);
-    FullSquareMatrix computeStiffness(double q[12], double *d);
     void getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs);
     FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg=1);
-    double weight(CoordSet& cs, double *gravityAcceleration);
     void getWeightNodalCoordinateSensitivity(Vector &dwdx, CoordSet& cs, double *gravityAcceleration);
     double getMass(CoordSet& cs);
 
@@ -35,13 +33,8 @@ class Tetrahedral: public Element,
                                                    GenFullM<double> &dGfdx, int gravflg, GeomState *geomState);
     void getThermalForce(CoordSet &cs, Vector &ndTemps, Vector &force, int glflag, GeomState *gs=0);
 
-    void computeVonMises(Vector &stress, Vector &weight, double q[12], Vector &elDisp, int strInd,
-                         int surface=0, double *ndTemps=0, double ylayer=0.0, double zlayer=0.0, int avgnum=0);
     void getVonMises(Vector &stress, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd,
                      int surface=0, double *ndTemps=0, double ylayer=0.0, double zlayer=0.0, int avgnum=0);
-    void computeGravityForce(double q[12],  double *gravityAcceleration,
-                             Vector& gravityForce, int gravflg, GeomState *geomState);
-
 
     void getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vector &weight,
                                                CoordSet &cs, Vector &elDisp, int strInd,

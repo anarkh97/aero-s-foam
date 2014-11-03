@@ -8,7 +8,7 @@
 #include <iostream>
 #include <cstring>
 
-double 
+double
 computeTetra4Jacobian(double X[4], double Y[4], double Z[4], double a[3][3])
 {
   double xd1,xd2,xd3;
@@ -23,8 +23,6 @@ computeTetra4Jacobian(double X[4], double Y[4], double Z[4], double a[3][3])
   a[1][0] = xd3*zd2 - xd2*zd3; a[1][1] = xd1*zd3 - zd1*xd3; a[1][2] = xd2*zd1 - xd1*zd2;
   a[2][0] = xd2*yd3 - xd3*yd2; a[2][1] = yd1*xd3 - xd1*yd3; a[2][2] = xd1*yd2 - yd1*xd2;
    // -------> DETERMINANT OF THE JACOBIAN MATRIX <--- 
-//  for(int i=0; i<3; ++i) for(int j=0; j<3; ++j) fprintf(stderr,"a[%d][%d] = %e\n", i, j, a[i][j]);
-//  fprintf(stderr,"xd1 = %e    yd1 = %e    zd1 = %e\n", xd1, yd1, zd1);
 
   double J = xd1*a[0][0] + yd1*a[1][0] + zd1*a[2][0];
   if(J == 0.0) { 
@@ -118,7 +116,7 @@ computeTetra4dadxTimesdShapeFct(double dShape[4][3], double J, double dadx[3][3]
 
 void
 computeTetra4DShapeFct(double dShape[4][3], double J, double a[3][3], double (*DShape)[3]=0)
-{ 
+{
   double cdet = 1.0/J;
 
   // -------> DERIVATIVE OF THE SHAPE FCTS IN THE "REAL" ELEMENT <--- 

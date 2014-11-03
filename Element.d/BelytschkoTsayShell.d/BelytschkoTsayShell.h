@@ -64,8 +64,6 @@ class BelytschkoTsayShell : virtual public Element, public Corotator
     FullSquareMatrix massMatrix(CoordSet&, double* mel, int cmflg = 1);
     double getMass(CoordSet& cs);
     double getMassThicknessSensitivity(CoordSet& cs);
-    double weight(CoordSet&, double *);
-    double getWeightThicknessSensitivity(CoordSet&, double *);
     
     void getGravityForce(CoordSet&, double* gravity, Vector&, int gravflg,
                          GeomState *gs);

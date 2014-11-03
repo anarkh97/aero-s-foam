@@ -3500,7 +3500,18 @@ void GeoSource::outputHeader(int fileNumber)
 {
   // only one node is requested for output,
   if(oinfo[fileNumber].nodeNumber != -1) {
-    fprintf(oinfo[fileNumber].filptr, "# node %d\n", oinfo[fileNumber].nodeNumber+1);
+    if(domain->isComplex()) {
+      switch(oinfo[fileNumber].complexouttype) {
+        case(OutputInfo::realimag) :
+          fprintf(oinfo[fileNumber].filptr, "# node %d (real and imaginary parts)\n", oinfo[fileNumber].nodeNumber+1);
+          break;
+        case(OutputInfo::modulusphase) :
+          fprintf(oinfo[fileNumber].filptr, "# node %d (complex modulus and phase)\n", oinfo[fileNumber].nodeNumber+1);
+          break;
+      }
+    }
+    else
+      fprintf(oinfo[fileNumber].filptr, "# node %d\n", oinfo[fileNumber].nodeNumber+1);
     return;
   }
 

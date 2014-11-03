@@ -390,45 +390,47 @@ Random:
         { geoSource->setGroupRandomProperty($2-1,$3,$4,$5); }
         ; 
 Impe:
-        IMPE NewLine FREQ Float NewLine
-          { geoSource->setImpe($4); }
-        //| IMPE NewLine SHIFT Float NewLine
-        //  { geoSource->setShift($4); }
-        | IMPE NewLine FREQSWEEP1 Float Float Integer NewLine
-          { domain->solInfo().curSweepParam = 0; domain->setFrequencySet(0); geoSource->setImpe($4); domain->addFrequencies1(2.0*PI*$4, 2.0*PI*$5, $6); }
-        | IMPE NewLine FREQSWEEP2 Float Float Integer NewLine
-          { domain->solInfo().curSweepParam = 0; domain->setFrequencySet(0); geoSource->setImpe($4); domain->addFrequencies2(2.0*PI*$4, 2.0*PI*$5, $6); }
-        | IMPE NewLine FREQSWEEP Float Float Integer Integer NewLine
-          { domain->solInfo().curSweepParam = 0; domain->setFrequencySet(0); geoSource->setImpe($4); domain->addFrequencies(2.0*PI*$4, 2.0*PI*$5, $6, $7); }
-        | IMPE NewLine FREQSWEEPA Float Float Integer RECONSALG Float Integer Integer Integer Integer NewLine
+        IMPE NewLine
+          { domain->setFrequencySet(0); domain->solInfo().curSweepParam = 0; }
+        | IMPE Integer NewLine
+          { domain->setFrequencySet($2); domain->solInfo().curSweepParam = $2; }
+        | IMPE Integer Integer NewLine
+          { domain->setFrequencySet($2); domain->solInfo().curSweepParam = $3; }
+        | Impe FREQ Float NewLine
+          { if(domain->solInfo().curSweepParam == 0) geoSource->setImpe($3); }
+        | Impe FREQSWEEP1 Float Float Integer NewLine
+          { if(domain->solInfo().curSweepParam == 0) geoSource->setImpe($3); domain->addFrequencies1(2.0*PI*$3, 2.0*PI*$4, $5); }
+        | Impe FREQSWEEP2 Float Float Integer NewLine
+          { if(domain->solInfo().curSweepParam == 0) geoSource->setImpe($3); domain->addFrequencies2(2.0*PI*$3, 2.0*PI*$4, $5); }
+        | Impe FREQSWEEP Float Float Integer Integer NewLine
+          { if(domain->solInfo().curSweepParam == 0) geoSource->setImpe($3); domain->addFrequencies(2.0*PI*$3, 2.0*PI*$4, $5, $6); }
+        | Impe FREQSWEEPA Float Float Integer RECONSALG Float Integer Integer Integer Integer NewLine
         {
-          domain->solInfo().curSweepParam = 0;
-          domain->setFrequencySet(0); geoSource->setImpe($4);
-          domain->addFrequencies(2.0*PI*$4, 2.0*PI*$5, 2,$6);
+          if(domain->solInfo().curSweepParam == 0) geoSource->setImpe($3);
+          domain->addFrequencies(2.0*PI*$3, 2.0*PI*$4, 2, $5);
           domain->solInfo().getSweepParams()->isAdaptSweep = true;
-          domain->solInfo().getSweepParams()->adaptSweep.maxP = $9;
-          domain->solInfo().getSweepParams()->adaptSweep.numS = $6;
-          if ($7 == SweepParams::KrylovGalProjection) 
+          domain->solInfo().getSweepParams()->adaptSweep.maxP = $8;
+          domain->solInfo().getSweepParams()->adaptSweep.numS = $5;
+          if ($6 == SweepParams::KrylovGalProjection) 
              domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = false; 
           else 
              domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = true;
-          domain->solInfo().getSweepParams()->adaptSweep.w1 = 2.0*PI*$4;
-          domain->solInfo().getSweepParams()->adaptSweep.w2 = 2.0*PI*$5;
-          domain->solInfo().getSweepParams()->adaptSweep.atol = $8;
-          domain->solInfo().getSweepParams()->adaptSweep.minRHS = $10;
-          domain->solInfo().getSweepParams()->adaptSweep.maxRHS = $11;
-          domain->solInfo().getSweepParams()->adaptSweep.deltaRHS = $12;
-          domain->solInfo().getSweepParams()->nFreqSweepRHS = $11;
+          domain->solInfo().getSweepParams()->adaptSweep.w1 = 2.0*PI*$3;
+          domain->solInfo().getSweepParams()->adaptSweep.w2 = 2.0*PI*$4;
+          domain->solInfo().getSweepParams()->adaptSweep.atol = $7;
+          domain->solInfo().getSweepParams()->adaptSweep.minRHS = $9;
+          domain->solInfo().getSweepParams()->adaptSweep.maxRHS = $10;
+          domain->solInfo().getSweepParams()->adaptSweep.deltaRHS = $11;
+          domain->solInfo().getSweepParams()->nFreqSweepRHS = $10;
         }
-        | IMPE NewLine FREQSWEEPA Float Float Integer RECONSALG NewLine
+        | Impe FREQSWEEPA Float Float Integer RECONSALG NewLine
         {
-          domain->solInfo().curSweepParam = 0;
-          domain->setFrequencySet(0); geoSource->setImpe($4);
-          domain->addFrequencies(2.0*PI*$4, 2.0*PI*$5, 2,$6);
+          if(domain->solInfo().curSweepParam == 0) geoSource->setImpe($3);
+          domain->addFrequencies(2.0*PI*$3, 2.0*PI*$4, 2, $5);
           domain->solInfo().getSweepParams()->isAdaptSweep = true;
           domain->solInfo().getSweepParams()->adaptSweep.maxP = 6;
-          domain->solInfo().getSweepParams()->adaptSweep.numS = $6;
-          if ($5 == SweepParams::KrylovGalProjection) {
+          domain->solInfo().getSweepParams()->adaptSweep.numS = $5;
+          if ($6 == SweepParams::KrylovGalProjection) {
              domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = false; 
              domain->solInfo().getSweepParams()->adaptSweep.atol = 1e-2;
              domain->solInfo().getSweepParams()->adaptSweep.minRHS = 8;
@@ -442,67 +444,11 @@ Impe:
              domain->solInfo().getSweepParams()->adaptSweep.maxRHS = 16;
              domain->solInfo().getSweepParams()->adaptSweep.deltaRHS = 4;
           }
-          domain->solInfo().getSweepParams()->adaptSweep.w1 = 2.0*PI*$4;
-          domain->solInfo().getSweepParams()->adaptSweep.w2 = 2.0*PI*$5;
+          domain->solInfo().getSweepParams()->adaptSweep.w1 = 2.0*PI*$3;
+          domain->solInfo().getSweepParams()->adaptSweep.w2 = 2.0*PI*$4;
           domain->solInfo().getSweepParams()->nFreqSweepRHS = domain->solInfo().getSweepParams()->adaptSweep.maxRHS;
         }
-        | IMPE Integer Integer NewLine FREQ Float NewLine
-          { domain->solInfo().curSweepParam = $3; if ($3 == 0) geoSource->setImpe($6); }
-        //| IMPE NewLine SHIFT Float NewLine
-        //  { geoSource->setShift($4); }
-        | IMPE Integer NewLine FREQSWEEP1 Float Float Integer NewLine
-          { domain->setFrequencySet($2); domain->solInfo().curSweepParam = $2; if ($2 == 0) geoSource->setImpe($5); domain->addFrequencies1(2.0*PI*$5, 2.0*PI*$6, $7); }
-        | IMPE Integer NewLine FREQSWEEP2 Float Float Integer NewLine
-          { domain->setFrequencySet($2); domain->solInfo().curSweepParam = $2; if ($2 == 0) geoSource->setImpe($5); domain->addFrequencies2(2.0*PI*$5, 2.0*PI*$6, $7); }
-        | IMPE Integer NewLine FREQSWEEP Float Float Integer Integer NewLine
-          { domain->setFrequencySet($2); domain->solInfo().curSweepParam = $2; if ($2 == 0) geoSource->setImpe($5); domain->addFrequencies(2.0*PI*$5, 2.0*PI*$6, $7, $8); }
-        | IMPE Integer NewLine FREQSWEEPA Float Float Integer RECONSALG Float Integer Integer Integer Integer NewLine
-        {
-          domain->setFrequencySet($2);  domain->solInfo().curSweepParam = $2;
-          if ($2 == 0) geoSource->setImpe($5);
-          domain->addFrequencies(2.0*PI*$5, 2.0*PI*$6, 2,$7);
-          domain->solInfo().getSweepParams()->isAdaptSweep = true;
-          domain->solInfo().getSweepParams()->adaptSweep.maxP = $10;
-          domain->solInfo().getSweepParams()->adaptSweep.numS = $7;
-          if ($8 == SweepParams::KrylovGalProjection) 
-             domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = false; 
-          else 
-             domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = true;
-          domain->solInfo().getSweepParams()->adaptSweep.w1 = 2.0*PI*$5;
-          domain->solInfo().getSweepParams()->adaptSweep.w2 = 2.0*PI*$6;
-          domain->solInfo().getSweepParams()->adaptSweep.atol = $9;
-          domain->solInfo().getSweepParams()->adaptSweep.minRHS = $11;
-          domain->solInfo().getSweepParams()->adaptSweep.maxRHS = $12;
-          domain->solInfo().getSweepParams()->adaptSweep.deltaRHS = $13;
-          domain->solInfo().getSweepParams()->nFreqSweepRHS = $12;
-        }
-        | IMPE Integer NewLine FREQSWEEPA Float Float Integer RECONSALG NewLine
-        {
-          domain->setFrequencySet($2);  domain->solInfo().curSweepParam = $2;
-          if ($2 == 0) geoSource->setImpe($5);
-          domain->addFrequencies(2.0*PI*$5, 2.0*PI*$6, 2,$7);
-          domain->solInfo().getSweepParams()->isAdaptSweep = true;
-          domain->solInfo().getSweepParams()->adaptSweep.maxP = 6;
-          domain->solInfo().getSweepParams()->adaptSweep.numS = $7;
-          if ($8 == SweepParams::KrylovGalProjection) {
-             domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = false; 
-             domain->solInfo().getSweepParams()->adaptSweep.atol = 1e-2;
-             domain->solInfo().getSweepParams()->adaptSweep.minRHS = 8;
-             domain->solInfo().getSweepParams()->adaptSweep.maxRHS = 48;
-             domain->solInfo().getSweepParams()->adaptSweep.deltaRHS = 4;
-          }
-          else {
-             domain->solInfo().getSweepParams()->adaptSweep.dgp_flag = true;
-             domain->solInfo().getSweepParams()->adaptSweep.atol = 1e-2;
-             domain->solInfo().getSweepParams()->adaptSweep.minRHS = 8;
-             domain->solInfo().getSweepParams()->adaptSweep.maxRHS = 16;
-             domain->solInfo().getSweepParams()->adaptSweep.deltaRHS = 4;
-          }
-          domain->solInfo().getSweepParams()->adaptSweep.w1 = 2.0*PI*$5;
-          domain->solInfo().getSweepParams()->adaptSweep.w2 = 2.0*PI*$6;
-          domain->solInfo().getSweepParams()->nFreqSweepRHS = domain->solInfo().getSweepParams()->adaptSweep.maxRHS;
-        }
-        | IMPE NewLine FreqSweep 
+        | Impe FreqSweep 
         | Impe ReconsInfo
         | Impe DampInfo
         | Impe PadePivotInfo
@@ -521,7 +467,7 @@ PadePolesInfo:
 FreqSweep:  
         /* FREQSWEEP f_0 */
         FREQSWEEP Float NewLine
-        { geoSource->setImpe($2); domain->addCoarseFrequency(2.0*PI*$2); }
+        { if(domain->solInfo().curSweepParam == 0) geoSource->setImpe($2); domain->addCoarseFrequency(2.0*PI*$2); }
         /* f_i num_fine_intervals (i-1 to i) */
         | FreqSweep Float Integer NewLine
         { domain->addFrequencies(2.0*PI*$2, $3); }
@@ -1187,8 +1133,9 @@ AeroInfo:
           if($3 == 20) { // set default alphas for C0
             domain->solInfo().alphas[0] = 0.5+0.375;
             domain->solInfo().alphas[1] = -0.375;
+            domain->solInfo().alphasv    = 0.0;
           }
-        }
+        } 
 	| AERO NewLine AEROTYPE Float Float NewLine
         { domain->solInfo().setAero($3);
           domain->solInfo().isCollocated = 0;
@@ -1203,8 +1150,30 @@ AeroInfo:
             // to compensate for the legacy predictor on the fluid side (in MatchNodeSet::getDisplacement)
             domain->solInfo().alphas[0] = $4+$5;
             domain->solInfo().alphas[1] = -$5;
+            domain->solInfo().alphasv    = 0.0;
           }
         }
+	| AERO NewLine AEROTYPE Float Float Float NewLine
+        { domain->solInfo().setAero($3);
+          domain->solInfo().isCollocated = 0;
+          if($3 == 8) {
+            // MPP uses only the first of the two inputted alphas
+            domain->solInfo().mppFactor = $4;
+          }
+          else {
+            // These alphas are used in FlExchanger::sendDisplacements and DistFlExchanger::sendDisplacements
+            // As of 4/14/2014 the following schemes can use the displacement predictor on the structure side:
+            // A0, A4, A5, A6, A7 and C0. Furthermore, we now apply a separate "anti-predictor" for A6 and A7
+            // to compensate for the legacy predictor on the fluid side (in MatchNodeSet::getDisplacement)
+            domain->solInfo().alphas[0] = $4+$5;
+            domain->solInfo().alphas[1] = -$5;
+
+            // This option added by Alex Main.  The last number on this line is the value used for velocity prediciton,
+            // which is useful for embedded simulations.
+            domain->solInfo().alphasv    = $6;
+          }
+        }
+
         | AERO NewLine AEROTYPE Float NewLine
         { domain->solInfo().setAero($3);
           domain->solInfo().isCollocated = 0;

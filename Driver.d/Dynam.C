@@ -358,10 +358,10 @@ Domain::buildAeroelasticForce(Vector& aero_f, PrevFrc& prevFrc, int tIndex, doub
     }
     int restartinc = std::max(solInfo().nRestart, 0);
     flExchanger->sendParam(sinfo.aeroFlag, sinfo.getTimeStep(), sendtim, restartinc,
-                           sinfo.isCollocated, sinfo.alphas);
+                           sinfo.isCollocated, sinfo.alphas,  sinfo.alphasv);
     if(tIndex == 0) // Send the parameter a second time for fluid iteration 1 to 2
       flExchanger->sendParam(sinfo.aeroFlag, sinfo.getTimeStep(), sendtim, restartinc,
-                             sinfo.isCollocated, sinfo.alphas);
+                             sinfo.isCollocated, sinfo.alphas, sinfo.alphasv);
   }
 
   getTimers().receiveFluidTime += getTime();
@@ -1064,7 +1064,7 @@ Domain::aeroPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
 
     if(sinfo.aeroFlag == 8) {
       flExchanger->sendParam(sinfo.aeroFlag, sinfo.getTimeStep(), sinfo.mppFactor,
-                             restartinc, sinfo.isCollocated, sinfo.alphas);
+                             restartinc, sinfo.isCollocated, sinfo.alphas, sinfo.alphasv);
       flExchanger->sendModeFreq(modeData.frequencies, modeData.numModes);
       if(verboseFlag) filePrint(stderr, " ... [E] Sent parameters and mode frequencies ...\n");
       flExchanger->sendModeShapes(modeData.numModes, modeData.numNodes,
@@ -1076,7 +1076,7 @@ Domain::aeroPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
       if(sinfo.newmarkBeta == 0 && !sinfo.dyna3d_compat) aero_tmax += sinfo.getTimeStep();
       double aero_dt = (sinfo.dyna3d_compat) ? 0 : sinfo.getTimeStep();
       flExchanger->sendParam(sinfo.aeroFlag, aero_dt, aero_tmax, restartinc,
-                             sinfo.isCollocated, sinfo.alphas);
+                             sinfo.isCollocated, sinfo.alphas, sinfo.alphasv);
       if(verboseFlag) filePrint(stderr, " ... [E] Sent parameters            ...\n");
 
       if(sinfo.aeroFlag == 5 || sinfo.aeroFlag == 4) {
@@ -1203,7 +1203,7 @@ Domain::aeroSensitivityPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
 
     if(sinfo.aeroFlag == 8) {
       flExchanger->sendParam(sinfo.aeroFlag, sinfo.getTimeStep(), sinfo.mppFactor,
-                             restartinc, sinfo.isCollocated, sinfo.alphas);
+                             restartinc, sinfo.isCollocated, sinfo.alphas, sinfo.alphasv);
       flExchanger->sendModeFreq(modeData.frequencies, modeData.numModes);
       if(verboseFlag) fprintf(stderr," ... [E] Sent parameters and mode frequencies ...\n");
       flExchanger->sendModeShapes(modeData.numModes, modeData.numNodes,

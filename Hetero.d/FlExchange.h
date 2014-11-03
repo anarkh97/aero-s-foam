@@ -68,11 +68,13 @@ class FlExchanger {
      int algnum;
      int isCollocated;
      double alpha[2];
+     double alphasv;
      double alph[2];
      double dt;
      double dtemp;
      Vector *tmpDisp;
-
+     Vector *tmpVel;
+     
      bool wCracking;
      bool sentInitialCracking;
      Connectivity *faceElemToNode, *nodeToFaceElem;
@@ -103,7 +105,7 @@ class FlExchanger {
      void getHeatSource(double *heatrcvd);
      
      void sendParam(int alg, double step, double totalTime,
-                    int restartinc, int _isCollocated, double alphas[2]);
+                    int restartinc, int _isCollocated, double alphas[2], double alphasv);
      void sendSubcyclingInfo(int sub);
 
      void sendTempParam(int algnum, double step, double totaltime,

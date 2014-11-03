@@ -43,6 +43,7 @@ FlExchanger::FlExchanger(CoordSet& _cs, Elemset& _eset, SurfaceEntity *_surf, Do
   dsa     = _dsa;
   oinfo   = _oinfo;
   tmpDisp = 0;
+  tmpVel = 0;
   useFaceElem = true; 
   wCracking = _wCracking;
   sentInitialCracking = false;
@@ -86,6 +87,7 @@ FlExchanger::FlExchanger(CoordSet& _cs, Elemset& _eset, DofSetArray *_dsa,
  dsa      = _dsa;
  oinfo    = _oinfo;
  tmpDisp  = 0;
+ tmpVel = 0;
  useFaceElem = false;
  wCracking = false;
  sentInitialCracking = false;
@@ -248,14 +250,33 @@ FlExchanger::getFluidLoadSensitivity(Vector& forceSen, int tIndex, double time,
 void
 FlExchanger::sendDisplacements(State& state, int tag, GeomState* geomState)
 {
+
+  static int it = 0;
+
  if(tmpDisp == 0)
  tmpDisp = new Vector(state.getDisp());
+ 
+ if(tmpVel == 0)
+   tmpVel = new Vector(state.getVeloc());
 
  *tmpDisp = state.getDisp();
  tmpDisp->linAdd(dt*alpha[0], state.getVeloc(), dt*alpha[1], state.getPrevVeloc());
- State newState(state, *tmpDisp);
- //if(verboseFlag)
- //  fprintf(stderr, "Disp Norm %e Veloc Norm %e\n", newState.getDisp()*newState.getDisp(), newState.getVeloc()*newState.getVeloc());
+
+ 
+  *tmpVel = state.getVeloc();
+  //tmpVel->linAdd(dt*alphasv, state.getAccel());
+  
+  if (it > 0) {
+    (*tmpVel) *= (1.0+alphasv);
+    tmpVel->linAdd(-alphasv, state.getPrevVeloc());
+  }
+
+  ++it;
+
+  State newState(state, *tmpDisp,*tmpVel);
+
+ if(verboseFlag)
+   fprintf(stderr, "Disp Norm %e Veloc Norm %e\n", newState.getDisp()*newState.getDisp(), newState.getVeloc()*newState.getVeloc());
 
  FaceElemSet *feset;
  int         *fnId;
@@ -349,7 +370,7 @@ FlExchanger::waitOnSend()
 
 void
 FlExchanger::sendParam(int _algnum, double step, double totaltime,
-                       int rstinc, int _isCollocated, double _a[2])
+                       int rstinc, int _isCollocated, double _a[2], double _b)
 {
   int TNd  = 0;
   int thisNode;
@@ -381,6 +402,8 @@ FlExchanger::sendParam(int _algnum, double step, double totaltime,
   } */
   alpha[0] = _a[0];
   alpha[1] = _a[1];
+
+  alphasv = _b;
 }
 
 void

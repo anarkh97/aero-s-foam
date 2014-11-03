@@ -56,6 +56,16 @@ class State {
      vcx = s.vcx;
    }
 
+   State (const State &s, Vector &n_d, Vector &n_v) : disp(n_d), veloc(n_v),
+        accel(s.accel), prevVeloc(s.prevVeloc)
+   {
+     dsa = s.dsa;
+     DSA = s.DSA;
+     bcx = s.bcx;
+     vcx = s.vcx;
+   }
+
+
    Vector &getDisp()  { return disp;  }
    Vector &getVeloc() { return veloc; }
    Vector &getAccel() { return accel; }

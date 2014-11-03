@@ -19,14 +19,14 @@ public:
         FullSquareMatrix stiffness(CoordSet&, double *d, int flg=1);
         FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg=1);
         double getMass(CoordSet&);
-        double getMassSensitivityWRTthickness(CoordSet&);
+        double getMassThicknessSensitivity(CoordSet&);
         double weight(CoordSet&, double *);
-        double weightDerivativeWRTthickness(CoordSet&, double *);
+        double getWeightThicknessSensitivity(CoordSet&, double *);
 
         void             getGravityForce(CoordSet&,double *gravity, Vector& f, int gravflg,
 	                                 GeomState *geomState);
-        void getGravityForceSensitivityWRTthickness(CoordSet&,double *gravity, Vector& f, int gravflg,
-	                                                  GeomState *geomState);
+        void getGravityForceThicknessSensitivity(CoordSet&,double *gravity, Vector& f, int gravflg,
+	                                               GeomState *geomState);
 
         void             getVonMises (Vector &stress, Vector &weight,
                                       CoordSet &cs, Vector &elDisp, 

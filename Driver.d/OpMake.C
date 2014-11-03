@@ -1659,7 +1659,7 @@ Domain::addGravityForceSensitivity(GenVector<Scalar> &forceSen)
                                          // 0: lumped without fixed-end moments
 
     elementGravityForceSen.zero();
-    packedEset[iele]->getGravityForceSensitivityWRTthickness(nodes, gravityAcceleration, elementGravityForceSen, gravflg);
+    packedEset[iele]->getGravityForceThicknessSensitivity(nodes, gravityAcceleration, elementGravityForceSen, gravflg);
 
     // transform vector from basic to DOF_FRM coordinates
     transformVector(elementGravityForceSen, iele);
@@ -3388,17 +3388,17 @@ void Domain::sensitivityPostProcessing(AllSensitivities<Scalar> &allSens) {
       if(verboseFlag) filePrint(stderr," ... output weight wrt thickness sensitivity\n");
       if(verboseFlag) std::cerr << (*allSens.weightWRTthick);
 #endif
-      geoSource->outputEigenScalars(i, allSens.weightWRTthick, allSens.weight);
+      geoSource->outputSensitivityScalars(i, allSens.weightWRTthick, allSens.weight);
     }
     if(oinfo[i].type == OutputInfo::WeigShap) {
 #ifdef SENSITIVITY_DEBUG
       if(verboseFlag) filePrint(stderr," ... output weight wrt shape sensitivity\n");
       if(verboseFlag) std::cerr << (*allSens.weightWRTshape);
 #endif
-      geoSource->outputEigenScalars(i, allSens.weightWRTshape, allSens.weight);
+      geoSource->outputSensitivityScalars(i, allSens.weightWRTshape, allSens.weight);
     }
-    if(oinfo[i].type == OutputInfo::VMstThic) geoSource->outputEigenVectors(i, allSens.vonMisesWRTthick);
-    if(oinfo[i].type == OutputInfo::VMstShap) geoSource->outputEigenVectors(i, allSens.vonMisesWRTshape);
+    if(oinfo[i].type == OutputInfo::VMstThic) geoSource->outputSensitivityVectors(i, allSens.vonMisesWRTthick);
+    if(oinfo[i].type == OutputInfo::VMstShap) geoSource->outputSensitivityVectors(i, allSens.vonMisesWRTshape);
   }
   firstOutput = false;
 #endif

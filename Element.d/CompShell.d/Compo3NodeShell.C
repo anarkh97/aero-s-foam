@@ -410,8 +410,8 @@ Compo3NodeShell::getGravityForce(CoordSet& cs, double *gravityAcceleration,
 }
 
 void 
-Compo3NodeShell::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravityAcceleration,
-                                                        Vector& gravityForceSensitivity, int gravflg, GeomState *geomState)
+Compo3NodeShell::getGravityForceThicknessSensitivity(CoordSet& cs, double *gravityAcceleration,
+                                                     Vector& gravityForceSensitivity, int gravflg, GeomState *geomState)
 {
 }
  
@@ -449,7 +449,7 @@ Compo3NodeShell::getMass(CoordSet &cs)
 }
 
 double
-Compo3NodeShell::getMassSensitivityWRTthickness(CoordSet &cs)
+Compo3NodeShell::getMassThicknessSensitivity(CoordSet &cs)
 { 
   if(prop == NULL) return 0.0;
 
@@ -496,7 +496,7 @@ Compo3NodeShell::weight(CoordSet& cs, double *gravityAcceleration)
 }
 
 double
-Compo3NodeShell::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration)
+Compo3NodeShell::getWeightThicknessSensitivity(CoordSet& cs, double *gravityAcceleration)
 {
   if (prop == NULL) return 0.0;
 

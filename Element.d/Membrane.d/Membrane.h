@@ -44,13 +44,13 @@ public:
         int  getMassType() { return 0; } // lumped only
 
         // NEW STRUCTOPT 
-        double getMassSensitivityWRTthickness(CoordSet& cs);
-        void weightDerivativeWRTNodalCoordinate(Vector &dwdx, CoordSet&, double *gravityAcceleration,
+        double getMassThicknessSensitivity(CoordSet& cs);
+        void getWeightNodalCoordinateSensitivity(Vector &dwdx, CoordSet&, double *gravityAcceleration,
                                                 int senMethod = 1);
-        void getGravityForceSensitivityWRTthickness(CoordSet&, double *gravity, int senMethod, Vector&, int gravflg,
-                                                    GeomState *gs = 0);
-        void getGravityForceSensitivityWRTNodalCoordinate(CoordSet& cs, double *gravityAcceleration, int senMethod,
-                                                          GenFullM<double> &dGfdx, int gravflg, GeomState *gs = 0);
+        void getGravityForceThicknessSensitivity(CoordSet&, double *gravity, int senMethod, Vector&, int gravflg,
+                                                 GeomState *gs = 0);
+        void getGravityForceNodalCoordinateSensitivity(CoordSet& cs, double *gravityAcceleration, int senMethod,
+                                                       GenFullM<double> &dGfdx, int gravflg, GeomState *gs = 0);
         void getStiffnessThicknessSensitivity(CoordSet& cs, FullSquareMatrix &dStiffdThick, int flg = 1,
                                               int senMethod = 0);
         void getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs, int senMethod = 0);

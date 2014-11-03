@@ -142,7 +142,7 @@ TwoNodeTruss::getMass(CoordSet& cs)
 }
 
 void
-TwoNodeTruss::getMassSensitivityWRTNodalCoordinate(CoordSet &cs, Vector &dMassdx)
+TwoNodeTruss::getMassNodalCoordinateSensitivity(CoordSet &cs, Vector &dMassdx)
 {
         using std::sqrt;
 
@@ -174,7 +174,7 @@ TwoNodeTruss::getMassSensitivityWRTNodalCoordinate(CoordSet &cs, Vector &dMassdx
 }
 
 void
-TwoNodeTruss::getLengthSensitivityWRTNodalCoordinate(CoordSet &cs, Vector &dLengthdx)
+TwoNodeTruss::getLengthNodalCoordinateSensitivity(CoordSet &cs, Vector &dLengthdx)
 {
         using std::sqrt;
 
@@ -215,14 +215,14 @@ TwoNodeTruss::weight(CoordSet& cs, double *gravityAcceleration)
 }
 
 void
-TwoNodeTruss::weightDerivativeWRTNodalCoordinate(Vector &dwdx, CoordSet& cs, double *gravityAcceleration)
+TwoNodeTruss::getWeightNodalCoordinateSensitivity(Vector &dwdx, CoordSet& cs, double *gravityAcceleration)
 {
   if(dwdx.size() != 6) {
      std::cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
      exit(-1);
   }
   Vector dMassdx(6);
-  getMassSensitivityWRTNodalCoordinate(cs, dMassdx);
+  getMassNodalCoordinateSensitivity(cs, dMassdx);
   double gravAccNorm = sqrt(gravityAcceleration[0]*gravityAcceleration[0] +
                             gravityAcceleration[1]*gravityAcceleration[1] +
                             gravityAcceleration[2]*gravityAcceleration[2]);
@@ -230,11 +230,11 @@ TwoNodeTruss::weightDerivativeWRTNodalCoordinate(Vector &dwdx, CoordSet& cs, dou
 }
 
 void
-TwoNodeTruss::getGravityForceSensitivityWRTNodalCoordinate(CoordSet& cs, double *gravityAcceleration,
-                                                           GenFullM<double> &dGfdx, int gravflg, GeomState *geomState)
+TwoNodeTruss::getGravityForceNodalCoordinateSensitivity(CoordSet& cs, double *gravityAcceleration,
+                                                        GenFullM<double> &dGfdx, int gravflg, GeomState *geomState)
 {
        Vector dMassdx(6);
-       getMassSensitivityWRTNodalCoordinate(cs, dMassdx);
+       getMassNodalCoordinateSensitivity(cs, dMassdx);
        dGfdx[0][0] = 0.5*gravityAcceleration[0]*dMassdx[0];
        dGfdx[0][1] = 0.5*gravityAcceleration[1]*dMassdx[0];
        dGfdx[0][2] = 0.5*gravityAcceleration[2]*dMassdx[0];

@@ -388,7 +388,7 @@ Triangle3::getMass(CoordSet& cs)
 }
 
 double
-Triangle3::getMassSensitivityWRTthickness(CoordSet& cs)
+Triangle3::getMassThicknessSensitivity(CoordSet& cs)
 {
         Node &nd1 = cs.getNode(nn[0]);
         Node &nd2 = cs.getNode(nn[1]);
@@ -424,7 +424,7 @@ Triangle3::weight(CoordSet& cs, double *gravityAcceleration)
 }
 
 double
-Triangle3::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration)
+Triangle3::getWeightThicknessSensitivity(CoordSet& cs, double *gravityAcceleration)
 {
   if (prop == NULL) {
     return 0.0;
@@ -453,8 +453,8 @@ Triangle3::getGravityForce(CoordSet& cs,double *gravityAcceleration,
 }
 
 void
-Triangle3::getGravityForceSensitivityWRTthickness(CoordSet& cs,double *gravityAcceleration,
-                                                  Vector& gravityForceSensitivity, int gravflg, GeomState *geomState)
+Triangle3::getGravityForceThicknessSensitivity(CoordSet& cs,double *gravityAcceleration,
+                                               Vector& gravityForceSensitivity, int gravflg, GeomState *geomState)
 {
   double massPerNode = getMass(cs)/3.0;
   

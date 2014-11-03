@@ -1155,7 +1155,7 @@ FelippaShell::getThermalForce(CoordSet& cs, Vector& ndTemps, Vector &elThermalFo
 }
 
 double
-FelippaShell::getMassSensitivityWRTthickness(CoordSet &cs)
+FelippaShell::getMassThicknessSensitivity(CoordSet &cs)
 { 
   if(prop == NULL) return 0.0;
 
@@ -1173,13 +1173,11 @@ FelippaShell::getMassSensitivityWRTthickness(CoordSet &cs)
 
   Impl::andesms(glNum+1, x, y, z, gravityAcceleration, grvfor, totmas, rhoh-nsm);
 
-  fprintf(stderr,"thickness = %e, totmas = %e\n", thickness, totmas);
-
   return totmas/gpmat->GetShellThickness();
 }
 
 void
-FelippaShell::weightDerivativeWRTNodalCoordinate(Vector &dwdx, CoordSet& cs, double *gravityAcceleration)
+FelippaShell::getWeightNodalCoordinateSensitivity(Vector &dwdx, CoordSet& cs, double *gravityAcceleration)
 {
   if(prop == NULL || gravityAcceleration == NULL) {
     dwdx.zeroAll();
@@ -1202,8 +1200,8 @@ FelippaShell::weightDerivativeWRTNodalCoordinate(Vector &dwdx, CoordSet& cs, dou
 }
 
 void
-FelippaShell::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravityAcceleration, 
-                                                     Vector& dGfdthick, int gravflg, GeomState*)
+FelippaShell::getGravityForceThicknessSensitivity(CoordSet& cs, double *gravityAcceleration, 
+                                                  Vector& dGfdthick, int gravflg, GeomState*)
 {
   if(prop == NULL) {
     dGfdthick.zero();
@@ -1228,8 +1226,8 @@ FelippaShell::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravi
 }
 
 void
-FelippaShell::getGravityForceSensitivityWRTNodalCoordinate(CoordSet& cs, double *gravityAcceleration,
-                                                           GenFullM<double> &dGfdx, int gravflg, GeomState*)
+FelippaShell::getGravityForceNodalCoordinateSensitivity(CoordSet& cs, double *gravityAcceleration,
+                                                        GenFullM<double> &dGfdx, int gravflg, GeomState*)
 {
   if(prop == NULL) {
     dGfdx.zero();

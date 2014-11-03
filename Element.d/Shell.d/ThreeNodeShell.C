@@ -852,14 +852,14 @@ ThreeNodeShell::getThermalForce(CoordSet& cs, Vector& ndTemps,
 typedef ShellElementTemplate<double,EffMembraneTriangle,AndesBendingTriangle> Impl;
 
 double
-ThreeNodeShell::getMassSensitivityWRTthickness(CoordSet& cs)
+ThreeNodeShell::getMassThicknessSensitivity(CoordSet& cs)
 {
   if(prop == NULL) return 0.0;
   else return getMass(cs)/prop->eh;
 }
 
 void
-ThreeNodeShell::weightDerivativeWRTNodalCoordinate(Vector &dwdx, CoordSet& cs, double *gravityAcceleration)
+ThreeNodeShell::getWeightNodalCoordinateSensitivity(Vector &dwdx, CoordSet& cs, double *gravityAcceleration)
 {
   if(prop == NULL || gravityAcceleration == NULL) {
     dwdx.zeroAll();
@@ -883,7 +883,7 @@ ThreeNodeShell::weightDerivativeWRTNodalCoordinate(Vector &dwdx, CoordSet& cs, d
 }
 
 void
-ThreeNodeShell::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravityAcceleration,
+ThreeNodeShell::getGravityForceThicknessSensitivity(CoordSet& cs, double *gravityAcceleration,
                                                        Vector& dGfdthick, int gravflg, GeomState *geomState)
 {
   if(prop == NULL) {
@@ -897,8 +897,8 @@ ThreeNodeShell::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gra
 }
 
 void
-ThreeNodeShell::getGravityForceSensitivityWRTNodalCoordinate(CoordSet& cs, double *gravityAcceleration,
-                                                             GenFullM<double> &dGfdx, int gravflg, GeomState*)
+ThreeNodeShell::getGravityForceNodalCoordinateSensitivity(CoordSet& cs, double *gravityAcceleration,
+                                                          GenFullM<double> &dGfdx, int gravflg, GeomState*)
 {
   if(prop == NULL) {
     dGfdx.zero();

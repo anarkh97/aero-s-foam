@@ -358,7 +358,7 @@ BelytschkoTsayShell::getMass(CoordSet& cs)
 }
 
 double
-BelytschkoTsayShell::getMassSensitivityWRTthickness(CoordSet& cs)
+BelytschkoTsayShell::getMassThicknessSensitivity(CoordSet& cs)
 {
   if (prop == NULL) return 0.0;
 
@@ -403,7 +403,7 @@ BelytschkoTsayShell::weight(CoordSet& cs, double *gravityAcceleration)
 }   
 
 double
-BelytschkoTsayShell::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration)
+BelytschkoTsayShell::getWeightThicknessSensitivity(CoordSet& cs, double *gravityAcceleration)
 {   
   if(prop) {
     double _weight = weight(cs, gravityAcceleration);
@@ -431,8 +431,8 @@ BelytschkoTsayShell::getGravityForce(CoordSet& cs, double *gravityAcceleration,
 }
 
 void
-BelytschkoTsayShell::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravityAcceleration,
-                                                            Vector& gravityForceSensitivity, int gravflg, GeomState *geomState)
+BelytschkoTsayShell::getGravityForceThicknessSensitivity(CoordSet& cs, double *gravityAcceleration,
+                                                         Vector& gravityForceSensitivity, int gravflg, GeomState *geomState)
 {
   gravityForceSensitivity.zero();
 

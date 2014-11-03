@@ -332,7 +332,7 @@ ShearPanel::getMass(CoordSet& cs)
 }
 
 double
-ShearPanel::getMassSensitivityWRTthickness(CoordSet& cs)
+ShearPanel::getMassThicknessSensitivity(CoordSet& cs)
 {
         Node &nd1 = cs.getNode(nn[0]);
         Node &nd2 = cs.getNode(nn[1]);
@@ -378,7 +378,7 @@ ShearPanel::weight(CoordSet& cs, double *gravityAcceleration)
 }
 
 double
-ShearPanel::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration)
+ShearPanel::getWeightThicknessSensitivity(CoordSet& cs, double *gravityAcceleration)
 {
   if (prop == NULL) {
     return 0.0;
@@ -521,8 +521,8 @@ ShearPanel::getGravityForce(CoordSet& cs,double *gravityAcceleration,
 }
 
 void
-ShearPanel::getGravityForceSensitivityWRTthickness(CoordSet& cs,double *gravityAcceleration,
-                                                   Vector& gravityForceSensitivity, int gravflg, GeomState *geomState)
+ShearPanel::getGravityForceThicknessSensitivity(CoordSet& cs,double *gravityAcceleration,
+                                                Vector& gravityForceSensitivity, int gravflg, GeomState *geomState)
 {
       // Lumped
       if(gravflg != 2) {

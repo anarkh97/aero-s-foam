@@ -406,14 +406,14 @@ Membrane::getCorotator(CoordSet &cs, double *kel, int fitAlg, int)
 typedef ShellElementTemplate<double,EffMembraneTriangle,NoBendingTriangle> Impl;
 
 double
-Membrane::getMassSensitivityWRTthickness(CoordSet& cs)
+Membrane::getMassThicknessSensitivity(CoordSet& cs)
 {
   if(prop == NULL) return 0.0;
   else return getMass(cs)/prop->eh;
 }
 
 void
-Membrane::weightDerivativeWRTNodalCoordinate(Vector &dwdx, CoordSet& cs, double *gravityAcceleration, int)
+Membrane::getWeightNodalCoordinateSensitivity(Vector &dwdx, CoordSet& cs, double *gravityAcceleration, int)
 {
   if(prop == NULL || gravityAcceleration == NULL) {
     dwdx.zeroAll();
@@ -436,8 +436,8 @@ Membrane::weightDerivativeWRTNodalCoordinate(Vector &dwdx, CoordSet& cs, double 
 }
 
 void
-Membrane::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravityAcceleration, int,
-                                                 Vector& dGfdthick, int gravflg, GeomState *geomState)
+Membrane::getGravityForceThicknessSensitivity(CoordSet& cs, double *gravityAcceleration, int,
+                                              Vector& dGfdthick, int gravflg, GeomState *geomState)
 {
   if(prop == NULL) {
     dGfdthick.zero();
@@ -450,10 +450,10 @@ Membrane::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravityAc
 }
 
 void
-Membrane::getGravityForceSensitivityWRTNodalCoordinate(CoordSet& cs, double *gravityAcceleration, int,
-                                                       GenFullM<double> &dGfdx, int gravflg, GeomState*)
+Membrane::getGravityForceNodalCoordinateSensitivity(CoordSet& cs, double *gravityAcceleration, int,
+                                                    GenFullM<double> &dGfdx, int gravflg, GeomState*)
 {
-  std::cerr << " *** WARNING: Membrane::getGravityForceSensitivityWRTNodalCoordinate is not implemented\n";
+  std::cerr << " *** WARNING: Membrane::getGravityForceNodalCoordinateSensitivity is not implemented\n";
   dGfdx.zero();
 }
 

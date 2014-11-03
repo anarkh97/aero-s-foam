@@ -2959,7 +2959,7 @@ Domain::computeWeightWRTShapeVariableSensitivity(int sindex, AllSensitivities<do
        if(prop == 0) continue; // phantom element
 
        weight += packedEset[iele]->weight(nodes, gravityAcceleration);
-       packedEset[iele]->weightDerivativeWRTNodalCoordinate(weightDerivative, nodes, gravityAcceleration);
+       packedEset[iele]->getWeightNodalCoordinateSensitivity(weightDerivative, nodes, gravityAcceleration);
        for(int ishap=0; ishap<numShapeVars; ++ishap) {
          for(int i=0; i<nnodes; ++i) {
            int node2 = (outFlag) ? nodeTable[(*elemToNode)[iele][i]]-1 : (*elemToNode)[iele][i];
@@ -3008,7 +3008,7 @@ Domain::computeWeightWRTthicknessSensitivity(int sindex, AllSensitivities<double
        if(prop == 0) continue; // phantom element
 
        weight += packedEset[iele]->weight(nodes, gravityAcceleration);
-       weightDerivative[iele] = packedEset[iele]->weightDerivativeWRTthickness(nodes, gravityAcceleration);
+       weightDerivative[iele] = packedEset[iele]->getWeightThicknessSensitivity(nodes, gravityAcceleration);
      }
 
      for(int iparam = 0; iparam < numThicknessGroups; ++iparam) {
@@ -3289,7 +3289,7 @@ Domain::subtractGravityForceSensitivityWRTthickness(int sindex, AllSensitivities
            gravflg = 2;
          else gravflg = geoSource->fixedEndM;
          elementGravityForceSen.zero();
-         packedEset[iele]->getGravityForceSensitivityWRTthickness(nodes, gravityAcceleration, elementGravityForceSen, gravflg);
+         packedEset[iele]->getGravityForceThicknessSensitivity(nodes, gravityAcceleration, elementGravityForceSen, gravflg);
  
          // transform vector from basic to DOF_FRM coordinates
          transformVector(elementGravityForceSen, iele);
@@ -3331,7 +3331,7 @@ Domain::subtractGravityForceSensitivityWRTShapeVariable(int sindex, AllSensitivi
          gravflg = 2;
        else gravflg = geoSource->fixedEndM;
        elementGravityForceSen.zero();
-       packedEset[iele]->getGravityForceSensitivityWRTNodalCoordinate(nodes, gravityAcceleration, elementGravityForceSen, gravflg);
+       packedEset[iele]->getGravityForceNodalCoordinateSensitivity(nodes, gravityAcceleration, elementGravityForceSen, gravflg);
 
        // transform vector from basic to DOF_FRM coordinates
 //       transformVector(elementGravityForceSen, iele); //TODO->commented out for now, but if nodes does not use basic coordinate frame, then shouldn't comment this out

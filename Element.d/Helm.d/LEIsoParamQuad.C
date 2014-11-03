@@ -94,7 +94,7 @@ double LEIsoParamQuad::getMass(CoordSet &cs) {
  return area*prop->eh*prop->rho;
 }
 
-double LEIsoParamQuad::getMassSensitivityWRTthickness(CoordSet &cs) {
+double LEIsoParamQuad::getMassThicknessSensitivity(CoordSet &cs) {
  IsoParamUtils2d ipu(order);
  int ordersq = ipu.getordersq();
  double *xyz=(double*)alloca(sizeof(double)*3*ordersq);
@@ -121,7 +121,7 @@ double LEIsoParamQuad::weight(CoordSet& cs, double *gravityAcceleration)
 }
 
 
-double LEIsoParamQuad::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int senMethod)
+double LEIsoParamQuad::getWeightThicknessSensitivity(CoordSet& cs, double *gravityAcceleration, int senMethod)
 {
  if(senMethod == 0) {
    double _weight = weight(cs, gravityAcceleration);

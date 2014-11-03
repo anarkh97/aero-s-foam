@@ -62,16 +62,16 @@ class SuperElement : public Element
     void getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs);
 
     double getMass(CoordSet&);
-    double getMassSensitivityWRTthickness(CoordSet&);
+    double getMassThicknessSensitivity(CoordSet&);
     double weight(CoordSet&, double *);
-    double weightDerivativeWRTthickness(CoordSet&, double *);
-    void weightDerivativeWRTNodalCoordinate(Vector &dwdx, CoordSet& cs, double *gravityAcceleration);
+    double getWeightThicknessSensitivity(CoordSet&, double *);
+    void getWeightNodalCoordinateSensitivity(Vector &dwdx, CoordSet& cs, double *gravityAcceleration);
     void getGravityForce(CoordSet &cs, double *gravity, Vector &force,
                          int gravflg, GeomState *gs=0);
-    void getGravityForceSensitivityWRTthickness(CoordSet &cs, double *gravity, Vector &forceSen,
-                                                int gravflg, GeomState *gs=0);
-    void getGravityForceSensitivityWRTNodalCoordinate(CoordSet &cs, double *gravity, GenFullM<double> &,
-                                                      int gravflg, GeomState *gs=0);
+    void getGravityForceThicknessSensitivity(CoordSet &cs, double *gravity, Vector &forceSen,
+                                             int gravflg, GeomState *gs=0);
+    void getGravityForceNodalCoordinateSensitivity(CoordSet &cs, double *gravity, GenFullM<double> &,
+                                                   int gravflg, GeomState *gs=0);
     void getThermalForce(CoordSet &cs, Vector &ndT, Vector &force,
                          int glflag, GeomState *gs=0);
     void getIntrnForce(Vector &elForce, CoordSet &cs,

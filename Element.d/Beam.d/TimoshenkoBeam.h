@@ -33,12 +33,12 @@ public:
 
         void getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs);
         double getMass(CoordSet& cs);
-        void getMassSensitivityWRTNodalCoordinate(CoordSet &cs, Vector &dMassdx);
+        void getMassNodalCoordinateSensitivity(CoordSet &cs, Vector &dMassdx);
         double weight(CoordSet& cs, double *gravityAcceleration);
-        void weightDerivativeWRTNodalCoordinate(Vector &dwdx, CoordSet& cs, double *gravityAcceleration);
+        void getWeightNodalCoordinateSensitivity(Vector &dwdx, CoordSet& cs, double *gravityAcceleration);
         void getGravityForce(CoordSet&,double *gravity, Vector&, int gravflg, GeomState *gs);
-        void getGravityForceSensitivityWRTNodalCoordinate(CoordSet& cs, double *gravityAcceleration,
-                                                          GenFullM<double> &dGfdx, int gravflg, GeomState *geomState=0);
+        void getGravityForceNodalCoordinateSensitivity(CoordSet& cs, double *gravityAcceleration,
+                                                       GenFullM<double> &dGfdx, int gravflg, GeomState *geomState=0);
         void getIntrnForce(Vector& elForce,CoordSet& cs,
                            double *elDisp,int forceIndex, double *ndTemps);
 

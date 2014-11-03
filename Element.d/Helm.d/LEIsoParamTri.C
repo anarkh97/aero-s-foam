@@ -104,7 +104,7 @@ double LEIsoParamTri::getMass(CoordSet &cs) {
  return area*prop->eh*prop->rho; 
 }
 
-double LEIsoParamTri::getMassSensitivityWRTthickness(CoordSet &cs) {
+double LEIsoParamTri::getMassThicknessSensitivity(CoordSet &cs) {
  IsoParamUtils2dTri ipu(order);
  int ordersq = ipu.getordersq();
  double *xyz=(double*)alloca(sizeof(double)*3*ordersq);
@@ -130,7 +130,7 @@ double LEIsoParamTri::weight(CoordSet& cs, double *gravityAcceleration)
   return _mass*gravAccNorm;
 }
 
-double LEIsoParamTri::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int senMethod)
+double LEIsoParamTri::getWeightThicknessSensitivity(CoordSet& cs, double *gravityAcceleration, int senMethod)
 {
  if(senMethod == 0) {
    double _weight = weight(cs, gravityAcceleration);

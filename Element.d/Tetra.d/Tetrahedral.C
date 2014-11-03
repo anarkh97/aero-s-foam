@@ -491,7 +491,7 @@ Tetrahedral::computeDjDx(double x[4], double y[4], double z[4], double J, double
 }
 
 void
-Tetrahedral::weightDerivativeWRTNodalCoordinate(Vector &dwdx, CoordSet& cs, double *gravityAcceleration)
+Tetrahedral::getWeightNodalCoordinateSensitivity(Vector &dwdx, CoordSet& cs, double *gravityAcceleration)
 {
   int nnodes = 4;
   double x[4], y[4], z[4];
@@ -552,8 +552,8 @@ Tetrahedral::getMass(CoordSet& cs)
 }
 
 void
-Tetrahedral::getGravityForceSensitivityWRTNodalCoordinate(CoordSet& cs, double *gravityAcceleration,
-                                                           GenFullM<double> &dGfdx, int gravflg, GeomState *geomState)
+Tetrahedral::getGravityForceNodalCoordinateSensitivity(CoordSet& cs, double *gravityAcceleration,
+                                                       GenFullM<double> &dGfdx, int gravflg, GeomState *geomState)
 {
   int nnodes = 4;
 

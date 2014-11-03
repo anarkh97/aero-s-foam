@@ -19,12 +19,12 @@ public:
         int getMassType() { return 2; } // both consistent and lumped
         FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg=1);
         double getMass(CoordSet&);
-        void getMassSensitivityWRTNodalCoordinate(CoordSet &cs, Vector &dMassdx);
-        void getLengthSensitivityWRTNodalCoordinate(CoordSet &cs, Vector &dLengthdx);
+        void getMassNodalCoordinateSensitivity(CoordSet &cs, Vector &dMassdx);
+        void getLengthNodalCoordinateSensitivity(CoordSet &cs, Vector &dLengthdx);
         double weight(CoordSet& cs, double *gravityAcceleration);
-        void weightDerivativeWRTNodalCoordinate(Vector &dwdx, CoordSet& cs, double *gravityAcceleration);
+        void getWeightNodalCoordinateSensitivity(Vector &dwdx, CoordSet& cs, double *gravityAcceleration);
         void getGravityForce(CoordSet&, double *g, Vector& f, int gravflg, GeomState *gs);
-        void getGravityForceSensitivityWRTNodalCoordinate(CoordSet& cs, double *gravityAcceleration,
+        void getGravityForceNodalCoordinateSensitivity(CoordSet& cs, double *gravityAcceleration,
                                                           GenFullM<double> &dGfdx, int gravflg, GeomState *geomState=0);
         void getIntrnForce(Vector &elForce, CoordSet& cs,
  	                   double *elDisp, int forceIndex, double *ndTemps=0);
@@ -42,7 +42,7 @@ public:
         int numNodes();
         int* nodes(int * = 0);
         Corotator* getCorotator(CoordSet &cs, double *kel,int,int);
-	int getTopNumber();
+        int getTopNumber();
         void getThermalForce(CoordSet &cs, Vector &ndTemps,
                              Vector &ThermalForce, int glflag, 
                              GeomState *gs);

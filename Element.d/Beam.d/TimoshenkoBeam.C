@@ -226,7 +226,7 @@ TimoshenkoBeam::getMass(CoordSet& cs)
 }
 
 void
-TimoshenkoBeam::getMassSensitivityWRTNodalCoordinate(CoordSet &cs, Vector &dMassdx)
+TimoshenkoBeam::getMassNodalCoordinateSensitivity(CoordSet &cs, Vector &dMassdx)
 {
         using std::sqrt;
 
@@ -258,14 +258,14 @@ TimoshenkoBeam::getMassSensitivityWRTNodalCoordinate(CoordSet &cs, Vector &dMass
 }
 
 void
-TimoshenkoBeam::weightDerivativeWRTNodalCoordinate(Vector &dwdx, CoordSet& cs, double *gravityAcceleration)
+TimoshenkoBeam::getWeightNodalCoordinateSensitivity(Vector &dwdx, CoordSet& cs, double *gravityAcceleration)
 {
   if(dwdx.size() != 6) {
      std::cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
      exit(-1);
   }
   Vector dMassdx(6);
-  getMassSensitivityWRTNodalCoordinate(cs, dMassdx);
+  getMassNodalCoordinateSensitivity(cs, dMassdx);
   double gravAccNorm = sqrt(gravityAcceleration[0]*gravityAcceleration[0] +
                             gravityAcceleration[1]*gravityAcceleration[1] +
                             gravityAcceleration[2]*gravityAcceleration[2]);
@@ -283,8 +283,8 @@ TimoshenkoBeam::weight(CoordSet& cs, double *gravityAcceleration)
 }
 
 void
-TimoshenkoBeam::getGravityForceSensitivityWRTNodalCoordinate(CoordSet& cs, double *gravityAcceleration, 
-                                                             GenFullM<double> &dGfdx, int gravflg, GeomState *geomState)
+TimoshenkoBeam::getGravityForceNodalCoordinateSensitivity(CoordSet& cs, double *gravityAcceleration, 
+                                                          GenFullM<double> &dGfdx, int gravflg, GeomState *geomState)
 {
 #ifdef USE_EIGEN3
   double massPerNode = 0.5*getMass(cs);

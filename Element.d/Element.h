@@ -411,20 +411,20 @@ class Element {
         virtual FullSquareMatrix dampingMatrix(CoordSet& cs,double *m,int cmflg=1);
 
         virtual double getMass(CoordSet&) { return 0; }
-        virtual double getMassSensitivityWRTthickness(CoordSet&) { return 0; }
+        virtual double getMassThicknessSensitivity(CoordSet&) { return 0; }
         virtual double weight(CoordSet&, double *);
-        virtual double weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration);
-        virtual void weightDerivativeWRTNodalCoordinate(Vector& dwdx, CoordSet& cs, double *gravityAcceleration);
+        virtual double getWeightThicknessSensitivity(CoordSet& cs, double *gravityAcceleration);
+        virtual void getWeightNodalCoordinateSensitivity(Vector& dwdx, CoordSet& cs, double *gravityAcceleration);
         virtual double getDCmass(CoordSet &,Vector &, double&) { return 0; }
 
         virtual void getGravityForce(CoordSet&,double *gravity,Vector &force,
                                      int gravflg, GeomState *gs=0);
 
-        virtual void getGravityForceSensitivityWRTthickness(CoordSet&,double *gravity, Vector &force,
-                                                            int gravflg, GeomState *gs=0);
+        virtual void getGravityForceThicknessSensitivity(CoordSet&,double *gravity, Vector &force,
+                                                         int gravflg, GeomState *gs=0);
 
-        virtual void getGravityForceSensitivityWRTNodalCoordinate(CoordSet& cs, double *gravityAcceleration,
-                                                                  GenFullM<double> &dGfdx, int gravflg, GeomState *geomState = 0);
+        virtual void getGravityForceNodalCoordinateSensitivity(CoordSet& cs, double *gravityAcceleration,
+                                                               GenFullM<double> &dGfdx, int gravflg, GeomState *geomState = 0);
 
         virtual void   getThermalForce(CoordSet& cs, Vector &ndT, Vector &force,
                                        int glflag, GeomState *gs=0);

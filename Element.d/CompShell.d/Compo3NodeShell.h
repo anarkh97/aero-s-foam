@@ -30,8 +30,8 @@ public:
 
         void getGravityForce(CoordSet&,double *gravity, Vector&, int gravflg,
 	                     GeomState *gs);
-        void getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravityAcceleration,
-                                                    Vector& gravityForceSensitivity, int gravflg, GeomState *geomState);
+        void getGravityForceThicknessSensitivity(CoordSet& cs, double *gravityAcceleration,
+                                                 Vector& gravityForceSensitivity, int gravflg, GeomState *geomState);
 
         void getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
                          Vector &elDisp, int strInd, int surface=0,
@@ -46,18 +46,18 @@ public:
         double * setCompositeData2(int _type, int nlays, double *lData,
                                    double *coefs, CoordSet &cs, double theta);
 
-	void markDofs(DofSetArray &);
+        void markDofs(DofSetArray &);
         int* dofs(DofSetArray &, int *p=0);
         int  numDofs();
-	int  getTopNumber();
+        int  getTopNumber();
 
         int  numNodes();
         int* nodes(int * = 0);
-	Corotator *getCorotator(CoordSet &, double *,int,int);
+        Corotator *getCorotator(CoordSet &, double *,int,int);
         double getMass(CoordSet &);
-        double getMassSensitivityWRTthickness(CoordSet &);
+        double getMassThicknessSensitivity(CoordSet &);
         double weight(CoordSet&, double *);
-        double weightDerivativeWRTthickness(CoordSet&, double *);
+        double getWeightThicknessSensitivity(CoordSet&, double *);
 
         void computeDisp(CoordSet&, State &, const InterpPoint &,
                          double*, GeomState *gs=0);
@@ -73,7 +73,7 @@ public:
 
         virtual int getCompositeLayer() { return numLayers;  }
 
-	virtual double * getMidPoint(CoordSet &);
+        virtual double * getMidPoint(CoordSet &);
         virtual double * getCompositeData(int nl) { return layData+(nl*9); }
         virtual double * getCompositeFrame()      { return cFrame;  }
 
@@ -87,12 +87,12 @@ public:
 
         double getGradMass(CoordSet& cs, CoordSet& dcs);
 	
-	void setCompositeGrad( double *gradval ) {layGrad=gradval;}
+        void setCompositeGrad( double *gradval ) {layGrad=gradval;}
 
         void getGradVonMises(Vector &dstress, Vector &weight, 
 	                     CoordSet &cs, CoordSet &dcs, 
-			     Vector &elDisp, Vector &elGrad,
-			     int strInd, int surface);
+			  Vector &elDisp, Vector &elGrad,
+			  int strInd, int surface);
 
         void gradMassMatrix(CoordSet &cs,CoordSet &dcs,FullSquareMatrix &dmel);
 

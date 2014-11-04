@@ -24,14 +24,14 @@ GenSubDomain<complex<double> > * GeoSource::readDistributedInputFiles<complex<do
 
 #ifdef USE_EIGEN3
 template
-void GeoSource::outputEigenScalars<double>(int, Eigen::Matrix<double, Eigen::Dynamic, 1>*, double);
+void GeoSource::outputSensitivityScalars<double>(int, Eigen::Matrix<double, Eigen::Dynamic, 1>*, double);
 template
-void GeoSource::outputEigenScalars<complex<double> >(int, Eigen::Matrix<complex<double>, Eigen::Dynamic, 1>*, double);
+void GeoSource::outputSensitivityScalars<complex<double> >(int, Eigen::Matrix<complex<double>, Eigen::Dynamic, 1>*, double);
 
 template
-void GeoSource::outputEigenVectors<double>(int, Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*, double);
+void GeoSource::outputSensitivityVectors<double>(int, Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*, double);
 template
-void GeoSource::outputEigenVectors<complex<double> >(int, Eigen::Matrix<complex<double>, Eigen::Dynamic, Eigen::Dynamic>*, double);
+void GeoSource::outputSensitivityVectors<complex<double> >(int, Eigen::Matrix<complex<double>, Eigen::Dynamic, Eigen::Dynamic>*, double);
 #endif
 
 #define GEOSOURCE_INSTANTIATION_HELPER(dim) \

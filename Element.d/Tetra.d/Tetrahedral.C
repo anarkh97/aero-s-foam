@@ -29,12 +29,16 @@ void _FORTRAN(mass23)(double*, double*, double*, double&, double*,
 void _FORTRAN(sands23)(const int&, double*, double*, double*, double&, 
                        double&, double*, double*, double*, const int&,
                        const int&,
-                       const int&, const int&, const int&, const int&);
+                       const int&, const int&, const int&, const int&, double*);
 
 void _FORTRAN(brkcmt)(double&, double&, double*);
 }
 
-double Tetra4ShapeFct(double Shape[4], double DShape[4][3], double m[3], double X[4], double Y[4], double Z[4]);
+void Tetra4ShapeFct(double Shape[4], double DShape[4][3], double m[3], double J, double a[3][3]);
+double computeTetra4Jacobian(double X[4], double Y[4], double Z[4], double a[3][3]);
+void computeTetra4dadx(double X[4], double Y[4], double Z[4], double dadx[3][3][12]);
+void computedShape(double dShape[4][3]);
+void computeTetra4dadxTimesdShapeFct(double dShape[4][3], double J, double dadx[3][3][12], double [4][3][12]);
 
 Tetrahedral::Tetrahedral(int* nodenums)
 {
@@ -106,11 +110,11 @@ Tetrahedral::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
   const int msize  = 1;
   const int outerr = 6;
 
-  double elStress[maxgus][maxstr], elStrain[maxgus][maxstr];
+  double elStress[maxgus][maxstr], elStrain[maxgus][maxstr], elStressSen[4][12][6];
 
   _FORTRAN(sands23)(elm, x, y, z, prop->E, prop->nu, elDisp.data(),
                     (double*)elStress, (double*)elStrain,
-                    maxgus, maxstr, msize, outerr, vmflg, strainFlg);
+                    maxgus, maxstr, msize, outerr, vmflg, strainFlg,(double*)elStressSen);
 
   if(strInd < 7) {
     double thermalStress[4] = {0.0,0.0,0.0,0.0};
@@ -143,28 +147,85 @@ Tetrahedral::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
 }
 
 void
-Tetrahedral::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
-                                                   int senMethod, double* ndTemps, int avgnum, double ylayer, double zlayer)
+Tetrahedral::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+                                                double *ndTemps, int avgnum, double ylayer, double zlayer)
 {
-#ifdef USE_EIGEN3
    if(strInd != 6) {
-     std::cerr << " ... Error: strInd must be 6 in Tetrahedral::getVonMisesNodalCoordinateSensitivity\n";
+     std::cerr << " ... Error: strInd must be 6 in Tetrahedral::getVonMisesDisplacementSensitivity\n";
      exit(-1);
    }
-   if(dStdx.numRow() != 12 || dStdx.numCol() != 4) {
+   if(dStdDisp.numRow() != 12 || dStdDisp.numCol() != 4) {
      std::cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
      exit(-1);
    }
-   if(ndTemps != 0) {
-     std::cerr << " ... Error: thermal stress should not be passed in sensitivity computation\n";
-     exit(-1);
-   }
-/*  if(cCoefs) {
-    getVonMisesAniso(stress, weight, cs,
-                     elDisp, strInd, surface, ndTemps,
-                     ylayer, zlayer, avgnum);
-    return;                 
-  }*/
+   weight = 1.0;
+
+    double x[4], y[4], z[4];
+    cs.getCoordinates(nn, numNodes(), x, y, z);
+
+    int vmflg = 0, strainFlg = 0;
+    // Flags sands23 to calculate Von Mises stress
+    if(strInd == 6) vmflg = 1;
+    // Flags sands23 to calculate Von Mises strain
+    if(strInd == 13) strainFlg = 1;
+
+    const int maxgus = 4;
+    const int maxstr = 7;
+    const int elm    = 1;
+    const int msize  = 1;
+    const int outerr = 6;
+
+    double elStress[maxgus][maxstr], elStrain[maxgus][maxstr], elStressSen[4][12][6];
+
+    _FORTRAN(sands23)(elm, x, y, z, prop->E, prop->nu, elDisp.data(),
+                      (double*)elStress, (double*)elStrain,
+                      maxgus, maxstr, msize, outerr, vmflg, strainFlg, (double*)elStressSen);
+
+    Vector stress(4);
+    if(strInd < 7) {
+      stress[0] = elStress[0][strInd];
+      stress[1] = elStress[1][strInd];
+      stress[2] = elStress[2][strInd];
+      stress[3] = elStress[3][strInd];
+    }
+
+    double dvmsdStress[4][6];
+    for(int i=0; i<4; ++i) {
+      dvmsdStress[i][0] = (2.*elStress[i][0]-elStress[i][1]-elStress[i][2])/(2.*elStress[i][6]);    
+      dvmsdStress[i][1] = (2.*elStress[i][1]-elStress[i][0]-elStress[i][2])/(2.*elStress[i][6]);    
+      dvmsdStress[i][2] = (2.*elStress[i][2]-elStress[i][1]-elStress[i][0])/(2.*elStress[i][6]);    
+      dvmsdStress[i][3] = (3.*elStress[i][3])/elStress[i][6];    
+      dvmsdStress[i][4] = (3.*elStress[i][4])/elStress[i][6];    
+      dvmsdStress[i][5] = (3.*elStress[i][5])/elStress[i][6];
+    }
+
+    for(int i=0; i<12; ++i) 
+      for(int j=0; j<4; ++j) 
+        for(int k=0; k<6; ++k)
+          dStdDisp[i][j] += dvmsdStress[j][k]*elStressSen[j][i][k];
+}
+
+void
+Tetrahedral::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+                                                   double* ndTemps, int avgnum, double ylayer, double zlayer)
+{
+#ifdef USE_EIGEN3
+  if(strInd != 6) {
+    std::cerr << " ... Error: strInd must be 6 in Tetrahedral::getVonMisesNodalCoordinateSensitivity\n";
+    exit(-1);
+  }
+  if(dStdx.numRow() != 12 || dStdx.numCol() != 4) {
+    std::cerr << " ... Error: dimension of sensitivity matrix is wrong\n";
+    exit(-1);
+  }
+  if(ndTemps != 0) {
+    std::cerr << " ... Error: thermal stress should not be passed in sensitivity computation\n";
+    exit(-1);
+  }
+  if(cCoefs) {
+    std::cerr << " ... Error: Anisotropic material not supported in sensitivity computation\n";
+    exit(-1);                 
+  }
   weight = 1.0;
 
   Node &nd1 = cs.getNode(nn[0]);
@@ -184,55 +245,15 @@ Tetrahedral::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vect
   // inputs
   Eigen::Matrix<double,12,1> q;
   q << nd1.x, nd1.y, nd1.z, nd2.x, nd2.y, nd2.z, nd3.x, nd3.y, nd3.z, nd4.x, nd4.y, nd4.z;
-/*  Eigen::Array<double,4,1> globalx;
-  globalx << nd1.x, nd2.x, nd3.x, nd4.x;
-  Eigen::Array<double,4,1> globaly;
-  globaly << nd1.y, nd2.y, nd3.y, nd4.y;
-  Eigen::Array<double,4,1> globalz;
-  globalz << nd1.z, nd2.z, nd3.z, nd4.z;
-
-  int maxgus = 4; // maximum gauss points 
-  int maxstr = 7; 
-  int elm    = 1;
-  int outerr = 6;
-*/
   Eigen::Matrix<double,4,12> dStressdx;
-  if(senMethod == 0) { // analytic
-    std::cerr << " ... Warning: analytic von Mises stress sensitivity wrt nodal coordinate is not implemented yet\n";
-    std::cerr << " ...          instead, automatic differentiation will be applied\n";
-    senMethod = 1;
-  }
-
-  if(senMethod == 1) {
-#ifndef AEROS_NO_AD 
-    Simo::Jacobian<double,TetraElementStressWRTNodalCoordinateSensitivity> dSdx(dconst,iconst);
-    dStressdx = dSdx(q, 0);
-    dStdx.copy(dStressdx.data());
+ 
+  Simo::Jacobian<double,TetraElementStressWRTNodalCoordinateSensitivity> dSdx(dconst,iconst);
+  dStressdx = dSdx(q, 0);
+  dStdx.copy(dStressdx.data());
 #ifdef SENSITIVITY_DEBUG 
-    if(verboseFlag) std::cerr << "dStressdx(AD) =\n" << dStressdx << std::endl;
+  if(verboseFlag) std::cerr << "dStressdx(AD) =\n" << dStressdx << std::endl;
 #endif
-#else
-    std::cerr << " ... Error: AEROS_NO_AD is defined in Tetrahedral::getVonMisesNodalCoordinateSensitivity\n";    exit(-1);
-#endif
-  }
 
-  if(senMethod == 2) {
-    TetraElementStressWRTNodalCoordinateSensitivity<double> foo(dconst,iconst);
-    Eigen::Matrix<double,12,1> qp, qm;
-    double h(1e-6);
-    Eigen::Matrix<double,4,1> S = foo(q,0);
-    for(int i=0; i<12; ++i) {
-      qp = qm = q;      qp[i] = q[i] + h;     qm[i] = q[i] - h;
-      Eigen::Matrix<double,4,1> Sp = foo(qp, 0);
-      Eigen::Matrix<double,4,1> Sm = foo(qm, 0);
-      dStressdx.col(i) = (Sp - Sm)/(2*h);
-    }
-    Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
-#ifdef SENSITIVITY_DEBUG
-    if(verboseFlag) std::cerr << "dStressdx(FD) =\n" << dStressdx.format(HeavyFmt) << std::endl;
-#endif
-    dStdx.copy(dStressdx.data());  
-  }
 #else
   std::cerr << " ... Error! Tetrahedral::getVonMisesNodalCoordinateSensitivity needs Eigen library.\n";
   exit(-1);
@@ -264,11 +285,11 @@ Tetrahedral::getAllStress(FullM& stress, Vector& weight, CoordSet &cs,
   const int msize  = 1;
   const int outerr = 6;
 
-  double elStress[maxgus][maxstr], elStrain[maxgus][maxstr];
+  double elStress[maxgus][maxstr], elStrain[maxgus][maxstr], elStressSen[4][12][6];
 
   _FORTRAN(sands23)(elm, x, y, z, prop->E, prop->nu, elDisp.data(),
                     (double*)elStress, (double*)elStrain,
-                    maxgus, maxstr, msize, outerr, vmflg, strainFlg);
+                    maxgus, maxstr, msize, outerr, vmflg, strainFlg, (double*)elStressSen);
 
   // Store all Stress or all Strain as defined by strInd
   int i,j;
@@ -321,14 +342,70 @@ Tetrahedral::getAllStress(FullM& stress, Vector& weight, CoordSet &cs,
   }
 }
 
-double
-Tetrahedral::weight(CoordSet& cs, double *gravityAcceleration)
+void 
+Tetrahedral::computeDjDx(double x[4], double y[4], double z[4], double J, double djdx[12])
 {
-  double _mass = getMass(cs);
+  for(int i=0; i<12; ++i) djdx[i] = 0.0;
+  double xd1,xd2,xd3, yd1,yd2,yd3, zd1,zd2,zd3;
+  xd1 = (x[1]-x[0]); xd2 = (x[2]-x[0]);  xd3 = (x[3]-x[0]);
+  yd1 = (y[1]-y[0]); yd2 = (y[2]-y[0]);  yd3 = (y[3]-y[0]);
+  zd1 = (z[1]-z[0]); zd2 = (z[2]-z[0]);  zd3 = (z[3]-z[0]);
+  djdx[0] = - yd2*zd3 - yd3*zd1 - yd1*zd2 + yd2*zd1 + yd1*zd3 + yd3*zd2;
+  djdx[1] = - xd1*zd3 - xd2*zd1 - xd3*zd2 + xd3*zd1 + xd2*zd3 + xd1*zd2;
+  djdx[2] = - xd1*yd2 - xd2*yd3 - xd3*yd1 + xd3*yd2 + xd2*yd1 + xd1*yd3;
+  djdx[3] =   yd2*zd3 - yd3*zd2;
+  djdx[4] =   xd3*zd2 - xd2*zd3;
+  djdx[5] =   xd2*yd3 - xd3*yd2;
+  djdx[6] =   yd3*zd1 - yd1*zd3;
+  djdx[7] =   xd1*zd3 - xd3*zd1;
+  djdx[8] =   xd3*yd1 - xd1*yd3;
+  djdx[9] =   yd1*zd2 - yd2*zd1;
+  djdx[10] =  xd2*zd1 - xd1*zd2;
+  djdx[11] =  xd1*yd2 - xd2*yd1;
+  if(J < 0) 
+    for(int i=0; i<12; ++i) djdx[i] *= -1;
+}
+
+void
+Tetrahedral::getWeightNodalCoordinateSensitivity(Vector &dwdx, CoordSet& cs, double *gravityAcceleration)
+{
+  int nnodes = 4;
+  double x[4], y[4], z[4];
+  cs.getCoordinates(nn, numNodes(), x, y, z);
+
+  for(int k = 0; k < 12; ++k) dwdx[k] = 0.0;
+
+  int ngp = 4;
+  double w1 = 4.166666666666666e-02;
+  double r1 = 1.0;
+  double s1 = 0.0;
+  double t1 = 0.0;
+  double u1 = 0.0;
+  double TetGPt2[4][5] = {{r1, s1, t1, u1, w1},
+                          {s1, r1, u1, u1, w1},
+                          {t1, u1, r1, s1, w1},
+                          {u1, u1, s1, r1, w1}};
+  double djdx[12];
+  double m[3], Shape[8], DShape[8][3], w, a[3][3];
+  double dOmega = computeTetra4Jacobian(x,y,z,a); //det of jacobian
+  computeDjDx(x, y, z, dOmega, djdx);
+//  for(int i=0; i<12; ++i) fprintf(stderr,"::weightDerivativeWRTNodalCoordinate   djdx[%d] = %e\n", i, djdx[i]);
+//  for(int i=0; i<3; ++i) for(int j=0; j<3; ++j) fprintf(stderr,"::weightDerivativeWRTNodalCoordinate   a[%d][%d] = %e\n", i, j, a[i][j]);
+
+  for(int igp = 0; igp < ngp; igp++) {
+    // get x, y, z  position & weight of the integration pt
+    m[0] = TetGPt2[igp][0]; m[1] = TetGPt2[igp][1]; m[2] = TetGPt2[igp][2]; w = TetGPt2[igp][4];
+    Tetra4ShapeFct(Shape, DShape, m, dOmega, a);
+    w *= prop->rho;
+
+    for(int k = 0; k < 12; ++k) dwdx[k] += w*djdx[k];
+  }
+
   double gravAccNorm = sqrt(gravityAcceleration[0]*gravityAcceleration[0] +
                             gravityAcceleration[1]*gravityAcceleration[1] +
                             gravityAcceleration[2]*gravityAcceleration[2]);
-  return _mass*gravAccNorm;
+  dwdx *= gravAccNorm;
+
 }
 
 double
@@ -348,6 +425,65 @@ Tetrahedral::getMass(CoordSet& cs)
                    gravityAcceleration, grvfor, grvflg, totmas, masflg);
 
   return totmas;
+}
+
+void
+Tetrahedral::getGravityForceNodalCoordinateSensitivity(CoordSet& cs, double *gravityAcceleration,
+                                                       GenFullM<double> &dGfdx, int gravflg, GeomState *geomState)
+{
+  int nnodes = 4;
+
+  double x[4], y[4], z[4];
+  cs.getCoordinates(nn, numNodes(), x, y, z);
+
+  // Lumped
+  if (gravflg != 2) {
+    std::cerr << "Tetrahedral::getGravityForceNodalCoordinateSensitivity is not implemented for lumped\n";
+  }
+  // Consistent
+  else {
+   
+    double lforce[12][nnodes];
+    for(int k = 0; k < 12; ++k) for(int i = 0; i < nnodes; ++i) lforce[k][i] = 0.0;
+
+    // integration: loop over Gauss pts
+    // hard coded order 2 tetrahedral quadrature rule: {r,s,t,u(=1-r-s-t),w}
+    int ngp = 4;
+    double w1 = 1./24.;
+    double r1 = (5.+3.*sqrt(5.))/20.;
+    double s1 = (5.-  sqrt(5.))/20.;
+    double t1 = s1;
+    double u1 = 1.-r1-s1-t1;
+    double TetGPt2[4][5] = {{r1, s1, t1, u1, w1},
+                            {s1, t1, u1, r1, w1},
+                            {t1, u1, r1, s1, w1},
+                            {u1, r1, s1, t1, w1}};
+    double w;
+    double m[3], Shape[8], DShape[8][3], a[3][3];
+    double dOmega = computeTetra4Jacobian(x,y,z,a); //det of jacobian
+
+    double djdx[12];
+    computeDjDx(x,y,z,dOmega, djdx);
+
+    for(int igp = 0; igp < ngp; igp++) {
+      // get x, y, z  position & weight of the integration pt
+      m[0] = TetGPt2[igp][0]; m[1] = TetGPt2[igp][1]; m[2] = TetGPt2[igp][2]; w = TetGPt2[igp][4];
+      Tetra4ShapeFct(Shape, DShape, m, dOmega, a);
+      w *= prop->rho;
+
+      for(int k = 0; k < 12; ++k)
+        for(int n = 0; n < nnodes; ++n)
+          lforce[k][n] += w*djdx[k]*Shape[n];
+    }
+
+    for(int i = 0; i < nnodes; ++i) {
+      for(int k = 0; k < 12; ++k) {
+        dGfdx[k][3*i+0] = lforce[k][i]*gravityAcceleration[0];
+        dGfdx[k][3*i+1] = lforce[k][i]*gravityAcceleration[1];
+        dGfdx[k][3*i+2] = lforce[k][i]*gravityAcceleration[2];
+      }
+    }
+  }
 }
 
 void
@@ -398,13 +534,13 @@ Tetrahedral::getGravityForce(CoordSet& cs, double *gravityAcceleration,
                             {t1, u1, r1, s1, w1},
                             {u1, r1, s1, t1, w1}};
     double w;
-    double m[3], Shape[8], DShape[8][3];
-    double dOmega; //det of jacobian
+    double m[3], Shape[8], DShape[8][3], a[3][3];
+    double dOmega = computeTetra4Jacobian(x,y,z,a); //det of jacobian
 
     for(int igp = 0; igp < ngp; igp++) {
       // get x, y, z  position & weight of the integration pt
       m[0] = TetGPt2[igp][0]; m[1] = TetGPt2[igp][1]; m[2] = TetGPt2[igp][2]; w = TetGPt2[igp][4];
-      dOmega = Tetra4ShapeFct(Shape, DShape, m, x, y, z);
+      Tetra4ShapeFct(Shape, DShape, m, dOmega, a);
       w *= prop->rho*fabs(dOmega);
 
       for(int n = 0; n < nnodes; ++n)
@@ -459,13 +595,14 @@ Tetrahedral::getThermalForce(CoordSet &cs, Vector &ndTemps,
   int ngp = 1;
   double TetGPt1[1][5] = {{1./4.,1./4.,1./4.,1./4.,1./6.}};
   double m[3], Shape[4], DShape[4][3];
-  double w, J;
+  double w, J, a[3][3];
   int jSign = 0;
 
+  J = computeTetra4Jacobian(X,Y,Z, a);
   for(int igp=0; igp<ngp; igp++) {
     // get x, y, z position & weight of the integration pt
     m[0] = TetGPt1[igp][0]; m[1] = TetGPt1[igp][1]; m[2] = TetGPt1[igp][2]; w = TetGPt1[igp][4];
-    J = Tetra4ShapeFct(Shape, DShape, m, X, Y, Z);
+    Tetra4ShapeFct(Shape, DShape, m, J, a);
 #ifdef CHECK_JACOBIAN
     checkJacobian(&J, &jSign, getGlNum()+1, "Tetrahedral::getThermalForce");
 #endif
@@ -514,14 +651,14 @@ Tetrahedral::massMatrix(CoordSet &cs, double *mel, int cmflg)
                             {t1, u1, r1, s1, w1},
                             {u1, r1, s1, t1, w1}};
     double w;
-    double m[3], Shape[8], DShape[8][3];
-    double dOmega; // det of jacobian
+    double m[3], Shape[8], DShape[8][3], a[3][3];
+    double dOmega = computeTetra4Jacobian(X,Y,Z, a); // det of jacobian
     int jSign = 0;
 
     for(int igp = 0; igp < ngp; igp++) {
       // get x, y, z  position & weight of the integration pt
       m[0] = TetGPt2[igp][0]; m[1] = TetGPt2[igp][1]; m[2] = TetGPt2[igp][2]; w = TetGPt2[igp][4];
-      dOmega = Tetra4ShapeFct(Shape, DShape, m, X, Y, Z);
+      Tetra4ShapeFct(Shape, DShape, m, dOmega, a);
 #ifdef CHECK_JACOBIAN
       checkJacobian(&dOmega, &jSign, getGlNum()+1, "Tetrahedral::massMatrix");
 #endif
@@ -537,6 +674,56 @@ Tetrahedral::massMatrix(CoordSet &cs, double *mel, int cmflg)
   }
 
   return M;
+}
+
+void
+Tetrahedral::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs)
+{
+  for(int i=0; i<12; ++i) { 
+    if(dStiffdx[i].dim() != 12) { 
+      std::cerr << " ... Error: dimension of sensitivity matrix is wrong\n";   exit(-1); }
+    dStiffdx[i].zero();
+  }
+
+  const int nnodes = 4;
+  const int ndofs = 12;
+
+  double X[4], Y[4], Z[4], djdx[12], dadx[3][3][12], DDShape[4][3][12], dShape[4][3];
+  cs.getCoordinates(nn, nnodes, X, Y, Z);
+  double m[3], Shape[4], DShape[4][3], a[3][3];
+  double w, dOmega;
+
+  dOmega = computeTetra4Jacobian(X, Y, Z, a);
+  computeTetra4dadx(X,Y,Z,dadx);
+
+  computeDjDx(X,Y,Z,dOmega,djdx);
+  computedShape(dShape);
+
+  int ls[12] = {0,3,6,9,1,4,7,10,2,5,8,11};
+
+  // get constitutive matrix
+  double C[6][6];
+  if(cCoefs) { // anisotropic material
+    // transform local constitutive matrix to global frame
+    rotateConstitutiveMatrix(cCoefs, cFrame, C);
+  } else // isotropic material
+    _FORTRAN(brkcmt)(prop->E, prop->nu, (double*)C);
+
+  // integration: loop over Gauss pts
+  // hard coded order 1 tetrahedral quadrature rule: {r,s,t,u(=1-r-s-t),w}
+
+  int ngp = 1;
+  double TetGPt1[1][5] = {{1./4.,1./4.,1./4.,1./4.,1./6.}};
+  for(int igp=0; igp<ngp; igp++) {
+    // get x, y, z  position & weight of the integration pt
+    m[0] = TetGPt1[igp][0]; m[1] = TetGPt1[igp][1]; m[2] = TetGPt1[igp][2]; w = TetGPt1[igp][4];
+    Tetra4ShapeFct(Shape, DShape, m, dOmega, a);
+    computeTetra4dadxTimesdShapeFct(dShape, dOmega, dadx, DDShape);
+    for(int k=0; k<12; ++k) {
+      addBtCBtoK3DSolid(dStiffdx[k], DShape, C, -w*djdx[k], nnodes, ls);
+    }
+    addDBtCDBtodKdx3DSolid(dStiffdx, DShape, DDShape, C, w*fabs(dOmega), nnodes, ls); 
+  }
 }
 
 //HB (04/15/05)  new implementation of the Tetra4 stiffness matrix to deal
@@ -566,14 +753,15 @@ Tetrahedral::stiffness(CoordSet &cs, double *d, int flg)
   // hard coded order 1 tetrahedral quadrature rule: {r,s,t,u(=1-r-s-t),w}
   int ngp = 1;
   double TetGPt1[1][5] = {{1./4.,1./4.,1./4.,1./4.,1./6.}};
-  double m[3], Shape[4], DShape[4][3];
+  double m[3], Shape[4], DShape[4][3], a[3][3];
   double w, dOmega;
   int jSign = 0;
 
+  dOmega = computeTetra4Jacobian(X, Y, Z, a);
   for(int igp=0; igp<ngp; igp++) {
     // get x, y, z  position & weight of the integration pt
     m[0] = TetGPt1[igp][0]; m[1] = TetGPt1[igp][1]; m[2] = TetGPt1[igp][2]; w = TetGPt1[igp][4];
-    dOmega = Tetra4ShapeFct(Shape, DShape, m, X, Y, Z);
+    Tetra4ShapeFct(Shape, DShape, m, dOmega, a);
 #ifdef CHECK_JACOBIAN
     checkJacobian(&dOmega, &jSign, getGlNum()+1, "Tetrahedral::stiffness");
 #endif
@@ -662,11 +850,12 @@ Tetrahedral::getVonMisesAniso(Vector &stress, Vector &weight, CoordSet &cs,
   // Loop over nodes -> compute nodal strains & stresses
   double nodeRefCoord[4][3] = {{0.0,0.0,0.0},{1.0,0.0,0.0},{0.0,1.0,0.0},{0.0,0.0,1.0}};
 
-  double Shape[4], DShape[4][3];
+  double Shape[4], DShape[4][3], a[3][3];
+  double dOmega = computeTetra4Jacobian(X,Y,Z,a);
   for(int inode=0; inode<nnodes; inode++) {
     // compute shape fcts & their derivatives at node
     double* m = &nodeRefCoord[inode][0];
-    Tetra4ShapeFct(Shape, DShape, m, X, Y, Z); 
+    Tetra4ShapeFct(Shape, DShape, m, dOmega, a); 
     computeStressAndEngStrain3DSolid(elStress[inode], elStrain[inode], C, DShape, elDisp.data(), nnodes);
 
     if(ndTemps) {
@@ -738,11 +927,12 @@ Tetrahedral::getAllStressAniso(FullM &stress, Vector &weight, CoordSet &cs,
   // Loop over nodes -> compute nodal strains & stresses
   double nodeRefCoord[4][3] = {{0.0,0.0,0.0},{1.0,0.0,0.0},{0.0,1.0,0.0},{0.0,0.0,1.0}};
 
-  double Shape[4], DShape[4][3];
+  double Shape[4], DShape[4][3], a[3][3];
+  double dOmega = computeTetra4Jacobian(X,Y,Z,a);
   for(int inode=0; inode<nnodes; inode++) {
     // compute shape fcts & their derivatives at node
     double* m = &nodeRefCoord[inode][0];
-    Tetra4ShapeFct(Shape, DShape, m, X, Y, Z); 
+    Tetra4ShapeFct(Shape, DShape, m, dOmega, a); 
     computeStressAndEngStrain3DSolid(elStress[inode], elStrain[inode], C, DShape, elDisp.data(), nnodes);
 
     if(ndTemps) {

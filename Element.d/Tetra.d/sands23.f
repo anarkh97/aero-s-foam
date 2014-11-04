@@ -1,5 +1,5 @@
       SUBROUTINE sands23(ELM,X,Y,Z,e,xnu,u,stress,strain,
-     &            maxgus,maxstr,msize,outerr,vmflg,strainFlg)
+     &            maxgus,maxstr,msize,outerr,vmflg,strainFlg,sigmae)
 C +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 C  BUT   : CALCUL DES Contraintes
 C  ---     TETRAEDRE P1 DROIT

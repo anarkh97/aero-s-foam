@@ -3,8 +3,14 @@
 
 #ifdef USE_EIGEN3
 #include <cmath>
+#include <cstdio>
 #include <stdexcept>
 #include <Element.d/FelippaShell.d/ShellMaterial.hpp>
+
+extern int quietFlag;
+
+template<typename doublereal>
+bool ShellMaterialType1<doublereal>::Wlocal_stress = true;
 
 template<typename doublereal>
 void
@@ -238,25 +244,37 @@ ShellMaterialType1<doublereal>::GetShellThickness()
   if (thick == 0.) {
     if (coef(0,0) == 0) {
         throw std::runtime_error(
-          "*** FATAL ERROR in routine COMPVMS       ***\n"
-          "*** The First Coefficient of Extentional ***\n"
-          "*** Stiffness is Equal to Zero.          ***\n"
-          "*** Cannot Estimate the Thickness        ***\n");
+          "*** FATAL ERROR in ShellMaterialType1::getShellThickness ***\n"
+          "*** The First Coefficient of Extentional Stiffness is    ***\n"
+          "*** Equal to Zero. Cannot Estimate the Thickness.        ***\n");
     }
     doublereal appxh2 = 3 * coef(3,3) / coef(0,0);
     if (appxh2 <= 0) {
         throw std::runtime_error(
-          "*** FATAL ERROR in routine COMPVMS           ***\n"
-          "*** The Ratio Between the First Coefficient  ***\n"
-          "*** of Bending Stiffness and the First       ***\n"
-          "*** Coefficient of Extentional Stiffness is  ***\n"
-          "*** Negative or Zero: Cannot Take the Square ***\n"
-          "*** Root and Estimate the Shell Thickness.   ***\n");
+          "*** FATAL ERROR in ShellMaterialType1::getShellThickness ***\n"
+          "*** The Ratio Between the First Coefficient of Bending   ***\n"
+          "*** Stiffness and the First Coefficient of Extensional   ***\n"
+          "*** is Negative or Zero: Cannot Take the Square Root and ***\n"
+          "*** Estimate the Shell Thickness.                        ***\n");
     }
     thick = sqrt(appxh2);
   }
 
   return thick;
+}
+
+template<typename doublereal>
+void
+ShellMaterialType1<doublereal>::GetLocalConstitutiveResponse(doublereal *Upsilon, doublereal *sigma, doublereal z,
+                                                             doublereal *eframe, int gp, doublereal temp)
+{
+  sigma[0] = sigma[1] = sigma[2] = 0;
+  if(quietFlag == 0 && Wlocal_stress) {
+    fprintf(stderr," *** WARNING: Local stress output is not available for shell elements\n"
+                   "              type 15/1515 with COEF-type composite constitutive law.\n"
+                   "              Use command-line option -q to suppress this warning.\n");
+    Wlocal_stress = false;
+  }
 }
 
 template
@@ -276,6 +294,12 @@ template
 void
 ShellMaterialType1<double>::GetConstitutiveResponseSensitivityWRTdisp(double *_dUpsilondu, double *_dSigmadu, double *_D,
                                                                       double *eframe, int gp);
+
+template
+void
+ShellMaterialType1<double>::GetLocalConstitutiveResponse(double *Upsilon, double *sigma, double z,
+                                                         double *eframe, int gp, double temp);
+
 #endif
 
 #endif

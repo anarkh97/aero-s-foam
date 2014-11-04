@@ -113,8 +113,8 @@
 %token SNAPFI PODROB TRNVCT OFFSET ORTHOG SVDTOKEN CONVERSIONTOKEN CONVFI SAMPLING SNAPSHOTPROJECT PODSIZEMAX REFSUBSTRACT TOLER NORMALIZETOKEN FNUMBER SNAPWEIGHT ROBFI STAVCT VELVCT ACCVCT CONWEPCFG PSEUDOGNAT PSEUDOGNATELEM
 %token VECTORNORM REBUILDFORCE SAMPNODESLOT REDUCEDSTIFFNESS UDEIMBASIS FORCEROB DEIMINDICES UDEIMINDICES SVDFORCESNAP
 %token USEMASSNORMALIZEDBASIS
-%token OPTSENSITIVITY SENSITIVITYID SENSITIVITYTYPE SENSITIVITYMETHOD NUMTHICKNESSGROUP NUMSHAPEVARIABLE 
-%token QRFACTORIZATION QMATRIX RMATRIX XMATRIX
+%token SENSITIVITYID NUMTHICKNESSGROUP NUMSHAPEVARIABLE 
+%token QRFACTORIZATION QMATRIX RMATRIX XMATRIX EIGENVALUE
 
 %type <complexFDBC> AxiHD
 %type <complexFNBC> AxiHN
@@ -138,7 +138,7 @@
 %type <rprop>    RPROP
 %type <ival>     WAVETYPE WAVEMETHOD
 %type <ival>     SCALINGTYPE SOLVERTYPE STRESSID SURFACE MOMENTTYPE SPNNLSSOLVERTYPE
-%type <ival>     SENSITIVITYID SENSITIVITYTYPE SENSITIVITYMETHOD
+%type <ival>     SENSITIVITYID  
 %type <ldata>    LayData LayoData LayMatData
 %type <linfo>    LaycInfo LaynInfo LaydInfo LayoInfo
 %type <mftval>   MFTTInfo
@@ -162,7 +162,6 @@
 %type <oinfo>    OutInfo
 %type <copt>     ConstraintOptionsData
 %type <blastData> ConwepData
-%type <sinfo>    SenInfo
 %%
 FinalizedData:
 	All END
@@ -346,7 +345,6 @@ Component:
 	| Sampling
         | SnapshotProject
         | ConversionToken
-        | OptSensitivity
         | NumSensitivityParameter
         ;
 Noninpc:
@@ -840,22 +838,6 @@ UsddLocations:
           if(geoSource->setUsddLocation($3->n,$3->d) < 0) return -1;
           if(geoSource->setDirichlet($3->n,$3->d) < 0)    return -1; }
 	;
-OptSensitivity:
-    OPTSENSITIVITY NewLine
-  { 
-    domain->solInfo().sensitivity = true;
-    domain->senInfo = new SensitivityInfo[50];  // maximum number of sensitivities are fixed to 50
-  } 
-  | OptSensitivity SenInfo NewLine
-  { domain->addSensitivity($2); }
-  ;
-SenInfo:
-    SENSITIVITYTYPE SENSITIVITYMETHOD 
-  { $$.initialize(); $$.type = (SensitivityInfo::Type) $1; $$.method = (SensitivityInfo::Method) $2; 
-  }
-  |  SenInfo SURFACE
-  { $$.surface = $2; }
-  ;
 NumSensitivityParameter:
     NUMSHAPEVARIABLE Integer NewLine
     { domain->setNumShapeVars($2); }
@@ -896,10 +878,6 @@ OutInfo:
         { $$.initialize(); $$.type = (OutputInfo::Type) $1; $$.width = $2; $$.precision = $3; $$.filename = $4; $$.interval = $5; $$.nodeNumber = $6-1; }
         | STRESSID Integer Integer FNAME Integer GROUPTYPE Integer // TDL: formatted output for node group or node
         { $$.initialize(); $$.type = (OutputInfo::Type) $1; $$.width = $2; $$.precision = $3; $$.filename = $4; $$.interval = $5; if ($6 == OutputInfo::NodeGroup) $$.groupNumber = $7; else $$.nodeNumber = $7-1; }
-        | SENSITIVITYID FNAME Integer // unformatted output for sensitivities
-        { $$.initialize(); $$.type = (OutputInfo::Type) $1; $$.filename = $2; $$.interval = $3; $$.sentype = 1; }
-        | SENSITIVITYID Integer Integer FNAME Integer // formatted output for sensitivities
-        { $$.initialize(); $$.type = (OutputInfo::Type) $1; $$.width = $2; $$.precision = $3; $$.filename = $4; $$.interval = $5; $$.sentype = 1; }
         | TDENFORC FNAME Integer // unformatted output for all nodes (for explicit dynamics tied/contact surfaces)
         { $$.initialize(); $$.type = OutputInfo::TDEnforcement; $$.tdenforc_var = $1; $$.filename = $2; $$.interval = $3; }
         | TDENFORC Integer Integer FNAME Integer // formatted output for all nodes (for explicit dynamics tied/contact surfaces)
@@ -947,6 +925,8 @@ OutInfo:
         { domain->solInfo().qmatrixname = $2; }
         | RMATRIX FNAME
         { domain->solInfo().rmatrixname = $2; }
+        | EIGENVALUE FNAME
+        { domain->solInfo().eigenvaluename = $2; }
         ;
 DynInfo:
         DynamInfo

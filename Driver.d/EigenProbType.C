@@ -3,6 +3,7 @@
 #include <cmath>
 #include <list>
 #include <algorithm>
+#include <string>
 
 #include <Driver.d/Dynam.h>
 #include <Utils.d/SolverInfo.h>
@@ -843,6 +844,15 @@ SubSpaceSolver< EigOps, VecType, VecSet,
  }
 
  if(solInfo.qrfactorization) {
+   if( strcmp(solInfo.eigenvaluename, "") != 0) {
+     const char* eigenvaluename = solInfo.eigenvaluename;
+     std::ofstream eigenout(eigenvaluename, std::ios::out);
+     if(!eigenout) { std::cerr << " ... Error: cannot open file " << eigenvaluename << std::endl;   exit(-1); } 
+     std::ostringstream s;
+     const double pi = 3.141592653589793;
+     for(i=0; i<this->totalEig; ++i) { eigenout << sqrt((*this->eigVal)[i])/(2.0*pi) << "\n"; }
+     eigenout.close();
+   }
 #ifdef USE_EIGEN3
    if( strcmp(solInfo.xmatrixname, "") == 0 || strcmp(solInfo.qmatrixname, "") == 0 || strcmp(solInfo.rmatrixname,"") == 0) {
      filePrint(stderr, " *** ERROR: xmatrix, qmatrix and rmatrix keywords must be specified in input file\n");

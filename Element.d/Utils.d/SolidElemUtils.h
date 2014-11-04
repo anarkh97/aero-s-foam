@@ -7,6 +7,7 @@ typedef GenFullSquareMatrix<double> FullSquareMatrix;
 // For stiffness & mass matrices 3D solid elements 
 void addBtCBtoK3DSolid(FullSquareMatrix &K, double (*DShape)[3], double C[6][6], double alpha, int nnodes, int* ls);
 void addNtDNtoM3DSolid(FullSquareMatrix &M, double* Shape, double alpha, int nnodes, int* ls, double (*D)[3] = 0);
+void addDBtCDBtodKdx3DSolid(FullSquareMatrix *&dKdx, double (*DShape)[3], double DDShape[4][3][12], double C[6][6], double alpha, int nnodes, int* ls);
 
 void addBtBtoK3DHelm(FullSquareMatrix &K, double (*DShape)[3], double alpha, int nnodes, int* ls);
 void addNtNtoM3DHelm(FullSquareMatrix &M, double* Shape, double alpha, int nnodes, int* ls);

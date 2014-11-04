@@ -293,9 +293,7 @@ int GeoSource::setAttrib(int n, int a, int ca, int cfrm, double ctheta)
   attrib[na].cmp_frm  = cfrm;
   attrib[na].cmp_theta = ctheta;
   na++;
-  if(domain->solInfo().sensitivity) {
-    atoe[a].elems.push_back(n);
-  }
+  atoe[a].elems.push_back(n);
   return 0;
 }
 

@@ -547,7 +547,8 @@ class Domain : public HData {
      void updateSfemStress(double* str, int fileNumber);
      void updateSfemStress(DComplex* str, int fileNumber) {std::cerr <<"Domain::updateSfemStress(DComplex*,.) not implemented" << std::endl;};
      // Functions to suport the parsing:
-     void addSensitivity(SensitivityInfo &senInfo);
+     void buildSensitivityInfo();
+     void addSensitivity(OutputInfo &oInfo);
      int  addDMass(int, int, double, int jdof = -1);
      DMassData* getFirstDMassData() { return firstDiMass; }
      int getDMassNumber() { return nDimass; }

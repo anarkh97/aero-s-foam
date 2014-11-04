@@ -43,11 +43,11 @@ Element::weight(CoordSet& cs, double *gravityAcceleration)
 }
 
 double
-Element::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int senMethod)
+Element::getWeightThicknessSensitivity(CoordSet& cs, double *gravityAcceleration)
 {
   if(prop == NULL || gravityAcceleration == NULL) return 0.0;
 
-  double massSensitivity = getMassSensitivityWRTthickness(cs);
+  double massSensitivity = getMassThicknessSensitivity(cs);
   double gravAccNorm = sqrt(gravityAcceleration[0]*gravityAcceleration[0] +
                             gravityAcceleration[1]*gravityAcceleration[1] +
                             gravityAcceleration[2]*gravityAcceleration[2]);
@@ -55,9 +55,10 @@ Element::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration,
 }
 
 void 
-Element::weightDerivativeWRTNodalCoordinate(Vector& dwdx, CoordSet& cs, double *gravityAcceleration, int senMethod) 
+Element::getWeightNodalCoordinateSensitivity(Vector& dwdx, CoordSet& cs, double *gravityAcceleration) 
 { 
-  dwdx.zero(); 
+  dwdx.zero();
+  fprintf(stderr," *** WARNING : getWeightNodalCoordinateSensitivity is not implemented yet\n"); 
 }
 
 void
@@ -191,7 +192,7 @@ Element::getGravityForce(CoordSet&, double *, Vector &force, int, GeomState *)
 }
 
 void
-Element::getGravityForceSensitivityWRTthickness(CoordSet&, double *, int senMethod, Vector &forceSen, int, GeomState *)
+Element::getGravityForceThicknessSensitivity(CoordSet&, double *, Vector &forceSen, int, GeomState *)
 {
   if(!isConstraintElement() && !isSpring())
     fprintf(stderr," *** WARNING: Gravity force sensitivity not implemented for element (%6d), type %3d\n", getGlNum()+1, elementType);
@@ -199,7 +200,7 @@ Element::getGravityForceSensitivityWRTthickness(CoordSet&, double *, int senMeth
 }
 
 void
-Element::getGravityForceSensitivityWRTNodalCoordinate(CoordSet& cs, double *gravityAcceleration, int senMethod,
+Element::getGravityForceNodalCoordinateSensitivity(CoordSet& cs, double *gravityAcceleration,
                                                       GenFullM<double> &dGfdx, int gravflg, GeomState *geomState)
 {
   if(!isConstraintElement() && !isSpring())
@@ -510,20 +511,21 @@ Element::computeStabilityTimeStep(FullSquareMatrix &K, FullSquareMatrix &M, Coor
 }
 
 void
-Element::getStiffnessThicknessSensitivity(CoordSet&, FullSquareMatrix &dStiffdThick, int, int)
+Element::getStiffnessThicknessSensitivity(CoordSet&, FullSquareMatrix &dStiffdThick, int)
 {
   dStiffdThick.zero();
 }
 
 void
-Element::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs, int)
+Element::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs)
 {
   for(int i=0; i<numNodes()*3; ++i) dStiffdx[i].zero();
+  fprintf(stderr," *** WARNING : getStiffnessNodalCoordinateSensitivity is not implemented yet\n");
 }
 
 void
 Element::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight, CoordSet&, Vector&,
-                                         int, int, int, double *, int, double, double)
+                                         int, int, double *, int, double, double)
 {
   weight = 1;
   dStdThick.zero();
@@ -531,7 +533,7 @@ Element::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight, Coor
 
 void
 Element::getVonMisesThicknessSensitivity(ComplexVector &dStdThick, ComplexVector &weight, CoordSet&,
-                                         ComplexVector&, int, int, int, double *, int, double, double)
+                                         ComplexVector&, int, int, double *, int, double, double)
 {
   weight = DComplex(1,0);
   dStdThick.zero();
@@ -539,25 +541,28 @@ Element::getVonMisesThicknessSensitivity(ComplexVector &dStdThick, ComplexVector
 
 void
 Element::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet&,
-                                            Vector&, int, int, int, double *, int, double, double)
+                                            Vector&, int, int, double *, int, double, double)
 {
   weight = 1;
   dStdDisp.zero();
+  fprintf(stderr," *** WARNING : getVonMisesDisplacementSensitivity is not implemented yet\n"); 
 }
 
 void
 Element::getVonMisesDisplacementSensitivity(GenFullM<DComplex> &dStdDisp, ComplexVector &weight,
-                                            CoordSet&, ComplexVector&, int, int, int, double *,
+                                            CoordSet&, ComplexVector&, int, int, double *,
                                             int, double, double)
 {
   weight = DComplex(1,0);
   dStdDisp.zero();
+  fprintf(stderr," *** WARNING : getVonMisesDisplacementSensitivity is not implemented yet\n"); 
 }
 
 void
 Element::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vector &weight, CoordSet&, Vector&,
-                                               int, int, int, double *, int, double, double)
+                                               int, int, double *, int, double, double)
 {
   weight = 1;
   dStdx.zero();
+  fprintf(stderr," *** WARNING : getVonMisesNodalCoordinateSensitivity is not implemented yet\n");
 }

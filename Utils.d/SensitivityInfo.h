@@ -5,17 +5,11 @@
 
 struct SensitivityInfo {
 
-   enum Type { WeightWRTthickness, WeightWRTshape, StressVMWRTthickness, StressVMWRTdisplacement, 
-               StressVMWRTshape, StiffnessWRTthickness, LinearStaticWRTthickness, LinearStaticWRTshape,  
-               GravityWRTthickness };
-   enum Method { Analytic, AutomaticDifferentiation, FiniteDifference };
+   enum Type { WeightWRTthickness, WeightWRTshape,
+               StressVMWRTthickness, StressVMWRTshape };
 
    Type type;
-   Method method;
    int surface;  // surface where shell type sensitivity is evaluated
-   void initialize() {
-     surface = 2;  // default is midsurface
-   }
 };
 
 #endif

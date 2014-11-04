@@ -73,16 +73,6 @@ void writeOptionsToScreen();
 #include <omp.h>
 #endif
 
-#ifdef STRUCTOPT
-#include <Structopt.d/Structopt_base.h>
-#include <Structopt.d/Driver_opt.d/Domain_opt.h>
-#include <Structopt.d/Driver_opt.d/SubDomainFactory_opt.h>
-#include <Structopt.d/Element_opt.d/Element_opt.h>
-
-#include <Structopt.d/Paral_opt.d/MDStatic_opt.h>
-#include <Structopt.d/Structopt_dec.h>
-#endif
-
 DecInit * decInit=0;
 
 #ifdef TFLOP
@@ -95,17 +85,11 @@ extern "C" int getopt (
 
 // .... global variables
 
-#ifdef STRUCTOPT
-Domain *domain = new Domain_opt();
-std::auto_ptr<ElementFactory> elemFact(new ElementFactory_opt());
-std::auto_ptr<GenSubDomainFactory<double> >   subDomainFactory(new GenSubDomainFactory_opt<double>());
-std::auto_ptr<GenSubDomainFactory<DComplex> > subDomainFactoryC(new GenSubDomainFactory_opt<DComplex>());;
-#else
 Domain *domain = new Domain();
 std::auto_ptr<ElementFactory> elemFact(new ElementFactory());
 std::auto_ptr<GenSubDomainFactory<double> >   subDomainFactory(new GenSubDomainFactory<double>());
 std::auto_ptr<GenSubDomainFactory<DComplex> > subDomainFactoryC(new GenSubDomainFactory<DComplex>());;
-#endif
+
 SolverInfo &solInfo = domain->solInfo();
 
 Sfem *sfem = new Sfem();
@@ -559,6 +543,7 @@ int main(int argc, char** argv)
    filePrint(stderr," ****************************************************\n");
    exit(error);
  }
+ domain->buildSensitivityInfo();
 
  if(decInit != 0 && decInit->skip==false) { // dec initializers in parser !
    if(numThreads == 1) // command line option prevail !!!
@@ -919,20 +904,6 @@ int main(int argc, char** argv)
        if(domain->isComplex()) {
          if(domain->solInfo().inpc) std::cerr << "inpc not implemented for complex domain \n";
          if(geoSource->isShifted()) filePrint(stderr, "in Complex Domain ...\n");
-#ifdef STRUCTOPT
-	 // quick-fix, for debugging SOpt
-	 if (dynamic_cast<Domain_opt*>(domain)->getStructoptFlag())
-	   {
-	     // structopt requested
-#ifdef DISTRIBUTED
-	     GenDistrDomain_opt<DComplex> dd(dynamic_cast<Domain_opt*>(domain));
-#else
-	     GenDecDomain_opt<DComplex> dd(dynamic_cast<Domain_opt*>(domain));
-#endif
-	     dd.structoptSolve();
-	   }
-	 else
-#endif
 	   {
          GenMultiDomainStatic<complex<double> > statProb(domain);
          StaticSolver<complex<double>, GenMDDynamMat<complex<double> >, GenDistrVector<complex<double> >,
@@ -953,20 +924,6 @@ int main(int argc, char** argv)
            statSolver.solve();
          }
          else {
-#ifdef STRUCTOPT
-	 // quick-fix, for debugging SOpt
-	 if (dynamic_cast<Domain_opt*>(domain)->getStructoptFlag())
-	   {
-	     // structopt requested
-#ifdef DISTRIBUTED
-	     GenDistrDomain_opt<double> dd(dynamic_cast<Domain_opt*>(domain));
-#else
-	     GenDecDomain_opt<double> dd(dynamic_cast<Domain_opt*>(domain));
-#endif
-	     dd.structoptSolve();
-	   }
-	 else 
-#endif
      {
        GenMultiDomainStatic<double> statProb(domain);
        StaticSolver<double, GenMDDynamMat<double>, GenDistrVector<double>,
@@ -1121,39 +1078,6 @@ int main(int argc, char** argv)
  }
  else {
 
-   //--------------------------------
-#ifdef STRUCTOPT
-   // print what type of problem we are doing
-   if (dynamic_cast<Domain_opt*>(domain)->getStructoptFlag()) {
-     if (domain->solInfo().aeroFlag > 0) {
-       fprintf(stderr," ... Multiphysics structural opt: %d ...\n",
-	       domain->solInfo().aeroFlag);
-     }
-     else {
-       fprintf(stderr," ... Structural optimization: %d	...\n",
-	       dynamic_cast<Domain_opt*>(domain)->getStructoptFlag());
-     }
-   }
-   else if (dynamic_cast<Domain_opt*>(domain)->getReliabilityFlag() > 0) {
-     fprintf(stderr," ... Structural reliability: %d    ...\n",
-	     dynamic_cast<Domain_opt*>(domain)->getReliabilityFlag());
-   }
-
-   if ( dynamic_cast<Domain_opt*>(domain)->getStructoptFlag()        > 0 ||
-	dynamic_cast<Domain_opt*>(domain)->getReliabilityFlag()      > 0 )
-     {
-       dynamic_cast<Domain_opt*>(domain)->copyNodes();	//copy nodes; always needed
-       if (dynamic_cast<Domain_opt*>(domain)->getStructoptFlag() > 0 )
-	 { dynamic_cast<Domain_opt*>(domain)->structoptSolve(); }
-       else
-	 {
-	   if(dynamic_cast<Domain_opt*>(domain)->getReliabilityFlag() > 0)
-	     { dynamic_cast<Domain_opt*>(domain)->reliabilitySolve(); }
-	 }
-     /* Execute other types of analysis such as AEROELASTIC or MESHMOTION */
-     }
-   else
-#endif
    switch(domain->probType()) {
      case SolverInfo::DisEnrM: {
         filePrint(stderr, " ... DEM Problem                    ...\n");

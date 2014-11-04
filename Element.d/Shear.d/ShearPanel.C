@@ -130,7 +130,7 @@ ShearPanel::getVonMises(Vector& stress,Vector& weight,CoordSet &cs,
 
 void
 ShearPanel::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
-                                               int senMethod, double *ndTemps, int avgnum, double ylayer, double zlayer)
+                                               double *ndTemps, int avgnum, double ylayer, double zlayer)
 {
 #ifdef USE_EIGEN3
    if(strInd != 6) {
@@ -170,58 +170,15 @@ ShearPanel::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vecto
 
   // Jacobian evaluation
   Eigen::Matrix<double,4,12> dStressdDisp;
-#ifdef SENSITIVITY_DEBUG
-  if(verboseFlag) std::cerr << "senMethod is " << senMethod << std::endl;
-#endif
  
   if(avgnum == 0 || avgnum == 1) { // NODALFULL or ELEMENTAL
-    if(senMethod == 0) { // analytic
-      dStressdDisp.setZero();
-      vmssWRTdisp(globalx.data(), globaly.data(), globalz.data(), elDisp.data(),
-                  dconst[13], prop->E, dStressdDisp.data(), vmssig);   
-      dStdDisp.copy(dStressdDisp.data());
+    dStressdDisp.setZero();
+    vmssWRTdisp(globalx.data(), globaly.data(), globalz.data(), elDisp.data(),
+                dconst[13], prop->E, dStressdDisp.data(), vmssig);   
+    dStdDisp.copy(dStressdDisp.data());
 #ifdef SENSITIVITY_DEBUG
-      if(verboseFlag) std::cerr << "dStressdDisp(analytic) =\n" << dStressdDisp << std::endl;
+    if(verboseFlag) std::cerr << "dStressdDisp(analytic) =\n" << dStressdDisp << std::endl;
 #endif
-    }
-
-    if(senMethod == 1) { // automatic differentiation
-#ifndef AEROS_NO_AD
-      Simo::Jacobian<double,ShearPanelStressWRTDisplacementSensitivity> dSdu(dconst,iconst);
-      dStressdDisp = dSdu(q, 0);
-      dStdDisp.copy(dStressdDisp.data());
-#ifdef SENSITIVITY_DEBUG
-      if(verboseFlag) std::cerr << "dStressdDisp(AD) =\n" << dStressdDisp << std::endl;
-#endif
-#else
-    std::cerr << " ... Error: AEROS_NO_AD is defined in ShearPanel::getVonMisesDisplacementSensitivity\n";    exit(-1);
-#endif
-    }
-
-    if(senMethod == 2) { // finite difference
-      // finite difference
-      dStressdDisp.setZero();
-      ShearPanelStressWRTDisplacementSensitivity<double> foo(dconst,iconst);
-      Eigen::Matrix<double,12,1> qp, qm;
-      double h(1e-5);
-      Eigen::Matrix<double,4,1> S = foo(q,0);
-      for(int i=0; i<12; ++i) {
-        qp = q;             qm = q;
-        if(q[i] == 0) { qp[i] = h;   qm[i] = -h; }
-        else { qp[i] = q[i]*(1 + h);   qm[i] = q[i]*(1 - h); }
-        Eigen::Matrix<double,4,1> Sp = foo(qp, 0);
-        Eigen::Matrix<double,4,1> Sm = foo(qm, 0);
-        Eigen::Matrix<double,4,1> fd = (Sp - Sm)/(2*(qp[i]-q[i]));
-        for(int j=0; j<4; ++j) {
-          dStressdDisp(j,i) = fd[j];
-        }
-      }
-      dStdDisp.copy(dStressdDisp.data());
-#ifdef SENSITIVITY_DEBUG
-      if(verboseFlag) std::cerr << "dStressdDisp(FD) =\n" << dStressdDisp << std::endl;
-#endif
-    }
-
   } else dStdDisp.zero(); // NODALPARTIAL or GAUSS or any others
 #else
   std::cerr << " ... Error! ShearPanel::getVonMisesDisplacementSensitivity needs Eigen library.\n";
@@ -334,7 +291,7 @@ ShearPanel::getMass(CoordSet& cs)
 }
 
 double
-ShearPanel::getMassSensitivityWRTthickness(CoordSet& cs)
+ShearPanel::getMassThicknessSensitivity(CoordSet& cs)
 {
         Node &nd1 = cs.getNode(nn[0]);
         Node &nd2 = cs.getNode(nn[1]);
@@ -363,37 +320,6 @@ ShearPanel::getMassSensitivityWRTthickness(CoordSet& cs)
                            grvfor, grvflg, totmas, masflg);
 
         return totmas/prop->eh;
-}
-
-double
-ShearPanel::weight(CoordSet& cs, double *gravityAcceleration)
-{
-  if (prop == NULL) {
-    return 0.0;
-  }
-
-  double _mass = getMass(cs);
-  double gravAccNorm = sqrt(gravityAcceleration[0]*gravityAcceleration[0] + 
-                            gravityAcceleration[1]*gravityAcceleration[1] +
-                            gravityAcceleration[2]*gravityAcceleration[2]);
-  return _mass*gravAccNorm;
-}
-
-double
-ShearPanel::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int senMethod)
-{
-  if (prop == NULL) {
-    return 0.0;
-  }
-
-  if(senMethod == 0) {
-    double _weight = weight(cs, gravityAcceleration);
-    double thick = prop->eh;
-    return _weight/thick;
-  } else {
-    fprintf(stderr," ... Error: ShearPanel::weightDerivativeWRTthickness for automatic differentiation and finite difference is not implemented\n");
-    exit(-1);
-  }
 }
 
 void
@@ -528,8 +454,8 @@ ShearPanel::getGravityForce(CoordSet& cs,double *gravityAcceleration,
 }
 
 void
-ShearPanel::getGravityForceSensitivityWRTthickness(CoordSet& cs,double *gravityAcceleration, int senMethod,
-                                                   Vector& gravityForceSensitivity, int gravflg, GeomState *geomState)
+ShearPanel::getGravityForceThicknessSensitivity(CoordSet& cs,double *gravityAcceleration,
+                                                Vector& gravityForceSensitivity, int gravflg, GeomState *geomState)
 {
       // Lumped
       if(gravflg != 2) {

@@ -18,16 +18,14 @@ public:
         FullSquareMatrix stiffness(CoordSet&, double *d, int flg=1);
         FullSquareMatrix massMatrix(CoordSet&,double *d, int cmflg=1);
         double getMass(CoordSet&);
-        double getMassSensitivityWRTthickness(CoordSet&);
-        double weight(CoordSet&, double *);
-        double weightDerivativeWRTthickness(CoordSet&, double *, int=1);
+        double getMassThicknessSensitivity(CoordSet&);
 
-	Element *clone();
-	void renum(int *);
+        Element *clone();
+        void renum(int *);
         void renum(EleRenumMap&);
-	void markDofs(DofSetArray &);
+        void markDofs(DofSetArray &);
 //	int getTopNumber() {return 195;}
-	int numTopNodes() {return (order*(order+1))/2;}
+        int numTopNodes() {return (order*(order+1))/2;}
         int* dofs(DofSetArray &, int *p=0);
         int numDofs() { return (order*(order+1)); }
         int numNodes();

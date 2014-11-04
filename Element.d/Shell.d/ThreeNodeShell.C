@@ -845,6 +845,7 @@ ThreeNodeShell::getThermalForce(CoordSet& cs, Vector& ndTemps,
                       glflag);
 }
 
+#ifdef USE_EIGEN3
 #include <Element.d/FelippaShell.d/ShellElementTemplate.hpp>
 #include <Element.d/FelippaShell.d/EffMembraneTriangle.hpp>
 #include <Element.d/FelippaShell.d/AndesBendingTriangle.hpp>
@@ -852,14 +853,14 @@ ThreeNodeShell::getThermalForce(CoordSet& cs, Vector& ndTemps,
 typedef ShellElementTemplate<double,EffMembraneTriangle,AndesBendingTriangle> Impl;
 
 double
-ThreeNodeShell::getMassSensitivityWRTthickness(CoordSet& cs)
+ThreeNodeShell::getMassThicknessSensitivity(CoordSet& cs)
 {
   if(prop == NULL) return 0.0;
   else return getMass(cs)/prop->eh;
 }
 
 void
-ThreeNodeShell::weightDerivativeWRTNodalCoordinate(Vector &dwdx, CoordSet& cs, double *gravityAcceleration, int)
+ThreeNodeShell::getWeightNodalCoordinateSensitivity(Vector &dwdx, CoordSet& cs, double *gravityAcceleration)
 {
   if(prop == NULL || gravityAcceleration == NULL) {
     dwdx.zeroAll();
@@ -879,10 +880,11 @@ ThreeNodeShell::weightDerivativeWRTNodalCoordinate(Vector &dwdx, CoordSet& cs, d
                             gravityAcceleration[2]*gravityAcceleration[2]);
 
   dwdx *= gravAccNorm;
+
 }
 
 void
-ThreeNodeShell::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gravityAcceleration, int,
+ThreeNodeShell::getGravityForceThicknessSensitivity(CoordSet& cs, double *gravityAcceleration,
                                                        Vector& dGfdthick, int gravflg, GeomState *geomState)
 {
   if(prop == NULL) {
@@ -896,8 +898,8 @@ ThreeNodeShell::getGravityForceSensitivityWRTthickness(CoordSet& cs, double *gra
 }
 
 void
-ThreeNodeShell::getGravityForceSensitivityWRTNodalCoordinate(CoordSet& cs, double *gravityAcceleration, int,
-                                                             GenFullM<double> &dGfdx, int gravflg, GeomState*)
+ThreeNodeShell::getGravityForceNodalCoordinateSensitivity(CoordSet& cs, double *gravityAcceleration,
+                                                          GenFullM<double> &dGfdx, int gravflg, GeomState*)
 {
   if(prop == NULL) {
     dGfdx.zero();
@@ -915,7 +917,7 @@ ThreeNodeShell::getGravityForceSensitivityWRTNodalCoordinate(CoordSet& cs, doubl
 }
 
 void
-ThreeNodeShell::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix &dStiffdThick, int flg, int)
+ThreeNodeShell::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix &dStiffdThick, int flg)
 {
   if(prop == NULL) {
     dStiffdThick.zero();
@@ -941,7 +943,7 @@ ThreeNodeShell::getStiffnessThicknessSensitivity(CoordSet &cs, FullSquareMatrix 
 }
 
 void
-ThreeNodeShell::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs, int)
+ThreeNodeShell::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs)
 {
   if(prop == NULL) {
     for(int i=0; i<9; ++i) dStiffdx[i].zero();
@@ -971,7 +973,7 @@ ThreeNodeShell::getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiff
 
 void
 ThreeNodeShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight, CoordSet &cs,
-                                                Vector &elDisp, int, int surface, int, double *ndTemps,
+                                                Vector &elDisp, int, int surface, double *ndTemps,
                                                 int avgnum, double, double)
 {
   weight = 1.0;
@@ -998,7 +1000,7 @@ ThreeNodeShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weigh
 
 void
 ThreeNodeShell::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vector &weight, CoordSet &cs,
-                                                      Vector &elDisp, int, int surface, int, double *ndTemps,
+                                                      Vector &elDisp, int, int surface, double *ndTemps,
                                                       int avgnum, double, double)
 {
   weight = 1.0;
@@ -1023,7 +1025,7 @@ ThreeNodeShell::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, V
 
 void
 ThreeNodeShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs,
-                                                   Vector &elDisp, int, int surface, int, double *ndTemps,
+                                                   Vector &elDisp, int, int surface, double *ndTemps,
                                                    int avgnum, double, double)
 {
   weight = 1.0;
@@ -1049,4 +1051,4 @@ ThreeNodeShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, V
                         ndTemps);
   delete mat;
 }
-
+#endif

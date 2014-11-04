@@ -92,24 +92,22 @@ public:
         int getMassType() { return 0; } // lumped only
 
         // NEW STRUCTOPT 
-        double getMassSensitivityWRTthickness(CoordSet& cs);
-        void weightDerivativeWRTNodalCoordinate(Vector &dwdx, CoordSet&, double *gravityAcceleration,
-                                                int senMethod = 1);
-        void getGravityForceSensitivityWRTthickness(CoordSet&, double *gravity, int senMethod, Vector&, int gravflg,
+        double getMassThicknessSensitivity(CoordSet& cs);
+        void getWeightNodalCoordinateSensitivity(Vector &dwdx, CoordSet&, double *gravityAcceleration);
+        void getGravityForceThicknessSensitivity(CoordSet&, double *gravity, Vector&, int gravflg,
                                                     GeomState *gs = 0);
-        void getGravityForceSensitivityWRTNodalCoordinate(CoordSet& cs, double *gravityAcceleration, int senMethod,
+        void getGravityForceNodalCoordinateSensitivity(CoordSet& cs, double *gravityAcceleration,
                                                           GenFullM<double> &dGfdx, int gravflg, GeomState *gs = 0);
-        void getStiffnessThicknessSensitivity(CoordSet& cs, FullSquareMatrix &dStiffdThick, int flg = 1,
-                                              int senMethod = 0);
-        void getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs, int senMethod = 0);
+        void getStiffnessThicknessSensitivity(CoordSet& cs, FullSquareMatrix &dStiffdThick, int flg = 1);
+        void getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs);
         void getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vector &weight, CoordSet &cs,
-                                                   Vector &elDisp, int strInd, int surface, int senMethod = 1,
+                                                   Vector &elDisp, int strInd, int surface,
                                                    double *ndTemps = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0);
         void getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight, CoordSet &cs, Vector &elDisp,
-                                             int strInd, int surface, int senMethod = 1, double *ndTemps = 0, int avgnum = 1,
+                                             int strInd, int surface, double *ndTemps = 0, int avgnum = 1,
                                              double ylayer = 0, double zlayer = 0);
         void getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs,
-                                                Vector &elDisp, int strInd, int surface, int senMethod = 1,
+                                                Vector &elDisp, int strInd, int surface,
                                                 double *ndTemps = 0, int avgnum = 1, double ylayer = 0, double zlayer = 0);
 };
 #endif

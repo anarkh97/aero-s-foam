@@ -595,7 +595,7 @@ GeoSource::readDistributedInputFiles(int localSubNum, int subNum)
 #ifdef USE_EIGEN3
 template<class Scalar>
 void 
-GeoSource::outputEigenScalars(int fileNum, Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *output, double time)
+GeoSource::outputSensitivityScalars(int fileNum, Eigen::Matrix<Scalar, Eigen::Dynamic, 1> *output, double time)
 {
   int w = oinfo[fileNum].width;
   int p = oinfo[fileNum].precision;
@@ -623,7 +623,7 @@ GeoSource::outputEigenScalars(int fileNum, Eigen::Matrix<Scalar, Eigen::Dynamic,
 
 template<class Scalar>
 void
-GeoSource::outputEigenVectors(int fileNum, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *output, double time)
+GeoSource::outputSensitivityVectors(int fileNum, Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *output, double time)
 { 
   int w = oinfo[fileNum].width;
   int p = oinfo[fileNum].precision;

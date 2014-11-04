@@ -1228,7 +1228,7 @@ C.....ERROR-MESSAGE IF THE FIRST COEFFICIENT OF EXTENTION IS ZERO
 C
   800 continue
       write(*,*) "*** FATAL ERROR in routine COMPVMS       ***"
-      write(*,*) "*** The First Coefficient of Extentional ***"
+      write(*,*) "*** The First Coefficient of Extensional ***"
       write(*,*) "*** Stiffness Cbb(1,1) is Equal to Zero! ***"
       write(*,*) "*** Can Not Estimate the Thickness...    ***"
       write(*,*) "*** EXECUTION TERMINATED RIGHT HERE      ***"
@@ -1241,7 +1241,7 @@ C
       write(*,*) "*** FATAL ERROR in routine COMPVMS            ***"
       write(*,*) "*** The Ratio Between the First Coefficient   ***"
       write(*,*) "*** of Bending Stiffness and the First        ***"
-      write(*,*) "*** Coefficient of Extentional Stiffness is   ***"
+      write(*,*) "*** Coefficient of Extensional Stiffness is   ***"
       write(*,*) "*** Negative or Zero: Can Not Take the Square ***"
       write(*,*) "*** Root and Estimate the Shell Thickness.    ***"
       write(*,*) "*** EXECUTION TERMINATED RIGHT HERE           ***"

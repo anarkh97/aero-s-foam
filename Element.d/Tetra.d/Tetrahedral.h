@@ -11,6 +11,7 @@ class Tetrahedral: public Element,
     double *cCoefs;
     double *cFrame;
     NLMaterial *mat;
+    void computeDjDx(double x[4], double y[4], double z[4], double J, double djdx[12]);
 
   public:
     Tetrahedral(int*);
@@ -22,11 +23,14 @@ class Tetrahedral: public Element,
     void renum(EleRenumMap&);
 
     FullSquareMatrix stiffness(CoordSet&, double *kel, int flg=1);
+    void getStiffnessNodalCoordinateSensitivity(FullSquareMatrix *&dStiffdx, CoordSet &cs);
     FullSquareMatrix massMatrix(CoordSet&, double *mel, int cmflg=1);
-        double weight(CoordSet& cs, double *gravityAcceleration);
+    void getWeightNodalCoordinateSensitivity(Vector &dwdx, CoordSet& cs, double *gravityAcceleration);
     double getMass(CoordSet& cs);
 
     void getGravityForce(CoordSet&, double *gravity, Vector&, int gravflg, GeomState *gs);
+    void getGravityForceNodalCoordinateSensitivity(CoordSet& cs, double *gravityAcceleration,
+                                                   GenFullM<double> &dGfdx, int gravflg, GeomState *geomState);
     void getThermalForce(CoordSet &cs, Vector &ndTemps, Vector &force, int glflag, GeomState *gs=0);
 
     void getVonMises(Vector &stress, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd,
@@ -34,8 +38,11 @@ class Tetrahedral: public Element,
 
     void getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vector &weight,
                                                CoordSet &cs, Vector &elDisp, int strInd,
-                                               int surface, int senMethod=1, double* ndTemps=0,
+                                               int surface, double* ndTemps=0,
                                                int avgnum=1, double ylayer=0, double zlayer=0);
+
+    void getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd, int surface,
+                                            double *ndTemps, int avgnum, double ylayer, double zlayer);
 
     void getAllStress(FullM &stress, Vector &weight, CoordSet &cs, Vector &elDisp, int strInd,
                       int surface=0, double *ndTemps=0);

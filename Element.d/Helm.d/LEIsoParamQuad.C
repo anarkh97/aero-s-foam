@@ -94,7 +94,7 @@ double LEIsoParamQuad::getMass(CoordSet &cs) {
  return area*prop->eh*prop->rho;
 }
 
-double LEIsoParamQuad::getMassSensitivityWRTthickness(CoordSet &cs) {
+double LEIsoParamQuad::getMassThicknessSensitivity(CoordSet &cs) {
  IsoParamUtils2d ipu(order);
  int ordersq = ipu.getordersq();
  double *xyz=(double*)alloca(sizeof(double)*3*ordersq);
@@ -107,29 +107,6 @@ double LEIsoParamQuad::getMassSensitivityWRTthickness(CoordSet &cs) {
  ipu.areaInt2d(xyz, f, gorder);
 
  return area*prop->rho;
-}
-
-double LEIsoParamQuad::weight(CoordSet& cs, double *gravityAcceleration)
-{
-  if (prop == NULL) return 0.0;
-
-  double _mass = getMass(cs);
-  double gravAccNorm = sqrt(gravityAcceleration[0]*gravityAcceleration[0] + 
-                            gravityAcceleration[1]*gravityAcceleration[1] +
-                            gravityAcceleration[2]*gravityAcceleration[2]);
-  return _mass*gravAccNorm;
-}
-
-
-double LEIsoParamQuad::weightDerivativeWRTthickness(CoordSet& cs, double *gravityAcceleration, int senMethod)
-{
- if(senMethod == 0) {
-   double _weight = weight(cs, gravityAcceleration);
-   return _weight/prop->eh;
- } else {
-   fprintf(stderr," ... Error: LEIsoParamQuad::weightDerivativeWRTthickness for automatic differentiation and finite difference is not implemented\n");
-   exit(-1);
- }
 }
 
 

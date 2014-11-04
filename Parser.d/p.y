@@ -4424,43 +4424,54 @@ MatSpec:
               domain->solInfo().elementDeletion = true;
             }
           }
-        | MatSpec Integer OPTCTV Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float Float NewLine
-         {
-           geoSource->addMaterial($2-1,
-             new ExpMat($3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23));
-           if($11 > 0 && $11 < std::numeric_limits<double>::infinity()) {
-             domain->solInfo().elementDeletion = true;
-           }
-         }
         | MatSpec Integer OPTCTV Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
-             new ExpMat($3, $4, $5, $6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+             new ExpMat($3, $4, $5, $6));
          }
         | MatSpec Integer OPTCTV Float Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
-             new ExpMat($3, $4, $5, $6, $7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+             new ExpMat($3, $4, $5, $6, $7));
          }
         | MatSpec Integer OPTCTV Float Float Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
-             new ExpMat($3, $4, $5, $6, $7, $8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+             new ExpMat($3, $4, $5, $6, $7, $8));
          }
         | MatSpec Integer OPTCTV Float Float Float Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
-             new ExpMat($3, $4, $5, $6, $7, $8, $9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+             new ExpMat($3, $4, $5, $6, $7, $8, $9));
          }
         | MatSpec Integer OPTCTV Float Float Float Float Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
-             new ExpMat($3, $4, $5, $6, $7, $8, $9, $10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+             new ExpMat($3, $4, $5, $6, $7, $8, $9, $10));
          }
         | MatSpec Integer OPTCTV Float Float Float Float Float Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
-             new ExpMat($3, $4, $5, $6, $7, $8, $9, $10, $11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+             new ExpMat($3, $4, $5, $6, $7, $8, $9, $10, $11));
+           if($11 > 0 && $11 < std::numeric_limits<double>::infinity()) {
+             domain->solInfo().elementDeletion = true;
+           }
+         }
+        | MatSpec Integer OPTCTV Float Float Float Float Float Float Float Float Float
+                          Integer Integer Integer Integer Float Float Float Integer Float NewLine
+         {
+           ExpMat *mat = new ExpMat($3, $4, $5, $6, $7, $8, $9, $10, $11);
+           // $12 is reserved, e.g. for fracture toughness
+           mat->optcor0 = $13;
+           mat->optcor1 = $14;
+           mat->optprj = $15;
+           mat->opthgc = $16;
+           mat->prmhgc[0] = $17;
+           mat->prmhgc[1] = $18;
+           mat->prmhgc[2] = $19;
+           mat->ngqpt2 = $20;
+           mat->ematpro[18] = $21;
+           geoSource->addMaterial($2-1, mat);
            if($11 > 0 && $11 < std::numeric_limits<double>::infinity()) {
              domain->solInfo().elementDeletion = true;
            }

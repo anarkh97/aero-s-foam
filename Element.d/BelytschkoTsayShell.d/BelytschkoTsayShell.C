@@ -61,7 +61,6 @@ double BelytschkoTsayShell::t7 = 0;
 
 BelytschkoTsayShell::BelytschkoTsayShell(int* nodenums)
 {
-  // TODO most of these should come from StructProp via MATERIAL
   optdmg = 0; // no damage
   opthgc = 1; // perturbation type hourglass control
   opttrc = -1; // no pressure or traction
@@ -152,8 +151,8 @@ BelytschkoTsayShell::setProp(StructProp *p, bool _myProp)
   Element::setProp(p,_myProp);
   // create default material
   if(prop) {
-    expmat = new ExpMat(1, prop->E, prop->nu, prop->rho, 0, 0, 0, 0, 0,
-                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0.1, 0.833, prop->eh);
+    expmat = new ExpMat(1, prop->E, prop->nu, prop->rho);
+    expmat->ematpro[19] = prop->eh;
     myMat = true;
   }
 }
@@ -164,11 +163,12 @@ BelytschkoTsayShell::setMaterial(NLMaterial *m)
   if(!prop) return; // phantom element
   if(ExpMat *expmat2 = dynamic_cast<ExpMat *>(m)) *expmat = *expmat2;
   else return;
+
   if(expmat->optctv != 1) {
     double E = expmat->ematpro[0], nu = expmat->ematpro[1];
     double lambda = E*nu/((1+nu)*(1-2*nu)), mu = E/(2*(1+nu));
-    mat = new ElastoPlasticPlaneStressMaterial * [mgaus[2]];
-    for(int i=0; i<mgaus[2]; ++i) {
+    mat = new ElastoPlasticPlaneStressMaterial * [expmat->ngqpt2];
+    for(int i=0; i<expmat->ngqpt2; ++i) {
       switch(expmat->optctv) {
       case 5 : {
         double epsF = (expmat->ematpro[7] <= 0) ? std::numeric_limits<double>::infinity() : expmat->ematpro[7];
@@ -188,9 +188,38 @@ BelytschkoTsayShell::setMaterial(NLMaterial *m)
       }
     }
   }
-  if(expmat->ematpro[17] == 0) expmat->ematpro[17] = 0.1;
-  if(expmat->ematpro[18] == 0) expmat->ematpro[18] = 0.833;
-  if(expmat->ematpro[19] == 0) expmat->ematpro[19] = prop->eh;
+
+  // set element properties
+  optcor[0] = expmat->optcor0;
+  if(nn[2] != nn[3]) {
+    optcor[1] = expmat->optcor1;
+    optprj = expmat->optprj;
+  }
+  opthgc = expmat->opthgc;
+  prmhgc[0] = expmat->prmhgc[0];
+  prmhgc[1] = expmat->prmhgc[1];
+  prmhgc[2] = expmat->prmhgc[2];
+  ngqpt[2] = expmat->ngqpt2;
+  expmat->ematpro[19] = prop->eh;
+
+  if(ngqpt[2] != 3) { // reset gq size, rule and history variables
+    int optmhd = 0, optele = 3;
+    _FORTRAN(getgqsize)(optmhd, optele, ngqpt, mgaus, mgqpt);
+
+    delete [] gqpoin3; delete [] gqweigt3;
+    gqpoin3 = new double[mgaus[2]];
+    gqweigt3 = new double[mgaus[2]];
+    _FORTRAN(getgq1d)(mgaus[2], gqpoin3, gqweigt3);
+
+    delete [] evar1; delete [] evar2; delete [] evoit1; delete [] evoit2; delete [] evoit3;
+    evar1 = new double[5*mgqpt[0]];
+    evar2 = new double[5*mgqpt[0]];
+    evoit1 = new double[6*mgqpt[0]];
+    evoit2 = new double[6*mgqpt[0]];
+    evoit3 = new double[6*mgqpt[0]];
+    for(int i = 0; i < 5*mgqpt[0]; ++i) evar1[i] = evar2[i] = 0;
+    for(int i = 0; i < 6*mgqpt[0]; ++i) evoit1[i] = evoit2[i] = evoit3[i] = 0;
+  }
 }
 
 void
@@ -977,7 +1006,7 @@ BelytschkoTsayShell::Elefintbt1(double delt, double *_ecord, double *_edisp, dou
 
   // update hourglass control stresses
   // ---------------------------------
-  if(opthgc >= 0) {
+  if(opthgc > 0) {
     _FORTRAN(updhgcstrsbt)(prmhgc, delt, expmat->ematpro, eveloloc.data(), area, bmat1pt,
                            gamma, zgamma, evoit1);
           // input : prmhgc,delt,ematpro,eveloloc,area,bmat1pt,gamma,zgamma
@@ -986,7 +1015,7 @@ BelytschkoTsayShell::Elefintbt1(double delt, double *_ecord, double *_edisp, dou
 
   // add the hourglass control forces
   // --------------------------------------
-  if(opthgc >= 0) {
+  if(opthgc > 0) {
     _FORTRAN(gqfhgcbt)(gamma, zgamma, evoit1, efintloc.data());
           // input : gamma,zgamma,hgcvoitloc
           // inoutput : efintloc

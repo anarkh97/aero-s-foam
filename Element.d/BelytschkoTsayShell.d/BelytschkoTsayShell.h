@@ -27,7 +27,7 @@ class BelytschkoTsayShell : virtual public Element, public Corotator
     double prmdmp[10]; // damping control parameters
     int ngqpt[3]; // ngqpt[0] = gq rule for regular element
                   // ngqpt[1] = gq rule for enriched element
-                  // ngqpt[3] = gq rule for through thickness
+                  // ngqpt[2] = gq rule for through thickness
     int ngqpt4; // gq rule for bc or cohesive force integration
     int nndof;
     int ndime;

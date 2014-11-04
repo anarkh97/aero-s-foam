@@ -62,9 +62,9 @@ StaticSolver< Scalar, OpSolver, VecType,
    filePrint(stderr, " ... Frequency Sweep Analysis       ... \n");
    filePrint(stderr, " ... Number of coarse freqencies = %3d     ... \n", domain->coarse_frequencies->size());
    if(padeN > 1)
-     filePrint(stderr, " ... Number of extrapolated freqencies = %3d     ... \n", domain->frequencies->size());
-   else 
      filePrint(stderr, " ... Number of interpolated freqencies = %3d     ... \n", domain->frequencies->size());
+   else 
+     filePrint(stderr, " ... Number of extrapolated freqencies = %3d     ... \n", domain->frequencies->size());
    int nRHS = domain->solInfo().getSweepParams()->nFreqSweepRHS;
    if(nRHS==0) filePrint(stderr, " *** ERROR: nRHS = 0 \n");
 
@@ -348,7 +348,7 @@ ncheck = 18;
    
    // loop over coarse grid
    bool first_time = true;
-   bool savesol = false;
+   bool savesol = false, savedsol = false;
    bool gpReorthoFlag = true;
    double w0;
    int count = 0;
@@ -425,6 +425,7 @@ ncheck = 18;
        /*probDesc->*/ PadeLanczos_Evaluate((count+1)*nRHS, PadeLanczos_solprev, 
                                       PadeLanczos_VtKV, PadeLanczos_Vtb, wc, sol);
        if (savesol)  {
+         savedsol = true;
          *savedSol = *sol;
          *savedRhs = *rhs;
        }
@@ -445,6 +446,7 @@ ncheck = 18;
 */
      } else if (domain->solInfo().getSweepParams()->freqSweepMethod == SweepParams::KrylovGalProjection || domain->solInfo().getSweepParams()->freqSweepMethod == SweepParams::QRGalProjection) {
        if (savesol)  {
+         savedsol = true;
          *savedSol = *sol;
          *savedRhs = *rhs;
        }
@@ -454,6 +456,7 @@ ncheck = 18;
        }
      } else {
        if (savesol)  {
+         savedsol = true;
          *savedSol = *sol_prev[offset+1];
          *savedRhs = *rhs;
        }
@@ -487,6 +490,7 @@ ncheck = 18;
        StaticTimers *times = probDesc->getStaticTimers();
 double xtime = 0.0;
 xtime -= getTime();
+
        while((domain->frequencies->size() > 0) && ((domain->frequencies->front() < max_freq_before_rebuild) 
              || (domain->coarse_frequencies->size() == 0))) {
 
@@ -563,17 +567,23 @@ xtime -= getTime();
 
          postProcessor->staticOutput(*sol, *rhs, printTimers); 
          domain->frequencies->pop_front();
+         if(padeN == 1 && w < w0 && !domain->frequencies->empty() && domain->frequencies->front() > w0) {
+           domain->isCoarseGridSolve = true;
+           postProcessor->staticOutput(*savedSol, *savedRhs, printTimers);
+           savedsol = false;
+         }
        } // while((domain->frequencies->size() > 0) ... )
 xtime += getTime();
 filePrint(stderr,"Projection  time: %e\n",xtime);
 
        // print out saved solution
-       if (savedSol)  {
+       if (savedsol)  {
          domain->isCoarseGridSolve = true;
          postProcessor->staticOutput(*savedSol, *savedRhs, printTimers); 
        }
-       else
+       else {
          savesol = true;
+       }
 
        if(domain->solInfo().getSweepParams()->freqSweepMethod == SweepParams::PadeLanczos) { // PJSA 10-09-08 temporary fix to get sweep working
                                                                           // not optimal, can we reuse part of the basis? 

@@ -480,6 +480,7 @@ ReconsInfo:
           int &l = domain->solInfo().getSweepParams()->padeL, &m = domain->solInfo().getSweepParams()->padeM, &n = domain->solInfo().getSweepParams()->padeN;
           switch($2) {
             case SweepParams::Taylor:
+              n = 1;
               domain->solInfo().getSweepParams()->nFreqSweepRHS = $3+1; // taylor
               break;
             case SweepParams::Pade1:
@@ -519,6 +520,7 @@ ReconsInfo:
           int &l = domain->solInfo().getSweepParams()->padeL, &m = domain->solInfo().getSweepParams()->padeM, &n = domain->solInfo().getSweepParams()->padeN;
           switch($2) {
             case SweepParams::Taylor:
+              n = 1;
               domain->solInfo().getSweepParams()->nFreqSweepRHS = $3+1; // taylor
               break;
             case SweepParams::Pade1:

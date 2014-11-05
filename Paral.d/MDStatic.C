@@ -103,10 +103,12 @@ GenMultiDomainStatic<Scalar>::preProcess()
  times->getFetiSolverTime += getTime();
 
  int useRbmFilter = domain->solInfo().filterFlags;
- if(useRbmFilter) {
-   filePrint(stderr," ... RBM Filter Requested           ...\n");
+ if(useRbmFilter || domain->solInfo().rbmflg) {
    MultiDomainRbm<Scalar> *rigidBodyModes = decDomain->constructRbm();
-   projector_prep(rigidBodyModes);
+   if(useRbmFilter) {
+     filePrint(stderr," ... RBM Filter Requested           ...\n");
+     projector_prep(rigidBodyModes);
+   }
    delete rigidBodyModes;
  }
 

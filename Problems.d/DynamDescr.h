@@ -24,7 +24,6 @@ class Domain;
 class ControlLawInfo;
 template <typename Scalar> class GenSolver;
 template <typename Scalar> struct AllSensitivities;
-class Rbm;
 
 // Single Domain Dynamic Post Processor Class
 
@@ -127,7 +126,7 @@ class SingleDomainDynamic
 
     void trProject(Vector &f);
     void project(Vector &v);
-    void projector_prep(Rbm *R, SparseMatrix *M);
+    void projector_prep(SparseMatrix *M);
 
     int solVecInfo();
     int masterSolVecInfo();

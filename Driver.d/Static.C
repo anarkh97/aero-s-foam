@@ -660,6 +660,7 @@ Domain::constructSlzem(bool printFlag)
 Rbm *
 Domain::constructRbm(bool printFlag)
 {
+  if(printFlag) filePrint(stderr," ... Using Geometric RBM Method     ...\n");
   Rbm *rbm = 0;
   if(numLMPC && sinfo.grbm_use_lmpc) {
     if(renumb_nompc.numComp == 0)
@@ -678,22 +679,6 @@ Domain::constructRbm(bool printFlag)
     std::cerr << " ... GRBM algorithm detected " << rbm->numRBM() << " rigid body modes ...\n";
   return rbm;
 }
-
-/*
-// Function to construct rigid body modes
-Rbm *
-Domain::constructRbm(IntFullM *fm)
-{
- return new Rbm(dsa, c_dsa, nodes, sinfo.tolsvd, renumb, fm);
-}
-*/
-
-/*
-Static, Dynamic, Modal, NonLinStatic, NonLinDynam,
-ArcLength, ConditionNumber, TempDynamic, Top,
-AxiHelm, MatNonLinStatic, MatNonLinDynam,
-Helmholtz, HelmholtzFreqSweep, HelmholtzDirSweep, HelmholtzMF, HelmholtzSO
-*/
 
 const char* problemTypeMessage[] = {
 " ... Linear Static Analysis         ... \n",
@@ -802,14 +787,6 @@ Domain::make_constrainedDSA(int *bc)
  // bc = integer array marking dofs that are
  //      constrained or have forces applied
 
- if (solInfo().HEV)  {
-   //int numdofFluid = dsaFluid->size();
-   //int numdof = dsa->size();
-   //for (int i=0; i<num
-   //c_dsaFluid = new ConstrainedDSA(*dsaFluid, dbcFluid, numDirichletFluid, cdbc, 0, bc);
-                              //numComplexDirichlet, bc);
-   fprintf(stderr," *** c_dsaFluid NOT built in this version of constructor! ***\n");
- }
  if(c_dsa) delete c_dsa;
  c_dsa = new ConstrainedDSA(*dsa, dbc, numDirichlet, cdbc,
                             numComplexDirichlet, bc);

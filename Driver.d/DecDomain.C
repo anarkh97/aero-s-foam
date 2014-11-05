@@ -4211,6 +4211,7 @@ template<class Scalar>
 MultiDomainRbm<Scalar> *
 GenDecDomain<Scalar>::constructRbm(bool printFlag)
 {
+  if(printFlag) filePrint(stderr," ... Using Geometric RBM Method     ...\n");
   MultiDomainRbm<Scalar> *rbm = new MultiDomainRbm<Scalar>(this, domain->solInfo().tolsvd);
   if(printFlag)
     filePrint(stderr, " ... GRBM algorithm detected %d rigid body or zero energy modes ...\n", rbm->numRBM());

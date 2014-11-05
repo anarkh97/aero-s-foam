@@ -73,12 +73,7 @@ Domain::rebuildOps<Scalar>(AllOps<Scalar>&, double, double, double,\
 \
 template \
 void \
-Domain::getSolverAndKuc<Scalar>(GenSolver<Scalar>*&, GenSparseMatrix<Scalar>*&,\
-                                FullSquareMatrix*, bool);\
-\
-template \
-void \
-Domain::getSolverAndKuc<Scalar>(AllOps<Scalar>&, FullSquareMatrix*, bool);\
+Domain::getSolverAndKuc<Scalar>(AllOps<Scalar>&, FullSquareMatrix*, Rbm*, bool);\
 \
 template \
 void \

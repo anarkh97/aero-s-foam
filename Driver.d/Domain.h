@@ -975,16 +975,13 @@ class Domain : public HData {
 #ifdef USE_EIGEN3 
      void eigenQROutput(Eigen::MatrixXd& Xmatrix, Eigen::MatrixXd& Qmatrix, Eigen::MatrixXd& Rmatrix);
 #endif
-     void setEigenValue(double _lbound, int _nshifts, int _maxArnItr = 0); //CBM
+     void setEigenValue(double _lbound, int _nshifts, int _maxArnItr = 0);
      void setEigenValues(double _lbound, double _ubound, int _neigps = 0, int _maxArnItr = 0);
 
      Solver *getSolver() { return solver; }
 
      template<class Scalar>
-       void getSolverAndKuc(GenSolver<Scalar> *&solver, GenSparseMatrix<Scalar> *&kuc,
-                            FullSquareMatrix *kelArray = 0, bool factorize=true);
-     template<class Scalar>
-       void getSolverAndKuc(AllOps<Scalar> &allOps, FullSquareMatrix *kelArray, bool factorize=true);
+       void getSolverAndKuc(AllOps<Scalar> &allOps, FullSquareMatrix *kelArray, Rbm *rbm, bool factorize=true);
 
      void make_constrainedDSA();
      void make_constrainedDSA(int *bc);

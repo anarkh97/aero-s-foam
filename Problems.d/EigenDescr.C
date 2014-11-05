@@ -66,7 +66,7 @@ SingleDomainEigen::preProcess()
  domain->makeAllDOFs();
  times->makeDOFs += getTime();
 
- if (domain->solInfo().HEV)  {
+ if(domain->solInfo().HEV) {
    domain->makeAllDOFsFluid();
  }
  
@@ -115,20 +115,18 @@ SingleDomainEigen::buildEigOps( DynamMat &dMat )
  // Used for printing out K during debugging.
  allOps.K = domain->constructDBSparseMatrix<double>();
 
- // construct geometric rigid body modes if necessary
+ // ... Construct geometric rigid body modes if necessary
  if(domain->solInfo().rbmflg) { 
-   //filePrint(stderr, " ... Constructing Geometric RBMs    ... \n");
    dMat.rigidBodyModes = domain->constructRbm();
  }
 
- if(domain->solInfo().hzemFlag) {
-   //filePrint(stderr, " ... Constructing HZEMs             ... \n");
+ // ... Construct "thermal rigid body mode" if necessary
+ else if(domain->solInfo().hzemFlag) {
    dMat.rigidBodyModes = domain->constructHzem();
  }
 
- // construct rigid body modes for sloshing problems if necessary
- if(domain->solInfo().slzemFlag) { 
-   //filePrint(stderr, " ... Constructing Sloshing RBMs     ... \n");
+ // ... Construct "sloshing rigid body mode" if necessary
+ else if(domain->solInfo().slzemFlag) { 
    dMat.rigidBodyModes = domain->constructSlzem();
  }
 

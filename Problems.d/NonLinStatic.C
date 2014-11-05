@@ -350,11 +350,13 @@ NonLinStatic::preProcess(bool factor)
  long buildMem = -memoryUsed();
  times->timeBuild -= getTime();
 
- Rbm *rigidBodyModes = 0;
- if(domain->solInfo().rbmflg) rigidBodyModes = domain->constructRbm(); // new policy is to construct rbms if GRBM is requested in input file
-                                                                       // but only use them when it is appropriate to do so. In nonlinear statics it is not
-                                                                       // since the nullity of the tangent stiffness matrix may be less than the nullity
-                                                                       // of the number of rigid body modes
+ if(domain->solInfo().rbmflg) {
+   Rbm *rigidBodyModes = domain->constructRbm(); // new policy is to construct rbms if GRBM is requested in input file
+                                                 // but only use them when it is appropriate to do so. In nonlinear statics it is not
+                                                 // since the nullity of the tangent stiffness matrix may be less than the nullity
+                                                 // of the number of rigid body modes
+   delete rigidBodyModes;
+ }
  
  domain->buildOps<double>(allOps, 1.0, 0.0, 0.0, (Rbm *) NULL, kelArray,
                           (FullSquareMatrix *) NULL, (FullSquareMatrix *) NULL, factor);

@@ -857,12 +857,14 @@ NonLinDynamic::preProcess(double Kcoef, double Mcoef, double Ccoef)
  Rbm *rigidBodyModes = 0;
 
  int useGrbm = domain->solInfo().rbmflg;
- int useHzem   = domain->solInfo().hzemFlag;
+ int useHzem = domain->solInfo().hzemFlag;
 
  if (useGrbm)
    rigidBodyModes = domain->constructRbm();
  else if(useHzem)
    rigidBodyModes = domain->constructHzem();
+
+ if(rigidBodyModes) delete rigidBodyModes;
 
  // ... CREATE THE ARRAY OF ELEMENT STIFFNESS MATRICES
  if(!kelArray) {

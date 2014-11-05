@@ -246,39 +246,48 @@ SingleDomainStatic<T, VectorType, SolverType>::preProcess()
 
  stopTimerMemory(times->preProcess, times->memoryPreProcess);
 
- domain->template getSolverAndKuc<T>(allOps, kelArray);  // PJSA 10-5-04 for freq sweep compatibility
- solver = allOps.sysSolver;                              // also need M, Muc, C and Cuc (in allOps)
+ if(!rigidBodyModes) {
+   int useProjector = domain->solInfo().filterFlags;
+   int useHzemFilter = domain->solInfo().hzemFilterFlag;
+   int useSlzemFilter = domain->solInfo().slzemFilterFlag;
+
+   // ... Construct geometric rigid body modes if necessary
+   if(useProjector || domain->solInfo().rbmflg) {
+     rigidBodyModes = domain->constructRbm();
+     if(useProjector) {
+       std::cout << " ... RBM Filter Requested           ..." << std::endl;
+       projector_prep(rigidBodyModes);
+     }
+   }
+
+   // ... Construct "thermal rigid body mode" if necessary
+   else if(useHzemFilter || domain->solInfo().hzemFlag) {
+     rigidBodyModes = domain->constructHzem();
+     if(useHzemFilter) {
+       std::cout << " ... HZEM Filter Requested          ..." << std::endl;
+       projector_prep(rigidBodyModes);
+     }
+   }
+
+   // ... Construct "sloshing rigid body mode" if necessary
+   else if(useSlzemFilter || domain->solInfo().slzemFlag) {
+     rigidBodyModes = domain->constructSlzem();
+     if(useSlzemFilter) {
+       std::cout << " ... SLZEM Filter Requested         ..." << std::endl;
+       projector_prep(rigidBodyModes);
+     }
+   }
+ }
+
+ if(domain->solInfo().rbmflg || domain->solInfo().hzemFlag || domain->solInfo().slzemFlag) {
+   domain->template getSolverAndKuc<T>(allOps, kelArray, rigidBodyModes);
+ }
+ else {
+   domain->template getSolverAndKuc<T>(allOps, kelArray, (Rbm*)NULL); 
+ }
+ solver = allOps.sysSolver;
  kuc = allOps.Kuc;
  kcc = allOps.Kcc;
-
- Rbm *rigidBodyModes = 0;
- int useProjector = domain->solInfo().filterFlags;
- if(useProjector) {
-   std::cout << " ... RBM Filter Requested           ..." << std::endl;
-   rigidBodyModes = domain->constructRbm();
-   projector_prep(rigidBodyModes);
- }
- 
- int useHzemFilter = domain->solInfo().hzemFilterFlag;
- if(useHzemFilter) {
-   std::cout << " ... HZEM Filter Requested          ..." << std::endl;
-   rigidBodyModes = domain->constructHzem();
-   projector_prep(rigidBodyModes);
- }
-
- int useSlzemFilter = domain->solInfo().slzemFilterFlag;
- if(useSlzemFilter) {
-   std::cout << " ... SLZEM Filter Requested         ..." << std::endl;
-   rigidBodyModes = domain->constructSlzem();
-   projector_prep(rigidBodyModes);
- }
-
- int useModeFilter = domain->solInfo().modeFilterFlag;
- if(useModeFilter) {
-   std::cout << " ... MODE Filter requested          ..." << std::endl;
-   eigmode_projector_prep();
- }
-
 }
 
 template<class T, class VectorType, class SolverType>

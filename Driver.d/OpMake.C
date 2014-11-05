@@ -842,8 +842,10 @@ GenSkyMatrix<Scalar> *
 Domain::constructSkyMatrix(DofSetArray *DSA, Rbm *rbm)
 {
   if(DSA==0) DSA=c_dsa;
+  // use the correct zero pivot tolerance for GRBM or TRBM.
+  double trbm = (rbm && geoSource->shiftVal() == 0) ? sinfo.trbm2 : sinfo.trbm;
   if(!sinfo.getDirectMPC())
-    return new GenSkyMatrix<Scalar>(nodeToNode, DSA, sinfo.trbm, rbm);
+    return new GenSkyMatrix<Scalar>(nodeToNode, DSA, trbm, rbm);
   else {
     if(nodeToNodeDirect) delete nodeToNodeDirect;
     nodeToNodeDirect = prepDirectMPC();
@@ -852,7 +854,7 @@ Domain::constructSkyMatrix(DofSetArray *DSA, Rbm *rbm)
     // TODO Examine when DSA can be different from c_dsa
     if(MpcDSA && sinfo.isNonLin()) delete MpcDSA;
     MpcDSA = makeMaps(dsa, c_dsa, baseMap, eqMap);
-    typename WrapSkyMat<Scalar>::CtorData baseArg(nodeToNodeDirect, MpcDSA, sinfo.trbm, rbm);
+    typename WrapSkyMat<Scalar>::CtorData baseArg(nodeToNodeDirect, MpcDSA, trbm, rbm);
     int nMappedEq = DSA->size();
     return
       new MappedAssembledSolver<WrapSkyMat<Scalar>, Scalar>(baseArg, dsa->size(), baseMap,
@@ -873,25 +875,26 @@ GenBLKSparseMatrix<Scalar> *
 Domain::constructBLKSparseMatrix(DofSetArray *DSA, Rbm *rbm)
 {
   if(DSA == 0) DSA = c_dsa;
+  // use the correct zero pivot tolerance for GRBM or TRBM.
+  double trbm = (rbm && geoSource->shiftVal() == 0) ? sinfo.trbm2 : sinfo.trbm;
   if(sinfo.newmarkBeta == 0.0 && (sinfo.acoustic || sinfo.inertiaLumping == 2)) {
     if(sinfo.ATDARBFlag >- 1.0 && sinfo.acoustic) {
-      return new GenBLKSparseMatrix<Scalar>(nodeToNode_sommer->modify(), dsa, DSA, sinfo.trbm, sinfo.sparse_renum, rbm);
+      return new GenBLKSparseMatrix<Scalar>(nodeToNode_sommer->modify(), dsa, DSA, trbm, sinfo.sparse_renum, rbm);
     }
     else {
       int numN=numNodes();
       // import a diagonal connectivity for the mass matrix
       Connectivity *connForMas = 0;
       connForMas = new Connectivity(numN);
-      //connForMass->print();
       connForMas = connForMas->modify();
-      GenBLKSparseMatrix<Scalar> * retur =  new GenBLKSparseMatrix<Scalar>(connForMas, dsa, DSA, sinfo.trbm, sinfo.sparse_renum, rbm);
+      GenBLKSparseMatrix<Scalar> * retur =  new GenBLKSparseMatrix<Scalar>(connForMas, dsa, DSA, trbm, sinfo.sparse_renum, rbm);
       delete connForMas;
       return retur;
     }
   }
   else {
     if(!sinfo.getDirectMPC())
-      return new GenBLKSparseMatrix<Scalar>(nodeToNode, dsa, DSA, sinfo.trbm, sinfo.sparse_renum, rbm);
+      return new GenBLKSparseMatrix<Scalar>(nodeToNode, dsa, DSA, trbm, sinfo.sparse_renum, rbm);
     else {
       if(nodeToNodeDirect) delete nodeToNodeDirect;
       nodeToNodeDirect = prepDirectMPC();
@@ -901,7 +904,7 @@ Domain::constructBLKSparseMatrix(DofSetArray *DSA, Rbm *rbm)
       if(MpcDSA && sinfo.isNonLin()) delete MpcDSA;
       MpcDSA = makeMaps(dsa, c_dsa, baseMap, eqMap);
       typename WrapSparseMat<Scalar>::CtorData
-        baseArg(nodeToNodeDirect, dsa, MpcDSA, sinfo.trbm, sinfo.sparse_renum, rbm);
+        baseArg(nodeToNodeDirect, dsa, MpcDSA, trbm, sinfo.sparse_renum, rbm);
       int nMappedEq = DSA->size();
       return new MappedAssembledSolver<WrapSparseMat<Scalar>, Scalar>(baseArg, dsa->size(), baseMap, nMappedEq, eqMap, c_dsa, rbm);
     }
@@ -1016,9 +1019,9 @@ Domain::buildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Ccoe
 
  if(allOps.sysSolver) delete allOps.sysSolver;
  GenSolver<Scalar> *systemSolver = 0;
- if(geoSource->isShifted() || Mcoef != 0 || Ccoef != 0) rbm = 0; // PJSA: don't pass
-                                                                 // geometric rbms to
-                                                                 // solver in this case
+ if(geoSource->shiftVal() != 0 || Mcoef != 0 || Ccoef != 0) rbm = 0; // PJSA: don't pass
+                                                                     // geometric rbms to
+                                                                     // solver in this case
  allOps.spm = 0;
  SfemBlockMatrix<Scalar> *sfbm = 0;
  int L = 1;
@@ -1249,43 +1252,7 @@ Domain::rebuildOps(AllOps<Scalar> &allOps, double Kcoef, double Mcoef, double Cc
 
 template<class Scalar>
 void
-Domain::getSolverAndKuc(GenSolver<Scalar> *&solver, GenSparseMatrix<Scalar> *&kuc,
-                        FullSquareMatrix *kelArray, bool factorize)
-{
- // ... Declare an AllOps structure
- AllOps<Scalar> allOps;
-
- // ... Call necessary Operator's constructors
- allOps.Kuc = constructCuCSparse<Scalar>();
-
- Rbm *rbm = 0;
- // ... Construct geometric rigid body modes if necessary
- if(sinfo.rbmflg) rbm = constructRbm();
-
- // ... Construct "thermal rigid body mode" if necessary
- if(sinfo.hzemFlag) {
-   rbm = constructHzem();
-   if(rbm->numRBM() == 0) rbm = 0;
- }
-
- // ... Construct "Sloshing rigid body mode" if necessary
- if(sinfo.slzemFlag) {
-   fprintf(stderr," ... constructSlzem called in OpMake.C -- THIS CALL HAS NOT BEEN DEBUGGED ...\n");
-   rbm = constructSlzem();
-   if(rbm->numRBM() == 0) rbm = 0;
- }
-
- // ... Build stiffness matrix K and Kuc
- buildOps<Scalar>(allOps, 1.0, 0.0, 0.0, rbm, kelArray, (FullSquareMatrix*) NULL, (FullSquareMatrix*) NULL, factorize);
-
- // ... Return with solver and Kuc
- solver = allOps.sysSolver;
- kuc    = allOps.Kuc;
-}
-
-template<class Scalar>
-void
-Domain::getSolverAndKuc(AllOps<Scalar> &allOps, FullSquareMatrix *kelArray, bool factorize)
+Domain::getSolverAndKuc(AllOps<Scalar> &allOps, FullSquareMatrix *kelArray, Rbm *rbm, bool factorize)
 {
  // PJSA 10-5-04: new version, this one can pass all sys matricies back via allOps
  // not just K and Kuc. This is required for frequency sweep analysis
@@ -1297,22 +1264,6 @@ Domain::getSolverAndKuc(AllOps<Scalar> &allOps, FullSquareMatrix *kelArray, bool
  if(sinfo.sensitivity)
    allOps.K = constructEiSparseMatrix<Scalar, Eigen::SimplicialLLT<Eigen::SparseMatrix<Scalar>,Eigen::Upper> >(c_dsa, nodeToNode, false);
 #endif
-
- Rbm *rbm = 0;
- // ... Construct geometric rigid body modes if necessary
- if(sinfo.rbmflg) rbm = constructRbm();
-
- // ... Construct "thermal rigid body mode" if necessary
- if(sinfo.hzemFlag) {
-   rbm = constructHzem();
-   if(rbm->numRBM() == 0) rbm = 0;
- }
-
- // ... Construct "Sloshing rigid body mode" if necessary
- if(sinfo.slzemFlag) {
-   rbm = constructSlzem();
-   if(rbm->numRBM() == 0) rbm = 0;
- }
 
  // for freqency sweep: need M, Muc, C, Cuc
  bool isDamped = (sinfo.alphaDamp != 0.0) || (sinfo.betaDamp != 0.0) || packedEset.hasDamping();
@@ -1359,13 +1310,6 @@ Domain::getSolverAndKuc(AllOps<Scalar> &allOps, FullSquareMatrix *kelArray, bool
 
  // ... Build stiffness matrix K and Kuc, etc...
  buildOps<Scalar>(allOps, 1.0, 0.0, 0.0, rbm, kelArray, (FullSquareMatrix *) NULL, (FullSquareMatrix *) NULL, factorize);
-
-#ifdef SENSITIVITY_DEBUG
- if(verboseFlag) {
-   filePrint(stderr,"print stiffness matrix\n");
-   allOps.K->print();
- }
-#endif
 }
 
 template<class Scalar>
@@ -1610,10 +1554,6 @@ Domain::addGravityForce(GenVector<Scalar> &force)
       }
     }
   }
-#ifdef SENSITIVITY_DEBUG
-  if(verboseFlag) gravityForce.print("print gravity Force\n");
-#endif
-
 
   // ... ADD DISCRETE MASS TO GRAVITY FORCE ...
   DMassData *current = firstDiMass;
@@ -3382,19 +3322,10 @@ void Domain::sensitivityPostProcessing(AllSensitivities<Scalar> &allSens) {
   int numOutInfo = geoSource->getNumOutInfo();
   if(firstOutput) geoSource->openOutputFiles();
   for(int i = 0; i < numOutInfo; ++i)  {
-//    if(oinfo[i].sentype == 0) continue;
     if(oinfo[i].type == OutputInfo::WeigThic) {
-#ifdef SENSITIVITY_DEBUG
-      if(verboseFlag) filePrint(stderr," ... output weight wrt thickness sensitivity\n");
-      if(verboseFlag) std::cerr << (*allSens.weightWRTthick);
-#endif
       geoSource->outputSensitivityScalars(i, allSens.weightWRTthick, allSens.weight);
     }
     if(oinfo[i].type == OutputInfo::WeigShap) {
-#ifdef SENSITIVITY_DEBUG
-      if(verboseFlag) filePrint(stderr," ... output weight wrt shape sensitivity\n");
-      if(verboseFlag) std::cerr << (*allSens.weightWRTshape);
-#endif
       geoSource->outputSensitivityScalars(i, allSens.weightWRTshape, allSens.weight);
     }
     if(oinfo[i].type == OutputInfo::VMstThic) geoSource->outputSensitivityVectors(i, allSens.vonMisesWRTthick);

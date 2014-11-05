@@ -69,12 +69,13 @@ class SingleDomainStatic
     Corotator **allCorot;
     GeomState *geomState;
 
+    Rbm *rigidBodyModes;
     FSFullMatrix *X;     // pre-calculated projector
     double *Rmem;        // global rigid body modes (numdof X 6)
     int numR;            // number of rigid body modes
 
  public:
-    SingleDomainStatic<T,VectorType,SolverType>(Domain *d) { domain = d; Rmem = 0; numR = 0; }
+    SingleDomainStatic<T,VectorType,SolverType>(Domain *d) { domain = d; rigidBodyModes = 0; Rmem = 0; numR = 0; }
     int solVecInfo();
     int solVecInfo(int i);
     virtual void getRHS(VectorType &);

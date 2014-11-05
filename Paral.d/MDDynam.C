@@ -300,10 +300,12 @@ MultiDomainDynam::buildOps(double coeM, double coeC, double coeK)
   }
 
   int useRbmFilter = (domain->solInfo().isNonLin()) ? 0 : domain->solInfo().filterFlags;
-  if(useRbmFilter) {
-    filePrint(stderr," ... RBM Filter Level %d Requested   ...\n", useRbmFilter);
+  if(useRbmFilter || domain->solInfo().rbmflg) {
     MultiDomainRbm<double> *rigidBodyModes = decDomain->constructRbm();
-    projector_prep(rigidBodyModes, dynMat->M);
+    if(useRbmFilter) {
+      filePrint(stderr," ... RBM Filter Level %d Requested   ...\n", useRbmFilter);
+      projector_prep(rigidBodyModes, dynMat->M);
+    }
     delete rigidBodyModes;
   }
 

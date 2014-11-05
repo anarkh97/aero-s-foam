@@ -599,6 +599,12 @@ MDNLDynamic::preProcess()
   if(domain->solInfo().alphaDamp != 0 || domain->solInfo().betaDamp != 0 || domain->getElementSet().hasDamping()) 
     celArray = new FullSquareMatrix*[decDomain->getNumSub()];
 
+  // Compute the geometric rigid body modes if requested
+  if(!reactions && domain->solInfo().rbmflg) {
+    MultiDomainRbm<double> *rigidBodyModes = decDomain->constructRbm();
+    delete rigidBodyModes;
+  }
+
   // Allocate vector to store reaction forces
   if(!reactions) reactions = new DistrVector(*decDomain->pbcVectorInfo());
 

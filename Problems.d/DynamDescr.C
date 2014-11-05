@@ -190,6 +190,10 @@ SingleDomainDynamic::SingleDomainDynamic(Domain *d)
   flExchanger = domain->getFileExchanger();
   reactions = 0;
   firstSts = true;
+
+  numR = 0;
+  Rmem = 0;
+  X = 0;
 }
 
 SingleDomainDynamic::~SingleDomainDynamic()
@@ -216,25 +220,20 @@ SingleDomainDynamic::~SingleDomainDynamic()
     delete [] allCorot;
     allCorot = 0;
   }
+  if(Rmem) delete [] Rmem;
+  if(X) delete X;
 }
 
 void
-SingleDomainDynamic::projector_prep(Rbm *rbms, SparseMatrix *M)
+SingleDomainDynamic::projector_prep(SparseMatrix *M)
 {
- numR = rbms->numRBM();
-
  if (!numR) return;
 
  filePrint(stderr," ... Building the RBM/HZEM Projector...\n");
 
  filePrint(stderr," ... Number of RBM/HZEM(s) = %-4d   ...\n",numR);
 
- // KHP: store this pointer to the RBMs to use in the actual
- //      projection step within the time loop.
-
  int ndof = M->dim();
- Rmem = new double[numR*ndof];
- rbms->getRBMs(Rmem);
  StackFSFullMatrix Rt(numR, ndof, Rmem); 
 
  double *MRmem = new double[numR*ndof];
@@ -253,6 +252,8 @@ SingleDomainDynamic::projector_prep(Rbm *rbms, SparseMatrix *M)
 
  X = new FullMatrix(ndof,numR); 
  MRt.mult(RtMRinverse,(*X));
+
+ delete [] MRmem;
 }
 
 void
@@ -851,7 +852,6 @@ SingleDomainDynamic::buildOps(double coeM, double coeC, double coeK)
 
  domain->getTimers().constructTime -= getTime();
  allOps.K   = domain->constructDBSparseMatrix<double>();
- //allOps.K   = domain->constructEiSparseMatrix<double,Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> >();
  if(geoSource->getMRatio() != 0) {
 #ifdef USE_EIGEN3
    if(domain->solInfo().svdPodRom) allOps.M = domain->constructEiSparseMatrix<double,Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> >();
@@ -916,25 +916,36 @@ SingleDomainDynamic::buildOps(double coeM, double coeC, double coeK)
  int useRbmFilter = domain->solInfo().filterFlags && !domain->solInfo().isNonLin();
  int useGrbm = domain->solInfo().rbmflg; 
  int useHzemFilter = domain->solInfo().hzemFilterFlag && !domain->solInfo().isNonLin();
- int useHzem   = domain->solInfo().hzemFlag;
+ int useHzem = domain->solInfo().hzemFlag;
 
  if(useGrbm || useRbmFilter) 
    rigidBodyModes = domain->constructRbm();
  else if(useHzem || useHzemFilter)
    rigidBodyModes = domain->constructHzem();
 
- if((getTimeIntegration() == 1) && (useGrbm || useHzem)) // only use for quasistatics
+ if(useRbmFilter || useHzemFilter) {
+   numR = rigidBodyModes->numRBM();
+   if(numR > 0) {
+     // KHP: store this pointer to the RBMs to use in the actual
+     //      projection step within the time loop.
+     int ndof = allOps.M->dim();
+     Rmem = new double[numR*ndof];
+     rigidBodyModes->getRBMs(Rmem);
+   }
+ }
+
+ if((getTimeIntegration() == 1) && (useGrbm || useHzem) && !domain->solInfo().isNonLin()) // only use rigidBodyModes for linear quasistatics
    domain->buildOps(allOps, coeK, coeM, coeC, rigidBodyModes, kelArray, melArray);
  else
    domain->buildOps(allOps, coeK, coeM, coeC, 0, kelArray, melArray);
 
  if(useRbmFilter)
    filePrint(stderr," ... RBM filter Level %d Requested   ...\n", useRbmFilter);
- if(useHzemFilter)
+ else if(useHzemFilter)
    filePrint(stderr," ... HZEM filter Requested          ...\n");
 
  if(useRbmFilter || useHzemFilter)
-   projector_prep(rigidBodyModes, allOps.M);
+   projector_prep(allOps.M);
  
  // Modal decomposition preprocessing
  int decompFlag = domain->solInfo().modeDecompFlag;
@@ -942,12 +953,6 @@ SingleDomainDynamic::buildOps(double coeM, double coeC, double coeK)
    filePrint(stderr," ... Modal decomposition requested  ...\n");
    modeDecompPreProcess(allOps.M);
  }
-#ifdef SENSITIVITY_DEBUG
- if(verboseFlag) {
-   std::cerr << "print stiffness matrix\n";
-   allOps.K->print();
- }
-#endif
 
  dMat->K         = allOps.K;
  dMat->M         = allOps.M;

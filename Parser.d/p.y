@@ -1224,18 +1224,14 @@ RbmTolerance:
 	;
 ToleranceInfo:
         GRBM NewLine Float Float NewLine
-        { domain->solInfo().setGrbm($3,$4); 
-          filePrint(stderr," ... Using Geometric RBM Method     ...\n"); }
+        { domain->solInfo().setGrbm($3,$4); }
         | GRBM NewLine Float NewLine
-        { domain->solInfo().setGrbm($3); 
-          filePrint(stderr," ... Using Geometric RBM Method     ...\n"); }
+        { domain->solInfo().setGrbm($3); }
         | GRBM NewLine 
-        { domain->solInfo().setGrbm();
-          filePrint(stderr," ... Using Geometric RBM Method     ...\n"); }
+        { domain->solInfo().setGrbm(); }
         | GRBM NewLine Float Float Integer NewLine
         { domain->solInfo().setGrbm($3,$4);
-          domain->solInfo().grbm_use_lmpc = bool($5);
-          filePrint(stderr," ... Using Geometric RBM Method     ...\n"); }
+          domain->solInfo().grbm_use_lmpc = bool($5); }
 	;
 ModeFilterInfo:
         MODEFILTER Integer NewLine

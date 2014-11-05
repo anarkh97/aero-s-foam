@@ -230,6 +230,7 @@ struct SolverInfo {
 
    // Rigid Body Mode parameters
    double trbm;         // algebraic rbm tolerance 
+   double trbm2;        // algebraic rbm tolerance used for sparse/skyline when GRBM is activated
    double tolsvd;       // singular value decomposition tolerance
    int rbmflg;          // 0 = algebraic rbm, 1 = geometric rbm
    int rbmFilters[6];   // rbm filtering for nonlinear modal problems for each
@@ -482,6 +483,7 @@ struct SolverInfo {
                   no_secondary = false;
 
                   trbm = 1.0E-16;   // default zero pivot tolerance
+                  trbm2 = 1.0E-16;  // default zero pivot tolerance
                   tolsvd = 1.0E-6;  // default singular value tolerance
                   massFlag = 0;     // whether to calculate total structure mass
 				  
@@ -936,12 +938,12 @@ struct SolverInfo {
     }
 
    void setTrbm(double _tolzpv)
-    { trbm = _tolzpv; rbmflg = 0; mumps_cntl[3] = trbm; }
+    { trbm = _tolzpv; mumps_cntl[3] = trbm; }
 
    void setGrbm(double _tolsvd, double _tolzpv)
-    { trbm = _tolzpv; tolsvd = _tolsvd; rbmflg = 1; mumps_cntl[3] = trbm; }
+    { trbm2 = _tolzpv; tolsvd = _tolsvd; rbmflg = 1; }
    void setGrbm(double _tolzpv)
-    { trbm = _tolzpv; rbmflg = 1; mumps_cntl[3] = trbm; }
+    { trbm2 = _tolzpv; rbmflg = 1; }
    void setGrbm() 
     { rbmflg = 1; }
 

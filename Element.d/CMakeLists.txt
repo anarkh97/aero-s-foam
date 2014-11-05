@@ -109,6 +109,7 @@ FluidQuad.d/barsloshfs.f  FluidQuad.d/slsas2.f  FluidQuad.d/thermquad3b.f
 Force.d/BoundaryElement.C
 Force.d/FollowerMomentElement.C
 Force.d/FollowerForceElement.C
+Force.d/PseudoTangentialMomentElement.C
 Function.d/ExternalForce.d/FollowerMomentForceFunction.C
 Function.d/ExternalForce.d/FollowerForceFunction.C
 Function.d/InertialForce.d/InertialType1ForceFunction.C

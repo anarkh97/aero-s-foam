@@ -143,6 +143,7 @@ extern std::map<int,double> fieldWeightList;
 #include <Element.d/Joint.d/PinInSlotJointSpringCombo.h>
 #include <Element.d/Force.d/FollowerMomentElement.h>
 #include <Element.d/Force.d/FollowerForceElement.h>
+#include <Element.d/Force.d/PseudoTangentialMomentElement.h>
 #include <Element.d/DiscreteMass.d/DiscreteMass6Dof.h>
 #endif
 
@@ -720,6 +721,10 @@ ElementFactory::elemadd(int num, int etype, int nnodes, int*n, BlockAlloc& ba)
        break;
      case 143:
        ele = new (ba) FollowerMomentElement(n);
+       ele->setCategory(Element::Structural);
+       break;
+     case 149:
+       ele = new (ba) PseudoTangentialMomentElement(n);
        ele->setCategory(Element::Structural);
        break;
      case 173:

@@ -779,6 +779,27 @@ MultiDomainDynam::computeExtForce2(SysState<DistrVector> &distState,
     *prevFrc = *aeroForce;
     prevTime = tFluid;
     prevIndex = tIndex;
+
+    if(sinfo.aeroFlag == 20 && sinfo.dyna3d_compat) {
+      if(sinfo.stop_AeroF) sinfo.stop_AeroS = true;
+      double dt = sinfo.getTimeStep();
+      if(tIndex == sinfo.initialTimeIndex) sinfo.t_AeroF = sinfo.initialTime + 1.5*dt;
+      else sinfo.t_AeroF += dt;
+      double maxTime_AeroF = sinfo.tmax-0.5*dt;
+      double sendtim;
+      if((sinfo.t_AeroF < (maxTime_AeroF-0.01*dt)) || tIndex == sinfo.initialTimeIndex)
+        sendtim = 1e100;
+      else {
+        sendtim = 0;
+       sinfo.stop_AeroF = true;
+      }
+      int restartinc = std::max(sinfo.nRestart, 0);
+      distFlExchanger->sendParam(sinfo.aeroFlag, sinfo.getTimeStep(), sendtim, restartinc,
+                                 sinfo.isCollocated, sinfo.alphas);
+      if(tIndex == 0) // Send the parameter a second time for fluid iteration 1 to 2
+        distFlExchanger->sendParam(sinfo.aeroFlag, sinfo.getTimeStep(), sendtim, restartinc,
+                                   sinfo.isCollocated, sinfo.alphas);
+    }
   }
 
   // add aerothermal fluxes from fluid dynamics code
@@ -1404,19 +1425,25 @@ MultiDomainDynam::aeroPreProcess(DistrVector &disp, DistrVector &vel,
   }
   else {
     double aero_tmax = sinfo.tmax;
-    if(sinfo.newmarkBeta == 0) aero_tmax += sinfo.getTimeStep();
-    distFlExchanger->sendParam(sinfo.aeroFlag, sinfo.getTimeStep(), aero_tmax, restartinc,
+    if(sinfo.newmarkBeta == 0 && !sinfo.dyna3d_compat) aero_tmax += sinfo.getTimeStep();
+    double aero_dt = (sinfo.dyna3d_compat) ? 0 : sinfo.getTimeStep();
+    distFlExchanger->sendParam(sinfo.aeroFlag, aero_dt, aero_tmax, restartinc,
                                sinfo.isCollocated, sinfo.alphas);
     if(verboseFlag) filePrint(stderr, " ... [E] Sent parameters            ...\n");
 
     // initialize the Parity
     if(sinfo.aeroFlag == 5 || sinfo.aeroFlag == 4) {
-       distFlExchanger->initRcvParity(1);
-       distFlExchanger->initSndParity(1);
-     } else {
-       distFlExchanger->initRcvParity(-1);
-       distFlExchanger->initSndParity(-1);
-     }
+      distFlExchanger->initRcvParity(1);
+      distFlExchanger->initSndParity(1);
+    } else {
+      distFlExchanger->initRcvParity(-1);
+      distFlExchanger->initSndParity(-1);
+    }
+
+    if(sinfo.aeroFlag == 20 && sinfo.dyna3d_compat) {
+      distFlExchanger->sendSubcyclingInfo(0);
+      distFlExchanger->sendNoStructure();
+    }
 
     // send initial displacements
     if(!(geoSource->getCheckFileInfo()->lastRestartFile && sinfo.aeroFlag == 20)) {
@@ -1471,6 +1498,8 @@ MultiDomainDynam::aeroSend(double time, DistrVector& d_n, DistrVector& v_n, Dist
       delete [] userDefineAcc;
     }
   }
+
+  if(domain->solInfo().dyna3d_compat) distFlExchanger->sendNoStructure();
 
   distFlExchanger->sendDisplacements(state, usrDefDisps, usrDefVels);
   if(verboseFlag) filePrint(stderr, " ... [E] Sent displacements         ...\n");

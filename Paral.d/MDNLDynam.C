@@ -271,6 +271,10 @@ MDNLDynamic::MDNLDynamic(Domain *d)
   allCorot = 0;
   localTemp = 0;
   reactions = 0;
+  usrDefDisps = 0;
+  usrDefVels = 0;
+  prevFrc = 0;
+  distFlExchanger = 0;
 }
 
 MDNLDynamic::~MDNLDynamic()
@@ -296,6 +300,18 @@ MDNLDynamic::~MDNLDynamic()
     if(melArray) delete [] melArray;
     if(celArray) delete [] celArray;
   }
+  if(usrDefDisps) {
+    for(int i=0; i<decDomain->getNumSub(); ++i) delete [] usrDefDisps[i];
+    delete [] usrDefDisps;
+  }
+  if(usrDefVels) {
+    for(int i=0; i<decDomain->getNumSub(); ++i) delete [] usrDefVels[i];
+    delete [] usrDefVels;
+  }
+  if(aeroForce) delete aeroForce;
+  if(prevFrc) delete prevFrc;
+  if(distFlExchanger) delete distFlExchanger;
+
   if(decDomain) delete decDomain;
   if(reactions) delete reactions;
 }

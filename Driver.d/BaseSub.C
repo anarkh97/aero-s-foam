@@ -1907,6 +1907,10 @@ BaseSub::~BaseSub()
   if(locToGlUserDispMap) { delete [] locToGlUserDispMap; locToGlUserDispMap = 0; }
   if(locToGlUserForceMap) { delete [] locToGlUserForceMap; locToGlUserForceMap = 0; }
 //  if(glToLocalElem) delete [] glToLocalElem;
+#ifdef DISTRIBUTED
+  if(outputNodes) delete [] outputNodes;
+  if(outIndex) delete [] outIndex;
+#endif
 }
 
 void

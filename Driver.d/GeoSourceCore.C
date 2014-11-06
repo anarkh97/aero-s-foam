@@ -3246,10 +3246,10 @@ int GeoSource::getCPUMap(FILE *f, int numSub)
         BinFileHandler::OffType infoLoc;
         decFile.read(&infoLoc, 1);
         decFile.seek(infoLoc);
-        int (*nodeRanges)[2];
+        int (*nodeRanges)[2] = 0;
         int numNodeRanges;
         int numLocNodes = readRanges(decFile, numNodeRanges, nodeRanges);
-        int (*elemRanges)[2];
+        int (*elemRanges)[2] = 0;
         int numElemRanges;
         int numLocElems = readRanges(decFile, numElemRanges, elemRanges);
         //cerr << "numLocElems = " << numLocElems << std::endl;
@@ -3272,6 +3272,8 @@ int GeoSource::getCPUMap(FILE *f, int numSub)
           for(int cElem = elemRanges[iR][0]; cElem <= elemRanges[iR][1]; ++cElem) {
             cl2LocElem[cElem] = iElem++;
           }
+        if(nodeRanges) delete [] nodeRanges;
+        if(elemRanges) delete [] elemRanges;
 
         int nConnects;
         decFile.read(&nConnects, 1);
@@ -3294,7 +3296,7 @@ int GeoSource::getCPUMap(FILE *f, int numSub)
 
         // now we are at the right place in decFile to read matcher stuff
         int numMatchRanges;
-        int (*matchRanges)[2];
+        int (*matchRanges)[2] = 0;
         numMatchData[locSub] = readRanges(decFile, numMatchRanges, matchRanges);
         matchData[locSub] = new MatchData[numMatchData[locSub]];
         gapVec[locSub] = new double[numMatchData[locSub]][3];
@@ -3304,6 +3306,7 @@ int GeoSource::getCPUMap(FILE *f, int numSub)
           BinFileHandler matchFile(fullMatchName, "rb");
           readMatchInfo(matchFile, matchRanges, numMatchRanges, locSub, cl2LocElem, myID); // PJSA
         }
+        if(matchRanges) delete [] matchRanges;
         delete [] cl2LocElem;
       }
       delete [] gl2ClSubMap;
@@ -3323,9 +3326,9 @@ int GeoSource::getCPUMap(FILE *f, int numSub)
 
 //-----------------------------------------------------------------------
 
-void GeoSource::setMatchArrays(int numLocSub)  {
+void GeoSource::setMatchArrays(int numLocSub) {
 
-  // allocate for match data arrays
+  // allocation for match data arrays
   typedef double (*gVec)[3];
   numMatchData = new int[numLocSub];
   matchData = new MatchData *[numLocSub];
@@ -3334,7 +3337,32 @@ void GeoSource::setMatchArrays(int numLocSub)  {
 }
 
 //-----------------------------------------------------------------------
-void GeoSource::addOutput(OutputInfo &outputInfo)  {
+
+void GeoSource::deleteMatchArrays(int numLocSub) {
+
+  // de-allocation for match data arrays
+  if(numMatchData) {
+    delete [] numMatchData;
+    numMatchData = 0;
+  }
+  if(matchData) {
+    for(int i=0; i<numLocSub; ++i) delete [] matchData[i];
+    delete [] matchData;
+    matchData = 0;
+  }
+  if(numGapVecs) {
+    delete [] numGapVecs;
+    numGapVecs = 0;
+  }
+  if(gapVec) {
+    for(int i=0; i<numLocSub; ++i) delete [] gapVec[i];
+    delete [] gapVec;
+    gapVec = 0;
+  }
+}
+
+//-----------------------------------------------------------------------
+void GeoSource::addOutput(OutputInfo &outputInfo) {
 
   oinfo[numOutInfo++] = outputInfo;
   if(outputInfo.type == OutputInfo::Farfield ||

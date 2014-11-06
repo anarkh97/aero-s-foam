@@ -356,7 +356,7 @@ Domain::buildAeroelasticForce(Vector& aero_f, PrevFrc& prevFrc, int tIndex, doub
       sendtim = 0;
       sinfo.stop_AeroF = true;
     }
-    int restartinc = std::max(solInfo().nRestart, 0);
+    int restartinc = std::max(sinfo.nRestart, 0);
     flExchanger->sendParam(sinfo.aeroFlag, sinfo.getTimeStep(), sendtim, restartinc,
                            sinfo.isCollocated, sinfo.alphas,  sinfo.alphasv);
     if(tIndex == 0) // Send the parameter a second time for fluid iteration 1 to 2
@@ -1122,7 +1122,6 @@ Domain::aeroSensitivityPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
 {
   if(sinfo.aeroFlag >= 0) {
 
-    filePrint(stderr," --- aeroSensitivityPreProcess 1\n");
     int numOutInfo = geoSource->getNumOutInfo();
     OutputInfo *oinfo = geoSource->getOutputInfo();
 
@@ -1152,7 +1151,6 @@ Domain::aeroSensitivityPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
       flExchanger = new FlExchanger(nodes, packedEset, SurfEntities[iSurf], c_dsa, oinfo_aero, false);
     }
     else {
-      filePrint(stderr," --- aeroSensitivityPreProcess 2\n");
       flExchanger = new FlExchanger(nodes, packedEset, c_dsa, oinfo_aero);
     }
 
@@ -1171,10 +1169,8 @@ Domain::aeroSensitivityPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
       if(verboseFlag) fprintf(stderr," ... [E] Sent embedded wet surface ...\n");
     }
 
-    filePrint(stderr," --- aeroSensitivityPreProcess 3\n");
     //XML New step of negotiation with fluid code
     flExchanger->negotiate();
-    filePrint(stderr," --- aeroSensitivityPreProcess 4\n");
 
     int restartinc = (solInfo().nRestart >= 0) ? (solInfo().nRestart) : 0;
 
@@ -1198,7 +1194,6 @@ Domain::aeroSensitivityPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
       }
     }
     
-    filePrint(stderr," --- aeroSensitivityPreProcess 5\n");
     State curState(c_dsa, dsa, bcx, vcx, d_n_aero, v_n, a_n, v_p);
 
     if(sinfo.aeroFlag == 8) {
@@ -1225,9 +1220,7 @@ Domain::aeroSensitivityPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
         flExchanger->initSndParity(-1);
       }
 
-      filePrint(stderr," --- aeroSensitivityPreProcess 6\n");
       flExchanger->sendDisplacements(curState);
-      filePrint(stderr," --- aeroSensitivityPreProcess 7\n");
       if(verboseFlag) fprintf(stderr," ... [E] Sent initial displacements ...\n");
 
       if(sinfo.aeroFlag == 1) { // Ping pong only

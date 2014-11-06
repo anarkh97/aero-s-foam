@@ -116,7 +116,6 @@ class FlExchanger {
                          State &st, double factor = 1.0);
 
      void sendEmbeddedWetSurface();
-     void sendEmbeddedWetSurface(int nNodes, double *nodes, int nElems, int *elems);
      void printreceiving();
 
       void initSndParity(int pinit) { sndParity = pinit; }

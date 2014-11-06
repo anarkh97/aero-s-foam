@@ -31,13 +31,14 @@ class DistFlExchanger {
   double *buffer, *buff;
   int bufferLen, buffLen;
 
-  int nbrReceivingFromMe;   // number of fluid mpi's w/matches in this mpi
+  int nSender;             // dimension of sndTable
+  int nbrReceivingFromMe;  // number of fluid mpi's w/matches in this mpi
   int *idSendTo;  	   // list of fluid mpi's to sendTo
   int *nbSendTo;	   // num of match data per fluid neighbor
-  //int *consOrigin; // reverse table of idSendTo
+  int *consOrigin;         // reverse table of idSendTo
   InterpPoint **sndTable;  // match data by local subdomain in mpi
 
-  CoordSet **cs;             // nodes in this mpi process
+  CoordSet **cs;           // nodes in this mpi process
   Elemset **eset;
   DofSetArray **cdsa;
   DofSetArray **dsa;
@@ -67,6 +68,9 @@ class DistFlExchanger {
   SubDomain **sd;
   int **fnId2;
 
+  bool wCracking;
+  bool sentInitialCracking;
+
 public:
 
   DistFlExchanger(CoordSet **, Elemset **, DofSetArray **, 
@@ -89,6 +93,8 @@ public:
   void getStrucTemp(double*);
 
   void sendParam(int, double, double, int, int, double a[2]);
+  void sendSubcyclingInfo(int sub);
+
   void sendTempParam(int algnum, double step, double totaltime,
                      int rstinc, double alphat[2]);
 
@@ -102,6 +108,8 @@ public:
   void initRcvParity(int pinit) { rcvParity = pinit; }
   void flipRcvParity() { if(rcvParity >= 0) rcvParity = 1-rcvParity; }
   void flipSndParity() { if(sndParity >= 0) sndParity = 1-sndParity; }
+
+  void sendNoStructure();
 
   int cmdCom(int);
 

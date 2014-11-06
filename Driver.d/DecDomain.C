@@ -131,6 +131,7 @@ GenDecDomain<Scalar>::~GenDecDomain()
   if(ba2) delete ba2;
   for(std::vector<DistrInfo*>::iterator it = vecInfoStore.begin(); it != vecInfoStore.end(); ++it) delete *it;
   for(std::vector<DistrInfo*>::iterator it = vecInfoStore2.begin(); it != vecInfoStore2.end(); ++it) delete *it;
+  geoSource->deleteMatchArrays(numSub);
 }
 
 template<class Scalar>
@@ -355,6 +356,14 @@ void GenDecDomain<Scalar>::getSharedNodes()
     sc->glSubToLocal = glSubToLocal;
     subDomain[iSub]->setSComm(sc);
     delete [] subds;
+  }
+
+  for(iSub = 0; iSub < subToNode->csize(); ++iSub) {
+    if(glSubToLocal[iSub] < 0) {
+      delete [] connectedDomain[iSub];
+      delete [] remoteID[iSub];
+      delete interfNode[iSub];
+    }
   }
 
   delete [] remoteID;

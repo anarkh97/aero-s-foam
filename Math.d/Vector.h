@@ -119,7 +119,8 @@ class GenVector {
    void addDataFrom(double *array, int num);
 
    void setn(int _n) {n = _n; }; 
-   void setData(Scalar *v, int l) { len =l; d =v; }
+   void setData(Scalar *v, int l) { len = l; d = v; }
+   void setData(Scalar *v, int l, bool m) { len = l; d = v; myMemory = m; }
    void setData(const GenVector<Scalar> &v1); 
    void insertData(Scalar *v);
    Scalar* getData() { return d; }

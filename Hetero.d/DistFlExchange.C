@@ -53,7 +53,7 @@ DistFlExchanger::DistFlExchanger(CoordSet **_cs, Elemset **_eset, SurfaceEntity 
   }
 
   if(surface && surface->GetIsShellFace()) {
-    std::cerr << " *** ERROR: The surface_thickness attribute should not be used on the embedded surface\n";
+    filePrint(stderr, " *** ERROR: The surface_thickness attribute should not be used on the embedded surface\n");
     exit(-1);
   }
 
@@ -75,6 +75,9 @@ DistFlExchanger::DistFlExchanger(CoordSet **_cs, Elemset **_eset,
   useFaceElem = false;
   wCracking = false;
   sentInitialCracking = false;
+  surface = 0;
+  faceElemToNode = 0;
+  nodeToFaceElem = 0;
 
   buff = 0;
   idSendTo = 0;

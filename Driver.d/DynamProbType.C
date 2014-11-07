@@ -834,12 +834,13 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
    int parity = 0;
    SysState<VecType> *bkState = 0;
    // Allocate backup state for A5 algorithm
+   VecType *d_bk, *v_bk, *a_bk, *v_p_bk;
    if(aeroAlg == 5) {
-     VecType d_bk(probDesc->solVecInfo());
-     VecType v_bk(probDesc->solVecInfo());
-     VecType a_bk(probDesc->solVecInfo());
-     VecType v_p_bk(probDesc->solVecInfo());
-     bkState = new SysState<VecType>(d_bk, v_bk, a_bk, v_p_bk);
+     d_bk = new VecType(probDesc->solVecInfo());
+     v_bk = new VecType(probDesc->solVecInfo());
+     a_bk = new VecType(probDesc->solVecInfo());
+     v_p_bk = new VecType(probDesc->solVecInfo());
+     bkState = new SysState<VecType>(*d_bk, *v_bk, *a_bk, *v_p_bk);
    }
 
    VecType &d_n = curState.getDisp();
@@ -1019,6 +1020,14 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
    }
    if(aeroAlg < 0)
      filePrint(stderr, "\r ⌊\x1B[33m   t = %9.3e Δt = %8.2e 100%% \x1B[0m⌋\n", t, dt);
+
+   if(aeroAlg == 5) {
+     delete d_bk;
+     delete v_bk;
+     delete a_bk;
+     delete v_p_bk;
+     delete bkState;
+   }
 
 #ifdef PRINT_TIMERS
    if(verboseFlag) filePrint(stderr, " ... Total Loop Time = %.2e s   ...\n", s2/1000.0);

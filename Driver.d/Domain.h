@@ -1170,7 +1170,7 @@ class Domain : public HData {
 
      void SetMortarPairing();
      void SetUpSurfaces(CoordSet* cs = 0);
-     void UpdateSurfaceTopology();
+     void UpdateSurfaceTopology(int numSub = 0, SubDomain **sd = 0);
      void UpdateSurfaces(GeomState *, int config_type = 1);
      void UpdateSurfaces(DistrGeomState *geomState, int config_type, SubDomain **sd);
      void MakeNodalMass(SparseMatrix *M, SparseMatrix *Mcc);
@@ -1298,6 +1298,7 @@ class Domain : public HData {
      int exactNumNodes;
 
      void assembleNodalInertiaTensors(FullSquareMatrix *mel);
+     std::set<int> & getNewDeletedElements() { return newDeletedElements; }
      std::vector<std::pair<double,int> > & getDeletedElements() { return outDeletedElements; }
 #ifdef USE_EIGEN3
   protected:

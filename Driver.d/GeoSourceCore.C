@@ -3217,7 +3217,6 @@ int GeoSource::getCPUMap(FILE *f, int numSub)
     if(matchName != NULL) {
       BinFileHandler connectivityFile(conName, "rb");
       Connectivity *clusToSub = new Connectivity(connectivityFile, true);
-      //cerr << "totSub = " << totSub << std::endl;
                    
       // build global to cluster subdomain map
       int *gl2ClSubMap = new int[totSub];
@@ -3226,7 +3225,6 @@ int GeoSource::getCPUMap(FILE *f, int numSub)
         for (int iSub = 0; iSub < clusToSub->num(iClus); iSub++)
           gl2ClSubMap[ (*clusToSub)[iClus][iSub] ] = clusNum++;
       }
-      //if(myID == 0) std::cerr << "clusToSub = \n"; clusToSub->print();
       delete clusToSub;
 
       for(int locSub = 0; locSub < numLocSub; ++locSub) {
@@ -3241,7 +3239,6 @@ int GeoSource::getCPUMap(FILE *f, int numSub)
         BinFileHandler::OffType curLoc = decFile.tell();
         int glSub = (*cpuToSub)[myID][locSub];
         int clusSub = gl2ClSubMap[glSub];
-        //cerr << "locSub = " << locSub << ", glSub = " << glSub << ", clusSub = " << clusSub << std::endl;
         decFile.seek(curLoc + sizeof(BinFileHandler::OffType) * clusSub);
         BinFileHandler::OffType infoLoc;
         decFile.read(&infoLoc, 1);
@@ -3252,7 +3249,6 @@ int GeoSource::getCPUMap(FILE *f, int numSub)
         int (*elemRanges)[2] = 0;
         int numElemRanges;
         int numLocElems = readRanges(decFile, numElemRanges, elemRanges);
-        //cerr << "numLocElems = " << numLocElems << std::endl;
 
         int minElemNum = elemRanges[0][0];
         int maxElemNum = 0;
@@ -3304,7 +3300,7 @@ int GeoSource::getCPUMap(FILE *f, int numSub)
           char fullMatchName[32];
           sprintf(fullMatchName, "%s1", matchName); // only one cluster currently supported
           BinFileHandler matchFile(fullMatchName, "rb");
-          readMatchInfo(matchFile, matchRanges, numMatchRanges, locSub, cl2LocElem, myID); // PJSA
+          readMatchInfo(matchFile, matchRanges, numMatchRanges, locSub, cl2LocElem, myID);
         }
         if(matchRanges) delete [] matchRanges;
         delete [] cl2LocElem;
@@ -3326,18 +3322,6 @@ int GeoSource::getCPUMap(FILE *f, int numSub)
 
 //-----------------------------------------------------------------------
 
-void GeoSource::setMatchArrays(int numLocSub) {
-
-  // allocation for match data arrays
-  typedef double (*gVec)[3];
-  numMatchData = new int[numLocSub];
-  matchData = new MatchData *[numLocSub];
-  numGapVecs = new int[numLocSub];
-  gapVec = new gVec[numLocSub];
-}
-
-//-----------------------------------------------------------------------
-
 void GeoSource::deleteMatchArrays(int numLocSub) {
 
   // de-allocation for match data arrays
@@ -3346,7 +3330,7 @@ void GeoSource::deleteMatchArrays(int numLocSub) {
     numMatchData = 0;
   }
   if(matchData) {
-    for(int i=0; i<numLocSub; ++i) delete [] matchData[i];
+    if(matchName != NULL) for(int i=0; i<numLocSub; ++i) delete [] matchData[i];
     delete [] matchData;
     matchData = 0;
   }
@@ -3355,7 +3339,7 @@ void GeoSource::deleteMatchArrays(int numLocSub) {
     numGapVecs = 0;
   }
   if(gapVec) {
-    for(int i=0; i<numLocSub; ++i) delete [] gapVec[i];
+    if(matchName != NULL) for(int i=0; i<numLocSub; ++i) delete [] gapVec[i];
     delete [] gapVec;
     gapVec = 0;
   }

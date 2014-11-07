@@ -2668,7 +2668,7 @@ void Domain::RemoveGap(Vector &g)
   }
 }
 
-void Domain::UpdateSurfaceTopology()
+void Domain::UpdateSurfaceTopology(int numSub, SubDomain **sd)
 {
   if(newDeletedElements.empty()) return;
 
@@ -2718,7 +2718,7 @@ void Domain::UpdateSurfaceTopology()
   }
   delete [] nodeToFaceElem; nodeToFaceElem = 0;
 
-  domain->InitializeDynamicContactSearch(); // XXX check for memory leaks
+  domain->InitializeDynamicContactSearch(numSub, sd);
 }
 
 void Domain::UpdateSurfaces(GeomState *geomState, int config_type) // config_type = 1 for current, 2 for predicted

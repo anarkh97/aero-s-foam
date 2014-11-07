@@ -279,10 +279,22 @@ MultiDomainDynam::~MultiDomainDynam()
     }
     delete [] allCorot;
   }
+  if(usrDefDisps) {
+    for(int i=0; i<decDomain->getNumSub(); ++i) delete [] usrDefDisps[i];
+    delete [] usrDefDisps;
+  }
+  if(usrDefVels) {
+    for(int i=0; i<decDomain->getNumSub(); ++i) delete [] usrDefVels[i];
+    delete [] usrDefVels;
+  }
   delete decDomain;
   if(reactions) delete reactions;
   if(R) delete R;
   if(X) delete X;
+  if(prevFrc) delete prevFrc;
+  if(prevFrcBackup) delete prevFrcBackup;
+  if(aeroForce) delete aeroForce;
+  if(distFlExchanger) delete distFlExchanger;
 }
 
 MDDynamMat *
@@ -293,7 +305,7 @@ MultiDomainDynam::buildOps(double coeM, double coeC, double coeK)
   dynMat = new MDDynamMat;
 
   times->getFetiSolverTime -= getTime();
-  decDomain->buildOps(*dynMat, coeM, coeC, coeK, (Rbm **) 0, kelArray);
+  decDomain->buildOps(*dynMat, coeM, coeC, coeK, (Rbm **) 0, kelArray, true, melArray);
 
   if(domain->tdenforceFlag()) { 
     domain->MakeNodalMass(dynMat->M, decDomain->getAllSubDomains());
@@ -373,6 +385,13 @@ MultiDomainDynam::MultiDomainDynam(Domain *d)
   reactions = 0;
   R = 0;
   X = 0;
+  prevFrc = 0;
+  prevFrcBackup = 0;
+  aeroForce = 0;
+  distFlExchanger = 0;
+  dynMat = 0;
+  usrDefDisps = 0;
+  usrDefVels = 0;
 }
 
 const DistrInfo &
@@ -587,6 +606,7 @@ MultiDomainDynam::getContactForce(DistrVector &d_n, DistrVector &dinc, DistrVect
   ctc_f.zero();
   if(domain->tdenforceFlag()) {
     times->updateSurfsTime -= getTime();
+    domain->UpdateSurfaceTopology(decDomain->getNumSub(), decDomain->getAllSubDomains()); // remove deleted elements
     domain->UpdateSurfaces(geomState, 1, decDomain->getAllSubDomains()); // update to current configuration
     times->updateSurfsTime += getTime();
 
@@ -1370,7 +1390,7 @@ MultiDomainDynam::aeroPreProcess(DistrVector &disp, DistrVector &vel,
     for(int i = 0; i < domain->getNumSurfs(); i++)
       if(aeroEmbeddedSurfaceId.find((*domain->viewSurfEntities())[i]->ID()) != aeroEmbeddedSurfaceId.end()) {
         iSurf = i;
-        break; //only allows one Surface.
+        break; // only allows one surface.
       }
     if(iSurf<0) {
       fprintf(stderr,"ERROR: Embedded wet surface not found! Aborting...\n");
@@ -1379,9 +1399,14 @@ MultiDomainDynam::aeroPreProcess(DistrVector &disp, DistrVector &vel,
     distFlExchanger = new DistFlExchanger(cs, elemSet, (*domain->viewSurfEntities())[iSurf],
                                           &domain->getNodes(), domain->getNodeToElem(),
                                           decDomain->getElemToSub(), subdomain,
-                                          cdsa, dsa, oinfo_aero);
+                                          cdsa, dsa, oinfo_aero, domain->solInfo().elementDeletion);
   }
   else {
+    if(domain->solInfo().elementDeletion) {
+      filePrint(stderr," *** WARNING: The C0 algorithm and an embedded surface id must be specified\n"
+                       "     under AERO for an aeroelastic analysis with element deletion, otherwise\n"
+                       "     Aero-F will not be notified of any topological changes in structure.\n");
+    }
     distFlExchanger = new DistFlExchanger(cs, elemSet, cdsa, dsa, oinfo_aero);
   }
   mddPostPro->setPostProcessor(distFlExchanger);
@@ -1499,7 +1524,24 @@ MultiDomainDynam::aeroSend(double time, DistrVector& d_n, DistrVector& v_n, Dist
     }
   }
 
-  if(domain->solInfo().dyna3d_compat) distFlExchanger->sendNoStructure();
+  if(domain->solInfo().dyna3d_compat) {
+    std::set<int> &aeroEmbeddedSurfaceId = domain->GetAeroEmbedSurfaceId();
+    int numDeletedElements = 0;
+    if(aeroEmbeddedSurfaceId.size() != 0 && domain->solInfo().elementDeletion) {
+      for(int i = 0; i < decDomain->getNumSub(); ++i) {
+        numDeletedElements += decDomain->getSubDomain(i)->getNewDeletedElements().size();
+      }
+#ifdef DISTRIBUTED
+      numDeletedElements = structCom->globalSum(numDeletedElements);
+#endif
+    }
+    if(numDeletedElements > 0) {
+      distFlExchanger->sendNewStructure();
+    }
+    else {
+      distFlExchanger->sendNoStructure();
+    }
+  }
 
   distFlExchanger->sendDisplacements(state, usrDefDisps, usrDefVels);
   if(verboseFlag) filePrint(stderr, " ... [E] Sent displacements         ...\n");

@@ -2217,17 +2217,17 @@ GenDistrDomain<Scalar>::getDeletedElements(int iOut)
   }
   this->communicator->broadcast(1, &globalCount);
   if(globalCount > 0) {
-    int *sendbuf2, *recvbuf2, *displs;
-    double *sendbuf3, *recvbuf3;
+    int *sendbuf2 = new int[localCount];
+    double *sendbuf3 = new double[localCount];
     if(localCount > 0) {
-      sendbuf2 = new int[localCount];
-      sendbuf3 = new double[localCount];
       int i=0;
       for(std::vector<std::pair<double,int> >::iterator it = localDeletedElements.begin(); it != localDeletedElements.end(); ++it, ++i) {
         sendbuf2[i] = it->second;
         sendbuf3[i] = it->first;
       }
     }
+    int *recvbuf2, *displs;
+    double *recvbuf3;
     if(this->communicator->cpuNum() == 0) {
       recvbuf2 = new int[globalCount];
       recvbuf3 = new double[globalCount];
@@ -2239,10 +2239,8 @@ GenDistrDomain<Scalar>::getDeletedElements(int iOut)
     }
     this->communicator->gatherv(sendbuf2, localCount, recvbuf2, recvbuf, displs);
     this->communicator->gatherv(sendbuf3, localCount, recvbuf3, recvbuf, displs);
-    if(localCount > 0) {
-      delete [] sendbuf2;
-      delete [] sendbuf3;
-    }
+    delete [] sendbuf2;
+    delete [] sendbuf3;
     if(this->communicator->cpuNum() == 0) {
       for(int i=0; i<globalCount; ++i) {
         filePrint(oinfo[iOut].filptr, " %12.6e  %9d          Undetermined\n", recvbuf3[i], recvbuf2[i]+1);
@@ -2252,5 +2250,7 @@ GenDistrDomain<Scalar>::getDeletedElements(int iOut)
       delete [] displs;
     }
   }
+  delete [] recvbuf;
 #endif
 }
+

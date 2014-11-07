@@ -35,27 +35,14 @@ class FlExchanger {
      int bufferLen;
      int buffLen;
 
-     double *pArray;
-     int     pArrayLen;
-
      int nbrSendingToMe;
      
-     int *nbData;
-     int *senderId;
-     int **GP_Table; // GP_Table points to the area in the pressure
-                     // array where the element expect to find data
-                     // for this gauss point
-
      int nbrReceivingFromMe;
      int *idSendTo;
      int *nbSendTo;
      int *consOrigin; // reverse table of idSendTo
      InterpPoint **sndTable;
 
-     int *pressureIndexForElem;
-     int *nbGaussPoints;
-
-     int numWetElements;
      CoordSet& cs;
      Elemset& eset;
      DofSetArray* dsa;
@@ -82,8 +69,6 @@ class FlExchanger {
    public:
      //KW (Jul.27,2010): FS Communication using Face Elements
      FlExchanger(CoordSet&, Elemset&, SurfaceEntity*, DofSetArray *, OutputInfo *oinfo, bool wCracking);
-     void matchup(); // like "read" 
-
      FlExchanger(CoordSet&, Elemset&, DofSetArray *, OutputInfo *oinfo = 0);
      ~FlExchanger();
      void read(int mynode, char *filename);

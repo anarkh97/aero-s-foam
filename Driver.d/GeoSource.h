@@ -314,7 +314,6 @@ public:
   char *getGlob() { return conName; }
   void setExitAfterDec(bool exit);
   void setNumLocSub(int);
-  void setMatchArrays(int);
   void deleteMatchArrays(int);
   void setTextBC();
   void computeGlobalNumElements();

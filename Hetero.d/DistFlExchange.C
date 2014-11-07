@@ -19,6 +19,7 @@
 
 // std
 #include <map>
+#include <set>
 using std::map;
 
 extern Communicator *structCom, *fluidCom, *heatStructCom;
@@ -28,14 +29,33 @@ extern SolverInfo &solInfo;
 
 DistFlExchanger::DistFlExchanger(CoordSet **_cs, Elemset **_eset, SurfaceEntity *_surface, CoordSet *_globalCoords,
                                  Connectivity *_nodeToElem, Connectivity *_elemToSub, SubDomain **_sd,
-                                 DofSetArray **_cdsa, DofSetArray **_dsa, OutputInfo *_oinfo)
-  : cs(_cs), eset(_eset), surface(_surface), globalCoords(_globalCoords), nodeToElem(_nodeToElem),
+                                 DofSetArray **_cdsa, DofSetArray **_dsa, OutputInfo *_oinfo, bool _wCracking)
+  : cs(_cs), eset(_eset), globalCoords(_globalCoords), nodeToElem(_nodeToElem),
     elemToSub(_elemToSub), sd(_sd), cdsa(_cdsa), dsa(_dsa), oinfo(_oinfo),
     tmpDisp(0), dsp(0), vel(0), acc(0), pVel(0)
 {
   useFaceElem = true;
-  wCracking = false;
+  wCracking = _wCracking;
   sentInitialCracking = false;
+
+  if(wCracking) {
+    // The deep copy of the surface entity is required because face elements may be removed from
+    // the surface due to element deletion. However, this class currently requires access to the
+    // original surface topology.
+    surface = new SurfaceEntity(*_surface);
+    faceElemToNode = new Connectivity(surface->GetPtrFaceElemSet());
+    nodeToFaceElem = faceElemToNode->reverse();
+  }
+  else {
+    surface = _surface;
+    faceElemToNode = 0;
+    nodeToFaceElem = 0;
+  }
+
+  if(surface && surface->GetIsShellFace()) {
+    std::cerr << " *** ERROR: The surface_thickness attribute should not be used on the embedded surface\n";
+    exit(-1);
+  }
 
   buff = 0;
   idSendTo = 0;
@@ -68,8 +88,8 @@ DistFlExchanger::DistFlExchanger(CoordSet **_cs, Elemset **_eset,
 DistFlExchanger::~DistFlExchanger()
 {
   if(useFaceElem) {
-    for(int i = 0; i < geoSource->getCpuToSub()->numConnect(); ++i) {
-      delete fnId2[i];
+    for(int i = 0; i < geoSource->getCpuToSub()->num(structCom->myID()); ++i) {
+      delete [] fnId2[i];
     }
 
     delete [] fnId2;
@@ -81,6 +101,18 @@ DistFlExchanger::~DistFlExchanger()
 
   if(tmpDisp) {
     delete tmpDisp;
+  }
+
+  if(wCracking && surface) {
+    delete surface;
+  }
+
+  if(faceElemToNode) {
+    delete faceElemToNode;
+  }
+
+  if(nodeToFaceElem) {
+    delete nodeToFaceElem;
   }
 
   if(idSendTo) {
@@ -564,17 +596,11 @@ DistFlExchanger::getMatchData()
     delete [] eleTouch;
     delete [] eleCount;
     // find node to elem connectivity and local coords.
-    // local coords convention given in "Mortar.d/FaceElement.d/FaceTri3.d/FaceTri3.C"
     map<int, locoord> exy = feset.computeNodeLocalCoords(fnId, fnodes.size());
     map<int, locoord>::iterator it;
 
     for(int j = 0; j < fnodes.size(); ++j) {
       it = exy.find(j);
-
-      if(it == exy.end()) {
-        fprintf(stderr, "Oh no!\n");
-        exit(-1);
-      }
 
       int faceElemNum = (it->second).first;
       int subNumber = faceElemToSub[faceElemNum];
@@ -587,7 +613,7 @@ DistFlExchanger::getMatchData()
         iPoint.xy[1] = (it->second).second.second;
         iPoint.gap[0] = 0.0;
         iPoint.gap[1] = 0.0;
-        iPoint.gap[2] = 0.0; /*KW:no gap*/
+        iPoint.gap[2] = 0.0;
         (*globMatches)[j] = iPoint;
       }
     }
@@ -780,8 +806,6 @@ void DistFlExchanger::negotiate()
     int tag = FL_NEGOT;
     int nFlMatched;
     int buffLen = 1;
-    //int rsize;
-    //int zero = 0;
     RecInfo rInfo = fluidCom->recFrom(tag, &nFlMatched, buffLen);
     int fromNd = rInfo.cpu;
     flSize[fromNd] = nFlMatched;
@@ -810,7 +834,6 @@ void DistFlExchanger::negotiate()
   // # of fluid mpi's receiving data from this mpi
   nbrReceivingFromMe = 0;
   int *index = new int[maxSize];
-  //fprintf(stderr,"struct %d allocating sndTable of size %d\n", structCom->myID(), nSender);
   sndTable = new InterpPoint *[nSender];
   // receive matches from each sender
   int bufferLen = maxSize;
@@ -821,10 +844,7 @@ void DistFlExchanger::negotiate()
     int tag = FL_NEGOT + 1;
     RecInfo rInfo = fluidCom->recFrom(tag, index, bufferLen);
     int fromNd = rInfo.cpu;
-    //int rsize = rInfo.len;
-    int sender = consOrigin[fromNd];  // gives fluid mpi # TODO check if this is correct see FlExchange.C
-    //int sender = rInfo.cpu;
-    //fprintf(stderr,"Struct cpu %d receives %d matches from fluid %d\n", structCom->myID(), nbSendTo[sender], sender);
+    int sender = consOrigin[fromNd]; // gives fluid mpi #
     // determine how many matches are in this mpi process
     int numHits = 0;
     int iMatch;
@@ -837,7 +857,6 @@ void DistFlExchanger::negotiate()
     totSize += numHits;
     int *matchList;  // list of matches
     int totalNDof = 0;
-    //fprintf(stderr,"Struct CPU %d has %d matches w/fluid %d\n", structCom->myID(), numHits, sender);
 
     if(numHits > 0) {
       matchList = new int[numHits];
@@ -962,6 +981,10 @@ void DistFlExchanger::negotiate()
 void
 DistFlExchanger::sendNoStructure()
 {
+  if(structCom->myID() != 0) {
+    return;  /* do nothing */
+  }
+
   if(!sentInitialCracking) { //this means there is no initial cracking.
     sentInitialCracking = true;
   }
@@ -971,3 +994,175 @@ DistFlExchanger::sendNoStructure()
   fluidCom->waitForAllReq();
 }
 
+void
+DistFlExchanger::sendNewStructure()
+{
+  Connectivity *cpuToSub = geoSource->getCpuToSub();
+  int myCPU = structCom->myID();
+  int numSub = cpuToSub->num(myCPU);
+
+  std::set<int> localDeletedElements, newDeletedFaceElements;
+  int fnodes[12];
+
+  for(int iSub = 0; iSub < numSub; iSub++) {
+    std::set<int> &newDeletedElements = sd[iSub]->getNewDeletedElements();
+    for(std::set<int>::iterator it = newDeletedElements.begin(); it != newDeletedElements.end(); ++it) {
+      Element *ele = (*eset[iSub])[sd[iSub]->globalToLocalElem(geoSource->glToPackElem(*it))];
+      int *enodes = ele->nodes();
+      for(int iNode=0; iNode<ele->numNodes(); ++iNode) enodes[iNode] = sd[iSub]->localToGlobal(enodes[iNode]);
+      std::map<int, int> *GlToLlNodeMap = surface->GetPtrGlToLlNodeMap();
+
+      for(int iNode = 0; iNode < ele->numNodes(); ++iNode) {
+        std::map<int, int>::iterator it2 = GlToLlNodeMap->find(enodes[iNode]);
+
+        if(it2 == GlToLlNodeMap->end()) {
+          continue;
+        }
+
+        int *GlNodeIds = surface->GetPtrGlNodeIds();
+
+        for(int j = 0; j < nodeToFaceElem->num(it2->second); j++) { // loop over the face elements connected to the iNode-th node
+          int k = (*nodeToFaceElem)[it2->second][j];
+
+          if(localDeletedElements.find(k) != localDeletedElements.end()) {
+            continue;
+          }
+
+          FaceElement *faceEl = surface->GetFaceElemSet()[k];
+
+          if(faceEl && (faceEl->nNodes() <= ele->numNodes())) {
+            faceEl->GetNodes(fnodes, GlNodeIds);
+#if (__cplusplus >= 201103L) || defined(HACK_INTEL_COMPILER_ITS_CPP11)
+
+            if(std::all_of(fnodes, fnodes + faceEl->nNodes(),
+            [&](int i) {
+            return (std::find(enodes, enodes + ele->numNodes(), i) != enodes + ele->numNodes());
+            })) {
+              //std::cerr << "face element " << k+1 << " on embedded surface is associated with deleted element " << *it+1 << std::endl;
+              localDeletedElements.insert(k);
+              break;
+            }
+#else
+            std::cerr << " *** ERROR: C++11 support required in DistFlExchanger::sendNewStructure().\n";
+            exit(-1);
+#endif
+          }
+        }
+      }
+
+      delete [] enodes;
+    }
+  }
+
+  // now reduce over all of the mpi processes
+  int localCount = localDeletedElements.size();
+  int *recvbuf = new int[structCom->numCPUs()];
+  structCom->gather(&localCount, 1, recvbuf, 1);
+  int globalCount;
+  if(structCom->myID() == 0) {
+    globalCount = 0;
+    for(int i=0; i<structCom->numCPUs(); ++i) globalCount += recvbuf[i];
+  }
+  structCom->broadcast(1, &globalCount);
+  if(globalCount > 0) {
+    int *sendbuf2 = new int[localCount];
+    if(localCount > 0) {
+      int i=0;
+      for(std::set<int>::iterator it = localDeletedElements.begin(); it != localDeletedElements.end(); ++it, ++i) {
+        sendbuf2[i] = *it;
+      }
+    }
+    int *recvbuf2, *displs;
+    if(structCom->myID() == 0) {
+      recvbuf2 = new int[globalCount];
+      displs = new int[structCom->numCPUs()];
+      displs[0] = 0;
+      for(int i=1; i<structCom->numCPUs(); ++i) {
+        displs[i] = displs[i-1] + recvbuf[i-1];
+      }
+    }
+    structCom->gatherv(sendbuf2, localCount, recvbuf2, recvbuf, displs);
+    delete [] sendbuf2;
+    if(structCom->myID() == 0) {
+      for(int i=0; i<globalCount; ++i) {
+        newDeletedFaceElements.insert(recvbuf2[i]);
+      }
+      delete [] recvbuf2;
+      delete [] displs;
+    }
+  }
+  delete [] recvbuf;
+
+  if(newDeletedFaceElements.empty()) {
+    // in this case, none of the deleted elements are on the wet interface
+    sendNoStructure();
+  }
+  else {
+    int numConnUpdated = newDeletedFaceElements.size();
+    int *newConn = new int[5 * numConnUpdated];
+    int numLvlUpdated2 = newDeletedFaceElements.size();
+    int *lvlsetElemNum = new int[numLvlUpdated2];
+    double *lvlsets = new double[4 * numLvlUpdated2];
+    int numNewNodes = 0;
+    int *phantom_nodes_indices = NULL;
+    double *phantom_nodes_xyz0 = NULL;
+    int *new2old = NULL;
+    int i;
+    std::set<int>::iterator it;
+
+    for(it = newDeletedFaceElements.begin(), i = 0; it != newDeletedFaceElements.end(); ++it, ++i) {
+      newConn[5 * i + 0] = lvlsetElemNum[i] = *it;
+
+      for(int j = 0; j < faceElemToNode->num(*it); ++j) {
+        newConn[5 * i + 1 + j] = (*faceElemToNode)[*it][j];
+        lvlsets[4 * i + j] = -1;
+      }
+
+      if(faceElemToNode->num(*it) == 3) { // convert 3-node triangle to degenerate quad
+        newConn[5 * i + 1 + 3] = (*faceElemToNode)[*it][2];
+        lvlsets[4 * i + 3] = -1;
+      }
+    }
+
+    // send cracking "stats".
+    int buf[4] = {1, numConnUpdated, numLvlUpdated2, numNewNodes};
+    fluidCom->sendTo(0, 22/*tag*/, buf, 4);
+    fluidCom->waitForAllReq();
+
+    // for initial cracking, send phantom nodes.
+    if(!sentInitialCracking) {
+      fluidCom->sendTo(0, 55/*tag*/, phantom_nodes_xyz0, numNewNodes * 3);
+      fluidCom->waitForAllReq();
+      sentInitialCracking = true;
+    }
+
+    // send the integer package (topology + phi indices + new2old)
+    int pack1[numConnUpdated * 5 + numLvlUpdated2 + 2 * numNewNodes];
+
+    for(int i = 0; i < numConnUpdated; i++) {
+      pack1[5 * i] = newConn[5 * i];
+
+      for(int j = 1; j < 5; j++) {
+        pack1[5 * i + j] = newConn[5 * i + j];
+      }
+    }
+
+    for(int i = 0; i < numLvlUpdated2; i++) {
+      pack1[5 * numConnUpdated + i] = lvlsetElemNum[i];
+    }
+
+    for(int i = 0; i < numNewNodes; i++) {
+      pack1[5 * numConnUpdated + numLvlUpdated2 + 2 * i]   = phantom_nodes_indices[i];
+      pack1[5 * numConnUpdated + numLvlUpdated2 + 2 * i + 1] = new2old[i];
+    }
+
+    fluidCom->sendTo(0, 33/*tag*/, pack1, numConnUpdated * 5 + numLvlUpdated2 + 2 * numNewNodes);
+    fluidCom->waitForAllReq();
+    // send phi
+    fluidCom->sendTo(0, 44/*tag*/, lvlsets, numLvlUpdated2 * 4);
+    fluidCom->waitForAllReq();
+    delete [] newConn;
+    delete [] lvlsetElemNum;
+    delete [] lvlsets;
+  }
+}

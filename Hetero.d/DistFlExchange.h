@@ -70,6 +70,7 @@ class DistFlExchanger {
 
   bool wCracking;
   bool sentInitialCracking;
+  Connectivity *faceElemToNode, *nodeToFaceElem;
 
 public:
 
@@ -77,7 +78,7 @@ public:
                   DofSetArray **, OutputInfo *oinfo = 0);
   DistFlExchanger(CoordSet **, Elemset **, SurfaceEntity *, CoordSet *,
                   Connectivity *, Connectivity *, SubDomain **,
-                  DofSetArray **, DofSetArray **, OutputInfo *oinfo = 0);
+                  DofSetArray **, DofSetArray **, OutputInfo *oinfo, bool wCracking);
   ~DistFlExchanger();
 
   MatchMap* getMatchData();
@@ -110,6 +111,7 @@ public:
   void flipSndParity() { if(sndParity >= 0) sndParity = 1-sndParity; }
 
   void sendNoStructure();
+  void sendNewStructure();
 
   int cmdCom(int);
 

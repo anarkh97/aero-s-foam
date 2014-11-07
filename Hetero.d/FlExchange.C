@@ -62,12 +62,6 @@ FlExchanger::FlExchanger(CoordSet &_cs, Elemset &_eset, SurfaceEntity *_surface,
     exit(-1);
   }
 
-  senderId = 0;
-  nbGaussPoints = 0;
-  GP_Table = 0;
-  nbData = 0;
-  pArray = 0;
-  pressureIndexForElem = 0;
   idSendTo = 0;
   nbSendTo = 0;
   consOrigin = 0;
@@ -88,12 +82,6 @@ FlExchanger::FlExchanger(CoordSet &_cs, Elemset &_eset, DofSetArray *_dsa,
   sentInitialCracking = false;
   faceElemToNode = 0;
   nodeToFaceElem = 0;
-  senderId = 0;
-  nbGaussPoints = 0;
-  GP_Table = 0;
-  nbData = 0;
-  pArray = 0;
-  pressureIndexForElem = 0;
   idSendTo = 0;
   nbSendTo = 0;
   consOrigin = 0;
@@ -122,30 +110,6 @@ FlExchanger::~FlExchanger()
 
   if(nodeToFaceElem) {
     delete nodeToFaceElem;
-  }
-
-  if(senderId) {
-    delete [] senderId;
-  }
-
-  if(nbGaussPoints) {
-    delete [] nbGaussPoints;
-  }
-
-  if(GP_Table) {
-    delete [] GP_Table;
-  }
-
-  if(nbData) {
-    delete [] nbData;
-  }
-
-  if(pArray) {
-    delete [] pArray;
-  }
-
-  if(pressureIndexForElem) {
-    delete [] pressureIndexForElem;
   }
 
   if(idSendTo) {
@@ -242,7 +206,6 @@ FlExchanger::getFluidLoadSensitivity(Vector &forceSen, int tIndex, double time,
                                      double alphaf, int &iscollocated, GeomState *geomState)
 {
   aforce[0] = aforce[1] = aforce[2] = 0.0;
-  int i, j, iDof;
   FaceElemSet *feset;
 
   if(useFaceElem) {
@@ -252,30 +215,31 @@ FlExchanger::getFluidLoadSensitivity(Vector &forceSen, int tIndex, double time,
   Element     *thisElement;
   FaceElement *thisFaceElem;
 
-  for(i = 0; i < nbrReceivingFromMe; i++) {
-    int fromNd;
+  for(int i = 0; i < nbrReceivingFromMe; i++) {
     int tag =  FLTOSTSEN + ((rcvParity > 0) ? 1 : 0) ;
     RecInfo rInfo = fluidCom->recFrom(tag, buffer, bufferLen);
-    fromNd = rInfo.cpu;
+    int fromNd = rInfo.cpu;
     int origin = consOrigin[fromNd];
 
-    for(j = 0; j < nbSendTo[origin]; ++j) {
+    for(int j = 0; j < nbSendTo[origin]; ++j) {
       int nDof;
 
       if(!useFaceElem) {
         thisElement = eset[sndTable[origin][j].elemNum];
         thisElement->getFlLoad(cs, sndTable[origin][j], buffer + 3 * j, localF, geomState);
         nDof = thisElement->numDofs();
+        transformVector(localF, thisElement);
       }
       else {
         thisFaceElem = (*feset)[sndTable[origin][j].elemNum];
         thisFaceElem->getFlLoad(sndTable[origin][j], buffer + 3 * j, localF);
         nDof = thisFaceElem->numDofs();
+        transformVector(localF, thisFaceElem);
       }
 
       int *dof = sndTable[origin][j].dofs;
 
-      for(iDof = 0; iDof < nDof; ++iDof)
+      for(int iDof = 0; iDof < nDof; ++iDof)
         if(dof[iDof] >= 0) {
           forceSen[dof[iDof]] += localF[iDof];
         }
@@ -639,275 +603,75 @@ FlExchanger::sendEmbeddedWetSurface()
   delete [] elems;
 }
 
-void FlExchanger::matchup() //comparable to matcher + read
-{
-  if(!useFaceElem) {
-    fprintf(stderr, "ERROR: Face Elements not found. Aborting...\n");
-    exit(-1);
-  }
-
-  // info about surface
-  FaceElemSet &feset = surface->GetFaceElemSet();
-  CoordSet   &fnodes = surface->GetNodeSet();
-  int          *fnId = surface->GetPtrGlNodeIds();
-  int j, sender, receiver, one = 1;
-  // Locate where the data pertaining to this node starts
-  // Let's look for the receive list
-  int numSnd = 0;
-  int *rcvcomid  = new int[numSnd];
-  int *rcvcomlen = new int[numSnd];
-  int **rcvEleList = new int *[numSnd];
-  int **rcvGaussList = new int *[numSnd];
-  int actualSenders = 0; // Actual number of fluid nodes sending to me
-  int maxSender = 0; // number associated with the highest actual sender
-  int maxPRec = 0;   // number associated with the highest fluid process
-  //   That receives from us
-  int maxrec = 0;    // number of the highest element receiving a pressure
-  // Let's look for the send list
-  int numRcv = 1;
-  int *sndcomid  = new int[numRcv];
-  int *sndcomlen = new int[numRcv];
-  int actualReceivers = 0;
-  InterpPoint **interpPoints  = new InterpPoint *[numRcv];
-
-  for(receiver = 0; receiver < numRcv; ++ receiver) {
-    sndcomid[receiver] = 1;
-    sndcomlen[receiver] = fnodes.size();
-
-    if(sndcomid[receiver] > maxPRec) {
-      maxPRec = sndcomid[receiver];
-    }
-
-    if(sndcomlen[receiver] > 0) {
-      ++actualReceivers;
-      interpPoints[receiver] = new InterpPoint[sndcomlen[receiver]];
-    }
-    else {
-      interpPoints[receiver] = 0;
-    }
-
-    // find node to elem connectivity and local coords.
-    // local coords convention given in "Mortar.d/FaceElement.d/FaceTri3.d/FaceTri3.C"
-    map<int, locoord> exy = feset.computeNodeLocalCoords(fnId, fnodes.size());
-    map<int, locoord>::iterator it;
-
-    for(j = 0; j < sndcomlen[receiver]; ++j) {
-      it = exy.find(j);
-
-      if(it == exy.end()) {
-        fprintf(stderr, "Oh no!\n");
-        exit(-1);
-      }
-
-      interpPoints[receiver][j].elemNum = (it->second).first;
-      (interpPoints[receiver][j].xy)[0] = (it->second).second.first;
-      (interpPoints[receiver][j].xy)[1] = (it->second).second.second;
-      (interpPoints[receiver][j].gap)[0] = 0.0;
-      (interpPoints[receiver][j].gap)[1] = 0.0;
-      (interpPoints[receiver][j].gap)[2] = 0.0; /*KW:no gap*/
-    }
-  }
-
-  // Now create the compacted tables
-  //  ***  First the receive table is compacted to the actual receivers
-  //  *** and we create the element wet mask
-  nbrSendingToMe = actualSenders;
-  senderId = new int[maxSender];
-  numWetElements = 0;
-  bufferLen = 0;
-  int *wetMask = new int[maxrec];
-
-  for(j = 0; j < maxrec; ++j) {
-    wetMask[j] = 0;
-  }
-
-  int *table = new int[maxrec];
-  nbGaussPoints = new int[maxrec];
-  GP_Table = new int *[actualSenders];
-  nbData = new int[actualSenders];
-  int sId = 0;
-
-  for(sender = 0; sender < numSnd; ++sender) {
-    if(rcvcomlen[sender] > 0) {
-      nbData[sId] = rcvcomlen[sender];
-
-      if(bufferLen < 2 + NBPRESSDATAMAX * nbData[sId]) {
-        bufferLen = 2 + NBPRESSDATAMAX * nbData[sId];
-      }
-
-      GP_Table[sId] = new int[rcvcomlen[sender]];
-      senderId[rcvcomid[sender] - 1] = sId;
-
-      for(j = 0; j < rcvcomlen[sender]; ++j) {
-        int thisEleId = rcvEleList[sender][j] - 1;
-
-        if(wetMask[thisEleId] == 0) { //We found a new wet element
-          wetMask[thisEleId] = 1;
-          table[thisEleId] = numWetElements;
-          nbGaussPoints[numWetElements] = 0;
-          ++numWetElements;
-        }
-
-        nbGaussPoints[table[thisEleId]] ++;
-      }
-
-      sId++;
-    }
-  }
-
-  pressureIndexForElem = new int[numWetElements + 1];
-  // Now fill the tables
-  pressureIndexForElem[0] = 0;
-
-  for(j = 0; j < numWetElements; ++j) {
-    pressureIndexForElem[j + 1] = pressureIndexForElem[j] + nbGaussPoints[j];
-  }
-
-  sId = 0;
-
-  for(sender = 0; sender < numSnd; ++sender) {
-    if(rcvcomlen[sender] > 0) {
-      for(j = 0; j < rcvcomlen[sender]; ++j) {
-        int globEleId = rcvEleList[sender][j] - 1;
-        int wetEleId = table[globEleId];
-
-        if(rcvGaussList[sender][j] > nbGaussPoints[wetEleId]) {
-          rcvGaussList[sender][j] = nbGaussPoints[wetEleId];
-        }
-
-        GP_Table[sId][j] = pressureIndexForElem[wetEleId] +
-                           rcvGaussList[sender][j] - 1;
-      }
-
-      sId++;
-    }
-  }
-
-  // *** Make the send tables
-  nbrReceivingFromMe = actualReceivers;
-  sndTable = new InterpPoint*[nbrReceivingFromMe];
-  idSendTo = new int[nbrReceivingFromMe];
-  nbSendTo = new int[nbrReceivingFromMe];
-  int rId = 0;
-  int mysize = 0;
-  consOrigin = new int[maxPRec + 1];
-
-  for(receiver = 0; receiver < numRcv; ++receiver) {
-    mysize += sndcomlen[receiver];
-
-    if(sndcomlen[receiver] > 0) {
-      if(bufferLen < 2 + 6 * sndcomlen[receiver]) {
-        bufferLen = 2 + 6 * sndcomlen[receiver];
-      }
-
-      sndTable[rId] = interpPoints[receiver];
-      nbSendTo[rId] = sndcomlen[receiver];
-      idSendTo[rId] = sndcomid[receiver] - 1;
-      consOrigin[sndcomid[receiver] - 1] = rId;
-      rId++;
-    }
-  }
-
-  buffer = new double[mysize * 6];
-  pArray = new double[pressureIndexForElem[numWetElements]*NBPRESSDATAMAX];
-
-  for(j = 0; j < pressureIndexForElem[numWetElements]*NBPRESSDATAMAX; ++j) {
-    pArray[j] = 0;
-  }
-
-  // Last step: Create the dof nDof arrays and allocate localF
-  int totalNDof = 0;
-  int maxNDof = 0;
-  int i;
-
-  for(i = 0; i < nbrReceivingFromMe; i++) {
-    for(j = 0; j < nbSendTo[i]; ++j) {
-      FaceElement *thisElement = feset[sndTable[i][j].elemNum];
-      int nDof = thisElement->numDofs(); //KW: 9 for FaceTria3
-      totalNDof += nDof;
-
-      if(nDof > maxNDof) {
-        maxNDof = nDof;
-      }
-    }
-  }
-
-  localF = new double[maxNDof];
-  int *array = new int[totalNDof];
-
-  for(i = 0; i < nbrReceivingFromMe; i++) {
-    for(j = 0; j < nbSendTo[i]; ++j) {
-      FaceElement *thisElement = feset[sndTable[i][j].elemNum];
-      int nDof = thisElement->numDofs();
-      sndTable[i][j].dofs = array;
-      thisElement->dofs(*dsa, array, fnId); // XXXX
-      array += nDof;
-    }
-  }
-
-  delete [] rcvcomid;
-  delete [] rcvcomlen;
-  delete [] rcvEleList;
-  delete [] rcvGaussList;
-  delete [] wetMask;
-  delete [] table;
-  delete [] sndcomid;
-  delete [] sndcomlen;
-  delete [] interpPoints;
-  //print interpPoints
-  /*  for(int i=0; i<nbSendTo[0]; i++) {
-      fprintf(stderr, "%d (%e %e) (%d %d %d, %d %d %d, %d %d %d)\n", sndTable[0][i].elemNum, sndTable[0][i].xy[0], sndTable[0][i].xy[1], sndTable[0][i].dofs[0],  sndTable[0][i].dofs[1],  sndTable[0][i].dofs[2],  sndTable[0][i].dofs[3],  sndTable[0][i].dofs[4],  sndTable[0][i].dofs[5],  sndTable[0][i].dofs[6],  sndTable[0][i].dofs[7],  sndTable[0][i].dofs[8]);}
-  */
-}
-
 void
 FlExchanger::read(int myNode, char *inputFileName)
 {
-  FilteredFile ffile(inputFileName);
+  // This function will either (a) read the matcher file or (b) query the embedded surface directly,
+  // and then do some pre-processing to initialize various data structures.
+
+  FilteredFile *ffile;
   char *cLine;
-  int j, sender, receiver, one = 1;
+  FaceElemSet *feset;
+  CoordSet *fnodes;
+  int *fnId;
+  map<int, locoord> exy;
+  int numSnd, numRcv;
 
-  // Locate where the data pertaining to this node starts
-  while(1) {
-    if(ffile.findToken(SUBDOMAIN_KW) < 0) {
-      fprintf(stderr, "Token %s not found. Aborting\n", SUBDOMAIN_KW);
-      exit(one);
+  if(!useFaceElem) {
+
+    ffile = new FilteredFile(inputFileName);
+
+    // Locate where the data pertaining to this node starts
+    while(1) {
+      if(ffile->findToken(SUBDOMAIN_KW) < 0) {
+        fprintf(stderr, "Token %s not found. Aborting\n", SUBDOMAIN_KW);
+        exit(1);
+      }
+
+      cLine = ffile->getLineAfterToken();
+      fflush(stdout);
+      int nodeNum;
+      sscanf(cLine, "%d", &nodeNum);
+
+      if(nodeNum - 1 == myNode) {
+        break;
+      }
+
+      ffile->findToken("END");
     }
 
-    cLine = ffile.getLineAfterToken();
-    fflush(stdout);
-    int nodeNum;
-    sscanf(cLine, "%d", &nodeNum);
-
-    if(nodeNum - 1 == myNode) {
-      break;
+    // Let's look for the receive list
+    if(ffile->findToken(RECEIVE_LIST_KW) < 0) {
+      fprintf(stderr, "Token %s not found. Aborting\n", RECEIVE_LIST_KW);
+      exit(1);
     }
 
-    ffile.findToken("END");
+    cLine = ffile->getLineAfterToken();
+    sscanf(cLine, "%d", &numSnd);
+  }
+  else {
+     // info about surface
+     feset = surface->GetPtrFaceElemSet();
+     fnodes = surface->GetPtrNodeSet();
+     fnId = surface->GetPtrGlNodeIds();
+     exy = feset->computeNodeLocalCoords(fnId, fnodes->size());
+
+     numSnd = 0;
   }
 
-  // Let's look for the receive list
-  if(ffile.findToken(RECEIVE_LIST_KW) < 0) {
-    fprintf(stderr, "Token %s not found. Aborting\n", RECEIVE_LIST_KW);
-    exit(one);
-  }
-
-  cLine = ffile.getLineAfterToken();
-  int numSnd;
-  sscanf(cLine, "%d", &numSnd);
   int *rcvcomid  = new int[numSnd];
   int *rcvcomlen = new int[numSnd];
   int **rcvEleList = new int *[numSnd];
   int **rcvGaussList = new int *[numSnd];
-  int actualSenders = 0; // Actual number of fluid nodes sending to me
+  int actualSenders = 0; // actual number of fluid nodes sending to me
   int maxSender = 0; // number associated with the highest actual sender
-  int maxPRec = 0;   // number associated with the highest fluid process
-  //   That receives from us
-  int maxrec = 0;    // number of the highest element receiving a pressure
+  int maxPRec = 0;   // number associated with the highest fluid process that receives from us
 
-  for(sender = 0; sender < numSnd; ++sender) {
-    cLine = ffile.getLine();
-    sscanf(cLine, "%d%d", rcvcomid + sender, rcvcomlen + sender);
+  for(int sender = 0; sender < numSnd; ++sender) {
+    if(!useFaceElem) {
+      cLine = ffile->getLine();
+      sscanf(cLine, "%d%d", rcvcomid + sender, rcvcomlen + sender);
+    }
 
     if(rcvcomlen[sender] > 0) {
       rcvEleList[sender]   = new int[rcvcomlen[sender]];
@@ -923,35 +687,42 @@ FlExchanger::read(int myNode, char *inputFileName)
       rcvGaussList[sender] = 0;
     }
 
-    for(j = 0; j < rcvcomlen[sender]; ++j) {
-      cLine = ffile.getLine();
-      sscanf(cLine, "%d%d", rcvEleList[sender] + j, rcvGaussList[sender] + j);
-
-      if(rcvEleList[sender][j] > maxrec) {
-        maxrec = rcvEleList[sender][j];
+    for(int j = 0; j < rcvcomlen[sender]; ++j) {
+      if(!useFaceElem) {
+        cLine = ffile->getLine();
+        sscanf(cLine, "%d%d", rcvEleList[sender] + j, rcvGaussList[sender] + j);
       }
     }
   }
 
-  // Let's look for the send list
-  if(ffile.findToken(SEND_LIST_KW) < 0) {
-    fprintf(stderr, "Token %s not found. Aborting\n", SEND_LIST_KW);
-    exit(one);
+  if(!useFaceElem) {
+    // Let's look for the send list
+    if(ffile->findToken(SEND_LIST_KW) < 0) {
+      fprintf(stderr, "Token %s not found. Aborting\n", SEND_LIST_KW);
+      exit(1);
+    }
+
+    cLine = ffile->getLineAfterToken();
+    sscanf(cLine, "%d", &numRcv);
+  }
+  else {
+    numRcv = 1;
   }
 
-  cLine = ffile.getLineAfterToken();
-  int numRcv;
-  sscanf(cLine, "%d", &numRcv);
   int *sndcomid  = new int[numRcv];
   int *sndcomlen = new int[numRcv];
   int actualReceivers = 0;
   InterpPoint **interpPoints  = new InterpPoint *[numRcv];
 
-  // fprintf(stderr, " *** WARNING: the structure does not read the gap\n");
-
-  for(receiver = 0; receiver < numRcv; ++ receiver) {
-    cLine = ffile.getLine();
-    sscanf(cLine, "%d%d", sndcomid + receiver, sndcomlen + receiver);
+  for(int receiver = 0; receiver < numRcv; ++ receiver) {
+    if(!useFaceElem) {
+      cLine = ffile->getLine();
+      sscanf(cLine, "%d%d", sndcomid + receiver, sndcomlen + receiver);
+    }
+    else {
+      sndcomid[receiver] = 1;
+      sndcomlen[receiver] = fnodes->size();
+    }
 
     if(sndcomid[receiver] > maxPRec) {
       maxPRec = sndcomid[receiver];
@@ -965,93 +736,40 @@ FlExchanger::read(int myNode, char *inputFileName)
       interpPoints[receiver] = 0;
     }
 
-    for(j = 0; j < sndcomlen[receiver]; ++j) {
-      cLine = ffile.getLine();
-      //sscanf(cLine,"%d%lf%lf", &interpPoints[receiver][j].elemNum,
-      //interpPoints[receiver][j].xy, interpPoints[receiver][j].xy+1);
-      sscanf(cLine, "%d%lf%lf%lf%lf%lf", &interpPoints[receiver][j].elemNum,
-             interpPoints[receiver][j].xy, interpPoints[receiver][j].xy + 1,
-             interpPoints[receiver][j].gap, interpPoints[receiver][j].gap + 1,
-             interpPoints[receiver][j].gap + 2);
-      interpPoints[receiver][j].elemNum -= 1; // Numbering convetion starts
-      // at 0.
-      // map global elem number to packed elemset numbering
-      interpPoints[receiver][j].elemNum = geoSource->glToPackElem(interpPoints[receiver][j].elemNum);
+    for(int j = 0; j < sndcomlen[receiver]; ++j) {
+      if(!useFaceElem) {
+        cLine = ffile->getLine();
+        sscanf(cLine, "%d%lf%lf%lf%lf%lf", &interpPoints[receiver][j].elemNum,
+               interpPoints[receiver][j].xy, interpPoints[receiver][j].xy + 1,
+               interpPoints[receiver][j].gap, interpPoints[receiver][j].gap + 1,
+               interpPoints[receiver][j].gap + 2);
+        // map global elem number to packed elemset numbering (note: numbering by convention starts at 0)
+        interpPoints[receiver][j].elemNum = geoSource->glToPackElem(interpPoints[receiver][j].elemNum-1);
+      }
+      else {
+        map<int, locoord>::iterator it = exy.find(j);
+        interpPoints[receiver][j].elemNum = (it->second).first;
+        interpPoints[receiver][j].xy[0] = (it->second).second.first;
+        interpPoints[receiver][j].xy[1] = (it->second).second.second;
+        interpPoints[receiver][j].gap[0] = 0.0;
+        interpPoints[receiver][j].gap[1] = 0.0;
+        interpPoints[receiver][j].gap[2] = 0.0;
+      }
     }
   }
 
   // Now create the compacted tables
-  //  ***  First the receive table is compacted to the actual receivers
+  //  *** First the receive table is compacted to the actual receivers
   //  *** and we create the element wet mask
   nbrSendingToMe = actualSenders;
-  senderId = new int[maxSender];
-  numWetElements = 0;
   bufferLen = 0;
-  int *wetMask = new int[maxrec];
 
-  for(j = 0; j < maxrec; ++j) {
-    wetMask[j] = 0;
-  }
-
-  int *table = new int[maxrec];
-  nbGaussPoints = new int[maxrec];
-  GP_Table = new int *[actualSenders];
-  nbData = new int[actualSenders];
-  int sId = 0;
-
-  for(sender = 0; sender < numSnd; ++sender) {
+  for(int sender = 0; sender < numSnd; ++sender) {
     if(rcvcomlen[sender] > 0) {
-      nbData[sId] = rcvcomlen[sender];
 
-      if(bufferLen < 2 + NBPRESSDATAMAX * nbData[sId]) {
-        bufferLen = 2 + NBPRESSDATAMAX * nbData[sId];
+      if(bufferLen < 2 + NBPRESSDATAMAX * rcvcomlen[sender]) {
+        bufferLen = 2 + NBPRESSDATAMAX * rcvcomlen[sender];
       }
-
-      GP_Table[sId] = new int[rcvcomlen[sender]];
-      senderId[rcvcomid[sender] - 1] = sId;
-
-      for(j = 0; j < rcvcomlen[sender]; ++j) {
-        int thisEleId = rcvEleList[sender][j] - 1;
-
-        if(wetMask[thisEleId] == 0) { //We found a new wet element
-          wetMask[thisEleId] = 1;
-          table[thisEleId] = numWetElements;
-          nbGaussPoints[numWetElements] = 0;
-          ++numWetElements;
-        }
-
-        nbGaussPoints[table[thisEleId]] ++;
-      }
-
-      sId++;
-    }
-  }
-
-  pressureIndexForElem = new int[numWetElements + 1];
-  // Now fill the tables
-  pressureIndexForElem[0] = 0;
-
-  for(j = 0; j < numWetElements; ++j) {
-    pressureIndexForElem[j + 1] = pressureIndexForElem[j] + nbGaussPoints[j];
-  }
-
-  sId = 0;
-
-  for(sender = 0; sender < numSnd; ++sender) {
-    if(rcvcomlen[sender] > 0) {
-      for(j = 0; j < rcvcomlen[sender]; ++j) {
-        int globEleId = rcvEleList[sender][j] - 1;
-        int wetEleId = table[globEleId];
-
-        if(rcvGaussList[sender][j] > nbGaussPoints[wetEleId]) {
-          rcvGaussList[sender][j] = nbGaussPoints[wetEleId];
-        }
-
-        GP_Table[sId][j] = pressureIndexForElem[wetEleId] +
-                           rcvGaussList[sender][j] - 1;
-      }
-
-      sId++;
     }
   }
 
@@ -1060,12 +778,11 @@ FlExchanger::read(int myNode, char *inputFileName)
   sndTable = new InterpPoint*[nbrReceivingFromMe];
   idSendTo = new int[nbrReceivingFromMe];
   nbSendTo = new int[nbrReceivingFromMe];
-  // fprintf(stderr, " SIZE OF nbSendTo is %d\n",nbrReceivingFromMe);
   int rId = 0;
   int mysize = 0;
   consOrigin = new int[maxPRec + 1];
 
-  for(receiver = 0; receiver < numRcv; ++receiver) {
+  for(int receiver = 0; receiver < numRcv; ++receiver) {
     mysize += sndcomlen[receiver];
 
     if(sndcomlen[receiver] > 0) {
@@ -1075,7 +792,6 @@ FlExchanger::read(int myNode, char *inputFileName)
 
       sndTable[rId] = interpPoints[receiver];
       nbSendTo[rId] = sndcomlen[receiver];
-      // fprintf(stderr," *** nbSendTo %8d = %8d\n",rId, sndcomlen[receiver]);
       idSendTo[rId] = sndcomid[receiver] - 1;
       consOrigin[sndcomid[receiver] - 1] = rId;
       rId++;
@@ -1083,21 +799,22 @@ FlExchanger::read(int myNode, char *inputFileName)
   }
 
   buffer = new double[mysize * 6];
-  pArray = new double[pressureIndexForElem[numWetElements]*NBPRESSDATAMAX];
-
-  for(j = 0; j < pressureIndexForElem[numWetElements]*NBPRESSDATAMAX; ++j) {
-    pArray[j] = 0;
-  }
 
   // Last step: Create the dof nDof arrays and allocate localF
   int totalNDof = 0;
   int maxNDof = 0;
-  int i;
+  int nDof;
 
-  for(i = 0; i < nbrReceivingFromMe; i++) {
-    for(j = 0; j < nbSendTo[i]; ++j) {
-      Element *thisElement = eset[sndTable[i][j].elemNum];
-      int nDof = thisElement->numDofs();
+  for(int i = 0; i < nbrReceivingFromMe; i++) {
+    for(int j = 0; j < nbSendTo[i]; ++j) {
+      if(!useFaceElem) {
+        Element *thisElement = eset[sndTable[i][j].elemNum];
+        nDof = thisElement->numDofs();
+      }
+      else {
+        FaceElement *thisElement = (*feset)[sndTable[i][j].elemNum];
+        nDof = thisElement->numDofs();
+      }
       totalNDof += nDof;
 
       if(nDof > maxNDof) {
@@ -1109,15 +826,41 @@ FlExchanger::read(int myNode, char *inputFileName)
   localF = new double[maxNDof];
   int *array = new int[totalNDof];
 
-  for(i = 0; i < nbrReceivingFromMe; i++) {
-    for(j = 0; j < nbSendTo[i]; ++j) {
-      Element *thisElement = eset[sndTable[i][j].elemNum];
-      int nDof = thisElement->numDofs();
-      sndTable[i][j].dofs = array;
-      thisElement->dofs(*dsa, array);
+  for(int i = 0; i < nbrReceivingFromMe; i++) {
+    for(int j = 0; j < nbSendTo[i]; ++j) {
+      if(!useFaceElem) {
+        Element *thisElement = eset[sndTable[i][j].elemNum];
+        nDof = thisElement->numDofs();
+        sndTable[i][j].dofs = array;
+        thisElement->dofs(*dsa, array);
+      }
+      else {
+        FaceElement *thisElement = (*feset)[sndTable[i][j].elemNum];
+        nDof = thisElement->numDofs();
+        sndTable[i][j].dofs = array;
+        thisElement->dofs(*dsa, array, fnId);
+      }
       array += nDof;
     }
   }
+
+  if(!useFaceElem) {
+    delete ffile;
+    for(int sender = 0; sender < numSnd; ++sender) {
+      if(rcvcomlen[sender] > 0) {
+        delete [] rcvEleList[sender];
+        delete [] rcvGaussList[sender];
+      }
+    }
+  }
+
+  delete [] rcvcomid;
+  delete [] rcvcomlen;
+  delete [] rcvEleList;
+  delete [] rcvGaussList;
+  delete [] sndcomid;
+  delete [] sndcomlen;
+  delete [] interpPoints;
 }
 
 // Temperature routines
@@ -1452,7 +1195,7 @@ FlExchanger::negotiate()
 void
 FlExchanger::sendNoStructure()
 {
-  if(!sentInitialCracking) { //this means there is no initial cracking.
+  if(!sentInitialCracking) { // this means there is no initial cracking.
     sentInitialCracking = true;
   }
 

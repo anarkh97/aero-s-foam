@@ -1510,7 +1510,7 @@ MDNLDynamic::aeroPreProcess(DistrVector &disp, DistrVector &vel,
     for(int i = 0; i < domain->getNumSurfs(); i++)
       if(aeroEmbeddedSurfaceId.find((*domain->viewSurfEntities())[i]->ID()) != aeroEmbeddedSurfaceId.end()) {
         iSurf = i;
-        break; //only allows one Surface.
+        break; // only allows one surface.
       }
     if(iSurf<0) {
       fprintf(stderr,"ERROR: Embedded wet surface not found! Aborting...\n");
@@ -1519,7 +1519,7 @@ MDNLDynamic::aeroPreProcess(DistrVector &disp, DistrVector &vel,
     distFlExchanger = new DistFlExchanger(cs, elemSet, (*domain->viewSurfEntities())[iSurf],
                                           &domain->getNodes(), domain->getNodeToElem(),
                                           decDomain->getElemToSub(), subdomain,
-                                          cdsa, dsa, oinfo_aero);
+                                          cdsa, dsa, oinfo_aero, false);
   }
   else {
     distFlExchanger = new DistFlExchanger(cs, elemSet, cdsa, dsa, oinfo_aero);
@@ -1576,7 +1576,7 @@ MDNLDynamic::aeroPreProcess(DistrVector &disp, DistrVector &vel,
     }
 
     // send initial displacements
-    if(!(geoSource->getCheckFileInfo()->lastRestartFile)) {
+    if(!(geoSource->getCheckFileInfo()->lastRestartFile)) { // XXX check
       distFlExchanger->sendDisplacements(state, usrDefDisps, usrDefVels);
       if(verboseFlag) filePrint(stderr, " ... [E] Sent initial displacements ...\n");
     }

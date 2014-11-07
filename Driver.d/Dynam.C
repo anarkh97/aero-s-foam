@@ -266,7 +266,7 @@ Domain::aeroSend(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p, double* bcx
   State state(c_dsa, dsa, bcx, vcx, d_n_aero, v_n, a_n, v_p);
 
   if(sinfo.dyna3d_compat) {
-    if(sinfo.elementDeletion && !newDeletedElements.empty()) {
+    if(aeroEmbeddedSurfaceId.size() != 0 && sinfo.elementDeletion && !newDeletedElements.empty()) {
       flExchanger->sendNewStructure(newDeletedElements);
     }
     else flExchanger->sendNoStructure();
@@ -998,12 +998,12 @@ Domain::aeroPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
     }
 
     OutputInfo *oinfo_aero = (flag) ? oinfo+iInfo : NULL;
-    if(aeroEmbeddedSurfaceId.size()!=0) {
+    if(aeroEmbeddedSurfaceId.size() != 0) {
       int iSurf = -1;
       for(int i=0; i<nSurfEntity; i++)
-        if(aeroEmbeddedSurfaceId.find(SurfEntities[i]->ID())!=aeroEmbeddedSurfaceId.end()) {
+        if(aeroEmbeddedSurfaceId.find(SurfEntities[i]->ID()) != aeroEmbeddedSurfaceId.end()) {
           iSurf = i; 
-          break; //only allows one Surface.
+          break; // only allows one surface.
         }
       if(iSurf<0) {
         filePrint(stderr, " *** ERROR: Embedded wet surface not found! Aborting...\n");
@@ -1012,6 +1012,11 @@ Domain::aeroPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
       flExchanger = new FlExchanger(nodes, packedEset, SurfEntities[iSurf], c_dsa, oinfo_aero, sinfo.elementDeletion);
     }
     else {
+      if(sinfo.elementDeletion) {
+        filePrint(stderr," *** WARNING: The C0 algorithm and an embedded surface id must be specified\n"
+                         "     under AERO for an aeroelastic analysis with element deletion, otherwise\n"
+                         "     Aero-F will not be notified of any topological changes in structure.\n");
+      }
       flExchanger = new FlExchanger(nodes, packedEset, c_dsa, oinfo_aero);
     }
 
@@ -1019,18 +1024,10 @@ Domain::aeroPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
     if(matchFile == 0)
       matchFile = (char*) "MATCHER";
 
-    if(aeroEmbeddedSurfaceId.size()!=0) 
-      flExchanger->matchup();
-    else {
-      if(sinfo.aeroFlag == 20 && sinfo.dyna3d_compat && sinfo.elementDeletion) {
-        filePrint(stderr," *** ERROR: Matcher with element deletion is not supported. Aborting...\n");
-        exit(-1);
-      }
-      flExchanger->read(0, matchFile);
-    }
+    flExchanger->read(0, matchFile);
 
     //KW: send the embedded wet surface to fluid 
-    if(aeroEmbeddedSurfaceId.size()!=0) {
+    if(aeroEmbeddedSurfaceId.size() != 0) {
       flExchanger->sendEmbeddedWetSurface();
       if(verboseFlag) filePrint(stderr, " ... [E] Sent embedded wet surface  ...\n");
     }
@@ -1136,21 +1133,35 @@ Domain::aeroSensitivityPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
       }
     }
 
+    if(sinfo.aeroFlag == 20 && sinfo.newmarkBeta != 0) {
+      filePrint(stderr, " *** ERROR: Requested AERO Algorithm is not available with implicit time-integrator. Aborting...\n");
+      exit(-1);
+    }
+    if(sinfo.aeroFlag != 20 && sinfo.newmarkBeta == 0) {
+      filePrint(stderr, " *** ERROR: Requested AERO Algorithm is not available with explicit time-integrator. Aborting...\n");
+      exit(-1);
+    }
+
     OutputInfo *oinfo_aero = (flag) ? oinfo+iInfo : NULL;
-    if(aeroEmbeddedSurfaceId.size()!=0) {
+    if(aeroEmbeddedSurfaceId.size() != 0) {
       int iSurf = -1;
       for(int i=0; i<nSurfEntity; i++)
-        if(aeroEmbeddedSurfaceId.find(SurfEntities[i]->ID())!=aeroEmbeddedSurfaceId.end()) {
+        if(aeroEmbeddedSurfaceId.find(SurfEntities[i]->ID()) != aeroEmbeddedSurfaceId.end()) {
           iSurf = i; 
-          break; //only allows one Surface.
+          break; // only allows one surface.
         }
       if(iSurf<0) {
-        fprintf(stderr,"ERROR: Embedded wet surface not found! Aborting...\n");
+        filePrint(stderr, " *** ERROR: Embedded wet surface not found! Aborting...\n");
         exit(-1);
       }
-      flExchanger = new FlExchanger(nodes, packedEset, SurfEntities[iSurf], c_dsa, oinfo_aero, false);
+      flExchanger = new FlExchanger(nodes, packedEset, SurfEntities[iSurf], c_dsa, oinfo_aero, sinfo.elementDeletion);
     }
     else {
+      if(sinfo.elementDeletion) {
+        filePrint(stderr," *** WARNING: The C0 algorithm and an embedded surface id must be specified\n"
+                         "     under AERO for an aeroelastic analysis with element deletion, otherwise\n"
+                         "     Aero-F will not be notified of any topological changes in structure.\n");
+      }
       flExchanger = new FlExchanger(nodes, packedEset, c_dsa, oinfo_aero);
     }
 
@@ -1158,15 +1169,12 @@ Domain::aeroSensitivityPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
     if(matchFile == 0)
       matchFile = (char*) "MATCHER";
 
-    if(aeroEmbeddedSurfaceId.size()!=0) 
-      flExchanger->matchup();
-    else
-      flExchanger->read(0, matchFile);
+    flExchanger->read(0, matchFile);
 
     //KW: send the embedded wet surface to fluid 
-    if(aeroEmbeddedSurfaceId.size()!=0) {
+    if(aeroEmbeddedSurfaceId.size() != 0) {
       flExchanger->sendEmbeddedWetSurface();
-      if(verboseFlag) fprintf(stderr," ... [E] Sent embedded wet surface ...\n");
+      if(verboseFlag) filePrint(stderr, " ... [E] Sent embedded wet surface  ...\n");
     }
 
     //XML New step of negotiation with fluid code
@@ -1200,10 +1208,10 @@ Domain::aeroSensitivityPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
       flExchanger->sendParam(sinfo.aeroFlag, sinfo.getTimeStep(), sinfo.mppFactor,
                              restartinc, sinfo.isCollocated, sinfo.alphas, sinfo.alphasv);
       flExchanger->sendModeFreq(modeData.frequencies, modeData.numModes);
-      if(verboseFlag) fprintf(stderr," ... [E] Sent parameters and mode frequencies ...\n");
+      if(verboseFlag) filePrint(stderr, " ... [E] Sent parameters and mode frequencies ...\n");
       flExchanger->sendModeShapes(modeData.numModes, modeData.numNodes,
                    modeData.modes, curState, sinfo.mppFactor);
-      if(verboseFlag) fprintf(stderr," ... [E] Sent mode shapes ...\n");
+      if(verboseFlag) filePrint(stderr, " ... [E] Sent mode shapes           ...\n");
     }
     else {
 //      double aero_tmax = sinfo.tmax;
@@ -1220,8 +1228,16 @@ Domain::aeroSensitivityPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
         flExchanger->initSndParity(-1);
       }
 
-      flExchanger->sendDisplacements(curState);
-      if(verboseFlag) fprintf(stderr," ... [E] Sent initial displacements ...\n");
+      if(sinfo.aeroFlag == 20 && sinfo.dyna3d_compat) {
+        flExchanger->sendSubcyclingInfo(0);
+        flExchanger->sendNoStructure();
+      }
+
+      if(!(geoSource->getCheckFileInfo()->lastRestartFile && (sinfo.aeroFlag == 20 ||
+          (sinfo.isNonLin() && sinfo.isDynam() && sinfo.newmarkBeta != 0)))) {
+        flExchanger->sendDisplacements(curState);
+        if(verboseFlag) filePrint(stderr, " ... [E] Sent initial displacements ...\n");
+      }
 
       if(sinfo.aeroFlag == 1) { // Ping pong only
         fprintf(stderr, "Ping Pong Only requested. Structure code exiting\n");
@@ -1229,7 +1245,6 @@ Domain::aeroSensitivityPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
     }
   }
 }
-
 
 void
 Domain::thermoePreProcess()

@@ -379,7 +379,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
       if(aeroAlg == 5) { 
         if(!parity) {
           time -= dt;
-          step--;
+          p--;
         }
         parity = ( parity ? 0 : 1 );
       }

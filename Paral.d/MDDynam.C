@@ -417,6 +417,7 @@ void
 MultiDomainDynam::processLastOutput()
 {
   OutputInfo *oinfo = geoSource->getOutputInfo();
+  domain->solInfo().lastIt = true;
   for (int iOut = 0; iOut < geoSource->getNumOutInfo(); iOut++)
     oinfo[iOut].interval = 1;
 }

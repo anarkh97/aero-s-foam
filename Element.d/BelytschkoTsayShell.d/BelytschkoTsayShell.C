@@ -192,7 +192,7 @@ BelytschkoTsayShell::setMaterial(NLMaterial *m)
   // set element properties
   optcor[0] = expmat->optcor0;
   if(nn[2] != nn[3]) {
-    optcor[1] = expmat->optcor1;
+    optcor[1] = (optcor[0] == 0) ? 0 : expmat->optcor1;
     optprj = expmat->optprj;
   }
   opthgc = expmat->opthgc;

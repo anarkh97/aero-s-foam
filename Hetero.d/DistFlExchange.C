@@ -787,6 +787,7 @@ DistFlExchanger::cmdCom(int commandFlag)
     RecInfo rInfo = fluidCom->recFrom(tag, buffer, msglen);
     returnFlag = (int) buffer[0];
   }
+  structCom->broadcast(1, &returnFlag);
 
   return returnFlag;
 }

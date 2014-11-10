@@ -6,6 +6,7 @@
 template <class Scalar> class GenVector;
 typedef GenVector<double> Vector;
 extern Vector nillVec;
+class CoordSet;
 
 class State {
    DofSetArray *dsa;	// Constrained DOFSetArray
@@ -16,39 +17,40 @@ class State {
    Vector      &veloc;	// velocity
    Vector      &accel;	// acceleration
    Vector      &prevVeloc;	// previous velocity
+   CoordSet    *cs;
  public:
-   State() : disp(nillVec), veloc(nillVec), accel(nillVec), prevVeloc(nillVec)
+   State() : disp(nillVec), veloc(nillVec), accel(nillVec), prevVeloc(nillVec), cs(0)
          {} // Careful that you know what you are doing here
 
    State(const State &s) : dsa(s.dsa), DSA(s.DSA), bcx(s.bcx), vcx(s.vcx),
        disp(s.disp), veloc(s.veloc), accel(s.accel), 
-       prevVeloc(s.prevVeloc)
+       prevVeloc(s.prevVeloc), cs(s.cs)
      {}
 
    // Constructor
    State (DofSetArray *_dsa, Vector &d, Vector &v, Vector &a, Vector &pv) :
-      disp(d), veloc(v), accel(a) , prevVeloc(pv)
+      disp(d), veloc(v), accel(a), prevVeloc(pv), cs(0)
     {dsa = _dsa; }
 
    // Constructor
    State (DofSetArray *_dsa, DofSetArray *_DSA, 
           double *_bcx, double *_vcx, Vector &d, Vector &v, Vector &a,
-          Vector &pv) :
-      disp(d), veloc(v), accel(a) , prevVeloc(pv)
+          Vector &pv, CoordSet *_cs = 0) :
+      disp(d), veloc(v), accel(a), prevVeloc(pv), cs(_cs)
       { dsa = _dsa; DSA = _DSA; bcx = _bcx; vcx = _vcx; }
 
    // For heat problem
    State (DofSetArray *_dsa, DofSetArray *_DSA,
           double *_bcx, Vector &d, Vector &v, Vector &pv) :
-      disp(d), veloc(v), accel(v), prevVeloc(pv)   /*accel has to be here, but useless*/
+      disp(d), veloc(v), accel(v), prevVeloc(pv), cs(0)   /*accel has to be here, but useless*/
       { dsa = _dsa; DSA = _DSA; bcx = _bcx; vcx = 0; }
 
    // For heat problem
    State (DofSetArray *_dsa, Vector &d, Vector &v, Vector &pv) :
-      disp(d), veloc(v), accel(v), prevVeloc(pv) { dsa = _dsa; }
+      disp(d), veloc(v), accel(v), prevVeloc(pv), cs(0) { dsa = _dsa; }
 
    State (const State &s, Vector &n_d) : disp(n_d), veloc(s.veloc),
-        accel(s.accel), prevVeloc(s.prevVeloc)
+        accel(s.accel), prevVeloc(s.prevVeloc), cs(s.cs)
    {
      dsa = s.dsa;
      DSA = s.DSA;
@@ -57,7 +59,7 @@ class State {
    }
 
    State (const State &s, Vector &n_d, Vector &n_v) : disp(n_d), veloc(n_v),
-        accel(s.accel), prevVeloc(s.prevVeloc)
+        accel(s.accel), prevVeloc(s.prevVeloc), cs(s.cs)
    {
      dsa = s.dsa;
      DSA = s.DSA;
@@ -71,15 +73,14 @@ class State {
    Vector &getAccel() { return accel; }
    Vector &getPrevVeloc() { return prevVeloc; }
 
-   // get translational Displacements and Velocities
+   // get translational displacements and velocities
    void getDV(int node, double[3], double[3]);
 
-   // get translational and rotational Displacements and Velocities
+   // get translational and rotational displacements and velocities
    void getDVRot(int node, double[6], double[6]);
-   void getTemp(int node, double[1], double[1]);
 
-   //void setData(DofSetArray *, DofSetArray *, double *, double *,
-   //       	  Vector &, Vector &, Vector &); 
+   // get temperature and its first time derivative
+   void getTemp(int node, double[1], double[1]);
 };
 
 #endif

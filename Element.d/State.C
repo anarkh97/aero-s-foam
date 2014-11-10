@@ -1,6 +1,7 @@
 #include <Math.d/Vector.h>
 #include <Element.d/State.h>
 #include <Driver.d/Domain.h>
+#include <Driver.d/EFrameData.h>
 
 extern Domain *domain;
 
@@ -43,8 +44,16 @@ State::getDV(int node, double xyz[3], double v[3])
  }
 
  if(!domain->solInfo().basicDofCoords) {
-   domain->transformVectorInv(xyz, node, false);
-   domain->transformVectorInv(v, node, false);
+   if(cs) {
+     if(NFrameData *cd = cs->dofFrame(node)) {
+       cd->invTransformVector3(xyz);
+       cd->invTransformVector3(v);
+     }
+   }
+   else {
+     domain->transformVectorInv(xyz, node, false);
+     domain->transformVectorInv(v, node, false);
+   }
  }
 }
 
@@ -137,7 +146,15 @@ State::getDVRot(int node, double xyz[6], double v[6])
  }
 
  if(!domain->solInfo().basicDofCoords) {
-   domain->transformVectorInv(xyz, node, true);
-   domain->transformVectorInv(v, node, true);
+   if(cs) {
+     if(NFrameData *cd = cs->dofFrame(node)) {
+       cd->invTransformVector6(xyz);
+       cd->invTransformVector6(v);
+     }
+   }
+   else {
+     domain->transformVectorInv(xyz, node, true);
+     domain->transformVectorInv(v, node, true);
+   }
  }
 }

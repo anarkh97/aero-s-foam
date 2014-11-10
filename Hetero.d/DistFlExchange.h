@@ -116,6 +116,10 @@ public:
   int cmdCom(int);
 
   void sendEmbeddedWetSurface();
+
+private:
+  void transformVector(double *localF, Element *ele, int locSub);
+  void transformVector(double *localF, FaceElement *ele, int locSub);
 };
 
 #define FLTOSTMT 1000

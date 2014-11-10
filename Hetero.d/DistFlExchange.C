@@ -193,11 +193,13 @@ DistFlExchanger::getFluidLoad(DistrVector &force, int tIndex, double time,
         thisElement = (*eset[locSub])[sndTable[origin][j].elemNum];
         thisElement->getFlLoad(*(cs[locSub]), sndTable[origin][j], buffer + 3 * j, localF, geomState);
         nDof = thisElement->numDofs();
+        transformVector(localF, thisElement, locSub);
       }
       else {
         thisFaceElem = (*feset)[sndTable[origin][j].elemNum];
         thisFaceElem->getFlLoad(sndTable[origin][j], buffer + 3 * j, localF);
         nDof = thisFaceElem->numDofs();
+        transformVector(localF, thisFaceElem, locSub);
       }
 
       int *dof = sndTable[origin][j].dofs;
@@ -287,7 +289,7 @@ DistFlExchanger::sendDisplacements(SysState<DistrVector> &state,
       int locSub = sndTable[origin][j].subNumber;
       State localState(cdsa[locSub], dsa[locSub], usrDefDisps[locSub],
                        usrDefVels[locSub], dsp[locSub],
-                       vel[locSub], acc[locSub], pVel[locSub]);
+                       vel[locSub], acc[locSub], pVel[locSub], cs[locSub]);
       GeomState *geomState = (distrGeomState) ? (*distrGeomState)[locSub] : 0;
 
       if(!useFaceElem) {
@@ -1170,3 +1172,38 @@ DistFlExchanger::sendNewStructure()
     delete [] lvlsets;
   }
 }
+
+void
+DistFlExchanger::transformVector(double *localF, Element *ele, int locSub)
+{
+  if(!solInfo.basicDofCoords) {
+    int *nn = ele->nodes();
+
+    for(int k = 0; k < ele->numNodes(); ++k)
+      if(NFrameData *cd = cs[locSub]->dofFrame(nn[k])) {
+        if(ele->hasRot()) {
+          cd->transformVector6(localF + 6 * k);
+        }
+        else {
+          cd->transformVector3(localF + 3 * k);
+        }
+      }
+
+    delete [] nn;
+  }
+}
+
+void
+DistFlExchanger::transformVector(double *localF, FaceElement *ele, int locSub)
+{
+  if(!solInfo.basicDofCoords) {
+    for(int k = 0; k < ele->nNodes(); ++k) {
+      int glNode = (surface->IsRenumbered()) ? surface->GetPtrLlToGlNodeMap()[ele->GetNode(k)] : ele->GetNode(k);
+
+      if(NFrameData *cd = cs[locSub]->dofFrame(sd[locSub]->globalToLocal(glNode))) {
+        cd->transformVector3(localF + 3 * k);
+      }
+    }
+  }
+}
+

@@ -140,8 +140,6 @@ static const char*header[] = {
 "",
 "",
 "",
-"",
-"",
 "#  Time       Wdis\n",
 "#  time   Element_no   Cause\n"
 };
@@ -247,6 +245,7 @@ static const char * ele_header[] = {
 "",
 "ElemScalar ELE_DAMAGE under %s using %s_pattern\n",
 "ElemScalar ELE_EQPLSTRN under %s using %s_pattern\n",
+"",
 "",
 "",
 "",

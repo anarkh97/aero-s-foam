@@ -328,6 +328,14 @@ Domain::getElemFollowerForce(int iele, GeomState &geomState, double *_f, int buf
     int i = it->first;
     std::vector<int> &eledofs = it->second;
 
+    // if the element is an LMPC and the node has a DOF_FRM then the element force and or stiffness must be defined in the DOF_FRM
+    NFrameData *cd = 0;
+    if(packedEset[iele]->isMpcElement() && nodes.dofFrame(nbc[i].nnum)) {
+      LMPCons *lmpcons = dynamic_cast<LMPCons*>(packedEset[iele]);
+      if(lmpcons && (lmpcons->getSource() == mpc::Lmpc || lmpcons->getSource() == mpc::NodalContact ||
+         lmpcons->getSource() == mpc::TiedSurfaces)) cd = nodes.dofFrame(nbc[i].nnum);
+    }
+
     double m0[3] = { 0, 0, 0 }, m[3], r[3], rotvar[3][3];
     MFTTData *mftt = domain->getMFTT(nbc[i].loadsetid);
     double loadFactor = (mftt && sinfo.isDynam()) ? mftt->getVal(std::max(time,0.0)) : domain->getLoadFactor(nbc[i].loadsetid);
@@ -350,8 +358,13 @@ Domain::getElemFollowerForce(int iele, GeomState &geomState, double *_f, int buf
         std::cerr << " *** WARNING: selected moment type is not supported\n";
     }
 
-    for(int j = 0; j < 3; ++j) {
-      elementForceBuf[eledofs[j]] -= m[j];
+    if(cd) {
+      double m_copy[3] = { m[0], m[1], m[2] };
+      cd->transformVector3(m_copy);
+      for(int j = 0; j < 3; ++j) elementForceBuf[eledofs[j]] -= m_copy[j];
+    }
+    else {
+      for(int j = 0; j < 3; ++j) elementForceBuf[eledofs[j]] -= m[j];
     }
 
     // tangent stiffness contribution: 
@@ -382,6 +395,8 @@ Domain::getElemFollowerForce(int iele, GeomState &geomState, double *_f, int buf
         } break;
       }
 
+      if(cd) cd->transformMatrix3(&rotvar[0][0]);
+
       for(int j = 0; j < 3; ++j)
         for(int k = 0; k < 3; ++k)
           kel[eledofs[j]][eledofs[k]] -= rotvar[j][k];
@@ -394,6 +409,14 @@ Domain::getElemFollowerForce(int iele, GeomState &geomState, double *_f, int buf
     int i = it->first;
     std::vector<int> &eledofs = it->second;
 
+    // if the element is an LMPC and the node has a DOF_FRM then the element force and or stiffness must be defined in the DOF_FRM
+    NFrameData *cd = 0;
+    if(packedEset[iele]->isMpcElement() && nodes.dofFrame(nbc[i].nnum)) {
+      LMPCons *lmpcons = dynamic_cast<LMPCons*>(packedEset[iele]);
+      if(lmpcons && (lmpcons->getSource() == mpc::Lmpc || lmpcons->getSource() == mpc::NodalContact ||
+         lmpcons->getSource() == mpc::TiedSurfaces)) cd = nodes.dofFrame(nbc[i].nnum);
+    }
+
     double f0[3] = { 0, 0, 0 }, f[3];
     MFTTData *mftt = domain->getMFTT(nbc[i].loadsetid);
     double loadFactor = (mftt && sinfo.isDynam()) ? mftt->getVal(std::max(time,0.0)) : domain->getLoadFactor(nbc[i].loadsetid);
@@ -402,9 +425,8 @@ Domain::getElemFollowerForce(int iele, GeomState &geomState, double *_f, int buf
 
     mat_mult_vec(geomState[nbc[i].nnum].R, f0, f, 0); // f = R*f0
 
-    for(int j = 0; j < 3; ++j) {
-      elementForceBuf[eledofs[j]] -= f[j];
-    }
+    if(cd) cd->transformVector3(f);
+    for(int j = 0; j < 3; ++j) elementForceBuf[eledofs[j]] -= f[j];
 
     // tangent stiffness contribution: 
     if(compute_tangents) {
@@ -540,6 +562,15 @@ Domain::makeElementAdjacencyLists()
         for(int inode = 0; inode < nodeToElem->num(current->node); ++inode) { // loop over the elements attached to the node
                                                                               // at which the discrete mass is located
           int iele = (*nodeToElem)[current->node][inode];
+
+          if(packedEset[iele]->isMpcElement() && nodes.dofFrame(current->node)) {
+            LMPCons *lmpcons = dynamic_cast<LMPCons*>(packedEset[iele]);
+            if(lmpcons && (lmpcons->getSource() == mpc::Lmpc || lmpcons->getSource() == mpc::NodalContact ||
+               lmpcons->getSource() == mpc::TiedSurfaces)) continue; // XXX if a discrete mass is associated with an LMPC element 
+                                                                     // the the inertial force and tangent stiffness contribution 
+                                                                     // must be defined in the DOF_FRM.
+          }
+
           std::vector<int> eledofs(3);
           for(int j = 0; j < 3; ++j) {
             eledofs[j] = -1;

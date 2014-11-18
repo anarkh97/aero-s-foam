@@ -718,6 +718,7 @@ int main(int argc, char** argv)
      filePrint(stderr," ... Exiting after Dec run          ...\n");
      filePrint(stderr," --------------------------------------\n");
      delete threadManager;
+     closeComm();
      exit(0);
    }
  }
@@ -729,6 +730,7 @@ int main(int argc, char** argv)
    if(exitAfterSower) {
      filePrint(stderr," ... Exiting after Sower run        ...\n");
      filePrint(stderr," --------------------------------------\n");
+     closeComm();
      exit(0);
    }
  }

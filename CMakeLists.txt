@@ -88,7 +88,7 @@ IF(UNIX)
 
 # zoltan
     IF(MPI_FOUND AND NOT WITH_ZOLTAN EQUAL 0)
-      FIND_PATH(ZOLTAN_INCLUDE_PATH zoltan.h
+      FIND_PATH(ZOLTAN_INCLUDE_PATH Zoltan_config.h
                 PATHS /usr/include /usr/local/include)
       FIND_PATH(ZOLTAN_SRC_PATH zz/zz_const.h
                 PATHS /usr/include /usr/local/include)

@@ -1,4 +1,5 @@
 #include <cstdio>
+#include <limits>
 #include <Timers.d/GetTime.h>
 
 extern int verboseFlag;
@@ -115,7 +116,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
 
      filePrint(stderr, " ... Newton : End Step #%d, Iter #%d --- Max Steps = %d, Max Iters = %d\n",
                step, i+1, numSteps, solInfo.num_penalty_its);
-     if(err > 0) filePrint(stderr," ... Maximum constraint violation = %e\n", err);
+     if(err > std::numeric_limits<double>::epsilon()) filePrint(stderr," ... Maximum constraint violation = %e\n", err);
      filePrint(stderr," --------------------------------------\n");
    
      if(feasible) break;

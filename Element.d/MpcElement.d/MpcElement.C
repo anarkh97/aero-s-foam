@@ -8,6 +8,9 @@
 
 extern Domain * domain;
 
+bool operator< (const LMPCTerm &a, const LMPCTerm &b)
+{ return ((a.nnum < b.nnum) || ((a.nnum == b.nnum) && (a.dofnum < b.dofnum))); }
+
 MpcElement::MpcElement(int _nNodes, DofSet nodalDofs, int* _nn)
  : nNodes(_nNodes), LMPCons(0, 0.0)
 {
@@ -100,14 +103,8 @@ MpcElement::MpcElement(LMPCons *mpc, bool nlflag)
           it->second[j] = nterms-1;
         }
     }
-    // sort using a custom function object
-    struct {
-        bool operator()(const LMPCTerm &a, const LMPCTerm &b)
-        {   
-            return ((a.nnum < b.nnum) || ((a.nnum == b.nnum) && (a.dofnum < b.dofnum)));
-        }
-    } customLess;
-    std::sort(terms.begin(), terms.end(), customLess);
+    // sort
+    std::sort(terms.begin(), terms.end());
     // store the original coefficients of the rotation dofs terms, and update rotation_indices due to sorting
     for(int i = 0; i < nterms; ++i) {
       if(terms[i].dofnum == 3 || terms[i].dofnum == 4 || terms[i].dofnum == 5) {

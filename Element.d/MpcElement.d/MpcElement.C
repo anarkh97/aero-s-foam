@@ -102,7 +102,7 @@ MpcElement::MpcElement(LMPCons *mpc, bool nlflag)
     }
     // sort using a custom function object
     struct {
-        bool operator()(LMPCTerm &a, LMPCTerm &b)
+        bool operator()(const LMPCTerm &a, const LMPCTerm &b)
         {   
             return ((a.nnum < b.nnum) || ((a.nnum == b.nnum) && (a.dofnum < b.dofnum)));
         }

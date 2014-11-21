@@ -7,6 +7,12 @@
 *STATICS
 *sparse
 *
+LOADCASE 1
+1 1.0
+*
+LOADCASE 2
+2 1.0
+*
 FORCES 1
 2 2 -1000
 3 2 -1000

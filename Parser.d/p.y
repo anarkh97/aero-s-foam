@@ -391,22 +391,29 @@ Random:
         ; 
 Impe:
         IMPE NewLine
-          { domain->setFrequencySet(0); domain->solInfo().curSweepParam = 0; }
+          { domain->solInfo().curSweepParam = 0; }
         | IMPE Integer NewLine
-          { domain->setFrequencySet($2); domain->solInfo().curSweepParam = $2; }
+          { domain->solInfo().curSweepParam = $2; }
         | IMPE Integer Integer NewLine
-          { domain->setFrequencySet($2); domain->solInfo().curSweepParam = $3; }
+          { domain->solInfo().curSweepParam = $3; }
         | Impe FREQ Float NewLine
           { if(domain->solInfo().curSweepParam == 0) geoSource->setImpe($3); }
         | Impe FREQSWEEP1 Float Float Integer NewLine
-          { if(domain->solInfo().curSweepParam == 0) geoSource->setImpe($3); domain->addFrequencies1(2.0*PI*$3, 2.0*PI*$4, $5); }
+          { if(domain->solInfo().curSweepParam == 0) geoSource->setImpe($3);
+            domain->setFrequencySet(domain->solInfo().curSweepParam);
+            domain->addFrequencies1(2.0*PI*$3, 2.0*PI*$4, $5); }
         | Impe FREQSWEEP2 Float Float Integer NewLine
-          { if(domain->solInfo().curSweepParam == 0) geoSource->setImpe($3); domain->addFrequencies2(2.0*PI*$3, 2.0*PI*$4, $5); }
+          { if(domain->solInfo().curSweepParam == 0) geoSource->setImpe($3);
+            domain->setFrequencySet(domain->solInfo().curSweepParam);
+            domain->addFrequencies2(2.0*PI*$3, 2.0*PI*$4, $5); }
         | Impe FREQSWEEP Float Float Integer Integer NewLine
-          { if(domain->solInfo().curSweepParam == 0) geoSource->setImpe($3); domain->addFrequencies(2.0*PI*$3, 2.0*PI*$4, $5, $6); }
+          { if(domain->solInfo().curSweepParam == 0) geoSource->setImpe($3);
+            domain->setFrequencySet(domain->solInfo().curSweepParam);
+            domain->addFrequencies(2.0*PI*$3, 2.0*PI*$4, $5, $6); }
         | Impe FREQSWEEPA Float Float Integer RECONSALG Float Integer Integer Integer Integer NewLine
         {
           if(domain->solInfo().curSweepParam == 0) geoSource->setImpe($3);
+          domain->setFrequencySet(domain->solInfo().curSweepParam);
           domain->addFrequencies(2.0*PI*$3, 2.0*PI*$4, 2, $5);
           domain->solInfo().getSweepParams()->isAdaptSweep = true;
           domain->solInfo().getSweepParams()->adaptSweep.maxP = $8;
@@ -426,6 +433,7 @@ Impe:
         | Impe FREQSWEEPA Float Float Integer RECONSALG NewLine
         {
           if(domain->solInfo().curSweepParam == 0) geoSource->setImpe($3);
+          domain->setFrequencySet(domain->solInfo().curSweepParam);
           domain->addFrequencies(2.0*PI*$3, 2.0*PI*$4, 2, $5);
           domain->solInfo().getSweepParams()->isAdaptSweep = true;
           domain->solInfo().getSweepParams()->adaptSweep.maxP = 6;
@@ -467,7 +475,9 @@ PadePolesInfo:
 FreqSweep:  
         /* FREQSWEEP f_0 */
         FREQSWEEP Float NewLine
-        { if(domain->solInfo().curSweepParam == 0) geoSource->setImpe($2); domain->addCoarseFrequency(2.0*PI*$2); }
+        { if(domain->solInfo().curSweepParam == 0) geoSource->setImpe($2);
+          domain->setFrequencySet(domain->solInfo().curSweepParam);
+          domain->addCoarseFrequency(2.0*PI*$2); }
         /* f_i num_fine_intervals (i-1 to i) */
         | FreqSweep Float Integer NewLine
         { domain->addFrequencies(2.0*PI*$2, $3); }
@@ -475,7 +485,9 @@ FreqSweep:
 ReconsInfo:
         RECONS RECONSALG Integer NewLine 
         { domain->solInfo().getSweepParams()->freqSweepMethod = $2; 
-          int &l = domain->solInfo().getSweepParams()->padeL, &m = domain->solInfo().getSweepParams()->padeM, &n = domain->solInfo().getSweepParams()->padeN;
+          int &l = domain->solInfo().getSweepParams()->padeL,
+              &m = domain->solInfo().getSweepParams()->padeM,
+              &n = domain->solInfo().getSweepParams()->padeN;
           switch($2) {
             case SweepParams::Taylor:
               n = 1;
@@ -515,7 +527,9 @@ ReconsInfo:
         }
         | RECONS RECONSALG Integer Integer Integer NewLine  
         { domain->solInfo().getSweepParams()->freqSweepMethod = $2;
-          int &l = domain->solInfo().getSweepParams()->padeL, &m = domain->solInfo().getSweepParams()->padeM, &n = domain->solInfo().getSweepParams()->padeN;
+          int &l = domain->solInfo().getSweepParams()->padeL,
+              &m = domain->solInfo().getSweepParams()->padeM,
+              &n = domain->solInfo().getSweepParams()->padeN;
           switch($2) {
             case SweepParams::Taylor:
               n = 1;

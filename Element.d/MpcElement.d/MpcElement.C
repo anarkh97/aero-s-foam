@@ -4,6 +4,7 @@
 #include <Corotational.d/utilities.h>
 #include <Driver.d/Domain.h>
 #include <Driver.d/EFrameData.h>
+#include <algorithm>
 
 extern Domain * domain;
 
@@ -76,22 +77,17 @@ MpcElement::MpcElement(LMPCons *mpc, bool nlflag)
   nn[nNodes] = -1;
 
   if(nlflag) {
-    // store the original coefficients of the rotation dofs terms
+    // store the indices of the rotation dofs terms
     for(int i = 0; i < nterms; ++i) {
       if(terms[i].dofnum == 3 || terms[i].dofnum == 4 || terms[i].dofnum == 5) {
-        int nodeNumber = terms[i].nnum;
-        std::map<int,std::vector<double> >::iterator it = rotation_coefs.find(nodeNumber);
-        if(it == rotation_coefs.end()) {
-          std::vector<double> v(3); v[0] = v[1] = v[2] = 0;
-          v[terms[i].dofnum-3] = terms[i].coef.r_value;
-          rotation_coefs.insert(it, std::pair<int,std::vector<double> >(nodeNumber,v));
-          std::vector<int> k(3); k[0] = k[1] = k[2] = -1;
+        std::map<int,std::vector<int> >::iterator it = rotation_indices.find(terms[i].nnum);
+        if(it == rotation_indices.end()) {
+          std::vector<int> k(3, -1);
           k[terms[i].dofnum-3] = i;
-          rotation_indices[nodeNumber] = k;
+          rotation_indices.insert(it, std::pair<int,std::vector<int> >(terms[i].nnum,k));
         }
         else {
-          it->second[terms[i].dofnum-3] = terms[i].coef.r_value;
-          rotation_indices[it->first][terms[i].dofnum-3] = i;
+          it->second[terms[i].dofnum-3] = i;
         }
       }
     }
@@ -103,6 +99,29 @@ MpcElement::MpcElement(LMPCons *mpc, bool nlflag)
           addterm(&t);
           it->second[j] = nterms-1;
         }
+    }
+    // sort using a custom function object
+    struct {
+        bool operator()(LMPCTerm &a, LMPCTerm &b)
+        {   
+            return ((a.nnum < b.nnum) || ((a.nnum == b.nnum) && (a.dofnum < b.dofnum)));
+        }
+    } customLess;
+    std::sort(terms.begin(), terms.end(), customLess);
+    // store the original coefficients of the rotation dofs terms, and update rotation_indices due to sorting
+    for(int i = 0; i < nterms; ++i) {
+      if(terms[i].dofnum == 3 || terms[i].dofnum == 4 || terms[i].dofnum == 5) {
+        std::map<int,std::vector<double> >::iterator it = rotation_coefs.find(terms[i].nnum);
+        if(it == rotation_coefs.end()) {
+          std::vector<double> v(3, 0.);
+          v[terms[i].dofnum-3] = terms[i].coef.r_value;
+          rotation_coefs.insert(it, std::pair<int,std::vector<double> >(terms[i].nnum,v));
+        }
+        else {
+          it->second[terms[i].dofnum-3] = terms[i].coef.r_value;
+        }
+        rotation_indices[terms[i].nnum][terms[i].dofnum-3] = i;
+      }
     }
   }
 }
@@ -232,6 +251,12 @@ MpcElement::markDofs(DofSetArray &dsa)
     else
       dsa.mark(nn[nNodes], DofSet::LagrangeI);
   }
+}
+
+bool
+MpcElement::hasRot()
+{
+  return (rotation_indices.size() > 0);
 }
 
 FullSquareMatrix

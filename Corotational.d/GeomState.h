@@ -147,6 +147,13 @@ class GeomState {
      void setMultipliers(std::map<std::pair<int,int>,double> &mu);
 
      bool getHaveRot() const { return haveRot; }
+     int getNumRotationDof(int inode) const;
 };
+
+inline int
+GeomState::getNumRotationDof(int i) const
+{
+  return int(loc[i][3] >= 0) + int(loc[i][4] >= 0) + int(loc[i][5] >= 0);
+}
 
 #endif

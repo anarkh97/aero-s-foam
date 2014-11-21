@@ -5,6 +5,8 @@
 #include <limits>
 #include <complex>
 
+#include <Driver.d/EFrameData.h>
+
 #ifdef USE_EIGEN3
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
@@ -926,6 +928,59 @@ unscale_rotvec(const Eigen::Matrix<Scalar,3,1>& Psi, const Eigen::Matrix<Scalar,
   // return either the rotation vector Psi or it's complement, whichever is closest to Psi_n
   Eigen::Matrix<Scalar,3,1> PsiC = complement_rot_vec(Psi);
   return ( (PsiC-Psi_n).norm() < (Psi-Psi_n).norm() ) ? PsiC : Psi;
+}
+
+template<typename Scalar>
+void tangential_transf_S2E(const Eigen::Matrix<Scalar,3,1> &Psi, NFrameData *cd, int j, Eigen::Matrix<Scalar,3,3> &T)
+{
+  if(cd) {
+    Eigen::Matrix<Scalar,3,1> PsiCopy(Psi);
+    cd->transformVector3(PsiCopy.data()); // Transform from basic frame to DOF_FRM
+    tangential_transf_S2E(PsiCopy, (NFrameData*)0, j, T);
+    cd->invTransformMatrix3(T.data()); // Transform from DOF_FRM to basic frame
+  }
+  else {
+    Scalar eta, th, sthh, cthh;
+    Scalar th2 = Psi[0]*Psi[0] + Psi[1]*Psi[1] + Psi[2]*Psi[2];
+
+    if(th2 < 5e-6) {
+      eta = (1.0/12.0) + (1.0/720.0)*th2 + (1.0/30240.0)*(th2*th2);
+    } else {
+      using std::sqrt;
+      th = sqrt(th2);
+      using std::sin;
+      using std::cos;
+      sthh = sin(0.5*th);
+      cthh = cos(0.5*th);
+      eta  = (sthh - 0.5*th*cthh)/(th2*sthh);
+    }
+    switch(j) {
+      case 0 : {
+        Scalar a00 = 1-eta*(Psi[2]*Psi[2]+Psi[1]*Psi[1]),
+               a01 =  0.5*Psi[2]+eta*Psi[0]*Psi[1],
+               a02 = -0.5*Psi[1]+eta*Psi[0]*Psi[2];
+        T <<        0, 0, 0,
+             -a01/a00, 1, 0,
+             -a02/a00, 0, 1;
+      } break;
+      case 1 : {
+        Scalar a10 = -0.5*Psi[2]+eta*Psi[1]*Psi[0],
+               a11 = 1-eta*(Psi[2]*Psi[2]+Psi[0]*Psi[0]),
+               a12 = 0.5*Psi[0]+eta*Psi[1]*Psi[2];
+        T << 1, -a10/a11, 0,
+             0,        0, 0,
+             0, -a12/a11, 1;
+      } break;
+      case 2 : {
+        Scalar a20 = 0.5*Psi[1]+eta*Psi[2]*Psi[0],
+               a21 = -0.5*Psi[0]+eta*Psi[2]*Psi[1],
+               a22 = 1-eta*(Psi[1]*Psi[1]+Psi[0]*Psi[0]);
+        T << 1, 0, -a20/a22,
+             0, 1, -a21/a22,
+             0, 0,        0;
+      } break;
+    }
+  }
 }
 
 #endif

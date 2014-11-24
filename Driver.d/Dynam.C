@@ -896,6 +896,7 @@ Domain::dynamOutputImpl(int tIndex, double *bcx, DynamMat& dMat, Vector& ext_f, 
         case OutputInfo::DeletedElements: {
           for(std::vector<std::pair<double,int> >::iterator it = outDeletedElements.begin(); it != outDeletedElements.end(); ++it) {
             filePrint(oinfo[i].filptr, " %12.6e  %9d          Undetermined\n", it->first, it->second+1);
+            fflush(oinfo[i].filptr);
           }
           outDeletedElements.clear();
         } break;

@@ -1,0 +1,25 @@
+#ifdef USE_EIGEN3
+#include <Eigen/Core>
+#include <Timers.d/GetTime.h>
+#include <algorithm>
+#include <iomanip>
+#include <ios>
+#include <iostream>
+#include <limits>
+#include <list>
+#include <utility>
+#include <vector>
+#ifdef USE_MPI
+#include <mpi.h>
+#endif
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
+
+Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1>
+ splh(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm,
+      long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, double &dtime)
+ { //interface with scalapack LH class
+}
+#endif

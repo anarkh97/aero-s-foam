@@ -2,11 +2,9 @@
 #include <Math.d/FullSquareMatrix.h>
 #include <Utils.d/dofset.h>
 #include <Corotational.d/utilities.h>
-#include <Driver.d/Domain.h>
+#include <Math.d/matrix.h>
 #include <Driver.d/EFrameData.h>
 #include <algorithm>
-
-extern Domain * domain;
 
 bool operator< (const LMPCTerm &a, const LMPCTerm &b)
 { return ((a.nnum < b.nnum) || ((a.nnum == b.nnum) && (a.dofnum < b.dofnum))); }

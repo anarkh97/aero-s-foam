@@ -29,9 +29,17 @@ class LeftCompositionRule : public VectorValuedFunction<3,3,Scalar,3,0,double>
       Eigen::Matrix<Scalar,3,3> R;
       vec_to_mat<Scalar>(q,R);
 
-      Eigen::Matrix<Scalar,3,1> v;
-      mat_to_vec<Scalar>(R*R1, v);
-      return v;
+      Eigen::Matrix<Scalar,3,1> Psi;
+      mat_to_vec<Scalar>(R*R1, Psi);
+
+      if(Psi1.norm() > M_PI) {
+        Psi = complement_rot_vec<Scalar>(unscale_rotvec<Scalar>(Psi, complement_rot_vec<double>(Psi1).template cast<Scalar>()));
+      }
+      else {
+        Psi = unscale_rotvec<Scalar>(Psi, Psi1.template cast<Scalar>());
+      }
+
+      return Psi;
     }
 
   public:

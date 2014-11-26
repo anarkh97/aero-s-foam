@@ -1,8 +1,5 @@
 #ifndef _STRAINEVALUATOR_H_
 #define _STRAINEVALUATOR_H_
-#include <Math.d/Vector.h>
-#include <Math.d/matrix.h>
-#include <Element.d/Element.h>
 #include <Utils.d/NodeSpaceArray.h>
 
 //Computes the geometrical part of the stiffness matrix 

@@ -1,6 +1,7 @@
 #include <Element.d/NonLinearity.d/NLMembrane.h>
 #include <Utils.d/dofset.h>
 #include <Element.d/NonLinearity.d/2DMat.h>
+#include <Math.d/matrix.h>
 #include <Math.d/TTensor.h>
 #include <Corotational.d/utilities.h>
 #include <Corotational.d/GeomState.h>

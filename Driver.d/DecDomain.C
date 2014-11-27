@@ -2315,6 +2315,7 @@ GenDecDomain<Scalar>::postProcessing(DistrGeomState *geomState, GenDistrVector<S
          std::vector<std::pair<double,int> > &deletedElements = subDomain[iSub]->getDeletedElements();
          for(std::vector<std::pair<double,int> >::iterator it = deletedElements.begin(); it != deletedElements.end(); ++it) {
            filePrint(oinfo[i].filptr, " %12.6e  %9d          Undetermined\n", it->first, it->second+1);
+           fflush(oinfo[i].filptr);
          }
          deletedElements.clear();
        }

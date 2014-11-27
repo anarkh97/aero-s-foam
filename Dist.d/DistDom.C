@@ -2197,6 +2197,7 @@ GenDistrDomain<Scalar>::getDeletedElements(int iOut)
     std::vector<std::pair<double,int> > &deletedElements = this->subDomain[iSub]->getDeletedElements();
     for(std::vector<std::pair<double,int> >::iterator it = deletedElements.begin(); it != deletedElements.end(); ++it) {
       filePrint(oinfo[i].filptr, " %12.6e  %9d          Undetermined\n", it->first, it->second+1);
+      fflush(oinfo[i].filptr);
     }
     deletedElements.clear();
   }
@@ -2244,6 +2245,7 @@ GenDistrDomain<Scalar>::getDeletedElements(int iOut)
     if(this->communicator->cpuNum() == 0) {
       for(int i=0; i<globalCount; ++i) {
         filePrint(oinfo[iOut].filptr, " %12.6e  %9d          Undetermined\n", recvbuf3[i], recvbuf2[i]+1);
+        fflush(oinfo[iOut].filptr);
       }
       delete [] recvbuf2;
       delete [] recvbuf3;

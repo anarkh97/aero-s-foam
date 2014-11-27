@@ -225,7 +225,7 @@ Domain::getElemFollowerForce(int iele, GeomState &geomState, double *_f, int buf
     pbc->val = p0;
 
     if(corotator) {
-      // Include the "load stiffness matrix" in kel2
+      // Include the "load stiffness matrix" in kel
       if(compute_tangents) {
 
         FullSquareMatrix k(kel.dim());
@@ -236,7 +236,7 @@ Domain::getElemFollowerForce(int iele, GeomState &geomState, double *_f, int buf
             kel[i][j] += k[i][j];
       }
 
-      // Determine the elemental force for the corrotated system
+      // Determine the elemental force for the corotated system
       corotator->getExternalForce(geomState, nodes, elementForce.data());
     }
 
@@ -439,6 +439,11 @@ Domain::getElemFollowerForce(int iele, GeomState &geomState, double *_f, int buf
           kel[eledofs[j]][eledofs[3+k]] += skewf[j][k];
     }
   }
+
+  // 6. Treatment of constrained rotations
+  if(elemAdj[iele].crot.size() > 0) {
+    transformElemStiffAndForce_S2E(geomState, _f, kel, iele, compute_tangents);
+  }
 }
 
 void
@@ -588,6 +593,35 @@ Domain::makeElementAdjacencyLists()
         if(!foundAdj) std::cerr << " *** WARNING: could not find adjacent element for discrete mass at node " << current->node+1 << std::endl;
       }
       current = current->next;
+    }
+  }
+
+  // 7. constrained rotations
+  for(int i = 0; i < numDirichlet; ++i) {
+    if(dbc[i].dofnum == 3 || dbc[i].dofnum == 4 || dbc[i].dofnum == 5) {
+      int dofs[3];
+      c_dsa->number(dbc[i].nnum, DofSet::XYZrot, dofs);
+      if((dbc[i].dofnum == 3 && dofs[1] != -1 && dofs[2] != -1) ||
+         (dbc[i].dofnum == 4 && dofs[0] != -1 && dofs[2] != -1) ||
+         (dbc[i].dofnum == 5 && dofs[0] != -1 && dofs[1] != -1)) {
+        dsa->number(dbc[i].nnum, DofSet::XYZrot, dofs);
+        for(int inode = 0; inode < nodeToElem->num(dbc[i].nnum); ++inode) { // loop over the elements attached to the node
+                                                                            // at which the nodal force is applied
+          int iele = (*nodeToElem)[dbc[i].nnum][inode];
+          std::vector<int> eledofs(3);
+          for(int j = 0; j < 3; ++j) {
+            eledofs[j] = -1;
+            for(int k = 0; k < allDOFs->num(iele); ++k)
+              if(dofs[j] == (*allDOFs)[iele][k]) { eledofs[j] = k; break; }
+          }
+          if(eledofs[0] != -1 && eledofs[1] != -1 && eledofs[2] != -1) { 
+            // element has all 3 rotation dofs of node dbc[i].nnum 
+            elemAdj[iele].crot.insert(i);
+            if(makeFollowedElemList) followedElemList.push_back(iele);
+            break;
+          }
+        }
+      }
     }
   }
 
@@ -2629,6 +2663,14 @@ Domain::transformElemStiffAndForce(const GeomState &geomState, double *elementFo
                                    FullSquareMatrix &kel, int iele, bool compute_tangents)
 {
 #ifdef USE_EIGEN3
+  // if the element is an LMPC and the node has a DOF_FRM then the element force and or stiffness are be defined in the DOF_FRM
+  bool basicDofCoords = true;
+  if(packedEset[iele]->isMpcElement() && !domain->solInfo().basicDofCoords) {
+    LMPCons *lmpcons = dynamic_cast<LMPCons*>(packedEset[iele]);
+    if(lmpcons && (lmpcons->getSource() == mpc::Lmpc || lmpcons->getSource() == mpc::NodalContact ||
+       lmpcons->getSource() == mpc::TiedSurfaces)) basicDofCoords = false;
+  }
+
   // Convert from eulerian spatial to total lagrangian or updated lagrangian spatial
   Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,1> >
     G(elementForce, packedEset[iele]->numDofs());
@@ -2637,31 +2679,35 @@ Domain::transformElemStiffAndForce(const GeomState &geomState, double *elementFo
   int numDofs = packedEset[iele]->numDofs();
   int numNodes = packedEset[iele]->numNodes() - packedEset[iele]->numInternalNodes();
   int dofsPerNode = (numDofs-packedEset[iele]->getNumMPCs())/numNodes;
-  if((dofsPerNode == 6) && (numDofs-packedEset[iele]->getNumMPCs())%numNodes == 0) {
+  if((dofsPerNode == 6 || dofsPerNode == 3) && (numDofs-packedEset[iele]->getNumMPCs())%numNodes == 0) {
     int *nodes = packedEset[iele]->nodes();
     for(int k = 0; k < numNodes; ++k) {
       Eigen::Vector3d Psi;
       Psi << geomState[nodes[k]].theta[0], geomState[nodes[k]].theta[1], geomState[nodes[k]].theta[2];
+      if(!basicDofCoords) { if(NFrameData *cd = getNodes().dofFrame(nodes[k])) cd->transformVector3(&Psi[0]); } // Transform from basic frame to DOF_FRM
 
       Eigen::Matrix3d T;
       tangential_transf(Psi, T);
 
-      Eigen::Vector3d V = G.segment<3>(6*k+3);
-      G.segment<3>(6*k+3) = (sinfo.newmarkBeta == 0) ? (Jn[nodes[k]]*(T.transpose()*Jn[nodes[k]]*T).inverse()*T*V).eval() : (T*V).eval();
+      int p = dofsPerNode*k + (dofsPerNode-3);
+      Eigen::Vector3d V = G.segment<3>(p);
+      G.segment<3>(p) = (sinfo.newmarkBeta == 0) ? (Jn[nodes[k]]*(T.transpose()*Jn[nodes[k]]*T).inverse()*T*V).eval() : (T*V).eval();
  
       if(compute_tangents) {
         Eigen::Matrix3d C1;
         directional_deriv1(Psi, V, C1);
 
-        for(int l=0; l<2*numNodes; ++l) {
-          H.block<3,3>(6*k+3,3*l) = (T*H.block<3,3>(6*k+3,3*l)).eval();
-          H.block<3,3>(3*l,6*k+3) = (H.block<3,3>(3*l,6*k+3)*T.transpose()).eval();
+        for(int l=0; l<dofsPerNode/3*numNodes; ++l) {
+          int q = 3*l;
+          H.block<3,3>(p,q) = T*H.block<3,3>(p,q);
+          H.block<3,3>(q,p) = H.block<3,3>(q,p)*T.transpose();
         }
         for(int l=0; l<packedEset[iele]->numInternalNodes(); ++l) {
-          H.block<3,1>(6*k+3,6*numNodes+l) = (T*H.block<3,1>(6*k+3,6*numNodes+l)).eval();
-          H.block<1,3>(6*numNodes+l,6*k+3) = (H.block<1,3>(6*numNodes+l,6*k+3)*T.transpose()).eval();
+          int q = dofsPerNode*numNodes+l;
+          H.block<3,1>(p,q) = T*H.block<3,1>(p,q);
+          H.block<1,3>(q,p) = H.block<1,3>(q,p)*T.transpose();
         }
-        H.block<3,3>(6*k+3,6*k+3) += 0.5*(C1 + C1.transpose());
+        H.block<3,3>(p,p) += 0.5*(C1 + C1.transpose());
       }
     }
     delete [] nodes;
@@ -2673,6 +2719,64 @@ Domain::transformElemStiffAndForce(const GeomState &geomState, double *elementFo
 #else
   std::cerr << "USE_EIGEN3 is not defined here in Domain::transformElemStiffAndForce\n";
   exit(-1);
+#endif
+}
+
+void
+Domain::transformElemStiffAndForce_S2E(const GeomState &geomState, double *elementForce,
+                                       FullSquareMatrix &kel, int iele, bool compute_tangents)
+{
+#ifdef USE_EIGEN3
+  // if the element is an LMPC and the node has a DOF_FRM then the element force and or stiffness are be defined in the DOF_FRM
+  bool basicDofCoords = true;
+  if(packedEset[iele]->isMpcElement() && !domain->solInfo().basicDofCoords) {
+    LMPCons *lmpcons = dynamic_cast<LMPCons*>(packedEset[iele]);
+    if(lmpcons && (lmpcons->getSource() == mpc::Lmpc || lmpcons->getSource() == mpc::NodalContact ||
+       lmpcons->getSource() == mpc::TiedSurfaces)) basicDofCoords = false;
+  }
+
+  // Convert from eulerian spatial to constrained subset of SO(3), S²E
+  Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,1> >
+    G(elementForce, packedEset[iele]->numDofs());
+  Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::RowMajor> >
+    H(kel.data(),packedEset[iele]->numDofs(),packedEset[iele]->numDofs());
+  int numDofs = packedEset[iele]->numDofs();
+  int numNodes = packedEset[iele]->numNodes() - packedEset[iele]->numInternalNodes();
+  int dofsPerNode = (numDofs-packedEset[iele]->getNumMPCs())/numNodes;
+  if((dofsPerNode == 6 || dofsPerNode == 3) && (numDofs-packedEset[iele]->getNumMPCs())%numNodes == 0) {
+    int *nodes = packedEset[iele]->nodes();
+    for(std::set<int>::iterator it = elemAdj[iele].crot.begin(); it != elemAdj[iele].crot.end(); ++it) {
+      int k =0; for(int i = 0; i < numNodes; ++i) if(nodes[i] == dbc[*it].nnum) { k = i; break; }
+      Eigen::Vector3d Psi;
+      Psi << geomState[nodes[k]].theta[0], geomState[nodes[k]].theta[1], geomState[nodes[k]].theta[2];
+      if(!basicDofCoords) { if(NFrameData *cd = getNodes().dofFrame(nodes[k])) cd->transformVector3(&Psi[0]); } // Transform from basic frame to DOF_FRM
+
+      Eigen::Matrix3d T;
+      tangential_transf_S2E(Psi, ((basicDofCoords) ? getNodes().dofFrame(nodes[k]) : 0), dbc[*it].dofnum-3, T);
+
+      int p = dofsPerNode*k + (dofsPerNode-3);
+      Eigen::Vector3d V = G.segment<3>(p);
+      G.segment<3>(p) = (T*V).eval();
+ 
+      if(compute_tangents) {
+        for(int l=0; l<dofsPerNode/3*numNodes; ++l) {
+          int q = 3*l;
+          H.block<3,3>(p,q) = T*H.block<3,3>(p,q);
+          H.block<3,3>(q,p) = H.block<3,3>(q,p)*T.transpose();
+        }
+        for(int l=0; l<packedEset[iele]->numInternalNodes(); ++l) {
+          int q = dofsPerNode*numNodes+l;
+          H.block<3,1>(p,q) = T*H.block<3,1>(p,q);
+          H.block<1,3>(q,p) = H.block<1,3>(q,p)*T.transpose();
+        }
+      }
+    }
+    delete [] nodes;
+  }
+  else {
+    std::cerr << " *** WARNING: Domain::transformElemStiffAndForce_S2E is not implemented for element " << packedEset[iele]->getGlNum()+1
+              << " type " << packedEset[iele]->getElementType() << std::endl;
+  }
 #endif
 }
 

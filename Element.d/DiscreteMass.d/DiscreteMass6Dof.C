@@ -290,6 +290,11 @@ DiscreteMass6Dof::getInertialStiffAndForce(GeomState *refState, GeomState& c1, C
     return;
   }
 
+  if(c1.getNumRotationDof(nn[0]) == 2) {
+    std::cerr << " *** WARNING: DiscreteMass6Dof::getInertialStiffAndForce with 1 constrained rotation dof is not implemented\n";
+    exit(-1);
+  }
+
   Eigen::Vector3d u, u_n, F, G, P, Q;
   Eigen::Matrix3d E;
   Eigen::Matrix<double,6,1> a, v, inc_displacement;

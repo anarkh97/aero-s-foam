@@ -45,6 +45,8 @@ class MpcElement : public Element, public Corotator, public LMPCons
     int* dofs(DofSetArray&, int* = 0);
     void markDofs(DofSetArray&);
 
+    bool hasRot();
+
     FullSquareMatrix stiffness(CoordSet&, double*, int = 1);
 
     void getGravityForce(CoordSet&, double*, Vector& f, int, GeomState* = 0);

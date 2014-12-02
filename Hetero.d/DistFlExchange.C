@@ -22,6 +22,8 @@
 #include <set>
 using std::map;
 
+#define DETERMINISTIC_DISTFLEXCHANGER
+
 extern Communicator *structCom, *fluidCom, *heatStructCom;
 extern int verboseFlag;
 extern GeoSource *geoSource;
@@ -178,11 +180,30 @@ DistFlExchanger::getFluidLoad(DistrVector &force, int tIndex, double time,
   Element     *thisElement;
   FaceElement *thisFaceElem;
 
+#ifdef DETERMINISTIC_DISTFLEXCHANGER
+  // Message-passing programming models are by default nondeterministic: the arrival order of messages
+  // sent from two processes, A and B, to a third process, C, is not defined. It is the programmer's
+  // responsibility to ensure that a computation is deterministic when this is required. 
+  std::vector<double> *buffers = new std::vector<double>[nbrReceivingFromMe];
+  std::map<int,int> cpupos;
   for(int i = 0; i < nbrReceivingFromMe; i++) {
-    int tag =  FLTOSTMT + ((rcvParity > 0) ? 1 : 0) ;
+    int tag = FLTOSTMT + ((rcvParity > 0) ? 1 : 0);
+    RecInfo rInfo = fluidCom->recFrom(tag, buffer, bufferLen);
+    cpupos[rInfo.cpu] = i;
+    buffers[i].insert(buffers[i].begin(), buffer, buffer + nbSendTo[consOrigin[rInfo.cpu]]*3);
+  }
+
+  for(std::map<int,int>::iterator it = cpupos.begin(); it != cpupos.end(); ++it) {
+    double *buffer = buffers[it->second].data();
+    int fromNd = it->first;
+    int origin = consOrigin[fromNd];
+#else
+  for(int i = 0; i < nbrReceivingFromMe; i++) {
+    int tag = FLTOSTMT + ((rcvParity > 0) ? 1 : 0);
     RecInfo rInfo = fluidCom->recFrom(tag, buffer, bufferLen);
     int fromNd = rInfo.cpu;
     int origin = consOrigin[fromNd];
+#endif
 
     for(int j = 0; j < nbSendTo[origin]; ++j) {
       int locSub = sndTable[origin][j].subNumber;

@@ -21,6 +21,7 @@ using std::pair;
 typedef pair<int, pair<double, double> >  locoord;
 //         elem id      xi1     xi2
 
+#define DETERMINISTIC_FLEXCHANGER
 
 const char *RECEIVE_LIST_KW = "RCVF";
 const char *SUBDOMAIN_KW = "SUBD";
@@ -151,11 +152,30 @@ FlExchanger::getFluidLoad(Vector &force, int tIndex, double time,
   Element     *thisElement;
   FaceElement *thisFaceElem;
 
+#ifdef DETERMINISTIC_FLEXCHANGER
+  // Message-passing programming models are by default nondeterministic: the arrival order of messages
+  // sent from two processes, A and B, to a third process, C, is not defined. It is the programmer's
+  // responsibility to ensure that a computation is deterministic when this is required. 
+  std::vector<double> *buffers = new std::vector<double>[nbrReceivingFromMe];
+  std::map<int,int> cpupos;
   for(int i = 0; i < nbrReceivingFromMe; i++) {
-    int tag =  FLTOSTMT + ((rcvParity > 0) ? 1 : 0) ;
+    int tag = FLTOSTMT + ((rcvParity > 0) ? 1 : 0);
+    RecInfo rInfo = fluidCom->recFrom(tag, buffer, bufferLen);
+    cpupos[rInfo.cpu] = i;
+    buffers[i].insert(buffers[i].begin(), buffer, buffer + nbSendTo[consOrigin[rInfo.cpu]]*3);
+  }
+
+  for(std::map<int,int>::iterator it = cpupos.begin(); it != cpupos.end(); ++it) {
+    double *buffer = buffers[it->second].data();
+    int fromNd = it->first;
+    int origin = consOrigin[fromNd];
+#else
+  for(int i = 0; i < nbrReceivingFromMe; i++) {
+    int tag = FLTOSTMT + ((rcvParity > 0) ? 1 : 0);
     RecInfo rInfo = fluidCom->recFrom(tag, buffer, bufferLen);
     int fromNd = rInfo.cpu;
     int origin = consOrigin[fromNd];
+#endif
 
     for(int j = 0; j < nbSendTo[origin]; ++j) {
       int nDof;
@@ -196,6 +216,10 @@ FlExchanger::getFluidLoad(Vector &force, int tIndex, double time,
     }
   }
 
+#ifdef DETERMINISTIC_FLEXCHANGER
+  delete [] buffers;
+#endif
+
   // ML & KP For 'corrected' aeroelastic force
   iscollocated = (isCollocated) ? 1 : 0;
   return (time + alphaf * dt);
@@ -215,11 +239,30 @@ FlExchanger::getFluidLoadSensitivity(Vector &forceSen, int tIndex, double time,
   Element     *thisElement;
   FaceElement *thisFaceElem;
 
+#ifdef DETERMINISTIC_FLEXCHANGER
+  // Message-passing programming models are by default nondeterministic: the arrival order of messages
+  // sent from two processes, A and B, to a third process, C, is not defined. It is the programmer's
+  // responsibility to ensure that a computation is deterministic when this is required. 
+  std::vector<double> *buffers = new std::vector<double>[nbrReceivingFromMe];
+  std::map<int,int> cpupos;
   for(int i = 0; i < nbrReceivingFromMe; i++) {
-    int tag =  FLTOSTSEN + ((rcvParity > 0) ? 1 : 0) ;
+    int tag = FLTOSTSEN + ((rcvParity > 0) ? 1 : 0);
+    RecInfo rInfo = fluidCom->recFrom(tag, buffer, bufferLen);
+    cpupos[rInfo.cpu] = i;
+    buffers[i].insert(buffers[i].begin(), buffer, buffer + nbSendTo[consOrigin[rInfo.cpu]]*3);
+  }
+
+  for(std::map<int,int>::iterator it = cpupos.begin(); it != cpupos.end(); ++it) {
+    double *buffer = buffers[it->second].data();
+    int fromNd = it->first;
+    int origin = consOrigin[fromNd];
+#else
+  for(int i = 0; i < nbrReceivingFromMe; i++) {
+    int tag = FLTOSTSEN + ((rcvParity > 0) ? 1 : 0);
     RecInfo rInfo = fluidCom->recFrom(tag, buffer, bufferLen);
     int fromNd = rInfo.cpu;
     int origin = consOrigin[fromNd];
+#endif
 
     for(int j = 0; j < nbSendTo[origin]; ++j) {
       int nDof;

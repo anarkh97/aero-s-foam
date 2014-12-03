@@ -731,7 +731,12 @@ filePrint(stderr,"Projection  time: %e\n",xtime);
  }
  else {
    probDesc->getRHS(*rhs);
-   allOps->sysSolver->solve(*rhs,*sol);
+   try {
+     allOps->sysSolver->solve(*rhs,*sol);
+   }
+   catch(std::runtime_error& e) {
+     std::cerr << "exception: " << e.what() << std::endl;
+   }
    if(domain->solInfo().isCoupled) scaleDisp(*sol); // PJSA 9-22-06
    postProcessor->staticOutput(*sol, *rhs);
  }

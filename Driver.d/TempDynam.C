@@ -229,7 +229,7 @@ Domain::initTempVector(Vector& d_n, Vector& v_n, Vector& v_p)
 
 void
 Domain::tempdynamOutput(int tIndex, double *bcx, DynamMat& dMat,
-        Vector& ext_f, Vector& d_n, Vector& v_n, Vector&v_p)
+                        Vector& ext_f, Vector& d_n, Vector& v_n, Vector&v_p)
 {
 // The condition below (tIndex != 0) has to be maintained, because
 //in TempProbType.C, we already sent the initial temperature during
@@ -252,27 +252,27 @@ Domain::tempdynamOutput(int tIndex, double *bcx, DynamMat& dMat,
   State tempState(c_dsa, dsa, bcx, d_n, v_n, v_p);
 
   if(sinfo.aeroheatFlag >= 0)
-    if (tIndex != 0 ) {
+    if (tIndex != 0) {
       flExchanger->sendTemperature(tempState);
       if(verboseFlag) filePrint(stderr, " ... [T] Sent temperatures          ...\n");
     }
 
   if(sinfo.thermohFlag >=0) 
-    if (tIndex !=0) {
+    if (tIndex != 0) {
       int iNode;
       Vector tempsent(numnodes);
 
       for(iNode=0; iNode<numnodes; ++iNode) {
         int tloc  = c_dsa->locate( iNode, DofSet::Temp);
         int tloc1 =   dsa->locate( iNode, DofSet::Temp);
-        double temp  = (tloc >= 0) ? d_n[tloc] : bcx[tloc1];
+        double temp = (tloc >= 0) ? d_n[tloc] : bcx[tloc1];
         if(tloc1 < 0) temp = 0.0;
         tempsent[iNode] = temp; 
       }
 
       flExchanger->sendStrucTemp(tempsent);
       if(verboseFlag) filePrint(stderr, " ... [T] Sent temperatures          ...\n");
-   }
+    }
 
 // Open the file and write the header in the first time step
 
@@ -283,6 +283,7 @@ Domain::tempdynamOutput(int tIndex, double *bcx, DynamMat& dMat,
   OutputInfo *oinfo = geoSource->getOutputInfo();
 
 //   Print out the temperature info
+  int numNodes = geoSource->numNode();
 
   for (i=0; i < numOutInfo; i++) {
     int iNode;
@@ -294,10 +295,10 @@ Domain::tempdynamOutput(int tIndex, double *bcx, DynamMat& dMat,
        case OutputInfo::Temperature:
          if(oinfo[i].nodeNumber == -1) {
            fprintf(oinfo[i].filptr,"  % *.*E\n",w,p,time);
-           for(iNode=0; iNode<numnodes; ++iNode) {
+           for(iNode=0; iNode<numNodes; ++iNode) {
               int tloc  = c_dsa->locate(iNode, DofSet::Temp);
               int tloc1 =   dsa->locate(iNode, DofSet::Temp);
-              double temp  = (tloc >= 0) ? d_n[tloc] : bcx[tloc1];
+              double temp = (tloc >= 0) ? d_n[tloc] : bcx[tloc1];
               if(tloc1 < 0) temp = 0.0;
               fprintf(oinfo[i].filptr," % *.*E\n",w,p,temp);
             }
@@ -306,7 +307,7 @@ Domain::tempdynamOutput(int tIndex, double *bcx, DynamMat& dMat,
            iNode = oinfo[i].nodeNumber;
            int tloc  = c_dsa->locate(iNode, DofSet::Temp);
            int tloc1 =   dsa->locate(iNode, DofSet::Temp);
-           double temp  = (tloc >= 0) ? d_n[tloc] : bcx[tloc1];
+           double temp = (tloc >= 0) ? d_n[tloc] : bcx[tloc1];
            if(tloc1 < 0) temp = 0.0;
            fprintf(oinfo[i].filptr,"  %e % *.*E\n", time, w, p, temp);
            }
@@ -315,10 +316,10 @@ Domain::tempdynamOutput(int tIndex, double *bcx, DynamMat& dMat,
        case OutputInfo::TemperatureFirstTimeDerivative: // this is the first time derivative of the temperature
          if(oinfo[i].nodeNumber == -1) {
            fprintf(oinfo[i].filptr,"  % *.*E\n",w,p,time);
-           for(iNode=0; iNode<numnodes; ++iNode) {
+           for(iNode=0; iNode<numNodes; ++iNode) {
              int tloc  = c_dsa->locate(iNode, DofSet::Temp);
              int tloc1 =   dsa->locate(iNode, DofSet::Temp);
-             double val  = (tloc >= 0) ? v_n[tloc] : 0.0;
+             double val = (tloc >= 0) ? v_n[tloc] : 0.0;
              if(tloc1 < 0) val = 0.0;
              fprintf(oinfo[i].filptr," % *.*E\n",w,p,val);
            }
@@ -327,7 +328,7 @@ Domain::tempdynamOutput(int tIndex, double *bcx, DynamMat& dMat,
            iNode = oinfo[i].nodeNumber;
            int tloc  = c_dsa->locate(iNode, DofSet::Temp);
            int tloc1 =   dsa->locate(iNode, DofSet::Temp);
-           double val  = (tloc >= 0) ? v_n[tloc] : 0.0;
+           double val = (tloc >= 0) ? v_n[tloc] : 0.0;
            if(tloc1 < 0) val = 0.0;
            fprintf(oinfo[i].filptr," %e % *.*E\n", time, w, p, val);
          }
@@ -358,7 +359,7 @@ Domain::tempdynamOutput(int tIndex, double *bcx, DynamMat& dMat,
          getTrussHeatFlux(d_n, bcx, i, GRTX, time);
          break;
        default:
-         std::cerr << "output type " << oinfo[i].type << " is not supported\n";
+         fprintf(stderr, " *** WARNING: output %d is not supported \n", i);
          break;
        }
      }

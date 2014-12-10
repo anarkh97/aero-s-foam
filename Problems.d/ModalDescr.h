@@ -17,20 +17,22 @@ class ModalDescr : public ModalBase {
 */
 private:
 
-  ModalOps modalOps;
-  AllSensitivities<Scalar> *allSens;
+  ModalOps &modalOps;
+  double Wdmp;
+  Vector *previousCq;
+  Vector *previousDisp;
 
 public:
 
-  ModalDescr() {}
   ModalDescr(Domain *d);
+  ~ModalDescr();
 
   void projectForce(Vector &fullV, Vector& modalV);
   void expand(const Vector &modalV, Vector& fullV);
 
   void preProcess();
-  void preProcessSA() {  filePrint(stderr," ... ModalDescr::preProcessSA is not implemented\n");  exit(-1);  }
-  void postProcessSA(ModalOps *,Vector &sol) {  filePrint(stderr," ... ModalDescr::postProcessSA is not implemented\n");  exit(-1);  }
+  void preProcessSA();
+  void postProcessSA(ModalOps *,Vector &sol);
   void processLastOutput();
 
   ModalDescr* getPostProcessor() { return this; }
@@ -51,7 +53,7 @@ public:
   void getNewMarkParameters(double &beta, double &gamma,
     double &alphaf, double  &alpham);
   Domain *getDomain() { return domain; };
-  AllSensitivities<Scalar> *getAllSensitivities() { return allSens; }
+  AllSensitivities<Scalar> *getAllSensitivities();
   void getInitialTime(int &tIndex, double &time);
   void getRayleighCoef(double &alpha) { alpha =  domain->solInfo().alphaDamp; }
 
@@ -69,11 +71,12 @@ public:
   void computeExtForce2(SysState<Vector>& state, Vector &extF,
                         Vector &constF, int tIndex, double time, Vector *aeroF = 0,
                         double gamma = 0.5, double alphaf = 0.5);
-  void getAeroelasticForceSensitivity(int t_index, double t, Vector * aero_f=0, double gamma=0.5, double alphaf=0.5) {
-      filePrint(stderr," ... ModalDescr::getAeroelasticForceSensitivity\n");  exit(-1);
-  }
+  void getAeroelasticForceSensitivity(int t_index, double t, Vector * aero_f=0, double gamma=0.5, double alphaf=0.5);
 
   void getInternalForce(Vector &d, Vector &f, double t, int tIndex);
+  double getElasticEnergy(Vector &d);
+  double getKineticEnergy(Vector &v);
+  double getDampingEnergy(Vector &d, Vector &v, double time);
 
   void printTimers(ModalOps *, double) { /* leave blank */}
 

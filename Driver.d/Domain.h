@@ -326,6 +326,8 @@ class Domain : public HData {
      double pWela;
      double pWkin;
      double pWdis;
+     double modalWela;
+     double modalWkin;
      Vector *previousExtForce;
      Vector *previousAeroForce;
      Vector *previousDisp;
@@ -525,6 +527,7 @@ class Domain : public HData {
      double getKineticEnergy(double *velocity, FullSquareMatrix *mel);
      double getStrainEnergy(GeomState *geomState, Corotator **allCorot);
      double getDissipatedEnergy(GeomState *geomState, Corotator **allCorot);
+     void setModalEnergies(double Wele, double Wkin, double Wdmp);
      void computeEnergies(GeomState *geomState, Vector &force, double time, Vector *aeroForce, double *vel,
                           Corotator **allCorot, SparseMatrix *M, SparseMatrix *C, double &Wela, double &Wkin,
                           double &Wdis, double &error); // Nonlinear statics and dynamics

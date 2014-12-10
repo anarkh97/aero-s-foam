@@ -1510,6 +1510,14 @@ Domain::computeReactionForce(Vector &fc, Vector &Du, Vector &Vu, Vector &Au,
 }
 
 void
+Domain::setModalEnergies(double _modalWela, double _modalWkin, double _modalWdmp)
+{
+  modalWela = _modalWela;
+  modalWkin = _modalWkin;
+  Wdmp = _modalWdmp;
+}
+
+void
 Domain::computeEnergies(Vector &disp, Vector &force, double time, Vector *aeroForce, Vector *vel, SparseMatrix *K,
                         SparseMatrix *M, SparseMatrix *C, double &Wela, double &Wkin, double &error)
 {
@@ -1517,13 +1525,19 @@ Domain::computeEnergies(Vector &disp, Vector &force, double time, Vector *aeroFo
   computeExtAndDmpEnergies(disp, force, time, aeroForce, vel, C);
 
   Vector tmpVec(numUncon());
-  if(M) {
-    M->mult(*vel, tmpVec);
-    Wkin = 0.5 * ((*vel) * tmpVec);
+  if(sinfo.modal) {
+    Wkin = modalWkin;
+    Wela = modalWela;
   }
-  if(K) {
-    K->mult(disp, tmpVec);
-    Wela = 0.5 * (disp * tmpVec);
+  else {
+    if(M) {
+      M->mult(*vel, tmpVec);
+      Wkin = 0.5 * ((*vel) * tmpVec);
+    }
+    if(K) {
+      K->mult(disp, tmpVec);
+      Wela = 0.5 * (disp * tmpVec);
+    }
   }
 
   // XXX consider sign of Wdmp in this equation:

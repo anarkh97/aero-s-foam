@@ -172,8 +172,14 @@ BelytschkoTsayShell::setMaterial(NLMaterial *m)
       switch(expmat->optctv) {
       case 5 : {
         double epsF = (expmat->ematpro[7] <= 0) ? std::numeric_limits<double>::infinity() : expmat->ematpro[7];
-        mat[i] = new IsotropicLinearElasticJ2PlasticPlaneStressMaterial(lambda, mu, expmat->ematpro[3], expmat->ematpro[4], expmat->ematpro[5], 
+        IsotropicLinearElasticJ2PlasticPlaneStressMaterial *mi
+               = new IsotropicLinearElasticJ2PlasticPlaneStressMaterial(lambda, mu, expmat->ematpro[3], expmat->ematpro[4], expmat->ematpro[5], 
                                                                         expmat->ematpro[6], epsF);
+        if(expmat->ysst) {
+          for(int j=0; j<expmat->ysst->getNumPoints(); ++j)
+            mi->SetExperimentalCurveData(expmat->ysst->getT(j), expmat->ysst->getV(j));
+        }
+        mat[i] = mi;
       } break;
       case 6 :
         mat[i] = new KorkolisKyriakidesPlaneStressMaterial(lambda, mu, expmat->ematpro[3], expmat->ematpro[4], expmat->ematpro[5],

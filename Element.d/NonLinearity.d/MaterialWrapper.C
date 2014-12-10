@@ -564,6 +564,18 @@ MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::setSDProps(MFTTData *y
   }
 }
 
+template<>
+inline void
+MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::setSDProps(MFTTData *ysst)
+{
+  double SigmaY = mat->GetYieldStressFromTensionTest();
+  if(SigmaY < 0 && ysst && ysst->getID() == -int(SigmaY)) {
+    for(int i=0; i<ysst->getNumPoints(); ++i) {
+      mat->SetExperimentalCurveData(ysst->getT(i), ysst->getV(i));
+    }
+  }
+}
+
 #ifdef USE_EIGEN3
 template<>
 inline double

@@ -404,14 +404,18 @@ FelippaShell::setMaterial(NLMaterial *_mat)
     double sigmaY = expmat->ematpro[3], K = expmat->ematpro[4], H = expmat->ematpro[5];
     double tol = expmat->ematpro[6];
     double epsF = (expmat->ematpro[7] <= 0) ? std::numeric_limits<double>::infinity() : expmat->ematpro[7];
-    IsotropicLinearElasticJ2PlasticPlaneStressMaterial *localMaterial = new IsotropicLinearElasticJ2PlasticPlaneStressMaterial(lambda, mu, sigmaY, K, H, tol, epsF);
+    IsotropicLinearElasticJ2PlasticPlaneStressMaterial *mat = new IsotropicLinearElasticJ2PlasticPlaneStressMaterial(lambda, mu, sigmaY, K, H, tol, epsF);
+    if(expmat->ysst) {
+      for(int i=0; i<expmat->ysst->getNumPoints(); ++i)
+        mat->SetExperimentalCurveData(expmat->ysst->getT(i), expmat->ysst->getV(i));
+    }
     type = 4;
     if(gpmat) delete gpmat;
-    gpmat = new ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(prop->eh, prop->nu, prop->rho, localMaterial, 5, 3,
+    gpmat = new ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(prop->eh, prop->nu, prop->rho, mat, 5, 3,
                                                                                               prop->Ta, prop->W);
-    nmat = new ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(prop->eh, prop->nu, prop->rho, localMaterial, 3, 3,
+    nmat = new ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(prop->eh, prop->nu, prop->rho, mat, 3, 3,
                                                                                              prop->Ta, prop->W);
-    delete localMaterial;
+    delete mat;
   }
   else { // new parser
     MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial> *mat 

@@ -208,8 +208,8 @@ GetYieldStressUsingExperimentalCurve(const double eqP, double &K) const
     K = (ExpYieldStress[1]-ExpYieldStress[0])/(ExpEqPlasticStrain[1]-ExpEqPlasticStrain[0]);
   }
   else if ( eqP>=ExpEqPlasticStrain[N-1] ) {
-    SigmaY = ExpYieldStress[N-1];
-    K = 0;
+    K = (ExpYieldStress[N-1]-ExpYieldStress[N-2])/(ExpEqPlasticStrain[N-1]-ExpEqPlasticStrain[N-2]);
+    SigmaY = ExpYieldStress[N-1] + K*(eqP-ExpEqPlasticStrain[N-1]);
   }
   else
     {
@@ -450,6 +450,7 @@ ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1,
 }
 
 
+// Checks if state of the material lies on or within yield surface
 bool IsotropicLinearElasticJ2PlasticMaterial::
 CheckMaterialState(const std::vector<double> &CS, const double TOL) const
 {
@@ -462,6 +463,7 @@ CheckMaterialState(const std::vector<double> &CS, const double TOL) const
 }
 
 
+// Set the stress and strain at a point in the stress-strain curve
 void IsotropicLinearElasticJ2PlasticMaterial::
 SetExperimentalCurveData(double iEqPlasticStrain, double iYieldStress)
 {

@@ -157,7 +157,7 @@ ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor *_tm, Tensor &_en, Tens
     double trialyieldnp;
     if(!ysst) trialyieldnp = xitrialnpnorm - sqrt(2./3)*(sigE+theta*Hprime*staten[12]); // Yield Criterion (Simo & Hughes eq. 3.3.6)
     else {
-      ysst->getValAndSlopeAlt(staten[12], &v, &s);
+      ysst->getValAndSlopeAlt2(staten[12], &v, &s);
       trialyieldnp = xitrialnpnorm - sqrt(2./3)*v;
       Hprime = Hk + s;
     }
@@ -184,7 +184,7 @@ ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor *_tm, Tensor &_en, Tens
       double plastmult = trialyieldnp/(2*mu+(2./3)*Hprime); 
       if(ysst) {
         for (i=0; i<20; ++i) { // Newton-Raphson algorithm for solution of the return mapping equation
-          ysst->getValAndSlopeAlt(staten[12]+sqrt(2./3)*plastmult, &v, &s);
+          ysst->getValAndSlopeAlt2(staten[12]+sqrt(2./3)*plastmult, &v, &s);
           trialyieldnp = xitrialnpnorm - (2*mu + 2./3*Hk)*plastmult - sqrt(2./3)*v;
           Hprime = Hk + s;
           if(std::abs(trialyieldnp) < 1e-6*ysst->getVal(0)) break;
@@ -297,7 +297,7 @@ ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor &_en, Tensor  &_enp,
     double trialyieldnp;
     if(!ysst) trialyieldnp = xitrialnpnorm - sqrt(2./3)*(sigE+theta*Hprime*staten[12]); // Yield Criterion (Simo & Hughes eq. 3.3.6)
     else {
-      ysst->getValAndSlopeAlt(staten[12], &v, &s);
+      ysst->getValAndSlopeAlt2(staten[12], &v, &s);
       trialyieldnp = xitrialnpnorm - sqrt(2./3)*v;
       Hprime = Hk + s;
     }
@@ -325,7 +325,7 @@ ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor &_en, Tensor  &_enp,
       double plastmult = trialyieldnp/(2*mu+(2./3)*Hprime); 
       if(ysst) {
         for (i=0; i<20; ++i) { // Newton-Raphson algorithm for solution of the return mapping equation
-          ysst->getValAndSlopeAlt(staten[12]+sqrt(2./3)*plastmult, &v, &s);
+          ysst->getValAndSlopeAlt2(staten[12]+sqrt(2./3)*plastmult, &v, &s);
           trialyieldnp = xitrialnpnorm - (2*mu + 2./3*Hk)*plastmult - sqrt(2./3)*v;
           Hprime = Hk + s;
           if(std::abs(trialyieldnp) < 1e-6*ysst->getVal(0)) break;

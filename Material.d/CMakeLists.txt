@@ -5,5 +5,3 @@ ADD_LIBRARY(Material Material.cpp LinearElasticMaterial.cpp
             KorkolisKyriakidesPlaneStressMaterial.cpp
             KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding.cpp 
             KorkolisKyriakidesPlaneStressMaterialWithExperimentalYielding2.cpp)
-#add_library(Material Material.cpp LinearElasticMaterial.cpp 
-#                   NeoHookean.cpp  )

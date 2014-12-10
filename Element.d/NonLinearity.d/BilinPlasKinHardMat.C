@@ -1,3 +1,4 @@
+#include <Element.d/NonLinearity.d/BilinPlasKinHardMat.h>
 #include <Element.d/Element.h>
 #include <Element.d/NonLinearity.d/StrainEvaluator.h>
 #include <Utils.d/NodeSpaceArray.h>
@@ -20,6 +21,7 @@ ElasPlasKinHardMat<e>::ElasPlasKinHardMat(StructProp *p)
   theta = 0;
   Tref = p->Ta;
   alpha = p->W;
+  ysst = NULL;
 }
 
 template<int e>
@@ -130,6 +132,8 @@ ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor *_tm, Tensor &_en, Tens
     double mu = E/(2*(1+nu));
     double bulk = lambda + (2./3)*mu;
     double Hprime = (E != Ep) ? (E*Ep)/(E-Ep) : std::numeric_limits<double>::max();
+    double Hk = (1-theta)*Hprime; // kinematic hardening modulus
+    double v, s; // value and slope of yield stress vs. effective plastic strain curve
 
     Tensor_d0s2_Ss12 betan;
     Tensor_d0s2_Ss12 edevnp;
@@ -150,7 +154,13 @@ ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor *_tm, Tensor &_en, Tens
 
     double xitrialnpnorm = sqrt(xitrialnp.innerProduct());
 
-    double trialyieldnp = xitrialnpnorm - sqrt(2./3)*(sigE+theta*Hprime*staten[12]); // Yield Criterion (Simo & Hughes eq. 3.3.6)
+    double trialyieldnp;
+    if(!ysst) trialyieldnp = xitrialnpnorm - sqrt(2./3)*(sigE+theta*Hprime*staten[12]); // Yield Criterion (Simo & Hughes eq. 3.3.6)
+    else {
+      ysst->getValAndSlopeAlt(staten[12], &v, &s);
+      trialyieldnp = xitrialnpnorm - sqrt(2./3)*v;
+      Hprime = Hk + s;
+    }
 
     if (trialyieldnp <= 0) {
  
@@ -172,6 +182,15 @@ ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor *_tm, Tensor &_en, Tens
       int i,j,k,l;
 
       double plastmult = trialyieldnp/(2*mu+(2./3)*Hprime); 
+      if(ysst) {
+        for (i=0; i<20; ++i) { // Newton-Raphson algorithm for solution of the return mapping equation
+          ysst->getValAndSlopeAlt(staten[12]+sqrt(2./3)*plastmult, &v, &s);
+          trialyieldnp = xitrialnpnorm - (2*mu + 2./3*Hk)*plastmult - sqrt(2./3)*v;
+          Hprime = Hk + s;
+          if(std::abs(trialyieldnp) < 1e-6*ysst->getVal(0)) break;
+          plastmult += trialyieldnp/(2*mu + (2./3)*Hprime);
+        }
+      }
     
       Tensor_d0s2_Ss12 normalnp = (1./xitrialnpnorm)*xitrialnp;
       double thetanp = 1 - 2*mu*plastmult/xitrialnpnorm;
@@ -181,7 +200,7 @@ ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor *_tm, Tensor &_en, Tens
 
       for (i=0; i<6; ++i) {
         statenp[i] = staten[i] + plastmult*normalnp[i];
-        statenp[6+i] = staten[6+i] + sqrt(2./3)*Hprime*(1-theta)*(statenp[12]-staten[12])*normalnp[i];   
+        statenp[6+i] = staten[6+i] + sqrt(2./3)*Hk*(statenp[12]-staten[12])*normalnp[i];   
       }
 
       stress = ((bulk*3*(enp - edevnp) + strialnp) - (2*mu*plastmult*normalnp));
@@ -253,6 +272,8 @@ ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor &_en, Tensor  &_enp,
     double mu = E/(2*(1+nu));
     double bulk = lambda + (2./3)*mu;
     double Hprime = (E != Ep) ? (E*Ep)/(E-Ep) : std::numeric_limits<double>::max();
+    double Hk = (1-theta)*Hprime; // kinematic hardening modulus
+    double v, s; // value and slope of yield stress vs. effective plastic strain curve
 
     Tensor_d0s2_Ss12 betan;
     Tensor_d0s2_Ss12 edevnp;
@@ -273,7 +294,13 @@ ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor &_en, Tensor  &_enp,
 
     double xitrialnpnorm = sqrt(xitrialnp.innerProduct());
 
-    double trialyieldnp = xitrialnpnorm - sqrt(2./3)*(sigE+theta*Hprime*staten[12]); // Yield Criterion (Simo & Hughes eq. 3.3.6)
+    double trialyieldnp;
+    if(!ysst) trialyieldnp = xitrialnpnorm - sqrt(2./3)*(sigE+theta*Hprime*staten[12]); // Yield Criterion (Simo & Hughes eq. 3.3.6)
+    else {
+      ysst->getValAndSlopeAlt(staten[12], &v, &s);
+      trialyieldnp = xitrialnpnorm - sqrt(2./3)*v;
+      Hprime = Hk + s;
+    }
 
     if (trialyieldnp <= 0) {
  
@@ -296,16 +323,23 @@ ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor &_en, Tensor  &_enp,
       int i,j,k,l;
 
       double plastmult = trialyieldnp/(2*mu+(2./3)*Hprime); 
+      if(ysst) {
+        for (i=0; i<20; ++i) { // Newton-Raphson algorithm for solution of the return mapping equation
+          ysst->getValAndSlopeAlt(staten[12]+sqrt(2./3)*plastmult, &v, &s);
+          trialyieldnp = xitrialnpnorm - (2*mu + 2./3*Hk)*plastmult - sqrt(2./3)*v;
+          Hprime = Hk + s;
+          if(std::abs(trialyieldnp) < 1e-6*ysst->getVal(0)) break;
+          plastmult += trialyieldnp/(2*mu + (2./3)*Hprime);
+        }
+      }
     
       Tensor_d0s2_Ss12 normalnp = (1./xitrialnpnorm)*xitrialnp;
-      double thetanp = 1 - 2*mu*plastmult/xitrialnpnorm;
-      double thetaprimenp = 1/(1+Hprime/(3*mu)) - (1 - thetanp);
 
       statenp[12] = staten[12] + sqrt(2./3)*plastmult;
 
       for (i=0; i<6; ++i) {
         statenp[i] = staten[i] + plastmult*normalnp[i];
-        statenp[6+i] = staten[6+i] + sqrt(2./3)*Hprime*(1-theta)*(statenp[12]-staten[12])*normalnp[i];   
+        statenp[6+i] = staten[6+i] + sqrt(2./3)*Hk*(statenp[12]-staten[12])*normalnp[i];   
       }
 
       stress = ((bulk*3*(enp - edevnp) + strialnp) - (2*mu*plastmult*normalnp));
@@ -383,10 +417,14 @@ template<int e>
 double
 ElasPlasKinHardMat<e>::getDissipatedEnergy(double *statenp)
 {
-  if(theta == 0) { // pure kinematic hardening
+  if(ysst) {
+    std::cerr << " *** WARNING: ElasPlasKinHardMat::getDissipatedEnergy is not implemented for nonlinear isotropic hardening.\n";
+    return 0;
+  }
+  else if(theta == 0) { // kinematic hardening
     return statenp[12]*sigE;
   }
-  else { // isotropic or mixed hardening
+  else { // linear isotropic hardening
     double Hprime = (E != Ep) ? (E*Ep)/(E-Ep) : std::numeric_limits<double>::max(); 
     return statenp[12]*(sigE+0.5*theta*Hprime*statenp[12]);
   }

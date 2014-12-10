@@ -62,6 +62,8 @@ class MaterialWrapper : public NLMaterial
     double getPosdefifyTol() { return posdefifyTol; }
 
     Material* getMaterial() { return mat; }
+
+    void setSDProps(MFTTData *ysst);
 };
 
 template<>
@@ -100,9 +102,10 @@ MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::MaterialWrapper(double
   double sigmaY = params[3];
   double K      = params[4];
   double H      = params[5];
+  double Tol    = params[6];
   lambda = E*nu/((1.+nu)*(1.-2.*nu));
   mu     = E/(2.*(1.+nu));
-  mat = new IsotropicLinearElasticJ2PlasticMaterial(lambda,mu,sigmaY,K,H);
+  mat = new IsotropicLinearElasticJ2PlasticMaterial(lambda,mu,sigmaY,K,H,Tol);
   posdefifyTol = -1;
 }
 

@@ -232,6 +232,7 @@ Function.d/Constraint.d/exp-map.C
 NonLinearity.d/2DMat.C
 NonLinearity.d/ShapeFunction.C
 NonLinearity.d/ElaLinIsoMat.C
+NonLinearity.d/BilinPlasKinHardMatInstance.C
 NonLinearity.d/GaussIntgElem.C
 NonLinearity.d/NLHexahedral.C
 NonLinearity.d/NLPentahedral.C

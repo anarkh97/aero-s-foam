@@ -80,6 +80,7 @@ class NLMaterial
      }
 
      virtual void setTDProps(MFTTData *ymtt, MFTTData *ctett) {};
+     virtual void setSDProps(MFTTData *ysst) {}
 };
 
 #endif

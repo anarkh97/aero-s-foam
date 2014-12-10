@@ -230,6 +230,7 @@ class IsotropicLinearElasticJ2PlasticPlaneStressMaterial : public ElastoPlasticP
   //! \param iSigmaY Yield stress in 1D
   //! \param iK Isotropic hardening modulus
   //! \param iH Kinematic hardening modulus
+  //! \param iTol Tolerance for convergence of nonlinear solve
   //! \param iequivEPSplasticF Equivalent plastic strain at failure
   IsotropicLinearElasticJ2PlasticPlaneStressMaterial(double iLambda, double iMu,
 						     double iSigmaY, double iK = 0.,
@@ -311,7 +312,7 @@ class IsotropicLinearElasticJ2PlasticPlaneStressMaterial : public ElastoPlasticP
   //! Compute the elastic constitutive response of material
   //! Returns true if calculations went well and false otherwise
   //! \param EPS Input. Elastic strain, 3x1
-  //! \param CS Output. Computed cauchy stress 3x1
+  //! \param CS Output. Computed Cauchy stress 3x1
   //! \param C Output. Elastic modulii  3x3
   bool ComputeElasticConstitutiveResponse(const std::vector<double> &EPS,
 					  std::vector<double> *CS, 

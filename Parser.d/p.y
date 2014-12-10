@@ -100,7 +100,7 @@
 %token TANGENT TDENFORCE TEMP TIME TOLEIG TOLFETI TOLJAC TOLPCG TOPFILE TOPOLOGY TRBM THERMOE THERMOH 
 %token TETT TOLCGM TURKEL TIEDSURFACES THETA PROJSOL POSELEM HRC THIRDNODE THERMMAT TDENFORC TESTULRICH THRU TRIVIAL
 %token USE USERDEFINEDISP USERDEFINEFORCE UPROJ UNSYMMETRIC USING
-%token VERSION WETCORNERS YMTT 
+%token VERSION WETCORNERS YMTT YSST
 %token ZERO BINARY GEOMETRY DECOMPOSITION GLOBAL MATCHER CPUMAP
 %token NODALCONTACT MODE FRIC GAP
 %token OUTERLOOP EDGEWS WAVETYPE ORTHOTOL IMPE FREQ DPH WAVEMETHOD
@@ -149,7 +149,7 @@
 %type <nval>     Node
 %type <lmpcons>  MPCList ComplexMPCList MPCHeader
 %type <strval>   FNAME 
-%type <ymtt>     YMTTList
+%type <ymtt>     YMTTList YSSTList
 %type <ctett>    TETTList
 %type <sdetaft>  SDETAFList
 %type <dlist>    FloatList
@@ -233,6 +233,7 @@ Component:
         | LoadCase
         | YMTTable
         | TETTable
+        | YSSTable
         | SDETAFTable
 	| RbmTolerance
         | ToleranceInfo
@@ -1961,6 +1962,18 @@ TETTList:
         { $$->add($2, $3); }
         | TETTList CURVE Integer NewLine Float Float NewLine
         { $$ = new MFTTData($3); $$->add($5, $6); domain->addCTETT($$);}
+        ;
+YSSTable:
+        YSST NewLine
+        | YSST NewLine YSSTList
+        ;
+YSSTList:
+        CURVE Integer NewLine Float Float NewLine
+        { $$ = new MFTTData($2); $$->add($4, $5); domain->addYSST($$);}
+        | YSSTList Float Float NewLine
+        { $$->add($2, $3); }
+        | YSSTList CURVE Integer NewLine Float Float NewLine
+        { $$ = new MFTTData($3); $$->add($5, $6); domain->addYSST($$);}
         ;
 SDETAFTable:
         SDETAFT NewLine
@@ -4400,7 +4413,13 @@ MatSpec:
           }
         | MatSpec Integer ISOTROPICLINEARELASTICJ2PLASTIC Float Float Float Float Float Float NewLine
           {
-            double params[6] = { $4, $5, $6, $7, $8, $9 };
+            double params[7] = { $4, $5, $6, $7, $8, $9, 1.0e-6 };
+            geoSource->addMaterial($2-1,
+              new MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>(params));
+          }
+        | MatSpec Integer ISOTROPICLINEARELASTICJ2PLASTIC Float Float Float Float Float Float Float NewLine
+          {
+            double params[7] = { $4, $5, $6, $7, $8, $9, $10 };
             geoSource->addMaterial($2-1,
               new MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>(params));
           }

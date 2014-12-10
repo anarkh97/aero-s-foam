@@ -1,5 +1,6 @@
 #include <Utils.d/NodeSpaceArray.h>
 #include <Element.d/NonLinearity.d/StrainEvaluator.h>
+#include <cmath>
 #ifdef USE_EIGEN3
 #include <Eigen/Dense>
 #endif
@@ -225,6 +226,7 @@ MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::getTangentM
 {
   std::cerr << "ERROR: MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::getTangentMaterial is not implemented\n";
 }
+
 template<typename Material>
 void 
 MaterialWrapper<Material>::getStressAndTangentMaterial(Tensor *_stress, Tensor *_tm, Tensor &_strain, double*, double temp)
@@ -543,6 +545,23 @@ MaterialWrapper<Material>::getStrainEnergyDensity(Tensor &_enp, double *, double
 {
   std::cerr << "WARNING: MaterialWrapper<Material>::getStrainEnergyDensity is not implemented\n";
   return 0.0;
+}
+
+template<typename Material>
+void
+MaterialWrapper<Material>::setSDProps(MFTTData *ysst)
+{
+}
+
+template<>
+inline void
+MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::setSDProps(MFTTData *ysst)
+{
+  if(ysst && ysst->getID() == -std::nearbyint(mat->GetYieldStressFromTensionTest())) {
+    for(int i=0; i<ysst->getNumPoints(); ++i) {
+      mat->SetExperimentalCurveData(ysst->getT(i), ysst->getV(i));
+    }
+  }
 }
 
 #ifdef USE_EIGEN3

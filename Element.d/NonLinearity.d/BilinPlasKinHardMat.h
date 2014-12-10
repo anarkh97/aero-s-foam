@@ -4,7 +4,6 @@
 #include <Element.d/NonLinearity.d/NLMaterial.h>
 #include <Utils.d/MFTT.h>
 #include <limits>
-#include <cmath>
 
 class StructProp;
 
@@ -70,7 +69,7 @@ class ElasPlasKinHardMat : public NLMaterial
 
     void print(std::ostream &out) const;
 
-    void setSDProps(MFTTData *_ysst) { if(_ysst && _ysst->getID() == -std::nearbyint(sigE)) ysst = _ysst; }
+    void setSDProps(MFTTData *_ysst) { if(sigE < 0 && _ysst && _ysst->getID() == -int(sigE)) ysst = _ysst; }
 };
 
 typedef ElasPlasKinHardMat<0> BilinPlasKinHardMat;

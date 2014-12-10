@@ -1,6 +1,5 @@
 #include <Utils.d/NodeSpaceArray.h>
 #include <Element.d/NonLinearity.d/StrainEvaluator.h>
-#include <cmath>
 #ifdef USE_EIGEN3
 #include <Eigen/Dense>
 #endif
@@ -557,7 +556,8 @@ template<>
 inline void
 MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::setSDProps(MFTTData *ysst)
 {
-  if(ysst && ysst->getID() == -std::nearbyint(mat->GetYieldStressFromTensionTest())) {
+  double SigmaY = mat->GetYieldStressFromTensionTest();
+  if(SigmaY < 0 && ysst && ysst->getID() == -int(SigmaY)) {
     for(int i=0; i<ysst->getNumPoints(); ++i) {
       mat->SetExperimentalCurveData(ysst->getT(i), ysst->getV(i));
     }

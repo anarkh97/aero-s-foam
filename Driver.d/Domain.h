@@ -220,6 +220,7 @@ struct AdjacencyLists {
   std::vector<std::pair<int,std::vector<int> > > cdnm;
   std::vector<std::pair<int,std::vector<int> > > cdnf;
   std::vector<std::pair<DMassData*,std::vector<int> > > dimass;
+  std::set<int> crot;
 };
 
 /** Class representing a structure and containing all auxiliary data-structures
@@ -465,6 +466,8 @@ class Domain : public HData {
                                          FullSquareMatrix *mel, bool compute_tangents);
      void transformElemStiffAndForce(const GeomState &geomState, double *elementForce,
                                      FullSquareMatrix &kel, int iele, bool compute_tangents);
+     void transformElemStiffAndForce_S2E(const GeomState &geomState, double *elementForce,
+                                         FullSquareMatrix &kel, int iele, bool compute_tangents);
      void transformNodalMoment(const GeomState &geomState, double G[],
                                double H[][3], int nnum, bool compute_tangents);
      void transformElemStiff(const GeomState &geomState, FullSquareMatrix &kel, int iele);

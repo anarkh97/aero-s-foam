@@ -243,27 +243,27 @@ def dComp(params):
             break
           time.sleep(10)
       if(batch == 1):
-        os.system("rm *.dat test.* host.*")
+        os.system("rm -f *.dat test.* host.*")
         command = "./scp."+names+" >reg.out 2>&1"
         os.system(command)
       if(lrun == 1):
-        os.system("rm *.dat test.* host.*")
+        os.system("rm -f *.dat test.* host.*")
         command = "./run."+names+" >reg.out 2>&1"
-##PJSA: replace this line with the one above for compatability with dash on ubuntu:        command = "./run."+names+" >& reg.out"
-#       command = "sh ./scp."+names+" >& reg.out"
         os.system(command)
-      os.chdir('../') 
+      os.chdir('../')
+##PJSA get list of files from baseline rather than indir, because one or more files could be missing from indir due to regression
+      os.chdir('baseline') 
       for infile in glob.glob( os.path.join(indir, '*.dat') ):
         files.append(infile)
+      os.chdir('..')
   else: 
     del params[0]
     indirs = params
     for indir in indirs:
       indirp = indir+"/"
-      print "%s" % indir
       os.chdir(indir)
       if(run == 1):
-        os.system("rm *.dat test.* host.*")
+        os.system("rm -f *.dat test.* host.*")
         qsubScript = "scp."+indir
         retcode = subprocess.Popen(["qsub", qsubScript ], stdout=subprocess.PIPE).communicate()[0]
         numbers = filter(lambda x: x.isdigit(), retcode)
@@ -273,57 +273,60 @@ def dComp(params):
             break
           time.sleep(10)
       if(batch == 1):
-        os.system("rm *.dat test.* host.*")
-        print "current directory is %s\n"% os.getcwd()
+        os.system("rm -f *.dat test.* host.*")
         command = "./scp."+indir+" >reg.out 2>&1"
-        print "command is %s\n"% command
         os.system(command)
       if(lrun == 1):
-        os.system("rm *.dat test.* host.*")
-        print "current directory is %s\n"% os.getcwd()
+        os.system("rm -f *.dat test.* host.*")
         command = "./run."+indir+" >reg.out 2>&1"
-##PJSA: replace this line with the one above for compatability with dash on ubuntu:        command = "./run."+indir+" >& reg.out"
-#       command = "sh ./scp."+indir+" >& reg.out"
-        print "command is %s\n"% command
         os.system(command)
       os.chdir('../') 
+##PJSA get list of files from baseline rather than indir, because one or more files could be missing from indir due to regression
+      os.chdir('baseline')
       for infile in glob.glob( os.path.join(indirp, '*.dat') ):
         files.append(infile)
+      os.chdir('..')
 
   result = 0
   if(genbase != 1): 
     for file in files:
       basefile = "baseline/"+file
       p = subprocess.Popen("md5sum " + file, shell = True, stdout=subprocess.PIPE) # don't forget to "import subprocess"
-      newmd5 = p.stdout.readline().split() # now the md5 variable contains the MD5 sum
-      p.wait() # some clean up
-      p = subprocess.Popen("md5sum " + basefile, shell = True, stdout=subprocess.PIPE) # don't forget to "import subprocess"
-      oldmd5 = p.stdout.readline().split() # now the md5 variable contains the MD5 sum
-      p.wait() # some clean up
+      p.wait()
       Total += 1
-      if(newmd5[0] == oldmd5[0]):
-        print bcolors.OKGREEN + " \tExact match "+ bcolors.ENDC, file
-        exactMatches += 1
-        outstring = "\texact match " + file + "\n"
-        SUMMARY_FILE.write(outstring)
-      else:
-        compstring = []
-        result = directComp(basefile,file,SUMMARY_FILE,compstring)
-        if(result == 1):
-          print bcolors.FAIL + " \tDiscrepancy " + bcolors.ENDC, file
-          outstring = "\tDiscrepancy " + file + "\n"
-          SUMMARY_FILE.write(outstring)
-          SUMMARY_FILE.write(compstring[0])
-          gnuplotCalled = 1;
-          plotList.append([file,basefile]);
-        else:
+      if(p.returncode == 0):
+        newmd5 = p.stdout.readline().split() # now the md5 variable contains the MD5 sum
+        p.wait() # some clean up
+        p = subprocess.Popen("md5sum " + basefile, shell = True, stdout=subprocess.PIPE) # don't forget to "import subprocess"
+        oldmd5 = p.stdout.readline().split() # now the md5 variable contains the MD5 sum
+        p.wait() # some clean up
+        if(newmd5[0] == oldmd5[0]):
+          print bcolors.OKGREEN + " \tExact match " + bcolors.ENDC, file
           exactMatches += 1
-          print bcolors.OKGREEN + " \tMatch" + bcolors.ENDC, file
-          if(compstring != ""):
-            print bcolors.OKBLUE    + "\t" +compstring[0] + bcolors.ENDC 
-          outstring = "\tclose match " + file + "\n"
+          outstring = "\texact match " + file + "\n"
           SUMMARY_FILE.write(outstring)
-          SUMMARY_FILE.write(compstring[0])
+        else:
+          compstring = []
+          result = directComp(basefile,file,SUMMARY_FILE,compstring)
+          if(result == 1):
+            print bcolors.FAIL + " \tDiscrepancy " + bcolors.ENDC, file
+            outstring = "\tDiscrepancy " + file + "\n"
+            SUMMARY_FILE.write(outstring)
+            SUMMARY_FILE.write(compstring[0])
+            gnuplotCalled = 1;
+            plotList.append([file,basefile]);
+          else:
+            exactMatches += 1
+            print bcolors.OKGREEN + " \tMatch" + bcolors.ENDC, file
+            if(compstring != ""):
+              print bcolors.OKBLUE    + "\t" +compstring[0] + bcolors.ENDC 
+            outstring = "\tclose match " + file + "\n"
+            SUMMARY_FILE.write(outstring)
+            SUMMARY_FILE.write(compstring[0])
+      else: 
+        result = 1
+        print bcolors.FAIL + " \tNo file" + bcolors.ENDC, file 
+        outstring = "\tno match " + file + "\n"
   if(genbase == 1):
     outstring = "New baseline(s) generated\n"
   else:

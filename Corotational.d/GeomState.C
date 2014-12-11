@@ -8,6 +8,10 @@
 #include <Driver.d/ControlLawInfo.h>
 #include <Utils.d/SolverInfo.h>
 #include <Math.d/Vector.h>
+#ifdef USE_EIGEN3
+#include <Element.d/Function.d/Rotation.d/LeftCompositionRule.h>
+#include <Element.d/Function.d/Rotation.d/RightCompositionRule.h>
+#endif
 
 //#define COMPUTE_GLOBAL_ROTATION
 //#define NEW_PULL_BACK
@@ -538,7 +542,65 @@ GeomState::update(const Vector &v, int SO3param)
      ns[i].y += d[1];
      ns[i].z += d[2];
 
-     if(loc[i][3] >= 0 || loc[i][4] >= 0 || loc[i][5] >= 0) {
+     if(getNumRotationDof(i) == 2 && SO3param < 2 && !solInfo.getNLInfo().linearelastic) {
+#ifdef USE_EIGEN3
+       switch(SO3param) {
+         case 0: {
+           Eigen::Array3d Psi; Psi << ns[i].theta[0], ns[i].theta[1], ns[i].theta[2];
+           if(cd) cd->transformVector3(Psi.data());
+           Simo::LeftCompositionRule<double> f(Psi,Eigen::Array<int,0,1>::Zero());
+           Simo::Jacobian<double,Simo::LeftCompositionRule> dfdq(Psi,Eigen::Array<int,0,1>::Zero());
+ 
+           // solve for constrained (j^th) component of the incremental (left) rotation vector such that
+           // the constraint is not violated by the update
+           int j;
+           Eigen::Vector3d q;
+           if(loc[i][3] < 0) { j = 0; q[0] = 0; } else q[0] = v[loc[i][3]];
+           if(loc[i][4] < 0) { j = 1; q[1] = 0; } else q[1] = v[loc[i][4]];
+           if(loc[i][5] < 0) { j = 2; q[2] = 0; } else q[2] = v[loc[i][5]];
+
+           for(int k=0; k<10; ++k) {
+             //std::cerr << "k = " << k << ", residual = " << f(q,0.)[j]-ns[i].theta[j] << std::endl;
+             q[j] -= (f(q,0.)[j]-Psi[j])/dfdq(q,0.)(j,j);
+           }
+
+           dtheta[0] = q[0];
+           dtheta[1] = q[1];
+           dtheta[2] = q[2];
+           if(cd) cd->invTransformVector3(dtheta);
+           inc_rottensor( dtheta, ns[i].R );
+           inc_rotvector( ns[i].theta, ns[i].R );
+         } break;
+         case 1: {
+           Eigen::Array3d Psi; Psi << ns[i].theta[0], ns[i].theta[1], ns[i].theta[2];
+           if(cd) cd->transformVector3(Psi.data());
+           Simo::RightCompositionRule<double> f(Psi,Eigen::Array<int,0,1>::Zero());
+           Simo::Jacobian<double,Simo::RightCompositionRule> dfdq(Psi,Eigen::Array<int,0,1>::Zero());
+
+           // solve for constrained (j^th) component of the incremental (right) rotation vector such that
+           // the constraint is not violated by the update
+           int j;
+           Eigen::Vector3d q;
+           if(loc[i][3] < 0) { j = 0; q[0] = 0; } else q[0] = v[loc[i][3]];
+           if(loc[i][4] < 0) { j = 1; q[1] = 0; } else q[1] = v[loc[i][4]];
+           if(loc[i][5] < 0) { j = 2; q[2] = 0; } else q[2] = v[loc[i][5]];
+
+           for(int k=0; k<10; ++k) {
+             //std::cerr << "k = " << k << ", residual = " << f(q,0.)[j]-ns[i].theta[j] << std::endl;
+             q[j] -= (f(q,0.)[j]-Psi[j])/dfdq(q,0.)(j,j);
+           }
+
+           dtheta[0] = q[0];
+           dtheta[1] = q[1];
+           dtheta[2] = q[2];
+           if(cd) cd->invTransformVector3(dtheta);
+           inc_rottensor( ns[i].R, dtheta );
+           inc_rotvector( ns[i].theta, ns[i].R );
+         } break;
+       } 
+#endif
+     }
+     else if(loc[i][3] >= 0 || loc[i][4] >= 0 || loc[i][5] >= 0) {
 
        // Set incremental rotations
 
@@ -869,6 +931,10 @@ void
 GeomState::setVelocityAndAcceleration(const Vector &v, const Vector &a)
 {
   // set unconstrained components of velocity and acceleration for all nodes, leaving constrained components unchanged
+  // XXX This is not correct for angular velocity/acceleration with one and only one component of the rotation vector constrained,
+  // because this constraint implies that the constrained component of the first and second time-derivatives of the rotation vector
+  // are zero, not their convected counterparts.
+  // Since T^{-1}*Omega = PsiIdot, for example if I know Omega_y and Omega_z and PsiIdot_x then I can compute Omega_x.
 
   for(int i = 0; i < numnodes; ++i) {
     NFrameData *cd = X0->dofFrame(i);
@@ -2415,7 +2481,7 @@ void
 TemperatureState::midpoint_step_update(Vector &vel_n, Vector &accel_n, double delta, GeomState &ss,
                                        double beta, double gamma, double alphaf, double alpham, bool)
 {
- // XXXX THIS HASN'T BEEN UPDATED FOR GENERALIZED ALPHA YET
+ // XXX THIS HASN'T BEEN UPDATED FOR GENERALIZED ALPHA YET
  // Update incremental temperatures at end of step:
  double coef = 2.0/delta;
 

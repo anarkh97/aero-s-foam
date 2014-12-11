@@ -1492,11 +1492,12 @@ TRAIL [a-zA-Z]*
 "SOLVER"|"Solver"|"solver"                { return SOLVER; }
 
 "lh"|"LH"                                 { yylval.ival = 0; return SPNNLSSOLVERTYPE; }
+"scalh"|"SCALH" 			  { yylval.ival = 6; return SPNNLSSOLVERTYPE; }
 "nncgp"|"NNCGP"                           { yylval.ival = 1; return SPNNLSSOLVERTYPE; }
 "gpfp"|"GPFP" 				  { yylval.ival = 2; return SPNNLSSOLVERTYPE; }
 "lars"|"LARS"				  { yylval.ival = 3; return SPNNLSSOLVERTYPE; }
 "mp"|"MP"				  { yylval.ival = 4; return SPNNLSSOLVERTYPE; }
-"omp"|"OMP"                                 { yylval.ival = 5; return SPNNLSSOLVERTYPE; }
+"omp"|"OMP"                               { yylval.ival = 5; return SPNNLSSOLVERTYPE; }
 
 "MAXSZE"|"MaxSze"|"maxsze"                { return MAXSIZE; }
 

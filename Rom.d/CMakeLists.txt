@@ -63,4 +63,7 @@ ADD_LIBRARY( Rom
   SparseSolvers.d/MatchingPursuits.d/mp.C
   SparseSolvers.d/OrthogonalMatchingPursuits.d/omp.C
   SparseSolvers.d/OrthogonalMatchingPursuits.d/pomp.C
+  SparseSolvers.d/ScalaLH.d/splh.C
+  SparseSolvers.d/ScalaLH.d/Plh.C
+  SparseSolvers.d/ScalaLH.d/plhsolve.C
 )

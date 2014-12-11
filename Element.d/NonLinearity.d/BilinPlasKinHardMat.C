@@ -434,19 +434,19 @@ template<>
 inline void
 ElasPlasKinHardMat<0>::print(std::ostream &out) const
 {
-  out << "BilinearPlastic " << rho << " " << E << " " << nu << " " << Ep << " " << sigE << " " << theta;
+  out << "BilinearPlastic " << rho << " " << E << " " << nu << " " << Ep << " " << sigE << " " << theta << " " << Tref << " " << alpha << " " << epsF;
 }
 
 template<>
 inline void 
 ElasPlasKinHardMat<1>::print(std::ostream &out) const 
 {
-  out << "FiniteStrainPlastic " << rho << " " << E << " " << nu << " " << Ep << " " << sigE << " " << theta;
+  out << "FiniteStrainPlastic " << rho << " " << E << " " << nu << " " << Ep << " " << sigE << " " << theta << " " << Tref << " " << alpha << " " << epsF;
 }
 
 template<>
 inline void 
 ElasPlasKinHardMat<2>::print(std::ostream &out) const 
 {
-  out << "LogStrainPlastic " << rho << " " << E << " " << nu << " " << Ep << " " << sigE << " " << theta;
+  out << "LogStrainPlastic " << rho << " " << E << " " << nu << " " << Ep << " " << sigE << " " << theta << " " << Tref << " " << alpha << " " << epsF;
 }

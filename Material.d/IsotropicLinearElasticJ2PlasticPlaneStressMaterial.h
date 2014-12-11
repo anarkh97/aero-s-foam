@@ -284,6 +284,9 @@ class IsotropicLinearElasticJ2PlasticPlaneStressMaterial : public ElastoPlasticP
   //! Returns the equivalent plastic strain at failure
   double GetEquivalentPlasticStrainAtFailure() const;
 
+  //! Returns the tolerance for convergence of nonlinear solve
+  double GetTolerance() const;
+
   //! Set the plastic strain in the material
   //! \param EPSplastic Input. Plastic strain.
   void SetMaterialPlasticStrain(const std::vector<double> &EPSplastic);

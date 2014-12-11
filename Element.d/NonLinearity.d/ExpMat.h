@@ -87,7 +87,10 @@ class ExpMat : public NLMaterial
         default: throw std::range_error("Unknown material law type");
       }
       out << type << " ";
-      std::copy(&ematpro[0], &ematpro[20], std::ostream_iterator<double>(out, " "));
+      std::copy(&ematpro[0], &ematpro[8], std::ostream_iterator<double>(out, " "));
+      out << "0.0 " << optcor0 << " " << optcor1 << " " << optprj << " " << opthgc << " "
+          << prmhgc[0] << " " << prmhgc[1] << " " << prmhgc[2] << " " << ngqpt2 << " "
+          << ematpro[18];
     }
 
     void setSDProps(MFTTData *_ysst) { if(optctv == 5 && _ysst && _ysst->getID() == -int(ematpro[3])) ysst = _ysst; }

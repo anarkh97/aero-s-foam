@@ -137,6 +137,11 @@ double IsotropicLinearElasticJ2PlasticPlaneStressMaterial::
 GetEquivalentPlasticStrainAtFailure() const
 { return equivEPSplasticF; }
 
+// Return tolerance for convergence of nonlinear solve
+double IsotropicLinearElasticJ2PlasticPlaneStressMaterial::
+GetTolerance() const
+{ return Tol; }
+
 // Set the plastic strain in the material
 void IsotropicLinearElasticJ2PlasticPlaneStressMaterial::
 SetMaterialPlasticStrain(const std::vector<double> &iEPSplastic)

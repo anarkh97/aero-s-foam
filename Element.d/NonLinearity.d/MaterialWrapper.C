@@ -503,7 +503,6 @@ template<>
 inline double
 MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::getDensity()
 {
-  std::cerr << "WARNING: MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::getDensity is not implemented\n";
   return 0.0;
 }
 
@@ -511,7 +510,6 @@ template<>
 inline double
 MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::getDensity()
 {
-  std::cerr << "WARNING: MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::getDensity is not implemented\n";
   return 0.0;
 }
 
@@ -605,3 +603,60 @@ MaterialWrapper<MooneyRivlin>::getStrainEnergyDensity(Tensor &_enp, double *, do
   return mu1*(I1-3) + mu2*(I2-3) + kappa*(J-1)*(J-1) - d*log(J);
 }
 #endif
+
+template<>
+inline void
+MaterialWrapper<IsotropicLinearElastic>::print(std::ostream &out) const
+{
+  double rho = mat->GetDensityInReference();
+  double E = mu*(3*lambda+2*mu)/(lambda+mu);
+  double nu = lambda/(2*(lambda+mu));
+  out << "IsotropicLinearElastic " << rho << " " << E << " " << nu;
+}
+
+template<>
+inline void 
+MaterialWrapper<NeoHookean>::print(std::ostream &out) const
+{
+  double rho = mat->GetDensityInReference();
+  double E = mu*(3*lambda+2*mu)/(lambda+mu);
+  double nu = lambda/(2*(lambda+mu));
+  out << "NeoHookean " << rho << " " << E << " " << nu;
+}
+
+template<>
+inline void 
+MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::print(std::ostream &out) const
+{
+  double rho = 0.0;
+  double E = mu*(3*lambda+2*mu)/(lambda+mu);
+  double nu = lambda/(2*(lambda+mu));
+  double sigmaY = mat->GetYieldStressFromTensionTest();
+  double K = mat->GetIsotropicHardeningModulus();
+  double H = mat->GetKinematicHardeningModulus();
+  out << "IsotropicLinearElasticJ2PlasticMaterial " << rho << " " << " " << E << " " << nu << " " << sigmaY << " " << K << " " << H;
+}
+
+template<>
+inline void 
+MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::print(std::ostream &out) const
+{
+  double rho = 0.0;
+  double E = mu*(3*lambda+2*mu)/(lambda+mu);
+  double nu = lambda/(2*(lambda+mu));
+  double sigmaY = mat->GetYieldStressFromTensionTest();
+  double K = mat->GetIsotropicHardeningModulus();
+  double H = mat->GetKinematicHardeningModulus();
+  double Tol = mat->GetTolerance();
+  double epsF = mat->GetEquivalentPlasticStrainAtFailure();
+  out << "IsotropicLinearElasticJ2PlasticPlaneStressMaterial " << rho << " " << E << " " << nu << " " << sigmaY << " " << K << " " << H << " " << Tol << " " << epsF;
+}
+
+template<>
+inline void 
+MaterialWrapper<MooneyRivlin>::print(std::ostream &out) const
+{
+  double rho = mat->GetDensityInReference();
+  out << "MooneyRivlin " << rho << " " << mu1 << " " << mu2 << " " << kappa;
+}
+

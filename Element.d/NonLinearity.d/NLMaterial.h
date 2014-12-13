@@ -30,10 +30,10 @@ class NLMaterial
      virtual void updateStates(Tensor& en, Tensor& enp, double *state, double temp) = 0;
 
      virtual void integrate(Tensor *stress, Tensor *tm, Tensor &en, Tensor &enp,
-                            double *staten, double *statenp, double temp) = 0;
+                            double *staten, double *statenp, double temp, double dt=0) = 0;
 
      virtual void integrate(Tensor *stress, Tensor &en, Tensor &enp,
-                            double *staten, double *statenp, double temp) = 0;
+                            double *staten, double *statenp, double temp, double dt=0) = 0;
 
      virtual void initStates(double *) = 0;
 
@@ -81,6 +81,7 @@ class NLMaterial
 
      virtual void setTDProps(MFTTData *ymtt, MFTTData *ctett) {};
      virtual void setSDProps(MFTTData *ysst) {}
+     virtual void setSRDProps(MFTTData *yssrt) {}
 };
 
 #endif

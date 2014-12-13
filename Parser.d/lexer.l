@@ -815,6 +815,8 @@ TRAIL [a-zA-Z]*
 
 "YSST"|"ysst"                      { return YSST; }
 
+"YSSRT"|"yssrt"                    { return YSSRT; }
+
 "REOR"[a-zA-Z]*|"reor"[a-zA-Z]*    { return REORTHO; }
 
 "scal"[a-zA-Z]*|"SCAL"[a-zA-Z]*    { return SCALING; }

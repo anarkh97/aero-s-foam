@@ -312,7 +312,7 @@ MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::getStressAn
 template<typename Material>
 void 
 MaterialWrapper<Material>::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Tensor &_enp,
-                                     double *, double *statenp, double)
+                                     double *, double *statenp, double, double)
 {
   Tensor_d0s4 *tm = static_cast<Tensor_d0s4 *>(_tm);
   Tensor_d0s2 *stress = static_cast<Tensor_d0s2 *>(_stress);
@@ -343,7 +343,7 @@ MaterialWrapper<Material>::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Ten
 template<typename Material>
 void
 MaterialWrapper<Material>::integrate(Tensor *_stress, Tensor &, Tensor &_enp,
-                                     double *, double *statenp, double)
+                                     double *, double *statenp, double, double)
 {
   Tensor_d0s2 *stress = static_cast<Tensor_d0s2 *>(_stress);
   Tensor_d0s2 &enp = static_cast<Tensor_d0s2 &>(_enp);
@@ -366,7 +366,7 @@ MaterialWrapper<Material>::integrate(Tensor *_stress, Tensor &, Tensor &_enp,
 template<>
 inline void 
 MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Tensor &_enp,
-                                                                    double *staten, double *statenp, double)
+                                                                    double *staten, double *statenp, double, double dt)
 {
   // clone material for thread-safety reasons
   IsotropicLinearElasticJ2PlasticMaterial *clone = mat->Clone();
@@ -396,7 +396,7 @@ MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::integrate(Tensor *_str
     for (int j = 0; j < 3; j++)
       lstrain[3*i+j] = enp[3*i+j];
 
-  clone->ComputeElastoPlasticConstitutiveResponse(lstrain, &lstress, &ltangents);
+  clone->ComputeElastoPlasticConstitutiveResponse(lstrain, &lstress, &ltangents, true, dt);
 
   for (int i = 0; i < 3; i++)
     for (int j = 0; j < 3; j++)
@@ -423,7 +423,7 @@ MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::integrate(Tensor *_str
 template<>
 inline void
 MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Tensor &_enp,
-                                                                               double *staten, double *statenp, double)
+                                                                               double *staten, double *statenp, double, double)
 {
   std::cerr << "ERROR: MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::integrate is not implemented\n";
 }
@@ -431,7 +431,7 @@ MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::integrate(T
 template<>
 inline void 
 MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::integrate(Tensor *_stress, Tensor &, Tensor &_enp,
-                                                                    double *staten, double *statenp, double)
+                                                                    double *staten, double *statenp, double, double dt)
 {
   // clone material for thread-safety reasons
   IsotropicLinearElasticJ2PlasticMaterial *clone = mat->Clone();
@@ -459,7 +459,7 @@ MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::integrate(Tensor *_str
     for (int j = 0; j < 3; j++)
       lstrain[3*i+j] = enp[3*i+j];
 
-  clone->ComputeElastoPlasticConstitutiveResponse(lstrain, &lstress, NULL);
+  clone->ComputeElastoPlasticConstitutiveResponse(lstrain, &lstress, NULL, true, dt);
 
   for (int i = 0; i < 3; i++)
     for (int j = 0; j < 3; j++)
@@ -480,7 +480,7 @@ MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::integrate(Tensor *_str
 template<>
 inline void
 MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::integrate(Tensor *_stress, Tensor &, Tensor &_enp,
-                                                                               double *staten, double *statenp, double)
+                                                                               double *staten, double *statenp, double, double)
 {
   std::cerr << "ERROR: MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::integrate is not implemented\n";
 }
@@ -574,6 +574,34 @@ MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::setSDProps(
   }
 }
 
+template<typename Material>
+void
+MaterialWrapper<Material>::setSRDProps(MFTTData *yssrt)
+{
+}
+
+template<>
+inline void
+MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::setSRDProps(MFTTData *yssrt)
+{
+  if(yssrtid > 0 && yssrt && yssrt->getID() == yssrtid) {
+    for(int i=0; i<yssrt->getNumPoints(); ++i) {
+      mat->SetExperimentalCurveData2(yssrt->getT(i), yssrt->getV(i));
+    }
+  }
+}
+
+template<>
+inline void
+MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::setSRDProps(MFTTData *yssrt)
+{
+  if(yssrtid > 0 && yssrt && yssrt->getID() == yssrtid) {
+    for(int i=0; i<yssrt->getNumPoints(); ++i) {
+      mat->SetExperimentalCurveData2(yssrt->getT(i), yssrt->getV(i));
+    }
+  }
+}
+
 #ifdef USE_EIGEN3
 template<>
 inline double
@@ -634,7 +662,10 @@ MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::print(std::ostream &ou
   double sigmaY = mat->GetYieldStressFromTensionTest();
   double K = mat->GetIsotropicHardeningModulus();
   double H = mat->GetKinematicHardeningModulus();
-  out << "IsotropicLinearElasticJ2PlasticMaterial " << rho << " " << " " << E << " " << nu << " " << sigmaY << " " << K << " " << H;
+  double Tol = mat->GetTolerance();
+  double epsF = mat->GetEquivalentPlasticStrainAtFailure();
+  out << "IsotropicLinearElasticJ2PlasticMaterial " << rho << " " << " " << E << " " << nu << " " << sigmaY << " " << K << " " << H
+      << " " << Tol << " " << epsF << " " << yssrtid;
 }
 
 template<>
@@ -649,7 +680,8 @@ MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::print(std::
   double H = mat->GetKinematicHardeningModulus();
   double Tol = mat->GetTolerance();
   double epsF = mat->GetEquivalentPlasticStrainAtFailure();
-  out << "IsotropicLinearElasticJ2PlasticPlaneStressMaterial " << rho << " " << E << " " << nu << " " << sigmaY << " " << K << " " << H << " " << Tol << " " << epsF;
+  out << "IsotropicLinearElasticJ2PlasticPlaneStressMaterial " << rho << " " << E << " " << nu << " " << sigmaY << " " << K << " " << H
+      << " " << Tol << " " << epsF << " " << yssrtid;
 }
 
 template<>

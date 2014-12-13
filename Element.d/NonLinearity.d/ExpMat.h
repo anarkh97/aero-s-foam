@@ -27,6 +27,8 @@ class ExpMat : public NLMaterial
     double prmhgc[3]; // hourglass control parameters, default = [ 2.5e-3, 2.5e-3, 2.5e-3 ]
     int ngqpt2;  // gq rule for through thickness (1-12,14,16,24), default = 3
     MFTTData *ysst; // yield stress vs. effective plastic strain
+    int yssrtid;
+    MFTTData *yssrt; // yield stress scaling factor vs. effective plastic strain rate
 
     ExpMat(int _optctv, double e1, double e2, double e3, double e4=0, double e5=0, double e6=0,
            double e7=0, double e8=0, double e9=0, double e10=0, double e11=0, double e12=0, double e13=0,
@@ -44,6 +46,8 @@ class ExpMat : public NLMaterial
         prmhgc[0] = prmhgc[1] = prmhgc[2] = 2.5e-3;
         ngqpt2 = 3;
         ysst = NULL;
+        yssrtid = 0;
+        yssrt = NULL;
       }
 
     int getNumStates() { return 0; }
@@ -63,11 +67,11 @@ class ExpMat : public NLMaterial
       { std::cerr << "ExpMat::getStressAndTangentMaterial is not implemented\n"; }
      
     void integrate(Tensor *stress, Tensor *tm, Tensor &en, Tensor &enp,
-                   double *staten, double *statenp, double)
+                   double *staten, double *statenp, double, double=0)
       { std::cerr << "ExpMat::integrate is not implemented\n"; }
 
     void integrate(Tensor *stress, Tensor &en, Tensor &enp,
-                   double *staten, double *statenp, double)
+                   double *staten, double *statenp, double, double=0)
       { std::cerr << "ExpMat::integrate is not implemented\n"; }
 
     void initStates(double *) {}
@@ -88,12 +92,13 @@ class ExpMat : public NLMaterial
       }
       out << type << " ";
       std::copy(&ematpro[0], &ematpro[8], std::ostream_iterator<double>(out, " "));
-      out << "0.0 " << optcor0 << " " << optcor1 << " " << optprj << " " << opthgc << " "
+      out << yssrtid << " " << optcor0 << " " << optcor1 << " " << optprj << " " << opthgc << " "
           << prmhgc[0] << " " << prmhgc[1] << " " << prmhgc[2] << " " << ngqpt2 << " "
           << ematpro[18];
     }
 
     void setSDProps(MFTTData *_ysst) { if(optctv == 5 && _ysst && _ysst->getID() == -int(ematpro[3])) ysst = _ysst; }
+    void setSRDProps(MFTTData *_yssrt) { if(optctv == 5 && yssrtid > 0 &&  _yssrt && _yssrt->getID() == yssrtid) yssrt = _yssrt; }
 };
 
 #endif

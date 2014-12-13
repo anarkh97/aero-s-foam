@@ -40,10 +40,10 @@ class ElaLinIsoMat : public NLMaterial
     void getStressAndTangentMaterial(Tensor *stress, Tensor *tm, Tensor &strain, double*, double temp);
      
     void integrate(Tensor *stress, Tensor *tm, Tensor &en, Tensor &enp,
-                   double *staten, double *statenp, double temp);
+                   double *staten, double *statenp, double temp, double dt=0);
 
     void integrate(Tensor *stress, Tensor &en, Tensor &enp,
-                   double *staten, double *statenp, double temp);
+                   double *staten, double *statenp, double temp, double dt=0);
 
     void initStates(double *){};
 

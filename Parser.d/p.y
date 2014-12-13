@@ -100,7 +100,7 @@
 %token TANGENT TDENFORCE TEMP TIME TOLEIG TOLFETI TOLJAC TOLPCG TOPFILE TOPOLOGY TRBM THERMOE THERMOH 
 %token TETT TOLCGM TURKEL TIEDSURFACES THETA PROJSOL POSELEM HRC THIRDNODE THERMMAT TDENFORC TESTULRICH THRU TRIVIAL
 %token USE USERDEFINEDISP USERDEFINEFORCE UPROJ UNSYMMETRIC USING
-%token VERSION WETCORNERS YMTT YSST
+%token VERSION WETCORNERS YMTT YSST YSSRT
 %token ZERO BINARY GEOMETRY DECOMPOSITION GLOBAL MATCHER CPUMAP
 %token NODALCONTACT MODE FRIC GAP
 %token OUTERLOOP EDGEWS WAVETYPE ORTHOTOL IMPE FREQ DPH WAVEMETHOD
@@ -149,7 +149,7 @@
 %type <nval>     Node
 %type <lmpcons>  MPCList ComplexMPCList MPCHeader
 %type <strval>   FNAME 
-%type <ymtt>     YMTTList YSSTList
+%type <ymtt>     YMTTList YSSTList YSSRTList
 %type <ctett>    TETTList
 %type <sdetaft>  SDETAFList
 %type <dlist>    FloatList
@@ -234,6 +234,7 @@ Component:
         | YMTTable
         | TETTable
         | YSSTable
+        | YSSRTable
         | SDETAFTable
 	| RbmTolerance
         | ToleranceInfo
@@ -1974,6 +1975,18 @@ YSSTList:
         { $$->add($2, $3); }
         | YSSTList CURVE Integer NewLine Float Float NewLine
         { $$ = new MFTTData($3); $$->add($5, $6); domain->addYSST($$);}
+        ;
+YSSRTable:
+        YSSRT NewLine
+        | YSSRT NewLine YSSRTList
+        ;
+YSSRTList:
+        CURVE Integer NewLine Float Float NewLine
+        { $$ = new MFTTData($2); $$->add($4, $5); domain->addYSSRT($$);}
+        | YSSRTList Float Float NewLine
+        { $$->add($2, $3); }
+        | YSSRTList CURVE Integer NewLine Float Float NewLine
+        { $$ = new MFTTData($3); $$->add($5, $6); domain->addYSSRT($$);}
         ;
 SDETAFTable:
         SDETAFT NewLine
@@ -4266,6 +4279,28 @@ MatSpec:
              geoSource->addMaterial($2-1, new BilinPlasKinHardMat($4, $5, $6, $7, $8, $9, $10, $11) );
            }
          }
+        | MatSpec Integer BILINEARPLASTIC Float Float Float Float Float Float Float Float Float Float NewLine
+         {
+           if($12 > 0 && $12 < std::numeric_limits<double>::infinity()) {
+             geoSource->addMaterial($2-1, new BilinPlasKinHardMat($4, $5, $6, $7, $8, $9, $10, $11, $12, $13) );
+             domain->solInfo().elementDeletion = true;
+           }
+           else {
+             geoSource->addMaterial($2-1, new BilinPlasKinHardMat($4, $5, $6, $7, $8, $9, $10, $11,
+                                    std::numeric_limits<double>::infinity(), $13) );
+           }
+         }
+        | MatSpec Integer BILINEARPLASTIC Float Float Float Float Float Float Float Float Float Float Integer NewLine
+         {
+           if($12 > 0 && $12 < std::numeric_limits<double>::infinity()) {
+             geoSource->addMaterial($2-1, new BilinPlasKinHardMat($4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) );
+             domain->solInfo().elementDeletion = true;
+           }
+           else {
+             geoSource->addMaterial($2-1, new BilinPlasKinHardMat($4, $5, $6, $7, $8, $9, $10, $11,
+                                    std::numeric_limits<double>::infinity(), $13, $14) );
+           }
+         }
         | MatSpec Integer FINITESTRAINPLASTIC Float Float Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
@@ -4291,6 +4326,28 @@ MatSpec:
              geoSource->addMaterial($2-1, new FiniteStrainPlasKinHardMat($4, $5, $6, $7, $8, $9, $10, $11) );
            }
          }
+        | MatSpec Integer FINITESTRAINPLASTIC Float Float Float Float Float Float Float Float Float Float NewLine
+         {
+           if($12 > 0 && $12 < std::numeric_limits<double>::infinity()) {
+             geoSource->addMaterial($2-1, new FiniteStrainPlasKinHardMat($4, $5, $6, $7, $8, $9, $10, $11, $12, $13) );
+             domain->solInfo().elementDeletion = true;
+           }
+           else {
+             geoSource->addMaterial($2-1, new FiniteStrainPlasKinHardMat($4, $5, $6, $7, $8, $9, $10, $11, 
+                                    std::numeric_limits<double>::infinity(), $13) );
+           }
+         }
+        | MatSpec Integer FINITESTRAINPLASTIC Float Float Float Float Float Float Float Float Float Float Integer NewLine
+         {
+           if($12 > 0 && $12 < std::numeric_limits<double>::infinity()) {
+             geoSource->addMaterial($2-1, new FiniteStrainPlasKinHardMat($4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 414) );
+             domain->solInfo().elementDeletion = true;
+           }
+           else {
+             geoSource->addMaterial($2-1, new FiniteStrainPlasKinHardMat($4, $5, $6, $7, $8, $9, $10, $11,
+                                    std::numeric_limits<double>::infinity(), $13, $14) );
+           }
+         }
         | MatSpec Integer LOGSTRAINPLASTIC Float Float Float Float Float NewLine
          {
            geoSource->addMaterial($2-1,
@@ -4314,6 +4371,28 @@ MatSpec:
            }
            else {
              geoSource->addMaterial($2-1, new LogStrainPlasKinHardMat($4, $5, $6, $7, $8, $9, $10, $11) );
+           }
+         }
+        | MatSpec Integer LOGSTRAINPLASTIC Float Float Float Float Float Float Float Float Float Float NewLine
+         {
+           if($12 > 0 && $12 < std::numeric_limits<double>::infinity()) {
+             geoSource->addMaterial($2-1, new LogStrainPlasKinHardMat($4, $5, $6, $7, $8, $9, $10, $11, $12, $13) );
+             domain->solInfo().elementDeletion = true;
+           }
+           else {
+             geoSource->addMaterial($2-1, new LogStrainPlasKinHardMat($4, $5, $6, $7, $8, $9, $10, $11, 
+                                    std::numeric_limits<double>::infinity(), $13) );
+           }
+         }
+        | MatSpec Integer LOGSTRAINPLASTIC Float Float Float Float Float Float Float Float Float Float Integer NewLine
+         {
+           if($12 > 0 && $12 < std::numeric_limits<double>::infinity()) {
+             geoSource->addMaterial($2-1, new LogStrainPlasKinHardMat($4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) );
+             domain->solInfo().elementDeletion = true;
+           }
+           else {
+             geoSource->addMaterial($2-1, new LogStrainPlasKinHardMat($4, $5, $6, $7, $8, $9, $10, $11,
+                                    std::numeric_limits<double>::infinity(), $13, $14) );
            }
          }
         | MatSpec Integer LINEARELASTIC Float Float Float Float Float NewLine
@@ -4413,40 +4492,58 @@ MatSpec:
           }
         | MatSpec Integer ISOTROPICLINEARELASTICJ2PLASTIC Float Float Float Float Float Float NewLine
           {
-            double params[7] = { $4, $5, $6, $7, $8, $9, 1.0e-6 };
+            double params[9] = { $4, $5, $6, $7, $8, $9, 1.0e-6, std::numeric_limits<double>::infinity(), 0. };
             geoSource->addMaterial($2-1,
               new MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>(params));
           }
         | MatSpec Integer ISOTROPICLINEARELASTICJ2PLASTIC Float Float Float Float Float Float Float NewLine
           {
-            double params[7] = { $4, $5, $6, $7, $8, $9, $10 };
+            double params[9] = { $4, $5, $6, $7, $8, $9, $10, std::numeric_limits<double>::infinity(), 0. };
             geoSource->addMaterial($2-1,
               new MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>(params));
           }
+        | MatSpec Integer ISOTROPICLINEARELASTICJ2PLASTIC Float Float Float Float Float Float Float Float NewLine
+          {
+            double params[9] = { $4, $5, $6, $7, $8, $9, $10, $11, 0. };
+            geoSource->addMaterial($2-1,
+              new MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>(params));
+            if($11 > 0 && $11 < std::numeric_limits<double>::infinity()) {
+              domain->solInfo().elementDeletion = true;
+            }
+          }
+        | MatSpec Integer ISOTROPICLINEARELASTICJ2PLASTIC Float Float Float Float Float Float Float Float Integer NewLine
+          {
+            double params[9] = { $4, $5, $6, $7, $8, $9, $10, $11, double($12) };
+            geoSource->addMaterial($2-1,
+              new MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>(params));
+            if($11 > 0 && $11 < std::numeric_limits<double>::infinity()) {
+              domain->solInfo().elementDeletion = true;
+            }
+          }
         | MatSpec Integer ISOTROPICLINEARELASTICJ2PLASTICPLANESTRESS Float Float Float Float Float Float NewLine
           {
-            double params[9] = { $4, $5, $6, $7, $8, $9, 1.0e-6, std::numeric_limits<double>::infinity(), -std::numeric_limits<double>::infinity() };
+            double params[9] = { $4, $5, $6, $7, $8, $9, 1.0e-6, std::numeric_limits<double>::infinity(), 0. };
             geoSource->addMaterial($2-1,
               new MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(params));
           }
         | MatSpec Integer ISOTROPICLINEARELASTICJ2PLASTICPLANESTRESS Float Float Float Float Float Float Float NewLine
           {
-            double params[9] = { $4, $5, $6, $7, $8, $9, $10, std::numeric_limits<double>::infinity(), -std::numeric_limits<double>::infinity() };
+            double params[9] = { $4, $5, $6, $7, $8, $9, $10, std::numeric_limits<double>::infinity(), 0. };
             geoSource->addMaterial($2-1,
               new MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(params));
           }
         | MatSpec Integer ISOTROPICLINEARELASTICJ2PLASTICPLANESTRESS Float Float Float Float Float Float Float Float NewLine
           {
-            double params[9] = { $4, $5, $6, $7, $8, $9, $10, $11, -std::numeric_limits<double>::infinity() };
+            double params[9] = { $4, $5, $6, $7, $8, $9, $10, $11, 0. };
             geoSource->addMaterial($2-1,
               new MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(params));
             if($11 > 0 && $11 < std::numeric_limits<double>::infinity()) {
               domain->solInfo().elementDeletion = true;
             }
           }
-        | MatSpec Integer ISOTROPICLINEARELASTICJ2PLASTICPLANESTRESS Float Float Float Float Float Float Float Float Float NewLine
+        | MatSpec Integer ISOTROPICLINEARELASTICJ2PLASTICPLANESTRESS Float Float Float Float Float Float Float Float Integer NewLine
           {
-            double params[9] = { $4, $5, $6, $7, $8, $9, $10, $11, $12 };
+            double params[9] = { $4, $5, $6, $7, $8, $9, $10, $11, double($12) };
             geoSource->addMaterial($2-1,
               new MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(params));
             if($11 > 0 && $11 < std::numeric_limits<double>::infinity()) {
@@ -4486,11 +4583,11 @@ MatSpec:
              domain->solInfo().elementDeletion = true;
            }
          }
-        | MatSpec Integer OPTCTV Float Float Float Float Float Float Float Float Float
+        | MatSpec Integer OPTCTV Float Float Float Float Float Float Float Float Integer
                           Integer Integer Integer Integer Float Float Float Integer Float NewLine
          {
            ExpMat *mat = new ExpMat($3, $4, $5, $6, $7, $8, $9, $10, $11);
-           // $12 is reserved, e.g. for fracture toughness
+           mat->yssrtid = $12;
            mat->optcor0 = $13;
            mat->optcor1 = $14;
            mat->optprj = $15;

@@ -75,7 +75,7 @@ ElaLinIsoMat2D::getStressAndTangentMaterial(Tensor *_stress, Tensor *_tm, Tensor
 
 void 
 ElaLinIsoMat2D::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Tensor &_enp,
-                          double *staten, double *statenp, double temp)
+                          double *staten, double *statenp, double temp, double)
 {
   SymTensor<double,2> & enp = static_cast<SymTensor<double,2> &>(_enp);
   SymTensor<double,2> * stress = static_cast<SymTensor<double,2> *>(_stress);
@@ -100,7 +100,7 @@ ElaLinIsoMat2D::integrate(Tensor *_stress, Tensor *_tm, Tensor &, Tensor &_enp,
 
 void
 ElaLinIsoMat2D::integrate(Tensor *_stress, Tensor &, Tensor &_enp,
-                          double *staten, double *statenp, double temp)
+                          double *staten, double *statenp, double temp, double)
 {
   SymTensor<double,2> & enp = static_cast<SymTensor<double,2> &>(_enp);
   SymTensor<double,2> * stress = static_cast<SymTensor<double,2> *>(_stress);

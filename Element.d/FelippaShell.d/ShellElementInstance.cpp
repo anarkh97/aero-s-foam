@@ -40,7 +40,7 @@ void \
 ShellElementTemplate<double,Membrane,Bending> \
 ::andesstf(int elm, double *estiff, double *fint, double nu, \
            double *x, double *y, double *z, double *v, int ctyp, \
-           ShellMaterial<double> *gpmat, int flag, int tflg, double *ndtemps); \
+           ShellMaterial<double> *gpmat, int flag, int tflg, double *ndtemps, double dt); \
 template \
 void \
 ShellElementTemplate<double,Membrane,Bending> \
@@ -105,7 +105,7 @@ template \
 void \
 ShellElementTemplate<double,Membrane,Bending> \
 ::andesups(int elm, double *state, double *X, double *Y, double *Z, double *_v, \
-           ShellMaterial<double> *gpmat, ShellMaterial<double> *nmat, int sflg); \
+           ShellMaterial<double> *gpmat, ShellMaterial<double> *nmat, int sflg, double dt); \
 template \
 void \
 ShellElementTemplate<double,Membrane,Bending> \

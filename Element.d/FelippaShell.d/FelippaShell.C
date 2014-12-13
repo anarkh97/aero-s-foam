@@ -409,6 +409,10 @@ FelippaShell::setMaterial(NLMaterial *_mat)
       for(int i=0; i<expmat->ysst->getNumPoints(); ++i)
         mat->SetExperimentalCurveData(expmat->ysst->getT(i), expmat->ysst->getV(i));
     }
+    if(expmat->yssrt) {
+      for(int i=0; i<expmat->yssrt->getNumPoints(); ++i)
+        mat->SetExperimentalCurveData2(expmat->yssrt->getT(i), expmat->yssrt->getV(i));
+    }
     type = 4;
     if(gpmat) delete gpmat;
     gpmat = new ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>(prop->eh, prop->nu, prop->rho, mat, 5, 3,
@@ -566,7 +570,7 @@ FelippaShell::getStiffAndForce(GeomState *refState, GeomState &geomState, CoordS
     x[1] = node2.x; y[1] = node2.y; z[1] = node2.z;
     x[2] = node3.x; y[2] = node3.y; z[2] = node3.z;
 
-    Impl::andesstf(glNum+1, elK.data(), locF, prop->nu, x, y, z, vld, type, gpmat, 0);
+    Impl::andesstf(glNum+1, elK.data(), locF, prop->nu, x, y, z, vld, type, gpmat, 0, 1, (double*)NULL, dt);
 
     if(numStates() > 0) {
       double *state = geomState.getElemState(getGlNum()) + subNum*numStates();
@@ -717,7 +721,7 @@ FelippaShell::getInternalForce(GeomState *refState, GeomState &geomState, CoordS
     x[1] = node2.x; y[1] = node2.y; z[1] = node2.z;
     x[2] = node3.x; y[2] = node3.y; z[2] = node3.z;
 
-    Impl::andesstf(glNum+1, (double*)NULL, locF, prop->nu, x, y, z, vld, type, gpmat, 0);
+    Impl::andesstf(glNum+1, (double*)NULL, locF, prop->nu, x, y, z, vld, type, gpmat, 0, 1, (double*)NULL, dt);
 
     if(numStates() > 0) {
       double *state = geomState.getElemState(getGlNum()) + subNum*numStates();
@@ -762,7 +766,7 @@ FelippaShell::getInternalForce(GeomState *refState, GeomState &geomState, CoordS
 }
 
 void
-FelippaShell::updateStates(GeomState *refState, GeomState &geomState, CoordSet &cs)
+FelippaShell::updateStates(GeomState *refState, GeomState &geomState, CoordSet &cs, double dt)
 {
   if(numStates() > 0) {
 
@@ -803,7 +807,7 @@ FelippaShell::updateStates(GeomState *refState, GeomState &geomState, CoordSet &
 
     int sflg = 1;
 
-    Impl::andesups(glNum+1, statenp, x, y, z, vld, gpmat, nmat, sflg);
+    Impl::andesups(glNum+1, statenp, x, y, z, vld, gpmat, nmat, sflg, dt);
 
     if(!refState) delete [] staten;
   }

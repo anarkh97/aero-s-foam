@@ -209,6 +209,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <vector>
+#include <limits>
 
 class IsotropicLinearElasticJ2PlasticMaterial
 {
@@ -225,7 +226,9 @@ class IsotropicLinearElasticJ2PlasticMaterial
   //! \param in Hardening exponent for generalized power-law hardening, zero by default
   IsotropicLinearElasticJ2PlasticMaterial(double iLambda, double iMu,
                                           double iSigmaY, double iK=0., double iH=0.,
-                                          double iTol = 1.0e-6, double ik=0., double in=0.);
+                                          double iTol = 1.0e-6,
+                                          double iequivEPSplasticF = std::numeric_limits<double>::infinity(),
+                                          double ik=0., double in=0.);
 
   //! Destructor
   ~IsotropicLinearElasticJ2PlasticMaterial();
@@ -243,10 +246,12 @@ class IsotropicLinearElasticJ2PlasticMaterial
   //! \param CauchyStress Output. Computed Cauchy stress.
   //! \param Cep Output. Elasto-plastic tangent, computed if requested.
   //! \param UpdateFlag. Input. State of material is updated if set to true. Defaulted to true.
+  //! \param dt Input. Time increment.
   bool ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1,
                                                 std::vector<double> *CauchyStress,
                                                 std::vector<double> *Cep = 0,
-                                                const bool UpdateFlag=true);
+                                                const bool UpdateFlag = true,
+                                                double dt = 0.);
 
   //! Return the plastic strain in the material
   std::vector<double> GetMaterialPlasticStrain() const;
@@ -272,6 +277,15 @@ class IsotropicLinearElasticJ2PlasticMaterial
   //! Return shear modulus of material
   double GetShearModulus() const;
 
+  //! Returns dissipated energy in material
+  double GetDissipatedEnergy() const;
+
+  //! Returns the equivalent plastic strain at failure
+  double GetEquivalentPlasticStrainAtFailure() const;
+
+  //! Returns the tolerance for convergence of nonlinear solve
+  double GetTolerance() const;
+
   //! Set the plastic strain in the material
   //! \param EPSplastic Input. Plastic strain.
   void SetMaterialPlasticStrain(const std::vector<double> &EPSplastic);
@@ -289,11 +303,18 @@ class IsotropicLinearElasticJ2PlasticMaterial
   //! \param iYieldStress Input. Yield stress at a point.
   void SetExperimentalCurveData(double iEqPlasticStrain, double iYieldStress);
 
+  //! Set the data at a point in the yield stress scale factor vs. effective plastic strain rate curve
+  //! \param iEqPlasticStrainRate Input. Equivalent plastic strain rate at a point.
+  //! \param iYieldStressScaleFactor Input. Yield stress at a point.
+  void SetExperimentalCurveData2(double iEqPlasticStrainRate, double iYieldStressScaleFactor);
+
   //! Checks if state of the material lies on or within yield surface.
   //! \param CS Input. Cauchy stress.
   //! \param TOL Input. Tolerance for comparing yield function with zero. Defaulted to 1e-6.
+  //! \param dt Input. Time increment. Defaulted to 0.
   //! Returns true if f<=TOL and false otherwise.
-  bool CheckMaterialState(const std::vector<double> &CS, const double TOL=1.e-6) const;
+  bool CheckMaterialState(const std::vector<double> &CS, const double TOL=1.e-6,
+                          const double dt = 0.) const;
 
  private:
 
@@ -316,16 +337,22 @@ class IsotropicLinearElasticJ2PlasticMaterial
   //! \param K Output. Isotropic hardening modulus.
   double GetYieldStressUsingExperimentalCurve(const double eqP, double &K) const;
 
+  //! Returns the yield stress scale factor by interpolating the experimental curve
+  //! \param eqPdot Input. Equivalent plastic strain time derivative.
+  //! \param R Output. Derivative of the scale factor w.r.t. eqPdot.
+  double GetScaleFactorUsingExperimentalCurve(const double eqPdot, double &R) const;
+
   //! Evaluate the yield function
   //! \param CauchyStress Input. Cauchy stress.
   //! \param SigmaB Input. Back stress.
-  //! \param eqP Input. Equivalent plastic strain.
-  //! \param epsP Input. Plastic strain.
+  //! \param eqP Input. Equivalent plastic strain increment.
   //! \param K Output. Isotropic hardening modulus.
+  //! \param dt Input. Time increment.
   double EvaluateYieldFunction(const double * CauchyStress,
                                const double * SigmaB,
-                               const double eqP,
-                               double &K) const;
+                               const double DeltaEqP,
+                               double &K,
+                               const double dt) const;
 
   //! Compute the deviatoric part of a 3x3 tensor
   //! \param T Input. Should have size 9.
@@ -359,6 +386,9 @@ class IsotropicLinearElasticJ2PlasticMaterial
   //! Tolerance for convergence of nonlinear solve
   double Tol;
 
+  //! Equivalent plastic strain at failure
+  double equivEPSplasticF;
+
   //! Linear elastic material
   IsotropicLinearElastic * ILE;
 
@@ -376,6 +406,12 @@ class IsotropicLinearElasticJ2PlasticMaterial
 
   //! Yield stress values in experimental stress-strain curve
   std::vector<double> ExpYieldStress;
+
+  //! Plastic strain rate values in experimental stress-strain scaling curve
+  std::vector<double> ExpEqPlasticStrainRate;
+
+  //! Yield stress scaling values in experimental stress-strain scaling curve
+  std::vector<double> ExpYieldStressScale;
 };
 
 

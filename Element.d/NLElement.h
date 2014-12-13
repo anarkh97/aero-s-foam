@@ -41,7 +41,7 @@ class MatNLElement : public Element {
        getInternalForce(nodes, dispnp, statenp, force);
      }
 
-     virtual void updateStates(Node *nodes, double *un, double *unp, double *statenp, double *temps) {
+     virtual void updateStates(Node *nodes, double *un, double *unp, double *statenp, double *temps, double dt=0) {
        fprintf(stderr, "MatNLElement::updateStates is being called on an element "
                "for which it is not defined\n");
      }

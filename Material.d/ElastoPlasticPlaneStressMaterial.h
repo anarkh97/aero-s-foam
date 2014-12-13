@@ -15,10 +15,12 @@ class ElastoPlasticPlaneStressMaterial
   //! \param CauchyStress Output. Has size 9x1.
   //! \param Cep Output. Algorithmic elastoplastic tangent. If requested, has size 81x1.
   //! \param UpdateFlag Input. Material state updated if true. Note that by default, material state is updated.
+  //! \param dt Input. Time increment.
   virtual bool ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1, 
                                                         std::vector<double> * CauchyStress, 
                                                         std::vector<double> * Cep = 0, 
-                                                        const bool UpdateFlag = true) = 0;
+                                                        const bool UpdateFlag = true,
+                                                        const double dt = 0.) = 0;
   
   //! Returns the plastic strain in material (3x1 vector)
   virtual const std::vector<double> & GetMaterialPlasticStrain() const = 0;

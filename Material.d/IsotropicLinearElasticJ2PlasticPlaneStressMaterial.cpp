@@ -28,7 +28,6 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include <limits>
 #ifdef USE_EIGEN3
 #include <Eigen/Dense>
 #endif
@@ -79,7 +78,8 @@ IsotropicLinearElasticJ2PlasticPlaneStressMaterial::~IsotropicLinearElasticJ2Pla
 IsotropicLinearElasticJ2PlasticPlaneStressMaterial::
 IsotropicLinearElasticJ2PlasticPlaneStressMaterial(const IsotropicLinearElasticJ2PlasticPlaneStressMaterial &Mat)
   :E(Mat.E), nu(Mat.nu), SigmaY(Mat.SigmaY), K(Mat.K), H(Mat.H), Tol(Mat.Tol), t00(Mat.t00), t01(Mat.t01), t22(Mat.t22),
-   equivEPSplasticF(Mat.equivEPSplasticF), ExpEqPlasticStrain(Mat.ExpEqPlasticStrain), ExpYieldStress(Mat.ExpYieldStress)
+   equivEPSplasticF(Mat.equivEPSplasticF), ExpEqPlasticStrain(Mat.ExpEqPlasticStrain), ExpYieldStress(Mat.ExpYieldStress),
+   ExpEqPlasticStrainRate(Mat.ExpEqPlasticStrainRate), ExpYieldStressScale(Mat.ExpYieldStressScale)
 {
   EPSplastic.clear();
   BackStress.clear();
@@ -125,8 +125,8 @@ GetShearModulus() const
 double IsotropicLinearElasticJ2PlasticPlaneStressMaterial::
 GetDissipatedEnergy() const
 { 
-  if(SigmaY < 0) {
-    std::cerr << " *** WARNING: IsotropicLinearElasticJ2PlasticPlaneStressMaterial::FetDissipatedEnergy is not implemented for nonlinear isotropic hardening.\n";
+  if(SigmaY < 0 || ExpEqPlasticStrainRate.size() > 0) {
+    std::cerr << " *** WARNING: IsotropicLinearElasticJ2PlasticPlaneStressMaterial::GetDissipatedEnergy is not implemented for nonlinear isotropic hardening.\n";
     return 0;
   }
   return (SigmaY + 0.5*K*equivEPSplastic)*equivEPSplastic;
@@ -246,10 +246,40 @@ GetYieldStressUsingExperimentalCurve(const double eqP, double &K) const
   return SigmaY;
 }
 
+// Compute yield stress scaling factor and its derivate w.r.t eqPdot by interpolating experimental stress-strain curve
+double IsotropicLinearElasticJ2PlasticPlaneStressMaterial::
+GetScaleFactorUsingExperimentalCurve(const double eqPdot, double &R) const
+{
+  double ScaleF = 0.;
+  const int N = std::min(ExpEqPlasticStrainRate.size(), ExpYieldStressScale.size());
+  if( eqPdot<=ExpEqPlasticStrainRate[0] ) {
+    ScaleF = ExpYieldStressScale[0];
+    R = (ExpYieldStressScale[1]-ExpYieldStressScale[0])/(ExpEqPlasticStrainRate[1]-ExpEqPlasticStrainRate[0]);
+  }
+  else if ( eqPdot>=ExpEqPlasticStrainRate[N-1] ) {
+    R = (ExpYieldStressScale[N-1]-ExpYieldStressScale[N-2])/(ExpEqPlasticStrainRate[N-1]-ExpEqPlasticStrainRate[N-2]);
+    ScaleF = ExpYieldStressScale[N-1] + R*(eqPdot-ExpEqPlasticStrainRate[N-1]);
+  }
+  else
+    {
+      for(int i=0; i<N-1; i++)
+        if( eqPdot>=ExpEqPlasticStrainRate[i] && eqPdot<ExpEqPlasticStrainRate[i+1] )
+          {
+            double lambda = (ExpEqPlasticStrainRate[i+1]-eqPdot)/(ExpEqPlasticStrainRate[i+1]-ExpEqPlasticStrainRate[i]);
+            ScaleF = lambda*ExpYieldStressScale[i] + (1.-lambda)*ExpYieldStressScale[i+1];
+            R = (ExpYieldStressScale[i+1]-ExpYieldStressScale[i])/(ExpEqPlasticStrainRate[i+1]-ExpEqPlasticStrainRate[i]);
+            break;
+          }
+    }
+  return ScaleF;
+}
+
 // Evaluate yield function
 double IsotropicLinearElasticJ2PlasticPlaneStressMaterial::
-EvaluateYieldFunction(const double * Xi, const double eqP, double &K) const
+EvaluateYieldFunction(const double * Xi, const double DeltaEqP, double &K, const double dt) const
 {
+  double eqP = equivEPSplastic + DeltaEqP;
+
   // Norm of Xi
   double J2 = ComputeJ2(Xi);
 
@@ -263,13 +293,22 @@ EvaluateYieldFunction(const double * Xi, const double eqP, double &K) const
     YSrad = sqrt(2./3.) * GetYieldStressUsingExperimentalCurve(eqP, K);
   }
 
+  // Scale yield stress due to strain-rate dependency
+  if(ExpEqPlasticStrainRate.size() > 0 && dt > 0) {
+    double R;
+    double ScaleF = GetScaleFactorUsingExperimentalCurve(DeltaEqP/dt, R);
+    K = sqrt(3./2.)*YSrad*R/dt + ScaleF*K;
+    YSrad *= ScaleF;
+  }
+
   return J2 - YSrad;
 }
 
 // Check if state of material lies within yield surface
 bool IsotropicLinearElasticJ2PlasticPlaneStressMaterial::
 CheckMaterialState(const std::vector<double> &CS,
-                   const double TOL) const
+                   const double TOL,
+                   const double dt) const
 {
   // Compute Xi = Cauchy stress - Back stress (in vector form)
   double Xi[3] = { CS[0]-BackStress[0],
@@ -278,7 +317,7 @@ CheckMaterialState(const std::vector<double> &CS,
 
   // Evaluate yield function
   double K;
-  double Fval = EvaluateYieldFunction(Xi, equivEPSplastic, K);
+  double Fval = EvaluateYieldFunction(Xi, 0, K, dt);
 
   // Check for tolerance after non-dimensionalizing Fval.
   if( (SigmaY >= 0 && Fval < TOL*SigmaY) || (SigmaY < 0 && Fval < TOL*ExpYieldStress[0]) )
@@ -292,7 +331,8 @@ bool IsotropicLinearElasticJ2PlasticPlaneStressMaterial::
 ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1,
                                          std::vector<double> *CauchyStress,
                                          std::vector<double> *Cep,
-                                         const bool UpdateFlag)
+                                         const bool UpdateFlag,
+                                         const double dt)
 {
 #ifndef USE_EIGEN3
   // Notify that elastoplastic tangents are not computed.
@@ -349,7 +389,7 @@ ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1,
 
   // Evaluate yield function at trial state
   double K;
-  double Ftrial = EvaluateYieldFunction(Xitrial, equivEPSplastic, K);
+  double Ftrial = EvaluateYieldFunction(Xitrial, 0, K, dt);
 
   // Use some tolerance for checking yield function value
   // Note: I observe a relationship between TOL and the nltol under NONLINEAR
@@ -421,7 +461,7 @@ ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1,
             }
         
           // Evaluate yield function
-          F_L = EvaluateYieldFunction(Xi, equivEPSplastic+sqrt(2./3.)*lambda_L*ComputeJ2(Xi), K);
+          F_L = EvaluateYieldFunction(Xi, sqrt(2./3.)*lambda_L*ComputeJ2(Xi), K, dt);
         
           if( F_L<=0. )
             // lambda corresponding to negative value of F has been found.
@@ -467,7 +507,7 @@ ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1,
                        <<"Could not evaluate stress state for some guess of consistency parameter.\n";
               return false;
             }
-          double F = EvaluateYieldFunction(Xi, equivEPSplastic+sqrt(2./3.)*lambda*ComputeJ2(Xi), K);
+          double F = EvaluateYieldFunction(Xi, sqrt(2./3.)*lambda*ComputeJ2(Xi), K, dt);
         
           if(std::abs(F) < TOL || (lambda_L-lambda_R)/2 < 0)  //ORIG: if( std::abs(F) < TOL )
             CONVERGED = true;
@@ -518,11 +558,21 @@ ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1,
       (*CauchyStress)[1] = (*CauchyStress)[3] = CS[2];
       (*CauchyStress)[2] = (*CauchyStress)[5] = (*CauchyStress)[6] = (*CauchyStress)[7] = (*CauchyStress)[8] = 0.;
 
-      if( Cep )
+      // Check for failure
+      if(equivEPSplasticF < std::numeric_limits<double>::infinity() &&
+         equivEPSplastic+sqrt(2./3.)*lambda*ComputeJ2(Xi) >= equivEPSplasticF)
+        {
+          if( Cep ) for(int i=0; i<9; i++) (*Cep)[i] = 0;
+          for(int i=0; i<9; i++) (*CauchyStress)[i] = 0;
+        }
+
+      else if( Cep )
         {
 #ifdef USE_EIGEN3
+          // Evaluate the consistent elasto-plastic modulii
           using Eigen::Matrix3d;
           using Eigen::Vector3d;
+
           // Compute A*P*xi where A is the modified (algorithmic tangent modulus)
           Matrix3d C; C << (*Ce)[0], (*Ce)[1], (*Ce)[2],
                            (*Ce)[3], (*Ce)[4], (*Ce)[5],
@@ -549,14 +599,6 @@ ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1,
             for(int j=0; j<3; j++)
               (*Cep)[3*i+j] = A(i,j) - N[i]*N[j]/(1+beta);
 #endif
-        }
-
-      // Check for failure
-      if(equivEPSplasticF < std::numeric_limits<double>::infinity() &&
-         equivEPSplastic+sqrt(2./3.)*lambda*ComputeJ2(Xi) >= equivEPSplasticF)
-        {
-          if( Cep ) for(int i=0; i<9; i++) (*Cep)[i] = 0;
-          for(int i=0; i<9; i++) (*CauchyStress)[i] = 0;
         }
 
       // If requested, update state of material
@@ -618,11 +660,19 @@ ComputeXiGivenConsistencyParameter(const double * Xitrial, const double lambda, 
     }
 }
 
-// Set the stress and strain at a point in the stress-strain curve
+// Set the (x,y) values at a point in the yield stress vs. effective plastic strain curve
 void IsotropicLinearElasticJ2PlasticPlaneStressMaterial::
 SetExperimentalCurveData(double iEqPlasticStrain, double iYieldStress)
 {
   ExpEqPlasticStrain.push_back(iEqPlasticStrain);
   ExpYieldStress.push_back(iYieldStress);
+}
+
+// Set the (x,y) values at a point in the yield stress scale factor vs. effective plastic strain rate curve
+void IsotropicLinearElasticJ2PlasticPlaneStressMaterial::
+SetExperimentalCurveData2(double iEqPlasticStrainRate, double iYieldStressScale)
+{
+  ExpEqPlasticStrainRate.push_back(iEqPlasticStrainRate);
+  ExpYieldStressScale.push_back(iYieldStressScale);
 }
 

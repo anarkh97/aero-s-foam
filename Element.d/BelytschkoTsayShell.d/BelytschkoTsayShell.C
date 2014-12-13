@@ -179,6 +179,10 @@ BelytschkoTsayShell::setMaterial(NLMaterial *m)
           for(int j=0; j<expmat->ysst->getNumPoints(); ++j)
             mi->SetExperimentalCurveData(expmat->ysst->getT(j), expmat->ysst->getV(j));
         }
+        if(expmat->yssrt) {
+          for(int j=0; j<expmat->yssrt->getNumPoints(); ++j)
+            mi->SetExperimentalCurveData2(expmat->yssrt->getT(j), expmat->yssrt->getV(j));
+        }
         mat[i] = mi;
       } break;
       case 6 :
@@ -989,7 +993,7 @@ BelytschkoTsayShell::Elefintbt1(double delt, double *_ecord, double *_edisp, dou
       F[6] = 0.5*evoit3[6*igaus+4]; // zx
       F[7] = 0.5*evoit3[6*igaus+3]; // zy
       F[8] = 1+evoit3[6*igaus+2]; // zz
-      if(!mat[igaus]->ComputeElastoPlasticConstitutiveResponse(F, &CauchyStress)) {
+      if(!mat[igaus]->ComputeElastoPlasticConstitutiveResponse(F, &CauchyStress, 0, true, delt)) {
         std::cerr << " *** ERROR: ComputeElastoPlasticConstitutiveResponse failed\n";
         exit(-1);
       }

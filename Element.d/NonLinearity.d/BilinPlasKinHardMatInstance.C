@@ -27,12 +27,12 @@ ElasPlasKinHardMat<e>::updateStates(Tensor &en, Tensor &enp, double *state, doub
 template \
 void \
 ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor *_tm, Tensor &_en, Tensor  &_enp, \
-                                 double *staten, double *statenp, double temp); \
+                                 double *staten, double *statenp, double temp, double dt); \
  \
 template \
 void \
 ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor &_en, Tensor  &_enp, \
-                                 double *staten, double *statenp, double temp); \
+                                 double *staten, double *statenp, double temp, double dt); \
  \
 template \
 void  \

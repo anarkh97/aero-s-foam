@@ -586,7 +586,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 ::andesstf(int elm, doublereal *_estiff, doublereal *_fint, doublereal nu,
            doublereal *x, doublereal *y, doublereal *z, doublereal *_v,
            int ctyp, ShellMaterial<doublereal> *gpmat, int flag,
-           int tflg, doublereal *ndtemps)
+           int tflg, doublereal *ndtemps, doublereal dt)
 {
   // Initialized data 
   bool debug = false;
@@ -777,7 +777,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
           if(ndtemps && tflg != 0) 
             temp = zeta[i][0]*ndtemps[0] + zeta[i][1]*ndtemps[1] + zeta[i][2]*ndtemps[2];
           doublereal *_D = (_estiff) ? D->data() : NULL;
-          gpmat->GetConstitutiveResponse(Upsilon.data(), Sigma.data(), _D, eframe.data(), i, temp);
+          gpmat->GetConstitutiveResponse(Upsilon.data(), Sigma.data(), _D, eframe.data(), i, temp, dt);
         }
 
         if(_estiff) {
@@ -2016,7 +2016,7 @@ void
 ShellElementTemplate<doublereal,Membrane,Bending>
 ::andesups(int elm, doublereal *state, doublereal *X, doublereal *Y, doublereal *Z, doublereal *_v,
            ShellMaterial<doublereal> *gpmat, ShellMaterial<doublereal> *nmat,
-           int sflg)
+           int sflg, doublereal dt)
 {
   // Initialized data 
   doublereal clr = 0;
@@ -2115,7 +2115,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 
 // .....COMPUTE THE UPDATED MATERIAL STATE AT GAUSS POINT i
 
-        gpmat->UpdateState(Upsilon.data(), state, i);
+        gpmat->UpdateState(Upsilon.data(), state, i, dt);
         state += 5*7; // 5 is the number of layers per gauss point, 7 is the number of states per material point
 
     }
@@ -2147,7 +2147,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 
 // .....COMPUTE THE UPDATED MATERIAL STATE AT NODE i
 
-        nmat->UpdateState(Upsilon.data(), state, i);
+        nmat->UpdateState(Upsilon.data(), state, i, dt);
         state += 3*7; // 3 is the number of layers per node, 7 is the number of states per material point
 
     }

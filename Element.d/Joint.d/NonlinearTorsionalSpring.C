@@ -44,7 +44,7 @@ NonlinearTorsionalSpring::initStates(double *statenp)
 }
 
 void 
-NonlinearTorsionalSpring::updateStates(GeomState *, GeomState &gState, CoordSet &)
+NonlinearTorsionalSpring::updateStates(GeomState *, GeomState &gState, CoordSet &, double dt)
 {
   // TODO: consider if it is better to update the state from the reference state (i.e. the last converged solution)
   //       rather than the current newton iteration, as we do for plasticity

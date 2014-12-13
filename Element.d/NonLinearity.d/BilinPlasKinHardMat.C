@@ -79,7 +79,7 @@ ElasPlasKinHardMat<e>::updateStates(Tensor &en, Tensor &enp, double *state, doub
 template<int e>
 void
 ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor *_tm, Tensor &_en, Tensor  &_enp,
-                                 double *staten, double *statenp, double temp)
+                                 double *staten, double *statenp, double temp, double dt)
 {
   //////////////////////////////////////////////////////////////////////////////
   /// Simo and Hughes - Computational Inelasticity - Springer -1998- (p:124) ///
@@ -134,6 +134,7 @@ ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor *_tm, Tensor &_en, Tens
     double Hprime = (E != Ep) ? (E*Ep)/(E-Ep) : std::numeric_limits<double>::max();
     double Hk = (1-theta)*Hprime; // kinematic hardening modulus
     double v, s; // value and slope of yield stress vs. effective plastic strain curve
+    double v2, s2; // value and slope of yield stress scaling factor vs. effective plastic strain rate curve
 
     Tensor_d0s2_Ss12 betan;
     Tensor_d0s2_Ss12 edevnp;
@@ -182,12 +183,22 @@ ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor *_tm, Tensor &_en, Tens
       int i,j,k,l;
 
       double plastmult = trialyieldnp/(2*mu+(2./3)*Hprime); 
-      if(ysst) {
-        for (i=0; i<20; ++i) { // Newton-Raphson algorithm for solution of the return mapping equation
-          ysst->getValAndSlopeAlt2(staten[12]+sqrt(2./3)*plastmult, &v, &s);
+      if(ysst || (yssrt && dt > 0)) {
+        // Newton-Raphson algorithm for solution of the return mapping equation
+        for (i=0; i<20; ++i) { 
+          if(ysst) ysst->getValAndSlopeAlt2(staten[12]+sqrt(2./3)*plastmult, &v, &s);
+          else {
+            v = sigE+theta*Hprime*(staten[12]+sqrt(2./3)*plastmult);
+            s = theta*Hprime;
+          }
+          if(yssrt && dt > 0) {
+            yssrt->getValAndSlopeAlt2(sqrt(2./3)*plastmult/dt, &v2, &s2);
+            s = v*s2/dt + v2*s;
+            v *= v2;
+          }
           trialyieldnp = xitrialnpnorm - (2*mu + 2./3*Hk)*plastmult - sqrt(2./3)*v;
           Hprime = Hk + s;
-          if(std::abs(trialyieldnp) < 1e-6*ysst->getVal(0)) break;
+          if(std::abs(trialyieldnp) <= tol*(ysst ? ysst->getVal(0) : sigE)) break;
           plastmult += trialyieldnp/(2*mu + (2./3)*Hprime);
         }
       }
@@ -219,7 +230,7 @@ ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor *_tm, Tensor &_en, Tens
 template<int e>
 void
 ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor &_en, Tensor  &_enp,
-                                 double *staten, double *statenp, double temp)
+                                 double *staten, double *statenp, double temp, double dt)
 {
   //////////////////////////////////////////////////////////////////////////////
   /// Simo and Hughes - Computational Inelasticity - Springer -1998- (p:124) ///
@@ -274,6 +285,7 @@ ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor &_en, Tensor  &_enp,
     double Hprime = (E != Ep) ? (E*Ep)/(E-Ep) : std::numeric_limits<double>::max();
     double Hk = (1-theta)*Hprime; // kinematic hardening modulus
     double v, s; // value and slope of yield stress vs. effective plastic strain curve
+    double v2, s2; // value and slope of yield stress scaling factor vs. effective plastic strain rate curve
 
     Tensor_d0s2_Ss12 betan;
     Tensor_d0s2_Ss12 edevnp;
@@ -323,12 +335,22 @@ ElasPlasKinHardMat<e>::integrate(Tensor *_stress, Tensor &_en, Tensor  &_enp,
       int i,j,k,l;
 
       double plastmult = trialyieldnp/(2*mu+(2./3)*Hprime); 
-      if(ysst) {
-        for (i=0; i<20; ++i) { // Newton-Raphson algorithm for solution of the return mapping equation
-          ysst->getValAndSlopeAlt2(staten[12]+sqrt(2./3)*plastmult, &v, &s);
+      if(ysst || (yssrt && dt > 0)) {
+        // Newton-Raphson algorithm for solution of the return mapping equation
+        for (i=0; i<20; ++i) {
+          if(ysst) ysst->getValAndSlopeAlt2(staten[12]+sqrt(2./3)*plastmult, &v, &s);
+          else {
+            v = sigE+theta*Hprime*(staten[12]+sqrt(2./3)*plastmult);
+            s = theta*Hprime;
+          }
+          if(yssrt && dt > 0) {
+            yssrt->getValAndSlopeAlt2(sqrt(2./3)*plastmult/dt, &v2, &s2);
+            s = v*s2/dt + v2*s;
+            v *= v2;
+          }
           trialyieldnp = xitrialnpnorm - (2*mu + 2./3*Hk)*plastmult - sqrt(2./3)*v;
           Hprime = Hk + s;
-          if(std::abs(trialyieldnp) < 1e-6*ysst->getVal(0)) break;
+          if(std::abs(trialyieldnp) <= tol*(ysst ? ysst->getVal(0) : sigE)) break;
           plastmult += trialyieldnp/(2*mu + (2./3)*Hprime);
         }
       }
@@ -417,7 +439,7 @@ template<int e>
 double
 ElasPlasKinHardMat<e>::getDissipatedEnergy(double *statenp)
 {
-  if(ysst) {
+  if(ysst || yssrt) {
     std::cerr << " *** WARNING: ElasPlasKinHardMat::getDissipatedEnergy is not implemented for nonlinear isotropic hardening.\n";
     return 0;
   }
@@ -434,19 +456,22 @@ template<>
 inline void
 ElasPlasKinHardMat<0>::print(std::ostream &out) const
 {
-  out << "BilinearPlastic " << rho << " " << E << " " << nu << " " << Ep << " " << sigE << " " << theta << " " << Tref << " " << alpha << " " << epsF;
+  out << "BilinearPlastic " << rho << " " << E << " " << nu << " " << Ep << " " << sigE << " " << theta << " " << Tref << " " << alpha
+      << " " << epsF << " " << tol << " " << yssrtid;
 }
 
 template<>
 inline void 
 ElasPlasKinHardMat<1>::print(std::ostream &out) const 
 {
-  out << "FiniteStrainPlastic " << rho << " " << E << " " << nu << " " << Ep << " " << sigE << " " << theta << " " << Tref << " " << alpha << " " << epsF;
+  out << "FiniteStrainPlastic " << rho << " " << E << " " << nu << " " << Ep << " " << sigE << " " << theta << " " << Tref << " " << alpha
+      << " " << epsF << " " << tol << " " << yssrtid;
 }
 
 template<>
 inline void 
 ElasPlasKinHardMat<2>::print(std::ostream &out) const 
 {
-  out << "LogStrainPlastic " << rho << " " << E << " " << nu << " " << Ep << " " << sigE << " " << theta << " " << Tref << " " << alpha << " " << epsF;
+  out << "LogStrainPlastic " << rho << " " << E << " " << nu << " " << Ep << " " << sigE << " " << theta << " " << Tref << " " << alpha
+      << " " << epsF << " " << tol << " " << yssrtid;
 }

@@ -302,7 +302,9 @@ class Domain : public HData {
      ResizeArray<MFTTData *> ctett;        // Coefficient of thermal expansion vs. temperatur table
      int numCTETT;                         // number of CTE Temp tables
      ResizeArray<MFTTData *> ysst;         // Yield stress vs. effective plastic strain temperature table
-     int numYSST;                          // number of YS Strain tables
+     int numYSST;                          // number of YSS tables
+     ResizeArray<MFTTData *> yssrt;        // Yield stress scale factor vs. effective plastic strain rate temperature table
+     int numYSSRT;                         // number of YSSRT tables
      FlExchanger *flExchanger;  // Fluid Exchanger
      FILE *outFile;
 
@@ -607,8 +609,10 @@ class Domain : public HData {
      std::pair<int, ResizeArray<MFTTData*>* >* getCTETT() { return new std::pair<int, ResizeArray<MFTTData*>* >(numCTETT,&ctett); };
      std::pair<int, ResizeArray<MFTTData*>* >* getYMTT() { return new std::pair<int, ResizeArray<MFTTData*>* >(numYMTT,&ymtt); };
      std::pair<int, ResizeArray<MFTTData*>* >* getYSST() { return new std::pair<int, ResizeArray<MFTTData*>* >(numYSST,&ysst); };
+     std::pair<int, ResizeArray<MFTTData*>* >* getYSSRT() { return new std::pair<int, ResizeArray<MFTTData*>* >(numYSSRT,&yssrt); };
      void printCTETT();
      int  addYSST(MFTTData *);
+     int  addYSSRT(MFTTData *);
      void computeTDProps();
 
      ShapeSensitivityData getShapeSensitivityData() { return shapeSenData; }

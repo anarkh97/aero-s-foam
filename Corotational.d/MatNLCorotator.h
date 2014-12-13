@@ -40,7 +40,7 @@ class MatNLCorotator : public Corotator {
                          GeomState *refState, CoordSet &c0, int strInd, int surface = 0,
                          int measure = -1);
 
-     void updateStates(GeomState *refState, GeomState &curState, CoordSet &C0);
+     void updateStates(GeomState *refState, GeomState &curState, CoordSet &C0, double dt = 0);
 
      bool checkElementDeletion(GeomState &curState);
 

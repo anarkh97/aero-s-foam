@@ -36,8 +36,9 @@
 IsotropicLinearElasticJ2PlasticMaterial::
 IsotropicLinearElasticJ2PlasticMaterial(double iLambda, double iMu,
                                         double iSigmaY, double iK, double iH,
-                                        double iTol, double ik, double in)
-  :Mu(iMu), SigmaY(iSigmaY), K(iK), H(iH), k(ik), n(in), Tol(iTol)
+                                        double iTol, double iequivEPSplasticF,
+                                        double ik, double in)
+  :Mu(iMu), SigmaY(iSigmaY), K(iK), H(iH), Tol(iTol), equivEPSplasticF(iequivEPSplasticF), k(ik), n(in)
 {
   // Compute bulk modulus
   Kappa = iLambda + (2./3.)*iMu;
@@ -59,18 +60,17 @@ IsotropicLinearElasticJ2PlasticMaterial(double iLambda, double iMu,
     BackStress.push_back( 0. );
 }
 
-
 // Destructor
 IsotropicLinearElasticJ2PlasticMaterial::
 ~IsotropicLinearElasticJ2PlasticMaterial()
 { delete ILE; }
 
-
 // Copy constructor
 IsotropicLinearElasticJ2PlasticMaterial::
 IsotropicLinearElasticJ2PlasticMaterial(const IsotropicLinearElasticJ2PlasticMaterial &Mat)
-  : Kappa(Mat.Kappa), Mu(Mat.Mu), SigmaY(Mat.SigmaY), K(Mat.K), H(Mat.H), Tol(Mat.Tol), k(Mat.k), n(Mat.n),
-    ExpEqPlasticStrain(Mat.ExpEqPlasticStrain), ExpYieldStress(Mat.ExpYieldStress)
+  : Kappa(Mat.Kappa), Mu(Mat.Mu), SigmaY(Mat.SigmaY), K(Mat.K), H(Mat.H), Tol(Mat.Tol), equivEPSplasticF(Mat.equivEPSplasticF),
+    k(Mat.k), n(Mat.n), ExpEqPlasticStrain(Mat.ExpEqPlasticStrain), ExpYieldStress(Mat.ExpYieldStress),
+    ExpEqPlasticStrainRate(Mat.ExpEqPlasticStrainRate), ExpYieldStressScale(Mat.ExpYieldStressScale)
 {
   ILE = new IsotropicLinearElastic(*Mat.ILE);
   EPSplastic.clear();
@@ -83,67 +83,72 @@ IsotropicLinearElasticJ2PlasticMaterial(const IsotropicLinearElasticJ2PlasticMat
   equivEPSplastic = Mat.equivEPSplastic;
 }
 
-
 // Cloning
 IsotropicLinearElasticJ2PlasticMaterial *
 IsotropicLinearElasticJ2PlasticMaterial::Clone() const
 { return new IsotropicLinearElasticJ2PlasticMaterial(*this); }
 
-
 // Return plastic strain in material
 std::vector<double> IsotropicLinearElasticJ2PlasticMaterial::GetMaterialPlasticStrain() const
 { return EPSplastic; }
-
 
 // Resturn the equivalent plastic strain in material
 double IsotropicLinearElasticJ2PlasticMaterial::GetMaterialEquivalentPlasticStrain() const
 { return equivEPSplastic; }
 
-
 // Return back stress in material
 std::vector<double> IsotropicLinearElasticJ2PlasticMaterial::GetMaterialBackStress() const
 { return BackStress; }
-
 
 // Return isotropic hardening modulus
 double IsotropicLinearElasticJ2PlasticMaterial::GetIsotropicHardeningModulus() const
 { return K; }
 
-
 // Return kinematic hardening modulus
 double IsotropicLinearElasticJ2PlasticMaterial::GetKinematicHardeningModulus() const
 { return H; }
-
 
 // Return flow stress from uniaxial tension test
 double IsotropicLinearElasticJ2PlasticMaterial::GetYieldStressFromTensionTest() const
 { return SigmaY; }
 
-
 // Return bulk modulus
 double IsotropicLinearElasticJ2PlasticMaterial::GetBulkModulus() const
 { return Kappa; }
-
 
 // Return shear modulus of material
 double IsotropicLinearElasticJ2PlasticMaterial::GetShearModulus() const
 { return Mu; }
 
+// Return dissipated energy
+double IsotropicLinearElasticJ2PlasticMaterial::GetDissipatedEnergy() const
+{
+  if(SigmaY < 0 || ExpEqPlasticStrainRate.size() > 0) {
+    std::cerr << " *** WARNING: IsotropicLinearElasticJ2PlasticMaterial::GetDissipatedEnergy is not implemented for nonlinear isotropic hardening.\n";
+    return 0;
+  }
+  return (SigmaY + 0.5*K*equivEPSplastic)*equivEPSplastic;
+}
+
+// Return equivalent plastic strain at failure
+double IsotropicLinearElasticJ2PlasticMaterial::GetEquivalentPlasticStrainAtFailure() const
+{ return equivEPSplasticF; }
+
+// Return tolerance for convergence of nonlinear solve
+double IsotropicLinearElasticJ2PlasticMaterial::GetTolerance() const
+{ return Tol; }
 
 // Set the plastic strain in the material
 void IsotropicLinearElasticJ2PlasticMaterial::SetMaterialPlasticStrain(const std::vector<double> &iEPSplastic)
 { for(int i = 0; i < 9; ++i) EPSplastic[i] = iEPSplastic[i]; }
 
-
 // Set the equivalent plastic strain in the material
 void IsotropicLinearElasticJ2PlasticMaterial::SetMaterialEquivalentPlasticStrain(double iEquivEPSplastic)
 { equivEPSplastic = iEquivEPSplastic; }
 
-
 // Set the back stress in the material
 void IsotropicLinearElasticJ2PlasticMaterial::SetMaterialBackStress(const std::vector<double> &iBackStress)
 { for(int i = 0; i < 9; ++i) BackStress[i] = iBackStress[i]; }
-
 
 // Compute linear elastic response
 bool IsotropicLinearElasticJ2PlasticMaterial::
@@ -168,7 +173,6 @@ ComputeElasticConstitutiveResponse(const std::vector<double> &EPS,
   return ILE->GetConstitutiveResponse(&F, CS, C);
 }
 
-
 // Compute deviatoric part of tensor
 std::vector<double> IsotropicLinearElasticJ2PlasticMaterial::Deviatoric(const double * T) const
 {
@@ -186,7 +190,6 @@ std::vector<double> IsotropicLinearElasticJ2PlasticMaterial::Deviatoric(const do
   return devT;
 }
 
-
 // Compute norm of tensor
 double IsotropicLinearElasticJ2PlasticMaterial::Norm(const double *T) const
 {
@@ -195,7 +198,6 @@ double IsotropicLinearElasticJ2PlasticMaterial::Norm(const double *T) const
     norm2 += pow(T[i],2.);
   return sqrt(norm2);
 }
-
 
 // Compute yield stress and isotropic hardening modulus by interpolating experimental stress-strain curve
 double IsotropicLinearElasticJ2PlasticMaterial::
@@ -225,6 +227,33 @@ GetYieldStressUsingExperimentalCurve(const double eqP, double &K) const
   return SigmaY;
 }
 
+// Compute yield stress scaling factor and its derivate w.r.t eqPdot by interpolating experimental stress-strain curve
+double IsotropicLinearElasticJ2PlasticMaterial::
+GetScaleFactorUsingExperimentalCurve(const double eqPdot, double &R) const
+{
+  double ScaleF = 0.;
+  const int N = std::min(ExpEqPlasticStrainRate.size(), ExpYieldStressScale.size());
+  if( eqPdot<=ExpEqPlasticStrainRate[0] ) {
+    ScaleF = ExpYieldStressScale[0];
+    R = (ExpYieldStressScale[1]-ExpYieldStressScale[0])/(ExpEqPlasticStrainRate[1]-ExpEqPlasticStrainRate[0]);
+  }
+  else if ( eqPdot>=ExpEqPlasticStrainRate[N-1] ) {
+    R = (ExpYieldStressScale[N-1]-ExpYieldStressScale[N-2])/(ExpEqPlasticStrainRate[N-1]-ExpEqPlasticStrainRate[N-2]);
+    ScaleF = ExpYieldStressScale[N-1] + R*(eqPdot-ExpEqPlasticStrainRate[N-1]);
+  }
+  else
+    {
+      for(int i=0; i<N-1; i++)
+        if( eqPdot>=ExpEqPlasticStrainRate[i] && eqPdot<ExpEqPlasticStrainRate[i+1] )
+          {
+            double lambda = (ExpEqPlasticStrainRate[i+1]-eqPdot)/(ExpEqPlasticStrainRate[i+1]-ExpEqPlasticStrainRate[i]);
+            ScaleF = lambda*ExpYieldStressScale[i] + (1.-lambda)*ExpYieldStressScale[i+1];
+            R = (ExpYieldStressScale[i+1]-ExpYieldStressScale[i])/(ExpEqPlasticStrainRate[i+1]-ExpEqPlasticStrainRate[i]);
+            break;
+          }
+    }
+  return ScaleF;
+}
 
 // Compute yield stress and isotropic hardening modulus by generalized power law
 double IsotropicLinearElasticJ2PlasticMaterial::
@@ -241,20 +270,23 @@ GetYieldStressUsingGeneralizedPowerLaw(const double eqP, double &K) const
   return SigmaY;
 }
 
-
 // Evaluate yield function
 double IsotropicLinearElasticJ2PlasticMaterial::
 EvaluateYieldFunction(const double * CauchyStress,
                       const double * SigmaB,
-                      const double eqP,
-                      double &K) const
+                      const double DeltaEqP,
+                      double &K,
+                      const double dt) const
 {
   // linear hardening: f = norm(xi) - sqrt(2/3) * (SigmaY + K*eqP),
   // or generalized power law hardening: f = norm(xi) - sqrt(2/3) * (a + k*(eqP+eps0)^n + c*eqP),
   // or piecewise linear hardening: f = norm(xi) - sqrt(2/3) * GetYieldStressUsingExperimentalCurve(eqP).
   // where
   // xi = dev(Cauchy stress)-SigmaB
-  // eqP = equivalent plastic strain
+  // DeltaEqP = equivalent plastic strain increment
+
+  // Equivalent plastic strain
+  double eqP = equivEPSplastic + DeltaEqP;
 
   // Deviatoric part of CauchyStress
   std::vector<double> S = Deviatoric(&CauchyStress[0]);
@@ -267,29 +299,41 @@ EvaluateYieldFunction(const double * CauchyStress,
   // Norm of xi
   double normXI = Norm(xi);
 
+  // Evaluate radius of yield surface
+  double YSrad;
   if(SigmaY >= 0) {
     if(k == 0) { // linear isotropic hardening
       K = GetIsotropicHardeningModulus();
-      return normXI - sqrt(2./3.)*(SigmaY+K*eqP);
+      YSrad = sqrt(2./3.)*(SigmaY+K*eqP);
     }
     else { // generalized power law isotropic hardening
-      return normXI - sqrt(2./3.)*GetYieldStressUsingGeneralizedPowerLaw(eqP, K);
+      YSrad = sqrt(2./3.)*GetYieldStressUsingGeneralizedPowerLaw(eqP, K);
     }
   }
   else { // piecewise linear isotropic hardening
-    return normXI - sqrt(2./3.)*GetYieldStressUsingExperimentalCurve(eqP, K);
+    YSrad = sqrt(2./3.)*GetYieldStressUsingExperimentalCurve(eqP, K);
   }
-}
 
+  // Scale yield stress due to strain-rate dependency
+  if(ExpEqPlasticStrainRate.size() > 0 && dt > 0) {
+    double R;
+    double ScaleF = GetScaleFactorUsingExperimentalCurve(DeltaEqP/dt, R);
+    K = sqrt(3./2.)*YSrad*R/dt + ScaleF*K;
+    YSrad *= ScaleF;
+  }
+
+  return normXI - YSrad;
+}
 
 // Compute elasto-plastic constitutive response
 bool IsotropicLinearElasticJ2PlasticMaterial::
 ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1,
                                          std::vector<double> *CauchyStress,
                                          std::vector<double> *Cep,
-                                         const bool UpdateFlag)
+                                         const bool UpdateFlag,
+                                         const double dt)
 {
-  // Resize output cauchy stress
+  // Resize output Cauchy stress
   if( int(CauchyStress->size())<9 )
     CauchyStress->resize(9);
 
@@ -297,6 +341,13 @@ ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1,
   if( Cep )
     if( int(Cep->size())<81 )
       Cep->resize( 81 );
+
+  // Check for failure
+  if(equivEPSplastic >= equivEPSplasticF) {
+    if( Cep ) for(int i=0; i<81; i++) (*Cep)[i] = 0;
+    for(int i=0; i<9; i++) (*CauchyStress)[i] = 0;
+    return true;
+  }
 
   // Elastic modulii
   std::vector<double> * Ce = 0;
@@ -319,7 +370,7 @@ ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1,
   for(int i=0; i<9; i++)
     epsEtrial[i] = EPS[i]-EPSplastic[i];
 
-  // Trial cauchy stress
+  // Trial Cauchy stress
   std::vector<double> CStrial(9);
   if( !ComputeElasticConstitutiveResponse(epsEtrial, &CStrial, Ce) )
     {
@@ -330,7 +381,7 @@ ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1,
 
   // Evaluate yield function and isotropic hardening modulus at trial state
   double K;
-  double Ftrial = EvaluateYieldFunction(&CStrial[0], &BackStress[0], equivEPSplastic, K);
+  double Ftrial = EvaluateYieldFunction(&CStrial[0], &BackStress[0], 0., K, dt);
 
 
   // COMPUTE NEW STATE OF MATERIAL
@@ -400,8 +451,7 @@ ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1,
         else {
           for(int i=0; i<9; i++)
             NewBackStress[i] = BackStress[i] + (2./3.)*H*dLambda*N[i];
-          double F = EvaluateYieldFunction(&(*CauchyStress)[0], &NewBackStress[0], equivEPSplastic+sqrt(2./3.)*dLambda, K);
-          //if(j>0) std::cerr << "j = " << j << ", F = " << F << std::endl;
+          double F = EvaluateYieldFunction(&(*CauchyStress)[0], &NewBackStress[0], sqrt(2./3.)*dLambda, K, dt);
           if(std::abs(F) <= Tol*(SigmaY >= 0 ? SigmaY : ExpYieldStress[0]))
             break;
           else
@@ -415,7 +465,15 @@ ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1,
         }
       }
 
-      if( Cep )
+      // Check for failure
+      if(equivEPSplasticF < std::numeric_limits<double>::infinity() &&
+         equivEPSplastic+sqrt(2./3.)*sqrt(2./3.)*dLambda >= equivEPSplasticF)
+        {
+          if( Cep ) for(int i=0; i<81; i++) (*Cep)[i] = 0;
+          for(int i=0; i<9; i++) (*CauchyStress)[i] = 0;
+        }
+
+      else if( Cep )
         {
           // Evaluate the consistent elasto-plastic modulii
           double theta    = 1. -2.*Mu*dLambda/normXItrial;
@@ -430,7 +488,7 @@ ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1,
                     2.*Mu*theta*( 0.5*(I[3*i+k]*I[3*j+L] + I[3*i+L]*I[3*j+k]) - (1./3.)*I[3*i+j]*I[3*k+L] ) -
                     2.*Mu*thetabar*N[3*i+j]*N[3*k+L];
         }
-        
+
       // Update plastic strain and backstress if requested
       if( UpdateFlag==true )
         {
@@ -449,25 +507,31 @@ ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1,
   return true;
 }
 
-
 // Checks if state of the material lies on or within yield surface
 bool IsotropicLinearElasticJ2PlasticMaterial::
-CheckMaterialState(const std::vector<double> &CS, const double TOL) const
+CheckMaterialState(const std::vector<double> &CS, const double TOL, const double dt) const
 {
   double K;
-  double f = EvaluateYieldFunction(&CS[0], &BackStress[0], equivEPSplastic, K);
+  double f = EvaluateYieldFunction(&CS[0], &BackStress[0], 0., K, 0.);
   if( (SigmaY >= 0 && f < TOL*SigmaY) || (SigmaY < 0 && f < TOL*ExpYieldStress[0]) )
     return true;
   else
     return false;
 }
 
-
-// Set the stress and strain at a point in the stress-strain curve
+// Set the (x,y) values at a point in the yield stress vs. effective plastic strain curve
 void IsotropicLinearElasticJ2PlasticMaterial::
 SetExperimentalCurveData(double iEqPlasticStrain, double iYieldStress)
 {
   ExpEqPlasticStrain.push_back(iEqPlasticStrain);
   ExpYieldStress.push_back(iYieldStress);
+}
+
+// Set the (x,y) values at a point in the yield stress scale factor vs. effective plastic strain rate curve
+void IsotropicLinearElasticJ2PlasticMaterial::
+SetExperimentalCurveData2(double iEqPlasticStrainRate, double iYieldStressScale)
+{
+  ExpEqPlasticStrainRate.push_back(iEqPlasticStrainRate);
+  ExpYieldStressScale.push_back(iYieldStressScale);
 }
 

@@ -249,10 +249,12 @@ class IsotropicLinearElasticJ2PlasticPlaneStressMaterial : public ElastoPlasticP
   //! \param CauchyStress Output. Has size 9x1.
   //! \param Cep Output. Algorithmic elastoplastic tangent. If requested, has size 81x1.
   //! \param UpdateFlag Input. Material state updated if true. Note that by default, material state is updated.
+  //! \param dt Input. Time increment.
   bool ComputeElastoPlasticConstitutiveResponse(const std::vector<double> &Fnp1,
                                                 std::vector<double> * CauchyStress,
                                                 std::vector<double> * Cep = 0,
-                                                const bool UpdateFlag = true);
+                                                const bool UpdateFlag = true,
+                                                const double dt = 0.);
 
   //! Returns the plastic strain in material (3x1 vector)
   const std::vector<double> & GetMaterialPlasticStrain() const;
@@ -299,10 +301,15 @@ class IsotropicLinearElasticJ2PlasticPlaneStressMaterial : public ElastoPlasticP
   //! \param BackStress Input. Back stress.
   void SetMaterialBackStress(const std::vector<double> &BackStress);
 
-  //! Set the stress and strain at a point in the stress-strain curve
-  //! \param iEqPlasticStrain Input. Equivalent plastic straint at a point.
+  //! Set the (x,y) values at a point in the yield stress vs. effective plastic strain curve
+  //! \param iEqPlasticStrain Input. Equivalent plastic strain at a point.
   //! \param iYieldStress Input. Yield stress at a point.
   void SetExperimentalCurveData(double iEqPlasticStrain, double iYieldStress);
+
+  //! Set the (x,y) values at a point in the yield stress scale factor vs. effective plastic strain rate curve
+  //! \param iEqPlasticStrainRate Input. Equivalent plastic strain rate at a point.
+  //! \param iYieldStressScaleFactor Input. Yield stress at a point.
+  void SetExperimentalCurveData2(double iEqPlasticStrainRate, double iYieldStressScaleFactor);
 
   //! Print the internal variables
   void Print();
@@ -310,9 +317,11 @@ class IsotropicLinearElasticJ2PlasticPlaneStressMaterial : public ElastoPlasticP
   //! Checks if the state of the material lies within the yield surface.
   //! \param CS Input. Cauchy stress 9x1 vector.
   //! \param TOL Input. Tolerance to use for check.
+  //! \param dt Input. Time increment.
   //! The tolerance is non-dimensional. The check performed is
   //! \f[\frac{f}{\sigma_Y}<TOL~\Rightarrow~\text{material state OK}. \f]
-  bool CheckMaterialState(const std::vector<double> &CS, const double TOL = 1.e-6) const;
+  bool CheckMaterialState(const std::vector<double> &CS, const double TOL = 1.e-6,
+                          const double dt = 0.) const;
 
  protected:
 
@@ -330,10 +339,17 @@ class IsotropicLinearElasticJ2PlasticPlaneStressMaterial : public ElastoPlasticP
   //! \param K Output. Isotropic hardening modulus.
   double GetYieldStressUsingExperimentalCurve(const double eqP, double &K) const;
 
+  //! Returns the yield stress scale factor by interpolating the experimental curve
+  //! \param eqPdot Input. Equivalent plastic strain time derivative.
+  //! \param R Output. Derivative of the scale factor w.r.t. eqPdot.
+  double GetScaleFactorUsingExperimentalCurve(const double eqPdot, double &R) const;
+
   //! Evaluates the yield function
-  //! Xi Input. \f$\xi = \sigma-\sigma^b\f$. Size 3x1.
-  //! eqP Input. Equivalent plastic strain.
-  double EvaluateYieldFunction(const double * Xi, const double eqP, double &K) const;
+  //! \param Xi Input. \f$\xi = \sigma-\sigma^b\f$. Size 3x1.
+  //! \param DeltaEqP Input. Equivalent plastic strain increment.
+  //! \param K Output. Isotropic hardening modulus.
+  //! \param dt Input. Time increment.
+  double EvaluateYieldFunction(const double * Xi, const double DeltaEqP, double &K, const double dt) const;
 
   //! Evaluates the norm of the deviatoric part of \f$\xi = \sigma-\sigma^b\f$.
   //! \param Xi Input. \f$\xi = \sigma-\sigma^b\f$, size 3x1.
@@ -386,6 +402,12 @@ class IsotropicLinearElasticJ2PlasticPlaneStressMaterial : public ElastoPlasticP
 
   //! Yield stress values in experimental stress-strain curve
   std::vector<double> ExpYieldStress;
+
+  //! Plastic strain rate values in experimental stress-strain scaling curve
+  std::vector<double> ExpEqPlasticStrainRate;
+
+  //! Yield stress scaling values in experimental stress-strain scaling curve
+  std::vector<double> ExpYieldStressScale;
 };
 
 // Return plastic strain

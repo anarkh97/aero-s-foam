@@ -47,7 +47,7 @@ ModeData modeData;
 //----------------------------------------------------------------------------------
 
 Domain::Domain(Domain &d, int nele, int *eles, int nnodes, int *nnums)
-  : nodes(*new CoordSet(nnodes)), lmpc(0), fsi(0), ymtt(0), ctett(0), sdetaft(0), ysst(0),
+  : nodes(*new CoordSet(nnodes)), lmpc(0), fsi(0), ymtt(0), ctett(0), sdetaft(0), ysst(0), yssrt(0),
     SurfEntities(0), MortarConds(0)
 {
  initialize();
@@ -79,7 +79,7 @@ Domain::Domain(Domain &d, int nele, int *eles, int nnodes, int *nnums)
 }
 
 Domain::Domain(Domain &d, Elemset *_elems, CoordSet *_nodes)
-  : nodes(*_nodes), lmpc(0), fsi(0), ymtt(0), ctett(0), sdetaft(0), ysst(0), SurfEntities(0), MortarConds(0)
+  : nodes(*_nodes), lmpc(0), fsi(0), ymtt(0), ctett(0), sdetaft(0), ysst(0), yssrt(0), SurfEntities(0), MortarConds(0)
 {
  initialize();
 
@@ -106,7 +106,8 @@ Domain::Domain(Domain &d, Elemset *_elems, CoordSet *_nodes)
 }
 
 Domain::Domain(int iniSize) : nodes(*(new CoordSet(iniSize*16))), packedEset(iniSize*16), lmpc(0,iniSize),
-   fsi(0,iniSize), ymtt(0,iniSize), ctett(0,iniSize), sdetaft(0,iniSize), ysst(0,iniSize), SurfEntities(0,iniSize), MortarConds(0,iniSize)
+   fsi(0,iniSize), ymtt(0,iniSize), ctett(0,iniSize), sdetaft(0,iniSize), ysst(0,iniSize), yssrt(0,iniSize),
+   SurfEntities(0,iniSize), MortarConds(0,iniSize)
 {
  initialize();
 
@@ -1147,6 +1148,23 @@ Domain::addYSST(MFTTData *_ysst)
  // if YSST already defined print warning message
  else
    filePrint(stderr," *** WARNING: YSST %d has already been defined \n", _ysst->getID());
+
+ return 0;
+}
+
+int
+Domain::addYSSRT(MFTTData *_yssrt)
+{
+ //--- Verify if yssrt was already defined
+ int i = 0;
+ while(i < numYSSRT && yssrt[i]->getID() != _yssrt->getID()) i++;
+
+ // if YSSRT not previously defined create new
+ if(i == numYSSRT) yssrt[numYSSRT++] = _yssrt;
+
+ // if YSSRT already defined print warning message
+ else
+   filePrint(stderr," *** WARNING: YSSRT %d has already been defined \n", _yssrt->getID());
 
  return 0;
 }
@@ -3117,7 +3135,7 @@ Domain::initialize()
  numComplexDirichlet = 0; numComplexNeuman = 0; numNeumanModal = 0;
  firstDiMass = 0; numIDis6 = 0; gravityAcceleration = 0;
  allDOFs = 0; stress = 0; weight = 0; elstress = 0; elweight = 0; claw = 0; com = 0;
- numLMPC = 0; numYMTT = 0; numCTETT = 0; numSDETAFT = 0; numYSST = 0; MidPoint = 0; temprcvd = 0;
+ numLMPC = 0; numYMTT = 0; numCTETT = 0; numSDETAFT = 0; numYSST = 0; numYSSRT = 0; MidPoint = 0; temprcvd = 0;
  heatflux = 0; elheatflux = 0; elTemp = 0; dbc = 0; nbc = 0; nbcModal = 0;
  iDis = 0; iDisModal = 0; iVel = 0; iVelModal = 0; iDis6 = 0; elemToNode = 0; nodeToElem = 0;
  nodeToNode = 0; dsa = 0; c_dsa = 0; cdbc = 0; cnbc = 0;

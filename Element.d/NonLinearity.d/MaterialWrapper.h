@@ -23,7 +23,10 @@ class MaterialWrapper : public NLMaterial
       double mu;
       double mu2;
     };
-    double kappa;
+    union {
+      double kappa;
+      int yssrtid;
+    };
     double posdefifyTol;
 
   public:
@@ -44,10 +47,10 @@ class MaterialWrapper : public NLMaterial
     void getStressAndTangentMaterial(Tensor *stress, Tensor *tm, Tensor &strain, double*, double temp);
      
     void integrate(Tensor *stress, Tensor *tm, Tensor &en, Tensor &enp,
-                   double *staten, double *statenp, double temp);
+                   double *staten, double *statenp, double temp, double dt=0);
 
     void integrate(Tensor *stress, Tensor &en, Tensor &enp,
-                   double *staten, double *statenp, double temp);
+                   double *staten, double *statenp, double temp, double dt=0);
 
     void initStates(double *);
 
@@ -66,6 +69,7 @@ class MaterialWrapper : public NLMaterial
     void print(std::ostream &out) const;
 
     void setSDProps(MFTTData *ysst);
+    void setSRDProps(MFTTData *yssrt);
 };
 
 template<>
@@ -105,9 +109,11 @@ MaterialWrapper<IsotropicLinearElasticJ2PlasticMaterial>::MaterialWrapper(double
   double K      = params[4];
   double H      = params[5];
   double Tol    = params[6];
+  double epsF   = (params[7] <= 0) ? std::numeric_limits<double>::infinity() : params[7];
+  yssrtid   = int(params[8]);
   lambda = E*nu/((1.+nu)*(1.-2.*nu));
   mu     = E/(2.*(1.+nu));
-  mat = new IsotropicLinearElasticJ2PlasticMaterial(lambda,mu,sigmaY,K,H,Tol);
+  mat = new IsotropicLinearElasticJ2PlasticMaterial(lambda,mu,sigmaY,K,H,Tol,epsF);
   posdefifyTol = -1;
 }
 
@@ -122,11 +128,12 @@ MaterialWrapper<IsotropicLinearElasticJ2PlasticPlaneStressMaterial>::MaterialWra
   double K      = params[4];
   double H      = params[5];
   double Tol    = params[6];
-  double epsF   = params[7];
+  double epsF   = (params[7] <= 0) ? std::numeric_limits<double>::infinity() : params[7];
+  yssrtid   = int(params[8]);
   lambda = E*nu/((1.+nu)*(1.-2.*nu));
   mu     = E/(2.*(1.+nu));
   mat = new IsotropicLinearElasticJ2PlasticPlaneStressMaterial(lambda,mu,sigmaY,K,H,Tol,epsF);
-  posdefifyTol = params[8];
+  posdefifyTol = -1;
 }
 
 template<>

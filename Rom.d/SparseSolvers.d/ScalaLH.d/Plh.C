@@ -161,6 +161,7 @@ Plh::~Plh() {
     delete _x;
     delete _b;
     delete _w;
+    delete _wmask;
     delete _workm;
 
     delete _Q;
@@ -209,10 +210,14 @@ Plh::init() {
         _contextQR = _context;
         _myrowQR = _myrow;
         _mycolQR = _mycol;
+        _row_commQR = _row_comm;
+        _col_commQR = _col_comm;
     } else {
         _FORTRAN(blacs_get)(&ic, &zero, &_contextQR);
         _FORTRAN(blacs_gridinit)( &_contextQR, &order, &_nprocs, &one);
         _FORTRAN(blacs_gridinfo)(&_contextQR, &_mprowQR, &_npcolQR, &_myrowQR, &_mycolQR);
+        MPI_Comm_split(MPI_COMM_WORLD, _myrowQR, _mycolQR, &_row_commQR); 
+        MPI_Comm_split(MPI_COMM_WORLD, _mycolQR, _myrowQR, &_col_commQR); 
     }
 
     int dmax = std::max(_m, _n);
@@ -229,6 +234,8 @@ Plh::init() {
     _x     = new SCDoubleMatrix(_context,    1,   _n, _mb, _nb);
     _b     = new SCDoubleMatrix(_context,   _m,    1, _mb, _nb);
     _w     = new SCDoubleMatrix(_context,    1,   _n, _mb, _nb);
+    _wmask = new SCDoubleMatrix(_context,    1,   _n, _mb, _nb);
+    _colnorms = new SCDoubleMatrix(_context,    1,   _n, _mb, _nb);
     _workm = new SCDoubleMatrix(_context,   _m,    1, _mb, _nb);
     _Atb   = new SCDoubleMatrix(_context,    1,   _n, _mb, _nb);
     _QtoA  = new SCIntMatrix(   _context,    1,   _n, _mb, _nb);
@@ -324,11 +331,18 @@ Plh::writeX(std::string filename) {
 int
 Plh::close() {
     MPI_Barrier(MPI_COMM_WORLD);
+    if (_context == _contextQR) {
+        MPI_Comm_free(&_row_comm);
+        MPI_Comm_free(&_col_comm);
+    } else {
+        MPI_Comm_free(&_row_comm);
+        MPI_Comm_free(&_col_comm);
+        MPI_Comm_free(&_row_commQR);
+        MPI_Comm_free(&_col_commQR);
+    }
     //_FORTRAN(blacs_gridexit)(&_context);
     int one=1;
     _FORTRAN(blacs_exit)(&one);
-    MPI_Comm_free(&_row_comm);
-    MPI_Comm_free(&_col_comm);
     return 0;
 }
 
@@ -577,6 +591,9 @@ Plh::factor(int n) {
 
 void
 Plh::defaultProcGrid() {
+    _mprow = _nprocs;
+    _npcol = 1;
+    /*
     if (_m == 0 || _n ==0 || _nprocs == 1) {
         _mprow = _nprocs;
         _npcol = 1;
@@ -617,6 +634,7 @@ Plh::defaultProcGrid() {
             }
         }
     }
+    */
 }
 
 

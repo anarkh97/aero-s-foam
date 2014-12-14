@@ -200,6 +200,19 @@ SCDoubleMatrix::norm2(int n) {
 }
 
 
+int
+SCDoubleMatrix::norm2Colunns(SCDoubleMatrix& colnorms) {
+    if (colnorms._n != _n) {
+        return 1;
+    }
+    int one = 1;
+    for (int j=1; j<=_n; j++) {
+        _FORTRAN(pdnrm2)(&_m, &(colnorms._matrix[j-1]), _matrix, &one, &j, _desc, &one);
+    }
+    return 0;
+}
+
+
 // Note, only for vectors. Not matrices!
 int
 SCDoubleMatrix::distributeVector() {
@@ -245,6 +258,18 @@ SCDoubleMatrix::multiply(char trans, int m, int n, double alpha, int ia, int ja,
             _matrix, &ia, &ja, _desc, 
             x._matrix, &ix, &jx, x._desc, &incx, &beta,
             y._matrix, &iy, &jy, y._desc, &incy);
+    return 0;
+}
+
+
+int
+SCDoubleMatrix::hadamardProduct(SCDoubleMatrix &x) {
+    if (_sizelocal != x._sizelocal) {
+        return 1;
+    }
+    for (int i=0; i<_sizelocal; i++) {
+        _matrix[i] *= x._matrix[i];
+    }
     return 0;
 }
 
@@ -980,6 +1005,84 @@ SCDoubleMatrix::loadMatrix(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A) {
     delete[] sizeslocal;
     return 0;
 }
+
+
+/* Loads the transpose of an Eigen matrix
+int
+SCDoubleMatrix::loadTransposeMatrix(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A) {
+    int * sizes = new int[_nprocs+1];
+    int ldim = A.size() + 1;
+    int * sizeslocal = new int[ldim];
+    int ncol = 0;
+    int one = 1;
+    sizeslocal[0] = 0;
+    for (int i=0; i<A.size(); i++) {
+        ncol += A[i].cols();
+        sizeslocal[i+1] = ncol;
+    }
+    // std::cout << "Number of columns = " << A[0].cols() << " on processor " << _mypid << std::endl;
+    MPI_Allgather(&ncol, 1, MPI_INT, &(sizes[1]), 1, MPI_INT, MPI_COMM_WORLD);
+
+    sizes[0] = 0;
+    for (int i=1; i<_nprocs+1; i++) {
+        sizes[i] += sizes[i-1];
+    }
+
+    double * row = new double[_n]; // can do much much better
+    int pc, pr, ig, il, jg, dummy, ioff, zero=0;
+    int nlocal, isd, jsd;
+    MPI_Status status;
+    MPI_Request request;
+    for (int p=0; p<_nprocs; p++) {
+        if (p == _mypid) {
+            isd = 0; // Local sub domain index
+            for (int j=sizes[p]; j<sizes[p+1]; j++) {
+                jg = j+1;   // Global Eigen column fortran index
+                jsd = j-sizes[p]-sizeslocal[isd]; // Local Eigen column C index
+                if (jsd >= A[isd].cols()) {
+                    isd++;
+                    jsd = j-sizes[p]-sizeslocal[isd];
+                }
+                pr = _FORTRAN(indxg2p)(&jg, &_mb, &dummy, &zero, &_mprow); // Processor row coord of Eigen col jg
+                for (int k=0; k<_npcol; k++) {
+                    pc = _FORTRAN(blacs_pnum)(&_context, &pr, &k);
+                    if (pc != p) {
+                        nlocal = _FORTRAN(numroc)(&_n, &_nb, &k, &zero, &_npcol);
+                        for (int j=1; j<=nlocal; j++) {
+                            ig = _FORTRAN(indxl2g)(&j, &_nb, &k, &zero, &_npcol) - 1;
+                            row[j-1] = A[isd].col(jsd)[ig];
+                        }   
+                        MPI_Send(row, nlocal, MPI_DOUBLE, pr, k, MPI_COMM_WORLD);
+                        //MPI_Isend(row, nlocal, MPI_DOUBLE, pr, k, MPI_COMM_WORLD, &request);
+                    } else {
+                        il = _FORTRAN(indxg2l)(&jg, &_mb, &zero, &zero, &_mprow) - 1;
+                        for (int i=1; i<=_nlocal; i++) {
+                            ig = _FORTRAN(indxl2g)(&i, &_nb, &_mycol, &zero, &_npcol) -1;
+                            _matrix[il+(i-1)*_mlocal] = A[isd].col(jsd)[ig];
+                        }   
+                    }
+                }
+            }
+        } else {
+            for (int j=sizes[p]; j<sizes[p+1]; j++) {
+                jg = j+1;   // Global Eigen column fortran index - actual Matrix row index
+                pr = _FORTRAN(indxg2p)(&jg, &_mb, &dummy, &zero, &_mprow); // Processor row coord of Eigen col jg
+                if  (_myrow == pr) {
+                    MPI_Recv(row, _nlocal, MPI_DOUBLE, p, _mycol, MPI_COMM_WORLD, &status);
+                    il = _FORTRAN(indxg2l)(&jg, &_mb, &zero, &zero, &_mprow) - 1;
+                    for (int i=0; i<_nlocal; i++) {
+                        _matrix[il+i*_mlocal] = row[i];
+                    }   
+                }
+            }
+        }
+    }
+    delete[] row;
+    delete[] sizes;
+    delete[] sizeslocal;
+    return 0;
+}
+*/
 
 
 int

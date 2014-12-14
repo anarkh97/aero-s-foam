@@ -107,6 +107,8 @@ class Plh {
         SCDoubleMatrix * _x;
         SCDoubleMatrix * _b;
         SCDoubleMatrix * _w;
+        SCDoubleMatrix * _wmask;
+        SCDoubleMatrix * _colnorms;
         SCDoubleMatrix * _Atb;
 
         // QR context
@@ -128,6 +130,8 @@ class Plh {
         // Comm groups. Needed when MPI routines are more handy than BLACS routines.
         MPI_Comm _row_comm;
         MPI_Comm _col_comm;
+        MPI_Comm _row_commQR;
+        MPI_Comm _col_commQR;
 
         bool _matrixInitialized;
         bool _initializedWithEigen;
@@ -204,7 +208,8 @@ class Plh {
         bool updateQR(int iqr);
         bool updateQtb(int iqr=0);
         void solveR();
-        int moveFromPToZ();
+        int moveFromPToZSwap();
+        int moveFromPToZShift();
         int copyxQR2x();
         int mcopyQtoA(SCDoubleMatrix * xQR, SCDoubleMatrix * x);
         double getWallTime();
@@ -215,6 +220,7 @@ class Plh {
         void stopTime(int i) {_wallclock[i] += getWallTime(); _wallclock_total[i] += _wallclock[i];}
         double getTime(int i) { return _wallclock_total[i]; }
         int getEigenProc(int j);
+        void wMaskByColNorm();
 };
 
 #endif // PLH_H_

@@ -23,15 +23,21 @@ Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1>
 splh(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm, const long int n,
        long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool project, double &dtime) {
   // Setup
+  int mypid;
+  //MPI_Comm_rank(MPI_COMM_WORLD, &mypid);
+  //std::cout << "mypid " << mypid << " Entering splh." << std::endl;
+
   Plh solver(A);
   solver.setRtol(reltol);
   solver.init(A, b);
   solver.summary();
+
   // Solve
-  int max_iter = 3*n;
+  int max_iter = 5000;
   int nfree = solver.solve(max_iter);
+
   // Output
-  solver.printTimes();
+  solver.printTimes(true);
   rnorm = solver.getResidualNorm();
   dtime = solver.getComputeTime() + solver.getDistributeMatrixTime();
   Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1> x(n);

@@ -49,6 +49,7 @@ class SCDoubleMatrix : public SCBaseMatrix {
         int multiply(char trans, int m, int n, double alpha, int ia, int ja,
                      SCDoubleMatrix &x, int ix, int jx, int incx, double beta,
                      SCDoubleMatrix &y, int iy, int jy, int incy);
+        int hadamardProduct(SCDoubleMatrix &x);
         int zero();
         int zero(int ix, int jx, int n);
         int set(double val);
@@ -96,6 +97,7 @@ class SCDoubleMatrix : public SCBaseMatrix {
         void stopTime(int i) {_wallclock[i] += SCBaseMatrix::getWallTime(); _wallclock_total[i] += _wallclock[i];}
         double getTime(int i) { return _wallclock_total[i]; }
         double getMaxTime(int i);
+        int norm2Colunns(SCDoubleMatrix& colnorms);
 
     private:
         double * _matrix;       // Local _mlocal X _nlocal matrix

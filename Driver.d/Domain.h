@@ -301,6 +301,10 @@ class Domain : public HData {
      int numSDETAFT;                       // number of SDETAF tables
      ResizeArray<MFTTData *> ctett;        // Coefficient of thermal expansion vs. temperatur table
      int numCTETT;                         // number of CTE Temp tables
+     ResizeArray<MFTTData *> ysst;         // Yield stress vs. effective plastic strain temperature table
+     int numYSST;                          // number of YSS tables
+     ResizeArray<MFTTData *> yssrt;        // Yield stress scale factor vs. effective plastic strain rate temperature table
+     int numYSSRT;                         // number of YSSRT tables
      FlExchanger *flExchanger;  // Fluid Exchanger
      FILE *outFile;
 
@@ -324,6 +328,8 @@ class Domain : public HData {
      double pWela;
      double pWkin;
      double pWdis;
+     double modalWela;
+     double modalWkin;
      Vector *previousExtForce;
      Vector *previousAeroForce;
      Vector *previousDisp;
@@ -523,6 +529,7 @@ class Domain : public HData {
      double getKineticEnergy(double *velocity, FullSquareMatrix *mel);
      double getStrainEnergy(GeomState *geomState, Corotator **allCorot);
      double getDissipatedEnergy(GeomState *geomState, Corotator **allCorot);
+     void setModalEnergies(double Wele, double Wkin, double Wdmp);
      void computeEnergies(GeomState *geomState, Vector &force, double time, Vector *aeroForce, double *vel,
                           Corotator **allCorot, SparseMatrix *M, SparseMatrix *C, double &Wela, double &Wkin,
                           double &Wdis, double &error); // Nonlinear statics and dynamics
@@ -601,7 +608,11 @@ class Domain : public HData {
      int  addCTETT(MFTTData *);
      std::pair<int, ResizeArray<MFTTData*>* >* getCTETT() { return new std::pair<int, ResizeArray<MFTTData*>* >(numCTETT,&ctett); };
      std::pair<int, ResizeArray<MFTTData*>* >* getYMTT() { return new std::pair<int, ResizeArray<MFTTData*>* >(numYMTT,&ymtt); };
+     std::pair<int, ResizeArray<MFTTData*>* >* getYSST() { return new std::pair<int, ResizeArray<MFTTData*>* >(numYSST,&ysst); };
+     std::pair<int, ResizeArray<MFTTData*>* >* getYSSRT() { return new std::pair<int, ResizeArray<MFTTData*>* >(numYSSRT,&yssrt); };
      void printCTETT();
+     int  addYSST(MFTTData *);
+     int  addYSSRT(MFTTData *);
      void computeTDProps();
 
      ShapeSensitivityData getShapeSensitivityData() { return shapeSenData; }

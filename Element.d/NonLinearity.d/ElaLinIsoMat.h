@@ -40,10 +40,10 @@ class ElaLinIsoMat : public NLMaterial
     void getStressAndTangentMaterial(Tensor *stress, Tensor *tm, Tensor &strain, double*, double temp);
      
     void integrate(Tensor *stress, Tensor *tm, Tensor &en, Tensor &enp,
-                   double *staten, double *statenp, double temp);
+                   double *staten, double *statenp, double temp, double dt=0);
 
     void integrate(Tensor *stress, Tensor &en, Tensor &enp,
-                   double *staten, double *statenp, double temp);
+                   double *staten, double *statenp, double temp, double dt=0);
 
     void initStates(double *){};
 
@@ -54,7 +54,7 @@ class ElaLinIsoMat : public NLMaterial
     double getStrainEnergyDensity(Tensor &enp, double *statenp, double temp);
 
     void print(std::ostream &out) const {
-      out << "Linear "; if(!m_tm) out << rho << " " << E << " " << nu;
+      out << "Linear " << rho << " " << E << " " << nu << " " << Tref << " " << alphas[0];
     }
 
     NLMaterial * clone() const;
@@ -77,7 +77,7 @@ class StVenantKirchhoffMat : public ElaLinIsoMat
 
     StrainEvaluator * getStrainEvaluator();
     void print(std::ostream &out) const {
-      out << "StVenantKirchhoff "; if(!m_tm) out << rho << " " << E << " " << nu;
+      out << "StVenantKirchhoff " << rho << " " << E << " " << nu << " " << Tref << " " << alphas[0];
     }
     NLMaterial * clone() const;
 };
@@ -91,7 +91,7 @@ class HenckyMat : public ElaLinIsoMat
 
     StrainEvaluator * getStrainEvaluator();
     void print(std::ostream &out) const {
-      out << "HenckyElastic "; if(!m_tm) out << rho << " " << E << " " << nu;
+      out << "HenckyElastic " << rho << " " << E << " " << nu << " " << Tref << " " << alphas[0];
     }
     NLMaterial * clone() const;
 };

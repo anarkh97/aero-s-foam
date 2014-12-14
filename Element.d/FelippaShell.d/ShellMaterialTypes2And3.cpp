@@ -30,7 +30,7 @@ ShellMaterialTypes2And3<doublereal>::ShellMaterialTypes2And3(
 template<typename doublereal>
 void
 ShellMaterialTypes2And3<doublereal>::GetConstitutiveResponse(doublereal *_Upsilon, doublereal *_Sigma, doublereal *_D,
-                                                             doublereal *eframe, int gp, doublereal temp)
+                                                             doublereal *eframe, int gp, doublereal temp, doublereal dt)
 {
     // Initialized data 
     doublereal one = 1.;
@@ -483,7 +483,7 @@ template<typename doublereal>
 void
 ShellMaterialTypes2And3<doublereal>
 ::GetLocalConstitutiveResponse(doublereal *_Upsilon, doublereal *_sigma, doublereal z,
-                               doublereal *eframe, int, doublereal temp)
+                               doublereal *eframe, int, doublereal temp, doublereal dt)
 {
     // Initialized data 
     doublereal one = 1.;
@@ -633,10 +633,10 @@ ShellMaterialTypes2And3<double>::ShellMaterialTypes2And3(
 template
 void
 ShellMaterialTypes2And3<double>::GetConstitutiveResponse(double *Upsilon, double *Sigma, double *D,
-                                                         double *eframe, int gp, double temp);
+                                                         double *eframe, int gp, double temp, double dt);
 
 template
 void
 ShellMaterialTypes2And3<double>
-::GetLocalConstitutiveResponse(double *Upsilon, double *sigma, double z, double *eframe, int, double temp);
+::GetLocalConstitutiveResponse(double *Upsilon, double *sigma, double z, double *eframe, int, double temp, double dt);
 #endif

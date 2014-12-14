@@ -361,7 +361,7 @@ GaussIntgElement::integrate(Node *nodes, double *dispn, double *staten,
     tempnp = (temps) ? shapeF->interpolateScalar(temps, point) : 0;
 
     material->integrate(&s, &Dnp, en, enp,
-                        staten + nstatepgp*i, statenp + nstatepgp*i, tempnp);
+                        staten + nstatepgp*i, statenp + nstatepgp*i, tempnp, dt);
 
     temp0 = s || Bnp;
     temp0 = (weight*jacnp)*temp0;
@@ -463,7 +463,7 @@ GaussIntgElement::integrate(Node *nodes, double *dispn, double *staten,
     tempnp = (temps) ? shapeF->interpolateScalar(temps, point) : 0;
 
     material->integrate(&s, en, enp,
-                        staten + nstatepgp*i, statenp + nstatepgp*i, tempnp);
+                        staten + nstatepgp*i, statenp + nstatepgp*i, tempnp, dt);
 
     temp0 = s || Bnp;
     temp0 = (weight*jacnp)*temp0;
@@ -495,7 +495,7 @@ GaussIntgElement::initStates(double *st)
 }
 
 void
-GaussIntgElement::updateStates(Node *nodes, double *state, double *dispn, double *dispnp, double *temps)
+GaussIntgElement::updateStates(Node *nodes, double *state, double *dispn, double *dispnp, double *temps, double dt)
 {
   int ndofs = numDofs();
   ShapeFunction *shapeF = getShapeFunction();
@@ -540,7 +540,7 @@ GaussIntgElement::updateStates(Node *nodes, double *state, double *dispn, double
     double *state_copy = new double[nstatepgp];
     for(int j = 0; j < nstatepgp; ++j) state_copy[j] = state[nstatepgp*i+j];
     material->integrate(&s, &Dnp, en, enp,
-                        state_copy, state + nstatepgp*i, tempnp);
+                        state_copy, state + nstatepgp*i, tempnp, dt);
     delete [] state_copy;
   }
 

@@ -4,10 +4,20 @@
 #include <Driver.d/Dynam.h>
 
 template <class Scalar>
-ModalDescr<Scalar>::ModalDescr(Domain *d) : ModalBase(d){
+ModalDescr<Scalar>::ModalDescr(Domain *d) : modalOps(*(new ModalOps)), ModalBase(d){
 
   flExchanger = domain->getFileExchanger();
+  previousCq = 0;
+  previousDisp = 0;
+}
 
+//------------------------------------------------------------------------------
+
+template <class Scalar>
+ModalDescr<Scalar>::~ModalDescr(){
+
+  if(previousCq) delete previousCq;
+  if(previousDisp) delete previousDisp;
 }
 
 //------------------------------------------------------------------------------
@@ -37,6 +47,7 @@ void ModalDescr<Scalar>::expand(const Vector &modalV, Vector& fullV){
 }
 
 //------------------------------------------------------------------------------
+
 template <class Scalar>
 void ModalDescr<Scalar>::processLastOutput()  {
 
@@ -47,6 +58,7 @@ void ModalDescr<Scalar>::processLastOutput()  {
 }
 
 //------------------------------------------------------------------------------
+
 template <class Scalar>
 void ModalDescr<Scalar>::preProcess(){
 /*NOTE: call to populateFlexModes gives 1 for 2nd arguement to indicate all
@@ -56,6 +68,24 @@ void ModalDescr<Scalar>::preProcess(){
   preProcessBase();
   populateFlexModes(1.0, 1);
   numModes = numFlex;
+}
+
+//------------------------------------------------------------------------------
+
+template <class Scalar>
+void ModalDescr<Scalar>::preProcessSA(){
+
+  filePrint(stderr," ... ModalDescr::preProcessSA is not implemented\n");
+  exit(-1);
+}
+
+//------------------------------------------------------------------------------
+
+template <class Scalar>
+void ModalDescr<Scalar>::postProcessSA(ModalOps *,Vector &sol){
+
+  filePrint(stderr," ... ModalDescr::postProcessSA is not implemented\n"); 
+  exit(-1);
 }
 
 //------------------------------------------------------------------------------
@@ -133,13 +163,6 @@ void ModalDescr<Scalar>::getNewMarkParameters(double &beta, double &gamma,
   gamma = domain->solInfo().newmarkGamma;
   alphaf = domain->solInfo().newmarkAlphaF;
   alpham = domain->solInfo().newmarkAlphaM;
-/*
-  fprintf(stderr,"Generalized-Alpha Method: (Newmark)\n");
-  fprintf(stderr,"  beta   = %f\n",beta);
-  fprintf(stderr,"  gamma  = %f\n",gamma);
-  fprintf(stderr,"  alphaf = %f\n",alphaf);
-  fprintf(stderr,"  alpham = %f\n",alpham);
-*/
 }
 
 //------------------------------------------------------------------------------
@@ -250,6 +273,61 @@ void ModalDescr<Scalar>::getInternalForce(Vector &d, Vector &f, double t, int tI
 //------------------------------------------------------------------------------
 
 template <class Scalar>
+double ModalDescr<Scalar>::getElasticEnergy(Vector &d){
+/*PRE: d is the value of the modal coordinates
+ POST: return the elastic energy
+*/
+  double Wela = 0;
+  for(int i = 0; i < d.size(); ++i)
+    Wela += 0.5*d[i]*freqs[i]*freqs[i]*d[i];
+  return Wela;
+}
+
+//------------------------------------------------------------------------------
+
+template <class Scalar>
+double ModalDescr<Scalar>::getKineticEnergy(Vector &v){
+/*PRE: v is the value of the first time derivative of the modal coordinates
+ POST: return the kinetic energy
+*/
+  double Wkin = 0;
+  for(int i = 0; i < v.size(); ++i)
+    Wkin += 0.5*v[i]*v[i];
+  return Wkin;
+}
+
+//------------------------------------------------------------------------------
+
+template <class Scalar>
+double ModalDescr<Scalar>::getDampingEnergy(Vector &d, Vector &v, double time){
+/*PRE: d is the value of the modal coordinates and v is its first time derivative
+ POST: return the damping energy
+*/
+  Vector tmpVec(v.size());
+
+  if(time == domain->solInfo().initialTime) {
+    Wdmp  = 0.0;
+    if(modalOps.C) {
+      modalOps.C->mult(v, tmpVec);
+      previousCq = new Vector(tmpVec);
+      previousDisp = new Vector(d);
+    }
+  }
+  else {
+    if(modalOps.C) {
+      double c = domain->solInfo().newmarkGamma;
+      modalOps.C->mult(v, tmpVec);
+      Wdmp += (c*tmpVec + (1.0-c)*(*previousCq))*(d - (*previousDisp));
+      (*previousCq) = tmpVec;
+      (*previousDisp) = d;
+    }
+  }
+  return Wdmp;
+}
+
+//------------------------------------------------------------------------------
+
+template <class Scalar>
 void ModalDescr<Scalar>::dynamOutput(int tIndex, double time, ModalOps &ops, Vector &extF,
   Vector *aeroF, SysState<Vector> &state){
 
@@ -259,6 +337,9 @@ void ModalDescr<Scalar>::dynamOutput(int tIndex, double time, ModalOps &ops, Vec
   expand(state.getPrevVeloc(), fullPrevVel);
 
   DynamMat dumDMat;
+  domain->setModalEnergies(getElasticEnergy(state.getDisp()),
+                           getKineticEnergy(state.getVeloc()),
+                           getDampingEnergy(state.getDisp(),state.getVeloc(),time));
   domain->dynamOutput(tIndex, time, bcx, dumDMat, fullTmpF, fullAeroF,
     fullDsp, fullVel, fullAcc, fullPrevVel, vcx);
 //  outputModal(state.getDisp(), extF, tIndex);
@@ -351,4 +432,20 @@ void ModalDescr<Scalar>::a5StatusRevise(int parity, SysState<Vector>& curState,
   }
 }
 
+//------------------------------------------------------------------------------
+
+template <class Scalar>
+AllSensitivities<Scalar> * ModalDescr<Scalar>::getAllSensitivities(){
+
+  filePrint(stderr," ... ModalDescr::getAllSensitivities is not implemented\n"); exit(-1);
+  return 0;
+}
+
+//------------------------------------------------------------------------------
+
+template <class Scalar>
+void ModalDescr<Scalar>::getAeroelasticForceSensitivity(int t_index, double t, Vector * aero_f, double gamma, double alphaf){
+
+  filePrint(stderr," ... ModalDescr::getAeroelasticForceSensitivity is not implemented\n"); exit(-1);
+}
 

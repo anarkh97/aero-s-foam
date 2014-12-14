@@ -1261,6 +1261,18 @@ void GeoSource::setUpData()
   }
 
   // Set up material data in elements
+  std::pair<int, ResizeArray<MFTTData*>* > *ysst = domain->getYSST();
+  for(int i = 0; i < ysst->first; ++i) {
+    for(map<int, NLMaterial *>::iterator matIter = materials.begin(); matIter != materials.end(); ++matIter)
+      matIter->second->setSDProps((*ysst->second)[i]);
+  }
+  delete ysst;
+  std::pair<int, ResizeArray<MFTTData*>* > *yssrt = domain->getYSSRT();
+  for(int i = 0; i < yssrt->first; ++i) {
+    for(map<int, NLMaterial *>::iterator matIter = materials.begin(); matIter != materials.end(); ++matIter)
+      matIter->second->setSRDProps((*yssrt->second)[i]);
+  }
+  delete yssrt;
   map<int,int>::iterator uIter = matUsage.begin();
   while(uIter != matUsage.end()) {
     int elemNum = uIter->first;
@@ -1275,7 +1287,7 @@ void GeoSource::setUpData()
     }
     map<int, NLMaterial *>::iterator matIter = materials.find(matNum);
     if(matIter == materials.end()) {
-         filePrint(stderr, " *** WARNING: Non Existent material (%d) was assigned to element %d \n", matNum+1, elemNum+1);
+      filePrint(stderr, " *** WARNING: Non Existent material (%d) was assigned to element %d \n", matNum+1, elemNum+1);
     } else
       ele->setMaterial(matIter->second);
     uIter++;

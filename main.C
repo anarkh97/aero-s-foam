@@ -329,9 +329,6 @@ int main(int argc, char** argv)
  // end getopt_long
 
  filePrint(stderr,"\n --------- R U N  PARAMETERS ----------\n");
-#ifdef PRINT_CHANGESETID
- filePrint(stderr," ... Changeset ID%15s    ...\n",THE_VERSION);
-#endif
  FILE * weightFile;
  while ((c = getopt_long(argc, argv, "n:d:p:v:c:DVtTPmMr:Pfs:q",long_options, &option_index)) != -1)
       switch (c) {
@@ -616,6 +613,9 @@ int main(int argc, char** argv)
                                     // mechanical structure codes
  }
  fluidCom = allCom[FLUID_ID];
+#ifdef PRINT_CHANGESETID
+ filePrint(stderr," ... Changeset ID%15s    ...\n",THE_VERSION);
+#endif
 
  threadManager = new ThreadManager(numThreads);
  if(threadManager->numThr() != numThreads) { //HB: for checking purpose

@@ -12,7 +12,7 @@ class ShellMaterial
   public:
     virtual ~ShellMaterial() {}
     virtual void GetConstitutiveResponse(doublereal *Upsilon, doublereal *Sigma, doublereal *D,
-                                         doublereal *eframe, int gp, doublereal temp = 0) = 0; 
+                                         doublereal *eframe, int gp, doublereal temp = 0, doublereal dt = 0) = 0; 
                                                                           // Upsilon is the generalized "strains" {e,chi}
                                                                           // Sigma is the generalized "stress" {N,M}
                                                                           // D is the tangent constitutive matrix { Dm, Dmb; Dbm, Db }
@@ -28,7 +28,7 @@ class ShellMaterial
     virtual doublereal GetAreaDensity() = 0; // mass per unit area
     virtual doublereal GetAmbientTemperature() = 0;
     virtual void GetLocalConstitutiveResponse(doublereal *Upsilon, doublereal *sigma, doublereal z,
-                                              doublereal *eframe, int gp, doublereal temp = 0) = 0;
+                                              doublereal *eframe, int gp, doublereal temp = 0, doublereal dt = 0) = 0;
     virtual void GetLocalConstitutiveResponseSensitivityWRTthick(doublereal *_Upsilon, doublereal *_dsigmadh, doublereal dzdh,
                                                                  doublereal *, int) {
       std::cerr << "GetLocalConstitutiveResponseSensitivityWRTthick is not defined\n"; }
@@ -38,7 +38,7 @@ class ShellMaterial
     virtual int GetNumStates() { return 0; }
     virtual void SetState(doublereal *state) {}
     virtual void GetState(doublereal *state) {}
-    virtual void UpdateState(doublereal *Upsilon, doublereal *state, int gp) {}
+    virtual void UpdateState(doublereal *Upsilon, doublereal *state, int gp, doublereal dt = 0) {}
     virtual std::vector<doublereal> GetLocalPlasticStrain(int nd, doublereal z) { return std::vector<doublereal>(); }
     virtual std::vector<doublereal> GetLocalBackStress(int nd, doublereal z) { return std::vector<doublereal>(); }
     virtual doublereal GetLocalEquivalentPlasticStrain(int nd, doublereal z) { return 0; }
@@ -68,7 +68,7 @@ class ShellMaterialType0 : public ShellMaterial<doublereal>
       : E(_E), thick(_thick), nu(_nu), rho(_rho), Ta(_Ta), w(_w) {}
 
     void GetConstitutiveResponse(doublereal *Upsilon, doublereal *Sigma, doublereal *D,
-                                 doublereal *eframe, int gp, doublereal temp = 0);
+                                 doublereal *eframe, int gp, doublereal temp = 0, doublereal dt = 0);
     void GetConstitutiveResponseSensitivityWRTthickness(doublereal *Upsilon, doublereal *Sigma, doublereal *dDdthick,
                                                         doublereal *eframe, int gp, doublereal temp = 0);
     void GetConstitutiveResponseSensitivityWRTdisp(doublereal *dUpsilondu, doublereal *dSigmadu, doublereal *D,
@@ -79,7 +79,7 @@ class ShellMaterialType0 : public ShellMaterial<doublereal>
     }
     doublereal GetAmbientTemperature() { return Ta; }
     void GetLocalConstitutiveResponse(doublereal *Upsilon, doublereal *sigma, doublereal z,
-                                      doublereal *eframe, int gp, doublereal temp = 0);
+                                      doublereal *eframe, int gp, doublereal temp = 0, doublereal dt = 0);
     void GetLocalConstitutiveResponseSensitivityWRTthick(doublereal *_Upsilon, doublereal *_dsigmadh, doublereal dzdh,
                                                          doublereal *, int);
     void GetLocalConstitutiveResponseSensitivityWRTdisp(doublereal *dUpsilondu, doublereal *dsigmadu, doublereal z,
@@ -105,7 +105,7 @@ class ShellMaterialType1 : public ShellMaterial<doublereal>
       : coef(_coef), aframe(_aframe), rhoh(_rhoh), thick(_thick), Ta(_Ta), Alpha(_coef+36) {}
 
     void GetConstitutiveResponse(doublereal *Upsilon, doublereal *Sigma, doublereal *D,
-                                 doublereal *eframe, int gp, doublereal temp = 0);
+                                 doublereal *eframe, int gp, doublereal temp = 0, doublereal dt = 0);
     void GetConstitutiveResponseSensitivityWRTdisp(doublereal *dUpsilondu, doublereal *dSigmadu, doublereal *D,
                                                    doublereal *eframe, int gp);
     doublereal* GetCoefOfConstitutiveLaw() { return coef.data(); }
@@ -113,7 +113,7 @@ class ShellMaterialType1 : public ShellMaterial<doublereal>
     doublereal GetAreaDensity() { return rhoh; }
     doublereal GetAmbientTemperature() { return Ta; }
     void GetLocalConstitutiveResponse(doublereal *Upsilon, doublereal *sigma, doublereal z,
-                                              doublereal *eframe, int gp, doublereal temp = 0);
+                                              doublereal *eframe, int gp, doublereal temp = 0, doublereal dt = 0);
 };
 
 //     ---------------------------------------------- 
@@ -136,14 +136,14 @@ class ShellMaterialTypes2And3 : public ShellMaterial<doublereal>
                             doublereal _nsm = 0.);
 
     void GetConstitutiveResponse(doublereal *Upsilon, doublereal *Sigma, doublereal *D,
-                                 doublereal *eframe, int gp, doublereal temp = 0);
+                                 doublereal *eframe, int gp, doublereal temp = 0, doublereal dt = 0);
     void GetConstitutiveResponseSensitivityWRTdisp(doublereal *dUpsilondu, doublereal *dSigmadu, doublereal *D,
                                                    doublereal *eframe, int gp);
     doublereal GetShellThickness() { return thick; }
     doublereal GetAreaDensity() { return rhoh; }
     doublereal GetAmbientTemperature() { return Ta; }
     void GetLocalConstitutiveResponse(doublereal *Upsilon, doublereal *sigma, doublereal z,
-                                      doublereal *eframe, int gp, doublereal temp = 0);
+                                      doublereal *eframe, int gp, doublereal temp = 0, doublereal dt = 0);
 };
 
 //     ------------------------------------------------ 
@@ -172,16 +172,16 @@ class ShellMaterialType4 : public ShellMaterial<doublereal>
     }
 
     void GetConstitutiveResponse(doublereal *Upsilon, doublereal *Sigma, doublereal *D,
-                                 doublereal *eframe, int gp, doublereal temp = 0);
+                                 doublereal *eframe, int gp, doublereal temp = 0, doublereal dt = 0);
     doublereal GetShellThickness() { return thick; }
     doublereal GetAreaDensity() { return rho*thick; }
     doublereal GetAmbientTemperature() { return Ta; }
     void GetLocalConstitutiveResponse(doublereal *Upsilon, doublereal *sigma, doublereal z,
-                                      doublereal *eframe, int gp, doublereal temp = 0);
+                                      doublereal *eframe, int gp, doublereal temp = 0, doublereal dt = 0);
     int GetNumStates() { return nlayer*maxgus*7; } // TODO 7 should be provided by the localmaterial
     void SetState(doublereal *state);
     void GetState(doublereal *state);
-    void UpdateState(doublereal *Upsilon, doublereal *state, int gp);
+    void UpdateState(doublereal *Upsilon, doublereal *state, int gp, doublereal dt = 0);
     std::vector<doublereal> GetLocalPlasticStrain(int nd, doublereal z);
     std::vector<doublereal> GetLocalBackStress(int nd, doublereal z);
     doublereal GetLocalEquivalentPlasticStrain(int nd, doublereal z);

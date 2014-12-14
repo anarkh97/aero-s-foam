@@ -6,10 +6,12 @@
 #include <iostream>
 #include <iterator>
 
+class MFTTData;
+
 class ExpMat : public NLMaterial
 {
   public:
-    int optctv; // constitutive law (1 for hypoelastic, 3 for elasto viscoplastic, 5 for j2 explicit)
+    int optctv; // constitutive law (1 for hypoelastic, 3 for elasto viscoplastic, 5 for j2 elasto plastic)
     double ematpro[20]; // material properties: Young's modulus, Poisson's ratio, mass density, etc.
     int optcor0; // warping correction (0: off, 1: on), default = 1
                  // reference: Belytschko, Wong and Chiang, CMAME, 1992, vol. 96, pp. 93-107
@@ -24,6 +26,9 @@ class ExpMat : public NLMaterial
                  // reference: Chiang, M.S. thesis, Northwestern Univ., 1992
     double prmhgc[3]; // hourglass control parameters, default = [ 2.5e-3, 2.5e-3, 2.5e-3 ]
     int ngqpt2;  // gq rule for through thickness (1-12,14,16,24), default = 3
+    MFTTData *ysst; // yield stress vs. effective plastic strain
+    int yssrtid;
+    MFTTData *yssrt; // yield stress scaling factor vs. effective plastic strain rate
 
     ExpMat(int _optctv, double e1, double e2, double e3, double e4=0, double e5=0, double e6=0,
            double e7=0, double e8=0, double e9=0, double e10=0, double e11=0, double e12=0, double e13=0,
@@ -40,6 +45,9 @@ class ExpMat : public NLMaterial
         opthgc = 1;
         prmhgc[0] = prmhgc[1] = prmhgc[2] = 2.5e-3;
         ngqpt2 = 3;
+        ysst = NULL;
+        yssrtid = 0;
+        yssrt = NULL;
       }
 
     int getNumStates() { return 0; }
@@ -59,11 +67,11 @@ class ExpMat : public NLMaterial
       { std::cerr << "ExpMat::getStressAndTangentMaterial is not implemented\n"; }
      
     void integrate(Tensor *stress, Tensor *tm, Tensor &en, Tensor &enp,
-                   double *staten, double *statenp, double)
+                   double *staten, double *statenp, double, double=0)
       { std::cerr << "ExpMat::integrate is not implemented\n"; }
 
     void integrate(Tensor *stress, Tensor &en, Tensor &enp,
-                   double *staten, double *statenp, double)
+                   double *staten, double *statenp, double, double=0)
       { std::cerr << "ExpMat::integrate is not implemented\n"; }
 
     void initStates(double *) {}
@@ -83,8 +91,14 @@ class ExpMat : public NLMaterial
         default: throw std::range_error("Unknown material law type");
       }
       out << type << " ";
-      std::copy(&ematpro[0], &ematpro[20], std::ostream_iterator<double>(out, " "));
+      std::copy(&ematpro[0], &ematpro[8], std::ostream_iterator<double>(out, " "));
+      out << yssrtid << " " << optcor0 << " " << optcor1 << " " << optprj << " " << opthgc << " "
+          << prmhgc[0] << " " << prmhgc[1] << " " << prmhgc[2] << " " << ngqpt2 << " "
+          << ematpro[18];
     }
+
+    void setSDProps(MFTTData *_ysst) { if(optctv == 5 && _ysst && _ysst->getID() == -int(ematpro[3])) ysst = _ysst; }
+    void setSRDProps(MFTTData *_yssrt) { if(optctv == 5 && yssrtid > 0 &&  _yssrt && _yssrt->getID() == yssrtid) yssrt = _yssrt; }
 };
 
 #endif

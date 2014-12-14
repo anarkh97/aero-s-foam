@@ -77,7 +77,7 @@ class Corotator {
                                   FullSquareMatrix &tmp, double *f, double dt, double t) 
       { getInternalForce(curState, c0, tmp, f, dt, t); }
 
-    virtual void updateStates(GeomState *refState, GeomState &curState, CoordSet &C0) {}
+    virtual void updateStates(GeomState *refState, GeomState &curState, CoordSet &C0, double dt=0) {}
 
     virtual bool checkElementDeletion(GeomState &curState) { return false; }
 

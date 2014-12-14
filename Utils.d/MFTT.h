@@ -19,6 +19,7 @@ class MFTTData {
      double getVal(double);
      double getValAlt(double);
      void getValAndSlopeAlt(double t, double *v, double *s);
+     void getValAndSlopeAlt2(double t, double *v, double *s);
      int getID() { return id; }
      int getNumPoints() { return np; }
      double getT(int i) { return time[i]; }

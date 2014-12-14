@@ -295,11 +295,11 @@ SuperCorotator::extractRigidBodyMotion(GeomState &geomState, CoordSet &cs, doubl
 }
 
 void
-SuperCorotator::updateStates(GeomState *refState, GeomState &curState, CoordSet &C0)
+SuperCorotator::updateStates(GeomState *refState, GeomState &curState, CoordSet &C0, double dt)
 {
   int i;
   for(i=0; i<nSubElems; ++i)
-    subElemCorotators[i]->updateStates(refState, curState, C0);
+    subElemCorotators[i]->updateStates(refState, curState, C0, dt);
 }
 
 bool

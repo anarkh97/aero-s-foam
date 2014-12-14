@@ -193,7 +193,7 @@ void PerformLoadUnloadTest(IsotropicLinearElasticJ2PlasticPlaneStressMaterial &M
       // Deformation gradient at this loading step
       F[0] = FxxHistory[step];
       
-      // Compute new cauchy stress
+      // Compute new Cauchy stress
       std::vector<double> CauchyStress(9);
       Mat.ComputeElastoPlasticConstitutiveResponse(F, &CauchyStress);
       plot <<"\n"<<(FxxHistory[step]-1.)*100.

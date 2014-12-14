@@ -2,6 +2,7 @@
 #define _BILINPLASKINHARDMAT_H_
 
 #include <Element.d/NonLinearity.d/NLMaterial.h>
+#include <Utils.d/MFTT.h>
 #include <limits>
 
 class StructProp;
@@ -18,12 +19,21 @@ class ElasPlasKinHardMat : public NLMaterial
     double alpha, Tref;
     // epsF is the equivalent plastic strain at failure
     double epsF;
+    // strain dependent material properties
+    MFTTData *ysst;
+    // tolerance for convergence of nonlinear solve
+    double tol;
+    // rate dependent material properties
+    int yssrtid;
+    MFTTData *yssrt;
 
   public:
     ElasPlasKinHardMat(StructProp *p);
     ElasPlasKinHardMat(double _rho, double _E, double _nu, double _Ep, double _sigE, double _theta = 0,
-                       double _Tref = 0, double _alpha = 0, double _epsF = std::numeric_limits<double>::infinity())
-       { rho = _rho; E = _E; nu = _nu; Ep = _Ep; sigE = _sigE; theta = _theta; Tref = _Tref; alpha = _alpha; epsF = _epsF; }
+                       double _Tref = 0, double _alpha = 0, double _epsF = std::numeric_limits<double>::infinity(),
+                       double _tol = 1e-6, int _yssrtid = 0)
+       { rho = _rho; E = _E; nu = _nu; Ep = _Ep; sigE = _sigE; theta = _theta; Tref = _Tref; alpha = _alpha; epsF = _epsF;
+         tol = _tol; yssrtid = _yssrtid; ysst = NULL; yssrt = NULL; }
 
     void getStress(Tensor *stress, Tensor &strain, double *, double temp);
 
@@ -40,10 +50,10 @@ class ElasPlasKinHardMat : public NLMaterial
                                       // and the equivalent plastic strain (1 double)
 
     void integrate(Tensor *stress, Tensor *tm, Tensor &en, Tensor &enp,
-                   double *staten, double *statenp, double temp);
+                   double *staten, double *statenp, double temp, double dt=0);
 
     void integrate(Tensor *stress, Tensor &en, Tensor &enp,
-                   double *staten, double *statenp, double temp);
+                   double *staten, double *statenp, double temp, double dt=0);
 
     void initStates(double *);
 
@@ -64,14 +74,14 @@ class ElasPlasKinHardMat : public NLMaterial
     double getDissipatedEnergy(double *statenp);
 
     void print(std::ostream &out) const;
+
+    void setSDProps(MFTTData *_ysst) { if(sigE < 0 && _ysst && _ysst->getID() == -int(sigE)) ysst = _ysst; }
+
+    void setSRDProps(MFTTData *_yssrt) { if(yssrtid > 0 && _yssrt && _yssrt->getID() == yssrtid) yssrt = _yssrt; }
 };
 
 typedef ElasPlasKinHardMat<0> BilinPlasKinHardMat;
 typedef ElasPlasKinHardMat<1> FiniteStrainPlasKinHardMat;
 typedef ElasPlasKinHardMat<2> LogStrainPlasKinHardMat;
-
-#ifdef _TEMPLATE_FIX_
-#include <Element.d/NonLinearity.d/BilinPlasKinHardMat.C>
-#endif
 
 #endif

@@ -43,7 +43,7 @@ class ShellElementTemplate : public Membrane<doublereal>, public Bending<doubler
     andesstf(int elm, doublereal *estiff, doublereal *fint, doublereal nu,
              doublereal *x, doublereal *y, doublereal *z, doublereal *u,
              int ctyp, ShellMaterial<doublereal> *gpmat, int flag,
-             int tflg = 1, doublereal *ndtemps = 0);
+             int tflg = 1, doublereal *ndtemps = 0, doublereal dt = 0.);
 
     static void 
     andesstfWRTthick(int elm, doublereal *destiffdthick, doublereal nu,
@@ -87,7 +87,7 @@ class ShellElementTemplate : public Membrane<doublereal>, public Bending<doubler
     static void
     andesups(int elm, doublereal *state, doublereal *X, doublereal *Y,
              doublereal *Z, doublereal *v, ShellMaterial<doublereal> *gpmat,
-             ShellMaterial<doublereal> *nmat, int sflg);
+             ShellMaterial<doublereal> *nmat, int sflg, doublereal dt = 0);
 
     static void
     andesden(int elm, doublereal *X, doublereal *Y, doublereal *Z,

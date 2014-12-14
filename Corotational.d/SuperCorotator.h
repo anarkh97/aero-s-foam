@@ -39,7 +39,7 @@ class SuperCorotator : public Corotator
   double getElementEnergy(GeomState &geomState, CoordSet &cs);
   double getDissipatedEnergy(GeomState &geomState, CoordSet &cs);
   void extractRigidBodyMotion(GeomState &geomState, CoordSet &cs, double *vlr);
-  void updateStates(GeomState *refState, GeomState &curState, CoordSet &C0);
+  void updateStates(GeomState *refState, GeomState &curState, CoordSet &C0, double dt = 0);
   bool checkElementDeletion(GeomState &curState);
 
   void getResidualCorrection(GeomState &gs, double *r);

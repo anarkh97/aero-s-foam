@@ -368,7 +368,7 @@ MatNLCorotator::getNLAllStress(FullM &stress, Vector &weight, GeomState &curStat
 }
 
 void
-MatNLCorotator::updateStates(GeomState *refState, GeomState &curState, CoordSet &C0)
+MatNLCorotator::updateStates(GeomState *refState, GeomState &curState, CoordSet &C0, double dt)
 {
   int *nn = new int[ele->numNodes()];
   ele->nodes(nn);
@@ -399,7 +399,7 @@ MatNLCorotator::updateStates(GeomState *refState, GeomState &curState, CoordSet 
   double Ta = (ele->getProperty()) ? ele->getProperty()->Ta : 0;
   curState.get_temperature(ele->numNodes(), nn, elemNodeTemps, Ta);
   
-  ele->updateStates(nodes, state, dispn, dispnp, elemNodeTemps.data());
+  ele->updateStates(nodes, state, dispn, dispnp, elemNodeTemps.data(), dt);
 
   delete [] nn;
   delete [] nodes;

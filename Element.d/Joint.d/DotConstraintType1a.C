@@ -30,8 +30,8 @@ DotConstraintType1a::update(GeomState *refState, GeomState& gState, CoordSet& cs
 {
   ElementaryFunction f(prop->funtype, prop->amplitude, prop->offset, prop->c1, prop->c2, prop->c3, prop->c4);
   double theta = f(t);
-  double TOL = M_PI/64;
-  if(std::fabs(std::fmod(theta-offset,M_PI)) < TOL && t > t_reparam) { // reparameterize to stay away from singularity
+  double TOL = M_PI/4;
+  if(std::fabs(std::remainder(theta-offset,M_PI)) < TOL && t > t_reparam) { // reparameterize to stay away from singularity
     if(axis1 != axis2) {
       axis1 = axis2;
       offset = 0;

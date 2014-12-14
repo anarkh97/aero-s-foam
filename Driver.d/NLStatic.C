@@ -32,10 +32,12 @@ void
 Domain::getElemStiffAndForce(const GeomState &geomState, double time,
                              const GeomState *refState, const Corotator &elemCorot,
                              double *elemForce, FullSquareMatrix &elemStiff) {
+    // note: delt is the time increment between the refState and current time for dynamics and zero for statics
+    double delt = (sinfo.newmarkBeta == 0) ? sinfo.getTimeStep() : (1-sinfo.newmarkAlphaF)*sinfo.getTimeStep();
     const_cast<Corotator &>(elemCorot).getStiffAndForce(
         const_cast<GeomState *>(refState),
         const_cast<GeomState &>(geomState),
-        nodes, elemStiff, elemForce, domain->solInfo().getTimeStep(), time);
+        nodes, elemStiff, elemForce, delt, time);
 }
 
 void
@@ -98,7 +100,7 @@ Domain::getStiffAndForce(GeomState &geomState, Vector& elementForce,
     if(corotators[iele] && !solInfo().getNLInfo().linearelastic) {
       getElemStiffAndForce(geomState, pseudoTime, refState, *corotators[iele], elementForce.data(), kel[iele]);
       if(sinfo.newmarkBeta == 0) {
-        corotators[iele]->updateStates(refState, geomState, nodes);
+        corotators[iele]->updateStates(refState, geomState, nodes, sinfo.getTimeStep());
         handleElementDeletion(iele, geomState, pseudoTime, *corotators[iele], elementForce.data());
       }
       if(initialTime && packedEset[iele]->isConstraintElement() && packedEset[iele]->hasRot()) {
@@ -847,8 +849,9 @@ void
 Domain::updateStates(GeomState *refState, GeomState &geomState, Corotator **corotators)
 {
   if(matrixTimers) matrixTimers->updateState -= getTime();
+  double delt = std::max(sinfo.newmarkAlphaF,std::numeric_limits<double>::epsilon())*sinfo.getTimeStep();
   for(int iele = 0; iele < numele; ++iele) {
-    if(corotators[iele]) corotators[iele]->updateStates(refState, geomState, nodes);
+    if(corotators[iele]) corotators[iele]->updateStates(refState, geomState, nodes, delt);
   }
   if(matrixTimers) matrixTimers->updateState += getTime();
 }
@@ -859,7 +862,7 @@ Domain::updateWeightedElemStatesOnly(const std::map<int, double> &weights, GeomS
 {
   for (std::map<int, double>::const_iterator it = weights.begin(), it_end = weights.end(); it != it_end; ++it) {
     const int iele = it->first;
-    if(corotators[iele]) corotators[iele]->updateStates(refState, geomState, nodes);
+    if(corotators[iele]) corotators[iele]->updateStates(refState, geomState, nodes, sinfo.getTimeStep());
   }
 }
 

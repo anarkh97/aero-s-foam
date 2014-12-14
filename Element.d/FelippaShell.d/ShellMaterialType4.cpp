@@ -10,7 +10,7 @@ template<typename doublereal, typename localmaterial>
 void
 ShellMaterialType4<doublereal,localmaterial>
 ::GetConstitutiveResponse(doublereal *_Upsilon, doublereal *_Sigma, doublereal *_D,
-                          doublereal*, int point, doublereal temp)
+                          doublereal*, int point, doublereal temp, doublereal dt)
 {
   // Local variables 
   int ilayer;
@@ -68,7 +68,7 @@ ShellMaterialType4<doublereal,localmaterial>
         F[4] = 1.0 + epsilon[1]; // yy
         F[8] = 1.0 - nu/(1-nu)*(epsilon[0]+epsilon[1]); // zz
 
-        if(! mat[nlayer*point+ilayer]->ComputeElastoPlasticConstitutiveResponse(F, &_sigma, __C, UpdateFlag) )
+        if(! mat[nlayer*point+ilayer]->ComputeElastoPlasticConstitutiveResponse(F, &_sigma, __C, UpdateFlag, dt) )
           throw std::runtime_error("ShellMaterialType4::GetConstitutiveResponse failed\n");
 
         sigma << _sigma[0], _sigma[4], _sigma[1];
@@ -109,7 +109,7 @@ template<typename doublereal, typename localmaterial>
 void
 ShellMaterialType4<doublereal,localmaterial>
 ::GetLocalConstitutiveResponse(doublereal *_Upsilon, doublereal *sigma, doublereal z,
-                               doublereal*, int nd, doublereal temp)
+                               doublereal*, int nd, doublereal temp, doublereal dt)
 {
     // Local variables 
     int ilayer;
@@ -141,7 +141,7 @@ ShellMaterialType4<doublereal,localmaterial>
     F[7] = 0.0;              // zy
     F[8] = 1.0 - nu/(1-nu)*(epsilon[0]+epsilon[1]); // zz
 
-    mat[nlayer*nd+ilayer]->ComputeElastoPlasticConstitutiveResponse(F, &_sigma, NULL, true);
+    mat[nlayer*nd+ilayer]->ComputeElastoPlasticConstitutiveResponse(F, &_sigma, NULL, true, dt);
 
     sigma[0] = _sigma[0]; // xx
     sigma[1] = _sigma[4]; // yy
@@ -198,7 +198,7 @@ ShellMaterialType4<doublereal,localmaterial>
 template<typename doublereal, typename localmaterial>
 void
 ShellMaterialType4<doublereal,localmaterial>
-::UpdateState(doublereal *_Upsilon, doublereal *state, int point)
+::UpdateState(doublereal *_Upsilon, doublereal *state, int point, doublereal dt)
 {
   // Local variables 
   int ilayer;
@@ -241,7 +241,7 @@ ShellMaterialType4<doublereal,localmaterial>
         F[4] = 1.0 + epsilon[1]; // yy
         F[8] = 1.0 - nu/(1-nu)*(epsilon[0]+epsilon[1]); // zz
 
-        mat[nlayer*point+ilayer]->ComputeElastoPlasticConstitutiveResponse(F, &sigma, NULL, true);
+        mat[nlayer*point+ilayer]->ComputeElastoPlasticConstitutiveResponse(F, &sigma, NULL, true, dt);
 
 // .....MAKE A COPY OF THE LOCAL STATE (INTERNAL VARAIBLES)
 
@@ -359,12 +359,12 @@ ShellMaterialType4<doublereal,localmaterial>
 template
 void
 ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
-::GetConstitutiveResponse(double *Upsilon, double *Sigma, double *D, double *, int gp, double temp);
+::GetConstitutiveResponse(double *Upsilon, double *Sigma, double *D, double *, int gp, double temp, double dt);
 
 template
 void
 ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
-::GetLocalConstitutiveResponse(double *Upsilon, double *sigma, double z, double *, int nd, double temp);
+::GetLocalConstitutiveResponse(double *Upsilon, double *sigma, double z, double *, int nd, double temp, double dt);
 
 template
 void
@@ -379,7 +379,7 @@ ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
 template
 void
 ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
-::UpdateState(double *Upsilon, double *state, int gp);
+::UpdateState(double *Upsilon, double *state, int gp, double dt);
 
 template
 std::vector<double>

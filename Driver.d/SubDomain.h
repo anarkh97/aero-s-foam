@@ -163,8 +163,8 @@ class BaseSub : virtual public Domain
   void setGlNodes(int *globalNodeNums) { glNums = globalNodeNums; }
   int *getGlNodes()           { return glNums; }
   int *getGlElems()           { return glElems; }
-//  int glToPackElem(int e)     { if (!glElems) setUpData(); return glElems[geoSource->glToPackElem(e)]; } // YYY
-  int glToPackElem(int e)     { return (geoSource->glToPackElem(e) > globalEMax) ? -1 : glToLocalElem[geoSource->glToPackElem(e)]; } // YYY
+  int *getGlMPCs()            { return localToGlobalMPC; }
+  int glToPackElem(int e)     { return (geoSource->glToPackElem(e) > globalEMax) ? -1 : glToLocalElem[geoSource->glToPackElem(e)]; }
   int *getSensorDataMap()     { return locToGlSensorMap; }
   int *getActuatorDataMap()   { return locToGlActuatorMap; }
   int *getUserDispDataMap()   { return locToGlUserDispMap; }
@@ -176,12 +176,11 @@ class BaseSub : virtual public Domain
   int numNodes()              { return numnodes; }
   int findProfileSize();
   int renumberBC(int *);
-  void makeGlobalToLocalNodeMap();  // PJSA
-  void makeGlobalToLocalElemMap();  // YYY
-//  int * getGlobalToLocalNodeMap() { return glToLocalNode; }
-  int globalToLocal(int i)    { return (i < 0 || i > globalNMax) ? -1 : glToLocalNode[i]; }  // PJSA
+  void makeGlobalToLocalNodeMap();
+  void makeGlobalToLocalElemMap();
+  int globalToLocal(int i)    { return (i < 0 || i > globalNMax) ? -1 : glToLocalNode[i]; }
   int localToGlobal(int i)    { return glNums[i]; }
-  int globalToLocalElem(int i) { return (i < 0 || i > globalEMax) ? -1 : glToLocalElem[i]; }  // PJSA
+  int globalToLocalElem(int i) { return (i < 0 || i > globalEMax) ? -1 : glToLocalElem[i]; }
   int localToGlobalElem(int i) { return glElems[i]; }
   int getGlobalNMax()         { return globalNMax; }
   int* makeBMaps(DofSetArray *dofsetarray=0);
@@ -191,8 +190,6 @@ class BaseSub : virtual public Domain
   int localLen()              { return (cc_dsa) ? cc_dsa->size() : c_dsa->size(); }
   ConstrainedDSA * getCCDSA()  { return (cc_dsa) ? cc_dsa : c_dsa; }
   int localRLen()             { return cc_dsa->size(); }
-  //long getMemoryK()      { return memK; }
-  //long getMemoryPrec()   { return memPrec; }
   void sendNumNeighbGrbm(FSCommPattern<int> *pat);
   void recvNumNeighbGrbm(FSCommPattern<int> *pat);
   void deleteLocalRBMs() { if(rigidBodyModes) delete rigidBodyModesG; rigidBodyModesG = 0; }
@@ -229,7 +226,7 @@ class BaseSub : virtual public Domain
   int group;
  protected:
   int numGroupRBM, groupRBMoffset;
-  int *neighbGroup; // PJSA 4-27-06
+  int *neighbGroup;
   int *neighbNumGroupGrbm;
   int *neighbGroupGrbmOffset;
   int numGlobalRBMs;
@@ -431,7 +428,7 @@ class GenSubDomain : public BaseSub
   Scalar *deltaFmpc;
   int *cornerWeight;
   void applyBtransposeAndScaling(Scalar *u, Scalar *v, Scalar *deltaU = 0, Scalar *localw = 0);
-  void applyScalingAndB(/*Scalar *u,*/ Scalar *res, Scalar *Pu, Scalar *localw = 0);
+  void applyScalingAndB(Scalar *res, Scalar *Pu, Scalar *localw = 0);
   void initialize();
 
  protected:
@@ -440,7 +437,6 @@ class GenSubDomain : public BaseSub
   GenSkyMatrix<Scalar> * makeSkyK(Connectivity &nton, Scalar trbm);
 
  public:
-  //GenCuCSparse<Scalar>      *Kuc;    // constrained to unconstrained part of K
   GenSparseSet<Scalar>      *Src;
   GenSparseSet<Scalar>      *Qrc;
   GenSolver<Scalar>         *Krr;
@@ -505,8 +501,6 @@ class GenSubDomain : public BaseSub
   double *getVcx()  { return vcx; }
   double *getAcx()  { return acx; }
   void setUserDefBC(double *, double *, double *, bool nlflag);
-  //void setKuc(GenCuCSparse<Scalar> *_Kuc) { Kuc = _Kuc; }
-  //GenCuCSparse<Scalar> *getKuc() { return Kuc; }
   void reBuildKbb(FullSquareMatrix *kel);
   void addDMass(int glNum, int dof, double m);
   // computes localvec = K-1 (localvec -B interfvec)
@@ -625,7 +619,7 @@ class GenSubDomain : public BaseSub
   void multKcc();
   void reMultKcc();
   void multKrc(Scalar *fr, Scalar *uc);
-  void multfc(Scalar *fr, /*Scalar *fc,*/ Scalar *bf);
+  void multfc(Scalar *fr, Scalar *bf);
   void multFcB(Scalar *bf);
   Scalar *getfc() { return fcstar; }
   void getFr(Scalar *f, Scalar *fr);
@@ -708,9 +702,11 @@ class GenSubDomain : public BaseSub
   void getLocalMpcForces(double *mpcLambda, DofSetArray *cornerEqs,
                          int mpcOffset, GenVector<Scalar> &uc);
   void getConstraintMultipliers(std::map<std::pair<int,int>,double> &mu, std::vector<double> &lambda);
+  void getLocalMultipliers(std::vector<double> &lambda);
   void setMpcRhs(Scalar *interfvec, double t);
   void updateMpcRhs(Scalar *interfvec);
   double getMpcError();
+  bool* getMpcMaster() { return mpcMaster; }
 
  protected:
   double *mpcForces;

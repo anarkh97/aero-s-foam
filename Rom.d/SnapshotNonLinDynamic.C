@@ -86,7 +86,7 @@ struct SnapshotNonLinDynamicDetail : private SnapshotNonLinDynamic {
     SnapshotNonLinDynamic *parent_;
     VecNodeDof6Conversion vecNodeDof6Conversion_;
     FileNameInfo fileInfo_;
-    BasisOutputStream velocitySnapFile_;
+    BasisOutputStream<6> velocitySnapFile_;
   };
   
   // Implementation with acceleration snapshots
@@ -111,7 +111,7 @@ struct SnapshotNonLinDynamicDetail : private SnapshotNonLinDynamic {
     SnapshotNonLinDynamic *parent_;
     VecNodeDof6Conversion vecNodeDof6Conversion_;
     FileNameInfo fileInfo_;
-    BasisOutputStream accelerationSnapFile_;
+    BasisOutputStream<6> accelerationSnapFile_;
   };
   
   // Implementation with residual snapshots
@@ -136,7 +136,7 @@ struct SnapshotNonLinDynamicDetail : private SnapshotNonLinDynamic {
     SnapshotNonLinDynamic *parent_;
     VecNodeDof6Conversion vecNodeDof6Conversion_;
     FileNameInfo fileInfo_;
-    BasisOutputStream residualSnapFile_;
+    BasisOutputStream<6> residualSnapFile_;
   };
   
   //Implementation with jacobian snapshots
@@ -161,7 +161,7 @@ struct SnapshotNonLinDynamicDetail : private SnapshotNonLinDynamic {
     SnapshotNonLinDynamic *parent_;
     VecNodeDof6Conversion vecNodeDof6Conversion_;
     FileNameInfo fileInfo_;
-    BasisOutputStream jacobianSnapFile_;
+    BasisOutputStream<6> jacobianSnapFile_;
   };
   
   //Implementation with internal state snapshots
@@ -186,7 +186,7 @@ struct SnapshotNonLinDynamicDetail : private SnapshotNonLinDynamic {
     SnapshotNonLinDynamic *parent_;
     //VecNodeDof6Conversion vecNodeDof6Conversion_;
     //FileNameInfo fileInfo_;
-    //BasisOutputStream internalStateSnapFile_;
+    //BasisOutputStream<6> internalStateSnapFile_;
     int internalStateSnapFile_; 
   };
 

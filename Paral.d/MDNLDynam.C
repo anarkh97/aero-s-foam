@@ -1104,7 +1104,7 @@ MDNLDynamic::getResidualNorm(DistrVector &r, DistrGeomState &geomState, double)
 
 bool
 MDNLDynamic::factorWhenBuilding() const {
-  return false; //domain->solInfo().iacc_switch;
+  return false;
 }
 
 void
@@ -1136,19 +1136,17 @@ MDNLDynamic::subGetConstraintMultipliers(int isub, DistrGeomState& geomState)
 void
 MDNLDynamic::updateConstraintTerms(DistrGeomState* geomState, double t)
 {
-  // TODO other solvers (eg parallel mumps with penalty?)
   GenFetiDPSolver<double> *fetiSolver = dynamic_cast<GenFetiDPSolver<double> *>(solver);
   if(fetiSolver) {
     if(domain->GetnContactSurfacePairs()) {
       // this function updates the linearized contact conditions (the lmpc coeffs are the gradient and the rhs is the gap)
-      // XXXX the hessian of the constraint functions needs to be computed also
       domain->UpdateSurfaces(MortarHandler::CTC, geomState, decDomain->getAllSubDomains());
       domain->PerformStaticContactSearch(MortarHandler::CTC); // note: dynamic contact search not supported by acme for face-face interactions
       domain->deleteSomeLMPCs(mpc::ContactSurfaces);
       domain->ExpComputeMortarLMPC(MortarHandler::CTC);
       domain->CreateMortarToMPC();
       decDomain->reProcessMPCs();
-      // FIXME there is some duplication of things done in reconstructMPCs and rebuild/refactor (eg buildCCt)
+      // Note: there is some duplication of things done in reconstructMPCs and rebuild/refactor (eg buildCCt)
       // I think all of the reconstruction of the solver should be done in rebuild/refactor
       // consider the case of quasi-newton where the solver is NOT rebuild at every newton iteration
       fetiSolver->reconstructMPCs(decDomain->mpcToSub_dual, decDomain->mpcToMpc, decDomain->mpcToCpu);

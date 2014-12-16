@@ -828,7 +828,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
      else
        filePrint(stderr, " ... Implicit Generalized-α Method  ...\n"
                          " ... with β  = %5.3f, γ  = %5.3f    ...\n"
-                         " ...      αf = %5.3f, αm = %5.3f    ...\n", beta, gamma, alphaf, alpham);
+                         " ...      αf = %5.3f, αm = %-6.3f   ...\n", beta, gamma, alphaf, alpham);
    }
 
    int parity = 0;

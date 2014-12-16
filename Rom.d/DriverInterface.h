@@ -32,5 +32,6 @@ extern Rom::DriverInterface *elementSamplingDriverNew(Domain *);
 extern Rom::DriverInterface *distrROMPostProcessingDriverNew(Domain *);
 extern Rom::DriverInterface *distrElementSamplingDriverNew(Domain *);
 extern Rom::DriverInterface *snapshotProjectionDriverNew(Domain *);
+extern Rom::DriverInterface *positiveDualBasisDriverNew(Domain *);
 
 #endif /* ROM_DRIVERINTERFACE_H */

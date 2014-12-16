@@ -7,7 +7,7 @@ namespace Rom {
 
 class BasisId {
 public:
-  enum Type  { STATE, RESIDUAL, JACOBIAN, FORCE, ACCELERATION, VELOCITY, INTERNALSTATE };
+  enum Type  { STATE, RESIDUAL, JACOBIAN, FORCE, ACCELERATION, VELOCITY, INTERNALSTATE, DUALSTATE };
   enum Level { SNAPSHOTS, POD, ROB};
 
   Type  type()  const { return type_; }

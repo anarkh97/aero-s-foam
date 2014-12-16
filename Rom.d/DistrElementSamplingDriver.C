@@ -375,7 +375,7 @@ DistrElementSamplingDriver::solve()
     std::string fileName2 = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
     if(domain->solInfo().newmarkBeta == 0 || domain->solInfo().useMassNormalizedBasis) fileName2.append(".normalized");
     const VecNodeDof6Conversion vecDofConversion(*domain->getCDSA());
-    BasisInputStream in(fileName2, vecDofConversion);
+    BasisInputStream<6> in(fileName2, vecDofConversion);
     VecBasis podBasis;
     const int podSizeMax = domain->solInfo().maxSizePodRom;
     if(podSizeMax != 0) {
@@ -436,7 +436,7 @@ DistrElementSamplingDriver::solve()
       if(domain->solInfo().newmarkBeta == 0 || domain->solInfo().useMassNormalizedBasis) filename.append(".normalized");
       filePrint(stderr," ... Writing compressed basis to file %s ...\n", filename.c_str());
       VecNodeDof6Conversion converter(reduced_cdsa);
-      BasisOutputStream output(filename, converter, false);
+      BasisOutputStream<6> output(filename, converter, false);
 
       for (int iVec = 0; iVec < podBasis.vectorCount(); ++iVec) {
         output << podBasis.compressedBasis().col(iVec);

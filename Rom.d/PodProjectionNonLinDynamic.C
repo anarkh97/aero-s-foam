@@ -122,7 +122,7 @@ PodProjectionNonLinDynamicDetail::BasicImpl::BasicImpl(PodProjectionNonLinDynami
     filePrint(stderr, " ... Using Mass-normalized Basis    ...\n");
     fileName.append(".normalized");
   }
-  BasisInputStream projectionBasisInput(fileName, vecNodeDof6Conversion_);
+  BasisInputStream<6> projectionBasisInput(fileName, vecNodeDof6Conversion_);
 
   const int projectionSubspaceSize = solInfo().maxSizePodRom ?
                                      std::min(solInfo().maxSizePodRom, projectionBasisInput.size()) :
@@ -226,7 +226,7 @@ public:
    void handleJacobianSnapshot();
 
 private:
-  BasisOutputStream velocitySnapFile_;
+  BasisOutputStream<6> velocitySnapFile_;
 };
 
 // Implementation with acceleration snapshots
@@ -244,7 +244,7 @@ public:
    void handleJacobianSnapshot();
 
 private:
-  BasisOutputStream accelerationSnapFile_;
+  BasisOutputStream<6> accelerationSnapFile_;
 };
 
 // Implementation with residual snapshots
@@ -262,7 +262,7 @@ public:
    void handleJacobianSnapshot();
 
 private:
-  BasisOutputStream residualSnapFile_;
+  BasisOutputStream<6> residualSnapFile_;
 };
 
 //Implementation with jacobian snapshots
@@ -280,7 +280,7 @@ public:
    void handleJacobianSnapshot();
 
 private:
-  BasisOutputStream jacobianSnapFile_;
+  BasisOutputStream<6> jacobianSnapFile_;
 };
 
 PodProjectionNonLinDynamicDetail::sttSnapImpl::sttSnapImpl(Domain * domain, PodProjectionNonLinDynamic * parent) :

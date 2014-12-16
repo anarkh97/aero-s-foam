@@ -1050,6 +1050,8 @@ TRAIL [a-zA-Z]*
 
 "isvarvct"|"ISVARVCT"              { yylval.ival = OutputInfo::InternalStateVar; return STRESSID; }
 
+"dsvarvct"|"DSVARVCT"              { yylval.ival = OutputInfo::DualStateVar; return STRESSID; }
+
 "robdataf"|"ROBDATAF"		   { yylval.ival = OutputInfo::RobData;	     return STRESSID; }
 
 "samplmsh"|"SAMPLMSH" 		   { yylval.ival = OutputInfo::SampleMesh;   return STRESSID; }
@@ -1500,11 +1502,13 @@ TRAIL [a-zA-Z]*
 "gpfp"|"GPFP" 				  { yylval.ival = 2; return SPNNLSSOLVERTYPE; }
 "lars"|"LARS"				  { yylval.ival = 3; return SPNNLSSOLVERTYPE; }
 "mp"|"MP"				  { yylval.ival = 4; return SPNNLSSOLVERTYPE; }
-"omp"|"OMP"                                 { yylval.ival = 5; return SPNNLSSOLVERTYPE; }
+"omp"|"OMP"                               { yylval.ival = 5; return SPNNLSSOLVERTYPE; }
 
 "MAXSZE"|"MaxSze"|"maxsze"                { return MAXSIZE; }
 
-"REFSUBSTRACT"|"refsubstract"|"RefSubstract" { return REFSUBSTRACT; } 
+"REFSUBTRACT"|"refsubtract"|"RefSubtract" { return REFSUBTRACT; } 
+
+"USE_NMF"|"use_nmf"                       { return USENMF; }
 
 [A-Za-z][A-Za-z0-9_.]*  { yylval.strval = strdup(yytext); return FNAME; }
 

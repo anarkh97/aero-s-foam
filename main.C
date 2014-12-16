@@ -691,7 +691,7 @@ int main(int argc, char** argv)
    geoSource->transformLMPCs(domain->getNumLMPC(), *(domain->getLMPC()));
  }
 
- if(domain->solInfo().type != 2)
+ if(domain->solInfo().type != 2 && !domain->solInfo().use_nmf)
    geoSource->addMpcElements(domain->getNumLMPC(), *(domain->getLMPC()));
 
  if((domain->solInfo().type != 2 || (!domain->solInfo().isMatching && (domain->solInfo().fetiInfo.fsi_corner != 0))) && !domain->solInfo().HEV)
@@ -1355,9 +1355,14 @@ int main(int argc, char** argv)
        {
          std::auto_ptr<Rom::DriverInterface> driver;
          if (domain->solInfo().svdPodRom) {
-           // Stand-alone SVD orthogonalization
-           filePrint(stderr, " ... POD: SVD Orthogonalization     ...\n");
-           driver.reset(basisOrthoDriverNew(domain));
+           if(domain->solInfo().use_nmf) {
+             filePrint(stderr, " ... Nonnegative Matrix Factorization ...\n");
+             driver.reset(positiveDualBasisDriverNew(domain));
+           }
+           else {
+             filePrint(stderr, " ... POD: SVD Orthogonalization     ...\n");
+             driver.reset(basisOrthoDriverNew(domain));
+           }
          }
          else if (domain->solInfo().samplingPodRom) {
            // Element-based hyper-reduction

@@ -1800,6 +1800,8 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
         break;
      case OutputInfo::InternalStateVar:
         break;
+     case OutputInfo::DualStateVar:
+        break;
      case OutputInfo::Residual:
         break;
      case OutputInfo::Jacobian:

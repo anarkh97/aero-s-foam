@@ -116,7 +116,7 @@ DEIMSamplingDriver::readInBasis(VecBasis &podBasis, BasisId::Type type, BasisId:
  FileNameInfo fileInfo;
  std::string fileName = BasisFileId(fileInfo, type, level);
  if(normalized) fileName.append(".normalized");
- BasisInputStream in( fileName, *converter);
+ BasisInputStream<6> in(fileName, *converter);
  if (podSizeMax != 0) {
    std::cout << "reading in " << podSizeMax << " vectors from " << fileName.c_str() << std::endl;
    readVectors(in, podBasis, podSizeMax);
@@ -140,7 +140,7 @@ DEIMSamplingDriver::writeBasisToFile(const VecBasis &OutputBasis, std::vector<Sc
 {
  FileNameInfo fileInfo;
  std::string fileName = BasisFileId(fileInfo, type, level);
- BasisOutputStream outputNormalized(fileName, *converter, false);
+ BasisOutputStream<6> outputNormalized(fileName, *converter, false);
  filePrint(stderr, " ... Writing basis to file %s ...\n", fileName.c_str());
  for (int iVec = 0; iVec < OutputBasis.vectorCount(); ++iVec) {
    if(singularValue.size() > 0)
@@ -529,8 +529,8 @@ DEIMSamplingDriver::writeSampledMesh(std::vector<int> &maskIndices) {
     DofSetArray reduced_dsa(reducedMesh.nodes().size(), const_cast<Elemset&>(reducedMesh.elements()));
     ConstrainedDSA reduced_cdsa(reduced_dsa, reducedMesh.dirichletBConds().size(), const_cast<BCond*>(&reducedMesh.dirichletBConds()[0]));
     VecNodeDof6Conversion converter(reduced_cdsa);
-    BasisOutputStream outputPOD(PODfilename, converter, false);
-    BasisOutputStream outputDEIM(DEIMfilename, converter, false);
+    BasisOutputStream<6> outputPOD(PODfilename, converter, false);
+    BasisOutputStream<6> outputDEIM(DEIMfilename, converter, false);
 
     for (int iVec = 0; iVec < podBasis_.vectorCount(); ++iVec) {
       outputPOD  << podBasis_.compressedBasis().col(iVec);
@@ -664,7 +664,7 @@ DEIMSamplingDriver::readAndProjectSnapshots(BasisId::Type type, const int vector
   for(int i = 0; i < FileNameInfo::size(type, BasisId::SNAPSHOTS); i++) {
     std::string fileName = BasisFileId(fileInfo, type, BasisId::SNAPSHOTS, i);
     filePrint(stderr, " ... Processing File: %s ...\n", fileName.c_str());
-    BasisInputStream in(fileName, *vecDofConversion);
+    BasisInputStream<6> in(fileName, *vecDofConversion);
 
     int count = 0;
     int skipCounter = skipFactor - skipOffSet;

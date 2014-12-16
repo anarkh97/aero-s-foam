@@ -1415,6 +1415,16 @@ void GeoSource::setUpData()
         domain->solInfo().isvPodRomFile = oinfo[iOut].filename;
         oinfo[iOut].PodRomfile = true;
         break;
+      case OutputInfo::DualStateVar :
+        if(verboseFlag) filePrint(stderr, " ... Saving dual state variables snapshots every %d time steps to %s ...\n",
+                                  oinfo[iOut].interval, oinfo[iOut].filename);
+        domain->solInfo().activatePodRom = true;
+        domain->solInfo().snapshotsPodRom = true;
+        domain->solInfo().dsvPodRom = true;
+        domain->solInfo().skipDualStateVar = oinfo[iOut].interval;
+        domain->solInfo().dsvPodRomFile = oinfo[iOut].filename;
+        oinfo[iOut].PodRomfile = true;
+        break;
       case OutputInfo::Forcevector :
         if(verboseFlag) filePrint(stderr, " ... Saving force snapshots every %d time steps to %s ...\n",
                                   oinfo[iOut].interval, oinfo[iOut].filename);

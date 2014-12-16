@@ -11,15 +11,17 @@ namespace Rom {
 const double BasisBinaryFile::VERSION = 2.0;
 const std::string BasisBinaryFile::DESC = "rob";
 const int BasisBinaryFile::NODAL_DATA_FLAG = 1;
-const int BasisBinaryFile::DOFS_PER_NODE = 6;
+const int BasisBinaryFile::DEFAULT_DOFS_PER_NODE = 6;
 
 
-BasisBinaryOutputFile::BasisBinaryOutputFile(const std::string &fileName, int nodeCount, bool restart) :
-  binFile_(fileName, NODAL_DATA_FLAG, DESC, nodeCount, DOFS_PER_NODE, VERSION, restart)
+BasisBinaryOutputFile::BasisBinaryOutputFile(const std::string &fileName, int nodeCount, bool restart,
+                                             int dofs_per_node) :
+  binFile_(fileName, NODAL_DATA_FLAG, DESC, nodeCount, dofs_per_node, VERSION, restart)
 {}
 
+template<int DOFS_PER_NODE>
 void
-BasisBinaryOutputFile::stateAdd(const NodeDof6Buffer &data, double headValue) {
+BasisBinaryOutputFile::stateAdd(const NodeDofBuffer<DOFS_PER_NODE> &data, double headValue) {
   assert(nodeCount() == data.size());
 
   // Dump all information in one pass
@@ -30,14 +32,6 @@ BasisBinaryOutputFile::stateAdd(const NodeDof6Buffer &data, double headValue) {
 BasisBinaryInputFile::BasisBinaryInputFile(const std::string &fileName) :
   binFile_(fileName)
 {
-
-//  fprintf(stderr," binFile_.version = %f matches VERSION %f for file ", binFile_.version(),VERSION);
-//  std::cerr << fileName << std::endl;
-
-//  fprintf(stderr," binFile_.dataType = %d and NODAL_DATA_FLAG = %d \n", binFile_.dataType(), NODAL_DATA_FLAG);
-//  fprintf(stderr," binFile_.description = %s and DESC = %s \n", binFile_.description(), DESC);
-//  fprintf(stderr," binFile_.itemDimension = %d and DOFS_PER_NODE = %d \n", binFile_.itemDimension(), DOFS_PER_NODE);
-
   if (binFile_.version() != VERSION) {
     throw std::runtime_error("Incompatible binary file version");
   }
@@ -45,22 +39,19 @@ BasisBinaryInputFile::BasisBinaryInputFile(const std::string &fileName) :
   if (binFile_.dataType() != NODAL_DATA_FLAG) {
     throw std::runtime_error("Non-nodal data");
   }
-  
+ 
   if (binFile_.description() != DESC) {
     throw std::runtime_error("Incorrect description");
   }
-  
-  if (binFile_.itemDimension() != DOFS_PER_NODE) {
-    throw std::runtime_error("Incorrect #dofs/node");
-  }
-  
+ 
   assert(currentStateIndex() == 0);
 
   cacheStateHeaderValue();
 }
 
-const NodeDof6Buffer &
-BasisBinaryInputFile::currentStateBuffer(NodeDof6Buffer &target) {
+template<int DOFS_PER_NODE>
+const NodeDofBuffer<DOFS_PER_NODE> &
+BasisBinaryInputFile::currentStateBuffer(NodeDofBuffer<DOFS_PER_NODE> &target) {
   assert(validCurrentState());
   assert(nodeCount() == target.size());
   
@@ -83,5 +74,21 @@ void BasisBinaryInputFile::cacheStateHeaderValue() {
     currentStateHeaderValue_ = binFile_.stateStamp();
   }
 }
+
+template
+void
+BasisBinaryOutputFile::stateAdd(const NodeDofBuffer<6> &data, double headValue);
+
+template
+const NodeDofBuffer<6> &
+BasisBinaryInputFile::currentStateBuffer(NodeDofBuffer<6> &target);
+
+template
+void
+BasisBinaryOutputFile::stateAdd(const NodeDofBuffer<1> &data, double headValue);
+
+template
+const NodeDofBuffer<1> &
+BasisBinaryInputFile::currentStateBuffer(NodeDofBuffer<1> &target);
 
 } /* end namespace Rom */

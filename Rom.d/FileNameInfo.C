@@ -46,6 +46,8 @@ FileNameInfo::size(BasisId::Type type, BasisId::Level level)
         ret = domain->solInfo().velocPodRomFile.size();
       if(type == 6)
         ret = 1; // domain->solInfo().isvPodRomFile;
+      if(type == 7)
+        ret = 1; // domain->solInfo().dsvPodRomFile;
     }
     else if(level == 1) {
       ret = 1; // domain->solInfo().readInROBorModes;
@@ -93,6 +95,8 @@ FileNameInfo::basisFileName(const BasisId &id, int i) const {
         builder << domain->solInfo().velocPodRomFile[i];
       if(id.type() == 6)
         builder << domain->solInfo().isvPodRomFile;
+      if(id.type() == 7)
+        builder << domain->solInfo().dsvPodRomFile;
     }
     else if(id.level() == 1) {
       builder << domain->solInfo().readInROBorModes;

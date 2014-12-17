@@ -36,9 +36,9 @@ splh(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const E
   //int nb=64;
   //solver.setABlockSize(mb,nb);
 
-  int mp=16;
-  int np=4;
-  solver.setAProcGrid(mp,np);
+  //int mp=12;
+  //int np=4;
+  //solver.setAProcGrid(mp,np);
 
   // Loads the matrix and RHS
   solver.init(A, b);

@@ -39,7 +39,7 @@ class GaussIntgElement : public MatNLElement
     int numStates() {
       int nGP = getNumGaussPoints();
       NLMaterial *mat = getMaterial();
-      int nsGP = mat->getNumStates(); 
+      int nsGP = (mat) ? mat->getNumStates() : 0; 
       return nGP*nsGP;
     }
     void initStates(double *);
@@ -88,7 +88,7 @@ class GenGaussIntgElement : public MatNLElement
     int numStates() {
       int ngp = getNumGaussPoints();
       NLMaterial *mat = getMaterial();
-      int nst = mat->getNumStates();
+      int nst = (mat) ? mat->getNumStates() : 0;
       return nst*ngp;
     }
     void initStates(double *);

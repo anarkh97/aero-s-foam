@@ -860,10 +860,13 @@ void
 Domain::updateWeightedElemStatesOnly(const std::map<int, double> &weights, GeomState *refState,
                                      GeomState &geomState, Corotator **corotators)
 {
-  for (std::map<int, double>::const_iterator it = weights.begin(), it_end = weights.end(); it != it_end; ++it) {
+  if(matrixTimers) matrixTimers->updateState -= getTime();
+  double delt = std::max(sinfo.newmarkAlphaF,std::numeric_limits<double>::epsilon())*sinfo.getTimeStep();
+  for(std::map<int, double>::const_iterator it = weights.begin(), it_end = weights.end(); it != it_end; ++it) {
     const int iele = it->first;
-    if(corotators[iele]) corotators[iele]->updateStates(refState, geomState, nodes, sinfo.getTimeStep());
+    if(corotators[iele]) corotators[iele]->updateStates(refState, geomState, nodes, delt);
   }
+  if(matrixTimers) matrixTimers->updateState += getTime();
 }
 
 void

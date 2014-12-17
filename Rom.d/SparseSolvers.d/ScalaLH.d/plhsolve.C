@@ -15,21 +15,19 @@
 
 
 int
-Plh::solve(int max_iter) {
-    //_A->write("A.txt");
-    //_b->write("b.txt");
+Plh::solve() {
     MPI_Barrier(MPI_COMM_WORLD);
     initplh();
     _iter = 0;
     _subiter = 0;
     bool done = false;
-    bool reject = false;
+    bool reject;
     int iqr = -1;
-    int count;
+    int count;;
     _rnorm2 = 1.0 + _rtol;
 
     startTime(TIME_MAIN_LOOP);
-    while (_iter < max_iter && _nP < _maxNP && _rnorm2 > _rtol && !done) {
+    while (_iter < _max_iter && _nP < _maxNP && _rnorm2 > _rtol && !done) {
         startTime(TIME_ITER);
         gradf();
         if (_iter % _residualIncr == 0) writeResidual();
@@ -37,6 +35,7 @@ Plh::solve(int max_iter) {
         if (!done) {
             iqr = _nP;
             count = 0;
+            _subiter = 0;
             reject = true;  // Force through the loop once.
             while (reject && !done) {
                 reject = updateQR(iqr);
@@ -67,7 +66,9 @@ Plh::solve(int max_iter) {
             _zmin = _zQR->getMin(_row_commQR, _col_commQR, 1, _nP);
             iteration_output();
             while (_zmin.x <= 0.0) {
-                _wmask->setElement(1,_zmin.i,0.0); // Don't allow this vector back until mask is reset.
+                // Downdate
+                startTime(TIME_DOWNDATE);
+                if(_ddmask) _wmask->setElement(1,_zmin.i,0.0); // Don't allow this vector back until mask is reset.
                 updateX();
                 //iqr = moveFromPToZSwap();
                 iqr = moveFromPToZShift();
@@ -77,8 +78,8 @@ Plh::solve(int max_iter) {
                 _zmin = _zQR->getMin(_row_commQR, _col_commQR, 1, _nP);
                 sub_iteration_output(iqr);
                 _subiter++;
+                stopTime(TIME_DOWNDATE);
             }
-            _subiter = 0;
             _xQR->zero();
             _zQR->copy(*_xQR, _nP);
             copyxQR2x();
@@ -126,16 +127,21 @@ Plh::initplh() {
         std::cout << "Residual norm target  = " << _rtol << std::endl;
     }
 
-    _wmask->set(1.0);
-    _A->norm2Colunns(*_colnorms);
-    _colnorms->write("colnorms.txt");
-    DoubleInt cnmax = _colnorms->getMax(_row_comm, _col_comm);
-    DoubleInt cnmin = _colnorms->getMin(_row_comm, _col_comm);
-    if (_mypid == 0) {
-        std::cout << "column norm max = " << cnmax.x << " at i = " << cnmax.i << std::endl;
-        std::cout << "column norm min = " << cnmin.x << " at i = " << cnmin.i << std::endl;
+    if (_ddmask || _cnmask) {
+        _wmask->set(1.0);
     }
-    wMaskByColNorm();
+
+    if (_cnmask) {
+        _A->norm2Colunns(*_colnorms);
+        _colnorms->write("colnorms.txt");
+        DoubleInt cnmax = _colnorms->getMax(_row_comm, _col_comm);
+        DoubleInt cnmin = _colnorms->getMin(_row_comm, _col_comm);
+        if (_mypid == 0) {
+            std::cout << "column norm max = " << cnmax.x << " at i = " << cnmax.i << std::endl;
+            std::cout << "column norm min = " << cnmin.x << " at i = " << cnmin.i << std::endl;
+        }
+        wMaskByColNorm();
+    }
 
     stopTime(TIME_INIT_NNLS);
     return 0;
@@ -166,8 +172,6 @@ Plh::residual2Norm() {
 
 bool
 Plh::updateQR(int iqr) {
-    //std::cout << "mypid = " << _mypid << ". Entering updateQR. iqr = ";
-    //std::cout << iqr << ", iter = " << _iter << ", _nP = " << _nP << std::endl;
     startTime(TIME_UPDATEQR);
     bool reject = false;
     char side = 'L';
@@ -198,7 +202,6 @@ Plh::updateQR(int iqr) {
         }
         _QtoA->setScope();
         stopTime(TIME_COPYREDIST);
-        //_Q->write("Q_AfterCopy" + intToString(_iter) + "_" + intToString(_subiter) + "_" +intToString(iqr) + ".txt");
         startTime(TIME_PDORMQR);
         int k = iqr-1;
         if (k > 0) {
@@ -228,15 +231,12 @@ Plh::updateQR(int iqr) {
             distributeVector(_contextQR, 'R', top, &diff, 1, icol);
             if (diff <= 0.0) {
                 reject = true;
-                // std::cout << "Linearly independent. iter = " << _iter << ", iqr = " << iqr << ", diff = " << diff << std::endl;
             }
             stopTime(TIME_LDCHECK);
         }
     }
     stopTime(TIME_UPDATEQR);
 
-    //_Q->write("Q_" + intToString(_iter) + "_" + intToString(iqr) + ".txt");
-    //std::cout <<  "mypid = " << _mypid << ". Exiting updateQR. iter = " << _iter << std::endl;
     return reject;
 }
 
@@ -257,7 +257,6 @@ Plh::updateQtb(int iqr) {
         m = _m - _nP + 1;
     } else {
         _bQR->copy(*_Qtb, _m);
-        // _b->copyRedist(_m, 1, 1, 1, *_Qtb, 1, 1, _contextQR);
         j = 1;
         k = _nP;
         m = _m;
@@ -283,9 +282,8 @@ Plh::updateQtb(int iqr) {
         }
         distributeVector(_contextQR, 'R', top, &q, 1, 0);
         ztest = q/a;
-        //std::cout << "_iter = " << _iter << ", ztest = " << ztest << std::endl;
         if (ztest <= 0.0) {
-        reject = true;
+            reject = true;
         }
         stopTime(TIME_PZCHECK);
     }
@@ -346,7 +344,6 @@ Plh::rejectVector() {
     _wmax = _w->getMax(_row_comm, _col_comm); // getMax() distributes to all processors
     stopTime(TIME_GETMAX);
     if (_wmax.x <= 0.0) {
-        // std::cout << "Rejected and done" << std::endl;
         done = true;
         _nP--;
     } else {
@@ -388,6 +385,7 @@ Plh::mcopyQtoA(SCDoubleMatrix * xQR, SCDoubleMatrix * x) {
     return 0;
 }
 
+
 int
 Plh::copyxQR2x() {
     // Copy _xQR to _x
@@ -407,96 +405,11 @@ Plh::copyxQR2x() {
 }
 
 
-    //_QtoA->write("QtoA_" + intToString(_iter) + "_" + intToString(_subiter) + ".txt");
-    /*
-    for (int i=1; i<=_n; i++) {
-        k = 1;
-        j = _QtoA->getElement(1,k);
-        while (k < _nP && i != j) {
-            k++;
-            j = _QtoA->getElement(1,k);
-        }
-        if (i == j) {
-            x = _x->getElement(1,j);
-            if (x <= 0.0) {
-                std::cout << "PROBLEM: x not positive. x = " << x << ", i = " << i << ", j = " << j << std::endl;
-            }
-        } else {
-            x = _x->getElement(1,i);
-            //_x->setElement(1,i,0.0);
-            if (x != 0.0) {
-                std::cout << "PROBLEM: x not zero. x = " << x << ", i = " << i << ", j = " << j << std::endl;
-            }
-        }
-    }
-    */
-
-
 int
 Plh::gradf() {
     startTime(TIME_GRADF);
     int j, k;
     double x;
-
-    /*
-    _b->copy(*_workm, _b->getNumberOfRows());
-    _A->multiply(*_x, *_workm,  'N', _m, _n, -1.0, 1.0);
-    if (_iter % _residualIncr == 0) {
-        startTime(TIME_WRITE_RESIDUAL);
-        _rnorm2 = _workm->norm2();
-        stopTime(TIME_WRITE_RESIDUAL);
-    }
-    //_workm->write("r_" + intToString(_iter) + "_" + intToString(_subiter) + ".txt");
-    _A->multiply(*_workm,  *_w, 'T', _m, _n,  1.0, 0.0);
-    // Set to zero w_j for all j in set P
-    for (int i=1; i<=_nP; i++) {
-        j = _QtoA->getElement(1,i);
-        _w->setElement(1,j,0.0);
-    }
-    */
-
-    // Seems better but shouldn't be.
-    /*
-    _A->multiply(*_x, *_workm,  'N', _m, _n, 1.0, 0.0);
-    _A->multiply(*_workm,  *_w, 'T', _m, _n, 1.0, 0.0);
-    if (_iter == 610) _w->write("AtAx_" + intToString(_iter) + "_" + intToString(_subiter) + ".txt", false);
-    if (_iter == 610) _Atb->write("Atb_"   + intToString(_iter) + "_" + intToString(_subiter) + ".txt", false);
-    _Atb->add(*_w, 'N', 1, _n, 1.0, -1.0);
-    // Set to zero w_j for all j in set P
-    for (int i=1; i<=_nP; i++) {
-        j = _QtoA->getElement(1,i);
-        _w->setElement(1,j,0.0);
-    }
-    */
-
-    // Compute Residual = b - Q Q^T b
-    /**********************************************
-    char side = 'L';
-    char trans = 'N';
-    int one = 1;
-    int info;
-    _rQR->zero();
-    _Qtb->copy(*_rQR, _nP);
-    _FORTRAN(pdormqr)(&side, &trans, &_m, &one, &_nP,
-        _Q->getMatrix(),  &one, &one, _Q->getDesc(), _Q->getTau(),
-        _rQR->getMatrix(), &one, &one, _rQR->getDesc(),
-        _work_qr, &_lwork_qr, &info);
-    _bQR->add(*_rQR, 'N', _m, 1, 1.0, -1.0);
-
-    if (_iter % _residualIncr == 0) {
-        startTime(TIME_WRITE_RESIDUAL);
-        _rnorm2 = _rQR->norm2();
-        stopTime(TIME_WRITE_RESIDUAL);
-    }
-
-    mcopyQtoA(_rQR, _workm);
-    _A->multiply(*_workm,  *_w, 'T', _m, _n, 1.0, 0.0);
-    // Set to zero w_j for all j in set P
-    for (int i=1; i<=_nP; i++) {
-        j = _QtoA->getElement(1,i);
-        _w->setElement(1,j,0.0);
-    }
-    ***********************************************/
 
     //_rQR->zero();
     _Qtb->copy(*_rQR, _m);
@@ -529,22 +442,11 @@ Plh::gradf() {
         j = _QtoA->getElement(1,i);
         _w->setElement(1,j,0.0);
     }
-    _w->hadamardProduct(*_wmask);
+    if (_cnmask || _ddmask) _w->hadamardProduct(*_wmask);
 
     stopTime(TIME_GRADF);
     return 0;
 }
-
-    //_w->write("w_last.txt", false);
-    //_x->write("x_last.txt", false);
-    //_w->write("w_" + intToString(_iter) + ".txt", false);
-    //_w->write("w_" + intToString(_iter) + ".txt");
-    //_b->write("b_" + intToString(_iter) + ".txt");
-    //_Qtb->write("Qtb_" + intToString(_iter) + ".txt");
-    //
-    //_rQR->write("rQR_" + intToString(_iter) + "_" + intToString(_subiter) + ".txt");
-    //_workm->write("workm_" + intToString(_iter) + "_" + intToString(_subiter) + ".txt");
-    //_w->write("w_" + intToString(_iter) + "_" + intToString(_subiter) + ".txt");
 
 
 int
@@ -556,6 +458,7 @@ Plh::updateX() {
     stopTime(TIME_UPDATEX);
     return 0;
 }
+
 
 int
 Plh::computeX() {
@@ -591,8 +494,6 @@ Plh::getAlpha() {
         int count = 0, ialoc;
         for (int ia=1; ia<=_nP; ia++) {
             z = _zQR->getElement(1, ia);
-            //std::cout << "mypid = " << _mypid << ", x = " << x << ", z = " << z << std::endl;
-            // if (z <= ZERO_TOL) {
             if (z <= 0.0) {
                 x = _xQR->getElement(1, ia);
                 a = x/(x-z);
@@ -619,8 +520,6 @@ Plh::getAlpha() {
                 _FORTRAN(igebr2d)(&_contextQR, &scope, &top, &one, &one, &(iminalpha[pc]), &one, &zero, &pc);
             }
         }
-        // Compute global alpha
-        //std::cout << "mypid = " << _mypid << ", Compute Global" << std::endl;
         _alpha  = minalpha[0];
         _ialpha = iminalpha[0];
         for (int pc=1; pc<_npcolQR; pc++) {
@@ -636,13 +535,10 @@ Plh::getAlpha() {
         }
         delete[] minalpha;
         delete[] iminalpha;
-        //std::cout << "mypid = " << _mypid << ", _alpha = " << _alpha << ", Done getAlpha" << std::endl;
     }
     distributeVector(_contextQR, 'C', ' ', &_ialpha, 1);
     distributeVector(_contextQR, 'C', ' ', &_alpha, 1);
     _xQR->setElement(1, _ialpha, 0.0);
-    //if (_alpha > 1.0) _alpha = 1.0;
-    //std::cout << "Leaving getAlpha(). mypid = " << _mypid << ", alpha = " << _alpha << std::endl;
     return 0;
 }
 
@@ -710,48 +606,74 @@ int
 Plh::moveFromPToZShift() {
     startTime(TIME_MOVEFROMPTOZ);
     int qmin = _nP;
-    int zero= 0;
-    char scope = 'R';
-    char top = ' ';
-    int ra, ca, ldia=-1, rdest=-1, cdest;
+    //int zero= 0;
+    //char scope = 'R';
+    //char top = ' ';
     int nP = _nP;
-    int k, e;
     bool found;
 
-    _xQR->setScope('A');
-    _QtoA->setScope('A');
-    //if (_myrowQR == 0) {
+    if (_contextQR != _context) {
+        _xQR->setScope('A');
+        _QtoA->setScope('A');
         double x, y;
-        int i = 1;
+        int k, i=1, n=0;
         while (i <= _nP) {
             x = _xQR->getElement(1,i);
-            e = _QtoA->getElement(1,i);
             if (x <= 0.0) {
                 if (i < qmin) {
                     qmin = i;
                 }
-                for (int j=i+1; j<=_nP; j++) {
-                    k = _QtoA->getElement(1,j);
-                    _QtoA->setElement(1,j-1,k);
-                    y = _xQR->getElement(1,j);
-                    _xQR->setElement(1,j-1,y);
+                n++;
+            } else {
+                if (n > 0) {
+                    k = _QtoA->getElement(1,i);
+                    _QtoA->setElement(1,i-n,k);
+                    _xQR->setElement(1,i-n,x);
                 }
-                //_xQR->setElement(1,_nP,x);
-                //_QtoA->setElement(1,_nP,e);
-                _nP--;
-                _nZ++;
             }
             i++;
         }
-    //}
-    _xQR->setScope();
-    _QtoA->setScope();
+        _nP -= n;
+        _nZ += n;
+        _xQR->setScope();
+        _QtoA->setScope();
+    } else {
+        _xQR->setScope();
+        _QtoA->setScope();
+        if (_myrowQR == 0) {
+            double x, y;
+            int k, i=1, n=0;
+            while (i <= _nP) {
+                x = _xQR->getElement(1,i);
+                if (x <= 0.0) {
+                    if (i < qmin) {
+                        qmin = i;
+                    }
+                    n++;
+                } else {
+                    if (n > 0) {
+                        k = _QtoA->getElement(1,i);
+                        _QtoA->setElement(1,i-n,k);
+                        _xQR->setElement(1,i-n,x);
+                    }
+                }
+                i++;
+            }
+            _nP -= n;
+            _nZ += n;
+        }
+        int buf[3];
+        buf[0] = qmin;
+        buf[1] = _nP;
+        buf[2] = _nZ;
+        distributeVector(_contextQR, 'C', ' ', buf, 3);
+        if (_myrowQR != 0) {
+            qmin = buf[0];
+            _nP  = buf[1];
+            _nZ  = buf[2];
+        }
+    }
     stopTime(TIME_MOVEFROMPTOZ);
-    //if (qmin > _nP) {
-    //    std::cout << "qmin > _nP. qmin = " << qmin << ", _nP = " << _nP << std::endl;
-    //}
-
-    // std::cout << "qmin = " << qmin << ", _nP = " << _nP << std::endl;
     return qmin;
 }
 
@@ -774,7 +696,7 @@ Plh::wMaskByColNorm() {
     double *colnorms = _colnorms->getMatrix();
     int nlocal = _wmask->getNumberOfColsLocal();
     DoubleInt cnmax = _colnorms->getMax(_row_comm, _col_comm);
-    double fac = 0.001;
+    double fac = 0.01;
     for (int i=0; i<nlocal; i++) {
         if (colnorms[i] < cnmax.x*fac) {
             wmask[i] = 0.0;

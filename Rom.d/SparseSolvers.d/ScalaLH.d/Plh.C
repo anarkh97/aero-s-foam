@@ -31,6 +31,8 @@ Plh::Plh(const std::vector< Eigen::Map<Eigen::MatrixXd> >& A) {
 void
 Plh::initDefaults() {
     _FORTRAN(blacs_pinfo)(&_mypid, &_nprocs);
+
+    // Solver
     _rtol    = 0.0;
     _maxNP   = 0;
 
@@ -47,6 +49,12 @@ Plh::initDefaults() {
 
     _residualIncr = -1;
     _residualFilePtr = NULL;
+
+    // Downdate masking. A test...
+    _cnmask = false;
+    _ddmask = false;
+    _wmask = NULL;
+    _colnorms = NULL;
 }
 
 
@@ -55,6 +63,7 @@ Plh::initWithSize() {
     initDefaults();
     _initializedWithEigen = false;
     _matrixInitialized = false;
+    _max_iter = _n*MAXITE_DEFAULT;
 }
 
 
@@ -99,15 +108,6 @@ Plh::initWithEigen(const std::vector< Eigen::Map<Eigen::MatrixXd> >& A) {
         _eigenSubdomainStart[isd] = _eigenSubdomainStart[isd-1] + _eigenSubDomainSize[isd-1];
     }
 
-    //MPI_Barrier(MPI_COMM_WORLD);
-    //for (int isd=0; isd<_nEigenSubDomains; isd++) {
-    //    std::cout << "_mypid = " << _mypid << ", _eigenSubdomainStart[" << isd << "] = " << _eigenSubdomainStart[isd] << std::endl;
-    //}
-    //MPI_Barrier(MPI_COMM_WORLD);
-    //for (int p=0; p<_nprocs; p++) {
-    //    std::cout << "_mypid = " << _mypid << ", _eigenColsPerProc[" << p << "] = " << _eigenColsPerProc[p] << std::endl;
-    //}
-
     // Set matrix size
     _m = A[0].rows();
     _n = 0;
@@ -118,6 +118,7 @@ Plh::initWithEigen(const std::vector< Eigen::Map<Eigen::MatrixXd> >& A) {
     defaultProcGrid();
     _initializedWithEigen = true;
     _matrixInitialized = false;
+    _max_iter = _n*MAXITE_DEFAULT;
 }
 
 
@@ -125,6 +126,7 @@ void
 Plh::setMatrixSize(int m, int n) {
     _m = m;
     _n = n;
+    _max_iter = _n*MAXITE_DEFAULT;
     defaultProcGrid();
 }
 
@@ -234,8 +236,6 @@ Plh::init() {
     _x     = new SCDoubleMatrix(_context,    1,   _n, _mb, _nb);
     _b     = new SCDoubleMatrix(_context,   _m,    1, _mb, _nb);
     _w     = new SCDoubleMatrix(_context,    1,   _n, _mb, _nb);
-    _wmask = new SCDoubleMatrix(_context,    1,   _n, _mb, _nb);
-    _colnorms = new SCDoubleMatrix(_context,    1,   _n, _mb, _nb);
     _workm = new SCDoubleMatrix(_context,   _m,    1, _mb, _nb);
     _Atb   = new SCDoubleMatrix(_context,    1,   _n, _mb, _nb);
     _QtoA  = new SCIntMatrix(   _context,    1,   _n, _mb, _nb);
@@ -250,6 +250,7 @@ Plh::init() {
     _bQR     = new SCDoubleMatrix(_contextQR,   _m,    1, _mbq, _nbq);
     _rQR     = new SCDoubleMatrix(_contextQR,   _m,    1, _mbq, _nbq);
     _workmQR = new SCDoubleMatrix(_contextQR,   _m,    1, _mbq, _nbq); // Change _mb to _mbq and _nb to _nbq
+
 
     _Q->initqr();
     _work_qr = NULL;
@@ -268,20 +269,23 @@ Plh::init() {
 void
 Plh::summary() {
     if (_mypid == 0) {
-        std::cout << " m        = "                 << _m << std::endl;
-        std::cout << " n        = "                 << _n << std::endl;
-        std::cout << "A context:"                   << std::endl;
-        std::cout << "    mprow     = " << _mprow   << std::endl;
-        std::cout << "    npcol     = " << _npcol   << std::endl;
-        std::cout << "    mba       = " << _mb      << std::endl;
-        std::cout << "    nba       = " << _nb      << std::endl;
-        std::cout << "QR context:"                  << std::endl;
-        std::cout << "    mprow QR  = " << _mprowQR << std::endl;
-        std::cout << "    npcol QR  = " << _npcolQR << std::endl;
-        std::cout << "    mbq       = " << _mbq     << std::endl;
-        std::cout << "    nbq       = " << _nbq     << std::endl;
-        std::cout << "maxNP         = " << _maxNP   << std::endl;
-        std::cout << "rtol          = " << _rtol    << std::endl;
+        std::cout << std::endl;
+        std::cout << "################### Solver Summary ########################" << std::endl;
+        std::cout << " m               = "               << _m << std::endl;
+        std::cout << " n               = "               << _n << std::endl;
+        std::cout << "A context:"                        << std::endl;
+        std::cout << "    mprow        = " << _mprow     << std::endl;
+        std::cout << "    npcol        = " << _npcol     << std::endl;
+        std::cout << "    mba          = " << _mb        << std::endl;
+        std::cout << "    nba          = " << _nb        << std::endl;
+        std::cout << "QR context:"                       << std::endl;
+        std::cout << "    mprow QR     = " << _mprowQR   << std::endl;
+        std::cout << "    npcol QR     = " << _npcolQR   << std::endl;
+        std::cout << "    mbq          = " << _mbq       << std::endl;
+        std::cout << "    nbq          = " << _nbq       << std::endl;
+        std::cout << "maxNP            = " << _maxNP     << std::endl;
+        std::cout << "rtol             = " << _rtol      << std::endl;
+        std::cout << "max iterations   = " << _max_iter  << std::endl;
         if (_matrixInitialized) {
             if (_context == _contextQR) {
                 std::cout << "Single blacs context used." << std::endl;
@@ -291,6 +295,8 @@ Plh::summary() {
                 std::cout << "Single blacs context will be generated." << std::endl;
             }
         }
+        std::cout << "Matrix load time was " << getDistributeMatrixTime() << " seconds. " << std::endl;
+        std::cout << "############################################################" << std::endl << std::endl;
     }
 }
 
@@ -431,8 +437,10 @@ Plh::getWallTime(){
 
 void
 Plh::loadMatrix(const std::vector< Eigen::Map<Eigen::MatrixXd> >& em) {
+    MPI_Barrier(MPI_COMM_WORLD); // For timings
     startTime(TIME_LOADMATRIX);
     _A->loadMatrix(em);
+    MPI_Barrier(MPI_COMM_WORLD); // For timings
     stopTime(TIME_LOADMATRIX);
 }
 
@@ -449,9 +457,9 @@ void
 Plh::sub_iteration_output(int iqr) {
     // _rnorm2 = residual2Norm();
     if (_mypid == 0) {
-        if (_iter%HEADER_INCR == 0) {
-            header();
-        }
+        //if (_iter%HEADER_INCR == 0) {
+        //    header();
+        //}
         printf("#%5d %8d %12.4e %8d %12.4e %8d %12.4e %12.4e %8d\n",
             _iter, _nP, _wmax.x, _wmax.i, _zmin.x, _zmin.i, _rnorm2, _alpha, iqr);
     }
@@ -548,6 +556,7 @@ Plh::printTimes(bool debug) {
             std::cout << "    loadMatrix       : " << times_max[TIME_LOADMATRIX]           << std::endl;
             std::cout << "    loadRhs          : " << times_max[TIME_LOADRHS]              << std::endl;
             std::cout << "    get x Eigen      : " << times_max[TIME_GET_SOLUTION]         << std::endl;
+            std::cout << "    Down Date        : " << times_max[TIME_DOWNDATE]             << std::endl;
             std::cout << "    Loop Total       : " << times_max[TIME_MAIN_LOOP]            << std::endl;
         }
     } else {
@@ -557,9 +566,10 @@ Plh::printTimes(bool debug) {
             std::cout << "    Solver            : " << times_max[TIME_MAIN_LOOP]    << std::endl;
             std::cout << "        gradf         : " << times_max[TIME_GRADF]        << std::endl;
             std::cout << "        QR            : " << times_max[TIME_UPDATEQR]     << std::endl;
+            std::cout << "        Down Date     : " << times_max[TIME_DOWNDATE]     << std::endl;
             std::cout << "    Distribute Matrix : " << times_max[TIME_LOADMATRIX]   << std::endl;
             std::cout << "    Distribute RHS    : " << times_max[TIME_LOADRHS]      << std::endl;
-            std::cout << "    get x Eigen       : " << times_max[TIME_GET_SOLUTION]         << std::endl;
+            std::cout << "    get x Eigen       : " << times_max[TIME_GET_SOLUTION] << std::endl;
         }
     }
 }
@@ -729,4 +739,23 @@ Plh::testCommunicators() {
     st = MPI_Bcast(&buf, 1, MPI_INT, 0, _row_comm);
     std::cout << "Row Test: _mypid = " << _mypid << ", _mycol = " << _mycol << ", buf = " << buf << std::endl;
     MPI_Barrier(MPI_COMM_WORLD);
+}
+
+
+void
+Plh::setDownDateMask() {
+    if (_wmask == NULL) {
+        _wmask = new SCDoubleMatrix(_context, 1, _n, _mb, _nb);
+    }
+    _ddmask = true;
+}
+
+
+void
+Plh::setColumnNormMask( double cnfac) {
+    if (_wmask == NULL) {
+        _wmask = new SCDoubleMatrix(_context, 1, _n, _mb, _nb);
+    }
+    _colnorms = new SCDoubleMatrix(_context, 1, _n, _mb, _nb);
+    _cnmask = true;
 }

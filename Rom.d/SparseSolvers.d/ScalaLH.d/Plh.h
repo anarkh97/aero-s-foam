@@ -45,12 +45,15 @@
 #define TIME_LOADRHS 30
 #define TIME_REJECT_VECTOR 31
 #define TIME_GET_SOLUTION 32
-#define N_TIMES 33
+#define TIME_DOWNDATE 33
+#define N_TIMES 34
 
 #define MBA_DEFAULT 16
 #define NBA_DEFAULT 16
 #define MBQ_DEFAULT 16
 #define NBQ_DEFAULT 16
+
+#define MAXITE_DEFAULT 10.0
 
 #define HEADER_INCR 30
 
@@ -65,7 +68,7 @@ class Plh {
 
         int setMatrixColumn(int j, double *col);
         int setRHS(double *rhs);
-        int solve(int max_iter);
+        int solve();
         int close();
 
         int writeMatrix(std::string filename);
@@ -74,6 +77,7 @@ class Plh {
         double getResidualNorm() {return _rnorm2;};
         double getComputeTime() {return getTime(TIME_MAIN_LOOP);}
         double getDistributeMatrixTime() {return getTime(TIME_LOADMATRIX);}
+        double getDownDateTime() {return getTime(TIME_DOWNDATE);}
         void initMatrix(double *A);
         void initRhs(double *b);
         void setResidualIncrement(int incr) {_residualIncr = incr;};
@@ -100,6 +104,10 @@ class Plh {
         Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1> getSolution();
         void write(std::string filename, Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1> & x);
         void testCommunicators();
+        void setDownDateMask();
+        void setColumnNormMask(double cnfac);
+        void setMaxIterRatio( double maxite ) {_max_iter=maxite*_n;}
+        void setMaxIter( double max_iter ) {_max_iter=max_iter;}
 
     private:
         // A context
@@ -135,6 +143,8 @@ class Plh {
 
         bool _matrixInitialized;
         bool _initializedWithEigen;
+        bool _ddmask;
+        bool _cnmask;
         int _residualIncr;
         std::string _iterstring;
         std::string _residualFileName;
@@ -144,8 +154,6 @@ class Plh {
         int * _eigenColsPerProc;
         int * _eigenSubdomainStart;
         int * _eigenSubDomainsPerProc;
-        //std::vector< std::vector<int> > _eigenSubDomainsSizesGlobal;
-        //std::vector< std::vector<int> > _eigenSubDomainsStartGlobal;
 
         DoubleInt _wmax;
         DoubleInt _zmin;
@@ -177,6 +185,7 @@ class Plh {
         int _nprocs;
         int _mypid;
         int _iter;
+        int _max_iter;
         int _subiter;
         int _lwork_qr;
         int _nP;

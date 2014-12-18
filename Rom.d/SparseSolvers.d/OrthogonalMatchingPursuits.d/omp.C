@@ -10,13 +10,16 @@
 #include <utility>
 #include <vector>
 
-Eigen::VectorXd
-nncgp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm,
-      long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, double &dtime);
+// Sequential implementation of Non-negative Conjugate Gradient Pursuit.
+// This is a non-negative constrained variant of Conjugate Gradient Pursuit, and generates identical iterates to
+// Lawson & Hanson's NNLS (non-negative least squares) algorithm.
+// References:
+// 1. Blumensath, Thomas, and Michael E. Davies. "Gradient pursuits." Signal Processing, IEEE Transactions on 56.6 (2008): 2370-2382.
+// 2. Lawson, C. L., & Hanson, R. J. (1974). Solving least squares problems (Vol. 161). Englewood Cliffs, NJ: Prentice-hall.
 
 Eigen::VectorXd
 omp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm,
-      long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool project, double &dtime)
+      long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool positive, double &dtime)
 {
   using namespace Eigen;
 
@@ -26,7 +29,7 @@ omp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::Ve
   double bnorm = b.norm();
   double abstol = reltol*bnorm;
 
-  VectorXd x_(maxvec), y(maxvec), r(A.rows()), g(A.cols()), h(A.cols()), DtGDinv(maxvec), g_(maxvec), a(maxvec), S(A.cols());
+  VectorXd x_(maxvec), y(maxvec), r(A.rows()), g(A.cols()), h(A.cols()), DtGDinv(maxvec), g_(maxvec), a(maxvec), S(A.cols()), t(maxvec);
   x_.setZero();
   r = b;
   rnorm = bnorm;
@@ -41,21 +44,22 @@ omp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::Ve
   if(scaling) for(int i=0; i<A.cols(); ++i) { double s = A.col(i).norm(); S[i] = (s != 0) ? 1/s : 0; }
   else S.setOnes();
 
+  dtime      = 0; // time spent in downdates
   int iter   = 0; // number of iterations
   int downIt = 0; // number of downdates
   while(true) {
 
     if(verbose) {
-      std::cout << "Iteration = "       << std::setw(9)  << iter   << "    "
-                << "Downdate = "        << std::setw(9)  << downIt << "    "
-                << "Active set size = " << std::setw(9)  << k      << "    "
-                << "Residual norm = "   << std::setw(13) << std::scientific << std::uppercase << rnorm  << "    "
-                << "Target = "          << std::setw(13) << std::scientific << std::uppercase << abstol << std::endl;
+      std::cout << "Iteration = " << std::setw(9) << iter << "    "
+                << "Downdate = " << std::setw(9) << downIt << "    "
+                << "Active set size = " << std::setw(9) << k << "    "
+                << "Residual norm = " << std::setw(13) << std::scientific << std::uppercase << rnorm << "    "
+                << "Target = " << std::setw(13) << std::scientific << std::uppercase << abstol << std::endl;
       std::cout.unsetf(std::ios::scientific);
       std::cout.unsetf(std::ios::uppercase);
     }
 
-    if(rnorm <= abstol || k+nld_indices.size() == maxvec) break;
+//    if(rnorm <= abstol || k+nld_indices.size() == maxvec) break;
     if(iter >= maxit) { info = 3; break; }
 
     g = S.asDiagonal()*(A.transpose()*r); // gradient
@@ -81,17 +85,76 @@ omp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::Ve
     y.head(k+1) = x_.head(k+1) + a[k]*d.head(k+1); // candidate solution
     r -= a[k]*c; // residual
     k++;
-    iter++;
+    iter ++;
+    if(rnorm <= abstol && positive){ 
+      while(true) {
+        iter++;
+        if(y.head(k).minCoeff() < 0) {
+          dtime -= getTime();  
+          downIt++;
+  
+          if(verbose) {
+            std::cout << "Iteration = " << std::setw(9) << iter << "    "
+                      << "Downdate = " << std::setw(9) << downIt << "    "
+                      << "Active set size = " << std::setw(9) << k << "    "
+                      << "Residual norm = " << std::setw(13) << std::scientific << std::uppercase << rnorm << "    "
+                      << "Target = " << std::setw(13) << std::scientific << std::uppercase << abstol << std::endl;
+            std::cout.unsetf(std::ios::scientific);
+            std::cout.unsetf(std::ios::uppercase);
+          }
+
+          // compute maximum feasible step length in the direction (y-x_) and corresponding index in the active set, i
+          for(long int j=0; j<k; ++j) t[j] = (y[j] >= 0) ? std::numeric_limits<double>::max() : -x_[j]/(y[j]-x_[j]);
+          double alpha = t.head(k).minCoeff(&i);
+
+          // remove index i from the active set
+          std::vector<long int>::iterator fol = indices.erase(indices.begin()+i);
+
+          // update x_ (note: this is used only when there are two or more consecutive downdate iterations)
+          for(int j=0; j<i; ++j) x_[j] += alpha*(y[j]-x_[j]);
+          for(int j=i; j<k-1; ++j) x_[j] = x_[j+1] + alpha*(y[j+1]-x_[j+1]);
+          x_[k-1] = 0;
+
+          // Note: it is necessary to re-G-orthogonalize the basis D now, project the solution x_ onto the new basis and compute the corresponding residual r.
+          // This is done here by starting from the column of D pointed to by fol (because the ones before this are already G-orthogonal), and then
+          // following what is the essentially same procedure that is used above to construct the original basis, with a few optimizations when possible.
+          y.segment(i,k-i).setZero();
+          k = i;
+          y.head(k) = D.topLeftCorner(k,k).triangularView<Upper>()*a.head(k);
+          r = b - BD.leftCols(k)*a.head(k);
+          g_.head(k) = B.leftCols(k).transpose()*r;
+          for(std::vector<long int>::iterator it = fol; it != indices.end(); ++it) {
+            B.col(k) = S[*it]*A.col(*it);
+            g_[k] = B.col(k).transpose()*r;
+            GD.row(k).head(i) = GD.row(k+1).head(i);
+            GD.row(k).segment(i,k-i) = B.col(k).transpose()*BD.block(0,i,m,k-i);
+            Block<MatrixXd,Dynamic,1,true> d = D.col(k), c = BD.col(k); 
+            d.head(k+1) = g_.head(k+1) - D.topLeftCorner(k+1,k).triangularView<Upper>()*(DtGDinv.head(k).asDiagonal()*(GD.topLeftCorner(k+1,k).transpose()*g_.head(k+1)));
+            c = B.leftCols(k+1)*d.head(k+1);
+            GD.col(k).head(k+1) = B.leftCols(k+1).transpose()*c;
+            DtGDinv[k] = 1/c.squaredNorm();
+            a[k] = r.dot(c)*DtGDinv[k];
+            y.head(k+1) += a[k]*d.head(k+1);
+            r -= a[k]*c;
+            k++;
+            g_.head(k) -= a[k-1]*GD.col(k-1).head(k);
+          }
+          dtime += getTime();
+        }
+        else {
+          rnorm = r.norm();
+          break;
+        }
+      }
+    }
+
     x_.head(k) = y.head(k);
 
+    if(rnorm <= abstol || k+nld_indices.size() == maxvec) break;
     rnorm = r.norm();
   }
 
-  if(project){
-    std::cout << "*** PROJECTING SOLUTION ONTO SELECTED BASIS ***" << std::endl;
-    x_.head(k) = nncgp(B.leftCols(k), b, rnorm, info, maxsze, maxite, reltol, verbose, scaling, dtime);
-  }
-
+  dtime /= 1000.0;
   if(verbose) std::cout.flush();
 
   VectorXd x = VectorXd::Zero(A.cols());

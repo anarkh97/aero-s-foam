@@ -70,7 +70,7 @@ public:
   void formRHSinitializer(Vector &, Vector &, Vector &, ModalGeomState &, Vector &, ModalGeomState * = NULL);
   ModalGeomState* createGeomState();
   ModalGeomState* copyGeomState(ModalGeomState *);
-  virtual void updateStates(ModalGeomState *, ModalGeomState &);
+  virtual void updateStates(ModalGeomState *, ModalGeomState &, double);
   virtual double getStiffAndForce(ModalGeomState &, Vector &, Vector &, double = -1, ModalGeomState * = NULL, bool = false);
 
   virtual void reBuild(ModalGeomState &, int, double, double);

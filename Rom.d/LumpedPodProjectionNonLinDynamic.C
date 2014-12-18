@@ -41,7 +41,7 @@ LumpedPodProjectionNonLinDynamic::getStiffAndForceFromDomain(GeomState &geomStat
 }
 
 void
-LumpedPodProjectionNonLinDynamic::updateStates(ModalGeomState *refState, ModalGeomState& geomState)
+LumpedPodProjectionNonLinDynamic::updateStates(ModalGeomState *refState, ModalGeomState& geomState, double time)
 {
   // updateStates is called after midpoint update, so this is a good time to update the velocity and acceleration in geomState_Big
   Vector q_Big(NonLinDynamic::solVecInfo()),
@@ -55,7 +55,7 @@ LumpedPodProjectionNonLinDynamic::updateStates(ModalGeomState *refState, ModalGe
   projectionBasis.expand(geomState.acc, acc_Big);
   geomState_Big->setAcceleration(acc_Big);
 
-  domain->updateWeightedElemStatesOnly(packedElementWeights_, refState_Big, *geomState_Big, allCorot);
+  domain->updateWeightedElemStatesOnly(packedElementWeights_, refState_Big, *geomState_Big, allCorot, time);
   *refState_Big = *geomState_Big;
 }
 

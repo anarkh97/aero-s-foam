@@ -109,7 +109,7 @@ public:
   void aeroHeatPreProcess(Vector& d_n, Vector& v_n, Vector& v_p) { domain->aeroHeatPreProcess(d_n, v_n, v_p, bcx); }
   int getAeroheatFlag() { return domain->solInfo().aeroheatFlag; }
 
-  void solveAndUpdate(Vector &, Vector &, Vector &, double){ /* leave blank */ }
+  void solveAndUpdate(Vector &, Vector &, Vector &, double, double){ /* leave blank */ }
 };
 
 #ifdef _TEMPLATE_FIX_

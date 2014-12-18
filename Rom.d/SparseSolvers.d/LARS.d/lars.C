@@ -129,13 +129,13 @@ lars(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::V
     double gamma1, gamma_tilde;
     while(true) { // loop to ensure linear independence
       minBuffer = (C - crlt.array())/(1.0/oneNwA - h.array());
-      // zero out inactive set
+      // max out inactive set
       for(std::vector<long int>::iterator it = indices.begin();     it != indices.end();     ++it) minBuffer[*it] = std::numeric_limits<double>::max(); 
-      // zero out linearly dependent members
+      // max out linearly dependent members
       for(std::vector<long int>::iterator it = nld_indices.begin(); it != nld_indices.end(); ++it) minBuffer[*it] = std::numeric_limits<double>::max();
-      // zero out non-positive members
+      // max out non-positive members
       for(long int row = 0; row < minBuffer.rows(); ++row) minBuffer[row] = (minBuffer[row] <= 0) ? std::numeric_limits<double>::max() : minBuffer[row];
-      // zero out previously rejected member
+      // max out previously rejected member
       if(dropId) minBuffer[blockId] = std::numeric_limits<double>::max();
       // compute step length
       gamma1 = minBuffer.minCoeff(&i); 

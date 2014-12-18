@@ -406,7 +406,7 @@ ConstrainedDSA::ConstrainedDSA(DofSetArray &dsa, int nbc, BCond *bcd)
   for(i = 0; i < nbc; ++i) 
   {
     int flag = (1 << bcd[i].dofnum);
-    dofs[bcd[i].nnum].unmark(flag);
+    if(bcd[i].nnum < numnodes) dofs[bcd[i].nnum].unmark(flag);
   }
 
   for(inode = 0; inode < numnodes; ++inode)
@@ -480,9 +480,8 @@ ConstrainedDSA::ConstrainedDSA(DofSetArray &dsa, DofSetArray &c_dsa, int nbc, BC
       dofs[i] = c_dsa.dofs[i];
  
     for(i = 0; i < nbc; ++i) {
-      // Should check that  bcd[i].nnum < numnodes
       int flag = (1 << bcd[i].dofnum);
-      dofs[bcd[i].nnum].unmark(flag);
+      if(bcd[i].nnum < numnodes) dofs[bcd[i].nnum].unmark(flag);
     }
   }
 
@@ -508,7 +507,7 @@ ConstrainedDSA::ConstrainedDSA(DofSetArray &dsa, int nbc, BCond *bcd, int *bc)
 
   for(i = 0; i < nbc; ++i) {
     int flag = (1 << bcd[i].dofnum);
-    dofs[bcd[i].nnum].unmark(flag);
+    if(bcd[i].nnum < numnodes) dofs[bcd[i].nnum].unmark(flag);
   }
 
   for(inode = 0; inode < numnodes; ++inode)
@@ -692,7 +691,7 @@ ConstrainedDSA::ConstrainedDSA(DofSetArray &dsa, int nbc, ComplexBCond *bcd,
   for(i = 0; i < nbc; ++i)
   {
     int flag = (1 << bcd[i].dofnum);
-    dofs[bcd[i].nnum].unmark(flag);
+    if(bcd[i].nnum < numnodes) dofs[bcd[i].nnum].unmark(flag);
   }
 
   for(inode = 0; inode < numnodes; ++inode)

@@ -83,7 +83,6 @@ NonlinearTorsionalSpring::updateStates(GeomState *, GeomState &gState, CoordSet 
         //std::cerr << "going from quadrant 2 to quadrant 1\n";
         quadrant = 1; offset2 -= M_PI/2;
       }
-      else std::cerr << "whoops-a-daisy\n";
 
       if(cth > 0) offset = M_PI/2 - offset2;
       else        offset = M_PI/2 + offset2;
@@ -106,7 +105,6 @@ NonlinearTorsionalSpring::updateStates(GeomState *, GeomState &gState, CoordSet 
         //std::cerr << "going from quadrant 3 to quadrant 2\n";
         quadrant = 2; offset2 -= M_PI/2;
       }
-      else std::cerr << "whoops-a-daisy\n";
 
       if(cth > 0) offset = M_PI/2 + offset2;
       else        offset = M_PI/2 - offset2;

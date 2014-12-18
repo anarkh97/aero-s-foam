@@ -9,7 +9,6 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-
 #include <Corotational.d/Corotator.h>
 #include <Corotational.d/utilities.h>
 #include <Driver.d/Domain.h>
@@ -22,11 +21,10 @@
 #include <Control.d/ControlInterface.h>
 #include <Timers.d/StaticTimers.h>
 #include <Timers.d/GetTime.h>
-
 #include <Driver.d/GeoSource.h>
 #include <Corotational.d/MatNLCorotator.h>
 #include <Element.d/Function.d/utilities.hpp>
-#include <algorithm>
+#include <Utils.d/DistHelper.h>
 
 void
 Domain::getElemStiffAndForce(const GeomState &geomState, double time,
@@ -846,19 +844,22 @@ Domain::applyResidualCorrection(GeomState &geomState, Corotator **corotators, Ve
 }
 
 void
-Domain::updateStates(GeomState *refState, GeomState &geomState, Corotator **corotators)
+Domain::updateStates(GeomState *refState, GeomState &geomState, Corotator **corotators, double time)
 {
   if(matrixTimers) matrixTimers->updateState -= getTime();
   double delt = std::max(sinfo.newmarkAlphaF,std::numeric_limits<double>::epsilon())*sinfo.getTimeStep();
   for(int iele = 0; iele < numele; ++iele) {
-    if(corotators[iele]) corotators[iele]->updateStates(refState, geomState, nodes, delt);
+    if(corotators[iele]) {
+      corotators[iele]->updateStates(refState, geomState, nodes, delt);
+      if(sinfo.newmarkBeta != 0) handleElementDeletion(iele, geomState, time, *corotators[iele]);
+    }
   }
   if(matrixTimers) matrixTimers->updateState += getTime();
 }
 
 void
 Domain::updateWeightedElemStatesOnly(const std::map<int, double> &weights, GeomState *refState,
-                                     GeomState &geomState, Corotator **corotators)
+                                     GeomState &geomState, Corotator **corotators, double time)
 {
   if(matrixTimers) matrixTimers->updateState -= getTime();
   double delt = std::max(sinfo.newmarkAlphaF,std::numeric_limits<double>::epsilon())*sinfo.getTimeStep();
@@ -1794,6 +1795,13 @@ Domain::postProcessingImpl(int iInfo, GeomState *geomState, Vector& force, Vecto
       }
       geoSource->outputNodeVectors6(iInfo, rxyz, nPrintNodes, time);
       delete [] rxyz;
+    } break;
+    case OutputInfo::DeletedElements: {
+      for(std::vector<std::pair<double,int> >::iterator it = outDeletedElements.begin(); it != outDeletedElements.end(); ++it) {
+        filePrint(oinfo[iInfo].filptr, " %12.6e  %9d          Undetermined\n", it->first, it->second+1);
+        fflush(oinfo[iInfo].filptr);
+      }
+      outDeletedElements.clear();
     } break;
      case OutputInfo::Statevector:
         break;

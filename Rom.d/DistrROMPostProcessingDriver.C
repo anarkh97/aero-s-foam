@@ -251,7 +251,7 @@ DistrROMPostProcessingDriver::solve() {
                                                     // of the (unscaled) total rotation vector to convected
      geomState->transform(*fullAccBuffer, 4, true); // transform angular acceleration from the 2nd time derivative
                                                     // of the (unscaled) total rotation vector to convected
-     execParal(decDomain->getNumSub(), this, &DistrROMPostProcessingDriver::subUpdateStates);
+     execParal(decDomain->getNumSub(), this, &DistrROMPostProcessingDriver::subUpdateStates, *it);
      if(!dummyDynOps) dummyDynOps = new MDDynamMat;
      mddPostPro->dynamOutput(counter, *it, *dummyDynOps, *fullDummyBuffer, fullDummyBuffer, *curState);
 
@@ -264,9 +264,9 @@ DistrROMPostProcessingDriver::solve() {
 }
 
 void
-DistrROMPostProcessingDriver::subUpdateStates(int i)
+DistrROMPostProcessingDriver::subUpdateStates(int i, double time)
 {
-  decDomain->getSubDomain(i)->updateStates((*geomState)[i],*((*geomState)[i]),allCorot[i]);  
+  decDomain->getSubDomain(i)->updateStates((*geomState)[i],*((*geomState)[i]),allCorot[i],time);  
 }
 
 } //end namespace Rom

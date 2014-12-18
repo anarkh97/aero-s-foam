@@ -596,7 +596,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
       // ... solve nonlinear system for current load, compute displacement increment
       //     and update solution, applying relaxation factor.
-      probDesc->solveAndUpdate(rhs, d_inc, d_n, relaxFac); // XXX consider delta != 0
+      probDesc->solveAndUpdate(rhs, d_inc, d_n, relaxFac, (double)tIndex*delta); // XXX consider delta != 0
     }
     else {
 
@@ -1412,11 +1412,11 @@ void
 DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar >
 ::getInternalForce(const DynOps &dynamOps, const VecType &disp, VecType &result, double time, int tIndex) {
   if (domain->solInfo().isNonLin()) {
-      probDesc->getInternalForce(const_cast<VecType &>(disp), result, time, tIndex);
-    } else {
-      domain->getTimers().formRhs -= getTime();
-      const_cast<DynOps &>(dynamOps).K->mult(const_cast<VecType &>(disp), result);
-      domain->getTimers().formRhs += getTime();
-    }
+    probDesc->getInternalForce(const_cast<VecType &>(disp), result, time, tIndex);
+  } else {
+    domain->getTimers().formRhs -= getTime();
+    const_cast<DynOps &>(dynamOps).K->mult(const_cast<VecType &>(disp), result);
+    domain->getTimers().formRhs += getTime();
+  }
 }
 

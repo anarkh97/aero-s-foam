@@ -21,7 +21,7 @@ private:
   void preProcess();
   void bufferReducedFiles();
   void setPODsize();
-  void subUpdateStates(int i);
+  void subUpdateStates(int i, double time);
 
   MultiDomDynPostProcessor *mddPostPro;
 

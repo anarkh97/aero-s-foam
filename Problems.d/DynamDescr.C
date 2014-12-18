@@ -460,7 +460,7 @@ SingleDomainDynamic::getInitState(SysState<Vector> &inState)
     if(domain->solInfo().isNonLin()) { // restart for nonlinear
       domain->readRestartFile(inState.getDisp(), inState.getVeloc(), inState.getAccel(),
                               inState.getPrevVeloc(), bcx, vcx, *geomState);
-      domain->updateStates(geomState, *geomState, allCorot);
+      domain->updateStates(geomState, *geomState, allCorot, domain->solInfo().initialTime);
       geomState->setVelocityAndAcceleration(inState.getVeloc(), inState.getAccel());
     }
   }
@@ -1429,7 +1429,7 @@ SingleDomainDynamic::getThermohFlag()
 #include <Problems.d/NonLinQStatic.h>
 #include <Driver.d/NLStaticProbType.h>
 void
-SingleDomainDynamic::solveAndUpdate(Vector &force, Vector &dinc, Vector &d, double relaxFac)
+SingleDomainDynamic::solveAndUpdate(Vector &force, Vector &dinc, Vector &d, double relaxFac, double time)
 {
   int numElemStates = geomState->getTotalNumElemStates();
   if(!refState) {
@@ -1455,7 +1455,7 @@ SingleDomainDynamic::solveAndUpdate(Vector &force, Vector &dinc, Vector &d, doub
   dinc *= relaxFac;
   geomState->update(dinc);
   if(numElemStates != 0) {
-    domain->updateStates(refState, *geomState, allCorot);
+    domain->updateStates(refState, *geomState, allCorot, time);
   }
 
   geomState->get_tot_displacement(d, false);

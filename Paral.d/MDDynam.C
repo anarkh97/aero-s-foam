@@ -667,11 +667,11 @@ MultiDomainDynam::updateState(double dt_n_h, DistrVector& v_n_h, DistrVector& d_
 }
 
 void
-MultiDomainDynam::subUpdateStates(int isub, DistrGeomState *refState, DistrGeomState *geomState)
+MultiDomainDynam::subUpdateStates(int isub, DistrGeomState *refState, DistrGeomState *geomState, double time)
 {
   SubDomain *sd = decDomain->getSubDomain(isub);
   GeomState *subRefState = (refState) ? (*refState)[isub] : 0;
-  sd->updateStates(subRefState, *(*geomState)[isub], allCorot[isub]);
+  sd->updateStates(subRefState, *(*geomState)[isub], allCorot[isub], time);
 }
 
 void
@@ -893,7 +893,7 @@ MultiDomainDynam::getInitState(SysState<DistrVector>& state)
         sprintf(ext,"_%d",sd->subNum()+1);
         sd->readRestartFile(d_ni, v_ni, a_ni, v_pi, sd->getBcx(), sd->getVcx(), *((*geomState)[i]), ext);
         delete [] ext;
-        sd->updateStates((*geomState)[i],*((*geomState)[i]),allCorot[i]);
+        sd->updateStates((*geomState)[i],*((*geomState)[i]),allCorot[i],sd->solInfo().initialTime);
       }
       geomState->setVelocityAndAcceleration(state.getVeloc(), state.getAccel());
     }
@@ -1892,7 +1892,7 @@ MultiDomainDynam::postProcessSA(MDDynamMat*, DistrVector&)
 #include <Paral.d/MDNLQStatic.h>
 #include <Driver.d/NLStaticProbType.h>
 void
-MultiDomainDynam::solveAndUpdate(DistrVector &force, DistrVector &dinc, DistrVector &d, double relaxFac)
+MultiDomainDynam::solveAndUpdate(DistrVector &force, DistrVector &dinc, DistrVector &d, double relaxFac, double time)
 {
   int numElemStates = geomState->getTotalNumElemStates();
   if(!refState) {
@@ -1920,7 +1920,7 @@ MultiDomainDynam::solveAndUpdate(DistrVector &force, DistrVector &dinc, DistrVec
   dinc *= relaxFac;
   geomState->update(dinc);
   if(numElemStates != 0) {
-    execParal2R(decDomain->getNumSub(), this, &MultiDomainDynam::subUpdateStates, refState, geomState);
+    execParal3R(decDomain->getNumSub(), this, &MultiDomainDynam::subUpdateStates, refState, geomState, time);
   }
 
   geomState->get_tot_displacement(d, false);

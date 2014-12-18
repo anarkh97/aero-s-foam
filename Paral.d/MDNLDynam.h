@@ -146,7 +146,7 @@ class MDNLDynamic
     int getNumStages();
     int checkConvergence(int iter, double rN, DistrVector& residual, DistrVector& dv, double time);
 
-    void updateStates(DistrGeomState *refState, DistrGeomState& geomState);
+    void updateStates(DistrGeomState *refState, DistrGeomState& geomState, double time);
 
     // getStiffAndForce forms element stiffness matrices and/or
     // returns the residual force = external - internal forces
@@ -209,7 +209,7 @@ class MDNLDynamic
                              DistrGeomState* bkDistrGeomState, int parity, int aeroAlg);
     void subDynamCommToFluidAeroheat(int isub, DistrVector& v, DistrGeomState* distrGeomState);
     void updateConstraintTerms(DistrGeomState* geomState, double t);
-    void subUpdateStates(int isub, DistrGeomState *refState, DistrGeomState *geomState);
+    void subUpdateStates(int isub, DistrGeomState *refState, DistrGeomState *geomState, double time);
     void subReadRestartFile(int i, DistrVector &d_n, DistrVector &v_n, DistrVector &a_n,
                             DistrVector &v_p, DistrGeomState &geomState);
     void subWriteRestartFile(int i, double &t, int &index, DistrVector &vel_n, DistrVector &acc_n, DistrGeomState &geomState);

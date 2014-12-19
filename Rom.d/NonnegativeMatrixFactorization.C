@@ -3,6 +3,7 @@
 #include <Utils.d/linkfc.h>
 
 #include <iostream>
+#include <vector>
 
 extern "C" {
   void _FORTRAN(spnnls)(double *a, const long int *mda, const long int *m, const long int *n,

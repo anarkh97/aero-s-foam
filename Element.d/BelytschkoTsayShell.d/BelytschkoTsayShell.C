@@ -13,6 +13,7 @@
 #include <Math.d/FullSquareMatrix.h>
 #include <Math.d/Vector.h>
 #include <Utils.d/Conwep.d/BlastLoading.h>
+#include <Utils.d/SolverInfo.h>
 #include <iostream>
 #include <limits>
 
@@ -24,6 +25,7 @@ using namespace Eigen;
 using std::vector;
 #endif
 
+extern SolverInfo &solInfo;
 extern int verboseFlag;
 extern "C" {
   void _FORTRAN(getgqsize)(int&, int&, int*, int*, int*);
@@ -499,9 +501,15 @@ BelytschkoTsayShell::massMatrix(CoordSet &cs, double *mel, int cmflg)
 FullSquareMatrix
 BelytschkoTsayShell::stiffness(CoordSet &cs, double *d, int flg)
 {
-  //if(prop) std::cerr << "BelytschkoTsayShell::stiffness not implemented. This element only works for explicit dynamics\n";
   FullSquareMatrix ret(nnode*nndof, d);
   ret.zero();
+
+  if(prop && solInfo.newmarkBeta != 0) {
+    std::cerr << " *** ERROR: Stiffness matrix is not available for Belytschko-Tsay shell (type 16).\n"
+              << "            Use of this element is only supported for nonlinear explicit dynamics.\n";
+    exit(-1);
+  }
+
   return ret;
 }
 
@@ -553,6 +561,19 @@ BelytschkoTsayShell::getCorotator(CoordSet &, double *, int, int)
 
 void
 BelytschkoTsayShell::getStiffAndForce(GeomState& geomState, CoordSet& cs, FullSquareMatrix& k, double* efint, double delt, double time)
+{
+  if(solInfo.newmarkBeta == 0) {
+    getInternalForce(geomState, cs, k, efint, delt, time);
+  }
+  else if(prop) {
+    std::cerr << " *** ERROR: Stiffness matrix is not available for Belytschko-Tsay shell (type 16).\n"
+              << "            Use of this element is only supported for nonlinear explicit dynamics.\n";
+    exit(-1);
+  }
+}
+
+void
+BelytschkoTsayShell::getInternalForce(GeomState& geomState, CoordSet& cs, FullSquareMatrix& k, double* efint, double delt, double time)
 {
   //=======================================================================
   //  compute internal force vector including hourglass control, pressure

@@ -1370,7 +1370,7 @@ MDNLDynamic::readRestartFile(DistrVector &d_n, DistrVector &v_n, DistrVector &a_
       }
     }
 
-    updateStates(&geomState, geomState);
+    updateStates(&geomState, geomState, domain->solInfo().initialTime);
   }
 }
 
@@ -1842,17 +1842,17 @@ MDNLDynamic::getAeroheatFlag()
 }
 
 void
-MDNLDynamic::updateStates(DistrGeomState *refState, DistrGeomState& geomState)
+MDNLDynamic::updateStates(DistrGeomState *refState, DistrGeomState& geomState, double time)
 {
-  execParal2R(decDomain->getNumSub(), this, &MDNLDynamic::subUpdateStates, refState, &geomState);
+  execParal3R(decDomain->getNumSub(), this, &MDNLDynamic::subUpdateStates, refState, &geomState, time);
 }
 
 void
-MDNLDynamic::subUpdateStates(int isub, DistrGeomState *refState, DistrGeomState *geomState)
+MDNLDynamic::subUpdateStates(int isub, DistrGeomState *refState, DistrGeomState *geomState, double time)
 {
   SubDomain *sd = decDomain->getSubDomain(isub);
   GeomState *subRefState = (refState) ? (*refState)[isub] : 0;
-  sd->updateStates(subRefState, *(*geomState)[isub], allCorot[isub]);
+  sd->updateStates(subRefState, *(*geomState)[isub], allCorot[isub], time);
 }
 
 LinesearchInfo&

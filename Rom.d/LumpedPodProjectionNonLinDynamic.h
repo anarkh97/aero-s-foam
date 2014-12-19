@@ -12,7 +12,7 @@ public:
   explicit LumpedPodProjectionNonLinDynamic(Domain *);
 
   virtual void preProcess();
-  virtual void updateStates(ModalGeomState *refState, ModalGeomState& geomState);
+  virtual void updateStates(ModalGeomState *refState, ModalGeomState& geomState, double time);
 
 private:
   virtual void getStiffAndForceFromDomain(GeomState &geomState, Vector &elementInternalForce,

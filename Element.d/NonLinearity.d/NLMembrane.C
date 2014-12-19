@@ -435,7 +435,7 @@ void
 NLMembrane::setProp(StructProp *p, bool _myProp)
 {
   Element::setProp(p, _myProp);
-  if(!material) {
+  if(!material && prop) {
     material = new ElaLinIsoMat2D(prop);
     useDefaultMaterial = true;
   }

@@ -64,7 +64,7 @@ Element::getWeightNodalCoordinateSensitivity(Vector& dwdx, CoordSet& cs, double 
 void
 Element::getVonMises(Vector &stress, Vector &weight,
 		     CoordSet &, Vector &, int, int, double*,
-		     double,double,int)
+		     double, double, int)
 {
   if(!isConstraintElement() && !isSpring())
     fprintf(stderr," *** WARNING: getVonMises not implemented for element type %d\n", elementType);
@@ -132,10 +132,38 @@ Element::getAllStress(FullM &stress, Vector &weight, CoordSet &cs,
                       Vector &elDisp, int strInd, int surface,
                       double *ndTemps)
 {
-  if(!isConstraintElement() && !isSpring())
-    fprintf(stderr," *** WARNING: getAllStress not implemented for element type %d\n", elementType);
-  stress.zero();
-  weight.zero();
+  if(isConstraintElement() || isSpring()) {
+    stress.zero();
+    weight.zero();
+  }
+  else {
+    // Get components of symmetric stress or strain tensors one at a time by calling Element::getVonMises.
+    Vector s(numNodes());
+    for(int i=0; i<6; ++i) {
+      int index = (strInd == 0) ? i : i+7;
+      getVonMises(s, weight, cs, elDisp, index, surface, ndTemps);
+      for(int j=0; j<numNodes(); ++j) stress[j][i] = s[j];
+    }
+
+    // Get element principal stress or strain for each node
+    double svec[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
+    double pvec[3] = {0.0,0.0,0.0};
+    for(int i=0; i<numNodes(); ++i) {
+      for(int j=0; j<6; ++j) {
+        svec[j] = stress[i][j];
+      }
+      // Convert engineering to tensor strains
+      if(strInd != 0) {
+        svec[3] /= 2;
+        svec[4] /= 2;
+        svec[5] /= 2;
+      }
+      pstress(svec,pvec);
+      for(int j=0; j<3; ++j) {
+        stress[i][j+6] = pvec[j];
+      }
+    }
+  }
 }
 
 void

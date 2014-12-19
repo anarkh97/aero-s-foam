@@ -1,8 +1,8 @@
 ! ================================
 ! crack growth criterion : bai-wierzbicki criterion for von-mises material
 ! ================================
-!      type                  name                              arguement
-!      ----                  ----                              ---------
+!      type                  name                              argument
+!      ----                  ----                              --------
 ! 1.  subroutine           xwj2pstrscri2d        (prmcri,mgqpt1,crival,criang,etatri, nflagcr,crvalue,crangle)
 ! 2.  subroutine           chkxwj2pstrscri2d     (optstr,effpstr,svoit2d, crival,criang,etatri)
 ! 3.  subroutine           xwpstrnfj2pstrs       (c1,c2,a,n,etatri, pstrnf)

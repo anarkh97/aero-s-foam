@@ -615,17 +615,17 @@ MDNLStatic::getConstraintMultipliers(int isub)
 }
 
 void
-MDNLStatic::updateStates(DistrGeomState *refState, DistrGeomState& geomState)
+MDNLStatic::updateStates(DistrGeomState *refState, DistrGeomState& geomState, double lambda)
 {
-  execParal2R(decDomain->getNumSub(), this, &MDNLStatic::subUpdateStates, refState, &geomState);
+  execParal3R(decDomain->getNumSub(), this, &MDNLStatic::subUpdateStates, refState, &geomState, lambda);
 }
 
 void
-MDNLStatic::subUpdateStates(int isub, DistrGeomState *refState, DistrGeomState *geomState)
+MDNLStatic::subUpdateStates(int isub, DistrGeomState *refState, DistrGeomState *geomState, double lambda)
 {
   SubDomain *sd = decDomain->getSubDomain(isub);
   GeomState *subRefState = (refState) ? (*refState)[isub] : 0;
-  sd->updateStates(subRefState, *(*geomState)[isub], allCorot[isub]);
+  sd->updateStates(subRefState, *(*geomState)[isub], allCorot[isub], lambda);
 }
 
 bool

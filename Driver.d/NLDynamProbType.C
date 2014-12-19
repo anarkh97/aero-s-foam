@@ -357,7 +357,7 @@ NLDynamSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor,
                                    elementInternalForce, totalRes, acceleration,
                                    solInfo.zeroRot);
     if(solInfo.soltyp != 2) {
-      probDesc->updateStates(refState, *geomState); // update internal states to _{n+1}
+      probDesc->updateStates(refState, *geomState, time+dt); // update internal states to _{n+1}
       StateUpdate::copyState(geomState, refState);
     }
 

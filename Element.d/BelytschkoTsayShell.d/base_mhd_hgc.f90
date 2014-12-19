@@ -1,8 +1,8 @@
 ! ==================================
 ! hourglass control scheme
 ! ==================================
-!      type                  name                              arguement
-!      ----                  ----                              ---------
+!      type                  name                              argument
+!      ----                  ----                              --------
 ! 1.  subroutine          getgamma4nod                  (ecordloc, gamma)
 ! 2.  real(8) function    vol3d8nod                     (ecord)
 ! 3.  subroutine          getcijk3d8nod                 (cijk)

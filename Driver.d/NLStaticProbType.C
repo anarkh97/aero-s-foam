@@ -122,7 +122,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
      if(feasible) break;
    }
 
-   if(solInfo.soltyp != 2) probDesc->updateStates(refState, *geomState);
+   if(solInfo.soltyp != 2) probDesc->updateStates(refState, *geomState, lambda);
 
    // Output current load step results
    probDesc->staticOutput(geomState, time, force, totalRes, refState);
@@ -284,7 +284,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
                   solver, force, residual, totRes, arcLenResid, forceNorm,
                   elementInternalForce, pVec, step);
 
-   probDesc->updateStates(u0, *u);
+   probDesc->updateStates(u0, *u, lambda);
 
    if( std::abs(lambda) >= probDesc->getMaxLambda() ) break;
 
@@ -310,7 +310,7 @@ NLStaticSolver < OpSolver, VecType, PostProcessor, ProblemDescriptor, GeomType, 
  step++;
  newton(force, residual, totRes, elementInternalForce, probDesc, solver, u0, u, stateIncr, numIter, lambda, step);
 
- probDesc->updateStates(u0, *u);
+ probDesc->updateStates(u0, *u, lambda);
 
  // CALL POST PROCESSING OF DISPLACEMENTS
  probDesc->staticOutput(u, lambda, force, totRes, u0);

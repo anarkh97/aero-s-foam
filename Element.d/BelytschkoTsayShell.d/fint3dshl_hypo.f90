@@ -1,8 +1,8 @@
 ! ==================================
 ! internal force: bt shell / hypo-elastic
 ! ==================================
-!      type                  name                              arguement
-!      ----                  ----                              ---------
+!      type                  name                              argument
+!      ----                  ----                              --------
 ! 1.  subroutine        updstrsbt              (delt,ematpro,gqpoin,gqweigt,locbvec,ecurn,evelo,
 !                                               effpstrn,hardvar,sigvoitloc,strnvoitloc, effstrs)
 ! 2.  subroutine        updstrn2bt             (delt,ematpro,zeta,ecurnloc,eveloloc, effpstrn,hardvar,ipstrn,ipstrs, effstrs)

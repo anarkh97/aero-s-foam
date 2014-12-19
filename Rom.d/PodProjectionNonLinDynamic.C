@@ -901,7 +901,7 @@ PodProjectionNonLinDynamic::copyGeomState(ModalGeomState *geomState)
 }
 
 void
-PodProjectionNonLinDynamic::updateStates(ModalGeomState *refState, ModalGeomState &geomState)
+PodProjectionNonLinDynamic::updateStates(ModalGeomState *refState, ModalGeomState &geomState, double time)
 {
   // updateStates is called after midpoint update (i.e. once per timestep)
   // so it is a convenient place to update and copy geomState_Big
@@ -916,7 +916,7 @@ PodProjectionNonLinDynamic::updateStates(ModalGeomState *refState, ModalGeomStat
   projectionBasis.expand(geomState.acc, acc_Big);
   geomState_Big->setAcceleration(acc_Big);
 
-  domain->updateStates(refState_Big, *geomState_Big, allCorot);
+  domain->updateStates(refState_Big, *geomState_Big, allCorot, time);
   *refState_Big = *geomState_Big;
 }
 

@@ -71,9 +71,9 @@ NonLinStatic::clean()
 }
 
 void
-NonLinStatic::updateStates(GeomState *refState, GeomState& geomState)
+NonLinStatic::updateStates(GeomState *refState, GeomState& geomState, double lambda)
 {
-  domain->updateStates(refState, geomState, allCorot);
+  domain->updateStates(refState, geomState, allCorot, lambda);
 }
 
 double

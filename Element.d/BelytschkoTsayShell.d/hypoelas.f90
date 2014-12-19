@@ -1,8 +1,8 @@
 ! ==================================
 ! hypo elasticity  
 ! ==================================
-!      type                  name                              arguement
-!      ----                  ----                              ---------
+!      type                  name                              argument
+!      ----                  ----                              --------
 ! 1.  subroutine          getlameconst                     (young,poiss, lamd,mu)
 ! 2.  subroutine          getbulkconst                     (young,poiss, bulk)
 ! 3.  subroutine          getelsvoit2d                     (optpty,young,poiss, elsvoit2d)

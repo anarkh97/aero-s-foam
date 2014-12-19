@@ -1461,7 +1461,7 @@ Domain::getStressStrain(Vector &sol, double *bcx, int fileNumber,
       if(stress == 0) stress = new Vector(numNodes,0.0);
       if(weight == 0) weight = new Vector(numNodes,0.0);
     }
-    else if(stressAllElems == 0) stressAllElems = new Vector(sizeSfemStress,0.0);
+    else if(printFlag == 1 && stressAllElems == 0) stressAllElems = new Vector(sizeSfemStress,0.0);
     if(elDisp == 0) elDisp = new Vector(maxNumDOFs,0.0);
 
     if((elstress == 0) || (elweight == 0) || (p_elstress == 0 && oframe == OutputInfo::Local)) {
@@ -1664,7 +1664,7 @@ Domain::getStressStrain(ComplexVector &sol, DComplex *bcx, int fileNumber,
       if(stress == 0) stress = new ComplexVector(numNodes,0.0);
       if(weight == 0) weight = new Vector(numNodes,0.0);
     }
-    else if(stressAllElems == 0) stressAllElems = new ComplexVector(sizeSfemStress,0.0);
+    else if(printFlag == 1 && stressAllElems == 0) stressAllElems = new ComplexVector(sizeSfemStress,0.0);
     if(elDisp == 0) elDisp = new ComplexVector(maxNumDOFs,0.0);
 
 
@@ -1949,7 +1949,6 @@ Domain::getPrincipalStress(Vector &sol, double *bcx, int fileNumber,
 // ... PRINT NON-AVERAGED STRESS VALUES IF REQUESTED
 //     THIS WRITES THE CHOSEN PRINCIPAL STRESS FOR EACH ELEMENT
     if(avgnum == 0) {
-      //geoSource->outputNodeScalars(fileNumber, (*p_elstress)[0]+(5+strDir), 1);
       for(k=0; k<NodesPerElement; ++k)
          fprintf(oinfo[fileNumber].filptr," % *.*E",w,p,(*p_elstress)[k][5+strDir]);
        fprintf(oinfo[fileNumber].filptr,"\n");

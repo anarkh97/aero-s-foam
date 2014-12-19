@@ -1,8 +1,8 @@
 ! ================================
 ! crack growth criterion
 ! ================================
-!      type                  name                              arguement
-!      ----                  ----                              ---------
+!      type                  name                              argument
+!      ----                  ----                              --------
 ! 1.  subroutine           maxcri2d1             (prmcri,mgqpt1,crival,criang, nflagcr,crvalue,crangle)
 ! 2.  subroutine           chkmptcri2d           (optstr,svoit2d, crival,criang)
 ! 3.  subroutine           chkmptscri2d          (optstr,svoit2d, crival,criang)

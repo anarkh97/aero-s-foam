@@ -1,8 +1,8 @@
 ! ================================
 ! crack growth criterion: effective strain / mtps
 ! ================================
-!      type                  name                              arguement
-!      ----                  ----                              ---------
+!      type                  name                              argument
+!      ----                  ----                              --------
 ! 1.  subroutine           chkeffstrcri2d        (optstr,effpstr,svoit2d, crival,criang)
 !
 ! =========================================================================================================

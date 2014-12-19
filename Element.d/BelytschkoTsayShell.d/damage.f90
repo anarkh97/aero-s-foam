@@ -1,8 +1,8 @@
 ! ==================================
 ! continuum based damage model
 ! ==================================
-!      type                  name                              arguement
-!      ----                  ----                              ---------
+!      type                  name                              argument
+!      ----                  ----                              --------
 ! 1d model
 ! --------
 ! 1.  subroutine          getlemdmg1d             (ematpro,strn, damage)

@@ -4,6 +4,8 @@
 #ifdef USE_EIGEN3
 #include <iostream>
 #include <vector>
+#include <cstdio>
+#include <stdexcept>
 #include <Eigen/Core>
 
 template<typename doublereal>
@@ -33,8 +35,7 @@ class ShellMaterial
                                                                  doublereal *, int) {
       std::cerr << "GetLocalConstitutiveResponseSensitivityWRTthick is not defined\n"; }
     virtual void GetLocalConstitutiveResponseSensitivityWRTdisp(doublereal *dUpsilondu, doublereal *dsigmadu, doublereal z,
-                                                                doublereal *eframe, int gp) {
-      std::cerr << "GetLocalConstitutiveResponseSensitivityWRTdisp is not defined\n"; }
+                                                                doublereal *eframe, int gp) = 0;
     virtual int GetNumStates() { return 0; }
     virtual void SetState(doublereal *state) {}
     virtual void GetState(doublereal *state) {}
@@ -114,6 +115,8 @@ class ShellMaterialType1 : public ShellMaterial<doublereal>
     doublereal GetAmbientTemperature() { return Ta; }
     void GetLocalConstitutiveResponse(doublereal *Upsilon, doublereal *sigma, doublereal z,
                                               doublereal *eframe, int gp, doublereal temp = 0, doublereal dt = 0);
+    void GetLocalConstitutiveResponseSensitivityWRTdisp(doublereal *dUpsilondu, doublereal *dsigmadu, doublereal z,
+                                                        doublereal *eframe, int gp);
 };
 
 //     ---------------------------------------------- 
@@ -144,6 +147,8 @@ class ShellMaterialTypes2And3 : public ShellMaterial<doublereal>
     doublereal GetAmbientTemperature() { return Ta; }
     void GetLocalConstitutiveResponse(doublereal *Upsilon, doublereal *sigma, doublereal z,
                                       doublereal *eframe, int gp, doublereal temp = 0, doublereal dt = 0);
+    void GetLocalConstitutiveResponseSensitivityWRTdisp(doublereal *dUpsilondu, doublereal *dsigmadu, doublereal z,
+                                                        doublereal *eframe, int gp);
 };
 
 //     ------------------------------------------------ 
@@ -178,6 +183,8 @@ class ShellMaterialType4 : public ShellMaterial<doublereal>
     doublereal GetAmbientTemperature() { return Ta; }
     void GetLocalConstitutiveResponse(doublereal *Upsilon, doublereal *sigma, doublereal z,
                                       doublereal *eframe, int gp, doublereal temp = 0, doublereal dt = 0);
+    void GetLocalConstitutiveResponseSensitivityWRTdisp(doublereal *dUpsilondu, doublereal *dsigmadu, doublereal z,
+                                                        doublereal *eframe, int gp);
     int GetNumStates() { return nlayer*maxgus*7; } // TODO 7 should be provided by the localmaterial
     void SetState(doublereal *state);
     void GetState(doublereal *state);

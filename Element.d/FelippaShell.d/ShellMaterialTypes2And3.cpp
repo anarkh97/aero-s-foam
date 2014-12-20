@@ -3,6 +3,8 @@
 #include <stdexcept>
 #include <Element.d/FelippaShell.d/ShellMaterial.hpp>
 
+extern int quietFlag;
+
 template<typename doublereal>
 ShellMaterialTypes2And3<doublereal>::ShellMaterialTypes2And3(
   int _nlayer, doublereal *_mtlayer, bool _couple, doublereal *_aframe, doublereal _Ta, doublereal _nsm)
@@ -482,6 +484,21 @@ ShellMaterialTypes2And3<doublereal>::GetConstitutiveResponseSensitivityWRTdisp(d
 template<typename doublereal>
 void
 ShellMaterialTypes2And3<doublereal>
+::GetLocalConstitutiveResponseSensitivityWRTdisp(doublereal *dUpsilondu, doublereal *dsigmadu, doublereal z,
+                                                 doublereal *eframe, int gp)
+{
+  for(int i=0; i<3*18; ++i) dsigmadu[i] = 0.0;
+  if(quietFlag == 0) {
+    fprintf(stderr," *** WARNING: Local stress displacement sensitivity output is not available for shell elements\n"
+                   "              type 15/1515 with MaterialType1 constitutive law.\n"
+                   "              Use command-line option -q to suppress this warning.\n");
+  }
+
+}
+
+template<typename doublereal>
+void
+ShellMaterialTypes2And3<doublereal>
 ::GetLocalConstitutiveResponse(doublereal *_Upsilon, doublereal *_sigma, doublereal z,
                                doublereal *eframe, int, doublereal temp, doublereal dt)
 {
@@ -639,4 +656,10 @@ template
 void
 ShellMaterialTypes2And3<double>
 ::GetLocalConstitutiveResponse(double *Upsilon, double *sigma, double z, double *eframe, int, double temp, double dt);
+
+template
+void
+ShellMaterialTypes2And3<double>
+::GetLocalConstitutiveResponseSensitivityWRTdisp(double *dUpsilondu, double *dsigmadu, double z,
+                                                 double *eframe, int gp);
 #endif

@@ -93,12 +93,12 @@
 %token QSTATIC QLOAD
 %token PITA PITADISP6 PITAVEL6 NOFORCE MDPITA GLOBALBASES LOCALBASES TIMEREVERSIBLE REMOTECOARSE ORTHOPROJTOL READINITSEED JUMPCVG JUMPOUTPUT
 %token PRECNO PRECONDITIONER PRELOAD PRESSURE PRINTMATLAB PROJ PIVOT PRECTYPE PRECTYPEID PICKANYCORNER PADEPIVOT PROPORTIONING PLOAD PADEPOLES POINTSOURCE PLANEWAVE PTOL PLANTOL PMAXIT PIECEWISE
-%token RADIATION RAYDAMP RBMFILTER RBMSET READMODE READSHAPESEN REBUILD REDFOL RENUM RENUMBERID REORTHO RESTART RECONS RECONSALG REBUILDCCT RANDOM RPROP RNORM REVERSENORMALS ROTVECOUTTYPE RESCALING
+%token RADIATION RAYDAMP RBMFILTER RBMSET READMODE READSENSITIVITY REBUILD REDFOL RENUM RENUMBERID REORTHO RESTART RECONS RECONSALG REBUILDCCT RANDOM RPROP RNORM REVERSENORMALS ROTVECOUTTYPE RESCALING
 %token SCALING SCALINGTYPE STRDAMP SDETAFT SENSORS SOLVERTYPE SHIFT
 %token SPOOLESTAU SPOOLESSEED SPOOLESMAXSIZE SPOOLESMAXDOMAINSIZE SPOOLESMAXZEROS SPOOLESMSGLVL SPOOLESSCALE SPOOLESPIVOT SPOOLESRENUM SPARSEMAXSUP SPARSEDEFBLK
 %token STATS STRESSID SUBSPACE SURFACE SAVEMEMCOARSE SPACEDIMENSION SCATTERER STAGTOL SCALED SWITCH STABLE SUBTYPE STEP SOWER SHELLTHICKNESS SURF SPRINGMAT
 %token TANGENT TDENFORCE TEMP TIME TOLEIG TOLFETI TOLJAC TOLPCG TOPFILE TOPOLOGY TRBM THERMOE THERMOH 
-%token TETT TOLCGM TURKEL TIEDSURFACES THETA PROJSOL POSELEM HRC THIRDNODE THERMMAT TDENFORC TESTULRICH THRU TRIVIAL
+%token TETT TOLCGM TURKEL TIEDSURFACES THETA PROJSOL POSELEM HRC THIRDNODE THERMMAT TDENFORC TESTULRICH THRU TRIVIAL THICKNESSGROUPLIST
 %token USE USERDEFINEDISP USERDEFINEFORCE UPROJ UNSYMMETRIC USING
 %token VERSION WETCORNERS YMTT YSST YSSRT
 %token ZERO BINARY GEOMETRY DECOMPOSITION GLOBAL MATCHER CPUMAP
@@ -113,7 +113,7 @@
 %token SNAPFI PODROB TRNVCT OFFSET ORTHOG SVDTOKEN CONVERSIONTOKEN CONVFI SAMPLING SNAPSHOTPROJECT PODSIZEMAX REFSUBTRACT TOLER NORMALIZETOKEN FNUMBER SNAPWEIGHT ROBFI STAVCT VELVCT ACCVCT CONWEPCFG PSEUDOGNAT PSEUDOGNATELEM USENMF
 %token VECTORNORM REBUILDFORCE SAMPNODESLOT REDUCEDSTIFFNESS UDEIMBASIS FORCEROB DEIMINDICES UDEIMINDICES SVDFORCESNAP
 %token USEMASSNORMALIZEDBASIS
-%token SENSITIVITYID NUMTHICKNESSGROUP NUMSHAPEVARIABLE 
+%token SENSITIVITYID NUMTHICKNESSGROUP 
 %token QRFACTORIZATION QMATRIX RMATRIX XMATRIX EIGENVALUE
 
 %type <complexFDBC> AxiHD
@@ -202,7 +202,6 @@ Component:
 	| Renumbering
 	| IDisp
 	| Mode
-  | ShapeSensitivity
         | IDisp6Pita
         | IVel6Pita
 	| IDisp6
@@ -347,7 +346,6 @@ Component:
 	| Sampling
         | SnapshotProject
         | ConversionToken
-        | NumSensitivityParameter
         ;
 Noninpc:
         NONINPC NewLine Integer Integer NewLine
@@ -854,12 +852,6 @@ UsddLocations:
           if(geoSource->setUsddLocation($3->n,$3->d) < 0) return -1;
           if(geoSource->setDirichlet($3->n,$3->d) < 0)    return -1; }
 	;
-NumSensitivityParameter:
-    NUMSHAPEVARIABLE Integer NewLine
-    { domain->setNumShapeVars($2); }
-    | NUMTHICKNESSGROUP Integer NewLine
-    { domain->setNumThicknessGroups($2); }
-    ;
 Output:
 	OUTPUT NewLine
         { numColumns = 3; } // set number of output columns to 3 
@@ -1780,11 +1772,6 @@ Mode:
         | Mode USEMASSNORMALIZEDBASIS SWITCH NewLine
         { domain->solInfo().useMassNormalizedBasis = bool($3); }
 	;
-ShapeSensitivity:
-  READSHAPESEN FNAME NewLine
-  { domain->solInfo().readShapeSen = true;
-    domain->solInfo().readInShapeSen = $2; }
-  ;
 IDisp:
         IDIS NewLine
         { }
@@ -3248,6 +3235,21 @@ Preload:
             geoSource->setElementPreLoad( i-1, load );
         }
 	;
+Optimization:
+        OPTIMIZATION NewLine
+        { domain->solInfo().sensitivity = true; }
+        | Optimization READSENSITIVITY FNAME NewLine
+        { domain->solInfo().readShapeSen = true;
+          domain->solInfo().readInShapeSen = $3; }  
+        | Optimization THICKNESSGROUPLIST NewLine ThicknessGroup 
+        { } 
+  ;
+ThicknessGroup:
+        Integer NewLine
+        { domain->setThicknessGroup($1); }
+        | ThicknessGroup Integer NewLine
+        { domain->setThicknessGroup($2); }
+  ;
 Statics:
         STATS NewLine
         { domain->solInfo().setProbType(SolverInfo::Static); }
@@ -4215,20 +4217,6 @@ Control:
         | Control FNAME NewLine Integer NewLine FNAME NewLine FNAME NewLine FNAME NewLine
          { geoSource->setControl($2,$6,$8,$10); }
 */
-	;
-Optimization:
-	OPTIMIZATION FNAME NewLine
-        { 
-#ifdef STRUCTOPT
-	  dynamic_cast<Domain_opt*>(domain)->setStructoptFlag(1); dynamic_cast<Domain_opt*>(domain)->optinputfile = $2;
-#endif
-        }
-        | Optimization NewLine FNAME NewLine
-        { 
-#ifdef STRUCTOPT
-	  dynamic_cast<Domain_opt*>(domain)->setStructoptFlag(1); dynamic_cast<Domain_opt*>(domain)->optinputfile = $3;
-#endif
- }
 	;
 NodalContact: 
         NODALCONTACT NewLine

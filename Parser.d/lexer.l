@@ -86,12 +86,6 @@ TRAIL [a-zA-Z]*
 
 "READMODE"[a-zA-Z]*|"readmode"[a-zA-Z]* { return READMODE; }
 
-"READSHAPESEN"[a-zA-Z]*|"readshapesen"[a-zA-Z]* { return READSHAPESEN; }
-
-"NUMTHICKNESSGROUP"|"numthicknessgroup" { return NUMTHICKNESSGROUP; }
-
-"NUMSHAPEVARIABLE"|"numshapevariable"   { return NUMSHAPEVARIABLE; }
-
 "USE_MASS_NORMALIZED_BASIS"|"use_mass_normalized_basis" { return USEMASSNORMALIZEDBASIS; }
 
 "PRES"[a-zA-Z]*|"pres"[a-zA-Z]*    { return PRESSURE; }
@@ -107,8 +101,6 @@ TRAIL [a-zA-Z]*
 "BUCK"[a-zA-Z]*|"buck"[a-zA-Z]*    { return BUCKLE; }
 
 "CONTROL"[a-zA-Z]*|"control"[a-zA-Z]*    { return CONTROL;  }
-
-"STRU"[a-zA-Z]*|"stru"[a-zA-Z]*    { return OPTIMIZATION;  }
 
 "TOPO"[a-zA-Z]*|"topo"|"topology"  { return TOPOLOGY; }
 
@@ -720,6 +712,12 @@ TRAIL [a-zA-Z]*
 "OUTPUT6"|"output6"                { return OUTPUT6; }
 
 "EIGE"[a-zA-Z]*|"eige"[a-zA-Z]*    { return EIGEN; }
+ 
+"OPTIMIZATION"|"optimization"      { return OPTIMIZATION; }
+
+"READSENSITIVITY"|"readsensitivity" { return READSENSITIVITY; }
+
+"THICKNESSGROUPLIST"|"thicknessgrouplist" { return THICKNESSGROUPLIST; }
 
 "addedmass"                        { return ADDEDMASS; }
 
@@ -1007,6 +1005,12 @@ TRAIL [a-zA-Z]*
 "vmstthic"|"VMSTTHIC"              { yylval.ival = OutputInfo::VMstThic; return STRESSID; }
 
 "vmstshap"|"VMSTSHAP"              { yylval.ival = OutputInfo::VMstShap; return STRESSID; }
+
+"vmstmach"|"VMSTMACH"              { yylval.ival = OutputInfo::VMstMach; return STRESSID; }
+
+"vmstalph"|"VMSTALPH"              { yylval.ival = OutputInfo::VMstAlpha; return STRESSID; }
+
+"vmstbeta"|"VMSTBETA"              { yylval.ival = OutputInfo::VMstBeta; return STRESSID; }
 
 "elemental"[a-zA-Z]*|"ELEMENTAL"[a-zA-Z]* { yylval.ival =  0; return AVERAGED; }
 

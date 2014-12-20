@@ -1063,23 +1063,6 @@ FlExchanger::printreceiving()
 }
 
 void
-FlExchanger::sendNumParam(int numParam)
-{
-  int returnFlag = 0;
-  int FldNd = 0;
-  int tag;
-  int thisNode = structCom->myID();
-  double buffer[1];
-  buffer[0] = (double) numParam;
-  int msglen = 1;
-
-  if(thisNode == 0) {
-    tag = STNUMPAFL;
-    fluidCom->sendTo(FldNd, tag, buffer, msglen);
-  }
-}
-
-void
 FlExchanger::sendRelativeResidual(double relres)
 {
   int returnFlag = 0;
@@ -1093,6 +1076,40 @@ FlExchanger::sendRelativeResidual(double relres)
   if(thisNode == 0) {
     tag = STRELRESFL;
     fluidCom->sendTo(FldNd, tag, buffer, msglen);
+  }
+}
+
+void
+FlExchanger::sendNumParam(int numParam, int actvar, double steadyTol)
+{
+  int returnFlag = 0;
+  int FldNd = 0;
+  int tag;
+  int thisNode = structCom->myID();
+  double buffer[3];
+  buffer[0] = (double) numParam;
+  buffer[1] = (double) actvar;
+  buffer[2] = steadyTol;
+  int msglen = 3;
+
+  if(thisNode == 0) {
+    tag = STNUMPAFL;
+    fluidCom->sendTo(FldNd, tag, buffer, msglen);
+  }
+}
+
+void
+FlExchanger::getNumParam(bool &numParam)
+{
+  int tag;
+  int thisNode = structCom->myID();
+  double buffer[1];
+  int msglen = 1;
+
+  if(thisNode == 0) {
+    tag =  FLNUMPAST;
+    RecInfo rInfo = fluidCom->recFrom(tag, buffer, msglen);
+    numParam = (bool) buffer[0];
   }
 }
 

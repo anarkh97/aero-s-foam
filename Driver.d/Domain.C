@@ -76,6 +76,7 @@ Domain::Domain(Domain &d, int nele, int *eles, int nnodes, int *nnums)
  else setVerbose();
 
  senInfo = new SensitivityInfo[50];  // maximum number of sensitivities are fixed to 50
+ numThicknessGroups = thicknessGroups.size();
 }
 
 Domain::Domain(Domain &d, Elemset *_elems, CoordSet *_nodes)
@@ -1913,7 +1914,7 @@ Domain::readInShapeDerivatives(char* shapeDerFileName)
  // Read in number of shape variables and number of nodes
  int count = fscanf(f,"%s%s%s%s%s%s",str,str,str,str,str,str);
  count = fscanf(f, "%d\n", &shapeSenData.numNodes);
- shapeSenData.numVars = getNumShapeVars();
+ shapeSenData.numVars = 0;
 
  typedef double (*T3)[3];
  shapeSenData.index = new int[shapeSenData.numVars];
@@ -1921,16 +1922,19 @@ Domain::readInShapeDerivatives(char* shapeDerFileName)
  shapeSenData.nodes         = new int[shapeSenData.numNodes*2]; //NOTE: assumes that global node number does not exceed twice of number of nodes
 
  // Read shape sensitivities
- int iSen, iNode, numsubstring;
+ int iSen(0), iNode, numsubstring;
  char input[500], *substring;
  double tmpinput[7];
 
  //int jj;
- for(iSen=0; iSen<shapeSenData.numVars; ++iSen) {
+// for(iSen=0; iSen<shapeSenData.numVars; ++iSen) {
+ while ( !feof(f) ) {
    shapeSenData.sensitivities[iSen] = new double[shapeSenData.numNodes][3];
 
    count = fscanf(f,"%d\n",&shapeSenData.index[iSen]);
-
+   if(count < 0) break;
+   shapeSenData.numVars++;
+   
    //int nodeNum;
    for(iNode=0; iNode<shapeSenData.numNodes; ++iNode) {
 
@@ -1957,7 +1961,9 @@ Domain::readInShapeDerivatives(char* shapeDerFileName)
      shapeSenData.sensitivities[iSen][iNode][1] = tmpinput[2];
      shapeSenData.sensitivities[iSen][iNode][2] = tmpinput[3];
    }
+   iSen++;
  }
+ setNumShapeVars(shapeSenData.numVars);
 }
 
 void
@@ -4167,13 +4173,18 @@ void Domain::buildSensitivityInfo()
       senInfo[numSensitivity].type = SensitivityInfo::StressVMWRTthickness;  addSensitivity(oinfo[i]);
     } else if (oinfo[i].type == OutputInfo::VMstShap) {
       senInfo[numSensitivity].type = SensitivityInfo::StressVMWRTshape;      addSensitivity(oinfo[i]);
+    } else if (oinfo[i].type == OutputInfo::VMstMach) {
+      senInfo[numSensitivity].type = SensitivityInfo::StressVMWRTmach;       addSensitivity(oinfo[i]);
+    } else if (oinfo[i].type == OutputInfo::VMstAlpha) {
+      senInfo[numSensitivity].type = SensitivityInfo::StressVMWRTalpha;      addSensitivity(oinfo[i]);
+    } else if (oinfo[i].type == OutputInfo::VMstBeta) {
+      senInfo[numSensitivity].type = SensitivityInfo::StressVMWRTbeta;       addSensitivity(oinfo[i]);
     }
     numSensitivity++;
   }
 }
 
 void Domain::addSensitivity(OutputInfo &oinfo) {
-  solInfo().sensitivity = true;
   oinfo.sentype = 1;
   senInfo[numSensitivity].surface = oinfo.surface;
   if(oinfo.type != OutputInfo::WeigThic && oinfo.type != OutputInfo::WeigShap) {

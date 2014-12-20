@@ -306,10 +306,10 @@ SuperElement::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
   // Average sensitivity values at each node by the number of sub-elements attached to the node
   for(int i = 0; i < numNodes(); ++i) {
     if(weight[i] == 0) {
-      for(int j = 0; j < dStdDisp.numCol(); ++j) dStdDisp[i][j] = 0;
+      for(int j = 0; j < dStdDisp.numRow(); ++j) dStdDisp[j][i] = 0;
     }
     else {
-      for(int j = 0; j < dStdDisp.numCol(); ++j) dStdDisp[i][j] /= weight[i];
+      for(int j = 0; j < dStdDisp.numRow(); ++j) dStdDisp[j][i] /= weight[i];
       weight[i] = 1;
     }
   }
@@ -354,10 +354,10 @@ SuperElement::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vec
   // Average sensitivity values at each node by the number of sub-elements attached to the node
   for(int i = 0; i < numNodes(); ++i) {
     if(weight[i] == 0) {
-      for(int j = 0; j < dStdx.numCol(); ++j) dStdx[i][j] = 0;
+      for(int j = 0; j < dStdx.numRow(); ++j) dStdx[j][i] = 0;
     }
     else {
-      for(int j = 0; j < dStdx.numCol(); ++j) dStdx[i][j] /= weight[i];
+      for(int j = 0; j < dStdx.numRow(); ++j) dStdx[j][i] /= weight[i];
       weight[i] = 1;
     }
   }

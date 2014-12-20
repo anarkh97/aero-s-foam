@@ -222,8 +222,8 @@ Element::getGravityForce(CoordSet&, double *, Vector &force, int, GeomState *)
 void
 Element::getGravityForceThicknessSensitivity(CoordSet&, double *, Vector &forceSen, int, GeomState *)
 {
-  if(!isConstraintElement() && !isSpring())
-    fprintf(stderr," *** WARNING: Gravity force sensitivity not implemented for element (%6d), type %3d\n", getGlNum()+1, elementType);
+//  if(!isConstraintElement() && !isSpring())
+//    fprintf(stderr," *** WARNING: Gravity force sensitivity not implemented for element (%6d), type %3d\n", getGlNum()+1, elementType);
   forceSen.zero();
 }
 

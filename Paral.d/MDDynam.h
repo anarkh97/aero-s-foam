@@ -1,6 +1,8 @@
 #ifndef _MD_DYNAM_DESCR_H_
 #define _MD_DYNAM_DESCR_H_
 
+#include <Driver.d/Domain.h>
+
 template <class Scalar> class GenVector;
 typedef GenVector<double> Vector;
 template <class Scalar> class GenSparseMatrix;
@@ -32,6 +34,7 @@ class ControlLawInfo;
 class Corotator;
 class DistrInfo;
 class DistrGeomState;
+struct SensitivityInfo;
 
 template<class Scalar>
 class GenMDDynamMat {
@@ -174,6 +177,8 @@ private:
     double* boundaryValue();
     Domain* getDomain();
     AllSensitivities<double> *getAllSensitivities() { return allSens; }
+    SensitivityInfo *getSensitivityInfo() { return domain->senInfo; }
+    int getNumSensitivities() { return domain->getNumSensitivities(); }
     void getTimes(double &dt, double &t);
     void getNewMarkParameters(double &beta, double &gamma,
                               double &alphaf, double &alpham);
@@ -229,7 +234,8 @@ private:
     int aeroPreProcess(DistrVector &, DistrVector &, DistrVector &, DistrVector &); 
     int aeroSensitivityPreProcess(DistrVector &, DistrVector &, DistrVector &, DistrVector &); 
     int sendDisplacements(DistrVector &, DistrVector &, DistrVector &, DistrVector &); 
-    void sendNumParam(int numParam) {}
+    void sendNumParam(int numParam, int actvar, double steadyTol) {}
+    void getNumParam(bool &numParam) {}
     void sendRelativeResidual(double relres) {}
     int cmdCom(int cmdFlag);
     int getAeroAlg();

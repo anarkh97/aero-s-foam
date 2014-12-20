@@ -570,7 +570,7 @@ int main(int argc, char** argv)
  }
 
  if(domain->solInfo().readmodeCalled) {
-   if((domain->solInfo().modalCalled || domain->solInfo().modal || domain->solInfo().modeDecompFlag || domain->solInfo().aeroFlag == 8)
+   if((domain->solInfo().modalCalled || domain->solInfo().modal || domain->solInfo().modeDecompFlag || domain->solInfo().aeroFlag == 8 || domain->probType() == SolverInfo::Modal)
       && (strcmp(domain->solInfo().readInModes,"") == 0)) {
      domain->readInModes(const_cast<char*>(domain->solInfo().readInROBorModes));
    }

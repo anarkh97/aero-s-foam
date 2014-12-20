@@ -112,7 +112,8 @@ class GenDistrVector {
 
     void updateBlock(int ii, Scalar c, GenDistrVector<Scalar> &) {std::cerr << "GenDistrVector::updateBlock not implemented" << std::endl;}
     void copyBlock(GenDistrVector<Scalar> &, int ii) {std::cerr << "GenDistrVector::copyBlock not implemented" << std::endl;}
-    void copy(const Scalar *v) {std::cerr << "GenDistrVector::copy not implemented" << std::endl;}
+    void copy(const Scalar *v) {std::cerr << "GenDistrVector::copy(const Scalar *v) not implemented" << std::endl;}
+    void copy(const Scalar v)  {std::cerr << "GenDistrVector::copy(const Scalar v) not implemented" << std::endl;}
     void addBlockSqr(int ii, Scalar c, GenDistrVector<Scalar> &);
     void computeSqrt();
     void computeRealz(int ii, Scalar c, GenDistrVector<Scalar> &) {std::cerr << "GenDistrVector::computeRealz not implemented" << std::endl;}

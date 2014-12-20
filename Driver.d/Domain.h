@@ -158,6 +158,9 @@ struct AllSensitivities
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *vonMisesWRTthick;      // derivatives of von Mises stress wrt thickness
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *vonMisesWRTdisp;       // derivatives of von Mises stress wrt displacement
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *vonMisesWRTshape;      // derivatives of von Mises stress wrt shape varibales
+  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *vonMisesWRTmach;       // derivatives of von Mises stress wrt Mach number
+  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *vonMisesWRTalpha;      // derivatives of von Mises stress wrt angle of attack
+  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *vonMisesWRTbeta;       // derivatives of von Mises stress wrt yaw angle
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **stiffnessWRTthick;    // derivatives of stiffness wrt thickness 
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **stiffnessWRTshape;    // derivatives of stiffness wrt shape variables 
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **dKucdthick;           // derivatives of constrained stiffness wrt thickness 
@@ -167,12 +170,15 @@ struct AllSensitivities
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **linearstaticWRTshape; // derivative of linear static structural formulation wrt shape variables
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **dispWRTthick;         // derivative of displacement wrt thickness
   Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> **dispWRTshape;         // derivative of displacement wrt shape variables
+  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *dispWRTmach;           // derivative of displacement wrt Mach number
+  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *dispWRTalpha;          // derivative of displacement wrt angle of attack
+  Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> *dispWRTbeta;           // derivative of displacement wrt yaw angle
   // Constructor
   AllSensitivities() { weight = 0;                weightWRTshape = 0;        weightWRTthick = 0;        
                        vonMisesWRTthickSparse = 0;      dKucdthickSparse = 0;            vonMisesWRTshapeSparse = 0; 
                        vonMisesWRTdispSparse = 0;       stressWeightSparse = 0;          stiffnessWRTthickSparse = 0;     dKucdshapeSparse = 0; 
                        linearstaticWRTthickSparse = 0;  linearstaticWRTshapeSparse = 0;  dispWRTthickSparse = 0;          dispWRTshapeSparse = 0;
-                       stiffnessWRTshapeSparse = 0; 
+                       stiffnessWRTshapeSparse = 0;     dispWRTmach = 0;    dispWRTalpha = 0;    dispWRTbeta = 0; 
                        vonMisesWRTthick = 0;      dKucdthick = 0;            vonMisesWRTshape = 0; 
                        vonMisesWRTdisp = 0;       stressWeight = 0;          stiffnessWRTthick = 0;     dKucdshape = 0; 
                        linearstaticWRTthick = 0;  linearstaticWRTshape = 0;  dispWRTthick = 0;          dispWRTshape = 0;
@@ -237,6 +243,7 @@ class Domain : public HData {
      Elemset packedEset;	// The set of compressed elements
      int numdofs; 		// the total number of degrees of freedom
      int numSensitivity;  // the total number of sensitivity types    
+     std::vector<int> thicknessGroups;
  
      // BC related data members
      int numDirichlet;		// number of dirichlet bc
@@ -406,8 +413,9 @@ class Domain : public HData {
      void make_bc(int *bc, DComplex *bcxC);
      void makeAllDOFs();
      void makeAllDOFsFluid();
-     void setNumThicknessGroups(int _numT) { numThicknessGroups = _numT; }
      void setNumShapeVars(int _numS) { numShapeVars = _numS; }
+     void setThicknessGroup(int d) { thicknessGroups.push_back(d-1); numThicknessGroups++; }
+     std::vector<int> &getThicknessGroups() { return thicknessGroups; }
 
      void createKelArray(FullSquareMatrix *& kel);
      void createKelArray(FullSquareMatrix *& kel,FullSquareMatrix *& mel);
@@ -575,8 +583,8 @@ class Domain : public HData {
      Connectivity * makeLmpcToNode_primal();
      void makeFsiToNode();
      Connectivity *getFsiToNode() { return fsiToNode; }
-     int getNumThicknessGroups() { return numThicknessGroups; }
      int getNumShapeVars() { return numShapeVars; }
+     int getNumThicknessGroups() { return numThicknessGroups; }
      int getNumFSI() { return numFSI; }
      void setNumFSI(int n) { numFSI = n; }
      ResizeArray<LMPCons *> &getFSI() { return fsi; }
@@ -616,6 +624,7 @@ class Domain : public HData {
      void computeTDProps();
 
      ShapeSensitivityData getShapeSensitivityData() { return shapeSenData; }
+     int getNumSensitivities() { return numSensitivity; }
 
      virtual void setUpData();
      SolverInfo  &solInfo() { return sinfo; }
@@ -658,6 +667,9 @@ class Domain : public HData {
      void computeStressVMWRTShapeVariableSensitivity(int, AllSensitivities<double> &allSens,
                                                      GenVector<double> &sol, double *bcx,
                                                      bool isDynam = false);
+     void computeStressVMWRTMachNumberSensitivity(AllSensitivities<double> &allSens);
+     void computeStressVMWRTangleOfAttackSensitivity(AllSensitivities<double> &allSens);
+     void computeStressVMWRTyawAngleSensitivity(AllSensitivities<double> &allSens);
      void makePostSensitivities(GenSolver<double> *, GenSparseMatrix<double> *, GenSparseMatrix<double> *,
                                 AllSensitivities<double> &allSens, GenVector<double> &sol, double *, bool isDynam = false);
      void makePostSensitivities(GenSolver<DComplex> *, GenSparseMatrix<DComplex> *, GenSparseMatrix<DComplex> *, 

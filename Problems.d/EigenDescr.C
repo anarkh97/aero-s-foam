@@ -21,6 +21,9 @@
 #include <Timers.d/GetTime.h>
 #include <Corotational.d/GeomState.h>
 #include <Utils.d/DistHelper.h>
+#include <Utils.d/ModeData.h>
+
+extern ModeData modeData;
 
 int
 SingleDomainEigen::solVecSize()
@@ -270,6 +273,21 @@ SingleDomainEigen::printTimers(Solver *solver)
     filePrint(stderr," --------------------------------------\n");
     filePrint(stderr," ... Structure mass = %e  ...\n",mass);
     filePrint(stderr," --------------------------------------\n");
+  }
+}
+
+void
+SingleDomainEigen::convertModeDataToVecSet(VectorSet& vModeData)
+{
+  DofSetArray *cdsa = domain->getCDSA();
+  for(int j=0; j<domain->numNodes(); ++j) { // loop over nodes
+    for(int k=0; k<6; ++k) { // loop over dofs
+      int dof = cdsa->locate(modeData.nodes[j], 1 << k);
+      if(dof >= 0)
+        for(int i=0; i<modeData.numModes; ++i) {
+          vModeData[i][dof] = modeData.modes[i][j][k];
+        }
+    }
   }
 }
 

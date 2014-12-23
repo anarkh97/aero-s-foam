@@ -179,7 +179,7 @@ SCDoubleMatrix::setMatrixRow(int i, double *row) {
 
 
 
-// Norm returned to the process row or column associated with the vector
+// Norm returned the process row or column 2 norm associated with the vector
 double
 SCDoubleMatrix::norm2(int n) {
     double norm2 = 0.0;
@@ -205,9 +205,15 @@ SCDoubleMatrix::norm2Colunns(SCDoubleMatrix& colnorms) {
     if (colnorms._n != _n) {
         return 1;
     }
-    int one = 1;
+    int zero=0, one=1, jloc, dummy, p;
+    double norm;
     for (int j=1; j<=_n; j++) {
-        _FORTRAN(pdnrm2)(&_m, &(colnorms._matrix[j-1]), _matrix, &one, &j, _desc, &one);
+        _FORTRAN(pdnrm2)(&_m, &norm, _matrix, &one, &j, _desc, &one);
+        p = _FORTRAN(indxg2p)(&j, &(colnorms._nb), &dummy, &zero, &(colnorms._npcol));
+        if (p == _mycol) {
+            jloc = _FORTRAN(indxg2l)(&j, &(colnorms._nb), &dummy, &dummy, &(colnorms._npcol));
+            colnorms._matrix[jloc-1] = norm; // jloc is a Fortran index
+        }
     }
     return 0;
 }
@@ -668,18 +674,21 @@ SCDoubleMatrix::getMaxLoc(int begglo, int endglo) {
 
 
 DoubleInt
-SCDoubleMatrix::getMax(MPI_Comm row_comm, MPI_Comm col_comm, int begglo, int endglo) {
+SCDoubleMatrix::getMax(int begglo, int endglo) {
     this->startTime(SCDBL_TIME_GETMAX);
-    int mypc2;
+    if (! _row_col_comm_set) {
+        SCBaseMatrix::setRowColComms();
+    }
     MPI_Comm comm, commd;
+    int mypc2;
     if (_m == 1) {
         mypc2 = _myrow;
-        comm = row_comm;
-        commd = col_comm;
+        comm = _row_comm;
+        commd = _col_comm;
     } else if (_n == 1) {
         mypc2 = _mycol;
-        comm = col_comm;
-        commd = row_comm;
+        comm = _col_comm;
+        commd = _row_comm;
     } else {
         std::cerr << "SCDoubleMatrix::getMax is for vectors only. Requires _m == 1 or _n == 1" << std::endl;
         MPI_Finalize();
@@ -754,18 +763,21 @@ SCDoubleMatrix::getMinLoc(int begglo, int endglo) {
 
 
 DoubleInt
-SCDoubleMatrix::getMin(MPI_Comm row_comm, MPI_Comm col_comm, int begglo, int endglo) {
+SCDoubleMatrix::getMin(int begglo, int endglo) {
     this->startTime(SCDBL_TIME_GETMIN);
+    if (! _row_col_comm_set) {
+        SCBaseMatrix::setRowColComms();
+    }
     int mypc2;
     MPI_Comm comm, commd;
     if (_m == 1) {
         mypc2 = _myrow;
-        comm = row_comm;
-        commd = col_comm;
+        comm = _row_comm;
+        commd = _col_comm;
     } else if (_n == 1) {
         mypc2 = _mycol;
-        comm = col_comm;
-        commd = row_comm;
+        comm = _col_comm;
+        commd = _row_comm;
     } else {
         std::cerr << "SCDoubleMatrix::getMin is for vectors only. Requires _m == 1 or _n == 1" << std::endl;
         MPI_Finalize();
@@ -903,11 +915,30 @@ SCDoubleMatrix::swap(int i, int j) {
 
 double
 SCDoubleMatrix::froNorm() {
-    char norm = 'F';
+    return Norm('F');
+}
+
+
+double
+SCDoubleMatrix::amaxElement() {
+    return Norm('M');
+}
+
+
+double
+SCDoubleMatrix::Norm(char normDesignator) {
     int one = 1;
     double dnorm;
-    double work;
-    dnorm = _FORTRAN(pdlange)(&norm, &_m, &_n, _matrix, &one, &one, _desc, &work);
+    double *work = NULL;
+    if (normDesignator == '1' || normDesignator == 'O' || normDesignator == 'o') {
+        work = new double[_nlocal];
+    } else if (normDesignator == 'I' || normDesignator == 'i') {
+        work = new double[_mlocal];
+    }
+    dnorm = _FORTRAN(pdlange)(&normDesignator, &_m, &_n, _matrix, &one, &one, _desc, work);
+    if (work != NULL) {
+        delete[] work;
+    }
     return dnorm;
 }
 
@@ -1115,4 +1146,43 @@ SCDoubleMatrix::getMaxTime(int i) {
     double max_time;
     MPI_Reduce(&wall_time, &max_time, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
     return max_time;
+}
+
+
+void
+SCDoubleMatrix::elementWiseInverse() {
+    for (int i=0; i<_sizelocal; i++) {
+        if (_matrix[i] != 0.0) {
+            _matrix[i] = 1.0/_matrix[i];
+        }
+    }
+}
+
+
+char
+SCDoubleMatrix::columnScaling(SCDoubleMatrix& colScale) {
+    DoubleInt cmax = colScale.getMax();
+    DoubleInt cmin = colScale.getMin();
+    if (cmin.x <= 0.0) {
+        if (_mypid == 0) {
+            std::cout << "Bad scaling matrix. No scaling will be done." << std::endl;
+        }
+        return 'N';
+    }
+    char equed;
+    SCDoubleMatrix *rowScale = new SCDoubleMatrix(_context, _m, 1, _mb, _nb);
+    rowScale->set(1.0);
+    rowScale->distributeVector();
+    //colScale.distributeVector();  // Assume this is already distributed
+    double amax = this->amaxElement();
+    double rowcnd = 1.0;
+    double colcnd = cmin.x / cmax.x;
+    //std::cout << "_mypid = " << _mypid << ", amax = " << amax << std::endl;
+    //std::cout << "_mypid = " << _mypid << ", rowcnd = " << rowcnd << std::endl;
+    //std::cout << "_mypid = " << _mypid << ", colcnd = " << colcnd << std::endl;
+    int one = 1;
+    _FORTRAN(pdlaqge)(&_m, &_n, _matrix, &one, &one, _desc, rowScale->_matrix,
+                     colScale._matrix, &rowcnd, &colcnd, &amax, &equed);
+    delete rowScale;
+    return equed;
 }

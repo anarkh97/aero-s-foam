@@ -60,6 +60,7 @@ extern "C" {
     int  _FORTRAN(ilcm)(int *, int *);
     int  _FORTRAN(pdgemr2d)(int *, int *, double *, int *, int *, int *, double *, int *, int *, int *, int *);
     double _FORTRAN(pdlange)(char *, int *, int *, double *, int *, int *, int *, double *);
+    void _FORTRAN(pdlaqge)(int *, int *, double *, int *, int *, int *, double *, double *, double *, double *, double *, char *);
 }
 #endif
 

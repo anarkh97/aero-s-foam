@@ -31,11 +31,13 @@ splh(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const E
   Plh solver(A);
   solver.setRtol(reltol);
   solver.setMaxIterRatio(maxite);
+  if (scaling) solver.setColumnScaling();
 
   //int mb=64;
   //int nb=64;
   //solver.setABlockSize(mb,nb);
 
+  // Best to keep the default of mp=NROCS and np=1
   //int mp=12;
   //int np=4;
   //solver.setAProcGrid(mp,np);

@@ -46,7 +46,8 @@
 #define TIME_REJECT_VECTOR 31
 #define TIME_GET_SOLUTION 32
 #define TIME_DOWNDATE 33
-#define N_TIMES 34
+#define TIME_COLUMNSCALING 34
+#define N_TIMES 35
 
 #define MBA_DEFAULT 16
 #define NBA_DEFAULT 16
@@ -105,9 +106,9 @@ class Plh {
         void write(std::string filename, Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1> & x);
         void testCommunicators();
         void setDownDateMask();
-        void setColumnNormMask(double cnfac);
         void setMaxIterRatio( double maxite ) {_max_iter=maxite*_n;}
         void setMaxIter( double max_iter ) {_max_iter=max_iter;}
+        void setColumnScaling();
 
     private:
         // A context
@@ -144,7 +145,7 @@ class Plh {
         bool _matrixInitialized;
         bool _initializedWithEigen;
         bool _ddmask;
-        bool _cnmask;
+        bool _col_scaling;
         int _residualIncr;
         std::string _iterstring;
         std::string _residualFileName;
@@ -230,6 +231,7 @@ class Plh {
         double getTime(int i) { return _wallclock_total[i]; }
         int getEigenProc(int j);
         void wMaskByColNorm();
+        char colummScaling();
 };
 
 #endif // PLH_H_

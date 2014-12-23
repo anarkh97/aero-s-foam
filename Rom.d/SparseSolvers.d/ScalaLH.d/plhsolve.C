@@ -63,7 +63,7 @@ Plh::solve() {
             }
             if (done) break;
             solveR();
-            _zmin = _zQR->getMin(_row_commQR, _col_commQR, 1, _nP);
+            _zmin = _zQR->getMin(1, _nP);
             iteration_output();
             while (_zmin.x <= 0.0) {
                 // Downdate
@@ -75,7 +75,7 @@ Plh::solve() {
                 updateQR(iqr);
                 updateQtb();
                 solveR();
-                _zmin = _zQR->getMin(_row_commQR, _col_commQR, 1, _nP);
+                _zmin = _zQR->getMin(1, _nP);
                 sub_iteration_output(iqr);
                 _subiter++;
                 stopTime(TIME_DOWNDATE);
@@ -90,6 +90,7 @@ Plh::solve() {
     // Compute and print the final residual
     _rnorm2 = residual2Norm();
     writeResidual();
+    if (_col_scaling) _x->hadamardProduct(*_colnorms);
     MPI_Barrier(MPI_COMM_WORLD);
     stopTime(TIME_MAIN_LOOP);
     return _nP;
@@ -127,20 +128,39 @@ Plh::initplh() {
         std::cout << "Residual norm target  = " << _rtol << std::endl;
     }
 
-    if (_ddmask || _cnmask) {
+    if (_ddmask) {
         _wmask->set(1.0);
     }
 
-    if (_cnmask) {
+    if (_col_scaling) {
+        _colnorms = new SCDoubleMatrix(_context, 1, _n, _mb, _nb);
         _A->norm2Colunns(*_colnorms);
-        _colnorms->write("colnorms.txt");
-        DoubleInt cnmax = _colnorms->getMax(_row_comm, _col_comm);
-        DoubleInt cnmin = _colnorms->getMin(_row_comm, _col_comm);
+        DoubleInt cnmax = _colnorms->getMax();
+        DoubleInt cnmin = _colnorms->getMin();
         if (_mypid == 0) {
-            std::cout << "column norm max = " << cnmax.x << " at i = " << cnmax.i << std::endl;
-            std::cout << "column norm min = " << cnmin.x << " at i = " << cnmin.i << std::endl;
+            std::cout << "max column = " << cnmax.x << " at i = " << cnmax.i << std::endl;
+            std::cout << "min column = " << cnmin.x << " at i = " << cnmin.i << std::endl;
         }
-        wMaskByColNorm();
+        char scalingDesignator = colummScaling();
+        if (scalingDesignator == 'R' || scalingDesignator == 'B') {
+            if (_mypid == 0) {
+                std::cout << "ScalaPack decided to scale the matrix by row which is not handled. Exiting..." << std::endl;
+            }
+            MPI_Finalize();
+            exit(1);
+        }
+        if (scalingDesignator == 'N') {
+            if (_mypid == 0) {
+                std::cout << "ScalaPack did not scale the matrix by columns." << std::endl;
+            }
+            _col_scaling = false;
+            delete _colnorms;
+        }
+        if (scalingDesignator == 'C') {
+            if (_mypid == 0) {
+                std::cout << "ScalaPack scaled the matrix by columns." << std::endl;
+            }
+        }
     }
 
     stopTime(TIME_INIT_NNLS);
@@ -321,7 +341,7 @@ Plh::nextVector() {
     bool retval = true; // Means we are done. Default is true.
     startTime(TIME_GETMAX);
     DoubleInt maxval;
-    _wmax = _w->getMax(_row_comm, _col_comm); // getMax() distributes to all processors
+    _wmax = _w->getMax(); // getMax() distributes to all processors
     stopTime(TIME_GETMAX);
     if (_wmax.x > 0.0 && _nZ > 0) {
         _nP++;
@@ -341,7 +361,7 @@ Plh::rejectVector() {
     _w->setElement(1,_wmax.i,0.0);
     startTime(TIME_GETMAX);
     DoubleInt maxval;
-    _wmax = _w->getMax(_row_comm, _col_comm); // getMax() distributes to all processors
+    _wmax = _w->getMax(); // getMax() distributes to all processors
     stopTime(TIME_GETMAX);
     if (_wmax.x <= 0.0) {
         done = true;
@@ -442,7 +462,7 @@ Plh::gradf() {
         j = _QtoA->getElement(1,i);
         _w->setElement(1,j,0.0);
     }
-    if (_cnmask || _ddmask) _w->hadamardProduct(*_wmask);
+    if (_ddmask) _w->hadamardProduct(*_wmask);
 
     stopTime(TIME_GRADF);
     return 0;
@@ -690,16 +710,11 @@ Plh::writeSet(std::string filename) {
 }
 
 
-void
-Plh::wMaskByColNorm() {
-    double *wmask = _wmask->getMatrix();
-    double *colnorms = _colnorms->getMatrix();
-    int nlocal = _wmask->getNumberOfColsLocal();
-    DoubleInt cnmax = _colnorms->getMax(_row_comm, _col_comm);
-    double fac = 0.01;
-    for (int i=0; i<nlocal; i++) {
-        if (colnorms[i] < cnmax.x*fac) {
-            wmask[i] = 0.0;
-        }
-    }
+char
+Plh::colummScaling() {
+    startTime(TIME_COLUMNSCALING);
+    _colnorms->elementWiseInverse();
+    char scalingDesignator = _A->columnScaling(*_colnorms);
+    stopTime(TIME_COLUMNSCALING);
+    return scalingDesignator;
 }

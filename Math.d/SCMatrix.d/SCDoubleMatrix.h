@@ -74,9 +74,9 @@ class SCDoubleMatrix : public SCBaseMatrix {
         int qr(int n=-1);
         SCDoubleMatrix * getQ();
         DoubleInt getMinLoc(int begglo=-1, int endglo=-1);
-        DoubleInt getMin(MPI_Comm row_comm, MPI_Comm col_com, int begglo=-1, int endglo=-1);
+        DoubleInt getMin(int begglo=-1, int endglo=-1);
         DoubleInt getMaxLoc(int begglo=-1, int endglo=-1);
-        DoubleInt getMax(MPI_Comm row_comm, MPI_Comm col_com, int begglo=-1, int endglo=-1);
+        DoubleInt getMax(int begglo=-1, int endglo=-1);
         void writeLocal(std::string filename);
         int house(int j);
         int pdcopy(int n, int ix, int jx, int incx,
@@ -88,6 +88,7 @@ class SCDoubleMatrix : public SCBaseMatrix {
         int initMatrix(double *A);
         void swap(int i, int j);
         double froNorm();
+        double amaxElement();
         void normalize(double fac);
         void scalarMultiply( double s);
         int loadMatrix(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A);
@@ -98,6 +99,8 @@ class SCDoubleMatrix : public SCBaseMatrix {
         double getTime(int i) { return _wallclock_total[i]; }
         double getMaxTime(int i);
         int norm2Colunns(SCDoubleMatrix& colnorms);
+        char columnScaling(SCDoubleMatrix& colScale);
+        void elementWiseInverse();
 
     private:
         double * _matrix;       // Local _mlocal X _nlocal matrix
@@ -109,6 +112,7 @@ class SCDoubleMatrix : public SCBaseMatrix {
 
         int init();
         int readMatrix(std::string filename);
+        double Norm(char normDesignator);
 };
 
 #endif // SCDOUBLEMATRIX_H_

@@ -31,6 +31,14 @@ SCBaseMatrix::SCBaseMatrix(int context, int m, int n, int mb, int nb) :
 }
 
 
+SCBaseMatrix::~SCBaseMatrix() {
+    if (_row_col_comm_set) {
+        MPI_Comm_free(&_row_comm);
+        MPI_Comm_free(&_col_comm);
+    }
+}
+
+
 int
 SCBaseMatrix::getMatrixSize(std::string filename) {
     int count;
@@ -48,7 +56,7 @@ SCBaseMatrix::init() {
     int zero = 0;
     _FORTRAN(blacs_pinfo)(&_mypid, &_nprocs);
     _FORTRAN(blacs_gridinfo)(&_context, &_mprow, &_npcol, &_myrow, &_mycol);
-    _FORTRAN(_mlocal = numroc)(&_m, &_mb, &_myrow, &zero, &_mprow);
+    _mlocal = _FORTRAN(numroc)(&_m, &_mb, &_myrow, &zero, &_mprow);
     _nlocal = _FORTRAN(numroc)(&_n, &_nb, &_mycol, &zero, &_npcol);
     _lld = std::max(1, _mlocal);
     this->setTopology();
@@ -57,6 +65,7 @@ SCBaseMatrix::init() {
     int info;
     _FORTRAN(descinit)(_desc, &_m, &_n,  &_mb, &_nb, &_rsrc, &_csrc, &_context, &_lld, &info );
     _sizelocal = std::max(_mlocal,1)*std::max(_nlocal,1);
+    _row_col_comm_set = false;
 }
 
 
@@ -304,4 +313,12 @@ SCBaseMatrix::getLocalOffset(int ig, int jg) {
     int jloc = _FORTRAN(indxg2l)(&jg, &_nb, &dummy, &dummy, &_npcol);
     int offset = _mlocal*iloc + _nlocal*jloc;
     return offset;
+}
+
+
+void
+SCBaseMatrix::setRowColComms() {
+    MPI_Comm_split(MPI_COMM_WORLD, _myrow, _mycol, &_row_comm);
+    MPI_Comm_split(MPI_COMM_WORLD, _mycol, _myrow, &_col_comm);
+    _row_col_comm_set = true;
 }

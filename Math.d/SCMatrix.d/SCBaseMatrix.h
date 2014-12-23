@@ -17,6 +17,7 @@ class SCBaseMatrix {
     public:
         SCBaseMatrix(int context, int m, int n, int mb, int nb);
         SCBaseMatrix(std::string filename, int context, int mb, int nb);
+        ~SCBaseMatrix();
 
         int getNumberOfRows()       {return _m;}
         int getNumberOfRowsLocal()  {return _mlocal;}
@@ -46,6 +47,7 @@ class SCBaseMatrix {
         int getGlobalRowIndex(int iloc) {return _FORTRAN(indxl2g)(&iloc, &_mb, &_myrow, &ZERO, &_mprow);}
         int getGlobalColIndex(int jloc) {return _FORTRAN(indxl2g)(&jloc, &_nb, &_mycol, &ZERO, &_npcol);}
         int getProc(int ig, int jg);
+        void setRowColComms();
 
         static int ZERO;
 
@@ -73,6 +75,9 @@ class SCBaseMatrix {
         int _desc[DLEN_]; // Scalapack descriptor for matrix _A (_A will be defined in derived class)
         int distributeVector(int    *vec, int n); // Convenience routine for distributing local arrays.
         int distributeVector(double *vec, int n); // Convenience routine for distributing local arrays.
+        bool _row_col_comm_set;
+        MPI_Comm _row_comm;
+        MPI_Comm _col_comm;
 
         void init();
 };

@@ -51,10 +51,10 @@ Plh::initDefaults() {
     _residualFilePtr = NULL;
 
     // Downdate masking. A test...
-    _cnmask = false;
     _ddmask = false;
     _wmask = NULL;
     _colnorms = NULL;
+    _col_scaling = false;
 }
 
 
@@ -75,10 +75,6 @@ Plh::initWithSize() {
 void
 Plh::initWithEigen(const std::vector< Eigen::Map<Eigen::MatrixXd> >& A) {
     initDefaults();
-    if (_mypid == 0) {
-        std::cout << "Initializing with a distributed Eigen matrix." << std::endl;
-    }
-
     if (A.size() == 0) {
         std::cout << "No Eigen matrix or processor " << _mypid << ". Exiting..." << std::endl;
         MPI_Finalize();
@@ -153,6 +149,9 @@ Plh::singleContext() {
 void
 Plh::init(const std::vector< Eigen::Map<Eigen::MatrixXd> >& eigenMatrix, const Eigen::Ref<const Eigen::VectorXd>& eigenRhs) {
     init();
+    if (_mypid == 0) {
+        std::cout << "Redistributing Eigen matrix and RHS for ScaLAPACK." << std::endl;
+    }
     loadMatrix(eigenMatrix);
     loadRhs(eigenRhs);
 }
@@ -186,6 +185,9 @@ Plh::~Plh() {
         delete[] _eigenSubDomainSize;
         delete[] _eigenColsPerProc;
         delete[] _eigenSubdomainStart;
+    }
+    if (_col_scaling) {
+        delete _colnorms;
     }
 }
 
@@ -240,6 +242,10 @@ Plh::init() {
     _Atb   = new SCDoubleMatrix(_context,    1,   _n, _mb, _nb);
     _QtoA  = new SCIntMatrix(   _context,    1,   _n, _mb, _nb);
 
+    //if (_col_scaling) {
+    //    _colnorms = new SCDoubleMatrix(_context, 1, _n, _mb, _nb);
+    //}
+
     // Context c_Q
     _Q       = new SCDoubleMatrix(_contextQR,   _m, dmin, _mbq, _nbq);
     _Qtb     = new SCDoubleMatrix(_contextQR,   _m,    1, _mbq, _nbq);
@@ -250,7 +256,6 @@ Plh::init() {
     _bQR     = new SCDoubleMatrix(_contextQR,   _m,    1, _mbq, _nbq);
     _rQR     = new SCDoubleMatrix(_contextQR,   _m,    1, _mbq, _nbq);
     _workmQR = new SCDoubleMatrix(_contextQR,   _m,    1, _mbq, _nbq); // Change _mb to _mbq and _nb to _nbq
-
 
     _Q->initqr();
     _work_qr = NULL;
@@ -298,6 +303,12 @@ Plh::summary() {
         std::cout << "Matrix load time was " << getDistributeMatrixTime() << " seconds. " << std::endl;
         std::cout << "############################################################" << std::endl << std::endl;
     }
+}
+
+
+void
+Plh::setColumnScaling() {
+    _col_scaling = true;
 }
 
 
@@ -556,6 +567,7 @@ Plh::printTimes(bool debug) {
             std::cout << "    loadMatrix       : " << times_max[TIME_LOADMATRIX]           << std::endl;
             std::cout << "    loadRhs          : " << times_max[TIME_LOADRHS]              << std::endl;
             std::cout << "    get x Eigen      : " << times_max[TIME_GET_SOLUTION]         << std::endl;
+            std::cout << "    Column Scaling   : " << times_max[TIME_COLUMNSCALING]        << std::endl;
             std::cout << "    Down Date        : " << times_max[TIME_DOWNDATE]             << std::endl;
             std::cout << "    Loop Total       : " << times_max[TIME_MAIN_LOOP]            << std::endl;
         }
@@ -567,9 +579,8 @@ Plh::printTimes(bool debug) {
             std::cout << "        gradf         : " << times_max[TIME_GRADF]        << std::endl;
             std::cout << "        QR            : " << times_max[TIME_UPDATEQR]     << std::endl;
             std::cout << "        Down Date     : " << times_max[TIME_DOWNDATE]     << std::endl;
+            std::cout << "    Column Scaling    : " << times_max[TIME_COLUMNSCALING]<< std::endl;
             std::cout << "    Distribute Matrix : " << times_max[TIME_LOADMATRIX]   << std::endl;
-            std::cout << "    Distribute RHS    : " << times_max[TIME_LOADRHS]      << std::endl;
-            std::cout << "    get x Eigen       : " << times_max[TIME_GET_SOLUTION] << std::endl;
         }
     }
 }
@@ -748,14 +759,4 @@ Plh::setDownDateMask() {
         _wmask = new SCDoubleMatrix(_context, 1, _n, _mb, _nb);
     }
     _ddmask = true;
-}
-
-
-void
-Plh::setColumnNormMask( double cnfac) {
-    if (_wmask == NULL) {
-        _wmask = new SCDoubleMatrix(_context, 1, _n, _mb, _nb);
-    }
-    _colnorms = new SCDoubleMatrix(_context, 1, _n, _mb, _nb);
-    _cnmask = true;
 }

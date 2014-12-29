@@ -655,6 +655,8 @@ TRAIL [a-zA-Z]*
 
 "tolj"[a-zA-Z]*|"TOLJ"[a-zA-Z]*    { return TOLJAC; }
 
+"tolsen"[a-zA-Z]*|"TOLSEN"[a-zA-Z]* { return TOLSEN; }
+
 "qrfactorization"|"QRFACTORIZATION" { return QRFACTORIZATION; }
 
 "expl"[a-zA-Z]*|"EXPL"[a-zA-Z]*    { return EXPLICIT; }

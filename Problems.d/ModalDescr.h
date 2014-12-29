@@ -51,6 +51,7 @@ public:
   void getConstForce(Vector &constF);
   void addConstForceSensitivity(Vector &gravityForceSen);
   void getSteadyStateParam(int &flag, int &min, int &max, double &tol);
+  void getSensitivityStateParam(double &tol);
   int getTimeIntegration() { return domain->solInfo().timeIntegration; }
   void getNewMarkParameters(double &beta, double &gamma,
     double &alphaf, double  &alpham);

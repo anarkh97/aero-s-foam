@@ -183,6 +183,7 @@ struct SolverInfo {
    int steadyMin;       // minimum number of steps in steady state simulation
    int steadyMax;       // maximum number of steps in steady state simulation
    double steadyTol;    // steady state criteria
+   double sensitivityTol;    // Sensitivity analysis tolerance
    double qsBeta;       // relaxation parameter for computing alphaR in case of
                         // thermal quasistatic
    bool no_secondary;
@@ -483,6 +484,7 @@ struct SolverInfo {
                   steadyMin = 1;
                   steadyMax = 10;
                   steadyTol = 1.0e-3; 
+                  sensitivityTol = 1.0e-5; 
                   qsMaxvel = 1.0;
                   qsBeta = 1.0;
                   delta = 0.0;

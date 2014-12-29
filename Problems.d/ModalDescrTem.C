@@ -145,6 +145,13 @@ void ModalDescr<Scalar>::addConstForceSensitivity(Vector &constF){
 //------------------------------------------------------------------------------
 
 template <class Scalar>
+void ModalDescr<Scalar>::getSensitivityStateParam(double &tol) {
+  tol = domain->solInfo().sensitivityTol;
+}
+
+//------------------------------------------------------------------------------
+
+template <class Scalar>
 void ModalDescr<Scalar>::getSteadyStateParam(int &flag, int &min, int &max, double &tol){
 
   flag = domain->solInfo().steadyFlag;

@@ -3481,16 +3481,19 @@ Domain::makePostSensitivities(GenSolver<double> *sysSolver,
    }
    case SensitivityInfo::StressVMWRTmach:
    {
+     if(!allSens.vonMisesWRTdisp) computeStressVMWRTdisplacementSensitivity(sindex,allSens,sol,bcx);
      computeStressVMWRTMachNumberSensitivity(allSens);
      break;
    }
    case SensitivityInfo::StressVMWRTalpha:
    {
+     if(!allSens.vonMisesWRTdisp) computeStressVMWRTdisplacementSensitivity(sindex,allSens,sol,bcx);
      computeStressVMWRTangleOfAttackSensitivity(allSens);
      break;
    }
    case SensitivityInfo::StressVMWRTbeta:
    {
+     if(!allSens.vonMisesWRTdisp) computeStressVMWRTdisplacementSensitivity(sindex,allSens,sol,bcx);
      computeStressVMWRTyawAngleSensitivity(allSens);
      break;
    }

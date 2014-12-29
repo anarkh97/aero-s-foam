@@ -265,6 +265,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
      v_pSen = new VecType( probDesc->solVecInfo() );
      *d_nSen = *v_nSen = *a_nSen = *v_pSen = 0.0;
      curSenState = new SysState<VecType>( *d_nSen, *v_nSen, *a_nSen, *v_pSen);
+     probDesc->getSensitivityStateParam(sensitivityTol);
    }
 #endif
 
@@ -394,8 +395,8 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
        int numThicknessGroups = domain->getNumThicknessGroups();
        int numShapeVars = domain->getNumShapeVars();
        int numStructParamTypes = int(bool(numThicknessGroups))+int(bool(numShapeVars));
-       probDesc->sendNumParam(numStructParamTypes, 0, steadyTol);
-       filePrint(stderr,"numStructParamTypes = %d, steadyTol = %e\n", numStructParamTypes, steadyTol); 
+       probDesc->sendNumParam(numStructParamTypes, 0, sensitivityTol);
+       filePrint(stderr,"numStructParamTypes = %d, sensitivityTol = %e\n", numStructParamTypes, sensitivityTol); 
 //       bool isMach, isAlpha, isBeta;
 //       probDesc->getNumParam(isMach); probDesc->getNumParam(isAlpha); probDesc->getNumParam(isBeta);
        
@@ -407,8 +408,8 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
              case SensitivityInfo::StressVMWRTshape:
 
-               probDesc->sendNumParam(numShapeVars, 1, steadyTol);
-               filePrint(stderr,"numShapeVars = %d, steadyTol = %e\n", numShapeVars, steadyTol); 
+               probDesc->sendNumParam(numShapeVars, 1, sensitivityTol);
+               filePrint(stderr,"numShapeVars = %d, sensitivityTol = %e\n", numShapeVars, sensitivityTol); 
                if( numShapeVars > 0 ) {  // Shape variable sensitivity gets priority to any other opt. variables
                  allSens->dispWRTshape = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[numShapeVars];
                  for(int ishap=0; ishap< numShapeVars; ++ishap) {
@@ -428,8 +429,8 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
              case SensitivityInfo::StressVMWRTthickness:
              
-               probDesc->sendNumParam(numThicknessGroups, 5, steadyTol);
-               filePrint(stderr,"numThicknessGroups = %d, steadyTol = %e\n", numThicknessGroups, steadyTol); 
+               probDesc->sendNumParam(numThicknessGroups, 5, sensitivityTol);
+               filePrint(stderr,"numThicknessGroups = %d, sensitivityTol = %e\n", numThicknessGroups, sensitivityTol); 
                if( numThicknessGroups > 0 ) {
                  allSens->dispWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[numThicknessGroups];
                  for(int iparam=0; iparam< numThicknessGroups; ++iparam) {
@@ -449,12 +450,12 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
              case SensitivityInfo::StressVMWRTmach:
 
-               probDesc->sendNumParam(1, 2, steadyTol);
+               probDesc->sendNumParam(1, 2, sensitivityTol);
                filePrint(stderr,"Sensitivity with respect to Mach number will be computed\n");
                allSens->dispWRTmach = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(domain->numUncon(),1);
                rhsSen = new VecType( probDesc->solVecInfo() );
                rhsSen->zero();
-               aeroForceSen->copy(0.1);
+               aeroForceSen->copy(1e4);
                *d_nSen = 0.0;
                aeroSensitivityQuasistaticLoop( *curSenState, *rhsSen, *dynOps, *workSenVec, dt, tmax, aeroAlg);
                *allSens->dispWRTmach = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> >(d_nSen->data(),domain->numUncon(),1);
@@ -464,12 +465,12 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
              case SensitivityInfo::StressVMWRTalpha:
 
-               probDesc->sendNumParam(1, 3, steadyTol);
+               probDesc->sendNumParam(1, 3, sensitivityTol);
                filePrint(stderr,"Sensitivity with respect to Angle of attack will be computed\n");
                allSens->dispWRTalpha = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(domain->numUncon(),1);
                rhsSen = new VecType( probDesc->solVecInfo() );
                rhsSen->zero();
-               aeroForceSen->copy(0.1);
+               aeroForceSen->copy(1e4);
                *d_nSen = 0.0;
                aeroSensitivityQuasistaticLoop( *curSenState, *rhsSen, *dynOps, *workSenVec, dt, tmax, aeroAlg);
                *allSens->dispWRTalpha = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> >(d_nSen->data(),domain->numUncon(),1);
@@ -479,12 +480,12 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
              case SensitivityInfo::StressVMWRTbeta:
 
-               probDesc->sendNumParam(1, 4, steadyTol);
+               probDesc->sendNumParam(1, 4, sensitivityTol);
                filePrint(stderr,"Sensitivity with respect to Yaw angle will be computed\n");
                allSens->dispWRTbeta = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(domain->numUncon(),1);
                rhsSen = new VecType( probDesc->solVecInfo() );
                rhsSen->zero();
-               aeroForceSen->copy(0.1);
+               aeroForceSen->copy(1e4);
                *d_nSen = 0.0;
                aeroSensitivityQuasistaticLoop( *curSenState, *rhsSen, *dynOps, *workSenVec, dt, tmax, aeroAlg);
                *allSens->dispWRTbeta = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> >(d_nSen->data(),domain->numUncon(),1);
@@ -751,10 +752,10 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
     // ... build force reference norm 
     if (tIndex==initIndex+1) {
 //      if (initExtForceNorm == 0.0)
-        forceSenRef=ext_fSen.norm();
+      forceSenRef=ext_fSen.norm();
 //      else 
 //        forceSenRef = initExtForceNorm;
-      if(verboseFlag) filePrint(stderr, " ... Initial Force: %8.2e        ...\n", forceSenRef);
+      filePrint(stderr, " ... Initial Force Norm: %10.6e     ...\n", forceSenRef);
     }
 
     // ... build internal force 
@@ -768,7 +769,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
       filePrint(stderr, " *** WARNING: Reference external force is zero, relative residual is absolute error norm\n");
     }
 
-    if(relres <= steadyTol && delta == 0 && tIndex != 1) {
+    if(relres <= sensitivityTol && delta == 0 && tIndex != 1) {
       // ... stop quasi-transient simulation if converged
       iSteady = 1;
       probDesc->cmdCom(iSteady);

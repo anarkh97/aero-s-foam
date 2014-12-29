@@ -187,6 +187,7 @@ private:
     void printFullNorm(DistrVector &){};
     void getInitialTime(int &tIndex, double &initialTime);
     double getInitialForceNorm();
+    void getSensitivityStateParam(double &sensitivityTol);
     void getSteadyStateParam(int &steadyFlag, int &steadyMin, int &steadMax,
                              double &steadyTol); 
     void getConstForce(DistrVector &);

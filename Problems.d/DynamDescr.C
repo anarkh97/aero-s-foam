@@ -398,6 +398,12 @@ SingleDomainDynamic::getSteadyStateParam(int &steadyFlag, int &steadyMin,
 }
 
 void
+SingleDomainDynamic::getSensitivityStateParam(double &sensitivityTol)
+{
+ sensitivityTol = domain->solInfo().sensitivityTol;
+}
+
+void
 SingleDomainDynamic::computeStabilityTimeStep(double& dt, DynamMat& dMat)
 {
  // ... Compute Stability Time Step

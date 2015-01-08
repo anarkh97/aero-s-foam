@@ -1917,8 +1917,8 @@ Domain::readInShapeDerivatives(char* shapeDerFileName)
  shapeSenData.numVars = 0;
 
  typedef double (*T3)[3];
- shapeSenData.index = new int[shapeSenData.numVars];
- shapeSenData.sensitivities = new T3[shapeSenData.numVars];
+ shapeSenData.index = new int[100];
+ shapeSenData.sensitivities = new T3[100];
  shapeSenData.nodes         = new int[shapeSenData.numNodes*2]; //NOTE: assumes that global node number does not exceed twice of number of nodes
 
  // Read shape sensitivities
@@ -1950,16 +1950,17 @@ Domain::readInShapeDerivatives(char* shapeDerFileName)
 
      } while (substring != NULL);
 
-     if(numsubstring != 4) {
-       filePrint(stderr, " *** ERROR: Check input for shape sensitivity data (numstrings = %d) in file %s ... must be 4 ... exiting\n", numsubstring, shapeDerFileName);
+     if(numsubstring != 3) {
+       filePrint(stderr, " *** ERROR: Check input for shape sensitivity data (numstrings = %d) in file %s ... must be 3 ... exiting\n", numsubstring, shapeDerFileName);
        exit(-1);
      } 
  
-     int cnode = (int) tmpinput[0] - 1;
-     shapeSenData.nodes[cnode] = iNode;
-     shapeSenData.sensitivities[iSen][iNode][0] = tmpinput[1];
-     shapeSenData.sensitivities[iSen][iNode][1] = tmpinput[2];
-     shapeSenData.sensitivities[iSen][iNode][2] = tmpinput[3];
+//     int cnode = (int) tmpinput[0] - 1;
+//     if(cnode != iNode) filePrint(stderr, " *** ERROR: cnode differs from iNode, cnode = %d, iNode = %d\n", cnode, iNode);
+     shapeSenData.nodes[iNode] = iNode;
+     shapeSenData.sensitivities[iSen][iNode][0] = tmpinput[0];
+     shapeSenData.sensitivities[iSen][iNode][1] = tmpinput[1];
+     shapeSenData.sensitivities[iSen][iNode][2] = tmpinput[2];
    }
    iSen++;
  }

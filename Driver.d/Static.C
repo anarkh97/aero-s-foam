@@ -2756,10 +2756,11 @@ Domain::computeWeightWRTShapeVariableSensitivity(int sindex, AllSensitivities<do
        packedEset[iele]->getWeightNodalCoordinateSensitivity(weightDerivative, nodes, gravityAcceleration);
        for(int ishap=0; ishap<numShapeVars; ++ishap) {
          for(int i=0; i<nnodes; ++i) {
+//           int node2 = nodeTable[(*elemToNode)[iele][i]]-1;
            int node2 = (outFlag) ? nodeTable[(*elemToNode)[iele][i]]-1 : (*elemToNode)[iele][i];
            int inode = shapeSenData.nodes[node2];
            for(int xyz=0; xyz<3; ++xyz) {
-             (*allSens.weightWRTshape)[ishap] += weightDerivative[3*i+xyz] * shapeSenData.sensitivities[ishap][inode][xyz];
+             (*allSens.weightWRTshape)[ishap] += weightDerivative[3*i+xyz] * shapeSenData.sensitivities[ishap][node2][xyz];
            }
          }
        }
@@ -2911,6 +2912,7 @@ Domain::computeStiffnessWRTShapeVariableSensitivity(int sindex, AllSensitivities
        int *constrndNum = c_dsa->getConstrndNum();
        for(int i = 0; i < nnodes; ++i) {
          int node2 = (outFlag) ? nodeTable[(*elemToNode)[iele][i]]-1 : (*elemToNode)[iele][i];
+//         int node2 = nodeTable[(*elemToNode)[iele][i]]-1;
          int inode = shapeSenData.nodes[node2];
          for(int k = 0; k < DofsPerElement; ++k) {
            int dofk = unconstrNum[dofs[k]];
@@ -2920,7 +2922,7 @@ Domain::computeStiffnessWRTShapeVariableSensitivity(int sindex, AllSensitivities
              if(dofs[j] < 0 || dofj < 0) continue;  // Skip undefined/constrained dofs
              for(int xyz = 0; xyz < 3; ++xyz) 
                for(int isen = 0; isen < numShapeVars; ++isen) {
-                 dynamic_cast<GenEiSparseMatrix<double, Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> > *>(allSens.stiffnessWRTshapeSparse[isen])->add(dofk,dofj,dStiffnessdCoord[3*i+xyz][k][j]*shapeSenData.sensitivities[isen][inode][xyz]);
+                 dynamic_cast<GenEiSparseMatrix<double, Eigen::SimplicialLLT<Eigen::SparseMatrix<double>,Eigen::Upper> > *>(allSens.stiffnessWRTshapeSparse[isen])->add(dofk,dofj,dStiffnessdCoord[3*i+xyz][k][j]*shapeSenData.sensitivities[isen][node2][xyz]);
                }
            }
            for(int j = 0; j < DofsPerElement; ++j) {
@@ -2928,7 +2930,7 @@ Domain::computeStiffnessWRTShapeVariableSensitivity(int sindex, AllSensitivities
              if(dofj == -1) continue;
              for(int xyz = 0; xyz < 3; ++xyz)
                for(int isen = 0; isen < numShapeVars; ++isen) {
-                 (*allSens.dKucdshape[isen])(dofk, dofj) += dStiffnessdCoord[3*i+xyz][k][j]*shapeSenData.sensitivities[isen][inode][xyz];
+                 (*allSens.dKucdshape[isen])(dofk, dofj) += dStiffnessdCoord[3*i+xyz][k][j]*shapeSenData.sensitivities[isen][node2][xyz];
                }
            }
          }
@@ -3123,10 +3125,11 @@ Domain::subtractGravityForceSensitivityWRTShapeVariable(int sindex, AllSensitivi
          if(cn >= 0) {
            for(int k = 0; k < NodesPerElement; ++k) {
              int node1 = (outFlag) ? nodeTable[(*elemToNode)[iele][k]]-1 : (*elemToNode)[iele][k];
+//             int node1 = nodeTable[(*elemToNode)[iele][k]]-1;
              int inode = shapeSenData.nodes[node1];
              for(int xyz = 0; xyz < 3; ++xyz) {
                for(int ishap = 0; ishap < numShapeVars; ++ishap) {
-                 (*allSens.linearstaticWRTshape[ishap])(cn,0) -= elementGravityForceSen[3*k+xyz][idof]*shapeSenData.sensitivities[ishap][inode][xyz];
+                 (*allSens.linearstaticWRTshape[ishap])(cn,0) -= elementGravityForceSen[3*k+xyz][idof]*shapeSenData.sensitivities[ishap][node1][xyz];
                }
              }
            } 
@@ -3285,6 +3288,7 @@ Domain::computeStressVMWRTthicknessSensitivity(int sindex,
            // ASSEMBLE ELEMENT'S NODAL STRESS/STRAIN & WEIGHT
            for(int k = 0; k < NodesPerElement; ++k) {
              int node = (outFlag) ? nodeTable[(*elemToNode)[iele][k]]-1 : (*elemToNode)[iele][k];
+//             int node = nodeTable[(*elemToNode)[iele][k]]-1;
              (*allSens.vonMisesWRTthick)(node, iparam) += dStressdThick[k]; 
              (*allSens.stressWeight)(node, 0) += weight[k]; 
            }
@@ -3352,6 +3356,7 @@ Domain::computeStressVMWRTdisplacementSensitivity(int sindex,
          int *unconstrNum = c_dsa->getUnconstrNum();
          for(int k = 0; k < NodesPerElement; ++k) {
            int node = (outFlag) ? nodeTable[(*elemToNode)[iele][k]]-1 : (*elemToNode)[iele][k];
+//           int node = nodeTable[(*elemToNode)[iele][k]]-1;
            int *dofs = (*allDOFs)[iele];
            (*allSens.stressWeight)(node,0) += weight[k];
            for(int j = 0; j < DofsPerElement; ++j) {
@@ -3416,13 +3421,15 @@ Domain::computeStressVMWRTShapeVariableSensitivity(int sindex,
          int *unconstrNum = c_dsa->getUnconstrNum();
          for(int k = 0; k < NodesPerElement; ++k) {
            int node1 = (outFlag) ? nodeTable[(*elemToNode)[iele][k]]-1 : (*elemToNode)[iele][k];
+//           int node1 = nodeTable[(*elemToNode)[iele][k]]-1;
            (*allSens.stressWeight)(node1,0) += weight[k];
            for(int j = 0; j < NodesPerElement; ++j) {
              int node2 = (outFlag) ? nodeTable[(*elemToNode)[iele][j]]-1 : (*elemToNode)[iele][j];
+//             int node2 = nodeTable[(*elemToNode)[iele][j]]-1;
              int inode = shapeSenData.nodes[node2];
              for(int xyz = 0; xyz < 3; ++xyz) {
                for(int iShap = 0; iShap < numShapeVars; ++iShap) {
-                 (*allSens.vonMisesWRTshape)(node1, iShap) += dStressdCoord[3*j+xyz][k]*shapeSenData.sensitivities[iShap][inode][xyz]; 
+                 (*allSens.vonMisesWRTshape)(node1, iShap) += dStressdCoord[3*j+xyz][k]*shapeSenData.sensitivities[iShap][node2][xyz]; 
                }
              }
            }

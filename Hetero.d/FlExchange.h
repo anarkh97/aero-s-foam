@@ -98,7 +98,7 @@ class FlExchanger {
 
      void sendModeFreq(double *modFrq, int numFrq);
      void sendModeShapes(int numFrq, int nNodes, double (**)[6],
-                         State &st, double factor = 1.0);
+                         State &st, double factor = 1.0, int numIDis6 = 0, BCond* iDis6=0);
 
      void sendEmbeddedWetSurface();
      void printreceiving();

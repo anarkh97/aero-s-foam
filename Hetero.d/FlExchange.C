@@ -331,8 +331,8 @@ FlExchanger::sendDisplacements(State &state, int tag, GeomState *geomState)
   }
 
   State newState(state, *tmpDisp);
-  //if(verboseFlag)
-  //  fprintf(stderr, "Disp Norm %e Veloc Norm %e\n", tmpDisp->norm(), state.getVeloc().norm());
+  if(verboseFlag)
+    fprintf(stderr, "Disp Norm %e Veloc Norm %e\n", tmpDisp->norm(), state.getVeloc().norm());
 
   FaceElemSet *feset;
   int         *fnId;
@@ -401,7 +401,7 @@ FlExchanger::sendDisplacements(State &state, int tag, GeomState *geomState)
 
 void
 FlExchanger::sendModeShapes(int numModes, int numN, double(**v)[6],
-                            State &st, double ampFactor)
+                            State &st, double ampFactor, int numIDis6, BCond* iDis6)
 {
   int iMode;
 
@@ -409,43 +409,48 @@ FlExchanger::sendModeShapes(int numModes, int numN, double(**v)[6],
     // Create the state
     Vector &d = st.getDisp();
     d.zero();
-    int iNode, dof;
+    int i, iNode, dof;
+    for(i = 0; i < numIDis6; ++i) {
+      dof = dsa->locate(iDis6[i].nnum, 1 << iDis6[i].dofnum);
+      if(dof >= 0)
+        d[dof] += iDis6[i].val;
+    }  
 
     for(iNode = 0; iNode < numN; ++iNode) {
       dof = dsa->locate(iNode, DofSet::Xdisp);
 
       if(dof >= 0) {
-        d[dof] = v[iMode][iNode][0] * ampFactor;
+        d[dof] += v[iMode][iNode][0] * ampFactor;
       }
 
       dof = dsa->locate(iNode, DofSet::Ydisp);
 
       if(dof >= 0) {
-        d[dof] = v[iMode][iNode][1] * ampFactor;
+        d[dof] += v[iMode][iNode][1] * ampFactor;
       }
 
       dof = dsa->locate(iNode, DofSet::Zdisp);
 
       if(dof >= 0) {
-        d[dof] = v[iMode][iNode][2] * ampFactor;
+        d[dof] += v[iMode][iNode][2] * ampFactor;
       }
 
       dof = dsa->locate(iNode, DofSet::Xrot);
 
       if(dof >= 0) {
-        d[dof] = v[iMode][iNode][3] * ampFactor;
+        d[dof] += v[iMode][iNode][3] * ampFactor;
       }
 
       dof = dsa->locate(iNode, DofSet::Yrot);
 
       if(dof >= 0) {
-        d[dof] = v[iMode][iNode][4] * ampFactor;
+        d[dof] += v[iMode][iNode][4] * ampFactor;
       }
 
       dof = dsa->locate(iNode, DofSet::Zrot);
 
       if(dof >= 0) {
-        d[dof] = v[iMode][iNode][5] * ampFactor;
+        d[dof] += v[iMode][iNode][5] * ampFactor;
       }
     }
 

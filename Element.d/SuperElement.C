@@ -254,16 +254,28 @@ SuperElement::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight,
 {
   dStdThick.zero();
   weight.zero();
+  int subAvgnum = (avgnum == 0) ? 1 : avgnum;
   for(int i = 0; i < nSubElems; ++i) {
     Vector subVonMisesThicknessSensitivity(subElems[i]->numNodes(),0.0); 
     Vector subWeight(subElems[i]->numNodes(),0.0);
     Vector *subElDisp = 0;
     subElDisp = new Vector(elDisp, subElems[i]->numDofs(), subElemDofs[i]);
     subElems[i]->getVonMisesThicknessSensitivity(subVonMisesThicknessSensitivity, subWeight, cs, *subElDisp, strInd, surface, 
-                                                 0, avgnum, ylayer, zlayer); 
+                                                 0, subAvgnum, ylayer, zlayer); 
     weight.add(subWeight, subElemNodes[i]);
     dStdThick.add(subVonMisesThicknessSensitivity, subElemNodes[i]);
     delete subElDisp;
+  }
+
+  // Average sensitivity value at each node by the number of sub-elements attached to the node
+  for(int i = 0; i < numNodes(); ++i) {
+    if(weight[i] == 0) {
+      dStdThick[i] = 0;
+    }
+    else {
+      dStdThick[i] /= weight[i];
+      weight[i] = 1;
+    }
   }
 }
 
@@ -273,13 +285,14 @@ SuperElement::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
 {
   dStdDisp.zero();
   weight.zero();
+  int subAvgnum = (avgnum == 0) ? 1 : avgnum;
   for(int i = 0; i < nSubElems; ++i) {
     GenFullM<double> subVonMisesDisplacementSensitivity(subElems[i]->numDofs(),subElems[i]->numNodes(),0.0);        
     Vector subWeight(subElems[i]->numNodes(),0.0);
     Vector *subElDisp = 0;
     subElDisp = new Vector(elDisp, subElems[i]->numDofs(), subElemDofs[i]);
     subElems[i]->getVonMisesDisplacementSensitivity(subVonMisesDisplacementSensitivity, subWeight, cs, *subElDisp, strInd, surface, 
-                                                    0, avgnum, ylayer, zlayer);
+                                                    0, subAvgnum, ylayer, zlayer);
     weight.add(subWeight, subElemNodes[i]);
     for(int j = 0; j < subElems[i]->numDofs(); ++j) {
       for(int k = 0; k < subElems[i]->numNodes(); ++k) {
@@ -288,6 +301,17 @@ SuperElement::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
     }
 
     delete subElDisp;
+  }
+
+  // Average sensitivity values at each node by the number of sub-elements attached to the node
+  for(int i = 0; i < numNodes(); ++i) {
+    if(weight[i] == 0) {
+      for(int j = 0; j < dStdDisp.numCol(); ++j) dStdDisp[i][j] = 0;
+    }
+    else {
+      for(int j = 0; j < dStdDisp.numCol(); ++j) dStdDisp[i][j] /= weight[i];
+      weight[i] = 1;
+    }
   }
 }
 
@@ -310,13 +334,14 @@ SuperElement::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vec
 {
   dStdx.zero();
   weight.zero();
+  int subAvgnum = (avgnum == 0) ? 1 : avgnum;
   for(int i = 0; i < nSubElems; ++i) {
     GenFullM<double> subVonMisesCoordinateSensitivity(3*subElems[i]->numNodes(),subElems[i]->numNodes(),0.0);        
     Vector subWeight(subElems[i]->numNodes(),0.0);
     Vector *subElDisp = 0;
     subElDisp = new Vector(elDisp, subElems[i]->numDofs(), subElemDofs[i]);
     subElems[i]->getVonMisesNodalCoordinateSensitivity(subVonMisesCoordinateSensitivity, subWeight, cs, *subElDisp, strInd, surface, 
-                                                       0, avgnum, ylayer, zlayer);
+                                                       0, subAvgnum, ylayer, zlayer);
     weight.add(subWeight, subElemNodes[i]);
     for(int j = 0; j < subElems[i]->numNodes(); ++j) 
       for(int k = 0; k < subElems[i]->numNodes(); ++k) 
@@ -324,6 +349,17 @@ SuperElement::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vec
           dStdx[3*subElemNodes[i][j]+xyz][subElemNodes[i][k]] += subVonMisesCoordinateSensitivity[3*j+xyz][k];
     
     delete subElDisp;
+  }
+
+  // Average sensitivity values at each node by the number of sub-elements attached to the node
+  for(int i = 0; i < numNodes(); ++i) {
+    if(weight[i] == 0) {
+      for(int j = 0; j < dStdx.numCol(); ++j) dStdx[i][j] = 0;
+    }
+    else {
+      for(int j = 0; j < dStdx.numCol(); ++j) dStdx[i][j] /= weight[i];
+      weight[i] = 1;
+    }
   }
 }
 
@@ -430,6 +466,7 @@ SuperElement::getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
 {
   stress.zero();
   weight.zero();
+  int subAvgnum = (avgnum == 0) ? 1 : avgnum;
   for(int i = 0; i < nSubElems; ++i) {
     if(subElems[i]->isPhantomElement()) continue;
     Vector subElementStress(subElems[i]->numNodes());
@@ -450,7 +487,7 @@ SuperElement::getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
     }
 
     subElems[i]->getVonMises(subElementStress, subElementWeight, cs, *subElementDisp, strInd,
-                             surface, subNodeTemp, ylayer, zlayer, avgnum);
+                             surface, subNodeTemp, ylayer, zlayer, subAvgnum);
 
     stress.add(subElementStress, subElemNodes[i]);
     weight.add(subElementWeight, subElemNodes[i]);
@@ -459,6 +496,16 @@ SuperElement::getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
     delete subElementDisp;
   }
 
+  // Average stress/strain value at each node by the number of sub-elements attached to the node
+  for(int i = 0; i < numNodes(); ++i) {
+    if(weight[i] == 0) {
+      stress[i] = 0;
+    }
+    else {
+      stress[i] /= weight[i];
+      weight[i] = 1;
+    }
+  }
 }
 
 void 
@@ -494,6 +541,17 @@ SuperElement::getAllStress(FullM &stress, Vector &weight, CoordSet &cs,
  
     if(subNodeTemp) delete [] subNodeTemp;
     delete subElementDisp;
+  }
+
+  // Average stress/strain values at each node by the number of sub-elements attached to the node
+  for(int i = 0; i < numNodes(); ++i) {
+    if(weight[i] == 0) {
+      for(int j = 0; j < stress.numCol(); ++j) stress[i][j] = 0;
+    }
+    else {
+      for(int j = 0; j < stress.numCol(); ++j) stress[i][j] /= weight[i];
+      weight[i] = 1;
+    }
   }
 }
 

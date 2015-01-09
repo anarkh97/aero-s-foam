@@ -28,13 +28,16 @@ struct long_int {
 
 bool operator== (const long_int& lhs, const long_int& rhs);
 
-Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1>
-pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm, const long int n,
-       long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, double &dtime);
+// Parallel implementation of Non-negative Conjugate Gradient Pursuit using either MPI, OpenMP or both.
+// This is a non-negative constrained variant of Conjugate Gradient Pursuit, and generates identical iterates to
+// Lawson & Hanson's NNLS (non-negative least squares) algorithm.
+// References:
+// 1. Blumensath, Thomas, and Michael E. Davies. "Gradient pursuits." Signal Processing, IEEE Transactions on 56.6 (2008): 2370-2382.
+// 2. Lawson, C. L., & Hanson, R. J. (1974). Solving least squares problems (Vol. 161). Englewood Cliffs, NJ: Prentice-hall.
 
 Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1>
 pomp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm, const long int n,
-       long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool project, double &dtime)
+       long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool positive, double &dtime)
 {
   // each A[i] is the columnwise block of the global A matrix assigned to a subdomain on this mpi process
   // each x[i] of the return value x is the corresponding row-wise block of the global solution vector
@@ -104,7 +107,6 @@ pomp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const E
       std::cout.unsetf(std::ios::uppercase);
     }
 
-    if(rnorm <= abstol || k+nld_indices.size() == maxvec) break;
     if(iter >= maxit) { info = 3; break; }
 
 #if defined(_OPENMP)
@@ -189,31 +191,161 @@ pomp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const E
     }
     k++;
     iter++;
+    if(rnorm <= abstol && positive) {
+      while(true) {
+        iter++;
 #if defined(_OPENMP)
   #pragma omp parallel for schedule(static,1)
+#endif
+        for(int i=0; i<nsub; ++i) {
+          ymin[i] = (l[i] > 0) ? y[i].head(l[i]).minCoeff() : std::numeric_limits<double>::max();
+        }
+        double minCoeff = (nsub > 0) ? ymin.minCoeff() : std::numeric_limits<double>::max();
+#ifdef USE_MPI
+        MPI_Allreduce(MPI_IN_PLACE, &minCoeff, 1, MPI_DOUBLE, MPI_MIN, mpicomm);
+#endif
+        if(minCoeff < 0) {
+          dtime -= getTime();
+          downIt++;
+          if(myrank == 0 && verbose) {
+          std::cout << "Iteration = " << std::setw(9) << iter << "    "
+                    << "Downdate = " << std::setw(9) << downIt << "    "
+                    << "Active set size = " << std::setw(9) << k << "    "
+                    << "Residual norm = " << std::setw(13) << std::scientific << std::uppercase << rnorm << "    "
+                    << "Target = " << std::setw(13) << std::scientific << std::uppercase << abstol << std::endl;
+          std::cout.unsetf(std::ios::scientific);
+          std::cout.unsetf(std::ios::uppercase);
+          }
+          // compute maximum feasible step length in the direction (y-x_) and corresponding index in active set jk[i] for each subdomain
+#if defined(_OPENMP)
+  #pragma omp parallel for schedule(static,1)
+#endif
+          for(int i=0; i<nsub; ++i) {
+            for(long int j=0; j<l[i]; ++j) t[i][j] = (y[i][j] >= 0) ? std::numeric_limits<double>::max() : -x_[i][j]/(y[i][j]-x_[i][j]);
+            alpha[i] = (l[i] > 0) ? t[i].head(l[i]).minCoeff(&jk[i]) : std::numeric_limits<double>::max();
+          }
+
+          int ik; // subdomain which has the maximum feasible step length.
+          s.val = (nsub > 0) ? alpha.minCoeff(&ik) : std::numeric_limits<double>::max();
+          s.rank = myrank;
+#ifdef USE_MPI
+          MPI_Allreduce(MPI_IN_PLACE, &s, 1, MPI_DOUBLE_INT, MPI_MINLOC, mpicomm);
+#endif
+          if(s.rank == myrank) {
+            p.index = indices[ik][jk[ik]];
+            p.sub = ik;
+            indices[ik].erase(indices[ik].begin() + jk[ik]); // remove index jk[ik] from the local active set of ik-th subdomain
+            for(int j=jk[ik]; j<l[ik]-1; ++j) { x_[ik][j] = x_[ik][j+1]; y[ik][j] = y[ik][j+1]; } // erase jk[ik]-th element from x_[ik] and y[ik]
+            x_[ik][l[ik]-1] = 0; y[ik][l[ik]-1] = 0;
+            l[ik]--;
+            //std::cout << "removing index " << p.index << " from subdomain " << ik << " on process with rank " << myrank << std::endl;
+          }
+
+#if defined(_OPENMP)
+  #pragma omp parallel for schedule(static,1)
+#endif
+          // update x_ (note: this is used only when there are two or more consecutive downdate iterations)
+          for(int i=0; i<nsub; ++i) {
+            x_[i].head(l[i]) += s.val*(y[i].head(l[i])-x_[i].head(l[i]));
+          }
+
+#ifdef USE_MPI
+          MPI_Bcast(&p, 1, MPI_LONG_INT, s.rank, mpicomm);
+#endif
+          // remove index from the global active set
+          std::list<std::pair<int,long_int> >::iterator pos = std::find(gindices.begin(), gindices.end(), std::pair<int,long_int>(s.rank,p));
+          std::list<std::pair<int,long_int> >::iterator fol = gindices.erase(pos);
+
+          // Note: it is necessary to re-G-orthogonalize the basis D now, project the solution y onto the new basis and compute the corresponding residual r.
+          // This is done here by starting from the column of D pointed to by fol (because the ones before this are already G-orthogonal), and then
+          // following what is the essentially same procedure that is used above to construct the original basis, with a few optimizations when possible.
+          k = std::distance(gindices.begin(), fol);
+#if defined(_OPENMP)
+  #pragma omp parallel for schedule(static,1)
+#endif
+          for(int i=0; i<nsub; ++i) {
+            y[i].head(l[i]).setZero();
+            l[i] = 0; for(std::list<std::pair<int,long_int> >::iterator it = gindices.begin(); it != fol; ++it) { if(it->first == myrank && it->second.sub == i) l[i]++; }
+            D[i].bottomRightCorner(maxlocvec[i]-l[i],maxvec-k).setZero();
+            y[i].head(l[i]) = D[i].topLeftCorner(l[i],k)*a.head(k);
+          }
+          r = b - BD.leftCols(k)*a.head(k);
+#if defined(_OPENMP)
+  #pragma omp parallel for schedule(static,1)
+#endif
+          for(int i=0; i<nsub; ++i) {
+            g_[i].head(l[i]) = B[i].leftCols(l[i]).transpose()*r;
+          }
+          for(std::list<std::pair<int,long_int> >::iterator it = fol; it != gindices.end(); ++it) {
+            if(it->first == myrank) {
+              int i = it->second.sub;
+              B[i].col(l[i]) = S[i][it->second.index]*A[i].col(it->second.index);
+              g_[i][l[i]] = B[i].col(l[i]).transpose()*r;
+              // update GD due to extra column added to B (note: B.col(i)*D.row(i).head(k) = 0, so BD does not need to be updated)
+              GD[i].row(l[i]).head(k) = B[i].col(l[i]).transpose()*BD.leftCols(k);
+              l[i]++;
+            }
+
+#if defined(_OPENMP)
+  #pragma omp parallel for schedule(static,1)
+#endif
+            for(int i=0; i<nsub; ++i) {
+              z_loc.col(i).head(k) = GD[i].topLeftCorner(l[i],k).transpose()*g_[i].head(l[i]);
+            }
+            z.head(k) = z_loc.topRows(k).rowwise().sum();
+#ifdef USE_MPI
+            MPI_Allreduce(MPI_IN_PLACE, z.data(), k, MPI_DOUBLE, MPI_SUM, mpicomm);
+#endif
+
+            z.head(k) = (DtGDinv.head(k).asDiagonal()*z.head(k)).eval();
+#if defined(_OPENMP)
+  #pragma omp parallel for schedule(static,1)
+#endif
+            for(int i=0; i<nsub; ++i) {
+              Block<MatrixXd,Dynamic,1,true> d = D[i].col(k);
+              d.head(l[i]) = g_[i].head(l[i]) - D[i].topLeftCorner(l[i],k)*z.head(k);
+              c_loc.col(i) = B[i].leftCols(l[i])*d.head(l[i]);
+            }
+            Block<MatrixXd,Dynamic,1,true> c = BD.col(k) = c_loc.rowwise().sum();
+#ifdef USE_MPI
+            MPI_Allreduce(MPI_IN_PLACE, c.data(), m, MPI_DOUBLE, MPI_SUM, mpicomm);
+#endif
+
+            DtGDinv[k] = 1/c.squaredNorm();
+            a[k] = r.dot(c)*DtGDinv[k];
+            r -= a[k]*c;
+#if defined(_OPENMP)
+  #pragma omp parallel for schedule(static,1)
+#endif
+            for(int i=0; i<nsub; ++i) {
+              Block<MatrixXd,Dynamic,1,true> d = D[i].col(k);
+              y[i].head(l[i]) += a[k]*d.head(l[i]);
+              GD[i].col(k).head(l[i]) = B[i].leftCols(l[i]).transpose()*c;
+              g_[i].head(l[i]) -= a[k]*GD[i].col(k).head(l[i]);
+            }
+            k++;
+          }
+          dtime += getTime();
+        }
+        else {
+          rnorm = r.norm();
+          break;
+        }
+      }
+    }
+
+#if defined(_OPENMP)
+#pragma omp parallel for schedule(static,1)
 #endif
     for(int i=0; i<nsub; ++i) {
       x_[i].head(l[i]) = y[i].head(l[i]);
     }
 
+    if(rnorm <= abstol || k+nld_indices.size() == maxvec) break;
     rnorm = r.norm();
   }
-  
-  if(project){
-    if(myrank == 0 && verbose) {
-      std::cout << "*** PROJECTING ON TO SELECTED BASIS ***" << std::endl;
-    }
-    std::vector<Eigen::Map<Eigen::MatrixXd> > Basis(nsub, Eigen::Map<Eigen::MatrixXd>(NULL,0,0));
-#if defined(_OPENMP)
-  #pragma omp parallel for schedule(static,1)
-#endif
-    for(int i=0; i<nsub; ++i) {
-      new (&Basis[i]) Eigen::Map<Eigen::MatrixXd>(B[i].data(),B[i].rows(),l[i]);
-    }
 
-    x_ = pnncgp(Basis, b, rnorm, n, info, maxsze, maxite, reltol, verbose, scaling, dtime);
-  }
-
+  dtime /= 1000.0;
   if(myrank == 0 && verbose) std::cout.flush();
 
   Array<VectorXd,Dynamic,1> x(nsub);

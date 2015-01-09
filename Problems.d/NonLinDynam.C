@@ -149,7 +149,7 @@ NonLinDynamic::readRestartFile(Vector &d_n, Vector &v_n, Vector &a_n,
       }
     }
 
-    updateStates(&geomState, geomState);
+    updateStates(&geomState, geomState, domain->solInfo().initialTime);
   }
 }
 
@@ -304,9 +304,9 @@ NonLinDynamic::computeTimeInfo()
 }
 
 void
-NonLinDynamic::updateStates(GeomState *refState, GeomState& geomState)
+NonLinDynamic::updateStates(GeomState *refState, GeomState& geomState, double time)
 {
-  domain->updateStates(refState, geomState, allCorot);
+  domain->updateStates(refState, geomState, allCorot, time);
 }
 
 double

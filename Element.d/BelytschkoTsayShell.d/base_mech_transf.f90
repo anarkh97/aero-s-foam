@@ -1,8 +1,8 @@
 ! ==================================
 ! coordinate transformation
 ! ==================================
-!      type                  name                              arguement
-!      ----                  ----                              ---------
+!      type                  name                              argument
+!      ----                  ----                              --------
 ! 1.  subroutine             gettransmat                (ndime,ntrndof,locbvec, transmat)
 ! 2.  subroutine             loc2glbtens                (ndime,ntrndof,locbvec,loctens, glbtens)
 ! 3.  subroutine             glb2loctens                (ndime,ntrndof,locbvec,glbtens, loctens)

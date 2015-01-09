@@ -226,11 +226,23 @@ SuperCorotator::getNLVonMises(Vector &stress, Vector &weight, GeomState &geomSta
     subStress.zero();
     Vector subWeight(nnodes);
     subWeight.zero();
+    int subAvgnum = (avgnum == 0) ? 1 : avgnum;
     subElemCorotators[i]->getNLVonMises(subStress, subWeight, geomState, refState, cs, strInd, surface,
                                         ylayer, zlayer, avgnum, measure);
     int *subElemNodes = superElem->getSubElemNodes(i);
     stress.add(subStress, subElemNodes);
     weight.add(subWeight, subElemNodes);
+  }
+
+  // Average stress/strain value at each node by the number of sub-elements attached to the node
+  for(i = 0; i < superElem->numNodes(); ++i) {
+    if(weight[i] == 0) {
+      stress[i] = 0;
+    }
+    else {
+      stress[i] /= weight[i];
+      weight[i] = 1;
+    }
   }
 }
 
@@ -253,6 +265,17 @@ SuperCorotator::getNLAllStress(FullM &stress, Vector &weight, GeomState &geomSta
     int *subElemNodes = superElem->getSubElemNodes(i);
     stress.addrows(subStress, subElemNodes);
     weight.add(subWeight, subElemNodes);
+  }
+
+  // Average stress/strain values at each node by the number of sub-elements attached to the node
+  for(i = 0; i < superElem->numNodes(); ++i) {
+    if(weight[i] == 0) {
+      for(int j = 0; j < stress.numCol(); ++j) stress[i][j] = 0;
+    }
+    else {
+      for(int j = 0; j < stress.numCol(); ++j) stress[i][j] /= weight[i];
+      weight[i] = 1;
+    }
   }
 }
 

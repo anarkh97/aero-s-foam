@@ -19,11 +19,11 @@ pgpfp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const 
 
 Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1>
 pomp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm, const long int n,
-       long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool project, double &dtime);
+       long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool positive, double &dtime);
 
 Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1>
 splh(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm, const long int n,
-       long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool project, double &dtime);
+       long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool positive, double &dtime);
 
 #endif
 
@@ -117,7 +117,7 @@ ParallelSparseNonNegativeLeastSquaresSolver::solve() {
       for(int i=0; i<nsub_; ++i) {
         new (&A[i]) Eigen::Map<Eigen::MatrixXd>(&*sd_[i]->matrixBuffer(),sd_[i]->equationCount(),sd_[i]->unknownCount());
       }
-      x = pomp(A, b, errorMagnitude_, unknownCount_, info, maxSizeRatio_, maxIterRatio_, relativeTolerance_, verboseFlag_, scalingFlag_, projectFlag_, dtime);
+      x = pomp(A, b, errorMagnitude_, unknownCount_, info, maxSizeRatio_, maxIterRatio_, relativeTolerance_, verboseFlag_, scalingFlag_, positivity_, dtime);
       for(int i=0; i<nsub_; ++i) {
         Eigen::Map<Eigen::VectorXd>(const_cast<double*>(sd_[i]->solutionBuffer()),sd_[i]->unknownCount()) = x[i];
         A[i].~Map<Eigen::MatrixXd>();

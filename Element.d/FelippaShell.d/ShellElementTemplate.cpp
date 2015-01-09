@@ -1346,7 +1346,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 // .....COMPUTE THE SCALAR DAMAGE FOR ELASTO-PLASTIC MATERIALS
             if(ctyp == 4) {
               nmat->GetLocalConstitutiveResponse(Upsilon.data(), sigma.data(), z, eframe.data(), i, temp);
-              stress(0, i) = nmat->GetLocalEquivalentPlasticStrain(i, z);
+              stress(0, i) = nmat->GetLocalDamage(i, z);
             }
             else {
               stress(0, i) = 0;

@@ -43,7 +43,7 @@ mp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::Vec
 
 Eigen::VectorXd
 omp(const Eigen::Ref<const Eigen::MatrixXd> &A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm,
-      long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool project, double &dtime);
+      long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool positive, double &dtime);
 #endif
 
 namespace Rom {
@@ -165,7 +165,7 @@ SparseNonNegativeLeastSquaresSolver<MatrixBufferType,SizeType>::solve() {
       Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic,Eigen::ColMajor> > A(matrixBuffer_.data(),equationCount_,unknownCount_);
       Eigen::Map<Eigen::VectorXd> x(solutionBuffer_.array(),unknownCount_);
       Eigen::Map<Eigen::VectorXd> b(rhsBuffer_.array(),equationCount_);
-      x = omp(A, b, errorMagnitude_, info, maxSizeRatio_, maxIterRatio_, relativeTolerance_, verboseFlag_, scalingFlag_, projectFlag_, dtime);
+      x = omp(A, b, errorMagnitude_, info, maxSizeRatio_, maxIterRatio_, relativeTolerance_, verboseFlag_, scalingFlag_, positivity_, dtime);
 #else
       std::cerr << "USE_EIGEN3 is not defined here in SparseNonNegativeLeastSquaresSolver::solve\n";
       exit(-1);

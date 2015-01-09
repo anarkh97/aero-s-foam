@@ -85,7 +85,7 @@ Domain::getInternalForce(GeomState &geomState, Vector& elementForce,
     // Get updated tangent stiffness matrix and element internal force
     if(corotators[iele] && !solInfo().getNLInfo().linearelastic) {
       getElemInternalForce(geomState, pseudoTime, refState, *corotators[iele], elementForce.data(), kel[iele]);
-      handleElementDeletion(iele, geomState, pseudoTime, *corotators[iele], elementForce.data());
+      if(sinfo.newmarkBeta == 0) handleElementDeletion(iele, geomState, pseudoTime, *corotators[iele], elementForce.data());
     }
     // Or, get linear elastic element internal force
     else {
@@ -871,7 +871,7 @@ Domain::handleElementDeletion(int iele, GeomState &geomState, double time,
       packedEset[iele]->setProp((StructProp*)NULL);
       packedEset[iele]->setPressure((PressureBCond*)NULL);
       elemAdj[iele].surfp.clear();
-      for(int i=0; i<packedEset[iele]->numDofs(); ++i) elemForce[i] = 0;
+      if(elemForce) for(int i=0; i<packedEset[iele]->numDofs(); ++i) elemForce[i] = 0;
     }
   }
 }

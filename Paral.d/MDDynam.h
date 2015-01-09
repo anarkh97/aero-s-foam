@@ -248,7 +248,7 @@ private:
     int getAeroheatFlag();
 
     // Non-linear quasi-static
-    void solveAndUpdate(DistrVector &force, DistrVector &dinc, DistrVector &d, double relaxFac);
+    void solveAndUpdate(DistrVector &force, DistrVector &dinc, DistrVector &d, double relaxFac, double time);
    
   private:
     void projector_prep(MultiDomainRbm<double> *R, GenSubDOp<double> *M);
@@ -263,7 +263,7 @@ private:
     void subExplicitUpdate(int isub, DistrVector &d, DistrGeomState *geomState);
     void subGetGravityForce(int isub, DistrVector &);
     void subGetUnamplifiedExtForce(int isub, DistrVector &, int);
-    void subUpdateStates(int isub, DistrGeomState *refState, DistrGeomState *geomState);
+    void subUpdateStates(int isub, DistrGeomState *refState, DistrGeomState *geomState, double time);
 };
 
 #endif

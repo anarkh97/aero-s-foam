@@ -423,9 +423,9 @@ class Domain : public HData {
      void getPrincipalStress(GeomState &geomState, Corotator **allCorot,
                              int fileNumber, int stressIndex, double time,
                              GeomState *refState = NULL);
-     void updateStates(GeomState *refState, GeomState& geomState, Corotator **allCorot);
+     void updateStates(GeomState *refState, GeomState& geomState, Corotator **allCorot, double time);
      void updateWeightedElemStatesOnly(const std::map<int, double> &weights, GeomState *refState,
-                                       GeomState &geomState, Corotator **corotators);
+                                       GeomState &geomState, Corotator **corotators, double time);
      void getElemStiffAndForce(const GeomState &geomState, double time, 
                                const GeomState *refState, const Corotator &elemCorot,
                                double *elemForce, FullSquareMatrix &elemStiff);
@@ -541,7 +541,7 @@ class Domain : public HData {
      double getWext() { return Wext; }
      double getWaero() { return Waero; }
      double getWdmp() { return Wdmp; }
-     void handleElementDeletion(int iele, GeomState &geomState, double time, Corotator &elemCorot, double *elemForce);
+     void handleElementDeletion(int iele, GeomState &geomState, double time, Corotator &elemCorot, double *elemForce = 0);
 
      void getGeometricStiffness(GeomState &u, Vector &elementInternalForce,
         			Corotator **allCorot, FullSquareMatrix *&kel);

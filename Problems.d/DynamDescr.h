@@ -212,7 +212,7 @@ class SingleDomainDynamic
     int getAeroheatFlag();
 
     // Non-linear quasi-static
-    void solveAndUpdate(Vector &force, Vector &dinc, Vector &d, double relaxFac);
+    void solveAndUpdate(Vector &force, Vector &dinc, Vector &d, double relaxFac, double time);
 };
 
 #endif

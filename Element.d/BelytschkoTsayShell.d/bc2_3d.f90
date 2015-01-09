@@ -1,16 +1,16 @@
 ! ==========================
 ! apply boundary condition2 : element surface
 ! ==========================
-!      type                  name                              arguement
-!      ----                  ----                              ---------
-! 1.  subroutine          elefbc3dbrkshl2      (opttrc,optele,ecord3d,edisp3d,trac, efbc)
+!      type                  name                              argument
+!      ----                  ----                              --------
+! 1.  subroutine          elefbc3dbrkshl2      (opttrc,ecord3d,edisp3d,trac, efbc)
 ! 2.  subroutine          ele3dsurf2d4nod0     (ecord3d,edisp3d, area,nvec)
 !
 ! =========================================================================================================
 
 
 
-subroutine elefbc3dbrkshl2(opttrc,optele,ecord3d,edisp3d,trac, efbc)
+subroutine elefbc3dbrkshl2(opttrc,ecord3d,edisp3d,trac, efbc)
   !=======================================================================
   !  elefbc3dbrkshl2 = compute 3d bt shell or birck element force due to
   !                    element surface stress or pressure
@@ -33,7 +33,7 @@ subroutine elefbc3dbrkshl2(opttrc,optele,ecord3d,edisp3d,trac, efbc)
   ! ====================================
   ! subroutine argument
   ! ===================
-  integer, intent(in) :: opttrc, optele
+  integer, intent(in) :: opttrc
   real(8), dimension(3,4), intent(in) :: ecord3d
   real(8), dimension(3,4), intent(in) :: edisp3d
   real(8), dimension(3,1), intent(in) :: trac

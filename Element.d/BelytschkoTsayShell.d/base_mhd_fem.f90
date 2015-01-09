@@ -1,8 +1,8 @@
 ! ==================================
 ! finite element method 
 ! ==================================
-!      type                  name                              arguement
-!      ----                  ----                              ---------
+!      type                  name                              argument
+!      ----                  ----                              --------
 ! 1.  subroutine          intrplfe2d                     (optele,nnode,psi,eta,nodval, intplval)
 ! 2.  subroutine          intrplpt                       (optele,ndime,nnode,enodval,psi,eta, pt)
 ! 3.  subroutine          getparcord2d                   (optele,nnode,nodloc, parnod)

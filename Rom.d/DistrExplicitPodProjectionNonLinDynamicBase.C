@@ -279,6 +279,8 @@ MultiDomDynPodPostProcessor::dynamOutput(int tIndex, double t, MDDynamMat &dynOp
                                          DistrVector *distAeroF, SysState<DistrVector>& distState) {
 
   //all MPI processes have a full copy of reduced coordinates, only master processes needs to print
+  if( structCom && distState.getDisp().size() == 0 ) return;
+
   int p = std::numeric_limits<double>::digits10+1;
 
   bool DispProjected = false, AccProjected = false, VelProjected = false;

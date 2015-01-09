@@ -49,7 +49,7 @@ class MDNLStatic
     DistrInfo& sysVecInfo();
     DistrInfo& elemVecInfo();
     int checkConvergence(int iter, double normDv, double normRes);
-    void updateStates(DistrGeomState *refState, DistrGeomState& geomState);
+    void updateStates(DistrGeomState *refState, DistrGeomState& geomState, double lambda);
     int  getMaxit();
     double getScaleFactor();
     double getDeltaLambda0();
@@ -104,7 +104,7 @@ class MDNLStatic
     void addConstraintForces(int isub, DistrVector &vec);
     void getConstraintMultipliers(int isub);
     void updateConstraintTerms(DistrGeomState* geomState, double _lambda);
-    void subUpdateStates(int isub, DistrGeomState *refState, DistrGeomState *geomState);
+    void subUpdateStates(int isub, DistrGeomState *refState, DistrGeomState *geomState, double time);
     void subInitializeMultipliers(int isub, DistrGeomState& geomState);
     void subInitializeParameters(int isub);
     void subUpdateMultipliers(int isub, DistrGeomState& geomState);

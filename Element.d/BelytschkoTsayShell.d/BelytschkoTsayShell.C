@@ -13,6 +13,7 @@
 #include <Math.d/FullSquareMatrix.h>
 #include <Math.d/Vector.h>
 #include <Utils.d/Conwep.d/BlastLoading.h>
+#include <Utils.d/SolverInfo.h>
 #include <iostream>
 #include <limits>
 
@@ -24,6 +25,7 @@ using namespace Eigen;
 using std::vector;
 #endif
 
+extern SolverInfo &solInfo;
 extern int verboseFlag;
 extern "C" {
   void _FORTRAN(getgqsize)(int&, int&, int*, int*, int*);
@@ -49,6 +51,7 @@ extern "C" {
                               double*, double*, double&, double*);
   void _FORTRAN(gqfhgcbt)(double*, double&, double*, double*);
   void _FORTRAN(elefbc3dbrkshl2opt)(double&, double*, double&, double*);
+  void _FORTRAN(elefbc3dbrkshl2)(int&, double*, double*, double*, double*);
 }
 
 double BelytschkoTsayShell::t1 = 0;
@@ -66,7 +69,7 @@ BelytschkoTsayShell::BelytschkoTsayShell(int* nodenums)
   opttrc = -1; // no pressure or traction
   optdmp = 0; // no damping
   optcor[0] = 1; // warping correction on
-  if(nodenums[2] == nodenums[3]) { // FIXME
+  if(nodenums[2] == nodenums[3]) { // i.e. degenerate quad
     optcor[1] = 0; // shear correction off
     optprj = 0;    // drilling projection off
   }
@@ -114,7 +117,6 @@ BelytschkoTsayShell::BelytschkoTsayShell(int* nodenums)
   // ---------------------------------------------------------------
   // allocate and initialize history variables
   // ---------------------
-  // TODO depends on optctv, see inihistvar3d
   evar1 = new double[5*mgqpt[0]];
   evar2 = new double[5*mgqpt[0]];
   evoit1 = new double[6*mgqpt[0]];
@@ -246,7 +248,8 @@ BelytschkoTsayShell::getPressure()
   // computePressureForce should be called. Since the pressure for this element
   // is computed along with the internal force inside elefintbt1, it is
   // not necessary to call that function, so we return a null pointer here
-  return NULL;
+  // unless the element is a phantom
+  return (prop) ? NULL : pbc;
 }
 
 Element *
@@ -352,14 +355,6 @@ BelytschkoTsayShell::getVonMises(Vector& stress, Vector& weight, CoordSet &cs,
   std::cerr << "USE_EIGEN3 is not defined here in BelytschkoTsayShell::getVonMises\n";
   exit(-1);
 #endif
-}
-
-void
-BelytschkoTsayShell::getAllStress(FullM& stress, Vector& weight, CoordSet &cs,
-                                  Vector& elDisp, int strInd, int surface,
-                                  double *ndTemps)
-{
-  std::cerr << "BelytschkoTsayShell::getAllStress not implemented\n";
 }
 
 double
@@ -499,9 +494,15 @@ BelytschkoTsayShell::massMatrix(CoordSet &cs, double *mel, int cmflg)
 FullSquareMatrix
 BelytschkoTsayShell::stiffness(CoordSet &cs, double *d, int flg)
 {
-  //if(prop) std::cerr << "BelytschkoTsayShell::stiffness not implemented. This element only works for explicit dynamics\n";
   FullSquareMatrix ret(nnode*nndof, d);
   ret.zero();
+
+  if(prop && solInfo.newmarkBeta != 0) {
+    std::cerr << " *** ERROR: Stiffness matrix is not available for Belytschko-Tsay shell (type 16).\n"
+              << "            Use of this element is only supported for nonlinear explicit dynamics.\n";
+    exit(-1);
+  }
+
   return ret;
 }
 
@@ -553,6 +554,19 @@ BelytschkoTsayShell::getCorotator(CoordSet &, double *, int, int)
 
 void
 BelytschkoTsayShell::getStiffAndForce(GeomState& geomState, CoordSet& cs, FullSquareMatrix& k, double* efint, double delt, double time)
+{
+  if(solInfo.newmarkBeta == 0) {
+    getInternalForce(geomState, cs, k, efint, delt, time);
+  }
+  else if(prop) {
+    std::cerr << " *** ERROR: Stiffness matrix is not available for Belytschko-Tsay shell (type 16).\n"
+              << "            Use of this element is only supported for nonlinear explicit dynamics.\n";
+    exit(-1);
+  }
+}
+
+void
+BelytschkoTsayShell::getInternalForce(GeomState& geomState, CoordSet& cs, FullSquareMatrix& k, double* efint, double delt, double time)
 {
   //=======================================================================
   //  compute internal force vector including hourglass control, pressure
@@ -698,32 +712,46 @@ BelytschkoTsayShell::getTopNumber()
 
 void
 BelytschkoTsayShell::computePressureForce(CoordSet& cs, Vector& elPressureForce,
-                                          GeomState *geomState, int cflg, double)
+                                          GeomState *geomState, int cflg, double time)
 {
-/* now the pressure force is added in the same routine as the internal force
-  int opttrc = 0; // 0 : pressure
-                  // 1 : traction
-  double* ecord = (double*) dbg_alloca(sizeof(double)*nnode*ndime);
-  double* edisp = (double*) dbg_alloca(sizeof(double)*nnode*ndime); // translations only
-  int iloc;
-  for(int i = 0; i < nnode; ++i) {
-    iloc = i*ndime;
-    ecord[iloc+0] = cs[nn[i]]->x;
-    ecord[iloc+1] = cs[nn[i]]->y;
-    ecord[iloc+2] = cs[nn[i]]->z;
-    edisp[iloc+0] = (geomState) ? (*geomState)[nn[i]].x - cs[nn[i]]->x : 0;
-    edisp[iloc+1] = (geomState) ? (*geomState)[nn[i]].y - cs[nn[i]]->y : 0;
-    edisp[iloc+2] = (geomState) ? (*geomState)[nn[i]].z - cs[nn[i]]->z : 0;
+  // if the element is not a phantom, the pressure force is added in the same routine as the internal force
+  if(!prop) {
+    int opttrc = 0; // 0 : pressure
+                    // 1 : traction
+    double* ecord = (double*) dbg_alloca(sizeof(double)*nnode*ndime);
+    double* edisp = (double*) dbg_alloca(sizeof(double)*nnode*ndime); // translations only
+    int iloc;
+    for(int i = 0; i < nnode; ++i) {
+      iloc = i*ndime;
+      ecord[iloc+0] = cs[nn[i]]->x;
+      ecord[iloc+1] = cs[nn[i]]->y;
+      ecord[iloc+2] = cs[nn[i]]->z;
+      edisp[iloc+0] = (geomState) ? (*geomState)[nn[i]].x - cs[nn[i]]->x : 0;
+      edisp[iloc+1] = (geomState) ? (*geomState)[nn[i]].y - cs[nn[i]]->y : 0;
+      edisp[iloc+2] = (geomState) ? (*geomState)[nn[i]].z - cs[nn[i]]->z : 0;
+    }
+
+    double pressure = (pbc) ? pbc->val : 0;
+    if (pbc && pbc->mftt) {
+      pressure *= pbc->mftt->getVal(std::max(time,0.0));
+    }
+    else if (pbc && !pbc->mftt) {
+      pressure *= pbc->loadfactor;
+    }
+    // Check if Conwep is being used. If so, add the pressure from the blast loading function.
+    if (pbc && pbc->conwep && pbc->conwepswitch) {
+      pressure += BlastLoading::ComputeShellPressureLoad(ecord, time, *(pbc->conwep));
+    }
+
+    double trac[3] = { -pressure, 0, 0 };
+    double *efbc = (double*) dbg_alloca(sizeof(double)*nnode*ndime); // translations only
+
+    _FORTRAN(elefbc3dbrkshl2)(opttrc, ecord, edisp, trac, efbc);
+
+    for(int i = 0; i < nnode; ++i)
+      for(int j = 0; j < ndime; ++j)
+        elPressureForce[6*i+j] = efbc[3*i+j];
   }
-  double trac[3] = { -pressure, 0, 0 };
-  double *efbc = (double*) dbg_alloca(sizeof(double)*nnode*ndime); // translations only
-
-  _FORTRAN(elefbc3dbrkshl2)(opttrc, optele, ecord, edisp, trac, efbc);
-
-  for(int i = 0; i < nnode; ++i)
-    for(int j = 0; j < ndime; ++j)
-      elPressureForce[6*i+j] = efbc[3*i+j];
-*/
 }
 
 void

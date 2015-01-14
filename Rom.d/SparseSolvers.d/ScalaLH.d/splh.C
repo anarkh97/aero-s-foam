@@ -29,6 +29,8 @@ splh(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const E
 
   // Instantiate the solver and set some parameters
   Plh solver(A);
+  int max_np = 2000;
+  solver.setMaxNP(max_np);
   solver.setRtol(reltol);
   solver.setMaxIterRatio(maxite);
   if (scaling) solver.setColumnScaling();

@@ -126,7 +126,7 @@ ParallelSparseNonNegativeLeastSquaresSolver::solve() {
       std::cerr << "USE_EIGEN3 is not defined here in ParallelSparseNonNegativeLeastSquaresSolver::solve\n";
       exit(-1);
 #endif
-    }
+    } break;
 
     case 6 : { // Scalapack LH solver
 #ifdef USE_EIGEN3

@@ -988,7 +988,7 @@ PodProjectionNonLinDynamic::dynamOutput(ModalGeomState *geomState, Vector &veloc
 */
   DynamMat dynOps;
   SysState<Vector> systemState(geomState->q, velocity, acceleration, vp);
-  podPostPro->dynamOutput(step, time, dynOps, force, &aeroF, systemState);
+  podPostPro->dynamOutput(step+1, time, dynOps, force, &aeroF, systemState);
 }
 
 void

@@ -99,7 +99,7 @@ class SCDoubleMatrix : public SCBaseMatrix {
         double getTime(int i) { return _wallclock_total[i]; }
         double getMaxTime(int i);
         int norm2Colunns(SCDoubleMatrix& colnorms);
-        char columnScaling(SCDoubleMatrix& colScale);
+        void columnScaling(SCDoubleMatrix& colScale);
         void elementWiseInverse();
 
     private:

@@ -6,6 +6,7 @@
 #include <cmath>
 #include <ctime>
 #include <algorithm>
+#include <stdio.h>
 
 #include "Plh.h"
 
@@ -133,34 +134,15 @@ Plh::initplh() {
     }
 
     if (_col_scaling) {
+        startTime(TIME_COLUMNSCALING);
+        if (_mypid == 0) {
+            std::cout << "Scaling the matrix columns." << std::endl;
+        }
         _colnorms = new SCDoubleMatrix(_context, 1, _n, _mb, _nb);
         _A->norm2Colunns(*_colnorms);
-        DoubleInt cnmax = _colnorms->getMax();
-        DoubleInt cnmin = _colnorms->getMin();
-        if (_mypid == 0) {
-            std::cout << "max column = " << cnmax.x << " at i = " << cnmax.i << std::endl;
-            std::cout << "min column = " << cnmin.x << " at i = " << cnmin.i << std::endl;
-        }
-        char scalingDesignator = colummScaling();
-        if (scalingDesignator == 'R' || scalingDesignator == 'B') {
-            if (_mypid == 0) {
-                std::cout << "ScalaPack decided to scale the matrix by row which is not handled. Exiting..." << std::endl;
-            }
-            MPI_Finalize();
-            exit(1);
-        }
-        if (scalingDesignator == 'N') {
-            if (_mypid == 0) {
-                std::cout << "ScalaPack did not scale the matrix by columns." << std::endl;
-            }
-            _col_scaling = false;
-            delete _colnorms;
-        }
-        if (scalingDesignator == 'C') {
-            if (_mypid == 0) {
-                std::cout << "ScalaPack scaled the matrix by columns." << std::endl;
-            }
-        }
+        _colnorms->elementWiseInverse();
+        _A->columnScaling(*_colnorms);
+        stopTime(TIME_COLUMNSCALING);
     }
 
     stopTime(TIME_INIT_NNLS);
@@ -710,11 +692,3 @@ Plh::writeSet(std::string filename) {
 }
 
 
-char
-Plh::colummScaling() {
-    startTime(TIME_COLUMNSCALING);
-    _colnorms->elementWiseInverse();
-    char scalingDesignator = _A->columnScaling(*_colnorms);
-    stopTime(TIME_COLUMNSCALING);
-    return scalingDesignator;
-}

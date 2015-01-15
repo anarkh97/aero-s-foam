@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 #include <iterator>
+#include <stdio.h>
 
 #include "Plh.h"
 
@@ -241,10 +242,6 @@ Plh::init() {
     _workm = new SCDoubleMatrix(_context,   _m,    1, _mb, _nb);
     _Atb   = new SCDoubleMatrix(_context,    1,   _n, _mb, _nb);
     _QtoA  = new SCIntMatrix(   _context,    1,   _n, _mb, _nb);
-
-    //if (_col_scaling) {
-    //    _colnorms = new SCDoubleMatrix(_context, 1, _n, _mb, _nb);
-    //}
 
     // Context c_Q
     _Q       = new SCDoubleMatrix(_contextQR,   _m, dmin, _mbq, _nbq);

@@ -1159,30 +1159,12 @@ SCDoubleMatrix::elementWiseInverse() {
 }
 
 
-char
+void
 SCDoubleMatrix::columnScaling(SCDoubleMatrix& colScale) {
-    DoubleInt cmax = colScale.getMax();
-    DoubleInt cmin = colScale.getMin();
-    if (cmin.x <= 0.0) {
-        if (_mypid == 0) {
-            std::cout << "Bad scaling matrix. No scaling will be done." << std::endl;
+    for (int j=0; j<_nlocal; j++) {
+        int k = j*_mlocal;
+        for (int i=0; i<_mlocal; i++) {
+            _matrix[k+i] *= colScale._matrix[j];
         }
-        return 'N';
     }
-    char equed;
-    SCDoubleMatrix *rowScale = new SCDoubleMatrix(_context, _m, 1, _mb, _nb);
-    rowScale->set(1.0);
-    rowScale->distributeVector();
-    //colScale.distributeVector();  // Assume this is already distributed
-    double amax = this->amaxElement();
-    double rowcnd = 1.0;
-    double colcnd = cmin.x / cmax.x;
-    //std::cout << "_mypid = " << _mypid << ", amax = " << amax << std::endl;
-    //std::cout << "_mypid = " << _mypid << ", rowcnd = " << rowcnd << std::endl;
-    //std::cout << "_mypid = " << _mypid << ", colcnd = " << colcnd << std::endl;
-    int one = 1;
-    _FORTRAN(pdlaqge)(&_m, &_n, _matrix, &one, &one, _desc, rowScale->_matrix,
-                     colScale._matrix, &rowcnd, &colcnd, &amax, &equed);
-    delete rowScale;
-    return equed;
 }

@@ -457,6 +457,11 @@ DistrElementSamplingDriver::computeSolution(Vector *solutions, double relativeTo
   solver_->solverTypeIs(domain->solInfo().solverTypeSpnnls);
   solver_->maxSizeRatioIs(domain->solInfo().maxSizeSpnnls);
   solver_->maxIterRatioIs(domain->solInfo().maxIterSpnnls);
+  solver_->npMaxIs(domain->solInfo().npMax);
+  solver_->scpkMBIs(domain->solInfo().scpkMB);
+  solver_->scpkNBIs(domain->solInfo().scpkNB);
+  solver_->scpkMPIs(domain->solInfo().scpkMP);
+  solver_->scpkNPIs(domain->solInfo().scpkNP);
   try {
     solver_->solve();
   }

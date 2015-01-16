@@ -427,6 +427,12 @@ struct SolverInfo {
    bool elementDeletion;
    std::map<int,double> deleteElements; // elements to be deleted at specific time or times (specified in input file)
 
+   int npMax;   // Max number of elements in the reduced mesh for the ScalaPack LH parse solver.
+   int scpkMB;  // Scalapack row block size
+   int scpkNB;  // Scalapack column block size
+   int scpkMP;  // Scalapack row processor grid size
+   int scpkNP;  // Scalapack column processor grid size
+
    // Constructor
    SolverInfo() { filterFlags = 0;
                   type = 0;     
@@ -716,6 +722,11 @@ struct SolverInfo {
                   printMatLab        = false;
                   printMatLabFile    = "";
                   elementDeletion    = false;
+                  npMax              = 0;  // 0 => reduced mesh size is not limited
+                  scpkMB             = 0;  // 0 => Scalapack LH solver will use default block size
+                  scpkNB             = 0;  // 0 => Scalapack LH solver will use default block size
+                  scpkMP             = 0;  // 0 => Scalapack LH solver will use default processor grid 
+                  scpkNP             = 0;  // 0 => Scalapack LH solver will use default processor grid
                 }
 
    void setDirectMPC(int mode) { mpcDirect = mode; }

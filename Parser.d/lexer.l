@@ -1495,6 +1495,16 @@ TRAIL [a-zA-Z]*
 
 "SOLVER"|"Solver"|"solver"                { return SOLVER; }
 
+"NPMAX"|"npMax"|"npmax"                   { return NPMAX; }
+
+"SCPKMB"|"scpkMB"|"scpkmb"                { return SCPKMB; }
+
+"SCPKNB"|"scpkNB"|"scpknb"                { return SCPKNB; }
+
+"SCPKMP"|"scpkMP"|"scpkmP"                { return SCPKMP; }
+
+"SCPKNP"|"scpkNP"|"scpknP"                { return SCPKNP; }
+
 "lh"|"LH"                                 { yylval.ival = 0; return SPNNLSSOLVERTYPE; }
 "nncgp"|"NNCGP"                           { yylval.ival = 1; return SPNNLSSOLVERTYPE; }
 "gpfp"|"GPFP" 				  { yylval.ival = 2; return SPNNLSSOLVERTYPE; }

@@ -51,6 +51,23 @@ public:
   // Error magnitude
   double errorMagnitude() const { return errorMagnitude_; }
 
+  // Scalapack LH solver arguments
+  int npMax() const { return npMax_; }
+  void npMaxIs(int npMax) { npMax_ = npMax; }
+
+  int scpkMB() const { return scpkMB_; }
+  void scpkMBIs(int scpkMB) { scpkMB_ = scpkMB; }
+
+  int scpkNB() const { return scpkNB_; }
+  void scpkNBIs(int scpkNB) { scpkNB_ = scpkNB; }
+
+  int scpkMP() const { return scpkMP_; }
+  void scpkMPIs(int scpkMP) { scpkMP_ = scpkMP; }
+
+  int scpkNP() const { return scpkNP_; }
+  void scpkNPIs(int scpkNP) { scpkNP_ = scpkNP; }
+
+
   // Perform solve
   void solve();
 
@@ -76,6 +93,13 @@ private:
 
   int nsub_;
   SparseNonNegativeLeastSquaresSolver<std::vector<double>,size_t> **sd_;
+
+  // Variables for Scalapack LH solver
+  int npMax_;  // Maximum sparse mesh size.
+  int scpkMB_; // Scalapack row block size.
+  int scpkNB_; // Scalapack column block size.
+  int scpkMP_; // Scalapack row processor grid size.
+  int scpkNP_; // Scalapack column processor grid size.
 
   // Disallow copy & assignment
   ParallelSparseNonNegativeLeastSquaresSolver(const ParallelSparseNonNegativeLeastSquaresSolver &);

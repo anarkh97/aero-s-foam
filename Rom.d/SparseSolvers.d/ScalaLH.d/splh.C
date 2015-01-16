@@ -21,30 +21,45 @@
 
 Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1>
 splh(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const Eigen::VectorXd> &b, double& rnorm, const long int n,
-       long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool project, double &dtime) {
+       long int &info, double maxsze, double maxite, double reltol, bool verbose, bool scaling, bool project, double &dtime,
+       int npMax, int scpkMB, int scpkNB, int scpkMP, int scpkNP) {
   // Setup
-  //int mypid;
-  //MPI_Comm_rank(MPI_COMM_WORLD, &mypid);
-  //std::cout << "mypid " << mypid << ", maxsze = " << maxsze << std::endl;
+  int mypid, nprocs;
+  MPI_Comm_rank(MPI_COMM_WORLD, &mypid);
+  MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
 
-  // Instantiate the solver and set some parameters
+  // Instantiate the solver
   Plh solver(A);
-  int max_np = 2000;
-  solver.setMaxNP(max_np);
+
+  // Set Parameters prior to initializing
   solver.setRtol(reltol);
   solver.setMaxIterRatio(maxite);
-  if (scaling) solver.setColumnScaling();
+  if (scaling) {
+    if (mypid == 0) {
+      std::cout << "Using scaled matrix" << std::endl;    
+    }
+    solver.setColumnScaling();
+  }
+  if (npMax > 0) {
+    if (mypid == 0) {
+      std::cout << "Reduced mesh size limited to " << npMax << std::endl;    
+    }
+    solver.setMaxNP(npMax);
+  }
+  if (scpkMB > 0 && scpkNB > 0) {
+    if (mypid == 0) {
+      std::cout << "ScaLAPACK block sizes are (" << scpkMB << "," << scpkNB << ")" << std::endl;    
+    }
+    solver.setABlockSize(scpkMB, scpkNB);
+  }
+  if (scpkMP > 0 && scpkNP > 0 && scpkMP*scpkNP <= nprocs) {
+    if (mypid == 0) {
+      std::cout << "ScaLAPACK processor grid is (" << scpkMP << "," << scpkNP << ")" << std::endl;    
+    }
+    solver.setAProcGrid(scpkMP, scpkNP);
+  }
 
-  //int mb=64;
-  //int nb=64;
-  //solver.setABlockSize(mb,nb);
-
-  // Best to keep the default of mp=NROCS and np=1
-  //int mp=12;
-  //int np=4;
-  //solver.setAProcGrid(mp,np);
-
-  // Loads the matrix and RHS
+  // Loads the matrix and RHS and print a summary. Can't change some parameters after this.
   solver.init(A, b);
   solver.summary();
 

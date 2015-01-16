@@ -139,7 +139,7 @@ GenEiSparseGalerkinProjectionSolver<Scalar>::reSolve(GenVector<Scalar> &rhs)
   Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > x(rhs.data(), V.cols());
   if(dualBasisSize_ != 0) {
     Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> CE(0,0), CI = -reducedConstraintMatrix_.transpose();
-    Eigen::Matrix<Scalar,Eigen::Dynamic,1> g0 = -x, ce0(0), _x(V.cols()), Lambda(0), Mu(dualBasisSize_);
+    Eigen::Matrix<Scalar,Eigen::Dynamic,1> g0 = -x, ce0(0,1), _x(V.cols()), Lambda(0,1), Mu(dualBasisSize_);
 #ifdef SPARSE_G
     Eigen::SparseMatrix<Scalar> G = reducedMatrix_.transpose().sparseView();
     Scalar c1 = reducedMatrix_.trace();
@@ -162,7 +162,7 @@ GenEiSparseGalerkinProjectionSolver<Scalar>::solve(GenVector<Scalar> &rhs, GenVe
   Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > b(rhs.data(), V.cols()), x(sol.data(), V.cols());
   if(dualBasisSize_ != 0) {
     Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> CE(0,0), CI = -reducedConstraintMatrix_.transpose();
-    Eigen::Matrix<Scalar,Eigen::Dynamic,1> g0 = -b, ce0(0), _x(V.cols()), Lambda(0), Mu(dualBasisSize_);
+    Eigen::Matrix<Scalar,Eigen::Dynamic,1> g0 = -b, ce0(0,1), _x(V.cols()), Lambda(0,1), Mu(dualBasisSize_);
 #ifdef SPARSE_G
     Eigen::SparseMatrix<Scalar> G = reducedMatrix_.transpose().sparseView();
     Scalar c1 = reducedMatrix_.trace();

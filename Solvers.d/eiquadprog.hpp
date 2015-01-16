@@ -137,7 +137,7 @@ inline double solve_quadprog(SparseMatrix<complex<double> >& G, complex<double> 
                              const MatrixXcd& CI, const VectorXcd& ci0,
                              VectorXcd& x, VectorXcd* lambda = NULL, VectorXcd* mu = NULL,
                              double tol = 100.0)
-{ std::cerr << "solve_quadprog is not supported for complex\n"; }
+{ std::cerr << "solve_quadprog is not supported for complex\n"; return 0; }
 
 inline double solve_quadprog(SparseMatrix<double>& G, double _c1, VectorXd& g0,
                              const MatrixXd& CE, const VectorXd& ce0,
@@ -150,7 +150,7 @@ inline double solve_quadprog(MatrixXcd& G, VectorXcd& g0,
                              const MatrixXcd& CI, const VectorXcd& ci0,
                              VectorXcd& x, VectorXcd* lambda = NULL, VectorXcd* mu = NULL,
                              double tol = 100.0)
-{ std::cerr << "solve_quadprog is not supported for complex\n"; }
+{ std::cerr << "solve_quadprog is not supported for complex\n"; return 0; }
 
 inline double solve_quadprog(MatrixXd& G, VectorXd& g0,
                              const MatrixXd& CE, const VectorXd& ce0,  

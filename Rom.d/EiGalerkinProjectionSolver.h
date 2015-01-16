@@ -58,6 +58,7 @@ private:
   bool selfadjoint_;
   bool Empirical;
   int basisSize_, dualBasisSize_;
+  Scalar c1_; // trace of reducedConstraintMatrix_
   const GenVecBasis<Scalar> *projectionBasis_, *dualProjectionBasis_;
   Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> reducedMatrix_, reducedConstraintMatrix_;
   Eigen::Matrix<Scalar,Eigen::Dynamic,1> reducedConstraintRhs_, reducedConstraintRhs0_, reducedConstraintForce_;

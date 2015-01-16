@@ -46,6 +46,8 @@ protected:
   const ConstrainedDSA &getCDSA() const { return *parent_->domain->getCDSA(); }
   int solVecInfo() const { return parent_->solVecInfo(); }
   const SolverInfo &solInfo() const { return parent_->domain->solInfo(); }
+  int getNumLMPC() const { return parent_->domain->getNumLMPC(); }
+  LMPCons** getLMPCs() const { return parent_->domain->getLMPC()->data(); }
   PodProjectionSolver *getSolver() { return parent_->getSolver(); }
   void getKtimesU(Vector &dsp, double *bcx, Vector &ext_f, double eta,
                      FullSquareMatrix *kelArray=0) { return parent_->domain->getKtimesU(dsp, bcx, ext_f, eta, kelArray); }
@@ -106,7 +108,7 @@ protected:
 
   VecNodeDof6Conversion &getDof6Conv() { return vecNodeDof6Conversion_; }
 
-  VecBasis projectionBasis_;
+  VecBasis projectionBasis_, dualProjectionBasis_;
 };
 
 PodProjectionNonLinDynamicDetail::BasicImpl::~BasicImpl() {}
@@ -132,9 +134,30 @@ PodProjectionNonLinDynamicDetail::BasicImpl::BasicImpl(PodProjectionNonLinDynami
   
   filePrint(stderr, " ... Proj. Subspace Dimension = %-3d ...\n", projectionBasis_.vectorCount());
 
+  if(strcmp(solInfo().readInDualROB,"") != 0) {
+    VecNodeDof1Conversion vecNodeDof1Conversion(getNumLMPC());
+    // Load dual projection basis    
+    std::string fileName = BasisFileId(fileInfo_, BasisId::DUALSTATE, BasisId::POD);
+    BasisInputStream<1> dualProjectionBasisInput(fileName, vecNodeDof1Conversion);
+    const int dualProjectionSubspaceSize = solInfo().maxSizeDualBasis ?
+                                           std::min(solInfo().maxSizeDualBasis, dualProjectionBasisInput.size()) :
+                                           dualProjectionBasisInput.size();
+
+    readVectors(dualProjectionBasisInput, dualProjectionBasis_, dualProjectionSubspaceSize);
+
+    filePrint(stderr, " ... Dual Proj. Subspace Dim. = %-3d ...\n", dualProjectionBasis_.vectorCount());
+  }
+
   // Setup solver
   PodProjectionSolver *solver = getSolver();
   solver->projectionBasisIs(projectionBasis_);
+
+  if(strcmp(solInfo().readInDualROB,"") != 0) {
+    solver->dualProjectionBasisIs(dualProjectionBasis_);
+    double dt = solInfo().getTimeStep(), beta = solInfo().newmarkBeta;
+    double Kcoef = dt*dt*beta;
+    solver->addLMPCs(getNumLMPC(), getLMPCs(), Kcoef);
+  }
 
   solver->factor(); // Delayed factorization
 }
@@ -605,6 +628,12 @@ PodProjectionNonLinDynamic::checkConvergence(int iteration, double normRes, Vect
 
 double
 PodProjectionNonLinDynamic::getResidualNorm(const Vector &residual, ModalGeomState &, double) {
+#ifdef USE_EIGEN3
+  if(strcmp(domain->solInfo().readInDualROB,"") != 0) {
+    const Eigen::VectorXd &fc = dynamic_cast<PodProjectionSolver*>(solver)->lastReducedConstraintForce();
+    return (Eigen::Map<const Eigen::VectorXd>(residual.data(), residual.size()) - fc).norm();
+  } else
+#endif
   return residual.norm();
 }
 
@@ -931,6 +960,9 @@ PodProjectionNonLinDynamic::getStiffAndForce(ModalGeomState &geomState, Vector &
   geomState_Big->explicitUpdate(domain->getNodes(), q_Big);
 
   NonLinDynamic::getStiffAndForce(*geomState_Big, residual_Big, elementInternalForce, t, refState_Big, forceOnly);
+#ifdef USE_EIGEN3
+  dynamic_cast<PodProjectionSolver*>(solver)->updateLMPCs(geomState.q);
+#endif
 
   Vector r(solVecInfo());
 

@@ -4,6 +4,9 @@
 #ifdef USE_EIGEN3
 #include "EiGalerkinProjectionSolver.h"
 #include <stdexcept>
+#include <vector>
+#include <Solvers.d/eiquadprog.hpp>
+#include <Driver.d/Mpc.h>
 
 namespace Rom {
 
@@ -11,8 +14,11 @@ template <typename Scalar>
 GenEiSparseGalerkinProjectionSolver<Scalar>::GenEiSparseGalerkinProjectionSolver(Connectivity *cn,
                                                    DofSetArray *dsa, ConstrainedDSA *c_dsa, bool selfadjoint):
   GenEiSparseMatrix<Scalar>(cn, dsa, c_dsa, selfadjoint), 
+  cdsa_(c_dsa),
   basisSize_(0), 
+  dualBasisSize_(0),
   projectionBasis_(NULL), 
+  dualProjectionBasis_(NULL),
   Empirical(false),
   selfadjoint_(selfadjoint)
 {
@@ -35,10 +41,43 @@ GenEiSparseGalerkinProjectionSolver<Scalar>::addReducedMass(double Mcoef)
 
 template <typename Scalar>
 void
-GenEiSparseGalerkinProjectionSolver<Scalar>::addToReducedMatrix(const Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> &ContributionMat, double Coef){
-
+GenEiSparseGalerkinProjectionSolver<Scalar>::addToReducedMatrix(const Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> &ContributionMat, double Coef)
+{
   reducedMatrix_ += Coef*ContributionMat;
+}
 
+template <typename Scalar>
+void
+GenEiSparseGalerkinProjectionSolver<Scalar>::addLMPCs(int numLMPC, LMPCons **lmpc, double Kcoef)
+{
+  std::vector<Eigen::Triplet<Scalar> > tripletList;
+
+  Eigen::SparseMatrix<Scalar> C(numLMPC, cdsa_->size());
+  Eigen::Matrix<Scalar,Eigen::Dynamic,1> g(numLMPC);
+
+  for(int i=0; i<numLMPC; ++i) {
+    for(int j=0; j<lmpc[i]->nterms; ++j) {
+      int cdof = cdsa_->locate(lmpc[i]->terms[j].nnum, 1 << lmpc[i]->terms[j].dofnum);
+      if(cdof > -1) {
+        tripletList.push_back(Eigen::Triplet<Scalar>(i, cdof, Scalar(lmpc[i]->terms[j].coef.r_value)));
+      }
+    }
+    g[i] = lmpc[i]->rhs.r_value;
+  }
+
+  C.setFromTriplets(tripletList.begin(), tripletList.end());
+
+  const Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic,Eigen::ColMajor> &V = projectionBasis_->basis(), &W = dualProjectionBasis_->basis();
+  reducedConstraintMatrix_ = Kcoef*W.transpose()*C*V;
+  reducedConstraintRhs0_ = reducedConstraintRhs_ = Kcoef*W.transpose()*g;
+}
+
+template <typename Scalar>
+void
+GenEiSparseGalerkinProjectionSolver<Scalar>::updateLMPCs(GenVector<Scalar> &_q)
+{
+  Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > q(_q.data(), q.size()); 
+  reducedConstraintRhs_ = reducedConstraintRhs0_ - reducedConstraintMatrix_*q;
 }
 
 template <typename Scalar>
@@ -56,9 +95,19 @@ GenEiSparseGalerkinProjectionSolver<Scalar>::projectionBasisIs(const GenVecBasis
 
 template <typename Scalar>
 void
+GenEiSparseGalerkinProjectionSolver<Scalar>::dualProjectionBasisIs(const GenVecBasis<Scalar> &dualReducedBasis)
+{
+  dualProjectionBasis_ = &dualReducedBasis;
+  dualBasisSize_ = dualReducedBasis.vectorCount();
+  reducedConstraintMatrix_.setZero(dualBasisSize_, basisSize_);
+  reducedConstraintForce_.setZero(basisSize_);
+}
+
+template <typename Scalar>
+void
 GenEiSparseGalerkinProjectionSolver<Scalar>::EmpiricalSolver()
 {
-  std::cout << " ... Empirical Solver Selected ..." << std::endl;
+  std::cout << " ... Empirical Solver Selected      ..." << std::endl;
   Empirical = true;
 }
 
@@ -68,15 +117,12 @@ GenEiSparseGalerkinProjectionSolver<Scalar>::factor()
 {
   const Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic,Eigen::ColMajor> &V = projectionBasis_->basis();
   if(selfadjoint_ && !Empirical) {
-    if(Empirical){
-      llt_.compute(reducedMatrix_);//this is unstable for Empirical methods, symmetry is lost
-    }else {
-      reducedMatrix_.template triangularView<Eigen::Lower>()
-      += V.transpose()*(this->M.template selfadjointView<Eigen::Upper>()*V);
-      llt_.compute(reducedMatrix_);
-    }
-  } else {
-    if(Empirical){
+    reducedMatrix_.template triangularView<Eigen::Lower>()
+    += V.transpose()*(this->M.template selfadjointView<Eigen::Upper>()*V);
+    if(dualBasisSize_ == 0) llt_.compute(reducedMatrix_);
+  }
+  else {
+    if(Empirical) {
       lu_.compute(reducedMatrix_);
     } else {
       reducedMatrix_ += V.transpose()*(this->M*V);
@@ -91,7 +137,20 @@ GenEiSparseGalerkinProjectionSolver<Scalar>::reSolve(GenVector<Scalar> &rhs)
 {
   const Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic,Eigen::ColMajor> &V = projectionBasis_->basis();
   Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > x(rhs.data(), V.cols());
-  if(selfadjoint_ && !Empirical) llt_.solveInPlace(x);
+  if(dualBasisSize_ != 0) {
+    Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> CE(0,0), CI = -reducedConstraintMatrix_.transpose();
+    Eigen::Matrix<Scalar,Eigen::Dynamic,1> g0 = -x, ce0(0), _x(V.cols()), Lambda(0), Mu(dualBasisSize_);
+#ifdef SPARSE_G
+    Eigen::SparseMatrix<Scalar> G = reducedMatrix_.transpose().sparseView();
+    Scalar c1 = reducedMatrix_.trace();
+    solve_quadprog(G, c1, g0, CE, ce0, CI, reducedConstraintRhs_, _x, &Lambda, &Mu, 1e-6);
+#else
+    solve_quadprog(reducedMatrix_, g0, CE, ce0, CI, reducedConstraintRhs_, _x, &Lambda, &Mu, 1e-6);
+#endif
+    x = _x;
+    reducedConstraintForce_ = reducedConstraintMatrix_.transpose()*Mu;
+  }
+  else if(selfadjoint_ && !Empirical) llt_.solveInPlace(x);
   else x = (lu_.solve(x)).eval();
 }
 
@@ -101,7 +160,20 @@ GenEiSparseGalerkinProjectionSolver<Scalar>::solve(GenVector<Scalar> &rhs, GenVe
 {
   const Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic,Eigen::ColMajor> &V = projectionBasis_->basis();
   Eigen::Map< Eigen::Matrix<Scalar, Eigen::Dynamic, 1> > b(rhs.data(), V.cols()), x(sol.data(), V.cols());
-  if(selfadjoint_ && !Empirical) x = llt_.solve(b);
+  if(dualBasisSize_ != 0) {
+    Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> CE(0,0), CI = -reducedConstraintMatrix_.transpose();
+    Eigen::Matrix<Scalar,Eigen::Dynamic,1> g0 = -b, ce0(0), _x(V.cols()), Lambda(0), Mu(dualBasisSize_);
+#ifdef SPARSE_G
+    Eigen::SparseMatrix<Scalar> G = reducedMatrix_.transpose().sparseView();
+    Scalar c1 = reducedMatrix_.trace();
+    solve_quadprog(G, c1, g0, CE, ce0, CI, reducedConstraintRhs_, _x, &Lambda, &Mu, 1e-6);
+#else
+    solve_quadprog(reducedMatrix_, g0, CE, ce0, CI, reducedConstraintRhs_, _x, &Lambda, &Mu, 1e-6);
+#endif
+    x = _x;
+    reducedConstraintForce_ = reducedConstraintMatrix_.transpose()*Mu;
+  }
+  else if(selfadjoint_ && !Empirical) x = llt_.solve(b);
   else x = lu_.solve(b);
 }
 

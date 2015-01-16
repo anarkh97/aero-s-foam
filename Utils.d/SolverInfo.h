@@ -342,6 +342,7 @@ struct SolverInfo {
    std::vector<std::string> robfi;
    std::vector<double> snapshotWeights;
    const char * readInROBorModes;
+   const char * readInDualROB;
    const char * readInModes;
    const char * SVDoutput;
    const char * reducedMeshFile;
@@ -389,6 +390,7 @@ struct SolverInfo {
    bool elemLumpPodRom;
    bool onlineSvdPodRom;
    int  maxSizePodRom;
+   int  maxSizeDualBasis;
    int  maxDeimBasisSize;
    bool selectFullNode;
    bool selectFullElem;
@@ -652,6 +654,7 @@ struct SolverInfo {
 
                   numSnap            = 1;
                   readInROBorModes   = "";
+                  readInDualROB      = "";
                   readInModes        = "";
                   readInShapeSen     = "";
                   SVDoutput          = "pod.rob";
@@ -695,6 +698,7 @@ struct SolverInfo {
                   elemLumpPodRom     = false;
                   onlineSvdPodRom    = false;
                   maxSizePodRom      = 0;
+                  maxSizeDualBasis   = 0;
                   maxDeimBasisSize   = 0;
                   selectFullNode     = false;
                   selectFullElem     = false;
@@ -920,7 +924,7 @@ struct SolverInfo {
      }
    }
 
-   double getTimeStep() 
+   double getTimeStep() const
    {
      if(thermoeFlag > -1 || thermohFlag > -1) return std::min(dt, dtemp);
      else return (order == 1) ? dtemp : dt;

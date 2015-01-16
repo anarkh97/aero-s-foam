@@ -208,7 +208,7 @@ DistrROMPostProcessingDriver::solve() {
 
    preProcess();
 
-   int counter = 0; //TODO: make this portion more general so it doesn't depend on th assumption
+   int counter = 0; //TODO: make this portion more general so it doesn't depend on the assumption
                     //that all files have matching timestamps
    if(TimeStamps.size() > 0)
    for(std::vector<double>::iterator it = TimeStamps[0].begin(); it != TimeStamps[0].end(); it++) {

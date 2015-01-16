@@ -99,7 +99,12 @@ FileNameInfo::basisFileName(const BasisId &id, int i) const {
         builder << domain->solInfo().dsvPodRomFile;
     }
     else if(id.level() == 1) {
-      builder << domain->solInfo().readInROBorModes;
+      if(id.type() == 7) {
+        builder << domain->solInfo().readInDualROB;
+      }
+      else {
+        builder << domain->solInfo().readInROBorModes;
+      }
     }
     else if(id.level() == 2) {
       builder << domain->solInfo().SVDoutput;

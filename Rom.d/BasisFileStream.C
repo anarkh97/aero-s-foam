@@ -14,7 +14,7 @@ BasisInputStream<DOFS_PER_NODE>::BasisInputStream(const std::string &fileName, c
 
 template <int DOFS_PER_NODE>
 BasisOutputStream<DOFS_PER_NODE>::BasisOutputStream(const std::string &fileName, const VecNodeDofConversion<DOFS_PER_NODE> &converter, bool restart) :
-  file_(fileName, converter.dofSetNodeCount(), restart), // Conservative, potentially overallocating
+  file_(fileName, converter.dofSetNodeCount(), restart, DOFS_PER_NODE), // Conservative, potentially overallocating
   converter_(converter),
   buffer_(file_.nodeCount())
 {}

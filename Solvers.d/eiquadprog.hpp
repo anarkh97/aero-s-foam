@@ -87,8 +87,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 namespace Eigen {
 
-// namespace internal {
-
 template<typename Scalar>
 inline Scalar distance(Scalar a, Scalar b)
 {
@@ -111,8 +109,6 @@ inline Scalar distance(Scalar a, Scalar b)
   return a1 * sqrt(2.0);
 }
 
-// }
-
 inline void compute_d(VectorXd &d, const MatrixXd& J, const VectorXd& np)
 {
   d = J.adjoint() * np;
@@ -133,15 +129,29 @@ void delete_constraint(MatrixXd& R, MatrixXd& J, VectorXi& A, VectorXd& u,  int 
 
 //#define TRACE_SOLVER
 
-#define SPARSE_G
+//#define SPARSE_G
 
 #ifdef SPARSE_G
+inline double solve_quadprog(SparseMatrix<complex<double> >& G, complex<double> _c1, VectorXcd& g0,
+                             const MatrixXcd& CE, const VectorXcd& ce0,
+                             const MatrixXcd& CI, const VectorXcd& ci0,
+                             VectorXcd& x, VectorXcd* lambda = NULL, VectorXcd* mu = NULL,
+                             double tol = 100.0)
+{ std::cerr << "solve_quadprog is not supported for complex\n"; }
+
 inline double solve_quadprog(SparseMatrix<double>& G, double _c1, VectorXd& g0,
                              const MatrixXd& CE, const VectorXd& ce0,
                              const MatrixXd& CI, const VectorXd& ci0,
                              VectorXd& x, VectorXd* lambda = NULL, VectorXd* mu = NULL,
                              double tol = 100.0)
 #else
+inline double solve_quadprog(MatrixXcd& G, VectorXcd& g0,
+                             const MatrixXcd& CE, const VectorXcd& ce0,
+                             const MatrixXcd& CI, const VectorXcd& ci0,
+                             VectorXcd& x, VectorXcd* lambda = NULL, VectorXcd* mu = NULL,
+                             double tol = 100.0)
+{ std::cerr << "solve_quadprog is not supported for complex\n"; }
+
 inline double solve_quadprog(MatrixXd& G, VectorXd& g0,
                              const MatrixXd& CE, const VectorXd& ce0,  
                              const MatrixXd& CI, const VectorXd& ci0, 
@@ -188,11 +198,7 @@ inline double solve_quadprog(MatrixXd& G, VectorXd& g0,
 #endif
 
   /* decompose the matrix G in the form LL^T */
-#ifdef SPARSE_G
   chol.compute(G);
-#else
-  chol.compute(G);
-#endif
  
   /* initialize the matrix R */
   d.setZero();
@@ -261,14 +267,7 @@ inline double solve_quadprog(MatrixXd& G, VectorXd& g0,
  
     if (!add_constraint(R, J, d, iq, R_norm))
     {
-      // FIXME: it should raise an error
       // Equality constraints are linearly dependent (or QPP is not strictly convex?)
-/* PJSA DEBUG
-      std::cerr << "n = " << n << ", p = " << p << std::endl;
-      std::cerr << "CE.rank() = " << CE.colPivHouseholderQr().rank() << std::endl;
-      std::cerr << "CE.singularValues() = " << CE.jacobiSvd().singularValues().transpose() << std::endl;
-      std::cerr << "G.eigenvalues() =" << G.eigenvalues().transpose() << std::endl;
-*/
       throw std::runtime_error("Constraints are linearly dependent");
       return f_value;
     }
@@ -396,7 +395,6 @@ l2a:/* Step 2a: determine step direction */
   if (t >= inf)
   {
     /* QPP is infeasible */
-    // FIXME: unbounded to raise
     q = iq;
     throw std::runtime_error("QPP is infeasible");
     return inf;

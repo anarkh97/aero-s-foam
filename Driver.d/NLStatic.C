@@ -952,7 +952,7 @@ Domain::createKelArray(FullSquareMatrix *&kArray, FullSquareMatrix *&mArray)
    //       (only the euler beam element is affected)
    double mratio = (packedEset[iele]->hasRot() && sinfo.isNonLin() && sinfo.isDynam()) ? 0 : geoSource->getMRatio();
    mArray[iele].copy(packedEset[iele]->massMatrix(nodes, mArray[iele].data(), mratio));
-   if(domain->solInfo().galerkinPodRom) {
+   if(domain->solInfo().galerkinPodRom && !solInfo().getNLInfo().linearelastic) {
      kArray[iele].zero();
    }
    else {
@@ -1007,7 +1007,7 @@ Domain::createKelArray(FullSquareMatrix *&kArray, FullSquareMatrix *&mArray, Ful
    double mratio = (packedEset[iele]->hasRot() && sinfo.isNonLin() && sinfo.isDynam()) ? 0 : geoSource->getMRatio();
    mArray[iele].copy(packedEset[iele]->massMatrix(nodes, mArray[iele].data(), mratio));
    cArray[iele].copy(packedEset[iele]->dampingMatrix(nodes, cArray[iele].data()));
-   if(domain->solInfo().galerkinPodRom) {
+   if(domain->solInfo().galerkinPodRom && !solInfo().getNLInfo().linearelastic) {
      kArray[iele].zero();
    }
    else {

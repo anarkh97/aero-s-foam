@@ -18,6 +18,10 @@ public:
   // Reduced-order matrix assembly
   virtual void addReducedMass(double Mcoef) = 0;
 
+  // Constraint assembly
+  virtual void addLMPCs(int numLMPC, LMPCons **lmpc, double Kcoef) = 0;
+  virtual void updateLMPCs(GenVector<Scalar> &q) = 0;
+
   // Solution
   virtual void factor() = 0;
   virtual void reSolve(GenVector<Scalar> &rhs) = 0;
@@ -26,6 +30,7 @@ public:
   virtual int basisSize() const = 0;
   virtual const GenVecBasis<Scalar> &projectionBasis() const = 0;
   virtual void projectionBasisIs(const GenVecBasis<Scalar> &) = 0; 
+  virtual void dualProjectionBasisIs(const GenVecBasis<Scalar> &) = 0;
   virtual void EmpiricalSolver() = 0; 
 #ifdef USE_EIGEN3
   virtual void addToReducedMatrix(const Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> &, double = 1.0) = 0;
@@ -34,6 +39,9 @@ public:
   // Data collection
   virtual const GenVector<Scalar> &lastReducedSolution() const = 0;
   virtual const GenVecBasis<Scalar> &lastReducedMatrixAction() const = 0;
+#ifdef USE_EIGEN3
+  virtual const Eigen::Matrix<Scalar,Eigen::Dynamic,1> &lastReducedConstraintForce() const = 0;
+#endif
 };
 
 typedef GenPodProjectionSolver<double> PodProjectionSolver;
@@ -50,6 +58,10 @@ public:
   // Reduced matrix assembly
   void addReducedMass(double Mcoef) { Mcoef_ = Mcoef; }
 
+  // Constraint assembly
+  void addLMPCs(int numLMPC, LMPCons **lmpc, double Kcoef) {}
+  void updateLMPCs(GenVector<Scalar> &q) {}
+
   // Solution
   virtual void factor();
   virtual void reSolve(GenVector<Scalar> &rhs);
@@ -58,6 +70,7 @@ public:
   int basisSize() const { return basisSize_; }
   const GenVecBasis<Scalar> &projectionBasis() const { return *projectionBasis_; }
   void projectionBasisIs(const GenVecBasis<Scalar> &); // Passed objects must be kept alive by owner
+  void dualProjectionBasisIs(const GenVecBasis<Scalar> &);
   void EmpiricalSolver();
 #ifdef USE_EIGEN3
   void addToReducedMatrix(const Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> &, double);
@@ -66,6 +79,12 @@ public:
   // Data collection
   const GenVector<Scalar> &lastReducedSolution() const { return reducedSolution_; }
   const GenVecBasis<Scalar> &lastReducedMatrixAction() const { return matrixAction_; }
+#ifdef USE_EIGEN3
+  const Eigen::Matrix<Scalar,Eigen::Dynamic,1> &lastReducedConstraintForce() const {
+    std::cerr << "ERROR: GenDBSparsePodProjectionSolver does not implement lastReducedConstraintForce\n";
+    exit(-1);
+  }
+#endif
 
 protected:
   GenVector<Scalar> &getReducedSolution() { return reducedSolution_; }
@@ -131,6 +150,12 @@ GenDBSparsePodProjectionSolver<Scalar>::projectionBasisIs(const GenVecBasis<Scal
   reducedSolution_.swap(newReducedSolution);
   projectionBasis_ = &reducedBasis;
   basisSize_ = reducedBasis.vectorCount();
+}
+
+template <typename Scalar>
+void
+GenDBSparsePodProjectionSolver<Scalar>::dualProjectionBasisIs(const GenVecBasis<Scalar> &) {
+  throw std::domain_error("Selected solver does not use dual projection basis\n");
 }
 
 template <typename Scalar>

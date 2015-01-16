@@ -115,7 +115,7 @@
 %token USEMASSNORMALIZEDBASIS
 %token SENSITIVITYID NUMTHICKNESSGROUP NUMSHAPEVARIABLE 
 %token QRFACTORIZATION QMATRIX RMATRIX XMATRIX EIGENVALUE
-%token NPMAX SCPKMB SCPKNB SCPKMP SCPKNP
+%token NPMAX BSSPLH PGSPLH
 
 %type <complexFDBC> AxiHD
 %type <complexFNBC> AxiHN
@@ -4810,14 +4810,12 @@ SamplingOption:
   { domain->solInfo().orthogForceSnap = bool($2); }
   | NPMAX Integer
   { domain->solInfo().npMax = $2; }
-  | SCPKMB Integer
-  { domain->solInfo().scpkMB= $2; }
-  | SCPKNB Integer
-  { domain->solInfo().scpkNB= $2; }
-  | SCPKMP Integer
-  { domain->solInfo().scpkMP= $2; }
-  | SCPKNP Integer
-  { domain->solInfo().scpkNP= $2; }
+  | BSSPLH Integer Integer
+  { domain->solInfo().scpkMB= $2;
+    domain->solInfo().scpkNB= $3 }
+  | PGSPLH Integer Integer
+  { domain->solInfo().scpkMP= $2;
+    domain->solInfo().scpkNP= $3; }
   ;
 
 ConwepConfig:

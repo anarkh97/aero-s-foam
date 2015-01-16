@@ -1497,13 +1497,9 @@ TRAIL [a-zA-Z]*
 
 "NPMAX"|"npMax"|"npmax"                   { return NPMAX; }
 
-"SCPKMB"|"scpkMB"|"scpkmb"                { return SCPKMB; }
+"BSSPLH"|"bsSplh"|"bssplh"                { return BSSPLH; }
 
-"SCPKNB"|"scpkNB"|"scpknb"                { return SCPKNB; }
-
-"SCPKMP"|"scpkMP"|"scpkmP"                { return SCPKMP; }
-
-"SCPKNP"|"scpkNP"|"scpknP"                { return SCPKNP; }
+"PGSPLH"|"pgSplh"|"pgsplh"                { return PGSPLH; }
 
 "lh"|"LH"                                 { yylval.ival = 0; return SPNNLSSOLVERTYPE; }
 "nncgp"|"NNCGP"                           { yylval.ival = 1; return SPNNLSSOLVERTYPE; }

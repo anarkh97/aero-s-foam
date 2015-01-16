@@ -92,6 +92,7 @@ Plh::solve() {
     _rnorm2 = residual2Norm();
     writeResidual();
     if (_col_scaling) _x->hadamardProduct(*_colnorms);
+    loadMaxTimes();
     MPI_Barrier(MPI_COMM_WORLD);
     stopTime(TIME_MAIN_LOOP);
     return _nP;

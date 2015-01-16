@@ -231,6 +231,7 @@ class Plh {
         double getTime(int i) { return _wallclock_total[i]; }
         int getEigenProc(int j);
         void wMaskByColNorm();
+        void loadMaxTimes();
 };
 
 #endif // PLH_H_

@@ -163,7 +163,6 @@ Plh::~Plh() {
     delete _x;
     delete _b;
     delete _w;
-    delete _wmask;
     delete _workm;
 
     delete _Q;
@@ -174,6 +173,7 @@ Plh::~Plh() {
     delete _wQR;
     delete _QtoA;
 
+    if (_wmask != NULL) delete _wmask;
     if (_work_qr) delete[] _work_qr;
 
     if (_mypid == 0) {
@@ -521,13 +521,17 @@ Plh::writeSolution(bool compact) {
 
 
 void
-Plh::printTimes(bool debug) {
+Plh::loadMaxTimes() {
     double times_max[N_TIMES];
     MPI_Allreduce(_wallclock_total, times_max, N_TIMES, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
     for (int i=0; i<N_TIMES; i++) {
         _wallclock_total[i] = times_max[i];
     }
+}
 
+
+void
+Plh::printTimes(bool debug) {
     if (debug) {
         double w_maxloc = _w->getMaxTime(SCDBL_TIME_GETMAXLOC);
         double w_max    = _w->getMaxTime(SCDBL_TIME_GETMAX);
@@ -536,48 +540,48 @@ Plh::printTimes(bool debug) {
 
         if (_mypid == 0) {
             std::cout << std::endl;
-            std::cout << "Wallclock Times (seconds):"                                      << std::endl;
-            std::cout << "    gradf            : " << times_max[TIME_GRADF]                << std::endl;
-            std::cout << "    mult gradf       : " << times_max[TIME_MULT_GRADF]           << std::endl;
-            std::cout << "    pdormq gradf     : " << times_max[TIME_PDORMQR_GRADF]        << std::endl;
-            std::cout << "    updateQR         : " << times_max[TIME_UPDATEQR]             << std::endl;
-            std::cout << "    qr               : " << times_max[TIME_PDORMQR]              << std::endl;
-            std::cout << "    copyRedist       : " << times_max[TIME_COPYREDIST]           << std::endl;
-            std::cout << "    copyxQRtox       : " << times_max[TIME_COPYXQRTOX]           << std::endl;
-            std::cout << "    mcopyQtoA        : " << times_max[TIME_MCOPYQTOA]            << std::endl;
-            std::cout << "    updateQtb        : " << times_max[TIME_UPDATEQTB]            << std::endl;
-            std::cout << "    updateX          : " << times_max[TIME_UPDATEX]              << std::endl;
-            std::cout << "    SolveR           : " << times_max[TIME_SOLVER]               << std::endl;
-            std::cout << "    pdtrsv           : " << times_max[TIME_PDTRSV]               << std::endl;
-            std::cout << "    moveFromPToZ     : " << times_max[TIME_MOVEFROMPTOZ]         << std::endl;
-            std::cout << "    initnnls         : " << times_max[TIME_INIT_NNLS]            << std::endl;
-            std::cout << "    writeResidual    : " << times_max[TIME_WRITE_RESIDUAL]       << std::endl;
-            std::cout << "    LD Check         : " << times_max[TIME_LDCHECK]              << std::endl;
-            std::cout << "    PZ Check         : " << times_max[TIME_PZCHECK]              << std::endl;
-            std::cout << "    nextVector       : " << times_max[TIME_NEXT_VECTOR]          << std::endl;
-            std::cout << "    rejectVector     : " << times_max[TIME_REJECT_VECTOR]        << std::endl;
-            std::cout << "    getMax           : " << times_max[TIME_GETMAX]               << std::endl;
-            std::cout << "    _w MaxLoc        : " << w_maxloc                             << std::endl;
-            std::cout << "    _w Max           : " << w_max                                << std::endl;
-            std::cout << "    _zQR MinLoc      : " << z_minloc                             << std::endl;
-            std::cout << "    _zQR Min         : " << z_min                                << std::endl;
-            std::cout << "    loadMatrix       : " << times_max[TIME_LOADMATRIX]           << std::endl;
-            std::cout << "    loadRhs          : " << times_max[TIME_LOADRHS]              << std::endl;
-            std::cout << "    get x Eigen      : " << times_max[TIME_GET_SOLUTION]         << std::endl;
-            std::cout << "    Column Scaling   : " << times_max[TIME_COLUMNSCALING]        << std::endl;
-            std::cout << "    Down Date        : " << times_max[TIME_DOWNDATE]             << std::endl;
-            std::cout << "    Loop Total       : " << times_max[TIME_MAIN_LOOP]            << std::endl;
+            std::cout << "Wallclock Times (seconds):"                                             << std::endl;
+            std::cout << "    gradf            : " << _wallclock_total[TIME_GRADF]                << std::endl;
+            std::cout << "    mult gradf       : " << _wallclock_total[TIME_MULT_GRADF]           << std::endl;
+            std::cout << "    pdormq gradf     : " << _wallclock_total[TIME_PDORMQR_GRADF]        << std::endl;
+            std::cout << "    updateQR         : " << _wallclock_total[TIME_UPDATEQR]             << std::endl;
+            std::cout << "    qr               : " << _wallclock_total[TIME_PDORMQR]              << std::endl;
+            std::cout << "    copyRedist       : " << _wallclock_total[TIME_COPYREDIST]           << std::endl;
+            std::cout << "    copyxQRtox       : " << _wallclock_total[TIME_COPYXQRTOX]           << std::endl;
+            std::cout << "    mcopyQtoA        : " << _wallclock_total[TIME_MCOPYQTOA]            << std::endl;
+            std::cout << "    updateQtb        : " << _wallclock_total[TIME_UPDATEQTB]            << std::endl;
+            std::cout << "    updateX          : " << _wallclock_total[TIME_UPDATEX]              << std::endl;
+            std::cout << "    SolveR           : " << _wallclock_total[TIME_SOLVER]               << std::endl;
+            std::cout << "    pdtrsv           : " << _wallclock_total[TIME_PDTRSV]               << std::endl;
+            std::cout << "    moveFromPToZ     : " << _wallclock_total[TIME_MOVEFROMPTOZ]         << std::endl;
+            std::cout << "    initnnls         : " << _wallclock_total[TIME_INIT_NNLS]            << std::endl;
+            std::cout << "    writeResidual    : " << _wallclock_total[TIME_WRITE_RESIDUAL]       << std::endl;
+            std::cout << "    LD Check         : " << _wallclock_total[TIME_LDCHECK]              << std::endl;
+            std::cout << "    PZ Check         : " << _wallclock_total[TIME_PZCHECK]              << std::endl;
+            std::cout << "    nextVector       : " << _wallclock_total[TIME_NEXT_VECTOR]          << std::endl;
+            std::cout << "    rejectVector     : " << _wallclock_total[TIME_REJECT_VECTOR]        << std::endl;
+            std::cout << "    getMax           : " << _wallclock_total[TIME_GETMAX]               << std::endl;
+            std::cout << "    _w MaxLoc        : " << w_maxloc                                    << std::endl;
+            std::cout << "    _w Max           : " << w_max                                       << std::endl;
+            std::cout << "    _zQR MinLoc      : " << z_minloc                                    << std::endl;
+            std::cout << "    _zQR Min         : " << z_min                                       << std::endl;
+            std::cout << "    loadMatrix       : " << _wallclock_total[TIME_LOADMATRIX]           << std::endl;
+            std::cout << "    loadRhs          : " << _wallclock_total[TIME_LOADRHS]              << std::endl;
+            std::cout << "    get x Eigen      : " << _wallclock_total[TIME_GET_SOLUTION]         << std::endl;
+            std::cout << "    Column Scaling   : " << _wallclock_total[TIME_COLUMNSCALING]        << std::endl;
+            std::cout << "    Down Date        : " << _wallclock_total[TIME_DOWNDATE]             << std::endl;
+            std::cout << "    Loop Total       : " << _wallclock_total[TIME_MAIN_LOOP]            << std::endl;
         }
     } else {
         if (_mypid == 0) {
             std::cout << std::endl;
-            std::cout << "Wallclock Times (seconds):"                               << std::endl;
-            std::cout << "    Solver            : " << times_max[TIME_MAIN_LOOP]    << std::endl;
-            std::cout << "        gradf         : " << times_max[TIME_GRADF]        << std::endl;
-            std::cout << "        QR            : " << times_max[TIME_UPDATEQR]     << std::endl;
-            std::cout << "        Down Date     : " << times_max[TIME_DOWNDATE]     << std::endl;
-            std::cout << "    Column Scaling    : " << times_max[TIME_COLUMNSCALING]<< std::endl;
-            std::cout << "    Distribute Matrix : " << times_max[TIME_LOADMATRIX]   << std::endl;
+            std::cout << "Wallclock Times (seconds):"                                             << std::endl;
+            std::cout << "    Solver            : " << _wallclock_total[TIME_MAIN_LOOP]           << std::endl;
+            std::cout << "        gradf         : " << _wallclock_total[TIME_GRADF]               << std::endl;
+            std::cout << "        QR            : " << _wallclock_total[TIME_UPDATEQR]            << std::endl;
+            std::cout << "        Down Date     : " << _wallclock_total[TIME_DOWNDATE]            << std::endl;
+            std::cout << "    Column Scaling    : " << _wallclock_total[TIME_COLUMNSCALING]       << std::endl;
+            std::cout << "    Distribute Matrix : " << _wallclock_total[TIME_LOADMATRIX]          << std::endl;
         }
     }
 }

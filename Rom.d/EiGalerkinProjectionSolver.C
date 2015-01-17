@@ -12,7 +12,7 @@ namespace Rom {
 
 template <typename Scalar>
 GenEiSparseGalerkinProjectionSolver<Scalar>::GenEiSparseGalerkinProjectionSolver(Connectivity *cn,
-                                                   DofSetArray *dsa, ConstrainedDSA *c_dsa, bool selfadjoint):
+                                                   DofSetArray *dsa, ConstrainedDSA *c_dsa, bool selfadjoint, double tol):
   GenEiSparseMatrix<Scalar>(cn, dsa, c_dsa, selfadjoint), 
   cdsa_(c_dsa),
   basisSize_(0), 
@@ -20,7 +20,8 @@ GenEiSparseGalerkinProjectionSolver<Scalar>::GenEiSparseGalerkinProjectionSolver
   projectionBasis_(NULL), 
   dualProjectionBasis_(NULL),
   Empirical(false),
-  selfadjoint_(selfadjoint)
+  selfadjoint_(selfadjoint),
+  tol_(tol)
 {
 }
 
@@ -50,6 +51,8 @@ template <typename Scalar>
 void
 GenEiSparseGalerkinProjectionSolver<Scalar>::addLMPCs(int numLMPC, LMPCons **lmpc, double Kcoef)
 {
+  if(numLMPC > 0 && !selfadjoint_) { std::cerr << "Error: unsymmetric solver is not supported for contact ROM\n"; exit(-1); }
+
   std::vector<Eigen::Triplet<Scalar> > tripletList;
 
   Eigen::SparseMatrix<Scalar> C(numLMPC, cdsa_->size());
@@ -144,9 +147,9 @@ GenEiSparseGalerkinProjectionSolver<Scalar>::reSolve(GenVector<Scalar> &rhs)
 #ifdef SPARSE_G
     Eigen::SparseMatrix<Scalar> G = reducedMatrix_.transpose().sparseView();
     Scalar c1 = reducedMatrix_.trace();
-    solve_quadprog(G, c1, g0, CE, ce0, CI, reducedConstraintRhs_, _x, &Lambda, &Mu, 1e-6);
+    solve_quadprog(G, c1, g0, CE, ce0, CI, reducedConstraintRhs_, _x, &Lambda, &Mu, tol_);
 #else
-    solve_quadprog2(llt_, c1_, g0, CE, ce0, CI, reducedConstraintRhs_, _x, &Lambda, &Mu, 1e-6);
+    solve_quadprog2(llt_, c1_, g0, CE, ce0, CI, reducedConstraintRhs_, _x, &Lambda, &Mu, tol_);
 #endif
     x = _x;
     reducedConstraintForce_ = reducedConstraintMatrix_.transpose()*Mu;
@@ -167,9 +170,9 @@ GenEiSparseGalerkinProjectionSolver<Scalar>::solve(GenVector<Scalar> &rhs, GenVe
 #ifdef SPARSE_G
     Eigen::SparseMatrix<Scalar> G = reducedMatrix_.transpose().sparseView();
     Scalar c1 = reducedMatrix_.trace();
-    solve_quadprog(G, c1, g0, CE, ce0, CI, reducedConstraintRhs_, _x, &Lambda, &Mu, 1e-6);
+    solve_quadprog(G, c1, g0, CE, ce0, CI, reducedConstraintRhs_, _x, &Lambda, &Mu, tol_);
 #else
-    solve_quadprog2(llt_, c1_, g0, CE, ce0, CI, reducedConstraintRhs_, _x, &Lambda, &Mu, 1e-6);
+    solve_quadprog2(llt_, c1_, g0, CE, ce0, CI, reducedConstraintRhs_, _x, &Lambda, &Mu, tol_);
 #endif
     x = _x;
     reducedConstraintForce_ = reducedConstraintMatrix_.transpose()*Mu;

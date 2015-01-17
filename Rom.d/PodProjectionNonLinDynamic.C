@@ -9,6 +9,7 @@
 #include "VecBasisFile.h"
 
 #include "BasisOps.h"
+#include "VecBasisOps.h"
 #include "PodProjectionSolver.h"
 
 #include <Driver.d/Domain.h>
@@ -605,6 +606,11 @@ PodProjectionNonLinDynamic::preProcess() {
   GenVecBasis<double> &projectionBasis = const_cast<GenVecBasis<double> &>(dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis());
   podPostPro->printPODSize(projectionBasis.numVectors());
   podPostPro->makeSensorBasis(&projectionBasis);
+
+  if(domain->solInfo().getNLInfo().linearelastic) {
+    calculateReducedStiffness(*K, projectionBasis, K_reduced);
+    delete K; K = 0;
+  }
 }
 
 const PodProjectionSolver *
@@ -953,21 +959,27 @@ double
 PodProjectionNonLinDynamic::getStiffAndForce(ModalGeomState &geomState, Vector &residual,
                                              Vector &elementInternalForce, double t, ModalGeomState *refState, bool forceOnly)
 {
-  Vector q_Big(NonLinDynamic::solVecInfo()),
-         residual_Big(NonLinDynamic::solVecInfo(), 0.0);
-  const GenVecBasis<double> &projectionBasis = dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis();
-  projectionBasis.expand(geomState.q, q_Big);
-  geomState_Big->explicitUpdate(domain->getNodes(), q_Big);
+  Vector r(solVecInfo());
+  if(domain->solInfo().getNLInfo().linearelastic && domain->getFollowedElemList().empty()) {
+    K_reduced.mult(geomState.q, r);
+    residual -= r;
+  }
+  else {
+    Vector q_Big(NonLinDynamic::solVecInfo()),
+           residual_Big(NonLinDynamic::solVecInfo(), 0.0);
+    const GenVecBasis<double> &projectionBasis = dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis();
+    projectionBasis.expand(geomState.q, q_Big);
+    geomState_Big->explicitUpdate(domain->getNodes(), q_Big);
 
-  NonLinDynamic::getStiffAndForce(*geomState_Big, residual_Big, elementInternalForce, t, refState_Big, forceOnly);
+    NonLinDynamic::getStiffAndForce(*geomState_Big, residual_Big, elementInternalForce, t, refState_Big, forceOnly);
+
+    projectionBasis.reduce(residual_Big, r);
+    residual += r;
+  }
+
 #ifdef USE_EIGEN3
   dynamic_cast<PodProjectionSolver*>(solver)->updateLMPCs(geomState.q);
 #endif
-
-  Vector r(solVecInfo());
-
-  projectionBasis.reduce(residual_Big, r);
-  residual += r;
 
   return residual.norm();
 }

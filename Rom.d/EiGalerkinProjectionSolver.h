@@ -13,7 +13,7 @@ namespace Rom {
 template <typename Scalar>
 class GenEiSparseGalerkinProjectionSolver : public GenPodProjectionSolver<Scalar>, public GenEiSparseMatrix<Scalar> {
 public:
-  GenEiSparseGalerkinProjectionSolver(Connectivity *cn, DofSetArray *dsa, ConstrainedDSA *c_dsa, bool = true);
+  GenEiSparseGalerkinProjectionSolver(Connectivity *cn, DofSetArray *dsa, ConstrainedDSA *c_dsa, bool = true, double tol = 1e-6);
 
   using GenEiSparseMatrix<Scalar>::neqs;
 
@@ -58,6 +58,7 @@ private:
   bool selfadjoint_;
   bool Empirical;
   int basisSize_, dualBasisSize_;
+  double tol_; // convergence tolerance used by QP solver for contact
   Scalar c1_; // trace of reducedConstraintMatrix_
   const GenVecBasis<Scalar> *projectionBasis_, *dualProjectionBasis_;
   Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> reducedMatrix_, reducedConstraintMatrix_;

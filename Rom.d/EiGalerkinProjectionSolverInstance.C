@@ -5,11 +5,11 @@ namespace Rom {
 
 template
 GenEiSparseGalerkinProjectionSolver<double>
-::GenEiSparseGalerkinProjectionSolver(Connectivity*, DofSetArray*, ConstrainedDSA*, bool);
+::GenEiSparseGalerkinProjectionSolver(Connectivity*, DofSetArray*, ConstrainedDSA*, bool, double);
 
 template
 GenEiSparseGalerkinProjectionSolver<complex<double> >
-::GenEiSparseGalerkinProjectionSolver(Connectivity*, DofSetArray*, ConstrainedDSA*, bool);
+::GenEiSparseGalerkinProjectionSolver(Connectivity*, DofSetArray*, ConstrainedDSA*, bool, double);
 
 template
 void

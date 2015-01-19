@@ -62,7 +62,7 @@ public:
 
   ModalOps* buildOps(double kcoef, double ccoef, double mcoef);
 
-  void computeStabilityTimeStep(double &dt, ModalOps &){ /* leave blank */ }
+  void computeStabilityTimeStep(double &dt, ModalOps &);
   void updateState(double, Vector &, Vector &){ /* leave blank */ }
   void push_forward(Vector &){ /* leave blank */ }
   void pull_back(Vector &){ /* leave blank */ }

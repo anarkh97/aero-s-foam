@@ -24,6 +24,7 @@
 #include <Driver.d/ControlLawInfo.h>
 #include <Mortar.d/MortarDriver.d/MortarHandler.h>
 #include <Utils.d/DistHelper.h>
+#include <Problems.d/ModalBase.h>
 
 extern ModeData modeData; 
 extern int verboseFlag;
@@ -1280,8 +1281,9 @@ Domain::thermoePreProcess()
 ** by power method.
 */
 
+template<typename DynamMatType>
 double
-Domain::computeStabilityTimeStep(DynamMat& dMat)
+Domain::computeStabilityTimeStep(DynamMatType& dMat)
 {
       using std::abs;
       using std::sqrt;
@@ -1332,6 +1334,8 @@ Domain::computeStabilityTimeStep(DynamMat& dMat)
       return sinfo.stable_cfl*sdt;
 }
 
+template double Domain::computeStabilityTimeStep(DynamMat& dMat);
+template double Domain::computeStabilityTimeStep(ModalOps& dMat);
 
 double Domain::computeStabilityTimeStepROM(GenFullSquareMatrix<double>& K_red)
 {

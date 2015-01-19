@@ -884,7 +884,8 @@ class Domain : public HData {
 
      int  probType() { return sinfo.probType; }
 
-     double computeStabilityTimeStep(DynamMat&);
+     template<typename DynamMatType>
+       double computeStabilityTimeStep(DynamMatType&);
      double computeStabilityTimeStepROM(GenFullSquareMatrix<double>&);
      double computeStabilityTimeStep(FullSquareMatrix *kelArray, FullSquareMatrix *melArray, GeomState *geomState, int &eid);
 

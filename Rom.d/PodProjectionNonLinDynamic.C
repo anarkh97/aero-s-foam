@@ -610,6 +610,21 @@ PodProjectionNonLinDynamic::preProcess() {
   if(domain->solInfo().getNLInfo().linearelastic) {
     calculateReducedStiffness(*K, projectionBasis, K_reduced);
     delete K; K = 0;
+
+    // calculate the reduced time-dependent forces (default loadset only) TODO add support for multiple loadsets
+    Vector forceFull(NonLinDynamic::solVecInfo(), 0.0);
+    domain->computeUnamplifiedExtForce(forceFull, 0);
+    if(forceFull.norm() != 0) {
+      Vector forceRed(projectionBasis.numVectors());
+      reduce(projectionBasis, forceFull, forceRed);
+      BCond *nbcModal = new BCond[projectionBasis.numVectors()];
+      for(int i=0; i<projectionBasis.numVectors(); ++i) {
+        nbcModal[i].setData(i, -1, forceRed[i], BCond::Undefined, 0);
+      }
+      int numNeumanModal = domain->nNeumannModal();
+      domain->setNeumanModal(projectionBasis.numVectors(), nbcModal);
+      if(numNeumanModal) delete [] nbcModal;
+    }
   }
 }
 
@@ -938,21 +953,23 @@ PodProjectionNonLinDynamic::copyGeomState(ModalGeomState *geomState)
 void
 PodProjectionNonLinDynamic::updateStates(ModalGeomState *refState, ModalGeomState &geomState, double time)
 {
-  // updateStates is called after midpoint update (i.e. once per timestep)
-  // so it is a convenient place to update and copy geomState_Big
-  Vector q_Big(NonLinDynamic::solVecInfo()),
-         vel_Big(NonLinDynamic::solVecInfo()),
-         acc_Big(NonLinDynamic::solVecInfo());
-  const GenVecBasis<double> &projectionBasis = dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis();
-  projectionBasis.expand(geomState.q, q_Big);
-  geomState_Big->explicitUpdate(domain->getNodes(), q_Big);
-  projectionBasis.expand(geomState.vel, vel_Big);
-  geomState_Big->setVelocity(vel_Big);
-  projectionBasis.expand(geomState.acc, acc_Big);
-  geomState_Big->setAcceleration(acc_Big);
+  if(geomState_Big->getTotalNumElemStates() > 0) {
+    // updateStates is called after midpoint update (i.e. once per timestep)
+    // so it is a convenient place to update and copy geomState_Big
+    Vector q_Big(NonLinDynamic::solVecInfo()),
+           vel_Big(NonLinDynamic::solVecInfo()),
+           acc_Big(NonLinDynamic::solVecInfo());
+    const GenVecBasis<double> &projectionBasis = dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis();
+    projectionBasis.expand(geomState.q, q_Big);
+    geomState_Big->explicitUpdate(domain->getNodes(), q_Big);
+    projectionBasis.expand(geomState.vel, vel_Big);
+    geomState_Big->setVelocity(vel_Big);
+    projectionBasis.expand(geomState.acc, acc_Big);
+    geomState_Big->setAcceleration(acc_Big);
 
-  domain->updateStates(refState_Big, *geomState_Big, allCorot, time);
-  *refState_Big = *geomState_Big;
+    domain->updateStates(refState_Big, *geomState_Big, allCorot, time);
+    *refState_Big = *geomState_Big;
+  }
 }
 
 double

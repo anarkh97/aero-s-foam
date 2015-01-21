@@ -26,6 +26,7 @@
 #include <vector>
 #include <queue>
 #include <limits>
+#include <algorithm>
 #include <Sfem.d/Sfem.h>
 #ifdef USE_EIGEN3
 #include <Math.d/rref.h>
@@ -43,6 +44,7 @@ extern ModeData modeData;
 extern bool estFlag;
 extern bool weightOutFlag;
 extern bool trivialFlag;
+extern bool randomShuffle;
 extern int verboseFlag;
 #ifndef SALINAS
 extern Sfem *sfem;
@@ -4058,6 +4060,8 @@ GeoSource::simpleDecomposition(int numSubdomains, bool estFlag, bool weightOutFl
    int k = 0;
    for(int i=0; i<maxEle; i++)
      if(elemSet[i]) optDec->eln[k++] = i;
+
+   if(randomShuffle) std::random_shuffle(optDec->eln, optDec->eln+k);
 
    if(verboseFlag)
      filePrint(stderr, " ... %d Elements Have Been Arranged in %d Subdomains ...\n",

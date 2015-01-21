@@ -111,6 +111,7 @@ bool weightOutFlag=false;
 bool nosa=false;
 bool useFull=false;
 bool trivialFlag=false;
+bool randomShuffle=false;
 bool fsglFlag = false;
 
 int verboseFlag = 0;

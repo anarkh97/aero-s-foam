@@ -22,6 +22,7 @@
  extern std::string subdomains_;
  extern std::string decomposition_;
  extern std::string connectivity_;
+ extern bool randomShuffle;
 %}
 
 %union
@@ -636,6 +637,8 @@ Decompose :
          {decInit->nosa = true; }
        | Decompose TRIVIAL NewLine
          {decInit->trivial = true; }
+       | Decompose TRIVIAL Integer NewLine
+         {decInit->trivial = true; randomShuffle = bool($3); }
        | Decompose FSGL NewLine
          {decInit->fsgl = true; }
        ;

@@ -1,0 +1,129 @@
+#include "PositiveDualBasisDriver.h"
+
+#include "NonnegativeMatrixFactorization.h"
+#include "VecNodeDof6Conversion.h"
+#include "BasisFileStream.h"
+#include "FileNameInfo.h"
+#include "SimpleBuffer.h"
+
+#include <Driver.d/Domain.h>
+#include <Driver.d/GeoSource.h>
+#include <Utils.d/dofset.h>
+#include <Utils.d/DistHelper.h>
+
+#include <utility>
+#include <algorithm>
+
+extern GeoSource *geoSource;
+extern int verboseFlag;
+
+namespace Rom {
+
+PositiveDualBasisDriver::PositiveDualBasisDriver(Domain *domain) :
+  SingleDomainDynamic(domain)
+{}
+
+//Non-member functions
+//====================
+void readIntoSolver(NonnegativeMatrixFactorization &solver, VecNodeDof1Conversion &converter, BasisId::Level fileType,
+                    int numEntries, int vectorSize, BasisId::Type type, int &colCounter, int skipTime=1)
+{
+  FileNameInfo fileInfo; 
+  for(int i = 0 ; i < numEntries; i++) {
+    std::string fileName = BasisFileId(fileInfo, type, fileType, i);
+    BasisInputStream<1> input(fileName, converter);
+    filePrint(stderr, " ... Reading in Snapshot file: %s ...\n", fileName.c_str());
+    int skip = 1;
+    for (int iCol = 0; iCol < input.size(); ++iCol) {
+      if(skip == skipTime) {
+        double *buffer = solver.matrixCol(colCounter);
+        input >> buffer;
+        assert(input);
+        colCounter++;
+        skip = 1;
+      } 
+      else {
+        SimpleBuffer<double> dummyVec;
+        dummyVec.sizeIs(input.vectorSize());  
+        double *dummyBuffer = dummyVec.array();
+        input >> dummyBuffer;
+        assert(input);
+        ++skip;
+      }
+    }
+  }
+}
+
+//Member functions
+//====================
+
+void
+PositiveDualBasisDriver::solve() {
+  SingleDomainDynamic::preProcess();
+  VecNodeDof1Conversion converter(domain->getNumLMPC());
+  FileNameInfo fileInfo;
+  NonnegativeMatrixFactorization solver(domain->solInfo().maxSizePodRom);
+  solver.maxIterIs(domain->solInfo().nmfMaxIter);
+  solver.toleranceIs(domain->solInfo().nmfTol);
+
+  std::vector<BasisId::Type> workload;
+  workload.push_back(BasisId::DUALSTATE);
+
+  int vectorSize = 0; // size of vectors
+  int sizeSnap = 0; // number of state snapshots
+  int skipTime = domain->solInfo().skipPodRom;
+  if(domain->solInfo().snapfiPodRom.empty() && domain->solInfo().robfi.empty()) {
+    std::cerr << "*** ERROR: no files provided\n";
+    exit(-1);
+  }
+ 
+  for (std::vector<BasisId::Type>::const_iterator it = workload.begin(); it != workload.end(); ++it) {
+    BasisId::Type type = *it;
+    // Loop over snapshots
+    for(int i = 0; i < domain->solInfo().snapfiPodRom.size(); i++) {
+      std::string fileName = BasisFileId(fileInfo, type, BasisId::SNAPSHOTS, i);
+      BasisInputStream<1> input(fileName, converter);
+      vectorSize = input.vectorSize();
+      sizeSnap += input.size()/skipTime;
+    }
+  }
+  solver.matrixSizeIs(vectorSize, sizeSnap);
+
+  for (std::vector<BasisId::Type>::const_iterator it = workload.begin(); it != workload.end(); ++it) {
+    BasisId::Type type = *it;
+    filePrint(stderr, " ... Computation of a positive basis of size %d ...\n", domain->solInfo().maxSizePodRom);
+    int colCounter = 0;
+    readIntoSolver(solver, converter, BasisId::SNAPSHOTS, domain->solInfo().snapfiPodRom.size(), vectorSize, type, colCounter, skipTime); // read in snapshots
+    
+    solver.solve();
+
+    BasisOutputStream<1> output(BasisFileId(fileInfo, type, BasisId::POD), converter, false); 
+
+    const int orthoBasisDim = domain->solInfo().maxSizePodRom;
+
+    // Output solution
+    filePrint(stderr, " ... Writing positive basis to file %s ...\n", BasisFileId(fileInfo, type, BasisId::POD).name().c_str());
+    for (int iVec = 0; iVec < orthoBasisDim; ++iVec) {
+      output << std::make_pair(1.0, solver.matrixCol(iVec));
+    }
+  }
+}
+
+void
+PositiveDualBasisDriver::preProcess() {
+  domain->preProcessing();
+ 
+  // Build the constrained DofSetArray incorporating the boundary conditions 
+  const int numdof = domain->numdof();
+  SimpleBuffer<int> bc(numdof);
+  SimpleBuffer<double> bcx(numdof);
+
+  domain->make_bc(bc.array(), bcx.array());
+  domain->make_constrainedDSA(bc.array());
+}
+
+} /* end namespace Rom */
+
+Rom::DriverInterface *positiveDualBasisDriverNew(Domain *domain) {
+  return new Rom::PositiveDualBasisDriver(domain);
+}

@@ -13,6 +13,7 @@
 #  HAS_CXX11_SIZEOF_MEMBER      - sizeof() non-static members
 #  HAS_CXX11_FUNC               - __func__ preprocessor constant
 #  HAS_CXX11_TEMPLATE_ALIAS     - template alias
+#  HAS_CXX11_ALL_OF             - all_of standard library function
 #
 # Original script by Rolf Eike Beer
 # Modifications by Andreas Weis
@@ -94,6 +95,7 @@ CXX11_CHECK_FEATURE("constexpr"          2235 HAS_CXX11_CONSTEXPR)
 CXX11_CHECK_FEATURE("sizeof_member"      2253 HAS_CXX11_SIZEOF_MEMBER)
 CXX11_CHECK_FEATURE("__func__"           2340 HAS_CXX11_FUNC)
 CXX11_CHECK_FEATURE("template_alias"     2258 HAS_CXX11_TEMPLATE_ALIAS)
+CXX11_CHECK_FEATURE("all_of"             ""   HAS_CXX11_ALL_OF)
 
 SET(CXX11_FEATURE_LIST ${CXX11_FEATURE_LIST} CACHE STRING "C++11 feature support list")
 MARK_AS_ADVANCED(FORCE CXX11_FEATURE_LIST)

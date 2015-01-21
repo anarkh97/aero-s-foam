@@ -185,7 +185,7 @@ void readAndProjectSnapshots(BasisId::Type type, const int vectorSize, VecBasis 
   for(int i = 0; i < FileNameInfo::size(type, BasisId::SNAPSHOTS); i++) {
     std::string fileName = BasisFileId(fileInfo, type, BasisId::SNAPSHOTS, i);
     filePrint(stderr, " ... Processing File: %s ...\n", fileName.c_str());
-    BasisInputStream in(fileName, vecDofConversion);
+    BasisInputStream<6> in(fileName, vecDofConversion);
 
     double s0 = -getTime(), s1 = -51, s2 = 0;
     int count = 0;
@@ -556,7 +556,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::postProcess(Vector &solution, 
     if(domain_->solInfo().newmarkBeta == 0 || domain_->solInfo().useMassNormalizedBasis) filename.append(".normalized");
     filePrint(stderr," ... Writing compressed basis to file %s ...\n", filename.c_str());
     VecNodeDof6Conversion converter(reduced_cdsa);
-    BasisOutputStream output(filename, converter, false);
+    BasisOutputStream<6> output(filename, converter, false);
 
     for (int iVec = 0; iVec < podBasis_.vectorCount(); ++iVec) {
       output << podBasis_.compressedBasis().col(iVec);
@@ -596,7 +596,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcess()
   {
     std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
     if(domain_->solInfo().useMassOrthogonalProjection) fileName.append(".normalized");
-    BasisInputStream in(fileName, vecDofConversion);
+    BasisInputStream<6> in(fileName, vecDofConversion);
     const int podSizeMax = domain_->solInfo().maxSizePodRom;
     if (podSizeMax != 0) {
       readVectors(in, podBasis_, podSizeMax);
@@ -648,7 +648,7 @@ ElementSamplingDriver<MatrixBufferType,SizeType>::preProcess()
      && !domain_->solInfo().useMassOrthogonalProjection) {
     std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
     fileName.append(".normalized");
-    BasisInputStream in(fileName, vecDofConversion);
+    BasisInputStream<6> in(fileName, vecDofConversion);
     const int podSizeMax = domain_->solInfo().maxSizePodRom;
     if(podSizeMax != 0) {
       readVectors(in, podBasis_, podSizeMax);

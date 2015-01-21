@@ -122,7 +122,7 @@ struct SolverInfo {
    enum { Newmark, Qstatic };
 
    // Parameters for PITA
-   bool activatePita; 	       // Enables PITA (both linear and nonlinear problems)
+   bool activatePita;                // Enables PITA (both linear and nonlinear problems)
    bool mdPita;                // Enables time-space parallelism (linear problem only)
    bool pitaNoForce;           // Enables NoForce optimization (linear problem only)
    int pitaTimeGridRatio;      // Coarse/fine time-grid ratio (always required)  
@@ -183,6 +183,7 @@ struct SolverInfo {
    int steadyMin;       // minimum number of steps in steady state simulation
    int steadyMax;       // maximum number of steps in steady state simulation
    double steadyTol;    // steady state criteria
+   double sensitivityTol;    // Sensitivity analysis tolerance
    double qsBeta;       // relaxation parameter for computing alphaR in case of
                         // thermal quasistatic
    bool no_secondary;
@@ -341,6 +342,7 @@ struct SolverInfo {
    std::vector<std::string> robfi;
    std::vector<double> snapshotWeights;
    const char * readInROBorModes;
+   const char * readInDualROB;
    const char * readInModes;
    const char * SVDoutput;
    const char * reducedMeshFile;
@@ -350,6 +352,7 @@ struct SolverInfo {
    std::vector<std::string> velocPodRomFile;
    std::vector<std::string> accelPodRomFile;
    const char * isvPodRomFile;
+   const char * dsvPodRomFile;
    const char * forcePodRomFile;
    const char * residualPodRomFile;
    const char * jacobianPodRomFile;
@@ -358,6 +361,7 @@ struct SolverInfo {
    bool velocvectPodRom;
    bool accelvectPodRom;
    bool isvPodRom;
+   bool dsvPodRom;
    bool forcevectPodRom;
    bool residvectPodRom;
    bool jacobvectPodRom;
@@ -369,6 +373,9 @@ struct SolverInfo {
    bool checkPodRom;
    bool svdPodRom;
    int  svdBlockSize;
+   bool use_nmf;
+   int  nmfMaxIter;
+   double nmfTol;
    bool DEIMBasisPod;
    bool UDEIMBasisPod;
    bool ReducedStiffness;
@@ -383,12 +390,13 @@ struct SolverInfo {
    bool elemLumpPodRom;
    bool onlineSvdPodRom;
    int  maxSizePodRom;
+   int  maxSizeDualBasis;
    int  maxDeimBasisSize;
    bool selectFullNode;
    bool selectFullElem;
    int  forcePodSize;
    int  normalize;
-   bool substractRefPodRom;
+   bool subtractRefPodRom;
    bool useScalingSpnnls;
    bool projectSolution;
    bool positiveElements;
@@ -402,6 +410,7 @@ struct SolverInfo {
    int  skipVeloc;
    int  skipAccel;
    int  skipInternalStateVar;
+   int  skipDualStateVar;
    int  skipForce;
    int  skipResidual;
    int  skipJacobian;
@@ -450,7 +459,7 @@ struct SolverInfo {
  
                   // Parameters for sensitivity
                   sensitivity = false;
-		 
+                 
                   // Parameters for PITA 
                   activatePita = false;
                   mdPita = false;
@@ -483,6 +492,7 @@ struct SolverInfo {
                   steadyMin = 1;
                   steadyMax = 10;
                   steadyTol = 1.0e-3; 
+                  sensitivityTol = 1.0e-5; 
                   qsMaxvel = 1.0;
                   qsBeta = 1.0;
                   delta = 0.0;
@@ -492,7 +502,7 @@ struct SolverInfo {
                   trbm2 = 1.0E-16;  // default zero pivot tolerance
                   tolsvd = 1.0E-6;  // default singular value tolerance
                   massFlag = 0;     // whether to calculate total structure mass
-				  
+                                  
                   ATDARBFlag = -2.0;
                   ATDDNBVal = 0.0;
                   ATDROBVal = 0.0;
@@ -649,68 +659,76 @@ struct SolverInfo {
                   constraint_hess_eps = 0;
 
                   numSnap            = 1;
-		  readInROBorModes   = "";
+                  readInROBorModes   = "";
+                  readInDualROB      = "";
                   readInModes        = "";
                   readInShapeSen     = "";
-		  SVDoutput          = "pod.rob";
-		  reducedMeshFile    = "";
+                  SVDoutput          = "pod.rob";
+                  reducedMeshFile    = "";
                   isvPodRomFile      = "";
-		  forcePodRomFile    = "";
-		  residualPodRomFile = "";
-		  jacobianPodRomFile = "";
-		  ROMPostProcess     = false;
-		  statevectPodRom    = false;
+                  dsvPodRomFile      = "";
+                  forcePodRomFile    = "";
+                  residualPodRomFile = "";
+                  jacobianPodRomFile = "";
+                  ROMPostProcess     = false;
+                  statevectPodRom    = false;
                   velocvectPodRom    = false;
-		  accelvectPodRom    = false;
+                  accelvectPodRom    = false;
                   isvPodRom          = false;
-		  forcevectPodRom    = false;
-		  residvectPodRom    = false;
-		  jacobvectPodRom    = false;
-		  readmodeCalled     = false;
-		  modalCalled        = false;
-		  readShapeSen       = false;
+                  dsvPodRom          = false;
+                  forcevectPodRom    = false;
+                  residvectPodRom    = false;
+                  jacobvectPodRom    = false;
+                  readmodeCalled     = false;
+                  modalCalled        = false;
+                  readShapeSen       = false;
                   activatePodRom     = false;
                   snapshotsPodRom    = false;
                   checkPodRom        = false;
                   svdPodRom          = false;
                   DEIMBasisPod       = false;
-                  UDEIMBasisPod	     = false;
-		  ReducedStiffness   = false;
+                  UDEIMBasisPod      = false;
+                  ReducedStiffness   = false;
                   computeForceSnap   = false;
-		  orthogForceSnap    = false;
+                  orthogForceSnap    = false;
                   computeDEIMIndices = false;
                   DEIMPodRom         = false;
                   UDEIMPodRom        = false;
                   svdBlockSize       = 64;
+                  use_nmf            = false;
+                  nmfMaxIter         = 100;
+                  nmfTol             = 1e-6;
                   samplingPodRom     = false;
                   snapProjPodRom     = false;
                   galerkinPodRom     = false;
                   elemLumpPodRom     = false;
                   onlineSvdPodRom    = false;
                   maxSizePodRom      = 0;
-		  maxDeimBasisSize   = 0;
+                  maxSizeDualBasis   = 0;
+                  maxDeimBasisSize   = 0;
                   selectFullNode     = false;
-		  selectFullElem     = false;
-                  forcePodSize	     = 0;
-		  normalize          = 1;
-                  substractRefPodRom = false;
+                  selectFullElem     = false;
+                  forcePodSize       = 0;
+                  normalize          = 1;
+                  subtractRefPodRom  = false;
                   useScalingSpnnls   = true;
                   projectSolution    = false;
-		  positiveElements   = true;
+                  positiveElements   = true;
                   maxSizeSpnnls      = 1.0;
-                  maxIterSpnnls   = 3.0;
+                  maxIterSpnnls      = 3.0;
                   solverTypeSpnnls   = 0;
                   reduceFollower     = false;
                   skipPodRom         = 1;
                   skipOffSet         = 0;
-		  skipState          = 1;
+                  skipState          = 1;
                   skipVeloc          = 1;
-		  skipAccel          = 1;
+                  skipAccel          = 1;
                   skipInternalStateVar = 1;
-		  skipForce          = 1;
-		  skipResidual       = 1;
-		  skipJacobian       = 1;
-		  orthogPodRom       = 1;
+                  skipDualStateVar   = 1;
+                  skipForce          = 1;
+                  skipResidual       = 1;
+                  skipJacobian       = 1;
+                  orthogPodRom       = 1;
                   numRODFile         = 0;
                   tolPodRom          = 1.0e-6;
                   useMassNormalizedBasis = true;
@@ -917,7 +935,7 @@ struct SolverInfo {
      }
    }
 
-   double getTimeStep() 
+   double getTimeStep() const
    {
      if(thermoeFlag > -1 || thermohFlag > -1) return std::min(dt, dtemp);
      else return (order == 1) ? dtemp : dt;

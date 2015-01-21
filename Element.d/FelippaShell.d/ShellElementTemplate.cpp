@@ -1246,7 +1246,6 @@ ShellElementTemplate<doublereal,Membrane,Bending>
             else {
 
 // .....COMPUTE THE LOCAL STRESSES ON THE SPECIFIED SURFACE
-
                 nmat->GetLocalConstitutiveResponse(Upsilon.data(), sigma.data(), z, eframe.data(), i, temp);
 
             }
@@ -1578,7 +1577,6 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 
             nmat->GetLocalConstitutiveResponse(Upsilon.data(), sigma.data(), z, eframe.data(), i, temp);
             nmat->GetLocalConstitutiveResponseSensitivityWRTdisp(dUpsilondu.data(), dsigmadu.data(), z, eframe.data(), i);
-
         }
 
 // .....CALCULATE DERIVATIVE OF VON MISES EQUIVALENT STRESS WRT NODAL DISPLACEMENTS
@@ -1829,6 +1827,12 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 ::equivstrSensitivityWRTdisp(doublereal vms, doublereal sxx, doublereal syy, doublereal szz,
                              doublereal sxy, Eigen::Matrix<doublereal,3,18> &dsigmadu)
 {
+    if(vms == 0) {
+      Eigen::Matrix<doublereal,1,18> a;
+      a.setZero();
+      return a;
+    }
+
     // Builtin functions 
     using std::sqrt;
 

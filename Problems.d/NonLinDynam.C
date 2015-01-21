@@ -43,6 +43,7 @@ NonLinDynamic::NonLinDynamic(Domain *d) :
   spp(NULL),
   res(NULL),
   clawDofs(NULL),
+  K(NULL),
   M(NULL),
   C(NULL),
   Kuc(NULL),
@@ -91,6 +92,7 @@ NonLinDynamic::clean()
   if(kelArray) { delete [] kelArray; kelArray = 0; }
   if(celArray) { delete [] celArray; celArray = 0; }
   if(melArray) { delete [] melArray; melArray = 0; }
+  if(K)        { delete K; K = 0; }
   if(M)        { delete M; M = 0; }
   if(C)        { delete C; C = 0; }
   if(Kuc)      { delete Kuc; Kuc = 0; }
@@ -852,6 +854,9 @@ NonLinDynamic::preProcess(double Kcoef, double Mcoef, double Ccoef)
    allOps.Ccc = domain->constructCCSparse<double>();
  }
 
+ if(domain->solInfo().getNLInfo().linearelastic) {
+   allOps.K = domain->constructDBSparseMatrix<double>();
+ }
  allOps.Kuc = domain->constructCuCSparse<double>();
 
  Rbm *rigidBodyModes = 0;
@@ -875,6 +880,7 @@ NonLinDynamic::preProcess(double Kcoef, double Mcoef, double Ccoef)
  domain->buildOps<double>(allOps, Kcoef, Mcoef, Ccoef, (Rbm *) NULL, kelArray,
                           melArray, celArray, factorWhenBuilding()); // don't use Rbm's to factor in dynamics
 
+ K      = allOps.K;
  Kuc    = allOps.Kuc;
  M      = allOps.M;
  C      = allOps.C;

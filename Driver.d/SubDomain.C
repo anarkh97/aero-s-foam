@@ -4353,6 +4353,18 @@ GenSubDomain<Scalar>::getConstraintMultipliers(std::map<std::pair<int,int>,doubl
 
 template<class Scalar>
 void
+GenSubDomain<Scalar>::getLocalMultipliers(std::vector<double> &lambda)
+{
+  lambda.resize(numMPC);
+
+  for(int i = 0; i < scomm->lenT(SComm::mpc); ++i) {
+    int l = scomm->mpcNb(i);
+    lambda[l] = (localLambda) ? localLambda[scomm->mapT(SComm::mpc,i)] : 0;
+  }
+}
+
+template<class Scalar>
+void
 GenSubDomain<Scalar>::initialize()
 {
   kweight = 0; deltaFmpc = 0; scaling = 0; 

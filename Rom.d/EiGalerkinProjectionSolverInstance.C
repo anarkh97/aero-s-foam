@@ -5,11 +5,11 @@ namespace Rom {
 
 template
 GenEiSparseGalerkinProjectionSolver<double>
-::GenEiSparseGalerkinProjectionSolver(Connectivity*, DofSetArray*, ConstrainedDSA*, bool);
+::GenEiSparseGalerkinProjectionSolver(Connectivity*, DofSetArray*, ConstrainedDSA*, bool, double);
 
 template
 GenEiSparseGalerkinProjectionSolver<complex<double> >
-::GenEiSparseGalerkinProjectionSolver(Connectivity*, DofSetArray*, ConstrainedDSA*, bool);
+::GenEiSparseGalerkinProjectionSolver(Connectivity*, DofSetArray*, ConstrainedDSA*, bool, double);
 
 template
 void
@@ -40,6 +40,26 @@ template
 void
 GenEiSparseGalerkinProjectionSolver<complex<double> >
 ::addToReducedMatrix(const Eigen::Matrix<complex<double>,Eigen::Dynamic,Eigen::Dynamic> &, double);
+
+template
+void
+GenEiSparseGalerkinProjectionSolver<double>
+::addLMPCs(int, LMPCons**, double);
+
+template 
+void
+GenEiSparseGalerkinProjectionSolver<complex<double> >
+::addLMPCs(int, LMPCons**, double);
+
+template
+void 
+GenEiSparseGalerkinProjectionSolver<double>
+::updateLMPCs(GenVector<double> &);
+
+template 
+void
+GenEiSparseGalerkinProjectionSolver<complex<double> >
+::updateLMPCs(GenVector<complex<double> > &);
 
 template
 void

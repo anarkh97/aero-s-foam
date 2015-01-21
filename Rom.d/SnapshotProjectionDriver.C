@@ -127,7 +127,7 @@ SnapshotProjectionDriver::preProcess() {
   {
     std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
     if(domain->solInfo().useMassOrthogonalProjection) fileName.append(".normalized");
-    BasisInputStream in(fileName, vecDofConversion);
+    BasisInputStream<6> in(fileName, vecDofConversion);
     const int podSizeMax = domain->solInfo().maxSizePodRom;
     if (podSizeMax != 0) {
       readVectors(in, podBasis_, podSizeMax);

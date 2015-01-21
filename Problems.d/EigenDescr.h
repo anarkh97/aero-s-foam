@@ -1,7 +1,8 @@
 #ifndef _EIGENDESCR_H_
 #define _EIGENDESCR_H_
+#include <Driver.d/Domain.h>
 
-class Domain;
+//class Domain;
 template <class Scalar> class GenDynamMat;
 typedef GenDynamMat<double> DynamMat;
 template <class Scalar> class GenVector;
@@ -69,6 +70,7 @@ class SingleDomainEigen {
     int  getNumEigen();
     int  getEigenSolverType();
     int  getEigenSolverSubType();
+    bool getFilter() { return domain->solInfo().readmodeCalled; }
 
     void preProcess();
     void getEigenInfo(int& subspacesize, int& numEig, double& tolEig, 
@@ -81,6 +83,7 @@ class SingleDomainEigen {
 
     void getSubSpaceInfo(int& subspacesize, int& maxIter, 
                          double& tolEig, double& tolJac, bool &explicitK);
+    void convertModeDataToVecSet(VectorSet& vModeData);
 };
 
 #endif

@@ -129,7 +129,7 @@ DEIMPodProjectionNonLinDynamic::readInterpolationBasis(){
 
  VecNodeDof6Conversion vecNodeDof6Conversion_(*domain->getCDSA());
 
- BasisInputStream deimBasisInput(fileName, vecNodeDof6Conversion_);
+ BasisInputStream<6> deimBasisInput(fileName, vecNodeDof6Conversion_);
 
  filePrint(stderr, " ... Reading Empirical Interpolation basis from file %s ...\n", fileName.c_str());
  const int interpBasisSize = domain->solInfo().maxSizePodRom ?

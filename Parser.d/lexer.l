@@ -86,11 +86,7 @@ TRAIL [a-zA-Z]*
 
 "READMODE"[a-zA-Z]*|"readmode"[a-zA-Z]* { return READMODE; }
 
-"READSHAPESEN"[a-zA-Z]*|"readshapesen"[a-zA-Z]* { return READSHAPESEN; }
-
-"NUMTHICKNESSGROUP"|"numthicknessgroup" { return NUMTHICKNESSGROUP; }
-
-"NUMSHAPEVARIABLE"|"numshapevariable"   { return NUMSHAPEVARIABLE; }
+"DUALBASIS"|"dualbasis"            { return DUALBASIS; }
 
 "USE_MASS_NORMALIZED_BASIS"|"use_mass_normalized_basis" { return USEMASSNORMALIZEDBASIS; }
 
@@ -107,8 +103,6 @@ TRAIL [a-zA-Z]*
 "BUCK"[a-zA-Z]*|"buck"[a-zA-Z]*    { return BUCKLE; }
 
 "CONTROL"[a-zA-Z]*|"control"[a-zA-Z]*    { return CONTROL;  }
-
-"STRU"[a-zA-Z]*|"stru"[a-zA-Z]*    { return OPTIMIZATION;  }
 
 "TOPO"[a-zA-Z]*|"topo"|"topology"  { return TOPOLOGY; }
 
@@ -663,6 +657,8 @@ TRAIL [a-zA-Z]*
 
 "tolj"[a-zA-Z]*|"TOLJ"[a-zA-Z]*    { return TOLJAC; }
 
+"tolsen"[a-zA-Z]*|"TOLSEN"[a-zA-Z]* { return TOLSEN; }
+
 "qrfactorization"|"QRFACTORIZATION" { return QRFACTORIZATION; }
 
 "expl"[a-zA-Z]*|"EXPL"[a-zA-Z]*    { return EXPLICIT; }
@@ -720,6 +716,12 @@ TRAIL [a-zA-Z]*
 "OUTPUT6"|"output6"                { return OUTPUT6; }
 
 "EIGE"[a-zA-Z]*|"eige"[a-zA-Z]*    { return EIGEN; }
+ 
+"OPTIMIZATION"|"optimization"      { return OPTIMIZATION; }
+
+"READSENSITIVITY"|"readsensitivity" { return READSENSITIVITY; }
+
+"THICKNESSGROUPLIST"|"thicknessgrouplist" { return THICKNESSGROUPLIST; }
 
 "addedmass"                        { return ADDEDMASS; }
 
@@ -1008,6 +1010,12 @@ TRAIL [a-zA-Z]*
 
 "vmstshap"|"VMSTSHAP"              { yylval.ival = OutputInfo::VMstShap; return STRESSID; }
 
+"vmstmach"|"VMSTMACH"              { yylval.ival = OutputInfo::VMstMach; return STRESSID; }
+
+"vmstalph"|"VMSTALPH"              { yylval.ival = OutputInfo::VMstAlpha; return STRESSID; }
+
+"vmstbeta"|"VMSTBETA"              { yylval.ival = OutputInfo::VMstBeta; return STRESSID; }
+
 "elemental"[a-zA-Z]*|"ELEMENTAL"[a-zA-Z]* { yylval.ival =  0; return AVERAGED; }
 
 "gauss"[a-zA-Z]*|"GAUSS"[a-zA-Z]*  { yylval.ival =  -1; return AVERAGED; }
@@ -1049,6 +1057,8 @@ TRAIL [a-zA-Z]*
 "jacobvct"|"JACOBVCT"		   { yylval.ival = OutputInfo::Jacobian;     return STRESSID; }
 
 "isvarvct"|"ISVARVCT"              { yylval.ival = OutputInfo::InternalStateVar; return STRESSID; }
+
+"dsvarvct"|"DSVARVCT"              { yylval.ival = OutputInfo::DualStateVar; return STRESSID; }
 
 "robdataf"|"ROBDATAF"		   { yylval.ival = OutputInfo::RobData;	     return STRESSID; }
 
@@ -1511,7 +1521,9 @@ TRAIL [a-zA-Z]*
 
 "MAXSZE"|"MaxSze"|"maxsze"                { return MAXSIZE; }
 
-"REFSUBSTRACT"|"refsubstract"|"RefSubstract" { return REFSUBSTRACT; } 
+"REFSUBTRACT"|"refsubtract"|"RefSubtract" { return REFSUBTRACT; } 
+
+"USE_NMF"|"use_nmf"                       { return USENMF; }
 
 [A-Za-z][A-Za-z0-9_.]*  { yylval.strval = strdup(yytext); return FNAME; }
 

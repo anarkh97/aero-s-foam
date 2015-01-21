@@ -34,6 +34,7 @@ protected:
     virtual void stateSnapshotAdd(const DistrGeomState &) = 0;
     virtual void velocSnapshotAdd(const DistrVector &) = 0;
     virtual void accelSnapshotAdd(const DistrVector &) = 0;
+    virtual void dsvarSnapshotAdd(const DistrGeomState &) = 0;
     virtual void postProcess() = 0;
     
     virtual ~Impl() {}
@@ -51,7 +52,7 @@ private:
   // Snapshot collection 
   void saveMidTime(double t) { impl_->lastMidTimeIs(t); }
   void saveDelta(double delta) { impl_->lastDeltaIs(delta); }
-  void saveStateSnapshot(const DistrGeomState &state) { impl_->stateSnapshotAdd(state); }
+  void saveStateSnapshot(const DistrGeomState &state) { impl_->stateSnapshotAdd(state); impl_->dsvarSnapshotAdd(state); }
   void saveVelocSnapshot(DistrGeomState &state, const DistrVector &veloc);
   void saveAccelSnapshot(DistrGeomState &state, const DistrVector &accel);
  

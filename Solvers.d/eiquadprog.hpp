@@ -43,11 +43,7 @@ s.t.
   1. pay attention in setting up the vectors ce0 and ci0. 
      If the constraints of your problem are specified in the form 
      A^T x = b and C^T x >= d, then you should set ce0 = -b and ci0 = -d.
-  2. The matrix G is modified within the function since it is used to compute
-     the G = L^T L cholesky factorization for further computations inside the function. 
-     If you need the original matrix G you should make a copy of it and pass the copy
-     to the function.
-    
+
  
  The author will be grateful if the researchers using this software will
  acknowledge the contribution of this modified function and of Di Gaspero's
@@ -87,8 +83,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 namespace Eigen {
 
-// namespace internal {
-
 template<typename Scalar>
 inline Scalar distance(Scalar a, Scalar b)
 {
@@ -111,8 +105,6 @@ inline Scalar distance(Scalar a, Scalar b)
   return a1 * sqrt(2.0);
 }
 
-// }
-
 inline void compute_d(VectorXd &d, const MatrixXd& J, const VectorXd& np)
 {
   d = J.adjoint() * np;
@@ -133,37 +125,107 @@ void delete_constraint(MatrixXd& R, MatrixXd& J, VectorXi& A, VectorXd& u,  int 
 
 //#define TRACE_SOLVER
 
-#define SPARSE_G
+//#define SPARSE_G
 
 #ifdef SPARSE_G
-inline double solve_quadprog(SparseMatrix<double>& G, double _c1, VectorXd& g0,
+/* solve_quadprog2 is used when the Cholesky decomposition of the G matrix is precomputed */
+inline double solve_quadprog2(SimplicialLLT<SparseMatrix<complex<double> >,Upper>& chol, complex<double> c1, VectorXcd& g0,
+                              const MatrixXcd& CE, const VectorXcd& ce0,
+                              const MatrixXcd& CI, const VectorXcd& ci0,
+                              VectorXcd& x, VectorXcd* lambda = NULL, VectorXcd* mu = NULL,
+                              double tol = 100.0)
+{ std::cerr << "solve_quadprog2 is not supported for complex\n"; return 0; }
+
+double solve_quadprog2(SimplicialLLT<SparseMatrix<double>,Upper>& chol, double c1, VectorXd& g0,
+                       const MatrixXd& CE, const VectorXd& ce0,
+                       const MatrixXd& CI, const VectorXd& ci0,
+                       VectorXd& x, VectorXd* lambda = NULL, VectorXd* mu = NULL,
+                       double tol = 100.0);
+
+/* solve_quadprog is used for on-demand QP solving */
+inline double solve_quadprog(SparseMatrix<complex<double> >& G, complex<double> c1, VectorXcd& g0,
+                             const MatrixXcd& CE, const VectorXcd& ce0,
+                             const MatrixXcd& CI, const VectorXcd& ci0,
+                             VectorXcd& x, VectorXcd* lambda = NULL, VectorXcd* mu = NULL,
+                             double tol = 100.0)
+{ std::cerr << "solve_quadprog is not supported for complex\n"; return 0; }
+
+inline double solve_quadprog(SparseMatrix<double>& G, double c1, VectorXd& g0,
                              const MatrixXd& CE, const VectorXd& ce0,
                              const MatrixXd& CI, const VectorXd& ci0,
                              VectorXd& x, VectorXd* lambda = NULL, VectorXd* mu = NULL,
                              double tol = 100.0)
+{
+  SimplicialLLT<SparseMatrix<double>,Upper> chol;
+
+  /* decompose the matrix G in the form LL^T */
+  chol.compute(G);
+
+  return solve_quadprog2(chol, c1, g0, CE, ce0, CI, ci0, x, lambda, mu, tol);
+}
+
+inline double solve_quadprog2(SimplicialLLT<SparseMatrix<double>,Upper>& chol, double c1, VectorXd& g0,
+                              const MatrixXd& CE, const VectorXd& ce0,
+                              const MatrixXd& CI, const VectorXd& ci0,
+                              VectorXd& x, VectorXd* lambda, VectorXd* mu,
+                              double tol)
 #else
+/* solve_quadprog2 is used when the Cholesky decomposition of the G matrix is precomputed */
+inline double solve_quadprog2(LLT<MatrixXcd,Lower>& chol, complex<double> c1, VectorXcd& g0,  
+                              const MatrixXcd& CE, const VectorXcd& ce0,  
+                              const MatrixXcd& CI, const VectorXcd& ci0,  
+                              VectorXcd& x, VectorXcd* lambda = NULL, VectorXcd* mu = NULL,
+                              double tol = 100.0)
+{ std::cerr << "solve_quadprog2 is not supported for complex\n"; return 0; }
+
+double solve_quadprog2(LLT<MatrixXd,Lower>& chol, double c1, VectorXd& g0,  
+                       const MatrixXd& CE, const VectorXd& ce0,  
+                       const MatrixXd& CI, const VectorXd& ci0, 
+                       VectorXd& x, VectorXd* lambda = NULL, VectorXd* mu = NULL,
+                       double tol = 100.0);
+
+/* solve_quadprog is used for on-demand QP solving */
+inline double solve_quadprog(MatrixXcd& G, VectorXcd& g0,
+                             const MatrixXcd& CE, const VectorXcd& ce0,
+                             const MatrixXcd& CI, const VectorXcd& ci0,
+                             VectorXcd& x, VectorXcd* lambda = NULL, VectorXcd* mu = NULL,
+                             double tol = 100.0)
+{ std::cerr << "solve_quadprog is not supported for complex\n"; return 0; }
+
 inline double solve_quadprog(MatrixXd& G, VectorXd& g0,
                              const MatrixXd& CE, const VectorXd& ce0,  
                              const MatrixXd& CI, const VectorXd& ci0, 
                              VectorXd& x, VectorXd* lambda = NULL, VectorXd* mu = NULL,
                              double tol = 100.0)
+{
+  LLT<MatrixXd,Lower> chol(G.cols());
+  double c1;
+
+  /* compute the trace of the original matrix G */
+  c1 = G.trace();
+
+  /* decompose the matrix G in the form LL^T */
+  chol.compute(G);
+
+  return solve_quadprog2(chol, c1, g0, CE, ce0, CI, ci0, x, lambda, mu, tol);
+}
+
+inline double solve_quadprog2(LLT<MatrixXd,Lower>& chol, double c1, VectorXd& g0,
+                              const MatrixXd& CE, const VectorXd& ce0,
+                              const MatrixXd& CI, const VectorXd& ci0,
+                              VectorXd& x, VectorXd* lambda, VectorXd* mu,
+                              double tol)
 #endif
 {
   using std::abs;
   int i, j, k, l; /* indices */
   int ip, me, mi;
   int n=g0.size();  int p=ce0.size();  int m=ci0.size();  
-  MatrixXd R(G.rows(),G.cols()), J(G.rows(),G.cols());
+  MatrixXd R(g0.size(),g0.size()), J(g0.size(),g0.size());
   
-#ifdef SPARSE_G
-  SimplicialLLT<SparseMatrix<double>,Upper> chol;
-#else
-  LLT<MatrixXd,Lower> chol(G.cols());
-#endif
- 
   VectorXd s(m+p), z(n), r(m + p), d(n), np(n), u(m + p); 
   VectorXd x_old(n), u_old(m + p);
-  double f_value, psi, c1, c2, sum, ss, R_norm;
+  double f_value, psi, c2, sum, ss, R_norm;
   const double inf = std::numeric_limits<double>::infinity();
   double t, t1, t2; /* t is the step length, which is the minimum of the partial step length t1 
                      * and the full step length t2 */
@@ -180,20 +242,6 @@ inline double solve_quadprog(MatrixXd& G, VectorXd& g0,
    * Preprocessing phase
    */
     
-  /* compute the trace of the original matrix G */
-#ifdef SPARSE_G
-  c1 = _c1; // trace is not available for eigen sparse
-#else
-  c1 = G.trace();
-#endif
-
-  /* decompose the matrix G in the form LL^T */
-#ifdef SPARSE_G
-  chol.compute(G);
-#else
-  chol.compute(G);
-#endif
- 
   /* initialize the matrix R */
   d.setZero();
   R.setZero();
@@ -261,14 +309,7 @@ inline double solve_quadprog(MatrixXd& G, VectorXd& g0,
  
     if (!add_constraint(R, J, d, iq, R_norm))
     {
-      // FIXME: it should raise an error
       // Equality constraints are linearly dependent (or QPP is not strictly convex?)
-/* PJSA DEBUG
-      std::cerr << "n = " << n << ", p = " << p << std::endl;
-      std::cerr << "CE.rank() = " << CE.colPivHouseholderQr().rank() << std::endl;
-      std::cerr << "CE.singularValues() = " << CE.jacobiSvd().singularValues().transpose() << std::endl;
-      std::cerr << "G.eigenvalues() =" << G.eigenvalues().transpose() << std::endl;
-*/
       throw std::runtime_error("Constraints are linearly dependent");
       return f_value;
     }
@@ -396,7 +437,6 @@ l2a:/* Step 2a: determine step direction */
   if (t >= inf)
   {
     /* QPP is infeasible */
-    // FIXME: unbounded to raise
     q = iq;
     throw std::runtime_error("QPP is infeasible");
     return inf;

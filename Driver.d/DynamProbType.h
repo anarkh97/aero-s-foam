@@ -119,6 +119,7 @@ private:
      
      int steadyFlag, steadyMin, steadyMax;
      double steadyTol;
+     double sensitivityTol;
 
      VecType * d_n;
      VecType * v_n;

@@ -7,18 +7,19 @@
 
 namespace Rom {
 
-class NodeDof6Buffer {
+template<int DOFS_PER_NODE>
+class NodeDofBuffer {
 public:
-  explicit NodeDof6Buffer(size_t nodeCount = 0) :
+  explicit NodeDofBuffer(size_t nodeCount = 0) :
     nodeCount_(nodeCount),
-    buffer_(6 * nodeCount)
+    buffer_(DOFS_PER_NODE * nodeCount)
   {}
 
   size_t size() const { return nodeCount_; }
-  void sizeIs(size_t nodeCount) { buffer_.sizeIs(6 * nodeCount); nodeCount_ = nodeCount; }
+  void sizeIs(size_t nodeCount) { buffer_.sizeIs(DOFS_PER_NODE * nodeCount); nodeCount_ = nodeCount; }
 
-  const double *operator[](size_t iNode) const { return buffer_.array() + (6 * iNode); }
-  double *operator[](size_t iNode) { return buffer_.array() + (6 * iNode); }
+  const double *operator[](size_t iNode) const { return buffer_.array() + (DOFS_PER_NODE * iNode); }
+  double *operator[](size_t iNode) { return buffer_.array() + (DOFS_PER_NODE * iNode); }
 
   double *array() { return buffer_.array(); }
   const double *array() const { return buffer_.array(); }
@@ -28,9 +29,12 @@ private:
   SimpleBuffer<double> buffer_;
 
   // Disallow copy and assignment
-  NodeDof6Buffer(const NodeDof6Buffer &);
-  NodeDof6Buffer &operator=(const NodeDof6Buffer &);
+  NodeDofBuffer(const NodeDofBuffer &);
+  NodeDofBuffer &operator=(const NodeDofBuffer &);
 };
+
+typedef NodeDofBuffer<1> NodeDof1Buffer;
+typedef NodeDofBuffer<6> NodeDof6Buffer;
 
 } /* end namespace Rom */
 

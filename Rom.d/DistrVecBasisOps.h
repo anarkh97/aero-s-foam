@@ -94,7 +94,6 @@ mult(const GenSubDOp<Scalar> &matrix, const GenVecBasis<Scalar, GenDistrVector> 
 template <typename Scalar>
 const GenVecBasis<Scalar, GenDistrVector> &
 transposeMult(const GenSubDOp<Scalar> &matrix, const GenVecBasis<Scalar, GenDistrVector> &basis, GenVecBasis<Scalar, GenDistrVector> &result) {
-//transposeMult(const GenSubDOp<Scalar> &matrix, const GenVecBasis<Scalar, GenDistrVector> &basis, GenFullMatrix<Scalar> &result) {
   assert(&basis != &result);
 
   typedef GenVecBasis<Scalar, GenDistrVector> BasisType;
@@ -153,7 +152,6 @@ renormalized_basis(const GenSubDOp<Scalar> &metric, const GenVecBasis<Scalar, Ge
 // Calculates the reduced stiffness matrix  K_red = Phi^T * K * Phi with Phi as the mass-normalized basis
 template <typename Scalar>
 void calculateReducedStiffness(const GenSubDOp<Scalar> &K, const GenVecBasis<Scalar, GenDistrVector> &basis, GenFullSquareMatrix<Scalar> &K_reduced) {
-  filePrint(stderr," ... Calculating reduced stiffness matrix ...\n");
   // K^T * Phi
   DistrVecBasis product; // used as a buffer for intermediate steps
   transposeMult(K, basis, product);

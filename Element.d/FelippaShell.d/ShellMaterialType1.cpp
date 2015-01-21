@@ -3,8 +3,6 @@
 
 #ifdef USE_EIGEN3
 #include <cmath>
-#include <cstdio>
-#include <stdexcept>
 #include <Element.d/FelippaShell.d/ShellMaterial.hpp>
 
 extern int quietFlag;
@@ -274,6 +272,19 @@ ShellMaterialType1<doublereal>::GetLocalConstitutiveResponse(doublereal *Upsilon
                    "              type 15/1515 with COEF-type composite constitutive law.\n"
                    "              Use command-line option -q to suppress this warning.\n");
     Wlocal_stress = false;
+  }
+}
+
+template<typename doublereal>
+void
+ShellMaterialType1<doublereal>::GetLocalConstitutiveResponseSensitivityWRTdisp(doublereal *dUpsilondu, doublereal *dsigmadu, doublereal z,
+                                                        doublereal *eframe, int gp)
+{
+  for(int i=0; i<3*18; ++i) dsigmadu[i] = 0.0;
+  if(quietFlag == 0) {
+    fprintf(stderr," *** WARNING: Local stress displacement sensitivity output is not available for shell elements\n"
+                   "              type 15/1515 with COEF-type composite constitutive law.\n"
+                   "              Use command-line option -q to suppress this warning.\n");
   }
 }
 

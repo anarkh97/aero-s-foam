@@ -6,6 +6,8 @@
 #include <Element.d/FelippaShell.d/ShellMaterial.hpp>
 #include <iostream>
 
+extern int quietFlag;
+
 template<typename doublereal, typename localmaterial>
 void
 ShellMaterialType4<doublereal,localmaterial>
@@ -103,6 +105,20 @@ ShellMaterialType4<doublereal,localmaterial>
     }
 
     if(_D) delete __C;
+}
+
+template<typename doublereal, typename localmaterial>
+void
+ShellMaterialType4<doublereal,localmaterial>
+::GetLocalConstitutiveResponseSensitivityWRTdisp(doublereal *dUpsilondu, doublereal *dsigmadu, doublereal z,
+                                                 doublereal *eframe, int gp)
+{
+  for(int i=0; i<3*18; ++i) dsigmadu[i] = 0.0;
+  if(quietFlag == 0) {
+    fprintf(stderr," *** WARNING: Local stress displacement sensitivity output is not available for shell elements\n"
+                   "              type 15/1515 with MaterialType4 constitutive law.\n"
+                   "              Use command-line option -q to suppress this warning.\n");
+  }
 }
 
 template<typename doublereal, typename localmaterial>
@@ -365,6 +381,12 @@ template
 void
 ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
 ::GetLocalConstitutiveResponse(double *Upsilon, double *sigma, double z, double *, int nd, double temp, double dt);
+
+template
+void
+ShellMaterialType4<double,IsotropicLinearElasticJ2PlasticPlaneStressMaterial>
+::GetLocalConstitutiveResponseSensitivityWRTdisp(double *dUpsilondu, double *dsigmadu, double z,
+                                                 double *eframe, int gp);
 
 template
 void

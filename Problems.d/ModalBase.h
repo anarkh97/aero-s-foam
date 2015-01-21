@@ -34,6 +34,8 @@ public:
   void reSolve(Vector &rhs);
 
   int numRBM(){ return 0; }
+  int dim(){ return neq; }
+  double diag(int i) { return d[i]; }
 };
 
 //------------------------------------------------------------------------------

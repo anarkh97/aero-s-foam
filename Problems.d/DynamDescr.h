@@ -2,6 +2,7 @@
 #define _DYNAM_DESCR_H_
 
 #include <map>
+#include <Driver.d/Domain.h>
 
 template <class Scalar> class GenDynamMat;
 typedef GenDynamMat<double> DynamMat;
@@ -24,7 +25,7 @@ class Domain;
 class ControlLawInfo;
 template <typename Scalar> class GenSolver;
 template <typename Scalar> struct AllSensitivities;
-
+struct SensitivityInfo;
 // Single Domain Dynamic Post Processor Class
 
 class SDDynamPostProcessor {
@@ -141,6 +142,8 @@ class SingleDomainDynamic
     void getNewMarkParameters(double &beta, double &gamma,
                               double &alphaf, double &alpham);
     void getQuasiStaticParameters(double &maxVel, double &delta);
+    SensitivityInfo *getSensitivityInfo() { return domain->senInfo; }
+    int getNumSensitivities() { return domain->getNumSensitivities(); }
     void getRayleighCoef(double &alpha);
     void printFullNorm(Vector &){};
     void getInitState(SysState<Vector> & currentState);
@@ -150,6 +153,7 @@ class SingleDomainDynamic
     void addConstForceSensitivity(Vector &gravityForceSen);
     void getSteadyStateParam(int &steadyFlag, int &steadyMin, int &steadMax,
                              double &steadyTol); 
+    void getSensitivityStateParam(double &sensitivityTol);
 
     void getContactForce(Vector &d_n, Vector &dinc, Vector &ctc_f, double d_n_p, double dt, double dt_old);
     void computeExtForce2(SysState<Vector> &, Vector &, Vector &, int t_index,
@@ -193,7 +197,8 @@ class SingleDomainDynamic
     int aeroPreProcess(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p);
     int aeroSensitivityPreProcess(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p);
     int sendDisplacements(Vector& d_n, Vector& v_n, Vector& a_n, Vector& v_p);
-    void sendNumParam(int numParam);
+    void sendNumParam(int numParam, int actvar, double steadyTol);
+    void getNumParam(bool &numParam);
     void sendRelativeResidual(double relres);
     int cmdCom(int cmdFlag);
     int getAeroAlg();

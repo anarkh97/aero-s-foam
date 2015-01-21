@@ -601,6 +601,12 @@ MultiDomainDynam::getSteadyStateParam(int &steadyFlag, int &steadyMin,
 }
 
 void
+MultiDomainDynam::getSensitivityStateParam(double &sensitivityTol)
+{
+  sensitivityTol = domain->solInfo().sensitivityTol;
+}
+
+void
 MultiDomainDynam::getContactForce(DistrVector &d_n, DistrVector &dinc, DistrVector &ctc_f, double t_n_p, double dt, double dt_old)
 {
   times->tdenforceTime -= getTime();

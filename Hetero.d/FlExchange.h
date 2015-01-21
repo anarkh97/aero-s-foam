@@ -98,7 +98,7 @@ class FlExchanger {
 
      void sendModeFreq(double *modFrq, int numFrq);
      void sendModeShapes(int numFrq, int nNodes, double (**)[6],
-                         State &st, double factor = 1.0);
+                         State &st, double factor = 1.0, int numIDis6 = 0, BCond* iDis6=0);
 
      void sendEmbeddedWetSurface();
      void printreceiving();
@@ -111,7 +111,8 @@ class FlExchanger {
       void sendNoStructure();
       void sendNewStructure(std::set<int> &newDeletedElements);
 
-      void sendNumParam(int);
+      void sendNumParam(int,int,double);
+      void getNumParam(bool&);
       void sendRelativeResidual(double);
       int cmdCom(int);
       int cmdComHeat(int);
@@ -128,6 +129,7 @@ class FlExchanger {
 #define STTOFLHEAT 6000
 #define STTOSTHEAT 7000
 #define STNUMPAFL 7500
+#define FLNUMPAST 7550
 #define STRELRESFL 7600
 #define STCMDMSG 8000
 #define FLCMDMSG 9000

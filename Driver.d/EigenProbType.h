@@ -28,6 +28,7 @@ class EigenSolver {
  
     Vector  *eigVal;
     VecSet  *eigVec;
+
     EigOps  *eM;
 
     PostProcessor     *postProcessor;
@@ -49,6 +50,8 @@ class EigenSolver {
                    double *eigVal, int nsmax, int subSpaceSize, double tolJac);
     void ortho(VecType *v1, VecType *vr, int nsub, int nrbm);
     void ortho(VecSet& v1, VecSet& vr, int nsub, int nrbm);
+    void absoluteInnerproductNormalized(const VecType& v1, const VecType& v2, double &result);
+    void pickMostCorrelatedModes();
     void setUp();
 //    void cleanup();
 

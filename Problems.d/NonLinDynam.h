@@ -56,6 +56,7 @@ class NonLinDynamic : public NLDynamPostProcessor {
 
     int *clawDofs;      // array containing cdsa dof numbers for usdd nodes
 
+    SparseMatrix *K;    // Stiffness matrix
     SparseMatrix *M;    // Mass matrix
     SparseMatrix *C;    // Damping matrix
     SparseMatrix *Kuc;

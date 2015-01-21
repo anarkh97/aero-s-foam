@@ -79,7 +79,9 @@ FelippaShell::getVonMises(Vector &stress, Vector &weight, CoordSet &cs,
                           int avgnum)
 
 {
-  weight = 1.0;
+  if(type == 1) weight = 0.0;
+  else weight = 1.0;
+
   int strainFlg, offset;
   switch(strInd) {
     case 0 : case 1 : case 2 : case 3 : case 4 : case 5 : case 6 : {
@@ -1309,7 +1311,8 @@ FelippaShell::getVonMisesThicknessSensitivity(Vector &dStdThick, Vector &weight,
                                               Vector &elDisp, int, int surface, double *ndTemps,
                                               int avgnum, double, double)
 {
-  weight = 1.0;
+  if(type == 1) weight = 0.0;
+  else weight = 1.0;
 
   Node &nd1 = cs.getNode(nn[0]);
   Node &nd2 = cs.getNode(nn[1]);
@@ -1333,7 +1336,8 @@ FelippaShell::getVonMisesNodalCoordinateSensitivity(GenFullM<double> &dStdx, Vec
                                                     Vector &elDisp, int strInd, int surface, double *ndTemps,
                                                     int avgnum, double, double)
 {
-  weight = 1.0;
+  if(type == 1) weight = 0.0;
+  else weight = 1.0;
 
   Node &nd1 = cs.getNode(nn[0]);
   Node &nd2 = cs.getNode(nn[1]);
@@ -1359,7 +1363,8 @@ FelippaShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
                                                  Vector &elDisp, int strInd, int surface, double *ndTemps,
                                                  int avgnum, double, double)
 {
-  weight = 1.0;
+  if(type == 1) weight = 0.0;
+  else weight = 1.0;
 
   Node &nd1 = cs.getNode(nn[0]);
   Node &nd2 = cs.getNode(nn[1]);
@@ -1378,6 +1383,7 @@ FelippaShell::getVonMisesDisplacementSensitivity(GenFullM<double> &dStdDisp, Vec
   Impl::andesvmsWRTdisp(glNum+1, prop->nu, x, y, z, elDisp.data(),
                         dStdDisp.getData(), type, nmat, surface,
                         sflg, ndTemps);  
+
 }
 
 #endif

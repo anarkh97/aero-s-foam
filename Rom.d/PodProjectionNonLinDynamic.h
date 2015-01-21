@@ -96,6 +96,7 @@ protected:
   GeomState *geomState_Big, *refState_Big;
   SDDynamPodPostProcessor *podPostPro;
   Vector *d0_Big, *v0_Big;
+  GenFullSquareMatrix<double> K_reduced;
 
 private:
   virtual bool factorWhenBuilding() const; // Overriden

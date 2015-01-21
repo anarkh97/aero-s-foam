@@ -23,7 +23,7 @@ if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU" AND NOT WITH_CXX11 EQUAL 0)
         set(CHECK_CXX_FEATURES true)
         set(CMAKE_CXX11_FLAGS "-std=c++11 -Wno-deprecated-declarations")
     endif ()
-elseif ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Intel")
+elseif ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Intel" AND NOT WITH_CXX11 EQUAL 0)
     execute_process(
         COMMAND ${CMAKE_CXX_COMPILER} -dumpversion OUTPUT_VARIABLE ICC_VERSION)
     if (ICC_VERSION VERSION_GREATER 12.1 OR ICC_VERSION VERSION_EQUAL 12.1)

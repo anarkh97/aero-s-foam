@@ -39,6 +39,28 @@ mult(const GenSparseMatrix<Scalar> &matrix, const GenVecBasis<Scalar, GenVector>
   return result;
 }
 
+// Returns the matrix^T-basis product
+// (basis and result must refer to different objects)
+template <typename Scalar>
+const GenVecBasis<Scalar, GenVector> &
+transposeMult(const GenSparseMatrix<Scalar> &matrix, const GenVecBasis<Scalar, GenVector> &basis, GenVecBasis<Scalar, GenVector> &result) {
+  assert(&basis != &result);
+
+  typedef GenVecBasis<Scalar, GenVector> BasisType;
+  typedef typename BasisType::iterator VecIt;
+
+  result.dimensionIs(basis.vectorCount(), basis.vectorInfo());
+
+  for (VecIt it = const_cast<BasisType &>(basis).begin(),
+             it_end = const_cast<BasisType &>(basis).end(),
+             jt = result.begin();
+       it != it_end;
+       ++it, ++jt) {
+    const_cast<GenSparseMatrix<Scalar> &>(matrix).transposeMult(*it, *jt);
+  }
+
+  return result;
+}
 
 // Returns the renormalized basis Phi with respect to the metric M (assumed symmetric positive semidefinite)
 // (Phi, M) -> Phi * R^{-T} where (Phi^T * M * Phi) = R * R^T
@@ -76,6 +98,24 @@ renormalized_basis(const GenSparseMatrix<Scalar> &metric, const GenVecBasis<Scal
   }
 
   return result;
+}
+
+// Calculates the reduced stiffness matrix  K_red = Phi^T * K * Phi with Phi as the mass-normalized basis
+template <typename Scalar>
+void calculateReducedStiffness(const GenSparseMatrix<Scalar> &K, const GenVecBasis<Scalar, GenVector> &basis, GenFullSquareMatrix<Scalar> &K_reduced) {
+  // K^T * Phi
+  VecBasis product; // used as a buffer for intermediate steps
+  transposeMult(K, basis, product);
+  // calculate transpose of product multiplied with basis  (K^T * Phi)^T * Phi = Phi^T * K * Phi
+  const int vecCount = product.vectorCount();
+
+  GenFullSquareMatrix<Scalar> normalMatrix(vecCount);
+  for(int i = 0; i < vecCount; i++){
+    for(int j = 0 ; j < vecCount; j++){
+      normalMatrix[i][j] = product[i] * basis[j];
+    }
+  }
+  K_reduced.copy(normalMatrix);
 }
 
 // Modified Gram-Schmidt Algorithm

@@ -62,7 +62,7 @@ GoldfarbIdnaniQpSolver<WrapEiSparseMat<double>,double>::solve(double* _rhs, doub
       if(es.eigenvalues().minCoeff() <= 0) throw std::runtime_error("Matrix G is not positive definite");
     }
 #endif
-#if !defined(SPARSE_G) && !defined(CHECK_G)
+#if defined(SPARSE_G) && !defined(CHECK_G)
     double traceG = diagG.sum();
 #else
     double traceG = G.trace();

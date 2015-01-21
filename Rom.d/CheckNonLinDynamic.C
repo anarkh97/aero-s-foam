@@ -43,7 +43,7 @@ CheckNonLinDynamic::Impl::Impl(Domain *d) :
 {
   FileNameInfo fileInfo;
   VecNodeDof6Conversion converter(*domain_->getCDSA());
-  BasisInputStream podFile(BasisFileId(fileInfo, BasisId::STATE, BasisId::POD), converter);
+  BasisInputStream<6> podFile(BasisFileId(fileInfo, BasisId::STATE, BasisId::POD), converter);
   podFile >> projectionBasis_;
 
   displacement_.reset(projectionBasis_.vectorSize());

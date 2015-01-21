@@ -265,6 +265,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
      v_pSen = new VecType( probDesc->solVecInfo() );
      *d_nSen = *v_nSen = *a_nSen = *v_pSen = 0.0;
      curSenState = new SysState<VecType>( *d_nSen, *v_nSen, *a_nSen, *v_pSen);
+     probDesc->getSensitivityStateParam(sensitivityTol);
    }
 #endif
 
@@ -390,58 +391,113 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
 
        // Aeroelastic Sensitivity Quasi-Static 
 #ifdef USE_EIGEN3
+       SensitivityInfo *senInfo = probDesc->getSensitivityInfo();
        int numThicknessGroups = domain->getNumThicknessGroups();
        int numShapeVars = domain->getNumShapeVars();
+       int numStructParamTypes = int(bool(numThicknessGroups))+int(bool(numShapeVars));
+       probDesc->sendNumParam(numStructParamTypes, 0, sensitivityTol);
+       filePrint(stderr,"numStructParamTypes = %d, sensitivityTol = %e\n", numStructParamTypes, sensitivityTol); 
+//       bool isMach, isAlpha, isBeta;
+//       probDesc->getNumParam(isMach); probDesc->getNumParam(isAlpha); probDesc->getNumParam(isBeta);
+       
        if(domain->solInfo().sensitivity) { 
          probDesc->postProcessSA(dynOps,*d_n);
          AllSensitivities<double> *allSens = probDesc->getAllSensitivities();
-         probDesc->sendNumParam(numThicknessGroups+numShapeVars);
-         filePrint(stderr,"numThicknessGroups = %d, numShapeVars = %d\n", numThicknessGroups, numShapeVars); 
-         if( numShapeVars > 0 ) {  // Shape variable sensitivity gets priority to any other opt. variables
-           allSens->dispWRTshape = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[numShapeVars];
-           for(int ishap=0; ishap< numShapeVars; ++ishap) {
-             allSens->dispWRTshape[ishap] = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(domain->numUncon(),1);
-             rhsSen = new VecType( probDesc->solVecInfo() );
-             rhsSen->copy(allSens->linearstaticWRTshape[ishap]->data());
-             (*rhsSen) *= -1; 
-             aeroForceSen->zero();
-             *d_nSen = 0.0;
-             aeroSensitivityQuasistaticLoop( *curSenState, *rhsSen, *dynOps, *workSenVec, dt, tmax, aeroAlg);
-             *allSens->dispWRTshape[ishap] = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> >(d_nSen->data(),domain->numUncon(),1);
-#ifdef SENSITIVITY_DEBUG
-             if(verboseFlag) std::cerr << "printing dispWRTshape[" << ishap << "]\n" << *allSens->dispWRTshape[ishap] << std::endl;
-#endif
-             allSens->vonMisesWRTshape->col(ishap) += *allSens->vonMisesWRTdisp * (*allSens->dispWRTshape[ishap]);
-             delete rhsSen;
-// #ifdef SENSITIVITY_DEBUG
-//             Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
-//             cerr << "print *allSens->vonMisesWRTdisp\n" << (*allSens->vonMisesWRTdisp).format(HeavyFmt) << endl;
-//             cerr << "print (*allSens->dispWRTshape[ishap])\n" << (*allSens->dispWRTshape[ishap]).adjoint().format(HeavyFmt) << endl;
-//             cerr << "print vonMisesWRTshape (in steady aeroelastic analysis)\n" << allSens->vonMisesWRTshape->col(ishap).adjoint().format(HeavyFmt) << endl;
-// #endif
-           }  
+         for(int isen = 0; isen < probDesc->getNumSensitivities(); ++isen) {
+           switch (senInfo[isen].type) {
+
+             case SensitivityInfo::StressVMWRTshape:
+
+               probDesc->sendNumParam(numShapeVars, 1, sensitivityTol);
+               filePrint(stderr,"numShapeVars = %d, sensitivityTol = %e\n", numShapeVars, sensitivityTol); 
+               if( numShapeVars > 0 ) {  // Shape variable sensitivity gets priority to any other opt. variables
+                 allSens->dispWRTshape = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[numShapeVars];
+                 for(int ishap=0; ishap< numShapeVars; ++ishap) {
+                   allSens->dispWRTshape[ishap] = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(domain->numUncon(),1);
+                   rhsSen = new VecType( probDesc->solVecInfo() );
+                   rhsSen->copy(allSens->linearstaticWRTshape[ishap]->data());
+                   (*rhsSen) *= -1; 
+                   aeroForceSen->zero();
+                   *d_nSen = 0.0;
+                   aeroSensitivityQuasistaticLoop( *curSenState, *rhsSen, *dynOps, *workSenVec, dt, tmax, aeroAlg);
+                   *allSens->dispWRTshape[ishap] = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> >(d_nSen->data(),domain->numUncon(),1);
+                   allSens->vonMisesWRTshape->col(ishap) += *allSens->vonMisesWRTdisp * (*allSens->dispWRTshape[ishap]);
+                   delete rhsSen;
+                 }  
+               }
+               break;
+
+             case SensitivityInfo::StressVMWRTthickness:
+             
+               probDesc->sendNumParam(numThicknessGroups, 5, sensitivityTol);
+               filePrint(stderr,"numThicknessGroups = %d, sensitivityTol = %e\n", numThicknessGroups, sensitivityTol); 
+               if( numThicknessGroups > 0 ) {
+                 allSens->dispWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[numThicknessGroups];
+                 for(int iparam=0; iparam< numThicknessGroups; ++iparam) {
+                   allSens->dispWRTthick[iparam] = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(domain->numUncon(),1);
+                   rhsSen = new VecType( probDesc->solVecInfo() );
+                   rhsSen->copy(allSens->linearstaticWRTthick[iparam]->data());
+                   (*rhsSen) *= -1;
+                   aeroForceSen->zero();
+                   *d_nSen = 0.0;
+                   aeroSensitivityQuasistaticLoop( *curSenState, *rhsSen, *dynOps, *workSenVec, dt, tmax, aeroAlg);
+                   *allSens->dispWRTthick[iparam] = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> >(d_nSen->data(),domain->numUncon(),1);
+                   allSens->vonMisesWRTthick->col(iparam) += *allSens->vonMisesWRTdisp * (*allSens->dispWRTthick[iparam]);
+                   delete rhsSen;
+                 }  
+               }
+               break;
+
+             case SensitivityInfo::StressVMWRTmach:
+
+               probDesc->sendNumParam(1, 2, sensitivityTol);
+               filePrint(stderr,"Sensitivity with respect to Mach number will be computed\n");
+               allSens->dispWRTmach = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(domain->numUncon(),1);
+               rhsSen = new VecType( probDesc->solVecInfo() );
+               rhsSen->zero();
+               aeroForceSen->copy(1e4);
+               *d_nSen = 0.0;
+               aeroSensitivityQuasistaticLoop( *curSenState, *rhsSen, *dynOps, *workSenVec, dt, tmax, aeroAlg);
+               *allSens->dispWRTmach = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> >(d_nSen->data(),domain->numUncon(),1);
+               allSens->vonMisesWRTmach->col(0) += *allSens->vonMisesWRTdisp * (*allSens->dispWRTmach);
+               delete rhsSen;
+               break;
+
+             case SensitivityInfo::StressVMWRTalpha:
+
+               probDesc->sendNumParam(1, 3, sensitivityTol);
+               filePrint(stderr,"Sensitivity with respect to Angle of attack will be computed\n");
+               allSens->dispWRTalpha = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(domain->numUncon(),1);
+               rhsSen = new VecType( probDesc->solVecInfo() );
+               rhsSen->zero();
+               aeroForceSen->copy(1e4);
+               *d_nSen = 0.0;
+               aeroSensitivityQuasistaticLoop( *curSenState, *rhsSen, *dynOps, *workSenVec, dt, tmax, aeroAlg);
+               *allSens->dispWRTalpha = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> >(d_nSen->data(),domain->numUncon(),1);
+               allSens->vonMisesWRTalpha->col(0) += *allSens->vonMisesWRTdisp * (*allSens->dispWRTalpha);
+               delete rhsSen;
+               break;
+
+             case SensitivityInfo::StressVMWRTbeta:
+
+               probDesc->sendNumParam(1, 4, sensitivityTol);
+               filePrint(stderr,"Sensitivity with respect to Yaw angle will be computed\n");
+               allSens->dispWRTbeta = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(domain->numUncon(),1);
+               rhsSen = new VecType( probDesc->solVecInfo() );
+               rhsSen->zero();
+               aeroForceSen->copy(1e4);
+               *d_nSen = 0.0;
+               aeroSensitivityQuasistaticLoop( *curSenState, *rhsSen, *dynOps, *workSenVec, dt, tmax, aeroAlg);
+               *allSens->dispWRTbeta = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> >(d_nSen->data(),domain->numUncon(),1);
+               allSens->vonMisesWRTbeta->col(0) += *allSens->vonMisesWRTdisp * (*allSens->dispWRTbeta);
+               delete rhsSen;
+               break;
+
+             default:
+               break;
+           }
          }
-         if( numThicknessGroups > 0 ) {
-           allSens->dispWRTthick = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>*[numThicknessGroups];
-           for(int iparam=0; iparam< numThicknessGroups; ++iparam) {
-             allSens->dispWRTthick[iparam] = new Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>(domain->numUncon(),1);
-             rhsSen = new VecType( probDesc->solVecInfo() );
-             rhsSen->copy(allSens->linearstaticWRTthick[iparam]->data());
-             (*rhsSen) *= -1; 
-             aeroForceSen->zero();
-             *d_nSen = 0.0;
-             aeroSensitivityQuasistaticLoop( *curSenState, *rhsSen, *dynOps, *workSenVec, dt, tmax, aeroAlg);
-             *allSens->dispWRTthick[iparam] = Eigen::Map<Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic> >(d_nSen->data(),domain->numUncon(),1);
-             allSens->vonMisesWRTthick->col(iparam) += *allSens->vonMisesWRTdisp * (*allSens->dispWRTthick[iparam]);
-             delete rhsSen;
-// #ifdef SENSITIVITY_DEBUG
-//             Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, " ");
-//             cerr << "print *allSens->vonMisesWRTdisp\n" << (*allSens->vonMisesWRTdisp).format(HeavyFmt) << endl;
-//             cerr << "print (*allSens->dispWRTthick[iparam])\n" << (*allSens->dispWRTthick[iparam]).adjoint().format(HeavyFmt) << endl;
-//             cerr << "print vonMisesWRTthick (in steady aeroelastic analysis)\n" << allSens->vonMisesWRTthick->col(iparam).adjoint().format(HeavyFmt) << endl;
-// #endif
-           }  
-         }
+
          domain->sensitivityPostProcessing(*allSens); 
        } 
 #endif
@@ -696,10 +752,10 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
     // ... build force reference norm 
     if (tIndex==initIndex+1) {
 //      if (initExtForceNorm == 0.0)
-        forceSenRef=ext_fSen.norm();
+      forceSenRef=ext_fSen.norm();
 //      else 
 //        forceSenRef = initExtForceNorm;
-      if(verboseFlag) filePrint(stderr, " ... Initial Force: %8.2e        ...\n", forceSenRef);
+      filePrint(stderr, " ... Initial Force Norm: %10.6e     ...\n", forceSenRef);
     }
 
     // ... build internal force 
@@ -713,7 +769,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
       filePrint(stderr, " *** WARNING: Reference external force is zero, relative residual is absolute error norm\n");
     }
 
-    if(relres <= steadyTol && delta == 0 && tIndex != 1) {
+    if(relres <= sensitivityTol && delta == 0 && tIndex != 1) {
       // ... stop quasi-transient simulation if converged
       iSteady = 1;
       probDesc->cmdCom(iSteady);
@@ -828,7 +884,7 @@ DynamicSolver< DynOps, VecType, PostProcessor, ProblemDescriptor, Scalar>
      else
        filePrint(stderr, " ... Implicit Generalized-α Method  ...\n"
                          " ... with β  = %5.3f, γ  = %5.3f    ...\n"
-                         " ...      αf = %5.3f, αm = %5.3f    ...\n", beta, gamma, alphaf, alpham);
+                         " ...      αf = %5.3f, αm = %-6.3f   ...\n", beta, gamma, alphaf, alpham);
    }
 
    int parity = 0;

@@ -23,8 +23,6 @@ protected:
 
 public:
 
-  //Vector q;
-
   ModalGeomState(int numModes);
   ModalGeomState(const ModalGeomState& mgs);
 

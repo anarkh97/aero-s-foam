@@ -7,7 +7,8 @@
 
 namespace Rom {
 
-class NodeDof6Buffer;
+template <int> class NodeDofBuffer;
+typedef NodeDofBuffer<6> NodeDof6Buffer;
 
 class BasisInputFile {
 public:

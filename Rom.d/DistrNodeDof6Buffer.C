@@ -8,14 +8,16 @@
 
 namespace Rom {
 
+template<int DOFS_PER_NODE>
 const double *
-DistrNodeDof6Buffer::operator[](int globalNodeIdx) const {
+DistrNodeDofBuffer<DOFS_PER_NODE>::operator[](int globalNodeIdx) const {
   std::map<int, int>::const_iterator it = localNodeIndices_.find(globalNodeIdx);
   return (it != localNodeIndices_.end()) ? buffer_[it->second] : NULL;
 }
   
+template<int DOFS_PER_NODE>
 void
-DistrNodeDof6Buffer::initialize() {
+DistrNodeDofBuffer<DOFS_PER_NODE>::initialize() {
   // Sort and make sure every index is unique (local to global)
   std::sort(globalNodeIndices_.begin(), globalNodeIndices_.end());
   globalNodeIndices_.erase(std::unique(globalNodeIndices_.begin(), globalNodeIndices_.end()), globalNodeIndices_.end());
@@ -27,5 +29,17 @@ DistrNodeDof6Buffer::initialize() {
   // Resize internal buffer (local indexing)
   buffer_.sizeIs(localNodeCount());
 }
+
+template
+const double * DistrNodeDofBuffer<6>::operator[](int globalNodeIdx) const;
+
+template
+void DistrNodeDofBuffer<6>::initialize();
+
+template
+const double * DistrNodeDofBuffer<1>::operator[](int globalNodeIdx) const;
+
+template
+void DistrNodeDofBuffer<1>::initialize();
 
 } /* end namespace Rom */

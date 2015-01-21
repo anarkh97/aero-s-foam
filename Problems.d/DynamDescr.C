@@ -398,6 +398,12 @@ SingleDomainDynamic::getSteadyStateParam(int &steadyFlag, int &steadyMin,
 }
 
 void
+SingleDomainDynamic::getSensitivityStateParam(double &sensitivityTol)
+{
+ sensitivityTol = domain->solInfo().sensitivityTol;
+}
+
+void
 SingleDomainDynamic::computeStabilityTimeStep(double& dt, DynamMat& dMat)
 {
  // ... Compute Stability Time Step
@@ -1385,9 +1391,15 @@ SingleDomainDynamic::aeroSend(double time, Vector& d, Vector& v, Vector& a, Vect
 }
 
 void 
-SingleDomainDynamic::sendNumParam(int numParam)
+SingleDomainDynamic::sendNumParam(int numParam, int actvar, double steadyTol)
 {
-  flExchanger->sendNumParam(numParam);
+  flExchanger->sendNumParam(numParam,actvar,steadyTol);
+}
+
+void 
+SingleDomainDynamic::getNumParam(bool &numParam)
+{
+  flExchanger->getNumParam(numParam);
 }
 
 void 

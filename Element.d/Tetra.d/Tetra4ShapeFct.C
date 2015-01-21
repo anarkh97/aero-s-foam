@@ -65,12 +65,7 @@ computeTetra4dadxTimesdShapeFct(double dShape[4][3], double J, double dadx[3][3]
   double cdet = 1.0/J;
 
   for(int i=0; i<4; ++i) {
-    for(int j=0; j<12; ++j) {
-      for(int k=0; k<3; ++k) {
-        DDShape[i][k][j] = cdet * ( dadx[k][0][j]*dShape[i][0] + dadx[k][1][j]*dShape[i][1] + dadx[k][2][j]*dShape[i][2] );
-      }
-    }
-/*
+
     DDShape[i][0][0] = 0.0;
     DDShape[i][0][1] = cdet * ( dadx[0][0][1]*dShape[i][0] + dadx[0][1][1]*dShape[i][1] + dadx[0][2][1]*dShape[i][2] );
     DDShape[i][0][2] = cdet * ( dadx[0][0][2]*dShape[i][0] + dadx[0][1][2]*dShape[i][1] + dadx[0][2][2]*dShape[i][2] );
@@ -109,7 +104,7 @@ computeTetra4dadxTimesdShapeFct(double dShape[4][3], double J, double dadx[3][3]
     DDShape[i][2][9] = cdet * ( dadx[2][0][9]*dShape[i][0] + dadx[2][1][9]*dShape[i][1] );
     DDShape[i][2][10]= cdet * ( dadx[2][0][10]*dShape[i][0] + dadx[2][1][10]*dShape[i][1] );
     DDShape[i][1][11] = 0.0;
-*/
+
   }
 
 }

@@ -39,25 +39,25 @@ public:
 };
 
 template <typename VecType>
-class RefSubstraction : public VectorTransform<VecType> {
+class RefSubtraction : public VectorTransform<VecType> {
 public:
   virtual void operator()(VecType &v) const;
 
-  explicit RefSubstraction(const Domain *);
+  explicit RefSubtraction(const Domain *);
 private:
   Vector ref_;
 };
 
 template <typename VecType>
 void
-RefSubstraction<VecType>::operator()(VecType &v) const {
+RefSubtraction<VecType>::operator()(VecType &v) const {
   for (int i = 0; i < ref_.size(); ++i) {
     v[i] -= ref_[i];
   }
 }
 
 template <typename VecType>
-RefSubstraction<VecType>::RefSubstraction(const Domain *domain) :
+RefSubtraction<VecType>::RefSubtraction(const Domain *domain) :
   ref_(const_cast<Domain *>(domain)->numUncon())
 {
   Vector dummy(const_cast<Domain *>(domain)->numUncon());
@@ -78,8 +78,8 @@ void readIntoSolver(SvdOrthogonalization &solver, VecNodeDof6Conversion &convert
 {
   FileNameInfo fileInfo; 
   for(int i = 0 ; i < numEntries; i++) {
-    std::string fileName =  BasisFileId(fileInfo, type, fileType, i);
-    BasisInputStream input(fileName, converter);
+    std::string fileName = BasisFileId(fileInfo, type, fileType, i);
+    BasisInputStream<6> input(fileName, converter);
     if(fileType == BasisId::SNAPSHOTS) filePrint(stderr, " ... Reading in Snapshot file: %s ...\n", fileName.c_str());
     if(fileType == BasisId::ROB) filePrint(stderr, " ... Reading in ROB file: %s ...\n", fileName.c_str());
     int skip = 1;
@@ -111,12 +111,12 @@ void readIntoSolver(SvdOrthogonalization &solver, VecNodeDof6Conversion &convert
         skip = 1;
       } 
       else {
-          SimpleBuffer<double> dummyVec;
-          dummyVec.sizeIs(input.vectorSize());  
-          double *dummyBuffer = dummyVec.array();
-          input >> dummyBuffer;
-          assert(input);
-          ++skip;
+        SimpleBuffer<double> dummyVec;
+        dummyVec.sizeIs(input.vectorSize());  
+        double *dummyBuffer = dummyVec.array();
+        input >> dummyBuffer;
+        assert(input);
+        ++skip;
       }
     }
   }
@@ -156,8 +156,8 @@ BasisOrthoDriver::solve() {
 	if(verboseFlag) fprintf(stderr," ... For default SVD, workload size = %zd ...\n", workload.size());}
 
   typedef VectorTransform<double *> VecTrans;
-  std::auto_ptr<VecTrans> transform(domain->solInfo().substractRefPodRom ?
-                                    static_cast<VecTrans *>(new RefSubstraction<double *>(domain)) :
+  std::auto_ptr<VecTrans> transform(domain->solInfo().subtractRefPodRom ?
+                                    static_cast<VecTrans *>(new RefSubtraction<double *>(domain)) :
                                     static_cast<VecTrans *>(new NoOp<double *>));
 
   double mratio = geoSource->getMRatio();
@@ -201,8 +201,8 @@ BasisOrthoDriver::solve() {
     BasisId::Type type = *it;
     // Loop over snapshots
     for(int i = 0; i < domain->solInfo().snapfiPodRom.size(); i++) {
-      std::string fileName =  BasisFileId(fileInfo, type, BasisId::SNAPSHOTS, i);
-      BasisInputStream input(fileName, converter);
+      std::string fileName = BasisFileId(fileInfo, type, BasisId::SNAPSHOTS, i);
+      BasisInputStream<6> input(fileName, converter);
       vectorSize = input.vectorSize();
       sizeSnap += input.size()/skipTime;
     }
@@ -210,7 +210,7 @@ BasisOrthoDriver::solve() {
     // Loop over rob files 
     for(int i = 0; i < domain->solInfo().robfi.size(); i++) {
       std::string fileName = BasisFileId(fileInfo,type,BasisId::ROB, i);
-      BasisInputStream input(fileName, converter);
+      BasisInputStream<6> input(fileName, converter);
       vectorSize = input.vectorSize();
       sizeROB += input.size();
     }
@@ -226,7 +226,7 @@ BasisOrthoDriver::solve() {
     
     solver.solve();
 
-    BasisOutputStream output(BasisFileId(fileInfo, type, BasisId::POD), converter, false); 
+    BasisOutputStream<6> output(BasisFileId(fileInfo, type, BasisId::POD), converter, false); 
 
     const int orthoBasisDim = domain->solInfo().maxSizePodRom ?
                               std::min(domain->solInfo().maxSizePodRom, solver.singularValueCount()) :
@@ -241,7 +241,7 @@ BasisOrthoDriver::solve() {
 
     // Read back in output file to renormalize basis
     VecBasis basis;
-    BasisInputStream in(BasisFileId(fileInfo, BasisId::STATE, BasisId::POD), converter);
+    BasisInputStream<6> in(BasisFileId(fileInfo, BasisId::STATE, BasisId::POD), converter);
     readVectors(in, basis);
 
     VecBasis normalizedBasis;
@@ -267,7 +267,7 @@ BasisOrthoDriver::solve() {
     // Output the renormalized basis as separate file
     std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
     fileName.append(".normalized");
-    BasisOutputStream outputNormalized(fileName, converter, false); 
+    BasisOutputStream<6> outputNormalized(fileName, converter, false); 
     filePrint(stderr, " ... Writing mass-normalized basis to file %s ...\n", fileName.c_str());
     for (int iVec = 0; iVec < orthoBasisDim; ++iVec) {
       outputNormalized << std::make_pair(solver.singularValue(iVec), normalizedBasis[iVec]);
@@ -277,7 +277,7 @@ BasisOrthoDriver::solve() {
     if(domain->solInfo().normalize == 1) {
       std::string fileName = BasisFileId(fileInfo, BasisId::STATE, BasisId::POD);
       MGSVectors(normalizedBasis.data(), normalizedBasis.numVec(), normalizedBasis.size());
-      BasisOutputStream outputIdentityNormalized(fileName, converter, false); 
+      BasisOutputStream<6> outputIdentityNormalized(fileName, converter, false); 
       filePrint(stderr, " ... Writing orthonormal basis to file %s ...\n", fileName.c_str());
       for (int iVec = 0; iVec < orthoBasisDim; ++iVec) {
         outputIdentityNormalized << std::make_pair(solver.singularValue(iVec), normalizedBasis[iVec]);

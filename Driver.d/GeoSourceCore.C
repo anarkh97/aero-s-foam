@@ -26,6 +26,7 @@
 #include <vector>
 #include <queue>
 #include <limits>
+#include <algorithm>
 #include <Sfem.d/Sfem.h>
 #ifdef USE_EIGEN3
 #include <Math.d/rref.h>
@@ -43,6 +44,7 @@ extern ModeData modeData;
 extern bool estFlag;
 extern bool weightOutFlag;
 extern bool trivialFlag;
+extern bool randomShuffle;
 extern int verboseFlag;
 #ifndef SALINAS
 extern Sfem *sfem;
@@ -1413,6 +1415,16 @@ void GeoSource::setUpData()
         domain->solInfo().isvPodRom = true;
         domain->solInfo().skipInternalStateVar = oinfo[iOut].interval;
         domain->solInfo().isvPodRomFile = oinfo[iOut].filename;
+        oinfo[iOut].PodRomfile = true;
+        break;
+      case OutputInfo::DualStateVar :
+        if(verboseFlag) filePrint(stderr, " ... Saving dual state variables snapshots every %d time steps to %s ...\n",
+                                  oinfo[iOut].interval, oinfo[iOut].filename);
+        domain->solInfo().activatePodRom = true;
+        domain->solInfo().snapshotsPodRom = true;
+        domain->solInfo().dsvPodRom = true;
+        domain->solInfo().skipDualStateVar = oinfo[iOut].interval;
+        domain->solInfo().dsvPodRomFile = oinfo[iOut].filename;
         oinfo[iOut].PodRomfile = true;
         break;
       case OutputInfo::Forcevector :
@@ -4048,6 +4060,8 @@ GeoSource::simpleDecomposition(int numSubdomains, bool estFlag, bool weightOutFl
    int k = 0;
    for(int i=0; i<maxEle; i++)
      if(elemSet[i]) optDec->eln[k++] = i;
+
+   if(randomShuffle) std::random_shuffle(optDec->eln, optDec->eln+k);
 
    if(verboseFlag)
      filePrint(stderr, " ... %d Elements Have Been Arranged in %d Subdomains ...\n",

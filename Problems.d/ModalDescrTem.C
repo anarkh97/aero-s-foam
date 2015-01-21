@@ -145,6 +145,13 @@ void ModalDescr<Scalar>::addConstForceSensitivity(Vector &constF){
 //------------------------------------------------------------------------------
 
 template <class Scalar>
+void ModalDescr<Scalar>::getSensitivityStateParam(double &tol) {
+  tol = domain->solInfo().sensitivityTol;
+}
+
+//------------------------------------------------------------------------------
+
+template <class Scalar>
 void ModalDescr<Scalar>::getSteadyStateParam(int &flag, int &min, int &max, double &tol){
 
   flag = domain->solInfo().steadyFlag;
@@ -447,5 +454,45 @@ template <class Scalar>
 void ModalDescr<Scalar>::getAeroelasticForceSensitivity(int t_index, double t, Vector * aero_f, double gamma, double alphaf){
 
   filePrint(stderr," ... ModalDescr::getAeroelasticForceSensitivity is not implemented\n"); exit(-1);
+}
+
+//------------------------------------------------------------------------------
+
+template <class Scalar>
+void ModalDescr<Scalar>::computeStabilityTimeStep(double &dt, ModalOps &dMat){
+
+ // ... Compute Stability Time Step
+ double sts = domain->computeStabilityTimeStep(dMat);
+
+ if(sts == std::numeric_limits<double>::infinity()) {
+   filePrint(stderr," **************************************\n");
+   filePrint(stderr," Stability max. timestep could not be  \n");
+   filePrint(stderr," determined for this model.            \n");
+   filePrint(stderr," Specified time step is selected\n");
+   filePrint(stderr," **************************************\n");
+   domain->solInfo().stable = 0;
+ }
+ else {
+   filePrint(stderr," **************************************\n");
+   if (domain->solInfo().modifiedWaveEquation) {
+     sts = 1.73205*sts;
+     filePrint(stderr," CONDITIONALLY STABLE MODIFIED WAVE EQUATION\n");
+   }
+   else
+     filePrint(stderr," CONDITIONALLY STABLE NEWMARK ALGORITHM\n");
+
+   filePrint(stderr," --------------------------------------\n");
+   filePrint(stderr," Specified time step      = %10.4e\n",dt);
+   filePrint(stderr," Stability max. time step = %10.4e\n",sts);
+   filePrint(stderr," **************************************\n");
+   if( (domain->solInfo().stable == 1 && sts < dt) || domain->solInfo().stable == 2 ) {
+     dt = sts;
+     filePrint(stderr," Stability max. time step is selected\n");
+   } else
+     filePrint(stderr," Specified time step is selected\n");
+   filePrint(stderr," **************************************\n");
+ }
+
+ domain->solInfo().setTimeStep(dt);
 }
 

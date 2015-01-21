@@ -10,14 +10,16 @@
 
 namespace Rom {
 
+template<int DOFS_PER_NODE>
 void
-DistrBasisOutputFile::stateAdd(const DistrNodeDof6Buffer &data) {
+DistrBasisOutputFile::stateAdd(const DistrNodeDofBuffer<DOFS_PER_NODE> &data) {
   const double defaultHeader = static_cast<double>(stateCount() + 1);
   stateAdd(data,defaultHeader);
 }
 
+template<int DOFS_PER_NODE>
 void
-DistrBasisOutputFile::stateAdd(const DistrNodeDof6Buffer &data, double headValue) {
+DistrBasisOutputFile::stateAdd(const DistrNodeDofBuffer<DOFS_PER_NODE> &data, double headValue) {
   assert(data.localNodeCount() == binFile_->localItemCount());
   SimpleBuffer<double> buffer(binFile_->localDataSize());
 
@@ -35,7 +37,8 @@ DistrBasisOutputFile::stateAdd(const DistrNodeDof6Buffer &data, double headValue
 }
 
 
-DistrBasisInputFile::DistrBasisInputFile(const std::string &fileName) :
+template<int DOFS_PER_NODE>
+DistrBasisInputFileTemplate<DOFS_PER_NODE>::DistrBasisInputFileTemplate(const std::string &fileName) :
   BasisBinaryInputFile(fileName),
   fileNodeIds_(),
   fileBuffer_(nodeCount())
@@ -44,13 +47,14 @@ DistrBasisInputFile::DistrBasisInputFile(const std::string &fileName) :
   assert(fileNodeIds_.size() == nodeCount());
 }
 
-const DistrNodeDof6Buffer &
-DistrBasisInputFile::currentStateBuffer(DistrNodeDof6Buffer &target) {
+template<int DOFS_PER_NODE>
+const DistrNodeDofBuffer<DOFS_PER_NODE> &
+DistrBasisInputFileTemplate<DOFS_PER_NODE>::currentStateBuffer(DistrNodeDofBuffer<DOFS_PER_NODE> &target) {
   // Retrieve all information in the internal buffer
   // TODO: More economical approach
   BasisBinaryInputFile::currentStateBuffer(fileBuffer_);
   
-  typedef DistrNodeDof6Buffer::NodeItConst NodeIt;
+  typedef typename DistrNodeDofBuffer<DOFS_PER_NODE>::NodeItConst NodeIt;
   const NodeIt it_end = target.globalNodeIndexEnd();
   for (NodeIt it = target.globalNodeIndexBegin(); it != it_end; ++it) {
     const int iNode = *it; // Id of the node requested by the local buffer
@@ -67,5 +71,31 @@ DistrBasisInputFile::currentStateBuffer(DistrNodeDof6Buffer &target) {
 
   return target;
 }
+
+template
+void DistrBasisOutputFile::stateAdd(const DistrNodeDofBuffer<6> &data);
+
+template
+void DistrBasisOutputFile::stateAdd(const DistrNodeDofBuffer<6> &data, double headValue);
+
+template
+DistrBasisInputFileTemplate<6>::DistrBasisInputFileTemplate(const std::string &fileName);
+
+template
+const DistrNodeDofBuffer<6> &
+DistrBasisInputFileTemplate<6>::currentStateBuffer(DistrNodeDofBuffer<6> &target);
+
+template
+void DistrBasisOutputFile::stateAdd(const DistrNodeDofBuffer<1> &data);
+
+template
+void DistrBasisOutputFile::stateAdd(const DistrNodeDofBuffer<1> &data, double headValue);
+
+template
+DistrBasisInputFileTemplate<1>::DistrBasisInputFileTemplate(const std::string &fileName);
+
+template
+const DistrNodeDofBuffer<1> &
+DistrBasisInputFileTemplate<1>::currentStateBuffer(DistrNodeDofBuffer<1> &target);
 
 } /* end namespace Rom */

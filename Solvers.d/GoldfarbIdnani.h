@@ -19,7 +19,7 @@ class GoldfarbIdnaniQpSolver : public BaseSolver
 
   typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> MatrixXd;
   typedef Eigen::Matrix<Scalar, Eigen::Dynamic, 1> VectorXd;
-#if !defined(SPARSE_G) && !defined(CHECK_G)
+#if defined(SPARSE_G) && !defined(CHECK_G)
   VectorXd diagG;
 #else
   MatrixXd G;
@@ -60,7 +60,7 @@ public:
         }
       }
     }
-#if !defined(SPARSE_G) && !defined(CHECK_G)
+#if defined(SPARSE_G) && !defined(CHECK_G)
     diagG.resize(n); diagG.setZero(); // in this case G stores only the diagonal
 #else
     G.resize(n,n); G.setZero();
@@ -80,7 +80,7 @@ public:
         if((J = unconstrNum[dofs[j]]) < 0) continue;
         switch(doftype[J]) {
           case 0: 
-#if !defined(SPARSE_G) && !defined(CHECK_G)
+#if defined(SPARSE_G) && !defined(CHECK_G)
             if(I==J) diagG[dofmap[I]] += kel[i][j];
 #else
             G(dofmap[I],dofmap[J]) += kel[i][j];
@@ -101,7 +101,7 @@ public:
   void addDiscreteMass(int dof, Scalar s) {
     int I;
     if((I = unconstrNum[dof]) < 0 || doftype[I] != 0) return;
-#if !defined(SPARSE_G) && !defined(CHECK_G)
+#if defined(SPARSE_G) && !defined(CHECK_G)
     diagG[dofmap[I]] += s;
 #else
     G(dofmap[I],dofmap[I]) += s;
@@ -109,7 +109,7 @@ public:
     BaseSolver::addDiscreteMass(dof,s);
   }
   void zeroAll() { 
-#if !defined(SPARSE_G) && !defined(CHECK_G)
+#if defined(SPARSE_G) && !defined(CHECK_G)
     diagG.setZero();
 #else
     G.setZero(); 

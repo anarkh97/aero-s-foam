@@ -13,6 +13,7 @@
 #include <Math.d/DBSparseMatrix.h>
 #include <Utils.d/DistHelper.h> 
 #include <Utils.d/linkfc.h>
+#include <Utils.d/ModeData.h>
 #include <Driver.d/GeoSource.h>
 #include <Driver.d/Communicator.h>
 #include <Comm.d/Communicator.h>
@@ -75,6 +76,9 @@ template <class EigOps, class VecType, class VecSet,
    return newSolver;
 }
 */
+
+// Global variable for mode data
+extern ModeData modeData;
     
 //------------------------------------------------------------------------------
 
@@ -609,7 +613,8 @@ LOBPCGSolver< EigOps, VecType, VecSet,
   }
 
   // ... Output results
-  this->postProcessor->eigenOutput(*this->eigVal,*this->eigVec);
+  if(this->probDesc->getFilter()) this->pickMostCorrelatedModes();
+  else this->postProcessor->eigenOutput(*this->eigVal,*this->eigVec);
 
   // ... Print timers
   this->probDesc->printTimers(this->eM->dynMat);
@@ -864,7 +869,8 @@ SubSpaceSolver< EigOps, VecType, VecSet,
  }
 
  // ... Output results
- this->postProcessor->eigenOutput(*this->eigVal,*this->eigVec);
+ if(this->probDesc->getFilter()) this->pickMostCorrelatedModes();
+ else this->postProcessor->eigenOutput(*this->eigVal,*this->eigVec);
 
  // ... Print timers
  this->probDesc->printTimers(this->eM->dynMat);
@@ -995,7 +1001,57 @@ template <class EigOps, class VecType, class VecSet,
 void
 EigenSolver< EigOps, VecType, VecSet,
              PostProcessor, ProblemDescriptor>
-  ::ortho(VecType *v1, VecType *vr, int nsub, int nrbm)
+::absoluteInnerproductNormalized(const VecType& v1, const VecType& v2, double &result)
+{
+  VecType normalizedV1(v1), normalizedV2(v2);
+  double normv1 = normalizedV1.norm();
+  double normv2 = normalizedV2.norm();
+  normalizedV1 *= (1.0/normv1);
+  normalizedV2 *= (1.0/normv2);
+  result = std::abs(normalizedV1*normalizedV2);
+}
+
+template <class EigOps, class VecType, class VecSet,
+          class PostProcessor, class ProblemDescriptor>
+void
+EigenSolver< EigOps, VecType, VecSet,
+             PostProcessor, ProblemDescriptor>
+::pickMostCorrelatedModes()
+{
+  int i,j,k,selectedIndex[modeData.numModes];
+  for(i=0; i<modeData.numModes; ++i) selectedIndex[i] = 0;
+  double result, maxResult[modeData.numModes];
+  bool isIncluded;
+  VecSet vModeData(modeData.numModes,probDesc->solVecInfo()), rModeData(modeData.numModes,probDesc->solVecInfo());
+  Vector rModeVal(modeData.numModes);
+  probDesc->convertModeDataToVecSet(vModeData);
+  for(i=0; i<modeData.numModes; ++i) {
+    maxResult[i] = 0.0;
+    for(j=0; j<totalEig; ++j) {
+      absoluteInnerproductNormalized(vModeData[i],(*eigVec)[j],result);
+      if(result > maxResult[i]) {
+        isIncluded = false;
+        for(k=0; k<i; ++k) if(selectedIndex[k] == j) { isIncluded = true; }
+        if(!isIncluded) {
+          maxResult[i] = result;
+          selectedIndex[i] = j;
+        }
+      }
+    }
+    filePrint(stderr," ... max normalized inner product is %e\n", maxResult[i]);
+    rModeData[i] = (*eigVec)[selectedIndex[i]];
+    rModeVal[i] = (*eigVal)[selectedIndex[i]];
+  }
+  this->postProcessor->eigenOutput(rModeVal, rModeData,modeData.numModes);
+
+}
+
+template <class EigOps, class VecType, class VecSet,
+          class PostProcessor, class ProblemDescriptor>
+void
+EigenSolver< EigOps, VecType, VecSet,
+             PostProcessor, ProblemDescriptor>
+::ortho(VecType *v1, VecType *vr, int nsub, int nrbm)
 {
   int i,j;
   for(j=0; j<nsub; ++j) {
@@ -1423,7 +1479,8 @@ SymArpackSolver< EigOps, VecType, VecSet,
       }
       if(select) { delete [] select; select = 0; }
     }
-    this->postProcessor->eigenOutput(*this->eigVal,*this->eigVec, convEig);
+    if(this->probDesc->getFilter()) this->pickMostCorrelatedModes();
+    else this->postProcessor->eigenOutput(*this->eigVal,*this->eigVec, convEig);
 
 
     // free locally allocated memory

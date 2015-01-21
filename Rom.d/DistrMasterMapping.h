@@ -26,10 +26,11 @@ public:
   NodeIndexIt masterNodeBegin() const { return masterNodes_.begin(); }
   NodeIndexIt masterNodeEnd()   const { return masterNodes_.end();   }
 
+  DistrMasterMapping() {}
   template <typename SubDomFwdIt>
   DistrMasterMapping(SubDomFwdIt subDomFirst, SubDomFwdIt subDomLast);
 
-private:
+protected:
   std::vector<MasterMapping> subMapping_;
   std::vector<int> localNodes_;
   std::vector<int> masterNodes_;
@@ -46,6 +47,33 @@ DistrMasterMapping::DistrMasterMapping(SubDomFwdIt subDomFirst, SubDomFwdIt subD
 
     std::vector<bool> masterNodes;
     master_node_flags(sd, std::back_inserter(masterNodes));
+    subMapping_.push_back(MasterMapping(globalBegin, globalEnd, masterNodes.begin()));
+
+    std::vector<bool>::const_iterator flagIt = masterNodes.begin();
+    for (const int *globalIt = globalBegin; globalIt != globalEnd; ++globalIt) {
+      if (*flagIt++) {
+        masterNodes_.push_back(*globalIt);
+      }
+    }
+  }
+}
+
+class DistrMpcMasterMapping : public DistrMasterMapping {
+public:
+  template <typename SubDomFwdIt>
+  DistrMpcMasterMapping(SubDomFwdIt subDomFirst, SubDomFwdIt subDomLast);
+};
+
+template <typename SubDomFwdIt>
+DistrMpcMasterMapping::DistrMpcMasterMapping(SubDomFwdIt subDomFirst, SubDomFwdIt subDomLast) {
+  for (SubDomFwdIt subDomIt = subDomFirst; subDomIt != subDomLast; ++subDomIt) {
+    SubDomain &sd = *subDomIt;
+    const int * const globalBegin = sd.getGlMPCs();
+    const int * const globalEnd = globalBegin + sd.getNumMpc();
+
+    localNodes_.insert(localNodes_.end(), globalBegin, globalEnd);
+
+    std::vector<bool> masterNodes(sd.getMpcMaster(), sd.getMpcMaster()+sd.getNumMpc());
     subMapping_.push_back(MasterMapping(globalBegin, globalEnd, masterNodes.begin()));
 
     std::vector<bool>::const_iterator flagIt = masterNodes.begin();

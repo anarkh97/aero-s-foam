@@ -24,6 +24,7 @@
 #include <Driver.d/ControlLawInfo.h>
 #include <Mortar.d/MortarDriver.d/MortarHandler.h>
 #include <Utils.d/DistHelper.h>
+#include <Problems.d/ModalBase.h>
 
 extern ModeData modeData; 
 extern int verboseFlag;
@@ -1042,7 +1043,7 @@ Domain::aeroPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
 
     // Send u + IDISP6 to fluid code.
     // IDISP6 is used to compute pre-stress effects.
-    if(sinfo.gepsFlg == 1) {
+    if(sinfo.gepsFlg == 1 && sinfo.aeroFlag != 8) {
       // If we are in the first time step, and we initialized with
       // IDISP6, do not send IDISP6
       if(numIDis == 0 && sinfo.zeroInitialDisp != 1) {
@@ -1065,8 +1066,11 @@ Domain::aeroPreProcess(Vector& d_n, Vector& v_n, Vector& a_n,
                              restartinc, sinfo.isCollocated, sinfo.alphas, sinfo.alphasv);
       flExchanger->sendModeFreq(modeData.frequencies, modeData.numModes);
       if(verboseFlag) filePrint(stderr, " ... [E] Sent parameters and mode frequencies ...\n");
-      flExchanger->sendModeShapes(modeData.numModes, modeData.numNodes,
-                   modeData.modes, curState, sinfo.mppFactor);
+      if(sinfo.gepsFlg == 1) {
+        flExchanger->sendModeShapes(modeData.numModes, modeData.numNodes,
+                     modeData.modes, curState, sinfo.mppFactor, numIDis6, iDis6);
+      } else flExchanger->sendModeShapes(modeData.numModes, modeData.numNodes, 
+                       modeData.modes, curState, sinfo.mppFactor);
       if(verboseFlag) filePrint(stderr, " ... [E] Sent mode shapes           ...\n");
     }
     else {
@@ -1277,8 +1281,9 @@ Domain::thermoePreProcess()
 ** by power method.
 */
 
+template<typename DynamMatType>
 double
-Domain::computeStabilityTimeStep(DynamMat& dMat)
+Domain::computeStabilityTimeStep(DynamMatType& dMat)
 {
       using std::abs;
       using std::sqrt;
@@ -1329,6 +1334,8 @@ Domain::computeStabilityTimeStep(DynamMat& dMat)
       return sinfo.stable_cfl*sdt;
 }
 
+template double Domain::computeStabilityTimeStep(DynamMat& dMat);
+template double Domain::computeStabilityTimeStep(ModalOps& dMat);
 
 double Domain::computeStabilityTimeStepROM(GenFullSquareMatrix<double>& K_red)
 {

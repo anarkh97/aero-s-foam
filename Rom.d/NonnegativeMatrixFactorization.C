@@ -63,25 +63,46 @@ NonnegativeMatrixFactorization::solve() {
   Eigen::MatrixXd W(m,k), H(k,n);
 
   int NNMFROB = 1;
-
-  if NNMFROB { 
+  double res, index;
+  Eigen::MatrixXd Err(A);
+  if (NNMFROB) { 
     W = Eigen::MatrixXd::Random(W.rows(), W.cols());
     Eigen::MatrixXd W_copy(W);
     for(int i=0; i<maxIter_; ++i) {
     
       H = solveNNLS_MRHS(W, A);
       W.transpose() = solveNNLS_MRHS(H.transpose(),A.transpose());
-      double res = (A-W*H).norm()/A.norm();
+      Err = A-W*H;
+      index = findColumnWithLargestMagnitude(Err);
+      res = Err.norm()/A.norm();
       double inc = (W-W_copy).norm();
-      std::cout << "iteration = " << i+1 << ", rel. residual = " << res << ", solution incr. = " << inc << std::endl;
+      std::cout << "iteration = " << i+1 << ", rel. residual = " << res << ", maximum error = " << Err.col(index).norm() << ", solution incr. = " << inc << std::endl;
       if(inc < tol_) break;
       W_copy = W;
     }
+  }
   else {// Greedy ROB
-    W = Eigen::MatrixXd::
+    W = Eigen::MatrixXd::Zero(W.rows(), W.cols());
+    H = Eigen::MatrixXd::Zero(H.rows(), H.cols());
     // first vector is vector with largest magnitude
-
-
+    index = findColumnWithLargestMagnitude(A);
+    W.col(0) = A.col(index);
+    for (int i=1; i<k; ++i) {
+      H.topRows(i) = solveNNLS_MRHS(W.leftCols(i), A);
+      Err = A-W.leftCols(i)*H.topRows(i); 
+      res = Err.norm()/A.norm();
+      index = findColumnWithLargestMagnitude(Err);
+      std::cout << "greedy iteration = " << i << ", rel. residual = " << res << ", maximum error = " << Err.col(index).norm() << std::endl;
+      W.col(i) = A.col(index);
+    }
+    H.topRows(k) = solveNNLS_MRHS(W.leftCols(k), A);
+    Err = A-W.leftCols(k)*H.topRows(k);
+    res = Err.norm()/A.norm();
+    index = findColumnWithLargestMagnitude(Err);
+    std::cout << "greedy iteration = " << k << ", rel. residual = " << res << ", maximum error = " << Err.col(index).norm() << std::endl;
+    //normalize vectors in W
+    for (int i=0; i<k; ++i)
+      W.col(i) = W.col(i)/W.col(i).norm();
   }
 
   // copy W into matrixBuffer
@@ -115,7 +136,7 @@ NonnegativeMatrixFactorization::findColumnWithLargestMagnitude(const Eigen::Ref<
   double vecNorm;
   for(int j=1; j<_X.cols(); ++j) {
     vecNorm = _X.col(j).norm();
-    if (_X.col(0).norm() < vecNorm) {
+    if (maxNorm < vecNorm) {
       index = j;
       maxNorm = vecNorm;
     }

@@ -62,7 +62,7 @@ NonnegativeMatrixFactorization::solve() {
       A(i,j) = -X(rows[i],cols[j]); // note -ve is due to sign convention (Lagrange multipliers are negative in Aero-S)
   Eigen::MatrixXd W(m,k), H(k,n);
 
-  int NNMFROB = 1;
+  int NNMFROB = 0;
   double res, index;
   Eigen::MatrixXd Err(A);
   if (NNMFROB) { 

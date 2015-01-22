@@ -62,20 +62,26 @@ NonnegativeMatrixFactorization::solve() {
       A(i,j) = -X(rows[i],cols[j]); // note -ve is due to sign convention (Lagrange multipliers are negative in Aero-S)
   Eigen::MatrixXd W(m,k), H(k,n);
 
-  W = Eigen::MatrixXd::Random(W.rows(), W.cols());
-  Eigen::MatrixXd W_copy(W);
-  for(int i=0; i<maxIter_; ++i) {
-    for(int j=0; j<A.cols(); ++j) {
-      H.col(j) = solveNNLS(W, A.col(j));
+  int NNMFROB = 1;
+
+  if NNMFROB { 
+    W = Eigen::MatrixXd::Random(W.rows(), W.cols());
+    Eigen::MatrixXd W_copy(W);
+    for(int i=0; i<maxIter_; ++i) {
+    
+      H = solveNNLS_MRHS(W, A);
+      W.transpose() = solveNNLS_MRHS(H.transpose(),A.transpose());
+      double res = (A-W*H).norm()/A.norm();
+      double inc = (W-W_copy).norm();
+      std::cout << "iteration = " << i+1 << ", rel. residual = " << res << ", solution incr. = " << inc << std::endl;
+      if(inc < tol_) break;
+      W_copy = W;
     }
-    for(int j=0; j<A.rows(); ++j) {
-      W.row(j).transpose() = solveNNLS(H.transpose(), A.row(j).transpose());
-    }
-    double res = (A-W*H).norm()/A.norm();
-    double inc = (W-W_copy).norm();
-    std::cout << "iteration = " << i+1 << ", rel. residual = " << res << ", solution incr. = " << inc << std::endl;
-    if(inc < tol_) break;
-    W_copy = W;
+  else {// Greedy ROB
+    W = Eigen::MatrixXd::
+    // first vector is vector with largest magnitude
+
+
   }
 
   // copy W into matrixBuffer
@@ -85,6 +91,39 @@ NonnegativeMatrixFactorization::solve() {
       X(rows[i],j) = W(i,j);
 #endif
 }
+
+#ifdef USE_EIGEN3
+Eigen::MatrixXd
+NonnegativeMatrixFactorization::solveNNLS_MRHS(const Eigen::Ref<const Eigen::MatrixXd> &_A, const Eigen::Ref<const Eigen::MatrixXd> &_B)
+{
+
+  Eigen::MatrixXd X(_A.cols(),_B.cols());  
+  for(int j=0; j<_B.cols(); ++j) {
+    X.col(j) = solveNNLS(_A, _B.col(j));
+   }
+   return X;
+}
+#endif
+
+#ifdef USE_EIGEN3
+int
+NonnegativeMatrixFactorization::findColumnWithLargestMagnitude(const Eigen::Ref<const Eigen::MatrixXd> &_X)
+{
+
+  int index = 0;
+  double maxNorm = _X.col(0).norm();
+  double vecNorm;
+  for(int j=1; j<_X.cols(); ++j) {
+    vecNorm = _X.col(j).norm();
+    if (_X.col(0).norm() < vecNorm) {
+      index = j;
+      maxNorm = vecNorm;
+    }
+  }
+  return index;
+
+}
+#endif
 
 #ifdef USE_EIGEN3
 Eigen::VectorXd

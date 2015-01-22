@@ -43,6 +43,14 @@ private:
 #ifdef USE_EIGEN3
   Eigen::VectorXd solveNNLS(const Eigen::Ref<const Eigen::MatrixXd> &_A, const Eigen::Ref<const Eigen::VectorXd> &b);
 #endif
+
+#ifdef USE_EIGEN3
+  Eigen::MatrixXd solveNNLS_MRHS(const Eigen::Ref<const Eigen::MatrixXd> &_A, const Eigen::Ref<const Eigen::MatrixXd> &B);
+#endif
+
+#ifdef USE_EIGEN3
+  int findColumnWithLargestMagnitude(const Eigen::Ref<const Eigen::MatrixXd> &_X);
+#endif
 };
 
 inline

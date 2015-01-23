@@ -1863,7 +1863,7 @@ MortarHandler::build_search(bool tdenforceFlag, int numSub, SubDomain **sd)
     exit(error);
   }
 
-  // set face block attributes (shell thickness and lofting
+  // set face block attributes (shell thickness and lofting)
   if(tdenforceFlag) {
     for(int i = 0; i < number_face_blocks; i++) {
       if(face_block_types[i] == ContactSearch::SHELLQUADFACEL4 || face_block_types[i] == ContactSearch::SHELLTRIFACEL3) {

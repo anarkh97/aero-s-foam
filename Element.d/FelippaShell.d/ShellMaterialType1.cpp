@@ -278,7 +278,7 @@ ShellMaterialType1<doublereal>::GetLocalConstitutiveResponse(doublereal *Upsilon
 template<typename doublereal>
 void
 ShellMaterialType1<doublereal>::GetLocalConstitutiveResponseSensitivityWRTdisp(doublereal *dUpsilondu, doublereal *dsigmadu, doublereal z,
-                                                        doublereal *eframe, int gp)
+                                                                               doublereal *eframe, int gp)
 {
   for(int i=0; i<3*18; ++i) dsigmadu[i] = 0.0;
   if(quietFlag == 0) {
@@ -311,6 +311,10 @@ void
 ShellMaterialType1<double>::GetLocalConstitutiveResponse(double *Upsilon, double *sigma, double z,
                                                          double *eframe, int gp, double temp, double dt);
 
+template
+void
+ShellMaterialType1<double>::GetLocalConstitutiveResponseSensitivityWRTdisp(double *dUpsilondu, double *dsigmadu, double z,
+                                                                           double *eframe, int gp);
 #endif
 
 #endif

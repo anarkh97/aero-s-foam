@@ -27,6 +27,7 @@
 #include <queue>
 #include <limits>
 #include <algorithm>
+#include <iterator>
 #include <Sfem.d/Sfem.h>
 #ifdef USE_EIGEN3
 #include <Math.d/rref.h>
@@ -50,6 +51,17 @@ extern int verboseFlag;
 extern Sfem *sfem;
 #endif
 //----------------------------------------------------------------------
+
+template< class RandomIt >
+void random_shuffle( RandomIt first, RandomIt last )
+{
+    typename std::iterator_traits<RandomIt>::difference_type i, n;
+    n = last - first;
+    for (i = n-1; i > 0; --i) {
+        using std::swap;
+        swap(first[i], first[std::rand() % (i+1)]);
+    }
+}
 
 GeoSource::GeoSource(int iniSize) : oinfo(emptyInfo, iniSize), nodes(iniSize*16), elemSet(iniSize*16),
    layInfo(0, iniSize), coefData(0, iniSize), layMat(0, iniSize), efd(null_eframe, iniSize), csfd(null_eframe, iniSize), cframes(0, iniSize), nfd(null_nframe, iniSize)
@@ -4061,7 +4073,11 @@ GeoSource::simpleDecomposition(int numSubdomains, bool estFlag, bool weightOutFl
    for(int i=0; i<maxEle; i++)
      if(elemSet[i]) optDec->eln[k++] = i;
 
-   if(randomShuffle) std::random_shuffle(optDec->eln, optDec->eln+k);
+   if(randomShuffle) { 
+     filePrint(stderr, " ... Trivial Decomposition With Random Shuffle (RAND_MAX = %d) ... \n", RAND_MAX);
+     std::srand(1);
+     random_shuffle(optDec->eln, optDec->eln+k);
+   }
 
    if(verboseFlag)
      filePrint(stderr, " ... %d Elements Have Been Arranged in %d Subdomains ...\n",

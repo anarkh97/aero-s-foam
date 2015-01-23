@@ -122,7 +122,7 @@ class Connectivity : public BaseConnectivity<Connectivity,DirectAccess<Connectiv
         Connectivity(int _size, int *_pointer, int *_target, int _removeable=1, float *_weight = 0);
         Connectivity(int _size, int *_count);
 	Connectivity(BinFileHandler &, bool oldSower = false);
-        Connectivity(FaceElemSet*);
+        Connectivity(FaceElemSet*, int size = 0);
 	Connectivity(int ns); //dec
         Connectivity(Elemset *els, Connectivity *nodeToElem);
         Connectivity(const Connectivity&);

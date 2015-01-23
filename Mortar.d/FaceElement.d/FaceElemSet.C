@@ -79,10 +79,8 @@ FaceElemSet::elemadd(int num, FaceElement *el)
   elem[num] = el;
 }
 
-
 int 
 FaceElemSet::nElems() { return last(); }
-
 
 void
 FaceElemSet::Renumber(std::map<int,int>& OldToNewNodeIds)

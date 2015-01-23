@@ -28,6 +28,7 @@ extern Communicator *structCom, *fluidCom, *heatStructCom;
 extern int verboseFlag;
 extern GeoSource *geoSource;
 extern SolverInfo &solInfo;
+extern Domain *domain;
 
 DistFlExchanger::DistFlExchanger(CoordSet **_cs, Elemset **_eset, SurfaceEntity *_surface, CoordSet *_globalCoords,
                                  Connectivity *_nodeToElem, Connectivity *_elemToSub, SubDomain **_sd,
@@ -45,18 +46,14 @@ DistFlExchanger::DistFlExchanger(CoordSet **_cs, Elemset **_eset, SurfaceEntity 
     // the surface due to element deletion. However, this class currently requires access to the
     // original surface topology.
     surface = new SurfaceEntity(*_surface);
-    faceElemToNode = new Connectivity(surface->GetPtrFaceElemSet());
+    int nElems = (surface->GetIsShellFace() && domain->tdenforceFlag()) ? surface->nFaceElements()/2 : surface->nFaceElements();
+    faceElemToNode = new Connectivity(surface->GetPtrFaceElemSet(), nElems);
     nodeToFaceElem = faceElemToNode->reverse();
   }
   else {
     surface = _surface;
     faceElemToNode = 0;
     nodeToFaceElem = 0;
-  }
-
-  if(surface && surface->GetIsShellFace()) {
-    filePrint(stderr, " *** ERROR: The surface_thickness attribute should not be used on the embedded surface\n");
-    exit(-1);
   }
 
   buff = 0;
@@ -476,7 +473,7 @@ DistFlExchanger::sendEmbeddedWetSurface()
   int          *fnId = surface->GetPtrGlNodeIds();
   map<int, int> *g2l = surface->GetPtrGlToLlNodeMap();
   int         nNodes = fnodes.size();
-  int         nElems = surface->nFaceElements();
+  int         nElems = (surface->GetIsShellFace() && domain->tdenforceFlag()) ? surface->nFaceElements()/2 : surface->nFaceElements();
   bool    renumbered = surface->IsRenumbered();
   int eType;
 
@@ -610,7 +607,7 @@ DistFlExchanger::getMatchData()
       eleTouch[j] = -1;
     }
 
-    int numFaceEle = feset.last();
+    int numFaceEle = (surface->GetIsShellFace() && domain->tdenforceFlag()) ? feset.last()/2 : feset.last();
     int *faceElemToSub = new int[numFaceEle];
 
     for(int j = 0; j < numFaceEle; ++j) {

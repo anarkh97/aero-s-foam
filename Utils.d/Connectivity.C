@@ -218,13 +218,13 @@ Connectivity::Connectivity(int _size, int *_count)
  weight = 0;
 }
 
-Connectivity::Connectivity(FaceElemSet* els)
+Connectivity::Connectivity(FaceElemSet* els, int _size)
 {
  removeable = 1;
  int i;
  weight = (float *)0;
 
- size = els->last();
+ size = (_size == 0) ? els->last() : _size;
 
  // Find out the number of targets we will have
  pointer = new int[size+1] ;
@@ -237,7 +237,6 @@ Connectivity::Connectivity(FaceElemSet* els)
  numtarget = pp;
 
  // Create the target array
- //cerr <<" In Connectivity(FaceElemSet*), pp ="<< pp <<endl;
  target = new int[pp];
 
  // Fill it in

@@ -337,6 +337,9 @@ pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const
   if(myrank == 0 && verbose) std::cout.flush();
 
   Array<VectorXd,Dynamic,1> x(nsub);
+#if defined(_OPENMP)
+  #pragma omp parallel for schedule(static,1)
+#endif
   for(int i=0; i<nsub; ++i) {
     x[i] = VectorXd::Zero(A[i].cols());
     for(long int j=0; j<l[i]; ++j) x[i][indices[i][j]] = S[i][indices[i][j]]*x_[i][j];

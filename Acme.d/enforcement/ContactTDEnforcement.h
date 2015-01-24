@@ -264,14 +264,17 @@ class ContactTDEnforcement : public ContactEnforcement {
   void Initialize_CVARS();
   void Set_CVARS();
   void Set_CGVARS();
+ protected:
   void Store_Shell_Final_Lofted_Positions();
   void Assemble_Shell_Forces();
+ private:
 
   Real third_vector[3];
 
   //
   //  Nodal Scratch Variables
   //
+ protected: // PJSA: make these available to derived class ContactTDEnfPenalty
   ScratchVariable ASSEMBLED_MASS;
   ScratchVariable NODAL_MASS;
   ScratchVariable NODAL_WAVESPEED;

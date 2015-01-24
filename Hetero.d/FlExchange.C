@@ -5,6 +5,7 @@
 
 #include <Comm.d/Communicator.h>
 #include <Driver.d/GeoSource.h>
+#include <Driver.d/Domain.h>
 #include <Utils.d/Connectivity.h>
 #include <Utils.d/SolverInfo.h>
 #include <Corotational.d/GeomState.h>
@@ -31,6 +32,7 @@ extern Communicator *structCom, *fluidCom, *heatStructCom;
 extern int verboseFlag;
 extern GeoSource *geoSource;
 extern SolverInfo &solInfo;
+extern Domain *domain;
 
 FlExchanger::FlExchanger(CoordSet &_cs, Elemset &_eset, SurfaceEntity *_surface, DofSetArray *_dsa,
                          OutputInfo *_oinfo, bool _wCracking)
@@ -49,18 +51,14 @@ FlExchanger::FlExchanger(CoordSet &_cs, Elemset &_eset, SurfaceEntity *_surface,
     // the surface due to element deletion. However, this class currently requires access to the
     // original surface topology.
     surface = new SurfaceEntity(*_surface);
-    faceElemToNode = new Connectivity(surface->GetPtrFaceElemSet());
+    int nElems = (surface->GetIsShellFace() && domain->tdenforceFlag()) ? surface->nFaceElements()/2 : surface->nFaceElements();
+    faceElemToNode = new Connectivity(surface->GetPtrFaceElemSet(), nElems);
     nodeToFaceElem = faceElemToNode->reverse();
   }
   else {
     surface = _surface;
     faceElemToNode = 0;
     nodeToFaceElem = 0;
-  }
-
-  if(surface && surface->GetIsShellFace()) {
-    std::cerr << " *** ERROR: The surface_thickness attribute should not be used on the embedded surface\n";
-    exit(-1);
   }
 
   idSendTo = 0;
@@ -576,7 +574,7 @@ FlExchanger::sendEmbeddedWetSurface()
   int          *fnId = surface->GetPtrGlNodeIds();
   map<int, int> *g2l = surface->GetPtrGlToLlNodeMap();
   int         nNodes = fnodes.size();
-  int         nElems = surface->nFaceElements();
+  int         nElems = (surface->GetIsShellFace() && domain->tdenforceFlag()) ? surface->nFaceElements()/2 : surface->nFaceElements();
   bool    renumbered = surface->IsRenumbered();
   int eType;
 

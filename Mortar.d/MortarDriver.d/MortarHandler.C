@@ -848,7 +848,7 @@ MortarHandler::CreateFFIPolygon()
     int slave_face  = (*SlaveACMEBlocksMap)[SlaveBlkId][Slave_face_index_in_block[iFFI]-1];
     FaceElement *SlaveFaceEl  = (*SlaveElemSet)[slave_face];
 
-    if(SelfContact) { // TODO
+    if(SelfContact) {
       MasterBlkId = Master_face_block_id[iFFI]-1;
       MasterACMEBlocksMap = SlaveACMEBlocksMap;
       MasterElemSet = SlaveElemSet;
@@ -1277,8 +1277,6 @@ MortarHandler::build_search(bool tdenforceFlag, int numSub, SubDomain **sd)
 
   ContactSearch::ContactFace_Type *face_block_types;
   face_block_types   = new ContactSearch::ContactFace_Type[number_face_blocks];
-  //ContactSearch::ContactFace_Type *trueface_block_types;
-  //trueface_block_types = new ContactSearch::ContactFace_Type[2];
 
   ContactSearch::ContactElement_Type* element_block_types = 0;
   int num_element_blocks         = 0;
@@ -1412,7 +1410,7 @@ MortarHandler::build_search(bool tdenforceFlag, int numSub, SubDomain **sd)
       delete [] glNodes;
     }
     delete masterFaceElemToNode;
-    PtrLocalMasterEntity->SetUpData(&geoSource->GetNodes()); // XXX was &domain->getNodes()
+    PtrLocalMasterEntity->SetUpData(&geoSource->GetNodes());
     PtrLocalMasterEntity->Renumber();
     nMasterFaceElem = PtrLocalMasterEntity->GetPtrFaceElemSet()->nElems();
     nMasterNodes = PtrLocalMasterEntity->GetnVertices();
@@ -1433,7 +1431,7 @@ MortarHandler::build_search(bool tdenforceFlag, int numSub, SubDomain **sd)
       delete [] glNodes;
     }
     delete slaveFaceElemToNode;
-    PtrLocalSlaveEntity->SetUpData(&geoSource->GetNodes()); // XXX was &domain->getNodes()
+    PtrLocalSlaveEntity->SetUpData(&geoSource->GetNodes());
     PtrLocalSlaveEntity->Renumber();
     nSlaveFaceElem = PtrLocalSlaveEntity->GetPtrFaceElemSet()->nElems();
     nSlaveNodes = PtrLocalSlaveEntity->GetnVertices();
@@ -1863,7 +1861,7 @@ MortarHandler::build_search(bool tdenforceFlag, int numSub, SubDomain **sd)
     exit(error);
   }
 
-  // set face block attributes (shell thickness and lofting
+  // set face block attributes (shell thickness and lofting)
   if(tdenforceFlag) {
     for(int i = 0; i < number_face_blocks; i++) {
       if(face_block_types[i] == ContactSearch::SHELLQUADFACEL4 || face_block_types[i] == ContactSearch::SHELLTRIFACEL3) {
@@ -1914,6 +1912,12 @@ MortarHandler::set_search_data(int interaction_type)
   filePrint(stderr,"   * Set ACME active interactions\n");
 #endif
   double Normal_Tol = GetNormalTol();
+  if(interaction_type == 4) {
+    // the tolerance specified in the input file is measured w.r.t the lofted surfaces
+    // this makes the interpretation of the normal tolerance consistent from a user's perspective 
+    if(SelfContact) Normal_Tol += PtrSlaveEntity->GetShellThickness();
+    else Normal_Tol += (PtrMasterEntity->GetShellThickness()/2 + PtrSlaveEntity->GetShellThickness()/2);
+  }
   double Tangential_Tol = GetTangentialTol();
   double Interaction_Typ;
   switch(interaction_type) {
@@ -2300,7 +2304,7 @@ MortarHandler::set_search_options()
     exit(error);
   }
 
-  // Activate normal smoothing TODO debug why this doesn't work for acme-2.9 
+  // Activate normal smoothing
   data[1] = 0.5;
   data[2] = ContactSearch::USE_EDGE_BASED_NORMAL;  // ContactSearch::USE_NODE_NORMAL
   error = search_obj->Set_Search_Option(ContactSearch::NORMAL_SMOOTHING,
@@ -2464,10 +2468,6 @@ MortarHandler::get_interactions(int interaction_type)
         structCom->broadcast(num_FFI, ACMEFFI_index);
         structCom->broadcast(FFI_data_size, ACMEFFI_data);
 #endif
-        //for(int i = 0; i < num_FFI; ++i) std::cerr << Master_face_block_id[i] << " " << Master_face_index_in_block[i] << " " << Slave_face_block_id[i] << " " 
-        //                                      << Slave_face_index_in_block[i] << " " << Slave_face_procs[i] << " " << Master_face_procs[i] << " "
-        //                                      << ACMEFFI_index[i] << " " << std::endl;
-        //cerr << "ACMEFFI_data = "; for(int i = 0; i < FFI_data_size; ++i) std::cerr << ACMEFFI_data[i] << " "; std::cerr << std::endl;
         //TODO: for self contact we should eliminate the redundant constraints.
       } else {
 #ifdef MORTAR_DEBUG

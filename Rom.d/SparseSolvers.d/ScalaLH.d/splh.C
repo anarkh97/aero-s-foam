@@ -67,7 +67,7 @@ splh(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const E
   int nfree = solver.solve();
 
   // Output
-  solver.printTimes(true);
+  solver.printTimes();
   rnorm = solver.getResidualNorm();
   dtime = solver.getDownDateTime();
   Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1> x(n);

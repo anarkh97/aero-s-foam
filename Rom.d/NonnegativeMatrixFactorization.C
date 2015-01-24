@@ -62,20 +62,47 @@ NonnegativeMatrixFactorization::solve() {
       A(i,j) = -X(rows[i],cols[j]); // note -ve is due to sign convention (Lagrange multipliers are negative in Aero-S)
   Eigen::MatrixXd W(m,k), H(k,n);
 
-  W = Eigen::MatrixXd::Random(W.rows(), W.cols());
-  Eigen::MatrixXd W_copy(W);
-  for(int i=0; i<maxIter_; ++i) {
-    for(int j=0; j<A.cols(); ++j) {
-      H.col(j) = solveNNLS(W, A.col(j));
+  int NNMFROB = 0;
+  double res, index;
+  Eigen::MatrixXd Err(A);
+  if (NNMFROB) { 
+    W = Eigen::MatrixXd::Random(W.rows(), W.cols());
+    Eigen::MatrixXd W_copy(W);
+    for(int i=0; i<maxIter_; ++i) {
+    
+      H = solveNNLS_MRHS(W, A);
+      W.transpose() = solveNNLS_MRHS(H.transpose(),A.transpose());
+      Err = A-W*H;
+      index = findColumnWithLargestMagnitude(Err);
+      res = Err.norm()/A.norm();
+      double inc = (W-W_copy).norm();
+      std::cout << "iteration = " << i+1 << ", rel. residual = " << res << ", maximum error = " << Err.col(index).norm() << ", solution incr. = " << inc << std::endl;
+      if(inc < tol_) break;
+      W_copy = W;
     }
-    for(int j=0; j<A.rows(); ++j) {
-      W.row(j).transpose() = solveNNLS(H.transpose(), A.row(j).transpose());
+  }
+  else {// Greedy ROB
+    W = Eigen::MatrixXd::Zero(W.rows(), W.cols());
+    H = Eigen::MatrixXd::Zero(H.rows(), H.cols());
+    // first vector is vector with largest magnitude
+    index = findColumnWithLargestMagnitude(A);
+    W.col(0) = A.col(index);
+    for (int i=1; i<k; ++i) {
+      H.topRows(i) = solveNNLS_MRHS(W.leftCols(i), A);
+      Err = A-W.leftCols(i)*H.topRows(i); 
+      res = Err.norm()/A.norm();
+      index = findColumnWithLargestMagnitude(Err);
+      std::cout << "greedy iteration = " << i << ", rel. residual = " << res << ", maximum error = " << Err.col(index).norm() << std::endl;
+      W.col(i) = A.col(index);
     }
-    double res = (A-W*H).norm()/A.norm();
-    double inc = (W-W_copy).norm();
-    std::cout << "iteration = " << i+1 << ", rel. residual = " << res << ", solution incr. = " << inc << std::endl;
-    if(inc < tol_) break;
-    W_copy = W;
+    H.topRows(k) = solveNNLS_MRHS(W.leftCols(k), A);
+    Err = A-W.leftCols(k)*H.topRows(k);
+    res = Err.norm()/A.norm();
+    index = findColumnWithLargestMagnitude(Err);
+    std::cout << "greedy iteration = " << k << ", rel. residual = " << res << ", maximum error = " << Err.col(index).norm() << std::endl;
+    //normalize vectors in W
+    for (int i=0; i<k; ++i)
+      W.col(i) = W.col(i)/W.col(i).norm();
   }
 
   // copy W into matrixBuffer
@@ -85,6 +112,39 @@ NonnegativeMatrixFactorization::solve() {
       X(rows[i],j) = W(i,j);
 #endif
 }
+
+#ifdef USE_EIGEN3
+Eigen::MatrixXd
+NonnegativeMatrixFactorization::solveNNLS_MRHS(const Eigen::Ref<const Eigen::MatrixXd> &_A, const Eigen::Ref<const Eigen::MatrixXd> &_B)
+{
+
+  Eigen::MatrixXd X(_A.cols(),_B.cols());  
+  for(int j=0; j<_B.cols(); ++j) {
+    X.col(j) = solveNNLS(_A, _B.col(j));
+   }
+   return X;
+}
+#endif
+
+#ifdef USE_EIGEN3
+int
+NonnegativeMatrixFactorization::findColumnWithLargestMagnitude(const Eigen::Ref<const Eigen::MatrixXd> &_X)
+{
+
+  int index = 0;
+  double maxNorm = _X.col(0).norm();
+  double vecNorm;
+  for(int j=1; j<_X.cols(); ++j) {
+    vecNorm = _X.col(j).norm();
+    if (maxNorm < vecNorm) {
+      index = j;
+      maxNorm = vecNorm;
+    }
+  }
+  return index;
+
+}
+#endif
 
 #ifdef USE_EIGEN3
 Eigen::VectorXd

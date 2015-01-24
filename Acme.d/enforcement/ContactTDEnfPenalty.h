@@ -57,9 +57,11 @@ class ContactTDEnfPenalty : public ContactTDEnforcement {
   void TDPenalty_Release_Scratch(void);
 
   // Nodal Scratch Variable Handles
+/* PJSA use base class
   ScratchVariable NODAL_MASS;
   ScratchVariable INC_FORCE;
   ScratchVariable TOTAL_FORCE;
+*/
 //  ScratchVariable NEW_POSITION;
 
   ContactNodeFaceInteraction* cnfi;

@@ -1,3 +1,4 @@
+#ifdef USE_MPI
 #ifdef NNLS_DEV
 #include "SCBaseMatrix.h"
 #include "scpblas.h"
@@ -11,7 +12,7 @@
 #include <iostream>
 #include <cstring>
 #include <algorithm>
-#include <stdio.h>
+#include <cstdio>
 #include <cmath>
 #include <algorithm>
 #include <sys/time.h>
@@ -322,3 +323,4 @@ SCBaseMatrix::setRowColComms() {
     MPI_Comm_split(MPI_COMM_WORLD, _mycol, _myrow, &_col_comm);
     _row_col_comm_set = true;
 }
+#endif

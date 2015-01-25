@@ -1,3 +1,4 @@
+#if defined(USE_MPI) && defined(USE_EIGEN3)
 #include <mpi.h>
 #include <iostream>
 #include <sstream>
@@ -6,7 +7,7 @@
 #include <cmath>
 #include <ctime>
 #include <algorithm>
-#include <stdio.h>
+#include <cstdio>
 
 #include "Plh.h"
 
@@ -692,4 +693,4 @@ Plh::writeSet(std::string filename) {
     fclose(fptr);
 }
 
-
+#endif

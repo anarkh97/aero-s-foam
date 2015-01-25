@@ -65,6 +65,7 @@ splh(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const E
 
   // Solve
   int nfree = solver.solve();
+  info = 1; // XXX should be set to 2 if problem size is illegal and 3 if solver did not converge
 
   // Output
   solver.printTimes();

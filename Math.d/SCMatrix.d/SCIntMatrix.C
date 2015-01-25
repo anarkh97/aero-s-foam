@@ -1,3 +1,4 @@
+#ifdef USE_MPI
 #ifdef NNLS_DEV
 #include "SCIntMatrix.h"
 #else
@@ -7,7 +8,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <cstring>
-#include <stdio.h>
+#include <cstdio>
 #include <algorithm>
 
 
@@ -285,3 +286,4 @@ SCIntMatrix::swap(int i, int j) {
         std::cout << "SCIntMatrix::swap(i,j) only handles vectors" << std::endl;
     }
 }
+#endif

@@ -135,7 +135,7 @@ ParallelSparseNonNegativeLeastSquaresSolver::solve() {
     } break;
 
     case 6 : { // Scalapack LH solver
-#ifdef USE_EIGEN3
+#if defined(USE_EIGEN3) && defined(USE_SCALAPACK)
       filePrint(stderr, " ... Using Scalapack LH Solver    ...\n");
       std::vector<Eigen::Map<Eigen::MatrixXd> > A(nsub_, Eigen::Map<Eigen::MatrixXd>(NULL,0,0));
       Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1> x(nsub_);
@@ -149,7 +149,7 @@ ParallelSparseNonNegativeLeastSquaresSolver::solve() {
         A[i].~Map<Eigen::MatrixXd>();
       }
 #else
-      std::cerr << "USE_EIGEN3 is not defined here in ParallelSparseNonNegativeLeastSquaresSolver::solve\n";
+      std::cerr << "USE_EIGEN3 and/or USE_SCALAPACK is not defined here in ParallelSparseNonNegativeLeastSquaresSolver::solve\n";
       exit(-1);
 #endif
     }

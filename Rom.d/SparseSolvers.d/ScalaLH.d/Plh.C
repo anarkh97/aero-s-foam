@@ -1,3 +1,4 @@
+#if defined(USE_MPI) && defined(USE_EIGEN3)
 #include <mpi.h>
 #include <cstdlib>
 #include <iostream>
@@ -7,7 +8,7 @@
 #include <string>
 #include <vector>
 #include <iterator>
-#include <stdio.h>
+#include <cstdio>
 
 #include "Plh.h"
 
@@ -761,3 +762,4 @@ Plh::setDownDateMask() {
     }
     _ddmask = true;
 }
+#endif

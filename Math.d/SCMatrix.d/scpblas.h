@@ -7,7 +7,7 @@
 #include <Utils.d/linkfc.h>
 #endif
 
-extern "C" {
+/*extern "C" {
 #ifdef USE_MKL
 #include <mkl_pblas.h>
 #include <mkl_blacs.h>
@@ -16,7 +16,7 @@ extern "C" {
 #include <PBpblas.h>
 #include <PBblacs.h>
 #endif
-}
+}*/
 
 // Need to replace this with an appropriate blacs header file.
 // Adjusted for 0 based indexing
@@ -61,6 +61,14 @@ extern "C" {
     int  _FORTRAN(pdgemr2d)(int *, int *, double *, int *, int *, int *, double *, int *, int *, int *, int *);
     double _FORTRAN(pdlange)(char *, int *, int *, double *, int *, int *, int *, double *);
     void _FORTRAN(pdlaqge)(int *, int *, double *, int *, int *, int *, double *, double *, double *, double *, double *, char *);
+
+    void _FORTRAN(pdnrm2)(int *, double *, double *, int *, int *, int *, int *);
+    void _FORTRAN(pdtrsv)(char *, char *, char *, int *, double *, int *, int *, int *, double *, int *, int *, int *, int *);
+    void _FORTRAN(pdgemv)(char *, int *, int *, double *, double *, int *, int *, int *, double *, int *, int *, int *,
+                          int *, double *, double *, int *, int *, int *, int *);
+    void _FORTRAN(pdcopy)(int *, double *, int *, int *, int *, int *, double *, int *, int *, int *, int *);
+    void _FORTRAN(pdgeadd)(char *, int *, int *, double *, double *, int *, int *, int *, double *, double *, int *, int *, int *);
+    void _FORTRAN(pddot)(int *, double *, double *, int *, int *, int *, int *, double *, int *, int *, int *, int *);
 }
 #endif
 

@@ -4812,7 +4812,7 @@ SamplingOption:
   { domain->solInfo().npMax = $2; }
   | BSSPLH Integer Integer
   { domain->solInfo().scpkMB= $2;
-    domain->solInfo().scpkNB= $3 }
+    domain->solInfo().scpkNB= $3; }
   | PGSPLH Integer Integer
   { domain->solInfo().scpkMP= $2;
     domain->solInfo().scpkNP= $3; }

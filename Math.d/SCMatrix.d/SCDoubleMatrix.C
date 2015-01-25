@@ -1,3 +1,4 @@
+#if defined(USE_MPI) && defined(USE_EIGEN3)
 #ifdef NNLS_DEV
 #include "SCDoubleMatrix.h"
 #else
@@ -7,8 +8,8 @@
 #include <iostream>
 #include <cstdlib>
 #include <cstring>
-#include <stdio.h>
-#include <math.h>
+#include <cstdio>
+#include <cmath>
 #include <algorithm>
 #include <Eigen/Core>
 #include <ctime>
@@ -1168,3 +1169,4 @@ SCDoubleMatrix::columnScaling(SCDoubleMatrix& colScale) {
         }
     }
 }
+#endif

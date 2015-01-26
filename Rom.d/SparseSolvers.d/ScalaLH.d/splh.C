@@ -65,13 +65,15 @@ splh(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const E
 
   // Solve
   int nfree = solver.solve();
-  info = 1; // XXX should be set to 2 if problem size is illegal and 3 if solver did not converge
 
   // Output
   solver.printTimes();
+  info = solver.getStatus(); // XXX should be set to 2 if problem size is illegal and 3 if solver did not converge
+  if (mypid == 0) {
+    std::cout << "splh info = " << info << std::endl;
+  }
   rnorm = solver.getResidualNorm();
   dtime = solver.getDownDateTime();
-  Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1> x(n);
   return solver.getSolution();
 }
 

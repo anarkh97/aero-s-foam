@@ -26,13 +26,11 @@ Plh::solve() {
     bool reject;
     int iqr = -1;
     int count;;
-    _rnorm2 = 1.0 + _rtol;
 
     startTime(TIME_MAIN_LOOP);
     while (_iter < _max_iter && _nP < _maxNP && _rnorm2 > _rtol && !done) {
         startTime(TIME_ITER);
         gradf();
-        if (_iter % _residualIncr == 0) writeResidual();
         done = nextVector(); 
         if (!done) {
             iqr = _nP;
@@ -66,7 +64,6 @@ Plh::solve() {
             if (done) break;
             solveR();
             _zmin = _zQR->getMin(1, _nP);
-            iteration_output();
             while (_zmin.x <= 0.0) {
                 // Downdate
                 startTime(TIME_DOWNDATE);
@@ -86,14 +83,21 @@ Plh::solve() {
             _zQR->copy(*_xQR, _nP);
             copyxQR2x();
         }
+        computeResidual();
+        iteration_output();
+        if (_iter % _residualIncr == 0) writeResidual();
         stopTime(TIME_ITER);
         _iter++;
     }
-    // Compute and print the final residual
-    _rnorm2 = residual2Norm();
-    writeResidual();
+    // Write the final residual regardless of _residualIncr 
+    if ((_iter-1) % _residualIncr != 0) writeResidual();
     if (_col_scaling) _x->hadamardProduct(*_colnorms);
     loadMaxTimes();
+    if (_iter < _max_iter) {
+        _status = 1;
+    } else {
+        _status = 3;
+    }
     MPI_Barrier(MPI_COMM_WORLD);
     stopTime(TIME_MAIN_LOOP);
     return _nP;
@@ -123,11 +127,12 @@ Plh::initplh() {
 
     _A->multiply(*_b,  *_Atb, 'T', _m, _n,  1.0, 0.0);
 
+    _rnorm2 = _b->norm2();
     if (_rtol > 0.0) {
-        double bnorm = _b->norm2();
-        _rtol *= bnorm;
+        _rtol *= _rnorm2;
     }
     if (_mypid == 0) {
+        std::cout << "Initial residual      = " << _rnorm2 << std::endl;
         std::cout << "Residual norm target  = " << _rtol << std::endl;
     }
 
@@ -409,13 +414,8 @@ Plh::copyxQR2x() {
 }
 
 
-int
-Plh::gradf() {
-    startTime(TIME_GRADF);
-    int j, k;
-    double x;
-
-    //_rQR->zero();
+void
+Plh::computeResidual() {
     _Qtb->copy(*_rQR, _m);
     for (int i=1; i<=_nP; i++) {
         _rQR->setElement(i,1,0.0);
@@ -432,11 +432,16 @@ Plh::gradf() {
             _work_qr, &_lwork_qr, &info);
         stopTime(TIME_PDORMQR_GRADF);
     }
-    if (_iter % _residualIncr == 0) {
-        startTime(TIME_WRITE_RESIDUAL);
-        _rnorm2 = _rQR->norm2();
-        stopTime(TIME_WRITE_RESIDUAL);
-    }
+    _rnorm2 = _rQR->norm2();
+}
+
+
+int
+Plh::gradf() {
+    startTime(TIME_GRADF);
+    int j, k;
+    double x;
+
     mcopyQtoA(_rQR, _workm);
     MPI_Barrier(MPI_COMM_WORLD);
     startTime(TIME_MULT_GRADF);

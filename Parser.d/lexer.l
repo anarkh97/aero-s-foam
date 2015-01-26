@@ -1524,6 +1524,7 @@ TRAIL [a-zA-Z]*
 "REFSUBTRACT"|"refsubtract"|"RefSubtract" { return REFSUBTRACT; } 
 
 "USE_NMF"|"use_nmf"                       { return USENMF; }
+"USE_GREEDY"|"use_greedy"                 { return USEGREEDY; }
 
 [A-Za-z][A-Za-z0-9_.]*  { yylval.strval = strdup(yytext); return FNAME; }
 

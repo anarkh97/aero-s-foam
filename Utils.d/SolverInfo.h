@@ -373,7 +373,7 @@ struct SolverInfo {
    bool checkPodRom;
    bool svdPodRom;
    int  svdBlockSize;
-   bool use_nmf;
+   int use_nmf;
    int  nmfMaxIter;
    double nmfTol;
    bool DEIMBasisPod;
@@ -695,7 +695,7 @@ struct SolverInfo {
                   DEIMPodRom         = false;
                   UDEIMPodRom        = false;
                   svdBlockSize       = 64;
-                  use_nmf            = false;
+                  use_nmf            = 0;
                   nmfMaxIter         = 100;
                   nmfTol             = 1e-6;
                   samplingPodRom     = false;

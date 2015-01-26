@@ -28,10 +28,10 @@ public:
 
   void solve();
 
-  NonnegativeMatrixFactorization(int basisDimension);
+  NonnegativeMatrixFactorization(int basisDimension, int method);
 
 private:
-  int rowCount_, colCount_, basisDimension_, maxIter_;
+  int rowCount_, colCount_, basisDimension_, method_, maxIter_;
   double tol_;
 
   SimpleBuffer<double> matrixBuffer_;
@@ -42,13 +42,7 @@ private:
 
 #ifdef USE_EIGEN3
   Eigen::VectorXd solveNNLS(const Eigen::Ref<const Eigen::MatrixXd> &_A, const Eigen::Ref<const Eigen::VectorXd> &b);
-#endif
-
-#ifdef USE_EIGEN3
   Eigen::MatrixXd solveNNLS_MRHS(const Eigen::Ref<const Eigen::MatrixXd> &_A, const Eigen::Ref<const Eigen::MatrixXd> &B);
-#endif
-
-#ifdef USE_EIGEN3
   int findColumnWithLargestMagnitude(const Eigen::Ref<const Eigen::MatrixXd> &_X);
 #endif
 };

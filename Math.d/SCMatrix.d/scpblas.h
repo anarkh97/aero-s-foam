@@ -69,6 +69,8 @@ extern "C" {
     void _FORTRAN(pdcopy)(int *, double *, int *, int *, int *, int *, double *, int *, int *, int *, int *);
     void _FORTRAN(pdgeadd)(char *, int *, int *, double *, double *, int *, int *, int *, double *, double *, int *, int *, int *);
     void _FORTRAN(pddot)(int *, double *, double *, int *, int *, int *, int *, double *, int *, int *, int *, int *);
+    void _FORTRAN(pdgemm)(char *, char *, int *, int *, int *, double *, double *, int *, int *, int *, double *,
+                          int *, int *, int *, double *, double *, int *, int *, int *);
 }
 #endif
 

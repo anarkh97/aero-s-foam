@@ -109,6 +109,7 @@ class Plh {
         void setMaxIterRatio( double maxite ) {_max_iter=maxite*_n;}
         void setMaxIter( double max_iter ) {_max_iter=max_iter;}
         void setColumnScaling();
+        int getStatus() {return _status;}
 
     private:
         // A context
@@ -167,6 +168,7 @@ class Plh {
         double _wallclock[N_TIMES];
         double _wallclock_total[N_TIMES];
 
+        int _status;
         int _m;
         int _n;
         int _mb;
@@ -232,6 +234,7 @@ class Plh {
         int getEigenProc(int j);
         void wMaskByColNorm();
         void loadMaxTimes();
+        void computeResidual();
 };
 
 #endif // PLH_H_

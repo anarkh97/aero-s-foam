@@ -68,6 +68,7 @@ NonnegativeMatrixFactorization::solve() {
   switch(method_) { 
     default: case 1 : { // NMF ROB
       W.setRandom();
+      W += Eigen::MatrixXd::Ones(m,k);
       Eigen::MatrixXd W_copy(W);
       for(int i=0; i<maxIter_; ++i) {
         H = solveNNLS_MRHS(W, A);

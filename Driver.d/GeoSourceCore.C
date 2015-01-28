@@ -2479,7 +2479,8 @@ void GeoSource::getTextDecomp(bool sowering)
 
 void GeoSource::setNumNodalOutput()
 {
-  // PJSAX: for single node output
+  // for single node output
+  numNodalOutput = 0;
   for(int iInfo = 0; iInfo < numOutInfo; iInfo++)
     if(oinfo[iInfo].nodeNumber != -1)
       numNodalOutput++;

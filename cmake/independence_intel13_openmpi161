@@ -2,7 +2,7 @@
 module load intel/intel-13 openmpi/openmpi161_intel13
 export CMAKE_INCLUDE_PATH=$CMAKE_INCLUDE_PATH:/home/pavery/Intel/eigen:/home/pavery/Intel/SPOOLES:/home/pavery/Intel/MUMPS_4.10.0/include:/home/pavery/Intel/trilinos-11.0.3-Source/packages/sacado/src:/home/pavery/Intel/trilinos-11.0.3-Obj_cmake/include:/home/pavery/Intel/trilinos-11.0.3-Source/packages/zoltan/src:/home/pavery/Intel/stxxl-trunk/include
 export CMAKE_LIBRARY_PATH=$CMAKE_LIBRARY_PATH:/home/pavery/Intel/ARPACK:/home/pavery/Intel/SPOOLES:/home/pavery/Intel/SPOOLES/MT/src:/home/pavery/Intel/MUMPS_4.10.0/lib:/home/pavery/Intel/MUMPS_4.10.0_seq/lib:/home/pavery/Intel/trilinos-11.0.3-Obj_cmake/lib:/home/pavery/Intel/stxxl-trunk/lib
-/home/pavery/cmake-2.8.9-Linux-i386/bin/cmake \
+/home/pavery/cmake-3.0.2/bin/cmake \
 -DAERO:BOOL=on \
 -DCMAKE_C_COMPILER:FILEPATH=/opt/intel/composer_xe_2013.0.079/bin/intel64/icc \
 -DCMAKE_CXX_COMPILER:FILEPATH=/opt/intel/composer_xe_2013.0.079/bin/intel64/icpc \

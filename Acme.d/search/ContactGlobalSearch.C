@@ -1518,11 +1518,18 @@ ContactSearch::Global_FaceFaceSearch(SearchType search_type, int num_configs,
                   ContactFaceFaceInteraction<ActiveScalar> *active_cffi = Face_Face_Search(active_slave_face, active_master_face, active_master_element,
                                                                                            POSITION, active_allocators);
                   // copy the derivatives from active_cffi to cffi
-                  cffi->Set_Derivatives(active_cffi); 
+                  if(active_cffi) {
+                    cffi->Set_Derivatives(active_cffi); 
 
-                  // delete active_cffi
-                  active_cffi->~ContactFaceFaceInteraction<ActiveScalar>();
-                  active_allocators[ALLOC_ContactFaceFaceInteraction].Delete_Frag(active_cffi);
+                    // delete active_cffi
+                    active_cffi->~ContactFaceFaceInteraction<ActiveScalar>();
+                    active_allocators[ALLOC_ContactFaceFaceInteraction].Delete_Frag(active_cffi);
+                  }
+                  else {
+                    cffi->~ContactFaceFaceInteraction<Real>();
+                    allocators[ALLOC_ContactFaceFaceInteraction].Delete_Frag(cffi);
+                    cffi = 0;
+                  }
 
                   // delete active_slave_face
                   for( int i=0; i<active_slave_face->Edges_Per_Face(); ++i ) { 
@@ -1611,7 +1618,7 @@ ContactSearch::Global_FaceFaceSearch(SearchType search_type, int num_configs,
                 break;
             }
           }
-          slave_face->Store_FaceFace_Interaction(cffi);
+          if(cffi) slave_face->Store_FaceFace_Interaction(cffi);
         }
       }
     }

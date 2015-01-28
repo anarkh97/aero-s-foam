@@ -78,7 +78,7 @@ class ContactElem : public ContactTopologyEntity<DataType> {
   virtual int Faces_Per_Element() = 0;
   virtual void Evaluate_Shape_Functions( DataType*, DataType* ) = 0;
   virtual void Compute_Global_Coordinates( VariableHandle, DataType*, DataType* ) = 0;
-  virtual void Compute_Local_Coordinates( VariableHandle, DataType*, DataType* ) = 0;
+  virtual bool Compute_Local_Coordinates( VariableHandle, DataType*, DataType* ) = 0;
   virtual bool Is_Local_Coordinates_Inside_Element( DataType* ) = 0;
   virtual bool Is_Local_Coordinates_Near_Element( DataType*, DataType ) = 0;
   virtual void Compute_Partial_Face_Normal( int, VariableHandle, VariableHandle,

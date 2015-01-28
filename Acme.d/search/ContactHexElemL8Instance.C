@@ -56,7 +56,7 @@ void ContactHexElemL8<Real>::Compute_Local_Coordinates( Real Config_Param,
 						  Real* local_coords );
 
 template
-void ContactHexElemL8<Real>::Compute_Local_Coordinates( VariableHandle POSITION,
+bool ContactHexElemL8<Real>::Compute_Local_Coordinates( VariableHandle POSITION,
 						  Real* global_coords,
 						  Real* local_coords );
 
@@ -69,7 +69,7 @@ void ContactHexElemL8<Real>::Compute_Shape_Derivatives( Real* local_coords,
 						  Real shape_derivs[3][8] );
 
 template
-void 
+bool 
 ContactHexElemL8<Real>::Compute_Local_Coords( Real node_positions[8][3], 
 					Real global_coords[3],
 					Real local_coords[3] );
@@ -144,7 +144,7 @@ void ContactHexElemL8<ActiveScalar>::Compute_Local_Coordinates( ActiveScalar Con
 						  ActiveScalar* local_coords );
 
 template
-void ContactHexElemL8<ActiveScalar>::Compute_Local_Coordinates( VariableHandle POSITION,
+bool ContactHexElemL8<ActiveScalar>::Compute_Local_Coordinates( VariableHandle POSITION,
 						  ActiveScalar* global_coords,
 						  ActiveScalar* local_coords );
 
@@ -157,7 +157,7 @@ void ContactHexElemL8<ActiveScalar>::Compute_Shape_Derivatives( ActiveScalar* lo
 						  ActiveScalar shape_derivs[3][8] );
 
 template
-void 
+bool 
 ContactHexElemL8<ActiveScalar>::Compute_Local_Coords( ActiveScalar node_positions[8][3], 
 					ActiveScalar global_coords[3],
 					ActiveScalar local_coords[3] );

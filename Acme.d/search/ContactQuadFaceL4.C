@@ -2408,12 +2408,10 @@ ContactQuadFaceL4<Real>::Compute_Quad_Local_Coords( Real node_positions[MAX_NODE
   }
 #endif
   POSTCONDITION(converged);
-  if(!converged) {
+  /*if(!converged) {
     std::cerr << "ContactQuadFaceL4<Real>::Compute_Local_Coords() did not converge, residualNorm2 = " << residualNorm2 
               << ", initialResidualNorm2 = " << initialResidualNorm2 << std::endl;
-    // Essentially what we are doing here is computing the closest point projection onto the surface containing the face element
-    // the local_coords can still be outside the element though
-  }
+  }*/
   if(spatial_tolerance_post > 0) {
     // If it's close to any of the edges, snap to it
     if (abs(s0)<1.0+spatial_tolerance_post) {
@@ -2581,10 +2579,10 @@ ContactQuadFaceL4<ActiveScalar>::Compute_Quad_Local_Coords( ActiveScalar active_
       ++iterations;
     }
   }
-  if(!converged) {
+  /*if(!converged) {
     std::cerr << "ContactQuadFaceL4<ActiveScalar>::Compute_Local_Coords() did not converge, residualNorm2 = " << residualNorm2 
               << ", initialResidualNorm2 = " << initialResidualNorm2 << std::endl;
-  }
+  }*/
   {
     //
     // repeat last newton iteration to get derivatives

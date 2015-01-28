@@ -837,7 +837,7 @@ void ContactWedgeElemL6<DataType>::Compute_Local_Coordinates( DataType Config_Pa
 }
 
 template<typename DataType>
-void ContactWedgeElemL6<DataType>::Compute_Local_Coordinates( VariableHandle POSITION,
+bool ContactWedgeElemL6<DataType>::Compute_Local_Coordinates( VariableHandle POSITION,
 						    DataType* global_coords,
 						    DataType* local_coords )
 {
@@ -849,7 +849,7 @@ void ContactWedgeElemL6<DataType>::Compute_Local_Coordinates( VariableHandle POS
       node_positions[i][j] = node_position[j];
     }
   }
-  Compute_Local_Coords(node_positions, global_coords, local_coords);
+  return Compute_Local_Coords(node_positions, global_coords, local_coords);
 }
 
 /*************************************************************************/
@@ -902,7 +902,7 @@ void ContactWedgeElemL6<DataType>::Compute_Shape_Derivatives( DataType* local_co
 }
 
 template<>
-inline void ContactWedgeElemL6<Real>::Compute_Local_Coords( Real node_positions[6][3], 
+inline bool ContactWedgeElemL6<Real>::Compute_Local_Coords( Real node_positions[6][3], 
 					       Real* global_coords,
 					       Real* local_coords )
 {
@@ -961,7 +961,7 @@ inline void ContactWedgeElemL6<Real>::Compute_Local_Coords( Real node_positions[
     local_coords[3] =  1.0;
     break;
   }
-  if (i<nnodes) return;
+  if (i<nnodes) return true;
  }
   //
   // else use newton's method to iterate
@@ -1037,10 +1037,10 @@ inline void ContactWedgeElemL6<Real>::Compute_Local_Coords( Real node_positions[
   }
 #endif
   POSTCONDITION(converged);
-  if(!converged) {
+  /*if(!converged) {
     std::cerr << "ContactWedgeElemL6<Real>::Compute_Local_Coords did not converge: initialResidualNorm2 = "
               << initialResidualNorm2 << ", residualNorm2 = " << residualNorm2 << std::endl;
-  }
+  }*/
   if(spatial_tolerance_post > 0) {
     // If it's close to any of the edges, snap to it
     if (u0<1.0+spatial_tolerance_post) {
@@ -1064,10 +1064,11 @@ inline void ContactWedgeElemL6<Real>::Compute_Local_Coords( Real node_positions[
   local_coords[1] = v0;
   local_coords[2] = 1.0-u0-v0;
   local_coords[3] = w0;
+  return converged;
 }
 
 template<typename ActiveScalar>
-void ContactWedgeElemL6<ActiveScalar>::Compute_Local_Coords( ActiveScalar active_node_positions[6][3], 
+bool ContactWedgeElemL6<ActiveScalar>::Compute_Local_Coords( ActiveScalar active_node_positions[6][3], 
 					       ActiveScalar* active_global_coords,
 					       ActiveScalar* active_local_coords )
 {
@@ -1139,7 +1140,7 @@ void ContactWedgeElemL6<ActiveScalar>::Compute_Local_Coords( ActiveScalar active
     active_local_coords[1] = local_coords[1];
     active_local_coords[2] = local_coords[2];
     active_local_coords[3] = local_coords[3];
-    return;
+    return true;
   }
  }
   //
@@ -1243,10 +1244,10 @@ void ContactWedgeElemL6<ActiveScalar>::Compute_Local_Coords( ActiveScalar active
       ++iterations;
     }
   }
-  if(!converged) {
+  /*if(!converged) {
     std::cerr << " *** WARNING: ContactWedgeElemL6<ActiveScalar>::Compute_Local_Coords did not converge: initialResidualNorm2 = "
               << initialResidualNorm2 << ", residualNorm2 = " << residualNorm2 << std::endl;
-  }
+  }*/
   {
     //
     // repeat last newton iteration to get the derivatives
@@ -1332,6 +1333,7 @@ void ContactWedgeElemL6<ActiveScalar>::Compute_Local_Coords( ActiveScalar active
     active_local_coords[2] = 1.0-u0-v0;
     active_local_coords[3] = w0;
   }
+  return converged;
 }
 
 template<typename DataType>

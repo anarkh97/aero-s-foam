@@ -47,7 +47,7 @@ class ContactHexElemL8 : public ContactElem<DataType> {
   void Evaluate_Shape_Functions( DataType*, DataType* );
   void Compute_Local_Coordinates( DataType, VariableHandle, VariableHandle,
 				  VariableHandle, DataType*, DataType* );
-  void Compute_Local_Coordinates( VariableHandle, DataType*, DataType* );
+  bool Compute_Local_Coordinates( VariableHandle, DataType*, DataType* );
   void Compute_Global_Coordinates( VariableHandle, DataType*, DataType* );
   bool Is_Local_Coordinates_Inside_Element( DataType* );
   bool Is_Local_Coordinates_Near_Element( DataType*, DataType );
@@ -64,7 +64,7 @@ class ContactHexElemL8 : public ContactElem<DataType> {
   static void Compute_Shape_Derivatives( DataType local_coords[3],
                                          DataType shape_derivatives[3][8] );
   
-  static void Compute_Local_Coords( DataType node_positions[8][3],
+  static bool Compute_Local_Coords( DataType node_positions[8][3],
 				    DataType global_coords[3],
 				    DataType local_coords[3] );
   

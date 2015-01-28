@@ -351,7 +351,7 @@ ContactSearch::Face_Face_Search(ContactFace<DataType>* slave_face,
     }
 
   } else {
-    
+ 
     //=========================================================
     // If all the faces of the element are not planar, then 
     // find all the edge-face intersections in the slave face
@@ -428,7 +428,7 @@ ContactSearch::Face_Face_Search(ContactFace<DataType>* slave_face,
       }
     }
  
-    if(q->np==0) p->np = 0;
+    if(q->np < 3) p->np = 0; // PJSA 1/27/2015: previously was if(q->np==0) ...
     else {
 
       //============================================
@@ -437,7 +437,7 @@ ContactSearch::Face_Face_Search(ContactFace<DataType>* slave_face,
       //============================================
       int  imin=-1;
       DataType ymin=2.0;
-      int*  hit = new int  [q->np];
+      int*  hit = new int [q->np];
       DataType* vec = new DataType [q->np];
       for (i=0; i<q->np; ++i) hit[i] = 0;
  
@@ -523,40 +523,44 @@ ContactSearch::Face_Face_Search(ContactFace<DataType>* slave_face,
         PRECONDITION(0);
         break;
       }
- 
-      for (i=0; i<q->np; ++i) {
-        if( i==imin ) continue;
-        DataType dx = q->p[i].x - q->p[imin].x;
-        DataType dy = q->p[i].y - q->p[imin].y;
-        DataType d  = dx*dx + dy*dy;
-        if (d <= 1.0e-10) hit[i] = 1;
-      }
-      hit[imin] = 1;
-      int kmin  = imin;
- 
-      p     = &poly2;
-      p->np = 1;
-      p->p[0] = q->p[imin];
-      for (i=0; i<q->np; ++i) {
-        int  jmin = -1;
-        DataType vmax = -2.0;
-        for (j=0; j<q->np; ++j) {
-          if( !hit[j] && vec[j]>vmax ) {
-             vmax = vec[j];
-             jmin = j;
-          }
-        }
-        if (jmin>=0) {
-          hit[jmin] = 1;
-          int equivalent=0;
-          DataType dx = q->p[jmin].x - q->p[kmin].x;
-          DataType dy = q->p[jmin].y - q->p[kmin].y;
+
+      if(imin < 0) p->np = 0; // PJSA 27/1/2015: this can happen for highly distorted meshes,
+                              //                 e.g. in a divergent Newton iterate.
+      else {
+        for (i=0; i<q->np; ++i) {
+          if( i==imin ) continue;
+          DataType dx = q->p[i].x - q->p[imin].x;
+          DataType dy = q->p[i].y - q->p[imin].y;
           DataType d  = dx*dx + dy*dy;
-          if (d <= 1.0e-10) equivalent=1;
-          if (!equivalent) {
-            kmin = jmin;
-            p->p[p->np] = q->p[jmin];
-            p->np++;
+          if (d <= 1.0e-10) hit[i] = 1;
+        }
+        hit[imin] = 1;
+        int kmin  = imin;
+
+        p     = &poly2;
+        p->np = 1;
+        p->p[0] = q->p[imin];
+        for (i=0; i<q->np; ++i) {
+          int  jmin = -1;
+          DataType vmax = -2.0;
+          for (j=0; j<q->np; ++j) {
+            if( !hit[j] && vec[j]>vmax ) {
+               vmax = vec[j];
+               jmin = j;
+            }
+          }
+          if (jmin>=0) {
+            hit[jmin] = 1;
+            int equivalent=0;
+            DataType dx = q->p[jmin].x - q->p[kmin].x;
+            DataType dy = q->p[jmin].y - q->p[kmin].y;
+            DataType d  = dx*dx + dy*dy;
+            if (d <= 1.0e-10) equivalent=1;
+            if (!equivalent) {
+              kmin = jmin;
+              p->p[p->np] = q->p[jmin];
+              p->np++;
+            }
           }
         }
       }

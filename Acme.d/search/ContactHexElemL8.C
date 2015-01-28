@@ -297,7 +297,7 @@ void ContactHexElemL8<DataType>::Compute_Local_Coordinates( DataType Config_Para
 }
 
 template<typename DataType>
-void ContactHexElemL8<DataType>::Compute_Local_Coordinates( VariableHandle POSITION,
+bool ContactHexElemL8<DataType>::Compute_Local_Coordinates( VariableHandle POSITION,
 						  DataType* global_coords,
 						  DataType* local_coords )
 {
@@ -309,7 +309,7 @@ void ContactHexElemL8<DataType>::Compute_Local_Coordinates( VariableHandle POSIT
       node_positions[i][j] = node_position[j];
     }
   }
-  Compute_Local_Coords(node_positions, global_coords, local_coords);
+  return Compute_Local_Coords(node_positions, global_coords, local_coords);
 }
 
 /*************************************************************************/
@@ -386,7 +386,7 @@ void ContactHexElemL8<DataType>::Compute_Shape_Derivatives( DataType* local_coor
 }
 
 template<>
-inline void 
+inline bool 
 ContactHexElemL8<Real>::Compute_Local_Coords( Real node_positions[8][3], 
 					Real global_coords[3],
 					Real local_coords[3] )
@@ -451,7 +451,7 @@ ContactHexElemL8<Real>::Compute_Local_Coords( Real node_positions[8][3],
       local_coords[2] =  1.0;
       break;
     }
-    if (i<nnodes) return;
+    if (i<nnodes) return true;
   }
   //
   // else use newton's method to iterate
@@ -530,10 +530,10 @@ ContactHexElemL8<Real>::Compute_Local_Coords( Real node_positions[8][3],
   }
 #endif
   POSTCONDITION(converged);
-  if(!converged) {
-    std::cerr << " *** WARNINGL ContactHexElemL8<Real>::Compute_Local_Coordinates() did not converge: initialResidualNorm2 = "
+  /*if(!converged) {
+    std::cerr << " *** WARNING: ContactHexElemL8<Real>::Compute_Local_Coordinates() did not converge: initialResidualNorm2 = "
               << initialResidualNorm2 << ", residualNorm2 = " << residualNorm2 << std::endl;
-  }
+  }*/
   if(spatial_tolerance_post > 0) {
     // If it's close to any of the edges, snap to it
     if (abs(u0)<1.0+spatial_tolerance_post) {
@@ -552,10 +552,11 @@ ContactHexElemL8<Real>::Compute_Local_Coords( Real node_positions[8][3],
   local_coords[0] = u0;
   local_coords[1] = v0;
   local_coords[2] = w0;
+  return converged;
 }
 
 template<typename ActiveScalar>
-void
+bool
 ContactHexElemL8<ActiveScalar>::Compute_Local_Coords( ActiveScalar active_node_positions[8][3],
                                                       ActiveScalar active_global_coords[3],
                                                       ActiveScalar active_local_coords[3] )
@@ -630,7 +631,7 @@ ContactHexElemL8<ActiveScalar>::Compute_Local_Coords( ActiveScalar active_node_p
       active_local_coords[0] = local_coords[0];
       active_local_coords[1] = local_coords[1];
       active_local_coords[2] = local_coords[2];
-      return;
+      return true;
     }
   }
   //
@@ -742,10 +743,10 @@ ContactHexElemL8<ActiveScalar>::Compute_Local_Coords( ActiveScalar active_node_p
       ++iterations;
     }
   }
-  if (!converged) {
+  /*if (!converged) {
     std::cerr << " *** WARNING: ContactHexElemL8<ActiveScalar>::Compute_Local_Coords did not converge: initialResidualNorm2 = "
               << initialResidualNorm2 << ", residualNorm2 = " << residualNorm2 << std::endl;
-  }
+  }*/
   {
     //
     // repeat last newton iteration to get derivatives
@@ -825,6 +826,7 @@ ContactHexElemL8<ActiveScalar>::Compute_Local_Coords( ActiveScalar active_node_p
     active_local_coords[1] = v0;
     active_local_coords[2] = w0;
   }
+  return converged;
 }
 
 template<typename DataType>

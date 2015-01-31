@@ -61,49 +61,92 @@ NonnegativeMatrixFactorization::solve() {
   for(int i=0; i<m; ++i)
     for(int j=0; j<n; ++j)
       A(i,j) = -X(rows[i],cols[j]); // note -ve is due to sign convention (Lagrange multipliers are negative in Aero-S)
+
+  int nDimensions;
+  if (method_==2) 
+    nDimensions = 1;   
+  else 
+    nDimensions = 3; // temporary, to be modified
+  
+  int nDimStep = 10; // temporary, to be modified
   Eigen::MatrixXd W(m,k), H(k,n);
-
-  double res, index;
-  Eigen::MatrixXd Err(A);
-  switch(method_) { 
-    default: case 1 : { // NMF ROB
-      W.setRandom();
-      W += Eigen::MatrixXd::Ones(m,k);
-      Eigen::MatrixXd W_copy(W);
-      for(int i=0; i<maxIter_; ++i) {
-        H = solveNNLS_MRHS(W, A);
-        W.transpose() = solveNNLS_MRHS(H.transpose(),A.transpose());
-        Err = A-W*H;
-        index = findColumnWithLargestMagnitude(Err);
-        res = Err.norm()/A.norm();
-        double inc = (W-W_copy).norm();
-        std::cout << "iteration = " << i+1 << ", rel. residual = " << res << ", maximum error = " << Err.col(index).norm() << ", solution incr. = " << inc << std::endl;
-        if(inc < tol_) break;
-        W_copy = W;
-      }
-    } break;
-    case 2 : { // Greedy ROB
-      W.setZero();
-      H.setZero();
-      // first vector is vector with largest magnitude
-      index = findColumnWithLargestMagnitude(A);
-      for (int i=1; i<=k; ++i) {
-        W.col(i-1) = A.col(index);
-        H.topRows(i) = solveNNLS_MRHS(W.leftCols(i), A);
-        Err = A-W.leftCols(i)*H.topRows(i); 
-        res = Err.norm()/A.norm();
-        index = findColumnWithLargestMagnitude(Err);
-        std::cout << "greedy iteration = " << i << ", rel. residual = " << res << ", maximum error = " << Err.col(index).norm() << std::endl;
-      }
-      // normalize vectors in W
-      for (int i=0; i<k; ++i) W.col(i).normalize();
-    } break;
+  int robDim;
+  for (int ik=0; ik<nDimensions; ++ik) {
+    robDim = k + nDimStep*ik;
+    Eigen::MatrixXd W_small(W);
+    if (ik>1) {
+      W.resize(m,robDim);
+      H.resize(robDim,n);
+    } 
+    double res, index;
+    Eigen::MatrixXd Err(A);
+    switch(method_) { 
+      default: case 1 : { // NMF ROB
+        int nRandom = 1; //5; temporary, to be modified
+        Eigen::MatrixXd W_min(W);
+        double res_min;
+        for (int iRandom=0; iRandom<nRandom;++iRandom) {
+          if (ik>1) {
+            std::cout << "Initial guess based on smaller factorization" << std::endl;
+            W.leftCols(robDim-nDimStep) = W_small;
+            W.rightCols(nDimStep).setRandom();
+            W.rightCols(nDimStep) += Eigen::MatrixXd::Ones(m,nDimStep);
+          }
+          else {
+            W.setRandom();
+            W += Eigen::MatrixXd::Ones(m,robDim);
+          }
+          Eigen::MatrixXd W_copy(W);
+          for(int i=0; i<maxIter_; ++i) {
+            H = solveNNLS_MRHS(W, A);
+            W.transpose() = solveNNLS_MRHS(H.transpose(),A.transpose());
+            Err = A-W*H;
+            index = findColumnWithLargestMagnitude(Err);
+            res = Err.norm()/A.norm();
+            double inc = (W-W_copy).norm();
+            std::cout << "iteration = " << i+1 << ", rel. residual = " << res << ", maximum error = " << Err.col(index).norm() << ", solution incr. = " << inc << std::endl;
+            if(inc < tol_) break;
+            W_copy = W;
+          }
+          if (nRandom>1) {
+            if (iRandom==0) {
+              res_min = res;
+              W_min = W;
+            }
+            else {
+              if (res_min>res) {
+                res_min = res;
+                W_min = W;
+              }
+              if (iRandom==nRandom-1)
+                W = W_min;
+                std::cout << "NNMF basis retained with rel. residual = " << res_min << std::endl;
+            }
+          }
+        }
+      } break;
+      case 2 : { // Greedy ROB
+        W.setZero();
+        H.setZero();
+        // first vector is vector with largest magnitude
+        index = findColumnWithLargestMagnitude(A);
+        for (int i=1; i<=robDim; ++i) {
+          W.col(i-1) = A.col(index);
+          H.topRows(i) = solveNNLS_MRHS(W.leftCols(i), A);
+          Err = A-W.leftCols(i)*H.topRows(i); 
+          res = Err.norm()/A.norm();
+          index = findColumnWithLargestMagnitude(Err);
+          std::cout << "greedy iteration = " << i << ", rel. residual = " << res << ", maximum error = " << Err.col(index).norm() << std::endl;
+        }
+        // normalize vectors in W
+        for (int i=0; i<robDim; ++i) W.col(i).normalize();
+      } break;
+    }
   }
-
   // copy W into matrixBuffer
   X.setZero();
   for(int i=0; i<m; ++i)
-    for(int j=0; j<k; ++j)
+    for(int j=0; j<robDim; ++j)
       X(rows[i],j) = W(i,j);
 #endif
 }

@@ -1,42 +1,6 @@
 #ifdef USE_EIGEN3
 #include <iostream>
 #include <Solvers.d/GoldfarbIdnani.h>
-using std::cerr; using std::endl;
-
-template<>
-void
-GoldfarbIdnaniQpSolver<WrapSparseMat<double>,double>::solve(double* _rhs, double* _sol)
-{
-#ifndef SPARSE_G
-  Eigen::Map<VectorXd> rhs(_rhs,n+p+m), sol(_sol,n+p+m);
-
-  VectorXd g0(n), ce0(p), ci0(m);
-  for(int i = 0; i < neqs(); ++i) {
-    switch(doftype[i]) {
-      case 0 : g0(dofmap[i])  = -rhs(i); break;
-      case 1 : ce0(dofmap[i]) = -rhs(i); break;
-      case 2 : ci0(dofmap[i]) =  rhs(i); break;
-    }
-  }
-  VectorXd x(n);
-  VectorXd lambda(p), mu(m);
-  double f = Eigen::solve_quadprog(G, g0, CE, ce0, CI, ci0, x, &lambda, &mu);
-  for(int i = 0; i < neqs(); ++i) {
-    switch(doftype[i]) {
-      case 0 : sol(i) = x(dofmap[i]); break;
-      case 1 : sol(i) = -lambda(dofmap[i]); break;
-      case 2 : sol(i) = mu(dofmap[i]); break;
-    }
-  }
-#endif
-}
-
-template<>
-void
-GoldfarbIdnaniQpSolver<WrapSparseMat<complex<double> >,complex<double> >::solve(complex<double>*, complex<double>*)
-{
-  cerr << "GoldfarbIdnaniQpSolver not implemented for complex\n";
-}
 
 template<>
 void
@@ -52,31 +16,12 @@ GoldfarbIdnaniQpSolver<WrapEiSparseMat<double>,double>::solve(double* _rhs, doub
       case 2 : ci0(dofmap[i]) =  rhs(i); break;
     }
   }
-  VectorXd x(n);
-  VectorXd lambda(p), mu(m);
-  //note: the exceptions should be caught in the driver, see for example Driver.d/NLDynamProbType.C
-  //try { 
-#ifdef CHECK_G
-    if(check) {
-      Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(G,Eigen::EigenvaluesOnly);
-      if(es.eigenvalues().minCoeff() <= 0) throw std::runtime_error("Matrix G is not positive definite");
-    }
-#endif
-#if defined(SPARSE_G) && !defined(CHECK_G)
-    double traceG = diagG.sum();
-#else
-    double traceG = G.trace();
-#endif
-#ifdef SPARSE_G
-    Eigen::SparseMatrix<double> SparseG = this->getEigenSparse();
-    double f = Eigen::solve_quadprog(SparseG, traceG, g0, CE, ce0, CI, ci0, x, &lambda, &mu, tol);
-#else
-    double f = Eigen::solve_quadprog(G, g0, CE, ce0, CI, ci0, x, &lambda, &mu, tol);
-#endif
-  //}
-  //catch(std::runtime_error& e) {
-  //  cerr << "exception: " << e.what() << endl;
-  //}
+
+  VectorXd x(n), lambda(p), mu(m);
+  double traceG = diagG.sum();
+  double f = Eigen::solve_quadprog2(this->solver, traceG, g0, CE, ce0, CI, ci0, x, &lambda, &mu,
+                                    tol, &this->solver.permutationPinv());
+
   for(int i = 0; i < neqs(); ++i) {
     switch(doftype[i]) {
       case 0 : sol(i) = x(dofmap[i]); break;
@@ -90,6 +35,7 @@ template<>
 void
 GoldfarbIdnaniQpSolver<WrapEiSparseMat<complex<double> >,complex<double> >::solve(complex<double>*, complex<double>*)
 {
-  cerr << "GoldfarbIdnaniQpSolver not implemented for complex\n";
+  std::cerr << "GoldfarbIdnaniQpSolver not implemented for complex\n";
 }
+
 #endif

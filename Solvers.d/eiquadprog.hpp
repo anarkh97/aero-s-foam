@@ -125,73 +125,25 @@ void delete_constraint(MatrixXd& R, MatrixXd& J, VectorXi& A, VectorXd& u,  int 
 
 //#define TRACE_SOLVER
 
-//#define SPARSE_G
-
-#ifdef SPARSE_G
 /* solve_quadprog2 is used when the Cholesky decomposition of the G matrix is precomputed */
-inline double solve_quadprog2(SimplicialLLT<SparseMatrix<complex<double> >,Upper>& chol, complex<double> c1, VectorXcd& g0,
-                              const MatrixXcd& CE, const VectorXcd& ce0,
-                              const MatrixXcd& CI, const VectorXcd& ci0,
-                              VectorXcd& x, VectorXcd* lambda = NULL, VectorXcd* mu = NULL,
-                              double tol = 100.0)
-{ std::cerr << "solve_quadprog2 is not supported for complex\n"; return 0; }
-
-double solve_quadprog2(SimplicialLLT<SparseMatrix<double>,Upper>& chol, double c1, VectorXd& g0,
-                       const MatrixXd& CE, const VectorXd& ce0,
-                       const MatrixXd& CI, const VectorXd& ci0,
-                       VectorXd& x, VectorXd* lambda = NULL, VectorXd* mu = NULL,
-                       double tol = 100.0);
-
-/* solve_quadprog is used for on-demand QP solving */
-inline double solve_quadprog(SparseMatrix<complex<double> >& G, complex<double> c1, VectorXcd& g0,
-                             const MatrixXcd& CE, const VectorXcd& ce0,
-                             const MatrixXcd& CI, const VectorXcd& ci0,
-                             VectorXcd& x, VectorXcd* lambda = NULL, VectorXcd* mu = NULL,
-                             double tol = 100.0)
-{ std::cerr << "solve_quadprog is not supported for complex\n"; return 0; }
-
-inline double solve_quadprog(SparseMatrix<double>& G, double c1, VectorXd& g0,
-                             const MatrixXd& CE, const VectorXd& ce0,
-                             const MatrixXd& CI, const VectorXd& ci0,
-                             VectorXd& x, VectorXd* lambda = NULL, VectorXd* mu = NULL,
-                             double tol = 100.0)
-{
-  SimplicialLLT<SparseMatrix<double>,Upper> chol;
-
-  /* decompose the matrix G in the form LL^T */
-  chol.compute(G);
-
-  return solve_quadprog2(chol, c1, g0, CE, ce0, CI, ci0, x, lambda, mu, tol);
-}
-
-inline double solve_quadprog2(SimplicialLLT<SparseMatrix<double>,Upper>& chol, double c1, VectorXd& g0,
-                              const MatrixXd& CE, const VectorXd& ce0,
-                              const MatrixXd& CI, const VectorXd& ci0,
-                              VectorXd& x, VectorXd* lambda, VectorXd* mu,
-                              double tol)
-#else
-/* solve_quadprog2 is used when the Cholesky decomposition of the G matrix is precomputed */
-inline double solve_quadprog2(LLT<MatrixXcd,Lower>& chol, complex<double> c1, VectorXcd& g0,  
+template<typename SolverType>
+inline double solve_quadprog2(const SolverType& chol, complex<double> c1, VectorXcd& g0,  
                               const MatrixXcd& CE, const VectorXcd& ce0,  
                               const MatrixXcd& CI, const VectorXcd& ci0,  
                               VectorXcd& x, VectorXcd* lambda = NULL, VectorXcd* mu = NULL,
-                              double tol = 100.0)
+                              double tol = 100.0,
+                              const PermutationMatrix<Dynamic,Dynamic,typename SolverType::Index> *Pinv = NULL)
 { std::cerr << "solve_quadprog2 is not supported for complex\n"; return 0; }
 
-double solve_quadprog2(LLT<MatrixXd,Lower>& chol, double c1, VectorXd& g0,  
+template<typename SolverType>
+double solve_quadprog2(const SolverType& chol, double c1, VectorXd& g0,  
                        const MatrixXd& CE, const VectorXd& ce0,  
                        const MatrixXd& CI, const VectorXd& ci0, 
                        VectorXd& x, VectorXd* lambda = NULL, VectorXd* mu = NULL,
-                       double tol = 100.0);
+                       double tol = 100.0,
+                       const PermutationMatrix<Dynamic,Dynamic,typename SolverType::Index> *Pinv = NULL);
 
 /* solve_quadprog is used for on-demand QP solving */
-inline double solve_quadprog(MatrixXcd& G, VectorXcd& g0,
-                             const MatrixXcd& CE, const VectorXcd& ce0,
-                             const MatrixXcd& CI, const VectorXcd& ci0,
-                             VectorXcd& x, VectorXcd* lambda = NULL, VectorXcd* mu = NULL,
-                             double tol = 100.0)
-{ std::cerr << "solve_quadprog is not supported for complex\n"; return 0; }
-
 inline double solve_quadprog(MatrixXd& G, VectorXd& g0,
                              const MatrixXd& CE, const VectorXd& ce0,  
                              const MatrixXd& CI, const VectorXd& ci0, 
@@ -210,12 +162,27 @@ inline double solve_quadprog(MatrixXd& G, VectorXd& g0,
   return solve_quadprog2(chol, c1, g0, CE, ce0, CI, ci0, x, lambda, mu, tol);
 }
 
-inline double solve_quadprog2(LLT<MatrixXd,Lower>& chol, double c1, VectorXd& g0,
+inline double solve_quadprog(MappedSparseMatrix<double, ColMajor, int>& G, double c1, VectorXd& g0,
+                             const MatrixXd& CE, const VectorXd& ce0,
+                             const MatrixXd& CI, const VectorXd& ci0,
+                             VectorXd& x, VectorXd* lambda = NULL, VectorXd* mu = NULL,
+                             double tol = 100.0)
+{
+  SimplicialLLT<SparseMatrix<double>,Upper> chol;
+
+  /* decompose the matrix G in the form LL^T */
+  chol.compute(G);
+
+  return solve_quadprog2(chol, c1, g0, CE, ce0, CI, ci0, x, lambda, mu, tol, &chol.permutationPinv());
+}
+
+template<typename SolverType>
+inline double solve_quadprog2(const SolverType& chol, double c1, VectorXd& g0,
                               const MatrixXd& CE, const VectorXd& ce0,
                               const MatrixXd& CI, const VectorXd& ci0,
                               VectorXd& x, VectorXd* lambda, VectorXd* mu,
-                              double tol)
-#endif
+                              double tol,
+                              const PermutationMatrix<Dynamic,Dynamic,typename SolverType::Index> *Pinv)
 {
   using std::abs;
   int i, j, k, l; /* indices */
@@ -250,11 +217,9 @@ inline double solve_quadprog2(LLT<MatrixXd,Lower>& chol, double c1, VectorXd& g0
   /* compute the inverse of the factorized matrix G^-1, this is the initial value for H */
   // J = L^-T
   J.setIdentity();
-#ifdef SPARSE_G
-  J = chol.permutationPinv()*chol.matrixU().solve(J);
-#else
-  J = chol.matrixU().solve(J);
-#endif 
+  chol.matrixU().solveInPlace(J);
+  if(Pinv && Pinv->size() > 0) J = (*Pinv)*J;
+
   c2 = J.trace();
 #ifdef TRACE_SOLVER
   std::cerr << "J =\n" << J << std::endl;

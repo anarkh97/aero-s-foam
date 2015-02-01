@@ -144,13 +144,7 @@ GenEiSparseGalerkinProjectionSolver<Scalar>::reSolve(GenVector<Scalar> &rhs)
   if(dualBasisSize_ > 0) {
     Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> CE(0,0), CI = -reducedConstraintMatrix_.transpose();
     Eigen::Matrix<Scalar,Eigen::Dynamic,1> g0 = -x, ce0(0,1), _x(V.cols()), Lambda(0,1), Mu(dualBasisSize_);
-#ifdef SPARSE_G
-    Eigen::SparseMatrix<Scalar> G = reducedMatrix_.transpose().sparseView();
-    Scalar c1 = reducedMatrix_.trace();
-    solve_quadprog(G, c1, g0, CE, ce0, CI, reducedConstraintRhs_, _x, &Lambda, &Mu, tol_);
-#else
     solve_quadprog2(llt_, c1_, g0, CE, ce0, CI, reducedConstraintRhs_, _x, &Lambda, &Mu, tol_);
-#endif
     x = _x;
     reducedConstraintForce_ = reducedConstraintMatrix_.transpose()*Mu;
   }
@@ -167,13 +161,7 @@ GenEiSparseGalerkinProjectionSolver<Scalar>::solve(GenVector<Scalar> &rhs, GenVe
   if(dualBasisSize_ > 0) {
     Eigen::Matrix<Scalar,Eigen::Dynamic,Eigen::Dynamic> CE(0,0), CI = -reducedConstraintMatrix_.transpose();
     Eigen::Matrix<Scalar,Eigen::Dynamic,1> g0 = -b, ce0(0,1), _x(V.cols()), Lambda(0,1), Mu(dualBasisSize_);
-#ifdef SPARSE_G
-    Eigen::SparseMatrix<Scalar> G = reducedMatrix_.transpose().sparseView();
-    Scalar c1 = reducedMatrix_.trace();
-    solve_quadprog(G, c1, g0, CE, ce0, CI, reducedConstraintRhs_, _x, &Lambda, &Mu, tol_);
-#else
     solve_quadprog2(llt_, c1_, g0, CE, ce0, CI, reducedConstraintRhs_, _x, &Lambda, &Mu, tol_);
-#endif
     x = _x;
     reducedConstraintForce_ = reducedConstraintMatrix_.transpose()*Mu;
   }

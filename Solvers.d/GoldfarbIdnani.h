@@ -2,28 +2,22 @@
 #define _GOLDFARB_IDNANI_H_
 
 #ifdef USE_EIGEN3
-#include <Eigen/Dense>
+#include <Eigen/Core>
 #include <Math.d/BLKSparseMatrix.h>
 #include <Math.d/EiSparseMatrix.h>
 #include <Solvers.d/eiquadprog.hpp>
-
-//#define CHECK_G
 
 template<class BaseSolver, class Scalar>
 class GoldfarbIdnaniQpSolver : public BaseSolver
 {
   int n, p, m;
-  int *unconstrNum; // mapping from dsa to c_dsa unconstrained numbering (KKT)
+  int *unconstrNum; // mapping from dsa to c_dsa unconstrained numbering
   int *doftype;
   int *dofmap;
 
   typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> MatrixXd;
   typedef Eigen::Matrix<Scalar, Eigen::Dynamic, 1> VectorXd;
-#if defined(SPARSE_G) && !defined(CHECK_G)
   VectorXd diagG;
-#else
-  MatrixXd G;
-#endif
   MatrixXd CE;
   MatrixXd CI;
 
@@ -60,11 +54,7 @@ public:
         }
       }
     }
-#if defined(SPARSE_G) && !defined(CHECK_G)
-    diagG.resize(n); diagG.setZero(); // in this case G stores only the diagonal
-#else
-    G.resize(n,n); G.setZero();
-#endif
+    diagG.resize(n); diagG.setZero();
     CE.resize(n,p); CE.setZero();
     CI.resize(n,m); CI.setZero();
   }
@@ -80,11 +70,7 @@ public:
         if((J = unconstrNum[dofs[j]]) < 0) continue;
         switch(doftype[J]) {
           case 0: 
-#if defined(SPARSE_G) && !defined(CHECK_G)
             if(I==J) diagG[dofmap[I]] += kel[i][j];
-#else
-            G(dofmap[I],dofmap[J]) += kel[i][j];
-#endif
             break;
           case 1:
             CE(dofmap[I],dofmap[J]) += kel[i][j];
@@ -101,36 +87,24 @@ public:
   void addDiscreteMass(int dof, Scalar s) {
     int I;
     if((I = unconstrNum[dof]) < 0 || doftype[I] != 0) return;
-#if defined(SPARSE_G) && !defined(CHECK_G)
     diagG[dofmap[I]] += s;
-#else
-    G(dofmap[I],dofmap[I]) += s;
-#endif
     BaseSolver::addDiscreteMass(dof,s);
   }
   void zeroAll() { 
-#if defined(SPARSE_G) && !defined(CHECK_G)
     diagG.setZero();
-#else
-    G.setZero(); 
-#endif
     CE.setZero();
     CI.setZero();
     BaseSolver::zeroAll();
   }
   int  dim() { return n+p+m; }
-  Scalar diag(int dof) const { return Scalar(0); } // TODO
-  Scalar &diag(int dof) { return dummy; } // TODO
 
   void solve(Scalar* rhs, Scalar* sol); 
   void solve(GenVector<Scalar> &rhs, GenVector<Scalar> &sol) {
     solve(rhs.data(), sol.data());
   }
   int neqs() { return n+p+m; }
-  long size() { return 0; } // TODO
   void factor() { 
-    // XXXX currently we are factoring inside eiquadprog.hpp
-    //BaseSolver::factor();
+    BaseSolver::factor();
   }
   void reSolve(Scalar *rhs) {  
     Scalar *rhs_copy = new Scalar[neqs()];

@@ -692,7 +692,8 @@ int main(int argc, char** argv)
    geoSource->transformLMPCs(domain->getNumLMPC(), *(domain->getLMPC()));
  }
 
- if(domain->solInfo().type != 2 && !domain->solInfo().use_nmf && !domain->solInfo().svdPodRom && (strcmp(domain->solInfo().readInDualROB,"") == 0))
+ if(domain->solInfo().type != 2 && !domain->solInfo().use_nmf && !domain->solInfo().svdPodRom && (strcmp(domain->solInfo().readInDualROB,"") == 0)
+    && !domain->solInfo().samplingPodRom)
    geoSource->addMpcElements(domain->getNumLMPC(), *(domain->getLMPC()));
 
  if((domain->solInfo().type != 2 || (!domain->solInfo().isMatching && (domain->solInfo().fetiInfo.fsi_corner != 0))) && !domain->solInfo().HEV)

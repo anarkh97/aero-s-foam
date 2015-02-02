@@ -608,7 +608,8 @@ PodProjectionNonLinDynamic::preProcess() {
   podPostPro->makeSensorBasis(&projectionBasis);
 
   if(domain->solInfo().getNLInfo().linearelastic) {
-    calculateReducedStiffness(*K, projectionBasis, K_reduced);
+    // there isn't any good reason to use ECSW with "linearelastic"; this is just for testing...
+    if(!domain->solInfo().elemLumpPodRom) calculateReducedStiffness(*K, projectionBasis, K_reduced);
     delete K; K = 0;
 
     // calculate the reduced time-dependent forces (default loadset only) TODO add support for multiple loadsets
@@ -981,7 +982,7 @@ PodProjectionNonLinDynamic::getStiffAndForce(ModalGeomState &geomState, Vector &
                                              Vector &elementInternalForce, double t, ModalGeomState *refState, bool forceOnly)
 {
   Vector r(solVecInfo());
-  if(domain->solInfo().getNLInfo().linearelastic && domain->getFollowedElemList().empty()) {
+  if(domain->solInfo().getNLInfo().linearelastic && domain->getFollowedElemList().empty() && !domain->solInfo().elemLumpPodRom) {
     K_reduced.mult(geomState.q, r);
     residual -= r;
   }

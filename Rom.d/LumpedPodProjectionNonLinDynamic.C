@@ -43,20 +43,27 @@ LumpedPodProjectionNonLinDynamic::getStiffAndForceFromDomain(GeomState &geomStat
 void
 LumpedPodProjectionNonLinDynamic::updateStates(ModalGeomState *refState, ModalGeomState& geomState, double time)
 {
-  // updateStates is called after midpoint update, so this is a good time to update the velocity and acceleration in geomState_Big
-  Vector q_Big(NonLinDynamic::solVecInfo()),
-         vel_Big(NonLinDynamic::solVecInfo()),
-         acc_Big(NonLinDynamic::solVecInfo());
-  const GenVecBasis<double> &projectionBasis = dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis();
-  projectionBasis.expand(geomState.q, q_Big);
-  geomState_Big->explicitUpdate(domain->getNodes(), q_Big);
-  projectionBasis.expand(geomState.vel, vel_Big);
-  geomState_Big->setVelocity(vel_Big);
-  projectionBasis.expand(geomState.acc, acc_Big);
-  geomState_Big->setAcceleration(acc_Big);
+  if(!domain->solInfo().getNLInfo().linearelastic && (geomState_Big->getHaveRot() || geomState_Big->getTotalNumElemStates() > 0)) {
+    // updateStates is called after midpoint update (i.e. once per timestep)
+    // so it is a convenient place to update and copy geomState_Big, if necessary
+    Vector q_Big(NonLinDynamic::solVecInfo()),
+           vel_Big(NonLinDynamic::solVecInfo()),
+           acc_Big(NonLinDynamic::solVecInfo());
+    const GenVecBasis<double> &projectionBasis = dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis();
+    projectionBasis.expand(geomState.q, q_Big);
+    geomState_Big->explicitUpdate(domain->getNodes(), q_Big);
+    if(geomState_Big->getHaveRot()) {
+      projectionBasis.expand(geomState.vel, vel_Big);
+      geomState_Big->setVelocity(vel_Big);
+      projectionBasis.expand(geomState.acc, acc_Big);
+      geomState_Big->setAcceleration(acc_Big);
+    }
 
-  domain->updateWeightedElemStatesOnly(packedElementWeights_, refState_Big, *geomState_Big, allCorot, time);
-  *refState_Big = *geomState_Big;
+    if(geomState_Big->getTotalNumElemStates() > 0)
+      domain->updateWeightedElemStatesOnly(packedElementWeights_, refState_Big, *geomState_Big, allCorot, time);
+
+    *refState_Big = *geomState_Big;
+  }
 }
 
 void

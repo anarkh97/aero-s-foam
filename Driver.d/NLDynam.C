@@ -155,8 +155,14 @@ Domain::getWeightedInternalForceOnly(const std::map<int, double> &weights,
     }
   
     // Get updated tangent stiffness matrix and element internal force
-    if(const Corotator *elementCorot = corotators[iele]) {
-      getElemInternalForce(geomState, pseudoTime, refState, *elementCorot, elementForce.data(), elementStiff);
+    if(corotators[iele] && !solInfo().getNLInfo().linearelastic) {
+      getElemInternalForce(geomState, pseudoTime, refState, *corotators[iele], elementForce.data(), elementStiff);
+    }
+    else {
+      Vector disp(packedEset[iele]->numDofs());
+      getElementDisp(iele, geomState, disp);
+      kel[iele].copy(packedEset[iele]->stiffness(nodes, kel[iele].data())); // XXX
+      kel[iele].multiply(disp, elementForce, 1.0);
     }
 
     // Add configuration-dependent external forces and their element stiffness contributions
@@ -165,7 +171,7 @@ Domain::getWeightedInternalForceOnly(const std::map<int, double> &weights,
                            (corotators[iele]), elementStiff, lambda, time, false, conwep);
     }
 
-    if(packedEset[iele]->hasRot()) {
+    if(packedEset[iele]->hasRot() && !solInfo().getNLInfo().linearelastic) {
       // Transform element stiffness and force to solve for the increment in the total rotation vector
       transformElemStiffAndForce(geomState, elementForce.data(), elementStiff, iele, false);
     }
@@ -191,7 +197,9 @@ Domain::getWeightedInternalForceOnly(const std::map<int, double> &weights,
     getFollowerForce(geomState, elementForce, corotators, kel, residual, lambda, time, NULL, false);
   }
 
-  if(sinfo.isDynam() && mel) getWeightedFictitiousForceOnly(weights, geomState, elementForce, kel, residual, time, refState, NULL, mel, false);
+  if(sinfo.isDynam() && mel && !solInfo().getNLInfo().linearelastic) {
+    getWeightedFictitiousForceOnly(weights, geomState, elementForce, kel, residual, time, refState, NULL, mel, false);
+  }
 }
 
 void

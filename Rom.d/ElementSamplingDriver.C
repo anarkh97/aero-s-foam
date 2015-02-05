@@ -323,11 +323,20 @@ ElementSamplingDriver<MatrixBufferType,SizeType>
         if(accel) geomState_->setAcceleration(domain_->getElementSet()[iElem]->numNodes(), nodes,
             (*accel)[iSnap], 2); // just set the acceleration at the nodes of element iElem
         // Evaluate and store element contribution at training configuration
-        domain_->getElemInternalForce(*geomState_, *timeStampIt, geomState_, *(corotators_[iElem]), elementForce.array(), kelArray_[iElem]);
+        if(corotators_[iElem] && !domain_->solInfo().getNLInfo().linearelastic) {
+          domain_->getElemInternalForce(*geomState_, *timeStampIt, geomState_, *(corotators_[iElem]), elementForce.array(), kelArray_[iElem]);
+        }
+        else {
+          Vector disp(kelArray_[iElem].dim());
+          StackVector force(elementForce.array(), kelArray_[iElem].dim());
+          domain->getElementDisp(iElem, *geomState_, disp);
+          force.zero();
+          kelArray_[iElem].multiply(disp, force, 1.0);
+        }
         if(domain_->solInfo().reduceFollower)
           domain_->getElemFollowerForce(iElem, *geomState_, elementForce.array(), elementForce.size(), (corotators_[iElem]),
                                         kelArray_[iElem], 1.0, *timeStampIt, false, conwep);
-        if(domain_->getElementSet()[iElem]->hasRot()) {
+        if(domain_->getElementSet()[iElem]->hasRot() && !domain_->solInfo().getNLInfo().linearelastic) {
           domain_->transformElemStiffAndForce(*geomState_, elementForce.array(), kelArray_[iElem], iElem, false);
           domain_->getElemFictitiousForce(iElem, *geomState_, elementForce.array(), kelArray_[iElem],
               *timeStampIt, geomState_, melArray_[iElem], false);

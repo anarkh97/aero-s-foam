@@ -608,7 +608,8 @@ PodProjectionNonLinDynamic::preProcess() {
   podPostPro->makeSensorBasis(&projectionBasis);
 
   if(domain->solInfo().getNLInfo().linearelastic) {
-    calculateReducedStiffness(*K, projectionBasis, K_reduced);
+    // there isn't any good reason to use ECSW with "linearelastic"; this is just for testing...
+    if(!domain->solInfo().elemLumpPodRom) calculateReducedStiffness(*K, projectionBasis, K_reduced);
     delete K; K = 0;
 
     // calculate the reduced time-dependent forces (default loadset only) TODO add support for multiple loadsets
@@ -953,21 +954,25 @@ PodProjectionNonLinDynamic::copyGeomState(ModalGeomState *geomState)
 void
 PodProjectionNonLinDynamic::updateStates(ModalGeomState *refState, ModalGeomState &geomState, double time)
 {
-  if(geomState_Big->getTotalNumElemStates() > 0) {
+  if(!domain->solInfo().getNLInfo().linearelastic && (geomState_Big->getHaveRot() || geomState_Big->getTotalNumElemStates() > 0)) {
     // updateStates is called after midpoint update (i.e. once per timestep)
-    // so it is a convenient place to update and copy geomState_Big
+    // so it is a convenient place to update and copy geomState_Big, if necessary
     Vector q_Big(NonLinDynamic::solVecInfo()),
            vel_Big(NonLinDynamic::solVecInfo()),
            acc_Big(NonLinDynamic::solVecInfo());
     const GenVecBasis<double> &projectionBasis = dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis();
     projectionBasis.expand(geomState.q, q_Big);
     geomState_Big->explicitUpdate(domain->getNodes(), q_Big);
-    projectionBasis.expand(geomState.vel, vel_Big);
-    geomState_Big->setVelocity(vel_Big);
-    projectionBasis.expand(geomState.acc, acc_Big);
-    geomState_Big->setAcceleration(acc_Big);
+    if(geomState_Big->getHaveRot()) {
+      projectionBasis.expand(geomState.vel, vel_Big);
+      geomState_Big->setVelocity(vel_Big);
+      projectionBasis.expand(geomState.acc, acc_Big);
+      geomState_Big->setAcceleration(acc_Big);
+    }
 
-    domain->updateStates(refState_Big, *geomState_Big, allCorot, time);
+    if(geomState_Big->getTotalNumElemStates() > 0) 
+      domain->updateStates(refState_Big, *geomState_Big, allCorot, time);
+
     *refState_Big = *geomState_Big;
   }
 }
@@ -977,7 +982,7 @@ PodProjectionNonLinDynamic::getStiffAndForce(ModalGeomState &geomState, Vector &
                                              Vector &elementInternalForce, double t, ModalGeomState *refState, bool forceOnly)
 {
   Vector r(solVecInfo());
-  if(domain->solInfo().getNLInfo().linearelastic && domain->getFollowedElemList().empty()) {
+  if(domain->solInfo().getNLInfo().linearelastic && domain->getFollowedElemList().empty() && !domain->solInfo().elemLumpPodRom) {
     K_reduced.mult(geomState.q, r);
     residual -= r;
   }
@@ -1032,21 +1037,6 @@ PodProjectionNonLinDynamic::dynamOutput(ModalGeomState *geomState, Vector &veloc
                                         int step, Vector &force, Vector &aeroF, Vector &acceleration,
                                         ModalGeomState *refState) const
 {
-/* OLD METHOD
-  Vector velocity_Big(NonLinDynamic::solVecInfo()),
-         vp_Big(NonLinDynamic::solVecInfo()),
-         force_Big(NonLinDynamic::solVecInfo()),
-         aeroF_Big(NonLinDynamic::solVecInfo()),
-         acceleration_Big(NonLinDynamic::solVecInfo());
-  const GenVecBasis<double> &projectionBasis = dynamic_cast<GenPodProjectionSolver<double>*>(solver)->projectionBasis();
-  projectionBasis.expand(velocity, velocity_Big);
-  projectionBasis.expand(vp, vp_Big);
-  expandForce(force, force_Big);
-  expandForce(aeroF, aeroF_Big);
-  projectionBasis.expand(acceleration, acceleration_Big);
-
-  NonLinDynamic::dynamOutput(geomState_Big, velocity_Big, vp_Big, time, step, force_Big, aeroF_Big, acceleration_Big, refState_Big);
-*/
   DynamMat dynOps;
   SysState<Vector> systemState(geomState->q, velocity, acceleration, vp);
   podPostPro->dynamOutput(step+1, time, dynOps, force, &aeroF, systemState);

@@ -450,7 +450,8 @@ void
 Domain::makeElementAdjacencyLists()
 {
   elemAdj.resize(numele); 
-  bool makeFollowedElemList = ((!domain->solInfo().reduceFollower && domain->solInfo().galerkinPodRom) || geoSource->energiesOutput());
+  bool makeFollowedElemList = ( ((!domain->solInfo().reduceFollower || domain->solInfo().getNLInfo().linearelastic)
+                                 && domain->solInfo().galerkinPodRom) || geoSource->energiesOutput() );
 
   // 1. pressure applied to elements
   if(domain->pressureFlag()) {
@@ -597,6 +598,7 @@ Domain::makeElementAdjacencyLists()
   }
 
   // 7. constrained rotations
+  if(!solInfo().getNLInfo().linearelastic)
   for(int i = 0; i < numDirichlet; ++i) {
     if(dbc[i].dofnum == 3 || dbc[i].dofnum == 4 || dbc[i].dofnum == 5) {
       int dofs[3];
@@ -670,8 +672,17 @@ Domain::getWeightedStiffAndForceOnly(const std::map<int, double> &weights,
     }
 
     // Get updated tangent stiffness matrix and element internal force
-    if (const Corotator *elementCorot = corotators[iele]) {
-      getElemStiffAndForce(geomState, pseudoTime, refState, *elementCorot, elementForce.data(), elementStiff);
+    if(corotators[iele] && !solInfo().getNLInfo().linearelastic) {
+      getElemStiffAndForce(geomState, pseudoTime, refState, *corotators[iele], elementForce.data(), elementStiff);
+      if(sinfo.newmarkBeta == 0) {
+        corotators[iele]->updateStates(refState, geomState, nodes, sinfo.getTimeStep());
+      }
+    }
+    else {
+      Vector disp(packedEset[iele]->numDofs());
+      getElementDisp(iele, geomState, disp);
+      kel[iele].copy(packedEset[iele]->stiffness(nodes, kel[iele].data())); // XXX
+      kel[iele].multiply(disp, elementForce, 1.0);
     }
 
     // Add configuration-dependent external forces and their element stiffness contributions
@@ -680,7 +691,7 @@ Domain::getWeightedStiffAndForceOnly(const std::map<int, double> &weights,
                            (corotators[iele]), elementStiff, lambda, time, compute_tangents, conwep);
     }
 
-    if(packedEset[iele]->hasRot()) {
+    if(packedEset[iele]->hasRot() && !solInfo().getNLInfo().linearelastic) {
       // Transform element stiffness and force to solve for the increment in the total rotation vector
       transformElemStiffAndForce(geomState, elementForce.data(), elementStiff, iele, true);
     }
@@ -710,7 +721,7 @@ Domain::getWeightedStiffAndForceOnly(const std::map<int, double> &weights,
     getFollowerForce(geomState, elementForce, corotators, kel, residual, lambda, time, NULL, compute_tangents);
   }
 
-  if(sinfo.isDynam() && mel) {
+  if(sinfo.isDynam() && mel && !solInfo().getNLInfo().linearelastic) {
     getWeightedFictitiousForceOnly(weights, geomState, elementForce, kel, residual, time,
                                    refState, NULL, mel, compute_tangents);
   }
@@ -952,7 +963,7 @@ Domain::createKelArray(FullSquareMatrix *&kArray, FullSquareMatrix *&mArray)
    //       (only the euler beam element is affected)
    double mratio = (packedEset[iele]->hasRot() && sinfo.isNonLin() && sinfo.isDynam()) ? 0 : geoSource->getMRatio();
    mArray[iele].copy(packedEset[iele]->massMatrix(nodes, mArray[iele].data(), mratio));
-   if(domain->solInfo().galerkinPodRom && !solInfo().getNLInfo().linearelastic) {
+   if(domain->solInfo().elemLumpPodRom) {
      kArray[iele].zero();
    }
    else {
@@ -1007,7 +1018,7 @@ Domain::createKelArray(FullSquareMatrix *&kArray, FullSquareMatrix *&mArray, Ful
    double mratio = (packedEset[iele]->hasRot() && sinfo.isNonLin() && sinfo.isDynam()) ? 0 : geoSource->getMRatio();
    mArray[iele].copy(packedEset[iele]->massMatrix(nodes, mArray[iele].data(), mratio));
    cArray[iele].copy(packedEset[iele]->dampingMatrix(nodes, cArray[iele].data()));
-   if(domain->solInfo().galerkinPodRom && !solInfo().getNLInfo().linearelastic) {
+   if(domain->solInfo().elemLumpPodRom) {
      kArray[iele].zero();
    }
    else {

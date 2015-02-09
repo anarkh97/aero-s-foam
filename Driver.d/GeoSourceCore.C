@@ -4317,8 +4317,11 @@ void GeoSource::writeDistributedInputFiles(int nCluster, Domain *domain)
   // begin adding data to sower object
 
   // NODES
-  Connectivity *eToN = new Connectivity(&(domain->getElementSet()));
-  sower.addParentToChildData<NodesIO, CoordSet*, Connectivity*>(NODES_TYPE, ELEMENTS_TYPE, 0, &nodes, eToN);
+  typedef ImplicitConnectivity<Elemset*, EsetGeomAccessor> implicitElem;
+  implicitElem *eToN = new implicitElem(&(domain->getElementSet()));
+  sower.addParentToChildData<NodesIO, CoordSet*, implicitElem*>(NODES_TYPE, ELEMENTS_TYPE, 0, &nodes, eToN);
+  //Connectivity *eToN = new Connectivity(&(domain->getElementSet()));
+  //sower.addParentToChildData<NodesIO, CoordSet*, Connectivity*>(NODES_TYPE, ELEMENTS_TYPE, 0, &nodes, eToN);
   delete eToN;
 
   // ATTRIBUTES

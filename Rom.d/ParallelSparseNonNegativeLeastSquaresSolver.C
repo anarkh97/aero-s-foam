@@ -6,6 +6,10 @@
 #include <vector>
 #include <iostream>
 
+#ifdef USE_MPI
+#include <mpi.h>
+#endif
+
 #ifdef USE_EIGEN3
 #include <Eigen/Core>
 
@@ -69,95 +73,57 @@ ParallelSparseNonNegativeLeastSquaresSolver::solve() {
     return;
   }
 
+#ifdef USE_EIGEN3
   long int info;
   double dtime = 0.0;
+
+  std::vector<Eigen::Map<Eigen::MatrixXd> > A(nsub_, Eigen::Map<Eigen::MatrixXd>(NULL,0,0));
+  Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1> x(nsub_);
+  Eigen::Map<Eigen::VectorXd> b(rhsBuffer_.array(),equationCount_);
+  for(int i=0; i<nsub_; ++i) {
+    new (&A[i]) Eigen::Map<Eigen::MatrixXd>(&*sd_[i]->matrixBuffer(),sd_[i]->equationCount(),sd_[i]->unknownCount());
+  }
+#ifdef USE_MPI
+  MPI_Barrier(MPI_COMM_WORLD);
+#endif
   double t0 = getTime();
   switch(solverType_) {
     default :
     case 1 : { // Non-negative Conjugate Gradient Pursuit
-#ifdef USE_EIGEN3
       filePrint(stderr, " ... Using Parallel NNCGP Solver    ...\n");
-      std::vector<Eigen::Map<Eigen::MatrixXd> > A(nsub_, Eigen::Map<Eigen::MatrixXd>(NULL,0,0));
-      Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1> x(nsub_);
-      Eigen::Map<Eigen::VectorXd> b(rhsBuffer_.array(),equationCount_);
-      for(int i=0; i<nsub_; ++i) {
-        new (&A[i]) Eigen::Map<Eigen::MatrixXd>(&*sd_[i]->matrixBuffer(),sd_[i]->equationCount(),sd_[i]->unknownCount());
-      }
-      x = pnncgp(A, b, errorMagnitude_, unknownCount_, info, maxSizeRatio_, maxIterRatio_, relativeTolerance_, verboseFlag_, scalingFlag_, dtime);
-      for(int i=0; i<nsub_; ++i) {
-        Eigen::Map<Eigen::VectorXd>(const_cast<double*>(sd_[i]->solutionBuffer()),sd_[i]->unknownCount()) = x[i];
-        A[i].~Map<Eigen::MatrixXd>();
-      }
-#else
-      std::cerr << "USE_EIGEN3 is not defined here in ParallelSparseNonNegativeLeastSquaresSolver::solve\n";
-      exit(-1);
-#endif
+      x = pnncgp(A, b, errorMagnitude_, unknownCount_, info, maxSizeRatio_, maxIterRatio_, relativeTolerance_,
+                 verboseFlag_, scalingFlag_, dtime);
     } break;
-
-     case 2 : { // Polytope Faces Pursuit
-#ifdef USE_EIGEN3
+    case 2 : { // Polytope Faces Pursuit
       filePrint(stderr, " ... Using Parallel GPFP Solver     ...\n");
-      std::vector<Eigen::Map<Eigen::MatrixXd> > A(nsub_, Eigen::Map<Eigen::MatrixXd>(NULL,0,0));
-      Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1> x(nsub_);
-      Eigen::Map<Eigen::VectorXd> b(rhsBuffer_.array(),equationCount_);
-      for(int i=0; i<nsub_; ++i) {
-        new (&A[i]) Eigen::Map<Eigen::MatrixXd>(&*sd_[i]->matrixBuffer(),sd_[i]->equationCount(),sd_[i]->unknownCount());
-      }
-      x = pgpfp(A, b, errorMagnitude_, unknownCount_, info, maxSizeRatio_, maxIterRatio_, relativeTolerance_, verboseFlag_, scalingFlag_, positivity_, dtime);
-      for(int i=0; i<nsub_; ++i) {
-        Eigen::Map<Eigen::VectorXd>(const_cast<double*>(sd_[i]->solutionBuffer()),sd_[i]->unknownCount()) = x[i];
-        A[i].~Map<Eigen::MatrixXd>();
-      }
-#else
-      std::cerr << "USE_EIGEN3 is not defined here in ParallelSparseNonNegativeLeastSquaresSolver::solve\n";
-      exit(-1);
-#endif
+      x = pgpfp(A, b, errorMagnitude_, unknownCount_, info, maxSizeRatio_, maxIterRatio_, relativeTolerance_,
+                verboseFlag_, scalingFlag_, positivity_, dtime);
     } break;
-    
     case 5 : { // Orthogonal Matching Pursuit with Non-Negative L2 minimization
-#ifdef USE_EIGEN3
-      filePrint(stderr, " ... Using Parallel OMP Solver    ...\n");
-      std::vector<Eigen::Map<Eigen::MatrixXd> > A(nsub_, Eigen::Map<Eigen::MatrixXd>(NULL,0,0));
-      Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1> x(nsub_);
-      Eigen::Map<Eigen::VectorXd> b(rhsBuffer_.array(),equationCount_);
-      for(int i=0; i<nsub_; ++i) {
-        new (&A[i]) Eigen::Map<Eigen::MatrixXd>(&*sd_[i]->matrixBuffer(),sd_[i]->equationCount(),sd_[i]->unknownCount());
-      }
-      x = pomp(A, b, errorMagnitude_, unknownCount_, info, maxSizeRatio_, maxIterRatio_, relativeTolerance_, verboseFlag_, scalingFlag_, positivity_, dtime);
-      for(int i=0; i<nsub_; ++i) {
-        Eigen::Map<Eigen::VectorXd>(const_cast<double*>(sd_[i]->solutionBuffer()),sd_[i]->unknownCount()) = x[i];
-        A[i].~Map<Eigen::MatrixXd>();
-      }
+      filePrint(stderr, " ... Using Parallel OMP Solver      ...\n");
+      x = pomp(A, b, errorMagnitude_, unknownCount_, info, maxSizeRatio_, maxIterRatio_, relativeTolerance_,
+               verboseFlag_, scalingFlag_, positivity_, dtime);
+    } break;
+    case 6 : { // Scalapack LH solver
+#if defined(USE_SCALAPACK)
+      filePrint(stderr, " ... Using Scalapack LH Solver      ...\n");
+      x = splh(A, b, errorMagnitude_, unknownCount_, info, maxSizeRatio_, maxIterRatio_, relativeTolerance_,
+               verboseFlag_, scalingFlag_, projectFlag_, dtime, npMax_, scpkMB_, scpkNB_, scpkMP_, scpkNP_);
 #else
-      std::cerr << "USE_EIGEN3 is not defined here in ParallelSparseNonNegativeLeastSquaresSolver::solve\n";
+      filePrint(stderr, " *** ERROR: ScaLAPACK library is required for SPLH solver.\n");
       exit(-1);
 #endif
     } break;
-
-    case 6 : { // Scalapack LH solver
-#if defined(USE_EIGEN3) && defined(USE_SCALAPACK)
-      filePrint(stderr, " ... Using Scalapack LH Solver    ...\n");
-      std::vector<Eigen::Map<Eigen::MatrixXd> > A(nsub_, Eigen::Map<Eigen::MatrixXd>(NULL,0,0));
-      Eigen::Array<Eigen::VectorXd,Eigen::Dynamic,1> x(nsub_);
-      Eigen::Map<Eigen::VectorXd> b(rhsBuffer_.array(),equationCount_);
-      for(int i=0; i<nsub_; ++i) {
-        new (&A[i]) Eigen::Map<Eigen::MatrixXd>(&*sd_[i]->matrixBuffer(),sd_[i]->equationCount(),sd_[i]->unknownCount());
-      }
-      x = splh(A, b, errorMagnitude_, unknownCount_, info, maxSizeRatio_, maxIterRatio_, relativeTolerance_, verboseFlag_, scalingFlag_, projectFlag_, dtime, npMax_, scpkMB_, scpkNB_, scpkMP_, scpkNP_);
-      for(int i=0; i<nsub_; ++i) {
-        Eigen::Map<Eigen::VectorXd>(const_cast<double*>(sd_[i]->solutionBuffer()),sd_[i]->unknownCount()) = x[i];
-        A[i].~Map<Eigen::MatrixXd>();
-      }
-#else
-      std::cerr << "USE_EIGEN3 and/or USE_SCALAPACK is not defined here in ParallelSparseNonNegativeLeastSquaresSolver::solve\n";
-      exit(-1);
-#endif
-    }
   }
   double t = (getTime() - t0)/1000.0;
-  filePrint(stderr, " ... Solve Time = %13.6f s   ...\n",t);
-  filePrint(stderr, " ... DDate Time = %13.6f s   ...\n",dtime);
-  filePrint(stderr, " ... %% DDate   =  %13.6f %% ...\n",(dtime/t)*100.0);
+  for(int i=0; i<nsub_; ++i) {
+    Eigen::Map<Eigen::VectorXd>(const_cast<double*>(sd_[i]->solutionBuffer()),sd_[i]->unknownCount()) = x[i];
+    A[i].~Map<Eigen::MatrixXd>();
+  }
+
+  filePrint(stderr, " ... Solve Time    = %9.3e s    ...\n",t);
+  filePrint(stderr, " ... Downdate Time = %9.3e s    ...\n",dtime);
+  filePrint(stderr, " ... %% Downdate    = %9.2f %%    ...\n",(dtime/t)*100.0);
 
   if (info == 2) {
     throw std::logic_error("Illegal problem size");
@@ -166,6 +132,10 @@ ParallelSparseNonNegativeLeastSquaresSolver::solve() {
   if (info == 3) {
     throw std::runtime_error("Solution did not converge");
   }
+#else
+  std::cerr << "USE_EIGEN3 is not defined here in ParallelSparseNonNegativeLeastSquaresSolver::solve\n";
+  exit(-1);
+#endif
 }
 
 } // end namespace Rom

@@ -417,8 +417,10 @@ pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const
     rnorm = r.norm();
   }
 
+#ifdef USE_MPI
   delete [] counts;
   delete [] displs;
+#endif
 
   dtime /= 1000.0;
   if(myrank == 0 && verbose) std::cout.flush();

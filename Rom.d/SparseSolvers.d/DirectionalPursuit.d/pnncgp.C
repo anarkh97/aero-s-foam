@@ -49,7 +49,7 @@ pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const
 #ifdef USE_MPI
   MPI_Comm mpicomm;
   MPI_Comm_split(MPI_COMM_WORLD, int(nsub > 0), 0, &mpicomm);
-  if(nsub == 0) return Array<VectorXd,Dynamic,1>(0);
+  if(nsub == 0) return Array<VectorXd,Dynamic,1>(0,1);
   MPI_Comm_rank(mpicomm, &myrank);
   MPI_Status status;
   int numproc;

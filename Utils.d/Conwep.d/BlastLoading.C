@@ -1,7 +1,7 @@
 // BlastLoading.C
 // This file implements the CONWEP blast loading model.
 #include "BlastLoading.h"
-#include <math.h>
+#include <cmath>
 #include <iostream>
 #include <fstream>
 // ====================================================================================================

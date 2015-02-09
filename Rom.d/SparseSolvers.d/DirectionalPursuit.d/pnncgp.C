@@ -30,7 +30,7 @@ bool operator== (const long_int& lhs, const long_int& rhs)
 { return lhs.index==rhs.index && lhs.sub==rhs.sub; }
 
 // Parallel implementation of Non-negative Conjugate Gradient Pursuit using either MPI, OpenMP or both.
-// This is a non-negative constrained variant of Conjugate Gradient Pursuit, and generates identical iterates to
+// This is a non-negative constrained variant of Conjugate Gradient Pursuit, and generates identical iterates (up to round-off error) to
 // Lawson & Hanson's NNLS (non-negative least squares) algorithm.
 // References:
 // 1. Blumensath, Thomas, and Michael E. Davies. "Gradient pursuits." Signal Processing, IEEE Transactions on 56.6 (2008): 2370-2382.
@@ -44,31 +44,41 @@ pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const
   // each x[i] of the return value x is the corresponding row-wise block of the global solution vector
   // n is the number of columns in the global A matrix (note this is only used to define the stopping criteria)
   using namespace Eigen;
+  const int nsub = A.size(); // number of subdomains assigned to this mpi process
   int myrank;
 #ifdef USE_MPI
-  const MPI_Comm mpicomm = MPI_COMM_WORLD;
+  MPI_Comm mpicomm;
+  MPI_Comm_split(MPI_COMM_WORLD, int(nsub > 0), 0, &mpicomm);
+  if(nsub == 0) return Array<VectorXd,Dynamic,1>(0,1);
   MPI_Comm_rank(mpicomm, &myrank);
+  MPI_Status status;
+  int numproc;
+  MPI_Comm_size(mpicomm, &numproc);
+  int *counts = new int[numproc];
+  int *displs = new int[numproc];
 #else
   myrank = 0;
 #endif
   struct double_int s;
-  struct long_int p;
+  struct long_int p, q;
 
-  const int nsub = A.size(); // number of subdomains assigned to this mpi process
   const long int m = b.rows();
   const long int maxvec = std::min(m, (long int)(maxsze*n));
   const long int maxit = maxite*n;
   std::vector<long int> maxlocvec(nsub); for(int i=0; i<nsub; ++i) maxlocvec[i] = std::min(A[i].cols(),maxvec);
   double bnorm = b.norm();
   double abstol = reltol*bnorm;
-
+#ifdef USE_MPI
+  VectorXd sendbuf(m);
+  VectorXd recvbuf(maxvec);
+#endif
   Array<VectorXd,Dynamic,1> x_(nsub), y(nsub), g(nsub), h(nsub), g_(nsub), S(nsub), t(nsub);
   for(int i=0; i<nsub; ++i) {
     x_[i] = VectorXd::Zero(maxlocvec[i]);
     y[i].resize(maxlocvec[i]);
     g_[i].resize(maxlocvec[i]);
     S[i].resize(A[i].cols());
-    if(scaling) for(int j=0; j<A[i].cols(); ++j) { double s = A[i].col(j).norm(); S[i][j] = (s != 0) ? 1/s : 0; }
+    if(scaling) for(long int j=0; j<A[i].cols(); ++j) { double s = A[i].col(j).norm(); S[i][j] = (s != 0) ? 1/s : 0; }
     else S[i].setOnes();
     t[i].resize(maxlocvec[i]);
   }
@@ -79,9 +89,9 @@ pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const
   a.setZero();
   Array<MatrixXd,Dynamic,1> B(nsub), D(nsub), GD(nsub);
   for(int i=0; i<nsub; ++i) {
-    B[i]  = MatrixXd::Zero(m,maxlocvec[i]);
-    D[i]  = MatrixXd::Zero(maxlocvec[i],maxvec);
-    GD[i] = MatrixXd::Zero(maxlocvec[i],maxvec);
+    B[i].resize(m,maxlocvec[i]);
+    D[i].resize(maxlocvec[i],maxvec);
+    GD[i].resize(maxlocvec[i],maxvec);
   }
   Matrix<double,Dynamic,Dynamic,ColMajor> BD(m,maxvec);
   MatrixXd z_loc(maxvec,nsub), c_loc(m,nsub);
@@ -90,6 +100,15 @@ pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const
   std::list<std::pair<int,long_int> > gindices; // global indices
   std::list<std::pair<int,long_int> > nld_indices;
   std::vector<std::vector<long int> > indices(nsub); // local indices
+  std::vector<std::vector<std::pair<int,long_int> > > perm(nsub); // column permutation
+  for(int i=0; i<nsub; ++i) { // initialize the column permutation
+    perm[i].reserve(A[i].cols());
+    for(long int j=0; j<A[i].cols(); ++j) {
+      p.sub = i;
+      p.index = j;
+      perm[i][j] = std::pair<int,long_int>(myrank,p);
+    }
+  }
 
   Array<long int,Dynamic,1> jk(nsub);
   ArrayXd gmax(nsub), ymin(nsub), alpha(nsub);
@@ -129,21 +148,62 @@ pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const
 #ifdef USE_MPI
     MPI_Allreduce(MPI_IN_PLACE, &s, 1, MPI_DOUBLE_INT, MPI_MAXLOC, mpicomm);
 #endif
+    if(s.val <= 0) break;
+
+    q.index = 0; q.sub = myrank;
+    for(int i=0; i<nsub; ++i) q.index += l[i];
+#ifdef USE_MPI
+    MPI_Allreduce(MPI_IN_PLACE, &q, 1, MPI_LONG_INT, MPI_MINLOC, mpicomm);
+#endif
+    //if(myrank == 0) std::cerr << "rank of process with fewest elements (" << q.index << ") is " << q.sub << std::endl;
+
+#ifdef USE_MPI
+    if(q.sub != s.rank) {
+      if(s.rank == myrank) { // exchange column of A with process with fewest elements
+        MPI_Sendrecv_replace(const_cast<double*>(A[ik].col(jk[ik]).data()), m, MPI_DOUBLE,
+                             q.sub, 0, q.sub, 0, mpicomm, &status);
+        if(scaling) MPI_Sendrecv_replace(&S[ik][jk[ik]], 1, MPI_DOUBLE, q.sub, 1, q.sub, 1, mpicomm, &status);
+        MPI_Sendrecv_replace(&perm[ik][jk[ik]].first, 1, MPI_INT, q.sub, 2, q.sub, 2, mpicomm, &status);
+        MPI_Sendrecv_replace(&perm[ik][jk[ik]].second, 1, MPI_LONG_INT, q.sub, 3, q.sub, 3, mpicomm, &status);
+      }
+      if(q.sub == myrank) {
+        MPI_Sendrecv_replace(const_cast<double*>(A[ik].col(jk[ik]).data()), m, MPI_DOUBLE, 
+                             s.rank, 0, s.rank, 0, mpicomm, &status);
+        if(scaling) MPI_Sendrecv_replace(&S[ik][jk[ik]], 1, MPI_DOUBLE, s.rank, 1, s.rank, 1, mpicomm, &status);
+        MPI_Sendrecv_replace(&perm[ik][jk[ik]].first, 1, MPI_INT, s.rank, 2, s.rank, 2, mpicomm, &status);
+        MPI_Sendrecv_replace(&perm[ik][jk[ik]].second, 1, MPI_LONG_INT, s.rank, 3, s.rank, 3, mpicomm, &status);
+        p.index = jk[ik];
+        p.sub   = ik;
+      }
+      s.rank = q.sub;
+    }
+#endif
+
     if(s.rank == myrank) {
+      B[ik].col(l[ik]) = S[ik][jk[ik]]*A[ik].col(jk[ik]);
+      // update GD due to extra column added to B (note: B.col(i)*D.row(i).head(k) = 0, so BD does not need to be updated)
+#ifdef USE_MPI
+      sendbuf = B[ik].col(l[ik]);
+#else
+      GD[ik].row(l[ik]).head(k) = B[ik].col(l[ik]).transpose()*BD.leftCols(k);
+#endif
+      indices[ik].push_back(jk[ik]);
+      l[ik]++;
       p.index = jk[ik];
       p.sub   = ik;
     }
 #ifdef USE_MPI
+    // consider striping BD by row rather than by column
+    MPI_Bcast(sendbuf.data(), m, MPI_DOUBLE, s.rank, mpicomm);
+    for(int i=0; i<numproc; ++i) { counts[i] = k/numproc + ((i < k%numproc) ? 1 : 0); displs[i] = (i==0) ? 0 : displs[i-1]+counts[i-1]; }
+    VectorXd sendbuf2 = sendbuf.transpose()*BD.block(0,displs[myrank],m,counts[myrank]);
+    MPI_Gatherv(sendbuf2.data(), counts[myrank], MPI_DOUBLE, recvbuf.data(), counts, displs, MPI_DOUBLE, s.rank, mpicomm);
+    if(s.rank == myrank) {
+      GD[ik].row(l[ik]-1).head(k) = recvbuf.head(k);
+    }
+
     MPI_Bcast(&p, 1, MPI_LONG_INT, s.rank, mpicomm);
 #endif
-    if(s.val <= 0) break;
-    if(s.rank == myrank) {
-      B[ik].col(l[ik]) = S[ik][jk[ik]]*A[ik].col(jk[ik]);
-      // update GD due to extra column added to B (note: B.col(i)*D.row(i).head(k) = 0, so BD does not need to be updated)
-      GD[ik].row(l[ik]).head(k) = B[ik].col(l[ik]).transpose()*BD.leftCols(k);
-      indices[ik].push_back(jk[ik]);
-      l[ik]++;
-    }
     gindices.push_back(std::pair<int,long_int>(s.rank,p));
 
 #if defined(_OPENMP)
@@ -164,7 +224,8 @@ pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const
 #endif
     for(int i=0; i<nsub; ++i) {
       Block<MatrixXd,Dynamic,1,true> d = D[i].col(k);
-      d.head(l[i]) = g_[i].head(l[i]) - D[i].topLeftCorner(l[i],k)*z.head(k);
+      d.setZero();
+      d.head(l[i]) = g_[i].head(l[i]) - D[i].topLeftCorner(l[i],k).triangularView<Upper>()*z.head(k);
       c_loc.col(i) = B[i].leftCols(l[i])*d.head(l[i]);
     }
     Block<MatrixXd,Dynamic,1,true> c = BD.col(k) = c_loc.rowwise().sum();
@@ -217,7 +278,7 @@ pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const
           alpha[i] = (l[i] > 0) ? t[i].head(l[i]).minCoeff(&jk[i]) : std::numeric_limits<double>::max();
         }
 
-        int ik; // subdomain which has the maximum feasible step length.
+        int ik; // subdomain which has the smallest maximum feasible step length.
         s.val = (nsub > 0) ? alpha.minCoeff(&ik) : std::numeric_limits<double>::max();
         s.rank = myrank;
 #ifdef USE_MPI
@@ -258,10 +319,17 @@ pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const
         for(int i=0; i<nsub; ++i) {
           y[i].head(l[i]).setZero();
           l[i] = 0; for(std::list<std::pair<int,long_int> >::iterator it = gindices.begin(); it != fol; ++it) { if(it->first == myrank && it->second.sub == i) l[i]++; }
-          D[i].bottomRightCorner(maxlocvec[i]-l[i],maxvec-k).setZero();
-          y[i].head(l[i]) = D[i].topLeftCorner(l[i],k)*a.head(k);
+          y[i].head(l[i]) = D[i].topLeftCorner(l[i],k).triangularView<Upper>()*a.head(k);
         }
+#ifdef USE_MPI
+        // consider striping BD by row rather than by column
+        for(int i=0; i<numproc; ++i) { counts[i] = k/numproc + ((i < k%numproc) ? 1 : 0); displs[i] = (i==0) ? 0 : displs[i-1]+counts[i-1]; }
+        sendbuf = BD.block(0,displs[myrank],m,counts[myrank])*a.segment(displs[myrank],counts[myrank]);
+        MPI_Allreduce(MPI_IN_PLACE, sendbuf.data(), m, MPI_DOUBLE, MPI_SUM, mpicomm);
+        r = b - sendbuf;
+#else
         r = b - BD.leftCols(k)*a.head(k);
+#endif
 #if defined(_OPENMP)
   #pragma omp parallel for schedule(static,1)
 #endif
@@ -274,9 +342,24 @@ pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const
             B[i].col(l[i]) = S[i][it->second.index]*A[i].col(it->second.index);
             g_[i][l[i]] = B[i].col(l[i]).transpose()*r;
             // update GD due to extra column added to B (note: B.col(i)*D.row(i).head(k) = 0, so BD does not need to be updated)
+#ifdef USE_MPI
+            sendbuf = B[i].col(l[i]);
+#else
             GD[i].row(l[i]).head(k) = B[i].col(l[i]).transpose()*BD.leftCols(k);
+#endif
             l[i]++;
           }
+#ifdef USE_MPI
+          // consider striping BD by row rather than by column
+          MPI_Bcast(sendbuf.data(), m, MPI_DOUBLE, it->first, mpicomm);
+          for(int i=0; i<numproc; ++i) { counts[i] = k/numproc + ((i < k%numproc) ? 1 : 0); displs[i] = (i==0) ? 0 : displs[i-1]+counts[i-1]; }
+          VectorXd sendbuf2 = sendbuf.transpose()*BD.block(0,displs[myrank],m,counts[myrank]);
+          MPI_Gatherv(sendbuf2.data(), sendbuf2.size(), MPI_DOUBLE, recvbuf.data(), counts, displs, MPI_DOUBLE, it->first, mpicomm);
+          if(it->first == myrank) {
+            int i = it->second.sub;
+            GD[i].row(l[i]-1).head(k) = recvbuf.head(k);
+          }
+#endif
 
 #if defined(_OPENMP)
   #pragma omp parallel for schedule(static,1)
@@ -295,7 +378,8 @@ pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const
 #endif
           for(int i=0; i<nsub; ++i) {
             Block<MatrixXd,Dynamic,1,true> d = D[i].col(k);
-            d.head(l[i]) = g_[i].head(l[i]) - D[i].topLeftCorner(l[i],k)*z.head(k);
+            d.setZero();
+            d.head(l[i]) = g_[i].head(l[i]) - D[i].topLeftCorner(l[i],k).triangularView<Upper>()*z.head(k);
             c_loc.col(i) = B[i].leftCols(l[i])*d.head(l[i]);
           }
           Block<MatrixXd,Dynamic,1,true> c = BD.col(k) = c_loc.rowwise().sum();
@@ -333,6 +417,11 @@ pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const
     rnorm = r.norm();
   }
 
+#ifdef USE_MPI
+  delete [] counts;
+  delete [] displs;
+#endif
+
   dtime /= 1000.0;
   if(myrank == 0 && verbose) std::cout.flush();
 
@@ -344,7 +433,48 @@ pnncgp(const std::vector<Eigen::Map<Eigen::MatrixXd> >&A, const Eigen::Ref<const
     x[i] = VectorXd::Zero(A[i].cols());
     for(long int j=0; j<l[i]; ++j) x[i][indices[i][j]] = S[i][indices[i][j]]*x_[i][j];
   }
+
+#ifdef USE_MPI
+  Array<VectorXd,Dynamic,1> Px(nsub);
+  int *toSend = new int[numproc];
+  int maxindex = 0;
+  for(int i=0; i<numproc; ++i) toSend[i] = 0;
+  for(int i=0; i<nsub; ++i) {
+    Px[i] = VectorXd::Zero(A[i].cols());
+    for(long int j=0; j<l[i]; ++j) {
+      const int &dest = perm[i][indices[i][j]].first;
+      if(dest != myrank) toSend[dest] += 1;
+    }
+    maxindex = std::max(int(A[i].cols()),maxindex);
+  }
+  MPI_Allreduce(MPI_IN_PLACE, toSend, numproc, MPI_INT, MPI_SUM, mpicomm);
+  MPI_Allreduce(MPI_IN_PLACE, &maxindex, 1, MPI_INT, MPI_MAX, mpicomm);
+  for(int i=0; i<nsub; ++i) {
+    for(long int j=0; j<l[i]; ++j) {
+      const long int &k = indices[i][j];
+      const int &dest = perm[i][k].first;
+      if(dest != myrank) {
+        double_int toto;
+        toto.val = x[i][k];
+        toto.rank = perm[i][k].second.sub*maxindex + int(perm[i][k].second.index);
+        MPI_Send(&toto, 1, MPI_DOUBLE_INT, dest, 0, mpicomm);
+      }
+      else {
+        Px[perm[i][k].second.sub][perm[i][k].second.index] = x[i][k];
+      }
+    }
+  }
+  for(int i=0; i<toSend[myrank]; ++i) {
+    double_int toto;
+    MPI_Recv(&toto, 1, MPI_DOUBLE_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, mpicomm, &status);
+    Px[toto.rank/maxindex][toto.rank%maxindex] = toto.val;
+  }
+  delete [] toSend;
+
+  return Px;
+#else
   return x;
+#endif
 }
 
 #endif

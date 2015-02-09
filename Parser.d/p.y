@@ -4695,10 +4695,13 @@ SvdOption:
   { for(int i=0; i<$2.nval; ++i) domain->solInfo().robfi.push_back(std::string($2.v[i])); }
   | BLOCKSIZE Integer
   { domain->solInfo().svdBlockSize = $2; }
-  | USENMF Integer Float
+  | USENMF Integer Integer Integer Integer Float
   { domain->solInfo().use_nmf = 1;
-    domain->solInfo().nmfMaxIter = $2;
-    domain->solInfo().nmfTol = $3; }
+    domain->solInfo().nmfNumROBDim = $2;
+    domain->solInfo().nmfDelROBDim = $3;
+    domain->solInfo().nmfRandInit = $4;
+    domain->solInfo().nmfMaxIter = $5;
+    domain->solInfo().nmfTol = $6; }
   | USEGREEDY
   { domain->solInfo().use_nmf = 2; }
   | ConwepConfig

@@ -13,6 +13,7 @@
 
 #include <utility>
 #include <algorithm>
+#include <sstream>
 
 extern GeoSource *geoSource;
 extern int verboseFlag;
@@ -65,6 +66,7 @@ PositiveDualBasisDriver::solve() {
   NonnegativeMatrixFactorization solver(domain->solInfo().maxSizePodRom, domain->solInfo().use_nmf);
   solver.maxIterIs(domain->solInfo().nmfMaxIter);
   solver.toleranceIs(domain->solInfo().nmfTol);
+  solver.numRandInitIs(domain->solInfo().nmfRandInit);
 
   std::vector<BasisId::Type> workload;
   workload.push_back(BasisId::DUALSTATE);
@@ -87,25 +89,34 @@ PositiveDualBasisDriver::solve() {
       sizeSnap += input.size()/skipTime;
     }
   }
+  int maxBasisDimension = domain->solInfo().maxSizePodRom + (domain->solInfo().nmfDelROBDim)*(domain->solInfo().nmfNumROBDim-1);
   solver.matrixSizeIs(vectorSize, sizeSnap);
+  solver.robSizeIs(vectorSize, maxBasisDimension);
 
   for (std::vector<BasisId::Type>::const_iterator it = workload.begin(); it != workload.end(); ++it) {
     BasisId::Type type = *it;
-    filePrint(stderr, " ... Computation of a positive basis of size %d ...\n", domain->solInfo().maxSizePodRom);
     int colCounter = 0;
     readIntoSolver(solver, converter, BasisId::SNAPSHOTS, domain->solInfo().snapfiPodRom.size(), vectorSize, type, colCounter, skipTime); // read in snapshots
-    
-    solver.solve();
 
-    BasisOutputStream<1> output(BasisFileId(fileInfo, type, BasisId::POD), converter, false); 
+    for (int iBasis=0; iBasis < domain->solInfo().nmfNumROBDim; ++iBasis) {
+      int orthoBasisDim = domain->solInfo().maxSizePodRom + iBasis*domain->solInfo().nmfDelROBDim;
+      filePrint(stderr, " ... Computation of a positive basis of size %d ...\n", orthoBasisDim);
+      solver.basisDimensionIs(orthoBasisDim);
+      if (iBasis==0)
+        solver.solve(0);
+      else
+        solver.solve(orthoBasisDim-domain->solInfo().nmfDelROBDim);
 
-    const int orthoBasisDim = domain->solInfo().maxSizePodRom;
-
-    // Output solution
-    filePrint(stderr, " ... Writing positive basis to file %s ...\n", BasisFileId(fileInfo, type, BasisId::POD).name().c_str());
-    for (int iVec = 0; iVec < orthoBasisDim; ++iVec) {
-      output << std::make_pair(1.0, solver.matrixCol(iVec));
-    }
+      std::string fileName = BasisFileId(fileInfo, type, BasisId::POD);
+      std::ostringstream ss;
+      ss << orthoBasisDim;
+      fileName.append(ss.str()); 
+      BasisOutputStream<1> output(fileName, converter, false); 
+      filePrint(stderr, " ... Writing positive basis to file %s ...\n", fileName.c_str());
+      for (int iVec = 0; iVec < orthoBasisDim; ++iVec) { 
+        output << std::make_pair(1.0, solver.robCol(iVec));
+      }
+    }  
   }
 }
 

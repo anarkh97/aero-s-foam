@@ -44,7 +44,7 @@ DistrBasisInputFileTemplate<DOFS_PER_NODE>::DistrBasisInputFileTemplate(const st
   fileBuffer_(nodeCount())
 {
   inverse_numbering(nodeIdBegin(), nodeIdEnd(), std::inserter(fileNodeIds_, fileNodeIds_.end()));
-  assert(fileNodeIds_.size() == nodeCount());
+  assert(fileNodeIds_.size() <= nodeCount());
 }
 
 template<int DOFS_PER_NODE>

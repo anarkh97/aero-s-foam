@@ -4616,10 +4616,10 @@ void GeoSource::readGlobalBinaryData()
       numClusNodes = nGlobNodes;
       numClusElems = nGlobElems;
     }
-    else {
+    /*else {
       filePrint(stdout," *** ERROR: only one cluster is supported \n");
       exit(-1);
-    }
+    }*/
 
 #ifdef SOWER_SURFS
     int nGlobSurfs;

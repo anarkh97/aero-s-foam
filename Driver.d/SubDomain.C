@@ -6078,7 +6078,7 @@ GenSubDomain<Scalar>::dispatchInterfaceNodalInertiaTensors(FSCommPattern<double>
     for(int iNode = 0; iNode < scomm->sharedNodes->num(iSub); ++iNode) {
       for(int j=0; j<3; ++j)
         for(int k=0; k<3; ++k)
-          sInfo.data[3*j+k] = Jn[(*scomm->sharedNodes)[iSub][iNode]](j,k);
+          sInfo.data[9*iNode+3*j+k] = Jn[(*scomm->sharedNodes)[iSub][iNode]](j,k);
     }
   }
 #endif
@@ -6094,7 +6094,7 @@ GenSubDomain<Scalar>::collectInterfaceNodalInertiaTensors(FSCommPattern<double> 
     for(int iNode = 0; iNode < scomm->sharedNodes->num(iSub); ++iNode) {
       for(int j=0; j<3; ++j)
         for(int k=0; k<3; ++k)
-          Jn[(*scomm->sharedNodes)[iSub][iNode]](j,k) += rInfo.data[3*j+k];
+          Jn[(*scomm->sharedNodes)[iSub][iNode]](j,k) += rInfo.data[9*iNode+3*j+k];
     }
   }
 #endif

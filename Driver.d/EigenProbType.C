@@ -613,7 +613,11 @@ LOBPCGSolver< EigOps, VecType, VecSet,
   }
 
   // ... Output results
-  if(this->probDesc->getFilter()) this->pickMostCorrelatedModes();
+  if(this->probDesc->getFilter()) {
+    VecSet rModeData(modeData.numModes,this->probDesc->solVecInfo());
+    Vector rModeVal(modeData.numModes);
+    this->pickMostCorrelatedModes(rModeVal,rModeData);
+  }
   else this->postProcessor->eigenOutput(*this->eigVal,*this->eigVec);
 
   // ... Print timers
@@ -636,36 +640,49 @@ template <class EigOps, class VecType, class VecSet,
     class PostProcessor, class ProblemDescriptor>
 void
 EigenSolver< EigOps, VecType, VecSet,
-         PostProcessor, ProblemDescriptor>::performQR()
+         PostProcessor, ProblemDescriptor>::performQR(Vector *eigVal, VecSet *eigVec, int totalEig)
 {
-#ifdef USE_EIGEN3
-   Eigen::MatrixXd Xeigen(probDesc->solVecInfo(),totalEig);
-   for(int j=0; j<totalEig; ++j) {
-     VecType col = (*this->eigVec)[j];
-     for(int i=0; i<probDesc->solVecInfo(); ++i) Xeigen(i,j) = col[i];
+   if( strcmp(solInfo.eigenvaluename, "") != 0) {
+     const char* eigenvaluename = solInfo.eigenvaluename;
+     std::ofstream eigenout(eigenvaluename, std::ios::out);
+     if(!eigenout) { std::cerr << " ... Error: cannot open file " << eigenvaluename << std::endl;   exit(-1); } 
+     std::ostringstream s;
+     const double pi = 3.141592653589793;
+     for(int i=0; i<totalEig; ++i) { eigenout << sqrt((*eigVal)[i])/(2.0*pi) << "\n"; }
+     eigenout.close();
    }
+#ifdef USE_EIGEN3
+   if( strcmp(solInfo.xmatrixname, "") == 0 || strcmp(solInfo.qmatrixname, "") == 0 || strcmp(solInfo.rmatrixname,"") == 0) {
+     filePrint(stderr, " *** ERROR: xmatrix, qmatrix and rmatrix keywords must be specified in input file\n");
+   } else {
+     Eigen::MatrixXd Xeigen(probDesc->solVecInfo(),totalEig);
+     for(int j=0; j<totalEig; ++j) {
+       VecType col = (*eigVec)[j];
+       for(int i=0; i<probDesc->solVecInfo(); ++i) Xeigen(i,j) = col[i];
+     }
 
-   Eigen::HouseholderQR<Eigen::MatrixXd> qr(Xeigen);
-   const typename Eigen::HouseholderQR<Eigen::MatrixXd>::HouseholderSequenceType &Q = qr.householderQ();
+     Eigen::HouseholderQR<Eigen::MatrixXd> qr(Xeigen);
+     const typename Eigen::HouseholderQR<Eigen::MatrixXd>::HouseholderSequenceType &Q = qr.householderQ();
 
-//   Eigen::ColPivHouseholderQR<Eigen::MatrixXd> qr(Xeigen);
-//   const Eigen::PermutationMatrix<Eigen::Dynamic,Eigen::Dynamic> &P = qr.colsPermutation();
-//  const typename Eigen::ColPivHouseholderQR<Eigen::MatrixXd>::HouseholderSequenceType &Q = qr.householderQ();
+//     Eigen::ColPivHouseholderQR<Eigen::MatrixXd> qr(Xeigen);
+//     const Eigen::PermutationMatrix<Eigen::Dynamic,Eigen::Dynamic> &P = qr.colsPermutation();
+//    const typename Eigen::ColPivHouseholderQR<Eigen::MatrixXd>::HouseholderSequenceType &Q = qr.householderQ();
 
-   Eigen::MatrixXd Qupdated = Eigen::MatrixXd(Q).block(0,0,probDesc->solVecInfo(),totalEig);
+     Eigen::MatrixXd Qupdated = Eigen::MatrixXd(Q).block(0,0,probDesc->solVecInfo(),totalEig);
 
-   Eigen::MatrixXd Reigen = (Qupdated.transpose()*Xeigen).block(0,0,totalEig,totalEig);
+     Eigen::MatrixXd Reigen = (Qupdated.transpose()*Xeigen).block(0,0,totalEig,totalEig);
 /*
-   Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0);
-   std::cerr << Reigen.format(HeavyFmt) << std::endl;
-   std::cerr << Xeigen.rows() << "x" << Xeigen.cols() << std::endl;
-   std::cerr << Reigen.rows() << "x" << Reigen.cols() << std::endl;
+     Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0);
+     std::cerr << Reigen.format(HeavyFmt) << std::endl;
+     std::cerr << Xeigen.rows() << "x" << Xeigen.cols() << std::endl;
+     std::cerr << Reigen.rows() << "x" << Reigen.cols() << std::endl;
 */
    // ... Output results
-   this->postProcessor->eigenQROutput(Xeigen,Qupdated,Reigen);
+     this->postProcessor->eigenQROutput(Xeigen,Qupdated,Reigen);
+   }
 #else
-  filePrint(stderr," *** ERROR: performQR() needs eigen3\n");
-  exit(-1);
+   filePrint(stderr," *** ERROR: performQR() needs eigen3\n");
+   exit(-1);
 #endif
 }
 //------------------------------------------------------------------------------
@@ -848,29 +865,15 @@ SubSpaceSolver< EigOps, VecType, VecSet,
    }
  }
 
- if(solInfo.qrfactorization) {
-   if( strcmp(solInfo.eigenvaluename, "") != 0) {
-     const char* eigenvaluename = solInfo.eigenvaluename;
-     std::ofstream eigenout(eigenvaluename, std::ios::out);
-     if(!eigenout) { std::cerr << " ... Error: cannot open file " << eigenvaluename << std::endl;   exit(-1); } 
-     std::ostringstream s;
-     const double pi = 3.141592653589793;
-     for(i=0; i<this->totalEig; ++i) { eigenout << sqrt((*this->eigVal)[i])/(2.0*pi) << "\n"; }
-     eigenout.close();
-   }
-#ifdef USE_EIGEN3
-   if( strcmp(solInfo.xmatrixname, "") == 0 || strcmp(solInfo.qmatrixname, "") == 0 || strcmp(solInfo.rmatrixname,"") == 0) {
-     filePrint(stderr, " *** ERROR: xmatrix, qmatrix and rmatrix keywords must be specified in input file\n");
-   } else this->performQR();
-#else
-   filePrint(stderr, " *** ERROR: qrfactorization needs eigen3\n");
-   exit(-1);
-#endif
- }
+ if(solInfo.qrfactorization && !this->probDesc->getFilter()) this->performQR(this->eigVal,this->eigVec,this->totalEig);
 
  // ... Output results
- if(this->probDesc->getFilter()) this->pickMostCorrelatedModes();
- else this->postProcessor->eigenOutput(*this->eigVal,*this->eigVec);
+ if(this->probDesc->getFilter()) {
+   VecSet rModeData(modeData.numModes,this->probDesc->solVecInfo());
+   Vector rModeVal(modeData.numModes);
+   this->pickMostCorrelatedModes(rModeVal,rModeData);
+   this->performQR(&rModeVal,&rModeData,modeData.numModes);
+ } else this->postProcessor->eigenOutput(*this->eigVal,*this->eigVec);
 
  // ... Print timers
  this->probDesc->printTimers(this->eM->dynMat);
@@ -1016,34 +1019,32 @@ template <class EigOps, class VecType, class VecSet,
 void
 EigenSolver< EigOps, VecType, VecSet,
              PostProcessor, ProblemDescriptor>
-::pickMostCorrelatedModes()
+::pickMostCorrelatedModes(Vector &rModeVal, VecSet &rModeData)
 {
   int i,j,k,selectedIndex[modeData.numModes];
   for(i=0; i<modeData.numModes; ++i) selectedIndex[i] = 0;
   double result, maxResult[modeData.numModes];
   bool isIncluded;
-  VecSet vModeData(modeData.numModes,probDesc->solVecInfo()), rModeData(modeData.numModes,probDesc->solVecInfo());
-  Vector rModeVal(modeData.numModes);
+  VecSet vModeData(modeData.numModes,probDesc->solVecInfo());
   probDesc->convertModeDataToVecSet(vModeData);
   for(i=0; i<modeData.numModes; ++i) {
     maxResult[i] = 0.0;
     for(j=0; j<totalEig; ++j) {
       absoluteInnerproductNormalized(vModeData[i],(*eigVec)[j],result);
       if(result > maxResult[i]) {
-        isIncluded = false;
-        for(k=0; k<i; ++k) if(selectedIndex[k] == j) { isIncluded = true; }
-        if(!isIncluded) {
+//        isIncluded = false;
+//        for(k=0; k<i; ++k) if(selectedIndex[k] == j) { isIncluded = true; }
+//        if(!isIncluded) {
           maxResult[i] = result;
           selectedIndex[i] = j;
-        }
+//        }
       }
     }
-    filePrint(stderr," ... max normalized inner product is %e\n", maxResult[i]);
+    filePrint(stderr," ... mode %d is paired with mode %d with normalized inner product of %e\n", i+1, selectedIndex[i]+1, maxResult[i]);
     rModeData[i] = (*eigVec)[selectedIndex[i]];
     rModeVal[i] = (*eigVal)[selectedIndex[i]];
   }
-  this->postProcessor->eigenOutput(rModeVal, rModeData,modeData.numModes);
-
+  this->postProcessor->eigenOutput(rModeVal, rModeData, modeData.numModes);
 }
 
 template <class EigOps, class VecType, class VecSet,
@@ -1479,8 +1480,11 @@ SymArpackSolver< EigOps, VecType, VecSet,
       }
       if(select) { delete [] select; select = 0; }
     }
-    if(this->probDesc->getFilter()) this->pickMostCorrelatedModes();
-    else this->postProcessor->eigenOutput(*this->eigVal,*this->eigVec, convEig);
+    if(this->probDesc->getFilter()) { 
+      VecSet rModeData(modeData.numModes,this->probDesc->solVecInfo());
+      Vector rModeVal(modeData.numModes);
+      this->pickMostCorrelatedModes(rModeVal,rModeData);
+    } else this->postProcessor->eigenOutput(*this->eigVal,*this->eigVec, convEig);
 
 
     // free locally allocated memory

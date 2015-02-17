@@ -89,7 +89,7 @@
 %token MPCBLK_OVERLAP MFTT MRHS MPCCHECK MUMPSICNTL MUMPSCNTL MECH MODDAMP MODEFILTER MOMENTTYPE MPROJECT MAXIMUM
 %token NDTYPE NEIGPA NEWMARK NewLine NEWTON NL NLMAT NLPREC NOCOARSE NODETOKEN NONINPC
 %token NSBSPV NLTOL NUMCGM NOSECONDARY NFRAMES
-%token OPTIMIZATION OUTPUT OUTPUT6 OUTPUTFRAME
+%token SENSITIVITY OUTPUT OUTPUT6 OUTPUTFRAME
 %token QSTATIC QLOAD
 %token PITA PITADISP6 PITAVEL6 NOFORCE MDPITA GLOBALBASES LOCALBASES TIMEREVERSIBLE REMOTECOARSE ORTHOPROJTOL READINITSEED JUMPCVG JUMPOUTPUT
 %token PRECNO PRECONDITIONER PRELOAD PRESSURE PRINTMATLAB PROJ PIVOT PRECTYPE PRECTYPEID PICKANYCORNER PADEPIVOT PROPORTIONING PLOAD PADEPOLES POINTSOURCE PLANEWAVE PTOL PLANTOL PMAXIT PIECEWISE
@@ -113,7 +113,7 @@
 %token SNAPFI PODROB TRNVCT OFFSET ORTHOG SVDTOKEN CONVERSIONTOKEN CONVFI SAMPLING SNAPSHOTPROJECT PODSIZEMAX REFSUBTRACT TOLER NORMALIZETOKEN FNUMBER SNAPWEIGHT ROBFI STAVCT VELVCT ACCVCT CONWEPCFG PSEUDOGNAT PSEUDOGNATELEM USENMF
 %token VECTORNORM REBUILDFORCE SAMPNODESLOT REDUCEDSTIFFNESS UDEIMBASIS FORCEROB DEIMINDICES UDEIMINDICES SVDFORCESNAP
 %token USEMASSNORMALIZEDBASIS
-%token SENSITIVITYID NUMTHICKNESSGROUP 
+%token NUMTHICKNESSGROUP 
 %token QRFACTORIZATION QMATRIX RMATRIX XMATRIX EIGENVALUE
 
 %type <complexFDBC> AxiHD
@@ -138,7 +138,6 @@
 %type <rprop>    RPROP
 %type <ival>     WAVETYPE WAVEMETHOD
 %type <ival>     SCALINGTYPE SOLVERTYPE STRESSID SURFACE MOMENTTYPE SPNNLSSOLVERTYPE
-%type <ival>     SENSITIVITYID  
 %type <ldata>    LayData LayoData LayMatData
 %type <linfo>    LaycInfo LaynInfo LaydInfo LayoInfo
 %type <mftval>   MFTTInfo
@@ -246,7 +245,7 @@ Component:
 	| LoadCInfo
 	| UseCInfo
         | Control
-        | Optimization
+        | Sensitivity
         | AnalysisInfo
         | OrthoInfo
 	| AeroInfo
@@ -3235,21 +3234,21 @@ Preload:
             geoSource->setElementPreLoad( i-1, load );
         }
 	;
-Optimization:
-        OPTIMIZATION NewLine
+Sensitivity:
+        SENSITIVITY NewLine
         { domain->solInfo().sensitivity = true; }
-        | Optimization READSENSITIVITY FNAME NewLine
+        | Sensitivity READSENSITIVITY FNAME NewLine
         { domain->solInfo().readShapeSen = true;
           domain->solInfo().readInShapeSen = $3; }  
-        | Optimization TOLSEN Float NewLine
+        | Sensitivity TOLSEN Float NewLine
         { domain->solInfo().sensitivityTol = $3; }
-        | Optimization THICKNESSGROUPLIST NewLine ThicknessGroup 
+        | Sensitivity THICKNESSGROUPLIST ThicknessGroup NewLine
         { } 
   ;
 ThicknessGroup:
-        Integer NewLine
+        Integer 
         { domain->setThicknessGroup($1); }
-        | ThicknessGroup Integer NewLine
+        | ThicknessGroup Integer 
         { domain->setThicknessGroup($2); }
   ;
 Statics:

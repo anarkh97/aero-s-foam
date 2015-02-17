@@ -51,13 +51,13 @@ class EigenSolver {
     void ortho(VecType *v1, VecType *vr, int nsub, int nrbm);
     void ortho(VecSet& v1, VecSet& vr, int nsub, int nrbm);
     void absoluteInnerproductNormalized(const VecType& v1, const VecType& v2, double &result);
-    void pickMostCorrelatedModes();
+    void pickMostCorrelatedModes(Vector &, VecSet &);
     void setUp();
 //    void cleanup();
 
     virtual void initialize()=0;
     virtual void solve()=0;
-    void performQR();
+    void performQR(Vector *,VecSet *, int);
 };
 
 template <class EigOps,

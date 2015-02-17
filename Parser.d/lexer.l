@@ -234,7 +234,7 @@ TRAIL [a-zA-Z]*
 
 "USE"|"use"                        { return USE;  }
 
-"SENS"[a-zA-Z]*|"sens"[a-zA-Z]*    { return SENSORS; }
+"SENS"[a-hj-zA-HJ-Z]*|"sens"[a-hj-zA-HJ-Z]*    { return SENSORS; }
 
 "ACTU"[a-zA-Z]*|"actu"[a-zA-Z]*    { return ACTUATORS; }
 
@@ -715,11 +715,11 @@ TRAIL [a-zA-Z]*
 
 "EIGE"[a-zA-Z]*|"eige"[a-zA-Z]*    { return EIGEN; }
  
-"OPTIMIZATION"|"optimization"      { return OPTIMIZATION; }
+"SENSITIVITY"|"sensitivity"        { return SENSITIVITY; }
 
-"READSENSITIVITY"|"readsensitivity" { return READSENSITIVITY; }
+"READSE"[a-zA-Z]*|"readse"[a-zA-Z]*  { return READSENSITIVITY; }
 
-"THICKNESSGROUPLIST"|"thicknessgrouplist" { return THICKNESSGROUPLIST; }
+"THGRLI"|"thgrli"                  { return THICKNESSGROUPLIST; }
 
 "addedmass"                        { return ADDEDMASS; }
 

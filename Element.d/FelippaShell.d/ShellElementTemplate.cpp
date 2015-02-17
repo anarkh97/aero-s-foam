@@ -980,6 +980,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 // .....GET THE TANGENT CONSTITUTIVE SENSITIVITY MATRIX [D = {Dm,Dmb;Dbm,Db}] 
 
         if(i == 0 || ctyp == 4) {
+          D.setZero();
           gpmat->GetConstitutiveResponseSensitivityWRTthickness(Upsilon.data(), Sigma.data(), D.data(), eframe.data(), i);
         }
 
@@ -1780,6 +1781,7 @@ ShellElementTemplate<doublereal,Membrane,Bending>
 // .....COMPUTE THE LOCAL STRESSES AND THEIR SENSITIVITIES ON THE SPECIFIED SURFACE
 
             nmat->GetLocalConstitutiveResponse(Upsilon.data(), sigma.data(), z, eframe.data(), i, temp);
+            dsigmadh.setZero();
             nmat->GetLocalConstitutiveResponseSensitivityWRTthick(Upsilon.data(), dsigmadh.data(), dzdh, eframe.data(), i);
 
         }
